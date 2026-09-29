@@ -8,6 +8,7 @@ import {
 } from "./bridge";
 import "./style.css";
 import { WinTrayPage } from "./features/wintray";
+import { CapturePage } from "./features/capture";
 
 const pages = [
   { id: "overview", title: "概览", glyph: "◫" },
@@ -184,18 +185,22 @@ function App() {
           </section>
         )}
         {page === "wintray" && <WinTrayPage />}
-        {page !== "overview" && page !== "settings" && page !== "wintray" && (
-          <section className="empty">
-            <span className="empty-icon" aria-hidden>
-              {selected.glyph}
-            </span>
-            <h2>{module?.detail ?? "等待后台连接"}</h2>
-            <p>组件通过验证后，将在此提供设置与操作</p>
-            <button className="secondary" onClick={() => setPage("overview")}>
-              返回概览
-            </button>
-          </section>
-        )}
+        {page === "capture" && <CapturePage />}
+        {page !== "overview" &&
+          page !== "settings" &&
+          page !== "wintray" &&
+          page !== "capture" && (
+            <section className="empty">
+              <span className="empty-icon" aria-hidden>
+                {selected.glyph}
+              </span>
+              <h2>{module?.detail ?? "等待后台连接"}</h2>
+              <p>组件通过验证后，将在此提供设置与操作</p>
+              <button className="secondary" onClick={() => setPage("overview")}>
+                返回概览
+              </button>
+            </section>
+          )}
       </main>
     </div>
   );

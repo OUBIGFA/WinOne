@@ -55,6 +55,8 @@ type Runtime struct {
 	closing            bool
 	lastError          string
 	allowSystemStartup bool
+	readyName          string
+	readyRelease       func()
 }
 
 // Run keeps Walk only for its native message loop and per-program tray callbacks.
@@ -109,20 +111,19 @@ func Run(parent context.Context, pipe, dataDir string, autorun bool) error {
 	r.productExe = filepath.Join(filepath.Dir(exe), "WinOne.Host.exe")
 	r.allowSystemStartup = allowSystemStartup
 	r.manager = NewManager(store, settings, r)
-	if err = r.box.SetPaths(config.CollectedTrayIconPaths(settings)); err != nil {
-		return err
-	}
+	settings = r.manager.Snapshot().Settings
 	defer r.box.Close()
 	defer r.hosted.RestoreAll()
 	readyName := "WinOne_WinTray_Ready"
 	if !allowSystemStartup {
 		readyName += fmt.Sprintf("-%x", sha256.Sum256([]byte(dataDir)))
 	}
-	release, err := ipc.MarkReady(readyName)
-	if err != nil {
-		return err
-	}
-	defer release()
+	r.readyName = readyName
+	defer func() {
+		if r.readyRelease != nil {
+			r.readyRelease()
+		}
+	}()
 	listener, err := transport.Listen(pipe)
 	if err != nil {
 		return err
@@ -140,7 +141,10 @@ func Run(parent context.Context, pipe, dataDir string, autorun bool) error {
 	go func() { <-ctx.Done(); r.work.Wait(); window.Synchronize(func() { walk.App().Exit(0) }) }()
 	window.Starting().Attach(func() {
 		r.startJob(func() (any, error) {
-			if err := r.syncTasks(settings, false); err != nil {
+			if pending := r.manager.Snapshot().RecoveryError; pending != "" {
+				return nil, errors.New(pending)
+			}
+			if err := r.Reconcile(settings, false); err != nil {
 				return nil, err
 			}
 			if autorun && settings.RunAtLogon {
@@ -158,7 +162,10 @@ func Run(parent context.Context, pipe, dataDir string, autorun bool) error {
 				case <-ctx.Done():
 					return
 				case now := <-ticker.C:
-					r.orchestrator.EndOverduePrograms(r.manager.Snapshot().Settings.ManagedApps, now)
+					snapshot := r.manager.Snapshot()
+					if snapshot.RecoveryError == "" {
+						r.orchestrator.EndOverduePrograms(snapshot.Settings.ManagedApps, now)
+					}
 				}
 			}
 		}()
@@ -192,7 +199,17 @@ func (r *Runtime) Reconcile(settings config.Settings, allowElevated bool) error 
 	}
 	return r.onUI(func() error {
 		r.hosted.SetLanguage(settings.Language)
-		return r.box.SetPaths(config.CollectedTrayIconPaths(settings))
+		if err := r.box.SetPaths(config.CollectedTrayIconPaths(settings)); err != nil {
+			return err
+		}
+		if r.readyRelease == nil {
+			release, err := ipc.MarkReady(r.readyName)
+			if err != nil {
+				return err
+			}
+			r.readyRelease = release
+		}
+		return nil
 	})
 }
 
@@ -297,6 +314,8 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 			return fail(err)
 		}
 		result = r.startJob(func() (any, error) { return r.manager.Save(args.Revision, args.Settings) })
+	case "recover":
+		result = r.startJob(func() (any, error) { return r.manager.Recover(true) })
 	case "launch":
 		var args struct {
 			ID string `json:"id"`
@@ -304,7 +323,11 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 		if err := json.Unmarshal(request.Params, &args); err != nil {
 			return fail(err)
 		}
-		settings := r.manager.Snapshot().Settings
+		snapshot := r.manager.Snapshot()
+		if snapshot.RecoveryError != "" {
+			return fail(errors.New(snapshot.RecoveryError))
+		}
+		settings := snapshot.Settings
 		var entry *config.ManagedAppEntry
 		for _, a := range settings.ManagedApps {
 			if a.ID == args.ID {

@@ -18,6 +18,9 @@ func NewStore(path string) *Store {
 	return &Store{path: path}
 }
 
+// Path lets the integration layer keep a recovery journal beside the owned settings file.
+func (s *Store) Path() string { return s.path }
+
 func (s *Store) Load() Settings {
 	settings, _ := s.LoadWithError()
 	return settings

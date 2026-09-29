@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>WinOne.Capture</AssemblyName>
+    <RootNamespace>WinOne.Capture</RootNamespace>
+    <ApplicationIcon>../../internal/branding/icon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets/*" LogicalName="ShareX.Asset.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../internal/branding/icon.ico" LogicalName="WinOne.Capture.Icon" />
+    <None Update="Licenses/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>WinOne.Capture.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+  <ItemGroup Condition="'$(ShareXSourceDirectory)' != ''">
+    <ProjectReference Include="$(ShareXSourceDirectory)/ShareX.ScreenCaptureLib/ShareX.ScreenCaptureLib.csproj" />
+  </ItemGroup>
+  <Target Name="RequireSource" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(ShareXSourceDirectory)' == ''" Text="Run build/prepare-sharex.ps1 and pass ShareXSourceDirectory" />
+  </Target>
+</Project>

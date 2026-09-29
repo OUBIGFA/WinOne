@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -62,7 +63,11 @@ func (a *App) request(method string, params any, result any) error {
 	if err != nil {
 		return err
 	}
-	r, err := transport.Call(context.Background(), a.pipe, host.Request{Version: 1, ID: fmt.Sprint(a.sequence.Add(1)), Method: method, Params: data})
+	timeout := 5 * time.Second
+	if strings.HasPrefix(method, "capture.") {
+		timeout = 15 * time.Second
+	}
+	r, err := transport.CallWithTimeout(context.Background(), a.pipe, host.Request{Version: 1, ID: fmt.Sprint(a.sequence.Add(1)), Method: method, Params: data}, timeout)
 	if err != nil {
 		return fmt.Errorf("无法连接后台：%w", err)
 	}
@@ -96,7 +101,7 @@ func (a *App) SaveSettings(next settings.Settings) (settings.Settings, error) {
 // WinTray limits page access to the module's documented command set.
 func (a *App) WinTray(method, payload string) (string, error) {
 	switch method {
-	case "snapshot", "settings.save", "launch", "jobs.get", "icons", "icon.activate":
+	case "snapshot", "settings.save", "launch", "jobs.get", "icons", "icon.activate", "recover":
 	default:
 		return "", errors.New("不支持的程序管理操作")
 	}
@@ -118,6 +123,49 @@ func (a *App) PickProgram() (string, error) {
 		return "", errors.New("设置窗口未就绪")
 	}
 	return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{Title: "选择程序或脚本", Filters: []runtime.FileFilter{{DisplayName: "程序与脚本", Pattern: "*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw"}}})
+}
+
+// Capture forwards only supported image commands; it hides settings before starting capture.
+func (a *App) Capture(method, payload string) (string, error) {
+	switch method {
+	case "snapshot", "settings.save", "capture.start", "edit.last", "copy.last", "pin.last", "pins.close", "jobs.get":
+	default:
+		return "", errors.New("不支持的截图操作")
+	}
+	var params any
+	if err := json.Unmarshal([]byte(payload), &params); err != nil {
+		return "", err
+	}
+	hide := method == "capture.start" || method == "edit.last"
+	if hide {
+		if ctx := a.windowContext(); ctx != nil {
+			runtime.WindowHide(ctx)
+			time.Sleep(180 * time.Millisecond)
+		}
+	}
+	var result json.RawMessage
+	if err := a.request("capture."+method, params, &result); err != nil {
+		if hide {
+			a.Reveal()
+		}
+		return "", err
+	}
+	return string(result), nil
+}
+
+// Reveal restores the settings window after a UI-initiated capture finishes or is cancelled.
+func (a *App) Reveal() {
+	if ctx := a.windowContext(); ctx != nil {
+		runtime.WindowShow(ctx)
+	}
+}
+
+func (a *App) PickDirectory() (string, error) {
+	ctx := a.windowContext()
+	if ctx == nil {
+		return "", errors.New("设置窗口未就绪")
+	}
+	return runtime.OpenDirectoryDialog(ctx, runtime.OpenDialogOptions{Title: "选择截图保存目录"})
 }
 
 // ensureHost starts only the sibling binary and waits for its actual pipe readiness.

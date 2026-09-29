@@ -19,6 +19,9 @@ interface NativeApp {
   SaveSettings(value: Settings): Promise<Settings>;
   WinTray(method: string, payload: string): Promise<string>;
   PickProgram(): Promise<string>;
+  Capture(method: string, payload: string): Promise<string>;
+  PickDirectory(): Promise<string>;
+  Reveal(): Promise<void>;
 }
 declare global {
   interface Window {
@@ -49,4 +52,19 @@ export async function wintrayCall<T>(
 }
 export async function pickProgram(): Promise<string> {
   return native().PickProgram();
+}
+
+export async function captureCall<T>(
+  method: string,
+  params: unknown = null,
+): Promise<T> {
+  return JSON.parse(
+    await native().Capture(method, JSON.stringify(params)),
+  ) as T;
+}
+export async function pickDirectory(): Promise<string> {
+  return native().PickDirectory();
+}
+export async function reveal(): Promise<void> {
+  return native().Reveal();
 }

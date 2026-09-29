@@ -81,12 +81,20 @@ export function WinTrayPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [dragged, setDragged] = useState("");
-  async function reload() {
-    setError("");
+  async function reload(preserveDraft = false) {
+    if (!preserveDraft) setError("");
     try {
       const next = await wintrayCall<TraySnapshot>("snapshot");
-      setSaved(next);
-      setDraft(next.settings);
+      setSaved((current) =>
+        preserveDraft && current
+          ? {
+              ...current,
+              recoveryError: next.recoveryError,
+              backgroundError: next.backgroundError,
+            }
+          : next,
+      );
+      if (!preserveDraft) setDraft(next.settings);
       if (next.recoveryError || next.backgroundError)
         setError(next.recoveryError || next.backgroundError || "");
     } catch (e) {
@@ -177,11 +185,18 @@ export function WinTrayPage() {
         job = await wintrayCall<Job>("jobs.get", { id: job.id });
       }
       if (job.state !== "completed") throw new Error(job.error ?? "操作失败");
-      setMessage(method === "launch" ? "程序已启动" : "已保存");
+      setMessage(
+        method === "launch"
+          ? "程序已启动"
+          : method === "recover"
+            ? "设置已恢复"
+            : "已保存",
+      );
       await reload();
     } catch (e) {
       setError(String(e));
       setMessage("");
+      await reload(true);
     } finally {
       setBusy(false);
     }
@@ -205,17 +220,25 @@ export function WinTrayPage() {
       {error && (
         <div className="error" role="alert">
           {error}
+          <div>
+            <button disabled={busy} onClick={() => void reload()}>
+              放弃修改并刷新
+            </button>
+          </div>
         </div>
       )}
       <div className="module-toolbar">
-        <button disabled={busy} onClick={() => void add()}>
+        <button
+          disabled={busy || !!saved?.recoveryError}
+          onClick={() => void add()}
+        >
           添加程序
         </button>
         <span role="status">
           {busy ? message : dirty ? "有未保存的修改" : message}
         </span>
         <button
-          disabled={busy || !dirty}
+          disabled={busy || !dirty || !!saved?.recoveryError}
           onClick={() =>
             void runJob("settings.save", {
               revision: saved!.revision,
@@ -226,7 +249,15 @@ export function WinTrayPage() {
           保存修改
         </button>
       </div>
-      <fieldset disabled={busy} className="plain-fieldset">
+      {saved?.recoveryError && (
+        <button disabled={busy} onClick={() => void runJob("recover", null)}>
+          恢复上次设置
+        </button>
+      )}
+      <fieldset
+        disabled={busy || !!saved?.recoveryError}
+        className="plain-fieldset"
+      >
         <label className="check-row">
           <input
             type="checkbox"

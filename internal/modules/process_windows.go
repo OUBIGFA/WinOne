@@ -49,7 +49,7 @@ func Start(ctx context.Context, id, name, exe, pipe, dataDir string, autorun boo
 		args = append(args, "--autorun")
 	}
 	cmd := exec.Command(exe, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000, HideWindow: true}
+	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
 	cmd.Stderr = log
 	cmd.Stdout = log
 	if err = cmd.Start(); err != nil {
@@ -119,6 +119,16 @@ func (p *Process) Handle(request host.Request) host.Response {
 	if err != nil {
 		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "module_unavailable", Message: err.Error()}}
 	}
+	p.mu.Lock()
+	if p.state.State == "faulted" {
+		select {
+		case <-p.exited:
+		default:
+			p.state.State = "ready"
+			p.state.Detail = "已连接"
+		}
+	}
+	p.mu.Unlock()
 	return response
 }
 
@@ -131,6 +141,11 @@ func (p *Process) Close() error {
 	}
 	response := p.Handle(host.Request{Version: 1, ID: "shutdown", Method: "shutdown"})
 	if response.Error != nil {
+		select {
+		case <-p.exited:
+			return nil
+		default:
+		}
 		return errors.New(response.Error.Message)
 	}
 	select {

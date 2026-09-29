@@ -352,3 +352,15 @@ select {
 .muted {
   color: var(--muted);
 }
+
+.capture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+.last-capture {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+}

@@ -28,3 +28,15 @@ Host 将 `wintray.*` 转发到 WinTray Worker，保留请求 ID 并移除命名�
 | `shutdown` | 无 | 开始恢复并退出，Host 继续等待进程结束 |
 
 保存和启动的请求返回不代表任务完成，页面必须查询任务最终结果。独立测试数据目录禁止修改真实登录触发器。
+
+`recover` 恢复未完成的设置事务，返回异步任务。存在恢复记录时禁止新保存和程序启动，损坏记录不自动覆盖。
+
+## Capture
+
+Host 将 `capture.*` 转发到按需启动的 Capture Worker。首次启动允许 15 秒，其余消息仍有长度和连接期限限制。
+
+命令：`snapshot`、`settings.save`、`capture.start`、`edit.last`、`copy.last`、`pin.last`、`pins.close`、`jobs.get`、`shutdown`。
+
+`capture.start` 的 mode 为 region、window、fullscreen 或 scroll。图像操作返回任务 ID，状态为 running、completed、cancelled 或 failed。图像经本地 PNG 文件交付，管道只传递元数据；复制失败后仍保留已保存文件。
+
+正在截图或编辑时，普通 shutdown 请求会被拒绝，提示先完成或取消。空闲且没有贴图时 Worker 自动退出，下次显式操作重新启动。

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -33,10 +34,13 @@ type Manager struct {
 	current       config.Settings
 	effects       Effects
 	recoveryError string
+	pending       *transaction
 }
 
 func NewManager(store *config.Store, initial config.Settings, effects Effects) *Manager {
-	return &Manager{store: store, current: clone(initial), effects: effects}
+	m := &Manager{store: store, current: clone(initial), effects: effects}
+	m.loadTransaction(initial)
+	return m
 }
 
 func clone(s config.Settings) config.Settings {
@@ -70,18 +74,84 @@ func (m *Manager) Save(expected string, next config.Settings) (Snapshot, error) 
 	}
 	next = clone(next)
 	before := clone(m.current)
-	if err := m.store.Save(next); err != nil {
+	entry := transaction{Version: 1, Before: before, After: next}
+	if _, err := os.Stat(m.store.Path()); err == nil {
+		entry.BeforeExisted = true
+	} else if !errors.Is(err, os.ErrNotExist) {
 		return Snapshot{}, err
 	}
+	if err := m.writeTransaction(entry); err != nil {
+		return Snapshot{}, err
+	}
+	m.pending = &entry
+	if err := m.store.Save(next); err != nil {
+		return Snapshot{}, errors.Join(err, m.clearTransaction())
+	}
 	if err := m.effects.Reconcile(next, true); err != nil {
-		rollbackErr := errors.Join(m.effects.Reconcile(before, true), m.store.Save(before))
-		if rollbackErr != nil {
-			m.recoveryError = "恢复失败：" + rollbackErr.Error()
-		}
+		rollbackErr := m.rollback(true)
 		return Snapshot{}, errors.Join(err, rollbackErr)
 	}
+	entry.Committed = true
+	if err := m.writeTransaction(entry); err != nil {
+		return Snapshot{}, errors.Join(err, m.rollback(true))
+	}
+	m.pending = &entry
 	m.current = next
-	return Snapshot{Revision: revision(next), Settings: clone(next)}, nil
+	if err := m.clearTransaction(); err != nil {
+		m.recoveryError = "设置已保存，恢复记录清理失败：" + err.Error()
+	}
+	return Snapshot{Revision: revision(next), Settings: clone(next), RecoveryError: m.recoveryError}, nil
+}
+
+// Recover restores the last committed settings and their native effects after an interrupted save.
+func (m *Manager) Recover(allowElevated bool) (Snapshot, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.pending == nil {
+		if m.recoveryError != "" {
+			return Snapshot{}, errors.New(m.recoveryError)
+		}
+		return Snapshot{Revision: revision(m.current), Settings: clone(m.current)}, nil
+	}
+	disk, err := m.store.LoadWithError()
+	if err != nil {
+		return Snapshot{}, err
+	}
+	if _, statErr := os.Stat(m.store.Path()); errors.Is(statErr, os.ErrNotExist) && !m.pending.BeforeExisted {
+		disk = clone(m.pending.Before)
+	}
+	if revision(disk) != revision(m.pending.Before) && revision(disk) != revision(m.pending.After) {
+		return Snapshot{}, errors.New("配置已被外部修改，请先检查恢复记录")
+	}
+	if m.pending.Committed {
+		if revision(disk) != revision(m.pending.After) {
+			return Snapshot{}, errors.New("已提交配置与恢复记录不一致")
+		}
+		m.current = clone(m.pending.After)
+		if err = m.effects.Reconcile(m.current, allowElevated); err != nil {
+			return Snapshot{}, err
+		}
+		err = m.clearTransaction()
+	} else {
+		err = m.rollback(allowElevated)
+	}
+	if err != nil {
+		return Snapshot{}, err
+	}
+	return Snapshot{Revision: revision(m.current), Settings: clone(m.current)}, nil
+}
+
+func (m *Manager) rollback(allowElevated bool) error {
+	before := clone(m.pending.Before)
+	err := errors.Join(m.effects.Reconcile(before, allowElevated), m.store.Save(before))
+	if err == nil {
+		m.current = before
+		err = m.clearTransaction()
+	}
+	if err != nil {
+		m.recoveryError = "恢复失败：" + err.Error()
+	}
+	return err
 }
 
 // Validate rejects invalid input instead of silently changing the user's requested behavior.

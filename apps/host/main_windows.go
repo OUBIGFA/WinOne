@@ -58,6 +58,8 @@ func run() error {
 	}
 	wintray := modules.Start(ctx, "wintray", "启动与托盘", filepath.Join(filepath.Dir(executable), "WinOne.WinTray.exe"), *pipe+"-wintray", filepath.Join(*data, "modules", "wintray"), *autorun)
 	service.RegisterModule("wintray", wintray.Status, wintray.Handle)
+	capture := modules.NewLazy(ctx, "capture", "截图", filepath.Join(filepath.Dir(executable), "capture", "WinOne.Capture.exe"), *pipe+"-capture", filepath.Join(*data, "modules", "capture"))
+	service.RegisterModule("capture", capture.Status, capture.Handle)
 	result := make(chan error, 1)
 	go func() { result <- transport.Serve(ctx, listener, service); systray.Quit() }()
 	systray.Run(func() {
@@ -87,7 +89,13 @@ func run() error {
 						go func() { _ = cmd.Wait() }()
 					}
 				case <-quit.ClickedCh:
+					if err := capture.Close(); err != nil {
+						fmt.Fprintln(os.Stderr, err)
+						systray.SetTooltip(err.Error())
+						continue
+					}
 					if err := wintray.Close(); err != nil {
+						capture.Resume()
 						fmt.Fprintln(os.Stderr, err)
 						systray.SetTooltip(err.Error())
 						continue

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"os/user"
+	"strings"
 	"sync"
 	"time"
 
@@ -83,6 +84,9 @@ func serveOne(conn net.Conn, service Handler) {
 	if json.Unmarshal(data, &request) != nil {
 		return
 	}
+	if strings.HasPrefix(request.Method, "capture.") {
+		_ = conn.SetDeadline(time.Now().Add(15 * time.Second))
+	}
 	response := service.Handle(request)
 	data, err = json.Marshal(response)
 	if err != nil {
@@ -93,7 +97,12 @@ func serveOne(conn net.Conn, service Handler) {
 
 // Call uses one bounded request per connection; mutations are never automatically retried.
 func Call(ctx context.Context, name string, request host.Request) (host.Response, error) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	return CallWithTimeout(ctx, name, request, 5*time.Second)
+}
+
+// CallWithTimeout allows the desktop's first on-demand worker startup to finish.
+func CallWithTimeout(ctx context.Context, name string, request host.Request, timeout time.Duration) (host.Response, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	var response host.Response
 	conn, err := winio.DialPipeContext(ctx, name)

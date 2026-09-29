@@ -6,4 +6,4 @@
 
 PowerToys 补丁仅修正 AlwaysOnTop 的资源生成命令，使带空格的仓库路径可构建。应用补丁后用 Visual Studio MSBuild 构建 AlwaysOnTop.vcxproj，选择 Release/x64，并将 RestoreRepositoryPath 指向 checkout 根目录的 packages 绝对路径。
 
-ShareX 当前用于 `tests/capture` 的真实截图验证。正式 Capture Worker 尚未接入。
+ShareX 用于 `modules/capture`。准备脚本增加本地编辑器开关、标题适配和滚动管理器访问；贴图源码及其小范围适配保留在模块的 `Upstream/`。`tests/capture` 与 `tests/capture-unit` 提供捕获、输出和窗口生命周期验证。
