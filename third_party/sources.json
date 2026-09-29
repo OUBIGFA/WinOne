@@ -1,0 +1,14 @@
+{
+  "sharex": {
+    "repository": "https://github.com/ShareX/ShareX",
+    "tag": "v21.0.0",
+    "commit": "d2502561f63fc3ff502cacd91514e3f7f2948c74",
+    "archive": "https://codeload.github.com/ShareX/ShareX/zip/refs/tags/v21.0.0",
+    "archiveSha256": "e5c4aef36210b20dd189c9f7474a1d6ecaccb2061f8f7ae0d88909bf40197299"
+  },
+  "powertoys": {
+    "repository": "https://github.com/microsoft/PowerToys",
+    "commit": "d1362dcd60746b36f718eddf082738987910f6db",
+    "patch": "patches/powertoys-build-paths.patch"
+  }
+}

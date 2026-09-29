@@ -1,0 +1,25 @@
+# Local dependencies and outputs
+node_modules/
+dist/
+bin/
+obj/
+coverage/
+test-results/
+playwright-report/
+.vs/
+.idea/
+.DS_Store
+*.user
+*.suo
+*.log
+*.syso
+internal/branding/icon.ico
+.env
+.env.*
+!.env.example
+*.local.ps1
+*.local.json
+# Wails frontend compilation is regenerated before Go builds.
+apps/desktop/frontend/dist/
+# Keep this final: temporary trees must never be re-included.
+_temp/

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(ShareXSourceDirectory)' != ''">
+    <ProjectReference Include="$(ShareXSourceDirectory)/ShareX.ScreenCaptureLib/ShareX.ScreenCaptureLib.csproj" />
+  </ItemGroup>
+  <Target Name="RequireSource" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(ShareXSourceDirectory)' == ''" Text="Pass ShareXSourceDirectory for the pinned ShareX source checkout" />
+  </Target>
+</Project>
