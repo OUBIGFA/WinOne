@@ -1,0 +1,137 @@
+//go:build windows
+
+package orchestrator
+
+import (
+	"path/filepath"
+	"sync"
+	"syscall"
+	"unsafe"
+
+	"golang.org/x/sys/windows"
+)
+
+var (
+	user32                     = syscall.NewLazyDLL("user32.dll")
+	procEnumWindows            = user32.NewProc("EnumWindows")
+	procIsWindowVisible        = user32.NewProc("IsWindowVisible")
+	procGetWindowTextLengthW   = user32.NewProc("GetWindowTextLengthW")
+	procGetWindowTextW         = user32.NewProc("GetWindowTextW")
+	procGetClassNameW          = user32.NewProc("GetClassNameW")
+	procGetWindowThreadProcess = user32.NewProc("GetWindowThreadProcessId")
+	procGetWindow              = user32.NewProc("GetWindow")
+	procGetWindowLongPtrW      = user32.NewProc("GetWindowLongPtrW")
+	procIsIconic               = user32.NewProc("IsIconic")
+	procGetForegroundWindow    = user32.NewProc("GetForegroundWindow")
+	enumWindowsCallback        = syscall.NewCallback(enumWindowsProc)
+)
+
+const (
+	gwOwner        = 4
+	wsExToolWindow = 0x00000080
+)
+
+var gwlExStyle = int32(-20)
+
+type Win32WindowEnumerator struct{}
+
+type enumState struct {
+	result     *[]ManagedWindowInfo
+	foreground uintptr
+	processes  map[uint32][2]string
+}
+
+var enumStateMu sync.Mutex
+var activeEnum enumState
+
+func NewWin32WindowEnumerator() *Win32WindowEnumerator { return &Win32WindowEnumerator{} }
+
+func (e *Win32WindowEnumerator) EnumerateTopLevelWindows() []ManagedWindowInfo {
+	enumStateMu.Lock()
+	defer enumStateMu.Unlock()
+
+	result := make([]ManagedWindowInfo, 0)
+	foreground, _, _ := procGetForegroundWindow.Call()
+	activeEnum = enumState{result: &result, foreground: foreground, processes: make(map[uint32][2]string)}
+	defer func() { activeEnum = enumState{} }()
+	_, _, _ = procEnumWindows.Call(enumWindowsCallback, 0)
+	return result
+}
+
+func enumWindowsProc(hwnd uintptr, _ uintptr) uintptr {
+	v, _, _ := procIsWindowVisible.Call(hwnd)
+	if v == 0 {
+		return 1
+	}
+
+	*activeEnum.result = append(*activeEnum.result, windowInfo(hwnd, activeEnum.foreground, activeEnum.processes))
+	return 1
+}
+
+// windowInfo also describes hidden UI while a startup shield is active.
+// The ordinary desktop enumerator above deliberately remains visible-only.
+func windowInfo(hwnd, foreground uintptr, processes map[uint32][2]string) ManagedWindowInfo {
+	titleLen, _, _ := procGetWindowTextLengthW.Call(hwnd)
+	titleBuf := make([]uint16, titleLen+1)
+	_, _, _ = procGetWindowTextW.Call(hwnd, uintptr(unsafe.Pointer(&titleBuf[0])), uintptr(len(titleBuf)))
+
+	classBuf := make([]uint16, 256)
+	_, _, _ = procGetClassNameW.Call(hwnd, uintptr(unsafe.Pointer(&classBuf[0])), uintptr(len(classBuf)))
+
+	owner, _, _ := procGetWindow.Call(hwnd, gwOwner)
+	exStyle, _, _ := procGetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle))
+	isTool := (exStyle & wsExToolWindow) != 0
+	isMin, _, _ := procIsIconic.Call(hwnd)
+
+	var pid uint32
+	_, _, _ = procGetWindowThreadProcess.Call(hwnd, uintptr(unsafe.Pointer(&pid)))
+	info, ok := processes[pid]
+	if !ok {
+		info = [2]string{}
+		if pid != 0 {
+			info[0], info[1] = processInfo(pid)
+		}
+		if processes != nil {
+			processes[pid] = info
+		}
+	}
+
+	return ManagedWindowInfo{
+		Handle:       hwnd,
+		ProcessID:    pid,
+		ProcessName:  info[0],
+		ProcessPath:  info[1],
+		Title:        windows.UTF16ToString(titleBuf),
+		ClassName:    windows.UTF16ToString(classBuf),
+		IsVisible:    isWindowVisible(hwnd),
+		IsMinimized:  isMin != 0,
+		IsForeground: hwnd == foreground,
+		OwnerHandle:  owner,
+		IsToolWindow: isTool,
+	}
+}
+
+func processInfo(pid uint32) (string, string) {
+	if pid == 0 {
+		return "", ""
+	}
+	h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
+	if err != nil {
+		return "", ""
+	}
+	defer windows.CloseHandle(h)
+
+	buf := make([]uint16, windows.MAX_PATH)
+	sz := uint32(len(buf))
+	err = windows.QueryFullProcessImageName(h, 0, &buf[0], &sz)
+	if err != nil {
+		return "", ""
+	}
+	path := windows.UTF16ToString(buf[:sz])
+	name := filepath.Base(path)
+	ext := filepath.Ext(name)
+	if ext != "" {
+		name = name[:len(name)-len(ext)]
+	}
+	return name, path
+}

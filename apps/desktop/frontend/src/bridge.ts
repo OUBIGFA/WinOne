@@ -17,6 +17,8 @@ export interface Snapshot {
 interface NativeApp {
   Snapshot(): Promise<Snapshot>;
   SaveSettings(value: Settings): Promise<Settings>;
+  WinTray(method: string, payload: string): Promise<string>;
+  PickProgram(): Promise<string>;
 }
 declare global {
   interface Window {
@@ -35,4 +37,16 @@ export async function getSnapshot(): Promise<Snapshot> {
 }
 export async function saveSettings(value: Settings): Promise<Settings> {
   return native().SaveSettings(value);
+}
+
+export async function wintrayCall<T>(
+  method: string,
+  params: unknown = null,
+): Promise<T> {
+  return JSON.parse(
+    await native().WinTray(method, JSON.stringify(params)),
+  ) as T;
+}
+export async function pickProgram(): Promise<string> {
+  return native().PickProgram();
 }

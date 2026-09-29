@@ -7,6 +7,7 @@
 | go-winio | Windows 命名管道 | MIT |
 | fyne systray | 主托盘入口 | Apache-2.0（含原项目归属） |
 | Go x/sys | Windows 系统调用 | BSD-3-Clause |
+| WinTray | 程序启动、窗口与托盘管理 | MIT，全文见 modules/wintray/LICENSE |
 | React / React DOM | 设置界面 | MIT |
 | Vite / Vitest / TypeScript | 构建与测试 | 各项目许可证 |
 

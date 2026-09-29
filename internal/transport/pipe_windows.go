@@ -43,7 +43,11 @@ func Listen(name string) (net.Listener, error) {
 }
 
 // Serve drains accepted work on shutdown so acknowledged settings writes are not interrupted.
-func Serve(ctx context.Context, listener net.Listener, service *host.Service) error {
+type Handler interface {
+	Handle(host.Request) host.Response
+}
+
+func Serve(ctx context.Context, listener net.Listener, service Handler) error {
 	var active sync.WaitGroup
 	defer active.Wait()
 	go func() { <-ctx.Done(); _ = listener.Close() }()
@@ -68,7 +72,7 @@ func Serve(ctx context.Context, listener net.Listener, service *host.Service) er
 	}
 }
 
-func serveOne(conn net.Conn, service *host.Service) {
+func serveOne(conn net.Conn, service Handler) {
 	defer conn.Close()
 	_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
 	data, err := protocol.ReadFrame(conn)

@@ -15,6 +15,7 @@ import (
 	"winone/internal/branding"
 
 	"winone/internal/host"
+	"winone/internal/modules"
 	"winone/internal/settings"
 	"winone/internal/transport"
 )
@@ -34,6 +35,7 @@ func run() error {
 	pipe := flag.String("pipe", pipeDefault, "local pipe name")
 	data := flag.String("data-dir", filepath.Join(os.Getenv("LOCALAPPDATA"), "WinOne"), "settings directory")
 	headless := flag.Bool("headless", false, "run without tray for integration tests")
+	autorun := flag.Bool("autorun", false, "run configured login tasks")
 	flag.Parse()
 	listener, err := transport.Listen(*pipe)
 	if err != nil {
@@ -49,12 +51,22 @@ func run() error {
 	if *headless {
 		return transport.Serve(ctx, listener, host.New(store))
 	}
+	service := host.New(store)
+	executable, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	wintray := modules.Start(ctx, "wintray", "启动与托盘", filepath.Join(filepath.Dir(executable), "WinOne.WinTray.exe"), *pipe+"-wintray", filepath.Join(*data, "modules", "wintray"), *autorun)
+	service.RegisterModule("wintray", wintray.Status, wintray.Handle)
 	result := make(chan error, 1)
-	go func() { result <- transport.Serve(ctx, listener, host.New(store)); systray.Quit() }()
+	go func() { result <- transport.Serve(ctx, listener, service); systray.Quit() }()
 	systray.Run(func() {
 		systray.SetIcon(branding.Icon)
 		systray.SetTooltip("WinOne")
 		open := systray.AddMenuItem("打开 WinOne", "打开设置")
+		collected := systray.AddMenuItem("收纳的托盘图标", "程序托盘入口")
+		collected.Hide()
+		go syncCollectedMenu(ctx, collected, wintray)
 		systray.AddSeparator()
 		quit := systray.AddMenuItem("退出 WinOne", "结束后台")
 		go func() {
@@ -75,6 +87,11 @@ func run() error {
 						go func() { _ = cmd.Wait() }()
 					}
 				case <-quit.ClickedCh:
+					if err := wintray.Close(); err != nil {
+						fmt.Fprintln(os.Stderr, err)
+						systray.SetTooltip(err.Error())
+						continue
+					}
 					cancel()
 					systray.Quit()
 					return

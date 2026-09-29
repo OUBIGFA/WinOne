@@ -7,6 +7,7 @@ import {
   type Settings,
 } from "./bridge";
 import "./style.css";
+import { WinTrayPage } from "./features/wintray";
 
 const pages = [
   { id: "overview", title: "概览", glyph: "◫" },
@@ -182,7 +183,8 @@ function App() {
             </div>
           </section>
         )}
-        {page !== "overview" && page !== "settings" && (
+        {page === "wintray" && <WinTrayPage />}
+        {page !== "overview" && page !== "settings" && page !== "wintray" && (
           <section className="empty">
             <span className="empty-icon" aria-hidden>
               {selected.glyph}

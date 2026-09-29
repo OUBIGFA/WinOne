@@ -93,6 +93,33 @@ func (a *App) SaveSettings(next settings.Settings) (settings.Settings, error) {
 	return result, err
 }
 
+// WinTray limits page access to the module's documented command set.
+func (a *App) WinTray(method, payload string) (string, error) {
+	switch method {
+	case "snapshot", "settings.save", "launch", "jobs.get", "icons", "icon.activate":
+	default:
+		return "", errors.New("不支持的程序管理操作")
+	}
+	var params any
+	if err := json.Unmarshal([]byte(payload), &params); err != nil {
+		return "", err
+	}
+	var result json.RawMessage
+	if err := a.request("wintray."+method, params, &result); err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+
+// PickProgram uses the native file picker; the selected file is not executed here.
+func (a *App) PickProgram() (string, error) {
+	ctx := a.windowContext()
+	if ctx == nil {
+		return "", errors.New("设置窗口未就绪")
+	}
+	return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{Title: "选择程序或脚本", Filters: []runtime.FileFilter{{DisplayName: "程序与脚本", Pattern: "*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw"}}})
+}
+
 // ensureHost starts only the sibling binary and waits for its actual pipe readiness.
 func ensureHost(pipe, dataDir string) error {
 	probe := func() error {
