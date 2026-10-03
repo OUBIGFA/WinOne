@@ -1,5 +1,24 @@
-import { useEffect, useState } from "react";
+import {Notice} from "../ui/notice";
+import {runCaptureJob as runJob} from "./capture-draft-api";
+import {RadioGroup,RadioGroupItem} from "../components/ui/radio-group";
+import {Label} from "../components/ui/label";
+import {Tabs,TabsList,TabsTrigger,TabsContent} from "../components/ui/tabs";
+import {Checkbox} from "../components/ui/checkbox";
+import {NumberField,validNumber} from "../ui/number-field";
+import {Diagnostics} from "./diagnostics";
+import {CaptureFileName} from "./capture-filename";
+import {captureToolbarPreferences} from "./capture-toolbar-preferences";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { captureCall, pickDirectory, reveal } from "../bridge";
+import { useTranslation } from "../i18n";
+import { Button } from "../ui/button";
+import { CaptureToolbar, type CaptureAction } from "../ui/capture-toolbar";
+import { CapturePreview } from "../ui/capture-preview";
+import type { EditPreview } from "./capture-editor-model";
+import {usePageActivity,type PageActivityChanged} from "../ui/page-navigation";
+
+// Canvas code is loaded only when the user opens the annotation workspace.
+const CaptureEditor=lazy(()=>import("./capture-editor"));
 
 interface CaptureSettings {
   schemaVersion: number;
@@ -12,8 +31,13 @@ interface CaptureSettings {
   theme: string;
   scrollDelay: number;
   scrollFromTop: boolean;
+  toolbarTools?: string[] | null;
+  fileNameTemplate?: string | null;
 }
 interface CaptureOutput {
+  id?: string;
+  previewReady?: boolean;
+  previewWarning?: string;
   path: string;
   width: number;
   height: number;
@@ -26,22 +50,34 @@ interface Snapshot {
   busy: boolean;
   pins: number;
 }
-interface Job {
-  id: string;
-  state: string;
-  error?: string;
-}
-
-export function CapturePage() {
+export function CapturePage({ disabled = false,onEdit,onOpenDraft,onEditorActivity,refreshKey=0,onActivity }: { disabled?: boolean;onEdit?:(id:string)=>Promise<void>;onOpenDraft?:(id:string)=>Promise<void>;onEditorActivity?:(active:boolean)=>void;refreshKey?:number;onActivity?:PageActivityChanged }) {
+  const {t}=useTranslation();
+  const [settingsTab,setSettingsTab]=useState("general");
   const [state, setState] = useState<Snapshot>();
   const [draft, setDraft] = useState<CaptureSettings>();
+  const validScrollDelay=!!draft&&validNumber(draft.scrollDelay,100,2000);
   const [busy, setBusy] = useState(false);
+  const [scrollJob,setScrollJob]=useState<string>();
+  const [scrollStopping,setScrollStopping]=useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [editing,setEditing]=useState<CaptureOutput>();
+  const pendingSettings=!!draft&&!!state&&JSON.stringify(draft)!==JSON.stringify(state.settings);
+  usePageActivity(onActivity,pendingSettings,busy||!!editing);
+  useEffect(()=>{onEditorActivity?.(!!editing||busy||pendingSettings);return()=>onEditorActivity?.(false);},[!!editing,busy,pendingSettings]);
+  async function editImage() {
+    const image=state?.lastCapture;if(!image?.id)return;
+    if(!onEdit){setEditing(image);return;}
+    setBusy(true);setError("");
+    try{await onEdit(image.id);}catch(error){setError(String(error));}finally{setBusy(false);}
+  }
+  const imageCommands:Record<CaptureAction,string>={copy:"copy.last",save:"save.last",edit:"edit.last",pin:"pin.last",closePins:"pins.close"};
   async function reload(preserveDraft = false) {
     if (!preserveDraft) setError("");
     try {
-      const next = await captureCall<Snapshot>("snapshot");
+      const next: Snapshot = disabled
+        ? { settings: await captureCall<CaptureSettings>("settings.get"), busy: false, pins: 0 }
+        : await captureCall<Snapshot>("snapshot");
       setState((current) =>
         preserveDraft && current
           ? { ...next, settings: current.settings }
@@ -54,41 +90,51 @@ export function CapturePage() {
   }
   useEffect(() => {
     void reload();
-  }, []);
+  }, [disabled,refreshKey]);
   async function act(method: string, params: unknown = null) {
-    const hidden = method === "capture.start" || method === "edit.last";
+    const hidden = method === "capture.start" || method === "capture.unified" || method === "edit.last";
     setBusy(true);
     setError("");
-    setMessage("正在处理");
+    setMessage("capture.working");
     try {
-      let job = await captureCall<Job>(method, params);
-      while (job.state === "running") {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        job = await captureCall<Job>("jobs.get", { id: job.id });
+      const scrolling=method==="capture.unified"&&(params as {mode?:string}|null)?.mode==="scroll";
+      const job = await runJob(method, params,scrolling?setScrollJob:undefined);
+      if(method==="capture.unified"&&job.state==="completed") {
+        const result=job.result as {draftId?:string}|undefined;
+        if(result?.draftId) {
+          if(!onOpenDraft||!/^[a-f0-9]{32}$/.test(result.draftId))throw Error(t("capture.draftUnavailable"));
+          await onOpenDraft(result.draftId);
+        }
       }
-      if (job.state === "failed") throw new Error(job.error || "操作失败");
-      if (job.state !== "completed" && job.state !== "cancelled")
-        throw new Error("无法确认操作结果，请刷新状态");
-      setMessage(job.state === "cancelled" ? "已取消" : "操作完成");
+      setMessage(job.state === "cancelled" ? "capture.cancelled" : "capture.completed");
+      if((method==="save.last"||method==="edit.apply")&&job.state==="cancelled")return false;
       await reload(JSON.stringify(draft) !== JSON.stringify(state?.settings));
+      return job.state==="completed";
     } catch (e) {
       setError(String(e));
       setMessage("");
       await reload(true);
+      if(method==="edit.apply")throw e;
+      return false;
     } finally {
       setBusy(false);
-      if (hidden) await reveal();
+      setScrollJob(undefined);
+      setScrollStopping(false);
+      if (hidden) {
+        try { await reveal(); }
+        catch(error) { setError(String(error));setMessage(""); }
+      }
     }
   }
   async function save() {
-    if (!draft) return;
+    if (!draft||!validScrollDelay) return;
     setBusy(true);
     setError("");
     try {
       const next = await captureCall<CaptureSettings>("settings.save", draft);
       setDraft(next);
       setState((s) => (s ? { ...s, settings: next } : s));
-      setMessage("已保存");
+      setMessage("common.saved");
     } catch (e) {
       setError(String(e));
     } finally {
@@ -96,168 +142,144 @@ export function CapturePage() {
     }
   }
   async function browse() {
+    if(busy)return;
+    setBusy(true);setError("");setMessage("");
     try {
       const path = await pickDirectory();
       if (path) setDraft((s) => (s ? { ...s, outputDirectory: path } : s));
     } catch (e) {
       setError(String(e));
+    } finally {
+      setBusy(false);
     }
   }
-  if (!draft)
-    return (
-      <section>
-        <p role="alert">{error || "正在启动截图组件"}</p>
-        <button onClick={() => void reload()}>重新连接</button>
-      </section>
-    );
-  const dirty = JSON.stringify(draft) !== JSON.stringify(state?.settings);
+  const navigationTabs=(<TabsList className="grid max-w-full grid-cols-2 justify-start gap-1 min-[700px]:flex group-data-horizontal/tabs:h-auto" aria-label={t("capture.save")}><TabsTrigger value="general">{t("capture.after")}</TabsTrigger><TabsTrigger value="filename">{t("capture.fileNameTemplate")}</TabsTrigger><TabsTrigger value="scroll">{t("capture.scrollSettings")}</TabsTrigger><TabsTrigger value="logs">{t("diagnostics.title")}</TabsTrigger></TabsList>);
+  const unavailable=error
+    ? <Notice actions={<Button disabled={busy} onClick={()=>void reload()}>{t("common.retry")}</Button>}>{error}</Notice>
+    : <p role="status">{t("capture.loading")}</p>;
+
+
+
+  const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(state?.settings);
   return (
-    <section>
-      {error && (
-        <div className="error" role="alert">
-          {error}
-          <div>
-            <button disabled={busy} onClick={() => void reload()}>
-              放弃修改并刷新
-            </button>
-          </div>
-        </div>
+    <div className="module-sections capture-settings-page">
+      {error && draft && (
+        <Notice actions={<Button disabled={busy} onClick={() => void reload()}>{t("capture.discard")}</Button>}>{error}</Notice>
       )}
-      <div className="capture-actions">
-        {[
-          ["region", "区域截图"],
-          ["window", "窗口截图"],
-          ["fullscreen", "全屏截图"],
-          ["scroll", "滚动截图"],
-        ].map(([mode, title]) => (
-          <button
-            key={mode}
-            disabled={busy || dirty}
-            onClick={() => void act("capture.start", { mode })}
-          >
-            {title}
-          </button>
-        ))}
-      </div>
-      <p className="muted" role="status">
-        {dirty ? "请先保存设置" : message || "区域截图支持标注，按 Esc 取消"}
-      </p>
-      {state?.lastCapture && (
-        <section className="last-capture">
-          <h2>最近截图</h2>
-          <p className="program-path">{state.lastCapture.path}</p>
-          <p className="muted">
-            {state.lastCapture.width} × {state.lastCapture.height}
-          </p>
-          <div className="capture-actions">
-            <button disabled={busy} onClick={() => void act("copy.last")}>
-              复制
-            </button>
-            <button
-              disabled={busy || dirty}
-              onClick={() => void act("edit.last")}
-            >
-              编辑
-            </button>
-            <button disabled={busy} onClick={() => void act("pin.last")}>
-              贴到屏幕
-            </button>
-            <button disabled={busy} onClick={() => void act("pins.close")}>
-              关闭全部贴图
-            </button>
-          </div>
-        </section>
-      )}
-      <h2>截图后</h2>
-      <fieldset className="plain-fieldset" disabled={busy}>
+      <section className="module-section">
+      <Tabs value={settingsTab} onValueChange={value=>setSettingsTab(String(value))}>{navigationTabs}<TabsContent value="general" className="pt-5">{draft?<fieldset className="plain-fieldset" disabled={busy}>
+<RadioGroup aria-label={t("capture.workflow")} value={draft.openEditor?"edit":"save"} disabled={busy} onValueChange={value=>setDraft({...draft,openEditor:value==="edit",askWhereToSave:value==="edit"?draft.askWhereToSave:false})} className="gap-3 py-4">
+  <div className="flex items-center gap-2"><RadioGroupItem id="capture-edit-first" value="edit"/><Label htmlFor="capture-edit-first">{t("capture.editFirst")}</Label></div>
+  <div className="flex items-center gap-2"><RadioGroupItem id="capture-quick-save" value="save"/><Label htmlFor="capture-quick-save">{t("capture.quickSave")}</Label></div>
+</RadioGroup>
         <label className="check-row">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={draft.copyToClipboard}
-            onChange={(e) =>
-              setDraft({ ...draft, copyToClipboard: e.target.checked })
+            onCheckedChange={(checked) =>
+              setDraft({ ...draft, copyToClipboard: checked })
             }
           />
-          复制到剪贴板
+          {t("capture.clipboard")}
         </label>
+
         <label className="check-row">
-          <input
-            type="checkbox"
-            checked={draft.openEditor}
-            onChange={(e) =>
-              setDraft({ ...draft, openEditor: e.target.checked })
-            }
-          />
-          打开编辑器
-        </label>
-        <label className="check-row">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={draft.pinAfterCapture}
-            onChange={(e) =>
-              setDraft({ ...draft, pinAfterCapture: e.target.checked })
+            onCheckedChange={(checked) =>
+              setDraft({ ...draft, pinAfterCapture: checked })
             }
           />
-          贴到屏幕
+          {t("capture.pin")}
         </label>
-        <label className="check-row">
-          <input
-            type="checkbox"
+{draft.openEditor&&        <label className="check-row">
+          <Checkbox
             checked={draft.askWhereToSave}
-            onChange={(e) =>
-              setDraft({ ...draft, askWhereToSave: e.target.checked })
+            onCheckedChange={(checked) =>
+              setDraft({ ...draft, askWhereToSave: checked })
             }
           />
-          每次选择保存位置
-        </label>
+          {t("capture.chooseEveryTime")}
+        </label>}
         <div className="setting-row">
           <div>
-            <label htmlFor="capture-path">保存目录</label>
+            <span>{t("capture.directory")}</span>
             <p className="program-path" id="capture-path">
               {draft.outputDirectory}
             </p>
           </div>
-          <button onClick={() => void browse()}>选择目录</button>
+          <Button aria-describedby="capture-path" onClick={() => void browse()}>{t("capture.chooseDirectory")}</Button>
         </div>
-        <div className="setting-row">
-          <label htmlFor="capture-theme">编辑器主题</label>
-          <select
-            id="capture-theme"
-            value={draft.theme}
-            onChange={(e) => setDraft({ ...draft, theme: e.target.value })}
-          >
-            <option value="system">跟随系统</option>
-            <option value="light">浅色</option>
-            <option value="dark">深色</option>
-          </select>
-        </div>
-        <h2>滚动截图</h2>
+        </fieldset>:unavailable}</TabsContent><TabsContent value="filename" className="pt-5">{draft?<fieldset className="plain-fieldset" disabled={busy}>
+        <CaptureFileName value={draft.fileNameTemplate??""} onChange={value=>setDraft({...draft,fileNameTemplate:value})}/>
+        </fieldset>:unavailable}</TabsContent><TabsContent value="scroll" className="space-y-5 pt-5">{draft?<fieldset className="plain-fieldset space-y-5" disabled={busy}>
         <label className="check-row">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={draft.scrollFromTop}
-            onChange={(e) =>
-              setDraft({ ...draft, scrollFromTop: e.target.checked })
+            onCheckedChange={(checked) =>
+              setDraft({ ...draft, scrollFromTop: checked })
             }
           />
-          从窗口顶部开始
+          {t("capture.fromTop")}
         </label>
-        <label className="number-field">
-          滚动间隔（毫秒）
-          <input
-            type="number"
-            min={100}
-            max={2000}
-            value={draft.scrollDelay}
-            onChange={(e) =>
-              setDraft({ ...draft, scrollDelay: Number(e.target.value) })
-            }
-          />
-        </label>
-        <button disabled={!dirty} onClick={() => void save()}>
-          保存设置
-        </button>
-      </fieldset>
-    </section>
+        <NumberField id="capture-scroll-delay" label={t("capture.delay")} min={100} max={2000} value={draft.scrollDelay} onChange={value=>setDraft({...draft,scrollDelay:value})}/>
+        </fieldset>:unavailable}</TabsContent><TabsContent value="logs" className="pt-5">{settingsTab==="logs"&&<Diagnostics moduleId="capture"/>}</TabsContent></Tabs>
+        {draft&&settingsTab!=="logs"&&<div className="pt-6">
+          {!validScrollDelay&&settingsTab!=="scroll"&&<Notice actions={<Button onClick={()=>{setSettingsTab("scroll");requestAnimationFrame(()=>document.getElementById("capture-scroll-delay")?.focus());}}>{t("capture.checkScrollDelay")}</Button>}>{t("capture.invalidScrollDelay")}</Notice>}
+          <Button variant="primary" disabled={busy||!dirty||!validScrollDelay} onClick={() => void save()}>{t("capture.save")}</Button></div>}
+      </section>
+      {draft&&<section className="module-section" aria-label={t("nav.capture")}>
+      <h2 className="section-heading">{t("nav.capture")}</h2>
+      {disabled && <p className="muted">{t("capture.disabled")}</p>}
+      {busy&&scrollJob&&<div role="status" className="flex items-center gap-3"><span>{t("capture.scrolling")}</span><Button busy={scrollStopping} onClick={()=>{
+        setScrollStopping(true);
+        void captureCall<{stopping:boolean}>("scroll.stop",{id:scrollJob}).then(result=>{if(!result.stopping)setScrollStopping(false);}).catch(error=>{setScrollStopping(false);setError(String(error));});
+      }}>{t("capture.stopScroll")}</Button></div>}
+      {!disabled && <div className="capture-actions">
+        {[
+          ["window", "capture.window"],
+          ["region", "capture.region"],
+          ["fullscreen", "capture.fullscreen"],
+          ["scroll", "capture.scroll"],
+        ].map(([mode, title]) => (
+          <Button
+            key={mode}
+            variant={mode==="window"?"primary":"secondary"}
+            disabled={busy || dirty}
+            onClick={() => void act(onOpenDraft?"capture.unified":"capture.start", { mode })}
+          >
+            {t(title)}
+          </Button>
+        ))}
+      </div>}
+      <p className="muted" role="status">
+        {dirty ? t("capture.saveFirst") : message ? t(message) : (disabled ? "" : t("capture.hint"))}
+      </p>
+      {!disabled && state?.lastCapture && (
+        <section className="last-capture">
+          <h2>{t("capture.recent")}</h2>
+          <CapturePreview key={state.lastCapture.id} id={state.lastCapture.id} ready={state.lastCapture.previewReady} width={state.lastCapture.width} height={state.lastCapture.height} onRefresh={()=>void reload(true)}/>
+          {state.lastCapture.previewWarning&&<Notice  tone="info">{state.lastCapture.previewWarning}</Notice>}
+          <p className="program-path">{state.lastCapture.path}</p>
+          <p className="muted">
+            {state.lastCapture.width} × {state.lastCapture.height}
+          </p>
+          <CaptureToolbar busy={busy} canEdit={!dirty} hasPins={(state?.pins??0)>0} onAction={action=>action==="edit"&&onEdit?void editImage():void act(imageCommands[action],action==="closePins"?null:{expectedId:state.lastCapture?.id})}/>
+          {!onEdit&&state.lastCapture.id&&state.lastCapture.previewReady&&<Button disabled={busy||dirty} onClick={()=>void editImage()}>{t("capture.annotate")}</Button>}
+        </section>
+      )}
+      {editing?.id&&<Suspense fallback={<p role="status">{t("capture.working")}</p>}><CaptureEditor toolbarPort={captureToolbarPreferences} key={editing.id} image={{id:editing.id,width:editing.width,height:editing.height}} onClose={()=>setEditing(undefined)} onPreview={async document=>{
+        const job=await runJob("edit.preview",{expectedId:editing.id,document});
+        const result=job.result as EditPreview|undefined;
+        if(job.state!=="completed"||!result||!/^[a-f0-9]{32}$/.test(result.id)||result.sourceId!==editing.id||result.width!==(document.crop?.width??document.width)||result.height!==(document.crop?.height??document.height))throw new Error(t("capture.previewFailed"));
+        return result;
+      }} onSave={async document=>{
+        // Bind the whole edit session to its source, even if another capture
+        // becomes current while the save dialog is open.
+        return await act("edit.apply",{expectedId:editing.id,document})===true;
+      }}/></Suspense>}
+
+
+      </section>}
+    </div>
   );
 }

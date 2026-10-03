@@ -6,10 +6,13 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"winone/internal/catalog"
 	"winone/internal/settings"
 )
 
 type Request struct {
+	// PeerPID is supplied by the local transport, never by serialized input.
+	PeerPID uint32          `json:"-"`
 	Version int             `json:"version"`
 	ID      string          `json:"id"`
 	Method  string          `json:"method"`
@@ -31,21 +34,92 @@ type Module struct {
 	Detail string `json:"detail"`
 }
 type Snapshot struct {
-	Settings settings.Settings `json:"settings"`
-	Modules  []Module          `json:"modules"`
+	Settings       settings.Settings `json:"settings"`
+	Modules        []Module          `json:"modules"`
+	Locale         string            `json:"locale,omitempty"`
+	Administrator  bool              `json:"administrator"`
+	RuntimeWarning string            `json:"runtimeWarning,omitempty"`
+	RestartPending bool              `json:"restartPending,omitempty"`
 }
 type moduleBinding struct {
 	status func() Module
 	handle func(Request) Response
 }
+
+// SettingsStore permits the Host to migrate persistence without changing UI RPCs.
+type SettingsStore interface {
+	Snapshot() settings.Settings
+	Save(settings.Settings) (settings.Settings, error)
+}
 type Service struct {
-	settings *settings.Store
-	mu       sync.RWMutex
-	modules  map[string]moduleBinding
+	settings        SettingsStore
+	mu              sync.RWMutex
+	modules         map[string]moduleBinding
+	settingsMu      sync.Mutex
+	settingsChanged func(settings.Settings)
+	features        []catalog.Manifest
+	locale          func(settings.Settings) string
+	administrator   bool
+	runtimeWarning  func() string
+	restartPending  func() bool
 }
 
-func New(store *settings.Store) *Service {
-	return &Service{settings: store, modules: map[string]moduleBinding{}}
+func (s *Service) SetRestartPendingResolver(resolve func() bool) { s.restartPending = resolve }
+
+// Configured before serving requests; runtime failures are not saved preferences.
+func (s *Service) SetRuntimeWarningResolver(resolve func() string) { s.runtimeWarning = resolve }
+
+func (s *Service) SetAdministrator(value bool) { s.mu.Lock(); s.administrator = value; s.mu.Unlock() }
+
+// SetLocaleResolver is configured before serving requests; the shell does not
+// independently guess a locale that could disagree with native module menus.
+func (s *Service) SetLocaleResolver(resolve func(settings.Settings) string) { s.locale = resolve }
+
+// OnSettingsChanged installs the Host's runtime preference observer before serving clients.
+func (s *Service) OnSettingsChanged(callback func(settings.Settings)) { s.settingsChanged = callback }
+
+func New(store SettingsStore) *Service {
+	return &Service{settings: store, modules: map[string]moduleBinding{}, features: catalog.Builtins()}
+}
+
+// FeatureCatalog is the shared registered-feature source for navigation and
+// lifecycle controls. Callers receive copies and cannot mutate registration.
+func (s *Service) FeatureCatalog() []catalog.Manifest {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	manifests := make([]catalog.Manifest, len(s.features))
+	for i, manifest := range s.features {
+		manifests[i] = manifest.Clone()
+	}
+	return manifests
+}
+
+// RegisterFeature is an internal registration boundary, not an RPC installation API.
+// Callers must verify package trust and dependencies before supplying external manifests.
+func (s *Service) RegisterFeature(manifest catalog.Manifest, status func() Module, handle func(Request) Response) error {
+	if err := manifest.Validate(); err != nil {
+		return err
+	}
+	if status == nil || handle == nil {
+		return errors.New("module callbacks are required")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, existing := range s.features {
+		if existing.ID == manifest.ID || strings.HasPrefix(existing.ID, manifest.ID+".") || strings.HasPrefix(manifest.ID, existing.ID+".") {
+			return errors.New("module namespace overlaps an existing module")
+		}
+	}
+	// Longest-prefix routing also makes parent/child service names overlap.
+	// Validate every installed service before changing either registration map.
+	for namespace := range s.modules {
+		if namespace == manifest.ID || strings.HasPrefix(namespace, manifest.ID+".") || strings.HasPrefix(manifest.ID, namespace+".") {
+			return errors.New("module namespace overlaps an existing service")
+		}
+	}
+	s.features = append(s.features, manifest.Clone())
+	s.modules[manifest.ID] = moduleBinding{status, handle}
+	return nil
 }
 
 // RegisterModule binds one namespace; feature implementations remain outside the Host.
@@ -65,24 +139,31 @@ func (s *Service) Handle(r Request) Response {
 	if r.ID == "" {
 		return fail("invalid", "缺少请求标识")
 	}
-	if module, method, ok := strings.Cut(r.Method, "."); ok && module != "settings" {
-		s.mu.RLock()
-		binding, exists := s.modules[module]
-		s.mu.RUnlock()
-		if exists {
-			r.Method = method
-			return binding.handle(r)
+	// Qualified extension IDs contain dots; select the longest registered namespace.
+	s.mu.RLock()
+	var routed moduleBinding
+	matched := ""
+	for namespace, binding := range s.modules {
+		if strings.HasPrefix(r.Method, namespace+".") && len(namespace) > len(matched) {
+			matched = namespace
+			routed = binding
 		}
+	}
+	s.mu.RUnlock()
+	if matched != "" {
+		r.Method = strings.TrimPrefix(r.Method, matched+".")
+		return routed.handle(r)
 	}
 	var result any
 	switch r.Method {
+	case "modules.catalog":
+		result = s.FeatureCatalog()
 	case "snapshot":
-		modules := []Module{
-			{"capture", "截图", "unavailable", "截图组件尚未接入"},
-			{"always-on-top", "窗口置顶", "unavailable", "置顶组件尚未接入"},
-			{"wintray", "启动与托盘", "unavailable", "WinTray 组件尚未接入"},
-		}
 		s.mu.RLock()
+		modules := make([]Module, 0, len(s.features))
+		for _, m := range s.features {
+			modules = append(modules, Module{ID: m.ID, Name: m.Name.Chinese, State: "unavailable", Detail: "组件未就绪"})
+		}
 		bindings := make(map[string]moduleBinding, len(s.modules))
 		for id, b := range s.modules {
 			bindings[id] = b
@@ -93,8 +174,26 @@ func (s *Service) Handle(r Request) Response {
 				modules[i] = binding.status()
 			}
 		}
-		result = Snapshot{Settings: s.settings.Snapshot(), Modules: modules}
+		locale := ""
+		global := s.settings.Snapshot()
+		if s.locale != nil {
+			locale = s.locale(global)
+		}
+		s.mu.RLock()
+		administrator := s.administrator
+		s.mu.RUnlock()
+		warning := ""
+		if s.runtimeWarning != nil {
+			warning = s.runtimeWarning()
+		}
+		pending := false
+		if s.restartPending != nil {
+			pending = s.restartPending()
+		}
+		result = Snapshot{Settings: global, Modules: modules, Locale: locale, Administrator: administrator, RuntimeWarning: warning, RestartPending: pending}
 	case "settings.save":
+		s.settingsMu.Lock()
+		defer s.settingsMu.Unlock()
 		var next settings.Settings
 		if err := json.Unmarshal(r.Params, &next); err != nil {
 			return fail("invalid", "设置格式无效")
@@ -107,6 +206,9 @@ func (s *Service) Handle(r Request) Response {
 			return fail("save_failed", err.Error())
 		}
 		result = saved
+		if s.settingsChanged != nil {
+			s.settingsChanged(saved)
+		}
 	default:
 		return fail("unknown_method", "不支持的操作")
 	}

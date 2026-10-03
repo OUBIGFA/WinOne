@@ -166,3 +166,23 @@ func migrate(settings Settings) Settings {
 	}
 	return settings
 }
+
+// DecodeImport applies the same legacy conversions as loading, without touching the source file.
+// Unknown future schemas are rejected rather than silently interpreted as this version.
+func DecodeImport(data []byte) (Settings, error) {
+	var header struct {
+		SchemaVersion int             `json:"schemaVersion"`
+		ManagedApps   json.RawMessage `json:"managedApps"`
+	}
+	if err := json.Unmarshal(data, &header); err != nil {
+		return Settings{}, err
+	}
+	if header.SchemaVersion < 0 || header.SchemaVersion > 3 || len(header.ManagedApps) == 0 || string(header.ManagedApps) == "null" {
+		return Settings{}, errors.New("不是受支持的 WinTray 配置文件")
+	}
+	decoded := Settings{StartupIntervalSeconds: DefaultStartupIntervalSeconds}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return Settings{}, err
+	}
+	return migrate(decoded), nil
+}

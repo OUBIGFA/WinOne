@@ -1,0 +1,30 @@
+/* Temporary aliases for pages being migrated; colors come from shadcn. */
+:root {
+  color-scheme: light;
+  --surface: var(--background);
+  --panel: var(--card);
+  --text: var(--foreground);
+  --line: var(--border);
+  --hover: var(--accent);
+  --accent-text: var(--primary-foreground);
+  --control-muted: var(--muted-foreground);
+  --danger: var(--destructive);
+  --danger-text: var(--destructive-foreground, var(--background));
+  --radius-control: var(--radius);
+  --control-height: 36px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --motion-control: 150ms;
+  font-synthesis: none;
+}
+:root[data-theme="dark"] { color-scheme: dark; }
+@media (forced-colors: active) {
+  :root, :root[data-theme="dark"] {
+    --surface: Canvas; --panel: Canvas; --text: CanvasText;
+    --line: ButtonBorder; --hover: ButtonFace; --accent-text: HighlightText;
+    --danger: CanvasText; --danger-text: Canvas;
+  }
+}

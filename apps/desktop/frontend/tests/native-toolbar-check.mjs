@@ -1,0 +1,32 @@
+import {readNativeState} from "./native-state.mjs";
+import {createRequire} from "node:module";
+import {readFile,writeFile} from "node:fs/promises";
+import {resolve} from "node:path";
+const require=createRequire(import.meta.url),{chromium}=require(process.env.WINONE_PLAYWRIGHT_MODULE||"playwright");
+const output=process.env.WINONE_NATIVE_PROBE_OUTPUT;
+if(!output)throw Error("Set WINONE_NATIVE_PROBE_OUTPUT to the isolated probe output");
+const browser=await chromium.connectOverCDP(process.env.WINONE_NATIVE_PROBE_CDP||"http://127.0.0.1:43192");
+try{
+ const page=browser.contexts()[0].pages()[0];
+ const panel=page.locator("[data-native-window]");await panel.waitFor();
+ const window=await panel.getAttribute("data-native-window");
+ await page.getByRole("button",{name:"撤销",exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector("[data-annotations]").dataset.annotations==="0");
+ await page.getByRole("button",{name:"重做",exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector("[data-annotations]").dataset.annotations==="1");
+ await page.getByRole("button",{name:"保存",exact:true}).click();
+ await page.waitForFunction(()=>!document.querySelector("button").disabled);
+ await page.getByRole("button",{name:"模糊",exact:true}).click();
+ await page.waitForFunction(()=>[...document.querySelectorAll("button")].some(button=>button.textContent==="模糊"&&button.getAttribute("aria-pressed")==="true"));
+ if(await panel.getAttribute("data-native-window")!==window)throw Error("Native image window changed");
+ const noBrowserCanvas=await page.locator("canvas,img").count()===0;
+ if(!noBrowserCanvas)throw Error("Browser took over image rendering");
+ await page.screenshot({path:resolve(output,"toolbar.png")});
+ const state=(await readNativeState(resolve(output,"state.json")));
+ if(state.annotations!==1||state.saved!==1)throw Error("Native command results differ from the UI");
+ if(state.nativeWindow!==window||state.initialNativeWindow!==window||state.toolbarRoot!==window)throw Error("Live native handles do not belong to the original image window");
+ await writeFile(resolve(output,"verification.json"),JSON.stringify({sameWindow:true,noBrowserCanvas,state},null,2));
+ const closed=page.waitForEvent("close",{timeout:10000});
+ await page.getByRole("button",{name:"取消",exact:true}).click();await closed;
+ console.log("PASS: real shadcn controls drive native history, rendering and tool selection in one native window");
+}finally{await browser.close();}

@@ -8,12 +8,10 @@ import (
 	"image"
 	_ "image/png"
 	"sync"
+	productbranding "winone/internal/branding"
 
 	"github.com/lxn/walk"
 )
-
-//go:embed assets/logo.png
-var logoPNG []byte
 
 // github.png is generated from assets/github.svg by build/svg2png.py.
 //
@@ -32,7 +30,7 @@ var (
 
 func AppIcon() (*walk.Icon, error) {
 	appIconOnce.Do(func() {
-		appIcon, appIconErr = decodeIcon(logoPNG, 96)
+		appIcon, appIconErr = decodeIcon(productbranding.NativeLogo, 96)
 	})
 
 	return appIcon, appIconErr

@@ -1,0 +1,63 @@
+// @vitest-environment jsdom
+import {afterEach,expect,it,vi} from "vitest";
+import {act,cleanup,render,screen,waitFor} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import {useState} from "react";
+import {usePageActivity,usePageNavigation,type SettingsClosePort} from "./page-navigation";
+import {setApplicationLanguage} from "../i18n";
+
+afterEach(async()=>{cleanup();await setApplicationLanguage("zh-CN");});
+function Editor({onActivity}:{onActivity:(dirty:boolean,busy:boolean)=>void}) {
+ const [value,setValue]=useState("saved"),[busy,setBusy]=useState(false);
+ usePageActivity(onActivity,value!=="saved",busy);
+ return <><input aria-label="draft" value={value} onChange={e=>setValue(e.target.value)}/><button onClick={()=>setValue("saved")}>save</button><button onClick={()=>setBusy(!busy)}>work</button></>;
+}
+function Preview({port}:{port?:SettingsClosePort}) {
+ const [page,setPage]=useState("edit");
+ const navigation=usePageNavigation(page,setPage,port);
+ return <><button onClick={()=>navigation.requestPage("next")}>next</button><p>{page}</p>{page==="edit"&&<Editor onActivity={navigation.onActivity}/>} {navigation.dialog}</>;
+}
+it("keeps edits when navigation is cancelled and discards only on confirmation",async()=>{
+ render(<Preview/>);const user=userEvent.setup();
+ await user.type(screen.getByLabelText("draft")," changed");await user.click(screen.getByText("next",{selector:"button"}));
+ await screen.findByRole("dialog");await user.click(screen.getByRole("button",{name:"继续编辑"}));
+ expect((screen.getByLabelText("draft") as HTMLInputElement).value).toBe("saved changed");
+ await user.click(screen.getByText("next",{selector:"button"}));await user.click(screen.getByRole("button",{name:"放弃并离开"}));
+ expect(screen.queryByLabelText("draft")).toBeNull();
+});
+
+it("protects a native window close and preserves edits on cancel",async()=>{
+ let requestClose=()=>{};
+ const port:SettingsClosePort={setActivity:vi.fn().mockResolvedValue(undefined),pending:async()=>false,subscribe:listener=>{requestClose=listener;return()=>{};},cancel:vi.fn().mockResolvedValue(undefined),approve:vi.fn().mockResolvedValue(undefined)};
+ render(<Preview port={port}/>);const user=userEvent.setup();await user.type(screen.getByLabelText("draft")," changed");
+ act(()=>requestClose());await screen.findByRole("dialog");await user.click(screen.getByRole("button",{name:"继续编辑"}));
+ expect(port.cancel).toHaveBeenCalledOnce();expect((screen.getByLabelText("draft") as HTMLInputElement).value).toBe("saved changed");expect(port.approve).not.toHaveBeenCalled();
+ act(()=>requestClose());await user.click(await screen.findByRole("button",{name:"放弃并关闭"}));
+ await waitFor(()=>expect(port.approve).toHaveBeenCalledOnce());
+});
+
+it("keeps the draft and dialog when the close acknowledgement fails",async()=>{
+ let requestClose=()=>{};
+ const port:SettingsClosePort={setActivity:async()=>{},pending:async()=>false,subscribe:listener=>{requestClose=listener;return()=>{};},cancel:async()=>{},approve:async()=>{throw Error("close failed");}};
+ render(<Preview port={port}/>);const user=userEvent.setup();await user.type(screen.getByLabelText("draft")," changed");act(()=>requestClose());
+ await user.click(await screen.findByRole("button",{name:"放弃并关闭"}));expect((await screen.findByRole("alert")).textContent).toContain("close failed");
+ expect((screen.getByLabelText("draft") as HTMLInputElement).value).toBe("saved changed");expect(screen.queryByRole("dialog")).not.toBeNull();
+});
+it("does not interrupt a running operation",async()=>{
+ render(<Preview/>);const user=userEvent.setup();await user.click(screen.getByText("work"));await user.click(screen.getByText("next",{selector:"button"}));
+ expect((await screen.findByRole("dialog")).textContent).toContain("操作尚未完成");expect(screen.queryByRole("button",{name:"放弃并离开"})).toBeNull();
+ await user.click(screen.getByRole("button",{name:"留在此页"}));expect(screen.getByLabelText("draft")).not.toBeNull();
+});
+it("leaves a saved page without confirmation",async()=>{
+ render(<Preview/>);const user=userEvent.setup();await user.type(screen.getByLabelText("draft")," changed");await user.click(screen.getByText("save"));await user.click(screen.getByText("next",{selector:"button"}));
+ expect(screen.queryByRole("dialog")).toBeNull();expect(screen.queryByLabelText("draft")).toBeNull();
+});
+
+it("keeps another section's unsaved changes when one section becomes clean",async()=>{
+ function MultipleSections(){
+  const [page,setPage]=useState("edit");const navigation=usePageNavigation(page,setPage);
+  return <><button onClick={()=>navigation.onActivity(true,false,"preferences")}>edit preferences</button><button onClick={()=>navigation.onActivity(false,false,"shortcuts")}>clean shortcuts</button><button onClick={()=>navigation.requestPage("next")}>leave</button>{navigation.dialog}<p>{page}</p></>;
+ }
+ render(<MultipleSections/>);const user=userEvent.setup();await user.click(screen.getByText("edit preferences"));await user.click(screen.getByText("clean shortcuts"));await user.click(screen.getByText("leave"));
+ expect(await screen.findByRole("dialog")).toBeTruthy();expect(screen.getByText("edit",{selector:"p"})).toBeTruthy();
+});

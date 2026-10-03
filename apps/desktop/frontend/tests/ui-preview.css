@@ -1,0 +1,12 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-size: 15px; line-height: 1.5; }
+main { max-width: 840px; margin: 48px auto; padding: 0 28px; }
+header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+.theme-setting { display: flex; align-items: center; gap: 12px; }
+h1 { font-size: 26px; font-weight: 600; margin: 4px 0; }
+main > section > h2 { font-size: 17px; font-weight: 500; margin: 0 0 18px; }
+section { padding: 24px 0; border-top: 1px solid var(--line); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.setting { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; }
+footer, small { color: var(--muted-foreground); }
+footer { border-top: 1px solid var(--line); padding-top: 20px; font-size: 14px; }

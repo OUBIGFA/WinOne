@@ -1,0 +1,783 @@
+{
+  "schemaVersion": 1,
+  "components": [
+    {
+      "kind": "go",
+      "name": "golang.org/x/mod",
+      "version": "v0.37.0",
+      "notices": [{"sourceFile":"LICENSE","file":"licenses/toolchain-Go-LICENSE.txt","sha256":"911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"}]
+    },
+    {
+      "kind": "upstream",
+      "name": "Simple Icons (GitHub)",
+      "version": "1089fb7d2bf0e323f834c205ab76265005a6d5e8",
+      "notices": [{"sourceFile":"LICENSE.md","file":"licenses/simple-icons-1089fb7-LICENSE.txt","sha256":"9046848b63a5c92bff14e4accca80bd987e0623b74adf9226ce5198d312b79d5"}]
+    },
+    {
+      "kind": "toolchain",
+      "name": "Go",
+      "version": "go1.26.2",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/toolchain-Go-LICENSE.txt",
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "fyne.io/systray",
+      "version": "v1.12.2",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/systray-Apache-2.0.txt",
+          "sha256": "a106bc9f4d5d7d91d5173e86d0864fcf061c33a30cc237710b8f4a05cf127021"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/godbus/dbus/v5",
+      "version": "v5.1.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-godbus-dbus-v5-LICENSE.txt",
+          "sha256": "e4646a82a976369d7ae8f6ed5c11d35dc0af18433a8ccc24c85b459ad8b95128"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/leaanthony/go-ansi-parser",
+      "version": "v1.6.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-leaanthony-go-ansi-parser-LICENSE.txt",
+          "sha256": "d0817a3112cb46c57b987f58db0d8c71ca99f26d448a351073e3d69b6702e541"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/leaanthony/slicer",
+      "version": "v1.6.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-leaanthony-slicer-LICENSE.txt",
+          "sha256": "6ec71bfac83b3a260158e53408a81392f84982fe19c43b4c2b6e2b6f0b44457b"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/leaanthony/u",
+      "version": "v1.1.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-leaanthony-u-LICENSE.txt",
+          "sha256": "ff3448b5ffd013b261466bb5d7898094a845756f8a69773331ebbf66518f4109"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/lxn/walk",
+      "version": "v0.0.0-20210112085537-c389da54e794",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-lxn-walk-LICENSE.txt",
+          "sha256": "e5eb49344b2714fdc0f2536a7ff682c3ee2d38bfac020201052817069e1fffa3"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/lxn/win",
+      "version": "v0.0.0-20210218163916-a377121e959e",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-lxn-win-LICENSE.txt",
+          "sha256": "477325a745ae8d13ecc36399645c702a16062e8e05952a2286b46e74ff51d0a8"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/Microsoft/go-winio",
+      "version": "v0.6.2",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-Microsoft-go-winio-LICENSE.txt",
+          "sha256": "cf248820bf1178370bb4f1670a59f8748d46bc96d0f64080cd631511c6046409"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/pkg/errors",
+      "version": "v0.9.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-pkg-errors-LICENSE.txt",
+          "sha256": "8d427fd87bc9579ea368fde3d49f9ca22eac857f91a9dec7e3004bdfab7dee86"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/rivo/uniseg",
+      "version": "v0.4.7",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.txt",
+          "file": "licenses/go-github-com-rivo-uniseg-LICENSE-txt.txt",
+          "sha256": "a59885f5f0f3b3c07cf9444db5fe399b6f0791eac82055f7b85cc65500551039"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/wailsapp/go-webview2",
+      "version": "v1.0.22",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-wailsapp-go-webview2-LICENSE.txt",
+          "sha256": "3f10f3374cf30076196eb239667ce6063c64e4275afd2b397f6343f69676bb79"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/wailsapp/wails/v2",
+      "version": "v2.14.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-wailsapp-wails-v2-LICENSE.txt",
+          "sha256": "cede95c28e6e9d67d1c1e49e8ba3c20250c7d4080c3faca1579b6732327ae40d"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "golang.org/x/sys",
+      "version": "v0.47.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/toolchain-Go-LICENSE.txt",
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "gopkg.in/Knetic/govaluate.v3",
+      "version": "v3.0.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-gopkg-in-Knetic-govaluate-v3-LICENSE.txt",
+          "sha256": "454316e69743fb6796f1ba5f7ec815a06cbdf21a7a9ee5d2aecdea2e17b03059"
+        }
+      ]
+    },
+    {
+      "kind": "runtime",
+      "name": "Microsoft.NETCore.App",
+      "version": "10.0.7",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.TXT",
+          "file": "licenses/runtime-Microsoft-NETCore-App-LICENSE-TXT.txt",
+          "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+        },
+        {
+          "sourceFile": "THIRD-PARTY-NOTICES.TXT",
+          "file": "licenses/runtime-Microsoft-NETCore-App-THIRD-PARTY-NOTICES-TXT.txt",
+          "sha256": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+        }
+      ]
+    },
+    {
+      "kind": "runtime",
+      "name": "Microsoft.WindowsDesktop.App",
+      "version": "10.0.7",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/runtime-Microsoft-WindowsDesktop-App-LICENSE.txt",
+          "sha256": "a89886665765362eb77e0f8e26602c924520041d1711b2eedc136434fe4d01ab"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "PowerToys",
+      "version": "d1362dcd60746b36f718eddf082738987910f6db",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/upstream-PowerToys-LICENSE.txt",
+          "sha256": "1eb3cbe7f022addbfc6d65cb2e39aca5b24333942ed843aa10c03befd71ee225"
+        },
+        {
+          "sourceFile": "NOTICE.md",
+          "file": "licenses/upstream-PowerToys-NOTICE-md.txt",
+          "sha256": "515416cd9bcca6c2ecae245ae583e61c46edb88a513731b9e4c1b060162cdb75"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "git.sr.ht/~jackmordaunt/go-toast/v2",
+      "version": "v2.0.3",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-git-sr-ht-jackmordaunt-go-toast-v2-LICENSE.txt",
+          "sha256": "1b57eeb121b97d5920085fddd4cf395e71b8b027051a367bec8228688d68292f"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/bep/debounce",
+      "version": "v1.2.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-bep-debounce-LICENSE.txt",
+          "sha256": "77d1b21a5460ffc70d50101e9490a44b35dd713dab8a6f847c54ce4d3e81234a"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/google/uuid",
+      "version": "v1.6.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-google-uuid-LICENSE.txt",
+          "sha256": "0a8d61ed3cbfd5312326e8126c31ce9c627a283adc99131b56896d29ada04b2d"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/go-ole/go-ole",
+      "version": "v1.3.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-go-ole-go-ole-LICENSE.txt",
+          "sha256": "d883dbca28769ff23dd4368a8edb7ad9f9f23a8f86adde2875c6e41a828aac62"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/pkg/browser",
+      "version": "v0.0.0-20240102092130-5ac0b6a4141c",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-pkg-browser-LICENSE.txt",
+          "sha256": "4801bb0c5d70b980b3e1f63d1d2df8d84fec22548e3d73f03a68df1fb808791f"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/samber/lo",
+      "version": "v1.49.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-samber-lo-LICENSE.txt",
+          "sha256": "adb3ac2e3e382989de6befdd489f4714785af8aca47c01193a9892e8b26b3860"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/tkrajina/go-reflector",
+      "version": "v0.5.8",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.txt",
+          "file": "licenses/go-github-com-tkrajina-go-reflector-LICENSE-txt.txt",
+          "sha256": "3f1fc64a3fded0d8c44382af796cc434fb4026a5d3d56da296dd272277dc336f"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/wailsapp/mimetype",
+      "version": "v1.4.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-wailsapp-mimetype-LICENSE.txt",
+          "sha256": "4335e2ceb33d8d7e75125192466ae8604617b0a67492b919604fe52dc56018d9"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "golang.org/x/net",
+      "version": "v0.56.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/toolchain-Go-LICENSE.txt",
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "golang.org/x/text",
+      "version": "v0.39.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/toolchain-Go-LICENSE.txt",
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+        }
+      ]
+    },
+    {
+      "kind": "nuget",
+      "name": "Newtonsoft.Json",
+      "version": "13.0.4",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/nuget-Newtonsoft-Json-LICENSE.txt",
+          "sha256": "b98a397897ff55f76cddc380041507a95a896b2946e0188703bf0496793d6516"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@babel/runtime",
+      "version": "7.29.7",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/babel-runtime-MIT.txt",
+          "sha256": "117da2af0d4ce0fe1c8e19b5cff9dcd806adf973d328d27b11d4448c4ff24f76"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@base-ui/react",
+      "version": "1.8.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/base-ui-MIT.txt",
+          "sha256": "07fc1b39d69d14bc7d40482a628f47226258eb01265db68ae684944b916beb2a"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@base-ui/utils",
+      "version": "0.4.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/base-ui-MIT.txt",
+          "sha256": "07fc1b39d69d14bc7d40482a628f47226258eb01265db68ae684944b916beb2a"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@floating-ui/core",
+      "version": "1.8.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-floating-ui-core-LICENSE.txt",
+          "sha256": "0e4c9a9b6c71019cbbea3bdc20b01223110a9035700f9c960c8fcbf78c2325ce"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@floating-ui/dom",
+      "version": "1.8.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-floating-ui-core-LICENSE.txt",
+          "sha256": "0e4c9a9b6c71019cbbea3bdc20b01223110a9035700f9c960c8fcbf78c2325ce"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@floating-ui/react-dom",
+      "version": "2.1.9",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-floating-ui-core-LICENSE.txt",
+          "sha256": "0e4c9a9b6c71019cbbea3bdc20b01223110a9035700f9c960c8fcbf78c2325ce"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@floating-ui/utils",
+      "version": "0.2.12",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-floating-ui-core-LICENSE.txt",
+          "sha256": "0e4c9a9b6c71019cbbea3bdc20b01223110a9035700f9c960c8fcbf78c2325ce"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@fontsource-variable/geist",
+      "version": "5.3.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm--fontsource-variable-geist-5.3.0-LICENSE.txt",
+          "sha256": "71609cbb5c78b5870d712eab73a31d76622635c6ed034ab5cee3b9ecbda8685f"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@types/react",
+      "version": "19.3.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-types-react-LICENSE.txt",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@types/react-reconciler",
+      "version": "0.33.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-types-react-LICENSE.txt",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "class-variance-authority",
+      "version": "0.7.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-class-variance-authority-0.7.1-LICENSE.txt",
+          "sha256": "0ccbf956cffc8dcf515809433cb5242ee67c94513d46e48c261d68d0880de406"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "clsx",
+      "version": "2.1.1",
+      "notices": [
+        {
+          "sourceFile": "license",
+          "file": "licenses/npm-clsx-2.1.1-license.txt",
+          "sha256": "9a9edad7baae52622bddf3c15b2ef8a33d2c89f2d25408ad13e8a7481c6b0c97"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "cn",
+      "version": "0.4.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-cn-0.4.0-LICENSE.txt",
+          "sha256": "00ff8408e93e2ecc4d90c0edeabdf434100c3aff50acc5d330e17eccd4a3faa5"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "csstype",
+      "version": "3.2.3",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-csstype-LICENSE.txt",
+          "sha256": "11d55bd4541c75ee7879547ac49089c489163dae49551389713c3d026cab383e"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "html-parse-stringify",
+      "version": "4.0.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/html-parse-stringify-MIT.txt",
+          "sha256": "3eb2802a4d0ea79f80977817451b056571dccd8373c9bf4e9be4b05f86afbf90"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "i18next",
+      "version": "26.4.2",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/i18next-MIT.txt",
+          "sha256": "1cd0a2b02a6cc40ef8ee16310d13eeffdd7b5de4a562fd3ee7c921d8eb54f60a"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "its-fine",
+      "version": "2.1.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/its-fine-MIT.txt",
+          "sha256": "643123eeb38f154d93cb8323e1289a648d3f343b411a9340453c010e325d0c82"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@types/react-reconciler",
+      "version": "0.28.9",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-types-react-LICENSE.txt",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "konva",
+      "version": "10.7.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/konva-MIT.txt",
+          "sha256": "7190132c82df30243dc2ba512c9509ea3b629329b4266e9f2c3b5dbd04029613"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "lucide-react",
+      "version": "1.27.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/lucide.txt",
+          "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "react",
+      "version": "19.3.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/use-sync-external-store-MIT.txt",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "react-dom",
+      "version": "19.3.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/use-sync-external-store-MIT.txt",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "react-i18next",
+      "version": "17.0.15",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/react-i18next-MIT.txt",
+          "sha256": "29b8ae456ef442e53a98df183ad088cf98c2ece73aa84c462330c43e665b8ab2"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "react-konva",
+      "version": "19.3.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/react-konva-MIT.txt",
+          "sha256": "0874c25d40dcf71ff12256d30e15e59fd3e21a163c53448ea8bcbe6c03b663e4"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "react-reconciler",
+      "version": "0.34.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/use-sync-external-store-MIT.txt",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "react-resizable-panels",
+      "version": "4.14.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-react-resizable-panels-4.14.1-LICENSE.md.txt",
+          "sha256": "a8f1e0280bf14adcf5d017547db85eb5c3bac0feb1690ca98650874002eaa8ea"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "reselect",
+      "version": "5.3.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-reselect-LICENSE.txt",
+          "sha256": "e98047a5dee068b33f82e8c4b7a63037b5108c93393198efd4097753004af5dd"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "scheduler",
+      "version": "0.28.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/use-sync-external-store-MIT.txt",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "tailwind-merge",
+      "version": "3.7.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-tailwind-merge-3.7.0-LICENSE.md.txt",
+          "sha256": "d4c70c7ce38cea8778f0aed3fc0bef0a9dbd27f13bd8b6773cbd6d37941971e5"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "tw-animate-css",
+      "version": "1.4.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-tw-animate-css-1.4.0-LICENSE.txt",
+          "sha256": "039184dfa0a822397b3f45a435b5b1e538721587fbade96b9fa80f86cb354109"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "typescript",
+      "version": "5.9.3",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.txt",
+          "file": "licenses/npm-typescript-LICENSE-txt.txt",
+          "sha256": "a7d00bfd54525bc694b6e32f64c7ebcf5e6b7ae3657be5cc12767bce74654a47"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "use-sync-external-store",
+      "version": "1.7.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/use-sync-external-store-MIT.txt",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "shadcn/ui",
+      "version": "4.21.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/shadcn-4.21.0-LICENSE.txt",
+          "sha256": "1564074e13439397221ffd522e2e504d56561994a23d371aa5e3ad43e4f5423f"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "Tailwind CSS",
+      "version": "4.3.3",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/tailwindcss-4.3.3-LICENSE.txt",
+          "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985"
+        }
+      ]
+    }
+  ]
+}

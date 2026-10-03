@@ -1,0 +1,17 @@
+[
+ {"template":"","sequence":1,"expected":"WinOne-20261001090807-OK.png"},
+ {"template":"","sequence":2,"expected":"WinOne-20261001090807-OK-01.png"},
+ {"template":"","sequence":3,"expected":"WinOne-20261001090807-OK-02.png"},
+ {"template":"工作-{date}-{sequence}-截图","sequence":7,"expected":"工作-20261001-07-截图.png"},
+ {"template":"{time}-{timestamp}.PNG","sequence":1,"expected":"090807-20261001090807.png"},
+ {"template":"报告","sequence":2,"expected":"报告-02.png"},
+ {"template":"{sequence}-{sequence}","sequence":100,"expected":"100-100.png"},
+ {"template":"../逃逸","sequence":1,"expected":null},
+ {"template":"C:\\image","sequence":1,"expected":null},
+ {"template":"CON.txt","sequence":1,"expected":null},
+ {"template":"LPT¹","sequence":1,"expected":null},
+ {"template":"image.","sequence":1,"expected":null},
+ {"template":"image ","sequence":1,"expected":null},
+ {"template":"{unknown}","sequence":1,"expected":null},
+ {"template":".png","sequence":1,"expected":null}
+]

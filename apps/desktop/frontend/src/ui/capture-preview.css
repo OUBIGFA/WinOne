@@ -1,0 +1,7 @@
+@layer theme, base, legacy, components, utilities;
+
+@layer legacy {
+.capture-preview { display: grid; place-items: center; min-height: 100px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--hover); }
+.capture-preview img { display: block; width: auto; height: auto; max-width: 100%; max-height: 320px; object-fit: contain; }
+
+}

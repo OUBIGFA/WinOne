@@ -10,11 +10,20 @@
     <ApplicationIcon>../../internal/branding/icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="NativeUI/Engine/*.cs" />
+    <EmbeddedResource Include="NativeUI/Assets/Icons/*.png" LogicalName="WinOne.Capture.Icons.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="NativeUI/Assets/Icons/LICENSE.txt" LogicalName="WinOne.Capture.Icons.LICENSE.txt" />
     <EmbeddedResource Include="Assets/*" LogicalName="ShareX.Asset.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../../internal/branding/icon.ico" LogicalName="WinOne.Capture.Icon" />
     <None Update="Licenses/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>WinOne.Capture.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>WinOne.Capture.ScrollTests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>WinOne.NativeCapture.Probe</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
   <ItemGroup Condition="'$(ShareXSourceDirectory)' != ''">

@@ -3,12 +3,9 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"image/png"
 	"os"
 	"time"
 
@@ -17,16 +14,37 @@ import (
 	"winone/internal/modules"
 )
 
+// Menu polling must not restart an idle process; explicit icon actions still
+// pass through the module's normal enablement and configuration guards.
+type observedIcons struct {
+	*modules.Gate
+	worker *modules.Lazy
+}
+
+func (m observedIcons) Handle(request host.Request) host.Response {
+	if request.Method != "icons" {
+		return m.Gate.Handle(request)
+	}
+	if response, called := m.worker.HandleRunning(request); called {
+		return response
+	}
+	return host.Response{ID: request.ID, Error: &host.RPCError{Code: "stopped", Message: "组件已退出"}}
+}
+
 // syncCollectedMenu mirrors stable native icon IDs, with explicit access to each original menu.
-func syncCollectedMenu(ctx context.Context, parent *systray.MenuItem, worker *modules.Process) {
+func syncCollectedMenu(ctx context.Context, parent *systray.MenuItem, worker moduleEndpoint, language func() string, reportFailure func(error)) {
 	type icon struct {
-		ID    string `json:"id"`
-		Name  string `json:"name"`
-		Image []byte `json:"image"`
+		ID     string `json:"id"`
+		Name   string `json:"name"`
+		Image  []byte `json:"image"`
+		Hosted bool   `json:"hosted"`
 	}
 	type item struct {
-		root   *systray.MenuItem
-		cancel context.CancelFunc
+		root    *systray.MenuItem
+		cancel  context.CancelFunc
+		visual  *collectedIconState
+		actions map[string]*systray.MenuItem
+		locale  string
 	}
 	items := map[string]item{}
 	ticker := time.NewTicker(time.Second)
@@ -42,6 +60,15 @@ func syncCollectedMenu(ctx context.Context, parent *systray.MenuItem, worker *mo
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			if state := worker.Status().State; state != "ready" {
+				for id, value := range items {
+					value.cancel()
+					value.root.Remove()
+					delete(items, id)
+				}
+				parent.Hide()
+				continue
+			}
 			r := worker.Handle(host.Request{Version: 1, ID: "tray-icons", Method: "icons"})
 			if r.Error != nil {
 				continue
@@ -51,50 +78,52 @@ func syncCollectedMenu(ctx context.Context, parent *systray.MenuItem, worker *mo
 				continue
 			}
 			seen := map[string]bool{}
+			locale := language()
 			for _, value := range icons {
 				seen[value.ID] = true
 				existing, ok := items[value.ID]
 				if ok {
-					existing.root.SetTitle(value.Name)
+					if existing.locale != locale {
+						for _, action := range collectedActions(value.Hosted, locale) {
+							if entry := existing.actions[action.ID]; entry != nil {
+								entry.SetTitle(action.Title)
+							}
+						}
+						existing.locale = locale
+						items[value.ID] = existing
+					}
+					if err := existing.visual.apply(existing.root, value.Name, value.Image); err != nil {
+						fmt.Fprintln(os.Stderr, "tray icon update:", err)
+					}
 					continue
 				}
 				root := parent.AddSubMenuItem(value.Name, value.Name)
-				if len(value.Image) > 0 {
-					if header, err := png.DecodeConfig(bytes.NewReader(value.Image)); err == nil && header.Width <= 256 && header.Height <= 256 {
-						ico := make([]byte, 22)
-						binary.LittleEndian.PutUint16(ico[2:], 1)
-						binary.LittleEndian.PutUint16(ico[4:], 1)
-						ico[6] = byte(header.Width)
-						ico[7] = byte(header.Height)
-						binary.LittleEndian.PutUint16(ico[10:], 1)
-						binary.LittleEndian.PutUint16(ico[12:], 32)
-						binary.LittleEndian.PutUint32(ico[14:], uint32(len(value.Image)))
-						binary.LittleEndian.PutUint32(ico[18:], 22)
-						root.SetIcon(append(ico, value.Image...))
-					}
+				visual := &collectedIconState{name: value.Name}
+				if err := visual.apply(root, value.Name, value.Image); err != nil {
+					fmt.Fprintln(os.Stderr, "tray icon update:", err)
 				}
-				open := root.AddSubMenuItem("打开", "单击原图标")
-				menu := root.AddSubMenuItem("原程序菜单", "右键原图标")
 				itemCtx, cancel := context.WithCancel(ctx)
-				items[value.ID] = item{root, cancel}
-				go func(id string) {
-					for {
-						right := false
-						select {
-						case <-itemCtx.Done():
-							return
-						case <-open.ClickedCh:
-						case <-menu.ClickedCh:
-							right = true
+				actions := map[string]*systray.MenuItem{}
+				for _, action := range collectedActions(value.Hosted, locale) {
+					entry := root.AddSubMenuItem(action.Title, "")
+					actions[action.ID] = entry
+					go func(id, name string, hosted bool, action collectedAction, entry *systray.MenuItem) {
+						for {
+							select {
+							case <-itemCtx.Done():
+								return
+							case _, ok := <-entry.ClickedCh:
+								if !ok {
+									return
+								}
+							}
+							if err := performCollectedAction(worker, id, hosted, action); err != nil {
+								reportFailure(fmt.Errorf("%s (%s): %w", name, action.ID, err))
+							}
 						}
-						params, _ := json.Marshal(map[string]any{"id": id, "right": right})
-						worker.GrantForeground()
-						response := worker.Handle(host.Request{Version: 1, ID: "tray-action", Method: "icon.activate", Params: params})
-						if response.Error != nil {
-							fmt.Fprintln(os.Stderr, response.Error.Message)
-						}
-					}
-				}(value.ID)
+					}(value.ID, value.Name, value.Hosted, action, entry)
+				}
+				items[value.ID] = item{root: root, cancel: cancel, visual: visual, actions: actions, locale: locale}
 			}
 			for id, value := range items {
 				if !seen[id] {

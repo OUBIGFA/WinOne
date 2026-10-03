@@ -4,6 +4,8 @@ package modules
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"os"
 	"sync"
 	"winone/internal/host"
@@ -16,10 +18,20 @@ type Lazy struct {
 	id, name, exe, pipe, data string
 	process                   *Process
 	closing                   bool
+	inflight                  sync.WaitGroup
+	privilege                 PrivilegeState
+	autorun                   bool
+	launchArgs                []string
 }
 
-func NewLazy(ctx context.Context, id, name, exe, pipe, data string) *Lazy {
-	return &Lazy{ctx: ctx, id: id, name: name, exe: exe, pipe: pipe, data: data}
+func NewLogonLazy(ctx context.Context, id, name, exe, pipe, data string, autorun bool) *Lazy {
+	l := NewLazy(ctx, id, name, exe, pipe, data)
+	l.autorun = autorun
+	return l
+}
+
+func NewLazy(ctx context.Context, id, name, exe, pipe, data string, launchArgs ...string) *Lazy {
+	return &Lazy{ctx: ctx, id: id, name: name, exe: exe, pipe: pipe, data: data, launchArgs: append([]string(nil), launchArgs...)}
 }
 func (l *Lazy) Status() host.Module {
 	l.mu.Lock()
@@ -36,8 +48,11 @@ func (l *Lazy) Status() host.Module {
 	return host.Module{ID: l.id, Name: l.name, State: "available", Detail: "可用，按需启动"}
 }
 func (l *Lazy) Handle(request host.Request) host.Response {
+	if l.id == "always-on-top" && (request.Method == "privilege.start" || request.Method == "privilege.status") {
+		return l.handlePrivilege(request)
+	}
 	l.mu.Lock()
-	if l.closing {
+	if l.closing || l.privilege.State == "running" {
 		l.mu.Unlock()
 		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "stopping", Message: "模块正在退出"}}
 	}
@@ -50,22 +65,38 @@ func (l *Lazy) Handle(request host.Request) host.Response {
 		}
 	}
 	if exited {
+		if request.Method == "capture.activate" {
+			l.mu.Unlock()
+			return host.Response{ID: request.ID, Result: json.RawMessage(`{"active":false}`)}
+		}
 		if request.Method == "jobs.get" {
 			l.mu.Unlock()
 			return host.Response{ID: request.ID, Error: &host.RPCError{Code: "stopped", Message: "模块已退出，任务状态不可用"}}
 		}
-		l.process = Start(l.ctx, l.id, l.name, l.exe, l.pipe, l.data, false)
+		if l.id == "wintray" && (request.Method == "deactivate" || request.Method == "uninstall.prepare") {
+			l.process = start(l.ctx, l.id, l.name, l.exe, l.pipe, l.data, false, false, "--recover-only")
+		} else {
+			l.process = start(l.ctx, l.id, l.name, l.exe, l.pipe, l.data, l.autorun, false, l.launchArgs...)
+		}
+		l.autorun = false
 	}
 	p := l.process
+	l.inflight.Add(1)
 	l.mu.Unlock()
+	defer l.inflight.Done()
 	p.GrantForeground()
 	return p.Handle(request)
 }
 func (l *Lazy) Close() error {
 	l.mu.Lock()
+	if l.privilege.State == "running" {
+		l.mu.Unlock()
+		return errors.New("请先完成或取消管理员授权")
+	}
 	l.closing = true
 	p := l.process
 	l.mu.Unlock()
+	l.inflight.Wait()
 	if p == nil {
 		return nil
 	}
@@ -80,3 +111,54 @@ func (l *Lazy) Close() error {
 
 // Resume permits on-demand restart when another module prevents the overall application exit.
 func (l *Lazy) Resume() { l.mu.Lock(); l.closing = false; l.mu.Unlock() }
+
+// SuppressAutorun prevents a later settings/history operation from replaying a
+// deferred login activation. User actions are not another logon event.
+func (l *Lazy) SuppressAutorun() { l.mu.Lock(); l.autorun = false; l.mu.Unlock() }
+
+// Running allows residency checks without starting an idle feature process.
+func (l *Lazy) Running() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.privilege.State == "running" {
+		return true
+	}
+	if l.process == nil {
+		return false
+	}
+	select {
+	case <-l.process.exited:
+		return false
+	default:
+		return true
+	}
+}
+
+// HandleRunning dispatches only to an existing worker. Configuration refreshes
+// must not restart an idle process or race privilege transitions into a new one.
+func (l *Lazy) HandleRunning(request host.Request) (host.Response, bool) {
+	l.mu.Lock()
+	if l.privilege.State == "running" {
+		l.mu.Unlock()
+		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "busy", Message: "模块状态正在切换"}}, true
+	}
+	if l.process == nil {
+		l.mu.Unlock()
+		return host.Response{}, false
+	}
+	select {
+	case <-l.process.exited:
+		l.mu.Unlock()
+		return host.Response{}, false
+	default:
+	}
+	if l.closing {
+		l.mu.Unlock()
+		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "busy", Message: "模块正在退出"}}, true
+	}
+	p := l.process
+	l.inflight.Add(1)
+	l.mu.Unlock()
+	defer l.inflight.Done()
+	return p.Handle(request), true
+}

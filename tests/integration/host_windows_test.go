@@ -30,7 +30,7 @@ func TestHostProcess(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = cmd.Process.Kill(); _ = cmd.Wait() })
 	call := func(method string, params json.RawMessage) (host.Response, error) {
-		return transport.Call(context.Background(), pipe, host.Request{Version: 1, ID: "smoke", Method: method, Params: params})
+		return transport.CallCompleting(context.Background(), pipe, host.Request{Version: 1, ID: "smoke", Method: method, Params: params}, 5*time.Second)
 	}
 	deadline := time.Now().Add(10 * time.Second)
 	for {
@@ -57,15 +57,22 @@ func TestHostProcess(t *testing.T) {
 	if err != nil || r.Error != nil {
 		t.Fatalf("save: %+v %v", r, err)
 	}
-	data, err := os.ReadFile(filepath.Join(dir, "settings.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "configuration.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	var saved struct {
-		Theme    string `json:"theme"`
-		Revision int    `json:"revision"`
+		Committed struct {
+			Revision int `json:"revision"`
+			Values   struct {
+				Host struct {
+					Theme string `json:"theme"`
+				} `json:"host"`
+			} `json:"values"`
+		} `json:"committed"`
+		Pending json.RawMessage `json:"pending"`
 	}
-	if err = json.Unmarshal(data, &saved); err != nil || saved.Theme != "dark" || saved.Revision != 1 {
+	if err = json.Unmarshal(data, &saved); err != nil || saved.Committed.Values.Host.Theme != "dark" || saved.Committed.Revision != 1 || len(saved.Pending) != 0 {
 		t.Fatalf("stored %s", data)
 	}
 	r, err = call("settings.save", json.RawMessage(`{"schemaVersion":1,"revision":0,"theme":"light"}`))

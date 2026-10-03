@@ -1,0 +1,7 @@
+<Project>
+  <!-- The facade needs engine-internal drawing/history APIs. Compile it into
+       the locked engine without giving the engine a dependency on the app. -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'ShareX.ScreenCaptureLib'">
+    <Compile Include="$(MSBuildThisFileDirectory)Engine/*.cs" />
+  </ItemGroup>
+</Project>

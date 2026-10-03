@@ -84,6 +84,11 @@ func serveOne(conn net.Conn, service Handler) {
 	if json.Unmarshal(data, &request) != nil {
 		return
 	}
+	if file, ok := conn.(interface{ Fd() uintptr }); ok {
+		if err := windows.GetNamedPipeClientProcessId(windows.Handle(file.Fd()), &request.PeerPID); err != nil {
+			return
+		}
+	}
 	if strings.HasPrefix(request.Method, "capture.") {
 		_ = conn.SetDeadline(time.Now().Add(15 * time.Second))
 	}
@@ -102,6 +107,12 @@ func Call(ctx context.Context, name string, request host.Request) (host.Response
 
 // CallWithTimeout allows the desktop's first on-demand worker startup to finish.
 func CallWithTimeout(ctx context.Context, name string, request host.Request, timeout time.Duration) (host.Response, error) {
+	return CallWithVerifiedServer(ctx, name, request, timeout, nil)
+}
+
+// CallWithVerifiedServer inspects the OS-reported peer before sending a request.
+// The privilege handoff uses this instead of trusting a claimed token level in JSON.
+func CallWithVerifiedServer(ctx context.Context, name string, request host.Request, timeout time.Duration, verify func(uint32) error) (host.Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	var response host.Response
@@ -112,6 +123,19 @@ func CallWithTimeout(ctx context.Context, name string, request host.Request, tim
 	defer conn.Close()
 	stopCancellation := context.AfterFunc(ctx, func() { _ = conn.Close() })
 	defer stopCancellation()
+	if verify != nil {
+		file, ok := conn.(interface{ Fd() uintptr })
+		if !ok {
+			return response, fmt.Errorf("pipe handle unavailable")
+		}
+		var pid uint32
+		if err := windows.GetNamedPipeServerProcessId(windows.Handle(file.Fd()), &pid); err != nil {
+			return response, err
+		}
+		if err := verify(pid); err != nil {
+			return response, err
+		}
+	}
 	deadline, _ := ctx.Deadline()
 	_ = conn.SetDeadline(deadline)
 	data, err := json.Marshal(request)

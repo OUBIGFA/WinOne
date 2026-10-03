@@ -1,8 +1,134 @@
 {
+  "moduleSignatures": {
+    "module": "aead.dev/minisign",
+    "version": "v0.3.0",
+    "repository": "https://github.com/aead/minisign",
+    "scope": "Optional module manifest verification; not yet wired into application runtime",
+    "license": "MIT",
+    "licenseFile": "licenses/minisign-v0.3.0-LICENSE.txt",
+    "licenseSha256": "d2e73e3423b8898d7d2fba4e55a2abb43969603fe32fdd468f197ff238969d28"
+  },
+  "githubIcon": {
+    "repository": "https://github.com/simple-icons/simple-icons",
+    "commit": "1089fb7d2bf0e323f834c205ab76265005a6d5e8",
+    "source": "icons/github.svg",
+    "license": "CC0-1.0",
+    "sha256": "3bf8cceead820aec50d4ee825a3fd02c5a1cd6665cc9cf4cbf3d9c8861a204bb"
+  },
+  "upgradePlanning": {
+    "module": "golang.org/x/mod",
+    "version": "v0.37.0",
+    "package": "golang.org/x/mod/semver",
+    "scope": "Package comparison and manual update checks in application runtime",
+    "reference": "https://pkg.go.dev/golang.org/x/mod/semver"
+  },
+  "nsis": {
+    "version": "3.13",
+    "homepage": "https://nsis.sourceforge.io/Download",
+    "archive": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.13/nsis-3.13.zip/download",
+    "archiveSha256": "ba63dffc4410ee89193e1cb5a41989991bd77c61068da17e3156d136b7b0b3d8",
+    "checksumSource": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.13/",
+    "usage": "Build-time installer compiler; not a runtime dependency"
+  },
+  "systray": {
+    "module": "fyne.io/systray",
+    "version": "v1.12.2",
+    "localSource": "third_party/systray",
+    "adaptation": "Bounded PNG menu icons, native bitmap lifetime management, corrected NOTIFYICONDATAW union layout, one-shot Windows warnings, and left-click foreground activation"
+  },
+  "ui": {
+    "baseUI": "1.8.0",
+    "lucideReact": "1.27.0",
+    "i18next": "26.4.2",
+    "reactI18next": "17.0.15",
+    "konva": "10.7.0",
+    "reactKonva": "19.3.0",
+    "itsFine": "2.1.1",
+    "reactReconciler": "0.34.0",
+    "scheduler": "0.28.0",
+    "htmlParseStringify": "4.0.1",
+    "inkUI": {
+      "repository": "https://github.com/anxndsgn/ink-ui",
+      "commit": "6eaf7cdd208673cd2f0da0ab0e8fa2f432b7f74b",
+      "files": [
+        "registry/default/ui/button.tsx",
+        "registry/default/ui/switch.tsx"
+      ],
+      "adaptation": "Local CSS tokens; no motion, icon-font or documentation-site dependencies"
+    },
+    "shadcn": {
+      "cliVersion": "4.21.0",
+      "style": "base-nova",
+      "registry": "https://ui.shadcn.com/r/styles/base-nova",
+      "components": [
+        "button",
+        "dialog",
+        "field",
+        "input",
+        "item",
+        "label",
+        "separator",
+        "sheet",
+        "sidebar",
+        "skeleton",
+        "switch",
+        "tabs",
+        "textarea",
+        "tooltip",
+        "radio-group",
+        "select",
+        "checkbox",
+        "resizable",
+        "alert"
+      ],
+      "license": "MIT",
+      "files": {
+        "radio-group.tsx": "62a1fa46c54ebbb71c84f09ebc5941dec41b0c75be3699b969eb5aae5820616d",
+        "label.tsx": "b3b7b21d2877838fc73713df48a47248392de04a3b3fafa8961369f33ab14530",
+        "dialog.tsx": "7e96b921d921ee9fb7c53e9372b17e775d087be9788ce1d51cbcdbab2b0d4ba5",
+        "switch.tsx": "367ad27cfe2f4ce5648fd3941410d3c3504876ee23e4360a220f1e6cd05f5c2d",
+        "input.tsx": "dab990dfefa0ba78854ab6602ad074270dba9d7d1262184d9bfbb62bd990903b",
+        "sheet.tsx": "db422e2934b79774850defd2ea12bf2d469a77f7237bf93ce0416bde87d8a610",
+        "textarea.tsx": "82601c91ffc6c727d924162c78d7cb853114bcced4e2eb922a68ca12d4239c0f",
+        "skeleton.tsx": "4c2af7fa9c645358a0fb188779deab6f0b981733b62befc25e18aaebea1350dc",
+        "button.tsx": "313353436d0fcc8e44ab470adb614b9fd013d28626f624328ea0d66d41a6c81b",
+        "separator.tsx": "8a1d9397433ccf70631104f377b0e778754582a74c93a57cf13a2f2dcba778bf",
+        "tooltip.tsx": "f83d5f511812573f4ac98b866d397a46fda0f27eeb0af0ea89af01969eefbc5a",
+        "field.tsx": "8e54d2838051eeb741f6925863b690c98928b25bbb26f3cd26a5b75121d06acb",
+        "sidebar.tsx": "2a794415a5a3c7488ec90645f3622449a82e1801fcb1121f14ccd1aae528f52e",
+        "item.tsx": "08cc237a727e1b0d1de24ca60ca49fcf44ad3923620c71b6c70ab16ac2f575b6",
+        "tabs.tsx": "04c251a62bddfe55d09bf157ce150b1fc527b1fcfdbb10d51188b1e36dd3e3c0",
+        "select.tsx": "d3c275e0212325c0bba459800fb155839783d33d5c91d363b5b974973aa7e9e0",
+        "checkbox.tsx": "d1b341a2b439da009e42388cde8a829adcf55ecb0d447449271aacad752e73ba",
+        "resizable.tsx": "565714189484affdabde40be5028fa7232c91a045ad7e955423703fd8ed8c73b",
+        "alert.tsx": "f253568242c1c69b343f12474002fdbe229f603158171c59e21c491ab79f2e6e"
+      },
+      "adaptations": [
+        "Optional sidebar shortcut switch; disabled for the fixed WinOne navigation"
+      ]
+    },
+    "shadcnAdmin": {
+      "repository": "https://github.com/satnaing/shadcn-admin",
+      "commit": "e16c87f213a5ba5e45964e9b67c792105ec74d26",
+      "usage": "layout reference; no application code copied yet"
+    }
+  },
+  "wintray": {
+    "baseCommit": "dea17c108357109d6c2c04e80c9df45279bfdc51",
+    "localFix": "2026-09-29 taskbar icon drag",
+    "snapshotSha256": {
+      "internal/traybox/listener_windows.go": "8dfab4a92d6b908e188164cdddb1ae70e009f5331988043790b279b5934d7bf8",
+      "internal/traybox/listener_pointer_windows.go": "51c573006d9f5e4697daebd8d0f23ad7940d390e1246f0a41d74e0f304a5c594",
+      "internal/traybox/listener_pointer_windows_test.go": "23a5f7a0a70af3a2a3f20ac129e7882dde74ae24f2f854ab2033cc19f9d3cd06",
+      "internal/traybox/taskbar_drag_live_windows_test.go": "f0198987ad68366e78669d156adfe0a3c1c7833b8b3329b56b83b5c6c9a3e651",
+      "internal/traybox/testdata/taskbar_drag.ps1": "3966edae8eeee8c1d30f8c68e4818520dedbef107c153274ea2df62d58312c79"
+    }
+  },
   "sharex": {
     "repository": "https://github.com/ShareX/ShareX",
     "tag": "v21.0.0",
     "commit": "d2502561f63fc3ff502cacd91514e3f7f2948c74",
+    "adaptation": "build/prepare-sharex.ps1: local editor callbacks, validated scrolling targets, target movement and global-input focus guards, and completed bitmap ownership transfer",
     "archive": "https://codeload.github.com/ShareX/ShareX/zip/refs/tags/v21.0.0",
     "archiveSha256": "e5c4aef36210b20dd189c9f7474a1d6ecaccb2061f8f7ae0d88909bf40197299"
   },

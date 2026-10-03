@@ -1,0 +1,30 @@
+import {readNativeState} from "./native-state.mjs";
+import {createRequire} from "node:module";
+import {readFile,writeFile} from "node:fs/promises";
+import {resolve} from "node:path";
+import {clickPrivateCanvas} from "./native-probe-input.mjs";
+const require=createRequire(import.meta.url),{chromium}=require(process.env.WINONE_PLAYWRIGHT_MODULE||"playwright");
+const output=process.env.WINONE_NATIVE_PROBE_OUTPUT;
+if(!output)throw Error("Set WINONE_NATIVE_PROBE_OUTPUT");
+const browser=await chromium.connectOverCDP(process.env.WINONE_NATIVE_PROBE_CDP);
+try{
+ const page=browser.contexts()[0].pages()[0];
+ const root=page.locator("[data-native-window]");await root.waitFor();
+ const button=name=>page.getByRole("button",{name,exact:true});
+ await button("保存").focus();
+ await page.keyboard.press("Control+z");
+ await page.waitForFunction(()=>document.querySelector("[data-annotations]").dataset.annotations==="0");
+ await page.keyboard.press("Control+Shift+z");
+ await page.waitForFunction(()=>document.querySelector("[data-annotations]").dataset.annotations==="1");
+ await clickPrivateCanvas(output,140,150,"text-key");
+ await page.waitForFunction(()=>[...document.querySelectorAll("button")].some(b=>b.textContent==="文字"&&b.getAttribute("aria-pressed")==="true"));
+ await clickPrivateCanvas(output,140,150);
+ const field=page.getByRole("textbox",{name:"输入文字",exact:true});
+ await field.fill("快捷键输入");await field.press("Control+s");await field.waitFor({state:"detached"});
+ const state=(await readNativeState(resolve(output,"state.json")));
+ if(state.saved!==1||state.annotations!==2||state.nativeForms!==1)throw Error("Keyboard save lost inline text or opened a second window");
+ const closed=page.waitForEvent("close",{timeout:10000});
+ await clickPrivateCanvas(output,140,150,"escape-key");await closed;
+ await writeFile(resolve(output,"keyboard-verification.json"),JSON.stringify({undoRedo:true,nativeTextKey:true,inlineSave:true,nativeEscape:true,scope:"CDP keys and targeted private-window messages; no hardware input"},null,2));
+ console.log("PASS: hosted keyboard history, inline text, save and cancel");
+}finally{await browser.close();}

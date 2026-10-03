@@ -1,0 +1,229 @@
+//go:build windows
+
+package logintask
+
+import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/xml"
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"syscall"
+	"unicode/utf16"
+
+	"golang.org/x/sys/windows"
+)
+
+// LogonTask starts WinOne through a per-user Task Scheduler logon trigger.
+// Explorer launches Run entries one by one, seconds apart, in the order the
+// values were created, so a Run entry re-created after other programs lands
+// behind the programs WinOne is meant to handle. A logon task starts as soon
+// as the user signs in, before that queue, and needs no administrator rights
+// because the trigger and principal are limited to the current user.
+type LogonTask struct {
+	name     string
+	userSID  string
+	run      func(args ...string) ([]byte, error)
+	lookup   func(string) (bool, error)
+	elevated bool
+	onDemand bool
+}
+
+func NewLogonTask() (*LogonTask, error) {
+	user, err := windows.GetCurrentProcessToken().GetTokenUser()
+	if err != nil {
+		return nil, fmt.Errorf("current user: %w", err)
+	}
+	sid := user.User.Sid.String()
+	// Task names are machine wide; the SID keeps each user's task separate.
+	return &LogonTask{name: "WinOne-" + sid, userSID: sid, run: runSchtasks, lookup: scheduledTaskExists}, nil
+}
+
+// Sync registers the task for exePath/args unless an enabled task with the
+// same definition is already in place.
+func (t *LogonTask) Sync(exePath, args string) error {
+	if t.elevated && !windows.GetCurrentProcessToken().IsElevated() {
+		return errors.New("需要先确认管理员授权")
+	}
+	definition, fingerprint := taskXML(t.userSID, exePath, args, t.elevated, t.onDemand)
+	if out, err := t.run("/Query", "/TN", t.name, "/XML"); err == nil && t.canReuse(out, fingerprint, exePath) {
+		return nil
+	}
+	file, err := os.CreateTemp("", "winone-task-*.xml")
+	if err != nil {
+		return err
+	}
+	path := file.Name()
+	defer os.Remove(path)
+	_, writeErr := file.Write(utf16LEWithBOM(definition))
+	if closeErr := file.Close(); writeErr == nil {
+		writeErr = closeErr
+	}
+	if writeErr != nil {
+		return writeErr
+	}
+	_, err = t.run("/Create", "/TN", t.name, "/XML", path, "/F")
+	return err
+}
+
+func (t *LogonTask) canReuse(exported []byte, fingerprint, executable string) bool {
+	if !taskUpToDate(exported, fingerprint) {
+		return false
+	}
+	// Authorization can repair a changed task only if registration checks the
+	// same actual fields as launching. A matching description alone is stale.
+	return !t.onDemand || validateAdministratorDefinition(exported, t.userSID, executable) == nil
+}
+
+// Remove deletes the task. A task that does not exist counts as removed.
+func (t *LogonTask) Remove() error {
+	_, err := t.run("/Delete", "/TN", t.name, "/F")
+	if err == nil {
+		return nil
+	}
+	if t.lookup == nil {
+		return errors.Join(err, errors.New("task existence lookup is unavailable"))
+	}
+	exists, lookupErr := t.lookup(t.name)
+	if lookupErr != nil {
+		return errors.Join(err, lookupErr)
+	}
+	if exists {
+		return err
+	}
+	return nil
+}
+
+// logonTaskXML returns the task definition and the fingerprint embedded in
+// its description. The fingerprint is ASCII so it survives whatever encoding
+// schtasks uses when exporting the registered task.
+func logonTaskXML(userSID, exePath, args string) (string, string) {
+	return taskXML(userSID, exePath, args, false, false)
+}
+
+func taskXML(userSID, exePath, args string, elevated, onDemand bool) (string, string) {
+	body := fmt.Sprintf(`  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <UserId>%[1]s</UserId>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>%[1]s</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <StartWhenAvailable>false</StartWhenAvailable>
+    <Enabled>true</Enabled>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>4</Priority>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>%[2]s</Command>
+      <Arguments>%[3]s</Arguments>
+      <WorkingDirectory>%[4]s</WorkingDirectory>
+    </Exec>
+  </Actions>
+`, xmlText(userSID), xmlText(exePath), xmlText(args), xmlText(filepath.Dir(exePath)))
+	if elevated {
+		body = strings.Replace(body, "LeastPrivilege", "HighestAvailable", 1)
+	}
+	if onDemand {
+		// The launcher is short-lived, but its child Host may remain resident.
+		// A later request must still be able to open another settings window.
+		body = strings.Replace(body, "<MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>", "<MultipleInstancesPolicy>Parallel</MultipleInstancesPolicy>", 1)
+		start, end := strings.Index(body, "<Triggers>"), strings.Index(body, "</Triggers>")
+		body = body[:start] + "<Triggers />" + body[end+len("</Triggers>"):]
+	}
+	sum := sha256.Sum256([]byte(body))
+	fingerprint := "winone-task-" + hex.EncodeToString(sum[:8])
+	return `<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Author>WinOne</Author>
+    <Description>Starts WinOne at logon. ` + fingerprint + `</Description>
+  </RegistrationInfo>
+` + body + `</Task>
+`, fingerprint
+}
+
+// taskUpToDate reports whether an exported task carries fingerprint and has
+// neither the task nor its trigger disabled.
+func taskUpToDate(exported []byte, fingerprint string) bool {
+	contains := func(s string) bool {
+		return bytes.Contains(exported, []byte(s)) || bytes.Contains(exported, utf16LE(s))
+	}
+	return contains(fingerprint) && !contains("<Enabled>false</Enabled>")
+}
+
+func xmlText(s string) string {
+	var b strings.Builder
+	_ = xml.EscapeText(&b, []byte(s))
+	return b.String()
+}
+
+func utf16LE(s string) []byte {
+	units := utf16.Encode([]rune(s))
+	out := make([]byte, 0, len(units)*2)
+	for _, u := range units {
+		out = append(out, byte(u), byte(u>>8))
+	}
+	return out
+}
+
+func utf16LEWithBOM(s string) []byte {
+	return append([]byte{0xFF, 0xFE}, utf16LE(s)...)
+}
+
+func runSchtasks(args ...string) ([]byte, error) {
+	cmd := exec.Command(filepath.Join(systemDir(), "schtasks.exe"), args...)
+	// WinOne is a GUI program; without this every call flashes a console.
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: windows.CREATE_NO_WINDOW}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		msg := strings.TrimSpace(oemText(out))
+		if msg == "" {
+			return out, fmt.Errorf("schtasks %s: %w", args[0], err)
+		}
+		return out, fmt.Errorf("schtasks %s: %w: %s", args[0], err, msg)
+	}
+	return out, nil
+}
+
+func systemDir() string {
+	if dir, err := windows.GetSystemDirectory(); err == nil && dir != "" {
+		return dir
+	}
+	return `C:\Windows\System32`
+}
+
+// cpOEM selects the console (OEM) code page for MultiByteToWideChar.
+const cpOEM = 1
+
+// oemText decodes console output, which schtasks writes in the OEM code page.
+func oemText(b []byte) string {
+	if len(b) == 0 {
+		return ""
+	}
+	n, err := windows.MultiByteToWideChar(cpOEM, 0, &b[0], int32(len(b)), nil, 0)
+	if err != nil || n <= 0 {
+		return string(b)
+	}
+	buf := make([]uint16, n)
+	if _, err = windows.MultiByteToWideChar(cpOEM, 0, &b[0], int32(len(b)), &buf[0], n); err != nil {
+		return string(b)
+	}
+	return string(utf16.Decode(buf))
+}

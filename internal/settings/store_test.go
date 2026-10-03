@@ -53,3 +53,32 @@ func TestInvalidThemeDoesNotPersist(t *testing.T) {
 		t.Fatal("failed save advanced revision")
 	}
 }
+
+func TestShortcutPersistenceAndDuplicateProtection(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	next := store.Snapshot()
+	if next.CaptureShortcut != "Shift+A" || next.PinShortcut != "Alt+Q" {
+		t.Fatalf("unexpected default shortcuts: %+v", next)
+	}
+	next.CaptureShortcut = "Ctrl+Shift+F9"
+	next.PinShortcut = ""
+	if _, err = store.Save(next); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	next = reloaded.Snapshot()
+	if next.CaptureShortcut != "Ctrl+Shift+F9" || next.PinShortcut != "" {
+		t.Fatal("shortcut settings not preserved")
+	}
+	next.PinShortcut = "shift+ctrl+f9"
+	if _, err = reloaded.Save(next); err == nil {
+		t.Fatal("duplicate shortcut persisted")
+	}
+}

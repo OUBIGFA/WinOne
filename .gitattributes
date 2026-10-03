@@ -5,3 +5,6 @@
 *.zip binary
 *.exe binary
 *.dll binary
+# Upstream license hashes require the original bytes, including whitespace.
+third_party/licenses/** -text -whitespace
+**/LICENSE* -text -whitespace

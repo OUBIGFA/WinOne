@@ -1,27 +1,7 @@
-:root {
-  font-family: Inter, "Segoe UI", "Microsoft YaHei UI", sans-serif;
-  color-scheme: light;
-  --surface: #f8f8f6;
-  --panel: #fff;
-  --text: #242424;
-  --muted: #62625f;
-  --line: #d7d7d4;
-  --hover: #e7e7e3;
-  --accent: #2c2c2a;
-  background: var(--surface);
-  color: var(--text);
-  font-synthesis: none;
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --surface: #1f1f1e;
-  --panel: #2c2c2a;
-  --text: #eee;
-  --muted: #b4b4ad;
-  --line: #454541;
-  --hover: #3c3c3a;
-  --accent: #e7e7e2;
-}
+@layer theme, base, legacy, components, utilities;
+@import "./ui/tokens.css";
+
+@layer legacy {
 * {
   box-sizing: border-box;
 }
@@ -30,28 +10,28 @@ body {
   font-size: 14px;
   line-height: 1.5;
 }
-button,
-select {
+button:not([data-slot]),
+select:not([data-slot]) {
   font: inherit;
   color: inherit;
 }
-button {
+button:not([data-slot]) {
   cursor: pointer;
   border: 1px solid var(--line);
   background: var(--panel);
   border-radius: 999px;
   padding: 8px 16px;
 }
-button:hover {
+button:not([data-slot]):hover {
   background: var(--hover);
 }
-button:disabled {
+button:not([data-slot]):disabled {
   cursor: default;
   opacity: 0.6;
 }
-button:focus-visible,
-select:focus-visible {
-  outline: 2px solid var(--accent);
+button:not([data-slot]):focus-visible,
+select:not([data-slot]):focus-visible {
+  outline: 2px solid var(--primary);
   outline-offset: 3px;
 }
 .shell {
@@ -76,19 +56,16 @@ aside {
   letter-spacing: -0.5px;
 }
 .mark {
-  font-size: 18px;
-  border: 1px solid var(--text);
   border-radius: 8px;
   width: 30px;
   height: 30px;
-  text-align: center;
-  line-height: 28px;
+  object-fit: contain;
 }
 nav {
   display: grid;
   gap: 7px;
 }
-nav button {
+nav button:not([data-slot]) {
   display: flex;
   gap: 12px;
   align-items: center;
@@ -97,18 +74,18 @@ nav button {
   background: transparent;
   padding: 10px 14px;
 }
-nav button span {
+nav button:not([data-slot]) span {
   width: 20px;
   font-size: 20px;
   line-height: 1;
 }
-nav button[aria-current="page"] {
+nav button:not([data-slot])[aria-current="page"] {
   background: var(--hover);
 }
 .sidebar-bottom {
   margin-top: auto;
   padding: 32px 12px 0;
-  color: var(--muted);
+  color: var(--muted-foreground);
   font-size: 12px;
   display: flex;
   justify-content: space-between;
@@ -126,26 +103,26 @@ header {
   gap: 20px;
   margin-bottom: 30px;
 }
-h1 {
+h1:not([data-slot]) {
   font-size: 26px;
   line-height: 1.3;
   font-weight: 600;
   margin: 5px 0 0;
   letter-spacing: -0.6px;
 }
-h2 {
+h2:not([data-slot]) {
   font-size: 16px;
   font-weight: 600;
   margin: 24px 0 14px;
 }
 .eyebrow {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--muted-foreground);
   margin: 0;
 }
 .intro {
   font-size: 17px;
-  color: var(--muted);
+  color: var(--muted-foreground);
   margin-bottom: 26px;
 }
 .feature-list {
@@ -172,7 +149,7 @@ h2 {
 }
 .feature small {
   display: block;
-  color: var(--muted);
+  color: var(--muted-foreground);
   margin-top: 4px;
   font-size: 13px;
 }
@@ -186,7 +163,7 @@ h2 {
 }
 .footnote p,
 .setting-row p {
-  color: var(--muted);
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 .setting-row {
@@ -200,7 +177,7 @@ h2 {
 .setting-row p {
   margin: 5px 0 0;
 }
-select {
+select:not([data-slot]) {
   padding: 8px 14px;
   border-radius: 8px;
   border: 1px solid var(--line);
@@ -209,7 +186,7 @@ select {
 .saved {
   min-height: 21px;
   font-size: 13px;
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 .empty {
   text-align: center;
@@ -217,20 +194,11 @@ select {
 }
 .empty-icon {
   font-size: 42px;
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 .empty p {
-  color: var(--muted);
+  color: var(--muted-foreground);
   margin-bottom: 24px;
-}
-.error {
-  border: 1px solid #ac6666;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 24px;
-}
-.error p {
-  overflow-wrap: anywhere;
 }
 .secondary {
   background: transparent;
@@ -244,11 +212,11 @@ select {
   }
 }
 @media (forced-colors: active) {
-  button,
-  select {
+  button:not([data-slot]),
+  select:not([data-slot]) {
     border: 1px solid ButtonText;
   }
-  nav button[aria-current="page"] {
+  nav button:not([data-slot])[aria-current="page"] {
     outline: 2px solid Highlight;
   }
 }
@@ -259,6 +227,16 @@ select {
   padding: 0;
   min-width: 0;
 }
+.module-sections { display: flex; flex-direction: column; gap: 32px; min-width: 0; }
+.module-sections > * + * { border-top: 1px solid var(--line); padding-top: 32px; }
+.module-section { min-width: 0; }
+.module-section .section-heading { margin: 0 0 20px; font-size: 18px; font-weight: 600; }
+.module-section .detail-actions { margin-top: 24px; }
+.module-section [data-slot="tabs-content"] > .check-row:first-child { margin-top: 0; }
+.capture-settings-page .setting-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.capture-settings-page .last-capture { margin-top: 28px; padding: 24px 0; }
+.capture-settings-page .last-capture h2 { margin-top: 0; }
+.module-toolbar { flex-wrap: wrap; padding-top: 16px; }
 .module-toolbar {
   display: flex;
   align-items: center;
@@ -267,7 +245,7 @@ select {
 }
 .module-toolbar > span {
   flex: 1;
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 .check-row {
   display: flex;
@@ -296,24 +274,24 @@ select {
   margin-bottom: 8px;
   align-items: center;
 }
-.program-row button {
+.program-row button:not([data-slot]) {
   padding: 6px;
   background: transparent;
   border-color: transparent;
 }
-.program-row button:first-child {
+.program-row button:not([data-slot]):first-child {
   flex: 1;
   text-align: left;
   padding: 8px 12px;
   overflow-wrap: anywhere;
 }
-.program-row button.selected {
+.program-row button:not([data-slot]).selected {
   background: var(--hover);
 }
 .program-row small {
   display: block;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 .program-detail {
   padding: 20px;
@@ -337,7 +315,7 @@ select {
 }
 .program-path {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--muted-foreground);
   overflow-wrap: anywhere;
 }
 .time-fields {
@@ -350,7 +328,7 @@ select {
   margin-top: 20px;
 }
 .muted {
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 
 .capture-actions {
@@ -359,8 +337,29 @@ select {
   gap: 10px;
   margin: 16px 0;
 }
+.aot-windows {
+  max-height: 360px;
+  overflow: auto;
+  margin-bottom: 28px;
+}
+.aot-windows .setting-row > div { min-width: 0; overflow-wrap: anywhere; }
+.aot-windows button:not([data-slot]) { flex-shrink: 0; }
+.number-field textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  resize: vertical;
+}
 .last-capture {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   padding-bottom: 16px;
+}
+.advanced-settings { margin: 20px 0; border-top: 1px solid var(--line); padding-top: 12px; }
+.advanced-settings > summary { font-size: 16px; font-weight: 500; cursor: pointer; padding: 6px 0; }
+.advanced-settings > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
 }

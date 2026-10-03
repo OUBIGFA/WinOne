@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -28,6 +29,7 @@ type LogonTask struct {
 	name    string
 	userSID string
 	run     func(args ...string) ([]byte, error)
+	lookup  func(string) (bool, error)
 }
 
 func NewLogonTask() (*LogonTask, error) {
@@ -37,7 +39,7 @@ func NewLogonTask() (*LogonTask, error) {
 	}
 	sid := user.User.Sid.String()
 	// Task names are machine wide; the SID keeps each user's task separate.
-	return &LogonTask{name: "WinTray-" + sid, userSID: sid, run: runSchtasks}, nil
+	return &LogonTask{name: "WinTray-" + sid, userSID: sid, run: runSchtasks, lookup: scheduledTaskExists}, nil
 }
 
 // Sync registers the task for exePath/args unless an enabled task with the
@@ -70,10 +72,17 @@ func (t *LogonTask) Remove() error {
 	if err == nil {
 		return nil
 	}
-	if _, queryErr := t.run("/Query", "/TN", t.name); queryErr != nil {
-		return nil
+	if t.lookup == nil {
+		return errors.Join(err, errors.New("task existence lookup is unavailable"))
 	}
-	return err
+	exists, lookupErr := t.lookup(t.name)
+	if lookupErr != nil {
+		return errors.Join(err, lookupErr)
+	}
+	if exists {
+		return err
+	}
+	return nil
 }
 
 // logonTaskXML returns the task definition and the fingerprint embedded in

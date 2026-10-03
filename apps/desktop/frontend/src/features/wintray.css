@@ -1,0 +1,15 @@
+.wintray-workspace { container-type: inline-size; min-width: 0; }
+.wintray-panels > [data-slot="resizable-panel"] { min-width: 0; overflow-x: clip; }
+.wintray-program-detail [data-slot="tabs"],
+.wintray-program-detail [data-slot="tabs-content"],
+.wintray-program-detail .grid > *,
+.wintray-program-detail .space-y-2 { min-width: 0; }
+.wintray-program-detail [data-slot="select-trigger"] { width: 100%; min-width: 0; }
+.wintray-program-detail [data-slot="select-value"] { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.wintray-program-detail label { min-width: 0; overflow-wrap: anywhere; }
+@container (max-width: 680px) {
+ .wintray-panels { flex-direction: column !important; }
+ .wintray-panels > [data-slot="resizable-panel"] { flex: none !important; width: 100%; }
+ .wintray-panels > [data-slot="resizable-handle"] { display: none; }
+ .wintray-program-detail { padding-left: 0; border-top: 1px solid var(--border); }
+}

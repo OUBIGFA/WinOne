@@ -1,34 +1,91 @@
-import React, { useEffect, useState } from "react";
+import {Notice} from "./ui/notice";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   getSnapshot,
   saveSettings,
+  setAdministratorPreference,restartAsAdministrator,
   type Snapshot,
   type Settings,
+  captureCall,openCaptureWindow,
+  startupProbePort,
+  settingsClosePort,
+  windowFramePort,
+  settingsNavigationPort,
 } from "./bridge";
+import "./styles/shadcn.css";
 import "./style.css";
+import logo from "../../../../internal/branding/logo.png";
 import { WinTrayPage } from "./features/wintray";
 import { CapturePage } from "./features/capture";
+import { AlwaysOnTopPage } from "./features/always-on-top";
+import { Home, ScanLine, Pin, PanelsTopLeft, Settings as SettingsIcon } from "lucide-react";
+import { Button } from "./ui/button";
+import { ModulesPage } from "./features/modules";
+import { Profiles } from "./features/profiles";
+import { setApplicationLanguage, useTranslation } from "./i18n";
+import {runCaptureJob,type CaptureDraft} from "./features/capture-draft-api";
+import {finishStartupProbe} from "./startup-probe";
+import {usePageNavigation,usePageActivity} from "./ui/page-navigation";
+import {AppShell} from "./components/app-shell";
+import {ModulePanel} from "./components/module-panel";
+import {SettingsPanel} from "./components/settings-panel";
+import {AppearanceSettings} from "./components/appearance-settings";
+import {StartupSettings,type StartupPreferences} from "./components/startup-settings";
+import {PermissionSettings} from "./components/permission-settings";
+import {useSettingsNavigation} from "./ui/settings-navigation";
 
-const pages = [
-  { id: "overview", title: "概览", glyph: "◫" },
-  { id: "capture", title: "截图", glyph: "⌗" },
-  { id: "always-on-top", title: "窗口置顶", glyph: "↟" },
-  { id: "wintray", title: "启动与托盘", glyph: "▤" },
-  { id: "settings", title: "设置", glyph: "⚙" },
+const pageDefinitions = [
+  { id: "overview", title: "nav.overview", icon: Home },
+  { id: "capture", title: "nav.capture", icon: ScanLine },
+  { id: "always-on-top", title: "nav.always-on-top", icon: Pin },
+  { id: "wintray", title: "nav.wintray", icon: PanelsTopLeft },
+  { id: "settings", title: "nav.settings", icon: SettingsIcon },
 ];
 
 function App() {
+  const {t}=useTranslation();
+  const pages=pageDefinitions.map(page=>({...page,title:t(page.title)}));
   const [page, setPage] = useState("overview");
+  const navigation=usePageNavigation(page,setPage,settingsClosePort);
   const [snapshot, setSnapshot] = useState<Snapshot>();
+  const [homeReady,setHomeReady]=useState(false);
+  const [windowReady,setWindowReady]=useState(false);
   const [error, setError] = useState("");
+  useSettingsNavigation(settingsNavigationPort,navigation.requestPage,setError);
   const [busy, setBusy] = useState(false);
+  const [permissionRestarting,setPermissionRestarting]=useState(false);
+  const [permissionError,setPermissionError]=useState("");
+  usePageActivity(navigation.onActivity,false,busy,"global-settings");
   const [notice, setNotice] = useState("");
+  const opening=useRef(false);
+  const [captureRefresh,setCaptureRefresh]=useState(0);
+  async function editCapture(id:string) {
+    if(opening.current)throw Error(t("capture.draftOpening"));
+    opening.current=true;
+    try {
+      const existing=await captureCall<{draft:CaptureDraft|null}>("draft.get");
+      let draftId=existing.draft?.id;
+      if(!draftId) {
+        const job=await runCaptureJob<{draftId:string}>("draft.begin",{expectedId:id});
+        draftId=job.result?.draftId;
+      }
+      if(!draftId)throw Error(t("capture.draftUnavailable"));
+      await openCaptureWindow(draftId);
+    } finally {opening.current=false;setCaptureRefresh(value=>value+1);}
+  }
+  async function openCapturedDraft(id:string) {
+    if(opening.current)throw Error(t("capture.draftOpening"));
+    opening.current=true;
+    try {await openCaptureWindow(id);}
+    finally {opening.current=false;setCaptureRefresh(value=>value+1);}
+  }
   async function refresh() {
     setBusy(true);
     setError("");
     try {
       setSnapshot(await getSnapshot());
+
     } catch (e) {
       setError(String(e));
     } finally {
@@ -38,6 +95,8 @@ function App() {
   useEffect(() => {
     void refresh();
   }, []);
+  useEffect(()=>{void setApplicationLanguage(snapshot?.settings.language||"zh-CN",snapshot?.locale);},[snapshot?.settings.language,snapshot?.locale]);
+  useEffect(()=>{if(snapshot&&windowReady&&(page!=="overview"||homeReady))void finishStartupProbe(startupProbePort,document).catch(error=>setError(String(error)));},[snapshot,page,homeReady,windowReady]);
   useEffect(() => {
     const query = matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
@@ -52,6 +111,26 @@ function App() {
     query.addEventListener("change", apply);
     return () => query.removeEventListener("change", apply);
   }, [snapshot?.settings.theme]);
+  async function changeAdministratorPreference(enabled:boolean){
+    if(!snapshot||busy||navigation.activity.dirty||navigation.activity.busy)return;
+    setBusy(true);setError("");setPermissionError("");setNotice("");
+    try{const settings=await setAdministratorPreference(enabled);setSnapshot({...snapshot,settings});setNotice("common.saved");}
+    catch(error){setPermissionError(error instanceof Error?error.message:String(error));}
+    finally{setBusy(false);}
+  }
+  async function restartAdministrator(){
+    if(!snapshot||busy||navigation.activity.dirty||navigation.activity.busy)return;
+    setBusy(true);setPermissionRestarting(true);setError("");setPermissionError("");setNotice("");
+    try{const closing=await restartAsAdministrator();if(!closing){setPermissionRestarting(false);setBusy(false);await refresh();}}
+    catch(error){setPermissionRestarting(false);setBusy(false);setPermissionError(error instanceof Error?error.message:String(error));}
+  }
+  async function changeStartup(startup:StartupPreferences){
+    if(!snapshot||busy)return;
+    setBusy(true);setError("");setNotice("");
+    try{const settings=await saveSettings({...snapshot.settings,startup});setSnapshot({...snapshot,settings});setNotice("common.saved");}
+    catch(error){setError(error instanceof Error?error.message:String(error));}
+    finally{setBusy(false);}
+  }
   async function changeTheme(theme: Settings["theme"]) {
     if (!snapshot) return;
     setBusy(true);
@@ -60,149 +139,88 @@ function App() {
     try {
       const settings = await saveSettings({ ...snapshot.settings, theme });
       setSnapshot({ ...snapshot, settings });
-      setNotice("已保存");
+      setNotice("common.saved");
     } catch (e) {
       setError(String(e));
     } finally {
       setBusy(false);
     }
   }
+  async function changeLanguage(language:NonNullable<Settings["language"]>) {
+    if(!snapshot)return;
+    setBusy(true);setError("");setNotice("");
+    try {await saveSettings({...snapshot.settings,language});setSnapshot(await getSnapshot());setNotice("common.saved");}
+    catch(error){setError(String(error));}
+    finally{setBusy(false);}
+  }
   const selected = pages.find((p) => p.id === page)!;
   const module = snapshot?.modules.find((m) => m.id === page);
   return (
-    <div className="shell">
-      <aside>
-        <div className="brand">
-          <span className="mark">W</span>
-          <span>WinOne</span>
-        </div>
-        <nav aria-label="功能导航">
-          {pages.map((p) => (
-            <button
-              key={p.id}
-              aria-current={page === p.id ? "page" : undefined}
-              onClick={() => {
-                setPage(p.id);
-                setNotice("");
-              }}
-            >
-              <span aria-hidden>{p.glyph}</span>
-              {p.title}
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          开发预览 <span>0.1</span>
-        </div>
-      </aside>
-      <main>
+    <AppShell page={page} pages={pages} logo={logo} onNavigate={id=>{navigation.requestPage(id);setNotice("");}} windowPort={windowFramePort} onWindowReady={()=>setWindowReady(true)}>
+
         <header>
           <div>
-            <p className="eyebrow">你的 Windows 工具集</p>
             <h1>{selected.title}</h1>
           </div>
-          <button
-            className="secondary"
-            disabled={busy}
+          <Button
+            busy={busy}
             onClick={() => void refresh()}
           >
-            刷新状态
-          </button>
+            {t("common.refresh")}
+          </Button>
         </header>
         {error && (
-          <div className="error" role="alert">
-            <strong>操作未完成</strong>
-            <p>{error}</p>
-            <button disabled={busy} onClick={() => void refresh()}>
-              重试连接
-            </button>
-          </div>
+          <Notice title={t("common.failed")} actions={<>
+            <Button disabled={busy} onClick={() => void refresh()}>
+              {t("common.reconnect")}
+            </Button>
+          </>}>{error}</Notice>
         )}
-        {page === "overview" && (
-          <>
-            <p className="intro">常用工具，一个入口</p>
-            <div className="feature-list">
-              {pages.slice(1, 4).map((p) => (
-                <button
-                  key={p.id}
-                  className="feature"
-                  onClick={() => setPage(p.id)}
-                >
-                  <span className="feature-icon" aria-hidden>
-                    {p.glyph}
-                  </span>
-                  <span>
-                    <strong>{p.title}</strong>
-                    <small>
-                      {snapshot?.modules.find((m) => m.id === p.id)?.detail ??
-                        "等待后台连接"}
-                    </small>
-                  </span>
-                  <span aria-hidden>→</span>
-                </button>
-              ))}
-            </div>
-            <section className="footnote">
-              <h2>开发进度</h2>
-              <p>
-                当前可验证后台连接、设置保存和主题切换，功能模块接入后将在这里启用
-              </p>
-            </section>
-          </>
-        )}
+        {snapshot?.runtimeWarning&&<Notice tone="info">{snapshot.runtimeWarning}</Notice>}
+        {page === "overview" && <ModulesPage onChanged={() => void refresh()} onActivity={navigation.onActivity} onReady={()=>setHomeReady(true)} startup={snapshot?.settings.startup} administrator={snapshot?.administrator}/>}
         {page === "settings" && (
-          <section>
-            <h2>外观</h2>
-            <div className="setting-row">
-              <div>
-                <label htmlFor="theme">主题</label>
-                <p>选择浅色、深色或跟随 Windows</p>
-              </div>
-              <select
-                id="theme"
-                disabled={busy || !snapshot}
-                value={snapshot?.settings.theme ?? "system"}
-                onChange={(e) =>
-                  void changeTheme(e.target.value as Settings["theme"])
-                }
-              >
-                <option value="system">跟随系统</option>
-                <option value="light">浅色</option>
-                <option value="dark">深色</option>
-              </select>
-            </div>
+          <SettingsPanel><fieldset className="plain-fieldset" disabled={busy}><section>
+            <h2>{t("shell.appearance")}</h2>
+            <AppearanceSettings theme={snapshot?.settings.theme ?? "system"} language={snapshot?.settings.language || "zh-CN"} disabled={busy || !snapshot} onThemeChange={value=>void changeTheme(value)} onLanguageChange={value=>void changeLanguage(value)}/>
+            <StartupSettings value={snapshot?.settings.startup??{runAtLogon:false,startMinimized:true}} disabled={busy||!snapshot} onChange={value=>void changeStartup(value)}/>
+            <PermissionSettings administrator={snapshot?.administrator} remembered={!!snapshot?.settings.startup?.preferAdministrator} disabled={busy||!snapshot||navigation.activity.dirty||navigation.activity.busy} restarting={permissionRestarting} onRemember={value=>void changeAdministratorPreference(value)} onRestart={()=>void restartAdministrator()} error={permissionError}/>
             <p className="saved" role="status">
-              {notice}
+              {notice?t(notice):""}
             </p>
-            <h2>后台</h2>
+            <Profiles onApplied={()=>void refresh()} onActivity={navigation.onActivity} />
+            <h2>{t("shell.background")}</h2>
             <div className="setting-row">
               <div>
-                <span>连接状态</span>
-                <p>关闭设置窗口后，后台继续运行</p>
+                <span>{t("shell.connection")}</span>
+                <p>{t("shell.backgroundHint")}</p>
               </div>
-              <span>{snapshot && !error ? "已连接" : "未连接"}</span>
+              <span>{snapshot && !error ? t("shell.connected") : t("shell.disconnected")}</span>
             </div>
-          </section>
+          </section></fieldset></SettingsPanel>
         )}
-        {page === "wintray" && <WinTrayPage />}
-        {page === "capture" && <CapturePage />}
+        <>
+          {page === "wintray" && <WinTrayPage disabled={module?.state === "disabled"} onChanged={()=>void refresh()} onActivity={navigation.onActivity}/>}
+          {page === "capture" && <ModulePanel moduleId="capture" onSaved={()=>void refresh()} onActivity={navigation.onActivity}><CapturePage disabled={module?.state === "disabled"} onEdit={editCapture} onOpenDraft={openCapturedDraft} refreshKey={captureRefresh} onActivity={navigation.onActivity}/></ModulePanel>}
+          {page === "always-on-top" && <ModulePanel moduleId="always-on-top" onSaved={()=>void refresh()} onActivity={navigation.onActivity}><AlwaysOnTopPage disabled={module?.state === "disabled"} onActivity={navigation.onActivity}/></ModulePanel>}
+        </>
         {page !== "overview" &&
           page !== "settings" &&
           page !== "wintray" &&
-          page !== "capture" && (
+          page !== "capture" && page !== "always-on-top" && page !== "modules" && (
             <section className="empty">
               <span className="empty-icon" aria-hidden>
-                {selected.glyph}
+                <selected.icon size={28} strokeWidth={1.75} />
               </span>
-              <h2>{module?.detail ?? "等待后台连接"}</h2>
-              <p>组件通过验证后，将在此提供设置与操作</p>
-              <button className="secondary" onClick={() => setPage("overview")}>
-                返回概览
-              </button>
+              <h2>{module?.detail ?? t("shell.unavailable")}</h2>
+              <p>{t("shell.unavailableHint")}</p>
+              <Button variant="secondary" onClick={() => navigation.requestPage("overview")}>
+                {t("common.back")}
+              </Button>
             </section>
           )}
-      </main>
-    </div>
+
+      {navigation.dialog}
+    </AppShell>
   );
 }
 

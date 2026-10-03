@@ -9,9 +9,37 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/sys/windows/registry"
 )
+
+func TestLogonTaskRemovalRequiresConfirmedAbsence(t *testing.T) {
+	denied := errors.New("delete denied")
+	lookupFailed := errors.New("scheduler unavailable")
+	for _, test := range []struct {
+		name      string
+		exists    bool
+		lookupErr error
+		wantError bool
+	}{
+		{"absent", false, nil, false}, {"still exists", true, nil, true}, {"query failed", false, lookupFailed, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			task := &LogonTask{name: "owned", run: func(...string) ([]byte, error) { return nil, denied }, lookup: func(string) (bool, error) { return test.exists, test.lookupErr }}
+			err := task.Remove()
+			if (err != nil) != test.wantError {
+				t.Fatalf("removal error=%v", err)
+			}
+			if test.wantError && !errors.Is(err, denied) {
+				t.Fatal("delete error lost")
+			}
+			if test.lookupErr != nil && !errors.Is(err, lookupFailed) {
+				t.Fatal("lookup error lost")
+			}
+		})
+	}
+}
 
 func TestLogonTaskXMLEscapesPathsAndFingerprintsDefinition(t *testing.T) {
 	xmlA, fpA := logonTaskXML("S-1-5-21-1", `D:\A&B\<WinTray>.exe`, "--background --autorun")
@@ -60,7 +88,7 @@ func TestLogonTaskRegistersWithSchtasks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	task.name = fmt.Sprintf("WinTrayTest-%d", os.Getpid())
+	task.name = fmt.Sprintf("WinTrayTest-%d-%d", os.Getpid(), time.Now().UnixNano())
 	var calls []string
 	run := task.run
 	task.run = func(args ...string) ([]byte, error) {
@@ -72,6 +100,9 @@ func TestLogonTaskRegistersWithSchtasks(t *testing.T) {
 
 	if err = task.Sync(exe, "/c exit"); err != nil {
 		t.Fatalf("first Sync: %v", err)
+	}
+	if exists, err := scheduledTaskExists(task.name); err != nil || !exists {
+		t.Fatalf("created task not found: %t %v", exists, err)
 	}
 	calls = nil
 	if err = task.Sync(exe, "/c exit"); err != nil {

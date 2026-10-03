@@ -360,6 +360,9 @@ func TestAppTasksElevatedRegistrationUsesHelperOnlyWhenAllowed(t *testing.T) {
 // because no registration can be attempted then.
 func requireSchtasks(t *testing.T) {
 	t.Helper()
+	if os.Getenv("WINTRAY_STARTUP_LIVE_TEST") != "1" {
+		t.Skip("set WINTRAY_STARTUP_LIVE_TEST=1 for explicit Task Scheduler tests")
+	}
 	if _, err := runSchtasks("/Query", "/FO", "CSV", "/NH"); err != nil {
 		t.Skipf("schtasks unusable in this environment: %v", err)
 	}

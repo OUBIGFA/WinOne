@@ -4,6 +4,7 @@ package ipc
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"golang.org/x/sys/windows"
@@ -22,7 +23,12 @@ func MarkReady(name string) (release func(), err error) {
 	if err != nil && !errors.Is(err, windows.ERROR_ALREADY_EXISTS) {
 		return nil, err
 	}
-	return func() { _ = windows.CloseHandle(h) }, nil
+	if err = windows.SetEvent(h); err != nil {
+		windows.CloseHandle(h)
+		return nil, err
+	}
+	var once sync.Once
+	return func() { once.Do(func() { _ = windows.ResetEvent(h); _ = windows.CloseHandle(h) }) }, nil
 }
 
 // WaitReady waits until MarkReady has been called for name, polling because
@@ -35,8 +41,11 @@ func WaitReady(name string, timeout, poll time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	for {
 		if h, err := windows.OpenEvent(windows.SYNCHRONIZE, false, namePtr); err == nil {
+			state, waitErr := windows.WaitForSingleObject(h, 0)
 			_ = windows.CloseHandle(h)
-			return true
+			if waitErr == nil && state == windows.WAIT_OBJECT_0 {
+				return true
+			}
 		}
 		if !time.Now().Before(deadline) {
 			return false

@@ -1,0 +1,32 @@
+import {readNativeState} from "./native-state.mjs";
+import {createRequire} from "node:module";
+import {clickPrivateCanvas} from "./native-probe-input.mjs";
+import {readFile,writeFile} from "node:fs/promises";
+import {resolve} from "node:path";
+const require=createRequire(import.meta.url),{chromium}=require(process.env.WINONE_PLAYWRIGHT_MODULE||"playwright");
+const output=process.env.WINONE_NATIVE_PROBE_OUTPUT;if(!output)throw Error("Set WINONE_NATIVE_PROBE_OUTPUT");
+const browser=await chromium.connectOverCDP(process.env.WINONE_NATIVE_PROBE_CDP||"http://127.0.0.1:43192");
+try{
+ const page=browser.contexts()[0].pages()[0];
+ const text=()=>page.getByRole("textbox",{name:"输入文字",exact:true});
+ const point=(x,y)=>clickPrivateCanvas(output,x,y);
+ await page.getByRole("button",{name:"文字",exact:true}).click();
+ if(await text().count())throw Error("Choosing text still opened the fixed-position editor");
+ await point(50,50);if(await text().count())throw Error("Outside click created text");
+ await point(799,499);if(await text().count())throw Error("An unusable edge position created text");
+ await point(140,150);await text().waitFor();
+ const first=(await readNativeState(resolve(output,"state.json")));
+ if(first.viewX+first.text.x!==140||first.viewY+first.text.y!==150)throw Error("Native click coordinates were changed");
+ await text().fill("点击位置创建");await text().press("Control+Enter");await text().waitFor({state:"detached"});
+ await point(150,160);await text().waitFor();
+ if(await text().inputValue()!=="点击位置创建")throw Error("Hit-testing did not reopen the clicked text");
+ await text().fill("同一位置修改");await text().press("Control+Enter");await text().waitFor({state:"detached"});
+ await point(580,340);await text().waitFor();
+ if(await text().inputValue()!=="")throw Error("Clicking empty canvas reused another text object");
+ await text().fill("另一段");await text().press("Control+Enter");await text().waitFor({state:"detached"});
+ const state=(await readNativeState(resolve(output,"state.json")));
+ if(state.annotations!==3||state.nativeWindow!==first.nativeWindow)throw Error("Text placement changed layers or windows");
+ await writeFile(resolve(output,"pointer-verification.json"),JSON.stringify({method:"Directed native messages to a verified private-desktop prototype; not hardware mouse input",first,state},null,2));
+ const closed=page.waitForEvent("close",{timeout:10000});await page.getByRole("button",{name:"取消",exact:true}).click();await closed;
+ console.log("PASS: native click placement, clicked-text editing and a second text object on the same canvas");
+}finally{await browser.close();}

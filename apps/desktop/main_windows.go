@@ -4,12 +4,12 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
 	"embed"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -24,7 +24,13 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	windowsOptions "github.com/wailsapp/wails/v2/pkg/options/windows"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"winone/internal/adminstartup"
+	"winone/internal/capturehandoff"
 	"winone/internal/host"
+	"winone/internal/logintask"
+	"winone/internal/maintenance"
+	"winone/internal/previewtransfer"
+	"winone/internal/residency"
 	"winone/internal/settings"
 	"winone/internal/transport"
 )
@@ -34,11 +40,43 @@ var assets embed.FS
 
 // App exposes the small settings API, never the Host's process or filesystem access.
 type App struct {
-	pipe         string
-	sequence     atomic.Uint64
-	ctxMu        sync.RWMutex
-	ctx          context.Context
-	startupError error
+	updateSession          updateSession
+	authorizationMu        sync.Mutex
+	captureSurface         *captureSurfaceState
+	captureWindowBefore    *captureSurfaceState
+	dedicatedCapture       bool
+	captureOnly            bool
+	settingsNavigation     uint64
+	frameInitMu            sync.Mutex
+	frameInitialized       bool
+	settingsDirty          bool
+	settingsBusy           bool
+	settingsClosePending   bool
+	settingsCloseApproved  bool
+	startupProbe           *desktopProbeState
+	pipe                   string
+	sequence               atomic.Uint64
+	ctxMu                  sync.RWMutex
+	ctx                    context.Context
+	startupError           error
+	startupWarning         string
+	locale                 string
+	captureLaunches        capturehandoff.Queue
+	captureEditing         bool
+	captureClosePending    bool
+	captureDirectory       string
+	dataDirectory          string
+	captureRecoveryChecked bool
+}
+
+func (a *App) dialogText(chinese, english string) string {
+	a.ctxMu.RLock()
+	locale := a.locale
+	a.ctxMu.RUnlock()
+	if locale == "en-US" {
+		return english
+	}
+	return chinese
 }
 
 func (a *App) windowContext() context.Context { a.ctxMu.RLock(); defer a.ctxMu.RUnlock(); return a.ctx }
@@ -59,22 +97,31 @@ func (a *App) applyTheme(theme string) {
 }
 
 func (a *App) request(method string, params any, result any) error {
+	if a.startupProbe != nil && method != "snapshot" && method != "modules.snapshot" {
+		return errors.New("startup probe permits snapshot only")
+	}
 	data, err := json.Marshal(params)
 	if err != nil {
 		return err
 	}
 	timeout := 5 * time.Second
-	if strings.HasPrefix(method, "capture.") {
+	if strings.HasPrefix(method, "capture.") || strings.HasPrefix(method, "always-on-top.") {
 		timeout = 15 * time.Second
 	}
-	r, err := transport.CallWithTimeout(context.Background(), a.pipe, host.Request{Version: 1, ID: fmt.Sprint(a.sequence.Add(1)), Method: method, Params: data}, timeout)
+	r, err := transport.CallCompleting(context.Background(), a.pipe, host.Request{Version: 1, ID: fmt.Sprint(a.sequence.Add(1)), Method: method, Params: data}, timeout)
 	if err != nil {
 		return fmt.Errorf("无法连接后台：%w", err)
 	}
 	if r.Error != nil {
 		return errors.New(r.Error.Message)
 	}
-	return json.Unmarshal(r.Result, result)
+	err = json.Unmarshal(r.Result, result)
+	if err == nil && a.startupProbe != nil && method == "modules.snapshot" {
+		a.startupProbe.mu.Lock()
+		a.startupProbe.modulesRead = true
+		a.startupProbe.mu.Unlock()
+	}
+	return err
 }
 
 // Snapshot is the read-only page bootstrap API exposed through Wails.
@@ -84,7 +131,24 @@ func (a *App) Snapshot() (host.Snapshot, error) {
 	if err != nil {
 		return result, errors.Join(a.startupError, err)
 	}
+	if a.startupProbe != nil {
+		a.startupProbe.mu.Lock()
+		a.startupProbe.snapshot = true
+		a.startupProbe.mu.Unlock()
+	}
 	a.applyTheme(result.Settings.Theme)
+	a.ctxMu.Lock()
+	a.locale = result.Locale
+	if a.locale == "" && result.Settings.Language == "en-US" {
+		a.locale = "en-US"
+	}
+	a.ctxMu.Unlock()
+	if a.startupWarning != "" && result.Settings.Startup != nil && result.Settings.Startup.PreferAdministrator && !result.Administrator {
+		if result.RuntimeWarning != "" {
+			result.RuntimeWarning += "\n"
+		}
+		result.RuntimeWarning += a.startupWarning
+	}
 	return result, err
 }
 
@@ -101,7 +165,7 @@ func (a *App) SaveSettings(next settings.Settings) (settings.Settings, error) {
 // WinTray limits page access to the module's documented command set.
 func (a *App) WinTray(method, payload string) (string, error) {
 	switch method {
-	case "snapshot", "settings.save", "launch", "jobs.get", "icons", "icon.activate", "recover":
+	case "snapshot", "settings.get", "settings.save", "launch", "jobs.get", "icons", "icon.activate", "recover", "import.preview", "startup.retry":
 	default:
 		return "", errors.New("不支持的程序管理操作")
 	}
@@ -116,19 +180,91 @@ func (a *App) WinTray(method, payload string) (string, error) {
 	return string(result), nil
 }
 
+// AlwaysOnTop exposes only supported commands, retaining native identity checks.
+func (a *App) Shortcuts() (string, error) {
+	var result json.RawMessage
+	if err := a.request("shortcuts.snapshot", nil, &result); err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+
+// Residency reports live blockers for login-session automatic exit.
+func (a *App) Modules(method, payload string) (string, error) {
+	switch method {
+	case "snapshot", "catalog", "setEnabled", "jobs.get", "recoverConfiguration", "resetWinTray.preview", "resetWinTray":
+	default:
+		return "", errors.New("不支持的模块管理操作")
+	}
+	var params any
+	if err := json.Unmarshal([]byte(payload), &params); err != nil {
+		return "", err
+	}
+	var result json.RawMessage
+	if err := a.request("modules."+method, params, &result); err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+
+// Residency reports live blockers for login-session automatic exit.
+func (a *App) Residency() (string, error) {
+	var result json.RawMessage
+	if err := a.request("residency.snapshot", nil, &result); err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+
+// AlwaysOnTop exposes only supported commands, retaining native identity checks.
+func (a *App) AlwaysOnTop(method, payload string) (string, error) {
+	switch method {
+	case "snapshot", "settings.get", "settings.save", "window.set", "clear", "privilege.start", "privilege.status":
+	default:
+		return "", errors.New("不支持的置顶操作")
+	}
+	var params any
+	if err := json.Unmarshal([]byte(payload), &params); err != nil {
+		return "", err
+	}
+	var result json.RawMessage
+	if err := a.request("always-on-top."+method, params, &result); err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+
+// PickProgram uses the native file picker; the selected file is not executed here.
+func (a *App) PickWinTrayConfig() (string, error) {
+	ctx := a.windowContext()
+	if ctx == nil {
+		return "", errors.New(a.dialogText("设置窗口未就绪", "Settings window is not ready"))
+	}
+	return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("选择 WinTray 配置", "Choose WinTray settings"), Filters: []runtime.FileFilter{{DisplayName: a.dialogText("WinTray JSON 配置", "WinTray JSON settings"), Pattern: "*.json"}}})
+}
+
 // PickProgram uses the native file picker; the selected file is not executed here.
 func (a *App) PickProgram() (string, error) {
 	ctx := a.windowContext()
 	if ctx == nil {
-		return "", errors.New("设置窗口未就绪")
+		return "", errors.New(a.dialogText("设置窗口未就绪", "Settings window is not ready"))
 	}
-	return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{Title: "选择程序或脚本", Filters: []runtime.FileFilter{{DisplayName: "程序与脚本", Pattern: "*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw"}}})
+	return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("选择程序或脚本", "Choose a program or script"), Filters: []runtime.FileFilter{{DisplayName: a.dialogText("程序与脚本", "Programs and scripts"), Pattern: "*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw"}}})
+}
+
+// PickPrograms adds several entries without launching or persisting them.
+func (a *App) PickPrograms() ([]string, error) {
+	ctx := a.windowContext()
+	if ctx == nil {
+		return nil, errors.New(a.dialogText("设置窗口未就绪", "Settings window is not ready"))
+	}
+	return runtime.OpenMultipleFilesDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("选择程序或脚本", "Choose programs or scripts"), Filters: []runtime.FileFilter{{DisplayName: a.dialogText("程序与脚本", "Programs and scripts"), Pattern: "*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw"}}})
 }
 
 // Capture forwards only supported image commands; it hides settings before starting capture.
 func (a *App) Capture(method, payload string) (string, error) {
 	switch method {
-	case "snapshot", "settings.save", "capture.start", "edit.last", "copy.last", "pin.last", "pins.close", "jobs.get":
+	case "snapshot", "settings.get", "settings.save", "filename.preview", "capture.start", "capture.unified", "scroll.stop", "scroll.retake", "handoff.release", "draft.begin", "draft.get", "draft.update", "draft.cancel", "draft.complete", "draft.confirm", "selection.candidates", "selection.commit", "draft.copy", "draft.pin", "edit.last", "edit.apply", "edit.preview", "copy.last", "save.last", "pin.last", "pins.close", "jobs.get":
 	default:
 		return "", errors.New("不支持的截图操作")
 	}
@@ -136,17 +272,117 @@ func (a *App) Capture(method, payload string) (string, error) {
 	if err := json.Unmarshal([]byte(payload), &params); err != nil {
 		return "", err
 	}
-	hide := method == "capture.start" || method == "edit.last"
+	hide := method == "capture.start" || method == "capture.unified" || method == "scroll.retake" || method == "edit.last"
+	if method == "save.last" || method == "edit.apply" || method == "draft.complete" {
+		var identity struct {
+			ExpectedID string `json:"expectedId"`
+			Revision   int64  `json:"revision"`
+			SaveAs     bool   `json:"saveAs"`
+			SaveCopy   bool   `json:"saveCopy"`
+		}
+		if err := json.Unmarshal([]byte(payload), &identity); err != nil {
+			return "", err
+		}
+		var values map[string]any
+		if err := json.Unmarshal([]byte(payload), &values); err != nil {
+			return "", err
+		}
+		if values == nil {
+			values = map[string]any{}
+		}
+		if method == "edit.apply" && values["document"] == nil {
+			return "", errors.New(a.dialogText("标注为空", "No annotations were provided"))
+		}
+		choosePath := true
+		if method == "draft.complete" {
+			var response struct {
+				Draft *struct {
+					ID       string `json:"id"`
+					Revision int64  `json:"revision"`
+					Settings struct {
+						Ask bool `json:"askWhereToSave"`
+					} `json:"settings"`
+				} `json:"draft"`
+			}
+			if err := a.request("capture.draft.get", map[string]string{"expectedId": identity.ExpectedID}, &response); err != nil {
+				return "", err
+			}
+			if response.Draft == nil || response.Draft.ID != identity.ExpectedID || response.Draft.Revision != identity.Revision {
+				return "", errors.New(a.dialogText("截图草稿已变化，请重新加载", "Draft changed. Reload before saving."))
+			}
+			choosePath = !identity.SaveCopy && (response.Draft.Settings.Ask || identity.SaveAs)
+			delete(values, "path")
+		}
+		if choosePath {
+			ctx := a.windowContext()
+			if ctx == nil {
+				return "", errors.New(a.dialogText("设置窗口未就绪", "Settings window is not ready"))
+			}
+			var suggested struct {
+				Name string `json:"name"`
+			}
+			if err := a.request("capture.filename.preview", map[string]string{}, &suggested); err != nil {
+				return "", err
+			}
+			path, err := runtime.SaveFileDialog(ctx, runtime.SaveDialogOptions{Title: a.dialogText("截图另存为", "Save capture as"), DefaultFilename: suggested.Name, CanCreateDirectories: true, Filters: []runtime.FileFilter{{DisplayName: a.dialogText("PNG 图像", "PNG image"), Pattern: "*.png"}}})
+			if err != nil {
+				return "", err
+			}
+			if path == "" {
+				return `{"state":"cancelled"}`, nil
+			}
+			if filepath.Ext(path) == "" {
+				path += ".png"
+			}
+			values["path"] = path
+		}
+		if identity.ExpectedID != "" {
+			values["expectedId"] = identity.ExpectedID
+		}
+		params = values
+	}
+	// Attach locale after save-dialog parameters are rebuilt, including pins
+	// created automatically when a draft is completed.
+	if method == "capture.unified" || method == "scroll.retake" || method == "pin.last" || method == "draft.pin" || method == "draft.complete" {
+		if params == nil && method != "capture.unified" {
+			params = map[string]any{}
+		}
+		values, ok := params.(map[string]any)
+		if !ok {
+			return "", errors.New("invalid capture parameters")
+		}
+		a.ctxMu.RLock()
+		locale := a.locale
+		a.ctxMu.RUnlock()
+		if locale != "en-US" {
+			locale = "zh-CN"
+		}
+		values["language"] = locale
+	}
 	if hide {
 		if ctx := a.windowContext(); ctx != nil {
-			runtime.WindowHide(ctx)
-			time.Sleep(180 * time.Millisecond)
+			if err := a.rememberCaptureWindow(); err != nil {
+				return "", err
+			}
+			values, _ := params.(map[string]any)
+			if method == "scroll.retake" || method == "capture.unified" && values["mode"] == "scroll" {
+				// Keep a taskbar entry so returning to WinOne can stop scrolling.
+				runtime.WindowMinimise(ctx)
+				time.Sleep(180 * time.Millisecond)
+			} else {
+				runtime.WindowHide(ctx)
+				if err := a.captureHiddenWindowReady(); err != nil {
+					return "", errors.Join(err, a.Reveal())
+				}
+			}
 		}
 	}
 	var result json.RawMessage
 	if err := a.request("capture."+method, params, &result); err != nil {
 		if hide {
-			a.Reveal()
+			if restoreErr := a.Reveal(); restoreErr != nil {
+				return "", errors.Join(err, restoreErr)
+			}
 		}
 		return "", err
 	}
@@ -154,22 +390,141 @@ func (a *App) Capture(method, payload string) (string, error) {
 }
 
 // Reveal restores the settings window after a UI-initiated capture finishes or is cancelled.
-func (a *App) Reveal() {
+func (a *App) Reveal() error {
+	a.frameInitMu.Lock()
+	defer a.frameInitMu.Unlock()
+	if a.captureSurface != nil {
+		return nil
+	}
+	if a.captureWindowBefore != nil {
+		if err := a.captureWindowBefore.restore(); err != nil {
+			return err
+		}
+		a.captureWindowBefore = nil
+		return nil
+	}
 	if ctx := a.windowContext(); ctx != nil {
 		runtime.WindowShow(ctx)
 	}
+	return nil
+}
+
+// A failed in-place session must expose its retained draft even when the
+// original settings window was minimized. Normal completion still uses Reveal.
+func (a *App) RevealCaptureEditor() error {
+	if err := a.Reveal(); err != nil {
+		return err
+	}
+	a.frameInitMu.Lock()
+	defer a.frameInitMu.Unlock()
+	if a.captureSurface != nil {
+		return errors.New("请先恢复截图窗口")
+	}
+	ctx := a.windowContext()
+	if ctx == nil {
+		return errors.New("窗口尚未就绪")
+	}
+	runtime.WindowUnminimise(ctx)
+	runtime.WindowShow(ctx)
+	return nil
 }
 
 func (a *App) PickDirectory() (string, error) {
 	ctx := a.windowContext()
 	if ctx == nil {
-		return "", errors.New("设置窗口未就绪")
+		return "", errors.New(a.dialogText("设置窗口未就绪", "Settings window is not ready"))
 	}
-	return runtime.OpenDirectoryDialog(ctx, runtime.OpenDialogOptions{Title: "选择截图保存目录"})
+	return runtime.OpenDirectoryDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("选择截图保存目录", "Choose the capture folder")})
+}
+
+// ExportProfile uses the native save dialog; cancellation performs no write.
+func (a *App) ExportProfile() (string, error) {
+	ctx := a.windowContext()
+	if ctx == nil {
+		return "", errors.New(a.dialogText("设置窗口未就绪", "Settings window is not ready"))
+	}
+	path, err := runtime.SaveFileDialog(ctx, runtime.SaveDialogOptions{Title: a.dialogText("导出配置", "Export configuration"), DefaultFilename: "WinOne.winone", CanCreateDirectories: true, Filters: []runtime.FileFilter{{DisplayName: a.dialogText("WinOne 配置", "WinOne configuration"), Pattern: "*.winone"}}})
+	if err != nil || path == "" {
+		return "", err
+	}
+	if filepath.Ext(path) == "" {
+		path += ".winone"
+	}
+	var result struct {
+		Path string `json:"path"`
+	}
+	if err = a.request("profiles.export", map[string]string{"path": path, "name": a.dialogText("我的配置", "My configuration")}, &result); err != nil {
+		return "", err
+	}
+	return result.Path, nil
+}
+
+func (a *App) PickProfile() (string, error) {
+	ctx := a.windowContext()
+	if ctx == nil {
+		return "", errors.New(a.dialogText("设置窗口未就绪", "Settings window is not ready"))
+	}
+	return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("选择配置文件", "Choose a configuration file"), Filters: []runtime.FileFilter{{DisplayName: a.dialogText("WinOne 配置", "WinOne configuration"), Pattern: "*.winone"}}})
+}
+
+func (a *App) PickProfileLocation(kind string) (string, error) {
+	ctx := a.windowContext()
+	if ctx == nil {
+		return "", errors.New(a.dialogText("设置窗口未就绪", "Settings window is not ready"))
+	}
+	switch kind {
+	case "directory":
+		return runtime.OpenDirectoryDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("选择文件夹", "Choose a folder")})
+	case "program":
+		return a.PickProgram()
+	default:
+		return "", errors.New("不支持的路径类型")
+	}
+}
+
+func (a *App) Profiles(method, payload string) (string, error) {
+	if method != "import.preview" && method != "import.apply" {
+		return "", errors.New("不支持的配置操作")
+	}
+	var params any
+	if err := json.Unmarshal([]byte(payload), &params); err != nil {
+		return "", err
+	}
+	if method == "import.preview" {
+		var descriptor previewtransfer.Descriptor
+		if err := a.request("profiles.import.preview.start", params, &descriptor); err != nil {
+			return "", err
+		}
+		defer func() {
+			var result any
+			if err := a.request("profiles.import.preview.release", map[string]string{"token": descriptor.Token}, &result); err != nil {
+				fmt.Fprintln(os.Stderr, "preview cleanup:", err)
+			}
+		}()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		data, err := previewtransfer.Receive(ctx, descriptor, func(offset int) (previewtransfer.Chunk, error) {
+			var chunk previewtransfer.Chunk
+			err := a.request("profiles.import.preview.read", map[string]any{"token": descriptor.Token, "offset": offset}, &chunk)
+			return chunk, err
+		})
+		if err != nil {
+			return "", err
+		}
+		if !json.Valid(data) {
+			return "", errors.New(a.dialogText("配置预览格式无效", "Invalid profile preview"))
+		}
+		return string(data), nil
+	}
+	var result json.RawMessage
+	if err := a.request("profiles."+method, params, &result); err != nil {
+		return "", err
+	}
+	return string(result), nil
 }
 
 // ensureHost starts only the sibling binary and waits for its actual pipe readiness.
-func ensureHost(pipe, dataDir string) error {
+func ensureHost(pipe, dataDir string, standard ...bool) error {
 	probe := func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 		defer cancel()
@@ -190,6 +545,9 @@ func ensureHost(pipe, dataDir string) error {
 		return err
 	}
 	cmd := exec.Command(filepath.Join(filepath.Dir(exe), "WinOne.Host.exe"), "--pipe", pipe, "--data-dir", dataDir)
+	if len(standard) > 0 && standard[0] {
+		cmd.Args = append(cmd.Args, "--standard-session")
+	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	if err = cmd.Start(); err != nil {
 		return err
@@ -205,29 +563,153 @@ func ensureHost(pipe, dataDir string) error {
 }
 
 func main() {
+	if executable, err := os.Executable(); err == nil {
+		if handled, err := runAdministratorAuthorizationHelper(os.Args[1:], executable); handled {
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			return
+		}
+		if handled, err := runAuthorizedStartHelper(os.Args[1:], executable); handled {
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			return
+		}
+	}
 	pipeDefault, err := transport.PipeName()
 	if err != nil {
 		panic(err)
 	}
 	pipe := flag.String("pipe", pipeDefault, "local pipe name")
 	data := flag.String("data-dir", filepath.Join(os.Getenv("LOCALAPPDATA"), "WinOne"), "settings directory")
+	initialCapture := flag.String("capture-draft", "", "capture draft to open")
+	openSettings := flag.Bool("open-settings", false, "open global settings")
+	standardSession := flag.Bool("standard-session", false, "skip remembered administrator startup for recovery")
+	uiProbe := flag.String("check-ui", "", "desktop probe nonce")
+	probeRoot := flag.String("probe-root", "", "existing probe scratch directory")
 	flag.Parse()
-	app := &App{pipe: *pipe}
+	probeRequested := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "check-ui" || f.Name == "probe-root" {
+			probeRequested = true
+		}
+	})
+	if probeRequested {
+		valid := flag.NArg() == 0
+		flag.Visit(func(f *flag.Flag) {
+			if f.Name != "check-ui" && f.Name != "probe-root" {
+				valid = false
+			}
+		})
+		if !valid {
+			fmt.Fprintln(os.Stderr, "invalid desktop probe arguments")
+			os.Exit(1)
+		}
+		if err := runDesktopProbe(*uiProbe, *probeRoot); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+	executablePath, err := os.Executable()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	lease, err := maintenance.AcquireRuntimeForInstallation(*data, filepath.Dir(executablePath))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	defer lease.Close()
+	redirected, redirectErr := adminstartup.Try(context.Background(), *data, *pipe, executablePath, logintask.InteractiveLaunch, *standardSession, *initialCapture)
+	if redirected {
+		return
+	}
+	app := &App{pipe: *pipe, dataDirectory: *data, captureDirectory: filepath.Join(*data, "modules", "capture"), captureOnly: *initialCapture != "", dedicatedCapture: *initialCapture != ""}
+	if redirectErr != nil {
+		app.startupWarning = "本次未以管理员身份启动：" + redirectErr.Error()
+	}
+	if *openSettings {
+		app.requestSettingsNavigation()
+	}
+	draftID, err := capturehandoff.DraftFromArgs(os.Args[1:])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if draftID != "" {
+		if err = app.queueCaptureDraft(draftID); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+	releaseWindow, err := residency.MarkWindow(*pipe)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	defer releaseWindow()
 	// A failed Host is shown in the page with retry, not replaced by fabricated settings.
-	app.startupError = ensureHost(*pipe, *data)
+	app.startupError = ensureHost(*pipe, *data, *standardSession || redirectErr != nil)
+	role := desktopRoleFor(*pipe, app.dedicatedCapture)
+	instanceID := role.InstanceID
+	assetRoot, err := fs.Sub(assets, "frontend/dist")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if err := grantExistingWindowForeground(instanceID, executablePath); err != nil {
+		fmt.Fprintln(os.Stderr, "Window activation:", err)
+	}
 	err = wails.Run(&options.App{
-		Title: "WinOne", Width: 1040, Height: 720, MinWidth: 800, MinHeight: 560,
+		Title: "WinOne", Width: 1280, Height: 840, MinWidth: 800, MinHeight: 560, Frameless: true, StartHidden: true,
 		BackgroundColour: options.NewRGB(248, 248, 246), HideWindowOnClose: false,
-		AssetServer: &assetserver.Options{Assets: assets}, Bind: []interface{}{app},
+		AssetServer: &assetserver.Options{Assets: desktopPageAssets(assetRoot, app.dedicatedCapture), Handler: captureAssets(filepath.Join(*data, "modules", "capture"))}, Bind: []interface{}{app},
 		OnStartup: func(ctx context.Context) { app.ctxMu.Lock(); app.ctx = ctx; app.ctxMu.Unlock() },
-		SingleInstanceLock: &options.SingleInstanceLock{UniqueId: fmt.Sprintf("winone-desktop-%x", sha256.Sum256([]byte(*pipe))), OnSecondInstanceLaunch: func(options.SecondInstanceData) {
+		OnDomReady: func(context.Context) {
+			if app.dedicatedCapture {
+				if err := app.prepareDedicatedCaptureWindow(); err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				}
+			} else if _, err := app.InitializeWindow(); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			}
+			app.notifyCaptureLaunch()
+		},
+		OnBeforeClose: func(context.Context) bool { return app.blockCaptureClose() },
+		OnShutdown:    func(context.Context) { app.updateSession.close() },
+		SingleInstanceLock: &options.SingleInstanceLock{UniqueId: instanceID, OnSecondInstanceLaunch: func(data options.SecondInstanceData) {
+			for _, arg := range data.Args {
+				if arg == "--open-settings" {
+					app.requestSettingsNavigation()
+					break
+				}
+			}
+			id, err := capturehandoff.DraftFromArgs(data.Args)
+			if err == nil && id != "" {
+				err = app.queueCaptureDraft(id)
+			}
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			}
+			if app.dedicatedCapture {
+				return
+			}
 			if ctx := app.windowContext(); ctx != nil {
-				runtime.WindowUnminimise(ctx)
-				runtime.WindowShow(ctx)
+				app.frameInitMu.Lock()
+				if app.captureSurface == nil {
+					runtime.WindowUnminimise(ctx)
+					runtime.WindowShow(ctx)
+				}
+				app.frameInitMu.Unlock()
 			}
 		}},
 		DragAndDrop: &options.DragAndDrop{DisableWebViewDrop: true},
-		Windows:     &windowsOptions.Options{WebviewUserDataPath: filepath.Join(*data, "webview"), Theme: windowsOptions.SystemDefault},
+		Windows:     &windowsOptions.Options{WebviewUserDataPath: filepath.Join(*data, role.WebviewDirectory), Theme: windowsOptions.SystemDefault, WindowClassName: role.WindowClass},
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

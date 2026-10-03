@@ -1,0 +1,3 @@
+<Project>
+  <Import Project="../../modules/capture/NativeUI/ShareXHost.targets" />
+</Project>

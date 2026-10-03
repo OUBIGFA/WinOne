@@ -5,6 +5,7 @@ package modules
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"golang.org/x/sys/windows"
@@ -21,21 +22,35 @@ import (
 )
 
 type Process struct {
-	mu     sync.Mutex
-	state  host.Module
-	pipe   string
-	cmd    *exec.Cmd
-	exited chan struct{}
+	mu       sync.Mutex
+	state    host.Module
+	pipe     string
+	cmd      *exec.Cmd
+	pid      uint32
+	verified bool
+	exited   chan struct{}
 }
 
 // Start waits for a real protocol response before reporting readiness.
 func Start(ctx context.Context, id, name, exe, pipe, dataDir string, autorun bool) *Process {
+	return start(ctx, id, name, exe, pipe, dataDir, autorun, false)
+}
+
+// StartElevated is reserved for the user-requested AlwaysOnTop privilege transition.
+func StartElevated(ctx context.Context, id, name, exe, pipe, dataDir string) *Process {
+	return start(ctx, id, name, exe, pipe, dataDir, false, true)
+}
+
+func start(ctx context.Context, id, name, exe, pipe, dataDir string, autorun, elevated bool, extraArgs ...string) *Process {
 	p := &Process{state: host.Module{ID: id, Name: name, State: "starting", Detail: "正在启动"}, pipe: pipe, exited: make(chan struct{})}
 	fail := func(err error) *Process {
 		p.state.State = "faulted"
 		p.state.Detail = err.Error()
 		close(p.exited)
 		return p
+	}
+	if err := ctx.Err(); err != nil {
+		return fail(err)
 	}
 	if err := os.MkdirAll(dataDir, 0700); err != nil {
 		return fail(err)
@@ -48,17 +63,29 @@ func Start(ctx context.Context, id, name, exe, pipe, dataDir string, autorun boo
 	if autorun {
 		args = append(args, "--autorun")
 	}
-	cmd := exec.Command(exe, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
-	cmd.Stderr = log
-	cmd.Stdout = log
-	if err = cmd.Start(); err != nil {
-		log.Close()
-		return fail(err)
+	args = append(args, extraArgs...)
+	var wait func() error
+	if elevated {
+		p.pid, wait, err = elevatedLaunch(exe, args)
+		if err != nil {
+			log.Close()
+			return fail(err)
+		}
+	} else {
+		cmd := exec.Command(exe, args...)
+		cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
+		cmd.Stderr = log
+		cmd.Stdout = log
+		if err = cmd.Start(); err != nil {
+			log.Close()
+			return fail(err)
+		}
+		p.cmd = cmd
+		p.pid = uint32(cmd.Process.Pid)
+		wait = cmd.Wait
 	}
-	p.cmd = cmd
 	go func() {
-		err := cmd.Wait()
+		err := wait()
 		log.Close()
 		p.mu.Lock()
 		defer p.mu.Unlock()
@@ -77,6 +104,13 @@ func Start(ctx context.Context, id, name, exe, pipe, dataDir string, autorun boo
 		response, probeErr := transport.Call(probeCtx, pipe, host.Request{Version: 1, ID: "ready", Method: "snapshot"})
 		cancel()
 		if probeErr == nil && response.Error == nil {
+			if err := p.acceptIdentity(response); err != nil {
+				p.mu.Lock()
+				p.state.State = "faulted"
+				p.state.Detail = err.Error()
+				p.mu.Unlock()
+				return p
+			}
 			p.mu.Lock()
 			if p.state.State == "starting" {
 				p.state.State = "ready"
@@ -109,12 +143,27 @@ func (p *Process) Status() host.Module { p.mu.Lock(); defer p.mu.Unlock(); retur
 
 // GrantForeground transfers a user-initiated menu action to the worker's native windows.
 func (p *Process) GrantForeground() {
-	if p.cmd != nil && p.cmd.Process != nil {
-		windows.NewLazySystemDLL("user32.dll").NewProc("AllowSetForegroundWindow").Call(uintptr(p.cmd.Process.Pid))
+	if p.pid != 0 {
+		windows.NewLazySystemDLL("user32.dll").NewProc("AllowSetForegroundWindow").Call(uintptr(p.pid))
 	}
 }
 
 func (p *Process) Handle(request host.Request) host.Response {
+	p.mu.Lock()
+	verified := p.verified
+	p.mu.Unlock()
+	if !verified {
+		probe, err := transport.Call(context.Background(), p.pipe, host.Request{Version: 1, ID: "verify-process", Method: "snapshot"})
+		if err == nil && probe.Error != nil {
+			err = errors.New(probe.Error.Message)
+		}
+		if err == nil {
+			err = p.acceptIdentity(probe)
+		}
+		if err != nil {
+			return host.Response{ID: request.ID, Error: &host.RPCError{Code: "module_identity", Message: err.Error()}}
+		}
+	}
 	response, err := transport.Call(context.Background(), p.pipe, request)
 	if err != nil {
 		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "module_unavailable", Message: err.Error()}}
@@ -130,6 +179,22 @@ func (p *Process) Handle(request host.Request) host.Response {
 	}
 	p.mu.Unlock()
 	return response
+}
+
+func (p *Process) acceptIdentity(response host.Response) error {
+	var identity struct {
+		PID uint32 `json:"processId"`
+	}
+	if json.Unmarshal(response.Result, &identity) != nil || identity.PID == 0 {
+		return errors.New("组件缺少进程标识，请更新完整组件包")
+	}
+	if identity.PID != p.pid {
+		return errors.New("组件仍由另一会话使用，请先完成该会话的任务")
+	}
+	p.mu.Lock()
+	p.verified = true
+	p.mu.Unlock()
+	return nil
 }
 
 // Close lets the module restore windows and icons before the Host exits.

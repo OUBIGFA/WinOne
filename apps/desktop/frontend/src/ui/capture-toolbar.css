@@ -1,0 +1,7 @@
+@layer theme, base, legacy, components, utilities;
+
+@layer legacy {
+.capture-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-3) 0; }
+.capture-toolbar .ui-button { gap: var(--space-2); }
+
+}

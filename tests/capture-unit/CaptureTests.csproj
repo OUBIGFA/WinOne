@@ -8,4 +8,5 @@
     <AssemblyName>WinOne.Capture.Tests</AssemblyName>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../../modules/capture/WinOne.Capture.csproj" /></ItemGroup>
+  <ItemGroup><None Include="../fixtures/capture-filenames.json" Link="capture-filenames.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

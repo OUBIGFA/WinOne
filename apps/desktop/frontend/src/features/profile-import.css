@@ -1,0 +1,19 @@
+@layer theme, base, legacy, components, utilities;
+
+@layer legacy {
+.profile-import__review { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 16px; }
+.profile-import__review h3 { font-size: 17px; font-weight: 600; margin: 12px 0; }
+.profile-import__module { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.profile-import__module p { margin: 6px 0 10px; }
+.profile-settings-review { margin: 10px 0; }
+.profile-settings-review > div { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(0, 2fr); gap: 16px; padding: 6px 0; }
+.profile-settings-review dt { color: var(--muted-foreground); }
+.profile-settings-review dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.profile-settings-review ul { margin: 0; padding-left: 18px; }
+.profile-settings-review .profile-settings-review > div { display: block; }
+.profile-settings-review .profile-settings-review dt { margin-bottom: 4px; }
+.profile-import .setting-row > div { min-width: 0; }
+.profile-import .setting-row > button { flex-shrink: 0; }
+.profile-import .detail-actions { flex-wrap: wrap; }
+
+}

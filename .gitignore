@@ -14,6 +14,7 @@ playwright-report/
 *.log
 *.syso
 internal/branding/icon.ico
+internal/branding/logo-native.png
 .env
 .env.*
 !.env.example
@@ -22,4 +23,5 @@ internal/branding/icon.ico
 # Wails frontend compilation is regenerated before Go builds.
 apps/desktop/frontend/dist/
 # Keep this final: temporary trees must never be re-included.
+/.workbuddy/
 _temp/

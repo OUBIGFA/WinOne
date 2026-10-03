@@ -150,7 +150,9 @@ namespace ShareX
             ImageOpacity = Options.InitialOpacity;
 
             InitializeComponent();
-            ShareXResources.ApplyTheme(this, true);
+            // This borderless tool window has no taskbar/title icon. Avoid
+            // allocating a cloned application icon with no display owner.
+            ShareXResources.ApplyTheme(this, true, setIcon: false);
             TopMost = Options.TopMost;
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
 
@@ -560,7 +562,7 @@ namespace ShareX
             switch (e.KeyData)
             {
                 case Keys.Control | Keys.C:
-                    ClipboardHelpers.CopyImage(Image);
+                    if (managedMenu) CopyManagedImage(); else ClipboardHelpers.CopyImage(Image);
                     break;
             }
 

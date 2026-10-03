@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"winone/modules/wintray/internal/config"
@@ -22,19 +21,26 @@ type Effects interface {
 }
 
 type Snapshot struct {
-	Revision        string          `json:"revision"`
-	Settings        config.Settings `json:"settings"`
-	RecoveryError   string          `json:"recoveryError,omitempty"`
-	BackgroundError string          `json:"backgroundError,omitempty"`
+	Revision             string          `json:"revision"`
+	Settings             config.Settings `json:"settings"`
+	RecoveryError        string          `json:"recoveryError"`
+	BackgroundError      string          `json:"backgroundError"`
+	StartupError         string          `json:"startupError"`
+	ProcessID            uint32          `json:"processId"`
+	ConfigurationManaged bool            `json:"configurationManaged"`
+	InitializationState  string          `json:"initializationState"`
+	InitializationError  string          `json:"initializationError"`
 }
 
 type Manager struct {
-	mu            sync.Mutex
-	store         *config.Store
-	current       config.Settings
-	effects       Effects
-	recoveryError string
-	pending       *transaction
+	mu              sync.Mutex
+	store           *config.Store
+	current         config.Settings
+	effects         Effects
+	recoveryError   string
+	pending         *transaction
+	managedPath     string
+	managedRevision uint64
 }
 
 func NewManager(store *config.Store, initial config.Settings, effects Effects) *Manager {
@@ -55,14 +61,40 @@ func revision(s config.Settings) string {
 func (m *Manager) Snapshot() Snapshot {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return Snapshot{Revision: revision(m.current), Settings: clone(m.current), RecoveryError: m.recoveryError}
+	return m.snapshotLocked()
+}
+
+// Activate serializes startup reconciliation with subsequent preference reloads,
+// so a delayed startup job cannot reapply an older settings snapshot.
+func (m *Manager) Activate(allowElevated bool) (Snapshot, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.recoveryError != "" {
+		return m.snapshotLocked(), errors.New(m.recoveryError)
+	}
+	if err := m.effects.Reconcile(clone(m.current), allowElevated); err != nil {
+		return m.snapshotLocked(), err
+	}
+	return m.snapshotLocked(), nil
 }
 
 // Save returns success only after disk and native settings both match the requested state.
 // A failed compensation remains visible and blocks subsequent edits until recovery succeeds.
 func (m *Manager) Save(expected string, next config.Settings) (Snapshot, error) {
+	return m.save(expected, next, nil)
+}
+
+// SaveImported merges launch facts before applying settings; retries are idempotent.
+func (m *Manager) SaveImported(expected string, next config.Settings, history json.RawMessage) (Snapshot, error) {
+	return m.save(expected, next, history)
+}
+
+func (m *Manager) save(expected string, next config.Settings, history json.RawMessage) (Snapshot, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.managedPath != "" {
+		return m.snapshotLocked(), errors.New("请通过 WinOne 保存程序设置")
+	}
 	if m.recoveryError != "" {
 		return Snapshot{}, errors.New(m.recoveryError)
 	}
@@ -71,6 +103,11 @@ func (m *Manager) Save(expected string, next config.Settings) (Snapshot, error) 
 	}
 	if err := Validate(next); err != nil {
 		return Snapshot{}, err
+	}
+	if len(history) > 0 {
+		if err := config.NewStartupHistory(filepath.Join(filepath.Dir(m.store.Path()), "startup-history.json")).MergeImport(history); err != nil {
+			return Snapshot{}, err
+		}
 	}
 	next = clone(next)
 	before := clone(m.current)
@@ -105,6 +142,9 @@ func (m *Manager) Save(expected string, next config.Settings) (Snapshot, error) 
 
 // Recover restores the last committed settings and their native effects after an interrupted save.
 func (m *Manager) Recover(allowElevated bool) (Snapshot, error) {
+	if m.managedPath != "" {
+		return m.ReloadManaged(allowElevated)
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.pending == nil {
@@ -154,51 +194,5 @@ func (m *Manager) rollback(allowElevated bool) error {
 	return err
 }
 
-// Validate rejects invalid input instead of silently changing the user's requested behavior.
-func Validate(s config.Settings) error {
-	if s.SchemaVersion != 3 {
-		return errors.New("不支持的 WinTray 配置版本")
-	}
-	if s.Language != "zh-CN" && s.Language != "en-US" {
-		return errors.New("不支持的语言")
-	}
-	if s.StartupIntervalSeconds < 0 || s.StartupIntervalSeconds > 120 || s.CloseWindowRetrySeconds < 0 || s.CloseWindowRetrySeconds > 120 {
-		return errors.New("启动间隔和窗口等待须为 0–120 秒")
-	}
-	ids := map[string]bool{}
-	for _, a := range s.ManagedApps {
-		if strings.TrimSpace(a.ID) == "" || ids[a.ID] {
-			return errors.New("程序标识为空或重复")
-		}
-		ids[a.ID] = true
-		if strings.TrimSpace(a.Name) == "" || !filepath.IsAbs(a.ExePath) {
-			return errors.New("请填写程序名称和绝对路径")
-		}
-		ext := strings.ToLower(filepath.Ext(a.ExePath))
-		if ext != ".exe" && ext != ".bat" && ext != ".cmd" && ext != ".ps1" && ext != ".py" && ext != ".pyw" {
-			return errors.New("不支持的程序类型")
-		}
-		if ext != ".exe" && (a.LaunchViaLogonTask || a.TrayBehavior.AutoMinimizeAndHideOnLaunch || a.CollectTrayIcon) {
-			return errors.New("脚本不支持开机即启动、收进托盘或托盘收纳")
-		}
-		modes := 0
-		for _, v := range []bool{a.LaunchViaLogonTask, a.LaunchHiddenInBackground, a.TrayBehavior.AutoMinimizeAndHideOnLaunch} {
-			if v {
-				modes++
-			}
-		}
-		if modes > 1 {
-			return errors.New("启动方式互相冲突")
-		}
-		if a.TrayBehavior.CloseDelaySeconds < 0 || a.TrayBehavior.CloseDelaySeconds > 600 {
-			return errors.New("收起前等待须为 0–600 秒")
-		}
-		if a.Schedule.StartDelayMinutes < 0 || a.Schedule.StartDelayMinutes > 1440 || a.Schedule.AutoExitMinutes < 0 || a.Schedule.AutoExitMinutes > 1440 {
-			return errors.New("时间须为 0–1440 分钟")
-		}
-		if a.Schedule.FrequencyEnabled && (a.Schedule.FrequencyDays < 1 || a.Schedule.FrequencyDays > 365 || a.Schedule.FrequencyRuns < 1 || a.Schedule.FrequencyRuns > 1000) {
-			return errors.New("运行次数限制超出范围")
-		}
-	}
-	return nil
-}
+// Validate shares the configuration contract with Host migration.
+func Validate(s config.Settings) error { return config.Validate(s) }

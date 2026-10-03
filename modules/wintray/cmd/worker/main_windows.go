@@ -26,6 +26,7 @@ func main() {
 	pipe := flag.String("pipe", "", "Host-assigned pipe")
 	data := flag.String("data-dir", defaultDir, "module settings directory")
 	autorun := flag.Bool("autorun", false, "run configured startup tasks")
+	recoverOnly := flag.Bool("recover-only", false, "restore module resources without activating tasks")
 	parent := flag.Uint("parent", 0, "owning Host process")
 	flag.Parse()
 	if *pipe == "" {
@@ -46,7 +47,7 @@ func main() {
 			cancel()
 		}()
 	}
-	if err = worker.Run(ctx, *pipe, *data, *autorun); err != nil {
+	if err = worker.Run(ctx, *pipe, *data, *autorun, *recoverOnly); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

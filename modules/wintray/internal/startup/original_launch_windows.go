@@ -66,12 +66,12 @@ func LaunchStartupRun(name, expectedExe string) error {
 func launchStartupRunFrom(keyPath, name, expectedExe string, launch func(string, string, string, int32) error) error {
 	key, err := registry.OpenKey(registry.CURRENT_USER, keyPath, registry.QUERY_VALUE|registry.WOW64_64KEY)
 	if err != nil {
-		return err
+		return fmt.Errorf("open startup Run key: %w", err)
 	}
 	defer key.Close()
 	command, kind, err := key.GetStringValue(name)
 	if err != nil {
-		return err
+		return fmt.Errorf("read startup Run entry %s: %w", name, err)
 	}
 	if kind == registry.EXPAND_SZ {
 		command, err = registry.ExpandString(command)

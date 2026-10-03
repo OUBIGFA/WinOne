@@ -1,0 +1,32 @@
+[
+  {
+    "manifestVersion": 1,
+    "id": "capture",
+    "name": { "zh-CN": "截图", "en-US": "Capture" },
+    "distribution": "bundled",
+    "worker": "capture/WinOne.Capture.exe",
+    "activation": "on-demand",
+    "shortcutActions": ["region", "window", "fullscreen", "scroll"],
+    "settingsSchemaVersion": 1
+  },
+  {
+    "manifestVersion": 1,
+    "id": "always-on-top",
+    "name": { "zh-CN": "置顶功能", "en-US": "Always on Top" },
+    "distribution": "bundled",
+    "worker": "always-on-top/WinOne.AlwaysOnTop.exe",
+    "activation": "on-demand",
+    "shortcutActions": ["toggle"],
+    "settingsSchemaVersion": 1
+  },
+  {
+    "manifestVersion": 1,
+    "id": "wintray",
+    "name": { "zh-CN": "程序管理", "en-US": "Program management" },
+    "distribution": "bundled",
+    "worker": "WinOne.WinTray.exe",
+    "activation": "configured",
+    "shortcutActions": [],
+    "settingsSchemaVersion": 3
+  }
+]

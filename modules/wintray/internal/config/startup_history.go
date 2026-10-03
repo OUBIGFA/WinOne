@@ -12,7 +12,7 @@ import (
 )
 
 // StartupHistory is separate from editable settings so UI saves cannot erase
-// launch records. Only the single-instance main process uses this store.
+// launch records. Host imports and worker launch reservations share a file lock.
 type StartupHistory struct{ path string }
 
 var historyLocks sync.Map
@@ -27,17 +27,18 @@ type startupHistoryData struct {
 // Launch reserves a slot durably before invoking launch. Definite launch
 // failures refund it; a crash after reservation retains it to avoid exceeding
 // the limit. Future timestamps count too, so clock rollback cannot reset it.
-func (h *StartupHistory) Launch(entry ManagedAppEntry, now time.Time, launch func() error) (bool, error) {
+func (h *StartupHistory) Launch(entry ManagedAppEntry, now time.Time, launch func() error) (allowed bool, err error) {
 	if !StartupFrequencyEnabled(entry) {
 		return true, launch()
 	}
 	if h == nil || h.path == "" {
 		return false, errors.New("startup history path is unavailable")
 	}
-	lock, _ := historyLocks.LoadOrStore(strings.ToLower(filepath.Clean(h.path)), &sync.Mutex{})
-	mu := lock.(*sync.Mutex)
-	mu.Lock()
-	defer mu.Unlock()
+	release, err := h.lock()
+	if err != nil {
+		return false, err
+	}
+	defer func() { err = errors.Join(err, release()) }()
 	state := startupHistoryData{Version: 1, Apps: map[string][]time.Time{}}
 	data, err := os.ReadFile(h.path)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {

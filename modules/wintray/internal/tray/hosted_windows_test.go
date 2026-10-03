@@ -19,6 +19,72 @@ type testLogger struct{}
 func (testLogger) Info(string) {}
 func (testLogger) Warn(string) {}
 
+func TestRestoreAllKeepsRecoveryEntryWhenWindowCannotBeShown(t *testing.T) {
+	pid := uint32(os.Getpid())
+	host := NewHost("zh-CN", testLogger{}, func(uint32) uintptr { return 0 })
+	item := &hostedItem{host: host, info: HostedWindow{ProcessID: pid, Name: "test"}, stop: make(chan struct{})}
+	host.items[pid] = item
+	if err := host.RestoreAll(); err == nil {
+		t.Fatal("missing window reported restored")
+	}
+	if host.Count() != 1 || item.closed {
+		t.Fatal("restoration failure removed recovery entry")
+	}
+}
+
+func TestRestoreAllWaitsForWindowVisibility(t *testing.T) {
+	created := make(chan win.HWND, 1)
+	pump := make(chan bool)
+	pumped := make(chan bool, 1)
+	closed := make(chan struct{})
+	go func() {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+		defer close(closed)
+		class, _ := windows.UTF16PtrFromString("STATIC")
+		hwnd := win.CreateWindowEx(win.WS_EX_TOOLWINDOW|win.WS_EX_NOACTIVATE, class, nil, win.WS_POPUP, -10000, -10000, 10, 10, 0, 0, 0, nil)
+		created <- hwnd
+		if hwnd == 0 {
+			return
+		}
+		defer win.DestroyWindow(hwnd)
+		for range pump {
+			deadline := time.Now().Add(time.Second)
+			for !win.IsWindowVisible(hwnd) && time.Now().Before(deadline) {
+				var message win.MSG
+				for win.PeekMessage(&message, 0, 0, 0, win.PM_REMOVE) {
+					win.TranslateMessage(&message)
+					win.DispatchMessage(&message)
+				}
+				time.Sleep(time.Millisecond)
+			}
+			pumped <- win.IsWindowVisible(hwnd)
+		}
+	}()
+	hwnd := <-created
+	if hwnd == 0 {
+		t.Fatal("could not create test window")
+	}
+	defer func() { close(pump); <-closed }()
+	pid := uint32(os.Getpid())
+	host := NewHost("zh-CN", testLogger{}, nil)
+	item := &hostedItem{host: host, info: HostedWindow{ProcessID: pid, Handle: uintptr(hwnd), Name: "test"}, stop: make(chan struct{})}
+	host.items[pid] = item
+	if err := host.RestoreAll(); err == nil || host.Count() != 1 {
+		t.Fatal("queued request mistaken for visible window")
+	}
+	pump <- true
+	if !<-pumped {
+		t.Fatal("show request did not reach window")
+	}
+	if err := host.RestoreAll(); err != nil {
+		t.Fatal(err)
+	}
+	if host.Count() != 0 || !item.closed {
+		t.Fatal("restored entry retained")
+	}
+}
+
 func TestHostAddFailureRestoresWithoutKeepingAnItem(t *testing.T) {
 	for _, failure := range []string{"process unavailable", "tray unavailable"} {
 		t.Run(failure, func(t *testing.T) {

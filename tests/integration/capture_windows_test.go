@@ -98,7 +98,12 @@ func TestCaptureWorkerProtocol(t *testing.T) {
 	}
 	response, err = call("shutdown", nil)
 	if err != nil || response.Error != nil {
-		t.Fatalf("shutdown: %+v %v", response, err)
+		t.Fatalf("shutdown: %v %v", response.Error, err)
+	}
+	// Acknowledging shutdown must close admission immediately, before deferred UI teardown.
+	response, err = call("copy.last", nil)
+	if err == nil && response.Error == nil {
+		t.Fatalf("new image job accepted after shutdown: %+v", response)
 	}
 	select {
 	case <-done:

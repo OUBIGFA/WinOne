@@ -42,6 +42,7 @@ type Host struct {
 	lookupWindow func(pid uint32) uintptr
 	onEmpty      func()
 	box          *traybox.Box
+	externalMenu bool
 
 	mu    sync.Mutex
 	items map[uint32]*hostedItem
@@ -60,6 +61,9 @@ type hostedItem struct {
 	stop           chan struct{}
 	closed         bool
 	unregisterIcon func()
+	menuID         string
+	menuImage      []byte
+	createdAt      windows.Filetime
 }
 
 // NewHost creates an empty host. lookupWindow resolves the window of a hosted
@@ -114,28 +118,38 @@ func (h *Host) TryAdd(w HostedWindow) error {
 	if w.ProcessID == 0 {
 		return errors.New("hosted window without process id")
 	}
-	h.mu.Lock()
-	if existing, ok := h.items[w.ProcessID]; ok {
-		if w.Handle != 0 {
-			existing.info.Handle = w.Handle
-		}
-		h.mu.Unlock()
-		return nil
-	}
-	h.mu.Unlock()
-
 	// Open before publishing the icon: a short-lived process may disappear
 	// before an asynchronous watcher can open it. Never leave an unmonitored
 	// item behind if opening or creating the tray icon fails.
-	process, err := openHostedProcess(windows.SYNCHRONIZE, false, w.ProcessID)
+	process, err := openHostedProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, w.ProcessID)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrHostedProcessUnavailable, err)
+	}
+	var created, exited, kernel, user windows.Filetime
+	if err = windows.GetProcessTimes(process, &created, &exited, &kernel, &user); err != nil {
+		_ = windows.CloseHandle(process)
+		return fmt.Errorf("%w: %w", ErrHostedProcessUnavailable, err)
+	}
+	h.mu.Lock()
+	existing := h.items[w.ProcessID]
+	h.mu.Unlock()
+	if existing != nil {
+		if existing.createdAt == created && !existing.closed {
+			if w.Handle != 0 {
+				existing.info.Handle = w.Handle
+			}
+			_ = windows.CloseHandle(process)
+			return nil
+		}
+		// A late watcher must not keep a reused PID tied to the old menu entry.
+		h.remove(existing, false)
 	}
 	item, err := createHostedItem(h, w)
 	if err != nil {
 		_ = windows.CloseHandle(process)
 		return err
 	}
+	item.createdAt = created
 	h.mu.Lock()
 	h.items[w.ProcessID] = item
 	h.mu.Unlock()
@@ -177,15 +191,31 @@ func (h *Host) SetLanguage(language string) {
 }
 
 // RestoreAll shows every hidden window again and removes the icons. It is
-// meant for WinTray shutdown so no program is left running invisibly.
-func (h *Host) RestoreAll() {
+// meant for WinTray shutdown so no program is left running invisibly. Callers
+// may retry pending restores while the UI loop continues processing messages.
+func (h *Host) RestoreAll() error {
 	h.mu.Lock()
 	items := h.snapshotLocked()
 	h.mu.Unlock()
+	var failures []error
 	for _, item := range items {
-		item.showWindow(false)
+		hwnd := item.window()
+		if hwnd != 0 && win.IsWindowVisible(hwnd) && !win.IsIconic(hwnd) {
+			h.remove(item, false)
+			continue
+		}
+		if !item.showWindow(false) {
+			failures = append(failures, fmt.Errorf("无法恢复窗口：%s", item.info.Name))
+			continue
+		}
+		hwnd = item.window()
+		if hwnd == 0 || !win.IsWindowVisible(hwnd) || win.IsIconic(hwnd) {
+			failures = append(failures, fmt.Errorf("窗口仍未恢复：%s", item.info.Name))
+			continue
+		}
 		h.remove(item, false)
 	}
+	return errors.Join(failures...)
 }
 
 func (h *Host) snapshotLocked() []*hostedItem {
@@ -204,6 +234,13 @@ func (h *Host) newItem(w HostedWindow) (*hostedItem, error) {
 		return nil, err
 	}
 	item := &hostedItem{host: h, info: w, form: form, stop: make(chan struct{})}
+	if h.externalMenu {
+		if err := item.prepareExternalMenu(); err != nil {
+			item.disposeResources()
+			return nil, err
+		}
+		return item, nil
+	}
 	if h.box != nil {
 		item.unregisterIcon = h.box.RegisterHostedIcon(uintptr(form.Handle()), w.ExePath, func() {
 			deferOnUIThread(item, item.refreshCollection)
@@ -232,9 +269,13 @@ func (h *Host) newItem(w HostedWindow) (*hostedItem, error) {
 	item.hide = walk.NewAction()
 	item.hide.Triggered().Attach(item.hideWindow)
 	item.release = walk.NewAction()
-	item.release.Triggered().Attach(item.releaseHosting)
+	item.release.Triggered().Attach(func() { item.releaseHosting() })
 	item.quit = walk.NewAction()
-	item.quit.Triggered().Attach(item.quitProgram)
+	item.quit.Triggered().Attach(func() {
+		if err := item.quitProgram(); err != nil {
+			item.host.logger.Warn(err.Error())
+		}
+	})
 	actions := icon.ContextMenu().Actions()
 	_ = actions.Add(item.show)
 	_ = actions.Add(item.hide)
@@ -306,6 +347,9 @@ func (item *hostedItem) refreshCollection() {
 }
 
 func (item *hostedItem) applyLanguage(language string) {
+	if item.icon == nil {
+		return // WinOne owns translated menus for managed items.
+	}
 	msg := i18n.For(language)
 	_ = item.icon.SetToolTip(item.info.Name)
 	item.show.SetText(msg.HostedShowWindow)
@@ -386,10 +430,10 @@ func (item *hostedItem) toggleWindow() {
 // activated, the tray icon goes away and the program keeps running on its own.
 // This is the clean way out before uninstalling WinTray, and the counterpart of
 // killing the host process, which would leave the window hidden for good.
-func (item *hostedItem) releaseHosting() {
+func (item *hostedItem) releaseHosting() bool {
 	item.host.logger.Info(fmt.Sprintf("tray host: releasing %s pid=%d", item.info.Name, item.info.ProcessID))
 	if !item.showWindow(true) {
-		return // keep the only recovery/quit entry when restoration fails
+		return false // keep the only recovery/quit entry when restoration fails
 	}
 	// ShowWindowAsync only confirms delivery. Keep the icon until the target
 	// actually shows its window, without blocking the tray's message loop if
@@ -419,6 +463,7 @@ func (item *hostedItem) releaseHosting() {
 			}
 		})
 	}()
+	return true
 }
 
 // deferOnUIThread queues f behind the message being handled: removing an item
@@ -432,18 +477,19 @@ var deferOnUIThread = func(item *hostedItem, f func()) {
 // quitProgram asks the program to end. For a console program WM_CLOSE on the
 // console window delivers CTRL_CLOSE_EVENT, which is the graceful path; a
 // program without a window is terminated directly.
-func (item *hostedItem) quitProgram() {
+func (item *hostedItem) quitProgram() error {
 	if hwnd := item.window(); hwnd != 0 {
-		win.PostMessage(hwnd, win.WM_CLOSE, 0, 0)
-		return
+		if win.PostMessage(hwnd, win.WM_CLOSE, 0, 0) == 0 {
+			return errors.New("程序退出请求未能发送")
+		}
+		return nil
 	}
 	h, err := windows.OpenProcess(windows.PROCESS_TERMINATE, false, item.info.ProcessID)
 	if err != nil {
-		item.host.logger.Warn(fmt.Sprintf("tray host: cannot terminate %s pid=%d: %v", item.info.Name, item.info.ProcessID, err))
-		return
+		return fmt.Errorf("程序未能退出：%w", err)
 	}
 	defer windows.CloseHandle(h)
-	_ = windows.TerminateProcess(h, 1)
+	return windows.TerminateProcess(h, 1)
 }
 
 // watchProcess removes the icon once the hosted process ends. Runs on its own
@@ -514,7 +560,9 @@ func (h *Host) remove(item *hostedItem, notifyEmpty bool) {
 	item.disposeResources()
 
 	h.mu.Lock()
-	delete(h.items, item.info.ProcessID)
+	if h.items[item.info.ProcessID] == item {
+		delete(h.items, item.info.ProcessID)
+	}
 	empty := len(h.items) == 0
 	onEmpty := h.onEmpty
 	h.mu.Unlock()
