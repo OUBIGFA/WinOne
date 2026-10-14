@@ -63,7 +63,7 @@ internal sealed class NativeInlineText : TextBox
 
     public void SetTextStyle(float fontPixels, Color color)
     {
-        if (!float.IsFinite(fontPixels) || fontPixels < 6 || fontPixels > 240 || color.A != 255) throw new ArgumentOutOfRangeException(nameof(fontPixels));
+        if (!float.IsFinite(fontPixels) || fontPixels < 6 || fontPixels > 256 || color.A != 255) throw new ArgumentOutOfRangeException(nameof(fontPixels));
         // WinForms retains its existing Font when the assigned font compares
         // equal. A color-only change must not dispose that retained instance.
         var displayedPixels = fontPixels * viewScale;

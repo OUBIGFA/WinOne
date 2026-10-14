@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -67,7 +66,7 @@ func TestExternalStartupLateProcessIsAdoptedWithoutDuplicate(t *testing.T) {
 		return `HKCU\Run\QQNT`, nil
 	}
 	// Simulate Windows starting the app after WinTray has found no process.
-	started := make(chan *exec.Cmd, 1)
+	started := make(chan *startedProcess, 1)
 	failed := make(chan error, 1)
 	go func() {
 		<-checked
@@ -80,7 +79,7 @@ func TestExternalStartupLateProcessIsAdoptedWithoutDuplicate(t *testing.T) {
 		started <- cmd
 	}()
 	got := svc.StartAndManage(context.Background(), entry, 2)
-	var cmd *exec.Cmd
+	var cmd *startedProcess
 	select {
 	case cmd = <-started:
 	case err := <-failed:
@@ -198,7 +197,7 @@ func TestStartupWithoutEnabledRunEntryAndManualStartStillLaunch(t *testing.T) {
 
 type callbackEnumerator func() []ManagedWindowInfo
 
-func TestManualStartWithStartupDisabledIgnoresSavedModes(t *testing.T) {
+func TestManualStartWithStartupDisabledHonorsSavedModes(t *testing.T) {
 	for _, mode := range []string{"hidden", "tray", "task"} {
 		t.Run(mode, func(t *testing.T) {
 			entry := startupTestEntry(t)
@@ -208,13 +207,22 @@ func TestManualStartWithStartupDisabledIgnoresSavedModes(t *testing.T) {
 			entry.LaunchViaLogonTask = mode == "task"
 			manager := &testManager{}
 			svc := NewService(&testEnumerator{}, manager, &testLogger{})
-			svc.logonTaskLaunch = func(config.ManagedAppEntry) error {
-				t.Fatal("paused manual launch must not invoke the saved logon task")
-				return nil
+			svc.logonTaskLaunch = func(e config.ManagedAppEntry) error {
+				cmd, err := startProcess(e.ExePath, e.Args, launchNoWindow)
+				if err == nil {
+					_ = cmd.Process.Release()
+				}
+				return err
 			}
 			result := svc.StartNow(context.Background(), entry, 0)
-			if result.Code != ResultStartedOnly || result.Hidden != nil || len(manager.closeCalls)+len(manager.hideCalls) != 0 || len(startupTestPIDs(entry.ExePath)) != 1 {
-				t.Fatalf("disabled mode %s must launch normally once: result=%+v close=%v hide=%v", mode, result, manager.closeCalls, manager.hideCalls)
+			want := map[string]ResultCode{"hidden": ResultStartedHidden, "tray": ResultHiddenToTray, "task": ResultStartedOnly}[mode]
+			if result.Code != want || (result.Hidden != nil) != (mode == "tray") || len(startupTestPIDs(entry.ExePath)) != 1 {
+				t.Fatalf("manual mode %s was ignored: result=%+v", mode, result)
+			}
+			if result.Hidden != nil {
+				if result.Hidden.Handle == 0 || isWindowVisible(result.Hidden.Handle) {
+					t.Fatal("console was not hidden in a recoverable tray window")
+				}
 			}
 		})
 	}
@@ -255,7 +263,7 @@ func TestLogonTaskEntryWaitsForTaskLaunchAndNeverLaunchesItself(t *testing.T) {
 		return "", nil
 	}
 	checked := make(chan struct{})
-	started := make(chan *exec.Cmd, 1)
+	started := make(chan *startedProcess, 1)
 	failed := make(chan error, 1)
 	go func() {
 		close(checked)
@@ -269,7 +277,7 @@ func TestLogonTaskEntryWaitsForTaskLaunchAndNeverLaunchesItself(t *testing.T) {
 	}()
 	<-checked
 	got := svc.StartAndManage(context.Background(), entry, 2)
-	var cmd *exec.Cmd
+	var cmd *startedProcess
 	select {
 	case cmd = <-started:
 	case err := <-failed:

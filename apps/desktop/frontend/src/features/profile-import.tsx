@@ -15,18 +15,20 @@ export interface ProfilePath { id:string; label:string; kind:string; value:strin
 interface ImportModule { id:string; state:string; requiredPaths:string[]; error?:string; settings?:Record<string,unknown> }
 interface Preview {
   name:string; sourceHash:string; configurationRevision:number; moduleRevision:number;
-  preferences:{theme:string;language:string;runAtLogon:boolean;startMinimized:boolean;enabled:Record<string,boolean>;shortcuts:Record<string,string>};
+  preferences:{theme:string;language:string;runAtLogon:boolean;startMinimized:boolean;defaultPage?:string;keepUIRunning?:boolean;openShortcut?:string;enabled:Record<string,boolean>;shortcuts:Record<string,string>};
   currentShortcuts:Record<string,string>;
   plan:{modules:ImportModule[];shortcutIssues:{action:string;kind:string;error:string}[]};
   paths:ProfilePath[];
 }
-const knownModules=new Set(["capture","always-on-top","wintray"]);
+const knownModules=new Set(["capture","always-on-top","wintray","selection","quick-assistant","stroke"]);
+const knownActions=new Set(["capture.region","capture.ocr","capture.translate","always-on-top.toggle","selection.show","quick-assistant.show"]);
 const languages:Record<string,string>={system:"shell.system","zh-CN":"profiles.chinese","en-US":"profiles.english"};
 const status:Record<string,string>={ready:"profiles.ready",needs_mapping:"profiles.mapping",missing_module:"profiles.missing",invalid:"profiles.invalid"};
 
 export function ProfileImport({onApplied,onActivity}:{onApplied:()=>void;onActivity?:PageActivityChanged}) {
   const {t}=useTranslation();
-  const moduleName=(id:string)=>knownModules.has(id)?t(`nav.${id}`):id;
+  const moduleName=(id:string)=>id==="stroke"?t("stroke.title"):knownModules.has(id)?t(`nav.${id}`):id;
+  const pageName=(id:string)=>t(id==="chat"?"chat.title":id==="ai-services"?"ai.serviceTitle":`nav.${id||"overview"}`);
   const pathName=(path:ProfilePath)=>path.id==="capture.output"?t("profiles.captureFolder"):(path.label||t("profiles.programLocation"));
   const [source,setSource]=useState("");
   const [view,setView]=useState("overview"),[detailModule,setDetailModule]=useState("");
@@ -77,29 +79,38 @@ export function ProfileImport({onApplied,onActivity}:{onApplied:()=>void;onActiv
   const chosen=preview?.plan.modules.filter(module=>selected.includes(module.id))??[];
   const required=new Set(chosen.flatMap(module=>module.requiredPaths??[]));
   const paths=preview?.paths.filter(path=>required.has(path.id))??[];
-  const issues=preview?.plan.shortcutIssues.filter(issue=>issue.kind!=="missing_module"&&selected.some(id=>issue.action.startsWith(`${id}.`))).map(issue=>issue.error)??[];
+  // The archive-wide conflict list includes unselected values. Recompute
+  // conflicts below against exactly what this import keeps and replaces.
+  const issues=preview?.plan.shortcutIssues.filter(issue=>!["missing_module","conflict"].includes(issue.kind)&&(selected.some(id=>issue.action.startsWith(`${id}.`))||(global&&issue.action==="application.open"))).map(issue=>issue.error)??[];
   const keys={...preview?.currentShortcuts};
+  if(global&&preview?.preferences.openShortcut!=null)keys["application.open"]=preview.preferences.openShortcut;
   for(const id of selected) {
     for(const [action,value] of Object.entries(preview?.preferences.shortcuts??{})) {
       if(!action.startsWith(`${id}.`)||!knownModules.has(id))continue;
-      if(!["capture.region","always-on-top.toggle"].includes(action))issues.push(t("profiles.unsupported",{name:moduleName(id)}));
+      if(!knownActions.has(action))issues.push(t("profiles.unsupported",{name:moduleName(id)}));
       else keys[action]=value;
     }
   }
   const canonical=(value:string|undefined)=>(value??"").trim().toUpperCase().split("+").map(part=>part.trim()).sort().join("+");
-  if(canonical(keys["capture.region"])&&canonical(keys["capture.region"])===canonical(keys["always-on-top.toggle"]))issues.push(t("profiles.conflict"));
+  const usedKeys=new Set<string>();
+  for(const value of Object.values(keys)){const key=canonical(value);if(!key)continue;if(usedKeys.has(key))issues.push(t("profiles.conflict"));usedKeys.add(key);}
   const details=chosen.filter(module=>module.settings);
   const detail=details.find(module=>module.id===detailModule)??details[0];
   const blocked=needsReview||(!global&&!selected.length)||chosen.some(module=>!["ready","missing_module"].includes(module.state))||paths.some(path=>path.state!=="ready")||issues.length>0;
   return <div className="profile-import">
     <div className="setting-row"><div><span>{t("profiles.import")}</span><p>{t("profiles.importHint")}</p></div><Button busy={busy&&!preview} disabled={busy} onClick={()=>void choose()}>{t("profiles.import")}</Button></div>
     {preview&&<div className="profile-import__review">
-      <h3>{preview.name||t("profiles.import")}</h3>
-      <p className="break-all text-sm text-muted-foreground">{source}</p>
+      <div className="settings-stack-compact"><h3>{preview.name||t("profiles.import")}</h3>
+      <p className="break-all text-sm text-muted-foreground">{source}</p></div>
       <fieldset className="plain-fieldset" disabled={busy}>
-        <Tabs value={view} onValueChange={value=>setView(String(value))}><TabsList aria-label={t("profiles.import")}><TabsTrigger value="overview">{t("profiles.contents")}</TabsTrigger><TabsTrigger value="details">{t("profiles.details")}</TabsTrigger><TabsTrigger value="locations">{t("profiles.localPaths")}</TabsTrigger></TabsList><TabsContent value="overview">
+        <Tabs value={view} onValueChange={value=>setView(String(value))}><TabsList variant="line" aria-label={t("profiles.import")}><TabsTrigger value="overview">{t("profiles.contents")}</TabsTrigger><TabsTrigger value="details">{t("profiles.details")}</TabsTrigger><TabsTrigger value="locations">{t("profiles.localPaths")}</TabsTrigger></TabsList><TabsContent value="overview">
         <label className="check-row"><Checkbox checked={global} onCheckedChange={setGlobal}/>{t("profiles.global")}</label>
-        {global&&<p className="muted">{t(`shell.${preview.preferences.theme}`)} · {t(languages[preview.preferences.language])} · {t("profiles.signIn",{value:t(preview.preferences.runAtLogon?"profiles.on":"profiles.off")})} · {t("profiles.hidden",{value:t(preview.preferences.startMinimized?"profiles.on":"profiles.off")})}</p>}
+        {global&&<div className="muted">
+          <p>{t(`shell.${preview.preferences.theme}`)} · {t(languages[preview.preferences.language])} · {t("profiles.signIn",{value:t(preview.preferences.runAtLogon?"profiles.on":"profiles.off")})} · {t("profiles.hidden",{value:t(preview.preferences.startMinimized?"profiles.on":"profiles.off")})}</p>
+          <p>{t("profiles.defaultPage",{value:preview.preferences.defaultPage==null?t("profiles.keepCurrent"):pageName(preview.preferences.defaultPage)})}</p>
+          <p>{t("profiles.keepUI",{value:preview.preferences.keepUIRunning==null?t("profiles.keepCurrent"):t(preview.preferences.keepUIRunning?"profiles.on":"profiles.off")})}</p>
+          <p>{t("profiles.openShortcut",{value:preview.preferences.openShortcut==null?t("profiles.keepCurrent"):preview.preferences.openShortcut||t("profiles.unset")})}</p>
+        </div>}
         {preview.plan.modules.map(module=><div className="profile-import__module" key={module.id}>
           <label className="check-row"><Checkbox checked={selected.includes(module.id)} onCheckedChange={checked=>setSelected(current=>checked?[...new Set([...current,module.id])]:current.filter(id=>id!==module.id))}/>{moduleName(module.id)}</label>
           <p className="muted">{module.error||t(status[module.state])}{selected.includes(module.id)&&typeof preview.preferences.enabled[module.id]==="boolean"&&module.state!=="missing_module"?` · ${t(preview.preferences.enabled[module.id]?"profiles.enabledAfter":"profiles.disabledAfter")}`:""}</p>

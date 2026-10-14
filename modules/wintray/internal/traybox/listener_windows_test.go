@@ -33,6 +33,7 @@ type fakeShell struct {
 	events    []callbackEvent
 	onEvent   func(win.HWND, uintptr, uintptr)
 	refreshed int
+	onRefresh func()
 	onRequest func(trayData)
 	reply     func(trayData) uintptr
 }
@@ -83,13 +84,18 @@ var (
 			}
 			return 0
 		}
-		f.mu.Lock()
-		defer f.mu.Unlock()
 		switch {
 		case hwnd == f.program && msg == fakeTaskbar:
+			f.mu.Lock()
 			f.refreshed++
+			hook := f.onRefresh
+			f.mu.Unlock()
+			if hook != nil {
+				hook()
+			}
 			return 0
 		}
+		// DefWindowProc may reenter during ShowWindow/SetWindowPos.
 		return win.DefWindowProc(hwnd, msg, wParam, lParam)
 	})
 )

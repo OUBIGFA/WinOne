@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"testing"
+	"winone/internal/catalog"
 	"winone/internal/host"
 	"winone/internal/modules"
 	"winone/internal/settings"
@@ -23,7 +24,7 @@ func TestDesktopProbeHomepageUsesReadOnlyModuleController(t *testing.T) {
 	}
 	result := service.Handle(host.Request{Version: 1, ID: "test", Method: "modules.snapshot"})
 	var snapshot modules.ControlSnapshot
-	if err = json.Unmarshal(result.Result, &snapshot); err != nil || len(snapshot.Modules) != 3 {
+	if err = json.Unmarshal(result.Result, &snapshot); err != nil || len(snapshot.Modules) != len(catalog.Builtins()) {
 		t.Fatal(snapshot, err)
 	}
 	for _, module := range snapshot.Modules {

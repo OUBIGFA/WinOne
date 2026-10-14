@@ -12,17 +12,15 @@ import (
 
 func TestDiagnosticsReadsBoundedLogsWithoutHost(t *testing.T) {
 	directory := t.TempDir()
-	module := filepath.Join(directory, "modules", "wintray")
+	module := filepath.Join(directory, "logs")
 	if err := os.MkdirAll(module, 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(module, "wintray.log"), []byte(strings.Repeat("运行", 20000)+"\nlatest failure"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(module, "host.log"), []byte(strings.Repeat("运行", 20000)+"\nlatest failure"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(module, "worker.log"), []byte("worker output"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	writer, err := os.OpenFile(filepath.Join(module, "worker.log"), os.O_APPEND|os.O_WRONLY, 0600)
+
+	writer, err := os.OpenFile(filepath.Join(module, "host.log"), os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,16 +30,14 @@ func TestDiagnosticsReadsBoundedLogsWithoutHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !logs.FolderAvailable || len(logs.Entries) != 2 {
+	if !logs.FolderAvailable || len(logs.Entries) != 1 {
 		t.Fatalf("missing logs: %+v", logs)
 	}
 	entry := logs.Entries[0]
 	if !entry.Available || !entry.Truncated || len(entry.Text) > 64<<10 || !utf8.ValidString(entry.Text) || !strings.HasSuffix(entry.Text, "latest failure") {
 		t.Fatal("tail was not bounded and readable")
 	}
-	if logs.Entries[1].Text != "worker output" {
-		t.Fatal("missing process output")
-	}
+
 }
 
 func TestDiagnosticsMissingLogsDoNotCreateModuleDirectory(t *testing.T) {
@@ -58,7 +54,7 @@ func TestDiagnosticsMissingLogsDoNotCreateModuleDirectory(t *testing.T) {
 	}
 }
 
-func TestHostDiagnosticsNeverMixesModuleLogs(t *testing.T) {
+func TestHostDiagnosticsReadsTheSingleProductLog(t *testing.T) {
 	directory := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(directory, "logs"), 0700); err != nil {
 		t.Fatal(err)
@@ -80,7 +76,7 @@ func TestDiagnosticsRejectsPathsAndNonFiles(t *testing.T) {
 			t.Fatalf("accepted arbitrary target %q", id)
 		}
 	}
-	if err := os.MkdirAll(filepath.Join(directory, "modules", "capture", "worker.log"), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Join(directory, "logs", "host.log"), 0700); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := app.ReadModuleLogs("capture"); err == nil {
@@ -90,7 +86,7 @@ func TestDiagnosticsRejectsPathsAndNonFiles(t *testing.T) {
 
 func TestDiagnosticsRejectsLogSymlinkOutsideDataDirectory(t *testing.T) {
 	directory, outside := t.TempDir(), t.TempDir()
-	module := filepath.Join(directory, "modules", "capture")
+	module := filepath.Join(directory, "logs")
 	if err := os.MkdirAll(module, 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +94,7 @@ func TestDiagnosticsRejectsLogSymlinkOutsideDataDirectory(t *testing.T) {
 	if err := os.WriteFile(secret, []byte("not a module log"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(secret, filepath.Join(module, "worker.log")); err != nil {
+	if err := os.Symlink(secret, filepath.Join(module, "host.log")); err != nil {
 		t.Skipf("symlink unavailable: %v", err)
 	}
 	if _, err := (&App{dataDirectory: directory}).ReadModuleLogs("capture"); err == nil {

@@ -1,0 +1,59 @@
+@import "@fontsource-variable/inter";
+
+/* Cindy generated typography tokens. Color defaults are imported separately
+   from the same pinned revision; layout changes here only adapt the host. */
+.cindy-chat-ui{
+ --app-font-ui-default:'Inter Variable',Inter,-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','HarmonyOS Sans SC','Microsoft YaHei UI','Microsoft YaHei','Noto Sans CJK SC','Source Han Sans SC','Segoe UI',Roboto,sans-serif;
+ --app-font-code-default:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Monaco,Consolas,'Liberation Mono','Courier New','PingFang SC','Hiragino Sans GB','Microsoft YaHei UI','Microsoft YaHei','Noto Sans CJK SC','Source Han Sans SC',monospace;
+ --app-code-font-size:14px;
+ font-family:var(--app-font-ui-default);
+}
+.chat-panel{height:100%;min-width:0;min-height:0;overflow:hidden!important;display:flex;flex-direction:column}
+.chat-transcript{min-height:0;min-width:0;overflow:hidden;scrollbar-gutter:auto}
+.chat-transcript-viewport{height:100%;overflow-x:hidden!important;overscroll-behavior:contain}
+.chat-transcript-viewport>div{min-height:100%;width:100%;min-width:0}
+.chat-sidebar-scroll{overflow:hidden!important}
+.chat-sidebar-viewport{height:100%;overflow-x:hidden!important}
+/* Markdown typography belongs to chatgpt-desktop-kit. Retain only the Cindy
+   work-process and user-message behavior below. */
+.chat-work-process{display:flex;min-width:0;flex-direction:column;gap:8px;color:var(--msg-tool-card-chevron)}
+.chat-work-process [data-slot=cindy-work]{font-family:inherit;min-height:26px}
+.chat-work-entry,.chat-work-commentary,.process-nested{min-width:0}
+.chat-work-entry>button{min-height:26px}
+.process-body{min-width:0;max-width:100%;overflow:visible}
+.process-collapse-action{position:absolute;right:0;top:-34px;width:28px;min-height:28px;padding:5px;color:var(--muted-foreground);background:var(--background);z-index:2}
+.chat-work-process,.chat-thinking-group{--agent-actions-rail:color-mix(in srgb,var(--muted-foreground) 22%,transparent);--thinking-body-text:var(--muted-foreground)}
+.chat-expanded-thinking{white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-user-body{position:relative}
+.chat-user-text,.chat-user-measure{overflow-wrap:anywhere}
+.chat-user-measure{position:absolute;inset:0 0 auto;max-height:0;overflow:hidden;visibility:hidden;pointer-events:none}
+.chat-user-text--collapsed{max-height:16.5em;overflow:hidden}
+.chat-user-body .chat-user-disclosure{font-size:12px;min-height:24px;padding:3px 0;color:var(--desktop-color-text-muted);background:transparent;border:0;gap:4px;font-weight:400}
+.chat-answer-content{display:flex;min-width:0;flex-direction:column;gap:20px}
+.chat-conversation-message--user .chat-answer-content{gap:0}
+.chat-desktop-surface .desktop-conversation-message--user>div:first-child{background:color-mix(in srgb,var(--foreground) 3%,var(--background))}
+/* Preserve each existing process level, stepping its emphasis down once. */
+.chat-work-process{--text-primary:var(--muted-foreground);--text-secondary-mid:color-mix(in srgb,var(--muted-foreground) 86%,var(--background));--msg-tool-card-text:var(--text-primary);--msg-tool-card-chevron:var(--text-secondary-mid);--thinking-body-text:var(--text-secondary-mid);--agent-actions-rail:color-mix(in srgb,var(--muted-foreground) 14%,transparent)}
+.chat-work-process .chat-markdown{--desktop-color-text:var(--muted-foreground);color:var(--muted-foreground);font-size:14px;line-height:1.65}
+.chat-load-older{display:flex;margin:0 auto 20px}
+.chat-project-form{display:flex;flex-direction:column;gap:20px}
+.chat-project-create-option{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted-foreground)}
+.chat-project-create-option input{accent-color:var(--primary)}
+.chat-work-entry pre,.chat-tool-payload pre{max-height:none;overflow:visible;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font:13px/1.6 var(--app-font-code-default)}
+.chat-tool-payload{min-width:0;overflow-wrap:anywhere}
+.chat-tool-payload-label{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--msg-tool-card-chevron);font:12px/1.5 var(--app-font-ui-default)}
+.chat-tool-payload-label>[data-slot=button]{min-height:24px;width:24px;padding:3px}
+.chat-tool-dialog{width:min(760px,calc(100vw - 32px))!important;max-width:760px!important;max-height:85vh;overflow:hidden;background:color-mix(in srgb,var(--background) 96%,var(--muted))!important;border-color:color-mix(in srgb,var(--border) 70%,transparent)!important}
+.chat-tool-dialog-scroll{min-height:0;max-height:60vh;overflow:hidden}
+.chat-tool-dialog-scroll .lobe-scroll-viewport{max-height:60vh;overflow-x:hidden!important}
+.chat-tool-payload{font-family:var(--app-font-ui-default);font-size:13px;line-height:1.6;color:var(--muted-foreground)}
+.chat-tool-payload .chat-markdown{color:var(--muted-foreground);--desktop-color-text:var(--muted-foreground);--msg-code-block-bg:color-mix(in srgb,var(--muted) 55%,var(--background));font-family:var(--app-font-ui-default)}
+.chat-tool-payload .chat-markdown pre,.chat-tool-payload .chat-markdown code{font-family:var(--app-font-code-default);font-size:12px}
+.chat-tool-payload .chat-markdown p:first-child{margin-top:0}
+.chat-tool-payload .chat-markdown p:last-child{margin-bottom:0}
+.chat-model-trigger{min-height:30px;overflow:hidden;flex-wrap:nowrap}
+.chat-model-trigger>[data-model-badge]{flex:none;white-space:nowrap}
+.chat-composer-model-actions{flex-wrap:nowrap}
+/* Base UI owns every visible track. Browser scrollbars never share that view. */
+:is(.chat-transcript-viewport,.chat-sidebar-viewport,.chat-model-viewport,.process-viewport,.chat-tool-dialog-scroll .lobe-scroll-viewport){scrollbar-width:none}
+:is(.chat-transcript-viewport,.chat-sidebar-viewport,.chat-model-viewport,.process-viewport,.chat-tool-dialog-scroll .lobe-scroll-viewport)::-webkit-scrollbar{display:none}

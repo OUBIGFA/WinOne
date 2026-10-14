@@ -31,7 +31,7 @@ internal sealed class NativeWindowRegions : IDisposable
     {
         if (capture.SelectedTool != "region") return;
         if (capture.RegionGestureActive) {
-            if (!pausedForGesture) { pausedForGesture = true; refinement.Suspend(); }
+            if (!pausedForGesture) { pausedForGesture = true; refinement.Suspend(preserveCandidates: true); }
             return;
         }
         pausedForGesture = false; refinement.Hover(point);

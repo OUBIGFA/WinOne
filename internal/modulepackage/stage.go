@@ -17,11 +17,20 @@ const StageReceiptName = ".winone-stage.json"
 var ErrApprovalChanged = errors.New("module package differs from the approved manifest")
 var ErrIncompatible = errors.New("module package is incompatible with this host")
 
+// Admission is implemented by the platform's Host-owned stores. Keeping this
+// small seam platform-neutral lets offline package validation run elsewhere.
+type dependencyAdmission interface {
+	checkAdmission(context.Context, *VerifiedManifest, string) error
+}
+
 type StageOptions struct {
 	Directory              string
 	Publisher              Publisher
 	Environment            Environment
 	ExpectedManifestSHA256 string
+	Dependencies           dependencyAdmission
+	// Set only by the registry wrapper, after approval and before payload writes.
+	onCreated func(StageReceipt) error
 }
 type StageReceipt struct {
 	SchemaVersion  int    `json:"schemaVersion"`
@@ -100,6 +109,12 @@ func StageArchive(ctx context.Context, filename string, options StageOptions) (*
 		return nil, err
 	}
 	result := &StagedPackage{directory: filepath.Join(directory, name), manifest: inspection.manifest}
+	receipt := StageReceipt{SchemaVersion: 1, StageID: name, ModuleID: inspection.manifest.metadata.PackageID(), Version: inspection.manifest.metadata.Version, ManifestSHA256: inspection.manifest.Digest()}
+	if options.onCreated != nil {
+		if err = options.onCreated(receipt); err != nil {
+			return result, err
+		}
+	}
 	root, err := base.OpenRoot(name)
 	if err != nil {
 		return result, err
@@ -117,7 +132,6 @@ func StageArchive(ctx context.Context, filename string, options StageOptions) (*
 	if err = writeStageFile(root, "module.json.minisig", inspection.signature); err != nil {
 		return result, err
 	}
-	receipt := StageReceipt{SchemaVersion: 1, StageID: name, ModuleID: inspection.manifest.metadata.Module.ID, Version: inspection.manifest.metadata.Version, ManifestSHA256: inspection.manifest.Digest()}
 	data, err := json.Marshal(receipt)
 	if err != nil {
 		return result, err

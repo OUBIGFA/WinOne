@@ -1,0 +1,91 @@
+import "./ai-model-menu.css";
+import {useEffect,useRef,useState} from "react";
+import {ChevronDown,ChevronRight,Check,FolderOpen,Plus,LoaderCircle,Paperclip,FileText,Wrench,X} from "lucide-react";
+import {useTranslation} from "../i18n";
+import {Button} from "../ui/button";
+import {Popover,PopoverTrigger,PopoverContent} from "../components/ui/popover";
+import {Dialog,DialogContent,DialogTitle,DialogDescription,DialogFooter} from "../components/ui/dialog";
+import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger} from "../components/ui/dropdown-menu";
+import {AIModelIcon} from "./ai-model-icon";
+import {AIProviderIcon} from "./ai-provider-icon";
+import {AIModelBadge} from "./ai-model-badge";
+import {PermissionSelector} from "./cindy/PermissionSelector";
+import {SendButton} from "./cindy/SendButton";
+import {ListComposerTextarea} from "./cindy/ListComposerTextarea";
+import {FILE_REFERENCE_MIME} from "./chat-panel-state";
+import {ComposerFrame} from "./cindy/ComposerFrame";
+import {ComposerAttachments} from "./cindy/ComposerAttachments";
+import {modelLabel} from "./ai-model-label";
+import {ScrollArea} from "./lobe/scroll-area/ScrollArea";
+import type {AIProvider,AISelection} from "./ai-configuration";
+import type {Approval,ChatPermission} from "./chat-state";
+import type {ChatAttachment} from "./chat-types";
+
+export function ChatApproval({request,busy,onRespond,onStop}:{request:Approval;busy:boolean;onRespond:(allow:boolean,scope:"once"|"session")=>void;onStop:()=>void}){
+ const {t}=useTranslation(),root=useRef<HTMLDivElement>(null);
+ useEffect(()=>{
+  const key=(event:KeyboardEvent)=>{
+   const target=event.target as HTMLElement|null;
+   if(event.defaultPrevented||event.isComposing||event.keyCode===229||busy||!root.current||target?.closest("input,textarea,button,a,select,[contenteditable=true],[role=menu],[role=listbox]"))return;
+   if(event.key==="Escape"){event.preventDefault();onRespond(false,"once");}
+   if(event.key==="Enter"){event.preventDefault();onRespond(true,(event.ctrlKey||event.metaKey)&&request.scopeLabel?"session":"once");}
+  };window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);
+ },[request,busy,onRespond]);
+ return <div ref={root} className="chat-approval" aria-label={t("chat.permissionTitle")}>
+  <div className="chat-approval-heading"><h3>{t("chat.permissionTitle")}</h3><span className="cindy-chat-ui"><SendButton disabled={busy} isStreaming onClick={onStop}/></span></div>
+  {request.autoReviewUnavailable&&<p role="status">{t("chat.unavailable")}</p>}
+  {request.reason&&<p>{request.reason}</p>}
+  <div className="chat-approval-operation"><strong>{request.tool}</strong><pre>{typeof request.args.command==="string"?request.args.command:JSON.stringify(request.args,null,2)}</pre></div>
+  {request.scopeLabel&&<details><summary>{t("chat.scope")}</summary><pre>{request.scopeLabel}</pre></details>}
+  <div className="chat-approval-actions"><Button disabled={busy} onClick={()=>onRespond(false,"once")}>{t("chat.deny")}<kbd aria-hidden="true">Esc</kbd></Button>
+   {request.scopeLabel&&<Button disabled={busy} onClick={()=>onRespond(true,"session")}>{t("chat.allowSession")}<kbd aria-hidden="true">Ctrl ↵</kbd></Button>}
+   <Button variant="primary" busy={busy} onClick={()=>onRespond(true,"once")}>{t("chat.allowOnce")}<kbd aria-hidden="true">↵</kbd></Button>
+  </div>
+ </div>;
+}
+
+export function ChatComposer({text,onText,onSend,onStop,running,busy,providers,model,permission,onModel,onPermission,onLocation,location,saving,attachments=[],onAttach,onRemoveAttachment,onTools,conversationId=""}:{
+ text:string;onText:(value:string)=>void;onSend:()=>void;onStop:()=>void;running:boolean;busy:boolean;providers:AIProvider[];model:AISelection;permission:ChatPermission;onModel:(value:AISelection)=>void;onPermission:(value:ChatPermission)=>void;onLocation?:()=>void;location?:string;saving?:boolean;attachments?:ChatAttachment[];onAttach?:()=>void;onRemoveAttachment?:(path:string)=>void;onTools?:(tab:"files"|"resources")=>void;conversationId?:string;
+}){
+ const {t}=useTranslation();const input=useRef<HTMLTextAreaElement>(null),selectedModel=useRef<HTMLButtonElement>(null);
+ const [modelsOpen,setModelsOpen]=useState(false),[search,setSearch]=useState(""),[fullConfirm,setFullConfirm]=useState(false),[collapsedProviders,setCollapsedProviders]=useState(new Set<string>());
+ function openModels(open:boolean){
+  if(open){setSearch('');setCollapsedProviders(current=>{const next=new Set(current);next.delete(model.provider);return next;});}
+  setModelsOpen(open);
+ }
+ useEffect(()=>{
+  if(!modelsOpen)return;
+  // Wait for the portalled list to lay out without stealing focus from search.
+  const frame=requestAnimationFrame(()=>selectedModel.current?.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'}));
+  return()=>cancelAnimationFrame(frame);
+ },[modelsOpen]);
+ // Cindy treats every selected file as message content. A file-only prompt
+ // must therefore remain sendable even when it has no browser annotation.
+ const canSend=!!text.trim()||attachments.length>0;
+ const provider=providers.find(value=>value.id===model.provider),providerName=provider?.name??model.provider,modelName=provider&&model.model?modelLabel(provider,model.model,t("ai.free")):model.model||t("chat.chooseModel");
+ return <>
+  <ComposerFrame newConversation={!!onLocation} editor={input} content={text} attachmentCount={attachments.length}>
+   <ComposerAttachments id={conversationId} attachments={attachments} onRemove={path=>onRemoveAttachment?.(path)} disabled={busy||running}/>
+   <ListComposerTextarea ref={input} maxLength={100000} aria-label={t("chat.message")} placeholder={t("chat.placeholder")} value={text} disabled={busy} onChange={event=>onText(event.target.value)} onDragOver={event=>{if(event.dataTransfer.types.includes(FILE_REFERENCE_MIME)){event.preventDefault();event.dataTransfer.dropEffect="copy";}}} onDrop={event=>{const path=event.dataTransfer.getData(FILE_REFERENCE_MIME);if(path&&!busy){event.preventDefault();event.stopPropagation();onText(text+(text?"\n":"")+"@"+path);}}} onKeyDown={event=>{if(event.key==="Enter"&&!event.shiftKey&&!event.nativeEvent.isComposing&&event.keyCode!==229){event.preventDefault();if(canSend)onSend();}}}/>
+   <div className="chat-composer-toolbar">
+    <div className="chat-composer-tools">
+    <DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon" icon={Plus} aria-label={t("chat.attachments")} disabled={busy||running}/>}/><DropdownMenuContent side="top" className="chat-row-menu"><DropdownMenuItem disabled={!onAttach} onClick={onAttach}><Paperclip/>{t("chat.uploadAttachment")}</DropdownMenuItem><DropdownMenuItem disabled={!onTools} onClick={()=>onTools?.("files")}><FileText/>{t("chat.insertFile")}</DropdownMenuItem><DropdownMenuItem disabled={!onTools} onClick={()=>onTools?.("resources")}><Wrench/>{t("chat.toolsAvailable")}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+    <PermissionSelector vendorKey="pi" permissionMode={permission} disabled={busy||running} onPermissionModeChange={mode=>{if(mode==="bypassPermissions"&&permission!==mode)setFullConfirm(true);else onPermission(mode);}}/>
+    </div><div className="chat-composer-model-actions">
+    <Popover open={modelsOpen} onOpenChange={openModels}><PopoverTrigger render={<button data-slot="cindy-model" type="button" className="chat-model-trigger" disabled={busy||running} aria-label={t("chat.model")} title={providerName?`${providerName} · ${modelName}`:modelName}/>}><AIProviderIcon icon={provider?.avatar||provider?.icon}/>{providerName&&<><span className="chat-provider-name">{providerName}</span><span aria-hidden="true">·</span></>}<span className="chat-model-name">{modelName}</span>{provider&&model.model&&<AIModelBadge provider={provider} id={model.model}/>}<ChevronDown size={14}/></PopoverTrigger>
+     <PopoverContent side="top" align="end" className="ai-model-menu chat-model-menu"><input autoFocus aria-label={t("chat.searchModels")} placeholder={t("chat.searchModels")} value={search} onChange={event=>setSearch(event.target.value)}/><ScrollArea disableContentFit viewportProps={{className:"chat-model-viewport"}}><div role="listbox" aria-label={t("chat.model")}>{providers.map(p=>{
+      const matches=p.models.filter(id=>(p.name+" "+id+" "+p.modelNames?.[id]).toLowerCase().includes(search.toLowerCase()));const expanded=!!search||!collapsedProviders.has(p.id);return matches.length>0&&<section key={p.id}><h4><button type="button" className="chat-model-group" aria-label={p.name} aria-expanded={expanded} onClick={()=>setCollapsedProviders(current=>{const next=new Set(current);if(next.has(p.id))next.delete(p.id);else next.add(p.id);return next;})}><AIProviderIcon icon={p.avatar||p.icon}/><span className="chat-model-label">{p.name}</span><small>{matches.length}</small>{expanded?<ChevronDown size={13}/>:<ChevronRight size={13}/>}</button></h4>{expanded&&matches.map(id=><button key={id} ref={model.provider===p.id&&model.model===id?selectedModel:undefined} type="button" role="option" aria-selected={model.provider===p.id&&model.model===id} onClick={()=>{onModel({provider:p.id,model:id});setModelsOpen(false);}}><AIModelIcon model={id} name={p.modelNames?.[id]}/><span className="chat-model-label">{modelLabel(p,id)}</span><AIModelBadge provider={p} id={id}/><span className="chat-model-check" aria-hidden="true">{model.provider===p.id&&model.model===id&&<Check size={14}/>}</span></button>)}</section>;
+     })}</div></ScrollArea>{!providers.some(p=>p.models.length)&&<p>{t("chat.modelUnavailable")}</p>}</PopoverContent>
+    </Popover>
+    {saving&&<span className="sr-only" role="status">{t("chat.saving")}</span>}
+    {/* Keep Cindy's stop action available while its send control submits a
+        follow-up through Pi. A draft must not turn the stop button into send. */}
+    {running&&canSend&&<SendButton disabled={busy||!provider?.models.includes(model.model)} onClick={onSend}/>}
+    <SendButton disabled={busy||!running&&(!canSend||!provider?.models.includes(model.model))} isStreaming={running} onClick={running?onStop:onSend}/>
+    </div>
+   </div>
+  </ComposerFrame>
+  {location&&<p className="chat-composer-location"><FolderOpen size={13}/><span title={location}>{location}</span></p>}
+  <Dialog open={fullConfirm} onOpenChange={setFullConfirm}><DialogContent><DialogTitle>{t("chat.fullTitle")}</DialogTitle><DialogDescription>{t("chat.fullDescription")}</DialogDescription><DialogFooter><Button onClick={()=>setFullConfirm(false)}>{t("chat.cancel")}</Button><Button variant="primary" onClick={()=>{setFullConfirm(false);onPermission("bypassPermissions");}}>{t("chat.enableFull")}</Button></DialogFooter></DialogContent></Dialog>
+ </>;
+}

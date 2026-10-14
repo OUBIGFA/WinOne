@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"time"
 	"winone/internal/processidentity"
 )
@@ -48,7 +49,7 @@ func waitRestartExit(ctx context.Context, ownerExited, helperExited func() (bool
 // Keep native handles until the handoff finishes; PID reuse cannot substitute
 // another window or helper. No process is forcibly terminated.
 func openRestartExitWait(ownerPID, helperPID uint32, executable string, timeout time.Duration) (func(func() bool) error, func(), error) {
-	helper, err := processidentity.Open(helperPID, executable)
+	helper, err := openAdministratorHelper(helperPID, executable)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -79,4 +80,15 @@ func openRestartExitWait(ownerPID, helperPID uint32, executable string, timeout 
 		return waitRestartExit(ctx, ownerExited, helper.Exited, acknowledged, 100*time.Millisecond)
 	}
 	return wait, closeHandles, nil
+}
+
+// The original desktop and the Rust entrypoint's Host helper share the same
+// authorization logic. Both candidates must pass processidentity's installation
+// and account checks; permission/read errors must not trigger a fallback.
+func openAdministratorHelper(pid uint32, desktop string) (*processidentity.Process, error) {
+	process, err := processidentity.Open(pid, desktop)
+	if errors.Is(err, processidentity.ErrDifferentInstallation) {
+		return processidentity.Open(pid, filepath.Join(filepath.Dir(desktop), "WinOne.Host.exe"))
+	}
+	return process, err
 }

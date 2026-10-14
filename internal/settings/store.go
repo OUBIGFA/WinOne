@@ -15,13 +15,19 @@ var ErrConflict = errors.New("settings changed; reload before saving")
 
 // Settings contains only global preferences; feature settings belong to their modules.
 type Settings struct {
-	SchemaVersion   int                 `json:"schemaVersion"`
-	Revision        uint64              `json:"revision"`
-	Theme           string              `json:"theme"`
-	Language        string              `json:"language,omitempty"`
-	CaptureShortcut string              `json:"captureShortcut"`
-	PinShortcut     string              `json:"pinShortcut"`
-	Startup         *StartupPreferences `json:"startup,omitempty"`
+	SchemaVersion          int                 `json:"schemaVersion"`
+	Revision               uint64              `json:"revision"`
+	Theme                  string              `json:"theme"`
+	Language               string              `json:"language,omitempty"`
+	DefaultPage            string              `json:"defaultPage,omitempty"`
+	OpenShortcut           *string             `json:"openShortcut,omitempty"`
+	CaptureShortcut        string              `json:"captureShortcut"`
+	OCRShortcut            *string             `json:"ocrShortcut,omitempty"`
+	TranslateShortcut      *string             `json:"translateShortcut,omitempty"`
+	QuickAssistantShortcut *string             `json:"quickAssistantShortcut,omitempty"`
+	SelectionShortcut      *string             `json:"selectionShortcut,omitempty"`
+	PinShortcut            string              `json:"pinShortcut"`
+	Startup                *StartupPreferences `json:"startup,omitempty"`
 }
 
 // Startup belongs to WinOne, not to a module. Nil is a legacy document which
@@ -30,13 +36,114 @@ type StartupPreferences struct {
 	RunAtLogon          bool `json:"runAtLogon"`
 	StartMinimized      bool `json:"startMinimized"`
 	PreferAdministrator bool `json:"preferAdministrator,omitempty"`
+	// Nil adopts the current default without overwriting a legacy preference.
+	KeepUIRunning *bool `json:"keepUIRunning,omitempty"`
 }
 
 func copySettings(value Settings) Settings {
+	if value.OpenShortcut != nil {
+		key := *value.OpenShortcut
+		value.OpenShortcut = &key
+	}
+	if value.QuickAssistantShortcut != nil {
+		key := *value.QuickAssistantShortcut
+		value.QuickAssistantShortcut = &key
+	}
+	if value.SelectionShortcut != nil {
+		key := *value.SelectionShortcut
+		value.SelectionShortcut = &key
+	}
+	if value.OCRShortcut != nil {
+		key := *value.OCRShortcut
+		value.OCRShortcut = &key
+	}
+	if value.TranslateShortcut != nil {
+		key := *value.TranslateShortcut
+		value.TranslateShortcut = &key
+	}
 	if value.Startup != nil {
 		startup := *value.Startup
+		if startup.KeepUIRunning != nil {
+			keep := *startup.KeepUIRunning
+			startup.KeepUIRunning = &keep
+		}
 		value.Startup = &startup
 	}
+	return value
+}
+
+// Missing fields in an older configuration adopt the new defaults; an
+// explicitly empty value remains disabled after saves and profile imports.
+func (s Settings) OCRBinding() string {
+	if s.OCRShortcut == nil {
+		other := ""
+		if s.TranslateShortcut != nil {
+			other = *s.TranslateShortcut
+		}
+		return availableDefault("Shift+C", s.CaptureShortcut, s.PinShortcut, other, explicitShortcut(s.SelectionShortcut), explicitShortcut(s.QuickAssistantShortcut), explicitShortcut(s.OpenShortcut))
+	}
+	return *s.OCRShortcut
+}
+func (s Settings) TranslateBinding() string {
+	if s.TranslateShortcut == nil {
+		return availableDefault("Alt+Shift+A", s.CaptureShortcut, s.PinShortcut, s.OCRBinding(), explicitShortcut(s.SelectionShortcut), explicitShortcut(s.QuickAssistantShortcut), explicitShortcut(s.OpenShortcut))
+	}
+	return *s.TranslateShortcut
+}
+
+func (s Settings) SelectionBinding() string {
+	if s.SelectionShortcut != nil {
+		return *s.SelectionShortcut
+	}
+	return availableDefault("Alt+Shift+S", s.CaptureShortcut, s.PinShortcut, s.OCRBinding(), s.TranslateBinding(), explicitShortcut(s.QuickAssistantShortcut), explicitShortcut(s.OpenShortcut))
+}
+
+// Explicit user choices, including disabled bindings, always take precedence.
+func explicitShortcut(value *string) string {
+	if value != nil {
+		return *value
+	}
+	return ""
+}
+func (s Settings) QuickAssistantBinding() string {
+	if s.QuickAssistantShortcut != nil {
+		return *s.QuickAssistantShortcut
+	}
+	return availableDefault("Ctrl+Shift+Q", s.CaptureShortcut, s.PinShortcut, s.OCRBinding(), s.TranslateBinding(), s.SelectionBinding(), explicitShortcut(s.OpenShortcut))
+}
+
+// A newly introduced default must not steal an older user-selected shortcut.
+func (s Settings) OpenBinding() string {
+	if s.OpenShortcut != nil {
+		return *s.OpenShortcut
+	}
+	return availableDefault("Alt+A", s.CaptureShortcut, s.PinShortcut, s.OCRBinding(), s.TranslateBinding(), s.SelectionBinding(), s.QuickAssistantBinding())
+}
+
+func availableDefault(preferred string, existing ...string) string {
+	key, _ := hotkeys.Parse(preferred)
+	for _, value := range existing {
+		parsed, err := hotkeys.Parse(value)
+		if err == nil && key == parsed {
+			return ""
+		}
+	}
+	return preferred
+}
+
+// Expose the same effective defaults that registration uses, without writing
+// an older configuration merely because its settings page was opened.
+func (s Settings) ResolvedShortcuts() Settings {
+	value := copySettings(s)
+	ocr, translate := s.OCRBinding(), s.TranslateBinding()
+	value.OCRShortcut = &ocr
+	value.TranslateShortcut = &translate
+	selection := s.SelectionBinding()
+	value.SelectionShortcut = &selection
+	quick := s.QuickAssistantBinding()
+	value.QuickAssistantShortcut = &quick
+	open := s.OpenBinding()
+	value.OpenShortcut = &open
 	return value
 }
 
@@ -67,6 +174,11 @@ func Open(path string) (*Store, error) {
 }
 
 func validate(s Settings) error {
+	switch s.DefaultPage {
+	case "", "overview", "capture", "selection", "quick-assistant", "wintray", "convenience", "chat", "ai-services", "settings":
+	default:
+		return errors.New("unsupported default page")
+	}
 	if s.Language != "" && s.Language != "system" && s.Language != "zh-CN" && s.Language != "en-US" {
 		return errors.New("unsupported language")
 	}
@@ -87,7 +199,7 @@ func validate(s Settings) error {
 	if capture.Key != 0 && capture == pin {
 		return errors.New("截图和置顶不能使用相同的快捷键")
 	}
-	return nil
+	return hotkeys.ValidateBindings([]hotkeys.Binding{{ID: "capture", Shortcut: s.CaptureShortcut}, {ID: "ocr", Shortcut: s.OCRBinding()}, {ID: "translate", Shortcut: s.TranslateBinding()}, {ID: "pin", Shortcut: s.PinShortcut}, {ID: "selection", Shortcut: s.SelectionBinding()}, {ID: "quick-assistant", Shortcut: s.QuickAssistantBinding()}, {ID: "open-winone", Shortcut: s.OpenBinding()}})
 }
 
 // Validate checks global preferences without opening or writing a legacy store.

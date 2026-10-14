@@ -12,6 +12,18 @@ import (
 	"winone/internal/modules"
 )
 
+func TestOldToolbarAdoptsTextActionsOnlyOnce(t *testing.T) {
+	old := capturePreferences{ToolbarTools: []string{"arrow"}}
+	upgraded := old.upgradeToolbar()
+	if upgraded.ToolbarVersion != 2 || len(upgraded.ToolbarTools) != 3 || upgraded.ToolbarTools[1] != "ocr" || upgraded.ToolbarTools[2] != "translate" {
+		t.Fatal(upgraded)
+	}
+	upgraded.ToolbarTools = []string{"arrow"}
+	if next := upgraded.upgradeToolbar(); len(next.ToolbarTools) != 1 {
+		t.Fatal("user-hidden actions were reintroduced")
+	}
+}
+
 func TestCapturePreferencesPersistWhileDisabled(t *testing.T) {
 	directory := t.TempDir()
 	store, err := configuration.OpenHost(directory, captureConfiguration(directory, func() *modules.Lazy { return nil }))

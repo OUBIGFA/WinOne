@@ -4,10 +4,11 @@ import {Minus,Square,Copy,X} from "lucide-react";
 import {Button} from "./ui/button";
 import {Tooltip,TooltipContent,TooltipTrigger} from "./ui/tooltip";
 import {useTranslation} from "../i18n";
+import {installWindowResizeFeedback} from "./window-resize";
 
 export interface WindowFramePort {
- initialize():Promise<{maximized:boolean}>;
- read():Promise<{maximized:boolean}>;
+ initialize():Promise<{maximized:boolean;warning?:string}>;
+ read():Promise<{maximized:boolean;warning?:string}>;
  command(action:"minimize"|"toggle-maximize"|"close"):Promise<void>;
 }
 
@@ -16,17 +17,18 @@ export interface WindowFramePort {
 export function WindowTitlebar({logo,port,onReady}:{logo:string;port?:WindowFramePort;onReady?:()=>void}){
  const {t}=useTranslation();const [maximized,setMaximized]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState("");
  const alive=useRef(true),ready=useRef(onReady);ready.current=onReady;
+ useEffect(()=>installWindowResizeFeedback(maximized),[maximized]);
  useEffect(()=>{
   alive.current=true;if(!port){ready.current?.();return()=>{alive.current=false;};}
-  void port.initialize().then(state=>{if(alive.current){setMaximized(state.maximized);ready.current?.();}}).catch(error=>{if(alive.current)setError(String(error));});
+  void port.initialize().then(state=>{if(alive.current){setMaximized(state.maximized);setError(state.warning??"");ready.current?.();}}).catch(error=>{if(alive.current)setError(String(error));});
   let timer:ReturnType<typeof setTimeout>|undefined;
-  const update=()=>{clearTimeout(timer);timer=setTimeout(()=>void port.read().then(state=>{if(alive.current)setMaximized(state.maximized);}).catch(error=>{if(alive.current)setError(String(error));}),75);};
+  const update=()=>{clearTimeout(timer);timer=setTimeout(()=>void port.read().then(state=>{if(alive.current){setMaximized(state.maximized);setError(state.warning??"");}}).catch(error=>{if(alive.current)setError(String(error));}),75);};
   window.addEventListener("resize",update);window.addEventListener("focus",update);
   return()=>{alive.current=false;clearTimeout(timer);window.removeEventListener("resize",update);window.removeEventListener("focus",update);};
  },[port]);
  async function act(action:"minimize"|"toggle-maximize"|"close"){
   if(!port||busy)return;setBusy(true);setError("");
-  try{await port.command(action);if(action!=="close"){const state=await port.read();if(alive.current)setMaximized(state.maximized);}}
+  try{await port.command(action);if(action!=="close"){const state=await port.read();if(alive.current){setMaximized(state.maximized);setError(state.warning??"");}}}
   catch(error){if(alive.current)setError(String(error));}finally{if(alive.current)setBusy(false);}
  }
  const controls=[{action:"minimize",label:"window.minimize",Icon:Minus},{action:"toggle-maximize",label:maximized?"window.restore":"window.maximize",Icon:maximized?Copy:Square},{action:"close",label:"window.close",Icon:X}] as const;

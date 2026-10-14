@@ -1,0 +1,17 @@
+/* Change these shared surface tokens once for every Markdown entry point. */
+.chat-markdown{
+ --desktop-color-surface-muted:color-mix(in srgb,var(--foreground) 3%,var(--background));
+ --desktop-color-surface-hover:color-mix(in srgb,var(--foreground) 5%,var(--background));
+ --desktop-color-border:color-mix(in srgb,var(--foreground) 10%,transparent);
+ --desktop-color-border-strong:color-mix(in srgb,var(--foreground) 16%,transparent);
+ min-width:0;
+}
+/* Chat is a reading surface: preserve the kit's typography and code-copy
+   renderer, but reflow long content instead of making the user pan sideways. */
+.chat-markdown.desktop-ai-markdown.desktop-ai-markdown pre{white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:visible}
+.chat-markdown.desktop-ai-markdown.desktop-ai-markdown pre code{overflow-wrap:anywhere;word-break:break-word}
+.chat-markdown.desktop-ai-markdown.desktop-ai-markdown :not(pre)>code{box-decoration-break:slice;-webkit-box-decoration-break:slice;overflow-wrap:anywhere}
+.chat-markdown.desktop-ai-markdown.desktop-ai-markdown table{display:table;width:100%;table-layout:fixed;overflow:visible}
+.chat-markdown.desktop-ai-markdown.desktop-ai-markdown :is(th,td){min-width:0;overflow-wrap:anywhere;word-break:break-word;padding-inline:clamp(2px,1cqi,12px)}
+.chat-markdown.desktop-ai-markdown.desktop-ai-markdown .desktop-markdown-codebar{flex-wrap:wrap}
+.chat-markdown.desktop-ai-markdown.desktop-ai-markdown .desktop-markdown-codebar>span{min-width:0;overflow-wrap:anywhere}

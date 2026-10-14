@@ -51,6 +51,9 @@ func (l *Lazy) changePrivilege(administrator bool) {
 		l.mu.Lock()
 		defer l.mu.Unlock()
 		l.process = process
+		if process != nil && process.pid != 0 {
+			l.everStarted = true
+		}
 		l.privilege = PrivilegeState{State: "completed"}
 		if err != nil {
 			l.privilege = PrivilegeState{State: "failed", Error: err.Error()}

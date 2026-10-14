@@ -1,0 +1,92 @@
+{
+    "license":  "GPL-3.0",
+    "revision":  "cc72a7a73f98e6f9c5af0f9f1871bd006118b9c9",
+    "files":  [
+                  {
+                      "path":  "Stroke/API.cs",
+                      "sha256":  "931d41173fbb2dac3efea24f757b21e78fd8155b6b1f98a4e97998d0cea0eda1",
+                      "vendored":  "modules/stroke/upstream/API.cs"
+                  },
+                  {
+                      "path":  "Stroke/Gesture.cs",
+                      "sha256":  "e8b01aabe5af106dab7d60982c6df33c404a54f794856b896484dfa3d5be9a28",
+                      "vendored":  "modules/stroke/upstream/Gesture.cs"
+                  },
+                  {
+                      "path":  "Stroke/Pen.cs",
+                      "sha256":  "5ce594505fd2e04bc6b589aeea503363f68f04f559c7e2a97250a97b2b31ccc1",
+                      "vendored":  "modules/stroke/upstream/Pen.cs"
+                  },
+                  {
+                      "path":  "Stroke/Draw.cs",
+                      "sha256":  "5cdf0a0432f75a937d609246fd6654336e7d8ed64715d2b850f5d24d1e4591ee",
+                      "vendored":  "modules/stroke/upstream/Draw.cs"
+                  },
+                  {
+                      "path":  "Stroke/MouseHook.cs",
+                      "sha256":  "6fdd1af6569b9b4c8a53ce1c0f6135bc16441d76bc5d908fdfd60f8e63ef020f",
+                      "vendored":  "modules/stroke/upstream/MouseHook.cs"
+                  },
+                  {
+                      "path":  "Stroke/Action.cs",
+                      "sha256":  "332bd944c6d210c8dfb6b078b22e6b64c769f43ed3529801016f757c7c3a940b",
+                      "vendored":  "modules/stroke/upstream/Action.cs"
+                  },
+                  {
+                      "path":  "Stroke/ActionPackage.cs",
+                      "sha256":  "cb8205f3e5ca1f81bf3bd0c1c49b0ce05b7dbbf773a7f74adbb87399baf7f971",
+                      "vendored":  "modules/stroke/upstream/ActionPackage.cs"
+                  },
+                  {
+                      "path":  "Stroke/SpecialGesture.cs",
+                      "sha256":  "94e2eed980471aa9761c1653026cd97c93b829dad49f1411cbc9f710dc39c41f",
+                      "vendored":  "modules/stroke/upstream/SpecialGesture.cs"
+                  },
+                  {
+                      "path":  "Stroke/Stroke.cs",
+                      "sha256":  "2553a4fcb78cf51b87301f1c38f2450576d3da552f82483f8099e4985995415c",
+                      "vendored":  "modules/stroke/upstream/Stroke.cs"
+                  },
+                  {
+                      "path":  "Stroke/Script.cs",
+                      "sha256":  "013d8c02db6599e06612f25ba9658865ac75e783454f67a532a99f983ddbc6aa",
+                      "vendored":  "modules/stroke/upstream/Script.cs"
+                  },
+                  {
+                      "path":  "Stroke.Configure/GestureCanvas.cs",
+                      "sha256":  "e9bdaf9462766db5213844626baaf48d19ec3cff761c36161d012969570cdd60",
+                      "vendored":  "modules/stroke/upstream/GestureCanvas.cs"
+                  },
+                  {
+                      "path":  "Base/Base.cs",
+                      "sha256":  "bb39930d7316b1080e7eaae24ea2175a10166dc906624ba3eec5adc96f6e6046",
+                      "vendored":  "modules/stroke/upstream/Base.cs"
+                  },
+                  {
+                      "path":  "LICENSE",
+                      "sha256":  "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+                      "vendored":  "modules/stroke/upstream/LICENSE"
+                  }
+              ],
+    "licenseNote":  "LICENSE contains GPL-3.0; README claims MIT. WinOne preserves the actual LICENSE.",
+    "repository":  "https://github.com/poerin/Stroke",
+    "releaseDefaults":  {
+                            "tag":  "2026-05-01",
+                            "url":  "https://github.com/poerin/Stroke/releases/download/2026-05-01/Stroke.zip",
+                            "archiveSHA256":  "4ba7fd5b8d2670531c8ea2821838adf89297715ee4c3ef777763de5ce3a0b6c2",
+                            "settingsSHA256":  "ce44437e8a25f4a99f173f6143fdfb0e88fb9bf88198875e2a8e3949fd8a5446",
+                            "decodedPath":  "modules/stroke/upstream/defaults-2026-05-01.json",
+                            "decodedSHA256":  "0a9b5f1f96aec64dd96081511bce7e2e6773092be4a97be54205f4fd9da2d5c9",
+                            "decoder":  "System.Formats.Nrbf; record data only, no type instantiation"
+                        },
+    "releaseReferences":  [
+                              {
+                                  "sha256":  "83a6df6ba8fac92c2c2d649c2765f0702d4e928967747c6462551de786b43425",
+                                  "name":  "Base.dll"
+                              },
+                              {
+                                  "sha256":  "764c387f0bc39beb69ac7684183999f17a662fb83a0f3d56714725d791735028",
+                                  "name":  "Stroke.exe"
+                              }
+                          ]
+}

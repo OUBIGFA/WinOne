@@ -10,7 +10,8 @@ import (
 )
 
 // ExportOptions requires an explicit choice per application because command-line
-// arguments may contain secrets. It never includes script contents or binaries.
+// arguments may contain secrets. Arbitrary files and binaries are never included;
+// known Stroke action source remains a reviewable part of its configuration.
 type ExportOptions struct {
 	IncludeArguments map[string]bool
 }
@@ -28,6 +29,9 @@ type ExportedSettings struct {
 // future worker versions require an explicit adapter rather than a blind copy.
 // This is not an import validator or a configuration consistency barrier.
 func ExportBuiltinSettings(id string, raw json.RawMessage, options ExportOptions) (ExportedSettings, error) {
+	if id == "stroke" {
+		return exportStroke(raw)
+	}
 	result := ExportedSettings{Paths: map[string]PathReference{}, OmittedArguments: []string{}}
 	if len(raw) > MaxEntryBytes {
 		return result, errors.New("模块配置过大")
@@ -47,6 +51,10 @@ func ExportBuiltinSettings(id string, raw json.RawMessage, options ExportOptions
 	var portable map[string]any
 	var err error
 	switch id {
+	case "quick-assistant":
+		portable, err = quickAssistantFields(source, false)
+	case "selection":
+		portable, err = selectionFields(source, false)
 	case "capture":
 		portable, err = projectFields(source, "copyToClipboard:b askWhereToSave:b openEditor:b pinAfterCapture:b scrollDelay:n scrollFromTop:b")
 		if raw, exists := source["toolbarTools"]; err == nil && exists {

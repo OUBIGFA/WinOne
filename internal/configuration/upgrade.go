@@ -14,12 +14,23 @@ func validateRegisteredDocument(document Document, registered map[string]ModuleA
 		if enabled == nil {
 			return errors.New("配置需要模块生命周期恢复支持")
 		}
-		if len(document.ModuleEnabled) != len(enabled) {
-			return errors.New("模块开关列表不完整")
+		for id := range document.ModuleEnabled {
+			if _, exists := enabled[id]; !exists {
+				return errors.New("模块开关尚未登记")
+			}
 		}
 		for id := range enabled {
-			if _, exists := document.ModuleEnabled[id]; !exists {
+			if registered[id].Unavailable != nil {
+				continue
+			}
+			// During a package registration transaction, the previous document
+			// legitimately lacks the new optional module. Builtins remain strict.
+			_, hasSettings := document.Values[id]
+			if _, exists := document.ModuleEnabled[id]; !exists && (registered[id].PackageSchemaVersion == 0 || hasSettings) {
 				return errors.New("模块开关缺失")
+			}
+			if registered[id].PackageSchemaVersion > 0 && document.ModuleEnabled[id] && !hasSettings {
+				return errors.New("启用的模块缺少配置")
 			}
 		}
 	}
@@ -30,6 +41,9 @@ func validateRegisteredDocument(document Document, registered map[string]ModuleA
 		adapter, exists := registered[id]
 		if !exists {
 			return errors.New("配置包含尚未支持的模块，请使用匹配版本")
+		}
+		if adapter.Unavailable != nil {
+			continue
 		}
 		if err := adapter.Validate(append(json.RawMessage(nil), raw...)); err != nil {
 			return err
@@ -48,7 +62,7 @@ func CheckUpgrade(data []byte, adapters ...ModuleAdapter) error {
 	registered := map[string]ModuleAdapter{}
 	enabled := map[string]bool{}
 	for _, adapter := range adapters {
-		if !catalog.ValidID(adapter.ID) || adapter.ID == "host" || adapter.Validate == nil {
+		if !catalog.ValidID(adapter.ID) || adapter.ID == "host" || adapter.Validate == nil && adapter.Unavailable == nil || adapter.Unavailable != nil && !catalog.ValidOptionalID(adapter.ID) {
 			return errors.New("模块配置校验器无效")
 		}
 		if _, exists := registered[adapter.ID]; exists {
@@ -63,6 +77,14 @@ func CheckUpgrade(data []byte, adapters ...ModuleAdapter) error {
 	if state.Pending != nil {
 		return ErrRecoveryRequired
 	}
+	legacySelection := state.Committed.BuiltinVersion < 2
+	legacyQuick := state.Committed.BuiltinVersion < 3
+	legacyStroke := state.Committed.BuiltinVersion < 4
+	upgraded, _, err := upgradeSelectionDocument(state.Committed, registered)
+	if err != nil {
+		return err
+	}
+	state.Committed = upgraded
 	validator := &Store{validate: func(document Document) error { return validateRegisteredDocument(document, registered, enabled) }}
 	if err := validator.check(state.Committed); err != nil {
 		return err
@@ -72,6 +94,12 @@ func CheckUpgrade(data []byte, adapters ...ModuleAdapter) error {
 	}
 	for id := range registered {
 		if _, exists := state.Committed.Values[id]; !exists {
+			if registered[id].Unavailable != nil || registered[id].PackageSchemaVersion > 0 && !state.Committed.ModuleEnabled[id] {
+				continue
+			}
+			if id == "selection" && legacySelection || id == "quick-assistant" && legacyQuick || id == "stroke" && legacyStroke {
+				continue
+			}
 			return errors.New("请先完成模块配置迁移")
 		}
 	}

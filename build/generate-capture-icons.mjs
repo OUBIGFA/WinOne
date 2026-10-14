@@ -8,7 +8,7 @@ const root=resolve(here,"..");
 const require=createRequire(resolve(root,"apps/desktop/frontend/package.json"));
 const React=require("react"),{renderToStaticMarkup}=require("react-dom/server"),icons=require("lucide-react");
 const {chromium}=require(process.env.WINONE_PLAYWRIGHT_MODULE||"playwright");
-const names={pin:"Pin",overflow:"Ellipsis",grip:"GripVertical",confirm:"Check",save:"Save",saveAs:"FolderOpen",undo:"Undo2",redo:"Redo2",cancel:"X",region:"ScanLine",rectangle:"Square",ellipse:"Circle",pen:"Pencil",cover:"PaintBucket",arrow:"MoveUpRight",mosaic:"Grid2X2",blur:"Blend",text:"Type"};
+const names={select:"Move",pin:"Pin",overflow:"Ellipsis",grip:"GripVertical",confirm:"Check",save:"Save",saveAs:"FolderOpen",undo:"Undo2",redo:"Redo2",cancel:"X",region:"ScanLine",rectangle:"Square",ellipse:"Circle",pen:"Pencil",cover:"PaintBucket",arrow:"MoveUpRight",mosaic:"WandSparkles",scroll:"GalleryVerticalEnd",blur:"Blend",text:"Type",ocr:"ScanText",translate:"Languages"};
 const output=resolve(root,"modules/capture/NativeUI/Assets/Icons");await mkdir(output,{recursive:true});
 const context=await chromium.launchPersistentContext(resolve(root,"_temp/native-icon-generator-"+Date.now()),{headless:true,executablePath:process.env.WINONE_CHROMIUM_PATH});
 try{

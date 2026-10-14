@@ -17,7 +17,7 @@ import (
 // second lease or shuts down user processes. WinTray starts recovery-only and
 // deactivates its resources without removing the product's login task.
 func PrepareNativeUpgrade(installation, profile string) error {
-	if err := maintenance.RequireStopped(); err != nil {
+	if err := maintenance.RequireStoppedAt(installation); err != nil {
 		return err
 	}
 	pipe, err := transport.PipeName()
@@ -30,5 +30,5 @@ func PrepareNativeUpgrade(installation, profile string) error {
 	if err = modules.ReleaseWinTray(ctx, worker, false); err != nil {
 		return err
 	}
-	return maintenance.RequireStopped()
+	return maintenance.RequireStoppedAt(installation)
 }

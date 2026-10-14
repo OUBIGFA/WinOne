@@ -1,3 +1,4 @@
+import {RefreshCw,ExternalLink,X} from "lucide-react";
 import {useEffect,useRef,useState} from "react";
 import {updateInfo,checkUpdates,cancelUpdateCheck,openUpdateRelease,type UpdateBuildInfo,type UpdateCheckResult} from "../bridge";
 import {useTranslation} from "../i18n";
@@ -34,11 +35,11 @@ export function Updates(){
   <h2 id="updates-heading">{t("updates.title")}</h2>
   <div className="flex flex-wrap items-center justify-between gap-3">
    <p>{info?t("updates.version",{version:info.version}):t("updates.loading")}</p>
-   <div className="flex flex-wrap gap-2"><Button busy={busy} disabled={!info?.configured} onClick={()=>void check()}>{t("updates.check")}</Button>
-   {busy&&<Button onClick={()=>{const id=request.current;if(id)void cancelUpdateCheck(id).catch(()=>{if(alive.current)setError("unavailable");});}}>{t("updates.cancel")}</Button>}</div>
+   <div className="flex flex-wrap gap-2"><Button icon={RefreshCw} busy={busy} disabled={!info?.configured} onClick={()=>void check()}>{t("updates.check")}</Button>
+   {busy&&<Button icon={X} onClick={()=>{const id=request.current;if(id)void cancelUpdateCheck(id).catch(()=>{if(alive.current)setError("unavailable");});}}>{t("updates.cancel")}</Button>}</div>
   </div>
   {(info&&!info.configured||result?.state==="not_configured")&&<p className="text-sm text-muted-foreground">{t("updates.notConfigured")}</p>}
-  {result?.state==="available"&&<div className="space-y-3"><p role="status">{t("updates.available",{version:result.latestVersion})}</p><Button busy={opening} onClick={()=>void open()}>{t("updates.release")}</Button></div>}
+  {result?.state==="available"&&<div className="space-y-3"><p role="status">{t("updates.available",{version:result.latestVersion})}</p><Button icon={ExternalLink} busy={opening} onClick={()=>void open()}>{t("updates.release")}</Button></div>}
   {result?.state==="up_to_date"&&<p role="status">{t("updates.current")}</p>}
   {error==="cancelled"?<p role="status">{t("updates.cancelled")}</p>:error&&<Notice actions={!info?<Button onClick={()=>void load()}>{t("common.retry")}</Button>:undefined}>{t(`updates.${errorKey}`)}</Notice>}
  </section>;

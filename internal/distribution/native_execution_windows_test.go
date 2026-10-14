@@ -3,12 +3,39 @@
 package distribution
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+	"winone/internal/startupprobe"
+
+	"golang.org/x/sys/windows"
 )
+
+// A failure before the deliberately damaged desktop starts is not evidence
+// that rollback after startup validation works.
+func requireBrokenDesktopFailure(t *testing.T, err error, installation string) {
+	t.Helper()
+	var failure *os.PathError
+	// Windows versions can reject the same malformed image as either an
+	// invalid format or an unsupported executable architecture (193/216).
+	invalidImage := errors.Is(err, windows.ERROR_BAD_EXE_FORMAT) || errors.Is(err, windows.ERROR_EXE_MACHINE_TYPE_MISMATCH)
+	if !invalidImage || !errors.As(err, &failure) || failure.Path != filepath.Join(installation, "WinOne.exe") {
+		t.Fatalf("expected rejection of the damaged desktop executable, got: %v", err)
+	}
+}
+
+func TestNativeBrokenDesktopFailsAtExecutableStart(t *testing.T) {
+	installation := t.TempDir()
+	if err := os.WriteFile(filepath.Join(installation, "WinOne.exe"), []byte("not a Windows executable"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	err := startupprobe.CheckDesktop(context.Background(), filepath.Join(installation, "WinOne.exe"), t.TempDir())
+	requireBrokenDesktopFailure(t, err, installation)
+}
 
 // Test-only versions distinguish two local fixture packages. Original build
 // directories and their records are never relabelled or published.
@@ -77,8 +104,12 @@ func TestNativeUpgradeExecutesVerifiedBinaries(t *testing.T) {
 			}
 			request := UpgradeExecution{Installation: installation, Profile: profile, Staged: staged, Backup: backup, PreviousPackage: oldPackage, NextPackage: nextPackage, RegistryKey: key, ShortcutPath: shortcut, NextRegistration: registration, NextShortcut: link, Journal: journal}
 			err = ExecuteUpgrade(request)
+			if broken {
+				requireBrokenDesktopFailure(t, err, installation)
+			}
 			if (err != nil) != broken {
-				t.Fatalf("native execution: %v", err)
+				_, restored := VerifyInstalled(installation, oldPackage)
+				t.Fatalf("native execution: %v; phase=%s; previous payload verification=%v", err, journal.Snapshot().Phase, restored)
 			}
 			reference, phase := nextPackage, "committed"
 			if broken {

@@ -1,10 +1,18 @@
 Unicode true
+; OCR includes deeply nested files. Opt in to the Windows long-path policy so
+; a supported destination does not fail part-way through installation/removal.
+; This is an application manifest flag, not a change to the machine policy.
+ManifestLongPathAware true
 !ifdef WINONE_EXPORT_UNINSTALLER
   !include "export-uninstaller.nsh"
 !endif
 !ifdef WINONE_TEST_BUILD
   ; Select compression before includes can embed native plug-ins.
   SetCompressor zlib
+  ; Integration fixtures check the complete inventory and install control flow.
+  ; Avoid recompressing every OCR/model/plugin byte for each failure scenario;
+  ; the distributed installer retains solid LZMA in the branch below.
+  SetCompress off
 !else
   SetCompressor /SOLID lzma
 !endif
@@ -45,18 +53,22 @@ Var WinOneFailureCode
 Var WinOneRepairMode
 Var WinOneRegisteredLocation
 Var WinOneUninstallRecovery
+Var WinOneUpdateMode
+Var WinOneUpdateError
 !ifdef WINONE_TEST_BUILD
   Var WinOneFailurePoint
 !endif
 !define MUI_ICON "${WINONE_ICON}"
 !define MUI_UNICON "${WINONE_ICON}"
 !define MUI_ABORTWARNING
-!define MUI_LANGDLL_WINDOWTITLE "WinOne — 语言 / Language"
-!define MUI_LANGDLL_INFO "选择语言 / Select a language"
 !insertmacro MUI_PAGE_LICENSE "${WINONE_PAYLOAD_DIR}\LICENSE.txt"
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE WinOneDirectorySelected
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
+!define MUI_FINISHPAGE_RUN "$INSTDIR\WinOne.exe"
+!define MUI_FINISHPAGE_RUN_TEXT "$(LaunchNow)"
+!define MUI_FINISHPAGE_RUN_FUNCTION WinOneFinishRun
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW WinOneFinishShow
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
@@ -69,12 +81,16 @@ LangString NeedWindows ${LANG_ENGLISH} "WinOne requires Windows 11 (x64)."
 LangString NeedWindows ${LANG_SIMPCHINESE} "WinOne 需要 Windows 11（x64）。"
 LangString NeedWebView ${LANG_ENGLISH} "Install Microsoft Edge WebView2 Runtime, then run setup again."
 LangString NeedWebView ${LANG_SIMPCHINESE} "请先安装 Microsoft Edge WebView2 Runtime，再运行安装程序。"
-LangString NeedEmpty ${LANG_ENGLISH} "Choose an empty folder. Updating an existing installation is not available in this build."
-LangString NeedEmpty ${LANG_SIMPCHINESE} "请选择空文件夹。此测试版尚不支持覆盖升级。"
-LangString Existing ${LANG_ENGLISH} "WinOne is already installed. This test build does not support upgrades."
-LangString Existing ${LANG_SIMPCHINESE} "已安装 WinOne。此测试版尚不支持升级。"
+LangString NeedEmpty ${LANG_ENGLISH} "Choose an empty folder, or use the registered WinOne folder to update."
+LangString NeedEmpty ${LANG_SIMPCHINESE} "请选择空文件夹，或在已登记的 WinOne 目录中覆盖安装。"
+LangString Updating ${LANG_ENGLISH} "Verifying, backing up and updating WinOne. Your settings and accounts will be kept."
+LangString Updating ${LANG_SIMPCHINESE} "正在校验、备份并更新 WinOne。你的配置和账号会保留。"
 LangString Failed ${LANG_ENGLISH} "The operation could not finish. Keep the installation folder for recovery."
 LangString Failed ${LANG_SIMPCHINESE} "操作未完成，请保留安装目录以便恢复。"
+LangString UpdateFailedDetails ${LANG_ENGLISH} "The update did not finish.$\r$\n$WinOneUpdateError"
+LangString UpdateFailedDetails ${LANG_SIMPCHINESE} "覆盖安装未完成。$\r$\n$WinOneUpdateError"
+LangString MaintenanceCloseFailed ${LANG_ENGLISH} "File operations finished, but the maintenance helper has not exited. Close this window before retrying WinOne or uninstallation."
+LangString MaintenanceCloseFailed ${LANG_SIMPCHINESE} "文件处理已完成，但维护程序尚未退出。请关闭此窗口后，再重试启动 WinOne 或卸载。"
 LangString RolledBack ${LANG_ENGLISH} "Installation failed. Changes from this attempt were removed."
 LangString RolledBack ${LANG_SIMPCHINESE} "安装未完成，本次更改已撤销。"
 LangString ShortcutExists ${LANG_ENGLISH} "A WinOne shortcut already exists. Keep or rename it before installing."
@@ -85,18 +101,40 @@ LangString RepairQuestion ${LANG_ENGLISH} "The previous installation did not fin
 LangString RepairQuestion ${LANG_SIMPCHINESE} "上次安装未完成。现在修复吗？你的设置会保留。"
 LangString UninstallQuestion ${LANG_ENGLISH} "The previous uninstall did not finish. Continue uninstalling? Your settings will be kept."
 LangString UninstallQuestion ${LANG_SIMPCHINESE} "上次卸载未完成。现在继续卸载吗？你的设置会保留。"
+LangString LaunchNow ${LANG_ENGLISH} "Launch WinOne now"
+LangString LaunchNow ${LANG_SIMPCHINESE} "立即启动 WinOne"
+LangString LaunchFailed ${LANG_ENGLISH} "Installation is complete, but WinOne could not start. Close setup, then open WinOne from the Start menu."
+LangString LaunchFailed ${LANG_SIMPCHINESE} "安装已完成，但未能启动 WinOne。请关闭安装程序，再从开始菜单打开 WinOne。"
+LangString OnboardingFailed ${LANG_ENGLISH} "The first-use state directory could not be prepared. Existing permissions and records were kept."
+LangString OnboardingFailed ${LANG_SIMPCHINESE} "无法准备首次提示目录。已有权限和记录保持不变。"
 
 !insertmacro WinOneGuardFunctions ""
 !insertmacro WinOneGuardFunctions "un."
+!insertmacro WinOneRemovalFunctions "" WinOneCheckGuard
+!insertmacro WinOneRemovalFunctions "un." un.WinOneCheckGuard
 !insertmacro WinOnePendingFunctions ""
 !insertmacro WinOnePendingFunctions "un."
 !insertmacro WinOneRecoveryFunctions ""
 !insertmacro WinOneRecoveryFunctions "un."
 !include "repair-ui.nsh"
+!include "upgrade.nsh"
+!include "language.nsh"
+!insertmacro WinOneLanguageFunctions ""
+!insertmacro WinOneLanguageFunctions "un."
+
+Function un.onInit
+  Call un.WinOneInitializeLanguage
+  StrCpy $WinOneGuardHandle 0
+  StrCpy $WinOneGuardRelease 0
+FunctionEnd
 
 Function WinOneDirectorySelected
   Call WinOneOfferRecovery
 FunctionEnd
+
+!include "finish.nsh"
+!include "progress.nsh"
+!include "onboarding.nsh"
 
 Function .onGUIEnd
   Call WinOneCloseGuardHandle
@@ -105,8 +143,23 @@ Function un.onGUIEnd
   Call un.WinOneCloseGuardHandle
 FunctionEnd
 
+!ifdef WINONE_TEST_BUILD
+; A silent fixture failure otherwise loses its reason when t.TempDir is cleaned.
+; This callback runs only after failure and does not alter the install path.
+Function .onInstFailed
+  FileOpen $0 "${WINONE_PROFILE_DIR}.installer-failure.txt" w
+  FileWrite $0 "guard=$WinOneGuardError;installStarted=$WinOneInstallStarted;registrationStarted=$WinOneRegistrationStarted;shortcutStarted=$WinOneShortcutStarted;repair=$WinOneRepairMode;registered=$WinOneRegisteredLocation;target=$INSTDIR$\r$\n"
+  FileClose $0
+FunctionEnd
+!endif
+
 Function .onInit
-  !insertmacro MUI_LANGDLL_DISPLAY
+  Call WinOneInitializeLanguage
+  ; An update reuses the Go transaction and never starts this guard. Initialize
+  ; both handles so the shared close path never waits on an empty variable.
+  StrCpy $WinOneGuardHandle 0
+  StrCpy $WinOneGuardRelease 0
+  StrCpy $WinOneUpdateMode 0
   StrCpy $WinOneRepairMode 0
   ${GetParameters} $0
   ${GetOptions} $0 "/REPAIR" $1
@@ -130,12 +183,6 @@ Function .onInit
   ${AndIf} $WinOneUninstallRecovery != 1
     StrCpy $INSTDIR $WinOneRegisteredLocation
     Call WinOneOfferRecovery
-    ${If} $WinOneRepairMode != 1
-    ${AndIf} $WinOneUninstallRecovery != 1
-      MessageBox MB_ICONSTOP "$(Existing)" /SD IDOK
-      SetErrorLevel 1
-      Abort
-    ${EndIf}
   ${EndIf}
   ${IfNot} ${AtLeastWin11}
   ${OrIfNot} ${IsNativeAMD64}
@@ -168,10 +215,19 @@ Section "WinOne"
   !ifdef WINONE_TEST_BUILD
     ${GetParameters} $0
     ${GetOptions} $0 "/FAILPOINT=" $WinOneFailurePoint
+    ${If} $WinOneFailurePoint == "registration-removed-before-install"
+      ; Model an uninstall completing while this installer wizard was open.
+      DeleteRegKey HKCU "${WINONE_REGISTRY_KEY}"
+      RMDir "$INSTDIR"
+    ${EndIf}
   !endif
   ${If} $WinOneUninstallRecovery == 1
     Goto completeUninstall
   ${EndIf}
+  ; An uninstall can finish while the wizard is open. Decide against current
+  ; registration, not the .onInit snapshot used to suggest the directory.
+  SetRegView 64
+  ReadRegStr $WinOneRegisteredLocation HKCU "${WINONE_REGISTRY_KEY}" "InstallLocation"
   Call WinOneCheckWebView
   ${If} $WinOneRepairMode == 1
     StrCpy $WinOneRecoveryOperation "install"
@@ -182,6 +238,11 @@ Section "WinOne"
       Goto repairUnavailable
     ${EndIf}
     Goto targetAccepted
+  ${EndIf}
+  ${If} $WinOneRegisteredLocation != ""
+    Call WinOneUpdateExisting
+    IfErrors updateFailed
+    Goto done
   ${EndIf}
   IfFileExists "${WINONE_SHORTCUT}" 0 +4
     MessageBox MB_ICONSTOP "$(ShortcutExists)" /SD IDOK
@@ -195,6 +256,7 @@ Section "WinOne"
     Abort
   ${EndIf}
 targetAccepted:
+  Call WinOnePrepareOnboarding
   ClearErrors
   CreateDirectory "$INSTDIR"
   IfErrors failed
@@ -219,7 +281,8 @@ targetAccepted:
     Call WinOneWriteRecoveryRecord
     IfErrors failed
   ${EndIf}
-  !insertmacro WinOneInstallFiles WinOneCheckGuard failed
+  Call WinOneWritePayload
+  IfErrors failed
   !ifdef WINONE_TEST_BUILD
     ${If} $WinOneFailurePoint == "interrupt-after-files"
       ; Simulate abrupt installer death; no failure handler is run.
@@ -312,8 +375,8 @@ failed:
   ClearErrors
   Delete "$INSTDIR\Uninstall.exe"
   IfErrors recoveryFailed
-  !insertmacro WinOneRemoveFiles WinOneCheckGuard recoveryFailed
-  !insertmacro WinOneRemoveEmptyDirectories WinOneCheckGuard recoveryFailed
+  !insertmacro WinOneCallRemoval Payload recoveryFailed
+  !insertmacro WinOneCallRemoval Directories recoveryFailed
   Call WinOneClearPending
   IfErrors recoveryFailed
   ; Removing the marker may make the installation root empty.
@@ -333,7 +396,22 @@ repairUnavailable:
   SetErrorLevel 3
   MessageBox MB_ICONSTOP "$(RepairUnavailable)" /SD IDOK
   Abort
+updateFailed:
+  ; The transaction owns rollback and recovery. Never run first-install cleanup
+  ; against an existing installation after an update failure.
+  Abort
 done:
+  ; Reap maintenance before exposing completion to callers or the Finish page.
+  Call WinOneCloseGuardHandle
+  IfErrors cleanupFailed
+  Call WinOneEndUpdateProgress
+  Goto complete
+cleanupFailed:
+  Call WinOneFailUpdateProgress
+  SetErrorLevel 2
+  MessageBox MB_ICONSTOP "$(MaintenanceCloseFailed)" /SD IDOK
+  Abort
+complete:
 SectionEnd
 
 Section "Uninstall"
@@ -360,4 +438,12 @@ failed:
   MessageBox MB_ICONSTOP "$(Failed)" /SD IDOK
   Abort
 done:
+  Call un.WinOneCloseGuardHandle
+  IfErrors cleanupFailed
+  Goto complete
+cleanupFailed:
+  SetErrorLevel 2
+  MessageBox MB_ICONSTOP "$(MaintenanceCloseFailed)" /SD IDOK
+  Abort
+complete:
 SectionEnd

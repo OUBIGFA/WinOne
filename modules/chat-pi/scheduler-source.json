@@ -1,0 +1,31 @@
+{
+    "repository":  "https://github.com/makecindy/cindy",
+    "commit":  "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+    "license":  "../../third_party/cindy/LICENSE",
+    "files":  [
+                  {
+                      "source":  "apps/desktop/src/main/scheduler-host/script-runner.ts",
+                      "sourceSHA256":  "c0b5d7dbec68419b9bd10a972b49436e8e1e7f4e5f6c60c9a58716b885f5121d",
+                      "file":  "scheduler-script.ts",
+                      "sha256":  "7786a1c10adbad74ae01f5cee1dd2c7687fa8ec1069ea58a7e90ec808d3fc212"
+                  },
+                  {
+                      "source":  "apps/desktop/src/main/scheduler-host/pre-run-hook.ts",
+                      "sourceSHA256":  "2395a2df94945eb644327373cfe25df72ad1e1ff725c1956d207d9eb77e567a6",
+                      "file":  "scheduler-pre-run-hook.ts",
+                      "sha256":  "4c85245be316e49e9ab160dc619db3bc10d48e4e9bb36efd0d58242f65d257e4"
+                  }
+              ],
+    "adaptation":  [
+                       "Script JSONL protocol and pre-run exit semantics retain upstream behavior.",
+                       "WinOne uses its existing per-command Windows Job ownership and verifies all descendants exit before terminal delivery.",
+                       "Script capability calls reuse configured Pi MCP transports and the WinOne OAuth store. Model and permissions come from the saved schedule.",
+                       "Pi is the WinOne execution harness; reasoning effort and priority pass through the private AI bridge.",
+                       "Project schedules use the upstream .cindy/automations/schedules.json schema; legacy .xdmaker reads preserve original files.",
+                       "Source details and behavior evidence are in AUTOMATIONS.md."
+                   ],
+    "projectConfigurationSource":  {
+                                       "source":  "apps/desktop/src/main/scheduler-host/project-automation-loader.ts",
+                                       "sourceSHA256":  "7c2b8d5a0158ef7411311e93023edc840cbfc4b52d343f9437df70a0279522e7"
+                                   }
+}

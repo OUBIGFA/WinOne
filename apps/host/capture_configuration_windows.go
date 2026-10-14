@@ -31,10 +31,14 @@ type capturePreferences struct {
 	ScrollDelay      int      `json:"scrollDelay"`
 	ScrollFromTop    bool     `json:"scrollFromTop"`
 	ToolbarTools     []string `json:"toolbarTools"`
+	ToolbarVersion   int      `json:"toolbarVersion"`
 	FileNameTemplate string   `json:"fileNameTemplate"`
 }
 
 func (value capturePreferences) validate() error {
+	if value.ToolbarVersion != 0 && value.ToolbarVersion != 2 {
+		return errors.New("不支持的截图工具栏版本")
+	}
 	if _, err := captureprefs.FileName(value.FileNameTemplate, time.Now(), 1); err != nil {
 		return err
 	}
@@ -53,6 +57,29 @@ func (value capturePreferences) validate() error {
 	return captureprefs.ValidateToolbar(value.ToolbarTools)
 }
 
+// Old custom layouts adopt the two new common actions once. Version 2 then
+// preserves any explicit choice to move them into the overflow menu.
+func (value capturePreferences) upgradeToolbar() capturePreferences {
+	if value.ToolbarVersion == 0 {
+		if value.ToolbarTools != nil {
+			value.ToolbarTools = append([]string{}, value.ToolbarTools...)
+			for _, action := range []string{"ocr", "translate"} {
+				found := false
+				for _, tool := range value.ToolbarTools {
+					if tool == action {
+						found = true
+					}
+				}
+				if !found {
+					value.ToolbarTools = append(value.ToolbarTools, action)
+				}
+			}
+		}
+		value.ToolbarVersion = 2
+	}
+	return value
+}
+
 func captureConfiguration(directory string, worker func() *modules.Lazy) configuration.ModuleAdapter {
 	moduleDirectory := filepath.Join(directory, "modules", "capture")
 	return configuration.ModuleAdapter{
@@ -63,6 +90,7 @@ func captureConfiguration(directory string, worker func() *modules.Lazy) configu
 				return nil, err
 			}
 			value.Theme = global.Theme
+			value = value.upgradeToolbar()
 			return json.Marshal(value)
 		},
 		Load: func() (json.RawMessage, error) {
@@ -82,6 +110,7 @@ func captureConfiguration(directory string, worker func() *modules.Lazy) configu
 				}
 			}
 			value.Revision = 0
+			value = value.upgradeToolbar()
 			if err = value.validate(); err != nil {
 				return nil, err
 			}
@@ -103,6 +132,7 @@ func captureConfiguration(directory string, worker func() *modules.Lazy) configu
 				return err
 			}
 			value.Revision = revision
+			value = value.upgradeToolbar()
 			if err := value.validate(); err != nil {
 				return err
 			}
@@ -181,6 +211,7 @@ func captureConfigurationHandler(store *configuration.HostStore, next func(host.
 			return fail(err)
 		}
 		value.Revision = revision
+		value = value.upgradeToolbar()
 		data, err := json.Marshal(value)
 		if err != nil {
 			return fail(err)

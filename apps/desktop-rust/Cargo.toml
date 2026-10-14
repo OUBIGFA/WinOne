@@ -1,0 +1,46 @@
+[package]
+name = "winone-desktop"
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.85"
+license = "GPL-3.0-only"
+publish = false
+
+[features]
+default = ["component-ui"]
+component-ui = ["dep:wry", "dep:raw-window-handle", "dep:png"]
+
+[lib]
+name = "winone_desktop"
+
+[[bin]]
+name = "winone-desktop"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.145"
+url = "=2.5.8"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "=0.62.2", features = ["Win32_Foundation", "Win32_System_Com", "Win32_UI_Shell", "Win32_UI_Shell_Common"] }
+wry = { version = "=0.57.0", optional = true, default-features = false, features = ["os-webview"] }
+webview2-com = "=0.39.1"
+raw-window-handle = { version = "=0.6.2", optional = true }
+png = { version = "=0.18.1", optional = true }
+windows-sys = { version = "=0.61.2", features = [
+  "Win32_Foundation", "Win32_Graphics_Gdi", "Win32_Graphics_Dwm", "Win32_Security", "Win32_Security_Authorization", "Win32_System_RemoteDesktop",
+  "Win32_Storage_FileSystem", "Win32_System_IO", "Win32_System_LibraryLoader",
+  "Win32_System_Pipes", "Win32_System_Threading", "Win32_System_Registry", "Win32_System_SystemServices", "Win32_System_Memory", "Win32_System_ProcessStatus",
+  "Win32_UI_Controls", "Win32_UI_Accessibility", "Win32_UI_HiDpi", "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_WindowsAndMessaging", "Win32_System_StationsAndDesktops",
+  "Win32_UI_Controls_Dialogs", "Win32_System_Com", "Win32_System_Ole", "Win32_System_DataExchange", "Win32_UI_Shell", "Win32_UI_Shell_Common",
+] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = "debuginfo"
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"

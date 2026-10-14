@@ -1,0 +1,18 @@
+[package]
+name = "winone-diagrams"
+version = "0.0.1"
+edition = "2024"
+publish = false
+
+[dependencies]
+mermaid-rs-renderer = { git = "https://github.com/1jehuang/mermaid-rs-renderer", rev = "3726ccbffe0e8032361eb9668694b24f77858060", default-features = false }
+resvg = "=0.47.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+codegen-units = 1
+strip = true

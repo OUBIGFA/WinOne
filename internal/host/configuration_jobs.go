@@ -98,7 +98,7 @@ func (q *ConfigurationQueue) Handle(request Request) Response {
 		return Response{ID: request.ID, Result: data}
 	}
 	switch request.Method {
-	case "settings.save", "capture.settings.save", "always-on-top.settings.save", "wintray.settings.save", "modules.setEnabled", "modules.recoverConfiguration", "modules.resetWinTray", "profiles.import.apply":
+	case "settings.save", "capture.settings.save", "always-on-top.settings.save", "wintray.settings.save", "selection.settings.save", "quick-assistant.settings.save", "stroke.settings.save", "directory-links.create", "directory-links.create.elevated", "directory-links.createBatch", "directory-links.createBatch.elevated", "directory-links.inspectBatch", "directory-links.scan", "directory-links.remove", "directory-links.forget", "directory-links.exportPlan", "directory-links.menu.set", "modules.setEnabled", "modules.recoverConfiguration", "modules.recoverPackage", "modules.installPackage", "modules.updatePackage", "modules.removePackage", "modules.cleanupPackages", "modules.resetWinTray", "profiles.import.apply", "packages.settings.save":
 	default:
 		return q.next.Handle(request)
 	}

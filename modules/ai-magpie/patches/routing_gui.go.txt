@@ -1,0 +1,51 @@
+package gui
+
+import (
+ "encoding/json"
+ "io/fs"
+ "net/http"
+ "strings"
+ "strconv"
+ "github.com/yetone/magpie/internal/gateway"
+ "github.com/yetone/magpie/internal/provider"
+ "github.com/yetone/magpie/internal/settings"
+)
+
+// WinOne supplies its own navigation, provider settings and process lifetime.
+// Only the routing page's original endpoints and assets are exposed here.
+func WinOneRoutingHandler(gw *gateway.Server) http.Handler {
+ served.Store(gw)
+ mux:=http.NewServeMux()
+ groupRoutes(mux);traceRoutes(mux);contextRoutesAPI(mux)
+ mux.HandleFunc("GET /api/providers",func(w http.ResponseWriter,r *http.Request){writeJSON(w,providersState())})
+ // The page's own settings refresh calls setLocale; keep the value in the
+ // form its translation table understands instead of a regional tag.
+ winOneSettings:=func()settings.Settings{s:=settings.Load();if strings.HasPrefix(s.Lang,"zh"){s.Lang="zh"}else if s.Lang!="system"&&!strings.HasPrefix(s.Lang,"en"){s.Lang="en"};return s}
+ mux.HandleFunc("GET /api/state",func(w http.ResponseWriter,r *http.Request){writeJSON(w,map[string]any{"agents":[]any{map[string]any{"id":"winone","name":"WinOne","fields":[]any{}}},"profiles":[]any{},"settings":winOneSettings()})})
+ mux.HandleFunc("GET /api/settings",func(w http.ResponseWriter,r *http.Request){writeJSON(w,winOneSettings())})
+ mux.HandleFunc("POST /api/provider/{action}",func(w http.ResponseWriter,r *http.Request){
+  var body struct{ID,Routing,Affinity string;Sink bool};if json.NewDecoder(r.Body).Decode(&body)!=nil {http.Error(w,"Invalid routing preference",400);return}
+  var err error
+  switch r.PathValue("action"){case "route":err=provider.SetRouting(body.ID,body.Routing);case "affinity":err=provider.SetAffinity(body.ID,body.Affinity);case "sink":err=provider.SetSink(body.ID,body.Sink);default:http.NotFound(w,r);return}
+  if err!=nil {fail(w,err);return};writeJSON(w,providersState())
+ })
+ mux.HandleFunc("GET /api/gateway/call",func(w http.ResponseWriter,r *http.Request){id,err:=strconv.ParseUint(r.URL.Query().Get("id"),10,64);if err!=nil {http.Error(w,"Invalid call id",400);return};call,ok:=gw.RecentCall(id);if !ok {http.NotFound(w,r);return};writeJSON(w,map[string]any{"requestBody":call.RequestBody,"responseBody":call.ResponseBody,"requestTruncated":call.RequestTruncated,"responseTruncated":call.ResponseTruncated})})
+ mux.HandleFunc("GET /boot.js",func(w http.ResponseWriter,r *http.Request){w.Header().Set("Content-Type","text/javascript; charset=utf-8");lang:=settings.Load().Lang;if strings.HasPrefix(lang,"zh"){lang="zh"}else{lang="en"};b,_:=json.Marshal(map[string]any{"lang":lang,"theme":settings.Load().Theme,"web":true});w.Write(append(append([]byte("window.bootPrefs="),b...),';'))})
+ files,_:=fs.Sub(assets,"assets")
+ mux.Handle("/",http.FileServer(http.FS(files)))
+ return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+  // The full app script remains the upstream dependency for its dialogs and
+  // picker. Start only routing; don't enumerate apps or open other pages.
+  if r.URL.Path=="/app.js" {b,_:=fs.ReadFile(files,"app.js");s:=string(b);tail:=strings.LastIndex(s,"load();");if tail>=0{s=s[:tail]+s[tail+len("load();"):]} ;w.Header().Set("Content-Type","text/javascript; charset=utf-8");w.Write([]byte(s));return}
+  if r.URL.Path=="/" {
+   b,_:=fs.ReadFile(files,"index.html")
+   // Preserve upstream fetch calls while placing every same-origin request
+   // under the authenticated frame path. Static relative URLs already inherit it.
+   bootstrap:=`<script>(()=>{const prefix=location.pathname.match(/^\/session\/[^/]+\//)?.[0];if(!prefix)return;const original=window.fetch.bind(window);window.fetch=(input,init)=>{const target=new URL(typeof input==='string'?input:input.url,location.href);if(target.origin===location.origin&&!target.pathname.startsWith(prefix))target.pathname=prefix+target.pathname.replace(/^\//,'');return original(input instanceof Request?new Request(target,input):target,init);};})();</script>`
+   s:=strings.Replace(string(b),"<head>","<head>"+bootstrap,1)
+   s=strings.Replace(s,"</body>","<script src=\"winone-routing.js\"></script></body>",1)
+   w.Header().Set("Content-Type","text/html; charset=utf-8");w.Write([]byte(s));return
+  }
+  mux.ServeHTTP(w,r)
+ })
+}

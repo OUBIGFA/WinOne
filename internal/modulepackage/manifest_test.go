@@ -12,7 +12,7 @@ import (
 	"winone/internal/distribution"
 )
 
-func signedTestManifest(t *testing.T) (Manifest, Publisher, minisign.PrivateKey) {
+func signedTestManifest(t testing.TB) (Manifest, Publisher, minisign.PrivateKey) {
 	t.Helper()
 	public, private, err := minisign.GenerateKey(rand.Reader)
 	if err != nil {

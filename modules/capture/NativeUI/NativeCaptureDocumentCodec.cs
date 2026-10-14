@@ -6,7 +6,9 @@ namespace WinOne.Capture.NativeUI;
 
 internal static class NativeCaptureDocumentCodec
 {
-    private const int MaximumBytes = 768 * 1024;
+    // Local native layers include editable style/identity data absent from the
+    // old 768-KiB wire document. Allow that bounded expansion; RPC limits stay unchanged.
+    private const int MaximumBytes = 1536 * 1024;
     private static readonly JsonSerializerOptions Json = CreateOptions();
     private static JsonSerializerOptions CreateOptions()
     {

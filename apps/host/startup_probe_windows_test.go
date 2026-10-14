@@ -24,7 +24,7 @@ func TestStartupProbeReportsWithoutStartingRuntime(t *testing.T) {
 	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
 		t.Fatal(err)
 	}
-	if report.Nonce != "test-nonce" || report.PID <= 0 || len(report.Modules) != 3 {
+	if report.Nonce != "test-nonce" || report.PID <= 0 || len(report.Modules) != 6 {
 		t.Fatal(report)
 	}
 	if err := report.Validate(report.PID, report.Executable, "wrong-nonce"); err == nil {

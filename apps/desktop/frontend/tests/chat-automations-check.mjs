@@ -1,0 +1,20 @@
+import {createRequire} from 'node:module';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+const require=createRequire(import.meta.url),{chromium}=require(process.env.WINONE_PLAYWRIGHT_MODULE||'playwright'),output=resolve(process.env.WINONE_LAYOUT_OUTPUT||'_temp/automations-layout');await mkdir(output,{recursive:true});
+const browser=await chromium.launch({headless:true,executablePath:process.env.WINONE_CHROMIUM}),report=[],errors=[];
+try{
+ const page=await browser.newPage();page.on('pageerror',error=>errors.push(String(error)));
+ for(const language of ['zh-CN','en-US'])for(const theme of ['light','dark'])for(const width of [520,1000]){
+  const zh=language==='zh-CN';await page.setViewportSize({width,height:860});const url=new URL(process.env.WINONE_LAYOUT_URL||'http://127.0.0.1:5192/tests/chat-automations-preview.html');url.searchParams.set('language',language);url.searchParams.set('theme',theme);await page.goto(url.href);
+  await page.getByRole('button',{name:zh?'编辑自动化':'Edit automation',exact:true}).click();await page.getByRole('tab',{name:zh?'执行与检查':'Execution and checks',exact:true}).click();
+  const dialog=page.getByRole('dialog');await dialog.getByRole('combobox',{name:zh?'执行方式':'Execution mode',exact:true}).selectOption('script');
+  await dialog.getByRole('textbox',{name:zh?'脚本命令':'Script command',exact:true}).fill('node check.mjs');await dialog.getByRole('checkbox',{name:'jira.read',exact:true}).check();await dialog.getByRole('checkbox',{name:zh?'运行前执行检查':'Run a pre-run check',exact:true}).check();await dialog.getByRole('textbox',{name:zh?'前置检查命令':'Pre-run command',exact:true}).fill('node hook.mjs');
+  const clipped=await dialog.evaluate(root=>[...root.querySelectorAll('input,select,textarea,button')].filter(element=>{const r=element.getBoundingClientRect();return r.width>0&&(r.left<0||r.right>innerWidth+1)}).map(element=>element.textContent||element.tagName));if(clipped.length)throw Error('Clipped command controls: '+clipped.join(','));
+  await page.evaluate(async()=>{await Promise.all(document.getAnimations().filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});await page.screenshot({path:resolve(output,`${language}-${theme}-${width}-execution.png`)});await dialog.getByRole('button',{name:zh?'保存':'Save',exact:true}).click();await dialog.waitFor({state:'detached'});
+  const saved=await page.evaluate(()=>window.lastAutomationSave);if(saved.executionMode!=='script'||saved.scriptConfig.command!=='node check.mjs'||saved.preRunHook.command!=='node hook.mjs'||saved.scriptConfig.capabilities[0]!=='jira.read')throw Error('Saved execution settings differ from controls');
+  await page.getByRole('button',{name:zh?'模板':'Templates',exact:true}).click();await page.getByRole('button',{name:zh?'夜间自愈测试':'Nightly test self-healing',exact:true}).waitFor();await page.evaluate(async()=>{await Promise.all(document.getAnimations().filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});await page.screenshot({path:resolve(output,`${language}-${theme}-${width}-templates.png`)});await page.getByRole('dialog').getByRole('button',{name:zh?'关闭':'Close',exact:true}).first().click();await page.getByRole('dialog').waitFor({state:'detached'});
+  await page.getByRole('button',{name:zh?'连接器':'Connections',exact:true}).click();await page.getByRole('textbox',{name:zh?'方法映射（JSON）':'Method mappings (JSON)',exact:true}).waitFor();await page.evaluate(async()=>{await Promise.all(document.getAnimations().filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});await page.screenshot({path:resolve(output,`${language}-${theme}-${width}-connections.png`)});report.push({language,theme,width,clipped,saved:true});
+ }
+ await writeFile(resolve(output,'report.json'),JSON.stringify({report,errors},null,2));if(errors.length)throw Error(errors.join('\n'));console.log('PASS: complete automation controls, templates and connections at 520/1000px, zh/en and light/dark');
+}finally{await browser.close();}

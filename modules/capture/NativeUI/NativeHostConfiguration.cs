@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.IO.Pipes;
+using System.IO.MemoryMappedFiles;
+using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -28,6 +30,8 @@ internal sealed class NativeHostConfiguration(string pipeName, Process parent)
     public void StopAccepting() { lock (lifecycle) closing = true; }
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetNamedPipeServerProcessId(SafePipeHandle pipe, out uint processId);
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window,out uint processId);
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr window);
 
     internal static void VerifyServer(NamedPipeClientStream pipe, int expectedParent)
     {
@@ -52,7 +56,7 @@ internal sealed class NativeHostConfiguration(string pipeName, Process parent)
 
     private async Task<string[]?> SaveToolbarCoreAsync(string[]? tools, CancellationToken cancellation)
     {
-        var allowed = new HashSet<string>(new[] { "select", "crop", "rectangle", "ellipse", "arrow", "pen", "cover", "text", "mosaic", "blur" }, StringComparer.Ordinal);
+        var allowed = new HashSet<string>(new[] { "select", "crop", "rectangle", "ellipse", "arrow", "pen", "cover", "text", "mosaic", "blur", "ocr", "translate" }, StringComparer.Ordinal);
         if (tools is not null && tools.Any(tool => !allowed.Remove(tool))) throw new ArgumentException("无效的工具栏配置", nameof(tools));
         var requested = tools?.ToArray();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
@@ -92,11 +96,11 @@ internal sealed class NativeHostConfiguration(string pipeName, Process parent)
         return confirmed;
     }
 
-    private async Task<JsonElement> Call(string method, object parameters, string id, CancellationToken cancellation)
+    private async Task<JsonElement> Call(string method, object parameters, string id, CancellationToken cancellation, int timeoutSeconds = 5)
     {
         if (parent.HasExited) throw new InvalidOperationException("WinOne 已退出");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
-        deadline.CancelAfter(TimeSpan.FromSeconds(5));
+        deadline.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
         using var pipe = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
         await pipe.ConnectAsync(deadline.Token).ConfigureAwait(false);
         VerifyServer(pipe, parent.Id);
@@ -106,6 +110,83 @@ internal sealed class NativeHostConfiguration(string pipeName, Process parent)
         var response = document.RootElement;
         if (response.GetProperty("id").GetString() != id) throw new InvalidDataException("配置响应标识不匹配");
         return Result(response);
+    }
+
+    internal async Task<string> TranslateAsync(string text, CancellationToken cancellation)
+    {
+        var started = await Call("ai.translate.start", new { text }, Guid.NewGuid().ToString("N"), cancellation).ConfigureAwait(false);
+        return await CompleteAIJobAsync(started, cancellation).ConfigureAwait(false);
+    }
+
+    internal async Task<bool> UsesAIRecognitionAsync(CancellationToken cancellation)
+    {
+        var settings = await Call("ai.settings.get", new { }, Guid.NewGuid().ToString("N"), cancellation).ConfigureAwait(false);
+        var mode = settings.TryGetProperty("ocrEngine", out var value) ? value.GetString() : "local";
+        if (mode is null or "" or "local") return false;
+        if (mode == "ai") return true;
+        throw new InvalidDataException("AI OCR 设置无效");
+    }
+
+    internal async Task<string> RecognizeAsync(Bitmap image, CancellationToken cancellation)
+    {
+        using var png = new MemoryStream();
+        image.Save(png, ImageFormat.Png);
+        if (png.Length > 32 * 1024 * 1024) throw new InvalidOperationException("AI 图片过大，请缩小选区");
+        var mappingName = $@"Local\WinOne.AI.{Environment.ProcessId}.{Guid.NewGuid():N}";
+        JsonElement started;
+        // Transfer one PNG snapshot without writing selected pixels to disk or
+        // repeating Base64 in the settings/job pipe. The Host copies before ACK.
+        using (var mapping = MemoryMappedFile.CreateNew(mappingName, png.Length, MemoryMappedFileAccess.ReadWrite)) {
+            using (var view = mapping.CreateViewStream()) {
+                png.Position = 0;
+                await png.CopyToAsync(view, cancellation).ConfigureAwait(false);
+            }
+            started = await Call("ai.recognize.start", new { image = new { mapping = mappingName, bytes = png.Length } }, Guid.NewGuid().ToString("N"), cancellation).ConfigureAwait(false);
+        }
+        return await CompleteAIJobAsync(started, cancellation).ConfigureAwait(false);
+    }
+
+    internal async Task<string> OpenResultAsync(Bitmap image,bool translate,CancellationToken cancellation)
+    {
+        using var png=new MemoryStream();image.Save(png,ImageFormat.Png);
+        if(png.Length>32*1024*1024)throw new InvalidOperationException("AI 图片过大，请缩小选区");
+        var id=Guid.NewGuid().ToString("N");var name=$@"Local\WinOne.AI.{Environment.ProcessId}.{id}";
+        var accepted=false;
+        try {
+            using var mapping=MemoryMappedFile.CreateNew(name,png.Length,MemoryMappedFileAccess.ReadWrite);
+            using(var view=mapping.CreateViewStream()){png.Position=0;await png.CopyToAsync(view,cancellation).ConfigureAwait(false);}
+            var reply=await Call("results.open",new{id,mode=translate?"translate":"ocr",image=new{mapping=name,bytes=png.Length}},id,cancellation,12).ConfigureAwait(false);
+            if(!reply.GetProperty("opened").GetBoolean())throw new InvalidOperationException("resultUnavailable");
+            var window=new IntPtr(long.Parse(reply.GetProperty("window").GetString()!,System.Globalization.CultureInfo.InvariantCulture));
+            GetWindowThreadProcessId(window,out var owner);
+            if(owner!=reply.GetProperty("processId").GetUInt32()||!SetForegroundWindow(window))throw new InvalidOperationException("resultUnavailable");
+            accepted=true;
+            return id;
+        } finally {
+            // A cancelled/failed opening must not create a late result window.
+            if(!accepted){try{await Call("results.cancel",new{id},Guid.NewGuid().ToString("N"),CancellationToken.None).ConfigureAwait(false);}catch(Exception error){Console.Error.WriteLine("Result opening cancellation: "+error.GetType().Name);}}
+        }
+    }
+
+    private async Task<string> CompleteAIJobAsync(JsonElement started, CancellationToken cancellation)
+    {
+        var jobId = started.GetProperty("id").GetString() ?? throw new InvalidDataException("翻译任务无效");
+        try {
+            while (true) {
+                var job = await Call("ai.jobs.get", new { id = jobId }, Guid.NewGuid().ToString("N"), cancellation).ConfigureAwait(false);
+                var state = job.GetProperty("state").GetString();
+                if (state == "completed") return job.GetProperty("text").GetString() ?? throw new InvalidDataException("翻译结果为空");
+                if (state == "failed") throw new InvalidOperationException(job.GetProperty("error").GetString());
+                if (state == "cancelled") throw new OperationCanceledException(cancellation);
+                if (state != "running") throw new InvalidDataException("翻译任务状态无效");
+                await Task.Delay(100, cancellation).ConfigureAwait(false);
+            }
+        } finally {
+            // Releasing a result also removes captured text from the Host job
+            // table; cancellation never lets an old result overwrite a new one.
+            try { await Call("ai.jobs.cancel", new { id = jobId }, Guid.NewGuid().ToString("N"), CancellationToken.None).ConfigureAwait(false); }
+            catch (Exception error) { Console.Error.WriteLine("Translation cleanup: " + error.GetType().Name); }
+        }
     }
     private static bool HasError(JsonElement response) => response.TryGetProperty("error", out var error) && error.ValueKind != JsonValueKind.Null;
     private static JsonElement Result(JsonElement response)

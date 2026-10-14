@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "rootDependency": "jszip",
+  "components": [
+    {
+      "kind": "npm",
+      "name": "jszip",
+      "version": "3.10.1",
+      "sourceDirectory": "node_modules/jszip",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.markdown",
+          "file": "licenses/npm-chat-share-jszip-3.10.1-LICENSE.markdown.txt",
+          "sha256": "566c953c6090b1218ca6217dd7359d45dde46581968586dc607d59a78af6a9c4"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "lie",
+      "version": "3.3.0",
+      "sourceDirectory": "node_modules/lie",
+      "notices": [
+        {
+          "sourceFile": "license.md",
+          "file": "licenses/npm-chat-share-lie-3.3.0-license.md.txt",
+          "sha256": "5c81b0caa98593408b03125efa25efe622341ed87ae55561968828cd887d64a4"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "immediate",
+      "version": "3.0.6",
+      "sourceDirectory": "node_modules/immediate",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.txt",
+          "file": "licenses/npm-chat-share-immediate-3.0.6-LICENSE.txt.txt",
+          "sha256": "809e66de579fb7d92503848bbe6d1f348f4f6521a71e5d294fe7cc0c87a3b4ff"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "pako",
+      "version": "1.0.11",
+      "sourceDirectory": "node_modules/pako",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-chat-share-pako-1.0.11-LICENSE.txt",
+          "sha256": "a04665b3b2de56c66730c1f720f528175739e4104f79073614aa611da1e85539"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "readable-stream",
+      "version": "2.3.8",
+      "sourceDirectory": "node_modules/readable-stream",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-chat-share-readable-stream-2.3.8-LICENSE.txt",
+          "sha256": "ec62dc96da0099b87f4511736c87309335527fb7031639493e06c95728dc8c54"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "core-util-is",
+      "version": "1.0.3",
+      "sourceDirectory": "node_modules/core-util-is",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-chat-share-core-util-is-1.0.3-LICENSE.txt",
+          "sha256": "33b734d60042d0fe0c92dd1fc1e874193a1c899ec3e276a2eb935d2d0bf5b710"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "inherits",
+      "version": "2.0.4",
+      "sourceDirectory": "node_modules/inherits",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-chat-share-inherits-2.0.4-LICENSE.txt",
+          "sha256": "5ffe28e7ade7d8f10d85d5337a73fd793dac5c462fb9a28fbf8c5046c7fbca3b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "isarray",
+      "version": "1.0.0",
+      "sourceDirectory": "node_modules/isarray",
+      "notices": [
+        {
+          "sourceFile": "README.md",
+          "file": "licenses/npm-chat-share-isarray-1.0.0-README.md.txt",
+          "sha256": "ff138e683771b187f3629c383db72ee7d632009010a36d08e18e8d2a34222ec7"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "process-nextick-args",
+      "version": "2.0.1",
+      "sourceDirectory": "node_modules/process-nextick-args",
+      "notices": [
+        {
+          "sourceFile": "license.md",
+          "file": "licenses/npm-chat-share-process-nextick-args-2.0.1-license.md.txt",
+          "sha256": "ecdccbcf39024f624ded480c01c0b25458e1eca8f26ecf040933865ce56d9a4f"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "safe-buffer",
+      "version": "5.1.2",
+      "sourceDirectory": "node_modules/readable-stream/node_modules/safe-buffer",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-chat-share-safe-buffer-5.1.2-LICENSE.txt",
+          "sha256": "c7cc929b57080f4b9d0c6cf57669f0463fc5b39906344dfc8d3bc43426b30eac"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "string_decoder",
+      "version": "1.1.1",
+      "sourceDirectory": "node_modules/string_decoder",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-chat-share-string_decoder-1.1.1-LICENSE.txt",
+          "sha256": "11f2aafb37d06b3ee5bdaf06e9811141d0da05263c316f3d627f45c20d43261b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "util-deprecate",
+      "version": "1.0.2",
+      "sourceDirectory": "node_modules/util-deprecate",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-chat-share-util-deprecate-1.0.2-LICENSE.txt",
+          "sha256": "0154425673db15cdfa80ecba2c9b1f1a867f7197a006764712849bfc3a93cbb7"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "setimmediate",
+      "version": "1.0.5",
+      "sourceDirectory": "node_modules/setimmediate",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.txt",
+          "file": "licenses/npm-chat-share-setimmediate-1.0.5-LICENSE.txt.txt",
+          "sha256": "c4b4ad3a5746f1f5249a6dd90396ec519264e1bb02e01e48a6522c48a3a97cb4"
+        }
+      ]
+    }
+  ]
+}

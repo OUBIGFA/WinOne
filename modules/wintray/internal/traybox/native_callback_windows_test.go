@@ -4,8 +4,10 @@ package traybox
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"slices"
+	"sync/atomic"
 	"testing"
 	"time"
 	"unsafe"
@@ -76,6 +78,47 @@ func TestNativeClickGesturesStayDistinct(t *testing.T) {
 	}
 }
 
+// Exercise real callback delivery with two incompatible application policies.
+// The callback registration is identical: it cannot identify which policy
+// an application implements, and concatenating gestures is not a safe fallback.
+func TestOpenPoliciesNeedObservedOutcome(t *testing.T) {
+	for _, doubleOnly := range []bool{false, true} {
+		t.Run(fmt.Sprintf("doubleOnly_%t", doubleOnly), func(t *testing.T) {
+			f, listener := selectedListener(t)
+			send(listener, trayRequest{message: nimAdd, hwnd: uint32(f.program), uid: 37, flags: nifMessage, callback: testCallback})
+			var visible atomic.Bool
+			var handled atomic.Int32
+			f.mu.Lock()
+			f.onEvent = func(_ win.HWND, _, event uintptr) {
+				if doubleOnly {
+					if uint32(event) == win.WM_LBUTTONDBLCLK {
+						visible.Store(true)
+					}
+				} else if uint32(event) == win.WM_LBUTTONUP {
+					visible.Store(!visible.Load())
+				}
+				handled.Add(1)
+			}
+			f.mu.Unlock()
+			icon := listener.snapshot()[0]
+			if err := Activate(icon, ActionClick); err != nil {
+				t.Fatal(err)
+			}
+			waitFor(t, "single callback completed", func() bool { return handled.Load() == 2 })
+			if visible.Load() == doubleOnly {
+				t.Fatal("Fixture did not distinguish single and double activation")
+			}
+			if err := Activate(icon, ActionDoubleClick); err != nil {
+				t.Fatal(err)
+			}
+			waitFor(t, "double callback completed", func() bool { return handled.Load() == 4 })
+			if visible.Load() != doubleOnly {
+				t.Fatal("Expected appended double click to hide single-click app and open double-click app")
+			}
+		})
+	}
+}
+
 // Opt-in: briefly hosts a real Shell_TrayWnd and one test icon. Run with
 // WinTray closed so two collectors cannot race for the real taskbar class.
 func TestCollectedIconLiveShell32Callback(t *testing.T) {
@@ -132,6 +175,10 @@ func TestCollectedIconLiveShell32Callback(t *testing.T) {
 		case got := <-received:
 			if got.hr != 0 || got.rect.Right <= got.rect.Left || got.rect.Bottom <= got.rect.Top {
 				t.Fatalf("native callback dropped its click: version=%d hr=%x rect=%+v", version, got.hr, got.rect)
+			}
+			size := max(int32(1), win.GetSystemMetrics(win.SM_CXSMICON)/2) * 2
+			if got.rect.Right-got.rect.Left != size || got.rect.Bottom-got.rect.Top != size {
+				t.Fatalf("native callback received an oversized anchor: rect=%+v want %dx%d", got.rect, size, size)
 			}
 			t.Logf("version %d: actual Shell32 query inside callback succeeded, rect=%+v", version, got.rect)
 		case <-time.After(5 * time.Second):

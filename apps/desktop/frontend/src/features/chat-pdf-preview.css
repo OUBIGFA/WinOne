@@ -1,0 +1,4 @@
+/* PDF.js owns the document surface; pane controls remain in BrowserPanel. */
+.chat-pdf-preview{position:relative;flex:1;min-height:0;min-width:0}
+.chat-pdf-scroll{position:absolute;inset:0;overflow:auto}
+.chat-pdf-preview>.desktop-inline-notice{position:relative;z-index:2}

@@ -32,7 +32,7 @@ func (m observedIcons) Handle(request host.Request) host.Response {
 }
 
 // syncCollectedMenu mirrors stable native icon IDs, with explicit access to each original menu.
-func syncCollectedMenu(ctx context.Context, parent *systray.MenuItem, worker moduleEndpoint, language func() string, reportFailure func(error)) {
+func syncCollectedMenu(ctx context.Context, worker moduleEndpoint, language func() string, reportFailure func(error)) {
 	type icon struct {
 		ID     string `json:"id"`
 		Name   string `json:"name"`
@@ -66,7 +66,6 @@ func syncCollectedMenu(ctx context.Context, parent *systray.MenuItem, worker mod
 					value.root.Remove()
 					delete(items, id)
 				}
-				parent.Hide()
 				continue
 			}
 			r := worker.Handle(host.Request{Version: 1, ID: "tray-icons", Method: "icons"})
@@ -97,7 +96,7 @@ func syncCollectedMenu(ctx context.Context, parent *systray.MenuItem, worker mod
 					}
 					continue
 				}
-				root := parent.AddSubMenuItem(value.Name, value.Name)
+				root := systray.AddMenuItemFirst(value.Name, value.Name)
 				visual := &collectedIconState{name: value.Name}
 				if err := visual.apply(root, value.Name, value.Image); err != nil {
 					fmt.Fprintln(os.Stderr, "tray icon update:", err)
@@ -109,15 +108,20 @@ func syncCollectedMenu(ctx context.Context, parent *systray.MenuItem, worker mod
 					actions[action.ID] = entry
 					go func(id, name string, hosted bool, action collectedAction, entry *systray.MenuItem) {
 						for {
+							var shift bool
 							select {
 							case <-itemCtx.Done():
 								return
-							case _, ok := <-entry.ClickedCh:
+							case value, ok := <-entry.ClickedWithShiftCh:
 								if !ok {
 									return
 								}
+								shift = value
 							}
-							if err := performCollectedAction(worker, id, hosted, action); err != nil {
+							selectedAction := collectedGesture(action, hosted, shift)
+							// Match WinTray: Shift selects the distinct double-click
+							// gesture; never follow a single click with a guessed retry.
+							if err := performCollectedAction(worker, id, hosted, selectedAction); err != nil {
 								reportFailure(fmt.Errorf("%s (%s): %w", name, action.ID, err))
 							}
 						}
@@ -131,11 +135,6 @@ func syncCollectedMenu(ctx context.Context, parent *systray.MenuItem, worker mod
 					value.root.Remove()
 					delete(items, id)
 				}
-			}
-			if len(items) == 0 {
-				parent.Hide()
-			} else {
-				parent.Show()
 			}
 		}
 	}

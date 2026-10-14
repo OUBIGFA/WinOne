@@ -110,7 +110,7 @@ func newHostLogger() *logging.Logger {
 	if err != nil {
 		return nil
 	}
-	logger, err := logging.New(appDir)
+	logger, err := newAppLogger(appDir)
 	if err != nil {
 		return nil
 	}

@@ -1,0 +1,76 @@
+{
+    "repository":  "https://github.com/yetone/magpie",
+    "commit":  "a8ca7908556ead568c3d3a72e6e58e7e11852caa",
+    "sourceDirectory":  "internal/gui/assets",
+    "license":  "MIT, Copyright (c) 2026 yetone; source LICENSE in dist/resources/sources/magpie-a8ca790",
+    "scope":  "Model settings shortcut rows composed from WinOne\u0027s existing Base UI Button/Input/Field components. The model routing ID and provider save flow remain unchanged.",
+    "fields":  [
+                   {
+                       "field":  "contextWindow",
+                       "source":  "app.js:8456 contextPicks",
+                       "presets":  [
+                                       128000,
+                                       200000,
+                                       256000,
+                                       1000000
+                                   ],
+                       "conditional":  "Each model\u0027s most is offered when reported maxContextWindow exceeds listedContextWindow. No maximum is invented."
+                   },
+                   {
+                       "field":  "maxTokens",
+                       "source":  "app.js:8503 outputField",
+                       "presets":  [
+                                       8000,
+                                       16000,
+                                       32000,
+                                       64000,
+                                       128000
+                                   ]
+                   },
+                   {
+                       "field":  "compactionPercent",
+                       "source":  "app.js:8531 compactField",
+                       "upstreamTokenPresets":  [
+                                                    128000,
+                                                    200000,
+                                                    272000,
+                                                    500000,
+                                                    1000000
+                                                ],
+                       "adaptation":  "User explicitly requested percentage input. The approved WinOne percentage shortcuts are 50, 60, 70, 80, 90 and 95; these are not claimed as upstream percentage presets. Old compactionThreshold values retain token semantics until this field is edited."
+                   },
+                   {
+                       "field":  "reasoningEffort",
+                       "source":  "app.js:9673–9693 and internal/provider/modelprefs.go:233",
+                       "upstreamLevels":  [
+                                              "none",
+                                              "minimal",
+                                              "low",
+                                              "medium",
+                                              "high",
+                                              "xhigh",
+                                              "max"
+                                          ],
+                       "adaptation":  "Offer every upstream level as a one-click request-effort selection, and retain WinOne\u0027s existing ultra option and default. The existing dropdown remains available."
+                   },
+                   {
+                       "field":  "tier",
+                       "source":  "app.js fastToggle is model-specific, not a fixed service-tier preset row",
+                       "adaptation":  "Retain every existing service-tier dropdown value; no numerical preset is invented."
+                   },
+                   {
+                       "field":  "maxConcurrency/maxRPM/queueLimit/queueWait",
+                       "source":  "app.js:7005–7038 concurrencyField",
+                       "adaptation":  "Upstream provides manual number inputs only. All four inputs, limits and zero/default behavior are retained without invented shortcut values."
+                   },
+                   {
+                       "field":  "modelDisplayName/reasoning/vision/tools",
+                       "adaptation":  "Existing controls, default states and provider save flow are retained."
+                   }
+               ],
+    "visualSource":  "app.css:2921–2929 cxpicks/cxpick: wrapping row, compact pill controls and selected-state feedback; adapted to WinOne tokens, 13px text and existing keyboard-accessible buttons.",
+    "sourceSHA256":  {
+                         "appCSS":  "24a3f2f7b35794c89768c483374725146cc75b45a401cab59194703522075e2e",
+                         "appJS":  "459ab823db779776db88d88146c6d4cd964fe67548308d6abe352f76a2379c52"
+                     }
+}

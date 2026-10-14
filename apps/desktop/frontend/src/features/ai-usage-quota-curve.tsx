@@ -1,0 +1,6 @@
+import {useEffect,useRef} from "react";
+import {useTranslation} from "../i18n";
+import {magpieQuotaCurve} from "./magpie-quota-curve";
+export interface QuotaLine{name:string;points:{at:string;left:number;start?:string;resetsAt?:string}[]}
+const zh:Record<string,string>={"Now":"现在","Left over time":"剩余额度趋势","Cycle":"当前周期","2 days":"最近两天","Latest readings:":"最近读数：","{name}: {n} left, read {when}":"{name}：剩余 {n}，读取于 {when}","Solid: what was left. Dashed: an even pace, full at the cycle's start to empty at its reset; a line above its dashes lasts the cycle, one below runs out before the reset.":"实线表示实际剩余额度。虚线表示当前周期内均匀消耗的参考速度；实线低于虚线时可能在重置前用完。点击图表可放大。"};
+export function QuotaCurve({quota,range}:{quota:{provider:string;user?:string;history?:QuotaLine[];windows:unknown[]};range:string}){const {i18n}=useTranslation(),box=useRef<HTMLDivElement>(null);useEffect(()=>{if(!box.current)return;box.current.replaceChildren();const curve=magpieQuotaCurve(i18n.language,(key:string,values:Record<string,unknown>={})=>{let text=i18n.language.startsWith("zh")?zh[key]??key:key;for(const [name,value]of Object.entries(values))text=text.replaceAll("{"+name+"}",String(value));return text;},[{provider:quota.provider,user:(quota.user||"").toLowerCase(),lines:quota.history??[]}],range)(quota);if(curve)box.current.append(curve);},[quota,range,i18n.language]);return <div ref={box}/>}

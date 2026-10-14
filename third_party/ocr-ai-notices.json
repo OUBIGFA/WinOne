@@ -1,0 +1,749 @@
+{
+  "schemaVersion": 1,
+  "components": [
+    {
+      "kind": "python",
+      "name": "antlr4-python3-runtime",
+      "version": "4.9.3",
+      "notices": [
+        {
+          "file": "licenses/python-antlr4-python3-runtime-4.9.3-0-antlr-LICENSE.txt.txt",
+          "sha256": "b1b379fcaf3219593a4c433feb1b35c780bed23fafaae440b1ae2771a9521e3a"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "certifi",
+      "version": "2026.7.22",
+      "notices": [
+        {
+          "file": "licenses/python-certifi-2026.7.22-0-LICENSE.txt",
+          "sha256": "e93716da6b9c0d5a4a1df60fe695b370f0695603d21f6f83f053e42cfc10caf7"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "charset-normalizer",
+      "version": "3.5.2",
+      "notices": [
+        {
+          "file": "licenses/python-charset-normalizer-3.5.2-0-LICENSE.txt",
+          "sha256": "18577485d3704f1a479ded8e573c0976cfed315fd2fd17983fa988da4c2f70d1"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "colorama",
+      "version": "0.4.6",
+      "notices": [
+        {
+          "file": "licenses/python-colorama-0.4.6-0-LICENSE.txt.txt",
+          "sha256": "cac35c02686e5d04a5a7140bfb3b36e73aed496656e891102e428886d7930318"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "coloredlogs",
+      "version": "15.0.1",
+      "notices": [
+        {
+          "file": "licenses/python-coloredlogs-15.0.1-0-LICENSE.txt.txt",
+          "sha256": "0bef4ffb1855b65570304f2018c6d44e4bab97bd5df8716ecd7800014d717267"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "colorlog",
+      "version": "6.12.0",
+      "notices": [
+        {
+          "file": "licenses/python-colorlog-6.12.0-0-LICENSE.txt",
+          "sha256": "b1d9082bc483623fd59fc7279b457f0e40d942a76426cde257239e04dfe4125a"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "flatbuffers",
+      "version": "25.12.19",
+      "notices": [
+        {
+          "file": "licenses/python-flatbuffers-25.12.19-0-flatbuffers-LICENSE.txt.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "humanfriendly",
+      "version": "10.0",
+      "notices": [
+        {
+          "file": "licenses/python-humanfriendly-10.0-0-LICENSE.txt.txt",
+          "sha256": "4ac48f4117809f2734066150450f120b3bb110ac1d3b32170795e0560dbbc1f5"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "idna",
+      "version": "3.20",
+      "notices": [
+        {
+          "file": "licenses/python-idna-3.20-0-LICENSE.md.txt",
+          "sha256": "1a9a4f0e3d479a27240ddd59a9137a66ab4a0f9dfdc8ca6188cc0bfd85187f04"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "mpmath",
+      "version": "1.3.0",
+      "notices": [
+        {
+          "file": "licenses/python-mpmath-1.3.0-0-LICENSE.txt",
+          "sha256": "c26cae81da4508e5e249985777a33821f183223ebb74d7f8cfbf90fe7eef2fb7"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "numpy",
+      "version": "2.4.6",
+      "notices": [
+        {
+          "file": "licenses/python-numpy-2.4.6-0-LICENSE.txt.txt",
+          "sha256": "a804dff0ead9fadc5293456410bcbfc32bf024be9c4513459663fb7b442d2341"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-1-LICENSE.txt.txt",
+          "sha256": "d544761558b510866c21f7e8a2d5716fca76e0b98117e3b6b86314db7244d150"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-2-COPYING.txt",
+          "sha256": "aea41976c720f91bd19725c16916a1ace40eb1ea42620d340e587a5de4bbcea0"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-3-LICENSE.txt",
+          "sha256": "d208152e2777ffd0126eacc1bd21c0320d69e4e6b622d21a2a12a47e8ef73763"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-4-LICENSE.md.txt",
+          "sha256": "a732977853530066790c42817087f4829b518dd98d340c916acbfd227e39d3cb"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-5-LICENSE.txt",
+          "sha256": "585483905b13d4b42f800c55ba99e89d6e2e33ccd5f503e201c07531d148ff41"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-6-LICENSE.md.txt",
+          "sha256": "8db000e158c162e7249787852d8c69764706502ccee725c06641b31c1e95c8af"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-7-LICENSE.txt.txt",
+          "sha256": "19060ef465e1797d682ee0fc3081bd25ab1395e995e43d25c9d13c95d9a3cd6b"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-8-LICENSE.txt",
+          "sha256": "d78dbb208b80d92b4d333e41a4baae50d12444f46e53199fa7726a91de6e2da7"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-9-LICENSE.md.txt",
+          "sha256": "b4bc2f4fa1c95778f1ed3dd8f14706bece399475b978f9f34b5d3cd72521b48a"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-10-LICENSE.md.txt",
+          "sha256": "cf5619f25b112d5ce7c896efffc8e610bcb345dfadcc19f2c1460aa48fff2c9e"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-11-LICENSE.md.txt",
+          "sha256": "92c10699884321f1c2947fe2a70ab23b0fbf1507f756d89dd08f38c61fc3d4fa"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-12-LICENSE.md.txt",
+          "sha256": "41190663b77bee5302386495a07b7eabfbfa571aa0ae2f11da6764162062fc4f"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-13-LICENSE.md.txt",
+          "sha256": "322ac46d870c8aeead6c53adcccc839296fb3c8e456eae155081297daf7f8013"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-14-LICENSE.md.txt",
+          "sha256": "28cad82ce1379dc529df30da78ec012d7d0d1d576b03ddcb93388aee53659f59"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-15-LICENSE.md.txt",
+          "sha256": "454ec7350e478e037061850b67395753b425b1cb0a34bbc26290b020bf89d763"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-16-LICENSE.txt.txt",
+          "sha256": "d544761558b510866c21f7e8a2d5716fca76e0b98117e3b6b86314db7244d150"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-17-LICENSE.txt",
+          "sha256": "d78dbb208b80d92b4d333e41a4baae50d12444f46e53199fa7726a91de6e2da7"
+        },
+        {
+          "file": "licenses/python-numpy-2.4.6-18-LICENSE.md.txt",
+          "sha256": "b4bc2f4fa1c95778f1ed3dd8f14706bece399475b978f9f34b5d3cd72521b48a"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "omegaconf",
+      "version": "2.3.1",
+      "notices": [
+        {
+          "file": "licenses/python-omegaconf-2.3.1-0-LICENSE.txt",
+          "sha256": "b31375ed5d5cbe7ec2d0c4c14df8afa7a8e5501bbe25f70b6cbc461685f4b91a"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "onnxruntime",
+      "version": "1.21.1",
+      "notices": [
+        {
+          "file": "licenses/python-onnxruntime-1.21.1-0-LICENSE.txt",
+          "sha256": "c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "opencv-python",
+      "version": "5.0.0.93",
+      "notices": [
+        {
+          "file": "licenses/python-opencv-python-5.0.0.93-0-LICENSE-3RD-PARTY.txt.txt",
+          "sha256": "c1d60169b55cee56452b227c2fd2a7b9ddda3dd3741065f1c6201072be73fadb"
+        },
+        {
+          "file": "licenses/python-opencv-python-5.0.0.93-1-LICENSE.txt.txt",
+          "sha256": "edef0fac1eb08d29d34563f724742e078da2513e196133a12c6ad9ff01e26107"
+        },
+        {
+          "file": "licenses/python-opencv-python-5.0.0.93-2-LICENSE-3RD-PARTY.txt.txt",
+          "sha256": "c1d60169b55cee56452b227c2fd2a7b9ddda3dd3741065f1c6201072be73fadb"
+        },
+        {
+          "file": "licenses/python-opencv-python-5.0.0.93-3-LICENSE.txt.txt",
+          "sha256": "edef0fac1eb08d29d34563f724742e078da2513e196133a12c6ad9ff01e26107"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "packaging",
+      "version": "26.3",
+      "notices": [
+        {
+          "file": "licenses/python-packaging-26.3-0-LICENSE.txt",
+          "sha256": "cad1ef5bd340d73e074ba614d26f7deaca5c7940c3d8c34852e65c4909686c48"
+        },
+        {
+          "file": "licenses/python-packaging-26.3-1-LICENSE.APACHE.txt",
+          "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+        },
+        {
+          "file": "licenses/python-packaging-26.3-2-LICENSE.BSD.txt",
+          "sha256": "b70e7e9b742f1cc6f948b34c16aa39ffece94196364bc88ff0d2180f0028fac5"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "pillow",
+      "version": "11.3.0",
+      "notices": [
+        {
+          "file": "licenses/python-pillow-11.3.0-0-LICENSE.txt",
+          "sha256": "19544bf53af689a3319a4fb5067370f0f0d68d2c5300a2157674f5ef8a4fd965"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "protobuf",
+      "version": "7.36.2",
+      "notices": [
+        {
+          "file": "licenses/python-protobuf-7.36.2-0-LICENSE.txt",
+          "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "pyclipper",
+      "version": "1.4.0",
+      "notices": [
+        {
+          "file": "licenses/python-pyclipper-1.4.0-0-LICENSE.txt",
+          "sha256": "73c25539e7fb486b834c33747d579e0bc56c0f984294c88f3cb2329420ba300f"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "pyreadline3",
+      "version": "3.5.6",
+      "notices": [
+        {
+          "file": "licenses/python-pyreadline3-3.5.6-0-LICENSE.md.txt",
+          "sha256": "8fc4d8de61b40533023b16e64528d13371a2e9c68677df79ed5e93ba570471bd"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "PyYAML",
+      "version": "6.0.3",
+      "notices": [
+        {
+          "file": "licenses/python-PyYAML-6.0.3-0-LICENSE.txt",
+          "sha256": "8d3928f9dc4490fd635707cb88eb26bd764102a7282954307d3e5167a577e8a4"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "rapidocr",
+      "version": "3.9.2",
+      "notices": [
+        {
+          "file": "licenses/python-rapidocr-3.9.2-0-rapidocr-LICENSE.txt.txt",
+          "sha256": "3e0af25fdd06aa9586ae97adb00ea927ebe5a3805ac77d2d3a81ce5f55693333"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "requests",
+      "version": "2.34.2",
+      "notices": [
+        {
+          "file": "licenses/python-requests-2.34.2-0-LICENSE.txt",
+          "sha256": "09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b"
+        },
+        {
+          "file": "licenses/python-requests-2.34.2-1-NOTICE.txt",
+          "sha256": "f5110972dedad2b4e9d314518daf3b7d72d6e02e499acd802181de6f74571dcc"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "shapely",
+      "version": "2.1.2",
+      "notices": [
+        {
+          "file": "licenses/python-shapely-2.1.2-0-LICENSE.txt.txt",
+          "sha256": "e8cd7d34604d2758ff589f0f34d6ed79c3f7fb14aaf5e12fb09221421391a3bf"
+        },
+        {
+          "file": "licenses/python-shapely-2.1.2-1-LICENSE_GEOS.txt",
+          "sha256": "91a5bb11df4d44bfddc0c68db43681705326107781599fb6c6ff821042072d64"
+        },
+        {
+          "file": "licenses/python-shapely-2.1.2-2-LICENSE_win32.txt",
+          "sha256": "9b30cd1a09789884dd54e5828e31d2bf8e6879034e7cf7b6e0321444cf6dd11d"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "six",
+      "version": "1.17.0",
+      "notices": [
+        {
+          "file": "licenses/python-six-1.17.0-0-LICENSE.txt",
+          "sha256": "4375ba20e2b9c6c4e7cad2940a628fd90e95cc3d50ee92aae755715d8ba1fbd0"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "sympy",
+      "version": "1.14.0",
+      "notices": [
+        {
+          "file": "licenses/python-sympy-1.14.0-0-LICENSE.txt",
+          "sha256": "07a5e9819f727b4986ad2829c7a29a6320d42575f720eb24d71b7fef573a0286"
+        },
+        {
+          "file": "licenses/python-sympy-1.14.0-1-LICENSE.txt.txt",
+          "sha256": "007bc30a58fa40a996e772047120de4eaf31f5110e4f9c3b5f93fcdfbe2eaca1"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "tqdm",
+      "version": "4.70.1",
+      "notices": [
+        {
+          "file": "licenses/python-tqdm-4.70.1-0-LICENCE.txt",
+          "sha256": "fcff87c3a47ce8028a8512aa182d4fcf0ad1c90544ee75cf9b343684cac194de"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "urllib3",
+      "version": "2.8.0",
+      "notices": [
+        {
+          "file": "licenses/python-urllib3-2.8.0-0-LICENSE.txt.txt",
+          "sha256": "130e3a64d5fdd5d096a752694634a7d9df284469de86e5732100268041e3d686"
+        }
+      ]
+    },
+    {
+      "kind": "runtime",
+      "name": "Python",
+      "version": "3.13.12",
+      "notices": [
+        {
+          "file": "licenses/runtime-Python-3.13.12-0-LICENSE.txt.txt",
+          "sha256": "62bec384df47b0328307db41455ff6ea2559e5546b394ac69148561b21703120"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "HushSnap",
+      "version": "2d43f0e1fd125484bd132ee6e9cad1db65fb7a8c",
+      "notices": [
+        {
+          "file": "licenses/upstream-HushSnap-2d43f0e1fd125484bd132ee6e9cad1db65fb7a8c-0-LICENSE.md.txt",
+          "sha256": "c53a65c2fd561c87eaabf1072ef5dcab8653042bc15308465f52413585eb6271"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "magpie",
+      "version": "ede1e32aec1a4f6bf06aeef6ed2e03d4218db226",
+      "notices": [
+        {
+          "file": "licenses/upstream-magpie-ede1e32aec1a4f6bf06aeef6ed2e03d4218db226-0-LICENSE.txt",
+          "sha256": "5f1c506829e4a534b54a2e8c8b6780316fd462d842830b35570e70252cdc6cee"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "magpie",
+      "version": "0bb0781ea065b5236a9a0014bceb84cb84324895",
+      "notices": [
+        {
+          "file": "licenses/upstream-magpie-0bb0781ea065b5236a9a0014bceb84cb84324895-0-LICENSE.txt",
+          "sha256": "5f1c506829e4a534b54a2e8c8b6780316fd462d842830b35570e70252cdc6cee"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "zencrop",
+      "version": "41976f9a97fc128df8d54ca20e93ee887bedd852",
+      "notices": [
+        {
+          "file": "licenses/upstream-zencrop-41976f9a97fc128df8d54ca20e93ee887bedd852-0-README.md.txt",
+          "sha256": "3b7d705409b522a215f5d59874900cc39ab4d7c6e01b4068357c62c7776b818a"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/Calcium-Ion/moejs",
+      "version": "v0.1.0-alpha.4",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-Calcium-Ion-moejs-v0.1.0-alpha.4-0-LICENSE.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/dustin/go-humanize",
+      "version": "v1.0.1",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-dustin-go-humanize-v1.0.1-0-LICENSE.txt",
+          "sha256": "a973b4498c13eb74baa2a8e5c351426a6826f2fcdd909916dbe53ee2e755fd71"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/klauspost/compress",
+      "version": "v1.18.3",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-klauspost-compress-v1.18.3-0-LICENSE.txt",
+          "sha256": "0d9e582ee4bff57bf1189c9e514e6da7ce277f9cd3bc2d488b22fbb39a6d87cf"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/mattn/go-isatty",
+      "version": "v0.0.20",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-mattn-go-isatty-v0.0.20-0-LICENSE.txt",
+          "sha256": "08eab1118c80885fa1fa6a6dd7303f65a379fcb3733e063d20d1bbc2c76e6fa1"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/ncruces/go-strftime",
+      "version": "v1.0.0",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-ncruces-go-strftime-v1.0.0-0-LICENSE.txt",
+          "sha256": "38ae43959daf953a393a585b2988672cb65a5a541aca0d0be5e72595a0a16883"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/pelletier/go-toml/v2",
+      "version": "v2.2.4",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-pelletier-go-toml-v2-v2.2.4-0-LICENSE.txt",
+          "sha256": "26844e4b53c5adec04e557fd7dfef281cc0205a7d355626b1c68b778b99e9e7b"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/remyoudompheng/bigfft",
+      "version": "v0.0.0-20230129092748-24d4a6f8daec",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-remyoudompheng-bigfft-v0.0.0-20230129092748-24d4a6f8daec-0-LICENSE.txt",
+          "sha256": "dd26a7abddd02e2d0aba97805b31f248ef7835d9e10da289b22e3b8ab78b324d"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/tidwall/gjson",
+      "version": "v1.19.0",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-tidwall-gjson-v1.19.0-0-LICENSE.txt",
+          "sha256": "be83ad53208d03a9fe08c7fac231cabf79422989ef5706bff217bd35104ebf07"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/tidwall/jsonc",
+      "version": "v0.3.3",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-tidwall-jsonc-v0.3.3-0-LICENSE.txt",
+          "sha256": "5892c55556c6ce088bfee532cdda662f1ccb8ae2be0e2f91999c9c37d3f294eb"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/tidwall/match",
+      "version": "v1.1.1",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-tidwall-match-v1.1.1-0-LICENSE.txt",
+          "sha256": "be83ad53208d03a9fe08c7fac231cabf79422989ef5706bff217bd35104ebf07"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/tidwall/pretty",
+      "version": "v1.2.0",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-tidwall-pretty-v1.2.0-0-LICENSE.txt",
+          "sha256": "0ca70311227fe097c662dece3f359e3317fa7f9d41f8d29eb45fc5135e216139"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "golang.org/x/exp",
+      "version": "v0.0.0-20260410095643-746e56fc9e2f",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-golang.org-x-exp-v0.0.0-20260410095643-746e56fc9e2f-0-LICENSE.txt",
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "golang.org/x/sys",
+      "version": "v0.46.0",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-golang.org-x-sys-v0.46.0-0-LICENSE.txt",
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "golang.org/x/text",
+      "version": "v0.39.0",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-golang.org-x-text-v0.39.0-0-LICENSE.txt",
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "gopkg.in/yaml.v3",
+      "version": "v3.0.1",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-gopkg.in-yaml.v3-v3.0.1-0-LICENSE.txt",
+          "sha256": "d18f6323b71b0b768bb5e9616e36da390fbd39369a81807cca352de4e4e6aa0b"
+        },
+        {
+          "file": "licenses/magpie-go-gopkg.in-yaml.v3-v3.0.1-1-NOTICE.txt",
+          "sha256": "f6c2dd3a67b576eafb89b80200b8b1627230bf3821a0c14cb99a22ac19107d00"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "modernc.org/libc",
+      "version": "v1.67.6",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-modernc.org-libc-v1.67.6-0-LICENSE.txt",
+          "sha256": "95ff867eb55a56935fa7492406cfa953fb7c13ca73f4c0a86ae05756b4605600"
+        },
+        {
+          "file": "licenses/magpie-go-modernc.org-libc-v1.67.6-1-LICENSE-3RD-PARTY.md.txt",
+          "sha256": "f597097efe3d97021f89170746bd3a0fb9a8b6fb26b82043ed68a4e0283bee6c"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "modernc.org/mathutil",
+      "version": "v1.7.1",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-modernc.org-mathutil-v1.7.1-0-LICENSE.txt",
+          "sha256": "bfa9bf72a72ca009fd62a8f84fca3dca67e51d93af96352723646599898b6cf5"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "modernc.org/memory",
+      "version": "v1.11.0",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-modernc.org-memory-v1.11.0-0-LICENSE.txt",
+          "sha256": "59895e669f48f168b6b858358f6005779cdf40a265f7828813061b56af67b496"
+        },
+        {
+          "file": "licenses/magpie-go-modernc.org-memory-v1.11.0-1-LICENSE-GO.txt",
+          "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+        },
+        {
+          "file": "licenses/magpie-go-modernc.org-memory-v1.11.0-2-LICENSE-LOGO.txt",
+          "sha256": "5ae5bee3072a841376451b48d8cfcec7188e10543926d5870828d36c8a750dc5"
+        },
+        {
+          "file": "licenses/magpie-go-modernc.org-memory-v1.11.0-3-LICENSE-MMAP-GO.txt",
+          "sha256": "c2eba69f20d05414538c3a5df7694dde392e065ff70882e1625e90f5d6659fff"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "modernc.org/sqlite",
+      "version": "v1.44.3",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-modernc.org-sqlite-v1.44.3-0-LICENSE.txt",
+          "sha256": "c6fe05491a60ae13bcd223088d2705e36dede24e5587226231d2459ada5c4822"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "git.sr.ht/~jackmordaunt/go-toast/v2",
+      "version": "v2.0.3",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-git.sr.ht-~jackmordaunt-go-toast-v2-v2.0.3-0-LICENSE.txt",
+          "sha256": "1b57eeb121b97d5920085fddd4cf395e71b8b027051a367bec8228688d68292f"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/adrg/xdg",
+      "version": "v0.5.3",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-adrg-xdg-v0.5.3-0-LICENSE.txt",
+          "sha256": "fb119fabde05e05b70b07f445b3f41863b22326c0ebb5b7bee9f0309112d3640"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/go-ole/go-ole",
+      "version": "v1.3.0",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-go-ole-go-ole-v1.3.0-0-LICENSE.txt",
+          "sha256": "d883dbca28769ff23dd4368a8edb7ad9f9f23a8f86adde2875c6e41a828aac62"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/mattn/go-colorable",
+      "version": "v0.1.14",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-mattn-go-colorable-v0.1.14-0-LICENSE.txt",
+          "sha256": "88a2379b3ca34bf5c57127aff9dcb802bbb60ece0805cdbda65b3bd115f971d9"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/wailsapp/wails/v3",
+      "version": "v3.0.0-beta.24",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-wailsapp-wails-v3-v3.0.0-beta.24-0-LICENSE.txt",
+          "sha256": "cede95c28e6e9d67d1c1e49e8ba3c20250c7d4080c3faca1579b6732327ae40d"
+        }
+      ]
+    }
+  ]
+}

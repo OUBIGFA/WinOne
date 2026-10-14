@@ -7,7 +7,7 @@ import (
 
 // Nil uses the shipped layout; an empty list intentionally keeps every tool in More.
 func ValidateToolbar(tools []string) error {
-	allowed := map[string]bool{"select": true, "crop": true, "rectangle": true, "ellipse": true, "arrow": true, "pen": true, "cover": true, "text": true, "mosaic": true, "blur": true}
+	allowed := map[string]bool{"select": true, "crop": true, "rectangle": true, "ellipse": true, "arrow": true, "pen": true, "cover": true, "text": true, "mosaic": true, "blur": true, "ocr": true, "translate": true}
 	seen := map[string]bool{}
 	for _, tool := range tools {
 		if !allowed[tool] || seen[tool] {

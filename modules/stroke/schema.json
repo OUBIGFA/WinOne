@@ -1,0 +1,25 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "type":"object",
+  "required":["version","defaultPolicy","triggerButton","pen","gestures","actionPackages","scopes","filters","scriptThreadCount","scriptTimeoutSeconds","namespaces","assemblies"],
+  "properties":{
+    "version":{"const":1},"revision":{"type":"integer","minimum":0},"defaultPolicy":{"const":"disabled"},
+    "triggerButton":{"enum":["right","left","middle","x1","x2"]},
+    "pen":{"type":"object","required":["color","opacity","thickness"],"properties":{"enabled":{"type":"boolean"},"color":{"type":"string","pattern":"^#[0-9a-fA-F]{6}$"},"opacity":{"type":"number","minimum":0,"maximum":1},"thickness":{"type":"integer","minimum":0,"maximum":10}},"additionalProperties":false},
+    "scriptThreadCount":{"type":"integer","minimum":1,"maximum":64},"scriptTimeoutSeconds":{"type":"integer","minimum":0,"maximum":3600},
+    "namespaces":{"type":"array","maxItems":128,"items":{"type":"string","minLength":1,"maxLength":512}},
+    "assemblies":{"type":"array","maxItems":64,"items":{"type":"string","minLength":1,"maxLength":32767}},
+    "filters":{"type":"array","maxItems":32,"items":{"type":"string","maxLength":512}},
+    "gestures":{"type":"array","maxItems":256,"items":{"$ref":"#/$defs/gesture"}},
+    "actionPackages":{"type":"array","maxItems":32,"items":{"type":"object","required":["id","name","actions"],"properties":{"id":{"$ref":"#/$defs/id"},"name":{"$ref":"#/$defs/name"},"actions":{"type":"array","maxItems":256,"items":{"$ref":"#/$defs/action"}}},"additionalProperties":false}},
+    "scopes":{"type":"array","maxItems":64,"items":{"type":"object","required":["id","name","kind","enabled","packages"],"properties":{"id":{"$ref":"#/$defs/id"},"name":{"$ref":"#/$defs/name"},"kind":{"enum":["explorer-folders","application","global"]},"enabled":{"type":"boolean"},"processPath":{"type":"string","maxLength":32767},"pattern":{"type":"string","maxLength":8192},"windowClasses":{"type":"array","maxItems":16,"items":{"$ref":"#/$defs/name"}},"packages":{"type":"array","maxItems":32,"items":{"$ref":"#/$defs/id"}}},"additionalProperties":false}}
+  },
+  "$defs":{
+    "id":{"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"},
+    "name":{"type":"string","minLength":1,"maxLength":240},
+    "point":{"type":"object","required":["x","y"],"properties":{"x":{"type":"integer","minimum":-100000,"maximum":100000},"y":{"type":"integer","minimum":-100000,"maximum":100000}},"additionalProperties":false},
+    "gesture":{"type":"object","required":["id","name"],"properties":{"id":{"$ref":"#/$defs/id"},"name":{"$ref":"#/$defs/name"},"points":{"type":"array","maxItems":4096,"items":{"$ref":"#/$defs/point"}},"vectors":{"type":"array","anyOf":[{"maxItems":0},{"minItems":128,"maxItems":128}],"items":{"type":"array","minItems":2,"maxItems":2,"items":{"type":"integer","minimum":-127,"maximum":127}}}},"additionalProperties":false},
+    "action":{"type":"object","required":["id","name","gesture","code","enabled"],"properties":{"id":{"$ref":"#/$defs/id"},"name":{"$ref":"#/$defs/name"},"gesture":{"type":"string","minLength":1,"maxLength":64},"code":{"type":"string","maxLength":32000},"enabled":{"type":"boolean"}},"additionalProperties":false}
+  },
+  "additionalProperties":false
+}

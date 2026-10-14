@@ -2,7 +2,7 @@
 
 使用 ShareX v21.0.0 的选区、标注、滚动拼接和贴图实现；Worker 运行于 .NET 10。
 
-`build/prepare-sharex.ps1` 校验源码归档并准备依赖。源码缓存留在 `_temp/dependencies/`，版本与校验值见 `third_party/sources.json`。
+`build/prepare-sharex.ps1` 校验源码归档并准备依赖。复用源码缓存留在 `dist/resources/sources/`，版本与校验值见 `third_party/sources.json`；测试输出放在 `_temp/<任务>/`。
 
 接入修改：
 

@@ -1,0 +1,26 @@
+{
+    "repository":  "https://github.com/makecindy/cindy",
+    "commit":  "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+    "licenseFile":  "third_party/cindy/LICENSE",
+    "noticeFile":  "third_party/cindy/NOTICE",
+    "sources":  [
+                    {
+                        "sha256":  "988f671ba6fba2ceec66623054f21e4d78073ccd50f4b94b328b5e4a384f18d1",
+                        "path":  "apps/desktop/src/main/maker-ipc/title-prompt.ts"
+                    },
+                    {
+                        "sha256":  "68d8271c9754ce17055c6d4d9f45f4304ea8d88e949ced6e5bc62b7a3d8425ca",
+                        "path":  "apps/desktop/src/main/maker-host/title-output-validation.ts"
+                    },
+                    {
+                        "sha256":  "36fa3c5067f304dab3485b7c9f72d155b36d70731e75e6521784514f1606ea29",
+                        "path":  "apps/desktop/src/main/maker-ipc/title.ts"
+                    },
+                    {
+                        "sha256":  "91d25853dfbd7c02856c661f489320f8e35a88583e563e4746b124cc6a58d9d8",
+                        "path":  "packages/maker-shared/src/sessionTitle.ts"
+                    }
+                ],
+    "target":  "internal/chat/title_prompt.go",
+    "adaptation":  "Direct Go translation of both Cindy title prompts and complete output-validation rules. Host reads the saved active Pi branch instead of Cindy DB; opening plus latest eight user/assistant text entries use the same 300/400 character limits. Auto-title uses 200 characters. Limits count Unicode code points to avoid slicing a surrogate pair. WinOne saved title model, standalone Magpie transport, explicit errors and manual-rename conflict handling remain authoritative."
+}

@@ -9,7 +9,8 @@ namespace WinOne.Capture.NativeUI;
 internal sealed class NativeCaptureAutosave
 {
     private readonly NativeCaptureDraftStore store;
-    private readonly Channel<NativeCaptureSnapshot> updates = Channel.CreateBounded<NativeCaptureSnapshot>(
+    private sealed record PendingSnapshot(long Sequence, NativeCaptureSnapshot Snapshot);
+    private readonly Channel<PendingSnapshot> updates = Channel.CreateBounded<PendingSnapshot>(
         new BoundedChannelOptions(1) { SingleReader = true, SingleWriter = true, FullMode = BoundedChannelFullMode.DropOldest });
     private readonly TaskCompletionSource<string> reserved = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly object gate = new();
@@ -17,6 +18,9 @@ internal sealed class NativeCaptureAutosave
     private readonly Task worker;
     private Task<NativeDraftCleanup>? finishing;
     private bool closed, retiring, finishingRetire;
+    private long submitted, persisted;
+    private NativeCaptureDraft? latest;
+    private TaskCompletionSource? changed;
     public Task Completion => worker;
 
     public NativeCaptureAutosave(NativeCaptureDraftStore store, Bitmap original, CaptureSettings settings,
@@ -43,15 +47,44 @@ internal sealed class NativeCaptureAutosave
     {
         try {
             var draft = initialize();
-            await foreach (var snapshot in updates.Reader.ReadAllAsync().ConfigureAwait(false)) {
+            Saved(draft, 0);
+            await foreach (var pending in updates.Reader.ReadAllAsync().ConfigureAwait(false)) {
                 lock (updateGate) {
                     lock (gate) { if (retiring) return; }
-                    draft = store.Update(draft.Id, draft.Revision, snapshot.Document, snapshot.Text);
+                    draft = store.Update(draft.Id, draft.Revision, pending.Snapshot.Document, pending.Snapshot.Text);
+                    Saved(draft, pending.Sequence);
                 }
             }
         } catch (Exception error) {
             reserved.TrySetException(error);
             throw;
+        }
+    }
+
+    private void Saved(NativeCaptureDraft draft, long sequence)
+    {
+        TaskCompletionSource? signal;
+        lock (gate) {
+            latest = draft; persisted = sequence;
+            signal = changed; changed = null;
+        }
+        signal?.TrySetResult();
+    }
+
+    // A retake needs the last accepted revision without closing this writer:
+    // acquisition can fail and editing must then continue on the old draft.
+    public async Task<NativeCaptureDraft> FlushAsync()
+    {
+        long target;
+        lock (gate) { if (closed || retiring) throw new InvalidOperationException("截图自动保存已结束"); target = submitted; }
+        while (true) {
+            Task wait;
+            lock (gate) {
+                if (latest is not null && persisted >= target) return latest;
+                wait = (changed ??= new(TaskCreationOptions.RunContinuationsAsynchronously)).Task;
+            }
+            if (worker.IsCompleted) { await worker.ConfigureAwait(false); throw new InvalidOperationException("截图自动保存未完成"); }
+            await Task.WhenAny(wait, worker).ConfigureAwait(false);
         }
     }
 
@@ -63,7 +96,7 @@ internal sealed class NativeCaptureAutosave
         lock (gate) {
             if (closed) throw new InvalidOperationException("截图自动保存已结束");
             if (worker.IsFaulted) worker.GetAwaiter().GetResult();
-            if (!updates.Writer.TryWrite(snapshot)) throw new InvalidOperationException("截图自动保存不可用");
+            if (!updates.Writer.TryWrite(new PendingSnapshot(++submitted, snapshot))) throw new InvalidOperationException("截图自动保存不可用");
         }
     }
 

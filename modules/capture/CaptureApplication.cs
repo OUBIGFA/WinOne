@@ -24,7 +24,7 @@ internal sealed class CaptureApplication : ApplicationContext
     private readonly object lifecycle = new();
     private readonly SettingsStore store;
     private readonly CaptureOperations operations;
-    private readonly NativeCaptureHandler? nativeCapture;
+    private readonly NativeCaptureHandlers? native;
     private readonly ConcurrentDictionary<string, Job> jobs = new();
     private readonly ConcurrentQueue<string> completed = new();
     private readonly System.Windows.Forms.Timer idle = new() { Interval = 5000 };
@@ -37,10 +37,10 @@ internal sealed class CaptureApplication : ApplicationContext
     private string? activeNativeJob;
     private (string Draft, long Revision, string Job)? retake;
     public int ExitCode => Volatile.Read(ref exitCode);
-    public CaptureApplication(string pipe, string directory, NativeCaptureHandler? nativeCapture = null, Action<Bitmap>? copyImage = null, NativeUI.NativeHostConfiguration? nativeConfiguration = null)
+    public CaptureApplication(string pipe, string directory, NativeCaptureHandlers? native = null, Action<Bitmap>? copyImage = null, NativeUI.NativeHostConfiguration? nativeConfiguration = null)
     {
         Directory.CreateDirectory(directory);
-        store = new(directory); operations = new(store, directory, copyImage) { NativeConfiguration = nativeConfiguration }; this.nativeCapture = nativeCapture;
+        store = new(directory); operations = new(store, directory, copyImage) { NativeConfiguration = nativeConfiguration }; this.native = native;
         if (nativeConfiguration is not null) nativeConfiguration.BecameIdle += ConfigurationBecameIdle;
         _ = dispatcher.Handle;
         idle.Tick += (_, _) =>
@@ -113,12 +113,14 @@ internal sealed class CaptureApplication : ApplicationContext
             case "capture.start":
             case "capture.unified":
                 var mode = request.Parameters.GetProperty("mode").GetString() ?? "";
-                if (mode is not ("region" or "region-native" or "window" or "fullscreen" or "scroll")) throw new InvalidDataException("不支持的截图方式");
-                if (mode == "scroll" && request.Method == "capture.unified") return StartJobAsync(id => operations.CaptureScrollingAsync(id, stopping.Token, language));
-                if (request.Method == "capture.unified" && nativeCapture is not null)
+                if (mode is not ("region" or "region-native" or "window" or "fullscreen" or "scroll" or "ocr" or "translate")) throw new InvalidDataException("不支持的截图方式");
+                if (mode == "scroll" && request.Method == "capture.unified")
+                    return native?.Scrolling is { } scrolling
+                        ? StartNativeJobAsync(id => scrolling(store, operations, id, language, stopping.Token))
+                        : StartJobAsync(id => operations.CaptureScrollingAsync(id, stopping.Token, language));
+                if (request.Method == "capture.unified" && native?.Capture is { } capture)
                     return StartNativeJob(() => {
-                        if (operations.GetDraft() is not null) throw new InvalidOperationException("请先完成或放弃当前截图草稿");
-                        return nativeCapture(store, operations, mode == "region-native" ? "region" : mode, language, stopping.Token);
+                        return capture(store, operations, mode == "region-native" ? "region" : mode, language, stopping.Token);
                     });
                 return StartJob(() => operations.Capture(mode, stopping.Token, request.Method == "capture.unified", language));
             case "scroll.stop":
@@ -131,6 +133,14 @@ internal sealed class CaptureApplication : ApplicationContext
                 if (string.IsNullOrEmpty(expectedId)) throw new InvalidDataException("缺少截图草稿标识");
                 return StartScrollRetake(expectedId, request.Parameters.GetProperty("revision").GetInt64(), language);
             case "draft.get": return new { draft = operations.GetDraft(expectedId) };
+            case "draft.resume":
+                if (expectedId is null || !Guid.TryParseExact(expectedId, "N", out var draftGuid) || draftGuid.ToString("N") != expectedId)
+                    throw new InvalidDataException("截图草稿标识无效");
+                if (native?.Resume is not { } resume || native.DraftMatches is not { } matches) throw new InvalidOperationException("原生草稿恢复不可用");
+                // Validate before activation: a stale launch must not focus or
+                // replace an unrelated capture already being edited.
+                if (!matches(operations,expectedId)) throw new InvalidOperationException("截图草稿已变化，请重新加载");
+                return StartNativeJob(() => resume(store, operations, expectedId, language, stopping.Token));
             case "draft.confirm":
                 if (string.IsNullOrEmpty(expectedId)) throw new InvalidDataException("缺少截图草稿标识");
                 var confirmRevision = request.Parameters.GetProperty("revision").GetInt64();
@@ -174,7 +184,13 @@ internal sealed class CaptureApplication : ApplicationContext
                 if (string.IsNullOrEmpty(expectedId)) throw new InvalidDataException("缺少截图草稿标识");
                 var actionRevision = request.Parameters.GetProperty("revision").GetInt64();
                 return StartJob(() => request.Method == "draft.copy" ? operations.CopyDraft(expectedId, actionRevision) : operations.PinDraft(expectedId, actionRevision, language));
-            case "edit.last": return StartJob(() => operations.EditLast(stopping.Token, expectedId));
+            case "edit.last":
+                if (native?.EditLast is { } editLast) {
+                    if (string.IsNullOrEmpty(expectedId)) throw new InvalidDataException("缺少待编辑图像标识");
+                    if (operations.Last?.Id != expectedId) throw new InvalidOperationException("截图已变化，请刷新后重试");
+                    return StartNativeJob(() => editLast(store, operations, expectedId, language, stopping.Token));
+                }
+                return StartJob(() => operations.EditLast(stopping.Token, expectedId));
             case "copy.last": return StartJob(() => operations.CopyLast(expectedId));
             case "save.last":
                 var destination = request.Parameters.GetProperty("path").GetString() ?? throw new InvalidDataException("保存位置为空");
@@ -229,9 +245,13 @@ internal sealed class CaptureApplication : ApplicationContext
         }));
         return job;
     }
-    private Job StartNativeJob(Func<object> action)
+    private Job StartNativeJob(Func<Task<object>> action)
     {
-        lock (lifecycle) { return ActivateCurrentNative() ?? StartJobAsync(_ => Task.FromResult(action()), native: true); }
+        return StartNativeJobAsync(_ => action());
+    }
+    private Job StartNativeJobAsync(Func<string, Task<object>> action)
+    {
+        lock (lifecycle) { return ActivateCurrentNative() ?? StartJobAsync(action, native: true); }
     }
     private Job StartJob(Func<object> action) => StartJobAsync(_ => Task.FromResult(action()));
     private Job StartJobAsync(Func<string, Task<object>> action, bool native = false)
@@ -254,6 +274,7 @@ internal sealed class CaptureApplication : ApplicationContext
                 {
                     stopping.Token.ThrowIfCancellationRequested();
                     using var interactive = new InteractiveWorkScope();
+                    if (native) operations.NativeJobId = job.Id;
                     finished = job with { State = "completed", Result = await action(job.Id) };
                 }
                 catch (OperationCanceledException) { finished = job with { State = "cancelled" }; }
@@ -264,6 +285,7 @@ internal sealed class CaptureApplication : ApplicationContext
                     lock (lifecycle)
                     {
                         activity = Environment.TickCount64; busy = 0; jobs[job.Id] = finished;
+                        if (operations.NativeJobId == job.Id) operations.NativeJobId = null;
                         if (activeNativeJob == job.Id) activeNativeJob = null;
                     }
                     completed.Enqueue(job.Id);

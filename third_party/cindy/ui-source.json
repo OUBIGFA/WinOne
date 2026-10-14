@@ -1,0 +1,156 @@
+{
+  "files": [
+    {
+      "source": "apps/desktop/src/renderer/lib/composerListContinuation.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/composerListContinuation.ts",
+      "sourceSHA256": "09543d2f277ccfb6e97319419bc15202fdfb5d02f1e8440be0ec567531068952"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/dropdown-menu-highlight.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/dropdown-menu-highlight.ts",
+      "sourceSHA256": "fe85b18e8ec96d75f34d0b5eb23e3119cc0ad159b185b4f3564ad3f2908f347b"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/morph-popover.tsx",
+      "file": "apps/desktop/frontend/src/features/cindy/morph-popover.tsx",
+      "sourceSHA256": "fcb387782fc60225e2501d43bd8ff01161b3770c621abf1a67fe216bf9f014fc"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/menu-row.tsx",
+      "file": "apps/desktop/frontend/src/features/cindy/menu-row.tsx",
+      "sourceSHA256": "a1986c03deca14923a1d9ab46a03dad548a8f3e2c0701fdecdb1eefe7e7a6dd4"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/new-chat/ListComposerTextarea.tsx",
+      "file": "apps/desktop/frontend/src/features/cindy/ListComposerTextarea.tsx",
+      "sourceSHA256": "791d9545109049369c8a5962b423aba3de39acab571742d820980a9d1f305446"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/new-chat/PermissionSelector.tsx",
+      "file": "apps/desktop/frontend/src/features/cindy/PermissionSelector.tsx",
+      "sourceSHA256": "06c95567464113ce149ae0234ab6db9dacb1a266f13b706163f3652eafa4b528"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/new-chat/SendButton.tsx",
+      "file": "apps/desktop/frontend/src/features/cindy/SendButton.tsx",
+      "sourceSHA256": "d8b187da454f5de3e2e8d9f04deec59ed87e48623b8932ded7ab402969959358"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/composerListTextarea.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/composerListTextarea.ts",
+      "sourceSHA256": "f4464a03c4dc9a5b122c96b42973f0b31f6ad96a5e06a25fcff64cb2436f63e5"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/activityRowChrome.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/activityRowChrome.ts",
+      "sourceSHA256": "b15740a58a0b32738519f2945a38d13420ff64ba2d04d9c6fc07a81f13cd3d4a"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/ThinkingText.tsx",
+      "file": "apps/desktop/frontend/src/features/cindy/ThinkingText.tsx",
+      "sourceSHA256": "43a5960976fe6d0307631d46d04ecae35acbb145788d69afbb364cf107c4f0bf"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/collapse.tsx",
+      "file": "apps/desktop/frontend/src/features/cindy/collapse.tsx",
+      "sourceSHA256": "2f6172ce23ce87abcc2e23a78f4f1e5304b38fcaf822987aeb806e36bc15257c"
+    },
+    {
+      "source": "packages/maker-shared/src/expandedBlockMemory.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/expandedBlockMemory.ts",
+      "sourceSHA256": "3d0d28242c9301c4a3e7c7088881444040cfb35cebc5ea098e3cf6b150d9da05"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/chatChrome.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/chatChrome.ts",
+      "sourceSHA256": "3b24488d617b6d10229c5a0c5e28b16b15d144558b85ddef62edda05df095c00"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/ThinkingCard.tsx",
+      "file": "apps/desktop/frontend/src/features/cindy/ThinkingCard.tsx",
+      "sourceSHA256": "872e091e4d8174ded19f71bac58836a30682abc86a3d57f13c8017ec4304f1eb"
+    },
+    {
+      "source": "packages/maker-shared/src/thinkingText.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/thinking-text.ts",
+      "sourceSHA256": "852a2ef96387448e0ba5f34a7644a9cd2057a5ff777b6951cdc5b06f0df259e4"
+    },
+    {
+      "source": "apps/desktop/src/renderer/hooks/useExpandedBlockMemory.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/useExpandedBlockMemory.ts",
+      "sourceSHA256": "bae55fc9f6d0affe3922a0479917ca2f0bd260dc0e9a9ae1481a9c58d1900138"
+    },
+    {
+      "source": "apps/desktop/src/renderer/hooks/useReducedMotion.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/useReducedMotion.ts",
+      "sourceSHA256": "965220bcd957d7d114075c18e6683b7c3aa2f52f2828ae2914d801ff44018c1f"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/web-browser/BrowserChrome.tsx",
+      "file": "apps/desktop/frontend/src/features/cindy/browser/BrowserChrome.tsx",
+      "sourceSHA256": "b09f20378683461b42141eca83187f644db0d161087397e9de97f5a3c2c4bd4e"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/web-browser/BrowserCommentPopover.tsx",
+      "file": "apps/desktop/frontend/src/features/cindy/browser/BrowserCommentPopover.tsx",
+      "sourceSHA256": "ed1c0e9abcbc75f270d0280bc6d3121e25ad0354453c150d091ea617a5e6e61a"
+    },
+    {
+      "source": "apps/desktop/src/shared/browserComment.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/browser/browserComment.ts",
+      "sourceSHA256": "84d1b7a21b8ee5bc72f49f7fdfc2b29c19e68829b888eadc1606b06c561ca5a4"
+    },
+    {
+      "source": "apps/desktop/src/preload/browserCommentPreload.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/browser/browserCommentPreload.ts",
+      "sourceSHA256": "1ca1de1f781b360cc020c469b3948f46b45e539345398a2960c1d944de50f370"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/web-browser/lib/parseOmnibox.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/browser/parseOmnibox.ts",
+      "sourceSHA256": "10064ebf4673622ca3d68184e4b7cfea2b1bce9d5cbef89238f9ae4ca7cf277a"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/web-browser/browserCommentEditorDraft.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/browser/browserCommentEditorDraft.ts",
+      "sourceSHA256": "2c64577e2bcb89492bcb723c35b315816b020fcd1df23b79bc279b426d9a15d2"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/browserComments.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/browser/browserComments.ts",
+      "sourceSHA256": "58981c7a3dd72bfb492789e13386ba4622cc1534ae35e3d2182a85a90b791575"
+    },
+    {
+      "source": "apps/desktop/src/shared/gitReviewWire.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/review/gitReviewWire.ts",
+      "sourceSHA256": "29f9958c4d102ccd05dffcb4c3729f7020a3f593e05113ae263b6bb509f1d6d7"
+    },
+    {
+      "source": "apps/desktop/src/main/git-review/diffParser.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/review/diffParser.ts",
+      "sourceSHA256": "9a23ef1422c4f7043a17d085a8caef68643781fe25ce9b09f9c5329f8c7427f7"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/DiffViewer/diffRows.ts",
+      "file": "apps/desktop/frontend/src/features/cindy/review/diffRows.ts",
+      "sourceSHA256": "f02ad91c033663f14362d6497e844f3e689b06a71714c354c135a3e44ff35cae"
+    }
+  ],
+  "adaptation": "Imports use WinOne translation, theme and capabilities adapters. PermissionSelector retains the composer MorphPopover branch; the unused settings-field branch is omitted. Native controls opt out of legacy WinOne styles.",
+  "commit": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+  "repository": "https://github.com/makecindy/cindy",
+  "processAdaptation": {
+    "file": "apps/desktop/frontend/src/features/cindy/WorkProcess.tsx",
+    "sources": [
+      {
+        "source": "apps/desktop/src/renderer/components/chat/WorkGroupBlock.tsx",
+        "sourceSHA256": "90a4e13f91c5fa490f6c2aec82c43d21c551b3727e864f30156849d65c29efa9"
+      },
+      {
+        "source": "apps/desktop/src/renderer/components/chat/AgentActionsBlock.tsx",
+        "sourceSHA256": "25c35694cc0b915706d2818c53319a941429fb2ed54bdf54972a09357941a3f6"
+      }
+    ],
+    "scope": "Use Cindy WorkGroupBlock and its unchanged shared work-run/activity projection, preserving live latest-five activity and separate completed inner work segments. WinOne adapts Pi data and translations; expanded work uses the transcript scroll with a fixed collapse control. Detailed sources are in work-process-source.json."
+  }
+}

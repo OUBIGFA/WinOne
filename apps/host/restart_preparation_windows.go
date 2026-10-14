@@ -265,10 +265,24 @@ func (r *restartPreparation) take(token string) (func(), error) {
 func (r *restartPreparation) handle(request host.Request) host.Response {
 	var result restartPreparationJob
 	var err error
-	if request.PeerPID == 0 || r.authorize == nil {
+	// The Rust elevated launcher runs the shared handshake in WinOne.Host.exe.
+	// Validate that role with the helper policy; it must never inherit the
+	// desktop owner's prepare/commit/cancel capabilities.
+	authorize := r.authorize
+	if request.Method == "restart.bootstrap" {
+		authorize = r.authorizeHelper
+	} else if request.Method == "restart.status" || request.Method == "restart.acknowledge" {
+		r.mu.Lock()
+		helper := request.PeerPID != 0 && request.PeerPID == r.current.HelperPID
+		r.mu.Unlock()
+		if helper {
+			authorize = r.authorizeHelper
+		}
+	}
+	if request.PeerPID == 0 || authorize == nil {
 		err = errors.New("无法确认重启请求来源")
 	} else {
-		err = r.authorize(request.PeerPID)
+		err = authorize(request.PeerPID)
 	}
 	if err != nil {
 		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "restart_identity", Message: err.Error()}}

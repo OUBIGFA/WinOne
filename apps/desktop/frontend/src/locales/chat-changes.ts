@@ -1,0 +1,4 @@
+export const chatChangesMessages={
+ zh:{editRestoreFiles:'同时撤销此轮文件修改',editKeepFiles:'重新发送将保留当前文件内容。',turnUndo:'撤销本轮修改',turnReapply:'重新应用',turnConflict:'文件在本轮后已被修改。请先核对当前内容。',turnCapturePartial:'部分文件没有完整的修改前后记录，无法撤销整轮修改。',turnFilesChanged:'修改了 {{count}} 个文件',turnReview:'本轮文件改动',editMessage:'编辑消息',editResend:'保存并重新发送'},
+ en:{editRestoreFiles:'Also undo this turn’s file changes',editKeepFiles:'Resending keeps the current file contents.',turnUndo:'Undo this turn',turnReapply:'Reapply',turnConflict:'Files changed after this turn. Review their current contents first.',turnCapturePartial:'Some files have no complete before/after record. This turn cannot be undone.',turnFilesChanged:'{{count}} files changed',turnReview:'Files changed in this turn',editMessage:'Edit message',editResend:'Save and resend'},
+};

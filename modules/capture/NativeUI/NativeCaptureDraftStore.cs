@@ -15,7 +15,9 @@ internal sealed record NativeCaptureDraft(string Id, long Revision, string Mode,
 // bitmap access; they do not belong in pointer, paint or toolbar refresh events.
 internal sealed partial class NativeCaptureDraftStore
 {
-    private sealed record Envelope(int Version, string Id, long Revision, string Mode, CaptureSettings Settings, CapturePlacement? Placement, int Width, int Height, string ImageHash, JsonElement Document, NativeTextInputState? Text = null, string? Notice = null);
+    private const int MaximumMetadataBytes = 2 * 1024 * 1024;
+    private sealed record Envelope(int Version, string Id, long Revision, string Mode, CaptureSettings Settings, CapturePlacement? Placement, int Width, int Height, string ImageHash, JsonElement Document, NativeTextInputState? Text = null, string? Notice = null,
+        [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] string? LegacySource = null);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { PropertyNameCaseInsensitive = false, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow, MaxDepth = 32 };
     private readonly string root, metadata, mutexName;
     private readonly Action<Image, string> writeImage;
@@ -54,12 +56,13 @@ internal sealed partial class NativeCaptureDraftStore
         try { stream = new FileStream(recordPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete); }
         catch (FileNotFoundException) { return null; } catch (DirectoryNotFoundException) { return null; }
         using (stream) {
-            if (stream.Length > 1024 * 1024) throw new InvalidDataException("原生草稿元数据过大");
+            if (stream.Length > MaximumMetadataBytes) throw new InvalidDataException("原生草稿元数据过大");
             using var parsed = JsonDocument.Parse(stream, new JsonDocumentOptions { MaxDepth = 32 });
             NativeCaptureDocumentCodec.CheckNames(parsed.RootElement);
             var record = parsed.RootElement.Deserialize<Envelope>(Json) ?? throw new InvalidDataException("原生草稿元数据为空");
             _ = ImagePath(record.Id);
             if (record.Version != 1 || record.Revision < 0) throw new InvalidDataException("原生草稿版本无效");
+            ValidateLegacySource(record.LegacySource);
             // Retirement is authoritative even when image cleanup was blocked.
             // Do not inspect a retired image or offer it for recovery again.
             if (!includeRetired && ReadRetired().Any(entry => entry.Id == record.Id)) return null;
@@ -130,7 +133,7 @@ internal sealed partial class NativeCaptureDraftStore
     private void Write(Envelope record)
     {
         var bytes = JsonSerializer.SerializeToUtf8Bytes(record, Json);
-        if (bytes.Length > 1024 * 1024) throw new InvalidDataException("原生草稿元数据过大");
+        if (bytes.Length > MaximumMetadataBytes) throw new InvalidDataException("原生草稿元数据过大");
         SettingsStore.AtomicWrite(metadata, bytes);
     }
     public Bitmap LoadImage(string id, long revision)

@@ -17,6 +17,7 @@ type Lazy struct {
 	ctx                       context.Context
 	id, name, exe, pipe, data string
 	process                   *Process
+	everStarted               bool
 	closing                   bool
 	inflight                  sync.WaitGroup
 	privilege                 PrivilegeState
@@ -79,6 +80,11 @@ func (l *Lazy) Handle(request host.Request) host.Response {
 			l.process = start(l.ctx, l.id, l.name, l.exe, l.pipe, l.data, l.autorun, false, l.launchArgs...)
 		}
 		l.autorun = false
+		// Creation is immutable once start returns. Keep the history even if a
+		// later launch fails; absence of a current process is not cleanup proof.
+		if l.process.pid != 0 {
+			l.everStarted = true
+		}
 	}
 	p := l.process
 	l.inflight.Add(1)
@@ -88,6 +94,16 @@ func (l *Lazy) Handle(request host.Request) host.Response {
 	return p.Handle(request)
 }
 func (l *Lazy) Close() error {
+	return l.close(false)
+}
+
+func (l *Lazy) CloseConfirmed() error { return l.close(true) }
+
+// HasStarted reports whether any worker process was created by this instance.
+// Coordinators may distinguish a rejected executable from an unconfirmed exit.
+func (l *Lazy) HasStarted() bool { l.mu.Lock(); defer l.mu.Unlock(); return l.everStarted }
+
+func (l *Lazy) close(requireAcknowledgement bool) error {
 	l.mu.Lock()
 	if l.privilege.State == "running" {
 		l.mu.Unlock()
@@ -98,9 +114,17 @@ func (l *Lazy) Close() error {
 	l.mu.Unlock()
 	l.inflight.Wait()
 	if p == nil {
+		if requireAcknowledgement {
+			return errors.New("模块未启动，无法确认资源恢复")
+		}
 		return nil
 	}
-	err := p.Close()
+	var err error
+	if requireAcknowledgement {
+		err = p.CloseConfirmed()
+	} else {
+		err = p.Close()
+	}
 	if err != nil {
 		l.mu.Lock()
 		l.closing = false

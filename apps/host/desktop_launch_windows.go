@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"golang.org/x/sys/windows"
 	"os"
 	"os/exec"
 	"syscall"
@@ -43,5 +44,9 @@ func startDesktop(executable, pipe, directory, draftID string) (*exec.Cmd, error
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
+	// A tray click belongs to Host; grant its newly started desktop process
+	// permission to activate itself (and an already-open singleton window).
+	// https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-allowsetforegroundwindow
+	windows.NewLazySystemDLL("user32.dll").NewProc("AllowSetForegroundWindow").Call(uintptr(cmd.Process.Pid))
 	return cmd, nil
 }

@@ -2,11 +2,9 @@ namespace WinOne.Capture.NativeUI;
 
 // Native checked menu items stay open for multiple selections.
 // The draft remains local until Host confirms the save.
-internal sealed class NativeToolbarCustomization : ToolStripMenuItem
+internal sealed class NativeToolbarCustomization : ToolStripDropDownMenu
 {
     private readonly List<ToolStripMenuItem> choices = new();
-    private sealed class ChoiceMenu : ToolStripDropDownMenu
-    {
         protected override void OnItemClicked(ToolStripItemClickedEventArgs e)
         {
             // ToolStripDropDown closes leaf items in OnItemClicked. Suspend
@@ -16,28 +14,27 @@ internal sealed class NativeToolbarCustomization : ToolStripMenuItem
             try { base.OnItemClicked(e); }
             finally { AutoClose = previous; }
         }
-    }
     private bool defaults;
     private bool loading;
     public event Action<string[]?>? Submitted;
 
     public NativeToolbarCustomization(IEnumerable<(string Key, string Label)> choices, string[]? saved, bool english)
-        : base(english ? "Customize toolbar" : "自定义工具栏")
     {
         Name = "customize";
-        DropDown = new ChoiceMenu { ShowImageMargin = false, ShowCheckMargin = true };
-        DropDownItems.Add(new ToolStripLabel(english ? "Show on toolbar" : "在工具栏显示"));
+        Text = english ? "Customize toolbar" : "自定义工具栏";
+        ShowImageMargin = false; ShowCheckMargin = true;
+        Items.Add(new ToolStripLabel(Text));
         foreach (var choice in choices) {
             var item = new ToolStripMenuItem(choice.Label) { Name = "toolbar-tool-" + choice.Key, Tag = choice.Key, CheckOnClick = true };
             item.CheckedChanged += (_, _) => { if (!loading) defaults = false; };
-            this.choices.Add(item); DropDownItems.Add(item);
+            this.choices.Add(item); Items.Add(item);
         }
-        DropDownItems.Add(new ToolStripSeparator());
+        Items.Add(new ToolStripSeparator());
         var save = new ToolStripMenuItem(english ? "Save" : "保存") { Name = "toolbar-save" };
         var reset = new ToolStripMenuItem(english ? "Restore defaults" : "恢复默认") { Name = "toolbar-reset" };
         save.Click += (_, _) => Submitted?.Invoke(defaults ? null : this.choices.Where(item => item.Checked).Select(item => (string)item.Tag!).ToArray());
         reset.Click += (_, _) => { Confirm(null); Submitted?.Invoke(null); };
-        DropDownItems.Add(save); DropDownItems.Add(reset);
+        Items.Add(save); Items.Add(reset);
         Confirm(saved);
     }
     public void Confirm(string[]? saved)

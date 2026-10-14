@@ -28,6 +28,9 @@ func (s *HostStore) CommitDocument(next Document) (Document, error) {
 	if err := s.RecoveryError(); err != nil {
 		return s.store.Snapshot(), errors.Join(ErrRecoveryRequired, err)
 	}
+	if err := s.checkUnavailableUnchanged(s.store.Snapshot(), next); err != nil {
+		return s.store.Snapshot(), err
+	}
 	prepared, _, err := s.prepareDocument(next)
 	if err != nil {
 		return s.store.Snapshot(), err
@@ -51,6 +54,9 @@ func (s *HostStore) RecoveryError() error {
 // Recover is an explicit retry that keeps the Host readable when native recovery
 // cannot finish during startup. Successful recovery does not advance revisions.
 func (s *HostStore) Recover() error {
+	if err := s.unavailableRecovery(); err != nil {
+		return err
+	}
 	err := s.store.Reapply(s.applyDocument)
 	s.recoveryMu.Lock()
 	s.startupError = err

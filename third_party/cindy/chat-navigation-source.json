@@ -1,0 +1,8 @@
+{
+    "commit":  "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+    "repository":  "https://github.com/makecindy/cindy",
+    "source":  "apps/desktop/src/renderer/features/cc-agent/sidebar/SectionCollapse.tsx",
+    "adaptation":  "Only cn import points to WinOne adapter. ChatInput toolbar positions follow lines 9093–9435 (attachments and permissions left, model and send right); projects/dialogue headings retain one-click collapse controls.",
+    "sourceSHA256":  "290200be95022f170c19733b011b1eba986a79abb462604953f73f861db5229e",
+    "target":  "apps/desktop/frontend/src/features/cindy/SectionCollapse.tsx"
+}

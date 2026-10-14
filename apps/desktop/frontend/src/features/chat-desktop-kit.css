@@ -1,0 +1,14 @@
+/* Host sizing and semantic token adapters only. The package paints controls,
+   Markdown, code blocks and project context from its shipped stylesheet. */
+.chat-desktop-surface{height:100%;min-width:0;min-height:0}
+/* Preserve the upstream thread spacing. The host owns reading width; use the
+   user's wider content column for both answers and the composer. */
+.client-thread{width:100%;max-width:calc(var(--chat-content-width,960px) + 32px);margin:0 auto;padding:36px 16px 30px;line-height:24px}
+.client-thread--chat{font-size:16px;line-height:26px}
+.chat-transcript-end-space{height:230px;pointer-events:none}
+.chat-message-source{margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* The upstream change-summary surface opens real Host changes. Counts are
+   omitted until the Host can report a verified per-turn file snapshot. */
+.chat-change-summary{display:flex;align-items:center;gap:16px;padding:14px;background:var(--desktop-color-surface);border-radius:12px;min-width:0}
+.chat-change-summary>.desktop-button{margin-left:auto;white-space:normal;min-width:0}
+.chat-change-summary>svg{flex:none}

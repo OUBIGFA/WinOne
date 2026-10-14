@@ -1,4 +1,5 @@
 import {i18n,setApplicationLanguage} from "../src/i18n";
+import {SettingsFixtureShell} from "./settings-fixture-shell";
 // This fixture uses the real panel components with synthetic, in-memory data.
 import {createRoot} from "react-dom/client";
 import {ModulePanel} from "../src/components/module-panel";
@@ -24,5 +25,5 @@ window.go={main:{App:{
  ReadModuleLogs:async()=>({folderAvailable:false,entries:[{name:"process",available:false,truncated:false,text:""}]}),
  OpenModuleLogFolder:async()=>{},
 } as unknown as NativeApp}};
-void setApplicationLanguage(new URLSearchParams(location.search).get("language")||"zh-CN");
-createRoot(document.getElementById("root")!).render(<main className="mx-auto max-w-4xl p-8"><header><h1>{i18n.t("nav.always-on-top")}</h1></header><ModulePanel moduleId="always-on-top" onSaved={()=>{}} onActivity={()=>{}}><AlwaysOnTopPage/></ModulePanel></main>);
+await setApplicationLanguage(new URLSearchParams(location.search).get("language")||"zh-CN");
+createRoot(document.getElementById("root")!).render(<SettingsFixtureShell page="always-on-top"><header><h1>{i18n.t("nav.always-on-top")}</h1></header><ModulePanel moduleId="always-on-top" onSaved={()=>{}} onActivity={()=>{}}><AlwaysOnTopPage/></ModulePanel></SettingsFixtureShell>);

@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/liuminxin45/ChatGPT-Desktop-UI",
+  "revision": "b5ea2bd312e9e9c007b84859d550314ddae4acb5",
+  "package": "chatgpt-desktop-kit@0.6.0",
+  "license": "MIT",
+  "source": "examples/demo/ClientPane.tsx#BrowserPanel",
+  "styles": "examples/demo/demo.css",
+  "adaptation": "Original BrowserPanel chrome, icons, capsule tabs, address bar, tool grid and menus; controlled tab state, host callbacks and localization. Resource entry retained. No prior WinOne pane chrome."
+}

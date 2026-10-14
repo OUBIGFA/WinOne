@@ -5,9 +5,15 @@ export interface Settings {
   revision: number;
   theme: "system" | "light" | "dark";
   language?: "system" | "zh-CN" | "en-US";
+  defaultPage?: string;
+  openShortcut?: string;
   captureShortcut?: string;
+  ocrShortcut?: string;
+  translateShortcut?: string;
+  selectionShortcut?: string;
+  quickAssistantShortcut?: string;
   pinShortcut?: string;
-  startup?: {runAtLogon:boolean;startMinimized:boolean;preferAdministrator?:boolean};
+  startup?: {runAtLogon:boolean;startMinimized:boolean;preferAdministrator?:boolean;keepUIRunning?:boolean};
 }
 export interface Module {
   id: string;
@@ -65,13 +71,24 @@ interface NativeApp {
   PickWinTrayConfig(): Promise<string>;
   Capture(method: string, payload: string): Promise<string>;
   AlwaysOnTop(method: string, payload: string): Promise<string>;
+  Selection(method: string, payload: string): Promise<string>;
+  QuickAssistant(method: string, payload: string): Promise<string>;
+  Chat(method: string, payload: string): Promise<string>;
+  ChatBrowser(method: string, payload: string): Promise<string>;
   PickDirectory(): Promise<string>;
+  PickChatFiles(): Promise<string[]>;
+  PickFile(): Promise<string>;
+  PickDirectories():Promise<string[]>;
+  DirectoryLinks(method:string,payload:string):Promise<string>;
+  Stroke(method:string,payload:string):Promise<string>;
+  SetFileDropTarget?(enabled:boolean):Promise<void>;
   Reveal(): Promise<void>;
   Shortcuts(): Promise<string>;
   Residency(): Promise<string>;
   Modules(method: string, payload: string): Promise<string>;
   ExportProfile(): Promise<string>;
   PickProfile(): Promise<string>;
+  PickModulePackage(): Promise<string>;
   PickProfileLocation(kind: string): Promise<string>;
   Profiles(method: string, payload: string): Promise<string>;
   CaptureLaunch(): Promise<CaptureLaunchRequest|null>;
@@ -124,6 +141,7 @@ export const settingsClosePort={
   cancel:()=>native().CancelSettingsClose?.()??Promise.resolve(),
   approve:()=>{const approve=native().ApproveSettingsClose;if(!approve)throw Error("Window close bridge is unavailable");return approve();},
   subscribe:(listener:()=>void)=>window.runtime?.EventsOn("winone:settings-close",listener)??(()=>{}),
+  subscribeDiscard:(listener:()=>void)=>window.runtime?.EventsOn("winone:settings-discarded",listener)??(()=>{}),
 };
 export const shortcutRecordingPort={begin:()=>native().BeginShortcutRecording(),end:(token:string)=>native().EndShortcutRecording(token)};
 export const settingsNavigationPort={
@@ -136,6 +154,7 @@ export const openCaptureWindow=(id:string)=>native().OpenCaptureWindow(id);
 export const revealCaptureEditor=()=>native().RevealCaptureEditor();
 export const captureOpeningPort={...captureSurfacePort,setEditing:(active:boolean)=>native().SetCaptureEditing(active),abortOpening:()=>native().AbortCaptureOpening(),revealEditor:revealCaptureEditor};
 export const openRepository=()=>native().OpenRepository();
+export const pickModulePackage=()=>native().PickModulePackage();
 export const captureLaunchPort:CaptureLaunchPort={
   read:()=>native().CaptureLaunch(),
   acknowledge:id=>native().AcknowledgeCaptureLaunch(id),
@@ -156,6 +175,15 @@ export async function getSnapshot(): Promise<Snapshot> {
 }
 export async function saveSettings(value: Settings): Promise<Settings> {
   return native().SaveSettings(value);
+}
+
+// Immediate controls change only the field the user just selected. Other
+// pages share the Host revision, so read it at click time and retain CAS:
+// an intervening write is reported, never retried as a blind overwrite.
+export async function savePreferenceChange(patch:Partial<Pick<Settings,"theme"|"language"|"defaultPage">>&{startup?:Partial<NonNullable<Settings["startup"]>>}):Promise<Settings> {
+  const {settings}=await getSnapshot();
+  const {startup,...appearance}=patch;
+  return saveSettings({...settings,...appearance,...(startup?{startup:{runAtLogon:false,startMinimized:true,...settings.startup,...startup}}:{})});
 }
 
 export async function wintrayCall<T>(
@@ -191,6 +219,13 @@ export async function captureCall<T>(
 export async function pickDirectory(): Promise<string> {
   return native().PickDirectory();
 }
+export async function pickChatFiles():Promise<string[]>{return await native().PickChatFiles()??[];}
+export async function pickFile():Promise<string>{return native().PickFile();}
+export async function pickFiles():Promise<string[]>{return native().PickChatFiles();}
+export async function pickDirectories():Promise<string[]>{return native().PickDirectories();}
+export async function directoryLinksCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().DirectoryLinks(method,JSON.stringify(params))) as T;}
+export async function strokeCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().Stroke(method,JSON.stringify(params))) as T;}
+export async function setFileDropTarget(enabled:boolean):Promise<void>{await native().SetFileDropTarget?.(enabled);}
 export async function reveal(): Promise<void> {
   return native().Reveal();
 }
@@ -198,6 +233,18 @@ export async function reveal(): Promise<void> {
 export async function alwaysOnTopCall<T>(method: string, params: unknown = null): Promise<T> {
   return JSON.parse(await native().AlwaysOnTop(method, JSON.stringify(params))) as T;
 }
+export async function quickAssistantCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().QuickAssistant(method,JSON.stringify(params))) as T;}
+export async function chatCall<T>(method:string,params:unknown={}):Promise<T>{return JSON.parse(await native().Chat(method,JSON.stringify(params))) as T;}
+export async function chatBrowserCall<T>(method:string,params:unknown={}):Promise<T>{return JSON.parse(await native().ChatBrowser(method,JSON.stringify(params))) as T;}
+export type ChatExportOptions={password?:string;excludeMedia?:boolean};
+export type ChatExportOutcome=
+ |{status:"canceled"}
+ |{status:"oversize";totalBytes:number;mediaBytes:number;limitBytes:number;messagesBytes?:number;transcriptBytes?:number}
+ |{status:"ok";filePath:string;fidelity:"full"|"partial"|"db-only";unpackedBytes:number;totalBytes:number;mediaBytes:number;fileBytes:number;mediaMissing:number;mediaDropped:number;mediaExcluded:number;missingTranscripts:string[];orcaWorkers:number;messageCount:number};
+// Only the native save dialog supplies the destination. Session data and file
+// bytes stay between the Host and its isolated exporter, never in this bridge.
+export async function exportChat(id:string,options:ChatExportOptions={}):Promise<ChatExportOutcome>{return chatCall<ChatExportOutcome>("export",{id,...options});}
+export async function selectionCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().Selection(method,JSON.stringify(params))) as T;}
 export interface ShortcutStatus {
   actionErrors?:Record<string,string>;
   bindings: { id: string; shortcut: string; registered: boolean; error?: string }[];

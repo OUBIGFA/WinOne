@@ -11,24 +11,25 @@ import (
 	"golang.org/x/sys/windows"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
+	"winone/internal/diagnostics"
 	"winone/internal/host"
 	"winone/internal/transport"
 )
 
 type Process struct {
-	mu       sync.Mutex
-	state    host.Module
-	pipe     string
-	cmd      *exec.Cmd
-	pid      uint32
-	verified bool
-	exited   chan struct{}
+	mu        sync.Mutex
+	state     host.Module
+	pipe      string
+	cmd       *exec.Cmd
+	pid       uint32
+	verified  bool
+	exited    chan struct{}
+	exitError error
 }
 
 // Start waits for a real protocol response before reporting readiness.
@@ -55,7 +56,7 @@ func start(ctx context.Context, id, name, exe, pipe, dataDir string, autorun, el
 	if err := os.MkdirAll(dataDir, 0700); err != nil {
 		return fail(err)
 	}
-	log, err := os.OpenFile(filepath.Join(dataDir, "worker.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+	log, err := diagnostics.NewModuleWriter(dataDir, id)
 	if err != nil {
 		return fail(err)
 	}
@@ -86,9 +87,11 @@ func start(ctx context.Context, id, name, exe, pipe, dataDir string, autorun, el
 	}
 	go func() {
 		err := wait()
-		log.Close()
+		exitError := err
+		err = errors.Join(err, log.Close())
 		p.mu.Lock()
 		defer p.mu.Unlock()
+		p.exitError = exitError
 		p.state.State = "stopped"
 		p.state.Detail = "已停止"
 		if err != nil {
@@ -151,7 +154,16 @@ func (p *Process) GrantForeground() {
 func (p *Process) Handle(request host.Request) host.Response {
 	p.mu.Lock()
 	verified := p.verified
+	pid, detail := p.pid, p.state.Detail
 	p.mu.Unlock()
+	// No child exists after a failed CreateProcess or a cancelled launch.
+	// Probing its pipe would hide the actual startup error with file-not-found.
+	if !verified && pid == 0 {
+		if detail == "" {
+			detail = "组件未启动"
+		}
+		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "module_unavailable", Message: detail}}
+	}
 	if !verified {
 		probe, err := transport.Call(context.Background(), p.pipe, host.Request{Version: 1, ID: "verify-process", Method: "snapshot"})
 		if err == nil && probe.Error != nil {
@@ -199,13 +211,27 @@ func (p *Process) acceptIdentity(response host.Response) error {
 
 // Close lets the module restore windows and icons before the Host exits.
 func (p *Process) Close() error {
+	return p.close(false)
+}
+
+// CloseConfirmed is for explicit recovery probes. Unlike an ordinary idle
+// close, an already-ended process cannot prove that native state was restored.
+func (p *Process) CloseConfirmed() error { return p.close(true) }
+
+func (p *Process) close(requireAcknowledgement bool) error {
 	select {
 	case <-p.exited:
+		if requireAcknowledgement {
+			return errors.New("模块在确认资源恢复前已退出")
+		}
 		return nil
 	default:
 	}
 	response := p.Handle(host.Request{Version: 1, ID: "shutdown", Method: "shutdown"})
 	if response.Error != nil {
+		if requireAcknowledgement {
+			return errors.New(response.Error.Message)
+		}
 		select {
 		case <-p.exited:
 			return nil
@@ -215,6 +241,12 @@ func (p *Process) Close() error {
 	}
 	select {
 	case <-p.exited:
+		p.mu.Lock()
+		exitError := p.exitError
+		p.mu.Unlock()
+		if requireAcknowledgement && exitError != nil {
+			return fmt.Errorf("模块确认后异常退出，无法确认恢复完成：%w", exitError)
+		}
 		return nil
 	case <-time.After(10 * time.Second):
 		return fmt.Errorf("%s 尚未完成恢复，请重试退出", p.Status().Name)

@@ -1,7 +1,7 @@
 param([string]$GoExe = 'go', [ValidateSet('startup','always-on-top','administrator','capture-scroll','wintray','all')][string]$Suite = 'all', [string]$AlwaysOnTopExe)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-if (-not $AlwaysOnTopExe) { $AlwaysOnTopExe = Join-Path $root 'dist/build/always-on-top/WinOne.AlwaysOnTop.exe' }
+if (-not $AlwaysOnTopExe) { $AlwaysOnTopExe = Join-Path $root '_temp/build/current/always-on-top/WinOne.AlwaysOnTop.exe' }
 $AlwaysOnTopExe = [IO.Path]::GetFullPath($AlwaysOnTopExe)
 $runDir = Join-Path $root ('_temp/native-checks/' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $runDir -Force | Out-Null

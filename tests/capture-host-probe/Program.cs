@@ -5,6 +5,19 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        Console.OutputEncoding = new System.Text.UTF8Encoding(false);
+        if (args is ["--desktop-activation",var activationOutput]) return DesktopActivationProbe.Run(activationOutput);
+        if (args is ["--native-text-pipeline",var textOutput]) return NativeTextPipelineProbe.Run(textOutput);
+        if (args is ["--native-text-recognition"]) { NativeTextRecognitionTests.Run(); return 0; }
+        if (args is ["--native-scrolling-workflow", var scrollOutput]) { NativeScrollingWorkflowTests.Run(scrollOutput); return 0; }
+        if (args is ["--settings-dialog", var dialogOutput]) return SettingsDialogProbe.Run(dialogOutput);
+        if (args is ["--production-resource-suite", var resourceOutput]) {
+            var count = Environment.GetEnvironmentVariable("WINONE_CAPTURE_RESOURCE_ITERATIONS") is { } value ? int.Parse(value, System.Globalization.CultureInfo.InvariantCulture) : 100;
+            if (count < 1 || count > 300) throw new ArgumentOutOfRangeException(nameof(count), "Resource probe requires 1–300 iterations");
+            return ProductionCaptureProbe.Run(Environment.GetEnvironmentVariable("WINONE_CAPTURE_RESOURCE_EXE") ?? throw new InvalidOperationException("Set WINONE_CAPTURE_RESOURCE_EXE"), resourceOutput, count);
+        }
+        if (args is ["--tray-exit", var exitOutput]) return TrayExitProbe.Run(exitOutput);
+        if (args is ["--module-file-dialog", var owner, var moduleFile] && int.TryParse(owner,out var ownerPid)) return ModuleFileDialogProbe.Run(ownerPid,moduleFile);
         if (args.Length == 2 && args[0] == "--interactive-output") return InteractiveOutputProbe.Run(args[1]);
         if (args is ["--native-pointer-dispatch"]) return NativePointerDispatchTests.Run();
         if (args.Length == 2 && args[0] == "--native-scroll-progress") return NativeScrollProgressTests.Run(args[1]);

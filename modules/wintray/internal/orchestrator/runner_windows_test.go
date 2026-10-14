@@ -4,8 +4,8 @@ package orchestrator
 
 import (
 	"encoding/json"
+	"golang.org/x/sys/windows"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -118,6 +118,28 @@ func TestRunnerHelperProcess(t *testing.T) {
 		return
 	}
 	switch os.Args[4] {
+	case "console":
+		valid := func(kind uint32) bool {
+			handle, err := windows.GetStdHandle(kind)
+			if err != nil {
+				return false
+			}
+			var mode uint32
+			return windows.GetConsoleMode(handle, &mode) == nil
+		}
+		window, _, _ := windows.NewLazySystemDLL("kernel32.dll").NewProc("GetConsoleWindow").Call()
+		visible, _, _ := windows.NewLazySystemDLL("user32.dll").NewProc("IsWindowVisible").Call(window)
+		cwd, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := json.Marshal(map[string]any{"stdin": valid(windows.STD_INPUT_HANDLE), "stdout": valid(windows.STD_OUTPUT_HANDLE), "stderr": valid(windows.STD_ERROR_HANDLE), "window": window != 0, "visible": visible != 0, "cwd": cwd, "environment": os.Getenv("WINTRAY_RUNNER_CONSOLE_VALUE"), "args": os.Args[6:]})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = os.WriteFile(os.Args[5], data, 0600); err != nil {
+			t.Fatal(err)
+		}
 	case "args":
 		data, err := json.Marshal(os.Args[6:])
 		if err != nil {
@@ -150,7 +172,7 @@ func runnerHelperArgs(mode, output string, args ...string) string {
 	return strings.Join(all, " ")
 }
 
-func waitRunnerCommand(t *testing.T, cmd *exec.Cmd) {
+func waitRunnerCommand(t *testing.T, cmd *startedProcess) {
 	t.Helper()
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"winone/internal/catalog"
 	"winone/internal/host"
 	"winone/internal/modules"
 	"winone/internal/transport"
@@ -35,7 +36,10 @@ func healthy(snapshot healthSnapshot, expected bool) (bool, error) {
 	if snapshot.ConfigurationError != "" {
 		return false, errors.New(snapshot.ConfigurationError)
 	}
-	wanted := map[string]bool{"capture": true, "always-on-top": true, "wintray": true}
+	wanted := map[string]bool{}
+	for _, manifest := range catalog.Builtins() {
+		wanted[manifest.ID] = true
+	}
 	if len(snapshot.Modules) != len(wanted) {
 		return false, errors.New("bundled module inventory is incomplete")
 	}

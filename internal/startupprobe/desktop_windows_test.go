@@ -24,6 +24,19 @@ func TestNativeDesktopProbeUnderMaintenance(t *testing.T) {
 	if err = os.WriteFile(executable, data, 0700); err != nil {
 		t.Fatal(err)
 	}
+	// Rust's desktop probe reads the shared catalog through its paired Host's
+	// read-only probe entry. Keep the same bundle boundary as production.
+	companion := os.Getenv("WINONE_HOST_EXE")
+	if companion == "" {
+		companion = filepath.Join(filepath.Dir(source), "WinOne.Host.exe")
+	}
+	if host, readErr := os.ReadFile(companion); readErr == nil {
+		if err = os.WriteFile(filepath.Join(installation, "WinOne.Host.exe"), host, 0700); err != nil {
+			t.Fatal(err)
+		}
+	} else if !os.IsNotExist(readErr) {
+		t.Fatal(readErr)
+	}
 	lease, err := maintenance.AcquireMaintenanceForInstallation(profile, installation)
 	if err != nil {
 		t.Fatal(err)

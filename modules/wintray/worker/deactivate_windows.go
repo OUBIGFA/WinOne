@@ -2,8 +2,6 @@
 
 package worker
 
-import "winone/modules/wintray/internal/config"
-
 // Deactivation preserves user preferences, while returning module-owned startup
 // sources and tray resources. The product's own login trigger belongs to Host.
 func (r *Runtime) startDeactivation() job {
@@ -50,7 +48,7 @@ func (r *Runtime) startResourceRelease(uninstall bool) job {
 				return nil, err
 			}
 			if r.allowSystemStartup {
-				if err := r.tasks.Sync(config.Settings{}, true); err != nil {
+				if err := r.tasks.ReleaseAll(); err != nil {
 					return nil, err
 				}
 			}

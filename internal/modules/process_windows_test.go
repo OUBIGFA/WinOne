@@ -31,3 +31,13 @@ func TestConfigurationRefreshSkipsClosedLazyWorker(t *testing.T) {
 		t.Fatal("closed worker blocked preference persistence", response)
 	}
 }
+
+func TestFailedStartKeepsOriginalCauseInsteadOfProbingAnAbsentWorker(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	process := start(ctx, "example.tool", "Example", "unused.exe", "unused-pipe", t.TempDir(), false, false)
+	reply := process.Handle(host.Request{Version: 1, ID: "failed", Method: "snapshot"})
+	if reply.Error == nil || reply.Error.Code != "module_unavailable" || reply.Error.Message != context.Canceled.Error() {
+		t.Fatal("startup cause was replaced by a pipe error", reply.Error)
+	}
+}

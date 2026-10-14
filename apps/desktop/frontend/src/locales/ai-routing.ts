@@ -1,0 +1,1 @@
+export const aiRoutingMessages={zh:{"routing.title":"路由","routing.enabled":"启用模型路由","routing.hint":"按分组、规则和账号可用状态选择模型。可从模板开始，再编辑组内模型与切换条件。"},en:{"routing.title":"Routing","routing.enabled":"Enable model routing","routing.hint":"Choose models by group, rules and account availability. Start with a template, then edit its models and switching conditions."}};

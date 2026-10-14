@@ -18,7 +18,7 @@ export function CaptureFileName({value,onChange}:{value:string;onChange:(value:s
   }).catch(error=>{if(active)setError(error instanceof Error?error.message:String(error));});},150);
   return()=>{active=false;clearTimeout(timer);};
  },[value,requested,t,attempt]);
- return <div className="space-y-2 py-4">
+ return <div className="settings-stack-compact">
   <Label htmlFor="capture-file-name">{t("capture.fileNameTemplate")}</Label>
   <Input ref={input} id="capture-file-name" value={value} placeholder="WinOne-{timestamp}-OK" aria-describedby={`capture-file-name-hint${error?" capture-file-name-error":""}`} aria-invalid={!!error} onFocus={()=>setRequested(true)} onChange={event=>{setRequested(true);onChange(event.target.value);}}/>
   <p id="capture-file-name-hint" className="text-sm text-muted-foreground">{t("capture.fileNameHint")}</p>

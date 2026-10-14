@@ -9,7 +9,7 @@ export interface ShortcutRecordingPort {begin():Promise<string>;end(token:string
 
 // Native registration is released before accepting keys and restored before
 // committing the draft. Blur, cancellation and unmount all share the same exit.
-export function ShortcutRecorder({id,value,onChange,disabled=false,onRecordingChange,port}:{id:string;value:string;onChange:(value:string)=>void;disabled?:boolean;onRecordingChange?:(recording:boolean)=>void;port:ShortcutRecordingPort}){
+export function ShortcutRecorder({id,value,onChange,disabled=false,onRecordingChange,port,showHint=true}:{id:string;value:string;onChange:(value:string)=>void;disabled?:boolean;onRecordingChange?:(recording:boolean)=>void;port:ShortcutRecordingPort;showHint?:boolean}){
  const {t}=useTranslation();
  const [phase,setPhase]=useState("idle"),[preview,setPreview]=useState(""),[error,setError]=useState("");
  const [notice,setNotice]=useState("");
@@ -61,7 +61,8 @@ export function ShortcutRecorder({id,value,onChange,disabled=false,onRecordingCh
   <div className="flex max-w-lg items-center gap-2"><Input ref={input} id={id} readOnly disabled={disabled} aria-describedby={`${id}-record-help${error?` ${id}-record-error`:""}`} value={phase==="recording"?preview:phase==="preparing"?"":value} placeholder={t(phase==="recording"?"shortcuts.pressKeys":"shortcuts.recordPlaceholder")} onFocus={()=>void start()} onClick={()=>void start()} onBlur={()=>void finish()} onKeyDown={keyDown} onKeyUp={keyUp}/>
    <Button variant="outline" disabled={disabled||!value} onPointerDown={event=>event.preventDefault()} onClick={()=>{clearRequested.current=true;callbacks.current.onChange("");if(pending.current)void finish();}}>{t("shortcuts.clear")}</Button>
   </div>
-  <p id={`${id}-record-help`} className="mt-2 text-sm text-muted-foreground" role="status">{phase==="idle"&&notice?notice:t(phase==="preparing"?"shortcuts.recordPreparing":phase==="recording"?"shortcuts.recordInstructions":"shortcuts.recordHint")}</p>
+  {/* Repeated forms share the idle hint; live recording feedback stays local. */}
+  <p id={`${id}-record-help`} className={!showHint&&phase==="idle"&&!notice?"sr-only":"mt-2 text-sm text-muted-foreground"} role="status">{phase==="idle"&&notice?notice:t(phase==="preparing"?"shortcuts.recordPreparing":phase==="recording"?"shortcuts.recordInstructions":"shortcuts.recordHint")}</p>
   {error&&<InlineError id={`${id}-record-error`}>{error}</InlineError>}
  </div>;
 }

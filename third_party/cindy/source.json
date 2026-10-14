@@ -1,0 +1,27 @@
+{
+    "sourceDirectory":  "packages/maker-core/src/agents/shared",
+    "files":  [
+                  {
+                      "sha256":  "84a359788170a5463567ac4047e2531bb490d95ae600de82e1d0e9e9824ba9dc",
+                      "file":  "auto-review.ts"
+                  },
+                  {
+                      "sha256":  "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+                      "file":  "LICENSE"
+                  },
+                  {
+                      "sha256":  "77ad73b2535cd4011ed8b509aa51d7c745ae5a6f411370d8f94337562c03cd97",
+                      "file":  "NOTICE"
+                  },
+                  {
+                      "sha256":  "3bf407ec197f973fae55d89f52046e27f26a4d313bea7bd884232c50f33a9f05",
+                      "file":  "sensitive-credential-paths.ts"
+                  },
+                  {
+                      "sha256":  "4831eb39fa2f76043abd3405294759ffeb45255b3e2a9e369f208046e50194f2",
+                      "file":  "shell-input-redirections.ts"
+                  }
+              ],
+    "commit":  "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+    "repository":  "https://github.com/makecindy/cindy"
+}

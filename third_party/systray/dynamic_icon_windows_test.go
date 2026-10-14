@@ -8,11 +8,16 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"runtime"
 	"testing"
 	"unsafe"
 )
 
 func TestDynamicPNGDoesNotRetainGDIObjects(t *testing.T) {
+	// USER/GDI initialize per-thread state lazily. Measure repeated updates on
+	// one native thread so Go scheduling cannot count a new GUI thread as a leak.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	source := image.NewRGBA(image.Rect(0, 0, 32, 32))
 	for y := 0; y < 32; y++ {
 		for x := 0; x < 32; x++ {

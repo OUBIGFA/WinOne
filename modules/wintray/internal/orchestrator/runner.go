@@ -25,29 +25,38 @@ const (
 	launchHiddenConsole
 )
 
-func startProcess(exePath, args string, mode launchMode) (*exec.Cmd, error) {
+// The native console path cannot use exec.Cmd.Start: Go explicitly supplies
+// standard handles even when they are nil, replacing console buffers with NUL.
+// Keep only the process and wait operations used by the orchestrator/callers.
+type startedProcess struct {
+	Process *os.Process
+	wait    func() error
+}
+
+func (p *startedProcess) Wait() error { return p.wait() }
+
+func startProcess(exePath, args string, mode launchMode) (*startedProcess, error) {
 	hidden := mode == launchNoWindow
 	dir := filepath.Dir(exePath)
 	cmd := buildLaunchCommand(exePath, args, hidden)
-	if mode == launchHiddenConsole {
-		// A fresh console is requested explicitly so the program never shares
-		// (and never inherits) another console; SW_HIDE then applies to that
-		// new console window, which stays hosted by conhost.
-		cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: createNewConsole, HideWindow: true}
-	}
 	if _, err := os.Stat(dir); err == nil {
 		cmd.Dir = dir
+	}
+	if cmd.Err != nil {
+		return nil, cmd.Err
+	}
+	if mode == launchHiddenConsole || mode == launchVisible && isConsoleExecutable(cmd.Path) {
+		return startConsoleProcess(cmd, mode == launchHiddenConsole)
 	}
 
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	return cmd, nil
+	return &startedProcess{Process: cmd.Process, wait: cmd.Wait}, nil
 }
 
 const (
-	createNoWindow   = 0x08000000
-	createNewConsole = 0x00000010
+	createNoWindow = 0x08000000
 )
 
 func buildLaunchCommand(exePath, args string, hidden bool) *exec.Cmd {

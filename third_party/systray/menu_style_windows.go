@@ -17,7 +17,6 @@ import (
 var (
 	menuGetInfo      = u32.NewProc("GetMenuItemInfoW")
 	menuGetCount     = u32.NewProc("GetMenuItemCount")
-	menuCopyImage    = u32.NewProc("CopyImage")
 	menuDrawText     = u32.NewProc("DrawTextW")
 	menuFillRect     = u32.NewProc("FillRect")
 	menuDrawState    = u32.NewProc("DrawStateW")
@@ -155,8 +154,8 @@ func (s *nativeMenuStyle) clone(source windows.Handle, depth int) (result window
 			if uintptr(entry.bitmap) <= 12 {
 				return 0, errors.New("unsupported system menu bitmap")
 			}
-			copied, _, err := menuCopyImage.Call(uintptr(entry.bitmap), 0, 0, 0, 0x2000)
-			if copied == 0 {
+			copied, err := scaledMenuBitmap(entry.bitmap, s.px(20))
+			if err != nil {
 				return 0, err
 			}
 			entry.bitmap = windows.Handle(copied)

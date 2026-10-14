@@ -46,7 +46,7 @@ func TestControlUsesRegisteredCatalogForOptionalModuleLifecycle(t *testing.T) {
 		gates[id] = gate
 	}
 	control := NewControl(state, gates, service.FeatureCatalog)
-	if len(control.Snapshot().Modules) != 3 {
+	if len(control.Snapshot().Modules) != len(catalog.Builtins()) {
 		t.Fatal("unregistered module was exposed")
 	}
 	unregistered, _ := json.Marshal(map[string]any{"id": "example.tool", "enabled": true, "revision": state.Snapshot().Revision})
@@ -58,12 +58,12 @@ func TestControlUsesRegisteredCatalogForOptionalModuleLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	modules := control.Snapshot().Modules
-	if len(modules) != 4 || modules[3].Manifest.ID != manifest.ID || modules[3].Enabled {
+	if len(modules) != len(catalog.Builtins())+1 || modules[len(modules)-1].Manifest.ID != manifest.ID || modules[len(modules)-1].Enabled {
 		t.Fatal("registered disabled extension missing", modules)
 	}
 	response := control.Handle(host.Request{Version: 1, ID: "catalog", Method: "catalog"})
 	var listed []catalog.Manifest
-	if err = json.Unmarshal(response.Result, &listed); err != nil || len(listed) != 4 {
+	if err = json.Unmarshal(response.Result, &listed); err != nil || len(listed) != len(catalog.Builtins())+1 {
 		t.Fatal(response, err)
 	}
 	params, _ := json.Marshal(map[string]any{"id": manifest.ID, "enabled": true, "revision": state.Snapshot().Revision})
@@ -87,11 +87,11 @@ func TestControlUsesRegisteredCatalogForOptionalModuleLifecycle(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if job.State != "completed" || !control.Snapshot().Modules[3].Enabled {
+	if job.State != "completed" || !control.Snapshot().Modules[len(catalog.Builtins())].Enabled {
 		t.Fatal("extension enable did not commit", job)
 	}
-	listed[3].Name.Chinese = "changed"
-	if service.FeatureCatalog()[3].Name.Chinese != manifest.Name.Chinese {
+	listed[len(catalog.Builtins())].Name.Chinese = "changed"
+	if service.FeatureCatalog()[len(catalog.Builtins())].Name.Chinese != manifest.Name.Chinese {
 		t.Fatal("catalog copy changed registration")
 	}
 }

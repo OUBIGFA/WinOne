@@ -15,6 +15,7 @@ internal record CaptureSettings
     public int ScrollDelay { get; init; } = 300;
     public bool ScrollFromTop { get; init; }
     public string[]? ToolbarTools { get; init; }
+    public int ToolbarVersion { get; init; } = 2;
     public string? FileNameTemplate { get; init; }
 }
 
@@ -47,6 +48,7 @@ internal sealed class SettingsStore
         {
             if (IsManaged) throw new InvalidOperationException("请通过 WinOne 保存截图设置");
             if (next.Revision != settings.Revision) throw new InvalidOperationException("截图设置已变更，请刷新后重试");
+            next = UpgradeToolbar(next);
             Validate(next);
             next = next with { Revision = checked(next.Revision + 1) };
             AtomicWrite(path, JsonSerializer.SerializeToUtf8Bytes(next, Json));
@@ -75,18 +77,26 @@ internal sealed class SettingsStore
         foreach (var property in document.RootElement.EnumerateObject())
             if (!names.Add(property.Name)) throw new JsonException("截图配置包含重复字段");
         var strict = new JsonSerializerOptions(Json) { UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow };
-        return document.RootElement.Deserialize<CaptureSettings>(strict) ?? throw new InvalidDataException("截图配置为空");
+        var value = document.RootElement.Deserialize<CaptureSettings>(strict) ?? throw new InvalidDataException("截图配置为空");
+        // Only persisted legacy documents adopt the new common actions;
+        // newly constructed preferences already represent an explicit choice.
+        if (!document.RootElement.EnumerateObject().Any(property => string.Equals(property.Name, "toolbarVersion", StringComparison.OrdinalIgnoreCase))) value = value with { ToolbarVersion = 0 };
+        return UpgradeToolbar(value);
     }
+    private static CaptureSettings UpgradeToolbar(CaptureSettings value) => value.ToolbarVersion == 0
+        ? value with { ToolbarVersion = 2, ToolbarTools = value.ToolbarTools is null ? null : value.ToolbarTools.Concat(new[] { "ocr", "translate" }.Where(tool => !value.ToolbarTools.Contains(tool, StringComparer.Ordinal))).ToArray() }
+        : value;
     internal static void Validate(CaptureSettings settings)
     {
         _ = CaptureFileName.Render(settings.FileNameTemplate, DateTime.Now);
         if (settings.SchemaVersion != 1 || settings.Revision < 0) throw new InvalidDataException("不支持的截图配置版本");
+        if (settings.ToolbarVersion is not (0 or 2)) throw new InvalidDataException("不支持的截图工具栏版本");
         if (!Path.IsPathFullyQualified(settings.OutputDirectory)) throw new InvalidDataException("保存目录必须为绝对路径");
         if (settings.Theme is not ("system" or "light" or "dark")) throw new InvalidDataException("无效的主题");
         if (settings.ScrollDelay is < 100 or > 2000) throw new InvalidDataException("滚动间隔须为 100–2000 毫秒");
         if (settings.ToolbarTools is { } tools)
         {
-            var allowed = new HashSet<string> { "select", "crop", "rectangle", "ellipse", "arrow", "pen", "cover", "text", "mosaic", "blur" };
+            var allowed = new HashSet<string> { "select", "crop", "rectangle", "ellipse", "arrow", "pen", "cover", "text", "mosaic", "blur", "ocr", "translate" };
             if (tools.Any(tool => !allowed.Remove(tool))) throw new InvalidDataException("截图工具栏包含未知或重复工具");
         }
     }

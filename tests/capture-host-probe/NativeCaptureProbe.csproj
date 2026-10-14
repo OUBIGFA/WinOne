@@ -3,12 +3,15 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <AssemblyName>WinOne.NativeCapture.Probe</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <!-- WPF changes the SDK implicit imports; the linked capture probes use IO. -->
+    <Using Include="System.IO" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="[1.0.4258.31]" />
     <ProjectReference Include="../../modules/capture/WinOne.Capture.csproj" />
   </ItemGroup>

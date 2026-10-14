@@ -1,7 +1,7 @@
 import {captureCall} from "../bridge";
 import type {ToolbarPreferencesPort} from "../ui/capture-drawing-tools";
 
-const allowed=new Set(["select","crop","rectangle","ellipse","arrow","pen","cover","text","mosaic","blur"]);
+const allowed=new Set(["select","crop","rectangle","ellipse","arrow","pen","cover","text","mosaic","blur","ocr","translate"]);
 export const captureToolbarPreferences:ToolbarPreferencesPort={
  read:async()=>{
   const settings=await captureCall<{toolbarTools?:unknown}>("settings.get");

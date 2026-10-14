@@ -1,0 +1,7 @@
+package provider
+
+import "github.com/yetone/magpie/internal/plugin"
+
+// WinOnePluginLogins reuses the account page's names, enabled/hidden state and
+// expired-authorization handling without enumerating plugins a second time.
+func WinOnePluginLogins(p plugin.Provider) []Login { return pluginLoginList(p) }

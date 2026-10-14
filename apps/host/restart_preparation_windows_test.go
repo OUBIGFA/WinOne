@@ -30,6 +30,61 @@ func waitRestartState(t *testing.T, r *restartPreparation, token, state string) 
 	}
 }
 
+func TestRestartRPCDistinguishesDesktopOwnerFromHostHelper(t *testing.T) {
+	r := &restartPreparation{timeout: time.Second,
+		authorize: func(pid uint32) error {
+			if pid != 10 {
+				return errors.New("not the desktop executable")
+			}
+			return nil
+		},
+		authorizeHelper: func(pid uint32) error {
+			if pid != 20 {
+				return errors.New("not the verified elevated Host helper")
+			}
+			return nil
+		},
+		prepare: func() (func(), error) { return func() {}, nil },
+	}
+	response := r.handle(host.Request{PeerPID: 10, ID: "prepare", Method: "restart.prepare"})
+	if response.Error != nil {
+		t.Fatal(response.Error)
+	}
+	var job restartPreparationJob
+	if err := json.Unmarshal(response.Result, &job); err != nil {
+		t.Fatal(err)
+	}
+	waitRestartState(t, r, job.Token, "prepared")
+	params, _ := json.Marshal(map[string]string{"token": job.Token})
+	for _, method := range []string{"restart.bootstrap", "restart.status"} {
+		response = r.handle(host.Request{PeerPID: 20, ID: "helper", Method: method, Params: params})
+		if response.Error != nil {
+			t.Fatalf("verified Host helper rejected by %s: %v", method, response.Error)
+		}
+	}
+	for _, method := range []string{"restart.prepare", "restart.commit", "restart.cancel"} {
+		if response = r.handle(host.Request{PeerPID: 20, ID: "wrong-role", Method: method, Params: params}); response.Error == nil {
+			t.Fatal("helper gained owner operation", method)
+		}
+	}
+	undo, err := r.take(job.Token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer undo()
+	response = r.handle(host.Request{PeerPID: 20, ID: "ack", Method: "restart.acknowledge", Params: params})
+	if response.Error != nil {
+		t.Fatal(response.Error)
+	}
+	if err = json.Unmarshal(response.Result, &job); err != nil || !job.HelperAcknowledged {
+		t.Fatal(job, err)
+	}
+	r.authorizeHelper = func(uint32) error { return errors.New("helper no longer valid") }
+	if response = r.handle(host.Request{PeerPID: 20, ID: "invalidated", Method: "restart.status", Params: params}); response.Error == nil {
+		t.Fatal("helper identity was not rechecked")
+	}
+}
+
 func TestRestartRPCRequiresVerifiedCallerAndBindsItsTokenToThatCaller(t *testing.T) {
 	var preparations atomic.Int32
 	r := &restartPreparation{timeout: time.Second, authorize: func(pid uint32) error {

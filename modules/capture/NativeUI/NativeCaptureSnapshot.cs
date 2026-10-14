@@ -16,7 +16,7 @@ internal sealed record NativeTextInputState(Guid? Target, string Value, int X, i
         if (Value is null || Value.Length > 4096 || document.Selection is not { } selection ||
             X < selection.X || Y < selection.Y || Width < 1 || Height < 1 || MaxHeight < Height ||
             (long)X + Width > selection.Right || (long)Y + MaxHeight > selection.Bottom ||
-            !float.IsFinite(FontPixels) || FontPixels < 6 || FontPixels > 240 || Color.FromArgb(ColorArgb).A != 255 ||
+            !float.IsFinite(FontPixels) || FontPixels < 6 || FontPixels > 256 || Color.FromArgb(ColorArgb).A != 255 ||
             SelectionStart < 0 || SelectionLength < 0 || (long)SelectionStart + SelectionLength > Value.Length ||
             Target is { } target && !document.Layers.Any(layer => layer.Kind == "text" && layer.TextId == target))
             throw new InvalidDataException("截图文字草稿无效");

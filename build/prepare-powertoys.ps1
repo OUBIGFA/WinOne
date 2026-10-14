@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $source = (Get-Content -LiteralPath (Join-Path $root 'third_party/sources.json') -Raw -Encoding UTF8 | ConvertFrom-Json).powertoys
-$checkout = Join-Path $root '_temp/dependencies/PowerToys'
+$checkout = Join-Path $root 'dist/resources/sources/PowerToys'
 if (-not (Test-Path -LiteralPath (Join-Path $checkout '.git'))) {
     New-Item -ItemType Directory -Path $checkout -Force | Out-Null
     & git -C $checkout init -q

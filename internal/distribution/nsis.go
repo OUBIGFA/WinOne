@@ -1,12 +1,16 @@
 package distribution
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"path"
 	"sort"
 	"strings"
 )
+
+//go:embed nsis_validation.nsh
+var nsisValidationFunctions string
 
 // NSISFileMacros consumes an already verified package manifest. The independent
 // path checks also prevent accidental preprocessor/variable interpolation.
@@ -54,17 +58,19 @@ func NSISFileMacros(manifest Manifest) (string, error) {
 				parent += `\` + escape(directory)
 			}
 			fmt.Fprintf(&output, "  StrCpy $0 \"%s\"\r\n", parent)
-			output.WriteString("  System::Call 'kernel32::GetFileAttributesW(w r0) i.r1 ?e'\r\n  Pop $2\r\n  ${If} $1 == -1\r\n    ${If} $2 != 2\r\n    ${AndIf} $2 != 3\r\n      Goto ${FailureLabel}\r\n    ${EndIf}\r\n  ${Else}\r\n    IntOp $1 $1 & 0x410\r\n    ${If} $1 != 16\r\n      Goto ${FailureLabel}\r\n    ${EndIf}\r\n  ${EndIf}\r\n")
+			output.WriteString("  !insertmacro WinOneValidateEntry Parent ${FailureLabel}\r\n")
 		}
 		for _, name := range names {
 			guard()
 			fmt.Fprintf(&output, "  StrCpy $0 \"$INSTDIR\\%s\"\r\n", escape(name))
 			// Do not let NSIS silently clear read-only flags or traverse a file
 			// replaced with a directory/reparse point since installation.
-			output.WriteString("  System::Call 'kernel32::GetFileAttributesW(w r0) i.r1'\r\n  ${If} $1 != -1\r\n    IntOp $1 $1 & 0x411\r\n    ${If} $1 != 0\r\n      Goto ${FailureLabel}\r\n    ${EndIf}\r\n  ${EndIf}\r\n")
+			output.WriteString("  !insertmacro WinOneValidateEntry File ${FailureLabel}\r\n")
 		}
 	}
-	output.WriteString("; Generated from a verified WinOne package. Do not edit.\r\n!include LogicLib.nsh\r\n!macro WinOneInstallFiles GuardFunction FailureLabel\r\n")
+	output.WriteString("; Generated from a verified WinOne package. Do not edit.\r\n!include LogicLib.nsh\r\n")
+	output.WriteString(nsisValidationFunctions)
+	output.WriteString("\r\n!macro WinOneInstallFiles GuardFunction FailureLabel\r\n")
 	validateTargets()
 	previous := ""
 	for _, name := range names {
@@ -90,8 +96,7 @@ func NSISFileMacros(manifest Manifest) (string, error) {
 	for _, name := range names {
 		guard()
 		fmt.Fprintf(&output, "  StrCpy $0 \"$INSTDIR\\%s\"\r\n", escape(name))
-		output.WriteString("  System::Call 'kernel32::CreateFileW(w r0, i 0x10000, i 7, p 0, i 3, i 0x80, p 0) p.r1 ?e'\r\n  Pop $2\r\n")
-		output.WriteString("  ${If} $1 == -1\r\n    ${If} $2 != 2\r\n    ${AndIf} $2 != 3\r\n      Goto ${FailureLabel}\r\n    ${EndIf}\r\n  ${Else}\r\n    System::Call 'kernel32::CloseHandle(p r1)'\r\n  ${EndIf}\r\n")
+		output.WriteString("  !insertmacro WinOneValidateEntry Delete ${FailureLabel}\r\n")
 	}
 	for _, name := range names {
 		checked(fmt.Sprintf("Delete \"$INSTDIR\\%s\"", escape(name)))

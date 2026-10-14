@@ -42,8 +42,9 @@ type Snapshot struct {
 	RestartPending bool              `json:"restartPending,omitempty"`
 }
 type moduleBinding struct {
-	status func() Module
-	handle func(Request) Response
+	status       func() Module
+	handle       func(Request) Response
+	registration *FeatureRegistration
 }
 
 // SettingsStore permits the Host to migrate persistence without changing UI RPCs.
@@ -97,36 +98,44 @@ func (s *Service) FeatureCatalog() []catalog.Manifest {
 // RegisterFeature is an internal registration boundary, not an RPC installation API.
 // Callers must verify package trust and dependencies before supplying external manifests.
 func (s *Service) RegisterFeature(manifest catalog.Manifest, status func() Module, handle func(Request) Response) error {
+	_, err := s.BindFeature(manifest, status, handle)
+	return err
+}
+
+// BindFeature returns ownership of this exact registration for later removal.
+// Lifecycle callers must stop and retire their handlers before releasing it.
+func (s *Service) BindFeature(manifest catalog.Manifest, status func() Module, handle func(Request) Response) (*FeatureRegistration, error) {
 	if err := manifest.Validate(); err != nil {
-		return err
+		return nil, err
 	}
 	if status == nil || handle == nil {
-		return errors.New("module callbacks are required")
+		return nil, errors.New("module callbacks are required")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, existing := range s.features {
 		if existing.ID == manifest.ID || strings.HasPrefix(existing.ID, manifest.ID+".") || strings.HasPrefix(manifest.ID, existing.ID+".") {
-			return errors.New("module namespace overlaps an existing module")
+			return nil, errors.New("module namespace overlaps an existing module")
 		}
 	}
 	// Longest-prefix routing also makes parent/child service names overlap.
 	// Validate every installed service before changing either registration map.
 	for namespace := range s.modules {
 		if namespace == manifest.ID || strings.HasPrefix(namespace, manifest.ID+".") || strings.HasPrefix(manifest.ID, namespace+".") {
-			return errors.New("module namespace overlaps an existing service")
+			return nil, errors.New("module namespace overlaps an existing service")
 		}
 	}
+	registration := &FeatureRegistration{service: s, id: manifest.ID}
 	s.features = append(s.features, manifest.Clone())
-	s.modules[manifest.ID] = moduleBinding{status, handle}
-	return nil
+	s.modules[manifest.ID] = moduleBinding{status: status, handle: handle, registration: registration}
+	return registration, nil
 }
 
 // RegisterModule binds one namespace; feature implementations remain outside the Host.
 func (s *Service) RegisterModule(id string, status func() Module, handle func(Request) Response) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.modules[id] = moduleBinding{status, handle}
+	s.modules[id] = moduleBinding{status: status, handle: handle}
 }
 
 // Handle exposes only explicit application commands; no arbitrary execution endpoint exists.
@@ -190,7 +199,7 @@ func (s *Service) Handle(r Request) Response {
 		if s.restartPending != nil {
 			pending = s.restartPending()
 		}
-		result = Snapshot{Settings: global, Modules: modules, Locale: locale, Administrator: administrator, RuntimeWarning: warning, RestartPending: pending}
+		result = Snapshot{Settings: global.ResolvedShortcuts(), Modules: modules, Locale: locale, Administrator: administrator, RuntimeWarning: warning, RestartPending: pending}
 	case "settings.save":
 		s.settingsMu.Lock()
 		defer s.settingsMu.Unlock()

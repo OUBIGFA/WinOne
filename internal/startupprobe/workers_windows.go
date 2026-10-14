@@ -15,8 +15,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"winone/internal/catalog"
 	"winone/internal/host"
+	"winone/internal/selection"
 	"winone/internal/transport"
 )
 
@@ -40,9 +40,34 @@ func CheckWorkers(ctx context.Context, installation, scratch string) error {
 	if err == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
 		return errors.New("worker probe data must be outside installation")
 	}
-	for _, manifest := range catalog.Builtins() {
+	// Probe the target version's validated catalog. Older rollback bundles
+	// legitimately have three modules; the updater's own catalog is not theirs.
+	var target Report
+	if err := checkExecutable(ctx, filepath.Join(installation, "WinOne.Host.exe"), nil, false, "", "", &target); err != nil {
+		return err
+	}
+	for _, manifest := range target.Modules {
 		if err := ctx.Err(); err != nil {
 			return err
+		}
+		if manifest.ID == "quick-assistant" {
+			if err := Check(ctx, filepath.Join(installation, filepath.FromSlash(manifest.Worker))); err != nil {
+				return fmt.Errorf("quick assistant startup probe: %w", err)
+			}
+			continue
+		}
+		if manifest.ID == "selection" {
+			// This component is a one-shot stdin/stdout reader, not an RPC worker.
+			// A zero source checks launch, protocol and exit without inspecting any
+			// user window. Reuse the real reader's timeout and process-job ownership.
+			value, err := selection.ReadSelection(ctx, filepath.Join(installation, filepath.FromSlash(manifest.Worker)), selection.Event{Keyboard: true})
+			if err != nil {
+				return fmt.Errorf("selection startup probe: %w", err)
+			}
+			if value.Status != "stale" || value.Text != "" || len(value.Rectangles) != 0 {
+				return errors.New("selection startup probe returned unexpected content")
+			}
+			continue
 		}
 		directory, err := os.MkdirTemp(scratch, manifest.ID+"-probe-")
 		if err != nil {

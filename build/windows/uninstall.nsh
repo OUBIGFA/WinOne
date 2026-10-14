@@ -1,9 +1,39 @@
 !ifndef WINONE_UNINSTALL_INCLUDED
 !define WINONE_UNINSTALL_INCLUDED
+; Expand each inventory once per executable. Installation rollback and
+; uninstall recovery call the same guarded remover instead of duplicating
+; thousands of validation/delete instructions in the installer section.
+!macro WinOneRemovalFunctions Prefix GuardFunction
+Function ${Prefix}WinOneRemovePayload
+  !insertmacro WinOneRemoveFiles ${GuardFunction} removalFailed
+  ClearErrors
+  Return
+removalFailed:
+  SetErrors
+FunctionEnd
+
+Function ${Prefix}WinOneRemoveDirectories
+  !insertmacro WinOneRemoveEmptyDirectories ${GuardFunction} removalFailed
+  ClearErrors
+  Return
+removalFailed:
+  SetErrors
+FunctionEnd
+!macroend
+
+!macro WinOneCallRemoval Operation FailureLabel
+  !ifdef __UNINSTALL__
+    Call un.WinOneRemove${Operation}
+  !else
+    Call WinOneRemove${Operation}
+  !endif
+  IfErrors ${FailureLabel}
+!macroend
+
 ; Shared by the installed uninstaller and the original package's recovery path.
 ; Resource restoration must already have completed before this macro is used.
 !macro WinOneCompleteUninstall GuardFunction ClearPendingFunction FailureLabel
-  !insertmacro WinOneRemoveFiles ${GuardFunction} ${FailureLabel}
+  !insertmacro WinOneCallRemoval Payload ${FailureLabel}
   !ifdef WINONE_TEST_BUILD
     ${If} $WinOneFailurePoint == "interrupt-after-removal"
       System::Call 'kernel32::TerminateProcess(p -1, i 32)'
@@ -33,7 +63,7 @@
   !endif
   Delete "$INSTDIR\Uninstall.exe"
   IfErrors ${FailureLabel}
-  !insertmacro WinOneRemoveEmptyDirectories ${GuardFunction} ${FailureLabel}
+  !insertmacro WinOneCallRemoval Directories ${FailureLabel}
   Call ${ClearPendingFunction}
   IfErrors ${FailureLabel}
   RMDir "$INSTDIR"

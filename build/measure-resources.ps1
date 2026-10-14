@@ -14,6 +14,7 @@ Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot 'resource-metrics.psm1') -Force
 $workspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $destination = [IO.Path]::GetFullPath($OutputPath)
+& (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $destination
 if (Test-Path -LiteralPath $destination) { throw 'Report already exists; choose a new output path to preserve the previous baseline' }
 if ($destination.StartsWith($workspace + [IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)) {
     & git -C $workspace check-ignore --quiet -- $destination

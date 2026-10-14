@@ -17,8 +17,9 @@ internal static class NativeManualProbe
                 show: (canvas, session) => {
                     canvas.Window.ShowInTaskbar = true;
                     canvas.Window.Text = "WinOne 截图实操";
-                    canvas.ShowDialog();
-                }, drafts: new NativeCaptureDraftStore(directory));
+                    using var context = new ApplicationContext(canvas.Window);
+                    Application.Run(context);
+                }, drafts: new NativeCaptureDraftStore(directory)).GetAwaiter().GetResult();
         } catch (OperationCanceledException error) { File.WriteAllText(Path.Combine(directory, "cancelled.txt"), error.ToString()); }
         catch (Exception error) { File.WriteAllText(Path.Combine(directory, "error.txt"), error.ToString()); return 1; }
         return 0;

@@ -16,6 +16,14 @@ internal static class NativeCaptureWorkflowTests
         Directory.CreateDirectory(directory);
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); Application.EnableVisualStyles();
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
+        NativeSaveCloseTests.Run(Path.Combine(directory,"save-close"));
+        NativeLegacyDocumentTests.Run(Path.Combine(directory,"legacy-document"));
+        NativeLegacyMigrationTests.Run(Path.Combine(directory,"legacy-migration"));
+        NativeLegacyAsyncTests.Run(Path.Combine(directory,"legacy-async"));
+        NativeLegacyRenderLifetimeTests.Run(Path.Combine(directory,"legacy-render-lifetime"));
+        NativeLegacyEditTests.Run(Path.Combine(directory,"legacy-edit"));
+        NativeLegacyWorkflowTests.Run(Path.Combine(directory,"legacy-resume"));
+        NativeLastCaptureTests.Run(Path.Combine(directory,"last-capture"));
         var bounds = CaptureHelpers.GetScreenBounds();
         var copies = 0; var reads = 0; var shows = 0;
         CapturedFrame Acquire() { reads++; return CapturedFrame.Own(new Bitmap(bounds.Width, bounds.Height), bounds); }
@@ -23,7 +31,7 @@ internal static class NativeCaptureWorkflowTests
         settings.Save(settings.Snapshot() with { OutputDirectory = Path.Combine(directory, "images"), OpenEditor = false, AskWhereToSave = true, CopyToClipboard = false });
         var operations = new CaptureOperations(settings, directory, _ => copies++, (_, _) => throw new Exception("Quick save opened a picker"));
         var full = (CaptureOutput)NativeCaptureWorkflow.Run(settings, operations, "fullscreen", null, CancellationToken.None, Acquire,
-            show: (_, _) => throw new Exception("Quick fullscreen opened an editor"));
+            show: (_, _) => throw new Exception("Quick fullscreen opened an editor")).GetAwaiter().GetResult();
         if (!File.Exists(full.Path) || full.Width != bounds.Width || full.Height != bounds.Height || copies != 0) throw new Exception("Fullscreen output changed");
 
         object RunSelection(string mode, Action<WinOneCaptureCanvas, NativeCaptureSession> act) => NativeCaptureWorkflow.Run(settings, operations, mode, null,
@@ -35,7 +43,7 @@ internal static class NativeCaptureWorkflowTests
                 canvas.Window.Shown += (_, _) => canvas.Window.BeginInvoke((Action)(() => act(canvas, session)));
                 deadline.Start(); canvas.ShowDialog(); deadline.Stop();
                 if (timedOut) throw new Exception("Native workflow did not finish");
-            });
+            }).GetAwaiter().GetResult();
 
         var quick = (CaptureOutput)RunSelection("window", (canvas, session) => {
             canvas.SetRegion(new Rectangle(100, 100, 240, 140));
@@ -70,7 +78,7 @@ internal static class NativeCaptureWorkflowTests
 
         var previousReads = reads;
         using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
-        try { NativeCaptureWorkflow.Run(settings, operations, "window", null, cancelled.Token, Acquire); throw new Exception("Cancelled request acquired a frame"); }
+        try { NativeCaptureWorkflow.Run(settings, operations, "window", null, cancelled.Token, Acquire).GetAwaiter().GetResult(); throw new Exception("Cancelled request acquired a frame"); }
         catch (OperationCanceledException) { }
         if (reads != previousReads) throw new Exception("Cancellation was checked after acquisition");
         using var during = new CancellationTokenSource();
@@ -78,7 +86,7 @@ internal static class NativeCaptureWorkflowTests
             NativeCaptureWorkflow.Run(settings, operations, "region", null, during.Token, Acquire, show: (canvas, _) => {
                 canvas.Window.Shown += (_, _) => during.Cancel();
                 canvas.ShowDialog();
-            });
+            }).GetAwaiter().GetResult();
             throw new Exception("Active cancellation returned success");
         } catch (OperationCanceledException) { }
         if (copies != 1) throw new Exception("Active cancellation copied an image");
@@ -86,7 +94,7 @@ internal static class NativeCaptureWorkflowTests
         try {
             NativeCaptureWorkflow.Run(settings, operations, "window", null, CancellationToken.None, Acquire,
                 () => ++snapshots == 1 ? new[] { new WindowCaptureTarget(new IntPtr(1), bounds) } : Array.Empty<WindowCaptureTarget>(),
-                (_, _) => throw new Exception("Changed windows reached the selector"));
+                (_, _) => throw new Exception("Changed windows reached the selector")).GetAwaiter().GetResult();
             throw new Exception("Window layout change was accepted");
         } catch (InvalidOperationException error) when (error.Message == "窗口布局已变化，请重新截图") { }
         settings.Save(settings.Snapshot() with { OpenEditor = false, CopyToClipboard = false });
@@ -94,7 +102,7 @@ internal static class NativeCaptureWorkflowTests
         var frozen = (CaptureOutput)NativeCaptureWorkflow.Run(settings, operations, "fullscreen", null, CancellationToken.None, () => {
             settings.Save(settings.Snapshot() with { OutputDirectory = Path.Combine(directory, "next-session"), CopyToClipboard = true });
             return Acquire();
-        });
+        }).GetAwaiter().GetResult();
         if (Path.GetDirectoryName(frozen.Path) != originalDirectory || frozen.Copied || copies != 1)
             throw new Exception("Settings changed during acquisition leaked into the current output");
         settings.Save(settings.Snapshot() with { OpenEditor = true });
@@ -121,8 +129,7 @@ internal static class NativeCaptureWorkflowTests
                     var numeric = options.DropDownItems.OfType<ToolStripControlHost>().Select(host => host.Control).OfType<NumericUpDown>().Single();
                     numeric.Value = 36;
                     Stage("text color");
-                    var colors = options.DropDownItems.OfType<ToolStripMenuItem>().Single();
-                    colors.DropDownItems.OfType<ToolStripMenuItem>().Single(item => item.Tag is Color color && color.ToArgb() == Color.RoyalBlue.ToArgb()).PerformClick();
+                    options.DropDownItems.OfType<ToolStripMenuItem>().Single(item => item.Tag is Color color && color.ToArgb() == Color.RoyalBlue.ToArgb()).PerformClick();
                     options.HideDropDown();
                     Stage("confirm");
                     if (input.Handle != originalHandle || input.Font.Size != 36 || input.ForeColor.ToArgb() != Color.RoyalBlue.ToArgb() || input.Text != "原位文字 WinOne")
@@ -136,7 +143,7 @@ internal static class NativeCaptureWorkflowTests
             deadline.Start(); canvas.ShowDialog(); deadline.Stop();
             if (timeout) throw new Exception("Inline style session did not finish");
             if (interactionFailure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(interactionFailure).Throw();
-        });
+        }).GetAwaiter().GetResult();
         if (copies != 2) throw new Exception("Styled text was not confirmed exactly once");
         NativeRecoveryTests.Run(Path.Combine(directory, "recovery"), bounds);
         NativeScrollingWorkflowTests.Run(Path.Combine(directory, "scrolling"));

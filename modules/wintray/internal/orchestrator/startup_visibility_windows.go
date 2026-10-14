@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -22,17 +21,19 @@ import (
 // Crucially, transparency does not clear WS_VISIBLE, so it cannot masquerade
 // as the application's own close-to-tray action.
 type startupVisibility struct {
-	path     string
-	logger   Logger
-	token    uintptr
-	thread   uint32
-	commands chan visibilityCommand
-	done     chan struct{}
-	stopOnce sync.Once
-	stopErr  error
-	windows  map[uintptr]*veiledWindow // owned by the message-loop thread
-	paths    map[uint32]string
-	warned   map[uintptr]bool
+	path      string
+	logger    Logger
+	token     uintptr
+	thread    uint32
+	commands  chan visibilityCommand
+	done      chan struct{}
+	stopOnce  sync.Once
+	stopErr   error
+	windows   map[uintptr]*veiledWindow // owned by the message-loop thread
+	paths     map[uint32]string
+	warned    map[uintptr]bool
+	taskbar   *startupTaskbar
+	restoring bool // do not re-shield from WinEvents dispatched by COM during release
 }
 
 type visibilityCommand struct {
@@ -42,11 +43,12 @@ type visibilityCommand struct {
 }
 
 type veiledWindow struct {
-	addedStyle int32
-	color      uint32
-	alpha      byte
-	flags      uint32
-	layered    bool
+	addedStyle    int32
+	color         uint32
+	alpha         byte
+	flags         uint32
+	layered       bool
+	taskbarHidden bool
 }
 
 const (
@@ -116,6 +118,15 @@ func (g *startupVisibility) run(ready chan<- error) {
 	defer runtime.UnlockOSThread()
 	defer close(g.done)
 	g.thread = windows.GetCurrentThreadId()
+	var err error
+	g.taskbar, err = newStartupTaskbar()
+	if err != nil {
+		// Shell readiness/permissions must not turn a best-effort visual
+		// improvement into a failure to launch or close the application.
+		g.logger.Warn(fmt.Sprintf("startup taskbar shield unavailable: %v", err))
+	} else {
+		defer g.taskbar.close() // after g.restore, on the same COM apartment
+	}
 	var msg win.MSG
 	var pin runtime.Pinner
 	pin.Pin(&msg)
@@ -196,11 +207,12 @@ func (g *startupVisibility) invoke(apply func(), stop bool) {
 }
 
 func (g *startupVisibility) track(hwnd uintptr) {
-	if !isWindow(hwnd) {
+	if g.restoring || !isWindow(hwnd) {
 		return
 	}
 	if old := g.windows[hwnd]; old != nil {
 		if visibilityOwner(hwnd) == g.token {
+			g.hideTaskbar(hwnd, old)
 			return
 		}
 		delete(g.windows, hwnd) // the HWND was destroyed/reused
@@ -215,11 +227,11 @@ func (g *startupVisibility) track(hwnd uintptr) {
 		_, path = processInfo(pid)
 		g.paths[pid] = path
 	}
-	if !strings.EqualFold(normalizePath(path), g.path) {
+	if !executablePathsMatch(path, g.path) {
 		return
 	}
 	// Revalidate a positive cache hit before changing another process's UI.
-	if _, currentPath := processInfo(pid); !strings.EqualFold(normalizePath(currentPath), g.path) {
+	if _, currentPath := processInfo(pid); !executablePathsMatch(currentPath, g.path) {
 		return
 	}
 	style := win.GetWindowLong(win.HWND(hwnd), win.GWL_STYLE)
@@ -242,7 +254,12 @@ func (g *startupVisibility) track(hwnd uintptr) {
 			return
 		}
 	}
-	v.addedStyle = (exLayered | exNoActivate | exToolWindow) &^ exStyle
+	// Keep the shell's window classification intact. Adding TOOLWINDOW or
+	// NOACTIVATE to an already registered taskbar window suppresses its later
+	// HSHELL_WINDOWDESTROYED notification when the app hides it on close.
+	// Explorer then retains an unresponsive button even after styles restore.
+	// Transparency is best effort; it must not alter the native tray lifecycle.
+	v.addedStyle = exLayered &^ exStyle
 	if ok, _, _ := procSetProp.Call(hwnd, uintptr(unsafe.Pointer(visibilityProperty)), g.token); ok == 0 {
 		g.warn(hwnd, "window property access denied")
 		return
@@ -256,6 +273,7 @@ func (g *startupVisibility) track(hwnd uintptr) {
 		return
 	}
 	g.windows[hwnd] = v
+	g.hideTaskbar(hwnd, v)
 	win.SetWindowPos(win.HWND(hwnd), 0, 0, 0, 0, 0, win.SWP_NOMOVE|win.SWP_NOSIZE|win.SWP_NOZORDER|win.SWP_NOACTIVATE|win.SWP_FRAMECHANGED)
 }
 
@@ -275,7 +293,6 @@ func (g *startupVisibility) candidates() []ManagedWindowInfo {
 				continue
 			}
 			w := windowInfo(hwnd, 0, nil)
-			w.IsToolWindow = false // only the temporary shield set this bit
 			result = append(result, w)
 		}
 	}, false)
@@ -286,6 +303,7 @@ func (g *startupVisibility) candidates() []ManagedWindowInfo {
 // remains untouched: a successful close stays closed, a refused close stays
 // usable, and an app that started silently is not accidentally opened.
 func (g *startupVisibility) restore() {
+	g.restoring = true
 	var errs []error
 	for hwnd, v := range g.windows {
 		if !isWindow(hwnd) || visibilityOwner(hwnd) != g.token {
@@ -303,6 +321,15 @@ func (g *startupVisibility) restore() {
 		}
 		procRemoveProp.Call(hwnd, uintptr(unsafe.Pointer(visibilityProperty)))
 		win.SetWindowPos(win.HWND(hwnd), 0, 0, 0, 0, 0, win.SWP_NOMOVE|win.SWP_NOSIZE|win.SWP_NOZORDER|win.SWP_NOACTIVATE|win.SWP_FRAMECHANGED)
+		// Release the explicit taskbar suppression even after a native close.
+		// AddTab re-enrolls a hidden window without showing it or its button;
+		// omitting this would also suppress its next native tray restoration.
+		// Untouched silent/owned/utility windows are never enrolled here.
+		if v.taskbarHidden && taskbarEligibleWindow(hwnd) {
+			if err := g.taskbar.setVisible(hwnd, true); err != nil {
+				errs = append(errs, fmt.Errorf("restore window 0x%X taskbar button: %w", hwnd, err))
+			}
+		}
 	}
 	g.stopErr = errors.Join(g.stopErr, errors.Join(errs...))
 }

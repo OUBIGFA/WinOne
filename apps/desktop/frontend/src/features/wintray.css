@@ -1,4 +1,23 @@
 .wintray-workspace { container-type: inline-size; min-width: 0; }
+/* The program list and its settings scroll independently inside the page. */
+[data-slot="page-scroll"]:has(.wintray-page) { overflow: hidden; display: flex; flex-direction: column; }
+[data-slot="page-content"]:has(.wintray-page) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.wintray-page, .wintray-page > [data-slot="tabs"], .wintray-page > [data-slot="tabs"] > [data-slot="tabs-content"],
+.wintray-programs, .wintray-workspace { flex: 1; min-height: 0; }
+.wintray-page, .wintray-page > [data-slot="tabs"], .wintray-page > [data-slot="tabs"] > [data-slot="tabs-content"],
+.wintray-programs { display: flex; flex-direction: column; }
+.wintray-workspace, .wintray-panels { height: 100%; }
+.wintray-program-list { container-type: inline-size; height: 100%; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+.wintray-program-row[data-slot="item"] { flex-wrap: nowrap; gap: 8px; padding: 10px 6px; min-width: 0; }
+.wintray-program-name { flex: 1; min-width: 48px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.wintray-row-controls { display: flex; flex: none; align-items: center; gap: 8px; }
+.wintray-row-controls button[data-slot="button"] { width: 28px; height: 32px; }
+/* Keep the shared switches' extended hit areas and focus rings inside the
+   padded scroll pane; reserve the scrollbar so tabs do not reflow on change. */
+.wintray-program-detail { height: 100%; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; overscroll-behavior: contain; }
+/* The fixed page shell also contains Startup and Logs. Give those panels their
+   own scroll area so their final controls remain reachable in short windows. */
+.wintray-page > [data-slot="tabs"] > [data-slot="tabs-content"]:not(:has(.wintray-programs)) { overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; overscroll-behavior: contain; }
 .wintray-panels > [data-slot="resizable-panel"] { min-width: 0; overflow-x: clip; }
 .wintray-program-detail [data-slot="tabs"],
 .wintray-program-detail [data-slot="tabs-content"],
@@ -7,9 +26,20 @@
 .wintray-program-detail [data-slot="select-trigger"] { width: 100%; min-width: 0; }
 .wintray-program-detail [data-slot="select-value"] { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .wintray-program-detail label { min-width: 0; overflow-wrap: anywhere; }
-@container (max-width: 680px) {
+/* A narrow list keeps every action on the same row. The repeated tray label
+   remains the switch's accessible name and is available as a hover hint. */
+@container (max-width: 460px) {
+ .wintray-program-row[data-slot="item"], .wintray-row-controls { gap: 4px; }
+ .wintray-row-controls [data-slot="select-trigger"] { width: 64px; padding-inline: 8px; }
+ .wintray-collect-control { position: relative; }
+ .wintray-collect-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+@container (max-width: 860px) {
  .wintray-panels { flex-direction: column !important; }
- .wintray-panels > [data-slot="resizable-panel"] { flex: none !important; width: 100%; }
+ .wintray-panels > [data-slot="resizable-panel"] { flex: 1 1 50% !important; width: 100%; min-height: 0; }
+ /* Keep two rows readable when translated headings use more vertical space,
+    while reserving at least half the workspace for the scrolling details. */
+ .wintray-panels > [data-slot="resizable-panel"]:first-child { flex: 0 0 min(50%, max(140px, 34%)) !important; }
  .wintray-panels > [data-slot="resizable-handle"] { display: none; }
  .wintray-program-detail { padding-left: 0; border-top: 1px solid var(--border); }
 }

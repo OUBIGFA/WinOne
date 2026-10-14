@@ -14,6 +14,9 @@ import (
 // hidden console and checks that its console window exists, is invisible and
 // can be shown again — the contract the tray host relies on.
 func TestIntegration_HiddenConsoleLaunch(t *testing.T) {
+	if os.Getenv("WINTRAY_CONSOLE_LIVE_TEST") != "1" {
+		t.Skip("set WINTRAY_CONSOLE_LIVE_TEST for owned console-window checks")
+	}
 	ping := filepath.Join(os.Getenv("SystemRoot"), "System32", "ping.exe")
 	if _, err := os.Stat(ping); err != nil {
 		t.Skipf("ping.exe not available: %v", err)

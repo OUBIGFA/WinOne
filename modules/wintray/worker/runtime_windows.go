@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/lxn/walk"
+	"winone/internal/diagnostics"
 	"winone/internal/host"
 	"winone/internal/residency"
 	"winone/internal/transport"
@@ -91,10 +92,11 @@ func Run(parent context.Context, pipe, dataDir string, autorun, recoverOnly bool
 	if err := os.MkdirAll(dataDir, 0700); err != nil {
 		return err
 	}
-	logger, err := logging.New(dataDir)
+	logOutput, err := diagnostics.NewModuleWriter(dataDir, "wintray")
 	if err != nil {
 		return err
 	}
+	logger := logging.NewOutput(logOutput)
 	defer logger.Close()
 	store := config.NewStore(filepath.Join(dataDir, "settings.json"))
 	projectionPath := filepath.Join(dataDir, "managed-settings.json")
@@ -251,12 +253,6 @@ func (r *Runtime) checkRunLimits(now time.Time) {
 		return
 	}
 	snapshot := r.manager.Snapshot()
-	if err := ensureLegacyStopped(); err != nil {
-		r.jobsMu.Lock()
-		r.lastError = err.Error()
-		r.jobsMu.Unlock()
-		return
-	}
 	if snapshot.RecoveryError != "" {
 		return
 	}
@@ -300,10 +296,9 @@ func (r *Runtime) onUI(action func() error) error {
 }
 
 // Reconcile retains upstream task migration and icon restoration semantics.
+// Independent WinTray owns its own profile and lifetime; its presence never
+// blocks this Host-owned module or the installer's recovery-only worker.
 func (r *Runtime) Reconcile(settings config.Settings, allowElevated bool) error {
-	if err := ensureLegacyStopped(); err != nil {
-		return err
-	}
 	if err := r.syncTasks(settings, allowElevated); err != nil {
 		return err
 	}
@@ -495,9 +490,6 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 			return fail(errors.New(snapshot.RecoveryError))
 		}
 		result = r.startJob(func() (any, error) {
-			if err := ensureLegacyStopped(); err != nil {
-				return nil, err
-			}
 			return r.startConfiguredApps(snapshot.Settings)
 		})
 	case "settings.save":
@@ -510,9 +502,6 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 			return fail(err)
 		}
 		result = r.startJob(func() (any, error) {
-			if err := ensureLegacyStopped(); err != nil {
-				return nil, err
-			}
 			return r.manager.SaveImported(args.Revision, args.Settings, args.History)
 		})
 	case "settings.reload":
@@ -568,9 +557,6 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 			return fail(errors.New("程序不存在"))
 		}
 		result = r.startJob(func() (any, error) {
-			if err := ensureLegacyStopped(); err != nil {
-				return nil, err
-			}
 			out := r.orchestrator.StartNow(r.ctx, *entry, settings.CloseWindowRetrySeconds)
 			r.adopt(*entry, out)
 			if !out.Managed {
@@ -628,6 +614,7 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 		if err := json.Unmarshal(request.Params, &args); err != nil {
 			return fail(err)
 		}
+		var automatic *traybox.Icon
 		if err := r.onUI(func() error {
 			if strings.HasPrefix(args.ID, "hosted:") {
 				if args.Right {
@@ -635,14 +622,24 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 				}
 				return r.hosted.ActivateMenu(args.ID, args.Action)
 			}
-			if args.Action != "" {
+			if args.Action != "" && args.Action != "double" && args.Action != "open" {
 				return errors.New("不支持的托盘图标操作")
+			}
+			if args.Action == "double" && args.Right {
+				return errors.New("托盘单击和双击操作冲突")
 			}
 			for _, icon := range r.box.Icons() {
 				if icon.Identity() == args.ID {
+					if args.Action == "open" && !args.Right {
+						copy := icon
+						automatic = &copy
+						return nil
+					}
 					action := traybox.ActionClick
 					if args.Right {
 						action = traybox.ActionRightClick
+					} else if args.Action == "double" {
+						action = traybox.ActionDoubleClick
 					}
 					return traybox.Activate(icon, action)
 				}
@@ -650,6 +647,25 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 			return traybox.ErrIconGone
 		}); err != nil {
 			return fail(err)
+		}
+		// Observe outside the UI thread so collection and native callbacks
+		// keep responding while the target application opens.
+		if automatic != nil {
+			if err := traybox.OpenIcon(r.ctx, *automatic, func() (traybox.Icon, error) {
+				var current traybox.Icon
+				err := r.onUI(func() error {
+					for _, icon := range r.box.Icons() {
+						if icon.Identity() == args.ID {
+							current = icon
+							return nil
+						}
+					}
+					return traybox.ErrIconGone
+				})
+				return current, err
+			}); err != nil {
+				return fail(err)
+			}
 		}
 		result = map[string]bool{"delivered": true}
 	case "shutdown":

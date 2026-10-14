@@ -5,12 +5,11 @@ $root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'sharex-native-host.ps1')
 . (Join-Path $PSScriptRoot 'sharex-native-presentation.ps1')
 $source = (Get-Content -LiteralPath (Join-Path $root 'third_party/sources.json') -Raw -Encoding UTF8 | ConvertFrom-Json).sharex
-$cache = Join-Path $root '_temp/dependencies'
+$cache = Join-Path $root 'dist/resources/sources'
 $archive = Join-Path $cache 'ShareX-v21.0.0.zip'
 $checkout = Join-Path $cache 'ShareX-21.0.0'
 $marker = Join-Path $checkout '.winone-source-sha256'
 function ApplyLocalEditorOptions([string]$directory) {
-    Initialize-ShareXNativeHost $directory
     $form = Join-Path $directory 'ShareX.ScreenCaptureLib/Forms/RegionCaptureForm.cs'
     $formText = [IO.File]::ReadAllText($form)
     $updatedForm = $formText.Replace('title.AppendFormat("ShareX - {0}",', 'title.AppendFormat(ShareXResources.Name + " - {0}",')
@@ -29,6 +28,8 @@ function ApplyLocalEditorOptions([string]$directory) {
     Update-ShareXNativeEventInput $directory
     Update-ShareXNativeSelectionOutline $form
     Update-ShareXNativeEdgeSnap (Join-Path $directory 'ShareX.ScreenCaptureLib/Shapes/ShapeManager.cs')
+    # Ordered composition builds on the owned background and presentation hooks.
+    Initialize-ShareXNativeHost $directory
     $manager = Join-Path $directory 'ShareX.ScreenCaptureLib/ScrollingCaptureManager.cs'
     $managerText = [IO.File]::ReadAllText($manager)
     if ($managerText.Contains('internal class ScrollingCaptureManager')) {

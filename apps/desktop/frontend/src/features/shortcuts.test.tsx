@@ -6,6 +6,18 @@ import { Shortcuts } from "./shortcuts";
 const api=vi.hoisted(()=>({getSnapshot:vi.fn(),getShortcuts:vi.fn(),saveSettings:vi.fn(),shortcutRecordingPort:{begin:vi.fn(async()=>"token"),end:vi.fn(async()=>{})}}));
 vi.mock("../bridge",()=>api);
 afterEach(()=>{cleanup();vi.clearAllMocks();});
+it("edits and clears the global open shortcut while displaying its conflict",async()=>{
+ api.getSnapshot.mockResolvedValue({settings:{schemaVersion:1,revision:0,theme:"system",openShortcut:"Alt+A"}});
+ api.getShortcuts.mockResolvedValue({bindings:[{id:"open-winone",registered:false,shortcut:"Alt+A",error:"快捷键被占用"}],lastError:""});
+ api.saveSettings.mockImplementation(async value=>({...value,revision:1}));
+ render(<Shortcuts moduleId="application" onSaved={()=>{}}/>);const user=userEvent.setup();
+ const input=await screen.findByRole("textbox",{name:"打开 WinOne"});
+ expect((input as HTMLInputElement).value).toBe("Alt+A");await screen.findByText("快捷键被占用");
+ await user.click(input);await screen.findByText("请按下组合键，Esc 取消，Delete 清除。");await user.keyboard('{Delete}');
+ await user.click(screen.getByRole("button",{name:"保存快捷键"}));
+ await screen.findByText("已保存");
+ expect(api.saveSettings).toHaveBeenCalledWith(expect.objectContaining({openShortcut:""}));
+});
 it("does not mark recording the saved shortcut as an unsaved change",async()=>{
  api.getSnapshot.mockResolvedValue({settings:{schemaVersion:1,revision:0,theme:"system",captureShortcut:"Ctrl+Alt+S"}});api.getShortcuts.mockResolvedValue({bindings:[]});
  render(<Shortcuts moduleId="capture" onSaved={()=>{}}/>);const user=userEvent.setup();
@@ -22,7 +34,7 @@ it("reports persisted settings even if refreshing registration status fails",asy
  await user.keyboard('{Control>}{Shift>}{F9}{/Shift}{/Control}');
  await user.click(screen.getByRole("button",{name:"保存快捷键"}));await screen.findByRole("alert");
  expect(saved).toHaveBeenCalledOnce();expect(screen.getByText("已保存")).toBeTruthy();
- expect(screen.getByText("暂时无法确认是否生效")).toBeTruthy();
+ expect(screen.getAllByText("暂时无法确认是否生效")).toHaveLength(3);
  expect(screen.getByRole("button",{name:"保存快捷键"}).hasAttribute("disabled")).toBe(true);
 });
 it("shows registration conflicts and keeps the draft on persistence failure",async()=>{

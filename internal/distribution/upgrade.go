@@ -14,6 +14,7 @@ import (
 // UpgradePlan describes payload changes only. It does not establish publisher
 // trust, validate the live installation, or authorize changing its files.
 type UpgradePlan struct {
+	Reinstall              bool          `json:"reinstall,omitempty"`
 	PreviousVersion        string        `json:"previousVersion"`
 	NextVersion            string        `json:"nextVersion"`
 	PreviousManifestSHA256 string        `json:"previousManifestSha256"`
@@ -43,6 +44,16 @@ func CompareVersions(previous, next string) (int, error) {
 // PlanUpgrade verifies both archives before comparing their inventories. The
 // executor must separately validate live files and recheck candidate contents.
 func PlanUpgrade(previousPackage, nextPackage string) (UpgradePlan, error) {
+	return planUpgrade(previousPackage, nextPackage, false)
+}
+
+// PlanInstallation also accepts explicit same-version local reinstallation.
+// Automatic update discovery continues to use the strictly newer PlanUpgrade.
+func PlanInstallation(previousPackage, nextPackage string) (UpgradePlan, error) {
+	return planUpgrade(previousPackage, nextPackage, true)
+}
+
+func planUpgrade(previousPackage, nextPackage string, allowSame bool) (UpgradePlan, error) {
 	previous, err := Verify(previousPackage)
 	if err != nil {
 		return UpgradePlan{}, err
@@ -55,10 +66,10 @@ func PlanUpgrade(previousPackage, nextPackage string) (UpgradePlan, error) {
 	if err != nil {
 		return UpgradePlan{}, err
 	}
-	if order >= 0 {
+	if order > 0 || (order == 0 && !allowSame) {
 		return UpgradePlan{}, errors.New("upgrade must target a newer version; same-version repair is a separate operation")
 	}
-	plan := UpgradePlan{PreviousVersion: previous.Version, NextVersion: next.Version, Files: []UpgradeFile{}}
+	plan := UpgradePlan{Reinstall: order == 0, PreviousVersion: previous.Version, NextVersion: next.Version, Files: []UpgradeFile{}}
 	// Canonical manifest digests bind the plan to the verified inventory, not
 	// to incidental JSON formatting or the surrounding ZIP compression.
 	plan.PreviousManifestSHA256 = manifestFingerprint(previous)

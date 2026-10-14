@@ -1,0 +1,6 @@
+package usage
+
+// WinOne keeps one ledger across isolated provider profiles. These hooks are
+// configured once by its short-lived worker, never by an HTTP client.
+var WinOnePath string
+var WinOneRecord func(Record) Record

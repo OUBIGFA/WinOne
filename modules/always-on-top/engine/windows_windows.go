@@ -121,4 +121,33 @@ func (n *Native) Foreground() (Window, error) {
 	h, _, _ := user32.NewProc("GetForegroundWindow").Call()
 	return windowAt(h, n.owner)
 }
+
+// Hovered targets the visible window under the pointer without activating it.
+// GA_ROOT lifts child controls to their own top-level window, not its owner.
+func (n *Native) Hovered() (Window, error) {
+	return hoverTarget(func() (uintptr, error) {
+		var point struct{ X, Y int32 }
+		if ok, _, _ := user32.NewProc("GetCursorPos").Call(uintptr(unsafe.Pointer(&point))); ok == 0 {
+			return 0, fmt.Errorf("无法读取鼠标位置")
+		}
+		packed := uintptr(uint64(uint32(point.X)) | uint64(uint32(point.Y))<<32)
+		h, _, _ := user32.NewProc("WindowFromPoint").Call(packed)
+		return h, nil
+	}, func(h uintptr) uintptr { root, _, _ := user32.NewProc("GetAncestor").Call(h, 2); return root }, n.Inspect)
+}
+
+func hoverTarget(pointer func() (uintptr, error), root func(uintptr) uintptr, inspect func(uintptr) (Window, error)) (Window, error) {
+	h, err := pointer()
+	if err != nil {
+		return Window{}, err
+	}
+	if h == 0 {
+		return Window{}, fmt.Errorf("鼠标下没有可置顶的窗口")
+	}
+	h = root(h)
+	if h == 0 {
+		return Window{}, fmt.Errorf("鼠标下的窗口已关闭")
+	}
+	return inspect(h)
+}
 func (n *Native) Inspect(handle uintptr) (Window, error) { return windowAt(handle, n.owner) }

@@ -30,6 +30,7 @@ import (
 const (
 	AppTaskHelperRegister = "--register-app-task"
 	AppTaskHelperDelete   = "--delete-app-task"
+	AppTaskHelperRelease  = "--release-app-tasks"
 )
 
 // errElevationNeeded reports a task whose registration needs the elevated
@@ -49,10 +50,18 @@ type AppTasks struct {
 	statePath     string
 	run           func(args ...string) ([]byte, error)
 	elevateSelf   func(args ...string) error
+	elevated      func() bool
 	findEntries   func(string) ([]startupEntry, error)
 	writeApproval func(string, string, approvalValue, approvalValue) error
 	// Log is an optional diagnostic callback; set it before calling Sync.
 	Log func(string)
+}
+
+func (t *AppTasks) isElevated() bool {
+	if t.elevated != nil {
+		return t.elevated()
+	}
+	return IsProcessElevated()
 }
 
 func NewAppTasks() (*AppTasks, error) {
@@ -119,7 +128,7 @@ func (t *AppTasks) Sync(settings config.Settings, allowElevated bool) error {
 		// An unlimited duplicate could otherwise launch the same executable
 		// around a limited entry's decision. Include every enabled entry.
 		for _, entry := range settings.ManagedApps {
-			if entry.RunOnStartup {
+			if config.ShouldLaunchViaWinTray(entry) {
 				pathCounts[strings.ToLower(filepath.Clean(entry.ExePath))]++
 				idCounts[strings.ToLower(entry.ID)]++
 			}
@@ -269,8 +278,11 @@ func (t *AppTasks) remove(name string, allowElevated bool) error {
 	if !found {
 		return nil
 	}
-	if IsProcessElevated() || !allowElevated || t.elevateSelf == nil {
+	if t.isElevated() {
 		return err
+	}
+	if !allowElevated || t.elevateSelf == nil {
+		return errors.Join(errElevationNeeded, err)
 	}
 	return t.elevateSelf(AppTaskHelperDelete, name)
 }

@@ -1,3 +1,4 @@
+import {RefreshCw,FolderOpen} from "lucide-react";
 import {Notice} from "../ui/notice";
 import {useEffect,useState} from "react";
 import {readModuleLogs,openModuleLogFolder,type ModuleLogs} from "../bridge";
@@ -6,7 +7,7 @@ import {Button} from "../ui/button";
 import "./diagnostics.css";
 
 // The owning panel mounts this viewer only while its Logs tab is selected.
-export function Diagnostics({moduleId}:{moduleId:"host"|"capture"|"always-on-top"|"wintray"}) {
+export function Diagnostics({moduleId}:{moduleId:"host"|"capture"|"selection"|"always-on-top"|"wintray"}) {
   return <div className="diagnostics">
     <LogViewer key={moduleId} module={moduleId}/>
   </div>;
@@ -31,8 +32,8 @@ function LogViewer({module}:{module:string}) {
   }
   return <>
     <div className="detail-actions">
-      <Button disabled={busy} onClick={()=>setRevision(value=>value+1)}>{t("diagnostics.refresh")}</Button>
-      <Button disabled={opening||!data?.folderAvailable} onClick={()=>void openFolder()}>{t("diagnostics.openFolder")}</Button>
+      <Button icon={RefreshCw} disabled={busy} onClick={()=>setRevision(value=>value+1)}>{t("diagnostics.refresh")}</Button>
+      <Button icon={FolderOpen} disabled={opening||!data?.folderAvailable} onClick={()=>void openFolder()}>{t("diagnostics.openFolder")}</Button>
     </div>
     {busy&&<p role="status">{t("diagnostics.loading")}</p>}
     {error&&<Notice>{error}</Notice>}

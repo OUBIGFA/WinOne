@@ -60,3 +60,39 @@ func TestOldPackageGateCannotActivateOrHandleAfterRebinding(t *testing.T) {
 		t.Fatal("old package still reported usable")
 	}
 }
+
+func TestPackageGateDoesNotExemptWorkerReadsFromMaintenance(t *testing.T) {
+	store, err := modulestate.Open(filepath.Join(t.TempDir(), "state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := catalog.Manifest{ManifestVersion: 1, ID: "example.tool", Name: catalog.LocalizedName{Chinese: "测试", English: "Test"}, Distribution: "optional", Worker: "worker.exe", Activation: "on-demand", SettingsSchemaVersion: 1}
+	digest := strings.Repeat("a", 64)
+	if _, err = store.BindPackage(manifest.ID, digest); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	gate, err := NewPackageGate(manifest, digest, store, LifecycleHooks{Start: func() error { return nil }, Stop: func() error { return nil }, IntentChanged: func() error { return nil }, Status: func() host.Module { return host.Module{} }, Handle: func(r host.Request) host.Response { calls++; return host.Response{ID: r.ID} }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = gate.SetEnabled(store.Snapshot().Revision, true); err != nil {
+		t.Fatal(err)
+	}
+	queue := host.NewConfigurationQueue(nil)
+	gate.SetActionGuard(queue.AcquireAction)
+	release, ok := queue.AcquireMaintenance()
+	if !ok {
+		t.Fatal("could not acquire maintenance")
+	}
+	defer release()
+	for _, method := range []string{"snapshot", "settings.get", "jobs.get", "echo"} {
+		reply := gate.Handle(host.Request{Version: 1, ID: "blocked", Method: method})
+		if reply.Error == nil || reply.Error.Code != "configuration_busy" {
+			t.Errorf("worker method bypassed maintenance: %s: %+v", method, reply)
+		}
+	}
+	if calls != 0 {
+		t.Fatal("maintenance permitted worker calls", calls)
+	}
+}

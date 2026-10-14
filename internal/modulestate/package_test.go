@@ -1,9 +1,11 @@
 package modulestate
 
 import (
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
+	"winone/internal/settings"
 )
 
 func TestPackageBindingStartsDisabledAndSurvivesLifecycle(t *testing.T) {
@@ -46,6 +48,54 @@ func TestPackageBindingStartsDisabledAndSurvivesLifecycle(t *testing.T) {
 	}
 	if reopened.Snapshot().Modules["example.tool"].PackageSHA256 != digest {
 		t.Fatal("binding lost on disable or restart")
+	}
+}
+
+func TestPackageChangeBindingIsInactiveComparedAndRetryable(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	old, next, other := strings.Repeat("a", 64), strings.Repeat("b", 64), strings.Repeat("c", 64)
+	if _, err = store.BindPackage("example.tool", old); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.ReplacePackageBinding("example.tool", other, next); !errors.Is(err, settings.ErrConflict) {
+		t.Fatal("stale binding accepted", err)
+	}
+	saved, err := store.ReplacePackageBinding("example.tool", old, next)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayed, err := store.ReplacePackageBinding("example.tool", old, next)
+	if err != nil || replayed.Revision != saved.Revision {
+		t.Fatal("replayed binding changed revision", err)
+	}
+	if _, err = store.SetIntent(saved.Revision, "example.tool", true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.ReplacePackageBinding("example.tool", next, ""); err == nil {
+		t.Fatal("active binding was cleared")
+	}
+	if _, err = store.SetIntent(store.Snapshot().Revision, "example.tool", false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.ReplacePackageBinding("example.tool", next, ""); err == nil {
+		t.Fatal("pending recovery was cleared")
+	}
+	if _, err = store.FinishStop("example.tool"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.ReplacePackageBinding("example.tool", next, ""); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record := reopened.Snapshot().Modules["example.tool"]; record.PackageSHA256 != "" || record.Enabled || record.PendingStop {
+		t.Fatal(record)
 	}
 }
 

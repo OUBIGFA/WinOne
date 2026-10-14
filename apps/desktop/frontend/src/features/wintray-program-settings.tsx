@@ -24,7 +24,7 @@ export function WinTrayProgramSettings({program:p,blocked,update}:{program:Progr
   const mode=p.launchViaLogonTask?"task":p.launchHiddenInBackground?"hidden":p.trayBehavior.autoMinimizeAndHideOnLaunch?"tray":"normal";
   const modes=(/\.exe$/i.test(p.exePath)?["tray","hidden","task","normal"]:["hidden"]).map(value=>({value,label:t(`wintray.${value}`)}));
   return <Tabs defaultValue={initialTab}>
-    <TabsList aria-label={p.name||t("wintray.advancedProgram")}><TabsTrigger value="common">{t("wintray.commonSettings")}</TabsTrigger><TabsTrigger value="advanced">{t("wintray.moreSettings")}</TabsTrigger></TabsList>
+    <TabsList variant="line" aria-label={p.name||t("wintray.advancedProgram")}><TabsTrigger value="common">{t("wintray.commonSettings")}</TabsTrigger><TabsTrigger value="advanced">{t("wintray.moreSettings")}</TabsTrigger></TabsList>
     <TabsContent value="common" className="space-y-5 pt-3">
       <div className="flex items-center justify-between gap-4"><Label htmlFor={`startup-${p.id}`}>{t("wintray.startup")}</Label><Switch id={`startup-${p.id}`} checked={p.runOnStartup} disabled={blocked} onCheckedChange={value=>update({runOnStartup:value})}/></div>
       <div className="space-y-2"><Label htmlFor="program-mode">{t("wintray.mode")}</Label>

@@ -7,8 +7,15 @@ require (
 	fyne.io/systray v1.12.2
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/wailsapp/wails/v2 v2.14.0
-	golang.org/x/mod v0.37.0
-	golang.org/x/sys v0.47.0
+	golang.org/x/mod v0.41.0
+	golang.org/x/sys v0.48.0
+)
+
+require github.com/evanphx/json-patch/v5 v5.9.11
+
+require (
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
+	golang.org/x/image v0.46.0 // indirect
 )
 
 require (
@@ -29,6 +36,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/samber/lo v1.49.1 // indirect
 	github.com/tkrajina/go-reflector v0.5.8 // indirect
@@ -38,7 +46,7 @@ require (
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	winone/modules/wintray v0.0.0
 )
 

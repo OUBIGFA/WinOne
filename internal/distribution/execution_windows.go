@@ -27,12 +27,24 @@ type UpgradeExecution struct {
 	// CheckStartup must perform a bounded, isolated check without migrating
 	// live user configuration. Nil runs all native target checks.
 	CheckStartup func() error
+	// CheckConfiguration validates the target against the existing profile
+	// before any payload or registration change. Nil uses the staged Host.
+	CheckConfiguration func() error
+	// Progress describes actual phases without estimating elapsed-time completion.
+	Progress func(string)
+}
+
+func reportUpgradeProgress(report func(string), stage string) {
+	if report != nil {
+		report(stage)
+	}
 }
 
 // ExecuteUpgrade coordinates verified payload and metadata changes. The caller
 // supplies trusted target metadata and real lifecycle/probe implementations;
 // this does not authenticate a remote release or implement an online updater.
 func ExecuteUpgrade(r UpgradeExecution) error {
+	reportUpgradeProgress(r.Progress, "verifying")
 	if r.Journal == nil {
 		return errors.New("upgrade journal is required")
 	}
@@ -69,6 +81,11 @@ func ExecuteUpgrade(r UpgradeExecution) error {
 	if r.CheckStartup == nil {
 		r.CheckStartup = func() error { return CheckNativeUpgrade(r.Installation, r.Profile, filepath.Dir(r.Journal.path)) }
 	}
+	if r.CheckConfiguration == nil {
+		r.CheckConfiguration = func() error {
+			return CheckNativeUpgradeConfiguration(r.Staged, r.Profile, filepath.Dir(r.Journal.path))
+		}
+	}
 	for _, path := range []string{r.Staged, r.Backup, r.Journal.path} {
 		resolved, err := filepath.EvalSymlinks(path)
 		if err != nil {
@@ -83,7 +100,7 @@ func ExecuteUpgrade(r UpgradeExecution) error {
 			return errors.New("upgrade working data must be outside installation")
 		}
 	}
-	plan, err := PlanUpgrade(r.PreviousPackage, r.NextPackage)
+	plan, err := planUpgrade(r.PreviousPackage, r.NextPackage, r.Journal.Snapshot().Plan.Reinstall)
 	if err != nil {
 		return err
 	}
@@ -217,6 +234,11 @@ func ExecuteUpgrade(r UpgradeExecution) error {
 		if err = verify(true); err != nil {
 			return err
 		}
+		reportUpgradeProgress(r.Progress, "checking-configuration")
+		if err = r.CheckConfiguration(); err != nil {
+			return errors.Join(err, clearExecutionMarker(root, r.Journal.Snapshot().ID))
+		}
+		reportUpgradeProgress(r.Progress, "restoring-resources")
 		if err = r.Prepare(); err != nil {
 			return err
 		}
@@ -231,6 +253,7 @@ func ExecuteUpgrade(r UpgradeExecution) error {
 		phase = "applying"
 	}
 	rollback := func() error {
+		reportUpgradeProgress(r.Progress, "rolling-back")
 		if r.Journal.Snapshot().Phase != "restoring" {
 			if err := r.Journal.Transition(r.Journal.Snapshot().Revision, "restoring"); err != nil {
 				return err
@@ -255,6 +278,9 @@ func ExecuteUpgrade(r UpgradeExecution) error {
 		if err := RestoreUpgradeShortcut(r.ShortcutPath, originalShortcut, r.NextShortcut, r.Journal); err != nil {
 			return err
 		}
+		if err := removeRolledBackDirectories(root, plan); err != nil {
+			return err
+		}
 		if err := verify(true); err != nil {
 			return err
 		}
@@ -271,6 +297,7 @@ func ExecuteUpgrade(r UpgradeExecution) error {
 	}
 	apply := func() error {
 		if r.Journal.Snapshot().Phase == "applying" {
+			reportUpgradeProgress(r.Progress, "applying")
 			for _, name := range []string{"uninstaller", "registration", "shortcut"} {
 				if err := r.Journal.BindMetadata(r.Journal.Snapshot().Revision, name, bindings[name]); err != nil {
 					return err
@@ -297,12 +324,15 @@ func ExecuteUpgrade(r UpgradeExecution) error {
 				return err
 			}
 		}
+		reportUpgradeProgress(r.Progress, "verifying")
 		if err := verify(false); err != nil {
 			return err
 		}
+		reportUpgradeProgress(r.Progress, "checking-startup")
 		if err := r.CheckStartup(); err != nil {
 			return err
 		}
+		reportUpgradeProgress(r.Progress, "verifying")
 		if err := verify(false); err != nil {
 			return err
 		}

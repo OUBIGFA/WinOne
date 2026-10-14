@@ -60,7 +60,7 @@ func TestRecordingRestoresWhenOwnerExits(t *testing.T) {
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
 		runtime.mu.Lock()
-		restored := runtime.recording == nil && len(runtime.statuses) == 2 && runtime.statuses[0].Registered
+		restored := runtime.recording == nil && len(runtime.statuses) == 7 && runtime.statuses[0].Registered && runtime.statuses[2].Registered && runtime.statuses[3].Registered && runtime.statuses[6].ID == "open-winone" && runtime.statuses[6].Registered
 		runtime.mu.Unlock()
 		if restored {
 			return
@@ -110,7 +110,7 @@ func TestRecordingReleasesAndRestoresLatestBindings(t *testing.T) {
 	if err = runtime.endRecording(token); err != nil {
 		t.Fatal(err)
 	}
-	if len(registrar.active) != 2 || registrar.active[1].Shortcut != "Ctrl+Shift+F9" {
+	if len(registrar.active) != 7 || registrar.active[1].Shortcut != "Ctrl+Shift+F9" || registrar.active[2].Shortcut != "Shift+C" || registrar.active[3].Shortcut != "Alt+Shift+A" || registrar.active[5].Shortcut != "Ctrl+Shift+Q" || registrar.active[6].ID != "open-winone" || registrar.active[6].Shortcut != "Alt+A" {
 		t.Fatal(registrar.active)
 	}
 }
@@ -123,11 +123,22 @@ func TestNativeRecordingReleasesAndRestoresRegistration(t *testing.T) {
 	defer registrar.Close()
 	defer competitor.Close()
 	runtime := &shortcutRuntime{registrar: registrar}
-	value := settings.Settings{CaptureShortcut: "Ctrl+Alt+Shift+F23"}
+	// Exercise the selected binding only; do not reserve the user's default
+	// OCR, translation or selection keys during this isolated native test.
+	empty := ""
+	value := settings.Settings{CaptureShortcut: "Ctrl+Alt+Shift+F23", OCRShortcut: &empty, TranslateShortcut: &empty, SelectionShortcut: &empty, QuickAssistantShortcut: &empty, OpenShortcut: &empty}
+	captureRegistered := func() bool {
+		for _, status := range runtime.statuses {
+			if status.ID == "capture" && status.Shortcut == value.CaptureShortcut {
+				return status.Registered
+			}
+		}
+		return false
+	}
 	if err := runtime.applyConfiguration(value); err != nil {
 		t.Fatal(err)
 	}
-	if len(runtime.statuses) != 2 || !runtime.statuses[0].Registered {
+	if !captureRegistered() {
 		t.Fatal("test shortcut unavailable", runtime.statuses)
 	}
 	token, err := runtime.beginRecording(uint32(os.Getpid()))
@@ -145,7 +156,7 @@ func TestNativeRecordingReleasesAndRestoresRegistration(t *testing.T) {
 	if err = runtime.endRecording(token); err != nil {
 		t.Fatal(err)
 	}
-	if !runtime.statuses[0].Registered {
+	if !captureRegistered() {
 		t.Fatal("registration did not resume")
 	}
 }

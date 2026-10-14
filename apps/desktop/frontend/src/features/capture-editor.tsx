@@ -6,7 +6,7 @@ import {captureSurfaceLayout,type CaptureSurface} from "./capture-surface-layout
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Stage, Layer, Rect, Ellipse, Arrow, Line, Group, Text } from "react-konva";
-import { Check, Square, Circle, MoveUpRight, Pencil, PaintBucket, Type, Crop, Grid2X2, Blend, MousePointer2, Undo2, Redo2, Copy, Pin, Save, FolderOpen, Settings2, CircleAlert, X, GripVertical } from "lucide-react";
+import { Check, Square, Circle, MoveUpRight, Pencil, PaintBucket, Type, Crop, WandSparkles, Blend, MousePointer2, Undo2, Redo2, Copy, Pin, Save, FolderOpen, Settings2, CircleAlert, X, GripVertical } from "lucide-react";
 import {useCaptureToolbarDrag} from "./use-capture-toolbar-drag";
 import {CaptureToolbarActions,type ToolbarAction} from "../ui/capture-toolbar-actions";
 import {Popover,PopoverTrigger,PopoverContent,PopoverTitle} from "../components/ui/popover";
@@ -34,7 +34,7 @@ const tools = [
   {kind:"crop",icon:Crop},
   {kind:"rectangle",icon:Square}, {kind:"ellipse",icon:Circle},
   {kind:"arrow",icon:MoveUpRight}, {kind:"pen",icon:Pencil}, {kind:"cover",icon:PaintBucket}, {kind:"text",icon:Type},
-  {kind:"mosaic",icon:Grid2X2}, {kind:"blur",icon:Blend},
+  {kind:"mosaic",icon:WandSparkles}, {kind:"blur",icon:Blend},
 ] as const;
 
 type EditorTool=DrawingTool|"crop"|"select";

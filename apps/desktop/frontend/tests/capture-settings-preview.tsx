@@ -1,4 +1,5 @@
 import {i18n,setApplicationLanguage} from "../src/i18n";
+import {SettingsFixtureShell} from "./settings-fixture-shell";
 // Visual fixture only. Validation and output parity use the shared native/Go fixtures.
 import {createRoot} from "react-dom/client";
 import {CapturePage} from "../src/features/capture";
@@ -19,6 +20,7 @@ window.go={main:{App:{
  BeginShortcutRecording:async()=>"preview-recording",EndShortcutRecording:async()=>{},
  ReadModuleLogs:async()=>({folderAvailable:false,entries:[]}),OpenModuleLogFolder:async()=>{},
  Capture:async(method:string,payload:string)=>{
+ if(method==="ai.configuration.get")return JSON.stringify({revision:1,engine:"google",ocrEngine:"local",target:"auto",prompt:"",providers:[],tasks:{}});
  if(new URLSearchParams(location.search).has("failure")&&(method==="snapshot"||method==="settings.get"))throw Error(new URLSearchParams(location.search).get("error")||"Settings read failed");
  if(method==="snapshot")return JSON.stringify({settings,busy:false,pins:0});
  if(method==="settings.get")return JSON.stringify(settings);
@@ -32,5 +34,5 @@ window.go={main:{App:{
  }
  throw Error("此预览不执行系统操作");
 }}}} as unknown as NonNullable<Window["go"]>;
-void setApplicationLanguage(new URLSearchParams(location.search).get("language")||"zh-CN");
-createRoot(document.getElementById("root")!).render(<main className="mx-auto max-w-4xl p-8"><header><h1>{i18n.t("nav.capture")}</h1></header><ModulePanel moduleId="capture" onSaved={()=>{}} onActivity={()=>{}}><CapturePage/></ModulePanel></main>);
+await setApplicationLanguage(new URLSearchParams(location.search).get("language")||"zh-CN");
+createRoot(document.getElementById("root")!).render(<SettingsFixtureShell page="capture"><header><h1>{i18n.t("nav.capture")}</h1></header><ModulePanel moduleId="capture" onSaved={()=>{}} onActivity={()=>{}}><CapturePage/></ModulePanel></SettingsFixtureShell>);

@@ -31,12 +31,12 @@ func TestFeatureCatalogExcludesInternalServicesAndAcceptsRegisteredExtension(t *
 	}
 	response := service.Handle(Request{Version: 1, ID: "catalog", Method: "modules.catalog"})
 	var manifests []catalog.Manifest
-	if err := json.Unmarshal(response.Result, &manifests); err != nil || len(manifests) != 4 {
+	if err := json.Unmarshal(response.Result, &manifests); err != nil || len(manifests) != len(catalog.Builtins())+1 {
 		t.Fatalf("catalog: %v %+v", err, response)
 	}
 	response = service.Handle(Request{Version: 1, ID: "snapshot", Method: "snapshot"})
 	var snapshot Snapshot
-	if err := json.Unmarshal(response.Result, &snapshot); err != nil || len(snapshot.Modules) != 4 {
+	if err := json.Unmarshal(response.Result, &snapshot); err != nil || len(snapshot.Modules) != len(catalog.Builtins())+1 {
 		t.Fatalf("snapshot: %v %+v", err, response)
 	}
 	for _, module := range snapshot.Modules {

@@ -68,6 +68,13 @@ func applyProfile(request profileApplyRequest, store *configuration.HostStore, s
 	if request.Global {
 		global.Theme = preview.Preferences.Theme
 		global.Language = preview.Preferences.Language
+		if preview.Preferences.DefaultPage != nil {
+			global.DefaultPage = *preview.Preferences.DefaultPage
+		}
+		if preview.Preferences.OpenShortcut != nil {
+			value := *preview.Preferences.OpenShortcut
+			global.OpenShortcut = &value
+		}
 	}
 	plans := map[string]profiles.ModulePlan{}
 	for _, item := range preview.Plan.Modules {
@@ -115,11 +122,33 @@ func applyProfile(request profileApplyRequest, store *configuration.HostStore, s
 	// Only actions implemented by the current Host can be registered. Other
 	// installed-module shortcuts must not be silently discarded during import.
 	for action, key := range preview.Preferences.Shortcuts {
-		if selected["capture"] && strings.HasPrefix(action, "capture.") {
-			if action != "capture.region" {
+		if selected["quick-assistant"] && strings.HasPrefix(action, "quick-assistant.") {
+			if action != "quick-assistant.show" {
 				return empty, fmt.Errorf("当前版本尚不支持导入快捷键 %s", action)
 			}
-			global.CaptureShortcut = key
+			value := key
+			global.QuickAssistantShortcut = &value
+		}
+		if selected["selection"] && strings.HasPrefix(action, "selection.") {
+			if action != "selection.show" {
+				return empty, fmt.Errorf("当前版本尚不支持导入快捷键 %s", action)
+			}
+			value := key
+			global.SelectionShortcut = &value
+		}
+		if selected["capture"] && strings.HasPrefix(action, "capture.") {
+			switch action {
+			case "capture.region":
+				global.CaptureShortcut = key
+			case "capture.ocr":
+				value := key
+				global.OCRShortcut = &value
+			case "capture.translate":
+				value := key
+				global.TranslateShortcut = &value
+			default:
+				return empty, fmt.Errorf("当前版本尚不支持导入快捷键 %s", action)
+			}
 		}
 		if selected["always-on-top"] && strings.HasPrefix(action, "always-on-top.") {
 			if action != "always-on-top.toggle" {
@@ -132,8 +161,16 @@ func applyProfile(request profileApplyRequest, store *configuration.HostStore, s
 		}
 	}
 	if request.Global {
-		preferAdministrator := global.Startup != nil && global.Startup.PreferAdministrator
-		global.Startup = &settings.StartupPreferences{RunAtLogon: preview.Preferences.RunAtLogon, StartMinimized: preview.Preferences.StartMinimized, PreferAdministrator: preferAdministrator}
+		startup := settings.StartupPreferences{}
+		if global.Startup != nil {
+			startup = *global.Startup
+		}
+		startup.RunAtLogon, startup.StartMinimized = preview.Preferences.RunAtLogon, preview.Preferences.StartMinimized
+		if preview.Preferences.KeepUIRunning != nil {
+			value := *preview.Preferences.KeepUIRunning
+			startup.KeepUIRunning = &value
+		}
+		global.Startup = &startup
 	}
 	if err = settings.Validate(global); err != nil {
 		return empty, err

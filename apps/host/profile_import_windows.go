@@ -73,7 +73,7 @@ func previewProfileFile(path string, bindings map[string]string, store *configur
 	if err = json.Unmarshal(document.Values["host"], &global); err != nil {
 		return profileFilePreview{}, err
 	}
-	result.CurrentShortcuts = map[string]string{"capture.region": global.CaptureShortcut, "always-on-top.toggle": global.PinShortcut}
+	result.CurrentShortcuts = map[string]string{"capture.region": global.CaptureShortcut, "capture.ocr": global.OCRBinding(), "capture.translate": global.TranslateBinding(), "always-on-top.toggle": global.PinShortcut, "selection.show": global.SelectionBinding(), "quick-assistant.show": global.QuickAssistantBinding(), "application.open": global.OpenBinding()}
 	ids := []string{}
 	for id := range archive.Paths {
 		ids = append(ids, id)
@@ -90,7 +90,7 @@ func previewProfileFile(path string, bindings map[string]string, store *configur
 			case statErr != nil:
 				view.State = "invalid"
 				view.Error = "找不到此位置，或无法访问"
-			case reference.Kind == "program" && !info.Mode().IsRegular():
+			case (reference.Kind == "program" || reference.Kind == "file") && !info.Mode().IsRegular():
 				view.State = "invalid"
 				view.Error = "请选择程序文件"
 			case reference.Kind == "directory" && !info.IsDir():

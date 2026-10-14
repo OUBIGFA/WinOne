@@ -4,13 +4,16 @@ package engine
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"golang.org/x/sys/windows"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"unsafe"
+	"winone/internal/diagnostics"
 )
 
 type Native struct {
@@ -19,6 +22,27 @@ type Native struct {
 	start, pin, configure, clear, stop *windows.Proc
 	owner                              string
 	closed                             bool
+	logID                              uintptr
+	logOutput                          *diagnostics.Writer
+}
+
+var nativeLogID atomic.Uint64
+var nativeLogWriters sync.Map
+var nativeLogCallback = windows.NewCallback(writeNativeLog)
+
+func writeNativeLog(id uintptr, text *byte, length uintptr) uintptr {
+	value, ok := nativeLogWriters.Load(id)
+	if !ok || text == nil || length > 1<<20 {
+		return 1
+	}
+	writer := value.(*diagnostics.Writer)
+	if _, err := writer.Write(unsafe.Slice(text, int(length))); err != nil {
+		return 1
+	}
+	if _, err := writer.Write([]byte{'\n'}); err != nil {
+		return 1
+	}
+	return 0
 }
 
 // OpenNative loads only the application-shipped DLL using restricted Windows search paths.
@@ -31,7 +55,7 @@ func OpenNative(path, data string) (*Native, error) {
 		return nil, err
 	}
 	n := &Native{dll: &windows.DLL{Name: path, Handle: h}, owner: fmt.Sprintf("WinOne_AOT_%x", sha256.Sum256([]byte(strings.ToLower(filepath.Clean(data)))))}
-	for name, target := range map[string]**windows.Proc{"WinOneAotStart": &n.start, "WinOneAotPin": &n.pin, "WinOneAotConfigure": &n.configure, "WinOneAotClear": &n.clear, "WinOneAotStop": &n.stop} {
+	for name, target := range map[string]**windows.Proc{"WinOneAotStartWithLogger": &n.start, "WinOneAotPin": &n.pin, "WinOneAotConfigure": &n.configure, "WinOneAotClear": &n.clear, "WinOneAotStop": &n.stop} {
 		p, err := n.dll.FindProc(name)
 		if err != nil {
 			n.dll.Release()
@@ -45,9 +69,24 @@ func OpenNative(path, data string) (*Native, error) {
 		return nil, err
 	}
 	key, _ := windows.UTF16PtrFromString(n.owner)
-	result, _, _ := n.start.Call(uintptr(unsafe.Pointer(dir)), uintptr(unsafe.Pointer(key)))
+	moduleDirectory := data
+	if filepath.Base(data) == "native" {
+		moduleDirectory = filepath.Dir(data)
+	}
+	n.logOutput, err = diagnostics.NewModuleWriter(moduleDirectory, "always-on-top")
+	if err != nil {
+		n.dll.Release()
+		return nil, err
+	}
+	n.logID = uintptr(nativeLogID.Add(1))
+	nativeLogWriters.Store(n.logID, n.logOutput)
+	// One static Go callback is reused across DLL lifetimes. Only the bounded
+	// writer registry changes; repeated module toggles cannot exhaust callbacks.
+	result, _, _ := n.start.Call(uintptr(unsafe.Pointer(dir)), uintptr(unsafe.Pointer(key)), nativeLogCallback, n.logID)
 	if err = checkResult(result); err != nil {
 		n.stop.Call()
+		nativeLogWriters.Delete(n.logID)
+		n.logOutput.Close()
 		n.dll.Release()
 		return nil, err
 	}
@@ -135,5 +174,6 @@ func (n *Native) Close() error {
 		return err
 	}
 	n.closed = true
-	return n.dll.Release()
+	nativeLogWriters.Delete(n.logID)
+	return errors.Join(n.logOutput.Close(), n.dll.Release())
 }

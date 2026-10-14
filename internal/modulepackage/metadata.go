@@ -4,7 +4,9 @@ package modulepackage
 
 import (
 	"errors"
+	"reflect"
 	"strconv"
+	"strings"
 	"winone/internal/catalog"
 	"winone/internal/configjson"
 	"winone/internal/distribution"
@@ -16,9 +18,42 @@ const MaxMetadataBytes = 64 << 10
 // versions and host requirements belong to installation, not runtime activation.
 type Metadata struct {
 	SchemaVersion int              `json:"schemaVersion"`
-	Module        catalog.Manifest `json:"module"`
+	Kind          string           `json:"kind,omitempty"`
+	Module        catalog.Manifest `json:"module,omitzero"`
+	Runtime       *RuntimeManifest `json:"runtime,omitempty"`
 	Version       string           `json:"version"`
 	Compatibility Compatibility    `json:"compatibility"`
+	Settings      *SettingsFiles   `json:"settings,omitempty"`
+	Dependencies  []Dependency     `json:"dependencies,omitempty"`
+}
+
+func (m Metadata) PackageKind() string {
+	if m.Kind == "" {
+		return "module"
+	}
+	return m.Kind
+}
+func (m Metadata) PackageID() string {
+	if m.PackageKind() == "runtime" {
+		if m.Runtime != nil {
+			return m.Runtime.ID
+		}
+		return ""
+	}
+	return m.Module.ID
+}
+
+// v2 package settings are data in the signed inventory, never executable
+// validators or paths supplied by the settings window.
+type SettingsFiles struct {
+	Schema     string              `json:"schema"`
+	Defaults   string              `json:"defaults"`
+	Migrations []SettingsMigration `json:"migrations,omitempty"`
+}
+type SettingsMigration struct {
+	From  int    `json:"from"`
+	To    int    `json:"to"`
+	Patch string `json:"patch"`
 }
 type Compatibility struct {
 	MinimumHostVersion          string `json:"minimumHostVersion"`
@@ -61,13 +96,54 @@ func DecodeMetadata(data []byte) (Metadata, error) {
 	return metadata, nil
 }
 func (m Metadata) Validate() error {
-	if m.SchemaVersion != 1 {
+	if m.SchemaVersion != 1 && m.SchemaVersion != 2 && m.SchemaVersion != 3 && m.SchemaVersion != 4 {
 		return errors.New("unsupported module package metadata")
 	}
-	if m.Module.Distribution != "optional" {
+	if m.SchemaVersion < 4 && (m.Kind != "" || m.Runtime != nil || len(m.Dependencies) > 0) {
+		return errors.New("package kinds and dependencies require metadata v4")
+	}
+	if m.SchemaVersion == 4 && m.Kind != "module" && m.Kind != "runtime" {
+		return errors.New("metadata v4 requires an explicit package kind")
+	}
+	runtimePackage := m.PackageKind() == "runtime"
+	if runtimePackage {
+		if m.Runtime == nil || m.Settings != nil || !reflect.DeepEqual(m.Module, catalog.Manifest{}) {
+			return errors.New("runtime packages cannot declare module execution or settings")
+		}
+		if err := m.Runtime.Validate(); err != nil {
+			return err
+		}
+	} else if m.Runtime != nil {
+		return errors.New("module packages cannot declare runtime identity")
+	}
+	if !runtimePackage && (m.SchemaVersion == 1 && m.Settings != nil || m.SchemaVersion >= 2 && m.Settings == nil) {
+		return errors.New("module settings definition does not match metadata version")
+	}
+	if m.Settings != nil && (!distribution.ValidPayloadPath(m.Settings.Schema) || !distribution.ValidPayloadPath(m.Settings.Defaults) || m.Settings.Schema == m.Settings.Defaults) {
+		return errors.New("module settings paths are invalid")
+	}
+	if m.Settings != nil {
+		if m.SchemaVersion < 3 && len(m.Settings.Migrations) > 0 {
+			return errors.New("migration declarations require metadata v3")
+		}
+		if err := validateMigrations(m.Module.SettingsSchemaVersion, m.Settings.Migrations); err != nil {
+			return err
+		}
+		for _, migration := range m.Settings.Migrations {
+			if strings.EqualFold(migration.Patch, m.Settings.Schema) || strings.EqualFold(migration.Patch, m.Settings.Defaults) {
+				return errors.New("migration paths conflict with configuration definitions")
+			}
+		}
+	}
+	if !runtimePackage && m.Module.Distribution != "optional" {
 		return errors.New("external packages cannot declare builtin modules")
 	}
-	if err := m.Module.Validate(); err != nil {
+	if !runtimePackage {
+		if err := m.Module.Validate(); err != nil {
+			return err
+		}
+	}
+	if err := validateDependencies(m.PackageID(), m.Dependencies); err != nil {
 		return err
 	}
 	if _, err := distribution.CompareVersions(m.Version, m.Version); err != nil {

@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -128,6 +129,54 @@ func testAlwaysOnTopOwnedWindowRestoration(t *testing.T, frame bool) {
 	if r, err := call("settings.save", settings); err != nil || r.Error != nil {
 		t.Fatalf("settings: %+v %v", r, err)
 	}
+	if os.Getenv("WINONE_AOT_HOVER_CHECK") == "1" {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+		api := windows.NewLazySystemDLL("user32.dll")
+		normalID, _ := strconv.ParseUint(normal.Handle, 10, 64)
+		foreignID, _ := strconv.ParseUint(foreign.Handle, 10, 64)
+		var pointer struct{ X, Y int32 }
+		if ok, _, _ := api.NewProc("GetCursorPos").Call(uintptr(unsafe.Pointer(&pointer))); ok == 0 {
+			t.Fatal("cannot read pointer")
+		}
+		t.Cleanup(func() { api.NewProc("SetCursorPos").Call(uintptr(pointer.X), uintptr(pointer.Y)) })
+		api.NewProc("SetWindowPos").Call(uintptr(normalID), 0, 100, 100, 450, 300, 0x14)
+		api.NewProc("SetWindowPos").Call(uintptr(foreignID), 0, 340, 120, 450, 300, 0x14)
+		// The console test does not own foreground input. Join the two owned
+		// window queues briefly, as the native UI probe does, then detach them.
+		previous, _, _ := api.NewProc("GetForegroundWindow").Call()
+		previousThread, _, _ := api.NewProc("GetWindowThreadProcessId").Call(previous, 0)
+		targetThread, _, _ := api.NewProc("GetWindowThreadProcessId").Call(uintptr(foreignID), 0)
+		currentThread := uintptr(windows.GetCurrentThreadId())
+		for _, thread := range []uintptr{previousThread, targetThread} {
+			if thread != 0 && thread != currentThread {
+				api.NewProc("AttachThreadInput").Call(currentThread, thread, 1)
+			}
+		}
+		api.NewProc("SetForegroundWindow").Call(uintptr(foreignID))
+		for _, thread := range []uintptr{targetThread, previousThread} {
+			if thread != 0 && thread != currentThread {
+				api.NewProc("AttachThreadInput").Call(currentThread, thread, 0)
+			}
+		}
+		foreground, _, _ := api.NewProc("GetForegroundWindow").Call()
+		if foreground != uintptr(foreignID) {
+			t.Fatal("owned foreground fixture was not activated")
+		}
+		api.NewProc("SetCursorPos").Call(160, 200)
+		for _, want := range []bool{true, false} {
+			if response, err := call("toggle", nil); err != nil || response.Error != nil {
+				t.Fatalf("hover toggle: %+v %v", response, err)
+			}
+			if isTopmost(normal) != want || !isTopmost(foreign) {
+				t.Fatal("hover toggled the foreground instead of the pointed window")
+			}
+			foreground, _, _ = api.NewProc("GetForegroundWindow").Call()
+			if foreground != uintptr(foreignID) {
+				t.Fatal("hover pin activated its target")
+			}
+		}
+	}
 	if r, err := call("window.set", map[string]any{"window": normal, "pinned": true}); err != nil || r.Error != nil {
 		t.Fatalf("pin: %+v %v", r, err)
 	}
@@ -198,6 +247,20 @@ func testAlwaysOnTopOwnedWindowRestoration(t *testing.T, frame bool) {
 	}
 	if !isTopmost(normal) {
 		t.Fatal("stale identity altered the window")
+	}
+	if os.Getenv("WINONE_AOT_CYCLE_TEST") == "1" {
+		// Reuse the actual worker and owned window; never toggle user windows.
+		for cycle := 0; cycle < 100; cycle++ {
+			for _, pinned := range []bool{false, true} {
+				if r, err := call("window.set", map[string]any{"window": normal, "pinned": pinned}); err != nil || r.Error != nil {
+					t.Fatalf("cycle %d pinned=%t: %+v %v", cycle, pinned, r, err)
+				}
+				if isTopmost(normal) != pinned || !isTopmost(foreign) {
+					t.Fatalf("cycle %d changed the wrong window state", cycle)
+				}
+			}
+		}
+		t.Log("100 unpin/pin cycles preserved the owned and foreign window states")
 	}
 	// WinTray may hide a pinned window. Recovery must retain ownership even
 	// when the old worker crashed while that window was not visible.

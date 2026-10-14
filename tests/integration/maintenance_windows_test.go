@@ -155,8 +155,17 @@ func TestHostUninstallPreparation(t *testing.T) {
 		{exe, []string{"--headless", "--pipe", pipe, "--data-dir", t.TempDir()}},
 		{filepath.Join(filepath.Dir(exe), "WinOne.exe"), []string{"--pipe", pipe, "--data-dir", t.TempDir()}},
 	} {
+		// A modal startup error is not an explicit maintenance rejection: it
+		// keeps the executable locked until someone dismisses the dialog.
+		entryCtx, entryCancel := context.WithTimeout(ctx, 5*time.Second)
+		err := exec.CommandContext(entryCtx, target.path, target.args...).Run()
+		entryContextErr := entryCtx.Err()
+		entryCancel()
+		if entryContextErr != nil {
+			t.Fatal("runtime did not exit promptly after maintenance rejection", target.path, entryContextErr)
+		}
 		var exit *exec.ExitError
-		if err := exec.CommandContext(ctx, target.path, target.args...).Run(); !errors.As(err, &exit) || exit.ExitCode() != 1 {
+		if !errors.As(err, &exit) || exit.ExitCode() != 1 {
 			t.Fatal("runtime did not explicitly reject maintenance lock", target.path, err)
 		}
 	}

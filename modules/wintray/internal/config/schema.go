@@ -38,12 +38,12 @@ type LogonTaskApp struct {
 
 // LogonTaskApps returns the enabled task-launched entries in list order with
 // the delay each one's logon task uses. Entries paused for sign-in get no
-// task, so Windows cannot start them behind WinTray's back.
+// task when both ordinary startup and the custom schedule are disabled.
 func LogonTaskApps(settings Settings) []LogonTaskApp {
 	apps := make([]LogonTaskApp, 0)
 	for i := range settings.ManagedApps {
 		entry := settings.ManagedApps[i]
-		if !entry.RunOnStartup || (!entry.LaunchViaLogonTask && !StartupFrequencyEnabled(entry)) {
+		if !ShouldLaunchViaWinTray(entry) || (!entry.LaunchViaLogonTask && !StartupFrequencyEnabled(entry)) {
 			continue
 		}
 		if !strings.EqualFold(filepath.Ext(entry.ExePath), ".exe") {
@@ -100,8 +100,9 @@ func ClampFrequencyDays(days int) int { return min(max(days, 1), MaxFrequencyDay
 func ClampFrequencyRuns(runs int) int { return min(max(runs, 1), MaxFrequencyRuns) }
 
 // StartupFrequencyEnabled is the single gate shared by scheduling and takeover.
+// The custom schedule remains active independently of ordinary startup.
 func StartupFrequencyEnabled(entry ManagedAppEntry) bool {
-	return entry.RunOnStartup && entry.Schedule.Enabled && entry.Schedule.FrequencyEnabled
+	return entry.Schedule.Enabled && entry.Schedule.FrequencyEnabled
 }
 
 // ClampScheduleMinutes keeps a scheduled time inside the supported range.
@@ -188,7 +189,9 @@ func containsPath(paths []string, path string) bool {
 }
 
 func ShouldLaunchViaWinTray(entry ManagedAppEntry) bool {
-	return entry.RunOnStartup
+	// Either explicit automatic-start choice enables the entry. Its schedule
+	// supplies the delay and quota without changing the ordinary startup switch.
+	return entry.RunOnStartup || entry.Schedule.Enabled
 }
 
 // ClampCloseDelaySeconds keeps a close delay inside the supported range.

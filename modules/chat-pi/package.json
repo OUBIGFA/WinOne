@@ -1,0 +1,11 @@
+{
+  "name": "winone-chat-pi",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "WinOne's embedded Pi agent adapter; accounts and model transport stay in WinOne AI services.",
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "1.1.0",
+    "jszip": "3.10.1"
+  }
+}

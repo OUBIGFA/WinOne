@@ -153,7 +153,7 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 		}
 		result = map[string]bool{"applied": true}
 	case "toggle":
-		window, err := r.native.Foreground()
+		window, err := r.native.Hovered()
 		if err != nil {
 			return fail(err)
 		}

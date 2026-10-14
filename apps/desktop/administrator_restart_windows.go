@@ -4,12 +4,12 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/sys/windows"
 	"os"
 	"time"
+	"winone/internal/adminstartup"
 	"winone/internal/host"
 	"winone/internal/logintask"
 )
@@ -21,95 +21,8 @@ type administratorRestartPorts struct {
 	close  func(string) error
 }
 
-func performAdministratorRestart(ctx context.Context, p administratorRestartPorts) (err error) {
-	if err = p.guard(); err != nil {
-		return err
-	}
-	job, err := p.call("restart.prepare", nil)
-	if err != nil {
-		return err
-	}
-	token := job.Token
-	if len(token) != 32 {
-		return errors.New("重启准备标识无效")
-	}
-	if _, err = hex.DecodeString(token); err != nil {
-		return errors.New("重启准备标识无效")
-	}
-	committed := false
-	defer func() {
-		if !committed {
-			_, cancelErr := p.call("restart.cancel", map[string]string{"token": token})
-			err = errors.Join(err, cancelErr)
-		}
-	}()
-	check := func() error {
-		if job.Token != token {
-			return errors.New("重启准备已变化")
-		}
-		if job.State == "failed" || job.State == "cancelled" {
-			if job.Error != "" {
-				return errors.New(job.Error)
-			}
-			return errors.New("重启已取消")
-		}
-		if job.State != "preparing" && job.State != "prepared" && job.State != "committed" {
-			return errors.New("无法确认重启状态")
-		}
-		return nil
-	}
-	wait := func(ready func() bool) error {
-		for {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-			if err := check(); err != nil {
-				return err
-			}
-			if ready() {
-				return nil
-			}
-			timer := time.NewTimer(100 * time.Millisecond)
-			select {
-			case <-ctx.Done():
-				timer.Stop()
-				return ctx.Err()
-			case <-timer.C:
-			}
-			var err error
-			job, err = p.call("restart.status", map[string]string{"token": token})
-			if err != nil {
-				return err
-			}
-		}
-	}
-	if err = wait(func() bool { return job.State == "prepared" }); err != nil {
-		return err
-	}
-	if err = p.launch(); err != nil {
-		return err
-	}
-	if err = wait(func() bool { return job.State == "prepared" && job.HelperPID != 0 }); err != nil {
-		return err
-	}
-	if err = p.guard(); err != nil {
-		return err
-	}
-	job, err = p.call("restart.commit", map[string]string{"token": token})
-	if err != nil {
-		return err
-	}
-	if err = check(); err != nil {
-		return err
-	}
-	if job.State != "committed" {
-		return errors.New("重启尚未提交")
-	}
-	committed = true
-	if err = wait(func() bool { return job.State == "committed" && job.HelperAcknowledged }); err != nil {
-		return err
-	}
-	return p.close(token)
+func performAdministratorRestart(ctx context.Context, p administratorRestartPorts) error {
+	return adminstartup.Restart(ctx, adminstartup.RestartPorts{Guard: p.guard, Call: p.call, Launch: p.launch, Close: p.close})
 }
 
 func (a *App) checkAdministratorRestart() error {

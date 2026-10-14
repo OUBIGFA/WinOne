@@ -24,16 +24,18 @@ type shortcutRegistrar interface {
 	Close() error
 }
 type shortcutRuntime struct {
-	mu           sync.Mutex
-	registrar    shortcutRegistrar
-	bindings     []hotkeys.Binding
-	recording    *shortcutRecording
-	statuses     []hotkeys.Status
-	lastError    string
-	actionErrors map[string]string
-	moduleState  *modulestate.Store
-	openDraft    func(string) error
-	language     func() string
+	mu                  sync.Mutex
+	registrar           shortcutRegistrar
+	bindings            []hotkeys.Binding
+	recording           *shortcutRecording
+	statuses            []hotkeys.Status
+	lastError           string
+	actionErrors        map[string]string
+	moduleState         *modulestate.Store
+	openDraft           func(string) error
+	openWindow          func() error
+	defaultOpenConflict bool
+	language            func() string
 }
 
 func (r *shortcutRuntime) apply(s settings.Settings) {
@@ -45,16 +47,31 @@ func (r *shortcutRuntime) apply(s settings.Settings) {
 func (r *shortcutRuntime) applyConfiguration(s settings.Settings) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	// Resolve defaults before masking disabled modules, so disabling capture
+	// cannot silently claim a shortcut reserved by its saved preferences.
+	r.defaultOpenConflict = s.OpenShortcut == nil && s.OpenBinding() == ""
+	s = s.ResolvedShortcuts()
 	if r.moduleState != nil {
 		state := r.moduleState.Snapshot()
 		if record := state.Modules["capture"]; !record.Enabled || record.PendingStop {
 			s.CaptureShortcut = ""
+			empty := ""
+			s.OCRShortcut = &empty
+			s.TranslateShortcut = &empty
 		}
 		if record := state.Modules["always-on-top"]; !record.Enabled || record.PendingStop {
 			s.PinShortcut = ""
 		}
+		if record := state.Modules["quick-assistant"]; !record.Enabled || record.PendingStop {
+			empty := ""
+			s.QuickAssistantShortcut = &empty
+		}
+		if record := state.Modules["selection"]; !record.Enabled || record.PendingStop {
+			empty := ""
+			s.SelectionShortcut = &empty
+		}
 	}
-	bindings := []hotkeys.Binding{{ID: "capture", Shortcut: s.CaptureShortcut}, {ID: "pin", Shortcut: s.PinShortcut}}
+	bindings := []hotkeys.Binding{{ID: "capture", Shortcut: s.CaptureShortcut}, {ID: "pin", Shortcut: s.PinShortcut}, {ID: "ocr", Shortcut: s.OCRBinding()}, {ID: "translate", Shortcut: s.TranslateBinding()}, {ID: "selection", Shortcut: s.SelectionBinding()}, {ID: "quick-assistant", Shortcut: s.QuickAssistantBinding()}, {ID: "open-winone", Shortcut: s.OpenBinding()}}
 	if err := hotkeys.ValidateBindings(bindings); err != nil {
 		return err
 	}
@@ -81,11 +98,20 @@ func (r *shortcutRuntime) handle(req host.Request) host.Response {
 	if req.Method != "snapshot" {
 		return host.Response{ID: req.ID, Error: &host.RPCError{Code: "invalid", Message: "不支持的快捷键操作"}}
 	}
+	statuses := append([]hotkeys.Status(nil), r.statuses...)
+	// Preserve older bindings and explain why their new default was not claimed.
+	if r.defaultOpenConflict {
+		for i := range statuses {
+			if statuses[i].ID == "open-winone" {
+				statuses[i].Error = "默认 Alt+A 已被其他 WinOne 操作使用，请设置其他快捷键"
+			}
+		}
+	}
 	data, _ := json.Marshal(struct {
 		Bindings     []hotkeys.Status  `json:"bindings"`
 		LastError    string            `json:"lastError"`
 		ActionErrors map[string]string `json:"actionErrors"`
-	}{r.statuses, r.lastError, r.actionErrors})
+	}{statuses, r.lastError, r.actionErrors})
 	return host.Response{ID: req.ID, Result: data}
 }
 func (r *shortcutRuntime) report(action string, err error) {
@@ -130,10 +156,15 @@ func (r *shortcutRuntime) run(ctx context.Context, service *host.Service) {
 	finished := make(chan error, 1)
 	activationFinished := make(chan error, 1)
 	activating := false
+	opening := false
+	openFinished := make(chan error, 1)
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case err := <-openFinished:
+			opening = false
+			r.report("open-winone", err)
 		case err := <-finished:
 			r.report(activeAction, err)
 			busy = false
@@ -152,8 +183,23 @@ func (r *shortcutRuntime) run(ctx context.Context, service *host.Service) {
 			if recording {
 				continue
 			}
+			// Opening the application is independent of capture sessions and
+			// module enablement. Coalesce repeated presses during a cold launch.
+			if id == "open-winone" {
+				if !opening {
+					opening = true
+					go func() {
+						if r.openWindow == nil {
+							openFinished <- fmt.Errorf("WinOne 窗口打开入口未配置")
+							return
+						}
+						openFinished <- r.openWindow()
+					}()
+				}
+				continue
+			}
 			if busy {
-				if id == "capture" && activeAction == "capture" && !activating {
+				if id != "pin" && activeAction != "pin" && !activating {
 					activating = true
 					go func() {
 						response := service.Handle(host.Request{Version: 1, ID: "shortcut-activate-capture", Method: "capture.capture.activate", Params: json.RawMessage(`{}`)})
@@ -170,7 +216,11 @@ func (r *shortcutRuntime) run(ctx context.Context, service *host.Service) {
 			if r.language != nil {
 				locale = r.language()
 			}
-			captureParams, _ := json.Marshal(map[string]string{"mode": "window", "language": locale})
+			mode := "window"
+			if id == "ocr" || id == "translate" {
+				mode = id
+			}
+			captureParams, _ := json.Marshal(map[string]string{"mode": mode, "language": locale})
 			req := host.Request{Version: 1, ID: fmt.Sprintf("shortcut-%d", time.Now().UnixNano()), Method: "capture.capture.unified", Params: captureParams}
 			if id == "pin" {
 				params, err := foregroundIdentity()
@@ -181,10 +231,14 @@ func (r *shortcutRuntime) run(ctx context.Context, service *host.Service) {
 				req.Method = "always-on-top.window.toggle"
 				req.Params = params
 			}
+			if id == "selection" || id == "quick-assistant" {
+				req.Method = id + ".show"
+				req.Params = json.RawMessage(`{}`)
+			}
 			busy = true
 			activeAction = id
 			go func() {
-				if id == "capture" {
+				if id != "pin" && id != "selection" && id != "quick-assistant" {
 					resumed, err := resumeCaptureDraft(ctx, service, r.openDraft)
 					if resumed || err != nil {
 						finished <- err
@@ -196,7 +250,7 @@ func (r *shortcutRuntime) run(ctx context.Context, service *host.Service) {
 					finished <- fmt.Errorf("%s", response.Error.Message)
 					return
 				}
-				if id == "capture" {
+				if id != "pin" && id != "selection" && id != "quick-assistant" {
 					finished <- waitCaptureJob(ctx, service, response, r.openDraft)
 					return
 				}

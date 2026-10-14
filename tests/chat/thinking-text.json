@@ -1,0 +1,9 @@
+[
+  {"input":"**Check** `value`","tokens":[{"kind":"strong","value":"Check"},{"kind":"text","value":" "},{"kind":"code","value":"value"}]},
+  {"input":"# Heading\n[link](https://example.com)","tokens":[{"kind":"text","value":"# Heading\n[link](https://example.com)"}]},
+  {"input":"Unclosed **words and `code","tokens":[{"kind":"text","value":"Unclosed **words and `code"}]},
+  {"input":"``a ` b``","tokens":[{"kind":"code","value":"a ` b"}]},
+  {"input":"` a\nb `","tokens":[{"kind":"code","value":"a b"}]},
+  {"input":"\\**literal**","tokens":[{"kind":"text","value":"\\**literal**"}]},
+  {"input":"**中文** 与普通文字","tokens":[{"kind":"strong","value":"中文"},{"kind":"text","value":" 与普通文字"}]}
+]

@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('workflow', 'paint', 'toolbar', 'scroll-progress', 'pointer', 'native-tests')][string]$Suite = 'workflow',
+    [ValidateSet('workflow', 'paint', 'toolbar', 'customization', 'preferences', 'scroll-progress', 'pointer', 'facade', 'native-tests', 'tray-exit', 'production-resources', 'settings-dialog', 'scroll-workflow', 'autosave', 'text-recognition', 'text-pipeline')][string]$Suite = 'workflow',
     [Parameter(Mandatory)][string]$OutputDirectory,
     [string]$ProbeExe,
     [string]$TestFilter
@@ -9,6 +9,7 @@ if ($Suite -eq 'native-tests' -and (-not $ProbeExe -or -not $TestFilter -or $Tes
 if (-not $ProbeExe) { $ProbeExe = Join-Path $PSScriptRoot 'bin/Release/net10.0-windows/WinOne.NativeCapture.Probe.exe' }
 $probe = [IO.Path]::GetFullPath($ProbeExe)
 $output = [IO.Path]::GetFullPath($OutputDirectory)
+& (Join-Path $PSScriptRoot '../../build/assert-temporary-path.ps1') -Path $output
 if (-not (Test-Path -LiteralPath $probe -PathType Leaf)) { throw 'Build NativeCaptureProbe.csproj first' }
 if (Test-Path -LiteralPath $output) { throw 'Choose a new output directory' }
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -49,8 +50,8 @@ $desktop = [WinOnePrivateProbe]::CreateDesktopW($name, [IntPtr]::Zero, [IntPtr]:
 if ($desktop -eq [IntPtr]::Zero) { throw 'Private test desktop creation failed' }
 $child = $null
 try {
-    $mode = switch ($Suite) { workflow { '--native-workflow-probe' } paint { '--native-paint-dispatch' } toolbar { '--native-toolbar-render-probe' } scroll-progress { '--native-scroll-progress' } pointer { '--native-pointer-dispatch' } }
-    $arguments = if ($Suite -eq 'native-tests') { '-test.v -test.timeout=45s -test.run="' + $TestFilter + '"' } elseif ($Suite -eq 'pointer') { $mode } else { $mode + ' "' + $output + '"' }
+    $mode = switch ($Suite) { facade { '--self-test' } autosave { '--native-autosave' } scroll-workflow { '--native-scrolling-workflow' } settings-dialog { '--settings-dialog' } production-resources { '--production-resource-suite' } tray-exit { '--tray-exit' } workflow { '--native-workflow-probe' } paint { '--native-paint-dispatch' } toolbar { '--native-toolbar-render-probe' } customization { '--native-toolbar-customization' } preferences { '--native-toolbar-preferences' } scroll-progress { '--native-scroll-progress' } pointer { '--native-pointer-dispatch' } }
+    $arguments = if ($Suite -eq 'text-pipeline') { '--native-text-pipeline "'+$output+'"' } elseif ($Suite -eq 'text-recognition') { '--native-text-recognition' } elseif ($Suite -eq 'native-tests') { '-test.v -test.timeout=45s -test.run="' + $TestFilter + '"' } elseif ($Suite -in @('pointer','facade')) { $mode } else { $mode + ' "' + $output + '"' }
     $child = [WinOnePrivateProbe]::Start($probe, $arguments, $name, $root)
     $wait = [WinOnePrivateProbe]::WaitForSingleObject($child.process, 60000)
     if ($wait -ne 0) {

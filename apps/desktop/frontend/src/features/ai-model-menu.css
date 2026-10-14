@@ -1,0 +1,17 @@
+/* Shared by Chat and every feature's model selector. Provider headers are
+   outlined capsules; model choices use only hover/selection fill. */
+.ai-model-menu{--model-menu-hover:color-mix(in srgb,var(--foreground) 5%,var(--background))}
+.ai-model-menu [role=option]{border:0;box-shadow:none;border-radius:6px;background:transparent}
+.ai-model-menu [role=option]:is(:hover,[aria-selected=true],[data-highlighted]){background:var(--model-menu-hover)}
+.ai-model-menu [data-icon]{flex:0 0 16px;width:16px;height:16px}.ai-model-menu [data-icon]>svg{width:16px;height:16px}
+.ai-model-menu [role=option]>[data-model-badge]{flex:none}
+.chat-model-menu{width:420px!important;max-width:calc(100vw - 36px);padding:10px!important}
+.chat-model-menu>input{width:100%;min-width:0;padding:5px 3px 10px;border:0;border-bottom:1px solid var(--border);background:transparent;font:inherit;outline:none}
+.chat-model-menu h4{margin:10px 0 4px;padding:0;font-weight:400;background:transparent}
+.chat-model-menu .chat-model-group{width:100%;display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid var(--border);border-radius:999px;background:transparent;text-align:left;color:var(--muted-foreground);font-size:13px}
+.chat-model-menu .chat-model-group:hover{background:var(--model-menu-hover)}
+.chat-model-group>svg{width:14px;height:14px;flex:none}.chat-model-group small{font-size:12px;font-weight:400}
+.chat-model-menu [role=option]{display:flex;align-items:center;gap:6px;padding:7px 8px 7px 28px;text-align:left;width:100%;font-size:14px}
+.chat-model-label{flex:1;min-width:0;overflow-wrap:anywhere}.chat-model-check{display:flex;flex:0 0 16px;width:16px;height:16px;align-items:center;justify-content:center}
+.chat-model-viewport{max-height:350px;overflow-x:hidden!important}
+.chat-model-menu [role=listbox]{max-height:none;overflow:visible}

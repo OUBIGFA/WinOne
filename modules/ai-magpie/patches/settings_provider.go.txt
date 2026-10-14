@@ -1,0 +1,31 @@
+package provider
+
+import (
+ "context"
+ "time"
+ "github.com/yetone/magpie/internal/settings"
+)
+
+var WinOneSearchAPIs []SearchAPI
+
+func WinOneQuotaAlerts(qs []SubscriptionQuota) []QuotaAlert {
+ s:=settings.Load()
+ return checkAlerts(quotaAlertPath(),qs,s.UsageAlert,s.BalanceAlert,time.Duration(s.ResetReminder)*time.Hour,time.Now())
+}
+
+// WinOneWarmNow reuses the same state files and due-window decisions as the
+// upstream background loops. The Host supplies scheduling, so no AI worker
+// remains resident between checks.
+func WinOneWarmNow(ctx context.Context, claude func(context.Context,string)error) []CodexWarm {
+ s:=settings.Load()
+ var out []CodexWarm
+ if s.CodexWarmup!="" || len(s.CodexWarmAts)>0 || len(s.CodexWarmAtOf)>0 {
+  w:=codexWarmer{path:codexWarmPath(),now:time.Now,usage:codexWarmUsage,send:warmCodexLogin,warmed:func(user string){StaleAllowance("codex",user)},ownAt:codexWarmAtOf}
+  out=append(out,w.warmNow(ctx,s.CodexWarmup,s.CodexWarmAts)...)
+ }
+ if s.ClaudeWarmup!="" || len(s.ClaudeWarmAts)>0 {
+  w:=codexWarmer{path:claudeWarmPath(),now:time.Now,usage:claudeWarmUsage,send:warmClaudeLogin(claude),expect:claudeWindowsExpected,warmed:claudeWarmedNow}
+  out=append(out,w.warmNow(ctx,s.ClaudeWarmup,s.ClaudeWarmAts)...)
+ }
+ return out
+}

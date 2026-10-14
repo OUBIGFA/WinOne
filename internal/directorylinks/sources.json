@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {"repository":"https://github.com/Benisgo/Symbolic11","commit":"b3663c42a6dcc5a44ab0ab0163d5566a05c9ef33","license":"GPL-3.0","scope":"Link type selection, existing-link inspection and management workflow"},
+    {"repository":"https://github.com/arnobpl/SymlinkCreator","commit":"6efc382c3f31c45387c3bb3e0571a0c2650134d1","license":"MIT","scope":"Multi-source plan, collision validation, relative paths, per-entry results and reviewable commands"},
+    {"repository":"https://github.com/clayrisser/mklink","commit":"d6eb377348db59f062ec79a186f5212a9dfba03d","license":"MIT","scope":"File and directory Explorer verbs and selected-source activation"}
+  ],
+  "adaptation":"Go Win32 execution and identity validation, existing WinOne settings UI, scoped elevation and recycling; no standalone upstream UI or shell-command execution backend"
+}

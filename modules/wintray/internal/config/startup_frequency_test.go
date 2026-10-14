@@ -80,7 +80,7 @@ func TestFrequencySettingsPreserveIndependentAutoExit(t *testing.T) {
 		t.Fatal("frequency must apply to startup")
 	}
 	entry.RunOnStartup = false
-	if StartupFrequencyEnabled(entry) || ScheduledRunLimit(entry) != 5 {
-		t.Fatal("disabling startup must retain auto-exit only")
+	if !StartupFrequencyEnabled(entry) || ScheduledRunLimit(entry) != 5 {
+		t.Fatal("disabling ordinary startup must retain the custom schedule and auto-exit")
 	}
 }

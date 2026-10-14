@@ -123,6 +123,18 @@ function Get-ProcessResourceRows {
         } catch { $problems.Add("Process ${key}: $($_.Exception.Message)") }
     }
     $all = @($rows)
+    if ($all.Count -eq 0) {
+        # A root can exit between inventory and counter collection. Keep the
+        # failed sample as evidence; empty pipelines have no Sum in strict mode.
+        $problems.Add('No live process counters were collected')
+        return [pscustomobject]@{
+            Complete=$false; Processes=$all; Errors=@($problems)
+            Totals=[pscustomobject]@{
+                ProcessCount=0; PrivateWorkingSetBytes=$null; PrivateBytes=$null
+                CpuPercent=$null; Handles=$null; GdiObjects=$null; UserObjects=$null
+            }
+        }
+    }
     $totalCpu = $null
     if ($all.Count -gt 0 -and @($all | Where-Object { $null -eq $_.CpuPercent }).Count -eq 0 -and $problems.Count -eq 0) {
         $totalCpu = ($all | Measure-Object CpuPercent -Sum).Sum
@@ -147,13 +159,50 @@ function Get-WindowResourceContext {
 
 function Test-HostOnlyResourceReport {
     param([object]$Report,[uint32]$HostProcessId)
-    if ($null -eq $Report -or $null -eq $Report.Samples -or @($Report.Samples).Count -eq 0) { return $false }
+    if ($HostProcessId -eq 0 -or $null -eq $Report -or $null -eq $Report.PSObject.Properties['Samples'] -or $null -eq $Report.Samples -or @($Report.Samples).Count -eq 0) { return $false }
     foreach ($sample in $Report.Samples) {
+        if ($null -eq $sample -or $null -eq $sample.PSObject.Properties['Complete'] -or $null -eq $sample.PSObject.Properties['Processes']) { return $false }
         $processes=@($sample.Processes)
-        if (-not $sample.Complete -or $processes.Count -ne 1) { return $false }
+        if ($sample.Complete -isnot [bool] -or -not $sample.Complete -or $processes.Count -ne 1) { return $false }
+        if ($null -eq $processes[0] -or $null -eq $processes[0].PSObject.Properties['ProcessId'] -or $null -eq $processes[0].PSObject.Properties['Name']) { return $false }
         if ($processes[0].ProcessId -ne $HostProcessId -or $processes[0].Name -ne 'WinOne.Host.exe') { return $false }
     }
     return $true
+}
+
+function Test-FiniteResourceNumber {
+    param([object]$Value)
+    if ($Value -isnot [double] -and $Value -isnot [float] -and $Value -isnot [decimal] -and $Value -isnot [int] -and $Value -isnot [long] -and $Value -isnot [uint32] -and $Value -isnot [uint64]) { return $false }
+    return -not [double]::IsNaN([double]$Value) -and -not [double]::IsInfinity([double]$Value) -and $Value -ge 0
+}
+
+function Test-HostIdleBudgetReport {
+    param([object]$Report,[uint32]$HostProcessId)
+    if (-not (Test-HostOnlyResourceReport $Report $HostProcessId)) { return $false }
+    # Apply the user-approved 2026-10-08 reference (43 MiB) to raw samples.
+    # Small deviations remain a release review signal, not a stand-alone veto.
+    # The first
+    # CPU sample has no prior counter; every later interval must be measurable.
+    $weightedCpu=0.0
+    $cpuSeconds=0.0
+    $index=0
+    foreach ($sample in $Report.Samples) {
+        if ($null -eq $sample.PSObject.Properties['Totals'] -or $null -eq $sample.Totals -or $null -eq $sample.PSObject.Properties['IntervalSeconds']) { return $false }
+        foreach ($field in @('PrivateWorkingSetBytes','CpuPercent')) { if ($null -eq $sample.Totals.PSObject.Properties[$field]) { return $false } }
+        $memory=$sample.Totals.PrivateWorkingSetBytes
+        $interval=$sample.IntervalSeconds
+        if (-not (Test-FiniteResourceNumber $memory) -or $memory -gt 43MB -or -not (Test-FiniteResourceNumber $interval) -or $interval -le 0) { return $false }
+        $cpu=$sample.Totals.CpuPercent
+        if ($null -eq $cpu) {
+            if ($index -ne 0) { return $false }
+        } else {
+            if (-not (Test-FiniteResourceNumber $cpu)) { return $false }
+            $weightedCpu += $cpu * $interval
+            $cpuSeconds += $interval
+        }
+        $index++
+    }
+    return $cpuSeconds -gt 0 -and (Test-FiniteResourceNumber $weightedCpu) -and (Test-FiniteResourceNumber $cpuSeconds) -and ($weightedCpu / $cpuSeconds) -lt 0.2
 }
 
 function Test-OpenWindowResourceReport {
@@ -182,4 +231,4 @@ function Test-OpenWindowResourceReport {
     return $true
 }
 
-Export-ModuleMember -Function Get-TrackedProcessFamily,Get-ProcessResourceRows,Get-WindowResourceContext,Test-HostOnlyResourceReport,Test-OpenWindowResourceReport
+Export-ModuleMember -Function Get-TrackedProcessFamily,Get-ProcessResourceRows,Get-WindowResourceContext,Test-HostOnlyResourceReport,Test-HostIdleBudgetReport,Test-OpenWindowResourceReport

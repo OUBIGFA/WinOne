@@ -1,0 +1,58 @@
+import {createRequire} from "node:module";
+import {mkdir,writeFile} from "node:fs/promises";
+import {resolve} from "node:path";
+const require=createRequire(import.meta.url);
+const {chromium}=require(process.env.WINONE_PLAYWRIGHT_MODULE||"playwright");
+const output=resolve(process.env.WINONE_LAYOUT_OUTPUT||"_temp/ai-model-settings-layout");
+await mkdir(output,{recursive:true});
+const browser=await chromium.launch({headless:true,executablePath:process.env.WINONE_CHROMIUM});
+const report=[],errors=[];
+try{
+ const page=await browser.newPage();page.on("pageerror",error=>errors.push(String(error)));
+ for(const language of ["zh-CN","en-US"])for(const theme of ["light","dark"])for(const width of [520,1000]){
+  const zh=language==="zh-CN";
+  await page.setViewportSize({width,height:860});
+  const url=new URL(process.env.WINONE_LAYOUT_URL||"http://127.0.0.1:5192/tests/ai-settings-preview.html");
+  for(const [key,value] of Object.entries({language,theme,modelSettings:"1"}))url.searchParams.set(key,value);
+  await page.goto(url.href);
+  await page.getByRole("button",{name:zh?"模型设置：Gemini":"Model settings: Gemini",exact:true}).click();
+  const dialog=page.getByRole("dialog");await dialog.waitFor();
+  await page.getByLabel(zh?"上下文窗口（Token）":"Context window (tokens)",{exact:true}).fill("64000");
+  await page.getByLabel(zh?"最大输出（Token）":"Maximum output (tokens)",{exact:true}).fill("4000");
+  await page.getByLabel(zh?"压缩阈值（Token）":"Compact at (tokens)",{exact:true}).fill("50000");
+  const clipped=await dialog.evaluate(root=>[...root.querySelectorAll('input,button,[role="combobox"]')].filter(element=>{const r=element.getBoundingClientRect();return element.getAttribute("aria-hidden")!=="true"&&r.width>0&&(r.left<0||r.right>innerWidth+1)}).map(element=>element.textContent||element.id));
+  if(clipped.length)throw Error("Model settings clip: "+clipped.join(","));
+  await page.screenshot({path:resolve(output,`${language}-${theme}-${width}-model.png`)});
+  await page.keyboard.press("Escape");
+  await page.getByLabel(zh?"每分钟请求数（RPM）":"Requests per minute (RPM)",{exact:true}).fill("20");
+  await page.getByLabel(zh?"并发上限":"Maximum concurrency",{exact:true}).fill("2");
+  await page.getByLabel(zh?"排队上限":"Queue size",{exact:true}).fill("4");
+  await page.getByLabel(zh?"排队等待（秒）":"Queue wait (seconds)",{exact:true}).fill("15");
+  await page.getByRole("button",{name:zh?"保存 AI 设置":"Save AI settings",exact:true}).click();
+  const provider=await page.evaluate(()=>window.fixtureLastSave.configuration.providers[0]);
+  if(provider.modelMetadata["shared-model"].contextWindow!==64000||provider.modelMetadata["shared-model"].maxTokens!==4000||provider.modelMetadata["shared-model"].compactionThreshold!==50000||provider.maxRPM!==20||provider.maxConcurrency!==2||provider.queueLimit!==4||provider.queueWait!==15)throw Error("Saved settings differ from edited fields");
+  if(await page.getByText("Gemini (free)",{exact:true}).count())throw Error("Free suffix still visible");
+  if(await page.locator('[data-model-badge="free"]').count()!==1)throw Error("Model list free badge missing");
+  await page.getByRole("tab",{name:zh?"默认 AI 服务":"Default AI service",exact:true}).click();
+  if(await page.locator('[data-model-badge="free"]').count()!==1)throw Error("Default picker free badge missing");
+  await page.getByRole("combobox",{name:zh?"默认 AI 服务 · 供应商":"Default AI service · Provider",exact:true}).click();
+  const option=page.getByRole("option",{name:"示例服务",exact:true});
+  await option.waitFor();
+  if(await option.locator('[data-icon="deepseek-color"]').count()!==1)throw Error("Provider brand icon missing from dropdown");
+  await page.keyboard.press("Escape");
+  const model=page.getByRole("combobox",{name:zh?"默认 AI 服务 · 模型名称":"Default AI service · Model name",exact:true});
+  const layout=await model.evaluate(element=>{const value=element.querySelector('[data-slot="select-value"]'),icon=value.firstElementChild,name=value.querySelector('span.truncate');const a=icon.getBoundingClientRect(),b=name.getBoundingClientRect();return {gap:b.left-a.right};});
+  if(layout.gap<3||layout.gap>8)throw Error("Model icon gap differs from compact spacing: "+layout.gap);
+  await model.click();const modelOption=page.getByRole("option",{name:/Gemini/});await modelOption.waitFor();
+  const menuIcon=await modelOption.locator("[data-icon]").boundingBox(),menuName=await modelOption.getByText("Gemini",{exact:true}).boundingBox();
+  const menuGap=menuName.x-menuIcon.x-menuIcon.width;
+  if(Math.abs(menuGap-layout.gap)>0.1)throw Error("Model menu and trigger icon spacing differ: "+menuGap+" / "+layout.gap);
+  await page.keyboard.press("Escape");
+  const strokes=await page.locator('[data-slot="sidebar-menu-button"]>svg').evaluateAll(elements=>elements.map(element=>element.getAttribute("stroke-width")));
+  if(strokes.some(value=>value!=="1.6"))throw Error("Sidebar stroke width differs between peers");
+  report.push({language,theme,width,clipped,modelIconGap:layout.gap,menuIconGap:menuGap,strokes});
+ }
+ await writeFile(resolve(output,"report.json"),JSON.stringify({report,errors},null,2));
+ if(errors.length)throw Error(errors.join("\n"));
+ console.log("PASS: model metadata and request limits save; separate free badges; compact icon gaps and uniform sidebar strokes at 520/1000px in zh/en and light/dark");
+}finally{await browser.close();}

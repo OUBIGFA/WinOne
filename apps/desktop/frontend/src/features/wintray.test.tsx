@@ -7,6 +7,18 @@ import { setApplicationLanguage } from "../i18n";
 
 const native = vi.hoisted(() => ({ info: vi.fn(async(path:string)=>({name:path.split(/[\\/]/).pop()!.replace(/\.[^.]+$/,""),icon:""})), call: vi.fn(), pick: vi.fn(),pickMany:vi.fn(),residency:vi.fn().mockResolvedValue({requested:false,reasons:[]}) }));
 const logs=vi.hoisted(()=>vi.fn(async()=>({folderAvailable:false,entries:[]})));
+it("sorts programs directly to either end without polling tray actions",async()=>{
+ const managedApps=["甲","乙","丙"].map((name,index):Program=>({id:String(index),name,exePath:`C:\\Apps\\${index}.exe`,args:"",runOnStartup:true,collectTrayIcon:true,launchViaLogonTask:false,launchHiddenInBackground:false,trayBehavior:{autoMinimizeAndHideOnLaunch:false,closeDelaySeconds:0},schedule:{enabled:false,startDelayMinutes:0,autoExitMinutes:0,frequencyEnabled:false,frequencyDays:1,frequencyRuns:1}}));
+ native.info.mockResolvedValue({name:"",icon:""});
+ native.call.mockImplementation(async(method:string)=>method==="icons"?[]:{revision:"1",settings:{schemaVersion:3,language:"zh-CN",managedApps,startupIntervalSeconds:3,closeWindowRetrySeconds:10}});
+ render(<WinTrayPage/>);const user=userEvent.setup();
+ (await screen.findByRole("combobox",{name:"丙的排序序号"})).focus();await user.keyboard("{ArrowDown}");await user.click(await screen.findByRole("option",{name:"1"}));
+ expect(screen.getAllByRole("listitem").map(row=>row.getAttribute("aria-label"))).toEqual(["丙","甲","乙"]);
+ screen.getByRole("combobox",{name:"丙的排序序号"}).focus();await user.keyboard("{ArrowDown}");await user.click(await screen.findByRole("option",{name:"3"}));
+ expect(screen.getAllByRole("listitem").map(row=>row.getAttribute("aria-label"))).toEqual(["甲","乙","丙"]);
+ expect(native.call.mock.calls.some(([method])=>method==="icons")).toBe(false);
+ expect(screen.queryByText("原程序菜单")).toBeNull();
+});
 vi.mock("../bridge", () => ({
   wintrayCall: native.call,
   programInfo: native.info,
@@ -27,11 +39,11 @@ afterEach(async () => {
   logs.mockClear();
   await setApplicationLanguage("zh-CN");
 });
-it("keeps diagnostics available when program settings fail to load",async()=>{
+it("keeps program failure feedback without an independent log tab",async()=>{
  native.call.mockRejectedValue(Error("program settings unavailable"));
  render(<WinTrayPage/>);await screen.findByRole("alert");
- await userEvent.setup().click(screen.getByRole("tab",{name:"诊断日志"}));
- expect(logs).toHaveBeenCalledWith("wintray");
+ expect(screen.queryByRole("tab",{name:"诊断日志"})).toBeNull();
+ expect(logs).not.toHaveBeenCalled();
  expect(screen.queryByRole("button",{name:"添加程序"})).toBeNull();
 });
 
@@ -84,6 +96,32 @@ it.each(["","121","-1","1.5"])("keeps invalid timing input '%s' editable and blo
  expect(settings.startupIntervalSeconds).toBe(8);
 });
 
+it("saves and reloads all custom timing without enabling ordinary startup",async()=>{
+ const program:Program={id:"independent",name:"定时程序",exePath:"C:\\Apps\\scheduled.exe",args:"",runOnStartup:false,collectTrayIcon:false,launchViaLogonTask:false,launchHiddenInBackground:false,trayBehavior:{autoMinimizeAndHideOnLaunch:false,closeDelaySeconds:0},schedule:{enabled:false,startDelayMinutes:0,autoExitMinutes:30,frequencyEnabled:false,frequencyDays:1,frequencyRuns:1}};
+ let settings={schemaVersion:3,language:"zh-CN",runAtLogon:false,startMinimizedToTray:true,exitAfterManagedAppsCompleted:false,closeWindowRetrySeconds:10,startupIntervalSeconds:3,managedApps:[program]};
+ native.call.mockImplementation(async(method:string,payload?:{settings:typeof settings})=>{
+  if(method==="settings.get")return {revision:"1",settings};
+  if(method==="settings.save"){settings=payload!.settings;return {state:"completed"};}
+  throw Error(method);
+ });
+ const view=render(<WinTrayPage disabled/>);const user=userEvent.setup();
+ await user.click(await screen.findByRole("switch",{name:"自定义时间"}));
+ const change=async(name:string,value:string)=>{const input=screen.getByRole("spinbutton",{name});await user.clear(input);input.focus();await user.type(input,value,{skipClick:true});};
+ await change("延后启动（分钟）","7");
+ await user.click(screen.getByRole("tab",{name:"更多设置"}));
+ await user.click(screen.getByRole("checkbox",{name:"限制自动运行次数"}));
+ await change("最近天数","2");await change("最多运行次数","3");
+ await user.click(screen.getByRole("button",{name:"保存修改"}));await screen.findByText("已保存");
+ expect(settings.managedApps[0].runOnStartup).toBe(false);
+ expect(settings.managedApps[0].schedule).toEqual({enabled:true,startDelayMinutes:7,autoExitMinutes:30,frequencyEnabled:true,frequencyDays:2,frequencyRuns:3});
+ view.unmount();render(<WinTrayPage disabled/>);
+ expect((await screen.findByRole("spinbutton",{name:"延后启动（分钟）"}) as HTMLInputElement).value).toBe("7");
+ expect(screen.getByRole("switch",{name:"开机启动此程序"}).getAttribute("aria-checked")).toBe("false");
+ await user.click(screen.getByRole("tab",{name:"更多设置"}));
+ expect((screen.getByRole("spinbutton",{name:"最近天数"}) as HTMLInputElement).value).toBe("2");
+ expect((screen.getByRole("spinbutton",{name:"最多运行次数"}) as HTMLInputElement).value).toBe("3");
+});
+
 it("identifies a program with unfinished timing after its controls are hidden",async()=>{
  const program:Program={id:"timing",name:"音乐播放器",exePath:"C:\\Apps\\music.exe",args:"",runOnStartup:true,collectTrayIcon:false,launchViaLogonTask:false,launchHiddenInBackground:false,trayBehavior:{autoMinimizeAndHideOnLaunch:true,closeDelaySeconds:3},schedule:{enabled:true,startDelayMinutes:5,autoExitMinutes:30,frequencyEnabled:false,frequencyDays:1,frequencyRuns:1}};
  native.call.mockResolvedValue({revision:"1",settings:{schemaVersion:3,language:"zh-CN",runAtLogon:false,startMinimizedToTray:true,exitAfterManagedAppsCompleted:false,closeWindowRetrySeconds:10,startupIntervalSeconds:3,managedApps:[program]}});
@@ -124,7 +162,7 @@ it("selects the whole program row and keeps common actions before both settings 
  native.info.mockImplementation(async path=>({name:path.includes("second")?"识别出的程序":"first",icon:"aWNvbg=="}));
  render(<WinTrayPage/>);const user=userEvent.setup();
  const row=await screen.findByRole("listitem",{name:"second"});
- await user.click(within(row).getByText("已启用"));
+ await user.click(within(row).getByText("second"));
  expect(row.getAttribute("aria-current")).toBe("true");
  expect(within(row).queryByRole("button",{name:"second"})).toBeNull();
  await waitFor(()=>expect(row.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aWNvbg=="));
@@ -211,7 +249,7 @@ it("does not create entries after cancelling the multiple-file picker",async()=>
   expect((screen.getByRole("button",{name:"保存修改"}) as HTMLButtonElement).disabled).toBe(true);
 });
 
-it("stops background status polling when advanced settings are closed",async()=>{
+it("does not show or poll background status in startup settings",async()=>{
   const settings={schemaVersion:3,language:"zh-CN",runAtLogon:false,startMinimizedToTray:true,exitAfterManagedAppsCompleted:false,closeWindowRetrySeconds:10,startupIntervalSeconds:3,managedApps:[]};
   native.call.mockResolvedValue({revision:"1",settings});
   render(<WinTrayPage/>);
@@ -219,11 +257,10 @@ it("stops background status polling when advanced settings are closed",async()=>
   const advanced=await screen.findByText("启动设置");
   expect(native.residency).not.toHaveBeenCalled();
   await user.click(advanced);
-  await screen.findByText("后台运行状态");
+  expect(screen.queryByText("后台运行状态")).toBeNull();
+  expect(native.residency).not.toHaveBeenCalled();
   await user.click(screen.getByRole("tab",{name:"程序列表"}));
-  const calls=native.residency.mock.calls.length;
-  await new Promise(resolve=>setTimeout(resolve,3200));
-  expect(native.residency.mock.calls.length).toBe(calls);
+  expect(native.residency).not.toHaveBeenCalled();
 });
 
 it("edits disabled-module preferences without activating WinTray", async () => {

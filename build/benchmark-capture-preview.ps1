@@ -11,6 +11,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $workspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $output = [IO.Path]::GetFullPath($OutputDirectory)
+& (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $output
 $executable = (Resolve-Path -LiteralPath $CaptureExecutable).Path
 if ($output.StartsWith($workspace+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)) {
     & git -C $workspace check-ignore --quiet -- (Join-Path $output 'report.json')

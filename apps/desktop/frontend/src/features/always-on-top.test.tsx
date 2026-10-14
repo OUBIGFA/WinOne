@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AlwaysOnTopPage } from "./always-on-top";
 import { setApplicationLanguage } from "../i18n";
@@ -14,21 +14,35 @@ const settings = {
   frameOpacity: 100, frameColor: "#808080", useAccent: true, roundCorners: true,
   blockInGameMode: true, sound: false, excludedApps: [],
 };
-it("keeps diagnostics available when pinning settings fail to load",async()=>{
+it("lets a custom color replace the accent color without discarding other edits",async()=>{
+ call.mockImplementation(async(method:string,payload?:unknown)=>method==="settings.save"?{...(payload as object),revision:1}:settings);
+ render(<AlwaysOnTopPage disabled/>);
+ const input=await screen.findByLabelText("自定义边框颜色") as HTMLInputElement;
+ expect(input.disabled).toBe(false);
+ const user=userEvent.setup();await user.click(screen.getByRole("switch",{name:"播放提示音"}));
+ fireEvent.change(input,{target:{value:"#123456"}});
+ expect(screen.getByRole("switch",{name:"使用 Windows 强调色"}).getAttribute("aria-checked")).toBe("false");
+ await user.click(screen.getByRole("button",{name:"保存设置"}));
+ await screen.findByText("已保存");
+ expect(input.value).toBe("#123456");
+ expect(screen.getByRole("switch",{name:"播放提示音"}).getAttribute("aria-checked")).toBe("true");
+ expect(call).toHaveBeenCalledWith("settings.save",expect.objectContaining({frameColor:"#123456",useAccent:false,sound:true}));
+});
+it("keeps pinning failure feedback without an independent log tab",async()=>{
  call.mockRejectedValue(Error("pinning unavailable"));
  render(<AlwaysOnTopPage/>);await screen.findByRole("alert");
- await userEvent.setup().click(screen.getByRole("tab",{name:"诊断日志"}));
- expect(logs).toHaveBeenCalledWith("always-on-top");
+ expect(screen.queryByRole("tab",{name:"诊断日志"})).toBeNull();
+ expect(logs).not.toHaveBeenCalled();
  expect(screen.queryByRole("switch",{name:"显示置顶边框"})).toBeNull();
 });
-it("offers only common, advanced and diagnostic tabs while retaining the draft",async()=>{
+it("offers common and advanced tabs while retaining the draft",async()=>{
  call.mockResolvedValue(settings);render(<AlwaysOnTopPage disabled/>);
  const user=userEvent.setup();await screen.findByRole("switch",{name:"播放提示音"});
- expect(screen.getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["常规设置","高级设置","诊断日志"]);
+ expect(screen.getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["常规设置","高级设置"]);
  await user.click(screen.getByRole("tab",{name:"高级设置"}));
  const text=screen.getByRole("textbox");await user.type(text,"example.exe");
- await user.click(screen.getByRole("tab",{name:"诊断日志"}));
- expect(logs).toHaveBeenCalledWith("always-on-top");
+ await user.click(screen.getByRole("tab",{name:"常规设置"}));
+ expect(logs).not.toHaveBeenCalled();
  await user.click(screen.getByRole("tab",{name:"高级设置"}));
  expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("example.exe");
 });
@@ -75,7 +89,8 @@ it("keeps advanced drafts while switching tabs",async()=>{
  await user.click(await screen.findByRole("tab",{name:"高级设置"}));
  await user.type(screen.getByRole("textbox",{name:"排除的程序（每行一个名称或路径）"}),"keep.exe");
  await user.click(screen.getByRole("tab",{name:"常规设置"}));
- expect(screen.queryByRole("textbox",{name:"排除的程序（每行一个名称或路径）"})).toBeNull();
+ // Base UI marks the outgoing panel inert, then unmounts it after its exit.
+ await waitFor(()=>expect(screen.queryByRole("textbox",{name:"排除的程序（每行一个名称或路径）"})).toBeNull());
  await user.click(screen.getByRole("tab",{name:"高级设置"}));
  expect((screen.getByRole("textbox",{name:"排除的程序（每行一个名称或路径）"}) as HTMLTextAreaElement).value).toBe("keep.exe");
 });

@@ -1,0 +1,100 @@
+package plugin
+
+import (
+	"crypto/sha256"
+	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
+
+	"github.com/yetone/magpie/internal/settings"
+	"github.com/yetone/magpie/internal/steady"
+)
+
+type winOneProviderSnapshot struct {
+	Fingerprint   string            `json:"fingerprint"`
+	Configuration [sha256.Size]byte `json:"configuration"`
+	Provider      Provider          `json:"provider"`
+}
+
+// Plugin options can change which login methods it exposes. Hash them rather
+// than duplicating possibly private options into the public metadata cache.
+func winOneConfigurationFingerprint(l List) ([sha256.Size]byte, error) {
+	data, err := json.Marshal(l)
+	if err != nil {
+		return [sha256.Size]byte{}, err
+	}
+	return sha256.Sum256(data), nil
+}
+
+func winOneProviderSnapshotPath() string {
+	return filepath.Join(settings.Dir(), "winone-account-provider.json")
+}
+
+// WinOneRememberProvider keeps only verified, public discovery metadata. The
+// fingerprint belongs to the pinned bundle, so an upgrade rediscovers methods.
+func WinOneRememberProvider(p Provider, fingerprint string) error {
+	metadata := Provider{ID: p.ID, Spec: p.Spec, Name: p.Name, Methods: p.Methods}
+	configuration, err := winOneConfigurationFingerprint(Load())
+	if err != nil {
+		return err
+	}
+	data, err := json.Marshal(winOneProviderSnapshot{Fingerprint: fingerprint, Configuration: configuration, Provider: metadata})
+	if err != nil {
+		return err
+	}
+	return writeWhole(winOneProviderSnapshotPath(), data)
+}
+
+// WinOneReadProvider follows Cached's account-page path: metadata is reused,
+// while accountsOf/readAuth reread the authoritative auth on every request.
+// Unlike the long-lived magpie GUI, a one-shot worker must not launch Cached's
+// background refresh: executing plugin code still requires preparePluginAt.
+func WinOneReadProvider(spec, id, fingerprint string) (Provider, bool, error) {
+	l := Load()
+	if len(l.Plugins) != 1 || l.Plugins[0].Spec != spec || l.Plugins[0].Off {
+		return Provider{}, false, nil
+	}
+	data, err := steady.ReadFile(winOneProviderSnapshotPath())
+	if errors.Is(err, os.ErrNotExist) {
+		return Provider{}, false, nil
+	}
+	if err != nil {
+		return Provider{}, false, err
+	}
+	var cached winOneProviderSnapshot
+	configuration, err := winOneConfigurationFingerprint(l)
+	if err != nil {
+		return Provider{}, false, err
+	}
+	if json.Unmarshal(data, &cached) != nil || cached.Fingerprint != fingerprint || cached.Configuration != configuration || cached.Provider.Spec != spec || cached.Provider.ID != id || len(cached.Provider.Methods) == 0 {
+		return Provider{}, false, nil
+	}
+	p := cached.Provider
+	p.Accounts = accountsOf(readAuth(), p.ID)
+	p.SignedIn = len(p.Accounts) > 0
+	if p.SignedIn {
+		p.AuthType = p.Accounts[0].Type
+		p.AccountID = p.Accounts[0].AccountID
+	}
+	return p, true, nil
+}
+
+// WinOneRebindPath updates only the already selected plugin's location after
+// WinOne verifies the replacement resources. Account auth and options remain
+// in this provider's private profile; no old plugin code is loaded here.
+func WinOneRebindPath(previous, current string) error {
+	listMu.Lock()
+	list := Load()
+	if len(list.Plugins) != 1 || list.Plugins[0].Spec != previous {
+		listMu.Unlock()
+		return errors.New("account plugin profile changed")
+	}
+	list.Plugins[0].Spec = current
+	err := save(list)
+	listMu.Unlock()
+	if err == nil {
+		Restart()
+	}
+	return err
+}

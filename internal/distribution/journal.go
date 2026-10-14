@@ -255,13 +255,13 @@ func validateUpgradeJournal(j UpgradeJournal) error {
 			return errors.New("upgrade metadata contains unfinished or invalid work")
 		}
 	}
-	if n, err := CompareVersions(j.Plan.PreviousVersion, j.Plan.NextVersion); err != nil || n >= 0 {
+	if n, err := CompareVersions(j.Plan.PreviousVersion, j.Plan.NextVersion); err != nil || n > 0 || (n == 0) != j.Plan.Reinstall {
 		return errors.New("invalid upgrade journal versions")
 	}
 	if !hexBytes(j.Plan.PreviousManifestSHA256, 32) || !hexBytes(j.Plan.NextManifestSHA256, 32) {
 		return errors.New("invalid upgrade inventory hashes")
 	}
-	if j.Plan.PreviousManifestSHA256 == j.Plan.NextManifestSHA256 {
+	if j.Plan.PreviousManifestSHA256 == j.Plan.NextManifestSHA256 && !j.Plan.Reinstall {
 		return errors.New("new version must have a different manifest")
 	}
 	seen := map[string]bool{}

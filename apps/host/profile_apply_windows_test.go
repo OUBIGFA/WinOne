@@ -55,8 +55,8 @@ func importFixture(t *testing.T, failCapture ...bool) (string, *configuration.Ho
 		t.Fatal(err)
 	}
 	get := func() *modules.Lazy { return nil }
-	lifecycle := configuration.ModuleLifecycle{Initial: map[string]bool{"capture": true, "always-on-top": true, "wintray": true}, Before: func(map[string]bool) error { return nil }, After: func(map[string]bool) error { return nil }}
-	adapters := []configuration.ModuleAdapter{aotConfiguration(directory, get), captureConfiguration(directory, get), wintrayConfiguration(directory, get)}
+	lifecycle := configuration.ModuleLifecycle{Initial: map[string]bool{"capture": true, "always-on-top": true, "wintray": true, "selection": true, "quick-assistant": true, "stroke": true}, Before: func(map[string]bool) error { return nil }, After: func(map[string]bool) error { return nil }}
+	adapters := []configuration.ModuleAdapter{aotConfiguration(directory, get), captureConfiguration(directory, get), wintrayConfiguration(directory, get), selectionConfiguration(directory, nil), quickAssistantConfiguration(directory, nil), strokeConfiguration(directory, get)}
 	if len(failCapture) > 0 && failCapture[0] {
 		apply := adapters[1].Apply
 		adapters[1].Apply = func(raw json.RawMessage, revision uint64) error {

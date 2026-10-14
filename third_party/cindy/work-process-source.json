@@ -1,0 +1,86 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "commit": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+  "license": "Apache-2.0",
+  "adaptation": "Shared work grouping and activity projection are copied unchanged. React WorkGroupBlock and host adapters map Pi records, translations and WinOne controls; bounded scrolling and resizing are explicit WinOne requirements.",
+  "sources": [
+    {
+      "source": "packages/maker-shared/src/workRunGrouping.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/workRunGrouping.ts",
+      "sha256": "0f0e60b97a6ace4fed1ac3d6394a7b981cc0551de5a6db5645f87aeabed38846"
+    },
+    {
+      "source": "packages/maker-shared/src/workActivityProjection.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/workActivityProjection.ts",
+      "sha256": "6a8fd9d157223ab0e3eb673c9ff2cc14df8df0b07db7815d617acd4517710b28"
+    },
+    {
+      "source": "packages/maker-shared/src/historyGap.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/historyGap.ts",
+      "sha256": "cd554b112d5aa2e2514cb58309da2376e2d5c397852afc1bc2977d6e089e57ea"
+    },
+    {
+      "source": "packages/maker-shared/src/commandIntent.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/commandIntent.ts",
+      "sha256": "5803deb7d5fd020acd609023315461fc60e730f0373fe688013e610e0b2e150c"
+    },
+    {
+      "source": "packages/maker-shared/src/toolUseDescriptor.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/toolUseDescriptor.ts",
+      "sha256": "942b21c58df6df8b439e2a040e6f38174de991ad1d1f312a4058e8e2f0e73f72"
+    },
+    {
+      "source": "packages/maker-shared/src/filePreview.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/filePreview.ts",
+      "sha256": "53898152e70400b549e8a5e7ec3f7b4961a8e0c153a00f7b6790c3b496732e25"
+    },
+    {
+      "source": "packages/maker-shared/src/messageNormalize.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/messageNormalize.ts",
+      "sha256": "28b5d4ba9d859ba21b192c7bf8e89ffa495a2802969b2e995855fe7bdfff01fa"
+    },
+    {
+      "source": "packages/maker-shared/src/commandDisplay.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/commandDisplay.ts",
+      "sha256": "f23cad9408cd1c53bb155ef3748b43c0a4d7ffe7f4f04f80749e5d1b5505adac"
+    },
+    {
+      "source": "packages/maker-shared/src/pathText.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/pathText.ts",
+      "sha256": "35c6fa3c396a333ab08b84771368f72c4fbc174a6871c3cfca5dcadbd16281b7"
+    },
+    {
+      "source": "packages/maker-shared/src/htmlPreviewCsp.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/htmlPreviewCsp.ts",
+      "sha256": "53e4e569a3962ee25092df6af7e95767096dc85eaa971837b838a3a4ec9b597d"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/WorkGroupBlock.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/WorkGroupBlock.tsx",
+      "sha256": "90a4e13f91c5fa490f6c2aec82c43d21c551b3727e864f30156849d65c29efa9"
+    },
+    {
+      "source": "apps/desktop/src/renderer/themes/colors.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/message-tokens.css",
+      "sha256": "6af7bdb328e39f45c26a7e116903eba8b10ebd85c872b029a1b00e754617507f"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/AgentActionRow.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/AgentActionRow.tsx",
+      "sha256": "d9d1ea693f7e8991979eabf2f3cc2bbb76c7eace659da694e939230a0248f309",
+      "adaptation": "Reuse the compact row and inline payload JSX; adapt Pi input/result descriptors and file payload dialogs to WinOne components."
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/MarkdownRenderer.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/MarkdownBody.tsx",
+      "sha256": "677b2b6d35c340699294225e4bcb99b31c4c61c3e92575a07a47e3f5b11a2a44",
+      "adaptation": "Reuse paragraph/list/heading/table/blockquote renderers; WinOne supplies copy callbacks and requires wrapping tables."
+    },
+    {
+      "source": "apps/desktop/src/renderer/styles/generated/tokens.css",
+      "target": "apps/desktop/frontend/src/features/cindy/reading.css",
+      "sha256": "a1c8d401f4e7161b07b1484aa394cd9648626143d53bb51d4f36e455f21413fb",
+      "adaptation": "Reuse the Inter UI font stack, code font stack and sizes. Host layout binds panels to one scrollbar and provides the requested height control."
+    }
+  ]
+}

@@ -28,8 +28,10 @@ func TestLoginHostWaitsForDesktopThenExits(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, data := range map[string]string{
-		filepath.Join(dir, "settings.json"):       `{"schemaVersion":1,"theme":"system","captureShortcut":"","pinShortcut":""}`,
-		filepath.Join(moduleDir, "settings.json"): `{"schemaVersion":3,"language":"zh-CN","runAtLogon":false,"exitAfterManagedAppsCompleted":true,"managedApps":[]}`,
+		// The presence marker below stands in for the settings window. Keep
+		// login startup silent so a packaged UI cannot add a second blocker.
+		filepath.Join(dir, "settings.json"):       `{"schemaVersion":1,"theme":"system","captureShortcut":"","pinShortcut":"","startup":{"runAtLogon":false,"startMinimized":true}}`,
+		filepath.Join(moduleDir, "settings.json"): `{"schemaVersion":3,"language":"zh-CN","runAtLogon":false,"startMinimizedToTray":true,"exitAfterManagedAppsCompleted":true,"managedApps":[]}`,
 	} {
 		if err := os.WriteFile(path, []byte(data), 0600); err != nil {
 			t.Fatal(err)

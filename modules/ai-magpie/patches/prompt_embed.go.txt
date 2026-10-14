@@ -1,0 +1,16 @@
+package gateway
+
+import ("github.com/yetone/magpie/internal/provider";"net/http")
+
+func WinOneConversationID(body []byte) string { return conversationID(http.Header{},body) }
+
+// WinOnePrompt reuses Magpie's prompt classification and calibration. Prompt
+// contains counts and item names only; it never contains message bodies.
+func WinOnePrompt(path string, body []byte, counted, window int) *Prompt {
+	protocol := provider.Chat
+	if path == "/v1/messages" { protocol = provider.Anthropic }
+	if path == "/v1/responses" { protocol = provider.Responses }
+	p := promptOf(protocol, body)
+	if p == nil { return nil }
+	return p.calibrated(counted, window)
+}

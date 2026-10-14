@@ -1,0 +1,369 @@
+{
+    "repository":  "https://github.com/lobehub/lobe-icons",
+    "commit":  "82e641b4fece9d1028a127149af9ded00df5ac0c",
+    "license":  "MIT",
+    "magpieCommit":  "8c71cd27f95432362b91fe140bbffacc550def8b",
+    "files":  [
+                  {
+                      "file":  "anthropic.svg",
+                      "sha256":  "e833fdfa7e7187a86a05b870925067556a506dcd4239089aed73e1e58c9366a3",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "antigravity-color.svg",
+                      "sha256":  "652128cf55a28bb958563ee372d0bd00208d9e6fd446f523f77aafd811eef8ca",
+                      "source":  "LobeHub Icons",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "azure-color.svg",
+                      "sha256":  "abc639d094593943c1b201270f4903c74d02d2e26acf26abf592a29c222c5181",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "chatglm-color.svg",
+                      "sha256":  "6e935f6ccad7a776edef259b33bbbfe5b51d6486318d4a0f423708ffe2a27287",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "claude-color.svg",
+                      "sha256":  "a3101f3047a119aa11825ad9369510f0c472428c8c52d420e31bc62db44a8364",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "cohere-color.svg",
+                      "sha256":  "84d0ee3cbe66f030e5a18cb2c86da9166ab2137c7a98781693bb1fbf31e392b9",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "commandcode.svg",
+                      "sha256":  "0b3090f6e9194f32520e5b98ea43c5bc1a0f04644c94d1bade69fab7413e1531",
+                      "source":  "LobeHub Icons",
+                      "matchesPinnedMagpie":  false
+                  },
+                  {
+                      "file":  "cursor.svg",
+                      "sha256":  "0cb51bddf264ae108926fd554c063ef40fc1aac3c5c921ddb39ad184e4e5d0ef",
+                      "source":  "LobeHub Icons",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "deepseek-color.svg",
+                      "sha256":  "deba5f98a5c1796e20fcac3149bcd7eb8a32f0bdd04d048819400b1f28bd1439",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "devin-color.svg",
+                      "sha256":  "beb58575f94fda57a6c1f9ed5624e6407bff405f55b6258b53032b674aadd8c8",
+                      "source":  "LobeHub Icons",
+                      "matchesPinnedMagpie":  false
+                  },
+                  {
+                      "file":  "doubao-color.svg",
+                      "sha256":  "3cd31ba03ae44b8c29561597a3b863809efecb13fcdfd08407a086df86a69b55",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "factory.svg",
+                      "sha256":  "60250a5dfa3ff85ef7f665799904310aa5479b3c10ed46c35996b4bc6f59e55c",
+                      "source":  "magpie",
+                      "repository":  "https://github.com/yetone/magpie",
+                      "commit":  "8c71cd27f95432362b91fe140bbffacc550def8b",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "gemini-color.svg",
+                      "sha256":  "8ab0a9bafec11f7e69bcb9fc4ffd8f1bc927d1ddcbbb6ff36dee5ae8b5a9d602",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "gemma-color.svg",
+                      "sha256":  "8cdc48e35113d2f76f602fc93977ce8b8eebe41bc66a65f532ed9c89f6a68e2d",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "githubcopilot.svg",
+                      "sha256":  "bbc7fddc13448236e5edea8c399d2072dc40aa5da5bca07f7a2f412405c500a3",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "glmv-color.svg",
+                      "sha256":  "52c829ec60d4e60ce20c4d20a0fb976bcceacd7518cbacef39c192834d1d5958",
+                      "matchesPinnedMagpie":  false
+                  },
+                  {
+                      "file":  "grok.svg",
+                      "sha256":  "9175fc90c22655160231976c849f25a03b888d7cc0e04c5f1b987b659bb07c95",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "hunyuan-color.svg",
+                      "sha256":  "510e7bb438506b5aadfaf8b9551d1606efd5b4171161a64a64204c72a453658a",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "kimi-color.svg",
+                      "sha256":  "74a7292aeb0220445d14c5d397d75760e2e8c6ed6a9e5fe4f3023471bf62a9ff",
+                      "matchesPinnedMagpie":  false
+                  },
+                  {
+                      "file":  "kiro-color.svg",
+                      "sha256":  "4eae4d6e818da7342c32c7d443ab7c97b93c544db9af379d5b5bf7f0a3127d66",
+                      "source":  "LobeHub Icons",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "meta-color.svg",
+                      "sha256":  "adf9f2c1a646ccd3a37ca8c2e7e5985d64630cd633f4b95fba393d1d44e0578c",
+                      "matchesPinnedMagpie":  false
+                  },
+                  {
+                      "file":  "mimocode.svg",
+                      "sha256":  "a1cf318ef84e3bba3d22886150ca45f0865ed339b3d25e858223b51db692e93d",
+                      "source":  "magpie",
+                      "repository":  "https://github.com/yetone/magpie",
+                      "commit":  "8c71cd27f95432362b91fe140bbffacc550def8b",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "minimax-color.svg",
+                      "sha256":  "7f7187fa6d9b341ac5f22f6c5a970523afb439dc45566d64eb4f4b9b604d6b01",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "mistral-color.svg",
+                      "sha256":  "722f74b289d95486b43662fe24fa883b333701296f618406cd0ed502299170b6",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "ollama.svg",
+                      "sha256":  "3a268218fb2e6e81fa31df70f70b51331625047794db81db21d35359428fae7a",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "openai.svg",
+                      "sha256":  "a595df6b423920c67a7f8f73c063e4bfb72d415948097b6cac063a2366bb5186",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "openrouter-color.svg",
+                      "sha256":  "17bede1b89166f824ee06753dc526a3f5e18b769706deaab09d04a3a98de1a78",
+                      "matchesPinnedMagpie":  false
+                  },
+                  {
+                      "file":  "qoder-color.svg",
+                      "sha256":  "396596d247477e2a036c141a16ec266df7b14c0130b777a68fd04bc89af50bc8",
+                      "source":  "LobeHub Icons",
+                      "matchesPinnedMagpie":  false
+                  },
+                  {
+                      "file":  "qwen-color.svg",
+                      "sha256":  "77f5768c66d08ce1d3d14e73373975c1bc0454be88c81523ddd0ffd7e2974029",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "siliconcloud-color.svg",
+                      "sha256":  "a02d8d7ccb81739fbc720e2e5daaf149013dd5088605dc2dce1b71df0784d424",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "stepfun-color.svg",
+                      "sha256":  "f55afc0e6004c8854f76bd5bbcc0fce9fc0ed9316691d54fb02d088c24fab40d",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "tencentcloud-color.svg",
+                      "sha256":  "f860dae064a3afd24970efd2bc5892f39438526bf52c3a9748f61fc05c1cfd58",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "workbuddy-color.svg",
+                      "sha256":  "ade134028e69e03453bff956059a0e7f23c7341a0295f16994cecd8d03fc2fd4",
+                      "source":  "magpie",
+                      "repository":  "https://github.com/yetone/magpie",
+                      "commit":  "8c71cd27f95432362b91fe140bbffacc550def8b",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "xai.svg",
+                      "sha256":  "89eb7de9f0d02a41cfecd9109e253d7fd3529e27467dee4254faa67f3ac21451",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "zai.svg",
+                      "sha256":  "e748cb5108ce37b116d7a5ba97d37e0ae97eadf6849b0de11afb248e244a01e1",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "zcode.png",
+                      "sha256":  "df3aba17ddb55b9cfb21f1f30d11fde7ea93d3193c40b3d6433cf684af942b99",
+                      "source":  "magpie",
+                      "repository":  "https://github.com/yetone/magpie",
+                      "commit":  "8c71cd27f95432362b91fe140bbffacc550def8b",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "zed.svg",
+                      "sha256":  "e9738a231662d93b1aa9cde08698b76162b6d9669a38dd33e2c31398e4df5e86",
+                      "source":  "magpie",
+                      "repository":  "https://github.com/yetone/magpie",
+                      "commit":  "8c71cd27f95432362b91fe140bbffacc550def8b",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "file":  "zhipu-color.svg",
+                      "sha256":  "8174e65ff71647d5c705c920c953a82bd723d9e3e42887bdd4ffc9dfe51207a0",
+                      "matchesPinnedMagpie":  true
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "9003d2cdce82b016147b732abb4def60af55c348ba2cea2ba0b69a3c7d159b19",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "cline.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "7cfa6e9d6726f7c9fa26c7d9aef0dfec52d20a137380454340f30f12ccbfd302",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "opencode.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "59ef6255dfce52d4b1e77aff4e1b4ee3cda71cda735b4fb45575e9874a1c11f6",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "trae.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "35ede625cfc22335fc9b252e96dc7992e4e08a399bb7a714f8570f6779d19e11",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "ai302-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "e0ba11dd4b14fce9df434604cb081749b8f3347392d263d7d6f291b81f113f7f",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "aihubmix-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "2269f4c82a3a810f42691c82d0d5086961c2b684a2dcc1e7523cd9f8564e2f35",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "baiducloud-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "a149a5678ce2b5d821759aabca7b815867027a8231a76723b3673580e8177a60",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "bedrock-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "5bf4a4a868856e6258354d713a3f36968e467a2fd17898838750058a1449658e",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "cherryin-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "cee35d3f0ecb7925ce0a89aeaff8b907cadae7c3fe44a23e4001cc8d5ee57502",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "cloudflare-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "f1c4782b86bc03a36323fd68ad6cc376c6b2ebe57b701cc958ebd6b8d37effd6",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "fireworks-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "078d5cf6e7a54905040c15ddacf5ea33c13042fe7739e820cedc2096e4406651",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "groq.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "8a5e4cb6452046ecaf3a500e3a89955efdf54bfd0bed46a9c364fbd5f13290e4",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "huaweicloud-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "ab8dc00520a0bcd32910072f3cdf435e8346e13d101bb1806772ab22679c90a6",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "kilo.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "ed08131b46acf70e6e2144eceb775e74098b58ea65fa21eaee04be7b05cfe63b",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "kimi.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "4a575e8382b52ce742ac5d21d361a7d2a08cea7c12390ee1bbb755ef7d3cc25b",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "lmstudio.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "91ba6d631f4cf4bbfa95fbb32f1feb06282400d3e52b879948b4ca51cd1b92bc",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "magpie.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "21841ddba0c560ad44c4def00a66f2a9b31703438ba390ea0b8e01cfbf39b5e4",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "modelscope-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "8c941e4eb8b782eccaaea1240c059d20be33ab8eda28d7c9ed9b53ac802fe683",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "nvidia-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "a885f0380481006711de18cb0c0d0e5960a0a19e94523d13b17c44a3dec099d3",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "omlx.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "ae671cc83de9bd45db97a47ed5e38a4e1bd9f93a12be495ba4b4f8b284026bca",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "openrouter.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "7dd40b9deca458de47441084deefe8552c8d35388c599e43d0622a8d9f1d615e",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "pipellm-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "27ccaf118a431c386b88418a34a4346afd9638dde10e3f2295db2eec1fa5898a",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "together-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "4874d52d8b2ce7c309cbd10c424fee123b2c9483e76d76ad0dca41794483eb24",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "vercel.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "84f9e2cd1da7e73dc6c9a0f2521745d39cae96c008752cdb1baf57a8c94393a1",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "volcengine-color.svg"
+                  },
+                  {
+                      "source":  "magpie",
+                      "sha256":  "e6ab15a3b241db388e03a7b01739fa2ef4b41f902d0491eefd3901bd2c563287",
+                      "commit":  "290c60a31ebe701903af425cae6a95fbe1f55255",
+                      "file":  "yylx.svg"
+                  }
+              ]
+}

@@ -24,6 +24,13 @@ type ProgramMetadata struct {
 // ProgramInfo reads file resources only. It neither starts the program nor
 // changes its registration, so disabled modules can use the same picker.
 func (a *App) ProgramInfo(path string) (ProgramMetadata, error) {
+	if a.dataDirectory == "" {
+		return readProgramInfo(path)
+	}
+	return cachedProgramInfo(filepath.Join(a.dataDirectory, "cache", "program-icons"), path, readProgramInfo)
+}
+
+func readProgramInfo(path string) (ProgramMetadata, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	initErr := windows.CoInitializeEx(0, 2)

@@ -19,7 +19,7 @@ internal static class NativeWorkerProbe
         settings.Save(settings.Snapshot() with { OutputDirectory = Path.Combine(output, "images"), CopyToClipboard = false, Theme = Environment.GetEnvironmentVariable("WINONE_PROBE_THEME") ?? "system" });
         SettingsStore.AtomicWrite(Path.Combine(data, "managed-settings.json"), JsonSerializer.SerializeToUtf8Bytes(settings.Snapshot(), SettingsStore.Json));
         var sequence = 0; var copies = 0;
-        using var worker = new CaptureApplication(pipe, data, (store, operations, mode, language, cancellation) => {
+        using var worker = new CaptureApplication(pipe, data, new NativeCaptureHandlers((store, operations, mode, language, cancellation) => {
             var clock = Stopwatch.StartNew();
             var session = Path.Combine(output, "session-" + ++sequence); Directory.CreateDirectory(session);
             try {
@@ -51,7 +51,7 @@ internal static class NativeWorkerProbe
                     estimatedManagedBytes = GC.GetTotalMemory(false), gen0 = GC.CollectionCount(0), gen1 = GC.CollectionCount(1), gen2 = GC.CollectionCount(2)
                 }));
             }
-        }, bitmap => {
+        }), bitmap => {
             copies++;
             bitmap.Save(Path.Combine(output, "copied.png"));
             File.WriteAllText(Path.Combine(output, "copy.json"), JsonSerializer.Serialize(new { copies, bitmap.Width, bitmap.Height, realClipboard = false }));

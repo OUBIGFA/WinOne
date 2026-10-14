@@ -1,0 +1,17 @@
+shared/chat/Cindy-LICENSE.txt
+shared/chat/Cindy-NOTICE.txt
+shared/chat/JSZip-LICENSE.markdown
+shared/chat/licenses/chat-share-notices.json
+shared/chat/licenses/npm-chat-share-core-util-is-1.0.3-LICENSE.txt
+shared/chat/licenses/npm-chat-share-immediate-3.0.6-LICENSE.txt.txt
+shared/chat/licenses/npm-chat-share-inherits-2.0.4-LICENSE.txt
+shared/chat/licenses/npm-chat-share-isarray-1.0.0-README.md.txt
+shared/chat/licenses/npm-chat-share-jszip-3.10.1-LICENSE.markdown.txt
+shared/chat/licenses/npm-chat-share-lie-3.3.0-license.md.txt
+shared/chat/licenses/npm-chat-share-pako-1.0.11-LICENSE.txt
+shared/chat/licenses/npm-chat-share-process-nextick-args-2.0.1-license.md.txt
+shared/chat/licenses/npm-chat-share-readable-stream-2.3.8-LICENSE.txt
+shared/chat/licenses/npm-chat-share-safe-buffer-5.1.2-LICENSE.txt
+shared/chat/licenses/npm-chat-share-setimmediate-1.0.5-LICENSE.txt.txt
+shared/chat/licenses/npm-chat-share-string_decoder-1.1.1-LICENSE.txt
+shared/chat/licenses/npm-chat-share-util-deprecate-1.0.2-LICENSE.txt

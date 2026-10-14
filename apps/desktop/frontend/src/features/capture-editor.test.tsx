@@ -1,12 +1,34 @@
 import {useState} from "react";
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import CaptureEditor from "./capture-editor";
 import { setApplicationLanguage } from "../i18n";
 
 afterEach(async()=>{cleanup();await setApplicationLanguage("zh-CN");});
+
+it.each(["保存图片","另存为"])("closes only after %s has completed successfully",async label=>{
+ let complete!:(saved:boolean)=>void;
+ const save=vi.fn(()=>new Promise<boolean>(resolve=>{complete=resolve;})),close=vi.fn();
+ render(<CaptureEditor image={{id:"a".repeat(32),width:100,height:80}} onSave={save} onSaveAs={save} onClose={close}/>);
+ fireEvent.load(await screen.findByAltText("最近截图预览"));
+ await userEvent.setup().click(screen.getByRole("button",{name:label}));
+ await waitFor(()=>expect(save).toHaveBeenCalledOnce());expect(close).not.toHaveBeenCalled();
+ await act(async()=>complete(true));await waitFor(()=>expect(close).toHaveBeenCalledOnce());
+});
+
+it.each(["保存图片","另存为"])("keeps the screenshot after %s is cancelled or fails, then closes after retry",async label=>{
+ const save=vi.fn().mockResolvedValueOnce(false).mockRejectedValueOnce(Error("fixture save failed")).mockResolvedValueOnce(true),close=vi.fn();
+ render(<CaptureEditor image={{id:"a".repeat(32),width:100,height:80}} onSave={save} onSaveAs={save} onClose={close}/>);
+ fireEvent.load(await screen.findByAltText("最近截图预览"));
+ const button=screen.getByRole("button",{name:label}),user=userEvent.setup();
+ await user.click(button);await waitFor(()=>expect(save).toHaveBeenCalledTimes(1));
+ await waitFor(()=>expect((button as HTMLButtonElement).disabled).toBe(false));expect(close).not.toHaveBeenCalled();
+ await user.click(button);await screen.findByText("Error: fixture save failed");
+ expect(close).not.toHaveBeenCalled();expect(screen.getByRole("group",{name:"标注画布"})).toBeTruthy();
+ await user.click(button);await waitFor(()=>expect(close).toHaveBeenCalledOnce());
+});
 
 it("keeps the same canvas while selecting and then exposes the toolbar",async()=>{
  const commit=vi.fn().mockResolvedValue(undefined),confirm=vi.fn().mockResolvedValue(true),close=vi.fn();

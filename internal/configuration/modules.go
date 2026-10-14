@@ -11,11 +11,19 @@ import (
 // ModuleAdapter supplies a one-time legacy reader and a read-only worker
 // projection. Apply must await the runtime and must not activate an idle module.
 type ModuleAdapter struct {
-	ID       string
-	Load     func() (json.RawMessage, error)
-	Validate func(json.RawMessage) error
-	Apply    func(json.RawMessage, uint64) error
-	Prepare  func(json.RawMessage, settings.Settings) (json.RawMessage, error)
+	ID string
+	// Nonzero only for a verified optional package. It travels with retained
+	// settings so reinstall cannot silently reinterpret another schema.
+	PackageSchemaVersion int
+	// Unavailable preserves an optional namespace as opaque local data. It is
+	// never projected, edited or treated as schema-validated while quarantined.
+	Unavailable error
+	Load        func() (json.RawMessage, error)
+	Validate    func(json.RawMessage) error
+	Apply       func(json.RawMessage, uint64) error
+	Prepare     func(json.RawMessage, settings.Settings) (json.RawMessage, error)
+	// Signed package declarations may migrate retained settings on reinstall.
+	Migrate func(int, json.RawMessage) (json.RawMessage, error)
 }
 
 // prepareDocument converges compatibility fields onto global preferences before
@@ -43,9 +51,10 @@ func (s *HostStore) prepareDocument(document Document) (Document, bool, error) {
 		next.Values["host"] = raw
 		changed = true
 	}
-	for _, adapter := range s.modules {
+	adapters, _, _ := s.moduleCatalog()
+	for _, adapter := range adapters {
 		raw, exists := next.Values[adapter.ID]
-		if !exists || adapter.Prepare == nil {
+		if !exists || adapter.Prepare == nil || adapter.Unavailable != nil {
 			continue
 		}
 		prepared, err := adapter.Prepare(append(json.RawMessage(nil), raw...), global)
@@ -69,7 +78,11 @@ func (s *HostStore) applyDocument(document Document) error {
 			return err
 		}
 	}
-	for _, adapter := range s.modules {
+	adapters, _, _ := s.moduleCatalog()
+	for _, adapter := range adapters {
+		if adapter.Unavailable != nil {
+			continue
+		}
 		if raw, exists := document.Values[adapter.ID]; exists {
 			if err := adapter.Apply(append(json.RawMessage(nil), raw...), document.Revision); err != nil {
 				return fmt.Errorf("%s: %w", adapter.ID, err)
@@ -94,9 +107,15 @@ func (s *HostStore) applyDocument(document Document) error {
 // Module returns committed preferences even if the feature is disabled.
 func (s *HostStore) Module(id string) (json.RawMessage, uint64, error) {
 	document := s.store.Snapshot()
+	if err := s.packageUnavailable(id); err != nil {
+		return nil, document.Revision, err
+	}
 	raw, exists := document.Values[id]
 	if !exists || id == "host" {
-		if err := s.moduleErrors[id]; err != nil {
+		s.catalogMu.RLock()
+		err := s.moduleErrors[id]
+		s.catalogMu.RUnlock()
+		if err != nil {
 			return nil, document.Revision, err
 		}
 		return nil, document.Revision, errors.New("模块配置未登记")
@@ -106,6 +125,9 @@ func (s *HostStore) Module(id string) (json.RawMessage, uint64, error) {
 
 func (s *HostStore) SaveModule(id string, revision uint64, raw json.RawMessage) (json.RawMessage, uint64, error) {
 	document := s.store.Snapshot()
+	if err := s.packageUnavailable(id); err != nil {
+		return nil, document.Revision, err
+	}
 	if err := s.RecoveryError(); err != nil {
 		return nil, document.Revision, errors.Join(ErrRecoveryRequired, err)
 	}

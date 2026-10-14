@@ -1,0 +1,459 @@
+{
+  "bun": {
+    "version": "1.4.2",
+    "target": "bun-windows-x64-baseline",
+    "archiveSHA256": "78c221c2376f79731ccf4e4af0b3bb46d81fefa3296c5abee09ad8a1b21e68c6",
+    "executableSHA256": "15277c59ccd6c6c20f8dc9716c2b59c1776320d606b6a8658f70be8799519ca4"
+  },
+  "plugins": [
+    {
+      "package": "@magpie-community/opencode-zen-free-auth",
+      "name": "OpenCode Zen Free",
+      "version": "0.1.3",
+      "directory": "zen-free",
+      "entry": "index.mjs",
+      "providers": [
+        "opencode-zen-free"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 695,
+          "sha256": "7a172ce36e673d5d500d8418967152a2de77b2e9fd728ec6b9e313745d931e27"
+        },
+        {
+          "path": "index.mjs",
+          "size": 83,
+          "sha256": "8ceef8ac0261046d9f04cf384ec96ac3c6d3afe35a7d0a67d9d94202e5c0e4b6"
+        },
+        {
+          "path": "provider.mjs",
+          "size": 12122,
+          "sha256": "4fecd0a51ffd15733eddf18c4b164dec12816567339d060a88f8e755888e9e5e"
+        },
+        {
+          "path": "models.mjs",
+          "size": 4993,
+          "sha256": "599ae877e6df506ed223c0070c1b2b881047cc545663bd4c2492b9694e551c3f"
+        },
+        {
+          "path": "stream.mjs",
+          "size": 14325,
+          "sha256": "954fc3f48fb8098f0e80b4d77a2ffdb5a41f868cb7e329166a1de7ee8edda827"
+        },
+        {
+          "path": "tool-response.mjs",
+          "size": 27470,
+          "sha256": "c03adfd193fbb02a03c0c134a1c0cde6f5b625af5e13782643287ada4ffa027c"
+        },
+        {
+          "path": "README.md",
+          "size": 1846,
+          "sha256": "1a24a9fb831f3ffd4694c03789ccee865c64f75706d6cddddab8a6c0939d876a"
+        },
+        {
+          "path": "LICENSE",
+          "size": 1088,
+          "sha256": "170ca82fa4255729a826c5eb9abf3f0e0d2e3dde84f024accb5b806473c4ba68"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-zcode-auth",
+      "name": "ZCode",
+      "version": "0.1.14",
+      "directory": "zcode",
+      "entry": "index.mjs",
+      "providers": [
+        "zcode"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 652,
+          "sha256": "bd482d90824e7cffdc488e0c264544b13f2b694fa5b7297c5204fe6a7336f6f7"
+        },
+        {
+          "path": "index.mjs",
+          "size": 71368,
+          "sha256": "1e39f4bdc424bdfd2f2fa98bdbe8ec597e27db253094d0e1375b6cb0c8491560"
+        },
+        {
+          "path": "prompt.mjs",
+          "size": 8879,
+          "sha256": "e390759214834737f41ea52fb9725d64f140faae4cc31b5881975ceda7b43a98"
+        },
+        {
+          "path": "README.md",
+          "size": 7177,
+          "sha256": "856309bc50222c6f62f6407fda075ff0ed85bf3af616ac0088f9d7e1e202a5b9"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-qoder-auth",
+      "name": "Qoder",
+      "version": "0.2.12",
+      "directory": "qoder",
+      "entry": "index.mjs",
+      "providers": [
+        "qoder",
+        "qoder-cn"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 556,
+          "sha256": "86d688e5ea2d551c03e2c32b69a7572e9d44061185b627edaa2cf422ed56d5ac"
+        },
+        {
+          "path": "index.mjs",
+          "size": 71851,
+          "sha256": "b7e9ce43f061c19f2b73e13dc46a5998842dfc7f52706a3dc94e5114dec0ddbf"
+        },
+        {
+          "path": "README.md",
+          "size": 11290,
+          "sha256": "d5eef7df15eba8f8fe5f5d22ac9877f8634ddd6ba2e5866e271031a38d55e26d"
+        },
+        {
+          "path": "LICENSE-CLIProxyAPI",
+          "size": 1137,
+          "sha256": "93df585e5fa07ead6d47a3ab2dbdf0255782a39fe830022c0274a70394223cc8"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-devin-auth",
+      "name": "Devin",
+      "version": "0.1.14",
+      "directory": "devin",
+      "entry": "index.mjs",
+      "providers": [
+        "devin"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 516,
+          "sha256": "b322c78fc43904efd89cc7553039834beb104d57171e3a601982dd262241030c"
+        },
+        {
+          "path": "index.mjs",
+          "size": 82638,
+          "sha256": "381c16edbd6cb2506ace80dd52b6f582c9b655d9e7fbec2fec5175fb70e0ea0b"
+        },
+        {
+          "path": "README.md",
+          "size": 4755,
+          "sha256": "281694a56283333e2916fa7c097456f43f10ff0878b2ae83606ee318b11096ad"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-zed-auth",
+      "name": "Zed",
+      "version": "0.1.6",
+      "directory": "zed",
+      "entry": "index.mjs",
+      "providers": [
+        "zed"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 489,
+          "sha256": "cfb6c42a4d041d6d2251767e47a8a4f2d0e852d7a1ffe6c42368167c6d86fa07"
+        },
+        {
+          "path": "index.mjs",
+          "size": 42020,
+          "sha256": "77d3bc42e73b198e801a436f50abaeeed8c69daf1491c74d2df18591acab2d62"
+        },
+        {
+          "path": "README.md",
+          "size": 3623,
+          "sha256": "39d6d3fd6815aa2eb6db8ba2bd42a0ad1c03cc8c5c0d5b1808d3caec05e428f7"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-factory-auth",
+      "name": "Factory",
+      "version": "0.1.23",
+      "directory": "factory",
+      "entry": "index.mjs",
+      "providers": [
+        "factory"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 510,
+          "sha256": "641aac3fcfd8d4bb52ecb1ff30383cf40806c842619b0e807dc5d2167d4c289c"
+        },
+        {
+          "path": "index.mjs",
+          "size": 70593,
+          "sha256": "a4dd715c96da80002d34844c36edc3f9b4c41d84cb89798fd5d4a1c7980b1b50"
+        },
+        {
+          "path": "anthropic-tools.mjs",
+          "size": 9257,
+          "sha256": "de300d81de2843c3698802ae0791afd9b121ae166b727692f83e1ed59d23e4a5"
+        },
+        {
+          "path": "README.md",
+          "size": 12345,
+          "sha256": "4c1e7654e6b18883ed72d84b2890e1123f119f209774101c72e497b6c823a051"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-grok-auth",
+      "name": "Grok",
+      "version": "0.1.11",
+      "directory": "grok",
+      "entry": "index.mjs",
+      "providers": [
+        "grok"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 553,
+          "sha256": "1167558bd9b8e33e83f2c7d2db14530490bc6b2754f4fd0776b472b60ecba795"
+        },
+        {
+          "path": "index.mjs",
+          "size": 32263,
+          "sha256": "dae16d94ab457d704c42e7da382f0bacb0b241c737f63bc3575d1f0203ba68c9"
+        },
+        {
+          "path": "README.md",
+          "size": 4000,
+          "sha256": "ad40a5b0272751cce5d4acbce3b5cb5bf6c8a71d64e31aaf483a1f7e19b02929"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-commandcode-auth",
+      "name": "Command Code",
+      "version": "0.1.9",
+      "directory": "commandcode",
+      "entry": "index.mjs",
+      "providers": [
+        "commandcode-plan"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 529,
+          "sha256": "ee00506b5d77b1c5fda2896ce11054dc2f01eac18a708d1be2ff1f4756200408"
+        },
+        {
+          "path": "index.mjs",
+          "size": 54964,
+          "sha256": "3f29c325ed48330ca73dace6908c211ebf62bbdf8f10eb1e188fdb0ad03711fc"
+        },
+        {
+          "path": "README.md",
+          "size": 3769,
+          "sha256": "00f9f0d538166af145a73a2dc9f1a6f001eec16ad9714f0618a10c0e21ead238"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-mimo-auth",
+      "name": "Xiaomi MiMo",
+      "version": "0.1.9",
+      "directory": "mimo",
+      "entry": "index.mjs",
+      "providers": [
+        "mimo-app"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 6939,
+          "sha256": "95da035b50568fb9160af0a4792c4d056dd040352306c398194d8fed2a130ac7"
+        },
+        {
+          "path": "index.mjs",
+          "size": 35442,
+          "sha256": "7bd7ae7eccc413511969a5b490812d8a7c91faa0cc26224ee3d116ded54aac44"
+        },
+        {
+          "path": "README.md",
+          "size": 4172,
+          "sha256": "192dae170e722a630d95588d35f63da3197163e9d1df361fd96492b40ae14c89"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-cursor-auth",
+      "name": "Cursor",
+      "version": "0.2.6",
+      "directory": "cursor",
+      "entry": "index.mjs",
+      "providers": [
+        "cursor"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 546,
+          "sha256": "4a76f0f0978442aee55461570c420010f1add0afdb4b1460aa254d467fd78eb4"
+        },
+        {
+          "path": "index.mjs",
+          "size": 99399,
+          "sha256": "59c32d437f1427ff3be0bf8bd133d249f44f8321bee9da357272ef70ca097153"
+        },
+        {
+          "path": "README.md",
+          "size": 8849,
+          "sha256": "19d9325b08d0b80619aefc94bf71da0cdb85cfc25b683299d67abb9e1553e191"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-kiro-auth",
+      "name": "Kiro",
+      "version": "0.1.8",
+      "directory": "kiro",
+      "entry": "index.mjs",
+      "providers": [
+        "kiro"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 498,
+          "sha256": "951b82ad1b5a7a2bf5f23a824a1e8a63b96182c9f75dc17945696ed9d28f152e"
+        },
+        {
+          "path": "index.mjs",
+          "size": 66171,
+          "sha256": "7e506fde161431ef5bbacb29a14a57e8c841cd92538e0de017c8cb03be756482"
+        },
+        {
+          "path": "README.md",
+          "size": 5293,
+          "sha256": "36fcfcf3deaf6459bf1dbe925c62d0f170a6133594ecd052dfc4c85c45c8c1bc"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-minimax-auth",
+      "name": "MiniMax Code",
+      "version": "0.1.1",
+      "directory": "minimax",
+      "entry": "index.mjs",
+      "providers": [
+        "minimax-code",
+        "minimax-code-global"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 635,
+          "sha256": "5a641e600aba3b02c9730569a043c386ef1a313e83106d26368106bb973efa5b"
+        },
+        {
+          "path": "index.mjs",
+          "size": 35560,
+          "sha256": "ba899113762a0a7a7b429f30c2824091ae68338b6cde586801d4041ad86e24dd"
+        },
+        {
+          "path": "README.md",
+          "size": 5029,
+          "sha256": "9fe54a8332aba371f9b493919592ce9334cf22dfbfa1f0a7191653f538d9f14a"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-workbuddy-auth",
+      "name": "WorkBuddy",
+      "version": "0.1.13",
+      "directory": "workbuddy",
+      "entry": "index.mjs",
+      "providers": [
+        "workbuddy",
+        "workbuddy-ai"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 578,
+          "sha256": "b5fd20a9cd8069258d20af2a09b35c1fade664d3ef668cc6397f85f61c4420b8"
+        },
+        {
+          "path": "index.mjs",
+          "size": 54378,
+          "sha256": "981eccb70bba5b6663031e92045c6bd17bc128ebda402da7c5b6c4ce735e97cd"
+        },
+        {
+          "path": "README.md",
+          "size": 6167,
+          "sha256": "85a2769b6140bb0cc7cd1751c334500e97ce26f8a3d575a336c773324bee4623"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-cline-auth",
+      "name": "Cline",
+      "version": "0.1.7",
+      "directory": "cline",
+      "entry": "index.mjs",
+      "providers": [
+        "cline"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 561,
+          "sha256": "604a1ac96b5eadb9074ce4fc44c6c6ac83168140d2d371c9eed6824164cbf133"
+        },
+        {
+          "path": "index.mjs",
+          "size": 46733,
+          "sha256": "08c16adbeb211234ed2786129e4d6e7f9e0712120410d9f8448acc86826bb0b7"
+        },
+        {
+          "path": "README.md",
+          "size": 6154,
+          "sha256": "759b5b3d0346c568489f4c43e5ea46f75c8c8bad6fb8fcace16016e4f5e64f5e"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-trae-auth",
+      "name": "Trae",
+      "version": "0.2.8",
+      "directory": "trae",
+      "entry": "index.mjs",
+      "providers": [
+        "trae-cn",
+        "trae-global"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "size": 603,
+          "sha256": "d8e06764b3e0cd232bcb53bb90761d802fe78270802b9602cecc866f9944aa7f"
+        },
+        {
+          "path": "index.mjs",
+          "size": 106735,
+          "sha256": "66d4067e37da2299c439972239273258306b1dd4c26f6dd058a0e6462f700f41"
+        },
+        {
+          "path": "README.md",
+          "size": 14511,
+          "sha256": "c9d7e6824c78117f096c2922be4f06b74deca79334cd23bd19e54b32c61e0a6a"
+        }
+      ]
+    }
+  ]
+}

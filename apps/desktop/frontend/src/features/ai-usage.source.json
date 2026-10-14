@@ -1,0 +1,53 @@
+{
+  "repository": "https://github.com/yetone/magpie",
+  "commit": "ede1e32aec1a4f6bf06aeef6ed2e03d4218db226",
+  "license": "MIT",
+  "hashFormat": "SHA-256 of canonical Git blob bytes returned by git show at the pinned commit",
+  "notice": {
+    "file": "licenses/upstream-magpie-ede1e32aec1a4f6bf06aeef6ed2e03d4218db226-0-LICENSE.txt",
+    "sha256": "5f1c506829e4a534b54a2e8c8b6780316fd462d842830b35570e70252cdc6cee"
+  },
+  "sourceSHA256": {
+    "internal/gui/assets/app.js": "1f787e2f4eeb071944c194c2012deb018bb4b2c7c9745dc3b85358cdb21024a9",
+    "internal/gui/assets/context.js": "7eca3a1468a64b6bf7a5ce0f74b3cfdc9ef5d1d0206c173e534d531440cf7039",
+    "internal/gui/assets/app.css": "4fb89f84e0eb76fd707c157e4b22e54fbc0d4909cb8db61e0986e3f923920e56"
+  },
+  "components": {
+    "magpie-ledger-charts.ts": [
+      "LED_METRICS",
+      "drawLedColumns",
+      "drawLedRank",
+      "ledRankEdges",
+      "ledRail"
+    ],
+    "magpie-context-graphics.ts": [
+      "cellsOf",
+      "headroom",
+      "spark"
+    ],
+    "magpie-session-calendar.ts": [
+      "sessLevels",
+      "sessLegend",
+      "sessWeekdays",
+      "sessCalendar"
+    ],
+    "magpie-quota-curve.ts": [
+      "quotaHistOf",
+      "quotaCurve",
+      "curveZoom"
+    ],
+    "magpie-usage-heatmap.ts": [
+      "ledHeatDate",
+      "ledHeatTip",
+      "drawLedHeat",
+      "ledHeatKeepEnd",
+      "ledHeatShow"
+    ]
+  },
+  "adaptations": [
+    "React lifecycle, scoped DOM selectors, localized labels and WinOne theme variables",
+    "Overview ranks can expand every item; complete timing details remain in accessible descriptions and tooltips",
+    "The request heatmap uses the upstream 53-week grid, metrics, hover details and scroll retention",
+    "Custom date fields use existing Base UI/native inputs and the upstream inclusive date-range contract"
+  ]
+}

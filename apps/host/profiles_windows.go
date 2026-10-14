@@ -40,12 +40,19 @@ func collectProfile(store *configuration.HostStore, states *modulestate.Store, n
 	}
 	archive := profiles.Archive{
 		CreatedBy:   "0.1.0-alpha.1",
-		Preferences: profiles.Preferences{Name: name, Theme: global.Theme, Language: tray.Language, RunAtLogon: tray.RunAtLogon, StartMinimized: tray.StartMinimizedToTray, Enabled: map[string]bool{}, Shortcuts: map[string]string{"capture.region": global.CaptureShortcut, "always-on-top.toggle": global.PinShortcut}},
+		Preferences: profiles.Preferences{Name: name, Theme: global.Theme, Language: tray.Language, RunAtLogon: tray.RunAtLogon, StartMinimized: tray.StartMinimizedToTray, Enabled: map[string]bool{}, Shortcuts: map[string]string{"capture.region": global.CaptureShortcut, "capture.ocr": global.OCRBinding(), "capture.translate": global.TranslateBinding(), "always-on-top.toggle": global.PinShortcut, "selection.show": global.SelectionBinding(), "quick-assistant.show": global.QuickAssistantBinding()}},
 		Modules:     map[string]profiles.ModuleSettings{}, Paths: map[string]profiles.PathReference{},
 	}
 	if global.Language != "" {
 		archive.Preferences.Language = global.Language
 	}
+	// Export effective portable values. Permission remembrance remains local.
+	page, open := global.DefaultPage, global.OpenBinding()
+	if page == "" {
+		page = "overview"
+	}
+	keep := global.Startup == nil || global.Startup.KeepUIRunning == nil || *global.Startup.KeepUIRunning
+	archive.Preferences.DefaultPage, archive.Preferences.OpenShortcut, archive.Preferences.KeepUIRunning = &page, &open, &keep
 	for _, manifest := range catalog.Builtins() {
 		raw, exists := document.Values[manifest.ID]
 		if !exists {

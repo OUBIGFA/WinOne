@@ -101,7 +101,7 @@ func TestFrequencyTakesOverRunAndRestoresWhenDisabled(t *testing.T) {
 	}
 }
 
-func TestFrequencyRestoresRunWhenStartupIsUnchecked(t *testing.T) {
+func TestFrequencyRetainsScheduleWhenStartupIsUnchecked(t *testing.T) {
 	fake := newFakeSchtasks()
 	tasks := testAppTasks(t, fake)
 	source, run, _ := withRunSource(t, tasks)
@@ -118,8 +118,15 @@ func TestFrequencyRestoresRunWhenStartupIsUnchecked(t *testing.T) {
 		t.Fatal(err)
 	}
 	enabled, err := runEntryApproved(source.root, source.approvalPath, "Daily")
-	if err != nil || !enabled || len(fake.tasks) != 0 || config.ScheduledRunLimit(settings.ManagedApps[0]) != 5 {
-		t.Fatalf("startup off did not restore native startup and preserve auto-exit: %t %v", enabled, err)
+	if err != nil || enabled || len(fake.tasks) != 1 || config.ScheduledRunLimit(settings.ManagedApps[0]) != 5 {
+		t.Fatalf("ordinary startup off bypassed the custom schedule: %t %v", enabled, err)
+	}
+	settings.ManagedApps[0].Schedule.Enabled = false
+	if err := tasks.Sync(settings, false); err != nil {
+		t.Fatal(err)
+	}
+	if enabled, err := runEntryApproved(source.root, source.approvalPath, "Daily"); err != nil || !enabled || len(fake.tasks) != 0 {
+		t.Fatalf("disabling both choices did not restore native startup: %t %v", enabled, err)
 	}
 }
 

@@ -4,11 +4,15 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
+/* The same UI is built from the desktop and isolated preview entries. Keep
+   utility discovery anchored to source so either entry preserves its layout. */
+@source "..";
+
 @custom-variant dark (&:is(.dark *, [data-theme="dark"] *));
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-sans: 'Geist Variable', 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -65,8 +69,8 @@
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
+    --border: oklch(0.88 0 0);
+    --input: oklch(0.84 0 0);
     --ring: oklch(0.708 0 0);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
@@ -100,8 +104,8 @@
     --accent: oklch(0.269 0 0);
     --accent-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
+    --border: oklch(1 0 0 / 16%);
+    --input: oklch(1 0 0 / 22%);
     --ring: oklch(0.556 0 0);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
@@ -128,4 +132,13 @@
   html {
     @apply font-sans;
     }
+}
+
+/* Reserve native scrollbar space before overflow starts, including portalled
+   menus/dialogs. Custom Lobe scroll areas own a separate overlay track. */
+:where(.overflow-y-auto, .overflow-auto, [data-slot="dialog-content"],
+  [data-slot="dropdown-menu-content"], [data-slot="select-content"],
+  .settings-choice-list, .aot-windows, .diagnostics-log,
+  .wintray-program-list, .wintray-program-detail, .profile-action-source) {
+  scrollbar-gutter: stable;
 }

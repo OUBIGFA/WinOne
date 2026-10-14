@@ -1,0 +1,8 @@
+.chat-project-context{min-width:0;text-align:left;flex-shrink:0}
+.chat-project-choice{flex-shrink:1}
+.chat-project-choice>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-project-choice-menu{width:320px;max-width:min(420px,var(--available-width));max-height:340px;overflow:auto}
+.chat-project-git{display:flex;align-items:center;gap:6px;min-width:0;max-width:55%;font-size:13px;color:var(--muted-foreground)}
+.chat-project-git>svg{flex-shrink:0}.chat-project-git>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-project-refresh{min-height:24px;width:24px;padding:5px;flex-shrink:0}.chat-project-refresh svg{width:13px;height:13px}
+@media(prefers-reduced-motion:reduce){.chat-project-git .animate-spin{animation:none}}

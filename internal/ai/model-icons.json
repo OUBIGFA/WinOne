@@ -1,0 +1,21 @@
+[
+  {"pattern":"(^|[/ :._-])gemini([0-9 :._-]|$)","icon":"gemini-color"},
+  {"pattern":"(^|[/ :._-])gemma([0-9 :._-]|$)","icon":"gemma-color"},
+  {"pattern":"(^|[/ :._-])claude([0-9 :._-]|$)","icon":"claude-color"},
+  {"pattern":"(^|[/ :._-])(gpt|chatgpt|o[1-9]|codex|text-embedding)([0-9 :._-]|$)","icon":"openai"},
+  {"pattern":"(^|[/ :._-])deepseek([0-9 :._-]|$)","icon":"deepseek-color"},
+  {"pattern":"(^|[/ :._-])(qwen|qwq|qvq)([0-9 :._-]|$)","icon":"qwen-color"},
+  {"pattern":"(^|[/ :._-])(kimi|moonshot)([0-9 :._-]|$)","icon":"kimi-color"},
+  {"pattern":"(^|[/ :._-])grok([0-9 :._-]|$)","icon":"grok"},
+  {"pattern":"(^|[/ :._-])glm-?[0-9.]+v([0-9 :._-]|$)","icon":"glmv-color"},
+  {"pattern":"(^|[/ :._-])glm-?[45]([0-9 :._-]|$)","icon":"zai"},
+  {"pattern":"(^|[/ :._-])(glm|chatglm)([0-9 :._-]|$)","icon":"chatglm-color"},
+  {"pattern":"(^|[/ :._-])(mistral|mixtral|codestral|mathstral|pixtral|ministral|magistral|devstral|voxtral)([0-9 :._-]|$)","icon":"mistral-color"},
+  {"pattern":"(^|[/ :._-])(minimax|abab)([0-9 :._-]|$)","icon":"minimax-color"},
+  {"pattern":"(^|[/ :._-])doubao([0-9 :._-]|$)","icon":"doubao-color"},
+  {"pattern":"(^|[/ :._-])llama([0-9 :._-]|$)","icon":"meta-color"},
+  {"pattern":"(^|[/ :._-])(command|cohere)([0-9 :._-]|$)","icon":"cohere-color"},
+  {"pattern":"(^|[/ :._-])(hunyuan|hy3)([0-9 :._-]|$)","icon":"hunyuan-color"},
+  {"pattern":"(^|[/ :._-])(step|stepfun)([0-9 :._-]|$)","icon":"stepfun-color"},
+  {"pattern":"(^|[/ :._-])mimo([0-9 :._-]|$)","icon":"mimocode"}
+]

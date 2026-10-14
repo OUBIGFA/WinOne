@@ -65,7 +65,7 @@ const (
 	// ActionRightClick opens the program's own tray menu.
 	ActionRightClick
 	// ActionDoubleClick delivers the native double-click gesture. It is
-	// explicit, never guessed by sending extra clicks after a single click.
+	// also used by OpenIcon when a single click has not shown a window.
 	ActionDoubleClick
 )
 

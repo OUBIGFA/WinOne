@@ -12,7 +12,7 @@ export interface SettingsClosePort {
  cancel():Promise<void>;
  approve():Promise<void>;
 }
-type PendingDestination={page:string}|{close:true};
+type PendingDestination={page:string;onArrive?:()=>void}|{close:true};
 
 // Report the active page without keeping inactive modules mounted or polling.
 export function usePageActivity(onActivity:PageActivityChanged|undefined,dirty:boolean,busy:boolean,source="page") {
@@ -29,6 +29,9 @@ export function usePageNavigation(page:string,navigate:(page:string)=>void,windo
  const updates=useRef(Promise.resolve());
  const sections=useRef(new Map<string,{dirty:boolean;busy:boolean}>());
  const closing=useRef(false);
+ const closeAttempt=useRef(0);
+ const approvalSent=useRef(false);
+ const [approving,setApproving]=useState(false);
  const onActivity=useCallback<PageActivityChanged>((dirty,busy,source="page")=>{
   if(dirty||busy)sections.current.set(source,{dirty,busy});else sections.current.delete(source);
   const aggregate={dirty:[...sections.current.values()].some(value=>value.dirty),busy:[...sections.current.values()].some(value=>value.busy)};
@@ -47,22 +50,28 @@ export function usePageNavigation(page:string,navigate:(page:string)=>void,windo
   return()=>{alive=false;unsubscribe();};
  },[windowPort]);
  const finish=useCallback(async(destination:PendingDestination)=>{
-  if("page" in destination){setPending(undefined);sections.current.clear();setActivity({dirty:false,busy:false});navigate(destination.page);return;}
+  if("page" in destination){setPending(undefined);sections.current.clear();setActivity({dirty:false,busy:false});navigate(destination.page);destination.onArrive?.();return;}
   if(!windowPort||closing.current)return;
   closing.current=true;setCommitting(true);
-  try{await updates.current;await windowPort.approve();setPending(undefined);}
+  const attempt=++closeAttempt.current;
+  try{await updates.current;if(attempt!==closeAttempt.current)return;approvalSent.current=true;setApproving(true);await windowPort.approve();setPending(undefined);}
   catch(error){setError(String(error));}
-  finally{closing.current=false;setCommitting(false);}
+  finally{if(attempt===closeAttempt.current){closing.current=false;approvalSent.current=false;setApproving(false);setCommitting(false);}}
  },[navigate,windowPort]);
  const cancel=()=>{
-  if(closing.current)return;
+  if(approvalSent.current)return;
+  // Cancelling while native activity synchronization is pending invalidates
+  // the continuation, so its late response cannot approve a discarded close.
+  closeAttempt.current++;closing.current=false;setCommitting(false);
   if(pending&&"close" in pending&&windowPort)void windowPort.cancel().catch(error=>setError(String(error)));
   setPending(undefined);
  };
- const requestPage=(target:string)=>{
-  if(target===page)return;
-  if(activity.dirty||activity.busy){setError("");setPending({page:target});return;}
-  navigate(target);
+ const requestPage=(target:string,onArrive?:()=>void)=>{
+  if(target===page){onArrive?.();return;}
+  // Item intents must wait for the same unsaved-change decision as the page;
+  // cancelling navigation must not leave a stale item to open on a later visit.
+  if(activity.dirty||activity.busy){setError("");setPending({page:target,onArrive});return;}
+  navigate(target);onArrive?.();
  };
  // A requested navigation can finish after a successful save. Failed saves
  // keep dirty=true, so the user still decides whether to abandon the draft.
@@ -74,16 +83,16 @@ export function usePageNavigation(page:string,navigate:(page:string)=>void,windo
   void finish(pending);
  };
  const closeWindow=!!pending&&"close" in pending;
- const dialog=<><Dialog open={pending!==undefined} disablePointerDismissal onOpenChange={open=>{if(!open)cancel();}}>
+ const dialog=<>{pending!==undefined&&<Dialog open onOpenChange={open=>{if(!open)cancel();}}>
   <DialogContent showCloseButton={false}>
    <DialogTitle>{t(activity.busy?"navigation.waitTitle":"navigation.dirtyTitle")}</DialogTitle>
    <DialogDescription>{t(activity.busy?(closeWindow?"navigation.waitCloseDescription":"navigation.waitDescription"):(closeWindow?"navigation.closeDescription":"navigation.dirtyDescription"))}</DialogDescription>
    {error&&<InlineError>{error}</InlineError>}
    <DialogFooter>
-    <Button disabled={committing} onClick={cancel}>{t(activity.busy?"navigation.stay":"navigation.keepEditing")}</Button>
+    <Button disabled={approving} onClick={cancel}>{t(activity.busy?"navigation.stay":"navigation.keepEditing")}</Button>
     {!activity.busy&&<Button variant="danger" disabled={committing} onClick={discard}>{t(closeWindow?"navigation.discardClose":"navigation.discard")}</Button>}
    </DialogFooter>
   </DialogContent>
- </Dialog>{error&&!pending&&<InlineError>{error}</InlineError>}</>;
+ </Dialog>}{error&&!pending&&<InlineError>{error}</InlineError>}</>;
  return {onActivity,requestPage,dialog,activity};
 }

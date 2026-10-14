@@ -1,0 +1,2 @@
+# Preserve pinned upstream bytes so source checksums survive Git checkouts.
+* -text

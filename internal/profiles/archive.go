@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strings"
 	"winone/internal/catalog"
+	"winone/internal/hotkeys"
+	"winone/internal/settings"
 )
 
 const MaxArchiveBytes = 8 << 20
@@ -28,6 +30,10 @@ type Preferences struct {
 	Shortcuts      map[string]string `json:"shortcuts"`
 	RunAtLogon     bool              `json:"runAtLogon"`
 	StartMinimized bool              `json:"startMinimized"`
+	// Optional pointers distinguish older archives from explicit empty/false.
+	DefaultPage   *string `json:"defaultPage,omitempty"`
+	KeepUIRunning *bool   `json:"keepUIRunning,omitempty"`
+	OpenShortcut  *string `json:"openShortcut,omitempty"`
 }
 type ModuleSettings struct {
 	SchemaVersion int             `json:"schemaVersion"`
@@ -71,6 +77,19 @@ func validate(a Archive) error {
 	if a.Preferences.Enabled == nil || a.Preferences.Shortcuts == nil || a.Modules == nil || a.Paths == nil {
 		return errors.New("配置内容不完整")
 	}
+	if a.Preferences.DefaultPage != nil {
+		if err := settings.Validate(settings.Settings{SchemaVersion: 1, Theme: "system", DefaultPage: *a.Preferences.DefaultPage}); err != nil {
+			return fmt.Errorf("默认页面无效：%w", err)
+		}
+	}
+	if a.Preferences.OpenShortcut != nil {
+		if len(*a.Preferences.OpenShortcut) > 128 {
+			return errors.New("打开 WinOne 的快捷键过长")
+		}
+		if _, err := hotkeys.Parse(*a.Preferences.OpenShortcut); err != nil {
+			return fmt.Errorf("打开 WinOne：%w", err)
+		}
+	}
 	for id := range a.Preferences.Enabled {
 		if !catalog.ValidID(id) {
 			return errors.New("模块标识无效")
@@ -94,7 +113,7 @@ func validate(a Archive) error {
 			return errors.New("路径映射无效")
 		}
 		switch ref.Kind {
-		case "known-folder", "program", "directory":
+		case "known-folder", "program", "directory", "file":
 		default:
 			return errors.New("不支持的路径映射类型")
 		}

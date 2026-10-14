@@ -13,6 +13,31 @@ import (
 	"winone/internal/settings"
 )
 
+type pipeTestHandler func(host.Request) host.Response
+
+func (handler pipeTestHandler) Handle(request host.Request) host.Response { return handler(request) }
+
+// A title may finish after the idle-client deadline. The real pipe must return
+// its single completed result instead of disconnecting after the title is saved.
+func TestChatTitleResponseSurvivesIdlePipeDeadline(t *testing.T) {
+	name := fmt.Sprintf(`\\.\pipe\WinOne-title-test-%d`, time.Now().UnixNano())
+	listener, err := Listen(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go Serve(ctx, listener, pipeTestHandler(func(request host.Request) host.Response {
+		time.Sleep(5100 * time.Millisecond)
+		return host.Response{ID: request.ID, Result: json.RawMessage(`{"title":"已生成的中文标题"}`)}
+	}))
+	response, err := CallWithTimeout(ctx, name, host.Request{Version: 1, ID: "title", Method: "chat.title"}, 10*time.Second)
+	if err != nil || string(response.Result) != `{"title":"已生成的中文标题"}` {
+		t.Fatalf("completed title lost on pipe: %+v, %v", response, err)
+	}
+}
+
 // Uses a real isolated Windows pipe; no user configuration or shell state is touched.
 func TestPipeConnectsAndRejectsSecondListener(t *testing.T) {
 	name := fmt.Sprintf(`\\.\pipe\WinOne-test-%d`, time.Now().UnixNano())

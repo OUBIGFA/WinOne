@@ -67,9 +67,11 @@ func TestMaintenanceExcludesActionsAndConfigurationUntilReleased(t *testing.T) {
 		other()
 		t.Fatal("overlapping maintenance admitted")
 	}
-	response := queue.Handle(Request{Version: 1, ID: "save", Method: "settings.save", Params: json.RawMessage(`{"schemaVersion":1,"revision":0,"theme":"dark"}`)})
-	if response.Error == nil {
-		t.Fatal("save admitted during maintenance")
+	for _, method := range []string{"settings.save", "packages.settings.save"} {
+		response := queue.Handle(Request{Version: 1, ID: "save", Method: method, Params: json.RawMessage(`{"schemaVersion":1,"revision":0,"theme":"dark"}`)})
+		if response.Error == nil || response.Error.Code != "configuration_busy" {
+			t.Fatal("save bypassed maintenance admission", method, response.Error)
+		}
 	}
 	release()
 	release() // Failure cleanup can be reached through more than one owner.

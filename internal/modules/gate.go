@@ -3,6 +3,7 @@ package modules
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 	"winone/internal/catalog"
 	"winone/internal/host"
 	"winone/internal/modulestate"
@@ -27,7 +28,10 @@ type Gate struct {
 	hooks                 LifecycleHooks
 	transition, lastError string
 	actionGuard           func() (func(), bool)
+	unloaded              atomic.Bool
 }
+
+var errModuleUnloaded = errors.New("模块入口已移除，请重新加载")
 
 func NewGate(id, name string, store *modulestate.Store, hooks LifecycleHooks) (*Gate, error) {
 	if _, ok := store.Snapshot().Modules[id]; !ok {
@@ -59,7 +63,7 @@ func NewPackageGate(manifest catalog.Manifest, digest string, store *modulestate
 }
 
 func (g *Gate) matchesPackage(record modulestate.Record) bool {
-	return g.packageSHA256 == "" || g.packageSHA256 == record.PackageSHA256
+	return !g.unloaded.Load() && (g.packageSHA256 == "" || g.packageSHA256 == record.PackageSHA256)
 }
 func (g *Gate) Status() host.Module {
 	g.mu.Lock()
@@ -68,6 +72,9 @@ func (g *Gate) Status() host.Module {
 	record := g.store.Snapshot().Modules[g.id]
 	status := host.Module{ID: g.id, Name: g.name}
 	switch {
+	case g.unloaded.Load():
+		status.State = "unavailable"
+		status.Detail = errModuleUnloaded.Error()
 	case !g.matchesPackage(record):
 		status.State = "faulted"
 		status.Detail = "模块包已变化，请重新加载"
@@ -106,7 +113,12 @@ func configurationRead(method string) bool {
 }
 
 func (g *Gate) Handle(request host.Request) host.Response {
-	if g.actionGuard != nil && !configurationRead(request.Method) {
+	if g.unloaded.Load() {
+		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "module_unloaded", Message: errModuleUnloaded.Error()}}
+	}
+	// Optional-package reads reach its worker and can start a new process.
+	// Only builtin Host configuration adapters qualify for the read exemption.
+	if g.actionGuard != nil && (g.packageSHA256 != "" || !configurationRead(request.Method)) {
 		release, allowed := g.actionGuard()
 		if !allowed {
 			return host.Response{ID: request.ID, Error: &host.RPCError{Code: "configuration_busy", Message: "配置正在更新，请稍后操作"}}
@@ -119,6 +131,9 @@ func (g *Gate) Handle(request host.Request) host.Response {
 	}
 	g.operations.RLock()
 	defer g.operations.RUnlock()
+	if g.unloaded.Load() {
+		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "module_unloaded", Message: errModuleUnloaded.Error()}}
+	}
 	record := g.store.Snapshot().Modules[g.id]
 	if !record.Enabled || record.PendingStop || !g.matchesPackage(record) {
 		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "module_disabled", Message: "模块已关闭或正在恢复"}}
@@ -137,6 +152,9 @@ func (g *Gate) Handle(request host.Request) host.Response {
 func (g *Gate) SetEnabled(revision uint64, enabled bool) error {
 	g.operations.Lock()
 	defer g.operations.Unlock()
+	if g.unloaded.Load() {
+		return errModuleUnloaded
+	}
 	current := g.store.Snapshot()
 	if current.Revision != revision {
 		return settings.ErrConflict
@@ -182,4 +200,39 @@ func (g *Gate) SetEnabled(revision uint64, enabled bool) error {
 	}
 	_, result = g.store.FinishStop(g.id)
 	return result
+}
+
+// Retire under the operation lock so a request that captured the old route
+// cannot run after removal, even if the same package digest is enabled later.
+// The callback only removes routing data; never wait for worker calls while
+// holding the Host service lock. Failed removal leaves this gate usable.
+func (g *Gate) retire(remove func() error) error {
+	g.operations.Lock()
+	defer g.operations.Unlock()
+	if g.unloaded.Load() {
+		return nil
+	}
+	record, exists := g.store.Snapshot().Modules[g.id]
+	if !exists || record.Enabled || record.PendingStop {
+		return errors.New("请先关闭模块并完成资源恢复")
+	}
+	g.mu.Lock()
+	lastError := g.lastError
+	g.mu.Unlock()
+	if lastError != "" {
+		return errors.New("模块恢复尚未完成")
+	}
+	// Recheck the adapter's resource ownership even when saved intent is off.
+	// This also releases resources left by a worker that exited on its own.
+	if err := g.hooks.Stop(); err != nil {
+		g.mu.Lock()
+		g.lastError = err.Error()
+		g.mu.Unlock()
+		return err
+	}
+	if err := remove(); err != nil {
+		return err
+	}
+	g.unloaded.Store(true)
+	return nil
 }

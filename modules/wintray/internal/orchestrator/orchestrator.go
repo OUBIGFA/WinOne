@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -79,11 +78,8 @@ func (s *Service) StartAndManage(ctx context.Context, entry config.ManagedAppEnt
 // handling is best effort here: the launch itself already succeeded, so it must
 // not be reported as a failure.
 func (s *Service) StartNow(ctx context.Context, entry config.ManagedAppEntry, retrySeconds int) Result {
-	// Disabled startup settings remain saved, but must not affect a manual
-	// launch while their master switch (and their editor) is off.
-	if !entry.RunOnStartup {
-		return s.start(ctx, entry, retrySeconds, startOptions{windowOptional: true})
-	}
+	// The startup switch controls automatic launches only. Manual launches
+	// still honor the independently editable window mode, without a quota.
 	if entry.LaunchViaLogonTask {
 		return s.start(ctx, entry, retrySeconds, startOptions{windowOptional: true, launchViaTask: true})
 	}
@@ -216,7 +212,7 @@ func (s *Service) start(ctx context.Context, entry config.ManagedAppEntry, retry
 		}
 		return startedResult(entry, opts)
 	}
-	var cmd *exec.Cmd
+	var cmd *startedProcess
 	admitted, err := s.launchWithFrequency(entry, opts, func() error {
 		var err error
 		cmd, err = startProcess(entry.ExePath, entry.Args, opts.launchMode())

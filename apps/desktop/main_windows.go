@@ -105,8 +105,23 @@ func (a *App) request(method string, params any, result any) error {
 		return err
 	}
 	timeout := 5 * time.Second
+	if strings.HasPrefix(method, "chat.") {
+		timeout = 30 * time.Second
+	}
 	if strings.HasPrefix(method, "capture.") || strings.HasPrefix(method, "always-on-top.") {
 		timeout = 15 * time.Second
+	}
+	if method == "capture.ai.usage.export.save" {
+		timeout = 30 * time.Second
+	}
+	if method == "capture.ai.magpie.catalog" {
+		timeout = 30 * time.Second
+	}
+	if method == "capture.ai.models.test" {
+		timeout = 100 * time.Second
+	}
+	if method == "chat.export" {
+		timeout = 150 * time.Second
 	}
 	r, err := transport.CallCompleting(context.Background(), a.pipe, host.Request{Version: 1, ID: fmt.Sprint(a.sequence.Add(1)), Method: method, Params: data}, timeout)
 	if err != nil {
@@ -234,6 +249,62 @@ func (a *App) AlwaysOnTop(method, payload string) (string, error) {
 	return string(result), nil
 }
 
+// Selection shares the Host module contract and never owns AI configuration.
+func (a *App) Selection(method, payload string) (string, error) {
+	switch method {
+	case "snapshot", "settings.get", "settings.save":
+	default:
+		return "", errors.New("不支持的划词操作")
+	}
+	var params any
+	if err := json.Unmarshal([]byte(payload), &params); err != nil {
+		return "", err
+	}
+	var result json.RawMessage
+	if err := a.request("selection."+method, params, &result); err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+
+func (a *App) QuickAssistant(method, payload string) (string, error) {
+	switch method {
+	case "snapshot", "settings.get", "settings.save", "show":
+	default:
+		return "", errors.New("不支持的快捷助手操作")
+	}
+	var params any
+	if err := json.Unmarshal([]byte(payload), &params); err != nil {
+		return "", err
+	}
+	var result json.RawMessage
+	if err := a.request("quick-assistant."+method, params, &result); err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+
+// Chat remains in the shared Host; closing this window does not own an agent.
+func (a *App) Chat(method, payload string) (string, error) {
+	if method == "export" {
+		return a.exportChatArchive(payload)
+	}
+	switch method {
+	case "usage", "project.git", "automations.deleted", "automations.restore", "automations.project.read", "automations.project.write", "automations.project.reconcile", "automations.project.promote", "automations.project.clone", "automations.project.demote", "automations.silence", "automations.notify", "automations.connections.get", "automations.connections.save", "automations.templates", "automations.template.apply", "automations.template.save", "automations.template.delete", "automations.list", "automations.get", "automations.create", "automations.update", "automations.pause", "automations.resume", "automations.delete", "automations.run", "automations.runs", "automations.deleteRun", "automations.markRead", "automations.runtime", "automations.preview", "automations.events", "catalog", "settings.get", "settings.save", "resources", "files", "attachments.add", "automation.run", "project.add", "project.create", "project.update", "project.remove", "conversation.new", "conversation.update", "conversation.move", "conversation.delete", "title.generate", "title.regenerate", "configure", "location", "fork", "draft.get", "draft.save", "open", "poll", "prompt", "state", "permission", "stop", "compact", "release", "detach":
+	default:
+		return "", errors.New("不支持的 Chat 操作")
+	}
+	var params any
+	if err := json.Unmarshal([]byte(payload), &params); err != nil {
+		return "", err
+	}
+	var result json.RawMessage
+	if err := a.request("chat."+method, params, &result); err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+
 // PickProgram uses the native file picker; the selected file is not executed here.
 func (a *App) PickWinTrayConfig() (string, error) {
 	ctx := a.windowContext()
@@ -263,6 +334,9 @@ func (a *App) PickPrograms() ([]string, error) {
 
 // Capture forwards only supported image commands; it hides settings before starting capture.
 func (a *App) Capture(method, payload string) (string, error) {
+	if method == "ai.usage.export" {
+		return a.exportUsage(payload)
+	}
 	switch method {
 	case "snapshot", "settings.get", "settings.save", "filename.preview", "capture.start", "capture.unified", "scroll.stop", "scroll.retake", "handoff.release", "draft.begin", "draft.get", "draft.update", "draft.cancel", "draft.complete", "draft.confirm", "selection.candidates", "selection.commit", "draft.copy", "draft.pin", "edit.last", "edit.apply", "edit.preview", "copy.last", "save.last", "pin.last", "pins.close", "jobs.get":
 	default:
@@ -434,7 +508,53 @@ func (a *App) PickDirectory() (string, error) {
 	if ctx == nil {
 		return "", errors.New(a.dialogText("设置窗口未就绪", "Settings window is not ready"))
 	}
-	return runtime.OpenDirectoryDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("选择截图保存目录", "Choose the capture folder")})
+	return runtime.OpenDirectoryDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("选择文件夹", "Choose a folder")})
+}
+func (a *App) PickChatFiles() ([]string, error) {
+	ctx := a.windowContext()
+	if ctx == nil {
+		return nil, errors.New(a.dialogText("设置窗口未就绪", "Settings window is not ready"))
+	}
+	return runtime.OpenMultipleFilesDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("添加附件", "Add attachments")})
+}
+func (a *App) PickFile() (string, error) {
+	ctx := a.windowContext()
+	if ctx == nil {
+		return "", errors.New(a.dialogText("设置窗口未就绪", "Settings window is not ready"))
+	}
+	return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("选择文件", "Choose a file")})
+}
+func (a *App) DirectoryLinks(method, payload string) (string, error) {
+	switch method {
+	case "browse", "preview", "previewBatch", "create", "create.elevated", "createBatch", "createBatch.elevated", "list", "inspect", "inspectBatch", "scan", "scan.cancel", "remove", "forget", "exportPlan", "menu.get", "menu.set", "reveal", "open", "pending":
+	default:
+		return "", errors.New("不支持的目录链接操作")
+	}
+	var params any
+	if err := json.Unmarshal([]byte(payload), &params); err != nil {
+		return "", err
+	}
+	var result json.RawMessage
+	if err := a.request("directory-links."+method, params, &result); err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+func (a *App) Stroke(method, payload string) (string, error) {
+	switch method {
+	case "snapshot", "settings.get", "settings.save", "record.start", "record.read", "record.cancel", "inspect.target", "windows.list":
+	default:
+		return "", errors.New("不支持的鼠标手势操作")
+	}
+	var params any
+	if err := json.Unmarshal([]byte(payload), &params); err != nil {
+		return "", err
+	}
+	var result json.RawMessage
+	if err := a.request("stroke."+method, params, &result); err != nil {
+		return "", err
+	}
+	return string(result), nil
 }
 
 // ExportProfile uses the native save dialog; cancellation performs no write.
@@ -467,6 +587,14 @@ func (a *App) PickProfile() (string, error) {
 	return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("选择配置文件", "Choose a configuration file"), Filters: []runtime.FileFilter{{DisplayName: a.dialogText("WinOne 配置", "WinOne configuration"), Pattern: "*.winone"}}})
 }
 
+func (a *App) PickModulePackage() (string, error) {
+	ctx := a.windowContext()
+	if ctx == nil {
+		return "", errors.New(a.dialogText("设置窗口未就绪", "Settings window is not ready"))
+	}
+	return runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("选择模块包", "Choose a module package"), Filters: []runtime.FileFilter{{DisplayName: a.dialogText("WinOne 模块包", "WinOne module package"), Pattern: "*.winone-module;*.winone-runtime;*.zip"}}})
+}
+
 func (a *App) PickProfileLocation(kind string) (string, error) {
 	ctx := a.windowContext()
 	if ctx == nil {
@@ -477,6 +605,8 @@ func (a *App) PickProfileLocation(kind string) (string, error) {
 		return runtime.OpenDirectoryDialog(ctx, runtime.OpenDialogOptions{Title: a.dialogText("选择文件夹", "Choose a folder")})
 	case "program":
 		return a.PickProgram()
+	case "file":
+		return a.PickFile()
 	default:
 		return "", errors.New("不支持的路径类型")
 	}

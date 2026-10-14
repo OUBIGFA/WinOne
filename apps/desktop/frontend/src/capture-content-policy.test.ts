@@ -6,6 +6,12 @@ it("allows decoded local screenshot images without widening script origins",()=>
  expect(policy).toBeTruthy();
  const directives=new Map(policy!.split(";").map(part=>{const [name,...values]=part.trim().split(/\s+/);return [name,values];}));
  expect(directives.get("img-src")).toContain("blob:");
- expect(directives.get("script-src")).toEqual(["'self'"]);
+ // PDF.js 6 decodes fonts/images with bundled Wasm. This keyword permits
+ // Wasm compilation only; inline scripts and JavaScript eval remain blocked.
+ expect(directives.get("script-src")).toEqual(["'self'","'wasm-unsafe-eval'"]);
  expect(directives.get("object-src")).toEqual(["'none'"]);
+ // The routing editor is served by a private loopback process. Only that
+ // origin may be framed; external pages remain blocked.
+ expect(directives.get("frame-src")).toEqual(["http://127.0.0.1:*"]);
+ expect(directives.get("connect-src")).toContain("http://127.0.0.1:*");
 });

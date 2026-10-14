@@ -1,0 +1,19 @@
+{
+    "repository":  "https://github.com/makecindy/cindy",
+    "revision":  "69661422beeb85d692fa3704df6d2b42884f4c4b",
+    "licenseFile":  "third_party/cindy/LICENSE",
+    "files":  [
+                  {
+                      "target":  "modules/chat-pi/cindy/commandOutputPaths.ts",
+                      "sha256":  "590cc214b87ffa601a33d375650756ad82a876d359ebf38c982008abfe7ce524",
+                      "adaptation":  "Unchanged pure output-path candidate extraction; successful filesystem changes are verified by WinOne.",
+                      "source":  "apps/desktop/src/shared/commandOutputPaths.ts"
+                  },
+                  {
+                      "target":  "apps/desktop/frontend/src/features/chat-generated-files.tsx",
+                      "adaptation":  "Local file chips, verified existence, expand/collapse and context menu; WinOne Host preview/open/reveal/clipboard replaces Electron operations.",
+                      "source":  "apps/desktop/src/renderer/components/chat/GeneratedFilesCard.tsx"
+                  }
+              ],
+    "grouping":  "Existing Cindy groupWorkRuns retained; delivered assistant text is now a non-archivable sealed answer, so completed segments stay separated."
+}

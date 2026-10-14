@@ -36,6 +36,10 @@ internal static class NativeAutosaveTests
             for (var i = 1; i <= 300; i++) autosave.Publish(initial with { Selection = new Rectangle(i % 50, 0, 50, 80) });
             autosave.Publish(new NativeCaptureSnapshot(initial with { Selection = new Rectangle(0, 0, 50, 80) }, pendingText));
         } finally { release.Set(); }
+        var flushed=autosave.FlushAsync().GetAwaiter().GetResult();
+        if(flushed.Text!=pendingText||flushed.Document.Selection!=new Rectangle(0,0,50,80))throw new Exception("Flush did not persist the latest queued snapshot");
+        autosave.Publish(new NativeCaptureSnapshot(flushed.Document,pendingText));
+        if(autosave.FlushAsync().GetAwaiter().GetResult().Revision<=flushed.Revision)throw new Exception("Flushing closed the autosave writer");
         autosave.FinishAsync(false).GetAwaiter().GetResult();
         var restored = store.Read() ?? throw new Exception("Preserved autosave disappeared");
         if (encodes != 1 || restored.Document.Selection != new Rectangle(0, 0, 50, 80)) throw new Exception("Newest edit or immutable original was lost");

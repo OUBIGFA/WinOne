@@ -132,7 +132,7 @@ func (t *AppTasks) writeNativeTask(name, definition string, allowElevated bool) 
 		return err
 	}
 	defer cleanup()
-	if highest && !IsProcessElevated() {
+	if highest && !t.isElevated() {
 		if !allowElevated || t.elevateSelf == nil {
 			return errElevationNeeded
 		}

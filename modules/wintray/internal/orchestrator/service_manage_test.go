@@ -90,9 +90,9 @@ func TestStartNow_FollowsEntryWindowBehavior(t *testing.T) {
 		{name: "no option checked leaves the window alone", wantAction: ""},
 		{name: "close window after launch acts on the window", closeAfter: true, wantAction: "close"},
 		{name: "launch hidden in background leaves the window alone", hidden: true, wantAction: ""},
-		{name: "paused close-to-tray leaves the window alone", closeAfter: true, paused: true},
-		{name: "paused hidden mode uses normal launch", hidden: true, paused: true},
-		{name: "paused logon-task mode uses normal launch", task: true, paused: true},
+		{name: "manual close-to-tray works without startup", closeAfter: true, paused: true, wantAction: "close"},
+		{name: "manual hidden mode works without startup", hidden: true, paused: true},
+		{name: "manual task mode works without startup", task: true, paused: true},
 	}
 
 	for _, tc := range cases {

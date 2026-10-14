@@ -44,6 +44,16 @@ func VerifyStage(ctx context.Context, id string, options StageOptions) (*StagedP
 		return nil, err
 	}
 	defer root.Close()
+	manifest, err := verifyStageContents(ctx, root, id, options, true)
+	if err != nil {
+		return nil, err
+	}
+	return &StagedPackage{directory: filepath.Join(options.Directory, id), manifest: manifest, ready: true}, nil
+}
+
+// Reclamation checks authenticity and contents without requiring retired code
+// to remain compatible with the current Host. This path never authorizes code.
+func verifyStageContents(ctx context.Context, root *os.Root, id string, options StageOptions, execution bool) (*VerifiedManifest, error) {
 	data, err := readStageFile(ctx, root, "module.json", MaxManifestBytes)
 	if err != nil {
 		return nil, err
@@ -56,8 +66,12 @@ func VerifyStage(ctx context.Context, id string, options StageOptions) (*StagedP
 	if err != nil {
 		return nil, err
 	}
-	if err = verifyStageApproval(manifest, options); err != nil {
-		return nil, err
+	if execution {
+		if err = verifyStageApproval(manifest, options); err != nil {
+			return nil, err
+		}
+	} else if manifest.Digest() != strings.ToLower(options.ExpectedManifestSHA256) {
+		return nil, ErrApprovalChanged
 	}
 	receiptBytes, err := readStageFile(ctx, root, StageReceiptName, 16<<10)
 	if err != nil {
@@ -67,7 +81,7 @@ func VerifyStage(ctx context.Context, id string, options StageOptions) (*StagedP
 	if err = configjson.DecodeObject(receiptBytes, &receipt); err != nil {
 		return nil, err
 	}
-	if receipt.SchemaVersion != 1 || receipt.StageID != id || receipt.ModuleID != manifest.metadata.Module.ID || receipt.Version != manifest.metadata.Version || receipt.ManifestSHA256 != manifest.Digest() {
+	if receipt.SchemaVersion != 1 || receipt.StageID != id || receipt.ModuleID != manifest.metadata.PackageID() || receipt.Version != manifest.metadata.Version || receipt.ManifestSHA256 != manifest.Digest() {
 		return nil, errors.New("stage receipt does not match approved package")
 	}
 	if err = verifyStageTree(ctx, root, manifest.files); err != nil {
@@ -79,7 +93,7 @@ func VerifyStage(ctx context.Context, id string, options StageOptions) (*StagedP
 			return nil, err
 		}
 	}
-	return &StagedPackage{directory: filepath.Join(options.Directory, id), manifest: manifest, ready: true}, nil
+	return manifest, nil
 }
 
 func readStageFile(ctx context.Context, root *os.Root, name string, limit int64) (data []byte, err error) {

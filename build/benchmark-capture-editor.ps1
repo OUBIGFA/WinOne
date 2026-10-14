@@ -10,6 +10,7 @@ Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot 'resource-metrics.psm1') -Force
 $workspace=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $outputRoot=[IO.Path]::GetFullPath($OutputDirectory)
+& (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $outputRoot
 $bundle=[IO.Path]::GetFullPath($BundleDirectory)
 $hostExe=Join-Path $bundle 'WinOne.Host.exe'
 $desktopExe=Join-Path $bundle 'WinOne.exe'

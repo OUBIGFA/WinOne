@@ -29,34 +29,36 @@ internal static class NativeToolbarCustomizationProbe
         var tools = (ToolStrip)toolbar.Controls["capture-tools"]!;
         NativeToolbarCustomization Open() {
             tools.OverflowButton.ShowDropDown();
-            var item = tools.OverflowButton.DropDown.Items.OfType<NativeToolbarCustomization>().Single(); item.ShowDropDown();
+            var item = (NativeToolbarCustomization)tools.OverflowButton.DropDown;
             return item;
         }
         var menu = Open();
-        var choices = menu.DropDownItems.OfType<ToolStripMenuItem>().Where(item => item.Tag is string).ToArray();
+        var choices = menu.Items.OfType<ToolStripMenuItem>().Where(item => item.Tag is string).ToArray();
+        if (!choices.Any(item => item.Tag is "ocr") || !choices.Any(item => item.Tag is "translate"))
+            throw new Exception("Text actions are missing from toolbar customization");
         var before = choices[0].Checked; var bounds = choices[0].Bounds;
-        var rootBefore = tools.OverflowButton.DropDown.Visible; var childBefore = menu.DropDown.Visible;
+        var rootBefore = tools.OverflowButton.DropDown.Visible; var childBefore = menu.Visible;
         var point = new IntPtr(((bounds.Top + bounds.Height / 2) << 16) | (bounds.Left + 16));
-        SendMessageW(menu.DropDown.Handle, 0x0201, new IntPtr(1), point);
-        SendMessageW(menu.DropDown.Handle, 0x0202, IntPtr.Zero, point);
-        File.WriteAllText(Path.Combine(output, "click.json"), JsonSerializer.Serialize(new { before, after = choices[0].Checked, rootBefore, childBefore, rootAfter = tools.OverflowButton.DropDown.Visible, childAfter = menu.DropDown.Visible, bounds, choices[0].Enabled }));
-        if (choices[0].Checked == before || !menu.DropDown.Visible || !tools.OverflowButton.DropDown.Visible) throw new Exception($"Checkbox click: {before}->{choices[0].Checked}, root {rootBefore}->{tools.OverflowButton.DropDown.Visible}, child {childBefore}->{menu.DropDown.Visible}");
+        SendMessageW(menu.Handle, 0x0201, new IntPtr(1), point);
+        SendMessageW(menu.Handle, 0x0202, IntPtr.Zero, point);
+        File.WriteAllText(Path.Combine(output, "click.json"), JsonSerializer.Serialize(new { before, after = choices[0].Checked, rootBefore, childBefore, rootAfter = tools.OverflowButton.DropDown.Visible, childAfter = menu.Visible, bounds, choices[0].Enabled }));
+        if (choices[0].Checked == before || !menu.Visible || !tools.OverflowButton.DropDown.Visible) throw new Exception($"Checkbox click: {before}->{choices[0].Checked}, root {rootBefore}->{tools.OverflowButton.DropDown.Visible}, child {childBefore}->{menu.Visible}");
         Application.DoEvents();
         for (var i = 0; i < choices.Length; i++) choices[i].Checked = i is 2 or 4;
-        ((ToolStripMenuItem)menu.DropDownItems.Find("toolbar-save", false).Single()).PerformClick();
+        ((ToolStripMenuItem)menu.Items.Find("toolbar-save", false).Single()).PerformClick();
         if (failed != 1 || changed != 0 || choices.Count(item => item.Checked) != 2) throw new Exception("Failed save changed applied preferences or lost the draft");
-        menu.HideDropDown(); tools.OverflowButton.HideDropDown(); menu = Open();
+        menu.Hide(); tools.OverflowButton.HideDropDown(); menu = Open();
         if (choices.Count(item => item.Checked) != 2) throw new Exception("Reopening customization lost the unsaved selection");
-        ((ToolStripMenuItem)menu.DropDownItems.Find("toolbar-save", false).Single()).PerformClick();
+        ((ToolStripMenuItem)menu.Items.Find("toolbar-save", false).Single()).PerformClick();
         if (changed != 1 || saved?.Length != 2) throw new Exception("Confirmed save was not applied");
-        ((ToolStripMenuItem)menu.DropDownItems.Find("toolbar-reset", false).Single()).PerformClick();
-        if (changed != 2 || saved is not null || choices.Count(item => item.Checked) != 9) throw new Exception("Restore defaults did not preserve null preference semantics");
-        menu.DropDown.Update();
-        using (var image = new Bitmap(menu.DropDown.Width, menu.DropDown.Height)) {
-            menu.DropDown.DrawToBitmap(image, new Rectangle(Point.Empty, image.Size)); image.Save(Path.Combine(output, "customization.png"));
+        ((ToolStripMenuItem)menu.Items.Find("toolbar-reset", false).Single()).PerformClick();
+        if (changed != 2 || saved is not null || choices.Any(item => !item.Checked)) throw new Exception("Restore defaults did not preserve null preference semantics");
+        menu.Update();
+        using (var image = new Bitmap(menu.Width, menu.Height)) {
+            menu.DrawToBitmap(image, new Rectangle(Point.Empty, image.Size)); image.Save(Path.Combine(output, "customization.png"));
         }
         pending = new TaskCompletionSource<string[]?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        ((ToolStripMenuItem)menu.DropDownItems.Find("toolbar-save", false).Single()).PerformClick();
+        ((ToolStripMenuItem)menu.Items.Find("toolbar-save", false).Single()).PerformClick();
         if (menu.Enabled) throw new Exception("Saving allowed a second submission");
         parent.Close(); pending.SetResult(new[] { "arrow" });
         var deadline = DateTime.UtcNow.AddSeconds(3);

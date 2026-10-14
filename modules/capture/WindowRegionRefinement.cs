@@ -136,12 +136,14 @@ internal sealed class WindowRegionRefinement : IDisposable
         if (published is not null && published.SequenceEqual(result)) return;
         published = result; update(result);
     }
-    internal void Suspend()
+    internal void Suspend(bool preserveCandidates = false)
     {
         if (disposed) return;
         active?.Cancel(); active = null; Pending = Task.CompletedTask;
         hovered = IntPtr.Zero; interiorEnabled = false; requested = false;
-        Publish();
+        // During a resize, freeze the already identified internal boundaries.
+        // Cancel accessibility work without replacing useful snap geometry.
+        if (!preserveCandidates) Publish();
     }
     public void Dispose() { disposed = true; active?.Cancel(); active = null; }
 }

@@ -77,6 +77,19 @@ func PackageName(version string) (string, error) {
 	return "WinOne-" + version + "-windows-x64.zip", nil
 }
 func allowed(name string) bool {
+	// Accept only the named result runtime; older verified 0.0.1 payloads
+	// remain valid for upgrade/rollback without this newly added component.
+	if name == "shared/ui/WinOne.Results.exe" || name == "shared/ui/WinOne.Diagrams.exe" || name == "selection/WinOne.Selection.exe" || name == "WinOne.WinTray.Recovery.exe" {
+		return true
+	}
+	if textRuntimeAllowed[name] {
+		return true
+	}
+	for _, file := range strokeRuntimeFiles {
+		if name == file {
+			return true
+		}
+	}
 	for _, required := range requiredFiles {
 		if name == required {
 			return true
@@ -119,7 +132,7 @@ func inputs(directory, license string) ([]input, error) {
 		if entry.IsDir() {
 			if name != "." {
 				top := strings.Split(name, "/")[0]
-				if top != "capture" && top != "always-on-top" && top != "licenses" {
+				if top != "capture" && top != "always-on-top" && top != "licenses" && top != "shared" && top != "selection" && top != "stroke" {
 					return fmt.Errorf("unexpected directory: %s", name)
 				}
 			}
@@ -148,7 +161,7 @@ func inputs(directory, license string) ([]input, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, required := range requiredFiles {
+	for _, required := range requiredForPayload(seen) {
 		if !seen[strings.ToLower(required)] {
 			return nil, fmt.Errorf("required file missing: %s", required)
 		}
@@ -192,7 +205,7 @@ func Build(directory, license, destination, version string) (err error) {
 	if len(expected) != len(files) {
 		return errors.New("build contents changed; rebuild before packaging")
 	}
-	files = append(files, input{name: "README.txt", data: []byte("WinOne " + version + " · 本机试用包 / Local preview\nWindows 11 x64\n\n运行 WinOne.exe。需要 Microsoft Edge WebView2 Runtime。\n设置保存在 %LOCALAPPDATA%\\WinOne。\n\nRun WinOne.exe. Microsoft Edge WebView2 Runtime is required.\nSettings are stored in %LOCALAPPDATA%\\WinOne.\n")})
+	files = append(files, input{name: "README.txt", data: []byte("WinOne " + version + "\nWindows 11 x64\n\n运行 WinOne.exe。需要 Microsoft Edge WebView2 Runtime。\n设置保存在 %LOCALAPPDATA%\\WinOne。\n\nRun WinOne.exe. Microsoft Edge WebView2 Runtime is required.\nSettings are stored in %LOCALAPPDATA%\\WinOne.\n")})
 	sort.Slice(files, func(i, j int) bool { return files[i].name < files[j].name })
 	if len(files) >= 8192 {
 		return errors.New("too many package files")
@@ -363,7 +376,7 @@ func Verify(filename string) (Manifest, error) {
 		}
 		checked[record.Path] = true
 	}
-	for _, required := range append(append([]string{}, requiredFiles...), "LICENSE.txt", "README.txt") {
+	for _, required := range append(append([]string{}, requiredForPayload(checked)...), "LICENSE.txt", "README.txt") {
 		if !checked[required] {
 			return Manifest{}, fmt.Errorf("required file missing: %s", required)
 		}

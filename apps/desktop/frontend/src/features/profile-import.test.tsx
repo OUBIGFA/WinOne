@@ -19,13 +19,42 @@ function ImportNavigation(){
  const [page,setPage]=useState("settings");const navigation=usePageNavigation(page,setPage);
  return <><button onClick={()=>navigation.requestPage("home")}>首页</button>{page==="settings"?<ProfileImport onApplied={()=>{}} onActivity={navigation.onActivity}/>:<p>工具首页</p>}{navigation.dialog}</>;
 }
+it("previews optional global values and names all current built-in modules",async()=>{
+ const base=preview(true);
+ const value={...base,preferences:{...base.preferences,defaultPage:"chat",keepUIRunning:false,openShortcut:""},plan:{...base.plan,modules:[...base.plan.modules,...["selection","quick-assistant","stroke"].map(id=>({id,state:"ready",requiredPaths:[],settings:{enabled:true}}))]}};
+ native.pick.mockResolvedValue("C:\\Home.winone");native.call.mockResolvedValue(value);
+ render(<ProfileImport onApplied={()=>{}}/>);await userEvent.setup().click(screen.getByRole("button",{name:"导入配置"}));
+ await screen.findByText("默认页面：Chat");expect(screen.getByText("保持界面后台运行：关闭")).toBeTruthy();expect(screen.getByText("打开 WinOne：未设置")).toBeTruthy();
+ expect(screen.getByRole("checkbox",{name:"划词助手"})).toBeTruthy();expect(screen.getByRole("checkbox",{name:"快捷助手"})).toBeTruthy();expect(screen.getByRole("checkbox",{name:"鼠标手势"})).toBeTruthy();
+});
+it("checks the global open binding only when global preferences are selected",async()=>{
+ const base=preview(true);const value={...base,preferences:{...base.preferences,openShortcut:"Ctrl+Alt+T"},currentShortcuts:{...base.currentShortcuts,"application.open":"Alt+A"}};
+ native.pick.mockResolvedValue("C:\\Home.winone");native.call.mockResolvedValue(value);
+ render(<ProfileImport onApplied={()=>{}}/>);const user=userEvent.setup();await user.click(screen.getByRole("button",{name:"导入配置"}));
+ await screen.findByText("多个操作使用了相同快捷键");expect(screen.getByRole("button",{name:"确认导入"}).hasAttribute("disabled")).toBe(true);
+ await user.click(screen.getByRole("checkbox",{name:"全局偏好"}));
+ expect(screen.queryByText("多个操作使用了相同快捷键")).toBeNull();expect(screen.getByRole("button",{name:"确认导入"}).hasAttribute("disabled")).toBe(false);
+});
+it("marks missing optional global fields as keeping the local values",async()=>{
+ native.pick.mockResolvedValue("C:\\Home.winone");native.call.mockResolvedValue(preview(true));
+ render(<ProfileImport onApplied={()=>{}}/>);await userEvent.setup().click(screen.getByRole("button",{name:"导入配置"}));
+ expect(await screen.findByText("默认页面：保留本机值")).toBeTruthy();expect(screen.getByText("保持界面后台运行：保留本机值")).toBeTruthy();expect(screen.getByText("打开 WinOne：保留本机值")).toBeTruthy();
+});
+it("accepts assistant actions and requires a local DLL mapping for Stroke",async()=>{
+ const base=preview(true);
+ const value={...base,preferences:{...base.preferences,shortcuts:{"selection.show":"Ctrl+Alt+F8","quick-assistant.show":"Ctrl+Alt+F9"}},plan:{shortcutIssues:[],modules:[{id:"selection",state:"ready",requiredPaths:[],settings:{actions:[]}},{id:"quick-assistant",state:"ready",requiredPaths:[],settings:{actions:[]}},{id:"stroke",state:"needs_mapping",requiredPaths:["stroke.assembly.0"],settings:{assemblies:[{pathRef:"stroke.assembly.0"}]}}]},paths:[{id:"stroke.assembly.0",label:"手势程序集",kind:"file",state:"needs_mapping",value:""}]};
+ native.pick.mockResolvedValue("C:\\Home.winone");native.call.mockResolvedValue(value);native.location.mockResolvedValue("");
+ render(<ProfileImport onApplied={()=>{}}/>);const user=userEvent.setup();await user.click(screen.getByRole("button",{name:"导入配置"}));
+ await user.click(await screen.findByRole("button",{name:"设置本机路径"}));await user.click(screen.getByRole("button",{name:"选择手势程序集"}));
+ expect(native.location).toHaveBeenCalledWith("file");expect(screen.queryByText(/包含当前版本不支持的快捷键/)).toBeNull();expect(screen.getByRole("button",{name:"确认导入"}).hasAttribute("disabled")).toBe(true);
+});
 it("shows the enabled-after-import state only for selected modules",async()=>{
  native.pick.mockResolvedValue("C:\\Home.winone");native.call.mockResolvedValue(preview(true));
  render(<ProfileImport onApplied={()=>{}}/>);const user=userEvent.setup();
  await user.click(screen.getByRole("button",{name:"导入配置"}));await screen.findByText(/导入后关闭/);
- await user.click(screen.getByRole("checkbox",{name:"截图"}));
+ await user.click(screen.getByRole("checkbox",{name:"截图助手"}));
  expect(screen.queryByText(/导入后关闭/)).toBeNull();
- await user.click(screen.getByRole("checkbox",{name:"截图"}));
+ await user.click(screen.getByRole("checkbox",{name:"截图助手"}));
  expect(screen.getByText(/导入后关闭/)).toBeTruthy();
 });
 it("keeps the current review and mappings when a replacement archive cannot be read",async()=>{
@@ -42,12 +71,12 @@ it("keeps the current review and mappings when a replacement archive cannot be r
  await user.click(screen.getByRole("button",{name:"选择截图保存目录"}));
  await screen.findByText("D:\\Images");
  await user.click(screen.getByRole("tab",{name:"导入内容"}));
- await user.click(screen.getByRole("checkbox",{name:"主题、语言和登录设置"}));
+ await user.click(screen.getByRole("checkbox",{name:"全局偏好"}));
  await user.click(screen.getByRole("button",{name:"导入配置"}));
  await screen.findByText(/Unreadable archive/);
  expect(screen.getByText("家用配置")).toBeTruthy();
  expect(screen.getByText("C:\\Home.winone")).toBeTruthy();
- expect(screen.getByRole("checkbox",{name:"主题、语言和登录设置"}).getAttribute("aria-checked")).toBe("false");
+ expect(screen.getByRole("checkbox",{name:"全局偏好"}).getAttribute("aria-checked")).toBe("false");
  expect((screen.getByRole("button",{name:"确认导入"}) as HTMLButtonElement).disabled).toBe(true);
  await user.click(screen.getByRole("button",{name:"重新预览"}));
  await waitFor(()=>expect((screen.getByRole("button",{name:"确认导入"}) as HTMLButtonElement).disabled).toBe(false));
@@ -57,10 +86,10 @@ it("preserves reviewed choices when the user cancels leaving",async()=>{
  native.pick.mockResolvedValue("C:\\Home.winone");native.call.mockResolvedValue(preview(true));
  render(<ImportNavigation/>);const user=userEvent.setup();
  await user.click(screen.getByRole("button",{name:"导入配置"}));await screen.findByText("家用配置");
- await user.click(screen.getByRole("checkbox",{name:"截图"}));
+ await user.click(screen.getByRole("checkbox",{name:"截图助手"}));
  await user.click(screen.getByRole("button",{name:"首页"}));
  await user.click(await screen.findByRole("button",{name:"继续编辑"}));
- expect(screen.getByRole("checkbox",{name:"截图"}).getAttribute("aria-checked")).toBe("false");
+ expect(screen.getByRole("checkbox",{name:"截图助手"}).getAttribute("aria-checked")).toBe("false");
  await user.click(screen.getByRole("button",{name:"首页"}));
  await user.click(await screen.findByRole("button",{name:"放弃并离开"}));
  expect(await screen.findByText("工具首页")).toBeTruthy();
@@ -126,7 +155,7 @@ it("keeps module selection while switching between review tabs",async()=>{
  await user.click(screen.getByRole("tab",{name:"详细设置"}));
  expect(screen.getByRole("combobox",{name:"模块"})).toBeTruthy();expect(screen.getByText("300")).toBeTruthy();
  await user.click(screen.getByRole("tab",{name:"导入内容"}));
- await user.click(screen.getByRole("checkbox",{name:"截图"}));
+ await user.click(screen.getByRole("checkbox",{name:"截图助手"}));
  await user.click(screen.getByRole("tab",{name:"详细设置"}));
  expect(screen.getByText("所选内容没有可预览的模块设置。")).toBeTruthy();
  await user.click(screen.getByRole("tab",{name:"本机路径"}));
@@ -149,10 +178,10 @@ it("checks imported shortcuts against settings kept on this computer",async()=>{
   native.call.mockResolvedValue(value);
   render(<ProfileImport onApplied={()=>{}}/>);
   const user=userEvent.setup();await user.click(screen.getByRole("button",{name:"导入配置"}));
-  await screen.findByText("截图与窗口置顶使用了相同快捷键");
+  await screen.findByText("多个操作使用了相同快捷键");
   expect((screen.getByRole("button",{name:"确认导入"}) as HTMLButtonElement).disabled).toBe(true);
-  await user.click(screen.getByRole("checkbox",{name:"截图"}));
-  expect(screen.queryByText("截图与窗口置顶使用了相同快捷键")).toBeNull();
+  await user.click(screen.getByRole("checkbox",{name:"截图助手"}));
+  expect(screen.queryByText("多个操作使用了相同快捷键")).toBeNull();
 });
 
 it("confirms the reviewed profile using English labels",async()=>{
@@ -162,7 +191,7 @@ it("confirms the reviewed profile using English labels",async()=>{
   render(<ProfileImport onApplied={()=>{}}/>);
   const user=userEvent.setup();
   await user.click(screen.getByRole("button",{name:"Import configuration"}));
-  await screen.findByRole("checkbox",{name:"Capture"});
+  await screen.findByRole("checkbox",{name:"Capture assistant"});
   await user.click(screen.getByRole("button",{name:"Confirm import"}));
   expect(await screen.findByText("Configuration imported")).toBeTruthy();
   expect(native.call).toHaveBeenCalledWith("import.apply",expect.objectContaining({sourceHash:"reviewed-hash",configurationRevision:4}));

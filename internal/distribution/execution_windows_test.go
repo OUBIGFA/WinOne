@@ -5,6 +5,7 @@ package distribution
 import (
 	"errors"
 	"fmt"
+	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 	"os"
 	"path/filepath"
@@ -12,6 +13,47 @@ import (
 	"time"
 	"winone/internal/maintenance"
 )
+
+// A Windows permission failure must roll back before attempting a startup
+// check, preserving both the previous installation and unrelated profile data.
+func TestUpgradeExecutionRollsBackDeniedReplacement(t *testing.T) {
+	request := upgradeExecutionFixture(t)
+	path, err := windows.UTF16PtrFromString(filepath.Join(request.Installation, "WinOne.exe"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	attributes, err := windows.GetFileAttributes(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := windows.SetFileAttributes(path, attributes|windows.FILE_ATTRIBUTE_READONLY); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := windows.SetFileAttributes(path, attributes); err != nil {
+			t.Error(err)
+		}
+	}()
+	preference := filepath.Join(request.Profile, "keep.txt")
+	if err := os.WriteFile(preference, []byte("retained preference"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	probed := false
+	request.CheckStartup = func() error { probed = true; return nil }
+	err = ExecuteUpgrade(request)
+	if !errors.Is(err, windows.ERROR_ACCESS_DENIED) || probed || request.Journal.Snapshot().Phase != "rolled-back" {
+		t.Fatalf("denied replacement was not safely rolled back: %v; probed=%v; phase=%s", err, probed, request.Journal.Snapshot().Phase)
+	}
+	if _, err := VerifyInstalled(request.Installation, request.PreviousPackage); err != nil {
+		t.Fatal(err)
+	}
+	if data, err := os.ReadFile(preference); err != nil || string(data) != "retained preference" {
+		t.Fatal("profile data changed", err)
+	}
+	if data, err := os.ReadFile(filepath.Join(request.Installation, "notes.txt")); err != nil || string(data) != "user data" {
+		t.Fatal("extra installation file changed", err)
+	}
+}
 
 func TestUpgradeExecutionCommitsOrRollsBack(t *testing.T) {
 	for _, failProbe := range []bool{false, true} {
@@ -51,7 +93,34 @@ func TestUpgradeExecutionCommitsOrRollsBack(t *testing.T) {
 	}
 }
 
-func TestDefaultStartupCheckRejectsLegacyProfileAndRollsBack(t *testing.T) {
+func TestRollbackRemovesNewEmptyModuleFoldersButKeepsExtraFiles(t *testing.T) {
+	for _, extra := range []bool{false, true} {
+		t.Run(fmt.Sprint(extra), func(t *testing.T) {
+			r := upgradeExecutionFixture(t, false, true)
+			directory := filepath.Join(r.Installation, "selection")
+			r.CheckStartup = func() error {
+				if extra {
+					if err := os.WriteFile(filepath.Join(directory, "keep.txt"), []byte("keep"), 0600); err != nil {
+						return err
+					}
+				}
+				return errors.New("startup failed")
+			}
+			if err := ExecuteUpgrade(r); err == nil || r.Journal.Snapshot().Phase != "rolled-back" {
+				t.Fatal("rollback did not finish", err)
+			}
+			if extra {
+				if data, err := os.ReadFile(filepath.Join(directory, "keep.txt")); err != nil || string(data) != "keep" {
+					t.Fatal("extra file was lost", err)
+				}
+			} else if _, err := os.Stat(directory); !os.IsNotExist(err) {
+				t.Fatal("new empty module directory survived rollback", err)
+			}
+		})
+	}
+}
+
+func TestDefaultConfigurationCheckRejectsLegacyProfileBeforeReplacement(t *testing.T) {
 	request := upgradeExecutionFixture(t)
 	request.CheckStartup = nil
 	legacy := filepath.Join(request.Profile, "settings.json")
@@ -59,7 +128,7 @@ func TestDefaultStartupCheckRejectsLegacyProfileAndRollsBack(t *testing.T) {
 		t.Fatal(err)
 	}
 	err := ExecuteUpgrade(request)
-	if err == nil || request.Journal.Snapshot().Phase != "rolled-back" {
+	if err == nil || request.Journal.Snapshot().Phase != "prepared" {
 		t.Fatal("default native check was bypassed", err)
 	}
 	if _, err := VerifyInstalled(request.Installation, request.PreviousPackage); err != nil {
@@ -68,6 +137,36 @@ func TestDefaultStartupCheckRejectsLegacyProfileAndRollsBack(t *testing.T) {
 	data, err := os.ReadFile(legacy)
 	if err != nil || string(data) != `{"keep":true}` {
 		t.Fatal("profile changed", err)
+	}
+}
+
+func TestUpgradePreflightFailureLeavesOldPayloadUsable(t *testing.T) {
+	request := upgradeExecutionFixture(t)
+	root, err := openUpgradeRoot(request.Installation)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = ensureExecutionMarker(root, request.Journal.Snapshot().ID, true); err != nil {
+		t.Fatal(err)
+	}
+	root.Close()
+	checked, prepared := false, false
+	request.CheckConfiguration = func() error {
+		checked = true
+		if _, err := VerifyUpgradePayload(request.Installation, request.PreviousPackage); err != nil {
+			t.Fatal("preflight ran after replacement", err)
+		}
+		return errors.New("target does not support an installed module")
+	}
+	request.Prepare = func() error { prepared = true; return nil }
+	if err = ExecuteUpgrade(request); err == nil || !checked || prepared || request.Journal.Snapshot().Phase != "prepared" {
+		t.Fatal("preflight did not stop the transaction", err)
+	}
+	if _, err = os.Stat(filepath.Join(request.Installation, ".winone-pending")); !os.IsNotExist(err) {
+		t.Fatal("preflight failure left old application blocked", err)
+	}
+	if _, err = VerifyInstalled(request.Installation, request.PreviousPackage); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -159,6 +258,10 @@ func TestUpgradeExecutionRejectsForeignMarkerAndActiveRuntime(t *testing.T) {
 }
 
 func upgradeExecutionFixture(t *testing.T, installed ...bool) UpgradeExecution {
+	return upgradeExecutionFixtureUsingHost(t, "", installed...)
+}
+
+func upgradeExecutionFixtureUsingHost(t *testing.T, hostExecutable string, installed ...bool) UpgradeExecution {
 	t.Helper()
 	withInstaller := len(installed) > 0 && installed[0]
 	if withInstaller && os.Getenv("WINONE_REGISTRY_LIVE_TEST") != "1" {
@@ -169,8 +272,25 @@ func upgradeExecutionFixture(t *testing.T, installed ...bool) UpgradeExecution {
 		t.Fatal(err)
 	}
 	root, license := fixture(t)
+	if len(installed) > 1 && installed[1] {
+		if err := os.MkdirAll(filepath.Join(root, "selection"), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "selection", "WinOne.Selection.exe"), []byte("new reader"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := os.WriteFile(filepath.Join(root, "WinOne.exe"), []byte("next program"), 0600); err != nil {
 		t.Fatal(err)
+	}
+	if hostExecutable != "" {
+		data, err := os.ReadFile(hostExecutable)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = os.WriteFile(filepath.Join(root, "WinOne.Host.exe"), data, 0700); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := RecordBuild(root, license, "0.2.0"); err != nil {
 		t.Fatal(err)

@@ -1,0 +1,8 @@
+package provider
+
+// Routing policy is saved in WinOne's isolated Magpie routing profile. The
+// runtime endpoints and secrets always come from the current Host snapshot.
+func winOneRoutingProvider(p Provider) Provider {
+ for _,saved:=range load().Providers {if saved.ID==p.ID {p.Routing=saved.Routing;p.Affinity=saved.Affinity;p.Sink=saved.Sink;break}}
+ return p
+}

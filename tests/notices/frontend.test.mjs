@@ -24,3 +24,11 @@ test('rejects missing notices and wrong installed versions',t=>{
  assert.throws(()=>verifyFrontendNotices(f.root,f.catalog),/version/);
 });
 test('rejects changed license content',t=>{const f=fixture(t);fs.writeFileSync(path.join(f.packageDir,'LICENSE'),'changed');assert.throws(()=>verifyFrontendNotices(f.root,f.catalog),/content/);});
+test('accepts an upstream license omitted by npm only from its repository and a pinned commit',t=>{
+ const f=fixture(t);fs.renameSync(path.join(f.packageDir,'LICENSE'),path.join(f.packageDir,'not-published-license'));
+ fs.writeFileSync(path.join(f.packageDir,'package.json'),JSON.stringify({name:'example',version:'1.0.0',repository:{url:'https://github.com/owner/example.git'}}));
+ const notice=f.catalog.components[0].notices[0];notice.sourceURL='https://raw.githubusercontent.com/owner/example/'+('a'.repeat(40))+'/LICENSE';
+ assert.equal(verifyFrontendNotices(f.root,f.catalog),1);
+ notice.sourceURL=notice.sourceURL.replace('owner/example','stranger/example');assert.throws(()=>verifyFrontendNotices(f.root,f.catalog),/repository/);
+ notice.sourceURL='https://raw.githubusercontent.com/owner/example/main/LICENSE';assert.throws(()=>verifyFrontendNotices(f.root,f.catalog),/pinned/);
+});

@@ -71,8 +71,18 @@ func PrepareArchive(archive Archive, bindings map[string]string) (ArchivePlan, e
 		}
 		plan.Modules = append(plan.Modules, item)
 	}
-	shortcuts := make([]string, 0, len(archive.Preferences.Shortcuts))
-	for id := range archive.Preferences.Shortcuts {
+	// Global bindings participate in the same normalized conflict analysis,
+	// but remain separate from module selection in the archive and import UI.
+	values := make(map[string]string, len(archive.Preferences.Shortcuts)+1)
+	for id, key := range archive.Preferences.Shortcuts {
+		values[id] = key
+	}
+	if archive.Preferences.OpenShortcut != nil {
+		values["application.open"] = *archive.Preferences.OpenShortcut
+		actions["application.open"] = true
+	}
+	shortcuts := make([]string, 0, len(values))
+	for id := range values {
 		shortcuts = append(shortcuts, id)
 	}
 	sort.Strings(shortcuts)
@@ -94,7 +104,7 @@ func PrepareArchive(archive Archive, bindings map[string]string) (ArchivePlan, e
 			plan.ShortcutIssues = append(plan.ShortcutIssues, ShortcutIssue{Action: id, Kind: kind, Error: message})
 			continue
 		}
-		key, err := hotkeys.Parse(archive.Preferences.Shortcuts[id])
+		key, err := hotkeys.Parse(values[id])
 		if err != nil {
 			plan.ShortcutIssues = append(plan.ShortcutIssues, ShortcutIssue{Action: id, Kind: "invalid", Error: err.Error()})
 			continue

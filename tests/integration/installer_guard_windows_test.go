@@ -27,7 +27,7 @@ func TestNSISGuardProtocol(t *testing.T) {
 		t.Fatal(err)
 	}
 	quote := func(s string) string { return strings.ReplaceAll(s, "$", "$$") }
-	for _, scenario := range []string{"ready", "failed", "lost"} {
+	for _, scenario := range []string{"ready", "failed", "lost", "released", "closed-owner-alive"} {
 		t.Run(scenario, func(t *testing.T) {
 			dir := t.TempDir()
 			helper := filepath.Join(dir, "WinOne.Maintenance.exe")
@@ -57,6 +57,33 @@ failed:
   Call WinOneCheckGuard
   IfErrors failed
   StrCpy $8 "unexpected_alive"
+  Goto write
+failed:
+  StrCpy $8 $WinOneGuardError`
+			}
+			if scenario == "released" {
+				after = `IfErrors failed
+  Call WinOneReleaseGuard
+  IfErrors failed
+  StrCpy $8 "released"
+  Goto write
+failed:
+  StrCpy $8 "release_failed"`
+			}
+			if scenario == "closed-owner-alive" {
+				after = `IfErrors failed
+  ; A wizard's GUI can close while a foreign DLL delays final process exit.
+  ; Closing our guard must therefore release it while this owner is alive.
+  Call WinOneCloseGuardHandle
+  System::Call 'kernel32::OpenProcess(i 0x100000, i 0, i $WinOneGuardPID) p.r6'
+  StrCpy $8 "closed"
+  ${If} $6 != 0
+    System::Call 'kernel32::WaitForSingleObject(p r6, i 1000) i.r7'
+    System::Call 'kernel32::CloseHandle(p r6)'
+    ${If} $7 != 0
+      StrCpy $8 "guard_retained_live_owner"
+    ${EndIf}
+  ${EndIf}
   Goto write
 failed:
   StrCpy $8 $WinOneGuardError`
@@ -115,7 +142,7 @@ SectionEnd
 					t.Fatal(err)
 				}
 			}
-			want := map[string]string{"ready": "ready", "failed": "guard_not_ready", "lost": "guard_exited"}[scenario]
+			want := map[string]string{"ready": "ready", "failed": "guard_not_ready", "lost": "guard_exited", "released": "released", "closed-owner-alive": "closed"}[scenario]
 			if parts[0] != want {
 				t.Fatalf("got %q want %q", result, want)
 			}

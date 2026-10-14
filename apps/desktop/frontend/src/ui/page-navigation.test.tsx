@@ -7,16 +7,44 @@ import {usePageActivity,usePageNavigation,type SettingsClosePort} from "./page-n
 import {setApplicationLanguage} from "../i18n";
 
 afterEach(async()=>{cleanup();await setApplicationLanguage("zh-CN");});
+it("clicking the backdrop keeps unsaved edits and removes the modal",async()=>{
+ render(<Preview/>);const user=userEvent.setup();
+ await user.type(screen.getByLabelText("draft")," changed");await user.click(screen.getByText("next",{selector:"button"}));
+ await screen.findByRole("dialog");
+ await user.click(document.querySelector('[data-slot=dialog-overlay]')!);
+ await waitFor(()=>expect(screen.queryByRole("dialog")).toBeNull());
+ expect((screen.getByLabelText("draft") as HTMLInputElement).value).toBe("saved changed");
+ expect(document.querySelector('[data-slot=dialog-overlay]')).toBeNull();
+});
+it("can keep editing while activity synchronization is stalled without a late close",async()=>{
+ let requestClose=()=>{},release!:()=>void;
+ const blocked=new Promise<void>(resolve=>{release=resolve;});
+ const port:SettingsClosePort={setActivity:()=>blocked,pending:async()=>false,subscribe:listener=>{requestClose=listener;return()=>{};},cancel:vi.fn().mockResolvedValue(undefined),approve:vi.fn().mockResolvedValue(undefined)};
+ render(<Preview port={port}/>);const user=userEvent.setup();await user.type(screen.getByLabelText("draft")," changed");act(()=>requestClose());
+ await user.click(await screen.findByRole("button",{name:"放弃并关闭"}));
+ expect((screen.getByRole("button",{name:"继续编辑"}) as HTMLButtonElement).disabled).toBe(false);
+ await user.click(screen.getByRole("button",{name:"继续编辑"}));
+ await waitFor(()=>expect(screen.queryByRole("dialog")).toBeNull());
+ await act(async()=>release());expect(port.approve).not.toHaveBeenCalled();
+ expect((screen.getByLabelText("draft") as HTMLInputElement).value).toBe("saved changed");
+});
 function Editor({onActivity}:{onActivity:(dirty:boolean,busy:boolean)=>void}) {
  const [value,setValue]=useState("saved"),[busy,setBusy]=useState(false);
  usePageActivity(onActivity,value!=="saved",busy);
  return <><input aria-label="draft" value={value} onChange={e=>setValue(e.target.value)}/><button onClick={()=>setValue("saved")}>save</button><button onClick={()=>setBusy(!busy)}>work</button></>;
 }
-function Preview({port}:{port?:SettingsClosePort}) {
+function Preview({port,onArrive}:{port?:SettingsClosePort;onArrive?:()=>void}) {
  const [page,setPage]=useState("edit");
  const navigation=usePageNavigation(page,setPage,port);
- return <><button onClick={()=>navigation.requestPage("next")}>next</button><p>{page}</p>{page==="edit"&&<Editor onActivity={navigation.onActivity}/>} {navigation.dialog}</>;
+ return <><button onClick={()=>navigation.requestPage("next",onArrive)}>next</button><p>{page}</p>{page==="edit"&&<Editor onActivity={navigation.onActivity}/>} {navigation.dialog}</>;
 }
+it("opens a requested item only after the guarded navigation is accepted",async()=>{
+ const arrived=vi.fn();render(<Preview onArrive={arrived}/>);const user=userEvent.setup();
+ await user.type(screen.getByLabelText("draft")," changed");await user.click(screen.getByRole("button",{name:"next"}));
+ await user.click(await screen.findByRole("button",{name:"继续编辑"}));expect(arrived).not.toHaveBeenCalled();
+ await user.click(screen.getByRole("button",{name:"next"}));await user.click(await screen.findByRole("button",{name:"放弃并离开"}));
+ expect(arrived).toHaveBeenCalledOnce();
+});
 it("keeps edits when navigation is cancelled and discards only on confirmation",async()=>{
  render(<Preview/>);const user=userEvent.setup();
  await user.type(screen.getByLabelText("draft")," changed");await user.click(screen.getByText("next",{selector:"button"}));

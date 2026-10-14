@@ -9,6 +9,7 @@
 #include <mutex>
 #include <sstream>
 #include <thread>
+#include <spdlog/sinks/base_sink.h>
 
 void WinOneSetOwnershipKey(const wchar_t* key);
 
@@ -21,6 +22,22 @@ namespace
     std::thread uiThread;
     std::atomic<DWORD> threadId{ 0 };
     std::atomic<bool> started{ false };
+    using LogCallback = uintptr_t (*)(uintptr_t, const char*, size_t);
+    // PowerToys keeps its existing logging API, while this sink forwards each
+    // event to WinOne's bounded, synchronized writer without a native log file.
+    class WinOneLogSink final : public spdlog::sinks::base_sink<std::mutex>
+    {
+        LogCallback callback;
+        uintptr_t context;
+    public:
+        WinOneLogSink(LogCallback callback, uintptr_t context) : callback(callback), context(context) {}
+    protected:
+        void sink_it_(const spdlog::details::log_msg& message) override {
+            const auto text = fmt::format("[{}] {}", spdlog::level::to_string_view(message.level), message.payload);
+            if (callback(context, text.data(), text.size()) != 0) throw spdlog::spdlog_ex("WinOne diagnostic write failed");
+        }
+        void flush_() override {}
+    };
 
     HRESULT Invoke(std::function<HRESULT(AlwaysOnTop&)> action)
     {
@@ -48,20 +65,21 @@ namespace
     }
 }
 
-extern "C" __declspec(dllexport) HRESULT WinOneAotStart(const wchar_t* directory, const wchar_t* ownershipKey)
+extern "C" __declspec(dllexport) HRESULT WinOneAotStartWithLogger(const wchar_t* directory, const wchar_t* ownershipKey, LogCallback logCallback, uintptr_t logContext)
 {
-    if (!directory || !ownershipKey || !std::filesystem::path(directory).is_absolute()) return E_INVALIDARG;
+    if (!directory || !ownershipKey || !logCallback || !std::filesystem::path(directory).is_absolute()) return E_INVALIDARG;
     if (started.exchange(true)) return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
     std::promise<HRESULT> ready; auto result = ready.get_future();
     const std::wstring path(directory), key(ownershipKey);
-    uiThread = std::thread([path, key, ready = std::move(ready)]() mutable {
+    uiThread = std::thread([path, key, logCallback, logContext, ready = std::move(ready)]() mutable {
         bool signalled = false;
         try
         {
             winrt::init_apartment(winrt::apartment_type::single_threaded);
             if (!SetEnvironmentVariableW(L"WINONE_AOT_DATA", path.c_str())) throw winrt::hresult_error(HRESULT_FROM_WIN32(GetLastError()));
             std::filesystem::create_directories(path);
-            Logger::init("WinOne.AlwaysOnTop", path + L"\\native.log", path + L"\\log-settings.json");
+            Logger::init(std::vector<spdlog::sink_ptr>{std::make_shared<WinOneLogSink>(logCallback, logContext)});
+            Logger::info("WinOne.AlwaysOnTop initialized");
             WinOneSetOwnershipKey(key.c_str());
             MSG message{}; PeekMessageW(&message, nullptr, WM_USER, WM_USER, PM_NOREMOVE);
             threadId = GetCurrentThreadId();

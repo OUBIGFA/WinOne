@@ -1,0 +1,27 @@
+.stroke-scenes { container-type: inline-size; }
+.stroke-scene-toolbar { display: flex; align-items: end; justify-content: end; gap: .75rem; }
+.stroke-scene-picker { flex: 1; min-width: 0; }
+.stroke-scene-layout { display: grid; min-width: 0; gap: 1.25rem; }
+.stroke-scene-list { display: none; align-content: start; align-self: start; gap: .25rem; }
+.stroke-scene-button { height: auto; min-height: 2.75rem; justify-content: start; padding: .625rem .75rem; text-align: left; white-space: normal; }
+.stroke-scene-button[aria-pressed="true"] { background: var(--muted); color: var(--foreground); }
+.stroke-scene-label { display: block; min-width: 0; overflow-wrap: anywhere; }
+.stroke-scene-state { display: block; margin-top: .125rem; color: var(--muted-foreground); font-size: .875rem; font-weight: 400; }
+.stroke-scene-content { min-width: 0; container-type: inline-size; }
+.stroke-scene-actions { border-top: 1px solid var(--border); }
+.stroke-action-row { display: grid; grid-template-columns: 4rem minmax(0, 1fr) auto; align-items: center; gap: .625rem .875rem; padding: .875rem 0; border-bottom: 1px solid var(--border); }
+.stroke-action-preview { grid-column: 1; display: flex; align-items: center; justify-content: center; }
+.stroke-action-copy { grid-column: 2; min-width: 0; }
+.stroke-action-gesture { grid-column: 1 / 3; grid-row: 2; min-width: 0; }
+.stroke-action-controls { grid-column: 3; grid-row: 1 / 3; display: flex; flex-direction: column; align-items: center; gap: .625rem; }
+@container (min-width: 38rem) {
+ .stroke-scene-picker { display: none; }
+ .stroke-scene-layout { grid-template-columns: 10.5rem minmax(0, 1fr); }
+ .stroke-scene-list { display: flex; flex-direction: column; border-right: 1px solid var(--border); padding: 0 .75rem 0 0; }
+ .stroke-scene-button { width: 100%; }
+}
+@container (min-width: 28rem) {
+ .stroke-action-row { grid-template-columns: 4rem minmax(0, 1fr) minmax(8rem, 10rem) auto; }
+ .stroke-action-gesture { grid-column: 3; grid-row: 1; }
+ .stroke-action-controls { grid-column: 4; grid-row: 1; }
+}

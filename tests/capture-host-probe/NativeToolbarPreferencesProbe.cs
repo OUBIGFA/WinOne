@@ -10,10 +10,11 @@ internal static class NativeToolbarPreferencesProbe
         Directory.CreateDirectory(output);
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); Application.EnableVisualStyles();
         var cases = new (string name, string[]? preferences, string[] visible)[] {
-            ("default", null, new[] { "region", "rectangle", "ellipse", "arrow", "pen", "cover", "mosaic", "blur", "text" }),
-            ("empty", Array.Empty<string>(), new[] { "rectangle" }),
-            ("subset", new[] { "mosaic", "crop" }, new[] { "region", "rectangle", "mosaic" }),
-            ("legacy-move", new[] { "select" }, new[] { "rectangle" }),
+            ("default", null, new[] { "select", "region", "scroll", "rectangle", "ellipse", "arrow", "pen", "cover", "mosaic", "blur", "text", "ocr", "translate" }),
+            ("empty", Array.Empty<string>(), new[] { "scroll", "rectangle" }),
+            ("subset", new[] { "mosaic", "crop" }, new[] { "region", "scroll", "rectangle", "mosaic" }),
+            ("legacy-move", new[] { "select" }, new[] { "select", "scroll", "rectangle" }),
+            ("text-actions", new[] { "ocr", "translate" }, new[] { "scroll", "rectangle", "ocr", "translate" }),
         };
         var records = new List<object>();
         foreach (var item in cases) {
@@ -25,9 +26,14 @@ internal static class NativeToolbarPreferencesProbe
             toolbar.Size = toolbar.PreferredToolbarSize; parent.ClientSize = toolbar.Size;
             parent.Show(); toolbar.PerformLayout(); parent.Update();
             var row = (ToolStrip)toolbar.Controls["capture-tools"]!;
+            // Scrolling stays available independently of annotation visibility.
+            var scroll = row.Items["scroll"] ?? throw new Exception("Scrolling capture is missing");
+            var region = row.Items["region"] ?? throw new Exception("Selection is missing");
+            if (row.Items.IndexOf(scroll) != row.Items.IndexOf(region) + 1)
+                throw new Exception("Scrolling capture is no longer beside selection");
             var actual = row.Items.OfType<ToolStripButton>().Where(button => button.Placement == ToolStripItemPlacement.Main).Select(button => button.Name).ToArray();
             if (!actual.Order().SequenceEqual(item.visible.Order())) throw new Exception(item.name + " ignored stored toolbar preferences");
-            if (row.Items.Cast<ToolStripItem>().Any(button => button.Name == "select")) throw new Exception("Legacy preference restored the removed move tool");
+            if (row.Items[0].Name != "select") throw new Exception("Move is not the first tool");
             if (item.preferences is not null) {
                 string? selected = null;
                 toolbar.Command += command => { selected = command; toolbar.SetState(false, false, command, false); };

@@ -21,61 +21,109 @@ func DecodeObject(data []byte, target any) error {
 
 // ValidateObject requires a UTF-8 JSON object with unique keys and bounded depth.
 func ValidateObject(data []byte) error {
+	_, err := readObject(data, false)
+	return err
+}
+
+// ParseObject shares the same duplicate-key, UTF-8 and depth checks while
+// retaining the parsed values. Schema validation can consume this tree without
+// parsing untrusted JSON a second time. Numbers retain their exact spelling.
+func ParseObject(data []byte) (map[string]any, error) {
+	value, err := readObject(data, true)
+	if err != nil {
+		return nil, err
+	}
+	return value.(map[string]any), nil
+}
+
+func readObject(data []byte, collect bool) (any, error) {
 	if !utf8.Valid(data) {
-		return errors.New("配置不是有效的 UTF-8 文本")
+		return nil, errors.New("配置不是有效的 UTF-8 文本")
 	}
 	trimmed := bytes.TrimSpace(data)
 	if len(trimmed) == 0 || trimmed[0] != '{' {
-		return errors.New("配置内容必须为 JSON 对象")
+		return nil, errors.New("配置内容必须为 JSON 对象")
 	}
 	decoder := json.NewDecoder(bytes.NewReader(trimmed))
 	decoder.UseNumber()
-	if err := walkJSON(decoder, 0); err != nil {
-		return err
+	value, err := walkJSON(decoder, 0, collect)
+	if err != nil {
+		return nil, err
 	}
 	if _, err := decoder.Token(); err != io.EOF {
-		return errors.New("JSON 包含多余内容")
+		return nil, errors.New("JSON 包含多余内容")
 	}
-	return nil
+	return value, nil
 }
-func walkJSON(decoder *json.Decoder, depth int) error {
+func walkJSON(decoder *json.Decoder, depth int, collect bool) (any, error) {
 	if depth > 32 {
-		return errors.New("配置嵌套过深")
+		return nil, errors.New("配置嵌套过深")
 	}
 	token, err := decoder.Token()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	delimiter, ok := token.(json.Delim)
 	if !ok {
-		return nil
+		if collect {
+			return token, nil
+		}
+		return nil, nil
 	}
+	var result any
 	switch delimiter {
 	case '{':
-		keys := map[string]bool{}
+		var keys map[string]bool
+		var object map[string]any
+		if collect {
+			object = map[string]any{}
+			result = object
+		} else {
+			keys = map[string]bool{}
+		}
 		for decoder.More() {
 			key, err := decoder.Token()
 			if err != nil {
-				return err
+				return nil, err
 			}
 			name, ok := key.(string)
-			if !ok || keys[name] {
-				return errors.New("JSON 包含重复字段")
+			seen := keys[name]
+			if collect {
+				_, seen = object[name]
 			}
-			keys[name] = true
-			if err = walkJSON(decoder, depth+1); err != nil {
-				return err
+			if !ok || seen {
+				return nil, errors.New("JSON 包含重复字段")
+			}
+			value, err := walkJSON(decoder, depth+1, collect)
+			if err != nil {
+				return nil, err
+			}
+			if collect {
+				object[name] = value
+			} else {
+				keys[name] = true
 			}
 		}
 	case '[':
+		var values []any
+		if collect {
+			values = []any{}
+		}
 		for decoder.More() {
-			if err := walkJSON(decoder, depth+1); err != nil {
-				return err
+			value, err := walkJSON(decoder, depth+1, collect)
+			if err != nil {
+				return nil, err
+			}
+			if collect {
+				values = append(values, value)
 			}
 		}
+		if collect {
+			result = values
+		}
 	default:
-		return errors.New("JSON 结构无效")
+		return nil, errors.New("JSON 结构无效")
 	}
 	_, err = decoder.Token()
-	return err
+	return result, err
 }

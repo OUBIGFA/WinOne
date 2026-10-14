@@ -233,6 +233,7 @@ type winTray struct {
 	menuItemIcons   map[uint32]windows.Handle
 	muMenuItemIcons sync.RWMutex
 	visibleItems    map[uint32][]uint32
+	frontItems      map[uint32]bool // Dynamic program entries precede the fixed footer.
 	muVisibleItems  sync.RWMutex
 
 	nid   *notifyIconData
@@ -319,7 +320,8 @@ func (t *winTray) wndProc(hWnd windows.Handle, message uint32, wParam, lParam ui
 		menuItemId := int32(wParam)
 		// https://docs.microsoft.com/en-us/windows/win32/menurc/wm-command#menus
 		if menuItemId != -1 {
-			systrayMenuItemSelected(uint32(wParam))
+			shift, _, _ := u32.NewProc("GetKeyState").Call(0x10)
+			systrayMenuItemSelectedWithShift(uint32(wParam), int16(shift) < 0)
 		}
 	case WM_CLOSE:
 		pDestroyWindow.Call(uintptr(t.window))
@@ -722,6 +724,7 @@ func (t *winTray) removeMenuItem(menuItemId, parentId uint32) error {
 	t.muMenuOf.Unlock()
 	t.muVisibleItems.Lock()
 	delete(t.visibleItems, menuItemId)
+	delete(t.frontItems, menuItemId)
 	t.muVisibleItems.Unlock()
 	t.muMenuItemIcons.Lock()
 	bitmap := t.menuItemIcons[menuItemId]
@@ -823,9 +826,28 @@ func (t *winTray) addToVisibleItems(parent, val uint32) {
 		t.visibleItems[parent] = []uint32{val}
 	} else {
 		newvisible := append(visibleItems, val)
-		sort.Slice(newvisible, func(i, j int) bool { return newvisible[i] < newvisible[j] })
+		sort.Slice(newvisible, func(i, j int) bool {
+			if t.frontItems[newvisible[i]] != t.frontItems[newvisible[j]] {
+				return t.frontItems[newvisible[i]]
+			}
+			return newvisible[i] < newvisible[j]
+		})
 		t.visibleItems[parent] = newvisible
 	}
+}
+
+// AddMenuItemFirst adds a root entry to the group before ordinary entries and
+// separators. Entries retain insertion order even after Hide/Show or updates.
+func AddMenuItemFirst(title, tooltip string) *MenuItem {
+	item := newMenuItem(title, tooltip, nil)
+	wt.muVisibleItems.Lock()
+	if wt.frontItems == nil {
+		wt.frontItems = make(map[uint32]bool)
+	}
+	wt.frontItems[item.id] = true
+	wt.muVisibleItems.Unlock()
+	item.update()
+	return item
 }
 
 func (t *winTray) getVisibleItemIndex(parent, val uint32) int {

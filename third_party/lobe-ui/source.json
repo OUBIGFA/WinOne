@@ -1,0 +1,24 @@
+{
+  "repository": "https://github.com/lobehub/lobe-ui",
+  "commit": "0a0bf806813deaf7afebe7a4d54134a9bdfc9877",
+  "license": "MIT",
+  "adaptation": "Reuses the Base UI ScrollArea composition and atoms. Static styles use WinOne tokens; antd-style runtime and unused global scroll-animation property registration are omitted.",
+  "sources": [
+    {
+      "source": "src/base-ui/ScrollArea/ScrollArea.tsx",
+      "sha256": "a9ffe1a1443445495e5f67aed09e74e77b1d264044e63c42e1b333dc2f338dbb"
+    },
+    {
+      "source": "src/base-ui/ScrollArea/atoms.tsx",
+      "sha256": "ef9a7e7c8a969e95911a5a0c0b26bccfb70cc05cb09890fac970e95608d0000d"
+    },
+    {
+      "source": "src/base-ui/ScrollArea/type.ts",
+      "sha256": "0a70364087b9a935c880debcb1a0b7351c943d2aa807295af5e997d669733859"
+    },
+    {
+      "source": "src/base-ui/ScrollArea/style.ts",
+      "sha256": "04103c735ac110174597af902629ecabf4f82f0f777a8aeddeeb3f16d2a0ec3d"
+    }
+  ]
+}

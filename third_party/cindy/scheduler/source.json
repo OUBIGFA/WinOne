@@ -1,0 +1,60 @@
+{
+    "commit":  "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+    "repository":  "https://github.com/makecindy/cindy",
+    "files":  [
+                  {
+                      "sha256":  "0020a8ebaca2954f7c9ea145ef183b7895b9ec439e8143d0f48e4720879a9e44",
+                      "file":  "types.ts"
+                  },
+                  {
+                      "sha256":  "7c2a589491ccdf5288efc12b3d3d6a5683ac24ff7cbc84d8ce3188e2a91c370d",
+                      "file":  "engine/scheduler.ts"
+                  },
+                  {
+                      "sha256":  "8c7eb680411ad15fff65e359c7dff04d2d0f7bca18ec7e184d2376f554721d8f",
+                      "file":  "engine/cron.ts"
+                  },
+                  {
+                      "sha256":  "982402afbb38c4f8c7f241a9a648e2733054279edae1bde0528559fb0ad15638",
+                      "file":  "engine/monthlyClamp.ts"
+                  },
+                  {
+                      "sha256":  "5680ced4ea5cb3b24f76ff5bdafb12f95c3b5f915cb0dc7220e8d5661c4ea988",
+                      "file":  "engine/attemptLifecycle.ts"
+                  },
+                  {
+                      "sha256":  "b4fd6cff4738b252c95424892a71bd7c3535d54434b9b8e81d218cf24e1e662d",
+                      "file":  "interfaces/schedule-storage.ts"
+                  },
+                  {
+                      "sha256":  "da8021a5a02ce1bb7a3378d484dda0df59a7bd1be7300446e868196e81f83a6d",
+                      "file":  "interfaces/schedule-runner.ts"
+                  },
+                  {
+                      "sha256":  "0ff6786377040e7decc99ec6fb9c3ab50806ed3f84f57069497a943db1833442",
+                      "file":  "interfaces/clock.ts"
+                  },
+                  {
+                      "sha256":  "cc0828653e0ab98715c3ad29f2fa8bebdedc0413c9f49b9e6d9054979545e604",
+                      "file":  "interfaces/logger.ts"
+                  },
+                  {
+                      "file":  "builtin-templates.ts",
+                      "sha256":  "a4057b4c55d3ec8527671cf579940b4eaee221a1e561600e58959f769622b731"
+                  },
+                  {
+                      "file":  "engine/template.ts",
+                      "sha256":  "19d505f570ed8439b9c42543655819235fd87238ad908be78d6bf94c4d4bc907"
+                  },
+                  {
+                      "file":  "en-templates.json",
+                      "sha256":  "b1ad092f186df4faaff4d32b0203963e921289c5f58638bedf9133bbf016c4a4",
+                      "source":  "apps/desktop/src/renderer/i18n/locales/en/common.json",
+                      "sourceSHA256":  "f00a273be73c8254c2c82d0d4f5d79d9119a4bf753e0b96497937167a956ec75",
+                      "selector":  "scheduler.builtinTemplates"
+                  }
+              ],
+    "sourceDirectory":  "packages/maker-scheduler/src",
+    "adaptation":  "Unchanged scheduler engine and types. WinOne supplies storage, Pi runner, notifications and native Host lifetime.",
+    "license":  "../LICENSE"
+}

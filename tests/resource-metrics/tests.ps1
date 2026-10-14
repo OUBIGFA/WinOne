@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot '../../build/resource-metrics.psm1') -Force
 function Assert-That([bool]$Condition,[string]$Message) { if (-not $Condition) { throw $Message } }
 $born=[datetime]::UtcNow.AddMinutes(-5)
@@ -11,6 +12,9 @@ $inventory=@((Entry 10 0 $born.AddMinutes(1)),(Entry 20 10 $born.AddSeconds(1)),
 $family=Get-TrackedProcessFamily -Inventory $inventory -Known $known
 Assert-That ($family.Members.Count -eq 2) 'PID reuse changed ownership, or surviving children were lost'
 $self=Get-CimInstance Win32_Process -Filter "ProcessId=$PID"
+$empty=Get-ProcessResourceRows -Family ([pscustomobject]@{Members=@();Errors=@()}) -Counters @{} -Previous @{} -LogicalProcessors 1
+Assert-That (-not $empty.Complete -and $empty.Errors.Count -gt 0) 'An exited measurement root was accepted as a complete sample'
+Assert-That ($empty.Totals.ProcessCount -eq 0 -and $null -eq $empty.Totals.CpuPercent -and $null -eq $empty.Totals.PrivateBytes) 'Missing processes fabricated resource counters'
 $family=[pscustomobject]@{Members=@($self);Errors=@()}
 $counters=@{}
 Get-CimInstance Win32_PerfRawData_PerfProc_Process | ForEach-Object { $counters[[string]$_.IDProcess]=$_ }
@@ -53,3 +57,43 @@ foreach ($failure in @('incomplete','minimized','hidden','missing-window','missi
 Assert-That (-not (Test-OpenWindowResourceReport ([pscustomobject]@{Samples=@()}) 10 20)) 'Empty window report accepted'
 Assert-That (-not (Test-OpenWindowResourceReport ([pscustomobject]@{}) 10 20)) 'Missing sample collection accepted'
 Write-Output 'PASS: process ownership, live counters, window identity, and open/closed-window scenario validation'
+
+# Budget evidence must come from complete samples, not an optimistic summary.
+function Idle-Report {
+    [pscustomobject]@{Samples=@(
+        [pscustomobject]@{Complete=$true;IntervalSeconds=1.0;Processes=@([pscustomobject]@{ProcessId=10;Name='WinOne.Host.exe'});Totals=[pscustomobject]@{PrivateWorkingSetBytes=43MB;CpuPercent=$null}},
+        [pscustomobject]@{Complete=$true;IntervalSeconds=1.0;Processes=@([pscustomobject]@{ProcessId=10;Name='WinOne.Host.exe'});Totals=[pscustomobject]@{PrivateWorkingSetBytes=43MB;CpuPercent=0.19}}
+    )}
+}
+$budgetCheck=Get-Command Test-HostIdleBudgetReport -ErrorAction SilentlyContinue
+Assert-That ($null -ne $budgetCheck) 'Idle verification does not enforce the documented CPU and memory budgets'
+Assert-That (Test-HostIdleBudgetReport (Idle-Report) 10) 'Valid host idle budget was rejected'
+foreach ($failure in @('cpu-limit','memory-limit','missing-cpu','negative-cpu','nan-cpu','infinite-cpu','missing-memory','negative-memory','missing-interval','zero-interval','incomplete','worker','no-cpu-samples')) {
+    $report=Idle-Report
+    $sample=$report.Samples[1]
+    switch ($failure) {
+        'cpu-limit' {$sample.Totals.CpuPercent=0.2}
+        'memory-limit' {$sample.Totals.PrivateWorkingSetBytes=43MB+1}
+        'missing-cpu' {$sample.Totals.CpuPercent=$null}
+        'negative-cpu' {$sample.Totals.CpuPercent=-1}
+        'nan-cpu' {$sample.Totals.CpuPercent=[double]::NaN}
+        'infinite-cpu' {$sample.Totals.CpuPercent=[double]::PositiveInfinity}
+        'missing-memory' {$sample.Totals.PSObject.Properties.Remove('PrivateWorkingSetBytes')}
+        'negative-memory' {$sample.Totals.PrivateWorkingSetBytes=-1}
+        'missing-interval' {$sample.PSObject.Properties.Remove('IntervalSeconds')}
+        'zero-interval' {$sample.IntervalSeconds=0}
+        'incomplete' {$sample.Complete=$false}
+        'worker' {$sample.Processes += [pscustomobject]@{ProcessId=20;Name='WinOne.WinTray.exe'}}
+        'no-cpu-samples' {$report.Samples=@($report.Samples[0])}
+    }
+    Assert-That (-not (Test-HostIdleBudgetReport $report 10)) "Invalid idle budget evidence accepted: $failure"
+}
+$report=Idle-Report
+$burst=($report.Samples[1] | ConvertTo-Json -Depth 5 | ConvertFrom-Json)
+$report.Samples[1].Totals.CpuPercent=0.01
+$report.Samples[1].IntervalSeconds=10.0
+$burst.Totals.CpuPercent=1.0
+$burst.IntervalSeconds=1.0
+$report.Samples += $burst
+Assert-That (Test-HostIdleBudgetReport $report 10) 'CPU budget used a peak or unweighted average instead of elapsed time'
+Write-Output 'PASS: idle CPU <0.2%, private working set <=43 MiB reference, and complete measurement evidence'

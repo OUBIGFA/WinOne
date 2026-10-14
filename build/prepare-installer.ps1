@@ -8,6 +8,7 @@ $ErrorActionPreference='Stop'
 $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $packagePath=[IO.Path]::GetFullPath($Package)
 $output=[IO.Path]::GetFullPath($OutputDirectory)
+& (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $output
 if(Test-Path -LiteralPath $output){throw 'Installer preparation directory already exists'}
 & git -C $root check-ignore --quiet --no-index -- (Join-Path $output 'installer.probe')
 if($LASTEXITCODE -ne 0){throw 'Installer preparation must use a Git-ignored directory'}

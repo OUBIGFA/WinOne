@@ -42,6 +42,9 @@ func init() {
 type MenuItem struct {
 	// ClickedCh is the channel which will be notified when the menu item is clicked
 	ClickedCh chan struct{}
+	// ClickedWithShiftCh retains the modifier captured at native dispatch.
+	// Consumers choose this channel OR ClickedCh, never both.
+	ClickedWithShiftCh chan bool
 
 	// id uniquely identify a menu item, not supposed to be modified
 	id uint32
@@ -69,14 +72,15 @@ func (item *MenuItem) String() string {
 // newMenuItem returns a populated MenuItem object
 func newMenuItem(title string, tooltip string, parent *MenuItem) *MenuItem {
 	item := &MenuItem{
-		ClickedCh:   make(chan struct{}),
-		id:          currentID.Add(1),
-		title:       title,
-		tooltip:     tooltip,
-		disabled:    false,
-		checked:     false,
-		isCheckable: false,
-		parent:      parent,
+		ClickedCh:          make(chan struct{}),
+		ClickedWithShiftCh: make(chan bool, 1),
+		id:                 currentID.Add(1),
+		title:              title,
+		tooltip:            tooltip,
+		disabled:           false,
+		checked:            false,
+		isCheckable:        false,
+		parent:             parent,
 	}
 
 	menuItemsLock.Lock()
@@ -316,6 +320,10 @@ func (item *MenuItem) update() {
 }
 
 func systrayMenuItemSelected(id uint32) {
+	systrayMenuItemSelectedWithShift(id, false)
+}
+
+func systrayMenuItemSelectedWithShift(id uint32, shift bool) {
 	menuItemsLock.RLock()
 	item, ok := menuItems[id]
 	menuItemsLock.RUnlock()
@@ -326,6 +334,10 @@ func systrayMenuItemSelected(id uint32) {
 	select {
 	case item.ClickedCh <- struct{}{}:
 	// in case no one waiting for the channel
+	default:
+	}
+	select {
+	case item.ClickedWithShiftCh <- shift:
 	default:
 	}
 }

@@ -2,31 +2,92 @@
   {
     "manifestVersion": 1,
     "id": "capture",
-    "name": { "zh-CN": "截图", "en-US": "Capture" },
+    "name": {
+      "zh-CN": "截图",
+      "en-US": "Capture"
+    },
     "distribution": "bundled",
     "worker": "capture/WinOne.Capture.exe",
     "activation": "on-demand",
-    "shortcutActions": ["region", "window", "fullscreen", "scroll"],
+    "shortcutActions": [
+      "region",
+      "window",
+      "fullscreen",
+      "scroll",
+      "ocr",
+      "translate"
+    ],
     "settingsSchemaVersion": 1
   },
   {
     "manifestVersion": 1,
     "id": "always-on-top",
-    "name": { "zh-CN": "置顶功能", "en-US": "Always on Top" },
+    "name": {
+      "zh-CN": "置顶功能",
+      "en-US": "Always on Top"
+    },
     "distribution": "bundled",
     "worker": "always-on-top/WinOne.AlwaysOnTop.exe",
     "activation": "on-demand",
-    "shortcutActions": ["toggle"],
+    "shortcutActions": [
+      "toggle"
+    ],
     "settingsSchemaVersion": 1
   },
   {
     "manifestVersion": 1,
     "id": "wintray",
-    "name": { "zh-CN": "程序管理", "en-US": "Program management" },
+    "name": {
+      "zh-CN": "程序管理",
+      "en-US": "Program management"
+    },
     "distribution": "bundled",
     "worker": "WinOne.WinTray.exe",
     "activation": "configured",
     "shortcutActions": [],
     "settingsSchemaVersion": 3
+  },
+  {
+    "manifestVersion": 1,
+    "id": "selection",
+    "name": {
+      "zh-CN": "划词助手",
+      "en-US": "Selection assistant"
+    },
+    "distribution": "bundled",
+    "worker": "selection/WinOne.Selection.exe",
+    "activation": "configured",
+    "shortcutActions": [
+      "show"
+    ],
+    "settingsSchemaVersion": 1
+  },
+  {
+    "manifestVersion": 1,
+    "id": "stroke",
+    "name": {
+      "zh-CN": "鼠标手势",
+      "en-US": "Mouse gestures"
+    },
+    "distribution": "bundled",
+    "worker": "stroke/WinOne.Stroke.exe",
+    "activation": "configured",
+    "shortcutActions": [],
+    "settingsSchemaVersion": 1
+  },
+  {
+    "manifestVersion": 1,
+    "id": "quick-assistant",
+    "name": {
+      "zh-CN": "快捷助手",
+      "en-US": "Quick assistant"
+    },
+    "distribution": "bundled",
+    "worker": "shared/ui/WinOne.Results.exe",
+    "activation": "on-demand",
+    "shortcutActions": [
+      "show"
+    ],
+    "settingsSchemaVersion": 1
   }
 ]

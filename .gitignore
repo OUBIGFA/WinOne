@@ -3,9 +3,12 @@ node_modules/
 dist/
 bin/
 obj/
+target/
 coverage/
 test-results/
 playwright-report/
+# Vite 依赖预构建缓存，由开发服务器自动生成。
+.vite/
 .vs/
 .idea/
 .DS_Store
@@ -22,6 +25,14 @@ internal/branding/logo-native.png
 *.local.json
 # Wails frontend compilation is regenerated before Go builds.
 apps/desktop/frontend/dist/
-# Keep this final: temporary trees must never be re-included.
+/apps/result-ui/assets/logo.png
+/apps/result-ui/assets/provider-bitmaps/
+__pycache__/
+*.py[cod]
 /.workbuddy/
+# Rust executable entry points are source files, not compiled bin outputs.
+!apps/diagram-renderer/src/bin/
+!apps/diagram-renderer/src/bin/*.rs
+# Keep this final: ignore _temp at every depth, after all negation rules.
+/apps/desktop/frontend/public/pdfjs/
 _temp/

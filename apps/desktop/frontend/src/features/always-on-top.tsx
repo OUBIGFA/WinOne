@@ -1,6 +1,8 @@
+import {Settings,SlidersHorizontal,Save,RotateCcw} from "lucide-react";
+import {IconLabel} from "../ui/icon-label";
 import {Notice,InlineError} from "../ui/notice";
 import {Tabs,TabsList,TabsTrigger,TabsContent} from "../components/ui/tabs";
-import {Diagnostics} from "./diagnostics";
+
 import {Label} from "../components/ui/label";
 import { useEffect, useState } from "react";
 import { alwaysOnTopCall } from "../bridge";
@@ -27,7 +29,9 @@ export function AlwaysOnTopPage({ disabled = false,onActivity }: { disabled?: bo
   const [settings, setSettings] = useState<Preferences>();
   const [savedSettings,setSavedSettings]=useState<Preferences>();
   const [exclusions, setExclusions] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [working, setBusy] = useState(false);
+  const [loading,setLoading]=useState(false);
+  const busy=working||loading;
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   // Compare the values that will be saved, including trimmed exclusion lines,
@@ -35,7 +39,7 @@ export function AlwaysOnTopPage({ disabled = false,onActivity }: { disabled?: bo
   const excludedApps=exclusions.split(/\r?\n/).map(value=>value.trim()).filter(Boolean);
   const dirty=!!settings&&JSON.stringify({...settings,excludedApps})!==JSON.stringify(savedSettings);
 
-  usePageActivity(onActivity,dirty,busy);
+  usePageActivity(onActivity,dirty,working);
 
   async function refresh(includeSettings: boolean) {
     if (disabled && !includeSettings) return;
@@ -50,12 +54,14 @@ export function AlwaysOnTopPage({ disabled = false,onActivity }: { disabled?: bo
       setExclusions(next.settings.excludedApps.join("\n"));
     }
   }
-  async function action(run: () => Promise<void>) {
-    setBusy(true); setError(""); setNotice("");
+  async function action(run: () => Promise<void>,readOnly=false) {
+    // Keep form reads local; only a save must hold the navigation guard.
+    const setPending=readOnly?setLoading:setBusy;
+    setPending(true); setError(""); setNotice("");
     try { await run(); } catch (e) { setError(String(e)); }
-    finally { setBusy(false); }
+    finally { setPending(false); }
   }
-  useEffect(() => { void action(() => refresh(true)); }, [disabled]);
+  useEffect(() => { void action(() => refresh(true),true); }, [disabled]);
   function change<K extends keyof Preferences>(key: K, value: Preferences[K]) {
     if (settings) setSettings({ ...settings, [key]: value });
   }
@@ -67,44 +73,49 @@ export function AlwaysOnTopPage({ disabled = false,onActivity }: { disabled?: bo
     setSettings(saved); setSavedSettings(saved); setExclusions(saved.excludedApps.join("\n"));
     setNotice("common.saved");
   }
-  const navigationTabs=(<TabsList className="max-w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto" aria-label={t("aot.settings")}><TabsTrigger value="general">{t("aot.general")}</TabsTrigger><TabsTrigger value="advanced">{t("aot.options")}</TabsTrigger><TabsTrigger value="logs">{t("diagnostics.title")}</TabsTrigger></TabsList>);
+  const navigationTabs=(<TabsList variant="line" className="max-w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto" aria-label={t("aot.settings")}><TabsTrigger value="general"><IconLabel icon={Settings}>{t("aot.general")}</IconLabel></TabsTrigger><TabsTrigger value="advanced"><IconLabel icon={SlidersHorizontal}>{t("aot.options")}</IconLabel></TabsTrigger></TabsList>);
   const unavailable=error
-    ? <Notice actions={<Button disabled={busy} onClick={()=>void action(()=>refresh(true))}>{t("common.retry")}</Button>}>{error}</Notice>
+    ? <Notice actions={<Button disabled={busy} onClick={()=>void action(()=>refresh(true),true)}>{t("common.retry")}</Button>}>{error}</Notice>
     : <p role="status">{t("aot.loading")}</p>;
 
 
   const validNumbers=!!settings&&validNumber(settings.frameThickness,1,15)&&validNumber(settings.frameOpacity,10,100);
-  const toggle=(key:"frame"|"useAccent"|"roundCorners"|"blockInGameMode"|"sound",label:string)=><div className="flex items-center justify-between gap-4 py-3"><Label htmlFor={`aot-${key}`}>{t(label)}</Label><Switch id={`aot-${key}`} checked={!!settings?.[key]} disabled={busy} onCheckedChange={value=>change(key,value)}/></div>;
+  const toggle=(key:"frame"|"useAccent"|"roundCorners"|"blockInGameMode"|"sound",label:string)=><div className="settings-switch-row py-3"><Label htmlFor={`aot-${key}`}>{t(label)}</Label><Switch id={`aot-${key}`} checked={!!settings?.[key]} disabled={busy} onCheckedChange={value=>change(key,value)}/></div>;
   return <section>
-    {error && settings && <Notice>{error}</Notice>}
-    {disabled && <p className="muted">{t("aot.disabled")}</p>}
       <Tabs value={tab} onValueChange={value=>setTab(String(value))}>
         {navigationTabs}
-        <TabsContent value="general" className="space-y-3 py-3">{settings?<fieldset className="plain-fieldset space-y-3" disabled={busy}>
+    {error && settings && <Notice>{error}</Notice>}
+    {disabled && <p className="muted">{t("aot.disabled")}</p>}
+        <TabsContent value="general" className="space-y-3">{settings?<fieldset className="plain-fieldset settings-stack" disabled={busy}>
           {toggle("frame","aot.frame")}
-          {(settings.frame||!validNumbers)&&<div className="space-y-4 border-t pt-3">
+          {(settings.frame||!validNumbers)&&<div className="settings-group border-t pt-5">
             {toggle("useAccent","aot.accent")}
-            {toggle("roundCorners","aot.rounded")}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="settings-switch-row"><Label htmlFor="aot-color">{t("aot.color")}</Label><Input id="aot-color" className="w-16 shrink-0 px-1" type="color" disabled={busy} value={settings.frameColor} onChange={event=>{
+              // Choosing a custom color is an explicit alternative to the
+              // accent color. Keep unrelated edits and commit both together.
+              const frameColor=event.target.value;
+              setSettings(current=>current?{...current,frameColor,useAccent:false}:current);
+            }}/></div>
+            <div className="settings-field-grid">
               <NumberField id="aot-thickness" label={t("aot.thickness")} min={1} max={15} value={settings.frameThickness} onChange={value=>change("frameThickness",value)}/>
               <NumberField id="aot-opacity" label={t("aot.opacity")} min={10} max={100} value={settings.frameOpacity} onChange={value=>change("frameOpacity",value)}/>
             </div>
-            <div className="space-y-2"><Label htmlFor="aot-color">{t("aot.color")}</Label><Input id="aot-color" className="w-16 px-1" type="color" disabled={settings.useAccent||busy} value={settings.frameColor} onChange={event=>change("frameColor",event.target.value)}/></div>
+            {toggle("roundCorners","aot.rounded")}
           </div>}
           {toggle("sound","aot.sound")}
         </fieldset>:unavailable}</TabsContent>
-        <TabsContent value="advanced" className="space-y-4 py-3">{settings?<fieldset className="plain-fieldset space-y-4" disabled={busy}>
+        <TabsContent value="advanced" className="space-y-4">{settings?<fieldset className="plain-fieldset settings-stack" disabled={busy}>
           {toggle("blockInGameMode","aot.game")}
-          <div className="space-y-2"><Label htmlFor="aot-exclusions">{t("aot.exclusions")}</Label><Textarea id="aot-exclusions" rows={4} value={exclusions} onChange={event=>setExclusions(event.target.value)}/></div>
+          <div className="settings-stack-compact"><Label htmlFor="aot-exclusions">{t("aot.exclusions")}</Label><Textarea id="aot-exclusions" rows={4} value={exclusions} onChange={event=>setExclusions(event.target.value)}/></div>
 
         </fieldset>:unavailable}</TabsContent>
-        <TabsContent value="logs" className="pt-5">{tab==="logs"&&<Diagnostics moduleId="always-on-top"/>}</TabsContent>
+
       </Tabs>
-      {settings&&tab!=="logs"&&<fieldset className="plain-fieldset" disabled={busy}>
+      {settings&&<fieldset className="plain-fieldset" disabled={busy}>
       {!validNumbers&&<InlineError className="text-sm">{t("aot.numberRange")}</InlineError>}
-      <div className="detail-actions">
-        <Button variant="primary" disabled={!dirty||!validNumbers} onClick={() => void action(save)}>{t("aot.save")}</Button>
-        <Button disabled={!dirty} onClick={() => void action(() => refresh(true))}>{t("aot.undo")}</Button>
+      <div className="settings-save-bar">
+        <Button icon={Save} variant="primary" disabled={!dirty||!validNumbers} onClick={() => void action(save)}>{t("aot.save")}</Button>
+        <Button icon={RotateCcw} disabled={!dirty} onClick={() => void action(() => refresh(true),true)}>{t("aot.undo")}</Button>
       </div>
       <p role="status">{dirty ? t("aot.dirty") : notice?t(notice):""}</p>
       </fieldset>}

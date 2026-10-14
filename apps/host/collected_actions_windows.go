@@ -10,7 +10,7 @@ import (
 
 func performCollectedAction(worker moduleEndpoint, id string, hosted bool, action collectedAction) error {
 	payload := map[string]any{"id": id, "right": action.Right}
-	if hosted {
+	if hosted || action.ID == "double" || action.ID == "open" {
 		payload["action"] = action.ID
 	}
 	params, _ := json.Marshal(payload)
@@ -32,6 +32,11 @@ func performCollectedAction(worker moduleEndpoint, id string, hosted bool, actio
 type collectedAction struct {
 	ID, Title string
 	Right     bool
+}
+
+// Apply only the modifier captured with this click, and only to native icons.
+func collectedGesture(action collectedAction, hosted, shift bool) collectedAction {
+	return action
 }
 
 func collectedActions(hosted bool, locale string) []collectedAction {

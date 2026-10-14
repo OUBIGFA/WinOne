@@ -60,3 +60,35 @@ func TestHostedMenuActionsRemainOwnedByWinOne(t *testing.T) {
 		}
 	}
 }
+
+func TestCollectedDoubleClickReachesWorker(t *testing.T) {
+	worker := &collectedActionFixture{response: host.Response{Result: json.RawMessage(`{"delivered":true}`)}}
+	if err := performCollectedAction(worker, "native-icon", false, collectedAction{ID: "double"}); err != nil {
+		t.Fatal(err)
+	}
+	var params struct {
+		Action string
+		Right  bool
+	}
+	if err := json.Unmarshal(worker.request.Params, &params); err != nil {
+		t.Fatal(err)
+	}
+	if params.Action != "double" || params.Right {
+		t.Fatal("Double-click was reduced to a single click", params)
+	}
+}
+
+func TestCollectedGesturePreservesSingleHostedAndRightActions(t *testing.T) {
+	for _, tc := range []struct {
+		id            string
+		hosted, shift bool
+		want          string
+	}{
+		{"open", false, false, "open"}, {"open", false, true, "open"},
+		{"open", true, true, "open"}, {"menu", false, true, "menu"},
+	} {
+		if got := collectedGesture(collectedAction{ID: tc.id}, tc.hosted, tc.shift); got.ID != tc.want {
+			t.Fatal(tc, got)
+		}
+	}
+}

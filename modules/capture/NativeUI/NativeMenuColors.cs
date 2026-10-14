@@ -38,7 +38,10 @@ internal sealed class NativeMenuColors : ProfessionalColorTable
         public override Color CheckBackground => ButtonPressedGradientBegin;
         public override Color CheckSelectedBackground => ButtonSelectedHighlight;
         public override Color CheckPressedBackground => ButtonPressedGradientBegin;
-        public override Color SeparatorDark => ToolStripBorder;
+        // Borderless strips still need visible group dividers. The native
+        // renderer draws one dark line and a background-colored highlight.
+        public override Color SeparatorDark => SystemInformation.HighContrast ? SystemColors.MenuText
+            : dark ? Color.FromArgb(82, 82, 82) : Color.FromArgb(205, 205, 205);
         public override Color SeparatorLight => Background;
         public override Color MenuItemBorder => ButtonSelectedBorder;
         public override Color OverflowButtonGradientBegin => Background;

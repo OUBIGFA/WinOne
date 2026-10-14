@@ -2,11 +2,14 @@ import {i18n,setApplicationLanguage} from "../src/i18n";
 // In-memory fixture: no user programs or startup settings are changed.
 import {createRoot} from "react-dom/client";
 import {WinTrayPage} from "../src/features/wintray";
+import {SettingsFixtureShell} from "./settings-fixture-shell";
 
 import "../src/styles/shadcn.css";
 import "../src/style.css";
 let settings={schemaVersion:3,language:"zh-CN",runAtLogon:true,startMinimizedToTray:true,exitAfterManagedAppsCompleted:false,closeWindowRetrySeconds:10,startupIntervalSeconds:3,managedApps:["浏览器","音乐播放器","文件同步"].map((name,i)=>({id:String(i),name,exePath:`C:\\Apps\\example${i}.exe`,args:"",runOnStartup:i!==1,collectTrayIcon:i===2,launchViaLogonTask:false,launchHiddenInBackground:false,trayBehavior:{autoMinimizeAndHideOnLaunch:true,closeDelaySeconds:3},schedule:{enabled:i===0,startDelayMinutes:5,autoExitMinutes:30,frequencyEnabled:false,frequencyDays:1,frequencyRuns:1}}))};
 let revision=1;
+if(new URLSearchParams(location.search).has("many")) settings.managedApps=Array.from({length:80},(_,index)=>({...settings.managedApps[index%3],id:String(index),name:index===1?"音乐播放器":`程序 ${index+1}`,exePath:`C:\\Apps\\example${index}.exe`}));
+if(new URLSearchParams(location.search).has("longContent")) settings.managedApps[0]={...settings.managedApps[0],name:"LongApplicationName".repeat(10),exePath:`C:\\${"LongDirectoryName\\".repeat(16)}application.exe`,args:"--long-option="+"value".repeat(80)};
 window.go={main:{App:{
  WinTray:async(method:string,payload:string)=>{
  if(new URLSearchParams(location.search).has("failure")&&(method==="snapshot"||method==="settings.get"))throw Error(new URLSearchParams(location.search).get("error")||"Settings read failed");
@@ -26,5 +29,5 @@ window.go={main:{App:{
  Residency:async()=>JSON.stringify({requested:false,reasons:[]}),
  ReadModuleLogs:async()=>({folderAvailable:false,entries:[]}),
 }}} as unknown as NonNullable<Window["go"]>;
-void setApplicationLanguage(new URLSearchParams(location.search).get("language")||"zh-CN");
-createRoot(document.getElementById("root")!).render(<main className="mx-auto max-w-6xl p-8"><header><h1>{i18n.t("nav.wintray")}</h1></header><WinTrayPage/></main>);
+await setApplicationLanguage(new URLSearchParams(location.search).get("language")||"zh-CN");
+createRoot(document.getElementById("root")!).render(<SettingsFixtureShell page="wintray"><header><h1>{i18n.t("nav.wintray")}</h1></header><WinTrayPage/></SettingsFixtureShell>);

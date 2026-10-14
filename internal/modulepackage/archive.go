@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,9 +18,66 @@ import (
 // VerifiedArchive is inspection evidence, not a permanent execution permit.
 // Source files can change after inspection; installation must verify its own
 // private staged copy against this signed manifest before registering a module.
-type VerifiedArchive struct{ manifest *VerifiedManifest }
+type VerifiedArchive struct {
+	manifest   *VerifiedManifest
+	definition *SettingsDefinition
+}
 
-func (v *VerifiedArchive) Manifest() *VerifiedManifest { return v.manifest }
+func (v *VerifiedArchive) Manifest() *VerifiedManifest   { return v.manifest }
+func (v *VerifiedArchive) Settings() *SettingsDefinition { return v.definition }
+
+// PreviewArchive selects only a Host-trusted key from the untrusted identity
+// hint, then authenticates and checks the same open archive. It never extracts
+// payload or executes a validator supplied by the package.
+func PreviewArchive(ctx context.Context, filename string, trust func(string) (Publisher, error)) (*VerifiedArchive, error) {
+	if trust == nil {
+		return nil, ErrUntrustedPublisher
+	}
+	inspection, err := inspectArchiveTrusted(ctx, filename, trust)
+	if err != nil {
+		return nil, err
+	}
+	defer inspection.file.Close()
+	if err = inspection.copyPayload(ctx, nil); err != nil {
+		return nil, err
+	}
+	result := &VerifiedArchive{manifest: inspection.manifest}
+	if files := inspection.manifest.metadata.Settings; files != nil {
+		read := func(name string, limit int64) ([]byte, error) {
+			for _, record := range inspection.manifest.files {
+				if !strings.EqualFold(record.Path, name) {
+					continue
+				}
+				raw, err := readArchiveEntry(ctx, inspection.entries[record.Path], limit)
+				if err != nil {
+					return nil, err
+				}
+				sum := sha256.Sum256(raw)
+				if int64(len(raw)) != record.Size || hex.EncodeToString(sum[:]) != record.SHA256 {
+					return nil, ErrApprovalChanged
+				}
+				return raw, nil
+			}
+			return nil, errors.New("settings file is missing")
+		}
+		schema, err := read(files.Schema, MaxSettingsSchemaBytes)
+		if err != nil {
+			return nil, err
+		}
+		defaults, err := read(files.Defaults, MaxSettingsBytes)
+		if err != nil {
+			return nil, err
+		}
+		result.definition, err = compileSettings(schema, defaults)
+		if err != nil {
+			return nil, err
+		}
+		if err = result.definition.configureMigrations(inspection.manifest.metadata.Module.SettingsSchemaVersion, files.Migrations, func(name string) ([]byte, error) { return read(name, MaxMigrationPatchBytes) }); err != nil {
+			return nil, err
+		}
+	}
+	return result, ctx.Err()
+}
 
 type cancellableReader struct {
 	ctx    context.Context
@@ -73,7 +131,11 @@ type archiveInspection struct {
 	manifestBytes, signature []byte
 }
 
-func inspectArchive(ctx context.Context, filename string, publisher Publisher) (_ *archiveInspection, err error) {
+func inspectArchive(ctx context.Context, filename string, publisher Publisher) (*archiveInspection, error) {
+	return inspectArchiveTrusted(ctx, filename, func(string) (Publisher, error) { return publisher, nil })
+}
+
+func inspectArchiveTrusted(ctx context.Context, filename string, trust func(string) (Publisher, error)) (_ *archiveInspection, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -126,6 +188,29 @@ func inspectArchive(ctx context.Context, filename string, publisher Publisher) (
 		return nil, err
 	}
 	signature, err := readArchiveEntry(ctx, entries["module.json.minisig"], MaxSignatureBytes)
+	if err != nil {
+		return nil, err
+	}
+	var identity struct {
+		Metadata struct {
+			Kind   string `json:"kind"`
+			Module struct {
+				ID string `json:"id"`
+			} `json:"module"`
+			Runtime struct {
+				ID string `json:"id"`
+			} `json:"runtime"`
+		} `json:"metadata"`
+	}
+	if err = json.Unmarshal(manifestBytes, &identity); err != nil {
+		return nil, err
+	}
+	packageID := identity.Metadata.Module.ID
+	if identity.Metadata.Kind == "runtime" {
+		packageID = identity.Metadata.Runtime.ID
+	}
+	namespace, _, _ := strings.Cut(packageID, ".")
+	publisher, err := trust(namespace)
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,19 @@
+package ui
+
+import (
+ "testing"
+ "github.com/egoist/mygo/internal/platform"
+)
+
+func TestWinOneFastSelectionCommitsBeforeNextFrame(t *testing.T) {
+ const sentence="Fast selection 内容"
+ var selected string
+ tt:=NewTester(func(c *Context){Text(c,sentence).Selectable().Width(400);selected=c.SelectedText()},440,180)
+ box,ok:=tt.Find(sentence);if !ok {t.Fatal("text missing")}
+ // Both input events arrive before another frame. Human drags can also end
+ // between paints, so the last coordinate must be committed on mouse-up.
+ tt.rt.event(platform.SurfaceEvent{Kind:platform.PointerDown,X:float64(box.X+1),Y:float64(box.Y+box.H/2),Button:0})
+ tt.rt.event(platform.SurfaceEvent{Kind:platform.PointerUp,X:float64(box.X+box.W-1),Y:float64(box.Y+box.H/2),Button:0})
+ tt.Frame()
+ if selected!=sentence {t.Fatalf("final selection=%q",selected)}
+}

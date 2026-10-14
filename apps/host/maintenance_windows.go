@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 	"winone/internal/adminstartup"
+	"winone/internal/directorylinks"
 	"winone/internal/logintask"
 	"winone/internal/maintenance"
 	"winone/internal/modules"
@@ -29,7 +30,7 @@ func prepareUninstall(data, pipe string) error {
 }
 
 func prepareUninstallAt(installation, data, pipe string) error {
-	if err := requireWinOneStopped(); err != nil {
+	if err := maintenance.RequireStoppedAt(installation); err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -43,16 +44,19 @@ func prepareUninstallAt(installation, data, pipe string) error {
 		if err != nil {
 			return err
 		}
-		if err = adminstartup.RevokeAuthorized(ctx, task, windows.GetCurrentProcessToken().IsElevated()); err != nil {
+		if err = adminstartup.RevokeAuthorized(ctx, task, windows.GetCurrentProcessToken().IsElevated()); err != nil && !errors.Is(err, logintask.ErrAdministratorOtherInstallation) {
 			return err
 		}
 	}
-	return requireWinOneStopped()
+	if err := directorylinks.RemoveExplorerMenuOwnedBy(filepath.Join(installation, "WinOne.exe")); err != nil {
+		return err
+	}
+	return maintenance.RequireStoppedAt(installation)
 }
 
 // The installer launches a temporary copy of Host so its persistent lease does
 // not pin an executable inside the directory it needs to replace or remove.
-func guardInstallation(installation, data, pipe string, owner uint32, ready string, uninstall bool) error {
+func guardInstallation(installation, data, pipe string, owner uint32, ready string, uninstall bool, release string) error {
 	executable, err := os.Executable()
 	if err != nil {
 		return err
@@ -88,9 +92,8 @@ func guardInstallation(installation, data, pipe string, owner uint32, ready stri
 		if uninstall {
 			return prepareUninstallAt(installation, data, pipe)
 		}
-		return requireWinOneStopped()
-	})
+		return maintenance.RequireStoppedAt(installation)
+	}, release)
 }
 
 func isWinOneProcess(name string) bool { return maintenance.IsProductProcessName(name) }
-func requireWinOneStopped() error      { return maintenance.RequireStopped() }

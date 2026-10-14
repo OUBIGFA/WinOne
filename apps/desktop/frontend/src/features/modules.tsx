@@ -1,24 +1,30 @@
-import {Notice,InlineError} from "../ui/notice";
-import { useEffect, useState } from "react";
-import { Pin, ScanLine, PanelsTopLeft } from "lucide-react";
-import { getShortcuts, moduleCall, type Module, type ShortcutStatus } from "../bridge";
+import {Notice} from "../ui/notice";
+import { useEffect, useRef, useState } from "react";
+import { Pin, ScanLine, LaptopMinimal,MousePointer2,RefreshCw,Package,Rocket } from "lucide-react";
+import {QuickAssistantIcon} from "../components/quick-assistant-icon";
+import {moduleRank} from "../module-order";
+import { moduleCall, type Module } from "../bridge";
 import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
-import {ResizablePanelGroup,ResizablePanel,ResizableHandle} from "../components/ui/resizable";
 import "./modules.css";
 import {Item,ItemGroup,ItemContent,ItemTitle,ItemDescription,ItemActions,ItemMedia} from "../components/ui/item";
 import { useTranslation } from "../i18n";
 import {usePageActivity,type PageActivityChanged} from "../ui/page-navigation";
+import {ModuleInstallation} from './module-installation';
+import {ModuleRemoval} from './module-removal';
+import type {PackageReference,SharedRuntime} from './package-types';
 
 interface ModuleEntry {
   manifest: { id: string; name: { "zh-CN": string; "en-US": string }; distribution: string };
   enabled: boolean;
   pendingStop: boolean;
   runtime: Module;
+  blocked?: boolean;
+  recoveryId?: string;
 }
-interface ModuleSnapshot { revision: number; modules: ModuleEntry[]; configurationError?: string }
+interface ModuleSnapshot { revision: number; modules: ModuleEntry[]; configurationError?: string; cleanup?:{pending:boolean;error?:string};packages?:{runtimes?:SharedRuntime[]|null;dependencies?:Record<string,PackageReference[]>|null;error?:string} }
 interface ModuleJob { id: string; state: string; error?: string }
-const icons: Record<string, typeof Pin> = { capture: ScanLine, "always-on-top": Pin, wintray: PanelsTopLeft };
+const icons: Record<string, typeof Pin> = { capture: ScanLine,selection:MousePointer2,"quick-assistant":QuickAssistantIcon, "always-on-top": Pin, wintray: LaptopMinimal };
 
 function status(entry: ModuleEntry): string {
   if (entry.pendingStop) return "moduleStatus.incomplete";
@@ -28,7 +34,7 @@ function status(entry: ModuleEntry): string {
   return entry.enabled ? "moduleStatus.enabled" : "moduleStatus.disabled";
 }
 
-export function ModulesPage({ onChanged,onActivity,onReady,startup,administrator }: { onChanged: () => void;onActivity?:PageActivityChanged;onReady?:()=>void;startup?:{runAtLogon:boolean;startMinimized:boolean};administrator?:boolean }) {
+export function ModulesPage({ onChanged,onActivity,onReady,only,controlsDisabled=false }: {only?:string;controlsDisabled?:boolean; onChanged: () => void;onActivity?:PageActivityChanged;onReady?:()=>void }) {
   const {t,i18n}=useTranslation();
   const language=i18n.language==="en-US"?"en-US":"zh-CN";
   const [snapshot, setSnapshot] = useState<ModuleSnapshot>();
@@ -36,15 +42,17 @@ export function ModulesPage({ onChanged,onActivity,onReady,startup,administrator
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
-  const [shortcuts,setShortcuts]=useState<ShortcutStatus>();
-  const [shortcutError,setShortcutError]=useState("");
-  usePageActivity(onActivity,false,!!busy);
+  const readyNotified=useRef(false);
+  // Home owns tool availability. Unrelated preference reads must not delay
+  // readiness; notify only after React commits the available controls.
+  useEffect(()=>{
+    if(snapshot&&!loading&&!readyNotified.current){readyNotified.current=true;onReady?.();}
+  },[snapshot,loading,onReady]);
+  usePageActivity(onActivity,false,!!busy,"module-availability");
   async function reload() {
     setLoading(true);
     try {
-      setSnapshot(await moduleCall<ModuleSnapshot>("snapshot"));onReady?.();
-      try{setShortcuts(await getShortcuts());setShortcutError("");}
-      catch(error){setShortcuts(undefined);setShortcutError(error instanceof Error?error.message:String(error));}
+      setSnapshot(await moduleCall<ModuleSnapshot>("snapshot"));
     }
     finally { setLoading(false); }
   }
@@ -81,46 +89,92 @@ export function ModulesPage({ onChanged,onActivity,onReady,startup,administrator
     } catch(error){setError(error instanceof Error?error.message:String(error));}
     finally{try{await reload();}catch(error){setError(current=>current||(error instanceof Error?error.message:String(error)));}onChanged();setBusy("");}
   }
-  const active=snapshot?.modules.filter(entry=>entry.enabled&&!entry.pendingStop)??[];
+  async function recoverPackage(entry:ModuleEntry) {
+    if(busy||!snapshot)return;
+    setBusy(entry.manifest.id);setError("");setNotice("");
+    try {
+      const job=await moduleCall<ModuleJob>("recoverPackage",{id:entry.manifest.id,revision:snapshot.revision,recoveryId:entry.recoveryId??""});
+      if(job.state!=="completed")throw new Error(job.error||t("module.recoveryFailed"));
+      setNotice(t("module.packageRecovered",{name:entry.manifest.name[language]}));
+    }catch(error){setError(error instanceof Error?error.message:String(error));}
+    finally{try{await reload();}catch(error){setError(current=>current||(error instanceof Error?error.message:String(error)));}onChanged();setBusy("");}
+  }
+  async function cleanupPackages(){
+    if(busy)return;
+    setBusy("cleanup");setError("");setNotice("");
+    try{
+      const result=await moduleCall<ModuleJob>("cleanupPackages",{});
+      if(result.state!=="completed")throw Error(result.error||t("module.cleanupFailed"));
+      setNotice(t("module.cleanupDone"));
+    }catch(error){setError(error instanceof Error?error.message:String(error));}
+    finally{try{await reload();}catch(error){setError(current=>current||(error instanceof Error?error.message:String(error)));}onChanged();setBusy("");}
+  }
+  // Stroke keeps its independent lifecycle inside Convenience. Home lists
+  // navigation modules, so it must not offer a second mouse-gesture module card.
+  const visibleModules=snapshot?.modules.filter(entry=>only?entry.manifest.id===only:entry.manifest.id!=="stroke")??[];
+  const active=visibleModules.filter(entry=>entry.enabled&&!entry.pendingStop);
   const attention=snapshot?.modules.filter(entry=>entry.pendingStop||["faulted","unavailable"].includes(entry.runtime.state)).length??0;
-  const activeShortcuts=shortcuts?.bindings.filter(binding=>active.some(entry=>entry.manifest.id===(binding.id==="pin"?"always-on-top":binding.id)))??[];
-  return <section className="space-y-8">
+  return <section className={only?"settings-group border-b border-border pb-4":"dashboard-workspace"}>
     {error && !snapshot?.configurationError && <Notice>{error}</Notice>}
     {snapshot?.configurationError && <Notice actions={<Button busy={busy==="recovery"} disabled={!!busy} onClick={()=>void recoverConfiguration()}>{t("module.retryRecovery")}</Button>}>{error||snapshot.configurationError}</Notice>}
     {!snapshot && (loading ? <p role="status">{t("module.loading")}</p> : <Button busy={!!busy} onClick={() => {setError("");void reload().catch(e => setError(e instanceof Error?e.message:String(e)));}}>{t("common.retry")}</Button>)}
-    {snapshot&&<div className="dashboard-workspace"><ResizablePanelGroup orientation="horizontal" className="dashboard-panels items-stretch">
-     <ResizablePanel defaultSize="60%" minSize="40%"><div className="dashboard-tools pr-8">    {snapshot&&<div className="space-y-2 mb-6"><h2 className="text-2xl font-semibold">{t("dashboard.manageTools")}</h2><p className="text-base text-muted-foreground">{t("module.intro")}</p></div>}
-    <ItemGroup className="divide-y divide-border">
-      {snapshot?.modules.map(entry => {
+    {snapshot&&<>
+    {!only&&<div className="dashboard-heading">
+      <div className="dashboard-heading-copy"><p>{t("module.intro")}</p></div>
+      <div className="flex flex-wrap items-center gap-3"><span className="dashboard-count">{t("dashboard.enabledCount",{count:active.length,total:visibleModules.length})}</span><ModuleInstallation disabled={!!busy||!!snapshot.configurationError} onActivity={onActivity} onChanged={async result=>{await reload();onChanged();setNotice(result.state==='completed'?(result.warning||t(result.kind==='runtime'?'sharedPackages.installed':result.operation==='update'?'module.packageUpdated':'module.packageInstalled')):'');}}/></div>
+    </div>}
+    {!only&&attention>0&&<Notice tone="info">{t("dashboard.attention",{count:attention})}</Notice>}
+    {!only&&snapshot.cleanup?.pending&&<Notice tone="info" actions={<Button icon={RefreshCw} busy={busy==="cleanup"} disabled={!!busy} onClick={()=>void cleanupPackages()}>{t("module.retryCleanup")}</Button>}>{snapshot.cleanup.error||t("module.cleanupPending")}</Notice>}
+    <ItemGroup className={only?"gap-0":"dashboard-tools grid gap-5 @max-[580px]:gap-4"}>
+      {visibleModules.sort((a,b)=>moduleRank(a.manifest.id)-moduleRank(b.manifest.id)).map(entry => {
         const id = entry.manifest.id;
-        const Icon = icons[id] || PanelsTopLeft;
-        return <Item key={id} role="listitem" variant="default" className="min-w-0 flex-nowrap items-center gap-4 rounded-none px-0 py-6">
-          <ItemMedia variant="icon" className="size-12"><Icon aria-hidden="true" className="size-7" /></ItemMedia>
+        // A feature tab needs one setting row. Keep the dashboard's card
+        // presentation on Home while sharing the same guarded lifecycle calls.
+        if(only)return <div key={id} className="space-y-3">
+          <div className="flex items-center justify-between gap-6 py-1">
+            <div className="min-w-0 space-y-1"><label id={`module-${id}-name`} className="text-sm font-medium">{t("module.enableTool",{name:entry.manifest.name[language]})}</label><p className="text-sm text-muted-foreground">{busy===id?t("module.updated"):t(status(entry))}</p></div>
+            <Switch className="shrink-0" aria-labelledby={`module-${id}-name`} checked={entry.enabled&&!entry.pendingStop} disabled={controlsDisabled||!!busy||entry.pendingStop||!!entry.blocked||!!snapshot.configurationError} onCheckedChange={value=>void setEnabled(entry,value)}/>
+          </div>
+          {(entry.runtime.state==="faulted"||entry.blocked)&&entry.runtime.detail&&<Notice>{entry.runtime.detail}</Notice>}
+          {entry.pendingStop&&!snapshot.configurationError&&<Button disabled={controlsDisabled||!!busy} onClick={()=>void setEnabled(entry,false)}>{t("module.retryClose")}</Button>}
+          {entry.blocked&&<Button disabled={controlsDisabled||!!busy} onClick={()=>void recoverPackage(entry)}>{t(entry.recoveryId?"module.restorePackage":"module.retryPackage")}</Button>}
+        </div>;
+        const dependencies=snapshot.packages?.dependencies?.[id]??[];
+        const grouped=!only&&id==="always-on-top";
+        const Icon = grouped?Rocket:icons[id] || LaptopMinimal;
+        return <Item key={id} role="listitem" variant="outline" className="dashboard-tool grid gap-4 p-6 @max-[580px]:gap-3 @max-[580px]:p-5">
+          <ItemMedia variant="icon" className="dashboard-tool-icon"><Icon aria-hidden="true" className="size-6" /></ItemMedia>
           <ItemContent className="min-w-0">
-            <ItemTitle role="heading" aria-level={3} className="max-w-full text-lg"><span id={`module-${id}-name`} className="min-w-0 [overflow-wrap:anywhere]">{entry.manifest.name[language]}</span></ItemTitle>
+            <ItemTitle role="heading" aria-level={3} className="max-w-full text-base"><span id={`module-${id}-name`} className="min-w-0 [overflow-wrap:anywhere]">{grouped?t("nav.convenience"):entry.manifest.name[language]}</span></ItemTitle>
+            {grouped&&<p className="text-sm">{t("nav.always-on-top")}</p>}
             {i18n.exists(`moduleDescription.${id}`)&&<ItemDescription className="line-clamp-none text-sm leading-relaxed">{t(`moduleDescription.${id}`)}</ItemDescription>}
-            {entry.pendingStop && !snapshot.configurationError && <div className="module-entry__recovery"><Button disabled={!!busy} onClick={() => void setEnabled(entry, false)}>{t("module.retryClose")}</Button></div>}
+            {entry.blocked&&<><ItemDescription className="line-clamp-none text-sm leading-relaxed">{t("module.packageBlocked")}</ItemDescription><details className="text-sm text-muted-foreground"><summary className="cursor-pointer">{t("module.failureDetails")}</summary><p className="mt-2 break-words">{entry.runtime.detail}</p></details><div className="module-entry__recovery"><Button icon={RefreshCw} disabled={!!busy} busy={busy===id} onClick={()=>void recoverPackage(entry)}>{t(entry.recoveryId?"module.restorePackage":"module.retryPackage")}</Button></div></>}
+            {entry.pendingStop && !entry.blocked && !snapshot.configurationError && <div className="module-entry__recovery"><Button disabled={!!busy} onClick={() => void setEnabled(entry, false)}>{t("module.retryClose")}</Button></div>}
+            {!!dependencies.length&&<details className="text-sm text-muted-foreground"><summary className="cursor-pointer">{t('sharedPackages.dependencies')} · {dependencies.length}</summary><ul className="mt-2 space-y-1">{dependencies.map(dependency=><li className="break-words" key={dependency.id}>{dependency.id} · {dependency.version}</li>)}</ul></details>}
+            {entry.manifest.distribution==='optional'&&!entry.blocked&&<div><ModuleRemoval id={id} disabled={!!busy||entry.enabled||entry.pendingStop||!!snapshot.configurationError} onActivity={onActivity} onChanged={async warning=>{await reload();onChanged();setNotice(warning||t('module.packageRemoved'));}}/></div>}
           </ItemContent>
-          <ItemActions className="shrink-0 flex-col items-end gap-3">
+          <ItemActions className="dashboard-tool-actions">
             <span className="text-sm text-muted-foreground">{busy === id ? t("module.updated") : t(status(entry))}</span>
-            <Switch aria-labelledby={`module-${id}-name`} checked={entry.enabled && !entry.pendingStop} disabled={!!busy || entry.pendingStop || !!snapshot.configurationError} onCheckedChange={value => void setEnabled(entry, value)} />
+            <Switch aria-labelledby={`module-${id}-name`} checked={entry.enabled && !entry.pendingStop} disabled={controlsDisabled || !!busy || entry.pendingStop || !!entry.blocked || !!snapshot.configurationError} onCheckedChange={value => void setEnabled(entry, value)} />
           </ItemActions>
         </Item>;
       })}
-    </ItemGroup></div></ResizablePanel>
-     <ResizableHandle withHandle aria-label={t("dashboard.resizePanels")}/>
-     <ResizablePanel defaultSize="40%" minSize="30%"><div className="dashboard-details pl-8">    <div className="dashboard-summary space-y-8">
-      <div className="space-y-3"><h2 className="text-base font-medium text-muted-foreground">{t("dashboard.toolsEnabled")}</h2><p className="text-5xl font-semibold tracking-tight">{active.length}<span className="ml-3 text-xl font-normal text-muted-foreground">/ {snapshot.modules.length}</span></p>{attention>0&&<p className="text-base text-muted-foreground">{t("dashboard.attention",{count:attention})}</p>}{startup&&<dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 pt-3 text-sm"><dt>{t("startup.logon")}</dt><dd>{t(startup.runAtLogon?"profiles.on":"profiles.off")}</dd><dt>{t("startup.silent")}</dt><dd>{t(startup.startMinimized?"profiles.on":"profiles.off")}</dd></dl>}{typeof administrator==="boolean"&&<div className="flex justify-between gap-4 text-sm"><span>{t("dashboard.permission")}</span><span>{t(administrator?"dashboard.administrator":"dashboard.standard")}</span></div>}</div>
-      <section className="min-w-0 space-y-4" aria-label={t("dashboard.shortcuts")}><h2 className="text-xl font-semibold">{t("dashboard.shortcuts")}</h2>
-        {activeShortcuts.map(binding=><div key={binding.id} className="flex flex-wrap items-center justify-between gap-3 border-b pb-3"><span className="text-base">{t(binding.id==="pin"?"shortcuts.pin":"shortcuts.capture")}</span><span className="break-all font-mono text-lg">{binding.registered?binding.shortcut:t("shortcuts.disabled")}</span>{binding.error&&<InlineError className="w-full text-sm">{binding.error}</InlineError>}</div>)}
-        {!shortcutError&&!activeShortcuts.length&&<p className="text-muted-foreground">{t("dashboard.noShortcuts")}</p>}
-        {shortcutError&&<InlineError>{shortcutError}</InlineError>}
-      </section>
-    </div>
-</div></ResizablePanel>
-    </ResizablePanelGroup></div>}
-
-    <p role="status" className="muted">{notice}</p>
+    </ItemGroup>
+    {!only&&(!!snapshot.packages?.runtimes?.length||snapshot.packages?.error)&&<section className="mt-6 border-t border-border pt-6" aria-label={t('sharedPackages.title')}>
+      <h3 className="flex items-center gap-2 text-base font-medium"><Package aria-hidden="true" className="size-4"/>{t('sharedPackages.title')}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t('sharedPackages.description')}</p>
+      {snapshot.packages.error&&<Notice>{snapshot.packages.error}</Notice>}
+      <div role="list" className="mt-3 divide-y divide-border">{(snapshot.packages.runtimes??[]).map(runtime=><div role="listitem" className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-4" key={runtime.manifestSha256}>
+        <div className="min-w-0 flex-1 basis-64">
+          <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm"><span className="font-medium [overflow-wrap:anywhere]">{runtime.name[language]}</span><span className="text-muted-foreground">{runtime.version}</span></p>
+          {!runtime.error&&<p className="mt-1 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{runtime.requiredBy?.length?t('sharedPackages.requiredBy',{names:runtime.requiredBy.map(reference=>snapshot.modules.find(module=>module.manifest.id===reference.id)?.manifest.name[language]??snapshot.packages?.runtimes?.find(candidate=>candidate.id===reference.id)?.name[language]??reference.id).join('、')}):t('sharedPackages.unused')}</p>}
+          {runtime.error&&<Notice>{runtime.error}</Notice>}
+        </div>
+        <ModuleRemoval id={runtime.id} kind="runtime" manifestSha256={runtime.manifestSha256} disabled={!!busy||!runtime.canRemove||!!snapshot.configurationError} onActivity={onActivity} onChanged={async warning=>{await reload();onChanged();setNotice(warning||t('sharedPackages.removed'));}}/>
+      </div>)}</div>
+    </section>}
+    </>}
+    {notice&&<p role="status" className="muted">{notice}</p>}
   </section>;
 }
 

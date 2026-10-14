@@ -39,7 +39,7 @@ export function AnnotationProperties({mark,onApply,onClose,floating}:{floating?:
   return <aside style={floating?{position:"absolute",...floating,zIndex:5,padding:16,background:"var(--panel)",border:"1px solid var(--line)"}:undefined} ref={panel} tabIndex={-1} aria-labelledby={`${id}-title`} className="w-80 max-w-[45%] shrink-0 space-y-4 overflow-y-auto border-l pl-4 outline-none" onKeyDown={event=>{if(event.key==="Escape"){event.preventDefault();event.stopPropagation();onClose();}}}>
     <h2 id={`${id}-title`} className="text-base font-medium">{t("capture.editAnnotation")}</h2>
     <Tabs value={tab} onValueChange={value=>setTab(String(value))}>
-      <TabsList aria-label={t("capture.editAnnotation")}><TabsTrigger value="style">{t("capture.annotationStyle")}</TabsTrigger>{mark.kind!=="arrow"&&mark.kind!=="pen"&&<TabsTrigger value="position">{t("capture.positionSize")}</TabsTrigger>}</TabsList>
+      <TabsList variant="line" aria-label={t("capture.editAnnotation")}><TabsTrigger value="style">{t("capture.annotationStyle")}</TabsTrigger>{mark.kind!=="arrow"&&mark.kind!=="pen"&&<TabsTrigger value="position">{t("capture.positionSize")}</TabsTrigger>}</TabsList>
       <TabsContent value="style" className="space-y-4 pt-3">
         {!effect&&<div className="space-y-2"><Label htmlFor={`${id}-color`}>{t("capture.color")}</Label><Input id={`${id}-color`} type="color" className="w-12 px-1" value={draft.color} onChange={e=>setDraft({...draft,color:e.target.value})}/></div>}
         {number("strokeWidth")}{number("effectSize")}{number("fontSize")}

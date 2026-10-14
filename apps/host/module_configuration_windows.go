@@ -13,26 +13,50 @@ import (
 	"winone/internal/modulestate"
 )
 
-func nativeModuleLifecycle(state *modulestate.Store, gates map[string]*modules.Gate) configuration.ModuleLifecycle {
+func nativeModuleLifecycle(state *modulestate.Store, source func() map[string]*modules.Gate, isolation ...func() map[string]bool) configuration.ModuleLifecycle {
+	blocked := func() map[string]bool {
+		if len(isolation) > 0 && isolation[0] != nil {
+			return isolation[0]()
+		}
+		return nil
+	}
+	current := func() (map[string]*modules.Gate, []string) {
+		gates := source()
+		ids := make([]string, 0, len(gates))
+		for id := range gates {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		return gates, ids
+	}
+	gates, _ := current()
 	initial := map[string]bool{}
-	ids := []string{}
 	for id, record := range state.Snapshot().Modules {
 		if gates[id] == nil {
 			continue
 		}
 		initial[id] = record.Enabled
-		ids = append(ids, id)
 	}
-	sort.Strings(ids)
+	for id, intent := range blocked() {
+		initial[id] = intent
+	}
 	return configuration.ModuleLifecycle{
 		Initial: initial,
 		Before: func(target map[string]bool) error {
+			gates, ids := current()
+			isolated := blocked()
 			for id, record := range state.Snapshot().Modules {
+				if _, skip := isolated[id]; skip {
+					continue
+				}
 				if gates[id] == nil && (record.Enabled || record.PendingStop || target[id]) {
 					return errors.New("模块生命周期未登记")
 				}
 			}
 			for _, id := range ids {
+				if _, skip := isolated[id]; skip {
+					continue
+				}
 				gate := gates[id]
 				if gate == nil {
 					return errors.New("模块生命周期未登记")
@@ -49,7 +73,20 @@ func nativeModuleLifecycle(state *modulestate.Store, gates map[string]*modules.G
 			return nil
 		},
 		After: func(target map[string]bool) error {
+			gates, ids := current()
+			isolated := blocked()
+			for id, enabled := range target {
+				if _, skip := isolated[id]; skip {
+					continue
+				}
+				if enabled && gates[id] == nil {
+					return errors.New("模块生命周期未登记")
+				}
+			}
 			for _, id := range ids {
+				if _, skip := isolated[id]; skip {
+					continue
+				}
 				if target[id] {
 					if err := gates[id].SetEnabled(state.Snapshot().Revision, true); err != nil {
 						return err
@@ -61,13 +98,18 @@ func nativeModuleLifecycle(state *modulestate.Store, gates map[string]*modules.G
 	}
 }
 
-func moduleConfigurationHandler(store *configuration.HostStore, state *modulestate.Store, control *modules.Control) func(host.Request) host.Response {
+func moduleConfigurationHandler(store *configuration.HostStore, state *modulestate.Store, control *modules.Control, packageRecovery ...func(host.Request) host.Response) func(host.Request) host.Response {
 	return func(request host.Request) host.Response {
 		fail := func(err error) host.Response {
 			return host.Response{ID: request.ID, Error: &host.RPCError{Code: "module_configuration", Message: err.Error()}}
 		}
 		var result any
 		switch request.Method {
+		case "recoverPackage", "packagePreview.start", "packagePreview.get", "packagePreview.cancel", "installPackage", "updatePackage", "packageRemoval.preview", "removePackage", "cleanupPackages":
+			if len(packageRecovery) != 1 || packageRecovery[0] == nil {
+				return fail(errors.New("模块包恢复入口未就绪"))
+			}
+			return packageRecovery[0](request)
 		case "resetWinTray.preview":
 			preview, err := previewWinTrayReset(store, state)
 			if err != nil {
@@ -90,10 +132,29 @@ func moduleConfigurationHandler(store *configuration.HostStore, state *modulesta
 		case "snapshot":
 			snapshot := struct {
 				modules.ControlSnapshot
-				ConfigurationError string `json:"configurationError"`
+				ConfigurationError string          `json:"configurationError"`
+				Cleanup            json.RawMessage `json:"cleanup,omitempty"`
+				Packages           json.RawMessage `json:"packages,omitempty"`
 			}{ControlSnapshot: control.Snapshot()}
 			if err := store.RecoveryError(); err != nil {
 				snapshot.ConfigurationError = err.Error()
+			}
+			if len(packageRecovery) == 1 && packageRecovery[0] != nil {
+				query := request
+				query.Method = "cleanupStatus"
+				status := packageRecovery[0](query)
+				if status.Error != nil {
+					snapshot.Cleanup, _ = json.Marshal(packageCleanupStatus{Pending: true, Error: status.Error.Message})
+				} else {
+					snapshot.Cleanup = status.Result
+				}
+				query.Method = "packageInventory"
+				inventory := packageRecovery[0](query)
+				if inventory.Error != nil {
+					snapshot.Packages, _ = json.Marshal(packageInventoryView{Error: inventory.Error.Message})
+				} else {
+					snapshot.Packages = inventory.Result
+				}
 			}
 			result = snapshot
 		case "setEnabled":

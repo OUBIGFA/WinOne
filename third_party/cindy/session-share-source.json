@@ -1,0 +1,24 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+  "license": "Apache-2.0",
+  "licenseFile": "third_party/cindy/LICENSE",
+  "noticeFile": "third_party/cindy/NOTICE",
+  "files": [
+    {
+      "source": "apps/desktop/src/main/session-share/xdtshareFormat.pure.ts",
+      "target": "modules/chat-pi/cindy/xdtshareFormat.pure.ts",
+      "sourceSHA256": "03ff69259b9d708fcd22a3acda568f0fff7bc719feacd0749aa8ead2b108e9a7",
+      "adaptation": "Unchanged original share envelope, manifest contract and validation."
+    },
+    {
+      "source": "apps/desktop/src/main/session-share/xdtshareCrypto.ts",
+      "target": "modules/chat-pi/cindy/xdtshareCrypto.ts",
+      "sourceSHA256": "42377a494598cb4cb97d0cd991bbbcc1a783087bc9008eb17c77a43b2fa5142f",
+      "adaptation": "Unchanged original scrypt/AES-256-GCM and plain-envelope implementation."
+    }
+  ],
+  "orchestrationReference": "apps/desktop/src/main/session-share/sessionShareExport.ts",
+  "orchestrationAdaptation": "WinOne collects the complete Pi JSONL plus all message rows, draft and referenced managed attachments. It retains Cindy ZIP paths, content digests, portable Pi IDs, the 256 MiB preflight, explicit media exclusion and atomic output; local collection replaces Electron/DB/vendor adapters. WinOne has no separate CC/Codex or Orca sessions to include.",
+  "zipDependency": {"name": "jszip", "version": "3.10.1", "license": "MIT OR GPL-3.0-or-later", "lockfile": "modules/chat-pi/package-lock.json"}
+}

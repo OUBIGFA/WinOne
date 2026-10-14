@@ -13,17 +13,22 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 	"winone/internal/adminstartup"
 	"winone/internal/branding"
 	"winone/internal/catalog"
 	"winone/internal/configjson"
 	"winone/internal/configuration"
+	"winone/internal/diagnostics"
 	"winone/internal/hotkeys"
 	"winone/internal/logintask"
 	"winone/internal/maintenance"
 	"winone/internal/processidentity"
+	"winone/internal/processlifetime"
+	"winone/internal/quickassistant"
 	"winone/internal/residency"
+	"winone/internal/selection"
 	"winone/internal/settings"
 
 	"winone/internal/host"
@@ -32,13 +37,28 @@ import (
 )
 
 func main() {
+	code := 0
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		code = 1
 	}
+	processlifetime.ExitAfterCleanup(code)
 }
 
 func run() (runErr error) {
+	if executable, err := os.Executable(); err == nil {
+		if handled, err := directoryLinksCommand(os.Args[1:], executable); handled {
+			return err
+		}
+		if handled, err := desktopControl(os.Args[1:], executable, os.Stdin, os.Stdout); handled {
+			return err
+		}
+		if handled, err := desktopBootstrap(os.Args[1:], executable, os.Stdin, os.Stdout); handled {
+			return err
+		}
+	} else {
+		return err
+	}
 	pipeDefault, err := transport.PipeName()
 	if err != nil {
 		return err
@@ -52,12 +72,19 @@ func run() (runErr error) {
 	guardDirectory := flag.String("guard-installation", "", "installation guarded for the installer lifetime")
 	installerPID := flag.Uint("installer-pid", 0, "installer process owning the maintenance session")
 	installerReady := flag.String("installer-ready", "", "installer-created readiness event")
+	installerRelease := flag.String("installer-release", "", "installer-created completion release event")
 	startupProbe := flag.String("check-startup", "", "read-only startup probe nonce")
 	configurationProbe := flag.String("check-configuration", "", "read-only configuration probe nonce; reads stdin")
+	profileProbe := flag.String("check-profile", "", "read-only profile probe nonce; reads stdin")
+	profileRoot := flag.String("profile-root", "", "explicit profile directory for read-only maintenance")
 	flag.Parse()
 	probeRequested := false
+	profileRootSpecified := false
 	flag.Visit(func(f *flag.Flag) {
-		if f.Name == "check-startup" || f.Name == "check-configuration" {
+		if f.Name == "profile-root" {
+			profileRootSpecified = true
+		}
+		if f.Name == "check-startup" || f.Name == "check-configuration" || f.Name == "check-profile" {
 			probeRequested = true
 		}
 	})
@@ -65,25 +92,39 @@ func run() (runErr error) {
 		// No runtime options are accepted on this maintenance-only entry.
 		valid := flag.NArg() == 0
 		count := 0
+		kinds := 0
 		flag.Visit(func(f *flag.Flag) {
 			count++
-			if f.Name != "check-startup" && f.Name != "check-configuration" {
+			if f.Name == "check-startup" || f.Name == "check-configuration" || f.Name == "check-profile" {
+				kinds++
+			}
+			if f.Name != "check-startup" && f.Name != "check-configuration" && f.Name != "check-profile" && f.Name != "profile-root" {
 				valid = false
 			}
 		})
-		if !valid || count != 1 {
+		expected := 1
+		if *profileProbe != "" {
+			expected = 2
+		}
+		if !valid || count != expected || kinds != 1 || (*profileProbe != "") != (*profileRoot != "") {
 			return fmt.Errorf("启动检查参数无效")
+		}
+		if *profileProbe != "" {
+			return writeProfileProbe(os.Stdout, os.Stdin, *profileProbe, *profileRoot)
 		}
 		if *configurationProbe != "" {
 			return writeConfigurationProbe(os.Stdout, os.Stdin, *configurationProbe)
 		}
 		return writeStartupProbe(os.Stdout, *startupProbe)
 	}
-	if *guardDirectory != "" || *installerPID != 0 || *installerReady != "" {
+	if profileRootSpecified {
+		return errors.New("profile-root is reserved for read-only checks")
+	}
+	if *guardDirectory != "" || *installerPID != 0 || *installerReady != "" || *installerRelease != "" {
 		if !filepath.IsAbs(*guardDirectory) || *installerPID == 0 || uint64(*installerPID) > 0xffffffff || *installerReady == "" || *autorun || *headless {
 			return fmt.Errorf("安装维护参数无效")
 		}
-		return guardInstallation(*guardDirectory, *data, *pipe, uint32(*installerPID), *installerReady, *uninstall)
+		return guardInstallation(*guardDirectory, *data, *pipe, uint32(*installerPID), *installerReady, *uninstall, *installerRelease)
 	}
 	if *uninstall && (*autorun || *headless) {
 		return fmt.Errorf("卸载准备不能与登录启动或测试服务同时运行")
@@ -125,9 +166,20 @@ func run() (runErr error) {
 	}
 	var startupLogError error
 	if !*headless {
-		startupLogError = recordHostEvent(*data, "started", nil)
+		// Log retention runs before the first host event and before any worker
+		// is started, so no other process owns the log files yet. The headless
+		// test service skips it on purpose: tests must not mutate user data.
+		// Failures surface as a startup warning, never block the product.
+		startupLogError = diagnostics.Prune(*data, time.Now())
+		logContext, stopLogMigration := context.WithTimeout(context.Background(), 5*time.Second)
+		startupLogError = errors.Join(startupLogError, diagnostics.ConsolidateLegacy(logContext, *data))
+		stopLogMigration()
 		if startupLogError != nil {
-			fmt.Fprintln(os.Stderr, "diagnostic startup log:", startupLogError)
+			fmt.Fprintln(os.Stderr, "diagnostic log retention:", startupLogError)
+		}
+		if err := recordHostEvent(*data, "started", nil); err != nil {
+			startupLogError = errors.Join(startupLogError, err)
+			fmt.Fprintln(os.Stderr, "diagnostic startup log:", err)
 		}
 		// Diagnostic I/O must not turn a normal user-requested exit into a crash.
 		defer func() {
@@ -139,10 +191,14 @@ func run() (runErr error) {
 	var alwaysOnTop *modules.Lazy
 	var capture *modules.Lazy
 	var wintray *modules.Lazy
+	var strokeWorker *modules.Lazy
 	var wintrayGate *modules.Gate
 	configurationReady := false
 	var store *configuration.HostStore
-	adapters := []configuration.ModuleAdapter{aotConfiguration(*data, func() *modules.Lazy { return alwaysOnTop }), captureConfiguration(*data, func() *modules.Lazy { return capture }), wintrayConfiguration(*data, func() *modules.Lazy { return wintray }, func() bool { return configurationReady && wintrayGate != nil && wintrayGate.Enabled() })}
+	var selectionModule *selectionRuntime
+	quickModule := &quickAssistantRuntime{preferences: quickassistant.Defaults()}
+	adapters := []configuration.ModuleAdapter{aotConfiguration(*data, func() *modules.Lazy { return alwaysOnTop }), captureConfiguration(*data, func() *modules.Lazy { return capture }), wintrayConfiguration(*data, func() *modules.Lazy { return wintray }, func() bool { return configurationReady && wintrayGate != nil && wintrayGate.Enabled() }), selectionConfiguration(*data, func() *selectionRuntime { return selectionModule }), quickAssistantConfiguration(*data, func() *quickAssistantRuntime { return quickModule })}
+	adapters = append(adapters, strokeConfiguration(*data, func() *modules.Lazy { return strokeWorker }))
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 	if *headless {
@@ -151,7 +207,36 @@ func run() (runErr error) {
 			return err
 		}
 		service := host.New(store)
+		closeUpdates := registerUpdates(service, ctx, executablePath)
+		defer closeUpdates()
+		registerDiagnostics(service, *data)
 		service.SetAdministrator(windows.GetCurrentProcessToken().IsElevated())
+		service.SetLocaleResolver(func(value settings.Settings) string { return applicationLanguage(value.Language) })
+		// Headless clients exercise the same persistence/revision handlers without
+		// constructing engines, registering hotkeys, or admitting feature actions.
+		unavailable := func(request host.Request) host.Response {
+			return host.Response{ID: request.ID, Error: &host.RPCError{Code: "headless", Message: "无界面测试服务不执行模块操作"}}
+		}
+		for _, manifest := range catalog.Builtins() {
+			handle := unavailable
+			switch manifest.ID {
+			case "capture":
+				handle = captureConfigurationHandler(store, unavailable)
+			case "always-on-top":
+				handle = aotConfigurationHandler(store, unavailable)
+			case "wintray":
+				handle = wintrayConfigurationHandler(*data, store, func() *modules.Lazy { return nil }, unavailable, func() bool { return false })
+			case "selection":
+				handle = selectionConfigurationHandler(store, unavailable)
+			case "quick-assistant":
+				handle = quickAssistantConfigurationHandler(store, unavailable)
+			case "stroke":
+				handle = strokeConfigurationHandler(store, unavailable)
+			}
+			service.RegisterModule(manifest.ID, func() host.Module {
+				return host.Module{ID: manifest.ID, Name: manifest.Name.Chinese, State: "unavailable", Detail: "无界面测试服务不启动模块"}
+			}, handle)
+		}
 		return transport.Serve(ctx, listener, host.NewConfigurationQueue(service))
 	}
 	moduleState, _, err := openModuleState(*data)
@@ -174,28 +259,37 @@ func run() (runErr error) {
 	if !ok {
 		return fmt.Errorf("missing pin manifest")
 	}
+	strokeManifest, ok := catalog.Builtin("stroke")
+	if !ok {
+		return fmt.Errorf("missing stroke manifest")
+	}
 	trayRecord := moduleState.Snapshot().Modules["wintray"]
 	wintray = modules.NewLogonLazy(ctx, trayManifest.ID, trayManifest.Name.Chinese, filepath.Join(filepath.Dir(executable), trayManifest.Worker), *pipe+"-wintray", filepath.Join(*data, "modules", "wintray"), *autorun && trayRecord.Enabled && !trayRecord.PendingStop)
 	capture = modules.NewLazy(ctx, captureManifest.ID, captureManifest.Name.Chinese, filepath.Join(filepath.Dir(executable), captureManifest.Worker), *pipe+"-capture", filepath.Join(*data, "modules", "capture"), "--host-pipe", *pipe)
 	alwaysOnTop = modules.NewLazy(ctx, pinManifest.ID, pinManifest.Name.Chinese, filepath.Join(filepath.Dir(executable), pinManifest.Worker), *pipe+"-always-on-top", filepath.Join(*data, "modules", "always-on-top"))
+	strokeWorker = modules.NewLazy(ctx, strokeManifest.ID, strokeManifest.Name.Chinese, filepath.Join(filepath.Dir(executable), strokeManifest.Worker), *pipe+"-stroke", filepath.Join(*data, "modules", "stroke"))
+	defer func() { runErr = errors.Join(runErr, strokeWorker.Close()) }()
 	captureWindows := newCaptureWindows(func(id string) (<-chan error, error) {
 		return startCaptureWindow(filepath.Join(filepath.Dir(executable), "WinOne.exe"), *pipe, *data, id)
 	})
 	shortcuts := &shortcutRuntime{registrar: hotkeys.New(), moduleState: moduleState, openDraft: func(id string) error {
 		_, err := captureWindows.Open(id)
 		return err
+	}, openWindow: func() error {
+		return launchDesktop(filepath.Join(filepath.Dir(executable), "WinOne.exe"), *pipe, *data, "")
 	}, language: func() string { return applicationLanguage(store.Snapshot().Language) }}
 	defer shortcuts.registrar.Close()
 	gates := map[string]*modules.Gate{}
 	for _, entry := range []struct {
 		manifest catalog.Manifest
 		runtime  *modules.Lazy
-	}{{trayManifest, wintray}, {captureManifest, capture}, {pinManifest, alwaysOnTop}} {
+	}{{trayManifest, wintray}, {captureManifest, capture}, {pinManifest, alwaysOnTop}, {strokeManifest, strokeWorker}} {
 		runtime := entry.runtime
 		manifest := entry.manifest
 		start := func() error { runtime.Resume(); return nil }
 		stop := runtime.Close
-		if manifest.ID != "wintray" {
+		status := runtime.Status
+		if manifest.ID != "wintray" && manifest.ID != "stroke" {
 			stop = func() error {
 				runtime.Resume()
 				response := runtime.Handle(host.Request{Version: 1, ID: "module-stop-probe", Method: "snapshot"})
@@ -209,7 +303,11 @@ func run() (runErr error) {
 			start = func() error { return startWinTray(ctx, runtime) }
 			stop = func() error { return stopWinTray(ctx, runtime) }
 		}
-		gate, gateErr := modules.NewGate(manifest.ID, manifest.Name.Chinese, moduleState, modules.LifecycleHooks{Start: start, Stop: stop, Status: runtime.Status, Handle: runtime.Handle, IntentChanged: func() error {
+		if manifest.ID == "stroke" {
+			start = func() error { return startStroke(runtime) }
+			status = func() host.Module { return strokeStatus(runtime) }
+		}
+		gate, gateErr := modules.NewGate(manifest.ID, manifest.Name.Chinese, moduleState, modules.LifecycleHooks{Start: start, Stop: stop, Status: status, Handle: runtime.Handle, IntentChanged: func() error {
 			if store != nil {
 				shortcuts.apply(store.Snapshot())
 			}
@@ -223,7 +321,48 @@ func run() (runErr error) {
 			wintrayGate = gate
 		}
 	}
-	store, err = configuration.OpenHostWithLifecycle(*data, nativeModuleLifecycle(moduleState, gates), adapters...)
+	selectionModule = &selectionRuntime{ctx: ctx, reader: filepath.Join(filepath.Dir(executable), "selection", "WinOne.Selection.exe"), directory: filepath.Dir(executable), preferences: selection.Defaults()}
+	selectionGate, gateErr := modules.NewGate("selection", "划词助手", moduleState, modules.LifecycleHooks{Start: selectionModule.start, Stop: selectionModule.stop, Status: selectionModule.status, Handle: selectionModule.handle, IntentChanged: func() error {
+		if store != nil {
+			shortcuts.apply(store.Snapshot())
+		}
+		return nil
+	}})
+	if gateErr != nil {
+		return gateErr
+	}
+	gates["selection"] = selectionGate
+	quickGate, gateErr := modules.NewGate("quick-assistant", "快捷助手", moduleState, modules.LifecycleHooks{Start: quickModule.start, Stop: quickModule.stop, Status: quickModule.status, Handle: quickModule.handle, IntentChanged: func() error {
+		if store != nil {
+			shortcuts.apply(store.Snapshot())
+		}
+		return nil
+	}})
+	if gateErr != nil {
+		return gateErr
+	}
+	gates["quick-assistant"] = quickGate
+	var configurationJobs *host.ConfigurationQueue
+	packages, packageErr := openInstalledPackages(ctx, *data, *pipe, moduleState, func() (func(), bool) {
+		if configurationJobs == nil {
+			return nil, false
+		}
+		return configurationJobs.AcquireAction()
+	})
+	if packageErr != nil {
+		return packageErr
+	}
+	defer func() { runErr = errors.Join(runErr, packages.Close()) }()
+	packages.addGates(gates)
+	adapters = append(adapters, packages.adapters()...)
+	var service *host.Service
+	control := modules.NewControl(moduleState, gates, func() []catalog.Manifest {
+		if service == nil {
+			return catalog.Builtins()
+		}
+		return service.FeatureCatalog()
+	})
+	store, err = configuration.OpenHostWithLifecycle(*data, nativeModuleLifecycle(moduleState, control.LifecycleGates, packages.isolated), adapters...)
 	if store == nil {
 		return err
 	}
@@ -231,11 +370,37 @@ func run() (runErr error) {
 		fmt.Fprintln(os.Stderr, err)
 	}
 	configurationReady = true
-	service := host.New(store)
+	service = host.New(store)
+	if err = packages.bind(service, control, store); err != nil {
+		return err
+	}
+	resultWindows := registerResultServices(service, ctx, *data, executable, *pipe, func() (string, string) {
+		value := store.Snapshot()
+		return value.Theme, applicationLanguage(value.Language)
+	})
+	defer func() { runErr = errors.Join(runErr, resultWindows.dispose()) }()
+	defer resultWindows.ai.stopMagpieMaintenance()
+	defer selectionModule.stop()
+	chatControl := registerChat(service, ctx, *data, executable, resultWindows.ai, func() string { return applicationLanguage(store.Snapshot().Language) })
+	if err = registerDirectoryLinks(service, *data); err != nil {
+		return err
+	}
+	defer func() { runErr = errors.Join(runErr, chatControl.stop()) }()
+	selectionModule.results = resultWindows
+	quickModule.results = resultWindows
+	registerDiagnostics(service, *data)
 	service.SetAdministrator(windows.GetCurrentProcessToken().IsElevated())
 	service.SetLocaleResolver(func(value settings.Settings) string { return applicationLanguage(value.Language) })
 	service.RegisterModule("profiles", func() host.Module { return host.Module{ID: "profiles", State: "ready"} }, profileHandler(store, moduleState))
-	configurationJobs := host.NewConfigurationQueue(service)
+	closeUpdates := registerUpdates(service, ctx, executable)
+	defer closeUpdates()
+	configurationJobs = host.NewConfigurationQueue(service)
+	chatControl.guard = configurationJobs.AcquireAction
+	selectionModule.actionGuard = configurationJobs.AcquireAction
+	resultWindows.ai.mu.Lock()
+	resultWindows.ai.gatewayGuard = configurationJobs.AcquireAction
+	resultWindows.ai.mu.Unlock()
+	selectionModule.suspended = func() bool { shortcuts.mu.Lock(); defer shortcuts.mu.Unlock(); return shortcuts.recording != nil }
 	for _, gate := range gates {
 		gate.SetActionGuard(configurationJobs.AcquireAction)
 	}
@@ -277,22 +442,95 @@ func run() (runErr error) {
 		if manifest.ID == "wintray" {
 			handle = wintrayConfigurationHandler(*data, store, func() *modules.Lazy { return wintray }, handle, gate.Enabled)
 		}
+		if manifest.ID == "selection" {
+			handle = selectionConfigurationHandler(store, handle)
+		}
+		if manifest.ID == "quick-assistant" {
+			handle = quickAssistantConfigurationHandler(store, handle)
+		}
+		if manifest.ID == "stroke" {
+			handle = strokeConfigurationHandler(store, handle)
+		}
 		service.RegisterModule(manifest.ID, gate.Status, handle)
 	}
-	control := modules.NewControl(moduleState, gates, service.FeatureCatalog)
-	service.RegisterModule("modules", func() host.Module { return host.Module{ID: "modules", State: "ready"} }, moduleConfigurationHandler(store, moduleState, control))
+	service.RegisterModule("modules", func() host.Module { return host.Module{ID: "modules", State: "ready"} }, moduleConfigurationHandler(store, moduleState, control, packages.moduleHandler(service, control, store)))
 	if store.RecoveryError() == nil && gates["wintray"].Enabled() {
 		_ = gates["wintray"].Handle(host.Request{Version: 1, ID: "module-startup", Method: "snapshot"})
 	} else {
 		wintray.SuppressAutorun()
 	}
+	if store.RecoveryError() == nil && selectionGate.Enabled() {
+		if err := selectionModule.start(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}
+	if store.RecoveryError() == nil && quickGate.Enabled() {
+		_ = quickModule.start()
+	}
+	if store.RecoveryError() == nil && gates["stroke"].Enabled() {
+		if err := startStroke(strokeWorker); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}
 	checkResidency := func() residency.State {
 		tray := observedModule{gate: gates["wintray"], worker: wintray, idle: idleTrayLifetime(store, *autorun)}
-		return residencyState(*pipe, store, tray, observedModule{gate: gates["capture"], worker: capture}, observedModule{gate: gates["always-on-top"], worker: alwaysOnTop})
+		state := residencyState(*pipe, store, tray, observedModule{gate: gates["capture"], worker: capture}, observedModule{gate: gates["always-on-top"], worker: alwaysOnTop})
+		if resultWindows.active() {
+			state.Reasons = append(state.Reasons, "result-windows")
+		}
+		if chatControl.active() {
+			state.Reasons = append(state.Reasons, "chat")
+		}
+		if resultWindows.ai.gateway.Status().Running {
+			state.Reasons = append(state.Reasons, "ai-gateway")
+		}
+		if packages.Running() {
+			state.Reasons = append(state.Reasons, "optional-modules")
+		}
+		if quickGate.Enabled() && store.Snapshot().QuickAssistantBinding() != "" {
+			state.Reasons = append(state.Reasons, "quick-assistant-shortcut")
+		}
+		if selectionGate.Enabled() {
+			state.Reasons = append(state.Reasons, "selection-listener")
+		}
+		if gates["stroke"].Enabled() {
+			state.Reasons = append(state.Reasons, "mouse-gestures")
+		}
+		if store.Snapshot().OpenBinding() != "" {
+			state.Reasons = append(state.Reasons, "open-winone-shortcut")
+		}
+		return state
 	}
 	service.RegisterModule("residency", func() host.Module { return host.Module{ID: "residency", Name: "后台状态", State: "ready"} }, func(r host.Request) host.Response { return residencyResponse(r, checkResidency()) })
 	closeModules := func() error {
-		_, err := prepareModuleShutdown(configurationJobs, control.Busy, capture, alwaysOnTop, wintray)
+		if err := chatControl.stop(); err != nil {
+			chatControl.resume()
+			return err
+		}
+		defer chatControl.resume()
+		if err := selectionModule.stop(); err != nil {
+			return err
+		}
+		if err := resultWindows.stop(); err != nil {
+			if selectionGate.Enabled() {
+				_ = selectionModule.start()
+			}
+			return err
+		}
+		resultWindows.ai.closeRouting()
+		resultWindows.ai.gateway.Close()
+		_, err := prepareModuleShutdown(configurationJobs, control.Busy, capture, alwaysOnTop, wintray, packages, strokeWorker)
+		if err != nil {
+			if gates["stroke"].Enabled() {
+				err = errors.Join(err, startStroke(strokeWorker))
+			}
+			if restartErr := resultWindows.ai.gateway.Resume(); restartErr != nil {
+				return errors.Join(err, restartErr)
+			}
+		}
+		if err != nil && selectionGate.Enabled() {
+			_ = selectionModule.start()
+		}
 		return err
 	}
 	restart := &restartPreparation{timeout: 30 * time.Second, authorize: func(pid uint32) error {
@@ -303,7 +541,7 @@ func run() (runErr error) {
 		process.Close()
 		return nil
 	}, authorizeHelper: func(pid uint32) error {
-		process, err := processidentity.Open(pid, filepath.Join(filepath.Dir(executable), "WinOne.exe"))
+		process, err := openAdministratorHelper(pid, filepath.Join(filepath.Dir(executable), "WinOne.exe"))
 		if err != nil {
 			return err
 		}
@@ -313,7 +551,47 @@ func run() (runErr error) {
 		}
 		return nil
 	}, prepare: func() (func(), error) {
-		return prepareModuleShutdown(configurationJobs, control.Busy, capture, alwaysOnTop, wintray)
+		if err := chatControl.stop(); err != nil {
+			chatControl.resume()
+			return nil, err
+		}
+		defer chatControl.resume()
+		if err := selectionModule.stop(); err != nil {
+			return nil, err
+		}
+		if err := resultWindows.stop(); err != nil {
+			if selectionGate.Enabled() {
+				_ = selectionModule.start()
+			}
+			return nil, err
+		}
+		resultWindows.ai.closeRouting()
+		resultWindows.ai.gateway.Close()
+		rollback, err := prepareModuleShutdown(configurationJobs, control.Busy, capture, alwaysOnTop, wintray, packages, strokeWorker)
+		if err != nil {
+			if gates["stroke"].Enabled() {
+				err = errors.Join(err, startStroke(strokeWorker))
+			}
+			if restartErr := resultWindows.ai.gateway.Resume(); restartErr != nil {
+				err = errors.Join(err, restartErr)
+			}
+			if selectionGate.Enabled() {
+				_ = selectionModule.start()
+			}
+			return nil, err
+		}
+		return func() {
+			_ = resultWindows.ai.gateway.Resume()
+			rollback()
+			if gates["stroke"].Enabled() {
+				if err := startStroke(strokeWorker); err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				}
+			}
+			if selectionGate.Enabled() {
+				_ = selectionModule.start()
+			}
+		}, nil
 	}}
 	service.RegisterModule("application", func() host.Module { return host.Module{ID: "application", Name: "WinOne", State: "ready"} }, func(request host.Request) host.Response {
 		if request.Method != "open" && request.Method != "capture.window.status" {
@@ -322,9 +600,13 @@ func run() (runErr error) {
 		fail := func(code string, err error) host.Response {
 			return host.Response{ID: request.ID, Error: &host.RPCError{Code: code, Message: err.Error()}}
 		}
-		if err := restart.authorize(request.PeerPID); err != nil {
+		// Rust delegates startup to its verified Host companion. That helper
+		// may open the window, but still has no prepare/commit/cancel authority.
+		origin, err := openAdministratorHelper(request.PeerPID, filepath.Join(filepath.Dir(executable), "WinOne.exe"))
+		if err != nil {
 			return fail("open_identity", err)
 		}
+		origin.Close()
 		if restart.pending() {
 			return fail("restart_busy", errors.New("WinOne 正在重新启动"))
 		}
@@ -386,13 +668,14 @@ func run() (runErr error) {
 		if value.Startup != nil && value.Startup.PreferAdministrator {
 			administratorWarning = startupWarning
 		}
-		return hostRuntimeWarnings(restart.latestError(), administratorWarning, startupLogError, applicationLanguage(value.Language))
+		return strings.TrimSpace(strings.Join([]string{hostRuntimeWarnings(restart.latestError(), administratorWarning, startupLogError, applicationLanguage(value.Language)), packages.Warning(applicationLanguage(value.Language))}, "\n"))
 	})
 	service.SetRestartPendingResolver(restart.pending)
 	go func() { result <- transport.Serve(ctx, listener, configurationJobs); systray.Quit() }()
 	systray.Run(func() {
 		systray.SetIcon(branding.Icon)
 		systray.SetTooltip("WinOne")
+		resultWindows.ai.startMagpieMaintenance(func() string { return applicationLanguage(store.Snapshot().Language) })
 		// Route both single clicks and the first click of a double click through
 		// the same serialized menu action, without blocking the tray message loop.
 		trayOpen := make(chan struct{}, 1)
@@ -402,17 +685,16 @@ func run() (runErr error) {
 			default:
 			}
 		})
+		// Collected programs join the root menu ahead of this fixed footer.
+		systray.AddSeparator()
 		open := systray.AddMenuItem("打开 WinOne", "")
-		collected := systray.AddMenuItem("收纳的程序", "")
-		collected.Hide()
-		go syncCollectedMenu(ctx, collected, observedIcons{Gate: gates["wintray"], worker: wintray}, func() string { return applicationLanguage(store.Snapshot().Language) }, func(failure error) {
+		go syncCollectedMenu(ctx, observedIcons{Gate: gates["wintray"], worker: wintray}, func() string { return applicationLanguage(store.Snapshot().Language) }, func(failure error) {
 			if err := reportTrayFailure(*data, applicationLanguage(store.Snapshot().Language), failure, systray.ShowWarning); err != nil {
 				fmt.Fprintln(os.Stderr, "tray feedback:", err)
 			}
 		})
-		systray.AddSeparator()
 		quit := systray.AddMenuItem("退出 WinOne", "")
-		trayLanguage.Bind(open, collected, quit)
+		trayLanguage.Bind(open, quit)
 		go func() {
 			if *autorun {
 				startup := store.Snapshot().Startup
@@ -439,7 +721,7 @@ func run() (runErr error) {
 				case <-trayOpen:
 					openWindow()
 				case <-quit.ClickedCh:
-					if err := closeModules(); err != nil {
+					if err := prepareApplicationExit(func() error { return closeSettingsForExit(executable, *pipe) }, closeModules); err != nil {
 						fmt.Fprintln(os.Stderr, err)
 						systray.SetTooltip(err.Error())
 						continue

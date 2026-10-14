@@ -2,6 +2,9 @@ import {RadioGroup, RadioGroupItem} from "./ui/radio-group";
 import {Label} from "./ui/label";
 import {useTranslation} from "../i18n";
 import type {Settings} from "../bridge";
+import {useState} from "react";
+import {Notice} from "../ui/notice";
+import {saveSidebarStartup,useSidebarStartup,type SidebarStartup} from "./sidebar-preference";
 
 // Global preferences share the existing save path; modules inherit these values.
 export function AppearanceSettings({theme, language, disabled, onThemeChange, onLanguageChange}: {
@@ -12,7 +15,8 @@ export function AppearanceSettings({theme, language, disabled, onThemeChange, on
   onLanguageChange: (value: NonNullable<Settings["language"]>) => void;
 }) {
   const {t} = useTranslation();
-  return <div className="space-y-6 py-4">
+  const startup=useSidebarStartup(),[error,setError]=useState("");
+  return <div className="settings-field-grid py-2">
     <div className="space-y-3">
       <Label id="theme-label">{t("shell.theme")}</Label>
       <RadioGroup aria-labelledby="theme-label" value={theme} disabled={disabled}
@@ -30,6 +34,16 @@ export function AppearanceSettings({theme, language, disabled, onThemeChange, on
           <RadioGroupItem id={`language-${value}`} value={value}/><Label htmlFor={`language-${value}`}>{label}</Label>
         </div>)}
       </RadioGroup>
+    </div>
+    <div className="space-y-3">
+      <Label id="sidebar-startup-label">{t("shell.sidebarStartup")}</Label>
+      <RadioGroup aria-labelledby="sidebar-startup-label" value={startup} disabled={disabled}
+        onValueChange={value=>{try{saveSidebarStartup(value as SidebarStartup);setError("");}catch{setError(t("shell.sidebarSaveFailed"));}}} className="flex flex-wrap gap-x-6 gap-y-3">
+        {(["collapsed","expanded"] as const).map(value=><div key={value} className="flex items-center gap-2">
+          <RadioGroupItem id={`sidebar-${value}`} value={value}/><Label htmlFor={`sidebar-${value}`}>{t(`shell.sidebar${value==="collapsed"?"Collapsed":"Expanded"}`)}</Label>
+        </div>)}
+      </RadioGroup>
+      {error&&<Notice>{error}</Notice>}
     </div>
   </div>;
 }

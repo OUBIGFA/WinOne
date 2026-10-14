@@ -79,7 +79,19 @@ func (c Checker) Check(ctx context.Context) (Result, error) {
 	request.Header.Set("Accept", "application/vnd.github+json")
 	request.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 	request.Header.Set("User-Agent", "WinOne/"+c.CurrentVersion)
-	client := http.Client{Transport: c.Transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	transport := c.Transport
+	if transport == nil {
+		base, ok := http.DefaultTransport.(*http.Transport)
+		if !ok {
+			return failed("unavailable", errors.New("provide a custom update transport explicitly"))
+		}
+		// The Host remains alive after the UI closes. Own this check's pool so
+		// its idle TLS connections and goroutines do not remain in the global pool.
+		owned := base.Clone()
+		defer owned.CloseIdleConnections()
+		transport = owned
+	}
+	client := http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	response, err := client.Do(request)
 	if err != nil {
 		return requestFailure(err)

@@ -2,8 +2,12 @@ function Update-ShareXCaptureResourceOwnership([string]$Path) {
     $text = [IO.File]::ReadAllText($Path)
     $original = $text
     if ($text.Contains('private Bitmap captureBackground;')) {
+        # The native host replaces the direct draw after ownership is prepared.
+        # Both supported draw paths still use the same owned background fallback.
+        $ownedDraw = $text.Contains('g.DrawImage(captureBackground, CanvasRectangle);') -or
+            $text.Contains('g.DrawImage(WinOnePresentation && ShapeManager.WinOneOrderedEffects ? ShapeManager.WinOneComposition() : captureBackground, CanvasRectangle);')
         if ($text.Contains('g.DrawImage(backgroundBrush.Image, CanvasRectangle);') -or
-            -not $text.Contains('g.DrawImage(captureBackground, CanvasRectangle);') -or
+            -not $ownedDraw -or
             [regex]::Matches($text, [regex]::Escape('captureBackground?.Dispose();')).Count -ne 2) { throw 'Incomplete background ownership change' }
     } else {
     # TextureBrush.Image materializes an Image. Keep one owned background

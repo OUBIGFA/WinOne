@@ -1,16 +1,18 @@
-.dashboard-workspace { container-type: inline-size; min-width: 0; }
-.dashboard-panels > [data-slot="resizable-panel"] { min-width: 0; overflow-x: clip; }
-.dashboard-tools, .dashboard-details { padding-top: 8px; padding-bottom: 8px; }
-.dashboard-workspace h2 { margin: 0; }
-.dashboard-summary > section { padding-top: 28px; border-top: 1px solid var(--border); }
-@container (max-width: 760px) {
- .dashboard-panels { flex-direction: column !important; }
- .dashboard-panels > [data-slot="resizable-panel"] { flex: none !important; width: 100%; }
- .dashboard-panels > [data-slot="resizable-handle"] { display: none; }
- .dashboard-tools { padding-right: 0; padding-bottom: 32px; }
- .dashboard-details { padding-left: 0; padding-top: 32px; border-top: 1px solid var(--border); }
-}
-@container (max-width: 400px) {
- .dashboard-tools [data-slot="item"] { flex-wrap: wrap; }
- .dashboard-tools [data-slot="item-actions"] { width: 100%; flex-direction: row; align-items: center; justify-content: space-between; }
+@layer theme, base, legacy, components, utilities;
+@layer components {
+  /* Layout gaps survive heading resets; status never competes with tool names. */
+  .dashboard-workspace { container-type: inline-size; min-width: 0; display: grid; gap: 28px; }
+  .dashboard-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; }
+  .dashboard-heading-copy { display: grid; gap: 8px; }
+  .dashboard-heading h2 { margin: 0; font-size: 18px; font-weight: 600; }
+  .dashboard-heading p, .dashboard-count { margin: 0; color: var(--muted-foreground); font-size: 14px; }
+  .dashboard-count { white-space: nowrap; }
+  .dashboard-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .dashboard-tool { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: start; gap: 16px; padding: 24px; border-radius: 12px; }
+  .dashboard-tool-icon { width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--muted); }
+  .dashboard-tool-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid var(--border); padding: 16px 8px 0 0; margin-top: 4px; }
+  @container (max-width: 580px) {
+    .dashboard-tools { grid-template-columns: minmax(0, 1fr); }
+    .dashboard-tool-actions { margin-top: 0; padding-top: 12px; }
+  }
 }

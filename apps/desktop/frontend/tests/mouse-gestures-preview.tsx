@@ -1,0 +1,16 @@
+import {createRoot} from "react-dom/client";
+import {Rocket,Settings} from "lucide-react";
+import {MouseGesturesSettings} from "../src/features/mouse-gestures";
+import {AppShell} from "../src/components/app-shell";
+import {i18n,setApplicationLanguage} from "../src/i18n";
+import {mouseGesturesMessages} from "../src/locales/mouse-gestures";
+import logo from "../../../../internal/branding/logo.png";
+import "../src/styles/shadcn.css";
+import "../src/style.css";
+const query=new URLSearchParams(location.search),language=query.get("language")??"zh-CN";
+document.documentElement.dataset.theme=query.get("theme")??"light";
+i18n.addResourceBundle("zh-CN","translation",{stroke:mouseGesturesMessages.zh},true,true);i18n.addResourceBundle("en-US","translation",{stroke:mouseGesturesMessages.en},true,true);
+window.go={main:{App:{Stroke:async(method:string,payload:string)=>{const response=await fetch(query.get("api")!,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+query.get("token")},body:JSON.stringify({method,params:JSON.parse(payload)})});const body=await response.json();if(!response.ok)throw Error(body.error);return JSON.stringify(body);}}}} as unknown as NonNullable<Window["go"]>;
+await setApplicationLanguage(language);
+const pages=[{id:"convenience",title:i18n.t("nav.convenience"),icon:Rocket},{id:"settings",title:i18n.t("nav.settings"),icon:Settings}];
+createRoot(document.getElementById("root")!).render(<AppShell page="convenience" pages={pages} logo={logo} onNavigate={()=>{}}><MouseGesturesSettings/></AppShell>);

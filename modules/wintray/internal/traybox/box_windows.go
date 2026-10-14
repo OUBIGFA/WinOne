@@ -3,8 +3,11 @@
 package traybox
 
 import (
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
+	"winone/modules/wintray/internal/config"
 )
 
 // Box collects the tray icons of the programs selected in WinTray's list.
@@ -30,7 +33,15 @@ func NewBox(selfPath string, logger Logger) *Box {
 	return &Box{
 		selfPath: selfPath,
 		logger:   logger,
-		config:   listenerConfig{className: trayWindowClass, target: explorerTray, raise: true},
+		config: listenerConfig{className: trayWindowClass, target: explorerTray, raise: true,
+			newRecovery: func() (*recoveryClient, error) {
+				directory, err := config.AppDirWithError()
+				if err != nil {
+					return nil, err
+				}
+				return startRecovery(exec.Command(filepath.Join(filepath.Dir(selfPath), RecoveryExecutable), "--watch-tray", "--data-dir", directory))
+			},
+		},
 	}
 }
 

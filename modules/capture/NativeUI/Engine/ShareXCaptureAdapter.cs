@@ -2,6 +2,8 @@ using System;
 using System.Drawing;
 using System.Drawing.Text;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace ShareX.ScreenCaptureLib
@@ -29,6 +31,7 @@ namespace ShareX.ScreenCaptureLib
             ? new WinOneTextValue(text.Id, text.Text, FromWorld(text.Rectangle), text.FontPixels, text.TextColor.ToArgb()) : null;
         public event Action Changed;
         public event Action DocumentChanged;
+        public event Action<Exception> RenderFailed;
         public event Action<Keys> KeyPressed;
         public event Action<Point> PointerMoved;
         public event Action<string> ToolChanged;
@@ -51,9 +54,20 @@ namespace ShareX.ScreenCaptureLib
             form.ShapeManager.UseHostedKeyboardForProbe(key => KeyPressed?.Invoke(key));
             form.ShapeManager.ShapeCreated += form.ShapeManager.ProbeCommitSingleRegion;
             form.ShapeManager.ShapeCreated += shape => {
-                if (shape.ShapeCategory == ShapeCategory.Region && shape.IsValidShape) RegionCommitted?.Invoke();
+                if (shape.ShapeCategory == ShapeCategory.Region && shape.IsValidShape) {
+                    form.Options.ShowMagnifier = false;
+                    RegionCommitted?.Invoke();
+                }
             };
-            form.ShapeManager.ImageModified += () => { Changed?.Invoke(); DocumentChanged?.Invoke(); };
+            form.ShapeManager.ImageModified += () => {
+                form.ShapeManager.InvalidateWinOneComposition();
+                // Precision magnification belongs only to choosing the initial
+                // region; committed captures stay unobstructed while editing.
+                if (Selection is not null) form.Options.ShowMagnifier = false;
+                Changed?.Invoke(); DocumentChanged?.Invoke();
+            };
+            form.ShapeManager.WinOneCompositionFailed += error => RenderFailed?.Invoke(error);
+            form.Disposed += (_,_)=>form.ShapeManager.DisposeWinOneComposition();
             form.ShapeManager.CurrentShapeTypeChanged += _ => Changed?.Invoke();
             form.MouseMove += (_, mouse) => PointerMoved?.Invoke(form.PointToScreen(mouse.Location));
             if (viewport) {
@@ -111,6 +125,7 @@ namespace ShareX.ScreenCaptureLib
         public void Redo() { var selection = Selection; form.ShapeManager.ProbeRedo(); RestoreSelection(selection); form.Invalidate(); }
         private void RestoreSelection(Rectangle? selection) => form.ShapeManager.ProbeRestoreSelection(selection is { } value ? ToWorld(value) : (RectangleF?)null);
         public Bitmap Render() => form.ShapeManager.ProbeRenderOutput(form.Canvas);
+        public Task PrepareRenderAsync(CancellationToken cancellation = default) => form.ShapeManager.PrepareWinOneCompositionAsync(cancellation);
         public Bitmap RenderSelection()
         {
             var region = Selection ?? throw new InvalidOperationException("请先选择截图区域");
@@ -133,9 +148,9 @@ namespace ShareX.ScreenCaptureLib
         // The UI retries after its normal mouse/key dispatch completes.
         public WinOneCaptureDocument SnapshotDocument() => form.ShapeManager.IsCreating || form.ShapeManager.IsMoving || form.ShapeManager.IsResizing
             ? null : form.ShapeManager.ExportWinOneDocument(selectedTool);
-        public void RestoreDocument(WinOneCaptureDocument document) { form.ShapeManager.RestoreWinOneDocument(document); SelectTool(document.Tool); Changed?.Invoke(); }
+        public void RestoreDocument(WinOneCaptureDocument document) { form.ShapeManager.RestoreWinOneDocument(document); if (Selection is not null) form.Options.ShowMagnifier = false; SelectTool(document.Tool); Changed?.Invoke(); }
         public void FinishGesture() { if (form.ShapeManager.IsCreating || form.ShapeManager.IsMoving) form.ShapeManager.EndRegionSelection(); }
-        public void HideEditedText(Guid id, bool hidden) { form.ShapeManager.ProbeFindText(id).Editing = hidden; form.Invalidate(); }
+        public void HideEditedText(Guid id, bool hidden) { form.ShapeManager.ProbeFindText(id).Editing = hidden; form.ShapeManager.InvalidateWinOneComposition(); form.Invalidate(); }
         public void UpdateText(Guid id, string text, Rectangle bounds, WinOneTextLine[] lines = null, float? fontPixels = null, Color? color = null) => form.ShapeManager.ProbeUpdateText(id, text, ToWorld(bounds), lines, fontPixels, color);
         public DialogResult ShowDialog() => form.ShowDialog();
         public void Dispose() => form.Dispose();
@@ -153,14 +168,14 @@ namespace ShareX.ScreenCaptureLib
                 else if (CurrentShape is BlurEffectShape blur) value = blur.BlurRadius;
                 else if (CurrentShape is BaseDrawingShape drawing) { value = drawing.BorderSize; color = drawing.BorderColor; }
             }
-            return new WinOneToolStyle(color, value);
+            return new WinOneToolStyle(color, value){Precision=CurrentShape?.ShapeType==CurrentTool&&CurrentShape is IWinOneLegacyStroke legacy?legacy.LegacyStrokeWidth:null};
         }
         internal void SetWinOneStyle(string tool, WinOneToolStyle style)
         {
             if (tool is not ("rectangle" or "ellipse" or "arrow" or "pen" or "cover" or "mosaic" or "blur")) throw new ArgumentException("Tool has no drawing style");
-            var minimum = tool == "mosaic" ? 2 : tool == "blur" ? 3 : tool == "cover" ? 0 : 1;
-            var maximum = tool == "mosaic" ? 10000 : tool == "blur" ? 199 : 20;
-            if (style.Value < minimum || style.Value > maximum || style.Color.A != 255) throw new ArgumentOutOfRangeException(nameof(style));
+            var minimum = tool == "mosaic" ? 2 : tool == "blur" ? 2 : tool == "cover" ? 0 : 1;
+            var maximum = tool == "mosaic" ? 10000 : tool == "blur" ? 199 : 64;
+            if (!float.IsFinite(style.EffectiveValue) || style.EffectiveValue < minimum || style.EffectiveValue > maximum || style.Color.A != 255) throw new ArgumentOutOfRangeException(nameof(style));
             if (GetWinOneStyle(tool) == style) return;
             // Defaults affect the next mark; only the selected matching mark
             // changes now. Its prior pixels remain recoverable through history.
@@ -173,6 +188,7 @@ namespace ShareX.ScreenCaptureLib
             else if (shape is BlurEffectShape blur) blur.BlurRadius = style.Value;
             else if (shape is BaseDrawingShape drawing) {
                 drawing.BorderColor = style.Color; drawing.BorderSize = style.Value;
+                if(shape is IWinOneLegacyStroke legacy)legacy.LegacyStrokeWidth=style.EffectiveValue;
                 if (shape is WinOneCoverShape cover) cover.FillColor = style.Color;
             }
             // Changing width/color must not reset restored arrow control points,
@@ -191,6 +207,7 @@ namespace ShareX.ScreenCaptureLib
         }
         internal Bitmap ProbeRenderOutput(Bitmap source)
         {
+            if(WinOneOrderedEffects)return RenderWinOneOrdered(source);
             var offset = Form.CanvasRectangle.Location;
             if (!DrawingShapes.OfType<WinOneInlineTextShape>().Any(shape => shape.NativeLines != null)) return RenderOutputImage(source, offset);
             using var background = (Bitmap)source.Clone();
@@ -297,7 +314,7 @@ namespace ShareX.ScreenCaptureLib
         }
         internal void ProbeAddText(string text, RectangleF bounds, float fontSize, WinOneTextLine[] lines, Color? color)
         {
-            if (string.IsNullOrWhiteSpace(text) || text.Length > 4096 || bounds.Width < 1 || bounds.Height < 1 || !float.IsFinite(fontSize) || fontSize < 6 || fontSize > 240 || color?.A is < 255)
+            if (string.IsNullOrWhiteSpace(text) || text.Length > 4096 || bounds.Width < 1 || bounds.Height < 1 || !float.IsFinite(fontSize) || fontSize < 6 || fontSize > 256 || color?.A is < 255)
                 throw new ArgumentException("Invalid inline text");
             CurrentTool = ShapeType.DrawingTextBackground;
             var shape = new WinOneInlineTextShape { Manager = this };
@@ -319,7 +336,7 @@ namespace ShareX.ScreenCaptureLib
             var shape = ProbeFindText(id);
             var nextFont = fontPixels ?? shape.FontPixels;
             var nextColor = color ?? shape.TextColor;
-            if (!float.IsFinite(nextFont) || nextFont < 6 || nextFont > 240 || nextColor.A != 255) throw new ArgumentOutOfRangeException(nameof(fontPixels));
+            if (!float.IsFinite(nextFont) || nextFont < 6 || nextFont > 256 || nextColor.A != 255) throw new ArgumentOutOfRangeException(nameof(fontPixels));
             if (value.Length > 4096 || bounds.Width < 1 || bounds.Height < 1) throw new ArgumentException("Invalid text update");
             shape.Editing = false;
             var sameLines = shape.NativeLines == null ? lines == null : lines != null && shape.NativeLines.SequenceEqual(lines);
@@ -335,7 +352,11 @@ namespace ShareX.ScreenCaptureLib
         }
     }
 
-    public sealed record WinOneToolStyle(Color Color, int Value);
+    public sealed record WinOneToolStyle(Color Color, int Value)
+    {
+        public float? Precision{get;init;}
+        public float EffectiveValue=>Precision??Value;
+    }
     public sealed record WinOneTextValue(Guid Id, string Text, Rectangle Bounds, float FontPixels, int ColorArgb = unchecked((int)0xffe23b30));
     public sealed class WinOneCoverShape : RectangleDrawingShape
     {

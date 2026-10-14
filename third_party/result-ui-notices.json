@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "components": [
+    {
+      "kind": "go",
+      "name": "github.com/Microsoft/go-winio",
+      "version": "v0.6.2",
+      "notices": [
+        {
+          "sha256": "cf248820bf1178370bb4f1670a59f8748d46bc96d0f64080cd631511c6046409",
+          "file": "licenses/go-github-com-Microsoft-go-winio-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/ebitengine/purego",
+      "version": "v0.11.1",
+      "notices": [
+        {
+          "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+          "file": "licenses/result-go-github.com-ebitengine-purego-v0.11.1-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/egoist/mygo",
+      "version": "v0.2.13-0.20261006044557-3ad015a7f887",
+      "notices": [
+        {
+          "sha256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
+          "file": "licenses/result-go-github.com-egoist-mygo-v0.2.13-0.20261006044557-3ad015a7f887-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/go-text/typesetting",
+      "version": "v0.3.5",
+      "notices": [
+        {
+          "sha256": "6b1bf94c77d7faa0ce94f8745595bfaf4c404f8b3873f5c2ce55ca15f8e44eca",
+          "file": "licenses/result-go-github.com-go-text-typesetting-v0.3.5-LICENSE.txt"
+        },
+        {
+          "sha256": "e45d96558ba3d406f95dffed6f22c3be07093475ef617bcfddf88444d6b66788",
+          "file": "licenses/result-go-github.com-go-text-typesetting-v0.3.5-harfbuzz-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "golang.org/x/image",
+      "version": "v0.46.0",
+      "notices": [
+        {
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "file": "licenses/magpie-go-golang.org-x-text-v0.39.0-0-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "golang.org/x/sys",
+      "version": "v0.48.0",
+      "notices": [
+        {
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "file": "licenses/magpie-go-golang.org-x-text-v0.39.0-0-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "toolchain",
+      "name": "Go",
+      "version": "go1.27.1",
+      "notices": [
+        {
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "file": "licenses/magpie-go-golang.org-x-text-v0.39.0-0-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "assets",
+      "name": "LobeHub Icons",
+      "version": "82e641b4fece9d1028a127149af9ded00df5ac0c",
+      "notices": [
+        {
+          "file": "licenses/lobehub-icons-LICENSE.txt",
+          "sha256": "add9d7531d1b21646317a8958e38fc727506fa39d24bdecb44154d943c82753a"
+        }
+      ]
+    },
+    {
+      "kind": "assets",
+      "name": "magpie account icons",
+      "version": "8c71cd27f95432362b91fe140bbffacc550def8b",
+      "notices": [
+        {
+          "file": "licenses/magpie-icons-LICENSE.txt",
+          "sha256": "5f1c506829e4a534b54a2e8c8b6780316fd462d842830b35570e70252cdc6cee"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/yuin/goldmark",
+      "version": "v1.8.6",
+      "notices": [
+        {
+          "file": "licenses/result-goldmark-v1.8.6-LICENSE.txt",
+          "sha256": "c1d6f653c38c80294dc7994647ba0dcc508ce64a86996303c804efa2f7982bff"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/gorilla/websocket",
+      "version": "v1.5.3",
+      "notices": [
+        {
+          "file": "licenses/result-gorilla-websocket-v1.5.3-LICENSE.txt",
+          "sha256": "2be1b548b0387ca8948e1bb9434e709126904d15f622cc2d0d8e7f186e4d122d"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/fyne-io/image",
+      "version": "v0.1.1",
+      "notices": [
+        {
+          "file": "licenses/result-go-github.com-fyne-io-image-v0.1.1-0-LICENSE.txt",
+          "sha256": "b9c31d8f1a43d7260789099ef59cc17a8b72aa3fccd1479bd516ec1b924637c3"
+        },
+        {
+          "file": "licenses/result-go-github.com-fyne-io-image-v0.1.1-1-LICENSE.txt",
+          "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+        },
+        {
+          "file": "licenses/result-go-github.com-fyne-io-image-v0.1.1-2-LICENSE.txt",
+          "sha256": "dd26a7abddd02e2d0aba97805b31f248ef7835d9e10da289b22e3b8ab78b324d"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/jsummers/gobmp",
+      "version": "v0.0.0-20230614200233-a9de23ed2e25",
+      "notices": [
+        {
+          "file": "licenses/result-go-github.com-jsummers-gobmp-v0.0.0-20230614200233-a9de23ed2e25-0-LICENSE.txt",
+          "sha256": "027529c1f33b6ef9280c5b9569e120734dbbee0e5e37436fb9a1bc7a0153b0ae"
+        }
+      ]
+    }
+  ]
+}

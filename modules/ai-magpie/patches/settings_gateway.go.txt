@@ -1,0 +1,6 @@
+package gateway
+
+import "context"
+
+// Keep Claude's own minimal warm-up request and command-line isolation.
+func WinOneWarmClaude(ctx context.Context, directory string) error { return warmClaude(ctx, directory) }

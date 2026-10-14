@@ -3,6 +3,7 @@ package modules
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"sync"
 	"winone/internal/catalog"
 	"winone/internal/host"
@@ -19,6 +20,8 @@ type ModuleView struct {
 	Enabled     bool             `json:"enabled"`
 	PendingStop bool             `json:"pendingStop"`
 	Runtime     host.Module      `json:"runtime"`
+	Blocked     bool             `json:"blocked,omitempty"`
+	RecoveryID  string           `json:"recoveryId,omitempty"`
 }
 type ControlSnapshot struct {
 	Revision uint64       `json:"revision"`
@@ -29,10 +32,12 @@ type Control struct {
 	mu            sync.Mutex
 	store         *modulestate.Store
 	gates         map[string]*Gate
+	registrations map[string]*host.FeatureRegistration
 	jobs          map[string]ControlJob
 	active        map[string]bool
 	completed     []string
 	sequence      uint64
+	unavailable   map[string]ModuleView
 }
 
 func NewControl(store *modulestate.Store, gates map[string]*Gate, catalogSource func() []catalog.Manifest) *Control {
@@ -43,17 +48,91 @@ func NewControl(store *modulestate.Store, gates map[string]*Gate, catalogSource 
 	for id, g := range gates {
 		copied[id] = g
 	}
-	return &Control{store: store, gates: copied, catalogSource: catalogSource, jobs: map[string]ControlJob{}, active: map[string]bool{}}
+	return &Control{store: store, gates: copied, registrations: map[string]*host.FeatureRegistration{}, catalogSource: catalogSource, jobs: map[string]ControlJob{}, active: map[string]bool{}, unavailable: map[string]ModuleView{}}
+}
+
+// LifecycleGates gives the Host a stable view of the currently registered
+// runtimes. Callers must use the configuration admission lease for mutations;
+// the control mutex must not be held while a worker restores resources.
+func (c *Control) LifecycleGates() map[string]*Gate {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	result := make(map[string]*Gate, len(c.gates))
+	for id, gate := range c.gates {
+		result[id] = gate
+	}
+	return result
+}
+
+// New unavailable entries are presentation only. An existing package gate is
+// faulted until recovery retires it, retaining access to its shutdown lifecycle.
+// Saved intent/recovery markers remain untouched.
+func (c *Control) SetUnavailable(id string, name catalog.LocalizedName, detail string, recoveryID ...string) error {
+	if !catalog.ValidOptionalID(id) {
+		return fmt.Errorf("invalid unavailable module ID")
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.gates[id] != nil || c.registrations[id] != nil {
+		gate := c.gates[id]
+		if gate == nil || c.registrations[id] == nil || gate.packageSHA256 == "" {
+			return fmt.Errorf("module runtime must be detached before quarantine")
+		}
+		gate.mu.Lock()
+		gate.lastError = detail
+		gate.mu.Unlock()
+	}
+	if name.Chinese == "" {
+		name.Chinese = id
+	}
+	if name.English == "" {
+		name.English = id
+	}
+	c.unavailable[id] = ModuleView{Manifest: catalog.Manifest{ID: id, Name: name, Distribution: "optional"}, Runtime: host.Module{ID: id, Name: name.Chinese, State: "unavailable", Detail: detail}, Blocked: true}
+	if len(recoveryID) > 0 {
+		entry := c.unavailable[id]
+		entry.RecoveryID = recoveryID[0]
+		c.unavailable[id] = entry
+	}
+	return nil
+}
+
+func (c *Control) ForgetUnavailable(id string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.gates[id] != nil || c.registrations[id] != nil {
+		return fmt.Errorf("module runtime is still registered")
+	}
+	delete(c.unavailable, id)
+	return nil
 }
 func (c *Control) Snapshot() ControlSnapshot {
+	c.mu.Lock()
 	state := c.store.Snapshot()
+	manifests := c.catalogSource()
+	gates := make(map[string]*Gate, len(c.gates))
+	for id, gate := range c.gates {
+		gates[id] = gate
+	}
+	blocked := make([]ModuleView, 0, len(c.unavailable))
+	blockedIDs := make(map[string]bool, len(c.unavailable))
+	for id, entry := range c.unavailable {
+		blockedIDs[id] = true
+		record := state.Modules[id]
+		entry.Enabled = record.Enabled
+		entry.PendingStop = record.PendingStop
+		blocked = append(blocked, entry)
+	}
+	c.mu.Unlock()
 	result := ControlSnapshot{Revision: state.Revision, Modules: []ModuleView{}}
-	for _, manifest := range c.catalogSource() {
-		if gate := c.gates[manifest.ID]; gate != nil {
+	for _, manifest := range manifests {
+		if gate := gates[manifest.ID]; gate != nil && !blockedIDs[manifest.ID] {
 			record := state.Modules[manifest.ID]
-			result.Modules = append(result.Modules, ModuleView{manifest, record.Enabled, record.PendingStop, gate.Status()})
+			result.Modules = append(result.Modules, ModuleView{Manifest: manifest, Enabled: record.Enabled, PendingStop: record.PendingStop, Runtime: gate.Status()})
 		}
 	}
+	sort.Slice(blocked, func(i, j int) bool { return blocked[i].Manifest.ID < blocked[j].Manifest.ID })
+	result.Modules = append(result.Modules, blocked...)
 	return result
 }
 func (c *Control) Handle(request host.Request) host.Response {
@@ -78,6 +157,7 @@ func (c *Control) Handle(request host.Request) host.Response {
 		if err := json.Unmarshal(request.Params, &args); err != nil || args.Enabled == nil {
 			return fail("模块设置格式无效")
 		}
+		c.mu.Lock()
 		gate := c.gates[args.ID]
 		registered := false
 		for _, manifest := range c.catalogSource() {
@@ -87,9 +167,9 @@ func (c *Control) Handle(request host.Request) host.Response {
 			}
 		}
 		if gate == nil || !registered {
+			c.mu.Unlock()
 			return fail("模块未安装")
 		}
-		c.mu.Lock()
 		if c.active[args.ID] {
 			c.mu.Unlock()
 			return fail("模块正在切换，请等待完成")

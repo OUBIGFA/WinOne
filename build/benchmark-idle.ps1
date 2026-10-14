@@ -8,8 +8,10 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'resource-metrics.psm1') -Force
+. (Join-Path $PSScriptRoot 'private-test-desktop.ps1')
 $workspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $outputRoot = [IO.Path]::GetFullPath($OutputDirectory)
+& (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $outputRoot
 $hostExecutable = Join-Path ([IO.Path]::GetFullPath($BundleDirectory)) 'WinOne.Host.exe'
 $workerExecutable = Join-Path ([IO.Path]::GetFullPath($BundleDirectory)) 'WinOne.WinTray.exe'
 foreach ($file in @($hostExecutable,$workerExecutable)) { if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing test binary: $file" } }
@@ -29,15 +31,17 @@ foreach ($caseEntry in @([pscustomobject]@{Name='host-disabled';Enabled=$false},
     if (Test-Path -LiteralPath $phaseDirectory) { throw 'Temporary profile already exists' }
     [IO.Directory]::CreateDirectory($phaseDirectory) | Out-Null
     $moduleRecords = @{}
-    foreach ($moduleId in @('capture','always-on-top','wintray')) { $moduleRecords[$moduleId]=@{enabled=$caseEntry.Enabled;pendingStop=$false} }
-    [IO.File]::WriteAllText((Join-Path $phaseDirectory 'module-state.json'),(@{schemaVersion=1;revision=0;modules=$moduleRecords}|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
-    [IO.File]::WriteAllText((Join-Path $phaseDirectory 'settings.json'),'{"schemaVersion":1,"theme":"system","language":"zh-CN","captureShortcut":"","pinShortcut":""}',[Text.UTF8Encoding]::new($false))
+    $catalog=Get-Content -LiteralPath (Join-Path $workspace 'internal/catalog/builtin.json') -Raw -Encoding UTF8|ConvertFrom-Json
+    foreach ($moduleId in $catalog.id) { $moduleRecords[$moduleId]=@{enabled=$caseEntry.Enabled;pendingStop=$false} }
+    [IO.File]::WriteAllText((Join-Path $phaseDirectory 'module-state.json'),(@{schemaVersion=4;revision=0;modules=$moduleRecords}|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $phaseDirectory 'settings.json'),'{"schemaVersion":1,"theme":"system","language":"zh-CN","captureShortcut":"","pinShortcut":"","ocrShortcut":"","translateShortcut":"","selectionShortcut":"","quickAssistantShortcut":"","openShortcut":"","startup":{"runAtLogon":false,"startMinimized":true}}',[Text.UTF8Encoding]::new($false))
     $pipeName = '\\.\pipe\WinOne-resource-'+[guid]::NewGuid().ToString('N')
     $target = $null
     $completed = $false
+    $desktop=[WinOnePrivateTestDesktop]::new()
     try {
         # The separate profile contains no user programs or real logon task settings.
-        $target=Start-Process -FilePath $hostExecutable -ArgumentList @('--pipe',$pipeName,'--data-dir',('"'+$phaseDirectory+'"')) -PassThru -WindowStyle Hidden
+        $target=$desktop.Start($hostExecutable,('--standard-session --pipe "'+$pipeName+'" --data-dir "'+$phaseDirectory+'"'),$workspace)
         $null=$target.Handle
         Start-Sleep -Seconds $WarmupSeconds
         if ($target.HasExited) { throw 'Host exited before sampling' }
@@ -50,7 +54,10 @@ foreach ($caseEntry in @([pscustomobject]@{Name='host-disabled';Enabled=$false},
         } finally { Pop-Location }
         & (Join-Path $PSScriptRoot 'measure-resources.ps1') -RootProcessIds @($target.Id) -OutputPath (Join-Path $outputRoot ($caseEntry.Name+'.json')) -Scenario $caseEntry.Name -DurationSeconds $DurationSeconds -BinaryPaths @($hostExecutable,$workerExecutable)
         $report=Get-Content -LiteralPath (Join-Path $outputRoot ($caseEntry.Name+'.json')) -Raw -Encoding UTF8 | ConvertFrom-Json
-        if (-not (Test-HostOnlyResourceReport -Report $report -HostProcessId $target.Id)) { throw 'Incomplete samples or unexpected idle workers; profile retained for diagnosis' }
+        if(-not $caseEntry.Enabled){if (-not (Test-HostOnlyResourceReport -Report $report -HostProcessId $target.Id)) { throw 'Incomplete samples or unexpected disabled workers; profile retained for diagnosis' }}else{
+            foreach($sample in $report.Samples){if(-not $sample.Complete -or @($sample.Processes|Where-Object {$_.ProcessId-eq$target.Id -and $_.Name-eq'WinOne.Host.exe'}).Count-ne 1 -or @($sample.Processes|Where-Object {$_.Name-notin @('WinOne.Host.exe','WinOne.Stroke.exe','WinOne.WinTray.exe','WinOne.WinTray.Recovery.exe')}).Count){throw 'Enabled idle measurement has incomplete or unexpected processes'}}
+        }
+        if ($caseEntry.Name -eq 'host-disabled' -and -not (Test-HostIdleBudgetReport -Report $report -HostProcessId $target.Id)) { throw 'Host idle reference check failed: require complete CPU intervals, average CPU <0.2%, and private working set <=43 MiB; assess small memory fluctuations with growth and cleanup evidence; profile retained' }
         $completed=$true
     } finally {
         if ($null -ne $target) {
@@ -67,6 +74,7 @@ foreach ($caseEntry in @([pscustomobject]@{Name='host-disabled';Enabled=$false},
             $target.Dispose()
             if ($children.Count -gt 0) { throw 'A benchmark worker did not exit; its profile has been kept' }
         }
+        $desktop.Dispose()
         if ($completed) {
             Add-Type -AssemblyName Microsoft.VisualBasic
             [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($phaseDirectory,[Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs,[Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin)

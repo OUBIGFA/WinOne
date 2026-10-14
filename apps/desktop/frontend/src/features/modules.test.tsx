@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ModulesPage } from "./modules";
 import { setApplicationLanguage } from "../i18n";
@@ -12,9 +12,47 @@ it("shows a registered optional tool without leaking a translation key",async()=
  expect(screen.queryByText("moduleDescription.example.tool")).toBeNull();
 });
 
+it.each([true,false])('keeps a faulted package disabled in the UI and retries through its recovery action (pending stop %s)',async pendingStop=>{
+ const state:any=initial();state.modules[0]={manifest:{id:'example.tool',name:{'zh-CN':'测试扩展','en-US':'Test extension'},distribution:'optional'},enabled:true,pendingStop,blocked:true,recoveryId:'change-1',runtime:{id:'example.tool',name:'测试扩展',state:'unavailable',detail:'signature check failed'}};
+ if(pendingStop)state.configurationError='模块配置需要恢复';
+ call.mockImplementation(async(method:string)=>{if(method==='snapshot')return structuredClone(state);if(method==='recoverPackage'){delete state.configurationError;state.modules[0].blocked=false;state.modules[0].pendingStop=false;state.modules[0].runtime.state='ready';return {state:'completed'};}throw Error(method)});
+ const user=userEvent.setup();render(<ModulesPage onChanged={()=>{}}/>);
+ const toggle=await screen.findByRole('switch',{name:'测试扩展'});expect(toggle.getAttribute('data-disabled')).not.toBeNull();
+ expect(screen.queryByRole('button',{name:'继续关闭'})).toBeNull();
+ await user.click(screen.getByRole('button',{name:'恢复旧版本'}));
+ await screen.findByText('测试扩展已重新加载');
+ expect(call).toHaveBeenCalledWith('recoverPackage',{id:'example.tool',revision:0,recoveryId:'change-1'});
+ expect(screen.getByRole('switch',{name:'测试扩展'}).getAttribute('data-disabled')).toBeNull();
+});
+
+it('retains a fault and retry action when package recovery fails',async()=>{
+ const state:any=initial();state.modules[0]={manifest:{id:'example.tool',name:{'zh-CN':'测试扩展','en-US':'Test extension'},distribution:'optional'},enabled:false,pendingStop:false,blocked:true,runtime:{id:'example.tool',name:'测试扩展',state:'unavailable',detail:'signature check failed'}};
+ call.mockImplementation(async(method:string)=>{if(method==='snapshot')return state;throw Error('签名仍不匹配');});
+ render(<ModulesPage onChanged={()=>{}}/>);await userEvent.setup().click(await screen.findByRole('button',{name:'重试加载'}));
+ await screen.findByText('签名仍不匹配');expect(screen.getByRole('switch',{name:'测试扩展'}).getAttribute('data-disabled')).not.toBeNull();
+ await waitFor(()=>expect(screen.getByRole('button',{name:'重试加载'}).hasAttribute('disabled')).toBe(false));
+});
+
 const call = vi.hoisted(() => vi.fn());
-vi.mock("../bridge", () => ({ moduleCall: call, getShortcuts:async()=>({bindings:[{id:"capture",shortcut:"Ctrl+Alt+S",registered:true}],lastError:""}) }));
-afterEach(async () => { cleanup(); call.mockReset(); await setApplicationLanguage("zh-CN"); });
+const shortcuts = vi.hoisted(() => vi.fn(async()=>({bindings:[{id:"capture",shortcut:"Ctrl+Alt+S",registered:true}],lastError:""})));
+vi.mock("../bridge", () => ({ moduleCall: call, getShortcuts:shortcuts }));
+afterEach(async () => { cleanup(); call.mockReset(); shortcuts.mockReset(); await setApplicationLanguage("zh-CN"); });
+
+it.each(["zh-CN","en-US"])("keeps Home focused on tools without shortcut or startup summaries in %s",async language=>{
+ await setApplicationLanguage(language);call.mockResolvedValue(initial());
+ const ready=vi.fn();render(<ModulesPage onChanged={()=>{}} onReady={ready}/>);
+ await waitFor(()=>expect(ready).toHaveBeenCalledOnce());
+ expect(screen.getByRole("switch",{name:language==="zh-CN"?"截图":"Capture"})).toBeTruthy();
+ expect(shortcuts).not.toHaveBeenCalled();
+ expect(screen.queryByText(language==="zh-CN"?"当前快捷键":"Current shortcuts")).toBeNull();
+ expect(screen.queryByText(language==="zh-CN"?"登录 Windows 时启动":"Start at Windows sign-in")).toBeNull();
+});
+
+it("does not report failed module loading ready",async()=>{
+ call.mockRejectedValue(Error("modules unavailable"));
+ const ready=vi.fn();render(<ModulesPage onChanged={()=>{}} onReady={ready}/>);
+ await screen.findByRole("alert");expect(ready).not.toHaveBeenCalled();
+});
 
 it("manages enabled tools without duplicating sidebar navigation",async()=>{
  const state=initial();state.modules[0].enabled=false;state.modules[0].runtime.state="disabled";
@@ -33,10 +71,15 @@ function initial() {
   }] };
 }
 
-it.each([[false,"普通权限"],[true,"管理员"]] as const)("shows observed Host privilege without implying elevation is enabled",async(administrator,label)=>{
- call.mockResolvedValue(initial());render(<ModulesPage onChanged={()=>{}} administrator={administrator}/>);
- expect(await screen.findByText(label)).toBeTruthy();
- expect(screen.queryByRole("switch",{name:"运行权限"})).toBeNull();
+it("keeps mouse gestures inside Convenience while retaining its dedicated enable control",async()=>{
+ const state=initial();state.modules.push({manifest:{id:"stroke",name:{"zh-CN":"鼠标手势","en-US":"Mouse gestures"},distribution:"bundled"},enabled:true,pendingStop:false,runtime:{id:"stroke",name:"鼠标手势",state:"ready",detail:""}});
+ call.mockResolvedValue(state);
+ const view=render(<ModulesPage onChanged={()=>{}}/>);
+ await screen.findByRole("switch",{name:"截图"});
+ expect(screen.queryByRole("heading",{name:"鼠标手势"})).toBeNull();
+ expect(screen.queryByRole("switch",{name:"鼠标手势"})).toBeNull();
+ view.rerender(<ModulesPage only="stroke" onChanged={()=>{}}/>);
+ expect(await screen.findByRole("switch",{name:"启用鼠标手势"})).toBeTruthy();
 });
 
 it("clears a startup error after the user successfully retries loading",async()=>{
@@ -165,4 +208,18 @@ it("keeps an incomplete close visible and retries with the latest revision", asy
   await waitFor(() => expect(screen.queryByRole("button", { name: "继续关闭" })).toBeNull());
   expect(call).toHaveBeenLastCalledWith("snapshot");
   expect(call).toHaveBeenCalledWith("setEnabled", { id: "capture", enabled: false, revision: 1 });
+});
+
+it('keeps pending file cleanup visible after failure and clears it after retry',async()=>{
+ const state:any=initial();state.cleanup={pending:true};let occupied=true;
+ call.mockImplementation(async(method:string)=>{
+  if(method==='snapshot')return structuredClone(state);
+  if(method==='cleanupPackages'){if(occupied)throw Error('旧文件仍被占用');state.cleanup.pending=false;return {state:'completed'};}
+  throw Error(method);
+ });
+ const user=userEvent.setup();render(<ModulesPage onChanged={()=>{}}/>);
+ await user.click(await screen.findByRole('button',{name:'重试清理'}));await screen.findByText('旧文件仍被占用');
+ await waitFor(()=>expect(screen.getByRole('button',{name:'重试清理'}).hasAttribute('disabled')).toBe(false));
+ occupied=false;await user.click(screen.getByRole('button',{name:'重试清理'}));await screen.findByText('安装遗留文件已处理');
+ expect(screen.queryByRole('button',{name:'重试清理'})).toBeNull();
 });

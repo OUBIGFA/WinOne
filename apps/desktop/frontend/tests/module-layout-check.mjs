@@ -43,14 +43,8 @@ try {
    }).map(item=>item.textContent));
    if(overlapping.length)throw Error(`Home title overlaps its actions: ${language}/${width}: ${overlapping.join(", ")}`);
   }
-  if(name==="home"&&width===1280) {
-   const handle=page.locator('.dashboard-panels [role="separator"]');
-   const first=page.locator('.dashboard-panels > [data-slot="resizable-panel"]').first();
-   const before=await first.boundingBox();await handle.focus();await page.keyboard.press("ArrowRight");
-   await page.waitForTimeout(150);const after=await first.boundingBox();
-   result.resized=!!before&&!!after&&Math.abs(before.width-after.width)>1;
-   if(!result.resized)throw Error("Home keyboard resize failed");
-  }
+  // Home is now a tool overview; resizing belongs to the shared sidebar.
+  if(name==="home"&&await page.locator('.dashboard-panels').count())throw Error("Retired home status panels returned");
   report.push({name,width,...result});
   await page.screenshot({path:resolve(output,`${name}-${language}-${width}.png`),fullPage:true});
  }

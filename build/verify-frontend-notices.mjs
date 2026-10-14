@@ -20,6 +20,9 @@ export function verifyFrontendNotices(root,catalog){
  const actual=new Set();
  for(const [location,locked] of Object.entries(lock.packages)){
   if(!location||locked.dev)continue;
+  // npm installs only the matching optional platform package on this machine.
+  // Other locked platforms still belong to the same monorepo notice record.
+  if(locked.optional&&!fs.existsSync(path.join(frontend,location,'package.json')))continue;
   if(!location.startsWith('node_modules/')||/[\\:]/.test(location)||path.posix.normalize(location)!==location)throw Error('Invalid package location');
   const directory=path.join(frontend,location);
   const installed=JSON.parse(fs.readFileSync(path.join(directory,'package.json'),'utf8'));
@@ -28,9 +31,20 @@ export function verifyFrontendNotices(root,catalog){
   if(!record||!Array.isArray(record.notices)||!record.notices.length)throw Error('Missing npm notice: '+key);
   for(const notice of record.notices){
    if(!/^(LICENSE|LICENCE|COPYING|NOTICE)([._-][A-Za-z0-9._-]+)?$/i.test(notice.sourceFile)||!/^licenses\/[A-Za-z0-9][A-Za-z0-9._-]*\.txt$/.test(notice.file)||!/^[a-f0-9]{64}$/.test(notice.sha256))throw Error('Invalid notice record: '+key);
-   const original=fs.readFileSync(path.join(directory,notice.sourceFile));
    const copied=fs.readFileSync(path.join(root,'third_party',notice.file));
-   if(hash(original)!==notice.sha256||hash(copied)!==notice.sha256)throw Error('Notice content mismatch: '+key);
+   if(notice.sourceURL){
+    // Some monorepos omit the root license from their npm tarballs. Preserve
+    // the audited upstream text with a commit-pinned URL tied to package.json;
+    // do not fabricate a node_modules file that npm ci would later discard.
+    const source=/^https:\/\/raw\.githubusercontent\.com\/([^/]+\/[^/]+)\/([a-f0-9]{40})\/([^/]+)$/.exec(notice.sourceURL);
+    if(!source||source[3]!==notice.sourceFile)throw Error('Upstream notice needs a pinned source: '+key);
+    const repo=(typeof installed.repository==='string'?installed.repository:installed.repository?.url??'').replace(/^git\+/,'').replace(/\.git$/,'');
+    if(repo!=='https://github.com/'+source[1])throw Error('Upstream notice repository mismatch: '+key);
+   }else{
+    const original=fs.readFileSync(path.join(directory,notice.sourceFile));
+    if(hash(original)!==notice.sha256)throw Error('Notice content mismatch: '+key);
+   }
+   if(hash(copied)!==notice.sha256)throw Error('Notice content mismatch: '+key);
   }
  }
  for(const key of records.keys())if(!actual.has(key))throw Error('Stale npm notice: '+key);

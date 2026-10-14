@@ -198,6 +198,12 @@ func PrepareBuiltinImport(id string, module ModuleSettings, paths map[string]Pat
 	var patch map[string]any
 	var err error
 	switch id {
+	case "stroke":
+		patch, err = importStroke(source, resolve)
+	case "quick-assistant":
+		patch, err = quickAssistantFields(source, true)
+	case "selection":
+		patch, err = selectionFields(source, true)
 	case "capture":
 		patch, err = importCapture(source, resolve)
 	case "always-on-top":

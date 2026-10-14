@@ -41,7 +41,20 @@ type VerifiedManifest struct {
 
 func (v *VerifiedManifest) Metadata() Metadata {
 	m := v.metadata
-	m.Module = m.Module.Clone()
+	if m.PackageKind() == "module" {
+		m.Module = m.Module.Clone()
+	}
+	if m.Runtime != nil {
+		runtime := *m.Runtime
+		runtime.Exports = append([]RuntimeExport(nil), runtime.Exports...)
+		m.Runtime = &runtime
+	}
+	m.Dependencies = append([]Dependency(nil), m.Dependencies...)
+	if m.Settings != nil {
+		settings := *m.Settings
+		settings.Migrations = append([]SettingsMigration(nil), settings.Migrations...)
+		m.Settings = &settings
+	}
 	return m
 }
 func (v *VerifiedManifest) Files() []distribution.File {
@@ -74,7 +87,7 @@ func VerifyManifest(data, signature []byte, publisher Publisher) (*VerifiedManif
 	if err := configjson.DecodeObject(data, &envelope); err != nil {
 		return nil, err
 	}
-	if envelope.Format != "winone.module.v1" {
+	if envelope.Format != "winone.module.v1" && envelope.Format != "winone.runtime.v1" {
 		return nil, errors.New("unsupported module package format")
 	}
 	// Keep the inner metadata limit even inside a larger signed file inventory.
@@ -82,8 +95,11 @@ func VerifyManifest(data, signature []byte, publisher Publisher) (*VerifiedManif
 	if err != nil {
 		return nil, err
 	}
+	if (envelope.Format == "winone.runtime.v1") != (metadata.PackageKind() == "runtime") {
+		return nil, errors.New("archive format does not match package kind")
+	}
 	manifest := Manifest{Format: envelope.Format, Metadata: metadata, Files: envelope.Files}
-	namespace, _, _ := strings.Cut(manifest.Metadata.Module.ID, ".")
+	namespace, _, _ := strings.Cut(manifest.Metadata.PackageID(), ".")
 	if namespace != publisher.Namespace {
 		return nil, ErrUntrustedPublisher
 	}
@@ -119,8 +135,25 @@ func VerifyManifest(data, signature []byte, publisher Publisher) (*VerifiedManif
 		}
 	}
 	worker := strings.ToLower(strings.ReplaceAll(manifest.Metadata.Module.Worker, `\`, "/"))
-	if files[worker].Size == 0 || files["license.txt"].Size == 0 {
+	if metadata.PackageKind() == "module" && files[worker].Size == 0 || files["license.txt"].Size == 0 {
 		return nil, errors.New("module worker or license is missing")
+	}
+	if metadata.PackageKind() == "runtime" {
+		if err := validateRuntimeInventory(metadata, files); err != nil {
+			return nil, err
+		}
+	}
+	if settings := metadata.Settings; settings != nil {
+		schema, defaults := files[strings.ToLower(settings.Schema)], files[strings.ToLower(settings.Defaults)]
+		if schema.Size < 1 || schema.Size > MaxSettingsSchemaBytes || defaults.Size < 1 || defaults.Size > MaxSettingsBytes || strings.EqualFold(settings.Schema, settings.Defaults) {
+			return nil, errors.New("module settings are missing from inventory or exceed size limits")
+		}
+		for _, migration := range settings.Migrations {
+			file := files[strings.ToLower(migration.Patch)]
+			if file.Size < 1 || file.Size > MaxMigrationPatchBytes {
+				return nil, errors.New("migration patch is missing from inventory or exceeds size limit")
+			}
+		}
 	}
 	sum := sha256.Sum256(data)
 	return &VerifiedManifest{metadata: manifest.Metadata, files: manifest.Files, digest: hex.EncodeToString(sum[:])}, nil

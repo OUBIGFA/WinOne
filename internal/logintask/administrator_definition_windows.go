@@ -16,6 +16,10 @@ import (
 
 const administratorLaunchArguments = `--authorized-start "$(Arg0)"`
 
+// ErrAdministratorOtherInstallation identifies a valid task owned by another
+// WinOne directory. Uninstall must retain it; normal launch still rejects it.
+var ErrAdministratorOtherInstallation = errors.New("管理员授权属于另一 WinOne 安装目录")
+
 // Read actual action/principal fields, not only the description fingerprint.
 // A stale or changed task must never become an arbitrary elevated launcher.
 func validateAdministratorDefinition(raw []byte, sid, executable string) error {
@@ -96,8 +100,17 @@ func validateAdministratorDefinition(raw []byte, sid, executable string) error {
 	samePath := func(first, second string) bool {
 		return strings.EqualFold(filepath.Clean(first), filepath.Clean(second))
 	}
-	if action.XMLName.Local != "Exec" || !samePath(action.Command, executable) || !samePath(action.WorkingDirectory, filepath.Dir(executable)) || action.Arguments != administratorLaunchArguments {
+	if action.XMLName.Local != "Exec" || !filepath.IsAbs(action.Command) || !strings.EqualFold(filepath.Base(action.Command), "WinOne.exe") || !samePath(action.WorkingDirectory, filepath.Dir(action.Command)) || action.Arguments != administratorLaunchArguments {
 		return fail
+	}
+	if !samePath(action.Command, executable) {
+		// Programs may be redirected by a directory link. Compare resolved paths
+		// only after validating the task, without changing its stored action.
+		actual, firstErr := filepath.EvalSymlinks(action.Command)
+		wanted, secondErr := filepath.EvalSymlinks(executable)
+		if firstErr != nil || secondErr != nil || !samePath(actual, wanted) {
+			return ErrAdministratorOtherInstallation
+		}
 	}
 	return nil
 }

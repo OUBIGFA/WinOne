@@ -1,0 +1,11 @@
+package ui
+
+// SelectedText returns the focused text selection without touching the system
+// clipboard. Passwords and unfocused controls never expose their contents.
+func (c *Context) SelectedText() string {
+ st := c.rt.states[c.rt.focused]
+ if st == nil || st.editor == nil || st.editor.password { return "" }
+ ed := st.editor
+ a,b := ed.selection()
+ return ed.buf.slice(a,b)
+}

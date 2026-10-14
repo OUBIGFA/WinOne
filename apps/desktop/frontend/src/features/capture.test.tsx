@@ -87,38 +87,27 @@ afterEach(async () => {
   await setApplicationLanguage("zh-CN");
 });
 
-it("groups settings and diagnostics before the separate capture actions",async()=>{
- const settings={schemaVersion:1,revision:0,outputDirectory:"C:\\Images",copyToClipboard:false,askWhereToSave:false,openEditor:false,pinAfterCapture:false,theme:"system",scrollDelay:300,scrollFromTop:true};
- native.call.mockResolvedValue({settings,busy:false,pins:0});
- render(<CapturePage/>);
- const tabs=await screen.findByRole("tablist");
- const capture=screen.getByRole("button",{name:"窗口截图"});
- expect(tabs.compareDocumentPosition(capture)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
- await userEvent.setup().click(screen.getByRole("tab",{name:"诊断日志"}));
- await waitFor(()=>expect(native.logs).toHaveBeenCalledWith("capture"));
- expect(screen.getByRole("button",{name:"窗口截图"})).toBeTruthy();
-});
 
-it("keeps diagnostics available when capture settings fail to load",async()=>{
+it("keeps capture failure feedback without an independent log tab",async()=>{
  native.call.mockRejectedValue(Error("capture unavailable"));
  render(<CapturePage/>);await screen.findByRole("alert");
- await userEvent.setup().click(screen.getByRole("tab",{name:"诊断日志"}));
- await waitFor(()=>expect(native.logs).toHaveBeenCalledWith("capture"));
+ expect(screen.queryByRole("tab",{name:"诊断日志"})).toBeNull();
+ expect(native.logs).not.toHaveBeenCalled();
  expect(screen.queryByRole("button",{name:"窗口截图"})).toBeNull();
 });
 
-it("keeps the diagnostic tab selected when a delayed settings read finishes",async()=>{
+it("keeps the chosen settings tab selected when a delayed read finishes",async()=>{
  let finish!:(value:unknown)=>void;
  native.call.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
  render(<CapturePage/>);
- await userEvent.setup().click(await screen.findByRole("tab",{name:"诊断日志"}));
- await waitFor(()=>expect(native.logs).toHaveBeenCalledWith("capture"));
+ await userEvent.setup().click(await screen.findByRole("tab",{name:"文件名模板"}));
+ expect(native.logs).not.toHaveBeenCalled();
  await act(async()=>finish({settings:{schemaVersion:1,revision:0,outputDirectory:"C:\\Images",copyToClipboard:false,askWhereToSave:false,openEditor:false,pinAfterCapture:false,theme:"system",scrollDelay:300,scrollFromTop:true},busy:false,pins:0}));
- expect(screen.getByRole("tab",{name:"诊断日志"}).getAttribute("aria-selected")).toBe("true");
- expect(screen.queryByRole("radio",{name:"截完保存"})).toBeNull();
+ expect(screen.getByRole("tab",{name:"文件名模板"}).getAttribute("aria-selected")).toBe("true");
+ await waitFor(()=>expect(screen.queryByRole("radio",{name:"截完保存"})).toBeNull());
 });
 
-it("does not submit settings twice while diagnostics stay accessible",async()=>{
+it("does not submit settings twice while other settings stay accessible",async()=>{
  const settings={schemaVersion:1,revision:0,outputDirectory:"C:\\Images",copyToClipboard:false,askWhereToSave:false,openEditor:false,pinAfterCapture:false,theme:"system",scrollDelay:300,scrollFromTop:true};
  let finish!:(value:typeof settings)=>void;
  native.call.mockImplementation((method:string)=>method==="settings.get"?Promise.resolve(settings):new Promise(resolve=>{finish=resolve;}));
@@ -126,40 +115,13 @@ it("does not submit settings twice while diagnostics stay accessible",async()=>{
  await user.click(await screen.findByRole("checkbox",{name:"复制到剪贴板"}));
  await user.click(screen.getByRole("button",{name:"保存设置"}));
  expect((screen.getByRole("button",{name:"保存设置"}) as HTMLButtonElement).disabled).toBe(true);
- await user.click(screen.getByRole("tab",{name:"诊断日志"}));
- expect(native.logs).toHaveBeenCalledWith("capture");
+ await user.click(screen.getByRole("tab",{name:"文件名模板"}));
+ expect(native.logs).not.toHaveBeenCalled();
  await act(async()=>finish({...settings,copyToClipboard:true,revision:1}));
  expect(native.call.mock.calls.filter(([method])=>method==="settings.save")).toHaveLength(1);
 });
 
-it("stops only the active scrolling job and opens its retained draft",async()=>{
- const settings={schemaVersion:1,revision:0,outputDirectory:"C:\\Images",copyToClipboard:false,askWhereToSave:false,openEditor:false,pinAfterCapture:false,theme:"system",scrollDelay:300,scrollFromTop:false};
- let stopped=false;
- native.call.mockImplementation(async(method:string,params:any)=>{
-  if(method==="snapshot")return {settings,busy:false,pins:0};
-  if(method==="capture.unified")return {id:"scroll-one",state:"running"};
-  if(method==="scroll.stop"){expect(params).toEqual({id:"scroll-one"});stopped=true;return {stopping:true};}
-  if(method==="jobs.get")return stopped?{id:"scroll-one",state:"completed",result:{draftId:"a".repeat(32)}}:{id:"scroll-one",state:"running"};
-  throw Error(method);
- });
- const opened=vi.fn(async()=>{});
- render(<CapturePage onOpenDraft={opened}/>);
- const user=userEvent.setup();
- await user.click(await screen.findByRole("button",{name:"滚动截图"}));
- await user.click(await screen.findByRole("button",{name:"停止"}));
- await waitFor(()=>expect(opened).toHaveBeenCalledExactlyOnceWith("a".repeat(32)));
- expect(screen.queryByRole("button",{name:"停止"})).toBeNull();
-});
 
-it("reports a window restoration failure after capture",async()=>{
- const settings={schemaVersion:1,revision:0,outputDirectory:"C:\\Images",copyToClipboard:false,askWhereToSave:false,openEditor:false,pinAfterCapture:false,theme:"system",scrollDelay:300,scrollFromTop:false};
- native.call.mockImplementation(async(method:string)=>method==="snapshot"?{settings,busy:false,pins:0}:{state:"completed"});
- native.reveal.mockRejectedValueOnce(Error("Window restore failed"));
- render(<CapturePage/>);
- await userEvent.setup().click(await screen.findByRole("button",{name:"窗口截图"}));
- expect((await screen.findByRole("alert")).textContent).toContain("Window restore failed");
- expect(screen.queryByText("操作完成")).toBeNull();
-});
 
 it("quick-save mode clears the save-location prompt and persists through the shared settings path",async()=>{
  let settings={schemaVersion:1,revision:0,outputDirectory:"C:\\Images",copyToClipboard:true,askWhereToSave:true,openEditor:true,pinAfterCapture:false,theme:"system",scrollDelay:300,scrollFromTop:false};
@@ -176,20 +138,6 @@ it("quick-save mode clears the save-location prompt and persists through the sha
  expect(settings.openEditor).toBe(false);expect(settings.askWhereToSave).toBe(false);
 });
 
-it("hands a unified capture draft to the shared workspace",async()=>{
-  const id="a".repeat(32),open=vi.fn(async()=>{});
-  const settings={schemaVersion:1,revision:0,outputDirectory:"C:\\Images",copyToClipboard:false,askWhereToSave:false,openEditor:true,pinAfterCapture:false,theme:"system",scrollDelay:300,scrollFromTop:false};
-  native.call.mockImplementation(async(method:string)=>{
-    if(method==="snapshot")return {settings,busy:false,pins:0};
-    if(method==="capture.unified")return {state:"completed",result:{draftId:id}};
-    throw Error(method);
-  });
-  render(<CapturePage onOpenDraft={open}/>);
-  await userEvent.setup().click(await screen.findByRole("button",{name:"区域截图"}));
-  await screen.findByText("操作完成");
-  expect(open).toHaveBeenCalledWith(id);
-  expect(native.call).toHaveBeenCalledWith("capture.unified",{mode:"region"});
-});
 
 it("saves capture preferences through the English controls",async()=>{
   await setApplicationLanguage("en-US");
@@ -206,19 +154,6 @@ it("saves capture preferences through the English controls",async()=>{
   expect(await screen.findByText("Saved")).toBeTruthy();
 });
 
-it("does not reload the worker after cancelling Save as",async()=>{
-  const settings={schemaVersion:1,revision:0,outputDirectory:"C:\\Images",copyToClipboard:false,askWhereToSave:false,openEditor:false,pinAfterCapture:false,theme:"system",scrollDelay:300,scrollFromTop:false};
-  native.call.mockImplementation(async(method:string)=>{
-    if(method==="snapshot")return {settings,lastCapture:{id:"image-1",path:"C:\\Images\\one.png",width:10,height:10,copied:false,pinned:false},busy:false,pins:0};
-    if(method==="save.last")return {state:"cancelled"};
-    throw new Error(method);
-  });
-  render(<CapturePage/>);
-  await userEvent.setup().click(await screen.findByRole("button",{name:"另存为"}));
-  await screen.findByText("已取消");
-  expect(native.call.mock.calls.filter(([method])=>method==="snapshot")).toHaveLength(1);
-  expect(native.call).toHaveBeenCalledWith("save.last",{expectedId:"image-1"});
-});
 
 it("saves disabled-module preferences without starting capture", async () => {
   const settings = { schemaVersion: 1, revision: 0, outputDirectory: "C:\\Images", copyToClipboard: true,
@@ -237,45 +172,14 @@ it("saves disabled-module preferences without starting capture", async () => {
   expect(native.call.mock.calls.every(([method]) => ["settings.get", "settings.save"].includes(method))).toBe(true);
 });
 
-it("shows the saved image when clipboard output fails", async () => {
-  let failed = false;
-  native.call.mockImplementation(async (method: string) => {
-    if (method === "snapshot")
-      return {
-        settings: {
-          schemaVersion: 1,
-          revision: 0,
-          outputDirectory: "C:\\Images",
-          copyToClipboard: true,
-          askWhereToSave: false,
-          openEditor: false,
-          pinAfterCapture: false,
-          theme: "system",
-          scrollDelay: 300,
-          scrollFromTop: false,
-        },
-        lastCapture: failed
-          ? {
-              path: "C:\\Images\\saved.png",
-              width: 32,
-              height: 24,
-              copied: false,
-              pinned: false,
-            }
-          : null,
-        busy: false,
-        pins: 0,
-      };
-    if (method === "capture.start") {
-      failed = true;
-      return { id: "job", state: "failed", error: "截图已保存，复制失败" };
-    }
-    throw new Error(method);
-  });
-  render(<CapturePage />);
-  await userEvent
-    .setup()
-    .click(await screen.findByRole("button", { name: "区域截图" }));
-  await screen.findByText("C:\\Images\\saved.png");
-  expect(screen.getByRole("button", { name: "复制" })).toBeTruthy();
+
+it("shows preferences without capture actions or recent images",async()=>{
+ const settings={schemaVersion:1,revision:0,outputDirectory:"C:/Images",copyToClipboard:false,askWhereToSave:false,openEditor:false,pinAfterCapture:false,theme:"system",scrollDelay:300,scrollFromTop:true};
+ native.call.mockResolvedValue({settings,lastCapture:{id:"previous",path:"C:/Images/old.png"},busy:false,pins:0});
+ render(<CapturePage/>);
+ await screen.findByRole("radio",{name:"截完保存"});
+ expect(screen.queryByRole("button",{name:"窗口截图"})).toBeNull();
+ expect(screen.queryByRole("button",{name:"滚动截图"})).toBeNull();
+ expect(screen.queryByText("C:/Images/old.png")).toBeNull();
+ expect(screen.getByRole("tab",{name:"滚动截图设置"})).toBeTruthy();
 });

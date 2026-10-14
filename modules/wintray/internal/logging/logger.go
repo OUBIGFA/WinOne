@@ -3,6 +3,7 @@ package logging
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -17,7 +18,14 @@ type Logger struct {
 	lock    *logFileLock
 	path    string
 	lastErr error
+	output  io.Writer
+	closed  bool
 }
+
+// NewOutput lets the WinOne worker share the product logger. Standalone
+// WinTray keeps its existing file logger through New. Close also closes an
+// output that implements io.Closer; callers transfer ownership of that stream.
+func NewOutput(output io.Writer) *Logger { return &Logger{output: output} }
 
 func New(appDir string) (*Logger, error) {
 	if err := os.MkdirAll(appDir, 0o755); err != nil {
@@ -47,6 +55,16 @@ func (l *Logger) Close() error {
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.closed {
+		return l.lastErr
+	}
+	l.closed = true
+	if l.output != nil {
+		if closer, ok := l.output.(io.Closer); ok {
+			l.lastErr = errors.Join(l.lastErr, closer.Close())
+		}
+		return l.lastErr
+	}
 	if l.lock == nil {
 		return l.lastErr
 	}
@@ -65,6 +83,16 @@ func (l *Logger) write(level, msg string) {
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.closed {
+		return
+	}
+	if l.output != nil {
+		if _, err := fmt.Fprintf(l.output, "%s [%s] %s\n", time.Now().Format(time.RFC3339), level, msg); err != nil {
+			l.lastErr = err
+			fmt.Fprintf(os.Stderr, "WinOne log write failed: %v\n", err)
+		}
+		return
+	}
 	if l.lock == nil {
 		return
 	}

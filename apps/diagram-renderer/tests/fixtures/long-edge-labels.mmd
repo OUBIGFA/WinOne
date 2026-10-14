@@ -1,0 +1,7 @@
+flowchart TD
+ P["准备：保留旧登记和启用偏好"] -->|"ApplyChange：模块已关闭"| A["已切换：先写目标登记，再切绑定"]
+ P -->|"RestoreChange"| R["恢复中：先写旧登记，再切旧绑定"]
+ A -->|"关闭候选，RestoreChange"| R
+ A -->|"文件与启用偏好符合要求"| C["FinishChange：提交"]
+ R -->|"文件与原启用偏好符合要求"| B["FinishChange：完成恢复"]
+ P -->|"偏好未变，CancelChange"| X["取消"]

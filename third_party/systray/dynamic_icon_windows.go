@@ -7,16 +7,12 @@ import (
 	"fmt"
 	"golang.org/x/sys/windows"
 	"image/png"
-	"runtime"
 	"sync"
-	"unsafe"
 )
 
 var dynamicIconLock sync.Mutex
 var retiredMenuBitmaps []windows.Handle
 var deleteObject = g32.NewProc("DeleteObject")
-var createIconResource = u32.NewProc("CreateIconFromResourceEx")
-var destroyIcon = u32.NewProc("DestroyIcon")
 
 func deleteMenuBitmap(handle windows.Handle) error {
 	if handle == 0 {
@@ -61,15 +57,11 @@ func pngMenuBitmap(data []byte) (windows.Handle, error) {
 	if err != nil || config.Width < 1 || config.Height < 1 || config.Width > 256 || config.Height > 256 {
 		return 0, fmt.Errorf("invalid menu PNG")
 	}
-	// Windows 11 accepts PNG-backed RT_ICON resources. This creates a private
-	// HICON; unlike LoadImage(file), no path/cache entry survives the conversion.
-	icon, _, err := createIconResource.Call(uintptr(unsafe.Pointer(&data[0])), uintptr(len(data)), 1, 0x00030000, 0, 0, 0)
-	runtime.KeepAlive(data)
-	if icon == 0 {
-		return 0, fmt.Errorf("create menu icon: %v", err)
+	decoded, err := png.Decode(bytes.NewReader(data))
+	if err != nil {
+		return 0, err
 	}
-	defer destroyIcon.Call(icon)
-	return iconToBitmap(windows.Handle(icon))
+	return rgbaMenuBitmap(decoded)
 }
 
 // SetIconPNG updates an ephemeral Windows menu image without temporary files.

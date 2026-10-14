@@ -30,6 +30,10 @@ internal static class NativeWindowRegionsTests
         if (calls != 0 || !capture.ActiveWindowCandidates.SequenceEqual(new[] { front.Bounds, behind.Bounds })) throw new Exception("First entry did not prioritize complete windows");
         regions.Hover(new Point(-30, 85)); await regions.Pending;
         if (capture.ActiveWindowCandidates[0] != detail || capture.ActiveWindowCandidates[^1] != behind.Bounds) throw new Exception("Interior refinement lost native candidate order");
+        capture.BeginRegion(new Rectangle(0, 0, 50, 50));
+        regions.Hover(new Point(-25, 90));
+        if (!capture.ActiveWindowCandidates.Contains(detail)) throw new Exception("Dragging discarded previously detected internal snap boundaries");
+        capture.FinishGesture();
         regions.Hover(new Point(-99, 70));
         if (capture.ActiveWindowCandidates[0] != front.Bounds) throw new Exception("Window edge did not restore complete-window selection");
         capture.SelectTool("rectangle");

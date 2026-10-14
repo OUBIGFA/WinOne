@@ -15,7 +15,7 @@ import (
 func TestProfilePreviewChecksDeviceMappingsWithoutApplyingSettings(t *testing.T) {
 	directory := t.TempDir()
 	get := func() *modules.Lazy { return nil }
-	store, err := configuration.OpenHost(directory, aotConfiguration(directory, get), captureConfiguration(directory, get), wintrayConfiguration(directory, get))
+	store, err := configuration.OpenHost(directory, aotConfiguration(directory, get), captureConfiguration(directory, get), wintrayConfiguration(directory, get), selectionConfiguration(directory, nil), quickAssistantConfiguration(directory, nil), strokeConfiguration(directory, get))
 	if err != nil {
 		t.Fatal(err)
 	}

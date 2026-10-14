@@ -85,7 +85,7 @@ func Run(args []string) int {
 		return 1
 	}
 
-	logger, err := logging.New(appDir)
+	logger, err := newAppLogger(appDir)
 	if err != nil {
 		emitFatalBeforeUI("failed to initialize logger", err)
 		return 1
@@ -768,6 +768,11 @@ func runAppTaskHelper(args []string) int {
 		args = args[1:]
 	}
 	switch {
+	case len(args) == 2 && args[0] == startup.AppTaskHelperRelease:
+		if err := startup.ReleaseAppTasksHeadless(args[1]); err != nil {
+			return 1
+		}
+		return 0
 	case len(args) == 3 && args[0] == startup.AppTaskHelperRegister:
 		if err := startup.RegisterAppTaskHeadless(args[1], args[2]); err != nil {
 			return 1
@@ -817,7 +822,7 @@ func logStartupHelperFailure(cause error) {
 	if err != nil {
 		return
 	}
-	logger, err := logging.New(dir)
+	logger, err := newAppLogger(dir)
 	if err != nil {
 		return
 	}

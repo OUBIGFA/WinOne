@@ -1,6 +1,8 @@
-param([string]$MSBuild, [string]$OutputDirectory = 'dist/build/always-on-top')
+param([string]$MSBuild, [string]$OutputDirectory = '_temp/build/current/always-on-top')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
+$output = if ([IO.Path]::IsPathRooted($OutputDirectory)) { $OutputDirectory } else { Join-Path $root $OutputDirectory }
+& (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $output
 $checkout = & (Join-Path $PSScriptRoot 'prepare-powertoys.ps1')
 $source = (Get-Content -LiteralPath (Join-Path $root 'third_party/sources.json') -Raw -Encoding UTF8 | ConvertFrom-Json).powertoys
 $native = Join-Path $root 'modules/always-on-top/native'
@@ -120,6 +122,5 @@ if (-not $MSBuild) {
 }
 & $MSBuild (Join-Path $checkout ($module + 'AlwaysOnTop.vcxproj')) /restore /t:Build /p:Configuration=Release /p:Platform=x64 /p:RestorePackagesConfig=true "/p:RestoreRepositoryPath=$checkout\packages" "/p:WinOneNativeSource=$native" /verbosity:minimal /nologo
 if ($LASTEXITCODE -ne 0) { throw 'AlwaysOnTop native build failed' }
-$output = if ([IO.Path]::IsPathRooted($OutputDirectory)) { $OutputDirectory } else { Join-Path $root $OutputDirectory }
 New-Item -ItemType Directory -Path $output -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $checkout 'x64/Release/WinOne.AlwaysOnTop.Native.dll') -Destination $output

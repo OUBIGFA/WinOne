@@ -27,6 +27,8 @@ func TestRunAppTaskHelperRecognizesOnlyItsOwnFlags(t *testing.T) {
 		{startup.AppTaskHelperRegister, "name", "path", "extra"},
 		{startup.AppTaskHelperDelete},
 		{startup.AppTaskHelperDelete, "name", "extra"},
+		{startup.AppTaskHelperRelease},
+		{startup.AppTaskHelperRelease, "directory", "extra"},
 		{startup.AppTaskHelperRun},
 		{startup.AppTaskHelperRun, "name"},
 		{startup.AppTaskHelperRun, "name", "exe", "extra"},
@@ -61,7 +63,7 @@ func TestStartupHelpersAbortOnReadinessTimeoutWithoutLaunching(t *testing.T) {
 			t.Fatalf("helper failure = %d, want a consumed failure (no normal launch)", got)
 		}
 	}
-	logs, err := os.ReadFile(filepath.Join(data, "WinTray", "wintray.log"))
+	logs, err := os.ReadFile(filepath.Join(data, "WinOne", "modules", "wintray", "wintray.log"))
 	if err != nil {
 		t.Fatal(err)
 	}

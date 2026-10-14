@@ -1,0 +1,37 @@
+// Synthetic, in-memory visual fixtures. No network, credentials or real histories.
+import type {SessionCounts,SessionReport,UsagePage,UsageRow,UsageSession} from "../src/features/ai-usage-types";
+const start=new Date(2026,9,4);
+const counts:SessionCounts={sessions:1,messages:12,calls:6,input:14000,output:3000,cache_read:9000,cache_write:3000,reasoning:800,errors:0,compactions:1,activeMs:18*60000,cost:0.14,unpriced:0};
+const total={calls:36,errors:2,input:84000,output:18000,cache_read:54000,cache_write:18000,cost:0.84,unpriced:0,timed:30,ttft_ms:18000,decode_ms:240000,decode_out:18000};
+const rows:UsageRow[]=Array.from({length:36},(_,i)=>({t:new Date(2026,9,10,15,50-i).toISOString(),provider:i%3===0?"account":"one",agent:i%4===0?"gateway":"winone",model:i%2?"shared-model":"vision-model",in:2400+i*10,out:500,cache_read:1500,cache_write:500,ms:4600,ttft_ms:500,status:i===3?429:200,err:i===3?"Request failed":undefined,priced:true,cost:0.02,req:"shared-model",served:"shared-model",ep:"/v1/chat/completions",speed:122,effort:"high",stop:"stop"}));
+const shares=[{...total,id:"shared-model",input:60000,output:12000},{...total,id:"vision-model",input:24000,output:6000}];
+const series=Array.from({length:7},(_,i)=>{const day=new Date(start);day.setDate(day.getDate()+i);return {...total,time:day.toISOString(),input:12000+i*1000,output:2000,cache_read:4000,cache_write:1000,calls:4+i,cost:0.04+i/100,by:{model:{"shared-model":{tokens:13000+i*1000,calls:3,cost:0.03},"vision-model":{tokens:6000,calls:1,cost:0.01}}}};});
+const prompt={window:128000,tokens:40000,counted:true,parts:[{kind:"system",tokens:5000,items:[{name:"prompt",tokens:5000}]},{kind:"tools",tokens:6000,items:[{name:"read",tokens:2200},{name:"powershell",tokens:3800}]},{kind:"memory",tokens:3000,items:[{name:"AGENTS.md",tag:"project",tokens:3000}]},{kind:"files",tokens:8000,items:[{name:"src/example.ts",tag:"read",tokens:8000}]},{kind:"results",tokens:4000,items:[{name:"test",tag:"shell",tokens:4000}]},{kind:"chat",tokens:14000,items:[{name:"1",tag:"turn",tokens:8000},{name:"2",tag:"turn",tokens:6000}]}]};
+const sessionRows:UsageSession[]=Array.from({length:16},(_,i)=>({...counts,id:"fixture-session-"+i,title:["检查文件导出流程","整理最近一周的记录","改进搜索结果"][i%3]+" "+(i+1),provider:"one",model:"shared-model",project:i%2?"project-one":"",createdAt:start.toISOString(),updatedAt:new Date(2026,9,10,14,i).toISOString(),archived:i===15,context:series.map(p=>({time:p.time,input:p.input,output:p.output,cache_read:p.cache_read})),tools:{read:10,powershell:6,edit:3},skills:{"code-review":1},roles:{user:6,assistant:6}}));
+export function usageFixture(method:string,payload:string):unknown|undefined{
+ // Other preview handlers receive null parameters legitimately. Dispatch
+ // before decoding so this fixture never intercepts configuration requests.
+ if(!["ai.usage.get","ai.usage.export","ai.accounts.quota","chat.catalog","chat.usage"].includes(method))return undefined;
+ const q=JSON.parse(payload||"{}")??{},offset=Number(q.offset)||0;
+ if(method==="ai.usage.get"||method==="ai.usage.export"){
+  const filtered=rows.filter(r=>(!q.provider||r.provider===q.provider)&&(!q.source||r.agent===q.source)&&(!q.model||r.model===q.model)&&(!q.failed||r.status>=400)&&(!q.query||r.model.includes(q.query)));
+  if(method==="ai.usage.export")return {state:"saved",path:"内存预览（模拟导出，不写磁盘）",rows:filtered.length};
+  const page:UsagePage={heatmap:fixtureHeatmap(),rows:filtered.slice(offset,offset+15),sum:total,by:{model:shares,provider:[{...total,id:"one"},{...total,id:"account"}],agent:[{...total,id:"winone"},{...total,id:"gateway"}],account:[{...total,id:"account"}]},total:filtered.length,offset,limit:15,series,bucket:"day",day:q.day,accounts:[{id:"account@account",account:"account",provider:"account"}],purposes:["chat"]};
+  const contextSessions=sessionRows.map((s,i)=>({agent:"one",key:s.id,title:s.title,model:s.model,first:s.createdAt,last:s.updatedAt,requests:7,peak:40000,window:128000,compacts:1,latest:prompt,latestId:i*10+7,points:series.map((p,n)=>({id:i*10+n+1,time:p.time,tokens:12000+n*4500,window:128000,cache:6000}))}));
+  return {...page,context:{agents:[{agent:"one",requests:36,sessions:16,errors:2,calls:36,median:24000,p90:40000,baseline:14000,window:128000,windowKnown:true,cache:.68,growth:4500,peakFill:.32,compacts:4,shares:Object.fromEntries(prompt.parts.map(p=>[p.kind,p.tokens/prompt.tokens])),mcp:0,score:81,scores:[{key:"cache",points:26,most:35},{key:"lean",points:19,most:25},{key:"pace",points:18,most:20},{key:"reliable",points:18,most:20}],tags:[{key:"cache-friendly",tone:"good"},{key:"compacts",tone:"info",value:4}],models:["shared-model"],latestId:7,latestTime:series[6].time}],sessions:contextSessions.slice(offset,offset+15)},contextTotal:contextSessions.length,contextRequests:contextSessions.flatMap(s=>s.points.map(p=>({id:p.id,time:p.time,agent:"one",session:s.key,model:s.model,prompt})))};
+ }
+ if(method==="ai.accounts.quota")return {quotas:[{provider:"codex",name:"ChatGPT",user:"preview@example.invalid",plan:"Preview plan",history:[{name:"5 小时",points:Array.from({length:6},(_,i)=>({at:new Date(Date.now()-(5-i)*3600000).toISOString(),left:92-i*4.9,start:new Date(Date.now()-5*3600000).toISOString(),resetsAt:new Date(Date.now()+3600000).toISOString()}))},{name:"每周",points:Array.from({length:6},(_,i)=>({at:new Date(Date.now()-(5-i)*86400000).toISOString(),left:80-i*9.64,start:new Date(Date.now()-5*86400000).toISOString(),resetsAt:new Date(Date.now()+3*86400000).toISOString()}))}],readAt:new Date().toISOString(),windows:[{name:"5 小时",used:32.5,resetsAt:new Date(Date.now()+3600000).toISOString()},{name:"每周",used:68.2,resetsAt:new Date(Date.now()+3*86400000).toISOString()}]}]};
+ if(method==="chat.catalog")return {projects:[{id:"project-one",name:"示例项目"}],conversations:sessionRows.map(s=>({id:s.id,title:s.title}))};
+ if(method==="chat.usage"){
+  const filtered=sessionRows.filter(s=>(!q.project||s.project===q.project)&&(!q.provider||s.provider===q.provider)&&(!q.query||s.title.includes(q.query)));
+  const page:SessionReport={rows:filtered.slice(offset,offset+15),sum:{...counts,sessions:filtered.length,calls:96,messages:192,input:224000,output:48000,cache_read:144000,cache_write:48000,activeMs:288*60000,cost:2.24},series:series.map(p=>({...counts,time:p.time.slice(0,10)})),by:{model:{"shared-model":counts},provider:{one:counts},project:{"project-one":counts},hour:Object.fromEntries([8,9,10,14,15,16,20].map(h=>[String(h).padStart(2,"0"),counts]))},total:filtered.length,offset,limit:15,median:29000,p90:41000,top:filtered.slice(0,15),tools:{read:160,powershell:96,edit:48},skills:{"code-review":16},warnings:[],shape:Object.fromEntries(["messages","minutes","autonomy"].map(key=>[key,{edges:key==="autonomy"?[0,1,3,6,11,21]:[1,6,16,31,61,121],counts:[1,3,6,4,2,0],total:16}]))};return page;
+ }
+ return undefined;
+}
+
+// Exactly 53 Monday-first weeks, like the upstream request heatmap.
+function fixtureHeatmap(){
+ const first=new Date(2025,9,6),last=new Date(2026,9,11);
+ const iso=(day:Date)=>[day.getFullYear(),String(day.getMonth()+1).padStart(2,"0"),String(day.getDate()).padStart(2,"0")].join("-");
+ return {from:iso(first),to:iso(last),days:Array.from({length:371},(_,index)=>{const day=new Date(first);day.setDate(day.getDate()+index);return {date:iso(day),calls:index%6===0?0:1+index%17,tokens:index%6===0?0:(1+index%17)*1400,cost:index%6===0?0:(1+index%17)*.004};})};
+}

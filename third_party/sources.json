@@ -114,15 +114,17 @@
     }
   },
   "wintray": {
-    "baseCommit": "dea17c108357109d6c2c04e80c9df45279bfdc51",
+    "baseCommit": "57789d13c9c2b451a71f51adfcf21d7b4e285690",
     "localFix": "2026-09-29 taskbar icon drag",
     "snapshotSha256": {
-      "internal/traybox/listener_windows.go": "8dfab4a92d6b908e188164cdddb1ae70e009f5331988043790b279b5934d7bf8",
-      "internal/traybox/listener_pointer_windows.go": "51c573006d9f5e4697daebd8d0f23ad7940d390e1246f0a41d74e0f304a5c594",
+      "internal/traybox/listener_windows.go": "368d54a40a29f25cd705fd90929a18b4c3f056e08f85ff0a9e335e2ad569eecc",
+      "internal/traybox/listener_pointer_windows.go": "e94c766fdd230cf19ae6531fc2fe2e1761a37c10012db6cb31485e76aec0db85",
       "internal/traybox/listener_pointer_windows_test.go": "23a5f7a0a70af3a2a3f20ac129e7882dde74ae24f2f854ab2033cc19f9d3cd06",
       "internal/traybox/taskbar_drag_live_windows_test.go": "f0198987ad68366e78669d156adfe0a3c1c7833b8b3329b56b83b5c6c9a3e651",
       "internal/traybox/testdata/taskbar_drag.ps1": "3966edae8eeee8c1d30f8c68e4818520dedbef107c153274ea2df62d58312c79"
-    }
+    },
+    "previousBaseCommit": "dea17c108357109d6c2c04e80c9df45279bfdc51",
+    "adaptation": "WinOne hosted menus and unified logs; private data directory, bounded recovery pipes and final process exit; latest tray registration combined with process/window identity checks."
   },
   "sharex": {
     "repository": "https://github.com/ShareX/ShareX",
@@ -136,5 +138,25 @@
     "repository": "https://github.com/microsoft/PowerToys",
     "commit": "d1362dcd60746b36f718eddf082738987910f6db",
     "patch": "patches/powertoys-build-paths.patch"
+  },
+  "magpie": {
+    "repository": "https://github.com/yetone/magpie",
+    "commit": "0bb0781ea065b5236a9a0014bceb84cb84324895",
+    "license": "MIT",
+    "dependencyLocks": ["modules/ai-magpie/upstream.go.mod", "modules/ai-magpie/upstream.go.sum"],
+    "adapter": "modules/ai-magpie",
+    "build": "build/build-ai.ps1",
+    "verification": "docs/2026-10-13-Chat后端与Magpie验收.md"
+  },
+  "providerAvatars": {
+    "repository": "https://github.com/yetone/magpie",
+    "commit": "a8ca7908556ead568c3d3a72e6e58e7e11852caa",
+    "sources": [
+      "internal/provider/icon.go",
+      "internal/provider/favicon.go",
+      "internal/gui/assets/app.js (iconPicker, headerEditor)"
+    ],
+    "adaptation": "Direct calls to Magpie picture storage, HTTPS fetching and favicon discovery. React adapts its picker and headers with existing WinOne controls and Cindy collapse; picture URL is an additional source. Native ICO decoding uses github.com/fyne-io/image v0.1.1; licenses are in result-ui-notices.json.",
+    "nativeAdaptation": "build/result-ui-overlay.ps1 patches Fyne v0.1.1 only in its isolated build copy: ICO zero dimension means 256 pixels, including alpha-mask loops. The original module cache is unchanged."
   }
 }

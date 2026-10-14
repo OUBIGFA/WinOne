@@ -38,7 +38,7 @@ internal static class NativeRecoveryTests
                     canvas.AddRectangle(new Rectangle(120, 120, 100, 80));
                     session.RestoreText(new NativeTextInputState(null, "重启继续编辑", 140, 150, 240, 50, 190, 24, Color.Red.ToArgb(), 2, 2));
                     stopping.Cancel();
-                }), drafts: drafts);
+                }), drafts: drafts).GetAwaiter().GetResult();
             throw new Exception("Interrupted capture reported completion");
         } catch (OperationCanceledException) { }
         var preserved = new NativeCaptureDraftStore(directory).Read() ?? throw new Exception("Interrupted capture did not preserve a draft");
@@ -50,12 +50,12 @@ internal static class NativeRecoveryTests
                 if (canvas.AnnotationCount != 1 || session.TextInput?.Text != "重启继续编辑" || session.TextInput.SelectionStart != 2)
                     throw new Exception("Recovered session did not restore inline editing");
                 SendMessageW(canvas.Window.Handle, 0x0203, IntPtr.Zero, IntPtr.Zero);
-            }), drafts: new NativeCaptureDraftStore(directory));
+            }), drafts: new NativeCaptureDraftStore(directory)).GetAwaiter().GetResult();
         if (copies != 1 || drafts.Read() is not null || drafts.ReadReservation() is not null || reads != 1)
             throw new Exception("Recovery confirmation duplicated output or retained a completed draft");
         try {
             NativeCaptureWorkflow.Run(settings, operations, "region", null, CancellationToken.None, Acquire,
-                show: (canvas, session) => Show(canvas, session, () => SendMessageW(canvas.Window.Handle, 0x0205, IntPtr.Zero, IntPtr.Zero)), drafts: drafts);
+                show: (canvas, session) => Show(canvas, session, () => SendMessageW(canvas.Window.Handle, 0x0205, IntPtr.Zero, IntPtr.Zero)), drafts: drafts).GetAwaiter().GetResult();
             throw new Exception("Right-click cancellation reported success");
         } catch (OperationCanceledException) { }
         if (drafts.Read() is not null || drafts.ReadReservation() is not null || copies != 1)
@@ -101,7 +101,7 @@ internal static class NativeRecoveryTests
                     };
                     timeout.Start(); canvas.ShowDialog(); timeout.Stop();
                     if (failure is not null) throw failure;
-                }, drafts: store);
+                }, drafts: store).GetAwaiter().GetResult();
         } finally { if (File.Exists(ledger)) File.SetAttributes(ledger, FileAttributes.Normal); }
         if (!retried || copies != 1 || store.Read() is not null) throw new Exception("Close retry duplicated output or retained the completed draft");
         Console.WriteLine("PASS: retirement failure keeps the same canvas open; retry closes without copying again");
@@ -167,7 +167,7 @@ internal static class NativeRecoveryTests
                     };
                     timeout.Start(); canvas.ShowDialog(); timeout.Stop();
                     if (failure is not null) throw failure;
-                }, drafts: store);
+                }, drafts: store).GetAwaiter().GetResult();
             if (copies != 1 || store.Read() is not null) throw new Exception("Changed-display recovery did not finish exactly once");
         }
         Console.WriteLine("PASS: smaller/larger previous displays recover editable layers and inline text at original output size");

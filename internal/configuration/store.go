@@ -25,6 +25,10 @@ type Document struct {
 	Values          map[string]json.RawMessage `json:"values"`
 	ModuleEnabled   map[string]bool            `json:"moduleEnabled,omitempty"`
 	DeferredModules map[string]json.RawMessage `json:"deferredModules,omitempty"`
+	// RetainedModules contains local settings kept after uninstall. Unlike
+	// DeferredModules imported from a profile, these are never portable data.
+	RetainedModules map[string]json.RawMessage `json:"retainedModules,omitempty"`
+	BuiltinVersion  int                        `json:"builtinVersion,omitempty"`
 }
 type diskState struct {
 	Committed Document  `json:"committed"`
@@ -46,10 +50,15 @@ type Store struct {
 type Apply func(Document) error
 
 func Open(path string, defaults Document, validate func(Document) error) (*Store, error) {
+	return openStore(path, defaults, validate, nil)
+}
+
+func openStore(path string, defaults Document, validate func(Document) error, upgrade func(Document) (Document, bool, error)) (*Store, error) {
 	if validate == nil {
 		return nil, errors.New("配置校验器缺失")
 	}
 	state := diskState{Committed: clone(defaults)}
+	var original []byte
 	file, err := os.Open(path)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, err
@@ -67,6 +76,28 @@ func Open(path string, defaults Document, validate func(Document) error) (*Store
 		if err = configjson.DecodeObject(data, &state); err != nil {
 			return nil, err
 		}
+		original = data
+	}
+	backupSuffix := ".before-stroke.bak"
+	if state.Committed.BuiltinVersion < 2 {
+		backupSuffix = ".before-selection.bak"
+	} else if state.Committed.BuiltinVersion < 3 {
+		backupSuffix = ".before-quick-assistant.bak"
+	}
+	changed := false
+	if upgrade != nil {
+		state.Committed, changed, err = upgrade(state.Committed)
+		if err != nil {
+			return nil, err
+		}
+		if state.Pending != nil {
+			next, pendingChanged, upgradeErr := upgrade(*state.Pending)
+			if upgradeErr != nil {
+				return nil, upgradeErr
+			}
+			state.Pending = &next
+			changed = changed || pendingChanged
+		}
 	}
 	store := &Store{path: path, validate: validate, state: state}
 	if err = store.check(state.Committed); err != nil {
@@ -78,6 +109,14 @@ func Open(path string, defaults Document, validate func(Document) error) (*Store
 		}
 		if state.Committed.Revision == math.MaxUint64 || state.Pending.Revision != state.Committed.Revision+1 {
 			return nil, errors.New("配置恢复版本不匹配")
+		}
+	}
+	if changed && original != nil {
+		if err = settings.PreserveMigrationBackup(path+backupSuffix, original); err != nil {
+			return nil, err
+		}
+		if err = store.persist(state); err != nil {
+			return nil, err
 		}
 	}
 	return store, nil
@@ -92,6 +131,12 @@ func clone(source Document) Document {
 			result.DeferredModules[id] = append(json.RawMessage(nil), raw...)
 		}
 	}
+	if source.RetainedModules != nil {
+		result.RetainedModules = make(map[string]json.RawMessage, len(source.RetainedModules))
+		for id, raw := range source.RetainedModules {
+			result.RetainedModules[id] = append(json.RawMessage(nil), raw...)
+		}
+	}
 	if source.Values != nil {
 		result.Values = make(map[string]json.RawMessage, len(source.Values))
 		for id, data := range source.Values {
@@ -102,7 +147,7 @@ func clone(source Document) Document {
 }
 
 func (s *Store) check(value Document) error {
-	if value.SchemaVersion != 1 || value.Values == nil {
+	if value.SchemaVersion != 1 || value.Values == nil || value.BuiltinVersion < 0 || value.BuiltinVersion > 4 {
 		return errors.New("配置格式无效")
 	}
 	for id, data := range value.Values {
@@ -122,6 +167,15 @@ func (s *Store) check(value Document) error {
 		}
 		if _, exists := value.Values[id]; exists {
 			return errors.New("待安装模块配置与当前模块冲突")
+		}
+	}
+	for id, raw := range value.RetainedModules {
+		var retained retainedPackageSettings
+		if !catalog.ValidOptionalID(id) || len(raw) > 2<<20 || configjson.DecodeObject(raw, &retained) != nil || retained.SchemaVersion < 1 || configjson.ValidateObject(retained.Settings) != nil {
+			return errors.New("保留的模块配置无效")
+		}
+		if _, exists := value.Values[id]; exists {
+			return errors.New("保留的模块配置与当前模块冲突")
 		}
 	}
 	return s.validate(clone(value))
@@ -156,6 +210,12 @@ func (s *Store) persist(state diskState) error {
 func (s *Store) Commit(next Document, apply Apply) (Document, error) {
 	s.operation.Lock()
 	defer s.operation.Unlock()
+	return s.commit(next, apply)
+}
+
+// commit also serves catalog changes that already hold operation, so adapter
+// registration and its durable preference transaction cannot interleave.
+func (s *Store) commit(next Document, apply Apply) (Document, error) {
 	previous := s.Snapshot()
 	if s.NeedsRecovery() {
 		return previous, ErrRecoveryRequired

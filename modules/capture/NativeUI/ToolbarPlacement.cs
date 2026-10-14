@@ -10,8 +10,14 @@ internal static class ToolbarPlacement
         if (area.Width < 1 || area.Height < 1) throw new ArgumentException("Monitor area is too small");
         var size = new Size(Math.Min(preferred.Width, area.Width), Math.Min(preferred.Height, area.Height));
         var y = requested?.Y ?? selection.Bottom + 8;
-        if (requested is null && y + size.Height > area.Bottom) y = selection.Top - size.Height - 8;
-        return new Rectangle(Math.Clamp(requested?.X ?? selection.Left, area.Left, area.Right - size.Width),
+        var x = requested?.X ?? selection.Left + (selection.Width - size.Width) / 2;
+        // Keep the default near the lower edge. When there is no room below,
+        // anchor inside the bottom-right instead of jumping to the top-left.
+        if (requested is null && y + size.Height > area.Bottom) {
+            y = selection.Bottom - size.Height - 8;
+            x = selection.Right - size.Width - 8;
+        }
+        return new Rectangle(Math.Clamp(x, area.Left, area.Right - size.Width),
             Math.Clamp(y, area.Top, area.Bottom - size.Height), size.Width, size.Height);
     }
 }

@@ -17,11 +17,11 @@ export function ResidencyStatus() {
     };
     void refresh();return()=>{cancelled=true;clearTimeout(timer);};
   },[]);
-  return <div className="footnote">
-    <h2>{t("wintray.residency")}</h2>
+  return <div className="settings-state-panel">
+    <h3 className="settings-group-title">{t("wintray.residency")}</h3>
     {error ? <InlineError>{error}</InlineError> : state && <>
       <p>{t(state.requested ? "wintray.exitRequested" : "wintray.exitHint")}</p>
-      {state.reasons.length>0 && <ul>{state.reasons.map(reason=><li key={reason}>{reason}</li>)}</ul>}
+      {state.reasons.length>0 && <ul>{state.reasons.map(reason=><li key={reason}>{reason==="ai-gateway"?t("gateway.title"):reason}</li>)}</ul>}
     </>}
   </div>;
 }

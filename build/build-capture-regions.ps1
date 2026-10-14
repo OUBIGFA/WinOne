@@ -1,7 +1,8 @@
-param([string]$MSBuild, [string]$PlatformToolset, [switch]$TestLifetime, [string]$OutputDirectory = 'dist/build/capture')
+param([string]$MSBuild, [string]$PlatformToolset, [switch]$TestLifetime, [string]$OutputDirectory = '_temp/build/current/capture')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $output = if ([IO.Path]::IsPathRooted($OutputDirectory)) { [IO.Path]::GetFullPath($OutputDirectory) } else { [IO.Path]::GetFullPath((Join-Path $root $OutputDirectory)) }
+& (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $output
 & git -C $root check-ignore -q --no-index -- (Join-Path $output 'regions-output.probe')
 if ($LASTEXITCODE -ne 0) { throw 'OutputDirectory must be Git-ignored' }
 if (-not $MSBuild) {

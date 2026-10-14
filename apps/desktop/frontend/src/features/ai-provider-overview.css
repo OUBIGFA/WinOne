@@ -1,0 +1,13 @@
+/* Shared button primitives supply interaction, focus and theme behavior.
+   This section owns only the compact provider-summary layout. */
+.ai-provider-summary { display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px; min-width:0; padding:0 0 10px; border-bottom:1px solid var(--color-border); }
+.ai-provider-summary-heading { display:flex; flex:none; flex-wrap:wrap; align-items:baseline; gap:4px 12px; max-width:100%; }
+.ai-provider-summary-heading h2 { margin:0; font-size:14px; line-height:1.5; font-weight:500; }
+.ai-provider-summary-heading p { margin:0; font-size:14px; line-height:1.5; color:var(--color-muted-foreground); }
+.ai-provider-summary-list { display:flex; flex:1 1 320px; flex-wrap:wrap; gap:6px; margin:0; padding:0; list-style:none; min-width:0; }
+.ai-provider-summary-list li { max-width:100%; min-width:0; }
+.ai-provider-summary-link { display:flex; height:32px; max-width:100%; gap:6px; padding:0 8px; border-radius:999px; font-size:14px; font-weight:400; background:transparent; }
+.ai-provider-summary-link > .ai-provider-icon { flex:none; width:18px; height:18px; }
+.ai-provider-summary-name { min-width:0; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ai-provider-summary-models { flex:none; color:var(--color-muted-foreground); font-variant-numeric:tabular-nums; }
+.ai-provider-summary-link > svg:last-child { color:var(--color-muted-foreground); }

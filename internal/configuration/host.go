@@ -18,6 +18,8 @@ type HostStore struct {
 	store        *Store
 	apply        func(settings.Settings) error
 	modules      []ModuleAdapter
+	catalogMu    sync.RWMutex
+	registered   map[string]ModuleAdapter
 	moduleErrors map[string]error
 	lifecycle    *ModuleLifecycle
 	recoveryMu   sync.RWMutex
@@ -39,7 +41,7 @@ func OpenHostWithLifecycle(directory string, lifecycle ModuleLifecycle, adapters
 func openHost(directory string, lifecycle *ModuleLifecycle, adapters ...ModuleAdapter) (*HostStore, error) {
 	registered := map[string]ModuleAdapter{}
 	for _, adapter := range adapters {
-		if !catalog.ValidID(adapter.ID) || adapter.ID == "host" || adapter.Load == nil || adapter.Validate == nil || adapter.Apply == nil {
+		if !catalog.ValidID(adapter.ID) || adapter.ID == "host" || adapter.PackageSchemaVersion < 0 || (adapter.PackageSchemaVersion > 0 && (!catalog.ValidOptionalID(adapter.ID) || lifecycle == nil)) || (adapter.Unavailable != nil && (!catalog.ValidOptionalID(adapter.ID) || lifecycle == nil)) || (adapter.Unavailable == nil && (adapter.Load == nil || adapter.Validate == nil || adapter.Apply == nil)) {
 			return nil, errors.New("模块配置适配器无效")
 		}
 		if _, exists := registered[adapter.ID]; exists {
@@ -67,23 +69,25 @@ func openHost(directory string, lifecycle *ModuleLifecycle, adapters ...ModuleAd
 			return nil, err
 		}
 	}
+	result := &HostStore{modules: append([]ModuleAdapter(nil), adapters...), registered: registered, moduleErrors: map[string]error{}, lifecycle: lifecycle}
 	validate := func(document Document) error {
-		var enabled map[string]bool
-		if lifecycle != nil {
-			enabled = lifecycle.Initial
-		}
-		return validateRegisteredDocument(document, registered, enabled)
+		_, current, enabled := result.moduleCatalog()
+		return validateRegisteredDocument(document, current, enabled)
 	}
-	store, err := Open(path, initial, validate)
+	store, err := openStore(path, initial, validate, func(document Document) (Document, bool, error) { return upgradeSelectionDocument(document, registered) })
 	if err != nil {
 		return nil, err
 	}
 	if migrate {
-		if err = store.persist(diskState{Committed: initial}); err != nil {
+		if err = store.persist(diskState{Committed: store.Snapshot()}); err != nil {
 			return nil, err
 		}
 	}
-	result := &HostStore{store: store, modules: append([]ModuleAdapter(nil), adapters...), moduleErrors: map[string]error{}, lifecycle: lifecycle}
+	result.store = store
+	if err = result.unavailableRecovery(); err != nil {
+		result.startupError = err
+		return result, err
+	}
 	if err = store.Recover(result.applyDocument); err != nil {
 		result.startupError = err
 		return result, err
@@ -95,10 +99,20 @@ func openHost(directory string, lifecycle *ModuleLifecycle, adapters ...ModuleAd
 		changed = true
 	}
 	for _, adapter := range adapters {
+		if adapter.Unavailable != nil {
+			result.moduleErrors[adapter.ID] = adapter.Unavailable
+			continue
+		}
+		if adapter.PackageSchemaVersion > 0 {
+			if _, exists := document.ModuleEnabled[adapter.ID]; !exists {
+				document.ModuleEnabled[adapter.ID] = false
+				changed = true
+			}
+		}
 		if _, exists := document.Values[adapter.ID]; exists {
 			continue
 		}
-		raw, loadErr := adapter.Load()
+		raw, loadErr := moduleInitialSettings(document, adapter)
 		if loadErr == nil {
 			loadErr = adapter.Validate(raw)
 		}
@@ -107,6 +121,9 @@ func openHost(directory string, lifecycle *ModuleLifecycle, adapters ...ModuleAd
 			continue
 		}
 		document.Values[adapter.ID] = append(json.RawMessage(nil), raw...)
+		if adapter.PackageSchemaVersion > 0 {
+			delete(document.RetainedModules, adapter.ID)
+		}
 		changed = true
 	}
 	prepared, normalized, prepareErr := result.prepareDocument(document)
@@ -169,6 +186,12 @@ func (s *HostStore) SetApply(apply func(settings.Settings) error) { s.apply = ap
 
 func (s *HostStore) Save(next settings.Settings) (settings.Settings, error) {
 	document := s.store.Snapshot()
+	if next.QuickAssistantShortcut == nil {
+		next.QuickAssistantShortcut = hostValue(document).QuickAssistantShortcut
+	}
+	if next.SelectionShortcut == nil {
+		next.SelectionShortcut = hostValue(document).SelectionShortcut
+	}
 	if next.Language == "" {
 		next.Language = hostValue(document).Language
 	}
