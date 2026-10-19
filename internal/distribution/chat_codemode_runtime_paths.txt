@@ -1,0 +1,15 @@
+shared/chat/codemode-worker.js
+shared/chat/quickjs.wasm
+shared/chat/licenses/chat-codemode-notices.json
+shared/chat/licenses/pi-1.3.0-LICENSE.txt
+shared/chat/licenses/quickjs-wasi-3.6.2-LICENSE.txt
+shared/chat/licenses/quickjs-ng-6d46d07-LICENSE.txt
+shared/chat/licenses/quickjs-wasi-libc-2fc32bc-dlmalloc-src-malloc.c.txt
+shared/chat/licenses/quickjs-wasi-libc-2fc32bc-fts-musl-fts-COPYING.txt
+shared/chat/licenses/quickjs-wasi-libc-2fc32bc-libc-bottom-half-cloudlibc-LICENSE.txt
+shared/chat/licenses/quickjs-wasi-libc-2fc32bc-libc-top-half-musl-COPYRIGHT.txt
+shared/chat/licenses/quickjs-wasi-libc-2fc32bc-LICENSE-APACHE-LLVM.txt
+shared/chat/licenses/quickjs-wasi-libc-2fc32bc-LICENSE-APACHE.txt
+shared/chat/licenses/quickjs-wasi-libc-2fc32bc-LICENSE-MIT.txt
+shared/chat/licenses/quickjs-wasi-libc-2fc32bc-LICENSE.txt
+shared/chat/licenses/quickjs-compiler-rt-4434dab-LICENSE.txt
