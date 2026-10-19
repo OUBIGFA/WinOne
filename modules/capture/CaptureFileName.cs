@@ -6,6 +6,18 @@ namespace WinOne.Capture;
 
 internal static class CaptureFileName
 {
+    // Recording keeps the user's screenshot template. The type goes before
+    // the conventional completion suffix, not after the file extension.
+    public static string RenderRecording(string? template, DateTime at, string format)
+    {
+        var marker = format switch { "mp4" => "Video", "gif" => "GIF", _ => throw new ArgumentException("不支持的录制格式", nameof(format)) };
+        var name = Path.GetFileNameWithoutExtension(Render(template, at));
+        name = name.EndsWith("-OK", StringComparison.OrdinalIgnoreCase)
+            ? name[..^3] + "-" + marker + name[^3..] : name + "-" + marker;
+        if (Encoding.UTF8.GetByteCount(name) > 240) throw new InvalidDataException("录制文件名过长，请缩短文件名模板");
+        return name + "." + format;
+    }
+
     public static string Render(string? template, DateTime at, int sequence = 1)
     {
         var useDefault = string.IsNullOrEmpty(template);

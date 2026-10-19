@@ -1,19 +1,28 @@
-/* The kit owns all tab/control paint, spacing and typography. Host rules below
-   only allocate panes, truncate business labels and size document surfaces. */
-.chat-side-panel.client-right-panel{width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;position:relative;inset:auto;border-left:0;padding:0}
-.chat-side-panel.client-right-panel.chat-side-panel--fullscreen{position:fixed;inset:40px 0 0;z-index:40;height:auto;width:auto}
-/* The upstream demo has one tab; allocation/truncation below admits retained
-   Host tabs without repainting the original capsule or its controls. */
-.chat-side-panel .chat-pane-tabstrip{flex:1;min-width:0;height:100%;padding:0;border:0;overflow-x:auto;scrollbar-width:none}
-.chat-side-panel .chat-pane-tabstrip::-webkit-scrollbar{display:none}
-.chat-side-panel .chat-pane-tabstrip>.client-browser-tab{width:max-content;max-width:min(238px,100%);min-width:0;flex:0 0 auto}
-.chat-side-panel .client-browser-tab:has([aria-selected=false]){background:#fff;color:#525252}
-.chat-pane-tab-target>span{max-width:170px}
-.chat-side-panel .client-tabbar>.desktop-action-tooltip{flex:none}
-.chat-pane-tab-target{display:flex;align-items:center;gap:6px;flex:1;min-width:0;border:0;padding:0;background:transparent;color:inherit;font:inherit;text-align:left}
-.chat-pane-tab-target>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chat-pane-tab-target>svg,.chat-pane-tab-target>small{flex:none}
-.chat-pane-tab-target:focus-visible{outline:2px solid var(--desktop-color-focus);outline-offset:2px}
+/* Cindy Windows sidebar: flat tab chrome above the retained plugin bodies. */
+.chat-desktop-surface .chat-side-panel{display:flex;flex-direction:column;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;position:relative;inset:auto;border:0;padding:0;background:var(--panel-bg);color:var(--text-primary);font-family:var(--app-font-ui-default);font-size:13px}
+.chat-desktop-surface .chat-side-panel--fullscreen{position:fixed;inset:40px 0 0;z-index:40;height:auto;width:auto}
+.chat-side-panel [role=tab]{min-width:0}
+.chat-side-panel .scrollbar-hide{scrollbar-width:none}.chat-side-panel .scrollbar-hide::-webkit-scrollbar{display:none}
+.cindy-panel-popup{font-family:var(--app-font-ui-default);--color-sidebar-item-hover:var(--sidebar-item-hover)}
+.chat-panel-section-switch{display:flex;align-items:center;flex:none;min-width:0;padding:6px 8px}
+/* Compose Cindy's full-width control; only geometry and gray tokens change.
+   Equal fixed fractions make the two regions identifiable even in narrow panes. */
+.chat-panel-major-tabs{--segmented-track:transparent;--segmented-selected-bg:var(--chat-hover-bg);--segmented-selected-border:var(--border-default);--segmented-selected-shadow:none;min-width:0;overflow:hidden;border:1px solid var(--border-default);border-radius:3px;padding:0;gap:0}
+.chat-panel-major-tabs .cindy-segmented-plate{border:0;border-radius:0;box-shadow:none}
+.chat-panel-major-tabs .cindy-segmented-option{flex:1 1 0;min-width:0;font-size:13px;padding-inline:6px;border-radius:0;overflow:hidden;text-overflow:ellipsis;justify-content:center;text-align:center}
+.chat-panel-major-tabs .cindy-segmented-option+.cindy-segmented-option{border-left:1px solid var(--border-default)}
+.chat-panel-major-tabs .cindy-segmented-option[data-selected=true]{color:var(--text-primary)}
+.chat-panel-section{display:flex;flex:1;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
+.chat-panel-section[hidden]{display:none}
+.chat-library-toolbar{display:flex;flex:none;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:4px;padding:0 8px 4px;min-width:0;border-bottom:1px solid var(--border-default)}
+.chat-library-tabs{--segmented-track:transparent;--segmented-selected-bg:var(--chat-hover-bg);--segmented-selected-border:var(--border-default);--segmented-selected-shadow:none;min-width:0;overflow:hidden;flex-basis:100%;border:1px solid var(--border-default)}
+.chat-library-tabs .cindy-segmented-option{font-size:13px;min-width:0;flex:1 1 0;justify-content:center;text-align:center}
+.chat-library-actions{display:flex;align-items:center;gap:2px;flex:none;margin-left:auto}
+.chat-panel-content{display:flex;flex-direction:column;overflow:hidden}
+.cindy-file-document{position:relative;display:flex;flex:1;flex-direction:column;min-width:0;min-height:0;height:100%}
+.cindy-file-editor{display:flex;flex:1;min-width:0;min-height:0;height:100%}
+.cindy-file-floating-actions{position:absolute;right:18px;top:14px;z-index:10;display:flex;align-items:center;gap:8px;max-width:calc(100% - 36px)}
+.cindy-file-floating-actions>[role=search]{max-width:100%}
 .chat-panel-contents{flex:1;min-height:0;min-width:0;position:relative}
 .chat-panel-content{height:100%;min-height:0;min-width:0}.chat-panel-content[hidden]{display:none}
 .chat-panel-content>.desktop-internal-scroll{height:100%}
@@ -63,7 +72,7 @@
 .chat-diff-number{display:inline-block;width:42px;text-align:right;padding-right:8px;color:var(--muted-foreground);user-select:none}.chat-diff-table.split td{width:50%;border-right:1px solid var(--border)}
 .chat-review-metadata{padding:12px;white-space:pre-wrap;overflow-wrap:anywhere}.chat-review-commit{border-top:1px solid var(--border);border-bottom:0}.chat-review-commit>label{display:flex;align-items:center;gap:4px;font-size:12px}
 @container(max-width:420px){.chat-review-files{flex-basis:100px}.chat-review-toolbar{gap:2px}}
-.chat-file-preview{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.chat-file-preview{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:var(--chat-raised-bg,var(--popover));color:var(--text-primary,var(--foreground))}
 .chat-code-editor{flex:1;min-width:0;min-height:0;overflow:hidden}
 .chat-preview-markdown{flex:1;min-height:0;overflow:auto;padding:24px}
 .chat-preview-feedback{padding:12px;color:var(--muted-foreground);font-size:13px;overflow-wrap:anywhere}

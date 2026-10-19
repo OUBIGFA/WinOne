@@ -36,14 +36,14 @@ internal static class Program
                     await Task.Delay(10);
                 }
                 var clipboardBefore = GetClipboardSequenceNumber();
-                async Task<JsonElement> Read(string name, uint? overridePid = null, int[]? point = null) {
+                async Task<JsonElement> Read(string name, uint? overridePid = null, int[]? point = null, int[]? origin = null) {
                     var info = new ProcessStartInfo(reader) { UseShellExecute = false, CreateNoWindow = true,
                         RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
                         StandardInputEncoding = new UTF8Encoding(false), StandardOutputEncoding = new UTF8Encoding(false) };
                     var clock = Stopwatch.StartNew();
                     info.Environment["WINONE_SELECTION_DIAGNOSTICS"] = "1";
                     using var process = Process.Start(info) ?? throw new Exception("Reader did not start");
-                    await process.StandardInput.WriteAsync(JsonSerializer.Serialize(new { window = (ulong)form.Handle, pid = overridePid ?? (uint)Environment.ProcessId, point }));
+                    await process.StandardInput.WriteAsync(JsonSerializer.Serialize(new { window = (ulong)form.Handle, pid = overridePid ?? (uint)Environment.ProcessId, point, origin }));
                     process.StandardInput.Close();
                     var stdout = process.StandardOutput.ReadToEndAsync();
                     var stderr = process.StandardError.ReadToEndAsync();
@@ -54,7 +54,7 @@ internal static class Program
                     File.WriteAllText(Path.Combine(output, name + "-metadata.log"), await stderr);
                     using var document = JsonDocument.Parse(await stdout);
                     var result = document.RootElement.Clone();
-                    results.Add(new { name, milliseconds = clock.Elapsed.TotalMilliseconds, result });
+                    results.Add(new { name, milliseconds = clock.Elapsed.TotalMilliseconds, result, sourceSelectionStart = text.SelectionStart, sourceSelectionLength = text.SelectionLength, sourceFocused = text.Focused, sourceHandle = text.Handle.ToInt64() });
                     return result;
                 }
                 for (var i = 0; i < 4; i++) {
@@ -83,7 +83,7 @@ internal static class Program
                 await browser.EnsureCoreWebView2Async(environment);
                 var loaded = new TaskCompletionSource();
                 browser.CoreWebView2.NavigationCompleted += (_, e) => { if (e.IsSuccess) loaded.TrySetResult(); else loaded.TrySetException(new Exception("Fixture page failed")); };
-                browser.NavigateToString("<html><body><p tabindex='0' id='source'>Browser selected text</p><input id='password' type='password' value='browser-secret'></body></html>");
+                browser.NavigateToString("<html><body><p tabindex='0' id='source'>Browser selected text</p><p id='mixed'>Before <a id='link' href='#local'>linked text</a> after</p><button id='other'>Other focus</button><input id='password' type='password' value='browser-secret'></body></html>");
                 await loaded.Task.WaitAsync(TimeSpan.FromSeconds(10));
                 browser.Focus();
                 var browserSelected = await browser.CoreWebView2.ExecuteScriptAsync("(()=>{const p=document.querySelector('#source');p.focus();const r=document.createRange();r.setStart(p.firstChild,8);r.setEnd(p.firstChild,16);const s=getSelection();s.removeAllRanges();s.addRange(r);return s.toString();})()");
@@ -92,6 +92,24 @@ internal static class Program
                 var browserAgain = await Read("browser-text-again");
                 if (browserText.GetProperty("status").GetString() != "selected" || browserText.GetProperty("text").GetString() != "selected") throw new Exception("Browser selection failed: " + browserText);
                 if (browserAgain.GetProperty("status").GetString() != "selected" || browserAgain.GetProperty("text").GetString() != "selected") throw new Exception("Repeated browser selection changed");
+                // Real Chromium UIA: a focused inline hyperlink must not hide
+                // or truncate a document range that crosses the link boundary.
+                foreach (var scenario in new[] { "across-link", "inside-link", "pointer-other-focus" }) {
+                    var setup = await browser.CoreWebView2.ExecuteScriptAsync("(()=>{const p=document.querySelector('#mixed'),a=document.querySelector('#link');a.focus();const r=document.createRange();" +
+                        (scenario == "inside-link" ? "r.setStart(a.firstChild,0);r.setEnd(a.firstChild,6);" : "r.selectNodeContents(p);") +
+                        "const s=getSelection();s.removeAllRanges();s.addRange(r);" + (scenario == "pointer-other-focus" ? "document.querySelector('#other').focus();" : "") +
+                        "const b=r.getBoundingClientRect(),d=devicePixelRatio;return {text:s.toString(),x:(b.left+3)*d,y:(b.top+b.height/2)*d};})()");
+                    using var selectedRange = JsonDocument.Parse(setup);
+                    var expected = selectedRange.RootElement.GetProperty("text").GetString();
+                    var startPoint = browser.PointToScreen(new Point((int)selectedRange.RootElement.GetProperty("x").GetDouble(), (int)selectedRange.RootElement.GetProperty("y").GetDouble()));
+                    var hit = new[] { startPoint.X, startPoint.Y };
+                    var value = await Read("browser-" + scenario, point: hit, origin: hit);
+                    if (value.GetProperty("status").GetString() != "selected" || value.GetProperty("text").GetString() != expected)
+                        throw new Exception("Hyperlink selection failed: " + scenario + " " + value);
+                }
+                await browser.CoreWebView2.ExecuteScriptAsync("getSelection().removeAllRanges();document.querySelector('#link').focus()");
+                if ((await Read("browser-link-without-selection")).GetProperty("status").GetString() == "selected")
+                    throw new Exception("Focusing a hyperlink exposed unselected text");
                 var browserPassword = await browser.CoreWebView2.ExecuteScriptAsync("(()=>{getSelection().removeAllRanges();const p=document.querySelector('#password');p.focus();p.select();return document.activeElement.id;})()");
                 if (browserPassword != "\"password\"") throw new Exception("Browser fixture did not focus the password field");
                 if ((await Read("browser-password")).GetProperty("status").GetString() != "sensitive") throw new Exception("Browser password not rejected");

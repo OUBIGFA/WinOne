@@ -11,6 +11,9 @@ $GoExe=(Get-Command $GoExe -ErrorAction Stop).Source
 & git -C $root check-ignore -q --no-index -- (Join-Path $output 'build-output.probe')
 if($LASTEXITCODE -ne 0){throw 'WinTray output must be Git-ignored'}
 New-Item -ItemType Directory -Path $output -Force | Out-Null
+# The new tray collector needs both target-process architectures. ABI probes
+# load only the private test DLL; they do not hook the user's Explorer.
+& (Join-Path $PSScriptRoot 'build-wintray-native.ps1') -OutputDir (Join-Path $output 'native') -Test
 Push-Location $root
 try {
     & $GoExe run ./build/icon -out internal/branding/icon.ico

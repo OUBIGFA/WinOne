@@ -13,6 +13,7 @@ $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 function Absolute([string]$value) { if ([IO.Path]::IsPathRooted($value)) { [IO.Path]::GetFullPath($value) } else { [IO.Path]::GetFullPath((Join-Path $root $value)) } }
 $output = Absolute $OutputDirectory
+$readerDirectory = Join-Path (Split-Path -Parent $output) ((Split-Path -Leaf $output) + '-reader')
 & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $output
 $target = Absolute $TargetDirectory
 & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $target -ReusableCache
@@ -29,10 +30,10 @@ try {
     $env:WINONE_SELECTION_NATIVE_ONLY = if ($NativeOnly) { '1' } else { '0' }
     # Cargo uses stderr for normal progress. Exit codes define success.
     $ErrorActionPreference = 'Continue'
-    & (Join-Path $root 'build/build-selection.ps1') -CargoExe $cargo -GoExe $GoExe -TargetDirectory $target -OutputDirectory (Join-Path $target 'package')
+    & (Join-Path $root 'build/build-selection.ps1') -CargoExe $cargo -GoExe $GoExe -TargetDirectory $target -OutputDirectory $readerDirectory
     & $DotnetExe build (Join-Path $root 'tests/selection-probe/SelectionProbe.csproj') -c Release -p:RestoreLockedMode=true --nologo -v:q
     if ($LASTEXITCODE -ne 0) { throw 'Selection fixture build failed' }
-    & (Join-Path $root 'tests/selection-probe/bin/Release/net10.0-windows/WinOne.Selection.Probe.exe') --reader (Join-Path $target 'package/WinOne.Selection.exe') --output $output
+    & (Join-Path $root 'tests/selection-probe/bin/Release/net10.0-windows/WinOne.Selection.Probe.exe') --reader (Join-Path $readerDirectory 'WinOne.Selection.exe') --output $output
     if ($LASTEXITCODE -ne 0) { throw 'Selection reader integration failed; inspect the preserved output' }
 } finally {
     $env:RUSTC = $savedRustc

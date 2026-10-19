@@ -12,6 +12,9 @@ import (
 	"strings"
 )
 
+// Match the Host bound without discarding upstream catalog entries.
+const maximumCatalogModels = 4096
+
 type modelOption struct {
 	ID       string        `json:"id"`
 	Name     string        `json:"name"`
@@ -26,6 +29,7 @@ type modelMetadata struct {
 	UpstreamName string         `json:"upstreamName,omitempty"`
 	API          string         `json:"api,omitempty"`
 	Efforts      []string       `json:"efforts,omitempty"`
+	Tiers        []string       `json:"tiers,omitempty"`
 	Price        *catalog.Price `json:"price,omitempty"`
 	// Keep the vendor's current and pre-discount credit rates for model tags.
 	Rate                float64 `json:"rate,omitempty"`
@@ -73,7 +77,7 @@ func describeModel(p provider.Provider, model catalog.Model, override modelMetad
 	if threshold == 0 && override.CompactionPercent <= 0 && override.CompactionThreshold <= 0 {
 		threshold = model.Compact
 	}
-	metadata := modelMetadata{Rate: model.Rate, RateWas: model.RateWas, ContextWindow: window, ListedContextWindow: provider.ListedWindow(model), MaxContextWindow: model.MaxContext, MaxTokens: p.ReplyLimitIn(model, snapshot), CompactionThreshold: threshold, CompactionPercent: override.CompactionPercent, Vision: model.ImageInput}
+	metadata := modelMetadata{Efforts: model.Efforts, Tiers: model.Tiers, Price: model.Price, Rate: model.Rate, RateWas: model.RateWas, ContextWindow: window, ListedContextWindow: provider.ListedWindow(model), MaxContextWindow: model.MaxContext, MaxTokens: p.ReplyLimitIn(model, snapshot), CompactionThreshold: threshold, CompactionPercent: override.CompactionPercent, Vision: model.ImageInput}
 	if model.Reasoning || len(model.Efforts) > 0 {
 		yes := true
 		metadata.Reasoning = &yes
@@ -172,8 +176,10 @@ func applyRawModelMetadata(body map[string]json.RawMessage, path string, m model
 // No network, credential or model-discovery stack is duplicated in WinOne UI.
 func configuredProvider(in request) (provider.Provider, error) {
 	base, err := url.Parse(in.BaseURL)
-	if err != nil || base.Hostname() == "" || base.User != nil || base.RawQuery != "" || base.Fragment != "" || (base.Scheme != "https" && !(base.Scheme == "http" && (base.Hostname() == "localhost" || base.Hostname() == "127.0.0.1" || base.Hostname() == "::1"))) {
-		return provider.Provider{}, errors.New("AI endpoint must use HTTPS or local HTTP")
+	// Match the Host: an explicitly configured HTTP relay is supported beyond
+	// loopback too. Do not silently rewrite it to HTTPS or another destination.
+	if err != nil || base.Hostname() == "" || base.User != nil || base.RawQuery != "" || base.Fragment != "" || (base.Scheme != "https" && base.Scheme != "http") {
+		return provider.Provider{}, errors.New("AI endpoint must be an HTTP or HTTPS base URL without credentials, query or fragment")
 	}
 	p := provider.Provider{ID: "winone", Name: "WinOne", Key: in.Key}
 	if in.Preset != "" {
@@ -242,7 +248,7 @@ func fetchModels(ctx context.Context, in request) ([]modelOption, error) {
 	var p provider.Provider
 	var err error
 	if in.Agent != "" {
-		account, findErr := findAccount(ctx, in.Agent, in.AgentBackend)
+		account, findErr := findAccount(ctx, in.Agent)
 		if findErr != nil {
 			return nil, findErr
 		}
@@ -263,7 +269,7 @@ func fetchModels(ctx context.Context, in request) ([]modelOption, error) {
 		}
 		return nil, errors.New("model discovery failed; models can be entered manually")
 	}
-	if len(models) > 2048 {
+	if len(models) > maximumCatalogModels {
 		return nil, errors.New("model catalog is too large")
 	}
 	result := []modelOption{}

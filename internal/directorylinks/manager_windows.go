@@ -356,6 +356,36 @@ func (m *Manager) Remove(ctx context.Context, id string, checkedAt ...string) (R
 	return r, m.save()
 }
 
+// ForgetInvalid rechecks history before one atomic history-only write. Offline
+// and unverified objects remain recorded; no filesystem entry is removed.
+func (m *Manager) ForgetInvalid(ctx context.Context) ([]Record, int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	before := m.records
+	kept := make([]Record, 0, len(before))
+	removed := 0
+	for _, record := range before {
+		if err := ctx.Err(); err != nil {
+			return nil, 0, err
+		}
+		if record.Status != "removed" {
+			record = checked(record)
+		}
+		switch record.Status {
+		case "broken", "replaced", "target-changed", "source-changed", "unlinked", "removed":
+			removed++
+		default:
+			kept = append(kept, record)
+		}
+	}
+	m.records = kept
+	if err := m.save(); err != nil {
+		m.records = before
+		return nil, 0, err
+	}
+	return append([]Record{}, kept...), removed, nil
+}
+
 func (m *Manager) Forget(id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

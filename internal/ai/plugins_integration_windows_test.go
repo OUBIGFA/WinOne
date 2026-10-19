@@ -51,6 +51,20 @@ func TestPluginAccountSummaryDoesNotRequireRunningThePlugin(t *testing.T) {
 		}
 	}
 	runtime := Translator{Executable: filepath.Join(bundle, "WinOne.AI.exe"), DataDirectory: t.TempDir(), AccountBackend: "plugin"}
+	// An installed third-party extension must not force ordinary summaries
+	// to execute code when the complete configuration still matches.
+	extension := filepath.Join(runtime.DataDirectory, "fixture.mjs")
+	if err := os.WriteFile(extension, []byte(`export default async()=>({})`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	registry := filepath.Join(runtime.DataDirectory, "third-party", "plugins.json")
+	if err := os.MkdirAll(filepath.Dir(registry), 0700); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := json.Marshal(map[string]any{"plugins": []map[string]string{{"spec": extension}}})
+	if err := os.WriteFile(registry, data, 0600); err != nil {
+		t.Fatal(err)
+	}
 	initial, err := runtime.Accounts(context.Background(), "accounts.list", "cline")
 	if err != nil {
 		t.Fatal(err)

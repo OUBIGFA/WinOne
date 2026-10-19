@@ -24,6 +24,7 @@ import (
 )
 
 type request struct {
+	BalanceKeys        []provider.KeyAccount    `json:"balanceKeys,omitempty"` // Private saved-key snapshot; never a UI response.
 	MagpieSettings     json.RawMessage          `json:"magpieSettings,omitempty"`
 	AuxiliaryProviders []auxiliaryProvider      `json:"auxiliaryProviders,omitempty"`
 	TestModels         []string                 `json:"testModels,omitempty"`
@@ -66,6 +67,8 @@ func run(ctx context.Context, input io.Reader) (string, error) {
 	return runOutput(ctx, input, nil)
 }
 func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) error) (string, error) {
+	stopPlugins := serveBuiltinPlugins()
+	defer stopPlugins()
 	var in request
 	decoder := json.NewDecoder(io.LimitReader(input, maximumRequest))
 	decoder.DisallowUnknownFields()
@@ -108,7 +111,7 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 	}
 	model := "winone/" + in.Model
 	if in.Agent != "" {
-		account, err := findAccount(ctx, in.Agent, in.AgentBackend)
+		account, err := findAccount(ctx, in.Agent)
 		if err != nil {
 			return "", err
 		}

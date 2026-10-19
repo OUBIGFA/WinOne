@@ -49,7 +49,7 @@ it.each(["","99","2001","300.5"])("preserves invalid scroll interval '%s' and re
   throw Error(method);
  });
  render(<CapturePage disabled/>);const user=userEvent.setup();
- await user.click(await screen.findByRole("tab",{name:"滚动截图设置"}));
+ await user.click(await screen.findByRole("tab",{name:"滚动截图"}));
  const input=screen.getByRole("spinbutton") as HTMLInputElement;
  await user.clear(input);if(value)await user.type(input,value);
  expect(input.value).toBe(value);expect(input.getAttribute("aria-invalid")).toBe("true");
@@ -100,10 +100,10 @@ it("keeps the chosen settings tab selected when a delayed read finishes",async()
  let finish!:(value:unknown)=>void;
  native.call.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
  render(<CapturePage/>);
- await userEvent.setup().click(await screen.findByRole("tab",{name:"文件名模板"}));
+ await userEvent.setup().click(await screen.findByRole("tab",{name:"文件命名"}));
  expect(native.logs).not.toHaveBeenCalled();
  await act(async()=>finish({settings:{schemaVersion:1,revision:0,outputDirectory:"C:\\Images",copyToClipboard:false,askWhereToSave:false,openEditor:false,pinAfterCapture:false,theme:"system",scrollDelay:300,scrollFromTop:true},busy:false,pins:0}));
- expect(screen.getByRole("tab",{name:"文件名模板"}).getAttribute("aria-selected")).toBe("true");
+ expect(screen.getByRole("tab",{name:"文件命名"}).getAttribute("aria-selected")).toBe("true");
  await waitFor(()=>expect(screen.queryByRole("radio",{name:"截完保存"})).toBeNull());
 });
 
@@ -115,7 +115,7 @@ it("does not submit settings twice while other settings stay accessible",async()
  await user.click(await screen.findByRole("checkbox",{name:"复制到剪贴板"}));
  await user.click(screen.getByRole("button",{name:"保存设置"}));
  expect((screen.getByRole("button",{name:"保存设置"}) as HTMLButtonElement).disabled).toBe(true);
- await user.click(screen.getByRole("tab",{name:"文件名模板"}));
+ await user.click(screen.getByRole("tab",{name:"文件命名"}));
  expect(native.logs).not.toHaveBeenCalled();
  await act(async()=>finish({...settings,copyToClipboard:true,revision:1}));
  expect(native.call.mock.calls.filter(([method])=>method==="settings.save")).toHaveLength(1);
@@ -132,7 +132,7 @@ it("quick-save mode clears the save-location prompt and persists through the sha
  });
  render(<CapturePage disabled/>);const user=userEvent.setup();
  await user.click(await screen.findByRole("radio",{name:"截完保存"}));
- expect(screen.queryByRole("checkbox",{name:"每次选择保存位置"})).toBeNull();
+ expect(screen.queryByRole("switch",{name:"每次选择保存位置"})).toBeNull();
  await user.click(screen.getByRole("button",{name:"保存设置"}));
  await screen.findByText("已保存");
  expect(settings.openEditor).toBe(false);expect(settings.askWhereToSave).toBe(false);
@@ -181,5 +181,5 @@ it("shows preferences without capture actions or recent images",async()=>{
  expect(screen.queryByRole("button",{name:"窗口截图"})).toBeNull();
  expect(screen.queryByRole("button",{name:"滚动截图"})).toBeNull();
  expect(screen.queryByText("C:/Images/old.png")).toBeNull();
- expect(screen.getByRole("tab",{name:"滚动截图设置"})).toBeTruthy();
+ expect(screen.getByRole("tab",{name:"滚动截图"})).toBeTruthy();
 });

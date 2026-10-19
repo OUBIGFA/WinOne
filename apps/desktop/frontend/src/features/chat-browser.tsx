@@ -3,7 +3,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {chatBrowserCall} from '../bridge';
 import {useTranslation} from '../i18n';
-import {UpstreamBrowserBar,type UpstreamBrowserBarHandle} from './chat-upstream-pane';
+import {BrowserChrome,type BrowserChromeHandle} from './cindy/browser/BrowserChrome';
 import type {DesktopMenuItem} from 'chatgpt-desktop-kit';
 import {BrowserCommentPopover} from './cindy/browser/BrowserCommentPopover';
 import {createEmptyBrowserCommentEditorDraft} from './cindy/browser/browserCommentEditorDraft';
@@ -16,7 +16,7 @@ export function ChatBrowserView(props:ChatBrowserViewProps){
  const {sessionId,tabId,url,active=true}=props,{t}=useTranslation();
  const [state,setState]=useState<ChatBrowserState>({sessionId,tabId,url,title:'',loading:false,canGoBack:false,canGoForward:false,error:'',visible:false,favicon:'',isAudible:false,muted:false,crashed:false});
  const [ready,setReady]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[mode,setMode]=useState(false),[pending,setPending]=useState<BrowserCommentTargetInfo>(),[submitting,setSubmitting]=useState(false),[draft,setDraft]=useState(createEmptyBrowserCommentEditorDraft),[overlay,setOverlay]=useState(false);
- const slot=useRef<HTMLDivElement>(null),editor=useRef<HTMLDivElement>(null),chrome=useRef<UpstreamBrowserBarHandle>(null),latest=useRef({props,state,mode,pending});latest.current={props,state,mode,pending};
+ const slot=useRef<HTMLDivElement>(null),editor=useRef<HTMLDivElement>(null),chrome=useRef<BrowserChromeHandle>(null),latest=useRef({props,state,mode,pending});latest.current={props,state,mode,pending};
  const waiters=useRef(new Map<string,{resolve:(value:any)=>void;reject:(error:Error)=>void;timer:ReturnType<typeof setTimeout>}>());
  const native=<T,>(method:string,value:Record<string,unknown>={})=>chatBrowserCall<T>(method,{sessionId,tabId,...value});
  const report=(value:unknown)=>setError(value instanceof Error?value.message:String(value));
@@ -68,7 +68,7 @@ export function ChatBrowserView(props:ChatBrowserViewProps){
  },[sessionId,tabId]);
  useEffect(()=>{
   if(!ready)return;let alive=true,frame=0,last='';
-  function sync(){cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{if(!alive||!slot.current)return;const rect=slot.current.getBoundingClientRect(),occlusion=editor.current?.getBoundingClientRect();const modal=!!document.querySelector('[role="dialog"],[role="menu"]');const visible=active&&!overlay&&!modal&&rect.width>0&&rect.height>0;const value={visible,bounds:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},scale:window.devicePixelRatio||1,occlusion:occlusion?{x:occlusion.x-rect.x,y:occlusion.y-rect.y,width:occlusion.width,height:occlusion.height}:null};const encoded=JSON.stringify(value);if(last===encoded)return;last=encoded;void native('sync',value).catch(error=>{if(alive)report(error);});});}
+  function sync(){cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{if(!alive||!slot.current)return;const rect=slot.current.getBoundingClientRect(),occlusion=editor.current?.getBoundingClientRect();const modal=!!document.querySelector('[role="dialog"],[role="alertdialog"],[role="menu"]');const visible=active&&!overlay&&!modal&&rect.width>0&&rect.height>0;const value={visible,bounds:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},scale:window.devicePixelRatio||1,occlusion:occlusion?{x:occlusion.x-rect.x,y:occlusion.y-rect.y,width:occlusion.width,height:occlusion.height}:null};const encoded=JSON.stringify(value);if(last===encoded)return;last=encoded;void native('sync',value).catch(error=>{if(alive)report(error);});});}
   const resize=new ResizeObserver(sync);if(slot.current)resize.observe(slot.current);if(editor.current)resize.observe(editor.current);
   const mutations=new MutationObserver(sync);mutations.observe(document.body,{childList:true,subtree:true});window.addEventListener('resize',sync);window.addEventListener('scroll',sync,true);sync();
   return()=>{alive=false;cancelAnimationFrame(frame);resize.disconnect();mutations.disconnect();window.removeEventListener('resize',sync);window.removeEventListener('scroll',sync,true);void native('sync',{visible:false}).catch(console.warn);};
@@ -83,10 +83,7 @@ export function ChatBrowserView(props:ChatBrowserViewProps){
   catch(error){latest.current.mode=!entering;setMode(!entering);throw error;}
  }
  return <section className="chat-browser" onKeyDown={event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='l'){event.preventDefault();chrome.current?.focusUrlBar();}}}>
-  <UpstreamBrowserBar ref={chrome} url={state.url} loading={state.loading} canBack={state.canGoBack} canForward={state.canGoForward} onNavigate={url=>run(async()=>accept(await native('navigate',{url})))} onReload={()=>run(async()=>accept(await native('reload')))} onStop={()=>run(async()=>accept(await native('stop')))} onBack={()=>run(async()=>accept(await native('back')))} onForward={()=>run(async()=>accept(await native('forward')))} onComment={()=>run(toggleComment)} commentActive={mode} onMenuOpen={setOverlay} items={[
-   {id:'browser.capture',label:t('chat.browserScreenshot'),onSelect:()=>run(async()=>{await requestResult('capture',{save:false});setNotice(t('chat.browserScreenshotCopied'));})},
-   {id:'browser.copy',label:t('chat.copy'),onSelect:()=>run(async()=>{await navigator.clipboard.writeText(state.url);setNotice(t('chat.copied'));})},
-   {id:'browser.external',label:t('chat.openSystem'),disabled:!/^https?:/.test(state.url),onSelect:()=>run(()=>native('external',{url:state.url}))},
+  <BrowserChrome ref={chrome} url={state.url} isLoading={state.loading} canGoBack={state.canGoBack} canGoForward={state.canGoForward} onNavigate={url=>run(async()=>accept(await native('navigate',{url})))} onReload={()=>run(async()=>accept(await native('reload')))} onStop={()=>run(async()=>accept(await native('stop')))} onGoBack={()=>run(async()=>accept(await native('back')))} onGoForward={()=>run(async()=>accept(await native('forward')))} onToggleComment={()=>run(toggleComment)} commentActive={mode} commentSupported={!!props.onComment} onOverlayOpenChange={setOverlay} onCaptureScreenshot={()=>run(async()=>{await requestResult('capture',{save:false});setNotice(t('chat.browserScreenshotCopied'));})} canOpenInSystemBrowser={/^https?:/.test(state.url)} onOpenInSystemBrowser={()=>run(()=>native('external',{url:state.url}))} onCopyLink={()=>run(async()=>{await navigator.clipboard.writeText(state.url);setNotice(t('chat.copied'));})} menuItems={[
    {id:'browser.mute',label:t(state.muted?'chat.browserUnmute':'chat.browserMute'),checked:state.muted,onSelect:()=>run(async()=>accept(await native('mute',{muted:!state.muted})))},
    {id:'browser.release',label:t(state.crashed?'chat.browserRestore':'chat.browserRelease'),onSelect:()=>run(async()=>accept(await native(state.crashed?'reload':'terminate')))},
    ...(props.paneItems??[]),

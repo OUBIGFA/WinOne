@@ -122,8 +122,10 @@ func validate(p Preferences) error {
 			return nil
 		}
 		u, err := url.Parse(p.BaseURL)
-		if err != nil || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1"))) {
-			return errors.New("AI 地址须为 HTTPS；本机服务可用 HTTP")
+		// Custom providers may intentionally use HTTP on a LAN or remote relay.
+		// Keep the base-URL shape checks; the UI explains plaintext transport.
+		if err != nil || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && u.Scheme != "http") {
+			return errors.New("请填写有效的 HTTP 或 HTTPS API 基础地址，不含账号、查询参数或片段")
 		}
 		for _, suffix := range []string{"/chat/completions", "/responses", "/messages"} {
 			if strings.HasSuffix(strings.TrimRight(u.Path, "/"), suffix) {

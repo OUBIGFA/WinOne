@@ -111,6 +111,7 @@ func translateGoogle(ctx context.Context, client *http.Client, endpoint, text, t
 type Translator struct {
 	Executable, DataDirectory, AccountBackend, UsagePath string
 	RootDataDirectory                                    string
+	TransportOnly                                        bool
 	RuntimeSettings                                      *MagpieSettings
 }
 

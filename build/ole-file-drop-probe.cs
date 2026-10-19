@@ -98,7 +98,7 @@ public static class OleFileDropProbe {
             form.Shown+=(sender,eventArgs)=>form.BeginInvoke(new Action(()=>{
                 try{
                     SetForegroundWindow(form.Handle);if(!ForegroundOwned())throw new InvalidOperationException("Test source could not receive focus.");
-                    var start=form.PointToScreen(new System.Drawing.Point(124,41));Move(new Point(start.X,start.Y));
+                    var start=form.PointToScreen(new System.Drawing.Point(124,41));Move(new Point(start.X,start.Y));System.Threading.Thread.Sleep(150);
                     timer=new System.Windows.Forms.Timer{Interval=3000};
                     timer.Tick+=(unused,tick)=>{cancelled=true;failure="No source mouse-down arrived.";timer.Stop();if(pressed){Mouse(0x0004,0,0);pressed=false;}Save("failed","");form.Close();};
                     timer.Start();Mouse(0x0002,0,0);pressed=true;trace.Add("press in source");

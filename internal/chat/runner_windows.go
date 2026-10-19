@@ -249,20 +249,29 @@ func (r *Runner) call(ctx context.Context, id, method string, params any, rememb
 	digest := sha256.Sum256(data)
 	r.mu.Lock()
 	if old := r.remembered[id]; old != nil {
-		oldDigest := old.digest
-		var previous *runnerReply
-		if old.reply != nil {
-			copy := *old.reply
-			previous = &copy
-		}
-		r.mu.Unlock()
-		if oldDigest != digest {
+		if old.digest != digest {
+			r.mu.Unlock()
 			return nil, errors.New("请求标识被用于不同操作")
 		}
-		if previous != nil {
-			return decodeRunnerReply(*previous)
+		if old.reply == nil {
+			r.mu.Unlock()
+			return nil, errors.New("之前的请求仍在处理，请读取会话状态")
 		}
-		return nil, errors.New("之前的请求仍在处理，请读取会话状态")
+		if old.reply.OK {
+			previous := *old.reply
+			r.mu.Unlock()
+			return decodeRunnerReply(previous)
+		}
+		// A definite rejection is not an accepted operation. An explicit retry
+		// with the same payload may succeed after its precondition is repaired.
+		// Ambiguous timeouts above remain remembered and are never resent here.
+		delete(r.remembered, id)
+		for index, saved := range r.order {
+			if saved == id {
+				r.order = append(r.order[:index], r.order[index+1:]...)
+				break
+			}
+		}
 	}
 	if len(r.pending) >= 32 {
 		r.mu.Unlock()
@@ -281,7 +290,9 @@ func (r *Runner) call(ctx context.Context, id, method string, params any, rememb
 	sent := false
 	defer func() {
 		r.mu.Lock()
-		delete(r.pending, id)
+		if r.pending[id] == waiter {
+			delete(r.pending, id)
+		}
 		if !sent {
 			delete(r.remembered, id)
 		}

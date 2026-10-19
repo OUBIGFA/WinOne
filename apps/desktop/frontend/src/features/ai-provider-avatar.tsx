@@ -1,6 +1,7 @@
+import {usePathDrop} from "../ui/path-drop";
 import {useEffect,useRef,useState} from "react";
 import {Globe,ImagePlus,Link,RotateCcw,Shapes} from "lucide-react";
-import {captureCall} from "../bridge";
+import {captureCall,readDroppedImage} from "../bridge";
 import {useTranslation} from "../i18n";
 import {Button} from "../ui/button";
 import {Input} from "../components/ui/input";
@@ -24,7 +25,8 @@ export function AIProviderAvatar({provider,disabled,onChange,onBusy}:{provider:A
   finally{setBusy(false);onBusy(false);}
  }
  const locked=disabled||busy;
- return <section className="settings-group" aria-label={t("ai.avatar")}>
+ const imageDrop=usePathDrop({kind:"file",disabled:locked,onError:setError,onPaths:paths=>pick(async()=>{const data=await readDroppedImage(paths[0]);return storeProviderAvatar(Uint8Array.from(atob(data),character=>character.charCodeAt(0)),lifetime.current?.signal);})});
+ return <section {...imageDrop} className="settings-group" aria-label={t("ai.avatar")}>
   <h3 className="settings-group-title">{t("ai.avatar")}</h3>
   <div className="flex flex-wrap items-center gap-2">
    <span className="mr-2 inline-flex size-10 items-center justify-center rounded-lg bg-muted/60 [&>span]:size-8"><AIProviderIcon icon={provider.avatar||provider.icon}/></span>

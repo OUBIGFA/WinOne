@@ -44,19 +44,40 @@ fn clipboard_dib(data:&[u8])->Result<Vec<u8>,String>{
         let(r,g,b,a)=match channels{4=>(source[0],source[1],source[2],source[3]),3=>(source[0],source[1],source[2],255),2=>(source[0],source[0],source[0],source[1]),_=>(source[0],source[0],source[0],255)};target.copy_from_slice(&[b,g,r,a]);
     }Ok(dib)
 }
-fn copy_png(owner:HWND,data:&[u8])->Result<(),String>{
-    let dib=clipboard_dib(data)?;
+pub(crate) fn copy_png(owner:HWND,data:&[u8])->Result<(),String>{
+    copy_png_with_extras(owner,data,None,None)
+}
+
+fn unicode_clipboard(text:&str)->Vec<u8>{text.encode_utf16().chain(std::iter::once(0)).flat_map(u16::to_le_bytes).collect()}
+fn file_clipboard(path:&str)->Vec<u8>{let mut data=vec![0u8;20];data[0..4].copy_from_slice(&20u32.to_le_bytes());data[16..20].copy_from_slice(&1u32.to_le_bytes());data.extend(unicode_clipboard(path));data.extend([0u8,0]);data}
+
+// Keep bitmap, optional source text and Explorer file-paste semantics together.
+// Allocate every format before replacing the clipboard; ownership transfers
+// only after each successful SetClipboardData call.
+pub(crate) fn copy_png_with_extras(owner:HWND,data:&[u8],plain_text:Option<&str>,file_path:Option<&str>)->Result<(),String>{
+    let mut formats=vec![(17,clipboard_dib(data)?)];
+    if let Some(text)=plain_text{formats.push((13,unicode_clipboard(text)));}
+    if let Some(path)=file_path{formats.push((15,file_clipboard(path)));}
     unsafe{
-        let memory=GlobalAlloc(GMEM_MOVEABLE,dib.len());if memory.is_null(){return Err(std::io::Error::last_os_error().to_string());}
-        let pointer=GlobalLock(memory);if pointer.is_null(){GlobalFree(memory);return Err(std::io::Error::last_os_error().to_string());}
-        std::ptr::copy_nonoverlapping(dib.as_ptr(),pointer.cast(),dib.len());GlobalUnlock(memory);
-        if OpenClipboard(owner)==0{GlobalFree(memory);return Err("剪贴板正被其他程序使用，请重试".into());}
-        let ok=EmptyClipboard()!=0&&!SetClipboardData(17,memory).is_null();CloseClipboard();
-        if !ok{GlobalFree(memory);return Err(std::io::Error::last_os_error().to_string());}
+        let mut handles=Vec::new();
+        for (format,bytes) in formats{
+            let memory=GlobalAlloc(GMEM_MOVEABLE,bytes.len());
+            if memory.is_null(){for (_,owned)in handles{GlobalFree(owned);}return Err(std::io::Error::last_os_error().to_string());}
+            let pointer=GlobalLock(memory);if pointer.is_null(){GlobalFree(memory);for (_,owned)in handles{GlobalFree(owned);}return Err(std::io::Error::last_os_error().to_string());}
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(),pointer.cast(),bytes.len());GlobalUnlock(memory);handles.push((format,memory));
+        }
+        if OpenClipboard(owner)==0{for (_,owned)in handles{GlobalFree(owned);}return Err("剪贴板正被其他程序使用，请重试".into());}
+        if EmptyClipboard()==0{CloseClipboard();for (_,owned)in handles{GlobalFree(owned);}return Err(std::io::Error::last_os_error().to_string());}
+        for index in 0..handles.len(){let(format,memory)=handles[index];if SetClipboardData(format,memory).is_null(){let error=std::io::Error::last_os_error().to_string();for (_,owned)in &handles[index..]{GlobalFree(*owned);}CloseClipboard();return Err(error);}}
+        CloseClipboard();
     }Ok(())
 }
 #[cfg(test)]mod tests{
     use super::*;
+    #[test]fn clipboard_text_and_file_formats_keep_unicode_and_terminators(){
+        let text=unicode_clipboard("中文 diagram");assert_eq!(&text[text.len()-2..],&[0,0]);
+        let file=file_clipboard("C:\\项目\\image.png");assert_eq!(u32::from_le_bytes(file[0..4].try_into().unwrap()),20);assert_eq!(u32::from_le_bytes(file[16..20].try_into().unwrap()),1);assert_eq!(&file[file.len()-4..],&[0,0,0,0]);
+    }
     #[test]fn screenshot_clipboard_keeps_straight_alpha_and_uses_top_down_pixels(){
         let mut encoded=Vec::new();{let mut png=png::Encoder::new(&mut encoded,1,1);png.set_color(png::ColorType::Rgba);png.set_depth(png::BitDepth::Eight);png.write_header().unwrap().write_image_data(&[20,40,60,128]).unwrap();}
         let dib=clipboard_dib(&encoded).unwrap();assert_eq!(&dib[124..],[60,40,20,128]);assert_eq!(i32::from_le_bytes(dib[8..12].try_into().unwrap()),-1);assert_eq!(u32::from_le_bytes(dib[52..56].try_into().unwrap()),0xff000000);

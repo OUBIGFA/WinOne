@@ -48,7 +48,8 @@ internal sealed partial class CaptureOperations
 
     internal async Task<ScrollingCaptureFrame> AcquireScrollingFrameAsync(string id, CaptureSettings settings,
         CancellationToken cancellation, string? language, Func<ScrollingCaptureManager, bool>? selectTarget = null,
-        Func<CaptureSettings, IScrollingCaptureSource>? createSource = null, Func<Action, IDisposable>? showProgress = null)
+        Func<CaptureSettings, IScrollingCaptureSource>? createSource = null, Func<Action, IDisposable>? showProgress = null,
+        Rectangle? selectedRegion = null)
     {
         cancellation.ThrowIfCancellationRequested();
         if (string.IsNullOrEmpty(id)) throw new ArgumentException("缺少滚动截图任务标识", nameof(id));
@@ -66,11 +67,11 @@ internal sealed partial class CaptureOperations
             var english = (language ?? System.Globalization.CultureInfo.CurrentUICulture.Name).StartsWith("en", StringComparison.OrdinalIgnoreCase);
             using var source = createSource is not null ? createSource(settings)
                 : new ShareXScrollingCaptureSource(settings,
-                    manager => selectTarget?.Invoke(manager) ?? SelectScrollingTarget(manager, language, directConfirm: true));
+                    manager => selectTarget?.Invoke(manager) ?? SelectScrollingTarget(manager, language, directConfirm: true), language);
             if (source is null) throw new InvalidOperationException("滚动截图采集不可用");
             using var timer = new System.Windows.Forms.Timer { Interval = 100 };
             timer.Tick += (_, _) => { if (cancellation.IsCancellationRequested || ScrollStopRequested) source.Stop(); };
-            if (!source.SelectTarget()) throw new OperationCanceledException();
+            if (!source.SelectTarget(selectedRegion)) throw new OperationCanceledException();
             cancellation.ThrowIfCancellationRequested();
             if (ScrollStopRequested) throw new OperationCanceledException();
             using var progress = showProgress?.Invoke(() => StopScrolling(id));

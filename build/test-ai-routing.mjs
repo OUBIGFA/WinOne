@@ -6,7 +6,7 @@ import http from 'node:http';
 import {randomBytes} from 'node:crypto';
 const {chromium}=createRequire(import.meta.url)(process.env.WINONE_PLAYWRIGHT_MODULE);
 const root=resolve(process.env.WINONE_LAYOUT_OUTPUT||'_temp/20261011-thread-takeover/routing-layout');await mkdir(root,{recursive:true});
-const profile=join(root,'profile');await mkdir(profile,{recursive:true});
+const profile=join(root,'profile-'+randomBytes(6).toString('hex'));await mkdir(profile,{recursive:true});
 const child=spawn(process.env.WINONE_ROUTING_TEST_EXE,[],{windowsHide:true,env:{...process.env,USERPROFILE:profile,APPDATA:profile,LOCALAPPDATA:profile,XDG_CONFIG_HOME:profile,XDG_CACHE_HOME:profile},stdio:['pipe','pipe','pipe']});
 const token=randomBytes(32).toString('hex');
 child.stdin.write(JSON.stringify({operation:'routing.serve',key:token,magpieSettings:{lang:'zh-CN',theme:'light',noStats:true,noUsageStats:true},auxiliaryProviders:[{id:'fixture',name:'Fixture AI',chat:'http://127.0.0.1:1/v1',key:'fixture-key',models:['model']}]})+'\n');
@@ -27,8 +27,13 @@ try{
   const embedded=page.frameLocator('iframe');await embedded.locator('#rtNewGroup').waitFor({timeout:8000});await embedded.locator('.rt-gtpl-card').first().waitFor();
   await page.waitForTimeout(150);
   const content=page.frames().find(frame=>frame.url().startsWith(address));
-  const layout=await content.evaluate(()=>{const view=document.getElementById('view-routing'),cards=[...document.querySelectorAll('.rt-gtpl-card')],box=document.querySelector('.rt-gtpl-cards').getBoundingClientRect();const bounds=cards.map(card=>card.getBoundingClientRect());return {upstreamTemplates:cards.every(node=>getComputedStyle(node).borderRadius==='10px'&&getComputedStyle(node).paddingLeft==='12px')&&getComputedStyle(document.querySelector('.rt-gtpl-cards')).display==='grid',height:view.getBoundingClientRect().height,scrollHeight:document.documentElement.scrollHeight,viewport:innerHeight,overflow:document.documentElement.scrollWidth-innerWidth,cards:cards.length,centerOffset:(Math.min(...bounds.map(r=>r.left))+Math.max(...bounds.map(r=>r.right)))/2-(box.left+box.right)/2,scrolling:[...view.querySelectorAll('*')].filter(e=>e.clientHeight>0&&e.scrollHeight>e.clientHeight+2&&/auto|scroll/.test(getComputedStyle(e).overflowY)).map(e=>e.className)};});
-  if(!layout.upstreamTemplates||layout.cards!==3||layout.overflow>1||Math.abs(layout.height-layout.viewport)>2||layout.scrolling.length)throw Error('Routing layout failed: '+JSON.stringify({language,theme,width,...layout}));
+  await content.evaluate(async()=>{await document.fonts.ready;await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);});
+  const clippedHeaders=await content.evaluate(()=>[...document.querySelectorAll('#view-routing .row-head')].filter(row=>row.getClientRects().length).filter(row=>{const box=row.getBoundingClientRect();return [...row.children].some(child=>child.getClientRects().length&&child.getBoundingClientRect().bottom>box.bottom+1);}).map(row=>row.textContent));
+  if(clippedHeaders.length)throw Error('Routing header overlaps the following controls: '+JSON.stringify({language,theme,width,clippedHeaders}));
+  const boundary=await content.evaluate(()=>({pages:window.magpie?.pages(),foreign:document.querySelectorAll('#side,header.top,footer.foot,#view-agents,#view-providers,#view-settings,#view-usage,#view-library,#view-sessions').length,scripts:[...document.scripts].map(script=>script.getAttribute('src')).filter(Boolean)}));
+  if(JSON.stringify(boundary.pages)!==JSON.stringify(['routing'])||boundary.foreign||boundary.scripts.some(src=>/^(app|start|plugins)\.js$|plugins\/(usage|library|sessions|gateway)\/client\.js/.test(src)))throw Error('Routing must mount only its own upstream plugin: '+JSON.stringify(boundary));
+  const layout=await content.evaluate(()=>{const view=document.getElementById('view-routing'),cards=[...document.querySelectorAll('.rt-gtpl-card')],box=document.querySelector('.rt-gtpl-cards').getBoundingClientRect();const bounds=cards.map(card=>card.getBoundingClientRect());return {flatTemplates:cards.every((node,index)=>getComputedStyle(node).borderRadius==='0px'&&(!index||bounds[index].top>=bounds[index-1].bottom-1)),readableTemplates:cards.every(node=>[...node.querySelectorAll('.desc,.mem')].every(text=>parseFloat(getComputedStyle(text).fontSize)>=14)),groupsFirst:view.firstElementChild.classList.contains('rt-gsec'),height:view.getBoundingClientRect().height,scrollHeight:document.documentElement.scrollHeight,viewport:innerHeight,overflow:document.documentElement.scrollWidth-innerWidth,cards:cards.length,centerOffset:(Math.min(...bounds.map(r=>r.left))+Math.max(...bounds.map(r=>r.right)))/2-(box.left+box.right)/2,scrolling:[...view.querySelectorAll('*')].filter(e=>e.clientHeight>0&&e.scrollHeight>e.clientHeight+2&&/auto|scroll/.test(getComputedStyle(e).overflowY)).map(e=>e.className)};});
+  if(!layout.flatTemplates||!layout.readableTemplates||!layout.groupsFirst||layout.cards!==3||layout.overflow>1||Math.abs(layout.height-layout.viewport)>2||layout.scrolling.length)throw Error('Routing layout failed: '+JSON.stringify({language,theme,width,...layout}));
   layouts.push({language,theme,width,...layout});await page.screenshot({path:join(root,`routing-${language}-${theme}-${width}.png`),fullPage:true});
  }
  await page.goto(`http://localhost:${parentServer.address().port}`);const embedded=page.frameLocator('iframe');await embedded.locator('#rtNewGroup').waitFor({timeout:8000});await embedded.locator('#rtNewGroup').click();
@@ -42,6 +47,32 @@ try{
  if(errors.length)throw Error(errors.join('\n'));
  const editor=await embedded.locator('.rt-gedit').count();if(!editor)throw Error('Full routing group editor did not open');
  if(!await embedded.getByText('新建组',{exact:true}).count())throw Error('Chinese routing labels were not applied');
+ // Exercise the real upstream picker and save buttons; API-only writes cannot
+ // prove that the extracted shared widgets still work in their own document.
+ await embedded.locator('.rt-gedit input').first().fill('UI routing check');
+ await embedded.locator('.rt-gedit').getByRole('button',{name:'添加模型',exact:true}).click();
+ await embedded.locator('#q').fill('model');
+ await embedded.locator('#list li[data-i]').filter({hasText:'model'}).first().click();
+ await embedded.locator('#q').press('Escape');
+ await embedded.locator('.rt-gedit').getByRole('button',{name:'添加',exact:true}).click();
+ await embedded.locator('.rt-gedit').waitFor({state:'hidden'});
+ const persisted=await childFrame.evaluate(async()=>{const value=await(await fetch('/api/groups')).json();return value.groups.find(group=>group.name==='UI routing check');});
+ if(!persisted?.members.includes('fixture/model'))throw Error('Model picker/save lost the group member: '+JSON.stringify(persisted));
+ await embedded.locator('.suffix-segs').getByRole('button',{name:'关闭',exact:true}).click();
+ const plain=await childFrame.evaluate(async()=>{const deadline=Date.now()+3000;while(Date.now()<deadline){const s=await(await fetch('/api/settings')).json();if(s.plainNames)return true;await new Promise(done=>setTimeout(done,30));}return false;});
+ if(!plain)throw Error('Routing model-name setting did not take effect');
+ await embedded.locator('#rtMask').click();
+ if(await embedded.locator('#rtMask').getAttribute('aria-pressed')!=='true')throw Error('Routing account masking did not toggle');
+ await embedded.locator('#rtNewGroup').click();
+ await embedded.locator('.rt-gedit input').first().fill('Unsaved routing draft');
+ await embedded.locator('.rt-gedit').getByRole('button',{name:'取消',exact:true}).click();
+ await embedded.locator('.action-confirm').waitFor();
+ await embedded.locator('.action-confirm').getByRole('button',{name:'取消',exact:true}).click();
+ if(await embedded.locator('.rt-gedit input').first().inputValue()!=='Unsaved routing draft')throw Error('Canceling discard lost the routing draft');
+ await embedded.locator('.rt-gedit').getByRole('button',{name:'取消',exact:true}).click();
+ await embedded.locator('.action-confirm .primary').click();
+ await embedded.locator('.rt-gedit').waitFor({state:'hidden'});
+ if(errors.length)throw Error(errors.join('\n'));
  await writeFile(join(root,'report.json'),JSON.stringify({editor,layouts,adapterOverride:!!process.env.WINONE_ROUTING_ADAPTER_FILE,browserErrors:errors},null,2));console.log(JSON.stringify({editor,layouts:layouts.length,browserErrors:0}));
 }finally{await browser.close();child.stdin.end();parentServer.closeAllConnections();await new Promise(done=>parentServer.close(done));}
 

@@ -49,10 +49,14 @@ type Catalog struct {
 	Conversations []Conversation `json:"conversations"`
 }
 type Draft struct {
-	Text        string       `json:"text"`
-	PendingID   string       `json:"pendingId,omitempty"`
-	Attachments []Attachment `json:"attachments,omitempty"`
+	Text            string       `json:"text"`
+	PendingID       string       `json:"pendingId,omitempty"`
+	PendingDelivery string       `json:"pendingDelivery,omitempty"`
+	Attachments     []Attachment `json:"attachments,omitempty"`
 }
+
+const maximumDraftBytes = (1 << 20) - (16 << 10)
+
 type Store struct {
 	reviewMutation sync.Mutex
 	mu             sync.Mutex
@@ -311,6 +315,9 @@ func (s *Store) NewConversation(projectID, directory, title string, model ai.Sel
 		if err = os.MkdirAll(c.SessionDirectory, 0700); err != nil {
 			return err
 		}
+		if s.preferences.DefaultThinkingLevel != "" {
+			c.ThinkingLevel = s.preferences.DefaultThinkingLevel
+		}
 		value.Conversations = append(value.Conversations, c)
 		return nil
 	})
@@ -378,11 +385,11 @@ func (s *Store) draftLocked(id string) (Draft, error) {
 				return Draft{}, err
 			}
 			defer file.Close()
-			raw, err := io.ReadAll(io.LimitReader(file, 128*1024+1))
+			raw, err := io.ReadAll(io.LimitReader(file, maximumDraftBytes+1))
 			if err != nil {
 				return Draft{}, err
 			}
-			if len(raw) > 128*1024 {
+			if len(raw) > maximumDraftBytes {
 				return Draft{}, errors.New("Chat 草稿过大")
 			}
 			var draft Draft
@@ -403,12 +410,21 @@ func (s *Store) SaveDraft(id string, draft Draft) error {
 	return s.saveDraftLocked(id, draft)
 }
 func (s *Store) saveDraftLocked(id string, draft Draft) error {
+	if draft.PendingDelivery != "" && draft.PendingDelivery != "queue" && draft.PendingDelivery != "steer" {
+		return errors.New("Chat 消息发送方式无效")
+	}
 	if len(draft.Text) > 100000 || len(draft.PendingID) > 128 {
 		return errors.New("Chat 草稿过长")
 	}
 	for _, c := range s.data.Conversations {
 		if c.ID == id {
 			data, err := json.Marshal(draft)
+			if err != nil {
+				return err
+			}
+			if len(data) > maximumDraftBytes {
+				return errors.New("Chat 草稿和标注过大")
+			}
 			paths := make([]string, 0, len(draft.Attachments))
 			for _, attachment := range draft.Attachments {
 				paths = append(paths, attachment.Path)

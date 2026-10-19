@@ -88,7 +88,7 @@ func TestNativeMenuSnapshotStyles(t *testing.T) {
 					t.Fatal("missing accessible menu name")
 				}
 				m := menuMeasure{Type: 1, Data: data}
-				if !s.measure(&m) || m.Width < uint32(s.px(200)) || m.Height != uint32(s.px(32)) {
+				if !s.measure(&m) || m.Width <= uint32(s.px(54)) || m.Height != uint32(s.px(40)) {
 					t.Fatalf("invalid measure %+v", m)
 				}
 				if s.mnemonic(s.root, 'o') != 3<<16 {
@@ -143,10 +143,14 @@ func renderStyleFixture(t *testing.T, s *nativeMenuStyle, data uintptr, width, h
 		}
 	}
 	pixels := unsafe.Slice((*byte)(unsafe.Pointer(bits)), width*height*2*4)
-	if uint32(pixels[0]) != s.background&255 || uint32(pixels[width*height*4]) != s.selected&255 {
-		t.Fatal("menu did not use shared neutral background states")
+	if uint32(pixels[0]) != s.background&255 || uint32(pixels[width*height*4]) != s.background&255 {
+		t.Fatal("hover must preserve the menu's outer inset")
 	}
-	center := (int(s.px(16))*width + int(s.px(18))) * 4
+	inset := ((height+int(s.px(20)))*width + int(s.px(6))) * 4
+	if uint32(pixels[inset]) != s.selected&255 {
+		t.Fatal("menu did not use the shared neutral hover surface")
+	}
+	center := (int(s.px(20))*width + int(s.px(22))) * 4
 	expectedRed := 128 + int(s.background&255)*127/255
 	if red := int(pixels[center+2]); red < expectedRed-1 || red > expectedRed+1 || pixels[center] >= pixels[center+2] {
 		t.Fatal("icon alpha was not blended over the menu background")

@@ -12,13 +12,22 @@ export type AccountReader=ReturnType<typeof createAccountReader>;
 export function createAccountReader(){
  const entries=new Map<string,{promise:Promise<AccountState>;expires:number;pending:boolean}>();
  let catalog:Promise<{agents:AIAgent[];presets?:AIServicePreset[]}>|undefined;
+ function loadCatalog():Promise<{agents:AIAgent[];presets?:AIServicePreset[]}>{
+  if(!catalog){
+   const pending:Promise<{agents:AIAgent[];presets?:AIServicePreset[]}>=captureCall<{agents:AIAgent[];presets?:AIServicePreset[]}>("ai.accounts.catalog",{}).then(
+    // An installation may invalidate discovery while it is running. Existing
+    // callers must receive the current list, not overwrite it with old data.
+    value=>catalog===pending?value:loadCatalog(),
+    error=>{if(catalog!==pending)return loadCatalog();catalog=undefined;throw error;},
+   );
+   catalog=pending;
+  }
+  return catalog;
+ }
  return {
-  // Bundled provider metadata is immutable for the lifetime of the window.
-  // Do not launch another catalog worker when the page remounts mid-read.
-  catalog(){
-   if(!catalog)catalog=captureCall<{agents:AIAgent[];presets?:AIServicePreset[]}>("ai.accounts.catalog",{}).catch(error=>{catalog=undefined;throw error;});
-   return catalog;
-  },
+  // Share discovery until an explicit plugin mutation changes account types.
+  catalog:loadCatalog,
+  invalidateCatalog(){catalog=undefined;},
   read(request:AccountRequest,refresh=false):Promise<AccountState>{
    const key=JSON.stringify([request.provider,request.agent,request.draft?.agent,request.draft?.agentBackend]);
    const previous=entries.get(key);

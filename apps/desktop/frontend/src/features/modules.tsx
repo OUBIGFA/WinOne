@@ -131,7 +131,7 @@ export function ModulesPage({ onChanged,onActivity,onReady,only,controlsDisabled
         // A feature tab needs one setting row. Keep the dashboard's card
         // presentation on Home while sharing the same guarded lifecycle calls.
         if(only)return <div key={id} className="space-y-3">
-          <div className="flex items-center justify-between gap-6 py-1">
+          <div className="settings-switch-row">
             <div className="min-w-0 space-y-1"><label id={`module-${id}-name`} className="text-sm font-medium">{t("module.enableTool",{name:entry.manifest.name[language]})}</label><p className="text-sm text-muted-foreground">{busy===id?t("module.updated"):t(status(entry))}</p></div>
             <Switch className="shrink-0" aria-labelledby={`module-${id}-name`} checked={entry.enabled&&!entry.pendingStop} disabled={controlsDisabled||!!busy||entry.pendingStop||!!entry.blocked||!!snapshot.configurationError} onCheckedChange={value=>void setEnabled(entry,value)}/>
           </div>

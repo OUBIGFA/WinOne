@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"maps"
 	"os"
@@ -267,8 +268,12 @@ func validateUpgradeJournal(j UpgradeJournal) error {
 	seen := map[string]bool{}
 	for i, file := range j.Plan.Files {
 		key := strings.ToLower(file.Path)
-		if !safeName(file.Path) || seen[key] || (!allowed(file.Path) && file.Path != "LICENSE.txt" && file.Path != "README.txt") {
-			return errors.New("invalid upgrade journal path")
+		// A journal is a historical transaction, not the current release's
+		// packaging inventory. Renamed OCR/plugin dependencies must not make a
+		// completed transaction unreadable. Execution separately reconstructs
+		// and compares the plan against both hash-verified archives.
+		if !safeName(file.Path) || seen[key] || !allowedHistorical(file.Path) {
+			return fmt.Errorf("invalid upgrade journal path: %q", file.Path)
 		}
 		seen[key] = true
 		if file.Action == "add" {

@@ -11,7 +11,7 @@ afterEach(async()=>{cleanup();call.mockReset();logs.mockClear();await setApplica
 const preferences={schemaVersion:1,revision:3,automatic:true,keyboard:true,excludedApps:[]};
 it("saves exclusions and activation preferences through the shared module contract",async()=>{
   call.mockImplementation(async(method:string,payload?:object)=>method==="settings.save"?{...payload,revision:4}:preferences);
-  render(<SelectionPage/>);await userEvent.setup().click(screen.getByRole("tab",{name:"常规"}));const input=await screen.findByLabelText("排除应用");
+  render(<SelectionPage/>);await userEvent.setup().click(screen.getByRole("tab",{name:"常规"}));const input=await screen.findByRole("textbox",{name:"排除应用"});
   fireEvent.change(input,{target:{value:"notepad.exe\n Code.exe "}});
   await userEvent.setup().click(screen.getByRole("switch",{name:"划词后显示工具栏"}));
   await userEvent.setup().click(screen.getByRole("button",{name:"保存设置"}));

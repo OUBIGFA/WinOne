@@ -4,9 +4,42 @@ import {act,cleanup,render,screen,waitFor,within} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {AISettings} from "./ai-settings";
 const api=vi.hoisted(()=>({captureCall:vi.fn()}));
-vi.mock("../bridge",()=>api);
+vi.mock("../bridge",()=>({...api,captureCall:(method:string,...args:unknown[])=>{
+ // This connection-only fixture has no installed page extensions. Their
+ // public owner lease is covered by ai-plugin-extensions.test.tsx.
+ if(method==="ai.routing.extensions.open")return Promise.resolve({url:"http://127.0.0.1:4310/session/fixture/plugins.html",pages:[],panels:[]});
+ if(method==="ai.routing.extensions.close")return Promise.resolve({});
+ return api.captureCall(method,...args);
+}}));
 afterEach(()=>{cleanup();vi.clearAllMocks();});
 const original={revision:2,engine:"google",ocrEngine:"local",target:"auto",prompt:"",providers:[{id:"one",name:"个人服务",authMode:"api-key",protocol:"chat",baseUrl:"https://example.com/v1",models:["test-model"],hasKey:true}],tasks:{default:{provider:"one",model:"test-model"}}};
+it("enables routing groups without saving or losing another provider draft",async()=>{
+ let committed:any=structuredClone(original);
+ api.captureCall.mockImplementation(async(method,value)=>{
+  if(method==="ai.configuration.get")return structuredClone(committed);
+  if(method==="ai.configuration.save"){committed={...value.configuration,revision:committed.revision+1};return structuredClone(committed);}
+  if(method==="ai.routing.open")return {url:"http://127.0.0.1:4310/session/fixture/"};
+  if(method==="ai.routing.close")return {};
+  throw Error(method);
+ });
+ const view=render(<AISettings/>),user=userEvent.setup();
+ await user.click(await screen.findByRole("button",{name:"重命名服务"}));
+ const name=screen.getByRole("textbox",{name:"服务名称"});await user.clear(name);await user.type(name,"未保存名称");
+ await user.click(screen.getByRole("tab",{name:"路由"}));
+ const frame=await waitFor(()=>{const node=view.container.querySelector<HTMLIFrameElement>('iframe[title="路由"]');expect(node).toBeTruthy();return node!;});
+ const request=(origin:string,source:MessageEventSource|null)=>act(()=>window.dispatchEvent(new MessageEvent("message",{origin,source,data:{type:"winone-routing-native",id:"enable",method:"enable-groups"}})));
+ request("http://untrusted.invalid",frame.contentWindow);request("http://127.0.0.1:4310",window);
+ expect(committed.magpieSettings).toBeUndefined();
+ request("http://127.0.0.1:4310",frame.contentWindow);
+ await waitFor(()=>expect(committed.magpieSettings?.builtinPlugins?.groups?.enabled).toBe(true));
+ expect(committed.providers[0].name).toBe("个人服务");
+ await user.click(screen.getByRole("tab",{name:"自定义供应商"}));
+ await user.click(screen.getByRole("button",{name:"重命名服务"}));
+ expect((screen.getByRole("textbox",{name:"服务名称"}) as HTMLInputElement).value).toBe("未保存名称");
+ await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));
+ await waitFor(()=>expect(committed.providers[0].name).toBe("未保存名称"));
+ expect(committed.magpieSettings.builtinPlugins.groups.enabled).toBe(true);
+});
 function fixture(){let saved:any;api.captureCall.mockImplementation(async(method,value)=>{
  if(method==="ai.configuration.get")return structuredClone(original);
  if(method==="ai.configuration.save"){saved=value;return {...value.configuration,revision:3};}
@@ -14,14 +47,56 @@ function fixture(){let saved:any;api.captureCall.mockImplementation(async(method
  if(method==="ai.accounts.list")return {accounts:[]};
  throw Error(method);
 });return ()=>saved;}
+it("supports a remote HTTP model connection before saving and preserves its exact URL",async()=>{
+ const saved=fixture(),base=api.captureCall.getMockImplementation()!;
+ api.captureCall.mockImplementation(async(method,value)=>method==="ai.models.fetch"?{models:[{id:"test-model"}]}:base(method,value));
+ render(<AISettings/>);const user=userEvent.setup(),address=await screen.findByLabelText("API 基础地址");
+ await user.clear(address);await user.paste("http://relay.example:3000/v1");
+ expect(screen.getByText("HTTP 会明文传输密钥和请求内容，请仅用于可信网络。")).toBeTruthy();
+ await user.click(screen.getByRole("button",{name:"获取模型列表"}));
+ await waitFor(()=>expect(api.captureCall).toHaveBeenCalledWith("ai.models.fetch",expect.objectContaining({connection:expect.objectContaining({baseUrl:"http://relay.example:3000/v1"})})));
+ expect(saved()).toBeUndefined();
+ await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));await screen.findByText("已保存");
+ expect(saved().configuration.providers[0].baseUrl).toBe("http://relay.example:3000/v1");
+});
+
+it("keeps saved key viewing repeatable after saving and reopening without changing credentials",async()=>{
+ const saved=fixture(),base=api.captureCall.getMockImplementation()!,activity=vi.fn();
+ api.captureCall.mockImplementation(async(method,value)=>method==="ai.keys.reveal"?{key:"fixture-saved-secret"}:method==="ai.configuration.get"&&saved()?saved().configuration:base(method,value));
+ const view=render(<AISettings onActivity={activity}/>),user=userEvent.setup();
+ await user.click(await screen.findByRole("button",{name:"显示 API 密钥"}));
+ await waitFor(()=>expect((screen.getByLabelText("API 密钥") as HTMLInputElement).value).toBe("fixture-saved-secret"));
+ expect((screen.getByRole("button",{name:"保存 AI 设置"}) as HTMLButtonElement).disabled).toBe(true);
+ expect(activity.mock.calls.at(-1)?.slice(0,2)).toEqual([false,false]);
+ await user.clear(screen.getByLabelText("API 基础地址"));await user.paste("http://relay.example:3000/v1");
+ await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));await screen.findByText("已保存");
+ expect(saved().keyUpdates).toBeUndefined();expect(saved().keys).toBeUndefined();expect(JSON.stringify(saved())).not.toContain("fixture-saved-secret");
+ expect((screen.getByLabelText("API 密钥") as HTMLInputElement).value).toBe("");
+ await user.click(screen.getByRole("button",{name:"显示 API 密钥"}));
+ await waitFor(()=>expect((screen.getByLabelText("API 密钥") as HTMLInputElement).value).toBe("fixture-saved-secret"));
+ await user.click(screen.getByRole("button",{name:"隐藏 API 密钥"}));
+ view.unmount();render(<AISettings/>);
+ await user.click(await screen.findByRole("button",{name:"显示 API 密钥"}));
+ await waitFor(()=>expect((screen.getByLabelText("API 密钥") as HTMLInputElement).value).toBe("fixture-saved-secret"));
+ expect(api.captureCall.mock.calls.filter(([method])=>method==="ai.keys.reveal")).toHaveLength(3);
+});
+
+it("does not load advanced catalogs before that page is opened",async()=>{
+ fixture();const base=api.captureCall.getMockImplementation()!;
+ api.captureCall.mockImplementation(async(method,value)=>method==="ai.magpie.catalog"?{}:base(method,value));
+ render(<AISettings/>);await screen.findByRole("button",{name:"重命名服务"});
+ expect(api.captureCall.mock.calls.filter(([method])=>method==="ai.magpie.catalog")).toHaveLength(0);
+});
 
 it("reopens the visible routing editor after saving its configuration",async()=>{
  fixture();const base=api.captureCall.getMockImplementation()!;let opened=0;
  api.captureCall.mockImplementation(async(method,value)=>method==="ai.routing.open"?{url:`http://127.0.0.1:${4300+(++opened)}/?view=routing`}:method==="ai.routing.close"?{}:base(method,value));
- render(<AISettings/>);const user=userEvent.setup();await screen.findByRole("tab",{name:"路由"});await user.click(screen.getByRole("tab",{name:"路由"}));
- await waitFor(()=>expect(screen.getByTitle("路由").getAttribute("src")).toContain(":4301/"));
+ const view=render(<AISettings/>);const user=userEvent.setup();await screen.findByRole("tab",{name:"路由"});await user.click(screen.getByRole("tab",{name:"路由"}));
+ // The tab tooltip and embedded editor intentionally share their full name.
+ const frame=()=>view.container.querySelector('iframe[title="路由"]');
+ await waitFor(()=>expect(frame()?.getAttribute("src")).toContain(":4301/"));
  await user.click(screen.getByRole("switch",{name:"启用模型路由"}));await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));
- await screen.findByText("已保存");await waitFor(()=>expect(screen.getByTitle("路由").getAttribute("src")).toContain(":4302/"));
+ await screen.findByText("已保存");await waitFor(()=>expect(frame()?.getAttribute("src")).toContain(":4302/"));
 });
 
 it("keeps connection and advanced edits while switching the provider settings tabs",async()=>{
@@ -222,7 +297,7 @@ it("fetches a local preset before saving without requiring an API key",async()=>
 it("places global defaults after account providers and preserves drafts across tabs",async()=>{
  fixture();render(<AISettings/>);const user=userEvent.setup();await screen.findByRole("button",{name:"重命名服务"});
  await user.type(screen.getByLabelText("API 密钥"),"draft-key");
- expect(within(screen.getByRole("tablist",{name:"AI 服务"})).getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["自定义供应商","账号供应商","默认 AI 服务","本地网关","路由","用量统计","高级设置"]);
+ expect(within(screen.getByRole("tablist",{name:"AI 服务"})).getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["自定义供应商","账号供应商","默认 AI 服务","本地网关","路由","用量统计","插件","高级设置"]);
  expect(screen.queryByRole("combobox",{name:"默认 AI 服务 · 供应商"})).toBeNull();
  await user.click(screen.getByRole("tab",{name:"默认 AI 服务"}));expect(screen.getByRole("combobox",{name:"默认 AI 服务 · 供应商"})).toBeTruthy();
  await waitFor(()=>expect(screen.queryByLabelText("API 基础地址")).toBeNull());
@@ -290,8 +365,7 @@ it("adds separate keys and removes only the chosen key while retaining the other
 it("saves rotation controls and key availability without resubmitting saved secrets",async()=>{
  const saved=fixture();render(<AISettings/>);const user=userEvent.setup();
  await user.click(await screen.findByRole("button",{name:"添加密钥"}));
- await user.click(screen.getByRole("combobox",{name:"密钥使用策略"}));
- await user.click(await screen.findByRole("option",{name:"按顺序使用"}));
+ await user.click(within(screen.getByRole("radiogroup",{name:"密钥使用策略"})).getByRole("radio",{name:"按顺序使用"}));
  await user.clear(screen.getByLabelText("最多尝试密钥数"));await user.type(screen.getByLabelText("最多尝试密钥数"),"2");
  await user.clear(screen.getByLabelText("失败冷却时间（秒）"));await user.type(screen.getByLabelText("失败冷却时间（秒）"),"120");
  await user.click(screen.getByRole("switch",{name:"启用密钥 1"}));
@@ -392,5 +466,5 @@ it("retains manual entry when discovery fails and keeps unchecked models out of 
  expect(saved().configuration.providers[0].models).toEqual(["manual-model"]);
  expect(saved().configuration.providers[0].availableModels).toEqual(["test-model","manual-model"]);
  expect(saved().keys).toBeUndefined();
- expect(within(screen.getByRole("tablist",{name:"AI 服务"})).getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["自定义供应商","账号供应商","默认 AI 服务","本地网关","路由","用量统计","高级设置"]);
+ expect(within(screen.getByRole("tablist",{name:"AI 服务"})).getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["自定义供应商","账号供应商","默认 AI 服务","本地网关","路由","用量统计","插件","高级设置"]);
 });

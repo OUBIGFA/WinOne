@@ -17,6 +17,17 @@ type moduleEndpoint interface {
 	Enabled() bool
 }
 
+// Explicit module activation prepares only the existing capture runtime. Its
+// canvas and image buffers are still created for, and released after, each shot.
+func prepareCapture(worker *modules.Lazy) error {
+	worker.Resume()
+	response := worker.Handle(host.Request{Version: 1, ID: "capture-prepare", Method: "prepare"})
+	if response.Error != nil {
+		return errors.New(response.Error.Message)
+	}
+	return nil
+}
+
 func startWinTray(ctx context.Context, worker *modules.Lazy) error {
 	worker.Resume()
 	for {

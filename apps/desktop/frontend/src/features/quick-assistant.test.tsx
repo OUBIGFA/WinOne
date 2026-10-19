@@ -11,8 +11,14 @@ it("opens chat and saves independent custom actions through the quick assistant"
  const prefs={schemaVersion:1,revision:3,actions:[{id:"copy",name:"复制",icon:"copy",kind:"copy",enabled:true}]};
  calls.quick.mockImplementation(async(method,payload)=>method==="settings.save"?{...payload,revision:4}:prefs);
  const user=userEvent.setup();render(<SelectionPage moduleId="quick-assistant"/>);
- await user.click(await screen.findByRole("button",{name:"打开快捷助手"}));
+ const open=await screen.findByRole("button",{name:"打开快捷助手"});
+ expect(open.closest('.settings-tab-bar')).toBe(screen.getByRole('tablist').parentElement);
+ expect(open.closest('[role="tablist"]')).toBeNull();
+ await user.click(open);
  expect(calls.quick).toHaveBeenCalledWith("show");
+ const help=screen.getByRole('note',{name:'使用这些功能'});
+ expect(help.textContent).toContain('输入或粘贴文字');
+ expect(help.querySelector('svg')).toBeNull();
  await user.click(screen.getByRole("tab",{name:"常规"}));
  expect(screen.getByRole("switch",{name:"默认置顶快捷助手"}).getAttribute("aria-checked")).toBe("false");
  await user.click(screen.getByRole("switch",{name:"默认置顶快捷助手"}));

@@ -167,8 +167,14 @@ func (c *Controller) openQuickFromSelection(text string) {
 	ctx, epoch := c.begin("quick-assistant")
 	input := resultwindow.SelectionHandoff{Session: c.Initial.ID, Text: text}
 	go func() {
-		err := c.Client.Call(ctx, "quick-assistant.fromSelection", input, nil)
+		var target resultwindow.WindowTarget
+		err := c.Client.Call(ctx, "quick-assistant.fromSelection", input, &target)
 		c.update(func() {
+			// This result process owns the user's click, including when its
+			// selection toolbar was shown inactive. Do not rely on Host focus.
+			if err == nil {
+				err = target.Activate()
+			}
 			c.completeRequest(epoch, func() { c.Window.Close() }, err)
 			if epoch == c.sequence && c.Panel.Error != "" && c.tooltip != nil {
 				c.Panel.Error += "\n" + c.Panel.T("请检查快捷助手状态后重试。", "Check Quick assistant settings and try again.")

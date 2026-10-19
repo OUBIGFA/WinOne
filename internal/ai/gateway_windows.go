@@ -5,6 +5,7 @@ package ai
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
@@ -52,6 +53,15 @@ type Gateway struct {
 	requests sync.WaitGroup
 	paused   bool
 	models   map[Selection]struct{}
+}
+
+type gatewayCallerKey struct{}
+
+// Only successful local authentication creates this identity. Never use a
+// caller-supplied header or persist the secret itself in usage records.
+func GatewayCallerKeyID(ctx context.Context) string {
+	id, _ := ctx.Value(gatewayCallerKey{}).(string)
+	return id
 }
 
 func NewGateway(ctx context.Context, path string, handler http.Handler) *Gateway {
@@ -227,7 +237,8 @@ func (g *Gateway) serve(w http.ResponseWriter, r *http.Request) {
 		GatewayError(w, 401, "本地网关访问密钥无效")
 		return
 	}
-	g.handler.ServeHTTP(w, r)
+	id := sha256.Sum256([]byte(secret))
+	g.handler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), gatewayCallerKey{}, hex.EncodeToString(id[:]))))
 }
 func (g *Gateway) Close() {
 	g.mu.Lock()

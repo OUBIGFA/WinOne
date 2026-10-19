@@ -7,7 +7,10 @@ import {FitAddon} from '@xterm/addon-fit';
 import {WebLinksAddon} from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 import {chatCall} from '../bridge';
-import {ChatPanelButton as Button} from './chat-desktop-kit';
+import {CINDY_TERMINAL_OPTIONS} from './cindy/terminal/options';
+import {ErrorOverlay,ExitedOverlay} from './cindy/terminal/TerminalOverlays';
+import {Spinner} from './cindy/panel-ui/spinner';
+import './cindy/panel-ui/locales';
 import type {DesktopMenuItem} from 'chatgpt-desktop-kit';
 import {useTranslation} from '../i18n';
 import {createTerminalInput} from './chat-terminal-input';
@@ -19,8 +22,7 @@ export function ChatTerminalView({sessionId,tabId,active=true,onRunningChange,on
  const runningCallback=useRef(onRunningChange);runningCallback.current=onRunningChange;
  const actionsCallback=useRef(onActions);actionsCallback.current=onActions;
  useEffect(()=>{
-  // The original BrowserPanel menu owns terminal actions; there is no second
-  // WinOne toolbar or bottom-right command strip.
+  // Cindy's shared tab menu keeps WinOne's shell and process controls together.
   actionsCallback.current?.([
    {id:'terminal.shell',label:t('chat.terminalShell'),children:[['powershell','Windows PowerShell'],['pwsh','PowerShell 7'],['cmd','Command Prompt']].map(([value,label])=>({id:'terminal.shell.'+value,label,checked:shell===value,onSelect:()=>setShell(value)}))},
    {id:'terminal.restart',label:t('chat.terminalRestart'),onSelect:()=>setGeneration(value=>value+1)},
@@ -31,10 +33,10 @@ export function ChatTerminalView({sessionId,tabId,active=true,onRunningChange,on
  },[shell,t]);
  useEffect(()=>{
   let alive=true,attached=false,timer:ReturnType<typeof setTimeout>,offset=0;
-  const term=new Terminal({fontFamily:'"Cascadia Code",Consolas,monospace',fontSize:13,lineHeight:1.2,cursorBlink:!(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches),scrollback:5000,theme:{background:'#1c1c1c',foreground:'#e6e6e6',cursor:'#e6e6e6',selectionBackground:'#3a4a5a'}}),addon=new FitAddon();terminal.current=term;
+  const term=new Terminal({...CINDY_TERMINAL_OPTIONS,cursorBlink:!(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches)}),addon=new FitAddon();terminal.current=term;
   term.loadAddon(addon);term.loadAddon(new WebLinksAddon((_event,url)=>{void chatCall('link.open',{url}).catch(report);}));term.open(slot.current!);
   const call=<T,>(method:string,data:Record<string,unknown>={})=>chatCall<T>('terminal.'+method,{sessionId,tabId,...data});
-  function report(value:unknown){if(alive)setError(String(value));}
+  function report(value:unknown){if(alive){setError(String(value));setLoading(false);}}
   term.attachCustomKeyEventHandler(event=>{if(event.type==='keydown'&&(event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='c'&&term.hasSelection()){event.preventDefault();void navigator.clipboard.writeText(term.getSelection()).catch(report);return false;}return true;});
   const inputQueue=createTerminalInput(data=>call('write',{data}),report);
   const input=term.onData(data=>inputQueue.enqueue(data));
@@ -48,8 +50,8 @@ export function ChatTerminalView({sessionId,tabId,active=true,onRunningChange,on
   return()=>{alive=false;inputQueue.close();runningCallback.current?.(false);clearTimeout(timer);observer.disconnect();input.dispose();term.dispose();chain.current=chain.current.then(async()=>{if(attached)await call('dispose');}).catch(console.warn);};
  },[sessionId,tabId,shell,generation]);
  useEffect(()=>{if(active){fit.current();terminal.current?.focus();}},[active]);
- return <section className="chat-terminal">
-  {error&&<p role="alert" className="chat-preview-feedback">{error}</p>}{loading&&!error&&<p role="status">{t('chat.terminalStarting')}</p>}{exit!==undefined&&<p role="status">{t('chat.terminalExited',{code:exit})} <Button onClick={()=>setGeneration(value=>value+1)}>{t('chat.terminalRestart')}</Button></p>}
+ return <section className="chat-terminal relative">
+  {error&&<div role="alert"><ErrorOverlay message={error} restarting={loading} onRetry={()=>setGeneration(value=>value+1)} t={t}/></div>}{loading&&!error&&<div role="status" className="absolute inset-0 flex items-center justify-center gap-2 text-13 text-white/60"><Spinner size={14}/>{t('chat.terminalStarting')}</div>}{exit!==undefined&&<div role="status"><ExitedOverlay exit={{code:exit,signal:null}} restarting={loading} onRestart={()=>setGeneration(value=>value+1)} t={t}/></div>}
   <div ref={slot} className="chat-terminal-slot"/>
  </section>;
 }

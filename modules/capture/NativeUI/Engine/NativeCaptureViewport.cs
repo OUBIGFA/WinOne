@@ -34,6 +34,19 @@ namespace ShareX.ScreenCaptureLib
         private PointF ToWorld(PointF point) => new PointF(point.X + form.CanvasRectangle.X, point.Y + form.CanvasRectangle.Y);
         private Rectangle FromWorld(RectangleF bounds) => Rectangle.Round(new RectangleF(bounds.X - form.CanvasRectangle.X, bounds.Y - form.CanvasRectangle.Y, bounds.Width, bounds.Height));
 
+        public void ZoomAtPoint(Point viewPoint, int wheelDelta)
+        {
+            if (!HasViewport || wheelDelta == 0) return;
+            // Use the image coordinate underneath the queued wheel event, not
+            // the cursor's later position. Zoom and inverse zoom keep it fixed.
+            var oldScale = ViewScale;
+            var scale = Math.Clamp(oldScale * (float)Math.Pow(1.2, wheelDelta / 120d), 0.2f, 6f);
+            if (scale == oldScale) return;
+            var origin = ViewOrigin;
+            SetViewport(scale, new PointF(origin.X + viewPoint.X / scale - viewPoint.X / oldScale,
+                origin.Y + viewPoint.Y / scale - viewPoint.Y / oldScale));
+        }
+
         public void SetViewport(float scale, PointF imageOrigin)
         {
             if (!HasViewport || !float.IsFinite(scale) || scale < 0.2f || scale > 6 ||

@@ -19,6 +19,8 @@ export type ScrollAreaRootProps = React.ComponentProps<typeof BaseScrollArea.Roo
 export type ScrollAreaFadeOrientation = 'vertical' | 'horizontal' | 'both';
 
 export type ScrollAreaViewportProps = React.ComponentProps<typeof BaseScrollArea.Viewport> & {
+  /** Identifies the actual scroll viewport for Cindy's sticky work controls. */
+  'data-scroll-container'?: string;
   /**
    * Enable gradient scroll fade on the viewport edges.
    *

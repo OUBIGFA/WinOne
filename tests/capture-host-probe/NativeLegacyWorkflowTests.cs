@@ -37,7 +37,7 @@ internal static class NativeLegacyWorkflowTests
                 await NativeCaptureWorkflow.Resume(settings,operations,draft.Id,"zh-CN",CancellationToken.None,native,(canvas,session)=>{
                     opened++;
                     if(!canvas.PrepareRenderAsync().IsCompletedSuccessfully)throw new Exception("Legacy draft opened before its first annotated frame was ready");
-                    canvas.Window.Shown+=(_,_)=>canvas.Window.BeginInvoke((Action)(()=>SendMessageW(canvas.Window.Handle,0x0203,IntPtr.Zero,IntPtr.Zero)));
+                    canvas.Window.Shown+=(_,_)=>canvas.Window.BeginInvoke((Action)(()=>NativeScrollInteractionTests.Confirm(session)));
                     canvas.ShowDialog();
                 });
                 if(opened!=1||copies!=1||native.Read() is not null||source.Read() is not null)throw new Exception("Legacy resume did not complete exactly once");

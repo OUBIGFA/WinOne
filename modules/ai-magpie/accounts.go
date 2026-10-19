@@ -37,9 +37,17 @@ func knownAgent(id string) bool {
 	return false
 }
 
+func pluginAccount(in request) bool {
+	_, bundled := pluginForAgent(in.Agent)
+	return bundled || in.AgentBackend == "plugin"
+}
+
 func accountOperation(ctx context.Context, in request, input io.Reader) error {
 	encode := json.NewEncoder(os.Stdout).Encode
 	provider.WinOneProviders = nil
+	if in.Operation == "accounts.key-balance" {
+		return readKeyBalances(ctx, in, os.Stdout)
+	}
 	if in.Operation == "accounts.catalog" {
 		presets := provider.Presets()
 		for i := range presets {
@@ -49,27 +57,28 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 				presets[i].Icon += "-color"
 			}
 		}
-		return encode(map[string]any{"agents": accountCatalog(), "presets": presets})
+		agents, err := accountCatalogWithExtensions(ctx)
+		if err != nil {
+			return err
+		}
+		return encode(map[string]any{"agents": agents, "presets": presets})
 	}
-	if in.AgentBackend == "plugin" {
+	if pluginAccount(in) {
 		if settings.Load().NoAccountDiscovery {
 			return errors.New("WinOne subscription accounts are disabled in privacy settings")
 		}
-		if _, ok := pluginForAgent(in.Agent); !ok {
-			return errors.New("unsupported account plugin")
-		}
-	} else if in.AgentBackend != "" && in.AgentBackend != "builtin" || !knownAgent(in.Agent) {
+	} else if !knownAgent(in.Agent) {
 		return errors.New("unsupported agent account")
 	}
 	switch in.Operation {
 	case "accounts.quota":
 		// The Host scopes this process to one configured WinOne account profile.
 		// Use the vendor quota reader, with no discovery of outside clients.
-		if _, err := findAccount(ctx, in.Agent, in.AgentBackend); err != nil {
+		if _, err := findAccount(ctx, in.Agent); err != nil {
 			return err
 		}
 		agent := in.Agent
-		if in.AgentBackend == "plugin" {
+		if pluginAccount(in) {
 			agent = provider.PluginID(agent)
 		}
 		// Opening/refreshing this page is an explicit read, including when the
@@ -96,7 +105,7 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 		}
 		return encode(map[string]any{"quotas": quotas})
 	case "accounts.list":
-		if in.AgentBackend == "plugin" {
+		if pluginAccount(in) {
 			connection, err := pluginAccountSnapshot(ctx, in.Agent)
 			if err != nil {
 				return err
@@ -109,7 +118,7 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 		}
 		return encode(map[string]any{"accounts": provider.Logins(in.Agent)})
 	case "accounts.models":
-		account, err := findAccount(ctx, in.Agent, in.AgentBackend)
+		account, err := findAccount(ctx, in.Agent)
 		if err != nil || account.Account == nil {
 			return errors.New("sign in to the selected agent first")
 		}
@@ -128,6 +137,43 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 	default:
 		return errors.New("unsupported account operation")
 	}
+}
+
+// Read the upstream vendor balance using only the selected saved provider.
+// IDs replace masked key fragments, and vendor error bodies never reach IPC.
+func readKeyBalances(ctx context.Context, in request, out io.Writer) error {
+	p, err := configuredProvider(in)
+	if err != nil {
+		return err
+	}
+	p.ID = in.ProviderID
+	if p.ID == "" || len(in.BalanceKeys) > 128 {
+		return errors.New("invalid balance provider")
+	}
+	if len(in.BalanceKeys) == 0 {
+		return json.NewEncoder(out).Encode(map[string]any{"quotas": []provider.SubscriptionQuota{}})
+	}
+	p.Key, p.KeyName = in.BalanceKeys[0].Key, in.BalanceKeys[0].Name
+	p.Keys = in.BalanceKeys[1:]
+	provider.WinOneProviders = []provider.Provider{p}
+	quotas := provider.KeyBalances(provider.Asked(ctx))
+	for i := range quotas {
+		q := &quotas[i]
+		if q.Error != "" || q.AsOf != nil {
+			q.Error = "Balance could not be read"
+		}
+		for j := range q.BalanceParts {
+			if q.BalanceParts[j].Error != "" {
+				q.BalanceParts[j].Error = "Balance component could not be read"
+			}
+		}
+		for j := range q.BalanceSplit {
+			if q.BalanceSplit[j].Error != "" {
+				q.BalanceSplit[j].Error = "Balance component could not be read"
+			}
+		}
+	}
+	return json.NewEncoder(out).Encode(map[string]any{"quotas": quotas})
 }
 
 // One process owns the OAuth listener until completion/cancellation. The Host
@@ -165,7 +211,7 @@ func signIn(ctx context.Context, in request, input io.Reader) error {
 	commands := readSignInControls(ctx, input)
 	var state provider.SignInState
 	var err error
-	if in.AgentBackend == "plugin" {
+	if pluginAccount(in) {
 		var complete bool
 		state, complete, err = beginPluginSignIn(ctx, in, commands)
 		if err != nil {

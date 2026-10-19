@@ -82,6 +82,13 @@ func allowed(name string) bool {
 	if name == "shared/ui/WinOne.Results.exe" || name == "shared/ui/WinOne.Diagrams.exe" || name == "selection/WinOne.Selection.exe" || name == "WinOne.WinTray.Recovery.exe" {
 		return true
 	}
+	// Both architectures are shipped beside WinTray. Older verified bundles
+	// remain readable for rollback; the current worker verifies all four files.
+	switch name {
+	case "native/x64/WinTray-Bridge.exe", "native/x64/WinTray-ShellBridge.dll", "native/x86/WinTray-Bridge.exe", "native/x86/WinTray-ShellBridge.dll":
+		return true
+	}
+	if name == "capture/recording-runtime.json" { return true }
 	if textRuntimeAllowed[name] {
 		return true
 	}
@@ -114,6 +121,13 @@ func allowed(name string) bool {
 	return false
 }
 
+// Only dependency inventories evolve independently of the package format.
+// Keep root notes/configuration and unknown module roots outside upgrade scope.
+func allowedHistorical(name string) bool {
+	return allowed(name) || name == "LICENSE.txt" || name == "README.txt" ||
+		strings.HasPrefix(name, "capture/Ocr/") || strings.HasPrefix(name, "shared/ai/") || strings.HasPrefix(name, "shared/chat/")
+}
+
 func inputs(directory, license string) ([]input, error) {
 	var result []input
 	seen := map[string]bool{}
@@ -132,7 +146,7 @@ func inputs(directory, license string) ([]input, error) {
 		if entry.IsDir() {
 			if name != "." {
 				top := strings.Split(name, "/")[0]
-				if top != "capture" && top != "always-on-top" && top != "licenses" && top != "shared" && top != "selection" && top != "stroke" {
+				if top != "capture" && top != "always-on-top" && top != "licenses" && top != "shared" && top != "selection" && top != "stroke" && top != "native" {
 					return fmt.Errorf("unexpected directory: %s", name)
 				}
 			}
@@ -311,7 +325,15 @@ func hashInput(file input, writer io.Writer) (File, error) {
 	return File{file.name, size, hex.EncodeToString(digest.Sum(nil))}, nil
 }
 
-func Verify(filename string) (Manifest, error) {
+func Verify(filename string) (Manifest, error) { return verifyPackage(filename, false) }
+
+// Historical OCR/AI/Chat inventories describe the exact old distribution.
+// Dependency upgrades rename files and add requirements: those current-build
+// rules cannot invalidate a hash-verified source/rollback package. New packages
+// still go through Verify, Build and the current complete runtime inventories.
+func verifyHistoricalPackage(filename string) (Manifest, error) { return verifyPackage(filename, true) }
+
+func verifyPackage(filename string, historical bool) (Manifest, error) {
 	archive, err := zip.OpenReader(filename)
 	if err != nil {
 		return Manifest{}, err
@@ -357,7 +379,11 @@ func Verify(filename string) (Manifest, error) {
 	var total int64
 	for _, record := range manifest.Files {
 		entry := entries[record.Path]
-		if entry == nil || checked[record.Path] || record.Path == "manifest.json" || (!allowed(record.Path) && record.Path != "LICENSE.txt" && record.Path != "README.txt") || record.Size < 0 || record.Size > maxFileBytes || entry.UncompressedSize64 != uint64(record.Size) {
+		pathAllowed := allowed(record.Path) || record.Path == "LICENSE.txt" || record.Path == "README.txt"
+		if historical {
+			pathAllowed = allowedHistorical(record.Path)
+		}
+		if entry == nil || checked[record.Path] || record.Path == "manifest.json" || !pathAllowed || record.Size < 0 || record.Size > maxFileBytes || entry.UncompressedSize64 != uint64(record.Size) {
 			return Manifest{}, errors.New("invalid package inventory")
 		}
 		total += record.Size
@@ -376,7 +402,11 @@ func Verify(filename string) (Manifest, error) {
 		}
 		checked[record.Path] = true
 	}
-	for _, required := range append(append([]string{}, requiredForPayload(checked)...), "LICENSE.txt", "README.txt") {
+	required := requiredFiles
+	if !historical {
+		required = requiredForPayload(checked)
+	}
+	for _, required := range append(append([]string{}, required...), "LICENSE.txt", "README.txt") {
 		if !checked[required] {
 			return Manifest{}, fmt.Errorf("required file missing: %s", required)
 		}

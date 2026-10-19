@@ -10,6 +10,7 @@ internal static class NativeScrollingWorkflowTests
     public static void Run(string directory)
     {
         Directory.CreateDirectory(directory);
+        NativeScrollInteractionTests.Run(Path.Combine(directory, "interaction"));
         NativeRetakeWorkflowTests.Run(Path.Combine(directory,"retake-workflow"));
         NativeCaptureRoutingTests.RunAsync(Path.Combine(directory, "routing")).GetAwaiter().GetResult();
         NativeDraftReplacementTests.Run(Path.Combine(directory, "replacement"));
@@ -106,7 +107,7 @@ internal static class NativeScrollingWorkflowTests
                 show: (canvas, session) => Show(canvas, session, () => {
                     if (canvas.Selection != new Rectangle(Point.Empty, source.Size) || canvas.AnnotationCount != 1)
                         throw new Exception("Long image recovery lost crop or annotations");
-                    SendMessageW(canvas.Window.Handle, 0x0203, IntPtr.Zero, IntPtr.Zero);
+                    NativeScrollInteractionTests.Confirm(session);
                 })).GetAwaiter().GetResult();
             if (copies != 1 || drafts.Recover() is not null) throw new Exception("Confirmed scrolling recovery did not finish exactly once");
             using var complete = new ScrollingFrameTests.Source(new Bitmap(source));

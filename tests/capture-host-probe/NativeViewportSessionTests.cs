@@ -38,7 +38,7 @@ internal static class NativeViewportSessionTests
                             throw new Exception("Viewport geometry leaked into persistent text coordinates");
                         if (!canvas.Window.ClientRectangle.Contains(session.Toolbar.Bounds)) throw new Exception("Viewport toolbar escaped the window");
                     }
-                    SendMessageW(canvas.Window.Handle, 0x0203, IntPtr.Zero, IntPtr.Zero);
+                    NativeScrollInteractionTests.Confirm(session);
                 } catch (Exception error) { failure = error; canvas.Window.Close(); }
             }));
         };

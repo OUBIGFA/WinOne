@@ -49,7 +49,7 @@ try {
    if(source==="settings")await page.getByRole("button",{name:zh?"设置":"Settings",exact:true}).click();
    const overflow=await page.evaluate(()=>[...document.querySelectorAll('html,body,[data-slot="page-scroll"]')].filter(e=>e.clientWidth>0&&e.scrollWidth>e.clientWidth+1).map(e=>e.className||e.tagName));
    const clipped=await page.locator('[data-slot="page-content"]').evaluate(root=>[...root.querySelectorAll('button,input,textarea,[role="combobox"]')].filter(e=>{const r=e.getBoundingClientRect();return e.getAttribute("aria-hidden")!=="true"&&r.width>0&&r.height>0&&(r.left<0||r.right>window.innerWidth+1)}).map(e=>e.id||e.textContent));
-   if(source==="settings"&&(await page.getByRole("tablist").allTextContents()).at(-1)!==(zh?"诊断日志":"Diagnostic logs"))throw Error("Diagnostics is not the last independent group");
+   if(source==="settings"&&(await page.getByRole("tab").allTextContents()).at(-1)!==(zh?"关于与诊断":"About and diagnostics"))throw Error("Diagnostics is not in the last independent settings category");
    report.push({language,theme,width,source,overflow,clipped});
    await page.evaluate(()=>Promise.all(document.getAnimations().map(animation=>animation.finished.catch(()=>{}))));
    if(width===800){await page.locator('[data-slot="page-scroll"]').evaluate(element=>{element.scrollTop=0;});}if(width===800)await page.screenshot({path:resolve(output,`${language}-${theme}-${source}.png`),fullPage:true});

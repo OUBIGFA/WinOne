@@ -1,5 +1,161 @@
 # 开发状态
 
+## 固定安装器更新（2026-10-19，体验故障修复与 Chat 交互）
+
+用户要求从中断处继续更新安装器。本轮沿用已验证的统一构建与隔离安装矩阵，完成生产安装器编译、本地安全扫描和固定入口替换，未重复运行已通过的整包构建。
+
+- **统一构建通过**：前端 147 文件／776 项，生产前端、Rust、Host、AI、Chat、WinTray 原生桥接与 Worker、启动探测、Go 检查和依赖许可核验全部通过；载荷 4328 个文件。源码指纹 `ea82b572c001005a7e36c54a2d054df344c06af03da468231973dcc2677468a0`，打包前复核一致。日志见 `_temp/experience-repair/combined-build.log` 与 `final-ui-build.log`。
+- **功能修复已复验**：录制线框与成片检查（MP4 多时间点、GIF 全帧）、滚动截图防误退出、划词跨链接与保护、托盘自适应、窗口隐藏／最小化重开、Chat 发送／插话／断流恢复、HTTP 供应商地址与密钥反复查看、深浅色宽窄窗均通过；详见同目录 `plan.md`。
+- **隔离安装矩阵通过**：含历史依赖记录的覆盖安装、两条失败回滚、安装中断修复、修复失败保留现场、修复成功、覆盖安装、卸载中断恢复、导出卸载器一致性及配置／额外文件保留；另有全新目录首装与卸载。4328 个安装文件逐个 SHA-256 校验一致。结果见 `_temp/experience-repair/delivery/installer-case/result.json` 与 `installer-fresh-case/result.json`。
+- **固定安装器已更新**：`dist/release/WinOne-setup.exe` 为 273,982,383 字节，SHA-256 `3e1e10a962ef7889123baaa852adb37364b8e23f41d1ea8086f4d3edee44f35b`。`WinOne-setup.exe.sha256` 与 `release-info.json` 已同步；旧包及元数据备份在 `_temp/experience-repair/prior-release/`。
+- **安全扫描通过**：Microsoft Defender 对正式安装器、导出卸载器、ZIP 和最终载荷的静态扫描均无威胁；未提交外部样本。
+
+**边界**：未签名、未对外发布、未操作真实安装或真实配置，由用户自行运行安装器。未验证真实供应商账号推理、物理中文输入法、混合 DPI／多屏和长期稳定性。构建日志中的 Rust 警告与非失败测试输出未计为通过项。
+
+## 统一构建与固定安装器更新（2026-10-18）
+
+用户要求在 Chat 续验后继续到安装器完全更新。本轮使用固定本地工具链完成统一构建、打包、隔离安装矩阵和正式安装器编译；正式安装器已替换并同步 SHA-256 与元数据。
+
+- **统一构建通过**：前端 144 文件／760 项，生产前端、Rust、Host、AI、Chat、WinTray、启动探测、Go 与许可核验全部通过；载荷 4328 个文件。日志见 `_temp/20261018-installer/build.log`。
+- **隔离安装矩阵通过**：首装、两条失败回滚、安装中断修复、修复失败保留、修复成功、覆盖安装、卸载中断恢复、导出卸载器一致性和卸载保留配置／额外文件。4328 个安装文件逐个 SHA-256 校验一致；结果见 `_temp/20261018-installer/installer-test/isolated-1/result.json`。
+- **固定安装器已更新**：`dist/release/WinOne-setup.exe` 为 273,929,599 字节，SHA-256 `4e74185257921f30899392474f533953ce2605bed4558b1958aa9597263ea7e1`。`WinOne-setup.exe.sha256` 与 `release-info.json` 已同步；旧包及元数据备份在 `_temp/20261018-installer/prior-release/`。
+- **安全扫描通过**：Microsoft Defender 对正式安装器、导出卸载器和 ZIP 的静态扫描均无威胁；未提交外部样本。
+
+**边界**：未签名、未对外发布、未操作真实安装或真实配置，由用户自行运行安装器。未验证真实供应商账号推理、物理中文输入法、混合 DPI／多屏、干净机器安装和长期稳定性。构建日志中的 Rust 警告和非失败测试输出未计为通过项。
+
+## Cindy Chat 提交链路与隔离实窗续验（2026-10-18，已进入固定安装器）
+
+接续 `_temp/20261017-chat-cindy-corrections/` 与上一轮中断，保留既有产品修复和其他会话改动。Cindy 的 Enter 意图、发送快照、Send/Stop 槽位、自动跟随、编辑重发与 Host/Pi 收据路径已逐项核对，完整对照见 [Chat 界面复用](chat-ui-reuse.md)。本轮补齐生产构建和原生验收，不重复另造提交逻辑。
+
+- **Chat 实际链路通过**：7 次本地受控模型请求覆盖普通发送、同轮插入、排队、双击重试、编辑重发、纯附件、主动停止。插入不取消当前请求，早于排队消费；连续观察重试／编辑期间的顺序，用户文字实际可见、旧回复不重复。停止时上游流确实断开，下一条草稿保留。切页重开保留历史、收据与草稿，已受理队列的内容不再回到未发送输入框。
+- **右栏及布局通过**：固定文件／资料与动态标签两个大 Tab，资料预览转入标签、返回保留原选择；浅／深色、1280×940 和 800×600 的导航独立占位、工具完整可见、背板 3px 同心圆角及无横向溢出。浏览器 13 场景另覆盖最近五项、展开／收回、长短过程收起和增高输入框不移动正文。已查看原生截图，抽查截图四边均无黑边。
+- **路由续验通过**：关闭分组时说明及开启、供应商未保存草稿保护、规则思考强度选择／保存／重开、真实请求采用规则 `low` 而非供应商或请求默认值、插件和路由双主题，原生连续两轮通过。此前选单中断由跨源 iframe 刚增高时 CDP 点击仅送达父 iframe 引起；记录双文档事件证明后，驱动改为先滚动并等待两侧完成绘制，不强制点击、不补点、不修改产品控件或放宽判定。插件页使用当前已修正的抽取器重建，避免已移除内置 Tab 后仍访问旧的第三项索引。
+- **测试可靠性修正**：自动化脚本完成只表示消息已分发，不表示该模型已结束；旧全局阻塞开关误截获另一会话的模型请求，导致“调度器退出未取消”误报。夹具现只阻塞目标会话并校验取消的 ID，两种真实取消路径各连续 3 轮通过。设置测试补齐空插件扩展租约，选择异步列表时等待实际选项出现，没有改动产品错误处理。
+
+验证：最终前端 144 文件／759 项与全量 TypeScript 检查通过；Bun 70 项及暂停／恢复 2 项通过；Host、internal/chat、internal/ai 全包通过，显式启用本次打包 Worker 的收据与取消检查、AI 路由规则及嵌套 Patience 检查。生产前端、Rust 测试／release、匹配 Host、Chat 与 AI 适配器构建通过；Rust 保留既有警告及默认跳过的系统测试，不称为全系统零警告。Cindy 来源／许可和四项引入共 20 份改编摘要校验通过；仅同步了已核对的设置动效、设置样式及菜单样式旧摘要。
+
+证据集中于 `_temp/20261018-chat-resume/`：`frontend-final-2.log`、`types-final.log`、`chat-production.log`、`desktop-production.log`、`ai-production-2.log`、`go-host-chat-ai-final-2.log`、`go-automation-identity-green.log`、`browser-final/`、`native-chat-final/`、`native-routing-painted/` 和 `native-routing-repeat/`。失败诊断保留，没有计为通过。筛选后的截图、结果与组件哈希见 [本轮报告](../dist/reports/chat-cindy-20261018/report.md)。所有隔离窗口正常关闭，任务目录下无 WinOne 进程残留。
+
+**边界**：`candidate/` 是固定的隔离组件装配快照，不是整应用统一发布构建；继承的 `build-info.json` 只属于基底，实际被测组件另有 `component-verification.json`。并行 AI 新增设置、路由隐私等后续改动不自动算入该生产快照；不能据此宣称 Magpie/Pi 的全部长期待办已完成。没有真实供应商账号推理、物理中文输入法、混合 DPI／多屏、长期稳定性或安装生命周期验证。已进入本节上方的固定安装器；真实安装／配置未操作，未提交、推送或发布。
+
+## 文件重命名、标题与 AI 页面视觉收尾（2026-10-18，正式安装器未更新）
+
+目标文件夹已支持文件、文件夹及链接入口重命名；按钮/F2、取消、同名拒绝、身份检查及历史更新已接通真实 Host。动作包左栏按名称和图标分配宽度，标题保持单行；Tab 指示线保持固定几何并仅改变透明度。托盘主/子菜单使用与窗口一致的系统圆角。AI 路由和插件页使用 WinOne 字体、灰阶、平面分组及表单，保留完整上游功能入口和执行逻辑。工作约定已同步。
+
+验证通过：前端 35 项定向测试与全量类型检查，目录链接/Host/systray 回归，前端、Rust、Host、AI 构建；144 个便捷功能布局场景，12 场景/672 帧 Tab 采样，8 组路由布局及真实原生改名、本地插件安装/测试登录。最终原生页面错误与插件 CSP 违规为 0，窗口正常退出。开发服务器的 ResizeObserver 诊断和既有 Rust warning 没有隐藏；未把外部账号、全部远端更新源或物理键盘菜单操作标为实测。
+
+完整功能对照、修复细节、复现入口及限制见 [本次验收记录](ui-refinement-20261018.md)，截图见 [自包含报告](../dist/reports/ui-refinement-20261018.html)。验收包为隔离组件装配，不是整应用统一发布构建；正式安装器、用户真实安装和配置未更新，未提交或对外发布。
+
+## Pi Durable、MCP、子代理消息与 Magpie 余额续接（2026-10-17，正式安装器未更新）
+
+保留紧凑保存栏和其他会话改动，继续既定能力对照。整体任务尚未完成，正式安装器及 SHA-256 未更新；未操作真实安装、配置或账号，未提交、推送或发布。
+
+- Durable 暂停状态跨 Worker 退出保留，只有显式恢复才继续；普通命令和 Code Mode 内嵌命令都只执行一次，跟进收据保留。后台压缩真实触发时前台回复不阻塞；关闭存储再恢复会安全重做摘要，较新回复保留。后台子代理保留独立模型、只读工具、历史和结果单次交付，后续消息继续原 child 历史。
+- 子代理列表增加查看历史、分页、刷新与后续消息，保留停止。独立草稿不覆盖主会话，失败保留；暂停时禁止关闭 Harness 的历史读取及修改。实窗发现弹窗继承全高和缺少上游消息作用域，已修复为内容高度并恢复上游 portal 样式。生产 800×940 和 800×600 窗口通过，刷新按钮由约 86px 恢复为 32px，短窗按钮与消息滚动可达。
+- MCP 的 direct/deferred/codemode/hidden 保留；新增环境变量、请求头及逐工具调用方式 JSON 编辑。无效草稿跨标签保留并阻止保存，重置和移除服务保持索引对应。真实 HTTP MCP 收到配置请求头，环境变量和逐工具模式实际落盘；hidden 工具不可进入模型声明或 Code Mode。
+- 严格生产 CSP 问题已解决：小字体保持同源文件，两个入口使用 Base UI 官方 CSPProvider，本地样式表保留其原滚动条规则；没有放宽 CSP。生产内嵌资源原生验收覆盖插件安装、账号登录/取消、cURL 草稿、结构化问题、计划、Code Mode、MCP、暂停/恢复和子代理消息，页面错误与 CSP 违规为 0。插件安装脚本补充等待明确的安装完成状态，保留此前失败现场。
+- API 密钥余额从保存的已启用密钥快照读取，复用上游 KeyBalances；不需要启用模型，不改变推理轮换或失败统计。总额、BalanceParts 和赠送/充值 BalanceSplit 保留上游语义及零值；历史/失败保持明确提示，响应不返回密钥或上游错误正文。DeepSeek 分项使用受控传输测试；生产实窗验证真实 Host → 余额 Worker 对 loopback 服务返回无额度，没有以此声称真实 DeepSeek 账号余额已实连。
+- Bedrock Mantle 的全部 17 个地区 × 3 种协议地址在生产原生窗口逐一核对，配置保存通过。没有有效 AWS 账号，未执行 AWS 请求；该条件仍列为未验收。
+
+当前有效验证：续接开始时前端全量 139 文件、723 项通过（本轮路由修复前的快照）；余额、MCP 与子代理界面相关 3 文件、23 项通过；Host/AI 全量 Go 回归通过。Worker 最新完整测试 69 项、两种命令暂停重开专项 2 项及 internal/chat 实际进程通过；后台压缩与子代理恢复各 1 项专项通过。余额适配器完整构建/测试、前端生产构建、Rust 测试/release 与匹配 Host 构建通过。
+
+- 2,500 模型目录已贯通获取、全选、保存、重读和末项可达；各层原有 2,048 限制统一改为有界 4,096。生产原生验收返回 Models/AvailableModels 均为 2,500，完整 UI 链路获取约 2,766ms；不将此耗时称为上游性能保证。
+- FetchPrivate 已经真实 Translator → 正式 AI Worker → Magpie 图像编辑链路验证：默认拒绝 loopback；明确允许后读取 PNG 并送模型一次；非图片仍拒绝；移除允许设置后再次拒绝，没有跨请求泄漏。
+- 路由续接发现并复现：缺少内置功能状态和开启操作宿主桥接；内层供应商默认思考强度覆盖规则；内外双重重试使嵌套 Patience 失效。这三项已在 2026-10-18 的固定候选完成定向 Go 回归与原生开启／思考强度验收，见上方 Cindy Chat 续验；其余 Magpie 增量不因此标记完成。
+
+上述新增证据：large-catalog-native/large-catalog-result.json、fetch-private-integration-2.log、ai-host-full-final.log、balance-child-ui-final-2.log、frontend-full-threads-recovery.log，均位于 _temp/resume-20261016-b3e1/。
+
+证据集中于 _temp/resume-20261016-b3e1/：agents-all-frontend.log、agents-worker-build-test.log、nested-codemode-pause.log、background-compaction-2.log、background-subagents-1.log；agents-layout-green-2/ 保存生产窗口与短窗口截图、result.json 和 ai-sync-result.json；balance-ui-green.log、balance-host-green.log、balance-adapter-green-2.log、balance-ai-build.log、balance-frontend-build.log、balance-desktop-build.log；balance-mantle-native/ 保存真实链路和 17×3 地址核查。失败现场保留，没有计入通过结果。activation-bundle/ 仅为隔离验收装配目录，旧 build-info.json 不代表后来替换组件的新整包摘要；统一构建仍需重新生成清单。
+
+仍按 [AI/Pi 对照](ai-pi-durable.md) 与 [Magpie 增量对照](magpie-update-20261017.md) 继续，包含协作工作树、fan-out 链、oh-my-pi 完整能力、MCP OAuth、剩余 Magpie 专项以及整包来源/许可、安装生命周期和正式安装器交付。
+
+## 路径拖入、设置布局与链接历史（2026-10-16，本次不更新安装器）
+
+本轮保留并行工作区改动，完成路径拖入入口覆盖、程序管理与保存栏宽度统一、鼠标手势场景栏重排，以及链接历史按目标分组和失效清理。拖入由 Rust 原生层先核查绝对路径与文件类型，再交给已有草稿、预览、确认和保存事务；头像拖入复用既有图片校验与分块存储。链接历史清理持锁复查，只删除历史登记，离线或未知状态保留。
+
+全量前端 711/711，受影响路径与布局测试 104/104，TypeScript、目录链接/Host Go 定向测试及来源校验通过。浏览器布局检查 9 场景通过且无页面错误；综合 Vite 运行仍有一次 `ResizeObserver loop completed with undelivered notifications` 开发服务器诊断，单页和页面切换隔离运行未复现，本轮新增滚动条测量和工具栏测量已改为逐帧合并。最终源码快照的桌面前端、Rust 测试/release 与 Host 构建通过，隔离候选位于 `_temp/20261016-path-drop-layout/candidate/`。
+
+真实 Windows OLE 探针已执行，混合来源场景曾真实完成拖动并返回 `Copy, Link`；完整序列随后因探针前台/鼠标输入保护中止，未将原生拖放全量标记为通过。浏览器验证不能替代该项，后续需在前台焦点稳定的桌面重跑。正式安装器、真实安装环境、提交和推送均未操作。详细记录见 `_temp/20261016-path-drop-layout/plan.md`。
+
+## 托盘、录制、许可证与 Chat 续接验收（2026-10-16，本次不更新安装器）
+
+接续本轮全部未完成项，保留工作区及其他 AI 的改动。底部固定保存栏由其他 AI 负责，本任务只补充高对比度选择块的 2px 系统焦点轮廓。本次交付源码、验收记录及隔离候选运行包；未更新正式安装器，未安装到真实用户环境，未提交或推送。所有本轮证据位于 `_temp/20261016-tray-recording-chat-final/`。
+
+Chat 文件标签以 `file.stat` 按 64 个合并读取元数据，后台读取队列并发 6，点击后才读完整预览；普通标识符不误判为路径，保留真实读取错误和重试。`files.*` 已贯通 Rust → Host，并打包锁定的 `rg.exe`。资源页等待会话 Open；没有模型也能检查本地资源。保留 Cindy 工作过程最近五项、展开与收纳、工具详情和独立正式回复：短内容收起不移动阅读位置，长内容收起才定位组头。弱化改动卡、把手与占位文字，补齐实体预览/提示底色、输入背板、左栏最小宽度、导航滚动条间隔及窄分栏工具栏换行。
+
+本轮实测另外修复两处真实问题：Durable 中间 `run_end` 等待执行空闲时会阻塞后续消息投影，现继续消费事件，并在最后提交消息投影完成后才通知已完成；连续追加、重试与重开会话均保留回执和历史。原生深色窗口仅设置 `data-theme`，Chat 旧适配器却只看 `.dark`，造成白底浅字；现优先读取真实主题属性并保留 class-only 嵌入兼容。浏览器夹具移除额外 `.dark` 类，新增原生计算样式断言。首次原生关闭超时是独立测试配置开启后台界面所致，最终驱动仅在该配置中关闭 `keepUIRunning`，按实际关闭语义验证退出，未改产品关闭偏好。
+
+托盘保留 Win32 菜单选择、焦点、助记键及子菜单机制，局部接管尺寸与灰阶绘制；实测双主题和 96/144/192 DPI。open-claude-ui 的 CDS 2.0 局部适配固定到 `02d021fceaf2a907f9e63a8125621bdda1b85d60`（MIT），补齐设计语言中的来源和取舍。新引入与改编文件在编译前通过来源、许可和摘要检查，避免首次发现缺声明发生在打包阶段。
+
+录制使用现有选区和 Rust DLL，保留有界队列、缓冲复用、真实 PTS、暂停补偿、控制窗排除、保存/取消与原图草稿保护；不调用外部 ffmpeg，不落临时序列帧，不设置已取消的内存硬上限。本轮修复首帧晚到时 MP4 归零 PTS 导致成片变短的问题：故意延迟首帧 250ms、只提交 3 帧，仍保留完整 6000ms。完整对照与限制见 [录制接入](recording-integration.md)，Chat 对照见 [Chat 界面复用](chat-ui-reuse.md)。
+
+验证与证据：
+
+- 统一基础包构建及 Go/Rust/C#、启动与集成、全部最终许可检查通过（`build.log`、`build-resume-2.log`）。主题修复后再次全量前端回归：130 文件共 679 项，其中 676 项通过；新增主题用例因遗漏 jsdom 声明失败，补齐后 3 项独立复验通过（`build-theme.log`、`theme-unit-final.log`）。TypeScript、生产前端及 Rust 桌面重新构建通过，最终记录见 `build-theme-resume.log`。较早构建的 Git 审查夹具长路径问题仅通过临时测试仓库的 `core.longpaths` 修复，未修改用户 Git 配置。
+- Chat 浏览器最终 7 场景通过、0 页面错误（`chat-ui-theme-2/report.json`）：双主题、1280/800 宽度、所有窄分栏工具按钮完整可见、预览/资源/筛选/审查、左栏拖动、最近五项、长短过程收起；截图已目检。真实 SSE 的连续追加/重试/重开回归重复 5 轮，另以受控第二次响应重复 3 轮通过（`followup-regression/`）。
+- 新候选包的原生 Chat 在私有桌面、独立配置通过：80 个文件批量 stat、目录/缺失识别、真实索引/搜索、资源在会话打开前读取、实际文件保存、界面筛选/预览、资源标签与 AGENTS 预览、深色实际背景，以及关闭后进程正常退出（`native-final-2/result.json`、`native-final-2.status`）。真实深色截图已目检。较早失败的原生测试与截图保留，没有计入通过结果。
+- 设置边界 10 场景、0 errors（`settings-boundaries-2/report.json`）。托盘绘制矩阵在 `tray-menus/`；私有桌面真实根/子菜单各开启关闭 3 轮，measure=12、draw=12、submenu=3（`tray-popup.log`）。该桌面不接收物理键盘焦点，没有把键盘展开子菜单标为实测通过。
+- 录制 11 项 Rust、C# 选区/工具栏/ABI、真实 WGC 及控制窗生命周期通过（`recording-3/`）。编译结束后追加真实复验与 4 份 MP4/GIF 解码（`recording-live-idle/`、`recording-decoded-idle/`）：尺寸、颜色、方向及首帧控制窗排除通过；MP4 状态 4668ms、实际 4668.533ms，暂停时间已扣除。输入池 9,216,000 字节，队列峰值 MP4=3/GIF=1，背压丢帧为 0。此次比对最大耗时 118.9/78.1μs；较早与重编并行时曾有 470/269.5μs，不能保证任意负载均小于 200μs。
+- 来源改编检查覆盖 3 项引入、7 个适配文件；前端依赖 424 项、运行时 465 条、OCR/AI 62 条、结果窗 13 条、diagram 82 项、selection 22 项、录制 58 项、搜索 36 项、Rust 84 包及标准库/加载器均通过最终校验。gifski 保持 AGPL-3.0-or-later 原文和对应源码说明，没有误标为 MIT。
+
+最终隔离候选目录为 `_temp/20261016-tray-recording-chat-final/build-theme/`，`build-info.json` 记录完整载荷摘要，已由上述原生驱动验证。交付前逐项复核 4268 个运行文件及打包时引用的项目 LICENSE，共 4269 条摘要全部一致；实测录制 DLL 与候选包一致（`delivery-verification.json`）。本轮隔离 WinOne 进程残留数为 0。它是并行工作区的本轮构建快照，不代表其他 AI 后续改动已经纳入验收。
+
+未覆盖：两小时连续实录及完整进程组长期内存/句柄曲线、真实混合 DPI/多显示器切换、磁盘耗尽及全部硬件/HEVC 编码器；未以时间轴单测冒充两小时稳定性，也未宣称所有负载的耗时上限已得到保证。
+
+## 设置底栏紧凑化与短页固定（2026-10-16，设置资源已验证，整包未更新）
+
+手动保存操作统一通过 `SettingsSaveBar` 放入设置壳的底栏，脱离内容滚动区域。无滚动条的短页也贴住窗口底部；上下跳转按钮归入同一栏右侧并排显示，无滚动内容时隐藏。上下留白各 6px，保留按钮原尺寸，普通单行底栏实窗高度约 49px。底栏单独占位，不遮挡最后一个字段。保留各页保存事务、草稿、未保存保护，以及父 fieldset 禁用和保留挂载标签的隐藏状态；Chat 不接入设置底栏。
+
+验证：TypeScript 检查通过；壳与滚动控件 9 项测试、相关设置功能 98 项测试通过。浏览器矩阵 1,214 个场景通过，覆盖中英、深浅色和 520/900/1280 宽度；首轮中包含 15 个无滚动条且有保存操作的场景。开发服务器出现 ResizeObserver 通知警告，矩阵记录的页面运行错误为 0。隔离 WinOne 实窗复查通过 92 个页面/标签，手动保存、导航取消保留草稿、配置落盘、重载及原值恢复通过；目视检查了真实截图中的短页底栏与长页横排滚动按钮。首轮原生截图检查曾意外回到设置页；保留失败诊断，复查取消逐页窗口激活截图后通过，未据此改动产品导航。
+
+证据位于 `_temp/ui-finish-20261017-74ac/shared-footer-full/report.json`、`shared-footer-native-check/result.json`；真实窗口截图在同目录的 `shared-footer-native/`。未更新正式安装器，未安装到用户环境。历史任务中的快捷助手激活、OCR 性能差异、第三方插件管理与 Magpie 全功能同步未在本次标记完成。
+
+## 常规设置选择块与非 Chat UI 续修（2026-10-15，设置资源及隔离实窗已验证，整包未更新）
+
+接续用户对截图选择块的认可，常规页直接复用同一 `SettingsChoice`，分为主题、语言、打开界面时三组；主题和语言各保留三个选项，侧栏保留图标／图标与名称，起始页面下拉使用完整导航目录及原图标。宽窗同排、窄窗整组单列，保留整块点击、方向键、禁用、原保存路径与失败后的原值。全局设置保存失败不再把标签栏往下推；错误留在标签下方。补齐侧栏存储失败重试、默认页面目录与持久重读测试，并同步此前截图标签改名遗漏的测试。
+
+200% 文字自查发现并修复设置标题栏名称与刷新按钮重叠、最后一个设置被浮动滚页按钮覆盖。标题栏修正仅在非 Chat 标记下生效；页尾统一留出可滚动空间。调研来源、直接用户反馈、与 Microsoft 主题下拉示例的取舍，已补入 [设置设计语言 1.2](WinOne设置设计语言.md)。未将启发式检查冒充新用户研究。
+
+验证证据集中在 `_temp/20261015-settings-continue/`：
+
+- 非 Chat 前端回归 97 文件、514 项通过（`non-chat-tests.log`）；标题栏收尾后重跑受影响 9 文件、46 项通过（`reviewed-unit.log`）。
+- 当前源码的 336 个布局场景通过：7 页及其标签，520／900／1280 宽度 × 中英 × 明暗；无横向溢出、导航位移或分组层级失败（`matrix-verified/report.json`）。另有 30 个放大／长内容场景及 9 组交互通过，覆盖 125%／150%／200% 文字、点击空白选择区域、键盘选择、草稿、保存失败恢复及 Chat 样式隔离（`behavior-reviewed/report.json`）。
+- 真实 WinOne 窗口完成 56 个页面／标签检查：实际视口 1280×940 中文浅色与 800×940 英文深色，无横向溢出或资源错误；代表截图已逐页目检。最窄请求受现用宿主窗口下限约束，520 宽度由上述浏览器矩阵覆盖，不伪称为 520 宽度原生验收。
+- 实窗真实 Host 验证主题、语言、侧栏和起始页面：点击／方向键修改、等待保存完成、核对 `configuration.json` 的 committed 值、重新加载页面后保持一致。测试界面正常关闭，任务目录无 WinOne 进程残留（`native-verified/result.json`、`native-verified.log`）。全部模块、自启和全局快捷键关闭，只操作仓库内独立配置。
+- 非 Chat 设置冻结构建通过（`frozen-reviewed/`）。原生测试使用先前已验证的 `_temp/20261015-chat-cindy-installer/build` 完整运行包，加载本轮冻结的设置资源及真实桥接，不使用模拟 Host；这不是整应用的新构建证明。原生驱动现要求 `-FullBundle`，等待旧文档字体加载后再切换资源，并在保存完成而非仅出现内存快照后核对落盘。
+
+**未通过／未覆盖：**验收时全应用 TypeScript 仍被并行 Chat/Cindy 文件浏览器的类型问题阻断（`TS2353`、`TS2554`、`TS2322`、`TS2339`，见 `types-current.log`）；全量前端运行还暴露 Chat follow-up/review 的失败，本轮未改其实现。AI/Magpie 功能与路由交由另一任务，未做其真实账号或路由实窗验收；未触发真实 UAC、自启登记、截图执行或文件链接创建。未更新正式安装器或用户真实安装／配置，未提交或对外发布。整包须先解决上述独立类型问题，再执行统一构建和安装验收。
+
+复现入口：`node build/test-settings-design.mjs`（可用 `WINONE_SETTINGS_PAGES` 选择布局页面、`WINONE_SETTINGS_SKIP_INTERACTIONS=1` 只跑矩阵）；`node build/build-settings-preview.mjs`（`WINONE_SETTINGS_EXCLUDE_CHAT=1`、`WINONE_SETTINGS_ASSETS` 指向新的 `_temp/` 目录，仅用于隔离检查）；`build/test-desktop-components.ps1 -FullBundle -CurrentDesktop -TestScript settings-native-check.mjs`（同时显式传入仓库内完整运行包、独立 FixtureProfile、新 OutputDirectory 和 Playwright 路径）。
+
+## 补齐工具链与打包资源并更新安装器（2026-10-14）
+
+本轮修复上一轮交付受阻的两个资源问题，并完成安装器更新。`dist/resources/sources/magpie-0bb0781` 上次因 TLS 中断只留下空仓库（`.git` 已下载但无提交），本次按锁定提交 `0bb0781ea065b5236a9a0014bceb84cb84324895` 重新 `git fetch --depth 1` 并检出，源码树完整；该提交仍是远端 HEAD，符合“构建读取所选来源 HEAD、不固定阻塞版本”的约定。同时清理了上次中断残留的 `.git/index.lock`。
+
+`dist/resources/cache/cargo/git/db/mermaid-rs-renderer-b132b0a40baa3686` 同样是上次中断留下的空缓存（9 KB，无对象），导致 `winone-diagrams` 无法解析依赖。删除该缓存后重新拉取，并设置 `http.version=HTTP/1.1`、`http.postBuffer=524288000` 提高大仓库克隆稳定性。
+
+统一构建 `build/build.ps1 @WinOneBuildParameters -OutputDirectory _temp/20261015-chat-cindy-installer/build` 通过：前端 118 文件、612 项测试（线程模式、2 个工作线程）；Go/Rust/C# 相关测试、依赖声明与运行时版本检查全部通过；供应商图标缓存此前失效，本轮重新渲染成功。打包 3709 个载荷文件（`WinOne-0.0.1-windows-x64.zip`）。
+
+先编译测试安装器（编译期固定隔离目录）并跑完隔离安装生命周期：回滚（after-files、after-registration）、修复（中断、失败重试、成功修复）、覆盖安装、卸载，以及卸载中断恢复（中断后移除引导文件、摘要不符保留状态、二次中断移除登记、最终完成）；3709 个已安装文件 SHA-256 逐项核验通过，注册表、快捷方式、用户配置与额外文件保留均符合预期。随后编译正式安装器（solid LZMA）。
+
+安装器、卸载器与解包载荷的 Defender 扫描均未检出威胁（`MpCmdRun -Scan -ScanType 3 -DisableRemediation`）。
+
+固定安装器 `dist/release/WinOne-setup.exe` 已更新：199,018,560 字节，SHA-256 `0c806dc03c4c7672ed3ed6370ce37b5d58de68affe76e590f1aa0d6410166a0d`；`WinOne-setup.exe.sha256` 与 `release-info.json` 已同步（包清单 SHA-256 `28b8202b0abcc94a7f43b82a6eb8ae174331cb83e6d1d7a3d9079882b6fa300a`）。旧包及元数据备份在 `_temp/20261015-chat-cindy-installer/prior-release/`（SHA-256 `d108e00a73cc02bff368215d67dba43c363da1c84528efd2903f511ceaf23d0c`）。
+
+顺带修正 `build/verify-repository.ps1` 的既有误判：其禁止规则把源码入口目录 `apps/diagram-renderer/src/bin/` 当成编译输出 `bin/`，导致仓库检查在 `789deaf` 之后一直失败。现在只禁止顶层 `bin/` 与非源码 `bin/`，`src/bin/*.rs` 保持入库。
+
+本轮未修改真实安装与配置，未签名，未对外发布。Chat 正式回复分层、文件变化位置与侧栏交互的真实桌面体验仍待用户实机验证。
+
+## Chat 正式回复分层、文件变化与设置修订（2026-10-14）
+
+开头、中途与结尾的正式文字统一使用正常回复组件，不再因同一消息带工具调用而进入折叠过程。Cindy 工作分组只接收思考、工具和状态；运行中展开保持原约定。正文改用 Cindy 15px/24px 及 20/18/16px 标题层级。各轮文件变化卡集中在全部消息之后，保留真实统计、展开、文件菜单、查看、撤销和重新应用；压缩卡片间距，并补足固定底部滚动留白，使最后一行可滚到默认输入区上方。
+
+主窗口对 Chat 取消外层滚动条预留，右侧栏填满可用范围。分栏可拖到收纳，重新打开恢复正常宽度；存在未保存文件时保护内容。标题 AI 请求失败时，自动标题用当前输入，显式 AI 重命名用已保存活动分支的首条用户文字作为持久兜底，最多 40 个字符；原始错误仍可见，后续手动改名优先。设置每次打开读取最新已勾选模型，加载期间禁用旧选择，读取失败显示原因。
+
+验证：前端全量 118 文件、612 项测试通过（线程模式、2 个工作线程，142.05 秒）；Host 与 `internal/chat` 全量测试通过，补充标题 Unicode 截断与手动改名保护测试通过。浏览器共 26 组通过：完整窗口 8 组、Markdown 14 组、侧栏与底部停靠 4 组，覆盖浅色/深色、窄窗/宽窗、生成中/完成态、实际追加消息、修改卡操作、拖动收纳后再打开、90 个模型首次展开及首尾项可达。截图已目视检查。对照表与可复现入口见 [Chat 界面复用对照](chat-ui-reuse.md)。
+
+Host 独立构建和前端生产构建通过；前端保留依赖原有的 `use client` 打包警告。当前工作区没有已登记的 Rust/NSIS 工具链与完整打包资源，因此本轮未生成或更新 `dist/release/WinOne-setup.exe`，未验证新的安装生命周期，也未修改真实安装或配置。后续需恢复 `docs/repository.md` 登记的资源，再执行统一构建和安装器验收。以下安装器摘要属于历史交付，不代表本轮源码已进入安装包。
+
 ## Chat 文件修改卡撤销与工作过程常开（2026-10-14）
 
 对话底部的文件修改卡已补齐“撤销 / 重新应用”：按本轮实际保存的修改前后内容执行（跨多次修改合并为“首个前像→最终后像”），整组校验通过后才写盘，任一步失败只回滚本次写入的内容；文件被手动修改时不覆盖，保留当前内容并显示冲突提示（按钮禁用）。新增文件在撤销时走检查型回收，写盘前重新校验已解析路径与内容，重定向的 junction 不会把撤销落到无关文件。后端回归 `TestTurnReviewAggregatesSnapshotsAndProtectsUndoFromLaterEdits`、`TestTurnReviewKeepsEachTurnsOwnFileChanges` 通过；`review.turn` / `review.turn.apply` 已由 Rust 桌面桥接放行（`component_bridge.rs` 测试覆盖）。
@@ -776,3 +932,26 @@ ZIP 包校验 3,707 个载荷文件，清单 SHA-256 `cf2d1131b2bd1ae4db03bea8bc
 ZIP 包校验 3,708 个载荷文件，清单 SHA-256 `b0df54cce493a8ec1c68212f103fa17bbdc7267577d7962780ba32a4a9e6ff8d`，ZIP SHA-256 `8755556cd0641bcc157127ade16e19402bedeb63f066f622a86fc03433c0ab59`。隔离安装器矩阵通过：首装、两处失败回滚、中断修复、坏记录拒绝、修复失败保留现场、修复成功、覆盖安装、卸载与导出卸载器一致性。
 
 固定安装器已更新为 `dist/release/WinOne-setup.exe`，大小 198,976,679 字节，SHA-256 `8bdafaf2d4436ef248a654bd4334eedf17ff2039bb9b8843383895c5d267a2d6`；摘要文件与 `release-info.json` 同步。旧包及元数据备份在 `_temp/20261013-chat-resume/prior-release/`。本轮未修改真实安装与配置，未签名，未对外发布；未重跑卸载中断恢复与第三方卸载软件交接，证据目录为 `_temp/20261013-chat-resume/`。
+
+## Pi Durable 内核与输入区能力（2026-10-16，内部验证）
+
+本轮把 Chat 的 Pi 内核从原生 Pi 会话切换到官方 Pi Durable（不是更名）：Worker 直接运行 `@earendil-works/pi-durable` Harness（SQLite 存储 + JSONL 投影），启动即 `resume()` 续接中断运行；提交携带 requestId 与收据去重，重开不重放；thinking、fast、control 命令打通思考强度、快速模式与子代理列表/停止；usage 与 durable_state 事件进入输入框。修复三处接线问题：上下文用量改用 `estimateContextTokens`（原 `calculateContextTokens` 的参数是 Usage，传入消息数组会得到 NaN）；run_end 与完成提交的竞态会把 `agent_settled` 发两次，现用共享的单次结算；极快响应在进度提交窗口内完成时不产生流式思考事件，改为在 message_end 按内容块补记一条观察窗口，历史里仍写入 `winone.thinking`。输入区新增思考强度档位菜单（含快速模式）、上下文/Token/缓存/费用面板（未知费用显式）、手动压缩按钮（回报前后 Token）与完成提示音（WebAudio 双音，无 WebAudio 时静默）；Chat 设置新增默认思考强度、自动压缩与自动重试，经 runtimeSettings 在重新打开的会话生效。Host 与内部服务白名单同步增加 thinking、fast、control，thinking 纳入运行中门禁。
+
+验证证据：`build/build-chat.ps1 -Test` 干净通过——bun 14 文件 57 项（含 durable-session、worker-controls、worker-followup、worker-cancellation、worker-history），`go test ./internal/chat` 通过（含 thinking 计时持久化的真实本地 HTTP 固件）；前端 `tsc --noEmit` 通过，vitest 126 文件 658 项全部通过。`worker-followup` 曾在三方并发负载下出现一次未复现的偶发失败，已为断言补充 stderr 诊断输出。能力对照表的逐行状态更新见 [AI 插件与 Pi Durable 能力对照](ai-pi-durable.md)。日志在 `_temp/20261016-ai-pi-durable/`（mirror-run.log、build-run2.log、vitest-full2.log）。
+
+未做：实窗 UI 与窄窗、暗色、键盘验收；整段语音朗读；结构化提问 UI（当前返回“Question UI is unavailable”）；oh-my-pi 长尾能力。正式安装器仍未更新（本轮没有更新安装器的授权），未提交、未推送、未对外发布。
+
+终验补充（同日）：服务层命令面新增固件 internal/chat/service_windows_test.go（TestServiceExposesThinkingFastAndControlCommands），覆盖 thinking/fast/control 白名单、非法思考强度拒绝、运行中忙门禁（请先停止当前任务）与空闲后重置。干净复跑 build/build-chat.ps1 -Test 退出码 0（bun 14 文件 57/57 20.8s；go test ./internal/chat 19.8s 通过），go test ./apps/host -run Chat 2.6s 通过。注意：直接运行整包 go test ./internal/chat 时 TEMP 需与仓库同盘；跨盘时既有 images 固件的 os.Link 会失败，build/build-chat.ps1 -Test 已自行把 TEMP/TMP 指向仓库 _temp。日志：_temp/20261016-ai-pi-durable/build-run3.log、service-pkg-test2.log、host-chat-test2.log。
+
+
+## 固定安装器更新（2026-10-16，AI 插件化与 Pi Durable）
+
+本轮把 AI 基座全面插件化（Magpie 内置插件注册与账号流程、"插件"Tab）与 Pi Durable 内核（思考强度、快速模式、用量面板、手动压缩、完成提示音、子代理控制、Chat 运行时设置）纳入干净重建，并更新固定安装器。
+
+统一构建：前端 126 文件 658 项测试通过；Go/Rust/截图/AI/Chat 与启动检查通过；载荷 4010 个文件，清单 SHA-256 `94c592159f22299d8da979fc98bce9a580281432990e113fe8c7559ae8430a6f`，ZIP SHA-256 `a42b429d17f6371f57f02522f46f4d4a2077849da0d518eea4096541211f95ef`。
+
+本轮为构建补齐三类此前缺失的声明：前端新增依赖（mermaid、katex、codemirror 语言包、radix 组件等 192 个包）的许可证记录，其中 12 个包的上游 tarball 不含 LICENSE 文件，按 `npm view` 的 `gitHead` 从固定提交取文本（radix-ui/primitives `fcef066`、remark-math `88a9497`/`d5d0660`），并让 `build/verify-frontend-notices.mjs` 归一化 monorepo 子目录形式的 repository URL；Magpie 新增依赖 `golang.org/x/net v0.56.0`；diagram crate 新增的 `COPYRIGHT` 文本（euclid、unicode-bidi、unicode-properties）。同时修复打包白名单漏掉 WinTray 原生桥接目录 `native/` 的问题（4 个文件本已在允许清单内）。
+
+安装器已更新为 `dist/release/WinOne-setup.exe`，大小 236,832,183 字节，SHA-256 `41c81ba2c0fdb0af38a591525786ee2676089d8a25c255957c17ef7f6ead57cf`；摘要文件与 `release-info.json` 同步。旧包及元数据备份在 `_temp/20261016-installer-final/prior-release/`。Defender 静态扫描安装器、卸载器与载荷均无威胁。
+
+本轮按用户要求跳过隔离安装器生命周期矩阵（回滚、修复、覆盖、卸载恢复），改由用户实机安装验证，`release-info.json` 的 `installerVerification` 如实记录该限制。未签名，未对外发布，未修改用户真实安装与配置。证据目录 `_temp/20261016-installer-final/`。

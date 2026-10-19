@@ -30,8 +30,8 @@ export function AIGatewayModels({providers,value,disabled,onChange}:{providers:A
   onChange(all.filter(item=>next.has(route(item))));
  }
  return <section className="settings-group gap-3" aria-label={t("gateway.models")}>
-  <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="settings-group-title">{t("gateway.models")}</h3><span className="text-sm text-muted-foreground">{t("gateway.enabledModels",{count,total:all.length})}</span></div>
-  <p className="settings-group-description">{t("gateway.modelsHint")}</p>
+  <div className="settings-group-heading"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="settings-group-title">{t("gateway.models")}</h3><span className="text-sm text-muted-foreground">{t("gateway.enabledModels",{count,total:all.length})}</span></div>
+  <p className="settings-group-description">{t("gateway.modelsHint")}</p></div>
   {all.length>0?<>
    <div className="flex flex-wrap gap-2"><Input className="min-w-0 flex-1 basis-48" aria-label={t("gateway.searchModels")} placeholder={t("gateway.searchModels")} value={query} onChange={e=>setQuery(e.target.value)}/><AIModelSelectionActions total={all.length} selected={count} disabled={disabled} onAll={()=>onChange(all)} onNone={()=>onChange([])}/></div>
    <div ref={list} style={{height}} title={t("ai.resizeModelList")} className="gateway-model-list min-h-40 max-h-[1200px] resize-y overflow-y-auto overflow-x-hidden rounded-lg border border-border p-2 space-y-3">

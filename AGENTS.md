@@ -24,6 +24,7 @@
 
 | 本次任务涉及 | 读取入口 |
 | --- | --- |
+| 外部项目引入、依赖升级、来源与许可证 | `docs/repository.md`、`docs/working-rules/architecture-performance.md` |
 | 仓库清理、目录、构建输出、Git 跟踪 | `docs/repository.md` |
 | 页面、图标、布局、导航、快捷键、主题、语言、状态反馈 | `docs/working-rules/ui.md` |
 | AI 服务、账号、模型、网关、OCR/翻译结果、对话 | `docs/working-rules/ai-results.md` |

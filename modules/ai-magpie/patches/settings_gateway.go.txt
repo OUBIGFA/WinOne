@@ -2,5 +2,13 @@ package gateway
 
 import "context"
 
+// Set before serving an owned provider bridge, never from public HTTP input.
+// The outer gateway owns the user-request hooks and JS middleware.
+var WinOneTransportOnly bool
+
+// Fixed before serving: public account kinds carried by WinOne's otherwise
+// ordinary HTTP bridges. This cannot select credentials or a native backend.
+var WinOneMiddlewareAccounts map[string]string
+
 // Keep Claude's own minimal warm-up request and command-line isolation.
 func WinOneWarmClaude(ctx context.Context, directory string) error { return warmClaude(ctx, directory) }

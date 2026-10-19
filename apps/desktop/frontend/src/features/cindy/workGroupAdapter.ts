@@ -29,10 +29,10 @@ export function workGroupsForResponse(response:ProcessResponse):WorkItem[]{
  if(response.answer||!response.running)entries.push({type:"answer",key:`answer:${response.key}`,at:response.answer?.timestamp??(response.startedAt!==undefined&&response.durationMs!==undefined?response.startedAt+response.durationMs:undefined),sealed:!response.running});
  return groupWorkRuns<WorkItem,WorkEntry>(entries,response.running,{
   isUserBoundary:item=>item.type==="boundary",isAnswer:item=>item.type==="answer"||item.type==="entry"&&item.entry.kind==="commentary",
-  isSealedAnswer:item=>item.type==="answer"&&!!item.sealed||item.type==="entry"&&item.entry.kind==="commentary"&&!!item.entry.delivered,
+  isSealedAnswer:item=>item.type==="answer"&&!!item.sealed||item.type==="entry"&&item.entry.kind==="commentary",
   isCompactBoundary:item=>item.type==="entry"&&item.entry.kind==="operation"&&item.entry.operation.kind==="compaction",
   // A complete text reply is a delivery boundary, including before a later tool run.
-  isActivity,isArchivable:(item):item is WorkEntry=>item.type==="entry"&&!(item.entry.kind==="commentary"&&item.entry.delivered),startTimestamp:start,endTimestamp:end,boundaryTimestamp:start,
+  isActivity,isArchivable:isActivity,startTimestamp:start,endTimestamp:end,boundaryTimestamp:start,
   userBoundaryEnd:(item,previous)=>end(item)??previous,createGroup:makeGroup,createCompletedGroup:completedGroup,
  }).filter(item=>item.type!=="answer"&&item.type!=="boundary");
 }

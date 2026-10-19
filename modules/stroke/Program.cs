@@ -14,7 +14,7 @@ namespace WinOne.StrokeRuntime
     {
         private readonly Control ui=new Control();private readonly string directory;private readonly bool fixture;
         private Configuration config;private ScriptPlan plan;private GestureEngine engine;private TrailWindow trail;private ScriptSupervisor scripts;private readonly InputLedger input;
-        private string recording;private bool running,stopped,shutdownConfirmed;private int fixtureInputs;
+        private string recording;private bool running,stopped,shutdownConfirmed;private int fixtureInputs,resourceGeneration;private MouseHookLoop hookLoop;
         internal LocalServer Server;
         private static int RuntimeThreads(){using(var process=Process.GetCurrentProcess())return process.Threads.Count;}
         internal StrokeApplication(string directory,bool fixture){this.directory=directory;this.fixture=fixture;var handle=ui.Handle;input=fixture?new InputLedger(value=>{System.Threading.Interlocked.Increment(ref fixtureInputs);return 1;},key=>false):new InputLedger();}
@@ -23,7 +23,7 @@ namespace WinOne.StrokeRuntime
         internal object Handle(Request request)
         {
             switch(request.method){
-                case "snapshot":return OnUI(()=>new{processId=Process.GetCurrentProcess().Id,configurationManaged=true,runtimeThreads=RuntimeThreads(),actionRuntimeThreads=scripts==null?0:scripts.RuntimeThreadCount,running=running,busy=engine!=null&&engine.Tracking,mouseHook=MouseHook.Enable,scriptWorkers=scripts==null?0:scripts.WorkerCount,scriptThreads=scripts==null?0:scripts.ThreadCount,actionProcessId=scripts==null?0:scripts.ProcessId,queued=scripts==null?0:scripts.Queued,diagnostic=engine!=null&&engine.Diagnostic!=null?engine.Diagnostic:scripts==null?null:scripts.LastError,fixtureInputs=fixture?fixtureInputs:0});
+                case "snapshot":return OnUI(()=>new{processId=Process.GetCurrentProcess().Id,configurationManaged=true,runtimeThreads=RuntimeThreads(),actionRuntimeThreads=scripts==null?0:scripts.RuntimeThreadCount,running=running,busy=engine!=null&&engine.Tracking,mouseHook=MouseHook.Enable,scriptWorkers=scripts==null?0:scripts.WorkerCount,scriptThreads=scripts==null?0:scripts.ThreadCount,actionProcessId=scripts==null?0:scripts.ProcessId,queued=scripts==null?0:scripts.Queued,diagnostic=hookLoop!=null&&hookLoop.Diagnostic!=null?hookLoop.Diagnostic:engine!=null&&engine.Diagnostic!=null?engine.Diagnostic:scripts==null?null:scripts.LastError,fixtureInputs=fixture?fixtureInputs:0});
                 case "fixture.execute":if(!fixture)throw new InvalidOperationException("Fixture mode is disabled");var execution=Json.Params<ActionJob>(request.@params);return OnUI<object>(()=>{if(scripts==null)throw new InvalidOperationException("Not activated");var target=NativeWindowIdentity.FromWindow(ui.Handle);target.point=new PointValue{x=0,y=0};scripts.Enqueue(execution.name,execution.mark,target);return new{queued=true};});
                 case "activate":case "settings.reload":{
                     Configuration next=ReadConfiguration();ScriptPlan compiled=ScriptCompiler.Compile(next,Path.Combine(directory,"cache"));bool enable=request.method=="activate"||OnUI(()=>running);
@@ -50,16 +50,21 @@ namespace WinOne.StrokeRuntime
         {
             config.ApplyBase();scripts=new ScriptSupervisor(plan,input,definition=>{if(ui.IsDisposed)return;ui.BeginInvoke(new System.Action(()=>{if(!running)return;definition.enabled=config.pen.enabled;if(trail!=null){trail.Dispose();trail=null;}trail=new TrailWindow(definition);}));});
             trail=new TrailWindow(config.pen);
-            engine=new GestureEngine(config,NativeWindowIdentity.At,(a,b)=>{if(trail!=null)trail.Segment(a,b);},()=>{if(trail!=null)trail.ClearTrail();},(name,mark,target)=>scripts.Enqueue(name,mark,target),()=>global::Stroke.Base.MouseClick(config.Button));
+            int generation=++resourceGeneration;
+            // Queue visual/action work in order. No synchronous UI invoke or
+            // script-executor lock remains on Windows' low-level callback.
+            System.Action<System.Action> post=action=>{if(ui.IsDisposed)return;ui.BeginInvoke(new System.Action(()=>{if(running&&resourceGeneration==generation)action();}));};
+            engine=new GestureEngine(config,NativeWindowIdentity.At,(a,b)=>post(()=>{if(trail!=null)trail.Segment(a,b);}),()=>post(()=>{if(trail!=null)trail.ClearTrail();}),(name,mark,target)=>post(()=>scripts.Enqueue(name,mark,target)),()=>global::Stroke.Base.MouseClick(config.Button));
             MouseHook.MouseAction+=engine.Process;
-            try{if(!fixture)MouseHook.StartHook();running=true;}
+            try{if(!fixture)hookLoop=new MouseHookLoop(()=>engine.Cancel());running=true;}
             catch{MouseHook.MouseAction-=engine.Process;engine=null;if(trail!=null){trail.Dispose();trail=null;}scripts.Dispose();scripts=null;throw;}
         }
         private void StopResources()
         {
             ScriptCompiler.CancelActive();
             // Input ownership ends before waiting for any user script.
-            if(MouseHook.Enable)MouseHook.StopHook();
+            resourceGeneration++;
+            if(hookLoop!=null){hookLoop.Dispose();hookLoop=null;}
             if(engine!=null){MouseHook.MouseAction-=engine.Process;engine.Cancel();engine=null;}
             if(trail!=null){trail.Dispose();trail=null;}
             running=false;

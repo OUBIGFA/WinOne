@@ -3,6 +3,7 @@ using System.IO.Pipes;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ShareX;
+using Microsoft.Win32;
 
 namespace WinOne.Capture;
 
@@ -34,12 +35,15 @@ internal sealed class CaptureApplication : ApplicationContext
     private int stopRequested;
     private int disposed;
     private int exitCode;
+    private readonly bool stayReady;
+    private int wakeQueued;
     private string? activeNativeJob;
     private (string Draft, long Revision, string Job)? retake;
     public int ExitCode => Volatile.Read(ref exitCode);
-    public CaptureApplication(string pipe, string directory, NativeCaptureHandlers? native = null, Action<Bitmap>? copyImage = null, NativeUI.NativeHostConfiguration? nativeConfiguration = null)
+    public CaptureApplication(string pipe, string directory, NativeCaptureHandlers? native = null, Action<Bitmap>? copyImage = null, NativeUI.NativeHostConfiguration? nativeConfiguration = null, bool stayReady = false)
     {
         Directory.CreateDirectory(directory);
+        this.stayReady = stayReady;
         store = new(directory); operations = new(store, directory, copyImage) { NativeConfiguration = nativeConfiguration }; this.native = native;
         if (nativeConfiguration is not null) nativeConfiguration.BecameIdle += ConfigurationBecameIdle;
         _ = dispatcher.Handle;
@@ -53,7 +57,13 @@ internal sealed class CaptureApplication : ApplicationContext
             }
             RequestStop();
         };
-        idle.Start();
+        // A Host-owned standby worker blocks in its message/pipe loops. It has
+        // no idle polling timer and retains no capture window or screen pixels.
+        if (!stayReady) idle.Start();
+        else {
+            SystemEvents.PowerModeChanged += PowerModeChanged;
+            SystemEvents.SessionSwitch += SessionSwitch;
+        }
         _ = Listen(pipe.StartsWith(@"\\.\pipe\", StringComparison.OrdinalIgnoreCase) ? pipe[9..] : pipe);
     }
     private async Task Listen(string name)
@@ -105,7 +115,13 @@ internal sealed class CaptureApplication : ApplicationContext
         if (language is not (null or "zh-CN" or "en-US")) throw new InvalidDataException("不支持的界面语言");
         switch (request.Method)
         {
-            case "snapshot": return new { processId = Environment.ProcessId, configurationManaged = store.IsManaged, settings = store.Snapshot(), lastCapture = operations.Last, busy = Volatile.Read(ref busy) != 0 || operations.NativeConfiguration?.IsSaving == true, configurationBusy = operations.NativeConfiguration?.IsSaving == true, pins = PinToScreenForm.ActiveCount };
+            case "prepare": return dispatcher.Invoke(() => {
+                stopping.Token.ThrowIfCancellationRequested();
+                if(Volatile.Read(ref busy)==0)NativeUI.NativeCaptureStandby.Prepare(operations,store.Snapshot(),language);
+                stopping.Token.ThrowIfCancellationRequested();
+                return new {prepared=true};
+            });
+            case "snapshot": return new { processId = Environment.ProcessId, prepared = NativeUI.NativeCaptureStandby.Prepared, configurationManaged = store.IsManaged, settings = store.Snapshot(), lastCapture = operations.Last, busy = Volatile.Read(ref busy) != 0 || operations.NativeConfiguration?.IsSaving == true, configurationBusy = operations.NativeConfiguration?.IsSaving == true, pins = PinToScreenForm.ActiveCount };
             case "settings.reload": return store.ReloadManaged();
             case "capture.activate":
                 lock (lifecycle) { return new { active = ActivateCurrentNative() is not null }; }
@@ -300,6 +316,33 @@ internal sealed class CaptureApplication : ApplicationContext
         }
         return job;
     }
+    private void PowerModeChanged(object sender, PowerModeChangedEventArgs args)
+    {
+        if (args.Mode == PowerModes.Resume) WakeStandby();
+    }
+    private void SessionSwitch(object sender, SessionSwitchEventArgs args)
+    {
+        if (args.Reason is SessionSwitchReason.SessionUnlock or SessionSwitchReason.RemoteConnect) WakeStandby();
+    }
+    // Event-driven only: no heartbeat, screenshots or OCR polling while idle.
+    // Active edits always take priority over warming disposable UI resources.
+    internal void WakeStandby()
+    {
+        if (!stayReady || Volatile.Read(ref closing) != 0 || Interlocked.Exchange(ref wakeQueued, 1) != 0) return;
+        try {
+            dispatcher.BeginInvoke(async () => {
+                try {
+                    if (stopping.IsCancellationRequested) return;
+                    if (Volatile.Read(ref busy) == 0)
+                        NativeUI.NativeCaptureStandby.Prepare(operations, store.Snapshot(), refresh: true);
+                    if (operations.NativeConfiguration is { } configuration)
+                        await configuration.PrepareOCRAsync(stopping.Token);
+                } catch (OperationCanceledException) when (stopping.IsCancellationRequested) { }
+                catch (Exception error) { Console.Error.WriteLine("截图/OCR 唤醒准备：" + error.Message); }
+                finally { Interlocked.Exchange(ref wakeQueued, 0); }
+            });
+        } catch (InvalidOperationException) when (Volatile.Read(ref closing) != 0) { Interlocked.Exchange(ref wakeQueued, 0); }
+    }
     private void ConfigurationBecameIdle()
     {
         Interlocked.Exchange(ref activity, Environment.TickCount64);
@@ -334,6 +377,10 @@ internal sealed class CaptureApplication : ApplicationContext
     protected override void Dispose(bool disposing)
     {
         if (disposing && Interlocked.Exchange(ref disposed, 1) == 0) {
+            if (stayReady) {
+                SystemEvents.PowerModeChanged -= PowerModeChanged;
+                SystemEvents.SessionSwitch -= SessionSwitch;
+            }
             if (operations.NativeConfiguration is { } configuration) { configuration.BecameIdle -= ConfigurationBecameIdle; configuration.StopAccepting(); }
             stopping.Cancel(); idle.Dispose(); dispatcher.Dispose(); stopping.Dispose();
         }

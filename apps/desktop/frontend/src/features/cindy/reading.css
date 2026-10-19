@@ -14,14 +14,22 @@
 .chat-transcript-viewport>div{min-height:100%;width:100%;min-width:0}
 .chat-sidebar-scroll{overflow:hidden!important}
 .chat-sidebar-viewport{height:100%;overflow-x:hidden!important}
-/* Markdown typography belongs to chatgpt-desktop-kit. Retain only the Cindy
+/* Markdown typography belongs to the reused Cindy renderer. Retain the
    work-process and user-message behavior below. */
 .chat-work-process{display:flex;min-width:0;flex-direction:column;gap:8px;color:var(--msg-tool-card-chevron)}
+/* Public replies and activity groups are siblings with one spacing owner. */
+.client-thread>.chat-work-process{margin-bottom:20px}
 .chat-work-process [data-slot=cindy-work]{font-family:inherit;min-height:26px}
 .chat-work-entry,.chat-work-commentary,.process-nested{min-width:0}
 .chat-work-entry>button{min-height:26px}
 .process-body{min-width:0;max-width:100%;overflow:visible}
-.process-collapse-action{position:absolute;right:0;top:-34px;width:28px;min-height:28px;padding:5px;color:var(--muted-foreground);background:var(--background);z-index:2}
+.process-body[data-process-long=true]>.process-body-content{margin-right:36px}
+.process-body-content{min-width:0}
+.process-collapse-action{position:absolute;width:28px;height:28px;min-height:28px;padding:5px;color:var(--muted-foreground);background:var(--chat-page-bg,var(--background));border:1px solid var(--border);border-radius:4px;box-shadow:none;z-index:4}
+/* Work rows remain still on hover. Focus outlines and deliberate disclosure
+   transitions are preserved; pointer motion never animates the process area. */
+.chat-work-process :is([data-slot=cindy-work],[data-live-work-activity=thinking],.chat-work-entry>button){transition:none}
+.chat-work-process :is([data-slot=cindy-work],[data-live-work-activity=thinking],.chat-work-entry>button):hover{background:transparent;opacity:1;transform:none}
 .chat-work-process,.chat-thinking-group{--agent-actions-rail:color-mix(in srgb,var(--muted-foreground) 22%,transparent);--thinking-body-text:var(--muted-foreground)}
 .chat-expanded-thinking{white-space:pre-wrap;overflow-wrap:anywhere}
 .chat-user-body{position:relative}
@@ -46,14 +54,15 @@
 .chat-tool-dialog{width:min(760px,calc(100vw - 32px))!important;max-width:760px!important;max-height:85vh;overflow:hidden;background:color-mix(in srgb,var(--background) 96%,var(--muted))!important;border-color:color-mix(in srgb,var(--border) 70%,transparent)!important}
 .chat-tool-dialog-scroll{min-height:0;max-height:60vh;overflow:hidden}
 .chat-tool-dialog-scroll .lobe-scroll-viewport{max-height:60vh;overflow-x:hidden!important}
-.chat-tool-payload{font-family:var(--app-font-ui-default);font-size:13px;line-height:1.6;color:var(--muted-foreground)}
+.chat-tool-payload{font-family:var(--app-font-ui-default);font-size:13px;line-height:1.6;color:var(--muted-foreground);--msg-assistant-text:var(--muted-foreground);--text-primary-body-strong:var(--muted-foreground);--text-primary-emphasis:var(--muted-foreground)}
 .chat-tool-payload .chat-markdown{color:var(--muted-foreground);--desktop-color-text:var(--muted-foreground);--msg-code-block-bg:color-mix(in srgb,var(--muted) 55%,var(--background));font-family:var(--app-font-ui-default)}
+.chat-tool-payload .msg-markdown{color:var(--muted-foreground);--msg-assistant-text:var(--muted-foreground);--text-primary:var(--muted-foreground);--md-strong-fg:var(--muted-foreground);--md-h1-fg:var(--muted-foreground);--md-h2-fg:var(--muted-foreground);--md-h3-fg:var(--muted-foreground);--msg-code-block-bg:color-mix(in srgb,var(--muted) 55%,var(--background));--msg-blockquote-text:var(--muted-foreground)}
 .chat-tool-payload .chat-markdown pre,.chat-tool-payload .chat-markdown code{font-family:var(--app-font-code-default);font-size:12px}
 .chat-tool-payload .chat-markdown p:first-child{margin-top:0}
 .chat-tool-payload .chat-markdown p:last-child{margin-bottom:0}
 .chat-model-trigger{min-height:30px;overflow:hidden;flex-wrap:nowrap}
 .chat-model-trigger>[data-model-badge]{flex:none;white-space:nowrap}
-.chat-composer-model-actions{flex-wrap:nowrap}
+.chat-composer-model-actions{flex-wrap:wrap}
 /* Base UI owns every visible track. Browser scrollbars never share that view. */
 :is(.chat-transcript-viewport,.chat-sidebar-viewport,.chat-model-viewport,.process-viewport,.chat-tool-dialog-scroll .lobe-scroll-viewport){scrollbar-width:none}
 :is(.chat-transcript-viewport,.chat-sidebar-viewport,.chat-model-viewport,.process-viewport,.chat-tool-dialog-scroll .lobe-scroll-viewport)::-webkit-scrollbar{display:none}

@@ -121,3 +121,33 @@ func TestUsageDoesNotPresentCorruptionAsEmptySuccess(t *testing.T) {
 		t.Fatal("partial tail not reported")
 	}
 }
+
+func TestUsageEmptyCatalogEncodesArraysInsteadOfNull(t *testing.T) {
+	store, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	report, err := store.Usage(UsageQuery{Period: "7d"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := json.Marshal(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]json.RawMessage
+	if err = json.Unmarshal(encoded, &fields); err != nil {
+		t.Fatal(err)
+	}
+	// The settings UI iterates these fields directly; null crashed the page.
+	for _, name := range []string{"rows", "top", "series", "warnings"} {
+		if got := string(fields[name]); got != "[]" {
+			t.Fatalf("%s must encode as [] without any session, got %s", name, got)
+		}
+	}
+	for _, name := range []string{"by", "tools", "skills"} {
+		if got := string(fields[name]); got != "{}" {
+			t.Fatalf("%s must encode as {} without any session, got %s", name, got)
+		}
+	}
+}

@@ -1,8 +1,11 @@
+import {usePathDrop} from "../ui/path-drop";
 import {Notice,InlineError} from "../ui/notice";
 import {Checkbox} from "../components/ui/checkbox";
 import {Label} from "../components/ui/label";
 import {Tabs,TabsList,TabsTrigger,TabsContent} from "../components/ui/tabs";
 import {Select,SelectTrigger,SelectValue,SelectContent,SelectItem} from "../components/ui/select";
+import {Upload} from "lucide-react";
+import {SettingsSection} from "../components/settings-layout";
 import { useState } from "react";
 import { pickProfile, pickProfileLocation, profileCall } from "../bridge";
 import { Button } from "../ui/button";
@@ -49,17 +52,19 @@ export function ProfileImport({onApplied,onActivity}:{onApplied:()=>void;onActiv
     setSelected(current=>reset?next.plan.modules.filter(m=>m.state!=="invalid").map(m=>m.id):current.filter(id=>next.plan.modules.some(m=>m.id===id)));
     if(reset){setGlobal(true);setView("overview");setDetailModule("");}
   }
-  async function choose() {
+  const archiveDrop=usePathDrop({kind:"file",disabled:busy,onPaths:paths=>choose(paths[0]),onError:setError});
+  async function choose(chosen?:string) {
+    if(busy)return;
     setBusy(true);setError("");setNotice("");
     // Replace the current choices only after a new archive can be reviewed.
     // A failed replacement retains its mappings and can revalidate the old file.
-    try { const path=await pickProfile();if(path){setNeedsReview(true);await review(path,{},true);} }
+    try { const path=chosen??await pickProfile();if(path){setNeedsReview(true);await review(path,{},true);} }
     catch(error){setError(String(error));}
     finally{setBusy(false);}
   }
-  async function mapPath(path:ProfilePath) {
+  async function mapPath(path:ProfilePath,chosen?:string) {
     setBusy(true);setError("");
-    try {const value=await pickProfileLocation(path.kind);if(value){const next={...bindings,[path.id]:value};setBindings(next);setNeedsReview(true);await review(source,next);}}
+    try {const value=chosen??await pickProfileLocation(path.kind);if(value){const next={...bindings,[path.id]:value};setBindings(next);setNeedsReview(true);await review(source,next);}}
     catch(error){setError(String(error));setNeedsReview(true);}
     finally{setBusy(false);}
   }
@@ -97,8 +102,8 @@ export function ProfileImport({onApplied,onActivity}:{onApplied:()=>void;onActiv
   const details=chosen.filter(module=>module.settings);
   const detail=details.find(module=>module.id===detailModule)??details[0];
   const blocked=needsReview||(!global&&!selected.length)||chosen.some(module=>!["ready","missing_module"].includes(module.state))||paths.some(path=>path.state!=="ready")||issues.length>0;
-  return <div className="profile-import">
-    <div className="setting-row"><div><span>{t("profiles.import")}</span><p>{t("profiles.importHint")}</p></div><Button busy={busy&&!preview} disabled={busy} onClick={()=>void choose()}>{t("profiles.import")}</Button></div>
+  return <SettingsSection {...archiveDrop} className="profile-import" icon={Upload} title={t("profiles.import")} description={t("profiles.importHint")}>
+    <div className="settings-action-row"><Button icon={Upload} busy={busy&&!preview} disabled={busy} onClick={()=>void choose()}>{t("profiles.chooseFile")}</Button></div>
     {preview&&<div className="profile-import__review">
       <div className="settings-stack-compact"><h3>{preview.name||t("profiles.import")}</h3>
       <p className="break-all text-sm text-muted-foreground">{source}</p></div>
@@ -129,7 +134,7 @@ export function ProfileImport({onApplied,onActivity}:{onApplied:()=>void;onActiv
         </TabsContent><TabsContent value="locations">
         {!paths.length&&<p className="py-4 text-muted-foreground">{t("profiles.noPaths")}</p>}
         {paths.length>0&&<h3>{t("profiles.locations")}</h3>}
-        {paths.map(path=><div className="setting-row" key={path.id}><div><span>{pathName(path)}</span><p className="program-path">{path.value||t("profiles.noLocation")}</p>{path.error&&<InlineError>{path.error}</InlineError>}</div><Button aria-label={t("profiles.chooseFor",{name:pathName(path)})} onClick={()=>void mapPath(path)}>{t("profiles.choose")}</Button></div>)}
+        {paths.map(path=><ProfilePathRow key={path.id} path={path} name={pathName(path)} disabled={busy} onChoose={value=>mapPath(path,value)} onError={setError}/>)}
         </TabsContent></Tabs>
       </fieldset>
       {view!=="locations"&&paths.some(path=>path.state!=="ready")&&<Button disabled={busy} onClick={()=>setView("locations")}>{t("profiles.fixPaths")}</Button>}
@@ -138,5 +143,11 @@ export function ProfileImport({onApplied,onActivity}:{onApplied:()=>void;onActiv
     </div>}
     {error&&<Notice>{error}</Notice>}
     <p role="status">{notice?t(notice):""}</p>
-  </div>;
+  </SettingsSection>;
+}
+
+function ProfilePathRow({path,name,disabled,onChoose,onError}:{path:ProfilePath;name:string;disabled:boolean;onChoose:(value?:string)=>Promise<void>;onError:(error:string)=>void}){
+ const {t}=useTranslation();
+ const drop=usePathDrop({kind:path.kind==="directory"?"directory":"file",disabled,onPaths:paths=>onChoose(paths[0]),onError});
+ return <div {...drop} className="setting-row"><div><span>{name}</span><p className="program-path">{path.value||t("profiles.noLocation")}</p>{path.error&&<InlineError>{path.error}</InlineError>}</div><Button disabled={disabled} aria-label={t("profiles.chooseFor",{name})} onClick={()=>void onChoose()}>{t("profiles.choose")}</Button></div>;
 }

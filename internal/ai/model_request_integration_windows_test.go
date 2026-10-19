@@ -3,18 +3,95 @@
 package ai
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"image/png"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 )
+
+// Exercise WinOne's owned worker and Magpie's image guard with real local
+// HTTP requests. Merely accepting the saved setting would miss propagation.
+func TestPackagedPrivateImageFetchSetting(t *testing.T) {
+	executable := os.Getenv("WINONE_AI_TEST_EXE")
+	if executable == "" {
+		t.Skip("set WINONE_AI_TEST_EXE")
+	}
+	var pngBody bytes.Buffer
+	if err := png.Encode(&pngBody, image.NewRGBA(image.Rect(0, 0, 2, 2))); err != nil {
+		t.Fatal(err)
+	}
+	var downloads, vendorCalls atomic.Int32
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		downloads.Add(1)
+		if r.URL.Path == "/not-image" {
+			w.Header().Set("Content-Type", "application/json")
+			io.WriteString(w, `{"fixture-private-value":true}`)
+			return
+		}
+		w.Header().Set("Content-Type", "image/png")
+		_, _ = w.Write(pngBody.Bytes())
+	}))
+	defer source.Close()
+	vendor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		vendorCalls.Add(1)
+		if !strings.HasSuffix(r.URL.Path, "/images/edits") {
+			t.Errorf("unexpected vendor path: %s", r.URL.Path)
+		}
+		if err := r.ParseMultipartForm(1 << 20); err != nil {
+			t.Error(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"created":1,"data":[{"b64_json":"cHJvb2Y="}]}`)
+	}))
+	defer vendor.Close()
+	runtime := Translator{Executable: executable, DataDirectory: filepath.Join(t.TempDir(), "runtime")}
+	prefs := Preferences{Engine: "llm", AuthMode: "api-key", Protocol: "chat", BaseURL: vendor.URL + "/v1", Model: "gpt-image-1", MagpieSettings: &MagpieSettings{NoStats: true, NoUsageStats: true}}
+	send := func(path string) error {
+		t.Helper()
+		body, _ := json.Marshal(map[string]any{"model": "gpt-image-1", "prompt": "fixture edit", "image": source.URL + path})
+		_, err := runtime.GatewayRequest(context.Background(), prefs, "fixture-private-key", "/v1/images/edits", body, nil, httptest.NewRecorder())
+		return err
+	}
+	blocked := func(err error) {
+		t.Helper()
+		var failure *AttemptFailure
+		if !errors.As(err, &failure) || failure.Status != 400 {
+			t.Fatalf("expected private/image rejection, got %v", err)
+		}
+	}
+	blocked(send("/image.png"))
+	if downloads.Load() != 0 || vendorCalls.Load() != 0 {
+		t.Fatal("default request reached a private service")
+	}
+	prefs.MagpieSettings.FetchPrivate = []string{"127.0.0.1"}
+	if err := send("/image.png"); err != nil {
+		t.Fatal("explicit fetch allowlist did not reach worker", err)
+	}
+	if downloads.Load() != 1 || vendorCalls.Load() != 1 {
+		t.Fatal("allowed image was not fetched exactly once")
+	}
+	blocked(send("/not-image"))
+	if vendorCalls.Load() != 1 {
+		t.Fatal("non-image content reached vendor")
+	}
+	prefs.MagpieSettings.FetchPrivate = nil
+	blocked(send("/image.png"))
+	if downloads.Load() != 2 {
+		t.Fatal("allowlist escaped its request settings")
+	}
+}
 
 // This crosses persistence, immutable task selection, the shared scheduler,
 // worker stdin and Magpie before inspecting what the local vendor received.

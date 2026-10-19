@@ -118,6 +118,13 @@ internal sealed class NativeHostConfiguration(string pipeName, Process parent)
         return await CompleteAIJobAsync(started, cancellation).ConfigureAwait(false);
     }
 
+    internal async Task PrepareOCRAsync(CancellationToken cancellation)
+    {
+        // The Host checks module enablement and the saved OCR engine again.
+        // This only queues generated-image preparation; it starts no AI call.
+        await Call("ai.ocr.prepare", new { }, Guid.NewGuid().ToString("N"), cancellation).ConfigureAwait(false);
+    }
+
     internal async Task<bool> UsesAIRecognitionAsync(CancellationToken cancellation)
     {
         var settings = await Call("ai.settings.get", new { }, Guid.NewGuid().ToString("N"), cancellation).ConfigureAwait(false);
@@ -173,13 +180,14 @@ internal sealed class NativeHostConfiguration(string pipeName, Process parent)
         var jobId = started.GetProperty("id").GetString() ?? throw new InvalidDataException("翻译任务无效");
         try {
             while (true) {
-                var job = await Call("ai.jobs.get", new { id = jobId }, Guid.NewGuid().ToString("N"), cancellation).ConfigureAwait(false);
+                var job = await Call("ai.jobs.get", new { id = jobId, waitMs = 500 }, Guid.NewGuid().ToString("N"), cancellation).ConfigureAwait(false);
                 var state = job.GetProperty("state").GetString();
                 if (state == "completed") return job.GetProperty("text").GetString() ?? throw new InvalidDataException("翻译结果为空");
                 if (state == "failed") throw new InvalidOperationException(job.GetProperty("error").GetString());
                 if (state == "cancelled") throw new OperationCanceledException(cancellation);
                 if (state != "running") throw new InvalidDataException("翻译任务状态无效");
-                await Task.Delay(100, cancellation).ConfigureAwait(false);
+                // The bounded Host wait returns immediately on completion.
+                // Do not add a 100ms client polling floor to a 20ms OCR result.
             }
         } finally {
             // Releasing a result also removes captured text from the Host job

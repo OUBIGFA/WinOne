@@ -1,19 +1,27 @@
 // @vitest-environment jsdom
 import {afterEach,expect,it,vi} from 'vitest';
-import {cleanup,render,screen,waitFor} from '@testing-library/react';
+import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {ChatGeneratedFiles} from './chat-generated-files';
+import {invalidateChatFileStats} from './chat-file-access';
 import {ChatMarkdown} from './chat-markdown';
 const bridge=vi.hoisted(()=>({call:vi.fn()}));
 vi.mock('../bridge',()=>({chatCall:bridge.call}));
-afterEach(()=>{cleanup();vi.restoreAllMocks();});
+afterEach(()=>{cleanup();invalidateChatFileStats();vi.restoreAllMocks();});
 
 it('opens only existing generated files and preserves copy-path and reveal actions',async()=>{
- bridge.call.mockImplementation(async(method,params)=>{if(method==='file.preview'){if(params.path==='missing')throw Error('missing');return {path:'C:/work/report.md',name:'report.md',kind:'text',size:9,revision:'one',url:'http://127.0.0.1/report.md'};}});
+ bridge.call.mockImplementation(async(method,params)=>{if(method==='file.stat')return {files:params.paths.map((path:string)=>path==='missing'?{requested:path,missing:true}:{requested:path,file:{path:'C:/work/report.md',name:'report.md',directory:false,size:9,modified:0}})};});
  const open=vi.fn();render(<ChatGeneratedFiles id="chat" paths={['report.md','report.md','missing']} onOpen={open}/>);
  const chip=await screen.findByRole('button',{name:'report.md'});expect(screen.queryByRole('button',{name:'missing'})).toBeNull();
  await userEvent.click(chip);expect(open).toHaveBeenCalledWith('C:/work/report.md');
- expect(bridge.call.mock.calls.filter(([method])=>method==='file.preview')).toHaveLength(2);
+ expect(screen.queryByRole('menu')).toBeNull();
+ open.mockClear();fireEvent.contextMenu(chip,{button:2,clientX:30,clientY:50});
+ await screen.findByRole('menu');expect(open).not.toHaveBeenCalled();
+ await userEvent.click(screen.getByRole('menuitem',{name:'在资源管理器中显示'}));
+ expect(bridge.call).toHaveBeenCalledWith('file.reveal',{id:'chat',path:'C:/work/report.md'});
+ expect(bridge.call.mock.calls.filter(([method])=>method==='file.stat')).toHaveLength(1);
+ expect(bridge.call.mock.calls.some(([method])=>method==='file.preview')).toBe(false);
+ expect(screen.queryByText(/暂时无法读取/)).toBeNull();
 });
 
 it('copies complete fenced code through the local clipboard and reports failure locally',async()=>{

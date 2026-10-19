@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"sync"
+	"time"
 	"winone/internal/ai"
 	"winone/internal/host"
 )
@@ -16,6 +18,7 @@ type routingControl struct {
 	mu      sync.Mutex
 	process *ai.RoutingProcess
 	cancel  context.CancelFunc
+	viewers map[string]bool
 }
 
 func (s *aiService) routingEnabled() bool {
@@ -69,18 +72,55 @@ func (s *aiService) handleRouting(r host.Request) host.Response {
 	fail := func(err error) host.Response {
 		return host.Response{ID: r.ID, Error: &host.RPCError{Code: "routing", Message: err.Error()}}
 	}
+	viewer := "routing"
+	if strings.HasPrefix(r.Method, "routing.plugins.") {
+		viewer = "plugins"
+	}
+	if strings.HasPrefix(r.Method, "routing.extensions.") {
+		var input struct {
+			Viewer string `json:"viewer"`
+		}
+		if json.Unmarshal(r.Params, &input) != nil || len(input.Viewer) < 1 || len(input.Viewer) > 80 || strings.Trim(input.Viewer, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-") != "" {
+			return fail(errors.New("插件页面标识无效"))
+		}
+		// Each settings owner has a separate lease; a stale open/close response
+		// cannot stop another provider panel or a newly reopened settings page.
+		viewer = "extensions:" + input.Viewer
+	}
 	switch r.Method {
-	case "routing.open":
+	case "routing.open", "routing.plugins.open", "routing.extensions.open":
+		s.routing.mu.Lock()
+		if s.routing.viewers == nil {
+			s.routing.viewers = map[string]bool{}
+		}
+		s.routing.viewers[viewer] = true
+		s.routing.mu.Unlock()
 		process, err := s.startRouting()
 		if err != nil {
+			s.routing.mu.Lock()
+			delete(s.routing.viewers, viewer)
+			s.routing.mu.Unlock()
 			return fail(err)
 		}
-		raw, _ := json.Marshal(map[string]any{"url": process.PageURL(), "enabled": s.routingEnabled()})
-		return host.Response{ID: r.ID, Result: raw}
-	case "routing.close":
-		if !s.routingEnabled() {
-			s.closeRouting()
+		if r.Method == "routing.extensions.open" {
+			ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
+			defer cancel()
+			state, err := process.PluginWindowState(ctx)
+			if err != nil {
+				s.releaseRoutingViewer(viewer)
+				return fail(err)
+			}
+			raw, _ := json.Marshal(state)
+			return host.Response{ID: r.ID, Result: raw}
 		}
+		pageURL := process.PageURL()
+		if viewer == "plugins" {
+			pageURL = process.PluginsPageURL()
+		}
+		raw, _ := json.Marshal(map[string]any{"url": pageURL, "enabled": s.routingEnabled()})
+		return host.Response{ID: r.ID, Result: raw}
+	case "routing.close", "routing.plugins.close", "routing.extensions.close":
+		s.releaseRoutingViewer(viewer)
 		return host.Response{ID: r.ID, Result: json.RawMessage("{}")}
 	case "routing.enable", "routing.disable":
 		return fail(errors.New("请在 AI 服务中保存路由开关"))
@@ -88,6 +128,20 @@ func (s *aiService) handleRouting(r host.Request) host.Response {
 		return fail(errors.New("不支持的路由操作"))
 	}
 }
+
+// All embedded surfaces share the runtime, not each other's view/lifetime.
+func (s *aiService) releaseRoutingViewer(viewer string) {
+	enabled := s.routingEnabled()
+	s.routing.mu.Lock()
+	defer s.routing.mu.Unlock()
+	delete(s.routing.viewers, viewer)
+	if !enabled && len(s.routing.viewers) == 0 && s.routing.process != nil {
+		s.routing.cancel()
+		s.routing.process.Close()
+		s.routing.process = nil
+	}
+}
+
 func (s *aiService) serveRoutedModel(w http.ResponseWriter, r *http.Request, path string, body []byte, model string, allow func(ai.Selection) bool) {
 	process, err := s.startRouting()
 	if err != nil {

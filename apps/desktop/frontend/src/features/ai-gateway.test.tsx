@@ -8,14 +8,16 @@ const call=vi.hoisted(()=>vi.fn());vi.mock("../bridge",()=>({captureCall:call}))
 const original={revision:0,enabled:false,port:3426,running:false,hasKey:false,baseUrl:"http://127.0.0.1:3426/v1"};
 afterEach(()=>{cleanup();call.mockReset()});
 
-it("hides a revealed access key without fetching it again",async()=>{
+it("repeatedly shows the gateway access key and hides it without an extra read",async()=>{
  call.mockImplementation(async method=>method==="ai.gateway.get"?{...original,hasKey:true}:{key:"local-test-key"});
  render(<AIGateway active providers={[]}/>);const user=userEvent.setup();
- await user.click(await screen.findByRole("button",{name:"显示访问密钥"}));
- expect((screen.getByLabelText("访问密钥") as HTMLInputElement).value).toBe("local-test-key");
- await user.click(screen.getByRole("button",{name:"隐藏访问密钥"}));
- expect((screen.getByLabelText("访问密钥") as HTMLInputElement).value).toBe("");
- expect(call.mock.calls.filter(([method])=>method==="ai.gateway.key")).toHaveLength(1);
+ for(let cycle=1;cycle<=3;cycle++){
+  await user.click(await screen.findByRole("button",{name:"显示访问密钥"}));
+  expect((screen.getByLabelText("访问密钥") as HTMLInputElement).value).toBe("local-test-key");
+  await user.click(screen.getByRole("button",{name:"隐藏访问密钥"}));
+  expect((screen.getByLabelText("访问密钥") as HTMLInputElement).value).toBe("");
+  expect(call.mock.calls.filter(([method])=>method==="ai.gateway.key")).toHaveLength(cycle);
+ }
 });
 
 it("shows provider and model names with icons and saves a separate gateway selection",async()=>{

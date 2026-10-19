@@ -1,6 +1,7 @@
 // Adapted from Cindy a152497a, Copyright 2026 XD Inc., Apache-2.0.
 import {ChatPanelButton as Button} from '../../chat-desktop-kit';
-import {FloatingPanel,Textarea,Input,IconButton,Tooltip} from 'chatgpt-desktop-kit';
+import {FloatingPanel,Textarea,Input,IconButton} from 'chatgpt-desktop-kit';
+import {Tip} from '../panel-ui/tooltip';
 /**
  * BrowserCommentPopover —— 页面评论的宿主侧输入气泡。
  *
@@ -282,7 +283,7 @@ export function BrowserCommentPopover({
       <Button variant="secondary" size="xs" onClick={handleResetStyles} disabled={submitting}>{t('rightSidebar.browser.styleReset')}</Button>
     </div>}
     <div className="chat-browser-comment-actions">
-      {designBaseline&&<Tooltip label={styleTweaksLabel}><IconButton aria-label={styleTweaksLabel} aria-pressed={showStyles} disabled={submitting} onClick={()=>setShowStyles(value=>!value)}><SlidersHorizontal size={16}/></IconButton></Tooltip>}
+      {designBaseline&&<Tip text={styleTweaksLabel}><IconButton aria-label={styleTweaksLabel} aria-pressed={showStyles} disabled={submitting} onClick={()=>setShowStyles(value=>!value)}><SlidersHorizontal size={16}/></IconButton></Tip>}
       <Button variant="secondary" size="xs" onClick={onCancel} disabled={submitting}>{t('rightSidebar.browser.commentCancel')}</Button>
       <Button variant="primary" size="xs" busy={submitting} onClick={handleSubmit} disabled={!canSubmit}>{t('rightSidebar.browser.commentSubmit')}</Button>
     </div>

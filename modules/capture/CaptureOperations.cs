@@ -141,18 +141,25 @@ internal sealed partial class CaptureOperations
     private bool SelectScrollingTarget(ScrollingCaptureManager manager, string? language, bool directConfirm = false)
     {
         var targets = WindowCaptureTargets.Snapshot();
-        var english = (language ?? System.Globalization.CultureInfo.CurrentUICulture.Name).StartsWith("en", StringComparison.OrdinalIgnoreCase);
         using var frame = CaptureDesktopFrame();
         using var selector = new NativeSelectionWindow(frame, language ?? System.Globalization.CultureInfo.CurrentUICulture.Name, ShareXResources.Theme.IsDarkTheme, allowEdit: false, directConfirm: directConfirm);
         if (selector.ShowDialog() != DialogResult.OK) return false;
-        var target = WindowCaptureTargets.ForRegion(targets, selector.Selection);
-        var current = WindowCaptureTargets.ForRegion(WindowCaptureTargets.Snapshot(), selector.Selection);
+        return SelectScrollingTarget(manager, selector.Selection, targets, language);
+    }
+    // Both the explicit retake selector and the screenshot toolbar use this
+    // same validation. A committed physical selection needs no second picker.
+    internal static bool SelectScrollingTarget(ScrollingCaptureManager manager, Rectangle region,
+        IReadOnlyList<WindowCaptureTarget> targets, string? language)
+    {
+        var english = (language ?? System.Globalization.CultureInfo.CurrentUICulture.Name).StartsWith("en", StringComparison.OrdinalIgnoreCase);
+        var target = WindowCaptureTargets.ForRegion(targets, region);
+        var current = WindowCaptureTargets.ForRegion(WindowCaptureTargets.Snapshot(), region);
         if (target is null || current != target)
             throw new InvalidOperationException(english ? "Select an unobstructed area inside one window." : "请在同一窗口内选择未被遮挡的区域。");
-        manager.SelectTarget(new WindowInfo(target.Handle), selector.Selection);
+        manager.SelectTarget(new WindowInfo(target.Handle), region);
         // Wheel scrolling follows the pointer. Toolbar confirmation may leave
         // it outside the selected content, so move it back before capturing.
-        Cursor.Position = new Point(selector.Selection.Left + selector.Selection.Width / 2, selector.Selection.Top + selector.Selection.Height / 2);
+        Cursor.Position = new Point(region.Left + region.Width / 2, region.Top + region.Height / 2);
         return true;
     }
     internal CaptureDraft PrepareEditor(Bitmap image, CaptureSettings settings, CapturePlacement? placement = null, Bitmap? desktopPreview = null) => drafts.Begin(image, settings, placement, desktopPreview);

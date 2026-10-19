@@ -478,7 +478,8 @@ func runMainSession(args []string, settings config.Settings, services sessionSer
 				m := i18n.For(language)
 				mainWindow.SetLaunchNowBusy(false)
 				if result.Managed {
-					mainWindow.ShowInfo(m.WindowTitle, fmt.Sprintf(m.LaunchNowDoneBody, result.AppName))
+					// As in current WinTray, successful manual starts only restore
+					// the control; an informational dialog would interrupt the user.
 					return
 				}
 				detail := i18n.TranslateResultCode(language, string(result.Code))

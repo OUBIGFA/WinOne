@@ -13,7 +13,8 @@ import {Popover,PopoverContent,PopoverTrigger} from "../components/ui/popover";
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from "../components/ui/select";
 import {ResizablePanelGroup,ResizablePanel,ResizableHandle} from "../components/ui/resizable";
 import {Item,ItemContent,ItemDescription,ItemGroup,ItemMedia,ItemTitle} from "../components/ui/item";
-import {DirectoryFolderPane,useDirectoryBrowser,pathKey,pathName,destinationPath,type DirectoryListing} from "./directory-links-browser";
+import {Dialog,DialogContent,DialogDescription,DialogFooter,DialogTitle} from "../components/ui/dialog";
+import {DirectoryFolderPane,useDirectoryBrowser,pathKey,pathName,destinationPath,type DirectoryEntry,type DirectoryIdentity,type DirectoryListing} from "./directory-links-browser";
 import type {DirectoryLinkRecord} from "./directory-links";
 
 interface BatchPlan{id:string;items:{id:string;source:string;linkPath:string;kind:string;objectType:string;targetText:string}[]}
@@ -32,13 +33,14 @@ export function DirectoryLinksBatch({disabled=false,onActivity,onChanged,incomin
  const {t}=useTranslation();const [text,setText]=useState("");const [kind,setKind]=useState("auto");const [relative,setRelative]=useState(false);const [busy,setBusy]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");const [plan,setPlan]=useState<BatchPlan>();
  const [retainScript,setRetainScript]=useState(false);const [hideSuccess,setHideSuccess]=useState(false);
  const [customName,setCustomName]=useState<string>();const [moreOpen,setMoreOpen]=useState(false);
+ const [renaming,setRenaming]=useState<{entry:DirectoryEntry;parentIdentity:DirectoryIdentity}>(),[renameName,setRenameName]=useState(""),[renameError,setRenameError]=useState("");const renameInput=useRef<HTMLInputElement>(null);
  const workspace=useRef<HTMLElement>(null),createBar=useRef<HTMLDivElement>(null);
  const heightHandle=useRef<HTMLDivElement>(null),preferredHeight=useRef<number|undefined>(readPaneHeight()),fitHeight=useRef<(()=>void)|undefined>(undefined),heightDrag=useRef<{y:number;height:number}|null>(null);
  const [paneSize,setPaneSize]=useState({height:256,maximum:4000});
  function resizePanes(height:number){preferredHeight.current=Math.max(256,Math.min(paneSize.maximum,height));try{localStorage.setItem("winone.directory-links.pane-height.v1",String(preferredHeight.current));}catch(error){console.warn("Pane height could not be saved",error);}fitHeight.current?.();}
  const source=useDirectoryBrowser(),target=useDirectoryBrowser();const directory=target.address;
- usePageActivity(onActivity,!!text,busy||source.loading||target.loading,"directory-links-batch");
- const locked=disabled||busy;const sources=pathsFromText(text);const selected=new Set(sources.map(pathKey));
+ usePageActivity(onActivity,!!text||!!renaming&&renameName!==renaming.entry.name,busy||source.loading||target.loading||!!renaming,"directory-links-batch");
+ const locked=disabled||busy||!!renaming;const sources=pathsFromText(text);const selected=new Set(sources.map(pathKey));
  const singleSource=sources.length===1?sources[0]:"";
  useEffect(()=>{setCustomName(undefined);},[singleSource]);
  useLayoutEffect(()=>{
@@ -75,6 +77,19 @@ export function DirectoryLinksBatch({disabled=false,onActivity,onChanged,incomin
   catch(reason){throw new Error(t("links.dropFolderOnly")+" "+String(reason));}
   target.accept(listing);resetPlan();
  });}
+ function beginRename(entry:DirectoryEntry){if(locked||!target.listing?.identity)return;setRenaming({entry,parentIdentity:target.listing.identity});setRenameName(entry.name);setRenameError("");}
+ async function renameTarget(){
+  if(!renaming||busy||disabled||!renameName.trim())return;
+  const {entry,parentIdentity}=renaming;setBusy(true);setRenameError("");
+  try{
+   const result=await directoryLinksCall<{path:string;records:DirectoryLinkRecord[];warning?:string}>("rename",{path:entry.path,name:renameName,entryIdentity:entry.identity,parentIdentity});
+   // Rename is immediate, separate from link creation. A new safety preview is
+   // required afterwards; history and the visible destination reflect the real result.
+   resetPlan();onChanged(result.records);setRenaming(undefined);setNotice(t("links.renamed",{name:pathName(result.path)}));if(result.warning)setError(result.warning);
+   setText(current=>pathsFromText(current).map(path=>pathKey(path)===pathKey(entry.path)?result.path:path).join("\n"));
+   await target.load(directory);if(source.listing)await source.load(source.address);
+  }catch(reason){setRenameError(String(reason));}finally{setBusy(false);}
+ }
  async function previewBatch():Promise<BatchPlan|undefined>{if(singleSource&&customName!==undefined&&!customName.trim())throw Error(t("links.nameRequired"));const listing=await target.load(directory);if(!listing)return;return await directoryLinksCall<BatchPlan>("previewBatch",{sources,directory:listing.directory,kind,relative,...(singleSource&&customName?.trim()?{linkName:customName.trim()}:{})});}
  async function preview(){await work(async()=>{setPlan(undefined);const nextPlan=await previewBatch();if(nextPlan)setPlan(nextPlan);});}
  // Choosing a link type and creating is one step: the create button previews
@@ -107,7 +122,7 @@ export function DirectoryLinksBatch({disabled=false,onActivity,onChanged,incomin
    </ResizablePanel>
    <ResizableHandle withHandle aria-label={t("links.resizePanes")}/>
    <ResizablePanel id="link-target" minSize="30%">
-    <DirectoryFolderPane side="target" browser={target} disabled={locked} onAddressChange={resetPlan}>
+    <DirectoryFolderPane side="target" browser={target} disabled={locked} onAddressChange={resetPlan} onRename={beginRename}>
      {sources.length>0&&directory&&<ItemGroup className="directory-links-entries directory-links-planned" aria-label={t("links.plannedContents")}>
       {previewRows.map(({path,name,item,collision})=><Item size="sm" role="listitem" key={pathKey(path)} className="directory-links-entry" data-planned="" data-link-kind={sourceKinds.get(pathKey(path))} data-conflict={collision||undefined}>
        <ItemMedia variant="icon"><Link aria-hidden="true"/></ItemMedia><ItemContent className="directory-links-entry-content"><ItemTitle className="directory-links-entry-title" title={item?.linkPath??destinationPath(directory,name)}>{name}</ItemTitle><ItemDescription className="directory-links-entry-description"><span className="muted" aria-hidden="true">→ </span><span title={path}>{path}</span></ItemDescription></ItemContent>
@@ -136,5 +151,9 @@ export function DirectoryLinksBatch({disabled=false,onActivity,onChanged,incomin
    </PopoverContent></Popover></div>
   </div>
   {plan&&<div className="directory-links-plan"><p>{t("links.batchPlan",{count:plan.items.length})}</p><ol className="directory-links-batch-plan">{plan.items.map(item=><li key={item.id}><span className={`directory-links-kind directory-links-kind--${item.kind}`}>{t(`links.${item.kind}`)}</span><dl><dt>{t("links.newEntry")}</dt><dd>{item.linkPath}</dd><dt>{t("links.target")}</dt><dd>{item.source}</dd></dl></li>)}</ol><p>{t("links.direction")}</p><div className="directory-links-actions"><Button icon={Download} disabled={locked} onClick={()=>void work(async()=>{const destination=await pickDirectory();if(destination){const result=await directoryLinksCall<{path:string}>("exportPlan",{token:plan.id,directory:destination});setNotice(t("links.exported",{path:result.path}));}})}>{t("links.exportPlan")}</Button></div><p className="muted">{t("links.elevationHint")}</p></div>}
+  <Dialog open={!!renaming} onOpenChange={open=>{if(!open&&!busy)setRenaming(undefined);}}><DialogContent initialFocus={renameInput} finalFocus={()=>document.querySelector<HTMLElement>('[data-directory-links-drop="target"]')} showCloseButton={!busy}>
+   <DialogTitle>{t(renaming?.entry.objectType==="directory"?"links.renameFolder":"links.renameFile")}</DialogTitle><DialogDescription>{t("links.renameHint")}</DialogDescription>
+   <form className="directory-links-rename-form" onSubmit={event=>{event.preventDefault();void renameTarget();}}><p className="directory-links-confirm-path">{renaming?.entry.path}</p><Label htmlFor="links-rename-name">{t("links.newName")}</Label><Input ref={renameInput} id="links-rename-name" value={renameName} disabled={busy} onChange={event=>{setRenameName(event.target.value);setRenameError("");}} onFocus={event=>{const dot=renameName.lastIndexOf(".");event.currentTarget.setSelectionRange(0,renaming?.entry.objectType==="file"&&dot>0?dot:renameName.length);}}/>{renameError&&<Notice>{renameError}</Notice>}<DialogFooter><Button type="button" disabled={busy} onClick={()=>setRenaming(undefined)}>{t("links.cancel")}</Button><Button type="submit" variant="primary" busy={busy} disabled={disabled||busy||!renameName.trim()||renameName===renaming?.entry.name}>{t("links.rename")}</Button></DialogFooter></form>
+  </DialogContent></Dialog>
  </section>;
 }

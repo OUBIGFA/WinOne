@@ -12,6 +12,7 @@
 | `third_party/` | 复用代码版本和许可证，接入时创建 | 是 |
 | `_temp/<任务>/` | 临时脚本、构建、候选包、测试输出、旧备份、一次性工具与下载、截图和日志 | 否 |
 | `dist/release/` | 唯一正式安装器、SHA-256 与 release-info.json | 否 |
+| `dist/reports/` | 可直接查看的交付报告及筛选后的验收证据；HTML 优先自包含，报告标明对应版本和验证范围 | 否 |
 | `dist/logo/` | 反复使用的 Logo 设计资源与多尺寸导出 | 否 |
 | `dist/resources/` | 当前使用的本地工具链、源码依赖、OCR 运行时、图标及复用缓存入口 | 否 |
 | `node_modules/`、`bin/`、`obj/` | 依赖与编译缓存 | 否 |
@@ -37,6 +38,15 @@
 开发分支采用 `feat/<主题>`、`fix/<主题>`、`chore/<主题>`。发行版本采用 `v主版本.次版本.补丁`，预发布加 `-alpha.N` 或 `-beta.N`。发布 tag 只能指向验证通过的提交；本地调试不得创建发布 tag。
 
 远端创建、推送和正式发布按用户授权执行。发布时一起提供压缩包、SHA-256、对应源码与第三方声明；包内不含本地测试资料和开发工具链。
+
+## 外部项目引入与即时许可检查
+
+每次引入或更新外部项目都把“能力接入 + 来源锁定 + 直接/传递依赖许可 + 即时验证”当成同一项工作。仅用于调研且未复制的资料也记录准确来源；复制的实现、设计令牌、图标、字体、模型与二进制不能只写一个链接。
+
+1. 修改依赖锁/复制源码前核对上游许可、版权、NOTICE 及分发条件；锁定版本、提交与校验摘要。GPL/AGPL 等须保留对应源码与组合分发义务说明，不擅自改写 WinOne 根许可证。
+2. 同次改动更新 `third_party/sources.json` 或对应主题来源文件、许可全文、依赖清单与 `THIRD-PARTY-NOTICES.md`。缺失必须立即查证；禁止伪造、用“未知”放行或等全量构建才发现。
+3. 前端依赖运行 `node build/verify-frontend-notices.mjs --update` 后立即不带 `--update` 复验。Rust 子模块使用 `build/verify-diagram-notices.ps1 -Runtime <diagram|selection|recording> -CargoExe <cargo> -Update`，再只读复验；桌面 Rust 继续用 `verify-rust-notices.ps1`（含 SDK 原包核对）。新复制项目使用 `node build/verify-import-notices.mjs` 校验归属、许可全文与源文件摘要。Go/npm 源码依赖继续运行 `build/verify-notices.ps1`；OCR/AI/结果窗按各自清单与实际锁更新，产物阶段的校验只是第二道门，不替代接入时核对。
+4. 升级后保留本地改编说明。移除依赖时只更新已确认不再使用的记录，不删除来源不明的旧资料。
 
 ## AI 产物的存放与资料保护
 
@@ -65,12 +75,13 @@
 | `sources/PowerToys` | 锁定提交的置顶引擎及其恢复的编译依赖；由准备脚本维护 |
 | `sources/ShareX-21.0.0`、`sources/ShareX-v21.0.0.zip` | ShareX 准备脚本的固定源码和归档 |
 | `sources/ShareX-native` | 现用原生截图引擎的独立源码；需要测试改写时再复制到 `_temp/<任务>/` |
-| `sources/magpie-0bb0781`、`sources/ai-plugins-bcc94e5` | 本次验证的 AI 适配器来源与账号插件锁定源码；Magpie 构建读取所选来源的 HEAD，不固定阻塞版本；测试输出仍回到根 `_temp/` |
+| `sources/magpie-d783df46cbac9021e26a6bd71ca0b55544552eb2`、`sources/ai-plugins-0a998a8` | AI 适配器来源与当前 `third_party/ai-plugins.json` 对应的账号插件源码；Magpie 构建读取所选来源的 HEAD，不固定阻塞版本；测试输出仍回到根 `_temp/` |
 | `sources/mygo-3ad015a` | 结果窗锁定版本的源码参考；正式构建按 Go 锁和 overlay 准备 |
 | `runtimes/ocr` | OCR Python、离线依赖与模型，供反复打包；以 OCR 清单校验 |
 | `cache/cargo`、`cache/go`、`cache/npm` | 分别通过 `CARGO_HOME`、`GOCACHE`、`npm_config_cache` 复用 Cargo 依赖、Go 编译和 npm 下载缓存；不放测试报告 |
 | `cache/nuget-notices/microsoft.web.webview2.1.0.3800.47.nupkg` | Microsoft WebView2 SDK 原包，供 `build/verify-rust-notices.ps1 -Update -WebView2Package <路径>` 核对 Loader 与原始许可证；来源为 NuGet 官方包，SHA-256 `56c9f26bdd07916a2d1949fb58a5c7e434dfa1173577dca879206050c4e718db` |
 | `cache/rust-desktop`、`cache/rust-diagrams`、`cache/rust-selection` | 三个现用 Rust 项目的增量编译缓存；不混入其他实验 target |
+| `cache/rust-recording` | 屏幕录制 DLL 及正式录制探针的增量编译缓存，由 `build/build-recording.ps1` 管理；测试视频、GIF、截图与报告不放此处，使用 `_temp/<任务>/` |
 
 从仓库根目录运行以下命令，只选择资源，不启动构建：
 

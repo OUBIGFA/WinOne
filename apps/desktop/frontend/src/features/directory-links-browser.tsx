@@ -1,5 +1,6 @@
+import {usePathDrop} from "../ui/path-drop";
 import {useEffect,useRef,useState,type ReactNode} from "react";
-import {ArrowUp,ChevronRight,File,Folder,FolderOpen,RefreshCw} from "lucide-react";
+import {ArrowUp,ChevronRight,File,Folder,FolderOpen,PencilLine,RefreshCw} from "lucide-react";
 import {directoryLinksCall,pickDirectory} from "../bridge";
 import {useTranslation} from "../i18n";
 import {Button} from "../ui/button";
@@ -9,8 +10,9 @@ import {Label} from "../components/ui/label";
 import {Checkbox} from "../components/ui/checkbox";
 import {Item,ItemContent,ItemDescription,ItemGroup,ItemMedia,ItemTitle} from "../components/ui/item";
 
-export interface DirectoryEntry {name:string;path:string;objectType:"file"|"directory";kind?:string;targetPath?:string;error?:string}
-export interface DirectoryListing {directory:string;parent:string;entries:DirectoryEntry[];total:number;offset:number;hasMore:boolean}
+export interface DirectoryIdentity {volume:number;volumeId?:string;scope?:string;file:string;created:number}
+export interface DirectoryEntry {name:string;path:string;objectType:"file"|"directory";kind?:string;targetPath?:string;error?:string;identity?:DirectoryIdentity}
+export interface DirectoryListing {directory:string;parent:string;identity?:DirectoryIdentity;entries:DirectoryEntry[];total:number;offset:number;hasMore:boolean}
 /**
  * Compare Windows paths by stable identity while preserving user-entered
  * display text. Host preview responses can remove dot path segments.
@@ -61,17 +63,18 @@ export function useDirectoryBrowser(){
 }
 
 type BrowserState=ReturnType<typeof useDirectoryBrowser>;
-interface FolderPaneProps {side:"source"|"target";browser:BrowserState;disabled:boolean;onAddressChange?:()=>void;selected?:Set<string>;linkKinds?:Map<string,string>;onSelect?:(paths:string[],selected:boolean)=>void;children?:ReactNode;actions?:ReactNode;onPastePaths?:(text:string)=>void}
+interface FolderPaneProps {side:"source"|"target";browser:BrowserState;disabled:boolean;onAddressChange?:()=>void;selected?:Set<string>;linkKinds?:Map<string,string>;onSelect?:(paths:string[],selected:boolean)=>void;children?:ReactNode;actions?:ReactNode;onPastePaths?:(text:string)=>void;onRename?:(entry:DirectoryEntry)=>void}
 
 // File rows and focus behavior are assembled from the repository's pinned
 // shadcn Item/Base UI controls; there is no second explorer widget framework.
-export function DirectoryFolderPane({side,browser,disabled,onAddressChange,selected,onSelect,children,actions,onPastePaths,linkKinds}:FolderPaneProps){
+export function DirectoryFolderPane({side,browser,disabled,onAddressChange,selected,onSelect,children,actions,onPastePaths,linkKinds,onRename}:FolderPaneProps){
  const {t}=useTranslation();const isSource=side==="source";const id=`links-${side}-directory`;
  const entries=browser.listing?.entries??[];
  const selectable=entries.filter(entry=>!entry.error);
  const chosen=selectable.filter(entry=>selected?.has(pathKey(entry.path))).length;
+ const addressDrop=usePathDrop({kind:"directory",disabled,onPaths:paths=>navigate(paths[0]),onError:browser.reportError});
  function navigate(path:string){onAddressChange?.();void browser.load(path);}
- return <section className="directory-links-pane" data-directory-links-drop={side} aria-label={t(isSource?"links.sourceFolder":"links.targetFolder")} tabIndex={isSource?0:undefined} onPaste={event=>{
+ return <section className="directory-links-pane" data-directory-links-drop={side} aria-label={t(isSource?"links.sourceFolder":"links.targetFolder")} tabIndex={0} onPaste={event=>{
   // Pasting into the address edits that address. Pasting elsewhere in the
   // source pane imports a path list without keeping a second editable form.
   if(disabled||!isSource||(event.target as Element).closest("input,textarea,[contenteditable=true]"))return;
@@ -79,7 +82,7 @@ export function DirectoryFolderPane({side,browser,disabled,onAddressChange,selec
  }}>
   <header className="directory-links-pane-header">
    <div className="directory-links-toolbar"><h3>{t(isSource?"links.sourceFolder":"links.targetFolder")}</h3></div>
-   <div className="directory-links-folder-address"><Label htmlFor={id} className="sr-only">{t(isSource?"links.sourceFolder":"links.location")}</Label><Input id={id} value={browser.address} disabled={disabled} placeholder={t("links.enterFolder")} onChange={event=>{browser.edit(event.target.value);onAddressChange?.();}} onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();navigate(browser.address);}}}/><Button icon={ChevronRight} size="icon" title={t(isSource?"links.openSourceFolder":"links.openTargetFolder")} aria-label={t(isSource?"links.openSourceFolder":"links.openTargetFolder")} disabled={disabled||!browser.address.trim()} onClick={()=>navigate(browser.address)}/></div>
+   <div className="directory-links-folder-address" {...addressDrop}><Label htmlFor={id} className="sr-only">{t(isSource?"links.sourceFolder":"links.location")}</Label><Input id={id} value={browser.address} disabled={disabled} placeholder={t("links.enterFolder")} onChange={event=>{browser.edit(event.target.value);onAddressChange?.();}} onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();navigate(browser.address);}}}/><Button icon={ChevronRight} size="icon" title={t(isSource?"links.openSourceFolder":"links.openTargetFolder")} aria-label={t(isSource?"links.openSourceFolder":"links.openTargetFolder")} disabled={disabled||!browser.address.trim()} onClick={()=>navigate(browser.address)}/></div>
    <div className="directory-links-actions"><Button icon={FolderOpen} aria-label={t(isSource?"links.browseSource":"links.pickLocation")} disabled={disabled} onClick={()=>{void pickDirectory().then(path=>{if(path)navigate(path);}).catch(browser.reportError);}}>{t("links.browseFolder")}</Button><Button icon={ArrowUp} size="icon" title={t("links.parentFolder")} aria-label={t(isSource?"links.sourceParent":"links.targetParent")} disabled={disabled||!browser.listing?.parent} onClick={()=>navigate(browser.listing!.parent)}/><Button icon={RefreshCw} size="icon" title={t("links.refreshFolder")} aria-label={t(isSource?"links.refreshSource":"links.refreshTarget")} disabled={disabled||!browser.address||browser.loading} onClick={()=>navigate(browser.address)}/>{actions}</div>
   </header>
   {browser.error&&<Notice>{browser.error}</Notice>}
@@ -90,22 +93,23 @@ export function DirectoryFolderPane({side,browser,disabled,onAddressChange,selec
    {!browser.loading&&!browser.listing&&!browser.error&&!children&&<p className="directory-links-pane-empty">{t(isSource?"links.sourceEmpty":"links.targetEmpty")}</p>}
    {browser.listing&&entries.length===0&&<p className="directory-links-pane-empty">{t("links.folderEmpty")}</p>}
    <ItemGroup className="directory-links-entries" aria-label={t(isSource?"links.sourceContents":"links.existingContents")}>
-    {entries.map(entry=><DirectoryEntryRow key={entry.path} entry={entry} linkKind={linkKinds?.get(pathKey(entry.path))??entry.kind} disabled={disabled||browser.loading} selected={selected?.has(pathKey(entry.path))} selectable={isSource} onSelect={value=>onSelect?.([entry.path],value)} onOpen={()=>navigate(entry.path)}/>)}
+    {entries.map(entry=><DirectoryEntryRow key={entry.path} entry={entry} linkKind={linkKinds?.get(pathKey(entry.path))??entry.kind} disabled={disabled||browser.loading} selected={selected?.has(pathKey(entry.path))} selectable={isSource} onSelect={value=>onSelect?.([entry.path],value)} onOpen={()=>navigate(entry.path)} onRename={!isSource&&onRename?()=>onRename(entry):undefined}/>)}
    </ItemGroup>
    {browser.listing?.hasMore&&<Button className="directory-links-more" busy={browser.loading} disabled={disabled} onClick={()=>void browser.load(browser.address,true)}>{t("links.loadMore",{shown:entries.length,total:browser.listing.total})}</Button>}
   </div>
  </section>;
 }
 
-function DirectoryEntryRow({entry,disabled,selected,selectable,onSelect,onOpen,linkKind}:{entry:DirectoryEntry;linkKind?:string;disabled:boolean;selected?:boolean;selectable:boolean;onSelect:(selected:boolean)=>void;onOpen:()=>void}){
+function DirectoryEntryRow({entry,disabled,selected,selectable,onSelect,onOpen,onRename,linkKind}:{entry:DirectoryEntry;linkKind?:string;disabled:boolean;selected?:boolean;selectable:boolean;onSelect:(selected:boolean)=>void;onOpen:()=>void;onRename?:()=>void}){
  const {t}=useTranslation();const folder=entry.objectType==="directory";const Icon=folder?Folder:File;
- return <Item size="sm" role="listitem" className="directory-links-entry" data-selected={selected||undefined} data-link-kind={linkKind}>
+ const canRename=!!onRename&&!disabled&&!!entry.identity?.file;
+ return <Item size="sm" role="listitem" tabIndex={onRename?0:undefined} className="directory-links-entry" data-selected={selected||undefined} data-link-kind={linkKind} onKeyDown={event=>{if(event.key==="F2"&&canRename){event.preventDefault();onRename?.();}}}>
   {selectable&&<Checkbox checked={selected??false} disabled={disabled||!!entry.error} aria-label={t("links.selectSource",{name:entry.name})} onCheckedChange={onSelect}/>}
   <ItemMedia variant="icon"><Icon aria-hidden="true"/></ItemMedia>
   <ItemContent className="directory-links-entry-content"><ItemTitle className="directory-links-entry-title">{folder?<Button variant="ghost" className="directory-links-entry-name" disabled={disabled} aria-label={t("links.openFolder",{name:entry.name})} title={entry.path} onClick={onOpen}>{entry.name}</Button>:<span title={entry.path}>{entry.name}</span>}</ItemTitle>
    {entry.targetPath&&<ItemDescription className="directory-links-entry-description" title={entry.targetPath}>→ {entry.targetPath}</ItemDescription>}
    {entry.error&&<ItemDescription className="directory-links-entry-description directory-links-error">{entry.error}</ItemDescription>}
   </ItemContent>
-  <div className="directory-links-entry-badges"><span className={entry.kind?`directory-links-kind directory-links-kind--${entry.kind}`:"directory-links-entry-type"}>{t(entry.kind?`links.${entry.kind}`:folder?"links.directoryType":"links.fileType")}</span>{entry.kind&&!entry.error&&<span className="directory-links-linked">{t("links.linked")}</span>}</div>
+  <div className="directory-links-entry-badges"><span className={entry.kind?`directory-links-kind directory-links-kind--${entry.kind}`:"directory-links-entry-type"}>{t(entry.kind?`links.${entry.kind}`:folder?"links.directoryType":"links.fileType")}</span>{entry.kind&&!entry.error&&<span className="directory-links-linked">{t("links.linked")}</span>}{onRename&&<Button icon={PencilLine} size="icon" variant="ghost" aria-label={t("links.renameEntry",{name:entry.name})} title={t("links.renameEntry",{name:entry.name})+" (F2)"} disabled={!canRename} onClick={onRename}/>}</div>
  </Item>;
 }

@@ -32,7 +32,7 @@ func (m observedIcons) Handle(request host.Request) host.Response {
 }
 
 // syncCollectedMenu mirrors stable native icon IDs, with explicit access to each original menu.
-func syncCollectedMenu(ctx context.Context, worker moduleEndpoint, language func() string, reportFailure func(error)) {
+func syncCollectedMenu(ctx context.Context, worker moduleEndpoint, separator *systray.MenuSeparator, language func() string, reportFailure func(error)) {
 	type icon struct {
 		ID     string `json:"id"`
 		Name   string `json:"name"`
@@ -47,6 +47,11 @@ func syncCollectedMenu(ctx context.Context, worker moduleEndpoint, language func
 		locale  string
 	}
 	items := map[string]item{}
+	refreshSeparator := func() {
+		if err := separator.SetVisible(len(items) != 0); err != nil {
+			fmt.Fprintln(os.Stderr, "tray separator:", err)
+		}
+	}
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	defer func() {
@@ -66,6 +71,7 @@ func syncCollectedMenu(ctx context.Context, worker moduleEndpoint, language func
 					value.root.Remove()
 					delete(items, id)
 				}
+				refreshSeparator()
 				continue
 			}
 			r := worker.Handle(host.Request{Version: 1, ID: "tray-icons", Method: "icons"})
@@ -136,6 +142,7 @@ func syncCollectedMenu(ctx context.Context, worker moduleEndpoint, language func
 					delete(items, id)
 				}
 			}
+			refreshSeparator()
 		}
 	}
 }

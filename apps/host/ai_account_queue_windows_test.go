@@ -32,6 +32,20 @@ func quotaRequest() host.Request {
 	return host.Request{ID: "quota", Method: "accounts.quota", Params: json.RawMessage(`{"provider":"account","agent":"codex"}`)}
 }
 
+func TestSavedAPIKeyQuotaDoesNotRequireAnAccountOrEnabledModel(t *testing.T) {
+	s := queuedAccountService(t, context.Background())
+	c := s.store.Configuration()
+	c.Providers = append(c.Providers, ai.Provider{ID: "api", Name: "API", AuthMode: "api-key", Protocol: "chat", BaseURL: "https://api.deepseek.com/v1", Models: []string{}})
+	key := "fixture-private-balance-key"
+	if _, err := s.store.SaveConfiguration(c, map[string]*string{"api": &key}); err != nil {
+		t.Fatal(err)
+	}
+	response := s.handleAccounts(host.Request{ID: "balance", Method: "accounts.quota", Params: json.RawMessage(`{"provider":"api"}`)})
+	if response.Error == nil || !strings.Contains(response.Error.Message, "余额读取失败") || len(response.Result) > 0 {
+		t.Fatalf("API balance did not reach its private worker: %+v", response)
+	}
+}
+
 // Token refresh and quota history can write the private account profile. A
 // short read must wait for its current owner, never run a second writer or
 // report "not signed in" merely because another read won the race.

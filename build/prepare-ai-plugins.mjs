@@ -1,12 +1,12 @@
-// Package the locally prepared community providers without installing npm
-// dependencies or executing lifecycle scripts. The prepared source is trusted
-// as-is: WinOne no longer verifies a pinned revision, catalog or resource
-// checksums, so any locally prepared provider set and Bun can be bundled.
+// Package exactly the reviewed registry. Updates first regenerate the lock
+// through update-ai-plugins.mjs; mismatched sources never produce a bundle
+// whose runtime rejects the very files the build just copied.
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {isDeepStrictEqual} from 'node:util';
+import {createHash} from 'node:crypto';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const args=process.argv.slice(2);
@@ -31,10 +31,13 @@ for(const plugin of lock.plugins){
  if(!/^[a-z0-9-]+$/.test(folder))throw Error('Invalid plugin folder');
  for(const file of plugin.files){
   const bytes=await regularFile(descendant(source,file.path));
+  if(bytes.length!==file.size||createHash('sha256').update(bytes).digest('hex')!==file.sha256)throw Error('Plugin source differs from its reviewed lock: '+file.path);
   resources.push({relative:'plugins/'+folder+'/'+file.path.slice(plugin.directory.length+1),bytes});
  }
 }
-resources.push({relative:'runtime/bun.exe',bytes:await regularFile(bun)});
+const bunBytes=await regularFile(bun);
+if(createHash('sha256').update(bunBytes).digest('hex')!==lock.bun.executableSHA256)throw Error('Bun differs from its reviewed lock');
+resources.push({relative:'runtime/bun.exe',bytes:bunBytes});
 resources.push({relative:'plugins/LICENSE.txt',bytes:await regularFile(path.join(source,'LICENSE'))});
 const inventory=(await fs.readFile(path.join(root,'internal/distribution/ai_plugin_runtime_paths.txt'),'utf8')).trim().split(/\s+/).sort();
 const expectedPaths=[...resources.map(resource=>'shared/ai/'+resource.relative),'shared/ai/plugins/source-lock.json'].sort();

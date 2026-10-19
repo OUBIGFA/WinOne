@@ -1,13 +1,14 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
+import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {verifyFrontendNotices} from '../../build/verify-frontend-notices.mjs';
+import {verifyFrontendNotices,updateFrontendNotices} from '../../build/verify-frontend-notices.mjs';
 
 function fixture(t){
- const root=fs.mkdtempSync(path.join(os.tmpdir(),'winone-notices-'));
+ const base=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../_temp/notice-tests');fs.mkdirSync(base,{recursive:true});
+ const root=fs.mkdtempSync(path.join(base,'frontend-'));
  t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
  const frontend=path.join(root,'apps/desktop/frontend'),packageDir=path.join(frontend,'node_modules/example');
  fs.mkdirSync(packageDir,{recursive:true});fs.mkdirSync(path.join(root,'third_party/licenses'),{recursive:true});
@@ -31,4 +32,23 @@ test('accepts an upstream license omitted by npm only from its repository and a 
  assert.equal(verifyFrontendNotices(f.root,f.catalog),1);
  notice.sourceURL=notice.sourceURL.replace('owner/example','stranger/example');assert.throws(()=>verifyFrontendNotices(f.root,f.catalog),/repository/);
  notice.sourceURL='https://raw.githubusercontent.com/owner/example/main/LICENSE';assert.throws(()=>verifyFrontendNotices(f.root,f.catalog),/pinned/);
+});
+test('updates new dependencies at intake and keeps unrelated notice records',t=>{
+ const f=fixture(t),other={kind:'go',name:'unrelated',version:'1',notices:[]};
+ fs.writeFileSync(path.join(f.packageDir,'license-update.mjs'),'not a license');
+ const next=updateFrontendNotices(f.root,{schemaVersion:1,components:[other]});
+ assert.deepEqual(next.components[0],other);assert.equal(verifyFrontendNotices(f.root,next),1);
+ assert.equal(next.components[1].notices.length,1);assert.equal(next.components[1].notices[0].sourceFile,'LICENSE');
+ assert.equal(fs.readFileSync(path.join(f.root,'third_party',next.components[1].notices[0].file),'utf8'),'fixture license');
+});
+test('does not manufacture a license when the newly installed package omits one',t=>{
+ const f=fixture(t);fs.renameSync(path.join(f.packageDir,'LICENSE'),path.join(f.packageDir,'license-update.mjs'));
+ assert.throws(()=>updateFrontendNotices(f.root,{schemaVersion:1,components:[]}),/Missing npm license source/);
+});
+
+test('accepts a repository URL that points at a monorepo subdirectory',t=>{
+ const f=fixture(t);fs.renameSync(path.join(f.packageDir,'LICENSE'),path.join(f.packageDir,'not-published-license'));
+ fs.writeFileSync(path.join(f.packageDir,'package.json'),JSON.stringify({name:'example',version:'1.0.0',repository:'https://github.com/owner/example/tree/main/packages/example'}));
+ f.catalog.components[0].notices[0].sourceURL='https://raw.githubusercontent.com/owner/example/'+('a'.repeat(40))+'/LICENSE';
+ assert.equal(verifyFrontendNotices(f.root,f.catalog),1);
 });

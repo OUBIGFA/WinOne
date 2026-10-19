@@ -20,6 +20,7 @@ it("shows link history only inside the find-existing tab",async()=>{
  const user=userEvent.setup();await user.click(screen.getByRole("tab",{name:"查找已有链接"}));
  const scan=screen.getByRole("tabpanel",{name:"查找已有链接"});
  expect(within(scan).getByRole("region",{name:"链接历史"})).toBeTruthy();expect(within(scan).getByText("Source alias")).toBeTruthy();
+ expect(document.querySelector('.directory-links-history-group')?.hasAttribute('open')).toBe(false);
  await user.click(screen.getByRole("tab",{name:"新建链接"}));expect(screen.queryByRole("region",{name:"链接历史"})).toBeNull();
 });
 
@@ -42,6 +43,7 @@ it("shows a readable lone hard-link entry without an active relationship badge",
 it("requires removal confirmation and sends only the chosen record identity",async()=>{
  ports.call.mockImplementation(async(method:string)=>metadata(method,method==="remove"?{...row,status:"removed",reason:"recycled"}:[row]));
  render(<DirectoryLinksPage/>);const user=userEvent.setup();await user.click(screen.getByRole("tab",{name:"查找已有链接"}));await screen.findByText("Source alias");
+ await user.click(screen.getByText("source.txt",{selector:".directory-links-group-target > span:first-child"}));
  await waitFor(()=>expect((screen.getByRole("button",{name:"移除链接入口"}) as HTMLButtonElement).disabled).toBe(false));await user.click(screen.getByRole("button",{name:"移除链接入口"}));
  const dialog=await screen.findByRole("dialog");expect(ports.call.mock.calls.some(call=>call[0]==="remove")).toBe(false);
  expect(within(dialog).getByText(row.linkPath)).toBeTruthy();await user.click(within(dialog).getByRole("button",{name:"移到回收站"}));

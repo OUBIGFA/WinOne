@@ -25,4 +25,4 @@ window.go={main:{App:{
   ReadModuleLogs:async()=>({folderAvailable:false,entries:[]}),
 }}} as unknown as NonNullable<Window["go"]>;
 await setApplicationLanguage(language);
-createRoot(document.getElementById("root")!).render(<SettingsFixtureShell page={moduleId}><header><h1>{i18n.t("nav."+moduleId)}</h1></header><ModulePanel moduleId={moduleId} onSaved={()=>{}} onActivity={()=>{}}><SelectionPage moduleId={moduleId}/></ModulePanel></SettingsFixtureShell>);
+createRoot(document.getElementById("root")!).render(<SettingsFixtureShell page={moduleId}><header><h1>{i18n.t("nav."+moduleId)}</h1></header><ModulePanel moduleId={moduleId}><SelectionPage moduleId={moduleId}/></ModulePanel></SettingsFixtureShell>);

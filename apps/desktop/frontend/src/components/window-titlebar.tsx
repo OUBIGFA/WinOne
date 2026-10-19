@@ -1,5 +1,5 @@
 import {InlineError} from "../ui/notice";
-import {useEffect,useRef,useState,type CSSProperties} from "react";
+import {useEffect,useRef,useState,type CSSProperties,type ReactNode} from "react";
 import {Minus,Square,Copy,X} from "lucide-react";
 import {Button} from "./ui/button";
 import {Tooltip,TooltipContent,TooltipTrigger} from "./ui/tooltip";
@@ -14,7 +14,7 @@ export interface WindowFramePort {
 
 // Window actions use the same native close guard as Alt+F4. The draggable
 // region is separate from buttons so a click never becomes a window drag.
-export function WindowTitlebar({logo,port,onReady}:{logo:string;port?:WindowFramePort;onReady?:()=>void}){
+export function WindowTitlebar({logo,port,onReady,context,toolbar}:{logo:string;port?:WindowFramePort;onReady?:()=>void;context?:string;toolbar?:ReactNode}){
  const {t}=useTranslation();const [maximized,setMaximized]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState("");
  const alive=useRef(true),ready=useRef(onReady);ready.current=onReady;
  useEffect(()=>installWindowResizeFeedback(maximized),[maximized]);
@@ -32,10 +32,13 @@ export function WindowTitlebar({logo,port,onReady}:{logo:string;port?:WindowFram
   catch(error){if(alive.current)setError(String(error));}finally{if(alive.current)setBusy(false);}
  }
  const controls=[{action:"minimize",label:"window.minimize",Icon:Minus},{action:"toggle-maximize",label:maximized?"window.restore":"window.maximize",Icon:maximized?Copy:Square},{action:"close",label:"window.close",Icon:X}] as const;
- return <><div data-slot="window-titlebar" className="flex h-10 shrink-0 items-center border-b bg-background">
-  <div className="flex h-full min-w-0 flex-1 select-none items-center gap-2 px-4" style={{"--wails-draggable":"drag"} as CSSProperties} onDoubleClick={()=>void act("toggle-maximize")}>
-   <img className="mark size-6" src={logo} alt="" draggable={false}/><span className="text-sm font-medium">WinOne</span>
+ return <><div data-slot="window-titlebar" data-settings-header={toolbar?"true":undefined} className="flex h-10 shrink-0 items-center border-b bg-background">
+  <div data-slot="window-branding" className="flex h-full min-w-0 flex-1 select-none items-center gap-2 px-4" style={{"--wails-draggable":"drag"} as CSSProperties} onDoubleClick={()=>void act("toggle-maximize")}>
+   <img className="mark size-6" src={logo} alt="" draggable={false}/><span data-slot="window-brand-name" className="text-sm font-medium">WinOne</span>
+   {context&&<span className="ml-2 min-w-0 truncate border-l border-border pl-3 text-sm text-muted-foreground">{context}</span>}
   </div>
+  {/* Page utilities stay outside the drag region and never alter native window actions. */}
+  {toolbar&&<div className="flex h-full shrink-0 items-center px-2" style={{"--wails-draggable":"no-drag"} as CSSProperties}>{toolbar}</div>}
   <div data-slot="window-controls" className="flex h-full shrink-0" style={{"--wails-draggable":"no-drag"} as CSSProperties}>
    {controls.map(({action,label,Icon})=><Tooltip key={action}><TooltipTrigger render={<Button variant="ghost" className={`h-10 w-11 rounded-none ${action==="close"?"hover:bg-destructive/10 hover:text-destructive":""}`} aria-label={t(label)} disabled={!port||busy} onClick={()=>void act(action)}/>}><Icon className="size-4" aria-hidden="true"/></TooltipTrigger><TooltipContent>{t(label)}</TooltipContent></Tooltip>)}
   </div>

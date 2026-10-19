@@ -66,9 +66,15 @@ func openState(path string, follow, readable bool) (*fileState, error) {
 	if err != nil {
 		return nil, err
 	}
+	return readFileState(h, path, follow)
+}
+
+// Both browsing and handle-relative rename use this identity reader. It owns
+// h from here, including closing it on any metadata/identity failure.
+func readFileState(h windows.Handle, path string, follow bool) (*fileState, error) {
 	f := &fileState{handle: h}
 	var info windows.ByHandleFileInformation
-	if err = windows.GetFileInformationByHandle(h, &info); err != nil {
+	if err := windows.GetFileInformationByHandle(h, &info); err != nil {
 		f.close()
 		return nil, err
 	}
@@ -257,6 +263,14 @@ func localPath(path string) (string, error) {
 }
 
 func validLinkName(name string) bool {
+	// Windows 11 accepts some DOS device names with extensions, but older
+	// systems and file tools still interpret them as devices. Check the stem
+	// as well so created and renamed entries stay ordinary filesystem names.
+	stem, _, _ := strings.Cut(name, ".")
+	stem = strings.TrimRight(stem, " ")
+	if stem != "" && !filepath.IsLocal(stem) {
+		return false
+	}
 	return name != "" && filepath.IsLocal(name) && filepath.Base(name) == name && !strings.ContainsAny(name, "<>:\"/\\|?*\x00\r\n") && !strings.HasSuffix(name, ".") && !strings.HasSuffix(name, " ")
 }
 

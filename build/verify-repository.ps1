@@ -2,12 +2,23 @@ $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path -Parent $PSScriptRoot)
 $tracked = @(& git ls-files)
 if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect Git tracking' }
-$forbidden = $tracked | Where-Object { $_ -match '(^|/)(_temp|node_modules|dist|bin|obj|target|__pycache__|\.workbuddy|coverage|test-results|playwright-report)/|\.syso$|\.local\.(ps1|json)$|(^|/)\.env($|\.)' -and $_ -notmatch '(^|/)\.env\.example$' }
+# 'bin' and 'obj' only match build-output directories. Source entry points
+# such as apps/diagram-renderer/src/bin/*.rs stay tracked by design, so a 'bin'
+# segment is forbidden only when it is not a Rust/Go source bin directory.
+$forbidden = $tracked | Where-Object { $_ -match '(^|/)(_temp|node_modules|dist|obj|target|__pycache__|\.workbuddy|coverage|test-results|playwright-report)/|(^|/)bin/|(\.syso|\.local\.(ps1|json))$|(^|/)\.env($|\.)' -and $_ -notmatch '(^|/)\.env\.example$' -and $_ -notmatch '^src/bin/.*\.rs$' -and $_ -notmatch '/src/bin/.*\.rs$' }
 if ($forbidden) { throw "Local files are tracked:`n$($forbidden -join "`n")" }
-& git diff --check
-if ($LASTEXITCODE -ne 0) { throw 'Working diff contains whitespace errors' }
-& git diff --cached --check
-if ($LASTEXITCODE -ne 0) { throw 'Staged diff contains whitespace errors' }
+function Assert-DiffCheck {
+    param([string[]]$Arguments, [string]$Message)
+    $previous = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = @(& git @Arguments 2>&1 | ForEach-Object { $_.ToString() })
+        $code = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $previous }
+    if ($code -ne 0) { throw ($Message + [Environment]::NewLine + ($output -join [Environment]::NewLine)) }
+}
+Assert-DiffCheck @('diff','--check') 'Working diff contains whitespace errors'
+Assert-DiffCheck @('diff','--cached','--check') 'Staged diff contains whitespace errors'
 foreach ($sample in '_temp/probe.txt', 'apps/desktop/_temp/probe.txt', 'dist/WinOne.exe', 'apps/desktop/frontend/node_modules/probe.js') {
     & git check-ignore -q --no-index -- $sample
     if ($LASTEXITCODE -ne 0) { throw "Missing ignore rule: $sample" }

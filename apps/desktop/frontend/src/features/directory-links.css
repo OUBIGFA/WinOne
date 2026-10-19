@@ -16,6 +16,9 @@
 .directory-links-linked,.directory-links-status-label.is-active{display:inline-flex;align-items:center;flex-shrink:0;padding:1px 5px;border:0;border-radius:4px;background:var(--links-green-soft);color:var(--links-green);font-size:.8125rem;line-height:1.5;font-weight:500;white-space:nowrap}
 .directory-links-entry-badges{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:.35rem;max-width:10rem;flex-shrink:0}
 .directory-links-workspace{position:relative}
+.directory-links-rename-form{display:grid;gap:.75rem;min-width:0}
+.directory-links-rename-form [data-slot=dialog-footer]{margin-top:.5rem}
+.directory-links-entry[tabindex]:focus-visible{outline:1px solid var(--settings-focus,var(--ring));outline-offset:-2px}
 .directory-links-height-handle{display:flex;align-items:center;justify-content:center;min-height:18px;width:100%;cursor:ns-resize;touch-action:none;color:var(--color-muted-foreground);border-radius:4px}
 .directory-links-height-handle:hover{background:var(--color-muted)}.directory-links-height-handle:focus-visible{outline:2px solid var(--color-ring);outline-offset:2px}.directory-links-height-handle>svg{transform:rotate(90deg)}
 .directory-links-create-bar{position:sticky;bottom:0;z-index:10;align-items:end;gap:.6rem .85rem;padding:.75rem;background:var(--color-background);border-radius:.5rem}
@@ -51,3 +54,16 @@
 .directory-links-status{font-size:14px;line-height:1.6}
 .directory-links-kind{font-size:14px}
 @media(max-width:800px){.directory-links-integration{grid-template-columns:minmax(0,1fr);gap:12px}.directory-links-record-paths{grid-template-columns:minmax(0,1fr);gap:8px}.directory-links-record-paths>svg{justify-self:center;transform:rotate(90deg)}}
+
+/* Target groups start collapsed; record inspection details remain independent. */
+.directory-links-history-group { min-width: 0; border-bottom: 1px solid var(--border); }
+.directory-links-history-group > summary { display: flex; align-items: center; gap: .65rem; min-width: 0; padding: .75rem 0; cursor: pointer; list-style: none; }
+.directory-links-history-group > summary::-webkit-details-marker { display: none; }
+.directory-links-history-group > summary > svg { flex: none; }
+.directory-links-history-group[open] > summary > svg:first-child { transform: rotate(90deg); }
+.directory-links-group-target { display: grid; flex: 1; min-width: 0; gap: .125rem; }
+.directory-links-group-target > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.directory-links-group-target > .muted { font-size: .875rem; }
+.directory-links-group-records { display: grid; gap: 1.25rem; padding: .75rem 0 0 1rem; }
+.directory-links-record[data-invalid] { color: var(--muted-foreground); --link-row-tint: var(--muted); }
+.directory-links-record[data-invalid] :is(.directory-links-kind,.directory-links-status-label) { background: var(--muted); color: var(--muted-foreground); border-color: var(--border); }

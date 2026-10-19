@@ -38,6 +38,11 @@ func (m ModelMetadata) validateExtended() error {
 			return errors.New("可用思考档位无效")
 		}
 	}
+	for _, tier := range m.Tiers {
+		if !slices.Contains([]string{"auto", "default", "flex", "priority", "ultrafast"}, tier) {
+			return errors.New("可用服务档位无效")
+		}
+	}
 	if m.Price == nil {
 		return nil
 	}

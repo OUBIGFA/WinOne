@@ -21,6 +21,98 @@ import (
 
 type usagePriceTransport func(*http.Request) (*http.Response, error)
 
+func TestGatewayCallerIdentityReachesLedgerButNeverVendor(t *testing.T) {
+	t.Setenv("WINONE_AI_USAGE_PATH", filepath.Join(t.TempDir(), "usage.jsonl"))
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	if err := os.MkdirAll(filepath.Dir(catalog.CachePath()), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(catalog.CachePath(), []byte(usagePriceFixture), 0600); err != nil {
+		t.Fatal(err)
+	}
+	catalog.Reset()
+	t.Cleanup(func() {
+		catalog.Reset()
+		usage.WinOnePath = ""
+		usage.WinOneRecord = nil
+		provider.WinOneProviders = nil
+	})
+	requests := 0
+	vendor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.Header.Get("X-WinOne-Caller-Key") != "" {
+			t.Error("private accounting header reached vendor")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"id":"fixture","model":"gpt-4o","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}],"usage":{"prompt_tokens":20,"completion_tokens":5}}`)
+	}))
+	defer vendor.Close()
+	id := strings.Repeat("a", 64)
+	for _, key := range []string{id, "invalid-identity", ""} {
+		in := request{Operation: "gateway", ProviderID: "fixture", Protocol: "chat", BaseURL: vendor.URL + "/v1", Key: "fixture-vendor-key", Model: "gpt-4o", GatewayPath: "/v1/chat/completions", GatewayHeaders: make(http.Header), GatewayBody: json.RawMessage(`{"messages":[{"role":"user","content":"fixture"}],"stream":false}`)}
+		in.GatewayHeaders.Set("X-WinOne-Caller-Key", key)
+		var out bytes.Buffer
+		if err := serveGateway(context.Background(), in, &out); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if requests != 3 {
+		t.Fatalf("vendor request count=%d", requests)
+	}
+	for key, count := range map[string]int{id: 1, "none": 2} {
+		var out bytes.Buffer
+		if err := readUsage(request{Usage: &usageQuery{Period: "all", CallerKey: key}}, &out); err != nil {
+			t.Fatal(err)
+		}
+		var page struct {
+			Total int
+			Rows  []usage.Row
+		}
+		if err := json.Unmarshal(out.Bytes(), &page); err != nil {
+			t.Fatal(err)
+		}
+		if page.Total != count {
+			t.Fatalf("caller %s count=%d want %d: %s", key, page.Total, count, out.String())
+		}
+	}
+}
+
+func TestUsagePreservesReportedPlanCreditsAndServiceTimings(t *testing.T) {
+	t.Setenv("WINONE_AI_USAGE_PATH", filepath.Join(t.TempDir(), "usage.jsonl"))
+	defer func() { usage.WinOnePath = ""; usage.WinOneRecord = nil }()
+	if err := configureUsage(request{ProviderID: "fixture"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, credit := range []float64{0, 0.25} {
+		got := usage.WinOneRecord(usage.Record{Credits: &credit, TTFT: 100, FirstText: 300, Flow: 500, TierAsked: "priority", TierSent: "ultrafast", TierServed: "ultrafast", Error: "private"})
+		if got.Credits == nil || *got.Credits != credit || got.FirstText != 300 || got.Flow != 500 || got.TierServed != "ultrafast" || got.Error != "Request failed" {
+			t.Fatalf("usage metadata dropped: %+v", got)
+		}
+	}
+}
+
+func TestUsageScopesGatewayKeysAndCallsWithoutKeys(t *testing.T) {
+	t.Setenv("WINONE_AI_USAGE_PATH", filepath.Join(t.TempDir(), "usage.jsonl"))
+	defer func() { usage.WinOnePath = ""; usage.WinOneRecord = nil }()
+	if err := configureUsage(request{ProviderID: "fixture"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"one", "two", ""} {
+		usage.Append(usage.Record{Time: time.Now(), Model: "fixture", CallerKeyID: id, CallerKeyName: id, Status: 200})
+	}
+	for _, id := range []string{"one", "two", usage.NoCallerKey} {
+		q := usageQuery{Period: "all"}
+		raw, _ := json.Marshal(map[string]string{"period": "all", "callerKey": id})
+		if err := json.Unmarshal(raw, &q); err != nil {
+			t.Fatal(err)
+		}
+		page := usage.QueryPage(usage.Period("all"), q.filter(), 0, 15)
+		if page.Total != 1 {
+			t.Fatalf("key filter %q returned %d calls", id, page.Total)
+		}
+	}
+}
+
 func (f usagePriceTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
 const usagePriceFixture = `{"openai":{"id":"openai","models":{"gpt-4o":{"id":"gpt-4o","cost":{"input":2,"output":8}}}}}`

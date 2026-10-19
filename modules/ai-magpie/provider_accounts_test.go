@@ -2,6 +2,8 @@
 package provider
 
 import (
+	"context"
+	"strings"
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
@@ -12,6 +14,20 @@ import (
 	"testing"
 	"time"
 )
+
+// Upstream's installer tests intentionally expect automatic CLI installation.
+// WinOne reports the missing dependency instead, for both built-in/plugin flows.
+func TestWinOneOAuthMissingClientNeverRunsAnInstaller(t *testing.T) {
+	oldExe, oldInstaller := DevinExecutable, runInstaller
+	DevinExecutable = func() string { return "" }
+	called := false
+	runInstaller = func(context.Context, agentCLI) ([]byte,error) { called = true; return nil,nil }
+	t.Cleanup(func() { DevinExecutable, runInstaller = oldExe, oldInstaller })
+	_, err := StartPluginSignIn("devin", 0, nil)
+	if err == nil || !strings.Contains(err.Error(), "install the official client first") || called {
+		t.Fatalf("missing CLI was not safely reported: called=%v err=%v", called, err)
+	}
+}
 
 func TestWinOneOAuthKeepsAccountInPrivateProfile(t *testing.T) {
 	root := t.TempDir()

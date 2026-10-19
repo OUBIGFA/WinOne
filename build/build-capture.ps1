@@ -2,6 +2,8 @@ param(
     [Parameter(Mandatory)][string]$ShareXSourceDirectory,
     [Parameter(Mandatory)][string]$OutputDirectory,
     [string]$DotnetExe='dotnet',
+    [string]$CargoExe='cargo',
+    [string]$RecordingTargetDirectory='dist/resources/cache/rust-recording',
     [string]$OcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY
 )
 $ErrorActionPreference='Stop'
@@ -16,6 +18,7 @@ if($source -eq (Join-Path $root 'dist/resources/sources/ShareX-21.0.0')){throw '
 Initialize-ShareXNativeHost $source
 & $DotnetExe publish (Join-Path $root 'modules/capture/WinOne.Capture.csproj') -c Release -r win-x64 --self-contained true "-p:ShareXSourceDirectory=$source" -o $output --nologo -v:q
 if($LASTEXITCODE -ne 0){throw 'Capture worker build failed'}
+& (Join-Path $PSScriptRoot 'build-recording.ps1') -CargoExe $CargoExe -TargetDirectory $RecordingTargetDirectory -OutputDirectory $output
 if($OcrRuntimeDirectory){& (Join-Path $PSScriptRoot 'copy-ocr.ps1') -RuntimeDirectory $OcrRuntimeDirectory -CaptureDirectory $output}
 & (Join-Path $PSScriptRoot 'build-capture-regions.ps1') -OutputDirectory $output
 if($LASTEXITCODE -ne 0){throw 'Capture regions build failed'}

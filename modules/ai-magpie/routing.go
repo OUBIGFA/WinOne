@@ -8,9 +8,11 @@ import (
 	"github.com/yetone/magpie/internal/gateway"
 	"github.com/yetone/magpie/internal/gui"
 	"github.com/yetone/magpie/internal/provider"
+	"github.com/yetone/magpie/internal/settings"
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -21,8 +23,26 @@ func serveRouting(ctx context.Context, in request, input io.Reader, output io.Wr
 	if len(in.Key) < 32 {
 		return errors.New("missing routing key")
 	}
+	// Only routing's own saved name choice overlays the fresh Host snapshot.
+	// Never restore old credentials, provider endpoints or unrelated settings.
+	var savedNames *settings.Settings
+	if _, err := os.Stat(settings.Path()); err == nil {
+		s, readErr := settings.LoadChecked()
+		if readErr != nil {
+			return readErr
+		}
+		savedNames = &s
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
 	if err := applyRuntimeSettings(in); err != nil {
 		return err
+	}
+	if savedNames != nil {
+		s := settings.Load()
+		s.PlainNames = savedNames.PlainNames
+		s.PlainOwnNames = savedNames.PlainOwnNames
+		settings.WinOneUse(s)
 	}
 	if err := configureUsage(in); err != nil {
 		return err
@@ -36,7 +56,13 @@ func serveRouting(ctx context.Context, in request, input io.Reader, output io.Wr
 		return err
 	}
 	gw := gateway.New()
-	page := gui.WinOneRoutingHandler(gw)
+	stopPlugins := serveBuiltinPlugins()
+	defer stopPlugins()
+	bundled := make([]string, 0, len(accountPlugins()))
+	for _, p := range accountPlugins() {
+		bundled = append(bundled, p.Package)
+	}
+	page := gui.WinOneRoutingHandler(gw, bundled)
 	protocol := gw.Handler()
 	server := &http.Server{ReadHeaderTimeout: 5 * time.Second, BaseContext: func(net.Listener) context.Context { return ctx }}
 	server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +78,7 @@ func serveRouting(ctx context.Context, in request, input io.Reader, output io.Wr
 				target.Path = "/" + rest
 				target.RawPath = ""
 				r.URL = &target
+				r = gui.WinOneWithPagePrefix(r, "/session/"+capability)
 			}
 		}
 		if token == "" {
@@ -75,9 +102,9 @@ func serveRouting(ctx context.Context, in request, input io.Reader, output io.Wr
 		}
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Cache-Control", "no-store")
-		if strings.HasPrefix(r.URL.Path, "/v1/") || r.URL.Path == "/mcp/magpie/web-search" {
+		if strings.HasPrefix(r.URL.Path, "/v1/") || r.URL.Path == "/mcp/magpie/web-search" || r.URL.Path == "/mcp/magpie/tools" {
 			r.Header.Set("Authorization", "Bearer "+gateway.Token)
-			protocol.ServeHTTP(w, r)
+			protocol.ServeHTTP(w, winOneCallerRequest(r))
 			return
 		}
 		// Browser writes must come from this embedded page; external origins do

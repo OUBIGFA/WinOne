@@ -1,6 +1,7 @@
 import {Notice} from "./ui/notice";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import {CSPProvider} from "@base-ui/react/csp-provider";
 import {
   getSnapshot,
   savePreferenceChange,
@@ -23,7 +24,7 @@ import {SelectionPage} from "./features/selection";
 import {AISettings} from "./features/ai-settings";
 import {ChatPage} from "./features/chat";
 import {createAccountReader} from "./features/ai-account-reader";
-import { Home, ScanLine, Rocket, LaptopMinimal, Settings as SettingsIcon,RefreshCw,Palette,Activity,MousePointer2,Sparkles,Bot } from "lucide-react";
+import { Home, ScanLine, Rocket, LaptopMinimal, Settings as SettingsIcon,RefreshCw,Palette,Activity,MousePointer2,Sparkles,Bot,SendHorizontal } from "lucide-react";
 import {QuickAssistantIcon} from "./components/quick-assistant-icon";
 import {moduleRank} from "./module-order";
 import {IconLabel} from "./ui/icon-label";
@@ -37,6 +38,7 @@ import {usePageNavigation,usePageActivity} from "./ui/page-navigation";
 import {AppShell} from "./components/app-shell";
 import {ModulePanel} from "./components/module-panel";
 import {SettingsPanel} from "./components/settings-panel";
+import {SettingsSection} from "./components/settings-layout";
 import {AppearanceSettings} from "./components/appearance-settings";
 import {DefaultPageSetting} from './components/default-page-setting';
 import {useDirectoryLinkIntents,type DirectoryLinkIntent} from './features/directory-link-intents';
@@ -89,6 +91,7 @@ function App() {
   const [accountReader]=useState(createAccountReader);
   const [permissionRestarting,setPermissionRestarting]=useState(false);
   const [permissionError,setPermissionError]=useState("");
+  const saving=working&&!permissionRestarting;
   usePageActivity(navigation.onActivity,false,working,"global-settings");
   const [notice, setNotice] = useState("");
   const opening=useRef(false);
@@ -193,59 +196,43 @@ function App() {
   }
   const selected = pages.find((p) => p.id === page)!;
   const module = snapshot?.modules.find((m) => m.id === page);
+  const settingsError = error && <Notice title={t("common.failed")} actions={
+    <Button disabled={busy} onClick={() => void refresh()}>{t("common.reconnect")}</Button>
+  }>{error}</Notice>;
   return (
-    <AppShell key={formEpoch} page={page} pages={pages} logo={logo} onNavigate={id=>{navigation.requestPage(id);setNotice("");}} windowPort={windowFramePort} onWindowReady={()=>setWindowReady(true)}>
-
-        {page!=="chat"&&<header className="page-actions">
-          <Button
-            icon={RefreshCw}
-            busy={busy}
-            onClick={() => void refresh()}
-          >
-            {t("common.refresh")}
-          </Button>
-        </header>}
-        {error && (
-          <Notice title={t("common.failed")} actions={<>
-            <Button disabled={busy} onClick={() => void refresh()}>
-              {t("common.reconnect")}
-            </Button>
-          </>}>{error}</Notice>
-        )}
+    <AppShell key={formEpoch} page={page} pages={pages} logo={logo} onNavigate={id=>{navigation.requestPage(id);setNotice("");}} windowPort={windowFramePort} onWindowReady={()=>setWindowReady(true)} toolbar={<Button icon={RefreshCw} size="icon" variant="ghost" busy={busy} aria-label={t("common.refresh")} title={t(navigation.activity.dirty||navigation.activity.busy?"settingsDesign.refreshAfterEditing":"common.refresh")} disabled={navigation.activity.dirty||navigation.activity.busy} onClick={()=>void refresh()}/>}>
+        {page!=="settings"&&settingsError}
         {snapshot?.runtimeWarning&&<Notice tone="info">{snapshot.runtimeWarning}</Notice>}
         {page === "overview" && <ModulesPage onChanged={() => void refresh()} onActivity={navigation.onActivity} onReady={()=>setHomeReady(true)}/>}
         {page === "settings" && (
-          <SettingsPanel onActivity={navigation.onActivity}><fieldset className="plain-fieldset settings-sections" disabled={busy}><section>
-            <h2><IconLabel icon={Palette}>{t("shell.appearance")}</IconLabel></h2>
-            <AppearanceSettings theme={snapshot?.settings.theme ?? "system"} language={snapshot?.settings.language || "zh-CN"} disabled={busy || !snapshot} onThemeChange={value=>void changeTheme(value)} onLanguageChange={value=>void changeLanguage(value)}/>
-            <DefaultPageSetting value={defaultPage} pages={pages} disabled={busy||!snapshot} onChange={value=>void changeDefaultPage(value)}/>
-            </section>
-            <StartupSettings value={snapshot?.settings.startup??{runAtLogon:false,startMinimized:true}} disabled={busy||!snapshot} onChange={value=>void changeStartup(value)}/>
-            <section><h2>{t("shortcuts.title")}</h2><Shortcuts moduleId="application" onSaved={()=>void refresh()} onActivity={navigation.onActivity}/></section>
-            <PermissionSettings administrator={snapshot?.administrator} remembered={!!snapshot?.settings.startup?.preferAdministrator} disabled={busy||!snapshot||navigation.activity.dirty||navigation.activity.busy} restarting={permissionRestarting} onRemember={value=>void changeAdministratorPreference(value)} onRestart={()=>void restartAdministrator()} error={permissionError}/>
-            <p className="saved" role="status">
-              {notice?t(notice):""}
-            </p>
-            <Profiles onApplied={()=>void refresh()} onActivity={navigation.onActivity} />
-            <section>
-            <h2><IconLabel icon={Activity}>{t("shell.background")}</IconLabel></h2>
-            <div className="setting-row">
-              <div>
-                <span>{t("shell.connection")}</span>
-                <p>{t("shell.backgroundHint")}</p>
-              </div>
-              <span>{snapshot && !error ? t("shell.connected") : t("shell.disconnected")}</span>
-            </div>
-          </section></fieldset></SettingsPanel>
+          <SettingsPanel onActivity={navigation.onActivity} error={settingsError}
+            startup={<Shortcuts moduleId="application" onSaved={()=>void refresh()} onActivity={navigation.onActivity} renderLayout={(fields,actions)=><fieldset className="plain-fieldset settings-section-stack" disabled={busy}>
+              <StartupSettings value={snapshot?.settings.startup??{runAtLogon:false,startMinimized:true}} disabled={busy||!snapshot} onChange={value=>void changeStartup(value)}/>
+              <SettingsSection level={2} title={<IconLabel icon={SendHorizontal}>{t("shortcuts.title")}</IconLabel>}>{fields}</SettingsSection>
+              {actions}
+            </fieldset>}/>}
+            permissions={<PermissionSettings administrator={snapshot?.administrator} remembered={!!snapshot?.settings.startup?.preferAdministrator} disabled={busy||!snapshot||navigation.activity.dirty||navigation.activity.busy} restarting={permissionRestarting} onRemember={value=>void changeAdministratorPreference(value)} onRestart={()=>void restartAdministrator()} error={permissionError}/>}
+            profiles={<fieldset className="plain-fieldset" disabled={busy}><Profiles onApplied={()=>void refresh()} onActivity={navigation.onActivity}/></fieldset>}
+            connection={<SettingsSection level={2} title={<IconLabel icon={Activity}>{t("shell.background")}</IconLabel>}>
+              <div className="setting-row"><div><span>{t("shell.connection")}</span><p>{t("shell.backgroundHint")}</p></div><span>{snapshot&&!error?t("shell.connected"):t("shell.disconnected")}</span></div>
+            </SettingsSection>}
+            feedback={<p className={saving?"settings-save-progress":"saved"} role="status">{saving?t("settingsDesign.saving"):notice?t(notice):""}</p>}
+          >
+            <fieldset className="plain-fieldset settings-section-stack" disabled={busy}>
+              <AppearanceSettings theme={snapshot?.settings.theme??"system"} language={snapshot?.settings.language||"zh-CN"} disabled={busy||!snapshot} onThemeChange={value=>void changeTheme(value)} onLanguageChange={value=>void changeLanguage(value)}>
+                <DefaultPageSetting value={defaultPage} pages={pages} disabled={busy||!snapshot} onChange={value=>void changeDefaultPage(value)}/>
+              </AppearanceSettings>
+            </fieldset>
+          </SettingsPanel>
         )}
         {page === "ai-services" && <AISettings onActivity={navigation.onActivity} accountReader={accountReader}/>}
         {page === "chat" && <ChatPage onActivity={navigation.onActivity} onOpenAI={()=>navigation.requestPage("ai-services")} requestedConversationId={requestedConversationId} onRequestedConversationHandled={()=>setRequestedConversationId(undefined)}/>}
         <>
           {page === "wintray" && <WinTrayPage disabled={module?.state === "disabled"} onChanged={()=>void refresh()} onActivity={navigation.onActivity}/>}
-          {page === "capture" && <ModulePanel moduleId="capture" onSaved={()=>void refresh()} onActivity={navigation.onActivity}><CapturePage disabled={module?.state === "disabled"} onEdit={editCapture} onOpenDraft={openCapturedDraft} refreshKey={captureRefresh} onActivity={navigation.onActivity}/></ModulePanel>}
+          {page === "capture" && <ModulePanel moduleId="capture"><CapturePage disabled={module?.state === "disabled"} onEdit={editCapture} onOpenDraft={openCapturedDraft} refreshKey={captureRefresh} onActivity={navigation.onActivity} onSaved={()=>void refresh()}/></ModulePanel>}
           {page === "convenience" && <ConveniencePage disabled={snapshot?.modules.find(value=>value.id==="always-on-top")?.state === "disabled"} strokeDisabled={snapshot?.modules.find(value=>value.id==="stroke")?.state === "disabled"} actionsDisabled={busy} onChanged={()=>void refresh()} onActivity={navigation.onActivity} linkIntent={linkIntent} onLinkIntentConsumed={()=>{linkIntentPending.current=false;setLinkIntent(undefined);}}/>}
-          {page === "quick-assistant" && <ModulePanel moduleId="quick-assistant" onSaved={()=>void refresh()} onActivity={navigation.onActivity}><SelectionPage key="quick-assistant" moduleId="quick-assistant" disabled={module?.state === "disabled"} onActivity={navigation.onActivity}/></ModulePanel>}
-          {page === "selection" && <ModulePanel moduleId="selection" onSaved={()=>void refresh()} onActivity={navigation.onActivity}><SelectionPage disabled={module?.state === "disabled"} onActivity={navigation.onActivity}/></ModulePanel>}
+          {page === "quick-assistant" && <ModulePanel moduleId="quick-assistant"><SelectionPage key="quick-assistant" moduleId="quick-assistant" disabled={module?.state === "disabled"} onActivity={navigation.onActivity} onSaved={()=>void refresh()}/></ModulePanel>}
+          {page === "selection" && <ModulePanel moduleId="selection"><SelectionPage disabled={module?.state === "disabled"} onActivity={navigation.onActivity} onSaved={()=>void refresh()}/></ModulePanel>}
         </>
         {page !== "overview" &&
           page !== "settings" &&
@@ -270,6 +257,6 @@ function App() {
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <CSPProvider disableStyleElements><App /></CSPProvider>
   </React.StrictMode>,
 );

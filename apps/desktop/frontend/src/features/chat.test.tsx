@@ -14,6 +14,53 @@ it("uses the AI service default before the first provider and ignores a removed 
  render(<ChatPage/>);await waitFor(()=>expect(screen.getByRole("button",{name:"模型"}).textContent).toContain("default-model"));localStorage.removeItem("winone.chat.last-model.v1");
 });
 const conversation={id:"conversation",title:"Project chat",directory:"C:\\project",sessionDirectory:"C:\\history",model:{provider:"provider",model:"model"},permission:"ask",updatedAt:"2026-10-09",createdAt:"2026-10-09"};
+it('loads all currently enabled title models on the first settings opening',async()=>{
+ backend();const original=native.call.getMockImplementation()!;
+ native.call.mockImplementation((method,params)=>method==='settings.get'?Promise.resolve({workspaceDirectory:'',skillDirectories:[],pluginDirectories:[],mcpServers:[],titleModel:conversation.model}):original(method,params));
+ render(<ChatPage/>);const user=userEvent.setup();
+ await waitFor(()=>expect(screen.getByRole('button',{name:'模型'}).textContent).toContain('Model'));
+ native.ai.mockResolvedValue({providers:[{id:'provider',name:'Local service',models:['model','second','third']}],tasks:{}});
+ await user.click(screen.getByRole('button',{name:'Chat 设置'}));
+ const model=await screen.findByRole('combobox',{name:/标题生成模型.*模型/});
+ await waitFor(()=>expect(model).toHaveProperty('disabled',false));await user.click(model);
+ expect(await screen.findByRole('option',{name:'third'})).toBeTruthy();
+ expect(screen.getAllByRole('option').filter(option=>!option.closest('select'))).toHaveLength(3);
+});
+
+it('does not let a late startup catalog restore the old title model list',async()=>{
+ backend();let finishCatalog!:(value:unknown)=>void;
+ const catalog=new Promise(resolve=>{finishCatalog=resolve;});
+ native.call.mockImplementation((method)=>method==='catalog'?catalog:Promise.resolve({workspaceDirectory:'',skillDirectories:[],pluginDirectories:[],mcpServers:[],titleModel:conversation.model}));
+ render(<ChatPage/>);const user=userEvent.setup();
+ native.ai.mockResolvedValue({providers:[{id:'provider',name:'Local service',models:['model','newly-enabled']}],tasks:{}});
+ await user.click(screen.getByRole('button',{name:'Chat 设置'}));
+ const model=await screen.findByRole('combobox',{name:/标题生成模型.*模型/});
+ await waitFor(()=>expect(model).toHaveProperty('disabled',false));
+ await act(async()=>{finishCatalog({projects:[],conversations:[]});});
+ await user.click(model);
+ expect(await screen.findByRole('option',{name:'newly-enabled'})).toBeTruthy();
+});
+
+it('keeps file chips and turn changes together in one independent transcript footer',async()=>{
+ backend();const original=native.call.getMockImplementation()!;
+ native.call.mockImplementation((method,params)=>{
+  if(method==='open')return Promise.resolve({messages:[{id:'u1',role:'user',content:'Edit file'},{id:'w',role:'assistant',content:[{type:'toolCall',id:'t',name:'write',arguments:{path:'a.txt'}}]},{role:'toolResult',toolCallId:'t',content:'Saved'},{id:'a1',role:'assistant',content:'First answer'},{id:'u2',role:'user',content:'Next question'},{id:'a2',role:'assistant',content:'Latest answer'}],hasOlder:false});
+  if(method==='review.turn')return Promise.resolve({snapshot:{root:'C:/work',revision:'r',files:[{path:'a.txt',status:'A'}]},patches:{}});
+  if(method==='file.stat')return Promise.resolve({files:params.paths.map((path:string)=>({requested:path,file:{path:'C:/work/a.txt',name:'a.txt',directory:false,size:4,modified:0}}))});
+  if(method==='file.preview')return Promise.resolve({path:'C:/work/a.txt',name:'a.txt',kind:'text',size:4,revision:'r',url:'http://127.0.0.1/a.txt'});
+  return original(method,params);
+ });
+ render(<ChatPage/>);await userEvent.click(await screen.findByRole('button',{name:'Project chat'}));
+ const changes=await screen.findByText('修改了 1 个文件');const latest=screen.getByText('Latest answer');
+ expect(changes.compareDocumentPosition(latest)&Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+ expect(changes.closest('.desktop-conversation-message')).toBeNull();
+ const files=await waitFor(()=>{const value=document.querySelector('.chat-generated-files');expect(value?.textContent).toContain('a.txt');return value!;});
+ expect(files.compareDocumentPosition(latest)&Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+ expect(files.closest('.desktop-conversation-message')).toBeNull();
+ const footer=screen.getByRole('region',{name:'文件与改动'});
+ expect(footer.contains(files)).toBe(true);expect(footer.contains(changes)).toBe(true);
+ expect(footer.contains(latest)).toBe(false);
+});
 function backend(){native.ai.mockResolvedValue({providers:[{id:"provider",name:"Local service",models:["model"],modelNames:{model:"Model"}}],tasks:{}});native.call.mockImplementation(async(method,params)=>{
  if(method==="catalog")return {projects:[],conversations:[conversation]};
  if(method==="open"||method==="state")return {messages:[],hasOlder:false};
@@ -38,6 +85,23 @@ it("shows the complete operation and uses the explicit session approval scope",a
  render(<ChatPage/>);const user=userEvent.setup();await user.click(await screen.findByRole("button",{name:"Project chat"}));await screen.findAllByText("Get-Content proof.txt");
  await user.click(screen.getByRole("button",{name:"本会话允许此操作"}));
  await waitFor(()=>expect(native.call).toHaveBeenCalledWith("permission",{id:"conversation",approvalId:"permission1",allow:true,scope:"session"}));
+});
+it("sends question answers separately from operation permissions and retains the message draft",async()=>{
+ backend();let pending=true;
+ native.call.mockImplementation(async(method,params)=>{
+  if(method==="catalog")return {projects:[],conversations:[conversation]};
+  if(method==="open")return {messages:[],hasOlder:false};
+  if(method==="draft.get")return {text:"Retained draft"};
+  if(method==="poll")return {events:[],cursor:1,running:true,status:"running",approvals:pending?[{id:"question1",kind:"question",tool:"ask_user_question",args:{},questions:[{question:"选择方向",options:["A","B"]}]}]:[]};
+  if(method==="question"){pending=false;return {resolved:true};}
+  return {};
+ });
+ render(<ChatPage/>);const user=userEvent.setup();await user.click(await screen.findByRole("button",{name:"Project chat"}));
+ await user.click(await screen.findByRole("button",{name:"B"}));
+ await user.click(screen.getByRole("button",{name:"提交答案"}));
+ await waitFor(()=>expect(native.call).toHaveBeenCalledWith("question",{id:"conversation",approvalId:"question1",answers:["B"]}));
+ await waitFor(()=>expect((screen.getByRole("textbox",{name:"消息"}) as HTMLTextAreaElement).value).toBe("Retained draft"));
+ expect(native.call.mock.calls.some(([method])=>method==="permission")).toBe(false);
 });
 
 it("keeps a new message if sending fails while the new conversation is still opening",async()=>{
@@ -105,7 +169,7 @@ it("leaves a reconnecting chat for a usable new conversation and ignores the lat
  expect(screen.queryByText("Late old answer")).toBeNull();expect(input.value).toBe("New draft");
 });
 
-it("keeps tool calls and working notes inside the process disclosure",async()=>{
+it("renders formal updates as normal replies and keeps only activity in disclosures",async()=>{
  backend();const original=native.call.getMockImplementation()!;
  native.call.mockImplementation((method,params)=>method==="open"?Promise.resolve({hasOlder:false,messages:[
   {id:"u",role:"user",content:"Create a file"},
@@ -114,8 +178,10 @@ it("keeps tool calls and working notes inside the process disclosure",async()=>{
   {id:"final",role:"assistant",content:[{type:"text",text:"Final answer"}]},
  ]}):original(method,params));
  render(<ChatPage/>);const user=userEvent.setup();await user.click(await screen.findByRole("button",{name:"Project chat"}));
- const final=await screen.findByText("Final answer");expect(final.closest(".chat-work-process")).toBeNull();expect(screen.queryByText("Preparing the file")).toBeNull();
- await user.click(screen.getByRole("button",{name:/工作过程/}));expect((await screen.findByText("Preparing the file")).closest(".chat-work-process")).not.toBeNull();expect(screen.queryByText("Saved output")).toBeNull();
+ const final=await screen.findByText("Final answer");expect(final.closest(".chat-work-process")).toBeNull();
+ const update=screen.getByText("Preparing the file");expect(update.closest(".chat-work-process")).toBeNull();
+ expect(update.closest(".desktop-conversation-message")).not.toBe(final.closest(".desktop-conversation-message"));
+ expect(within(update.closest(".desktop-conversation-message") as HTMLElement).getByRole('button',{name:'复制'})).toBeTruthy();
  const groups=document.querySelectorAll('[data-slot="cindy-work"]');await user.click(groups[groups.length-1]);
  const tool=await screen.findByRole("button",{name:"写入 a.txt"});expect(tool.closest(".chat-work-process")).not.toBeNull();await user.click(tool);
  expect(within(await screen.findByRole("dialog")).getByText("Saved output")).toBeTruthy();

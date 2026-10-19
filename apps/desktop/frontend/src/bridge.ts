@@ -1,3 +1,4 @@
+import {scheduleChatCall} from './features/chat-read-queue';
 import type {CaptureLaunchPort,CaptureLaunchRequest} from "./features/capture-launch";
 
 export interface Settings {
@@ -75,12 +76,15 @@ interface NativeApp {
   QuickAssistant(method: string, payload: string): Promise<string>;
   Chat(method: string, payload: string): Promise<string>;
   ChatBrowser(method: string, payload: string): Promise<string>;
+  ChatMedia(method: string, payload: string): Promise<string>;
   PickDirectory(): Promise<string>;
   PickChatFiles(): Promise<string[]>;
   PickFile(): Promise<string>;
   PickDirectories():Promise<string[]>;
   DirectoryLinks(method:string,payload:string):Promise<string>;
   Stroke(method:string,payload:string):Promise<string>;
+  ReadDroppedImage(path:string):Promise<string>;
+  InspectDroppedPaths(paths:string[]):Promise<{path:string;kind:"file"|"directory"}[]>;
   SetFileDropTarget?(enabled:boolean):Promise<void>;
   Reveal(): Promise<void>;
   Shortcuts(): Promise<string>;
@@ -225,7 +229,12 @@ export async function pickFiles():Promise<string[]>{return native().PickChatFile
 export async function pickDirectories():Promise<string[]>{return native().PickDirectories();}
 export async function directoryLinksCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().DirectoryLinks(method,JSON.stringify(params))) as T;}
 export async function strokeCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().Stroke(method,JSON.stringify(params))) as T;}
-export async function setFileDropTarget(enabled:boolean):Promise<void>{await native().SetFileDropTarget?.(enabled);}
+// Multiple path fields may coexist with Chat or the link workspace. Keep the
+// native registration until the last consumer has unmounted.
+let fileDropTargets=0;
+export async function setFileDropTarget(enabled:boolean):Promise<void>{fileDropTargets=Math.max(0,fileDropTargets+(enabled?1:-1));await native().SetFileDropTarget?.(fileDropTargets>0);}
+export const readDroppedImage=(path:string)=>native().ReadDroppedImage(path);
+export const inspectDroppedPaths=(paths:string[])=>native().InspectDroppedPaths(paths);
 export async function reveal(): Promise<void> {
   return native().Reveal();
 }
@@ -234,7 +243,7 @@ export async function alwaysOnTopCall<T>(method: string, params: unknown = null)
   return JSON.parse(await native().AlwaysOnTop(method, JSON.stringify(params))) as T;
 }
 export async function quickAssistantCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().QuickAssistant(method,JSON.stringify(params))) as T;}
-export async function chatCall<T>(method:string,params:unknown={}):Promise<T>{return JSON.parse(await native().Chat(method,JSON.stringify(params))) as T;}
+export async function chatCall<T>(method:string,params:unknown={}):Promise<T>{const payload=JSON.stringify(params);return scheduleChatCall(method,payload,async()=>JSON.parse(await native().Chat(method,payload)) as T);}
 export async function chatBrowserCall<T>(method:string,params:unknown={}):Promise<T>{return JSON.parse(await native().ChatBrowser(method,JSON.stringify(params))) as T;}
 export type ChatExportOptions={password?:string;excludeMedia?:boolean};
 export type ChatExportOutcome=
@@ -261,3 +270,6 @@ export async function getResidency(): Promise<{requested:boolean;reasons:string[
 export async function moduleCall<T>(method: string, params: unknown = null): Promise<T> {
   return JSON.parse(await native().Modules(method, JSON.stringify(params))) as T;
 }
+
+/** Native pixel clipboard and save dialog; bytes come from a scoped Host file. */
+export async function chatMediaCall<T>(method:string,payload:unknown):Promise<T>{return JSON.parse(await native().ChatMedia(method,JSON.stringify(payload)));}

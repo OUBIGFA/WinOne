@@ -18,12 +18,21 @@ internal static class NativeCaptureRetake
         autosave.Publish(snapshot);
         var current = await autosave.FlushAsync();
         cancellation.ThrowIfCancellationRequested();
+        Rectangle? selectedRegion = null;
+        if (!canvas.HasViewport) {
+            if (canvas.Window.Bounds != CaptureHelpers.GetScreenBounds())
+                throw new InvalidOperationException("显示布局已变化，请重新截图");
+            var region = canvas.Selection ?? throw new InvalidOperationException("请先选择滚动截图区域");
+            region.Offset(canvas.Window.Bounds.Location);
+            selectedRegion = region;
+        }
         var visible = canvas.Window.Visible;
         try {
             if (visible) { canvas.Window.Hide(); if (createSource is null && DwmFlush() < 0) throw new InvalidOperationException("无法准备重截画面，请重试"); }
             using var acquired = await operations.AcquireScrollingFrameAsync(operations.NativeJobId ?? Guid.NewGuid().ToString("N"),
                 settings with { OpenEditor=true }, cancellation, language, createSource:createSource,
-                showProgress:showProgress ?? (stop=>NativeScrollProgress.Open(stop,ShareXResources.Theme.IsDarkTheme,language)));
+                showProgress:showProgress ?? (stop=>NativeScrollProgress.Open(stop,ShareXResources.Theme.IsDarkTheme,language)),
+                selectedRegion:selectedRegion);
             cancellation.ThrowIfCancellationRequested();
             using var prepared = await Task.Run(()=>acquired.Frame.WithImage(WinOneCanvasReplacement.Prepare),cancellation);
             var document = new WinOneCaptureDocument(1,prepared.Size.Width,prepared.Size.Height,

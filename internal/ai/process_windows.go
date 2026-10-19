@@ -20,8 +20,11 @@ func isolatedEnvironment(directory string) []string {
 		name = strings.ToUpper(name)
 		// Preserve an explicit process-wide telemetry opt-out. Ordinary workers
 		// use the saved privacy preference, whose WinOne default is off.
-		if name=="MAGPIE_NO_STATS"{env=append(env,value);continue}
-		privateAgent := name == "WINONE_AI_USAGE_PATH" || name == "GH_TOKEN" || name == "GITHUB_TOKEN" || name == "GOOGLE_APPLICATION_CREDENTIALS"
+		if name == "MAGPIE_NO_STATS" {
+			env = append(env, value)
+			continue
+		}
+		privateAgent := name == "WINONE_AI_USAGE_PATH" || name == "WINONE_AI_PLUGINS_HOME" || name == "WINONE_AI_TRANSPORT_ONLY" || name == "GH_TOKEN" || name == "GITHUB_TOKEN" || name == "GOOGLE_APPLICATION_CREDENTIALS"
 		for _, prefix := range []string{"CODEX_", "CLAUDE_", "ANTHROPIC_", "OPENAI_", "GEMINI_", "CLOUDSDK_", "COPILOT_", "CURSOR_", "GROK_", "KIRO_", "DEVIN_", "WORKBUDDY_", "QODER_", "ZED_", "FACTORY_", "DROID_", "MIMO_", "ZCODE_", "AWS_", "AZURE_"} {
 			privateAgent = privateAgent || strings.HasPrefix(name, prefix)
 		}

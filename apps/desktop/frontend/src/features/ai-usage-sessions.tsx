@@ -8,15 +8,17 @@ import {CaptureOptionSelect} from "../ui/capture-option-select";
 import {SessionActivity,SessionShape} from "./ai-usage-session-charts";
 import {UsageChart} from "./ai-usage-chart";
 import {UsagePager} from "./ai-usage";
-import {totalTokens,type SessionCounts,type SessionReport,type UsagePage,type UsageSession} from "./ai-usage-types";
+import {normalizeSessionReport,totalTokens,type SessionCounts,type SessionReport,type UsagePage,type UsageSession} from "./ai-usage-types";
 import type {AIProvider} from "./ai-configuration";
 
 // Session statistics come from WinOne's registered Pi histories. Their totals
 // stay separate from gateway counts because both may describe the same call.
 export function UsageSessions({active,period,revision,providers}:{mode:"sessions";active:boolean;period:string;revision:number;providers:AIProvider[]}){
  const {t,i18n}=useTranslation();const [query,setQuery]=useState({provider:"",model:"",project:"",query:"",offset:0,topBy:"tokens"}),[page,setPage]=useState<SessionReport>(),[error,setError]=useState(""),[loading,setLoading]=useState(false),[retry,setRetry]=useState(0),[open,setOpen]=useState(""),[projects,setProjects]=useState<{id:string;name:string}[]>([]);
- useEffect(()=>{if(!active)return;let current=true;setLoading(true);setError("");void chatCall<SessionReport>("usage",{...query,period}).then(value=>{if(current)setPage(value);}).catch(error=>{if(current)setError(String(error));}).finally(()=>{if(current)setLoading(false);});return()=>{current=false;};},[active,period,revision,query,retry]);
- useEffect(()=>{if(!active)return;let current=true;void chatCall<{projects:{id:string;name:string}[]}>("catalog",{}).then(value=>{if(current)setProjects(value.projects);}).catch(()=>{/* Statistics remain available if only navigation metadata fails. */});return()=>{current=false;};},[active]);
+ useEffect(()=>{if(!active)return;let current=true;setLoading(true);setError("");void chatCall<SessionReport>("usage",{...query,period}).then(value=>{if(current)setPage(normalizeSessionReport(value));}).catch(error=>{if(current)setError(String(error));}).finally(()=>{if(current)setLoading(false);});return()=>{current=false;};},[active,period,revision,query,retry]);
+ // An empty native catalog serializes its Go slice as null, not []. This is
+ // a valid zero-project state; keep the All projects entry instead of crashing.
+ useEffect(()=>{if(!active)return;let current=true;void chatCall<{projects:{id:string;name:string}[]|null}>("catalog",{}).then(value=>{if(current)setProjects(value.projects??[]);}).catch(()=>{/* Statistics remain available if only navigation metadata fails. */});return()=>{current=false;};},[active]);
  const change=(patch:Partial<typeof query>)=>setQuery(value=>({...value,...patch,offset:0}));const num=(value:number)=>new Intl.NumberFormat(i18n.language).format(value||0);
  const chart=useMemo<UsagePage|undefined>(()=>{if(!page)return;const sum={...page.sum};return {rows:[],sum,total:page.total,offset:page.offset,limit:15,bucket:"day",series:page.series.map(point=>({...point,time:point.time+"T00:00:00",cost:point.cost||0,unpriced:point.unpriced||0})),by:Object.fromEntries(Object.entries(page.by).map(([kind,groups])=>[kind,Object.entries(groups).map(([id,counts])=>({...counts,id,name:kind==="provider"?providers.find(p=>p.id===id)?.name||id:id,cost:counts.cost||0,unpriced:counts.unpriced||0}))]))};},[page,providers]);
  function summary(counts:SessionCounts){return <>{num(totalTokens(counts))} Token · {num(counts.messages)} {t("usage.messages")} · {Math.round(counts.activeMs/60000)} {t("usage.minutes")}</>}

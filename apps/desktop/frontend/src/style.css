@@ -1,5 +1,11 @@
 @layer theme, base, legacy, components, utilities;
 @import "./ui/tokens.css";
+@import "./styles/disclosure.css";
+
+/* Base UI's disableStyleElements requires its scrollbar rule in a local
+   stylesheet. Keep the upstream class and behavior without inline style tags. */
+.base-ui-disable-scrollbar { scrollbar-width: none; }
+.base-ui-disable-scrollbar::-webkit-scrollbar { display: none; }
 
 /* A resize edge must override child buttons, text and panel divider cursors. */
 html[data-window-resizing], html[data-window-resizing] * {
@@ -7,6 +13,9 @@ html[data-window-resizing], html[data-window-resizing] * {
 }
 
 @layer legacy {
+/* Borrowed Cindy controls own their layout. Legacy tag rules such as header
+   flex rows and pill-button padding must not restyle the nested workbench. */
+@scope (:root) to (.cindy-chat-ui, .cindy-panel-popup) {
 * {
   box-sizing: border-box;
 }
@@ -372,6 +381,7 @@ select:not([data-slot]):not(:where(.desktop-ui-root *, .desktop-ui-portal *)) {
 .advanced-settings > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 
 }
+}
 
 @layer components {
   /* Use explicit layout spacing for forms, including empty and loading states. */
@@ -408,6 +418,8 @@ select:not([data-slot]):not(:where(.desktop-ui-root *, .desktop-ui-portal *)) {
   [data-slot="page-content"] { container-type: inline-size; }
   [data-slot="page-content"] > header.page-actions { margin-bottom: 12px; }
   [data-slot="page-scroll"] { scrollbar-gutter: stable; }
+  /* Chat owns its scrollbars inside the panes; no outer scrollbar is shown. */
+  [data-slot="page-scroll"][data-page="chat"] { scrollbar-gutter: auto; }
   .settings-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
   .settings-field-grid > * { min-width: 0; }
   .settings-group { min-width: 0; display: grid; gap: 20px; }
@@ -417,7 +429,8 @@ select:not([data-slot]):not(:where(.desktop-ui-root *, .desktop-ui-portal *)) {
   .settings-switch-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 48px; padding-right: 16px; }
   .settings-switch-row > label { min-width: 0; overflow-wrap: anywhere; }
   .settings-switch-row > [role="switch"] { flex-shrink: 0; }
-  .settings-save-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border-top: 1px solid var(--border); padding-top: 20px; margin-top: 28px; }
+  .settings-save-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border: 0; padding: 0; margin: 0; background: var(--background); }
+  .settings-save-bar[hidden] { display: none; }
   .shortcut-settings-list { display: grid; gap: 12px; }
   .shortcut-setting { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(180px, 2fr); gap: 8px 24px; padding-block: 4px; }
   .shortcut-setting > label { align-self: start; padding-top: 7px; }

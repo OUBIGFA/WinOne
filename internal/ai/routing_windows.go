@@ -49,6 +49,30 @@ func (r *RoutingProcess) PageURL() string {
 	return r.URL + "/session/" + url.PathEscape(r.Key) + "/?view=routing"
 }
 
+func (r *RoutingProcess) PluginsPageURL() string {
+	return r.URL + "/session/" + url.PathEscape(r.Key) + "/plugins.html"
+}
+
+// PluginWindowState contains only the upstream's public page/panel manifests.
+// Their reads and options remain behind the same authenticated runtime, not
+// arbitrary URLs supplied by the settings renderer.
+type PluginWindowState struct {
+	URL    string          `json:"url"`
+	Pages  json.RawMessage `json:"pages"`
+	Panels json.RawMessage `json:"panels"`
+}
+
+func (r *RoutingProcess) PluginWindowState(ctx context.Context) (PluginWindowState, error) {
+	state := PluginWindowState{URL: r.PluginsPageURL()}
+	if err := r.readAPI(ctx, "/api/plugin-pages", &state.Pages); err != nil {
+		return state, err
+	}
+	if err := r.readAPI(ctx, "/api/plugin-panels", &state.Panels); err != nil {
+		return state, err
+	}
+	return state, nil
+}
+
 type routingGroup struct {
 	ID         string   `json:"id"`
 	Members    []string `json:"members"`
@@ -190,6 +214,11 @@ func (r *RoutingProcess) ServeHTTP(w http.ResponseWriter, request *http.Request)
 	cloned.RequestURI = ""
 	cloned.Host = target.Host
 	cloned.Header = cloned.Header.Clone()
+	// Discard an incoming lookalike; this metadata belongs to Host authentication.
+	cloned.Header.Del("X-WinOne-Caller-Key")
+	if id := GatewayCallerKeyID(request.Context()); id != "" {
+		cloned.Header.Set("X-WinOne-Caller-Key", id)
+	}
 	cloned.Header.Set("Authorization", "Bearer "+r.Key)
 	response, err := http.DefaultClient.Do(cloned)
 	if err != nil {

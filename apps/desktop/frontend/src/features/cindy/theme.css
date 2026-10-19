@@ -1,5 +1,11 @@
 /* Cindy component tokens mapped to WinOne's shared design system. */
-.cindy-chat-ui{
+@layer base { :where(.cindy-chat-ui) { font-family:inherit; color:var(--foreground); font-size:14px; } }
+.cindy-chat-ui, .cindy-panel-popup{
+ --surface:var(--chat-page-bg,var(--background));--surface-elevated:var(--chat-raised-bg,var(--popover));--surface-elevated-soft:var(--muted);--surface-chip:var(--muted);--surface-chip-alt:var(--muted);--surface-hover:var(--accent);--panel-bg:var(--chat-page-bg,var(--background));
+ --text-primary-body-strong:var(--foreground);--text-primary-emphasis:var(--foreground);--text-secondary:var(--muted-foreground);--text-secondary-mid:var(--muted-foreground);--text-tertiary:var(--muted-foreground);--text-placeholder:var(--muted-foreground);
+ --tooltip-bg:#2b2b2b;--tooltip-text:#ffffff;--confirm-bg:var(--popover);--confirm-title:var(--foreground);
+ --msg-user-bg:var(--muted);--msg-user-text:var(--foreground);--msg-user-border:var(--border);
+ --chat-input-placeholder:var(--muted-foreground);--msg-assistant-text:var(--foreground);--msg-md-inline-code-bg:var(--muted);--file-chip-bg:var(--muted);
  --border-default:var(--border);--text-primary:var(--foreground);--settings-input-bg:var(--background);
  --surface-hover-soft:var(--accent);--composer-pill-bg:var(--muted);--composer-pill-icon:var(--muted-foreground);
  --chat-input-bg:var(--background);--chat-input-border:var(--border);--chat-input-border-focus:color-mix(in srgb,var(--foreground) 32%,var(--border));
@@ -9,7 +15,6 @@
  --send-btn-bg:var(--primary);--send-btn-icon:var(--primary-foreground);--send-btn-hover-bg:color-mix(in srgb,var(--primary) 85%,var(--background));--send-btn-pressed-bg:var(--primary);
  --focus-ring-soft:var(--ring);--shadow-menu:none;--motion-fast:150ms;--motion-instant:150ms;--motion-ease-out:cubic-bezier(.2,.7,.2,1);--motion-ease-in:cubic-bezier(.4,0,1,1);
  --focus-ring:var(--ring);--msg-tool-card-chevron:var(--muted-foreground);--agent-actions-rail:var(--border);--thinking-body-text:var(--muted-foreground);--msg-code-inline-bg:var(--muted);--cmd-palette-item-hover:var(--accent);
- font-family:inherit;color:var(--foreground);font-size:14px;
 }
 .cindy-chat-ui .text-11{font-size:11px}.cindy-chat-ui .text-12{font-size:12px}.cindy-chat-ui .text-13{font-size:13px}.cindy-chat-ui .text-14{font-size:14px}
 .cindy-chat-ui [data-menu-highlight-layer]{background:var(--accent)}
@@ -22,7 +27,6 @@
 .chat-answer-content>.chat-markdown>:first-child{margin-top:0}
 .process-body{min-width:0}.process-viewport{max-height:min(40vh,320px);overscroll-behavior:contain}
 .chat-status{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.process-collapse-action{min-height:26px!important;padding:3px 8px!important;font-size:12px!important}
 .process-local-navigation{display:flex;justify-content:flex-end;padding-top:6px}
 /* Cindy globals.css: compact live-thinking indicator. */
 .cindy-chat-ui .thinking-dot{display:inline-block;width:4px;height:4px;border-radius:50%;background-color:var(--msg-tool-card-chevron);animation:thinking-dot-wave 1.2s ease-in-out infinite}
@@ -55,6 +59,7 @@
 .cindy-attachment-type{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:8px;background:var(--background);color:var(--muted-foreground)}
 .cindy-attachment-label{display:flex;flex-direction:column;min-width:0;gap:2px;font-size:12px}.cindy-attachment-label>span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.cindy-attachment-label>small{font-size:11px;color:var(--muted-foreground)}
 .cindy-attachment-remove{position:absolute;top:0;right:0;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border:0;border-radius:999px;background:var(--foreground);color:var(--background);opacity:0;cursor:pointer}.cindy-attachment-card:hover .cindy-attachment-remove,.cindy-attachment-card:focus-within .cindy-attachment-remove{opacity:1}.cindy-attachment-remove:disabled{cursor:default;opacity:.3}
+.cindy-attachment-edit{position:absolute;top:0;right:22px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border-default);border-radius:999px;background:var(--surface-elevated);color:var(--text-primary);opacity:0;cursor:pointer}.cindy-attachment-card:hover .cindy-attachment-edit,.cindy-attachment-card:focus-within .cindy-attachment-edit{opacity:1}.cindy-attachment-edit:disabled{cursor:default;opacity:.3}
 .cindy-user-attachments{display:flex;flex-wrap:wrap;gap:6px}.cindy-user-attachment-chip{display:inline-flex;align-items:center;gap:6px;max-width:280px;min-height:28px;padding:4px 10px;border-radius:999px;border:1px solid var(--msg-user-border);background:var(--msg-user-bg);color:var(--msg-user-text);font-size:13px;cursor:pointer}.cindy-user-attachment-chip>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cindy-user-attachment-chip>svg{flex-shrink:0}.cindy-user-attachment-chip:hover{background:var(--cmd-palette-item-hover)}
 .chat-tool-dialog>.chat-file-preview{height:min(65vh,600px);min-height:240px}
 .cindy-attachment-image{width:100%;height:100%;object-fit:cover;border-radius:8px}

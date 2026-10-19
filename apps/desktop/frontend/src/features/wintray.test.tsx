@@ -51,7 +51,7 @@ it("preserves an edited name matching the executable stem after saving",async()=
  let settings={schemaVersion:3,language:"zh-CN",runAtLogon:false,startMinimizedToTray:true,exitAfterManagedAppsCompleted:false,closeWindowRetrySeconds:10,startupIntervalSeconds:3,managedApps:[{id:"custom",name:"原名称",exePath:"C:\\Apps\\custom.exe",args:"",runOnStartup:false,collectTrayIcon:false,launchViaLogonTask:false,launchHiddenInBackground:false,trayBehavior:{autoMinimizeAndHideOnLaunch:false,closeDelaySeconds:0},schedule:{enabled:false,startDelayMinutes:0,autoExitMinutes:30,frequencyEnabled:false,frequencyDays:1,frequencyRuns:1}}]};
  native.info.mockResolvedValue({name:"自动识别名称",icon:""});
  native.call.mockImplementation(async(method:string,payload?:{settings:typeof settings})=>{if(method==="settings.get")return {revision:"1",settings};if(method==="settings.save"){settings=payload!.settings;return {state:"completed"};}throw Error(method);});
- render(<WinTrayPage disabled/>);const user=userEvent.setup();await user.click(await screen.findByRole("tab",{name:"更多设置"}));
+ render(<WinTrayPage disabled/>);const user=userEvent.setup();await user.click(await screen.findByRole("tab",{name:"程序信息"}));
  const input=screen.getByRole("textbox",{name:"名称"}) as HTMLInputElement;
  await user.clear(input);input.focus();await user.type(input,"custom",{skipClick:true});expect(input.value).toBe("custom");
  await user.click(screen.getByRole("button",{name:"保存修改"}));await screen.findByText("已保存");
@@ -61,13 +61,13 @@ it("preserves an edited name matching the executable stem after saving",async()=
 it("keeps an empty program name editable and blocks saving across tabs",async()=>{
  const program:Program={id:"name",name:"程序",exePath:"C:\\Apps\\program.exe",args:"",runOnStartup:false,collectTrayIcon:false,launchViaLogonTask:false,launchHiddenInBackground:false,trayBehavior:{autoMinimizeAndHideOnLaunch:false,closeDelaySeconds:0},schedule:{enabled:false,startDelayMinutes:0,autoExitMinutes:30,frequencyEnabled:false,frequencyDays:1,frequencyRuns:1}};
  native.info.mockResolvedValue({name:"识别出的程序",icon:""});native.call.mockResolvedValue({revision:"1",settings:{schemaVersion:3,language:"zh-CN",runAtLogon:false,startMinimizedToTray:true,exitAfterManagedAppsCompleted:false,closeWindowRetrySeconds:10,startupIntervalSeconds:3,managedApps:[program]}});
- render(<WinTrayPage disabled/>);const user=userEvent.setup();await user.click(await screen.findByRole("tab",{name:"更多设置"}));
+ render(<WinTrayPage disabled/>);const user=userEvent.setup();await user.click(await screen.findByRole("tab",{name:"程序信息"}));
  const input=screen.getByRole("textbox",{name:"名称"}) as HTMLInputElement;await user.clear(input);
  expect(input.value).toBe("");expect(input.getAttribute("aria-invalid")).toBe("true");
- expect(document.getElementById(input.getAttribute("aria-describedby")!)?.textContent).toContain("更多设置");
- await user.click(screen.getByRole("tab",{name:"常用设置"}));await user.click(screen.getByRole("button",{name:"保存修改"}));
+ expect(document.getElementById(input.getAttribute("aria-describedby")!)?.textContent).toContain("程序信息");
+ await user.click(screen.getByRole("tab",{name:"启动与计划"}));await user.click(screen.getByRole("button",{name:"保存修改"}));
  expect(native.call.mock.calls.some(([method])=>method==="settings.save")).toBe(false);
- await user.click(screen.getByRole("tab",{name:"更多设置"}));expect((screen.getByRole("textbox",{name:"名称"}) as HTMLInputElement).value).toBe("");
+ await user.click(screen.getByRole("tab",{name:"程序信息"}));expect((screen.getByRole("textbox",{name:"名称"}) as HTMLInputElement).value).toBe("");
 });
 
 it.each(["","121","-1","1.5"])("keeps invalid timing input '%s' editable and blocks saving until corrected",async value=>{
@@ -105,11 +105,12 @@ it("saves and reloads all custom timing without enabling ordinary startup",async
   throw Error(method);
  });
  const view=render(<WinTrayPage disabled/>);const user=userEvent.setup();
+ const plan=await screen.findByRole("region",{name:"时间计划"});
+ expect(within(plan).getByRole("switch",{name:"限制自动运行次数"}).getAttribute("aria-disabled")).toBe("true");
  await user.click(await screen.findByRole("switch",{name:"自定义时间"}));
  const change=async(name:string,value:string)=>{const input=screen.getByRole("spinbutton",{name});await user.clear(input);input.focus();await user.type(input,value,{skipClick:true});};
  await change("延后启动（分钟）","7");
- await user.click(screen.getByRole("tab",{name:"更多设置"}));
- await user.click(screen.getByRole("checkbox",{name:"限制自动运行次数"}));
+ await user.click(within(plan).getByRole("switch",{name:"限制自动运行次数"}));
  await change("最近天数","2");await change("最多运行次数","3");
  await user.click(screen.getByRole("button",{name:"保存修改"}));await screen.findByText("已保存");
  expect(settings.managedApps[0].runOnStartup).toBe(false);
@@ -117,9 +118,11 @@ it("saves and reloads all custom timing without enabling ordinary startup",async
  view.unmount();render(<WinTrayPage disabled/>);
  expect((await screen.findByRole("spinbutton",{name:"延后启动（分钟）"}) as HTMLInputElement).value).toBe("7");
  expect(screen.getByRole("switch",{name:"开机启动此程序"}).getAttribute("aria-checked")).toBe("false");
- await user.click(screen.getByRole("tab",{name:"更多设置"}));
  expect((screen.getByRole("spinbutton",{name:"最近天数"}) as HTMLInputElement).value).toBe("2");
  expect((screen.getByRole("spinbutton",{name:"最多运行次数"}) as HTMLInputElement).value).toBe("3");
+ await user.click(screen.getByRole("tab",{name:"程序信息"}));
+ const more=(await screen.findByRole("textbox",{name:"名称"})).closest<HTMLElement>('[data-slot="tabs-content"]')!;
+ expect(within(more).queryByRole("switch",{name:"限制自动运行次数"})).toBeNull();
 });
 
 it("identifies a program with unfinished timing after its controls are hidden",async()=>{
@@ -168,9 +171,9 @@ it("selects the whole program row and keeps common actions before both settings 
  await waitFor(()=>expect(row.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aWNvbg=="));
  const actions=screen.getByRole("group",{name:"程序操作"});
  expect(within(actions).getByRole("button",{name:"立即启动"})).toBeTruthy();
- const tabs=screen.getByRole("tab",{name:"常用设置"}).closest('[data-slot="tabs"]')!;
+ const tabs=screen.getByRole("tab",{name:"启动与计划"}).closest('[data-slot="tabs"]')!;
  expect(actions.compareDocumentPosition(tabs)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
- await user.click(screen.getByRole("tab",{name:"更多设置"}));
+ await user.click(screen.getByRole("tab",{name:"程序信息"}));
  expect(screen.getByRole("group",{name:"程序操作"})).toBe(actions);
  const first=screen.getByRole("listitem",{name:"first"});first.focus();await user.keyboard("{Enter}");
  expect(first.getAttribute("aria-current")).toBe("true");
@@ -213,7 +216,7 @@ it("replaces an executable with a script without losing its identity or schedule
   render(<WinTrayPage disabled/>);
   const user=userEvent.setup();
   await user.click(await screen.findByRole("listitem",{name:/^示例/}));
-  await user.click(screen.getByRole("tab",{name:"更多设置"}));
+  await user.click(screen.getByRole("tab",{name:"程序信息"}));
   await user.click(screen.getByRole("button",{name:/^更换 .* 的程序$/}));
   await screen.findByText("D:\\Jobs\\replacement.ps1");
   expect(native.call.mock.calls.some(([method])=>method==="settings.save")).toBe(false);
@@ -230,7 +233,7 @@ it("keeps custom settings when replacement is cancelled or the same path is sele
   render(<WinTrayPage disabled/>);
   const user=userEvent.setup();
   await user.click(await screen.findByRole("listitem",{name:/^自定义名称/}));
-  await user.click(screen.getByRole("tab",{name:"更多设置"}));
+  await user.click(screen.getByRole("tab",{name:"程序信息"}));
   for(let attempt=0;attempt<2;attempt++){
     await user.click(screen.getByRole("button",{name:/^更换 .* 的程序$/}));
     expect((screen.getByRole("button",{name:"保存修改"}) as HTMLButtonElement).disabled).toBe(true);
@@ -360,7 +363,7 @@ it("keeps the user's draft and exposes recovery after a failed save", async () =
   render(<WinTrayPage />);
   const user = userEvent.setup();
   await user.click(await screen.findByRole("listitem", { name: /^示例/ }));
-  await user.click(screen.getByRole("tab",{name:"更多设置"}));
+  await user.click(screen.getByRole("tab",{name:"程序信息"}));
   const name = screen.getByLabelText("名称") as HTMLInputElement;
   await user.clear(name);
   expect(name.isConnected).toBe(true);

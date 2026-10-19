@@ -6,6 +6,8 @@ internal static class Program
     private static int Main(string[] args)
     {
         Console.OutputEncoding = new System.Text.UTF8Encoding(false);
+        if (args is ["--ocr-host-latency",var ocrLatencyOutput]) return OcrHostLatencyProbe.Run(ocrLatencyOutput);
+        if (args is ["--native-capture-latency",var latencyOutput]) return NativeCaptureLatencyProbe.Run(latencyOutput);
         if (args is ["--desktop-activation",var activationOutput]) return DesktopActivationProbe.Run(activationOutput);
         if (args is ["--native-text-pipeline",var textOutput]) return NativeTextPipelineProbe.Run(textOutput);
         if (args is ["--native-text-recognition"]) { NativeTextRecognitionTests.Run(); return 0; }
@@ -46,6 +48,7 @@ internal static class Program
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.EnableVisualStyles();
         CaptureCompletionTests.Run();
+        NativeCanvasCopyTests.Run();
         NativeHostConfigurationTests.Run();
         SingleSelectionTests.Run();
         KeyboardRoutingTests.Run();

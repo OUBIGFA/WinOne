@@ -33,7 +33,7 @@ func (s *aiService) handleModelTest(r host.Request) host.Response {
 	if err := configjson.DecodeObject(r.Params, &params); err != nil {
 		return fail(err)
 	}
-	if params.Connection != nil && params.Draft != nil || params.Connection == nil && len(params.KeyUpdates) > 0 || !slices.Contains([]string{"", "codex", "claude-code"}, params.As) || len(params.Models) > 2048 || len(params.Metadata) > 2048 {
+	if params.Connection != nil && params.Draft != nil || params.Connection == nil && len(params.KeyUpdates) > 0 || !slices.Contains([]string{"", "codex", "claude-code"}, params.As) || len(params.Models) > ai.MaxProviderModels || len(params.Metadata) > ai.MaxProviderModels {
 		return fail(errors.New("模型测试参数无效"))
 	}
 	validID := func(id string) bool {

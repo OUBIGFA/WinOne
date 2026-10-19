@@ -1,11 +1,29 @@
 // @vitest-environment jsdom
 import {afterEach,expect,it,vi} from "vitest";
-import {act,cleanup,render,screen,waitFor} from "@testing-library/react";
+import {act,cleanup,fireEvent,render,screen,waitFor} from "@testing-library/react";
 import {AIRouting} from "./ai-routing";
 
 const call=vi.hoisted(()=>vi.fn());
 vi.mock("../bridge",()=>({captureCall:call}));
 afterEach(()=>{cleanup();call.mockReset();});
+it("sends the native theme attribute to the routing document",async()=>{
+ document.documentElement.dataset.theme="dark";
+ try{
+  call.mockResolvedValue({url:"http://127.0.0.1:3456/"});render(<AIRouting active enabled onEnabled={()=>{}}/>);
+  const frame=await screen.findByTitle("路由") as HTMLIFrameElement,send=vi.spyOn(frame.contentWindow!,"postMessage");
+  fireEvent.load(frame);expect(send).toHaveBeenLastCalledWith(expect.objectContaining({theme:"dark"}),"http://127.0.0.1:3456");
+  await act(async()=>{document.documentElement.dataset.theme="light";});
+  expect(send).toHaveBeenLastCalledWith(expect.objectContaining({theme:"light"}),"http://127.0.0.1:3456");
+ }finally{delete document.documentElement.dataset.theme;}
+});
+it("releases a routing viewer whose open finishes after leaving",async()=>{
+ let finish!:(value:unknown)=>void;call.mockImplementation(method=>method==="ai.routing.open"?new Promise(resolve=>{finish=resolve;}):Promise.resolve({}));
+ const view=render(<AIRouting active enabled={false} onEnabled={()=>{}}/>);
+ view.unmount();
+ expect(call.mock.calls.filter(([method])=>method==="ai.routing.close")).toHaveLength(1);
+ await act(async()=>{finish({url:"http://127.0.0.1:3456/"});});
+ expect(call.mock.calls.filter(([method])=>method==="ai.routing.close")).toHaveLength(2);
+});
 
 it("fits the complete routing editor and ignores resize messages from other windows",async()=>{
  call.mockResolvedValue({url:"http://127.0.0.1:3456/?view=routing"});

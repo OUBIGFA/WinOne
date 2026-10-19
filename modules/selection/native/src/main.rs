@@ -143,33 +143,74 @@ fn retrieve(request: &Request) -> Result<Reply, &'static str> {
     }
 }
 
-fn read_selection(request: &Request, automation: &IUIAutomation, root: &IUIAutomationElement) -> Result<Reply, &'static str> {
+// Focus and pointer endpoints must independently belong to the exact source
+// window. A link can retain focus while selection spans its parent document.
+fn selection_path(request: &Request, automation: &IUIAutomation, root: &IUIAutomationElement,
+    start: IUIAutomationElement) -> Result<Vec<IUIAutomationElement>, &'static str> {
     unsafe {
-        let focus = automation.GetFocusedElement().map_err(|_| "unavailable")?;
-        let diagnostics=std::env::var_os("WINONE_SELECTION_DIAGNOSTICS").is_some();
-        if diagnostics {eprintln!("focus metadata: pid={:?}, type={:?}, password={:?}",focus.CurrentProcessId(),focus.CurrentControlType(),focus.CurrentIsPassword());}
-        // Unknown sensitivity is not permission to read. Never use ValuePattern,
-        // DocumentRange or simulated Copy as an automatic fallback.
-        if focus.CurrentIsPassword().map_err(|_| "unavailable")?.as_bool() { return Err("sensitive") }
         let walker = automation.RawViewWalker().map_err(|_| "unavailable")?;
-        let mut element = focus.clone();
+        let mut element = start;
         let mut path = vec![];
-        let mut owned = false;
-        // Chromium accessibility nodes can belong to a child process. Verify
-        // their actual UIA ancestry to the exact foreground window instead of
-        // equating process IDs or accepting every child process of a browser.
         for _ in 0..64 {
             if element.CurrentIsPassword().map_err(|_| "unavailable")?.as_bool() { return Err("sensitive") }
             let native = element.CurrentNativeWindowHandle().map_err(|_| "unavailable")?;
-            if diagnostics {eprintln!("selection ancestry: pid={:?}, type={:?}, native={:?}, nativeRoot={:?}, source={:?}, uiaRoot={:?}",element.CurrentProcessId(),element.CurrentControlType(),native,GetAncestor(native,GA_ROOT),HWND(request.window as *mut _),automation.CompareElements(&element,root));}
+            if std::env::var_os("WINONE_SELECTION_DIAGNOSTICS").is_some() {
+                eprintln!("selection ancestry: type={:?}, native={:?}", element.CurrentControlType(), native);
+            }
             if !native.is_invalid() && GetAncestor(native, GA_ROOT) != HWND(request.window as *mut _) { return Err("stale") }
             path.push(element.clone());
-            if automation.CompareElements(&element, root).map_err(|_| "stale")?.as_bool() { owned = true; break }
+            if automation.CompareElements(&element, root).map_err(|_| "stale")?.as_bool() { return Ok(path) }
             let Ok(parent) = walker.GetParentElement(&element) else { break };
             element = parent;
         }
-        if !owned { return Err("stale") }
-        for element in path {
+        Err("stale")
+    }
+}
+
+fn read_selection(request: &Request, automation: &IUIAutomation, root: &IUIAutomationElement) -> Result<Reply, &'static str> {
+    unsafe {
+        let focus = automation.GetFocusedElement().map_err(|_| "unavailable")?;
+        // Unknown/sensitive focus is never permission to read elsewhere. No
+        // clipboard, ValuePattern or whole DocumentRange fallback is used.
+        let focus_path = selection_path(request, automation, root, focus.clone())?;
+        let mut paths = vec![];
+        if request.point.is_some() {
+            for [x, y] in request.origin.iter().chain(request.point.iter()).copied() {
+                if !x.is_finite() || !y.is_finite() { continue }
+                let Ok(element) = automation.ElementFromPoint(POINT { x: x as i32, y: y as i32 }) else { continue };
+                match selection_path(request, automation, root, element) {
+                    Ok(path) => paths.push(path),
+                    Err("sensitive") => return Err("sensitive"),
+                    _ => {}, // A drag endpoint may be outside the source window.
+                }
+            }
+        }
+        paths.push(focus_path);
+        let mut failure = "unsupported";
+        for path in paths {
+            match read_path_selection(request, automation, &focus, path) {
+                Ok(reply) => return Ok(reply),
+                Err(status @ ("sensitive" | "too_large")) => return Err(status),
+                Err(status) => {
+                    if failure == "unsupported" || status == "unrelated" { failure = status; }
+                }
+            }
+            if !source_current(request) { return Err("stale") }
+        }
+        Err(failure)
+    }
+}
+
+fn read_path_selection(request: &Request, automation: &IUIAutomation, focus: &IUIAutomationElement,
+    path: Vec<IUIAutomationElement>) -> Result<Reply, &'static str> {
+    unsafe {
+        let diagnostics = std::env::var_os("WINONE_SELECTION_DIAGNOSTICS").is_some();
+        // Inline links can expose an empty or partial selection. Read from
+        // their nearest Edit/Document scope; never escape an empty Edit field.
+        let scope = path.iter().position(|element| element.CurrentControlType().is_ok_and(|kind|
+            kind == UIA_EditControlTypeId || kind == UIA_DocumentControlTypeId)).unwrap_or(0);
+        for element in path.into_iter().skip(scope) {
+            let kind = element.CurrentControlType().map_err(|_| "unavailable")?;
             if std::env::var_os("WINONE_SELECTION_DIAGNOSTICS").is_some() {
                 // Opt-in diagnostics include control metadata only, never text,
                 // element names, field values or clipboard contents.
@@ -191,10 +232,12 @@ fn read_selection(request: &Request, automation: &IUIAutomation, root: &IUIAutom
                     text.push_str(&part);
                     if text.len() > 65536 { return Err("too_large") }
                     boxes.extend(rectangles(&range)?);
+                    if boxes.len() > 4096 { return Err("too_large") }
                 }
-                // A caret is an empty selection; walking to a document ancestor
-                // at this point would risk returning a different selection.
-                if text.trim().is_empty() { return Err("empty") }
+                if text.trim().is_empty() {
+                    if kind == UIA_EditControlTypeId || kind == UIA_DocumentControlTypeId { return Err("empty") }
+                    continue;
+                }
                 if let Some([x, y]) = request.point {
                     if diagnostics { eprintln!("selection geometry: point={:?}, origin={:?}, boxes={:?}", request.point, request.origin, boxes); }
                     // A text drag often ends beyond the last glyph. Either end
@@ -208,9 +251,11 @@ fn read_selection(request: &Request, automation: &IUIAutomation, root: &IUIAutom
                     }
                 }
                 let current = automation.GetFocusedElement().map_err(|_| "stale")?;
-                if !source_current(request) || !automation.CompareElements(&focus, &current).map_err(|_| "stale")?.as_bool() { return Err("stale") }
+                if current.CurrentIsPassword().map_err(|_| "unavailable")?.as_bool() { return Err("sensitive") }
+                if !source_current(request) || !automation.CompareElements(focus, &current).map_err(|_| "stale")?.as_bool() { return Err("stale") }
                 return Ok(Reply { status: "selected", text: Some(text), rectangles: boxes });
             }
+            if kind == UIA_EditControlTypeId { return Err("unsupported") }
         }
         Err("unsupported")
     }

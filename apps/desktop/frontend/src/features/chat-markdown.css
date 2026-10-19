@@ -1,17 +1,20 @@
-/* Change these shared surface tokens once for every Markdown entry point. */
-.chat-markdown{
- --desktop-color-surface-muted:color-mix(in srgb,var(--foreground) 3%,var(--background));
- --desktop-color-surface-hover:color-mix(in srgb,var(--foreground) 5%,var(--background));
- --desktop-color-border:color-mix(in srgb,var(--foreground) 10%,transparent);
- --desktop-color-border-strong:color-mix(in srgb,var(--foreground) 16%,transparent);
- min-width:0;
-}
-/* Chat is a reading surface: preserve the kit's typography and code-copy
-   renderer, but reflow long content instead of making the user pan sideways. */
-.chat-markdown.desktop-ai-markdown.desktop-ai-markdown pre{white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:visible}
-.chat-markdown.desktop-ai-markdown.desktop-ai-markdown pre code{overflow-wrap:anywhere;word-break:break-word}
-.chat-markdown.desktop-ai-markdown.desktop-ai-markdown :not(pre)>code{box-decoration-break:slice;-webkit-box-decoration-break:slice;overflow-wrap:anywhere}
-.chat-markdown.desktop-ai-markdown.desktop-ai-markdown table{display:table;width:100%;table-layout:fixed;overflow:visible}
-.chat-markdown.desktop-ai-markdown.desktop-ai-markdown :is(th,td){min-width:0;overflow-wrap:anywhere;word-break:break-word;padding-inline:clamp(2px,1cqi,12px)}
-.chat-markdown.desktop-ai-markdown.desktop-ai-markdown .desktop-markdown-codebar{flex-wrap:wrap}
-.chat-markdown.desktop-ai-markdown.desktop-ai-markdown .desktop-markdown-codebar>span{min-width:0;overflow-wrap:anywhere}
+/* Cindy MarkdownRenderer owns the JSX and typography. These host rules only
+   register its numeric type scale and keep content inside WinOne's viewport. */
+.chat-markdown{min-width:0;font-size:15px;line-height:1.6}
+.msg-markdown{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.cindy-chat-ui .text-11{font-size:11px}.cindy-chat-ui .text-12{font-size:12px}
+.cindy-chat-ui .text-13{font-size:13px}.cindy-chat-ui .text-14{font-size:14px}
+.cindy-chat-ui .text-15{font-size:15px}.cindy-chat-ui .text-16{font-size:16px}
+.cindy-chat-ui .text-18{font-size:18px}.cindy-chat-ui .text-20{font-size:20px}
+.msg-markdown .font-mono{font-family:var(--app-font-code-default)}
+.msg-markdown pre{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg-markdown pre code{white-space:inherit;overflow-wrap:anywhere;word-break:break-word}
+.msg-markdown :not(pre)>code{box-decoration-break:slice;-webkit-box-decoration-break:slice;overflow-wrap:anywhere}
+.msg-markdown table{width:100%;table-layout:fixed;border-collapse:collapse}
+.msg-markdown :is(th,td){min-width:0;overflow-wrap:anywhere;word-break:break-word}
+.msg-markdown img{max-width:100%;height:auto}
+.msg-markdown .katex-display{max-width:100%;overflow-x:auto;overflow-y:hidden}
+.msg-markdown .diff-hscroll{overflow-x:hidden}
+.msg-markdown .diff-hscroll pre{width:auto}
+.msg-markdown .diff-hscroll pre>div>span:last-child{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(prefers-reduced-motion:reduce){.stream-word,[data-stream-marker]::marker{animation:none!important}}

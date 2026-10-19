@@ -168,7 +168,9 @@ func (s *Store) Usage(q UsageQuery, pricing ...map[string]UsagePrice) (UsageRepo
 	}
 	data := s.Snapshot()
 	days := map[string]UsageCounts{}
-	var matched []UsageSession
+	// Keep the report arrays non-nil: a nil Go slice serializes as JSON null,
+	// and the settings UI reads rows, top and series as arrays.
+	matched := []UsageSession{}
 	for _, c := range data.Conversations {
 		if q.ID != "" && q.ID != c.ID || q.Provider != "" && q.Provider != c.Model.Provider || q.Model != "" && q.Model != c.Model.Model || q.Project != "" && q.Project != c.ProjectID {
 			continue

@@ -41,6 +41,7 @@ type Messages struct {
 	CleanupRestoreTitle            string
 	ManagedListTitle               string
 	ManagedListHint                string
+	ManagedDropRejected            string
 	ManagedListEmpty               string
 	ManagedListEmptyHint           string
 	ManagedColumnName              string
@@ -90,7 +91,6 @@ type Messages struct {
 	ManagedLaunchNow               string
 	ManagedLaunchNowHint           string
 	ManagedLaunchNowBusy           string
-	LaunchNowDoneBody              string
 	AddProgram                     string
 	AddProgramHint                 string
 	RemoveSelected                 string
@@ -110,12 +110,13 @@ type Messages struct {
 	ExitApp                        string
 	RunSilently                    string
 	RunSilentlyHint                string
-	TrayOpenSettings               string
 	TrayExit                       string
 	TrayToolTip                    string
+	TrayMenuFailedBody             string
 	TrayBoxHomeTitle               string
 	TrayBoxHomeHint                string
 	TrayBoxFailedTitle             string
+	TrayBoxFailedBody              string
 	TrayBoxIconGoneBody            string
 	TrayBoxNotClickableBody        string
 	TrayBoxClickFailedBody         string
@@ -182,9 +183,10 @@ var zhCN = Messages{
 	SecondsUnit:                    "秒",
 	LanguageLabel:                  "语言 / Language",
 	ManagedListTitle:               "开机启动项",
-	ManagedListHint:                "程序名称列勾选开机启动，托盘收纳列勾选收纳图标；拖动程序可调整启动顺序",
+	ManagedListHint:                "拖入文件可添加；序号调整顺序；勾选开机启动或托盘收纳",
+	ManagedDropRejected:            "以下项目不存在、是文件夹或类型不受支持，未添加：\r\n%s\r\n\r\n请拖入 .exe、.bat、.cmd、.ps1、.py 或 .pyw 文件",
 	ManagedListEmpty:               "还没有添加程序",
-	ManagedListEmptyHint:           "添加开机时想自动启动的程序，WinTray 会依次启动它们，并按你的设置收进托盘或在后台运行",
+	ManagedListEmptyHint:           "从资源管理器拖入程序或脚本，或点击“添加程序”，可一次添加多个",
 	ManagedColumnName:              "程序名称",
 	ManagedColumnRule:              "启动动作",
 	BrowseProgram:                  "更换…",
@@ -223,7 +225,7 @@ var zhCN = Messages{
 	ManagedFrequency:               "限制自动运行次数",
 	ManagedFrequencyDays:           "天内最多自动运行",
 	ManagedFrequencyRuns:           "次",
-	ManagedFrequencyHint:           "按最近天数计次（1 天 = 24 小时），接管原有开机自启；手动打开不受限",
+	ManagedFrequencyHint:           "按系统时区计自然日（含当天），接管原有开机自启；手动打开不受限",
 	ManagedFrequencyInvalid:        "请输入整数：天数 1–365，次数 1–1000",
 	ManagedScheduleInvalid:         "时间必须是 0 到 1440 之间的整数（分钟）",
 	ManagedScheduleTag:             "%s · 定时",
@@ -232,7 +234,6 @@ var zhCN = Messages{
 	ManagedLaunchNow:               "立即启动",
 	ManagedLaunchNowHint:           "立即启动一次；未勾选开机启动时按正常方式启动",
 	ManagedLaunchNowBusy:           "启动中…",
-	LaunchNowDoneBody:              "已启动: %s",
 	AddProgram:                     "添加程序",
 	AddProgramHint:                 "选择要开机启动的程序或脚本，可以一次选多个",
 	RemoveSelected:                 "移除此程序",
@@ -252,12 +253,13 @@ var zhCN = Messages{
 	ExitApp:                        "退出 WinTray",
 	RunSilently:                    "后台静默运行",
 	RunSilentlyHint:                "隐藏此窗口；有程序勾选托盘图标收纳时保留 WinTray 菜单入口，否则隐藏自身图标；保留命令行程序的托盘图标，再次打开 WinTray 可恢复",
-	TrayOpenSettings:               "打开 WinTray",
 	TrayExit:                       "退出 WinTray",
 	TrayToolTip:                    "WinTray",
 	TrayBoxHomeTitle:               "托盘收纳",
 	TrayBoxHomeHint:                "将此程序的托盘图标从任务栏收进 WinTray 菜单；在菜单中左键单击等同单击原图标，右键打开程序自己的托盘菜单",
+	TrayMenuFailedBody:             "无法打开托盘菜单\n请重启 WinTray 后重试",
 	TrayBoxFailedTitle:             "托盘图标收纳",
+	TrayBoxFailedBody:              "托盘收纳未能完成\n请重新启用收纳；若仍失败，请打开日志",
 	TrayBoxIconGoneBody:            "%s 的托盘图标已不存在，程序可能已经退出",
 	TrayBoxNotClickableBody:        "%s 的托盘图标不响应点击",
 	TrayBoxClickFailedBody:         "无法把点击交给 %s：%v",
@@ -328,9 +330,10 @@ var enUS = Messages{
 	SecondsUnit:                    "seconds",
 	LanguageLabel:                  "Language / 语言",
 	ManagedListTitle:               "Startup programs",
-	ManagedListHint:                "Check a program to start it at sign-in; check Tray icon to collect its icon; drag programs to set their start order",
+	ManagedListHint:                "Drop files to add; choose numbers for start order; check sign-in or tray collection",
+	ManagedDropRejected:            "These items were not added because they are missing, folders, or unsupported file types:\r\n%s\r\n\r\nDrop .exe, .bat, .cmd, .ps1, .py or .pyw files",
 	ManagedListEmpty:               "No programs yet",
-	ManagedListEmptyHint:           "Add the programs you want to start at sign-in; WinTray starts them one by one and can close them to the tray or run them in the background",
+	ManagedListEmptyHint:           "Drag programs or scripts here from File Explorer, or select Add Program; you can add several at once",
 	ManagedColumnName:              "Program name",
 	ManagedColumnRule:              "Start action",
 	BrowseProgram:                  "Change…",
@@ -369,7 +372,7 @@ var enUS = Messages{
 	ManagedFrequency:               "Limit automatic launches",
 	ManagedFrequencyDays:           "days: at most",
 	ManagedFrequencyRuns:           "launches",
-	ManagedFrequencyHint:           "Rolling days (1 day = 24 hours); takes over original sign-in startup; manual launches are unrestricted",
+	ManagedFrequencyHint:           "Calendar days including today, in the system time zone; manages original startup; manual launches are unrestricted",
 	ManagedFrequencyInvalid:        "Enter whole numbers: 1–365 days, 1–1000 launches",
 	ManagedScheduleInvalid:         "Times must be whole minutes from 0 to 1440",
 	ManagedScheduleTag:             "%s · timed",
@@ -378,7 +381,6 @@ var enUS = Messages{
 	ManagedLaunchNow:               "Launch Now",
 	ManagedLaunchNowHint:           "Starts it now; uses normal mode when start at sign-in is off",
 	ManagedLaunchNowBusy:           "Starting…",
-	LaunchNowDoneBody:              "Started: %s",
 	AddProgram:                     "Add Program",
 	AddProgramHint:                 "Pick programs or scripts to start at sign-in; you can select several at once",
 	RemoveSelected:                 "Remove",
@@ -398,12 +400,13 @@ var enUS = Messages{
 	ExitApp:                        "Exit WinTray",
 	RunSilently:                    "Run silently",
 	RunSilentlyHint:                "Hides this window; keeps WinTray's menu icon if a program collects its tray icon, otherwise hides it; hosted console icons remain",
-	TrayOpenSettings:               "Open WinTray",
 	TrayExit:                       "Exit WinTray",
 	TrayToolTip:                    "WinTray",
 	TrayBoxHomeTitle:               "Tray icon",
 	TrayBoxHomeHint:                "Move this program's tray icon off the taskbar into WinTray's menu; left-click its entry to click the icon, right-click it for the program's own tray menu",
+	TrayMenuFailedBody:             "Could not open the tray menu\nRestart WinTray and try again",
 	TrayBoxFailedTitle:             "Collected tray icons",
+	TrayBoxFailedBody:              "Tray collection could not complete\nEnable it again; if it fails again, open the log",
 	TrayBoxIconGoneBody:            "The tray icon of %s is gone; the program may have exited",
 	TrayBoxNotClickableBody:        "The tray icon of %s does not respond to clicks",
 	TrayBoxClickFailedBody:         "Could not pass the click to %s: %v",

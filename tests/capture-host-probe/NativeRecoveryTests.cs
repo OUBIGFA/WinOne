@@ -161,7 +161,7 @@ internal static class NativeRecoveryTests
                                 if (!canvas.HasViewport || canvas.AnnotationCount != 1 || session.TextInput?.Text != "跨显示布局恢复" ||
                                     session.TextInput.Font.Size != 24 * canvas.ViewScale || !canvas.Window.ClientRectangle.Contains(session.Toolbar.Bounds))
                                     throw new Exception("Changed-display recovery did not restore editable content in a bounded viewport");
-                                SendMessageW(canvas.Window.Handle, 0x0203, IntPtr.Zero, IntPtr.Zero);
+                                NativeScrollInteractionTests.Confirm(session);
                             } catch (Exception error) { failure = error; canvas.Window.Close(); }
                         }));
                     };

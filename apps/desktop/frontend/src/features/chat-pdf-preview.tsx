@@ -2,7 +2,9 @@ import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {getDocument,GlobalWorkerOptions} from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import {EventBus,PDFViewer,PDFLinkService,PDFFindController} from 'pdfjs-dist/web/pdf_viewer.mjs';
-import {Dialog,Input,Button,InlineNotice,type DesktopMenuItem} from 'chatgpt-desktop-kit';
+import type {DesktopMenuItem} from 'chatgpt-desktop-kit';
+import {ConfirmDialog} from './cindy/panel-ui/confirm-dialog';
+import {Input} from './cindy/panel-ui/input';
 import {useTranslation} from '../i18n';
 import viewerStyles from 'pdfjs-dist/web/pdf_viewer.css?inline';
 import previewStyles from './chat-pdf-preview.css?inline';
@@ -50,8 +52,8 @@ export function ChatPDFPreview({url,onActions}:{url:string;onActions:(items:Desk
  },[state,t]);
  function find(){controller.current?.bus.dispatch('find',{source:controller.current.viewer,type:'',query,caseSensitive:false,entireWord:false,highlightAll:true,findPrevious:false});setSearch(false);}
  return <div className="chat-pdf-preview" data-pdf-rendered={rendered||undefined}>
-  {error&&<InlineNotice tone="danger" title={error}/>}
+  {error&&<p role="alert" className="chat-preview-feedback">{error}</p>}
   <div ref={container} className="chat-pdf-scroll" aria-label={t('chat.pdfDocument')}><div ref={pages} className="pdfViewer"/></div>
-  <Dialog open={search} onClose={()=>setSearch(false)} title={t('chat.pdfFind')} footer={<Button disabled={!query.trim()} onClick={find}>{t('chat.pdfFind')}</Button>}><Input autoFocus value={query} aria-label={t('chat.pdfFind')} onChange={event=>setQuery(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'&&!event.nativeEvent.isComposing)find();}}/></Dialog>
+  <ConfirmDialog open={search} onOpenChange={setSearch} title={t('chat.pdfFind')} confirmText={t('chat.pdfFind')} cancelText={t('chat.cancel')} confirmDisabled={!query.trim()} onConfirm={find} content={<Input autoFocus value={query} aria-label={t('chat.pdfFind')} onChange={setQuery} onKeyDown={event=>{if(event.key==='Enter'&&!event.nativeEvent.isComposing&&!event.repeat&&query.trim())find();}}/>}/>
  </div>;
 }

@@ -51,7 +51,7 @@ internal static class NativeLastCaptureTests
                 throw new Exception("Another edit replaced the pending draft");
             } catch (InvalidOperationException error) when (error.Message == "请先完成或放弃当前截图草稿") { }
             NativeCaptureWorkflow.Resume(settings,operations,recovered.Id,"en-US",CancellationToken.None,drafts,
-                show: (canvas,_) => Show(canvas,() => SendMessageW(canvas.Window.Handle,0x0203,IntPtr.Zero,IntPtr.Zero))).GetAwaiter().GetResult();
+                show: (canvas,session) => Show(canvas,() => NativeScrollInteractionTests.Confirm(session))).GetAwaiter().GetResult();
             if (copied is null || expected is null || copied.Size!=expected.Size) throw new Exception("Last-image copy is missing");
             for (var y=0;y<copied.Height;y++) for (var x=0;x<copied.Width;x++)
                 if (copied.GetPixel(x,y)!=expected.GetPixel(x,y)) throw new Exception("Recovered last-image pixels changed");

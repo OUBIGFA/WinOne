@@ -3,8 +3,42 @@ import {afterEach,expect,it,vi} from "vitest";
 import {act,cleanup,fireEvent,render,screen,waitFor,within} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {AIUsage} from "./ai-usage";
+
+it("filters requests by gateway key, including calls made without a key",async()=>{
+ call.mockResolvedValue({...empty,callerKeys:[{id:'public-hash',callerKeyId:'public-hash',callerKeyName:'Fixture gateway'}]});
+ const user=userEvent.setup();render(<AIUsage active providers={[]}/>);
+ await user.click(screen.getByRole('tab',{name:'请求明细'}));
+ await user.click(await screen.findByRole('combobox',{name:'网关密钥'}));
+ await user.click(screen.getByRole('option',{name:'Fixture gateway'}));
+ await waitFor(()=>expect(call).toHaveBeenLastCalledWith('ai.usage.get',expect.objectContaining({callerKey:'public-hash',offset:0})));
+ // Wait for the popup to return focus before opening it again. An immediate
+ // second click races Base UI's deferred focus restoration in jsdom.
+ const selector=screen.getByRole('combobox',{name:'网关密钥'});
+ await waitFor(()=>expect(document.activeElement).toBe(selector));
+ await user.click(selector);await user.click(await screen.findByRole('option',{name:'未使用网关密钥'}));
+ await waitFor(()=>expect(call).toHaveBeenLastCalledWith('ai.usage.get',expect.objectContaining({callerKey:'none'})));
+});
+
+it("shows reported plan credits including zero and a separate first-token column",async()=>{
+ call.mockResolvedValue({...empty,sum:{...empty.sum,credits:0,credited:1},rows:[{t:'2026-10-17T00:00:00Z',provider:'one',agent:'winone',model:'fixture',in:3,out:2,ms:1500,ttft_ms:125,credits:0,status:200,priced:false,cost:0}]});
+ const user=userEvent.setup();render(<AIUsage active providers={[]}/>);
+ await screen.findByText('套餐积分');
+ await user.click(screen.getByRole('tab',{name:'请求明细'}));
+ const table=await screen.findByRole('table');
+ expect(within(table).getByRole('columnheader',{name:'首字延迟'})).toBeTruthy();
+ expect(within(table).getByText('0.13 s',{exact:true})).toBeTruthy();
+ expect(within(table).getByText('0 套餐积分',{exact:true})).toBeTruthy();
+});
 const call=vi.hoisted(()=>vi.fn());vi.mock("../bridge",()=>({captureCall:call,chatCall:(method:string,params:unknown)=>call("chat."+method,params)}));
 const empty={rows:[],sum:{calls:0,errors:0,input:0,output:0,cache_read:0,cache_write:0,cost:0,unpriced:0},offset:0,limit:15,total:0,by:{}};
+it('reads saved API-key balances and preserves named parts, zero and failed components',async()=>{
+ call.mockImplementation(async(method)=>method==='ai.accounts.quota'?{quotas:[{provider:'deepseek',name:'DeepSeek',windows:[],balance:'¥12.00',balanceSplit:[{label:'Granted',text:'¥0.00'},{label:'Topped up',text:'¥12.00'}],balanceParts:[{label:'Wallet',text:'¥12.00'},{label:'Credits',text:'—',error:'Unavailable'}]}]}:empty);
+ render(<AIUsage active providers={[{id:'deepseek',name:'DeepSeek',authMode:'api-key',baseUrl:'https://api.deepseek.com/v1',protocol:'chat',models:[],hasKey:true}]}/>);
+ await screen.findByText('¥0.00',{exact:true});
+ expect(screen.getByText('赠送',{exact:true})).toBeTruthy();expect(screen.getByText('充值',{exact:true})).toBeTruthy();
+ expect(screen.getByText('Wallet',{exact:true})).toBeTruthy();expect(screen.getByText('Credits',{exact:true})).toBeTruthy();
+ expect(call).toHaveBeenCalledWith('ai.accounts.quota',{provider:'deepseek',agent:undefined});
+});
 afterEach(()=>{cleanup();call.mockReset();});
 
 it("uses the saved allowance display and account masking choices",async()=>{
@@ -21,6 +55,19 @@ it("renders Magpie's request heatmap and its recorded daily totals",async()=>{
  expect(map.querySelectorAll("i[data-date]")).toHaveLength(7);
  await userEvent.setup().hover(map.querySelector<HTMLElement>('i[data-date="2026-10-11"]')!);
  expect(await screen.findByText(/2 次请求/)).toBeTruthy();
+});
+
+it("keeps the All projects filter when an empty catalog serializes as null",async()=>{
+ // Go marshals an empty slice as null. The Sessions page must treat that as a
+ // valid zero-project state instead of reading projects.map on null.
+ const counts={sessions:0,messages:0,calls:0,input:0,output:0,cache_read:0,cache_write:0,reasoning:0,errors:0,compactions:0,activeMs:0,cost:0,unpriced:0};
+ // The real Host encodes an empty catalog as null for every list field.
+ call.mockImplementation(async(method)=>method==="chat.catalog"?{projects:null,conversations:[]}:method==="chat.usage"?{rows:null,sum:counts,series:null,by:null,total:0,offset:0,limit:15,median:0,p90:0,top:null,tools:null,skills:null,warnings:null,shape:null}:empty);
+ const user=userEvent.setup();render(<AIUsage active providers={[]}/>);
+ await user.click(screen.getByRole("tab",{name:"会话"}));
+ const project=await screen.findByRole("combobox",{name:"项目"});
+ expect(project.textContent).toContain("全部项目");
+ expect(await screen.findByText("此范围内还没有会话。")).toBeTruthy();
 });
 
 it("applies an explicit inclusive date range to usage reads",async()=>{
@@ -105,7 +152,7 @@ it("keeps one in-flight allowance read while ledger filters reload",async()=>{
   return new Promise(resolve=>{finish=resolve;});
  });
  render(<AIUsage active providers={[{id:"saved-account",name:"Configured account",authMode:"account",agent:"codex",models:[],hasKey:false}]}/>);
- await screen.findByText("正在读取账号额度…");
+ await screen.findByText("正在读取额度与余额…");
  await userEvent.setup().click(screen.getByRole("checkbox",{name:"仅显示失败请求"}));
  await act(async()=>finish({quotas:[{provider:"codex",name:"Codex",user:"fixture@example.invalid",windows:[{name:"Five hours",used:25}]}]}));
  expect(await screen.findByRole("progressbar")).toBeTruthy();

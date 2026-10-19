@@ -1,5 +1,6 @@
+import {SettingsSaveBar} from "../components/settings-save-bar";
 import {useEffect,useState} from "react";
-import {Save,RotateCcw} from "lucide-react";
+import {Save,RotateCcw,ScanText,Languages,MessagesSquare} from "lucide-react";
 import {captureCall} from "../bridge";
 import {useTranslation} from "../i18n";
 import {Button} from "../ui/button";
@@ -8,6 +9,7 @@ import {Label} from "../components/ui/label";
 import {Textarea} from "../components/ui/textarea";
 import {CaptureOptionSelect} from "../ui/capture-option-select";
 import {usePageActivity,type PageActivityChanged} from "../ui/page-navigation";
+import {SettingsOptions, SettingsSection} from "../components/settings-layout";
 import {AIModelSelect} from "./ai-model-select";
 import type {AIConfiguration,AISelection} from "./ai-configuration";
 
@@ -29,19 +31,19 @@ export function CaptureAISettings({onActivity}:{onActivity?:PageActivityChanged}
  return <div className="space-y-5">
   {error&&<Notice actions={!dirty&&<Button disabled={busy} onClick={()=>void load()}>{t("common.retry")}</Button>}>{error}</Notice>}
   {!draft&&!error&&<p role="status">{t("capture.loading")}</p>}
-  {draft&&<fieldset className="plain-fieldset space-y-5" disabled={busy}>
-   <section className="settings-group" aria-label={t("ai.recognitionGroup")}><h3 className="settings-group-title">{t("ai.recognitionGroup")}</h3>
-   <CaptureOptionSelect stacked label={t("ai.ocrEngine")} value={draft.ocrEngine} disabled={busy} items={[{value:"local",label:t("ai.localOCR")},{value:"ai",label:t("ai.sharedModel")}]} onChange={ocrEngine=>setDraft({...draft,ocrEngine})}/>
+  {draft&&<fieldset className="plain-fieldset settings-section-stack" disabled={busy}>
+   <SettingsSection icon={ScanText} title={t("ai.recognitionGroup")}>
+   <SettingsOptions label={t("ai.ocrEngine")} value={draft.ocrEngine} disabled={busy} items={[{value:"local",label:t("ai.localOCR")},{value:"ai",label:t("ai.sharedModel")}]} onChange={ocrEngine=>setDraft({...draft,ocrEngine})}/>
    {draft.ocrEngine==="ai"&&<>{select("ocr")}<p className="muted">{t("ai.visionHint")}</p></>}
-   </section>
-   <section className="settings-group" aria-label={t("ai.translationGroup")}><h3 className="settings-group-title">{t("ai.translationGroup")}</h3>
-   <CaptureOptionSelect stacked label={t("ai.engine")} value={draft.engine} disabled={busy} items={[{value:"google",label:t("ai.builtin")},{value:"llm",label:t("ai.sharedModel")}]} onChange={engine=>setDraft({...draft,engine})}/>
+   </SettingsSection>
+   <SettingsSection icon={Languages} title={t("ai.translationGroup")}>
+   <SettingsOptions label={t("ai.engine")} value={draft.engine} disabled={busy} items={[{value:"google",label:t("ai.builtin")},{value:"llm",label:t("ai.sharedModel")}]} onChange={engine=>setDraft({...draft,engine})}/>
    {draft.engine==="llm"?select("translate"):<p className="muted">{t("ai.online")}</p>}
    <CaptureOptionSelect stacked label={t("ai.target")} value={draft.target} disabled={busy} items={[['auto','auto'],['zh-CN','chinese'],['zh-TW','traditional'],['en','english'],['ja','japanese'],['ko','korean']].map(([value,key])=>({value,label:t(`ai.${key}`)}))} onChange={target=>setDraft({...draft,target})}/>
    {draft.engine==="llm"&&<div className="space-y-2"><Label htmlFor="capture-ai-prompt">{t("ai.prompt")}</Label><Textarea id="capture-ai-prompt" value={draft.prompt} placeholder={t("ai.promptDefault")} onChange={event=>setDraft({...draft,prompt:event.target.value})}/><p className="muted">{t("ai.promptHint")}</p></div>}
-   </section>
-   <section className="settings-group" aria-label={t("ai.conversationGroup")}><h3 className="settings-group-title">{t("ai.conversationGroup")}</h3>{select("chat")}</section>
-   <div className="detail-actions"><Button icon={Save} variant="primary" disabled={!dirty||busy} onClick={()=>void save()}>{t("capture.save")}</Button>{dirty&&<Button icon={RotateCcw} disabled={busy} onClick={()=>void load()}>{t("shortcuts.undo")}</Button>}</div>
+   </SettingsSection>
+   <SettingsSection icon={MessagesSquare} title={t("ai.conversationGroup")}>{select("chat")}</SettingsSection>
+   <SettingsSaveBar><Button icon={Save} variant="primary" disabled={!dirty||busy} onClick={()=>void save()}>{t("capture.save")}</Button>{dirty&&<Button icon={RotateCcw} disabled={busy} onClick={()=>void load()}>{t("shortcuts.undo")}</Button>}</SettingsSaveBar>
    {notice&&!dirty&&<p role="status">{notice}</p>}
   </fieldset>}
  </div>;

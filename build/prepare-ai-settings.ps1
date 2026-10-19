@@ -13,7 +13,15 @@ function Set-Hook([string]$relative,[hashtable]$replacements) {
  }
  [IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$original+"`n",$utf8)
 }
-Set-Hook 'internal/settings/settings.go' @{'func Load() Settings {'='func Load() Settings { if WinOneSettings != nil { return *WinOneSettings };'}
+Set-Hook 'internal/settings/settings.go' @{
+ 'func Load() Settings {'='func Load() Settings { if s,ok:=WinOneLoad();ok{return s};'
+ 'func LoadChecked() (Settings, error) {'='func LoadChecked() (Settings, error) { if s,ok:=WinOneLoad();ok{return s,nil};'
+}
+Set-Hook 'internal/pluginrt/config.go' @{
+ 'func Load() (File, bool, error) {'='func Load() (File, bool, error) { if f,ok:=WinOneLoad();ok{return f,true,nil};'
+}
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/plugins_embed.go.txt') -Destination (Join-Path $SourceDirectory 'internal/pluginrt/winone_embed.go')
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/builtin_plugins.go'),(Join-Path $root 'modules/ai-magpie/bundle_selection.go'),(Join-Path $root 'modules/ai-magpie/builtin_plugins_test.go') -Destination (Join-Path $SourceDirectory 'cmd/winone-ai')
 Set-Hook 'internal/provider/search_api.go' @{
  'func SearchAPIs() []SearchAPI {'='func SearchAPIs() []SearchAPI { if WinOneSearchAPIs != nil { return slices.DeleteFunc(slices.Clone(WinOneSearchAPIs), func(a SearchAPI) bool { return !a.Ready() }) };'
  'func StoredSearchAPIs() []SearchAPI { return load().Searches }'='func StoredSearchAPIs() []SearchAPI { if WinOneSearchAPIs != nil { return slices.Clone(WinOneSearchAPIs) }; return load().Searches }'

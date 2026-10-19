@@ -19,6 +19,89 @@ import (
 	"winone/internal/ai"
 )
 
+func TestNativeDurablePausePreservesDraftAndReportsResume(t *testing.T) {
+	bun, script := os.Getenv("WINONE_CHAT_BUN_EXE"), os.Getenv("WINONE_CHAT_WORKER")
+	if bun == "" || script == "" {
+		t.Skip("explicit Pi runtime fixture")
+	}
+	root := t.TempDir()
+	store, err := Open(filepath.Join(root, "profile"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := store.NewConversation("", "", "Pause state", ai.Selection{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	defer cancel()
+	service := NewService(ctx, store, ServiceOptions{Bun: bun, Worker: script, Configure: func(c Conversation) (map[string]any, func(), error) {
+		bridge, err := NewPrivateBridge(ctx, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			io.Copy(io.Discard, r.Body)
+			w.Header().Set("Content-Type", "text/event-stream")
+			fmt.Fprint(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Done\"},\"finish_reason\":null}]}\n\ndata: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n")
+		}))
+		if err != nil {
+			return nil, nil, err
+		}
+		return map[string]any{"baseUrl": bridge.BaseURL, "key": bridge.Key, "agentDir": filepath.Join(root, "agent"), "model": map[string]string{"id": "fixture", "name": "Fixture"}}, bridge.Close, nil
+	}})
+	defer func() {
+		end, stop := context.WithTimeout(context.Background(), 5*time.Second)
+		defer stop()
+		_ = service.Stop(end)
+	}()
+	if _, err = service.Open(ctx, c.ID, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err = store.SaveDraft(c.ID, Draft{Text: "Keep this draft"}); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := service.Command(ctx, c.ID, "pause", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var snapshot struct{ Paused, Streaming bool }
+	if err = json.Unmarshal(raw, &snapshot); err != nil || !snapshot.Paused || snapshot.Streaming {
+		t.Fatal(string(raw), err)
+	}
+	page, err := service.Poll(c.ID, 0)
+	if err != nil || page.Running || page.Status != "paused" {
+		t.Fatal(page, err)
+	}
+	if _, err = service.Prompt(ctx, c.ID, "must-wait", "Do not replace the draft"); err == nil {
+		t.Fatal("paused prompt was accepted")
+	}
+	draft, err := store.ReadDraft(c.ID)
+	if err != nil || draft.Text != "Keep this draft" {
+		t.Fatal("paused prompt overwrote draft", draft, err)
+	}
+	if _, err = service.Command(ctx, c.ID, "resume", nil); err != nil {
+		t.Fatal(err)
+	}
+	page, err = service.Poll(c.ID, 0)
+	if err != nil || page.Running || page.Status == "paused" {
+		t.Fatal(page, err)
+	}
+	if _, err = service.Prompt(ctx, c.ID, "after-resume", "Continue"); err != nil {
+		t.Fatal(err)
+	}
+	cursor := uint64(0)
+	for {
+		page, err = service.WaitEvents(ctx, c.ID, cursor)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !page.Running {
+			break
+		}
+		cursor = page.Cursor
+	}
+	if page.Status != "completed" {
+		t.Fatal(page)
+	}
+}
+
 func TestNativeConversationRelocationRetainsHistoryAndSendsMigratedAttachmentDraft(t *testing.T) {
 	bun, script := os.Getenv("WINONE_CHAT_BUN_EXE"), os.Getenv("WINONE_CHAT_WORKER")
 	if bun == "" || script == "" {
@@ -307,3 +390,115 @@ func TestServicePersistsApprovedWorkAndReleasesIdleRunner(t *testing.T) {
 }
 
 func containsJSON(data []byte, text string) bool { return strings.Contains(string(data), text) }
+
+// Input-box controls reach the worker through the service whitelist; the busy
+// gate protects a running turn, invalid values are rejected, and every answer
+// comes from the durable runtime rather than a stub.
+func TestServiceExposesThinkingFastAndControlCommands(t *testing.T) {
+	bun, script := os.Getenv("WINONE_CHAT_BUN_EXE"), os.Getenv("WINONE_CHAT_WORKER")
+	if bun == "" || script == "" {
+		t.Skip("explicit Pi runtime fixture")
+	}
+	root := t.TempDir()
+	workspace := filepath.Join(root, "workspace")
+	os.Mkdir(workspace, 0700)
+	store, err := Open(filepath.Join(root, "chat"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	conversation, err := store.NewConversation("", workspace, "Commands", ai.Selection{Provider: "test", Model: "model"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	release := make(chan struct{})
+	write := func(w io.Writer, payload any) {
+		raw, _ := json.Marshal(payload)
+		fmt.Fprintln(w, "data: "+string(raw))
+		fmt.Fprintln(w)
+	}
+	// The model call stays blocked until release closes, so the conversation is
+	// provably busy while the gate is exercised.
+	service := NewService(context.Background(), store, ServiceOptions{Bun: bun, Worker: script, Configure: func(c Conversation) (map[string]any, func(), error) {
+		bridge, err := NewPrivateBridge(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			io.Copy(io.Discard, r.Body)
+			select {
+			case <-release:
+			case <-r.Context().Done():
+				return
+			}
+			w.Header().Set("Content-Type", "text/event-stream")
+			write(w, map[string]any{"id": "test", "object": "chat.completion.chunk", "choices": []any{map[string]any{"index": 0, "delta": map[string]any{"content": "Done"}, "finish_reason": nil}}})
+			write(w, map[string]any{"id": "test", "object": "chat.completion.chunk", "choices": []any{map[string]any{"index": 0, "delta": map[string]any{}, "finish_reason": "stop"}}})
+			fmt.Fprintln(w, "data: [DONE]")
+			fmt.Fprintln(w)
+		}))
+		if err != nil {
+			return nil, nil, err
+		}
+		return map[string]any{"baseUrl": bridge.BaseURL, "key": bridge.Key, "agentDir": filepath.Join(root, "agent"), "model": map[string]string{"id": "test/model", "name": "Test"}, "language": "zh-CN"}, bridge.Close, nil
+	}})
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+	defer cancel()
+	defer func() {
+		stopCtx, stopCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer stopCancel()
+		service.Stop(stopCtx)
+	}()
+	if _, err = service.Open(ctx, conversation.ID, 44); err != nil {
+		t.Fatal(err)
+	}
+	wait := func(running bool) {
+		t.Helper()
+		cursor := uint64(0)
+		for {
+			page, err := service.WaitEvents(ctx, conversation.ID, cursor)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if page.Running == running {
+				return
+			}
+			cursor = page.Cursor
+			select {
+			case <-time.After(20 * time.Millisecond):
+			case <-ctx.Done():
+				t.Fatal(ctx.Err())
+			}
+		}
+	}
+	var status map[string]any
+	raw, err := service.Command(ctx, conversation.ID, "thinking", map[string]string{"value": "high"})
+	if err != nil || json.Unmarshal(raw, &status) != nil || status["thinkingLevel"] != "high" {
+		t.Fatal("thinking level", err, string(raw))
+	}
+	if _, err = service.Command(ctx, conversation.ID, "think", nil); err == nil {
+		t.Fatal("unknown command admitted")
+	}
+	if _, err = service.Command(ctx, conversation.ID, "thinking", map[string]string{"value": "ultra"}); err == nil {
+		t.Fatal("invalid thinking level accepted")
+	}
+	raw, err = service.Command(ctx, conversation.ID, "fast", map[string]bool{"value": true})
+	if err != nil || json.Unmarshal(raw, &status) != nil || status["fastMode"] != true {
+		t.Fatal("fast mode", err, string(raw))
+	}
+	raw, err = service.Command(ctx, conversation.ID, "control", map[string]any{"action": "list"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var agents []any
+	if err = json.Unmarshal(raw, &agents); err != nil || len(agents) != 0 {
+		t.Fatal("subagent list", err, string(raw))
+	}
+	if _, err = service.Prompt(ctx, conversation.ID, "commands-first", "First"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = service.Command(ctx, conversation.ID, "thinking", map[string]string{"value": "low"}); err == nil || !strings.Contains(err.Error(), "请先停止当前任务") {
+		t.Fatal("busy gate admitted thinking", err)
+	}
+	close(release)
+	wait(false)
+	raw, err = service.Command(ctx, conversation.ID, "thinking", map[string]string{"value": "low"})
+	if err != nil || json.Unmarshal(raw, &status) != nil || status["thinkingLevel"] != "low" {
+		t.Fatal("thinking after idle", err, string(raw))
+	}
+}

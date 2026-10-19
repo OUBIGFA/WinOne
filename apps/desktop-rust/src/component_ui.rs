@@ -40,12 +40,28 @@ fn window_icon(module:HMODULE)->HICON{
 
 const DISPATCH:u32=WM_APP+20;
 const HOST_EXITED:u32=WM_APP+21;
+// Sent WM_SIZE/WM_WINDOWPOSCHANGED callbacks can run inside GetMessage without
+// making it return. Queue one wake so deferred layout cannot wait for a later
+// click, Host reply or screenshot to release the outer message loop.
+fn request_view_sync(window:HWND,requested:&Cell<bool>){
+    if !requested.replace(true)&&unsafe{PostMessageW(window,DISPATCH,0,0)}==0{
+        eprintln!("desktop view wake: {}",std::io::Error::last_os_error());
+    }
+}
 // COM can deliver WM_CLOSE while the view's RefCell is already borrowed. Keep
 // that request outside the view and drain it once the outer dispatch returns.
-struct WindowState { value:RefCell<State>, close_requested:Cell<Option<bool>> }
+struct WindowState { value:RefCell<State>, close_requested:Cell<Option<bool>>, view_sync_requested:Cell<bool> }
 impl std::ops::Deref for WindowState { type Target=RefCell<State>;fn deref(&self)->&Self::Target{&self.value} }
 impl WindowState {
-    fn drain_close(&self){if let Some(exit)=self.close_requested.get(){if let Ok(mut state)=self.value.try_borrow_mut(){if state.webview.is_some(){self.close_requested.set(None);state.exit_requested|=exit;state.close();}}}}
+    fn drain_close(&self){
+        if let Ok(mut state)=self.value.try_borrow_mut(){
+            if let Some(exit)=self.close_requested.get(){if state.webview.is_some(){self.close_requested.set(None);state.exit_requested|=exit;state.close();}}
+            // ShowWindow synchronously re-enters the native procedure while
+            // State is borrowed. Keep visibility/layout intent outside that
+            // borrow, just like close intent, and apply it before the next wait.
+            if self.view_sync_requested.replace(false){state.sync_view();}
+        }
+    }
 }
 
 #[derive(Debug,PartialEq)]
@@ -54,6 +70,12 @@ enum CloseAction { Guard, Hide, Exit }
 // sticky through its confirmation so accepting it can never merely hide UI.
 fn close_action(keep:bool,exit:bool,dirty:bool,busy:bool)->CloseAction {
     if dirty||busy {CloseAction::Guard} else if keep&&!exit {CloseAction::Hide} else {CloseAction::Exit}
+}
+// A hidden window is still preparing its first frame (or running the bounded
+// read-only startup probe). Keep that controller active until initialization;
+// only a user-hidden/minimized initialized window should suspend composition.
+fn view_is_active(frame_initialized:bool,window_visible:bool,minimized:bool)->bool {
+    !minimized&&(!frame_initialized||window_visible)
 }
 struct HostWatch { stop:HANDLE, task:Option<JoinHandle<()>>, server_pid:u32 }
 struct BrowserLifetime(HANDLE);
@@ -87,6 +109,35 @@ mod background_tests {
         for keep in [true,false] { for exit in [true,false] {
             assert_eq!(close_action(keep,exit,true,false),CloseAction::Guard);
             assert_eq!(close_action(keep,exit,false,true),CloseAction::Guard);
+        }}
+    }
+    #[test]
+    fn native_view_sync_posts_one_wake_until_the_pending_batch_is_drained() {
+        std::thread::spawn(||unsafe{
+            // A hidden, runner-owned window needs no WebView or user input.
+            // Its queue must wake even if a sent resize is the final message.
+            let window=CreateWindowExW(0,w!("STATIC"),w!("WinOne view-sync test"),0,0,0,1,1,null_mut(),null_mut(),GetModuleHandleW(null()),null());
+            assert!(!window.is_null());
+            struct OwnedWindow(HWND);
+            impl Drop for OwnedWindow {fn drop(&mut self){unsafe{DestroyWindow(self.0);}}}
+            let _window=OwnedWindow(window);
+            let requested=Cell::new(false);let mut message=MSG::default();
+            request_view_sync(window,&requested);request_view_sync(window,&requested);
+            assert!(requested.get());
+            assert_ne!(PeekMessageW(&mut message,window,DISPATCH,DISPATCH,PM_REMOVE),0,"a sent resize must wake the outer message loop");
+            assert_eq!(PeekMessageW(&mut message,window,DISPATCH,DISPATCH,PM_REMOVE),0,"resize messages should coalesce");
+            requested.set(false);request_view_sync(window,&requested);
+            assert_ne!(PeekMessageW(&mut message,window,DISPATCH,DISPATCH,PM_REMOVE),0,"the next resize must not lose its wake");
+        }).join().unwrap();
+    }
+    #[test]
+    fn first_frame_and_hidden_probe_stay_active_but_retained_windows_suspend() {
+        assert!(view_is_active(false,false,false));
+        assert!(view_is_active(false,true,false));
+        assert!(view_is_active(true,true,false));
+        assert!(!view_is_active(true,false,false));
+        for initialized in [true,false] {for visible in [true,false] {
+            assert!(!view_is_active(initialized,visible,true));
         }}
     }
 }
@@ -127,7 +178,7 @@ impl HasWindowHandle for Window{
 }
 struct State{
     host_watch:Option<HostWatch>,
-    window:HWND,webview:Option<WebView>,client:Arc<Client>,cancel:Arc<AtomicBool>,
+    window:HWND,webview:Option<WebView>,view_visible:Option<bool>,client:Arc<Client>,cancel:Arc<AtomicBool>,
     incoming:mpsc::Receiver<Message>,outgoing:mpsc::Sender<Message>,jobs:Vec<(bool,JoinHandle<()>)>,
     ready:Arc<Mutex<HostReady>>,plan:crate::startup::Plan,pipe:String,directory:String,
     dirty:bool,busy:bool,close_pending:bool,navigation:u64,update_id:Option<String>,
@@ -142,6 +193,22 @@ struct State{
     browsers:Option<crate::component_browser::BrowserManager>,
 }
 impl State{
+    fn sync_view(&mut self){
+        let Some(view)=&self.webview else{return;};
+        let visible=view_is_active(self.frame_initialized,unsafe{IsWindowVisible(self.window)!=0},unsafe{IsIconic(self.window)!=0});
+        if visible{
+            let mut rect=RECT::default();
+            if unsafe{GetClientRect(self.window,&mut rect)}!=0&&rect.right>0&&rect.bottom>0{
+                if let Err(error)=view.set_bounds(Rect{position:PhysicalPosition::new(0,0).into(),size:PhysicalSize::new(rect.right as u32,rect.bottom as u32).into()}){eprintln!("webview layout: {error}");}
+            }
+        }
+        // Keep the last real viewport while hidden/minimized, instead of
+        // collapsing it to 1×1. Explicit controller visibility lets WebView2
+        // resume its compositor immediately without navigating/rebuilding UI.
+        if self.view_visible!=Some(visible){
+            match view.set_visible(visible){Ok(())=>self.view_visible=Some(visible),Err(error)=>eprintln!("webview visibility: {error}"),}
+        }
+    }
     fn tr<'a>(&self,zh:&'a str,en:&'a str)->&'a str{component_bridge::text(&self.locale,zh,en)}
     fn reply(&self,reply:Reply){if let Some(view)=&self.webview{
         let script=format!("window.__winoneReply({})",serde_json::to_string(&reply).unwrap());
@@ -261,7 +328,7 @@ impl State{
                 if let Some(view)=&self.webview{
                     // Wry supplies physical coordinates relative to the WebView.
                     // DOM hit-testing uses CSS pixels, including per-monitor DPI.
-                    let script=format!("(()=>{{if(document.querySelector('[role=dialog]'))return;const paths={},point={},scale=window.devicePixelRatio||1,position={{x:point[0]/scale,y:point[1]/scale}};const name=document.querySelector('[data-directory-links-root]')?'winone:directory-links-drop':document.querySelector('.chat-workspace')?'winone:chat-files-drop':null;if(name)window.dispatchEvent(new CustomEvent(name,{{detail:{{paths,position}}}}));}})()",json!(paths),json!(position));
+                    let script=format!("(()=>{{const paths={},point={},scale=window.devicePixelRatio||1,position={{x:point[0]/scale,y:point[1]/scale}},element=document.elementFromPoint(position.x,position.y);if(element&&!element.dispatchEvent(new CustomEvent('winone:paths-drop',{{bubbles:true,cancelable:true,detail:{{paths,position}}}})))return;if(document.querySelector('[role=dialog]'))return;const name=document.querySelector('[data-directory-links-root]')?'winone:directory-links-drop':document.querySelector('.chat-workspace')?'winone:chat-files-drop':null;if(name)window.dispatchEvent(new CustomEvent(name,{{detail:{{paths,position}}}}));}})()",json!(paths),json!(position));
                     if let Err(error)=view.evaluate_script(&script){eprintln!("native file drop: {error}");}
                 }
             },
@@ -293,6 +360,10 @@ impl State{
                     let Some(id)=&self.update_id else{self.reply(Reply::new(request.id,Err(RpcError::new("update","请先检查更新"))));continue;};request.args=vec![json!(id)];
                 }
                 if let Some(result)=self.ui_request(&request){self.reply(Reply::new(request.id,result));continue;}
+                // Replies may have completed additional jobs while this same
+                // dispatch batch admits queued reads. Count only live work;
+                // already-finished handles must not produce a spurious busy.
+                self.jobs.retain(|(_,job)|!job.is_finished());
                 if self.jobs.len()>=16{self.reply(Reply::new(request.id,Err(RpcError::new("busy","当前请求较多，请稍后重试"))));continue;}
                 let mutating=request.mutates();if mutating{self.mutations.insert(request.id);}
                 let (client,ready,plan,directory,pipe,target,outgoing)=(self.client.clone(),self.ready.clone(),self.plan.clone(),self.directory.clone(),self.pipe.clone(),self.window as usize,self.outgoing.clone());
@@ -375,6 +446,7 @@ unsafe extern "system" fn procedure(window:HWND,message:u32,w:WPARAM,l:LPARAM)->
         return 0;
     }
     let pointer=unsafe{GetWindowLongPtrW(window,GWLP_USERDATA)}as *const WindowState;
+    if !pointer.is_null()&&matches!(message,WM_SHOWWINDOW|WM_SIZE|WM_WINDOWPOSCHANGED){request_view_sync(window,&unsafe{&*pointer}.view_sync_requested);}
     if !pointer.is_null() && (message==WM_CLOSE || message==HOST_EXITED){
         let pending=&unsafe{&*pointer}.close_requested;
         // Host sends WM_CLOSE(wParam=1) for tray/maintenance exit. Zero is a
@@ -389,7 +461,7 @@ unsafe extern "system" fn procedure(window:HWND,message:u32,w:WPARAM,l:LPARAM)->
         WM_TIMER if w==crate::component_probe::TIMER&&state.probe.is_some()=>{state.finish_close();return 0;},
         crate::permissions::GUARD_MESSAGE=>return (!state.dirty&&!state.close_pending)as isize,
         crate::lifecycle::WAKE=>{if state.frame_initialized{reveal(window);}if w!=0{state.navigation+=1;state.event("winone:open-settings");}return 0;},
-        WM_SIZE=>{if let Some(view)=&state.webview{let mut rect=RECT::default();unsafe{GetClientRect(window,&mut rect);}if let Err(error)=view.set_bounds(Rect{position:PhysicalPosition::new(0,0).into(),size:PhysicalSize::new(rect.right.max(1)as u32,rect.bottom.max(1)as u32).into()}){eprintln!("webview layout: {error}");}}return 0;},
+        WM_SIZE=>{return 0;}, // drained after re-entrant ShowWindow/layout returns
         WM_SETFOCUS=>{if let Some(view)=&state.webview{let _=view.focus();}return 0;},
         WM_DPICHANGED=>{let rect=unsafe{&*(l as *const RECT)};unsafe{SetWindowPos(window,null_mut(),rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top,SWP_NOZORDER|SWP_NOACTIVATE);PostMessageW(window,WM_SIZE,0,0);}return 0;},
         _=>{},
@@ -452,7 +524,7 @@ fn run_inner(pipe:&str,directory:&str,open_settings:bool,plan:crate::startup::Pl
     let file_drop_enabled=Arc::new(AtomicBool::new(false));
     // An offline startup has no tray or shortcut owner. Adopt the background
     // preference only after a successful Host snapshot confirms this session.
-    let state=Box::new(WindowState{value:RefCell::new(State{host_watch:None,window:null_mut(),webview:None,client,cancel,incoming,outgoing:outgoing.clone(),jobs,ready,plan,pipe:pipe.into(),directory:directory.into(),dirty:false,busy:false,close_pending:false,keep_ui_running:false,exit_requested:false,navigation:open_settings as u64,update_id:None,mutations:HashSet::new(),file_drop_enabled:file_drop_enabled.clone(),probe:probe.clone(),locale:"zh-CN".into(),theme:"system".into(),frame_initialized:false,initial_show:SW_SHOWNORMAL,placement:None,window_warning:None,browsers:None}),close_requested:Cell::new(None)});
+    let state=Box::new(WindowState{value:RefCell::new(State{host_watch:None,window:null_mut(),webview:None,view_visible:None,client,cancel,incoming,outgoing:outgoing.clone(),jobs,ready,plan,pipe:pipe.into(),directory:directory.into(),dirty:false,busy:false,close_pending:false,keep_ui_running:false,exit_requested:false,navigation:open_settings as u64,update_id:None,mutations:HashSet::new(),file_drop_enabled:file_drop_enabled.clone(),probe:probe.clone(),locale:"zh-CN".into(),theme:"system".into(),frame_initialized:false,initial_show:SW_SHOWNORMAL,placement:None,window_warning:None,browsers:None}),close_requested:Cell::new(None),view_sync_requested:Cell::new(false)});
     let module=unsafe{GetModuleHandleW(null())};
     // The Host resolves this shared class before normal tray exit. Preserve
     // the existing identity so its close and unsaved-edit guards still apply.

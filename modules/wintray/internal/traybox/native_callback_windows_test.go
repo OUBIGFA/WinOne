@@ -119,8 +119,8 @@ func TestOpenPoliciesNeedObservedOutcome(t *testing.T) {
 	}
 }
 
-// Opt-in: briefly hosts a real Shell_TrayWnd and one test icon. Run with
-// WinTray closed so two collectors cannot race for the real taskbar class.
+// Opt-in: uses the native bridge and one disposable test icon. No fake
+// Shell_TrayWnd is created; the real taskbar remains discoverable throughout.
 func TestCollectedIconLiveShell32Callback(t *testing.T) {
 	if os.Getenv("WINTRAY_TRAY_LIVE_TEST") != "1" {
 		t.Skip("set WINTRAY_TRAY_LIVE_TEST=1 with WinTray closed")
@@ -130,7 +130,7 @@ func TestCollectedIconLiveShell32Callback(t *testing.T) {
 		t.Fatal(err)
 	}
 	f := startFakeShell(t)
-	l, err := startListener(listenerConfig{className: trayWindowClass, target: explorerTray, raise: true}, "", []string{self}, quietLogger{})
+	l, err := startListener(listenerConfig{className: brokerWindowClass, target: explorerTray, native: true}, "", []string{self}, quietLogger{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,6 +139,7 @@ func TestCollectedIconLiveShell32Callback(t *testing.T) {
 			t.Error(err)
 		}
 	}()
+	attachNativeTestBridge(t, l)
 	nid := win.NOTIFYICONDATA{HWnd: f.program, UID: 71, UFlags: win.NIF_MESSAGE | win.NIF_ICON | win.NIF_TIP, UCallbackMessage: testCallback, HIcon: win.LoadIcon(0, win.MAKEINTRESOURCE(win.IDI_APPLICATION))}
 	nid.CbSize = uint32(unsafe.Sizeof(nid))
 	if !win.Shell_NotifyIcon(win.NIM_ADD, &nid) {

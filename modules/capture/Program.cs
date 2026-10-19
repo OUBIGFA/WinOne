@@ -14,7 +14,7 @@ internal static class Program
         Console.OutputEncoding = new UTF8Encoding(false);
         try
         {
-            string? pipe = null, directory = null, hostPipe = null; int parent = 0;
+            string? pipe = null, directory = null, hostPipe = null; int parent = 0; bool stayReady = false;
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
@@ -23,11 +23,13 @@ internal static class Program
                     case "--data-dir": directory = args[++i]; break;
                     case "--parent": parent = int.Parse(args[++i], CultureInfo.InvariantCulture); break;
                     case "--host-pipe": hostPipe = args[++i]; break;
+                    case "--stay-ready": stayReady = true; break;
                     default: throw new ArgumentException("Unknown argument: " + args[i]);
                 }
             }
             if (pipe is null || directory is null || !Path.IsPathFullyQualified(directory)) throw new ArgumentException("Missing pipe or absolute data directory");
             if (hostPipe is not null && (parent <= 0 || string.IsNullOrWhiteSpace(hostPipe))) throw new ArgumentException("Host configuration requires a parent process and pipe");
+            if (stayReady && (parent <= 0 || hostPipe is null)) throw new ArgumentException("Standby requires an owning Host");
             using var mutex = new Mutex(false, "Local\\WinOneCapture-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(pipe))));
             try { if (!mutex.WaitOne(0)) return 2; } catch (AbandonedMutexException) { }
             try
@@ -59,7 +61,7 @@ internal static class Program
                         EditLast = (settings, operations, id, language, cancellation) =>
                             NativeUI.NativeCaptureWorkflow.EditLast(settings, operations, id, language, cancellation, drafts),
                         DraftMatches = (operations,id) => drafts.Read()?.Id == id || drafts.ReadReservation()?.Id == id || operations.GetDraft()?.Id == id
-                    }, nativeConfiguration: configuration);
+                    }, nativeConfiguration: configuration, stayReady: stayReady);
                 if (owner is not null) { owner.EnableRaisingEvents = true; owner.Exited += (_, _) => app.RequestStop(preserveActive: true); if (owner.HasExited) app.RequestStop(preserveActive: true); }
                 Application.Run(app); return app.ExitCode;
             }

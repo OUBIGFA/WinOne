@@ -14,19 +14,28 @@ const settings = {
   frameOpacity: 100, frameColor: "#808080", useAccent: true, roundCorners: true,
   blockInGameMode: true, sound: false, excludedApps: [],
 };
-it("lets a custom color replace the accent color without discarding other edits",async()=>{
+it("disables every custom border control until Custom color is explicitly selected",async()=>{
  call.mockImplementation(async(method:string,payload?:unknown)=>method==="settings.save"?{...(payload as object),revision:1}:settings);
  render(<AlwaysOnTopPage disabled/>);
  const input=await screen.findByLabelText("自定义边框颜色") as HTMLInputElement;
- expect(input.disabled).toBe(false);
+ const custom=screen.getByRole("group",{name:"自定义边框参数"});
+ for(const control of custom.querySelectorAll("input,button"))expect(control.matches(":disabled")).toBe(true);
+ input.focus();expect(document.activeElement).not.toBe(input);
  const user=userEvent.setup();await user.click(screen.getByRole("switch",{name:"播放提示音"}));
+ await user.click(screen.getByRole("radio",{name:"自定义颜色"}));
+ for(const control of custom.querySelectorAll("input,button"))expect(control.matches(":disabled")).toBe(false);
  fireEvent.change(input,{target:{value:"#123456"}});
- expect(screen.getByRole("switch",{name:"使用 Windows 强调色"}).getAttribute("aria-checked")).toBe("false");
+ await user.clear(screen.getByLabelText("边框粗细（1–15 像素）"));
+ await user.type(screen.getByLabelText("边框粗细（1–15 像素）"),"4");
+ await user.click(screen.getByRole("radio",{name:"Windows 强调色"}));
+ for(const control of custom.querySelectorAll("input,button"))expect(control.matches(":disabled")).toBe(true);
+ expect(input.value).toBe("#123456");
+ await user.click(screen.getByRole("radio",{name:"自定义颜色"}));
+ expect((screen.getByLabelText("边框粗细（1–15 像素）") as HTMLInputElement).value).toBe("4");
  await user.click(screen.getByRole("button",{name:"保存设置"}));
  await screen.findByText("已保存");
- expect(input.value).toBe("#123456");
  expect(screen.getByRole("switch",{name:"播放提示音"}).getAttribute("aria-checked")).toBe("true");
- expect(call).toHaveBeenCalledWith("settings.save",expect.objectContaining({frameColor:"#123456",useAccent:false,sound:true}));
+ expect(call).toHaveBeenCalledWith("settings.save",expect.objectContaining({frameColor:"#123456",frameThickness:4,useAccent:false,sound:true}));
 });
 it("keeps pinning failure feedback without an independent log tab",async()=>{
  call.mockRejectedValue(Error("pinning unavailable"));
@@ -38,7 +47,7 @@ it("keeps pinning failure feedback without an independent log tab",async()=>{
 it("offers common and advanced tabs while retaining the draft",async()=>{
  call.mockResolvedValue(settings);render(<AlwaysOnTopPage disabled/>);
  const user=userEvent.setup();await screen.findByRole("switch",{name:"播放提示音"});
- expect(screen.getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["常规设置","高级设置"]);
+ expect(screen.getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["常规设置","高级设置","快捷键"]);
  await user.click(screen.getByRole("tab",{name:"高级设置"}));
  const text=screen.getByRole("textbox");await user.type(text,"example.exe");
  await user.click(screen.getByRole("tab",{name:"常规设置"}));
@@ -75,6 +84,7 @@ it("uses the last successful save as the baseline for further edits",async()=>{
 it("keeps an empty number editable and blocks invalid settings from being saved",async()=>{
  call.mockResolvedValue(settings);render(<AlwaysOnTopPage disabled/>);const user=userEvent.setup();
  const input=await screen.findByRole("spinbutton",{name:"边框粗细（1–15 像素）"});
+  await user.click(screen.getByRole("radio",{name:"自定义颜色"}));
   await user.clear(input);
   expect((input as HTMLInputElement).value).toBe("");
   expect(input.getAttribute("aria-invalid")).toBe("true");

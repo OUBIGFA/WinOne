@@ -41,6 +41,16 @@ func (t Translator) start(ctx context.Context) (*aiProcess, error) {
 	}
 	cmd := exec.CommandContext(ctx, t.Executable)
 	cmd.Env = isolatedEnvironment(t.DataDirectory)
+	// Share user-installed plugin code, while isolatedEnvironment keeps auth
+	// and other account files private to the selected provider profile.
+	pluginRoot := t.RootDataDirectory
+	if pluginRoot == "" {
+		pluginRoot = t.DataDirectory
+	}
+	cmd.Env = append(cmd.Env, "WINONE_AI_PLUGINS_HOME="+filepath.Join(pluginRoot, "third-party"))
+	if t.TransportOnly {
+		cmd.Env = append(cmd.Env, "WINONE_AI_TRANSPORT_ONLY=1")
+	}
 	usagePath := t.UsagePath
 	if usagePath == "" {
 		usagePath = filepath.Join(t.DataDirectory, "config", "magpie", "usage.jsonl")

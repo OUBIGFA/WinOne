@@ -33,6 +33,41 @@ func multiKeyStore(t *testing.T) (*Store, string) {
 	return s, path
 }
 
+func TestBalanceReadKeepsInferenceKeyRotationAndDisabledKeys(t *testing.T) {
+	s, _ := multiKeyStore(t)
+	p, plan, err := s.ProviderKeysForModels("one")
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime := Translator{Executable: filepath.Join(t.TempDir(), "missing.exe"), DataDirectory: t.TempDir()}
+	if _, err = runtime.KeyBalances(context.Background(), p, plan); err == nil {
+		t.Fatal("missing worker reported success")
+	}
+	if err = s.WithKeys(context.Background(), plan, func(_ context.Context, key string) (bool, error) {
+		if key != "fixture-first-secret" {
+			t.Fatal("balance read advanced inference rotation")
+		}
+		return false, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	c := s.Configuration()
+	for i := range c.Providers[0].Keys {
+		c.Providers[0].Keys[i].Enabled = false
+	}
+	if _, err = s.SaveConfiguration(c, nil); err != nil {
+		t.Fatal(err)
+	}
+	p, plan, err = s.ProviderKeysForModels("one")
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := runtime.KeyBalances(context.Background(), p, plan)
+	if err != nil || string(raw) != `{"quotas":[]}` {
+		t.Fatalf("disabled keys caused a read: %s %v", raw, err)
+	}
+}
+
 func TestMultipleKeysPersistEncryptedAndRotateAcrossTasks(t *testing.T) {
 	s, path := multiKeyStore(t)
 	stored, err := os.ReadFile(path)

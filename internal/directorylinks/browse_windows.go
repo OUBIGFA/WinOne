@@ -14,16 +14,18 @@ import (
 // BrowseEntry describes an entry, not a registered link or an assertion that
 // its contents can be read. Detailed verification remains an explicit scan.
 type BrowseEntry struct {
-	Name       string `json:"name"`
-	Path       string `json:"path"`
-	ObjectType string `json:"objectType"`
-	Kind       string `json:"kind,omitempty"`
-	TargetPath string `json:"targetPath,omitempty"`
-	Error      string `json:"error,omitempty"`
+	Name       string   `json:"name"`
+	Path       string   `json:"path"`
+	ObjectType string   `json:"objectType"`
+	Kind       string   `json:"kind,omitempty"`
+	TargetPath string   `json:"targetPath,omitempty"`
+	Identity   Identity `json:"identity"`
+	Error      string   `json:"error,omitempty"`
 }
 
 type DirectoryListing struct {
 	Directory string        `json:"directory"`
+	Identity  Identity      `json:"identity"`
 	Parent    string        `json:"parent"`
 	Entries   []BrowseEntry `json:"entries"`
 	Total     int           `json:"total"`
@@ -66,6 +68,7 @@ func (m *Manager) Browse(ctx context.Context, directory string, offset int) (Dir
 		}
 		return strings.ToLower(entries[i].Name()) < strings.ToLower(entries[j].Name())
 	})
+	result.Identity = root.identity
 	result.Directory, result.Parent, result.Total = path, filepath.Dir(path), len(entries)
 	if strings.EqualFold(result.Parent, path) {
 		result.Parent = ""
@@ -85,6 +88,7 @@ func (m *Manager) Browse(ctx context.Context, directory string, offset int) (Dir
 		if err != nil {
 			item.Error = err.Error()
 		} else {
+			item.Identity = state.identity
 			item.ObjectType = state.objectType()
 			if state.reparse {
 				tag, target, relative, readErr := readReparse(state)

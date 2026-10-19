@@ -800,6 +800,9 @@ func (t *winTray) showMenu() error {
 		uintptr(t.window),
 		0,
 	)
+	if styled != nil && styled.frameError != nil {
+		return styled.frameError
+	}
 	if res == 0 {
 		return err
 	}

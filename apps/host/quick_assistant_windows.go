@@ -66,5 +66,18 @@ func (r *quickAssistantRuntime) handle(request host.Request) host.Response {
 	if err := r.results.openQuickAssistantWithText(input.Text, actions, options); err != nil {
 		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "quick_assistant", Message: err.Error()}}
 	}
-	return host.Response{ID: request.ID, Result: json.RawMessage(`{"shown":true}`)}
+	target, err := r.results.quickAssistantTarget()
+	// In-process hotkeys have no pipe peer. Windows grants their owner the
+	// foreground right; clicks instead activate in the native caller below.
+	if err == nil && request.PeerPID == 0 {
+		err = target.Activate()
+	}
+	if err != nil {
+		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "quick_assistant", Message: err.Error()}}
+	}
+	data, _ := json.Marshal(struct {
+		resultwindow.WindowTarget
+		Shown bool `json:"shown"`
+	}{target, true})
+	return host.Response{ID: request.ID, Result: data}
 }

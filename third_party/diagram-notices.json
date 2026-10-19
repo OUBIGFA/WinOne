@@ -240,6 +240,10 @@
                          "license":  "MIT OR Apache-2.0",
                          "notices":  [
                                          {
+                                             "file":  "licenses/diagram-euclid-0.22.14-COPYRIGHT.txt",
+                                             "sha256":  "ec82b96487e9e778ee610c7ab245162464782cfa1f555c2299333f8dbe5c036a"
+                                         },
+                                         {
                                              "file":  "licenses/diagram-euclid-0.22.14-LICENSE-APACHE.txt",
                                              "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
                                          },
@@ -1040,6 +1044,10 @@
                          "license":  "MIT OR Apache-2.0",
                          "notices":  [
                                          {
+                                             "file":  "licenses/diagram-unicode-bidi-0.3.18-COPYRIGHT.txt",
+                                             "sha256":  "edb20b474f6cbd4f4db066b54a9e0f687d0009d309412a63431189b59b8e2a07"
+                                         },
+                                         {
                                              "file":  "licenses/diagram-unicode-bidi-0.3.18-LICENSE-APACHE.txt",
                                              "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
                                          },
@@ -1107,6 +1115,10 @@
                          "source":  "registry+https://github.com/rust-lang/crates.io-index",
                          "license":  "MIT/Apache-2.0",
                          "notices":  [
+                                         {
+                                             "file":  "licenses/diagram-unicode-properties-0.1.4-COPYRIGHT.txt",
+                                             "sha256":  "23860c2a7b5d96b21569afedf033469bab9fe14a1b24a35068b8641c578ce24d"
+                                         },
                                          {
                                              "file":  "licenses/diagram-unicode-properties-0.1.4-LICENSE-APACHE.txt",
                                              "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"

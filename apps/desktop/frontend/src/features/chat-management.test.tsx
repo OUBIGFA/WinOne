@@ -14,6 +14,15 @@ afterEach(()=>{cleanup();vi.resetAllMocks();localStorage.clear();});
 const model={provider:"service",model:"model"};
 const providers=[{id:"service",name:"Current service",authMode:"api-key" as const,hasKey:false,models:["model"],modelNames:{model:"Current model"}}];
 const settings={workspaceDirectory:"C:\\work",skillDirectories:[],pluginDirectories:[],mcpServers:[],automations:[]};
+
+it('saves the MCP exposure choice without changing the server address',async()=>{
+ native.call.mockImplementation(async(method,params)=>method==='settings.get'?{...settings,mcpServers:[{name:'fixture',enabled:true,url:'http://127.0.0.1:12345'}]}:params.settings);
+ const user=userEvent.setup();render(<ChatSettings open onOpenChange={()=>{}} providers={providers} defaultModel={model} onSaved={()=>{}} onConversation={()=>{}}/>);
+ await user.click(await screen.findByRole('tab',{name:'MCP'}));
+ await user.selectOptions(screen.getByRole('combobox',{name:'工具调用方式'}),'codemode');
+ await user.click(screen.getByRole('button',{name:'保存设置'}));
+ await waitFor(()=>expect(native.call).toHaveBeenCalledWith('settings.save',expect.objectContaining({settings:expect.objectContaining({mcpServers:[expect.objectContaining({url:'http://127.0.0.1:12345',exposure:'codemode'})]})})));
+});
 const first:Conversation={id:"first",title:"First",directory:"C:\\first",sessionDirectory:"C:\\history1",model,permission:"ask",updatedAt:"2026-10-10",createdAt:"2026-10-10"};
 const second:Conversation={...first,id:"second",title:"Second",directory:"C:\\second"};
 function backend(){
@@ -33,6 +42,19 @@ function backend(){
 }
 const menu=async(user:ReturnType<typeof userEvent.setup>,name:string)=>{const trigger=await screen.findByRole("button",{name});trigger.focus();await user.keyboard("{ArrowDown}");};
 const type=async(user:ReturnType<typeof userEvent.setup>,input:HTMLElement,text:string)=>{input.focus();await user.clear(input);await user.type(input,text,{skipClick:true});};
+
+it('shows the persisted conversation-text title after AI generation fails',async()=>{
+ backend();const original=native.call.getMockImplementation()!;let failed=false;
+ native.call.mockImplementation(async(method,params)=>{
+  if(method==='title.regenerate'){failed=true;throw Error('Service unavailable');}
+  const value=await original(method,params);
+  return method==='catalog'&&failed?{...value,conversations:value.conversations.map((row:Conversation)=>row.id===second.id?{...row,title:'Conversation opening fallback'}:row)}:value;
+ });
+ render(<ChatPage/>);const user=userEvent.setup();await menu(user,'更多操作 · Second');await user.click(await screen.findByRole('menuitem',{name:'AI 重命名'}));
+ expect(await screen.findByRole('button',{name:'Conversation opening fallback'})).toBeTruthy();
+ expect(screen.getByText('Service unavailable')).toBeTruthy();
+ expect(native.call.mock.calls.filter(([method])=>method==='title.regenerate')).toHaveLength(1);
+});
 
 it('renames a closed conversation without requiring a live Pi session',async()=>{
  backend();const fallback=native.call.getMockImplementation()!;
@@ -143,4 +165,17 @@ it("shows the historical provider and model as plain text",()=>{
 it("keeps file-only user messages visible with their attachment names",()=>{
  render(<ChatMessageView message={{role:"user",content:"",attachments:[{name:"report.pdf",path:"C:\\history\\attachments\\report.pdf",size:1024,mimeType:"application/pdf"}]}} conversationId="first" onCopy={()=>{}} onFork={()=>{}} canFork={false}/>);
  expect(screen.getByRole("button",{name:/report.pdf/})).toBeTruthy();
+});
+
+it("saves session runtime defaults with chat settings",async()=>{
+ backend();render(<ChatSettings open onOpenChange={()=>{}} providers={providers} defaultModel={model} onSaved={()=>{}} onConversation={()=>{}}/>);const user=userEvent.setup();
+ await user.selectOptions(await screen.findByRole("combobox",{name:"默认思考强度"}),"high");
+ await user.click(screen.getByRole("checkbox",{name:"自动重试"}));
+ await user.click(screen.getByRole('checkbox',{name:'后台压缩'}));
+ await user.click(screen.getByRole('checkbox',{name:'Code Mode'}));
+ await user.click(screen.getByRole('checkbox',{name:'计划工具'}));
+ await user.selectOptions(screen.getByRole('combobox',{name:'工具预设'}),'read-only');
+ const limit=screen.getByRole('spinbutton',{name:'同时运行的子代理上限'});await user.clear(limit);await user.type(limit,'2');
+ await user.click(screen.getByRole("button",{name:"保存设置"}));
+ await waitFor(()=>expect(native.call).toHaveBeenCalledWith("settings.save",{settings:{...settings,defaultThinkingLevel:"high",autoRetry:false,backgroundCompaction:true,codeMode:false,planning:false,toolPreset:'read-only',maxSubagents:2}}));
 });

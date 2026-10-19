@@ -23,6 +23,9 @@
       <_Parameter1>WinOne.Capture.ScrollTests</_Parameter1>
     </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>WinOne.Recording.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>WinOne.NativeCapture.Probe</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>

@@ -1,16 +1,19 @@
-import {Settings,SlidersHorizontal,Save,RotateCcw} from "lucide-react";
+import {SettingsSaveBar} from "../components/settings-save-bar";
+import {Settings,SlidersHorizontal,Save,RotateCcw,SendHorizontal,Frame,BellRing,Gamepad2} from "lucide-react";
 import {IconLabel} from "../ui/icon-label";
 import {Notice,InlineError} from "../ui/notice";
 import {Tabs,TabsList,TabsTrigger,TabsContent} from "../components/ui/tabs";
+import {SettingsSection,SettingsOptions,SettingsToggle} from "../components/settings-layout";
 
+import {Shortcuts} from "./shortcuts";
 import {Label} from "../components/ui/label";
 import { useEffect, useState } from "react";
 import { alwaysOnTopCall } from "../bridge";
-import { Switch } from "../ui/switch";
 import { Button } from "../ui/button";
 import { useTranslation } from "../i18n";
 import {Input} from "../components/ui/input";
 import {NumberField,validNumber} from "../ui/number-field";
+import {usePathDrop} from "../ui/path-drop";
 import {Textarea} from "../components/ui/textarea";
 import {usePageActivity,type PageActivityChanged} from "../ui/page-navigation";
 
@@ -23,7 +26,7 @@ interface Preferences {
 interface Snapshot { settings: Preferences; administrator?: boolean }
 
 
-export function AlwaysOnTopPage({ disabled = false,onActivity }: { disabled?: boolean;onActivity?:PageActivityChanged }) {
+export function AlwaysOnTopPage({ disabled = false,onActivity,onSaved }: { disabled?: boolean;onActivity?:PageActivityChanged;onSaved?:()=>void }) {
   const {t}=useTranslation();
   const [tab,setTab]=useState("general");
   const [settings, setSettings] = useState<Preferences>();
@@ -37,6 +40,7 @@ export function AlwaysOnTopPage({ disabled = false,onActivity }: { disabled?: bo
   // Compare the values that will be saved, including trimmed exclusion lines,
   // so undoing an edit also clears the navigation warning.
   const excludedApps=exclusions.split(/\r?\n/).map(value=>value.trim()).filter(Boolean);
+  const exclusionDrop=usePathDrop({kind:"file",multiple:true,disabled:busy||!settings,onError:setError,onPaths:paths=>{setError("");setExclusions(value=>[...new Set([...value.split(/\r?\n/).filter(Boolean),...paths])].join("\n"));}});
   const dirty=!!settings&&JSON.stringify({...settings,excludedApps})!==JSON.stringify(savedSettings);
 
   usePageActivity(onActivity,dirty,working);
@@ -73,51 +77,57 @@ export function AlwaysOnTopPage({ disabled = false,onActivity }: { disabled?: bo
     setSettings(saved); setSavedSettings(saved); setExclusions(saved.excludedApps.join("\n"));
     setNotice("common.saved");
   }
-  const navigationTabs=(<TabsList variant="line" className="max-w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto" aria-label={t("aot.settings")}><TabsTrigger value="general"><IconLabel icon={Settings}>{t("aot.general")}</IconLabel></TabsTrigger><TabsTrigger value="advanced"><IconLabel icon={SlidersHorizontal}>{t("aot.options")}</IconLabel></TabsTrigger></TabsList>);
+  const navigationTabs=(<TabsList variant="line" className="max-w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto" aria-label={t("aot.settings")}><TabsTrigger title={t("aot.general")} value="general"><IconLabel icon={Settings}>{t("aot.general")}</IconLabel></TabsTrigger><TabsTrigger title={t("aot.options")} value="advanced"><IconLabel icon={SlidersHorizontal}>{t("aot.options")}</IconLabel></TabsTrigger><TabsTrigger title={t("shortcuts.title")} value="shortcuts"><IconLabel icon={SendHorizontal}>{t("shortcuts.title")}</IconLabel></TabsTrigger></TabsList>);
   const unavailable=error
     ? <Notice actions={<Button disabled={busy} onClick={()=>void action(()=>refresh(true),true)}>{t("common.retry")}</Button>}>{error}</Notice>
     : <p role="status">{t("aot.loading")}</p>;
 
 
   const validNumbers=!!settings&&validNumber(settings.frameThickness,1,15)&&validNumber(settings.frameOpacity,10,100);
-  const toggle=(key:"frame"|"useAccent"|"roundCorners"|"blockInGameMode"|"sound",label:string)=><div className="settings-switch-row py-3"><Label htmlFor={`aot-${key}`}>{t(label)}</Label><Switch id={`aot-${key}`} checked={!!settings?.[key]} disabled={busy} onCheckedChange={value=>change(key,value)}/></div>;
+  const customBorderDisabled=busy||!!settings?.useAccent;
+  const toggle=(key:"frame"|"roundCorners"|"blockInGameMode"|"sound",label:string,unavailable=busy)=><SettingsToggle id={`aot-${key}`} label={t(label)} checked={!!settings?.[key]} disabled={unavailable} onChange={value=>change(key,value)}/>;
   return <section>
       <Tabs value={tab} onValueChange={value=>setTab(String(value))}>
         {navigationTabs}
     {error && settings && <Notice>{error}</Notice>}
     {disabled && <p className="muted">{t("aot.disabled")}</p>}
-        <TabsContent value="general" className="space-y-3">{settings?<fieldset className="plain-fieldset settings-stack" disabled={busy}>
+        <TabsContent value="general" className="space-y-3">{settings?<fieldset className="plain-fieldset settings-section-stack" disabled={busy}>
+          <SettingsSection icon={Frame} title={t("settingsDesign.borderAppearance")}>
           {toggle("frame","aot.frame")}
-          {(settings.frame||!validNumbers)&&<div className="settings-group border-t pt-5">
-            {toggle("useAccent","aot.accent")}
-            <div className="settings-switch-row"><Label htmlFor="aot-color">{t("aot.color")}</Label><Input id="aot-color" className="w-16 shrink-0 px-1" type="color" disabled={busy} value={settings.frameColor} onChange={event=>{
-              // Choosing a custom color is an explicit alternative to the
-              // accent color. Keep unrelated edits and commit both together.
-              const frameColor=event.target.value;
-              setSettings(current=>current?{...current,frameColor,useAccent:false}:current);
-            }}/></div>
+          {(settings.frame||!validNumbers)&&<div className="settings-dependent">
+            <SettingsOptions label={t("settingsDesign.accentSource")} value={settings.useAccent?"system":"custom"} disabled={busy}
+              items={[{value:"system",label:t("settingsDesign.accentSystem")},{value:"custom",label:t("settingsDesign.accentCustom")}]}
+              onChange={value=>change("useAccent",value==="system")}/>
+            {/* A system-colour choice must never be silently changed by an
+                edit below it. Disable the entire custom group, keep its draft. */}
+            <fieldset className="plain-fieldset settings-dependent-controls" disabled={customBorderDisabled} aria-label={t("settingsDesign.customBorderParameters")} aria-describedby="aot-custom-help">
+            <div className="settings-switch-row"><Label htmlFor="aot-color">{t("aot.color")}</Label><Input id="aot-color" className="w-16 shrink-0 px-1" type="color" disabled={customBorderDisabled} value={settings.frameColor} onChange={event=>change("frameColor",event.target.value)}/></div>
             <div className="settings-field-grid">
-              <NumberField id="aot-thickness" label={t("aot.thickness")} min={1} max={15} value={settings.frameThickness} onChange={value=>change("frameThickness",value)}/>
-              <NumberField id="aot-opacity" label={t("aot.opacity")} min={10} max={100} value={settings.frameOpacity} onChange={value=>change("frameOpacity",value)}/>
+              <NumberField id="aot-thickness" label={t("aot.thickness")} min={1} max={15} value={settings.frameThickness} disabled={customBorderDisabled} onChange={value=>change("frameThickness",value)}/>
+              <NumberField id="aot-opacity" label={t("aot.opacity")} min={10} max={100} value={settings.frameOpacity} disabled={customBorderDisabled} onChange={value=>change("frameOpacity",value)}/>
             </div>
-            {toggle("roundCorners","aot.rounded")}
+            {toggle("roundCorners","aot.rounded",customBorderDisabled)}
+            </fieldset>
+            <p id="aot-custom-help" className="settings-help">{t("settingsDesign.customBorderHint")}</p>
           </div>}
-          {toggle("sound","aot.sound")}
+          </SettingsSection>
+          <SettingsSection icon={BellRing} title={t("settingsDesign.feedback")}>{toggle("sound","aot.sound")}</SettingsSection>
         </fieldset>:unavailable}</TabsContent>
-        <TabsContent value="advanced" className="space-y-4">{settings?<fieldset className="plain-fieldset settings-stack" disabled={busy}>
+        <TabsContent value="advanced" className="space-y-4">{settings?<fieldset className="plain-fieldset settings-section-stack" disabled={busy}>
+          <SettingsSection icon={Gamepad2} title={t("settingsDesign.usageLimits")}>
           {toggle("blockInGameMode","aot.game")}
-          <div className="settings-stack-compact"><Label htmlFor="aot-exclusions">{t("aot.exclusions")}</Label><Textarea id="aot-exclusions" rows={4} value={exclusions} onChange={event=>setExclusions(event.target.value)}/></div>
+          <div className="settings-stack-compact"><Label htmlFor="aot-exclusions">{t("aot.exclusions")}</Label><Textarea {...exclusionDrop} id="aot-exclusions" rows={4} value={exclusions} onChange={event=>setExclusions(event.target.value)}/></div>
+          </SettingsSection>
 
         </fieldset>:unavailable}</TabsContent>
 
+      <TabsContent value="shortcuts" className="settings-section-stack"><Shortcuts moduleId="always-on-top" onSaved={()=>onSaved?.()} onActivity={onActivity}/></TabsContent>
       </Tabs>
-      {settings&&<fieldset className="plain-fieldset" disabled={busy}>
-      {!validNumbers&&<InlineError className="text-sm">{t("aot.numberRange")}</InlineError>}
-      <div className="settings-save-bar">
+      {settings&&tab!=="shortcuts"&&<SettingsSaveBar disabled={busy}>
+      {!validNumbers&&<InlineError className="basis-full text-sm">{t("aot.numberRange")}</InlineError>}
         <Button icon={Save} variant="primary" disabled={!dirty||!validNumbers} onClick={() => void action(save)}>{t("aot.save")}</Button>
         <Button icon={RotateCcw} disabled={!dirty} onClick={() => void action(() => refresh(true),true)}>{t("aot.undo")}</Button>
-      </div>
       <p role="status">{dirty ? t("aot.dirty") : notice?t(notice):""}</p>
-      </fieldset>}
+      </SettingsSaveBar>}
   </section>;
 }

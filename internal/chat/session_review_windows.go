@@ -226,8 +226,8 @@ func (s *Store) sessionReview(id, turnID string) (ReviewSnapshot, map[string]str
 	if !foundTurn {
 		return result, nil, errors.New("此工作轮次不在当前会话分支中")
 	}
+	result.captured = captures
 	if turnID != "" {
-		result.captured = captures
 		result.IsReversible = len(result.Files) > 0
 		for index, file := range result.Files {
 			capture := captures[file.Path]

@@ -25,6 +25,29 @@ func (s *Store) sealedCredentialLocked(provider, id string) string {
 	return s.keys[provider]
 }
 
+// RevealCredential reads one saved key only for an explicit user action. It
+// neither rotates request keys nor consumes the stored value; disabled keys
+// remain inspectable. Configuration snapshots and exports still omit secrets.
+func (s *Store) RevealCredential(provider, id string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p, ok := s.configurationLocked().Provider(provider)
+	if !ok || p.AuthMode != "api-key" {
+		return "", errors.New("请选择已保存的自定义供应商")
+	}
+	for _, slot := range p.Keys {
+		if slot.ID != id {
+			continue
+		}
+		sealed := s.sealedCredentialLocked(provider, id)
+		if sealed == "" {
+			return "", errors.New("此密钥尚未保存，请先填写密钥")
+		}
+		return unsealKey(sealed)
+	}
+	return "", errors.New("密钥输入项不存在或不属于该供应商")
+}
+
 func sealCredential(value string) (string, error) {
 	if len(value) > 16384 {
 		return "", errors.New("密钥过长")

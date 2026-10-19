@@ -1,4 +1,6 @@
+import {IconLabel} from "../ui/icon-label";
 import {InlineError} from "../ui/notice";
+import {HardDrive} from "lucide-react";
 import { useEffect, useState } from "react";
 import { getResidency } from "../bridge";
 import { useTranslation } from "../i18n";
@@ -18,7 +20,7 @@ export function ResidencyStatus() {
     void refresh();return()=>{cancelled=true;clearTimeout(timer);};
   },[]);
   return <div className="settings-state-panel">
-    <h3 className="settings-group-title">{t("wintray.residency")}</h3>
+    <h3 className="settings-group-title"><IconLabel icon={HardDrive}>{t("wintray.residency")}</IconLabel></h3>
     {error ? <InlineError>{error}</InlineError> : state && <>
       <p>{t(state.requested ? "wintray.exitRequested" : "wintray.exitHint")}</p>
       {state.reasons.length>0 && <ul>{state.reasons.map(reason=><li key={reason}>{reason==="ai-gateway"?t("gateway.title"):reason}</li>)}</ul>}

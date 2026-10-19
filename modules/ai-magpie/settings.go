@@ -8,10 +8,13 @@ import (
 	"github.com/yetone/magpie/internal/catalog"
 	"github.com/yetone/magpie/internal/fx"
 	"github.com/yetone/magpie/internal/gateway"
+	"github.com/yetone/magpie/internal/pluginrt"
 	"github.com/yetone/magpie/internal/provider"
 	"github.com/yetone/magpie/internal/redact"
 	"github.com/yetone/magpie/internal/settings"
+	_ "github.com/yetone/magpie/plugins/all"
 	"io"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -20,10 +23,37 @@ import (
 // The public configuration and the upstream runtime share field names. Extra
 // WinOne UI properties are intentionally not written into Magpie's profile.
 func applyRuntimeSettings(in request) error {
+	gateway.WinOneTransportOnly = os.Getenv("WINONE_AI_TRANSPORT_ONLY") == "1"
+	if err := applyBuiltinPlugins(in.MagpieSettings); err != nil {
+		return err
+	}
+	if err := loadBundledSelection(in.MagpieSettings); err != nil {
+		return err
+	}
+	if err := prepareThirdPartyRuntime(in.Operation); err != nil {
+		return err
+	}
+	if in.Operation != "magpie.catalog" && in.Operation != "accounts.catalog" {
+		if err := prepareBundledExtensions(context.Background()); err != nil {
+			return err
+		}
+	}
 	s := settings.Settings{NoStats: true, NoUsageStats: true}
 	if len(in.MagpieSettings) > 0 && string(in.MagpieSettings) != "null" {
 		if err := json.Unmarshal(in.MagpieSettings, &s); err != nil {
 			return errors.New("invalid Magpie settings")
+		}
+	}
+	// WinOne language tags use regions; Magpie's saved settings validate its
+	// own locale keys. Normalize before any route preference can be saved.
+	switch s.Lang {
+	case "zh-CN", "zh-Hans":
+		s.Lang = "zh"
+	case "zh-Hant", "zh-HK":
+		s.Lang = "zh-TW"
+	default:
+		if strings.HasPrefix(s.Lang, "en-") {
+			s.Lang = "en"
 		}
 	}
 	rules, err := redact.CheckRules(s.RedactRules)
@@ -44,7 +74,11 @@ func applyRuntimeSettings(in request) error {
 	}
 	provider.WinOneSearchAPIs = append([]provider.SearchAPI{}, extra.SearchAPIs...)
 	settings.WinOneUse(s)
-	return nil
+	// These protocol features now register through Magpie's plugin runtime.
+	// Compose their actual upstream implementations in WinOne's private
+	// profile; never bypass the gateway's fail-closed privacy check.
+	_, err = pluginrt.Refresh()
+	return err
 }
 
 // installModelPreferences feeds the exact upstream preference maps before its
@@ -124,7 +158,7 @@ func magpieCatalog(ctx context.Context, in request, output io.Writer) error {
 	// model bridge. Neither path enumerates a real external application home.
 	provider.WinOneProviders = []provider.Provider{}
 	if in.Agent != "" {
-		if _, err := findAccount(ctx, in.Agent, in.AgentBackend); err != nil {
+		if _, err := findAccount(ctx, in.Agent); err != nil {
 			return err
 		}
 	}
@@ -133,7 +167,7 @@ func magpieCatalog(ctx context.Context, in request, output io.Writer) error {
 	}
 	searchVendors := []map[string]any{}
 	for _, v := range provider.SearchVendors {
-		searchVendors = append(searchVendors, map[string]any{"id": v.ID, "name": v.Name, "keysURL": v.KeysURL, "needURL": v.Base == ""})
+		searchVendors = append(searchVendors, map[string]any{"id": v.ID, "name": v.Name, "keysURL": v.KeysURL, "needURL": v.Base == "", "keyOptional": v.KeyOptional})
 	}
 	categories := []map[string]any{}
 	for _, c := range redact.Categories {
@@ -183,13 +217,17 @@ func magpieCatalog(ctx context.Context, in request, output io.Writer) error {
 	fxctx, cancel := context.WithTimeout(ctx, 4*time.Second)
 	rate := fx.Get(fxctx)
 	cancel()
-	return json.NewEncoder(output).Encode(map[string]any{"searchVendors": searchVendors, "redactionCategories": categories, "redactCategories": categories, "visionModels": visionModels, "titleModels": titleModels, "visionAuto": gateway.AutoVision(), "visionMissing": gateway.VisionMissing(), "imageGenModels": imageModels, "imageGenAuto": gateway.AutoDrawer(), "imageGenMissing": gateway.DrawerMissing(), "searchChoices": choices, "searchAuto": gateway.AutoSearcher(), "searchProvider": gateway.Searcher(), "searchUnused": gateway.SearcherUnused(), "searchRelays": relays, "searchLeftOut": leftOut, "pluginCheckins": checkins, "checkinPlugins": checkins, "codexUsers": users, "noAccountsEnv": false, "fx": map[string]any{"rate": rate.CNYPerUSD, "at": rate.At, "stale": rate.Stale()}})
+	plugins, err := builtinPluginCatalog()
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(output).Encode(map[string]any{"builtinPlugins": plugins, "bundledPlugins": accountPlugins(), "searchVendors": searchVendors, "redactionCategories": categories, "redactCategories": categories, "visionModels": visionModels, "titleModels": titleModels, "visionAuto": gateway.AutoVision(), "visionMissing": gateway.VisionMissing(), "imageGenModels": imageModels, "imageGenAuto": gateway.AutoDrawer(), "imageGenMissing": gateway.DrawerMissing(), "searchChoices": choices, "searchAuto": gateway.AutoSearcher(), "searchProvider": gateway.Searcher(), "searchUnused": gateway.SearcherUnused(), "searchRelays": relays, "searchLeftOut": leftOut, "pluginCheckins": checkins, "checkinPlugins": checkins, "codexUsers": users, "noAccountsEnv": false, "fx": map[string]any{"rate": rate.CNYPerUSD, "at": rate.At, "stale": rate.Stale()}})
 }
 
 func testModels(ctx context.Context, in request, output io.Writer) error {
 	var p provider.Provider
 	if in.Agent != "" {
-		a, err := findAccount(ctx, in.Agent, in.AgentBackend)
+		a, err := findAccount(ctx, in.Agent)
 		if err != nil {
 			return err
 		}
@@ -234,22 +272,20 @@ func maintainMagpie(ctx context.Context, in request, output io.Writer) error {
 	if in.Agent == "" {
 		return errors.New("an account is required for quota maintenance")
 	}
-	if _, err := findAccount(ctx, in.Agent, in.AgentBackend); err != nil {
+	if _, err := findAccount(ctx, in.Agent); err != nil {
 		return err
 	}
 	s := settings.Load()
 	checkins := []provider.WorkBuddyCheckin{}
-	if in.AgentBackend == "plugin" && provider.PluginCheckinOn(s, in.Agent) {
+	if provider.PluginCheckinOn(s, in.Agent) {
 		checkins = append(checkins, provider.CheckInPlugins(ctx, in.Agent)...)
-	} else if in.Agent == "workbuddy" && s.WorkBuddyCheckin {
-		checkins = append(checkins, provider.CheckInWorkBuddy(ctx)...)
 	}
 	warm := provider.WinOneWarmNow(ctx, gateway.WinOneWarmClaude)
 	if len(s.CodexAutoReset) > 0 {
 		provider.SpendExpiringCodexResets(ctx)
 	}
 	agent := in.Agent
-	if in.AgentBackend == "plugin" {
+	if _, ok := pluginForAgent(in.Agent); ok {
 		agent = provider.PluginID(agent)
 	}
 	readings := provider.LoginUsage(ctx, agent)
@@ -343,6 +379,7 @@ func trayCards(cards []provider.SubscriptionQuota, ids []string, hostID string, 
 // letting an unknown JSON setting become a provider's endpoint or credential.
 type auxiliaryProvider struct {
 	provider.Provider
+	AccountKind string `json:"accountKind,omitempty"`
 	Metadata map[string]modelMetadata `json:"metadata,omitempty"`
 }
 
@@ -355,6 +392,12 @@ func installAuxiliaryProviders(in request) error {
 			continue
 		}
 		provider.WinOneProviders = append(provider.WinOneProviders, p.Provider)
+		// A bridge remains an HTTP provider: attaching an Account would bypass
+		// its private transport. Only the onProvider context needs its kind.
+		if p.AccountKind != "" {
+			if gateway.WinOneMiddlewareAccounts == nil { gateway.WinOneMiddlewareAccounts = map[string]string{} }
+			gateway.WinOneMiddlewareAccounts[p.ID] = p.AccountKind
+		}
 		for id, m := range p.Metadata {
 			if err := installModelPreferences(p.ID, id, m); err != nil {
 				return err

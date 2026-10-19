@@ -1,28 +1,56 @@
 package gui
 
 import (
+ "context"
  "encoding/json"
  "io/fs"
  "net/http"
  "strings"
  "strconv"
+ "sync"
  "github.com/yetone/magpie/internal/gateway"
  "github.com/yetone/magpie/internal/provider"
  "github.com/yetone/magpie/internal/settings"
 )
 
+// Prefix is trusted only after WinOne authenticated its capability URL. The
+// plugin CSP must name that exact path, never the full host or a forged header.
+type winOnePagePrefixKey struct{}
+func WinOneWithPagePrefix(r *http.Request,prefix string)*http.Request{return r.WithContext(context.WithValue(r.Context(),winOnePagePrefixKey{},prefix))}
+func winOnePagePrefix(r *http.Request)string{prefix,_:=r.Context().Value(winOnePagePrefixKey{}).(string);return prefix}
+
 // WinOne supplies its own navigation, provider settings and process lifetime.
-// Only the routing page's original endpoints and assets are exposed here.
-func WinOneRoutingHandler(gw *gateway.Server) http.Handler {
+// Routing and plugin operations keep their original endpoints. The isolated
+// documents use WinOne presentation adapters, never the upstream app shell.
+func WinOneRoutingHandler(gw *gateway.Server, bundled []string) http.Handler {
  served.Store(gw)
  mux:=http.NewServeMux()
  groupRoutes(mux);traceRoutes(mux);contextRoutesAPI(mux)
+ pluginRoutes(mux,nil);pluginPageRoutes(mux)
+ // These read-only allowances belong to the routing account rows. Register
+ // the original handlers privately without exposing the Usage application.
+ quotaMux:=http.NewServeMux();usageRoutes(quotaMux,nil)
+ mux.Handle("GET /api/usage/quotas",quotaMux)
+ mux.Handle("GET /api/usage/quotas/history",quotaMux)
  mux.HandleFunc("GET /api/providers",func(w http.ResponseWriter,r *http.Request){writeJSON(w,providersState())})
  // The page's own settings refresh calls setLocale; keep the value in the
  // form its translation table understands instead of a regional tag.
- winOneSettings:=func()settings.Settings{s:=settings.Load();if strings.HasPrefix(s.Lang,"zh"){s.Lang="zh"}else if s.Lang!="system"&&!strings.HasPrefix(s.Lang,"en"){s.Lang="en"};return s}
+ // The standalone page needs the same feature state as the upstream shell,
+ // including the off-state explanation and its one-click enable action.
+ type routingSettings struct {settings.Settings;Builtins []builtinJSON `json:"builtins"`}
+ winOneSettings:=func()routingSettings{s:=settings.Load();if strings.HasPrefix(s.Lang,"zh"){s.Lang="zh"}else if s.Lang!="system"&&!strings.HasPrefix(s.Lang,"en"){s.Lang="en"};return routingSettings{s,builtinsState()}}
  mux.HandleFunc("GET /api/state",func(w http.ResponseWriter,r *http.Request){writeJSON(w,map[string]any{"agents":[]any{map[string]any{"id":"winone","name":"WinOne","fields":[]any{}}},"profiles":[]any{},"settings":winOneSettings()})})
  mux.HandleFunc("GET /api/settings",func(w http.ResponseWriter,r *http.Request){writeJSON(w,winOneSettings())})
+ var preferenceMu sync.Mutex
+ mux.HandleFunc("POST /api/settings/plain-names",func(w http.ResponseWriter,r *http.Request){
+  var body struct{Mode string};if json.NewDecoder(r.Body).Decode(&body)!=nil{http.Error(w,"Invalid model name preference",400);return}
+  preferenceMu.Lock();defer preferenceMu.Unlock()
+  if err:=provider.SetSuffixMode(body.Mode);err!=nil{fail(w,err);return}
+  // SetSuffixMode uses the upstream validation and durable settings store.
+  // Publish just its two fields into the active Host snapshot after saving.
+  s:=settings.Load();s.PlainNames=body.Mode==provider.SuffixOff;s.PlainOwnNames=body.Mode==provider.SuffixOwn;settings.WinOneUse(s)
+  writeJSON(w,winOneSettings())
+ })
  mux.HandleFunc("POST /api/provider/{action}",func(w http.ResponseWriter,r *http.Request){
   var body struct{ID,Routing,Affinity string;Sink bool};if json.NewDecoder(r.Body).Decode(&body)!=nil {http.Error(w,"Invalid routing preference",400);return}
   var err error
@@ -30,22 +58,20 @@ func WinOneRoutingHandler(gw *gateway.Server) http.Handler {
   if err!=nil {fail(w,err);return};writeJSON(w,providersState())
  })
  mux.HandleFunc("GET /api/gateway/call",func(w http.ResponseWriter,r *http.Request){id,err:=strconv.ParseUint(r.URL.Query().Get("id"),10,64);if err!=nil {http.Error(w,"Invalid call id",400);return};call,ok:=gw.RecentCall(id);if !ok {http.NotFound(w,r);return};writeJSON(w,map[string]any{"requestBody":call.RequestBody,"responseBody":call.ResponseBody,"requestTruncated":call.RequestTruncated,"responseTruncated":call.ResponseTruncated})})
- mux.HandleFunc("GET /boot.js",func(w http.ResponseWriter,r *http.Request){w.Header().Set("Content-Type","text/javascript; charset=utf-8");lang:=settings.Load().Lang;if strings.HasPrefix(lang,"zh"){lang="zh"}else{lang="en"};b,_:=json.Marshal(map[string]any{"lang":lang,"theme":settings.Load().Theme,"web":true});w.Write(append(append([]byte("window.bootPrefs="),b...),';'))})
+ mux.HandleFunc("GET /boot.js",func(w http.ResponseWriter,r *http.Request){w.Header().Set("Content-Type","text/javascript; charset=utf-8");lang:=settings.Load().Lang;if strings.HasPrefix(lang,"zh"){lang="zh"}else{lang="en"};b,_:=json.Marshal(map[string]any{"lang":lang,"theme":settings.Load().Theme,"web":true,"bundledPackages":bundled});w.Write(append(append([]byte("window.bootPrefs="),b...),';'))})
  files,_:=fs.Sub(assets,"assets")
- mux.Handle("/",http.FileServer(http.FS(files)))
- return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
-  // The full app script remains the upstream dependency for its dialogs and
-  // picker. Start only routing; don't enumerate apps or open other pages.
-  if r.URL.Path=="/app.js" {b,_:=fs.ReadFile(files,"app.js");s:=string(b);tail:=strings.LastIndex(s,"load();");if tail>=0{s=s[:tail]+s[tail+len("load();"):]} ;w.Header().Set("Content-Type","text/javascript; charset=utf-8");w.Write([]byte(s));return}
-  if r.URL.Path=="/" {
-   b,_:=fs.ReadFile(files,"index.html")
-   // Preserve upstream fetch calls while placing every same-origin request
-   // under the authenticated frame path. Static relative URLs already inherit it.
-   bootstrap:=`<script>(()=>{const prefix=location.pathname.match(/^\/session\/[^/]+\//)?.[0];if(!prefix)return;const original=window.fetch.bind(window);window.fetch=(input,init)=>{const target=new URL(typeof input==='string'?input:input.url,location.href);if(target.origin===location.origin&&!target.pathname.startsWith(prefix))target.pathname=prefix+target.pathname.replace(/^\//,'');return original(input instanceof Request?new Request(target,input):target,init);};})();</script>`
-   s:=strings.Replace(string(b),"<head>","<head>"+bootstrap,1)
-   s=strings.Replace(s,"</body>","<script src=\"winone-routing.js\"></script></body>",1)
-   w.Header().Set("Content-Type","text/html; charset=utf-8");w.Write([]byte(s));return
-  }
-  mux.ServeHTTP(w,r)
+ static:=http.FileServer(http.FS(files))
+ mux.HandleFunc("GET /plugins.html",func(w http.ResponseWriter,r *http.Request){
+  b,err:=fs.ReadFile(files,"winone-plugins.html");if err!=nil{http.Error(w,"Plugin page unavailable",500);return}
+  w.Header().Set("Content-Type","text/html; charset=utf-8");w.Write(b)
  })
+ for _,path:=range []string{"plugins.css","winone-plugin-pages.js","winone-plugin-bridge.js","winone-plugin-host.js","winone-plugin-manager.js","winone-plugin-shared.js","winone-plugins.css"}{mux.Handle("GET /"+path,static)}
+ mux.HandleFunc("GET /{$}",func(w http.ResponseWriter,r *http.Request){
+  b,err:=fs.ReadFile(files,"winone-routing.html");if err!=nil{http.Error(w,"Routing page unavailable",500);return}
+  w.Header().Set("Content-Type","text/html; charset=utf-8");w.Write(b)
+ })
+ // Other Magpie applications cannot be opened by a deep link inside Routing.
+ for _,path:=range []string{"app.css","context.css","compat.js","theme.js","kernel.js","i18n.js","purposes.js","plugins/routing/client.js","plugins/routing/i18n.js","plugins/routing/routing.css","plugins/library/library.css","plugins/usage/i18n.js","winone-routing-client.js","winone-ai-settings.css","winone-routing.js","winone-routing-bridge.js","winone-routing-shared.js","winone-routing-context.js","winone-routing.css"}{mux.Handle("GET /"+path,static)}
+ mux.Handle("GET /icons/",static);mux.Handle("GET /fonts/",static)
+ return mux
 }

@@ -9,11 +9,12 @@ afterEach(()=>{cleanup();vi.clearAllMocks();});
 it('opens a native tab and navigates from the address bar without losing tab identity',async()=>{
  await i18n.changeLanguage('en-US');
  bridge.call.mockImplementation(async(method:string,value:any)=>({sessionId:value.sessionId,tabId:value.tabId,url:value.url??'about:blank',title:'Example',loading:false,canGoBack:false,canGoForward:false,visible:true,error:'',favicon:'',isAudible:false,muted:false,crashed:false}));
- render(<ChatBrowserView sessionId="chat-one" tabId="browser:test" url="about:blank"/>);
- const address=await screen.findByRole('textbox',{name:'Search or enter a URL'});
+ render(<ChatBrowserView sessionId="chat-one" tabId="browser:test" url="about:blank" onComment={vi.fn()}/>);
+ fireEvent.click(await screen.findByRole('button',{name:'New tab'}));
+ const address=await screen.findByPlaceholderText('Enter URL or search');
  fireEvent.change(address,{target:{value:'example.com'}});fireEvent.keyDown(address,{key:'Enter'});
  await waitFor(()=>expect(bridge.call).toHaveBeenCalledWith('navigate',expect.objectContaining({sessionId:'chat-one',tabId:'browser:test',url:'https://example.com'})));
- expect(screen.getByRole('button',{name:'Comment on page'})).toBeTruthy();
+ expect(screen.getByRole('button',{name:'Comment on the page'})).toBeTruthy();
 });
 it('keeps a text selection reported during entry and adds the acknowledged screenshot',async()=>{
  await i18n.changeLanguage('en-US');const added=vi.fn().mockResolvedValue(undefined);
@@ -28,7 +29,7 @@ it('keeps a text selection reported during entry and adds the acknowledged scree
   return {sessionId:value.sessionId,tabId:value.tabId,url:'https://example.test',title:'Example',loading:false,canGoBack:false,canGoForward:false,visible:true,error:'',favicon:'',isAudible:false,muted:false,crashed:false};
  });
  render(<ChatBrowserView sessionId="chat-one" tabId="browser:test" url="https://example.test" onComment={added}/>);
- await act(async()=>fireEvent.click(await screen.findByRole('button',{name:'Comment on page'})));
+ await act(async()=>fireEvent.click(await screen.findByRole('button',{name:'Comment on the page'})));
  const editor=await screen.findByPlaceholderText('Describe the change you want');fireEvent.change(editor,{target:{value:'Fix this text'}});fireEvent.click(screen.getByRole('button',{name:'Add comment'}));
  await waitFor(()=>expect(added).toHaveBeenCalledWith(expect.objectContaining({markerNumber:1,comment:'Fix this text',screenshotPath:'C:/isolated/marker.png',target})));
  expect(await screen.findByRole('status')).toHaveProperty('textContent','Comment and screenshot added to the composer.');

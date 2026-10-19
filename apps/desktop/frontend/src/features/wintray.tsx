@@ -1,4 +1,6 @@
-import {List,Power} from "lucide-react";
+import {usePathDrop} from "../ui/path-drop";
+import {SettingsSaveBar} from "../components/settings-save-bar";
+import {List,Power,Rocket,Save,Timer} from "lucide-react";
 import {IconLabel} from "../ui/icon-label";
 import {Notice,InlineError} from "../ui/notice";
 import {readProgramIconCache,saveProgramIconCache} from "./program-icon-cache";
@@ -19,6 +21,7 @@ import {WinTrayProgramSettings,validProgramTiming} from "./wintray-program-setti
 import {NumberField,validNumber} from "../ui/number-field";
 import {WinTrayMaintenance} from "./wintray-maintenance";
 import {usePageActivity,type PageActivityChanged} from "../ui/page-navigation";
+import {SettingsSection} from "../components/settings-layout";
 
 export interface Program {
   id: string;
@@ -152,13 +155,17 @@ export function WinTrayPage({ disabled = false,onChanged=()=>{},onActivity }: { 
       return { ...current, managedApps: next };
     });
   }
-  async function add() {
-    if(busy)return;
+  const programDrop=usePathDrop({disabled:busy||!draft||!!saved?.recoveryError||view!=="programs",kind:"file",multiple:true,onPaths:paths=>add(paths),onError:setError});
+  async function add(chosen?:string[]) {
+    if(busy||!draft||saved?.recoveryError)return;
     setBusy(true);setError("");setMessage("");
     try {
-      const paths = await pickPrograms();
+      const paths = chosen??await pickPrograms();
       if (!paths.length) return;
-      const infos=await Promise.all(paths.map(path=>programInfo(path)));
+      const infos:Awaited<ReturnType<typeof programInfo>>[]=new Array(paths.length);let cursor=0;
+      // A large multi-file drop shares the existing Shell metadata service;
+      // bound concurrent reads instead of starting a worker for every path.
+      await Promise.all(Array.from({length:Math.min(4,paths.length)},async()=>{while(cursor<paths.length){const index=cursor++;infos[index]=await programInfo(paths[index]);}}));
       setMetadata(current=>({...current,...Object.fromEntries(paths.map((path,index)=>[path,infos[index]]))}));
       const entries = paths.map((path,index):Program=>{
       const exe = /\.exe$/i.test(path);
@@ -250,7 +257,7 @@ export function WinTrayPage({ disabled = false,onChanged=()=>{},onActivity }: { 
       setBusy(false);
     }
   }
-  const navigationTabs=(<TabsList variant="default" className="max-w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto" aria-label={t("nav.wintray")}><TabsTrigger value="programs"><IconLabel icon={List}>{t("wintray.list")}</IconLabel></TabsTrigger><TabsTrigger value="startup"><IconLabel icon={Power}>{t("wintray.advancedStartup")}</IconLabel></TabsTrigger></TabsList>);
+  const navigationTabs=(<TabsList variant="default" className="max-w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto" aria-label={t("nav.wintray")}><TabsTrigger title={t("wintray.list")} value="programs"><IconLabel icon={List}>{t("wintray.list")}</IconLabel></TabsTrigger><TabsTrigger title={t("wintray.advancedStartup")} value="startup"><IconLabel icon={Power}>{t("wintray.advancedStartup")}</IconLabel></TabsTrigger></TabsList>);
   const unavailable=error
     ? <Notice actions={<Button disabled={busy} onClick={()=>void reload()}>{t("common.retry")}</Button>}>{error}</Notice>
     : <p role="status">{t("wintray.loading")}</p>;
@@ -258,7 +265,7 @@ export function WinTrayPage({ disabled = false,onChanged=()=>{},onActivity }: { 
 
 
   return (
-    <section className="wintray-page">
+    <section className="wintray-page" {...programDrop}>
       <Tabs value={view} onValueChange={value=>setView(String(value))}>
         {navigationTabs}
       {error && draft && (
@@ -270,39 +277,26 @@ export function WinTrayPage({ disabled = false,onChanged=()=>{},onActivity }: { 
       )}
       {!disabled && saved?.startupError && <Notice actions={<Button disabled={busy || dirty || !!saved.recoveryError} onClick={()=>void runJob("startup.retry",null)}>{t("wintray.retryStartup")}</Button>}>{saved.startupError}</Notice>}
         {draft&&<>
-      <div className="module-toolbar">
-        {view==="programs"&&<Button
+      {view==="programs"&&<div className="module-toolbar">
+        <Button
           variant="primary"
           disabled={busy || !!saved?.recoveryError}
           onClick={() => void add()}
         >
           {t("wintray.add")}
-        </Button>}
-        <span role="status">
-          {busy ? (message?t(message):"") : dirty ? t("wintray.dirty") : message?t(message):""}
-        </span>
-        <Button
-          disabled={busy || !dirty || !validNumbers || !validNames || !!saved?.recoveryError}
-          onClick={() =>
-            void runJob("settings.save", {
-              revision: saved!.revision,
-              settings: draft,
-            })
-          }
-        >
-          {t("wintray.save")}
         </Button>
-      </div>
+      </div>}
       {!validNumbers&&<InlineError>{t("wintray.invalidNumbers",{sections:invalidTimingSections.join("、")})}</InlineError>}
       {!validNames&&<InlineError id="wintray-name-error">{t("wintray.nameRequired",{programs:invalidNames.join(", ")})}</InlineError>}
         </>}
         <TabsContent value="programs">{draft?<>
           <fieldset disabled={busy||!!saved?.recoveryError} className="plain-fieldset wintray-programs">
             <div className="wintray-workspace"><ResizablePanelGroup orientation="horizontal" className="wintray-panels border-t" disabled={busy}>
-              <ResizablePanel defaultSize="55%" minSize="45%" style={{overflowX:"clip"}}>
+              <ResizablePanel defaultSize="40%" minSize="28%" style={{overflowX:"clip"}}>
                 <ItemGroup data-page-scroll-target="" aria-label={t("wintray.list")} className="wintray-program-list gap-1 py-3 pr-3">
+                  <div className="wintray-list-heading" aria-hidden="true"><span>{t("settingsDesign.programColumn")}</span><span>{t("settingsDesign.trayColumn")}</span><span>{t("settingsDesign.replaceColumn")}</span><span>{t("settingsDesign.orderColumn")}</span></div>
                   {!apps.length&&<p className="py-4 text-muted-foreground">{t("wintray.empty")}</p>}
-                  {apps.map((a,index)=><Item key={a.id} role="listitem" aria-label={displayName(a)} aria-current={selected===a.id?"true":undefined} tabIndex={busy?-1:0} onClick={()=>{if(!busy)setSelected(a.id);}} onKeyDown={event=>{if(event.target===event.currentTarget&&!busy&&(event.key==="Enter"||event.key===" ")){event.preventDefault();setSelected(a.id);}}} variant={selected===a.id?"muted":"default"} className="wintray-program-row cursor-pointer" draggable={!busy} onDragStart={()=>setDragged(a.id)} onDragOver={event=>event.preventDefault()} onDrop={()=>{if(!busy)reorder(dragged,a.id);}}>
+                  {apps.map((a,index)=><Item key={a.id} role="listitem" aria-label={displayName(a)} aria-current={selected===a.id?"true":undefined} tabIndex={busy?-1:0} onClick={()=>{if(!busy)setSelected(a.id);}} onKeyDown={event=>{if(event.target===event.currentTarget&&!busy&&(event.key==="Enter"||event.key===" ")){event.preventDefault();setSelected(a.id);}}} variant={selected===a.id?"muted":"default"} className="wintray-program-row cursor-pointer" draggable={!busy} onDragStart={()=>setDragged(a.id)} onDragEnd={()=>setDragged("")} onDragOver={event=>event.preventDefault()} onDrop={event=>{if(dragged){event.preventDefault();event.stopPropagation();if(!busy)reorder(dragged,a.id);setDragged("");}}}>
                     {metadata[a.exePath]?.icon?<img src={`data:image/png;base64,${metadata[a.exePath].icon}`} alt="" className="size-8 shrink-0"/>:<AppWindow aria-hidden="true" className="size-8 shrink-0 text-muted-foreground"/>}
                     <span className="wintray-program-name" title={displayName(a)}>{displayName(a)}</span>
                     <div className="wintray-row-controls" onClick={event=>event.stopPropagation()}>
@@ -322,10 +316,11 @@ export function WinTrayPage({ disabled = false,onChanged=()=>{},onActivity }: { 
               <ResizablePanel minSize="30%" style={{overflowX:"clip"}}>
                 <div data-page-scroll-target="" className="wintray-program-detail min-w-0 space-y-4 p-5">
                   {active?<>
-                    <div><h2 className="break-words">{displayName(active)}</h2><p className="break-all text-sm text-muted-foreground">{active.exePath}</p></div>
+                    <div className="wintray-detail-header"><div className="min-w-0 flex-1"><h2 className="break-words">{displayName(active)}</h2><p className="truncate text-sm text-muted-foreground" title={active.exePath}>{active.exePath}</p></div>
                     <div className="flex flex-wrap gap-2" role="group" aria-label={t("wintray.programActions")}>
                       <Button disabled={disabled||dirty} onClick={()=>void runJob("launch",{id:active.id})}>{t("wintray.launch")}</Button>
                       <Button onClick={()=>{const next=apps.filter(a=>a.id!==active.id);setDraft({...draft,managedApps:next});setSelected(next[0]?.id??"");}}>{t("wintray.remove")}</Button>
+                    </div>
                     </div>
                     <WinTrayProgramSettings key={active.id} program={active} blocked={busy||!!saved?.recoveryError} update={update}/>
                   </>:<p className="text-muted-foreground">{t("wintray.select")}</p>}
@@ -335,18 +330,29 @@ export function WinTrayPage({ disabled = false,onChanged=()=>{},onActivity }: { 
           </fieldset>
         </>:unavailable}</TabsContent>
         <TabsContent data-page-scroll-target="" value="startup">{draft?<>
-          <fieldset disabled={busy||!!saved?.recoveryError} className="plain-fieldset settings-stack">
-            <section className="settings-group"><div className="settings-switch-row"><Label htmlFor="wintray-exit">{t("wintray.exitWhenDone")}</Label><Switch id="wintray-exit" checked={draft.exitAfterManagedAppsCompleted} disabled={busy||!!saved?.recoveryError} onCheckedChange={value=>setDraft({...draft,exitAfterManagedAppsCompleted:value})}/></div>
-            </section>
-            <div className="settings-field-grid">
+          <fieldset disabled={busy||!!saved?.recoveryError} className="plain-fieldset settings-section-stack">
+            <SettingsSection icon={Rocket} title={t("settingsDesign.launchBehavior")}><div className="settings-switch-row"><Label htmlFor="wintray-exit">{t("wintray.exitWhenDone")}</Label><Switch id="wintray-exit" checked={draft.exitAfterManagedAppsCompleted} disabled={busy||!!saved?.recoveryError} onCheckedChange={value=>setDraft({...draft,exitAfterManagedAppsCompleted:value})}/></div>
+            </SettingsSection>
+            <SettingsSection icon={Timer} title={t("settingsDesign.waitTimes")}><div className="settings-field-grid">
               <NumberField label={t("wintray.interval")} value={draft.startupIntervalSeconds} max={120} onChange={value=>setDraft({...draft,startupIntervalSeconds:value})}/>
               <NumberField label={t("wintray.windowWait")} value={draft.closeWindowRetrySeconds} max={120} onChange={value=>setDraft({...draft,closeWindowRetrySeconds:value})}/>
-            </div>
+            </div></SettingsSection>
             <WinTrayMaintenance disabled={busy||dirty||!!saved?.recoveryError} onBusyChange={setBusy} onChanged={async()=>{await reload();onChanged();}}/>
           </fieldset>
         </>:unavailable}</TabsContent>
 
       </Tabs>
+      {/* The shared save transaction stays outside both scrolling panes. */}
+      {draft&&<SettingsSaveBar>
+        <Button icon={Save} variant="primary"
+          disabled={busy || !dirty || !validNumbers || !validNames || !!saved?.recoveryError}
+          onClick={() => void runJob("settings.save", {revision: saved!.revision, settings: draft})}>
+          {t("wintray.save")}
+        </Button>
+        <span role="status">
+          {busy ? (message?t(message):"") : dirty ? t("wintray.dirty") : message?t(message):""}
+        </span>
+      </SettingsSaveBar>}
     </section>
   );
 }

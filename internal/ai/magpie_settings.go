@@ -13,11 +13,18 @@ import (
 // MagpieSettings preserves upstream setting names. WinOne owns persistence;
 // each worker receives one immutable snapshot, never another app's settings.
 type MagpieSettings struct {
-	CodexAgentsV1   bool   `json:"codexAgentsV1,omitempty"`
-	FullContext     bool   `json:"fullContext,omitempty"`
-	CompactAt       int    `json:"compactAt,omitempty"`
-	CodexTitles     string `json:"codexTitles,omitempty"`
-	CodexAutoReview string `json:"codexAutoReview,omitempty"`
+	ClaudeLeanPrompt bool `json:"claudeLeanPrompt,omitempty"`
+	// Empty preserves the upstream public-address-only download policy.
+	FetchPrivate    []string                       `json:"fetchPrivate,omitempty"`
+	BuiltinPreset   string                         `json:"builtinPreset,omitempty"`
+	BuiltinPlugins  map[string]BuiltinPluginChoice `json:"builtinPlugins,omitempty"`
+	BundledPlugins  map[string]BundledPluginChoice `json:"bundledPlugins,omitempty"`
+	PluginOptions   map[string]map[string]bool     `json:"pluginOptions,omitempty"`
+	CodexAgentsV1   bool                           `json:"codexAgentsV1,omitempty"`
+	FullContext     bool                           `json:"fullContext,omitempty"`
+	CompactAt       int                            `json:"compactAt,omitempty"`
+	CodexTitles     string                         `json:"codexTitles,omitempty"`
+	CodexAutoReview string                         `json:"codexAutoReview,omitempty"`
 	// Filled only in the private runtime snapshot for historical usage pricing.
 	ModelPrices        map[string]ModelPrice `json:"modelPrices,omitempty"`
 	ModelSameAs        map[string]string     `json:"modelSameAs,omitempty"`
@@ -66,6 +73,16 @@ type MagpieSettings struct {
 	NoAccountDiscovery bool                  `json:"noAccountDiscovery,omitempty"`
 }
 
+// Plugin choices are one saved WinOne draft, not account-local YAML files.
+type BuiltinPluginChoice struct {
+	Enabled *bool          `json:"enabled,omitempty"`
+	Config  map[string]any `json:"config,omitempty"`
+}
+type BundledPluginChoice struct {
+	Enabled bool           `json:"enabled"`
+	Options map[string]any `json:"options,omitempty"`
+}
+
 // Key is accepted only on save or in a private runtime snapshot. Public reads
 // carry HasKey, and explicit reveal is a separate, user-triggered operation.
 type SearchAPI struct {
@@ -73,6 +90,8 @@ type SearchAPI struct {
 	URL    string `json:"url,omitempty"`
 	Key    string `json:"key,omitempty"`
 	HasKey bool   `json:"hasKey,omitempty"`
+	Pick   string `json:"pick,omitempty"` // Empty rotates keys; order tries them in declared order.
+	Off    bool   `json:"off,omitempty"`  // Disabled APIs keep their credentials and position.
 }
 type RedactRule struct {
 	Kind   string `json:"kind"`
@@ -95,6 +114,17 @@ var warmTimePattern = regexp.MustCompile(`^(?:[01][0-9]|2[0-3]):[0-5][0-9]$`)
 func (s *MagpieSettings) validate() error {
 	if s == nil {
 		return nil
+	}
+	if len(s.FetchPrivate) > 128 {
+		return errors.New("最多允许 128 个内网下载地址")
+	}
+	for _, entry := range s.FetchPrivate {
+		if entry == "" || len(entry) > 512 || strings.Contains(entry, "://") || strings.ContainsAny(entry, " \t\r\n\x00?#@") {
+			return errors.New("内网下载地址须为主机名、IP、主机与端口或 CIDR 网段")
+		}
+	}
+	if err := s.validatePlugins(); err != nil {
+		return err
 	}
 	if !slices.Contains([]string{"", "asked"}, s.QuotaReads) || !slices.Contains([]string{"", "usd", "cny"}, s.Currency) || !slices.Contains([]string{"", "api"}, s.SearchFirst) {
 		return errors.New("额度读取、货币或搜索顺序无效")
@@ -137,10 +167,13 @@ func (s *MagpieSettings) validate() error {
 	}
 	seen := map[string]bool{}
 	for _, api := range s.SearchAPIs {
-		if !slices.Contains([]string{"tavily", "brave", "exa", "firecrawl", "searxng"}, api.Vendor) || seen[api.Vendor] || len(api.Key) > 16384 {
+		if !slices.Contains([]string{"tavily", "brave", "exa", "firecrawl", "searxng", "deepseek", "you"}, api.Vendor) || seen[api.Vendor] || len(api.Key) > 16384 {
 			return errors.New("搜索 API 无效或重复")
 		}
 		seen[api.Vendor] = true
+		if api.Pick != "" && api.Pick != "order" {
+			return errors.New("搜索 API 密钥选择策略无效")
+		}
 		if api.URL != "" {
 			u, err := url.Parse(api.URL)
 			if err != nil || u.Hostname() == "" || u.User != nil || (u.Scheme != "https" && u.Scheme != "http") {
@@ -150,7 +183,7 @@ func (s *MagpieSettings) validate() error {
 		if api.Vendor == "searxng" && api.URL == "" {
 			return errors.New("SearXNG 需要服务地址")
 		}
-		if api.Vendor != "searxng" && api.Key == "" && !api.HasKey {
+		if api.Vendor != "searxng" && api.Vendor != "you" && api.Key == "" && !api.HasKey {
 			return errors.New("搜索 API 需要密钥")
 		}
 	}

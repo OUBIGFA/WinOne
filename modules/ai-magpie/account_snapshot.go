@@ -21,7 +21,10 @@ func pluginAccountSnapshot(ctx context.Context, agent string) (plugin.Provider, 
 	}
 	descriptor, ok := pluginForAgent(agent)
 	if !ok {
-		return plugin.Provider{}, errors.New("unsupported account plugin")
+		return preparePlugin(ctx, agent)
+	}
+	if choice, chosen := selectedBundles[descriptor.Directory]; chosen && !choice.Enabled {
+		return plugin.Provider{}, errors.New("account plugin is disabled; enable it in AI services > Advanced settings")
 	}
 	executable, err := os.Executable()
 	if err != nil {
@@ -38,6 +41,13 @@ func pluginAccountSnapshot(ctx context.Context, agent string) (plugin.Provider, 
 	digest := sha256.Sum256(data)
 	fingerprint := hex.EncodeToString(digest[:])
 	spec := filepath.Join(root, "plugins", descriptor.Directory)
+	if plugin.WinOneDirectory() != "" {
+		entry := plugin.Entry{Spec: spec}
+		if choice, ok := selectedBundles[descriptor.Directory]; ok {
+			entry.Options = choice.Options
+		}
+		plugin.WinOneUseBundle(entry)
+	}
 	if snapshot, found, err := plugin.WinOneReadProvider(spec, agent, fingerprint); err != nil || found {
 		return snapshot, err
 	}

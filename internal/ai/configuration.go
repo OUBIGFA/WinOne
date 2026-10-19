@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+// MaxProviderModels accommodates upstream catalogs above 2500 entries while
+// retaining a bounded configuration and worker response.
+const MaxProviderModels = 4096
+
 // Provider identifies a configured service or an isolated signed-in account.
 // API keys are write-only. User-defined request headers remain editable here.
 type Provider struct {
@@ -269,7 +273,7 @@ func validateConfiguration(c Configuration) error {
 			return errors.New("请为每个服务使用不同名称")
 		}
 		names[name] = true
-		if len(p.Models) > 2048 {
+		if len(p.Models) > MaxProviderModels {
 			return errors.New("每个服务最多配置 2048 个模型")
 		}
 		seen := map[string]bool{}
@@ -279,7 +283,7 @@ func validateConfiguration(c Configuration) error {
 			}
 			seen[model] = true
 		}
-		if len(p.AvailableModels) > 2048 {
+		if len(p.AvailableModels) > MaxProviderModels {
 			return errors.New("供应商模型列表过大")
 		}
 		known := map[string]bool{}
@@ -294,7 +298,7 @@ func validateConfiguration(c Configuration) error {
 			known[model] = true
 			availableSeen[model] = true
 		}
-		if len(p.ModelNames) > 2048 {
+		if len(p.ModelNames) > MaxProviderModels {
 			return errors.New("供应商模型名称列表过大")
 		}
 		for id, name := range p.ModelNames {
@@ -302,7 +306,7 @@ func validateConfiguration(c Configuration) error {
 				return errors.New("供应商模型显示名称无效")
 			}
 		}
-		if len(p.ModelFree) > 2048 {
+		if len(p.ModelFree) > MaxProviderModels {
 			return errors.New("供应商模型费用标识过多")
 		}
 		for id := range p.ModelFree {
@@ -310,7 +314,7 @@ func validateConfiguration(c Configuration) error {
 				return errors.New("供应商费用标识引用了未知模型")
 			}
 		}
-		if len(p.ModelMetadata) > 2048 {
+		if len(p.ModelMetadata) > MaxProviderModels {
 			return errors.New("供应商模型设置过多")
 		}
 		for id, metadata := range p.ModelMetadata {

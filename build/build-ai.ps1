@@ -75,6 +75,7 @@ $text=$text.Replace('"errors"',('"errors"'+"`n`t"+'"fmt"')).Replace('var install
 [IO.File]::WriteAllText($pluginSignin,$text+"`n",$encoding)
 & (Join-Path $PSScriptRoot 'prepare-ai-usage.ps1') -SourceDirectory $source -Revision $revision
 & (Join-Path $PSScriptRoot 'prepare-ai-settings.ps1') -SourceDirectory $source -Revision $revision
+& (Join-Path $PSScriptRoot 'prepare-ai-plugin-registry.ps1') -SourceDirectory $source -Revision $revision
 & (Join-Path $PSScriptRoot 'prepare-ai-routing.ps1') -SourceDirectory $source
 Push-Location $source
 try {
@@ -114,7 +115,7 @@ try {
    $ErrorActionPreference='Stop'
    if($LASTEXITCODE -ne 0){throw 'Magpie OAuth adapter test failed'}
    $ErrorActionPreference='Continue'
-   & $GoExe test ./internal/plugin -run '^TestWinOneAccountSnapshot' -count=1 -v
+   & $GoExe test ./internal/plugin -run '^TestWinOne(AccountSnapshot|Extension)' -count=1 -v
    $ErrorActionPreference='Stop'
    if($LASTEXITCODE -ne 0){throw 'Magpie account snapshot parity test failed'}
   } finally {foreach($name in $priorTestEnvironment.Keys){[Environment]::SetEnvironmentVariable($name,$priorTestEnvironment[$name])}}

@@ -40,7 +40,7 @@ func (c *chatControl) configureProjectPermission(ctx context.Context, id, permis
 
 // Title generation uses the same saved provider, credential rotation and
 // account gate as normal chat. It never gains tool or filesystem access.
-func (c *chatControl) generateTitle(ctx context.Context, id, text string, requested ...bool) (chat.Conversation, error) {
+func (c *chatControl) generateTitle(ctx context.Context, id, text string, requested ...bool) (result chat.Conversation, err error) {
 	conversation, err := c.store.Conversation(id)
 	if err != nil {
 		return conversation, err
@@ -49,6 +49,18 @@ func (c *chatControl) generateTitle(ctx context.Context, id, text string, reques
 	if !explicit && (conversation.TitleManual || conversation.Title != "Chat") {
 		return conversation, nil
 	}
+	// Keep the original provider error observable while persisting the requested
+	// text fallback. The store checks the original title before writing it.
+	defer func() {
+		if err != nil {
+			fallback, fallbackErr := c.store.ApplyFallbackTitle(conversation, text, explicit)
+			if fallbackErr == nil {
+				result = fallback
+			} else {
+				err = errors.Join(err, fallbackErr)
+			}
+		}
+	}()
 	selection := c.store.Preferences().TitleModel
 	if selection.Provider == "" {
 		selection = conversation.Model

@@ -27,7 +27,8 @@ namespace WinOne.StrokeRuntime
         private WindowTarget target;
         private bool moved,actionTaken;
         private int mark;
-        public bool Tracking {get;private set;}
+        private volatile bool tracking;
+        public bool Tracking {get{return tracking;}private set{tracking=value;}}
         public string Diagnostic {get{return policy.Diagnostic;}}
         public GestureEngine(Configuration value,Func<Point,WindowTarget> targetAt,System.Action<Point,Point> draw,System.Action clear,System.Action<string,int,WindowTarget> execute,System.Action replayClick,ScopePolicy policy=null)
         {

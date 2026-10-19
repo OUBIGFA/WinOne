@@ -744,6 +744,87 @@
           "sha256": "cede95c28e6e9d67d1c1e49e8ba3c20250c7d4080c3faca1579b6732327ae40d"
         }
       ]
+    },
+    {
+      "kind": "python",
+      "name": "rapidocr",
+      "version": "3.10.0",
+      "notices": [
+        {
+          "file": "licenses/python-rapidocr-3.10.0-2-LICENSE.txt",
+          "sha256": "3e0af25fdd06aa9586ae97adb00ea927ebe5a3805ac77d2d3a81ce5f55693333"
+        }
+      ]
+    },
+    {
+      "kind": "python",
+      "name": "opencv-python-headless",
+      "version": "5.0.0.93",
+      "notices": [
+        {
+          "file": "licenses/python-opencv-python-headless-5.0.0.93-0-LICENSE-3RD-PARTY.txt.txt",
+          "sha256": "c1d60169b55cee56452b227c2fd2a7b9ddda3dd3741065f1c6201072be73fadb"
+        },
+        {
+          "file": "licenses/python-opencv-python-headless-5.0.0.93-1-LICENSE.txt.txt",
+          "sha256": "edef0fac1eb08d29d34563f724742e078da2513e196133a12c6ad9ff01e26107"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/godbus/dbus/v5",
+      "version": "v5.2.2",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-github.com-godbus-dbus-v5-v5.2.2-0-LICENSE.txt",
+          "sha256": "e4646a82a976369d7ae8f6ed5c11d35dc0af18433a8ccc24c85b459ad8b95128"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "magpie",
+      "version": "bc470c6b63ba6449bd7071016313f3e7451a8d41",
+      "notices": [
+        {
+          "file": "licenses/upstream-magpie-bc470c6b63ba6449bd7071016313f3e7451a8d41-0-LICENSE.txt",
+          "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "magpie",
+      "version": "8b89b2e36c4ae5b98e6672e86ec0ab1cdd7af77f",
+      "notices": [
+        {
+          "file": "licenses/upstream-magpie-8b89b2e36c4ae5b98e6672e86ec0ab1cdd7af77f-0-LICENSE.txt",
+          "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "golang.org/x/net",
+      "version": "v0.56.0",
+      "notices": [
+        {
+          "file": "licenses/magpie-go-golang.org-x-net-v0.56.0-0-LICENSE.txt",
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "magpie",
+      "version": "d783df46cbac9021e26a6bd71ca0b55544552eb2",
+      "notices": [
+        {
+          "file": "licenses/upstream-magpie-d783df46cbac9021e26a6bd71ca0b55544552eb2-0-LICENSE.txt",
+          "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+        }
+      ]
     }
   ]
 }

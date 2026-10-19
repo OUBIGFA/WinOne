@@ -11,6 +11,35 @@ import (
 	"testing"
 )
 
+func TestLargeModelCatalogPersistsAll2500ModelsAndMetadata(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "ai.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := s.Configuration()
+	p := Provider{ID: "large", Name: "Large catalog", AuthMode: "api-key", Protocol: "chat", BaseURL: "https://example.invalid/v1", ModelNames: map[string]string{}, ModelFree: map[string]bool{}, ModelMetadata: map[string]ModelMetadata{}}
+	for i := range 2500 {
+		id := fmt.Sprintf("model-%04d", i)
+		p.Models = append(p.Models, id)
+		p.AvailableModels = append(p.AvailableModels, id)
+		p.ModelNames[id] = id
+		p.ModelFree[id] = i%2 == 0
+		p.ModelMetadata[id] = ModelMetadata{ContextWindow: 32768}
+	}
+	c.Providers = []Provider{p}
+	if _, err = s.SaveConfiguration(c, nil); err != nil {
+		t.Fatal("2500 models must not be truncated or rejected", err)
+	}
+	reopened, err := Open(s.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved := reopened.Configuration().Providers[0]
+	if len(saved.Models) != 2500 || len(saved.AvailableModels) != 2500 || len(saved.ModelNames) != 2500 || len(saved.ModelFree) != 2500 || len(saved.ModelMetadata) != 2500 {
+		t.Fatal("large model metadata was lost")
+	}
+}
+
 func TestEmptyAIOverrideDoesNotFallBackToGoogle(t *testing.T) {
 	store, err := Open(filepath.Join(t.TempDir(), "ai.json"))
 	if err != nil {

@@ -7,6 +7,28 @@ namespace WinOne.Capture.NativeUI;
 // Tests replace acquisition and the modal runner, never the user's clipboard.
 internal static class NativeCaptureWorkflow
 {
+    // Exercise the same path as the first region capture, without reading a
+    // saved draft, acquiring the screen, showing a window or producing output.
+    internal static void Prepare(CaptureOperations operations, CaptureSettings settings, string? language)
+    {
+        var bounds = CaptureHelpers.GetScreenBounds();
+        using var frame = CapturedFrame.Own(new Bitmap(bounds.Width, bounds.Height), bounds);
+        var painted = false;
+        try {
+            RunFrame(frame, settings, operations, "region", language, CancellationToken.None, false,
+                false, null, null, (canvas, session) => {
+                    _ = canvas.Window.Handle;
+                    canvas.Window.PerformLayout();
+                    using var pixel = new Bitmap(1, 1);
+                    canvas.Window.DrawToBitmap(pixel, new Rectangle(0, 0, 1, 1));
+                    painted = true;
+                    canvas.Window.Close();
+                }, null, null).GetAwaiter().GetResult();
+        } catch (OperationCanceledException) when (painted) {
+            // Closing the untouched generated selection is the expected result.
+        }
+    }
+
     internal static async Task<object> EditLast(SettingsStore store, CaptureOperations operations, string expectedId,
         string? language, CancellationToken cancellation, NativeCaptureDraftStore drafts,
         Action<WinOneCaptureCanvas, NativeCaptureSession>? show = null)
@@ -72,8 +94,10 @@ internal static class NativeCaptureWorkflow
     internal static async Task<object> Run(SettingsStore store, CaptureOperations operations, string mode, string? language,
         CancellationToken cancellation, Func<CapturedFrame>? acquire = null,
         Func<IReadOnlyList<WindowCaptureTarget>>? windows = null,
-        Action<WinOneCaptureCanvas, NativeCaptureSession>? show = null, NativeCaptureDraftStore? drafts = null)
+        Action<WinOneCaptureCanvas, NativeCaptureSession>? show = null, NativeCaptureDraftStore? drafts = null,
+        Action<string>? startupStage = null)
     {
+        startupStage?.Invoke("entered");
         var textMode = mode is "ocr" or "translate" ? mode : null;
         if (textMode is not null) mode = "region";
         if (mode is not ("window" or "region" or "fullscreen")) throw new ArgumentException("不支持的截图方式", nameof(mode));
@@ -86,13 +110,15 @@ internal static class NativeCaptureWorkflow
         var quickSave = textMode is null && recovered is null && !settings.OpenEditor;
         if (quickSave) settings = settings with { AskWhereToSave = false };
         CaptureOperations.ApplyTheme(settings);
+        startupStage?.Invoke("themeReady");
         windows ??= WindowCaptureTargets.Snapshot;
         var targets = recovered is null && mode == "window" ? windows() : null;
         using var frame = recovered is null ? (acquire ?? operations.CaptureDesktopFrame)() : RecoverFrame(drafts!, recovered);
+        startupStage?.Invoke("frameAcquired");
         cancellation.ThrowIfCancellationRequested();
         if (targets is not null && !targets.SequenceEqual(windows())) throw new InvalidOperationException("窗口布局已变化，请重新截图");
         return await RunFrame(frame, settings, operations, mode, language, cancellation, quickSave,
-            mode == "scroll" || recovered?.Document.OrderedEffects==true || recovered is not null && frame.Bounds != CaptureHelpers.GetScreenBounds(), recovered, targets, show, drafts, recovered?.Notice, textMode: recovered is null ? textMode : null);
+            mode == "scroll" || recovered?.Document.OrderedEffects==true || recovered is not null && frame.Bounds != CaptureHelpers.GetScreenBounds(), recovered, targets, show, drafts, recovered?.Notice, textMode: recovered is null ? textMode : null, startupStage: startupStage);
     }
 
     // The scrolling producer transfers its owned frame into the same editor.
@@ -113,11 +139,12 @@ internal static class NativeCaptureWorkflow
         string mode, string? language, CancellationToken cancellation, bool quickSave, bool viewport,
         NativeCaptureDraft? recovered, IReadOnlyList<WindowCaptureTarget>? targets,
         Action<WinOneCaptureCanvas, NativeCaptureSession>? show, NativeCaptureDraftStore? drafts, string? notice,
-        Func<CaptureSettings,IScrollingCaptureSource>? retakeSource = null, Func<Action,IDisposable>? retakeProgress = null, string? textMode = null)
+        Func<CaptureSettings,IScrollingCaptureSource>? retakeSource = null, Func<Action,IDisposable>? retakeProgress = null, string? textMode = null,
+        Action<string>? startupStage = null)
     {
         var output = operations.CreateNativeOutput(cancellation, language, settings);
         if (mode == "fullscreen" && quickSave) return frame.WithImage(image => output.Save(image));
-        using var canvas = frame.WithImage(image => new WinOneCaptureCanvas(image, viewport: viewport));
+        using var canvas = frame.WithImage(image => new WinOneCaptureCanvas(image, startupStage: startupStage, viewport: viewport));
         // The native engine uses desktop bounds to map candidates to pixels.
         // Reject display changes rather than stretching or offsetting a frame.
         if (!viewport && canvas.Window.Bounds != frame.Bounds) throw new InvalidOperationException("显示设置已变化，请重新截图");
@@ -126,7 +153,10 @@ internal static class NativeCaptureWorkflow
         if (drafts is null || quickSave || recovered is not null) frame.Dispose();
         using var regions = targets is null ? null : new NativeWindowRegions(canvas, targets);
         if (recovered is not null) canvas.RestoreDocument(recovered.Document);
-        else if (mode is "fullscreen" or "scroll") canvas.SetRegion(new Rectangle(Point.Empty, frame.Bounds.Size));
+        else if (mode is "fullscreen" or "scroll") {
+            canvas.SetRegion(new Rectangle(Point.Empty, frame.Bounds.Size));
+            if (viewport) canvas.SelectTool("select");
+        }
         CaptureOutput? saved = null;
         using var session = new NativeCaptureSession(canvas,
             image => { if (quickSave) saved = output.Save(image); else output.Confirm(image); },
@@ -134,7 +164,21 @@ internal static class NativeCaptureWorkflow
             output.Pin, ShareXResources.Theme.IsDarkTheme, quickSave, language, settings.ToolbarTools,
             operations.NativeConfiguration is { } configuration ? tools => configuration.SaveToolbarAsync(tools, cancellation) : null,
             new NativeCaptureTextService(operations.NativeConfiguration), textMode);
+        startupStage?.Invoke("sessionCreated");
         session.SetCaptureNotice(notice, language);
+        if (!viewport && textMode is null) session.EnableRecording(async format => {
+            if (frame.Bounds != CaptureHelpers.GetScreenBounds()) throw new InvalidOperationException("显示布局已变化，请重新截图后录制");
+            var region = canvas.Selection ?? throw new InvalidOperationException("请先选择录制区域");
+            // The engine's selection is relative to the captured virtual
+            // desktop. Add its physical origin exactly once (negative displays
+            // included); do not multiply these already-physical pixels by DPI.
+            region.Offset(frame.Bounds.Location);
+            var previousActivation = operations.ActivateNativeCapture;
+            try {
+                return await NativeRecordingWindow.RunAsync(canvas.Window, region, settings, format, language, cancellation,
+                    shown: window => operations.ActivateNativeCapture = () => { if (!window.IsDisposed) { window.Show(); window.BringToFront(); window.Activate(); } });
+            } finally { operations.ActivateNativeCapture = previousActivation; }
+        });
         if (recovered?.Text is { } text) session.RestoreText(text);
         // Show a recovered draft with its annotations already present. The
         // initial ordered composition also runs off the worker's UI thread.
@@ -148,6 +192,11 @@ internal static class NativeCaptureWorkflow
         if (autosave is not null) session.SnapshotReady += Publish;
         using var close = autosave is null ? null : new NativeCaptureClose(canvas.Window, session, async preserve => {
             await session.RetakeCompletion;
+            await session.RecordingCompletion;
+            // Live video does not contain screenshot annotations. Preserve an
+            // edited screenshot draft rather than silently discarding it when
+            // the user finishes a different kind of output.
+            preserve |= session.Recorded is not null && canvas.AnnotationCount > 0;
             // If metadata committed but presentation failed, keep that new
             // image recoverable; never overwrite it with the old canvas.
             if (retakeViewFailed) { await autosave!.FinishAsync(false); return; }
@@ -194,6 +243,7 @@ internal static class NativeCaptureWorkflow
         };
         try {
             cancellation.ThrowIfCancellationRequested();
+            startupStage?.Invoke("readyToShow");
             if (show is not null) show(canvas, session);
             else {
                 // A modal ShowDialog loop ends when the form is hidden. Retake
@@ -222,6 +272,7 @@ internal static class NativeCaptureWorkflow
             }
         }
         cancellation.ThrowIfCancellationRequested();
+        if (session.Recorded is { } recordingResult) return new { mode = "recording", recording = recordingResult };
         if ((quickSave && session.Confirmed || session.Saved) && saved is not null) return saved;
         if(session.ResultPresented)return new {mode,resultWindow=true,resultWindowId=session.ResultWindowId,copied=false};
         if(session.Copied&&!session.Confirmed)return new {mode,copied=true};

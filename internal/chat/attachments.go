@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,16 +14,25 @@ import (
 
 const attachmentLimit = 20 << 20
 
+func attachmentByteLimit(data []byte) int {
+	switch http.DetectContentType(data) {
+	case "image/png", "image/jpeg", "image/gif", "image/webp":
+		return MediaImageLimit
+	}
+	return attachmentLimit
+}
+
 // MaximumChatRequestBytes is the complete serialized model request budget.
 // Pi scales transmitted image copies to this limit while retaining originals.
 const MaximumChatRequestBytes = 16 << 20
 
 type Attachment struct {
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-	Size     int64  `json:"size"`
-	MimeType string `json:"mimeType"`
-	Annotation json.RawMessage `json:"annotation,omitempty"`
+	Name            string          `json:"name"`
+	Path            string          `json:"path"`
+	Size            int64           `json:"size"`
+	MimeType        string          `json:"mimeType"`
+	Annotation      json.RawMessage `json:"annotation,omitempty"`
+	ImageAnnotation json.RawMessage `json:"imageAnnotation,omitempty"`
 }
 
 // A native file choice imports an immutable request copy. The original stays
@@ -44,15 +54,20 @@ func (s *Store) AddAttachments(id string, paths []string) ([]Attachment, error) 
 		if err != nil {
 			return nil, err
 		}
-		if !info.Mode().IsRegular() || info.Size() > attachmentLimit {
-			return nil, errors.New("附件必须是 20 MB 以内的文件")
+		if !info.Mode().IsRegular() || info.Size() > MediaImageLimit {
+			return nil, errors.New("图片不得超过 100 MB，其他附件不得超过 20 MB")
 		}
-		data, err := os.ReadFile(source)
+		reader, err := os.Open(source)
 		if err != nil {
 			return nil, err
 		}
-		if len(data) > attachmentLimit {
-			return nil, errors.New("附件超过 20 MB")
+		data, err := io.ReadAll(io.LimitReader(reader, MediaImageLimit+1))
+		reader.Close()
+		if err != nil {
+			return nil, err
+		}
+		if len(data) > attachmentByteLimit(data) {
+			return nil, errors.New("图片不得超过 100 MB，其他附件不得超过 20 MB")
 		}
 		target := filepath.Join(c.SessionDirectory, "attachments", rand.Text(), filepath.Base(source))
 		if err = settings.WriteAtomic(target, data); err != nil {
@@ -81,7 +96,20 @@ func validateConversationAttachments(c Conversation, paths []string) error {
 		if err != nil {
 			return err
 		}
-		if !info.Mode().IsRegular() || info.Size() > attachmentLimit {
+		if !info.Mode().IsRegular() {
+			return errors.New("附件类型无效")
+		}
+		var header [512]byte
+		reader, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+		n, readErr := io.ReadFull(reader, header[:])
+		reader.Close()
+		if readErr != nil && readErr != io.EOF && readErr != io.ErrUnexpectedEOF {
+			return readErr
+		}
+		if info.Size() > int64(attachmentByteLimit(header[:n])) {
 			return errors.New("附件类型或大小无效")
 		}
 	}

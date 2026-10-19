@@ -14,7 +14,8 @@ internal static class ScrollingFrameTests
             if (pixels) { image = new Bitmap(8, 24); image.SetPixel(7, 23, Color.Coral); }
         }
         public Source(Bitmap pixels) => image = pixels;
-        public bool SelectTarget() => Selected;
+        public Rectangle? RequestedRegion;
+        public bool SelectTarget(Rectangle? selectedRegion = null) { RequestedRegion = selectedRegion; return Selected; }
         public Task<ScrollingCaptureStatus> CaptureAsync() { Started?.Invoke(); return Completion.Task; }
         public void Stop() { Stopped = true; Completion.TrySetResult(ScrollingCaptureStatus.PartiallySuccessful); }
         public Bitmap? TakeResult() { var value = image; image = null; return value; }
@@ -45,7 +46,9 @@ internal static class ScrollingFrameTests
         var settings = store.Snapshot() with { OpenEditor = false };
         Source Ready(ScrollingCaptureStatus status) { var source = new Source(); source.Completion.SetResult(status); return source; }
         using var completed = Ready(ScrollingCaptureStatus.Successful);
-        var frame = await operations.AcquireScrollingFrameAsync("complete", settings, CancellationToken.None, "en-US", createSource: _ => completed);
+        var selectedRegion = new Rectangle(-1100, 40, 600, 400);
+        var frame = await operations.AcquireScrollingFrameAsync("complete", settings, CancellationToken.None, "en-US", createSource: _ => completed, selectedRegion: selectedRegion);
+        if (completed.RequestedRegion != selectedRegion) throw new Exception("Existing physical selection was not sent directly to the scrolling source");
         if (!completed.Disposed || frame.NeedsReview || frame.Notice is not null || frame.Frame.Bounds != new Rectangle(0, 0, 8, 24) ||
             frame.Frame.WithImage(image => image.GetPixel(7, 23).ToArgb()) != Color.Coral.ToArgb())
             throw new Exception("Completed frame lost pixels, ownership or review settings");

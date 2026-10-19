@@ -1,4 +1,5 @@
-import {Archive,ArchiveRestore,ChevronsRightLeft,ChevronDown,ChevronRight,Copy,FolderOpen,FolderPlus,FolderInput,Download,MoreHorizontal,Pin,PinOff,Plus,Search,Settings2,Trash2,PenLine,Timer,Sparkles,LoaderCircle,CircleAlert} from "lucide-react";
+import {Archive,ArchiveRestore,ChevronDown,ChevronRight,Copy,FolderOpen,FolderPlus,FolderInput,Download,MoreHorizontal,Pin,PinOff,Plus,Search,Settings2,Trash2,PenLine,Timer,Sparkles,LoaderCircle,CircleAlert} from "lucide-react";
+import {SidebarSimple} from '@phosphor-icons/react';
 import {Button} from "../ui/button";
 import {useTranslation} from "../i18n";
 import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuSeparator,DropdownMenuTrigger} from "../components/ui/dropdown-menu";
@@ -44,7 +45,7 @@ export function ChatSidebar({catalog,activeId,busy,archived,onArchived,onChoose,
   <ConversationMenu conversation={value} busy={busy} titlePending={titleJobs[value.id]?.pending} onAction={onAction}/>
  </div>);
  return <aside className="chat-sidebar" aria-label={t("chat.sidebar")}>
-  <div className="chat-sidebar-heading"><span>{t("chat.title")}</span><Button variant="ghost" size="icon" icon={ChevronsRightLeft} aria-label={t("chat.hideSidebar")} onClick={onHide}/></div>
+  <div className="chat-sidebar-heading"><span>{t("chat.title")}</span><Button variant="ghost" size="icon" aria-label={t("chat.hideSidebar")} onClick={onHide}><SidebarSimple size={16}/></Button></div>
   <Button className="chat-new" variant="ghost" icon={Plus} disabled={busy} onClick={()=>onNew()}>{t("chat.newChat")}</Button>
   <div className="chat-search"><Search size={15}/><input aria-label={t("chat.search")} placeholder={t("chat.search")} value={search} onChange={event=>setSearch(event.target.value)}/></div>
   <ScrollArea disableContentFit className="chat-sidebar-scroll" viewportProps={{className:"chat-sidebar-viewport"}}>

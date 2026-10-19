@@ -26,4 +26,4 @@ window.go={main:{App:{
  OpenModuleLogFolder:async()=>{},
 } as unknown as NativeApp}};
 await setApplicationLanguage(new URLSearchParams(location.search).get("language")||"zh-CN");
-createRoot(document.getElementById("root")!).render(<SettingsFixtureShell page="always-on-top"><header><h1>{i18n.t("nav.always-on-top")}</h1></header><ModulePanel moduleId="always-on-top" onSaved={()=>{}} onActivity={()=>{}}><AlwaysOnTopPage/></ModulePanel></SettingsFixtureShell>);
+createRoot(document.getElementById("root")!).render(<SettingsFixtureShell page="always-on-top"><header><h1>{i18n.t("nav.always-on-top")}</h1></header><ModulePanel moduleId="always-on-top"><AlwaysOnTopPage/></ModulePanel></SettingsFixtureShell>);

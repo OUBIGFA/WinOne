@@ -4,6 +4,8 @@ package ai
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"net"
 	"net/http"
@@ -18,7 +20,11 @@ func TestGatewayLifecycleAuthenticationAndPersistence(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	path := filepath.Join(t.TempDir(), "gateway.json")
-	g := NewGateway(ctx, path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, "served") }))
+	var callerIDs []string
+	g := NewGateway(ctx, path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callerIDs = append(callerIDs, GatewayCallerKeyID(r.Context()))
+		_, _ = io.WriteString(w, "served")
+	}))
 	defer g.Close()
 	if g.Status().Running || g.Status().Enabled {
 		t.Fatal("new gateway started")
@@ -60,6 +66,10 @@ func TestGatewayLifecycleAuthenticationAndPersistence(t *testing.T) {
 		t.Fatal("gateway access boundary failed")
 	}
 	previous := key
+	wantID := sha256.Sum256([]byte(key))
+	if len(callerIDs) != 1 || callerIDs[0] != hex.EncodeToString(wantID[:]) {
+		t.Fatalf("authenticated key identity missing: %v", callerIDs)
+	}
 	status, err = g.Save(status.GatewaySettings, true)
 	if err != nil {
 		t.Fatal(err)
@@ -67,6 +77,9 @@ func TestGatewayLifecycleAuthenticationAndPersistence(t *testing.T) {
 	key, _ = g.Key()
 	if previous == key || call(previous, "", "") != 401 || call(key, "", "") != 200 {
 		t.Fatal("key reset did not invalidate old key")
+	}
+	if len(callerIDs) != 2 || callerIDs[0] == callerIDs[1] {
+		t.Fatal("rotated key kept previous usage identity")
 	}
 	g.Close()
 	reopened := NewGateway(ctx, path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))

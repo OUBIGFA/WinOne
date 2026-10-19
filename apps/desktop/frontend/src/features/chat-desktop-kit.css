@@ -1,12 +1,38 @@
 /* Host sizing and semantic token adapters only. The package paints controls,
    Markdown, code blocks and project context from its shipped stylesheet. */
 .chat-desktop-surface{height:100%;min-width:0;min-height:0}
+/* WinOne's neutral surfaces. Cindy contributes interaction, not a separate
+   warm-paper palette or HSL aliases that leak into the host's CSS colors. */
+/* Keep one subtle outline on the actual composer, including focused input. */
+.chat-desktop-surface .chat-composer,
+.chat-desktop-surface .chat-composer:focus-within{border:1px solid var(--chat-edge);border-radius:var(--chat-composer-radius,28px);box-shadow:none}
+.chat-desktop-surface .chat-composer-resize{color:var(--chat-grip-ink);background:var(--chat-grip-bg);border:1px solid var(--chat-edge);border-radius:8px;box-sizing:border-box}
+.chat-desktop-surface{
+ --chat-page-bg:#fcfcfc;--chat-raised-bg:#ffffff;--chat-hover-bg:#efefef;--chat-edge:#e1e1e1;--chat-grip-ink:#888888;--chat-grip-bg:#f7f7f7;
+ --background:var(--chat-page-bg);--card:var(--chat-raised-bg);--popover:var(--chat-raised-bg);--muted:var(--chat-hover-bg);--accent:var(--chat-hover-bg);--border:var(--chat-edge);
+ --desktop-color-background:var(--chat-page-bg);--desktop-color-surface:var(--chat-raised-bg);--desktop-color-border:var(--chat-edge);
+ font-family:var(--app-font-ui-default);background:var(--chat-page-bg);
+}
+.chat-desktop-surface[data-theme=dark]{--chat-page-bg:#191919;--chat-raised-bg:#232323;--chat-hover-bg:#2b2b2b;--chat-edge:#414141;--chat-grip-ink:#9b9b9b;--chat-grip-bg:#292929}
+.chat-desktop-surface .chat-main,.chat-desktop-surface .chat-sidebar{background:var(--chat-page-bg)}
+.chat-desktop-surface .chat-composer{background:var(--chat-raised-bg)}
+/* CCAgentSessionView: 32px transparent-to-content gradient above a solid input
+   zone. The overlay is scoped to the conversation, so sidebars remain clear. */
+.chat-desktop-surface .chat-input-area{background:var(--chat-page-bg)}
+.chat-desktop-surface .chat-input-area::before{content:"";position:absolute;left:0;right:0;top:-32px;height:32px;background:linear-gradient(to top,var(--chat-page-bg),transparent);pointer-events:none}
 /* Preserve the upstream thread spacing. The host owns reading width; use the
    user's wider content column for both answers and the composer. */
-.client-thread{width:100%;max-width:calc(var(--chat-content-width,960px) + 32px);margin:0 auto;padding:36px 16px 30px;line-height:24px}
-.client-thread--chat{font-size:16px;line-height:26px}
-.chat-transcript-end-space{height:230px;pointer-events:none}
+.client-thread{width:100%;max-width:calc(var(--chat-content-width,960px) + var(--chat-content-gutter,24px) + max(var(--chat-content-gutter,24px),48px));margin:0 auto;padding:36px max(var(--chat-content-gutter,24px),48px) 30px var(--chat-content-gutter,24px);line-height:24px}
+/* Cindy chatChrome.ts: CHAT_BODY_CLASS = text-15 font-normal leading-[1.6]. */
+.client-thread--chat{font-size:15px;line-height:24px}
+/* Leave room for the initial 220px editor, project row and footer so the last
+   file row remains reachable. This fixed allowance never changes on resizing. */
+.chat-transcript-end-space{height:320px;pointer-events:none}
 .chat-message-source{margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Reuse ConversationMessage's user-message interaction for every AI reply. */
+.desktop-conversation-message--assistant .desktop-conversation-message-actions{opacity:0;transition:opacity var(--desktop-motion-fast)}
+.desktop-conversation-message--assistant:hover .desktop-conversation-message-actions,.desktop-conversation-message--assistant:focus-within .desktop-conversation-message-actions{opacity:1}
+@media(prefers-reduced-motion:reduce){.desktop-conversation-message--assistant .desktop-conversation-message-actions{transition:none}}
 /* The upstream change-summary surface opens real Host changes. Counts are
    omitted until the Host can report a verified per-turn file snapshot. */
 .chat-change-summary{display:flex;align-items:center;gap:16px;padding:14px;background:var(--desktop-color-surface);border-radius:12px;min-width:0}

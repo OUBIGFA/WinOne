@@ -5,6 +5,14 @@ import "encoding/json"
 
 const MaxQuickState = 256 * 1024
 
+// WindowTarget is returned only after the Host has checked the result HWND
+// against the child it started. The foreground caller performs activation;
+// merely asking another process to Show does not transfer that Windows right.
+type WindowTarget struct {
+	Window    string `json:"window"`
+	ProcessID uint32 `json:"processId"`
+}
+
 // QuickOptions carries only presentation preferences into the shared host.
 type QuickOptions struct {
 	AlwaysOnTop   bool  `json:"alwaysOnTop"`

@@ -1,7 +1,8 @@
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$ContextFile,[switch]$RunSystemIntegration,[switch]$TestRollback,[switch]$TestRepair,[switch]$TestOverwrite,[switch]$TestUninstallRecovery,[string]$ExportedUninstaller,[ValidateRange(30,600)][int]$OperationTimeoutSeconds=120)
+param([Parameter(Mandatory=$true)][string]$ContextFile,[switch]$RunSystemIntegration,[switch]$TestRollback,[switch]$TestRepair,[switch]$TestOverwrite,[switch]$TestHistoricalJournal,[switch]$TestUninstallRecovery,[string]$ExportedUninstaller,[ValidateRange(30,600)][int]$OperationTimeoutSeconds=120)
 $ErrorActionPreference='Stop'
 if(-not $RunSystemIntegration){throw 'Use -RunSystemIntegration to run the isolated installer and registry test'}
+if($TestHistoricalJournal -and -not $TestOverwrite){throw 'Historical journal checks require -TestOverwrite'}
 $contextPath=[IO.Path]::GetFullPath($ContextFile)
 $testRoot=Split-Path -Parent $contextPath
 & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $testRoot
@@ -84,6 +85,24 @@ if($TestOverwrite){
     # path. Keep an unrelated file and the user profile, then require the full
     # payload, registration and shortcut to match again.
     RunChecked $case.installer ('/S /D='+$case.installation)
+    if($TestHistoricalJournal){
+        # The just-completed transaction is now history, not a candidate input.
+        # Model a retired dependency name in that closed record, leaving the
+        # installed payload intact. The real NSIS -> update helper entry must
+        # accept it without deleting history or relaxing new-package checks.
+        $history=Join-Path ($case.installation+'.update') 'journal.json'
+        $journal=Get-Content -LiteralPath $history -Raw -Encoding UTF8 | ConvertFrom-Json
+        if($journal.phase -ne 'committed'){throw 'Historical fixture requires a completed overwrite transaction'}
+        $entry=$journal.plan.files | Where-Object { $_.path -like 'capture/Ocr/*' -and $_.action -eq 'unchanged' } | Select-Object -First 1
+        if(-not $entry){throw 'The verified OCR payload has no unchanged dependency for the history fixture'}
+        Copy-Item -LiteralPath $history -Destination (Join-Path $testRoot 'historical-journal-original.json')
+        $entry.path='capture/Ocr/python/Lib/site-packages/retired_fixture-1.0.dist-info/METADATA'
+        $entry.previousPath=$entry.path
+        [IO.File]::WriteAllText($history,($journal|ConvertTo-Json -Depth 12 -Compress),[Text.UTF8Encoding]::new($false))
+        $historyHash=(Get-FileHash -LiteralPath $history -Algorithm SHA256).Hash
+        RunChecked $case.installer ('/S /D='+$case.installation)
+        if((Get-FileHash -LiteralPath $history -Algorithm SHA256).Hash -ne $historyHash){throw 'Reinstall changed the completed historical record'}
+    }
     $overwritten=Get-Content -LiteralPath (Join-Path $case.installation 'manifest.json') -Raw -Encoding UTF8|ConvertFrom-Json
     foreach($file in $overwritten.files){
         $path=Join-Path $case.installation $file.path
@@ -140,6 +159,7 @@ if(Test-Path -LiteralPath $case.shortcut){throw 'Shortcut remains after uninstal
 $registered=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($case.registryKey)
 if($registered){$registered.Close();throw 'Registration remains after uninstall'}
 $result=@{installedFiles=@($manifest.files).Count; hashesVerified=$true; registrationVerified=$true; shortcutVerified=$true; uninstalled=$true; configurationPreserved=$true; extraFilePreserved=$true; rollbackVerified=[bool]$TestRollback; repairVerified=[bool]$TestRepair; uninstallRecoveryVerified=[bool]$TestUninstallRecovery; exportedUninstallerVerified=[bool]$ExportedUninstaller; overwriteVerified=[bool]$TestOverwrite}
+$result.historicalJournalVerified=[bool]$TestHistoricalJournal
 $result.operationTimeoutSeconds=$OperationTimeoutSeconds
 $result.operationTimings=$operationTimings.ToArray()
 [IO.File]::WriteAllText((Join-Path $testRoot 'result.json'),($result|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))

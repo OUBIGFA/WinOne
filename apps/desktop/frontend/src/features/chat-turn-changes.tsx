@@ -1,6 +1,6 @@
 // TurnChangesCard / TurnChangeFileRow adapted from Cindy 69661422 (Apache-2.0).
 // The original card, file rows, totals and expand controls use WinOne's Host
-// snapshot instead of maker IPC. Each card is bound to its original Pi turn.
+// snapshot instead of maker IPC. Cards stay bound to their turns at the transcript end.
 import {useEffect,useMemo,useState} from 'react';
 import {ChevronDown,ChevronUp,FileDiff,FileText,Undo2,Redo2} from 'lucide-react';
 import {Button} from '../ui/button';
@@ -22,15 +22,15 @@ export function ChatTurnChanges({id,turnId,version,disabled=false,onReview,onOpe
  const action=async(method:string,path:string)=>{try{if(method==='copy')await copyText(absolute(path));else await chatCall(method,{id,path:absolute(path)});}catch(error){setError(String(error));}};
  if(!data&&!error)return null;
  if(data&&!files.length&&!error)return null;
- return <section className="cindy-chat-ui chat-turn-changes my-1 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background)]">
-  <div className="flex min-h-16 items-center gap-3 px-4 py-3">
-   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--muted)] text-muted-foreground"><FileDiff size={18}/></div>
-   <div className="min-w-0 flex-1"><div className="text-sm font-medium">{data?t('chat.turnFilesChanged',{count:files.length}):t('chat.turnReview')}</div>{files.length>0&&<div className="mt-0.5 font-mono text-xs tabular-nums"><span className="text-[var(--diff-add-fg)]">+{additions}</span>{' '}<span className="text-[var(--diff-del-fg)]">−{deletions}</span></div>}</div>
+ return <section className="cindy-chat-ui chat-turn-changes overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--background)]">
+  <div className="chat-turn-changes-header">
+   <div className="shrink-0 text-muted-foreground"><FileDiff size={18}/></div>
+   <div className="chat-turn-changes-totals"><div className="text-sm font-normal">{data?t('chat.turnFilesChanged',{count:files.length}):t('chat.turnReview')}</div>{files.length>0&&<div className="font-mono text-xs tabular-nums whitespace-nowrap"><span className="text-[var(--diff-add-fg)]">+{additions}</span>{' '}<span className="text-[var(--diff-del-fg)]">−{deletions}</span></div>}</div>
    {data?.snapshot.isReversible&&<Button size="sm" icon={data.snapshot.workspaceState==='undone'?Redo2:Undo2} busy={applying} disabled={disabled||applying||data.snapshot.workspaceState==='conflict'} onClick={()=>void apply()}>{t(data.snapshot.workspaceState==='undone'?'chat.turnReapply':'chat.turnUndo')}</Button>}
    <Button size="sm" onClick={()=>onReview()}>{t('chat.reviewViewChanges')}</Button>
   </div>
-  {files.length>0&&<div className="border-t border-[var(--border)] px-3 py-2">{(expanded?files:files.slice(0,3)).map(file=><TurnFileRow key={file.path} path={file.path} additions={file.diff.additions} deletions={file.diff.deletions} onReview={()=>onReview(file.path)} onOpen={()=>onOpen?.(absolute(file.path))} action={method=>void action(method,file.path)}/>)}
-   {files.length>3&&<button type="button" aria-expanded={expanded} onClick={()=>setExpanded(!expanded)} className="flex h-8 items-center gap-1 rounded-lg px-2 text-sm text-muted-foreground hover:bg-[var(--muted)]">{expanded?t('chat.generatedFilesLess'):t('chat.generatedFilesMore',{count:files.length-3})}{expanded?<ChevronUp size={14}/>:<ChevronDown size={14}/>}</button>}
+  {files.length>0&&<div className="border-t border-[var(--border)] px-1 py-1">{(expanded?files:files.slice(0,3)).map(file=><TurnFileRow key={file.path} path={file.path} additions={file.diff.additions} deletions={file.diff.deletions} onReview={()=>onReview(file.path)} onOpen={()=>onOpen?.(absolute(file.path))} action={method=>void action(method,file.path)}/>)}
+   {files.length>3&&<button type="button" aria-expanded={expanded} onClick={()=>setExpanded(!expanded)} className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-[var(--muted)]">{expanded?t('chat.generatedFilesLess'):t('chat.generatedFilesMore',{count:files.length-3})}{expanded?<ChevronUp size={14}/>:<ChevronDown size={14}/>}</button>}
   </div>}
   {data?.snapshot.workspaceState==='conflict'&&<p role="status" className="px-4 py-2 text-sm">{t('chat.turnConflict')}</p>}
   {data&&!data.snapshot.isReversible&&<p role="status" className="px-4 py-2 text-sm text-muted-foreground">{t('chat.turnCapturePartial')}</p>}
@@ -39,5 +39,5 @@ export function ChatTurnChanges({id,turnId,version,disabled=false,onReview,onOpe
 }
 function TurnFileRow({path,additions,deletions,onReview,onOpen,action}:{path:string;additions:number;deletions:number;onReview:()=>void;onOpen:()=>void;action:(method:string)=>void}){
  const {t}=useTranslation(),[menu,setMenu]=useState(false);
- return <DropdownMenu open={menu} onOpenChange={setMenu}><DropdownMenuTrigger render={<button type="button" title={path} className="flex h-9 w-full items-center gap-2 rounded-lg px-2 text-left transition-colors hover:bg-[var(--muted)]" onClick={event=>{event.preventDefault();onReview();}} onContextMenu={event=>{event.preventDefault();setMenu(true);}}/>}><FileText size={15} className="shrink-0 text-muted-foreground"/><span className="min-w-0 flex-1 truncate text-sm">{path}</span><span className="shrink-0 whitespace-nowrap font-mono text-xs tabular-nums"><span className="text-[var(--diff-add-fg)]">+{additions}</span>{' '}<span className="text-[var(--diff-del-fg)]">−{deletions}</span></span></DropdownMenuTrigger><DropdownMenuContent className="chat-row-menu"><DropdownMenuItem onClick={onReview}>{t('chat.reviewViewChanges')}</DropdownMenuItem><DropdownMenuItem onClick={onOpen}>{t('chat.reviewOpenFile')}</DropdownMenuItem><DropdownMenuItem onClick={()=>action('copy')}>{t('chat.copyPath')}</DropdownMenuItem><DropdownMenuItem onClick={()=>action('file.reveal')}>{t('chat.revealFile')}</DropdownMenuItem><DropdownMenuItem onClick={()=>action('file.open')}>{t('chat.openSystem')}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
+ return <DropdownMenu open={menu} onOpenChange={setMenu}><DropdownMenuTrigger render={<button type="button" title={path} className="flex h-7 w-full items-center gap-2 rounded-md px-2 text-left transition-colors hover:bg-[var(--muted)]" onClick={event=>{event.preventDefault();onReview();}} onContextMenu={event=>{event.preventDefault();setMenu(true);}}/>}><FileText size={15} className="shrink-0 text-muted-foreground"/><span className="min-w-0 flex-1 truncate text-sm">{path}</span><span className="shrink-0 whitespace-nowrap font-mono text-xs tabular-nums"><span className="text-[var(--diff-add-fg)]">+{additions}</span>{' '}<span className="text-[var(--diff-del-fg)]">−{deletions}</span></span></DropdownMenuTrigger><DropdownMenuContent className="chat-row-menu"><DropdownMenuItem onClick={onReview}>{t('chat.reviewViewChanges')}</DropdownMenuItem><DropdownMenuItem onClick={onOpen}>{t('chat.reviewOpenFile')}</DropdownMenuItem><DropdownMenuItem onClick={()=>action('copy')}>{t('chat.copyPath')}</DropdownMenuItem><DropdownMenuItem onClick={()=>action('file.reveal')}>{t('chat.revealFile')}</DropdownMenuItem><DropdownMenuItem onClick={()=>action('file.open')}>{t('chat.openSystem')}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
 }

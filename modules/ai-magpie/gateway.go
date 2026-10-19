@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/yetone/magpie/internal/access"
 	"github.com/yetone/magpie/internal/gateway"
 	"github.com/yetone/magpie/internal/provider"
 	"io"
@@ -66,6 +68,8 @@ func (w *gatewayResponse) Flush() {
 // Keep the entire client's protocol payload, including tools and images.
 // Magpie, rather than a second translator, owns all cross-protocol conversion.
 func serveGateway(ctx context.Context, in request, output io.Writer) error {
+	stopPlugins := serveBuiltinPlugins()
+	defer stopPlugins()
 	if err := configureUsage(in); err != nil {
 		return err
 	}
@@ -83,7 +87,7 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 	}
 	model := "winone/" + in.Model
 	if in.Agent != "" {
-		p, err := findAccount(ctx, in.Agent, in.AgentBackend)
+		p, err := findAccount(ctx, in.Agent)
 		if err != nil {
 			return err
 		}
@@ -103,7 +107,13 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 	if err := installAuxiliaryProviders(in); err != nil {
 		return err
 	}
-	if err := applyRawModelMetadata(payload, in.GatewayPath, in.ModelMetadata); err != nil {
+ metadata := in.ModelMetadata
+ if gateway.WinOneTransportOnly {
+  // The outer router already chose the effort/tier. A provider transport
+  // must retain that decision instead of applying its saved defaults again.
+  metadata.ReasoningEffort, metadata.Tier, metadata.Reasoning = "", "", nil
+ }
+ if err := applyRawModelMetadata(payload, in.GatewayPath, metadata); err != nil {
 		return err
 	}
 	body, err := json.Marshal(payload)
@@ -125,7 +135,10 @@ func serveGatewayBody(ctx context.Context, in request, body []byte, output io.Wr
 	}
 	encoder := json.NewEncoder(output)
 	response := &gatewayResponse{header: make(http.Header), encode: func(event gatewayEvent) error { return encoder.Encode(event) }}
-	gateway.New().Handler().ServeHTTP(response, req)
+	if id := in.GatewayHeaders.Get("X-WinOne-Caller-Key"); id != "" {
+		req.Header.Set("X-WinOne-Caller-Key", id)
+	}
+	gateway.New().Handler().ServeHTTP(response, winOneCallerRequest(req))
 	if response.status == 0 {
 		response.WriteHeader(200)
 	}
@@ -133,4 +146,17 @@ func serveGatewayBody(ctx context.Context, in request, body []byte, output io.Wr
 		return response.err
 	}
 	return encoder.Encode(gatewayEvent{Type: "done"})
+}
+
+// The private Host transport authenticates before supplying this public hash.
+// Reuse upstream caller accounting without registering or copying real keys.
+func winOneCallerRequest(r *http.Request) *http.Request {
+	id := r.Header.Get("X-WinOne-Caller-Key")
+	r.Header.Del("X-WinOne-Caller-Key")
+	if len(id) == 64 {
+		if _, err := hex.DecodeString(id); err == nil {
+			return r.WithContext(access.WithIdentity(r.Context(), access.Identity{KeyID: id, KeyName: "WinOne gateway"}))
+		}
+	}
+	return r
 }

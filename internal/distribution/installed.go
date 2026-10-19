@@ -26,7 +26,9 @@ func VerifyUpgradePayload(directory, referencePackage string) (Manifest, error) 
 }
 
 func verifyInstalled(directory, referencePackage string, pending bool) (Manifest, error) {
-	expected, err := Verify(referencePackage)
+	// This compares bytes to their own release inventory, including backups
+	// of older dependencies. Candidate admission is the caller's Verify step.
+	expected, err := verifyHistoricalPackage(referencePackage)
 	if err != nil {
 		return Manifest{}, err
 	}

@@ -45,6 +45,7 @@ type liveSession struct {
 	bytes           int
 	sequence        uint64
 	running, closed bool
+	sessionPaused   bool // Durable scheduling choice, independent of application shutdown.
 	status, failure string
 	initialized     bool
 	modelError      string
@@ -312,6 +313,7 @@ func (s *Service) event(id string, p *liveSession, raw json.RawMessage) {
 		Type, ID, Status, Error string
 		Request                 json.RawMessage
 		State                   json.RawMessage
+		Paused                  bool
 	}
 	if err := json.Unmarshal(raw, &value); err != nil {
 		return
@@ -323,11 +325,28 @@ func (s *Service) event(id string, p *liveSession, raw json.RawMessage) {
 			persistence = s.store.ConfirmInput(id, value.ID)
 		}
 	}
-	if value.Type == "settled" {
+	if value.Type == "settled" || value.Type == "resumed" {
 		persistence = s.remember(id, value.State)
 	}
 	p.mu.Lock()
 	switch value.Type {
+	case "durable_state":
+		p.sessionPaused = value.Paused
+		if value.Paused {
+			p.running = false
+			p.status = "paused"
+		}
+	case "resumed":
+		var state struct{ Streaming, Paused bool }
+		if json.Unmarshal(value.State, &state) == nil {
+			p.sessionPaused = state.Paused
+			p.running = state.Streaming
+			p.status = "idle"
+			if state.Streaming {
+				p.status = "running"
+			}
+			p.failure = ""
+		}
 	case "approval":
 		var request struct{ ID string }
 		if json.Unmarshal(value.Request, &request) == nil {
@@ -399,6 +418,16 @@ func (s *Service) Poll(id string, after uint64) (EventPage, error) {
 	return page, nil
 }
 func (s *Service) Prompt(ctx context.Context, id, requestID, text string, attachmentPaths ...[]string) (json.RawMessage, error) {
+	return s.submitInput(ctx, id, requestID, text, "queue", attachmentPaths...)
+}
+
+// Steer shares validation, draft protection and durable receipts with Prompt.
+// It does not abort the current turn; Pi delivers at its next input boundary.
+func (s *Service) Steer(ctx context.Context, id, requestID, text string, attachmentPaths ...[]string) (json.RawMessage, error) {
+	return s.submitInput(ctx, id, requestID, text, "steer", attachmentPaths...)
+}
+
+func (s *Service) submitInput(ctx context.Context, id, requestID, text, deliveryMode string, attachmentPaths ...[]string) (json.RawMessage, error) {
 	var paths []string
 	if len(attachmentPaths) > 1 {
 		return nil, errors.New("附件参数无效")
@@ -429,7 +458,7 @@ func (s *Service) Prompt(ctx context.Context, id, requestID, text string, attach
 	}
 	// A retry after a desktop/worker restart must consult Pi's persisted input
 	// receipt before sending. Timeouts cannot silently execute a prompt twice.
-	raw, err := p.runner.Call(ctx, "input_status", map[string]any{"id": requestID, "text": text, "attachments": paths})
+	raw, err := p.runner.Call(ctx, "input_status", map[string]any{"id": requestID, "text": text, "attachments": paths, "deliveryMode": deliveryMode})
 	if err != nil {
 		return nil, err
 	}
@@ -443,11 +472,14 @@ func (s *Service) Prompt(ctx context.Context, id, requestID, text string, attach
 		return json.RawMessage(`{"accepted":true,"replayed":true}`), s.store.ConfirmInput(id, requestID)
 	}
 	p.mu.Lock()
-	running := p.running
+	running, paused := p.running, p.sessionPaused
 	p.mu.Unlock()
-	// The worker accepts each input into Pi's follow-up queue during a run.
-	// The persisted draft and request receipt still protect ambiguous retries.
-	if err = s.store.SaveDraft(id, Draft{Text: text, PendingID: requestID, Attachments: attachments}); err != nil {
+	if paused {
+		return nil, errors.New("对话已暂停，请先恢复；草稿已保留")
+	}
+	// Both modes use Pi's durable inbox. Only the scheduling boundary differs;
+	// the same receipt prevents ambiguous retries becoming a second input.
+	if err = s.store.SaveDraft(id, Draft{Text: text, PendingID: requestID, PendingDelivery: deliveryMode, Attachments: attachments}); err != nil {
 		return nil, err
 	}
 	p.mu.Lock()
@@ -459,7 +491,7 @@ func (s *Service) Prompt(ctx context.Context, id, requestID, text string, attach
 	p.failure = ""
 	p.notifyLocked()
 	p.mu.Unlock()
-	raw, err = p.runner.CallOnce(ctx, requestID, "prompt", map[string]any{"text": text, "attachments": paths})
+	raw, err = p.runner.CallOnce(ctx, requestID, "prompt", map[string]any{"text": text, "attachments": paths, "deliveryMode": deliveryMode})
 	if err != nil {
 		// An ambiguous acknowledgement remains pending for state reconciliation.
 		// Marking it idle here would allow a second prompt into a running agent.
@@ -472,6 +504,18 @@ func (s *Service) Prompt(ctx context.Context, id, requestID, text string, attach
 		p.failure = err.Error()
 		p.notifyLocked()
 		p.mu.Unlock()
+	}
+	// Cindy separates accepted queued input from the next unsent composer draft.
+	// Pi persists winone.queued before acknowledging, so we can clear this exact
+	// pending receipt now instead of waiting for consumption/history refresh.
+	// ConfirmInput never clears a newer draft or a different pending receipt.
+	if err == nil {
+		var result struct {
+			Accepted bool `json:"accepted"`
+		}
+		if err = json.Unmarshal(raw, &result); err == nil && result.Accepted {
+			err = s.store.ConfirmInput(id, requestID)
+		}
 	}
 	return raw, err
 }
@@ -504,7 +548,7 @@ func (s *Service) Command(ctx context.Context, id, method string, params any) (j
 // captured turn before replacing its input without admitting a concurrent prompt.
 func (s *Service) CommandPrepared(ctx context.Context, id, method string, params any, prepare func() error) (json.RawMessage, error) {
 	switch method {
-	case "state", "resources", "permission", "abort", "set_model", "set_permission", "rename", "compact", "retry":
+	case "state", "resources", "permission", "question", "abort", "pause", "resume", "set_model", "set_permission", "rename", "compact", "retry", "thinking", "fast", "control":
 	default:
 		return nil, errors.New("不支持的 Chat 操作")
 	}
@@ -534,10 +578,19 @@ func (s *Service) CommandPrepared(ctx context.Context, id, method string, params
 		return nil, errors.New(p.modelError)
 	}
 	p.mu.Lock()
-	busy := p.running
+	busy, previousStatus := p.running, p.status
 	p.mu.Unlock()
-	if busy && (method == "set_model" || method == "set_permission" || method == "compact" || method == "retry") {
+	if busy && (method == "set_model" || method == "set_permission" || method == "compact" || method == "retry" || method == "thinking") {
 		return nil, errors.New("请先停止当前任务")
+	}
+	var requestID string
+	if method == "retry" {
+		if input, ok := params.(map[string]any); ok {
+			requestID, _ = input["requestId"].(string)
+			if len(requestID) > 128 {
+				return nil, errors.New("消息标识无效")
+			}
+		}
 	}
 	if method == "compact" || method == "retry" {
 		if prepare != nil {
@@ -548,14 +601,48 @@ func (s *Service) CommandPrepared(ctx context.Context, id, method string, params
 		p.mu.Lock()
 		p.running = true
 		p.status = "running"
+		if requestID != "" {
+			p.activeRequest = requestID
+		}
+		p.failure = ""
 		p.mu.Unlock()
 	}
-	raw, err := p.runner.Call(ctx, method, params)
+	var raw json.RawMessage
+	if requestID != "" {
+		// Preserve the UI receipt through retry/edit just as for ordinary sends.
+		raw, err = p.runner.CallOnce(ctx, requestID, method, params)
+	} else {
+		raw, err = p.runner.Call(ctx, method, params)
+	}
+	if err == nil && method == "retry" {
+		// CallOnce can return an earlier accepted acknowledgement after its
+		// turn already completed. Reconcile lifecycle from the Worker, never
+		// send this snapshot to the UI over its ordered branch/delta stream.
+		var state json.RawMessage
+		state, err = p.runner.Call(ctx, "state", nil)
+		if err == nil {
+			var snapshot struct{ Streaming bool }
+			err = json.Unmarshal(state, &snapshot)
+			if err == nil {
+				p.mu.Lock()
+				p.running = snapshot.Streaming
+				if !snapshot.Streaming && p.status == "running" {
+					p.status = previousStatus
+				}
+				p.notifyLocked()
+				p.mu.Unlock()
+			}
+		}
+	}
 	if err != nil && method == "retry" {
 		p.mu.Lock()
-		p.running = false
-		p.status = "failed"
+		var rejection *CommandRejection
+		if errors.As(err, &rejection) {
+			p.running = false
+			p.status = "failed"
+		}
 		p.failure = err.Error()
+		p.notifyLocked()
 		p.mu.Unlock()
 	}
 	if err == nil {
@@ -570,7 +657,7 @@ func (s *Service) CommandPrepared(ctx context.Context, id, method string, params
 			p.notifyLocked()
 			p.mu.Unlock()
 		}
-		if method == "permission" {
+		if method == "permission" || method == "question" {
 			data, _ := json.Marshal(params)
 			var value struct{ ID string }
 			json.Unmarshal(data, &value)

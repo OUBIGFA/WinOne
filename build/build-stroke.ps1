@@ -33,7 +33,9 @@ $api=[regex]::Replace($api,'\[DllImport\("user32.dll", CharSet = CharSet.Auto, S
 [IO.File]::WriteAllText((Join-Path $patched 'API.cs'),$api,$encoding)
 $draw=[IO.File]::ReadAllText((Join-Path $module 'upstream/Draw.cs')).Replace('originalPen = API.SelectObject(canvas, pen);','IntPtr previous = API.SelectObject(canvas, pen); if (originalPen == IntPtr.Zero) originalPen = previous;').Replace('if (canvas != IntPtr.Zero)', 'if (pen != IntPtr.Zero) API.DeleteObject(pen);'+[Environment]::NewLine+'                if (canvas != IntPtr.Zero)')
 [IO.File]::WriteAllText((Join-Path $patched 'Draw.cs'),$draw,$encoding)
-$hook=[IO.File]::ReadAllText((Join-Path $module 'upstream/MouseHook.cs')).Replace('Enable = true;','if (hook == IntPtr.Zero) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "Mouse hook registration failed"); Enable = true;').Replace('API.UnhookWindowsHookEx(hook);','if (!API.UnhookWindowsHookEx(hook)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "Mouse hook removal failed"); hook = IntPtr.Zero;')
+$hook=[IO.File]::ReadAllText((Join-Path $module 'upstream/MouseHook.cs')).Replace('Enable = true;','if (hook == IntPtr.Zero) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "Mouse hook registration failed"); Enable = true;').Replace('API.UnhookWindowsHookEx(hook);','if (!API.UnhookWindowsHookEx(hook)) { int code=Marshal.GetLastWin32Error(); if(code!=1404 && code!=6) throw new System.ComponentModel.Win32Exception(code, "Mouse hook removal failed"); } hook = IntPtr.Zero;')
+$hook=$hook.Replace('private static IntPtr hook = IntPtr.Zero;','private static IntPtr hook = IntPtr.Zero; private static long lastEventTimestamp; public static long LastEventTimestamp {get{return System.Threading.Interlocked.Read(ref lastEventTimestamp);}}')
+$hook=[regex]::Replace($hook,'if \(nCode >= 0\)\s*\{',('$&'+"`n                System.Threading.Interlocked.Exchange(ref lastEventTimestamp, Stopwatch.GetTimestamp());"))
 [IO.File]::WriteAllText((Join-Path $patched 'MouseHook.cs'),$hook,$encoding)
 $base=[IO.File]::ReadAllText((Join-Path $module 'upstream/Base.cs')).Replace('Enable = true;','if (hook == IntPtr.Zero) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "Keyboard hook registration failed"); Enable = true;').Replace('API.UnhookWindowsHookEx(hook);','if (!API.UnhookWindowsHookEx(hook)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "Keyboard hook removal failed"); hook = IntPtr.Zero;')
 [IO.File]::WriteAllText((Join-Path $patched 'Base.cs'),$base,$encoding)
@@ -41,7 +43,7 @@ $references=@('mscorlib.dll','System.dll','System.Core.dll','System.Drawing.dll'
 $common=@('/nologo','/noconfig','/nostdlib+','/langversion:latest','/platform:x64','/optimize+','/debug-')+$references
 $core=@('Gesture.cs','Pen.cs','Action.cs','ActionPackage.cs','SpecialGesture.cs')|ForEach-Object {Join-Path $module ('upstream/'+$_)}
 $core+=@('API.cs','Draw.cs','MouseHook.cs','Base.cs')|ForEach-Object {Join-Path $patched $_}
-$core+=@('AssemblyInfo.cs','CoreState.cs','Configuration.cs','ScopePolicy.cs','GestureEngine.cs')|ForEach-Object {Join-Path $module $_}
+$core+=@('AssemblyInfo.cs','CoreState.cs','Configuration.cs','ScopePolicy.cs','GestureEngine.cs','HookRecovery.cs')|ForEach-Object {Join-Path $module $_}
 & $DotnetExe $CompilerPath @common /target:library ('/out:'+(Join-Path $output 'Stroke.Base.dll')) @core
 if($LASTEXITCODE-ne 0){throw 'Stroke base compilation failed'}
 foreach($name in @('Base','Stroke')){
@@ -50,7 +52,7 @@ foreach($name in @('Base','Stroke')){
 }
 Copy-Item -LiteralPath (Join-Path $module 'defaults.json') -Destination $output
 Copy-Item -LiteralPath (Join-Path $module 'upstream/LICENSE') -Destination (Join-Path $output 'Stroke-LICENSE.txt')
-$runtime=@('NativeWindow.cs','Protocol.cs','InputLedger.cs','ScriptHost.cs','ScriptSupervisor.cs','Program.cs')|ForEach-Object {Join-Path $module $_}
+$runtime=@('NativeWindow.cs','Protocol.cs','InputLedger.cs','ScriptHost.cs','ScriptSupervisor.cs','MouseHookLoop.cs','Program.cs')|ForEach-Object {Join-Path $module $_}
  & $DotnetExe $CompilerPath @common ('/reference:'+(Join-Path $output 'Stroke.Base.dll')) ('/win32manifest:'+(Join-Path $module 'app.manifest')) /target:winexe /main:WinOne.StrokeRuntime.Program ('/out:'+(Join-Path $output 'WinOne.Stroke.exe')) @runtime
  if($LASTEXITCODE-ne 0){throw 'Stroke worker compilation failed'}
 if($Test){

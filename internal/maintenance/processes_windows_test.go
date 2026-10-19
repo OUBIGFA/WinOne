@@ -4,6 +4,7 @@ package maintenance
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"golang.org/x/sys/windows"
 )
 
 func TestProductProcessScopeHelper(t *testing.T) {
@@ -38,6 +41,53 @@ func TestIndependentWinTrayIsNotAWinOneMaintenanceProcess(t *testing.T) {
 		t.Fatal("embedded program manager escaped WinOne maintenance")
 	}
 	checkMaintenanceProcessScope(t, "WinTray.exe", false)
+}
+
+func TestMaintenanceProcessLocationIgnoresAnExitedSnapshotEntry(t *testing.T) {
+	child := exec.Command(os.Args[0], "-test.run=^TestProductProcessScopeHelper$")
+	child.Env = append(os.Environ(), "WINONE_PROCESS_SCOPE_HELPER=1")
+	input, err := child.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	output, err := child.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = child.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		input.Close()
+		if child.ProcessState == nil {
+			child.Wait()
+		}
+	})
+	if line, err := bufio.NewReader(output).ReadString('\n'); err != nil || line != "ready\n" {
+		t.Fatal(line, err)
+	}
+	// Keep the exited process object (and PID) alive exactly as an outstanding
+	// Toolhelp entry can outlive the process that was observed in its snapshot.
+	pin, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.SYNCHRONIZE, false, uint32(child.Process.Pid))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { windows.CloseHandle(pin) })
+	for _, handle := range []windows.Handle{pin, 0} {
+		if err := processErrorUnlessExited(handle, windows.ERROR_ACCESS_DENIED); !errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+			t.Fatal("live or unverified process access failure was suppressed", handle, err)
+		}
+	}
+	input.Close()
+	if err = child.Wait(); err != nil {
+		t.Fatal(err)
+	}
+	if state, err := windows.WaitForSingleObject(pin, 0); err != nil || state != windows.WAIT_OBJECT_0 {
+		t.Fatal("fixture has not exited", state, err)
+	}
+	if inside, err := processInInstallation(uint32(child.Process.Pid), t.TempDir()); err != nil || inside {
+		t.Fatal("an exited snapshot entry blocked maintenance", inside, err)
+	}
 }
 
 func checkMaintenanceProcessScope(t *testing.T, name string, product bool) {

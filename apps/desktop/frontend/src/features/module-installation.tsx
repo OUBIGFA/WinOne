@@ -1,3 +1,4 @@
+import {usePathDrop} from '../ui/path-drop';
 import {useEffect,useRef,useState} from 'react';
 import {Plus,Check,RefreshCw} from 'lucide-react';
 import {moduleCall,pickModulePackage} from '../bridge';
@@ -43,10 +44,11 @@ export function ModuleInstallation({disabled,onChanged,onActivity}:{disabled:boo
    setBusy(false);
   }
  }
+ const packageDrop=usePathDrop({kind:'file',disabled:disabled||choosing||busy||open,onPaths:paths=>inspect(paths[0]),onError:setError});
  const language=i18n.language==='en-US'?'en-US':'zh-CN';
  const checking=open&&(!preview&&!error||preview?.state==='checking');
  return <>
-  <Button icon={Plus} disabled={disabled||choosing||busy} busy={choosing} onClick={()=>void choose()}>{t('module.installPackage')}</Button>
+  <span {...packageDrop} className="inline-flex"><Button icon={Plus} disabled={disabled||choosing||busy} busy={choosing} onClick={()=>void choose()}>{t('module.installPackage')}</Button></span>
   {!open&&error&&<Notice>{error}</Notice>}
   <Dialog open={open} onOpenChange={value=>{if(!value)void cancel()}}>
    <DialogContent className="max-w-lg">

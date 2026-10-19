@@ -14,6 +14,7 @@ type ModelMetadata struct {
 	UpstreamName string      `json:"upstreamName,omitempty"`
 	API          string      `json:"api,omitempty"`
 	Efforts      []string    `json:"efforts,omitempty"`
+	Tiers        []string    `json:"tiers,omitempty"`
 	Price        *ModelPrice `json:"price,omitempty"`
 	// Rates are vendor-listed credit multipliers, not USD token prices.
 	Rate                float64 `json:"rate,omitempty"`
@@ -33,6 +34,7 @@ type ModelMetadata struct {
 
 func (m ModelMetadata) clone() ModelMetadata {
 	m.Efforts = slices.Clone(m.Efforts)
+	m.Tiers = slices.Clone(m.Tiers)
 	if m.Price != nil {
 		price := *m.Price
 		price.Tiers = slices.Clone(price.Tiers)

@@ -10,9 +10,10 @@ import {directoryLinksMessages} from "../locales/directory-links";
 const ports=vi.hoisted(()=>({call:vi.fn(),folder:vi.fn(),files:vi.fn(),folders:vi.fn(),drop:vi.fn()}));
 vi.mock("../bridge",()=>({directoryLinksCall:ports.call,pickDirectory:ports.folder,pickFile:vi.fn(),pickFiles:ports.files,pickDirectories:ports.folders,setFileDropTarget:ports.drop}));
 const source="C:\\source",destination="C:\\links";
-const file={name:"说明.txt",path:source+"\\说明.txt",objectType:"file"};
-const folder={name:"项目",path:source+"\\项目",objectType:"directory"};
-const listing=(directory:string,entries:unknown[])=>({directory,parent:directory==="C:\\"?"":"C:\\",entries,total:entries.length,offset:0,hasMore:false});
+const identity=(file:string)=>({volume:1,file,created:1});
+const file={name:"说明.txt",path:source+"\\说明.txt",objectType:"file",identity:identity("file")};
+const folder={name:"项目",path:source+"\\项目",objectType:"directory",identity:identity("folder")};
+const listing=(directory:string,entries:unknown[])=>({directory,identity:identity(directory),parent:directory==="C:\\"?"":"C:\\",entries,total:entries.length,offset:0,hasMore:false});
 beforeEach(async()=>{
  i18n.addResourceBundle("zh-CN","translation",{links:directoryLinksMessages.zh},true,true);
  await setApplicationLanguage("zh-CN");
@@ -167,6 +168,43 @@ it("marks an inspected destination link without labeling ordinary files as links
  const right=within(screen.getByRole("region",{name:"目标文件夹"}));
  expect(right.getAllByText("已链接")).toHaveLength(1);
  expect(right.queryByText("已存在")).toBeNull();
+});
+
+it.each([file,folder])("renames existing destination $objectType entries only after submitting the name",async(entry)=>{
+ let current={...entry,path:destination+"\\"+entry.name};const changed=vi.fn(),base=ports.call.getMockImplementation()!;
+ ports.call.mockImplementation(async(method:string,args:any)=>{
+  if(method==="browse"&&args.directory===destination)return listing(destination,[current]);
+  if(method==="rename"){current={...current,name:args.name,path:destination+"\\"+args.name};return {path:current.path,records:[]};}
+  return base(method,args);
+ });
+ render(<DirectoryLinksBatch onChanged={changed}/>);const user=await openBoth();
+ const target=within(screen.getByRole("region",{name:"目标文件夹"}));
+ await user.click(target.getByRole("button",{name:"重命名："+entry.name}));
+ const dialog=within(screen.getByRole("dialog"));
+ expect(dialog.getByRole("heading",{name:entry.objectType==="file"?"重命名文件":"重命名文件夹"})).toBeTruthy();
+ expect(ports.call.mock.calls.some(([method])=>method==="rename")).toBe(false);
+ await user.clear(dialog.getByRole("textbox",{name:"新名称"}));await user.type(dialog.getByRole("textbox",{name:"新名称"}),"新名称.txt{Enter}");
+ await waitFor(()=>expect(ports.call).toHaveBeenCalledWith("rename",{path:destination+"\\"+entry.name,name:"新名称.txt",entryIdentity:entry.identity,parentIdentity:identity(destination)}));
+ await waitFor(()=>expect(screen.queryByRole("dialog")).toBeNull());
+ expect(await target.findByText("新名称.txt")).toBeTruthy();expect(changed).toHaveBeenCalledWith([]);
+ expect(ports.call.mock.calls.some(([method])=>String(method).startsWith("create"))).toBe(false);
+});
+
+it("supports F2, preserves a rejected name for correction, and cancels without another mutation",async()=>{
+ const base=ports.call.getMockImplementation()!;
+ ports.call.mockImplementation(async(method:string,args:any)=>{
+  if(method==="browse"&&args.directory===destination)return listing(destination,[{...file,path:destination+"\\"+file.name}]);
+  if(method==="rename")throw Error("所在文件夹已有同名项目，不能覆盖；请换一个名称");
+  return base(method,args);
+ });
+ render(<DirectoryLinksBatch onChanged={()=>{}}/>);const user=await openBoth();
+ const row=within(screen.getByRole("region",{name:"目标文件夹"})).getByRole("listitem");row.focus();await user.keyboard("{F2}");
+ const dialog=within(screen.getByRole("dialog"));const input=dialog.getByRole("textbox",{name:"新名称"});
+ await user.clear(input);await user.type(input,"冲突.txt");await user.click(dialog.getByRole("button",{name:"重命名"}));
+ await dialog.findByText(/不能覆盖/);expect((input as HTMLInputElement).value).toBe("冲突.txt");
+ await user.click(dialog.getByRole("button",{name:"取消"}));await waitFor(()=>expect(screen.queryByRole("dialog")).toBeNull());
+ expect(ports.call.mock.calls.filter(([method])=>method==="rename")).toHaveLength(1);
+ expect(within(screen.getByRole("region",{name:"目标文件夹"})).getByText(file.name)).toBeTruthy();
 });
 
 it("does not let an older folder response replace the newest address",async()=>{

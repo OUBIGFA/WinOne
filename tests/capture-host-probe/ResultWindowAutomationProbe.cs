@@ -47,7 +47,7 @@ internal static class ResultWindowAutomationProbe
         using var timing=System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(output,"stream-sent.json")));
         var sentAt=DateTime.Parse(timing.RootElement.GetProperty("sentUtc").GetString()!,null,System.Globalization.DateTimeStyles.RoundtripKind).ToUniversalTime();
         var firstVisibleMs=(visibleAt-sentAt).TotalMilliseconds;
-        if(!Working()||Has(root,"思考过程")||Has(root,"模型返回的测试思考"))throw new Exception("Initial result exposed reasoning or completed early");
+        if(!Working()||Has(root,"思考过程")||HasReasoning(root))throw new Exception("Initial result exposed reasoning or completed early");
         File.WriteAllText(Path.Combine(output,"stream-visible.json"),System.Text.Json.JsonSerializer.Serialize(new{beforeCompletion=true,initialReasoningHidden=true,firstVisibleMs}));
         Wait(()=>!Working(),"complete streamed result");
         CheckCaptureIdentityHidden(root,initialModel,translate?"你好，世界":"Hello world");
@@ -62,11 +62,11 @@ internal static class ResultWindowAutomationProbe
         if(hidden){if(Has(root,"思考过程"))throw new Exception("Disabled chat reasoning exposed a disclosure");}
         else{
             Wait(()=>Has(root,"思考过程"),"chat reasoning disclosure");
-            if(Has(root,"模型返回的测试思考"))throw new Exception("Chat reasoning expanded by default");
-            SetReasoningExpanded(root,true);Wait(()=>Has(root,"模型返回的测试思考"),"user-expanded chat reasoning");
+            if(HasReasoning(root))throw new Exception("Chat reasoning expanded by default");
+            SetReasoningExpanded(root,true);Wait(()=>HasReasoning(root),"user-expanded chat reasoning");
             var collapse=Find(root,"收起思考过程",true).Current.BoundingRectangle;
             if(!GetWindowRect(window,out var bounds)||collapse.Top<bounds.Top||collapse.Bottom>bounds.Bottom)throw new Exception("Fixed reasoning collapse is not reachable");
-            Invoke(root,"收起思考过程");Wait(()=>!Has(root,"模型返回的测试思考"),"collapse reasoning from composer");
+            Invoke(root,"收起思考过程");Wait(()=>!HasReasoning(root),"collapse reasoning from composer");
         }
         File.WriteAllText(Path.Combine(output,"chat-stream-visible.json"),System.Text.Json.JsonSerializer.Serialize(new{beforeCompletion=true,reasoningCollapsed=true,expandedByUser=!hidden,collapsedFromComposer=!hidden,reasoningHidden=hidden}));
         Wait(()=>Has(root,"第一轮回答"),"first AI answer");
@@ -168,6 +168,7 @@ internal static class ResultWindowAutomationProbe
         Wait(()=>{try{var button=Find(root,name,true);if(!button.Current.IsEnabled)return false;((InvokePattern)button.GetCurrentPattern(InvokePattern.Pattern)).Invoke();return true;}catch(ElementNotAvailableException){return false;}},"invoke "+name);
     }
     private static bool Has(AutomationElement root,string text)=>root.FindFirst(TreeScope.Descendants,new PropertyCondition(AutomationElement.NameProperty,text)) is not null;
+    private static bool HasReasoning(AutomationElement root)=>root.FindAll(TreeScope.Descendants,new PropertyCondition(AutomationElement.ControlTypeProperty,ControlType.Text)).Cast<AutomationElement>().Any(element=>element.Current.Name.Contains("模型返回的测试思考",StringComparison.Ordinal));
     private static void AssertClipboard(string expected){
         // UIA runs on an MTA worker; read OLE clipboard on its required STA.
         // The enclosing native probe restores the user's clipboard at exit.
@@ -176,6 +177,9 @@ internal static class ResultWindowAutomationProbe
             var thread=new Thread(()=>{try{actual=Clipboard.GetText();}catch(Exception error){failure=error;}});
             thread.SetApartmentState(ApartmentState.STA);thread.Start();
             if(!thread.Join(3000))throw new Exception("Clipboard read did not return");
+            // A copy can still own the Win32 clipboard while OLE reads it.
+            // Retry only the documented busy error within the normal deadline.
+            if(failure is ExternalException clipboardBusy&&clipboardBusy.ErrorCode==unchecked((int)0x800401D0))return false;
             if(failure is not null)throw failure;
             return actual==expected;
         },"exact copied answer");
@@ -201,7 +205,7 @@ internal static class ResultWindowAutomationProbe
         // Re-read the disclosure state; Expand/Collapse are idempotent, so an
         // uncertain action is verified rather than replayed as a toggle.
         Wait(()=>{
-            var pattern=(ExpandCollapsePattern)Find(root,provider,true).GetCurrentPattern(ExpandCollapsePattern.Pattern);
+            var pattern=(ExpandCollapsePattern)Find(root,"供应商："+provider,true).GetCurrentPattern(ExpandCollapsePattern.Pattern);
             if(pattern.Current.ExpandCollapseState==(expanded?ExpandCollapseState.Expanded:ExpandCollapseState.Collapsed))return true;
             if(expanded)pattern.Expand();else pattern.Collapse();
             return false;

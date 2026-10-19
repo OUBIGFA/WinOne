@@ -10,8 +10,8 @@ foreach($model in @(@('PP-OCRv6_det_small.onnx','090f04abcd9d9a7498bc4ebf677e4cb
 }
 New-Item -ItemType Directory -Force -Path $destination | Out-Null
 # Ship HushSnap's pinned minimal OpenCV build, not the wheel's video stack.
-# Exclude package tests/caches and duplicate models, while retaining RapidOCR's
-# classifier asset: RapidOCR constructs that session even with use_cls=false.
+# RapidOCR 3.10 loads sessions lazily. Classification is disabled for screen
+# text, so only the two explicitly selected PP-OCRv6 models belong in the bundle.
 $minimal=Join-Path $runtime 'cv2.cp313-win_amd64.pyd'
 if((Get-FileHash -LiteralPath $minimal -Algorithm SHA256).Hash.ToLowerInvariant() -ne '2655a5b03331d19f5f43a3d52b262d99d1d3d4c6179783c4544eb9fdc5466282'){throw 'Minimal OpenCV checksum mismatch'}
 foreach($file in Get-ChildItem -LiteralPath $runtime -File -Recurse){
@@ -21,7 +21,7 @@ foreach($file in Get-ChildItem -LiteralPath $runtime -File -Recurse){
  if($relative -match '(^|/)(_examples|examples|test-examples)(/|$)' -or $relative -match '^python/Lib/site-packages/(bin|share)/'){continue}
  if($relative -match '\.(h|lib|c|pxd|pyx|sh|js|1|pc|build|template)$'){continue}
  if($relative -match '/cv2/(cv2[^/]*\.pyd|opencv_videoio[^/]*\.dll)$'){continue}
- if($relative -match '/rapidocr/models/' -and $file.Name -ne 'ch_ppocr_mobile_v2.0_cls_mobile.onnx'){continue}
+ if($relative -match '/rapidocr/models/'){continue}
  $target=Join-Path $destination $relative
  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
  Copy-Item -LiteralPath $file.FullName -Destination $target -Force

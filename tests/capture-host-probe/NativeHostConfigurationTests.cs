@@ -6,7 +6,9 @@ using WinOne.Capture;
 
 internal static class NativeHostConfigurationTests
 {
-    public static void Run() => RunAsync().GetAwaiter().GetResult();
+    // This suite exercises pipes only. Earlier facade checks create native
+    // controls and install a WinForms context without running its message loop.
+    public static void Run() => Task.Run(RunAsync).GetAwaiter().GetResult();
 
     private static async Task RunAsync()
     {

@@ -20,6 +20,7 @@ function backend(){
   if(method==='poll')return {events:[],cursor:0,approvals:[],running:false,status:'idle',error:'Request aborted'};
   if(method==='settings.get')return {workspaceDirectory:'C:\\work',skillDirectories:[],pluginDirectories:[],mcpServers:[],automations:[]};
   if(method==='settings.save')return params.settings;
+  if(method==='thinking'||method==='fast')return {...conversation,...(method==='thinking'?{thinkingLevel:params.thinkingLevel}:{fastMode:params.fastMode})};
   return {};
  });
 }
@@ -94,4 +95,42 @@ it('invalidates a pending history request when leaving and reopening the same co
  expect(screen.getByRole('button',{name:'加载更早消息'}).hasAttribute('disabled')).toBe(false);
  await act(async()=>finish({messages:[{id:'stale',role:'assistant',content:'Stale historical result'}],hasOlder:false}));
  expect(screen.queryByText('Stale historical result')).toBeNull();expect(screen.getByRole('button',{name:'加载更早消息'})).toBeTruthy();
+});
+
+it('changes the thinking level and fast mode from the composer',async()=>{
+ await open();
+ // Base UI menus open on keyboard focus in jsdom; clicking the pill does not
+ // reliably dispatch the trigger interaction the menu listens for.
+ const openThinkingMenu=async()=>{const trigger=await screen.findByRole('button',{name:/思考强度/});trigger.focus();await userEvent.keyboard('{ArrowDown}');};
+ await openThinkingMenu();
+ await userEvent.click(await screen.findByRole('menuitem',{name:'高强度推理'}));
+ await waitFor(()=>expect(native.call).toHaveBeenCalledWith('thinking',{id:'conversation',thinkingLevel:'high'}));
+ await openThinkingMenu();
+ await userEvent.click(await screen.findByText('快速模式'));
+ await waitFor(()=>expect(native.call).toHaveBeenCalledWith('fast',{id:'conversation',fastMode:true}));
+});
+
+it('compacts the conversation from the composer button',async()=>{
+ await open();
+ await userEvent.click(await screen.findByRole('button',{name:'压缩上下文'}));
+ await waitFor(()=>expect(native.call).toHaveBeenCalledWith('compact',{id:'conversation'}));
+});
+
+it('renders the context usage reported by the durable state',async()=>{
+ backend();const fallback=native.call.getMockImplementation()!;
+ native.call.mockImplementation((method,params)=>method==='open'?Promise.resolve({messages,hasOlder:true,before:'user-1',contextUsage:{tokens:25000,contextWindow:100000,percent:25},usage:{input:1000,output:200,cacheRead:0,cacheWrite:0,totalTokens:1200,cost:0,costKnown:false}}):fallback(method,params));
+ render(<ChatPage/>);await userEvent.click(await screen.findByRole('button',{name:'A conversation'}));await screen.findByText('First answer');
+ const chip=await screen.findByRole('button',{name:'上下文用量 · 25%'});
+ await userEvent.click(chip);
+ expect(await screen.findByText('费用未知')).toBeTruthy();
+ expect(screen.getByText((_,node)=>node?.tagName==='DD'&&node.textContent==='25.0k / 100.0k')).toBeTruthy();
+});
+
+it('toggles the completion sound from the composer',async()=>{
+ await open();
+ const toggle=await screen.findByRole('button',{name:'关闭完成提示音'});
+ expect(toggle.getAttribute('aria-pressed')).toBe('true');
+ await userEvent.click(toggle);
+ expect((await screen.findByRole('button',{name:'开启完成提示音'})).getAttribute('aria-pressed')).toBe('false');
+ expect(localStorage.getItem('winone.chat.sound.v1')).toBe('false');
 });

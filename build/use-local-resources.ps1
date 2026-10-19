@@ -6,17 +6,24 @@ $resourcePaths = @{
     ResultGoExe = 'dist/resources/tools/go-1.27.1/bin/go.exe'
     CargoExe = 'dist/resources/tools/rust-1.99.0/bin/cargo.exe'
     ShareXSourceDirectory = 'dist/resources/sources/ShareX-native'
-    OcrRuntimeDirectory = 'dist/resources/runtimes/ocr'
-    MagpieSourceDirectory = 'dist/resources/sources/magpie-0bb0781'
-    PluginSourceDirectory = 'dist/resources/sources/ai-plugins-bcc94e5'
+    OcrRuntimeDirectory = 'dist/resources/runtimes/ocr-3.10.0'
+    MagpieSourceDirectory = 'dist/resources/sources/magpie-d783df46cbac9021e26a6bd71ca0b55544552eb2'
+    PluginSourceDirectory = 'dist/resources/sources/ai-plugins-0a998a8'
     BunExe = 'dist/resources/tools/bun-1.4.2/bun.exe'
     RustTargetDirectory = 'dist/resources/cache/rust-desktop'
     DiagramTargetDirectory = 'dist/resources/cache/rust-diagrams'
     SelectionTargetDirectory = 'dist/resources/cache/rust-selection'
 }
 $WinOneBuildParameters = @{}
+# An already installed copy of the exact compiler is also a reusable resource.
+# Never install a toolchain or save the machine's path in repository config.
+if (-not (Test-Path -LiteralPath (Join-Path $resourceRepository $resourcePaths.GoExe))) {
+    $availableGo = Get-Command go -ErrorAction Stop
+    if ((& $availableGo.Source version) -notmatch '^go version go1\.26\.2 windows/amd64$') { throw 'Pass or register Go 1.26.2 for this repository' }
+    $resourcePaths.GoExe = $availableGo.Source
+}
 foreach ($resourceKey in $resourcePaths.Keys) {
-    $resourcePath = Join-Path $resourceRepository $resourcePaths[$resourceKey]
+    $resourcePath = if ([IO.Path]::IsPathRooted($resourcePaths[$resourceKey])) { $resourcePaths[$resourceKey] } else { Join-Path $resourceRepository $resourcePaths[$resourceKey] }
     if (-not (Test-Path -LiteralPath $resourcePath)) { throw "Missing registered local resource: $resourcePath" }
     $WinOneBuildParameters[$resourceKey] = $resourcePath
 }

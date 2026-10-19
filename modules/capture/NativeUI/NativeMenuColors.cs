@@ -4,13 +4,13 @@ internal sealed class NativeMenuColors : ProfessionalColorTable
     {
         private readonly bool borderless;
         private readonly bool dark;
-        private Color Background => dark ? Color.FromArgb(23, 23, 23) : Color.White;
+        private Color Background => dark ? Color.FromArgb(35, 35, 35) : Color.White;
         public NativeMenuColors(bool borderless = false, bool dark = false) { this.borderless = borderless; this.dark = dark; UseSystemColors = false; }
         public override Color ToolStripGradientBegin => Background;
         public override Color ToolStripGradientMiddle => Background;
         public override Color ToolStripGradientEnd => Background;
-        public override Color ToolStripBorder => borderless ? Background : dark ? Color.FromArgb(64, 64, 64) : Color.FromArgb(229, 229, 229);
-        public override Color ButtonSelectedHighlight => dark ? Color.FromArgb(38, 38, 38) : Color.FromArgb(245, 245, 245);
+        public override Color ToolStripBorder => borderless ? Background : dark ? Color.FromArgb(82, 82, 82) : Color.FromArgb(202, 202, 202);
+        public override Color ButtonSelectedHighlight => dark ? Color.FromArgb(51, 51, 51) : Color.FromArgb(231, 231, 231);
         public override Color ButtonSelectedGradientBegin => ButtonSelectedHighlight;
         public override Color ButtonSelectedGradientMiddle => ButtonSelectedHighlight;
         public override Color ButtonSelectedGradientEnd => ButtonSelectedHighlight;

@@ -95,7 +95,13 @@ internal static class NativeTextPipelineProbe
         }
     }
     private static IDataObject? SnapshotClipboard(){
-        var original=Clipboard.GetDataObject();if(original is null)return null;
+        IDataObject? original=null;
+        var deadline=DateTime.UtcNow.AddSeconds(15);
+        while(true){
+            try{original=Clipboard.GetDataObject();break;}
+            catch(ExternalException error)when(error.ErrorCode==unchecked((int)0x800401D0)&&DateTime.UtcNow<deadline){Thread.Sleep(30);}
+        }
+        if(original is null)return null;
         // Read the formats before changing clipboard ownership. Retaining the
         // live proxy may attempt delayed rendering while restoring the clipboard.
         var snapshot=new DataObject();

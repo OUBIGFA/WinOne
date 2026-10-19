@@ -1,5 +1,13 @@
 using WinOne.Capture;
 
+if (args.Length == 1 && args[0] == "--menu-arrows") {
+    NativeMenuArrowTests.Run(); return 0;
+}
+
+if((args.Length==2||args.Length==3)&&args[0]=="--capture-startup"){
+    NativeCaptureStartupProbe.Run(Path.GetFullPath(args[1]),args.Length==3&&args[2]=="prepared");return 0;
+}
+
 if (args.Length == 2 && args[0] == "--native-output")
 {
     NativeCaptureOutputTests.Run(Path.GetFullPath(args[1]));
@@ -101,6 +109,7 @@ try
     CaptureConfirmationTests.Run(Path.Combine(directory, "confirmation"));
     CaptureSelectionSessionTests.Run(Path.Combine(directory, "single-session"));
     NativeSelectionTests.HandoffMessages();
+    NativeMenuArrowTests.Run();
     WindowRegionRefinementTests.Run(Path.Combine(directory, "region-client")).GetAwaiter().GetResult();
     CaptureHoldTests.Run();
     SelectionGeometryTests.Run();

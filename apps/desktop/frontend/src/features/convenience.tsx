@@ -19,7 +19,7 @@ export function ConveniencePage({disabled,strokeDisabled=false,actionsDisabled=f
  const activity=useRef(new Map<string,boolean>());
  const [locked,setLocked]=useState(false);
  const [tab,setTab]=useState('always-on-top');
- useEffect(()=>{void setFileDropTarget(tab==='directory-links').catch(console.error);return()=>{void setFileDropTarget(false).catch(console.error);};},[tab]);
+ useEffect(()=>{if(tab!=='directory-links')return;void setFileDropTarget(true).catch(console.error);return()=>{void setFileDropTarget(false).catch(console.error);};},[tab]);
  useEffect(()=>{if(linkIntent?.requested&&!locked)setTab('directory-links');},[linkIntent,locked]);
  useEffect(()=>{if(tab==='directory-links'&&linkIntent?.requested&&!locked){window.dispatchEvent(new CustomEvent('winone:directory-links-drop',{detail:linkIntent}));onLinkIntentConsumed?.();}},[tab,linkIntent,locked,onLinkIntentConsumed]);
  const report=useCallback<PageActivityChanged>((dirty,busy,source="page")=>{
@@ -28,12 +28,12 @@ export function ConveniencePage({disabled,strokeDisabled=false,actionsDisabled=f
   onActivity(dirty,busy,source);
  },[onActivity]);
  return <Tabs value={tab} onValueChange={value=>{if(!locked)setTab(String(value));}}>
-  <TabsList variant="default" aria-label={t("nav.convenience")}><TabsTrigger value="always-on-top"><IconLabel icon={Pin}>{t("nav.always-on-top")}</IconLabel></TabsTrigger><TabsTrigger value="mouse-gestures"><IconLabel icon={MousePointer2}>{t("stroke.title")}</IconLabel></TabsTrigger><TabsTrigger value="directory-links"><IconLabel icon={FolderSymlink}>{t("links.title")}</IconLabel></TabsTrigger></TabsList>
+  <TabsList variant="default" aria-label={t("nav.convenience")}><TabsTrigger title={t("nav.always-on-top")} value="always-on-top"><IconLabel icon={Pin}>{t("nav.always-on-top")}</IconLabel></TabsTrigger><TabsTrigger title={t("stroke.title")} value="mouse-gestures"><IconLabel icon={MousePointer2}>{t("stroke.title")}</IconLabel></TabsTrigger><TabsTrigger title={t("links.title")} value="directory-links"><IconLabel icon={FolderSymlink}>{t("links.title")}</IconLabel></TabsTrigger></TabsList>
   <TabsContent value="always-on-top" className="settings-stack">
    <ModulesPage only="always-on-top" controlsDisabled={locked} onChanged={onChanged} onActivity={report}/>
-   <ModulePanel moduleId="always-on-top" onSaved={onChanged} onActivity={report}><AlwaysOnTopPage disabled={disabled} onActivity={report}/></ModulePanel>
+   <ModulePanel moduleId="always-on-top"><AlwaysOnTopPage disabled={disabled} onActivity={report} onSaved={onChanged}/></ModulePanel>
   </TabsContent>
   <TabsContent value="directory-links" className="settings-stack"><DirectoryLinksPage disabled={actionsDisabled} onActivity={report}/></TabsContent>
-  <TabsContent value="mouse-gestures" className="settings-stack"><ModulesPage only="stroke" controlsDisabled={locked} onChanged={onChanged} onActivity={report}/><ModulePanel moduleId="stroke" onSaved={onChanged} onActivity={report}><MouseGesturesSettings disabled={strokeDisabled||actionsDisabled} onActivity={report}/></ModulePanel></TabsContent>
+  <TabsContent value="mouse-gestures" className="settings-stack"><ModulesPage only="stroke" controlsDisabled={locked} onChanged={onChanged} onActivity={report}/><ModulePanel moduleId="stroke"><MouseGesturesSettings disabled={strokeDisabled||actionsDisabled} onActivity={report}/></ModulePanel></TabsContent>
  </Tabs>;
 }

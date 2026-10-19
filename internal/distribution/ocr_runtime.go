@@ -21,9 +21,24 @@ var accountPluginInventory string
 //go:embed chat_share_runtime_paths.txt
 var chatShareInventory string
 
+// Code Mode adds the VM worker, its WASM runtime and the reviewed notices.
+// Keep this list in step with build-chat.ps1 and
+// third_party/chat-codemode-notices.json.
+//
+//go:embed chat_codemode_runtime_paths.txt
+var chatCodeModeInventory string
+
+// The new search runtime remains optional for old verified rollback bundles.
+//
+//go:embed chat_search_runtime_paths.txt
+var chatSearchInventory string
+var chatSearchFiles = strings.Fields(chatSearchInventory)
+var recordingRuntimeFiles = []string{"capture/WinOne.Recording.dll", "capture/recording-runtime.json"}
+
 var accountPluginFiles = strings.Fields(accountPluginInventory)
 var chatRuntimeFiles = []string{"shared/chat/worker.js", "shared/chat/runtime.json"}
 var chatShareFiles = strings.Fields(chatShareInventory)
+var chatCodeModeFiles = strings.Fields(chatCodeModeInventory)
 var chatOptionalRuntimeFiles = []string{"shared/chat/scheduler.js", "shared/chat/script-runner.js", "shared/ai/runtime/photon_rs_bg.wasm"}
 var strokeRuntimeFiles = []string{"stroke/WinOne.Stroke.exe", "stroke/Stroke.Base.dll", "stroke/Base.dll", "stroke/Stroke.dll", "stroke/Stroke-LICENSE.txt", "stroke/schema.json", "stroke/defaults.json", "stroke/migrations.json"}
 
@@ -39,7 +54,13 @@ var textRuntimeAllowed = func() map[string]bool {
 	for _, name := range chatRuntimeFiles {
 		result[name] = true
 	}
+	for _, name := range chatSearchFiles {
+		result[name] = true
+	}
 	for _, name := range chatShareFiles {
+		result[name] = true
+	}
+	for _, name := range chatCodeModeFiles {
 		result[name] = true
 	}
 	// These arrived after the first Chat payload and stay optional in legacy
@@ -54,9 +75,24 @@ var textRuntimeAllowed = func() map[string]bool {
 // feature file requires the complete new runtime, not a partial OCR upgrade.
 func requiredForPayload(seen map[string]bool) []string {
 	result := append([]string{}, requiredFiles...)
-	text, plugins, chat, share, stroke := false, false, false, false, false
+	text, plugins, chat, share, codeMode, stroke, search, recording := false, false, false, false, false, false, false, false
 	for name := range seen {
 		lower := strings.ToLower(name)
+		if lower == "capture/winone.recording.dll" || lower == "capture/recording-runtime.json" {
+			recording = true
+		}
+		for _, resource := range chatSearchFiles {
+			if lower == strings.ToLower(resource) {
+				search = true
+				break
+			}
+		}
+		for _, resource := range chatCodeModeFiles {
+			if lower == strings.ToLower(resource) {
+				codeMode = true
+				break
+			}
+		}
 		if strings.HasPrefix(lower, "stroke/") {
 			stroke = true
 		}
@@ -92,6 +128,15 @@ func requiredForPayload(seen map[string]bool) []string {
 	if share {
 		result = append(result, chatShareFiles...)
 		result = append(result, chatOptionalRuntimeFiles...)
+	}
+	if codeMode {
+		result = append(result, chatCodeModeFiles...)
+	}
+	if search {
+		result = append(result, chatSearchFiles...)
+	}
+	if recording {
+		result = append(result, recordingRuntimeFiles...)
 	}
 	if stroke {
 		result = append(result, strokeRuntimeFiles...)

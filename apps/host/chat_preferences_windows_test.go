@@ -57,6 +57,43 @@ func TestTitleRetriesOnlyAnUnansweredTransientProviderFailure(t *testing.T) {
 	}
 }
 
+func TestTitleFailurePersistsConversationTextFallback(t *testing.T) {
+	root := t.TempDir()
+	store, err := chat.Open(filepath.Join(root, "chat"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := newAIService(context.Background(), root, filepath.Join(root, "WinOne.Host.exe"))
+	control := &chatControl{store: store, ai: service, language: func() string { return "zh-CN" }}
+	conversation, err := store.NewConversation("", root, "Chat", ai.Selection{Provider: "missing", Model: "missing"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = control.generateTitle(context.Background(), conversation.ID, "  修复对话显示\n并保留所有操作  ")
+	if err == nil {
+		t.Fatal("missing provider must still report its failure")
+	}
+	saved, _ := store.Conversation(conversation.ID)
+	if saved.Title != "修复对话显示 并保留所有操作" || saved.TitleManual {
+		t.Fatal(saved)
+	}
+	file := filepath.Join(conversation.SessionDirectory, "fallback.jsonl")
+	if err = os.WriteFile(file, []byte(`{"type":"message","id":"u","parentId":null,"message":{"role":"user","content":"检查当前会话内容"}}`+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.BindSession(conversation.ID, file); err != nil {
+		t.Fatal(err)
+	}
+	_, err = control.generateTitle(context.Background(), conversation.ID, "过期客户端内容", true)
+	if err == nil {
+		t.Fatal("missing provider must report failure")
+	}
+	saved, _ = store.Conversation(conversation.ID)
+	if saved.Title != "检查当前会话内容" {
+		t.Fatal(saved.Title)
+	}
+}
+
 func TestTitleGenerationUsesSavedTitleModelThroughRealMagpie(t *testing.T) {
 	executable := os.Getenv("WINONE_AI_TEST_EXE")
 	if executable == "" {

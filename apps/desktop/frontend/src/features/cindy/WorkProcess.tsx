@@ -6,8 +6,8 @@ import {useTranslation} from "../../i18n";
 import {WorkGroupBlock,type WorkGroupChild} from "./WorkGroupBlock";
 import {workGroupsForResponse,type WorkItem} from "./workGroupAdapter";
 import {formatSessionDuration} from "./adapter";
-import {ChatMarkdown} from "../chat-messages";
-import {ThinkingCard} from "./ThinkingCard";
+import {ChatMessageView,ChatMarkdown} from "../chat-messages";
+import type {AIProvider} from '../ai-configuration';
 import type {ProcessResponse} from "../chat-process";
 import type {ProcessOperation} from "../chat-state";
 
@@ -18,7 +18,7 @@ function Operation({operation}:{operation:ProcessOperation}){
  return <div className="flex items-start gap-2 text-sm text-muted-foreground"><Icon size={14} className={"mt-1 shrink-0"+(operation.status==="running"?" animate-spin motion-reduce:animate-none":"")}/><div className="min-w-0 flex-1"><span>{t(`chat.${label}`)}</span>{operation.attempt!==undefined&&<span> · {operation.attempt}{operation.maxAttempts!==undefined?` / ${operation.maxAttempts}`:""}</span>}<span className={"ml-2"+(operation.status==="failed"||operation.status==="denied"?" text-destructive":"")}>{t(`chat.operationStatus_${operation.status}`)}</span></div>{operation.durationMs!==undefined&&<span className="shrink-0 font-mono text-xs">{formatSessionDuration(operation.durationMs)}</span>}</div>;
 }
 
-export function WorkProcess({group,conversationId,onCopy}:{group:ProcessResponse;conversationId:string;onCopy:(text:string)=>void}){
+export function WorkProcess({group,conversationId,onCopy,onFork=()=>{},canFork=false,providers,onOpenFile}:{group:ProcessResponse;conversationId:string;onCopy:(text:string)=>void;onFork?:(id:string)=>void;canFork?:boolean;providers?:AIProvider[];onOpenFile?:(path:string,line?:number)=>void}){
  function child(item:WorkItem):WorkGroupChild{
   const key=`${conversationId}:${group.key}:${item.key}`;
   if(item.type==="group")return {kind:"group",key,blockId:key,durationMs:item.durationMs,isStreaming:item.running,startedAtMs:item.startedAt,childItems:item.children.map(child)};
@@ -31,12 +31,13 @@ export function WorkProcess({group,conversationId,onCopy}:{group:ProcessResponse
   }
   return {kind:"rendered",key,renderNode:()=>entry.kind==="operation"?<Operation operation={entry.operation}/>:<ChatMarkdown text={entry.text} onCopy={onCopy}/>};
  }
- // Cindy keeps a compact live-thinking row visible as soon as a turn starts,
- // including the short interval before Pi has emitted its first event.
- // Keeping this fallback here makes the loading state use the same disclosure,
- // animation and remembered expansion behavior as ordinary thinking blocks.
- if(!group.entries.length)return group.running?<div className="cindy-chat-ui chat-work-process"><ThinkingCard content="" isStreaming startedAt={group.startedAt} blockKey={`${conversationId}:${group.key}:live`}/></div>:null;
- return <div className="cindy-chat-ui chat-work-process">{workGroupsForResponse(group).map(item=>{
-  const entry=child(item);return entry.kind==="group"?<WorkGroupBlock key={entry.key} forceExpanded={group.running} blockId={entry.blockId} durationMs={entry.durationMs} isStreaming={entry.isStreaming} startedAtMs={entry.startedAtMs} childItems={entry.childItems}/>:entry.kind==="rendered"?<div key={entry.key} className="chat-work-commentary">{entry.renderNode()}</div>:entry.kind==="thinking"?<ThinkingCard key={entry.key} content={entry.message.content} isStreaming={group.running} startedAt={group.startedAt} durationMs={group.running?undefined:group.durationMs} blockKey={entry.key}/>:null;
- })}</div>;
+ // No placeholder work was performed before the first actual event. Showing
+ // the old empty ThinkingCard here caused a visible style swap on every send.
+ if(!group.entries.length)return null;
+ // Public text sits beside activity groups, outside their rail, muted colors
+ // and collapse state. Reuse exactly the final reply's renderer and actions.
+ return <>{workGroupsForResponse(group).map(item=>{
+  if(item.type==='entry'&&item.entry.kind==='commentary')return <ChatMessageView key={item.key} conversationId={conversationId} message={item.entry.message??{role:'assistant',content:item.entry.text}} onCopy={onCopy} onFork={onFork} canFork={canFork} providers={providers} onOpenFile={onOpenFile}/>;
+  const entry=child(item);return <div key={entry.key} className="cindy-chat-ui chat-work-process">{entry.kind==="group"?<WorkGroupBlock blockId={entry.blockId} durationMs={entry.durationMs} isStreaming={entry.isStreaming} startedAtMs={entry.startedAtMs} childItems={entry.childItems}/>:entry.kind==="rendered"?entry.renderNode():<WorkGroupBlock blockId={entry.key} isStreaming={group.running} startedAtMs={group.startedAt} durationMs={group.running?undefined:group.durationMs} childItems={[entry]}/>}</div>;
+ })}</>;
 }

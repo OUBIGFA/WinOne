@@ -254,6 +254,8 @@ func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guar
 	}
 	if inProduct {
 		headers.Set("X-WinOne-Session", r.Header.Get("X-WinOne-Session"))
+	} else {
+		headers.Set("X-WinOne-Caller-Key", ai.GatewayCallerKeyID(r.Context()))
 	}
 	partial := false
 	err = store.WithKeys(ctx, keys, func(ctx context.Context, key string) (bool, error) {

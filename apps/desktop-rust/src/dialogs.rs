@@ -156,7 +156,7 @@ pub fn save_cshare_labeled(owner:HWND,title:&str,suggested:&str,label:&str)->Res
     save_file(owner,title,&format!("{label}\0*.cshare\0"),"cshare",suggested)
 }
 
-fn save_file(owner: HWND, title: &str, filter: &str, extension: &str, suggested: &str) -> Result<Option<String>,String> {
+pub(crate) fn save_file(owner: HWND, title: &str, filter: &str, extension: &str, suggested: &str) -> Result<Option<String>,String> {
     let title = wide(title);
     let filter = wide(filter);
     if suggested.contains('\0') { return Err("文件名无效".into()); }

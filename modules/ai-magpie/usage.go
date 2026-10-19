@@ -83,6 +83,9 @@ func configureUsage(in request) error {
 			WinOnePrompt: prompt, Session: session,
 			Requested: r.Requested, Served: r.Served, Effort: r.Effort, Endpoint: r.Endpoint, Stop: r.Stop,
 			ProviderAccount: accountID, Kind: r.Kind,
+			CallerKeyID: r.CallerKeyID, CallerKeyName: r.CallerKeyName,
+			Credits: r.Credits, TierAsked: r.TierAsked, TierSent: r.TierSent, TierServed: r.TierServed,
+			FirstReasoning: r.FirstReasoning, ReasoningHidden: r.ReasoningHidden, Own: r.Own, Retried: r.Retried, Queued: r.Queued,
 			Input: r.Input, Output: r.Output, CacheRead: r.CacheRead, CacheWrite: r.CacheWrite,
 			CacheWrite1h: r.CacheWrite1h, Reasoning: r.Reasoning, Millis: r.Millis,
 			TTFT: r.TTFT, FirstText: r.FirstText, Sent: r.Sent, Flow: r.Flow, Status: r.Status, Error: failure, Rejected: r.Rejected}
@@ -91,23 +94,24 @@ func configureUsage(in request) error {
 }
 
 type usageQuery struct {
-	Period   string `json:"period"`
-	Provider string `json:"provider"`
-	Source   string `json:"source"`
-	Failed   bool   `json:"failed"`
-	Offset   int    `json:"offset"`
-	Day      string `json:"day"`
-	Model    string `json:"model"`
-	Account  string `json:"account"`
-	Purpose  string `json:"purpose"`
-	Query    string `json:"query"`
-	Export   bool   `json:"export,omitempty"`
+	CallerKey string `json:"callerKey,omitempty"`
+	Period    string `json:"period"`
+	Provider  string `json:"provider"`
+	Source    string `json:"source"`
+	Failed    bool   `json:"failed"`
+	Offset    int    `json:"offset"`
+	Day       string `json:"day"`
+	Model     string `json:"model"`
+	Account   string `json:"account"`
+	Purpose   string `json:"purpose"`
+	Query     string `json:"query"`
+	Export    bool   `json:"export,omitempty"`
 }
 
 func (q usageQuery) filter() usage.Filter {
 	// Through is fixed: upstream session discovery must never scan another
 	// client's profile. WinOne Chat has its own registered-session reader.
-	return usage.Filter{Provider: q.Provider, Agent: q.Source, Failed: q.Failed, Through: usage.SourceGateway, Day: q.Day, Model: q.Model, Account: q.Account, Purpose: q.Purpose, Query: q.Query}
+	return usage.Filter{CallerKey: q.CallerKey, Provider: q.Provider, Agent: q.Source, Failed: q.Failed, Through: usage.SourceGateway, Day: q.Day, Model: q.Model, Account: q.Account, Purpose: q.Purpose, Query: q.Query}
 }
 
 func readUsage(in request, output io.Writer) error {
@@ -130,7 +134,7 @@ func readUsage(in request, output io.Writer) error {
 	if q.Offset < 0 || q.Offset > 1000000 || len(q.Provider) > 256 || (q.Source != "" && q.Source != "winone" && q.Source != "gateway") {
 		return errors.New("invalid usage filter")
 	}
-	if len(q.Model) > 512 || len(q.Account) > 256 || len(q.Purpose) > 128 || len(q.Query) > 512 || strings.ContainsRune(q.Query, '\x00') {
+	if len(q.Model) > 512 || len(q.Account) > 256 || len(q.Purpose) > 128 || len(q.CallerKey) > 128 || len(q.Query) > 512 || strings.ContainsRune(q.Query, '\x00') {
 		return errors.New("invalid usage filter")
 	}
 	if q.Day != "" {

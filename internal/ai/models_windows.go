@@ -44,7 +44,7 @@ func (t Translator) Models(ctx context.Context, p Provider, key string) ([]Model
 	if err != nil || decodeErr != nil || result.Error != "" {
 		return nil, errors.New("无法获取模型列表，可以手动添加模型")
 	}
-	if len(result.Models) > 2048 {
+	if len(result.Models) > MaxProviderModels {
 		return nil, errors.New("供应商模型列表过大")
 	}
 	for i := range result.Models {

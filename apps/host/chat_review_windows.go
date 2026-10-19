@@ -16,12 +16,16 @@ import (
 // Review always resolves a saved conversation, never a renderer-supplied CWD.
 func (c *chatControl) reviewAction(ctx context.Context, method string, raw json.RawMessage) (any, error) {
 	var input struct {
-		SessionID string              `json:"sessionId"`
-		TurnID    string              `json:"turnId"`
-		Scope     string              `json:"scope"`
-		Base      string              `json:"base"`
-		Path      string              `json:"path"`
-		Mutation  chat.ReviewMutation `json:"mutation"`
+		SessionID        string                `json:"sessionId"`
+		TurnID           string                `json:"turnId"`
+		Scope            string                `json:"scope"`
+		Base             string                `json:"base"`
+		Path             string                `json:"path"`
+		Revision         string                `json:"revision"`
+		Side             string                `json:"side"`
+		IgnoreWhitespace bool                  `json:"ignoreWhitespace"`
+		Mutation         chat.ReviewMutation   `json:"mutation"`
+		ConfirmForce     *chat.ReviewPushLease `json:"confirmForce"`
 	}
 	if err := configjson.DecodeObject(raw, &input); err != nil {
 		return nil, err
@@ -29,6 +33,37 @@ func (c *chatControl) reviewAction(ctx context.Context, method string, raw json.
 	conversation, err := c.store.Conversation(input.SessionID)
 	if err != nil {
 		return nil, err
+	}
+	if method == "review.diff.preview" {
+		server, err := c.previewServer()
+		if err != nil {
+			return nil, err
+		}
+		address, err := server.OpenContent(input.SessionID, "review.diff", "text/plain; charset=utf-8", func(readCtx context.Context) ([]byte, error) {
+			current, err := c.reviewAction(readCtx, "review.snapshot", raw)
+			if err != nil {
+				return nil, err
+			}
+			if input.Revision != "" && current.(chat.ReviewSnapshot).Revision != input.Revision {
+				return nil, errors.New("文件已变化，请刷新差异后重试")
+			}
+			value, err := c.reviewAction(readCtx, "review.diff", raw)
+			if err != nil {
+				return nil, err
+			}
+			return []byte(value.(string)), nil
+		})
+		return map[string]string{"url": address}, err
+	}
+	if method == "review.metadata" {
+		_, ownGit := os.Stat(filepath.Join(conversation.Directory, ".git"))
+		if conversation.ProjectID == "" && errors.Is(ownGit, os.ErrNotExist) {
+			return chat.ReviewMetadata{}, nil
+		}
+		return chat.ReadReviewMetadata(ctx, conversation.Directory)
+	}
+	if method == "review.file.preview" {
+		return c.reviewFilePreview(ctx, input.SessionID, input.TurnID, input.Scope, input.Base, input.Path, input.Side, input.Revision)
 	}
 	// A conversation card must open its original turn, even inside a Git project.
 	if method == "review.turn.apply" {
@@ -81,7 +116,7 @@ func (c *chatControl) reviewAction(ctx context.Context, method string, raw json.
 			return []string{}, nil
 		case "review.commits":
 			return []chat.ReviewCommit{}, nil
-		case "review.mutate":
+		case "review.mutate", "review.push":
 			return nil, errors.New("当前文件夹未使用 Git，无法暂存、提交或推送")
 		case "review.snapshot", "review.diff":
 			snapshot, patches, err := c.store.SessionReview(input.SessionID)
@@ -99,16 +134,29 @@ func (c *chatControl) reviewAction(ctx context.Context, method string, raw json.
 		}
 	}
 	switch method {
+	case "review.push":
+		var result chat.ReviewPushState
+		err := c.engine.WithIdleConversation(ctx, input.SessionID, func() error {
+			var err error
+			result, err = chat.PushReview(ctx, conversation.Directory, input.ConfirmForce)
+			return err
+		})
+		return result, err
 	case "review.snapshot":
 		return chat.ReadReview(ctx, conversation.Directory, input.Scope, input.Base)
 	case "review.diff":
-		return chat.ReadReviewDiff(ctx, conversation.Directory, input.Scope, input.Base, input.Path)
+		return chat.ReadReviewDiffWithOptions(ctx, conversation.Directory, input.Scope, input.Base, input.Path, input.IgnoreWhitespace)
 	case "review.branches":
 		return chat.ReviewBranches(ctx, conversation.Directory)
 	case "review.commits":
 		return chat.ReviewCommits(ctx, conversation.Directory)
 	case "review.mutate":
-		return nil, chat.MutateReview(ctx, conversation.Directory, input.Mutation)
+		return nil, c.engine.WithIdleConversation(ctx, input.SessionID, func() error {
+			return chat.MutateReviewWithRecycle(ctx, conversation.Directory, input.Mutation, func(path string, check func() error) error {
+				_, err := recycle.CheckedFile(ctx, path, check)
+				return err
+			})
+		})
 	}
 	return nil, errors.New("未知审查操作")
 }

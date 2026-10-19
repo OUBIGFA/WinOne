@@ -3,23 +3,76 @@
     "version": "1.4.2",
     "target": "bun-windows-x64-baseline",
     "archiveSHA256": "78c221c2376f79731ccf4e4af0b3bb46d81fefa3296c5abee09ad8a1b21e68c6",
-    "executableSHA256": "15277c59ccd6c6c20f8dc9716c2b59c1776320d606b6a8658f70be8799519ca4"
+    "executableSHA256": "15277c59ccd6c6c20f8dc9716c2b59c1776320d606b6a8658f70be8799519ca4",
+    "license": {
+      "sha256": "b9caf52728691b4057e371232c221a132883198be2f3d2ddf92c90404c984b1a",
+      "file": "licenses/bun-1.4.2-LICENSE.md.txt"
+    }
   },
   "plugins": [
     {
+      "package": "@magpie-community/opencode-kimi-work-auth",
+      "name": "Kimi Work",
+      "icon": "kimi",
+      "providers": [
+        "kimi-work"
+      ],
+      "community": true,
+      "summary": {
+        "en": "Kimi desktop Work subscription through its local sign-in, with live Work models and shared membership usage. Separate from Kimi Code.",
+        "zh": "使用本机普通 Kimi 桌面版的 Work 登录，自动读取 Work 模型和会员共享用量；独立于 Kimi Code。"
+      },
+      "version": "0.1.4",
+      "directory": "kimi-work",
+      "entry": "index.mjs",
+      "files": [
+        {
+          "path": "COMPATIBILITY.md",
+          "size": 5318,
+          "sha256": "42bfd92e7cd261aa27b1c9eb51bb6be869d47588c837e99dae3bdc3419c32b30"
+        },
+        {
+          "path": "README.md",
+          "size": 6497,
+          "sha256": "75889b23d434c187400a30f2eab317e1f430cb4281ccf4edb3a51d39ed317399"
+        },
+        {
+          "path": "index.mjs",
+          "size": 8632,
+          "sha256": "4265d3b0ef7bcc1f8786e83815f2d48239bcb3d6c9475ebc8ec28720a7e23a91"
+        },
+        {
+          "path": "package.json",
+          "size": 38193,
+          "sha256": "fa4a75b488855bb21b7a6f2886792967a6135e358632041c2bc8124481b28581"
+        }
+      ]
+    },
+    {
       "package": "@magpie-community/opencode-zen-free-auth",
       "name": "OpenCode Zen Free",
-      "version": "0.1.3",
-      "directory": "zen-free",
-      "entry": "index.mjs",
+      "icon": "opencode",
       "providers": [
         "opencode-zen-free"
       ],
+      "community": true,
+      "summary": {
+        "en": "OpenCode Zen's free models with the public credential, automatic discovery and native streaming protocols.",
+        "zh": "使用 public 凭证接入 OpenCode Zen 免费模型，自动发现模型并支持原生流式协议。"
+      },
+      "version": "0.1.11",
+      "directory": "zen-free",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 695,
-          "sha256": "7a172ce36e673d5d500d8418967152a2de77b2e9fd728ec6b9e313745d931e27"
+          "path": "LICENSE",
+          "size": 1088,
+          "sha256": "170ca82fa4255729a826c5eb9abf3f0e0d2e3dde84f024accb5b806473c4ba68"
+        },
+        {
+          "path": "README.md",
+          "size": 3821,
+          "sha256": "009730eb3f634922cbcfa725dbb8cc744b4d4f3ebbd69ae0096948ade35777f6"
         },
         {
           "path": "index.mjs",
@@ -27,14 +80,19 @@
           "sha256": "8ceef8ac0261046d9f04cf384ec96ac3c6d3afe35a7d0a67d9d94202e5c0e4b6"
         },
         {
-          "path": "provider.mjs",
-          "size": 12122,
-          "sha256": "4fecd0a51ffd15733eddf18c4b164dec12816567339d060a88f8e755888e9e5e"
+          "path": "models.mjs",
+          "size": 8260,
+          "sha256": "e4e028792a38f59274a84459281672c5584f382be07fe7fe8378a4f1191061be"
         },
         {
-          "path": "models.mjs",
-          "size": 4993,
-          "sha256": "599ae877e6df506ed223c0070c1b2b881047cc545663bd4c2492b9694e551c3f"
+          "path": "package.json",
+          "size": 696,
+          "sha256": "86c3b2bc1c11f025682d6aba35d6176dba85fbce36fd436cced6f30124005143"
+        },
+        {
+          "path": "provider.mjs",
+          "size": 15323,
+          "sha256": "b30bb12b92465c94ae728148b45363f69cef753685fd9cb1a68ec46211404d9f"
         },
         {
           "path": "stream.mjs",
@@ -43,159 +101,179 @@
         },
         {
           "path": "tool-response.mjs",
-          "size": 27470,
-          "sha256": "c03adfd193fbb02a03c0c134a1c0cde6f5b625af5e13782643287ada4ffa027c"
-        },
-        {
-          "path": "README.md",
-          "size": 1846,
-          "sha256": "1a24a9fb831f3ffd4694c03789ccee865c64f75706d6cddddab8a6c0939d876a"
-        },
-        {
-          "path": "LICENSE",
-          "size": 1088,
-          "sha256": "170ca82fa4255729a826c5eb9abf3f0e0d2e3dde84f024accb5b806473c4ba68"
+          "size": 32296,
+          "sha256": "d55214f3ce46a5c5379962798683feeae15893ff38b666d10767f849be398c5d"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-zcode-auth",
       "name": "ZCode",
-      "version": "0.1.14",
-      "directory": "zcode",
-      "entry": "index.mjs",
+      "icon": "zcode",
       "providers": [
         "zcode"
       ],
+      "community": true,
+      "replaces": "zcode",
+      "summary": {
+        "en": "Z.ai and BigModel GLM Coding Plan, team seats and ZCode's free Start Plan.",
+        "zh": "Z.ai 与智谱 GLM Coding Plan，支持团队席位和 ZCode 免费 Start Plan。"
+      },
+      "version": "0.1.19",
+      "directory": "zcode",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 652,
-          "sha256": "bd482d90824e7cffdc488e0c264544b13f2b694fa5b7297c5204fe6a7336f6f7"
+          "path": "README.md",
+          "size": 8365,
+          "sha256": "633f311daf408d4aa1d07059f0df22572a394b69f8c2f9b5e15a0d64c965f99f"
         },
         {
           "path": "index.mjs",
-          "size": 71368,
-          "sha256": "1e39f4bdc424bdfd2f2fa98bdbe8ec597e27db253094d0e1375b6cb0c8491560"
+          "size": 78794,
+          "sha256": "b5d298e1d2af66277f23d5ace92224e607efedc4f6dae3e4d72e7e40571fa31d"
+        },
+        {
+          "path": "package.json",
+          "size": 652,
+          "sha256": "5658e214400583ab166c5acb7f009312db558c67d5b939ac04cab95820804353"
         },
         {
           "path": "prompt.mjs",
           "size": 8879,
           "sha256": "e390759214834737f41ea52fb9725d64f140faae4cc31b5881975ceda7b43a98"
-        },
-        {
-          "path": "README.md",
-          "size": 7177,
-          "sha256": "856309bc50222c6f62f6407fda075ff0ed85bf3af616ac0088f9d7e1e202a5b9"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-qoder-auth",
       "name": "Qoder",
-      "version": "0.2.12",
-      "directory": "qoder",
-      "entry": "index.mjs",
+      "icon": "qoder",
       "providers": [
         "qoder",
         "qoder-cn"
       ],
+      "community": true,
+      "replaces": "qoder",
+      "summary": {
+        "en": "Your Qoder subscription, international (qoder.com) or Qoder CN (qoder.cn), with Qoder's own device sign-in.",
+        "zh": "用 Qoder 自己的设备登录使用 Qoder 订阅：国际版（qoder.com）或 Qoder CN（qoder.cn）。"
+      },
+      "version": "0.2.18",
+      "directory": "qoder",
+      "entry": "index.mjs",
       "files": [
-        {
-          "path": "package.json",
-          "size": 556,
-          "sha256": "86d688e5ea2d551c03e2c32b69a7572e9d44061185b627edaa2cf422ed56d5ac"
-        },
-        {
-          "path": "index.mjs",
-          "size": 71851,
-          "sha256": "b7e9ce43f061c19f2b73e13dc46a5998842dfc7f52706a3dc94e5114dec0ddbf"
-        },
-        {
-          "path": "README.md",
-          "size": 11290,
-          "sha256": "d5eef7df15eba8f8fe5f5d22ac9877f8634ddd6ba2e5866e271031a38d55e26d"
-        },
         {
           "path": "LICENSE-CLIProxyAPI",
           "size": 1137,
           "sha256": "93df585e5fa07ead6d47a3ab2dbdf0255782a39fe830022c0274a70394223cc8"
+        },
+        {
+          "path": "README.md",
+          "size": 14357,
+          "sha256": "305b77c2da27105cd0d0f654a6b9d7f35f690e9324328cb5b6cfaa172278bf9b"
+        },
+        {
+          "path": "index.mjs",
+          "size": 86725,
+          "sha256": "194a64a0100ddb1c29d32cc03fe4de0d9caa04ca04f8018239fb2be38f80e8c9"
+        },
+        {
+          "path": "package.json",
+          "size": 556,
+          "sha256": "885767d7a75401cbdd181177ebeddc9141563d92cf5fb779d0364c9f4fc1e8bd"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-devin-auth",
       "name": "Devin",
-      "version": "0.1.14",
-      "directory": "devin",
-      "entry": "index.mjs",
+      "icon": "devin",
       "providers": [
         "devin"
       ],
+      "community": true,
+      "replaces": "devin",
+      "summary": {
+        "en": "Devin's models with your Devin account — a browser sign-in or the devin CLI's.",
+        "zh": "用 Devin 账号使用 Devin 的模型：浏览器登录，或沿用 devin CLI 的登录。"
+      },
+      "version": "0.1.20",
+      "directory": "devin",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 516,
-          "sha256": "b322c78fc43904efd89cc7553039834beb104d57171e3a601982dd262241030c"
+          "path": "README.md",
+          "size": 5127,
+          "sha256": "8fb0a66f2c55f032c59d1a2e07ca1cfcd371e745f49759ecaade22342df3f9bf"
         },
         {
           "path": "index.mjs",
-          "size": 82638,
-          "sha256": "381c16edbd6cb2506ace80dd52b6f582c9b655d9e7fbec2fec5175fb70e0ea0b"
+          "size": 98927,
+          "sha256": "67e89812456f96a88a30f73262118cd0151d7e5cb03d3c7d084d8bbd14b4cef3"
         },
         {
-          "path": "README.md",
-          "size": 4755,
-          "sha256": "281694a56283333e2916fa7c097456f43f10ff0878b2ae83606ee318b11096ad"
+          "path": "package.json",
+          "size": 516,
+          "sha256": "c4aea5c8e79085e6c1cfb8a3ba58abcd107e2c488bd5ccbc073b10eefafdebdd"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-zed-auth",
       "name": "Zed",
-      "version": "0.1.6",
-      "directory": "zed",
-      "entry": "index.mjs",
+      "icon": "zed",
       "providers": [
         "zed"
       ],
+      "community": true,
+      "replaces": "zed",
+      "summary": {
+        "en": "Claude, GPT, Gemini and Grok hosted by Zed, on your Zed plan.",
+        "zh": "用 Zed 订阅使用 Zed 托管的 Claude、GPT、Gemini 和 Grok。"
+      },
+      "version": "0.1.8",
+      "directory": "zed",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 489,
-          "sha256": "cfb6c42a4d041d6d2251767e47a8a4f2d0e852d7a1ffe6c42368167c6d86fa07"
+          "path": "README.md",
+          "size": 4662,
+          "sha256": "ec5c7fd377d2e6567250b469fe61dbd8c45e1038007ecfa67ae9747f146d4271"
         },
         {
           "path": "index.mjs",
-          "size": 42020,
-          "sha256": "77d3bc42e73b198e801a436f50abaeeed8c69daf1491c74d2df18591acab2d62"
+          "size": 44906,
+          "sha256": "12300faf5d0902391ed8c6801f6021d2b84a9bbc135167b78f73af8cd67ebb00"
         },
         {
-          "path": "README.md",
-          "size": 3623,
-          "sha256": "39d6d3fd6815aa2eb6db8ba2bd42a0ad1c03cc8c5c0d5b1808d3caec05e428f7"
+          "path": "package.json",
+          "size": 489,
+          "sha256": "fd009a58386381c5599496983d40187d879fe5368ccedf4b5735e0a0ec49e1ef"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-factory-auth",
       "name": "Factory",
-      "version": "0.1.23",
-      "directory": "factory",
-      "entry": "index.mjs",
+      "icon": "factory",
       "providers": [
         "factory"
       ],
+      "community": true,
+      "replaces": "factory",
+      "summary": {
+        "en": "Factory's Droid subscription: 30 models from Anthropic, OpenAI, xAI and open labs.",
+        "zh": "Factory Droid 订阅：Anthropic、OpenAI、xAI 及开源模型共 30 个。"
+      },
+      "version": "0.1.33",
+      "directory": "factory",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 510,
-          "sha256": "641aac3fcfd8d4bb52ecb1ff30383cf40806c842619b0e807dc5d2167d4c289c"
-        },
-        {
-          "path": "index.mjs",
-          "size": 70593,
-          "sha256": "a4dd715c96da80002d34844c36edc3f9b4c41d84cb89798fd5d4a1c7980b1b50"
+          "path": "README.md",
+          "size": 16016,
+          "sha256": "a13d5d71c027fe48618e1d460d98420e24e2cee3c7a25bb969821d020a701329"
         },
         {
           "path": "anthropic-tools.mjs",
@@ -203,80 +281,106 @@
           "sha256": "de300d81de2843c3698802ae0791afd9b121ae166b727692f83e1ed59d23e4a5"
         },
         {
-          "path": "README.md",
-          "size": 12345,
-          "sha256": "4c1e7654e6b18883ed72d84b2890e1123f119f209774101c72e497b6c823a051"
+          "path": "index.mjs",
+          "size": 96070,
+          "sha256": "ba9a326ca595bf97a46a6e43b43a4fd58be3e11baf1fd32d47466de11232c251"
+        },
+        {
+          "path": "package.json",
+          "size": 510,
+          "sha256": "01660ff9fc408340280d7f4d00f1c09e1300d496c74e3c7e7f5c99d325214f06"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-grok-auth",
       "name": "Grok",
-      "version": "0.1.11",
-      "directory": "grok",
-      "entry": "index.mjs",
+      "icon": "xai",
       "providers": [
         "grok"
       ],
+      "community": true,
+      "replaces": "grok",
+      "summary": {
+        "en": "SuperGrok and X Premium+, through the Grok Build CLI's sign-in.",
+        "zh": "通过 Grok Build CLI 的登录使用 SuperGrok 和 X Premium+。"
+      },
+      "version": "0.1.15",
+      "directory": "grok",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 553,
-          "sha256": "1167558bd9b8e33e83f2c7d2db14530490bc6b2754f4fd0776b472b60ecba795"
+          "path": "README.md",
+          "size": 5720,
+          "sha256": "0b2323657116577540aa0b87a58a51143f84915e87c72e8189eae3e44741d930"
         },
         {
           "path": "index.mjs",
-          "size": 32263,
-          "sha256": "dae16d94ab457d704c42e7da382f0bacb0b241c737f63bc3575d1f0203ba68c9"
+          "size": 38739,
+          "sha256": "eeb688f2f807f5b6f87e0aefd80c3522d2725dc21e219f8e0270b1bb4a75704a"
         },
         {
-          "path": "README.md",
-          "size": 4000,
-          "sha256": "ad40a5b0272751cce5d4acbce3b5cb5bf6c8a71d64e31aaf483a1f7e19b02929"
+          "path": "package.json",
+          "size": 553,
+          "sha256": "75fe9df5f4ce72d3153c2b9b28e47c1a3b09fbb66cf393c49f2199a8ea2bd593"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-commandcode-auth",
       "name": "Command Code",
-      "version": "0.1.9",
-      "directory": "commandcode",
-      "entry": "index.mjs",
+      "icon": "commandcode",
       "providers": [
         "commandcode-plan"
       ],
+      "community": true,
+      "replaces": "commandcode-plan",
+      "summary": {
+        "en": "Command Code plans — Pro, GOAT, Max, Ultra, Go and Teams.",
+        "zh": "Command Code 各档套餐：Pro、GOAT、Max、Ultra、Go 和 Teams。"
+      },
+      "version": "0.1.13",
+      "directory": "commandcode",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 529,
-          "sha256": "ee00506b5d77b1c5fda2896ce11054dc2f01eac18a708d1be2ff1f4756200408"
+          "path": "README.md",
+          "size": 4602,
+          "sha256": "8d9145cd1c1196203a5dbdf06724ec51d7444afef04321301d1643e4e76e04b9"
         },
         {
           "path": "index.mjs",
-          "size": 54964,
-          "sha256": "3f29c325ed48330ca73dace6908c211ebf62bbdf8f10eb1e188fdb0ad03711fc"
+          "size": 61835,
+          "sha256": "4a9894da8e102569dbca3f9b76736f79ec32295ecf01cc476e099098c1450663"
         },
         {
-          "path": "README.md",
-          "size": 3769,
-          "sha256": "00f9f0d538166af145a73a2dc9f1a6f001eec16ad9714f0618a10c0e21ead238"
+          "path": "package.json",
+          "size": 530,
+          "sha256": "5fd743ea4f60438222ba58ee368f45e2fd384fdf6b056f4d8e873d4e5f362802"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-mimo-auth",
       "name": "Xiaomi MiMo",
-      "version": "0.1.9",
-      "directory": "mimo",
-      "entry": "index.mjs",
+      "icon": "mimocode",
       "providers": [
         "mimo-app"
       ],
+      "community": true,
+      "replaces": "mimo-app",
+      "summary": {
+        "en": "Xiaomi MiMo models with your Xiaomi account.",
+        "zh": "用小米账号使用小米 MiMo 模型。"
+      },
+      "version": "0.1.9",
+      "directory": "mimo",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 6939,
-          "sha256": "95da035b50568fb9160af0a4792c4d056dd040352306c398194d8fed2a130ac7"
+          "path": "README.md",
+          "size": 4172,
+          "sha256": "192dae170e722a630d95588d35f63da3197163e9d1df361fd96492b40ae14c89"
         },
         {
           "path": "index.mjs",
@@ -284,174 +388,794 @@
           "sha256": "7bd7ae7eccc413511969a5b490812d8a7c91faa0cc26224ee3d116ded54aac44"
         },
         {
-          "path": "README.md",
-          "size": 4172,
-          "sha256": "192dae170e722a630d95588d35f63da3197163e9d1df361fd96492b40ae14c89"
+          "path": "package.json",
+          "size": 6939,
+          "sha256": "95da035b50568fb9160af0a4792c4d056dd040352306c398194d8fed2a130ac7"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-cursor-auth",
       "name": "Cursor",
-      "version": "0.2.6",
-      "directory": "cursor",
-      "entry": "index.mjs",
+      "icon": "cursor",
       "providers": [
         "cursor"
       ],
+      "community": true,
+      "replaces": "cursor",
+      "summary": {
+        "en": "Cursor Pro, Pro+, Ultra and Teams — every model your plan has, with tool calls.",
+        "zh": "Cursor Pro、Pro+、Ultra 与 Teams：套餐里的所有模型，支持工具调用。"
+      },
+      "version": "0.2.19",
+      "directory": "cursor",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 546,
-          "sha256": "4a76f0f0978442aee55461570c420010f1add0afdb4b1460aa254d467fd78eb4"
+          "path": "README.md",
+          "size": 13778,
+          "sha256": "230445a7321fb4348f3e7949dbe4ca75457bd1d37befd38e31d4c705d27a0511"
         },
         {
           "path": "index.mjs",
-          "size": 99399,
-          "sha256": "59c32d437f1427ff3be0bf8bd133d249f44f8321bee9da357272ef70ca097153"
+          "size": 126999,
+          "sha256": "1658067d7be38b1fa4e565d6cbd27198a22a8518cfc7f697100d710e38e0e607"
         },
         {
-          "path": "README.md",
-          "size": 8849,
-          "sha256": "19d9325b08d0b80619aefc94bf71da0cdb85cfc25b683299d67abb9e1553e191"
+          "path": "native-session.mjs",
+          "size": 43790,
+          "sha256": "c65cae928d1847db35ae7aa9ff7a0197bc2b2321a0adf380479a9a34c7c83727"
+        },
+        {
+          "path": "package.json",
+          "size": 569,
+          "sha256": "9caa8d58fc3eed69469e00bfa24e748a7005ee3c150b3a63bb826fbe486208e2"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-kiro-auth",
       "name": "Kiro",
-      "version": "0.1.8",
-      "directory": "kiro",
-      "entry": "index.mjs",
+      "icon": "kiro-color",
       "providers": [
         "kiro"
       ],
+      "community": true,
+      "replaces": "kiro",
+      "summary": {
+        "en": "Kiro Free, Pro, Pro+ and Power — Kiro's sign-in, kiro-cli's, or an API key.",
+        "zh": "Kiro Free、Pro、Pro+ 与 Power：Kiro 登录、沿用 kiro-cli 的登录，或 API key。"
+      },
+      "version": "0.1.12",
+      "directory": "kiro",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 498,
-          "sha256": "951b82ad1b5a7a2bf5f23a824a1e8a63b96182c9f75dc17945696ed9d28f152e"
+          "path": "README.md",
+          "size": 5484,
+          "sha256": "833d592b869d0992d302b7f06a11e1565fc034e202e7408cf028ff46c8a40d82"
         },
         {
           "path": "index.mjs",
-          "size": 66171,
-          "sha256": "7e506fde161431ef5bbacb29a14a57e8c841cd92538e0de017c8cb03be756482"
+          "size": 68800,
+          "sha256": "f9ae2f4a33acdd48b4a1749e685eac085d41a9e12494be69c3afa4d945f8a4b8"
         },
         {
-          "path": "README.md",
-          "size": 5293,
-          "sha256": "36fcfcf3deaf6459bf1dbe925c62d0f170a6133594ecd052dfc4c85c45c8c1bc"
+          "path": "package.json",
+          "size": 499,
+          "sha256": "5b301709541b4991b24141bd632420ebb09c9c28192a65c9e65a82969424f7b7"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-minimax-auth",
       "name": "MiniMax Code",
-      "version": "0.1.1",
-      "directory": "minimax",
-      "entry": "index.mjs",
+      "icon": "minimax-color",
       "providers": [
         "minimax-code",
         "minimax-code-global"
       ],
+      "community": true,
+      "summary": {
+        "en": "MiniMax Code account credits (daily check-in) and M Plan, with MiniMax Code's own device sign-in.",
+        "zh": "用 MiniMax Code 账号的积分（每日签到）与 M Plan，使用 MiniMax Code 自己的设备登录。"
+      },
+      "version": "0.1.2",
+      "directory": "minimax",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 635,
-          "sha256": "5a641e600aba3b02c9730569a043c386ef1a313e83106d26368106bb973efa5b"
+          "path": "README.md",
+          "size": 5537,
+          "sha256": "702beb781efc5eeefd65a0c196a08f517ae8947b344887fff6c3dd256b461776"
         },
         {
           "path": "index.mjs",
-          "size": 35560,
-          "sha256": "ba899113762a0a7a7b429f30c2824091ae68338b6cde586801d4041ad86e24dd"
+          "size": 39276,
+          "sha256": "4f6eae6febf8ef45e301bd0f8a9562fd3f588e97e5a45caf541f1d0bd3f9e5cd"
         },
         {
-          "path": "README.md",
-          "size": 5029,
-          "sha256": "9fe54a8332aba371f9b493919592ce9334cf22dfbfa1f0a7191653f538d9f14a"
+          "path": "package.json",
+          "size": 635,
+          "sha256": "8e4364fbfdad1003919840456b0d99da425a989fe4d67729f9a411f809dc15c9"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-workbuddy-auth",
       "name": "WorkBuddy",
-      "version": "0.1.13",
-      "directory": "workbuddy",
-      "entry": "index.mjs",
+      "icon": "workbuddy-color",
       "providers": [
         "workbuddy",
         "workbuddy-ai"
       ],
+      "community": true,
+      "replaces": "workbuddy",
+      "summary": {
+        "en": "WorkBuddy's China build (CodeBuddy plan) and its international build.",
+        "zh": "WorkBuddy 国内版（CodeBuddy 套餐）与国际版。"
+      },
+      "version": "0.1.24",
+      "directory": "workbuddy",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 578,
-          "sha256": "b5fd20a9cd8069258d20af2a09b35c1fade664d3ef668cc6397f85f61c4420b8"
+          "path": "README.md",
+          "size": 10555,
+          "sha256": "a8fe81685651943b57953be13b13d56d05daa1c497ee75bcabce0b0cc46dd009"
         },
         {
           "path": "index.mjs",
-          "size": 54378,
-          "sha256": "981eccb70bba5b6663031e92045c6bd17bc128ebda402da7c5b6c4ce735e97cd"
+          "size": 79399,
+          "sha256": "4d30cc3668c536744cd081a124edd03d11a9f2f89065553c5fe3e47d591c3e88"
         },
         {
-          "path": "README.md",
-          "size": 6167,
-          "sha256": "85a2769b6140bb0cc7cd1751c334500e97ce26f8a3d575a336c773324bee4623"
+          "path": "package.json",
+          "size": 578,
+          "sha256": "2053ff930d9f037e8f059f376570ac0872e7247864d864ca1b77f147f50954fe"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-cline-auth",
       "name": "Cline",
-      "version": "0.1.7",
-      "directory": "cline",
-      "entry": "index.mjs",
+      "icon": "cline",
       "providers": [
         "cline"
       ],
+      "community": true,
+      "summary": {
+        "en": "Cline's models on your own Cline account — usage billing, ClinePass and Cline's free models — with Cline's device sign-in or an API key.",
+        "zh": "用自己的 Cline 账号使用 Cline 的模型——用量计费、ClinePass 与免费模型——支持 Cline 设备登录或 API key。"
+      },
+      "version": "0.1.8",
+      "directory": "cline",
+      "entry": "index.mjs",
       "files": [
-        {
-          "path": "package.json",
-          "size": 561,
-          "sha256": "604a1ac96b5eadb9074ce4fc44c6c6ac83168140d2d371c9eed6824164cbf133"
-        },
-        {
-          "path": "index.mjs",
-          "size": 46733,
-          "sha256": "08c16adbeb211234ed2786129e4d6e7f9e0712120410d9f8448acc86826bb0b7"
-        },
         {
           "path": "README.md",
           "size": 6154,
           "sha256": "759b5b3d0346c568489f4c43e5ea46f75c8c8bad6fb8fcace16016e4f5e64f5e"
+        },
+        {
+          "path": "index.mjs",
+          "size": 48843,
+          "sha256": "0641a71aadda39bb15654837da6d635a883fa598fc7ffba0343b8bd39130126a"
+        },
+        {
+          "path": "package.json",
+          "size": 561,
+          "sha256": "4985d859e1b1e304c8824dc29b778fe9333ee7beb955f84148f6c5b9b1eb015a"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-trae-auth",
       "name": "Trae",
-      "version": "0.2.8",
-      "directory": "trae",
-      "entry": "index.mjs",
+      "icon": "trae",
       "providers": [
         "trae-cn",
         "trae-global"
       ],
+      "community": true,
+      "summary": {
+        "en": "Trae CN (trae.cn) and Trae international (trae.ai) models with your own account, free tier included — Trae's own browser sign-in. Experimental.",
+        "zh": "用 Trae CN（trae.cn）与 Trae 国际版（trae.ai）账号使用各自的模型，含免费版，使用 Trae 自己的浏览器登录。实验性。"
+      },
+      "version": "0.2.17",
+      "directory": "trae",
+      "entry": "index.mjs",
       "files": [
         {
-          "path": "package.json",
-          "size": 603,
-          "sha256": "d8e06764b3e0cd232bcb53bb90761d802fe78270802b9602cecc866f9944aa7f"
+          "path": "README.md",
+          "size": 19463,
+          "sha256": "36f9b2f2e6416e6f34771ce5ad9ee8a81d246e6294dbdfb621f7d690861e6820"
         },
         {
           "path": "index.mjs",
-          "size": 106735,
-          "sha256": "66d4067e37da2299c439972239273258306b1dd4c26f6dd058a0e6462f700f41"
+          "size": 138797,
+          "sha256": "b70008f83758ad363ac4b0c6e2085a3a0bc8b511bdcfa392f1dfd531d95536b6"
+        },
+        {
+          "path": "package.json",
+          "size": 604,
+          "sha256": "319839798f713d65647682b34fb2b08a6ea367d38a9e2ca280abc81a79d9f1ad"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-opendesign-auth",
+      "name": "Open Design",
+      "providers": [
+        "opendesign"
+      ],
+      "community": true,
+      "summary": {
+        "en": "Open Design Cloud's Design Plan (open-design.ai): the account's device sign-in, the models the plan entitles it to, and the plan's 5-hour and 7-day allowance and wallet balance.",
+        "zh": "Open Design Cloud 的 Design Plan（open-design.ai）：账号设备登录、套餐可用的模型，以及 5 小时与 7 天额度、钱包余额。"
+      },
+      "version": "0.1.6",
+      "directory": "opendesign",
+      "entry": "index.mjs",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 5651,
+          "sha256": "e1f5141c1032f880a85f55edec2efe7d3f25fbbff7dd1bba3372cb0bb5866e81"
+        },
+        {
+          "path": "index.mjs",
+          "size": 21177,
+          "sha256": "97a64a80cabda2c44d9f1a2807e055d59a30451165a0cdb657de250e8b4ccc8c"
+        },
+        {
+          "path": "models.mjs",
+          "size": 2781,
+          "sha256": "4d7ccff702fab656125e21037e7c29d09183dca04efa84a5d3ea23b019550f42"
+        },
+        {
+          "path": "package.json",
+          "size": 764,
+          "sha256": "f3e2fc72b9ed4521010df16c3bc65afad7240b34f2730086a238cc172bead2f4"
+        },
+        {
+          "path": "refresh-models.mjs",
+          "size": 4582,
+          "sha256": "666e9238260151830f7dee2d37fdbdbbe6758e6d818c86fe062ba1faf7ba3e0d"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-raccoon-auth",
+      "name": "商汤小浣熊",
+      "icon": "sensenova-color",
+      "providers": [
+        "raccoon"
+      ],
+      "community": true,
+      "summary": {
+        "en": "SenseTime Raccoon (xiaohuanxiong.com) models, account credits and daily check-in, with browser sign-in or Raccoon desktop's live sign-in.",
+        "zh": "商汤小浣熊（xiaohuanxiong.com）模型、积分余额与每日签到，支持浏览器登录或直接复用小浣熊桌面端登录态。"
+      },
+      "version": "0.1.0",
+      "directory": "raccoon",
+      "entry": "index.mjs",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 2389,
+          "sha256": "a9ec765a9e671bf128002fb57f2806c73090e15b6a0f08b1d55363b594299b81"
+        },
+        {
+          "path": "index.mjs",
+          "size": 36226,
+          "sha256": "40cea2f524dbf63694eaee21a617431947be1b84babdb7b41a46c6f569424111"
+        },
+        {
+          "path": "package.json",
+          "size": 7075,
+          "sha256": "6a0c3a7b0821d547f168687ba3a9ed4c2320a66dba7e31f3b2078cc01c303b66"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-autoclaw-auth",
+      "name": "AutoClaw",
+      "providers": [
+        "autoclaw",
+        "autoclaw-cn"
+      ],
+      "community": true,
+      "summary": {
+        "en": "AutoClaw (Zhipu OpenClaw) cloud accounts: oversea web sign-in (Google/z.ai) or CN phone SMS, credit balance and daily check-in.",
+        "zh": "AutoClaw（智谱澳龙/OpenClaw）云端账号：国际版网页登录（Google/z.ai）或国内手机验证码，积分余额与每日签到。"
+      },
+      "version": "0.2.1",
+      "directory": "autoclaw",
+      "entry": "index.mjs",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 7471,
+          "sha256": "005b3e3be9986d382cb149d7aaaa5e04290ad312bf8e2ada48ea297a3ad0d48f"
+        },
+        {
+          "path": "index.mjs",
+          "size": 56318,
+          "sha256": "6532018ff88221a5a65099e1957582cff777920cd4a1c2eefb8b29b204c7e2e2"
+        },
+        {
+          "path": "package.json",
+          "size": 1096,
+          "sha256": "5824ef19be6577c36baa4342f6a7e5767174a6d89e19b6ffe2c3adfeec11ca8f"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/middleware-param-override",
+      "name": "Param Override",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "New API's parameter override: set, delete, move or rewrite fields of every request, by model or by condition.",
+        "zh": "New API 的参数覆盖：按模型或条件设置、删除、移动或改写每个请求的字段。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "param-override",
+      "entry": "param-override.middleware.js",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 3574,
+          "sha256": "b38afe171c0fac32e7917476bb187071f3f04a7660b333270efa86a48ea887b4"
+        },
+        {
+          "path": "package.json",
+          "size": 985,
+          "sha256": "5278a04d58b346a77e834140f70a482f358c2f55d1a240378069caa56bcdd03e"
+        },
+        {
+          "path": "param-override.middleware.js",
+          "size": 12073,
+          "sha256": "aca578b9c8d1aba1bd9caa80ff881c7b7b98223970ad539caeba901d952aeedf"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/middleware-model-map",
+      "name": "Model Map",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "New API's model redirection: send a model under another name, by name or pattern; replies keep the name asked for.",
+        "zh": "New API 的模型重定向：按名称或正则把模型换成另一个发出，回复里仍是原来的名字。"
+      },
+      "providers": [],
+      "version": "0.1.1",
+      "directory": "model-map",
+      "entry": "model-map.middleware.js",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 1697,
+          "sha256": "6745e8522de2c425099a018c42d9b6a68bed124fb9c3e4eab59f4a14ef69ab2e"
+        },
+        {
+          "path": "model-map.middleware.js",
+          "size": 3400,
+          "sha256": "c83ac2cbc8a8694f7b869ffd2c9e314422df3c1ed3c3d08fcd3b1f912c0f6a11"
+        },
+        {
+          "path": "package.json",
+          "size": 739,
+          "sha256": "a61aa643c6b4e5f68ce5ccb5a12b1051abc5dc8e8011facfae8ae6c486764a1f"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/middleware-system-prompt",
+      "name": "System Prompt",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "Add your own system prompt to every request, or only some agents' or models', in each API's own place.",
+        "zh": "给每个请求（或指定 agent、模型）加上自己的系统提示词，放在各 API 自己的位置。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "system-prompt",
+      "entry": "system-prompt.middleware.js",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 1938,
+          "sha256": "740c28c1983ed525a825ec89751c06b2387534f431fa617482f9c52741e490e4"
+        },
+        {
+          "path": "package.json",
+          "size": 779,
+          "sha256": "9a746a51c4ada45abcac9cb4a1fd16dfd18cccdbe37d9a42155a3281835a9949"
+        },
+        {
+          "path": "system-prompt.middleware.js",
+          "size": 3475,
+          "sha256": "e5e47495c3b7cc4ee846cbca55dcf6f0e0aa7d37de1b71f2a7b20d6202066c10"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/middleware-word-guard",
+      "name": "Word Guard",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "New API's sensitive-word filter: turn away or mask words and patterns in what you send, and in replies.",
+        "zh": "New API 的敏感词过滤：拒绝或替换你发出的内容和回复里的词与正则。"
+      },
+      "providers": [],
+      "version": "0.1.1",
+      "directory": "word-guard",
+      "entry": "word-guard.middleware.js",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 2361,
+          "sha256": "b4621085a5f6201a7d850c6b7dbe45a3bdd4c38d5f1f7372c6d3976d095debb7"
+        },
+        {
+          "path": "package.json",
+          "size": 767,
+          "sha256": "1a634733247f0c4117be716b72b16f03c163ec885143d5692bbe9dcf0bfccd11"
+        },
+        {
+          "path": "word-guard.middleware.js",
+          "size": 6120,
+          "sha256": "9cc956b6cbd485b2e7f0c69e4121f08b32084799da8448718cab8237a5bbf96f"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/middleware-think-tags",
+      "name": "Think Tags",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "Take a model's <think>…</think> out of its reply's text, or put a Chat reply's reasoning into it.",
+        "zh": "去掉回复正文开头的 <think>…</think>，或把 Chat 回复的思考内容放进正文。"
+      },
+      "providers": [],
+      "version": "0.1.1",
+      "directory": "think-tags",
+      "entry": "think-tags.middleware.js",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 1779,
+          "sha256": "f7fe4a2a2b5c2299ab0be13bd9f209769b4f261425eae36373acf306789e4389"
+        },
+        {
+          "path": "package.json",
+          "size": 705,
+          "sha256": "0dfa147271900a9045995b1e5ee90d4186c3fdbd2a43342257ff5eca529dd1d1"
+        },
+        {
+          "path": "think-tags.middleware.js",
+          "size": 9379,
+          "sha256": "5646b6f6e99730e1255fb13bdbef8a2db3ea99b5e710e027e9fecd9b8ccea50c"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/middleware-antigravity-cloak",
+      "name": "Antigravity Cloak",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "Claude Code and Claude Desktop on an Antigravity account: the words Antigravity refuses their system prompt for are broken up, in what Antigravity alone is sent.",
+        "zh": "让 Claude Code 和 Claude Desktop 能用 Antigravity 账号：只在发给 Antigravity 的请求里拆开它据以拒绝系统提示词的那几个词。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "antigravity-cloak",
+      "entry": "antigravity-cloak.middleware.js",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 2829,
+          "sha256": "bb14d8ea9855e7c3361ddbec5fbfe9db879086e02bb5c13ad2895f1e314717dd"
+        },
+        {
+          "path": "antigravity-cloak.middleware.js",
+          "size": 3150,
+          "sha256": "57f8d53037b994ac214ca5a3767ca7d5afd46eed87125ebf9aef766bcacd30f5"
+        },
+        {
+          "path": "package.json",
+          "size": 720,
+          "sha256": "64d9a598323da5921731fac882f9b67bc58155c07c68801ca266c4fb2ea940c8"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/middleware-codex-history",
+      "name": "Codex History Filter",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "Opt-in, per-provider Codex Responses history filtering after switching providers. Preserves readable content and tool-call pairing; no model probes.",
+        "zh": "按供应商开关 Codex Responses 历史过滤，缓解切换上游后的密文和历史 ID 兼容问题；保留正文与工具配对，不运行模型检测。"
+      },
+      "providers": [],
+      "version": "0.1.1",
+      "directory": "codex-history",
+      "entry": "codex-history.middleware.js",
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1111,
+          "sha256": "7d0b63e9caa84bc999e446cbc9418964de6f9a88845aea305f5edb6e39a84662"
+        },
+        {
+          "path": "PROVENANCE.json",
+          "size": 1014,
+          "sha256": "982bc397f517c42d51f6700dc4eb7b3b96da33948629b41fcbc6edd3573a0278"
         },
         {
           "path": "README.md",
-          "size": 14511,
-          "sha256": "c9d7e6824c78117f096c2922be4f06b74deca79334cd23bd19e54b32c61e0a6a"
+          "size": 7891,
+          "sha256": "761fb0261bb7833f21da93e3cccf73e2bf29812d381193cd1f10daad74ecc20f"
+        },
+        {
+          "path": "codex-history.middleware.js",
+          "size": 6325,
+          "sha256": "8fcc96775113daacb2c8ee6e9a75427ec97328148e77df6991a7673f555aff1f"
+        },
+        {
+          "path": "package.json",
+          "size": 740,
+          "sha256": "1b8405ccfa50acd0a9c70063c36b5b57ba2cc4dfde2f602bda6ed15b37022ede"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/agent-aider",
+      "name": "Aider",
+      "kind": "agent",
+      "community": true,
+      "summary": {
+        "en": "Aider (aider.chat) on magpie's Agents page: pick one of magpie's models for it, and switch it off to put its config back.",
+        "zh": "把 Aider（aider.chat）加到 magpie 的 Agent 页：给它选 magpie 的模型，关掉即恢复它原来的配置。"
+      },
+      "providers": [],
+      "version": "0.1.1",
+      "directory": "aider",
+      "entry": "aider.agent.js",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 924,
+          "sha256": "1145595e4be7e5eb1a64f3d35a73bd2a5b6180e77737bcef83518588703a015e"
+        },
+        {
+          "path": "aider.agent.js",
+          "size": 920,
+          "sha256": "255d0a39611c5a3463dede39928d25aeff5b4fa228fac1d00028022be040ba10"
+        },
+        {
+          "path": "package.json",
+          "size": 578,
+          "sha256": "87721952e85c961a71235bf5f83e949edd3b05e2e9172bd2dfea1c517bfb9873"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/agent-type4me",
+      "name": "Type4Me",
+      "kind": "agent",
+      "community": true,
+      "summary": {
+        "en": "Type4Me (macOS voice input) on magpie's Agents page: pick one of magpie's models for its LLM post-processing, used from the next dictation.",
+        "zh": "把 Type4Me（macOS 语音输入）加到 magpie 的 Agent 页：给它的 LLM 后处理选 magpie 的模型，下一次语音输入即生效。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "type4me",
+      "entry": "type4me.agent.js",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 2091,
+          "sha256": "1196bcaba6b7c1c0b3c3097e2b20f289e3fee74864f8d4c7594242010a2c9285"
+        },
+        {
+          "path": "package.json",
+          "size": 730,
+          "sha256": "ab590c8cf291083f47aec030735d8b1c144b29c6364118c0d3b358e8e95eb204"
+        },
+        {
+          "path": "type4me.agent.js",
+          "size": 1391,
+          "sha256": "c970b0010fcf5d80707b67993779dfdbdabe8dbde1cbe3bc9537196f76b2db76"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/middleware-reserve",
+      "name": "Reserve",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "Two routings that keep something in reserve: fill accounts up to a ceiling of their allowance, or use subscriptions before API keys.",
+        "zh": "两种留余量的路由：账号用到额度上限就换下一个，或订阅账号优先于 API key。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "reserve",
+      "entry": "",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 2422,
+          "sha256": "3090172e6ad92088001f06c6a7b36c3b48837a4abc12382b9de3431b0a368f25"
+        },
+        {
+          "path": "package.json",
+          "size": 678,
+          "sha256": "3eee295ff8ce7b8cc372ef03dd389fd6ec1d59a4789b8878641b4f8d5fcc02b1"
+        },
+        {
+          "path": "reserve.gateway.js",
+          "size": 2469,
+          "sha256": "47936fdc8861d6e5d911dae761b8a27639d287d75fbd3d1585f5aaa11ccd28d5"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/tools-calc",
+      "name": "Calc",
+      "kind": "tools",
+      "community": true,
+      "summary": {
+        "en": "Exact arithmetic, unit conversion and calendar date math as tools for every agent: no network, no key.",
+        "zh": "给每个 agent 的精确计算、单位换算和日历日期计算工具：不联网，不需要 key。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "calc",
+      "entry": "index.mjs",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 3065,
+          "sha256": "aad6a205ae75d14164c6bef60e8a930fdcb7c1fd5efe1f6b4330662b708803fc"
+        },
+        {
+          "path": "calc.mjs",
+          "size": 19387,
+          "sha256": "93932d9eceecb9359a59945a88494405e415385b328c6b6c59097efc894fe119"
+        },
+        {
+          "path": "index.mjs",
+          "size": 4450,
+          "sha256": "72f967e8a2c722046a314923f5b9ee49075f48c27c1da3771d90cb17c5395057"
+        },
+        {
+          "path": "package.json",
+          "size": 571,
+          "sha256": "b3b19c3a6c14782caedb41b8342ecbc346d9eef6d1cf41fe69ac3d4c163cf504"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/page-usage",
+      "name": "Usage Glance",
+      "kind": "page",
+      "community": true,
+      "summary": {
+        "en": "A page in magpie's window with calls, errors, tokens and cost for today, 7 or 30 days, and the models behind them. Reads only your usage summary.",
+        "zh": "在 magpie 窗口里一眼看到今天、7 天或 30 天的调用、错误、token、费用和对应模型。只读取用量汇总。"
+      },
+      "providers": [],
+      "version": "0.1.1",
+      "directory": "usage",
+      "entry": "page/index.html",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 1785,
+          "sha256": "a28f0cf5f5e4077075f5aa827f088cdfa8e1cfa02b79b2488df32dc9ff59eb3c"
+        },
+        {
+          "path": "package.json",
+          "size": 850,
+          "sha256": "fe249941afcd2e13b960a560ac963f6e56f41d6e810cc2b642608d35bd28697c"
+        },
+        {
+          "path": "page/app.js",
+          "size": 3643,
+          "sha256": "44042524003c6c31875597b1483008ccb488dc46eb8a81f4dd019ef423446ece"
+        },
+        {
+          "path": "page/icon.svg",
+          "size": 178,
+          "sha256": "b3a666f23aa3c0185ca2352770dabc2592a8f9f569c0e179ea139b0c2f7c4a7b"
+        },
+        {
+          "path": "page/index.html",
+          "size": 1361,
+          "sha256": "b968c85bef64b6e0f31a690253998a6d23f136cd3fc9d2de3477986364323fd9"
+        },
+        {
+          "path": "page/style.css",
+          "size": 2968,
+          "sha256": "4472e27b4c37f7819bb6ee60fdf82a71da1fcb9e0243c0977d3c57d9fbfff52f"
+        },
+        {
+          "path": "page/view.js",
+          "size": 4157,
+          "sha256": "147b2f622ea810cdd8584ed8bf46643cf11b8c1742de1684cee6fa64d77f72ac"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/agent-kimi-desktop",
+      "name": "Kimi",
+      "kind": "agent",
+      "community": true,
+      "summary": {
+        "en": "Kimi desktop Work on Magpie's Agents page: select a model from Magpie, then disconnect to restore the original service. Not Kimi Code CLI.",
+        "zh": "把普通 Kimi 桌面版 Work 接入 Magpie Agent 页，使用已配置的模型；断开恢复原连接。不是 Kimi Code CLI。"
+      },
+      "providers": [],
+      "version": "0.1.1",
+      "directory": "kimi-desktop",
+      "entry": "index.mjs",
+      "files": [
+        {
+          "path": "COMPATIBILITY.md",
+          "size": 5561,
+          "sha256": "a164a61e75e30fb51ff1292c306b8b6ae27b2b8b19c6a6fa6971657e0714ecfc"
+        },
+        {
+          "path": "README.md",
+          "size": 8832,
+          "sha256": "82198ba08b376d95c1668a1f9951d3258bcc3989a1234f62f4cab3b6ff6db511"
+        },
+        {
+          "path": "adapter.mjs",
+          "size": 21856,
+          "sha256": "9b788842e95f094353c9c8096b9e8dcf78ad6cfb56cefca4c320347736b399e0"
+        },
+        {
+          "path": "catalog.mjs",
+          "size": 2881,
+          "sha256": "adcdd4d106ea48f9bacf4292e1e2004a20ba219efa04d379e219cd8017ec2b06"
+        },
+        {
+          "path": "index.mjs",
+          "size": 794,
+          "sha256": "2476f630f1ec3105f333a2267cb3747916a1a502dd7faab9d4dbda923dbcfa64"
+        },
+        {
+          "path": "kimi-desktop.agent.js",
+          "size": 10690,
+          "sha256": "6369c89c01aa4dc26e35c48a87f764922c9ec4f7e900dd7eae845dd9c54d8fd2"
+        },
+        {
+          "path": "library.mjs",
+          "size": 2225,
+          "sha256": "e3652c4d7fc5de9ae4e060d9a31499d41c1b448c287b657224e1328ecfad9235"
+        },
+        {
+          "path": "package.json",
+          "size": 10712,
+          "sha256": "355f803161e79a65a75bb3fafb5f16863134d56852ef9602d15f3ec7fb18d278"
+        },
+        {
+          "path": "rpc.mjs",
+          "size": 2126,
+          "sha256": "5382974c886158222d3b0aba744ba8e2e8cc3e7f328ab5601afcc94c346ccbe8"
         }
       ]
     }

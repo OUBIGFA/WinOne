@@ -111,6 +111,14 @@ func TestMagpieRoutingPersistsGroupRoutesRealRequestsAndRejectsUnauthenticatedCl
 		return raw
 	}
 	call("POST", "/api/groups/save", `{"id":"test-group","name":"Test group","members":["fixture/model"],"routing":"order"}`)
+	// The standalone page's naming and provider controls use the same durable
+	// configuration as real routed requests, even after a worker replacement.
+	call("POST", "/api/settings/plain-names", `{"mode":"off"}`)
+	if raw := call("GET", "/api/settings", ""); !bytes.Contains(raw, []byte(`"plainNames":true`)) {
+		t.Fatal("routing preference did not reach the active snapshot", string(raw))
+	}
+	call("POST", "/api/provider/route", `{"id":"fixture","routing":"rotate"}`)
+	call("GET", "/api/usage/quotas", "")
 	answer := call("POST", "/v1/chat/completions", `{"model":"group/test-group","messages":[{"role":"user","content":"Test route"}]}`)
 	if !bytes.Contains(answer, []byte("Routed answer")) {
 		t.Fatal(string(answer))
@@ -143,10 +151,25 @@ func TestMagpieRoutingPersistsGroupRoutesRealRequestsAndRejectsUnauthenticatedCl
 	if response.StatusCode != 401 {
 		t.Fatal("unauthenticated access", response.StatusCode)
 	}
+	for _, path := range []string{"/app.js", "/start.js", "/plugins/sessions/client.js", "/api/usage", "/api/provider/save"} {
+		request, _ := http.NewRequestWithContext(ctx, "GET", router.URL+path, nil)
+		request.Header.Set("Authorization", "Bearer "+router.Key)
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode != 404 && response.StatusCode != 405 {
+			t.Fatalf("non-routing application endpoint %s was exposed: %d", path, response.StatusCode)
+		}
+	}
 	router.Close()
 	router, err = runtime.StartRouting(ctx, &MagpieSettings{NoStats: true, NoUsageStats: true}, providers)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if raw := call("GET", "/api/settings", ""); !bytes.Contains(raw, []byte(`"plainNames":true`)) {
+		t.Fatal("routing preference did not survive restart", string(raw))
 	}
 	defer router.Close()
 	var state struct{ Groups []struct{ ID string } }

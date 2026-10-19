@@ -31,6 +31,7 @@ import (
 	"winone/internal/maintenance"
 	"winone/internal/previewtransfer"
 	"winone/internal/residency"
+	"winone/internal/resultwindow"
 	"winone/internal/settings"
 	"winone/internal/transport"
 )
@@ -281,6 +282,15 @@ func (a *App) QuickAssistant(method, payload string) (string, error) {
 	if err := a.request("quick-assistant."+method, params, &result); err != nil {
 		return "", err
 	}
+	if method == "show" {
+		var target resultwindow.WindowTarget
+		if err := json.Unmarshal(result, &target); err != nil {
+			return "", err
+		}
+		if err := target.Activate(); err != nil {
+			return "", err
+		}
+	}
 	return string(result), nil
 }
 
@@ -526,7 +536,7 @@ func (a *App) PickFile() (string, error) {
 }
 func (a *App) DirectoryLinks(method, payload string) (string, error) {
 	switch method {
-	case "browse", "preview", "previewBatch", "create", "create.elevated", "createBatch", "createBatch.elevated", "list", "inspect", "inspectBatch", "scan", "scan.cancel", "remove", "forget", "exportPlan", "menu.get", "menu.set", "reveal", "open", "pending":
+	case "browse", "preview", "previewBatch", "create", "create.elevated", "createBatch", "createBatch.elevated", "list", "inspect", "inspectBatch", "scan", "scan.cancel", "remove", "forget", "forgetInvalid", "exportPlan", "menu.get", "menu.set", "reveal", "open", "pending":
 	default:
 		return "", errors.New("不支持的目录链接操作")
 	}

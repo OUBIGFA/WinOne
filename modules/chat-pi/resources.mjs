@@ -1,5 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import {DefaultResourceLoader,SettingsManager} from '@earendil-works/pi-coding-agent';
+import {validateMcpServerConfig} from './node_modules/@earendil-works/pi-coding-agent/dist/core/mcp-servers.js';
+import {collectPiProjectResourceCliPaths} from './cindy/project-resource-cli.ts';
 
 async function readJSON(file,optional=false){
  try{const info=await fs.stat(file);if(info.size>1024*1024)throw Error('Resource manifest is too large');return JSON.parse(await fs.readFile(file,'utf8'));}
@@ -19,15 +22,20 @@ function serverEntry(name,config,source){
  if(!config||typeof config!=='object'||!!config.command===!!config.url)throw Error('MCP server requires one command or URL: '+name);
  if(config.url){const url=new URL(config.url);if(!['https:','http:'].includes(url.protocol)||url.username||url.password)throw Error('Invalid MCP HTTP address');}
  for(const values of [config.env,config.headers])for(const [key,value] of Object.entries(values??{}))if(typeof value!=='string'||/[\0\r\n]/.test(key+value)||value.startsWith('!'))throw Error('MCP values cannot execute commands or contain newlines');
- // Tool search handles large catalogs without shipping a second script runtime.
- const exposure=config.exposure==='codemode'?'deferred':config.exposure??'direct';
- return {name,config:{...config,exposure},source,scope:'global'};
+ // Keep WinOne's existing default while preserving each explicit upstream
+ // mode. MCP decides whether discovery activates Code Mode or tool search.
+ const validated=validateMcpServerConfig(name,{...config,exposure:config.exposure??'direct'});
+ if(typeof validated==='string')throw Error(validated);
+ return {name,config:validated,source,scope:'global'};
 }
 
 // Import the public Codex package surfaces and Pi extension packages from
 // explicitly selected local directories. No project file can add a plugin.
 export async function discoverResources(config={}){
- const result={skillPaths:[...(config.skillDirectories??[])],extensionPaths:[],promptPaths:[],plugins:[],mcpServers:[],diagnostics:[]};
+ // Match Cindy's explicit project discovery without granting project settings
+ // trust. Only Skill metadata is imported here; project extensions stay inert.
+ const projectSkills=config.cwd?collectPiProjectResourceCliPaths(config.cwd).skills:[];
+ const result={skillPaths:[...projectSkills,...(config.skillDirectories??[])],extensionPaths:[],promptPaths:[],plugins:[],mcpServers:[],diagnostics:[]};
  for(const configured of config.mcpServers??[]){const {name,...entry}=configured;result.mcpServers.push(serverEntry(name,entry,'WinOne settings'));}
  for(const directory of config.pluginDirectories??[]){
   const root=await fs.realpath(directory);
@@ -58,12 +66,22 @@ export async function discoverResources(config={}){
  return result;
 }
 
+// Resource browsing remains useful without a configured model. This path only
+// reads manifests/AGENTS/skills: it never starts MCP servers or loads extension
+// code just because the user opened the resource sidebar.
+export async function inspectResources(config){
+ if(!path.isAbsolute(config.cwd)||!path.isAbsolute(config.agentDir))throw Error('Invalid resource location');
+ const discovered=await discoverResources(config);
+ const loader=new DefaultResourceLoader({cwd:config.cwd,agentDir:config.agentDir,settingsManager:SettingsManager.inMemory(),noExtensions:true,noPromptTemplates:true,noThemes:true,additionalSkillPaths:discovered.skillPaths});
+ await loader.reload();return resourceSummary(loader,discovered);
+}
+
 export function resourceSummary(loader,discovered){
  return {
   agents:loader.getAgentsFiles().agentsFiles.map(({path})=>({path})),
   skills:loader.getSkills().skills.map(skill=>({name:skill.name,description:skill.description,path:skill.filePath})),
   plugins:discovered.plugins,
   mcpServers:discovered.mcpServers.map(entry=>({name:entry.name,enabled:entry.config.enabled!==false,status:entry.config.enabled===false?'disabled':'configured'})),
-  diagnostics:[...discovered.diagnostics,...loader.getSkills().diagnostics.map(item=>item.message),...loader.getExtensions().errors.map(item=>`${item.path}: ${item.error}`)],
+  diagnostics:[...discovered.diagnostics,...loader.getSkills().diagnostics.map(item=>item.path?`${item.path}: ${item.message}`:item.message),...loader.getExtensions().errors.map(item=>`${item.path}: ${item.error}`)],
  };
 }

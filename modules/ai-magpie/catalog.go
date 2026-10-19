@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
+	"github.com/yetone/magpie/internal/plugin"
 )
 
 // The build checks this registry and every plugin file against the pinned
@@ -12,13 +14,16 @@ import (
 var pluginCatalogJSON []byte
 
 type accountPlugin struct {
-	Package   string           `json:"package"`
-	Name      string           `json:"name"`
-	Version   string           `json:"version"`
-	Directory string           `json:"directory"`
-	Entry     string           `json:"entry"`
-	Providers []string         `json:"providers"`
-	Files     []pluginResource `json:"files"`
+	Kind      string            `json:"kind,omitempty"`
+	Icon      string            `json:"icon,omitempty"`
+	Summary   map[string]string `json:"summary,omitempty"`
+	Package   string            `json:"package"`
+	Name      string            `json:"name"`
+	Version   string            `json:"version"`
+	Directory string            `json:"directory"`
+	Entry     string            `json:"entry"`
+	Providers []string          `json:"providers"`
+	Files     []pluginResource  `json:"files"`
 }
 
 type pluginResource struct {
@@ -76,6 +81,38 @@ func accountCatalog() []agentOption {
 		}
 	}
 	return options
+}
+
+// Explicitly installed providers use the existing sign-in UI and private
+// account profiles. This never discovers another application's accounts.
+func accountCatalogWithExtensions(ctx context.Context) ([]agentOption, error) {
+	options := accountCatalog()
+	if plugin.WinOneDirectory() == "" || len(plugin.Load().Plugins) == 0 {
+		return options, nil
+	}
+	providers, err := plugin.Providers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range providers {
+		if len(p.Methods) == 0 {
+			continue
+		}
+		option := agentOption{ID: p.ID, Name: p.Name, Backend: "plugin", Plugin: p.Spec}
+		at := -1
+		for i, existing := range options {
+			if existing.ID == p.ID {
+				at = i
+				break
+			}
+		}
+		if at < 0 {
+			options = append(options, option)
+		} else {
+			options[at] = option
+		}
+	}
+	return options, nil
 }
 
 func pluginForAgent(agent string) (accountPlugin, bool) {

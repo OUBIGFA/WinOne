@@ -39,7 +39,12 @@ namespace ShareX.ScreenCaptureLib
 
         public WinOneCaptureCanvas(Bitmap image, Action<string> startupStage = null, bool viewport = false)
         {
-            var canvas = new Bitmap(image);
+            // Screen frames already use 32-bit ARGB. Clone their pixels
+            // directly instead of drawing/scaling a 5M-pixel image through
+            // GDI+ merely to copy it. Other formats keep the normalization path.
+            var canvas = image.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb
+                ? image.Clone(new Rectangle(Point.Empty, image.Size), image.PixelFormat)
+                : new Bitmap(image);
             startupStage?.Invoke("canvasCopied");
             form = new RegionCaptureForm(viewport ? RegionCaptureMode.Editor : RegionCaptureMode.Annotation, new RegionCaptureOptions {
                 DetectWindows = false, DetectControls = false, EnableSharing = false,
@@ -70,10 +75,13 @@ namespace ShareX.ScreenCaptureLib
             form.Disposed += (_,_)=>form.ShapeManager.DisposeWinOneComposition();
             form.ShapeManager.CurrentShapeTypeChanged += _ => Changed?.Invoke();
             form.MouseMove += (_, mouse) => PointerMoved?.Invoke(form.PointToScreen(mouse.Location));
-            if (viewport) {
+            {
                 var previousScale = form.ZoomFactor;
                 var previousOrigin = form.CanvasRectangle.Location;
                 void ViewChanged() {
+                    // A normal screenshot may become a long-image editor in
+                    // this HWND. Subscribe once, not only for constructor mode.
+                    if (!form.IsEditorMode) return;
                     if (previousScale == form.ZoomFactor && previousOrigin == form.CanvasRectangle.Location) return;
                     previousScale = form.ZoomFactor; previousOrigin = form.CanvasRectangle.Location;
                     Changed?.Invoke();

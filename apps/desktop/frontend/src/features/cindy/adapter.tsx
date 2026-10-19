@@ -1,5 +1,5 @@
 // Host-only seams for the reused Cindy UI. Pi remains WinOne's only harness.
-import type {CSSProperties,ReactElement,ReactNode} from "react";
+import {useCallback,type CSSProperties,type ReactElement,type ReactNode} from "react";
 import {useTranslation as useWinOneTranslation} from "../../i18n";
 import {Tooltip,TooltipContent,TooltipTrigger} from "../../components/ui/tooltip";
 import {LoaderCircle} from "lucide-react";
@@ -8,9 +8,10 @@ export type PermissionMode="ask"|"auto"|"bypassPermissions";
 export type AgentKind="pi"|"codex"|"claude-code";
 export interface PermissionModeDescriptor{id:PermissionMode;displayName:string;description:string}
 export const WINDOW_NO_DRAG_STYLE={"--wails-draggable":"no-drag"} as CSSProperties;
+const stableTranslationOptions={};
 export function useTranslation(){
- const {t}=useWinOneTranslation();
- return {t:(key:string,options?:Record<string,unknown>)=>{
+ const {t}=useWinOneTranslation(undefined,stableTranslationOptions);
+ const translate=useCallback((key:string,options?:Record<string,unknown>)=>{
   if(key==="newChat.permissionSelector.triggerAria")return t("chat.permissions")+" · "+String(options?.label??"");
   if(key==="newChat.permissionSelector.listAria")return t("chat.permissions");
   if(key==="newChat.sendButton.send")return t("chat.send");
@@ -20,7 +21,8 @@ export function useTranslation(){
   const workKeys:Record<string,string>={"chat.workGroup.workDetails":"chat.processDetails","chat.workGroup.working":"chat.processWorking","chat.workGroup.worked":"chat.processWorked","chat.workGroup.exploration.read":"chat.processRead","chat.workGroup.exploration.search":"chat.processSearch","chat.workGroup.exploration.list":"chat.processList","chat.errorBanner.retry":"chat.retry"};
   if(workKeys[key])return t(workKeys[key],options);
   return String(options?.defaultValue??t(key,options));
- }};
+ },[t]);
+ return {t:translate};
 }
 export function Spinner({size=14,className=""}:{size?:number;className?:string}){return <LoaderCircle aria-hidden="true" size={size} className={`animate-spin motion-reduce:animate-none ${className}`}/>;}
 export function createLogger(name:string){return {warn:(...values:unknown[])=>console.warn(name,...values)};}

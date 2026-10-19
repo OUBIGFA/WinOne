@@ -141,6 +141,12 @@ func directoryLinksHandler(m *directorylinks.Manager, authorize func(uint32) err
 				return fail(err)
 			}
 			result, err = m.Browse(ctx, args.Directory, args.Offset)
+		case "rename":
+			var args directorylinks.RenameRequest
+			if err = configjson.DecodeObject(request.Params, &args); err != nil {
+				return fail(err)
+			}
+			result, err = m.Rename(ctx, args)
 		case "menu.get", "menu.set":
 			exe, e := os.Executable()
 			if e != nil {
@@ -309,6 +315,20 @@ func directoryLinksHandler(m *directorylinks.Manager, authorize func(uint32) err
 					result = map[string]bool{"forgotten": err == nil}
 				}
 			}
+		case "forgetInvalid":
+			var args struct {
+				Confirmed bool `json:"confirmed"`
+			}
+			if err = configjson.DecodeObject(request.Params, &args); err != nil {
+				return fail(err)
+			}
+			if !args.Confirmed {
+				return fail(errors.New("请确认清理失效历史"))
+			}
+			var rows []directorylinks.Record
+			var forgotten int
+			rows, forgotten, err = m.ForgetInvalid(ctx)
+			result = map[string]any{"records": rows, "forgotten": forgotten}
 		case "inspectBatch":
 			var args struct {
 				IDs []string `json:"ids"`

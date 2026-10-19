@@ -10,7 +10,7 @@ export function ComposerFrame({children,newConversation,editor,content,attachmen
  const [limit,setLimit]=useState(()=>Math.max(minimum,window.innerHeight-180));
  // Every new-chat action remounts this frame. A previous conversation's tall
  // editor must not turn the next welcome screen into a docked editor.
- const [height,setHeight]=useState(()=>{if(newConversation)return initialHeight;try{const saved=Number(localStorage.getItem("winone.chat.composer-height.v1"));return saved>=minimum?saved:initialHeight;}catch{return initialHeight;}});
+ const [height,setHeight]=useState(initialHeight);
  const [contentHeight,setContentHeight]=useState(0);
  const [minimumHeight,setMinimumHeight]=useState(minimum);
  const heightRef=useRef(height);heightRef.current=height;
@@ -79,7 +79,9 @@ export function ComposerFrame({children,newConversation,editor,content,attachmen
   const observer=new ResizeObserver(measure);observer.observe(main);if(area)observer.observe(area);window.addEventListener('resize',measure);measure();
   return()=>{observer.disconnect();window.removeEventListener('resize',measure);};
  },[newConversation,displayedHeight,height,contentHeight]);
- function persist(next:number){heightRef.current=next;setHeight(next);try{localStorage.setItem('winone.chat.composer-height.v1',String(next));}catch(error){console.warn('Composer height could not be saved',error);}}
+ // Sizing belongs to this mounted page. Entering a conversation starts at its
+ // default docked height instead of reusing a welcome page's expanded editor.
+ function persist(next:number){heightRef.current=next;setHeight(next);}
  function resizeFrom(start:DOMRect,delta:number){
   const composer=root.current?.querySelector<HTMLElement>('.chat-composer'),main=root.current?.closest('.chat-main');
   if(!composer||!main)return;
@@ -102,7 +104,7 @@ export function ComposerFrame({children,newConversation,editor,content,attachmen
   handle.addEventListener('pointermove',move);handle.addEventListener('lostpointercapture',done,{once:true});
  }
  return <div ref={root} className="cindy-chat-ui relative w-full" data-chat-input-root data-new-conversation={newConversation||undefined}>
-  <div style={{height:displayedHeight}} className={cn('chat-composer client-composer relative flex w-full flex-col')} onMouseDown={event=>{
+  <div style={{height:displayedHeight}} className={cn('chat-composer relative flex w-full flex-col')} onMouseDown={event=>{
    if(event.button===0&&(event.target===event.currentTarget||(event.target as HTMLElement).classList.contains('chat-composer-spacer'))){event.preventDefault();editor.current?.focus();}
   }}><div role="separator" tabIndex={0} aria-orientation="horizontal" aria-label={t('chat.resizeComposer')} aria-valuemin={Math.round(minimumHeight)} aria-valuemax={Math.max(limit,minimumHeight)} aria-valuenow={Math.round(displayedHeight)} className="chat-composer-resize" onPointerDown={startResize} onKeyDown={event=>{if(event.key==='ArrowUp'||event.key==='ArrowDown'){event.preventDefault();persist(Math.max(minimumHeight,Math.min(limit,displayedHeight+(event.key==='ArrowUp'?24:-24))));}}}><GripVertical aria-hidden="true" size={16}/></div>{children}</div>
  </div>;

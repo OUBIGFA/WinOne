@@ -8,6 +8,7 @@ import {CaptureOptionSelect} from "../ui/capture-option-select";
 import {useTranslation} from "../i18n";
 import {Button} from "../ui/button";
 import type {AIProvider,AIModelMetadata,AIModelPrice} from "./ai-configuration";
+import {SettingsDisclosure,SettingsOptions} from "../components/settings-layout";
 
 // Magpie a8ca790 app.js contextPicks/outputField; decimal K/M, not Ki/Mi.
 // Percentage shortcuts are the user's explicit WinOne adaptation.
@@ -18,7 +19,7 @@ const compactionPresets=[50,60,70,80,90,95];
 const reasoningEfforts=["none","minimal","low","medium","high","xhigh","max","ultra"];
 const tokenLabel=(value:number)=>value%1000000===0?`${value/1000000}M`:value%1000===0?`${value/1000}K`:String(value);
 function PresetButtons<T extends number|string>({label,value,options,disabled,onSelect}:{label:string;value:T|undefined;options:{value:T;label:string}[];disabled:boolean;onSelect:(value:T)=>void}){
- return <div role="group" aria-label={label} className="flex flex-wrap items-center gap-1.5">{options.map(option=><Button key={option.label} variant="secondary" disabled={disabled} aria-pressed={value===option.value} className="!min-h-7 rounded-full px-2.5 py-0.5 text-[13px] font-normal tabular-nums aria-pressed:border-ring aria-pressed:bg-accent aria-pressed:text-foreground" onClick={()=>onSelect(option.value)}>{option.label}</Button>)}</div>;
+ return <div role="group" aria-label={label} className="settings-preset-actions">{options.map(option=><Button key={option.label} variant="secondary" disabled={disabled} aria-pressed={value===option.value} onClick={()=>onSelect(option.value)}>{option.label}</Button>)}</div>;
 }
 
 // Reuse the provider's save flow: editing a model never changes its routing ID
@@ -27,6 +28,10 @@ export function AIModelSettings({provider,model,disabled,onChange,onClose}:{prov
  const {t}=useTranslation(),id=useId(),metadata=provider.modelMetadata?.[model]??{};
  function change(patch:Partial<AIModelMetadata>){onChange({modelMetadata:{...provider.modelMetadata,[model]:{...metadata,...patch}}});}
  const defaults={value:"",label:t("ai.modelDefault")};
+ // A known vendor list governs the request choices; older or manual models
+ // keep the full list. Retain a saved override so refreshing never hides it.
+ const offeredEfforts=[...new Set([...(metadata.efforts?.length?metadata.efforts:reasoningEfforts),...(metadata.reasoningEffort?[metadata.reasoningEffort]:[])])];
+ const offeredTiers=[...new Set(["auto","default",...(metadata.tiers?.length?metadata.tiers:["flex","priority","ultrafast"]),...(metadata.tier?[metadata.tier]:[])])];
  const configuredPercent=metadata.compactionPercent??0;
  const legacyThreshold=configuredPercent<=0?metadata.compactionThreshold??0:0;
  // Reading legacy metadata is not a migration. Its token count remains intact
@@ -46,9 +51,9 @@ export function AIModelSettings({provider,model,disabled,onChange,onClose}:{prov
    <Field><FieldLabel htmlFor={id+"contextWindow"}>{t("ai.contextWindow")}</FieldLabel><Input id={id+"contextWindow"} type="number" min={0} max={100000000} step={1} placeholder={t("ai.modelDefault")} value={metadata.contextWindow||""} disabled={disabled} onChange={event=>change({contextWindow:Number(event.target.value)})}/><PresetButtons label={t("ai.contextPresets")} value={metadata.contextWindow} options={windowOptions} disabled={disabled} onSelect={contextWindow=>change({contextWindow})}/></Field>
    <Field><FieldLabel htmlFor={id+"maxTokens"}>{t("ai.maxTokens")}</FieldLabel><Input id={id+"maxTokens"} type="number" min={0} max={100000000} step={1} placeholder={t("ai.modelDefault")} value={metadata.maxTokens||""} disabled={disabled} onChange={event=>change({maxTokens:Number(event.target.value)})}/><PresetButtons label={t("ai.outputPresets")} value={metadata.maxTokens} options={outputPresets.map(value=>({value,label:tokenLabel(value)}))} disabled={disabled} onSelect={maxTokens=>change({maxTokens})}/></Field>
    <Field className="sm:col-span-2"><FieldLabel htmlFor={id+"compactionPercent"}>{t("ai.compactionPercent")}</FieldLabel><Input id={id+"compactionPercent"} type="number" min={0} max={100} step="any" placeholder={t("ai.modelDefault")} value={percent??""} disabled={disabled} onChange={event=>change({compactionPercent:Number(event.target.value),compactionThreshold:0})}/><PresetButtons label={t("ai.compactionPresets")} value={legacyThreshold?undefined:percent} options={compactionPresets.map(value=>({value,label:`${value}%`}))} disabled={disabled} onSelect={compactionPercent=>change({compactionPercent,compactionThreshold:0})}/><p className="settings-help">{legacyThreshold?t("ai.legacyCompactionHint",{tokens:legacyThreshold.toLocaleString()}):metadata.contextWindow&&percent?t("ai.compactionTokenPreview",{tokens:Math.floor(metadata.contextWindow*percent/100).toLocaleString(),percent}):t("ai.compactionPercentHint")}</p></Field>
-   <div className="space-y-2 sm:col-span-2"><CaptureOptionSelect stacked label={t("ai.reasoningEffort")} value={metadata.reasoningEffort??""} disabled={disabled} items={[defaults,...reasoningEfforts.map(value=>({value,label:value}))]} onChange={reasoningEffort=>change({reasoningEffort})}/><PresetButtons label={t("ai.reasoningPresets")} value={metadata.reasoningEffort??""} options={[defaults,...reasoningEfforts.map(value=>({value,label:value}))]} disabled={disabled} onSelect={reasoningEffort=>change({reasoningEffort})}/></div>
-   <CaptureOptionSelect stacked label={t("ai.modelTier")} value={metadata.tier??""} disabled={disabled} items={[defaults,...["auto","default","flex","priority","ultrafast"].map(value=>({value,label:value}))]} onChange={tier=>change({tier})}/>
-   {(["reasoning","vision","tools"] as const).map(key=><CaptureOptionSelect key={key} stacked label={t("ai.capability"+key)} value={metadata[key]===undefined?"":String(metadata[key])} disabled={disabled} items={[defaults,{value:"true",label:t("ai.capabilityEnabled")},{value:"false",label:t("ai.capabilityDisabled")}]} onChange={value=>change({[key]:value===""?undefined:value==="true"})}/>)}
+   <div className="space-y-2 sm:col-span-2"><CaptureOptionSelect stacked label={t("ai.reasoningEffort")} value={metadata.reasoningEffort??""} disabled={disabled} items={[defaults,...offeredEfforts.map(value=>({value,label:value}))]} onChange={reasoningEffort=>change({reasoningEffort})}/><PresetButtons label={t("ai.reasoningPresets")} value={metadata.reasoningEffort??""} options={[defaults,...offeredEfforts.map(value=>({value,label:value}))]} disabled={disabled} onSelect={reasoningEffort=>change({reasoningEffort})}/></div>
+   <CaptureOptionSelect stacked label={t("ai.modelTier")} value={metadata.tier??""} disabled={disabled} items={[defaults,...offeredTiers.map(value=>({value,label:value}))]} onChange={tier=>change({tier})}/>
+   {(["reasoning","vision","tools"] as const).map(key=><SettingsOptions key={key} label={t("ai.capability"+key)} value={metadata[key]===undefined?"":String(metadata[key])} disabled={disabled} items={[defaults,{value:"true",label:t("ai.capabilityEnabled")},{value:"false",label:t("ai.capabilityDisabled")}]} onChange={value=>change({[key]:value===""?undefined:value==="true"})}/>)}
   </div><p className="settings-help">{t("ai.modelMetadataHint")}</p>
  </DialogContent></Dialog>;
 }
@@ -64,7 +69,7 @@ function AIModelPricing({value,disabled,onChange}:{value?:AIModelPrice;disabled:
 
 export function AIRequestLimits({provider,disabled,onChange}:{provider:AIProvider;disabled:boolean;onChange:(patch:Partial<AIProvider>)=>void}){
  const {t}=useTranslation(),id=useId();
- return <div className="space-y-3 border-t border-border pt-4"><h3 className="settings-group-title">{t("ai.requestLimits")}</h3><div className="grid gap-4 sm:grid-cols-2">
+ return <SettingsDisclosure title={t("ai.requestLimits")} defaultOpen={!!(provider.maxConcurrency||provider.maxRPM||provider.queueLimit||provider.queueWait)}><div className="settings-field-grid">
   {(["maxConcurrency","maxRPM","queueLimit","queueWait"] as const).map(key=><Field key={key}><FieldLabel htmlFor={id+key}>{t("ai."+key)}</FieldLabel><Input id={id+key} type="number" min={0} max={key==="queueWait"?3600:key==="maxConcurrency"?1000:10000} step={1} placeholder={t("ai.noRequestLimit")} value={provider[key]||""} disabled={disabled} onChange={event=>onChange({[key]:Number(event.target.value)})}/></Field>)}
- </div><p className="settings-help">{t("ai.requestLimitsHint")}</p></div>;
+ </div><p className="settings-help">{t("ai.requestLimitsHint")}</p></SettingsDisclosure>;
 }

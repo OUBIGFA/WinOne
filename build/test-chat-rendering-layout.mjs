@@ -37,7 +37,14 @@ try{
    return {overflow,typography:['p','h1','h2','li','blockquote','code'].map(selector=>({selector,host:sample(markdown.querySelector(selector)),reference:sample(document.querySelector('#reference .desktop-ai-markdown').querySelector(selector))})),text:markdown.textContent};
   });
   results.push({id,...metrics});if(metrics.overflow.length)failures.push({id,overflow:metrics.overflow});
-  if(role==='assistant')for(const entry of metrics.typography)try{assert.deepEqual(entry.host,entry.reference);}catch{failures.push({id,typography:entry});}
+  // Cindy 69661422 chatChrome / MarkdownRenderer now own the reading scale.
+  // Keep the kit comparison for font family and validate the requested sizes.
+  if(role==='assistant')for(const entry of metrics.typography)try{
+   assert.equal(entry.host.fontFamily,entry.reference.fontFamily);
+   assert.equal(entry.host.fontSize,{p:'15px',h1:'20px',h2:'18px',li:'15px',blockquote:'15px',code:'14px'}[entry.selector]);
+   if(entry.selector==='p')assert.equal(entry.host.lineHeight,'24px');
+   if(entry.selector==='h1'||entry.selector==='h2')assert.equal(entry.host.fontWeight,'500');
+  }catch{failures.push({id,typography:entry});}
   assert(metrics.text.includes(code));
   await page.locator('#host .chat-user-text .desktop-markdown-copy, #host .chat-answer-content > .chat-markdown .desktop-markdown-copy').click();assert.equal(await page.evaluate(()=>window.copied),code+'\n');
  }
@@ -48,5 +55,5 @@ try{
  }
  assert.deepEqual(errors,[]);await page.screenshot({path:join(output,'review-empty.png')});
  await writeFile(join(output,'rendering-layout.json'),JSON.stringify({results,failures},null,2));
- assert.deepEqual(failures,[]);console.log(`Chat rendering: ${results.length} layout cases, upstream typography retained, no horizontal overflow, complete code copied.`);
+ assert.deepEqual(failures,[]);console.log(`Chat rendering: ${results.length} layout cases, Cindy typography, no horizontal overflow, complete code copied.`);
 }finally{await browser.close();}

@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('workflow', 'paint', 'toolbar', 'customization', 'preferences', 'scroll-progress', 'pointer', 'facade', 'native-tests', 'tray-exit', 'production-resources', 'settings-dialog', 'scroll-workflow', 'autosave', 'text-recognition', 'text-pipeline')][string]$Suite = 'workflow',
+    [ValidateSet('workflow', 'paint', 'toolbar', 'customization', 'preferences', 'scroll-progress', 'pointer', 'facade', 'native-tests', 'tray-exit', 'production-resources', 'settings-dialog', 'scroll-workflow', 'autosave', 'text-recognition', 'text-pipeline', 'latency', 'ocr-latency')][string]$Suite = 'workflow',
     [Parameter(Mandatory)][string]$OutputDirectory,
     [string]$ProbeExe,
     [string]$TestFilter
@@ -50,10 +50,10 @@ $desktop = [WinOnePrivateProbe]::CreateDesktopW($name, [IntPtr]::Zero, [IntPtr]:
 if ($desktop -eq [IntPtr]::Zero) { throw 'Private test desktop creation failed' }
 $child = $null
 try {
-    $mode = switch ($Suite) { facade { '--self-test' } autosave { '--native-autosave' } scroll-workflow { '--native-scrolling-workflow' } settings-dialog { '--settings-dialog' } production-resources { '--production-resource-suite' } tray-exit { '--tray-exit' } workflow { '--native-workflow-probe' } paint { '--native-paint-dispatch' } toolbar { '--native-toolbar-render-probe' } customization { '--native-toolbar-customization' } preferences { '--native-toolbar-preferences' } scroll-progress { '--native-scroll-progress' } pointer { '--native-pointer-dispatch' } }
+    $mode = switch ($Suite) { ocr-latency { '--ocr-host-latency' } latency { '--native-capture-latency' } facade { '--self-test' } autosave { '--native-autosave' } scroll-workflow { '--native-scrolling-workflow' } settings-dialog { '--settings-dialog' } production-resources { '--production-resource-suite' } tray-exit { '--tray-exit' } workflow { '--native-workflow-probe' } paint { '--native-paint-dispatch' } toolbar { '--native-toolbar-render-probe' } customization { '--native-toolbar-customization' } preferences { '--native-toolbar-preferences' } scroll-progress { '--native-scroll-progress' } pointer { '--native-pointer-dispatch' } }
     $arguments = if ($Suite -eq 'text-pipeline') { '--native-text-pipeline "'+$output+'"' } elseif ($Suite -eq 'text-recognition') { '--native-text-recognition' } elseif ($Suite -eq 'native-tests') { '-test.v -test.timeout=45s -test.run="' + $TestFilter + '"' } elseif ($Suite -in @('pointer','facade')) { $mode } else { $mode + ' "' + $output + '"' }
     $child = [WinOnePrivateProbe]::Start($probe, $arguments, $name, $root)
-    $wait = [WinOnePrivateProbe]::WaitForSingleObject($child.process, 60000)
+    $wait = [WinOnePrivateProbe]::WaitForSingleObject($child.process, $(if($Suite -in @('latency','ocr-latency')){120000}else{60000}))
     if ($wait -ne 0) {
         if (-not [WinOnePrivateProbe]::TerminateProcess($child.process, 1)) { throw 'Timed-out test could not be terminated' }
         [void][WinOnePrivateProbe]::WaitForSingleObject($child.process, 5000)

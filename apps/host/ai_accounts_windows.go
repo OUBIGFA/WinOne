@@ -134,6 +134,8 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 		return fail(err)
 	}
 	gate := s.accountGate
+	var balanceProvider *ai.Provider
+	var balanceKeys ai.KeyPlan
 	if params.Draft != nil && params.Provider == "" {
 		return fail(errors.New("账号连接标识无效"))
 	}
@@ -141,13 +143,29 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 		return fail(errors.New("请先保存需要读取额度的账号"))
 	}
 	if params.Provider != "" && (r.Method == "accounts.list" || r.Method == "accounts.models" || r.Method == "accounts.quota" || r.Method == "accounts.signin.start") {
-		p, err := s.accountProvider(params.Provider, params.Agent, params.Draft)
-		if err != nil {
-			return fail(err)
+		if r.Method == "accounts.quota" {
+			p, plan, err := s.store.ProviderKeysForModels(params.Provider)
+			if err != nil {
+				return fail(err)
+			}
+			if p.AuthMode == "api-key" {
+				if params.Agent != "" {
+					return fail(errors.New("余额供应商与账号不匹配"))
+				}
+				balanceProvider, balanceKeys = &p, plan
+			}
 		}
-		runtime = runtime.ForProvider(p.ID)
-		runtime.AccountBackend = p.AgentBackend
-		gate = s.accountGateFor(p.ID)
+		if balanceProvider == nil {
+			p, err := s.accountProvider(params.Provider, params.Agent, params.Draft)
+			if err != nil {
+				return fail(err)
+			}
+			runtime = runtime.ForProvider(p.ID)
+			runtime.AccountBackend = p.AgentBackend
+			gate = s.accountGateFor(p.ID)
+		} else {
+			gate = s.accountGateFor(balanceProvider.ID)
+		}
 	}
 	switch r.Method {
 	case "accounts.catalog", "accounts.list", "accounts.models", "accounts.quota":
@@ -168,7 +186,12 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 			}
 			return fail(errors.New("账号读取已取消"))
 		}
-		output, err := runtime.Accounts(readCtx, r.Method, params.Agent)
+		var output json.RawMessage
+		if balanceProvider != nil {
+			output, err = runtime.KeyBalances(readCtx, *balanceProvider, balanceKeys)
+		} else {
+			output, err = runtime.Accounts(readCtx, r.Method, params.Agent)
+		}
 		if err != nil {
 			return fail(err)
 		}

@@ -306,7 +306,7 @@ func snapshotInstallerPackage(directory, destination string) error {
 	if err = errors.Join(writeErr, archive.Close(), file.Sync(), file.Close()); err != nil {
 		return err
 	}
-	if _, err = Verify(destination); err != nil {
+	if _, err = verifyHistoricalPackage(destination); err != nil {
 		return err
 	}
 	_, err = VerifyInstalled(directory, destination)

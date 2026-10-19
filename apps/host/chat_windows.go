@@ -34,6 +34,7 @@ type chatControl struct {
 	automations        *chatAutomations
 	previews           *chat.PreviewServer
 	terminals          *chat.TerminalManager
+	fileSearches       sync.Map
 }
 
 func registerChat(service *host.Service, ctx context.Context, directory, executable string, engine *aiService, language func() string) *chatControl {
@@ -92,7 +93,30 @@ func (c *chatControl) configure(conversation chat.Conversation) (map[string]any,
 		return nil, nil, err
 	}
 	prefs := c.store.Preferences()
-	return map[string]any{"baseUrl": bridge.BaseURL, "key": bridge.Key, "model": model, "thinkingLevel": conversation.ThinkingLevel, "fastMode": conversation.FastMode, "language": c.language(), "agentDir": filepath.Join(c.directory, "chat", "agents", conversation.ID), "mcpAuthDirectory": filepath.Join(c.directory, "chat", "mcp"), "skillDirectories": prefs.SkillDirectories, "pluginDirectories": prefs.PluginDirectories, "mcpServers": prefs.MCPServers, "logPath": filepath.Join(c.directory, "logs", "host.log"), "protectedPaths": []string{filepath.Join(c.directory, "ai-settings.json"), filepath.Join(c.directory, "ai-runtime"), filepath.Join(c.directory, "chat", "agents"), filepath.Join(c.directory, "chat", "index.json"), filepath.Join(c.directory, "chat", "settings.json"), filepath.Join(c.directory, "chat", "mcp"), conversation.SessionDirectory, filepath.Dir(c.desktop)}}, bridge.Close, nil
+	// Child model overrides use the same private bridge and enabled model list.
+	models := []map[string]any{}
+	for _, provider := range config.Providers {
+		for _, id := range provider.Models {
+			entry, modelErr := chatModel(config, ai.Selection{Provider: provider.ID, Model: id})
+			if modelErr != nil {
+				bridge.Close()
+				return nil, nil, modelErr
+			}
+			models = append(models, entry)
+		}
+	}
+	subagentModel := ""
+	if prefs.SubagentModel.Provider != "" {
+		selected, modelErr := chatModel(config, prefs.SubagentModel)
+		if modelErr != nil {
+			bridge.Close()
+			return nil, nil, modelErr
+		}
+		subagentModel = selected["id"].(string)
+	}
+	runtimeSettings := prefs.RuntimeSettings()
+	runtimeSettings["subagentModel"] = subagentModel
+	return map[string]any{"baseUrl": bridge.BaseURL, "key": bridge.Key, "model": model, "thinkingLevel": conversation.ThinkingLevel, "fastMode": conversation.FastMode, "runtimeSettings": runtimeSettings, "models": models, "language": c.language(), "agentDir": filepath.Join(c.directory, "chat", "agents", conversation.ID), "mcpAuthDirectory": filepath.Join(c.directory, "chat", "mcp"), "skillDirectories": prefs.SkillDirectories, "pluginDirectories": prefs.PluginDirectories, "mcpServers": prefs.MCPServers, "logPath": filepath.Join(c.directory, "logs", "host.log"), "protectedPaths": []string{filepath.Join(c.directory, "ai-settings.json"), filepath.Join(c.directory, "ai-runtime"), filepath.Join(c.directory, "chat", "agents"), filepath.Join(c.directory, "chat", "index.json"), filepath.Join(c.directory, "chat", "settings.json"), filepath.Join(c.directory, "chat", "mcp"), conversation.SessionDirectory, filepath.Dir(c.desktop)}}, bridge.Close, nil
 }
 
 // Verify the actual pipe peer, never a PID supplied by browser content. Keeping
@@ -209,6 +233,20 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		}
 		return result(value)
 	}
+	if strings.HasPrefix(r.Method, "files.") {
+		value, err := c.fileSearchAction(ctx, r.Method, r.Params)
+		if err != nil {
+			return fail(err)
+		}
+		return result(value)
+	}
+	if strings.HasPrefix(r.Method, "media.") {
+		value, err := c.mediaAction(ctx, r.Method, r.Params)
+		if err != nil {
+			return fail(err)
+		}
+		return result(value)
+	}
 	if strings.HasPrefix(r.Method, "terminal.") {
 		value, err := c.terminalAction(r.PeerPID, r.Method, r.Params)
 		if err != nil {
@@ -238,10 +276,13 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		Pinned          *bool            `json:"pinned"`
 		Text            string           `json:"text"`
 		RequestID       string           `json:"requestId"`
+		DeliveryMode    string           `json:"deliveryMode"`
 		RestoreRevision string           `json:"restoreRevision"`
 		Draft           chat.Draft       `json:"draft"`
 		Cursor          uint64           `json:"cursor"`
 		ApprovalID      string           `json:"approvalId"`
+		Answers         []string         `json:"answers"`
+		CancelQuestion  bool             `json:"cancel"`
 		Allow           bool             `json:"allow"`
 		Scope           string           `json:"scope"`
 		Before          string           `json:"before"`
@@ -250,6 +291,10 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		Settings        chat.Preferences `json:"settings"`
 		Paths           []string         `json:"paths"`
 		Attachments     []string         `json:"attachments"`
+		ThinkingLevel   string           `json:"thinkingLevel"`
+		FastMode        *bool            `json:"fastMode"`
+		Action          string           `json:"action"`
+		AgentCursor     map[string]any   `json:"agentCursor"`
 	}
 	if len(r.Params) > 0 && string(r.Params) != "null" {
 		if err := configjson.DecodeObject(r.Params, &input); err != nil {
@@ -291,12 +336,7 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		}
 		value = c.store.Snapshot()
 	case "resources":
-		var resources json.RawMessage
-		resources, err = c.engine.Command(ctx, input.ID, "resources", nil)
-		if err == nil {
-			err = c.store.RememberResources(input.ID, resources)
-		}
-		value = resources
+		value, err = c.engine.Resources(ctx, input.ID, r.PeerPID)
 	case "files":
 		value, err = c.store.Files(input.ID, input.Path)
 	case "attachments.add":
@@ -320,6 +360,21 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		}
 		if err == nil {
 			value, err = c.store.NewConversation(input.ProjectID, input.Directory, input.Title, input.Model, input.SaveDirectory)
+		}
+		if err == nil && (input.ThinkingLevel != "" || input.FastMode != nil) {
+			if input.ThinkingLevel != "" && !chat.ValidThinkingLevel(input.ThinkingLevel) {
+				return fail(errors.New("思考强度无效"))
+			}
+			created := value.(chat.Conversation)
+			value, err = c.store.UpdateConversation(created.ID, func(conversation *chat.Conversation) error {
+				if input.ThinkingLevel != "" {
+					conversation.ThinkingLevel = input.ThinkingLevel
+				}
+				if input.FastMode != nil {
+					conversation.FastMode = *input.FastMode
+				}
+				return nil
+			})
 		}
 	case "conversation.update":
 		// Navigation metadata is independent of Pi's execution and history format.
@@ -373,9 +428,16 @@ func (c *chatControl) handle(r host.Request) host.Response {
 	case "poll":
 		value, err = c.engine.Poll(input.ID, input.Cursor)
 	case "prompt":
-		value, err = c.engine.Prompt(ctx, input.ID, input.RequestID, input.Text, input.Attachments)
+		switch input.DeliveryMode {
+		case "steer":
+			value, err = c.engine.Steer(ctx, input.ID, input.RequestID, input.Text, input.Attachments)
+		case "", "queue":
+			value, err = c.engine.Prompt(ctx, input.ID, input.RequestID, input.Text, input.Attachments)
+		default:
+			err = errors.New("消息发送方式无效")
+		}
 	case "retry", "edit":
-		params := map[string]any{"entry": input.Entry}
+		params := map[string]any{"entry": input.Entry, "requestId": input.RequestID}
 		var prepare func() error
 		if r.Method == "edit" {
 			params["text"] = input.Text
@@ -394,10 +456,70 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		value, err = c.engine.Command(ctx, input.ID, "state", map[string]any{"before": input.Before})
 	case "permission":
 		value, err = c.engine.Command(ctx, input.ID, "permission", map[string]any{"id": input.ApprovalID, "allow": input.Allow, "scope": input.Scope})
+	case "question":
+		value, err = c.engine.Command(ctx, input.ID, "question", map[string]any{"id": input.ApprovalID, "answers": input.Answers, "cancel": input.CancelQuestion})
 	case "stop":
 		value, err = c.engine.Command(ctx, input.ID, "abort", nil)
+	case "pause", "resume":
+		value, err = c.engine.Command(ctx, input.ID, r.Method, nil)
 	case "compact":
 		value, err = c.engine.Command(ctx, input.ID, "compact", map[string]string{"instructions": input.Instructions})
+	case "thinking":
+		if input.ThinkingLevel != "" && !chat.ValidThinkingLevel(input.ThinkingLevel) {
+			return fail(errors.New("思考强度无效"))
+		}
+		value, err = c.engine.Command(ctx, input.ID, "thinking", map[string]string{"value": input.ThinkingLevel})
+		if err == nil {
+			value, err = c.store.UpdateConversation(input.ID, func(conversation *chat.Conversation) error {
+				conversation.ThinkingLevel = input.ThinkingLevel
+				return nil
+			})
+		}
+	case "fast":
+		if input.FastMode == nil {
+			return fail(errors.New("缺少快速模式取值"))
+		}
+		value, err = c.engine.Command(ctx, input.ID, "fast", map[string]bool{"value": *input.FastMode})
+		if err == nil {
+			value, err = c.store.UpdateConversation(input.ID, func(conversation *chat.Conversation) error {
+				conversation.FastMode = *input.FastMode
+				return nil
+			})
+		}
+	case "agents":
+		switch input.Action {
+		case "tasks":
+			value, err = c.engine.Command(ctx, input.ID, "control", map[string]any{"action": "tasks"})
+		case "", "list":
+			value, err = c.engine.Command(ctx, input.ID, "control", map[string]any{"action": "list"})
+		case "stop":
+			if input.Name == "" {
+				return fail(errors.New("缺少子代理名称"))
+			}
+			value, err = c.engine.Command(ctx, input.ID, "control", map[string]any{"action": "stop", "params": map[string]string{"name": input.Name}})
+		case "read", "follow_up":
+			if len(input.Name) == 0 || len(input.Name) > 64 || strings.ContainsAny(input.Name, "\x00\r\n") {
+				return fail(errors.New("子代理名称无效"))
+			}
+			params := map[string]any{"name": input.Name}
+			if input.Action == "follow_up" {
+				if strings.TrimSpace(input.Text) == "" || len(input.Text) > 100000 {
+					return fail(errors.New("后续消息为空或过长"))
+				}
+				params["message"] = input.Text
+			} else if input.AgentCursor != nil {
+				cursor, _ := json.Marshal(input.AgentCursor)
+				if len(cursor) > 4096 {
+					return fail(errors.New("子代理历史位置无效"))
+				}
+				params["cursor"] = input.AgentCursor
+			}
+			// Resolve the name in this parent's durable roster. UI input cannot
+			// select a different database or unrelated child conversation.
+			value, err = c.engine.Command(ctx, input.ID, "control", map[string]any{"action": input.Action, "params": params})
+		default:
+			return fail(errors.New("不支持的协作操作"))
+		}
 	case "release":
 		c.engine.Release(input.ID, r.PeerPID)
 		value = map[string]bool{"released": true}

@@ -1,7 +1,12 @@
 package settings
 
+import "sync/atomic"
+
 // Set only by the embedding entry before a request starts. A worker owns one
 // snapshot; no global save or another desktop client's file is involved.
-var WinOneSettings *Settings
+var WinOneSettings atomic.Pointer[Settings]
 
-func WinOneUse(s Settings) { normalized := s.normal(); WinOneSettings = &normalized }
+func WinOneUse(s Settings) { normalized := s.normal(); WinOneSettings.Store(&normalized) }
+
+// Routing can update its naming preference while requests read the snapshot.
+func WinOneLoad() (Settings, bool) { s:=WinOneSettings.Load();if s==nil{return Settings{},false};return *s,true }

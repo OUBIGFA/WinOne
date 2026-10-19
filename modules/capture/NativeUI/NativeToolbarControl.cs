@@ -24,6 +24,7 @@ internal sealed class NativeToolbarControl : UserControl
     private bool retakeAvailable;
     private bool scrollAvailable;
     private bool scrollEnabled;
+    private bool recordingAvailable;
     private readonly bool dark;
     private readonly Color borderColor;
     private Image? overflowImage;
@@ -62,7 +63,7 @@ internal sealed class NativeToolbarControl : UserControl
         ForeColor = dark ? Color.FromArgb(250, 250, 250) : Color.FromArgb(23, 23, 23);
         foreach (var row in new ToolStrip[] { actions, tools, grip }) {
             row.BackColor = BackColor; row.ForeColor = ForeColor;
-            row.Renderer = new OverflowRenderer(new NativeMenuColors(borderless: true, dark: dark), () => overflowImage) { RoundedEdges = false };
+            row.Renderer = new OverflowRenderer(new NativeMenuColors(borderless: true, dark: dark), () => overflowImage, menuTheme.DrawArrow) { RoundedEdges = false };
             var previousMenu = row.OverflowButton.DropDown;
             var menu = new ToolStripDropDownMenu { BackColor = BackColor, ForeColor = ForeColor, Renderer = row.Renderer,
                 Padding = new Padding(4), MinimumSize = new Size(160, 0), ImageScalingSize = new Size(18, 18) };
@@ -123,10 +124,13 @@ internal sealed class NativeToolbarControl : UserControl
         Add(tools, "region", T("选区", "Selection"), T("调整截图范围", "Adjust capture area"));
         // Selection and scrolling both change the captured area. Keep them
         // adjacent in the native toolbar rather than among file actions.
-        Add(tools, "scroll", T("滚动截图", "Scrolling capture"), T("开启后选择窗口并滚动截图", "Enable, then choose a window for scrolling capture"));
+        Add(tools, "scroll", T("滚动截图", "Scrolling capture"), T("直接滚动捕获当前选区", "Capture scrolling content in the current selection"));
         // This capture action is fixed, not a configurable annotation tool.
         drawingCommands.Remove("scroll");
         buttons["scroll"].Enabled=false;
+        Add(tools, "video", T("录制视频", "Record video"), T("录制当前屏幕选区为 MP4", "Record the selected screen area as MP4"));
+        Add(tools, "gif", T("录制 GIF", "Record GIF"), T("录制当前屏幕选区为 GIF", "Record the selected screen area as GIF"));
+        foreach (var command in new[] { "video", "gif" }) { drawingCommands.Remove(command); buttons[command].Enabled = false; }
         Separate(tools);
         Add(tools, "rectangle", T("矩形", "Rectangle"), T("矩形", "Rectangle"));
         Add(tools, "ellipse", T("椭圆", "Ellipse"), T("椭圆", "Ellipse"));
@@ -306,7 +310,9 @@ internal sealed class NativeToolbarControl : UserControl
         buttons["retake"].Enabled = retakeAvailable && !copied;
         buttons["scroll"].Enabled = scrollAvailable && !copied && !editing;
         buttons["scroll"].Checked = scrollEnabled;
+        buttons["video"].Enabled = buttons["gif"].Enabled = recordingAvailable && !copied && !editing;
     }
+    public void SetRecordingAvailable(bool available) { recordingAvailable = available; buttons["video"].Enabled = buttons["gif"].Enabled = available; }
     public void SetSaveAsAvailable(bool available) { saveAsAvailable = available; buttons["saveAs"].Enabled = available; }
     public void SetPinAvailable(bool available) { pinAvailable = available; buttons["pin"].Enabled = available; }
     public void SetRetakeAvailable(bool available) { retakeAvailable = available; buttons["retake"].Available = available; buttons["retake"].Enabled = available; }
@@ -356,15 +362,9 @@ internal sealed class NativeToolbarControl : UserControl
 
     // Change only the native overflow button's presentation; ToolStrip keeps
     // its hit testing, keyboard navigation, menu lifetime and screen placement.
-    private sealed class OverflowRenderer(ProfessionalColorTable colors, Func<Image?> icon) : ToolStripProfessionalRenderer(colors)
+    private sealed class OverflowRenderer(ProfessionalColorTable colors, Func<Image?> icon, Action<ToolStripArrowRenderEventArgs> drawArrow) : ToolStripProfessionalRenderer(colors)
     {
-        protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
-        {
-            // The native default uses system text, which can stay black while
-            // this toolbar follows WinOne's dark theme. Match the menu arrow.
-            e.ArrowColor = e.Item?.Enabled != false ? e.Item?.ForeColor ?? SystemColors.MenuText : SystemColors.GrayText;
-            base.OnRenderArrow(e);
-        }
+        protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e) => drawArrow(e);
         protected override void OnRenderOverflowButtonBackground(ToolStripItemRenderEventArgs e)
         {
             base.OnRenderButtonBackground(e);

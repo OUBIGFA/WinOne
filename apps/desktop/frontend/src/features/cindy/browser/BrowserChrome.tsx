@@ -1,4 +1,7 @@
-// Adapted from Cindy a152497a, Copyright 2026 XD Inc., Apache-2.0.
+// Cindy 779b5237 BrowserChrome; only WinOne transport and extra existing menu actions are adapted.
+import type {DesktopMenuItem} from 'chatgpt-desktop-kit';
+import {PanelMenuItems} from '../panel-ui/PanelTabs';
+import '../panel-ui/locales';
 /**
  * BrowserChrome —— web-browser tab 的 40px 顶部工具栏。
  *
@@ -46,20 +49,21 @@ import {
   Unlock,
   X as XIcon,
 } from 'lucide-react';
-import { useTranslation } from './translation';
+import { useTranslation } from 'react-i18next';
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../../../components/ui/dropdown-menu';
-import { Tip } from '../adapter';
+} from '../panel-ui/dropdown-menu';
+import { Tip } from '../panel-ui/tooltip';
 import { cn } from '../adapter';
 
 import { parseOmnibox } from './parseOmnibox';
 
 export interface BrowserChromeProps {
+  menuItems?: DesktopMenuItem[];
   url: string;
   isLoading: boolean;
   canGoBack: boolean;
@@ -117,6 +121,7 @@ export const BrowserChrome = forwardRef<BrowserChromeHandle, BrowserChromeProps>
       onOpenInSystemBrowser,
       onCopyLink,
       onOverlayOpenChange,
+      menuItems = [],
     },
     ref,
   ) {
@@ -257,7 +262,6 @@ export const BrowserChrome = forwardRef<BrowserChromeHandle, BrowserChromeProps>
             <input
               ref={inputRef}
               type="text"
-              aria-label={t('rightSidebar.browser.urlPlaceholder')}
               value={editingValue}
               onChange={(e) => setEditingValue(e.target.value)}
               onKeyDown={handleKey}
@@ -306,7 +310,7 @@ export const BrowserChrome = forwardRef<BrowserChromeHandle, BrowserChromeProps>
         {/* 更多菜单:trigger 复用 chrome 图标按钮视觉(默认态 + 菜单打开时 active 高亮,
           走 data-[state=open])。菜单项在无有效链接(新标签空白态)时置灰。 */}
         <DropdownMenu onOpenChange={onOverlayOpenChange}>
-          <DropdownMenuTrigger render={
+          <DropdownMenuTrigger asChild>
             <Tip text={t('rightSidebar.browser.moreTools')} side="bottom">
               <button
                 type="button"
@@ -321,19 +325,20 @@ export const BrowserChrome = forwardRef<BrowserChromeHandle, BrowserChromeProps>
                 <Ellipsis size={14} strokeWidth={2} />
               </button>
             </Tip>
-          }/>
+          </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[9rem]">
             <DropdownMenuItem
               disabled={!hasValidLink || !canOpenInSystemBrowser}
-              onClick={onOpenInSystemBrowser}
+              onSelect={onOpenInSystemBrowser}
             >
               <ExternalLink size={14} strokeWidth={2} className="mr-2 shrink-0" />
               {t('rightSidebar.browser.openInSystemBrowser')}
             </DropdownMenuItem>
-            <DropdownMenuItem disabled={!hasValidLink} onClick={onCopyLink}>
+            <DropdownMenuItem disabled={!hasValidLink} onSelect={onCopyLink}>
               <LinkIcon size={14} strokeWidth={2} className="mr-2 shrink-0" />
               {t('rightSidebar.browser.copyLink')}
             </DropdownMenuItem>
+            <PanelMenuItems items={menuItems}/>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

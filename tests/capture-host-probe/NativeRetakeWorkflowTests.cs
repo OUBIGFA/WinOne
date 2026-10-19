@@ -98,8 +98,8 @@ internal static class NativeRetakeWorkflowTests
             if(sources.Any(source=>!source.Disposed)||progress.Any(item=>!item.Disposed))throw new Exception("Retake retained acquisition resources");
             var resumed=drafts.Recover()??throw new Exception("Retaken image was not recoverable");
             if(resumed.Id==oldId||resumed.Document.Layers.Length!=1)throw new Exception("Retake recovery used the old image or lost new edits");
-            NativeCaptureWorkflow.Resume(settings,operations,resumed.Id,"en-US",CancellationToken.None,drafts,show:(canvas,_)=>{
-                canvas.Window.Shown+=(_,_)=>canvas.Window.BeginInvoke((Action)(()=>SendMessageW(canvas.Window.Handle,0x0203,IntPtr.Zero,IntPtr.Zero)));
+            NativeCaptureWorkflow.Resume(settings,operations,resumed.Id,"en-US",CancellationToken.None,drafts,show:(canvas,session)=>{
+                canvas.Window.Shown+=(_,_)=>canvas.Window.BeginInvoke((Action)(()=>NativeScrollInteractionTests.Confirm(session)));
                 canvas.ShowDialog();
             }).GetAwaiter().GetResult();
             if(copied is null||expected is null||copies!=1||drafts.Recover() is not null)throw new Exception("Retake recovery did not complete once");
@@ -141,7 +141,7 @@ internal static class NativeRetakeWorkflowTests
                     await Task.Delay(10);
                 }
                 if(operation.IsCompleted||window.Handle!=handle||drafts.Recover()?.Document.Height!=700)throw new Exception("Modeless retake lost the live session");
-                SendMessageW(window.Handle,0x0205,IntPtr.Zero,IntPtr.Zero);
+                SendMessageW(window.Handle,0x0100,new IntPtr((int)Keys.Escape),IntPtr.Zero);
                 try {await operation.WaitAsync(TimeSpan.FromSeconds(5));throw new Exception("Cancel returned a completed capture");}
                 catch(OperationCanceledException) { }
                 if(!window.IsDisposed||drafts.Recover() is not null)throw new Exception("Modeless close left a window or draft");

@@ -40,28 +40,37 @@ func RequireStoppedAt(installation string) error {
 }
 
 func processInInstallation(pid uint32, installation string) (bool, error) {
-	process, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
+	process, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.SYNCHRONIZE, false, pid)
 	if errors.Is(err, windows.ERROR_INVALID_PARAMETER) {
 		return false, nil // Process exited after the Toolhelp snapshot.
 	}
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("打开进程身份句柄：%w", err)
 	}
 	defer windows.CloseHandle(process)
 	buffer := make([]uint16, 32768)
 	size := uint32(len(buffer))
 	if err = windows.QueryFullProcessImageName(process, 0, &buffer[0], &size); err != nil {
-		return false, err
+		return false, processErrorUnlessExited(process, fmt.Errorf("查询进程映像：%w", err))
 	}
 	path, err := filepath.EvalSymlinks(windows.UTF16ToString(buffer[:size]))
 	if err != nil {
-		return false, err
+		return false, processErrorUnlessExited(process, fmt.Errorf("解析进程路径：%w", err))
 	}
 	relative, err := filepath.Rel(installation, path)
 	if err != nil {
 		return false, nil // A different volume cannot be inside this installation.
 	}
 	return relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)), nil
+}
+
+// Suppress a stale snapshot error only when the same pinned process is proven
+// exited. An unreadable live process or failed wait must still block maintenance.
+func processErrorUnlessExited(process windows.Handle, cause error) error {
+	if state, err := windows.WaitForSingleObject(process, 0); err == nil && state == windows.WAIT_OBJECT_0 {
+		return nil
+	}
+	return cause
 }
 
 // Only ERROR_NO_MORE_FILES proves that enumeration finished successfully.

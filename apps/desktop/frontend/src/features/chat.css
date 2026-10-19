@@ -35,10 +35,40 @@
 .chat-header-title span{font-size:12px;color:var(--muted-foreground);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .chat-error{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:8px 20px;font-size:13px;background:var(--muted);overflow-wrap:anywhere}
 .chat-transcript{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
-.chat-main{--chat-content-width:960px;--chat-content-gutter:24px}
+.chat-main{--chat-content-width:960px;--chat-content-gutter:24px;--chat-composer-radius:28px;--chat-backplate-inset:3px}
+/* Navigation overlays the existing reading gutter instead of taking a column.
+   The content's modest local inset protects text; the composer keeps full width. */
+.chat-conversation-body{position:relative;display:flex;flex:1;min-width:0;min-height:0;overflow:hidden}
+.chat-reading-pane{position:relative;display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:clip;container:chat-content / inline-size}
+.chat-scroll-controls{position:absolute;right:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;color:var(--muted-foreground);z-index:4}
+.chat-scroll-controls [data-slot=button]{width:28px;height:28px;min-height:28px;flex-shrink:0;padding:4px}
+.chat-scroll-controls--header{position:static;flex:0 0 auto;flex-direction:row;gap:1px}
+.chat-scroll-controls--header [data-slot=button]{width:24px;height:28px;min-height:28px}
+.chat-main .chat-header-title{flex:1 1 0}
+@container chat-content (max-width:500px){
+ .chat-main .chat-input-area{padding-left:16px;padding-right:16px}
+ .chat-main .chat-composer-toolbar{flex-wrap:wrap}
+ .chat-main .chat-composer-tools{flex:1 1 100%;max-width:100%;flex-wrap:wrap}
+ .chat-main .chat-composer-tools>button{max-width:100%;min-width:0}
+ .chat-main .chat-composer-model-actions{flex-basis:100%;max-width:100%}
+}
+.chat-send-confirm{max-width:440px}
+.chat-send-preview{max-height:180px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border-radius:8px;background:var(--muted);font-size:14px;line-height:1.6}
+.chat-send-confirm [data-slot=dialog-footer]{flex-wrap:wrap}
 .chat-thinking,.chat-tool-result{color:var(--muted-foreground);font-size:13px;margin:8px 0 15px;max-width:100%}
 .chat-work-process{background:transparent;border:0;padding:0;margin:0;color:var(--muted-foreground)}
 .chat-work-commentary{background:transparent;padding:4px 0;margin:0}
+.chat-transcript-changes{display:flex;flex-direction:column;gap:8px;min-width:0}
+.chat-turn-changes{color:var(--muted-foreground);border-color:color-mix(in srgb,var(--border) 70%,transparent)!important;background:color-mix(in srgb,var(--background) 94%,var(--muted))!important}
+.chat-turn-changes .border-t{border-color:color-mix(in srgb,var(--border) 70%,transparent)}
+.chat-turn-changes [data-slot=button],.chat-turn-changes svg{color:var(--muted-foreground)}
+/* A single spacing owner separates the file chips from their change cards. */
+.chat-conversation-files{display:flex;flex-direction:column;gap:16px;min-width:0;margin-top:16px}
+.chat-conversation-files .chat-generated-files:empty{display:none}
+.chat-turn-changes-header{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:6px 10px;min-height:40px}
+.chat-turn-changes-totals{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px;flex:1;min-width:100px}
+.chat-turn-changes [data-slot=button]{min-height:26px;padding:3px 6px;font-size:12px}
+.chat-turn-changes [role=status],.chat-turn-changes [role=alert]{margin:0}
 .chat-work-process .text-destructive{color:var(--muted-foreground)}
 .chat-thinking summary{cursor:pointer;margin-bottom:7px}.chat-tool-result summary{cursor:pointer;display:flex;align-items:center;gap:7px;min-width:0;padding:5px 0}
 .chat-tool-result summary code{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px;opacity:.85}
@@ -57,13 +87,14 @@
 .chat-composer textarea::placeholder{color:var(--muted-foreground)}
 .chat-composer-toolbar{display:flex;flex-shrink:0;align-items:center;justify-content:space-between;gap:8px;min-width:0;margin-top:8px;flex-wrap:nowrap;overflow:hidden}
 .chat-composer-tools,.chat-composer-model-actions{display:flex;align-items:center;min-width:0;gap:4px}
-.chat-composer-tools{flex:0 0 auto;min-width:0}.chat-composer-model-actions{flex:1 1 auto;min-width:0;justify-content:flex-end;overflow:hidden}
+.chat-composer-tools{flex:0 0 auto;min-width:0}.chat-composer-model-actions{flex:1 1 auto;min-width:0;justify-content:flex-end;flex-wrap:wrap;overflow:visible}
 .chat-composer-model-actions .chat-model-trigger{max-width:380px;min-width:72px}
 .chat-composer-spacer{flex:1;min-width:3px}
 .chat-pill{border-radius:999px!important;padding:5px 9px!important;font-size:12px!important;white-space:nowrap!important;gap:5px!important}
 .chat-pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chat-model-pill{max-width:48%}.chat-pill>svg{flex-shrink:0}
 .chat-send{border-radius:999px!important;width:31px!important;height:31px!important;min-height:31px!important;padding:6px!important}
-.chat-input-hint{font-size:11px;color:var(--muted-foreground);text-align:center;margin:7px 0 0}
+.chat-input-hint{display:flex;justify-content:center;align-items:center;height:18px;min-height:18px;font-size:12px;line-height:18px;color:var(--muted-foreground);text-align:center;margin:13px 0 0;overflow:hidden}
+.chat-input-hint>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chat-composer-location{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted-foreground);font-size:12px;margin:10px 0}.chat-composer-location span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%}
 .chat-permission-menu{width:300px!important}.chat-permission-menu>button{display:flex;gap:10px;padding:8px;text-align:left;align-items:flex-start;border-radius:7px}.chat-permission-menu>button:hover{background:var(--accent)}.chat-permission-menu strong{font-size:13px;font-weight:500}.chat-permission-menu small{display:block;color:var(--muted-foreground);font-size:12px;line-height:1.5;margin-top:3px}.chat-permission-menu>button>svg{flex-shrink:0;margin-top:2px}
 .chat-approval{padding:16px;border:1px solid var(--border);border-radius:13px;background:var(--background)}.chat-approval h3{font-size:15px;font-weight:500;display:flex;gap:8px;align-items:center;margin:0 0 10px}.chat-approval p{font-size:13px;color:var(--muted-foreground);margin:8px 0}.chat-approval-operation>strong{font-size:12px;font-weight:500}.chat-approval-operation>pre{margin-top:7px;max-height:190px}.chat-approval>details{font-size:12px;margin-top:8px}.chat-approval-actions{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end;margin-top:14px}.chat-approval-actions [data-slot=button]{font-size:12px!important}.chat-approval kbd{font:10px/1.4 inherit;opacity:.7;border:1px solid currentColor;border-radius:4px;padding:1px 3px}
@@ -74,7 +105,12 @@
 .chat-welcome-composer{position:absolute;bottom:var(--chat-welcome-bottom,24px);left:var(--chat-content-gutter);right:var(--chat-content-gutter);z-index:1;display:flex;flex-direction:column;align-items:center;gap:12px}
 /* Keep upstream project-header inset/overlap inside the same width owner as
    the editor. Flex gap and a forced header width otherwise detach the pair. */
-.chat-composer-stack{width:min(100%,var(--chat-content-width));min-width:0;position:relative}
+.chat-composer-stack{width:min(100%,var(--chat-content-width));min-width:0;position:relative;isolation:isolate}
+/* One shared radius/inset makes the backing look like the same editor grown
+   by 3px, not a second large card. The project row remains on its upper edge. */
+.chat-composer-stack::before{content:"";position:absolute;inset:0 calc(-1 * var(--chat-backplate-inset)) calc(-1 * var(--chat-backplate-inset));z-index:-1;border-radius:calc(var(--chat-composer-radius) + var(--chat-backplate-inset));border:1px solid var(--chat-edge,var(--border));background:var(--chat-hover-bg,var(--muted));pointer-events:none}
+.chat-composer-stack .chat-project-context{position:relative;margin:0;height:38px;padding:4px 12px;background:transparent;border-radius:0;gap:12px}
+.chat-desktop-surface .chat-composer textarea::placeholder{color:var(--muted-foreground);opacity:1}
 .chat-welcome .chat-welcome-logo{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--chat-welcome-bottom,24px) + var(--chat-welcome-composer-size,194px) + var(--chat-welcome-gap,160px));transition-property:none}
 .chat-loading{display:flex;justify-content:center;gap:9px;padding:40px;color:var(--muted-foreground)}
 .chat-actions-menu [data-slot=button]{justify-content:flex-start;font-size:13px}.chat-dialog-field{display:flex;flex-direction:column;gap:8px;font-size:13px}.chat-dialog-field input{border:1px solid var(--border);background:var(--background);padding:9px 12px;border-radius:8px}.chat-dialog-field>div{display:flex;align-items:center;gap:10px}.chat-dialog-field span{flex:1;min-width:0;overflow-wrap:anywhere}
@@ -131,3 +167,23 @@
 .chat-history-notice{display:none}
 @keyframes chat-history-appear{from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.chat-history-notice{animation:none}}
+.chat-agent-row{display:flex;align-items:flex-start;gap:8px;padding:6px 2px}
+.chat-agent-row+.chat-agent-row{border-top:1px solid var(--border)}
+.chat-agent-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.chat-agent-copy strong{font-size:13px}
+.chat-agent-copy p{margin:0;font-size:12px;line-height:1.5;color:var(--muted-foreground);overflow-wrap:anywhere}
+.chat-agent-status{font-size:11px;color:var(--muted-foreground)}
+.chat-agent-status[data-status=running]{color:var(--primary)}
+/* Portaled child history uses the upstream message scope, without inheriting
+   the full-height main workspace or stretching auto-height action buttons. */
+.chat-agent-dialog.chat-desktop-surface{height:auto;display:flex;flex-direction:column;gap:14px}
+.chat-agent-dialog>p{margin:0}
+.chat-agent-dialog>.client-thread{padding:8px 0;min-height:0;flex:0 1 auto;overflow-x:hidden}
+.chat-agent-dialog>button,.chat-agent-dialog>[data-slot=dialog-footer]{flex:none}
+.chat-agent-dialog textarea{border:1px solid var(--border);border-radius:7px;background:var(--background);color:var(--foreground);font:inherit;padding:8px 10px;min-height:70px;max-height:25vh;resize:vertical}
+.chat-agent-dialog>[data-slot=dialog-footer]{padding:12px 20px;margin-top:6px}
+.chat-usage-panel{min-width:220px}
+.chat-usage-panel dl{margin:0;display:flex;flex-direction:column;gap:6px}
+.chat-usage-panel dl>div{display:flex;justify-content:space-between;gap:12px;font-size:12px}
+.chat-usage-panel dt{color:var(--muted-foreground)}
+.chat-usage-panel dd{margin:0;font-variant-numeric:tabular-nums}

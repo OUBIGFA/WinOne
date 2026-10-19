@@ -33,6 +33,10 @@ function Invoke-NativeCommand([string]$Executable,[string[]]$Arguments,[string]$
     if($code -ne 0){throw "$Failure (exit $code)"}
 }
 if (-not $SkipInstall) { & npm.cmd ci --prefix apps/desktop/frontend --no-audit --no-fund; CheckExit }
+# Intake checks run before compilers. Packaging repeats them against binaries;
+# it must never be the first time a missing external license is discovered.
+& node (Join-Path $PSScriptRoot 'verify-frontend-notices.mjs'); CheckExit
+& node (Join-Path $PSScriptRoot 'verify-import-notices.mjs'); CheckExit
 & (Join-Path $PSScriptRoot 'build-provider-icons.ps1') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $DiagramTargetDirectory -WorkDirectory (Join-Path (Split-Path -Parent $output) 'provider-icons'); CheckExit
 # Keep the UI suite within a fixed worker budget; unconstrained forks can
 # contend with native compiler workers and time out before tests even start.
@@ -58,6 +62,7 @@ if($ShareXSourceDirectory){
 & dotnet build tests/capture-scroll/ScrollTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" --nologo; CheckExit
 Invoke-NativeCommand 'dotnet' @('tests/capture-unit/bin/Release/net10.0-windows/WinOne.Capture.Tests.dll',(Join-Path $root '_temp/capture-tests')) 'Capture unit tests failed'
 & dotnet publish modules/capture/WinOne.Capture.csproj -c Release -r win-x64 --self-contained true "-p:ShareXSourceDirectory=$sharex" -o (Join-Path $output 'capture') --nologo; CheckExit
+& (Join-Path $PSScriptRoot 'build-recording.ps1') -CargoExe $CargoExe -OutputDirectory (Join-Path $output 'capture')
 & (Join-Path $PSScriptRoot 'copy-ocr.ps1') -RuntimeDirectory $OcrRuntimeDirectory -CaptureDirectory (Join-Path $output 'capture')
 & (Join-Path $PSScriptRoot 'update-ocr-inventory.ps1') -RuntimeDirectory (Join-Path $output 'capture/Ocr') -Check
 # Current Magpie requires Go 1.26.8 or newer. Reuse the already-selected result
@@ -74,7 +79,7 @@ try {
 # Keep compiler/test intermediates outside the shipped payload. Photon resolves
 # its WASM beside Bun in the bundled runtime, rather than beside worker.js.
 $chatBuild = Join-Path (Split-Path -Parent $output) 'chat-build'
-& (Join-Path $PSScriptRoot 'build-chat.ps1') -BunExe $BunExe -OutputDirectory $chatBuild -GoExe $GoExe -SkipInstall:$SkipInstall -Test
+& (Join-Path $PSScriptRoot 'build-chat.ps1') -BunExe $BunExe -OutputDirectory $chatBuild -GoExe $GoExe -CargoExe $CargoExe -SkipInstall:$SkipInstall -Test
 New-Item -ItemType Directory -Path (Join-Path $output 'shared/chat'), (Join-Path $output 'shared/ai/runtime') -Force | Out-Null
 # The Chat build directory contains deliverables only. Carry its complete
 # license/resource tree; the one WASM asset lives beside the shared Bun runtime.
@@ -136,6 +141,8 @@ if ($currentVersion -ne $buildVersion) { throw 'Version changed during build; re
 & (Join-Path $PSScriptRoot 'verify-result-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output
 & (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output
 & (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime selection
+& (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime recording
+& (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime search
 if($DesktopImplementation -eq 'Rust') { & (Join-Path $PSScriptRoot 'verify-rust-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output }
 & $GoExe run ./build/package --record-build --bundle $output --license (Join-Path $root 'LICENSE') --version $buildVersion; CheckExit
 Write-Output "Build verified: $output/WinOne.exe"

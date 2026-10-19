@@ -18,20 +18,18 @@ it("keeps consecutive work segments separate while the turn is running",()=>{
  expect(screen.getByText("Now update the file.")).toBeTruthy();
 });
 
-it("shows Cindy's live thinking row before the first work event arrives",()=>{
+it("renders no legacy thinking placeholder before actual work arrives",()=>{
  const {container}=render(<WorkProcess group={{kind:"response",key:"pending",messages:[],entries:[],running:true,hasTools:false,startedAt:100}} conversationId="test" onCopy={()=>{}}/>);
- expect(container.querySelector('[data-slot="cindy-thinking"]')).toBeTruthy();
- expect(screen.getByText("正在思考")).toBeTruthy();
+ expect(container.childElementCount).toBe(0);
+ expect(screen.queryByText("正在思考")).toBeNull();
 });
 
-it("retains nested work segments and details inside the completed disclosure",async()=>{
+it("keeps public replies visible between completed activity disclosures",async()=>{
  const {container}=render(<WorkProcess group={process("completed-segments",false)} conversationId="test" onCopy={()=>{}}/>);
- expect(screen.queryByText("Now update the file.")).toBeNull();
- await userEvent.click(container.querySelector('[data-slot="cindy-work"]')!);
- expect(await screen.findByText("Now update the file.")).toBeTruthy();
- await waitFor(()=>expect(container.querySelectorAll('[data-slot="cindy-work"]')).toHaveLength(3));
+ expect(screen.getByText("Now update the file.").closest('.chat-work-process')).toBeNull();
+ expect(container.querySelectorAll('[data-slot="cindy-work"]')).toHaveLength(2);
  expect(screen.queryByText("Saved the result")).toBeNull();
- await userEvent.click(container.querySelectorAll('[data-slot="cindy-work"]')[2]);
+ await userEvent.click(container.querySelectorAll('[data-slot="cindy-work"]')[1]);
  const row=await screen.findByRole("button",{name:/write.*result.txt|写入.*result.txt/});await userEvent.click(row);
  expect(await screen.findByText("Saved the result")).toBeTruthy();
 });

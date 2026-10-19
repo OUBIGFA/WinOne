@@ -1,6 +1,8 @@
 // Renderer fixture only: no live providers, credentials or user files.
 import {createRoot} from "react-dom/client";
 import {ChatPage} from "../src/features/chat";
+import {AppShell} from '../src/components/app-shell';
+import {MessageSquare} from 'lucide-react';
 import {setApplicationLanguage} from "../src/i18n";
 import type {AIConfiguration} from "../src/features/ai-configuration";
 import type {ChatMessage,Conversation} from "../src/features/chat-state";
@@ -8,7 +10,7 @@ import "../src/styles/shadcn.css";
 import "../src/style.css";
 
 const query=new URLSearchParams(location.search),language=query.get("language")??"zh-CN",running=query.get("running")==="true";
-document.documentElement.classList.toggle("dark",query.get("theme")==="dark");
+// Use the same data-theme contract as the native App; no extra .dark fixture class.
 const ai:AIConfiguration={revision:1,providers:[{id:"fixture",name:"Local AI",authMode:"api-key",hasKey:false,models:["first","second"],modelNames:{first:"Example Model",second:"Another Model"},modelFree:{first:true,second:true},modelMetadata:{first:{rate:.5,rateWas:2,listedContextWindow:1000000},second:{rate:.5,rateWas:2,listedContextWindow:1000000}}}],tasks:{chat:{provider:"fixture",model:"first"}},engine:"magpie",ocrEngine:"",target:"zh-CN",prompt:""};
 let conversation:Conversation={id:"experience",title:"整理项目并生成报告",projectId:"alpha",directory:"C:\\fixture\\Alpha",sessionDirectory:"C:\\fixture\\history",model:{provider:"fixture",model:"first"},permission:"ask",createdAt:"2026-10-11",updatedAt:"2026-10-11"};
 const regression=query.has('regression');
@@ -30,16 +32,51 @@ if(query.get('sample')==='reading')messages.splice(0,messages.length,
 // No fixture action reads or writes a user's project.
 const previewOrigin=query.get('previewOrigin')??location.origin;
 const calls:{method:string;params:unknown}[]=[];
+const alignment=query.has('alignment'),changedFiles=['README.md','example.ts','notes.md','guide.md','plan.md'].map(path=>({path,status:'M'}));
+const patch='diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new\n';
+let workspaceState='applied',promptRevision=0;
+const reviewMode=query.has('review'),reviewStaged=new Set<string>(),reviewReverted=new Set<string>();let reviewRevision=1;
+const reviewFiles=[{path:'example.ts',status:'M',additions:2,deletions:1,size:96},{path:'README.md',status:'M',additions:3,deletions:1,size:180},{path:'picture.png',status:'M',additions:0,deletions:0,size:320,binary:true}];
+if(alignment){
+ messages.splice(0,messages.length,
+  {id:'user',role:'user',content:'Update the project and explain the changes.',timestamp:start},
+  {id:'opening',role:'assistant',providerName:'Local AI',modelName:'Example Model',timestamp:start+10,content:[{type:'text',text:'I will check the project first.'},{type:'thinking',thinking:'Inspect the existing files.'},{type:'toolCall',id:'read',name:'read',arguments:{path:'README.md'}}]},
+  {role:'toolResult',toolCallId:'read',timestamp:start+20,content:'Read complete'},
+  {id:'middle',role:'assistant',providerName:'Local AI',modelName:'Example Model',timestamp:start+30,content:[{type:'text',text:'The configuration is ready. I will update the files.'},{type:'toolCall',id:'write',name:'write',arguments:{path:'README.md'}}]},
+  {role:'toolResult',toolCallId:'write',timestamp:start+40,content:'Saved'},
+ );
+ if(!running)messages.push({id:'answer',role:'assistant',providerName:'Local AI',modelName:'Example Model',timestamp:start+50,content:'## Changes completed\n\nAll files have been checked.\n\n- Kept existing configuration\n- Saved the report'});
+}
+if(query.has('repair')){
+ if(running){for(let i=0;i<8;i++)messages.push({id:'repair-tool-'+i,role:'assistant',timestamp:start+8000+i,content:[{type:'toolCall',id:'repair-call-'+i,name:'powershell',arguments:{command:'Write-Output repair-'+i}}]},{role:'toolResult',toolCallId:'repair-call-'+i,timestamp:start+8100+i,content:'done'});}
+ else {const answer=messages.at(-1)!;answer.content=String(answer.content)+'\n\n[Open project notes](./README.md) · [Browse docs](docs/)\n\n`userId` and `getValue()` are identifiers.';}
+}
+if(query.has('liveThinking'))messages.splice(0,messages.length,{id:'thinking-user',role:'user',content:'Inspect the plan',timestamp:start},{id:'thinking-stream',role:'assistant',timestamp:start+1,content:[{type:'thinking',thinking:Array.from({length:150},(_,index)=>`Real thinking line ${index+1}: preserve every detail.`).join('\n')}]});
 Object.assign(window,{chatExperienceCalls:calls,go:{main:{App:{
  SetFileDropTarget:async()=>{},
  PickChatFiles:async()=>Array.from({length:18},(_,i)=>`C:/fixture/attachment-${i}.txt`),
+ ChatMedia:async(method:string,raw:string)=>{calls.push({method:'media.native.'+method,params:JSON.parse(raw)});return JSON.stringify(method==='save-as'?{canceled:false,path:'C:/fixture/saved-image.png'}:{success:true});},
  Capture:async(method:string)=>{if(method!=="ai.configuration.get")throw Error("Unexpected fixture capture "+method);return JSON.stringify(ai);},
  Chat:async(method:string,raw:string)=>{
   const params=JSON.parse(raw);calls.push({method,params});
+  if(method==='media.upload')return JSON.stringify({url:previewOrigin+'/image-upload?name='+encodeURIComponent(params.name||'image.png')});
+  if(method==='media.source')return JSON.stringify({attachment:{name:'picture.png',path:'C:/fixture/Alpha/picture.png',mimeType:'image/png',size:320},preview:{name:'picture.png',path:'C:/fixture/Alpha/picture.png',kind:'image',mimeType:'image/png',size:320,revision:'image',url:previewOrigin+'/picture.png'}});
+  if(method==='media.attach')return '{}';
+  if(alignment&&method==='review.metadata')return JSON.stringify({repository:true,root:conversation.directory,branch:'feature/review',headOid:'a'.repeat(40),detached:false,unborn:false,upstream:'origin/feature/review',ahead:1,behind:0,candidates:[{refName:'main',shortName:'main',kind:'local',oid:'b'.repeat(40),isDefaultBranch:true}],inProgress:[]});
+  if(alignment&&method==='review.commits')return JSON.stringify([{id:'a'.repeat(40),title:'Update example',date:'2026-10-15T08:00:00Z'}]);
+  if(alignment&&method==='review.diff.preview')return JSON.stringify({url:query.has('previewOrigin')?previewOrigin+'/review.diff?path='+encodeURIComponent(params.path):'data:text/plain;base64,'+btoa(patch)});
+  if(alignment&&method==='review.file.preview')return JSON.stringify({present:true,url:previewOrigin+'/'+params.path+'?side='+params.side,size:180,mime:params.path.endsWith('.png')?'image/png':'text/markdown',root:conversation.directory});
+  if(reviewMode&&method==='review.snapshot'&&!params.turnId)return JSON.stringify({root:conversation.directory,branch:'feature/review',scope:params.scope,base:params.base,revision:'review-'+reviewRevision,files:reviewFiles.filter(file=>!reviewReverted.has(file.path)&&(params.scope==='staged'?reviewStaged.has(file.path):params.scope==='working'?!reviewStaged.has(file.path):true))});
+  if(reviewMode&&method==='review.mutate'){for(const path of params.mutation.paths??[]){if(params.mutation.action==='stage')reviewStaged.add(path);else if(params.mutation.action==='unstage')reviewStaged.delete(path);else if(params.mutation.action==='revert')reviewReverted.add(path);}reviewRevision++;return '{}';}
   if(method==="catalog")return JSON.stringify({projects:[{id:"alpha",name:"Alpha",path:"C:\\fixture\\Alpha"},{id:"beta",name:"Beta",path:"C:\\fixture\\Beta"}],conversations:[conversation]});
+  if(method==='conversation.new'){conversation={...conversation,id:'created',title:'Chat'};messages.splice(0,messages.length);return JSON.stringify(conversation);}
+  if(method==='title.generate'){conversation={...conversation,title:'New conversation'};return JSON.stringify(conversation);}
   if(method==="project.git")return JSON.stringify({projectId:params.projectId,repository:false});
   if(method==='attachments.add')return JSON.stringify({attachments:params.paths.map((path:string)=>({path,name:path.split(/[\\/]/).pop(),size:120,mimeType:'text/plain'}))});
+  if(['files.list','files.index','files.search'].includes(method))return JSON.stringify({url:previewOrigin+'/'+method+'.json?path='+encodeURIComponent(params.path||'')});
+  if(method==='files.cancel')return '{}';
   if(method==="files")return JSON.stringify({directory:conversation.directory,entries:['README.md','example.ts','picture.png','page.html','sample.pdf','sound.wav','clip.webm'].map(name=>({name,path:'C:\\fixture\\Alpha\\'+name,directory:false,size:120}))});
+  if(method==='file.stat')return JSON.stringify({files:params.paths.map((path:string)=>({requested:path,file:{path:/^[A-Za-z]:/.test(path)?path:conversation.directory+'\\'+path,name:path.split(/[\\/]/).pop(),directory:false,size:120,modified:1700000000000}}))});
   if(method==='file.preview'||method==='file.save'){
    const name=String(params.path).split(/[\\/]/).pop()!;
    const kind=name.endsWith('.png')?'image':name.endsWith('.pdf')?'pdf':name.endsWith('.wav')?'audio':name.endsWith('.webm')?'video':'text';
@@ -47,12 +84,18 @@ Object.assign(window,{chatExperienceCalls:calls,go:{main:{App:{
   }
   if(method==="resources")return JSON.stringify({agents:[{path:'C:\\fixture\\Alpha\\AGENTS.md'}],skills:[{name:'Review project',description:'Inspect changes and check the project rules before continuing.',path:'C:\\fixture\\skills\\review\\SKILL.md'}],plugins:[{name:'Project tools',path:'C:\\fixture\\plugins\\project-tools',enabled:true}],mcpServers:[{name:'Local documents',enabled:true,status:'Connected'}],diagnostics:[]});
   if(method==="draft.get")return JSON.stringify({text:"保留这段草稿"});
-  if(method==='settings.get')return JSON.stringify({workspaceDirectory:'C:\\fixture',skillDirectories:[],pluginDirectories:[],mcpServers:[],automations:[]});
+  if(method==='settings.get')return JSON.stringify({workspaceDirectory:'C:\\fixture',skillDirectories:[],pluginDirectories:[],mcpServers:[],automations:[],...(alignment&&!query.has('titleInherit')?{titleModel:conversation.model}:{})});
+  if(alignment&&method==='review.turn')return JSON.stringify({snapshot:{root:conversation.directory,revision:'r1',isReversible:true,workspaceState,files:changedFiles},patches:Object.fromEntries(changedFiles.map(file=>[file.path,patch]))});
+  if(alignment&&method==='review.turn.apply'){workspaceState=params.mutation.action==='undo'?'undone':'applied';return JSON.stringify({root:conversation.directory,revision:'r1',isReversible:true,workspaceState,files:changedFiles});}
+  if(alignment&&method==='review.snapshot')return JSON.stringify({root:conversation.directory,revision:'r1',source:'session',files:changedFiles});
+  if(alignment&&method==='review.diff')return JSON.stringify(patch);
+  if(alignment&&method==='prompt'){messages.push({id:params.requestId,requestId:params.requestId,role:'user',content:params.text},{id:'next-answer',role:'assistant',content:'The follow-up is complete.'});promptRevision++;return '{}';}
+  if(alignment&&method==='poll'&&promptRevision)return JSON.stringify({events:params.cursor<promptRevision?[{sequence:promptRevision,data:{type:'settled',state:{messages,hasOlder:false}}}]:[],cursor:promptRevision,approvals:[],running:false,status:'idle'});
   if(method==='settings.save')return JSON.stringify(params.settings);
   if(method==='title.regenerate')throw Error('管道已结束。 (os error 109) (transport)');
   if(method==='state'&&params.before){await new Promise(resolve=>setTimeout(resolve,240));return JSON.stringify({messages:Array.from({length:12},(_,index)=>({id:'older-'+index,role:index%2?'assistant':'user',content:'Earlier message '+index+'\n\n'+('Earlier context. '.repeat(30))})),operations:[],hasOlder:false});}
-  if(method==="open"||method==="state")return JSON.stringify({messages,operations:[],hasOlder:regression,before:regression?'user':undefined,streaming:running});
-  if(method==="poll")return JSON.stringify({events:[],cursor:0,approvals:[],running,status:running?"running":"idle",error:regression?"Request aborted":undefined});
+  if(method==="open"||method==="state")return JSON.stringify({messages,operations:[],hasOlder:regression,before:regression?'user':undefined,streaming:running,...(query.has('audit')?{usage:{input:1000,output:200,cacheRead:400,cacheWrite:50,totalTokens:1650,cost:0,costKnown:false},contextUsage:{tokens:1650,contextWindow:100000,percent:1.65}}:{})});
+  if(method==="poll")return JSON.stringify({events:[],cursor:0,approvals:[],running,status:running?"running":"idle",error:regression&&!alignment?"Request aborted":undefined});
   if(method==="configure"){conversation={...conversation,...params};return JSON.stringify(conversation);}
   if(["release","draft.save"].includes(method))return "{}";
   throw Error("Unexpected fixture Chat "+method);
@@ -60,4 +103,5 @@ Object.assign(window,{chatExperienceCalls:calls,go:{main:{App:{
 }}}});
 await setApplicationLanguage(language);
 document.documentElement.dataset.theme=query.get("theme")??"light";
-createRoot(document.getElementById("root")!).render(<div style={{height:"100dvh"}}><ChatPage requestedConversationId={query.has("welcome")?undefined:"experience"}/></div>);
+const page=<ChatPage requestedConversationId={query.has("welcome")?undefined:"experience"}/>;
+createRoot(document.getElementById("root")!).render(query.has('shell')?<AppShell page="chat" pages={[{id:'chat',title:'Chat',icon:MessageSquare}]} logo="" onNavigate={()=>{}}>{page}</AppShell>:<div style={{height:"100dvh"}}>{page}</div>);

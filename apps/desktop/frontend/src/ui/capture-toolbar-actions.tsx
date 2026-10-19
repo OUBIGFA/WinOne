@@ -24,12 +24,14 @@ export function CaptureToolbarActions({items,menuLabel,menuExtra,alwaysMenu=fals
    for(const width of widths){if(used+width+(visible?6:0)>available-reserved)break;used+=width+(visible?6:0);visible++;}
    setCount(visible);
   };
-  update();
-  const observer=new ResizeObserver(update);
+  let frame=0;
+  const schedule=()=>{if(!frame)frame=requestAnimationFrame(()=>{frame=0;update();});};
+  schedule();
+  const observer=new ResizeObserver(schedule);
   if(root.current)observer.observe(root.current);
   if(measure.current)observer.observe(measure.current);
   if(menuMeasure.current)observer.observe(menuMeasure.current);
-  return()=>observer.disconnect();
+  return()=>{observer.disconnect();if(frame)cancelAnimationFrame(frame);};
  },[signature]);
  const render=(item:ToolbarAction,measurement=false)=><Button key={item.id} disabled={item.disabled} busy={item.busy} aria-pressed={item.selected} variant={item.primary||item.selected?"primary":"secondary"} onClick={measurement?undefined:item.onClick}>{item.icon&&<item.icon size={18} aria-hidden/>}{item.label}</Button>;
  return <div ref={root} className="relative flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">

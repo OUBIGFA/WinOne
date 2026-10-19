@@ -13,7 +13,17 @@
                       "target":  "apps/desktop/frontend/src/features/chat-generated-files.tsx",
                       "adaptation":  "Local file chips, verified existence, expand/collapse and context menu; WinOne Host preview/open/reveal/clipboard replaces Electron operations.",
                       "source":  "apps/desktop/src/renderer/components/chat/GeneratedFilesCard.tsx"
+                  },
+                  {
+                      "target": "apps/desktop/frontend/src/features/chat-markdown.css",
+                      "source": "apps/desktop/src/renderer/components/chat/MarkdownRenderer.tsx",
+                      "adaptation": "Reuse paragraph, list, heading and inline-code typography with the existing renderer; retain WinOne file links, complete code copy and no horizontal scrollbars. Body size and line height come from chatChrome.ts CHAT_BODY_CLASS (15px, 1.6)."
+                  },
+                  {
+                      "target": "apps/desktop/frontend/src/features/chat-turn-changes.tsx",
+                      "source": "apps/desktop/src/renderer/components/chat/TurnChangesCard.tsx",
+                      "adaptation": "Retain turn snapshots, totals, file rows, context menus, review, undo/reapply and expansion. User-requested compact spacing and transcript-end placement replace the original per-message location."
                   }
               ],
-    "grouping":  "Existing Cindy groupWorkRuns retained; delivered assistant text is now a non-archivable sealed answer, so completed segments stay separated."
+    "grouping":  "Existing Cindy groupWorkRuns retained. Every public text part is a non-archivable answer, including text emitted beside tool calls; replies use the same message surface and actions as the final answer. Only thinking and actions enter work disclosures."
 }

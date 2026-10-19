@@ -26,18 +26,49 @@ type Preferences struct {
 	PluginDirectories  []string     `json:"pluginDirectories"`
 	MCPServers         []MCPServer  `json:"mcpServers"`
 	Automations        []Automation `json:"automations"`
+	// Session defaults for newly created conversations. Nil keeps Pi's
+	// standard behavior (automatic compaction and retry enabled).
+	DefaultThinkingLevel  string       `json:"defaultThinkingLevel,omitempty"`
+	AutoCompaction        *bool        `json:"autoCompaction,omitempty"`
+	AutoRetry             *bool        `json:"autoRetry,omitempty"`
+	BackgroundCompaction  bool         `json:"backgroundCompaction,omitempty"`
+	CodeMode              *bool        `json:"codeMode,omitempty"`
+	Planning              *bool        `json:"planning,omitempty"`
+	ToolPreset            string       `json:"toolPreset,omitempty"`
+	Subagents             *bool        `json:"subagents,omitempty"`
+	MaxSubagents          int          `json:"maxSubagents,omitempty"`
+	SubagentModel         ai.Selection `json:"subagentModel,omitempty"`
+	SubagentThinkingLevel string       `json:"subagentThinkingLevel,omitempty"`
 }
 type MCPServer struct {
-	Name    string            `json:"name"`
-	Enabled bool              `json:"enabled"`
-	Command string            `json:"command,omitempty"`
-	Args    []string          `json:"args,omitempty"`
-	Cwd     string            `json:"cwd,omitempty"`
-	URL     string            `json:"url,omitempty"`
-	Env     map[string]string `json:"env,omitempty"`
-	Headers map[string]string `json:"headers,omitempty"`
-	Timeout int               `json:"timeout,omitempty"`
+	Exposure     string            `json:"exposure,omitempty"`
+	Description  string            `json:"description,omitempty"`
+	ToolExposure map[string]string `json:"toolExposure,omitempty"`
+	Name         string            `json:"name"`
+	Enabled      bool              `json:"enabled"`
+	Command      string            `json:"command,omitempty"`
+	Args         []string          `json:"args,omitempty"`
+	Cwd          string            `json:"cwd,omitempty"`
+	URL          string            `json:"url,omitempty"`
+	Env          map[string]string `json:"env,omitempty"`
+	Headers      map[string]string `json:"headers,omitempty"`
+	Timeout      int               `json:"timeout,omitempty"`
 }
+
+// RuntimeSettings supplies backward-compatible defaults to the durable Worker.
+// Saved changes apply when the conversation's Worker is next opened.
+func (p Preferences) RuntimeSettings() map[string]any {
+	limit := p.MaxSubagents
+	if limit == 0 {
+		limit = 4
+	}
+	thinking := p.SubagentThinkingLevel
+	if thinking == "" {
+		thinking = "medium"
+	}
+	return map[string]any{"autoCompaction": p.AutoCompaction == nil || *p.AutoCompaction, "autoRetry": p.AutoRetry == nil || *p.AutoRetry, "backgroundCompaction": p.BackgroundCompaction, "codeMode": p.CodeMode == nil || *p.CodeMode, "planning": p.Planning == nil || *p.Planning, "toolPreset": p.ToolPreset, "subagents": p.Subagents == nil || *p.Subagents, "maxSubagents": limit, "subagentThinkingLevel": thinking}
+}
+
 type Automation struct {
 	ID                 string       `json:"id"`
 	Name               string       `json:"name"`
@@ -110,6 +141,21 @@ func validatePreferences(value Preferences) error {
 	if !filepath.IsAbs(value.WorkspaceDirectory) || strings.ContainsRune(value.WorkspaceDirectory, 0) {
 		return errors.New("请选择默认工作文件夹")
 	}
+	if value.DefaultThinkingLevel != "" && !ValidThinkingLevel(value.DefaultThinkingLevel) {
+		return errors.New("默认思考强度无效")
+	}
+	if value.ToolPreset != "" && value.ToolPreset != "all" && value.ToolPreset != "read-only" && value.ToolPreset != "chat-only" {
+		return errors.New("工具预设无效")
+	}
+	if value.MaxSubagents < 0 || value.MaxSubagents > 64 {
+		return errors.New("子代理上限应为 1 至 64")
+	}
+	if value.SubagentThinkingLevel != "" && !ValidThinkingLevel(value.SubagentThinkingLevel) {
+		return errors.New("子代理思考强度无效")
+	}
+	if (value.SubagentModel.Provider == "") != (value.SubagentModel.Model == "") || len(value.SubagentModel.Provider) > 256 || len(value.SubagentModel.Model) > 256 {
+		return errors.New("子代理模型无效")
+	}
 	if len(value.SkillDirectories) > 64 || len(value.PluginDirectories) > 64 || len(value.MCPServers) > 64 || len(value.Automations) > 100 {
 		return errors.New("Chat 设置项目过多")
 	}
@@ -120,6 +166,14 @@ func validatePreferences(value Preferences) error {
 	}
 	names := map[string]bool{}
 	for _, server := range value.MCPServers {
+		if !validMCPExposure(server.Exposure) || len(server.Description) > 4096 || strings.ContainsRune(server.Description, 0) || len(server.ToolExposure) > 256 {
+			return errors.New("MCP 工具调用方式或说明无效")
+		}
+		for name, mode := range server.ToolExposure {
+			if name == "" || len(name) > 256 || strings.ContainsAny(name, "\x00\r\n") || mode == "" || !validMCPExposure(mode) {
+				return errors.New("MCP 单个工具的调用方式无效")
+			}
+		}
 		key := strings.ReplaceAll(server.Name, "-", "_")
 		if !serverName.MatchString(server.Name) || names[key] {
 			return errors.New("MCP 服务名称无效或重复")
@@ -159,6 +213,22 @@ func validatePreferences(value Preferences) error {
 		}
 	}
 	return nil
+}
+
+// Empty preserves the existing direct-call default. Explicit modes follow Pi;
+// hidden tools cannot become callable through discovery or Code Mode.
+func validMCPExposure(value string) bool {
+	return value == "" || value == "direct" || value == "deferred" || value == "codemode" || value == "hidden"
+}
+
+// ValidThinkingLevel reports whether value matches Pi's accepted levels. The
+// Host validates before persisting so a stored level always reaches the engine.
+func ValidThinkingLevel(value string) bool {
+	switch value {
+	case "off", "minimal", "low", "medium", "high", "xhigh", "max":
+		return true
+	}
+	return false
 }
 func (s *Store) savePreferencesLocked(value Preferences) error {
 	if err := validatePreferences(value); err != nil {

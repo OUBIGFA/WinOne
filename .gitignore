@@ -33,6 +33,8 @@ __pycache__/
 # Rust executable entry points are source files, not compiled bin outputs.
 !apps/diagram-renderer/src/bin/
 !apps/diagram-renderer/src/bin/*.rs
+!third_party/gifski/src/bin/
+!third_party/gifski/src/bin/*.rs
 # Keep this final: ignore _temp at every depth, after all negation rules.
 /apps/desktop/frontend/public/pdfjs/
 _temp/

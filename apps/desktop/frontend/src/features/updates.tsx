@@ -4,6 +4,7 @@ import {updateInfo,checkUpdates,cancelUpdateCheck,openUpdateRelease,type UpdateB
 import {useTranslation} from "../i18n";
 import {Button} from "../ui/button";
 import {Notice} from "../ui/notice";
+import {SettingsSection} from "../components/settings-layout";
 
 export function Updates(){
  const {t}=useTranslation();
@@ -31,8 +32,7 @@ export function Updates(){
  async function open(){if(opening)return;setOpening(true);setError("");try{await openUpdateRelease();}catch{if(alive.current)setError("open_failed");}finally{if(alive.current)setOpening(false);}}
  const knownErrors=["network","timeout","rate_limited","not_found","cancelled","unavailable","invalid_response","invalid_version","invalid_source","busy","open_failed"];
  const errorKey=knownErrors.includes(error)?error:"unavailable";
- return <section className="space-y-4 py-5" aria-labelledby="updates-heading">
-  <h2 id="updates-heading">{t("updates.title")}</h2>
+ return <SettingsSection icon={RefreshCw} title={t("updates.title")} level={2} headingId="updates-heading">
   <div className="flex flex-wrap items-center justify-between gap-3">
    <p>{info?t("updates.version",{version:info.version}):t("updates.loading")}</p>
    <div className="flex flex-wrap gap-2"><Button icon={RefreshCw} busy={busy} disabled={!info?.configured} onClick={()=>void check()}>{t("updates.check")}</Button>
@@ -42,5 +42,5 @@ export function Updates(){
   {result?.state==="available"&&<div className="space-y-3"><p role="status">{t("updates.available",{version:result.latestVersion})}</p><Button icon={ExternalLink} busy={opening} onClick={()=>void open()}>{t("updates.release")}</Button></div>}
   {result?.state==="up_to_date"&&<p role="status">{t("updates.current")}</p>}
   {error==="cancelled"?<p role="status">{t("updates.cancelled")}</p>:error&&<Notice actions={!info?<Button onClick={()=>void load()}>{t("common.retry")}</Button>:undefined}>{t(`updates.${errorKey}`)}</Notice>}
- </section>;
+ </SettingsSection>;
 }

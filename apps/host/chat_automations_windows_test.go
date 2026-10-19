@@ -57,20 +57,20 @@ func TestAutomationsDispatchPiPersistRunsAndReusePersistentConversation(t *testi
 	if _, err = modelService.store.SaveConfiguration(config, map[string]*string{"test": &key}); err != nil {
 		t.Fatal(err)
 	}
-	var holdModel atomic.Bool
+	var heldModelConversation atomic.Value // A string ID, never another script's model call.
 	schedulerKilled := false
-	blockedModel := make(chan struct{}, 1)
-	cancelledModel := make(chan struct{}, 1)
+	blockedModel := make(chan string, 1)
+	cancelledModel := make(chan string, 1)
 	engine := chat.NewService(ctx, store, chat.ServiceOptions{Bun: bun, Worker: worker, Configure: func(c chat.Conversation) (map[string]any, func(), error) {
 		bridge, err := chat.NewPrivateBridge(ctx, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			io.Copy(io.Discard, r.Body)
 			w.Header().Set("Content-Type", "text/event-stream")
-			if holdModel.Load() {
+			if heldModelConversation.Load() == c.ID {
 				fmt.Fprint(w, "data: {\"id\":\"blocked\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}\n\n")
 				w.(http.Flusher).Flush()
-				blockedModel <- struct{}{}
+				blockedModel <- c.ID
 				<-r.Context().Done()
-				cancelledModel <- struct{}{}
+				cancelledModel <- c.ID
 				return
 			}
 			fmt.Fprint(w, "data: {\"id\":\"test\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Automation result saved\"},\"finish_reason\":null}]}\n\ndata: {\"id\":\"test\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n")
@@ -261,10 +261,18 @@ func TestAutomationsDispatchPiPersistRunsAndReusePersistentConversation(t *testi
 	if _, err = store.Conversation(scriptSession); err != nil {
 		t.Fatal("script returned an unknown conversation", err)
 	}
-	holdModel.Store(true)
+	// Script completion confirms dispatch, not its model's completion. Hold
+	// only this persistent schedule's next request, not every active session.
+	heldModelConversation.Store(replacement)
 	call("run", map[string]string{"id": task.ID})
+	// Bind the cancellation assertion to the schedule's conversation, rather
+	// than accidentally observing a previous script's still-running dispatch.
+	var blockedID string
 	select {
-	case <-blockedModel:
+	case blockedID = <-blockedModel:
+		if blockedID != replacement {
+			t.Fatalf("blocked model belongs to %s, expected scheduled conversation %s", blockedID, replacement)
+		}
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}
@@ -277,9 +285,13 @@ func TestAutomationsDispatchPiPersistRunsAndReusePersistentConversation(t *testi
 	}
 	schedulerKilled = true
 	select {
-	case <-cancelledModel:
+	case cancelledID := <-cancelledModel:
+		if cancelledID != blockedID {
+			t.Fatalf("stopped model belongs to %s, expected %s", cancelledID, blockedID)
+		}
 	case <-time.After(5 * time.Second):
-		t.Fatal("scheduler worker death left its Pi model request running")
+		state, pollErr := engine.Poll(blockedID, 0)
+		t.Fatalf("scheduler worker death left its Pi model request running: conversation=%s running=%t status=%s error=%s poll=%v", blockedID, state.Running, state.Status, state.Error, pollErr)
 	}
 }
 

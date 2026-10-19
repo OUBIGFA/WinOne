@@ -1,41 +1,65 @@
-import {createContext,useCallback,useContext,useEffect,useMemo,useRef,useState,type ReactNode} from "react";
-import {ChevronsUp} from "lucide-react";
-import {Button} from "../ui/button";
-import {useTranslation} from "../i18n";
+import {createContext,useCallback,useContext,useLayoutEffect,useMemo,useRef,useState,type ReactNode} from 'react';
+import {createPortal,flushSync} from 'react-dom';
+import {ChevronsUp} from 'lucide-react';
+import {Button} from '../ui/button';
+import {useTranslation} from '../i18n';
 
-type Navigation={register:(key:string,collapse:(()=>void)|undefined)=>void;collapseAll:()=>void;count:number};
+type CollapseTarget={element:HTMLElement;host:HTMLElement;left:number;top:number;collapse:()=>void};
+type Navigation={register:(key:string,target:CollapseTarget|undefined)=>void;target?:CollapseTarget};
 const ProcessNavigation=createContext<Navigation|null>(null);
 const ProcessScrollOwner=createContext(false);
 export const useExpandedProcess=()=>useContext(ProcessScrollOwner);
 export function ProcessNavigationProvider({children}:{children:ReactNode}){
- const entries=useRef(new Map<string,()=>void>()),[count,setCount]=useState(0);
- const register=useCallback((key:string,collapse:(()=>void)|undefined)=>{if(collapse)entries.current.set(key,collapse);else entries.current.delete(key);setCount(entries.current.size);},[]);
- const collapseAll=useCallback(()=>{for(const collapse of entries.current.values())collapse();},[]);
- const value=useMemo(()=>({register,collapseAll,count}),[register,collapseAll,count]);
+ const entries=useRef(new Map<string,CollapseTarget>()),[revision,setRevision]=useState(0);
+ const register=useCallback((key:string,target:CollapseTarget|undefined)=>{
+  const previous=entries.current.get(key);
+  if(target)entries.current.set(key,target);else entries.current.delete(key);
+  if(previous?.element!==target?.element||previous?.host!==target?.host||previous?.left!==target?.left||previous?.top!==target?.top)setRevision(value=>value+1);
+ },[]);
+ const value=useMemo(()=>({register,target:[...entries.current.values()].at(-1)}),[register,revision]);
  return <ProcessNavigation.Provider value={value}>{children}</ProcessNavigation.Provider>;
 }
 export function ProcessCollapseAction(){
- const navigation=useContext(ProcessNavigation),{t}=useTranslation();
- if(!navigation?.count)return null;
- return <Button variant="ghost" size="icon" icon={ChevronsUp} aria-label={t("chat.collapseProcess")} title={t("chat.collapseProcess")} onClick={navigation.collapseAll} className="process-collapse-action"/>;
+ const navigation=useContext(ProcessNavigation),{t}=useTranslation(),target=navigation?.target;
+ if(!target)return null;
+ // The button belongs to this visible work group, never the composer and never
+ // every expanded group. Its own right-hand inset keeps all payloads readable.
+ return createPortal(<Button variant="ghost" size="icon" icon={ChevronsUp} aria-label={t('chat.collapseProcess')} title={t('chat.collapseProcess')} onClick={target.collapse} className="process-collapse-action" style={{left:target.left,top:target.top}}/>,target.host);
 }
 
-// Only the transcript scrolls. The action lives in its fixed composer footer,
-// so even a very long expanded run can be collapsed without scrolling back.
-export function ProcessBody({children,blockKey,onCollapse,version}:{children:ReactNode;blockKey:string;onCollapse?:()=>void;follow?:boolean;version?:unknown}){
- const navigation=useContext(ProcessNavigation),nested=useContext(ProcessScrollOwner);
+// Only the transcript scrolls. Long outer work bodies reserve one small local
+// action inset; nested tool/thinking bodies share it instead of stacking rails.
+export function ProcessBody({children,blockKey,onCollapse,version,onLongChange}:{children:ReactNode;blockKey:string;onCollapse?:()=>void;onLongChange?:(value:boolean)=>void;follow?:boolean;version?:unknown}){
+ const navigation=useContext(ProcessNavigation),nested=useContext(ProcessScrollOwner),register=navigation?.register;
  const [content,setContent]=useState<HTMLDivElement|null>(null),[long,setLong]=useState(false);
  const collapseRef=useRef(onCollapse);collapseRef.current=onCollapse;
- useEffect(()=>{
-  if(!content||nested)return;
-  const measure=()=>{const transcript=content.closest('.chat-transcript-viewport,.chat-transcript');const available=transcript?.clientHeight||window.innerHeight;setLong(content.scrollHeight>Math.max(160,available-80));};
-  measure();window.addEventListener("resize",measure);
-  const observer=typeof ResizeObserver!=="undefined"?new ResizeObserver(measure):undefined;
-  observer?.observe(content);
-  return()=>{window.removeEventListener("resize",measure);observer?.disconnect();};
- },[content,version,nested]);
- const register=navigation?.register;
- useEffect(()=>{if(!register)return;if(long&&onCollapse)register(blockKey,()=>collapseRef.current?.());else register(blockKey,undefined);return()=>register(blockKey,undefined);},[register,blockKey,long,!!onCollapse]);
- if(nested)return <div className="process-nested">{children}</div>;
- return <ProcessScrollOwner.Provider value={true}><div ref={setContent} className="process-body" data-process-long={long||undefined}>{children}</div></ProcessScrollOwner.Provider>;
+ const lengthRef=useRef(onLongChange);lengthRef.current=onLongChange;
+ useLayoutEffect(()=>{lengthRef.current?.(long);},[long]);
+ useLayoutEffect(()=>{
+  if(!content)return;
+  const transcript=content.closest<HTMLElement>('.chat-transcript-viewport,.chat-transcript');
+  const host=content.closest<HTMLElement>('.chat-reading-pane');
+  const footer=content.closest('.chat-main')?.querySelector<HTMLElement>('.chat-input-area');
+  let frame=0;
+  const measure=()=>{
+   const bounds=transcript?.getBoundingClientRect(),covered=footer?.getBoundingClientRect().top,body=content.getBoundingClientRect();
+   const bottom=bounds?Math.min(bounds.bottom,covered===undefined?bounds.bottom:covered-6):window.innerHeight;
+   const available=bounds&&bounds.height>0?Math.max(0,bottom-bounds.top):transcript?.clientHeight||window.innerHeight;
+   const isLong=content.scrollHeight>Math.max(1,available)+1;setLong(isLong);
+   if(nested||!register)return;
+   // The natural bottom is visible: no floating action is needed. Scrolling
+   // upward restores it without hover, focus or a delayed visibility timer.
+   const visible=isLong&&host&&bounds&&onCollapse&&body.top<bottom-32&&body.bottom>bottom+1;
+   const origin=host?.getBoundingClientRect();
+   register(blockKey,visible&&origin?{element:content,host,left:body.right-origin.left-30,top:bottom-origin.top-30,collapse:()=>collapseRef.current?.()}:undefined);
+  };
+  const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(measure);};
+  measure();window.addEventListener('resize',schedule);transcript?.addEventListener('scroll',schedule,{passive:true});
+  // Like the transcript navigator, a footer resize must move this action
+  // before paint rather than leaving a stale hit target over the input.
+  const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(()=>flushSync(measure)):undefined;
+  observer?.observe(content);if(transcript)observer?.observe(transcript);if(footer)observer?.observe(footer);
+  return()=>{cancelAnimationFrame(frame);window.removeEventListener('resize',schedule);transcript?.removeEventListener('scroll',schedule);observer?.disconnect();if(!nested)register?.(blockKey,undefined);};
+ },[content,version,nested,register,blockKey,!!onCollapse]);
+ return <ProcessScrollOwner.Provider value={true}><div ref={setContent} className={nested?'process-nested':'process-body'} data-process-long={long||undefined}><div className="process-body-content">{children}</div></div></ProcessScrollOwner.Provider>;
 }

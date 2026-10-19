@@ -79,6 +79,9 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 		byID[p.Provider.ID] = p
 		url := base + "/" + p.Provider.ID
 		helper := auxiliaryProvider{ID: p.Provider.ID, Name: p.Provider.Name, Icon: p.Provider.DisplayIcon(), Chat: url + "/v1", Responses: url + "/v1", Anthropic: url, Key: token, Models: slices.Clone(p.Provider.Models), Metadata: p.Provider.ModelMetadata, Searches: p.Provider.Searches}
+		if p.Provider.AuthMode == "account" {
+			helper.AccountKind = p.Provider.Agent
+		}
 		// Give Magpie a distinct private bridge key for each enabled credential.
 		// It can then retain its original key ordering, rotation and cooldowns.
 		for index, key := range p.Keys {
@@ -143,6 +146,9 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 		inner.MagpieSettings.ImageGen = "off"
 		inner.MagpieSettings.Searcher = "off"
 		root := t
+		// The authenticated outer gateway has already applied user hooks and
+		// middleware. This worker only transports its chosen provider request.
+		root.TransportOnly = true
 		if root.RootDataDirectory != "" {
 			root.DataDirectory = root.RootDataDirectory
 		}

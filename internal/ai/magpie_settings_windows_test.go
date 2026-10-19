@@ -53,6 +53,35 @@ func TestMagpieSettingsPersistWithoutPlaintextSearchKeys(t *testing.T) {
 	}
 }
 
+func TestDeepSeekSearchKeyPersistsPrivatelyAndReachesRuntime(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "ai.json")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configuration := store.Configuration()
+	configuration.MagpieSettings = &MagpieSettings{SearchAPIs: []SearchAPI{{Vendor: "deepseek", Key: "fixture-deepseek-search-key"}}}
+	saved, err := store.SaveConfiguration(configuration, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(saved.MagpieSettings.SearchAPIs) != 1 || !saved.MagpieSettings.SearchAPIs[0].HasKey || saved.MagpieSettings.SearchAPIs[0].Key != "" {
+		t.Fatal("DeepSeek search credential exposed or lost")
+	}
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	settings, err := reopened.MagpieRuntime()
+	if err != nil || settings.SearchAPIs[0].Key != "fixture-deepseek-search-key" {
+		t.Fatalf("search runtime did not receive the saved credential: %v", err)
+	}
+	bytes, err := os.ReadFile(path)
+	if err != nil || strings.Contains(string(bytes), "fixture-deepseek-search-key") {
+		t.Fatal("search key not encrypted on disk")
+	}
+}
+
 func TestMagpieModelPreferencesKeepMappingAndPrice(t *testing.T) {
 	var m ModelMetadata
 	if err := json.Unmarshal([]byte(`{"same":"gpt-5","upstreamName":"relay-gpt-5","api":"responses","efforts":["low","high"],"price":{"input":1,"output":2,"cache_read":0.1,"cache_write":0.2}}`), &m); err != nil {

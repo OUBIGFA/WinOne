@@ -7,13 +7,50 @@ import (
 	"testing"
 )
 
-func TestChatRuntimeRequiresItsCompleteProtocolBridge(t *testing.T){
-	for _,name:=range []string{"shared/chat/worker.js","shared/chat/runtime.json"}{if !allowed(name){t.Fatal("chat bundle rejected",name)}}
-	for _,name:=range []string{"shared/chat/settings.json","shared/chat/node_modules/token.txt"}{if allowed(name){t.Fatal("unreviewed chat data allowed",name)}}
-	current:=requiredForPayload(map[string]bool{"shared/chat/worker.js":true})
-	for _,name:=range []string{"shared/chat/runtime.json","shared/ai/runtime/bun.exe","shared/ai/WinOne.AI.exe"}{if !slices.Contains(current,name){t.Fatal("incomplete agent package",name)}}
-	old:=requiredForPayload(map[string]bool{"shared/ai/WinOne.AI.exe":true})
-	if slices.Contains(old,"shared/chat/worker.js"){t.Fatal("legacy rollback package suddenly requires Chat")}
+func TestChatRuntimeRequiresItsCompleteProtocolBridge(t *testing.T) {
+	for _, name := range []string{"shared/chat/worker.js", "shared/chat/runtime.json"} {
+		if !allowed(name) {
+			t.Fatal("chat bundle rejected", name)
+		}
+	}
+	for _, name := range []string{"shared/chat/settings.json", "shared/chat/node_modules/token.txt"} {
+		if allowed(name) {
+			t.Fatal("unreviewed chat data allowed", name)
+		}
+	}
+	current := requiredForPayload(map[string]bool{"shared/chat/worker.js": true})
+	for _, name := range []string{"shared/chat/runtime.json", "shared/ai/runtime/bun.exe", "shared/ai/WinOne.AI.exe"} {
+		if !slices.Contains(current, name) {
+			t.Fatal("incomplete agent package", name)
+		}
+	}
+	old := requiredForPayload(map[string]bool{"shared/ai/WinOne.AI.exe": true})
+	if slices.Contains(old, "shared/chat/worker.js") {
+		t.Fatal("legacy rollback package suddenly requires Chat")
+	}
+}
+
+func TestCodeModeRuntimeIsPinnedAndOptionalForOlderChatBundles(t *testing.T) {
+	for _, name := range []string{"shared/chat/codemode-worker.js", "shared/chat/quickjs.wasm", "shared/chat/licenses/chat-codemode-notices.json", "shared/chat/licenses/quickjs-wasi-3.6.2-LICENSE.txt"} {
+		if !allowed(name) {
+			t.Fatal("Code Mode runtime rejected", name)
+		}
+	}
+	for _, name := range []string{"shared/chat/quickjs-debug.wasm", "shared/chat/licenses/codemode-extra.txt"} {
+		if allowed(name) {
+			t.Fatal("unreviewed Code Mode data accepted", name)
+		}
+	}
+	current := requiredForPayload(map[string]bool{"shared/chat/codemode-worker.js": true})
+	for _, name := range []string{"shared/chat/quickjs.wasm", "shared/chat/licenses/chat-codemode-notices.json", "shared/chat/licenses/quickjs-compiler-rt-4434dab-LICENSE.txt"} {
+		if !slices.Contains(current, name) {
+			t.Fatal("incomplete Code Mode package", name)
+		}
+	}
+	old := requiredForPayload(map[string]bool{"shared/chat/worker.js": true})
+	if slices.Contains(old, "shared/chat/codemode-worker.js") {
+		t.Fatal("older Chat bundle suddenly requires Code Mode")
+	}
 }
 
 func TestAccountPluginPayloadIsPinnedAndOptionalForOlderPackages(t *testing.T) {

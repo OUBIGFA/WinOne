@@ -35,4 +35,4 @@ window.go={main:{App:{
  throw Error("此预览不执行系统操作");
 }}}} as unknown as NonNullable<Window["go"]>;
 await setApplicationLanguage(new URLSearchParams(location.search).get("language")||"zh-CN");
-createRoot(document.getElementById("root")!).render(<SettingsFixtureShell page="capture"><header><h1>{i18n.t("nav.capture")}</h1></header><ModulePanel moduleId="capture" onSaved={()=>{}} onActivity={()=>{}}><CapturePage/></ModulePanel></SettingsFixtureShell>);
+createRoot(document.getElementById("root")!).render(<SettingsFixtureShell page="capture"><header><h1>{i18n.t("nav.capture")}</h1></header><ModulePanel moduleId="capture"><CapturePage/></ModulePanel></SettingsFixtureShell>);

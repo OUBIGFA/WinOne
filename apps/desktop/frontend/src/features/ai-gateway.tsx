@@ -1,15 +1,16 @@
+import {SettingsSaveBar} from "../components/settings-save-bar";
 import {useEffect,useState} from "react";
-import {Copy,Eye,EyeOff,RefreshCw,RotateCcw,Save} from "lucide-react";
+import {Copy,Eye,EyeOff,RefreshCw,RotateCcw,Save,Server,Plug} from "lucide-react";
 import {captureCall} from "../bridge";
 import {useTranslation} from "../i18n";
 import {Button} from "../ui/button";
 import {Notice} from "../ui/notice";
-import {Switch} from "../ui/switch";
 import {Input} from "../components/ui/input";
 import {Label} from "../components/ui/label";
 import {usePageActivity,type PageActivityChanged} from "../ui/page-navigation";
 import type {AIProvider,AISelection} from "./ai-configuration";
 import {AIGatewayModels} from "./ai-gateway-models";
+import {SettingsSection,SettingsDisclosure,SettingsToggle} from "../components/settings-layout";
 
 interface GatewayStatus {revision:number;enabled:boolean;port:number;running:boolean;hasKey:boolean;baseUrl:string;error?:string;models?:AISelection[]|null}
 export function AIGateway({active,providers,onActivity}:{active:boolean;providers:AIProvider[];onActivity?:PageActivityChanged}){
@@ -38,17 +39,21 @@ export function AIGateway({active,providers,onActivity}:{active:boolean;provider
   {!saved&&!error&&<p role="status">{t("gateway.loading")}</p>}
   {saved&&<>
    {saved.error&&<Notice>{saved.error}</Notice>}
-   <fieldset className="plain-fieldset settings-stack-compact" disabled={busy}>
-    <div className="settings-switch-row"><Label htmlFor="gateway-enabled">{t("gateway.enable")}</Label><Switch id="gateway-enabled" checked={enabled} onCheckedChange={setEnabled}/></div>
+   <fieldset className="plain-fieldset settings-section-stack" disabled={busy}>
+    <SettingsSection icon={Server} title={t("settingsDesign.gatewayRun")}>
+    <SettingsToggle id="gateway-enabled" label={t("gateway.enable")} checked={enabled} onChange={setEnabled}/>
     <div className="space-y-2"><Label htmlFor="gateway-port">{t("gateway.port")}</Label><Input id="gateway-port" className="max-w-40" inputMode="numeric" value={port} onChange={e=>setPort(e.target.value)}/></div>
     <p className="muted">{t("gateway.localHint")}</p>
     <div className="settings-switch-row"><span>{t("gateway.status")}: {t(saved.running?"gateway.running":"gateway.stopped")}</span><Button icon={RefreshCw} disabled={dirty} onClick={()=>void load()}>{t("common.refresh")}</Button></div>
+    </SettingsSection>
+    <SettingsSection icon={Plug} title={t("settingsDesign.gatewayConnect")}>
     <div className="space-y-2"><Label htmlFor="gateway-address">{t("gateway.address")}</Label><Input id="gateway-address" readOnly value={saved.baseUrl}/></div>
     <div className="space-y-2"><Label htmlFor="gateway-key">{t("gateway.key")}</Label><Input id="gateway-key" readOnly value={key} placeholder={saved.hasKey?"••••••••":""}/><div className="flex flex-wrap gap-2"><Button icon={key?EyeOff:Eye} disabled={!saved.hasKey} onClick={()=>key?setKey(""):void accessKey()}>{t(key?"gateway.hideKey":"gateway.showKey")}</Button><Button icon={Copy} disabled={!saved.hasKey} onClick={()=>void accessKey(true)}>{t("gateway.copyKey")}</Button><Button icon={RotateCcw} disabled={dirty} onClick={()=>void save(true)}>{t("gateway.resetKey")}</Button></div><p className="muted">{t("gateway.keyHint")}</p></div>
+    </SettingsSection>
     <AIGatewayModels providers={providers} value={models} disabled={busy} onChange={setModels}/>
-    <div className="settings-save-bar"><Button icon={Save} variant="primary" disabled={!dirty&&saved.running===saved.enabled&&!saved.error} onClick={()=>void save()}>{t("gateway.save")}</Button>{dirty&&<Button icon={RotateCcw} onClick={()=>accept(saved)}>{t("shortcuts.undo")}</Button>}</div>
+    <SettingsSaveBar><Button icon={Save} variant="primary" disabled={!dirty&&saved.running===saved.enabled&&!saved.error} onClick={()=>void save()}>{t("gateway.save")}</Button>{dirty&&<Button icon={RotateCcw} onClick={()=>accept(saved)}>{t("shortcuts.undo")}</Button>}</SettingsSaveBar>
    </fieldset>
-   <p className="muted">{t("gateway.protocols")}</p>
+   <SettingsDisclosure title={t("settingsDesign.gatewayInterfaces")}><p className="settings-help">{t("gateway.protocols")}</p></SettingsDisclosure>
   </>}
   {notice&&!dirty&&<p role="status">{notice}</p>}
  </div>;

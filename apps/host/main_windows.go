@@ -265,7 +265,7 @@ func run() (runErr error) {
 	}
 	trayRecord := moduleState.Snapshot().Modules["wintray"]
 	wintray = modules.NewLogonLazy(ctx, trayManifest.ID, trayManifest.Name.Chinese, filepath.Join(filepath.Dir(executable), trayManifest.Worker), *pipe+"-wintray", filepath.Join(*data, "modules", "wintray"), *autorun && trayRecord.Enabled && !trayRecord.PendingStop)
-	capture = modules.NewLazy(ctx, captureManifest.ID, captureManifest.Name.Chinese, filepath.Join(filepath.Dir(executable), captureManifest.Worker), *pipe+"-capture", filepath.Join(*data, "modules", "capture"), "--host-pipe", *pipe)
+	capture = modules.NewLazy(ctx, captureManifest.ID, captureManifest.Name.Chinese, filepath.Join(filepath.Dir(executable), captureManifest.Worker), *pipe+"-capture", filepath.Join(*data, "modules", "capture"), "--host-pipe", *pipe, "--stay-ready")
 	alwaysOnTop = modules.NewLazy(ctx, pinManifest.ID, pinManifest.Name.Chinese, filepath.Join(filepath.Dir(executable), pinManifest.Worker), *pipe+"-always-on-top", filepath.Join(*data, "modules", "always-on-top"))
 	strokeWorker = modules.NewLazy(ctx, strokeManifest.ID, strokeManifest.Name.Chinese, filepath.Join(filepath.Dir(executable), strokeManifest.Worker), *pipe+"-stroke", filepath.Join(*data, "modules", "stroke"))
 	defer func() { runErr = errors.Join(runErr, strokeWorker.Close()) }()
@@ -280,6 +280,7 @@ func run() (runErr error) {
 	}, language: func() string { return applicationLanguage(store.Snapshot().Language) }}
 	defer shortcuts.registrar.Close()
 	gates := map[string]*modules.Gate{}
+	var refreshCaptureReadiness func()
 	for _, entry := range []struct {
 		manifest catalog.Manifest
 		runtime  *modules.Lazy
@@ -307,9 +308,15 @@ func run() (runErr error) {
 			start = func() error { return startStroke(runtime) }
 			status = func() host.Module { return strokeStatus(runtime) }
 		}
+		if manifest.ID == "capture" {
+			start = func() error { return prepareCapture(runtime) }
+		}
 		gate, gateErr := modules.NewGate(manifest.ID, manifest.Name.Chinese, moduleState, modules.LifecycleHooks{Start: start, Stop: stop, Status: status, Handle: runtime.Handle, IntentChanged: func() error {
 			if store != nil {
 				shortcuts.apply(store.Snapshot())
+			}
+			if manifest.ID == "capture" && refreshCaptureReadiness != nil {
+				refreshCaptureReadiness()
 			}
 			return nil
 		}})
@@ -378,6 +385,11 @@ func run() (runErr error) {
 		value := store.Snapshot()
 		return value.Theme, applicationLanguage(value.Language)
 	})
+	resultWindows.ai.captureEnabled = func() bool { return store.RecoveryError() == nil && gates["capture"].Enabled() }
+	refreshCaptureReadiness = resultWindows.ai.refreshLocalOCRStandby
+	// Start local models as soon as configuration is available, alongside the
+	// rest of Host startup rather than behind WinTray/first capture startup.
+	refreshCaptureReadiness()
 	defer func() { runErr = errors.Join(runErr, resultWindows.dispose()) }()
 	defer resultWindows.ai.stopMagpieMaintenance()
 	defer selectionModule.stop()
@@ -458,6 +470,16 @@ func run() (runErr error) {
 		_ = gates["wintray"].Handle(host.Request{Version: 1, ID: "module-startup", Method: "snapshot"})
 	} else {
 		wintray.SuppressAutorun()
+	}
+	if store.RecoveryError() == nil && gates["capture"].Enabled() {
+		// Do not delay the main window or initialize unrelated feature engines.
+		// Gate.Handle rechecks enablement if shutdown/disable races this request.
+		go func() {
+			response := gates["capture"].Handle(host.Request{Version: 1, ID: "capture-standby", Method: "prepare"})
+			if response.Error != nil && ctx.Err() == nil {
+				fmt.Fprintln(os.Stderr, "截图待命准备：", response.Error.Message)
+			}
+		}()
 	}
 	if store.RecoveryError() == nil && selectionGate.Enabled() {
 		if err := selectionModule.start(); err != nil {
@@ -685,10 +707,11 @@ func run() (runErr error) {
 			default:
 			}
 		})
-		// Collected programs join the root menu ahead of this fixed footer.
-		systray.AddSeparator()
+		// Reserve the group divider before the footer, but keep an empty
+		// collection compact: no leading separator or invisible placeholder.
+		collectedSeparator := systray.NewMenuSeparator()
 		open := systray.AddMenuItem("打开 WinOne", "")
-		go syncCollectedMenu(ctx, observedIcons{Gate: gates["wintray"], worker: wintray}, func() string { return applicationLanguage(store.Snapshot().Language) }, func(failure error) {
+		go syncCollectedMenu(ctx, observedIcons{Gate: gates["wintray"], worker: wintray}, collectedSeparator, func() string { return applicationLanguage(store.Snapshot().Language) }, func(failure error) {
 			if err := reportTrayFailure(*data, applicationLanguage(store.Snapshot().Language), failure, systray.ShowWarning); err != nil {
 				fmt.Fprintln(os.Stderr, "tray feedback:", err)
 			}

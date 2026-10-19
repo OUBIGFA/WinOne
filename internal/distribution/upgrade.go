@@ -54,7 +54,7 @@ func PlanInstallation(previousPackage, nextPackage string) (UpgradePlan, error) 
 }
 
 func planUpgrade(previousPackage, nextPackage string, allowSame bool) (UpgradePlan, error) {
-	previous, err := Verify(previousPackage)
+	previous, err := verifyHistoricalPackage(previousPackage)
 	if err != nil {
 		return UpgradePlan{}, err
 	}

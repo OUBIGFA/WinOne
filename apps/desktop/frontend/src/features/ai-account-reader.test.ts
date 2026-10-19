@@ -11,6 +11,23 @@ it("shares catalog discovery and retries after a failure",async()=>{
  expect(await reader.catalog()).toEqual({agents:[{id:"codex",name:"Codex"}]});
  expect(call).toHaveBeenCalledTimes(2);
 });
+it("rediscovers installed account types after a plugin mutation",async()=>{
+ const reader=createAccountReader();
+ call.mockResolvedValueOnce({agents:[]}).mockResolvedValueOnce({agents:[{id:"thirdparty",name:"Third party",backend:"plugin"}]});
+ await reader.catalog();reader.invalidateCatalog();
+ expect((await reader.catalog()).agents[0].id).toBe("thirdparty");
+ expect(call).toHaveBeenCalledTimes(2);
+});
+it.each([false,true])("replaces an invalidated pending catalog, including failure=%s",async fail=>{
+ const reader=createAccountReader();let finish!:(value:unknown)=>void,reject!:(error:Error)=>void;
+ call.mockImplementationOnce(()=>new Promise((resolve,no)=>{finish=resolve;reject=no;}));
+ const old=reader.catalog();reader.invalidateCatalog();
+ const latest={agents:[{id:"installed",name:"Installed",backend:"plugin"}]};
+ call.mockResolvedValueOnce(latest);const current=reader.catalog();await current;
+ if(fail)reject(Error("obsolete discovery"));else finish({agents:[]});
+ expect(await old).toEqual(latest);
+ expect(await reader.catalog()).toEqual(latest);expect(call).toHaveBeenCalledTimes(2);
+});
 it("expires summaries and keeps provider and backend identities separate",async()=>{
  vi.useFakeTimers();const reader=createAccountReader();let sequence=0;
  call.mockImplementation(async()=>({accounts:[{agent:"cline",user:String(++sequence)}]}));

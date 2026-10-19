@@ -4,7 +4,7 @@ namespace WinOne.Capture.NativeUI;
 
 // One session owns input, editing and output on the existing capture window.
 // Observers are optional; production performs no diagnostic I/O or browser work.
-internal sealed class NativeCaptureSession : IDisposable
+internal sealed partial class NativeCaptureSession : IDisposable
 {
     private readonly WinOneCaptureCanvas capture;
     private readonly NativeToolbarControl nativeToolbar;
@@ -55,8 +55,8 @@ internal sealed class NativeCaptureSession : IDisposable
     public bool Pinned => pinCompletion?.CloseRequested == true;
     public bool Copied => confirmation.Committed || textCompleted;
     public bool Saved => saveCompletion.CloseRequested || saveAsCompletion?.CloseRequested == true;
-    public bool CloseRequested => confirmation.CloseRequested || Pinned || Saved || textCompleted || textPresented;
-    private bool Finalized => confirmation.Committed || pinCompletion?.Committed == true || saveCompletion.Committed || saveAsCompletion?.Committed == true || textCompleted || textPresented;
+    public bool CloseRequested => confirmation.CloseRequested || Pinned || Saved || textCompleted || textPresented || Recorded is not null;
+    private bool Finalized => confirmation.Committed || pinCompletion?.Committed == true || saveCompletion.Committed || saveAsCompletion?.Committed == true || textCompleted || textPresented || Recorded is not null;
     internal NativeToolbarControl Toolbar => nativeToolbar;
     internal NativeInlineText? TextInput => nativeText;
     internal TextDraft? EditingText => textDraft;
@@ -243,7 +243,7 @@ internal sealed class NativeCaptureSession : IDisposable
                     catch (Exception error) { Refresh(error.Message); }
                 }
             };
-            nativeText.MouseUp += (_, mouse) => { if (mouse.Button == MouseButtons.Right) capture.Window.Close(); };
+            nativeText.MouseUp += (_, mouse) => { if (mouse.Button == MouseButtons.Right && !capture.HasViewport) capture.Window.Close(); };
             nativeText.BringToFront(); nativeText.Focus(); nativeText.SelectAll();
             opened?.Invoke();
             pendingTextRestore = null;
@@ -300,6 +300,7 @@ internal sealed class NativeCaptureSession : IDisposable
 
     private void NativeCommand(string command)
     {
+        if (recordingActive) return;
         if (command is "ocr" or "translate") {
             if (!closing && !preparingImage && !retaking && !Finalized && textDraft is null) recognition.Start(command == "translate", false);
             return;
@@ -312,6 +313,8 @@ internal sealed class NativeCaptureSession : IDisposable
             return;
         }
         switch (command) {
+            case "video": BeginRecording("mp4"); return;
+            case "gif": BeginRecording("gif"); return;
             case "confirm": OnKeyPressed(Keys.Enter); return;
             case "save": OnKeyPressed(Keys.Control | Keys.S); return;
             case "saveAs": OnKeyPressed(Keys.Control | Keys.Shift | Keys.S); return;
@@ -339,7 +342,7 @@ internal sealed class NativeCaptureSession : IDisposable
 
     private void OnKeyPressed(Keys key)
     {
-        if (!ready || disposed || retaking || closing) return;
+        if (!ready || disposed || retaking || recordingActive || closing) return;
         if (recognition.Active) { if (key == Keys.Escape) capture.Window.Close(); return; }
         if (preparingImage) { if (key == Keys.Escape) capture.Window.Close(); return; }
         if (replacementError is not null) { if (key==Keys.Escape) capture.Window.Close();return; }
@@ -367,6 +370,10 @@ internal sealed class NativeCaptureSession : IDisposable
     }
     private bool FilterTextInput(Message message)
     {
+        // Long-image dismissal rules apply in every state, including an OCR
+        // handoff or a failed replacement. Transient selector shortcuts must
+        // not bypass this guard and discard the persistent editor.
+        if (capture.HasViewport && message.Msg is 0x0203 or 0x0204 or 0x0205) return true;
         if (recognition.Active && message.Msg is >= 0x0100 and <= 0x020e) {
             // Consume the dismissing click so it cannot also start a drawing
             // gesture or move the selection behind the result panel.
@@ -378,11 +385,18 @@ internal sealed class NativeCaptureSession : IDisposable
             if (message.Msg==0x0205 || message.Msg==0x0100 && message.WParam.ToInt32()==(int)Keys.Escape) capture.Window.Close();
             if (message.Msg is >=0x0100 and <=0x020e) return true;
         }
-        if ((closing || retaking) && message.Msg is >= 0x0100 and <= 0x020e) return true;
+        if ((closing || retaking || recordingActive) && message.Msg is >= 0x0100 and <= 0x020e) return true;
         if (message.Msg == 0x0205) { capture.Window.Close(); return true; }
         if (preparingImage && message.Msg is >= 0x0100 and <= 0x020e) {
             if (message.Msg == 0x0100 && message.WParam.ToInt32() == (int)Keys.Escape) capture.Window.Close();
             return true;
+        }
+        if (capture.HasViewport && message.Msg == 0x020a) {
+            var delta = (short)((message.WParam.ToInt64() >> 16) & 0xffff);
+            var screenPoint = NativeTextPlacement.PointFromMessage(message.LParam);
+            capture.ZoomAtPoint(capture.Window.PointToClient(screenPoint), delta);
+            Refresh();
+            return true; // Do not also trigger ShareX's Ctrl-wheel/magnifier.
         }
         if (message.Msg == 0x0203) {
             try { Confirm(); Refresh(); } catch (Exception error) { Refresh(error.Message); }
@@ -442,7 +456,7 @@ internal sealed class NativeCaptureSession : IDisposable
     private async Task RunRetake(TaskCompletionSource completed)
     {
         string? error = null;
-        try { await retake!(); textTool = false; scrollEnabled=true;nativeToolbar.SetScrollState(true,true);nativeToolbar.SetRetakeAvailable(true); }
+        try { await retake!(); textTool = false; scrollEnabled=true;nativeToolbar.SetScrollState(true,true);nativeToolbar.SetRetakeAvailable(true); recording = null; nativeToolbar.SetRecordingAvailable(false); }
         catch (OperationCanceledException) { }
         catch (Exception failure) { error = failure.Message; }
         finally {
@@ -537,7 +551,7 @@ internal sealed class NativeCaptureSession : IDisposable
     private void RecognitionChanged()
     {
         if (disposed || capture.Window.IsDisposed) return;
-        nativeToolbar.Enabled = !recognition.Active && !closing && !retaking && !preparingImage;
+        nativeToolbar.Enabled = !recognition.Active && !closing && !retaking && !recordingActive && !preparingImage;
         capture.SetTextEditing(recognition.Active || closing || Finalized || nativeText is not null);
         Refresh();
     }

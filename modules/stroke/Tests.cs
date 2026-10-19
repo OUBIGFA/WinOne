@@ -28,6 +28,12 @@ namespace WinOne.StrokeRuntime
         {
             try {
                 Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
+                var hookHealth=new HookRecovery();
+                Check(!hookHealth.NeedsRestart(120000,100,100),"Idle time was mistaken for a lost hook");
+                Check(!hookHealth.NeedsRestart(120000,120000,119999),"Healthy input caused a hook restart");
+                Check(hookHealth.NeedsRestart(120000,120000,100),"Fresh input did not repair a missing low-level hook");
+                Check(!hookHealth.NeedsRestart(120500,120000,100),"One input repeatedly restarted the hook");
+                Check(hookHealth.NeedsRestart(123000,123000,120000),"A later hook failure could not recover");
                 var config=Configuration.Parse(File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"defaults.json")));
                 // Behavior tests exercise the engine's gesture→button mapping for every action, independent of which actions the production default ships enabled. Enable all actions in this controlled fixture.
                 foreach(var pack in config.actionPackages)foreach(var action in pack.actions)action.enabled=true;

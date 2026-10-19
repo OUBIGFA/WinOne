@@ -39,6 +39,7 @@ type aiJob struct {
 	cancel          context.CancelFunc
 	finished        time.Time
 	session         string
+	settled         <-chan struct{} // Closed after completion or cancellation; no polling delay for native OCR.
 }
 type aiService struct {
 	routing           routingControl
@@ -53,6 +54,8 @@ type aiService struct {
 	storePath         string
 	desktopExecutable string
 	translator        ai.Translator
+	localOCR          *ai.LocalOCR
+	captureEnabled    func() bool // Published before serving: controls local OCR residency.
 	jobs              map[string]*aiJob
 	ctx               context.Context
 	accountGate       chan struct{}
@@ -69,7 +72,8 @@ func registerAI(service *host.Service, ctx context.Context, directory, executabl
 	return nil
 }
 func newAIService(ctx context.Context, directory, executable string) *aiService {
-	return &aiService{storePath: filepath.Join(directory, "ai-settings.json"), desktopExecutable: filepath.Join(filepath.Dir(executable), "WinOne.exe"), translator: ai.Translator{Executable: filepath.Join(filepath.Dir(executable), "shared", "ai", "WinOne.AI.exe"), DataDirectory: filepath.Join(directory, "ai-runtime")}, jobs: map[string]*aiJob{}, ctx: ctx, accountGate: make(chan struct{}, 1)}
+	runtime := ai.Translator{Executable: filepath.Join(filepath.Dir(executable), "shared", "ai", "WinOne.AI.exe"), DataDirectory: filepath.Join(directory, "ai-runtime")}
+	return &aiService{storePath: filepath.Join(directory, "ai-settings.json"), desktopExecutable: filepath.Join(filepath.Dir(executable), "WinOne.exe"), translator: runtime, localOCR: ai.NewLocalOCR(ctx, runtime), jobs: map[string]*aiJob{}, ctx: ctx, accountGate: make(chan struct{}, 1)}
 }
 func bindAIService(service *host.Service, engine *aiService) {
 	engine.gatewaySlots = make(chan struct{}, 4)
@@ -105,7 +109,7 @@ func (s *aiService) handle(r host.Request) host.Response {
 		return response
 	}
 	result := func(value any) host.Response { response.Result, _ = json.Marshal(value); return response }
-	if r.Method == "settings.get" || r.Method == "settings.save" || r.Method == "configuration.get" || r.Method == "configuration.save" || r.Method == "models.fetch" || r.Method == "translate.start" || r.Method == "generate.start" || r.Method == "recognize.start" {
+	if r.Method == "settings.get" || r.Method == "settings.save" || r.Method == "configuration.get" || r.Method == "configuration.save" || r.Method == "keys.reveal" || r.Method == "models.fetch" || r.Method == "translate.start" || r.Method == "generate.start" || r.Method == "recognize.start" {
 		s.mu.Lock()
 		var err error
 		if s.store == nil {
@@ -117,6 +121,18 @@ func (s *aiService) handle(r host.Request) host.Response {
 		}
 	}
 	switch r.Method {
+	case "ocr.status":
+		if s.localOCR == nil {
+			return result(map[string]any{"ready": false, "processId": 0})
+		}
+		ready, pid := s.localOCR.Status()
+		return result(map[string]any{"ready": ready, "processId": pid})
+	case "ocr.prepare":
+		queued, err := s.prepareLocalOCRAfterResume()
+		if err != nil {
+			return fail(err)
+		}
+		return result(map[string]bool{"queued": queued})
 	case "usage.export.save":
 		return s.handleUsageExport(r)
 	case "usage.get", "usage.export":
@@ -189,6 +205,19 @@ func (s *aiService) handle(r host.Request) host.Response {
 			return fail(err)
 		}
 		return result(map[string]any{"models": models})
+	case "keys.reveal":
+		var input struct {
+			Provider string `json:"provider"`
+			ID       string `json:"id"`
+		}
+		if err := configjson.DecodeObject(r.Params, &input); err != nil {
+			return fail(err)
+		}
+		key, err := s.store.RevealCredential(input.Provider, input.ID)
+		if err != nil {
+			return fail(err)
+		}
+		return result(map[string]string{"key": key})
 	case "configuration.get":
 		return result(s.store.Configuration())
 	case "configuration.save":
@@ -205,6 +234,7 @@ func (s *aiService) handle(r host.Request) host.Response {
 			return fail(err)
 		}
 		s.refreshMagpieMaintenance()
+		s.refreshLocalOCRStandby()
 		s.closeRouting()
 		return result(saved)
 	case "settings.get":
@@ -222,6 +252,7 @@ func (s *aiService) handle(r host.Request) host.Response {
 			return fail(err)
 		}
 		s.refreshMagpieMaintenance()
+		s.refreshLocalOCRStandby()
 		return result(saved)
 	case "translate.start", "generate.start", "recognize.start":
 		var p struct {
@@ -340,7 +371,7 @@ func (s *aiService) handle(r host.Request) host.Response {
 			return fail(errors.New("翻译任务较多，请等待当前任务完成"))
 		}
 		ctx, cancel := context.WithCancel(s.ctx)
-		job := &aiJob{ID: hex.EncodeToString(bytes[:]), State: "running", owner: r.PeerPID, cancel: cancel, session: p.Session}
+		job := &aiJob{ID: hex.EncodeToString(bytes[:]), State: "running", owner: r.PeerPID, cancel: cancel, session: p.Session, settled: ctx.Done()}
 		// Keep the routing snapshot, including its display name, even if settings
 		// change before the reply arrives or later conversation uses another model.
 		usesModel := r.Method == "generate.start" || r.Method == "recognize.start" && preferences.OCREngine == "ai" || r.Method == "translate.start" && preferences.Engine == "llm"
@@ -383,7 +414,7 @@ func (s *aiService) handle(r host.Request) host.Response {
 					runtime = runtime.ForProvider(preferences.ProviderID)
 				}
 				if r.Method == "recognize.start" && preferences.OCREngine != "ai" {
-					return s.translator.RecognizeLocal(callCtx, input.ImagePNG)
+					return s.localOCR.Recognize(callCtx, input.ImagePNG)
 				}
 				if r.Method == "generate.start" || r.Method == "recognize.start" {
 					return runtime.GenerateStream(callCtx, preferences, key, input, progress)
@@ -428,9 +459,33 @@ func (s *aiService) handle(r host.Request) host.Response {
 			ID              string `json:"id"`
 			TextOffset      *int   `json:"textOffset,omitempty"`
 			ReasoningOffset *int   `json:"reasoningOffset,omitempty"`
+			WaitMs          int    `json:"waitMs,omitempty"`
 		}
 		if err := configjson.DecodeObject(r.Params, &p); err != nil {
 			return fail(err)
+		}
+		if p.WaitMs < 0 || p.WaitMs > 500 || r.Method == "jobs.cancel" && p.WaitMs != 0 {
+			return fail(errors.New("AI 任务等待时间无效"))
+		}
+		if p.WaitMs > 0 {
+			s.mu.Lock()
+			job := s.jobs[p.ID]
+			if job == nil || job.owner != r.PeerPID {
+				s.mu.Unlock()
+				return fail(errors.New("AI 任务不存在"))
+			}
+			settled, running := job.settled, job.State == "running"
+			s.mu.Unlock()
+			// Wait outside the state lock. Completion/cancel and other clients
+			// remain responsive; identity is checked again before returning text.
+			if running && settled != nil {
+				timer := time.NewTimer(time.Duration(p.WaitMs) * time.Millisecond)
+				select {
+				case <-settled:
+				case <-timer.C:
+				}
+				timer.Stop()
+			}
 		}
 		s.mu.Lock()
 		defer s.mu.Unlock()

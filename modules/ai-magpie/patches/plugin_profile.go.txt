@@ -52,7 +52,11 @@ func WinOneRememberProvider(p Provider, fingerprint string) error {
 // background refresh: executing plugin code still requires preparePluginAt.
 func WinOneReadProvider(spec, id, fingerprint string) (Provider, bool, error) {
 	l := Load()
-	if len(l.Plugins) != 1 || l.Plugins[0].Spec != spec || l.Plugins[0].Off {
+	enabled := false
+	for _, entry := range l.Plugins {
+		if entry.Spec == spec && !entry.Off { enabled = true; break }
+	}
+	if !enabled {
 		return Provider{}, false, nil
 	}
 	data, err := steady.ReadFile(winOneProviderSnapshotPath())

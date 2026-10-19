@@ -5,8 +5,8 @@ import { Button } from "../ui/button";
 import { ProfileImport } from "./profile-import";
 import { useTranslation } from "../i18n";
 import { usePageActivity, type PageActivityChanged } from "../ui/page-navigation";
-import {FolderSync,Download} from "lucide-react";
-import {IconLabel} from "../ui/icon-label";
+import {Download} from "lucide-react";
+import {SettingsSection} from "../components/settings-layout";
 
 export function Profiles({onApplied=()=>{},onActivity}:{onApplied?:()=>void;onActivity?:PageActivityChanged}) {
   const {t}=useTranslation();
@@ -22,14 +22,14 @@ export function Profiles({onApplied=()=>{},onActivity}:{onApplied?:()=>void;onAc
     } catch(error) {setError(String(error));}
     finally {setBusy(false);}
   }
-  return <section className="profile-settings">
-    <h2><IconLabel icon={FolderSync}>{t("profiles.title")}</IconLabel></h2>
-    <div className="setting-row">
-      <div><span>{t("profiles.export")}</span><p>{t("profiles.exportHint")}</p></div>
-      <Button icon={Download} busy={busy} onClick={()=>void save()}>{t("profiles.export")}</Button>
-    </div>
-    {error && <Notice>{error}</Notice>}
-    <p role="status" className="program-path">{message?t("profiles.exported",{path:message}):""}</p>
+  return <div className="profile-settings settings-section-stack">
+    <SettingsSection icon={Download} title={t("profiles.export")} description={t("profiles.exportHint")}>
+      <div className="settings-action-row">
+        <Button icon={Download} busy={busy} onClick={()=>void save()}>{t("profiles.exportFile")}</Button>
+        {message&&<p role="status" className="program-path">{t("profiles.exported",{path:message})}</p>}
+      </div>
+      {error && <Notice>{error}</Notice>}
+    </SettingsSection>
     <ProfileImport onApplied={onApplied} onActivity={onActivity}/>
-  </section>;
+  </div>;
 }

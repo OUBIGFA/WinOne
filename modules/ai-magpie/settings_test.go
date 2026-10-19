@@ -14,8 +14,12 @@ import (
 )
 
 func TestRuntimeRedactionRestoresResponseAndUsesWireName(t *testing.T) {
-	old := settings.WinOneSettings
-	defer func() { settings.WinOneSettings = old; provider.WinOneSearchAPIs = nil; provider.WinOneProviders = nil }()
+	old := settings.WinOneSettings.Load()
+	defer func() {
+		settings.WinOneSettings.Store(old)
+		provider.WinOneSearchAPIs = nil
+		provider.WinOneProviders = nil
+	}()
 	var receivedModel, receivedText string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/models") {
@@ -81,7 +85,7 @@ func TestRuntimeSettingsReachUpstream(t *testing.T) {
 	if err := applyRuntimeSettings(in); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { settings.WinOneSettings = nil; provider.WinOneSearchAPIs = nil }()
+	defer func() { settings.WinOneSettings.Store(nil); provider.WinOneSearchAPIs = nil }()
 	s := settings.Load()
 	if !s.Redact || !s.RedactPersonal || s.Vision != "off" || s.Searcher != "off" || s.SearchFirst != "api" || !s.NoLoopGuard {
 		t.Fatalf("settings not applied: %+v", s)

@@ -1,12 +1,14 @@
-import {ScanLine,FileType,ScrollText,Save,FolderOpen,Languages} from "lucide-react";
+import {usePathDrop} from "../ui/path-drop";
+import {SettingsSaveBar} from "../components/settings-save-bar";
+import {ScanLine,FileType,ScrollText,Save,FolderOpen,Languages,SendHorizontal,Workflow,ListChecks} from "lucide-react";
 import {IconLabel} from "../ui/icon-label";
 import {Notice} from "../ui/notice";
-import {RadioGroup,RadioGroupItem} from "../components/ui/radio-group";
-import {Label} from "../components/ui/label";
 import {Tabs,TabsList,TabsTrigger,TabsContent} from "../components/ui/tabs";
 import {Checkbox} from "../components/ui/checkbox";
 import {NumberField,validNumber} from "../ui/number-field";
+import {SettingsSection,SettingsOptions,SettingsToggle} from "../components/settings-layout";
 
+import {Shortcuts} from "./shortcuts";
 import {CaptureAISettings} from "./capture-ai-settings";
 import {CaptureFileName} from "./capture-filename";
 
@@ -33,7 +35,7 @@ interface CaptureSettings {
   fileNameTemplate?: string | null;
 }
 interface Snapshot { settings: CaptureSettings }
-export function CapturePage({ disabled = false,onEdit,onOpenDraft,onEditorActivity,refreshKey=0,onActivity }: { disabled?: boolean;onEdit?:(id:string)=>Promise<void>;onOpenDraft?:(id:string)=>Promise<void>;onEditorActivity?:(active:boolean)=>void;refreshKey?:number;onActivity?:PageActivityChanged }) {
+export function CapturePage({ disabled = false,onEdit,onOpenDraft,onEditorActivity,refreshKey=0,onActivity,onSaved }: { disabled?: boolean;onEdit?:(id:string)=>Promise<void>;onOpenDraft?:(id:string)=>Promise<void>;onEditorActivity?:(active:boolean)=>void;refreshKey?:number;onActivity?:PageActivityChanged;onSaved?:()=>void }) {
   const {t}=useTranslation();
   const [settingsTab,setSettingsTab]=useState("general");
   const [aiOpened,setAIOpened]=useState(false);
@@ -81,6 +83,7 @@ export function CapturePage({ disabled = false,onEdit,onOpenDraft,onEditorActivi
       setBusy(false);
     }
   }
+  const outputDrop=usePathDrop({kind:"directory",disabled:busy||!draft,onPaths:paths=>{setError("");setDraft(value=>value?{...value,outputDirectory:paths[0]}:value);},onError:setError});
   async function browse() {
     if(busy)return;
     setBusy(true);setError("");setMessage("");
@@ -93,7 +96,7 @@ export function CapturePage({ disabled = false,onEdit,onOpenDraft,onEditorActivi
       setBusy(false);
     }
   }
-  const navigationTabs=(<TabsList variant="default" className="max-w-full flex-wrap justify-start" aria-label={t("capture.save")}><TabsTrigger value="general"><IconLabel icon={ScanLine}>{t("capture.after")}</IconLabel></TabsTrigger><TabsTrigger value="filename"><IconLabel icon={FileType}>{t("capture.fileNameTemplate")}</IconLabel></TabsTrigger><TabsTrigger value="scroll"><IconLabel icon={ScrollText}>{t("capture.scrollSettings")}</IconLabel></TabsTrigger><TabsTrigger value="ai"><IconLabel icon={Languages}>{t("ai.title")}</IconLabel></TabsTrigger></TabsList>);
+  const navigationTabs=(<TabsList variant="default" className="max-w-full flex-wrap justify-start" aria-label={t("capture.save")}><TabsTrigger title={t("capture.after")} value="general"><IconLabel icon={ScanLine}>{t("capture.after")}</IconLabel></TabsTrigger><TabsTrigger title={t("settingsDesign.captureNaming")} value="filename"><IconLabel icon={FileType}>{t("settingsDesign.captureNaming")}</IconLabel></TabsTrigger><TabsTrigger title={t("settingsDesign.captureScrolling")} value="scroll"><IconLabel icon={ScrollText}>{t("settingsDesign.captureScrolling")}</IconLabel></TabsTrigger><TabsTrigger title={t("settingsDesign.captureAI")} value="ai"><IconLabel icon={Languages}>{t("settingsDesign.captureAI")}</IconLabel></TabsTrigger><TabsTrigger title={t("shortcuts.title")} value="shortcuts"><IconLabel icon={SendHorizontal}>{t("shortcuts.title")}</IconLabel></TabsTrigger></TabsList>);
   const unavailable=error
     ? <Notice actions={<Button disabled={busy} onClick={()=>void reload()}>{t("common.retry")}</Button>}>{error}</Notice>
     : <p role="status">{t("capture.loading")}</p>;
@@ -108,13 +111,15 @@ export function CapturePage({ disabled = false,onEdit,onOpenDraft,onEditorActivi
       {error && draft && (
         <Notice actions={<Button disabled={busy} onClick={() => void reload()}>{t("capture.discard")}</Button>}>{error}</Notice>
       )}
-<TabsContent value="general" className="">{draft?<fieldset className="plain-fieldset settings-stack" disabled={busy}>
-<section className="settings-group"><h3 className="settings-group-title">{t("capture.workflow")}</h3>
-<RadioGroup aria-label={t("capture.workflow")} value={draft.openEditor?"edit":"save"} disabled={busy} onValueChange={value=>setDraft({...draft,openEditor:value==="edit",askWhereToSave:value==="edit"?draft.askWhereToSave:false})} className="gap-4">
-  <div className="flex items-center gap-2"><RadioGroupItem id="capture-edit-first" value="edit"/><Label htmlFor="capture-edit-first">{t("capture.editFirst")}</Label></div>
-  <div className="flex items-center gap-2"><RadioGroupItem id="capture-quick-save" value="save"/><Label htmlFor="capture-quick-save">{t("capture.quickSave")}</Label></div>
-</RadioGroup></section>
-<section className="settings-group"><h3 className="settings-group-title">{t("capture.outputOptions")}</h3>
+<TabsContent value="general" className="">{draft?<fieldset className="plain-fieldset settings-section-stack" disabled={busy}>
+<SettingsSection className="capture-workflow" headingId="capture-workflow-heading" icon={Workflow} title={t("settingsDesign.captureWorkflow")}>
+<SettingsOptions label={t("capture.workflow")} labelledBy="capture-workflow-heading" presentation="list" value={draft.openEditor?"edit":"save"} disabled={busy}
+  onChange={value=>setDraft({...draft,openEditor:value==="edit",askWhereToSave:value==="edit"?draft.askWhereToSave:false})}
+  items={[
+    {value:"edit",id:"capture-edit-first",label:t("capture.editFirst"),description:t("settingsDesign.captureEditHint")},
+    {value:"save",id:"capture-quick-save",label:t("capture.quickSave"),description:t("settingsDesign.captureSaveHint")},
+  ]}/></SettingsSection>
+<SettingsSection className="capture-output-options" icon={ListChecks} title={t("capture.outputOptions")}>
         <label className="check-row">
           <Checkbox
             checked={draft.copyToClipboard}
@@ -134,43 +139,29 @@ export function CapturePage({ disabled = false,onEdit,onOpenDraft,onEditorActivi
           />
           {t("capture.pin")}
         </label>
-</section>
-<section className="settings-group"><h3 className="settings-group-title">{t("capture.saveLocation")}</h3>
-{draft.openEditor&&        <label className="check-row">
-          <Checkbox
-            checked={draft.askWhereToSave}
-            onCheckedChange={(checked) =>
-              setDraft({ ...draft, askWhereToSave: checked })
-            }
-          />
-          {t("capture.chooseEveryTime")}
-        </label>}
-        <div className="setting-row">
-          <div>
+</SettingsSection>
+<SettingsSection icon={FolderOpen} title={t("capture.saveLocation")}>
+{draft.openEditor&&<SettingsToggle label={t("capture.chooseEveryTime")} checked={draft.askWhereToSave} onChange={askWhereToSave=>setDraft({...draft,askWhereToSave})}/>}
+        <div className="capture-directory-setting" {...outputDrop}>
             <span>{t("capture.directory")}</span>
+          <div className="capture-directory-control">
             <p className="program-path" id="capture-path">
               {draft.outputDirectory}
             </p>
-          </div>
           <Button icon={FolderOpen} aria-describedby="capture-path" onClick={() => void browse()}>{t("capture.chooseDirectory")}</Button>
+          </div>
         </div>
-        </section></fieldset>:unavailable}</TabsContent><TabsContent value="filename" className="">{draft?<fieldset className="plain-fieldset" disabled={busy}>
+        </SettingsSection></fieldset>:unavailable}</TabsContent><TabsContent value="filename" className="">{draft?<fieldset className="plain-fieldset" disabled={busy}>
         <CaptureFileName value={draft.fileNameTemplate??""} onChange={value=>setDraft({...draft,fileNameTemplate:value})}/>
         </fieldset>:unavailable}</TabsContent><TabsContent value="scroll" className="space-y-5">{draft?<fieldset className="plain-fieldset settings-stack" disabled={busy}>
-        <label className="check-row">
-          <Checkbox
-            checked={draft.scrollFromTop}
-            onCheckedChange={(checked) =>
-              setDraft({ ...draft, scrollFromTop: checked })
-            }
-          />
-          {t("capture.fromTop")}
-        </label>
-        <NumberField id="capture-scroll-delay" label={t("capture.delay")} min={100} max={2000} value={draft.scrollDelay} onChange={value=>setDraft({...draft,scrollDelay:value})}/>
-        </fieldset>:unavailable}</TabsContent><TabsContent value="ai" keepMounted className="">{aiOpened&&<CaptureAISettings onActivity={onActivity}/>}</TabsContent></Tabs>
-        {draft&&settingsTab!=="ai"&&<div className="settings-save-bar">
+        <SettingsSection icon={ScrollText} title={t("settingsDesign.captureScrolling")}>
+          <SettingsToggle label={t("capture.fromTop")} checked={draft.scrollFromTop} onChange={scrollFromTop=>setDraft({...draft,scrollFromTop})}/>
+          <NumberField id="capture-scroll-delay" label={t("capture.delay")} min={100} max={2000} value={draft.scrollDelay} onChange={value=>setDraft({...draft,scrollDelay:value})}/>
+        </SettingsSection>
+        </fieldset>:unavailable}</TabsContent><TabsContent value="ai" keepMounted className="">{aiOpened&&<CaptureAISettings onActivity={onActivity}/>}</TabsContent><TabsContent value="shortcuts" className="settings-section-stack"><Shortcuts moduleId="capture" onSaved={()=>onSaved?.()} onActivity={onActivity}/></TabsContent></Tabs>
+        {draft&&settingsTab!=="ai"&&settingsTab!=="shortcuts"&&<SettingsSaveBar>
           {!validScrollDelay&&settingsTab!=="scroll"&&<Notice actions={<Button onClick={()=>{setSettingsTab("scroll");requestAnimationFrame(()=>document.getElementById("capture-scroll-delay")?.focus());}}>{t("capture.checkScrollDelay")}</Button>}>{t("capture.invalidScrollDelay")}</Notice>}
-          <Button icon={Save} variant="primary" disabled={busy||!dirty||!validScrollDelay} onClick={() => void save()}>{t("capture.save")}</Button></div>}
+          <Button icon={Save} variant="primary" disabled={busy||!dirty||!validScrollDelay} onClick={() => void save()}>{t("capture.save")}</Button></SettingsSaveBar>}
       </section>
       {message&&<p className="muted" role="status">{t(message)}</p>}
     </div>

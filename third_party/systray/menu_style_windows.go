@@ -32,6 +32,9 @@ var (
 	menuHeapFree     = k32.NewProc("HeapFree")
 	menuAlphaBlend   = windows.NewLazySystemDLL("msimg32.dll").NewProc("AlphaBlend")
 	menuBitmapInfo   = g32.NewProc("GetObjectW")
+	menuRoundRect    = g32.NewProc("RoundRect")
+	menuStockObject  = g32.NewProc("GetStockObject")
+	menuFocusRect    = u32.NewProc("DrawFocusRect")
 )
 
 type menuRect struct{ Left, Top, Right, Bottom int32 }
@@ -58,10 +61,14 @@ type styledMenuEntry struct {
 }
 
 type nativeMenuStyle struct {
+	frames                                     map[uintptr]bool
+	frameError                                 error
 	accessible                                 map[uintptr]int
 	heap                                       uintptr
 	root                                       windows.Handle
 	font, backgroundBrush, selectedBrush       uintptr
+	separatorBrush                             uintptr
+	chevron                                    windows.Handle
 	foreground, background, selected, disabled uint32
 	dpi                                        uint32
 	entries                                    []styledMenuEntry
@@ -73,24 +80,37 @@ func newNativeMenuStyle(source windows.Handle, dark bool, dpi uint32) (*nativeMe
 	if dpi < 96 || dpi > 768 {
 		return nil, errors.New("unsupported menu DPI")
 	}
-	s := &nativeMenuStyle{dpi: dpi, foreground: 0x171717, background: 0xffffff, selected: 0xf5f5f5, disabled: 0x737373, menus: make(map[windows.Handle][]int)}
+	// Match the shared settings surface, hover and readable text tiers. Win32
+	// still owns the popup frame, placement, keyboard input and system motion.
+	s := &nativeMenuStyle{dpi: dpi, foreground: 0x262626, background: 0xffffff, selected: 0xe7e7e7, disabled: 0x636363, menus: make(map[windows.Handle][]int)}
+	separator := uint32(0xe1e1e1)
 	if dark {
-		s.foreground = 0xfafafa
-		s.background = 0x171717
-		s.selected = 0x262626
-		s.disabled = 0xa3a3a3
+		s.foreground = 0xe9e9e9
+		s.background = 0x232323
+		s.selected = 0x333333
+		s.disabled = 0xaeaeae
+		separator = 0x3f3f3f
 	}
 	s.accessible = make(map[uintptr]int)
+	s.frames = make(map[uintptr]bool)
 	s.heap, _, _ = menuProcessHeap.Call()
 	face, _ := windows.UTF16PtrFromString("Segoe UI")
-	height := -int32((10*dpi + 36) / 72)
+	height := -s.px(14)
 	s.font, _, _ = menuCreateFont.Call(uintptr(height), 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 5, 0, uintptr(unsafe.Pointer(face)))
 	s.backgroundBrush, _, _ = menuCreateBrush.Call(uintptr(s.background))
 	s.selectedBrush, _, _ = menuCreateBrush.Call(uintptr(s.selected))
-	if s.font == 0 || s.backgroundBrush == 0 || s.selectedBrush == 0 {
+	s.separatorBrush, _, _ = menuCreateBrush.Call(uintptr(separator))
+	if s.font == 0 || s.backgroundBrush == 0 || s.selectedBrush == 0 || s.separatorBrush == 0 {
 		s.dispose()
 		return nil, errors.New("could not allocate menu style")
 	}
+	chevron, err := loadMenuChevron(dark, s.px(16))
+	if err != nil {
+		s.dispose()
+		return nil, err
+	}
+	s.chevron = chevron
+	s.bitmaps = append(s.bitmaps, chevron)
 	root, err := s.clone(source, 0)
 	if err != nil {
 		s.dispose()
@@ -212,7 +232,8 @@ func (s *nativeMenuStyle) dispose() {
 		menuHeapFree.Call(s.heap, 0, address)
 	}
 	s.accessible = nil
-	for _, object := range []uintptr{s.font, s.backgroundBrush, s.selectedBrush} {
+	s.frames = nil
+	for _, object := range []uintptr{s.font, s.backgroundBrush, s.selectedBrush, s.separatorBrush} {
 		if object != 0 {
 			menuDeleteObject.Call(object)
 		}
@@ -220,6 +241,8 @@ func (s *nativeMenuStyle) dispose() {
 	s.font = 0
 	s.backgroundBrush = 0
 	s.selectedBrush = 0
+	s.separatorBrush = 0
+	s.chevron = 0
 }
 
 func (s *nativeMenuStyle) entry(token uintptr) (styledMenuEntry, bool) {
@@ -260,8 +283,9 @@ func (s *nativeMenuStyle) measure(m *menuMeasure) bool {
 		return false
 	}
 	if e.kind&0x800 != 0 {
-		m.Width = uint32(s.px(200))
-		m.Height = uint32(s.px(9))
+		// A separator follows its siblings' width; it never sizes the popup.
+		m.Width = 0
+		m.Height = uint32(s.px(13))
 		return true
 	}
 	dc, _, _ := pGetDC.Call(0)
@@ -274,12 +298,14 @@ func (s *nativeMenuStyle) measure(m *menuMeasure) bool {
 	text, _ := windows.UTF16PtrFromString(e.title)
 	r := menuRect{}
 	menuDrawText.Call(dc, uintptr(unsafe.Pointer(text)), ^uintptr(0), uintptr(unsafe.Pointer(&r)), 0x420)
-	width := r.Right + s.px(64)
-	if width < s.px(200) {
-		width = s.px(200)
+	// Measure the actual label plus the same gutters used by draw. Submenu
+	// arrows reserve space only on rows that have one; no global minimum width.
+	width := r.Right + s.px(42+12)
+	if e.submenu != 0 {
+		width += s.px(20)
 	}
 	m.Width = uint32(width)
-	m.Height = uint32(s.px(32))
+	m.Height = uint32(s.px(40))
 	return true
 }
 
@@ -288,21 +314,32 @@ func (s *nativeMenuStyle) draw(d *menuDraw) bool {
 	if !ok || d.Type != 1 {
 		return false
 	}
+	// The HDC belongs to the actual Win32 popup (including a submenu), not
+	// the tray owner. Apply the shared system frame before painting its rows.
+	s.preparePopupFrame(d.DC)
 	saved, _, _ := menuSaveDC.Call(d.DC)
 	defer menuRestoreDC.Call(d.DC, saved)
-	brush := s.backgroundBrush
-	if d.State&1 != 0 {
-		brush = s.selectedBrush
-	}
-	menuFillRect.Call(d.DC, uintptr(unsafe.Pointer(&d.Rect)), brush)
+	menuFillRect.Call(d.DC, uintptr(unsafe.Pointer(&d.Rect)), s.backgroundBrush)
 	if e.kind&0x800 != 0 {
 		r := d.Rect
-		r.Left += s.px(8)
-		r.Right -= s.px(8)
+		r.Left += s.px(12)
+		r.Right -= s.px(12)
 		r.Top += (r.Bottom - r.Top) / 2
-		r.Bottom = r.Top + s.px(1)
-		menuFillRect.Call(d.DC, uintptr(unsafe.Pointer(&r)), s.selectedBrush)
+		r.Bottom = r.Top + 1 // One physical pixel, independent of menu DPI.
+		menuFillRect.Call(d.DC, uintptr(unsafe.Pointer(&r)), s.separatorBrush)
 		return true
+	}
+	if d.State&1 != 0 {
+		// An inset hover row makes grouping legible without painting a second
+		// popup border. Rounded geometry changes no item/hit-test coordinates.
+		r := s.selectionRect(d.Rect)
+		pen, _, _ := menuStockObject.Call(8) // NULL_PEN
+		pSelectObject.Call(d.DC, pen)
+		pSelectObject.Call(d.DC, s.selectedBrush)
+		menuRoundRect.Call(d.DC, uintptr(r.Left), uintptr(r.Top), uintptr(r.Right), uintptr(r.Bottom), uintptr(s.px(12)), uintptr(s.px(12)))
+		if d.State&0x10 != 0 {
+			menuFocusRect.Call(d.DC, uintptr(unsafe.Pointer(&r)))
+		}
 	}
 	pSelectObject.Call(d.DC, s.font)
 	menuSetBkMode.Call(d.DC, 1)
@@ -312,18 +349,21 @@ func (s *nativeMenuStyle) draw(d *menuDraw) bool {
 	}
 	menuSetTextColor.Call(d.DC, uintptr(color))
 	r := d.Rect
-	r.Left += s.px(36)
-	r.Right -= s.px(24)
+	r.Left += s.px(42)
+	r.Right -= s.px(12)
+	if e.submenu != 0 {
+		r.Right -= s.px(20)
+	}
 	text, _ := windows.UTF16PtrFromString(e.title)
 	menuDrawText.Call(d.DC, uintptr(unsafe.Pointer(text)), ^uintptr(0), uintptr(unsafe.Pointer(&r)), 0x8024)
 	if d.State&8 != 0 {
 		r = d.Rect
-		r.Left += s.px(8)
+		r.Left += s.px(12)
 		r.Right = r.Left + s.px(20)
 		mark, _ := windows.UTF16PtrFromString("✓")
 		menuDrawText.Call(d.DC, uintptr(unsafe.Pointer(mark)), ^uintptr(0), uintptr(unsafe.Pointer(&r)), 0x25)
 	} else if e.bitmap != 0 {
-		x, y := d.Rect.Left+s.px(8), d.Rect.Top+(d.Rect.Bottom-d.Rect.Top-s.px(20))/2
+		x, y := d.Rect.Left+s.px(12), d.Rect.Top+(d.Rect.Bottom-d.Rect.Top-s.px(20))/2
 		if d.State&6 != 0 {
 			menuDrawState.Call(d.DC, 0, 0, uintptr(e.bitmap), 0, uintptr(x), uintptr(y), uintptr(s.px(20)), uintptr(s.px(20)), 0x24)
 		} else if !s.drawBitmap(d.DC, e.bitmap, x, y) {
@@ -331,10 +371,10 @@ func (s *nativeMenuStyle) draw(d *menuDraw) bool {
 		}
 	}
 	if e.submenu != 0 {
-		r = d.Rect
-		r.Left = r.Right - s.px(22)
-		arrow, _ := windows.UTF16PtrFromString("›")
-		menuDrawText.Call(d.DC, uintptr(unsafe.Pointer(arrow)), ^uintptr(0), uintptr(unsafe.Pointer(&r)), 0x25)
+		x, y := d.Rect.Right-s.px(28), d.Rect.Top+(d.Rect.Bottom-d.Rect.Top-s.px(16))/2
+		if !s.drawBitmapSized(d.DC, s.chevron, x, y, s.px(16)) {
+			return false
+		}
 	}
 	return true
 }
@@ -345,7 +385,19 @@ type nativeMenuBitmap struct {
 	Bits                        uintptr
 }
 
+func (s *nativeMenuStyle) selectionRect(r menuRect) menuRect {
+	r.Left += s.px(4)
+	r.Right -= s.px(4)
+	r.Top += s.px(2)
+	r.Bottom -= s.px(2)
+	return r
+}
+
 func (s *nativeMenuStyle) drawBitmap(target uintptr, bitmap windows.Handle, x, y int32) bool {
+	return s.drawBitmapSized(target, bitmap, x, y, s.px(20))
+}
+
+func (s *nativeMenuStyle) drawBitmapSized(target uintptr, bitmap windows.Handle, x, y, size int32) bool {
 	var info nativeMenuBitmap
 	if ok, _, _ := menuBitmapInfo.Call(uintptr(bitmap), unsafe.Sizeof(info), uintptr(unsafe.Pointer(&info))); ok == 0 || info.Width <= 0 || info.Height <= 0 {
 		return false
@@ -359,7 +411,7 @@ func (s *nativeMenuStyle) drawBitmap(target uintptr, bitmap windows.Handle, x, y
 	defer pSelectObject.Call(dc, old)
 	// Menu bitmaps produced from icons are premultiplied BGRA. Preserve alpha
 	// instead of copying transparent pixels as black onto a dark/light menu.
-	ok, _, _ := menuAlphaBlend.Call(target, uintptr(x), uintptr(y), uintptr(s.px(20)), uintptr(s.px(20)), dc, 0, 0, uintptr(info.Width), uintptr(info.Height), 0x01ff0000)
+	ok, _, _ := menuAlphaBlend.Call(target, uintptr(x), uintptr(y), uintptr(size), uintptr(size), dc, 0, 0, uintptr(info.Width), uintptr(info.Height), 0x01ff0000)
 	return ok != 0
 }
 

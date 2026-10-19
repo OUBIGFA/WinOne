@@ -1,5 +1,5 @@
-// Adapted from Cindy, Copyright 2026 XD Inc., Apache-2.0.
-// Only host imports, test identity, and bounded process scrolling are adapted.
+// Reused from Cindy db24db2a, Copyright 2026 XD Inc., Apache-2.0.
+// Host seams: imports, Pi message types, and long-content collapse navigation.
 /**
  * WorkGroupBlock
  * ---------------------------------------------------------------------------
@@ -33,15 +33,12 @@ import {
   type ReactNode,
 } from 'react';
 import { ChevronRight, Layers, Sparkles } from 'lucide-react';
-import { useTranslation, Spinner } from './adapter';
-import { ProcessBody, useExpandedProcess } from '../process-navigation';
-
-import { cn } from './adapter';
-import type { WorkMessage as ChatMessage, DeferredHistoryWork } from './workActivityAdapter';
+import { useTranslation, cn, Spinner } from './adapter';
+import type { WorkMessage as ChatMessage, DeferredHistoryWork, HistoryWorkLine } from './workActivityAdapter';
 import { useExpandedBlockMemory } from './useExpandedBlockMemory';
 import { Collapse } from './collapse';
-
-import { Button } from '../../ui/button';
+import { Button } from './panel-ui/button';
+import { ProcessBody } from '../process-navigation';
 
 import {
   ACTIVITY_ROW_CHEVRON_SLOT_CLASS,
@@ -105,8 +102,6 @@ export function collectLiveWorkActivities(
 }
 
 export interface WorkGroupBlockProps {
-  /** The enclosing Pi turn is still working, even between individual runs. */
-  forceExpanded?: boolean;
   /** Teammates keep public execution details collapsed, including while running. */
   compact?: boolean;
   deferred?: DeferredHistoryWork;
@@ -143,6 +138,14 @@ function ThinkingActivityRow({ activity }: { activity: ProjectedThinkingActivity
   const textRef = useRef<HTMLSpanElement>(null);
   const [canExpand, setCanExpand] = useState(hasExplicitLineBreak);
   const { expanded, setExpanded } = useExpandedBlockMemory(`thinking:${activity.key}`);
+  const wasExpanded = useRef(expanded), wasLong = useRef(false);
+  useLayoutEffect(() => {
+    const closed = wasExpanded.current && !expanded;
+    wasExpanded.current = expanded;
+    if (!closed || !wasLong.current) return;
+    const row = textRef.current?.closest('button'), viewport = row?.closest<HTMLElement>('.chat-transcript-viewport');
+    if (row && viewport && row.getBoundingClientRect().top < viewport.getBoundingClientRect().top) viewport.scrollTop += row.getBoundingClientRect().top - viewport.getBoundingClientRect().top - 8;
+  }, [expanded]);
 
   useLayoutEffect(() => {
     if (expanded) {
@@ -161,7 +164,11 @@ function ThinkingActivityRow({ activity }: { activity: ProjectedThinkingActivity
     return () => observer.disconnect();
   }, [activity.content, expanded, hasExplicitLineBreak]);
 
+  // A long thought can be expanded inside the latest-five preview too, before
+  // the outer group has an expand-all toggle. Give that real-content path the
+  // same local collapse action; full groups already own it via ProcessBody.
   return (
+    <ProcessBody blockKey={`thinking:${activity.key}`} version={rawContent} onLongChange={value=>{wasLong.current=value;}} onCollapse={expanded?()=>setExpanded(false):undefined}>
     <button
       type="button"
       data-live-work-activity="thinking"
@@ -209,6 +216,80 @@ function ThinkingActivityRow({ activity }: { activity: ProjectedThinkingActivity
         ) : null}
       </span>
     </button>
+    </ProcessBody>
+  );
+}
+
+/** Remote running line: the Host already resolved the descriptor from the full input. */
+function ToolLineRow({
+  line,
+  onActivate,
+}: {
+  line: Extract<HistoryWorkLine, { kind: 'tool' }>;
+  onActivate: () => void;
+}) {
+  const message = useMemo<ChatMessage>(
+    () => ({
+      clientId: line.key,
+      role: 'tool_use',
+      content: '',
+      toolName: line.toolName,
+      toolInput: line.ghost ? { ghost_id: line.ghost.id, tool: line.ghost.tool } : null,
+    }),
+    [line.key, line.toolName, line.ghost],
+  );
+  return (
+    <div data-live-work-activity="tool" className="w-full min-w-0">
+      <AgentActionRow
+        message={message}
+        showRawCommand
+        status={line.status}
+        descriptorOverride={line.descriptor}
+        onActivateOverride={onActivate}
+      />
+    </div>
+  );
+}
+
+/** Remote running thought: only its opening is on this device; the full text opens with the group. */
+function ThinkingLineRow({
+  line,
+  onActivate,
+}: {
+  line: Extract<HistoryWorkLine, { kind: 'thinking' }>;
+  onActivate: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      data-live-work-activity="thinking"
+      data-message-client-id={line.key}
+      data-scroll-disclosure-header=""
+      onClick={onActivate}
+      className={cn(
+        'group flex w-full min-w-0 cursor-pointer select-none items-center gap-1.5 px-2 py-[3px] text-left outline-none',
+        'focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
+        ACTIVITY_ROW_RADIUS_CLASS,
+        ACTIVITY_ROW_COLOR_TRANSITION_CLASS,
+        ACTIVITY_ROW_HOVER_SURFACE_CLASS,
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className="inline-flex h-[18px] w-4 shrink-0 items-center justify-center text-[var(--msg-tool-card-chevron)]"
+      >
+        <Sparkles size={13} />
+      </span>
+      <span
+        className="min-w-0 flex-1 truncate text-14 italic text-[var(--thinking-body-text)]"
+        title={line.text}
+      >
+        <ThinkingText content={line.text} />
+      </span>
+      <span aria-hidden="true" className={ACTIVITY_ROW_CHEVRON_SLOT_CLASS}>
+        <ChevronRight size={13} />
+      </span>
+    </button>
   );
 }
 
@@ -225,7 +306,7 @@ function ExpandedThinkingRow({ message }: { message: ChatMessage }) {
     );
   }
 
-  return <div className="chat-expanded-thinking text-14 text-[var(--thinking-body-text)]" data-message-client-id={message.clientId}><ThinkingText content={activity.rawContent}/></div>;
+  return <ThinkingActivityRow activity={activity} />;
 }
 
 /** 同一个子项渲染器递归服务运行态动作组、完成态内层动作组和外层文字时间线。 */
@@ -267,7 +348,6 @@ function ExpandedWorkGroupChild({
 }
 
 export function WorkGroupBlock({
-  forceExpanded = false,
   compact = false,
   deferred,
   blockId,
@@ -277,18 +357,24 @@ export function WorkGroupBlock({
   childItems,
 }: WorkGroupBlockProps) {
   const { t } = useTranslation();
-  const expandedByParent = useExpandedProcess();
   const { expanded: rememberedExpanded, setExpanded } = useExpandedBlockMemory(blockId);
   const expanded = deferred?.setVisible
     ? rememberedExpanded
     : (deferred?.expanded ?? rememberedExpanded);
   const deferredRef = useRef(deferred);
   deferredRef.current = deferred;
-  useEffect(() => {
+  // A Host that projects running lines makes the folded preview need no detail read.
+  // Older Hosts omit them and keep the latest-five detail tail below.
+  const workLines = !compact && isStreaming ? deferred?.lines : undefined;
+  const lineMode = workLines !== undefined;
+  // Register before paint. Switching back to a running task remounts this group;
+  // a passive effect can lag 50–300ms behind the stream's mount, showing a
+  // preview-less header until the cached tail reappears and the pinned list jumps.
+  useLayoutEffect(() => {
     const current = deferredRef.current;
-    current?.setVisible?.(expanded, !compact && isStreaming);
+    current?.setVisible?.(expanded, !compact && isStreaming && !lineMode);
     return () => current?.setVisible?.(false, false);
-  }, [deferred?.owner, deferred?.key, expanded, isStreaming, compact]);
+  }, [deferred?.owner, deferred?.key, expanded, isStreaming, compact, lineMode]);
   const [elapsedMs, setElapsedMs] = useState(0);
 
   useEffect(() => {
@@ -303,10 +389,10 @@ export function WorkGroupBlock({
   // 多取一条即可判断展开是否能露出更多活动，显示仍只取最近 5 条。
   const recentActivities = useMemo(
     () =>
-      !compact && isStreaming
+      !compact && isStreaming && !lineMode
         ? projectRecentWorkActivities(childItems, true, MAX_LIVE_WORK_ACTIVITIES + 1)
         : [],
-    [childItems, isStreaming, compact],
+    [childItems, isStreaming, compact, lineMode],
   );
   const liveActivities = useMemo(
     () => recentActivities.slice(-MAX_LIVE_WORK_ACTIVITIES),
@@ -325,24 +411,32 @@ export function WorkGroupBlock({
     [childItems],
   );
   // 运行中预览已经等于全部内容时，折叠/展开是视觉空操作 — 组头不提供交互。
-  // Keep the disclosure control stable while streaming. The preview window
-  // changes as activities arrive; it must not make the chevron disappear.
-  const canToggle = childItems.length > 0 || !!deferred;
-  const effectiveExpanded = forceExpanded || expandedByParent || expanded && canToggle;
-  const headerRef = useRef<HTMLButtonElement>(null);
-  const wasExpanded = useRef(effectiveExpanded);
+  const canToggle =
+    compact ||
+    lineMode ||
+    (!!deferred && !deferred.previewComplete) ||
+    !isStreaming ||
+    hasBeyondPreviewChild ||
+    recentActivities.length > MAX_LIVE_WORK_ACTIVITIES;
+  const effectiveExpanded = expanded && canToggle;
+  const headerRef = useRef<HTMLButtonElement>(null), wasExpanded = useRef(effectiveExpanded);
+  const wasLong = useRef(false), collapseRequested = useRef(false);
   useLayoutEffect(() => {
     const closed = wasExpanded.current && !effectiveExpanded;
     wasExpanded.current = effectiveExpanded;
-    if (!closed || expandedByParent) return;
-    const header = headerRef.current;
-    const viewport = header?.closest<HTMLElement>('.chat-transcript-viewport');
-    // A long disclosure must return the reading position to its own heading,
-    // including when it is collapsed from the fixed composer action.
+    if (!closed) return;
+    const navigate = collapseRequested.current && wasLong.current;
+    collapseRequested.current = false;
+    if (!navigate) return;
+    const header = headerRef.current, viewport = header?.closest<HTMLElement>('.chat-transcript-viewport');
     if (header && viewport) viewport.scrollTop += header.getBoundingClientRect().top - viewport.getBoundingClientRect().top - 8;
-  }, [effectiveExpanded, expandedByParent]);
+  }, [effectiveExpanded]);
+  // Expanding keeps the running lines on screen until the detail read has rows to replace them.
+  // The body opens right away (spinner only), so the handoff swaps rows inside an open Collapse.
+  const holdLines = effectiveExpanded && deferred?.awaitingDetails === true && !!workLines?.length;
   const isLivePreviewVisible =
-    !compact && isStreaming && !effectiveExpanded && liveActivities.length > 0;
+    !compact && isStreaming && (!effectiveExpanded || holdLines)
+    && (workLines ? workLines.length > 0 : liveActivities.length > 0);
   // 完成态只计算一次完整摘要；运行态保持折叠时走上面的反向 latest-five
   // 热路径，用户主动展开后才投影全部历史。
   const activityProjection = useMemo(
@@ -356,12 +450,13 @@ export function WorkGroupBlock({
   // 外层完成态组展开成文字 + 内层动作组;内层动作组与运行态组复用本组件,
   // 展开后直接渲染 thinking /工具行,不再多套一层子卡摘要。
   const onToggle = useCallback(() => {
+    collapseRequested.current = effectiveExpanded;
     if (deferred && !deferred.setVisible) {
       deferred.toggle();
       return;
     }
     setExpanded((v) => !v);
-  }, [deferred, setExpanded]);
+  }, [deferred, setExpanded, effectiveExpanded]);
 
   if (childItems.length === 0 && !deferred) return null;
 
@@ -405,17 +500,17 @@ export function WorkGroupBlock({
       <div className="w-full min-w-0">
         <button
           type="button"
-          data-slot="cindy-work"
           ref={headerRef}
-          onClick={canToggle && !expandedByParent && !forceExpanded ? onToggle : undefined}
+          data-slot="cindy-work"
+          onClick={canToggle ? onToggle : undefined}
           data-scroll-disclosure-header=""
-          disabled={!canToggle || expandedByParent || forceExpanded}
+          disabled={!canToggle}
           className={cn(
             'flex w-full items-center gap-1.5 py-[2px]',
             'select-none',
-            compact && 'min-h-8 rounded-full px-2 focus-ring hover:bg-[var(--surface-hover)]',
+            compact && 'min-h-8 rounded-full px-2 focus-ring',
             'text-left',
-            canToggle && 'cursor-pointer hover:opacity-80 transition-opacity',
+            canToggle && 'cursor-pointer',
             !canToggle && 'cursor-default',
           )}
           aria-expanded={canToggle ? effectiveExpanded || isLivePreviewVisible : undefined}
@@ -436,7 +531,7 @@ export function WorkGroupBlock({
               {formatDuration(elapsedMs, t)}
             </span>
           )}
-          {canToggle && !expandedByParent && (
+          {canToggle && (
             <ChevronRight
               size={14}
               className={cn(
@@ -456,17 +551,30 @@ export function WorkGroupBlock({
               'flex flex-col',
             )}
           >
-            {liveActivities.map((activity) =>
-              activity.kind === 'tool' ? (
-                <ToolActivityRow key={activity.key} activity={activity} />
-              ) : (
-                <ThinkingActivityRow key={activity.key} activity={activity} />
-              ),
-            )}
+            {workLines
+              ? workLines.map((line) =>
+                  line.kind === 'tool' ? (
+                    <ToolLineRow key={line.key} line={line} onActivate={onToggle} />
+                  ) : (
+                    <ThinkingLineRow key={line.key} line={line} onActivate={onToggle} />
+                  ),
+                )
+              : liveActivities.map((activity) =>
+                  activity.kind === 'tool' ? (
+                    <ToolActivityRow key={activity.key} activity={activity} />
+                  ) : (
+                    <ThinkingActivityRow key={activity.key} activity={activity} />
+                  ),
+                )}
           </div>
         )}
 
-        <Collapse open={effectiveExpanded}><ProcessBody blockKey={blockId} onCollapse={forceExpanded?undefined:()=>setExpanded(false)} follow={isStreaming} version={childItems}>
+        <Collapse open={effectiveExpanded}>
+          <ProcessBody blockKey={blockId} version={childItems} onLongChange={value=>{wasLong.current=value;}} onCollapse={()=>{
+            collapseRequested.current = true;
+            if (deferred && !deferred.setVisible) { if (expanded) deferred.toggle(); }
+            else setExpanded(false);
+          }}>
           <div
             className={cn(
               'mt-1 min-w-0 pl-3 py-[2px]',
@@ -474,7 +582,7 @@ export function WorkGroupBlock({
               'flex flex-col gap-2',
             )}
           >
-            {effectiveExpanded &&
+            {effectiveExpanded && !holdLines &&
               childItems.map((child) => (
                 <Fragment key={child.key}>
                   <ExpandedWorkGroupChild
@@ -495,7 +603,8 @@ export function WorkGroupBlock({
               </Button>
             )}
           </div>
-        </ProcessBody></Collapse>
+          </ProcessBody>
+        </Collapse>
       </div>
     </div>
   );
