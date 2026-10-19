@@ -1,0 +1,50 @@
+package plugin
+
+import (
+ "os"
+ "path/filepath"
+ "sync"
+)
+
+// Only code and its user-selected configuration are shared by WinOne's
+// workers. AuthPath continues to use each provider's private settings.Dir.
+func WinOneDirectory() string {
+ directory:=os.Getenv("WINONE_AI_PLUGINS_HOME")
+ if !filepath.IsAbs(directory){return ""}
+ return filepath.Clean(directory)
+}
+
+var winOneBundles struct {
+ sync.RWMutex
+ entries []Entry
+}
+
+// Verified built-ins belong to the request snapshot, never to the user's
+// third-party registry. A new install path therefore needs no file migration.
+func WinOneUseBundle(entry Entry) {
+ winOneBundles.Lock();defer winOneBundles.Unlock()
+ for i,e:=range winOneBundles.entries{if e.Spec==entry.Spec{winOneBundles.entries[i]=entry;return}}
+ winOneBundles.entries=append(winOneBundles.entries,entry)
+}
+
+func winOneEffective(l List) List {
+ if WinOneDirectory()==""{return l}
+ winOneBundles.RLock();defer winOneBundles.RUnlock()
+ l.Plugins=append(l.Plugins,clonePlugins(winOneBundles.entries)...)
+ return l
+}
+
+// The manager and durable registry expose only explicitly installed code.
+// Removing a third-party package cannot erase an integrated account backend.
+func WinOneManaged(l List) List {
+ if WinOneDirectory()==""{return l}
+ winOneBundles.RLock();defer winOneBundles.RUnlock()
+ kept:=l.Plugins[:0]
+ for _,entry:=range l.Plugins {
+  bundled:=false
+  for _,b:=range winOneBundles.entries{if b.Spec==entry.Spec{bundled=true;break}}
+  if !bundled{kept=append(kept,entry)}
+ }
+ l.Plugins=kept
+ return l
+}

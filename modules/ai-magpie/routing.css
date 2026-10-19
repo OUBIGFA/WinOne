@@ -1,0 +1,81 @@
+/* WinOne presentation of the complete Magpie routing feature. Shared tokens,
+   fonts and controls come from winone-ai-settings.css. Groups are configured
+   first; request activity follows, without branded cards or tiny type. */
+html.winone-routing, .winone-routing body { height: auto; min-height: 0; overflow: visible; }
+.winone-routing body { display: block; padding: 0; }
+.winone-routing #view-routing { position: relative; inset: auto; display: flex; flex-direction: column; flex: none; height: auto; max-height: none; min-width: 0; gap: 1.5rem; padding: 0; overflow: visible; scrollbar-gutter: auto; }
+.winone-routing-defs { position: absolute; pointer-events: none; }
+.winone-routing #view-routing > .row-head { margin: 1rem 0 0; padding: 1.75rem 0 0; gap: .5rem .75rem; border-top: 1px solid var(--line); }
+.winone-routing #view-routing .row-head .note { margin: 0; font-size: .875rem; line-height: 1.6; color: var(--fg-2); }
+.winone-routing .rt-livedot { display: none; } /* The live label already conveys state. */
+.winone-routing .rt-gsec { display: grid; gap: 1.25rem; margin: 0; }
+.winone-routing .rt-gsec .row-head { margin: 0; padding: 0; gap: .5rem .75rem; }
+.winone-routing .rt-gsec .rt-gfilter { flex: 1 1 12rem; max-width: 22rem; min-width: 0; height: 2.25rem; margin: 0; }
+.winone-routing :is(.rt-gfound,.rt-gnames) { padding: .5rem 0; align-items: center; gap: 1.5rem; }
+.winone-routing :is(.rt-gfound,.rt-gnames) b { font-size: .9375rem; font-weight: 500; }
+.winone-routing :is(.rt-gfound,.rt-gnames) small { font-size: .875rem; line-height: 1.6; }
+.winone-routing :is(.rt-groups,.rt-pools) { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.winone-routing :is(.rt-group,.rt-pool) { padding: 1rem .5rem; min-height: 3rem; gap: .75rem 1rem; }
+.winone-routing :is(.rt-group .nm,.rt-pool .nm) { font-size: .9375rem; line-height: 1.6; }
+.winone-routing .rt-group .mem { margin-top: .375rem; font-size: .875rem; line-height: 1.6; white-space: normal; overflow-wrap: anywhere; }
+.winone-routing .rt-group .tags { display: flex; flex-wrap: wrap; }
+.winone-routing :is(.rt-group .tag,.rt-group .nm code.mdl,.rt-group .nm small.auto,.rt-pool .nm span:last-child,.rt-pool .lab small) { font-size: .875rem; line-height: 1.5; }
+.winone-routing .rt-group .tag { border-radius: .25rem; }
+.winone-routing .rt-pool .ctl { gap: .75rem; }
+.winone-routing .rt-gtpl { padding: 0; gap: .75rem; }
+.winone-routing .rt-gtpl-head { font-size: .875rem; line-height: 1.6; }
+.winone-routing .rt-gtpl-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.winone-routing .rt-gtpl-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: .375rem 1.5rem; padding: 1.125rem .5rem; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+.winone-routing .rt-gtpl-card :is(.hd,.desc,.mem) { grid-column: 1; }
+.winone-routing .rt-gtpl-card .hd b { font-size: .9375rem; line-height: 1.6; font-weight: 500; }
+.winone-routing .rt-gtpl-card :is(.desc,.mem) { font-size: .875rem; line-height: 1.6; white-space: normal; overflow-wrap: anywhere; }
+.winone-routing .rt-gtpl-card .acts { grid-column: 2; grid-row: 1 / span 3; align-self: center; flex-wrap: wrap; gap: .5rem; padding: 0; margin: 0; }
+.winone-routing :is(.rt-gimport,.rt-goffbox) { padding: 1rem; border: 1px solid var(--line); border-radius: var(--settings-panel-radius); background: var(--card-2); }
+.winone-routing :is(.rt-goffwhy,.rt-gnone,.rt-gimport-note,.rt-gimport-missing) { font-size: .875rem; line-height: 1.6; }
+/* An editor is one independent transaction, not another nested stack of cards. */
+.winone-routing .rt-gedit { grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr); gap: 1.25rem 1.5rem; padding: 1.5rem; margin-block: .5rem; border: 1px solid var(--line); border-radius: var(--settings-panel-radius); background: var(--card); }
+.winone-routing .rt-gedit .ehead { padding-bottom: 1rem; margin: 0; font-size: 1.0625rem; }
+.winone-routing .rt-gedit input[type] { min-height: 2.25rem; height: auto; font-size: .875rem; border-radius: var(--settings-control-radius); border-color: var(--settings-input-edge); }
+.winone-routing .rt-gedit :is(.fallback,.fbl) { min-width: 0; }
+.winone-routing .rt-gedit :is(.fbrow,.fbrow .n small,.rt-fixed,.rt-weight-in,.ctx-wrap .first-unit) { font-size: .875rem; line-height: 1.6; }
+.winone-routing .rt-gedit .fbrow { padding-block: .5rem; gap: .5rem; }
+.winone-routing .rt-gedit .fbrow .rt-mhandle.ag-handle { width: 1.5rem; min-height: 2rem; }
+.winone-routing :is(.rt-rule,.rt-rule > .i,.rt-cond,.rt-pick,.rt-pick small) { font-size: .875rem; line-height: 1.6; }
+.winone-routing .rt-pick { min-height: 2rem; height: auto; padding-block: .25rem; border-radius: var(--settings-control-radius); }
+.winone-routing .rt-rules .rt-rmore { opacity: 1; }
+/* Keep the real trace, dates, filters, replay, details and account states. Only
+   flatten the frame and replace the central brand with the official Waypoints. */
+.winone-routing #view-routing .rt { border: 0; border-radius: 0; padding: 0; margin: 0; background: transparent; box-shadow: none; }
+.winone-routing :is(.rt-what,.rt-mode,.rt-cap,.rt-off,.rt-node small,.rt-stats,.rt-log-head,.rt-steps li,.rt-time-parts li) { font-size: .875rem; line-height: 1.6; }
+.winone-routing .rt-node { padding: .875rem .5rem; border-radius: var(--settings-panel-radius); }
+.winone-routing .rt-node b { font-size: .9375rem; font-weight: 500; }
+.winone-routing .rt-src b::before { display: none; } /* The source name/icon identifies it without a colored dot. */
+.winone-routing [style*="--agent:"] { --agent: var(--fg-2) !important; }
+.winone-routing .rt-hub { border-color: var(--settings-edge); box-shadow: none; }
+.winone-routing .rt-hub i { font-size: .875rem; padding: .125rem .5rem; border-radius: var(--settings-control-radius); background: var(--card-2); color: var(--fg); }
+.winone-routing .rt-hub.tick, .winone-routing .rt-src.tick, .winone-routing .rt-accts li.hit { animation: none; }
+.winone-routing .rt-flier { display: none; } /* Decorative birds; trace packets/lines remain. */
+.winone-routing .rt-stats { gap: 1.5rem; }
+.winone-routing .rt-stats b { font-size: 1.25rem; font-weight: 500; }
+.winone-routing .rt-foot { padding-block: 1rem; gap: 1rem 1.5rem; }
+.winone-routing .rt-accts li { font-size: .875rem; border-radius: var(--settings-control-radius); }
+.winone-routing :is(.rt-accts em,.rt-accts b code.mdl,.rt-req code,.rt-act code.mdl,.rt-accts li.rt-sub) { font-size: .875rem; }
+.winone-routing .rt-more { padding: 0; }
+.winone-routing .rt-cols { gap: 1.5rem; }
+.winone-routing .rt-col > .row-head { margin: 1rem 0; }
+.winone-routing :is(.rt-req,.rt-act,.rt-act .wins,.rt-act .tally,.rt-act .fix,.rt-req .meta,.rt-day) { font-size: .875rem; line-height: 1.6; }
+.winone-routing .rt-reqs { border: 0; border-radius: 0; padding: 0; }
+.winone-routing .rt-req { min-height: 2.75rem; padding: .625rem .5rem; border-bottom: 1px solid var(--line); border-radius: 0; }
+.winone-routing .rt-filters { gap: .75rem; flex-wrap: wrap; }
+.winone-routing .rt-read { width: 2rem; height: 2rem; }
+@media (max-width: 700px) {
+ .winone-routing .rt-gedit { grid-template-columns: minmax(0, 1fr); padding: 1rem; gap: .75rem; }
+ .winone-routing .rt-gedit > label { margin-top: .5rem; padding: 0; }
+ .winone-routing .rt-gtpl-card { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+ .winone-routing .rt-gtpl-card .acts { grid-column: 1; grid-row: auto; justify-self: start; }
+ .winone-routing .rt-group { flex-wrap: wrap; }
+ .winone-routing .rt-group .main { flex-basis: calc(100% - 5rem); }
+ .winone-routing .rt-group .tags { margin-inline-start: 2.5rem; }
+ .winone-routing .rt-gsec .row-head .note { flex-basis: 100%; }
+ .winone-routing .rt-stats { flex-wrap: wrap; }
+}

@@ -1,0 +1,103 @@
+/* WinOne plugin management: install-first form, flat discovery/installed
+   lists and shared controls. All Magpie registry operations and plugin page
+   permissions remain unchanged; no upstream marketplace chrome is retained. */
+html.winone-plugins, .winone-plugins body { height: auto; min-height: 0; overflow: visible; }
+.winone-plugins body { display: block; padding: 0; }
+.winone-plugins #plugin-content { min-width: 0; width: 100%; }
+.winone-plugins #view-plugins, .winone-plugins .plugin-page { position: relative; inset: auto; display: flex; flex-direction: column; flex: none; height: auto; max-height: none; min-width: 0; overflow: visible; scrollbar-gutter: auto; padding: 0; }
+.winone-plugins #nav { position: static; display: flex; flex-flow: row wrap; align-items: center; width: 100%; height: auto; margin: 0 0 1.5rem; padding: 0; border: 0; border-bottom: 1px solid var(--line); gap: .5rem; background: transparent; }
+/* No redundant third navigation level when there is only the manager. Page
+   tabs return as soon as an installed plugin contributes an actual page. */
+.winone-plugins #nav:not(:has([data-view]:not([data-view="plugins"]))) { display: none; }
+.winone-plugins #nav .nav-gl { display: none; }
+.winone-plugins #nav button { width: auto; height: auto; min-height: 2.5rem; border: 0; border-radius: .375rem .375rem 0 0; padding: .5rem .75rem; font-size: .875rem; font-weight: 500; color: var(--fg-2); background: transparent; box-shadow: none; }
+.winone-plugins #nav button.on { color: var(--fg); box-shadow: inset 0 -2px var(--accent); }
+.winone-plugins .plugin-frame { width: 100%; height: 600px; border: 0; display: block; }
+.winone-plugins .pm-head { position: static; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; min-height: 2.75rem; padding: 0 0 .75rem; border: 0; border-bottom: 1px solid var(--line); background: transparent; box-shadow: none; }
+/* The upstream sticky header paints a frosted, absolutely positioned bleed.
+   Once the header is static that pseudo-element covers the entire page. */
+.winone-plugins .pm-head::before { content: none; }
+.winone-plugins .pm-head .lib-tabs { padding: 0; gap: .5rem; background: transparent; border-radius: 0; }
+.winone-plugins .pm-head .lib-tabs .opt { position: relative; min-height: 2.5rem; padding: .5rem .75rem; border-radius: .375rem .375rem 0 0; box-shadow: none; background: transparent; }
+.winone-plugins .pm-head .lib-tabs .opt::after { content: ""; position: absolute; inset-inline: .5rem; bottom: 0; height: 2px; border-radius: 1px; background: var(--accent); opacity: 0; transition: opacity 120ms ease-out; }
+.winone-plugins .pm-head .lib-tabs .opt.on::after { opacity: 1; }
+.winone-plugins .pm-find { flex: 1 1 14rem; width: auto; max-width: 26rem; min-height: 2.25rem; height: auto; padding: 0 .625rem; border: 1px solid var(--settings-input-edge); border-radius: var(--settings-control-radius); background: var(--card); box-shadow: none; }
+.winone-plugins .pm-find:focus-within { border-color: var(--settings-focus); background: var(--card); box-shadow: none; }
+.winone-ai-page.winone-plugins .pm-find input { min-height: 2.125rem; padding: .375rem 0; border: 0; border-radius: 0; font-size: .875rem; background: transparent; box-shadow: none; }
+.winone-plugins .pm-mirror { min-height: 2.25rem; padding: 0; font-size: .875rem; gap: .75rem; }
+.winone-plugins .pm-manual { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .75rem .5rem; padding: 1.5rem 0; margin: 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+.winone-plugins .pm-mlabel { grid-column: 1 / -1; font-size: 1.0625rem; font-weight: 600; color: var(--fg); }
+.winone-plugins .pm-minput { min-width: 0; width: 100%; min-height: 2.25rem; font-family: var(--font); font-size: .875rem; }
+.winone-plugins .pm-browse { width: 2.25rem; padding: .5rem; }
+.winone-plugins .pm-manual > button[type=submit] { grid-column: 3; }
+.winone-plugins .pm-body { gap: 2.5rem; padding: 1.75rem 0 0; animation: none; }
+.winone-plugins .pm-intro { display: block; padding: 0; border: 0; border-radius: 0; background: none; overflow: visible; }
+.winone-plugins .pm-introtext { gap: .75rem; }
+.winone-plugins .pm-intro h2 { font-size: 1.0625rem; font-weight: 600; line-height: 1.5; text-wrap: initial; }
+.winone-plugins .pm-intro p { max-width: none; font-size: .875rem; line-height: 1.6; }
+.winone-plugins .pm-intro .pm-trust { margin-top: .25rem; font-size: .875rem; align-items: flex-start; }
+.winone-plugins .pm-trust svg { margin-top: .25rem; }
+.winone-plugins .pm-sec { gap: 1.25rem; }
+.winone-plugins .pm-sechead { gap: .5rem 1rem; padding: 0; }
+.winone-plugins .pm-sechead h3 { font-size: 1.0625rem; font-weight: 600; }
+.winone-plugins .pm-sechead span { font-size: .875rem; line-height: 1.6; }
+.winone-plugins .pm-grid { grid-template-columns: minmax(0, 1fr); gap: 0; border-top: 1px solid var(--line); }
+.winone-plugins .pm-card { padding: 1rem 0; gap: .5rem; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; transform: none; transition: background-color 120ms ease-out; animation: none; }
+.winone-plugins .pm-card:hover { background: var(--card-2); box-shadow: none; transform: none; }
+.winone-plugins .pm-card:focus-visible { outline: 1px solid var(--settings-focus); outline-offset: -1px; box-shadow: none; }
+.winone-plugins .pm-top { gap: .75rem; }
+.winone-plugins .pm-logo { width: 2rem; height: 2rem; border-radius: 0; background: transparent; }
+.winone-plugins .pm-logo.big { width: 2.75rem; height: 2.75rem; background: transparent; }
+.winone-plugins .pm-name b { font-size: .9375rem; font-weight: 500; }
+.winone-plugins :is(.pm-by,.pm-meta,.pm-ver,.pm-chip,.pm-row .sub,.pm-opts-err,.pm-opts-bar > span,.pm-foot,.pm-note,.pm-empty) { font-size: .875rem; line-height: 1.6; }
+.winone-plugins .pm-sum { display: block; -webkit-line-clamp: unset; min-height: 0; margin: 0; padding-left: 2.75rem; font-size: .875rem; line-height: 1.6; overflow: visible; overflow-wrap: anywhere; }
+.winone-plugins .pm-card .pm-meta { padding-left: 2.75rem; }
+.winone-plugins .pm-chip { height: auto; min-height: 1.5rem; border-radius: .25rem; }
+.winone-plugins .pm-chip .dot, .winone-plugins .pm-sub .dot, .winone-plugins .pm-clash .dot { display: none; }
+.winone-plugins .pm-act { min-width: 4.5rem; }
+.winone-plugins .pm-act.done { color: var(--fg-2); background: transparent; border-color: transparent; }
+.winone-plugins .pm-ghbar { gap: .75rem; }
+.winone-plugins .pm-ghbar .segs { max-width: 100%; overflow: visible; flex-wrap: wrap; }
+.winone-plugins .pm-ghfind { min-width: 0; }
+.winone-plugins :is(.pm-ghnone,.pm-none) { padding: 1.5rem 1rem; border: 1px solid var(--line); border-radius: var(--settings-panel-radius); font-size: .875rem; }
+.winone-plugins .pm-none b { font-size: .9375rem; font-weight: 500; }
+.winone-plugins .pm-none p { max-width: 36rem; font-size: .875rem; line-height: 1.6; }
+.winone-plugins .pm-list { border: 0; border-radius: 0; background: transparent; }
+.winone-plugins .pm-list .row { min-height: 3rem; padding: 1rem 0; gap: .75rem; align-items: flex-start; flex-wrap: wrap; }
+.winone-plugins .pm-row .who { flex: 1 1 14rem; }
+.winone-plugins .pm-row .name { flex-wrap: wrap; font-size: .9375rem; font-weight: 500; }
+.winone-plugins .pm-row .sub { margin-top: .375rem; }
+.winone-plugins .pm-row .sub.bad { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.winone-plugins .pm-row .val { flex-wrap: wrap; gap: .5rem; }
+.winone-plugins .pm-opts { gap: .75rem; }
+.winone-plugins .pm-opts textarea { font-size: .875rem; line-height: 1.6; }
+.winone-plugins .pm-opts-bar { flex-wrap: wrap; gap: .5rem; }
+.winone-plugins .pm-foot { padding: 0; flex-wrap: wrap; color: var(--fg-2); }
+.winone-plugins .pm-listhead { margin: 0; }
+.winone-plugins .pm-detail .pm-name b { font-size: 1.0625rem; }
+.winone-plugins .pm-dbody { padding: 1.5rem; gap: 1.5rem; }
+.winone-plugins :is(.pm-dsum,.pm-md,.pm-fact .k,.pm-fact .v,.pm-md code,.pm-md pre code,.pm-md table) { font-size: .875rem; line-height: 1.6; }
+.winone-plugins .pm-facts { border: 0; border-radius: 0; gap: 1rem; background: transparent; }
+.winone-plugins .pm-fact { padding: 0; background: transparent; }
+.winone-plugins .pm-fact .k { font-weight: 500; text-transform: none; letter-spacing: normal; }
+.winone-plugins .pm-md pre { overflow: visible; white-space: pre-wrap; overflow-wrap: anywhere; }
+.winone-plugins .pm-md pre code { white-space: pre-wrap; }
+.winone-plugins .pm-table { overflow: visible; }
+.winone-plugins .pm-md table { width: 100%; table-layout: fixed; overflow-wrap: anywhere; }
+/* Embedded slots use their owning WinOne page's navigation and spacing. */
+.winone-plugin-surface #nav { display: none; }
+.winone-plugins .plugin-slot { min-width: 0; }
+.winone-plugins .plugin-panel { margin: 0; padding: 1.25rem 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+.winone-plugins .plugin-panel-body { min-width: 0; }
+.winone-plugins .plugin-panel-frame { height: 0; }
+.winone-plugins .plugin-panel-broke { padding: .75rem 0; gap: .5rem; border: 0; background: transparent; font-size: .875rem; }
+@media (max-width: 560px) {
+ .winone-plugins .pm-head { align-items: flex-start; }
+ .winone-plugins .pm-find { flex-basis: 100%; max-width: none; }
+ .winone-plugins .pm-manual { grid-template-columns: minmax(0, 1fr) auto; }
+ .winone-plugins .pm-minput { grid-column: 1 / -1; }
+ .winone-plugins .pm-manual > button[type=submit] { grid-column: 2; }
+ .winone-plugins .pm-manual .pm-browse { justify-self: start; }
+ .winone-plugins .pm-row .val { margin-left: 2.75rem; }
+ .winone-plugins .pm-opts-bar > span { flex-basis: 100%; }
+}

@@ -1,0 +1,15 @@
+package pluginrt
+
+import "sync/atomic"
+
+// WinOne owns the only editable configuration. The same validated snapshot is
+// supplied to every short-lived provider worker and the long-lived router.
+// Never load a second plugins.yml from an account profile as a fallback.
+var winOneFile atomic.Pointer[File]
+
+func WinOneUse(f File) { winOneFile.Store(&f) }
+func WinOneLoad() (File, bool) {
+ f := winOneFile.Load()
+ if f == nil { return File{}, false }
+ return *f, true
+}
