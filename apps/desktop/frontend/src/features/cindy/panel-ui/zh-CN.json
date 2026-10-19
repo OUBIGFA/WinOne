@@ -1,0 +1,891 @@
+{
+  "chat": {
+    "markdownRenderer": {
+      "codeCopied": "已复制",
+      "copyCode": "复制代码",
+      "annotateImage": "标注图片",
+      "copy": "复制",
+      "blockCopied": "已复制",
+      "duplicateFiles": "找到 {{count}} 个同名文件，请改用绝对路径",
+      "copyFile": "复制",
+      "copyFilePath": "复制文件路径",
+      "copyLocation": "复制位置",
+      "locationCopied": "位置已复制",
+      "openWith": "打开方式",
+      "openWithAppFailed": "无法用所选应用打开",
+      "revealFile": "打开文件所在目录",
+      "openInBrowser": "在浏览器中查看",
+      "fileCopied": "文件已复制",
+      "pathCopied": "路径已复制",
+      "BROWSER_FILE_INVALID_TARGET": "本地页面路径无效",
+      "BROWSER_FILE_PATH_NOT_ALLOWED": "不允许访问该路径",
+      "BROWSER_FILE_UNSUPPORTED_TYPE": "该文件类型无法在浏览器中打开",
+      "BROWSER_FILE_NOT_FOUND": "未找到本地页面",
+      "BROWSER_FILE_OPEN_FAILED": "在浏览器中打开失败",
+      "openInBrowserFailed": "在浏览器中打开失败",
+      "openLinkFailed": "打开链接失败",
+      "anchorNotFound": "未找到对应标题",
+      "openInSidebarBrowser": "在侧边栏浏览器中打开",
+      "openInSidebarFileBrowser": "在侧边栏文件浏览器中打开",
+      "openInSidebarFileBrowserFailed": "在侧边栏文件浏览器中打开失败",
+      "openInSidebarFileBrowserOutsideWorkdir": "该文件不在当前任务工作目录内，无法在侧边栏文件浏览器中定位",
+      "openInDefaultBrowser": "在默认浏览器中打开",
+      "copyLink": "复制链接",
+      "linkCopied": "链接已复制",
+      "viewSourceFile": "查看源文件",
+      "openInSidebarFailed": "在侧边栏浏览器中打开失败"
+    },
+    "mermaid": {
+      "clickToZoom": "点击放大",
+      "zoom": "放大",
+      "viewDiagram": "查看图表",
+      "viewSource": "查看源码",
+      "copy": "复制",
+      "copied": "已复制",
+      "annotate": "标注",
+      "renderFailed": "mermaid 渲染失败 — 显示源码"
+    },
+    "media": {
+      "clickToZoom": "点击放大",
+      "audioProgress": "播放进度",
+      "audioPlay": "播放音频",
+      "audioPause": "暂停音频",
+      "modelPreviewAlt": "3D 模型预览",
+      "imageCopied": "图片已复制",
+      "copyFailed": "复制失败",
+      "openFolderFailed": "打开目录失败",
+      "copyImage": "复制图片",
+      "revealImage": "打开图片所在目录",
+      "revealImageSidebar": "在文件浏览器中显示",
+      "openInBrowser": "在浏览器打开",
+      "openWithApp": "用默认应用打开",
+      "openWithAppFailed": "打开失败",
+      "saveAs": "另存为…",
+      "imageSaved": "图片已保存",
+      "saveFailed": "保存失败",
+      "sendToChat": "发送到对话",
+      "sentToChat": "已添加到输入框",
+      "sendToChatFailed": "发送到对话失败",
+      "annotate": "标注",
+      "annotateUndo": "撤销上一笔",
+      "annotateDiscard": "放弃标注",
+      "annotateSave": "保存标注",
+      "annotateSaveFailed": "保存标注失败",
+      "annotateRedo": "重做",
+      "annotateDiscardConfirmTitle": "放弃本次标注？",
+      "annotateDiscardConfirmDescription": "将恢复到打开时的标注。",
+      "annotateDiscardConfirmAction": "放弃",
+      "annotateDiscardConfirmCancel": "继续标注",
+      "annotateBurnFailedNotSent": "标注图片合成失败，消息未发送。可重试，或移除标注后发送。",
+      "annotateBurnFailedNotSaved": "标注图片合成失败，修改未保存。可重试，或移除标注后保存。",
+      "annotateBurnFailedSentOriginal": "标注图片合成失败，已发送不含标注的原图。",
+      "prevImage": "上一张",
+      "nextImage": "下一张",
+      "openModel": "打开模型",
+      "revealModel": "打开模型所在目录",
+      "openModelFailed": "打开模型失败",
+      "modelLoading": "正在加载 3D 模型…",
+      "modelLoadFailed": "加载 3D 模型失败",
+      "videoCopied": "视频已复制",
+      "videoMissing": "视频已丢失",
+      "copyVideo": "复制视频",
+      "revealVideo": "打开视频所在目录",
+      "videoUnavailable": "视频不可用",
+      "imageMissing": "图片已丢失",
+      "audioCopyDescription": "复制描述",
+      "audioDescriptionCopied": "描述已复制",
+      "revealAudio": "打开音频所在目录",
+      "audioUnavailable": "音频不可用",
+      "audioUntitled": "未命名",
+      "soundEffectUntitled": "未命名音效",
+      "revealSoundEffect": "打开音效所在目录",
+      "imagePreview": "图片预览",
+      "originalMissing": "原图已不可用，显示已保存的标注图片。"
+    }
+  },
+  "rightSidebar": {
+    "ariaLabel": "右侧边栏",
+    "panelError": {
+      "title": "面板加载失败",
+      "description": "这个面板暂时无法显示，其他面板仍可继续使用。",
+      "reload": "重新加载面板"
+    },
+    "window": {
+      "title": "侧边栏",
+      "mergeBack": "合并回主窗口",
+      "followPlaceholder": "侧边栏跟随主窗口的当前任务"
+    },
+    "emptyTitle": "预留区域",
+    "emptyDesc": "右侧边栏内容将在后续迭代加入",
+    "tabs": {
+      "addAria": "添加标签",
+      "addFailed": "添加标签失败",
+      "tabCloseAria": "关闭标签",
+      "menu": {
+        "addLabel": "添加标签",
+        "comingSoon": "即将支持",
+        "alreadyOpen": "已打开"
+      },
+      "kinds": {
+        "fileBrowser": "文件浏览器",
+        "browser": "浏览器",
+        "terminal": "终端",
+        "review": "审查",
+        "subagents": "Subagent",
+        "backgroundTasks": "后台任务",
+        "resourceUsage": "资源监视器",
+        "collaboration": "协同",
+        "unknown": "未知标签页",
+        "ghostPanel": "插件面板"
+      },
+      "controls": {
+        "showAria": "显示侧栏",
+        "maximizeAria": "最大化侧栏",
+        "restoreAria": "退出最大化",
+        "closeAria": "关闭侧栏",
+        "detachAria": "在新窗口中打开侧边栏"
+      },
+      "contextMenu": {
+        "close": "关闭",
+        "closeOthers": "关闭其他",
+        "closeAll": "关闭所有"
+      },
+      "empty": {
+        "eyebrow": "右侧栏",
+        "title": "开始一个面板",
+        "desc": "在右侧打开文件、审查、资源监视器、内置浏览器或终端，与左侧对话并行工作。",
+        "openFile": "打开文件",
+        "fileSub": "文件",
+        "openReview": "打开审查",
+        "reviewSub": "审查",
+        "openSubagents": "打开 Subagent",
+        "subagentsSub": "可持续回看的子任务",
+        "openBackgroundTasks": "打开后台任务",
+        "backgroundTasksSub": "后台任务",
+        "openResourceUsage": "打开资源监视器",
+        "openBrowser": "打开浏览器",
+        "browserSub": "浏览器",
+        "openTerminal": "打开终端",
+        "terminalSub": "终端",
+        "addMoreHint": "可通过顶部 + 按钮选择更多面板类型"
+      },
+      "placeholderHint": "{{kind}} — 内容将在后续阶段加入"
+    },
+    "fileBrowser": {
+      "noWorkdir": "当前任务未关联本地工作目录，文件浏览器不可用",
+      "filterPlaceholder": "筛选文件…",
+      "filterClear": "清除筛选",
+      "filterIndexing": "正在索引项目文件…",
+      "filterNoMatch": "未匹配到文件",
+      "filterRgUnavailable": "远端机器未安装 ripgrep，文件名筛选不可用",
+      "filterIndexFailed": "文件索引失败",
+      "filterTruncated": "结果过多，仅显示前 {{limit}} 条；请缩小关键词",
+      "deviceTooOld": "对方设备的 {{appName}} 版本过旧，不支持远程文件浏览，请升级后重试",
+      "loadFailed": "文件树加载失败",
+      "unsupportedDropFile": "暂时不支持展示该格式的文件",
+      "multipleDropFilesUnsupported": "一次只能拖入一个文件"
+    },
+    "browser": {
+      "newTab": "新标签",
+      "audible": "正在播放音频",
+      "urlPlaceholder": "输入网址或搜索关键词",
+      "goBack": "后退",
+      "goForward": "前进",
+      "goBackUnavailable": "没有可后退的页面",
+      "goForwardUnavailable": "没有可前进的页面",
+      "reload": "刷新",
+      "stop": "停止加载",
+      "screenshot": "截图",
+      "screenshotCopied": "已复制截图到剪贴板",
+      "screenshotFailed": "截图失败",
+      "comment": "页面评论",
+      "exitCommentMode": "退出评论模式",
+      "commentModeHint": "点击元素或 Shift 拖拽框选区域 · Cmd/Ctrl+点击直接添加 · Esc 退出",
+      "commentPlaceholder": "描述这里需要怎么改…",
+      "commentSubmit": "添加评论",
+      "commentCancel": "取消",
+      "commentAdded": "评论已添加到输入框",
+      "commentFailed": "评论添加失败",
+      "styleTweaksExpand": "展开样式调整",
+      "styleTweaksCollapse": "收起样式调整",
+      "styleTweaksSubmitting": "正在提交评论…",
+      "styleReset": "重置",
+      "styleTextLabel": "文本",
+      "moreTools": "更多",
+      "openInSystemBrowser": "在系统浏览器打开",
+      "copyLink": "复制链接",
+      "linkCopied": "已复制链接到剪贴板",
+      "copyLinkFailed": "复制链接失败",
+      "crash": {
+        "crashedTitle": "页面崩溃",
+        "crashedDesc": "网页进程意外终止，请重新加载",
+        "unresponsiveTitle": "页面无响应",
+        "unresponsiveDesc": "页面长时间未响应，可重新加载或稍候等待",
+        "navigationLoopTitle": "已停止重复跳转",
+        "navigationLoopDesc": "页面在短时间内反复跳转，已暂停导航。请重新加载页面后重试",
+        "resourceKilledTitle": "页面占用内存过高",
+        "resourceKilledDesc": "该页面占用内存过高，已被终止以保护应用运行。可重新加载",
+        "forceKill": "强制终止",
+        "reload": "重新加载"
+      },
+      "resourceAlert": {
+        "cpuHint": "此页面占用大量系统资源",
+        "terminate": "终止页面",
+        "dismiss": "关闭"
+      }
+    },
+    "terminal": {
+      "defaultTitle": "终端",
+      "processExited": "进程已退出（退出码 {{code}}）",
+      "processKilled": "进程已终止（信号 {{signal}}）",
+      "restart": "重启",
+      "shellNotFound": "未找到可用 shell：{{detail}}",
+      "spawnFailed": "无法启动终端：{{detail}}",
+      "remoteUnavailableTitle": "远程任务暂不可用",
+      "remoteUnavailableDescription": "终端目前仅适用于在此设备上运行的本机任务。"
+    },
+    "review": {
+      "turn": {
+        "title": "本条消息的变更",
+        "localOnly": "本条消息的精确变更暂不支持远程任务。",
+        "partialNotice": "本条消息包含无法精确追踪的命令或工具写入；以下仅展示已精确捕获的部分，不能视为完整补丁。",
+        "emptyTitle": "没有已记录的变更",
+        "emptyDesc": "这条消息记录的补丁中没有可显示的文件变更。",
+        "crossSessionSwitchDisabled": "正在审查协作任务中的这条消息，不能在当前任务中切换来源。",
+        "previewUnavailable": "这条消息记录的是历史变更，无法可靠预览当前磁盘中的文件内容。",
+        "snapshotPatchUnavailable": "历史变更快照不能生成面向当前 worktree 的 git apply 命令。"
+      },
+      "fileCount_one": "{{count}} 个文件",
+      "fileCount_other": "{{count}} 个文件",
+      "emptyTitle": "暂无改动",
+      "emptyDesc": "本任务还没有任何文件改动。让 Agent 编辑或创建文件后，会在这里出现。",
+      "emptyDescGit": "当前 git worktree 没有 staged 或 unstaged 改动。",
+      "filterEmptyTitle": "当前过滤下暂无改动",
+      "filterEmptyDesc": "当前筛选或设置下没有可显示的 git 改动。",
+      "noSessionTitle": "暂无任务",
+      "noSessionDesc": "选择一个本机任务后可查看 git worktree 改动。",
+      "loadingTitle": "正在读取 git 改动",
+      "loadingDesc": "面板会保留上一次内容，读取完成后刷新。",
+      "errorTitle": "读取失败",
+      "refresh": "刷新",
+      "refreshGitData": "重新读取 git 状态与差异",
+      "openFile": "打开文件",
+      "openFileFailed": "无法打开文件：{{error}}",
+      "detachedHead": "HEAD {{oid}}",
+      "branchUnknown": "未知分支",
+      "branch": {
+        "basePlaceholder": "选择基准分支",
+        "baseDropdownAria": "选择分支比较基准",
+        "baseLabel": "比较基准",
+        "baseTooltip": "比较基准：{{base}}",
+        "staleRiskSuffix": "（可能过期）",
+        "loadingTitle": "正在读取分支差异",
+        "loadingDesc": "正在比较基准分支与当前 HEAD",
+        "errorTitle": "分支差异读取失败",
+        "warningTitle": "无法显示分支差异",
+        "noCandidatesTitle": "没有可比较的基准分支",
+        "noCandidatesDesc": "当前仓库没有其它本地或远端分支可作为比较基准。",
+        "emptyTitle": "分支没有差异",
+        "emptyDesc": "当前 HEAD 与所选基准分支的共同祖先之间没有累计改动。",
+        "baseMissing": "之前选择的基准分支 {{base}} 已不存在，已改用默认基准。",
+        "mergeBaseMissing": "找不到当前 HEAD 与基准分支的共同祖先，请换一个基准分支或获取完整历史后重试。",
+        "tooManyFiles": "该分支差异包含 {{count}} 个文件，超过 {{limit}} 个文件上限，已停止加载。",
+        "unborn": "当前分支还没有提交，无法计算分支差异。"
+      },
+      "capped": {
+        "notice": "差异较大，已切换为单文件预览模式：{{count}} 个文件，{{lines}} 行变更。",
+        "fileLoading": "正在读取文件差异…",
+        "fileLoadFailed": "无法读取该文件差异"
+      },
+      "noRenderableDiff": "暂无可渲染的文本 diff",
+      "staleDiff": "改动已过期，请刷新后重试。",
+      "sessionRunningWriteBlocked": "Agent 正在运行，git 写操作暂不可用。",
+      "renamePartialNotice": "v1 重命名文件仅支持整文件暂存/取消暂存/还原。",
+      "typechangePartialNotice": "此类文件仅支持整文件暂存/取消暂存/还原。",
+      "aheadBehindTooltip": "{{upstream}}：领先 {{ahead}}，落后 {{behind}}",
+      "writeDisabledNotice": "当前为只读状态：{{reasons}}。仍可查看 git 改动。",
+      "writeDisabledReasons": {
+        "detached": "detached HEAD",
+        "unborn": "未出生分支",
+        "unmerged": "存在未合并文件",
+        "in-progress": "git 操作进行中",
+        "agent-running": "Agent 正在运行",
+        "disabled": "审查不可用",
+        "historical-snapshot": "历史变更快照为只读",
+        "remote-device": "远程设备任务仅支持查看",
+        "remote-ssh": "SSH 工作区审查仅支持查看"
+      },
+      "remote": {
+        "deviceTooOldTitle": "对方设备版本过旧",
+        "deviceTooOldDesc": "对方设备的 {{appName}} 版本过旧，暂不支持远程审查，请升级远程设备后重试。",
+        "oversizeTitle": "改动数据过大",
+        "oversizeDesc": "该视图的改动超过设备互联单次传输上限，请在远程设备上查看。"
+      },
+      "unmodifiedLines_one": "{{count}} 行未改动",
+      "unmodifiedLines_other": "{{count}} 行未改动",
+      "source": {
+        "unstaged": "未暂存",
+        "staged": "已暂存",
+        "commit": "提交",
+        "branch": "分支",
+        "lastTurn": "上一轮"
+      },
+      "sourceDropdownAria": "选择审查来源",
+      "lastTurnEmpty": {
+        "title": "尚无文件更改",
+        "desc": "最新差异已不再可用。",
+        "action": "查看分支差异"
+      },
+      "fileTree": {
+        "show": "显示文件",
+        "hide": "隐藏文件",
+        "temporarilyHidden": "宽度不足，文件列表暂时隐藏；点击可关闭",
+        "aria": "已修改文件",
+        "filterPlaceholder": "筛选文件",
+        "empty": "没有匹配的文件"
+      },
+      "fileJump": {
+        "tooltip": "跳转到文件",
+        "disabled": "当前视图没有可跳转文件",
+        "placeholder": "筛选文件",
+        "empty": "没有匹配的文件",
+        "more_one": "还有 {{count}} 个文件",
+        "more_other": "还有 {{count}} 个文件"
+      },
+      "diffExpansion": {
+        "expand": "展开全部差异",
+        "collapse": "收起全部差异",
+        "disabled": "当前视图没有可展开文件"
+      },
+      "moreMenu": {
+        "aria": "查看选项",
+        "wordWrapEnable": "启用自动换行",
+        "wordWrapDisable": "禁用自动换行",
+        "wordDiffEnable": "启用文字差异",
+        "wordDiffDisable": "禁用文字差异",
+        "hideWhitespace": "隐藏空白字符",
+        "showWhitespace": "显示空白字符",
+        "richPreviewEnable": "启用富文本预览",
+        "richPreviewDisable": "禁用富文本预览",
+        "copyGitApply": "复制 git apply 命令",
+        "copyGitApplyDisabledEmpty": "当前视图没有可复制的 patch",
+        "copyGitApplyDisabledWhitespace": "隐藏空白字符时不能复制 git apply 命令",
+        "copyGitApplySuccess": "已复制 git apply 命令",
+        "copyGitApplyFailed": "复制失败，请手动复制"
+      },
+      "viewMode": {
+        "aria": "切换 diff 展示模式",
+        "unified": "统一",
+        "split": "分栏"
+      },
+      "noNewlineAtEof": "\\ 文件末尾没有换行符",
+      "commitMenu": {
+        "loading": "正在加载提交…",
+        "error": "无法加载提交记录",
+        "retry": "重试",
+        "empty": "分支上暂无提交记录",
+        "relativeTime": "{{time}} 前"
+      },
+      "noCommitsTitle": "分支上暂无提交记录",
+      "noCommitsDesc": "从来源下拉菜单选择一个提交后，这里会显示该提交的差异。",
+      "untitledCommit": "无标题提交",
+      "commitDiffLoadingTitle": "正在读取提交 diff",
+      "commitDiffErrorTitle": "读取提交 diff 失败",
+      "commitDiffEmptyTitle": "没有文件改动",
+      "commitDiffEmptyDesc": "这个提交相对第一父提交没有 diff。",
+      "stagedEmptyTitle": "暂无已暂存改动",
+      "stagedEmptyDesc": "暂存文件或改动块后，可通过右上角提交或推送。",
+      "actions": {
+        "stage": "暂存",
+        "unstage": "取消暂存",
+        "discard": "还原",
+        "stageHunk": "暂存此块",
+        "unstageHunk": "取消暂存此块",
+        "discardHunk": "还原此块",
+        "stageAll": "全部暂存",
+        "unstageAll": "全部取消暂存",
+        "discardAll": "还原全部",
+        "disabledWriteGateWithReasons": "当前暂不能操作：{{reasons}}。状态恢复后可继续。",
+        "partialFailure": "部分完成：成功 {{succeeded}}，失败 {{failed}}"
+      },
+      "discard": {
+        "confirm": {
+          "file": {
+            "title": "还原文件？",
+            "desc": "将丢弃这个文件的工作区改动。这个操作不容易撤销。",
+            "descWithUntracked": "将丢弃这个文件的工作区改动；其中未跟踪文件会被删除。这个操作不容易撤销。"
+          },
+          "hunk": {
+            "title": "还原改动块？",
+            "desc": "将丢弃这个改动块的工作区改动。这个操作不容易撤销。",
+            "descWithUntracked": "将丢弃这个改动块的工作区改动；未跟踪文件中的内容会被删除。这个操作不容易撤销。"
+          },
+          "section": {
+            "title": "还原全部改动？",
+            "desc": "将丢弃当前视图里的 {{count}} 个文件的工作区改动。这个操作不容易撤销。",
+            "descWithUntracked": "将丢弃当前视图里的 {{count}} 个文件的工作区改动，其中 {{untrackedCount}} 个未跟踪文件会被删除。这个操作不容易撤销。"
+          },
+          "confirm": "还原",
+          "cancel": "取消"
+        }
+      },
+      "commit": {
+        "placeholder": "提交信息…",
+        "submit": "提交",
+        "submitAndPush": "提交并推送",
+        "includeUnstaged": "包含未暂存的更改",
+        "disabledNoStaged": "没有已暂存改动。",
+        "disabledNoMessage": "请输入提交信息。",
+        "disabledNoChanges": "没有可提交的更改。"
+      },
+      "topAction": {
+        "label": "提交或推送",
+        "disabledWriteGate": "当前状态不允许提交或推送。",
+        "disabledWriteGateWithReasons": "当前暂不能提交或推送：{{reasons}}。"
+      },
+      "push": {
+        "submit": "推送",
+        "ready_one": "将推送 {{count}} 个本地提交。",
+        "ready_other": "将推送 {{count}} 个本地提交。",
+        "readyNoUpstream": "将推送当前分支并设置上游。",
+        "readyForceCandidate_one": "远端有本地没有的 {{count}} 个提交，推送前需要确认。",
+        "readyForceCandidate_other": "远端有本地没有的 {{count}} 个提交，推送前需要确认。",
+        "synced": "已同步，没有可推送提交。",
+        "disabledNoBranch": "当前没有可推送分支。",
+        "disabledWriteGate": "当前状态不允许推送。",
+        "disabledWriteGateWithReasons": "当前暂不能推送：{{reasons}}。状态恢复后可推送。",
+        "forceTitle": "确认强制推送？",
+        "forceDesc_one": "远端 {{remoteRef}} 有本地没有的 {{count}} 个提交。强制推送会覆盖远端分支，这个操作不容易撤销。",
+        "forceDesc_other": "远端 {{remoteRef}} 有本地没有的 {{count}} 个提交。强制推送会覆盖远端分支，这个操作不容易撤销。",
+        "forceConfirm": "强制推送",
+        "forceCancel": "取消",
+        "forceStillRejected": "远端状态已变化，请刷新后重新确认。",
+        "disabledBehindOnly": "本地没有可推送的新提交(落后远端 {{count}} 个提交)",
+        "leaseExpired": "远端在确认后又发生了变化，已中止推送，请刷新后重新确认。",
+        "noRemote": "该仓库没有配置 git 远端，无法推送。",
+        "failedTitle": "推送失败",
+        "successToast": "推送成功"
+      },
+      "changeStatus": {
+        "renamed": "重命名",
+        "copied": "复制"
+      },
+      "status": {
+        "text": "文本",
+        "binary": "二进制",
+        "large-text": "大文件",
+        "too-large": "过大",
+        "submodule": "子模块",
+        "unrenderable": "不可渲染"
+      },
+      "kindNotice": {
+        "binary": "此视图不渲染二进制文件。",
+        "large-text": "此视图会跳过大文本 diff。",
+        "too-large": "文件过大，无法渲染。",
+        "submodule": "此视图不渲染子模块 diff。",
+        "unrenderable": "此 diff 无法渲染。"
+      },
+      "imagePreview": {
+        "old": "旧图",
+        "new": "新图",
+        "loading": "正在读取图片预览",
+        "tooLarge": "图片 {{size}} 超过 {{maxSize}}，未加载预览。",
+        "loadFailed": "图片预览读取失败",
+        "missing": "图片不存在",
+        "alt": "{{label}}: {{path}}"
+      },
+      "richPreview": {
+        "loading": "正在加载预览…",
+        "fallbackTitle": "富文本预览不可用。",
+        "loadFailed": "无法加载预览",
+        "tooLarge": "Markdown 文件 {{size}} 超过 {{maxSize}}，已回退为普通 diff。",
+        "reason": {
+          "not-markdown": "该文件不是 Markdown 文件。",
+          "deleted": "删除文件没有变更后内容。",
+          "unsupported-kind": "该文件不能作为 Markdown 文本预览。",
+          "missing": "找不到变更后的 Markdown 文件。",
+          "unsafe-path": "文件路径不安全。",
+          "source-missing": "缺少预览所需的 git 上下文。",
+          "read-error": "无法读取 Markdown 内容。"
+        }
+      },
+      "disabled": {
+        "default": {
+          "title": "暂不可用",
+          "desc": "当前任务无法读取 git worktree。"
+        },
+        "remote-session": {
+          "title": "远端任务暂不支持",
+          "desc": "远端 worktree 的 git 审查会在后续版本接入。"
+        },
+        "no-session": {
+          "title": "任务不存在",
+          "desc": "本设备上找不到该任务记录。"
+        },
+        "no-workdir": {
+          "title": "没有工作目录",
+          "desc": "当前任务没有可审查的本地工作目录。"
+        },
+        "non-git": {
+          "title": "不是 git 仓库",
+          "desc": "当前工作目录下没有可用的 git 仓库。"
+        },
+        "git-unavailable": {
+          "title": "git 不可用",
+          "desc": "无法执行本机 git 命令。"
+        },
+        "invalid-worktree": {
+          "title": "worktree 无效",
+          "desc": "当前任务绑定的 worktree 不可用。"
+        },
+        "unknown": {
+          "title": "暂不可用",
+          "desc": "无法读取当前任务的 git 状态。"
+        }
+      },
+      "revealInFolder": "打开文件所在位置",
+      "touchCountAria_one": "已修改 {{count}} 次",
+      "touchCountAria_other": "已修改 {{count}} 次",
+      "expandAllAria": "展开所有文件",
+      "collapseAllAria": "收起所有文件"
+    },
+    "subagents": {
+      "running": "运行中",
+      "finished": "已结束",
+      "empty": "本任务还没有 Subagent",
+      "emptyDetail": "任务运行时创建的 Subagent 会持续保留在这里。",
+      "loading": "正在读取 Subagent…",
+      "unavailable": "Subagent 历史暂不可用",
+      "unavailableDetail": "该远端设备或旧版应用尚未提供持久化的 Subagent 记录。",
+      "loadFailed": "无法读取 Subagent",
+      "retry": "重试",
+      "loadEarlier": "读取更早的 Subagent",
+      "untitled": "Subagent",
+      "notFound": "未找到该 Subagent",
+      "back": "返回",
+      "harness": "Harness",
+      "model": "模型",
+      "context": "父任务上下文",
+      "contextValues": {
+        "unknown": "Harness 未报告",
+        "none": "全新隔离上下文",
+        "snapshot": "父任务快照",
+        "live": "实时父任务"
+      },
+      "assignment": "任务内容",
+      "overview": "总览",
+      "children": "Subagent",
+      "queued": "排队中",
+      "queuedDetail": "该 Subagent 正在排队，依赖完成且有空闲并发位后会自动开始。",
+      "awaitingApproval": "等待批准",
+      "awaitingApprovalDetail": "该 Subagent 正在等待你在父任务中处理权限请求。",
+      "childError": "错误：{{error}}",
+      "sendDirection": "发送指令",
+      "composerPlaceholders": {
+        "runningWithSteer": "排队跟进；{{steerShortcut}} 插话纠正…",
+        "follow_up": "排队跟进，已完成的结果不会被覆盖…",
+        "resume": "继续这个 Subagent…"
+      },
+      "sendShortcutHint": "{{shortcut}} 发送 · Shift+Enter 换行",
+      "childEndedControlHint": "该 Subagent 已结束。请选择“总览”或仍在运行的 Subagent 再发送指令。",
+      "controlFailed": "指令未能送达。请确认 Subagent 仍可用后重试。",
+      "controlActions": {
+        "steer": "当前工具结束后纠正",
+        "follow_up": "排队跟进",
+        "resume": "继续 Subagent"
+      },
+      "returnedResult": "回传结果",
+      "copyResult": "复制",
+      "copiedResult": "已复制",
+      "resultTruncated": "回传结果过长，当前仅显示部分内容。",
+      "latestUpdate": "最近更新",
+      "technicalDetails": "技术详情",
+      "waitingForReply": "Subagent 正在处理…",
+      "noReply": "Subagent 未返回回复，请展开技术详情查看失败原因。",
+      "failedNoReply": "Subagent 运行失败，但没有返回可读详情。",
+      "stoppedNoReply": "Subagent 已停止，尚未返回结果。",
+      "completedNoReply": "Subagent 已完成，但没有返回结果。",
+      "errors": {
+        "providerNotConnected": "当前供应商尚未连接。请先连接对应账号或配置凭证后重试。",
+        "credentialInvalid": "供应商凭证已失效或被拒绝。请重新连接后重试。",
+        "modelInvalid": "所选模型不可用或名称无效。请改用当前任务可用的模型。",
+        "rateLimited": "供应商请求过于频繁。请稍后再试。",
+        "serviceUnavailable": "供应商服务暂时不可用。请稍后再试。",
+        "requestInvalid": "供应商拒绝了这次请求。请检查模型和任务设置后重试。",
+        "unknown": "Subagent 运行失败，可展开下方原始详情查看原因。",
+        "rawDetails": "查看原始详情"
+      },
+      "activity": "活动记录",
+      "noActivity": "Harness 暂未提供活动详情。",
+      "systemLog": "运行日志",
+      "noSystemLog": "暂无运行日志。",
+      "loadMoreTranscript": "加载更多记录",
+      "transcriptUnavailable": "该 Harness 尚未向 Cindy 提供完整的子任务记录；已回传的结果和生命周期活动仍会保留。",
+      "tool": {
+        "fallbackName": "工具",
+        "running": "运行中…",
+        "failed": "失败",
+        "input": "输入",
+        "result": "输出",
+        "noDetails": "没有记录输入或输出。"
+      },
+      "controlBadges": {
+        "steer": "插话纠正",
+        "follow_up": "跟进",
+        "resume": "继续",
+        "stop": "停止"
+      },
+      "lastTool": "最近工具：{{tool}}",
+      "tokens": "{{value}} tokens",
+      "toolUses_one": "{{count}} 次工具调用",
+      "toolUses_other": "{{count}} 次工具调用",
+      "systemEvents": {
+        "stop-requested": "父任务请求了停止。",
+        "control-requested": "父任务发来了一条控制请求。",
+        "transcript-truncated": "已达到记录的存储上限。",
+        "turn-ended": "Subagent 本轮已结束。",
+        "command-refused": "PI 拒绝了一条子任务命令。",
+        "generation-unreadable": "这段对话中较早的部分无法读取。"
+      },
+      "activityKinds": {
+        "started": "已启动",
+        "progress": "进展",
+        "message": "消息",
+        "question": "提问",
+        "decision": "决定",
+        "resumed": "已继续",
+        "steered": "已调整方向",
+        "completed": "已完成",
+        "failed": "失败",
+        "stopped": "已停止"
+      }
+    },
+    "backgroundTasks": {
+      "running": "运行中",
+      "completed": "已完成",
+      "empty": "本任务暂无后台作业",
+      "stop": "停止",
+      "stopping": "正在停止…",
+      "back": "返回",
+      "progressSummary": "{{done}}/{{total}} Agent",
+      "tokens": "{{value}} tokens",
+      "noProgress": "暂无进度详情"
+    },
+    "resourceUsage": {
+      "sections": {
+        "agents": "Agent 进程",
+        "app": "应用进程"
+      },
+      "columns": {
+        "process": "进程",
+        "cpu": "CPU",
+        "memory": "内存",
+        "pid": "PID"
+      },
+      "kinds": {
+        "main": "主进程",
+        "renderer": "界面进程",
+        "gpu": "GPU 进程",
+        "utility": "服务进程"
+      },
+      "agentRoles": {
+        "codexTask": "Codex 任务",
+        "codexService": "Codex 服务"
+      },
+      "agentRoleDetails": {
+        "task": "任务运行",
+        "service": "账户与模型"
+      },
+      "services": {
+        "audio": "音频服务",
+        "network": "网络服务",
+        "storage": "存储服务",
+        "videoCapture": "视频采集"
+      },
+      "processCount_one": "进程树：{{count}} 个进程",
+      "processCount_other": "进程树：{{count}} 个进程",
+      "agentsEmpty": "当前没有运行中的 Agent 进程，启动任务后会在这里展示占用",
+      "tableLabel": "资源监视器",
+      "sortBy": "按{{column}}排序",
+      "loading": "正在读取进程…",
+      "remoteUnavailableTitle": "远程任务暂不可用",
+      "remoteUnavailableDescription": "此面板仅读取本机进程，仅适用于在此设备上运行的本机任务。",
+      "selectHint": "选择一个进程",
+      "readOnlyHint": "只有用于任务的 Agent 进程可以终止",
+      "terminate": "终止进程",
+      "terminateConfirmTitle": "终止 {{name}} 进程？",
+      "terminateConfirmDescription": "将强制终止该 Agent 进程，使用该进程的所有任务都会中断；之后在任一受影响任务里继续发消息，即可按需重新启动 Agent。",
+      "terminated": "已终止 {{name}} 进程",
+      "terminateFailed": "无法终止该进程，它可能已自行退出；列表会随下一次采样自动更新"
+    }
+  },
+  "ccAgent": {
+    "workdirBrowse": {
+      "backToProjects": "返回项目",
+      "switchProject": "切换项目",
+      "activeSessionCount_one": "{{count}} 个活跃任务",
+      "activeSessionCount_other": "{{count}} 个活跃任务",
+      "treeEmpty": "此目录为空",
+      "treeLoading": "正在加载文件…",
+      "treeAction": {
+        "collapseAll": "收起所有",
+        "refresh": "刷新"
+      },
+      "treeMenu": {
+        "newFile": "新建文件",
+        "newFolder": "新建文件夹",
+        "rename": "重命名",
+        "openInFileBrowser": "在文件浏览器查看",
+        "showInFolder": "在文件夹中显示",
+        "copyFilePath": "复制文件路径",
+        "deleteFile": "删除文件"
+      },
+      "searchPanel": {
+        "headingSearch": "搜索",
+        "placeholderSearch": "搜索项目",
+        "matchCaseAria": "区分大小写",
+        "matchCaseOn": "区分大小写（开）",
+        "matchCaseOff": "区分大小写（关）",
+        "exit": "退出搜索",
+        "searchFiles": "搜索文件内容",
+        "empty": "输入文字开始搜索",
+        "searching": "搜索中…",
+        "failed": "搜索失败",
+        "rgUnavailable": "远端机器未安装 ripgrep，搜索不可用",
+        "truncated": "{{max}}+ 命中，{{files}} 个文件，缩短查询",
+        "noResults": "没有匹配结果",
+        "summary_one": "{{count}} 条结果",
+        "summary_other": "{{count}} 条结果",
+        "inFile_one": "在 {{count}} 个文件中",
+        "inFile_other": "在 {{count}} 个文件中"
+      },
+      "invalidName": "名称不合法",
+      "createFailed": "创建失败：{{message}}",
+      "deleteFile": {
+        "title": "删除文件",
+        "description": "确认删除「{{name}}」？此操作不可撤销。",
+        "confirm": "删除",
+        "cancel": "取消"
+      },
+      "deleteFailed": "删除失败：{{message}}",
+      "revealFailed": "打开失败：{{error}}",
+      "renameFailed": "重命名失败：{{message}}",
+      "pathCopied": "已复制路径",
+      "copyFailed": "复制失败，请手动复制",
+      "tabClose": "关闭 {{name}}",
+      "tabMenu": {
+        "copyPath": "复制路径",
+        "close": "关闭",
+        "closeOthers": "关闭其他标签",
+        "closeRight": "关闭右侧标签",
+        "closeLeft": "关闭左侧标签",
+        "closeAll": "关闭所有标签"
+      },
+      "chatRail": {
+        "expand": "展开对话流",
+        "collapse": "收起对话流",
+        "resizeAria": "拖动调整对话宽度（400-1120）"
+      },
+      "docSearch": {
+        "ariaLabel": "文档内查找",
+        "placeholder": "查找…",
+        "prev": "上一个",
+        "next": "下一个",
+        "close": "关闭",
+        "truncatedTitle": "命中过多，仅显示前若干项；请精确化 query"
+      },
+      "unrenderable": {
+        "modifiedAt": "修改于 {{time}}",
+        "notSupported": "此文件类型不支持在应用内预览",
+        "remoteNotSupported": "远程任务的文件在远端机器上，此类型暂不支持预览",
+        "remoteOversize": "文件过大，远程任务暂不支持预览",
+        "cachedLocally": "已取回到本地，可用系统应用打开",
+        "openInSystem": "在系统中打开",
+        "revealFolder": "显示所在文件夹"
+      },
+      "fileBody": {
+        "drawioLoading": "正在加载 draw.io 预览…",
+        "pdfLoading": "正在加载 PDF 预览…",
+        "selectFile": "选择一个文件进行预览",
+        "readFailed": "读取文件失败：{{message}}",
+        "truncatedNotice": "文件较大，已截断显示前 2 MB —— 在系统中打开查看完整内容",
+        "editLabel": "编辑",
+        "editAriaLabel": "编辑文件",
+        "saveLabel": "保存",
+        "doneLabel": "完成",
+        "saveAriaLabel": "保存",
+        "saveFailed": "保存失败：{{message}}",
+        "saved": "已保存",
+        "menuSave": "保存",
+        "menuInsertTable": "插入表格",
+        "externalChangeBlocked": "文件已被外部修改，已暂停自动保存。确认后可手动保存覆盖。",
+        "tableMenu": {
+          "addRowAbove": "在上方新增行",
+          "addRowBelow": "在下方新增行",
+          "deleteRow": "删除行",
+          "addColumnLeft": "在左侧新增列",
+          "addColumnRight": "在右侧新增列",
+          "deleteColumn": "删除列",
+          "deleteTable": "删除表格"
+        },
+        "confirmSave": {
+          "title": "保存修改？",
+          "description": "将覆盖文件 {{path}} 的当前内容，操作不可撤销。",
+          "confirm": "保存",
+          "cancel": "取消"
+        },
+        "chip": {
+          "unsaved": "未保存",
+          "saving": "保存中…",
+          "editing": "编辑中",
+          "editingUnsaved": "编辑中 · 未保存"
+        },
+        "cachedStaleNotice": "当前显示的是本地缓存副本，可能不是远端最新版本",
+        "cachedTruncatedNotice": "缓存副本较大，已截断显示前 32 MB —— 在系统中打开查看完整内容",
+        "fetchingRemote": "正在下载 {{percent}}%（{{received}} / {{total}} · {{speed}}）",
+        "readErrorOffline": "与远程设备的连接已断开，此文件还没有本地缓存。恢复连接后再试",
+        "readErrorRemoteFsUnavailable": "远端环境尚未初始化，请先在任务中发送一条消息",
+        "fetchingRemoteUpload": "远端准备中（上传至中转 {{percent}}%，{{received}} / {{total}} · {{speed}}）"
+      },
+      "sessionTabs": {
+        "newSession": "新建任务",
+        "closeSession": "关闭 {{title}}"
+      },
+      "archiveSession": {
+        "title": "归档任务",
+        "description": "「{{title}}」将被归档，从列表中移除。可在归档视图中恢复。",
+        "confirm": "归档",
+        "cancel": "取消",
+        "failed": "归档失败，请重试",
+        "runningBlocked": "当前任务正在运行，请先停止后再归档",
+        "attachedBlocked": "此任务正在被远程接管，请先收回后再归档"
+      },
+      "confirmSwitchAway": {
+        "title": "当前文件有未保存的修改",
+        "descriptionSwitchFile": "「{{path}}」尚未保存。切换到其他文件后，未保存的内容将丢失。",
+        "descriptionCloseTab": "「{{path}}」尚未保存。关闭后未保存的内容将丢失。",
+        "saveAndSwitch": "保存并切换",
+        "save": "保存",
+        "tertiary": "不保存",
+        "cancel": "取消"
+      },
+      "mermaidEditor": {
+        "title": "编辑 mermaid 源码",
+        "shortcuts": "Esc 取消 · Ctrl/⌘+Enter 保存",
+        "cancel": "取消",
+        "save": "保存",
+        "targetMissing": "原 mermaid 块已不在文档中，改动未保存。",
+        "toolbarZoom": "放大查看",
+        "toolbarEdit": "编辑源码",
+        "toolbarCopy": "复制",
+        "renderFailedPrefix": "mermaid 渲染失败：",
+        "errEmpty": "mermaid 源码为空",
+        "errSvgParse": "SVG 解析失败 (length={{length}})"
+      },
+      "imagePreview": {
+        "loadFailed": "无法加载图片",
+        "viewLarge": "查看大图"
+      }
+    }
+  }
+}

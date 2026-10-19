@@ -1,0 +1,22 @@
+/* Reuse the bundled Lucide chevron; native <details> semantics, keyboard
+   handling and open state stay untouched. This scope deliberately includes
+   Chat and future summaries: a browser's filled disclosure marker is never UI. */
+details > summary { list-style: none; }
+details > summary::marker { content: ""; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary:not(:has(> .lucide-chevron-down, > .lucide-chevron-right, > .shortcut-summary-chevron))::before {
+  content: "";
+  display: inline-block;
+  flex: 0 0 1em;
+  width: 1em;
+  height: 1em;
+  margin-inline-end: .375em;
+  vertical-align: -.125em;
+  background-color: currentColor;
+  mask: url("../../../../result-ui/assets/chevron.svg") center / contain no-repeat;
+  rotate: -90deg;
+}
+details[open] > summary::before { rotate: 0deg; }
+@media (forced-colors: active) {
+  details > summary::before { forced-color-adjust: none; background-color: CanvasText; }
+}

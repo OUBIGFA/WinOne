@@ -1,0 +1,891 @@
+{
+  "chat": {
+    "markdownRenderer": {
+      "codeCopied": "Copied",
+      "copyCode": "Copy code",
+      "annotateImage": "Annotate image",
+      "copy": "Copy",
+      "blockCopied": "Copied",
+      "duplicateFiles": "Found {{count}} files with the same name, please use an absolute path",
+      "copyFile": "Copy",
+      "copyFilePath": "Copy file path",
+      "copyLocation": "Copy Location",
+      "locationCopied": "Location copied",
+      "openWith": "Open with",
+      "openWithAppFailed": "Couldn't open with the selected app",
+      "revealFile": "Reveal in folder",
+      "openInBrowser": "Open in browser",
+      "fileCopied": "File copied",
+      "pathCopied": "Path copied",
+      "BROWSER_FILE_INVALID_TARGET": "The local page path is invalid",
+      "BROWSER_FILE_PATH_NOT_ALLOWED": "This path is not allowed",
+      "BROWSER_FILE_UNSUPPORTED_TYPE": "This file type cannot be opened in a browser",
+      "BROWSER_FILE_NOT_FOUND": "The local page was not found",
+      "BROWSER_FILE_OPEN_FAILED": "Failed to open in browser",
+      "openInBrowserFailed": "Failed to open in browser",
+      "openLinkFailed": "Failed to open link",
+      "anchorNotFound": "Heading not found",
+      "openInSidebarBrowser": "Open in sidebar browser",
+      "openInSidebarFileBrowser": "Open in sidebar file browser",
+      "openInSidebarFileBrowserFailed": "Failed to open in sidebar file browser",
+      "openInSidebarFileBrowserOutsideWorkdir": "This file is outside the current session working directory and cannot be located in the sidebar file browser",
+      "openInDefaultBrowser": "Open in default browser",
+      "copyLink": "Copy link",
+      "linkCopied": "Link copied",
+      "viewSourceFile": "View source file",
+      "openInSidebarFailed": "Failed to open in sidebar browser"
+    },
+    "mermaid": {
+      "clickToZoom": "Click to zoom",
+      "zoom": "Zoom",
+      "viewDiagram": "View diagram",
+      "viewSource": "View source",
+      "copy": "Copy",
+      "copied": "Copied",
+      "annotate": "Annotate",
+      "renderFailed": "mermaid render failed — showing source"
+    },
+    "media": {
+      "clickToZoom": "Click to zoom",
+      "audioProgress": "Playback position",
+      "audioPlay": "Play audio",
+      "audioPause": "Pause audio",
+      "modelPreviewAlt": "3D model preview",
+      "imageCopied": "Image copied",
+      "copyFailed": "Copy failed",
+      "openFolderFailed": "Failed to open folder",
+      "copyImage": "Copy image",
+      "revealImage": "Reveal image in folder",
+      "revealImageSidebar": "Reveal in file browser",
+      "openInBrowser": "Open in browser",
+      "openWithApp": "Open with default app",
+      "openWithAppFailed": "Failed to open",
+      "saveAs": "Save as…",
+      "imageSaved": "Image saved",
+      "saveFailed": "Save failed",
+      "sendToChat": "Send to chat",
+      "sentToChat": "Added to the composer",
+      "sendToChatFailed": "Failed to send to chat",
+      "annotate": "Annotate",
+      "annotateUndo": "Undo last stroke",
+      "annotateDiscard": "Discard annotations",
+      "annotateSave": "Save annotations",
+      "annotateSaveFailed": "Failed to save annotations",
+      "annotateRedo": "Redo",
+      "annotateDiscardConfirmTitle": "Discard annotation changes?",
+      "annotateDiscardConfirmDescription": "The annotations will go back to how they were when you opened this image.",
+      "annotateDiscardConfirmAction": "Discard",
+      "annotateDiscardConfirmCancel": "Keep annotating",
+      "annotateBurnFailedNotSent": "Couldn't apply annotations to the image, so the message wasn't sent. Try again, or remove the annotations and send.",
+      "annotateBurnFailedNotSaved": "Couldn't apply annotations to the image, so your changes weren't saved. Try again, or remove the annotations and save.",
+      "annotateBurnFailedSentOriginal": "Couldn't apply annotations to the image. The original image was sent without them.",
+      "prevImage": "Previous image",
+      "nextImage": "Next image",
+      "openModel": "Open model",
+      "revealModel": "Reveal model in folder",
+      "openModelFailed": "Failed to open model",
+      "modelLoading": "Loading 3D model…",
+      "modelLoadFailed": "Failed to load 3D model",
+      "videoCopied": "Video copied",
+      "videoMissing": "Video missing",
+      "copyVideo": "Copy video",
+      "revealVideo": "Reveal video in folder",
+      "videoUnavailable": "Video unavailable",
+      "imageMissing": "Image missing",
+      "audioCopyDescription": "Copy description",
+      "audioDescriptionCopied": "Description copied",
+      "revealAudio": "Reveal audio in folder",
+      "audioUnavailable": "Audio unavailable",
+      "audioUntitled": "Untitled",
+      "soundEffectUntitled": "Untitled sound effect",
+      "revealSoundEffect": "Reveal sound effect in folder",
+      "imagePreview": "Image preview",
+      "originalMissing": "The original image is unavailable. Showing the saved annotated image."
+    }
+  },
+  "rightSidebar": {
+    "ariaLabel": "Right sidebar",
+    "panelError": {
+      "title": "Panel failed to load",
+      "description": "This panel is unavailable right now. Other panels are still available.",
+      "reload": "Reload panel"
+    },
+    "window": {
+      "title": "Sidebar",
+      "mergeBack": "Merge back to main window",
+      "followPlaceholder": "The sidebar follows the main window's current session"
+    },
+    "emptyTitle": "Reserved area",
+    "emptyDesc": "Right sidebar content will be added in future iterations.",
+    "tabs": {
+      "addAria": "Add tab",
+      "addFailed": "Failed to add tab",
+      "tabCloseAria": "Close tab",
+      "menu": {
+        "addLabel": "Add tab",
+        "comingSoon": "Coming soon",
+        "alreadyOpen": "Open"
+      },
+      "kinds": {
+        "fileBrowser": "File browser",
+        "browser": "Browser",
+        "terminal": "Terminal",
+        "review": "Review",
+        "subagents": "Subagent",
+        "backgroundTasks": "Background tasks",
+        "resourceUsage": "Activity Monitor",
+        "collaboration": "Team",
+        "unknown": "Unknown tab",
+        "ghostPanel": "Plugin panel"
+      },
+      "controls": {
+        "showAria": "Show sidebar",
+        "maximizeAria": "Maximize sidebar",
+        "restoreAria": "Restore sidebar",
+        "closeAria": "Close sidebar",
+        "detachAria": "Open sidebar in a new window"
+      },
+      "contextMenu": {
+        "close": "Close",
+        "closeOthers": "Close others",
+        "closeAll": "Close all"
+      },
+      "empty": {
+        "eyebrow": "Right Sidebar",
+        "title": "Add a panel",
+        "desc": "Open files, review, Activity Monitor, a built-in browser, or a terminal here to work alongside the chat on the left.",
+        "openFile": "Open files",
+        "fileSub": "Files",
+        "openReview": "Open review",
+        "reviewSub": "Review",
+        "openSubagents": "Open Subagent",
+        "subagentsSub": "Durable child work",
+        "openBackgroundTasks": "Open background tasks",
+        "backgroundTasksSub": "Background tasks",
+        "openResourceUsage": "Open Activity Monitor",
+        "openBrowser": "Open browser",
+        "browserSub": "Browser",
+        "openTerminal": "Open terminal",
+        "terminalSub": "Terminal",
+        "addMoreHint": "Use the + button at the top to choose more panel types"
+      },
+      "placeholderHint": "{{kind}} — content coming in a later phase"
+    },
+    "fileBrowser": {
+      "noWorkdir": "This session has no local working directory; file browser unavailable",
+      "filterPlaceholder": "Filter files…",
+      "filterClear": "Clear filter",
+      "filterIndexing": "Indexing project files…",
+      "filterNoMatch": "No matching files",
+      "filterRgUnavailable": "ripgrep is not installed on the remote machine; file name filtering is unavailable",
+      "filterIndexFailed": "File indexing failed",
+      "filterTruncated": "Too many results, showing first {{limit}}; narrow the keyword",
+      "deviceTooOld": "The remote device is running an older {{appName}} version that does not support remote file browsing. Please update it and try again",
+      "loadFailed": "Failed to load the file tree",
+      "unsupportedDropFile": "This file format cannot be previewed yet",
+      "multipleDropFilesUnsupported": "Drop one file at a time"
+    },
+    "browser": {
+      "newTab": "New tab",
+      "audible": "Playing audio",
+      "urlPlaceholder": "Enter URL or search",
+      "goBack": "Back",
+      "goForward": "Forward",
+      "goBackUnavailable": "No previous page",
+      "goForwardUnavailable": "No next page",
+      "reload": "Reload",
+      "stop": "Stop loading",
+      "screenshot": "Screenshot",
+      "screenshotCopied": "Screenshot copied to clipboard",
+      "screenshotFailed": "Screenshot failed",
+      "comment": "Comment on the page",
+      "exitCommentMode": "Exit comment mode",
+      "commentModeHint": "Click an element or Shift-drag an area · Cmd/Ctrl-click to add instantly · Esc to exit",
+      "commentPlaceholder": "Describe the change you want here…",
+      "commentSubmit": "Add comment",
+      "commentCancel": "Cancel",
+      "commentAdded": "Comment added to the chat input",
+      "commentFailed": "Failed to add comment",
+      "styleTweaksExpand": "Show style controls",
+      "styleTweaksCollapse": "Hide style controls",
+      "styleTweaksSubmitting": "Submitting comment…",
+      "styleReset": "Reset",
+      "styleTextLabel": "Text",
+      "moreTools": "More",
+      "openInSystemBrowser": "Open in system browser",
+      "copyLink": "Copy link",
+      "linkCopied": "Link copied to clipboard",
+      "copyLinkFailed": "Failed to copy link",
+      "crash": {
+        "crashedTitle": "Page crashed",
+        "crashedDesc": "The page process terminated unexpectedly. Please reload.",
+        "unresponsiveTitle": "Page unresponsive",
+        "unresponsiveDesc": "The page has not responded for a while. Reload or wait a moment.",
+        "navigationLoopTitle": "Repeated Navigation Stopped",
+        "navigationLoopDesc": "The page navigated repeatedly in a short time. Reload the page to try again.",
+        "resourceKilledTitle": "Page used too much memory",
+        "resourceKilledDesc": "This page was using too much memory and was stopped to keep the app running. You can reload it.",
+        "forceKill": "Force stop",
+        "reload": "Reload"
+      },
+      "resourceAlert": {
+        "cpuHint": "This page is using significant system resources",
+        "terminate": "Stop page",
+        "dismiss": "Dismiss"
+      }
+    },
+    "terminal": {
+      "defaultTitle": "Terminal",
+      "processExited": "Process exited (code {{code}})",
+      "processKilled": "Process killed (signal {{signal}})",
+      "restart": "Restart",
+      "shellNotFound": "Shell not found: {{detail}}",
+      "spawnFailed": "Failed to start terminal: {{detail}}",
+      "remoteUnavailableTitle": "Unavailable for remote sessions",
+      "remoteUnavailableDescription": "Terminal is currently available only for sessions running on this device."
+    },
+    "review": {
+      "turn": {
+        "title": "Changes from this message",
+        "localOnly": "Exact message changes are not available for remote sessions yet.",
+        "partialNotice": "This message includes command or tool writes that could not be tracked exactly. Only the captured subset is shown; it is not a complete patch.",
+        "emptyTitle": "No recorded changes",
+        "emptyDesc": "The recorded patch for this message has no displayable file changes.",
+        "crossSessionSwitchDisabled": "This review belongs to a collaborator session. Source switching is available only within its own session.",
+        "previewUnavailable": "This message records historical changes, so current on-disk file content cannot be previewed reliably.",
+        "snapshotPatchUnavailable": "A historical change snapshot cannot produce a git apply command for the current worktree."
+      },
+      "fileCount_one": "{{count}} file",
+      "fileCount_other": "{{count}} files",
+      "emptyTitle": "No changes yet",
+      "emptyDesc": "This session hasn't edited any files yet. Changes by the agent will appear here.",
+      "emptyDescGit": "The current git worktree has no staged or unstaged changes.",
+      "filterEmptyTitle": "No changes in this filter",
+      "filterEmptyDesc": "No git changes are visible with the current filter or settings.",
+      "noSessionTitle": "No session",
+      "noSessionDesc": "Select a local session to review its git worktree changes.",
+      "loadingTitle": "Reading git changes",
+      "loadingDesc": "The panel keeps the previous content until the refresh completes.",
+      "errorTitle": "Failed to read changes",
+      "refresh": "Refresh",
+      "refreshGitData": "Reload git status and diffs",
+      "openFile": "Open file",
+      "openFileFailed": "Could not open file: {{error}}",
+      "detachedHead": "HEAD {{oid}}",
+      "branchUnknown": "Unknown branch",
+      "branch": {
+        "basePlaceholder": "Select base branch",
+        "baseDropdownAria": "Select branch compare base",
+        "baseLabel": "Compare base",
+        "baseTooltip": "Compare base: {{base}}",
+        "staleRiskSuffix": "(may be outdated)",
+        "loadingTitle": "Reading branch diff",
+        "loadingDesc": "Comparing the base branch with the current HEAD",
+        "errorTitle": "Failed to read branch diff",
+        "warningTitle": "Branch diff unavailable",
+        "noCandidatesTitle": "No base branch available",
+        "noCandidatesDesc": "This repository has no other local or remote branch to compare against.",
+        "emptyTitle": "No branch changes",
+        "emptyDesc": "Current HEAD has no accumulated changes since the merge-base with the selected base branch.",
+        "baseMissing": "The previously selected base branch {{base}} no longer exists. The default base is being used.",
+        "mergeBaseMissing": "No merge-base was found between current HEAD and the base branch. Choose another base branch or fetch complete history and try again.",
+        "tooManyFiles": "This branch diff contains {{count}} files, above the {{limit}} file limit. Loading was stopped.",
+        "unborn": "The current branch has no commits yet, so branch diff cannot be computed."
+      },
+      "capped": {
+        "notice": "Large diff: showing one file at a time ({{count}} files, {{lines}} changed lines).",
+        "fileLoading": "Reading file diff…",
+        "fileLoadFailed": "Failed to read this file diff"
+      },
+      "noRenderableDiff": "No renderable text diff",
+      "staleDiff": "The changes are out of date. Refresh and try again.",
+      "sessionRunningWriteBlocked": "The agent is running. Git write operations are temporarily unavailable.",
+      "renamePartialNotice": "In v1, renamed files only support whole-file stage/unstage/revert.",
+      "typechangePartialNotice": "This file type only supports whole-file stage/unstage/revert.",
+      "aheadBehindTooltip": "{{upstream}}: {{ahead}} ahead, {{behind}} behind",
+      "writeDisabledNotice": "Read-only state: {{reasons}}. Git changes are still shown.",
+      "writeDisabledReasons": {
+        "detached": "detached HEAD",
+        "unborn": "unborn branch",
+        "unmerged": "unmerged files",
+        "in-progress": "git operation in progress",
+        "agent-running": "agent is running",
+        "disabled": "review unavailable",
+        "historical-snapshot": "historical change snapshot is read-only",
+        "remote-device": "remote device sessions are view-only",
+        "remote-ssh": "SSH workspace review is view-only"
+      },
+      "remote": {
+        "deviceTooOldTitle": "Device version too old",
+        "deviceTooOldDesc": "The {{appName}} version on the other device is too old for remote review. Please upgrade the remote device and try again.",
+        "oversizeTitle": "Changes too large",
+        "oversizeDesc": "The changes in this view exceed the device-link transfer limit. Please view them on the remote device."
+      },
+      "unmodifiedLines_one": "{{count}} unmodified line",
+      "unmodifiedLines_other": "{{count}} unmodified lines",
+      "source": {
+        "unstaged": "Unstaged",
+        "staged": "Staged",
+        "commit": "Commit",
+        "branch": "Branch",
+        "lastTurn": "Last turn"
+      },
+      "sourceDropdownAria": "Select review source",
+      "lastTurnEmpty": {
+        "title": "No file changes yet",
+        "desc": "The latest diff is no longer available.",
+        "action": "View branch diff"
+      },
+      "fileTree": {
+        "show": "Show files",
+        "hide": "Hide files",
+        "temporarilyHidden": "Not enough width; files are hidden for now. Click to turn them off",
+        "aria": "Changed files",
+        "filterPlaceholder": "Filter files",
+        "empty": "No matching files"
+      },
+      "fileJump": {
+        "tooltip": "Jump to file",
+        "disabled": "There are no files to jump to in this view",
+        "placeholder": "Filter files",
+        "empty": "No matching files",
+        "more_one": "{{count}} more file",
+        "more_other": "{{count}} more files"
+      },
+      "diffExpansion": {
+        "expand": "Expand all diffs",
+        "collapse": "Collapse all diffs",
+        "disabled": "There are no files to expand in this view"
+      },
+      "moreMenu": {
+        "aria": "View options",
+        "wordWrapEnable": "Enable word wrap",
+        "wordWrapDisable": "Disable word wrap",
+        "wordDiffEnable": "Enable word diffs",
+        "wordDiffDisable": "Disable word diffs",
+        "hideWhitespace": "Hide whitespace",
+        "showWhitespace": "Show whitespace",
+        "richPreviewEnable": "Enable rich text preview",
+        "richPreviewDisable": "Disable rich text preview",
+        "copyGitApply": "Copy git apply command",
+        "copyGitApplyDisabledEmpty": "This view has no copyable patch",
+        "copyGitApplyDisabledWhitespace": "Cannot copy a git apply command while whitespace is hidden",
+        "copyGitApplySuccess": "Copied git apply command",
+        "copyGitApplyFailed": "Copy failed. Please copy manually"
+      },
+      "viewMode": {
+        "aria": "Switch diff view mode",
+        "unified": "Unified",
+        "split": "Split"
+      },
+      "noNewlineAtEof": "\\ No newline at end of file",
+      "commitMenu": {
+        "loading": "Loading commits…",
+        "error": "Could not load commit records",
+        "retry": "Retry",
+        "empty": "No commits on this branch",
+        "relativeTime": "{{time}} ago"
+      },
+      "noCommitsTitle": "No commits on this branch",
+      "noCommitsDesc": "Choose a commit from the source dropdown to show its diff here.",
+      "untitledCommit": "Untitled commit",
+      "commitDiffLoadingTitle": "Reading commit diff",
+      "commitDiffErrorTitle": "Failed to read commit diff",
+      "commitDiffEmptyTitle": "No file changes",
+      "commitDiffEmptyDesc": "This commit has no diff against its first parent.",
+      "stagedEmptyTitle": "No staged changes",
+      "stagedEmptyDesc": "Stage files or hunks, then use Commit or push in the toolbar.",
+      "actions": {
+        "stage": "Stage",
+        "unstage": "Unstage",
+        "discard": "Revert",
+        "stageHunk": "Stage hunk",
+        "unstageHunk": "Unstage hunk",
+        "discardHunk": "Revert hunk",
+        "stageAll": "Stage all",
+        "unstageAll": "Unstage all",
+        "discardAll": "Revert all",
+        "disabledWriteGateWithReasons": "This action is temporarily unavailable: {{reasons}}. Try again after the state clears.",
+        "partialFailure": "Partially completed: {{succeeded}} succeeded, {{failed}} failed"
+      },
+      "discard": {
+        "confirm": {
+          "file": {
+            "title": "Revert file?",
+            "desc": "This will discard this file's working tree changes. This action is not easy to undo.",
+            "descWithUntracked": "This will discard this file's working tree changes; untracked files will be deleted. This action is not easy to undo."
+          },
+          "hunk": {
+            "title": "Revert hunk?",
+            "desc": "This will discard this hunk's working tree changes. This action is not easy to undo.",
+            "descWithUntracked": "This will discard this hunk's working tree changes; content in untracked files will be deleted. This action is not easy to undo."
+          },
+          "section": {
+            "title": "Revert all changes?",
+            "desc": "This will discard working tree changes in {{count}} files in the current view. This action is not easy to undo.",
+            "descWithUntracked": "This will discard working tree changes in {{count}} files in the current view, including {{untrackedCount}} untracked files that will be deleted. This action is not easy to undo."
+          },
+          "confirm": "Revert",
+          "cancel": "Cancel"
+        }
+      },
+      "commit": {
+        "placeholder": "Commit message…",
+        "submit": "Commit",
+        "submitAndPush": "Commit and push",
+        "includeUnstaged": "Include unstaged changes",
+        "disabledNoStaged": "There are no staged changes.",
+        "disabledNoMessage": "Enter a commit message.",
+        "disabledNoChanges": "There are no changes to commit."
+      },
+      "topAction": {
+        "label": "Commit or push",
+        "disabledWriteGate": "The current state does not allow committing or pushing.",
+        "disabledWriteGateWithReasons": "Committing or pushing is temporarily unavailable: {{reasons}}."
+      },
+      "push": {
+        "submit": "Push",
+        "ready_one": "Push {{count}} local commit.",
+        "ready_other": "Push {{count}} local commits.",
+        "readyNoUpstream": "Push the current branch and set upstream.",
+        "readyForceCandidate_one": "The remote has {{count}} commit you do not have; confirmation is required before pushing.",
+        "readyForceCandidate_other": "The remote has {{count}} commits you do not have; confirmation is required before pushing.",
+        "synced": "Already up to date; nothing to push.",
+        "disabledNoBranch": "There is no branch to push.",
+        "disabledWriteGate": "The current state does not allow pushing.",
+        "disabledWriteGateWithReasons": "Pushing is temporarily unavailable: {{reasons}}. Try again after the state clears.",
+        "forceTitle": "Confirm force push?",
+        "forceDesc_one": "Remote {{remoteRef}} has {{count}} commit you do not have. Force pushing will overwrite the remote branch and is not easy to undo.",
+        "forceDesc_other": "Remote {{remoteRef}} has {{count}} commits you do not have. Force pushing will overwrite the remote branch and is not easy to undo.",
+        "forceConfirm": "Force push",
+        "forceCancel": "Cancel",
+        "forceStillRejected": "The remote changed. Refresh and confirm again.",
+        "disabledBehindOnly": "No new local commits to push ({{count}} behind the remote)",
+        "leaseExpired": "The remote changed after confirmation. Push was stopped; refresh and confirm again.",
+        "noRemote": "This repository has no git remote configured, so it cannot be pushed.",
+        "failedTitle": "Push failed",
+        "successToast": "Pushed successfully"
+      },
+      "changeStatus": {
+        "renamed": "Renamed",
+        "copied": "Copied"
+      },
+      "status": {
+        "text": "Text",
+        "binary": "Binary",
+        "large-text": "Large",
+        "too-large": "Too large",
+        "submodule": "Submodule",
+        "unrenderable": "Unavailable"
+      },
+      "kindNotice": {
+        "binary": "Binary files are not rendered in this view.",
+        "large-text": "Large text diffs are skipped in this view.",
+        "too-large": "This file is too large to render.",
+        "submodule": "Submodule diffs are not rendered in this view.",
+        "unrenderable": "This diff cannot be rendered."
+      },
+      "imagePreview": {
+        "old": "Before",
+        "new": "After",
+        "loading": "Loading image preview",
+        "tooLarge": "Image {{size}} exceeds {{maxSize}}, so the preview was not loaded.",
+        "loadFailed": "Failed to load image preview",
+        "missing": "Image is unavailable",
+        "alt": "{{label}}: {{path}}"
+      },
+      "richPreview": {
+        "loading": "Loading preview…",
+        "fallbackTitle": "Rich text preview is unavailable.",
+        "loadFailed": "Could not load preview",
+        "tooLarge": "Markdown file {{size}} exceeds {{maxSize}}, so the normal diff is shown.",
+        "reason": {
+          "not-markdown": "This file is not a Markdown file.",
+          "deleted": "Deleted files have no after-content to preview.",
+          "unsupported-kind": "This file cannot be previewed as Markdown text.",
+          "missing": "The changed Markdown file could not be found.",
+          "unsafe-path": "The file path is unsafe.",
+          "source-missing": "Git context required for preview is missing.",
+          "read-error": "Could not read Markdown content."
+        }
+      },
+      "disabled": {
+        "default": {
+          "title": "Unavailable",
+          "desc": "This session's git worktree cannot be read."
+        },
+        "remote-session": {
+          "title": "Remote sessions are not supported yet",
+          "desc": "Git review for remote worktrees will be added later."
+        },
+        "no-session": {
+          "title": "Session not found",
+          "desc": "The session record could not be found on this device."
+        },
+        "no-workdir": {
+          "title": "No workdir",
+          "desc": "This session has no local workdir to review."
+        },
+        "non-git": {
+          "title": "Not a git repository",
+          "desc": "The current workdir does not contain a usable git repository."
+        },
+        "git-unavailable": {
+          "title": "Git unavailable",
+          "desc": "The local git command could not be executed."
+        },
+        "invalid-worktree": {
+          "title": "Invalid worktree",
+          "desc": "The worktree bound to this session is unavailable."
+        },
+        "unknown": {
+          "title": "Unavailable",
+          "desc": "The git status for this session could not be read."
+        }
+      },
+      "revealInFolder": "Reveal in folder",
+      "touchCountAria_one": "Edited {{count}} time",
+      "touchCountAria_other": "Edited {{count}} times",
+      "expandAllAria": "Expand all files",
+      "collapseAllAria": "Collapse all files"
+    },
+    "subagents": {
+      "running": "Running",
+      "finished": "Finished",
+      "empty": "No Subagent in this task yet",
+      "emptyDetail": "Subagents created while this task runs will remain available here.",
+      "loading": "Loading Subagents…",
+      "unavailable": "Subagent history is unavailable",
+      "unavailableDetail": "This remote device or older app version does not expose durable Subagent records yet.",
+      "loadFailed": "Could not load Subagents",
+      "retry": "Retry",
+      "loadEarlier": "Load earlier Subagents",
+      "untitled": "Subagent",
+      "notFound": "Subagent not found",
+      "back": "Back",
+      "harness": "Harness",
+      "model": "Model",
+      "context": "Parent context",
+      "contextValues": {
+        "unknown": "Not reported by the Harness",
+        "none": "Fresh isolated context",
+        "snapshot": "Parent task snapshot",
+        "live": "Live parent task"
+      },
+      "assignment": "Assignment",
+      "overview": "Overview",
+      "children": "Children",
+      "queued": "Queued",
+      "queuedDetail": "This child is queued and will start when its dependencies and a worker slot are ready.",
+      "awaitingApproval": "Waiting for approval",
+      "awaitingApprovalDetail": "This child is waiting for a permission decision in the parent task.",
+      "childError": "Error: {{error}}",
+      "sendDirection": "Send direction",
+      "composerPlaceholders": {
+        "runningWithSteer": "Queue a follow-up · {{steerShortcut}} to steer…",
+        "follow_up": "Queue a follow-up — the returned result stays intact…",
+        "resume": "Continue this Subagent…"
+      },
+      "sendShortcutHint": "{{shortcut}} to send · Shift+Enter for a new line",
+      "childEndedControlHint": "This child has ended. Choose Overview or a running child to send another instruction.",
+      "controlFailed": "The instruction could not be delivered. Check that the Subagent is still available and try again.",
+      "controlActions": {
+        "steer": "Steer after current tools",
+        "follow_up": "Queue follow-up",
+        "resume": "Resume Subagent"
+      },
+      "returnedResult": "Returned result",
+      "copyResult": "Copy",
+      "copiedResult": "Copied",
+      "resultTruncated": "The returned result was truncated for display.",
+      "latestUpdate": "Latest update",
+      "technicalDetails": "Technical details",
+      "waitingForReply": "Subagent is working…",
+      "noReply": "The Subagent did not return a reply. Open technical details to see why.",
+      "failedNoReply": "The Subagent failed without returning readable details.",
+      "stoppedNoReply": "The Subagent stopped before returning a result.",
+      "completedNoReply": "The Subagent completed without returning a result.",
+      "errors": {
+        "providerNotConnected": "This provider is not connected. Connect the account or configure its credentials, then try again.",
+        "credentialInvalid": "The provider credentials expired or were rejected. Reconnect the provider, then try again.",
+        "modelInvalid": "The selected model is unavailable or its name is invalid. Choose a model available to this task.",
+        "rateLimited": "The provider is rate-limiting requests. Wait a moment, then try again.",
+        "serviceUnavailable": "The provider service is temporarily unavailable. Try again later.",
+        "requestInvalid": "The provider rejected this request. Check the model and task settings, then try again.",
+        "unknown": "The Subagent failed. Open the raw details below for the reported cause.",
+        "rawDetails": "Show raw details"
+      },
+      "activity": "Activity",
+      "noActivity": "No activity details were reported.",
+      "systemLog": "Runtime log",
+      "noSystemLog": "No runtime log lines were reported.",
+      "loadMoreTranscript": "Load more transcript",
+      "transcriptUnavailable": "This Harness has not exposed a full child transcript to Cindy yet. Returned results and lifecycle activity remain available.",
+      "tool": {
+        "fallbackName": "Tool",
+        "running": "Running…",
+        "failed": "Failed",
+        "input": "Input",
+        "result": "Result",
+        "noDetails": "No input or output was recorded."
+      },
+      "controlBadges": {
+        "steer": "Steer",
+        "follow_up": "Follow-up",
+        "resume": "Resume",
+        "stop": "Stop"
+      },
+      "lastTool": "Last tool: {{tool}}",
+      "tokens": "{{value}} tokens",
+      "toolUses_one": "{{count}} tool use",
+      "toolUses_other": "{{count}} tool uses",
+      "systemEvents": {
+        "stop-requested": "A stop was requested from the parent task.",
+        "control-requested": "A control request was sent from the parent task.",
+        "transcript-truncated": "Transcript storage limit reached.",
+        "turn-ended": "Subagent turn ended.",
+        "command-refused": "PI rejected a child command.",
+        "generation-unreadable": "An earlier part of this conversation could not be read."
+      },
+      "activityKinds": {
+        "started": "Started",
+        "progress": "Progress",
+        "message": "Message",
+        "question": "Question",
+        "decision": "Decision",
+        "resumed": "Resumed",
+        "steered": "Steered",
+        "completed": "Completed",
+        "failed": "Failed",
+        "stopped": "Stopped"
+      }
+    },
+    "backgroundTasks": {
+      "running": "Running",
+      "completed": "Completed",
+      "empty": "No background tasks in this session yet",
+      "stop": "Stop",
+      "stopping": "Stopping…",
+      "back": "Back",
+      "progressSummary": "{{done}}/{{total}} agents",
+      "tokens": "{{value}} tokens",
+      "noProgress": "No progress details yet"
+    },
+    "resourceUsage": {
+      "sections": {
+        "agents": "Agent Processes",
+        "app": "App Processes"
+      },
+      "columns": {
+        "process": "Process",
+        "cpu": "CPU",
+        "memory": "Memory",
+        "pid": "PID"
+      },
+      "kinds": {
+        "main": "Main process",
+        "renderer": "UI process",
+        "gpu": "GPU process",
+        "utility": "Service process"
+      },
+      "agentRoles": {
+        "codexTask": "Codex Task",
+        "codexService": "Codex Service"
+      },
+      "agentRoleDetails": {
+        "task": "Task runtime",
+        "service": "Accounts and models"
+      },
+      "services": {
+        "audio": "Audio Service",
+        "network": "Network Service",
+        "storage": "Storage Service",
+        "videoCapture": "Video Capture"
+      },
+      "processCount_one": "Process tree: {{count}} process",
+      "processCount_other": "Process tree: {{count}} processes",
+      "agentsEmpty": "No agent processes are running. Start a task and they will show up here.",
+      "tableLabel": "Activity Monitor",
+      "sortBy": "Sort by {{column}}",
+      "loading": "Reading processes…",
+      "remoteUnavailableTitle": "Unavailable for remote sessions",
+      "remoteUnavailableDescription": "Activity Monitor is available only for local sessions.",
+      "selectHint": "Select a process",
+      "readOnlyHint": "Only Agent processes used for tasks can be stopped",
+      "terminate": "Stop Process",
+      "terminateConfirmTitle": "Stop {{name}} process?",
+      "terminateConfirmDescription": "This force-stops the Agent process. Every task using this process will be interrupted; send another message in an affected task to start an Agent again.",
+      "terminated": "Stopped the {{name}} process",
+      "terminateFailed": "Couldn't stop this process — it may have already exited. The list updates with the next sample."
+    }
+  },
+  "ccAgent": {
+    "workdirBrowse": {
+      "backToProjects": "Back to Projects",
+      "switchProject": "Switch project",
+      "activeSessionCount_one": "{{count}} active session",
+      "activeSessionCount_other": "{{count}} active sessions",
+      "treeEmpty": "This directory is empty",
+      "treeLoading": "Loading files…",
+      "treeAction": {
+        "collapseAll": "Collapse all",
+        "refresh": "Refresh"
+      },
+      "treeMenu": {
+        "newFile": "New File",
+        "newFolder": "New Folder",
+        "rename": "Rename",
+        "openInFileBrowser": "Open in file browser",
+        "showInFolder": "Show In Folder",
+        "copyFilePath": "Copy File Path",
+        "deleteFile": "Delete File"
+      },
+      "searchPanel": {
+        "headingSearch": "Search",
+        "placeholderSearch": "Search project",
+        "matchCaseAria": "Match case",
+        "matchCaseOn": "Match case (on)",
+        "matchCaseOff": "Match case (off)",
+        "exit": "Exit search",
+        "searchFiles": "Search file contents",
+        "empty": "Type to start searching",
+        "searching": "Searching…",
+        "failed": "Search failed",
+        "rgUnavailable": "ripgrep is not installed on the remote machine; search is unavailable",
+        "truncated": "{{max}}+ results in {{files}} files, shorten your query",
+        "noResults": "No matches",
+        "summary_one": "{{count}} result",
+        "summary_other": "{{count}} results",
+        "inFile_one": "in {{count}} file",
+        "inFile_other": "in {{count}} files"
+      },
+      "invalidName": "Invalid name",
+      "createFailed": "Create failed: {{message}}",
+      "deleteFile": {
+        "title": "Delete file",
+        "description": "Delete \"{{name}}\"? This cannot be undone.",
+        "confirm": "Delete",
+        "cancel": "Cancel"
+      },
+      "deleteFailed": "Delete failed: {{message}}",
+      "revealFailed": "Open failed: {{error}}",
+      "renameFailed": "Rename failed: {{message}}",
+      "pathCopied": "Path copied",
+      "copyFailed": "Copy failed, please copy manually",
+      "tabClose": "Close {{name}}",
+      "tabMenu": {
+        "copyPath": "Copy Path",
+        "close": "Close",
+        "closeOthers": "Close Others",
+        "closeRight": "Close to the Right",
+        "closeLeft": "Close to the Left",
+        "closeAll": "Close All"
+      },
+      "chatRail": {
+        "expand": "Expand chat panel",
+        "collapse": "Collapse chat panel",
+        "resizeAria": "Resize chat width (400-1120)"
+      },
+      "docSearch": {
+        "ariaLabel": "Find in document",
+        "placeholder": "Find…",
+        "prev": "Previous",
+        "next": "Next",
+        "close": "Close",
+        "truncatedTitle": "Too many matches; only the first set is shown. Refine your query."
+      },
+      "unrenderable": {
+        "modifiedAt": "Modified at {{time}}",
+        "notSupported": "This file type cannot be previewed in-app",
+        "remoteNotSupported": "This file lives on the remote machine and cannot be previewed yet",
+        "remoteOversize": "File is too large to preview in a remote session",
+        "cachedLocally": "Fetched to this device — open it with a local app",
+        "openInSystem": "Open in system",
+        "revealFolder": "Show in folder"
+      },
+      "fileBody": {
+        "drawioLoading": "Loading draw.io preview…",
+        "pdfLoading": "Loading PDF preview…",
+        "selectFile": "Select a file to preview",
+        "readFailed": "Read file failed: {{message}}",
+        "truncatedNotice": "File is large, only the first 2 MB are shown — open in system to view the full content",
+        "editLabel": "Edit",
+        "editAriaLabel": "Edit file",
+        "saveLabel": "Save",
+        "doneLabel": "Done",
+        "saveAriaLabel": "Save",
+        "saveFailed": "Save failed: {{message}}",
+        "saved": "Saved",
+        "menuSave": "Save",
+        "menuInsertTable": "Insert table",
+        "externalChangeBlocked": "The file changed on disk. Autosave paused; save manually to overwrite.",
+        "tableMenu": {
+          "addRowAbove": "Add row above",
+          "addRowBelow": "Add row below",
+          "deleteRow": "Delete row",
+          "addColumnLeft": "Add column left",
+          "addColumnRight": "Add column right",
+          "deleteColumn": "Delete column",
+          "deleteTable": "Delete table"
+        },
+        "confirmSave": {
+          "title": "Save changes?",
+          "description": "Will overwrite the file {{path}}; this cannot be undone.",
+          "confirm": "Save",
+          "cancel": "Cancel"
+        },
+        "chip": {
+          "unsaved": "Unsaved",
+          "saving": "Saving…",
+          "editing": "Editing",
+          "editingUnsaved": "Editing · Unsaved"
+        },
+        "cachedStaleNotice": "Showing a locally cached copy — it may not be the latest version on the remote",
+        "cachedTruncatedNotice": "Cached copy is large, only the first 32 MB are shown — open in system to view the full content",
+        "fetchingRemote": "Downloading {{percent}}% ({{received}} / {{total}} · {{speed}})",
+        "readErrorOffline": "Disconnected from the remote device and this file has no local cache yet. Try again after reconnecting",
+        "readErrorRemoteFsUnavailable": "The remote environment is not initialized yet — send a message in this session first",
+        "fetchingRemoteUpload": "Preparing on remote (uploading {{percent}}%, {{received}} / {{total}} · {{speed}})"
+      },
+      "sessionTabs": {
+        "newSession": "New session",
+        "closeSession": "Close {{title}}"
+      },
+      "archiveSession": {
+        "title": "Archive session",
+        "description": "\"{{title}}\" will be archived and removed from the list. You can restore it from the archived view.",
+        "confirm": "Archive",
+        "cancel": "Cancel",
+        "failed": "Archive failed, please retry",
+        "runningBlocked": "Current session is running, please stop it before archiving",
+        "attachedBlocked": "This session is being remotely controlled, please take it back before archiving"
+      },
+      "confirmSwitchAway": {
+        "title": "Current file has unsaved changes",
+        "descriptionSwitchFile": "\"{{path}}\" is not saved. Switching to another file will discard the unsaved changes.",
+        "descriptionCloseTab": "\"{{path}}\" is not saved. Closing will discard the unsaved content.",
+        "saveAndSwitch": "Save and switch",
+        "save": "Save",
+        "tertiary": "Don't save",
+        "cancel": "Cancel"
+      },
+      "mermaidEditor": {
+        "title": "Edit mermaid source",
+        "shortcuts": "Esc to cancel · Ctrl/⌘+Enter to save",
+        "cancel": "Cancel",
+        "save": "Save",
+        "targetMissing": "The original mermaid block is no longer in the document; changes were not saved.",
+        "toolbarZoom": "Zoom",
+        "toolbarEdit": "Edit source",
+        "toolbarCopy": "Copy",
+        "renderFailedPrefix": "mermaid render failed: ",
+        "errEmpty": "mermaid source is empty",
+        "errSvgParse": "SVG parse failed (length={{length}})"
+      },
+      "imagePreview": {
+        "loadFailed": "Failed to load image",
+        "viewLarge": "View full size"
+      }
+    }
+  }
+}

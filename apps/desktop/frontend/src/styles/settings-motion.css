@@ -1,0 +1,84 @@
+/* Adapted from open-claude-ui 02d021f, MIT (Caho1): CDS 2.0 duration/easing
+   tokens, file-thumbnail-grow-in and cds-skeleton-sweep. Geometry is scoped to
+   settings; WinOne keeps its own grayscale palette and native input behavior.
+   No timers, motion runtime, backdrop blur, hover lift or continuous idle work. */
+:root[data-settings-ui] {
+  --settings-duration-fast: 60ms;
+  --settings-duration-snap: 120ms;
+  --settings-duration-base: 200ms;
+  --settings-ease-out: cubic-bezier(.165, .84, .44, 1);
+  --settings-ease-snap: cubic-bezier(.32, .72, 0, 1);
+}
+/* Opening has a little more time than closing. Individual scale preserves the
+   primitive's translate/positioning and its screen-edge collision correction. */
+:root[data-settings-ui] :is([data-slot="select-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"]) {
+  transform-origin: var(--transform-origin, center);
+  animation: settings-popup-in var(--settings-duration-base) var(--settings-ease-out);
+}
+:root[data-settings-ui] :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) {
+  animation: settings-dialog-in var(--settings-duration-base) var(--settings-ease-out);
+}
+:root[data-settings-ui] :is([data-slot="select-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"], [data-slot="dialog-content"], [data-slot="alert-dialog-content"])[data-closed] {
+  animation: settings-popup-out var(--settings-duration-snap) var(--settings-ease-snap) both;
+}
+:root[data-settings-ui] :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"]) {
+  backdrop-filter: none;
+  animation: settings-reveal var(--settings-duration-base) var(--settings-ease-out);
+}
+:root[data-settings-ui] :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"])[data-closed] {
+  animation: settings-popup-out var(--settings-duration-snap) linear both;
+}
+:root[data-settings-ui] .settings-save-progress:not([hidden]) {
+  animation: settings-reveal var(--settings-duration-base) var(--settings-ease-out);
+}
+/* Navigation already gives immediate feedback through the tab. Do not fade
+   nested panels together: that dims/replays their tab bands on each switch. */
+:root[data-settings-ui] [data-slot="tabs-content"] { animation: none; }
+:root[data-settings-ui] :is([data-slot="select-item"], [data-slot="dropdown-menu-item"], [data-slot="tabs-trigger"], [data-sidebar="menu-button"]) {
+  transition: background-color var(--settings-duration-snap) var(--settings-ease-out), color var(--settings-duration-snap) var(--settings-ease-out);
+}
+:root[data-settings-ui] [data-slot="button"]:not(:disabled):active {
+  /* Press acknowledgement changes no layout, unlike a hover lift. */
+  scale: .98;
+  transition-duration: var(--settings-duration-fast);
+}
+:root[data-settings-ui] [data-slot="button"] { transition-property: color, background-color, border-color, scale; }
+/* Native details keeps drafts and its keyboard semantics. Browsers without
+   intrinsic-size interpolation simply use the native open/close behavior. */
+@supports (interpolate-size: allow-keywords) and (content-visibility: hidden) {
+  :root[data-settings-ui] .settings-disclosure { interpolate-size: allow-keywords; }
+  :root[data-settings-ui] .settings-disclosure::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition: block-size var(--settings-duration-base) var(--settings-ease-out), content-visibility var(--settings-duration-base) allow-discrete;
+  }
+  :root[data-settings-ui] .settings-disclosure[open]::details-content { block-size: auto; }
+}
+:root[data-settings-ui] [data-slot="skeleton"] {
+  position: relative;
+  overflow: hidden;
+  animation: none;
+  background: var(--settings-well);
+}
+:root[data-settings-ui] [data-slot="skeleton"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--settings-ink) 8%, transparent) 50%, transparent 65%);
+  animation: settings-skeleton-sweep 2s linear infinite;
+}
+@keyframes settings-popup-in { from { opacity: 0; scale: .98; } to { opacity: 1; scale: 1; } }
+@keyframes settings-dialog-in { from { opacity: 0; scale: .96; } to { opacity: 1; scale: 1; } }
+@keyframes settings-popup-out { to { opacity: 0; } }
+@keyframes settings-reveal { from { opacity: 0; } to { opacity: 1; } }
+@keyframes settings-skeleton-sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  :root[data-settings-ui] *, :root[data-settings-ui] *::before, :root[data-settings-ui] *::after,
+  :root[data-settings-ui] .settings-disclosure::details-content {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  :root[data-settings-ui] [data-slot="button"]:active { scale: none; }
+  :root[data-settings-ui] [data-slot="skeleton"]::after { display: none; }
+}

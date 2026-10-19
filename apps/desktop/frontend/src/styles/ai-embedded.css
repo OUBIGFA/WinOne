@@ -1,0 +1,75 @@
+/* The authenticated AI documents use exactly the settings tokens and local
+   font faces used by WinOne, not another application's theme. Build this entry
+   once for both documents; their business widgets keep their existing behavior. */
+@import "./cindy-fonts.css";
+@import "./settings.css";
+
+:root.winone-ai-page {
+  --bg: var(--settings-canvas);
+  --fg: var(--settings-ink);
+  --fg-2: var(--settings-muted);
+  --muted: var(--settings-muted);
+  --faint: var(--settings-muted);
+  --card: var(--settings-surface);
+  --card-2: var(--settings-well);
+  --pill: var(--settings-well);
+  --pill-hover: var(--settings-hover);
+  --line: var(--settings-line);
+  --line-2: var(--settings-line);
+  --accent: var(--settings-accent);
+  --accent-soft: var(--settings-selected);
+  --accent-fg: var(--settings-canvas);
+  --green: var(--settings-accent);
+  --green-soft: var(--settings-selected);
+  --amber: var(--settings-muted);
+  --amber-soft: var(--settings-well);
+  --red: var(--settings-ink);
+  --red-soft: var(--settings-well);
+  --font: var(--app-font-ui-default);
+  --ui-font: var(--app-font-ui-default);
+  --code: var(--app-font-code-default);
+  --code-font: var(--app-font-code-default);
+  --shadow: var(--settings-popover-shadow);
+  --card-edge: none;
+  --ease: var(--settings-ease-out);
+  font-size: 16px;
+}
+.winone-ai-page body { font-family: var(--font); font-size: .9375rem; line-height: 1.6; color: var(--fg); background: var(--bg); }
+.winone-ai-page *, .winone-ai-page *::before, .winone-ai-page *::after { box-sizing: border-box; }
+.winone-ai-page :is(h2,h3,h4,b,strong) { font-weight: 600; }
+.winone-ai-page :is(button,input,textarea,select) { font-family: var(--font); font-size: .875rem; line-height: 1.5; }
+.winone-ai-page :is(input:not([type=checkbox]):not([type=radio]),textarea,select) { min-height: 2.25rem; border: 1px solid var(--settings-input-edge); border-radius: var(--settings-control-radius); background: var(--card); color: var(--fg); padding: .375rem .625rem; box-shadow: none; }
+.winone-ai-page :is(input,textarea,select):focus { border-color: var(--settings-focus); outline: none; box-shadow: none; }
+.winone-ai-page :is(button,a,[role=button],[role=switch]):focus-visible { outline: 1px solid var(--settings-focus); outline-offset: 2px; box-shadow: none; }
+.winone-ai-page :is(button.text,.pm-act,.pm-browse,.pm-link,.rt-gadd,.rt-cond,.rt-day) { display: inline-flex; align-items: center; justify-content: center; gap: .375rem; min-height: 2.25rem; height: auto; padding: .375rem .75rem; border: 1px solid var(--settings-edge); border-radius: var(--settings-control-radius); background: var(--card); color: var(--fg); font-size: .875rem; line-height: 1.5; font-weight: 500; box-shadow: none; transform: none; transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out; }
+.winone-ai-page :is(button.text,.pm-act,.pm-browse,.pm-link,.rt-gadd,.rt-cond,.rt-day):hover:not(:disabled) { background: var(--card-2); border-color: var(--settings-input-edge); color: var(--fg); box-shadow: none; filter: none; transform: none; }
+.winone-ai-page :is(button.text.primary,.pm-act.go) { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.winone-ai-page :is(button.text.primary,.pm-act.go):hover:not(:disabled) { background: var(--settings-accent); color: var(--bg); }
+.winone-ai-page :is(.segs,.suffix-segs) { height: auto; flex-wrap: wrap; gap: .25rem; padding: .25rem; border-radius: var(--settings-control-radius); background: var(--card-2); box-shadow: none; }
+.winone-ai-page .segs .opt { min-height: 2rem; height: auto; padding: .25rem .625rem; border-radius: .25rem; font-size: .875rem; line-height: 1.5; white-space: nowrap; color: var(--fg-2); }
+.winone-ai-page .segs .opt.on { background: var(--card); color: var(--fg); box-shadow: inset 0 0 0 1px var(--settings-edge); }
+.winone-ai-page .segs .thumb { display: none; } /* No sliding pill underneath wrapped choices. */
+.winone-ai-page :is(.list,.editor) { box-shadow: none; min-width: 0; }
+.winone-ai-page :is(.label,.row-head .label) { font-size: 1.0625rem; line-height: 1.5; font-weight: 600; color: var(--fg); letter-spacing: normal; text-transform: none; }
+.winone-ai-page :is(.hint,.note,.none,.editor .hint,.editor .ehead .note) { font-size: .875rem; line-height: 1.6; color: var(--fg-2); }
+.winone-ai-page .row-head { display: flex; align-items: center; flex-wrap: wrap; height: auto; min-height: 2.25rem; gap: .5rem .75rem; }
+.winone-ai-page .editor { gap: 1.25rem 1.5rem; }
+.winone-ai-page .editor label { font-size: .9375rem; line-height: 1.6; font-weight: 500; text-align: left; color: var(--fg); padding-top: .375rem; }
+.winone-ai-page :is(.pop,.proto-menu,.modal .dialog,.modal .editor.framed) { background: var(--card); color: var(--fg); border: 1px solid var(--settings-edge); border-radius: var(--settings-panel-radius); box-shadow: var(--settings-popover-shadow); }
+.winone-ai-page :is(.modal .dialog,.modal .editor.framed) { border-radius: var(--settings-dialog-radius); }
+.winone-ai-page .modal { backdrop-filter: none; background: rgb(0 0 0 / 10%); }
+.winone-ai-page .modal .editor.framed { max-width: calc(100vw - 2rem); }
+.winone-ai-page .editor :is(.acts,.efoot) { flex-wrap: wrap; gap: .5rem; }
+.winone-ai-page .editor textarea { min-width: 0; max-width: 100%; font-family: var(--code); }
+.winone-ai-page :is(.pop li,.proto-menu button) { min-height: 2.25rem; font-size: .875rem; }
+.winone-ai-page #status { position: fixed; z-index: 150; inset: auto 1rem .75rem; white-space: pre-wrap; pointer-events: none; font-size: .875rem; }
+.winone-ai-page #status.on { padding: .625rem .75rem; border: 1px solid var(--settings-edge); border-radius: var(--settings-panel-radius); background: var(--card); box-shadow: var(--settings-popover-shadow); }
+.winone-ai-page #status button { pointer-events: auto; margin-inline-start: .75rem; }
+.winone-ai-page [hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .winone-ai-page *, .winone-ai-page *::before, .winone-ai-page *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media (forced-colors: active) {
+  .winone-ai-page :is(button,a,[role=button],[role=switch]):focus-visible { outline: 2px solid Highlight; }
+  .winone-ai-page :is(.segs .opt.on,[aria-pressed=true]) { outline: 1px solid Highlight; }
+}

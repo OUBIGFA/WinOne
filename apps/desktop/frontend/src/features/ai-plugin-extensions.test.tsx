@@ -1,0 +1,70 @@
+// @vitest-environment jsdom
+import {act,cleanup,fireEvent,render,renderHook,screen,waitFor} from '@testing-library/react';
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+import {AIPluginActions,AIPluginSurface,pluginPageURL,pluginTitle,useAIPluginExtensions,type PluginExtensions} from './ai-plugin-extensions';
+import '../i18n';
+const {call}=vi.hoisted(()=>({call:vi.fn()}));
+vi.mock('../bridge',()=>({captureCall:call}));
+const state:PluginExtensions={url:'http://127.0.0.1:2345/session/owned/plugins.html',pages:[{key:'page-fixture',title:'Fixture',titles:{zh:'夹具'},replaces:'usage',actions:[{id:'inspect',menu:'provider',title:'Inspect',titles:{zh:'检查供应商'}},{id:'agent',menu:'agent',title:'Inspect agent',titles:{zh:'检查智能体'}}]}],panels:[{key:'p1',title:'Panel',slot:'provider'}]};
+beforeEach(()=>{call.mockReset();call.mockResolvedValue(state);});
+afterEach(()=>{cleanup();delete document.documentElement.dataset.theme;});
+it('lists both action kinds and forwards only public identity',async()=>{
+ const open=vi.fn();
+ const provider={id:'one',name:'Public name',key:'never-send',headers:{Authorization:'never-send'}};
+ render(<AIPluginActions extensions={state} provider={provider} agent={{id:'codex',name:'Codex'}} disabled={false} onOpen={open}/>);
+ fireEvent.click(screen.getByRole('button',{name:'插件操作'}));
+ fireEvent.click(await screen.findByRole('menuitem',{name:'检查供应商'}));
+ expect(open).toHaveBeenCalledWith({key:'page-fixture',action:'inspect',menu:'provider',item:{id:'one',name:'Public name'},nonce:expect.any(String)});
+ expect(JSON.stringify(open.mock.calls)).not.toContain('never-send');
+});
+it('preserves the provider-row context-menu shortcut',async()=>{
+ const view=render(<AIPluginActions extensions={state} provider={{id:'one',name:'One'}} disabled={false} onOpen={()=>{}}/>);
+ expect(screen.queryByRole('menu')).toBeNull();
+ view.rerender(<AIPluginActions extensions={state} provider={{id:'one',name:'One'}} disabled={false} openRequest={1} onOpen={()=>{}}/>);
+ expect(await screen.findByRole('menuitem',{name:'检查供应商'})).toBeTruthy();
+});
+it('uses localized titles and does not serialize extra context properties into page URLs',()=>{
+ expect(pluginTitle(state.pages[0],'zh-CN')).toBe('夹具');
+ expect(pluginTitle(state.pages[0],'en-US')).toBe('Fixture');
+ const value=pluginPageURL(state.url,{key:'page-fixture',action:'inspect',menu:'provider',item:{id:'one',name:'public',key:'secret'} as {id:string;name:string},nonce:'request'});
+ const url=new URL(value);
+ expect(url.pathname).toBe('/session/owned/plugins.html');
+ expect(url.searchParams.get('item-name')).toBe('public');
+ expect(value).not.toContain('secret');
+});
+it('keeps hidden/missing slots unmounted and authenticates resize and theme messages',async()=>{
+ const view=render(<AIPluginSurface extensions={state} slot="provider" item={{id:'one',name:'One'}} active={false}/>);
+ expect(screen.queryByTitle('插件面板')).toBeNull();
+ view.rerender(<AIPluginSurface extensions={state} slot="provider" item={{id:'one',name:'One'}} active disabled/>);
+ const frame=screen.getByTitle('插件面板') as HTMLIFrameElement;
+ expect(new URL(frame.src).searchParams.get('slot')).toBe('provider');
+ expect(frame.hasAttribute('inert')).toBe(true);
+ const send=vi.spyOn(frame.contentWindow!,'postMessage');
+ document.documentElement.dataset.theme='dark';fireEvent.load(frame);
+ expect(send).toHaveBeenLastCalledWith(expect.objectContaining({theme:'dark'}),'http://127.0.0.1:2345');
+ const message={type:'winone-plugin-height',height:840};
+ act(()=>window.dispatchEvent(new MessageEvent('message',{origin:'http://untrusted.invalid',source:frame.contentWindow,data:message})));
+ expect(frame.style.height).toBe('60px');
+ act(()=>window.dispatchEvent(new MessageEvent('message',{origin:'http://127.0.0.1:2345',source:window,data:message})));
+ expect(frame.style.height).toBe('60px');
+ act(()=>window.dispatchEvent(new MessageEvent('message',{origin:'http://127.0.0.1:2345',source:frame.contentWindow,data:message})));
+ expect(frame.style.height).toBe('840px');
+ view.rerender(<AIPluginSurface extensions={state} slot="settings" active/>);
+ expect(screen.queryByTitle('插件面板')).toBeNull();
+});
+it('uses distinct leases and closes a late reply without closing the current owner',async()=>{
+ let first!:(state:PluginExtensions)=>void;
+ call.mockImplementation((method:string)=>method.endsWith('.close')?Promise.resolve({}):new Promise<PluginExtensions>(resolve=>{first=resolve;}));
+ const view=renderHook(({revision})=>useAIPluginExtensions(true,revision),{initialProps:{revision:1}});
+ const older=call.mock.calls.find(([method])=>method.endsWith('.open'))![1].viewer;
+ const resolveFirst=first;
+ view.rerender({revision:2});
+ const newer=call.mock.calls.filter(([method])=>method.endsWith('.open')).at(-1)![1].viewer;
+ expect(newer).not.toBe(older);
+ await act(async()=>{first(state);});
+ await waitFor(()=>expect(view.result.current.state?.pages).toEqual(state.pages));
+ await act(async()=>{resolveFirst(state);});
+ expect(call).toHaveBeenCalledWith('ai.routing.extensions.close',{viewer:older});
+ expect(call.mock.calls.filter(([method,value])=>method.endsWith('.close')&&value.viewer===newer)).toHaveLength(0);
+ view.unmount();expect(call).toHaveBeenCalledWith('ai.routing.extensions.close',{viewer:newer});
+});

@@ -1,0 +1,128 @@
+/* Cindy stream and GitHub light/dark syntax colors. */
+.stream-word {
+  animation: stream-word-in var(--motion-fast) var(--motion-ease-out) var(--wf-delay, 0ms) both;
+}
+/* 流式列表圆点淡入(同一 motion class 家族,2026-08-08):动画打在 ::marker 上,圆点/序号从 transparent
+   浮现,delay 由 rehypeStreamWordFade 写入(与 li 内第一个词共享 timeline
+   位置,圆点与文字同帧出现)。::marker 只支持 color/font 等少数属性,故用
+   color 关键帧而不是 opacity。data 属性仅流式挂载;终版渲染无此属性。 */
+[data-stream-marker]::marker {
+  animation: stream-marker-in var(--motion-fast) var(--motion-ease-out) var(--wf-delay, 0ms) both;
+}
+/* 只定义 0% 帧：终点回落元素自然颜色，不用 inherit 终帧。 */
+@keyframes stream-marker-in {
+  from {
+    color: transparent;
+  }
+}
+@keyframes stream-word-in {from{opacity:0}to{opacity:1}}
+.hljs {
+  background: transparent;
+}
+
+/* Dark mode hljs override — full GitHub Dark palette, applied as a complete
+   replacement for the light github theme imported on line 1. Previously this
+   block was a hand-picked partial override which left several token classes
+   (e.g. .hljs-regexp, .hljs-attr, .hljs-name) inheriting light-theme colors
+   in dark mode and rendering nearly invisible on dark backgrounds.
+
+   Mirrors highlight.js/styles/github-dark.css 1:1, except `.hljs` background
+   uses --msg-code-block-bg (Card #2c2c2a per docs/design-rules/cindy-design-system.md §6) instead of
+   github-dark's default #0d1117 — so TextLightbox and message code blocks
+   sit on the design system surface. */
+.dark .hljs {
+  background: var(--msg-code-block-bg);
+  color: #c9d1d9;
+}
+.dark .hljs-doctag,
+.dark .hljs-keyword,
+.dark .hljs-meta .hljs-keyword,
+.dark .hljs-template-tag,
+.dark .hljs-template-variable,
+.dark .hljs-type,
+.dark .hljs-variable.language_ {
+  color: #ff7b72;
+}
+.dark .hljs-title,
+.dark .hljs-title.class_,
+.dark .hljs-title.class_.inherited__,
+.dark .hljs-title.function_ {
+  color: #d2a8ff;
+}
+.dark .hljs-attr,
+.dark .hljs-attribute,
+.dark .hljs-literal,
+.dark .hljs-meta,
+.dark .hljs-number,
+.dark .hljs-operator,
+.dark .hljs-variable,
+.dark .hljs-selector-attr,
+.dark .hljs-selector-class,
+.dark .hljs-selector-id {
+  color: #79c0ff;
+}
+.dark .hljs-regexp,
+.dark .hljs-string,
+.dark .hljs-meta .hljs-string {
+  color: #a5d6ff;
+}
+.dark .hljs-built_in,
+.dark .hljs-symbol {
+  color: #ffa657;
+}
+.dark .hljs-comment,
+.dark .hljs-code,
+.dark .hljs-formula {
+  color: #8b949e;
+}
+.dark .hljs-name,
+.dark .hljs-quote,
+.dark .hljs-selector-tag,
+.dark .hljs-selector-pseudo {
+  color: #7ee787;
+}
+.dark .hljs-subst {
+  color: #c9d1d9;
+}
+.dark .hljs-section {
+  color: #1f6feb;
+  font-weight: bold;
+}
+
+/* CINDY dark hljs 整改(D 裁决 2026-07-17,§15.4 双门槛):
+   github-dark .hljs-section #1f6feb × CINDY surface-elevated #312F2F = 2.87 <3:1(语法色门槛);
+   保持色相(蓝 H212 S84%),仅提亮度 L52%→53.5% → #2573ec × #312F2F = 3.00 ≥3:1。
+   -punctuation/-tag dark 无单独选择器,继承 .dark .hljs text #c9d1d9(× #312F2F=8.62 ≥3,无需整改)。
+   2026-08 色阶改版复算: 代码块底随 surface-elevated 变为 #1F1F1F,#2573ec×#1F1F1F=3.72、
+   #c9d1d9×#1F1F1F=10.68,整改值继续达标,选择器与值均不需调整(决策表 §9)。 */
+[data-theme='cindy-dark'] .hljs-section {
+  color: #2573ec;
+}
+
+/* CINDY dark hljs -punctuation/-tag(D 裁决):github-dark "purposely ignored" 无显式色,
+   dark 继承 .dark .hljs text #c9d1d9(× #312F2F=8.62 ≥3 达标,无需提亮);
+   此处 [data-theme=cindy-dark] 显式覆盖 #c9d1d9 防御性(不依赖继承,满足 D 裁决"三项覆盖",
+   值同 text 不降对比度)。 */
+[data-theme='cindy-dark'] .hljs-punctuation,
+[data-theme='cindy-dark'] .hljs-tag {
+  color: #c9d1d9;
+}
+.dark .hljs-bullet {
+  color: #f2cc60;
+}
+.dark .hljs-emphasis {
+  color: #c9d1d9;
+  font-style: italic;
+}
+.dark .hljs-strong {
+  color: #c9d1d9;
+  font-weight: bold;
+}
+.dark .hljs-addition {
+  color: #aff5b4;
+  background-color: #033a16;
+}
+.dark .hljs-deletion {
+  color: #ffdcd7;
+  background-color: #67060c;
+}

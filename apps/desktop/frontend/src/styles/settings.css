@@ -1,0 +1,443 @@
+@import "./settings-motion.css";
+
+/* WinOne settings language. Semantic surfaces/border tiers and motion are
+   adapted from open-claude-ui 02d021f (MIT; third_party/import-notices.json).
+   Interaction primitives remain the bundled shadcn/Base UI components.
+   The root scope also reaches portals and is removed before Chat renders. */
+:root[data-settings-ui] {
+  --settings-canvas: #fcfcfc;
+  --settings-surface: #ffffff;
+  --settings-well: #f2f2f2;
+  --settings-hover: #eeeeee;
+  --settings-ink: #262626;
+  --settings-muted: #636363;
+  --settings-accent: #626262;
+  --settings-focus: #777777;
+  --settings-selected: #f3f3f3;
+  --settings-selected-text: #292929;
+  --settings-line: rgb(38 38 38 / 14%);
+  --settings-edge: rgb(38 38 38 / 24%);
+  /* An input or an empty checkbox needs a discoverable edge, not a hairline.
+     Structural separators may be softer; selected state also has a marker. */
+  --settings-input-edge: #888888;
+  --settings-hairline: 1px;
+  --settings-control-radius: .375rem;
+  --settings-panel-radius: .625rem;
+  --settings-dialog-radius: 1rem;
+  --settings-popover-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+  --background: var(--settings-canvas);
+  --foreground: var(--settings-ink);
+  --card: var(--settings-surface);
+  --card-foreground: var(--settings-ink);
+  --popover: var(--settings-surface);
+  --popover-foreground: var(--settings-ink);
+  --primary: var(--settings-ink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--settings-well);
+  --secondary-foreground: var(--settings-ink);
+  --muted: var(--settings-well);
+  --muted-foreground: var(--settings-muted);
+  --accent: var(--settings-hover);
+  --accent-foreground: var(--settings-ink);
+  --border: var(--settings-line);
+  --input: var(--settings-input-edge);
+  --ring: var(--settings-accent);
+  /* Feedback keeps its meaning colour; chrome stays neutral. */
+  --radius: .5rem;
+  --sidebar: var(--settings-well);
+  --sidebar-foreground: var(--settings-ink);
+  --sidebar-accent: var(--settings-selected);
+  --sidebar-accent-foreground: var(--settings-selected-text);
+  --sidebar-border: var(--settings-line);
+  --sidebar-ring: var(--settings-accent);
+}
+:root[data-settings-ui][data-theme="dark"] {
+  --settings-canvas: #191919;
+  --settings-surface: #232323;
+  --settings-well: #292929;
+  --settings-hover: #303030;
+  --settings-ink: #e9e9e9;
+  --settings-muted: #aeaeae;
+  --settings-accent: #b0b0b0;
+  --settings-focus: #999999;
+  --settings-selected: #2b2b2b;
+  --settings-selected-text: #f0f0f0;
+  --settings-line: rgb(233 233 233 / 14%);
+  --settings-edge: rgb(233 233 233 / 25%);
+  --settings-input-edge: #7e7e7e;
+  --settings-popover-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+  --primary-foreground: #191919;
+}
+/* Only structural lines become hairlines. Focus rings and editable boundaries
+   keep their thickness at high DPI so precision does not cost recognition. */
+@media (min-resolution: 2dppx) {
+  :root[data-settings-ui] { --settings-hairline: .5px; }
+}
+
+/* A small control vocabulary: 36px fields/actions, 40px choices, 48px rows.
+   Layout never changes between hover/selected states; only color does. */
+:root[data-settings-ui] :is([data-slot="button"], [data-slot="input"], [data-slot="select-trigger"]) {
+  min-height: 2.25rem;
+  border-radius: var(--settings-control-radius);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+:root[data-settings-ui] :is([data-slot="button"], [data-slot="select-trigger"]) {
+  transition-property: color, background-color, border-color;
+  transition-duration: var(--settings-duration-base);
+  transition-timing-function: var(--settings-ease-out);
+}
+:root[data-settings-ui] [data-slot="button"]:active { translate: none; }
+:root[data-settings-ui] [data-slot="button"][data-variant="outline"] {
+  border-color: var(--settings-edge);
+  background: var(--settings-surface);
+}
+:root[data-settings-ui] [data-slot="button"][data-variant="outline"]:not(:disabled):hover {
+  border-color: var(--settings-input-edge);
+  background: var(--settings-well);
+}
+:root[data-settings-ui] :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]) {
+  border-color: var(--settings-input-edge);
+  background: var(--settings-surface);
+  color: var(--foreground);
+  box-shadow: none;
+}
+:root[data-settings-ui] [data-slot="textarea"] { font-size: .875rem; line-height: 1.6; border-radius: var(--settings-control-radius); }
+:root[data-settings-ui] [data-slot="input"] { height: auto; padding-block: .375rem; }
+:root[data-settings-ui] [data-slot="input"][type="color"] { height: 2.25rem; max-width: 4.5rem; padding: .25rem; }
+:root[data-settings-ui] :is([data-slot="label"], [data-slot="field-label"]) { font-size: .9375rem; line-height: 1.6; font-weight: 500; }
+:root[data-settings-ui] :is([data-slot="input"], [data-slot="textarea"])::placeholder { color: var(--settings-muted); opacity: 1; }
+:root[data-settings-ui] :is([data-slot="switch"], [data-slot="checkbox"], [data-slot="radio-group-item"])[data-checked] {
+  background: var(--settings-accent);
+  border-color: var(--settings-accent);
+  color: var(--settings-canvas);
+}
+:root[data-settings-ui] :is([data-slot="checkbox"], [data-slot="radio-group-item"]):not([data-checked]) {
+  background: var(--settings-surface);
+  border-color: var(--settings-input-edge);
+}
+:root[data-settings-ui] [data-slot="switch"][data-unchecked] { background: var(--settings-input-edge); }
+:root[data-settings-ui] [data-slot="switch-thumb"] { background: var(--settings-canvas); }
+:root[data-settings-ui] [data-slot="radio-group-indicator"] > span { background: var(--settings-canvas); }
+/* Text entry already has an editable boundary: focus changes that single
+   one-pixel edge, rather than stacking a dark ring around it on every click.
+   Buttons retain an external keyboard cue; forced colors is handled below. */
+:root[data-settings-ui] :is(button, [role="radio"], [role="switch"], [role="checkbox"], summary):focus-visible {
+  outline: 1px solid var(--settings-focus);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+:root[data-settings-ui] :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):focus-visible {
+  outline: none;
+  border-color: var(--settings-focus);
+  box-shadow: none;
+}
+:root[data-settings-ui] :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"])[aria-invalid="true"] {
+  border-color: var(--destructive);
+}
+:root[data-settings-ui] svg.lucide { stroke-width: 1.75; }
+
+/* Floating UI has one outer boundary. It shares tokens with the current page,
+   but keeps the primitive's focus trap, layering and collision behavior. */
+:root[data-settings-ui] :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="dropdown-menu-content"]) {
+  border: 1px solid var(--settings-edge);
+  border-radius: var(--settings-panel-radius);
+  background: var(--settings-surface);
+  box-shadow: var(--settings-popover-shadow);
+}
+:root[data-settings-ui] :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) { border-radius: var(--settings-dialog-radius); }
+:root[data-settings-ui] :is([data-slot="dialog-title"], [data-slot="alert-dialog-title"]) { font-size: 1.125rem; font-weight: 600; line-height: 1.5; }
+:root[data-settings-ui] :is([data-slot="select-item"], [data-slot="dropdown-menu-item"]) { min-height: 2.25rem; font-size: .875rem; }
+:root[data-settings-ui] .settings-preset-actions { display: flex; flex-wrap: wrap; gap: .375rem; }
+:root[data-settings-ui] .settings-preset-actions [data-slot="button"] { min-height: 2rem; font-size: .875rem; font-weight: 400; font-variant-numeric: tabular-nums; }
+:root[data-settings-ui] .settings-preset-actions [aria-pressed="true"] { background: var(--settings-selected); border-color: var(--settings-accent); color: var(--settings-selected-text); }
+
+/* Page and shell: the task navigation stays separate from the settings. */
+.settings-surface {
+  --settings-group-gap: 2.5rem;
+  --settings-field-gap: 1.25rem;
+  --settings-heading-gap: 1.5rem;
+  container-name: settings-page;
+  max-width: var(--settings-content-width, 68rem);
+  padding: 1.5rem 2rem 2rem;
+  font-size: .9375rem;
+  line-height: 1.6;
+}
+[data-settings-header="true"] [data-slot="window-branding"] { overflow: hidden; }
+[data-settings-header="true"] .mark { flex-shrink: 0; }
+[data-settings-header="true"] [data-slot="window-brand-name"] { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+[data-settings-header="true"] [data-slot="window-controls"] button { width: 44px; }
+[data-slot="page-scroll"]:not([data-page="chat"]) { container: settings-scroll / inline-size; }
+/* Program management shares the same content bounds as every settings page. */
+.settings-frame { container: settings-scroll / inline-size; }
+:root[data-settings-ui] .app-navigation [data-slot="button"] { min-height: 48px; }
+:root[data-settings-ui] .app-navigation [data-sidebar="menu-button"] { position: relative; }
+:root[data-settings-ui] .app-navigation [data-sidebar="menu-button"][data-active="true"] { color: var(--settings-selected-text); background: var(--settings-selected); }
+:root[data-settings-ui] .app-navigation [data-sidebar="menu-button"][data-active="true"]::before { content: ""; position: absolute; left: 1px; top: calc(50% - .5rem); width: 2px; height: 1rem; border-radius: 1px; background: var(--settings-accent); }
+.settings-surface [data-slot="tabs"][data-orientation="horizontal"] { gap: 1.5rem; }
+@container settings-scroll (max-width: 600px) {
+  .settings-surface { padding: 1.25rem 1rem 2rem; }
+}
+
+/* Wide sections have a quiet heading rail and a bounded control column. Each
+   section queries its own width, so program details and nested editors never
+   inherit a breakpoint from the wider application window. */
+.settings-surface .settings-section-stack { display: flex; flex-direction: column; gap: var(--settings-group-gap); min-width: 0; }
+.settings-surface .settings-section-block,
+.settings-surface .settings-section-block + .settings-section-block {
+  display: grid;
+  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+  gap: var(--settings-heading-gap) 2.5rem;
+  container: settings-section / inline-size;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+/* Adjacent groups inside one page are separated by a single hairline plus a
+   wider gap, so the page reads as named blocks instead of one long column of
+   stacked fields. The first group keeps no divider. */
+.settings-surface .settings-section-block + .settings-section-block {
+  padding-top: 1.75rem;
+  border-top: var(--settings-hairline) solid var(--settings-line);
+}
+.settings-surface .settings-group-heading { display: grid; align-content: start; gap: .375rem; min-width: 0; }
+.settings-surface .settings-section-block > .settings-group-heading,
+.settings-surface .settings-section-block > .settings-group-body { grid-column: 1 / -1; }
+@container settings-section (min-width: 48rem) {
+  .settings-surface .settings-section-block > .settings-group-heading { grid-column: 1; padding-top: .5rem; }
+  .settings-surface .settings-section-block > .settings-group-body { grid-column: 2; }
+  /* A single-action task is one left-aligned stack, including its outcome.
+     Spanning only the heading left the export/import buttons in column two. */
+  .settings-surface .settings-section-block:has(> .settings-group-body > .settings-action-row) > .settings-group-heading { grid-column: 1 / -1; padding-top: 0; }
+  .settings-surface .settings-section-block:has(> .settings-group-body > .settings-action-row) > .settings-group-body { grid-column: 1 / -1; max-width: none; }
+}
+.settings-surface .settings-group-title,
+.settings-surface .settings-section-block .settings-group-title,
+.settings-surface .settings-group-heading > .settings-group-title { margin: 0; font-size: 1.0625rem; line-height: 1.5; font-weight: 600; }
+.settings-surface .settings-group-heading .settings-group-description { margin: 0; }
+.settings-surface .settings-group-description,
+.settings-surface .settings-help,
+.settings-surface .setting-row p { font-size: .875rem; line-height: 1.6; color: var(--settings-muted); }
+.settings-surface .settings-group-body { min-width: 0; max-width: 44rem; gap: var(--settings-field-gap); }
+/* A section whose task is one action keeps the control and its outcome on one
+   row instead of stacking a button above a paragraph. */
+.settings-surface .settings-action-row { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; min-width: 0; }
+.settings-surface .settings-action-row > p { margin: 0; min-width: 0; }
+.settings-surface .settings-group-body > * { min-width: 0; }
+.settings-surface .settings-group-body > .setting-row { border: 0; }
+.settings-surface .settings-field-label { font-size: .9375rem; font-weight: 500; line-height: 1.6; }
+.settings-surface .settings-dependent { display: grid; min-width: 0; gap: var(--settings-field-gap); padding-left: 1rem; border-left: var(--settings-hairline) solid var(--settings-edge); }
+.settings-surface .settings-dependent-controls { display: grid; gap: var(--settings-field-gap); }
+.settings-surface .settings-dependent-controls:disabled { opacity: .55; }
+/* One disabled treatment owns the whole dependent group, labels included.
+   Do not compound each primitive's opacity or keep a colourful disabled swatch. */
+.settings-surface .settings-dependent-controls:disabled :is(input,button) { opacity: 1; cursor: not-allowed; }
+.settings-surface .settings-dependent-controls:disabled input[type="color"] { filter: grayscale(1); }
+.settings-surface .settings-field-grid { gap: 1.25rem; }
+.settings-surface .settings-row-copy { display: grid; gap: .25rem; min-width: 0; }
+.settings-surface .settings-switch-row,
+.settings-surface .setting-row:has(> [role="switch"]),
+.settings-surface .directory-links-menu-setting { min-height: 3rem; gap: 1.5rem; padding: .5rem .75rem .5rem 0; }
+.settings-surface .settings-switch-row > :first-child { min-width: 0; }
+.settings-surface .settings-switch-row > [role="switch"] { flex: none; }
+.settings-surface .settings-group-body > .settings-switch-row + .settings-switch-row { border-top: var(--settings-hairline) solid var(--settings-line); padding-top: 1rem; }
+.settings-surface .settings-about { display: grid; gap: var(--settings-group-gap); }
+.settings-surface .settings-about > section { margin: 0; padding-block: 0; }
+.settings-surface .settings-about #updates-heading,
+.settings-surface .profile-settings > h2 { margin: 0 0 1.25rem; font-size: 1.0625rem; font-weight: 600; }
+
+/* Choices, not cards. Short labels share one track; explanatory choices form
+   a vertical list. Both keep the radio marker, including in forced colors. */
+:root[data-settings-ui] .settings-option-field { display: grid; gap: .5rem; min-width: 0; container: settings-options / inline-size; }
+:root[data-settings-ui] .settings-options {
+  display: grid;
+  grid-template-columns: repeat(var(--settings-option-count), minmax(0, 1fr));
+  align-items: stretch;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  gap: 2px;
+  padding: 3px;
+  border-radius: .625rem;
+  background: var(--settings-well);
+}
+:root[data-settings-ui] .settings-choice {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: .5rem .875rem;
+  border: 1px solid transparent;
+  border-radius: .4375rem;
+  font-size: .875rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+}
+:root[data-settings-ui] .settings-choice-copy { display: grid; min-width: 0; gap: .25rem; }
+:root[data-settings-ui] .settings-choice-label { overflow-wrap: anywhere; line-height: 1.5; font-weight: 500; }
+:root[data-settings-ui] .settings-choice-description { color: var(--settings-muted); font-size: .875rem; line-height: 1.6; }
+:root[data-settings-ui] .settings-choice:not(:has([data-disabled])):hover { background: var(--settings-hover); }
+:root[data-settings-ui] .settings-choice:has([data-checked]),
+:root[data-settings-ui] .settings-choice:has([data-checked]):hover { background: var(--settings-surface); border-color: var(--settings-edge); color: var(--settings-selected-text); }
+:root[data-settings-ui] .settings-choice:has([data-disabled]) { cursor: not-allowed; opacity: .6; }
+:root[data-settings-ui] .settings-choice:has(:focus-visible) { outline: 1px solid var(--settings-focus); outline-offset: 2px; }
+:root[data-settings-ui] .settings-choice [role="radio"]:focus-visible { outline: none; box-shadow: none; }
+:root[data-settings-ui] .settings-options[data-presentation="list"] { width: 100%; grid-template-columns: minmax(0, 1fr); padding: 0; gap: .375rem; background: none; }
+:root[data-settings-ui] .settings-options[data-presentation="list"] .settings-choice { align-items: start; padding: .875rem; }
+:root[data-settings-ui] .settings-options[data-presentation="list"] [role="radio"] { margin-top: .1875rem; }
+:root[data-settings-ui] .settings-options[data-presentation="list"] .settings-choice:has([data-checked]) { background: var(--settings-selected); border-color: transparent; }
+@container settings-options (max-width: 28rem) {
+  :root[data-settings-ui] .settings-options[data-presentation="segmented"] { width: 100%; grid-template-columns: minmax(0, 1fr); }
+  :root[data-settings-ui] .settings-choice { align-items: start; }
+  :root[data-settings-ui] .settings-choice [role="radio"] { margin-top: .1875rem; }
+}
+.settings-surface .settings-choice-field { display: grid; gap: .5rem; min-width: 0; }
+.settings-surface .settings-choice-field > [data-slot="select-trigger"] { min-height: 2.5rem; height: auto; }
+
+/* Navigation is not a value selector. A page tab reads as an icon and a label;
+   the current page is marked by its underline on the band's hairline and by a
+   darker label, so the selected state never competes with the controls below. */
+.settings-surface [data-slot="tabs-list"][data-variant="default"] { width: 100%; justify-content: flex-start; gap: .5rem; padding: 0; border-radius: 0; border-bottom: var(--settings-hairline) solid var(--settings-line); background: none; }
+.settings-surface [data-slot="tabs-trigger"] { min-width: max-content; white-space: nowrap; font-weight: 500; color: var(--settings-muted); }
+.settings-surface [data-variant="default"] > [data-slot="tabs-trigger"] { flex: 0 1 auto; min-height: 2.75rem; padding: .625rem .875rem; border: 0; border-radius: .375rem .375rem 0 0; background: none; box-shadow: none; font-size: .9375rem; }
+.settings-surface [data-variant="default"] > [data-slot="tabs-trigger"]:not([data-active]):hover { background: var(--settings-well); color: var(--settings-ink); }
+.settings-surface [data-variant="default"] > [data-slot="tabs-trigger"][data-active] { background: none; color: var(--settings-ink); box-shadow: none; }
+.settings-surface [data-variant="default"] > [data-slot="tabs-trigger"][data-active] svg { color: var(--settings-accent); }
+.settings-surface [data-variant="default"] > [data-slot="tabs-trigger"]::after { inset-inline: .75rem; bottom: 0; height: 2px; border-radius: 1px; background: var(--settings-accent); }
+/* Geometry belongs to every state. An outgoing underline must not jump back
+   to the primitive's full-width/-5px position while its opacity fades out. */
+.settings-surface [data-slot="tabs-trigger"]::after { transition: opacity var(--settings-duration-snap, 120ms) ease-out; pointer-events: none; }
+.settings-surface [data-variant="default"] > [data-slot="tabs-trigger"]:not([data-active])::after { opacity: 0; }
+.settings-surface [data-variant="default"] > [data-slot="tabs-trigger"][data-active]::after { opacity: 1; }
+.settings-surface [data-variant="line"] > [data-slot="tabs-trigger"][data-active] { color: var(--foreground); }
+.settings-surface [data-variant="line"] > [data-slot="tabs-trigger"]::after { inset-inline: .5rem; bottom: 0; height: 2px; border-radius: 1px; background: var(--settings-accent); }
+/* Keep page actions outside tablist semantics but on the same baseline. The
+   action stays at the far right; tabs may wrap without creating a scrollbar. */
+.settings-surface .settings-tab-bar { display: flex; align-items: flex-start; flex-wrap: wrap; gap: .5rem 1rem; border-bottom: var(--settings-hairline) solid var(--settings-line); }
+.settings-surface .settings-tab-bar > [data-slot="tabs-list"] { flex: 1 1 auto; width: auto; min-width: 0; border-bottom: 0; }
+.settings-surface .settings-tab-bar > [data-slot="button"] { flex: none; margin: .25rem 0 .25rem auto; }
+.settings-surface .settings-inline-help { display: grid; gap: .375rem; max-width: 44rem; color: var(--settings-muted); font-size: .875rem; line-height: 1.6; }
+.settings-surface .settings-inline-help-title { margin: 0; color: var(--foreground); font-size: .875rem; font-weight: 500; }
+.settings-surface .settings-inline-help ul { display: grid; gap: .375rem; margin: 0; padding: 0; list-style: none; }
+.settings-surface .settings-inline-help li { margin: 0; }
+.settings-surface .selection-add-action { align-self: flex-start; }
+.settings-surface [data-slot="tabs-trigger"] > span { white-space: nowrap; }
+@container settings-page (max-width: 540px) {
+  .settings-surface [data-variant="default"] > [data-slot="tabs-trigger"] { min-width: 0; max-width: 12rem; }
+  .settings-surface [data-variant="default"] > [data-slot="tabs-trigger"] > span { max-width: 100%; }
+  .settings-surface [data-variant="default"] > [data-slot="tabs-trigger"] > span > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* Details owns its own content spacing and never unmounts drafts. */
+:root[data-settings-ui] .settings-disclosure { min-width: 0; }
+:root[data-settings-ui] .settings-disclosure > summary { display: flex; align-items: center; gap: .5rem; min-height: 2.25rem; padding-block: .5rem; list-style: none; font-size: .875rem; font-weight: 500; line-height: 1.5; cursor: pointer; }
+:root[data-settings-ui] .settings-disclosure > summary::-webkit-details-marker { display: none; }
+:root[data-settings-ui] .settings-disclosure-chevron { width: 1rem; height: 1rem; flex: none; color: var(--settings-muted); transition: rotate var(--settings-duration-snap) var(--settings-ease-snap); }
+:root[data-settings-ui] .settings-disclosure[open] > summary .settings-disclosure-chevron { rotate: 90deg; }
+:root[data-settings-ui] .settings-disclosure-content { display: grid; gap: 1.25rem; min-width: 0; margin-top: 1rem; padding-left: 1rem; border-left: var(--settings-hairline) solid var(--settings-edge); }
+.settings-surface .settings-disclosure-content:has(> .settings-section-block) { gap: var(--settings-group-gap); }
+/* One shell-owned row stays below both short pages and inner scroll panes.
+   It reserves its own height, so the last field is never covered. */
+.settings-surface.settings-footer { display: flex; flex: none; align-items: center; gap: .75rem; width: calc(100% - var(--settings-scrollbar-width, 0px)); margin-inline: max(0px, calc((100% - var(--settings-scrollbar-width, 0px) - var(--settings-content-width, 68rem)) / 2)) auto; padding: 6px 2rem; border-top: var(--settings-hairline) solid var(--settings-line); background: var(--background); }
+@container settings-scroll (max-width: 600px) {
+  .settings-surface.settings-footer { padding-inline: 1rem; }
+}
+.settings-footer:not(:has(.settings-save-bar:not([hidden]), [data-slot="page-scroll-controls"])) { display: none; }
+.settings-footer-actions { flex: 1; min-width: 0; }
+.settings-surface .settings-save-bar { position: static; display: flex; flex-wrap: wrap; align-items: center; min-width: 0; gap: .5rem; margin: 0; padding: 0; border: 0; background: var(--background); }
+.settings-surface .settings-save-bar[hidden] { display: none; }
+.settings-save-bar > p[role="status"]:empty { display: none; }
+.settings-surface .settings-save-progress { position: sticky; bottom: 1rem; z-index: 2; justify-self: start; align-self: flex-start; max-width: 100%; margin: 0; padding: .5rem .75rem; border: 1px solid var(--settings-edge); border-radius: .5rem; background: var(--settings-surface); color: var(--foreground); font-size: .875rem; line-height: 1.5; }
+
+/* Capture keeps multiple output actions as a checklist, not exclusive options. */
+.settings-surface .capture-output-options > .settings-group-body { gap: .75rem; }
+.settings-surface .capture-output-options .check-row { min-height: 2.5rem; margin: 0; gap: .75rem; }
+.settings-surface .capture-directory-setting { display: grid; gap: .5rem; }
+.settings-surface .capture-directory-control { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; min-width: 0; }
+.settings-surface .capture-directory-control .program-path { margin: 0; max-width: min(100%, 42rem); overflow-wrap: anywhere; font-size: .875rem; }
+
+/* Module shortcuts stay above their task navigation and retain the recorder. */
+.settings-surface .module-settings-layout { gap: 1.5rem; }
+.settings-surface .module-shortcuts { min-width: 0; border-bottom: var(--settings-hairline) solid var(--settings-line); }
+.settings-surface .shortcut-summary { display: flex; flex-wrap: wrap; align-items: center; min-height: 3rem; gap: .75rem 1.5rem; padding-block: .5rem 1rem; list-style: none; cursor: pointer; }
+.settings-surface .shortcut-summary::-webkit-details-marker { display: none; }
+.settings-surface .shortcut-summary-title { display: inline-flex; flex: none; align-items: center; gap: .5rem; font-size: .9375rem; font-weight: 500; }
+.settings-surface .shortcut-summary-bindings { display: flex; flex: 1; flex-wrap: wrap; min-width: 0; gap: .5rem 1.5rem; color: var(--muted-foreground); font-size: .875rem; }
+.settings-surface .shortcut-summary-binding { display: inline-flex; align-items: center; gap: .5rem; min-width: 0; max-width: 100%; }
+.settings-surface .shortcut-summary-binding kbd { min-width: 0; max-width: 15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: .125rem .375rem; border: 1px solid var(--settings-edge); border-radius: .25rem; background: var(--settings-surface); color: var(--foreground); font: inherit; }
+.settings-surface .shortcut-summary-state { flex: none; font-size: .875rem; font-weight: 500; }
+.settings-surface .shortcut-summary-chevron { flex: none; margin-left: auto; transition: transform 150ms ease-out; }
+.settings-surface .shortcut-overview[open] .shortcut-summary-chevron { transform: rotate(180deg); }
+.settings-surface .shortcut-editor { padding: 1rem 0 1.5rem; }
+.settings-surface .shortcut-editor .shortcut-settings-list { grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 1.5rem; }
+.settings-surface .shortcut-editor .shortcut-setting { display: flex; flex-direction: column; align-items: stretch; gap: .75rem; }
+.settings-surface .shortcut-setting-copy { display: grid; gap: .125rem; min-width: 0; }
+.settings-surface .shortcut-setting-status { margin: 0; font-size: .875rem; }
+@container settings-page (max-width: 540px) {
+  .settings-surface .shortcut-summary-title { flex: 1; }
+  .settings-surface .shortcut-summary-bindings { order: 2; flex-basis: 100%; }
+}
+
+/* Home is a scannable tool directory, not five equally heavy framed cards.
+   The row itself is not an action; its real enable/recovery controls remain. */
+.settings-surface .dashboard-tools { display: flex; flex-direction: column; gap: 0; }
+.settings-surface .dashboard-tool { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; align-items: center; gap: 1.25rem; padding: 1.25rem .25rem; border: 0; border-bottom: var(--settings-hairline) solid var(--settings-line); border-radius: 0; background: none; }
+.settings-surface .dashboard-tool-icon { align-self: start; width: 2.5rem; height: 2.5rem; margin-top: .125rem; border: 0; border-radius: .625rem; background: var(--settings-well); }
+.settings-surface .dashboard-tool-actions { grid-column: auto; display: flex; align-items: center; gap: 1rem; padding: 0 .75rem 0 0; border: 0; }
+.settings-surface .dashboard-tool-actions > span { font-size: .875rem; }
+@container settings-page (max-width: 34rem) {
+  .settings-surface .dashboard-tool { grid-template-columns: 2.5rem minmax(0, 1fr); gap: .75rem 1rem; }
+  .settings-surface .dashboard-tool-actions { grid-column: 2; justify-content: space-between; }
+}
+
+/* Lists keep their own density and scrolling; form rows use the same tokens. */
+.settings-surface .wintray-workspace { --program-control-columns: 2.25rem 3.5rem 5rem; }
+.settings-surface .wintray-list-heading { display: grid; grid-template-columns: minmax(0, 1fr) var(--program-control-columns); gap: 1rem; align-items: center; position: sticky; top: 0; z-index: 1; padding: .5rem 6px .75rem; background: var(--background); color: var(--muted-foreground); font-size: .875rem; }
+.settings-surface .wintray-list-heading > span { text-align: center; }
+.settings-surface .wintray-list-heading > span:first-child { padding-left: 2.5rem; text-align: left; }
+.settings-surface .wintray-program-row[data-slot="item"][aria-current="true"] { background: var(--settings-selected); color: var(--settings-selected-text); box-shadow: inset 2px 0 var(--settings-accent); }
+.settings-surface .wintray-row-controls { display: grid; grid-template-columns: var(--program-control-columns); gap: 1rem; }
+.settings-surface .wintray-row-controls > div:last-child { display: contents; }
+.settings-surface .wintray-row-controls [data-slot="select-trigger"] { width: 100%; }
+.settings-surface .wintray-row-controls button[data-slot="button"] { justify-self: center; }
+.settings-surface .wintray-collect-control { justify-content: center; }
+.settings-surface .wintray-collect-label { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.settings-surface .wintray-detail-header { display: flex; flex-wrap: wrap; align-items: start; gap: 1rem; }
+.settings-surface .wintray-detail-header > :first-child { flex-basis: 12rem; }
+.settings-surface .wintray-detail-header h2 { margin: 0 0 .375rem; font-size: 1.125rem; line-height: 1.5; font-weight: 600; }
+.settings-surface .wintray-detail-header p { margin: 0; }
+.settings-surface .wintray-detail-header [role="group"] { padding-top: .125rem; }
+.settings-surface .selection-action-row { padding-right: 1rem; }
+.settings-surface .selection-action-editor { background: var(--settings-well); border-radius: .5rem; }
+.settings-surface .selection-actions-heading,
+.settings-surface .stroke-action-list-heading { display: none; }
+@container (min-width: 421px) {
+  .settings-surface .selection-actions-heading { display: grid; grid-template-columns: minmax(0, 1fr) 5rem 2rem; gap: 1.5rem; padding: .5rem 1rem .5rem .5rem; border-bottom: var(--settings-hairline) solid var(--settings-line); font-size: .875rem; color: var(--muted-foreground); }
+  .settings-surface .selection-action-controls label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .settings-surface .selection-action-controls [data-slot="select-trigger"] { width: 5rem; }
+}
+@container (min-width: 28rem) {
+  .settings-surface .stroke-action-list-heading { display: grid; grid-template-columns: 4rem minmax(0, 1fr) minmax(8rem, 10rem) 2rem; gap: .875rem; padding: .75rem 0; border-bottom: var(--settings-hairline) solid var(--settings-line); color: var(--muted-foreground); font-size: .875rem; }
+  .settings-surface .stroke-action-list-heading > span:first-child { grid-column: 1 / 3; }
+  .settings-surface .stroke-action-gesture label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+/* Only the application chrome is neutral: page surfaces, borders, focus and
+   selected states use greys. Data and status colours keep the palette that
+   identifies them (usage segments, model badges, link kinds, provider and
+   program artwork), so nothing loses meaning to a monochrome filter. */
+@media (forced-colors: active) {
+  :root[data-settings-ui] { --settings-hairline: 1px; --settings-accent: Highlight; --settings-focus: Highlight; --settings-input-edge: ButtonText; --settings-line: CanvasText; --settings-edge: ButtonText; --settings-canvas: Canvas; --settings-surface: Canvas; --settings-ink: CanvasText; --settings-muted: CanvasText; }
+  :root[data-settings-ui] :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):focus-visible { outline: 1px solid Highlight; outline-offset: 2px; }
+  :root[data-settings-ui] .settings-choice { border-color: ButtonText; }
+  :root[data-settings-ui] .settings-choice:has([data-checked]),
+  :root[data-settings-ui] .settings-options[data-presentation="list"] .settings-choice:has([data-checked]) { border-color: Highlight; }
+  :root[data-settings-ui] [data-slot="radio-group-indicator"] > span { forced-color-adjust: none; background-color: ButtonText; }
+  /* High-contrast mode needs a complete keyboard cue even when ordinary
+     themes deliberately use the quieter one-pixel focus edge. */
+  :root[data-settings-ui] .settings-choice:has(:focus-visible) { outline: 2px solid Highlight; }
+  .settings-surface [data-variant="default"] > [data-slot="tabs-trigger"][data-active] { border-color: Highlight; }
+}
