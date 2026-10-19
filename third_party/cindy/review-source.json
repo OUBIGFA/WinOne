@@ -1,0 +1,153 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "779b5237917a173fd32d2a6a381c5fe61b21695b",
+  "licenseFile": "third_party/cindy/LICENSE",
+  "files": [
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/ReviewTabBody.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/review/ReviewTabBody.tsx",
+      "sourceSHA256": "6f4faa0c7729cf0554919d74582a3d0cc39f85920f0138635d1001be112e8fd5"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/gitReview.types.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/gitReview.types.ts",
+      "sourceSHA256": "9e8fdceada3176702a18f1aabbea11db4c5e687e55913af46d7e8221941b9bba"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/lib/formatSidebarTime.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/formatSidebarTime.ts",
+      "sourceSHA256": "da4050d4158e3773d11668330f19604234d4e2b5878824b4c0973c03cc88ee92"
+    },
+    {
+      "source": "apps/desktop/src/renderer/utils/ipcError.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/ipcError.ts",
+      "sourceSHA256": "194496d855797d86b2d0acf73f6bc350589763ab26b1d7b6892167718f016a5d"
+    },
+    {
+      "source": "apps/desktop/src/shared/gitReviewCapped.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/shared/gitReviewCapped.ts",
+      "sourceSHA256": "e4d30dc9e3a668018281e8b28611b5f6674c498af73db8b9b009304b9320ccc6"
+    },
+    {
+      "source": "apps/desktop/src/shared/reviewSource.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/shared/reviewSource.ts",
+      "sourceSHA256": "4a50131c8916c0bc8be7e45f25a18c9af0a2de9e31c015ec9148eb608e6a9beb"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/diffExpansionPreference.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/diffExpansionPreference.ts",
+      "sourceSHA256": "1401fa0782f7d465875955d72f5038b234514cd780bad1ab263b9ace69a8ebff"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/DiffViewer/PlainUnifiedDiff.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/review/DiffViewer/PlainUnifiedDiff.tsx",
+      "sourceSHA256": "68a67975fe2e8902fd9c163ce59ef901f54a08e21f967797ff16f72d83431f0a"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/DiffViewer/MarkdownDiffPreview.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/review/DiffViewer/MarkdownDiffPreview.tsx",
+      "sourceSHA256": "b8ee8e5e76d5944cacab1ae56f039a6012c2dda78c59d44411c25813db8eb897"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/DiffViewer/diffRows.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/DiffViewer/diffRows.ts",
+      "sourceSHA256": "f02ad91c033663f14362d6497e844f3e689b06a71714c354c135a3e44ff35cae"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/fileTree.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/fileTree.ts",
+      "sourceSHA256": "b0dd64bc5608c64816c3b3aed1e658a46d9fecbcbfca0247364dd8c8d142e7bc"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/gitApplyCommand.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/gitApplyCommand.ts",
+      "sourceSHA256": "052398d4e492018a7620a828fda7dd066aa47b5f510682532f3c5ebd0e7208b2"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/markdownPreview.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/markdownPreview.ts",
+      "sourceSHA256": "0223c43870e8be2d3e8f640bf3bb507250133a3ec910133beed93869885cbb4f"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/useReviewSource.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/useReviewSource.ts",
+      "sourceSHA256": "145bde27d55444d8381b9df8141066b8de8f91921194e3cdd483ba7430c08346"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/useReviewGitState.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/useReviewGitState.ts",
+      "sourceSHA256": "486de17dae9b5c0bba9eba6eadcae0c96c48fc7735421618a5446097fda42e5a"
+    },
+    {
+      "source": "apps/desktop/src/shared/gitReviewWire.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/shared/gitReviewWire.ts",
+      "sourceSHA256": "29f9958c4d102ccd05dffcb4c3729f7020a3f593e05113ae263b6bb509f1d6d7"
+    },
+    {
+      "source": "apps/desktop/src/shared/ipcError.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/shared/ipcError.ts",
+      "sourceSHA256": "912176dfec21b00f2b536b1bc4438103643124e57cced593595eaf6fee65ad21"
+    },
+    {
+      "source": "apps/desktop/src/shared/reviewBranchRef.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/shared/reviewBranchRef.ts",
+      "sourceSHA256": "1bd796c4e378928455ce3b992953b2b97316b8f48b57fdb05f13ddb728fcd5e6"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/DiffViewer/useDiffHighlights.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/DiffViewer/useDiffHighlights.ts",
+      "sourceSHA256": "8edfa04f419ffc8864e7e1a36b57950c1c5b4bc182b0d2b98ab4bebc933e75c6"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/DiffViewer/highlight.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/DiffViewer/highlight.ts",
+      "sourceSHA256": "3df076503b9dfc731ae3166e93b0979f0f12a26b091418942856419b9a925381"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/DiffViewer/inlineDiff.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/DiffViewer/inlineDiff.ts",
+      "sourceSHA256": "7119708bd551ed5423ca0809c7e14d50b5cc861772be2d065ee1ac2041c2b2e6"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/DiffViewer/ImageDiffPreview.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/review/DiffViewer/ImageDiffPreview.tsx",
+      "sourceSHA256": "67b535bc17f60820e457067cd7b70f50be91a84f7ace0a91f69668b538ea6995"
+    },
+    {
+      "source": "apps/desktop/src/shared/reviewMarkdownExts.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/shared/reviewMarkdownExts.ts",
+      "sourceSHA256": "f96e2d1eda7a4d097187fb341d5b342fcbf331bc3d2c4e788ffde9cf715ccd38"
+    },
+    {
+      "source": "apps/desktop/src/shared/turnChangeSet.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/shared/turnChangeSet.ts",
+      "sourceSHA256": "505b9d971bbb35f53d67e3b9045844656385fb6069a74b766837b0d6e76e48d1"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/review/useLastTurnFilter.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/useLastTurnFilter.ts",
+      "sourceSHA256": "a84411a236ede352d7a0597e4d5cc3b6ed154b43af68d575a5d753ab437c96bf"
+    },
+    {
+      "source": "apps/desktop/src/shared/ipc-errors.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/shared/ipc-errors.ts",
+      "sourceSHA256": "f5e12dbf9484a42c55830aa0767b26c736d40fe093ed31e0a5aa3b5699026db2"
+    },
+    {
+      "source": "apps/desktop/src/shared/reviewImageExts.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/shared/reviewImageExts.ts",
+      "sourceSHA256": "c54459e0c7caefeb181d8121504669822cd8098cf739f8347a5a4cfdb9730c89"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/lib/lastTurnChangedFiles.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/lastTurnChangedFiles.ts",
+      "sourceSHA256": "f0704fc2d20341b1d1c19de0163f554eeb3d9e5f5669c6d4f4f6ee417bcbddda"
+    },
+    {
+      "source": "apps/desktop/src/shared/browserBackend.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/shared/browserBackend.ts",
+      "sourceSHA256": "d40b8ad839deb57ca1ebc67cb1725e91852b63e5bf492cd88e8d78cbb4fb648f"
+    }
+  ],
+  "adaptation": "Complete ReviewTabBody and diff renderer. Electron calls are replaced by an instance-scoped WinOne Host transport; original source capabilities, controls, virtualization, diff highlights, previews and menus remain."
+}

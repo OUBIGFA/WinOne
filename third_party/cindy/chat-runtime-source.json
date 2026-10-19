@@ -1,0 +1,29 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+  "licenseFile": "third_party/cindy/LICENSE",
+  "noticeFile": "third_party/cindy/NOTICE",
+  "licenseSHA256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+  "noticeSHA256": "77ad73b2535cd4011ed8b509aa51d7c745ae5a6f411370d8f94337562c03cd97",
+  "files": [
+    {
+      "source": "packages/maker-core/src/agents/pi/project-resource-cli.ts",
+      "sourceSHA256": "d7072f5da7687c2cb2055d0740ec0ab43694cadaae2a6612d2fb03e24c3d7ab9",
+      "target": "modules/chat-pi/cindy/project-resource-cli.ts",
+      "unchanged": true,
+      "adaptation": "Unchanged explicit in-repository project resource discovery. WinOne uses the skill paths only; opening Resources never executes discovered project extensions. User skills continue through the official DefaultResourceLoader."
+    },
+    {
+      "source": "packages/maker-core/src/agents/pi/index.ts",
+      "sourceSHA256": "de4f89c624dd9d126f3bda8d51c582ccfff9c85ac93dcc33e73079358d5a3204",
+      "target": "modules/chat-pi/cindy/runtime-settings.mjs",
+      "adaptation": "Extract buildPiSettingsJsonContent's native retry policy (six retries, 2000ms exponential base, no provider-internal retries); preserve WinOne's explicit autoRetry opt-out. Both SDK and Durable use this one policy. The official Pi retry implementation is not reimplemented."
+    }
+  ],
+  "reviewedSources": [
+    {"source":"packages/maker-core/src/agents/pi/translator.ts","sha256":"844be640445f3f5df04548138a97857a8893e7f4e7cb698d6c61742439b53694"},
+    {"source":"apps/desktop/src/renderer/components/chat/WorkGroupBlock.tsx","sha256":"c199cd5bbe13f82c4e9d63c077c37fd3b816c9a8167a5f9f3fd4d5ffe392899a"},
+    {"source":"apps/desktop/src/renderer/components/chat/messageWorkGroups.ts","sha256":"523eb431647e9c5318f8c95bbfc8dc20d9a4128833b1aa698ca14f93c491d3ea"}
+  ],
+  "hostAdaptation": "Busy input follows Cindy/Pi's dedicated steer path before startup hooks, and errors are withheld until native recovery settles. Existing Cindy WorkGroupBlock/groupWorkRuns and full-width SegmentedControl are retained. WinOne's projection supplies stable stream-to-history identities and requires actual prose for answer boundaries; user-requested hover removal, gray PowerShell content and local collision-free navigation are host visual adaptations."
+}

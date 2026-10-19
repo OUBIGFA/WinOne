@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "imports": [
+    {
+      "name": "open-claude-ui",
+      "repository": "https://github.com/Caho1/open-claude-ui",
+      "commit": "02d021fceaf2a907f9e63a8125621bdda1b85d60",
+      "license": "MIT",
+      "scope": "CDS 2.0 timing/easing, component radius hierarchy and compositor-only reveal/skeleton patterns adapted to existing WinOne settings and native menu primitives. No proprietary fonts, branding, audio, chat, cloud features or external runtime imported.",
+      "sourceFiles": [
+        "code-examples/cds-theme.css",
+        "docs/v2/03-架构重构与对比分析.md",
+        "docs/v2/04-系统底座全景解密.md"
+      ],
+      "notices": [
+        {
+          "file": "licenses/open-claude-ui-02d021f-LICENSE.txt",
+          "sha256": "5edbaca695ddc00f267639b0a56362d726dd9fbb92c7b8154631214b9cb45208"
+        }
+      ],
+      "files": [
+        {
+          "path": "apps/desktop/frontend/src/styles/settings-motion.css",
+          "sha256": "786f5a19140bbbc827684ea68881de08f76a8e8d41c4bc89eed10d428a00731c"
+        },
+        {
+          "path": "apps/desktop/frontend/src/styles/settings.css",
+          "sha256": "3d7b31584a774ee238d7ea760a71f5b99beb0804f8400479593b04cd84a7f3ee"
+        },
+        {
+          "path": "third_party/systray/menu_style_windows.go",
+          "sha256": "fdf0acbfbe81b8d63e0eb2d4cb6610479dab157eb26aede106b7fc3ec84fabb7"
+        }
+      ]
+    },
+    {
+      "name": "windows-capture-recording",
+      "repository": "https://github.com/NiiightmareXD/windows-capture",
+      "commit": "c7d106448eb9d9b251345c39047711e1cd408ae2",
+      "license": "MIT",
+      "scope": "windows-capture 2.0.1 WGC runtime; MediaStreamSource event/deferral and profile setup adapted with a bounded queue, pooled IBuffer ownership, real VFR duration, pause clock and safe file publication.",
+      "sourceFiles": [
+        "src/capture.rs",
+        "src/encoder.rs",
+        "src/frame.rs",
+        "src/d3d11.rs"
+      ],
+      "notices": [
+        {
+          "file": "licenses/windows-capture-2.0.1-LICENCE.txt",
+          "sha256": "e11eff681f6f0eb76dbea5787b100d646e4eb5d711e50cb5c9032595f6ca6a68"
+        }
+      ],
+      "files": [
+        {
+          "path": "modules/recording/src/capture.rs",
+          "sha256": "9ddfa3e2c31e2b360c8500bbaf4202f8ca101f6efd9eb96133280824298401d6"
+        },
+        {
+          "path": "modules/recording/src/encoder.rs",
+          "sha256": "dbaced4f720d070ab1234da6d968b714ad4661ac0363d5571bef5c9050cf88bb"
+        }
+      ]
+    },
+    {
+      "name": "gifski-recording",
+      "repository": "https://github.com/ImageOptim/gifski",
+      "commit": "1060eab4500a20f27e2fa3ab7e85473d0e921cbd",
+      "license": "AGPL-3.0-or-later",
+      "scope": "Statically linked gifski 1.34.0 library only, default CLI/PNG/FFmpeg features disabled. Vendored from the exact release with additive buffer-recycle and final-PTS APIs; see third_party/gifski/WINONE.md. Full transitive notices in recording-notices.json. Combined distribution must comply with GPLv3/AGPLv3 section 13 and provide corresponding source; root WinOne license is not rewritten.",
+      "sourceFiles": [
+        "Cargo.toml",
+        "src/collector.rs",
+        "src/lib.rs",
+        "LICENSE"
+      ],
+      "notices": [
+        {
+          "file": "licenses/gifski-1.34.0-LICENSE.txt",
+          "sha256": "4e2b565ed4c9537443eb92a10d745a6f8aeb75fa086fd7b955bb52e2cde48a4d"
+        }
+      ],
+      "files": [
+        {
+          "path": "modules/recording/Cargo.toml",
+          "sha256": "54bc780df78f028fb385dc4fb2ec88b14df323541b28fb81c7a8ebf7c4eb86f9"
+        },
+        {
+          "path": "modules/recording/Cargo.lock",
+          "sha256": "6aa7ea97cb67fdb0efbd33757312d18f73e45e035a861c4cc8e9649e387dc42f"
+        }
+      ]
+    },
+    {
+      "name": "magpie-curl-import",
+      "repository": "https://github.com/yetone/magpie",
+      "commit": "7660399a121af67db4efd56ecb6bd4fb04dc53f1",
+      "license": "MIT",
+      "scope": "Pure curlOf/respellURL functions and ten provider examples reused for paste import. Commands are parsed as text, never executed. WinOne keeps its own form, drafts and credential store.",
+      "sourceFiles": [
+        "internal/gui/assets/app.js",
+        "tests/curl"
+      ],
+      "notices": [
+        {
+          "file": "licenses/magpie-7660399-LICENSE.txt",
+          "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+        }
+      ],
+      "files": [
+        {
+          "path": "build/prepare-ai-curl.mjs",
+          "sha256": "6b16e9b4c311e0ebb81ceafe1b5279142ca6cbb92dd69cc2272bd5df6da2106f"
+        },
+        {
+          "path": "apps/desktop/frontend/src/features/magpie-curl.js",
+          "sha256": "98b550aac49a73d74ffea87b4cc001caba98e52988e75b24f4bc7f31fbd86207"
+        },
+        {
+          "path": "apps/desktop/frontend/src/features/magpie-curl.d.ts",
+          "sha256": "db1334b6da00f9f958e2b9c5ef4c3034d19af91fbb011d4b6a70983d2caf2602"
+        },
+        {
+          "path": "apps/desktop/frontend/tests/fixtures/curl/anthropic.sh",
+          "sha256": "d32c8099a501a6b57ded6b9f1a5a1493182883d6379400ea121dfabf68669d1c"
+        },
+        {
+          "path": "apps/desktop/frontend/tests/fixtures/curl/bailian-cmd.bat",
+          "sha256": "2ff6c7f5cb8c19d5ab22ff69f51402c0afa80b4390a2709122d8eebc9520c62e"
+        },
+        {
+          "path": "apps/desktop/frontend/tests/fixtures/curl/deepseek.sh",
+          "sha256": "a142c0f6b0b4c1dd3d8d1b543057434645b57ed9511705a7c16eaadd7c3f94f6"
+        },
+        {
+          "path": "apps/desktop/frontend/tests/fixtures/curl/moonshot.sh",
+          "sha256": "11b6617987c93ad1cb7285024ba1d67a161896bf1aa69daf98b6310e909b8136"
+        },
+        {
+          "path": "apps/desktop/frontend/tests/fixtures/curl/openai-chat.sh",
+          "sha256": "dab47c1856d6ea1b85ad1e5ef99b8814dcb8002fa171de1d41af4a031f7ba690"
+        },
+        {
+          "path": "apps/desktop/frontend/tests/fixtures/curl/openai-responses.sh",
+          "sha256": "a8d2960997de87716383b0ba1d498cdfa057b9d2c6a042bdbc1981fd7f5b39ae"
+        },
+        {
+          "path": "apps/desktop/frontend/tests/fixtures/curl/openrouter.sh",
+          "sha256": "f1e35be37e9f3e98022c14959b30ff1411538c8b209ee99ca67dc573a7bca488"
+        },
+        {
+          "path": "apps/desktop/frontend/tests/fixtures/curl/sap-ai-core.ps1",
+          "sha256": "d321cb1d96f5b3ebb341401fd93046a0db0ba79b5752a3cfa2bdf008714e9683"
+        },
+        {
+          "path": "apps/desktop/frontend/tests/fixtures/curl/unsloth-studio.ps1",
+          "sha256": "a8aa939cbde65b033b35f7813b27836017eb8200e647eca28c07e89256b26040"
+        },
+        {
+          "path": "apps/desktop/frontend/tests/fixtures/curl/zhipu.sh",
+          "sha256": "3eabdf0818d7c76023c68d7a4c33e4e4f11d6b150b04593ceecbd870aff4f0a4"
+        }
+      ]
+    }
+  ]
+}

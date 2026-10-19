@@ -1,0 +1,40 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "77e2c32d0b028920116bfac744a04c6b6876257a",
+  "licenseFile": "third_party/cindy/LICENSE",
+  "noticeFile": "third_party/cindy/NOTICE",
+  "licenseSHA256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+  "noticeSHA256": "77ad73b2535cd4011ed8b509aa51d7c745ae5a6f411370d8f94337562c03cd97",
+  "files": [
+    {
+      "source": "apps/desktop/src/renderer/hooks/useComposerSendShortcutPreference.ts",
+      "sourceSHA256": "7f5f04c9f728e86c9a4281e24db6ca66a6d78f4f9a549a1d545628c9645e6375",
+      "target": "apps/desktop/frontend/src/features/cindy/composerEnterIntent.ts",
+      "adaptation": "Extract the pure Enter intent resolver and types; inline the platform modifier predicate. WinOne supplies its Enter preference. IME, key-repeat, newline, queue and same-turn steer semantics are preserved. No external runtime dependency is added."
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/autoFollowIntent.ts",
+      "sourceSHA256": "eaf7ee84a377497fc96b536a486930fef4615e9cd41147381b82ea9148a856cf",
+      "target": "apps/desktop/frontend/src/features/cindy/autoFollowIntent.ts",
+      "unchanged": true,
+      "adaptation": "Unchanged pure follow/unpin intent helpers. WinOne wires its own scroll viewport; actual upward input cancels following, and late send acknowledgements cannot steal the reader's position."
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/new-chat/composerSendSnapshot.ts",
+      "sourceSHA256": "48fb90a6d3d8a63ebbbf373745a681ce2b260e2714f61f72b107ec5ad4ff2b54",
+      "target": "apps/desktop/frontend/src/features/cindy/composerSendSnapshot.ts",
+      "adaptation": "Only TypeScript document and attachment imports change to WinOne plain text and ChatAttachment/ChatBrowserAnnotation; the snapshot/version comparison is unchanged."
+    }
+  ],
+  "reviewedSources": [
+    {"source":"apps/desktop/src/renderer/components/new-chat/ChatInput.tsx","sha256":"986fbad8f0facaa5e51065df571cd66a2777550f0222b528b6562c2e3b7ee1f3"},
+    {"source":"apps/desktop/src/renderer/features/cc-agent/CCAgentSessionView.tsx","sha256":"fefa99183f65a3167d0b732ecd01c8ce61ca066efb871262b8ccacfc44decc3a"},
+    {"source":"apps/desktop/src/renderer/lib/makerChatStore.ts","sha256":"15eac3d6b033b25bf3bb7769a8013f04f0999b8b7c306add0c535b9983b90793"},
+    {"source":"apps/desktop/src/renderer/components/chat/UserMessageEditBox.tsx","sha256":"1add0429f3b571050b0b384bb1db9008c92cec1667bb6b0066ceefc77f5e2c2d"}
+  ],
+  "behaviorReferences": [
+    "apps/desktop/src/renderer/components/new-chat/ChatInput.tsx: dispatchSend, handleClickSend and Ctrl+Enter steering",
+    "apps/desktop/src/renderer/features/cc-agent/CCAgentSessionView.tsx: handleSend deliveryMode and requestFollowLatest"
+  ],
+  "hostAdaptation": "The existing three-way confirmation exposes keep-editing, queued delivery and same-turn insertion. Both delivery modes share WinOne's attachment validation, pending draft, request receipt and official Pi Durable inbox. Branch reset events precede retried live replies. Existing Cindy sidebar/segmented components are composed into the user-requested fixed library views and unchanged dynamic document tabs; sidebar-source.json retains their original provenance."
+}

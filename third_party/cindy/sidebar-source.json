@@ -1,0 +1,155 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "779b5237917a173fd32d2a6a381c5fe61b21695b",
+  "licenseFile": "third_party/cindy/LICENSE",
+  "files": [
+    {
+      "source": "apps/desktop/src/renderer/components/ui/button.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/button.tsx",
+      "sourceSHA256": "7f9385f4e2e29b6bc64f8bc3ca402f5c3a0db34c2ac3babd0d351fad076ea73c"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/button.css",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/button.css",
+      "sourceSHA256": "5a04cbf8736729782de3dc19e2ad545853edd3bf412cccc5aa176d8dd896b1ea"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/spinner.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/spinner.tsx",
+      "sourceSHA256": "0ae44d7c23ecbf686bcb2d196eef8f2554a36609143c0cc8bf46504544ac0652"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/tooltip.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/tooltip.tsx",
+      "sourceSHA256": "0cd4e5534883e6953c8d63abb4dd5627738439b5c77fefb6ace18dffba7457cc"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/dropdown-menu.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/dropdown-menu.tsx",
+      "sourceSHA256": "a034b63338c42f37803fdceb2deae82c16e83a9c4e99e71bb8a7f4566d88a0cc"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/dropdown-menu-highlight.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/dropdown-menu-highlight.ts",
+      "sourceSHA256": "fe85b18e8ec96d75f34d0b5eb23e3119cc0ad159b185b4f3564ad3f2908f347b"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/menu-row.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/menu-row.tsx",
+      "sourceSHA256": "a1986c03deca14923a1d9ab46a03dad548a8f3e2c0701fdecdb1eefe7e7a6dd4"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/sidebar/SortableList.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/SortableList.tsx",
+      "sourceSHA256": "9ec794c65677d86fec96c4ac69d9c42e519e222fbd359419d9633155094b05a1"
+    },
+    {
+      "source": "apps/desktop/src/renderer/styles/sortable.css",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/sortable.css",
+      "sourceSHA256": "684520c5bf6d7d2f9d2ec44f74a8c6ffef48aa61f5c88e8ea3e5cc10b6935951"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/title-bar/ChromeIconButton.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/ChromeIconButton.tsx",
+      "sourceSHA256": "6bbb49c4d3f6d65035853224fe79e86a1353806c1220534adf71c3a47ec849a8"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/TabBar.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/TabBar.tsx",
+      "sourceSHA256": "601a13af20feacb9f107278f93bcc3e362347b5922fdd9788a52414821ac5c16"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/en/common.json",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/en.json",
+      "adaptation": "Only the renderer and sidebar translation domains are bundled; WinOne keeps its global locale."
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/zh-CN.json",
+      "adaptation": "Only the renderer and sidebar translation domains are bundled; WinOne keeps its global locale."
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/web-browser/BrowserChrome.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/browser/BrowserChrome.tsx",
+      "sourceSHA256": "b09f20378683461b42141eca83187f644db0d161087397e9de97f5a3c2c4bd4e"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/web-browser/lib/parseOmnibox.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/browser/parseOmnibox.ts",
+      "sourceSHA256": "10064ebf4673622ca3d68184e4b7cfea2b1bce9d5cbef89238f9ae4ca7cf277a"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/terminal/lib/xtermPool.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/terminal/options.ts",
+      "sourceSHA256": "51c9f9abafd2ba9b6a2787882bab3ce6edaf4c86fb85e0993077aac1db10d924"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/terminal/TerminalTabBody.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/terminal/TerminalOverlays.tsx",
+      "sourceSHA256": "84663bd8044dd7cbf568fce6068bb539cf53c6e15df230a3119c1d87385e2e16"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/file-type-icon.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/file-type-icon.tsx",
+      "sourceSHA256": "c1678f70377e115484af68a43892f110161ed0990b3dfb79cfffa1e53db1c5f4"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/segmented-control.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/segmented-control.tsx",
+      "sourceSHA256": "7616ffd9e9e9f25c4c923a5cff34672c4bd3bcabea1874a6edb592b5b1aee5f7"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/popover.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/popover.tsx",
+      "sourceSHA256": "94f2d3de62df442b0c73306d81cd143e967f4fcd6e912293a1f0fd43fc497b4b"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/confirm-dialog-provider.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/confirm-dialog-provider.tsx",
+      "sourceSHA256": "73cd6fe6771804d9d0476a537e2558f6d34f27ef3c00c5018a9c92996a07167d"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/confirm-dialog.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/confirm-dialog.tsx",
+      "sourceSHA256": "2729c21839a654776a0b483036eaa60711a6f89e1f29428bc547412a0af42f47"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/segmented-control.css",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/segmented-control.css",
+      "sourceSHA256": "74101f41eb20c09b279f2ff94055981227f13a62527ff2a67b64a363f61c39b1"
+    },
+    {
+      "source": "packages/maker-shared/src/filePresentation.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/filePresentation.ts",
+      "sourceSHA256": "27352c7983a7fa3dc69b1987bb127c13cc7aa0562c1ec62bd4e02dfe42d175ed"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/scrollbarAutoHide.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/scrollbarAutoHide.ts",
+      "sourceSHA256": "c87786bf9dd31c344f15c795f5cec6af2b215cb4abb0bd0b019629051cb04b25"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/highlight.worker.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/review/highlight.worker.ts",
+      "sourceSHA256": "7b0a20502366a5c5b80347c73f977fbd33c35c34e1c3f66771fda78413bef96c"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/input.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/input.tsx",
+      "sourceSHA256": "5d31bfb63a1e74f2d9407319a164c2f82688f00eef74613606cdbaee32dbcdfa"
+    },
+    {
+      "source": "apps/desktop/src/renderer/styles/generated/tokens.css",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/foundation.css",
+      "sourceSHA256": "26cb98a61d8770fa4a616bba9d890c75ae97a95788312816bf10c4ef5225de7a",
+      "adaptation": "All spacing, radii, typography and motion tokens; root scope only."
+    },
+    {
+      "source": "apps/desktop/src/renderer/styles/globals.css",
+      "target": "apps/desktop/frontend/src/features/cindy/panel-ui/foundation.css",
+      "sourceSHA256": "094498be5c665a664ba8b1e216398ba89e6e23b1c6e5b23d5ffad46533733fe5",
+      "adaptation": "Referenced shared component rules, scoped to Cindy surfaces; Windows scrim branch."
+    }
+  ],
+  "adaptation": "Original Windows tab chrome, sortable interactions and UI primitives; plugin metadata, file state and callbacks belong to WinOne. All existing WinOne tabs and actions remain connected. Shared primitives include their structural tokens and modal/menu styles. react-style-singleton uses constructable stylesheets through build/prepare-radix-csp.mjs without relaxing the production CSP. Shared primitives include their structural tokens and modal/menu styles. react-style-singleton uses constructable stylesheets through build/prepare-radix-csp.mjs without relaxing the production CSP."
+}

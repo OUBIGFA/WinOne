@@ -1,0 +1,123 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "779b5237917a173fd32d2a6a381c5fe61b21695b",
+  "licenseFile": "third_party/cindy/LICENSE",
+  "files": [
+    {
+      "source": "apps/desktop/src/renderer/components/chat/ImageLightbox.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/media/ImageLightbox.tsx",
+      "sourceSHA256": "067a81d9f594db2710fb0f664d5ecf39c43b813ead72ef5f88f8b4e7b90a3230"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/useImageClipboard.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/useImageClipboard.ts",
+      "sourceSHA256": "d7291bc8b61397c487d4c478b3ed83ac94f0e9feea83eef10fb2ddeb8f3f363b"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/editableKeyboardTarget.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/editableKeyboardTarget.ts",
+      "sourceSHA256": "3d34577c300be7ed5f57f5a43c8486bde119cb1f015407434c94d63121c64d01"
+    },
+    {
+      "source": "apps/desktop/src/renderer/utils/ipcError.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/ipcError.ts",
+      "sourceSHA256": "194496d855797d86b2d0acf73f6bc350589763ab26b1d7b6892167718f016a5d"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/fileTypes.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/fileTypes.ts",
+      "sourceSHA256": "ccc7f9954c37f45b34c83e6f650d55c08180f189b3b3cdaec8dfe39cdabe5efc"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/annotationBurnIn.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/annotationBurnIn.ts",
+      "sourceSHA256": "7b9f1f220da616d16e59ea16dfd582f04d493530bc8a9597ee872fda2e5e3e59"
+    },
+    {
+      "source": "apps/desktop/src/shared/remoteMediaUrl.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/shared/remoteMediaUrl.ts",
+      "sourceSHA256": "ee508890f83ecf1de8732727975ae734e18fc5c3e030ea118f06d345f2ca2897"
+    },
+    {
+      "source": "apps/desktop/src/shared/workdirPath.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/shared/workdirPath.ts",
+      "sourceSHA256": "3aa7c2379d91fed1d8e9a656ac418337a66b496d0a70c2c9cf3b8e1fc31d1771"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/lightboxAnnotations.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/lightboxAnnotations.ts",
+      "sourceSHA256": "0a547164f9dd6275caa0689905a752e149f35c978c43f5c265b9b25cb2fcf7d0"
+    },
+    {
+      "source": "packages/maker-shared/src/imageAnnotation.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/core/imageAnnotation.ts",
+      "sourceSHA256": "50dc85af8fdb24bbcd1ee6d5bebdce932901115618941429cc865da2b75cf6df"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/AnnotationStrokesSvg.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/media/AnnotationStrokesSvg.tsx",
+      "sourceSHA256": "41aa683fe1ca7795efd5a13d5b8baa4d101f58e41bb99a639111007f7fc69b93"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/lightboxGestures.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/lightboxGestures.ts",
+      "sourceSHA256": "669f71302e87fe6c2134e1b82ec2f6cf1f88a55e61f4a3768342fdc5af168c68"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/ImageGalleryContext.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/media/ImageGalleryContext.tsx",
+      "sourceSHA256": "3a6e3b16cfad6139abcedd650bfca4bdeff700d97512dca82ca20f2dd5c26a7b"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/imageDisplaySize.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/imageDisplaySize.ts",
+      "sourceSHA256": "891e9797a87fcee35cdbe2f194710d2082752d9a35f9fae041c7babe122dabb5"
+    },
+    {
+      "source": "apps/desktop/src/shared/pngClipboard.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/shared/pngClipboard.ts",
+      "sourceSHA256": "cd4e875a17cbce37fb9b5cd53e4e3639acb48d3580c0527af1bf510c68cfdfbf"
+    },
+    {
+      "source": "apps/desktop/src/shared/ipcError.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/shared/ipcError.ts",
+      "sourceSHA256": "912176dfec21b00f2b536b1bc4438103643124e57cced593595eaf6fee65ad21"
+    },
+    {
+      "source": "apps/desktop/src/shared/textFileExts.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/shared/textFileExts.ts",
+      "sourceSHA256": "a2222608acbffb0a47ecde3834c288bf46c89d3157190e6b5e2895a0e8dd15b6"
+    },
+    {
+      "source": "apps/desktop/src/shared/workingDir.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/shared/workingDir.ts",
+      "sourceSHA256": "8689b95ff42b568320393b8e8852a9116f718dbc7d08f6f64520f1d384ddf76a"
+    },
+    {
+      "source": "apps/desktop/src/shared/ipc-errors.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/shared/ipc-errors.ts",
+      "sourceSHA256": "f5e12dbf9484a42c55830aa0767b26c736d40fe093ed31e0a5aa3b5699026db2"
+    },
+    {
+      "source": "packages/file-browser-core/src/textFileExts.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/core/textFileExts.ts",
+      "sourceSHA256": "9d847f7ba72915687cb7a7b4134c9e79940c787c5895b4b7207e496c6d407398"
+    },
+    {
+      "source": "packages/maker-shared/src/worktreePaths.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/core/worktreePaths.ts",
+      "sourceSHA256": "16326ff18791a36abd1d28d52ba41b4c2b759aa70f5a183b487899b1dca41eb7"
+    },
+    {
+      "source": "apps/desktop/src/shared/managedWorktreePaths.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/shared/managedWorktreePaths.ts",
+      "sourceSHA256": "d682ffd7130a59be07dd5d8dc7838300f7e3f31391d4868a5f2a25e0b6876919"
+    },
+    {
+      "source": "apps/desktop/src/shared/browserBackend.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/media/shared/browserBackend.ts",
+      "sourceSHA256": "d40b8ad839deb57ca1ebc67cb1725e91852b63e5bf492cd88e8d78cbb4fb648f"
+    }
+  ],
+  "adaptation": "Original ImageLightbox, pointer/zoom/gallery/stroke and rasterization code. WinOne supplies authenticated image transfers, native clipboard/save/open, and acknowledged draft insertion."
+}

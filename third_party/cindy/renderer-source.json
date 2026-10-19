@@ -1,0 +1,158 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "779b5237917a173fd32d2a6a381c5fe61b21695b",
+  "licenseFile": "third_party/cindy/LICENSE",
+  "files": [
+    {
+      "source": "apps/desktop/src/renderer/components/chat/remarkTruncateCjkUrls.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/remarkTruncateCjkUrls.ts",
+      "sourceSHA256": "21a099becb0d4cdc85a5803ebeebc263371d687a30eddbb12f41c88d0ec9982d"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/remarkStrictInlineMath.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/remarkStrictInlineMath.ts",
+      "sourceSHA256": "b3bb072696ef30714da77af41e04982f7fffc3d31d1ad5ea4728dfa41cf64e22"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/remarkLocalPathLinks.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/remarkLocalPathLinks.ts",
+      "sourceSHA256": "9a403146290f7b3c6db20999e3bf33eeb7a9935993f72d28ec4d2606201e4848"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/remarkHtmlImages.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/remarkHtmlImages.ts",
+      "sourceSHA256": "6530f36d15f632e5e445c5eb9a34d587d8e685a7a226076f64d537d0e2a5398d"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/remarkPreserveRawLocalDestinations.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/remarkPreserveRawLocalDestinations.ts",
+      "sourceSHA256": "32e4081a89882dfb2fbfcf7c00ecaaf30f96530966078b610d7397650d88fa6c"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/remarkSessionLinks.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/remarkSessionLinks.ts",
+      "sourceSHA256": "da5564622bf50963f1b404a65400124410fc3eb5ccf9f4f8bdcda3e4ce8bb014"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/userMessageLinkify.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/userMessageLinkify.ts",
+      "sourceSHA256": "9b27f6aadd87dc059893475d559a1f21390f478ce161596b46211db292abc23c"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/rehypeMathBlockMarker.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/rehypeMathBlockMarker.ts",
+      "sourceSHA256": "9f627e0dcb4fd56d8dab4cd11e8afb596fd6ac93dd8b924522b18e3981ba2ef2"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/rehypeFencedCodeMarker.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/rehypeFencedCodeMarker.ts",
+      "sourceSHA256": "02bd1c03199ef61591d86085d0add7a10affc5c20151d207c462b823a723364f"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/rehypeHighlightShared.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/rehypeHighlightShared.ts",
+      "sourceSHA256": "a7711f6325f0b69bc2a4bbb8f16e31ca15ab4d440f38ebaf43bcba10918d22cc"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/rehypeStreamWordFade.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/rehypeStreamWordFade.ts",
+      "sourceSHA256": "0ca7ab471bab114d632c69d8e671212e8598e27e35e17bb841741167360c3e29"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/StreamingMarkdownChunk.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/StreamingMarkdownChunk.tsx",
+      "sourceSHA256": "3ae796161cfce3dc80976a3d55eaa7a0de359081114bff9314878168c0ddb6a4"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/streamingMarkdownBlocks.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/streamingMarkdownBlocks.tsx",
+      "sourceSHA256": "4948f661460eed0ac9f0779071efe823a07194d0f761bb31ce0e445398246e48"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/streamingMarkdownChunks.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/streamingMarkdownChunks.ts",
+      "sourceSHA256": "87c3623a9c9961abbde192933a880ed79183edfc7315ea923fd5fc9218f59056"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/repairStreamingMarkdown.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/repairStreamingMarkdown.ts",
+      "sourceSHA256": "46320b3219a1bc7a939c6f70863ef6b53c14de9c643ec3abd22f72c030797147"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/StreamFadeSpan.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/StreamFadeSpan.tsx",
+      "sourceSHA256": "bc5b8560b9425e0afbfee97dca9ebc4cf04ef468dbd3bf82dc1625edf3b66cc0"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/MarkdownDiffBlock.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/MarkdownDiffBlock.tsx",
+      "sourceSHA256": "687b2eed5a0f91d3f9c76f4064b37533c823993dca5b97a2531368f4a452597b"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/MermaidLightbox.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/MermaidLightbox.tsx",
+      "sourceSHA256": "e07ec46280e5bf2c3e587fc76a33ebadfdf05f7ffc017f9beba2096b5a141648"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/lightboxGestures.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/lightboxGestures.ts",
+      "sourceSHA256": "669f71302e87fe6c2134e1b82ec2f6cf1f88a55e61f4a3768342fdc5af168c68"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/CopyAsImageBlock.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/CopyAsImageBlock.tsx",
+      "sourceSHA256": "6cb7b9a9029a918d0b1f10cef9efcf71c868d0e8c91224257a2b9fd8b62f6a0c"
+    },
+    {
+      "source": "packages/maker-shared/src/mathMarkdown.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/mathMarkdown.ts",
+      "sourceSHA256": "8666deeb08e1838df39ff0ae0a470ebe8c7a65271d6f8784f030361df2c2ebec"
+    },
+    {
+      "source": "packages/maker-shared/src/urlTextBoundary.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/urlTextBoundary.ts",
+      "sourceSHA256": "66fa67f2b86fd41046f49a3e293c00c5d014f17b95b21ea9b9413a129ae56be8"
+    },
+    {
+      "source": "packages/maker-shared/src/mermaidAutofix.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/mermaidAutofix.ts",
+      "sourceSHA256": "13efca4d4f5179b4d8c427f292d60a92689dd2acbe67089174ed47526b07ffd2"
+    },
+    {
+      "source": "packages/maker-shared/src/brandIdentity.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/brandIdentity.ts",
+      "sourceSHA256": "f64bbc1fcff3c3b7967dbb398f779708780e8067649ee790e2511278ce4f55dd"
+    },
+    {
+      "source": "apps/desktop/src/shared/htmlImage.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/htmlImage.ts",
+      "sourceSHA256": "a535c48b984012fb8bb7be3b41f3673a83d7cc8c3a217f74c65cc33667bbc96a"
+    },
+    {
+      "source": "apps/desktop/src/shared/deepLinkSchemes.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/deepLinkSchemes.ts",
+      "sourceSHA256": "a6159fc6a6591ed958bceeb40cd0257a940ab56c634fb33a3735e135176e5e66"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/deepLink.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/deepLink.ts",
+      "sourceSHA256": "261613b73defffa5a786e93dc27f2d2752726df7ba22372eb0ba9aa73715ae23"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/rasterizeToImage.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/rasterizeToImage.ts",
+      "sourceSHA256": "92b3fc9df3a87138098fc81ec7268a2f25eeaa842a000d7d92f230c89e001aff"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/MarkdownMermaidBlock.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/MarkdownMermaidBlock.tsx",
+      "sourceSHA256": "009edc397eb001a8342cba4c8cbd84b6b3176e6a94d16336193e45b84492ad55"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/MarkdownRenderer.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/markdown/MarkdownRenderer.tsx",
+      "sourceSHA256": "d97a9b6ce95c4d49a4251d6182f01a0422449249cac1656a97351704dfad0344",
+      "adaptation": "Parser, normalizer, streaming throttle/chunks, code block JSX, block renderers and document line anchors retained; scoped file/link/image controls use the WinOne Host."
+    }
+  ]
+}

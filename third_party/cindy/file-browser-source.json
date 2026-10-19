@@ -1,0 +1,74 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "779b5237917a173fd32d2a6a381c5fe61b21695b",
+  "licenseFile": "third_party/cindy/LICENSE",
+  "files": [
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/FileTreeView.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/FileTreeView.tsx",
+      "sourceSHA256": "30d046b5431c7356a2f0f8dd7a65835c2005b1ebcf106d26466cbe489e65eb79"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/FileFilterInput.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/FileFilterInput.tsx",
+      "sourceSHA256": "cafdac2369e315249f04afc1fe53821a87ed8a9c13b343454ab8a9dace058519"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/FilterResultList.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/FilterResultList.tsx",
+      "sourceSHA256": "2987142c14c1f04f666c0b4009ad22a6c3196a7c50343101e3d9819782a6d8b7"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/lib/filterFiles.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/lib/filterFiles.ts",
+      "sourceSHA256": "e2e9a97b11dc5f1237e9bea16b308a645e27c6821c7d9d4a64e9a0cf2c655d86"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/lib/fileIcon.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/lib/fileIcon.ts",
+      "sourceSHA256": "152fb7ace5d00690b487b01f6a39250b95b2823a1381fff0a2452a54847a5990"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/lib/imageExt.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/lib/imageExt.ts",
+      "sourceSHA256": "5eaefd8eb84d8f4406ea36a449710d3724dc5b1b5e3e2a50b53c8a6cde1d14b6"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/lib/fileMeta.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/lib/fileMeta.ts",
+      "sourceSHA256": "235518d39748f03b98964a4500928ef73b9127a9f5651c4120b4b4adffff5c18"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/hooks/useDelayedFlag.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/hooks/useDelayedFlag.ts",
+      "sourceSHA256": "4dec13bc071c2c006540d8dc20bc52873409f75c4247fa2ea86196f1a6ca3b20"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/search/SearchPanel.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/search/SearchPanel.tsx",
+      "sourceSHA256": "80eebc05d6a157bd6a09e69eb4a784b812c8a2ef4eedf78c63ada3bfcbce9cb6"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/search/SearchInput.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/search/SearchInput.tsx",
+      "sourceSHA256": "0fc273ad3dbaf2140b0a7a0682223ba44f49d28f96f1197d02ee67cd00d9a987"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/search/SearchResults.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/search/SearchResults.tsx",
+      "sourceSHA256": "fc39ba94573524d9e3a6e49e55e45b358f6e9ea51b531b0d65ee8d6d2f9b711c"
+    },
+    {
+      "source": "apps/desktop/src/shared/browserOpenableExts.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/browserOpenableExts.ts",
+      "sourceSHA256": "da7e11b2abc4b31989c49f154678f5d1672f0cce40e62b637fcb28616324c7ee"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/file-browser/FileBrowserBody.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/file-browser/TreeHeader.tsx",
+      "sourceSHA256": "c06023c6b54fc6ecc147b0a2d206fa8f9103c5bcbd2e14a8d6aa9d133107f01f",
+      "adaptation": "Original TreeHeader; WinOne supplies folder, search, collapse and refresh callbacks."
+    }
+  ],
+  "adaptation": "Original file tree, toolbar, file filter and search components; scoped WinOne Host directory/search and existing file editor supply data and actions."
+}

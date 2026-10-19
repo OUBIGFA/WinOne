@@ -1,0 +1,89 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "779b5237917a173fd32d2a6a381c5fe61b21695b",
+  "licenseFile": "third_party/cindy/LICENSE",
+  "files": [
+    {
+      "source": "apps/desktop/src/renderer/components/markdown/PlaintextEditor.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/PlaintextEditor.tsx",
+      "sourceSHA256": "5d273a535599bb762a81467e65b96f1de9290b962409727fd8fe358dacc24f24"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/markdown/codemirrorGithubTheme.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/codemirrorGithubTheme.ts",
+      "sourceSHA256": "219a0378454c04b7737e249b761010d630fe20ecb3b18ecc7f58bc7ab47ddc69"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/markdown/codemirrorLanguages.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/codemirrorLanguages.ts",
+      "sourceSHA256": "de4dcaa59ee20cc282cb4a00df5abe9c74bb8e4b74401bea750b80b0cbd96e2d"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/markdown/markdownTableLivePreview.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/markdownTableLivePreview.ts",
+      "sourceSHA256": "82c9c7cb58134162df8e50c2aff5f1067299c3007ae0f30e476e4d6b9f74efbe"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/markdown/markdownMermaidLivePreview.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/markdownMermaidLivePreview.ts",
+      "sourceSHA256": "ae591fa63603dcc568da9df22fc97d4fb1f0627d0fa27939a94d07531a36163d"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/markdown/markdownImageLivePreview.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/markdownImageLivePreview.ts",
+      "sourceSHA256": "90277480745216ce097211a16f9280ec3d610088080dccc207881c731b8cb4fc"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/markdown/markdownFenceLines.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/markdownFenceLines.ts",
+      "sourceSHA256": "88029a6c0b953b3c5ddf9d8251b91da7ae1199ba9f294b9ce47f5ada96d61fd6"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/markdown/plaintextEditorChrome.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/plaintextEditorChrome.ts",
+      "sourceSHA256": "b5c0ccc9d1c5fd155b74afc9f0d6997d43d3555a6c335d2c37a3b678ce56592b"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/markdown/useIsDarkMode.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/useIsDarkMode.ts",
+      "sourceSHA256": "8d02baeaa1a30d139fec9f5087e8ca48ed030d980e46c184d128e7d053384f4c"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/lib/imageExt.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/imageExt.ts",
+      "sourceSHA256": "5eaefd8eb84d8f4406ea36a449710d3724dc5b1b5e3e2a50b53c8a6cde1d14b6"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/lib/markdownAutosave.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/markdownAutosave.ts",
+      "sourceSHA256": "ae00503cfdaa72ff49815f15e1f227997ee67c6bd99b8bcd29e25ae1ef3bb9c0"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/markdown/MermaidLightboxHost.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/MermaidLightboxHost.tsx",
+      "sourceSHA256": "784309940e694d06517809ec1be52f69368c9a512fc96d423efa6670317e6832"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/markdown/MermaidSourceEditor.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/MermaidSourceEditor.tsx",
+      "sourceSHA256": "c6b9498a40756be6336be729f8b35a08b42c072529746fec74ebb03632430d47"
+    },
+    {
+      "source": "apps/desktop/src/renderer/hooks/useDialogExit.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/useDialogExit.ts",
+      "sourceSHA256": "a0b2f793afe18785293c87ab93994f9a433c1ff3560c46f8737afac453035744"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/layout/windowDrag.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/editor/windowDrag.tsx",
+      "sourceSHA256": "888e6f9073853b3adb80f47469946bffdccd7a6536683dfca2f3951aa8b401de"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/ImagePreview.tsx",
+      "target": "apps/desktop/frontend/src/features/cindy/file-view/ImagePreview.tsx",
+      "sourceSHA256": "2ee786912f3b54e9561068b76e0043829e2747765396959769eb63b55d78723d",
+      "adaptation": "Original image layout and metadata; scoped URL and shared ImageLightbox host. Existing WinOne zoom/rotation remain available."
+    }
+  ],
+  "adaptation": "Original CodeMirror document/code/plain chrome, live Markdown tables/images/Mermaid, search, edit history, scroll and read-only compartments. Host adapter uses scoped preview URLs and existing revision-checked saves; constructable stylesheets retain the desktop CSP."
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/BurntSushi/ripgrep",
+  "tag": "15.2.0",
+  "commit": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
+  "version": "15.2.0",
+  "license": "Unlicense OR MIT",
+  "build": "build/build-search.ps1",
+  "features": [],
+  "usage": "Bundled filename/content search for the Cindy file browser. Built from pinned source without PCRE2; never searches the agent's or user's PATH for rg.",
+  "lock": "third_party/ripgrep-Cargo.lock",
+  "dependencyNotices": "third_party/search-notices.json",
+  "notices": [
+    {"file":"licenses/ripgrep-15.2.0-COPYING.txt","sha256":"dfe7d0a6134a17d3de7409762e08dc02133303912875cab40a74ba07a390f85a"},
+    {"file":"licenses/ripgrep-15.2.0-LICENSE-MIT.txt","sha256":"970813655a1bf777d2ead189cef71ab73ab92ce04dc864027d61a45de03e6728"},
+    {"file":"licenses/ripgrep-15.2.0-UNLICENSE.txt","sha256":"640514163b17f977adc997cb16f51871122cfb0555ebad1a3f01e167b7ba8857"}
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "779b5237917a173fd32d2a6a381c5fe61b21695b",
+  "license": "Apache-2.0",
+  "fonts": [
+    {"package":"@fontsource-variable/inter","version":"5.2.8","weights":"100–900","styles":["normal","italic"]},
+    {"package":"@fontsource-variable/jetbrains-mono","version":"5.2.8","weights":"100–800","styles":["normal","italic"]},
+    {"package":"harmonyos-sans-sc-webfont-splitted","version":"1.1.0","weights":[100,300,400,500,700,900],"styles":["normal"],"patch":"dependency-patches/harmonyos-sans-sc-webfont-splitted.patch"}
+  ],
+  "sources": [
+    "apps/desktop/src/renderer/main-entry.tsx",
+    "apps/desktop/src/renderer/styles/generated/tokens.css",
+    "apps/desktop/src/renderer/styles/globals.css",
+    "apps/desktop/src/renderer/themes/builtin/cindy-light.ts",
+    "apps/desktop/src/renderer/themes/builtin/cindy-dark.ts",
+    "apps/desktop/src/renderer/features/cc-agent/CCAgentSessionView.tsx"
+  ],
+  "targets": [
+    "apps/desktop/frontend/src/styles/cindy-fonts.css",
+    "apps/desktop/frontend/src/features/chat-desktop-kit.css",
+    "build/prepare-cindy-fonts.mjs"
+  ],
+  "adaptation": "Exact font packages, variable weight ranges, complete HarmonyOS Unicode subsets, locale fallback stacks and punctuation faces. Font files remain local build assets. Cindy's language-selector removal is reproduced without removing any font face. Chat reuses the light/dark page and input surfaces and the 32px composer fade. WinOne retains its own theme selection and viewport sizing."
+}

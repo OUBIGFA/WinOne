@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "packages": [
+    {
+      "name": "gif-dispose",
+      "version": "5.0.1",
+      "repository": "https://github.com/kornelski/image-gif-dispose.git",
+      "commit": "e50dcfbd38056d75184720e6c45daf23db16cecb",
+      "sourceURL": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "file": "licenses/gif-dispose-5.0.1-Apache-2.0.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "declaration": {
+        "sourceFile": "Cargo.toml.orig",
+        "file": "licenses/gif-dispose-5.0.1-declaration.txt",
+        "sha256": "590fbfc4c55592f768e1b2a904a4f75008067857c973eb2e6389dda89f5652c7",
+        "license": "MIT OR Apache-2.0"
+      },
+      "reason": "Neither the release tarball nor its exact git revision includes a standalone license. Its original Cargo.toml explicitly grants MIT OR Apache-2.0; this distribution selects Apache-2.0 and includes Apache's unmodified standard text together with the author's original declaration. No copyright attribution has been invented."
+    },
+    {
+      "name": "gifski",
+      "version": "1.34.0",
+      "repository": "https://github.com/ImageOptim/gifski",
+      "commit": "1060eab4500a20f27e2fa3ab7e85473d0e921cbd",
+      "sourceURL": "https://raw.githubusercontent.com/ImageOptim/gifski/1060eab4500a20f27e2fa3ab7e85473d0e921cbd/LICENSE",
+      "file": "licenses/gifski-1.34.0-LICENSE.txt",
+      "sha256": "4e2b565ed4c9537443eb92a10d745a6f8aeb75fa086fd7b955bb52e2cde48a4d",
+      "reason": "The published crate include list omits LICENSE; the source commit is verified against its .cargo_vcs_info.json."
+    }
+  ]
+}

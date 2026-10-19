@@ -35,6 +35,8 @@ __pycache__/
 !apps/diagram-renderer/src/bin/*.rs
 !third_party/gifski/src/bin/
 !third_party/gifski/src/bin/*.rs
+# Agent entry point is AGENTS.md; CLAUDE.md is a local tool copy and must not drift.
+/CLAUDE.md
 # Keep this final: ignore _temp at every depth, after all negation rules.
 /apps/desktop/frontend/public/pdfjs/
 _temp/
