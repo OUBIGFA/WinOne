@@ -1,5 +1,76 @@
 # 开发状态
 
+## 固定安装器更新（2026-10-22，WinTray 程序操作与窗口控制）
+
+本轮同步 WinTray 上游的程序窗口控制，并纳入当前工作区的全部未提交改动重建固定安装器。
+
+- **程序操作**：程序管理新增读取运行/窗口状态、显示/隐藏窗口和关闭程序；新增接口经桌面宿主白名单放行，设置页提供对应按钮与确认框，中英文案同步。
+- **窗口与启动方式**：优先发送 Esc 由程序自身收起，再回退原生关闭；窗口消失后核对原进程仍存活，避免把进程退出误判为收起成功。后台启动的控制台程序保留真实控制台与输出，不再用隐藏控制台丢弃 I/O；短脚本结束后不再无意义重试 30 秒托管。
+- **验证**：WinTray 模块测试全部通过（orchestrator 87.8 秒、traybox 18.2 秒等）；原生程序操作检查覆盖 EXE、CMD、BAT、PowerShell、Python 的输出保留、显示/隐藏与重复启动防护，深浅色截图均通过。前端 157 个文件、858 项测试通过；统一构建、生产前端、Rust、Host、AI、Chat、启动探针与依赖许可核验通过；载荷 4,344 个文件。
+- **隔离安装矩阵通过**：两处失败回滚、安装中断修复与失败保留、修复成功、覆盖安装、卸载中断恢复与导出卸载器一致性均通过；4,344 个安装文件逐个 SHA-256 校验一致，配置与额外文件保留。证据见 _temp/release-installer/installer-context/result.json。
+- **固定安装器已更新**：dist/release/WinOne-setup.exe 为 274,425,998 字节，SHA-256 9bd2b46b1ca1d03637dd0fc98e23aac770795203584fdbdc2a9a6054e012ccc9；.sha256 与 release-info.json 已同步，旧三件套备份在 _temp/release-installer/prior-release/。
+- **安全扫描通过**：Microsoft Defender 对正式安装器、导出卸载器与 ZIP 静态扫描均无威胁，退出码均为 0。
+
+边界：未签名、未对外发布、未操作真实安装或真实配置，由用户自行运行安装器。Windows 托盘收起依赖各程序自身对 Esc/关闭的处理，未覆盖全部第三方程序；历史依赖日志检查本轮未重跑。本轮未提交、未推送。
+
+
+## Chat 气泡、重试、文件改动与任务图标修正（2026-10-21，已进入固定安装器）
+
+- **任务图标最终纠正**：标题保留纯文字时的 28px 起点；16px 图标独立放在左侧既有空白（4px 起点、8px 图文间距），不推移文字。旧实现的有图标标题为 52px、无图标为 28px，新的几何回归明确复现该差异后转绿。进行中蓝色、错误/中断红色、问答橙色，保留深浅色及选中状态。
+- **Cindy 消息布局**：采用已核对的 `a44ac274` 用户消息布局，气泡和操作栏独立定宽；连续发送“？”不再改变已有气泡，原生窗口四条均为 48px。编辑初始精确保留原宽，文字变更后按内容调整。
+- **重试与文件改动**：等待重试独立放在输入区旁，失败尝试不分割工作组、不重置展开。文件改动区只保留一个卡片，以历史选择访问每轮原始快照，撤销/重新应用不跨轮合并。
+- **插件登录窗口**：对照 Magpie 的 Windows 启动方式，AI Worker 不再引入 `SW_HIDE`，仅添加 `CREATE_NO_WINDOW` 并保留已有进程属性。旧写法原生窗口探测不可见，修改后可见；保留原有环境隔离测试。插件上游使用独立浏览器/profile，未提供默认系统浏览器登录回传流程。
+- **验证**：前端全套 154 文件／847 项通过；最终定向 4 文件／25 项、Cindy 许可 4 项、AI/Host Go 包（显式含原生窗口探测）通过。统一构建、生产前端、Rust、Host、Chat、AI、WinTray、启动探针与依赖许可核验全部通过，载荷 4,340 个文件。浏览器深浅色×宽窄窗 4 组及编辑边界 8 组通过；真实 Rust 窗口使用隔离 Chat 传输夹具检查标题/图标位置、短气泡、单文件卡与重试，0 页面错误，已查看深浅色截图，正常退出。
+
+证据：`_temp/chat-cindy-fixes/sidebar-protruding-red/`、`sidebar-protruding-green/`、`native-sidebar-final/`、`edit-boundaries/`、`frontend-tests.log`、`desktop-sidebar-final.log`。复现入口：`build/test-chat-task-feedback.mjs`；原生驱动 `apps/desktop/frontend/tests/chat-task-feedback-native-check.mjs` 通过 `build/test-desktop-components.ps1` 运行。
+
+- **固定安装器已更新**：`dist/release/WinOne-setup.exe` 为 274,353,812 字节，SHA-256 `705f4756737e05408e7a9efa8b45e8a1d204e5059b02fbcfb7958f3c8f119cf1`；包清单 SHA-256 `9be11ed935d0b375c16d099b48771ce5d38d83f331442e69f0951a89ba29015b`；`.sha256` 与 `release-info.json` 已同步，旧三件套备份在 `_temp/20261021-installer-chat-fixes/prior-release/`。
+- **隔离安装矩阵通过**：ZIP 4,340 个文件；覆盖安装、两处失败回滚、修复、历史日志、卸载中断恢复与导出卸载器一致性均通过；安装清单逐个 SHA-256 校验一致。证据 `_temp/20261021-installer-chat-fixes/installer-test/case/result.json`。
+- **安全扫描通过**：Microsoft Defender 对正式安装器、导出卸载器与 ZIP 静态扫描均无威胁，三个扫描进程退出码均为 0。
+
+边界：未签名、未对外发布、未操作真实安装或真实配置，由用户自行运行安装器。实际 ChatGPT 登录、网站挑战和供应商推理未验收；上游插件使用独立浏览器/profile，没有默认系统浏览器登录回传流程。编辑边界开发服务器曾输出 `ResizeObserver loop completed with undelivered notifications`，未隐藏，也不宣称全环境零诊断。
+
+## 固定安装器更新（2026-10-21，AI 服务布局／插件登录与基座同步）
+
+接续中断的 AI 服务任务：修复路由控件贴边、插件悬停无内边距、插件登录无反应，并把 Magpie 基座与社区插件同步到 2026-10-21 版本；随后完成用户追加的 Chat 侧栏两项调整并更新固定安装器。
+
+- **AI 服务修复**：路由行头按 `#view-routing` 同作用域覆盖间距，输入、导入、选择与新建组恢复独立间距；插件列表和发现条目补齐内边距；登录按钮改为显式登录请求，启动插件自身浏览器后回读真实插件 ID 并返回错误回执；配置锁期间请求不再无回执。
+- **基座同步**：Magpie 锁定 `efd1b697e401ca9ea771a02720291a0e53ac414b`，社区插件锁定 `d87dd8f3f9ec9863dd9e6dafe86d24a93403607b`；接入 Ollama 聊天接口、Claude 并发上限、脱敏记录与隐私页、路由虚拟化与 trace、按账号签到、模型能力声明等增量，逐项对照见 [Magpie 更新](magpie-update-20261021.md)。
+- **Chat 侧栏**：任务状态图标紧邻任务名称左侧，名称不再额外缩进；归档视图把“项目”标题改为“已归档”，并去掉下方重复标题。浏览器实测图标与名称间距约 5.5–7.2 px，名称左内边距为 0。
+- **统一构建通过**：前端 154 文件、844 项；生产前端、Rust、Host、AI、Chat、WinTray 原生桥接、启动探测、Go 测试与依赖许可核验全部通过；载荷 4,339 个文件。证据 `_temp/ai-service-repair/delivery-final/build.log`。
+- **实窗检查通过**：隔离完整打包目录，92 个视图、0 页错误；主题、语言、侧栏、起始页、长页底部保存与导航草稿保护使用真实 Host 保存并重载核对。证据 `native-settings/result.json`。
+- **隔离安装矩阵通过**：ZIP 4,340 个文件；覆盖安装、两处失败回滚、修复、历史日志、卸载中断恢复与导出卸载器一致性均通过，安装文件逐个 SHA-256 一致。证据 `installer-test.log`、`installer-fixture/context.json`。
+- **固定安装器已更新**：`dist/release/WinOne-setup.exe` 为 274,335,704 字节，SHA-256 `bc460a6b82fd6b2227b79e0d2f9e4404b0fa74024e2597e13a8efadd318fe31d`；包清单 SHA-256 `8ed54ccaf2a9b0f23ce8c53622b6384a6466daa10e8d53343660a3cd809ba3`；`.sha256` 与 `release-info.json` 已同步，旧三件套备份在 `_temp/ai-service-repair/delivery-final/prior-release/`。
+- **安全扫描通过**：Microsoft Defender 对正式安装器、导出卸载器与 ZIP 静态扫描均无威胁（`defender-scan.json`）。
+- **上游对照**：未修改的 Magpie `efd1b697` 源码仍有 3 项测试失败（provider 分配断言、gateway AutoVision 分配断言、usage 桌面会话账号映射），本机同样失败，单独记录，不计为通过。
+
+边界：未签名、未对外发布、未操作真实安装或真实配置，由用户自行运行安装器。真实供应商账号推理、物理中文输入法、混合 DPI／多屏、长期稳定性及第三方 ChatGPT Web 供应商网页挑战未验证。
+
+
+## 固定安装器更新（2026-10-20 晚，Chat 边界、附件与 AI／UI 合并交付）
+
+用户要求从中断处继续，合并当前工作区的 Chat 边界与附件修复、另一项 AI／UI 任务以及此前全部未提交改动，统一构建后更新固定安装器；不安装到真实环境。
+
+- **Chat 输入边界**：编辑器保留原气泡宽度并按内容增长，达到普通气泡上限后换行；返回底部与导航组以输入区顶部为边界；拖动输入框自身不改变正文视口与滚动位置。浏览器 8 组场景通过；隔离完整打包目录的原生窗口检查通过，两种主题下 8 次高度调整均未改变正文视口或滚动位置，仅 1 次本地夹具模型请求（`result.json`、`native-initial-bottom.png`、`native-dark-bottom.png`）。
+- **文件输入**：粘贴与拖放复用 Cindy 的文件优先于文本、目录转引用、锁定期间不变更语义；Windows 剪贴板优先取 CF_HDROP 路径，无路径图片在新会话保留 Blob，发送时才上传。定向 3 个文件、30 项测试通过；拖动整个输入区、失败保留草稿、纯附件发送与重试由既有原生发送检查覆盖。真实 Explorer 拖放与图片剪贴板未在本轮重跑。
+- **统一构建通过**：前端 154 个文件、839 项；生产前端、Rust、Host、AI、Chat、WinTray 原生桥接、启动探测、Go 检查与依赖许可核验全部通过；载荷 4,333 个文件，包清单 SHA-256 `6c5309721087dcd94b533d0829ffeee0776d8a83d5777b3c6fb6a68ac8bec0e7`。证据 `_temp/chat-delivery-20261020/build-final.log`。
+- **隔离安装矩阵通过**：覆盖安装、两条失败回滚、安装中断修复与失败保留、历史依赖日志、卸载中断恢复、导出卸载器一致性，以及配置和额外文件保留；4,333 个安装文件逐个 SHA-256 一致，安装器往返验证通过。证据 `installer-test.log`、`installer-fixture/context.json`。
+- **固定安装器已更新**：`dist/release/WinOne-setup.exe` 为 274,152,668 字节，SHA-256 `db48cbd0a008bcfea0e1998d61e49cb46b7ffbdb3d70a9ad3d9347fc22582acd`；`.sha256` 与 `release-info.json` 已同步。旧三件套备份在 `_temp/chat-delivery-20261020/prior-release/`。
+- **安全扫描通过**：Microsoft Defender 对正式安装器、导出卸载器和 ZIP 的静态扫描均无威胁；未提交外部样本。
+
+边界：未签名、未对外发布、未操作真实安装或真实配置，由用户自行运行安装器。原生检查使用隔离完整打包目录和本地模型夹具，不能替代真实供应商账号推理；物理中文输入法、混合 DPI／多屏、真实 Explorer／剪贴板拖放未在本轮重测。
+
+## 固定安装器更新（2026-10-19 晚，Chat 交互与稳定性、录制收尾）
+
+本轮接续两项中断任务：Chat 输入栏、插话、Markdown/右栏与计划卡修复，以及后台并发、AI/Magpie 增量、路由布局、录制首击与提示排除。两项任务的源码修改已合并到同一工作区，统一构建后更新固定安装器。
+
+- 统一构建通过：前端 150 个测试文件、791 项测试；生产前端、Rust、Host、AI、Chat、WinTray 原生桥接、启动探测、Go 检查、依赖与许可核验全部通过；载荷 4,329 个文件。源码指纹构建前后一致：96e6d8653a0f6b0d29a57515fc7437f7de7650cb1fb6fa025a969d1839cb4adc。构建结果见 _temp/20261019-stability-ui-recording/resume/full-build-3/result.json。
+- 测试稳定性修正：划词读取测试原先在 700 ms 取消后立即读取 PID 文件；完整构建并发时测试进程启动可超过固定 1.5 s 产品上限，导致误报。现将超时返回与进程树清理分开验证：产品上限不变，清理用例在测试进程启动后主动取消并检查父子进程退出；连续运行通过。证据 selection-under-load.log。
+- 隔离安装矩阵通过：覆盖安装、失败回滚、修复、历史日志、卸载中断恢复、导出卸载器一致性和卸载保留配置/额外文件；4,329 个文件逐个 SHA-256 一致。全新目录首装与卸载亦通过。结果见 _temp/20261019-stability-ui-recording/resume/delivery/installer-case/result.json 与 installer-fresh-case/result.json。
+- 固定安装器已更新：dist/release/WinOne-setup.exe 为 273,998,334 字节，SHA-256 f1af5196c2415771981f2f154f8b1b3537ac0a57545e16e6006fc5cd118d7c62；WinOne-setup.exe.sha256 与 release-info.json 已同步，包清单 SHA-256 0986b25fa576b56742ef713bf1d93995cf700e6be9087e5051ea8e7b006726ba。旧包及元数据备份在 _temp/20261019-stability-ui-recording/prior-release/。
+- 安全扫描通过：Microsoft Defender 对正式安装器、卸载器、ZIP 和最终载荷静态扫描均无威胁。
+
+边界：未签名、未对外发布、未操作真实安装或真实配置，由用户自行运行安装器。未验证真实供应商账号推理、物理中文输入法、混合 DPI／多屏和长期稳定性。
 ## 固定安装器更新（2026-10-19，体验故障修复与 Chat 交互）
 
 用户要求从中断处继续更新安装器。本轮沿用已验证的统一构建与隔离安装矩阵，完成生产安装器编译、本地安全扫描和固定入口替换，未重复运行已通过的整包构建。
