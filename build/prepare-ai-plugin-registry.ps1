@@ -58,4 +58,9 @@ if($LASTEXITCODE -ne 0){throw 'Cannot read upstream plugin manager'}
 $from='l := plugin.Load()'
 if(-not $source.Contains($from)){throw 'Upstream plugin manager state changed'}
 $source=$source.Replace($from,'l := plugin.WinOneManaged(plugin.Load())').Replace('Picker: w != nil && !isWeb(w)','Picker: true')
+$changed='if op := r.PathValue("op"); op == "add" || op == "update" || op == "upgrade" {'
+if(-not $source.Contains($changed)){throw 'Upstream plugin mutation hook changed'}
+# The embedded router stays alive across mutations. Invalidate before replying
+# so the very next request uses the new middleware, not the one-second cache.
+$source=$source.Replace($changed,('middleware.Reload()'+[Environment]::NewLine+$changed))
 [IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$source+[Environment]::NewLine,$utf8)

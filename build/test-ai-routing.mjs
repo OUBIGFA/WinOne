@@ -30,10 +30,12 @@ try{
   await content.evaluate(async()=>{await document.fonts.ready;await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);});
   const clippedHeaders=await content.evaluate(()=>[...document.querySelectorAll('#view-routing .row-head')].filter(row=>row.getClientRects().length).filter(row=>{const box=row.getBoundingClientRect();return [...row.children].some(child=>child.getClientRects().length&&child.getBoundingClientRect().bottom>box.bottom+1);}).map(row=>row.textContent));
   if(clippedHeaders.length)throw Error('Routing header overlaps the following controls: '+JSON.stringify({language,theme,width,clippedHeaders}));
+  const headerGaps=await content.evaluate(()=>[...document.querySelectorAll('#view-routing .row-head')].filter(row=>row.getClientRects().length).map(row=>({gap:parseFloat(getComputedStyle(row).columnGap),label:row.textContent})));
+  if(headerGaps.some(row=>row.gap<8))throw Error('Routing header controls touch: '+JSON.stringify(headerGaps));
   const boundary=await content.evaluate(()=>({pages:window.magpie?.pages(),foreign:document.querySelectorAll('#side,header.top,footer.foot,#view-agents,#view-providers,#view-settings,#view-usage,#view-library,#view-sessions').length,scripts:[...document.scripts].map(script=>script.getAttribute('src')).filter(Boolean)}));
   if(JSON.stringify(boundary.pages)!==JSON.stringify(['routing'])||boundary.foreign||boundary.scripts.some(src=>/^(app|start|plugins)\.js$|plugins\/(usage|library|sessions|gateway)\/client\.js/.test(src)))throw Error('Routing must mount only its own upstream plugin: '+JSON.stringify(boundary));
-  const layout=await content.evaluate(()=>{const view=document.getElementById('view-routing'),cards=[...document.querySelectorAll('.rt-gtpl-card')],box=document.querySelector('.rt-gtpl-cards').getBoundingClientRect();const bounds=cards.map(card=>card.getBoundingClientRect());return {flatTemplates:cards.every((node,index)=>getComputedStyle(node).borderRadius==='0px'&&(!index||bounds[index].top>=bounds[index-1].bottom-1)),readableTemplates:cards.every(node=>[...node.querySelectorAll('.desc,.mem')].every(text=>parseFloat(getComputedStyle(text).fontSize)>=14)),groupsFirst:view.firstElementChild.classList.contains('rt-gsec'),height:view.getBoundingClientRect().height,scrollHeight:document.documentElement.scrollHeight,viewport:innerHeight,overflow:document.documentElement.scrollWidth-innerWidth,cards:cards.length,centerOffset:(Math.min(...bounds.map(r=>r.left))+Math.max(...bounds.map(r=>r.right)))/2-(box.left+box.right)/2,scrolling:[...view.querySelectorAll('*')].filter(e=>e.clientHeight>0&&e.scrollHeight>e.clientHeight+2&&/auto|scroll/.test(getComputedStyle(e).overflowY)).map(e=>e.className)};});
-  if(!layout.flatTemplates||!layout.readableTemplates||!layout.groupsFirst||layout.cards!==3||layout.overflow>1||Math.abs(layout.height-layout.viewport)>2||layout.scrolling.length)throw Error('Routing layout failed: '+JSON.stringify({language,theme,width,...layout}));
+  const layout=await content.evaluate(()=>{const view=document.getElementById('view-routing'),cards=[...document.querySelectorAll('.rt-gtpl-card')],box=document.querySelector('.rt-gtpl-cards').getBoundingClientRect();const bounds=cards.map(card=>card.getBoundingClientRect());return {flatTemplates:cards.every((node,index)=>getComputedStyle(node).borderRadius==='0px'&&(!index||bounds[index].top>=bounds[index-1].bottom-1)),readableTemplates:cards.every(node=>[...node.querySelectorAll('.desc,.mem')].every(text=>parseFloat(getComputedStyle(text).fontSize)>=14)),requestFirst:!!(view.querySelector('.rt').compareDocumentPosition(view.querySelector('.rt-gsec'))&Node.DOCUMENT_POSITION_FOLLOWING),height:view.getBoundingClientRect().height,scrollHeight:document.documentElement.scrollHeight,viewport:innerHeight,overflow:document.documentElement.scrollWidth-innerWidth,cards:cards.length,centerOffset:(Math.min(...bounds.map(r=>r.left))+Math.max(...bounds.map(r=>r.right)))/2-(box.left+box.right)/2,scrolling:[...view.querySelectorAll('*')].filter(e=>e.clientHeight>0&&e.scrollHeight>e.clientHeight+2&&/auto|scroll/.test(getComputedStyle(e).overflowY)).map(e=>e.className)};});
+  if(!layout.flatTemplates||!layout.readableTemplates||!layout.requestFirst||layout.cards!==3||layout.overflow>1||Math.abs(layout.height-layout.viewport)>2||layout.scrolling.length)throw Error('Routing layout failed: '+JSON.stringify({language,theme,width,...layout}));
   layouts.push({language,theme,width,...layout});await page.screenshot({path:join(root,`routing-${language}-${theme}-${width}.png`),fullPage:true});
  }
  await page.goto(`http://localhost:${parentServer.address().port}`);const embedded=page.frameLocator('iframe');await embedded.locator('#rtNewGroup').waitFor({timeout:8000});await embedded.locator('#rtNewGroup').click();
@@ -72,7 +74,29 @@ try{
  await embedded.locator('.rt-gedit').getByRole('button',{name:'取消',exact:true}).click();
  await embedded.locator('.action-confirm .primary').click();
  await embedded.locator('.rt-gedit').waitFor({state:'hidden'});
+ // Populated groups and an open editor use different flex/grid paths from
+ // the empty templates. Check both; empty-state screenshots missed collisions.
+ const populated=[];
+ for(const language of ['zh-CN','en-US'])for(const theme of ['light','dark'])for(const width of [520,1280]){
+  await page.setViewportSize({width,height:820});await page.goto(`http://localhost:${parentServer.address().port}/?language=${language}&theme=${theme}`);
+  await embedded.locator('.rt-group').first().waitFor();await embedded.locator('#rtNewGroup').click();
+  const frame=page.frames().find(frame=>frame.url().startsWith(address));
+  await frame.evaluate(async()=>{await document.fonts.ready;await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);});
+  const metrics=await frame.evaluate(()=>{
+   const visible=node=>node.getClientRects().length&&getComputedStyle(node).visibility!=='hidden';
+   const collisions=[...document.querySelectorAll('.rt-group,.rt-pool,.rt-gedit .fbrow,.rt-gsec .row-head')].filter(visible).flatMap(row=>{
+    const children=[...row.children].filter(visible).map(node=>({name:node.className,box:node.getBoundingClientRect()}));
+    return children.flatMap((a,i)=>children.slice(i+1).filter(b=>Math.min(a.box.right,b.box.right)-Math.max(a.box.left,b.box.left)>1&&Math.min(a.box.bottom,b.box.bottom)-Math.max(a.box.top,b.box.top)>1).map(b=>({row:row.className,first:a.name,second:b.name})));
+   });
+   const groups=[...document.querySelectorAll('.rt-group')].filter(visible).map(node=>node.getBoundingClientRect());
+   const fields=[...document.querySelectorAll('.rt-gedit input,.rt-gedit .segs,.rt-gedit .fallback')].filter(visible);
+   return {collisions,groups:groups.length,groupOverlap:groups.slice(1).some((box,i)=>box.top<groups[i].bottom-1),fields:fields.length,
+    overflow:document.documentElement.scrollWidth-innerWidth,editorOverflow:document.querySelector('.rt-gedit').scrollWidth-document.querySelector('.rt-gedit').clientWidth};
+  });
+  if(metrics.collisions.length||metrics.groupOverlap||metrics.overflow>1||metrics.editorOverflow>1||metrics.groups<2||!metrics.fields)throw Error('Populated routing layout failed: '+JSON.stringify({language,theme,width,...metrics}));
+  populated.push({language,theme,width,...metrics});await page.screenshot({path:join(root,`routing-groups-${language}-${theme}-${width}.png`),fullPage:true});
+ }
  if(errors.length)throw Error(errors.join('\n'));
- await writeFile(join(root,'report.json'),JSON.stringify({editor,layouts,adapterOverride:!!process.env.WINONE_ROUTING_ADAPTER_FILE,browserErrors:errors},null,2));console.log(JSON.stringify({editor,layouts:layouts.length,browserErrors:0}));
+ await writeFile(join(root,'report.json'),JSON.stringify({editor,layouts,populated,adapterOverride:!!process.env.WINONE_ROUTING_ADAPTER_FILE,browserErrors:errors},null,2));console.log(JSON.stringify({editor,layouts:layouts.length,populated:populated.length,browserErrors:0}));
 }finally{await browser.close();child.stdin.end();parentServer.closeAllConnections();await new Promise(done=>parentServer.close(done));}
 

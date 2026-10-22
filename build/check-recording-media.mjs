@@ -31,7 +31,9 @@ try{
  const page=await browser.newPage({viewport:{width:800,height:520}});
  for(const fixture of fixtures){
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
-  const result=await page.evaluate(async({name,format,url})=>{
+  const hint=fixture.kind==='panel'?panelEvidence.find(item=>item.format===fixture.format):undefined;
+  if(hint)assert.ok(hint.tooltipWhiteArea?.width>=16&&hint.tooltipEndMs>hint.tooltipStartMs,fixture.name+' is missing actual hover evidence');
+  const result=await page.evaluate(async({name,format,url,hint})=>{
    const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
    const samples=[];
    function sample(image,index,count,timestampMs,durationMs){
@@ -43,8 +45,10 @@ try{
     let edgeMinimum=255;
     for(let x=185;x<width-12;x+=3)for(const y of [0,height-1])edgeMinimum=Math.min(edgeMinimum,...pixel(x,y).slice(0,3));
     for(let y=100;y<260;y+=3)for(const x of [0,width-1])edgeMinimum=Math.min(edgeMinimum,...pixel(x,y).slice(0,3));
+    let tooltipMinimum=255;
+    if(hint){const r=hint.tooltipWhiteArea;for(let y=r.y;y<r.y+r.height;y+=2)for(let x=r.x;x<r.x+r.width;x+=2)tooltipMinimum=Math.min(tooltipMinimum,...pixel(x,y).slice(0,3));}
     const png=index===0||index===Math.floor(count/2)||index===count-1?canvas.toDataURL('image/png').split(',')[1]:undefined;
-    samples.push({index,timestampMs,durationMs,topLeft:pixel(20,20),bottomLeft:pixel(20,height-20),excludedArea:pixel(410,210),edgeMinimum,png});
+    samples.push({index,timestampMs,durationMs,topLeft:pixel(20,20),bottomLeft:pixel(20,height-20),excludedArea:pixel(410,210),edgeMinimum,...(hint?{tooltipMinimum}:{}),png});
    }
    let duration,frameCount;
    if(format==='gif'){
@@ -73,13 +77,14 @@ try{
     // Explicit seeks cover startup, changing content, resume and the static
     // tail without relying on playback callbacks that may drop test samples.
     const times=[0,.15,.3,.5,.7,.85,1].map(fraction=>Math.min(duration-.001,duration*fraction));
+    if(hint)times.push((hint.tooltipStartMs+hint.tooltipEndMs)/2000);
     for(const [index,time] of times.entries()){
      if(time>0)await event('seeked',()=>{video.currentTime=time;});
      sample(video,index,times.length,time*1000,null);
     }
    }
    return {name,width:canvas.width,height:canvas.height,duration,frameCount,samples};
-  },{name:fixture.name,format:fixture.format,url:`http://127.0.0.1:${server.address().port}/${fixture.name}`});
+  },{name:fixture.name,format:fixture.format,url:`http://127.0.0.1:${server.address().port}/${fixture.name}`,hint});
   for(const sample of result.samples){
    if(sample.png)await writeFile(join(output,fixture.name+(sample.index===0?'':'.frame-'+sample.index)+'.png'),Buffer.from(sample.png,'base64'));
    delete sample.png;
@@ -94,6 +99,7 @@ try{
    if(fixture.kind!=='synthetic'){
     assert.ok(sample.excludedArea[1]>170&&Math.abs(sample.excludedArea[0]-sample.excludedArea[1])<25&&Math.abs(sample.excludedArea[1]-sample.excludedArea[2])<25,label+' captured the excluded controls or a black rectangle');
     assert.ok(sample.edgeMinimum>235,label+' captured an outline or lost an edge of the target');
+    if(hint)assert.ok(sample.tooltipMinimum>235,label+' captured a tooltip, shadow or black rectangle');
    }
   }
   if(fixture.kind==='synthetic')assert.ok(Math.abs(result.duration-6)<.025,fixture.name+' lost the static tail');

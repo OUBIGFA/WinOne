@@ -74,10 +74,12 @@ manager=manager.replace('let query = "";', 'if (tab === "builtin") tab = "discov
 // installed registry and all other discovery/search results from upstream.
 const filters=[
  ['listings = r.listings || [];','listings = (r.listings || []).filter(x => !window.bootPrefs?.bundledPackages?.includes(x.package));'],
- ['tagged = (r.repos || []).map(ghListing);','tagged = (r.repos || []).map(ghListing).filter(x => !window.bootPrefs?.bundledPackages?.includes(x.package) && !window.bootPrefs?.bundledPackages?.includes(x.github?.package));'],
+ // Filter the converted list, not its assignment: upstream now keeps an
+ // earlier successful list on fetch failure and exposes a retry/error state.
+ ['(r.repos || []).map(ghListing)','(r.repos || []).map(ghListing).filter(x => !window.bootPrefs?.bundledPackages?.includes(x.package) && !window.bootPrefs?.bundledPackages?.includes(x.github?.package))'],
  ['list: r.hits','list: r.hits.filter(x => !window.bootPrefs?.bundledPackages?.includes(x.package))'],
 ];
-for(const [from,to]of filters){if(!manager.includes(from))throw Error('Magpie discovery boundary changed: '+from);manager=manager.replace(from,to);}
+for(const [from,to]of filters){if(manager.split(from).length!==2)throw Error('Magpie discovery boundary changed: '+from);manager=manager.replace(from,to);}
 let source=await read('app.js');
 const adapt=[];
 traverse(parse(source,{sourceType:'script'}),{FunctionDeclaration(p){

@@ -4,7 +4,7 @@ param(
     [Parameter(Mandatory)][string]$OutputDirectory,
     [string]$GoExe='go',
     [string]$BunExe,
-    [string[]]$Packages=@('provider','gateway','gui','plugin','pluginrt','middleware','redact','usage')
+    [string[]]$Packages=@('provider','gateway','gui','plugin','pluginrt','middleware','redact','masking','pii','settings','usage','catalog','filememo','netproxy','sessions','maskrec','routes','ghtoken','proc','access','filelock')
 )
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
@@ -12,7 +12,7 @@ $source=(Resolve-Path -LiteralPath $SourceDirectory).Path
 $output=[IO.Path]::GetFullPath((Join-Path $root $OutputDirectory))
 & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $output
 if(Test-Path -LiteralPath $output){throw 'Choose a new upstream-test output directory'}
-foreach($package in $Packages){if($package -notin @('provider','gateway','gui','plugin','pluginrt','middleware','redact','usage')){throw 'Only AI service packages are allowed'}}
+foreach($package in $Packages){if($package -notin @('provider','gateway','gui','plugin','pluginrt','middleware','redact','masking','pii','settings','usage','catalog','filememo','netproxy','sessions','maskrec','routes','ghtoken','proc','access','filelock')){throw 'Only AI service and its shared dependency packages are allowed'}}
 $files=@(& git -C $source diff --name-only --diff-filter=AMR $BaseRevision HEAD -- 'internal/*/*_test.go')
 if($LASTEXITCODE -ne 0){throw 'Cannot enumerate the selected upstream increment'}
 New-Item -ItemType Directory -Path $output -Force|Out-Null
@@ -23,7 +23,7 @@ $environment=@{
     TEMP=(Join-Path $output 'temp');TMP=(Join-Path $output 'temp');MAGPIE_NO_STATS='1';MAGPIE_OTEL_ENABLED='false'
     GOPATH=$cache.GOPATH;GOMODCACHE=$cache.GOMODCACHE
 }
-if($BunExe){$environment.MAGPIE_BUN=(Resolve-Path -LiteralPath $BunExe).Path}
+if($BunExe){$environment.MAGPIE_BUN=(Resolve-Path -LiteralPath $BunExe).Path;$environment.PATH=(Split-Path -Parent $environment.MAGPIE_BUN)+';'+$env:PATH}
 # No upstream test may discover real developer accounts or external app homes.
 foreach($item in [Environment]::GetEnvironmentVariables().GetEnumerator()){
     if($item.Key -match '^(CODEX_|CLAUDE_|ANTHROPIC_|OPENAI_|GEMINI_|COPILOT_|CURSOR_|GROK_|KIRO_|DEVIN_|WORKBUDDY_|QODER_|ZED_|FACTORY_|DROID_|MIMO_|ZCODE_|AWS_|AZURE_|WINONE_AI_)|^(GH_TOKEN|GITHUB_TOKEN|GOOGLE_APPLICATION_CREDENTIALS)$'){
@@ -43,12 +43,22 @@ try {
                 [regex]::Matches([IO.File]::ReadAllText((Join-Path $source $file)),'(?m)^func (Test[A-Za-z0-9_]+)\(')|ForEach-Object{$_.Groups[1].Value}
             }})|Sort-Object -Unique
             if(-not $names){continue}
+            # Two upstream cases expect auto-installing a missing vendor CLI.
+            # That conflicts with WinOne's explicit-install boundary. Verify
+            # the shipped refusal contract instead and report the substitution.
+            $adapted=@()
+            if($package -eq 'provider'){
+                foreach($name in @('TestSignInInstallFails','TestSignInCanceledWhileInstalling')){
+                    if($name -in $names){$adapted+=@{upstream=$name;replacement='TestWinOneOAuthMissingClientNeverRunsAnInstaller';reason='WinOne never installs another client during sign-in'};$names=@($names|Where-Object {$_ -ne $name})}
+                }
+                if($adapted.Count){$names+= 'TestWinOneOAuthMissingClientNeverRunsAnInstaller'}
+            }
             $pattern='^('+($names -join '|')+')$'
             $ErrorActionPreference='Continue'
             & $GoExe test ('./internal/'+$package) -run $pattern -count=1 -parallel=2 -timeout=5m -v 2>&1 | Out-File (Join-Path $output ($package+'.log')) -Encoding utf8
             $code=$LASTEXITCODE
             $ErrorActionPreference='Stop'
-            $results += [ordered]@{package=$package;tests=$names;exitCode=$code}
+            $results += [ordered]@{package=$package;tests=$names;adaptedCases=$adapted;exitCode=$code}
             Write-Output ($package+': '+$names.Count+' selected tests; exit '+$code)
         }
     } finally {Pop-Location}

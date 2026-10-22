@@ -13,7 +13,12 @@ const server=await createServer({root:frontend,configFile:join(frontend,'vite.co
 const browser=await chromium.launch({headless:true,channel:'msedge'}),errors=[],results=[];
 let page;
 async function open(id,width,theme='light',extra=''){
- await page?.close();page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce',colorScheme:theme});page.setDefaultTimeout(15000);page.on('pageerror',error=>errors.push(String(error)));
+ if(page){errors.push(...await page.evaluate(()=>window.layoutErrors));await page.close();}
+ page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce',colorScheme:theme});page.setDefaultTimeout(15000);page.on('pageerror',error=>errors.push(String(error)));
+ // ResizeObserver errors are ErrorEvents, which Vite may handle before CDP
+ // reports pageerror. Keep them in the result instead of treating a quiet
+ // pageerror stream as proof that layout callbacks were error-free.
+ await page.addInitScript(()=>{window.layoutErrors=[];window.addEventListener('error',event=>window.layoutErrors.push(event.message));});
  await page.goto(`http://127.0.0.1:5206/tests/settings-design-preview.html?page=${id}&theme=${theme}${extra}`);
  await page.locator(`[data-settings-page="${id}"]`).waitFor();
 }
@@ -54,6 +59,7 @@ try{
  const invalid=await page.locator('.directory-links-record[data-invalid]').first().evaluate(element=>({color:getComputedStyle(element).color,kind:getComputedStyle(element.querySelector('.directory-links-kind')).color}));assert.equal(invalid.color,invalid.kind);
  await page.screenshot({path:join(output,'history-grouped.png')});await page.getByRole('button',{name:'一键删除失效历史'}).click();await page.getByText('已删除 1 条失效历史，真实文件和链接未改变。').waitFor();assert.equal(await page.locator('.directory-links-record[data-invalid]').count(),0);assert.equal(await page.locator('.directory-links-history-group').count(),2);
  results.push({scenario:'grouped history / muted invalid record / history-only clear',invalid});
+ errors.push(...await page.evaluate(()=>window.layoutErrors));
  assert.deepEqual(errors,[]);await writeFile(join(output,'report.json'),JSON.stringify({results,errors},null,2));
  console.log(`Passed ${results.length} scenarios; ${errors.length} page errors.`);
 }catch(error){await page?.screenshot({path:join(output,'failure.png')}).catch(()=>{});await writeFile(join(output,'failure.json'),JSON.stringify({error:String(error.stack||error),results,errors},null,2));throw error;}

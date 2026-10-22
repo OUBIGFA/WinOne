@@ -33,7 +33,7 @@ traverse(ast,{FunctionDeclaration(p){
  }
  if(name==='input')p.traverse({IfStatement(s){if(original.slice(s.node.test.start,s.node.test.end).includes('e.key === "Escape"')){edits.push([s.node.start,s.node.end,'if (e.key === "Escape") closePicker();']);changed.add(name);}}});
  if(name==='suffixSegs')p.traverse({CallExpression(s){if(s.node.callee.name==='renderSettings'){edits.push([s.node.start,s.node.end,'redrawNoNames()']);changed.add(name);}}});
- if(name==='loadQuotas')p.traverse({CallExpression(s){if(['renderQuotas','loadUpstream'].includes(s.node.callee.name)){edits.push([s.node.start,s.node.end,'window.dispatchEvent(new Event("winone-routing-quotas"))']);changed.add(name);}}});
+ if(name==='loadQuotas')p.traverse({CallExpression(s){if(['renderQuotas','loadUpstream','loadQuotaHist'].includes(s.node.callee.name)){edits.push([s.node.start,s.node.end,'window.dispatchEvent(new Event("winone-routing-quotas"))']);changed.add(name);}}});
  if(name==='closeModal')p.traverse({IfStatement(s){if(original.slice(s.node.test.start,s.node.test.end).startsWith('adding &&')){edits.push([s.node.start,s.node.end,'']);changed.add(name);}}});
  // Routing can now enable its groups itself. Keep the upstream feature
  // configuration and visibility updates; WinOne owns navigation and tabs.
@@ -55,7 +55,6 @@ let routing=originalRouting;
 const {createElement}=require('react'),{renderToStaticMarkup}=require('react-dom/server'),{Waypoints}=require('lucide-react');
 const routingIcon=renderToStaticMarkup(createElement(Waypoints,{size:26,'aria-hidden':true})).replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'');
 for(const [from,to] of [
- ['more.append(gsec);','$("#view-routing").insertBefore(gsec, $("#view-routing").firstElementChild);'],
  ['data-t>Routing</span>','data-t>Request activity</span>'],
  ['Routing groups are off in Plugins › Built-in: the groups magpie finds, one model several providers serve, still route, but your own can\'t be made or changed here.','Turn on routing groups to create or edit custom groups. Automatic groups remain available.'],
  ["logo.innerHTML = '<use href=\"#bird\"/>';",'logo.setAttribute("viewBox", "0 0 24 24"); logo.setAttribute("fill", "none"); logo.setAttribute("stroke", "currentColor"); logo.setAttribute("stroke-width", "1.75"); logo.setAttribute("stroke-linecap", "round"); logo.setAttribute("stroke-linejoin", "round"); logo.innerHTML = '+JSON.stringify(routingIcon)+';'],
@@ -75,7 +74,7 @@ function referenced(p){
 }
 const seed=new Set(['scrollOnPurpose','redrawNoNames','closePicker','filter','move','commit','toggleFold','prefsSettled']);
 for(const text of roots)traverse(parse(text,{sourceType:'script'}),{Identifier(p){if((p.isReferencedIdentifier()||p.isBindingIdentifier())&&!p.scope.getBinding(p.node.name))seed.add(p.node.name);}});
-const overrides=new Set(['load','loadProviders','show','mode','state','view','applyPrefs','fit']);
+const overrides=new Set(['openMaskRecord','load','loadProviders','show','mode','state','view','applyPrefs','fit']);
 const selected=new Set(),names=new Set(),queue=[...seed];
 const reasons=new Map([...seed].map(name=>[name,'routing plugin']));
 const enqueue=(refs,reason)=>{for(const name of refs){if(!reasons.has(name))reasons.set(name,reason);queue.push(name);}};

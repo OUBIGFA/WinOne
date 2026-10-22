@@ -9,6 +9,16 @@ function Initialize-ShareXNativeHost([string]$SourceDirectory) {
     $pixelateText=[IO.File]::ReadAllText($pixelatePath)
     $pixelateText=$pixelateText.Replace('public override string OverlayText => Resources.Pixelate + $" [{PixelSize}]";','public override string OverlayText => Manager?.Form.WinOnePresentation == true ? string.Empty : Resources.Pixelate + $" [{PixelSize}]";')
     [IO.File]::WriteAllText($pixelatePath,$pixelateText,[Text.UTF8Encoding]::new($false))
+    # Every effect (including a pending cache) uses this common overlay. Keep
+    # the existing preview/corner feedback; values belong in Style, not on pixels.
+    $effectPath=Join-Path $SourceDirectory 'ShareX.ScreenCaptureLib/Shapes/Effect/BaseEffectShape.cs'
+    $effectText=[IO.File]::ReadAllText($effectPath)
+    if(-not $effectText.Contains('if (Manager?.Form.WinOnePresentation == true) return;')) {
+        $anchor='g.DrawCornerLines(Rectangle.Offset(1), Pens.White, 25);'
+        if(($effectText.Split(@($anchor),[StringSplitOptions]::None)).Count -ne 2){throw 'ShareX effect overlay boundary changed'}
+        $effectText=$effectText.Replace($anchor,$anchor+"`n`n            if (Manager?.Form.WinOnePresentation == true) return;")
+        [IO.File]::WriteAllText($effectPath,$effectText,[Text.UTF8Encoding]::new($false))
+    }
     $shapeText=[IO.File]::ReadAllText($shapePath)
     $shapeText=$shapeText.Replace('public abstract class BaseShape :','public abstract partial class BaseShape :')
     # The Move tool selects annotations. A restored crop may be last in z-order,

@@ -21,6 +21,8 @@ $revision=(& git -C $source rev-parse HEAD).Trim()
 if($LASTEXITCODE -ne 0){throw 'AI output must be Git-ignored'}
 $encoding=New-Object Text.UTF8Encoding($false)
 $entry=Join-Path $source 'cmd/winone-ai'
+& node (Join-Path $root 'build/verify-ai-source.mjs') $source
+if($LASTEXITCODE -ne 0){throw 'AI source/license verification failed'}
 New-Item -ItemType Directory -Force -Path $entry,$output | Out-Null
 & node (Join-Path $root 'build/prepare-ai-plugins.mjs') $PluginSourceDirectory $BunExe $output
 if($LASTEXITCODE -ne 0){throw 'Bundled account plugin preparation failed'}
@@ -49,7 +51,12 @@ if(-not $text.Contains('WinOneProviders != nil')){
 }
 $text=[IO.File]::ReadAllText($provider).Replace('return append([]Provider(nil), WinOneProviders...)','return winOneConfiguredProviders()')
 [IO.File]::WriteAllText($provider,$text,$encoding)
-[IO.File]::WriteAllText((Join-Path $source 'internal/provider/winone_embedded.go'),"package provider`n// Set once before serving a WinOne request; never persisted.`nvar WinOneProviders []Provider`nfunc WinOneAccountIDs() []string { return append([]string(nil), accountIDs...) }`nfunc winOneConfiguredProviders() []Provider { result := make([]Provider, len(WinOneProviders)); for i, p := range WinOneProviders { result[i] = normalize(p) }; return result }`n",$encoding)
+[IO.File]::WriteAllText((Join-Path $source 'internal/provider/winone_embedded.go'),"package provider`n// Set once before serving a WinOne request; never persisted.`nvar WinOneProviders []Provider`nvar WinOneSearchModels map[string]bool`nfunc WinOneAccountIDs() []string { return append([]string(nil), accountIDs...) }`nfunc winOneConfiguredProviders() []Provider { result := make([]Provider, len(WinOneProviders)); for i, p := range WinOneProviders { result[i] = normalize(p) }; return result }`n",$encoding)
+$models=Join-Path $source 'internal/provider/models.go'
+$text=(& git -C $source show "${revision}:internal/provider/models.go") -join "`n"
+if(-not $text.Contains('ms := p.available()')){throw 'Upstream provider model metadata boundary changed'}
+$text=$text.Replace('ms := p.available()', 'ms := p.available(); if len(WinOneSearchModels)>0 { ms=slices.Clone(ms); for _,id:=range p.Models { if WinOneSearchModels[p.ID+"/"+id] && !slices.ContainsFunc(ms,func(m catalog.Model)bool{return m.ID==id}) { ms=append(ms,catalog.Model{ID:id,Name:id}) } }; for i,m:=range ms { if WinOneSearchModels[p.ID+"/"+m.ID] { ms[i].WebSearch="native" } } }')
+[IO.File]::WriteAllText($models,$text+"`n",$encoding)
 $accounts=Join-Path $source 'internal/provider/account.go'
 $text=[IO.File]::ReadAllText($accounts)
 if(-not $text.Contains('WinOneProviders != nil')){
@@ -72,7 +79,28 @@ $text=(& git -C $source show "${revision}:internal/provider/pluginsignin.go") -j
 if($LASTEXITCODE -ne 0){throw 'Cannot read pinned plugin sign-in source'}
 if(([regex]::Matches($text,'var installing context.Context')).Count -ne 1){throw 'Upstream plugin sign-in preparation changed'}
 $text=$text.Replace('"errors"',('"errors"'+"`n`t"+'"fmt"')).Replace('var installing context.Context',"if install { return SignInState{}, fmt.Errorf(`"%s is required; install the official client first`", cli.Name) }`n var installing context.Context")
+# Preserve the full upstream authorization state machine. The desktop entry
+# registers it asynchronously and gives preparation the login owner's context.
+$begin=@'
+func (s *signInFlow) pluginBegin(id string, method int, inputs map[string]string) error {
+	ctx, cancel := context.WithTimeout(s.via(context.Background()), time.Minute)
+	a, err := plugin.Authorize(ctx, id, method, inputs, plugin.NewAccount)
+	cancel()
+'@
+$contextBegin=@'
+func (s *signInFlow) pluginBegin(id string, method int, inputs map[string]string) error {
+ ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+ defer cancel()
+ return s.pluginBeginContext(ctx, id, method, inputs)
+}
+func (s *signInFlow) pluginBeginContext(ctx context.Context, id string, method int, inputs map[string]string) error {
+ a, err := plugin.Authorize(s.via(ctx), id, method, inputs, plugin.NewAccount)
+'@
+$begin=$begin.Replace("`r`n","`n");$contextBegin=$contextBegin.Replace("`r`n","`n")
+if(-not $text.Contains($begin)){throw 'Upstream plugin authorization context changed'}
+$text=$text.Replace($begin,$contextBegin).Replace('s.st.State != "waiting" && s.st.State != "installing"','s.st.State != "waiting" && s.st.State != "installing" && s.st.State != "starting"')
 [IO.File]::WriteAllText($pluginSignin,$text+"`n",$encoding)
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/plugin_signin.go.txt') -Destination (Join-Path $source 'internal/provider/winone_plugin_signin.go') -Force
 & (Join-Path $PSScriptRoot 'prepare-ai-usage.ps1') -SourceDirectory $source -Revision $revision
 & (Join-Path $PSScriptRoot 'prepare-ai-settings.ps1') -SourceDirectory $source -Revision $revision
 & (Join-Path $PSScriptRoot 'prepare-ai-plugin-registry.ps1') -SourceDirectory $source -Revision $revision
