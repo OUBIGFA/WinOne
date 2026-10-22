@@ -10,6 +10,7 @@ import (
 // ModelConnectionDraft contains only the fields needed for discovery. A name,
 // enabled model or global task assignment is not required to query a service.
 type ModelConnectionDraft struct {
+	AdditionalTools bool           `json:"additionalTools,omitempty"`
 	Headers      map[string]string `json:"headers,omitempty"`
 	Protocol     string            `json:"protocol"`
 	BaseURL      string            `json:"baseUrl"`
@@ -21,6 +22,7 @@ type ModelConnectionDraft struct {
 
 func (draft ModelConnectionDraft) Provider(id string) (Provider, error) {
 	p := Provider{ID: id, Name: "模型连接", AuthMode: "api-key", Protocol: draft.Protocol, BaseURL: draft.BaseURL, Preset: draft.Preset, PresetRegion: draft.PresetRegion, Keys: draft.Keys, KeyPolicy: draft.KeyPolicy, Models: []string{}}
+	p.AdditionalTools = draft.AdditionalTools
 	p.Headers = draft.Headers
 	err := validateConfiguration(Configuration{Engine: "llm", OCREngine: "local", Target: "auto", Providers: []Provider{p}, Tasks: map[string]Selection{}})
 	return p, err

@@ -55,7 +55,7 @@ func (t Translator) TestModels(ctx context.Context, p Provider, key string, mode
 	}
 	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
-	input := map[string]any{"operation": "models.test", "protocol": p.Protocol, "baseUrl": p.BaseURL, "key": key, "headers": p.Headers, "preset": p.Preset, "presetRegion": p.PresetRegion, "testModels": models, "testClient": client, "modelPreferences": p.ModelMetadata, "magpieSettings": prefs}
+	input := map[string]any{"operation": "models.test", "protocol": p.Protocol, "baseUrl": p.BaseURL, "key": key, "headers": p.Headers, "preset": p.Preset, "presetRegion": p.PresetRegion, "testModels": models, "testClient": client, "additionalTools": p.AdditionalTools, "modelPreferences": p.ModelMetadata, "magpieSettings": prefs}
 	if p.AuthMode == "account" {
 		input["agent"] = p.Agent
 		input["agentBackend"] = p.AgentBackend

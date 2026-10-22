@@ -1,12 +1,19 @@
 // Complete plugin operations in WinOne's settings layout. The upstream owns
 // registry and sandbox semantics; WinOne owns visual hierarchy and navigation.
-magpie.strings({zh:{"Install a plugin":"安装插件","About plugins":"插件说明"}});
+magpie.strings({zh:{"Install a plugin":"安装插件","About plugins":"插件说明","Plugin provider is unavailable; refresh the plugin list and try again":"插件供应商暂不可用，请刷新插件列表后重试"}});
 async function loadProviders() { providers = await api("providers"); }
-function openProvider(id) {
-  const provider = providers?.plugins?.find(value => value.id === id);
-  void winOnePluginNative("provider", {provider: provider?.pid || id, name: provider?.name, plugin: provider?.spec}).catch(error => status(error.message, "err"));
+async function openProvider(id, signIn = false) {
+  try {
+    // A registry mutation can add a provider after the initial catalog read.
+    // Resolve its raw plugin ID from a fresh list; never pass magpie's prefixed
+    // display ID to WinOne or silently open an unknown account type.
+    await loadProviders();
+    const provider = providers?.plugins?.find(value => value.id === id);
+    if (!provider?.pid) throw new Error(t("Plugin provider is unavailable; refresh the plugin list and try again"));
+    await winOnePluginNative("provider", {provider: provider.pid, name: provider.name, plugin: provider.spec, signIn});
+  } catch (error) { status(error.message, "err"); }
 }
-const pluginSignIn = openProvider;
+function pluginSignIn(id) { return openProvider(id, true); }
 function renderProviders() {}
 function fit() { publishPluginHeight(); }
 // No Magpie application sidebar or Settings page is imported with a surface.

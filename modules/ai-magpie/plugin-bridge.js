@@ -14,7 +14,11 @@ function winOnePluginNative(method, data = {}) {
   if (!winOnePluginParent) return Promise.reject(new Error("WinOne page bridge is not ready"));
   const id = crypto.randomUUID();
   return new Promise((resolve, reject) => {
-    winOnePluginPending.set(id, {resolve, reject});
+    const timer = setTimeout(() => {
+      winOnePluginPending.delete(id);
+      reject(new Error(document.documentElement.lang.startsWith("zh") ? "WinOne 未响应，请重新打开插件页后重试" : "WinOne did not respond. Reopen the plugins page and retry."));
+    }, 120000);
+    winOnePluginPending.set(id, {resolve, reject, timer});
     parent.postMessage({type: "winone-plugin-native", id, method, ...data}, winOnePluginParent);
   });
 }
@@ -27,6 +31,7 @@ addEventListener("message", event => {
   } else if (event.origin === winOnePluginParent && event.data?.type === "winone-plugin-native-result") {
     const pending = winOnePluginPending.get(event.data.id);
     if (!pending) return;
+    clearTimeout(pending.timer);
     winOnePluginPending.delete(event.data.id);
     event.data.error ? pending.reject(new Error(event.data.error)) : pending.resolve(event.data.result);
   }

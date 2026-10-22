@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/yetone/magpie/internal/provider"
+	"github.com/yetone/magpie/internal/masking"
 	"github.com/yetone/magpie/internal/settings"
 	"net/http"
 	"net/http/httptest"
@@ -99,8 +100,61 @@ func TestRuntimeSettingsReachUpstream(t *testing.T) {
 	}
 }
 
+func TestWorkerImageDeadlinePreservesBothUpstreamPhases(t *testing.T) {
+	old := settings.WinOneSettings.Load()
+	defer settings.WinOneSettings.Store(old)
+	for _, minutes := range []int{0, 1, 30, 60} {
+		settings.WinOneUse(settings.Settings{ImageTimeout: minutes})
+		want := 2*settings.Load().ImageWait() + time.Minute
+		for _, operation := range []string{"gateway", "magpie.gateway"} {
+			for _, path := range []string{"/v1/images/generations", "/v1/images/edits"} {
+				if got := workerRequestWait(request{Operation: operation, GatewayPath: path}); got != want {
+					t.Fatalf("%s %s: %v, want %v", operation, path, got, want)
+				}
+			}
+			if workerRequestWait(request{Operation: operation, GatewayPath: "/v1/chat/completions"}) != 10*time.Minute {
+				t.Fatal("image timeout changed a normal protocol deadline")
+			}
+		}
+	}
+	if workerRequestWait(request{Operation: "generate"}) != 90*time.Second {
+		t.Fatal("image timeout changed the short result task deadline")
+	}
+}
+
 func TestRuntimeRejectsInvalidRedactionRule(t *testing.T) {
 	if err := applyRuntimeSettings(request{MagpieSettings: json.RawMessage(`{"redactRules":[{"kind":"PRIVATE","regex":"["}]}`)}); err == nil {
 		t.Fatal("invalid regex accepted")
 	}
+}
+
+func TestPrivacyActionsReachVendorAndPreview(t *testing.T) {
+ old:=settings.WinOneSettings.Load();defer settings.WinOneSettings.Store(old)
+ defer func(){provider.WinOneProviders=nil}()
+ for _,test:=range []struct{name,prefs string;sent,clear bool}{
+  {"mask",`{"redact":true,"redactWords":["private-project"]}`,true,false},
+  {"warn",`{"redact":true,"redactWords":["private-project"],"redactActions":{"TERM":"warn"}}`,true,true},
+  {"block",`{"redact":true,"redactWords":["private-project"],"redactActions":{"TERM":"block"}}`,false,false},
+  {"allow",`{"redact":true,"redactWords":["private-project"],"redactActions":{"TERM":"block"},"redactAllow":["private-project"]}`,true,true},
+ } {t.Run(test.name,func(t *testing.T){
+  var received string;called:=false
+  server:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){called=true;var body map[string]any;json.NewDecoder(r.Body).Decode(&body);b,_:=json.Marshal(body);received=string(b);w.Header().Set("Content-Type","application/json");w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}`))}));defer server.Close()
+  in:=request{Protocol:"chat",BaseURL:server.URL+"/v1",Model:"fixture",Text:"private-project",MagpieSettings:json.RawMessage(test.prefs)}
+  data,_:=json.Marshal(in);_,err:=run(t.Context(),bytes.NewReader(data))
+  if test.sent&&err!=nil {t.Fatal(err)}
+  if called!=test.sent||called&&strings.Contains(received,"private-project")!=test.clear {t.Fatalf("wrong privacy action: sent=%v body=%q err=%v",called,received,err)}
+  text,hits,_:=masking.Preview("private-project")
+  if test.name=="allow" {if len(hits)!=0||text!="private-project" {t.Fatalf("allowlist ignored: %q %v",text,hits)}} else if len(hits)==0 {t.Fatal("preview omitted findings")}
+ })}
+}
+
+func TestAdditionalToolsAndNativeSearchModelMetadata(t *testing.T) {
+ old:=settings.WinOneSettings.Load();defer settings.WinOneSettings.Store(old)
+ defer func(){provider.WinOneProviders=nil;provider.WinOneSearchModels=nil}()
+ p,err:=configuredProvider(request{Protocol:"responses",BaseURL:"https://fixture.invalid/v1",AdditionalTools:true})
+ if err!=nil||!p.AdditionalTools {t.Fatal("provider additional_tools not preserved",err)}
+ if err:=installAuxiliaryProviders(request{AuxiliaryProviders:[]auxiliaryProvider{{Provider:provider.Provider{ID:"fixture",Name:"Fixture",Chat:"http://127.0.0.1:1/v1",Models:[]string{"search-model","plain-model"}},Metadata:map[string]modelMetadata{"search-model":{Searches:true}}}}});err!=nil {t.Fatal(err)}
+ models:=provider.WinOneProviders[0].Available();found:=false
+ for _,m:=range models {if m.ID=="search-model" {found=m.WebSearch=="native"};if m.ID=="plain-model"&&m.WebSearch=="native" {t.Fatal("native search leaked to another model")}}
+ if !found {t.Fatal("auxiliary model lost native search capability")}
 }

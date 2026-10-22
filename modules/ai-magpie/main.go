@@ -32,6 +32,7 @@ type request struct {
 	ModelPreferences   map[string]modelMetadata `json:"modelPreferences,omitempty"`
 	ModelMetadata      modelMetadata            `json:"modelMetadata,omitempty"`
 	Icon               *iconRequest             `json:"icon,omitempty"`
+	AdditionalTools bool                       `json:"additionalTools,omitempty"`
 	Headers            map[string]string        `json:"headers,omitempty"`
 	ProviderID         string                   `json:"providerId,omitempty"`
 	Usage              *usageQuery              `json:"usage,omitempty"`
@@ -208,7 +209,7 @@ func main() {
 		_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": "invalid AI request"})
 		os.Exit(1)
 	}
-	if in.Operation == "routing.serve" {
+	if in.Operation == "routing.serve" || in.Operation == "privacy.serve" {
 		if err := serveRouting(context.Background(), in, reader, os.Stdout); err != nil {
 			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
 			os.Exit(1)
@@ -226,16 +227,12 @@ func main() {
 		}
 		return
 	}
-	duration := 90 * time.Second
-	if in.Operation == "accounts.signin" || in.Operation == "gateway" || in.Operation == "magpie.gateway" {
-		duration = 10 * time.Minute
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), duration)
-	defer cancel()
 	if err := applyRuntimeSettings(in); err != nil {
 		_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
 		os.Exit(1)
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), workerRequestWait(in))
+	defer cancel()
 	// Only an explicit opt-in reaches upstream statistics. Send after serving
 	// the request; the daily stamp and NoUsageStats are Magpie's own behavior.
 	if !settings.Load().NoStats {

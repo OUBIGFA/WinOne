@@ -15,6 +15,10 @@ shared/ai/plugins/calc/package.json
 shared/ai/plugins/cline/README.md
 shared/ai/plugins/cline/index.mjs
 shared/ai/plugins/cline/package.json
+shared/ai/plugins/codearts/LICENSE
+shared/ai/plugins/codearts/README.md
+shared/ai/plugins/codearts/index.mjs
+shared/ai/plugins/codearts/package.json
 shared/ai/plugins/codex-history/LICENSE
 shared/ai/plugins/codex-history/PROVENANCE.json
 shared/ai/plugins/codex-history/README.md
@@ -32,6 +36,7 @@ shared/ai/plugins/devin/index.mjs
 shared/ai/plugins/devin/package.json
 shared/ai/plugins/factory/README.md
 shared/ai/plugins/factory/anthropic-tools.mjs
+shared/ai/plugins/factory/client-phrases.json
 shared/ai/plugins/factory/index.mjs
 shared/ai/plugins/factory/package.json
 shared/ai/plugins/grok/README.md
@@ -70,6 +75,9 @@ shared/ai/plugins/opendesign/refresh-models.mjs
 shared/ai/plugins/param-override/README.md
 shared/ai/plugins/param-override/package.json
 shared/ai/plugins/param-override/param-override.middleware.js
+shared/ai/plugins/pig/README.md
+shared/ai/plugins/pig/package.json
+shared/ai/plugins/pig/pig.agent.js
 shared/ai/plugins/qoder/LICENSE-CLIProxyAPI
 shared/ai/plugins/qoder/README.md
 shared/ai/plugins/qoder/index.mjs

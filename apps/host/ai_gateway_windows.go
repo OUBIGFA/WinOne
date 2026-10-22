@@ -97,6 +97,10 @@ func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guar
 		ai.GatewayError(w, 503, "AI 服务配置无法读取")
 		return
 	}
+	if r.URL.Path == "/api/version" || r.URL.Path == "/api/tags" || r.URL.Path == "/api/show" {
+		s.serveOllama(w, r, store.Configuration(), allowModel)
+		return
+	}
 	if r.Method == http.MethodGet && (r.URL.Path == "/v1/models" || r.URL.Path == "/models") {
 		if store.Configuration().RoutingEnabled {
 			process, err := s.startRouting()
@@ -175,11 +179,11 @@ func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guar
 		return
 	}
 	path := r.URL.Path
-	if !strings.HasPrefix(path, "/v1/") && path != "/mcp/magpie/web-search" {
+	if !strings.HasPrefix(path, "/v1/") && path != "/mcp/magpie/web-search" && path != "/api/chat" && path != "/api/generate" {
 		path = "/v1" + path
 	}
 	supported := false
-	for _, route := range []string{"/v1/chat/completions", "/v1/responses", "/v1/messages", "/v1/messages/count_tokens", "/v1/images/generations", "/v1/embeddings", "/v1/rerank", "/mcp/magpie/web-search"} {
+	for _, route := range []string{"/api/chat", "/api/generate", "/v1/chat/completions", "/v1/responses", "/v1/messages", "/v1/messages/count_tokens", "/v1/images/generations", "/v1/embeddings", "/v1/rerank", "/mcp/magpie/web-search"} {
 		supported = supported || path == route
 	}
 	if r.Method != http.MethodPost || !supported {
@@ -244,7 +248,7 @@ func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guar
 		}
 		runtime = runtime.ForProvider(prefs.ProviderID)
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(r.Context(), prefs.MagpieSettings.GatewayWait(path))
 	defer cancel()
 	headers := make(http.Header)
 	for _, name := range []string{"Anthropic-Version", "Anthropic-Beta", "Openai-Beta", "User-Agent", "Originator", "X-OpenAI-Subagent"} {
@@ -312,7 +316,7 @@ func (s *aiService) serveMagpieProtocol(w http.ResponseWriter, r *http.Request, 
 		ai.GatewayError(w, 429, "本地网关请求较多，请稍后重试")
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(r.Context(), prefs.GatewayWait(path))
 	defer cancel()
 	headers := make(http.Header)
 	for _, name := range []string{"MCP-Protocol-Version", "Accept", "User-Agent", "Originator"} {

@@ -26,6 +26,7 @@ type Preferences struct {
 	MagpieSettings *MagpieSettings   `json:"-"`
 	ModelMetadata  ModelMetadata     `json:"-"`
 	RequestLimits  RequestLimits     `json:"-"`
+	AdditionalTools bool             `json:"-"`
 	Headers        map[string]string `json:"-"` // Immutable request snapshot, separate from the legacy UI projection.
 	ProviderID     string            `json:"-"`
 	ProviderName   string            `json:"-"` // Request snapshot only; not a second configuration field.
@@ -113,6 +114,12 @@ type Translator struct {
 	RootDataDirectory                                    string
 	TransportOnly                                        bool
 	RuntimeSettings                                      *MagpieSettings
+	// Host-owned local masking service, resolved before a request worker starts.
+	// Nil in the shared router and transport-only workers prevents recursion.
+	PrivacyService func(context.Context) (string, string, error)
+	// Plugin-owned windows can outlive a request, but not the owning Host.
+	// Nil preserves the one-shot worker policy for command-line callers/tests.
+	PluginLifetime context.Context
 }
 
 func (t Translator) Translate(ctx context.Context, p Preferences, key, text string) (string, error) {
@@ -182,6 +189,7 @@ func (t Translator) generate(ctx context.Context, p Preferences, key string, inp
 		agent = p.Agent
 	}
 	request := map[string]any{"providerId": p.ProviderID, "agent": agent, "protocol": p.Protocol, "baseUrl": p.BaseURL, "model": p.Model, "key": key, "system": input.System, "text": input.Text, "imagePng": input.ImagePNG, "messages": input.Messages}
+	request["additionalTools"] = p.AdditionalTools
 	request["headers"] = p.Headers
 	request["modelMetadata"] = p.ModelMetadata
 	request["magpieSettings"] = p.MagpieSettings

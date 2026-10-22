@@ -19,18 +19,21 @@ import (
 )
 
 type aiSignInState struct {
-	Agent         string          `json:"agent"`
-	URL           string          `json:"url"`
-	Code          string          `json:"code,omitempty"`
-	State         string          `json:"state"`
-	User          string          `json:"user,omitempty"`
-	Error         string          `json:"error,omitempty"`
-	PasteCallback bool            `json:"pasteCallback,omitempty"`
-	PasteCode     bool            `json:"pasteCode,omitempty"`
-	PasteKey      bool            `json:"pasteKey,omitempty"`
-	KeysURL       string          `json:"keysURL,omitempty"`
-	Instructions  string          `json:"instructions,omitempty"`
-	Prompt        *aiSignInPrompt `json:"prompt,omitempty"`
+	Agent         string `json:"agent"`
+	URL           string `json:"url"`
+	Code          string `json:"code,omitempty"`
+	State         string `json:"state"`
+	User          string `json:"user,omitempty"`
+	Error         string `json:"error,omitempty"`
+	PasteCallback bool   `json:"pasteCallback,omitempty"`
+	PasteCode     bool   `json:"pasteCode,omitempty"`
+	PasteKey      bool   `json:"pasteKey,omitempty"`
+	KeysURL       string `json:"keysURL,omitempty"`
+	Instructions  string `json:"instructions,omitempty"`
+	// A plugin's CLI can open OAuth itself; preserve that fact across the Host
+	// boundary so the account page does not open a duplicate browser tab.
+	Opened bool            `json:"opened,omitempty"`
+	Prompt *aiSignInPrompt `json:"prompt,omitempty"`
 }
 type aiSignInPrompt struct {
 	Type        string `json:"type"`

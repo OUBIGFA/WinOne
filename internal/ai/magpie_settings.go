@@ -14,6 +14,7 @@ import (
 // each worker receives one immutable snapshot, never another app's settings.
 type MagpieSettings struct {
 	ClaudeLeanPrompt bool `json:"claudeLeanPrompt,omitempty"`
+	ClaudeRunsMost   int  `json:"claudeRunsMost,omitempty"` // 0 retains upstream automatic sizing.
 	// Empty preserves the upstream public-address-only download policy.
 	FetchPrivate    []string                       `json:"fetchPrivate,omitempty"`
 	BuiltinPreset   string                         `json:"builtinPreset,omitempty"`
@@ -55,6 +56,7 @@ type MagpieSettings struct {
 	PluginCheckins     map[string]bool       `json:"pluginCheckins,omitempty"`
 	Vision             string                `json:"vision,omitempty"`
 	ImageGen           string                `json:"imageGen,omitempty"`
+	ImageTimeout       int                   `json:"imageTimeout,omitempty"` // Minutes; 0 uses Magpie's 5-minute default.
 	Searcher           string                `json:"searcher,omitempty"`
 	SearchFirst        string                `json:"searchFirst,omitempty"`
 	SearchAPIs         []SearchAPI           `json:"searchAPIs,omitempty"`
@@ -66,6 +68,8 @@ type MagpieSettings struct {
 	RedactPersonal     bool                  `json:"redactPersonal,omitempty"`
 	RedactKinds        map[string]bool       `json:"redactKinds,omitempty"`
 	RedactWords        []string              `json:"redactWords,omitempty"`
+	RedactActions      map[string]string     `json:"redactActions,omitempty"`
+	RedactAllow        []string              `json:"redactAllow,omitempty"`
 	RedactRules        []RedactRule          `json:"redactRules,omitempty"`
 	HideAccounts       bool                  `json:"hideAccounts,omitempty"`
 	NoStats            bool                  `json:"noStats"`
@@ -114,6 +118,12 @@ var warmTimePattern = regexp.MustCompile(`^(?:[01][0-9]|2[0-3]):[0-5][0-9]$`)
 func (s *MagpieSettings) validate() error {
 	if s == nil {
 		return nil
+	}
+	if s.ClaudeRunsMost < 0 || s.ClaudeRunsMost > 256 {
+		return errors.New("Claude 并发进程数须为 0–256，0 使用自动配置")
+	}
+	if s.ImageTimeout < 0 || s.ImageTimeout > 60 {
+		return errors.New("图片生成超时须为 1–60 分钟，0 使用默认 5 分钟")
 	}
 	if len(s.FetchPrivate) > 128 {
 		return errors.New("最多允许 128 个内网下载地址")
@@ -186,6 +196,15 @@ func (s *MagpieSettings) validate() error {
 		if api.Vendor != "searxng" && api.Vendor != "you" && api.Key == "" && !api.HasKey {
 			return errors.New("搜索 API 需要密钥")
 		}
+	}
+	if len(s.RedactActions) > 256 || len(s.RedactAllow) > 1000 {
+		return errors.New("脱敏动作或允许值过多")
+	}
+	for kind, action := range s.RedactActions {
+		if !regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`).MatchString(kind) || !slices.Contains([]string{"mask", "warn", "block"}, action) { return errors.New("脱敏类型或动作无效") }
+	}
+	for _, value := range s.RedactAllow {
+		if strings.TrimSpace(value) == "" || len(value) > 1000 { return errors.New("允许值不能为空或过长") }
 	}
 	if len(s.RedactWords) > 1000 || len(s.RedactRules) > 100 {
 		return errors.New("脱敏词或规则过多")

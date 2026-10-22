@@ -24,6 +24,10 @@ type RoutingProcess struct {
 	process       *aiProcess
 	stopAuxiliary func()
 	once          sync.Once
+	privacyMu     sync.Mutex
+	privacySet    bool
+	privacyURL    string
+	privacyKey    string
 }
 
 func (r *RoutingProcess) Close() {
@@ -75,6 +79,7 @@ func (r *RoutingProcess) PluginWindowState(ctx context.Context) (PluginWindowSta
 
 type routingGroup struct {
 	ID         string   `json:"id"`
+	Ref        string   `json:"ref"`
 	Members    []string `json:"members"`
 	Matched    []string `json:"matched"`
 	Off        []string `json:"off"`
@@ -107,11 +112,19 @@ func (r *RoutingProcess) modelFilter(ctx context.Context, allow func(Selection) 
 		return nil, err
 	}
 	groups := map[string]routingGroup{}
+	aliases := map[string]string{}
 	for _, group := range state.Groups {
 		groups[group.ID] = group
+		if group.Ref != "" {
+			aliases[group.Ref] = "group/" + group.ID
+		}
 	}
 	var permitted func(string, map[string]bool) bool
 	permitted = func(ref string, seen map[string]bool) bool {
+		// Use the upstream's exact public ref, not a locally guessed slug.
+		if canonical, ok := aliases[ref]; ok {
+			ref = canonical
+		}
 		provider, model, ok := strings.Cut(ref, "/")
 		if !ok {
 			return false
@@ -193,6 +206,56 @@ func (r *RoutingProcess) Models(ctx context.Context, allow func(Selection) bool)
 	}
 	return json.Marshal(map[string]any{"object": "list", "data": models})
 }
+func (r *RoutingProcess) OllamaTags(ctx context.Context, allowed map[string]bool) (json.RawMessage, error) {
+	var list struct {
+		Models []json.RawMessage `json:"models"`
+	}
+	if err := r.readAPI(ctx, "/api/tags", &list); err != nil {
+		return nil, err
+	}
+	models := []json.RawMessage{}
+	for _, raw := range list.Models {
+		var entry struct {
+			Model string `json:"model"`
+		}
+		if json.Unmarshal(raw, &entry) != nil {
+			return nil, errors.New("Ollama 模型目录无效")
+		}
+		if allowed[entry.Model] {
+			models = append(models, raw)
+		}
+	}
+	return json.Marshal(map[string]any{"models": models})
+}
+
+// SyncPrivacy updates only the private model binding. Replacing the router
+// would discard live trace/affinity state and invalidate unsaved page drafts.
+// A failed update is returned before the Host forwards the user's request.
+func (r *RoutingProcess) SyncPrivacy(ctx context.Context, address, key string) error {
+	r.privacyMu.Lock()
+	defer r.privacyMu.Unlock()
+	if r.privacySet && r.privacyURL == address && r.privacyKey == key {
+		return nil
+	}
+	raw, _ := json.Marshal(map[string]string{"url": address, "key": key})
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, r.URL+"/api/winone/privacy", bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Authorization", "Bearer "+r.Key)
+	request.Header.Set("Content-Type", "application/json")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return errors.New("本地隐私模型状态未能同步，请重试；请求尚未发送")
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusNoContent {
+		return errors.New("本地隐私模型状态未能同步，请重试；请求尚未发送")
+	}
+	r.privacySet, r.privacyURL, r.privacyKey = true, address, key
+	return nil
+}
+
 func (r *RoutingProcess) ServeBody(w http.ResponseWriter, request *http.Request, path string, body []byte) {
 	cloned := request.Clone(request.Context())
 	target := *request.URL
@@ -249,6 +312,11 @@ func (r *RoutingProcess) ServeHTTP(w http.ResponseWriter, request *http.Request)
 	}
 }
 func (t Translator) StartRouting(ctx context.Context, prefs *MagpieSettings, providers []RuntimeProvider) (*RoutingProcess, error) {
+	return t.startService(ctx, prefs, providers, "routing.serve")
+}
+
+// Both long-lived AI services share pipe authentication and Job ownership.
+func (t Translator) startService(ctx context.Context, prefs *MagpieSettings, providers []RuntimeProvider, operation string) (*RoutingProcess, error) {
 	auxiliary, stop, err := t.auxiliaryBridge(ctx, providers, prefs)
 	if err != nil {
 		return nil, err
@@ -274,7 +342,7 @@ func (t Translator) StartRouting(ctx context.Context, prefs *MagpieSettings, pro
 		io.Copy(io.Discard, process.output)
 		_ = process.finish()
 	}()
-	if err = json.NewEncoder(process.input).Encode(map[string]any{"operation": "routing.serve", "key": key, "magpieSettings": prefs, "auxiliaryProviders": auxiliary}); err != nil {
+	if err = json.NewEncoder(process.input).Encode(map[string]any{"operation": operation, "key": key, "magpieSettings": prefs, "auxiliaryProviders": auxiliary}); err != nil {
 		router.Close()
 		return nil, err
 	}

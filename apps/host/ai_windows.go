@@ -43,6 +43,7 @@ type aiJob struct {
 }
 type aiService struct {
 	routing           routingControl
+	privacy           routingControl // Same process ownership; independent model/download lifetime.
 	maintenance       *aiMagpieMaintenance
 	avatarMu          sync.Mutex
 	avatarUploads     map[string]*avatarUpload
@@ -73,7 +74,10 @@ func registerAI(service *host.Service, ctx context.Context, directory, executabl
 }
 func newAIService(ctx context.Context, directory, executable string) *aiService {
 	runtime := ai.Translator{Executable: filepath.Join(filepath.Dir(executable), "shared", "ai", "WinOne.AI.exe"), DataDirectory: filepath.Join(directory, "ai-runtime")}
-	return &aiService{storePath: filepath.Join(directory, "ai-settings.json"), desktopExecutable: filepath.Join(filepath.Dir(executable), "WinOne.exe"), translator: runtime, localOCR: ai.NewLocalOCR(ctx, runtime), jobs: map[string]*aiJob{}, ctx: ctx, accountGate: make(chan struct{}, 1)}
+	engine := &aiService{storePath: filepath.Join(directory, "ai-settings.json"), desktopExecutable: filepath.Join(filepath.Dir(executable), "WinOne.exe"), translator: runtime, localOCR: ai.NewLocalOCR(ctx, runtime), jobs: map[string]*aiJob{}, ctx: ctx, accountGate: make(chan struct{}, 1)}
+	engine.translator.PrivacyService = engine.privacyEndpoint
+	engine.translator.PluginLifetime = ctx
+	return engine
 }
 func bindAIService(service *host.Service, engine *aiService) {
 	engine.gatewaySlots = make(chan struct{}, 4)
@@ -90,6 +94,9 @@ func (s *aiService) handle(r host.Request) host.Response {
 	}
 	if r.Method == "models.test" {
 		return s.handleModelTest(r)
+	}
+	if strings.HasPrefix(r.Method, "magpie.privacy.") {
+		return s.handlePrivacyModel(r)
 	}
 	if strings.HasPrefix(r.Method, "magpie.") {
 		return s.handleMagpie(r)

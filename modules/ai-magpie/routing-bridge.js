@@ -55,5 +55,9 @@ async function load() {
   redrawNoNames();
   fit();
 }
+function openMaskRecord(key) {
+  if (!winOneRoutingParent) { status(t("Try again"), "err"); return; }
+  parent.postMessage({type:"winone-routing-masking", key:String(key || "")}, winOneRoutingParent);
+}
 const loadProviders = load;
 function fit() { window.dispatchEvent(new Event("winone-routing-layout")); }

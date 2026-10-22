@@ -11,7 +11,13 @@ import (
 )
 
 func hideConsole(command *exec.Cmd) {
-	command.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+	// Match Magpie's proc.hide: suppress the worker's console only. SW_HIDE
+	// also changes the initial ShowWindow contract for native login windows.
+	// A plugin's dedicated GUI browser must remain visible to finish sign-in.
+	if command.SysProcAttr == nil {
+		command.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	command.SysProcAttr.CreationFlags |= 0x08000000 // CREATE_NO_WINDOW
 }
 func isolatedEnvironment(directory string) []string {
 	var env []string
@@ -24,7 +30,7 @@ func isolatedEnvironment(directory string) []string {
 			env = append(env, value)
 			continue
 		}
-		privateAgent := name == "WINONE_AI_USAGE_PATH" || name == "WINONE_AI_PLUGINS_HOME" || name == "WINONE_AI_TRANSPORT_ONLY" || name == "GH_TOKEN" || name == "GITHUB_TOKEN" || name == "GOOGLE_APPLICATION_CREDENTIALS"
+		privateAgent := strings.HasPrefix(name, "WINONE_AI_PRIVACY_") || name == "WINONE_AI_USAGE_PATH" || name == "WINONE_AI_PLUGINS_HOME" || name == "WINONE_AI_TRANSPORT_ONLY" || name == "GH_TOKEN" || name == "GITHUB_TOKEN" || name == "GOOGLE_APPLICATION_CREDENTIALS"
 		for _, prefix := range []string{"CODEX_", "CLAUDE_", "ANTHROPIC_", "OPENAI_", "GEMINI_", "CLOUDSDK_", "COPILOT_", "CURSOR_", "GROK_", "KIRO_", "DEVIN_", "WORKBUDDY_", "QODER_", "ZED_", "FACTORY_", "DROID_", "MIMO_", "ZCODE_", "AWS_", "AZURE_"} {
 			privateAgent = privateAgent || strings.HasPrefix(name, prefix)
 		}

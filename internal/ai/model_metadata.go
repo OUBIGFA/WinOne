@@ -10,6 +10,7 @@ import (
 // Token sizes retain their original units. CompactionPercent is a separate
 // user override, so legacy token thresholds cannot be misread as percentages.
 type ModelMetadata struct {
+	Searches bool `json:"searches,omitempty"`
 	Same         string      `json:"same,omitempty"`
 	UpstreamName string      `json:"upstreamName,omitempty"`
 	API          string      `json:"api,omitempty"`

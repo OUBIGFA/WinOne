@@ -25,6 +25,7 @@ type modelOption struct {
 // The host owns persistence. Worker options mirror Magpie's model window,
 // output and effort semantics without writing agents' configuration files.
 type modelMetadata struct {
+	Searches bool `json:"searches,omitempty"`
 	Same         string         `json:"same,omitempty"`
 	UpstreamName string         `json:"upstreamName,omitempty"`
 	API          string         `json:"api,omitempty"`
@@ -77,7 +78,7 @@ func describeModel(p provider.Provider, model catalog.Model, override modelMetad
 	if threshold == 0 && override.CompactionPercent <= 0 && override.CompactionThreshold <= 0 {
 		threshold = model.Compact
 	}
-	metadata := modelMetadata{Efforts: model.Efforts, Tiers: model.Tiers, Price: model.Price, Rate: model.Rate, RateWas: model.RateWas, ContextWindow: window, ListedContextWindow: provider.ListedWindow(model), MaxContextWindow: model.MaxContext, MaxTokens: p.ReplyLimitIn(model, snapshot), CompactionThreshold: threshold, CompactionPercent: override.CompactionPercent, Vision: model.ImageInput}
+	metadata := modelMetadata{Searches: model.WebSearch == "native", Efforts: model.Efforts, Tiers: model.Tiers, Price: model.Price, Rate: model.Rate, RateWas: model.RateWas, ContextWindow: window, ListedContextWindow: provider.ListedWindow(model), MaxContextWindow: model.MaxContext, MaxTokens: p.ReplyLimitIn(model, snapshot), CompactionThreshold: threshold, CompactionPercent: override.CompactionPercent, Vision: model.ImageInput}
 	if model.Reasoning || len(model.Efforts) > 0 {
 		yes := true
 		metadata.Reasoning = &yes
@@ -224,6 +225,7 @@ func configuredProvider(in request) (provider.Provider, error) {
 			p.Contexts = map[string]int{in.Model: in.ModelMetadata.ContextWindow}
 		}
 	}
+	p.AdditionalTools = in.AdditionalTools
 	// Magpie applies these after protocol authentication, preserving names and
 	// merging list-valued headers through the same path as its provider editor.
 	for name, value := range in.Headers {

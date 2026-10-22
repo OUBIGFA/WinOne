@@ -26,10 +26,47 @@ type aiProcess struct {
 	job      windows.Handle
 	once     sync.Once
 	finished chan struct{}
+	pluginLifetime context.Context
 }
 
-func (p *aiProcess) closeJob()     { p.once.Do(func() { windows.CloseHandle(p.job) }) }
-func (p *aiProcess) finish() error { p.closeJob(); err := p.cmd.Wait(); close(p.finished); return err }
+func (p *aiProcess) closeJob() { p.once.Do(func() { windows.CloseHandle(p.job) }) }
+func (p *aiProcess) finish() error {
+	// Magpie closes its plugin pipe on normal exit. Let plugins release their
+	// helpers themselves; their detached login browser belongs to the Host,
+	// not this one RPC. Errors/cancellation retain the kill-on-close policy.
+	if p.pluginLifetime == nil { p.closeJob() }
+	err := p.cmd.Wait()
+	p.once.Do(func() {
+		if err == nil && p.pluginLifetime != nil && p.pluginLifetime.Err() == nil {
+			retainPluginJob(p.pluginLifetime, p.job)
+		} else { windows.CloseHandle(p.job) }
+	})
+	close(p.finished)
+	return err
+}
+
+// A retained job consumes no worker process. Release its handle as soon as
+// the plugin's windows close, and kill remaining descendants on Host exit.
+// Win32 JOBOBJECT_BASIC_ACCOUNTING_INFORMATION (not exposed by x/sys).
+// LARGE_INTEGER fields are 64-bit, followed by four DWORD counters.
+type jobBasicAccounting struct {
+ TotalUserTime, TotalKernelTime, ThisPeriodTotalUserTime, ThisPeriodTotalKernelTime int64
+ TotalPageFaultCount, TotalProcesses, ActiveProcesses, TotalTerminatedProcesses uint32
+}
+
+func retainPluginJob(ctx context.Context, job windows.Handle) {
+	go func() {
+		defer windows.CloseHandle(job)
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for {
+			var info jobBasicAccounting
+			err := windows.QueryInformationJobObject(job, windows.JobObjectBasicAccountingInformation, uintptr(unsafe.Pointer(&info)), uint32(unsafe.Sizeof(info)), nil)
+			if err != nil || info.ActiveProcesses == 0 { return }
+			select { case <-ctx.Done(): return; case <-ticker.C: }
+		}
+	}()
+}
 func (t Translator) start(ctx context.Context) (*aiProcess, error) {
 	if !filepath.IsAbs(t.Executable) || !filepath.IsAbs(t.DataDirectory) {
 		return nil, errors.New("AI 运行路径无效")
@@ -41,6 +78,15 @@ func (t Translator) start(ctx context.Context) (*aiProcess, error) {
 	}
 	cmd := exec.CommandContext(ctx, t.Executable)
 	cmd.Env = isolatedEnvironment(t.DataDirectory)
+	if t.PrivacyService != nil && !t.TransportOnly {
+		address, key, err := t.PrivacyService(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if address != "" {
+			cmd.Env = append(cmd.Env, "WINONE_AI_PRIVACY_URL="+address, "WINONE_AI_PRIVACY_KEY="+key)
+		}
+	}
 	// Share user-installed plugin code, while isolatedEnvironment keeps auth
 	// and other account files private to the selected provider profile.
 	pluginRoot := t.RootDataDirectory
@@ -57,7 +103,11 @@ func (t Translator) start(ctx context.Context) (*aiProcess, error) {
 	}
 	cmd.Env = append(cmd.Env, "WINONE_AI_USAGE_PATH="+usagePath)
 	cmd.Dir = filepath.Dir(t.Executable)
-	return startOwnedProcess(ctx, cmd)
+	process, err := startOwnedProcess(ctx, cmd)
+	if err == nil && t.AccountBackend == "plugin" {
+		process.pluginLifetime = t.PluginLifetime
+	}
+	return process, err
 }
 
 // Both magpie and local OCR are short-lived workers. Assign their job before

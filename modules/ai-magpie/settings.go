@@ -8,6 +8,7 @@ import (
 	"github.com/yetone/magpie/internal/catalog"
 	"github.com/yetone/magpie/internal/fx"
 	"github.com/yetone/magpie/internal/gateway"
+	"github.com/yetone/magpie/internal/pii"
 	"github.com/yetone/magpie/internal/pluginrt"
 	"github.com/yetone/magpie/internal/provider"
 	"github.com/yetone/magpie/internal/redact"
@@ -23,6 +24,7 @@ import (
 // The public configuration and the upstream runtime share field names. Extra
 // WinOne UI properties are intentionally not written into Magpie's profile.
 func applyRuntimeSettings(in request) error {
+	provider.WinOneSearchModels = nil
 	gateway.WinOneTransportOnly = os.Getenv("WINONE_AI_TRANSPORT_ONLY") == "1"
 	if err := applyBuiltinPlugins(in.MagpieSettings); err != nil {
 		return err
@@ -73,6 +75,15 @@ func applyRuntimeSettings(in request) error {
 		}
 	}
 	provider.WinOneSearchAPIs = append([]provider.SearchAPI{}, extra.SearchAPIs...)
+	address, key := os.Getenv("WINONE_AI_PRIVACY_URL"), os.Getenv("WINONE_AI_PRIVACY_KEY")
+	if err := pii.WinOneUseRemote(address, key); err != nil {
+		return err
+	}
+	// A short worker gets this machine's opt-in from the Host, not from an
+	// account-specific preference file. The shared router keeps native Find.
+	if address != "" {
+		s.RedactModel = true
+	}
 	settings.WinOneUse(s)
 	// These protocol features now register through Magpie's plugin runtime.
 	// Compose their actual upstream implementations in WinOne's private
@@ -81,12 +92,31 @@ func applyRuntimeSettings(in request) error {
 	return err
 }
 
+// The worker must outlive both the drawing and the optional returned image
+// download. Magpie still bounds each phase by the user's ImageWait setting.
+func workerRequestWait(in request) time.Duration {
+	if in.Operation == "gateway" || in.Operation == "magpie.gateway" {
+		if in.GatewayPath == "/v1/images/generations" || in.GatewayPath == "/v1/images/edits" {
+			return 2*settings.Load().ImageWait() + time.Minute
+		}
+		return 10 * time.Minute
+	}
+	if in.Operation == "accounts.signin" {
+		return 10 * time.Minute
+	}
+	return 90 * time.Second
+}
+
 // installModelPreferences feeds the exact upstream preference maps before its
 // gateway takes a settings snapshot. SameAs groups pricing/metadata; Wires is
 // separately the name sent to the vendor and never rewrites the picker ID.
 func installModelPreferences(pid, model string, m modelMetadata) error {
 	s := settings.Load()
 	id := pid + "/" + model
+	if m.Searches {
+		if provider.WinOneSearchModels == nil { provider.WinOneSearchModels = map[string]bool{} }
+		provider.WinOneSearchModels[id] = true
+	}
 	if m.Same != "" {
 		if s.ModelSameAs == nil {
 			s.ModelSameAs = map[string]string{}
@@ -379,8 +409,8 @@ func trayCards(cards []provider.SubscriptionQuota, ids []string, hostID string, 
 // letting an unknown JSON setting become a provider's endpoint or credential.
 type auxiliaryProvider struct {
 	provider.Provider
-	AccountKind string `json:"accountKind,omitempty"`
-	Metadata map[string]modelMetadata `json:"metadata,omitempty"`
+	AccountKind string                   `json:"accountKind,omitempty"`
+	Metadata    map[string]modelMetadata `json:"metadata,omitempty"`
 }
 
 func installAuxiliaryProviders(in request) error {
@@ -391,11 +421,24 @@ func installAuxiliaryProviders(in request) error {
 		if slices.ContainsFunc(provider.WinOneProviders, func(x provider.Provider) bool { return x.ID == p.ID }) {
 			continue
 		}
+		// Context windows live on Magpie's provider, not its global model
+		// settings map. Carry them into the outer router too, so discovery,
+		// Ollama show and automatic group selection use the same saved limit.
+		for id, metadata := range p.Metadata {
+			if metadata.ContextWindow > 0 {
+				if p.Contexts == nil {
+					p.Contexts = map[string]int{}
+				}
+				p.Contexts[id] = metadata.ContextWindow
+			}
+		}
 		provider.WinOneProviders = append(provider.WinOneProviders, p.Provider)
 		// A bridge remains an HTTP provider: attaching an Account would bypass
 		// its private transport. Only the onProvider context needs its kind.
 		if p.AccountKind != "" {
-			if gateway.WinOneMiddlewareAccounts == nil { gateway.WinOneMiddlewareAccounts = map[string]string{} }
+			if gateway.WinOneMiddlewareAccounts == nil {
+				gateway.WinOneMiddlewareAccounts = map[string]string{}
+			}
 			gateway.WinOneMiddlewareAccounts[p.ID] = p.AccountKind
 		}
 		for id, m := range p.Metadata {

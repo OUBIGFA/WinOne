@@ -9,6 +9,7 @@ import (
 	"github.com/yetone/magpie/internal/gateway"
 	"github.com/yetone/magpie/internal/provider"
 	"github.com/yetone/magpie/internal/sessions"
+	"github.com/yetone/magpie/internal/maskrec"
 	"github.com/yetone/magpie/internal/usage"
 	"io"
 	"os"
@@ -29,6 +30,9 @@ func configureUsage(in request) error {
 		return errors.New("invalid usage path")
 	}
 	usage.WinOnePath = path
+	// Every owned worker shares metadata records with Privacy, like usage.
+	// Upstream never writes original values or surrounding text to these files.
+	maskrec.Dir = func() string { return filepath.Join(filepath.Dir(path), "masking") }
 	source := "winone"
 	if in.Operation == "gateway" && in.UsageSource != "winone" {
 		source = "gateway"

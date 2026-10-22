@@ -19,10 +19,12 @@ type Provider struct {
 	Searches bool `json:"searches,omitempty"`
 	RequestLimits
 	ModelMetadata   map[string]ModelMetadata `json:"modelMetadata,omitempty"`
+	AdditionalTools bool                     `json:"additionalTools,omitempty"`
 	Headers         map[string]string        `json:"headers,omitempty"` // User request headers; never diagnostic or prompt data.
 	Keys            []KeySlot                `json:"keys,omitempty"`
 	KeyPolicy       *KeyPolicy               `json:"keyPolicy,omitempty"`
 	AvailableModels []string                 `json:"availableModels,omitempty"`
+	Delisted        []string                 `json:"delisted,omitempty"` // Paused picks; never served until listed again.
 	ModelNames      map[string]string        `json:"modelNames,omitempty"`
 	ModelFree       map[string]bool          `json:"modelFree,omitempty"` // Vendor metadata, independent of the routing ID.
 	ID              string                   `json:"id"`
@@ -111,6 +113,7 @@ func cloneConfiguration(c Configuration) Configuration {
 			c.Providers[i].Avatar = &avatar
 		}
 		c.Providers[i].Models = slices.Clone(c.Providers[i].Models)
+		c.Providers[i].Delisted = slices.Clone(c.Providers[i].Delisted)
 		c.Providers[i].ModelNames = maps.Clone(c.Providers[i].ModelNames)
 		c.Providers[i].Headers = maps.Clone(c.Providers[i].Headers)
 		c.Providers[i].ModelFree = maps.Clone(c.Providers[i].ModelFree)
@@ -283,6 +286,16 @@ func validateConfiguration(c Configuration) error {
 			}
 			seen[model] = true
 		}
+		if len(p.Delisted) > MaxProviderModels {
+			return errors.New("暂时不可用的模型选择过多")
+		}
+		paused := map[string]bool{}
+		for _, model := range p.Delisted {
+			if model == "" || strings.TrimSpace(model) != model || len(model) > 256 || paused[model] || seen[model] {
+				return errors.New("暂时不可用的模型选择无效")
+			}
+			paused[model] = true
+		}
 		if len(p.AvailableModels) > MaxProviderModels {
 			return errors.New("供应商模型列表过大")
 		}
@@ -347,7 +360,7 @@ func validateConfiguration(c Configuration) error {
 		// A model may be disabled while an existing feature still refers to it.
 		// Save the provider preference; invocation requires an enabled model.
 		provider, exists := c.Provider(selection.Provider)
-		if !exists || !slices.Contains(provider.AllModels(), selection.Model) {
+		if !exists || !slices.Contains(provider.AllModels(), selection.Model) && !slices.Contains(provider.Delisted, selection.Model) {
 			return fmt.Errorf("%s：请选择存在的供应商和模型", task)
 		}
 	}

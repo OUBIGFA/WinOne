@@ -40,6 +40,28 @@ func TestSignInInputFollowsTheCurrentAuthorizationStep(t *testing.T) {
 	}
 }
 
+func TestSignInOpenedSurvivesAdapterProgressAndHostPolling(t *testing.T) {
+	var progress aiSignInProgress
+	if err := json.Unmarshal([]byte(`{"signin":{"agent":"grok","state":"waiting","url":"https://example.invalid/device","opened":true}}`), &progress); err != nil {
+		t.Fatal(err)
+	}
+	job := &aiSignInJob{ID: "owned", Status: aiSignInState{State: "starting"}}
+	job.observe(progress)
+	raw, err := json.Marshal(job)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reply struct {
+		Status struct {
+			Opened bool
+			URL    string
+		}
+	}
+	if err := json.Unmarshal(raw, &reply); err != nil || !reply.Status.Opened || reply.Status.URL != "https://example.invalid/device" {
+		t.Fatalf("authorization page ownership was lost: %s (%v)", raw, err)
+	}
+}
+
 func TestSignInInputRemainsPendingUntilValidationOrNextStep(t *testing.T) {
 	job := &aiSignInJob{Status: aiSignInState{State: "waiting", PasteCode: true}, InputPending: true}
 	job.observe(aiSignInProgress{SignIn: &aiSignInState{State: "waiting", PasteCode: true, URL: "https://example.invalid/updated"}})

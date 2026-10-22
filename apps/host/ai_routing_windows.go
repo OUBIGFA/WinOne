@@ -31,7 +31,7 @@ func (s *aiService) startRouting() (*ai.RoutingProcess, error) {
 	defer s.routing.mu.Unlock()
 	if s.routing.process != nil {
 		if s.routing.process.Alive() {
-			return s.routing.process, nil
+			return s.syncRoutingPrivacy(s.routing.process)
 		}
 		s.routing.cancel()
 		s.routing.process.Close()
@@ -57,8 +57,25 @@ func (s *aiService) startRouting() (*ai.RoutingProcess, error) {
 	}
 	s.routing.process = process
 	s.routing.cancel = cancel
+	return s.syncRoutingPrivacy(process)
+}
+
+// The model opt-in can change after a download completes, even with its page
+// closed. Resolve it at the request boundary, without restarting the router or
+// copying its private preference over the user's unsaved settings.
+func (s *aiService) syncRoutingPrivacy(process *ai.RoutingProcess) (*ai.RoutingProcess, error) {
+	ctx, cancel := context.WithTimeout(s.ctx, 5*time.Second)
+	defer cancel()
+	address, key, err := s.privacyEndpoint(ctx)
+	if err == nil {
+		err = process.SyncPrivacy(ctx, address, key)
+	}
+	if err != nil {
+		return nil, err
+	}
 	return process, nil
 }
+
 func (s *aiService) closeRouting() {
 	s.routing.mu.Lock()
 	defer s.routing.mu.Unlock()

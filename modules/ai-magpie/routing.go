@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/yetone/magpie/internal/gateway"
 	"github.com/yetone/magpie/internal/gui"
+	"github.com/yetone/magpie/internal/pii"
 	"github.com/yetone/magpie/internal/provider"
 	"github.com/yetone/magpie/internal/settings"
 	"io"
@@ -35,35 +36,48 @@ func serveRouting(ctx context.Context, in request, input io.Reader, output io.Wr
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	if err := applyRuntimeSettings(in); err != nil {
+	if in.Operation == "privacy.serve" {
+		// Model management must not enumerate accounts, execute installed
+		// extensions or require Bun just because its status page was opened.
+		settings.WinOneUse(settings.Settings{NoStats: true, NoUsageStats: true, NoWSLAgents: true})
+	} else if err := applyRuntimeSettings(in); err != nil {
 		return err
 	}
 	if savedNames != nil {
 		s := settings.Load()
 		s.PlainNames = savedNames.PlainNames
 		s.PlainOwnNames = savedNames.PlainOwnNames
+		if in.Operation == "privacy.serve" {
+			s.RedactModel = savedNames.RedactModel
+		}
 		settings.WinOneUse(s)
 	}
-	if err := configureUsage(in); err != nil {
-		return err
-	}
+	defer pii.Cancel()
+	defer pii.Stop()
 	provider.WinOneProviders = []provider.Provider{}
-	if err := installAuxiliaryProviders(in); err != nil {
-		return err
+	var page, protocol http.Handler
+	if in.Operation == "privacy.serve" {
+		page = gui.WinOnePrivacyHandler()
+	} else {
+		if err := configureUsage(in); err != nil {
+			return err
+		}
+		if err := installAuxiliaryProviders(in); err != nil {
+			return err
+		}
+		gw := gateway.New()
+		stopPlugins := serveBuiltinPlugins()
+		defer stopPlugins()
+		bundled := make([]string, 0, len(accountPlugins()))
+		for _, p := range accountPlugins() {
+			bundled = append(bundled, p.Package)
+		}
+		page, protocol = gui.WinOneRoutingHandler(gw, bundled), gw.Handler()
 	}
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
 		return err
 	}
-	gw := gateway.New()
-	stopPlugins := serveBuiltinPlugins()
-	defer stopPlugins()
-	bundled := make([]string, 0, len(accountPlugins()))
-	for _, p := range accountPlugins() {
-		bundled = append(bundled, p.Package)
-	}
-	page := gui.WinOneRoutingHandler(gw, bundled)
-	protocol := gw.Handler()
 	server := &http.Server{ReadHeaderTimeout: 5 * time.Second, BaseContext: func(net.Listener) context.Context { return ctx }}
 	server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
@@ -102,7 +116,29 @@ func serveRouting(ctx context.Context, in request, input io.Reader, output io.Wr
 		}
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Cache-Control", "no-store")
-		if strings.HasPrefix(r.URL.Path, "/v1/") || r.URL.Path == "/mcp/magpie/web-search" || r.URL.Path == "/mcp/magpie/tools" {
+		if in.Operation == "routing.serve" && r.URL.Path == "/api/winone/privacy" {
+			// Hot binding is Host-only: page cookies/capability paths and browser
+			// origins cannot select an inference endpoint or change its opt-in.
+			if r.Method != http.MethodPost || r.Header.Get("Authorization") != "Bearer "+in.Key || r.Header.Get("Origin") != "" {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+			var binding struct{ URL, Key string }
+			decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192))
+			decoder.DisallowUnknownFields()
+			if decoder.Decode(&binding) != nil || decoder.Decode(new(any)) != io.EOF {
+				http.Error(w, "Invalid privacy binding", http.StatusBadRequest)
+				return
+			}
+			if err := pii.WinOneUseRemote(binding.URL, binding.Key); err != nil {
+				http.Error(w, "Invalid privacy binding", http.StatusBadRequest)
+				return
+			}
+			settings.WinOneUseRedactModel(binding.URL != "")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if in.Operation != "privacy.serve" && (strings.HasPrefix(r.URL.Path, "/v1/") || r.URL.Path == "/api/version" || r.URL.Path == "/api/tags" || r.URL.Path == "/api/show" || r.URL.Path == "/api/chat" || r.URL.Path == "/api/generate" || r.URL.Path == "/mcp/magpie/web-search" || r.URL.Path == "/mcp/magpie/tools") {
 			r.Header.Set("Authorization", "Bearer "+gateway.Token)
 			protocol.ServeHTTP(w, winOneCallerRequest(r))
 			return

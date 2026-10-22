@@ -6,7 +6,46 @@ import "sync/atomic"
 // snapshot; no global save or another desktop client's file is involved.
 var WinOneSettings atomic.Pointer[Settings]
 
+// Upstream Load is a mutable copy while Shared is read-only. Keep the same
+// contract for Host snapshots so preference editors cannot mutate a reader.
 func WinOneUse(s Settings) { normalized := s.normal(); WinOneSettings.Store(&normalized) }
 
 // Routing can update its naming preference while requests read the snapshot.
-func WinOneLoad() (Settings, bool) { s:=WinOneSettings.Load();if s==nil{return Settings{},false};return *s,true }
+func WinOneLoad() (Settings, bool) {
+	s := WinOneSettings.Load()
+	if s == nil {
+		return Settings{}, false
+	}
+	return *s, true
+}
+
+// Change only this process's local model flag, preserving concurrent routing
+// name updates and the rest of the Host snapshot. This does not save drafts.
+func WinOneUseRedactModel(on bool) {
+	for {
+		prior := WinOneSettings.Load()
+		if prior == nil {
+			return
+		}
+		next := *prior
+		next.RedactModel = on
+		if WinOneSettings.CompareAndSwap(prior, &next) {
+			return
+		}
+	}
+}
+
+// A model download completes asynchronously. Save just the local opt-in via
+// upstream's locked durable writer, then publish it to this process snapshot.
+// Other settings still belong to the Host and must not be copied back.
+func winOneSetRedactModel(on bool) error {
+	fileMu.Lock()
+	defer fileMu.Unlock()
+	s := load()
+	s.RedactModel = on
+	if err := save(s, false); err != nil {
+		return err
+	}
+	WinOneUseRedactModel(on)
+	return nil
+}

@@ -126,8 +126,13 @@ func (s *Store) orderedKeys(plan KeyPlan) ([]credential, error) {
 // The callback reports any emitted content (including reasoning), which closes
 // the failover boundary even if the provider subsequently returns an error.
 func (s *Store) WithKeys(ctx context.Context, plan KeyPlan, run func(context.Context, string) (bool, error)) error {
-	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
-	defer cancel()
+	// The caller owns protocol-specific budgets (notably long image draws).
+	// Supply the traditional ceiling only when it has not bounded the request.
+	if _, bounded := ctx.Deadline(); !bounded {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 90*time.Second)
+		defer cancel()
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}

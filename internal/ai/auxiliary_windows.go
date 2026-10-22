@@ -139,7 +139,7 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 				return
 			}
 		}
-		inner := Preferences{ProviderID: p.ID, ProviderName: p.Name, Protocol: p.Protocol, BaseURL: p.BaseURL, Model: envelope.Model, Agent: p.Agent, AgentBackend: p.AgentBackend, AuthMode: p.AuthMode, Preset: p.Preset, PresetRegion: p.PresetRegion, Headers: p.Headers, ModelMetadata: p.ModelMetadataFor(envelope.Model), RequestLimits: p.RequestLimits, MagpieSettings: prefs.clone()}
+		inner := Preferences{ProviderID: p.ID, ProviderName: p.Name, Protocol: p.Protocol, BaseURL: p.BaseURL, Model: envelope.Model, Agent: p.Agent, AgentBackend: p.AgentBackend, AuthMode: p.AuthMode, Preset: p.Preset, PresetRegion: p.PresetRegion, AdditionalTools: p.AdditionalTools, Headers: p.Headers, ModelMetadata: p.ModelMetadataFor(envelope.Model), RequestLimits: p.RequestLimits, MagpieSettings: prefs.clone()}
 		// The outer gateway already chose a helper; a helper cannot recursively
 		// add more helpers, and its quota belongs to the original held request.
 		inner.MagpieSettings.Vision = "off"

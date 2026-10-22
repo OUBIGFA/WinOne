@@ -1,0 +1,34 @@
+package provider
+
+import (
+ "context"
+ "fmt"
+ "github.com/yetone/magpie/internal/settings"
+)
+
+// WinOneStartPluginSignIn keeps Magpie's flow (proxy, code/callback/key,
+// account persistence and cancellation), but registers it before Authorize.
+// A plugin may prepare its dedicated browser there. Its preparation shares
+// the explicit login's deadline, not a separate one-minute request budget.
+func WinOneStartPluginSignIn(ctx context.Context, id string, method int, inputs map[string]string) (SignInState, error) {
+ if settings.AccountDiscoveryOff() { return SignInState{}, errAccountDiscoveryOff }
+ if cli, missing := pluginCLI(id); missing { return SignInState{}, fmt.Errorf("%s is required; install the official client first", cli.Name) }
+ begin, cancel := context.WithCancel(ctx)
+ s := &signInFlow{done: make(chan struct{}), stop: cancel}
+ if err := s.pickProxy(PluginID(id), SignInOptions{}); err != nil { cancel(); return SignInState{}, err }
+ s.st = SignInState{ID: randomToken(9), Agent: PluginID(id), State: "starting", Proxy: s.proxy}
+ signIns.Lock()
+ for sid, old := range signIns.m { if old.st.Agent == s.st.Agent { old.finish(SignInState{State:"canceled"}); delete(signIns.m,sid) } }
+ signIns.m[s.st.ID] = s
+ signIns.Unlock()
+ initial := s.status()
+ go func() {
+  defer cancel()
+  if err := s.pluginBeginContext(begin, id, method, inputs); err != nil {
+   // These are the same public errors Magpie's authorization UI displays;
+   // do not turn a missing browser/runtime into a generic connection error.
+   s.finish(SignInState{State:"failed", Error:err.Error()})
+  }
+ }()
+ return initial,nil
+}

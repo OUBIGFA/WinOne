@@ -41,8 +41,10 @@ html.winone-plugins, .winone-plugins body { height: auto; min-height: 0; overflo
 .winone-plugins .pm-sechead { gap: .5rem 1rem; padding: 0; }
 .winone-plugins .pm-sechead h3 { font-size: 1.0625rem; font-weight: 600; }
 .winone-plugins .pm-sechead span { font-size: .875rem; line-height: 1.6; }
-.winone-plugins .pm-grid { grid-template-columns: minmax(0, 1fr); gap: 0; border-top: 1px solid var(--line); }
-.winone-plugins .pm-card { padding: 1rem 0; gap: .5rem; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; transform: none; transition: background-color 120ms ease-out; animation: none; }
+.winone-plugins .pm-grid { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+/* Each hit target owns its inset: hover/focus never touch neighbouring rows,
+   and labels/actions keep space from the edge in both empty and filled lists. */
+.winone-plugins .pm-card { padding: 1rem .75rem; gap: .5rem; border: 0; border-bottom: 1px solid var(--line); border-radius: var(--settings-control-radius); background: transparent; box-shadow: none; transform: none; transition: background-color 120ms ease-out; animation: none; }
 .winone-plugins .pm-card:hover { background: var(--card-2); box-shadow: none; transform: none; }
 .winone-plugins .pm-card:focus-visible { outline: 1px solid var(--settings-focus); outline-offset: -1px; box-shadow: none; }
 .winone-plugins .pm-top { gap: .75rem; }
@@ -62,8 +64,8 @@ html.winone-plugins, .winone-plugins body { height: auto; min-height: 0; overflo
 .winone-plugins :is(.pm-ghnone,.pm-none) { padding: 1.5rem 1rem; border: 1px solid var(--line); border-radius: var(--settings-panel-radius); font-size: .875rem; }
 .winone-plugins .pm-none b { font-size: .9375rem; font-weight: 500; }
 .winone-plugins .pm-none p { max-width: 36rem; font-size: .875rem; line-height: 1.6; }
-.winone-plugins .pm-list { border: 0; border-radius: 0; background: transparent; }
-.winone-plugins .pm-list .row { min-height: 3rem; padding: 1rem 0; gap: .75rem; align-items: flex-start; flex-wrap: wrap; }
+.winone-plugins .pm-list { display: flex; flex-direction: column; gap: .5rem; border: 0; border-radius: 0; background: transparent; }
+.winone-plugins .pm-list .row { min-height: 3rem; padding: 1rem .75rem; border-radius: var(--settings-control-radius); gap: .75rem; align-items: flex-start; flex-wrap: wrap; }
 .winone-plugins .pm-row .who { flex: 1 1 14rem; }
 .winone-plugins .pm-row .name { flex-wrap: wrap; font-size: .9375rem; font-weight: 500; }
 .winone-plugins .pm-row .sub { margin-top: .375rem; }

@@ -25,7 +25,7 @@ func winOnePagePrefix(r *http.Request)string{prefix,_:=r.Context().Value(winOneP
 func WinOneRoutingHandler(gw *gateway.Server, bundled []string) http.Handler {
  served.Store(gw)
  mux:=http.NewServeMux()
- groupRoutes(mux);traceRoutes(mux);contextRoutesAPI(mux)
+ groupRoutes(mux);traceRoutes(mux);contextRoutesAPI(mux);maskingRoutes(mux)
  pluginRoutes(mux,nil);pluginPageRoutes(mux)
  // These read-only allowances belong to the routing account rows. Register
  // the original handlers privately without exposing the Usage application.
@@ -65,7 +65,7 @@ func WinOneRoutingHandler(gw *gateway.Server, bundled []string) http.Handler {
   b,err:=fs.ReadFile(files,"winone-plugins.html");if err!=nil{http.Error(w,"Plugin page unavailable",500);return}
   w.Header().Set("Content-Type","text/html; charset=utf-8");w.Write(b)
  })
- for _,path:=range []string{"plugins.css","winone-plugin-pages.js","winone-plugin-bridge.js","winone-plugin-host.js","winone-plugin-manager.js","winone-plugin-shared.js","winone-plugins.css"}{mux.Handle("GET /"+path,static)}
+ for _,path:=range []string{"masking.html","winone-masking-host.js","winone-masking-shared.js","winone-masking.css","plugins.css","winone-plugin-pages.js","winone-plugin-bridge.js","winone-plugin-host.js","winone-plugin-manager.js","winone-plugin-shared.js","winone-plugins.css"}{mux.Handle("GET /"+path,static)}
  mux.HandleFunc("GET /{$}",func(w http.ResponseWriter,r *http.Request){
   b,err:=fs.ReadFile(files,"winone-routing.html");if err!=nil{http.Error(w,"Routing page unavailable",500);return}
   w.Header().Set("Content-Type","text/html; charset=utf-8");w.Write(b)

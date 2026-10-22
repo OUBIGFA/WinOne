@@ -46,6 +46,7 @@ func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, pat
 		input["operation"] = "magpie.gateway"
 	}
 	input["usageSource"] = source
+	input["additionalTools"] = p.AdditionalTools
 	input["headers"] = p.Headers
 	input["modelMetadata"] = p.ModelMetadata
 	input["magpieSettings"] = p.MagpieSettings

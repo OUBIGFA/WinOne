@@ -1,15 +1,16 @@
 /* WinOne presentation of the complete Magpie routing feature. Shared tokens,
-   fonts and controls come from winone-ai-settings.css. Groups are configured
-   first; request activity follows, without branded cards or tiny type. */
+   fonts and controls come from winone-ai-settings.css. Request activity leads;
+   routing groups follow, without branded cards or tiny type. */
 html.winone-routing, .winone-routing body { height: auto; min-height: 0; overflow: visible; }
 .winone-routing body { display: block; padding: 0; }
 .winone-routing #view-routing { position: relative; inset: auto; display: flex; flex-direction: column; flex: none; height: auto; max-height: none; min-width: 0; gap: 1.5rem; padding: 0; overflow: visible; scrollbar-gutter: auto; }
 .winone-routing-defs { position: absolute; pointer-events: none; }
-.winone-routing #view-routing > .row-head { margin: 1rem 0 0; padding: 1.75rem 0 0; gap: .5rem .75rem; border-top: 1px solid var(--line); }
+.winone-routing #view-routing .row-head { margin: 0; padding: 0; gap: .5rem .75rem; border: 0; }
 .winone-routing #view-routing .row-head .note { margin: 0; font-size: .875rem; line-height: 1.6; color: var(--fg-2); }
 .winone-routing .rt-livedot { display: none; } /* The live label already conveys state. */
 .winone-routing .rt-gsec { display: grid; gap: 1.25rem; margin: 0; }
-.winone-routing .rt-gsec .row-head { margin: 0; padding: 0; gap: .5rem .75rem; }
+/* Match the upstream view ID: a class-only override loses to its gap: 0. */
+.winone-routing #view-routing .rt-gsec .row-head { margin: 0; padding: 0; gap: .5rem .75rem; }
 .winone-routing .rt-gsec .rt-gfilter { flex: 1 1 12rem; max-width: 22rem; min-width: 0; height: 2.25rem; margin: 0; }
 .winone-routing :is(.rt-gfound,.rt-gnames) { padding: .5rem 0; align-items: center; gap: 1.5rem; }
 .winone-routing :is(.rt-gfound,.rt-gnames) b { font-size: .9375rem; font-weight: 500; }
@@ -18,7 +19,7 @@ html.winone-routing, .winone-routing body { height: auto; min-height: 0; overflo
 .winone-routing :is(.rt-group,.rt-pool) { padding: 1rem .5rem; min-height: 3rem; gap: .75rem 1rem; }
 .winone-routing :is(.rt-group .nm,.rt-pool .nm) { font-size: .9375rem; line-height: 1.6; }
 .winone-routing .rt-group .mem { margin-top: .375rem; font-size: .875rem; line-height: 1.6; white-space: normal; overflow-wrap: anywhere; }
-.winone-routing .rt-group .tags { display: flex; flex-wrap: wrap; }
+.winone-routing .rt-group .tags { display: flex; flex-wrap: wrap; gap: .5rem; max-width: 100%; }
 .winone-routing :is(.rt-group .tag,.rt-group .nm code.mdl,.rt-group .nm small.auto,.rt-pool .nm span:last-child,.rt-pool .lab small) { font-size: .875rem; line-height: 1.5; }
 .winone-routing .rt-group .tag { border-radius: .25rem; }
 .winone-routing .rt-pool .ctl { gap: .75rem; }
@@ -60,7 +61,7 @@ html.winone-routing, .winone-routing body { height: auto; min-height: 0; overflo
 .winone-routing .rt-foot { padding-block: 1rem; gap: 1rem 1.5rem; }
 .winone-routing .rt-accts li { font-size: .875rem; border-radius: var(--settings-control-radius); }
 .winone-routing :is(.rt-accts em,.rt-accts b code.mdl,.rt-req code,.rt-act code.mdl,.rt-accts li.rt-sub) { font-size: .875rem; }
-.winone-routing .rt-more { padding: 0; }
+.winone-routing .rt-more { display: grid; gap: 2.5rem; min-width: 0; padding: 0; }
 .winone-routing .rt-cols { gap: 1.5rem; }
 .winone-routing .rt-col > .row-head { margin: 1rem 0; }
 .winone-routing :is(.rt-req,.rt-act,.rt-act .wins,.rt-act .tally,.rt-act .fix,.rt-req .meta,.rt-day) { font-size: .875rem; line-height: 1.6; }
@@ -76,6 +77,9 @@ html.winone-routing, .winone-routing body { height: auto; min-height: 0; overflo
  .winone-routing .rt-group { flex-wrap: wrap; }
  .winone-routing .rt-group .main { flex-basis: calc(100% - 5rem); }
  .winone-routing .rt-group .tags { margin-inline-start: 2.5rem; }
+ .winone-routing .rt-pool { flex-wrap: wrap; }
+ .winone-routing .rt-pool .main { flex-basis: 100%; }
+ .winone-routing .rt-pool .ctl { flex-wrap: wrap; max-width: 100%; }
  .winone-routing .rt-gsec .row-head .note { flex-basis: 100%; }
  .winone-routing .rt-stats { flex-wrap: wrap; }
 }

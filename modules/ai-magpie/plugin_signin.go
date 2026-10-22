@@ -97,7 +97,7 @@ func beginPluginSignIn(ctx context.Context, in request, commands <-chan signInCo
 	if choice.Type != "oauth" {
 		return fail(errors.New("unsupported sign-in method"))
 	}
-	state, err := provider.StartPluginSignIn(in.Agent, method, inputs)
+	state, err := provider.WinOneStartPluginSignIn(ctx, in.Agent, method, inputs)
 	if err != nil {
 		return fail(pluginSignInStartError(err))
 	}

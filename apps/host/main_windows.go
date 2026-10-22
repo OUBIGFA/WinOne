@@ -717,6 +717,11 @@ func run() (runErr error) {
 			}
 		})
 		quit := systray.AddMenuItem("退出 WinOne", "")
+		if err := setTrayMenuIcons(open, quit); err != nil {
+			if reportErr := reportTrayFailure(*data, applicationLanguage(store.Snapshot().Language), err, systray.ShowWarning); reportErr != nil {
+				fmt.Fprintln(os.Stderr, "tray menu icons:", reportErr)
+			}
+		}
 		trayLanguage.Bind(open, quit)
 		go func() {
 			if *autorun {
