@@ -37,7 +37,7 @@ internal static class RecordingUiTests
             await Click("start"); Check(engine.Calls.Count == 0 && capture.Visible, "Cancelled picker hid the screenshot or started recording");
             selectedPath = Path.Combine(output, prefix + ".gif");
             engine.FailStart = true; await Click("start");
-            Check(capture.Visible && Button("start").Available, "Failed start lost the editor or retry entry");
+            Check(!capture.Visible && window.Visible && Button("start").Available, "Failed start covered the retry panel with the frozen editor");
             engine.FailStart = false; await Click("start");
             Check(!capture.Visible && Button("pause").Available && Button("stop").Available, "Start did not switch to recording controls");
             Check(window.RegionWindow is { Visible: true } outline && outline.Bounds == new Rectangle(59, 59, 642, 362), "Recording lost or moved its region outline");
@@ -57,6 +57,7 @@ internal static class RecordingUiTests
             Check(window.IsDisposed, "Unpinned completed panel stayed open after outside activation");
             File.WriteAllText(Path.Combine(output, prefix + ".json"), JsonSerializer.Serialize(engine.Calls));
         }
+        await VerifyColdPanelHandoff(capture, output);
         await VerifyActiveOutsideClose(capture, output);
     }
     // Exercise the production panel -> config -> native DLL path, not just a
@@ -71,33 +72,83 @@ internal static class RecordingUiTests
             editor.Show();
             var path = Path.Combine(output, "clips", "panel." + format);
             using var window = new NativeRecordingWindow(editor, rect, new CaptureSettings { OutputDirectory = output }, format, "zh-CN", engine, _ => path);
-            window.Location = fixture.PointToScreen(new Point(200, 100));
             window.Show();
+            await RecordingInput.Until(() => window.RegionWindow is { Visible: true }, "Recording setup never presented its selected area");
             var actions = window.Controls.OfType<TableLayoutPanel>().Single().Controls.OfType<ToolStrip>().Single();
-            async Task Click(string name) { actions.Items["recording-" + name]!.PerformClick(); await window.CurrentOperation; }
-            await Click("start");
+            await RecordingInput.ClickInactive(fixture, window, actions, "start",
+                () => RecordingFixtureGuard.Arrange(fixture, rect, window, window.RegionWindow!),
+                () => actions.Items["recording-pause"]!.Available);
+            await window.CurrentOperation;
             var outline = window.RegionWindow ?? throw new Exception("The production recording panel did not create an outline");
             if (editor.Visible || !outline.Visible) throw new Exception("The editor/outline handoff failed");
             // Keep both controls and outline over the generated target. Their
             // WDA exclusions must reveal the target in every sampled frame.
+            // Default placement was outside; deliberately drag it over this
+            // generated target now to verify exclusion of controls AND hints.
+            window.Location = fixture.PointToScreen(new Point(50, 70));
             RecordingFixtureGuard.Arrange(fixture, rect, window, outline);
             for (var i = 0; i < 8; i++) {
                 advanceFrame();
                 await RecordingFixtureGuard.Wait(fixture, rect, 80, window, outline);
             }
-            await Click("pause");
+            RecordingInput.Hover(window, actions, "pause");
+            Rectangle tooltip;
+            try { tooltip = await RecordingInput.WaitForProtectedTooltip(); }
+            catch {
+                using var image = new Bitmap(window.Width, window.Height);
+                window.DrawToBitmap(image, new Rectangle(Point.Empty, window.Size));
+                image.Save(Path.Combine(output, "hover-failure.png"));
+                Console.Error.WriteLine("Hover pointer=" + Cursor.Position + "; panel=" + window.Bounds + "; strip=" + actions.RectangleToScreen(actions.ClientRectangle));
+                Console.Error.WriteLine("Owned thread windows: " + RecordingInput.DescribeThreadWindows());
+                foreach (var label in window.Controls.OfType<TableLayoutPanel>().Single().Controls.OfType<Label>()) Console.Error.WriteLine("Panel label: " + label.Text);
+                throw;
+            }
+            if (!tooltip.IntersectsWith(rect)) throw new Exception("Tooltip exclusion was not exercised over the recorded target");
+            var tooltipArea = Rectangle.Inflate(tooltip, 4, 4);
+            tooltipArea.Offset(-rect.X, -rect.Y);
+            // This part of the generated target is plain white, including the
+            // native hint's shadow margin. Decode pixels here, not just beside
+            // the panel, so tooltip/black-hole leaks cannot pass unnoticed.
+            var tooltipWhiteArea = Rectangle.Intersect(tooltipArea, new Rectangle(0, 96, 180, 168));
+            if (tooltipWhiteArea.Width < 16 || tooltipWhiteArea.Height < 12) throw new Exception("The tooltip did not cover enough of the fixture's white reference area");
+            var tooltipStartMs = (await engine.CallAsync("status")).DurationMs;
+            advanceFrame();
+            await RecordingFixtureGuard.Wait(fixture, rect, 400, window, outline);
+            var tooltipEndMs = (await engine.CallAsync("status")).DurationMs;
+            await RecordingInput.ClickInactive(fixture, window, actions, "pause",
+                () => RecordingFixtureGuard.Arrange(fixture, rect, window, outline), () => actions.Items["recording-pause"]!.Text == "继续");
             if (!outline.Visible) throw new Exception("The production panel lost its outline while paused");
             await RecordingFixtureGuard.Wait(fixture, rect, 350, window, outline);
-            await Click("pause");
+            await RecordingInput.ClickInactive(fixture, window, actions, "pause",
+                () => RecordingFixtureGuard.Arrange(fixture, rect, window, outline), () => actions.Items["recording-pause"]!.Text == "暂停");
             await RecordingFixtureGuard.Wait(fixture, rect, 1250, window, outline);
-            await Click("stop");
+            await RecordingInput.ClickInactive(fixture, window, actions, "stop",
+                () => RecordingFixtureGuard.Arrange(fixture, rect, window, outline), () => window.Result?.Phase == "completed");
+            await window.CurrentOperation;
             var saved = window.Result ?? throw new Exception("The production panel did not save its recording");
             if (saved.Phase != "completed" || !File.Exists(path) || window.RegionWindow is not null)
                 throw new Exception("The production recording panel did not finalize/clear its outline");
-            evidence.Add(new { format, saved });
+            evidence.Add(new { format, saved, tooltip, tooltipWhiteArea, tooltipStartMs, tooltipEndMs, inactiveSingleClicks = new[] { "start", "pause", "resume", "stop" } });
             window.Close();
         }
         File.WriteAllText(Path.Combine(output, "panel-results.json"), JsonSerializer.Serialize(evidence, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
+    }
+    private static async Task VerifyColdPanelHandoff(Form capture, string output)
+    {
+        var settings = new CaptureSettings { OutputDirectory = output };
+        for (var attempt = 0; attempt < 3; attempt++) {
+            Form? shown = null;
+            var lifetime = NativeRecordingWindow.RunAsync(capture, new Rectangle(60, 60, 640, 360), settings, "mp4", "zh-CN", CancellationToken.None, new Engine(), window => shown = window);
+            if (shown is not { Visible: true } || capture.Visible) throw new Exception("Cold recording setup left its frozen screenshot over the panel");
+            shown.Close();
+            if (await lifetime is not null || !capture.Visible) throw new Exception("Canceling recording setup lost the original editor");
+        }
+        try {
+            await NativeRecordingWindow.RunAsync(capture, new Rectangle(60, 60, 640, 360), settings, "mp4", "zh-CN", CancellationToken.None, new Engine(), _ => throw new IOException("Test presentation failure"));
+            throw new Exception("Test startup failure was not surfaced");
+        } catch (IOException) {
+            if (!capture.Visible) throw new Exception("Failed first panel presentation left the editor hidden");
+        }
     }
     private static async Task VerifyActiveOutsideClose(Form capture, string output)
     {

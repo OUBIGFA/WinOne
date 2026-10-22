@@ -54,6 +54,9 @@ internal static class RecordingFixtureGuard
             if (Rectangle.FromLTRB(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom).IntersectsWith(region)) {
                 GetWindowThreadProcessId(window, out var owner);
                 var name = new System.Text.StringBuilder(128); GetClassName(window, name, name.Capacity);
+                // The real native tooltip is intentionally hovered over the
+                // fixture. Permit only our own already-excluded tooltip HWND.
+                if (owner == Environment.ProcessId && WinOne.Capture.NativeUI.RecordingWindowProtection.IsToolTipWindow(window) && GetWindowDisplayAffinity(window, out var tooltipAffinity) && tooltipAffinity == 0x11) continue;
                 throw new InvalidOperationException($"The owned recording fixture is obscured: class={name}, pid={owner}, handle={window}, bounds={bounds.Left},{bounds.Top},{bounds.Right},{bounds.Bottom}, fixture={fixture.Handle}; stop capture");
             }
         }

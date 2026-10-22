@@ -64,6 +64,12 @@ impl Samples {
         }
     }
 }
+// Screen recordings retain physical dimensions and frame timing. Allocate a
+// measured 0.10 bits/pixel/frame instead of the former 0.25 video budget; MF
+// still controls quantization and VFR sample durations, with no frame scaling.
+fn mp4_bitrate(region:Region,fps:u32)->u32 {
+    (u64::from(region.width).saturating_mul(u64::from(region.height)).saturating_mul(u64::from(fps))/10).clamp(1_000_000,80_000_000) as u32
+}
 fn mp4(config:&Config,region:Region,path:&Path,frames:Receiver<Packet>,state:Arc<Shared>,ready:Sender<Result<(),String>>)->Result<(),String>{
     let _apartment=Apartment::new()?;
     let _mf=MediaFoundation::new()?;
@@ -79,7 +85,7 @@ fn mp4(config:&Config,region:Region,path:&Path,frames:Receiver<Packet>,state:Arc
         let video=VideoEncodingProperties::new()?;
         video.SetSubtype(&match config.codec {Codec::H264=>MediaEncodingSubtypes::H264()?,Codec::Hevc=>MediaEncodingSubtypes::Hevc()?})?;
         video.SetWidth(region.width)?;video.SetHeight(region.height)?;
-        video.SetBitrate((region.width as u64*region.height as u64*config.frame_rate() as u64/4).clamp(2_000_000,80_000_000) as u32)?;
+        video.SetBitrate(mp4_bitrate(region,config.frame_rate()))?;
         video.FrameRate()?.SetNumerator(config.frame_rate())?;video.FrameRate()?.SetDenominator(1)?;
         video.PixelAspectRatio()?.SetNumerator(1)?;video.PixelAspectRatio()?.SetDenominator(1)?;
         profile.SetVideo(&video)?;
@@ -122,6 +128,19 @@ fn mp4(config:&Config,region:Region,path:&Path,frames:Receiver<Packet>,state:Arc
     })();
     result.map_err(|e|format!("MP4 编码失败（{:?}）：{e}。请尝试 H.264 或检查显卡驱动。",config.codec))
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn video_budget_preserves_resolution_and_scales_with_selected_fps() {
+        let region=Region{x:0,y:0,width:1920,height:1080};
+        assert_eq!(mp4_bitrate(region,30),6_220_800);
+        assert_eq!(mp4_bitrate(region,60),12_441_600);
+        assert_eq!(mp4_bitrate(Region{width:320,height:200,..region},1),1_000_000);
+        assert_eq!(mp4_bitrate(Region{width:u32::MAX,height:u32::MAX,..region},60),80_000_000);
+    }
+}
+
 pub(crate) struct Apartment;
 impl Apartment {pub(crate) fn new()->Result<Self,String>{unsafe{RoInitialize(RO_INIT_MULTITHREADED)}.map_err(|e|e.to_string())?;Ok(Self)}}
 impl Drop for Apartment {fn drop(&mut self){unsafe{RoUninitialize()}}}

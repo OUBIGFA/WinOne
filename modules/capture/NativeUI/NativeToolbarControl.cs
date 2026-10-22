@@ -266,7 +266,7 @@ internal sealed class NativeToolbarControl : UserControl
         BackColor = Color.White, ForeColor = Color.FromArgb(23, 23, 23),
         Padding = Padding.Empty, ImageScalingSize = new Size(18, 18),
         LayoutStyle = ToolStripLayoutStyle.HorizontalStackWithOverflow,
-        CanOverflow = true, ShowItemToolTips = true,
+        CanOverflow = true, ShowItemToolTips = true, ClickThrough = true,
     };
 
     private void Add(ToolStrip row, string id, string label, string hint)
@@ -327,7 +327,9 @@ internal sealed class NativeToolbarControl : UserControl
     public object DescribeGrip() => new { window = grip.Handle.ToInt64().ToString(),
         x = grip.ClientSize.Width / 2, y = grip.ClientSize.Height / 2 };
 
-    private sealed class GripToolStrip : ToolStrip
+    // ShareX already provides WM_MOUSEACTIVATE click-through; retain it for
+    // annotation/recording entry buttons as well as the dedicated recorder.
+    private sealed class GripToolStrip : ShareX.HelpersLib.ToolStripEx
     {
         private Point? dragPointer;
         private Point dragOrigin;

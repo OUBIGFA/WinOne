@@ -66,6 +66,8 @@ internal static class Program
         Check((config.X, config.Y, config.Width, config.Height) == (-1519, 71, 190, 110), "DPI was applied twice or physical origin changed");
         Check(config.Fps == 15 && config.Quality == 85 && config.Coordinates == "physicalDesktop", "GIF defaults changed");
         try { RecordingConfig.FromSelection(new Rectangle(0, 0, 15, 16), "display", "test.mp4", "mp4", 1); throw new Exception("Tiny region accepted"); } catch (InvalidOperationException) { }
+        VerifyRecordingPlacement();
+        RecordingEffectTests.Run();
         using var toolbar = new NativeToolbarControl(toolbarTools: []);
         var tools = toolbar.Controls.OfType<ToolStrip>().Single(row => row.Name == "capture-tools");
         var names = tools.Items.Cast<ToolStripItem>().Select(item => item.Name).ToArray();
@@ -76,6 +78,23 @@ internal static class Program
         Check(tools.Items["video"]!.Overflow != ToolStripItemOverflow.Always, "User annotation preferences hid the fixed recording action");
         toolbar.SetState(false, false, "text", false, true);
         Check(!tools.Items["video"]!.Enabled && !tools.Items["gif"]!.Enabled, "Recording bypassed text-edit protection");
+    }
+    private static void VerifyRecordingPlacement()
+    {
+        var monitor = new Rectangle(0, 0, 1920, 1080); var size = new Size(430, 300);
+        foreach (var selection in new[] { new Rectangle(300, 650, 600, 400), new Rectangle(0, 0, 500, 900), new Rectangle(1200, 0, 700, 900) }) {
+            var placed = ToolbarPlacement.PlaceRecording(selection, [monitor], size);
+            Check(monitor.Contains(placed) && !selection.IntersectsWith(placed), "Recorder overlaps a selection although another side is free");
+        }
+        var left = new Rectangle(-1920, -100, 1920, 1080);
+        var negative = new Rectangle(-1600, 600, 600, 350);
+        Check(!negative.IntersectsWith(ToolbarPlacement.PlaceRecording(negative, [left], size)), "Negative monitor origin broke recording placement");
+        var nearlyFull = new Rectangle(80, 80, 1760, 920);
+        Check(left.Contains(ToolbarPlacement.PlaceRecording(nearlyFull, [monitor, left], size)), "Recorder ignored another monitor with free space");
+        Check(monitor.Contains(ToolbarPlacement.PlaceRecording(monitor, [monitor], size)), "Fullscreen recorder is outside the visible monitor");
+        var largePanel = new Size(600, 400);
+        var fallback = ToolbarPlacement.PlaceRecording(nearlyFull, [monitor], largePanel);
+        Check(monitor.Contains(fallback), "Insufficient outside space made recording controls unreachable");
     }
     private static async Task Live(NativeRecordingEngine engine, Fixture fixture, string output)
     {

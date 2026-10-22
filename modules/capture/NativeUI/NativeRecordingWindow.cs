@@ -25,7 +25,10 @@ internal sealed class NativeRecordingWindow : Form
     private readonly CheckBox cursor = new() { Checked = true, AutoSize = true, FlatStyle = FlatStyle.Flat };
     private readonly Label status = new() { AutoSize = true, MaximumSize = new Size(440, 0), Margin = new Padding(0, 4, 0, 8), AccessibleRole = AccessibleRole.StaticText };
     private readonly Label detail = new() { AutoSize = true, MaximumSize = new Size(440, 0), Visible = false, Margin = new Padding(0, 0, 0, 12) };
-    private readonly ToolStrip actions = new() { AutoSize = true, GripStyle = ToolStripGripStyle.Hidden, Dock = DockStyle.Top, CanOverflow = false, Padding = Padding.Empty };
+    // ShareX's existing ClickThrough preserves the first click on an inactive
+    // ToolStrip instead of treating it only as window activation.
+    private readonly ShareX.HelpersLib.ToolStripEx actions = new() { ClickThrough = true, ShowItemToolTips = false, AutoSize = true, GripStyle = ToolStripGripStyle.Hidden, Dock = DockStyle.Top, CanOverflow = false, Padding = Padding.Empty };
+    private readonly ToolTip actionHints = new() { ShowAlways = true, UseAnimation = false, UseFading = false };
     private readonly ToolStripButton pin = new(), start = new(), pause = new(), stop = new(), cancel = new(), folder = new();
     private readonly System.Windows.Forms.Timer timer = new() { Interval = 250 };
     private RecordingStatus current = new();
@@ -76,6 +79,23 @@ internal sealed class NativeRecordingWindow : Form
         pauseImage = pause.Image; resumeImage = LoadIcon("resume");
         pause.Visible = stop.Visible = folder.Visible = false;
         actions.Items.AddRange([pin, new ToolStripSeparator(), start, pause, stop, folder, new ToolStripSeparator(), cancel]); theme.Apply(actions);
+        // A tooltip is its own top-level HWND, not part of the protected panel.
+        // Use the native ToolTip's before-show event, never a post-show timer.
+        // ToolStrip sends mouse events to the item under the pointer, not its
+        // own MouseMove handler (WinForms ToolStrip.OnMouseMove). Retain its
+        // native hover timing and show one protected standard ToolTip.
+        foreach (var item in new[] { pin, start, pause, stop, cancel, folder }) {
+            item.MouseHover += (_, _) => {
+                if (!busy && item.Available && item.Enabled)
+                    actionHints.Show(item.ToolTipText, actions, item.Bounds.Left, actions.Height + 4, actionHints.AutoPopDelay);
+            };
+            item.MouseLeave += (_, _) => actionHints.Hide(actions);
+        }
+        actions.MouseLeave += (_, _) => actionHints.Hide(actions);
+        actionHints.Popup += (_, e) => {
+            try { if (!RecordingWindowProtection.ExcludeToolTips()) throw new InvalidOperationException(T("无法保护录制提示窗口。", "The recording tooltip could not be protected.")); }
+            catch (Exception error) { e.Cancel = true; ShowError(error.Message); }
+        };
         pin.Click += (_, _) => SetPinned(!TopMost);
         start.Click += (_, _) => Begin(StartAsync);
         pause.Click += (_, _) => Begin(() => PauseAsync());
@@ -109,6 +129,24 @@ internal sealed class NativeRecordingWindow : Form
         var dark = ShareX.HelpersLib.ShareXResources.Theme.IsDarkTheme ? 1 : 0;
         var result = DwmSetWindowAttribute(Handle, 20, ref dark, sizeof(int));
         if (result < 0) Console.Error.WriteLine($"Recording window theme: 0x{result:X8}");
+    }
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        PlaceControlPanel();
+        ShowRegion();
+    }
+    private void PlaceControlPanel()
+    {
+        PerformLayout();
+        var monitor = Screen.FromRectangle(selection);
+        var areas = new[] { monitor.WorkingArea }.Concat(Screen.AllScreens.Where(screen => screen.DeviceName != monitor.DeviceName).Select(screen => screen.WorkingArea)).ToArray();
+        Bounds = ToolbarPlacement.PlaceRecording(selection, areas, Size);
+    }
+    private void ShowRegion()
+    {
+        regionFrame ??= new NativeRecordingRegion(new Rectangle(selection.X, selection.Y, selection.Width & ~1, selection.Height & ~1));
+        if (!regionFrame.Visible) regionFrame.Show();
     }
     private void SetPinned(bool pinned)
     {
@@ -153,6 +191,7 @@ internal sealed class NativeRecordingWindow : Form
     private void Begin(Func<Task> action)
     {
         if (busy || closing) return;
+        actionHints.Hide(actions);
         busy = true; actions.Enabled = false; options.Enabled = false;
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         operation = completion.Task; // Publish before entering a modal file picker.
@@ -163,7 +202,7 @@ internal sealed class NativeRecordingWindow : Form
         try { await action(); }
         catch (Exception error) {
             ShowError(error.Message);
-            if (!started) { ClearRegion(); RestoreCapture(); }
+            if (!started) ClearRegion();
         } finally {
             busy = false;
             if (!IsDisposed) { actions.Enabled = true; options.Enabled = !started; }
@@ -183,18 +222,19 @@ internal sealed class NativeRecordingWindow : Form
         if (File.Exists(path)) throw new InvalidOperationException(T("文件已存在，请选择其他名称。原文件未改动。", "The file exists. Choose another name; the original is unchanged."));
         // The border encloses the exact even-pixel encoder crop, and stays
         // visible through pause. Its HWND is excluded just like the controls.
-        ClearRegion();
-        regionFrame = new NativeRecordingRegion(new Rectangle(selection.X, selection.Y, selection.Width & ~1, selection.Height & ~1));
+        ShowRegion();
+        // Also protect an existing screenshot-toolbar tooltip before WGC starts.
+        RecordingWindowProtection.ExcludeToolTips();
         var config = RecordingConfig.FromSelection(selection, monitor.DeviceName, path, format, capture.DeviceDpi / 96d) with {
             Fps = (int)fps.Value, Codec = codec.SelectedIndex == 1 ? "hevc" : "h264", Quality = (int)quality.Value,
-            GifMaxSeconds = (int)limit.Value, Cursor = cursor.Checked, ExcludeWindows = [unchecked((ulong)Handle.ToInt64()), unchecked((ulong)capture.Handle.ToInt64()), unchecked((ulong)regionFrame.Handle.ToInt64())],
+            GifMaxSeconds = (int)limit.Value, Cursor = cursor.Checked, ExcludeWindows = [unchecked((ulong)Handle.ToInt64()), unchecked((ulong)capture.Handle.ToInt64()), unchecked((ulong)regionFrame!.Handle.ToInt64())],
         };
         status.Text = T("正在准备录制…", "Preparing recording…"); detail.Visible = false;
         capture.Hide();
         regionFrame.Show();
         var value = await engine.CallAsync("start_recording", config);
         started = value.Active; Apply(value);
-        if (started) timer.Start(); else RestoreCapture();
+        if (started) { PlaceControlPanel(); timer.Start(); }
     }
     private async Task PauseAsync() => Apply(await engine.CallAsync(current.Phase == "paused" ? "resume_recording" : "pause_recording"));
     private async Task FinishAsync(bool discard)
@@ -207,10 +247,11 @@ internal sealed class NativeRecordingWindow : Form
     {
         if (IsDisposed) return;
         current = value;
+        if (value.Phase == "failed") started = false;
         var active = value.Active; var elapsed = TimeSpan.FromMilliseconds(value.DurationMs);
         start.Visible = !started && !active; options.Visible = !started && !active;
         pause.Visible = active; stop.Visible = active;
-        pause.Text = pause.AccessibleName = value.Phase == "paused" ? T("继续", "Resume") : T("暂停", "Pause");
+        pause.Text = pause.AccessibleName = pause.ToolTipText = value.Phase == "paused" ? T("继续", "Resume") : T("暂停", "Pause");
         pause.Image = value.Phase == "paused" ? resumeImage : pauseImage;
         status.Text = $"{format.ToUpperInvariant()} · {(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}" + (value.Phase == "paused" ? T(" · 已暂停", " · Paused") : "");
         if (!active) {
@@ -224,14 +265,15 @@ internal sealed class NativeRecordingWindow : Form
                 detail.Text = $"{value.Path}\n{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00} · {value.Bytes / 1048576d:0.00} MB · {value.EncodedFrames} " + T("帧", "frames") + (reason.Length > 0 ? "\n" + reason : ""); detail.Visible = true;
             } else if (value.Phase == "failed") {
                 ShowError((value.Error ?? T("录制失败，请重试。", "Recording failed. Try again.")) + (value.Path is { } path ? "\n" + T("未完成文件：", "Unfinished file: ") + path : ""));
-                RestoreCapture();
+                // Keep the live panel and retry entry above the desktop. The
+                // caller restores the editor only after this panel closes;
+                // showing its topmost frozen canvas here can cover the panel.
             }
         }
         PerformLayout();
     }
     private void ShowError(string message) { if (IsDisposed) return; detail.Text = message; detail.Visible = true; }
     private void ClearRegion() { regionFrame?.Dispose(); regionFrame = null; }
-    private void RestoreCapture() { if (!capture.IsDisposed && !capture.Visible) { capture.Show(); BringToFront(); } }
     private void OnClosing(object? sender, FormClosingEventArgs e)
     {
         if (closing) return;
@@ -257,19 +299,22 @@ internal sealed class NativeRecordingWindow : Form
         using var window = new NativeRecordingWindow(capture, selection, settings, format, language, engine);
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         window.FormClosed += (_, _) => finished.TrySetResult();
-        window.PerformLayout();
-        window.Bounds = ToolbarPlacement.Place(selection, Screen.FromRectangle(selection).WorkingArea, window.Size);
-        window.Show(); shown?.Invoke(window);
-        using var cancel = cancellation.Register(() => {
-            if (!window.IsDisposed && window.IsHandleCreated) window.BeginInvoke((Action)(async () => { await window.ShutdownAsync(); }));
-        });
-        try { await finished.Task; return window.Result; }
-        finally { if (window.Result is null && !capture.IsDisposed) capture.Show(); }
+        try {
+            // The caller owns restoration even if layout, HWND protection or
+            // first Show fails. Do not leave a disabled topmost screenshot over
+            // a new/failed recording panel during the first cold launch.
+            capture.Hide();
+            window.Show(); shown?.Invoke(window);
+            using var cancel = cancellation.Register(() => {
+                if (!window.IsDisposed && window.IsHandleCreated) window.BeginInvoke((Action)(async () => { await window.ShutdownAsync(); }));
+            });
+            await finished.Task; return window.Result;
+        } finally { if (window.Result is null && !capture.IsDisposed) capture.Show(); }
     }
     protected override void Dispose(bool disposing)
     {
         if (disposing) {
-            timer.Dispose(); ClearRegion();
+            timer.Dispose(); actionHints.Dispose(); ClearRegion();
             pin.Image = null; pinImage?.Dispose(); pinnedImage?.Dispose();
             foreach (var item in new[] { start, stop, cancel, folder }) item.Image?.Dispose();
             pause.Image = null; pauseImage?.Dispose(); resumeImage?.Dispose();

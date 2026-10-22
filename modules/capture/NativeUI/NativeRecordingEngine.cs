@@ -54,6 +54,53 @@ internal sealed record RecordingStatus
 internal static class RecordingWindowProtection
 {
     [DllImport("user32.dll", SetLastError = true)] private static extern bool SetWindowDisplayAffinity(IntPtr window, uint affinity);
+    [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
+    private delegate bool EnumWindowsProc(IntPtr window, IntPtr data);
+    [DllImport("user32.dll")] private static extern bool EnumThreadWindows(uint thread, EnumWindowsProc callback, IntPtr data);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, StringBuilder name, int count);
+    [DllImport("user32.dll", EntryPoint = "GetClassLongW", SetLastError = true)] private static extern uint GetClassStyle(IntPtr window, int index);
+    [DllImport("user32.dll", EntryPoint = "SetClassLongW", SetLastError = true)] private static extern uint SetClassStyle(IntPtr window, int index, uint value);
+
+    internal static bool IsToolTipWindow(IntPtr window)
+    {
+        // WinForms registers a superclass of the common control. Its app-domain
+        // suffix varies between runs; match the actual control type, not a PID
+        // or a truncated class name (dotnet/winforms NativeWindow.WindowClass).
+        var name = new StringBuilder(256);
+        if (GetClassName(window, name, name.Capacity) == 0) return false;
+        var value = name.ToString();
+        return value == "tooltips_class32" || value.StartsWith("WindowsForms10.tooltips_class32.", StringComparison.Ordinal);
+    }
+
+    internal static bool ExcludeToolTips()
+    {
+        // ToolTip.Popup runs after its native HWND exists, before it is painted.
+        // Enumerate only this UI thread, so no user/other-process window changes.
+        var found = false; Exception? failure = null;
+        EnumThreadWindows(GetCurrentThreadId(), (window, _) => {
+            if (!IsToolTipWindow(window)) return true;
+            try {
+                Exclude(window);
+                var name = new StringBuilder(256); GetClassName(window, name, name.Capacity);
+                // CS_DROPSHADOW creates a separate, unprotected SysShadow HWND.
+                // WinForms owns a process-local registered superclass, so remove
+                // its decorative shadow before first show; never alter the
+                // system's global tooltips_class32 class or another process.
+                if (name.ToString().StartsWith("WindowsForms10.tooltips_class32.", StringComparison.Ordinal)) {
+                    var style = GetClassStyle(window, -26);
+                    if ((style & 0x20000) != 0) {
+                        Marshal.SetLastPInvokeError(0);
+                        if (SetClassStyle(window, -26, style & ~0x20000u) == 0 && Marshal.GetLastPInvokeError() != 0)
+                            throw new Win32Exception(Marshal.GetLastPInvokeError(), "无法移除录制提示窗口的阴影。");
+                    }
+                }
+                found = true; return true;
+            }
+            catch (Exception error) { failure = error; return false; }
+        }, IntPtr.Zero);
+        if (failure is not null) throw failure;
+        return found;
+    }
     internal static void Exclude(IntPtr window)
     {
         // Establish protection before Show starts the DWM entrance animation.
