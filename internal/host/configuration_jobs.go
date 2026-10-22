@@ -13,17 +13,22 @@ type ConfigurationJob struct {
 	Response *Response `json:"response,omitempty"`
 }
 
-// ConfigurationQueue keeps long settings transactions out of short pipe calls.
-// It accepts one mutation at a time and retains only a bounded completion history.
+// A stuck volume must not accumulate unlimited goroutines or completion data.
+const maxBackgroundJobs = 16
+
+// ConfigurationQueue keeps slow work out of short pipe calls. Settings changes
+// are exclusive; ordinary filesystem jobs share action admission with Chat and
+// other modules. A slow disk must never put the entire Host into maintenance.
 type ConfigurationQueue struct {
-	mu        sync.Mutex
-	actions   sync.RWMutex
-	next      interface{ Handle(Request) Response }
-	active    bool
-	jobs      map[string]ConfigurationJob
-	completed []string
-	sequence  uint64
-	session   string
+	mu         sync.Mutex
+	actions    sync.RWMutex
+	next       interface{ Handle(Request) Response }
+	active     bool
+	background int
+	jobs       map[string]ConfigurationJob
+	completed  []string
+	sequence   uint64
+	session    string
 }
 
 func NewConfigurationQueue(next interface{ Handle(Request) Response }) *ConfigurationQueue {
@@ -97,8 +102,14 @@ func (q *ConfigurationQueue) Handle(request Request) Response {
 		}
 		return Response{ID: request.ID, Result: data}
 	}
+	// These operations change this tool's own history/files, not the Host's
+	// configuration. Keep their ticket protocol, but never take the global
+	// write lock (AI streams can hold an action lease for minutes).
+	background := false
 	switch request.Method {
-	case "settings.save", "capture.settings.save", "always-on-top.settings.save", "wintray.settings.save", "selection.settings.save", "quick-assistant.settings.save", "stroke.settings.save", "directory-links.create", "directory-links.create.elevated", "directory-links.createBatch", "directory-links.createBatch.elevated", "directory-links.inspectBatch", "directory-links.scan", "directory-links.remove", "directory-links.forget", "directory-links.exportPlan", "directory-links.menu.set", "modules.setEnabled", "modules.recoverConfiguration", "modules.recoverPackage", "modules.installPackage", "modules.updatePackage", "modules.removePackage", "modules.cleanupPackages", "modules.resetWinTray", "profiles.import.apply", "packages.settings.save":
+	case "directory-links.browse", "directory-links.list", "directory-links.preview", "directory-links.previewBatch", "directory-links.create", "directory-links.create.elevated", "directory-links.createBatch", "directory-links.createBatch.elevated", "directory-links.rename", "directory-links.inspect", "directory-links.inspectBatch", "directory-links.scan", "directory-links.remove", "directory-links.forget", "directory-links.forgetInvalid", "directory-links.exportPlan", "directory-links.reveal", "directory-links.menu.set":
+		background = true
+	case "settings.save", "capture.settings.save", "always-on-top.settings.save", "wintray.settings.save", "selection.settings.save", "quick-assistant.settings.save", "stroke.settings.save", "modules.setEnabled", "modules.recoverConfiguration", "modules.recoverPackage", "modules.installPackage", "modules.updatePackage", "modules.removePackage", "modules.cleanupPackages", "modules.resetWinTray", "profiles.import.apply", "packages.settings.save":
 	default:
 		return q.next.Handle(request)
 	}
@@ -107,16 +118,32 @@ func (q *ConfigurationQueue) Handle(request Request) Response {
 		q.mu.Unlock()
 		return fail("configuration_busy", "配置正在保存，请等待完成")
 	}
+	if background {
+		// Bound in-flight filesystem requests, including abandoned UI polls.
+		// Cancellation/status remain direct calls and cannot be queued behind I/O.
+		if q.background >= maxBackgroundJobs || !q.actions.TryRLock() {
+			q.mu.Unlock()
+			return fail("action_busy", "文件操作正在进行，请等待完成后重试")
+		}
+		q.background++
+	} else {
+		// Do not announce maintenance while waiting for a long AI request. A
+		// pending RWMutex writer used to reject every later module action, even
+		// though no configuration had changed. Refuse the save without a ticket
+		// or side effect; existing work and unrelated requests remain usable.
+		if !q.actions.TryLock() {
+			q.mu.Unlock()
+			return fail("configuration_busy", "操作正在进行，暂时无法保存配置；请等待完成后重试")
+		}
+		q.active = true
+	}
 	q.sequence++
 	id := fmt.Sprintf("%s-%d", q.session, q.sequence)
-	q.active = true
 	q.jobs[id] = ConfigurationJob{ID: id, State: "running"}
 	q.mu.Unlock()
 	// Copy caller-owned bytes before returning to the pipe handler.
 	request.Params = append(json.RawMessage(nil), request.Params...)
 	go func() {
-		q.actions.Lock()
-		defer q.actions.Unlock()
 		response := q.next.Handle(request)
 		job := ConfigurationJob{ID: id, State: "completed", Response: &response}
 		if response.Error != nil {
@@ -130,7 +157,13 @@ func (q *ConfigurationQueue) Handle(request Request) Response {
 			delete(q.jobs, q.completed[0])
 			q.completed = q.completed[1:]
 		}
-		q.active = false
+		if background {
+			q.background--
+			q.actions.RUnlock()
+		} else {
+			q.actions.Unlock()
+			q.active = false
+		}
 	}()
 	data, _ := json.Marshal(map[string]string{"configurationJob": id})
 	return Response{ID: request.ID, Result: data}

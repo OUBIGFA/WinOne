@@ -176,7 +176,7 @@ func TestConfigurationJobPreservesFailureCode(t *testing.T) {
 	}
 }
 
-func TestConfigurationWaitsForAdmittedActionAndRejectsNewActions(t *testing.T) {
+func TestConfigurationRejectsWhileActionRunsWithoutBlockingLaterActions(t *testing.T) {
 	store, _ := settings.Open(filepath.Join(t.TempDir(), "settings.json"))
 	service := New(store)
 	applied := make(chan struct{})
@@ -186,26 +186,35 @@ func TestConfigurationWaitsForAdmittedActionAndRejectsNewActions(t *testing.T) {
 	if !allowed {
 		t.Fatal("idle action rejected")
 	}
-	response := queue.Handle(Request{Version: 1, ID: "save", Method: "settings.save", Params: json.RawMessage(`{"schemaVersion":1,"revision":0,"theme":"dark"}`)})
-	if response.Error != nil {
-		release()
-		t.Fatal(response.Error)
+	defer func() { release() }()
+	request := Request{Version: 1, ID: "save", Method: "settings.save", Params: json.RawMessage(`{"schemaVersion":1,"revision":0,"theme":"dark"}`)}
+	response := queue.Handle(request)
+	if response.Error == nil || response.Error.Code != "configuration_busy" || len(response.Result) != 0 {
+		t.Fatal("save must be refused without a ticket or side effect", response)
 	}
-	if later, allowed := queue.AcquireAction(); allowed {
+	if queue.Busy() {
+		t.Fatal("an unadmitted save put the whole Host into maintenance")
+	}
+	if later, ok := queue.AcquireAction(); !ok {
+		t.Fatal("a refused save blocked an unrelated action")
+	} else {
 		later()
-		release()
-		t.Fatal("action admitted during transaction")
 	}
 	select {
 	case <-applied:
-		release()
-		t.Fatal("transaction overtook admitted action")
+		t.Fatal("refused transaction changed settings")
 	default:
 	}
+	// Only an explicit retry after the action ends may apply the settings.
 	release()
+	release = func() {}
+	job := waitConfigurationJob(t, queue, queue.Handle(request))
+	if job.State != "completed" || job.Response == nil || job.Response.Error != nil {
+		t.Fatal("idle retry did not save", job)
+	}
 	select {
 	case <-applied:
-	case <-time.After(3 * time.Second):
-		t.Fatal("transaction did not resume")
+	default:
+		t.Fatal("successful retry did not apply settings")
 	}
 }

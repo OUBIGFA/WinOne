@@ -27,11 +27,17 @@ var readerSlot = make(chan struct{}, 1)
 
 // ReadSelection isolates potentially unresponsive accessibility providers in a
 // one-shot process. Its input is withheld until kill-on-close ownership is set.
+const defaultReaderTimeout = 1500 * time.Millisecond
+
 func ReadSelection(ctx context.Context, executable string, event Event) (Selection, error) {
+	return readSelection(ctx, executable, event, defaultReaderTimeout)
+}
+
+func readSelection(ctx context.Context, executable string, event Event, timeout time.Duration) (Selection, error) {
 	if !filepath.IsAbs(executable) {
 		return Selection{}, errors.New("划词读取程序路径无效")
 	}
-	ctx, cancel := context.WithTimeout(ctx, 1500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	// Rapid keyboard selection replaces pending work without accumulating
 	// accessibility processes. Waiting for the slot is part of the deadline.

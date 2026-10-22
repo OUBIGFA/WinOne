@@ -75,9 +75,32 @@ func TestReaderRejectsSensitivePayloadAndTerminatesHungProcessTree(t *testing.T)
 	if _, err = ReadSelection(ctx, self, event); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatal(err)
 	}
-	data, err := os.ReadFile(pidFile)
+	// The fixed product deadline can expire before a cold test binary reaches
+	// the provider. Verify process-tree cleanup separately: wait until the
+	// fixture publishes its pids, then cancel and require both to exit.
+	cancelCtx, stop := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, readErr := readSelection(cancelCtx, self, event, 10*time.Second)
+		done <- readErr
+	}()
+	var data []byte
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		data, err = os.ReadFile(pidFile)
+		if err == nil || !errors.Is(err, os.ErrNotExist) || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
 	if err != nil {
+		stop()
+		<-done
 		t.Fatal("fixture did not reach external provider", err)
+	}
+	stop()
+	if err = <-done; !errors.Is(err, context.Canceled) {
+		t.Fatal(err)
 	}
 	var pids []int
 	if json.Unmarshal(data, &pids) != nil || len(pids) != 2 {
@@ -95,7 +118,6 @@ func TestReaderRejectsSensitivePayloadAndTerminatesHungProcessTree(t *testing.T)
 		}
 	}
 }
-
 func TestWatcherCanStartStopAndRestart(t *testing.T) {
 	if os.Getenv("WINONE_SELECTION_HOOK_TEST") != "1" {
 		t.Skip("opt in to real global hook lifecycle")
