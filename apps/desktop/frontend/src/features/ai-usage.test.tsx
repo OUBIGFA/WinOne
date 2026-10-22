@@ -39,6 +39,15 @@ it('reads saved API-key balances and preserves named parts, zero and failed comp
  expect(screen.getByText('Wallet',{exact:true})).toBeTruthy();expect(screen.getByText('Credits',{exact:true})).toBeTruthy();
  expect(call).toHaveBeenCalledWith('ai.accounts.quota',{provider:'deepseek',agent:undefined});
 });
+it.each(['https://opencode.ai/console','javascript:alert(1)','file:///private-data'])('preserves an unavailable OpenCode balance and only offers a web console: %s',async seeAt=>{
+ call.mockImplementation(async(method)=>method==='ai.accounts.quota'?{quotas:[{provider:'zen',name:'OpenCode Zen',windows:[],error:'OpenCode tells no API key its balance',seeAt}]}:empty);
+ render(<AIUsage active providers={[{id:'zen',name:'OpenCode Zen',authMode:'api-key',baseUrl:'https://opencode.ai/zen/v1',protocol:'chat',models:[],hasKey:true}]}/>);
+ expect(await screen.findByText(/OpenCode 不通过 API 提供余额/)).toBeTruthy();
+ const link=screen.queryByRole('link',{name:'打开控制台'});
+ if(seeAt.startsWith('https:')){expect(link?.getAttribute('href')).toBe(seeAt);expect(link?.getAttribute('rel')).toContain('noopener');}else expect(link).toBeNull();
+ expect(screen.queryByRole('progressbar')).toBeNull();
+});
+
 afterEach(()=>{cleanup();call.mockReset();});
 
 it("uses the saved allowance display and account masking choices",async()=>{

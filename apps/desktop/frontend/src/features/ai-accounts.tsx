@@ -14,12 +14,12 @@ import {LogIn,RefreshCw,ExternalLink,Check,X,Copy} from "lucide-react";
 type Account={agent:string;user:string;plan?:string;lapsed?:string;icon?:string};
 type SignInMethod={type:"oauth"|"api";label:string;placeholder?:string};
 type SignInPrompt={type:"text"|"select"|"password";key:string;message:string;placeholder?:string;options?:{label:string;value:string;hint?:string}[]};
-type SignIn={id:string;status:{agent:string;url:string;code?:string;state:string;user?:string;error?:string;pasteCallback?:boolean;pasteCode?:boolean;pasteKey?:boolean;keysURL?:string;instructions?:string;prompt?:SignInPrompt};inputError?:string;inputPending?:boolean};
+type SignIn={id:string;status:{agent:string;url:string;code?:string;state:string;user?:string;error?:string;pasteCallback?:boolean;pasteCode?:boolean;pasteKey?:boolean;keysURL?:string;instructions?:string;opened?:boolean;prompt?:SignInPrompt};inputError?:string;inputPending?:boolean};
 const running=(job:SignIn|undefined)=>!!job&&!['done','failed','canceled'].includes(job.status.state);
 
 // A login belongs to this settings window; closing/unmounting cancels it. The
 // vendor's browser page handles passwords, not a WinOne credential text field.
-export function AIAccounts({agent,provider,draft,disabled,onBusy,onLoading,catalog,reader}:{onLoading?:(loading:boolean)=>void;reader?:AccountReader;catalog?:AIAgent[];agent:string;provider?:string;draft?:{agent:string;agentBackend?:string};disabled:boolean;onBusy:(busy:boolean)=>void}){
+export function AIAccounts({hideAccounts=false,agent,provider,draft,disabled,onBusy,onLoading,catalog,reader,signInRequest,onSignInRequestHandled}:{hideAccounts?:boolean;signInRequest?:string;onSignInRequestHandled?:()=>void;onLoading?:(loading:boolean)=>void;reader?:AccountReader;catalog?:AIAgent[];agent:string;provider?:string;draft?:{agent:string;agentBackend?:string};disabled:boolean;onBusy:(busy:boolean)=>void}){
  const {t}=useTranslation();const [loadedAgents,setLoadedAgents]=useState<AIAgent[]>([]);
  // A supplied catalog belongs to the parent, including its initial empty
  // loading state. Fetching it again races the Host's account-operation gate.
@@ -50,13 +50,23 @@ export function AIAccounts({agent,provider,draft,disabled,onBusy,onLoading,catal
  useEffect(()=>{if(!job||!active)return;let live=true;let timer:ReturnType<typeof setTimeout>;
   const poll=async()=>{try{const next=await captureCall<SignIn>("ai.accounts.signin.get",{id:job.id});if(!live)return;updateJob(next);
    const pageKey=`${next.id}:${next.status.url}`;
-   if(running(next)&&next.status.url&&opened.current!==pageKey){opened.current=pageKey;try{await captureCall("ai.accounts.signin.open",{id:next.id});}catch{if(live)setError(t("ai.openLoginFailed"));}}
+   // The plugin's CLI may already have opened this exact authorization page.
+   // Keep manual Open available, but do not launch a duplicate automatically.
+   if(running(next)&&next.status.url&&opened.current!==pageKey){opened.current=pageKey;if(!next.status.opened)try{await captureCall("ai.accounts.signin.open",{id:next.id});}catch{if(live)setError(t("ai.openLoginFailed"));}}
    if(next.status.state==='done'){void loadAccounts(true);return;}
    if(running(next))timer=setTimeout(()=>void poll(),400);
   }catch(e){if(live){setError(String(e));const latest=current.current??job;updateJob({...latest,status:{...latest.status,state:'failed'}});void captureCall("ai.accounts.signin.cancel",{id:job.id}).catch(()=>{});}}};
   timer=setTimeout(()=>void poll(),200);return()=>{live=false;clearTimeout(timer);};
  },[job?.id,active]);
  async function signIn(){const owner=generation.current;reader?.invalidate();setError("");setStarting(true);setLoading(true);setCallback("");setCopied("");try{const next=await captureCall<SignIn>("ai.accounts.signin.start",{agent,...(provider?{provider}:{}),...(draft?{draft}:{}),...(methods.length?{method}:{})});if(owner!==generation.current){void captureCall("ai.accounts.signin.cancel",{id:next.id}).catch(()=>{});return;}updateJob(next);}catch(e){if(owner===generation.current)setError(String(e));}finally{if(owner===generation.current){setLoading(false);setStarting(false);}}}
+ const requested=useRef<string|undefined>(undefined);
+ // The manager's explicit Sign in click continues here once this connection's
+ // methods have loaded. Consume it before starting so rerenders/refreshes do
+ // not authorize twice; ordinary navigation never starts a login.
+ useEffect(()=>{
+  if(!signInRequest||requested.current===signInRequest||method<0||loading||disabled||active||starting)return;
+  requested.current=signInRequest;onSignInRequestHandled?.();void signIn();
+ },[signInRequest,method,loading,disabled,active,starting]);
  async function cancel(){if(!job||action)return;const owner=generation.current;setAction("cancel");try{const next=await captureCall<SignIn>("ai.accounts.signin.cancel",{id:job.id});if(owner===generation.current)updateJob(next);}catch(e){if(owner===generation.current)setError(String(e));}finally{if(owner===generation.current)setAction("");}}
  async function submit(){if(!job||!canSubmit||inputBusy)return;const owner=generation.current;setAction("submit");setError("");try{const next=await captureCall<SignIn>("ai.accounts.signin.submit",{id:job.id,callback});if(owner===generation.current&&next?.id===job.id&&next.status)updateJob(next);}catch(e){if(owner===generation.current)setError(String(e));}finally{if(owner===generation.current)setAction("");}}
  async function copy(value:string,kind:string){setError("");try{await navigator.clipboard.writeText(value);setCopied(kind);}catch{setError(t("ai.copySignInFailed"));}}
@@ -72,7 +82,7 @@ export function AIAccounts({agent,provider,draft,disabled,onBusy,onLoading,catal
   {error&&<Notice>{error}</Notice>}
   {methods.length>1&&<CaptureOptionSelect stacked label={t("ai.signInMethod")} value={method} items={methods.map((choice,index)=>({value:index,label:choice.label}))} disabled={disabled||active||loading} onChange={setMethod}/>}
   <div className="settings-account-summary">
-   {accounts.length?<ul className="settings-stack-compact">{accounts.map(account=><li className="min-w-0" key={account.agent+account.user}><p className="break-all">{account.user}</p>{account.plan&&<p className="muted">{account.plan}</p>}{account.lapsed&&<p>{t("ai.signInAgain")}</p>}</li>)}</ul>:<p className="muted" role="status">{t(loading?"ai.loadingAccounts":error?"ai.accountStatusUnknown":"ai.noAccount")}</p>}
+   {accounts.length?<ul className="settings-stack-compact">{accounts.map((account,index)=><li className="min-w-0" key={account.agent+account.user}><p className="break-all">{hideAccounts?t("usage.maskedAccount",{number:index+1}):account.user}</p>{account.plan&&<p className="muted">{account.plan}</p>}{account.lapsed&&<p>{t("ai.signInAgain")}</p>}</li>)}</ul>:<p className="muted" role="status">{t(loading?"ai.loadingAccounts":error?"ai.accountStatusUnknown":"ai.noAccount")}</p>}
    <div className="settings-actions"><Button icon={LogIn} variant={accounts.length&&!accounts.some(account=>account.lapsed)?"secondary":"primary"} disabled={disabled||active||loading||!agent} onClick={()=>void signIn()}>{t(accounts.length?"ai.reauthenticate":"ai.signIn")}</Button><Button icon={RefreshCw} variant="ghost" disabled={disabled||active||loading} onClick={()=>void loadAccounts(true)}>{t("ai.refreshAccounts")}</Button></div>
   </div>
   {job&&<div className="settings-state-panel">
@@ -80,7 +90,7 @@ export function AIAccounts({agent,provider,draft,disabled,onBusy,onLoading,catal
    {job.status.state==='done'&&<p role="status">{t("ai.signedIn")}</p>}
    {job.status.state==='canceled'&&<p role="status">{t("ai.signInCanceled")}</p>}
    {job.status.state==='failed'&&!job.status.error&&<Notice>{t("ai.signInFailed")}</Notice>}
-   {job.status.error&&<Notice>{job.status.error}</Notice>}
+   {job.status.error&&<Notice>{t('ai.signInFailureDetails',{detail:job.status.error})}</Notice>}
    {active&&job.status.instructions&&<p className="muted">{job.status.instructions}</p>}{job.inputError&&<Notice>{job.inputError}</Notice>}
    {active&&prompt&&<form onSubmit={event=>{event.preventDefault();void submit();}}><Field className="[&>button]:w-auto [&>button]:self-start">
     {prompt.type==="select"?<><CaptureOptionSelect stacked label={prompt.message} value={callback} items={(prompt.options??[]).map(option=>({value:option.value,label:option.label}))} disabled={inputBusy} onChange={value=>{setCallback(value);setChoiceMade(true);}}/>{prompt.options?.find(option=>option.value===callback)?.hint&&<p className="muted">{prompt.options.find(option=>option.value===callback)!.hint}</p>}</>:<><FieldLabel htmlFor="ai-signin-input">{prompt.message}</FieldLabel><Input id="ai-signin-input" type={prompt.type==="password"?"password":"text"} autoComplete="off" spellCheck={false} disabled={inputBusy} placeholder={prompt.placeholder} value={callback} onChange={event=>setCallback(event.target.value)}/></>}

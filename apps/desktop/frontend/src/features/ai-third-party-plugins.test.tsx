@@ -24,6 +24,19 @@ describe('third-party plugin document boundary',()=>{
   act(()=>window.dispatchEvent(new MessageEvent('message',{origin:'http://127.0.0.1:12345',source:frame.contentWindow,data:{type:'winone-plugin-native',id:'open-account',method:'provider',provider:'thirdparty',name:'Third party',plugin:'fixture-package'}})));
   await waitFor(()=>expect(provider).toHaveBeenCalledWith({id:'thirdparty',name:'Third party',backend:'plugin',plugin:'fixture-package'}));
  });
+ it('carries an explicit sign-in through the authenticated native bridge',async()=>{
+  const provider=vi.fn();render(<AIThirdPartyPlugins active disabled={false} onProvider={provider}/>);
+  const frame=await screen.findByTitle('插件') as HTMLIFrameElement;
+  act(()=>window.dispatchEvent(new MessageEvent('message',{origin:'http://127.0.0.1:12345',source:frame.contentWindow,data:{type:'winone-plugin-native',id:'signin',method:'provider',provider:'web-fixture',name:'Web',plugin:'fixture',signIn:true}})));
+  await waitFor(()=>expect(provider).toHaveBeenCalledWith({id:'web-fixture',name:'Web',backend:'plugin',plugin:'fixture'},true));
+ });
+ it('replies to an in-flight native request when settings become locked',async()=>{
+  const provider=vi.fn();render(<AIThirdPartyPlugins active disabled onProvider={provider}/>);
+  const frame=await screen.findByTitle('插件') as HTMLIFrameElement,send=vi.spyOn(frame.contentWindow!,'postMessage');
+  act(()=>window.dispatchEvent(new MessageEvent('message',{origin:'http://127.0.0.1:12345',source:frame.contentWindow,data:{type:'winone-plugin-native',id:'blocked',method:'provider',provider:'web-fixture'}})));
+  await waitFor(()=>expect(send).toHaveBeenCalledWith(expect.objectContaining({id:'blocked',error:'另一个操作正在进行，请稍后重试。'}),'http://127.0.0.1:12345'));
+  expect(provider).not.toHaveBeenCalled();
+ });
  it('refreshes account discovery only for authenticated plugin changes',async()=>{
   const changed=vi.fn();render(<AIThirdPartyPlugins active disabled={false} onChanged={changed} onProvider={()=>{}}/>);
   const frame=await screen.findByTitle('插件') as HTMLIFrameElement;

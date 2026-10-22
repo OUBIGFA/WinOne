@@ -9,7 +9,7 @@ import {pluginPageURL,type PluginPageRequest} from './ai-plugin-extensions';
 
 /** The upstream manager owns installation and immediate plugin operations.
  * Only the authenticated child may ask WinOne for picking or navigation. */
-export function AIThirdPartyPlugins({active,disabled,revision,onProvider,onChanged,pageRequest}:{pageRequest?:PluginPageRequest;active:boolean;disabled:boolean;revision?:number;onProvider:(agent:AIAgent)=>void|Promise<void>;onChanged?:()=>void}){
+export function AIThirdPartyPlugins({active,disabled,revision,onProvider,onChanged,pageRequest}:{pageRequest?:PluginPageRequest;active:boolean;disabled:boolean;revision?:number;onProvider:(agent:AIAgent,signIn?:boolean)=>void|Promise<void>;onChanged?:()=>void}){
  const {t,i18n}=useTranslation(),frame=useRef<HTMLIFrameElement>(null),[url,setURL]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[retry,setRetry]=useState(0),[height,setHeight]=useState(600);
  const callback=useRef(onProvider);callback.current=onProvider;
  const changed=useRef(onChanged);changed.current=onChanged;
@@ -31,16 +31,20 @@ export function AIThirdPartyPlugins({active,disabled,revision,onProvider,onChang
     if(typeof message.height==='number'&&Number.isFinite(message.height)&&message.height>0)setHeight(Math.ceil(message.height));
     return;
    }
-   if(message?.type!=='winone-plugin-native'||typeof message.id!=='string'||disabled)return;
+   if(message?.type!=='winone-plugin-native'||typeof message.id!=='string')return;
    const child=frame.current?.contentWindow;
    try{
+    // An operation already posted before inert was applied must receive an
+    // error, not leave the authenticated child's promise pending forever.
+    if(disabled)throw Error(t('aiPlugins.busyAction'));
     let result:unknown;
     if(message.method==='choose')result=await pickDirectory();
     else if(message.method==='provider'&&typeof message.provider==='string'){
-     await callback.current({id:message.provider,name:typeof message.name==='string'?message.name:message.provider,backend:'plugin',plugin:typeof message.plugin==='string'?message.plugin:undefined});
+     const agent:AIAgent={id:message.provider,name:typeof message.name==='string'?message.name:message.provider,backend:'plugin',plugin:typeof message.plugin==='string'?message.plugin:undefined};
+     if(message.signIn===true)await callback.current(agent,true);else await callback.current(agent);
     }else throw Error(t('aiPlugins.unsupportedAction'));
     child?.postMessage({type:'winone-plugin-native-result',id:message.id,result},origin);
-   }catch(error){child?.postMessage({type:'winone-plugin-native-result',id:message.id,error:String(error)},origin);}
+   }catch(error){child?.postMessage({type:'winone-plugin-native-result',id:message.id,error:error instanceof Error?error.message:String(error)},origin);}
   };
   window.addEventListener('message',receive);return()=>window.removeEventListener('message',receive);
  },[active,url,disabled,t]);

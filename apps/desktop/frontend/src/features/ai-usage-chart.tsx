@@ -19,8 +19,13 @@ export function UsageChart({page,onPick,onDay}:{page:UsagePage;onPick?:(dimensio
   if(!chart.current||!rank.current)return;
   const renderer=createUsageRenderer(i18n.language);
   const draw=()=>{renderer.drawLedColumns(chart.current,page,split,metric,false,onDay,undefined);Object.assign(rank.current!,{chart:chart.current});createUsageRenderer(i18n.language,page.by?.[split]?.length??7).drawLedRank(rank.current,page,split,metric,"",(row:UsageShare)=>onPick?.(split,row.id),false);};
-  draw();const observer=typeof ResizeObserver!=="undefined"?new ResizeObserver(draw):null;observer?.observe(chart.current);
-  return()=>observer?.disconnect();
+  // The upstream renderer replaces its plot and changes the chart height.
+  // React must not redraw that same observed subtree inside RO delivery.
+  // Only width changes require a new plot (the plot height is fixed by CSS).
+  let frame=0,width=chart.current.clientWidth;
+  const resize=()=>{if(!frame)frame=requestAnimationFrame(()=>{frame=0;const next=chart.current?.clientWidth??0;if(next>0&&next!==width){width=next;draw();}});};
+  draw();const observer=typeof ResizeObserver!=="undefined"?new ResizeObserver(resize):null;observer?.observe(chart.current);
+  return()=>{observer?.disconnect();if(frame)cancelAnimationFrame(frame);};
  },[page,metric,split,i18n.language,onPick,onDay]);
  return <section className="settings-group" aria-label={t("usage.trend")}><div className="grid gap-4 sm:grid-cols-2"><CaptureOptionSelect stacked label={t("usage.metric")} value={metric} disabled={false} onChange={setMetric} items={["tokens","cost","calls","speed"].map(value=>({value,label:t("usage."+(value==="tokens"?"tokenTotal":value))}))}/><CaptureOptionSelect stacked label={t("usage.split")} value={split} disabled={false} onChange={setSplit} items={["model","modelAt","provider","agent"].map(value=>({value,label:t("usage."+(value==="tokens"?"tokenTotal":value))}))}/></div><div className="usage-chart-layout"><div className="led-chart" ref={chart}/><div className="led-rank" ref={rank}/></div></section>;
 }

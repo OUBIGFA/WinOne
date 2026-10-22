@@ -6,6 +6,30 @@ import {AIAccounts} from "./ai-accounts";
 const api=vi.hoisted(()=>({captureCall:vi.fn()}));vi.mock("../bridge",()=>api);
 afterEach(()=>{cleanup();vi.clearAllMocks();});
 const catalog={agents:[{id:'codex',name:'ChatGPT / Codex'}]};
+it('shares the global account masking choice without exposing the identity in a tooltip',async()=>{
+ api.captureCall.mockResolvedValue({accounts:[{agent:'codex',user:'private@example.invalid'}],methods:[]});
+ const props={agent:'codex',catalog:catalog.agents,disabled:false,onBusy:()=>{}};
+ const view=render(<AIAccounts {...props} hideAccounts/>);
+ await screen.findByText('账号 1');expect(screen.queryByText('private@example.invalid')).toBeNull();
+ expect(view.container.querySelector('[title="private@example.invalid"]')).toBeNull();
+ view.rerender(<AIAccounts {...props} hideAccounts={false}/>);await screen.findByText('private@example.invalid');
+});
+it('continues an explicit plugin login once after methods load, never on ordinary navigation',async()=>{
+ let resolveList!:(value:any)=>void;const handled=vi.fn();
+ api.captureCall.mockImplementation(async(method:string)=>{
+  if(method==='ai.accounts.list')return new Promise(resolve=>{resolveList=resolve;});
+  return {id:'requested-job',status:{agent:'web-fixture',state:'input',url:'',prompt:{type:'password',key:'api-key',message:'Fixture key'}}};
+ });
+ const props={agent:'web-fixture',provider:'plugin-service',catalog:[{id:'web-fixture',name:'Web fixture'}],disabled:false,onBusy:()=>{}};
+ const view=render(<AIAccounts {...props} signInRequest="click-1" onSignInRequestHandled={handled}/>);
+ expect(api.captureCall.mock.calls.some(([method])=>method==='ai.accounts.signin.start')).toBe(false);
+ await act(async()=>resolveList({accounts:[],methods:[{type:'api',label:'Key'}]}));
+ await screen.findByLabelText('Fixture key');expect(handled).toHaveBeenCalledOnce();
+ view.rerender(<AIAccounts {...props} signInRequest="click-1" onSignInRequestHandled={handled}/>);
+ expect(api.captureCall.mock.calls.filter(([method])=>method==='ai.accounts.signin.start')).toHaveLength(1);
+ expect(api.captureCall).toHaveBeenCalledWith('ai.accounts.signin.start',{agent:'web-fixture',provider:'plugin-service',method:0});
+});
+
 it('uses the plugin login method and keeps authorization keys in a password input',async()=>{
  let submitted:string|undefined;let selectedMethod:number|undefined;
  const status={agent:'cline',state:'input',url:'',prompt:{type:'password',key:'api-key',message:'Cline API key',placeholder:'cr_…'}};
@@ -70,6 +94,18 @@ it('shows and copies a device code for entry on the provider website',async()=>{
  await user.click(screen.getByRole('button',{name:'复制设备码'}));expect(copy).toHaveBeenCalledWith('HFPM-MCLY');
  expect(screen.getByText('在登录页面输入或确认此设备码，完成后会自动更新登录状态。')).toBeTruthy();
  expect(screen.queryByRole('button',{name:'提交'})).toBeNull();
+});
+
+it('does not reopen a plugin CLI authorization page, but keeps explicit reopening available',async()=>{
+ const status={agent:'grok',state:'waiting',url:'https://example.invalid/device',opened:true};
+ api.captureCall.mockImplementation(async(method:string)=>method==='ai.accounts.list'?{accounts:[]}:{id:'opened-job',status});
+ const user=userEvent.setup();render(<AIAccounts agent="grok" provider="grok-account" catalog={[{id:'grok',name:'Grok'}]} disabled={false} onBusy={()=>{}}/>);
+ await user.click(await screen.findByRole('button',{name:'登录'}));
+ await waitFor(()=>expect(api.captureCall).toHaveBeenCalledWith('ai.accounts.signin.get',{id:'opened-job'}));
+ expect(api.captureCall.mock.calls.some(([method])=>method==='ai.accounts.signin.open')).toBe(false);
+ expect((screen.getByLabelText('登录链接') as HTMLInputElement).value).toBe(status.url);
+ await user.click(screen.getByRole('button',{name:'打开登录页面'}));
+ expect(api.captureCall).toHaveBeenCalledWith('ai.accounts.signin.open',{id:'opened-job'});
 });
 
 it('retains rejected authorization input and submits with Enter',async()=>{
