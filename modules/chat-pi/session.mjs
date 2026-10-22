@@ -53,6 +53,12 @@ export async function createWinOneSession(config,{event=()=>{},authorize=async()
   if(signal?.aborted)throw Error("Operation cancelled");
   if(JSON.stringify(args).length>128*1024)throw Error("Tool arguments exceed the reviewable size limit");
   const values={...args};let outside=false,protectedFile=false;
+  if(tool.name==='powershell'){
+   // Pi's default is unbounded. A blocked COM call must eventually produce an
+   // error even without a steer; explicit long commands retain up to 30 min.
+   values.timeout??=300;
+   if(!Number.isFinite(values.timeout)||values.timeout<=0||values.timeout>1800)throw Error('PowerShell timeout must be between 0 and 1800 seconds (exclusive of 0)');
+  }
   if(fileTools.has(tool.name)){
    values.path=await resolvedToolPath(cwd,args.path);
    outside=!inside(cwd,values.path);protectedFile=protectedPaths.some(root=>inside(root,values.path));
@@ -66,7 +72,9 @@ export async function createWinOneSession(config,{event=()=>{},authorize=async()
  // Console encodings alone cannot fix that decoded text. Scope UTF-8 defaults
  // to this command process; an explicit -Encoding still wins for legacy files.
  const powershellUtf8Prefix=["$OutputEncoding=[System.Text.UTF8Encoding]::new($false)","[Console]::InputEncoding=[System.Text.UTF8Encoding]::new($false)","[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false)","$PSDefaultParameterValues['*:Encoding']='utf8'","chcp 65001 > $null"].join("\n");
- const tools=[...([createReadTool(cwd),createWriteTool(cwd),createEditTool(cwd),createLsTool(cwd),createGrepTool(cwd),createFindTool(cwd),createPowerShellTool(cwd,{exposeSessionEnvironment:false,commandPrefix:powershellUtf8Prefix})].map(wrap)),...automationPolicyTools(config)];
+ const shell=createPowerShellTool(cwd,{exposeSessionEnvironment:false,commandPrefix:powershellUtf8Prefix});
+ const boundedShell={...shell,description:shell.description+' WinOne uses a 300-second timeout by default; the maximum is 1800 seconds.',parameters:{...shell.parameters,properties:{...shell.parameters.properties,timeout:{...shell.parameters.properties.timeout,description:'Timeout in seconds (default: 300; maximum: 1800).'}}}};
+ const tools=[...([createReadTool(cwd),createWriteTool(cwd),createEditTool(cwd),createLsTool(cwd),createGrepTool(cwd),createFindTool(cwd),boundedShell].map(wrap)),...automationPolicyTools(config)];
  const modelRuntime=await ModelRuntime.create({credentials:new InMemoryCredentialStore(),modelsStore:new InMemoryModelsStore(),modelsPath:null,refreshOnCreate:false,allowModelNetwork:false});
  const registerModels=models=>modelRuntime.registerProvider("winone",{name:"WinOne AI services",baseUrl:config.baseUrl,apiKey:config.key,api:"openai-completions",models:models.map(model=>({
   id:model.id,name:model.name,reasoning:!!model.reasoning,input:model.vision?["text","image"]:["text"],

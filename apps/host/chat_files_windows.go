@@ -79,10 +79,21 @@ func (c *chatControl) fileAction(method string, raw json.RawMessage) (any, error
 		return c.store.SavePreviewFile(input.ID, input.Path, input.Revision, input.Text)
 	case "file.create":
 		return c.store.CreatePreviewFile(input.ID, input.Path)
-	case "file.open", "file.reveal":
-		path, err := c.store.ResolvePreviewFile(input.ID, input.Path)
+	case "file.open", "file.reveal", "file.resolve":
+		path, err := c.store.ResolveFileAction(input.ID, input.Path)
+		if err != nil {
+			// Successful file tools can grant an exact outside-workspace file.
+			// Reuse that recorded grant, never a renderer-supplied directory.
+			if _, _, reviewErr := c.store.SessionReview(input.ID); reviewErr != nil {
+				return nil, reviewErr
+			}
+			path, err = c.store.ResolveFileAction(input.ID, input.Path)
+		}
 		if err != nil {
 			return nil, err
+		}
+		if method == "file.resolve" {
+			return map[string]string{"path": path}, nil
 		}
 		// Only an explicit desktop action reaches ShellExecute; model-generated
 		// links are previewed internally and cannot launch a program on hover.

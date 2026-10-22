@@ -69,14 +69,39 @@ func (s *Store) AddAttachments(id string, paths []string) ([]Attachment, error) 
 		if len(data) > attachmentByteLimit(data) {
 			return nil, errors.New("图片不得超过 100 MB，其他附件不得超过 20 MB")
 		}
-		target := filepath.Join(c.SessionDirectory, "attachments", rand.Text(), filepath.Base(source))
-		if err = settings.WriteAtomic(target, data); err != nil {
+		file, err := importAttachment(c, filepath.Base(source), data)
+		if err != nil {
 			return nil, err
 		}
-		result = append(result, Attachment{Name: filepath.Base(source), Path: target, Size: int64(len(data)), MimeType: http.DetectContentType(data)})
+		result = append(result, file)
 	}
 	return result, nil
 }
+
+// ImportAttachment accepts bytes from a single-use upload grant. The caller
+// selects only a display filename, never a destination or another session's path.
+func (s *Store) ImportAttachment(id, name string, data []byte) (Attachment, error) {
+	c, err := s.Conversation(id)
+	if err != nil {
+		return Attachment{}, err
+	}
+	return importAttachment(c, name, data)
+}
+
+func importAttachment(c Conversation, name string, data []byte) (Attachment, error) {
+	if name == "" || name == "." || name == ".." || strings.ContainsAny(name, "\\/:\x00") || strings.TrimSpace(name) != name || strings.HasSuffix(name, ".") {
+		return Attachment{}, errors.New("附件名称无效")
+	}
+	if len(data) > attachmentByteLimit(data) {
+		return Attachment{}, errors.New("图片不得超过 100 MB，其他附件不得超过 20 MB")
+	}
+	target := filepath.Join(c.SessionDirectory, "attachments", rand.Text(), name)
+	if err := settings.WriteAtomic(target, data); err != nil {
+		return Attachment{}, err
+	}
+	return Attachment{Name: name, Path: target, Size: int64(len(data)), MimeType: http.DetectContentType(data)}, nil
+}
+
 func validateConversationAttachments(c Conversation, paths []string) error {
 	if len(paths) > 16 {
 		return errors.New("每条消息最多 16 个附件")

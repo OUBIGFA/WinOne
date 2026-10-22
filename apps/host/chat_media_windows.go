@@ -38,10 +38,14 @@ func (c *chatControl) mediaAction(ctx context.Context, method string, raw json.R
 	switch method {
 	case "media.attach":
 		return nil, c.store.AppendMediaDraft(input.ID, input.Files, input.Replace)
-	case "media.upload":
+	case "media.upload", "attachments.upload":
 		address, err := server.OpenUpload(input.ID, func(ctx context.Context, data []byte) (any, error) {
 			if err := ctx.Err(); err != nil {
 				return nil, err
+			}
+			if method == "attachments.upload" {
+				file, err := c.store.ImportAttachment(input.ID, input.Name, data)
+				return map[string]any{"attachment": file}, err
 			}
 			file, err := c.store.ImportMedia(input.ID, input.Name, data)
 			if err != nil {

@@ -17,7 +17,7 @@ async function fixture(t,respond){
    res.writeHead(200,{'Content-Type':'text/event-stream'});
    const send=(delta,finish_reason=null)=>res.write(`data: ${JSON.stringify({id:'fixture',object:'chat.completion.chunk',model:'service/model',choices:[{index:0,delta,finish_reason}]})}\n\n`);
    send({role:'assistant'});
-   if(response.tool){send({tool_calls:[{index:0,id:'tool-'+requests.length,type:'function',function:{name:response.tool,arguments:JSON.stringify(response.args)}}]});send({},'tool_calls');}
+   if(response.tool||response.tools){const tools=response.tools??[response];send({tool_calls:tools.map((tool,index)=>({index,id:tool.id??'tool-'+requests.length+'-'+index,type:'function',function:{name:tool.tool,arguments:JSON.stringify(tool.args)}}))});send({},'tool_calls');}
    else{send({content:response.text??'Done'});send({},'stop');}
    res.write(`data: ${JSON.stringify({id:'fixture',object:'chat.completion.chunk',model:'service/model',choices:[],usage:{prompt_tokens:response.inputTokens??100,completion_tokens:12,total_tokens:(response.inputTokens??100)+12}})}\n\n`);
    res.end('data: [DONE]\n\n');
@@ -220,12 +220,14 @@ test('background compaction does not block a reply and resumes after closing sto
  await agent.session.prompt('Seed earlier context. '.repeat(100));
  const reply=agent.session.prompt('Continue while compacting in the background.').then(()=>{finished=true;});
  await until(()=>summaryCalls===1&&finished);
+ await until(()=>agent.state().backgroundRunning);
  const tasks=await agent.control('tasks');assert.ok(tasks.tasks.some(task=>task.kind==='pi.compaction'&&task.background),'threshold compaction must be conversation-owned background work');
  await reply;const file=agent.state().file;await agent.pause();releaseSummary();
  agent=await createDurableSession({...config,sessionFile:file});assert.equal(agent.state().paused,true);
  await agent.resume(true);
  await until(async()=>{const page=await agent.root.entries({order:'ascending'},500,undefined,context);return page.items.some(entry=>entry.kind==='pi.compaction');});
  assert.equal(summaryCalls,2,'unfinished safe summary must resume after reopening');
+ await until(()=>!agent.state().backgroundRunning);
  await agent.session.prompt('Read the retained checkpoint.');
  assert.ok(f.requests.at(-1).messages.some(message=>JSON.stringify(message.content).includes('RESUMED_BACKGROUND_SUMMARY')));
  assert.ok(agent.session.messages.some(message=>JSON.stringify(message.content??'').includes('Foreground completed while summary was pending.')),'background compaction must preserve the newer reply');
@@ -245,4 +247,84 @@ test('pausing persists pending tasks without replaying an unsafe command after e
  await agent.resume(true);await agent.root.waitForIdle(context);
  assert.equal(agent.state().paused,false);assert.ok(f.requests.length>=2);
  assert.equal((await fs.readFile(path.join(f.cwd,'paused.txt'),'utf8')).match(/ONCE/g).length,1);
+});
+
+// A durable receipt is not delivery: a shell that never returns used to hold
+// the tool boundary forever, even after the UI acknowledged a same-turn steer.
+test('steering reaches the model through a blocked shell without restarting the run or losing follow-ups',{timeout:20000},async t=>{
+ const f=await fixture(t,(_request,index)=>index===1?{tool:'powershell',args:{command:"Add-Content -LiteralPath 'steer-once.txt' -Value 'ONCE'; Start-Sleep -Seconds 60"}}:{text:index===2?'Correction received.':'Queued work received.'});
+ const agent=await createDurableSession(f.config,{authorize:async()=>true});t.after(()=>agent.close());
+ const original=agent.session.prompt('Run the command once.',{requestId:'blocked-original'}).catch(()=>{});
+ await until(async()=>{try{return (await fs.readFile(path.join(f.cwd,'steer-once.txt'),'utf8')).includes('ONCE');}catch{return false;}});
+ await agent.session.prompt('Independent follow-up.',{requestId:'blocked-followup',streamingBehavior:'followUp'});
+ const started=performance.now();let disposition;
+ await agent.session.steer('Do not wait for the command. Inspect the partial result.',{requestId:'blocked-steer',preflightResult:value=>{disposition=value;}});
+ assert.equal(disposition,'steered');
+ await until(()=>f.requests.length>=2);
+ assert.ok(performance.now()-started<5000,'the next model request must not wait for the shell timeout');
+ const next=f.requests[1].messages;
+ assert.ok(next.some(message=>message.role==='user'&&JSON.stringify(message.content).includes('Inspect the partial result')));
+ assert.ok(!next.some(message=>message.role==='user'&&JSON.stringify(message.content).includes('Independent follow-up')),'queued input must retain next-run semantics');
+ assert.ok(next.some(message=>message.role==='tool'&&/abort|interrupt|cancel/i.test(JSON.stringify(message.content))),'the model must see an honest interrupted tool result');
+ await original;await agent.root.waitForIdle(context);
+ assert.equal((await fs.readFile(path.join(f.cwd,'steer-once.txt'),'utf8')).match(/ONCE/g).length,1,'never replay a partially executed command');
+ assert.deepEqual(agent.session.messages.filter(message=>message.role==='user').map(message=>message.content),['Run the command once.','Do not wait for the command. Inspect the partial result.','Independent follow-up.']);
+ assert.equal(f.requests.length,3,'steer must continue, not resend the original model request');
+});
+
+test('steering skips stale sequential calls but allows a corrected round with reused call IDs',{timeout:20000},async t=>{
+ const f=await fixture(t,(_request,index)=>index===1?{tools:[
+  {id:'reused-call',tool:'powershell',args:{command:"Add-Content -LiteralPath 'active.txt' -Value 'ONCE'; Start-Sleep -Seconds 60"}},
+  {id:'not-started',tool:'write',args:{path:'stale.txt',content:'Must not run after the correction'}}
+ ]}:index===2?{id:'reused-call',tool:'write',args:{path:'corrected.md',content:'# Corrected operation'}}:{text:'Followed the new instructions.'});
+ const agent=await createDurableSession(f.config,{authorize:async()=>true});t.after(()=>agent.close());
+ await agent.root.configure({toolExecution:'sequential'},context);
+ const original=agent.session.prompt('Execute this batch.',{requestId:'batch'});
+ await until(async()=>{try{return (await fs.readFile(path.join(f.cwd,'active.txt'),'utf8')).includes('ONCE');}catch{return false;}});
+ await agent.session.steer('Skip the rest of the batch and write corrected.md instead.',{requestId:'correct-batch'});
+ await until(()=>f.requests.length===3);await original;
+ assert.match(JSON.stringify(f.requests[1].messages),/Skipped because the user inserted/);
+ await assert.rejects(fs.stat(path.join(f.cwd,'stale.txt')),{code:'ENOENT'});
+ assert.equal(await fs.readFile(path.join(f.cwd,'corrected.md'),'utf8'),'# Corrected operation');
+ assert.equal((await fs.readFile(path.join(f.cwd,'active.txt'),'utf8')).trim(),'ONCE');
+});
+
+test('a stopped steered run cannot skip a fresh run that reuses its call IDs',{timeout:20000},async t=>{
+ let freshCall=false;
+ const f=await fixture(t,(request,index)=>{
+  if(index===1)return {tools:[{id:'old-shell',tool:'powershell',args:{command:"Add-Content -LiteralPath 'stop-steer.txt' -Value 'ONCE'; Start-Sleep -Seconds 60"}},{id:'reused-next',tool:'write',args:{path:'must-not-run.txt',content:'Old instruction'}}]};
+  if(!freshCall&&request.messages.some(message=>message.role==='user'&&JSON.stringify(message.content).includes('NEW_RUN_AFTER_STOP'))){freshCall=true;return {id:'reused-next',tool:'write',args:{path:'fresh.md',content:'# Fresh run'}};}
+  return {text:'Received.'};
+ });
+ const agent=await createDurableSession(f.config,{authorize:async()=>true});t.after(()=>agent.close());
+ await agent.root.configure({toolExecution:'sequential'},context);
+ const original=agent.session.prompt('Start the old run.').catch(()=>{});
+ await until(async()=>{try{return (await fs.readFile(path.join(f.cwd,'stop-steer.txt'),'utf8')).includes('ONCE');}catch{return false;}});
+ await agent.session.steer('Skip all remaining old calls.');await agent.session.abort();await original;
+ await agent.session.prompt('NEW_RUN_AFTER_STOP: write fresh.md.');
+ assert.equal(await fs.readFile(path.join(f.cwd,'fresh.md'),'utf8'),'# Fresh run');
+ await assert.rejects(fs.stat(path.join(f.cwd,'must-not-run.txt')),{code:'ENOENT'});
+ assert.equal((await fs.readFile(path.join(f.cwd,'stop-steer.txt'),'utf8')).trim(),'ONCE');
+});
+
+test('shell rejects out-of-range deadlines before side effects and accepts the explicit limit',async t=>{
+ const f=await fixture(t,(_request,index)=>index===1?{tools:[
+  ...[-1,0,1801].map((timeout,index)=>({id:'invalid-'+index,tool:'powershell',args:{command:"Add-Content -LiteralPath 'invalid-timeout.txt' -Value 'WRONG'",timeout}})),
+  {id:'maximum',tool:'powershell',args:{command:"Set-Content -LiteralPath 'valid-timeout.txt' -Value 'OK'",timeout:1800}}
+ ]}:{text:'Validated the deadlines.'});
+ const agent=await createDurableSession(f.config,{authorize:async()=>true});t.after(()=>agent.close());
+ await agent.session.prompt('Check deadline limits without executing invalid requests.');
+ const errors=f.requests[1].messages.filter(message=>message.role==='tool'&&JSON.stringify(message.content).includes('PowerShell timeout must be between'));
+ assert.equal(errors.length,3,'each invalid value must reach the model as an honest tool error');
+ await assert.rejects(fs.stat(path.join(f.cwd,'invalid-timeout.txt')),{code:'ENOENT'});
+ assert.equal((await fs.readFile(path.join(f.cwd,'valid-timeout.txt'),'utf8')).trim(),'OK');
+});
+
+test('shell tools advertise a bounded default and return explicit timeouts to the model',{timeout:15000},async t=>{
+ const f=await fixture(t,(_request,index)=>index===1?{tool:'powershell',args:{command:'Start-Sleep -Seconds 60',timeout:.5}}:{text:'The command timed out.'});
+ const agent=await createDurableSession(f.config,{authorize:async()=>true});t.after(()=>agent.close());
+ await agent.session.prompt('Run with a short deadline.');
+ const shell=f.requests[0].tools.find(tool=>tool.function.name==='powershell');
+ assert.match(shell.function.description,/300-second timeout/);assert.match(shell.function.parameters.properties.timeout.description,/1800/);
+ assert.match(JSON.stringify(f.requests[1].messages.filter(message=>message.role==='tool')),/timeout|timed out/i);
 });

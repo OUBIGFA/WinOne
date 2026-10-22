@@ -168,7 +168,7 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		return fail(err)
 	}
 	switch r.Method {
-	case "usage", "project.git", "catalog", "settings.get", "resources", "files", "draft.get", "poll", "state", "stop", "release", "detach", "automations.deleted", "automations.project.read", "automations.connections.get", "automations.templates", "automations.template.apply", "automations.list", "automations.get", "automations.runs", "automations.events", "automations.runtime", "automations.preview":
+	case "usage", "project.git", "catalog", "activity", "settings.get", "resources", "files", "draft.get", "poll", "state", "stop", "release", "detach", "automations.deleted", "automations.project.read", "automations.connections.get", "automations.templates", "automations.template.apply", "automations.list", "automations.get", "automations.runs", "automations.events", "automations.runtime", "automations.preview":
 	default:
 		if c.guard != nil {
 			release, ok := c.guard()
@@ -240,7 +240,7 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		}
 		return result(value)
 	}
-	if strings.HasPrefix(r.Method, "media.") {
+	if strings.HasPrefix(r.Method, "media.") || r.Method == "attachments.upload" {
 		value, err := c.mediaAction(ctx, r.Method, r.Params)
 		if err != nil {
 			return fail(err)
@@ -306,6 +306,8 @@ func (c *chatControl) handle(r host.Request) host.Response {
 	switch r.Method {
 	case "project.git":
 		return c.projectGit(r)
+	case "activity":
+		value = c.engine.Activity()
 	case "catalog":
 		value = c.store.Snapshot()
 	case "settings.get":

@@ -34,24 +34,31 @@ type EventPage struct {
 	Error     string            `json:"error,omitempty"`
 	Approvals []json.RawMessage `json:"approvals"`
 }
+type ConversationActivity struct {
+	Phase     string `json:"phase"`
+	Attention bool   `json:"attention"`
+	Paused    bool   `json:"paused"`
+}
+
 type liveSession struct {
-	gate            chan struct{}
-	mu              sync.Mutex
-	runner          *Runner
-	release         func()
-	owners          map[uint32]bool
-	executionOwners int // Owner zero is a reference-counted scheduler execution lease.
-	events          []Event
-	bytes           int
-	sequence        uint64
-	running, closed bool
-	sessionPaused   bool // Durable scheduling choice, independent of application shutdown.
-	status, failure string
-	initialized     bool
-	modelError      string
-	approvals       map[string]json.RawMessage
-	changed         chan struct{}
-	activeRequest   string
+	gate              chan struct{}
+	mu                sync.Mutex
+	runner            *Runner
+	release           func()
+	owners            map[uint32]bool
+	executionOwners   int // Owner zero is a reference-counted scheduler execution lease.
+	events            []Event
+	bytes             int
+	sequence          uint64
+	running, closed   bool
+	backgroundRunning bool // Live durable children, even after the parent reply settles.
+	sessionPaused     bool // Durable scheduling choice, independent of application shutdown.
+	status, failure   string
+	initialized       bool
+	modelError        string
+	approvals         map[string]json.RawMessage
+	changed           chan struct{}
+	activeRequest     string
 }
 
 var ErrBusy = errors.New("请等待当前任务结束或先停止")
@@ -63,20 +70,94 @@ func (p *liveSession) notifyLocked() {
 	p.changed = make(chan struct{})
 }
 
+type sessionOutcome struct {
+	status, failure string
+	paused          bool
+}
+
 type Service struct {
 	mu            sync.Mutex
 	ctx           context.Context
 	store         *Store
 	options       ServiceOptions
 	sessions      map[string]*liveSession
+	outcomes      map[string]sessionOutcome // Terminal metadata survives retirement, not the worker itself.
 	paused        bool
 	exports       chan struct{}
 	archiveRunner *Runner
 }
 
 func NewService(ctx context.Context, store *Store, options ServiceOptions) *Service {
-	return &Service{ctx: ctx, store: store, options: options, sessions: map[string]*liveSession{}, exports: make(chan struct{}, 1)}
+	return &Service{ctx: ctx, store: store, options: options, sessions: map[string]*liveSession{}, outcomes: map[string]sessionOutcome{}, exports: make(chan struct{}, 1)}
 }
+
+// Activity is a cheap control-plane read. It never acquires a session gate,
+// contacts a worker, loads history or starts unopened conversations.
+func (s *Service) Activity() map[string]ConversationActivity {
+	s.mu.Lock()
+	sessions := make(map[string]*liveSession, len(s.sessions))
+	for id, p := range s.sessions {
+		sessions[id] = p
+	}
+	result := make(map[string]ConversationActivity, len(s.outcomes)+len(sessions))
+	for id, outcome := range s.outcomes {
+		result[id] = (&liveSession{status: outcome.status, failure: outcome.failure, sessionPaused: outcome.paused}).activityLocked()
+	}
+	s.mu.Unlock()
+	for id, p := range sessions {
+		p.mu.Lock()
+		result[id] = p.activityLocked()
+		p.mu.Unlock()
+	}
+	// Prune deleted conversations using in-memory navigation only: no history
+	// reads, worker startup or disk I/O is added to the sidebar poll.
+	if s.store != nil {
+		known := make(map[string]bool)
+		for _, conversation := range s.store.Snapshot().Conversations {
+			known[conversation.ID] = true
+		}
+		s.mu.Lock()
+		for id := range s.outcomes {
+			if !known[id] {
+				delete(s.outcomes, id)
+				delete(result, id)
+			}
+		}
+		s.mu.Unlock()
+	}
+	return result
+}
+
+// Caller owns p.mu. A stopped run is not a failed request even if Pi includes
+// an AbortError diagnostic; pause remains a separate scheduling state.
+func (p *liveSession) activityLocked() ConversationActivity {
+	value := ConversationActivity{Phase: "idle", Paused: p.sessionPaused}
+	switch {
+	case p.status == "stopped":
+		value.Phase = "interrupted"
+	case p.failure != "" || p.status == "failed":
+		value.Phase, value.Attention = "error", true
+	case p.sessionPaused:
+	case len(p.approvals) > 0:
+		value.Phase = "needs-interaction"
+	case p.running || p.backgroundRunning:
+		value.Phase = "running"
+	case p.status == "completed":
+		value.Phase, value.Attention = "completed", true
+	}
+	return value
+}
+
+func (s *Service) newSessionLocked(id string) *liveSession {
+	outcome := s.outcomes[id]
+	p := &liveSession{gate: make(chan struct{}, 1), owners: map[uint32]bool{}, approvals: map[string]json.RawMessage{}, status: outcome.status, failure: outcome.failure, sessionPaused: outcome.paused}
+	if p.status == "" {
+		p.status = "idle"
+	}
+	s.sessions[id] = p
+	return p
+}
+
 func (s *Service) session(id string) (*liveSession, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -117,8 +198,7 @@ func (s *Service) Open(ctx context.Context, id string, owner uint32) (json.RawMe
 			s.mu.Unlock()
 			return nil, errors.New("请关闭一个空闲对话，或等待当前任务结束")
 		}
-		p = &liveSession{gate: make(chan struct{}, 1), owners: map[uint32]bool{}, approvals: map[string]json.RawMessage{}, status: "idle"}
-		s.sessions[id] = p
+		p = s.newSessionLocked(id)
 	}
 	s.mu.Unlock()
 	if err = p.lock(ctx); err != nil {
@@ -213,6 +293,7 @@ func (s *Service) Open(ctx context.Context, id string, owner uint32) (json.RawMe
 			p.mu.Lock()
 			unexpected := !p.closed
 			p.running = false
+			p.backgroundRunning = false
 			if unexpected {
 				p.failure = runner.failure().Error()
 				p.status = "failed"
@@ -314,6 +395,7 @@ func (s *Service) event(id string, p *liveSession, raw json.RawMessage) {
 		Request                 json.RawMessage
 		State                   json.RawMessage
 		Paused                  bool
+		BackgroundRunning       bool
 	}
 	if err := json.Unmarshal(raw, &value); err != nil {
 		return
@@ -331,21 +413,26 @@ func (s *Service) event(id string, p *liveSession, raw json.RawMessage) {
 	p.mu.Lock()
 	switch value.Type {
 	case "durable_state":
+		p.backgroundRunning = value.BackgroundRunning
 		p.sessionPaused = value.Paused
 		if value.Paused {
 			p.running = false
 			p.status = "paused"
 		}
 	case "resumed":
-		var state struct{ Streaming, Paused bool }
+		var state struct{ Streaming, Paused, BackgroundRunning bool }
 		if json.Unmarshal(value.State, &state) == nil {
+			p.backgroundRunning = state.BackgroundRunning
 			p.sessionPaused = state.Paused
 			p.running = state.Streaming
-			p.status = "idle"
 			if state.Streaming {
-				p.status = "running"
+				p.status, p.failure = "running", ""
+			} else if state.Paused {
+				p.status = "paused"
+			} else if p.status == "paused" {
+				p.status = "idle"
 			}
-			p.failure = ""
+			// Reopening an idle runtime must not erase its previous outcome.
 		}
 	case "approval":
 		var request struct{ ID string }
@@ -379,7 +466,7 @@ func (s *Service) event(id string, p *liveSession, raw json.RawMessage) {
 		p.bytes -= len(p.events[0].Data)
 		p.events = p.events[1:]
 	}
-	idle := !p.running && len(p.owners) == 0 && p.executionOwners == 0
+	idle := !p.running && !p.backgroundRunning && len(p.owners) == 0 && p.executionOwners == 0
 	p.notifyLocked()
 	p.mu.Unlock()
 	if idle {
@@ -686,8 +773,7 @@ func (s *Service) configureConversation(ctx context.Context, id string, commit f
 	}
 	p := s.sessions[id]
 	if p == nil {
-		p = &liveSession{gate: make(chan struct{}, 1), owners: map[uint32]bool{}, approvals: map[string]json.RawMessage{}, status: "idle"}
-		s.sessions[id] = p
+		p = s.newSessionLocked(id)
 	}
 	s.mu.Unlock()
 	if err := p.lock(ctx); err != nil {
@@ -799,7 +885,12 @@ func (s *Service) closeIdle(id string, p *liveSession) {
 	}
 	defer p.unlock()
 	p.mu.Lock()
-	idle := !p.running && len(p.owners) == 0 && p.executionOwners == 0 && !p.closed
+	idle := !p.running && !p.backgroundRunning && len(p.owners) == 0 && p.executionOwners == 0 && !p.closed
+	if idle {
+		// Done may fire before retire. Mark an expected close first so it
+		// cannot overwrite a stopped/completed outcome with a pipe failure.
+		p.closed = true
+	}
 	p.mu.Unlock()
 	if !idle {
 		return
@@ -815,6 +906,9 @@ func (s *Service) closeIdle(id string, p *liveSession) {
 		select {
 		case <-p.runner.Done():
 		default:
+			p.mu.Lock()
+			p.closed = false // A failed close remains retryable.
+			p.mu.Unlock()
 			return
 		}
 	}
@@ -823,6 +917,7 @@ func (s *Service) closeIdle(id string, p *liveSession) {
 func (s *Service) retire(id string, p *liveSession) {
 	p.mu.Lock()
 	p.closed = true
+	outcome := sessionOutcome{status: p.status, failure: p.failure, paused: p.sessionPaused}
 	p.notifyLocked()
 	p.mu.Unlock()
 	if p.release != nil {
@@ -831,6 +926,10 @@ func (s *Service) retire(id string, p *liveSession) {
 	}
 	s.mu.Lock()
 	if s.sessions[id] == p {
+		if s.outcomes == nil {
+			s.outcomes = make(map[string]sessionOutcome)
+		}
+		s.outcomes[id] = outcome
 		delete(s.sessions, id)
 	}
 	s.mu.Unlock()

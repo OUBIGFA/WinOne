@@ -52,6 +52,19 @@ func (s *Store) StatFile(id, path string) (FileStat, error) {
 	}
 	return FileStat{Path: path, Name: filepath.Base(path), Size: info.Size(), Modified: info.ModTime().UnixMilli()}, nil
 }
+func (s *Store) ResolveFileAction(id, path string) (string, error) {
+	// Explicit open/reveal/copy actions also accept directories, but retain the
+	// same workspace aliases and exact attachment/resource/tool grants as stat.
+	file, err := s.StatFile(id, path)
+	if err != nil {
+		return "", err
+	}
+	if file.Directory {
+		return file.Path, nil
+	}
+	return s.ResolvePreviewFile(id, file.Path)
+}
+
 func (s *Store) StatFiles(id string, paths []string) ([]FileStatResult, error) {
 	if _, err := s.Conversation(id); err != nil {
 		return nil, err

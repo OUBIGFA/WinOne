@@ -37,6 +37,42 @@ func TestAttachmentsCopyIntoConversationAndRoundTripDraft(t *testing.T) {
 	}
 }
 
+func TestImportAttachmentBytesAreScopedAndBounded(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "profile"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := s.NewConversation("", "", "Upload", ai.Selection{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"", "..", "../escape.txt", `..\escape.txt`, "C:escape", "bad\x00.txt", " trailing.txt", "file."} {
+		if _, err := s.ImportAttachment(c.ID, name, []byte("data")); err == nil {
+			t.Fatalf("accepted invalid name %q", name)
+		}
+	}
+	if _, err := s.ImportAttachment("missing", "file.txt", []byte("data")); err == nil {
+		t.Fatal("accepted missing conversation")
+	}
+	if _, err := s.ImportAttachment(c.ID, "large.txt", make([]byte, attachmentLimit+1)); err == nil {
+		t.Fatal("accepted oversized file")
+	}
+	file, err := s.ImportAttachment(c.ID, "中文 notes.txt", []byte("clipboard bytes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ValidateAttachments(c.ID, []string{file.Path}); err != nil {
+		t.Fatal(err)
+	}
+	if data, err := os.ReadFile(file.Path); err != nil || string(data) != "clipboard bytes" {
+		t.Fatal("import changed bytes", err)
+	}
+	other, _ := s.NewConversation("", "", "Other", ai.Selection{})
+	if err := s.ValidateAttachments(other.ID, []string{file.Path}); err == nil {
+		t.Fatal("accepted another conversation's file")
+	}
+}
+
 func TestAttachmentsRejectDirectoriesAndUnregisteredPromptPaths(t *testing.T) {
 	root := t.TempDir()
 	s, _ := Open(filepath.Join(root, "profile"))

@@ -49,6 +49,17 @@ func TestFileStatsHandleFilesDirectoriesAndMissingHistoryWithoutReadingContents(
 	if err != nil || len(denied) != 1 || denied[0].Error == "" || denied[0].File != nil {
 		t.Fatal("ungranted external file was accepted", denied, err)
 	}
+	for _, path := range []string{"large.bin", "docs"} {
+		resolved, actionErr := store.ResolveFileAction(c.ID, path)
+		if actionErr != nil || resolved != filepath.Join(workspace, path) {
+			t.Fatal("explicit file/directory action lost its scope", resolved, actionErr)
+		}
+	}
+	for _, path := range []string{outside, root, filepath.Join(workspace, "..", "outside.txt"), "deleted.txt"} {
+		if resolved, actionErr := store.ResolveFileAction(c.ID, path); actionErr == nil {
+			t.Fatal("native file action admitted an ungranted or missing path", resolved)
+		}
+	}
 	if _, err = store.StatFiles(c.ID, make([]string, 129)); err == nil {
 		t.Fatal("unbounded metadata batch accepted")
 	}

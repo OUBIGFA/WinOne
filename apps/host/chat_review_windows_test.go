@@ -60,6 +60,17 @@ func TestOrdinaryConversationReviewOpensRecordedFilesThroughHost(t *testing.T) {
 			control.previews.Close()
 		}
 	})
+	// Native open/reveal/copy must discover the exact successful-tool grant
+	// themselves, even before a review or preview has populated that cache.
+	resolveParams, _ := json.Marshal(map[string]string{"id": conversation.ID, "path": output})
+	resolved, err := control.fileAction("file.resolve", resolveParams)
+	if err != nil || resolved.(map[string]string)["path"] != output {
+		t.Fatal("native file action lost the historical tool grant", resolved, err)
+	}
+	externalDirectory, _ := json.Marshal(map[string]string{"id": conversation.ID, "path": root})
+	if _, err = control.fileAction("file.resolve", externalDirectory); err == nil {
+		t.Fatal("exact tool file grant authorized an external directory")
+	}
 	params, _ := json.Marshal(map[string]string{"sessionId": conversation.ID, "scope": "working"})
 	value, err := control.reviewAction(context.Background(), "review.snapshot", params)
 	if err != nil {

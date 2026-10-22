@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {BACKGROUND_CONTEXT as context,withAbortSignal} from '@earendil-works/chord/context';
-import {Harness,createRegistry,defineExtension,defineTool,section,hook,GenerationTask,watchEvents,defineDoc} from '@earendil-works/pi-durable';
+import {Harness,createRegistry,defineExtension,defineTool,section,hook,GenerationTask,ToolTask,LiveDoc,watchEvents,defineDoc} from '@earendil-works/pi-durable';
 import {openNodeSqliteStorage} from '@earendil-works/pi-durable/storage/sqlite/node';
 import {NodeExecutionEnv} from '@earendil-works/pi-durable/env/node';
 import {estimateContextTokens} from '@earendil-works/pi-ai/utils/estimate';
@@ -21,7 +21,7 @@ import {createToolSearchExtension} from '@earendil-works/pi-durable/tool-search'
 import {createCodemodeExtension} from '@earendil-works/pi-durable/codemode';
 import {CodemodeSandbox,loadQuickJSWasm} from '@earendil-works/pi-codemode';
 
-const AdapterDoc=defineDoc({kind:'winone.adapter',version:1,scope:'conversation',history:'latest',fork:'initial',initial:()=>({imported:false,paused:false})});
+const AdapterDoc=defineDoc({kind:'winone.adapter',version:1,scope:'conversation',history:'latest',fork:'initial',initial:()=>({imported:false,paused:false,interruptedCalls:[],interruptedRun:null})});
 const readTools=new Set(['read','ls','grep','find']);
 const textOf=message=>typeof message?.content==='string'?message.content:(message?.content??[]).filter(part=>part.type==='text').map(part=>part.text).join('\n');
 const plain=value=>JSON.parse(JSON.stringify(value));
@@ -59,6 +59,18 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   }}))};
  }
  registry.install(withDiscovery(createToolSearchExtension()));
+ // A steer must reach a model even when this tool round cannot finish. Keep
+ // cancellation intent in the same durable store: sequential calls not started
+ // yet must not execute stale instructions after an active call is interrupted.
+ registry.install(defineExtension({name:'winone.steering',hooks:[hook(ToolTask,{beforeTool:async(call,api,ctx)=>{
+  const state=await api.snapshot(AdapterDoc,api.conversationId,ctx);
+  if(!state?.interruptedCalls?.includes(call.id))return;
+  const live=await api.snapshot(LiveDoc,api.conversationId,ctx);
+  if(state.interruptedRun===live?.run?.taskId)return {block:'Skipped because the user inserted new instructions during this tool round. Read the new input before deciding whether to run this operation.'};
+ }}),hook(GenerationTask,{afterTools:async(_assistant,_results,api,ctx)=>{
+  const state=await api.snapshot(AdapterDoc,api.conversationId,ctx);
+  if(state?.interruptedCalls?.length)await api.commit(async tx=>{const doc=await tx.doc(AdapterDoc,api.conversationId);doc.interruptedCalls=[];doc.interruptedRun=null;},ctx);
+ }})]}));
  // The build explicitly selects shipped resources; source execution keeps the
  // official package paths. A missing bundle resource is an error, not a fallback.
  const bundled=typeof WINONE_CHAT_BUNDLE!=='undefined'&&WINONE_CHAT_BUNDLE;
@@ -264,7 +276,8 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  async function updateExtras(){
   if(!root||!harness||closed)return;
   extra={...extra,subagents:await collaboration.list(harness,root.id),workflow:(await harness.snapshot(WorkflowDoc,root.id,context))??{items:[]},backgroundRunning:false,taskGraph:await taskGraph()};
-  extra.backgroundRunning=extra.subagents.some(agent=>agent.status==='running');
+  const live=await harness.snapshot(LiveDoc,root.id,context);
+  extra.backgroundRunning=extra.subagents.some(agent=>agent.status==='running')||!!live?.compactions?.length;
   send({type:'durable_state',...extra});
  }
  async function taskGraph(){
@@ -323,8 +336,28 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   const wasRunning=streaming;
   const id=options.requestId??randomUUID();
   const content=options.images?.length?[{type:'text',text},...options.images]:text;
+  // Capture this round before admitting the input. Looking up tools afterward
+  // without comparing task identities could interrupt the corrected response.
+  const interrupted=wasRunning&&options.streamingBehavior==='steer'?(await harness.snapshot(LiveDoc,root.id,context))?.tools??[]:[];
   const submission=await root.submit({type:'input',content,requestId:id,whenBusy:options.streamingBehavior??'followUp',...(options.inputReceipt?{entry:{kind:'winone.input',data:{receipt:plain(options.inputReceipt)}}}:{})},context);
   streaming=true;notifiedIdle=false;
+  if(interrupted.some(tool=>tool.status!=='done')){
+   // Control work cannot reject an already-admitted input. Abort only this
+   // tool round, never root.abort(), which would end the run and its inbox.
+   track((async()=>{
+    let tasks=[];
+    await root.commit(async tx=>{
+     const live=await tx.doc(LiveDoc,root.id);
+     if(!live.tools?.some(tool=>tool.taskId!==undefined&&interrupted.some(prior=>prior.taskId===tool.taskId)))return;
+     const pending=live.tools.filter(tool=>tool.status!=='done');
+     const adapter=await tx.doc(AdapterDoc,root.id);
+     adapter.interruptedCalls=pending.map(tool=>tool.callId);
+     adapter.interruptedRun=live.run?.taskId??null;
+     tasks=pending.flatMap(tool=>tool.taskId===undefined?[]:[tool.taskId]);
+    },context);
+    await Promise.all(tasks.map(task=>harness.abortTask(task,context)));
+   })());
+  }
   if(wasRunning){options.preflightResult?.(options.streamingBehavior==='steer'?'steered':'queued');return;}
   options.preflightResult?.('started');
   const settled=await submission.wait(context);
