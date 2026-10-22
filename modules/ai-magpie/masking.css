@@ -1,0 +1,25 @@
+/* Upstream masking widgets, composed with WinOne's flat settings surfaces.
+   Semantic labels, chart interactions, filters and record details are retained. */
+html.winone-masking,.winone-masking body { height:auto;min-height:0;overflow:visible; }
+/* Contain the upstream card's bottom margin in the published iframe height;
+   overflow stays visible instead of clipping content to hide a scrollbar. */
+.winone-masking body { display:flow-root;padding:0; }
+.winone-masking #setPage-privacy { position:static;display:block;min-width:0;padding:0; }
+.winone-masking .mask-obs { padding:0;border:0;border-radius:0;background:none;box-shadow:none; }
+.winone-masking :is(.mo-head,.mo-hero,.mo-sec,.mr-head,.mr-filters) { gap:.75rem;padding:1rem 0;flex-wrap:wrap; }
+.winone-masking .mask-obs::before { content:none; }
+.winone-masking :is(.mo-shield,.mo-hub),.winone-masking .mask-obs.off .mo-shield { background:none;border:0;box-shadow:none;color:var(--fg-2); }
+.winone-masking :is(.mo-sub,.mo-meta,.mo-hint,.mo-chip,.mo-unit,.mo-empty,.mr-row,.mr-none,.mr-kind,.mr-time,.mr-body,.mask-tip) { font-size:.875rem;line-height:1.6; }
+.winone-masking :is(.mo-name,.mr-title) { font-size:1.0625rem;font-weight:600; }
+.winone-masking .mo-num { font-size:2rem;font-weight:500;background:none;-webkit-text-fill-color:var(--fg); }
+.winone-masking #setPage-privacy.recs > :not(.mask-recs) { display:none; }
+.winone-masking :is(.mo-model,.mr-group) { background:none;box-shadow:none;border-radius:0; }
+.winone-masking :is(.mr-row,.mo-chip,.mo-val) { padding:.5rem .75rem;gap:.5rem; }
+.winone-masking :is(.mo-flow,.mo-chart,.mr-route,.mr-body,.mr-vals) { min-width:0;max-width:100%; }
+.winone-masking :is(.mr-snip,.mr-val,.mask-tip .v) { white-space:pre-wrap;overflow-wrap:anywhere; }
+.winone-masking :is(.mo-legend,.mo-values,.mr-vals,.mr-kinds) { flex-wrap:wrap;gap:.5rem; }
+.winone-masking .mr-row { height:auto;min-height:2.75rem;flex-wrap:wrap; }
+.winone-masking :is(.mr-route,.mo-val) { overflow-wrap:anywhere; }
+/* Kinds retain labels and counts rather than using saturated theme colours. */
+.winone-masking { --c1:var(--fg);--c2:var(--fg-2);--c3:var(--settings-muted);--c4:var(--fg);--c5:var(--fg-2);--c6:var(--settings-muted);--c7:var(--fg); }
+@media(max-width:560px){.winone-masking .mo-hero{display:flex;flex-direction:column;align-items:stretch}.winone-masking .mr-route{flex:1 1 65%}.winone-masking .mo-flow{height:auto}.winone-masking .mr-kinds{flex-basis:100%;}}

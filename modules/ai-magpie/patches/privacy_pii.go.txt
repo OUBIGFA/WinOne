@@ -1,0 +1,68 @@
+package pii
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"github.com/yetone/magpie/internal/redact"
+	"io"
+	"net/http"
+	"net/url"
+	"sync/atomic"
+	"time"
+)
+
+// Set only before the worker accepts input. A private Host-owned router runs
+// the actual upstream Find; short-lived request workers use that same model
+// and cache. There is deliberately no native/rules fallback on a failed call.
+// Atomic replacement keeps in-flight masking calls safe while the Host
+// updates the local opt-in or replaces a crashed private model process.
+type winOneFind func([]string) ([][]redact.Found, error)
+
+var winOneRemoteFind atomic.Pointer[winOneFind]
+
+func WinOneUseRemote(address, key string) error {
+	if address == "" && key == "" {
+		winOneRemoteFind.Store(nil)
+		return nil
+	}
+	u, err := url.Parse(address)
+	if err != nil || u.Scheme != "http" || u.Hostname() != "127.0.0.1" || u.Port() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "/api/privacy-model/find" || len(key) < 32 {
+		return errors.New("invalid private masking service")
+	}
+	client := &http.Client{Timeout: 90 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	find := winOneFind(func(texts []string) ([][]redact.Found, error) {
+		raw, err := json.Marshal(map[string]any{"texts": texts})
+		if err != nil {
+			return nil, err
+		}
+		request, err := http.NewRequest(http.MethodPost, address, bytes.NewReader(raw))
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Authorization", "Bearer "+key)
+		request.Header.Set("Content-Type", "application/json")
+		response, err := client.Do(request)
+		if err != nil {
+			return nil, errors.New("the private masking service did not answer; request held back")
+		}
+		defer response.Body.Close()
+		if response.StatusCode != 200 {
+			return nil, errors.New("the local masking model could not answer; request held back")
+		}
+		var found [][]redact.Found
+		if json.NewDecoder(io.LimitReader(response.Body, 16<<20)).Decode(&found) != nil || len(found) != len(texts) {
+			return nil, errors.New("invalid private masking response")
+		}
+		for i, spans := range found {
+			for _, span := range spans {
+				if span.Start < 0 || span.End <= span.Start || span.End > len(texts[i]) {
+					return nil, errors.New("invalid private masking span")
+				}
+			}
+		}
+		return found, nil
+	})
+	winOneRemoteFind.Store(&find)
+	return nil
+}

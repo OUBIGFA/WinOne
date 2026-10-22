@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "upstream": "7dd965ed22e6619c9084f3bca58e444073e8a41c",
+  "scope": "Opt-in download only; model and pf-serve are not bundled in WinOne. Uses upstream verified downloads, native lifecycle, GPU-to-CPU fallback and idle release in the private WinOne runtime cache.",
+  "model": {
+    "repository": "https://huggingface.co/LocalAI-io/privacy-filter-GGUF",
+    "revision": "935d86882f4b5dc6e0eef05aae48ae5ba0a82a7a",
+    "file": "privacy-filter-q8.gguf",
+    "size": 1637572192,
+    "sha256": "80efc1803eda7c095a79741d2008c07e2e0a57b01bac8825fbeb448fd097998c",
+    "license": "Apache-2.0",
+    "baseModel": "openai/privacy-filter",
+    "baseRevision": "7ffa9a043d54d1be65afb281eddf0ffbe629385b",
+    "licenseOrigin": "https://github.com/openai/privacy-filter/blob/main/LICENSE",
+    "licenseGitBlob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+    "notices": [
+      {"file": "licenses/openai-privacy-filter-LICENSE.txt", "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"},
+      {"file": "licenses/privacy-filter-GGUF-935d868-README.md.txt", "sha256": "e1c489d20b4227e405e23a3b6cc3987aab5e06f78734607b982063ba00065f09"}
+    ]
+  },
+  "runtime": {
+    "tag": "pf-v1",
+    "url": "https://github.com/yetone/magpie/releases/download/pf-v1/pf-serve-windows-amd64.zip",
+    "sha256": "dd06aa4e656cbebff348ad3fdfd66eca5f899b244dff65235d47a2c878b49c6c",
+    "source": "native/privacy-filter/build.sh",
+    "dependencies": [
+      {"repository": "https://github.com/localai-org/privacy-filter.cpp", "commit": "735a6c28607ee82afc3a670383f41b55266a3b9a", "license": "MIT", "notice": {"file": "licenses/privacy-filter.cpp-735a6c2-LICENSE.txt", "sha256": "5bb6a4fd51ed9e1261baef28b00d1655975befd91b7f3594ad222674d84b3eda"}},
+      {"repository": "https://github.com/ggml-org/ggml", "commit": "3af5f5760e19a96427f5f7a93b79cbdf3d4b265b", "license": "MIT", "notice": {"file": "licenses/privacy-ggml-3af5f57-LICENSE.txt", "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"}}
+    ]
+  }
+}

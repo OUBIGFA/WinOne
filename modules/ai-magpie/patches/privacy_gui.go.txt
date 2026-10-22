@@ -1,0 +1,27 @@
+package gui
+
+import (
+ "encoding/json"
+ "net/http"
+ "github.com/yetone/magpie/internal/pii"
+ "github.com/yetone/magpie/internal/settings"
+)
+
+// Only registered behind WinOne's per-process capability authentication. No
+// public gateway alias, no prompt log, and no HTML surface inside Routing.
+func WinOnePrivacyHandler() http.Handler {
+ mux:=http.NewServeMux()
+ privacyModelRoutes(mux)
+ mux.HandleFunc("POST /api/privacy-model/find",func(w http.ResponseWriter,r *http.Request){
+  // Browser cookies alone never authorize an inference payload.
+  if r.Header.Get("Authorization")=="" {http.Error(w,"Unauthorized",401);return}
+  if !settings.Load().RedactModel {http.Error(w,"Local masking model is off",409);return}
+  var body struct{Texts []string `json:"texts"`}
+  decoder:=json.NewDecoder(http.MaxBytesReader(w,r.Body,48<<20));decoder.DisallowUnknownFields()
+  if decoder.Decode(&body)!=nil || len(body.Texts)>20000 {http.Error(w,"Invalid masking request",400);return}
+  found,err:=pii.Find(body.Texts)
+  if err!=nil {http.Error(w,"Local masking model did not answer; request held back",503);return}
+  writeJSON(w,found)
+ })
+ return mux
+}
