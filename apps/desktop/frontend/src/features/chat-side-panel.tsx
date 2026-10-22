@@ -9,7 +9,7 @@ import {PanelTabs,PanelMenuItems} from './cindy/panel-ui/PanelTabs';
 import {SegmentedControl} from './cindy/panel-ui/segmented-control';
 import {ChromeIconButton} from './cindy/panel-ui/ChromeIconButton';
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent} from './cindy/panel-ui/dropdown-menu';
-import {Maximize2,Minimize2,MoreHorizontal} from 'lucide-react';
+import {FolderOpen,Maximize2,Minimize2,MoreHorizontal,PanelsTopLeft} from 'lucide-react';
 import {SidebarSimple} from '@phosphor-icons/react';
 import {PanelHome} from './cindy/panel-ui/PanelHome';
 import {MermaidLightboxHost} from './cindy/editor/MermaidLightboxHost';
@@ -30,7 +30,7 @@ import {restorePanelTabs,type ChatPanelTab,type ChatLibraryTab} from './chat-pan
 import type {ChatBrowserAnnotation} from './chat-types';
 import './chat-side-panel.css';
 
-export function ChatSidePanel({id,initialTab,initialTabRequest=0,initialDirectory,initialFile,initialLine,initialReview,onClose,onReference,onComment,onReviewComment,commentMarkerNumbers,onDirtyChange,onDock,dock,visible=true,running=false,lastTurnPaths=[]}:{running?:boolean;lastTurnPaths?:string[];id:string;initialTab:'home'|'files'|'resources'|'review';initialTabRequest?:number;initialFile?:string;initialLine?:number;initialDirectory?:string;initialReview?:{turnId:string;path?:string};onClose:()=>void;onReference:(path:string)=>void;onComment:(item:ChatBrowserAnnotation)=>Promise<void>;commentMarkerNumbers:number[];onReviewComment:(text:string)=>void;onDirtyChange:(value:boolean)=>void;onDock:()=>void;dock:'right'|'bottom';visible?:boolean}){
+export function ChatSidePanel({id,initialTab,initialTabRequest=0,initialDirectory,initialURL,onURLHandled,initialFile,initialLine,initialReview,onClose,onReference,onComment,onReviewComment,commentMarkerNumbers,onDirtyChange,onDock,dock,visible=true,running=false,lastTurnPaths=[]}:{running?:boolean;lastTurnPaths?:string[];id:string;initialTab:'home'|'files'|'resources'|'review';initialTabRequest?:number;initialURL?:string;onURLHandled?:()=>void;initialFile?:string;initialLine?:number;initialDirectory?:string;initialReview?:{turnId:string;path?:string};onClose:()=>void;onReference:(path:string)=>void;onComment:(item:ChatBrowserAnnotation)=>Promise<void>;commentMarkerNumbers:number[];onReviewComment:(text:string)=>void;onDirtyChange:(value:boolean)=>void;onDock:()=>void;dock:'right'|'bottom';visible?:boolean}){
  const {t}=useTranslation();const [state,setState]=useState(()=>restorePanelTabs(id)),[fullscreen,setFullscreen]=useState(false),[pending,setPending]=useState<string>(),[error,setError]=useState('');
  const [libraryMounted,setLibraryMounted]=useState(()=>state.section==='library');
  const handles=useRef(new Map<string,ChatFileHandle>()),dirty=useRef(new Set<string>()),closed=useRef<ChatPanelTab[]>([]);
@@ -43,6 +43,7 @@ export function ChatSidePanel({id,initialTab,initialTabRequest=0,initialDirector
  const [toolActions,setToolActions]=useState<Record<string,DesktopMenuItem[]>>({});
  const registerActions=useCallback((key:string,items:DesktopMenuItem[])=>setToolActions(current=>({...current,[key]:items})),[]);
  useEffect(()=>{
+  if(initialURL){open({id:'browser:'+crypto.randomUUID(),kind:'browser',url:initialURL});onURLHandled?.();return;}
   if(initialFile){openFile(initialFile,initialLine);return;}
   if(initialTab==='files'||initialTab==='resources'){openLibrary(initialTab,initialTab==='files'?initialDirectory:undefined);return;}
   if(initialTab==='review'&&initialReview){open({id:'review:'+initialReview.turnId,kind:'review',turnId:initialReview.turnId,path:initialReview.path,title:t('chat.turnReview')});return;}
@@ -87,9 +88,9 @@ export function ChatSidePanel({id,initialTab,initialTabRequest=0,initialDirector
   if(event.shiftKey&&event.key.toLowerCase()==='g'){event.preventDefault();if(id)add('review');}
   if(event.key.toLowerCase()==='p'){event.preventDefault();add('files');}
  }}>
-  <div className="chat-panel-section-switch"><SegmentedControl value={state.section} role="tablist" aria-label={t('chat.panelSections')} className="chat-panel-major-tabs" fullWidth height={34} optionHeight={32} options={[
-   {value:'library',label:t('chat.panelLibrary'),title:t('chat.panelLibrary'),id:'chat-panel-library-tab','aria-controls':'chat-panel-library'},
-   {value:'tabs',label:t('chat.panelDocuments'),title:t('chat.panelDocuments'),id:'chat-panel-documents-tab','aria-controls':'chat-panel-documents'},
+  <div className="chat-panel-section-switch"><SegmentedControl value={state.section} role="tablist" aria-label={t('chat.panelSections')} className="chat-panel-major-tabs" fullWidth height={28} optionHeight={27} options={[
+   {value:'library',label:<><FolderOpen size={14} aria-hidden/><span>{t('chat.panelLibrary')}</span></>,title:t('chat.panelLibrary'),'aria-label':t('chat.panelLibrary'),id:'chat-panel-library-tab','aria-controls':'chat-panel-library'},
+   {value:'tabs',label:<><PanelsTopLeft size={14} aria-hidden/><span>{t('chat.panelDocuments')}</span></>,title:t('chat.panelDocuments'),'aria-label':t('chat.panelDocuments'),id:'chat-panel-documents-tab','aria-controls':'chat-panel-documents'},
   ]} onValueChange={section=>{if(section==='library')setLibraryMounted(true);setPaneMenuOpen(false);setState(current=>({...current,section}));}}/></div>
   <div id="chat-panel-documents" role="tabpanel" aria-labelledby="chat-panel-documents-tab" hidden={library} className="chat-panel-section">
   <PanelTabs tabs={state.tabs} selected={state.selected} dirty={dirty.current} label={label} full={fullscreen} visible={tabsVisible} onSelect={selected=>setState(current=>({...current,selected}))} onClose={close} onAdd={tool} onFull={()=>setFullscreen(value=>!value)} onHide={onClose} onReorder={ids=>setState(current=>({...current,tabs:ids.map(id=>current.tabs.find(tab=>tab.id===id)!).filter(Boolean)}))} onCloseOthers={keep=>closeMany(state.tabs.filter(tab=>tab.id!==keep).map(tab=>tab.id))} onCloseAll={()=>closeMany(state.tabs.map(tab=>tab.id))} items={paneItems} onPopupOpen={setPaneMenuOpen}/>

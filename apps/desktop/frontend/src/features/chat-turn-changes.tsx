@@ -1,17 +1,31 @@
 // TurnChangesCard / TurnChangeFileRow adapted from Cindy 69661422 (Apache-2.0).
 // The original card, file rows, totals and expand controls use WinOne's Host
 // snapshot instead of maker IPC. Cards stay bound to their turns at the transcript end.
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {ChevronDown,ChevronUp,FileDiff,FileText,Undo2,Redo2} from 'lucide-react';
 import {Button} from '../ui/button';
 import {chatCall} from '../bridge';
 import {useTranslation} from '../i18n';
 import {parseGitDiff} from './cindy/review/diffParser';
-import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger} from '../components/ui/dropdown-menu';
+import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger} from './cindy/panel-ui/dropdown-menu';
+import {activateInlineLinkFromKeyboard,linkMenuPosition} from './cindy/linkInteraction';
 import {copyText} from './clipboard';
 
 type TurnSnapshot={isReversible?:boolean;workspaceState?:string;root:string;revision:string;files:{path:string;status:string}[]};
 export type TurnReview={snapshot:TurnSnapshot;patches:Record<string,string>};
+
+/** One transcript surface, with every recorded turn still reachable. Selecting
+ * history never rewrites or merges snapshots, so undo stays scoped to its turn. */
+export function ChatTranscriptChanges({id,turns,disabled,onReview,onOpen}:{id:string;turns:{turnId:string;title:string;version:string}[];disabled:boolean;onReview:(turnId:string,path?:string)=>void;onOpen:(path:string)=>void}){
+ const {t}=useTranslation(),[selected,setSelected]=useState<string>();
+ const turn=turns.find(turn=>turn.turnId===selected)??turns.at(-1);
+ if(!turn)return null;
+ return <div className="chat-transcript-changes">
+  {turns.length>1&&<label className="chat-change-turn-select"><span>{t('chat.changeRecords')}</span><select aria-label={t('chat.changeRecords')} value={turn.turnId} onChange={event=>setSelected(event.target.value)}>{turns.map((value,index)=><option key={value.turnId} value={value.turnId}>{t('chat.changeRecord',{number:index+1})}{value.title?` · ${value.title}`:''}</option>)}</select></label>}
+  <ChatTurnChanges key={id+':'+turn.turnId} id={id} turnId={turn.turnId} version={turn.version} disabled={disabled} onReview={path=>onReview(turn.turnId,path)} onOpen={onOpen}/>
+ </div>;
+}
+
 export function ChatTurnChanges({id,turnId,version,disabled=false,onReview,onOpen}:{id:string;turnId:string;version:string;disabled?:boolean;onReview:(path?:string)=>void;onOpen?:(path:string)=>void}){
  const {t}=useTranslation(),[data,setData]=useState<TurnReview>(),[expanded,setExpanded]=useState(false),[error,setError]=useState(''),[applying,setApplying]=useState(false);
  useEffect(()=>{let alive=true;setError('');void chatCall<TurnReview>('review.turn',{sessionId:id,turnId}).then(value=>{if(alive)setData(value);}).catch(error=>{if(alive)setError(String(error));});return()=>{alive=false;};},[id,turnId,version]);
@@ -38,6 +52,9 @@ export function ChatTurnChanges({id,turnId,version,disabled=false,onReview,onOpe
  </section>;
 }
 function TurnFileRow({path,additions,deletions,onReview,onOpen,action}:{path:string;additions:number;deletions:number;onReview:()=>void;onOpen:()=>void;action:(method:string)=>void}){
- const {t}=useTranslation(),[menu,setMenu]=useState(false);
- return <DropdownMenu open={menu} onOpenChange={setMenu}><DropdownMenuTrigger render={<button type="button" title={path} className="flex h-7 w-full items-center gap-2 rounded-md px-2 text-left transition-colors hover:bg-[var(--muted)]" onClick={event=>{event.preventDefault();onReview();}} onContextMenu={event=>{event.preventDefault();setMenu(true);}}/>}><FileText size={15} className="shrink-0 text-muted-foreground"/><span className="min-w-0 flex-1 truncate text-sm">{path}</span><span className="shrink-0 whitespace-nowrap font-mono text-xs tabular-nums"><span className="text-[var(--diff-add-fg)]">+{additions}</span>{' '}<span className="text-[var(--diff-del-fg)]">−{deletions}</span></span></DropdownMenuTrigger><DropdownMenuContent className="chat-row-menu"><DropdownMenuItem onClick={onReview}>{t('chat.reviewViewChanges')}</DropdownMenuItem><DropdownMenuItem onClick={onOpen}>{t('chat.reviewOpenFile')}</DropdownMenuItem><DropdownMenuItem onClick={()=>action('copy')}>{t('chat.copyPath')}</DropdownMenuItem><DropdownMenuItem onClick={()=>action('file.reveal')}>{t('chat.revealFile')}</DropdownMenuItem><DropdownMenuItem onClick={()=>action('file.open')}>{t('chat.openSystem')}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
+ const {t}=useTranslation(),[menu,setMenu]=useState<{x:number;y:number}|null>(null),row=useRef<HTMLButtonElement>(null);
+ // A file row is not a dropdown trigger. Cindy's fixed menu anchor keeps
+ // primary activation (review) independent from the context-menu gesture.
+ return <><button ref={row} type="button" title={path} className="flex h-7 w-full items-center gap-2 rounded-md px-2 text-left transition-colors hover:bg-[var(--muted)]" onClick={onReview} onKeyDown={activateInlineLinkFromKeyboard} onContextMenu={event=>{event.preventDefault();event.stopPropagation();setMenu(linkMenuPosition(event));}}><FileText size={15} className="shrink-0 text-muted-foreground"/><span className="min-w-0 flex-1 truncate text-sm">{path}</span><span className="shrink-0 whitespace-nowrap font-mono text-xs tabular-nums"><span className="text-[var(--diff-add-fg)]">+{additions}</span>{' '}<span className="text-[var(--diff-del-fg)]">−{deletions}</span></span></button>
+ <DropdownMenu open={menu!==null} onOpenChange={open=>{if(!open)setMenu(null);}}><DropdownMenuTrigger asChild><span aria-hidden tabIndex={-1} data-fixed-menu-anchor style={{position:'fixed',left:menu?.x??0,top:menu?.y??0,width:0,height:0,pointerEvents:'none'}}/></DropdownMenuTrigger><DropdownMenuContent className="chat-row-menu" onCloseAutoFocus={event=>{event.preventDefault();row.current?.focus({preventScroll:true});}}><DropdownMenuItem onSelect={onReview}>{t('chat.reviewViewChanges')}</DropdownMenuItem><DropdownMenuItem onSelect={onOpen}>{t('chat.reviewOpenFile')}</DropdownMenuItem><DropdownMenuItem onSelect={()=>action('copy')}>{t('chat.copyPath')}</DropdownMenuItem><DropdownMenuItem onSelect={()=>action('file.reveal')}>{t('chat.revealFile')}</DropdownMenuItem><DropdownMenuItem onSelect={()=>action('file.open')}>{t('chat.openSystem')}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></>;
 }

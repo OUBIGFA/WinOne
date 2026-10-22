@@ -13,7 +13,15 @@
 .msg-markdown table{width:100%;table-layout:fixed;border-collapse:collapse}
 .msg-markdown :is(th,td){min-width:0;overflow-wrap:anywhere;word-break:break-word}
 .msg-markdown img{max-width:100%;height:auto}
-.msg-markdown .katex-display{max-width:100%;overflow-x:auto;overflow-y:hidden}
+.msg-markdown .katex-display{max-width:100%;overflow:visible}
+.msg-markdown .chat-math-fit{min-width:0;width:100%}
+.msg-markdown .chat-math-intrinsic{display:flow-root;width:max-content;margin-inline:auto}
+.msg-markdown .chat-math-intrinsic .katex-display{max-width:none}
+/* Every textual overflow source wraps; fitting math/diagrams retain all glyphs.
+   Hiding a scrollbar alone would leave content unreachable. */
+.msg-markdown :is(pre,.overflow-x-auto){min-width:0;max-width:100%;overflow-x:hidden}
+.msg-markdown :is(video,svg){max-width:100%}
+.msg-markdown pre :is(code,.whitespace-pre){white-space:pre-wrap;overflow-wrap:anywhere}
 .msg-markdown .diff-hscroll{overflow-x:hidden}
 .msg-markdown .diff-hscroll pre{width:auto}
 .msg-markdown .diff-hscroll pre>div>span:last-child{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}

@@ -1,6 +1,6 @@
 import "./ai-model-menu.css";
 import {useEffect,useRef,useState} from "react";
-import {Bot,Brain,ChevronDown,ChevronRight,Check,FolderOpen,Gauge,Minimize2,Plus,LoaderCircle,Paperclip,FileText,Volume2,VolumeX,Wrench,X} from "lucide-react";
+import {Bot,Brain,ChevronDown,ChevronRight,Check,FolderOpen,Gauge,Minimize2,MoreHorizontal,Play,Plus,LoaderCircle,Paperclip,FileText,Volume2,VolumeX,Wrench,X} from "lucide-react";
 import {useTranslation} from "../i18n";
 import {Button} from "../ui/button";
 import {Popover,PopoverTrigger,PopoverContent} from "../components/ui/popover";
@@ -23,6 +23,8 @@ import type {AIProvider,AISelection} from "./ai-configuration";
 import {ChatTasks} from "./chat-tasks";
 import {ChatAgents} from "./chat-agents";
 import type {ChatTaskGraph,Approval,ChatPermission,ChatContextUsage,ChatSubagent,ChatUsage} from "./chat-state";
+import {composerTransferFiles,hasComposerFiles} from './cindy/composerFileTransfer';
+import {droppedTextPaths} from '../ui/path-drop';
 import type {ChatAttachment} from "./chat-types";
 
 export function ChatApproval({request,busy,onRespond,onStop}:{request:Approval;busy:boolean;onRespond:(allow:boolean,scope:"once"|"session")=>void;onStop:()=>void}){
@@ -53,8 +55,8 @@ const compactCount=(value:number)=>value>=1_000_000?(value/1_000_000).toFixed(1)
 // Thinking level, fast mode, usage, compaction, sound and subagent status are
 // composer-adjacent session controls; every action runs through the Host so
 // the durable session stays the single source of truth.
-export function ChatComposer({text,onText,onSend,onStop,running,busy,inputLocked=busy,stopping=false,providers,model,permission,onModel,onPermission,onLocation,location,saving,attachments=[],onAttach,onRemoveAttachment,onTools,conversationId="",thinkingLevel="",fastMode=false,onThinkingLevel,onFastMode,contextUsage,usage,onCompact,soundEnabled=true,onSoundToggle,subagents=[],onStopSubagent,paused=false,taskGraph,onPause,onResume}:{
- text:string;onText:(value:string)=>void;onSend:(deliveryMode?:ChatDeliveryMode)=>void;onStop:()=>void;running:boolean;busy:boolean;inputLocked?:boolean;stopping?:boolean;providers:AIProvider[];model:AISelection;permission:ChatPermission;onModel:(value:AISelection)=>void;onPermission:(value:ChatPermission)=>void;onLocation?:()=>void;location?:string;saving?:boolean;attachments?:ChatAttachment[];onAttach?:()=>void;onRemoveAttachment?:(path:string)=>void;onTools?:(tab:"files"|"resources")=>void;conversationId?:string;thinkingLevel?:string;fastMode?:boolean;onThinkingLevel?:(value:string)=>void;onFastMode?:(value:boolean)=>void;contextUsage?:ChatContextUsage;usage?:ChatUsage;onCompact?:()=>void;soundEnabled?:boolean;onSoundToggle?:()=>void;paused?:boolean;taskGraph?:ChatTaskGraph;onPause?:()=>void;onResume?:()=>void;subagents?:ChatSubagent[];onStopSubagent?:(name:string)=>void;
+export function ChatComposer({text,onText,onSend,onStop,onResizeIntent,running,busy,inputLocked=busy,stopping=false,providers,model,permission,onModel,onPermission,onLocation,location,saving,attachments=[],onAttach,onImportFiles,onImportPaths,onImportError,onRemoveAttachment,onTools,conversationId="",thinkingLevel="",fastMode=false,onThinkingLevel,onFastMode,contextUsage,usage,onCompact,soundEnabled=true,onSoundToggle,subagents=[],onStopSubagent,paused=false,taskGraph,onPause,onResume}:{
+ text:string;onResizeIntent?:()=>void;onText:(value:string)=>void;onSend:(deliveryMode?:ChatDeliveryMode)=>void;onStop:()=>void;running:boolean;busy:boolean;inputLocked?:boolean;stopping?:boolean;providers:AIProvider[];model:AISelection;permission:ChatPermission;onModel:(value:AISelection)=>void;onPermission:(value:ChatPermission)=>void;onLocation?:()=>void;location?:string;saving?:boolean;attachments?:ChatAttachment[];onAttach?:()=>void;onImportFiles?:(files:File[],clipboard?:boolean)=>void;onImportPaths?:(paths:string[])=>void;onImportError?:(error:unknown)=>void;onRemoveAttachment?:(path:string)=>void;onTools?:(tab:"files"|"resources")=>void;conversationId?:string;thinkingLevel?:string;fastMode?:boolean;onThinkingLevel?:(value:string)=>void;onFastMode?:(value:boolean)=>void;contextUsage?:ChatContextUsage;usage?:ChatUsage;onCompact?:()=>void;soundEnabled?:boolean;onSoundToggle?:()=>void;paused?:boolean;taskGraph?:ChatTaskGraph;onPause?:()=>void;onResume?:()=>void;subagents?:ChatSubagent[];onStopSubagent?:(name:string)=>void;
 }){
  const {t}=useTranslation();const input=useRef<HTMLTextAreaElement>(null),selectedModel=useRef<HTMLButtonElement>(null);
  const thinkingKey=thinkingLevel?"chat.thinking_"+thinkingLevel:"chat.thinkingAuto";
@@ -74,27 +76,51 @@ export function ChatComposer({text,onText,onSend,onStop,running,busy,inputLocked
  // Cindy treats every selected file as message content. A file-only prompt
  // must therefore remain sendable even when it has no browser annotation.
  const canSend=!!text.trim()||attachments.length>0;
- const provider=providers.find(value=>value.id===model.provider),providerName=provider?.name??model.provider,modelName=provider&&model.model?modelLabel(provider,model.model,t("ai.free")):model.model||t("chat.chooseModel");
- const canSubmit=canSend&&!!provider?.models.includes(model.model);
+ // A removed model is not a usable selection. Keep historical call metadata
+ // in the transcript, but never leave a stale provider/model in the composer.
+ const provider=providers.find(value=>value.id===model.provider&&value.models.includes(model.model)),providerName=provider?.name??'',modelName=provider?modelLabel(provider,model.model,t("ai.free")):t("chat.chooseModel");
+ const canSubmit=canSend&&!!provider;
  // Cindy ChatInput's two slots: Send owns the rightmost position. While it is
  // dispatching or there is no draft, Stop replaces it without shifting tools.
  const mainSlotIsStop=running&&(busy||!canSend),showSecondaryStop=running&&canSend&&!busy;
+ const mutationLocked=busy||paused||inputLocked;
+ // Snapshot DOM Files while the browser still grants access. Prefer native
+ // paths on Windows, but never also upload their duplicate bitmap/file entry.
+ function paste(event:React.ClipboardEvent<HTMLDivElement>){
+  const transfer=event.clipboardData;
+  if(mutationLocked){event.preventDefault();return;}
+  if(!hasComposerFiles(transfer)&&transfer.getData('text/plain'))return;
+  if(!onImportFiles||!onImportPaths)return;
+  event.preventDefault();
+  let files:File[];try{files=composerTransferFiles(transfer,true);}catch(error){onImportError?.(error);return;}
+  onImportFiles(files,true);
+ }
+ function drop(event:React.DragEvent<HTMLDivElement>){
+  if(event.defaultPrevented)return;
+  if(!onImportFiles||!onImportPaths)return;
+  event.preventDefault();event.stopPropagation();if(mutationLocked)return;
+  try{const files=composerTransferFiles(event.dataTransfer);if(files.length)onImportFiles(files);else{const paths=droppedTextPaths(event.dataTransfer);if(paths.length)onImportPaths(paths);}}catch(error){onImportError?.(error instanceof Error&&error.message==='fileDrop.localOnly'?Error(t(error.message)):error);}
+ }
  return <>
-  <ComposerFrame newConversation={!!onLocation} editor={input} content={text} attachmentCount={attachments.length}>
+  <div style={{display:'contents'}} onPaste={paste} onDrop={drop} onDragOver={event=>{if(hasComposerFiles(event.dataTransfer)){event.preventDefault();event.dataTransfer.dropEffect=mutationLocked?'none':'copy';}}}>
+  <ComposerFrame onResizeIntent={onResizeIntent} newConversation={!!onLocation} editor={input} content={text} attachmentCount={attachments.length}>
    <ComposerAttachments id={conversationId} attachments={attachments} onRemove={path=>onRemoveAttachment?.(path)} disabled={busy||paused}/>
-   <ListComposerTextarea ref={input} maxLength={100000} aria-label={t("chat.message")} placeholder={t("chat.placeholder")} value={text} disabled={inputLocked} onChange={event=>onText(event.target.value)} onDragOver={event=>{if(event.dataTransfer.types.includes(FILE_REFERENCE_MIME)){event.preventDefault();event.dataTransfer.dropEffect="copy";}}} onDrop={event=>{const path=event.dataTransfer.getData(FILE_REFERENCE_MIME);if(path&&!busy){event.preventDefault();event.stopPropagation();onText(text+(text?"\n":"")+"@"+path);}}} onKeyDown={event=>{const intent=resolveComposerEnterIntent({...event.nativeEvent,key:event.key,shiftKey:event.shiftKey,altKey:event.altKey,ctrlKey:event.ctrlKey,metaKey:event.metaKey,repeat:event.repeat,isComposing:event.nativeEvent.isComposing||event.keyCode===229},'enter',{turnRunning:running,platform:'win32'});if(intent==='ignore'){event.preventDefault();return;}if(intent==='queue'||intent==='steer'){event.preventDefault();if(canSubmit&&!paused&&!busy)onSend(intent==='steer'?'steer':undefined);}}}/>
+   <ListComposerTextarea ref={input} maxLength={100000} aria-label={t("chat.message")} placeholder={t("chat.placeholder")} value={text} disabled={inputLocked} onChange={event=>onText(event.target.value)} onDragOver={event=>{if(event.dataTransfer.types.includes(FILE_REFERENCE_MIME)){event.preventDefault();event.dataTransfer.dropEffect="copy";}}} onDrop={event=>{const path=event.dataTransfer.getData(FILE_REFERENCE_MIME);if(path&&!mutationLocked){event.preventDefault();event.stopPropagation();onText(text+(text?"\n":"")+"@"+path);}}} onKeyDown={event=>{const intent=resolveComposerEnterIntent({...event.nativeEvent,key:event.key,shiftKey:event.shiftKey,altKey:event.altKey,ctrlKey:event.ctrlKey,metaKey:event.metaKey,repeat:event.repeat,isComposing:event.nativeEvent.isComposing||event.keyCode===229},'enter',{turnRunning:running,platform:'win32'});if(intent==='ignore'){event.preventDefault();return;}if(intent==='queue'||intent==='steer'){event.preventDefault();if(canSubmit&&!paused&&!busy)onSend(intent==='steer'?'steer':undefined);}}}/>
    <div className="chat-composer-toolbar">
     <div className="chat-composer-tools">
     <DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon" icon={Plus} aria-label={t("chat.attachments")} disabled={busy||paused}/>}/><DropdownMenuContent side="top" className="chat-row-menu"><DropdownMenuItem disabled={!onAttach} onClick={onAttach}><Paperclip/>{t("chat.uploadAttachment")}</DropdownMenuItem><DropdownMenuItem disabled={!onTools} onClick={()=>onTools?.("files")}><FileText/>{t("chat.insertFile")}</DropdownMenuItem><DropdownMenuItem disabled={!onTools} onClick={()=>onTools?.("resources")}><Wrench/>{t("chat.toolsAvailable")}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
     <PermissionSelector vendorKey="pi" permissionMode={permission} disabled={busy||running||paused} onPermissionModeChange={mode=>{if(mode==="bypassPermissions"&&permission!==mode)setFullConfirm(true);else onPermission(mode);}}/>
     {onThinkingLevel&&<DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="chat-pill" icon={Brain} aria-label={t("chat.thinkingLevel")+" · "+t(thinkingKey)} disabled={busy||running||paused}/>}><span>{t(thinkingKey)}</span></DropdownMenuTrigger><DropdownMenuContent side="top" align="start" className="chat-row-menu">{thinkingLevels.map(level=><DropdownMenuItem key={level||"auto"} onClick={()=>{if(level!==thinkingLevel)onThinkingLevel(level);}}>{t(level?"chat.thinking_"+level:"chat.thinkingAuto")}{level===thinkingLevel&&<span className="chat-model-check"><Check size={14}/></span>}</DropdownMenuItem>)}{onFastMode&&<DropdownMenuCheckboxItem checked={fastMode} onCheckedChange={value=>onFastMode(!!value)}>{t("chat.fastMode")}</DropdownMenuCheckboxItem>}</DropdownMenuContent></DropdownMenu>}
-    {onCompact&&<Button variant="ghost" size="icon" icon={Minimize2} aria-label={t("chat.compact")} disabled={busy||running||paused} onClick={onCompact}/>}
-    <ChatTasks graph={taskGraph} paused={paused} running={running} busy={busy} onPause={onPause} onResume={onResume}/>
+    {(onCompact||onSoundToggle||taskGraph?.total||running||paused)&&<Popover><PopoverTrigger render={<Button variant="ghost" size="icon" icon={MoreHorizontal} aria-label={t('chat.sessionTools')}/>}/><PopoverContent side="top" align="start" className="chat-session-controls">
+     {onCompact&&<Button variant="ghost" icon={Minimize2} disabled={busy||running||paused} onClick={onCompact}>{t('chat.compact')}</Button>}
+     {onSoundToggle&&<Button variant="ghost" icon={soundEnabled?Volume2:VolumeX} aria-pressed={soundEnabled} disabled={busy} onClick={onSoundToggle}>{t(soundEnabled?'chat.disableSound':'chat.enableSound')}</Button>}
+     <ChatTasks graph={taskGraph} paused={paused} running={running} busy={busy} onPause={onPause}/>
+    </PopoverContent></Popover>}
+    {paused&&onResume&&<Button variant="ghost" size="sm" icon={Play} disabled={busy} onClick={onResume}>{t('chat.resumeTask')}</Button>}
     <ChatAgents conversationId={conversationId} agents={subagents} busy={busy} paused={paused} onStop={onStopSubagent}/>
     </div><div className="chat-composer-model-actions">
     {usageView&&<Popover><PopoverTrigger render={<Button variant="ghost" size="icon" icon={Gauge} aria-label={t("chat.contextUsage")+" · "+Math.round(usageView.percent)+"%"} disabled={busy}/>}/><PopoverContent side="top" align="end" className="chat-usage-panel"><dl><div><dt>{t("chat.contextUsage")}</dt><dd>{compactCount(usageView.tokens)} / {compactCount(usageView.window)}</dd></div><div><dt>{t("chat.usageInput")}</dt><dd>{compactCount(usageView.input)}</dd></div><div><dt>{t("chat.usageOutput")}</dt><dd>{compactCount(usageView.output)}</dd></div><div><dt>{t("chat.usageCacheRead")}</dt><dd>{compactCount(usageView.cacheRead)}</dd></div><div><dt>{t("chat.usageCacheWrite")}</dt><dd>{compactCount(usageView.cacheWrite)}</dd></div><div><dt>{t("chat.usageTotal")}</dt><dd>{compactCount(usageView.totalTokens)}</dd></div><div><dt>{t("chat.usageCost")}</dt><dd>{usageView.costKnown?usageView.cost.toFixed(4):t("chat.usageCostUnknown")}</dd></div></dl></PopoverContent></Popover>}
-    {onSoundToggle&&<Button variant="ghost" size="icon" icon={soundEnabled?Volume2:VolumeX} aria-label={t(soundEnabled?"chat.disableSound":"chat.enableSound")} aria-pressed={soundEnabled} disabled={busy} onClick={onSoundToggle}/>}
-    <Popover open={modelsOpen} onOpenChange={openModels}><PopoverTrigger render={<button data-slot="cindy-model" type="button" className="chat-model-trigger" disabled={busy||running||paused} aria-label={t("chat.model")} title={providerName?`${providerName} · ${modelName}`:modelName}/>}><AIProviderIcon icon={provider?.avatar||provider?.icon}/>{providerName&&<><span className="chat-provider-name">{providerName}</span><span aria-hidden="true">·</span></>}<span className="chat-model-name">{modelName}</span>{provider&&model.model&&<AIModelBadge provider={provider} id={model.model}/>}<ChevronDown size={14}/></PopoverTrigger>
+    <Popover open={modelsOpen} onOpenChange={openModels}><PopoverTrigger render={<button data-slot="cindy-model" type="button" className="chat-model-trigger" disabled={busy||running||paused} aria-label={t("chat.model")} title={providerName?`${providerName} · ${modelName}`:modelName}/>}>{provider?<AIProviderIcon icon={provider.avatar||provider.icon}/>:<Bot size={15}/>}{providerName&&<><span className="chat-provider-name">{providerName}</span><span aria-hidden="true">·</span></>}<span className="chat-model-name">{modelName}</span>{provider&&model.model&&<AIModelBadge provider={provider} id={model.model}/>}<ChevronDown size={14}/></PopoverTrigger>
      <PopoverContent side="top" align="end" className="ai-model-menu chat-model-menu"><input autoFocus aria-label={t("chat.searchModels")} placeholder={t("chat.searchModels")} value={search} onChange={event=>setSearch(event.target.value)}/><ScrollArea disableContentFit viewportProps={{className:"chat-model-viewport"}}><div role="listbox" aria-label={t("chat.model")}>{providers.map(p=>{
       const matches=p.models.filter(id=>(p.name+" "+id+" "+p.modelNames?.[id]).toLowerCase().includes(search.toLowerCase()));const expanded=!!search||!collapsedProviders.has(p.id);return matches.length>0&&<section key={p.id}><h4><button type="button" className="chat-model-group" aria-label={p.name} aria-expanded={expanded} onClick={()=>setCollapsedProviders(current=>{const next=new Set(current);if(next.has(p.id))next.delete(p.id);else next.add(p.id);return next;})}><AIProviderIcon icon={p.avatar||p.icon}/><span className="chat-model-label">{p.name}</span><small>{matches.length}</small>{expanded?<ChevronDown size={13}/>:<ChevronRight size={13}/>}</button></h4>{expanded&&matches.map(id=><button key={id} ref={model.provider===p.id&&model.model===id?selectedModel:undefined} type="button" role="option" aria-selected={model.provider===p.id&&model.model===id} onClick={()=>{onModel({provider:p.id,model:id});setModelsOpen(false);}}><AIModelIcon model={id} name={p.modelNames?.[id]}/><span className="chat-model-label">{modelLabel(p,id)}</span><AIModelBadge provider={p} id={id}/><span className="chat-model-check" aria-hidden="true">{model.provider===p.id&&model.model===id&&<Check size={14}/>}</span></button>)}</section>;
      })}</div></ScrollArea>{!providers.some(p=>p.models.length)&&<p>{t("chat.modelUnavailable")}</p>}</PopoverContent>
@@ -107,6 +133,7 @@ export function ChatComposer({text,onText,onSend,onStop,running,busy,inputLocked
     </div>
    </div>
   </ComposerFrame>
+  </div>
   {location&&<p className="chat-composer-location"><FolderOpen size={13}/><span title={location}>{location}</span></p>}
   <Dialog open={fullConfirm} onOpenChange={setFullConfirm}><DialogContent><DialogTitle>{t("chat.fullTitle")}</DialogTitle><DialogDescription>{t("chat.fullDescription")}</DialogDescription><DialogFooter><Button onClick={()=>setFullConfirm(false)}>{t("chat.cancel")}</Button><Button variant="primary" onClick={()=>{setFullConfirm(false);onPermission("bypassPermissions");}}>{t("chat.enableFull")}</Button></DialogFooter></DialogContent></Dialog>
  </>;

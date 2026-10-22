@@ -57,7 +57,12 @@ export function SegmentedControl<T extends string>({
     y: number;
     width: number;
     height: number;
+    animate: boolean;
   } | null>(null);
+  // Equal-width options can use CSS fractions: resize then has no stale pixel
+  // measurement and only changing the selected option triggers a transition.
+  const fractional=fullWidth&&!prefix;
+  const measuredSelection=useRef(value);
   const selectedIndex = options.findIndex((option) => option.value === value);
   const entry =
     selectedIndex >= 0 && !options[selectedIndex].disabled
@@ -66,7 +71,10 @@ export function SegmentedControl<T extends string>({
 
   // Re-measure on selection, label/font changes and container resize (including hidden panels).
   useLayoutEffect(() => {
-    const measure = () => {
+    if(fractional)return;
+    const selectionChanged=measuredSelection.current!==value;
+    measuredSelection.current=value;
+    const measure = (animate=false) => {
       const button = value === null ? undefined : buttons.current.get(value);
       const next =
         button && button.offsetWidth > 0
@@ -75,6 +83,7 @@ export function SegmentedControl<T extends string>({
               y: button.offsetTop,
               width: button.offsetWidth,
               height: button.offsetHeight,
+              animate,
             }
           : null;
       setPlate((previous) =>
@@ -86,12 +95,12 @@ export function SegmentedControl<T extends string>({
           : next,
       );
     };
-    measure();
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    measure(selectionChanged);
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(()=>measure(false));
     if (root.current) observer?.observe(root.current);
     buttons.current.forEach((button) => observer?.observe(button));
     return () => observer?.disconnect();
-  }, [value, options]);
+  }, [value, options, fractional]);
 
   return (
     <div
@@ -109,14 +118,21 @@ export function SegmentedControl<T extends string>({
         } as CSSProperties
       }
     >
-      {plate && (
+      {(fractional?selectedIndex>=0:plate) && (
         <span
           aria-hidden="true"
-          className="cindy-segmented-plate"
-          style={{
-            transform: `translate(${plate.x}px, ${plate.y}px)`,
-            width: plate.width,
-            height: plate.height,
+          className={cn('cindy-segmented-plate',fractional&&'cindy-segmented-plate--fractional')}
+          style={fractional?{
+            left:'var(--segmented-inset)',
+            top:'var(--segmented-inset)',
+            width:`calc((100% - 2 * var(--segmented-inset) - ${options.length-1} * var(--segmented-gap)) / ${options.length})`,
+            height:'var(--segmented-option-height)',
+            transform:`translateX(calc(${selectedIndex*100}% + ${selectedIndex} * var(--segmented-gap)))`,
+          }:{
+            transform: `translate(${plate!.x}px, ${plate!.y}px)`,
+            width: plate!.width,
+            height: plate!.height,
+            transition:plate!.animate?undefined:'none',
           }}
         />
       )}

@@ -4,7 +4,7 @@ import {act,fireEvent,within,cleanup,render,screen,waitFor} from '@testing-libra
 import userEvent from '@testing-library/user-event';
 import {ChatPage} from './chat';
 const native=vi.hoisted(()=>({call:vi.fn(),ai:vi.fn()}));
-vi.mock('../bridge',()=>({chatCall:native.call,captureCall:native.ai,setFileDropTarget:vi.fn(async()=>{})}));
+vi.mock('../bridge',()=>({inspectDroppedPaths:async(paths:string[])=>paths.map(path=>({path,kind:'file'})),chatCall:native.call,captureCall:native.ai,setFileDropTarget:vi.fn(async()=>{})}));
 afterEach(()=>{cleanup();vi.resetAllMocks();localStorage.clear();});
 const conversation={id:'history',title:'Existing history',directory:'C:/fixture',sessionDirectory:'C:/fixture/history',model:{provider:'local',model:'model'},permission:'ask',createdAt:'2026-10-11',updatedAt:'2026-10-11'};
 // Streaming text may be split into Cindy fade spans. Assert the complete

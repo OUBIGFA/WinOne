@@ -38,8 +38,8 @@
 .chat-user-text--collapsed{max-height:16.5em;overflow:hidden}
 .chat-user-body .chat-user-disclosure{font-size:12px;min-height:24px;padding:3px 0;color:var(--desktop-color-text-muted);background:transparent;border:0;gap:4px;font-weight:400}
 .chat-answer-content{display:flex;min-width:0;flex-direction:column;gap:20px}
-.chat-conversation-message--user .chat-answer-content{gap:0}
-.chat-desktop-surface .desktop-conversation-message--user>div:first-child{background:color-mix(in srgb,var(--foreground) 3%,var(--background))}
+.desktop-conversation-message--user .chat-answer-content{gap:0}
+.chat-desktop-surface .desktop-conversation-message--user .chat-message-bubble{background:color-mix(in srgb,var(--foreground) 3%,var(--background))}
 /* Preserve each existing process level, stepping its emphasis down once. */
 .chat-work-process{--text-primary:var(--muted-foreground);--text-secondary-mid:color-mix(in srgb,var(--muted-foreground) 86%,var(--background));--msg-tool-card-text:var(--text-primary);--msg-tool-card-chevron:var(--text-secondary-mid);--thinking-body-text:var(--text-secondary-mid);--agent-actions-rail:color-mix(in srgb,var(--muted-foreground) 14%,transparent)}
 .chat-work-process .chat-markdown{--desktop-color-text:var(--muted-foreground);color:var(--muted-foreground);font-size:14px;line-height:1.65}
@@ -49,6 +49,15 @@
 .chat-project-create-option input{accent-color:var(--primary)}
 .chat-work-entry pre,.chat-tool-payload pre{max-height:none;overflow:visible;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font:13px/1.6 var(--app-font-code-default)}
 .chat-tool-payload{min-width:0;overflow-wrap:anywhere}
+.chat-tool-file-preview,.chat-tool-document{min-width:0;max-width:100%}
+.chat-tool-file-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;color:var(--muted-foreground);font-size:12px}
+.chat-tool-file-actions>span{flex:1;min-width:100px;overflow-wrap:anywhere}
+.chat-tool-document pre{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.6 var(--app-font-code-default)}
+.chat-tool-raw{margin-top:20px;border-top:1px solid var(--border);padding-top:10px}
+.chat-tool-raw>summary{display:flex;align-items:center;gap:6px;list-style:none;cursor:pointer;font-size:12px;color:var(--muted-foreground);padding-block:4px}
+.chat-tool-raw>summary::-webkit-details-marker{display:none}
+.chat-tool-raw[open]>summary>svg{transform:rotate(90deg)}
+.chat-tool-dialog [data-slot=dialog-title]{overflow-wrap:anywhere}
 .chat-tool-payload-label{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--msg-tool-card-chevron);font:12px/1.5 var(--app-font-ui-default)}
 .chat-tool-payload-label>[data-slot=button]{min-height:24px;width:24px;padding:3px}
 .chat-tool-dialog{width:min(760px,calc(100vw - 32px))!important;max-width:760px!important;max-height:85vh;overflow:hidden;background:color-mix(in srgb,var(--background) 96%,var(--muted))!important;border-color:color-mix(in srgb,var(--border) 70%,transparent)!important}

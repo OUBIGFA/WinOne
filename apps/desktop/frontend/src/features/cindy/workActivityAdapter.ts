@@ -7,7 +7,7 @@ export type {ProjectedThinkingActivity} from "./shared/workActivityProjection";
 
 /** Pi data is normalized at this boundary. Cindy owns activity grouping and
  * command interpretation; the adapter never executes a described command. */
-export interface WorkMessage extends WorkActivityMessageLike {isError?:boolean;role?:string}
+export interface WorkMessage extends WorkActivityMessageLike {isError?:boolean;role?:string;toolResultValue?:unknown}
 export type ProjectedToolActivity=SharedTool<WorkMessage>;
 export type ProjectedWorkActivity=SharedActivity<WorkMessage>;
 export const projectWorkActivities=(items:readonly ProjectableWorkChild<WorkMessage>[],running:boolean)=>projectAll(items,running);

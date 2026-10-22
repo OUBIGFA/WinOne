@@ -1,7 +1,9 @@
 import type {AISelection} from "./ai-configuration";
 export type ChatPermission="ask"|"auto"|"bypassPermissions";
 export interface ChatProject{id:string;name:string;path:string;permission?:ChatPermission}
-export interface Conversation{id:string;projectId?:string;title:string;directory:string;sessionDirectory:string;sessionFile?:string;model:AISelection;permission:ChatPermission;thinkingLevel?:string;fastMode?:boolean;archived?:boolean;pinned?:boolean;createdAt:string;updatedAt:string}
+export interface Conversation{id:string;projectId?:string;title:string;directory:string;sessionDirectory:string;sessionFile?:string;model:AISelection;permission:ChatPermission;thinkingLevel?:string;fastMode?:boolean;archived?:boolean;pinned?:boolean;hasMessages?:boolean;createdAt:string;updatedAt:string}
+export interface ChatActivity{phase:'idle'|'running'|'interrupted'|'needs-interaction'|'completed'|'error';attention:boolean;paused?:boolean}
+export type ChatActivities=Record<string,ChatActivity>;
 export interface ChatCatalog{projects:ChatProject[];conversations:Conversation[]}
 export interface MessagePart{type:string;text?:string;thinking?:string;id?:string;name?:string;arguments?:Record<string,unknown>;thinkingStartedAt?:number;thinkingDurationMs?:number}
 export interface ChatChangedFile{path:string;name:string;status:string;modified?:number;size?:number;patch?:string}

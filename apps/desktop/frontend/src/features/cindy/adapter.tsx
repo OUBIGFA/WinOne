@@ -18,7 +18,7 @@ export function useTranslation(){
   if(key==="newChat.sendButton.stop")return t("chat.stop");
   if(key==="chat.thinking.completed")return t("chat.thoughtFor",options);
   if(key==="chat.thinking.aborted")return t("chat.thoughtStoppedFor",options);
-  const workKeys:Record<string,string>={"chat.workGroup.workDetails":"chat.processDetails","chat.workGroup.working":"chat.processWorking","chat.workGroup.worked":"chat.processWorked","chat.workGroup.exploration.read":"chat.processRead","chat.workGroup.exploration.search":"chat.processSearch","chat.workGroup.exploration.list":"chat.processList","chat.errorBanner.retry":"chat.retry"};
+  const workKeys:Record<string,string>={"chat.workGroup.workDetails":"chat.processDetails","chat.workGroup.working":"chat.processWorking","chat.workGroup.worked":"chat.processWorked","chat.workGroup.exploration.read":"chat.processRead","chat.workGroup.exploration.search":"chat.processSearch","chat.workGroup.exploration.list":"chat.processList","chat.errorBanner.retry":"chat.retry","chat.planPill.step":"chat.planStep","chat.planPill.dismiss":"chat.planDismiss"};
   if(workKeys[key])return t(workKeys[key],options);
   return String(options?.defaultValue??t(key,options));
  },[t]);

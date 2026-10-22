@@ -19,6 +19,8 @@ export const tableMenuLabelsFacet = Facet.define<TableMenuLabels, TableMenuLabel
 });
 
 const tableMenuCleanup = new WeakMap<HTMLElement, () => void>();
+const tableColumnCleanup = new WeakMap<HTMLElement, () => void>();
+const tableColumnWidths = new WeakMap<Element, number[]>();
 
 export interface MarkdownTableCell {
   text: string;
@@ -440,6 +442,21 @@ class MarkdownTableWidget extends WidgetType {
       });
     });
 
+    // A pure calc()/min() width on <col> is treated as auto by table layout in
+    // Chromium. Keep ordinary percentages and recompute the readable minimum
+    // when the real pane width changes, without editing the stored Markdown.
+    if (typeof ResizeObserver !== 'undefined') {
+      let frame = 0, previousWidth = -1;
+      const observer = new ResizeObserver(entries => {
+        const width = entries[0]?.contentRect.width ?? 0;
+        if (width === previousWidth) return;
+        previousWidth = width;
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => applyColumnWidths(wrapper, tableColumnWidths.get(wrapper) ?? this.block.model.sourceWidths));
+      });
+      observer.observe(wrapper);
+      tableColumnCleanup.set(wrapper, () => { observer.disconnect(); cancelAnimationFrame(frame); });
+    }
     return wrapper;
   }
 
@@ -449,6 +466,9 @@ class MarkdownTableWidget extends WidgetType {
 
   destroy(dom: HTMLElement): void {
     closeTableMenus(dom);
+    tableColumnCleanup.get(dom)?.();
+    tableColumnCleanup.delete(dom);
+    tableColumnWidths.delete(dom);
   }
 
   eq(other: MarkdownTableWidget): boolean {
@@ -1498,10 +1518,20 @@ function findRenderedPosition(
 }
 
 function applyColumnWidths(root: Element, widths: number[]): void {
+  if (!widths.length) return;
+  tableColumnWidths.set(root, widths);
   const total = widths.reduce((sum, width) => sum + Math.max(3, width), 0);
+  const available = root.clientWidth;
+  const fontSize = Number.parseFloat(getComputedStyle(root).fontSize) || 14;
+  const minimum = available > 0 ? Math.min(1 / widths.length, 4 * fontSize / available) : 1 / widths.length;
+  const remaining = Math.max(0, 1 - minimum * widths.length);
   root.querySelectorAll<HTMLTableColElement>('col').forEach((col, index) => {
     const width = Math.max(3, widths[index] ?? 3);
-    col.style.width = `${(width / total) * 100}%`;
+    // Source-length ratios alone squeeze a short CJK header below one glyph
+    // next to a long URL. Reserve readable space, then retain the original
+    // weights for the remaining allocation and the upstream drag interaction.
+    const percentage = `${(minimum + remaining * width / total) * 100}%`;
+    if (col.style.width !== percentage) col.style.width = percentage;
   });
   const table = root.querySelector<HTMLTableElement>('table');
   if (table) {

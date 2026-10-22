@@ -1,13 +1,19 @@
 // Cindy MarkdownRenderer routing adapted to WinOne's scoped file-preview bridge.
-import {createContext,useContext,useEffect,useState,type ReactNode} from 'react';
+import {FileTargetChip} from './cindy/FileTargetChip';
+import {createContext,useContext,useEffect,useState,type MouseEvent,type ReactNode} from 'react';
 import {chatCall} from '../bridge';
 import {classifyMarkdownHref,looksLikeFilePath,looksLikeDirectoryPath,resolveLocalPath,resolveKnownLocalFileHref,resolveToolFilePath,type KnownLocalFileRef} from './cindy/localPathResolver';
 import {inspectChatPath,type ChatFileStat} from './chat-file-access';
 import type {ChatFilePreviewData} from './chat-file-preview';
+import {useFileChipContextMenu} from './cindy/useFileChipContextMenu';
+import {activateInlineLinkFromKeyboard} from './cindy/linkInteraction';
+import {useTranslation} from '../i18n';
+import {chatErrorSummary} from './chat-error';
 import {openMedia,prepareMedia,registerPreviewMedia} from './cindy/media/host';
 
-type Navigation={id:string;cwd:string;files?:KnownLocalFileRef[];onOpen?:(path:string,line?:number)=>void;onDirectory?:(path:string)=>void};
+type Navigation={id:string;cwd:string;files?:KnownLocalFileRef[];onOpen?:(path:string,line?:number)=>void;onDirectory?:(path:string)=>void;onBrowser?:(url:string)=>void};
 const NavigationContext=createContext<Navigation>({id:'',cwd:''});
+export const useChatFileNavigation=()=>useContext(NavigationContext);
 export function ChatFileNavigation({children,...value}:Partial<Navigation>&{children:ReactNode}){
  const parent=useContext(NavigationContext);
  return <NavigationContext.Provider value={{...parent,...Object.fromEntries(Object.entries(value).filter(([,item])=>item!==undefined))}}>{children}</NavigationContext.Provider>;
@@ -16,33 +22,59 @@ export function ChatFileNavigation({children,...value}:Partial<Navigation>&{chil
 // Coordinates belong to the viewer, not the filesystem path. Handle both
 // GitHub-style anchors and the native path:line[:column] form used by agents.
 function target(href:string,navigation:Navigation){
- const coordinates=href.match(/(?:#L|:)([1-9]\d*)(?:(?:C|:)[1-9]\d*)?(?:-L?\d+)?$/);
+ const coordinates=href.match(/(?:#L|:)([1-9]\d*)(?:(?:C|:)([1-9]\d*))?(?:-L?\d+)?$/);
  const raw=coordinates?href.slice(0,coordinates.index):href;
  let decoded=raw;try{decoded=raw.startsWith('file://')?raw:decodeURIComponent(raw);}catch{/* Literal percent signs remain part of a filename. */}
- const known=resolveKnownLocalFileHref(decoded,navigation.files);
- return {kind:classifyMarkdownHref(decoded),path:known??(decoded.startsWith('file://')?resolveLocalPath(decoded,navigation.cwd):resolveToolFilePath(decoded,navigation.cwd)),line:coordinates?Number(coordinates[1]):undefined};
+ // Attachment basenames may resolve outside CWD. Explicit absolute paths and
+ // web URLs must never be redirected to a same-named attachment.
+ const known=!/[\\/]/.test(decoded)&&!/^[a-z][a-z0-9+.-]*:/i.test(decoded)?resolveKnownLocalFileHref(decoded,navigation.files):null;
+ return {kind:known?'text-local' as const:classifyMarkdownHref(decoded),path:known??(decoded.startsWith('file://')?resolveLocalPath(decoded,navigation.cwd):resolveToolFilePath(decoded,navigation.cwd)),line:coordinates?Number(coordinates[1]):undefined,column:coordinates?.[2]?Number(coordinates[2]):undefined};
 }
-export function ChatFileLink({href,children,directory,...props}:{href?:string;children?:ReactNode;title?:string;directory?:boolean}){
- const navigation=useContext(NavigationContext),[error,setError]=useState('');
+export function ChatFileLink({href,children,directory,chip=false,...props}:{href?:string;children?:ReactNode;title?:string;directory?:boolean;chip?:boolean}){
+ const navigation=useContext(NavigationContext),{t}=useTranslation(),[error,setError]=useState('');
+ const destination=target(href??'',navigation),local=destination.kind!=='external',path=destination.path;
+ const [resolved,setResolved]=useState<{path:string;file?:ChatFileStat}>();
+ useEffect(()=>{
+  if(!chip||!local||!navigation.id)return;
+  let alive=true;setResolved(undefined);
+  void inspectChatPath(navigation.id,path).then(result=>{if(alive)setResolved({path,file:result.file});}).catch(()=>{if(alive)setResolved({path});});
+  return()=>{alive=false;};
+ },[chip,local,navigation.id,path]);
+ const report=(error:unknown)=>setError(error instanceof Error?error.message:String(error));
+ const relative=path.replace(/\\/g,'/'),root=navigation.cwd.replace(/\\/g,'/').replace(/\/$/,'')+'/';
+ const location=destination.line?`${relative.toLowerCase().startsWith(root.toLowerCase())?relative.slice(root.length):path}:${destination.line}${destination.column?':'+destination.column:''}`:undefined;
+ async function inspect(){
+  setError('');
+  if(!navigation.id)return {path,directory:!!directory||destination.kind==='directory'};
+  const result=await inspectChatPath(navigation.id,path);
+  if(result.error)throw Error(result.error);
+  if(result.missing||!result.file)throw Error(t('chat.fileLinkMissing'));
+  return result.file;
+ }
+ async function open(source=false){
+  const file=await inspect();
+  if(file.directory){if(!navigation.onDirectory)throw Error(t('chat.fileLinkUnavailable'));navigation.onDirectory(file.path);}
+  else {if(!navigation.onOpen)throw Error(t('chat.fileLinkUnavailable'));navigation.onOpen(file.path,source?destination.line??1:destination.line);}
+ }
+ async function browser(){
+  await inspect();
+  const file=await chatCall<ChatFilePreviewData>('file.preview',{id:navigation.id,path});
+  if(!navigation.onBrowser)throw Error(t('chat.fileLinkUnavailable'));
+  navigation.onBrowser(file.url);
+ }
+ const menu=useFileChipContextMenu({id:navigation.id,fileName:path,getAbsPath:()=>path,sidebarFileBrowserKind:directory||destination.kind==='directory'?'directory':'file',onOpenInSidebar:navigation.onOpen||navigation.onDirectory?()=>open():undefined,onOpenInBrowser:navigation.onBrowser?browser:undefined,onViewSource:()=>open(true),location,onError:report});
  if(!href)return <span>{children}</span>;
- const destination=target(href,navigation);
- return <span><a {...props} href={href} onClick={event=>{
+ const activate=(event:MouseEvent<HTMLElement>)=>menu.onActivate(event,()=>open());
+ if(chip&&local&&navigation.id){
+  if(resolved?.path!==path||!resolved.file)return <span>{children}</span>;
+  return <span className="chat-file-link"><FileTargetChip {...props} path={path} directory={resolved.file.directory} onClick={activate} onAuxClick={event=>{if(event.button===1)activate(event);}} onContextMenu={menu.onContextMenu}>{children}</FileTargetChip>{menu.menu}{error&&<span role="alert" className="chat-file-link-error" title={error}>{chatErrorSummary(error,t)}</span>}</span>;
+ }
+ return <span className="chat-file-link"><a {...props} href={href} onKeyDown={local?activateInlineLinkFromKeyboard:undefined} onContextMenu={local?menu.onContextMenu:undefined} onAuxClick={event=>{if(local&&event.button===1)menu.onActivate(event,()=>open());}} onClick={event=>{
   if(href.startsWith('#'))return;
-  event.preventDefault();setError('');
-  if((directory||destination.kind==='directory')&&navigation.onDirectory){navigation.onDirectory(destination.path);return;}
-  if(destination.kind!=='external'&&navigation.onOpen){
-   if(navigation.id&&navigation.onDirectory){
-    void inspectChatPath(navigation.id,destination.path).then(result=>{
-     if(result.error)throw Error(result.error);
-     if(result.missing)throw Error('文件位置已不存在');
-     if(result.file?.directory)navigation.onDirectory?.(result.file.path);
-     else navigation.onOpen?.(result.file?.path??destination.path,destination.line);
-    }).catch(error=>setError(String(error)));
-   }else navigation.onOpen(destination.path,destination.line);
-   return;
-  }
-  void chatCall('link.open',{url:href}).catch(error=>setError(String(error)));
- }}>{children}</a>{error&&<span role="alert">{error}</span>}</span>;
+  setError('');
+  if(local){menu.onActivate(event,()=>open());return;}
+  event.preventDefault();void chatCall('link.open',{url:href}).catch(report);
+ }}>{children}</a>{local&&menu.menu}{error&&<span role="alert" className="chat-file-link-error" title={error}>{chatErrorSummary(error,t)}</span>}</span>;
 }
 export function ChatFileImage({src,alt}:{src?:string;alt?:string}){
  const navigation=useContext(NavigationContext),[file,setFile]=useState<ChatFilePreviewData>(),[error,setError]=useState('');
@@ -57,7 +89,7 @@ export function ChatFileImage({src,alt}:{src?:string;alt?:string}){
 // confirmed. Identifiers and fenced commands remain ordinary code.
 export function ChatInlineCode({children,className,inline=!className}:{children?:ReactNode;className?:string;inline?:boolean}){
  const navigation=useContext(NavigationContext),text=typeof children==='string'?children:'',destination=target(text,navigation),[file,setFile]=useState<ChatFileStat>();
- const candidate=inline&&!/[\r\n]/.test(text)&&destination.kind!=='external'&& (looksLikeFilePath(text)||looksLikeDirectoryPath(text)) &&!!navigation.id;
+ const candidate=inline&&!/[\r\n]/.test(text)&&destination.kind!=='external'&& (looksLikeFilePath(text.replace(/(?:#L|:)[1-9]\d*(?:(?:C|:)[1-9]\d*)?(?:-L?\d+)?$/,''))||looksLikeDirectoryPath(text)||/^file:\/\//i.test(text)) &&!!navigation.id;
  useEffect(()=>{let alive=true;setFile(undefined);if(candidate)void inspectChatPath(navigation.id,destination.path).then(result=>{if(alive)setFile(result.file);}).catch(()=>{/* An unconfirmed inline path stays plain code. */});return()=>{alive=false;};},[candidate,navigation.id,destination.path]);
- return <code className={className}>{file?<ChatFileLink href={text} directory={file.directory}>{children}</ChatFileLink>:children}</code>;
+ return file?<ChatFileLink chip href={text} directory={file.directory}>{children}</ChatFileLink>:<code className={className}>{children}</code>;
 }

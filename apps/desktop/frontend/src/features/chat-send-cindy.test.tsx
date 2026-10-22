@@ -6,6 +6,7 @@ import {act,cleanup,fireEvent,render,screen,waitFor,within} from '@testing-libra
 import userEvent from '@testing-library/user-event';
 import {ChatPage} from './chat';
 import {ChatMessageEdit} from './chat-message-edit';
+import {ChatMessageView} from './chat-messages';
 const host=vi.hoisted(()=>({call:vi.fn(),ai:vi.fn()}));
 vi.mock('../bridge',()=>({chatCall:host.call,captureCall:host.ai,setFileDropTarget:vi.fn(async()=>{})}));
 afterEach(()=>{cleanup();vi.resetAllMocks();localStorage.clear();});
@@ -57,6 +58,21 @@ it('lets an explicit upward wheel cancel following even within one pixel of the 
  fireEvent.wheel(viewport,{deltaX:0,deltaY:-1});viewport.scrollTop=899;fireEvent.scroll(viewport);next=true;
  await waitFor(()=>expect(host.call.mock.calls.filter(([method])=>method==='poll').length).toBeGreaterThan(1),{timeout:2500});
  expect(viewport.scrollTop).toBe(899);
+});
+it('retains measured bubble width on entering edit, adapts changed content and cleans up on cancel',async()=>{
+ backend();const commit=vi.fn();render(<ChatMessageView message={{id:'user',role:'user',content:'Original text'}} conversationId='chat' onCopy={()=>{}} onFork={()=>{}} onEdit={commit} canFork/>);
+ const bubble=document.querySelector<HTMLElement>('.desktop-conversation-message--user .chat-message-bubble')!;
+ bubble.getBoundingClientRect=()=>({width:620} as DOMRect);
+ fireEvent.click(screen.getByRole('button',{name:'编辑消息'}));
+ const input=screen.getByRole('textbox',{name:'编辑消息'});
+ expect(bubble.style.getPropertyValue('--chat-edit-minimum')).toBe('620px');
+ expect(input).toHaveProperty('value','Original text');
+ fireEvent.change(input,{target:{value:'Changed text'}});
+ expect(bubble.style.getPropertyValue('--chat-edit-minimum')).toBe('0px');
+ expect(document.querySelector('.chat-message-edit-measure')?.textContent).toBe('Changed text');
+ fireEvent.keyDown(input,{key:'Escape'});
+ expect(bubble.style.getPropertyValue('--chat-edit-minimum')).toBe('');
+ expect(screen.queryByRole('textbox',{name:'编辑消息'})).toBeNull();expect(commit).not.toHaveBeenCalled();
 });
 it('does not block edited resend on a delayed review preview and prevents synchronous double submit',async()=>{
  host.call.mockImplementation(()=>new Promise(()=>{}));let complete!:()=>void;const commit=vi.fn(()=>new Promise<void>(resolve=>{complete=resolve;})),cancel=vi.fn();

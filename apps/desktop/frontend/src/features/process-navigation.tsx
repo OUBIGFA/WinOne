@@ -47,11 +47,11 @@ export function ProcessBody({children,blockKey,onCollapse,version,onLongChange}:
    const available=bounds&&bounds.height>0?Math.max(0,bottom-bounds.top):transcript?.clientHeight||window.innerHeight;
    const isLong=content.scrollHeight>Math.max(1,available)+1;setLong(isLong);
    if(nested||!register)return;
-   // The natural bottom is visible: no floating action is needed. Scrolling
-   // upward restores it without hover, focus or a delayed visibility timer.
-   const visible=isLong&&host&&bounds&&onCollapse&&body.top<bottom-32&&body.bottom>bottom+1;
+   // Long work stays collapsible as soon as it grows, including while its
+   // natural bottom is visible. Keep the action inside the visible body.
+   const visible=isLong&&host&&bounds&&onCollapse&&body.top<bottom-32&&body.bottom>bounds.top+32;
    const origin=host?.getBoundingClientRect();
-   register(blockKey,visible&&origin?{element:content,host,left:body.right-origin.left-30,top:bottom-origin.top-30,collapse:()=>collapseRef.current?.()}:undefined);
+   register(blockKey,visible&&origin?{element:content,host,left:body.right-origin.left-30,top:Math.min(bottom,body.bottom)-origin.top-30,collapse:()=>collapseRef.current?.()}:undefined);
   };
   const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(measure);};
   measure();window.addEventListener('resize',schedule);transcript?.addEventListener('scroll',schedule,{passive:true});

@@ -1,8 +1,10 @@
 import {useState,type ReactNode} from "react";
 import {ChatMessageEdit} from './chat-message-edit';
-import {ConversationMessage,AIResponse,IconButton,Button} from 'chatgpt-desktop-kit';
+import {ChatFeedback} from './chat-feedback';
+import {IconButton} from 'chatgpt-desktop-kit';
+import {ConversationMessage} from './cindy/ConversationMessage';
 import './chat-markdown.css';
-import {Pencil,Copy,RotateCcw,FileText,GitBranch} from "lucide-react";
+import {Pencil,Copy,RotateCcw,GitBranch} from "lucide-react";
 import {useTranslation} from "../i18n";
 import {messageText,type ChatMessage,type ToolActivity} from "./chat-state";
 import {WorkGroupBlock} from './cindy/WorkGroupBlock';
@@ -16,10 +18,9 @@ import {UserAttachmentChip} from './cindy/UserAttachmentChip';
 export {ChatMarkdown} from './chat-markdown';
 import {ChatMarkdown} from './chat-markdown';
 import {ChatFileNavigation} from './chat-file-navigation';
-// The caller supplies onOpenReview only for a turn with real successful writes.
-// No file count is inferred from generated text or the rendered process node.
-export function ChatMessageView({message,onEdit,onStopForEdit,turnId,changeVersion="",onCopy,onFork,onRetry,onOpenReview,canFork,running=false,busy=false,showReasoning=true,conversationId="",process,providers=[],files=[],onOpenFile}:{message:ChatMessage;onEdit?:(text:string,restoreRevision?:string)=>Promise<void>;onStopForEdit?:()=>Promise<void>;turnId?:string;changeVersion?:string;onCopy:(text:string)=>void;onFork:(id:string)=>void;onRetry?:()=>void;onOpenReview?:(path?:string)=>void;canFork:boolean;running?:boolean;busy?:boolean;showReasoning?:boolean;conversationId?:string;process?:ReactNode;providers?:AIProvider[];files?:string[];onOpenFile?:(path:string,line?:number)=>void}){
- const {t}=useTranslation(),[editing,setEditing]=useState(false);
+// File changes are owned exclusively by the transcript's per-turn footer.
+export function ChatMessageView({message,onEdit,onStopForEdit,onCopy,onFork,onRetry,canFork,running=false,busy=false,showReasoning=true,conversationId="",process,providers=[],files=[],onOpenFile}:{message:ChatMessage;onEdit?:(text:string,restoreRevision?:string)=>Promise<void>;onStopForEdit?:()=>Promise<void>;onCopy:(text:string)=>void;onFork:(id:string)=>void;onRetry?:()=>void;canFork:boolean;running?:boolean;busy?:boolean;showReasoning?:boolean;conversationId?:string;process?:ReactNode;providers?:AIProvider[];files?:string[];onOpenFile?:(path:string,line?:number)=>void}){
+ const {t}=useTranslation(),[editing,setEditing]=useState(false),[editWidth,setEditWidth]=useState(0);
  // Like Cindy's Pi translator, hold a failed attempt until the native run
  // settles. A retrying request is not a terminal error or a second reply.
  const visibleError=running?undefined:message.errorMessage;
@@ -36,18 +37,17 @@ export function ChatMessageView({message,onEdit,onStopForEdit,turnId,changeVersi
   {text&&<IconButton aria-label={t('chat.copy')} onClick={()=>onCopy(text)}><Copy size={16}/></IconButton>}
   {message.id&&canFork&&!message.pending&&<IconButton aria-label={t('chat.branchFrom')} onClick={()=>onFork(message.id!)}><GitBranch size={16}/></IconButton>}
   {onRetry&&<IconButton aria-label={t('chat.retry')} disabled={running||busy} onClick={onRetry}><RotateCcw size={16}/></IconButton>}
-  {onEdit&&<IconButton aria-label={t('chat.editMessage')} disabled={busy} onClick={()=>setEditing(true)}><Pencil size={16}/></IconButton>}
+  {onEdit&&<IconButton aria-label={t('chat.editMessage')} disabled={busy} onClick={event=>{setEditWidth(event.currentTarget.closest('article')?.querySelector('.chat-message-bubble')?.getBoundingClientRect().width??0);setEditing(true);}}><Pencil size={16}/></IconButton>}
   {source&&<small className="chat-message-source" title={source}>{source}</small>}
  </>:undefined}>
    <div className="chat-answer-content">
     {!process&&showReasoning&&thinking.length>0&&<div className="cindy-chat-ui chat-work-process"><WorkGroupBlock blockId={`${conversationId}:${message.timestamp??message.id}:thinking`} isStreaming={running} startedAtMs={thinking[0].part.thinkingStartedAt??message.timestamp} durationMs={running?undefined:thinking.every(({part})=>part.thinkingDurationMs!==undefined)?thinking.reduce((total,{part})=>total+(part.thinkingDurationMs??0),0):undefined} childItems={thinking.map(({part,index})=>({kind:'thinking',key:String(index),message:{clientId:`${conversationId}:${message.timestamp??message.id}:${index}`,content:part.thinking!}}))}/></div>}
-    {editing&&onEdit&&message.id&&<ChatMessageEdit id={conversationId} entry={message.id} text={text} hasAttachments={!!message.attachments?.length} onStop={onStopForEdit} onCancel={()=>setEditing(false)} onCommit={onEdit}/>}
+    {editing&&onEdit&&message.id&&<ChatMessageEdit id={conversationId} entry={message.id} text={text} minimumWidth={editWidth} hasAttachments={!!message.attachments?.length} onStop={onStopForEdit} onCancel={()=>setEditing(false)} onCommit={onEdit}/>}
     {text&&!editing&&(message.role==='user'?<UserMessageBody text={text}/>:<ChatMarkdown text={text} isStreaming={running} streamFadeKey={`${conversationId}:${message.id??message.timestamp??'answer'}`}/>)}
     {message.role==='user'&&!!message.attachments?.length&&<div className="cindy-user-attachments">{message.attachments.map(file=><UserAttachmentChip key={file.path} id={conversationId} file={file}/>)}</div>}
     {message.role==='assistant'&&files.length>0&&onOpenFile&&<ChatGeneratedFiles id={conversationId} paths={files} onOpen={onOpenFile}/>}
-    {message.role==='assistant'&&onOpenReview&&!turnId&&<div className="client-change-summary chat-change-summary"><FileText size={24}/><Button size="sm" actionId="client.changes.open" onClick={()=>onOpenReview()}>{t('chat.reviewViewChanges')}</Button></div>}
    </div>
-   {visibleError&&<p role="alert">{visibleError}</p>}
+   {visibleError&&<ChatFeedback message={visibleError} role="alert" className="chat-message-error"/>}
  </ConversationMessage>}</ChatFileNavigation>;
 }
 export function ChatToolView({tool}:{tool:ToolActivity}){

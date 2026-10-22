@@ -61,10 +61,12 @@ export function projectChatProcess(messages:ChatMessage[],liveTools:ToolActivity
  for(const operation of operations){
   const group=response(operation.turnId);
   if(operation.kind==="turn"){group.startedAt=operation.startedAt;group.durationMs=operation.durationMs;}
-  else group.entries.push({kind:"operation",key:operation.id,at:operation.startedAt,operation});
+  // Retry attempts are session status, not performed work. Keep their full
+  // records in ChatState, but never let an attempt become a work-group anchor.
+  else if(operation.kind!=="retry")group.entries.push({kind:"operation",key:operation.id,at:operation.startedAt,operation});
  }
  for(const group of groups.values()){
-  const active=operations.find(operation=>operation.turnId===group.key&&operation.status==="running");
+  const active=operations.find(operation=>operation.turnId===group.key&&operation.kind==='turn'&&operation.status==="running");
   if(group.running&&active)group.startedAt=active.startedAt;
   group.entries.sort((a,b)=>(a.at??Number.MAX_SAFE_INTEGER)-(b.at??Number.MAX_SAFE_INTEGER));
  }

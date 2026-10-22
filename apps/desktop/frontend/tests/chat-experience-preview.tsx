@@ -6,6 +6,7 @@ import {MessageSquare} from 'lucide-react';
 import {setApplicationLanguage} from "../src/i18n";
 import type {AIConfiguration} from "../src/features/ai-configuration";
 import type {ChatMessage,Conversation} from "../src/features/chat-state";
+import resilienceDocument from './fixtures/chat-resilience.md?raw';
 import "../src/styles/shadcn.css";
 import "../src/style.css";
 
@@ -13,7 +14,8 @@ const query=new URLSearchParams(location.search),language=query.get("language")?
 // Use the same data-theme contract as the native App; no extra .dark fixture class.
 const ai:AIConfiguration={revision:1,providers:[{id:"fixture",name:"Local AI",authMode:"api-key",hasKey:false,models:["first","second"],modelNames:{first:"Example Model",second:"Another Model"},modelFree:{first:true,second:true},modelMetadata:{first:{rate:.5,rateWas:2,listedContextWindow:1000000},second:{rate:.5,rateWas:2,listedContextWindow:1000000}}}],tasks:{chat:{provider:"fixture",model:"first"}},engine:"magpie",ocrEngine:"",target:"zh-CN",prompt:""};
 let conversation:Conversation={id:"experience",title:"整理项目并生成报告",projectId:"alpha",directory:"C:\\fixture\\Alpha",sessionDirectory:"C:\\fixture\\history",model:{provider:"fixture",model:"first"},permission:"ask",createdAt:"2026-10-11",updatedAt:"2026-10-11"};
-const regression=query.has('regression');
+const regression=query.has('regression'),resilience=query.has('resilience'),links=query.has('links');
+const planItems=[{step:'读取项目说明',status:'completed'},{step:'验证工作过程和文件预览',status:query.has('planDone')?'completed':'in_progress'},{step:'检查窄栏与尺寸拖动',status:query.has('planDone')?'completed':'pending'}];
 if(regression){ai.providers[0].models=Array.from({length:90},(_,index)=>`model-${index}`);ai.tasks.chat={provider:'fixture',model:'model-72'};conversation.model=ai.tasks.chat;}
 const start=Date.now()-30000,longPath="C:/fixture/"+"long-directory/".repeat(30)+"report.md";
 const messages:ChatMessage[]=[
@@ -32,6 +34,8 @@ if(query.get('sample')==='reading')messages.splice(0,messages.length,
 // No fixture action reads or writes a user's project.
 const previewOrigin=query.get('previewOrigin')??location.origin;
 const calls:{method:string;params:unknown}[]=[];
+const ioHolds=new Set<string>(),ioWaiters=new Map<string,Set<()=>void>>(),ioFailures=new Map<string,string>();
+const fixtureIO={hold(method:string){ioHolds.add(method);},release(method:string){ioHolds.delete(method);for(const release of ioWaiters.get(method)??[])release();ioWaiters.delete(method);},fail(method:string,message?:string){if(message)ioFailures.set(method,message);else ioFailures.delete(method);}};
 const alignment=query.has('alignment'),changedFiles=['README.md','example.ts','notes.md','guide.md','plan.md'].map(path=>({path,status:'M'}));
 const patch='diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new\n';
 let workspaceState='applied',promptRevision=0;
@@ -51,14 +55,42 @@ if(query.has('repair')){
  if(running){for(let i=0;i<8;i++)messages.push({id:'repair-tool-'+i,role:'assistant',timestamp:start+8000+i,content:[{type:'toolCall',id:'repair-call-'+i,name:'powershell',arguments:{command:'Write-Output repair-'+i}}]},{role:'toolResult',toolCallId:'repair-call-'+i,timestamp:start+8100+i,content:'done'});}
  else {const answer=messages.at(-1)!;answer.content=String(answer.content)+'\n\n[Open project notes](./README.md) · [Browse docs](docs/)\n\n`userId` and `getValue()` are identifiers.';}
 }
-if(query.has('liveThinking'))messages.splice(0,messages.length,{id:'thinking-user',role:'user',content:'Inspect the plan',timestamp:start},{id:'thinking-stream',role:'assistant',timestamp:start+1,content:[{type:'thinking',thinking:Array.from({length:150},(_,index)=>`Real thinking line ${index+1}: preserve every detail.`).join('\n')}]});
-Object.assign(window,{chatExperienceCalls:calls,go:{main:{App:{
+if(query.has('liveThinking'))messages.splice(0,messages.length,{id:'thinking-user',role:'user',content:'Inspect the plan',timestamp:start},{id:'thinking-stream',role:'assistant',timestamp:start+1,content:[{type:'thinking',thinking:Array.from({length:query.has('growThinking')?2:150},(_,index)=>`Real thinking line ${index+1}: preserve every detail.`).join('\n')}]});
+if(resilience)messages.splice(0,messages.length,
+ {id:'user',turnId:'user',role:'user',timestamp:start,content:'验证 Markdown 预览和计划。'},
+ {id:'plan-call',turnId:'user',role:'assistant',timestamp:start+1,content:[{type:'toolCall',id:'plan',name:'update_plan',arguments:{plan:planItems,explanation:'所有内容在隔离夹具中验证。'}}]},
+ {role:'toolResult',turnId:'user',toolCallId:'plan',timestamp:start+2,content:JSON.stringify({items:planItems,explanation:'所有内容在隔离夹具中验证。'})},
+ {id:'read-call',turnId:'user',role:'assistant',timestamp:start+3,content:[{type:'toolCall',id:'document-read',name:'read',arguments:{path:'README.md'}}]},
+ {role:'toolResult',turnId:'user',toolCallId:'document-read',timestamp:start+4,content:[{type:'text',text:resilienceDocument}]},
+ {id:'write-call',turnId:'user',role:'assistant',timestamp:start+5,content:[{type:'toolCall',id:'document-write',name:'write',arguments:{path:'notes.md',content:resilienceDocument}}]},
+ {role:'toolResult',turnId:'user',toolCallId:'document-write',timestamp:start+6,content:'Saved notes.md'},
+ {id:'long-reply',turnId:'user',role:'assistant',timestamp:start+7,content:Array.from({length:8},(_,index)=>`### 验证段落 ${index+1}\n\n`+'保留实际过程，检查完整内容，不移动或修改用户文件。'.repeat(6)).join('\n\n')+'\n\n'+resilienceDocument},
+ ...(running?[{id:'active-tool',turnId:'user',role:'assistant',timestamp:start+8,content:[{type:'toolCall',id:'active',name:'powershell',arguments:{command:'Write-Output "isolated fixture"'}}]} as ChatMessage]:[])
+);
+if(links){
+ ai.providers[0].models=['replacement-model'];
+ messages.splice(0,messages.length,{id:'user',role:'user',content:'Keep the original request.'},{id:'answer',role:'assistant',provider:'fixture',model:'first',providerName:'Local AI',modelName:'Example Model',content:'[source](README.md:12:3) · [folder](docs/) · [HTML](page.html) · [denied](../private.txt)'});
+}
+if(query.has('editWidths'))messages.splice(0,messages.length,
+ {id:'short-user',role:'user',content:'简短消息'},
+ {id:'short-answer',role:'assistant',content:'Short response.'},
+ {id:'long-user',role:'user',content:query.get('editWidths')==='short'?'简短消息':'这是一条较长的原始消息，点击编辑时应保留气泡原有宽度。'.repeat(16)},
+ {id:'long-answer',role:'assistant',content:Array.from({length:24},(_,index)=>`### 检查段落 ${index+1}\n\n这里保留正文，以核对输入区域升高或缩小之后的返回底部位置。`).join('\n\n')+'\n\n最后一段内容应完整显示在输入区域上方。'},
+);
+let streamRevision=0;
+const growThinking=()=>{const message=messages.find(message=>message.id==='thinking-stream');if(message){message.content=[{type:'thinking',thinking:Array.from({length:150},(_,index)=>`Real thinking line ${index+1}: preserve every detail.`).join('\n')}];streamRevision++;}};
+const browserStates=new Map<string,Record<string,unknown>>();
+Object.assign(window,{chatExperienceGrowThinking:growThinking,chatExperienceCalls:calls,chatExperienceIO:fixtureIO,go:{main:{App:{
  SetFileDropTarget:async()=>{},
  PickChatFiles:async()=>Array.from({length:18},(_,i)=>`C:/fixture/attachment-${i}.txt`),
  ChatMedia:async(method:string,raw:string)=>{calls.push({method:'media.native.'+method,params:JSON.parse(raw)});return JSON.stringify(method==='save-as'?{canceled:false,path:'C:/fixture/saved-image.png'}:{success:true});},
+ ChatBrowser:async(method:string,raw:string)=>{const params=JSON.parse(raw);calls.push({method:'browser.native.'+method,params});if(method==='create'){const state={...params,title:'HTML preview',loading:false,canGoBack:false,canGoForward:false,error:'',visible:false,favicon:'',isAudible:false,muted:false,crashed:false};browserStates.set(params.tabId,state);return JSON.stringify(state);}if(method==='close'){browserStates.delete(params.tabId);return '{}';}return JSON.stringify(browserStates.get(params.tabId)??{});},
  Capture:async(method:string)=>{if(method!=="ai.configuration.get")throw Error("Unexpected fixture capture "+method);return JSON.stringify(ai);},
  Chat:async(method:string,raw:string)=>{
   const params=JSON.parse(raw);calls.push({method,params});
+  if(ioFailures.has(method))throw Error(ioFailures.get(method));
+  if(ioHolds.has(method))await new Promise<void>(resolve=>{const waiters=ioWaiters.get(method)??new Set();waiters.add(resolve);ioWaiters.set(method,waiters);});
+  if(query.has('editWidths')&&method==='review.turn')return JSON.stringify({snapshot:{files:[],isReversible:false},patches:{}});
   if(method==='media.upload')return JSON.stringify({url:previewOrigin+'/image-upload?name='+encodeURIComponent(params.name||'image.png')});
   if(method==='media.source')return JSON.stringify({attachment:{name:'picture.png',path:'C:/fixture/Alpha/picture.png',mimeType:'image/png',size:320},preview:{name:'picture.png',path:'C:/fixture/Alpha/picture.png',kind:'image',mimeType:'image/png',size:320,revision:'image',url:previewOrigin+'/picture.png'}});
   if(method==='media.attach')return '{}';
@@ -68,7 +100,10 @@ Object.assign(window,{chatExperienceCalls:calls,go:{main:{App:{
   if(alignment&&method==='review.file.preview')return JSON.stringify({present:true,url:previewOrigin+'/'+params.path+'?side='+params.side,size:180,mime:params.path.endsWith('.png')?'image/png':'text/markdown',root:conversation.directory});
   if(reviewMode&&method==='review.snapshot'&&!params.turnId)return JSON.stringify({root:conversation.directory,branch:'feature/review',scope:params.scope,base:params.base,revision:'review-'+reviewRevision,files:reviewFiles.filter(file=>!reviewReverted.has(file.path)&&(params.scope==='staged'?reviewStaged.has(file.path):params.scope==='working'?!reviewStaged.has(file.path):true))});
   if(reviewMode&&method==='review.mutate'){for(const path of params.mutation.paths??[]){if(params.mutation.action==='stage')reviewStaged.add(path);else if(params.mutation.action==='unstage')reviewStaged.delete(path);else if(params.mutation.action==='revert')reviewReverted.add(path);}reviewRevision++;return '{}';}
-  if(method==="catalog")return JSON.stringify({projects:[{id:"alpha",name:"Alpha",path:"C:\\fixture\\Alpha"},{id:"beta",name:"Beta",path:"C:\\fixture\\Beta"}],conversations:[conversation]});
+  if(query.has('statusRows')&&method==='activity')return JSON.stringify({experience:{phase:'running',attention:false},empty:{phase:'idle',attention:false},awaiting:{phase:'needs-interaction',attention:false},failed:{phase:'error',attention:true},interrupted:{phase:'interrupted',attention:false}});
+  if(query.has('statusRows')&&method==='catalog')return JSON.stringify({projects:[{id:'alpha',name:'Alpha',path:'C:/fixture/Alpha'}],conversations:['experience','empty','awaiting','failed','interrupted'].map(id=>({...conversation,id,title:id,projectId:id==='experience'?'alpha':undefined}))});
+  if(method==='activity')return JSON.stringify(resilience||links?{experience:{phase:links?'interrupted':running?'running':'completed',attention:!links},empty:{phase:'idle',attention:false},background:{phase:'running',attention:false}}:{});
+  if(method==="catalog")return JSON.stringify({projects:[{id:"alpha",name:"Alpha",path:"C:\\fixture\\Alpha"},{id:"beta",name:"Beta",path:"C:\\fixture\\Beta"}],conversations:resilience||links?[{...conversation,hasMessages:true},{...conversation,id:'empty',title:'尚无任务的会话',hasMessages:false},{...conversation,id:'background',title:'后台正在执行的会话',hasMessages:true}]:[conversation]});
   if(method==='conversation.new'){conversation={...conversation,id:'created',title:'Chat'};messages.splice(0,messages.length);return JSON.stringify(conversation);}
   if(method==='title.generate'){conversation={...conversation,title:'New conversation'};return JSON.stringify(conversation);}
   if(method==="project.git")return JSON.stringify({projectId:params.projectId,repository:false});
@@ -76,6 +111,8 @@ Object.assign(window,{chatExperienceCalls:calls,go:{main:{App:{
   if(['files.list','files.index','files.search'].includes(method))return JSON.stringify({url:previewOrigin+'/'+method+'.json?path='+encodeURIComponent(params.path||'')});
   if(method==='files.cancel')return '{}';
   if(method==="files")return JSON.stringify({directory:conversation.directory,entries:['README.md','example.ts','picture.png','page.html','sample.pdf','sound.wav','clip.webm'].map(name=>({name,path:'C:\\fixture\\Alpha\\'+name,directory:false,size:120}))});
+  if(links&&method==='file.stat')return JSON.stringify({files:params.paths.map((path:string)=>path.endsWith('private.txt')?{requested:path,error:'文件不在当前会话允许访问的范围内。'}:{requested:path,file:{path,name:path.split(/[\\/]/).filter(Boolean).pop(),directory:/[\\/]docs[\\/]?$/.test(path),size:120,modified:1700000000000}})});
+  if(links&&['file.open','file.reveal','link.open'].includes(method))return '{}';
   if(method==='file.stat')return JSON.stringify({files:params.paths.map((path:string)=>({requested:path,file:{path:/^[A-Za-z]:/.test(path)?path:conversation.directory+'\\'+path,name:path.split(/[\\/]/).pop(),directory:false,size:120,modified:1700000000000}}))});
   if(method==='file.preview'||method==='file.save'){
    const name=String(params.path).split(/[\\/]/).pop()!;
@@ -94,8 +131,10 @@ Object.assign(window,{chatExperienceCalls:calls,go:{main:{App:{
   if(method==='settings.save')return JSON.stringify(params.settings);
   if(method==='title.regenerate')throw Error('管道已结束。 (os error 109) (transport)');
   if(method==='state'&&params.before){await new Promise(resolve=>setTimeout(resolve,240));return JSON.stringify({messages:Array.from({length:12},(_,index)=>({id:'older-'+index,role:index%2?'assistant':'user',content:'Earlier message '+index+'\n\n'+('Earlier context. '.repeat(30))})),operations:[],hasOlder:false});}
-  if(method==="open"||method==="state")return JSON.stringify({messages,operations:[],hasOlder:regression,before:regression?'user':undefined,streaming:running,...(query.has('audit')?{usage:{input:1000,output:200,cacheRead:400,cacheWrite:50,totalTokens:1650,cost:0,costKnown:false},contextUsage:{tokens:1650,contextWindow:100000,percent:1.65}}:{})});
-  if(method==="poll")return JSON.stringify({events:[],cursor:0,approvals:[],running,status:running?"running":"idle",error:regression&&!alignment?"Request aborted":undefined});
+  if((method==='open'||method==='state')&&params.id==='empty')return JSON.stringify({messages:[],operations:[],hasOlder:false,streaming:false});
+  if(method==="open"||method==="state")return JSON.stringify({messages,operations:[],hasOlder:regression,before:regression?'user':undefined,streaming:running,...(resilience?{workflow:{items:planItems},taskGraph:{scheduling:'running',total:running?2:0,tasks:running?[{id:1,kind:'pi.generation',conversationId:1,state:'waiting',background:false},{id:2,kind:'pi.tool',conversationId:1,owner:1,state:'running',background:false}]:[]}}:{}),...(query.has('audit')?{usage:{input:1000,output:200,cacheRead:400,cacheWrite:50,totalTokens:1650,cost:0,costKnown:false},contextUsage:{tokens:1650,contextWindow:100000,percent:1.65}}:{})});
+  if(method==='poll'&&query.has('growThinking'))return JSON.stringify({events:[],cursor:streamRevision,reset:params.cursor<streamRevision,approvals:[],running,status:'running'});
+  if(method==="poll")return JSON.stringify({events:[],cursor:0,approvals:[],running,status:links?'stopped':running?"running":"idle",error:regression&&!alignment?"Request aborted":undefined});
   if(method==="configure"){conversation={...conversation,...params};return JSON.stringify(conversation);}
   if(["release","draft.save"].includes(method))return "{}";
   throw Error("Unexpected fixture Chat "+method);

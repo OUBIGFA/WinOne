@@ -13,6 +13,34 @@ beforeEach(()=>{
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 function Fixture(){const viewport=useRef<HTMLDivElement>(null);return <><div ref={viewport} data-testid="viewport"><div>{[0,1,2].map(index=><div key={index} data-chat-turn={index}>Round {index}</div>)}</div></div><ChatScrollControls viewportRef={viewport} conversationId="chat"/></>;}
 
+function OverlayFixture(){const viewport=useRef<HTMLDivElement>(null);return <main className="chat-main"><header className="chat-header"/><div ref={viewport} data-testid="viewport"><div><div data-chat-turn="one">First round</div><div data-chat-turn="two">Last round</div><div className="chat-transcript-end-space" style={{height:320}}/></div></div><footer className="chat-input-area" data-testid="footer"/><ChatScrollControls viewportRef={viewport} conversationId="overlay"/></main>;}
+
+it('uses the current input edge for bottom jumps without moving the transcript on resize',async()=>{
+ render(<OverlayFixture/>);const viewport=screen.getByTestId('viewport'),footer=screen.getByTestId('footer'),spacer=viewport.querySelector<HTMLElement>('.chat-transcript-end-space')!;
+ let footerTop=620;
+ Object.defineProperties(viewport,{clientHeight:{value:800},scrollHeight:{get:()=>1400+parseFloat(spacer.style.height)}});
+ viewport.getBoundingClientRect=()=>({top:100,bottom:900,height:800} as DOMRect);
+ footer.getBoundingClientRect=()=>({top:footerTop} as DOMRect);
+ spacer.getBoundingClientRect=()=>({top:1500-viewport.scrollTop} as DOMRect);
+ viewport.scrollTop=500;act(()=>resize());
+ const bottom=()=>screen.getByRole('button',{name:'返回底部'});
+ fireEvent.click(bottom());expect(viewport.scrollTop).toBe(912);expect(spacer.style.height).toBe('312px');fireEvent.scroll(viewport);
+ await waitFor(()=>expect(bottom()).toHaveProperty('disabled',true));
+ // Growing the overlay changes the logical bottom, not scrollTop or the
+ // physical scroll extent. The button must become usable again.
+ footerTop=380;act(()=>resize());expect(viewport.scrollTop).toBe(912);expect(spacer.style.height).toBe('312px');
+ expect(bottom()).toHaveProperty('disabled',false);
+ expect(screen.getByRole('navigation').style.top).toBe('130px');
+ fireEvent.click(bottom());expect(viewport.scrollTop).toBe(1152);expect(spacer.style.height).toBe('552px');fireEvent.scroll(viewport);
+ await waitFor(()=>expect(bottom()).toHaveProperty('disabled',true));
+ // Shrinking at the old bottom must not clamp the reader backwards. A
+ // deliberate bottom jump removes that old allowance and realigns content.
+ footerTop=720;act(()=>resize());expect(viewport.scrollTop).toBe(1152);expect(spacer.style.height).toBe('552px');
+ expect(bottom()).toHaveProperty('disabled',false);fireEvent.click(bottom());
+ expect(viewport.scrollTop).toBe(812);expect(spacer.style.height).toBe('212px');
+ footerTop=220;act(()=>resize());expect(screen.getByRole('navigation').parentElement?.classList.contains('chat-header')).toBe(true);
+});
+
 it('moves between user rounds and both transcript boundaries',async()=>{
  render(<Fixture/>);const viewport=screen.getByTestId('viewport');
  Object.defineProperties(viewport,{clientHeight:{value:200},scrollHeight:{value:1200}});
@@ -27,7 +55,7 @@ it('moves between user rounds and both transcript boundaries',async()=>{
  fireEvent.click(screen.getByRole('button',{name:'下一轮对话'}));expect(viewport.scrollTop).toBe(800);
  await waitFor(()=>expect(screen.getByRole('button',{name:'下一轮对话'})).toHaveProperty('disabled',true));
  fireEvent.click(screen.getByRole('button',{name:'上一轮对话'}));expect(viewport.scrollTop).toBe(400);
- fireEvent.click(screen.getByRole('button',{name:'返回底部'}));expect(viewport.scrollTop).toBe(1000);
+ fireEvent.click(screen.getByRole('button',{name:'返回底部'}));expect(viewport.scrollTop).toBe(1000);fireEvent.scroll(viewport);
  await waitFor(()=>expect(screen.getByRole('button',{name:'返回底部'})).toHaveProperty('disabled',true));
  fireEvent.click(screen.getByRole('button',{name:'返回顶部'}));expect(viewport.scrollTop).toBe(0);
 });

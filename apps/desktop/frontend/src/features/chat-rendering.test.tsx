@@ -22,10 +22,9 @@ it.each([
  fireEvent.click(screen.getByRole('button',{name:'Retry'}));expect(retry).toHaveBeenCalledOnce();
 });
 
-it('opens real changes from an assistant response without inventing a file count',()=>{
- const open=vi.fn();render(<ChatMessageView {...messageProps} message={{role:'assistant',content:'Updated the file.'}} onOpenReview={open}/>);
- fireEvent.click(screen.getByRole('button',{name:/View file changes|chat.reviewViewChanges/}));
- expect(open).toHaveBeenCalledOnce();expect(screen.queryByText(/Updated \d+ files/)).toBeNull();
+it('does not create a second file-change surface inside assistant messages',()=>{
+ render(<ChatMessageView {...messageProps} message={{role:'assistant',content:'Updated the file.'}}/>);
+ expect(screen.queryByRole('button',{name:/View file changes|chat.reviewViewChanges/})).toBeNull();
 });
 
 it('shows the current turn file rows and opens the selected file diff',async()=>{
@@ -37,9 +36,22 @@ it('shows the current turn file rows and opens the selected file diff',async()=>
  expect(screen.getAllByText('+3').length).toBeGreaterThan(0);
 });
 
-it('routes a Markdown file reference and its line to the in-app preview',()=>{
+it('routes a Markdown file reference and its line to the in-app preview',async()=>{
+ bridge.call.mockImplementation(async(_method,{paths})=>({files:paths.map((path:string)=>({requested:path,file:{path,name:'example.ts',directory:false,size:10,modified:0}}))}));
  const open=vi.fn();render(<ChatMessageView {...messageProps} conversationId="isolated" message={{role:'assistant',content:'See [source](src/example.ts:42).'}} onOpenFile={open}/>);
- fireEvent.click(screen.getByRole('link',{name:'source'}));expect(open).toHaveBeenCalledWith('src/example.ts',42);
+ fireEvent.click(await screen.findByRole('button',{name:'source'}));await waitFor(()=>expect(open).toHaveBeenCalledWith('src/example.ts',42));
+});
+
+it('retains historical provider and model names when current services no longer contain them',()=>{
+ render(<ChatMessageView {...messageProps} providers={[]} message={{role:'assistant',content:'Saved answer',provider:'removed',model:'retired',providerName:'Original service',modelName:'Historical model'}}/>);
+ expect(screen.getByText('Original service · Historical model')).toBeTruthy();
+});
+
+it('keeps failed-answer diagnostics behind the same friendly error presentation',()=>{
+ const diagnostic='The socket connection was closed unexpectedly.';
+ render(<ChatMessageView {...messageProps} message={{role:'assistant',content:'',errorMessage:diagnostic}}/>);
+ expect(screen.getByRole('alert').textContent).toContain('The connection was interrupted');
+ expect(screen.getByText(diagnostic).closest('details')?.open).toBe(false);
 });
 
 it('does not report no changes when the Git snapshot could not be read',async()=>{

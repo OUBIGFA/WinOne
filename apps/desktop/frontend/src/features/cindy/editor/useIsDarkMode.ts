@@ -1,28 +1,23 @@
-/**
- * useIsDarkMode — observe the live `dark` class on <html>.
- *
- * The app's ThemeProvider toggles `<html class="dark">` based on the user's
- * theme preference (or OS preference when set to 'system'). Editor surfaces
- * need a boolean theme signal, and the value must stay in sync if the user
- * flips the toggle while a surface is mounted.
- *
- * MutationObserver on the `class` attribute is the simplest way to track
- * this without coupling editor surfaces to the project's specific theme store.
- */
+// WinOne resolves system preference into data-theme. The upstream class is
+// retained only for class-only embedding; it must not override a native value.
 
 import { useEffect, useState } from 'react';
 
+export function readIsDarkMode(): boolean {
+  if (typeof document === 'undefined') return false;
+  const root = document.documentElement;
+  return root.dataset.theme ? root.dataset.theme === 'dark' : root.classList.contains('dark');
+}
+
 export function useIsDarkMode(): boolean {
-  const [isDark, setIsDark] = useState(() =>
-    typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
-  );
+  const [isDark, setIsDark] = useState(readIsDarkMode);
 
   useEffect(() => {
     const root = document.documentElement;
     const observer = new MutationObserver(() => {
-      setIsDark(root.classList.contains('dark'));
+      setIsDark(readIsDarkMode());
     });
-    observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+    observer.observe(root, { attributes: true, attributeFilter: ['class', 'data-theme'] });
     return () => observer.disconnect();
   }, []);
 

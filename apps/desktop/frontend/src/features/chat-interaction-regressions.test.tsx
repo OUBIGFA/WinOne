@@ -76,6 +76,22 @@ it('loads history only on request and then moves the viewport to the new earlier
  expect(viewport.scrollTop).toBe(0);expect(screen.queryByText('更早消息已加载，向上滚动查看')).toBeNull();
 });
 
+it.each([
+ {provider:'removed-service',model:'old-model'},
+ {provider:'service',model:'removed-model'},
+ {provider:'',model:''},
+])('requires an explicit available model instead of silently replacing $provider/$model',async selection=>{
+ const send=vi.fn(),select=vi.fn();
+ render(<ChatComposer text="Keep this draft" onText={()=>{}} onSend={send} onStop={()=>{}} running={false} busy={false} providers={[{id:'service',name:'Service',models:['available-model'],authMode:'api-key',hasKey:false}]} model={selection} permission="ask" onModel={select} onPermission={()=>{}}/>);
+ expect(screen.getByRole('button',{name:'模型'}).textContent).toContain('选择模型');
+ const submit=screen.getByRole('button',{name:'发送'});expect(submit.hasAttribute('disabled')).toBe(true);
+ await userEvent.click(submit);screen.getByRole('textbox',{name:'消息'}).focus();await userEvent.keyboard('{Enter}');
+ expect(send).not.toHaveBeenCalled();expect(select).not.toHaveBeenCalled();
+ await userEvent.click(screen.getByRole('button',{name:'模型'}));
+ const available=await screen.findByRole('option',{name:'available-model'});expect(available.getAttribute('aria-selected')).toBe('false');
+ await userEvent.click(available);expect(select).toHaveBeenCalledWith({provider:'service',model:'available-model'});
+});
+
 it('opens the model menu at the selected model and clears a stale search',async()=>{
  const intoView=vi.fn();HTMLElement.prototype.scrollIntoView=intoView;
  const models=Array.from({length:80},(_,i)=>'model-'+i);
@@ -110,8 +126,10 @@ it('changes the thinking level and fast mode from the composer',async()=>{
  await waitFor(()=>expect(native.call).toHaveBeenCalledWith('fast',{id:'conversation',fastMode:true}));
 });
 
-it('compacts the conversation from the composer button',async()=>{
+it('compacts the conversation from the labelled secondary composer control',async()=>{
  await open();
+ expect(screen.queryByRole('button',{name:'压缩上下文'})).toBeNull();
+ await userEvent.click(screen.getByRole('button',{name:'会话工具'}));
  await userEvent.click(await screen.findByRole('button',{name:'压缩上下文'}));
  await waitFor(()=>expect(native.call).toHaveBeenCalledWith('compact',{id:'conversation'}));
 });
@@ -126,8 +144,9 @@ it('renders the context usage reported by the durable state',async()=>{
  expect(screen.getByText((_,node)=>node?.tagName==='DD'&&node.textContent==='25.0k / 100.0k')).toBeTruthy();
 });
 
-it('toggles the completion sound from the composer',async()=>{
+it('toggles the completion sound from the secondary composer controls',async()=>{
  await open();
+ await userEvent.click(screen.getByRole('button',{name:'会话工具'}));
  const toggle=await screen.findByRole('button',{name:'关闭完成提示音'});
  expect(toggle.getAttribute('aria-pressed')).toBe('true');
  await userEvent.click(toggle);

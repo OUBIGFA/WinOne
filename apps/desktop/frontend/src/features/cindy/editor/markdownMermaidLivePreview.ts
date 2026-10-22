@@ -1,4 +1,5 @@
 import {createMermaidSvg,releaseMermaidSvg} from '../markdown/svgMarkup';
+import {readIsDarkMode as isDarkMode} from './useIsDarkMode';
 /**
  * markdownMermaidLivePreview — render ```mermaid fenced blocks as SVG inside
  * the doc-mode CodeMirror editor (workdir-browse → FileBodyView).
@@ -80,10 +81,6 @@ function loadMermaid(): Promise<MermaidModule> {
   if (mermaidPromise) return mermaidPromise;
   mermaidPromise = import('mermaid').then((mod) => mod.default);
   return mermaidPromise;
-}
-
-function isDarkMode(): boolean {
-  return document.documentElement.classList.contains('dark');
 }
 
 let initializedTheme: 'dark' | 'default' | null = null;

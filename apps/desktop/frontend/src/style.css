@@ -417,9 +417,8 @@ select:not([data-slot]):not(:where(.desktop-ui-root *, .desktop-ui-portal *)) {
      Container queries follow the usable pane width, including split views. */
   [data-slot="page-content"] { container-type: inline-size; }
   [data-slot="page-content"] > header.page-actions { margin-bottom: 12px; }
-  [data-slot="page-scroll"] { scrollbar-gutter: stable; }
-  /* Chat owns its scrollbars inside the panes; no outer scrollbar is shown. */
-  [data-slot="page-scroll"][data-page="chat"] { scrollbar-gutter: auto; }
+  /* Reserve no empty scrollbar gutter. AppShell measures the actual occupied
+     width so the save footer still aligns when this page really overflows. */
   .settings-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
   .settings-field-grid > * { min-width: 0; }
   .settings-group { min-width: 0; display: grid; gap: 20px; }

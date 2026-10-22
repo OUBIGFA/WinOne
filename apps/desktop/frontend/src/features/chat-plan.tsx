@@ -1,23 +1,29 @@
-import {useEffect,useId,useState} from 'react';
-import {ChevronRight,Check,Minus,Ellipsis} from 'lucide-react';
-import {Button} from '../ui/button';
+import {useLayoutEffect,useState,type RefObject} from 'react';
 import {useTranslation} from '../i18n';
-import {Collapse} from './cindy/collapse';
+import {InlinePlanCard,TodoListCard} from './cindy/TodoListCard';
 import type {ChatWorkflow} from './chat-state';
 
-// Compose the existing Cindy disclosure and shared controls. Plans retain their
-// committed order; a finished plan stays available without remaining expanded.
-export function ChatPlan({workflow}:{workflow?:ChatWorkflow}){
- const {t}=useTranslation(),id=useId(),[open,setOpen]=useState(false);
- const items=workflow?.items??[],complete=items.length>0&&items.every(item=>item.status==='completed');
- useEffect(()=>{if(complete)setOpen(false);},[complete]);
- if(!items.length)return null;
- const active=items.find(item=>item.status==='in_progress');
- return <section className="chat-work-process cindy-chat-ui py-2" aria-label={t('chat.planTitle')}>
-  <div className="flex min-w-0 items-center gap-2"><Button variant="ghost" aria-expanded={open} aria-controls={id} onClick={()=>setOpen(value=>!value)}><ChevronRight size={14} className={open?'rotate-90':''}/>{t('chat.planTitle')} · {t('chat.planProgress',{completed:items.filter(item=>item.status==='completed').length,total:items.length})}</Button><span className="min-w-0 truncate text-sm text-muted-foreground">{active?.step??t(complete?'chat.planCompleted':'chat.planPending')}</span></div>
-  <Collapse open={open} id={id} innerClassName="px-3">
-   {workflow?.explanation&&<p className="text-sm text-muted-foreground">{workflow.explanation}</p>}
-   <ol className="m-0 list-none space-y-2 p-0">{items.map((item,index)=>{const Icon=item.status==='completed'?Check:item.status==='in_progress'?Ellipsis:Minus;return <li key={index} className="flex items-start gap-2 text-sm"><Icon size={15} className="mt-0.5 shrink-0" aria-label={t('chat.plan_'+item.status)}/><span className="min-w-0 break-words">{item.step}</span></li>;})}</ol>
-  </Collapse>
+// Both presentations are Cindy's real components. The host only maps durable
+// items and decides visibility from the actual turn, not from all steps checked.
+export function ChatPlan({workflow,animated=false,anchor}:{workflow?:ChatWorkflow;animated?:boolean;anchor?:string}){
+ const {t}=useTranslation();
+ if(!workflow?.items.length)return null;
+ return <section className="chat-plan cindy-chat-ui" data-chat-plan-key={anchor} aria-label={t('chat.planTitle')}>
+  <InlinePlanCard todos={workflow.items.map(item=>({content:item.step,status:item.status}))} animated={animated} explanation={workflow.explanation}/>
  </section>;
+}
+
+export function ChatPlanReminder({workflow,anchor,active,animated,viewport}:{workflow?:ChatWorkflow;anchor?:string;active:boolean;animated:boolean;viewport:RefObject<HTMLDivElement|null>}){
+ const [inlineVisible,setInlineVisible]=useState(true),[dismissed,setDismissed]=useState<string>();
+ const signature=JSON.stringify(workflow);
+ useLayoutEffect(()=>{
+  const root=viewport.current;if(!root||!anchor||!active){setInlineVisible(true);return;}
+  const card=Array.from(root.querySelectorAll<HTMLElement>('[data-chat-plan-key]')).find(node=>node.dataset.chatPlanKey===anchor);
+  if(!card){setInlineVisible(true);return;}
+  const measure=()=>{const a=card.getBoundingClientRect(),b=root.getBoundingClientRect();setInlineVisible(a.bottom>b.top&&a.top<b.bottom);};
+  measure();const observer=typeof IntersectionObserver==='undefined'?null:new IntersectionObserver(entries=>setInlineVisible(entries.some(entry=>entry.isIntersecting)),{root});observer?.observe(card);
+  return()=>observer?.disconnect();
+ },[anchor,active,viewport,signature]);
+ if(!active||inlineVisible||!workflow?.items.length||dismissed===anchor)return null;
+ return <div className="chat-plan-reminder cindy-chat-ui"><TodoListCard key={anchor} maxWidth="100%" todos={workflow.items.map(item=>({content:item.step,status:item.status}))} animated={animated} onDismiss={()=>setDismissed(anchor)}/></div>;
 }

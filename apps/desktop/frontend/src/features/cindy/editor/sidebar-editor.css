@@ -27,7 +27,9 @@
      - 底 96:scroll 到底末行下方缓冲
      - 左 16:文本到行号 gutter 的额外微调(gutter 自己也有 padding,见下方) */
   padding: 20px 12px 96px 16px !important;
-  max-width: none !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  flex: 1 1 0%;
   margin: 0 !important;
   /* base font 14px + line-height 1.6 —— 对齐 Codex 实测节奏(2026-06-30 用户:
      "13px 太小,仔细对标 codex"):
@@ -189,33 +191,20 @@
 /* 围栏标记行 ``` / ```bash 的淡化由主题层实现:.cm-md-fence-line 基础色是
    muted,内容行 .cm-md-fence-body 反白回正文色 → 标记行自然退后。 */
 
-/* ── Markdown 表格 widget 列宽自适应(窄栏修复) ────────────────────────────
-   主 markdown table widget(markdownTableLivePreview.ts)给每个 `<col>` 按 markdown
-   源码字符数(sourceWidths)算百分比宽度,配 `table-layout: fixed` 严格分配。doc
-   模式宽栏(700+px)下这套算法 OK,但在 RSB 280-400px 窄栏里,超长描述列(如
-   `| Usage | The primary page background ...` 100+ 字符)按比例会吃掉 80% 宽度,
-   剩下的 Role/Light Mode/Dark Mode 几列每列实际可用宽度小于一个字符,叠加 widget
-   原样式里的 `word-break: break-word` / `overflow-wrap: anywhere`,渲染成"每个
-   字母独占一行"的竖排,完全不可读(2026-07-01 用户反馈)。
-   修复:RSB scope 单独把 table-layout 切到 auto + 清掉 col 的 inline width hint,
-   让浏览器按实际内容算列宽;短标签列自然保住"放下完整单词"的最小宽度,长描述列
-   wrap 到多行。内容仍超过栏宽时由 widget wrapper 横向滚动兜底(主 doc 模式宽栏
-   下视觉不变)。 */
-:host .cm-editor .cm-md-table-widget {
-  overflow-x: auto;
-}
-:host .cm-editor .cm-md-table-widget table {
-  table-layout: auto !important;
-  width: 100% !important;
-  /* 兜底:表格至少占满栏宽,不会因为内容短而缩成一小条。 */
-  min-width: 100% !important;
-}
-/* col 的 inline `style="width: xx%"` specificity 是 (1,0,0,0)(inline),CSS
-   规则需要 !important 才能盖过。auto 模式下浏览器只把 col 宽度当 hint,清掉
-   让它完全按内容算。 */
-:host .cm-editor .cm-md-table-widget col {
-  width: auto !important;
-}
+/* A gutter and editable content share the same flex row. Both must be allowed
+   to shrink; soft wrapping alone cannot defeat CodeMirror's min-content width. */
+:host .cm-editor .cm-scroller{min-width:0;max-width:100%;overflow-x:hidden!important;overflow-y:auto!important}
+:host .cm-editor .cm-line{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+:host .cm-editor .cm-md-mermaid-card{min-width:0;max-width:100%;overflow-x:hidden}
+:host .cm-editor .cm-md-mermaid-card>svg{flex-shrink:1;max-width:100%;height:auto}
+:host .cm-editor .cm-md-mermaid-fallback{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* Tables wrap within their actual allocation, including very long URLs. Keep
+   percentage column widths so the existing drag-to-resize interaction works;
+   never use an off-screen horizontal scroll area as a narrow-pane fallback. */
+:host .cm-editor .cm-md-table-widget{min-width:0;max-width:100%;overflow:visible}
+:host .cm-editor .cm-md-table-widget table{table-layout:fixed!important;width:100%!important;min-width:0!important;max-width:100%}
+:host .cm-editor .cm-md-table-widget :is(th,td){min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;padding:6px 4px}
 
 /* ── 文件树 scroll 容器底部缓冲 ───────────────────────────────────────────────
    FileTreeView 自己用 `py-2`(8px)在 scroll 容器内做 padding,doc 模式下父级

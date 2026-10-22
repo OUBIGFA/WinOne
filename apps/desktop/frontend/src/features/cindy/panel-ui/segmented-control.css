@@ -26,18 +26,21 @@
 }
 
 .cindy-segmented {
+  --segmented-inset: calc((var(--segmented-height) - var(--segmented-option-height)) / 2);
+  --segmented-gap: 2px;
   position: relative;
   isolation: isolate;
   display: inline-flex;
   flex-wrap: nowrap;
   flex-shrink: 0;
   align-items: center;
-  gap: 2px;
+  gap: var(--segmented-gap);
   width: max-content;
+  min-width: 0;
   max-width: 100%;
-  overflow-x: auto;
+  overflow: hidden;
   min-height: var(--segmented-height);
-  padding: calc((var(--segmented-height) - var(--segmented-option-height)) / 2);
+  padding: var(--segmented-inset);
   border-radius: var(--radius-full);
   background: var(--segmented-track);
 }
@@ -56,8 +59,8 @@
   flex-shrink: 0;
 }
 .cindy-segmented-full > .cindy-segmented-option {
-  flex: 1;
-  min-width: max-content;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .cindy-segmented-plate {
@@ -73,6 +76,10 @@
     transform var(--motion-base) var(--motion-ease-move),
     width var(--motion-base) var(--motion-ease-move),
     height var(--motion-base) var(--motion-ease-move);
+}
+
+.cindy-segmented-plate--fractional {
+  transition-property: transform;
 }
 
 .cindy-segmented-option {

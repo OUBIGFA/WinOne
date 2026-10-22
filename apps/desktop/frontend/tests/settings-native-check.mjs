@@ -114,6 +114,12 @@ try{
    const containers=[root,root.parentElement,...root.querySelectorAll('.settings-group,.selection-action-row,.wintray-program-list,.wintray-program-detail')];
    return {width:innerWidth,height:innerHeight,overflow:containers.filter(e=>visible(e)&&e.scrollWidth>e.clientWidth+1).map(e=>({name:e.className,client:e.clientWidth,scroll:e.scrollWidth})),text:root.innerText.slice(0,180)};
   });
+  const privacyModel=page.locator('[aria-label="本地模型辅助脱敏"],[aria-label="Find with a local model"]');
+  if(id==='ai-services'&&await privacyModel.isVisible()){
+   await privacyModel.getByRole('switch').waitFor();
+   await page.waitForFunction(()=>!document.querySelector('[aria-label="本地模型辅助脱敏"] [role="status"],[aria-label="Find with a local model"] [role="status"]'));
+   assert.equal(await privacyModel.getByRole('alert').count(),0,'Native privacy status must reach the real Host');
+  }
   const file=String(views.length+1).padStart(3,'0')+'-'+variant+'-'+id+'-'+(path.join('-')||'default')+'.png';
   if(process.env.WINONE_WINDOW_SHOT_EXE)execFileSync(process.env.WINONE_WINDOW_SHOT_EXE,[process.env.WINONE_COMPONENTS_PID,join(output,file),'-wait','250'],{windowsHide:true});
   else await page.screenshot({path:join(output,file)});
@@ -130,6 +136,21 @@ try{
    await tabs(id,variant,depth+1,[...path,index]);
   }
  }
+ // The native open request and initial module read complete after navigation
+ // first appears. Start user interactions after that initial Home is ready.
+ await page.locator('.dashboard-tool').first().waitFor();
+ // A fresh profile follows Windows language. Fix the test's baseline through
+ // its owned Host so restoring it later does not unexpectedly select English.
+ await page.evaluate(async()=>{
+  const app=window.go.main.App;
+  // Test setup can race the initial module discovery action. Retry only an
+  // explicitly refused admission (no configuration job was accepted).
+  const deadline=Date.now()+5000;
+  for(;;){try{const snapshot=await app.Snapshot();await app.SaveSettings({...snapshot.settings,theme:'light',language:'zh-CN',defaultPage:'overview',startup:{...snapshot.settings.startup,keepUIRunning:false}});break;}
+   catch(error){if(!String(error).includes('(configuration_busy)')||Date.now()>=deadline)throw error;await new Promise(done=>setTimeout(done,100));}}
+ });
+ await page.reload({waitUntil:'domcontentloaded'});await page.locator('.dashboard-tool').first().waitFor();
+ await page.evaluate(()=>window.go.main.App.SettingsNavigation());await settle();
  await open('settings');
  await setSize(1280);
  const original=await page.evaluate(async()=>structuredClone((await window.go.main.App.Snapshot()).settings));
@@ -170,7 +191,7 @@ try{
  interactions.push('whole choice target / theme keyboard / real Host disk save / language / sidebar / start page after reload');
  await page.getByRole('radio',{name:'Icons only',exact:true}).click();
  await page.evaluate(async original=>{const api=window.go.main.App,s=await api.Snapshot();await api.SaveSettings({...s.settings,theme:original.theme,language:original.language,defaultPage:original.defaultPage});},original);
- await page.reload({waitUntil:'domcontentloaded'});await page.locator('.app-navigation').waitFor();
+ await page.reload({waitUntil:'domcontentloaded'});await page.locator('.dashboard-tool').first().waitFor();
  // Save a harmless filename preference through the manual footer, then check
  // its durable value after reload. Navigation cancellation must retain draft.
  await open('capture');

@@ -53,8 +53,11 @@ export function DirectoryLinksBatch({disabled=false,onActivity,onChanged,incomin
   // page scroll keep creation reachable while the two lists grow together.
   const fit=()=>{const bounds=pane.getBoundingClientRect();if(!bounds.width)return;const gap=parseFloat(getComputedStyle(root).rowGap)||0;const bottom=scroll?.getBoundingClientRect().bottom??window.innerHeight;const available=Math.max(256,bottom-bounds.top-(scroll?.scrollTop??0)-bar.offsetHeight-(heightHandle.current?.offsetHeight??0)-gap*2);const maximum=4000;const height=Math.min(preferredHeight.current??available,maximum);pane.style.setProperty("--directory-links-pane-height",`${height}px`);setPaneSize(current=>current.height===height&&current.maximum===maximum?current:{height,maximum});};
   fitHeight.current=fit;
-  const observer=new ResizeObserver(fit);observer.observe(bar);observer.observe(root.closest('[data-slot="page-content"]')??root);if(scroll)observer.observe(scroll);window.addEventListener("resize",fit);fit();
-  return()=>{observer.disconnect();window.removeEventListener("resize",fit);fitHeight.current=undefined;};
+  // Updating pane height also resizes the observed page. Defer that write
+  // until the next frame so ResizeObserver can finish delivering this frame.
+  let frame=0;const schedule=()=>{if(!frame)frame=requestAnimationFrame(()=>{frame=0;fit();});};
+  const observer=new ResizeObserver(schedule);observer.observe(bar);observer.observe(root.closest('[data-slot="page-content"]')??root);if(scroll)observer.observe(scroll);window.addEventListener("resize",schedule);fit();
+  return()=>{observer.disconnect();window.removeEventListener("resize",schedule);if(frame)cancelAnimationFrame(frame);fitHeight.current=undefined;};
  },[]);
  const listedSources=new Set((source.listing?.entries??[]).map(entry=>pathKey(entry.path)));
  const outsideSources=sources.filter(path=>!listedSources.has(pathKey(path)));

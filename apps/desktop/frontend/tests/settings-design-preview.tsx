@@ -52,6 +52,7 @@ let programs = {schemaVersion: 3, language, runAtLogon: true, startMinimizedToTr
   trayBehavior: {autoMinimizeAndHideOnLaunch: true, closeDelaySeconds: 3},
   schedule: {enabled: index === 0, startDelayMinutes: 5, autoExitMinutes: 30, frequencyEnabled: false, frequencyDays: 1, frequencyRuns: 1},
 }))};
+if (query.has("empty-programs")) programs.managedApps = [];
 let ai: AIConfiguration = {revision: 1, engine: "google", ocrEngine: "local", target: "auto", prompt: "", providers: [
   {id: "one", name: language === "en-US" ? "Example service" : "示例服务", authMode: "api-key", icon: "deepseek-color", protocol: "chat", baseUrl: "https://example.invalid/v1", hasKey: true, models: ["shared-model", "vision-model"], availableModels: ["shared-model", "vision-model", "unchecked-model"]},
   {id: "account", name: "ChatGPT / Codex", authMode: "account", icon: "openai", agent: "codex", protocol: "chat", hasKey: false, models: ["gpt-5.5"]},
@@ -129,11 +130,15 @@ window.go = {main: {App: {
     if (method === "ai.models.fetch") return JSON.stringify({models: [{id: "shared-model"}, {id: "vision-model"}, {id: "new-model"}]});
     if (method === "ai.models.test") return JSON.stringify({results: params.models.map((model: string) => ({model, ok: true, ms: 120})), clients: {codex: "", "claude-code": ""}});
     if (method === "ai.magpie.catalog") return JSON.stringify({visionModels: [{id: "one/vision-model", name: "Vision", provider: "one", providerName: ai.providers[0].name}], imageGenModels: [], titleModels: [], searchVendors: [{id: "tavily", name: "Tavily"}, {id: "searxng", name: "SearXNG", needURL: true}], searchChoices: [], quotas: [{id: "account", name: "ChatGPT / Codex"}], codexUsers: ["preview@example.invalid"], pluginCheckins: [{id: "example", name: "Example check-in"}]});
+    // Viewing privacy settings owns a read-only lease; the layout fixture
+    // never downloads or starts a model, just like a fresh native profile.
+    if (["ai.magpie.privacy.open", "ai.magpie.privacy.state"].includes(method)) return JSON.stringify({on: false, supported: true, installed: false, size: 1637572192});
+    if (method === "ai.magpie.privacy.close") return JSON.stringify({});
     if (method === "ai.gateway.get") return JSON.stringify(gateway);
     if (method === "ai.gateway.save") {gateway = {...gateway, ...params.settings, revision: gateway.revision + 1, running: params.settings.enabled}; return JSON.stringify(gateway);}
     if (method === "ai.gateway.key") return JSON.stringify({key: "fixture-not-a-real-key"});
-    if (method === "ai.routing.close") return JSON.stringify({});
-    if (method === "ai.routing.open") throw Error("Magpie 原版路由在桌面集成测试中验证；此夹具只检查宿主错误边界。");
+    if (["ai.routing.close", "ai.routing.plugins.close", "ai.routing.extensions.close"].includes(method)) return JSON.stringify({});
+    if (["ai.routing.open", "ai.routing.plugins.open", "ai.routing.extensions.open"].includes(method)) throw Error("Magpie 原版路由与插件页在桌面集成测试中验证；此夹具只检查宿主错误边界。");
     throw Error("Unsupported isolated capture operation: " + method);
   },
   InspectDroppedPaths: async (paths:string[]) => {record("paths.inspect",paths);return paths.map(path=>({path,kind:/\.[a-z0-9]+$/i.test(path)?"file":"directory"}));},

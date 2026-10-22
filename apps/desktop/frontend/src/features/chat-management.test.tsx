@@ -9,7 +9,7 @@ import {ChatMessageView} from "./chat-messages";
 import {emptyChatState,type Conversation} from "./chat-state";
 
 const native=vi.hoisted(()=>({call:vi.fn(),pick:vi.fn(),files:vi.fn(),ai:vi.fn()}));
-vi.mock("../bridge",()=>({setFileDropTarget:vi.fn(async()=>{}),chatCall:native.call,pickDirectory:native.pick,pickChatFiles:native.files,captureCall:native.ai}));
+vi.mock("../bridge",()=>({inspectDroppedPaths:async(paths:string[])=>paths.map(path=>({path,kind:'file'})),setFileDropTarget:vi.fn(async()=>{}),chatCall:native.call,pickDirectory:native.pick,pickChatFiles:native.files,captureCall:native.ai}));
 afterEach(()=>{cleanup();vi.resetAllMocks();localStorage.clear();});
 const model={provider:"service",model:"model"};
 const providers=[{id:"service",name:"Current service",authMode:"api-key" as const,hasKey:false,models:["model"],modelNames:{model:"Current model"}}];

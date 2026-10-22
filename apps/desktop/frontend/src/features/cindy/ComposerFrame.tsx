@@ -5,7 +5,15 @@ import {GripVertical} from "lucide-react";
 import {useTranslation} from "../../i18n";
 import {cn} from "./adapter";
 const minimum=132,initialHeight=220;
-export function ComposerFrame({children,newConversation,editor,content,attachmentCount=0}:{children:ReactNode;newConversation:boolean;editor:RefObject<HTMLTextAreaElement|null>;content?:string;attachmentCount?:number}){
+function dockedLimit(main:Element,composer:HTMLElement){
+ const box=composer.getBoundingClientRect(),footer=main.querySelector('.chat-input-area');
+ const top=main.querySelector('.chat-transcript-viewport')?.getBoundingClientRect().top??main.querySelector('.chat-header')?.getBoundingClientRect().bottom??main.getBoundingClientRect().top;
+ const chrome=footer?box.top-footer.getBoundingClientRect().top:0;
+ // Leave one readable final line plus its actions/padding and the input fade.
+ // The old fixed 54px allowance forgot the project row above the composer.
+ return Math.max(minimum,box.bottom-top-chrome-160);
+}
+export function ComposerFrame({children,newConversation,editor,content,attachmentCount=0,onResizeIntent}:{children:ReactNode;newConversation:boolean;editor:RefObject<HTMLTextAreaElement|null>;content?:string;attachmentCount?:number;onResizeIntent?:()=>void}){
  const {t}=useTranslation(),root=useRef<HTMLDivElement>(null),welcomeLayout=useRef(''),welcomeBottom=useRef(24),welcomeBase=useRef(initialHeight);
  const [limit,setLimit]=useState(()=>Math.max(minimum,window.innerHeight-180));
  // Every new-chat action remounts this frame. A previous conversation's tall
@@ -73,8 +81,7 @@ export function ComposerFrame({children,newConversation,editor,content,attachmen
     setLimit(Math.max(minimum,welcome.clientHeight-extra-24));
     return;
    }
-   const top=main.querySelector('.chat-header')?.getBoundingClientRect().bottom??main.getBoundingClientRect().top;
-   setLimit(Math.max(minimum,composer.getBoundingClientRect().bottom-top-54));
+   setLimit(dockedLimit(main,composer));
   };
   const observer=new ResizeObserver(measure);observer.observe(main);if(area)observer.observe(area);window.addEventListener('resize',measure);measure();
   return()=>{observer.disconnect();window.removeEventListener('resize',measure);};
@@ -92,12 +99,11 @@ export function ComposerFrame({children,newConversation,editor,content,attachmen
    const max=Math.max(minimum,bounds.height-(outer.height-box.height)-24);
    setLimit(max);persist(Math.max(minimumHeight,Math.min(max,start.height+delta*2)));return;
   }
-  const top=main.querySelector('.chat-header')?.getBoundingClientRect().bottom??main.getBoundingClientRect().top;
-  const max=Math.max(minimumHeight,start.bottom-top-54);setLimit(max);persist(Math.max(minimumHeight,Math.min(max,start.height+delta)));
+  const max=Math.max(minimumHeight,dockedLimit(main,composer));setLimit(max);persist(Math.max(minimumHeight,Math.min(max,start.height+delta)));
  }
  function startResize(event:PointerEvent<HTMLDivElement>){
   if(event.button!==0)return;
-  event.preventDefault();const handle=event.currentTarget,startY=event.clientY,start=handle.parentElement!.getBoundingClientRect();
+  event.preventDefault();onResizeIntent?.();const handle=event.currentTarget,startY=event.clientY,start=handle.parentElement!.getBoundingClientRect();
   handle.setPointerCapture(event.pointerId);
   const move=(next:globalThis.PointerEvent)=>resizeFrom(start,startY-next.clientY);
   const done=()=>{handle.removeEventListener('pointermove',move);handle.removeEventListener('lostpointercapture',done);};
@@ -106,6 +112,6 @@ export function ComposerFrame({children,newConversation,editor,content,attachmen
  return <div ref={root} className="cindy-chat-ui relative w-full" data-chat-input-root data-new-conversation={newConversation||undefined}>
   <div style={{height:displayedHeight}} className={cn('chat-composer relative flex w-full flex-col')} onMouseDown={event=>{
    if(event.button===0&&(event.target===event.currentTarget||(event.target as HTMLElement).classList.contains('chat-composer-spacer'))){event.preventDefault();editor.current?.focus();}
-  }}><div role="separator" tabIndex={0} aria-orientation="horizontal" aria-label={t('chat.resizeComposer')} aria-valuemin={Math.round(minimumHeight)} aria-valuemax={Math.max(limit,minimumHeight)} aria-valuenow={Math.round(displayedHeight)} className="chat-composer-resize" onPointerDown={startResize} onKeyDown={event=>{if(event.key==='ArrowUp'||event.key==='ArrowDown'){event.preventDefault();persist(Math.max(minimumHeight,Math.min(limit,displayedHeight+(event.key==='ArrowUp'?24:-24))));}}}><GripVertical aria-hidden="true" size={16}/></div>{children}</div>
+  }}><div role="separator" tabIndex={0} aria-orientation="horizontal" aria-label={t('chat.resizeComposer')} aria-valuemin={Math.round(minimumHeight)} aria-valuemax={Math.max(limit,minimumHeight)} aria-valuenow={Math.round(displayedHeight)} className="chat-composer-resize" onPointerDown={startResize} onKeyDown={event=>{if(event.key==='ArrowUp'||event.key==='ArrowDown'){event.preventDefault();onResizeIntent?.();persist(Math.max(minimumHeight,Math.min(limit,displayedHeight+(event.key==='ArrowUp'?24:-24))));}}}><GripVertical aria-hidden="true" size={16}/></div>{children}</div>
  </div>;
 }

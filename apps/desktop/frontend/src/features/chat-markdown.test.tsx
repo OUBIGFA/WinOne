@@ -6,6 +6,13 @@ const bridge=vi.hoisted(()=>({call:vi.fn()}));
 vi.mock('../bridge',()=>({chatCall:bridge.call}));
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
 
+it('keeps filename line references clickable without admitting script URLs',()=>{
+ render(<ChatMarkdown text={'[source](README.md:12:3) · [line](file.ts:7) · [script](javascript:1)'}/>);
+ expect(screen.getByRole('link',{name:'source'}).getAttribute('href')).toBe('README.md:12:3');
+ expect(screen.getByRole('link',{name:'line'}).getAttribute('href')).toBe('file.ts:7');
+ expect(screen.getByText('script').closest('a')).toBeNull();
+});
+
 it('renders Chinese punctuation emphasis and preserves single-tilde ranges',()=>{
  const {container}=render(<ChatMarkdown text={'**小标题：**正文\n\n4~6 天后再等 4~6 天。'}/>);
  expect(container.querySelector('strong')?.textContent).toBe('小标题：');

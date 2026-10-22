@@ -33,6 +33,7 @@ import {repairStreamingMarkdown} from './repairStreamingMarkdown';
 import {StreamingMarkdownChunk} from './StreamingMarkdownChunk';
 import {getStreamingMarkdownThrottleInterval,splitStreamingMarkdownChunks,STREAMING_MARKDOWN_THROTTLE_BASE_MS} from './streamingMarkdownChunks';
 import {CopyAsImageBlock,mathBlockToLatex,tableToTsv} from './CopyAsImageBlock';
+import {FitMathBlock} from './FitMathBlock';
 import {MarkdownDiffBlock} from './MarkdownDiffBlock';
 import {MarkdownMermaidBlock} from './MarkdownMermaidBlock';
 function nodeToText(node: ReactNode): string {
@@ -333,7 +334,7 @@ const baseComponents: Components = {
     return (
       <CopyAsImageBlock
         className="my-3"
-        contentClassName="overflow-x-auto"
+        contentClassName="min-w-0 max-w-full"
         extractPlainText={tableToTsv}
       >
         <table
@@ -354,7 +355,7 @@ const baseComponents: Components = {
   div({ children, node, ...props }) {
     if (node?.properties && 'dataMathBlock' in node.properties) {
       return (
-        <CopyAsImageBlock extractPlainText={mathBlockToLatex}>{children}</CopyAsImageBlock>
+        <CopyAsImageBlock extractPlainText={mathBlockToLatex}><FitMathBlock>{children}</FitMathBlock></CopyAsImageBlock>
       );
     }
     return <div {...props}>{children}</div>;
@@ -570,7 +571,7 @@ export const MarkdownRenderer=memo(function MarkdownRenderer({content,isStreamin
    const raw=props as Record<string,unknown>,safe=omitMarkdownInternalProps(raw);
    const original=raw[RAW_LOCAL_LINK_HREF_PROP]??node?.properties?.[RAW_LOCAL_LINK_HREF_PROP];
    delete safe[BARE_PATH_ATTR];delete safe[RAW_LOCAL_LINK_HREF_PROP];
-   return <ChatFileLink {...safe} href={allowPrivilegedLinks&&typeof original==='string'?original:href}>{children}</ChatFileLink>;
+   return <ChatFileLink {...safe} chip href={allowPrivilegedLinks&&typeof original==='string'?original:href}>{children}</ChatFileLink>;
   },
   img:({src,alt,node,...props})=>{
    const original=node?.properties?.[RAW_LOCAL_IMAGE_SRC_PROP];

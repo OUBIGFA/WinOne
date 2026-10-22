@@ -18,10 +18,11 @@
  * comes from the repaired variant. Streaming-partial sources fail both parses
  * and fall through to the same source-view path as before.
  *
- * Theme: re-renders when <html class="dark"> toggles, via MutationObserver.
+ * Theme: follows WinOne's resolved theme, including changes while open.
  */
 
 import {MermaidSvg} from './svgMarkup';
+import {useIsDarkMode} from '../editor/useIsDarkMode';
 import { memo, useEffect, useId, useRef, useState } from 'react';
 import { Check, Code2, Copy, Expand, Eye, Pen } from 'lucide-react';
 import { useTranslation } from './translation';
@@ -53,10 +54,6 @@ function loadMermaid(): Promise<MermaidModule> {
   return mermaidPromise;
 }
 
-function isDarkMode(): boolean {
-  return document.documentElement.classList.contains('dark');
-}
-
 export const MarkdownMermaidBlock = memo(function MarkdownMermaidBlock({
   raw,
 }: MarkdownMermaidBlockProps) {
@@ -69,7 +66,7 @@ export const MarkdownMermaidBlock = memo(function MarkdownMermaidBlock({
   const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showSource, setShowSource] = useState(false);
-  const [dark, setDark] = useState<boolean>(isDarkMode);
+  const dark = useIsDarkMode();
   const [copied, setCopied] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
@@ -93,21 +90,6 @@ export const MarkdownMermaidBlock = memo(function MarkdownMermaidBlock({
       });
       return { blob, plainText: rawRef.current };
     });
-
-  // Re-render when <html class="dark"> toggles. Module-level MutationObserver
-  // would be cheaper but the cost here is negligible (1 observer per visible
-  // mermaid block), and per-instance cleanup is simpler.
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      const next = isDarkMode();
-      setDark((prev) => (prev === next ? prev : next));
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     let cancelled = false;

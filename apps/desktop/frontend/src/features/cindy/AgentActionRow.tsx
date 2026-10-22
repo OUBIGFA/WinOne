@@ -9,7 +9,7 @@ import {ScrollArea} from "../lobe/scroll-area/ScrollArea";
 import {cn,Spinner,useTranslation} from "./adapter";
 import {ProcessBody} from '../process-navigation';
 import {describeToolUse,type ToolUseDescriptor} from "./shared/toolUseDescriptor";
-import {ChatMarkdown} from "../chat-markdown";
+import {ChatToolFilePreview} from '../chat-tool-file-preview';
 import type {CommandIntent} from "./shared/commandIntent";
 import type {WorkMessage} from "./workActivityAdapter";
 import {ACTIVITY_ROW_CHEVRON_SLOT_CLASS,ACTIVITY_ROW_COLOR_TRANSITION_CLASS,ACTIVITY_ROW_HOVER_SURFACE_CLASS,ACTIVITY_ROW_RADIUS_CLASS} from "./activityRowChrome";
@@ -31,8 +31,8 @@ export function AgentActionRow({message,toolResult,status,intentOverride,showRaw
  const copy=async(text:string)=>{try{await navigator.clipboard.writeText(text);setCopyError("");}catch(error){setCopyError(String(error));}};
  const details=<div className="chat-tool-payload">
   <div className="chat-tool-payload-label"><span>{t("chat.toolInput")}</span><Button variant="ghost" size="icon" icon={Copy} aria-label={t("chat.copy")} onClick={()=>void copy(inputText)}/></div>
-  <ChatMarkdown text={inputText}/>
-  {toolResult!==undefined&&<><div className="my-2 h-px bg-[var(--msg-tool-card-chevron)]/20"/><div className="chat-tool-payload-label"><span>{t("chat.toolOutput")}</span><Button variant="ghost" size="icon" icon={Copy} aria-label={t("chat.copy")} onClick={()=>void copy(toolResult)}/></div><ChatMarkdown text={toolResult}/></>}
+  <pre>{inputText}</pre>
+  {toolResult!==undefined&&<><div className="my-2 h-px bg-[var(--msg-tool-card-chevron)]/20"/><div className="chat-tool-payload-label"><span>{t("chat.toolOutput")}</span><Button variant="ghost" size="icon" icon={Copy} aria-label={t("chat.copy")} onClick={()=>void copy(toolResult)}/></div><pre>{toolResult}</pre></>}
   {copyError&&<p role="alert">{copyError}</p>}
  </div>;
  return <div className="flex min-w-0 flex-col chat-work-entry" data-message-client-id={message.clientId}>
@@ -44,6 +44,6 @@ export function AgentActionRow({message,toolResult,status,intentOverride,showRaw
   </button>
   {showRawCommand&&command&&command!==displayParam&&!expanded&&<div data-agent-action-raw-command="true" title={command} className="min-w-0 truncate px-2 pb-[3px] pl-[30px] font-mono text-12 leading-[1.5] text-[var(--msg-tool-card-chevron)]">{command}</div>}
   {!isFile&&expanded&&<ProcessBody blockKey={`tool:${message.clientId}:${instance}`} onCollapse={()=>setExpanded(false)} onLongChange={value=>{longBody.current=value;}} version={toolResult}><div className="mx-2 mt-1 mb-1 rounded-[6px] px-[10px] py-2 bg-[var(--msg-user-bg)] border border-[var(--msg-user-border)] font-mono text-[length:calc(var(--app-code-font-size)_-_1px)] leading-[calc(var(--app-code-font-size)_+_4px)] text-[var(--muted-foreground)] select-text cursor-text">{details}</div></ProcessBody>}
-  <Dialog open={dialog} onOpenChange={setDialog}><DialogContent className="chat-tool-dialog cindy-chat-ui"><DialogTitle>{verb} · {file}</DialogTitle><DialogDescription>{t("chat.toolDetailHint")}</DialogDescription><ScrollArea disableContentFit className="chat-tool-dialog-scroll">{details}</ScrollArea></DialogContent></Dialog>
+  <Dialog open={dialog} onOpenChange={setDialog}><DialogContent className="chat-tool-dialog cindy-chat-ui"><DialogTitle>{verb} · {file}</DialogTitle><DialogDescription>{t("chat.toolDetailHint")}</DialogDescription><ScrollArea disableContentFit className="chat-tool-dialog-scroll">{isFile&&file?<ChatToolFilePreview file={file} name={message.toolName??''} input={args} result={message.toolResultValue??toolResult} isError={message.isError} running={status==='running'} raw={details} onOpenCurrent={()=>setDialog(false)}/>:details}</ScrollArea></DialogContent></Dialog>
  </div>;
 }

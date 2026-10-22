@@ -67,16 +67,16 @@ export function MarkdownDiffBlock({ raw }: MarkdownDiffBlockProps) {
   const gutterWidth = String(maxLineNum).length;
 
   return (
-    // diff-hscroll + pre 的 `w-max min-w-full` 与 DiffView 同一套横滚契约:
-    // 滚动条常显 + 行宽取最长行,长行滚出去以后红/绿底色不断。
+    // Keep line numbers and change markers fixed while the content soft-wraps.
+    // The source remains unmodified for selection and copying.
     <div
       className={cn(
-        'diff-hscroll my-3 overflow-x-auto rounded-[12px]',
+        'diff-hscroll my-3 min-w-0 max-w-full rounded-[12px]',
         'border border-[var(--msg-code-block-border)]',
         'bg-[var(--msg-code-block-bg)]',
       )}
     >
-      <pre className="m-0 w-max min-w-full p-0 text-[length:calc(var(--app-code-font-size)_-_1px)] leading-[1.5] font-mono">
+      <pre className="m-0 w-full min-w-0 p-0 text-[length:calc(var(--app-code-font-size)_-_1px)] leading-[1.5] font-mono">
         {lines.map((line, i) => (
           <div
             key={`${line.type}-${line.lineNum}-${i}`}
@@ -106,7 +106,7 @@ export function MarkdownDiffBlock({ raw }: MarkdownDiffBlockProps) {
             {/* Content column */}
             <span
               className={cn(
-                'flex-1 whitespace-pre pr-3',
+                'min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere] pr-3',
                 line.type === 'del' && 'text-[var(--diff-del-fg)]',
                 line.type === 'add' && 'text-[var(--diff-add-fg)]',
               )}

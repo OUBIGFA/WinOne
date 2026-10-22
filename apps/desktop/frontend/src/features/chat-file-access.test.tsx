@@ -19,5 +19,5 @@ it('does not stat ordinary identifiers after resolving them against an absolute 
 it('recognizes a directory path as a folder instead of a failing file preview',async()=>{
  native.call.mockImplementation(async(_method,{paths})=>({files:paths.map((path:string)=>({requested:path,file:{path:'C:/project/docs',name:'docs',directory:true,size:0,modified:0}}))}));
  const open=vi.fn();render(<ChatFileNavigation id="directory" cwd="C:/project" onDirectory={open}><ChatInlineCode>docs/</ChatInlineCode></ChatFileNavigation>);
- await waitFor(()=>expect(screen.getByText('docs/').closest('a')).not.toBeNull());screen.getByText('docs/').click();expect(open).toHaveBeenCalledWith(expect.stringMatching(/docs\/?$/));
+ const chip=await screen.findByRole('button',{name:'docs/'});expect(chip.tagName).toBe('CODE');chip.click();await waitFor(()=>expect(open).toHaveBeenCalledWith(expect.stringMatching(/docs\/?$/)));
 });

@@ -12,6 +12,7 @@ try{
  await writeFile(join(workspace,'README.md'),'# Native preview\n\nA file from the isolated workspace.\n');
  await writeFile(join(workspace,'AGENTS.md'),'# Native resource fixture\n\nNo external actions.\n');
  await writeFile(join(workspace,'docs','guide.md'),'Search this native fixture.\n');
+ await writeFile(join(output,'private.txt'),'Outside the saved workspace; no preview grant.');
  for(let i=0;i<80;i++)await writeFile(join(workspace,`file-${i}.txt`),'native stat fixture');
  const deadline=Date.now()+30000;
  while(Date.now()<deadline){try{browser=await chromium.connectOverCDP(endpoint,{timeout:1000});break;}catch{await new Promise(done=>setTimeout(done,100));}}
@@ -23,6 +24,9 @@ try{
   const call=async(method,params={})=>JSON.parse(await window.go.main.App.Chat(method,JSON.stringify(params)));
   const conversation=await call('conversation.new',{directory:workspace,title:'Native file check'});
   const id=conversation.id;
+  const activity=await call('activity');
+  const resolvedFile=await call('file.resolve',{id,path:'README.md'}),resolvedDirectory=await call('file.resolve',{id,path:'docs'});
+  let denied=false;try{await call('file.resolve',{id,path:workspace+'/../private.txt'});}catch{denied=true;}
   // This runs before the renderer opens that conversation and with no model.
   const resources=await call('resources',{id});
   const stats=await call('file.stat',{id,paths:[...Array.from({length:80},(_,i)=>`file-${i}.txt`),'docs','missing.txt']});
@@ -30,8 +34,9 @@ try{
   const search=await call('files.search',{id,path:'',query:'native fixture',caseSensitive:false,maxMatches:20,searchId:'native-proof'});const matches=await fetch(search.url).then(response=>response.json());
   const preview=await call('file.preview',{id,path:'README.md'});const original=await fetch(preview.url).then(response=>response.text());
   await call('file.save',{id,path:'README.md',revision:preview.revision,text:original+'\nSaved through the real bridge.\n'});
-  return {id,resources,stats,index:names,search:matches};
+  return {id,activity,resolvedFile,resolvedDirectory,denied,resources,stats,index:names,search:matches};
  },workspace);
+ assert.equal(typeof result.activity,'object');assert.equal(result.resolvedFile.path,join(workspace,'README.md'));assert.equal(result.resolvedDirectory.path,join(workspace,'docs'));assert.ok(result.denied,'Native resolve admitted an ungranted external file');
  assert.ok(result.resources.agents.some(item=>item.path.endsWith('AGENTS.md')));
  assert.equal(result.stats.files.filter(item=>item.file&&!item.file.directory).length,80);
  assert.ok(result.stats.files.some(item=>item.file?.directory));assert.ok(result.stats.files.some(item=>item.missing));
@@ -72,6 +77,37 @@ try{
  assert.equal(palette.main,'rgb(25, 25, 25)');assert.equal(palette.composer,'rgb(35, 35, 35)');
  evidence.push({scenario:'native dark surfaces follow data-theme',palette});
  await page.mouse.move(0,0);await page.screenshot({path:join(output,'native-dark.png')});
+ // Archive changes use the real catalog and durable Host, not a mocked row.
+ // Keep standalone collapse set so removing its duplicate heading cannot hide
+ // archived tasks with no way to expand them.
+ const archiveIDs=await page.evaluate(async workspace=>{
+  const call=async(method,params)=>JSON.parse(await window.go.main.App.Chat(method,JSON.stringify(params)));
+  const project=await call('project.add',{path:workspace,name:'Archive project',permission:'ask'});
+  const member=await call('conversation.new',{projectId:project.id,title:'Archived project task'});
+  const solo=await call('conversation.new',{directory:workspace,title:'Archived standalone task'});
+  for(const item of [member,solo])await call('conversation.update',{id:item.id,archived:true});
+  localStorage.setItem('winone.chat.sections.v1',JSON.stringify({conversations:true}));
+  return {member:member.id,solo:solo.id};
+ },workspace);
+ await page.reload({waitUntil:'domcontentloaded'});await page.locator('.app-navigation').waitFor();
+ await page.locator('.app-navigation [data-page-id="chat"]').click();
+ const sidebar=page.locator('.chat-sidebar');
+ await sidebar.getByRole('button',{name:/^(查看归档|View archive)$/}).click();
+ assert.equal(await sidebar.getByRole('heading',{name:/^(已归档|Archived)$/}).count(),1);
+ assert.equal(await sidebar.getByRole('heading',{name:/^(项目|Projects|对话|Chats)$/}).count(),0);
+ const archivedRows=[];
+ for(const id of Object.values(archiveIDs)){
+  const row=sidebar.locator(`[data-session-id="${id}"] .chat-sidebar-row`);await row.waitFor();
+  const placement=await row.evaluate(row=>({padding:getComputedStyle(row).paddingLeft,leading:row.firstElementChild.className,overflow:row.scrollWidth>row.clientWidth}));
+  assert.equal(placement.padding,'10px','Project rows must not indent task names');
+  assert.equal(placement.leading,'chat-sidebar-title','Idle rows must not reserve an icon column');
+  assert.equal(placement.overflow,false);archivedRows.push(placement);
+ }
+ await page.mouse.move(0,0);await page.screenshot({path:join(output,'native-archived.png')});
+ await sidebar.getByRole('button',{name:/^(返回对话|Back to chats)$/}).click();
+ await sidebar.getByRole('heading',{name:/^(项目|Projects)$/}).waitFor();
+ assert.equal(await sidebar.getByRole('button',{name:/^(展开对话|Expand Chats)$/}).getAttribute('aria-expanded'),'false');
+ evidence.push({scenario:'single archive heading / standalone archive remains visible / no extra project-name indentation / collapse preference retained',archivedRows});
  assert.deepEqual(errors,[]);
  await writeFile(join(output,'result.json'),JSON.stringify({native:true,evidence,errors},null,2));
  await page.evaluate(()=>{void window.go.main.App.WindowCommand('close');});

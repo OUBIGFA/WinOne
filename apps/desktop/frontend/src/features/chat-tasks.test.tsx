@@ -10,6 +10,7 @@ it('shows task ownership and resumes paused execution without sending the draft'
  render(<ChatComposer {...base} onSend={onSend} paused onResume={onResume} taskGraph={{scheduling:'paused',total:2,tasks:[{id:1,kind:'root',conversationId:1,background:false,state:'waiting'},{id:2,kind:'child',conversationId:1,owner:1,background:true,state:'ready'}]}}/>);
  expect(screen.getByRole('button',{name:'恢复任务'})).toBeTruthy();
  const input=screen.getByRole('textbox',{name:'消息'});await user.click(input);await user.keyboard('{Enter}');expect(onSend).not.toHaveBeenCalled();
+ await user.click(screen.getByRole('button',{name:'会话工具'}));
  await user.click(screen.getByRole('button',{name:'任务 · 2'}));
  const tree=screen.getByRole('list',{name:'任务'});expect(within(tree).getAllByRole('listitem')).toHaveLength(2);
  expect(within(within(tree).getAllByRole('listitem')[0]).getByRole('list')).toBeTruthy();
@@ -20,5 +21,7 @@ it('shows task ownership and resumes paused execution without sending the draft'
 });
 it('offers pause while a run is active and keeps stop separate',async()=>{
  const onPause=vi.fn(),onStop=vi.fn();render(<ChatComposer {...base} running onPause={onPause} onStop={onStop}/>);
+ expect(screen.queryByRole('button',{name:'暂停任务'})).toBeNull();
+ await userEvent.click(screen.getByRole('button',{name:'会话工具'}));
  await userEvent.click(screen.getByRole('button',{name:'暂停任务'}));expect(onPause).toHaveBeenCalledOnce();expect(onStop).not.toHaveBeenCalled();
 });

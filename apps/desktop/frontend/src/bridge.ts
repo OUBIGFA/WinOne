@@ -78,6 +78,7 @@ interface NativeApp {
   ChatBrowser(method: string, payload: string): Promise<string>;
   ChatMedia(method: string, payload: string): Promise<string>;
   PickDirectory(): Promise<string>;
+  ReadClipboardFiles():Promise<string[]>;
   PickChatFiles(): Promise<string[]>;
   PickFile(): Promise<string>;
   PickDirectories():Promise<string[]>;
@@ -110,6 +111,7 @@ declare global {
 
 export interface UpdateBuildInfo {version:string;configured:boolean}
 export interface UpdateCheckResult {state:string;currentVersion?:string;latestVersion?:string;errorCode?:string}
+export const readClipboardFiles=()=>native().ReadClipboardFiles();
 export const updateInfo=()=>native().UpdateInfo();
 export const checkUpdates=(id:string)=>native().CheckForUpdates(id);
 export const cancelUpdateCheck=(id:string)=>native().CancelUpdateCheck(id);

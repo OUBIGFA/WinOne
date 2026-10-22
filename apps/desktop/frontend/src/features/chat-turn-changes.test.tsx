@@ -1,14 +1,27 @@
 // @vitest-environment jsdom
 import {afterEach,expect,it,vi} from 'vitest';
-import {cleanup,render,screen,waitFor} from '@testing-library/react';
+import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {ChatTurnChanges} from './chat-turn-changes';
+import {ChatTranscriptChanges,ChatTurnChanges} from './chat-turn-changes';
 const bridge=vi.hoisted(()=>({call:vi.fn()}));
 vi.mock('../bridge',()=>({chatCall:bridge.call}));
 afterEach(()=>{cleanup();vi.restoreAllMocks();});
 
 const patch='diff --git a/report.md b/report.md\n--- a/report.md\n+++ b/report.md\n@@ -1 +1 @@\n-old\n+new\n';
 const review={snapshot:{isReversible:true,workspaceState:'applied',root:'C:/work',revision:'rev-1',files:[{path:'report.md',status:'M'},{path:'extra.md',status:'A'}]},patches:{'report.md':patch,'extra.md':patch}};
+
+it('keeps one card for repeated file edits and retains access to each turn',async()=>{
+ bridge.call.mockImplementation(async(method,params)=>method==='review.turn'?{...review,snapshot:{...review.snapshot,revision:params.turnId,files:[{path:params.turnId+'.md',status:'M'}]}}:{...review.snapshot,workspaceState:'undone'});
+ const onReview=vi.fn();render(<ChatTranscriptChanges id="chat" turns={[{turnId:'first',title:'First request',version:'1'},{turnId:'second',title:'Second request',version:'2'}]} disabled={false} onReview={onReview} onOpen={()=>{}}/>);
+ await screen.findByRole('button',{name:/second.md/});
+ expect(document.querySelectorAll('.chat-turn-changes')).toHaveLength(1);
+ await userEvent.click(screen.getByRole('button',{name:'查看文件改动'}));expect(onReview).toHaveBeenLastCalledWith('second',undefined);
+ await userEvent.selectOptions(screen.getByRole('combobox',{name:'文件改动记录'}),'first');
+ await screen.findByRole('button',{name:/first.md/});expect(document.querySelectorAll('.chat-turn-changes')).toHaveLength(1);
+ await userEvent.click(screen.getByRole('button',{name:'撤销本轮修改'}));
+ expect(bridge.call).toHaveBeenCalledWith('review.turn.apply',{sessionId:'chat',turnId:'first',mutation:{revision:'first',action:'undo'}});
+ await screen.findByRole('button',{name:'重新应用'});
+});
 
 it('undoes a turn through review.turn.apply and offers reapply afterwards',async()=>{
  bridge.call.mockImplementation(async(method)=>method==='review.turn'?review:{...review.snapshot,workspaceState:'undone'});
@@ -52,6 +65,15 @@ it('opens a file diff for the clicked row and never shows a turn without files',
  const rows=await screen.findAllByRole('button',{name:/report\.md/});
  await userEvent.click(rows[0]);
  expect(onReview).toHaveBeenCalledWith('report.md');
+ expect(screen.queryByRole('menu')).toBeNull();
+ fireEvent.contextMenu(rows[0],{clientX:40,clientY:60});
+ await screen.findByRole('menu');
+ expect(onReview).toHaveBeenCalledTimes(1);
+ await userEvent.keyboard('{Escape}');
+ await waitFor(()=>expect(screen.queryByRole('menu')).toBeNull());
+ fireEvent.keyDown(rows[0],{key:'F10',shiftKey:true});
+ await screen.findByRole('menu');
+ expect(screen.getByRole('menuitem',{name:'查看文件改动'})).toBeTruthy();
  expect(container.querySelectorAll('.chat-turn-changes').length).toBe(1);
  bridge.call.mockImplementation(async()=>({...review,snapshot:{...review.snapshot,files:[]}}));
  cleanup();

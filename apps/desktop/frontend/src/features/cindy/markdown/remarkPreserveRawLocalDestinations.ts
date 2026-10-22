@@ -35,10 +35,14 @@ export const RAW_LOCAL_LINK_HREF_PROP = 'data-cindy-raw-local-link-href';
 
 const URL_SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i;
 const WINDOWS_ABSOLUTE_PATH_RE = /^[A-Za-z]:[\\/]/;
+// A basename plus source coordinates resembles a URL scheme to Markdown.
+// Preserve only this explicit file form; actual script schemes stay filtered.
+const FILE_LINE_RE = /^[^\s:/?#]+\.[A-Za-z0-9_-]+:[1-9]\d*(?::[1-9]\d*)?$/;
 
 function isLocalDestination(url: string): boolean {
   return (
     WINDOWS_ABSOLUTE_PATH_RE.test(url) ||
+    FILE_LINE_RE.test(url) ||
     url.startsWith('file://') ||
     !URL_SCHEME_RE.test(url)
   );

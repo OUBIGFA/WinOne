@@ -10,9 +10,17 @@ import {chatCall} from '../bridge';
 import {useTranslation} from '../i18n';
 import type {TurnReview} from './chat-turn-changes';
 
-export function ChatMessageEdit({id,entry,text:initialText,hasAttachments,onStop,onCancel,onCommit}:{id:string;entry:string;text:string;hasAttachments:boolean;onStop?:()=>Promise<void>;onCancel:()=>void;onCommit:(text:string,restoreRevision?:string)=>Promise<void>}){
+export function ChatMessageEdit({id,entry,text:initialText,minimumWidth=0,hasAttachments,onStop,onCancel,onCommit}:{id:string;entry:string;text:string;minimumWidth?:number;hasAttachments:boolean;onStop?:()=>Promise<void>;onCancel:()=>void;onCommit:(text:string,restoreRevision?:string)=>Promise<void>}){
  const {t}=useTranslation(),[text,setText]=useState(initialText),[busy,setBusy]=useState(false),[stopping,setStopping]=useState(!!onStop),[error,setError]=useState(''),[review,setReview]=useState<TurnReview>(),[restore,setRestore]=useState(false);
- const input=useRef<HTMLTextAreaElement>(null),stop=useRef(onStop),submitting=useRef(false);
+ const root=useRef<HTMLDivElement>(null),input=useRef<HTMLTextAreaElement>(null),stop=useRef(onStop),submitting=useRef(false);
+ const keepOriginalWidth=text===initialText;
+ useLayoutEffect(()=>{
+  // Preserve the actual bubble, not its full-width message/action row.
+  // Cindy's column cap still wins when the viewport shrinks.
+  const bubble=root.current?.closest<HTMLElement>('.chat-message-bubble');
+  bubble?.style.setProperty('--chat-edit-minimum',(keepOriginalWidth?minimumWidth:0)+'px');
+  return()=>{bubble?.style.removeProperty('--chat-edit-minimum');};
+ },[minimumWidth,keepOriginalWidth]);
  useEffect(()=>{
   let alive=true;
   // Entering edit stops the current turn. Review is only a preview: a delayed
@@ -35,10 +43,13 @@ export function ChatMessageEdit({id,entry,text:initialText,hasAttachments,onStop
   catch(error){setError(String(error));}
   finally{submitting.current=false;setBusy(false);}
  }
- return <div className="cindy-chat-ui w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-4 pt-3 pb-2.5">
-  <ListComposerTextarea ref={input} value={text} onChange={event=>setText(event.target.value)} aria-label={t('chat.editMessage')} disabled={busy} spellCheck={false} maxLength={100000} rows={1} className="block w-full resize-none border-none bg-transparent p-0 text-sm leading-relaxed outline-none" onKeyDown={event=>{if(event.nativeEvent.isComposing||event.keyCode===229||event.repeat)return;if(event.key==='Escape'&&!busy){event.preventDefault();onCancel();}if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();void send();}}}/>
+ return <div ref={root} className="cindy-chat-ui chat-message-edit" data-keep-original-width={keepOriginalWidth}>
+  <div className="chat-message-edit-input"><span aria-hidden="true" className="chat-message-edit-measure">{text||'\u200b'}</span>
+  <ListComposerTextarea ref={input} value={text} onChange={event=>setText(event.target.value)} aria-label={t('chat.editMessage')} disabled={busy} spellCheck={false} maxLength={100000} rows={1} cols={1} className="block w-full resize-none border-none bg-transparent p-0 outline-none" onKeyDown={event=>{if(event.nativeEvent.isComposing||event.keyCode===229||event.repeat)return;if(event.key==='Escape'&&!busy){event.preventDefault();onCancel();}if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();void send();}}}/></div>
+  <div className="chat-message-edit-support">
   {review?.snapshot?.isReversible&&review.snapshot.workspaceState==='applied'?<label className="mt-2 flex items-center gap-2 text-sm"><Checkbox checked={restore} disabled={busy} onCheckedChange={value=>setRestore(!!value)}/>{t('chat.editRestoreFiles')}</label>:<p className="mt-2 text-sm text-muted-foreground">{t('chat.editKeepFiles')}</p>}
   {error&&<p role="alert" className="mt-2 text-sm">{error}</p>}
-  <div className="mt-2 flex items-center justify-end gap-2"><Button size="sm" disabled={busy} onClick={onCancel}>{t('chat.cancel')}</Button><Button size="sm" variant="primary" busy={busy||stopping} disabled={!canSend} onClick={()=>void send()}>{t('chat.editResend')}</Button></div>
+  <div className="mt-2 flex flex-wrap items-center justify-end gap-2"><Button size="sm" disabled={busy} onClick={onCancel}>{t('chat.cancel')}</Button><Button size="sm" variant="primary" busy={busy||stopping} disabled={!canSend} onClick={()=>void send()}>{t('chat.editResend')}</Button></div>
+  </div>
  </div>;
 }

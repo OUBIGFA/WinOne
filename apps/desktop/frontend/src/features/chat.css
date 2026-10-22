@@ -15,13 +15,20 @@
 .chat-group-heading>[data-slot=button]{width:24px;min-height:24px;padding:5px;color:var(--muted-foreground);opacity:.45}
 .chat-group-heading>[data-slot=button]:hover,.chat-group-heading>[data-slot=button]:focus-visible{opacity:.9}
 .chat-group-heading>[data-slot=button] svg{width:14px;height:14px;stroke-width:1.5}
-.chat-sidebar-row{display:flex;align-items:center;gap:8px;min-width:0;width:100%;padding:8px 10px;margin:2px 0;border-radius:7px;text-align:left;line-height:1.4;font-size:14px}
-.chat-sidebar-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.chat-sidebar-row{position:relative;display:flex;align-items:center;gap:8px;min-width:0;width:100%;padding:8px 10px 8px 28px;margin:2px 0;border-radius:7px;text-align:left;line-height:1.4;font-size:14px}
+.chat-sidebar-row>.chat-sidebar-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+/* The TITLE keeps its 28px inset, with or without a status. Place the 16px
+   icon in that existing gutter, 8px before the text; it must never push text. */
+.chat-sidebar-row>.chat-sidebar-leading-status{position:absolute;left:4px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted-foreground)}
+.chat-sidebar-item[data-activity=running] .chat-sidebar-leading-status{color:var(--chat-status-running)}
+.chat-sidebar-item:is([data-activity=error],[data-activity=interrupted]) .chat-sidebar-leading-status{color:var(--chat-status-error)}
+.chat-sidebar-item[data-activity=awaiting] .chat-sidebar-leading-status{color:var(--chat-status-awaiting)}
+.chat-sidebar-item[data-activity=running] .chat-sidebar-title{font-weight:500}
 .chat-sidebar-row:hover,.chat-sidebar-row.is-active{background:var(--accent)}
 .chat-sidebar button:disabled{opacity:.6;cursor:wait}
 .chat-project-heading>button:first-child{display:flex;align-items:center;gap:6px;flex:1;min-width:0;padding:7px 2px;text-align:left}
 .chat-project-heading span{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
-.chat-project .chat-sidebar-row{padding-left:28px}
+/* Project and standalone tasks use the same row inset above. */
 .chat-project-heading>:is([data-slot=button],[data-slot=dropdown-menu-trigger]){min-height:25px;width:26px;color:var(--muted-foreground);opacity:.4}
 .chat-project-heading:hover>:is([data-slot=button],[data-slot=dropdown-menu-trigger]),.chat-project-heading>:is([data-slot=button],[data-slot=dropdown-menu-trigger])[aria-expanded=true]{opacity:.75}
 .chat-project-heading>:is([data-slot=button],[data-slot=dropdown-menu-trigger]):focus-visible{opacity:1}
@@ -34,7 +41,7 @@
 .chat-header-title strong{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chat-header-title span{font-size:12px;color:var(--muted-foreground);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .chat-error{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:8px 20px;font-size:13px;background:var(--muted);overflow-wrap:anywhere}
-.chat-transcript{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.chat-transcript{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
 .chat-main{--chat-content-width:960px;--chat-content-gutter:24px;--chat-composer-radius:28px;--chat-backplate-inset:3px}
 /* Navigation overlays the existing reading gutter instead of taking a column.
    The content's modest local inset protects text; the composer keeps full width. */
@@ -83,13 +90,31 @@
 .chat-composer-resize svg{transform:rotate(90deg)}
 .chat-composer-resize:focus-visible{outline:2px solid var(--ring)}
 .chat-composer:focus-within{border-color:color-mix(in srgb,var(--foreground) 40%,var(--border))}
-.chat-composer textarea{resize:none;border:0;outline:0;width:100%;flex:1;min-height:44px;height:0;overflow-y:auto;scrollbar-gutter:stable;font-family:inherit;font-size:14px;line-height:1.65;color:var(--foreground);background:transparent;padding:1px 3px;display:block}
+.chat-composer textarea{resize:none;border:0;outline:0;width:100%;flex:1;min-height:44px;height:0;overflow-x:hidden;overflow-y:auto;font-family:inherit;font-size:14px;line-height:1.65;color:var(--foreground);background:transparent;padding:1px 3px;display:block}
 .chat-composer textarea::placeholder{color:var(--muted-foreground)}
 .chat-composer-toolbar{display:flex;flex-shrink:0;align-items:center;justify-content:space-between;gap:8px;min-width:0;margin-top:8px;flex-wrap:nowrap;overflow:hidden}
 .chat-composer-tools,.chat-composer-model-actions{display:flex;align-items:center;min-width:0;gap:4px}
 .chat-composer-tools{flex:0 0 auto;min-width:0}.chat-composer-model-actions{flex:1 1 auto;min-width:0;justify-content:flex-end;flex-wrap:wrap;overflow:visible}
 .chat-composer-model-actions .chat-model-trigger{max-width:380px;min-width:72px}
 .chat-composer-spacer{flex:1;min-width:3px}
+.chat-session-controls{display:flex;flex-direction:column;gap:3px;width:240px;max-width:calc(100vw - 32px)}
+.chat-session-controls>[data-slot=button]{width:100%;justify-content:flex-start;font-size:13px}
+.chat-retry-status{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 0;color:var(--muted-foreground);font-size:13px}
+.chat-retry-status>svg{flex:none}.chat-retry-status>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.chat-change-turn-select{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;color:var(--muted-foreground)}
+.chat-change-turn-select>span{flex:none}.chat-change-turn-select>select{flex:1;min-width:0;max-width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--background);color:var(--foreground)}
+.chat-plan{min-width:0;margin-block:4px}
+.chat-plan-reminder{position:absolute;left:0;right:0;bottom:calc(100% + 10px);z-index:5;display:flex;justify-content:center;pointer-events:none}
+.chat-plan-reminder>*{pointer-events:auto;max-width:100%}
+/* Cindy tailwind.config.ts floating surfaces: opacity/scale only, including
+   a real exit animation so its animationend teardown also works in WinOne. */
+.chat-plan-reminder .animate-float-in{animation:chat-plan-float-in var(--motion-fast,150ms) var(--motion-ease-out,cubic-bezier(.16,1,.3,1))}
+.chat-plan-reminder .animate-float-out{pointer-events:none;animation:chat-plan-float-out var(--motion-instant,80ms) var(--motion-ease-in,cubic-bezier(.4,0,1,1)) forwards}
+@keyframes chat-plan-float-in{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+@keyframes chat-plan-float-out{to{opacity:0}}
+.cindy-chat-ui .animate-spinner,.chat-sidebar .animate-spinner{animation:chat-spinner var(--motion-spinner-cycle,1000ms) linear infinite}
+@keyframes chat-spinner{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.cindy-chat-ui .animate-spinner,.chat-sidebar .animate-spinner{animation:none}}
 .chat-pill{border-radius:999px!important;padding:5px 9px!important;font-size:12px!important;white-space:nowrap!important;gap:5px!important}
 .chat-pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chat-model-pill{max-width:48%}.chat-pill>svg{flex-shrink:0}
 .chat-send{border-radius:999px!important;width:31px!important;height:31px!important;min-height:31px!important;padding:6px!important}
@@ -113,7 +138,14 @@
 .chat-desktop-surface .chat-composer textarea::placeholder{color:var(--muted-foreground);opacity:1}
 .chat-welcome .chat-welcome-logo{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--chat-welcome-bottom,24px) + var(--chat-welcome-composer-size,194px) + var(--chat-welcome-gap,160px));transition-property:none}
 .chat-loading{display:flex;justify-content:center;gap:9px;padding:40px;color:var(--muted-foreground)}
-.chat-actions-menu [data-slot=button]{justify-content:flex-start;font-size:13px}.chat-dialog-field{display:flex;flex-direction:column;gap:8px;font-size:13px}.chat-dialog-field input{border:1px solid var(--border);background:var(--background);padding:9px 12px;border-radius:8px}.chat-dialog-field>div{display:flex;align-items:center;gap:10px}.chat-dialog-field span{flex:1;min-width:0;overflow-wrap:anywhere}
+.chat-actions-menu [data-slot=button]{justify-content:flex-start;font-size:13px}.chat-dialog-field{display:flex;flex-direction:column;gap:8px;font-size:13px;min-width:0;width:100%}.chat-dialog-field input{border:1px solid var(--border);background:var(--background);padding:9px 12px;border-radius:8px}.chat-dialog-field>div{display:flex;align-items:center;gap:10px;min-width:0}.chat-dialog-field span{flex:1;min-width:0;overflow-wrap:anywhere}
+/* Size the project and location forms for their widest action group. All
+   fields share that width; narrow windows stack choices rather than clipping. */
+.chat-configuration-dialog{width:min(640px,calc(100vw - 32px));max-width:calc(100vw - 32px);container:chat-configuration / inline-size}
+.chat-project-form{min-width:0;width:100%}
+.chat-dialog-field>.chat-project-permissions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.chat-project-permissions>[data-slot=button]{width:100%;min-width:0}
+@container chat-configuration (max-width:480px){.chat-dialog-field>.chat-project-permissions{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:1100px){.chat-sidebar{width:190px;min-width:150px}.chat-pill{padding:5px 6px!important}.chat-pill>span{max-width:110px}.chat-main{--chat-content-gutter:20px}}
 @media(max-width:760px){.chat-sidebar{width:164px;min-width:144px}.chat-header{padding:10px 12px}.chat-welcome{padding:25px 15px}.chat-welcome h1{font-size:21px}.chat-main{--chat-content-gutter:15px}.chat-composer-toolbar{flex-wrap:wrap}.chat-model-pill{max-width:70%}.chat-input-area{padding-bottom:10px}.chat-pill>span{max-width:120px}}
 .chat-workspace .chat-sidebar{width:100%;min-width:0}
@@ -160,7 +192,13 @@
 .chat-title-error{order:3;display:flex;gap:6px;width:100%;padding:0 10px 8px;color:var(--destructive);font-size:12px;line-height:1.5}
 .chat-title-error>svg{flex:none;margin-top:2px}.chat-title-error>span{overflow-wrap:anywhere}
 .chat-feedback{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;min-width:0}
-.chat-feedback>span{min-width:0;flex:1;overflow-wrap:anywhere}
+.chat-feedback-content{min-width:0;flex:1;overflow-wrap:anywhere}
+.chat-feedback-details{margin-top:4px;color:var(--muted-foreground);font-size:13px}
+.chat-feedback-details>summary{display:flex;align-items:center;gap:4px;cursor:pointer;list-style:none}
+.chat-feedback-details>summary::-webkit-details-marker{display:none}
+.chat-feedback-details[open]>summary>svg{transform:rotate(90deg)}
+.chat-feedback-details pre{max-height:180px;margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;font:inherit}
+.chat-file-link-error{margin-left:6px;color:var(--muted-foreground);font-size:13px;overflow-wrap:anywhere}
 .chat-feedback-actions{display:flex;align-items:center;gap:4px;flex:none}
 .chat-feedback-actions>[data-slot=button]{color:var(--muted-foreground)}
 .chat-notice{padding:6px 20px;color:var(--muted-foreground);font-size:13px;background:var(--muted)}

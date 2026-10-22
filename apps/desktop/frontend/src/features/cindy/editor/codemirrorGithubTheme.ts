@@ -471,7 +471,7 @@ function makeMarkdownEditorTheme(isDark: boolean) {
       '.cm-md-table-resize-handle': {
         position: 'absolute',
         top: '0',
-        right: '-3px',
+        right: '0',
         width: '6px',
         height: '100%',
         cursor: 'col-resize',
@@ -584,7 +584,9 @@ function makeMarkdownEditorTheme(isDark: boolean) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        overflowX: 'auto',
+        minWidth: '0',
+        maxWidth: '100%',
+        overflowX: 'hidden',
       },
       '.cm-md-mermaid-card.cm-md-mermaid-clickable': {
         cursor: 'zoom-in',

@@ -87,8 +87,11 @@
 .lobe-scroll-root {
     position: relative;
     box-sizing: border-box;
-    /* Base UI hides the native bar. Reserve a real column for the track and
-       its 16px pointer target, even before the first overflowing item. */
+    /* Base UI measures actual overflow. Short lists use their full width;
+       only an overflowing viewport keeps the track's 16px pointer target clear. */
+    padding-inline-end: 0;
+  }
+.lobe-scroll-root[data-has-overflow-y] {
     padding-inline-end: 20px;
   }
 .lobe-scroll-scrollbar {

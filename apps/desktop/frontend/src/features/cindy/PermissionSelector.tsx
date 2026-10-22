@@ -73,7 +73,7 @@ interface PermissionSelectorProps {
  * value → icon 映射: 纯 UI 元数据, 不属于 maker capabilities。
  * 未知 id (maker 加新 mode 还没在 renderer 配图标) 走 Hand 兜底, 不影响显示。
  */
-const PERMISSION_ICONS: Record<string, typeof Hand> = {
+export const PERMISSION_ICONS: Record<string, typeof Hand> = {
   ask: ShieldUser,
   default: ShieldUser,
   acceptEdits: CodeXml,

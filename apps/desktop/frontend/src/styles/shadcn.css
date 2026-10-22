@@ -135,11 +135,6 @@
     }
 }
 
-/* Reserve native scrollbar space before overflow starts, including portalled
-   menus/dialogs. Custom Lobe scroll areas own a separate overlay track. */
-:where(.overflow-y-auto, .overflow-auto, [data-slot="dialog-content"],
-  [data-slot="dropdown-menu-content"], [data-slot="select-content"],
-  .settings-choice-list, .aot-windows, .diagnostics-log,
-  .wintray-program-list, .wintray-program-detail, .profile-action-source) {
-  scrollbar-gutter: stable;
-}
+/* Native scrollbars use their default auto gutter: short pages, inputs and
+   portalled surfaces must not reserve an empty track before they overflow.
+   Custom Lobe scroll areas continue to own their overlay tracks. */

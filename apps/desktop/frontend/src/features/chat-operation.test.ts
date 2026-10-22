@@ -9,8 +9,8 @@ it("retains one operation with its final duration and keeps it outside the answe
  expect(view.operations).toHaveLength(1);
  const items=projectChatProcess(view.messages,[],false,view.operations),group=items[1];
  if(group.kind!=="response")throw Error("missing response");
- expect(group.answer?.content).toBe("Done");expect(group.entries).toHaveLength(1);
- expect(group.entries[0].kind).toBe("operation");if(group.entries[0].kind!=="operation")throw Error("missing operation");expect(group.entries[0].operation.durationMs).toBe(20);
+ expect(group.answer?.content).toBe("Done");expect(group.entries).toHaveLength(0);
+ expect(view.operations?.[0].durationMs).toBe(20);
 });
 
 it("uses a persisted turn duration rather than inferring elapsed time from message timestamps",()=>{

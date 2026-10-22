@@ -9,6 +9,8 @@ import {formatSessionDuration} from "./adapter";
 import {ChatMessageView,ChatMarkdown} from "../chat-messages";
 import type {AIProvider} from '../ai-configuration';
 import type {ProcessResponse} from "../chat-process";
+import {ChatPlan} from '../chat-plan';
+import {workflowFromTool} from '../chat-plan-state';
 import type {ProcessOperation} from "../chat-state";
 
 function Operation({operation}:{operation:ProcessOperation}){
@@ -27,7 +29,7 @@ export function WorkProcess({group,conversationId,onCopy,onFork=()=>{},canFork=f
   if(entry.kind==="thinking")return {kind:"thinking",key,message:{clientId:key,content:entry.part.thinking??""}};
   if(entry.kind==="tool"){
    const tool=entry.tool,result=typeof tool.result==="string"?tool.result:tool.result===undefined?undefined:JSON.stringify(tool.result,null,2);
-   return {kind:"tools",key,toolCalls:[{clientId:key,content:"",toolName:tool.name,toolInput:tool.args,isError:tool.isError}],resultMap:new Map(result===undefined?[]:[[key,result]]),settledIds:new Set(tool.running?[]:[key])};
+   return {kind:"tools",key,toolCalls:[{clientId:key,content:"",toolName:tool.name,toolInput:tool.args,toolResultValue:tool.result,isError:tool.isError}],resultMap:new Map(result===undefined?[]:[[key,result]]),settledIds:new Set(tool.running?[]:[key])};
   }
   return {kind:"rendered",key,renderNode:()=>entry.kind==="operation"?<Operation operation={entry.operation}/>:<ChatMarkdown text={entry.text} onCopy={onCopy}/>};
  }
@@ -37,6 +39,10 @@ export function WorkProcess({group,conversationId,onCopy,onFork=()=>{},canFork=f
  // Public text sits beside activity groups, outside their rail, muted colors
  // and collapse state. Reuse exactly the final reply's renderer and actions.
  return <>{workGroupsForResponse(group).map(item=>{
+  if(item.type==='entry'&&item.entry.kind==='tool'){
+   const workflow=workflowFromTool(item.entry.tool);
+   if(workflow)return <ChatPlan key={item.key} anchor={`${conversationId}:${group.key}:${item.key}`} workflow={workflow} animated={group.running}/>;
+  }
   if(item.type==='entry'&&item.entry.kind==='commentary')return <ChatMessageView key={item.key} conversationId={conversationId} message={item.entry.message??{role:'assistant',content:item.entry.text}} onCopy={onCopy} onFork={onFork} canFork={canFork} providers={providers} onOpenFile={onOpenFile}/>;
   const entry=child(item);return <div key={entry.key} className="cindy-chat-ui chat-work-process">{entry.kind==="group"?<WorkGroupBlock blockId={entry.blockId} durationMs={entry.durationMs} isStreaming={entry.isStreaming} startedAtMs={entry.startedAtMs} childItems={entry.childItems}/>:entry.kind==="rendered"?entry.renderNode():<WorkGroupBlock blockId={entry.key} isStreaming={group.running} startedAtMs={group.startedAt} durationMs={group.running?undefined:group.durationMs} childItems={[entry]}/>}</div>;
  })}</>;

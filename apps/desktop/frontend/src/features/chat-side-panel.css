@@ -4,14 +4,18 @@
 .chat-side-panel [role=tab]{min-width:0}
 .chat-side-panel .scrollbar-hide{scrollbar-width:none}.chat-side-panel .scrollbar-hide::-webkit-scrollbar{display:none}
 .cindy-panel-popup{font-family:var(--app-font-ui-default);--color-sidebar-item-hover:var(--sidebar-item-hover)}
-.chat-panel-section-switch{display:flex;align-items:center;flex:none;min-width:0;padding:6px 8px}
-/* Compose Cindy's full-width control; only geometry and gray tokens change.
-   Equal fixed fractions make the two regions identifiable even in narrow panes. */
-.chat-panel-major-tabs{--segmented-track:transparent;--segmented-selected-bg:var(--chat-hover-bg);--segmented-selected-border:var(--border-default);--segmented-selected-shadow:none;min-width:0;overflow:hidden;border:1px solid var(--border-default);border-radius:3px;padding:0;gap:0}
-.chat-panel-major-tabs .cindy-segmented-plate{border:0;border-radius:0;box-shadow:none}
-.chat-panel-major-tabs .cindy-segmented-option{flex:1 1 0;min-width:0;font-size:13px;padding-inline:6px;border-radius:0;overflow:hidden;text-overflow:ellipsis;justify-content:center;text-align:center}
+.chat-panel-section-switch{display:flex;align-items:center;flex:none;min-width:0;padding:0 0 6px}
+/* Cindy's square major tabs use the same neutral surfaces as the workbench,
+   not tooltip inversion. Icons and a quiet inset edge distinguish this level
+   from the smaller outlined library pills without introducing an accent hue. */
+.chat-panel-major-tabs{--segmented-inset:0px;--segmented-gap:0px;--segmented-track:var(--chat-hover-bg);--segmented-selected-bg:color-mix(in srgb,var(--text-primary) 13%,var(--panel-bg));--segmented-selected-border:transparent;--segmented-selected-shadow:none;--segmented-option-fg:var(--text-secondary);min-width:0;overflow:hidden;border:0;border-bottom:1px solid var(--border-default);border-radius:0;padding:0;gap:0}
+.chat-panel-major-tabs .cindy-segmented-plate{border:0;border-radius:0;box-shadow:inset 0 -2px color-mix(in srgb,var(--text-primary) 45%,transparent)}
+.chat-panel-major-tabs .cindy-segmented-option{flex:1 1 0;min-width:0;font-size:13px;padding-inline:8px;border-radius:0;overflow:hidden;justify-content:center;text-align:center}
+.chat-panel-major-tabs .cindy-segmented-option>svg{flex:none}
+.chat-panel-major-tabs .cindy-segmented-option>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chat-panel-major-tabs .cindy-segmented-option+.cindy-segmented-option{border-left:1px solid var(--border-default)}
-.chat-panel-major-tabs .cindy-segmented-option[data-selected=true]{color:var(--text-primary)}
+.chat-panel-major-tabs .cindy-segmented-option[data-selected=true],.chat-panel-major-tabs .cindy-segmented-option:enabled:hover{color:var(--text-primary)}
+.chat-panel-major-tabs .cindy-segmented-option[data-selected=false]:enabled:hover{background:color-mix(in srgb,var(--text-primary) 5%,transparent)}
 .chat-panel-section{display:flex;flex:1;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
 .chat-panel-section[hidden]{display:none}
 .chat-library-toolbar{display:flex;flex:none;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:4px;padding:0 8px 4px;min-width:0;border-bottom:1px solid var(--border-default)}
