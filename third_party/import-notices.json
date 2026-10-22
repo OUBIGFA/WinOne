@@ -29,7 +29,7 @@
         },
         {
           "path": "third_party/systray/menu_style_windows.go",
-          "sha256": "fdf0acbfbe81b8d63e0eb2d4cb6610479dab157eb26aede106b7fc3ec84fabb7"
+          "sha256": "c5ab69090148a4196189efa3220fb119d74e9cb7bb6664b49fe48cba60e10f2c"
         }
       ]
     },
@@ -58,7 +58,7 @@
         },
         {
           "path": "modules/recording/src/encoder.rs",
-          "sha256": "dbaced4f720d070ab1234da6d968b714ad4661ac0363d5571bef5c9050cf88bb"
+          "sha256": "7057a8f0a0c7d91d1437024487c62dd959d8cd5c062e235202b57a530a78e229"
         }
       ]
     },

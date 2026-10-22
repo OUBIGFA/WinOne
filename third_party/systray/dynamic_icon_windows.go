@@ -12,6 +12,10 @@ import (
 
 var dynamicIconLock sync.Mutex
 var retiredMenuBitmaps []windows.Handle
+
+// Protected by dynamicIconLock, including popup snapshot creation. Entries
+// follow the source bitmap's lifetime, so removed items leave no theme state.
+var templateMenuBitmaps = make(map[windows.Handle]bool)
 var deleteObject = g32.NewProc("DeleteObject")
 
 func deleteMenuBitmap(handle windows.Handle) error {
@@ -22,6 +26,7 @@ func deleteMenuBitmap(handle windows.Handle) error {
 	if ok == 0 {
 		return fmt.Errorf("release menu bitmap: %v", err)
 	}
+	delete(templateMenuBitmaps, handle)
 	return nil
 }
 func retireMenuBitmap(handle windows.Handle) error {
@@ -67,6 +72,16 @@ func pngMenuBitmap(data []byte) (windows.Handle, error) {
 // SetIconPNG updates an ephemeral Windows menu image without temporary files.
 // Nil clears the icon. Failed updates leave the previous native icon in place.
 func (item *MenuItem) SetIconPNG(data []byte) error {
+	return item.setIconPNG(data, false)
+}
+
+// SetTemplateIconPNG uses the PNG's alpha with the popup's foreground colour.
+// Normal program icons keep their original pixels; nil clears either kind.
+func (item *MenuItem) SetTemplateIconPNG(data []byte) error {
+	return item.setIconPNG(data, true)
+}
+
+func (item *MenuItem) setIconPNG(data []byte, template bool) error {
 	dynamicIconLock.Lock()
 	defer dynamicIconLock.Unlock()
 	if !wt.isReady() {
@@ -79,6 +94,9 @@ func (item *MenuItem) SetIconPNG(data []byte) error {
 	bitmap, err := pngMenuBitmap(data)
 	if err != nil {
 		return err
+	}
+	if template && bitmap != 0 {
+		templateMenuBitmaps[bitmap] = true
 	}
 	id := uint32(item.id)
 	wt.muMenuItemIcons.Lock()

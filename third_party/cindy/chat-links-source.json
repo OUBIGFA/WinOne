@@ -1,0 +1,48 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+  "licenseFile": "third_party/cindy/LICENSE",
+  "noticeFile": "third_party/cindy/NOTICE",
+  "licenseSHA256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+  "noticeSHA256": "77ad73b2535cd4011ed8b509aa51d7c745ae5a6f411370d8f94337562c03cd97",
+  "files": [
+    {
+      "source": "apps/desktop/src/renderer/components/chat/MarkdownRenderer.tsx",
+      "sourceSHA256": "d6011bf4ab1f7f4f037c46e530e3246f32ccd9c591d8c468c4846ff9fb38269c",
+      "target": "apps/desktop/frontend/src/features/cindy/FileTargetChip.tsx",
+      "adaptation": "Reuse FileTargetChip code-role-button markup, file type icon, inline typography, persistent underline, keyboard/modifier/context-menu activation and rich clipboard semantics. Existing WinOne ChatFileNavigation supplies scoped stat, viewer/media and shared useFileChipContextMenu. Markdown bare paths, explicit local links and inline paths share the existing Cindy parsing chain; missing/denied paths stay plain text. No remote file origin or new dependency."
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/ChatInput.tsx",
+      "sourceSHA256": "986fbad8f0facaa5e51065df571cd66a2777550f0222b528b6562c2e3b7ee1f3",
+      "target": "apps/desktop/frontend/src/features/cindy/composerFileTransfer.ts",
+      "adaptation": "Reuse handlePaste/onDrop file-before-text classification, native files/directories versus memory-only images, mutation locking and existing attachment actions. Replace Electron paths with WinOne CF_HDROP/OLE and scoped one-shot HTTP uploads; new-chat browser files remain in the protected in-memory draft and are imported before sending. No dependency added."
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/linkInteraction.ts",
+      "sourceSHA256": "8771ae9f62c12fc32ce19cea451ec0f59bde69789e44b4db54c310d6543d2aac",
+      "target": "apps/desktop/frontend/src/features/cindy/linkInteraction.ts",
+      "unchanged": true,
+      "adaptation": "Unchanged keyboard, modifier/middle-click activation and keyboard context-menu positioning helpers."
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/useFileChipContextMenu.tsx",
+      "sourceSHA256": "8aeee52d847680f2a5a4ba6f4bb9b8d87bc73729489f297fbdc161e47d991609",
+      "target": "apps/desktop/frontend/src/features/cindy/useFileChipContextMenu.tsx",
+      "adaptation": "Retain the shared flat local file/directory and HTML page/source menu, lazy path resolution, all local open/reveal/file-copy/path-copy/location-copy actions, modifiers, fixed pointer anchor and no-scroll focus restoration. Replace Electron/toast/context wiring with scoped WinOne Host, native file clipboard, existing sidebar/browser callbacks and local error feedback. WinOne has no remote session origins; no remote features are advertised. No dependency added."
+    },
+    {
+      "source": "apps/desktop/src/renderer/utils/networkError.ts",
+      "sourceSHA256": "c63b33f0714116704b034ca7e8a8b5da6a5bcf9d610570da211cc5d592f2fd12",
+      "target": "apps/desktop/frontend/src/features/cindy/networkError.ts",
+      "unchanged": true,
+      "adaptation": "Unchanged network detection and bounded reconnect-attempt parser. WinOne adds Bun socket diagnostics only in its presentation adapter."
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/ErrorBanner.tsx",
+      "sourceSHA256": "f4582de3d66183640eb5ac06f1187fd80a894f1f81848fd9dfae03e1a57d97e4",
+      "target": "apps/desktop/frontend/src/features/chat-error.ts",
+      "adaptation": "Adapt the specialized authentication/rate-limit/network precedence and friendly-summary/original-detail separation to existing ChatFeedback. Keep WinOne actions and durable receipts unchanged, never claim a retry is in progress without runtime evidence. Remote Codex/account recovery is not introduced into the local Pi host."
+    }
+  ]
+}

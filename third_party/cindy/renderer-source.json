@@ -146,6 +146,7 @@
     {
       "source": "apps/desktop/src/renderer/components/chat/MarkdownMermaidBlock.tsx",
       "target": "apps/desktop/frontend/src/features/cindy/markdown/MarkdownMermaidBlock.tsx",
+      "adaptation": "Use the same native theme observer as the file editor so mounted diagrams follow WinOne theme changes.",
       "sourceSHA256": "009edc397eb001a8342cba4c8cbd84b6b3176e6a94d16336193e45b84492ad55"
     },
     {

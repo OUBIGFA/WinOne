@@ -178,8 +178,13 @@ func (s *nativeMenuStyle) clone(source windows.Handle, depth int) (result window
 			if err != nil {
 				return 0, err
 			}
-			entry.bitmap = windows.Handle(copied)
-			s.bitmaps = append(s.bitmaps, entry.bitmap)
+			s.bitmaps = append(s.bitmaps, copied)
+			if templateMenuBitmaps[entry.bitmap] {
+				if err := tintMenuBitmap(copied, s.foreground); err != nil {
+					return 0, err
+				}
+			}
+			entry.bitmap = copied
 		}
 		if entry.submenu != 0 {
 			entry.submenu, err = s.clone(entry.submenu, depth+1)

@@ -1,0 +1,79 @@
+{
+  "repository": "https://github.com/OUBIGFA/WinTray",
+  "revision": "484e38273456f04182d9e19190669e7295f7f3a9",
+  "localChanges": "2026-10-22 working-tree Esc-only dismissal and process-survival fixes",
+  "license": "MIT",
+  "licenseFile": "modules/wintray/LICENSE",
+  "licenseSHA256": "0eb3eb100d2f43201dc92197547561de0478614ea9a3b54b2e25bddc3d343ac7",
+  "files": [
+    {
+      "path": "internal/orchestrator/orchestrator.go",
+      "sourceSHA256": "6dbc45e6628a709e04cac2b771264ce7491be3f2a7f4abac27410d99e8f3f7cd"
+    },
+    {
+      "path": "internal/orchestrator/types.go",
+      "sourceSHA256": "00d0ef7d0bfd8589e255be2270d4b3a95c11bff44428f2300b7b4f2fe422cdc1"
+    },
+    {
+      "path": "internal/orchestrator/window_manager_windows.go",
+      "sourceSHA256": "a414a4d16d4b265d8d9712c6a9529454229539233b7b1b59e7fbcb7b4734b813"
+    },
+    {
+      "path": "internal/orchestrator/escape_input_windows.go",
+      "sourceSHA256": "9f985c7638e8a2749d52a0b52da30e4203f22cc72fbc5a44a63a1a6c180ab872"
+    },
+    {
+      "path": "internal/orchestrator/program_window_windows.go",
+      "sourceSHA256": "9dfd64d03e7dd31100c4a74605df8454e60b524ee549232d5ff4d7c15221a229"
+    },
+    {
+      "path": "internal/orchestrator/script_process_windows.go",
+      "sourceSHA256": "8e81251ee6c1ed74b104c579c744293a822ab968a0296bbbd7bbf6df23e33350"
+    },
+    {
+      "path": "internal/orchestrator/runner_console_windows.go",
+      "sourceSHA256": "b5b967bbbd8fb276cc1331f9620815f9d8c8011884914d8c642f5ea52e42a05f"
+    },
+    {
+      "path": "internal/orchestrator/window_enum_windows.go",
+      "sourceSHA256": "f4942fd169d0a2242b1f7bba1e39d15998d55c861d3d9c923ec48b3cf4ce0c31"
+    },
+    {
+      "path": "internal/orchestrator/process_scan_windows.go",
+      "sourceSHA256": "6cc071a13efa4ce69334c3c3adee3352daddfc7fa92db77a9c7090256851080a"
+    },
+    {
+      "path": "internal/orchestrator/escape_close_windows_test.go",
+      "sourceSHA256": "aedf99c00f551d4b683c09fe5fe5849f880fe8788ed143b8d3dc9fef6b8c8c22"
+    },
+    {
+      "path": "internal/orchestrator/program_window_windows_test.go",
+      "sourceSHA256": "7d5435b02cb5d17aa1cf422220601ccc6900b6af3290d47c6758a235dbb3add5"
+    },
+    {
+      "path": "internal/orchestrator/native_console_windows_test.go",
+      "sourceSHA256": "58f6f17df8f268ebe9b80c24bdb717da05b8786d7e88aee8b2251b5275f6aaec"
+    },
+    {
+      "path": "internal/orchestrator/startup_visibility_windows_test.go",
+      "sourceSHA256": "d2caf831676cd2d54b7fd3c820a213217077c33c72c9802af5ac42b23334353c"
+    },
+    {
+      "path": "internal/traybox/activate_windows.go",
+      "sourceSHA256": "9f085cc0dd2e30c8e0a2094bd4ae8694f90310eab4639a6290321c1d1cf88406"
+    },
+    {
+      "path": "internal/traybox/activate_windows_test.go",
+      "sourceSHA256": "73e4717d972781d7d6ac46e35f2e86f66992d5c296d689808eea9a6367e34adc"
+    },
+    {
+      "path": "internal/traybox/listener_windows.go",
+      "sourceSHA256": "47669d0943161d14a28d8ae2f4e58f372de707ae7a738d9d6b03c3dc3a05c522"
+    },
+    {
+      "path": "internal/traybox/listener_windows_test.go",
+      "sourceSHA256": "101cbb286167a484cb78cfd919ee65dfd193e655d52974c32f20f20a4c0443e8"
+    }
+  ],
+  "adaptation": "Retain WinOne module namespace, unified configuration/logs/tray, recovery errors and PID-reuse protection. Reuse scoped Esc/native-close handling, script identity, original-window visibility and queued tray gestures. Existing WinOne native console creation retains its explicit environment/ownership handling. UI uses existing WinOne controls; program exit requires confirmation. Manual launch settings stay independent from the startup switch; collected-icon single click still automatically adds a double click. No new dependency or standalone WinTray UI."
+}

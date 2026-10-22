@@ -818,10 +818,10 @@
     {
       "kind": "upstream",
       "name": "magpie",
-      "version": "d783df46cbac9021e26a6bd71ca0b55544552eb2",
+      "version": "7dd965ed22e6619c9084f3bca58e444073e8a41c",
       "notices": [
         {
-          "file": "licenses/upstream-magpie-d783df46cbac9021e26a6bd71ca0b55544552eb2-0-LICENSE.txt",
+          "file": "licenses/upstream-magpie-7dd965ed22e6619c9084f3bca58e444073e8a41c-0-LICENSE.txt",
           "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
         }
       ]

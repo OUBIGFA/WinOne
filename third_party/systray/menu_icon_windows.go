@@ -37,6 +37,23 @@ func rgbaMenuBitmap(source image.Image) (windows.Handle, error) {
 	return windows.Handle(bitmap), nil
 }
 
+// Tint only the private, already scaled DIB. Premultiplied alpha preserves
+// Lucide's antialiased edges on light/dark surfaces without another resize.
+func tintMenuBitmap(bitmap windows.Handle, foreground uint32) error {
+	var info nativeMenuBitmap
+	if ok, _, _ := menuBitmapInfo.Call(uintptr(bitmap), unsafe.Sizeof(info), uintptr(unsafe.Pointer(&info))); ok == 0 || info.Bits == 0 || info.Width <= 0 || info.Height <= 0 {
+		return fmt.Errorf("menu template pixels unavailable")
+	}
+	pixels := unsafe.Slice((*byte)(unsafe.Pointer(info.Bits)), int(info.Stride*info.Height))
+	for i := 0; i < len(pixels); i += 4 {
+		alpha := uint32(pixels[i+3])
+		pixels[i] = byte(((foreground >> 16) & 255) * alpha / 255)
+		pixels[i+1] = byte(((foreground >> 8) & 255) * alpha / 255)
+		pixels[i+2] = byte((foreground & 255) * alpha / 255)
+	}
+	return nil
+}
+
 func scaledMenuBitmap(bitmap windows.Handle, size int32) (windows.Handle, error) {
 	var info nativeMenuBitmap
 	if ok, _, _ := menuBitmapInfo.Call(uintptr(bitmap), unsafe.Sizeof(info), uintptr(unsafe.Pointer(&info))); ok == 0 || info.Width <= 0 || info.Height <= 0 || info.Width > 256 || info.Height > 256 {

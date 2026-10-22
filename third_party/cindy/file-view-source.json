@@ -26,6 +26,7 @@
     {
       "source": "apps/desktop/src/renderer/components/markdown/markdownMermaidLivePreview.ts",
       "target": "apps/desktop/frontend/src/features/cindy/editor/markdownMermaidLivePreview.ts",
+      "adaptation": "Use the shared WinOne data-theme reader for diagram rendering and theme-specific caches; preserve the original editor lifecycle.",
       "sourceSHA256": "ae591fa63603dcc568da9df22fc97d4fb1f0627d0fa27939a94d07531a36163d"
     },
     {
@@ -46,6 +47,7 @@
     {
       "source": "apps/desktop/src/renderer/components/markdown/useIsDarkMode.ts",
       "target": "apps/desktop/frontend/src/features/cindy/editor/useIsDarkMode.ts",
+      "adaptation": "Observe WinOne data-theme on mount and live changes; retain the upstream dark class only when no native theme is present.",
       "sourceSHA256": "8d02baeaa1a30d139fec9f5087e8ca48ed030d980e46c184d128e7d053384f4c"
     },
     {
@@ -85,5 +87,5 @@
       "adaptation": "Original image layout and metadata; scoped URL and shared ImageLightbox host. Existing WinOne zoom/rotation remain available."
     }
   ],
-  "adaptation": "Original CodeMirror document/code/plain chrome, live Markdown tables/images/Mermaid, search, edit history, scroll and read-only compartments. Host adapter uses scoped preview URLs and existing revision-checked saves; constructable stylesheets retain the desktop CSP."
+  "adaptation": "Original CodeMirror document/code/plain chrome, live Markdown tables/images/Mermaid, search, edit history, scroll and read-only compartments. Host adapter uses scoped preview URLs and existing revision-checked saves; constructable stylesheets retain the desktop CSP. Narrow-pane adaptation wraps prose/code/table cells inside the actual Shadow DOM and fits Mermaid without horizontal clipping. Responsive percentage table widths reserve readable space while retaining the original column-drag weights; resize handles stay inside their cells and observers are disposed with each widget."
 }

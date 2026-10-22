@@ -1,0 +1,42 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+  "licenseFile": "third_party/cindy/LICENSE",
+  "noticeFile": "third_party/cindy/NOTICE",
+  "licenseSHA256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+  "noticeSHA256": "77ad73b2535cd4011ed8b509aa51d7c745ae5a6f411370d8f94337562c03cd97",
+  "sourceDigestEncoding": "UTF-8, LF; the checked-out upstream uses CRLF. LICENSE and NOTICE are unchanged after line-ending normalization.",
+  "files": [
+    {
+      "source": "apps/desktop/src/renderer/components/chat/UserMessage.tsx",
+      "sourceSHA256": "733be7d751f1ac22f22835643530f14f78eafbaa3c1221b174bc60135469272f",
+      "target": "apps/desktop/frontend/src/features/cindy/ConversationMessage.tsx",
+      "adaptation": "Extract the full-width right-aligned row, 488px constrained flex column and independent bubble/action siblings, including 16x12 padding, 12px radius and wrapping. Existing Host copy/fork/retry/edit, attachment, Markdown and collapse implementations remain connected. Keep the user-requested content-sized edit behavior instead of the upstream 720px edit expansion. No dependencies added."
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/ErrorBanner.tsx",
+      "sourceSHA256": "f4582de3d66183640eb5ac06f1187fd80a894f1f81848fd9dfae03e1a57d97e4",
+      "target": "apps/desktop/frontend/src/features/cindy/RetryStatus.tsx",
+      "adaptation": "Adapt the automatic-reconnect notice and CCAgentSessionView composer-side placement to structured Pi operation records, translated attempt/countdown and existing stop callback. Recovery error presentation remains in ChatFeedback; no provider-auth logic is replaced. Retry records never enter work groups; messageWorkGroups excludes failed samples as answer boundaries. All work details and expansion state remain intact."
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/TodoListCard.tsx",
+      "sourceSHA256": "1d04abde5bfcbb92a1d7ea814e8cffb5b7d5ffb63919ddec483453acea2b29cc",
+      "target": "apps/desktop/frontend/src/features/cindy/TodoListCard.tsx",
+      "adaptation": "Reuse both InlinePlanCard and TodoListCard, including progress ring, active-step spinner, hover/pinned flyout, keyboard/outside dismissal and dismiss action. Adapt imports and normalized item type to WinOne; retain explanation, wrap long steps and constrain widths. No runtime dependencies added. Host supplies real run activity and committed workflow state."
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/sidebar/SidebarRightStatusIndicator.tsx",
+      "sourceSHA256": "8871482c9f3419bed98ed1b047556c2a5ad370c7c0126bab06bca2914a5e908f",
+      "target": "apps/desktop/frontend/src/features/cindy/SidebarRightStatusIndicator.tsx",
+      "adaptation": "Keep the fixed indicator slot, running Spinner, status priority, accessible labels and tooltip. Replace dots with Lucide outline icons and add durable paused state. Per the user's latest request, the Host colors running blue, interrupted/error red and awaiting Q&A orange in both themes and active states; all task titles keep their original shared inset, while the icon protrudes into the existing left gutter and never pushes the text."
+    },
+    {
+      "source": "packages/maker-shared/src/sessionActivity.ts",
+      "sourceSHA256": "747a97da6fadaf56973acd6017bd10cc9acbe71f41d0d7c728b9a1aa2f07b9e8",
+      "target": "apps/desktop/frontend/src/features/cindy/sidebarRightStatus.ts",
+      "adaptation": "Retain the upstream resolveSessionRightStatus decision order and display type; add paused immediately after error so a paused task cannot hide a failure. Host runtime snapshots provide phase and attention; unrelated remote-agent, workflow-title and device metadata are not duplicated."
+    }
+  ],
+  "hostAdaptation": "Reuse existing Cindy SegmentedControl interactions with layout-synchronous selection geometry, shared PermissionSelector icon metadata, PlaintextEditor/MarkdownRenderer and their complete file capabilities. Tool file dialogs use the actual read/write snapshot with Markdown/source/copy controls; raw protocol remains separately inspectable and opening today's file stays explicit. Shadow DOM prose, code, Diff, Mermaid and tables wrap or fit without clipping; table column weights retain drag editing with a readable minimum, and display math fits its intrinsic box. User-requested first-level dark compact tabs and default-closed workbench are host adaptations, not an upstream upgrade. Draft and file-write barriers guard navigation. Pi Durable remains at locked 1.3.0; steer is admitted before interrupting only the captured tool round through official abortTask, with run-scoped persisted skip intent."
+}

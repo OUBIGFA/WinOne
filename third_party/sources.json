@@ -63,6 +63,20 @@
     },
     "baseUI": "1.8.0",
     "lucideReact": "1.27.0",
+    "trayMenuIcons": {
+      "package": "lucide-react",
+      "version": "1.27.0",
+      "repository": "https://github.com/lucide-icons/lucide",
+      "icons": ["AppWindow", "LogOut"],
+      "generator": "build/generate-capture-icons.mjs --tray-only",
+      "license": "ISC AND MIT",
+      "licenseFile": "internal/branding/menu-icons/LICENSE.txt",
+      "licenseSha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57",
+      "files": {
+        "internal/branding/menu-icons/open.png": "ef8284b91aabfca2aea73c8abbad99ab3f0394801cd41959f9544e1b6d7b27fd",
+        "internal/branding/menu-icons/exit.png": "71bcb8e08ecc5541552c5f4d639d5b7dfa2d271f74459956558e7b404dd2bf6b"
+      }
+    },
     "i18next": "26.4.2",
     "reactI18next": "17.0.15",
     "konva": "10.7.0",
@@ -138,6 +152,8 @@
     }
   },
   "wintray": {
+    "latestReviewedCommit": "484e38273456f04182d9e19190669e7295f7f3a9",
+    "latestSourceSnapshot": "third_party/wintray-source.json",
     "baseCommit": "57789d13c9c2b451a71f51adfcf21d7b4e285690",
     "localFix": "2026-09-29 taskbar icon drag",
     "snapshotSha256": {
@@ -165,7 +181,7 @@
   },
   "magpie": {
     "repository": "https://github.com/yetone/magpie",
-    "commit": "d783df46cbac9021e26a6bd71ca0b55544552eb2",
+    "commit": "7dd965ed22e6619c9084f3bca58e444073e8a41c",
     "license": "MIT",
     "dependencyLocks": [
       "modules/ai-magpie/upstream.go.mod",
@@ -173,8 +189,9 @@
     ],
     "adapter": "modules/ai-magpie",
     "build": "build/build-ai.ps1",
-    "verification": "docs/magpie-update-20261018.md",
-    "previousCommit": "7660399a121af67db4efd56ecb6bd4fb04dc53f1",
+    "verification": "docs/magpie-update-20261022.md",
+    "previousCommit": "efd1b697e401ca9ea771a02720291a0e53ac414b",
+    "privacyModel": "third_party/privacy-model.json",
     "routingExtraction": "build/prepare-ai-routing.mjs"
   },
   "providerAvatars": {
