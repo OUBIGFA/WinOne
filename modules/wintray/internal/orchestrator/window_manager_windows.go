@@ -12,11 +12,21 @@ var (
 	procIsWindow        = user32.NewProc("IsWindow")
 	procPostMessageW    = user32.NewProc("PostMessageW")
 	procShowWindowAsync = user32.NewProc("ShowWindowAsync")
+	procGetSystemMenu   = user32.NewProc("GetSystemMenu")
+	procGetMenuState    = user32.NewProc("GetMenuState")
+	procIsWindowEnabled = user32.NewProc("IsWindowEnabled")
 )
+
+// Respect a program's disabled close command; Esc-only launchers must not
+// be terminated by bypassing their interface with WM_CLOSE.
+var errNativeCloseUnavailable = errors.New("the window does not offer an enabled close command")
 
 const (
 	wmSysCommand = 0x0112
 	wmClose      = 0x0010
+	wmKeyDown    = 0x0100
+	wmKeyUp      = 0x0101
+	vkEscape     = 0x1B
 	scClose      = 0xF060
 	swHide       = 0
 )
@@ -24,6 +34,18 @@ const (
 type Win32WindowManager struct{}
 
 func NewWin32WindowManager() *Win32WindowManager { return &Win32WindowManager{} }
+
+func nativeCloseAvailable(hwnd uintptr) bool {
+	if enabled, _, _ := procIsWindowEnabled.Call(hwnd); enabled == 0 {
+		return false
+	}
+	menu, _, _ := procGetSystemMenu.Call(hwnd, 0)
+	if menu == 0 {
+		return false
+	}
+	state, _, _ := procGetMenuState.Call(menu, scClose, 0)
+	return uint32(state) != 0xffffffff && state&3 == 0
+}
 
 func (m *Win32WindowManager) HideWindow(hwnd uintptr) (bool, error) {
 	if !isWindow(hwnd) {
@@ -39,6 +61,9 @@ func (m *Win32WindowManager) HideWindow(hwnd uintptr) (bool, error) {
 func (m *Win32WindowManager) CloseWindow(hwnd uintptr) (bool, error) {
 	if !isWindow(hwnd) {
 		return false, errors.New("target window is not valid")
+	}
+	if !nativeCloseAvailable(hwnd) {
+		return false, errNativeCloseUnavailable
 	}
 	ok, _, callErr := procPostMessageW.Call(hwnd, wmSysCommand, scClose, 0)
 	if ok != 0 {

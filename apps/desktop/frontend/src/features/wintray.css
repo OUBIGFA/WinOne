@@ -8,16 +8,19 @@
 .wintray-programs { display: flex; flex-direction: column; }
 .wintray-workspace, .wintray-panels { height: 100%; }
 .wintray-program-list { container-type: inline-size; height: 100%; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+/* Fill only the space below the column headings; no pixel offsets to drift
+   when the list becomes a row above details or its panel is resized. */
+.wintray-program-empty { flex: 1; display: grid; place-items: center; min-width: 0; margin: 0; padding: 16px; text-align: center; color: var(--muted-foreground); overflow-wrap: anywhere; }
 .wintray-program-row[data-slot="item"] { flex-wrap: nowrap; gap: 8px; padding: 10px 6px; min-width: 0; }
 .wintray-program-name { flex: 1; min-width: 48px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .wintray-row-controls { display: flex; flex: none; align-items: center; gap: 8px; }
 .wintray-row-controls button[data-slot="button"] { width: 28px; height: 32px; }
-/* Keep the shared switches' extended hit areas and focus rings inside the
-   padded scroll pane; reserve the scrollbar so tabs do not reflow on change. */
-.wintray-program-detail { height: 100%; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; overscroll-behavior: contain; }
+/* The pane padding protects switch hit areas and focus rings. Native tracks
+   occupy space only when these particular panes actually overflow. */
+.wintray-program-detail { height: 100%; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
 /* The fixed page shell also contains Startup and Logs. Give those panels their
    own scroll area so their final controls remain reachable in short windows. */
-.wintray-page > [data-slot="tabs"] > [data-slot="tabs-content"]:not(:has(.wintray-programs)) { overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; overscroll-behavior: contain; }
+.wintray-page > [data-slot="tabs"] > [data-slot="tabs-content"]:not(:has(.wintray-programs)) { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
 .wintray-panels > [data-slot="resizable-panel"] { min-width: 0; overflow-x: clip; }
 .wintray-program-detail [data-slot="tabs"],
 .wintray-program-detail [data-slot="tabs-content"],

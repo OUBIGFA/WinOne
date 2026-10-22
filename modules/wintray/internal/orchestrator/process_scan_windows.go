@@ -145,6 +145,9 @@ func processIdentityMatches(pid uint32, exeName, expectedPath, targetIdentity st
 		return false
 	}
 
+	if scriptInterpreter(expectedPath) != "" {
+		return scriptProcessMatches(pid, exeName, expectedPath)
+	}
 	if targetIdentity != "" {
 		base := strings.TrimSpace(exeName)
 		if ext := filepath.Ext(base); ext != "" {

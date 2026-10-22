@@ -20,8 +20,14 @@ func (e *testEnumerator) EnumerateTopLevelWindows() []ManagedWindowInfo {
 }
 
 type testManager struct {
-	closeCalls []uintptr
-	hideCalls  []uintptr
+	escapeCalls []uintptr
+	closeCalls  []uintptr
+	hideCalls   []uintptr
+}
+
+func (m *testManager) SendEscape(_ context.Context, hwnd uintptr) (bool, error) {
+	m.escapeCalls = append(m.escapeCalls, hwnd)
+	return false, nil // Existing fixtures exercise native-close fallback.
 }
 
 func (m *testManager) CloseWindow(hwnd uintptr) (bool, error) {

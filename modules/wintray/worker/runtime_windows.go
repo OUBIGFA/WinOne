@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/lxn/walk"
+	"golang.org/x/sys/windows"
 	"winone/internal/diagnostics"
 	"winone/internal/host"
 	"winone/internal/residency"
@@ -344,9 +345,12 @@ func (r *Runtime) adopt(a config.ManagedAppEntry, result orchestrator.Result) {
 	}
 	w := tray.HostedWindow{Name: a.Name, ExePath: a.ExePath, Handle: result.Hidden.Handle, ProcessID: result.Hidden.ProcessID}
 	for attempt := 0; attempt < 30; attempt++ {
-		if err := r.onUI(func() error { return r.hosted.TryAdd(w) }); err == nil {
-			return
-		}
+		err := r.onUI(func() error { return r.hosted.TryAdd(w) })
+		if err == nil { return }
+		// Short scripts can finish before console ownership reaches the UI.
+		// An invalid PID is not a transient icon failure; there is no window
+		// left to recover. Permission/creation failures still retain retries.
+		if errors.Is(err, tray.ErrHostedProcessUnavailable) && errors.Is(err, windows.ERROR_INVALID_PARAMETER) { return }
 		select {
 		case <-r.ctx.Done():
 			tray.RestoreWindow(w, orchestrator.FindConsoleWindow, r.logger)
@@ -564,6 +568,12 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 			}
 			return out, nil
 		})
+	case "program.state", "program.window", "program.stop":
+		value, err := r.programAction(request.Method, request.Params)
+		if err != nil {
+			return fail(err)
+		}
+		result = value
 	case "jobs.get":
 		var args struct {
 			ID string `json:"id"`

@@ -103,6 +103,12 @@ func buildLaunchCommand(exePath, args string, hidden bool) *exec.Cmd {
 	return cmd
 }
 
+// hasNativeConsole follows WinTray's script/interpreter rules. pythonw keeps
+// GUI semantics; never allocate a fake console to recover discarded output.
+func hasNativeConsole(path string) bool {
+	return isCmdScript(path) || isPowerShellScript(path) || strings.EqualFold(filepath.Ext(path), ".py") || consoleExecutableCheck(path)
+}
+
 func isCmdScript(exePath string) bool {
 	ext := strings.ToLower(filepath.Ext(exePath))
 	return ext == ".bat" || ext == ".cmd"

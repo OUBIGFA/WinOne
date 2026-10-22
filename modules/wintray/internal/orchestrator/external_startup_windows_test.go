@@ -216,7 +216,7 @@ func TestManualStartWithStartupDisabledHonorsSavedModes(t *testing.T) {
 			}
 			result := svc.StartNow(context.Background(), entry, 0)
 			want := map[string]ResultCode{"hidden": ResultStartedHidden, "tray": ResultHiddenToTray, "task": ResultStartedOnly}[mode]
-			if result.Code != want || (result.Hidden != nil) != (mode == "tray") || len(startupTestPIDs(entry.ExePath)) != 1 {
+			if result.Code != want || (result.Hidden != nil) != (mode == "tray" || mode == "hidden") || len(startupTestPIDs(entry.ExePath)) != 1 {
 				t.Fatalf("manual mode %s was ignored: result=%+v", mode, result)
 			}
 			if result.Hidden != nil {

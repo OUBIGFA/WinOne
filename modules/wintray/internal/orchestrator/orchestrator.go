@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sys/windows"
 	"winone/modules/wintray/internal/config"
 	"winone/modules/wintray/internal/stringutil"
 )
@@ -39,10 +40,10 @@ type startOptions struct {
 
 func (o startOptions) launchMode() launchMode {
 	switch {
-	case o.hideProcessWindow:
-		return launchNoWindow
 	case o.hideConsoleWindow:
 		return launchHiddenConsole
+	case o.hideProcessWindow:
+		return launchNoWindow
 	default:
 		return launchVisible
 	}
@@ -131,11 +132,9 @@ func (s *Service) start(ctx context.Context, entry config.ManagedAppEntry, retry
 
 	expectedName := stringutil.TrimExt(filepath.Base(entry.ExePath))
 	expectedPath := normalizePath(entry.ExePath)
-	// A console-subsystem program (syncthing.exe, frpc.exe, ...) owns no GUI
-	// window: its only window is the console host, and closing that terminates
-	// the process. "Close window after launch" therefore means "keep the
-	// window hidden and reachable from a tray icon" for these programs.
-	consoleProgram := opts.manageWindow && consoleExecutableCheck(entry.ExePath)
+	// Preserve the real console and its buffers for background launch too.
+	// Closing discards the process; CREATE_NO_WINDOW discards recoverable I/O.
+	consoleProgram := (opts.manageWindow || opts.hideProcessWindow) && hasNativeConsole(entry.ExePath)
 	if opts.manageWindow && !consoleProgram {
 		var err error
 		s, err = s.withStartupVisibility(entry.ExePath)
@@ -258,7 +257,11 @@ func (s *Service) start(ctx context.Context, entry config.ManagedAppEntry, retry
 	s.logger.Info(fmt.Sprintf("started: %s pid=%d mode=%d", entry.Name, pid, opts.launchMode()))
 
 	if opts.hideConsoleWindow {
-		return s.hostLaunchedConsole(ctx, entry, pid)
+		result := s.hostLaunchedConsole(ctx, entry, pid)
+		if opts.hideProcessWindow {
+			result.Code, result.Message = ResultStartedHidden, "started hidden"
+		}
+		return result
 	}
 
 	if !opts.manageWindow {
@@ -329,7 +332,11 @@ func (s *Service) manageRunning(ctx context.Context, entry config.ManagedAppEntr
 	s.logger.Info(fmt.Sprintf("skip start: already running %s", entry.Name))
 	if consoleProgram {
 		if hidden, ok := s.adoptRunningConsole(ctx, entry, expectedPath, expectedName); ok {
-			return hiddenToTrayResult(entry, hidden)
+			result := hiddenToTrayResult(entry, hidden)
+			if opts.hideProcessWindow {
+				result.Code, result.Message = ResultAlreadyRunningSkipped, "already running skipped"
+			}
+			return result
 		}
 	}
 	if opts.manageWindow {
@@ -345,6 +352,9 @@ func (s *Service) manageRunning(ctx context.Context, entry config.ManagedAppEntr
 		}
 		if ctx.Err() != nil {
 			return cancelledResult(entry)
+		}
+		if !s.hasExistingManagedProcess(expectedPath, expectedName) && !s.hasExistingManagedWindow(expectedPath, expectedName) {
+			return Result{AppName: entry.Name, Code: ResultNoWindowManaged, Message: "program exited while dismissing its window"}
 		}
 	}
 	return Result{AppName: entry.Name, Managed: true, Code: ResultAlreadyRunningSkipped, Message: "already running skipped"}
@@ -645,12 +655,39 @@ func (s *Service) manageFirstMatchingWindow(ctx context.Context, predicate func(
 	}
 }
 
-func (s *Service) tryManageAndVerify(ctx context.Context, window ManagedWindowInfo, score int, actionType string) (managedWindow, bool) {
+func (s *Service) tryManageAndVerify(ctx context.Context, window ManagedWindowInfo, score int, actionType string) (managed managedWindow, applied bool) {
+	if ctx.Err() != nil {
+		return managedWindow{}, false
+	}
 	if score < closeAllowedScoreThreshold {
 		s.logger.Warn(fmt.Sprintf("skip low confidence candidate score=%d threshold=%d %s", score, closeAllowedScoreThreshold, describeWindow(window)))
 		return managedWindow{}, false
 	}
 	target := resolveActionTargetHandle(window)
+	// A destroyed HWND can mean process exit, not successful tray dismissal.
+	// Hold the original process and recheck it after the asynchronous action.
+	if isWindow(target) {
+		identity := windowIdentity(target)
+		if identity.ProcessID != window.ProcessID {
+			return managedWindow{}, false
+		}
+		process, err := windows.OpenProcess(windows.SYNCHRONIZE, false, window.ProcessID)
+		if err != nil {
+			s.logger.Warn(fmt.Sprintf("cannot observe window process pid=%d: %v", window.ProcessID, err))
+			return managedWindow{}, false
+		}
+		defer windows.CloseHandle(process)
+		defer func() {
+			state, err := windows.WaitForSingleObject(process, 0)
+			if applied && (ctx.Err() != nil || err != nil || state != uint32(windows.WAIT_TIMEOUT)) {
+				s.logger.Warn(fmt.Sprintf("window dismissal did not preserve the process: pid=%d hwnd=0x%X", window.ProcessID, target))
+				managed, applied = managedWindow{}, false
+			}
+		}()
+		if !identity.valid() {
+			return managedWindow{}, false
+		}
+	}
 	closed := managedWindow{Handle: target, ProcessID: window.ProcessID}
 	hidden := managedWindow{Handle: target, ProcessID: window.ProcessID, Hidden: true}
 
@@ -661,8 +698,11 @@ func (s *Service) tryManageAndVerify(ctx context.Context, window ManagedWindowIn
 		return hidden, s.applyAndVerify(ctx, window, score, "hide", s.manager.HideWindow)
 	}
 
-	// "hide" uses WM_CLOSE first and falls back to SW_HIDE for callers that
-	// explicitly request a hide action. "close" sends WM_CLOSE only.
+	// Ask the program's own Esc action first. Native close still respects a
+	// disabled close command; only explicit hide may fall back to SW_HIDE.
+	if s.applyAndVerify(ctx, window, score, "escape", func(hwnd uintptr) (bool, error) { return s.manager.SendEscape(ctx, hwnd) }) {
+		return closed, true
+	}
 	// A close succeeds when the window is destroyed or becomes invisible, which
 	// covers applications that intercept close and move themselves to the tray.
 	if actionType == "hide" {
@@ -680,6 +720,9 @@ func (s *Service) tryManageAndVerify(ctx context.Context, window ManagedWindowIn
 }
 
 func (s *Service) applyAndVerify(ctx context.Context, window ManagedWindowInfo, score int, action string, fn func(uintptr) (bool, error)) bool {
+	if ctx.Err() != nil {
+		return false
+	}
 	targetHwnd := resolveActionTargetHandle(window)
 	if targetHwnd != window.Handle {
 		s.logger.Info(fmt.Sprintf("retarget action action=%s score=%d from=0x%X to=0x%X", action, score, window.Handle, targetHwnd))
@@ -720,7 +763,10 @@ func (s *Service) verifyActionApplied(ctx context.Context, hwnd uintptr, score i
 	// while still allowing async framework event loops enough time.
 	attempts := 10
 	delay := 400 * time.Millisecond
-	if action == "hide" {
+	if action == "escape" {
+		// Leave time for the target input queue before considering native close.
+		attempts, delay = 4, 250*time.Millisecond
+	} else if action == "hide" {
 		attempts = 4
 		delay = 300 * time.Millisecond
 	}

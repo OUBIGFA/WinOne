@@ -1,6 +1,7 @@
 package orchestrator
 
 import (
+	"context"
 	"path/filepath"
 	"sync"
 	"time"
@@ -28,6 +29,7 @@ type WindowEnumerator interface {
 }
 
 type WindowManager interface {
+	SendEscape(ctx context.Context, hwnd uintptr) (bool, error)
 	CloseWindow(hwnd uintptr) (bool, error)
 	HideWindow(hwnd uintptr) (bool, error)
 }

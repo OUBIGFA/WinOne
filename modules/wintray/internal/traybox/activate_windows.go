@@ -33,9 +33,11 @@ func Activate(icon Icon, action Action) error {
 	procAllowSetForegroundWindow.Call(uintptr(pid))
 	var cursor win.POINT
 	win.GetCursorPos(&cursor)
+	// Post each gesture in queue order; a sent notification may reenter a
+	// paint/layout handler or nest another native menu on the same thread.
 	for _, event := range clickEvents(action, icon.version) {
 		wParam, lParam := callbackParams(icon, event, cursor)
-		if r, _, err := procSendNotifyMessageW.Call(uintptr(owner), uintptr(icon.callback), wParam, lParam); r == 0 {
+		if r, _, err := procPostIconMessageW.Call(uintptr(owner), uintptr(icon.callback), wParam, lParam); r == 0 {
 			return fmt.Errorf("notify %s: %w", icon.DisplayName(), err)
 		}
 	}

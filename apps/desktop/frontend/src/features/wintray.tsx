@@ -17,6 +17,7 @@ import {Label} from "../components/ui/label";
 import {Item,ItemGroup} from "../components/ui/item";
 import {Tabs,TabsList,TabsTrigger,TabsContent} from "../components/ui/tabs";
 import {ResizablePanelGroup,ResizablePanel,ResizableHandle} from "../components/ui/resizable";
+import {WinTrayProgramActions} from './wintray-program-actions';
 import {WinTrayProgramSettings,validProgramTiming} from "./wintray-program-settings";
 import {NumberField,validNumber} from "../ui/number-field";
 import {WinTrayMaintenance} from "./wintray-maintenance";
@@ -244,6 +245,8 @@ export function WinTrayPage({ disabled = false,onChanged=()=>{},onActivity }: { 
       setMessage(
         method === "launch"
           ? "wintray.launched"
+          : method === "program.window" ? "wintray.windowChanged"
+          : method === "program.stop" ? "wintray.stopped"
           : method === "recover"
             ? "wintray.recovered"
             : "common.saved",
@@ -295,7 +298,7 @@ export function WinTrayPage({ disabled = false,onChanged=()=>{},onActivity }: { 
               <ResizablePanel defaultSize="40%" minSize="28%" style={{overflowX:"clip"}}>
                 <ItemGroup data-page-scroll-target="" aria-label={t("wintray.list")} className="wintray-program-list gap-1 py-3 pr-3">
                   <div className="wintray-list-heading" aria-hidden="true"><span>{t("settingsDesign.programColumn")}</span><span>{t("settingsDesign.trayColumn")}</span><span>{t("settingsDesign.replaceColumn")}</span><span>{t("settingsDesign.orderColumn")}</span></div>
-                  {!apps.length&&<p className="py-4 text-muted-foreground">{t("wintray.empty")}</p>}
+                  {!apps.length&&<p className="wintray-program-empty">{t("wintray.empty")}</p>}
                   {apps.map((a,index)=><Item key={a.id} role="listitem" aria-label={displayName(a)} aria-current={selected===a.id?"true":undefined} tabIndex={busy?-1:0} onClick={()=>{if(!busy)setSelected(a.id);}} onKeyDown={event=>{if(event.target===event.currentTarget&&!busy&&(event.key==="Enter"||event.key===" ")){event.preventDefault();setSelected(a.id);}}} variant={selected===a.id?"muted":"default"} className="wintray-program-row cursor-pointer" draggable={!busy} onDragStart={()=>setDragged(a.id)} onDragEnd={()=>setDragged("")} onDragOver={event=>event.preventDefault()} onDrop={event=>{if(dragged){event.preventDefault();event.stopPropagation();if(!busy)reorder(dragged,a.id);setDragged("");}}}>
                     {metadata[a.exePath]?.icon?<img src={`data:image/png;base64,${metadata[a.exePath].icon}`} alt="" className="size-8 shrink-0"/>:<AppWindow aria-hidden="true" className="size-8 shrink-0 text-muted-foreground"/>}
                     <span className="wintray-program-name" title={displayName(a)}>{displayName(a)}</span>
@@ -318,7 +321,7 @@ export function WinTrayPage({ disabled = false,onChanged=()=>{},onActivity }: { 
                   {active?<>
                     <div className="wintray-detail-header"><div className="min-w-0 flex-1"><h2 className="break-words">{displayName(active)}</h2><p className="truncate text-sm text-muted-foreground" title={active.exePath}>{active.exePath}</p></div>
                     <div className="flex flex-wrap gap-2" role="group" aria-label={t("wintray.programActions")}>
-                      <Button disabled={disabled||dirty} onClick={()=>void runJob("launch",{id:active.id})}>{t("wintray.launch")}</Button>
+                      <WinTrayProgramActions key={active.id} id={active.id} name={displayName(active)} disabled={disabled||dirty||!!saved?.recoveryError} busy={busy} onRun={runJob}/>
                       <Button onClick={()=>{const next=apps.filter(a=>a.id!==active.id);setDraft({...draft,managedApps:next});setSelected(next[0]?.id??"");}}>{t("wintray.remove")}</Button>
                     </div>
                     </div>

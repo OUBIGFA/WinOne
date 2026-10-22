@@ -118,6 +118,8 @@ func TestRunnerHelperProcess(t *testing.T) {
 		return
 	}
 	switch os.Args[4] {
+	case "native-console":
+		runNativeConsoleProbe(t, os.Args[5])
 	case "console":
 		valid := func(kind uint32) bool {
 			handle, err := windows.GetStdHandle(kind)
