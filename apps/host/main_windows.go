@@ -280,6 +280,7 @@ func run() (runErr error) {
 	}, language: func() string { return applicationLanguage(store.Snapshot().Language) }}
 	defer shortcuts.registrar.Close()
 	gates := map[string]*modules.Gate{}
+	strokeChanged := make(chan struct{}, 1)
 	var refreshCaptureReadiness func()
 	for _, entry := range []struct {
 		manifest catalog.Manifest
@@ -312,6 +313,12 @@ func run() (runErr error) {
 			start = func() error { return prepareCapture(runtime) }
 		}
 		gate, gateErr := modules.NewGate(manifest.ID, manifest.Name.Chinese, moduleState, modules.LifecycleHooks{Start: start, Stop: stop, Status: status, Handle: runtime.Handle, IntentChanged: func() error {
+			if manifest.ID == "stroke" {
+				select {
+				case strokeChanged <- struct{}{}:
+				default:
+				}
+			}
 			if store != nil {
 				shortcuts.apply(store.Snapshot())
 			}
@@ -490,10 +497,14 @@ func run() (runErr error) {
 		_ = quickModule.start()
 	}
 	if store.RecoveryError() == nil && gates["stroke"].Enabled() {
-		if err := startStroke(strokeWorker); err != nil {
+		// Use the same transition as the module page: preserve startup errors
+		// in its status and allow retry while the saved intent remains enabled.
+		if err := gates["stroke"].SetEnabled(moduleState.Snapshot().Revision, true); err != nil {
+			_ = recordHostEvent(*data, "stroke.start.failed", err)
 			fmt.Fprintln(os.Stderr, err)
 		}
 	}
+	go superviseStroke(ctx, configurationJobs, moduleState, gates["stroke"], strokeWorker, *data, func() bool { return store.RecoveryError() == nil }, strokeChanged)
 	checkResidency := func() residency.State {
 		tray := observedModule{gate: gates["wintray"], worker: wintray, idle: idleTrayLifetime(store, *autorun)}
 		state := residencyState(*pipe, store, tray, observedModule{gate: gates["capture"], worker: capture}, observedModule{gate: gates["always-on-top"], worker: alwaysOnTop})

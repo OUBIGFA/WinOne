@@ -9,6 +9,8 @@ publish = false
 [features]
 default = ["component-ui"]
 component-ui = ["dep:wry", "dep:raw-window-handle", "dep:png"]
+# Explicit local test builds only; unified/release builds never select this.
+component-test-debug = ["component-ui"]
 
 [lib]
 name = "winone_desktop"

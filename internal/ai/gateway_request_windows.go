@@ -31,6 +31,7 @@ func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, pat
 		return false, err
 	}
 	defer release()
+	t.AccountBackend = p.AgentBackend
 	process, err := t.start(ctx)
 	if err != nil {
 		return false, err

@@ -73,7 +73,35 @@
     {
       "path": "internal/traybox/listener_windows_test.go",
       "sourceSHA256": "101cbb286167a484cb78cfd919ee65dfd193e655d52974c32f20f20a4c0443e8"
+    },
+    {
+      "path": "internal/traybox/bridge_windows.go",
+      "sourceSHA256": "94c54c803d0f6fa92193316a611f90d375e3aacf284bdaeb7b788abc045bf306"
+    },
+    {
+      "path": "internal/traybox/bridge_manager_windows.go",
+      "sourceSHA256": "67f12c62f560a55e8480013cb618869ad3d6ad438007eb0cfe4455fd1418cdbe"
+    },
+    {
+      "path": "internal/traybox/bridge_selection_windows.go",
+      "sourceSHA256": "504807ca30d397904198b4526298f20e2fd48266eabea0062aee3148a425847a"
+    },
+    {
+      "path": "internal/traybox/bridge_resume_windows.go",
+      "sourceSHA256": "e2bf34f7223825d81d765644225c2bd17446b147e6ace472ce00efda29343476"
+    },
+    {
+      "path": "native/traybridge/bridge.c",
+      "sourceSHA256": "da3dbe2f0bbecd792fcd87e4d9ebbcabaa7deec15690007d68e59627e5d30b90"
+    },
+    {
+      "path": "native/traybridge/bridge.h",
+      "sourceSHA256": "6fe8ae9e74d531a536de3e045a890fbbbd4dcbf83b3c401332079f151693a046"
+    },
+    {
+      "path": "native/traybridge/injector.c",
+      "sourceSHA256": "e53f3a7ca56652c0966dfeb4286cfc690322e85c870e0a8b712caf6f8726f747"
     }
   ],
-  "adaptation": "Retain WinOne module namespace, unified configuration/logs/tray, recovery errors and PID-reuse protection. Reuse scoped Esc/native-close handling, script identity, original-window visibility and queued tray gestures. Existing WinOne native console creation retains its explicit environment/ownership handling. UI uses existing WinOne controls; program exit requires confirmation. Manual launch settings stay independent from the startup switch; collected-icon single click still automatically adds a double click. No new dependency or standalone WinTray UI."
+  "adaptation": "Retain WinOne module namespace, unified configuration/logs/tray, recovery errors and PID-reuse protection. Reuse scoped Esc/native-close handling, script identity, original-window visibility and queued tray gestures. Existing WinOne native console creation retains its explicit environment/ownership handling. UI uses existing WinOne controls; program exit requires confirmation. Manual launch settings stay independent from the startup switch; collected-icon single click still automatically adds a double click. No new dependency or standalone WinTray UI. Tray collection uses the same local WinTray receiving-end bridge; WinOne permits EPOCH/RESUME through its per-window UIPI filter for elevated operation and preserves native handshake errors instead of reporting every delivery failure as a timeout."
 }

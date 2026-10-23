@@ -15,14 +15,15 @@ namespace WinOne.StrokeRuntime
         private readonly Thread thread;
         private readonly ManualResetEvent started=new ManualResetEvent(false);
         private readonly System.Action reset;
+        private readonly System.Action tick;
         private HookWindow window;
         private Exception startupError;
         private bool disposed;
         private volatile string diagnostic;
         internal string Diagnostic {get{return diagnostic;}private set{diagnostic=value;}}
-        internal MouseHookLoop(System.Action reset)
+        internal MouseHookLoop(System.Action reset,System.Action tick)
         {
-            this.reset=reset;
+            this.reset=reset;this.tick=tick;
             thread=new Thread(Run){IsBackground=true,Name="WinOne mouse hook"};
             thread.SetApartmentState(ApartmentState.STA);thread.Start();
             started.WaitOne();started.Dispose();
@@ -56,6 +57,7 @@ namespace WinOne.StrokeRuntime
             [StructLayout(LayoutKind.Sequential)]private struct RawDevice {public ushort page,usage;public uint flags;public IntPtr target;}
             [DllImport("user32.dll",SetLastError=true)]private static extern bool RegisterRawInputDevices([In] RawDevice[] devices,uint count,uint size);
             private readonly System.Windows.Forms.Timer timer=new System.Windows.Forms.Timer{Interval=1000};
+            private readonly System.Windows.Forms.Timer pendingTimer=new System.Windows.Forms.Timer{Interval=25};
             private readonly HookRecovery health=new HookRecovery();
             private long inputAt;
             private static long Milliseconds(long ticks){return ticks/(Stopwatch.Frequency/1000);}
@@ -66,6 +68,7 @@ namespace WinOne.StrokeRuntime
                 if(!RegisterRawInputDevices(new[]{new RawDevice{page=1,usage=2,flags=0x100,target=Handle}},1,(uint)Marshal.SizeOf(typeof(RawDevice))))throw new Win32Exception(Marshal.GetLastWin32Error());
                 timer.Tick+=(_,__)=>{if(health.NeedsRestart(Milliseconds(Stopwatch.GetTimestamp()),inputAt,Milliseconds(MouseHook.LastEventTimestamp)))owner.Recover();};
                 timer.Start();
+                pendingTimer.Tick+=(_,__)=>owner.tick();pendingTimer.Start();
             }
             protected override void WndProc(ref Message message)
             {
@@ -74,7 +77,7 @@ namespace WinOne.StrokeRuntime
             }
             protected override void Dispose(bool disposing)
             {
-                if(disposing){timer.Stop();timer.Dispose();if(IsHandleCreated)RegisterRawInputDevices(new[]{new RawDevice{page=1,usage=2,flags=1,target=IntPtr.Zero}},1,(uint)Marshal.SizeOf(typeof(RawDevice)));}
+                if(disposing){pendingTimer.Stop();pendingTimer.Dispose();timer.Stop();timer.Dispose();if(IsHandleCreated)RegisterRawInputDevices(new[]{new RawDevice{page=1,usage=2,flags=1,target=IntPtr.Zero}},1,(uint)Marshal.SizeOf(typeof(RawDevice)));}
                 base.Dispose(disposing);
             }
         }

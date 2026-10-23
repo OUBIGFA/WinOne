@@ -2,6 +2,12 @@ import {afterEach,expect,it,vi} from "vitest";
 import {createAccountReader} from "./ai-account-reader";
 const call=vi.hoisted(()=>vi.fn());vi.mock("../bridge",()=>({captureCall:call}));
 afterEach(()=>{vi.resetAllMocks();vi.useRealTimers();});
+it("keeps sponsor attribution and refreshes the dynamic catalog after an hour",async()=>{
+ vi.useFakeTimers();const reader=createAccountReader();
+ call.mockResolvedValue({agents:[],presets:[{id:"local",name:"Local"}],partners:[{id:"kimi",name:"Kimi",sponsored:true,siteHost:"www.kimi.com"}]});
+ expect((await reader.catalog()).presets?.[0]).toMatchObject({id:"kimi",sponsored:true,siteHost:"www.kimi.com"});
+ await vi.advanceTimersByTimeAsync(3600001);await reader.catalog();expect(call).toHaveBeenCalledTimes(2);
+});
 it("shares catalog discovery and retries after a failure",async()=>{
  const reader=createAccountReader();call.mockRejectedValueOnce(Error("offline"));
  await expect(reader.catalog()).rejects.toThrow("offline");

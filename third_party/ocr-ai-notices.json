@@ -818,10 +818,21 @@
     {
       "kind": "upstream",
       "name": "magpie",
-      "version": "7dd965ed22e6619c9084f3bca58e444073e8a41c",
+      "version": "bac5be067744f1bcf5609d5bb790f41c5dc5c078",
       "notices": [
         {
-          "file": "licenses/upstream-magpie-7dd965ed22e6619c9084f3bca58e444073e8a41c-0-LICENSE.txt",
+          "file": "licenses/upstream-magpie-bac5be067744f1bcf5609d5bb790f41c5dc5c078-0-LICENSE.txt",
+          "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "magpie",
+      "version": "50f52b540b915bdf5912ddebc48c1fa46eef3025",
+      "notices": [
+        {
+          "file": "licenses/upstream-magpie-50f52b540b915bdf5912ddebc48c1fa46eef3025-0-LICENSE.txt",
           "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
         }
       ]

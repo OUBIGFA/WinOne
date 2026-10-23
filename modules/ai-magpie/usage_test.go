@@ -229,6 +229,53 @@ func TestUsageFullExportAndContextStayScoped(t *testing.T) {
 	}
 }
 
+func TestUsageViewerZoneKeepsDayFilterHeatmapAndSessionCostTogether(t *testing.T) {
+	t.Setenv("WINONE_AI_USAGE_PATH", filepath.Join(t.TempDir(), "usage.jsonl"))
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	if err := os.MkdirAll(filepath.Dir(catalog.CachePath()), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(catalog.CachePath(), []byte(usagePriceFixture), 0600); err != nil {
+		t.Fatal(err)
+	}
+	catalog.Reset()
+	t.Cleanup(func() { catalog.Reset(); usage.WinOnePath = ""; usage.WinOneRecord = nil })
+	if err := configureUsage(request{ProviderID: "fixture", UsageSource: "winone", GatewayHeaders: http.Header{"X-Winone-Session": []string{"ABCDEFGHIJKLMNOPQRSTUVWXYZ"}}}); err != nil {
+		t.Fatal(err)
+	}
+	// The same call belongs to different calendar days on opposite sides of
+	// midnight. Keep it recent so the rolling heatmap includes the fixture.
+	day := time.Now().UTC().AddDate(0, 0, -3)
+	stamp := time.Date(day.Year(), day.Month(), day.Day(), 23, 30, 0, 0, time.UTC)
+	usage.Append(usage.Record{Time: stamp, Model: "gpt-4o", Input: 20, Output: 5, Status: 200})
+	for _, zone := range []string{"Pacific/Honolulu", "Asia/Tokyo"} {
+		date := stamp.In(usage.Zone(zone)).Format(time.DateOnly)
+		var output bytes.Buffer
+		if err := readUsage(request{Usage: &usageQuery{Period: date + ".." + date, Zone: zone, Day: date}}, &output); err != nil {
+			t.Fatal(err)
+		}
+		var page struct {
+			Total        int
+			Heatmap      usage.Heatmap
+			SessionCosts map[string]struct{ Days map[string]float64 }
+		}
+		if err := json.Unmarshal(output.Bytes(), &page); err != nil {
+			t.Fatal(err)
+		}
+		if page.Total != 1 || len(page.Heatmap.Days) != 1 || len(page.SessionCosts) != 1 {
+			t.Fatalf("%s lost the call at the viewer's day boundary: %s", zone, output.String())
+		}
+		if page.Heatmap.Days[0].Date != date {
+			t.Fatalf("%s heatmap used another day: %+v", zone, page.Heatmap)
+		}
+		for _, price := range page.SessionCosts {
+			if len(price.Days) != 1 || price.Days[date] <= 0 {
+				t.Fatalf("%s session cost used another day: %+v", zone, price)
+			}
+		}
+	}
+}
+
 func TestChatProtocolCallsKeepWinOneUsageOrigin(t *testing.T) {
 	t.Setenv("WINONE_AI_USAGE_PATH", filepath.Join(t.TempDir(), "usage.jsonl"))
 	defer func() { usage.WinOnePath = ""; usage.WinOneRecord = nil }()

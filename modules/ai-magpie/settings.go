@@ -308,7 +308,7 @@ func maintainMagpie(ctx context.Context, in request, output io.Writer) error {
 	s := settings.Load()
 	checkins := []provider.WorkBuddyCheckin{}
 	if provider.PluginCheckinOn(s, in.Agent) {
-		checkins = append(checkins, provider.CheckInPlugins(ctx, in.Agent)...)
+		checkins = append(checkins, provider.WinOneCheckInPluginsDue(ctx, provider.PluginID(in.Agent))...)
 	}
 	warm := provider.WinOneWarmNow(ctx, gateway.WinOneWarmClaude)
 	if len(s.CodexAutoReset) > 0 {

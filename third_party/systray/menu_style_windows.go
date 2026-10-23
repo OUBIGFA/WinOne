@@ -323,7 +323,16 @@ func (s *nativeMenuStyle) draw(d *menuDraw) bool {
 	// the tray owner. Apply the shared system frame before painting its rows.
 	s.preparePopupFrame(d.DC)
 	saved, _, _ := menuSaveDC.Call(d.DC)
-	defer menuRestoreDC.Call(d.DC, saved)
+	defer func() {
+		menuRestoreDC.Call(d.DC, saved)
+		if e.submenu != 0 {
+			// USER32 appends its filled arrow *after* WM_DRAWITEM, even for
+			// MFT_OWNERDRAW. Reserve the otherwise empty trailing gutter from
+			// that follow-up paint; our Lucide chevron ends before this strip.
+			// Keep the HMENU/submenu intact for native keyboard/accessibility.
+			g32.NewProc("ExcludeClipRect").Call(d.DC, uintptr(d.Rect.Right-s.px(12)), uintptr(d.Rect.Top), uintptr(d.Rect.Right), uintptr(d.Rect.Bottom))
+		}
+	}()
 	menuFillRect.Call(d.DC, uintptr(unsafe.Pointer(&d.Rect)), s.backgroundBrush)
 	if e.kind&0x800 != 0 {
 		r := d.Rect

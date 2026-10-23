@@ -20,13 +20,14 @@ import (
 // The initial command is withheld until the worker is in a kill-on-close job.
 // Account CLIs therefore share the request's lifetime, including cancellation.
 type aiProcess struct {
-	cmd      *exec.Cmd
-	input    io.WriteCloser
-	output   io.ReadCloser
-	job      windows.Handle
-	once     sync.Once
-	finished chan struct{}
+	cmd            *exec.Cmd
+	input          io.WriteCloser
+	output         io.ReadCloser
+	job            windows.Handle
+	once           sync.Once
+	finished       chan struct{}
 	pluginLifetime context.Context
+	loginComplete  bool
 }
 
 func (p *aiProcess) closeJob() { p.once.Do(func() { windows.CloseHandle(p.job) }) }
@@ -34,12 +35,19 @@ func (p *aiProcess) finish() error {
 	// Magpie closes its plugin pipe on normal exit. Let plugins release their
 	// helpers themselves; their detached login browser belongs to the Host,
 	// not this one RPC. Errors/cancellation retain the kill-on-close policy.
-	if p.pluginLifetime == nil { p.closeJob() }
+	if p.pluginLifetime == nil {
+		p.closeJob()
+	}
 	err := p.cmd.Wait()
+	if err == nil && p.loginComplete {
+		err = closePluginLoginBrowsers(p.job)
+	}
 	p.once.Do(func() {
 		if err == nil && p.pluginLifetime != nil && p.pluginLifetime.Err() == nil {
 			retainPluginJob(p.pluginLifetime, p.job)
-		} else { windows.CloseHandle(p.job) }
+		} else {
+			windows.CloseHandle(p.job)
+		}
 	})
 	close(p.finished)
 	return err
@@ -50,8 +58,8 @@ func (p *aiProcess) finish() error {
 // Win32 JOBOBJECT_BASIC_ACCOUNTING_INFORMATION (not exposed by x/sys).
 // LARGE_INTEGER fields are 64-bit, followed by four DWORD counters.
 type jobBasicAccounting struct {
- TotalUserTime, TotalKernelTime, ThisPeriodTotalUserTime, ThisPeriodTotalKernelTime int64
- TotalPageFaultCount, TotalProcesses, ActiveProcesses, TotalTerminatedProcesses uint32
+	TotalUserTime, TotalKernelTime, ThisPeriodTotalUserTime, ThisPeriodTotalKernelTime int64
+	TotalPageFaultCount, TotalProcesses, ActiveProcesses, TotalTerminatedProcesses     uint32
 }
 
 func retainPluginJob(ctx context.Context, job windows.Handle) {
@@ -62,12 +70,21 @@ func retainPluginJob(ctx context.Context, job windows.Handle) {
 		for {
 			var info jobBasicAccounting
 			err := windows.QueryInformationJobObject(job, windows.JobObjectBasicAccountingInformation, uintptr(unsafe.Pointer(&info)), uint32(unsafe.Sizeof(info)), nil)
-			if err != nil || info.ActiveProcesses == 0 { return }
-			select { case <-ctx.Done(): return; case <-ticker.C: }
+			if err != nil || info.ActiveProcesses == 0 {
+				return
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+			}
 		}
 	}()
 }
 func (t Translator) start(ctx context.Context) (*aiProcess, error) {
+	return t.startMode(ctx, false)
+}
+func (t Translator) startMode(ctx context.Context, signingIn bool) (*aiProcess, error) {
 	if !filepath.IsAbs(t.Executable) || !filepath.IsAbs(t.DataDirectory) {
 		return nil, errors.New("AI 运行路径无效")
 	}
@@ -77,7 +94,18 @@ func (t Translator) start(ctx context.Context) (*aiProcess, error) {
 		}
 	}
 	cmd := exec.CommandContext(ctx, t.Executable)
+	releaseToken, err := limitWorkerPrivilege(cmd)
+	if err != nil {
+		return nil, err
+	}
+	defer releaseToken()
 	cmd.Env = isolatedEnvironment(t.DataDirectory)
+	if t.AccountBackend == "plugin" && !signingIn {
+		cmd.Env = append(cmd.Env, "WINONE_AI_BACKGROUND_DESKTOP=1")
+	}
+	// Plugins may create native Windows AppContainers. Their OS identity must
+	// match the logged-in user; only the plugin child receives this profile.
+	cmd.Env = append(cmd.Env, "WINONE_AI_OS_USERPROFILE="+os.Getenv("USERPROFILE"))
 	if t.PrivacyService != nil && !t.TransportOnly {
 		address, key, err := t.PrivacyService(ctx)
 		if err != nil {
@@ -92,6 +120,9 @@ func (t Translator) start(ctx context.Context) (*aiProcess, error) {
 	pluginRoot := t.RootDataDirectory
 	if pluginRoot == "" {
 		pluginRoot = t.DataDirectory
+	}
+	if err := preparePluginCodeDirectory(filepath.Join(pluginRoot, "third-party", "plugins")); err != nil {
+		return nil, err
 	}
 	cmd.Env = append(cmd.Env, "WINONE_AI_PLUGINS_HOME="+filepath.Join(pluginRoot, "third-party"))
 	if t.TransportOnly {
@@ -224,7 +255,7 @@ func (t Translator) SignIn(ctx context.Context, agent string, controls <-chan st
 // A selected method is an index from this provider's own plugin, never a
 // package name or executable supplied by the settings window.
 func (t Translator) SignInMethod(ctx context.Context, agent string, method *int, controls <-chan string, progress func(json.RawMessage)) error {
-	process, err := t.start(ctx)
+	process, err := t.startMode(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -260,6 +291,10 @@ func (t Translator) SignInMethod(ctx context.Context, agent string, method *int,
 		if !json.Valid(raw) {
 			process.closeJob()
 			break
+		}
+		var event struct{ SignIn struct{ State string } }
+		if json.Unmarshal(raw, &event) == nil && event.SignIn.State == "done" {
+			process.loginComplete = true
 		}
 		progress(raw)
 	}

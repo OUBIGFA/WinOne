@@ -16,7 +16,7 @@ afterEach(()=>{cleanup();vi.restoreAllMocks();vi.clearAllMocks();});
 
 it("defaults the legacy pen to enabled and saves an explicit off without changing its color or width",async()=>{
  const preferences=structuredClone({...defaults,revision:4}) as {pen:{enabled?:boolean;color:string;opacity:number;thickness:number}};delete preferences.pen.enabled;
- bridge.strokeCall.mockImplementation(async(method:string,value:unknown)=>method==="settings.save"?value:preferences);render(<MouseGesturesSettings/>);const user=userEvent.setup();await user.click(await screen.findByRole("tab",{name:"画笔"}));
+ bridge.strokeCall.mockImplementation(async(method:string,value:unknown)=>method==="settings.save"?value:preferences);render(<MouseGesturesSettings/>);const user=userEvent.setup();await user.click(await screen.findByRole("tab",{name:"常规"}));
  const toggle=screen.getByRole("switch",{name:"显示手势画笔"});expect(toggle.getAttribute("aria-checked")).toBe("true");await user.click(toggle);await user.click(screen.getByRole("button",{name:"保存鼠标手势设置"}));
  expect(bridge.strokeCall).toHaveBeenCalledWith("settings.save",expect.objectContaining({pen:{...preferences.pen,enabled:false}}));
 });
@@ -70,7 +70,7 @@ it("edits existing scopes and saves without enabling other applications",async()
  render(<MouseGesturesSettings/>);
  await screen.findByRole("navigation",{name:"使用场景"});
  expect(screen.getByRole("switch",{name:"启用场景：资源管理器文件夹"}).getAttribute("aria-checked")).toBe("true");
- await userEvent.click(screen.getByRole("tab",{name:"画笔"}));
+ await userEvent.click(screen.getByRole("tab",{name:"常规"}));
  const width=screen.getByLabelText("轨迹宽度（像素）");await userEvent.clear(width);await userEvent.type(width,"3");
  await userEvent.click(screen.getByRole("button",{name:"保存鼠标手势设置"}));
  const saved=bridge.strokeCall.mock.calls.find(call=>call[0]==="settings.save")?.[1];
@@ -80,7 +80,7 @@ it("edits existing scopes and saves without enabling other applications",async()
 
 it("keeps the full upstream compiler and execution settings editable",async()=>{
  bridge.strokeCall.mockResolvedValue({...defaults,revision:1});render(<MouseGesturesSettings/>);
- await userEvent.click(await screen.findByRole("tab",{name:"编译"}));
+ await userEvent.click(await screen.findByRole("tab",{name:"高级"}));await userEvent.click(screen.getByRole("tab",{name:"编译"}));
  expect((screen.getByLabelText("命名空间（每行一个）") as HTMLTextAreaElement).value.split("\n")).toHaveLength(37);
  expect((screen.getByLabelText("程序集（每行一个）") as HTMLTextAreaElement).value).toContain("System.Net.Http.dll");
  const namespaces=screen.getByLabelText("命名空间（每行一个）");await userEvent.type(namespaces,"\nSystem.Globalization");expect((namespaces as HTMLTextAreaElement).value).toContain("\nSystem.Globalization");

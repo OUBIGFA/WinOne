@@ -3,8 +3,23 @@ package plugin
 import (
  "os"
  "path/filepath"
+ "strings"
  "sync"
 )
+
+// Keep Windows' registered user identity for native plugin helpers. Magpie's
+// XDG configuration, auth and APPDATA browser profiles remain WinOne-owned.
+// The parent AI worker retains its private home for built-in account backends.
+func winOnePluginEnvironment(env []string) []string {
+ profile:=os.Getenv("WINONE_AI_OS_USERPROFILE")
+ if !filepath.IsAbs(profile) { return env }
+ result:=make([]string,0,len(env)+1)
+ for _,entry:=range env {
+  name,_,_:=strings.Cut(entry,"=")
+  if !strings.EqualFold(name,"USERPROFILE") { result=append(result,entry) }
+ }
+ return append(result,"USERPROFILE="+profile)
+}
 
 // Only code and its user-selected configuration are shared by WinOne's
 // workers. AuthPath continues to use each provider's private settings.Dir.

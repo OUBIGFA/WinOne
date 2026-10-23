@@ -6,7 +6,8 @@ import {BACKGROUND_CONTEXT as context} from '@earendil-works/chord/context';
 import {Type,validateToolArguments} from '@earendil-works/pi-ai';
 import {defineDoc,defineTask,defineTool,defineExtension,configure,LiveDoc,AssistantEntry,UsageDoc} from '@earendil-works/pi-durable';
 
-export const CollaborationDoc=defineDoc({kind:'winone.collaboration',version:1,scope:'conversation',history:'latest',fork:'initial',initial:()=>({agents:{}})});
+// Durable 1.4 requires an explicit policy; retain ordinary updates as deltas.
+export const CollaborationDoc=defineDoc({kind:'winone.collaboration',version:1,scope:'conversation',history:'latest',fork:'initial',initial:()=>({agents:{}}),checkpointWhen:()=>false});
 const result=text=>({output:[{type:'text',text:typeof text==='string'?text:JSON.stringify(text)}]});
 const textOf=message=>(message?.content??[]).filter(p=>p.type==='text').map(p=>p.text).join('\n');
 const own=(object,name)=>Object.hasOwn(object,name)?object[name]:undefined;

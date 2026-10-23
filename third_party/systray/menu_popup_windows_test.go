@@ -28,8 +28,24 @@ func TestNativeMenuPopup(t *testing.T) {
 	measured, drawn, submenuDrawn, rounded := 0, 0, 0, 0
 	var frameFailure string
 	var submenu windows.Handle
+	rows := make(map[uintptr]menuDraw)
+	paintPhase := 0
+	var activeMenu windows.Handle
 	callback := windows.NewCallback(func(window uintptr, message uint32, wParam, lParam uintptr) uintptr {
 		if message == 0x113 {
+			for window := range style.frames {
+				if alive, _, _ := u32.NewProc("IsWindow").Call(window); alive != 0 {
+					verifyPopupArrowPixels(t, style, window, rows)
+				}
+			}
+			if paintPhase == 0 {
+				// Exercise USER32's incremental hover repaint as well as initial
+				// WM_PAINT/WM_PRINTCLIENT. A stale clipping region must not leave
+				// the old unselected surface behind in the trailing gutter.
+				u32.NewProc("HiliteMenuItem").Call(window, uintptr(activeMenu), 1, 0x480)
+				paintPhase++
+				return 0
+			}
 			u32.NewProc("KillTimer").Call(window, 1)
 			u32.NewProc("EndMenu").Call()
 			return 0
@@ -40,6 +56,8 @@ func TestNativeMenuPopup(t *testing.T) {
 					measured++
 				}
 				if message == 0x2b {
+					item := *(*menuDraw)(unsafe.Pointer(lParam))
+					rows[item.Data] = item
 					drawn++
 					// Verify DWM's actual window attribute, not the buffered DC,
 					// which Windows may deliberately leave without an HWND.
@@ -86,7 +104,11 @@ func TestNativeMenuPopup(t *testing.T) {
 	if child == 0 {
 		t.Fatal("submenu allocation failed")
 	}
+	grandchild, _, _ := pCreatePopupMenu.Call()
+	if grandchild == 0 { t.Fatal("nested submenu allocation failed") }
+	appendStyleFixture(t, windows.Handle(grandchild), 10, "Nested action", 0, 0, false)
 	appendStyleFixture(t, windows.Handle(child), 9, "Restore collected program", 0, 0, false)
+	appendStyleFixture(t, windows.Handle(child), 0, "Nested program actions", 0, windows.Handle(grandchild), false)
 	appendStyleFixture(t, windows.Handle(root), 1, "&Open WinOne", 0, 0, false)
 	appendStyleFixture(t, windows.Handle(root), 0, "Collected program", 0, windows.Handle(child), false)
 	appendStyleFixture(t, windows.Handle(root), 2, "退出 WinOne", 0, 0, false)
@@ -104,6 +126,7 @@ func TestNativeMenuPopup(t *testing.T) {
 		// A private desktop has no physical keyboard focus. Exercise both native
 		// menu handles directly; mnemonic and state contracts are tested separately.
 		for _, menu := range []windows.Handle{style.root, submenu} {
+			activeMenu, paintPhase = menu, 0
 			if timer, _, err := u32.NewProc("SetTimer").Call(owner, 1, 200, 0); timer == 0 {
 				style.dispose()
 				t.Fatal(err)

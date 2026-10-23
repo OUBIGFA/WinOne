@@ -1,7 +1,7 @@
 // Genuine Windows OLE FileDrop source -> Wry coordinates -> receiving forms.
 // All paths, processes and saved settings belong to the runner's fresh folder.
 import {createRequire} from 'node:module';
-import {copyFile,mkdir,readFile,writeFile,readdir} from 'node:fs/promises';
+import {copyFile,mkdir,readFile,writeFile,readdir,access} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
@@ -18,16 +18,41 @@ try{
  check(page,'隔离设置页面未加载');page.setDefaultTimeout(15000);page.on('pageerror',error=>report.errors.push(String(error)));
  await page.waitForFunction(()=>performance.getEntriesByName('winone-ui-ready').length>0);
  async function navigate(id){await page.locator(`nav [data-page-id="${id}"]`).click();}
- async function drag(paths,locator,name){
+ async function drag(paths,locator,name,cancel=false){
+  // Closing each isolated source can return focus to the original desktop
+  // app. Re-activate the owned product before starting the next guarded drag.
+  await page.evaluate(()=>window.go.main.App.Reveal());
   await locator.scrollIntoViewIfNeeded();const box=await locator.boundingBox(),scale=await page.evaluate(()=>devicePixelRatio);
-  const input={taskRoot:resolve(output),targetPid:Number(process.env.WINONE_COMPONENTS_PID),targetExe:resolve(output,'WinOne.exe'),paths,x:box.x+box.width/2,y:Math.min(box.y+box.height/2,(await page.evaluate(()=>innerHeight))-36),scale,resultPath:resolve(output,name+'-ole.json')};
-  const spec=resolve(output,name+'-input.json');await writeFile(spec,JSON.stringify(input));await run(probe,[spec],{windowsHide:false,timeout:10000});const result=JSON.parse(await readFile(input.resultPath,'utf8'));check(result.state==='completed'&&!result.error,'原生拖放源失败：'+JSON.stringify(result));report.probes.push({name,...result});
+  const input={taskRoot:resolve(output),targetPid:Number(process.env.WINONE_COMPONENTS_PID),targetExe:resolve(output,'WinOne.exe'),expectedTargetElevated:process.env.WINONE_COMPONENTS_ELEVATED==='1',paths,x:box.x+box.width/2,y:Math.min(box.y+box.height/2,(await page.evaluate(()=>innerHeight))-36),scale,resultPath:resolve(output,name+'-ole.json')};
+  input.cancel=cancel;
+  const spec=resolve(output,name+'-input.json');await writeFile(spec,JSON.stringify(input));
+  if(process.env.WINONE_PATH_DROP_EXPLORER==='1'){
+   if(input.expectedTargetElevated){
+    const request=resolve(output,name+'.explorer-request.json');await writeFile(request,JSON.stringify(input));
+    const limit=Date.now()+25000;let finished=false;
+    while(Date.now()<limit){
+     const error=await readFile(request+'.error.txt','utf8').catch(()=>null);if(error)throw Error(error);
+     if(await access(input.resultPath).then(()=>true,()=>false)){finished=true;break;}
+     await wait(100);
+    }
+    check(finished,'管理员输入驱动未完成拖放');
+   }else await run('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',resolve('build/explorer-file-drop-probe.ps1'),'-Specification',spec],{windowsHide:true,timeout:25000});
+  }
+  else await run(probe,[spec],{windowsHide:false,timeout:10000});
+  const result=JSON.parse(await readFile(input.resultPath,'utf8'));check(result.state==='completed'&&!result.error,'原生拖放源失败：'+JSON.stringify(result));report.probes.push({name,...result});
  }
  await navigate('wintray');await page.getByRole('button',{name:'添加程序',exact:true}).waitFor();
+ if(process.env.WINONE_PATH_DROP_EXPLORER==='1'){
+  await drag([program],page.locator('.wintray-program-list'),'cancel-program-file',true);
+  check(await page.locator('.wintray-program-row').count()===0,'取消拖放仍添加了程序');
+ }
  await drag([program],page.locator('.wintray-program-list'),'program-file');await page.getByRole('listitem',{name:'managed',exact:true}).waitFor();
+ if(process.env.WINONE_PATH_DROP_PROGRAM_ONLY!=='1'){
  await drag([folder],page.locator('.wintray-program-list'),'program-rejects-folder');await page.getByText(/此处只接收文件/).waitFor();check(await page.locator('.wintray-program-row').count()===1,'目录被错误添加为程序');
+ }
  await page.getByRole('button',{name:'保存修改',exact:true}).click();await page.getByText('已保存',{exact:true}).waitFor();
  const saved=await page.evaluate(async()=>JSON.parse(await window.go.main.App.WinTray('settings.get','null')));check(saved.settings.managedApps.length===1&&saved.settings.managedApps[0].exePath===program,'拖入程序没有保存到隔离配置');
+ if(process.env.WINONE_PATH_DROP_PROGRAM_ONLY!=='1'){
  await navigate('capture');await page.locator('.capture-directory-setting').waitFor();await drag([target],page.locator('.capture-directory-setting'),'capture-output-folder');await page.getByText(target,{exact:true}).waitFor();
  await drag([file],page.locator('.capture-directory-setting'),'capture-rejects-file');await page.getByText(/此处只接收文件夹/).waitFor();check((await page.locator('#capture-path').textContent()).trim()===target,'文件误投覆盖了输出目录');
  await page.locator('.settings-save-bar button').first().click();
@@ -45,7 +70,8 @@ try{
  check(report.scenes.every(row=>row.whiteSpace==='nowrap'&&row.toggle),'场景名称换行或缺少左侧开关');
  await page.screenshot({path:resolve(output,'native-scenes.png')});
  const history=await page.evaluate(async()=>JSON.parse(await window.go.main.App.DirectoryLinks('list','{}')));check(history.length===0,'拖入意外写入了链接历史');
- check(report.errors.length===0,'原生页面出现错误：'+report.errors.join('\n'));report.nativeOle=true;report.historyUnchanged=true;report.savedProgram=true;report.validatedDirectoryFields=true;
+ }
+ check(report.errors.length===0,'原生页面出现错误：'+report.errors.join('\n'));report.nativeOle=true;report.historyUnchanged=process.env.WINONE_PATH_DROP_PROGRAM_ONLY!=='1';report.savedProgram=true;report.validatedDirectoryFields=process.env.WINONE_PATH_DROP_PROGRAM_ONLY!=='1';
  await writeFile(resolve(output,'result.json'),JSON.stringify(report,null,2));
  await page.evaluate(async()=>{const api=window.go.main.App;const value=await api.Snapshot();await api.SaveSettings({...value.settings,startup:{...value.settings.startup,keepUIRunning:false}});void api.WindowCommand('close');});
 }catch(error){await writeFile(resolve(output,'node-error.txt'),String(error.stack||error));await writeFile(resolve(output,'result-partial.json'),JSON.stringify(report,null,2));if(page)await page.screenshot({path:resolve(output,'failure.png')}).catch(()=>{});process.exitCode=1;}

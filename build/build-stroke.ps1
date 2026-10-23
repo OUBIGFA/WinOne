@@ -52,7 +52,7 @@ foreach($name in @('Base','Stroke')){
 }
 Copy-Item -LiteralPath (Join-Path $module 'defaults.json') -Destination $output
 Copy-Item -LiteralPath (Join-Path $module 'upstream/LICENSE') -Destination (Join-Path $output 'Stroke-LICENSE.txt')
-$runtime=@('NativeWindow.cs','Protocol.cs','InputLedger.cs','ScriptHost.cs','ScriptSupervisor.cs','MouseHookLoop.cs','Program.cs')|ForEach-Object {Join-Path $module $_}
+$runtime=@('NativeWindow.cs','NativeGestureInput.cs','Protocol.cs','InputLedger.cs','ScriptHost.cs','ScriptSupervisor.cs','MouseHookLoop.cs','Program.cs')|ForEach-Object {Join-Path $module $_}
  & $DotnetExe $CompilerPath @common ('/reference:'+(Join-Path $output 'Stroke.Base.dll')) ('/win32manifest:'+(Join-Path $module 'app.manifest')) /target:winexe /main:WinOne.StrokeRuntime.Program ('/out:'+(Join-Path $output 'WinOne.Stroke.exe')) @runtime
  if($LASTEXITCODE-ne 0){throw 'Stroke worker compilation failed'}
 if($Test){
@@ -66,7 +66,7 @@ if($Test){
   & $DotnetExe $CompilerPath @common ('/reference:'+(Join-Path $LegacyReferenceDirectory 'Base.dll')) ('/reference:'+(Join-Path $LegacyReferenceDirectory 'Stroke.exe')) /target:library ('/out:'+(Join-Path $output 'tests/FixtureLegacyPlugin.dll')) (Join-Path $module 'tests/FixtureLegacyPlugin.cs')
   if($LASTEXITCODE-ne 0){throw 'Legacy Stroke plugin fixture did not compile'}
  }
- $testSources=@((Join-Path $module 'NativeWindow.cs'),(Join-Path $module 'InputLedger.cs'),(Join-Path $module 'Tests.cs'))
+ $testSources=@((Join-Path $module 'NativeWindow.cs'),(Join-Path $module 'NativeGestureInput.cs'),(Join-Path $module 'InputLedger.cs'),(Join-Path $module 'GestureInputTests.cs'),(Join-Path $module 'Tests.cs'))
  & $DotnetExe $CompilerPath @common ('/reference:'+(Join-Path $output 'Stroke.Base.dll')) ('/win32manifest:'+(Join-Path $module 'app.manifest')) /target:exe /main:WinOne.StrokeRuntime.StrokeTests ('/out:'+(Join-Path $output 'WinOne.Stroke.Tests.exe')) @testSources
  if($LASTEXITCODE-ne 0){throw 'Stroke tests did not compile'}
  & (Join-Path $output 'WinOne.Stroke.Tests.exe')

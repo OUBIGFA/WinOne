@@ -2,6 +2,16 @@ param([Parameter(Mandatory)][string]$SourceDirectory,[Parameter(Mandatory)][stri
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $utf8=[Text.UTF8Encoding]::new($false)
+# Normalize the shared plugin subprocess boundary, including browser downloads
+# and native login helpers. Do not rewrite individual third-party plugins.
+$relative='internal/plugin/bun.go'
+$source=(& git -C $SourceDirectory show ($Revision+':'+$relative)) -join [Environment]::NewLine
+if($LASTEXITCODE -ne 0){throw 'Cannot read upstream plugin command environment'}
+$from='netproxy.EnvForBun(env())'
+if(-not $source.Contains($from)){throw 'Upstream plugin command environment changed'}
+$source=$source.Replace($from,'netproxy.EnvForBun(winOnePluginEnvironment(env()))')
+[IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$source+[Environment]::NewLine,$utf8)
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_environment_test.go') -Destination (Join-Path $SourceDirectory 'internal/plugin/winone_environment_test.go')
 $relative='internal/plugin/store.go'
 $source=(& git -C $SourceDirectory show ($Revision+':'+$relative)) -join [Environment]::NewLine
 if($LASTEXITCODE -ne 0){throw 'Cannot read upstream plugin registry'}

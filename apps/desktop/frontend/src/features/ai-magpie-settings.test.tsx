@@ -25,6 +25,8 @@ function fixture(){let saved:any;const original={revision:1,engine:"google",ocrE
  // extension lease instead of reporting an unrelated plugin failure.
  if(method==="ai.routing.extensions.open")return {url:"http://127.0.0.1:4310/session/fixture/plugins.html",pages:[],panels:[]};
  if(method==="ai.routing.extensions.close")return {};
+ if(method==="ai.magpie.privacy.open"||method==="ai.magpie.privacy.state"||method==="ai.magpie.privacy.action")return {on:false,supported:false,installed:false,size:1};
+ if(method==="ai.magpie.privacy.close")return {};
  // Mirror the Host's object-only RPC contract; null params must fail in tests.
  if(method==="ai.magpie.catalog"){expect(value).toEqual({});return {searchVendors:[{id:"tavily",name:"Tavily",keysURL:"https://tavily.com"},{id:"searxng",name:"SearXNG",needURL:true,keyOptional:true},{id:"deepseek",name:"DeepSeek"},{id:"you",name:"You.com",keyOptional:true}],visionModels:[{id:"one/vision",name:"Vision",provider:"one",providerName:"示例服务"}],imageGenModels:[],searchChoices:[],codexUsers:["first@example.invalid","second@example.invalid"],pluginCheckins:[{id:"plugin-one",name:"Plugin One"}]};}
  throw Error(method);
@@ -42,11 +44,12 @@ it("keeps quota and privacy drafts across tabs, saves them and restores them on 
  await user.click(screen.getByRole("switch",{name:"脱敏个人信息"}));
  await user.click(screen.getByRole("switch",{name:"公网 IP 地址"}));
  await user.type(screen.getByLabelText("自定义脱敏词"),"Project Alpha,客户名称");
+ await user.click(screen.getByRole("switch",{name:"脱敏词忽略大小写"}));
  await user.click(screen.getByRole("tab",{name:"额度设置"}));
  expect((screen.getByLabelText("提醒时已用额度（%）") as HTMLInputElement).value).toBe("85");
  expect(screen.queryByRole("button",{name:"移除此服务"})).toBeNull();
  await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));await screen.findByText("已保存");
- expect(saved().configuration.magpieSettings).toMatchObject({quotaLeft:true,quotaReads:"asked",usageAlert:85,redactPersonal:true,redactKinds:{ip:true},redactWords:["Project Alpha","客户名称"],hideAccounts:true});
+ expect(saved().configuration.magpieSettings).toMatchObject({quotaLeft:true,quotaReads:"asked",usageAlert:85,redactPersonal:true,redactKinds:{ip:true},redactWords:["Project Alpha","客户名称"],redactWordsAnyCase:true,hideAccounts:true});
  view.unmount();render(<AISettings/>);const reopen=await screen.findByRole("tablist",{name:"AI 服务"});await user.click(within(reopen).getByRole("tab",{name:"高级设置"}));await user.click(await screen.findByRole("tab",{name:"隐私设置"}));expect(screen.getByRole("switch",{name:"公网 IP 地址"}).getAttribute("aria-checked")).toBe("true");
 });
 
@@ -84,4 +87,14 @@ it("retains every daily warm-up time and separate per-account choices",{timeout:
  const codex=await screen.findByRole("region",{name:"Codex 额度预热"});await user.click(within(codex).getByRole("switch",{name:"每日定时预热"}));await user.click(within(codex).getByRole("button",{name:"添加时间"}));
  expect(within(codex).getAllByLabelText(/预热时间 \d/)).toHaveLength(2);
  await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));await screen.findByText("已保存");expect(saved().configuration.magpieSettings.codexWarmAts).toEqual(["06:00","11:05"]);
+});
+
+it("persists the classifier timeout and restores it when reopening",async()=>{
+ const saved=fixture(),user=userEvent.setup();const view=render(<AISettings/>);
+ await user.click(within(await screen.findByRole("tablist",{name:"AI 服务"})).getByRole("tab",{name:"高级设置"}));
+ await user.click(await screen.findByRole("tab",{name:"模型设置"}));
+ const field=screen.getByLabelText("路由判断超时（秒）");await user.clear(field);await user.type(field,"23");
+ await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));await screen.findByText("已保存");
+ expect(saved().configuration.magpieSettings.classifyTimeout).toBe(23);
+ view.unmount();render(<AISettings/>);await user.click(within(await screen.findByRole("tablist",{name:"AI 服务"})).getByRole("tab",{name:"高级设置"}));await user.click(await screen.findByRole("tab",{name:"模型设置"}));expect((screen.getByLabelText("路由判断超时（秒）") as HTMLInputElement).value).toBe("23");
 });

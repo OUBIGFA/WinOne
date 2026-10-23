@@ -54,9 +54,9 @@ namespace WinOne.StrokeRuntime
             // Queue visual/action work in order. No synchronous UI invoke or
             // script-executor lock remains on Windows' low-level callback.
             System.Action<System.Action> post=action=>{if(ui.IsDisposed)return;ui.BeginInvoke(new System.Action(()=>{if(running&&resourceGeneration==generation)action();}));};
-            engine=new GestureEngine(config,NativeWindowIdentity.At,(a,b)=>post(()=>{if(trail!=null)trail.Segment(a,b);}),()=>post(()=>{if(trail!=null)trail.ClearTrail();}),(name,mark,target)=>post(()=>scripts.Enqueue(name,mark,target)),()=>global::Stroke.Base.MouseClick(config.Button));
+            engine=new GestureEngine(config,NativeWindowIdentity.At,(a,b)=>post(()=>{if(trail!=null)trail.Segment(a,b);}),()=>post(()=>{if(trail!=null)trail.ClearTrail();}),(name,mark,target)=>post(()=>scripts.Enqueue(name,mark,target)),NativeGestureInput.Replay);
             MouseHook.MouseAction+=engine.Process;
-            try{if(!fixture)hookLoop=new MouseHookLoop(()=>engine.Cancel());running=true;}
+            try{if(!fixture)hookLoop=new MouseHookLoop(()=>engine.Cancel(),()=>engine.Tick());running=true;}
             catch{MouseHook.MouseAction-=engine.Process;engine=null;if(trail!=null){trail.Dispose();trail=null;}scripts.Dispose();scripts=null;throw;}
         }
         private void StopResources()

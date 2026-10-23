@@ -37,6 +37,7 @@ Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/catalog.go'),(Join-Pa
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugins.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/account_snapshot.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_signin.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_desktop_windows.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/models.go'),(Join-Path $root 'modules/ai-magpie/models_test.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/provider_accounts_test.go') -Destination (Join-Path $source 'internal/provider/winone_accounts_test.go') -Force
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/plugin_profile.go.txt') -Destination (Join-Path $source 'internal/plugin/winone_profile.go') -Force
@@ -143,7 +144,7 @@ try {
    $ErrorActionPreference='Stop'
    if($LASTEXITCODE -ne 0){throw 'Magpie OAuth adapter test failed'}
    $ErrorActionPreference='Continue'
-   & $GoExe test ./internal/plugin -run '^TestWinOne(AccountSnapshot|Extension)' -count=1 -v
+   & $GoExe test ./internal/plugin -run '^TestWinOne(AccountSnapshot|Extension|PluginCommand)' -count=1 -v
    $ErrorActionPreference='Stop'
    if($LASTEXITCODE -ne 0){throw 'Magpie account snapshot parity test failed'}
   } finally {foreach($name in $priorTestEnvironment.Keys){[Environment]::SetEnvironmentVariable($name,$priorTestEnvironment[$name])}}

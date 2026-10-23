@@ -6,6 +6,17 @@ import {AIAccounts} from "./ai-accounts";
 const api=vi.hoisted(()=>({captureCall:vi.fn()}));vi.mock("../bridge",()=>api);
 afterEach(()=>{cleanup();vi.clearAllMocks();});
 const catalog={agents:[{id:'codex',name:'ChatGPT / Codex'}]};
+it('checks in only the chosen saved account and reports the actual result',async()=>{
+ api.captureCall.mockImplementation(async(method:string)=>{
+  if(method==='ai.accounts.list')return {accounts:[{agent:'qoder',user:'fixture'}],checkinAvailable:true};
+  if(method==='ai.accounts.checkin')return {checkins:[{user:'fixture',outcome:'claimed',credit:12,asked:true}]};
+  throw Error(method);
+ });
+ const user=userEvent.setup();render(<AIAccounts agent="qoder" provider="saved-qoder" catalog={[{id:'qoder',name:'Qoder'}]} disabled={false} onBusy={()=>{}}/>);
+ await user.click(await screen.findByRole('button',{name:'立即签到'}));
+ expect(api.captureCall).toHaveBeenCalledWith('ai.accounts.checkin',{agent:'qoder',provider:'saved-qoder'});
+ await screen.findByText(/签到成功/);await screen.findByText(/12/);
+});
 it('shares the global account masking choice without exposing the identity in a tooltip',async()=>{
  api.captureCall.mockResolvedValue({accounts:[{agent:'codex',user:'private@example.invalid'}],methods:[]});
  const props={agent:'codex',catalog:catalog.agents,disabled:false,onBusy:()=>{}};

@@ -2,7 +2,7 @@ import {captureCall} from "../bridge";
 import type {AIAgent} from "./ai-configuration";
 import type {AIServicePreset} from "./ai-provider-presets";
 
-export type AccountState={accounts:{agent:string;user:string;plan?:string;lapsed?:string;icon?:string}[]|null;methods?:{type:"oauth"|"api";label:string;placeholder?:string}[]};
+export type AccountState={accounts:{agent:string;user:string;plan?:string;lapsed?:string;icon?:string}[]|null;methods?:{type:"oauth"|"api";label:string;placeholder?:string}[];checkinAvailable?:boolean};
 export type AccountRequest={agent:string;provider?:string;draft?:{agent:string;agentBackend?:string}};
 export type AccountReader=ReturnType<typeof createAccountReader>;
 
@@ -11,13 +11,16 @@ export type AccountReader=ReturnType<typeof createAccountReader>;
 // expire after 30 seconds. Refresh and sign-in explicitly invalidate them.
 export function createAccountReader(){
  const entries=new Map<string,{promise:Promise<AccountState>;expires:number;pending:boolean}>();
- let catalog:Promise<{agents:AIAgent[];presets?:AIServicePreset[]}>|undefined;
- function loadCatalog():Promise<{agents:AIAgent[];presets?:AIServicePreset[]}>{
+ let catalog:Promise<{agents:AIAgent[];presets?:AIServicePreset[];partners?:AIServicePreset[]}>|undefined;
+ let catalogAt=0;
+ function loadCatalog():Promise<{agents:AIAgent[];presets?:AIServicePreset[];partners?:AIServicePreset[]}>{
+  if(catalog&&catalogAt&&Date.now()-catalogAt>=3600000)catalog=undefined;
   if(!catalog){
-   const pending:Promise<{agents:AIAgent[];presets?:AIServicePreset[]}>=captureCall<{agents:AIAgent[];presets?:AIServicePreset[]}>("ai.accounts.catalog",{}).then(
+	 catalogAt=0;
+   const pending:Promise<{agents:AIAgent[];presets?:AIServicePreset[];partners?:AIServicePreset[]}>=captureCall<{agents:AIAgent[];presets?:AIServicePreset[];partners?:AIServicePreset[]}>("ai.accounts.catalog",{}).then(
     // An installation may invalidate discovery while it is running. Existing
     // callers must receive the current list, not overwrite it with old data.
-    value=>catalog===pending?value:loadCatalog(),
+    value=>{if(catalog!==pending)return loadCatalog();catalogAt=Date.now();return value.partners?.length?{...value,presets:[...value.partners,...(value.presets??[])]}:value;},
     error=>{if(catalog!==pending)return loadCatalog();catalog=undefined;throw error;},
    );
    catalog=pending;

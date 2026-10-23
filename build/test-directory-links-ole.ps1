@@ -7,7 +7,9 @@ param(
     [Parameter(Mandatory)][string]$OutputDirectory,
     [int]$DebugPort=19368,
     [string]$TestScript='rust-directory-links-ole-check.mjs',
-    [switch]$CurrentDesktop
+    [switch]$CurrentDesktop,
+    [switch]$Elevated,
+    [switch]$FullBundle
 )
 $ErrorActionPreference='Stop'
 if(-not $CurrentDesktop){throw 'Real OLE input requires explicitly selecting -CurrentDesktop'}
@@ -36,7 +38,7 @@ $foreground=[WinOneOleRestore]::GetForegroundWindow()
 $previousProbe=$env:WINONE_OLE_DROP_PROBE
 try{
     $env:WINONE_OLE_DROP_PROBE=(Resolve-Path -LiteralPath $ProbeExe).Path
-    & (Join-Path $PSScriptRoot 'test-desktop-components.ps1') -DesktopExe $DesktopExe -HostExe $HostExe -WinTrayExe $WinTrayExe -PlaywrightModule $PlaywrightModule -OutputDirectory $OutputDirectory -DebugPort $DebugPort -TestScript $TestScript -CurrentDesktop -DriverTimeoutSeconds 120
+    & (Join-Path $PSScriptRoot 'test-desktop-components.ps1') -DesktopExe $DesktopExe -HostExe $HostExe -WinTrayExe $WinTrayExe -PlaywrightModule $PlaywrightModule -OutputDirectory $OutputDirectory -DebugPort $DebugPort -TestScript $TestScript -CurrentDesktop -Elevated:$Elevated -FullBundle:$FullBundle -DriverTimeoutSeconds 120
 }finally{
     # Only this fresh runner directory can own a probe. Never enumerate by
     # title or stop a source window from another invocation.

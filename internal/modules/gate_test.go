@@ -8,6 +8,30 @@ import (
 	"winone/internal/modulestate"
 )
 
+func TestEnabledModuleCanRetryAFaultedRuntime(t *testing.T) {
+	store, err := modulestate.Open(filepath.Join(t.TempDir(), "modules.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := "faulted"
+	gate, err := NewGate("capture", "Capture", store, LifecycleHooks{
+		Start:         func() error { state = "ready"; return nil },
+		Stop:          func() error { return nil },
+		IntentChanged: func() error { return nil },
+		Status:        func() host.Module { return host.Module{ID: "capture", State: state} },
+		Handle:        func(r host.Request) host.Response { return host.Response{ID: r.ID} },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = gate.SetEnabled(store.Snapshot().Revision, true); err != nil {
+		t.Fatal(err)
+	}
+	if got := gate.Status(); got.State != "ready" {
+		t.Fatalf("saved enablement prevented runtime recovery: %+v", got)
+	}
+}
+
 func TestFailedStopBlocksCommandsAndRequiresRecovery(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "modules.json")
 	store, err := modulestate.Open(path)

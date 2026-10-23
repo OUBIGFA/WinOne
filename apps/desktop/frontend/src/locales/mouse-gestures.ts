@@ -5,8 +5,9 @@ const baseMouseGesturesMessages={
 
 export const mouseGesturesMessages={
  zh:{...baseMouseGesturesMessages.zh,
+  pen:"常规",advancedSettings:"高级",
   actions:"动作包",scopes:"使用场景",scopeName:"场景名称",scopeEnabled:"启用场景：{{name}}",scopePackages:"此场景使用的动作包",addScope:"添加场景",removeScope:"删除场景",newScope:"新场景",
-  scopeHint:"手势只作用于已启用的场景。其他窗口保留原有鼠标操作。",
+  scopeHint:"只执行当前场景中已开启的手势。未匹配的拖拽、滚轮和鼠标键保留原生操作。按住 Ctrl、Shift 或 Alt，或按住手势键停留 250 毫秒后拖动，可直接使用原生操作。",
   scenesHint:"先选择使用场景，再查看或分配手势。",selectScene:"选择场景",sceneEnabled:"已启用",sceneDisabled:"未启用",useScene:"使用此场景",sceneSettings:"场景设置",sceneSettingsHint:"选择需要使用手势的窗口。完成编辑后，保存鼠标手势设置。",
   explorerSceneHint:"用于资源管理器文件夹窗口。桌面和任务栏保留原操作。",globalSceneHint:"用于全部应用窗口。",applicationSceneHint:"用于匹配此场景规则的应用窗口。",
   assignGesture:"分配手势",assignGestureHint:"选择已有动作或自定义脚本，再为当前场景选择手势。",sceneGestures:"此场景的手势",sceneAction:"场景动作：{{name}}",sceneActionCount:"{{count}} 个动作",gestureFor:"{{name}}的手势",enableAction:"启用动作：{{name}}",editNamedAction:"编辑动作：{{name}}",editAction:"编辑动作",overriddenAction:"此手势优先执行：{{name}}",
@@ -14,8 +15,9 @@ export const mouseGesturesMessages={
   advancedScope:"路径规则、窗口类名与动作包",pathRuleHint:"已填程序完整路径时优先匹配完整路径；清空后使用路径规则。",doneEditing:"完成编辑",manageTrail:"查看或重绘此轨迹",removeSceneAction:"从此场景移除",chooseAction:"选择动作",customAction:"自定义 C# 脚本",assignmentPreview:"按住{{button}}画 {{gesture}}，松开后执行“{{action}}”。",cancelAssignment:"取消",addToScene:"添加到此场景",packageLimit:"已达到 32 个动作包。请在“动作包”中整理后再为此场景单独修改。",missingSceneAction:"此动作或场景已变化。请关闭编辑窗口后重新选择。"
  },
  en:{...baseMouseGesturesMessages.en,
+  pen:"General",advancedSettings:"Advanced",
   actions:"Action packages",scopes:"Usage scenes",scopeName:"Scene name",scopeEnabled:"Enable scene: {{name}}",scopePackages:"Action packages used by this scene",addScope:"Add scene",removeScope:"Remove scene",newScope:"New scene",
-  scopeHint:"Gestures apply only in enabled scenes. Other windows retain their normal mouse input.",
+  scopeHint:"Only enabled gestures in the current scene run. Unmatched drags, wheels and buttons retain native input. Hold Ctrl, Shift or Alt, or hold the gesture button still for 250 ms before dragging, to use native input.",
   scenesHint:"Choose a scene, then view or assign its gestures.",selectScene:"Choose scene",sceneEnabled:"Enabled",sceneDisabled:"Disabled",useScene:"Use this scene",sceneSettings:"Scene settings",sceneSettingsHint:"Choose the windows where gestures apply. Save the mouse gesture settings after editing.",
   explorerSceneHint:"Applies to Explorer folder windows. The desktop and taskbar retain their normal input.",globalSceneHint:"Applies to all application windows.",applicationSceneHint:"Applies to application windows matching this scene’s rules.",
   assignGesture:"Assign gesture",assignGestureHint:"Choose an existing action or a custom script, then assign a gesture for this scene.",sceneGestures:"Gestures in this scene",sceneAction:"Scene action: {{name}}",sceneActionCount:"{{count}} actions",gestureFor:"Gesture for {{name}}",enableAction:"Enable action: {{name}}",editNamedAction:"Edit action: {{name}}",editAction:"Edit action",overriddenAction:"This gesture runs: {{name}}",

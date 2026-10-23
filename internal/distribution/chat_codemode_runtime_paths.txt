@@ -1,7 +1,8 @@
 shared/chat/codemode-worker.js
 shared/chat/quickjs.wasm
 shared/chat/licenses/chat-codemode-notices.json
-shared/chat/licenses/pi-1.3.0-LICENSE.txt
+shared/chat/licenses/pi-1.4.0-LICENSE.txt
+shared/chat/licenses/marked-cjk-friendly-0.1.2-LICENSE.txt
 shared/chat/licenses/quickjs-wasi-3.6.2-LICENSE.txt
 shared/chat/licenses/quickjs-ng-6d46d07-LICENSE.txt
 shared/chat/licenses/quickjs-wasi-libc-2fc32bc-dlmalloc-src-malloc.c.txt

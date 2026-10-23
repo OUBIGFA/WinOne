@@ -32,7 +32,7 @@ type request struct {
 	ModelPreferences   map[string]modelMetadata `json:"modelPreferences,omitempty"`
 	ModelMetadata      modelMetadata            `json:"modelMetadata,omitempty"`
 	Icon               *iconRequest             `json:"icon,omitempty"`
-	AdditionalTools bool                       `json:"additionalTools,omitempty"`
+	AdditionalTools    bool                     `json:"additionalTools,omitempty"`
 	Headers            map[string]string        `json:"headers,omitempty"`
 	ProviderID         string                   `json:"providerId,omitempty"`
 	Usage              *usageQuery              `json:"usage,omitempty"`

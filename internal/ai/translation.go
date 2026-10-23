@@ -205,6 +205,9 @@ func (t Translator) generate(ctx context.Context, p Preferences, key string, inp
 	}
 	if agent != "" {
 		request["agentBackend"] = p.AgentBackend
+		// The process must follow the same backend as the payload, including
+		// callers which start with a plain Translator.
+		t.AccountBackend = p.AgentBackend
 	}
 	if progress != nil {
 		request["stream"] = true

@@ -10,6 +10,7 @@ param(
     # Windows rejects runas consent from a private desktop. Select this only
     # for an explicit interactive/UAC check of this runner-owned instance.
     [switch]$CurrentDesktop,
+    [switch]$Elevated,
     # Module workflows need their complete runtime without requiring a
     # performance sample merely to copy those files into the private fixture.
     [switch]$FullBundle,
@@ -54,6 +55,7 @@ public static class ComponentDesktopProbe {
 '@
 $name='WinOne-Components-'+[guid]::NewGuid().ToString('N')
 $desktop=[IntPtr]::Zero
+if($Elevated -and -not $CurrentDesktop){throw 'Elevation requires the explicitly selected current desktop'}
 if($CurrentDesktop){$name=$null}else{
     $desktop=[ComponentDesktopProbe]::CreateDesktopW($name,[IntPtr]::Zero,[IntPtr]::Zero,0,0xc7,[IntPtr]::Zero)
     if($desktop -eq [IntPtr]::Zero){throw 'Could not create background test desktop'}
@@ -71,20 +73,35 @@ $previousArguments=$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
 $previousModule=$env:WINONE_PLAYWRIGHT_MODULE
 $previousPipe=$env:WINONE_COMPONENTS_PIPE;$previousProfile=$env:WINONE_COMPONENTS_PROFILE
 $previousPID=$env:WINONE_COMPONENTS_PID
-$child=$null;$process=$null
+$previousElevated=$env:WINONE_COMPONENTS_ELEVATED
+$child=$null;$process=$null;$elevatedOwner=$null
 try{
     $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=$DebugPort"
     $env:WINONE_PLAYWRIGHT_MODULE=[IO.Path]::GetFullPath($PlaywrightModule)
     $env:WINONE_COMPONENTS_PIPE=$pipe;$env:WINONE_COMPONENTS_PROFILE=$profile
     # The Host's legacy wake flag must now open the product Home page.
     $arguments='--pipe "'+$pipe+'" --data-dir "'+$profile+'" --open-settings'
-    $child=[ComponentDesktopProbe]::Start((Join-Path $output 'WinOne.exe'),$arguments,$name,$root)
-    $process=[Diagnostics.Process]::GetProcessById($child.pid)
-    $env:WINONE_COMPONENTS_PID=[string]$child.pid
+    if($Elevated){
+        # Keep this runner and the drag source at normal integrity; only the
+        # isolated product target requests Windows' ordinary UAC elevation.
+        $ownerArguments='-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $PSScriptRoot 'component-elevated-target.ps1')+'" -OutputDirectory "'+$output+'" -Pipe "'+$pipe+'" -DebugPort '+$DebugPort+' -TimeoutSeconds '+($DriverTimeoutSeconds+45)
+        $elevatedOwner=Start-Process -FilePath (Get-Command powershell.exe).Source -ArgumentList $ownerArguments -Verb RunAs -WindowStyle Hidden -PassThru
+        $pidPath=Join-Path $output 'target.pid';$deadline=[DateTime]::UtcNow.AddSeconds(20)
+        while(-not(Test-Path -LiteralPath $pidPath)){
+            if($elevatedOwner.HasExited -or [DateTime]::UtcNow -gt $deadline){throw 'Elevated test owner did not start the target; see target-error.txt'}
+            Start-Sleep -Milliseconds 100
+        }
+        $process=[Diagnostics.Process]::GetProcessById([int][IO.File]::ReadAllText($pidPath))
+    }else{
+        $child=[ComponentDesktopProbe]::Start((Join-Path $output 'WinOne.exe'),$arguments,$name,$root)
+        $process=[Diagnostics.Process]::GetProcessById($child.pid)
+    }
+    $env:WINONE_COMPONENTS_PID=[string]$process.Id
+    $env:WINONE_COMPONENTS_ELEVATED=if($Elevated){'1'}else{'0'}
     if($ResourceSampleSeconds -gt 0){
         # Include the launched Host, workers and WebView descendants. This is
         # an isolated startup/idle sample, not physical input latency.
-        & (Join-Path $PSScriptRoot 'measure-resources.ps1') -RootProcessIds @($child.pid) -OutputPath (Join-Path $output 'resources.json') -DurationSeconds $ResourceSampleSeconds -Scenario 'isolated-settings-process-family' -BinaryPaths @((Join-Path $output 'WinOne.exe'),(Join-Path $output 'WinOne.Host.exe'))
+        & (Join-Path $PSScriptRoot 'measure-resources.ps1') -RootProcessIds @($process.Id) -OutputPath (Join-Path $output 'resources.json') -DurationSeconds $ResourceSampleSeconds -Scenario 'isolated-settings-process-family' -BinaryPaths @((Join-Path $output 'WinOne.exe'),(Join-Path $output 'WinOne.Host.exe'))
     }
     $test=$TestScript
     # Reopen children must inherit the same real desktop as the owned UI.
@@ -103,7 +120,9 @@ try{
     }
     if(-not $process.WaitForExit(10000)){throw 'Component UI did not exit after closing'}
     [uint32]$exitCode=0
-    if(-not [ComponentDesktopProbe]::GetExitCodeProcess($child.process,[ref]$exitCode)){throw 'Could not read component UI exit code'}
+    if($child){
+        if(-not [ComponentDesktopProbe]::GetExitCodeProcess($child.process,[ref]$exitCode)){throw 'Could not read component UI exit code'}
+    }else{$exitCode=$process.ExitCode}
     if($exitCode -ne 0){throw "Component UI exited with $exitCode"}
     'PASS: component UI process exited normally'
 }finally{
@@ -111,7 +130,13 @@ try{
     $env:WINONE_PLAYWRIGHT_MODULE=$previousModule
     $env:WINONE_COMPONENTS_PIPE=$previousPipe;$env:WINONE_COMPONENTS_PROFILE=$previousProfile
     $env:WINONE_COMPONENTS_PID=$previousPID
-    if($process){if(-not $process.HasExited){$process.Kill();$process.WaitForExit()};$process.Dispose()}
+    $env:WINONE_COMPONENTS_ELEVATED=$previousElevated
+    if($elevatedOwner){
+        [IO.File]::WriteAllText((Join-Path $output 'target.stop'),'stop')
+        if(-not $elevatedOwner.WaitForExit(10000)){Write-Warning 'Elevated test owner is still cleaning up; its bounded timeout remains active'}
+        $elevatedOwner.Dispose()
+    }
+    if($process){if(-not $Elevated -and -not $process.HasExited){$process.Kill();$process.WaitForExit()};$process.Dispose()}
     if($child){[void][ComponentDesktopProbe]::CloseHandle($child.thread);[void][ComponentDesktopProbe]::CloseHandle($child.process)}
     # Only this fresh profile's fixture Host is owned by this check.
     Get-CimInstance Win32_Process -Filter "Name = 'WinOne.Host.exe'" | Where-Object {$_.ExecutablePath -eq (Join-Path $output 'WinOne.Host.exe') -and $_.CommandLine.Contains($profile)} | ForEach-Object {Stop-Process -Id $_.ProcessId}

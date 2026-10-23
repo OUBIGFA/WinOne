@@ -208,6 +208,7 @@ impl State{
         if self.view_visible!=Some(visible){
             match view.set_visible(visible){Ok(())=>self.view_visible=Some(visible),Err(error)=>eprintln!("webview visibility: {error}"),}
         }
+        if visible{if let Err(error)=crate::component_file_drop::resize(self.window){eprintln!("file drop layout: {error}");}}
     }
     fn tr<'a>(&self,zh:&'a str,en:&'a str)->&'a str{component_bridge::text(&self.locale,zh,en)}
     fn reply(&self,reply:Reply){if let Some(view)=&self.webview{
@@ -456,6 +457,15 @@ unsafe extern "system" fn procedure(window:HWND,message:u32,w:WPARAM,l:LPARAM)->
     if !pointer.is_null(){if let Ok(mut state)=unsafe{&*pointer}.try_borrow_mut(){match message{
         DISPATCH=>{state.dispatch();return 0;},
         WM_CLOSE|HOST_EXITED=>{if state.webview.is_some(){state.exit_requested|=unsafe{&*pointer}.close_requested.take().unwrap_or(false);state.close();}return 0;},
+        WM_DROPFILES=>{
+            let source=if l!=0&&unsafe{IsChild(window,l as HWND)}!=0{l as HWND}else{window};
+            let received=crate::component_file_drop::receive(source,w as _);
+            match received{
+                Ok((paths,position)) if state.file_drop_enabled.load(Ordering::Acquire)=>{let _=state.outgoing.send(Message::FilesDropped(paths,position));unsafe{PostMessageW(window,DISPATCH,0,0);}},
+                Ok(_)=>{},Err(error)=>crate::report(&error),
+            }
+            return 0;
+        },
         WM_EXITSIZEMOVE=>{state.save_placement();return 0;},
         WM_SETTINGCHANGE|WM_THEMECHANGED=>{if let Err(error)=crate::component_frame::theme(window,&state.theme){eprintln!("{error}");}},
         WM_TIMER if w==crate::component_probe::TIMER&&state.probe.is_some()=>{state.finish_close();return 0;},
@@ -582,8 +592,19 @@ fn run_inner(pipe:&str,directory:&str,open_settings:bool,plan:crate::startup::Pl
         })
         .with_navigation_handler(|url|url.starts_with("http://winone.localhost/")||url.starts_with("winone://localhost/"))
         .with_new_window_req_handler(|_,_|wry::NewWindowResponse::Deny)
-        .with_url("winone://localhost/index.html")
-        .build_as_child(&wrapper).map_err(|e|e.to_string())?;
+        .with_url("winone://localhost/index.html");
+    #[cfg(feature="component-test-debug")]
+    let view={
+        use wry::WebViewBuilderExtWindows;
+        // WebView2 150+ intentionally ignores environment overrides at high
+        // integrity (WebView2Feedback #5640). Compile a fixed port into the
+        // opt-in test binary; never forward runtime environment into the API.
+        // Preserve Wry 0.57's default options for this settings WebView.
+        let port=env!("WINONE_COMPONENT_TEST_DEBUG_PORT").parse::<u16>().map_err(|_|"测试调试端口无效")?;
+        view.with_additional_browser_args(format!("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required --remote-debugging-address=127.0.0.1 --remote-debugging-port={port}"))
+    };
+    let view=view.build_as_child(&wrapper).map_err(|e|e.to_string())?;
+    let _file_drop=if crate::component_file_drop::elevated()?{Some(crate::component_file_drop::prepare(window)?)}else{None};
     crate::startup::trace("webview-created");
     let mut browser_pid=0;unsafe{view.webview().BrowserProcessId(&mut browser_pid)}.map_err(|e|e.to_string())?;
     let browser_handle=unsafe{windows_sys::Win32::System::Threading::OpenProcess(windows_sys::Win32::System::Threading::PROCESS_SYNCHRONIZE,0,browser_pid)};
@@ -614,14 +635,18 @@ fn run_inner(pipe:&str,directory:&str,open_settings:bool,plan:crate::startup::Pl
 
 #[cfg(test)]mod ole_tests{
     use super::OleApartment;
-    use windows_sys::Win32::System::Com::{CoGetApartmentType,CoInitializeEx,CoUninitialize,COINIT_MULTITHREADED};
+    use windows_sys::Win32::System::Com::{CoInitializeEx,CoUninitialize,COINIT_MULTITHREADED,COINIT_APARTMENTTHREADED};
     #[test]fn ole_successes_are_balanced_including_repeated_initialization(){
         std::thread::spawn(||{
             let first=OleApartment::initialize().expect("STA OLE initialization");
             let repeated=OleApartment::initialize().expect("repeated OLE initialization");
             drop(repeated);drop(first);
-            let(mut apartment,mut qualifier)=(0,0);
-            assert_eq!(unsafe{CoGetApartmentType(&mut apartment,&mut qualifier)}as u32,0x800401f0,"the thread must return to its uninitialized COM state");
+            // CoGetApartmentType can see another thread's implicit MTA. A
+            // fresh STA initialization returns S_OK; leaked nesting returns
+            // S_FALSE, independently of concurrent tests' COM apartments.
+            let fresh=unsafe{CoInitializeEx(std::ptr::null(),COINIT_APARTMENTTHREADED as u32)};
+            if fresh>=0{unsafe{CoUninitialize();}}
+            assert_eq!(fresh,0,"the thread must return to its uninitialized COM state");
         }).join().unwrap();
     }
     #[test]fn ole_apartment_mismatch_is_an_explicit_error(){

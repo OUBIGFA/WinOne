@@ -57,6 +57,7 @@ func (t Translator) TestModels(ctx context.Context, p Provider, key string, mode
 	defer cancel()
 	input := map[string]any{"operation": "models.test", "protocol": p.Protocol, "baseUrl": p.BaseURL, "key": key, "headers": p.Headers, "preset": p.Preset, "presetRegion": p.PresetRegion, "testModels": models, "testClient": client, "additionalTools": p.AdditionalTools, "modelPreferences": p.ModelMetadata, "magpieSettings": prefs}
 	if p.AuthMode == "account" {
+		t.AccountBackend = p.AgentBackend
 		input["agent"] = p.Agent
 		input["agentBackend"] = p.AgentBackend
 	}
@@ -127,6 +128,7 @@ func (s *MagpieSettings) MaintenanceNeeded() bool {
 // Maintain is one bounded tick, scheduled by the Host. Vendor quota readers
 // obey quotaReads; explicit user refresh remains Asked(ctx) in accounts.quota.
 func (t Translator) Maintain(ctx context.Context, p Provider, prefs *MagpieSettings) (json.RawMessage, error) {
+	t.AccountBackend = p.AgentBackend
 	if p.AuthMode != "account" || !prefs.MaintenanceNeeded() {
 		return json.RawMessage(`{"quotas":[],"alerts":[],"checkins":[],"errors":[]}`), nil
 	}

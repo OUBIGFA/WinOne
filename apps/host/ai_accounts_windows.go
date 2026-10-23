@@ -142,10 +142,10 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 	if params.Draft != nil && params.Provider == "" {
 		return fail(errors.New("账号连接标识无效"))
 	}
-	if r.Method == "accounts.quota" && (params.Provider == "" || params.Draft != nil) {
+	if (r.Method == "accounts.quota" || r.Method == "accounts.checkin") && (params.Provider == "" || params.Draft != nil) {
 		return fail(errors.New("请先保存需要读取额度的账号"))
 	}
-	if params.Provider != "" && (r.Method == "accounts.list" || r.Method == "accounts.models" || r.Method == "accounts.quota" || r.Method == "accounts.signin.start") {
+	if params.Provider != "" && (r.Method == "accounts.list" || r.Method == "accounts.models" || r.Method == "accounts.quota" || r.Method == "accounts.checkin" || r.Method == "accounts.signin.start") {
 		if r.Method == "accounts.quota" {
 			p, plan, err := s.store.ProviderKeysForModels(params.Provider)
 			if err != nil {
@@ -171,7 +171,7 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 		}
 	}
 	switch r.Method {
-	case "accounts.catalog", "accounts.list", "accounts.models", "accounts.quota":
+	case "accounts.catalog", "accounts.list", "accounts.models", "accounts.quota", "accounts.checkin":
 		// Even a quota read can refresh credentials or write quota history.
 		// Keep one owner per profile, but let a short read wait for another
 		// operation instead of treating ordinary contention as a broken login.

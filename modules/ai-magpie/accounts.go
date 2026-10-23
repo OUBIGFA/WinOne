@@ -50,6 +50,9 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 	}
 	if in.Operation == "accounts.catalog" {
 		presets := provider.Presets()
+		// This worker is short-lived. Wait for the upstream dynamic catalog
+		// instead of letting its background fetch die when the RPC exits.
+		partners := provider.PartnersNow(3 * time.Second)
 		for i := range presets {
 			// Prefer the bundled official color variants in light mode; the
 			// shared icon renderer supplies their monochrome dark-mode form.
@@ -61,7 +64,7 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 		if err != nil {
 			return err
 		}
-		return encode(map[string]any{"agents": agents, "presets": presets})
+		return encode(map[string]any{"agents": agents, "presets": presets, "partners": partners})
 	}
 	if pluginAccount(in) {
 		if settings.Load().NoAccountDiscovery {
@@ -71,6 +74,20 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 		return errors.New("unsupported agent account")
 	}
 	switch in.Operation {
+	case "accounts.checkin":
+		if !pluginAccount(in) {
+			return errors.New("this account does not support daily check-in")
+		}
+		if _, err := findAccount(ctx, in.Agent); err != nil {
+			return err
+		}
+		results := provider.CheckInPlugins(ctx, provider.PluginID(in.Agent))
+		// Vendor messages may contain raw response bodies. Public outcomes,
+		// credited amounts and timestamps are sufficient for the settings UI.
+		for i := range results {
+			results[i].Msg = ""
+		}
+		return encode(map[string]any{"checkins": results})
 	case "accounts.quota":
 		// The Host scopes this process to one configured WinOne account profile.
 		// Use the vendor quota reader, with no discovery of outside clients.
@@ -114,7 +131,14 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 			for i := range accounts {
 				accounts[i].Agent = in.Agent
 			}
-			return encode(map[string]any{"accounts": accounts, "methods": connection.Methods})
+			available := false
+			for _, p := range provider.PluginCheckins() {
+				if p.ID == provider.PluginID(in.Agent) {
+					available = true
+					break
+				}
+			}
+			return encode(map[string]any{"accounts": accounts, "methods": connection.Methods, "checkinAvailable": available})
 		}
 		return encode(map[string]any{"accounts": provider.Logins(in.Agent)})
 	case "accounts.models":

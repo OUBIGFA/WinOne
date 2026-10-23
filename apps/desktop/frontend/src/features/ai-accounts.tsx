@@ -12,6 +12,7 @@ import type {AccountReader,AccountState} from "./ai-account-reader";
 import {LogIn,RefreshCw,ExternalLink,Check,X,Copy} from "lucide-react";
 
 type Account={agent:string;user:string;plan?:string;lapsed?:string;icon?:string};
+type Checkin={user?:string;outcome:string;credit?:number;streak?:number;asked?:boolean};
 type SignInMethod={type:"oauth"|"api";label:string;placeholder?:string};
 type SignInPrompt={type:"text"|"select"|"password";key:string;message:string;placeholder?:string;options?:{label:string;value:string;hint?:string}[]};
 type SignIn={id:string;status:{agent:string;url:string;code?:string;state:string;user?:string;error?:string;pasteCallback?:boolean;pasteCode?:boolean;pasteKey?:boolean;keysURL?:string;instructions?:string;opened?:boolean;prompt?:SignInPrompt};inputError?:string;inputPending?:boolean};
@@ -30,22 +31,23 @@ export function AIAccounts({hideAccounts=false,agent,provider,draft,disabled,onB
  const [job,setJob]=useState<SignIn>();const [loading,setLoading]=useState(false);const [error,setError]=useState("");const [callback,setCallback]=useState("");
  const [action,setAction]=useState("");const [copied,setCopied]=useState("");const [choiceMade,setChoiceMade]=useState(false);
  const [starting,setStarting]=useState(false);
+ const [checkinAvailable,setCheckinAvailable]=useState(false),[checkins,setCheckins]=useState<Checkin[]|null>(null),[checkingIn,setCheckingIn]=useState(false);
  const current=useRef<SignIn|undefined>(undefined);const opened=useRef("");const active=running(job);const loadSequence=useRef(0);const generation=useRef(0);const busyHandler=useRef(onBusy);
  const updateJob=(value:SignIn|undefined)=>{current.current=value;setJob(value);};
  // Account discovery is read-only; only an authorization in progress guards
  // navigation. The local login/refresh buttons still wait for their own read.
- useEffect(()=>{busyHandler.current=onBusy;onBusy(active||starting);},[active,starting,onBusy]);
+ useEffect(()=>{busyHandler.current=onBusy;onBusy(active||starting||checkingIn);},[active,starting,checkingIn,onBusy]);
  // Model discovery shares this provider's backend gate; it waits locally for
  // discovery without disabling the tab list or other providers.
  useEffect(()=>{onLoading?.(loading);return()=>onLoading?.(false);},[loading,onLoading]);
  async function loadAccounts(refresh=false){const sequence=++loadSequence.current;setLoading(true);setError("");try{
   if(catalog===undefined&&!loadedAgents.length){const value=await captureCall<{agents:AIAgent[]}>("ai.accounts.catalog",{});if(sequence!==loadSequence.current)return;setLoadedAgents(value.agents);}
   const request={agent,...(provider?{provider}:{}),...(draft?{draft}:{})};
-  const value=await (reader?reader.read(request,refresh):captureCall<AccountState>("ai.accounts.list",request));if(sequence!==loadSequence.current)return;setAccounts(value.accounts??[]);const choices=value.methods??[];setMethods(choices);setMethod(current=>current>=0&&current<choices.length?current:Math.max(0,choices.findIndex(choice=>choice.type==="oauth")));
+  const value=await (reader?reader.read(request,refresh):captureCall<AccountState>("ai.accounts.list",request));if(sequence!==loadSequence.current)return;setAccounts(value.accounts??[]);setCheckinAvailable(!!value.checkinAvailable);const choices=value.methods??[];setMethods(choices);setMethod(current=>current>=0&&current<choices.length?current:Math.max(0,choices.findIndex(choice=>choice.type==="oauth")));
  }catch(e){if(sequence===loadSequence.current)setError(String(e));}finally{if(sequence===loadSequence.current)setLoading(false);}}
  // Connection identity owns authorization. A new onBusy callback does not;
  // late start replies are canceled even if the panel closed before they arrived.
- useEffect(()=>{generation.current++;updateJob(undefined);setAccounts([]);setMethods([]);setMethod(-1);setStarting(false);setLoading(false);setAction("");setCopied("");if(agent)void loadAccounts();return()=>{generation.current++;loadSequence.current++;const owned=current.current;current.current=undefined;if(running(owned))void captureCall("ai.accounts.signin.cancel",{id:owned!.id}).catch(()=>{});busyHandler.current(false);};},[agent,provider,draft?.agent,draft?.agentBackend]);
+ useEffect(()=>{generation.current++;updateJob(undefined);setAccounts([]);setCheckinAvailable(false);setCheckins(null);setCheckingIn(false);setMethods([]);setMethod(-1);setStarting(false);setLoading(false);setAction("");setCopied("");if(agent)void loadAccounts();return()=>{generation.current++;loadSequence.current++;const owned=current.current;current.current=undefined;if(running(owned))void captureCall("ai.accounts.signin.cancel",{id:owned!.id}).catch(()=>{});busyHandler.current(false);};},[agent,provider,draft?.agent,draft?.agentBackend]);
  useEffect(()=>{setCallback("");setChoiceMade(false);},[job?.id,job?.status.prompt?.key,active]);
  useEffect(()=>{if(!job||!active)return;let live=true;let timer:ReturnType<typeof setTimeout>;
   const poll=async()=>{try{const next=await captureCall<SignIn>("ai.accounts.signin.get",{id:job.id});if(!live)return;updateJob(next);
@@ -70,6 +72,7 @@ export function AIAccounts({hideAccounts=false,agent,provider,draft,disabled,onB
  async function cancel(){if(!job||action)return;const owner=generation.current;setAction("cancel");try{const next=await captureCall<SignIn>("ai.accounts.signin.cancel",{id:job.id});if(owner===generation.current)updateJob(next);}catch(e){if(owner===generation.current)setError(String(e));}finally{if(owner===generation.current)setAction("");}}
  async function submit(){if(!job||!canSubmit||inputBusy)return;const owner=generation.current;setAction("submit");setError("");try{const next=await captureCall<SignIn>("ai.accounts.signin.submit",{id:job.id,callback});if(owner===generation.current&&next?.id===job.id&&next.status)updateJob(next);}catch(e){if(owner===generation.current)setError(String(e));}finally{if(owner===generation.current)setAction("");}}
  async function copy(value:string,kind:string){setError("");try{await navigator.clipboard.writeText(value);setCopied(kind);}catch{setError(t("ai.copySignInFailed"));}}
+ async function checkIn(){const owner=generation.current;setCheckingIn(true);setError("");setCheckins(null);try{const value=await captureCall<{checkins:Checkin[]|null}>("ai.accounts.checkin",{agent,provider});if(owner===generation.current)setCheckins(value.checkins??[]);}catch(e){if(owner===generation.current)setError(String(e));}finally{if(owner===generation.current)setCheckingIn(false);}}
  const prompt=job?.status.prompt;const inputBusy=!!job?.inputPending||!!action;
  const promptReady=prompt?.type==="text"|| (prompt?.type==="select"?choiceMade&&!!prompt.options?.some(option=>option.value===callback):!!callback.trim());
  const acceptsPaste=!!(job?.status.pasteCallback||job?.status.pasteCode||job?.status.pasteKey);
@@ -80,11 +83,12 @@ export function AIAccounts({hideAccounts=false,agent,provider,draft,disabled,onB
       identity; changing it here could pair another agent with existing models. */}
   <h3 className="settings-group-title flex items-center gap-2"><AIProviderIcon icon={accountType?.icon}/>{accountType?.name||agent}</h3>
   {error&&<Notice>{error}</Notice>}
-  {methods.length>1&&<CaptureOptionSelect stacked label={t("ai.signInMethod")} value={method} items={methods.map((choice,index)=>({value:index,label:choice.label}))} disabled={disabled||active||loading} onChange={setMethod}/>}
+  {methods.length>1&&<CaptureOptionSelect stacked label={t("ai.signInMethod")} value={method} items={methods.map((choice,index)=>({value:index,label:choice.label}))} disabled={disabled||active||loading||checkingIn} onChange={setMethod}/>}
   <div className="settings-account-summary">
    {accounts.length?<ul className="settings-stack-compact">{accounts.map((account,index)=><li className="min-w-0" key={account.agent+account.user}><p className="break-all">{hideAccounts?t("usage.maskedAccount",{number:index+1}):account.user}</p>{account.plan&&<p className="muted">{account.plan}</p>}{account.lapsed&&<p>{t("ai.signInAgain")}</p>}</li>)}</ul>:<p className="muted" role="status">{t(loading?"ai.loadingAccounts":error?"ai.accountStatusUnknown":"ai.noAccount")}</p>}
-   <div className="settings-actions"><Button icon={LogIn} variant={accounts.length&&!accounts.some(account=>account.lapsed)?"secondary":"primary"} disabled={disabled||active||loading||!agent} onClick={()=>void signIn()}>{t(accounts.length?"ai.reauthenticate":"ai.signIn")}</Button><Button icon={RefreshCw} variant="ghost" disabled={disabled||active||loading} onClick={()=>void loadAccounts(true)}>{t("ai.refreshAccounts")}</Button></div>
+   <div className="settings-actions"><Button icon={LogIn} variant={accounts.length&&!accounts.some(account=>account.lapsed)?"secondary":"primary"} disabled={disabled||active||loading||checkingIn||!agent} onClick={()=>void signIn()}>{t(accounts.length?"ai.reauthenticate":"ai.signIn")}</Button><Button icon={RefreshCw} variant="ghost" disabled={disabled||active||loading||checkingIn} onClick={()=>void loadAccounts(true)}>{t("ai.refreshAccounts")}</Button>{checkinAvailable&&<Button icon={Check} variant="ghost" busy={checkingIn} disabled={disabled||active||loading||checkingIn||!provider||!!draft} onClick={()=>void checkIn()}>{t("ai.checkInNow")}</Button>}</div>
   </div>
+  {checkins&&<div role="status" className="settings-stack-compact">{checkins.length?checkins.map((item,index)=><p key={index} className="break-words">{hideAccounts?t("usage.maskedAccount",{number:index+1}):item.user} ? {t(({'claimed':item.asked?'ai.checkinClaimed':'ai.checkinEarlier','done':'ai.checkinDone','inactive':'ai.checkinInactive','ineligible':'ai.checkinIneligible','own-app':'ai.checkinOwnApp','captcha':'ai.checkinCaptcha','failed':'ai.checkinFailed'} as Record<string,string>)[item.outcome]??'ai.checkinUnknown')}{item.credit!==undefined&&' ? '+t('ai.checkinCredits',{count:item.credit})}{!!item.streak&&' ? '+t('ai.checkinStreak',{count:item.streak})}</p>):<p>{t('ai.checkinEmpty')}</p>}</div>}
   {job&&<div className="settings-state-panel">
    {active&&!job.status.prompt&&<p role="status">{t(hint)}</p>}
    {job.status.state==='done'&&<p role="status">{t("ai.signedIn")}</p>}

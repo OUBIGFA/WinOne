@@ -27,6 +27,7 @@ func (t Translator) Models(ctx context.Context, p Provider, key string) ([]Model
 		input["presetRegion"] = p.PresetRegion
 	}
 	if p.AuthMode == "account" {
+		t.AccountBackend = p.AgentBackend
 		input["agent"] = p.Agent
 		input["agentBackend"] = p.AgentBackend
 	}

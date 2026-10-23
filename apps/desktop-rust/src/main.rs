@@ -1,4 +1,5 @@
 #![cfg_attr(windows, windows_subsystem = "windows")]
+#[cfg(all(windows,feature="component-ui"))] mod component_file_drop;
 #[cfg(all(windows,feature="component-ui"))] mod component_ui;
 #[cfg(all(windows,feature="component-ui"))] mod component_browser;
 #[cfg(all(windows,feature="component-ui"))] mod browser_capture;

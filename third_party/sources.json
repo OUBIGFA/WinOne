@@ -67,7 +67,10 @@
       "package": "lucide-react",
       "version": "1.27.0",
       "repository": "https://github.com/lucide-icons/lucide",
-      "icons": ["AppWindow", "LogOut"],
+      "icons": [
+        "AppWindow",
+        "LogOut"
+      ],
       "generator": "build/generate-capture-icons.mjs --tray-only",
       "license": "ISC AND MIT",
       "licenseFile": "internal/branding/menu-icons/LICENSE.txt",
@@ -181,7 +184,7 @@
   },
   "magpie": {
     "repository": "https://github.com/yetone/magpie",
-    "commit": "7dd965ed22e6619c9084f3bca58e444073e8a41c",
+    "commit": "50f52b540b915bdf5912ddebc48c1fa46eef3025",
     "license": "MIT",
     "dependencyLocks": [
       "modules/ai-magpie/upstream.go.mod",
@@ -189,8 +192,8 @@
     ],
     "adapter": "modules/ai-magpie",
     "build": "build/build-ai.ps1",
-    "verification": "docs/magpie-update-20261022.md",
-    "previousCommit": "efd1b697e401ca9ea771a02720291a0e53ac414b",
+    "verification": "docs/magpie-update-20261023.md",
+    "previousCommit": "bac5be067744f1bcf5609d5bb790f41c5dc5c078",
     "privacyModel": "third_party/privacy-model.json",
     "routingExtraction": "build/prepare-ai-routing.mjs"
   },

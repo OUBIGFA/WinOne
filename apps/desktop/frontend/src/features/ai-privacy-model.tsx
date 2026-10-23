@@ -18,7 +18,8 @@ export function AIPrivacyModel({active,disabled}:{active:boolean;disabled:boolea
  const [state,setState]=useState<PrivacyModelStatus>(),[error,setError]=useState(""),[busy,setBusy]=useState(false),[confirm,setConfirm]=useState(false),[retry,setRetry]=useState(0);
  const act=useRef<((action:ModelAction)=>void)|undefined>(undefined);
  useEffect(()=>{
-  if(!active)return;
+
+  if(!active){setState(undefined);setError("");setBusy(false);return;}
   const viewer=crypto.randomUUID(),pending=new Set<Promise<unknown>>();
   let live=true,timer:ReturnType<typeof setTimeout>|undefined,sequence=0,starts=0;
   setState(undefined);setError("");setBusy(true);

@@ -32,6 +32,37 @@ func TestAgentEnvironmentIsPrivateAndDoesNotChangeParent(t *testing.T) {
 	}
 }
 
+func TestAIWorkerRunsWithoutAdministratorRights(t *testing.T) {
+	if os.Getenv("WINONE_AI_WINDOW_TEST") != "1" {
+		t.Skip("explicit process privilege check")
+	}
+	command := exec.Command(os.Args[0], "-test.run=^TestAILimitedWorkerProbe$")
+	command.Env = append(os.Environ(), "WINONE_AI_LIMITED_PROBE=1")
+	release, err := limitWorkerPrivilege(command)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	hideConsole(command)
+	out, err := command.CombinedOutput()
+	if err != nil {
+		t.Fatalf("limited worker: %v\n%s", err, out)
+	}
+	if !strings.Contains(string(out), "limited=true") {
+		t.Fatalf("worker still elevated: %s", out)
+	}
+}
+
+func TestAILimitedWorkerProbe(t *testing.T) {
+	if os.Getenv("WINONE_AI_LIMITED_PROBE") != "1" {
+		t.Skip("child only")
+	}
+	if windows.GetCurrentProcessToken().IsElevated() {
+		t.Fatal("elevated")
+	}
+	os.Stdout.WriteString("limited=true\n")
+}
+
 func TestAIConsoleFlagsPreserveGUIStartupAndProcessOptions(t *testing.T) {
 	command := exec.Command("unused-fixture.exe")
 	command.SysProcAttr = &syscall.SysProcAttr{CreationFlags: windows.CREATE_NEW_PROCESS_GROUP}

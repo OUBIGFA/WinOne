@@ -8,7 +8,9 @@ param(
     [switch]$NativeIntegration,
     [switch]$ComponentUI=$true,
     [switch]$FrontendAlreadyBuilt,
-    [string]$UpdateRepository = ''
+    [string]$UpdateRepository = '',
+    # Fixed at compile time in an opt-in test binary, never a runtime override.
+    [ValidateRange(0,65535)][int]$ComponentTestDebugPort=0
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -48,6 +50,10 @@ if($ComponentUI){
     }
     $featureArguments=@('--features','component-ui')
 }else{$featureArguments=@('--no-default-features')}
+if($ComponentTestDebugPort -gt 0){
+    if(-not $ComponentUI){throw 'ComponentTestDebugPort requires ComponentUI'}
+    $featureArguments=@('--features','component-test-debug')
+}
 if ($UpdateRepository -and ($UpdateRepository -notmatch '^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/[A-Za-z0-9_.-]{1,100}$' -or ($UpdateRepository.Split('/')[1] -in @('.', '..')))) { throw 'UpdateRepository must be an owner/repository name' }
 $versionMatch = [regex]::Match([IO.File]::ReadAllText($manifest), '(?m)^version\s*=\s*"([^"]+)"')
 $buildVersion = $versionMatch.Groups[1].Value
@@ -55,7 +61,9 @@ if ($buildVersion -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Inva
 if (-not $TestOnly) { $GoExe = (Get-Command $GoExe -ErrorAction Stop).Source }
 $savedPath = $env:PATH; $savedLib = $env:LIB; $savedRustc = $env:RUSTC
 $savedResource=$env:WINONE_RUST_RESOURCE
+$savedTestDebugPort=$env:WINONE_COMPONENT_TEST_DEBUG_PORT
 try {
+    if($ComponentTestDebugPort -gt 0){$env:WINONE_COMPONENT_TEST_DEBUG_PORT=[string]$ComponentTestDebugPort}
     if(-not $TestOnly){
         New-Item -ItemType Directory -Path $target -Force | Out-Null
         Push-Location $root
@@ -108,4 +116,5 @@ try {
     }
 } finally {
     $env:PATH = $savedPath; $env:LIB = $savedLib; $env:RUSTC = $savedRustc;$env:WINONE_RUST_RESOURCE=$savedResource
+    $env:WINONE_COMPONENT_TEST_DEBUG_PORT=$savedTestDebugPort
 }

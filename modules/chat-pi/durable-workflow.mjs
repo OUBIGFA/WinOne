@@ -4,7 +4,8 @@
 import {Type} from '@earendil-works/pi-ai';
 import {defineDoc,defineTool,defineExtension,section} from '@earendil-works/pi-durable';
 
-export const WorkflowDoc=defineDoc({kind:'winone.workflow',version:1,scope:'conversation',history:'rewindable',fork:'asOf',initial:()=>({items:[],explanation:''})});
+// Keep branch-rewindable plan changes as deltas under Durable 1.4.
+export const WorkflowDoc=defineDoc({kind:'winone.workflow',version:1,scope:'conversation',history:'rewindable',fork:'asOf',initial:()=>({items:[],explanation:''}),checkpointWhen:()=>false});
 const reply=value=>({output:[{type:'text',text:JSON.stringify(value)}],details:{workflow:value}});
 const validStatus=['pending','in_progress','completed'];
 

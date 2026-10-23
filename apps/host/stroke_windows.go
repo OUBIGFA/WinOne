@@ -3,19 +3,79 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"golang.org/x/sys/windows"
 	"path/filepath"
+	"time"
 	"unsafe"
 	"winone/internal/configjson"
 	"winone/internal/configuration"
 	"winone/internal/host"
 	"winone/internal/modules"
+	"winone/internal/modulestate"
 	"winone/internal/settings"
 	"winone/modules/stroke"
 )
 
+// Gesture input cannot make an RPC to restart a dead worker. Supervise only
+// this enabled, resident engine; maintenance and saved disablement win over
+// recovery. No gesture/action is replayed when its listener is restarted.
+func superviseStroke(ctx context.Context, queue *host.ConfigurationQueue, state *modulestate.Store, gate *modules.Gate, worker *modules.Lazy, directory string, configurationReady func() bool, changed <-chan struct{}) {
+	var retryAt time.Time
+	for ctx.Err() == nil {
+		var exited <-chan struct{}
+		var timer *time.Timer
+		var retry <-chan time.Time
+		current := state.Snapshot()
+		record := current.Modules["stroke"]
+		if record.Enabled && !record.PendingStop {
+			if worker.Running() {
+				exited = worker.ExitSignal()
+			} else {
+				delay := time.Until(retryAt)
+				if delay <= 0 {
+					delay = time.Second
+					if release, admitted := queue.AcquireAction(); admitted {
+						func() {
+							defer release()
+							if ctx.Err() != nil || !configurationReady() || worker.Status().State == "unavailable" {
+								return
+							}
+							retryAt = time.Now().Add(10 * time.Second) // bound repeated immediate exits
+							_ = recordHostEvent(directory, "stroke.listener.unavailable", errors.New(worker.Status().Detail))
+							// The captured revision rejects a disable that raced the exit event.
+							if err := gate.SetEnabled(current.Revision, true); err != nil {
+								delay = 10 * time.Second
+								_ = recordHostEvent(directory, "stroke.recovery.failed", err)
+							} else {
+								_ = recordHostEvent(directory, "stroke.listener.restored", nil)
+							}
+						}()
+					}
+				}
+				if worker.Running() {
+					exited = worker.ExitSignal()
+				} else {
+					timer = time.NewTimer(delay)
+					retry = timer.C
+				}
+			}
+		}
+		// A healthy listener is observed through its process exit event. Disabled
+		// modules have no timer and wake only for an explicit lifecycle change.
+		select {
+		case <-ctx.Done():
+		case <-changed:
+		case <-exited:
+		case <-retry:
+		}
+		if timer != nil {
+			timer.Stop()
+		}
+	}
+}
 func strokeConfiguration(directory string, worker func() *modules.Lazy) configuration.ModuleAdapter {
 	return configuration.ModuleAdapter{ID: "stroke", Load: func() (json.RawMessage, error) { return json.Marshal(stroke.Defaults()) }, Validate: func(raw json.RawMessage) error {
 		var value stroke.Preferences
@@ -133,6 +193,12 @@ func strokeStatus(worker *modules.Lazy) host.Module {
 	status := worker.Status()
 	response, called := worker.HandleRunning(host.Request{Version: 1, ID: "stroke-status", Method: "snapshot"})
 	if !called {
+		// Unlike an on-demand tool, an enabled gesture engine must keep its
+		// listener alive. Gate.Status handles disabled modules before here.
+		if status.State == "available" {
+			status.State = "faulted"
+			status.Detail = "鼠标手势监听未运行，请重新启用模块"
+		}
 		return status
 	}
 	if response.Error != nil {
@@ -142,6 +208,7 @@ func strokeStatus(worker *modules.Lazy) host.Module {
 	}
 	var runtime struct {
 		Diagnostic string `json:"diagnostic"`
+		Running    bool   `json:"running"`
 	}
 	if err := json.Unmarshal(response.Result, &runtime); err != nil {
 		status.State = "faulted"
@@ -151,6 +218,9 @@ func strokeStatus(worker *modules.Lazy) host.Module {
 	if runtime.Diagnostic != "" {
 		status.State = "faulted"
 		status.Detail = runtime.Diagnostic
+	} else if !runtime.Running {
+		status.State = "faulted"
+		status.Detail = "鼠标手势监听未启用，请重新启用模块"
 	}
 	return status
 }

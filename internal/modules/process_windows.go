@@ -88,6 +88,15 @@ func start(ctx context.Context, id, name, exe, pipe, dataDir string, autorun, el
 	go func() {
 		err := wait()
 		exitError := err
+		if id == "stroke" {
+			detail := ""
+			if exitError != nil {
+				detail = exitError.Error()
+			}
+			// Exit codes were previously kept only in volatile status and lost
+			// on recovery. Preserve the failure without logging configuration.
+			_ = diagnostics.Record(diagnostics.ModuleDataRoot(dataDir, id), diagnostics.Event{Source: id, Event: "exited", Error: detail})
+		}
 		err = errors.Join(err, log.Close())
 		p.mu.Lock()
 		defer p.mu.Unlock()

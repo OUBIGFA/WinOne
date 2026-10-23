@@ -8,6 +8,13 @@ import (
 
 var WinOneSearchAPIs []SearchAPI
 
+// Maintenance follows the daily due-state; only a user's Check in now press
+// uses CheckInPlugins, whose soon=true rechecks an unclaimed vendor answer.
+func WinOneCheckInPluginsDue(ctx context.Context, id string) []WorkBuddyCheckin {
+ c:=pluginCheckiner{now:time.Now,only:func(candidate string)bool{return candidate==id}}
+ return c.checkinNow(ctx,false)
+}
+
 func WinOneQuotaAlerts(qs []SubscriptionQuota) []QuotaAlert {
  s:=settings.Load()
  return checkAlerts(quotaAlertPath(),qs,s.UsageAlert,s.BalanceAlert,time.Duration(s.ResetReminder)*time.Hour,time.Now())

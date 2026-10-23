@@ -371,12 +371,16 @@ static DWORD install(HWND hwnd, const WinTrayBridgeArgs *args) {
     // Sent before activation/new packets, in the same sender-thread order.
     // Explorer recreation starts a fresh packet sequence in the same broker.
     DWORD_PTR acknowledged = 0;
+    SetLastError(ERROR_SUCCESS);
     if (!SendMessageTimeoutW(broker, WINTRAY_BROKER_EPOCH, 0, 0, SMTO_ABORTIFHUNG, BROKER_TIMEOUT, &acknowledged)) {
+        // Preserve UIPI/access failures instead of misreporting every failed
+        // delivery as a timeout. Cleanup APIs can overwrite the last error.
+        error = GetLastError();
         RemoveWindowSubclass(hwnd, shell_proc, SUBCLASS_ID);
         RemovePropW(hwnd, WINTRAY_ROUTE_PROPERTY);
         KillTimer(hwnd, (UINT_PTR)route);
         release_route(route);
-        return ERROR_TIMEOUT;
+        return error ? error : ERROR_TIMEOUT;
     }
     return ERROR_SUCCESS;
 }

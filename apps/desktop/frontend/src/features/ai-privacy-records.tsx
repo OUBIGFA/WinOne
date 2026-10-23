@@ -7,6 +7,8 @@ import type {PluginExtensions} from './ai-plugin-extensions';
 export function AIPrivacyRecords({extensions,active,record}:{extensions?:PluginExtensions;active:boolean;record?:string}){
  const {i18n}=useTranslation(),frame=useRef<HTMLIFrameElement>(null),[height,setHeight]=useState(320);
  const url=extensions?new URL('masking.html',extensions.url):undefined;
+ // The record page belongs to the plugin host, not an arbitrary provider URL.
+ if(url)url.pathname=url.pathname.replace(/[^/]+$/,'plugins.html');
  if(record)url?.searchParams.set('record',record);
  const source=url?.href,origin=url?.origin;
  const sync=()=>{if(origin)frame.current?.contentWindow?.postMessage({type:'winone-plugin-theme',language:i18n.language,theme:document.documentElement.dataset.theme??(document.documentElement.classList.contains('dark')?'dark':'light')},origin);};

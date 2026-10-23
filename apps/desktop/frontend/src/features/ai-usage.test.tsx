@@ -31,6 +31,16 @@ it("shows reported plan credits including zero and a separate first-token column
 });
 const call=vi.hoisted(()=>vi.fn());vi.mock("../bridge",()=>({captureCall:call,chatCall:(method:string,params:unknown)=>call("chat."+method,params)}));
 const empty={rows:[],sum:{calls:0,errors:0,input:0,output:0,cache_read:0,cache_write:0,cost:0,unpriced:0},offset:0,limit:15,total:0,by:{}};
+it("explains missing request speeds and labels whole-request lower bounds",async()=>{
+ const row={t:"2026-10-23T00:00:00Z",provider:"fixture",agent:"winone",model:"fixture",in:3,out:1000,ms:2000,status:200,priced:false,cost:0};
+ call.mockResolvedValue({...empty,rows:[row,{...row,status:500},{...row,out:0},{...row,out:25,ttft_ms:0}]});
+ render(<AIUsage active providers={[]}/>);
+ await userEvent.setup().click(screen.getByRole("tab",{name:"请求明细"}));
+ expect(await screen.findByText("≥500 Token/s")).toBeTruthy();
+ expect(screen.getByTitle("请求失败，无法计算速度")).toBeTruthy();
+ expect(screen.getByTitle("没有输出 Token，无法计算速度")).toBeTruthy();
+ expect(screen.getByTitle("未记录首字耗时，无法计算生成速度")).toBeTruthy();
+});
 it('reads saved API-key balances and preserves named parts, zero and failed components',async()=>{
  call.mockImplementation(async(method)=>method==='ai.accounts.quota'?{quotas:[{provider:'deepseek',name:'DeepSeek',windows:[],balance:'¥12.00',balanceSplit:[{label:'Granted',text:'¥0.00'},{label:'Topped up',text:'¥12.00'}],balanceParts:[{label:'Wallet',text:'¥12.00'},{label:'Credits',text:'—',error:'Unavailable'}]}]}:empty);
  render(<AIUsage active providers={[{id:'deepseek',name:'DeepSeek',authMode:'api-key',baseUrl:'https://api.deepseek.com/v1',protocol:'chat',models:[],hasKey:true}]}/>);

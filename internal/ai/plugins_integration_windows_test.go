@@ -204,8 +204,9 @@ func TestBundledPluginAccountMethods(t *testing.T) {
 			var listing struct {
 				Accounts []json.RawMessage `json:"accounts"`
 				Methods  []struct {
-					Type  string `json:"type"`
-					Label string `json:"label"`
+					Type    string `json:"type"`
+					Label   string `json:"label"`
+					Keyless bool   `json:"keyless,omitempty"`
 				} `json:"methods"`
 			}
 			if err = json.Unmarshal(data, &listing); err != nil {
@@ -221,7 +222,9 @@ func TestBundledPluginAccountMethods(t *testing.T) {
 				t.Logf("%s: %s", method.Type, method.Label)
 			}
 			for index, method := range listing.Methods {
-				if method.Type != "api" {
+				// Public/keyless authorization may call the real vendor. Its no-input
+				// contract is covered by TestKeylessSingleIdentityPluginSignIn.
+				if method.Type != "api" || method.Keyless {
 					continue
 				}
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

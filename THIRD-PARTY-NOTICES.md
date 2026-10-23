@@ -11,11 +11,11 @@
 | React / React DOM | 设置界面 | MIT |
 | Lucide React 1.27.0 | 官方 AppWindow / LogOut 托盘菜单图标及既有界面图标；由锁定 npm 包生成透明模板，不自绘替代 | ISC，Feather 派生 LogOut 同时保留 MIT；原文 `internal/branding/menu-icons/LICENSE.txt`，生成器与 SHA-256 见 `third_party/sources.json` |
 | ChatGPT-Desktop-UI / chatgpt-desktop-kit 0.6.0 | Chat 阅读内容、右栏工作区与项目栏 | MIT；包含发行包自带的第三方许可全文 |
-| Magpie | 共享 AI 适配器；本次来源提交 7dd965ed22e6619c9084f3bca58e444073e8a41c；社区插件 3d355d3（34 包） | MIT；构建复制上游 LICENSE，依赖许可见 third_party/ocr-ai-notices.json 与 third_party/ai-plugins.json |
+| Magpie | 共享 AI 适配器；本次来源提交 50f52b540b915bdf5912ddebc48c1fa46eef3025；社区插件 652f06d（37 包） | MIT；构建复制上游 LICENSE，依赖许可见 third_party/ocr-ai-notices.json 与 third_party/ai-plugins.json |
 | OpenAI Privacy Filter / LocalAI q8 GGUF / pf-serve | 高级隐私设置的本地模型；用户开启时按固定 SHA-256 下载，不包含在安装器中；来源、版本与完整原文见 `third_party/privacy-model.json` | 模型 Apache-2.0；privacy-filter.cpp、ggml 为 MIT；保留模型卡的 OpenAI/LocalAI 归属与原生下载包许可 |
 | Cindy | Chat 标题提示词、完整阅读/右栏组件，以及发送、插话、重试、草稿快照和滚动意图适配（交互核对提交 77e2c32d；资源发现、同轮输入与恢复、计划卡、侧栏活动、独立气泡/动作布局、输入区重试提示、文件链接菜单、文件拖放／粘贴与错误分类核对 a44ac274） | Apache-2.0；保留 third_party/cindy/LICENSE、NOTICE，来源与原文 SHA-256 见 title-source.json、sidebar-source.json、chat-interaction-source.json、chat-runtime-source.json、chat-resilience-source.json、chat-links-source.json 及各功能来源清单 |
 | Vite / Vitest / TypeScript | 构建与测试 | 各项目许可证 |
-| Pi Durable / Pi Code Mode 1.3.0、quickjs-wasi 3.6.2 | Chat 持久执行及独立 QuickJS VM；模型与工具仍经过 WinOne 服务与权限控制 | MIT；原始 Pi、QuickJS-NG、WASI libc 与编译器运行时许可见 `third_party/chat-codemode-notices.json`，构建核对源码与随包副本 |
+| Pi / Pi Durable / Pi Code Mode 1.4.0、quickjs-wasi 3.6.2 | Chat 持久执行及独立 QuickJS VM；模型与工具仍经过 WinOne 服务与权限控制 | MIT；原始 Pi、QuickJS-NG、WASI libc 与编译器运行时许可见 `third_party/chat-codemode-notices.json`，构建核对源码与随包副本 |
 
 精确版本见各模块依赖锁文件。引入或升级时同步原始版权、许可全文、传递依赖与来源摘要，并立即做源码级验证；分发前再对实际产物复核，而不是到构建结束才补许可证。
 

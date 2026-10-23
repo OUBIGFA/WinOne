@@ -13,8 +13,110 @@ import (
 	"winone/internal/configuration"
 	"winone/internal/host"
 	"winone/internal/modules"
+	"winone/internal/modulestate"
 	"winone/modules/stroke"
 )
+
+func TestStrokeRecoversExitedListenerAndRespectsMaintenanceAndDisable(t *testing.T) {
+	exe := os.Getenv("WINONE_STROKE_TEST_EXE")
+	if exe == "" {
+		t.Skip("set WINONE_STROKE_TEST_EXE")
+	}
+	directory := t.TempDir()
+	worker := modules.NewLazy(context.Background(), "stroke", "鼠标手势", exe, fmt.Sprintf(`\\.\pipe\WinOne-Stroke-Recovery-%d-%d`, os.Getpid(), time.Now().UnixNano()), filepath.Join(directory, "modules", "stroke"), "--fixture")
+	defer worker.Close()
+	if _, err := configuration.OpenHost(directory, strokeConfiguration(directory, func() *modules.Lazy { return worker })); err != nil {
+		t.Fatal(err)
+	}
+	state, err := modulestate.Open(filepath.Join(directory, "module-state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := make(chan struct{}, 1)
+	gate, err := modules.NewGate("stroke", "鼠标手势", state, modules.LifecycleHooks{
+		Start: func() error { return startStroke(worker) }, Stop: worker.Close, IntentChanged: func() error {
+			select {
+			case changed <- struct{}{}:
+			default:
+			}
+			return nil
+		},
+		Status: func() host.Module { return strokeStatus(worker) }, Handle: worker.Handle,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = gate.SetEnabled(state.Snapshot().Revision, true); err != nil {
+		t.Fatal(err)
+	}
+	var before struct{ ProcessID int }
+	if err = json.Unmarshal(worker.Handle(host.Request{Version: 1, ID: "before", Method: "snapshot"}).Result, &before); err != nil {
+		t.Fatal(err)
+	}
+	queue := host.NewConfigurationQueue(nil)
+	release, ok := queue.AcquireMaintenance()
+	if !ok {
+		t.Fatal("maintenance was not admitted")
+	}
+	defer release()
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		superviseStroke(ctx, queue, state, gate, worker, directory, func() bool { return true }, changed)
+	}()
+	defer func() { cancel(); <-done }()
+	// Kill only the PID returned by our own fixture. A real listener can also
+	// exit independently of Host; no saved gesture/action should be replayed.
+	process, err := os.FindProcess(before.ProcessID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = process.Kill(); err != nil {
+		t.Fatal(err)
+	}
+	_ = process.Release()
+	time.Sleep(1200 * time.Millisecond)
+	if worker.Running() {
+		t.Fatal("listener restarted during maintenance")
+	}
+	revision := state.Snapshot().Revision
+	release()
+	deadline := time.Now().Add(5 * time.Second)
+	for gate.Status().State != "ready" && time.Now().Before(deadline) {
+		time.Sleep(25 * time.Millisecond)
+	}
+	if !worker.Running() || gate.Status().State != "ready" {
+		t.Fatalf("enabled listener did not recover: %+v", gate.Status())
+	}
+	if got := strokeStatus(worker); got.State != "ready" {
+		t.Fatalf("listener did not reactivate: %+v", got)
+	}
+	if state.Snapshot().Revision != revision {
+		t.Fatal("runtime recovery rewrote saved module intent")
+	}
+	if err = gate.SetEnabled(state.Snapshot().Revision, false); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(1200 * time.Millisecond)
+	if worker.Running() || gate.Status().State != "disabled" {
+		t.Fatal("disabled listener restarted")
+	}
+}
+
+func TestStrokeStatusDoesNotCallAnExitedEngineAvailable(t *testing.T) {
+	exe, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	worker := modules.NewLazy(context.Background(), "stroke", "鼠标手势", exe, "unused", t.TempDir())
+	if status := strokeStatus(worker); status.State != "faulted" {
+		t.Fatalf("enabled gesture engine has no process, got %+v", status)
+	}
+	if worker.Running() {
+		t.Fatal("reading status started an engine")
+	}
+}
 
 func TestStrokeSettingsPersistWithoutStartingDisabledWorker(t *testing.T) {
 	directory := t.TempDir()

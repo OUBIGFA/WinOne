@@ -133,6 +133,7 @@ func TestPrivacyActionsReachVendorAndPreview(t *testing.T) {
  defer func(){provider.WinOneProviders=nil}()
  for _,test:=range []struct{name,prefs string;sent,clear bool}{
   {"mask",`{"redact":true,"redactWords":["private-project"]}`,true,false},
+  {"ignore-case",`{"redact":true,"redactWords":["PRIVATE-PROJECT"],"redactWordsAnyCase":true}`,true,false},
   {"warn",`{"redact":true,"redactWords":["private-project"],"redactActions":{"TERM":"warn"}}`,true,true},
   {"block",`{"redact":true,"redactWords":["private-project"],"redactActions":{"TERM":"block"}}`,false,false},
   {"allow",`{"redact":true,"redactWords":["private-project"],"redactActions":{"TERM":"block"},"redactAllow":["private-project"]}`,true,true},
@@ -157,4 +158,14 @@ func TestAdditionalToolsAndNativeSearchModelMetadata(t *testing.T) {
  models:=provider.WinOneProviders[0].Available();found:=false
  for _,m:=range models {if m.ID=="search-model" {found=m.WebSearch=="native"};if m.ID=="plain-model"&&m.WebSearch=="native" {t.Fatal("native search leaked to another model")}}
  if !found {t.Fatal("auxiliary model lost native search capability")}
+}
+
+func TestClassifyTimeoutReachesUpstream(t *testing.T) {
+ old:=settings.WinOneSettings.Load();defer settings.WinOneSettings.Store(old)
+ for _,n:=range []int{0,1,23,60} {
+  raw,_:=json.Marshal(map[string]int{"classifyTimeout":n})
+  if err:=applyRuntimeSettings(request{MagpieSettings:raw});err!=nil {t.Fatal(err)}
+  want:=n;if want==0 {want=8}
+  if got:=settings.Load().ClassifyWait();got!=time.Duration(want)*time.Second {t.Fatalf("timeout=%v want=%d",got,want)}
+ }
 }

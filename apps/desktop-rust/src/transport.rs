@@ -113,7 +113,7 @@ impl Client {
         // Keep ordinary requests responsive without timing out a valid export.
         // Account reads serialize against token refresh/login in the Host and
         // have a 25-second total budget, including their wait for the profile.
-        let first_wait=if method=="capture.ai.models.test" {100}else if method=="capture.ai.usage.export.save" || matches!(method,"capture.ai.magpie.catalog"|"capture.ai.accounts.catalog"|"capture.ai.accounts.list"|"capture.ai.accounts.models"|"capture.ai.accounts.quota"){30}else{15};
+        let first_wait=if method=="capture.ai.models.test" {100}else if method=="capture.ai.usage.export.save" || matches!(method,"capture.ai.magpie.catalog"|"capture.ai.accounts.catalog"|"capture.ai.accounts.list"|"capture.ai.accounts.models"|"capture.ai.accounts.quota"|"capture.ai.accounts.checkin"){30}else{15};
         let first = self.request(&id, method, params, deadline.min(Instant::now() + Duration::from_secs(first_wait)))?;
         let Some(ticket) = first.get("configurationJob").and_then(Value::as_str) else { return Ok(first); };
         loop {

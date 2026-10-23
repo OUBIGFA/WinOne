@@ -248,10 +248,16 @@ func (l *listener) run(ready chan<- error) {
 	l.mu.Lock()
 	l.hwnd = hwnd
 	l.mu.Unlock()
-	// Permit native packets from same-user applications at different integrity
-	// levels; the bridge itself still obeys process access and injection policy.
-	procChangeWindowMessageFilterEx.Call(uintptr(hwnd), win.WM_COPYDATA, msgfltAllow, 0)
-	procChangeWindowMessageFilterEx.Call(uintptr(hwnd), uintptr(l.taskbarCreated), msgfltAllow, 0)
+	// Explorer normally runs below an elevated WinOne. It must deliver the
+	// bridge handshake and recovery messages as well as tray packets. Keep
+	// other private control messages blocked by UIPI.
+	for _, msg := range []uint32{win.WM_COPYDATA, l.taskbarCreated, msgBridgeEpoch, msgBridgeResume} {
+		if ok, _, err := procChangeWindowMessageFilterEx.Call(uintptr(hwnd), uintptr(msg), msgfltAllow, 0); ok == 0 {
+			win.DestroyWindow(hwnd)
+			ready <- fmt.Errorf("allow tray bridge message 0x%X: %w", msg, err)
+			return
+		}
+	}
 	win.SetTimer(hwnd, timerHeal, uint32(healInterval.Milliseconds()), 0)
 	ready <- nil
 	// Icons that already exist are registered again through the broker.

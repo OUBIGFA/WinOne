@@ -8,7 +8,7 @@ import {randomUUID} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {BACKGROUND_CONTEXT as context,withAbortSignal} from '@earendil-works/chord/context';
 import {Harness,createRegistry,defineExtension,defineTool,section,hook,GenerationTask,ToolTask,LiveDoc,watchEvents,defineDoc} from '@earendil-works/pi-durable';
-import {openNodeSqliteStorage} from '@earendil-works/pi-durable/storage/sqlite/node';
+import {openDurableStorage} from './durable-storage.mjs';
 import {NodeExecutionEnv} from '@earendil-works/pi-durable/env/node';
 import {estimateContextTokens} from '@earendil-works/pi-ai/utils/estimate';
 import {createWinOneSession} from './session.mjs';
@@ -21,7 +21,8 @@ import {createToolSearchExtension} from '@earendil-works/pi-durable/tool-search'
 import {createCodemodeExtension} from '@earendil-works/pi-durable/codemode';
 import {CodemodeSandbox,loadQuickJSWasm} from '@earendil-works/pi-codemode';
 
-const AdapterDoc=defineDoc({kind:'winone.adapter',version:1,scope:'conversation',history:'latest',fork:'initial',initial:()=>({imported:false,paused:false,interruptedCalls:[],interruptedRun:null})});
+// Explicit delta policy preserves pause/steering state across the 1.4 upgrade.
+const AdapterDoc=defineDoc({kind:'winone.adapter',version:1,scope:'conversation',history:'latest',fork:'initial',initial:()=>({imported:false,paused:false,interruptedCalls:[],interruptedRun:null}),checkpointWhen:()=>false});
 const readTools=new Set(['read','ls','grep','find']);
 const textOf=message=>typeof message?.content==='string'?message.content:(message?.content??[]).filter(part=>part.type==='text').map(part=>part.text).join('\n');
 const plain=value=>JSON.parse(JSON.stringify(value));
@@ -150,7 +151,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   steeringMode:config.runtimeSettings?.steeringMode??'one-at-a-time',followUpMode:config.runtimeSettings?.followUpMode??'one-at-a-time',
  };
  try{
-  harness=await Harness.open(await openNodeSqliteStorage(storageFile),{models,registry,settings,env:({cwd})=>new NodeExecutionEnv({cwd:cwd??config.cwd}),onReport:report},context);
+  harness=await Harness.open(await openDurableStorage(storageFile),{models,registry,settings,env:({cwd})=>new NodeExecutionEnv({cwd:cwd??config.cwd}),onReport:report},context);
   root=await harness.root(context,{agent:{model:{provider:'winone',modelId:config.model.id},thinkingLevel:thinkingLevel(),cwd:config.cwd}});
   collaboration.setHarness(harness);
   // Current Host choices always win over last run's model. No credential is

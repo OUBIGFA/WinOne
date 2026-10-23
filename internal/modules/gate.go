@@ -167,10 +167,18 @@ func (g *Gate) SetEnabled(revision uint64, enabled bool) error {
 		return errors.New("模块包已变化，请重新加载")
 	}
 	if record.Enabled == enabled && !record.PendingStop && lastError == "" {
-		return nil
+		// Saved intent can still be enabled after the runtime has failed. An
+		// explicit retry must restart it instead of accepting a no-op.
+		if !enabled || g.hooks.Status().State != "faulted" {
+			return nil
+		}
 	}
-	if _, err := g.store.SetIntent(revision, g.id, enabled); err != nil {
-		return err
+	// Restarting an enabled runtime is not a settings edit. Keep revisions
+	// stable so a crash cannot invalidate the user's open settings draft.
+	if record.Enabled != enabled || record.PendingStop {
+		if _, err := g.store.SetIntent(revision, g.id, enabled); err != nil {
+			return err
+		}
 	}
 	g.mu.Lock()
 	g.lastError = ""

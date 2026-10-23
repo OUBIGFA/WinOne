@@ -81,13 +81,18 @@ func beginPluginSignIn(ctx context.Context, in request, commands <-chan signInCo
 	}
 	choice := connection.Methods[method]
 	if choice.Type == "api" {
-		prompt := map[string]string{"type": "password", "key": "api-key", "message": choice.KeyTitle(connection.Name), "placeholder": choice.Placeholder}
-		if err = emit(map[string]any{"signin": map[string]any{"agent": in.Agent, "state": "input", "prompt": prompt}}); err != nil {
-			return fail(err)
-		}
-		key, err := signInValue(ctx, commands)
-		if err != nil {
-			return fail(err)
+		// Keyless methods obtain their own credential in authorize. Prompting
+		// for a personal key would prevent these methods from completing.
+		key := ""
+		if !choice.Keyless {
+			prompt := map[string]string{"type": "password", "key": "api-key", "message": choice.KeyTitle(connection.Name), "placeholder": choice.Placeholder}
+			if err = emit(map[string]any{"signin": map[string]any{"agent": in.Agent, "state": "input", "prompt": prompt}}); err != nil {
+				return fail(err)
+			}
+			key, err = signInValue(ctx, commands)
+			if err != nil {
+				return fail(err)
+			}
 		}
 		if _, err = provider.PluginAPIKey(ctx, in.Agent, method, inputs, key); err != nil {
 			return fail(errors.New("account authorization failed; check the key and try again"))

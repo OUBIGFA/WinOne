@@ -98,6 +98,8 @@ func configureUsage(in request) error {
 }
 
 type usageQuery struct {
+	// Use the viewer's IANA zone for the ledger, heatmap and session costs.
+	Zone string `json:"tz,omitempty"`
 	CallerKey string `json:"callerKey,omitempty"`
 	Period    string `json:"period"`
 	Provider  string `json:"provider"`
@@ -115,7 +117,7 @@ type usageQuery struct {
 func (q usageQuery) filter() usage.Filter {
 	// Through is fixed: upstream session discovery must never scan another
 	// client's profile. WinOne Chat has its own registered-session reader.
-	return usage.Filter{CallerKey: q.CallerKey, Provider: q.Provider, Agent: q.Source, Failed: q.Failed, Through: usage.SourceGateway, Day: q.Day, Model: q.Model, Account: q.Account, Purpose: q.Purpose, Query: q.Query}
+	return usage.Filter{Zone: usage.Zone(q.Zone), CallerKey: q.CallerKey, Provider: q.Provider, Agent: q.Source, Failed: q.Failed, Through: usage.SourceGateway, Day: q.Day, Model: q.Model, Account: q.Account, Purpose: q.Purpose, Query: q.Query}
 }
 
 func readUsage(in request, output io.Writer) error {
@@ -138,7 +140,7 @@ func readUsage(in request, output io.Writer) error {
 	if q.Offset < 0 || q.Offset > 1000000 || len(q.Provider) > 256 || (q.Source != "" && q.Source != "winone" && q.Source != "gateway") {
 		return errors.New("invalid usage filter")
 	}
-	if len(q.Model) > 512 || len(q.Account) > 256 || len(q.Purpose) > 128 || len(q.CallerKey) > 128 || len(q.Query) > 512 || strings.ContainsRune(q.Query, '\x00') {
+	if len(q.Zone) > 128 || strings.ContainsRune(q.Zone, '\x00') || len(q.Model) > 512 || len(q.Account) > 256 || len(q.Purpose) > 128 || len(q.CallerKey) > 128 || len(q.Query) > 512 || strings.ContainsRune(q.Query, '\x00') {
 		return errors.New("invalid usage filter")
 	}
 	if q.Day != "" {
@@ -242,10 +244,10 @@ func readUsage(in request, output io.Writer) error {
 		}
 		p.Cost += r.Cost
 		p.PricedCalls++
-		p.Days[r.Time.Local().Format("2006-01-02")] += r.Cost
+		p.Days[r.Time.In(usage.Zone(q.Zone)).Format("2006-01-02")] += r.Cost
 	}
 	result["sessionCosts"] = prices
-	for _, r := range usage.Load(usage.Period(q.Period).Since(time.Now())) {
+	for _, r := range usage.Load(usage.Period(q.Period).Since(time.Now().In(usage.Zone(q.Zone)))) {
 		if len(r.WinOnePrompt) == 0 || q.Provider != "" && q.Provider != r.Provider || q.Source != "" && q.Source != r.Agent || q.Model != "" && q.Model != r.Model {
 			continue
 		}

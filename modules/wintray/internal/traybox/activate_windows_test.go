@@ -5,6 +5,7 @@ package traybox
 import (
 	"fmt"
 	"runtime"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -107,7 +108,8 @@ func TestTrayGestureOnSameThreadIsQueued(t *testing.T) {
 		}
 		return win.DefWindowProc(hwnd, msg, wp, lp)
 	})
-	class := syscall.StringToUTF16Ptr("WinTray.QueuedIconFixture")
+	className := "WinTray.QueuedIconFixture-" + strconv.FormatUint(uint64(atomic.AddUint32(&fakeShellClassSequence, 1)), 10)
+	class := syscall.StringToUTF16Ptr(className)
 	wc := win.WNDCLASSEX{CbSize: uint32(unsafe.Sizeof(win.WNDCLASSEX{})), LpfnWndProc: proc, HInstance: win.GetModuleHandle(nil), LpszClassName: class}
 	if win.RegisterClassEx(&wc) == 0 {
 		t.Fatal("register queued-icon fixture")

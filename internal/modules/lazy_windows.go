@@ -158,6 +158,17 @@ func (l *Lazy) Running() bool {
 	}
 }
 
+// ExitSignal observes the current process without starting it or polling the
+// operating system. A nil channel means no process has been created yet.
+func (l *Lazy) ExitSignal() <-chan struct{} {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.process == nil {
+		return nil
+	}
+	return l.process.exited
+}
+
 // HandleRunning dispatches only to an existing worker. Configuration refreshes
 // must not restart an idle process or race privilege transitions into a new one.
 func (l *Lazy) HandleRunning(request host.Request) (host.Response, bool) {

@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"slices"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -44,9 +45,10 @@ type callbackEvent struct {
 }
 
 var (
-	activeFake   atomic.Pointer[fakeShell]
-	fakeTaskbar  = win.RegisterWindowMessage(syscall.StringToUTF16Ptr("TaskbarCreated"))
-	fakeShellWnd = syscall.NewCallback(func(hwnd win.HWND, msg uint32, wParam, lParam uintptr) uintptr {
+	activeFake             atomic.Pointer[fakeShell]
+	fakeShellClassSequence uint32
+	fakeTaskbar            = win.RegisterWindowMessage(syscall.StringToUTF16Ptr("TaskbarCreated"))
+	fakeShellWnd           = syscall.NewCallback(func(hwnd win.HWND, msg uint32, wParam, lParam uintptr) uintptr {
 		f := activeFake.Load()
 		if f == nil {
 			return win.DefWindowProc(hwnd, msg, wParam, lParam)
@@ -126,7 +128,8 @@ func startFakeShell(t *testing.T) *fakeShell {
 	go func() {
 		runtime.LockOSThread()
 		defer close(done)
-		class := syscall.StringToUTF16Ptr("WinTrayTestShell")
+		className := "WinTrayTestShell-" + strconv.FormatUint(uint64(atomic.AddUint32(&fakeShellClassSequence, 1)), 10)
+		class := syscall.StringToUTF16Ptr(className)
 		wc := win.WNDCLASSEX{LpfnWndProc: fakeShellWnd, HInstance: win.GetModuleHandle(nil), LpszClassName: class}
 		wc.CbSize = uint32(unsafe.Sizeof(wc))
 		win.RegisterClassEx(&wc)
