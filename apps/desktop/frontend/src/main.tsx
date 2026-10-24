@@ -19,6 +19,10 @@ import "./style.css";
 import logo from "../../../../internal/branding/logo.png";
 import { WinTrayPage } from "./features/wintray";
 import { CapturePage } from "./features/capture";
+import {Network,MessagesSquare} from "lucide-react";
+import {useInterconnectIntents,type InterconnectIntent} from './features/interconnect-intents';
+import {InterconnectPage} from "./features/interconnect";
+import {PeerChatFrame} from "./features/interconnect-chat-frame";
 import {ConveniencePage} from "./features/convenience";
 import {SelectionPage} from "./features/selection";
 import {AISettings} from "./features/ai-settings";
@@ -52,6 +56,7 @@ const pageDefinitions = [
   { id: "capture", title: "nav.capture", icon: ScanLine },
   { id: "selection", title: "nav.selection", icon: MousePointer2 },
   { id: "quick-assistant", title: "nav.quick-assistant", icon: QuickAssistantIcon },
+  { id: "interconnect", title: "interconnect.title", icon: Network },
   { id: "convenience", title: "nav.convenience", icon: Rocket },
   { id: "wintray", title: "nav.wintray", icon: LaptopMinimal },
   { id: "ai-services", title: "ai.serviceTitle", icon: Sparkles },
@@ -60,7 +65,7 @@ const pageDefinitions = [
 
 function App() {
   const {t}=useTranslation();
-  const pages=[pageDefinitions[0],...pageDefinitions.slice(1,-2).sort((a,b)=>moduleRank(a.id)-moduleRank(b.id)),{id:"chat",title:"chat.title",icon:Bot},...pageDefinitions.slice(-2)].map(page=>({...page,title:t(page.title)}));
+  const pages=[pageDefinitions[0],...pageDefinitions.slice(1,-2).sort((a,b)=>moduleRank(a.id)-moduleRank(b.id)),{id:"chat",title:"chat.title",icon:Bot},{id:"flash-chat",title:"interconnect.peerChat",icon:MessagesSquare},...pageDefinitions.slice(-2)].map(page=>({...page,title:t(page.title)}));
   const [page, setPage] = useState("overview");
   const navigation=usePageNavigation(page,setPage,settingsClosePort);
   const [snapshot, setSnapshot] = useState<Snapshot>();
@@ -75,13 +80,16 @@ function App() {
   const initialPageApplied=useRef(false);
   const [linkIntent,setLinkIntent]=useState<DirectoryLinkIntent>();
   const [requestedConversationId,setRequestedConversationId]=useState<string>();
+  const [interconnectIntent,setInterconnectIntent]=useState<InterconnectIntent>();
+  const interconnectPending=useRef(false);
+  useInterconnectIntents(!!snapshot,intent=>{initialPageApplied.current=true;interconnectPending.current=true;navigation.requestPage('interconnect',()=>setInterconnectIntent(current=>({...intent,paths:[...(current?.paths??[]),...intent.paths]})));},setError);
   const linkIntentPending=useRef(false);
   useDirectoryLinkIntents(!!snapshot,intent=>{initialPageApplied.current=true;navigation.requestPage('convenience',()=>{linkIntentPending.current=true;setLinkIntent(current=>({...intent,paths:[...(current?.paths??[]),...intent.paths]}));});},setError);
   useEffect(()=>{
     const open=(event:Event)=>{const id=(event as CustomEvent<{id?:unknown}>).detail?.id;if(typeof id!=="string"||!id||id.length>128)return;navigation.requestPage("chat",()=>setRequestedConversationId(id));};
     window.addEventListener("winone-open-chat",open);return()=>window.removeEventListener("winone-open-chat",open);
   },[navigation.requestPage]);
-  useSettingsNavigation(settingsNavigationPort,page=>navigation.requestPage(linkIntentPending.current?'convenience':page),setError,defaultPage,!!snapshot);
+  useSettingsNavigation(settingsNavigationPort,page=>navigation.requestPage(interconnectPending.current?'interconnect':linkIntentPending.current?'convenience':page),setError,defaultPage,!!snapshot);
   useEffect(()=>{if(snapshot&&!initialPageApplied.current){initialPageApplied.current=true;navigation.requestPage(defaultPage);}},[snapshot,defaultPage]);
   const [working, setBusy] = useState(false);
   const [loading,setLoading]=useState(false);
@@ -227,9 +235,11 @@ function App() {
         )}
         {page === "ai-services" && <AISettings onActivity={navigation.onActivity} accountReader={accountReader}/>}
         {page === "chat" && <ChatPage onActivity={navigation.onActivity} onOpenAI={()=>navigation.requestPage("ai-services")} requestedConversationId={requestedConversationId} onRequestedConversationHandled={()=>setRequestedConversationId(undefined)}/>}
+        {page === "flash-chat" && <PeerChatFrame active onActivity={navigation.onActivity}/>}
         <>
           {page === "wintray" && <WinTrayPage disabled={module?.state === "disabled"} onChanged={()=>void refresh()} onActivity={navigation.onActivity}/>}
           {page === "capture" && <ModulePanel moduleId="capture"><CapturePage disabled={module?.state === "disabled"} onEdit={editCapture} onOpenDraft={openCapturedDraft} refreshKey={captureRefresh} onActivity={navigation.onActivity} onSaved={()=>void refresh()}/></ModulePanel>}
+          {page === "interconnect" && <InterconnectPage onActivity={navigation.onActivity} intent={interconnectIntent} onIntentConsumed={()=>{setInterconnectIntent(undefined);interconnectPending.current=false;}}/>}
           {page === "convenience" && <ConveniencePage disabled={snapshot?.modules.find(value=>value.id==="always-on-top")?.state === "disabled"} strokeDisabled={snapshot?.modules.find(value=>value.id==="stroke")?.state === "disabled"} actionsDisabled={busy} onChanged={()=>void refresh()} onActivity={navigation.onActivity} linkIntent={linkIntent} onLinkIntentConsumed={()=>{linkIntentPending.current=false;setLinkIntent(undefined);}}/>}
           {page === "quick-assistant" && <ModulePanel moduleId="quick-assistant"><SelectionPage key="quick-assistant" moduleId="quick-assistant" disabled={module?.state === "disabled"} onActivity={navigation.onActivity} onSaved={()=>void refresh()}/></ModulePanel>}
           {page === "selection" && <ModulePanel moduleId="selection"><SelectionPage disabled={module?.state === "disabled"} onActivity={navigation.onActivity} onSaved={()=>void refresh()}/></ModulePanel>}
@@ -237,7 +247,7 @@ function App() {
         {page !== "overview" &&
           page !== "settings" &&
           page !== "wintray" &&
-          page !== "capture" && page !== "quick-assistant" && page !== "selection" && page !== "ai-services" && page !== "chat" && page !== "convenience" && page !== "modules" && (
+          page !== "capture" && page !== "quick-assistant" && page !== "selection" && page !== "ai-services" && page !== "chat" && page !== "flash-chat" && page !== "convenience" && page !== "modules" && page !== "interconnect" && (
             <section className="empty">
               <span className="empty-icon" aria-hidden>
                 <selected.icon size={28} strokeWidth={1.75} />

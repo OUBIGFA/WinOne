@@ -22,9 +22,15 @@ it('offers collapse as soon as the work is long, including at its natural bottom
  expect(button.style.top).toBe('370px');
  fireEvent.click(button);expect(collapse).toHaveBeenCalledTimes(1);
  height=1000;bodyBottom=900;act(()=>observers.forEach(update=>update()));
- expect(button.style.top).toBe('570px');
+ expect(button.style.top).toBe('370px');
  footerTop=340;act(()=>observers.forEach(update=>update()));
- expect(button.style.top).toBe('570px');
+ expect(button.style.top).toBe('370px');
+ // The work's end crosses the button's line. Keep its fixed lane until the
+ // entire work body leaves the viewport instead of following that end.
+ bodyTop=-500;bodyBottom=300;act(()=>observers.forEach(update=>update()));
+ expect(button.style.top).toBe('370px');
+ bodyBottom=100;act(()=>observers.forEach(update=>update()));
+ expect(screen.queryByRole('button',{name:'收起思考过程'})).toBeNull();
  bodyTop=750;bodyBottom=1350;act(()=>observers.forEach(update=>update()));
  expect(screen.queryByRole('button',{name:'收起思考过程'})).toBeNull();
 });

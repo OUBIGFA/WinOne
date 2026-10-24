@@ -68,8 +68,8 @@ export function AppShell({page,pages,logo,onNavigate,children,windowPort,onWindo
   <ResizablePanel id="app-sidebar" panelRef={panel} defaultSize={initialSidebarWidth.current} minSize={64} maxSize={360} onResize={size=>setCurrentWidth(size.inPixels)} groupResizeBehavior="preserve-pixel-size">
   <Sidebar collapsible="none" className="app-navigation w-full shrink-0">
    <SidebarHeader className="items-start px-[8px] py-2"><Button className="w-[48px] min-h-[48px] [&_svg]:size-[20px]" variant="ghost" size="icon" aria-label={t(compact?"navigation.expandSidebar":"navigation.collapseSidebar")} title={t(compact?"navigation.expandSidebar":"navigation.collapseSidebar")} onClick={()=>{const width=compact?sidebar.expandedWidth:64;panel.current?.resize(width);rememberSidebar({...sidebar,width,collapsed:width===64});}}><SidebarSimple size={20}/></Button></SidebarHeader>
-   <SidebarContent><nav aria-label={t("nav.label")} className="px-[8px]"><SidebarMenu>{pages.filter(item=>item.id!=="settings"&&item.id!=="ai-services"&&item.id!=="chat").map(item=>renderPage(item,compact))}</SidebarMenu></nav></SidebarContent>
-   <SidebarFooter className="px-[8px] py-3"><SidebarMenu>{pages.filter(item=>item.id==="chat"||item.id==="ai-services"||item.id==="settings").map(item=>renderPage(item,compact))}</SidebarMenu></SidebarFooter>
+   <SidebarContent><nav aria-label={t("nav.label")} className="px-[8px]"><SidebarMenu>{pages.filter(item=>item.id!=="settings"&&item.id!=="ai-services"&&item.id!=="chat"&&item.id!=="flash-chat").map(item=>renderPage(item,compact))}</SidebarMenu></nav></SidebarContent>
+   <SidebarFooter className="px-[8px] py-3"><SidebarMenu>{pages.filter(item=>item.id==="chat"||item.id==="flash-chat"||item.id==="ai-services"||item.id==="settings").map(item=>renderPage(item,compact))}</SidebarMenu></SidebarFooter>
   </Sidebar>
   </ResizablePanel>
   <ResizableHandle elementRef={separator} className="app-navigation-divider" aria-label={t("navigation.resizeSidebar")}/>

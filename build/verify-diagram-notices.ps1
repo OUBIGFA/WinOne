@@ -1,4 +1,4 @@
-param([string]$CargoExe='cargo',[switch]$Update,[string]$BundleDirectory,[ValidateSet('diagram','selection','recording','search')][string]$Runtime='diagram',[string]$ManifestPath)
+param([string]$CargoExe='cargo',[switch]$Update,[string]$BundleDirectory,[ValidateSet('diagram','selection','recording','search','interconnect-lan')][string]$Runtime='diagram',[string]$ManifestPath)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $cargo=(Get-Command $CargoExe -ErrorAction Stop).Source
@@ -6,7 +6,7 @@ $priorRustc=$env:RUSTC
 function Hash([string]$path){(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()}
 try{
  $env:RUSTC=Join-Path (Split-Path $cargo -Parent) 'rustc.exe'
- $manifest=switch($Runtime){'selection'{'modules/selection/native/Cargo.toml'} 'recording'{'modules/recording/Cargo.toml'} 'search'{'dist/resources/sources/ripgrep-15.2.0/Cargo.toml'} default{'apps/diagram-renderer/Cargo.toml'}}
+ $manifest=switch($Runtime){'interconnect-lan'{'third_party/file-share/src-tauri/Cargo.toml'} 'selection'{'modules/selection/native/Cargo.toml'} 'recording'{'modules/recording/Cargo.toml'} 'search'{'dist/resources/sources/ripgrep-15.2.0/Cargo.toml'} default{'apps/diagram-renderer/Cargo.toml'}}
  $selected=if($ManifestPath){[IO.Path]::GetFullPath($ManifestPath)}else{Join-Path $root $manifest}
  $json=& $cargo metadata --locked --format-version 1 --filter-platform x86_64-pc-windows-msvc --manifest-path $selected
  if($LASTEXITCODE -ne 0){throw 'Cannot resolve diagram dependencies'}

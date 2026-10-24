@@ -161,6 +161,1321 @@
           "sha256": "3eabdf0818d7c76023c68d7a4c33e4e4f11d6b150b04593ceecbd870aff4f0a4"
         }
       ]
+    },
+    {
+      "name": "croc-interconnect",
+      "repository": "https://github.com/schollz/croc",
+      "commit": "8a806c36956533f9c003c55f16e31fcf14133f8e",
+      "license": "MIT",
+      "scope": "Direct reuse of croc v11.5.5 transfer, store client, encryption and original tests. WinOne adapts progress, input prompts and process lifecycle only.",
+      "sourceFiles": [
+        "src/",
+        "internal/",
+        "go.mod",
+        "go.sum"
+      ],
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-schollz-croc-v11-v11.5.5-LICENSE.txt",
+          "sha256": "0de8a5845e8f6b92e1d27461d164466f39557ccbc986b07d906571a3c4e851b6"
+        },
+        {
+          "sourceFile": "internal/cli/LICENSE",
+          "file": "licenses/interconnect-github.com-schollz-croc-v11-v11.5.5-internal-cli-LICENSE.txt",
+          "sha256": "66a52994aa33d761e82814ef647fe43f32051f7631e51cf62c0dc34441d84d9d"
+        },
+        {
+          "sourceFile": "internal/tailcat/LICENSE",
+          "file": "licenses/interconnect-github.com-schollz-croc-v11-v11.5.5-internal-tailcat-LICENSE.txt",
+          "sha256": "a7ec3a027e22a28126dc3ad95ffc301dbc46a92cb6d66af2e2635c1abf9bc863"
+        },
+        {
+          "sourceFile": "packaging/distributions/debian/copyright",
+          "file": "licenses/interconnect-github.com-schollz-croc-v11-v11.5.5-packaging-distributions-debian-copyright.txt",
+          "sha256": "9515e7b6e1b75164c697076bb927c6501fe5a1d3baf393f6273ad4f68baa0b10"
+        },
+        {
+          "sourceFile": "packaging/distributions/fedora/license-report.json",
+          "file": "licenses/interconnect-github.com-schollz-croc-v11-v11.5.5-packaging-distributions-fedora-license-report.json.txt",
+          "sha256": "edefdb7a6634f162f6ee31433a0a3ef4f7ceb25acafb4b6154e28aebbf0b99d3"
+        },
+        {
+          "sourceFile": "src/codephrase/wordlists/LICENSE.txt",
+          "file": "licenses/interconnect-github.com-schollz-croc-v11-v11.5.5-src-codephrase-wordlists-LICENSE.txt.txt",
+          "sha256": "cbd5af318286b74656f145dff5091907cc23d6d8c9ad09e0291ec2497792ba41"
+        }
+      ],
+      "files": [
+        {
+          "path": "third_party/croc/go.mod",
+          "sha256": "63152634026c3d41c84c449014a40d863ad6c3bd7bfcde71737712f6dc05722e"
+        },
+        {
+          "path": "third_party/croc/go.sum",
+          "sha256": "61531edae27d4605bafc6efb0dafe2c1680984f321065b47c2c8d04321041f29"
+        },
+        {
+          "path": "third_party/croc/internal/cli/app.go",
+          "sha256": "9c126de78291519bbc9cad80890f0c9982808ee985720964866449b5dadc0b88"
+        },
+        {
+          "path": "third_party/croc/internal/cli/args.go",
+          "sha256": "5233d543fdd1cdd26bd0159693e790f07e249ffb46de4aa67f27ebf3d7c71e11"
+        },
+        {
+          "path": "third_party/croc/internal/cli/category.go",
+          "sha256": "5d4699cc573e07fe5baa0ee8913c8819b0664a090e797fb5419e84b52b142354"
+        },
+        {
+          "path": "third_party/croc/internal/cli/cli.go",
+          "sha256": "48a14c19ee099f9ae49c5cd7909cd93f957e0cf41cf21c0ffdb4b2082a57c7c2"
+        },
+        {
+          "path": "third_party/croc/internal/cli/command.go",
+          "sha256": "12fd967b8014cbdc27c7ecd7bca3158fca28df4d8316c01cde8bc321e6c102d4"
+        },
+        {
+          "path": "third_party/croc/internal/cli/context.go",
+          "sha256": "0e8d5b7cadf38548552590ff872adb78ed6c909f4876fe42c3731d2741f2fefa"
+        },
+        {
+          "path": "third_party/croc/internal/cli/errors.go",
+          "sha256": "f331e91616dc9bc69e275c355aeb2664192752b297e6a2a837adcc619409c901"
+        },
+        {
+          "path": "third_party/croc/internal/cli/fish.go",
+          "sha256": "99dc4523547de717362567e2ee1eba02ec550510d24140dce667336a9bc1abdd"
+        },
+        {
+          "path": "third_party/croc/internal/cli/flag.go",
+          "sha256": "2033f36f19bb3c681fc654c4307a06b9d2bc69da306d8015a5fe5f8df21c891e"
+        },
+        {
+          "path": "third_party/croc/internal/cli/flag_bool.go",
+          "sha256": "0d25c2142e1b037126c3a0610e951275c37d1f5555f04b1d930600cebd7b8086"
+        },
+        {
+          "path": "third_party/croc/internal/cli/flag_duration.go",
+          "sha256": "5abc8eee94b0efeb8e774f6ff737771c844b27cbbe0bd7f61275cc32a7051924"
+        },
+        {
+          "path": "third_party/croc/internal/cli/flag_int.go",
+          "sha256": "340b136edf9b4a72508e780e6751d1facfc85cd2ac85a7c6775635f9c8f145c0"
+        },
+        {
+          "path": "third_party/croc/internal/cli/flag_string.go",
+          "sha256": "bd982336107121f7f264a5891212d92881597efeedbfa806fa7e4c81af7af70c"
+        },
+        {
+          "path": "third_party/croc/internal/cli/flag_string_slice.go",
+          "sha256": "f64919888d649ba480492ff652812188033368fc75e869aa8b2baab9867e3e70"
+        },
+        {
+          "path": "third_party/croc/internal/cli/funcs.go",
+          "sha256": "8028ddbd2e27fab49ebfdcd4165a5d808cc9e368aba19bf808177d8c100121f1"
+        },
+        {
+          "path": "third_party/croc/internal/cli/help.go",
+          "sha256": "7d7993aab25c8edfc5d42e1feb3d7aeec046ebd2624b7e7c6f67268a7364010f"
+        },
+        {
+          "path": "third_party/croc/internal/cli/help_test.go",
+          "sha256": "47a988f1c81b33cdd5dd8f86b43be397cc90e56c1a0d18722b2d9a27b3d7ce82"
+        },
+        {
+          "path": "third_party/croc/internal/cli/layout.go",
+          "sha256": "b14eceff562115eaa503e66bd1fc909bb2116f6e6bc03e19d678a86767ac07b4"
+        },
+        {
+          "path": "third_party/croc/internal/cli/LICENSE",
+          "sha256": "66a52994aa33d761e82814ef647fe43f32051f7631e51cf62c0dc34441d84d9d"
+        },
+        {
+          "path": "third_party/croc/internal/cli/parse.go",
+          "sha256": "1b72ce200e5f17ffa6be10987317ecd785d259629dfe4e7e5408136b33e9a213"
+        },
+        {
+          "path": "third_party/croc/internal/cli/README.md",
+          "sha256": "2b7f2b9289cdb09c0aea3f48cea102246836e542cb0d377538b2dc5aa20c2acd"
+        },
+        {
+          "path": "third_party/croc/internal/cli/sort.go",
+          "sha256": "63a49bd7c453fc567e4f6cdb32c515f48ebe1363709b475346ebaf282318b425"
+        },
+        {
+          "path": "third_party/croc/internal/sshclient/client.go",
+          "sha256": "50ac0540dd63a1b39907711b8513de2aa1ee037f4efabd7bfcc9012fb3e78a6d"
+        },
+        {
+          "path": "third_party/croc/internal/sshclient/client_test.go",
+          "sha256": "ed4c9775898199b7b1c852c11a670740dbb5b4d7b9f23e34be9a1181ac28d153"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/croc_authorization.go",
+          "sha256": "595c7d4d0747f83f3d503758147b6c5802d806f56f9437fda06dbbc278957e0f"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/croc_compat_test.go",
+          "sha256": "689ed9bb548deea7f9f96b2e4afde5c1df15bc9132d50ae0c653bc9772679062"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/croc_status.go",
+          "sha256": "f9888aa876e8b3568c8700ce38193f7ca287936aca06bb4ed7b2868f26d11f91"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/disco.go",
+          "sha256": "46645d8771dde4b4449e69f4d08d5e1db53f733555b466b1200d123b3d863b02"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/export_test.go",
+          "sha256": "f28111f177f291d7bb79878d930c854617ac3902bb7ff0b3f5c71ba719d470c6"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/LICENSE",
+          "sha256": "a7ec3a027e22a28126dc3ad95ffc301dbc46a92cb6d66af2e2635c1abf9bc863"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/pickregion.go",
+          "sha256": "e3b4da06110e106694277bffcf431251e4043cf1c320079bb4be1a653e32c814"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/pickregion_js.go",
+          "sha256": "4a83c75014e940c718ff184da581d723c08f4661a68796682e89b38fb87d995e"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/SOURCE_HASHES.sha256",
+          "sha256": "07ae9ea4e4b2c1efbd4da0828e0d3720495b7de5844e937437c05c35e9f82ca7"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/tailcat.go",
+          "sha256": "a91643e1323abea00fc61dd4402a09e552817b3845df2f8abcdcda5693ad4003"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/tailcat_test.go",
+          "sha256": "f1b7b55d10a9672c9c744b90176540f86cd88c31022fa31ee142dd8915f6b900"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/UPSTREAM.md",
+          "sha256": "3c5df0096cf84d3e543eb2001b983630585fd45121b5acf004df39718718c923"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/wire.go",
+          "sha256": "2a57ab947f753cf54cd375c62188191042ab19553c5d68db6c30654042155e0d"
+        },
+        {
+          "path": "third_party/croc/internal/tailcat/wire_test.go",
+          "sha256": "a929c6bb76169c49a0afd3226df48352c9ba8c9a3124f451eba3b9746abe4753"
+        },
+        {
+          "path": "third_party/croc/LICENSE",
+          "sha256": "0de8a5845e8f6b92e1d27461d164466f39557ccbc986b07d906571a3c4e851b6"
+        },
+        {
+          "path": "third_party/croc/README.md",
+          "sha256": "682921b1117152c3a8453cbcb9fd5daf28b8456f1b80e81b36022f3e789ed072"
+        },
+        {
+          "path": "third_party/croc/SECURITY.md",
+          "sha256": "f652c8408f7dc79e538e94db9b642b72c4908a0064313622788cf407fab89f8a"
+        },
+        {
+          "path": "third_party/croc/src/cli/cli.go",
+          "sha256": "41703cbd5d2478af66eb3462186c026250a0b2e2b9151cb4d7ab3ed7f31866e4"
+        },
+        {
+          "path": "third_party/croc/src/cli/cli_test.go",
+          "sha256": "cd897ac678f0e5c6a5e0a1578cceb90d0fbfd636dada33327929c2606325c0cf"
+        },
+        {
+          "path": "third_party/croc/src/cli/relay_only_build_test.go",
+          "sha256": "49d3aaec1b1074e795c0c114b6c14a05bc288661ff43d7bf4eff341591b27dc0"
+        },
+        {
+          "path": "third_party/croc/src/cli/ssh.go",
+          "sha256": "a9c38a38906b546857885779cefb1bacf3547f14763eaca9dd25bfdf351aeaf5"
+        },
+        {
+          "path": "third_party/croc/src/cli/ssh_test.go",
+          "sha256": "058ddcaca535fdac8ee8112745c612e6c205103a36889eb9f802e2ab5d0629e5"
+        },
+        {
+          "path": "third_party/croc/src/cli/store.go",
+          "sha256": "ac74444d9a2b32009e328c8aad93113e4bfdbefa9ee8de10ff8c6a64d14301cb"
+        },
+        {
+          "path": "third_party/croc/src/cli/store_test.go",
+          "sha256": "155a498cc015c6c6ce392edcf2c5b2f43a0b21e8f7580a808522719eeb468124"
+        },
+        {
+          "path": "third_party/croc/src/cli/unix_receive_message.go",
+          "sha256": "f2b328d8dca2bcb94042737dfd6b8983ccbb9cd6b134aeb44b2f2abf305adc0f"
+        },
+        {
+          "path": "third_party/croc/src/cli/unix_receive_message_test.go",
+          "sha256": "f18eabb5f5868dee86765a62209d7f9908c0ddad0fa643e6ce61b4a59eab4ffb"
+        },
+        {
+          "path": "third_party/croc/src/cli/update.go",
+          "sha256": "ab1cd1ea8b5edabb32f655061948e9aa8b19f4444d4e2e0ddcedc381d737afdb"
+        },
+        {
+          "path": "third_party/croc/src/cli/update_test.go",
+          "sha256": "bd2cd650c6850ed6791ca1a6600fa2798b37b4fdaec6a81fc9b3668108135570"
+        },
+        {
+          "path": "third_party/croc/src/cli/updatecheck.go",
+          "sha256": "5029c9d1b28fc9791aadc485599b4788ad52953478a1baf9cfd1c53fc8786eee"
+        },
+        {
+          "path": "third_party/croc/src/cli/updatecheck_test.go",
+          "sha256": "ddc875ce1e5d084a6c38aa2756840223e59ad3d0d6498d0eee30acddf748c3ef"
+        },
+        {
+          "path": "third_party/croc/src/codephrase/codephrase.go",
+          "sha256": "6cc933a3be525e0f5c0ff33d02b107dcbcdbeda120dadba8e29f5d4ff07d0318"
+        },
+        {
+          "path": "third_party/croc/src/codephrase/codephrase_test.go",
+          "sha256": "60128f3b62368b0a04c21a1bc43ac384f88bb0a6a2bcaeb7bde54756bc533d06"
+        },
+        {
+          "path": "third_party/croc/src/codephrase/wordlists/eff-short-wordlist-1.txt",
+          "sha256": "3087e73f0c50266f2c364599878f57203c289e2d1c7f4ee37290d9937399fca4"
+        },
+        {
+          "path": "third_party/croc/src/codephrase/wordlists/LICENSE.txt",
+          "sha256": "cbd5af318286b74656f145dff5091907cc23d6d8c9ad09e0291ec2497792ba41"
+        },
+        {
+          "path": "third_party/croc/src/codephrase/wordlists/README.md",
+          "sha256": "06267b8687488adbf82ce4e8329e0fb41547a4bb9e3fb2a0b51b68565b8721e4"
+        },
+        {
+          "path": "third_party/croc/src/comm/comm.go",
+          "sha256": "09e423e41aa64ab6123ea3e48a54d5846683021cdfe5905314752e96dafdd643"
+        },
+        {
+          "path": "third_party/croc/src/comm/comm_test.go",
+          "sha256": "d4b0155dcbe1d9c5194caabbeb4ffc3ca02e996144ce80e53ded83ac41857efe"
+        },
+        {
+          "path": "third_party/croc/src/compress/compress.go",
+          "sha256": "032730fcc2c48587d2de35358741a31518b624a36bfe9371227129ce5d8c6ba8"
+        },
+        {
+          "path": "third_party/croc/src/compress/compress_test.go",
+          "sha256": "f71cd271112f33cebfb88e466f5cc46d631a2319d5787db2678c460f5bd04f19"
+        },
+        {
+          "path": "third_party/croc/src/croc/chunk_bounds_test.go",
+          "sha256": "dc10d1a8afc385054c0f1de5ee12650b4a9a2638481a0c38a050534a0e88312a"
+        },
+        {
+          "path": "third_party/croc/src/croc/chunk_queue.go",
+          "sha256": "467391cf0ce010d6aa3e4aee337d5e0a8554b7c6d779c6153f56a946f9a13bd7"
+        },
+        {
+          "path": "third_party/croc/src/croc/chunk_queue_test.go",
+          "sha256": "0d267bc85ee053e6a2b11e0a9b0f433c86b7707055ff5ef5716e0533ce4125b3"
+        },
+        {
+          "path": "third_party/croc/src/croc/client_state.go",
+          "sha256": "1c2bad8bc0607564ecb456322c670dd08d811823fbce5a209f602bdf5ffeed7d"
+        },
+        {
+          "path": "third_party/croc/src/croc/croc.go",
+          "sha256": "702ec7b676a42f520ceab720a689db5ac1c3aaaaf2b7cdf8a01a2db6ff18dfb6"
+        },
+        {
+          "path": "third_party/croc/src/croc/croc_test.go",
+          "sha256": "5f9f4d7cd96bf5b33c1c91aab7a067a0b4bd1bc7fa24fc657a76b4c47f0f8f51"
+        },
+        {
+          "path": "third_party/croc/src/croc/ctx.go",
+          "sha256": "608012e5164f5850a368886aeed2d2f041f750056c81f2f8fc3e8fe927844b50"
+        },
+        {
+          "path": "third_party/croc/src/croc/file_manifest.go",
+          "sha256": "f66ed74aff356b46560ab862dc430e7c3cd67df8a75293b529dc11f7bd592049"
+        },
+        {
+          "path": "third_party/croc/src/croc/file_manifest_test.go",
+          "sha256": "a576da38c66b1782bb709592fb6a80eef5d6ec609b9e9daeb4fe3ce99cc357be"
+        },
+        {
+          "path": "third_party/croc/src/croc/file_preparation.go",
+          "sha256": "d26ee0cef66dfd1c6b1e23fe957c63b723f3580e9273aa1f3fca1e27d09453bf"
+        },
+        {
+          "path": "third_party/croc/src/croc/local_relay.go",
+          "sha256": "bae713551a1cf02e897b530b2c52ff3e608d8c10ae98645d4b09b3219db86c96"
+        },
+        {
+          "path": "third_party/croc/src/croc/local_relay_test.go",
+          "sha256": "cd7124b36ddc98a9408593ea1872a2da4735a9d99fa7d828600666cb071ab0c2"
+        },
+        {
+          "path": "third_party/croc/src/croc/overwrite_test.go",
+          "sha256": "6987bfccd6a0b5a7c89a5ee532fdb2937f0935cd03986046f1aebed8b05c4c15"
+        },
+        {
+          "path": "third_party/croc/src/croc/progressive_hash.go",
+          "sha256": "36b373d32c25d60c00398d9d05b8a6554081ad347960b0e7a3347359133794fe"
+        },
+        {
+          "path": "third_party/croc/src/croc/progressive_hash_test.go",
+          "sha256": "500bfe8bde8b6b7e7e2368c2f3defa5c7535d4f2bc440c6b3e891be426657f1f"
+        },
+        {
+          "path": "third_party/croc/src/croc/receive_hash_test.go",
+          "sha256": "10c9c7fae84568ec78bc2480b9a8e70f50cd92f89ce18361df545588d91f4357"
+        },
+        {
+          "path": "third_party/croc/src/croc/relay_dial.go",
+          "sha256": "61a7308d8c0e9e7264ee4817f45b1308bc960321e706a41a55ba75654524ac3e"
+        },
+        {
+          "path": "third_party/croc/src/croc/relay_dial_test.go",
+          "sha256": "2b29ab88b3a74607df02f17ed411434cc4a84790784c5826d18b51c157727c34"
+        },
+        {
+          "path": "third_party/croc/src/croc/relay_only_build_test.go",
+          "sha256": "b2b1992bb988aa5b09592a545bb615eac612a429c38ff80c8191b7db505b39ae"
+        },
+        {
+          "path": "third_party/croc/src/croc/security_casefold_verify_test.go",
+          "sha256": "1a7999ebe39998958d7964ad6439278a997fbd8634a4e25cabc5bac070797c80"
+        },
+        {
+          "path": "third_party/croc/src/croc/sender_output.go",
+          "sha256": "ffa8b306e33ff48ed62d669b28614aac0887fd644ba81739ae5838f80a906a5d"
+        },
+        {
+          "path": "third_party/croc/src/croc/sender_output_test.go",
+          "sha256": "153295bfbd0f824a6813321c32b674f254a0e04ad0e224db16685a437140405d"
+        },
+        {
+          "path": "third_party/croc/src/croc/sending_text_test.go",
+          "sha256": "3ff686cfbbd9c46a0f992a1a3df34c7b8db3e41eceea28053256f915ed3975f6"
+        },
+        {
+          "path": "third_party/croc/src/croc/socks5_test.go",
+          "sha256": "1550f4c3a17e1dc370392a9a37c8003edb843dab0bc1446bfc22e88dbff1cb7f"
+        },
+        {
+          "path": "third_party/croc/src/croc/staged_transport.go",
+          "sha256": "0f815f8f7822fad9d24d3eb93545fc48a1b5e3aa57f2bd496cc842eb14431249"
+        },
+        {
+          "path": "third_party/croc/src/croc/staged_transport_test.go",
+          "sha256": "33abff6795895c58ef1de7fcf6ed6f80a68d78d94ae232487455ec946530479e"
+        },
+        {
+          "path": "third_party/croc/src/croc/startup_timing.go",
+          "sha256": "d84a9a9814b1c9700fbd34bc17183bdce9282182caf96da0890dd46ad568f937"
+        },
+        {
+          "path": "third_party/croc/src/croc/stdout_cleanup_test.go",
+          "sha256": "3c4ab103ec2d8e31c5a3aec3d474b96e225a55dd46aff6782111a768cb233642"
+        },
+        {
+          "path": "third_party/croc/src/croc/tailcat_data_transport.go",
+          "sha256": "03848d095fa130506a1adaaff6cfccec4cbe86f692256aaeb86876012e1629d7"
+        },
+        {
+          "path": "third_party/croc/src/croc/tailcat_negotiation.go",
+          "sha256": "1bf9a67001b7ab101444296f5b7c236f9ceb114b68fc9fbe2624e9ce03a4a66e"
+        },
+        {
+          "path": "third_party/croc/src/croc/tailcat_negotiation_test.go",
+          "sha256": "e66c1b97e87b4e774f6eab6cac62c3f55b20f12d824692c7e5d597e88fc007fa"
+        },
+        {
+          "path": "third_party/croc/src/croc/tailcat_stream_config_bench.go",
+          "sha256": "63511c86d9cebc8fe9f4cbd507143fb2fe8057ee3b7bfae0e53a7b73ab309427"
+        },
+        {
+          "path": "third_party/croc/src/croc/tailcat_stream_config_default.go",
+          "sha256": "ab0b6d5abe74cedd3ca6f4ef619759f3b940caaa0c82faaa6c4160beb8066aa8"
+        },
+        {
+          "path": "third_party/croc/src/croc/tailcat_test_helpers_test.go",
+          "sha256": "60601c931e32a1d8c215bf4bdb3ca08eee27ceb53f915a2d87aa0fa7ec717879"
+        },
+        {
+          "path": "third_party/croc/src/croc/tailcat_transfer_test.go",
+          "sha256": "056ab950ec7f5f3912230ce0a8621372abef6a4c4d10b0a5817e3c49c8cf3ec1"
+        },
+        {
+          "path": "third_party/croc/src/croc/terminal_display.go",
+          "sha256": "de72294829210fb7ca553cd8ac9d42992cf2c08113411f9e58e44f2daf474c76"
+        },
+        {
+          "path": "third_party/croc/src/croc/terminal_display_test.go",
+          "sha256": "a8911144e3ae9b049c5984d71e7fdb544de2b7e7115e8c6027d0522f351d82d9"
+        },
+        {
+          "path": "third_party/croc/src/croc/winone_progress.go",
+          "sha256": "e8d339d447ff8934be5f5e73776ca39580e9db377e311472e0d85d7aa03d8ae7"
+        },
+        {
+          "path": "third_party/croc/src/croc/winone_progress_test.go",
+          "sha256": "97c9a80c09426afdde59dddf9c1c56cb1fddb357a5b33ac31b08860149eba018"
+        },
+        {
+          "path": "third_party/croc/src/crypt/crypt.go",
+          "sha256": "54e169b45422598ad74ea4ca2d14a90701c3d6c5eb9a88226f1589b27b5508c8"
+        },
+        {
+          "path": "third_party/croc/src/crypt/crypt_test.go",
+          "sha256": "b65d817e34707fa1875b537e40047f58d8a8ec7be737c280116f4ec8ea430644"
+        },
+        {
+          "path": "third_party/croc/src/diskusage/diskusage.go",
+          "sha256": "8cf4750d716c3d9c577bb1f7449e3ee42e0c601fb35496fd6b542dee3bda9f9a"
+        },
+        {
+          "path": "third_party/croc/src/diskusage/diskusage_netbsd.go",
+          "sha256": "167f70ce6f814d354b73df00c45e31434bce3b6cbfba04038ad378ff42bb6b4c"
+        },
+        {
+          "path": "third_party/croc/src/diskusage/diskusage_test.go",
+          "sha256": "043ad3dbafa8f15b2d672cf7a0c7f7acbe9fdc5b416fb1c527f648456f17698c"
+        },
+        {
+          "path": "third_party/croc/src/diskusage/diskusage_windows.go",
+          "sha256": "16674b268b4753018b26e9f04f19c4e33f57304fba83a83393eaedf23dcbe7ad"
+        },
+        {
+          "path": "third_party/croc/src/diskusage/statfs_openbsd.go",
+          "sha256": "4fb7aad8e4904e4d4dae6b412d65de5b96432858c3782e8eb1d593d9a568c919"
+        },
+        {
+          "path": "third_party/croc/src/diskusage/statfs_unix.go",
+          "sha256": "3825ce383b051b809d9bd437cedca408c7f220cb4f8fc855e93ffa9c8140d84c"
+        },
+        {
+          "path": "third_party/croc/src/docs/SSH_SHARING.md",
+          "sha256": "56f7a2f279ba66f9ac0fd0091488f034501b43adfdf1da65619d28337075bf9e"
+        },
+        {
+          "path": "third_party/croc/src/docs/STORED_TRANSFERS.md",
+          "sha256": "245f57b1791526b50493e42856ac0b7bc12c1bac22c377d7be948fcf7479cdff"
+        },
+        {
+          "path": "third_party/croc/src/docs/TESTING.md",
+          "sha256": "29fecc66fc327846cb061d123bd79ff6ae41cb8e93e79202861376b7d00725ce"
+        },
+        {
+          "path": "third_party/croc/src/install/bash_autocomplete",
+          "sha256": "97b30eb821e8c89ec58633d91e97361bc31cd7cd2a3316e8e8d15cbb2e3011a7"
+        },
+        {
+          "path": "third_party/croc/src/install/customization.gif",
+          "sha256": "993c577ea13d3bd8dd991a0dacba6d5559ac0faddc56004b67e0c04c51605449"
+        },
+        {
+          "path": "third_party/croc/src/install/default.txt",
+          "sha256": "6317b56bb8d2ff5355c9de32ed2b33f8ca2184d0e8c8f93f7aace5ebbf81aed9"
+        },
+        {
+          "path": "third_party/croc/src/install/installer_test.go",
+          "sha256": "0686fcd08639c467251b8c28f8a909bc9e88403ab79c716b5c50eaf51c4da950"
+        },
+        {
+          "path": "third_party/croc/src/install/Makefile",
+          "sha256": "083cb7ce92de85445b8358e3b7bcd0830e8aa2fb886c76edae19637b34330d57"
+        },
+        {
+          "path": "third_party/croc/src/install/prepare-sources-tarball.sh",
+          "sha256": "9fa867a11ca1f53c47800af89e41ad33c599d6731fb5579a2ced06138f50cec3"
+        },
+        {
+          "path": "third_party/croc/src/install/updateversion.go",
+          "sha256": "3a34489db5fe70efc14e501d6fa3d6c6674b8882dcb080acc55bb3708742b221"
+        },
+        {
+          "path": "third_party/croc/src/install/updateversion_test.go",
+          "sha256": "b8ba205d780b4d41e392616a54ab5654572466b7ef88c5651704457769b32195"
+        },
+        {
+          "path": "third_party/croc/src/install/upload-src-tarball.sh",
+          "sha256": "f7c2451c5fe551ffd4a0bd01d9fbce09498735bf38dfe1c15e6b7bc55412e618"
+        },
+        {
+          "path": "third_party/croc/src/install/zsh_autocomplete",
+          "sha256": "aec264e6bda56a669fb1f623b04ea38383a63e78b502f734fc0e9d78e5d9e6c6"
+        },
+        {
+          "path": "third_party/croc/src/logger/logger.go",
+          "sha256": "583225f707badb8b7146da38b01937d2ca3ba2907243c06f58ec48a46a64d0f5"
+        },
+        {
+          "path": "third_party/croc/src/logger/logger_test.go",
+          "sha256": "ea8ce18b5b08639e53f8d97391f1965b446072855b26ffa46e327a8f2b2fe8a2"
+        },
+        {
+          "path": "third_party/croc/src/message/message.go",
+          "sha256": "9390a4a9a388e3513cd85beea03129c5e58afa8fd981abd6d1347d120f8c3208"
+        },
+        {
+          "path": "third_party/croc/src/message/message_test.go",
+          "sha256": "72154ff252365c253b85c028130df151d1e18adf335eabecb6062ca3fc9ab7ad"
+        },
+        {
+          "path": "third_party/croc/src/mnemonicode/mnemonicode.go",
+          "sha256": "d762f3e8e50b83a77f7f5863c3569970694013f33a9edbe51d959e975e5d90b1"
+        },
+        {
+          "path": "third_party/croc/src/mnemonicode/mnemonicode_test.go",
+          "sha256": "24d78bc29493fd93d84eb51423104628ba4698a72277274e385c899397f6a040"
+        },
+        {
+          "path": "third_party/croc/src/mnemonicode/wordlist.go",
+          "sha256": "0c75432ff6e328a08bd5752c7e10c577927a6e1e40a157fea4419e1103e67ce2"
+        },
+        {
+          "path": "third_party/croc/src/models/constants.go",
+          "sha256": "6dfdf7e39536159837d5435cdda47431e05ecf046c826b36c3fe6d0293f981b2"
+        },
+        {
+          "path": "third_party/croc/src/models/models_test.go",
+          "sha256": "533f9a907f75b10c18ed83b6aa98e126ce3239a29881a1e5c8617b77ddd62677"
+        },
+        {
+          "path": "third_party/croc/src/pakekey/pakekey.go",
+          "sha256": "5abf0c6d1c29102ebc06d43efc1fba15bea55d75d746aa42404e9bb5bdd7db31"
+        },
+        {
+          "path": "third_party/croc/src/pakekey/pakekey_test.go",
+          "sha256": "e89e872b6a9381df6e01956b1dbc61975234ce9d7f4b1d2477142868df184cb3"
+        },
+        {
+          "path": "third_party/croc/src/publicrelay/publicrelay.go",
+          "sha256": "0f8f3a629c64e5e1c02e642596d752f26a094ca04e5c7ba7da50b795a4f8d213"
+        },
+        {
+          "path": "third_party/croc/src/publicrelay/publicrelay_test.go",
+          "sha256": "4de8eb7f47ff08b57daa5f68d866b7ca017d129709d2b87833fec2cdc9951424"
+        },
+        {
+          "path": "third_party/croc/src/publicrelay/umami.go",
+          "sha256": "d5506c70693a6f3aaf968884ec2ea7199845e3007271dd496cbe7a84bdf4768d"
+        },
+        {
+          "path": "third_party/croc/src/publicrelay/umami_test.go",
+          "sha256": "37a52486682a7f8e1df91a32f023590c4c66aaed3fa937ac5b410dc27ae5317b"
+        },
+        {
+          "path": "third_party/croc/src/receivefs/path.go",
+          "sha256": "b60b861a4326160e2282c37b7d79178b99540bf2ae218d8a4c2b943d87ce9544"
+        },
+        {
+          "path": "third_party/croc/src/receivefs/path_test.go",
+          "sha256": "85cc44f7d150ffd78569b220e2932671384bc2badbcc3f2888dfb20ba8106d42"
+        },
+        {
+          "path": "third_party/croc/src/receivefs/root.go",
+          "sha256": "0dba4ddf2c396f6616bedd104f0771e549f85b43fa8732f9b46a75d4883ff6b4"
+        },
+        {
+          "path": "third_party/croc/src/receivefs/root_test.go",
+          "sha256": "cca921362fd3542f213459b63bd0eeacf0f82b4a67cecc47414bad7d6a25ce9a"
+        },
+        {
+          "path": "third_party/croc/src/redact/redact.go",
+          "sha256": "01cd91864b37794a37a9974c8c003e00afa4a807fbc02226dbbfb99b21d219e8"
+        },
+        {
+          "path": "third_party/croc/src/redact/redact_test.go",
+          "sha256": "1aefe882ca75b3fcd1fd2598af6e7d0e4ddcbc72e6244a4eb6a5406f366f7358"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/api.go",
+          "sha256": "71c4a69f18170a5dee2a4df0d0ca6af9e340a0bf0e84047c1ddd6fbd60e392b3"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/client.go",
+          "sha256": "9412769b4bf9083535efd380b67645d3c08fb358f2a8dac07ea220c53d6348c0"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/client_input.go",
+          "sha256": "e3c8db12ab75e38e87e0c0b64e9a24bfaede5e45f89e858376c2979235bec181"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/client_input_test.go",
+          "sha256": "00804d920eea6d2a48279d05a50ae678cfe1724cec015882c2e34065d64e0a1e"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/client_terminal_other.go",
+          "sha256": "b9124bfde03fa8b8a8aa75252a06c3e1559b1b67f3e0df2ceb159b0f37b9c07d"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/client_terminal_unix.go",
+          "sha256": "61130756c4ab31c89bd81e07c1523ed8f93145d63de965fe132c949294953331"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/client_test.go",
+          "sha256": "6e76ce30d844df56d71414fe8bffefef6144c83d4770ee7d161a0acc75ecb27f"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/host.go",
+          "sha256": "256fad85526de97100de8a7954bee993a0083942f945fd8a17209a5f4f5b67d4"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/host_deps.go",
+          "sha256": "6e845c74a618c728e017e38c68fc13f642038211fab7147c811b7107dcce781a"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/host_test.go",
+          "sha256": "a97720fd51fa27c949811d4ea220a471e9fb69cb1ee050c8cea02430c404a7b1"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/local_terminal_other.go",
+          "sha256": "97f3a3a2fb5c8be4bfb573bf7341b19c80f50e42552b626d95f0bb34e1017011"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/local_terminal_unix.go",
+          "sha256": "8a3e1b8a1ac4add8a25578b7db68dd6eb0553e12db73bf4e73aec0c87b0f8bde"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/local_terminal_unix_test.go",
+          "sha256": "f87824386eb01b695553c45e7cbd9aab2293f7bdcc3c8973b4aa3c99a1ace4be"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/protocol.go",
+          "sha256": "b8aa7f5ddfc333584895bafeab0073e03c38a9032c484012b7a921554c84bab7"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/protocol_test.go",
+          "sha256": "47456f3aba539ffc321ce63b7bf84792aeaa5e716532e7a04803446b9ee562ee"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/ssh_server.go",
+          "sha256": "93e3200b38ab22d0b5aabf2eba3defd11c523465ab72a58dc0f2eea3c5845a81"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/ssh_server_test.go",
+          "sha256": "28756ac7b1164617e145dd25b388d1a497c59a61800b8919b4d200c7da209cb8"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/terminal.go",
+          "sha256": "62d0df05680c3cdaad7692c462e5f8dc1de7e3f492ec2397dad99dec402ad144"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/terminal_test.go",
+          "sha256": "ec5b4fcc0c285d4bf0fca4765c4bc01b485ddd1a0d5979e5b06ac43b4664fb2b"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/terminal_unix.go",
+          "sha256": "b1317624f742a71bfe9b67fc4f0cfd7aa2dc1511e4b83d4982f0d51652e719d1"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/terminal_unix_test.go",
+          "sha256": "265411c0b1882a8835d5764b6a27facbbc3306e613aeb45ab9a42b6229a9edde"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/terminal_unsupported.go",
+          "sha256": "27f63d6864415ee1e2a39e544d3e800185f3f6f2867809622dc7576625cd27b4"
+        },
+        {
+          "path": "third_party/croc/src/sshshare/unsupported.go",
+          "sha256": "c483b4a2564a354ef6186e245f17713b3906ae9455427d0015a8e3bc080c04d9"
+        },
+        {
+          "path": "third_party/croc/src/store/expiration.go",
+          "sha256": "acaf03fc08687c23c3685b4a433206422525cb774552766339185de1bddd39d9"
+        },
+        {
+          "path": "third_party/croc/src/store/expiration_test.go",
+          "sha256": "850603105d12d86fc1771773b2119ce7174857db465a396f0858d6f24e35aee0"
+        },
+        {
+          "path": "third_party/croc/src/store/limits_test.go",
+          "sha256": "a9c334038ac4f086c41710b9da00c6462f0a8990781fd99955538d640fce2fa4"
+        },
+        {
+          "path": "third_party/croc/src/store/lock_unix.go",
+          "sha256": "3f65a7ac2075fe64da77fe3491fde11572c4b21eab5e4b1daa625653e951cc8d"
+        },
+        {
+          "path": "third_party/croc/src/store/lock_windows.go",
+          "sha256": "475923136cd074897018592f5fefc164bc234114cc19fdf17ad126f4046cdcf7"
+        },
+        {
+          "path": "third_party/croc/src/store/service.go",
+          "sha256": "c13aa00086ecd046dff8f152cef50d814389530acb27898e37b6e785d5a284a8"
+        },
+        {
+          "path": "third_party/croc/src/store/service_test.go",
+          "sha256": "103adacbf82515883a87c2eb2049e3654f7d381b7fb6c96be13cbef1a8021017"
+        },
+        {
+          "path": "third_party/croc/src/storeclient/client.go",
+          "sha256": "cdbaef5f6720bf49c4057e38aad9dfb9166416bb9dc406ac3ef9a22b42eb1730"
+        },
+        {
+          "path": "third_party/croc/src/storeclient/client_http_test.go",
+          "sha256": "eed26b5995b2a98817cea7803d82f7fec02c2e78a7b754dcd9e89b4346b988c4"
+        },
+        {
+          "path": "third_party/croc/src/storeclient/client_test.go",
+          "sha256": "6c3003336e7562182eaa07ba7a2526d8f631a3afec5e78356b4cae2bff534409"
+        },
+        {
+          "path": "third_party/croc/src/storecrypto/storecrypto.go",
+          "sha256": "2d5ad43a5b51e1187cec7f3c937220a6ed1fa278c5d92a3b8939660316a03604"
+        },
+        {
+          "path": "third_party/croc/src/storecrypto/storecrypto_test.go",
+          "sha256": "b7559452723aaf5b44e3152631bf0a94794c63f75dee5c40b8d237916e75dd6c"
+        },
+        {
+          "path": "third_party/croc/src/tailcattransport/bundle_supported.go",
+          "sha256": "bc1290b4d878a8471a0a0b7da5feef659cd39e4aabab23c05202b311e3804cc4"
+        },
+        {
+          "path": "third_party/croc/src/tailcattransport/config.go",
+          "sha256": "754a24b717308163738a22824080a10473fdc53d1a7c7e641415ee171f3ffad6"
+        },
+        {
+          "path": "third_party/croc/src/tailcattransport/endpoint_supported.go",
+          "sha256": "d4b3e8dae4ef8075d6cd8276d10f641be6a56b7fc3551ea537b0dc189652c4d3"
+        },
+        {
+          "path": "third_party/croc/src/tailcattransport/identity_offer_supported.go",
+          "sha256": "ffabfe6f6e7558c38521153d78f22bae2de8b3381ce0c53e98e5df1853dd7a35"
+        },
+        {
+          "path": "third_party/croc/src/tailcattransport/transport_test.go",
+          "sha256": "65878dc1e7612cb527475f60f5a416dbfc8ffb1e1c8db0c5557c181b5a7a86d3"
+        },
+        {
+          "path": "third_party/croc/src/tailcattransport/transport_unsupported.go",
+          "sha256": "12368d5734d532589bda80845bd0a370a19aea0eefabc3906b6bb59c4a6ac741"
+        },
+        {
+          "path": "third_party/croc/src/tailcattransport/transport_unsupported_test.go",
+          "sha256": "9e6063cb1b542b8b5a229608d31b56c23d31a212edc96095ec99561b158cd15c"
+        },
+        {
+          "path": "third_party/croc/src/tcp/admission.go",
+          "sha256": "f635a9dbc6eb01176259ad8d3eea5481aa32644df57f9aa229a4374d0d04f155"
+        },
+        {
+          "path": "third_party/croc/src/tcp/admission_test.go",
+          "sha256": "7eedafbe20f4ddeb50c5156c7d82f5fe6cf3fb8d94498bba40299d01d8eb109b"
+        },
+        {
+          "path": "third_party/croc/src/tcp/assets/local_relay.png",
+          "sha256": "501ac53f0d12a1394e4ca8b608543c3228b17965cba6c936e0761b023deb3e8f"
+        },
+        {
+          "path": "third_party/croc/src/tcp/capability.go",
+          "sha256": "9533aa4e4f3511c5181781c5f92775391b84d4ae8a5c158893ba6cad736bc083"
+        },
+        {
+          "path": "third_party/croc/src/tcp/capability_test.go",
+          "sha256": "972df653fa4d329a67f766a868db7d59646fba2da58426889128a5e226b4a9a7"
+        },
+        {
+          "path": "third_party/croc/src/tcp/context_test.go",
+          "sha256": "e381ebd7913ac18d0458b3f37032617855421620115a6ac1da8139787a96ce7e"
+        },
+        {
+          "path": "third_party/croc/src/tcp/ctx.go",
+          "sha256": "a5228c19aa7bb02e92d5519d19316b9312ce502ef0565249b81d6a4c1c1e5b11"
+        },
+        {
+          "path": "third_party/croc/src/tcp/defaults.go",
+          "sha256": "f6c2a14105933d36730b3a520778f64bc44490e5f2e3e59ce656d45cc10cf670"
+        },
+        {
+          "path": "third_party/croc/src/tcp/listener_test.go",
+          "sha256": "ec727c0d37ac528b163ae8bbdd3bf5053c304badb5b76fe54c70443366a58c01"
+        },
+        {
+          "path": "third_party/croc/src/tcp/options.go",
+          "sha256": "c4065e1cde1fc1c44264e534be2bc481ede86bdec503481db42c1bc33b6fec47"
+        },
+        {
+          "path": "third_party/croc/src/tcp/pending_handshakes.go",
+          "sha256": "4eb4b7c76a031a8ff7452d3118ca8920471711d4324770a8d2bb92537387c036"
+        },
+        {
+          "path": "third_party/croc/src/tcp/pending_handshakes_test.go",
+          "sha256": "b50d56613ea82c07f89078c8dd965444ff2e8a6bc3778aa2d34846e31fd1c4bf"
+        },
+        {
+          "path": "third_party/croc/src/tcp/tcp.go",
+          "sha256": "fdad325b4289f367fd800461c461cf6f43d2e0e807f3b115f93bc2b7678add18"
+        },
+        {
+          "path": "third_party/croc/src/tcp/tcp_test.go",
+          "sha256": "ffbe43d2ab9b4056edea7f84a04611a3a067b7fd5362efdda5931d526583f69b"
+        },
+        {
+          "path": "third_party/croc/src/termui/progress.go",
+          "sha256": "d0d8245823b4688c35e2b8038a1ad30868252f03466f0c02ecbb5a5b3329f703"
+        },
+        {
+          "path": "third_party/croc/src/termui/termui.go",
+          "sha256": "fc5e79cbd718be9499def168ec4c51ba7d7f7830ae8d18e985c3a6f5ec4f7ea5"
+        },
+        {
+          "path": "third_party/croc/src/termui/termui_test.go",
+          "sha256": "2a8d8b1ab248e57b31c14f4dc6e0035d456838d268da2b7f820538da4ff51c8a"
+        },
+        {
+          "path": "third_party/croc/src/utils/ctx.go",
+          "sha256": "1273df89c3fac3a549f7f6e0617d3c65c5e027994c82b406e6ff641eba01d1b3"
+        },
+        {
+          "path": "third_party/croc/src/utils/imohash_v2_test.go",
+          "sha256": "7ee7429e2009819d9535d95bb1f888f1c01c9fba55d050ba81417962e0200c54"
+        },
+        {
+          "path": "third_party/croc/src/utils/utils.go",
+          "sha256": "113b0039f5088325669db13bc9cbbee57ee747458efc94db7000b6237b7e4427"
+        },
+        {
+          "path": "third_party/croc/src/utils/utils_test.go",
+          "sha256": "002da6163192a39e3a72cb65df8b050a0689cc530acebd3335ccfd1ca64fee51"
+        },
+        {
+          "path": "third_party/croc/src/version/version.go",
+          "sha256": "0c895bea3ba134ca6195831afd18e2908794860eac65cdb8339209557eb9381e"
+        },
+        {
+          "path": "third_party/croc/src/webassets/assets.go",
+          "sha256": "2de2582311d7ff5c7e1d074722d7c242873fafbd1e5c330a6c82e167f9c16114"
+        },
+        {
+          "path": "third_party/croc/src/webassets/assets_test.go",
+          "sha256": "7dd97e0de7a2c1f2959c3c4fecbaa29d73c9f1677a96b053612d828c60bbbbde"
+        },
+        {
+          "path": "third_party/croc/src/webassets/dist/.gitkeep",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "third_party/croc/src/webcli/webcli.go",
+          "sha256": "b099725f94c3257f0bb5874faf3fed3ccea19cab2224a010aee58f3fd971c4f1"
+        },
+        {
+          "path": "third_party/croc/src/webcli/webcli_test.go",
+          "sha256": "9b8e40c2d0683f892ab67c6190401f6b5df07b88448240746d9e184b7139b36a"
+        },
+        {
+          "path": "third_party/croc/src/webrelay/webrelay.go",
+          "sha256": "992bc166d6a853decd70cee51abd33a57f30e0bdc5f783f01fd565581d6d7ddf"
+        },
+        {
+          "path": "third_party/croc/src/webrelay/webrelay_test.go",
+          "sha256": "734d2515ebb947ad5f95c88335b35468c6aef574b85004d7e8b825abec65220e"
+        },
+        {
+          "path": "third_party/croc/THIRD_PARTY_NOTICES.md",
+          "sha256": "ac8012cefcaf3e12f3f3ce8643cd4e6d1ebd80d6d919c610a884f79f266f3ea1"
+        },
+        {
+          "path": "third_party/croc/WINONE.md",
+          "sha256": "4ce4bf3410cbe2912677a1a1999f4d7f7b214f4e7cac1881a686826cfdaa08aa"
+        }
+      ]
+    },
+    {
+      "name": "chitchatter-interconnect",
+      "repository": "https://github.com/jeremyckahn/chitchatter",
+      "commit": "4093c21dad24af133c3c5c12042d3eb6112eece1",
+      "license": "GPL-2.0-or-later",
+      "scope": "Complete headless chat core and original tests from production main. Only import paths are adapted; WinOne supplies presentation and platform adapters.",
+      "sourceFiles": [
+        "src/core/"
+      ],
+      "notices": [
+        {
+          "file": "licenses/chitchatter-4093c21-LICENSE.txt",
+          "sha256": "189b1af95d661151e054cea10c91b3d754e4de4d3fecfb074c1fb29476f7167b"
+        }
+      ],
+      "files": [
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/index.ts",
+          "sha256": "427427f78076f6f1fcdd7f29ce6249d30e23b5129429d77b74a91a4e01896f90",
+          "upstreamPath": "src/core/index.ts",
+          "upstreamSha256": "4aa0dc853d96c3774d9bd7703db2aa2ad486583ddd9af4b74c0c77505bb2fd20"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/README.md",
+          "sha256": "27fb8e72d9b58f4c05a2f3f68bfcf2f88562acda3ce436f99ca428c78fb5d247",
+          "upstreamPath": "src/core/README.md",
+          "upstreamSha256": "27fb8e72d9b58f4c05a2f3f68bfcf2f88562acda3ce436f99ca428c78fb5d247"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/adapters/noop.ts",
+          "sha256": "3bd2a2077d55680feccb873d5bcc97e5178f71ee84bf4a7ecaad6392e05e8c1e",
+          "upstreamPath": "src/core/adapters/noop.ts",
+          "upstreamSha256": "bd6e0dbf53d99d3520f3b5431c00b1204f4d57e2571a7111e3767c97fed7e26a"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/adapters/types.ts",
+          "sha256": "93b0b536f79f8e8a8e81d27f9b41534facf13990791b09d3e109a31bad5639b8",
+          "upstreamPath": "src/core/adapters/types.ts",
+          "upstreamSha256": "2398e6f8b56e76546785213aae211dbe0aa016734658e903346f71f8a9d4b2cf"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/ChatRoom.test.ts",
+          "sha256": "1d19d2b175dcfd41e7d24b86e31c89133ea43c2972e18dbc4219595e8cc833f1",
+          "upstreamPath": "src/core/chat/ChatRoom.test.ts",
+          "upstreamSha256": "5fd7aafd0b08986ff7153927c82fee9ba783cdca5fba877f06c3bee99f26b772"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/ChatRoom.ts",
+          "sha256": "a399260527f4c36318a76da2f6ef4167b86366ae59b2fd1f1eb6de33e0b2ad81",
+          "upstreamPath": "src/core/chat/ChatRoom.ts",
+          "upstreamSha256": "f366b4eec45ce00ce92e5ca0a79828b9d32968e06989dc82270f29f552b09258"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/ChatRoomRegistry.ts",
+          "sha256": "78963180252e0152d18d2e63b479ca7d9df27c13fce961ca0c352c7a1ac281c7",
+          "upstreamPath": "src/core/chat/ChatRoomRegistry.ts",
+          "upstreamSha256": "29156d9aa670315aa3337e63cfd2595caae770d332c4cc62c6a610559d0f104f"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/events.ts",
+          "sha256": "c5de26705f35bc02934300c538ff0a85e1d44ae539988b8e7a894eae117692d4",
+          "upstreamPath": "src/core/chat/events.ts",
+          "upstreamSha256": "92aa93da458cad6c6a6d1e20f14610166140433d2ce3aba7e1c22d3f3f66a995"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/fileOffers.test.ts",
+          "sha256": "88df26d1ac28b6e24f6043b4ef9c5f1474e54d9798a8b4fb2a03d3137392ddd1",
+          "upstreamPath": "src/core/chat/fileOffers.test.ts",
+          "upstreamSha256": "3ab1997bfdef8ce4fef82b6d7edfccfbb5f079d8b3022bf632388fa11bf8ac8e"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/fileOffers.ts",
+          "sha256": "2a0f1b4f87eca02c0b684dd50ebdd8aaa5d6ae2b2de12b6149f0fe81537647fd",
+          "upstreamPath": "src/core/chat/fileOffers.ts",
+          "upstreamSha256": "7ee52bcfddef4824a00523645e1f4905674d8a5ebf703e33dd277bbd588f26da"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/identity.test.ts",
+          "sha256": "c8541d905aef34e512709bf1056b4eb20829ed60b98bfbcb383f695eccde7ac6",
+          "upstreamPath": "src/core/chat/identity.test.ts",
+          "upstreamSha256": "b7891bf4835d6d3a2746fe6a378506f6f653ecd7835c93cc81343a03dc517dce"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/identity.ts",
+          "sha256": "91ee18dbde231cb7219160fb008439519361c361cdac32524bed71dd67f4d0d5",
+          "upstreamPath": "src/core/chat/identity.ts",
+          "upstreamSha256": "f3086e149c5e73a78e43bee1fca1e322a928aaf0b696acbb865ba2a3db25263a"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/peers.test.ts",
+          "sha256": "7322bbbdbf47cd8753e71e738b919f5b214b2b3d2d0688212c5ba39669b5fae1",
+          "upstreamPath": "src/core/chat/peers.test.ts",
+          "upstreamSha256": "628d669b848d509c0e8d22e99d6fe6ba37d197db23ad168f914f06bee37c881e"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/peers.ts",
+          "sha256": "1d5d9ba34702cf2df6dc61186e48652e01d9d3b960abe532529191b7817fb4ea",
+          "upstreamPath": "src/core/chat/peers.ts",
+          "upstreamSha256": "f81c4a5567fd68d436b92864f3b0d96ba0545a7e2cbae805f00e034228e290fb"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/protocol.ts",
+          "sha256": "fbbf548e0e4449f78b9922d3b84100b935186fdb4ec568578a05fb706c7bf389",
+          "upstreamPath": "src/core/chat/protocol.ts",
+          "upstreamSha256": "fbbf548e0e4449f78b9922d3b84100b935186fdb4ec568578a05fb706c7bf389"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/transcript.test.ts",
+          "sha256": "aa8d6e107440b2cb441622739e5498949181d0330f2ee10550a76e536d6bd96d",
+          "upstreamPath": "src/core/chat/transcript.test.ts",
+          "upstreamSha256": "1b129a0de96233c4af347ed78605681f1cab6473f84ce51947554edce5902164"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/transcript.ts",
+          "sha256": "e7224de168d89acf40b5a54750fdc972f9028fe6b5dd401b8c4141e84fbac2ec",
+          "upstreamPath": "src/core/chat/transcript.ts",
+          "upstreamSha256": "e3fe1f9db9e60d984c5186cf70309b23137d41788bf00445bc0bbc4a5a435e1b"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/config/messaging.ts",
+          "sha256": "415a409a99afbd39ee6168fdedcd8c176ca7e9749a49f1813f3e2e6cf2d11a21",
+          "upstreamPath": "src/core/config/messaging.ts",
+          "upstreamSha256": "415a409a99afbd39ee6168fdedcd8c176ca7e9749a49f1813f3e2e6cf2d11a21"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/config/roomNames.ts",
+          "sha256": "b14fb67b152d4538edb93a54850d8a656c535fceb2f70d23ee0ef4915e0685cb",
+          "upstreamPath": "src/core/config/roomNames.ts",
+          "upstreamSha256": "b14fb67b152d4538edb93a54850d8a656c535fceb2f70d23ee0ef4915e0685cb"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/config/turnConfig.test.ts",
+          "sha256": "0fb7121ee192236a3fac96a9ecf6cc8ac2a1628e3de766d8b72be738a97d0678",
+          "upstreamPath": "src/core/config/turnConfig.test.ts",
+          "upstreamSha256": "d30936dd521cd8df34066cfd93c7e78c2cd99c625191a1e402a8bbb7998fa4bb"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/config/turnConfig.ts",
+          "sha256": "fa7926464f69c01a12775981cd47d99df9e24495aeca0c9ded49fe9c6199316e",
+          "upstreamPath": "src/core/config/turnConfig.ts",
+          "upstreamSha256": "0dbf065ddc9b2b485f700d90090943685da377c9bb2c42ee2ec955028b2dfd71"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/crypto/Encryption.test.ts",
+          "sha256": "d328bc6943ecca79c274e4e542b5cd13036b729de7320e1aca370fdd12ab044a",
+          "upstreamPath": "src/core/crypto/Encryption.test.ts",
+          "upstreamSha256": "d328bc6943ecca79c274e4e542b5cd13036b729de7320e1aca370fdd12ab044a"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/crypto/Encryption.ts",
+          "sha256": "daa2dd3f1b87309955c0371cfa0192e77ff749ff40137777112ef8c98ff626d5",
+          "upstreamPath": "src/core/crypto/Encryption.ts",
+          "upstreamSha256": "daa2dd3f1b87309955c0371cfa0192e77ff749ff40137777112ef8c98ff626d5"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/lib/sleep.ts",
+          "sha256": "be69817831045851d3395d0a0de6fc18a4556853284fc579602840c92ab94de3",
+          "upstreamPath": "src/core/lib/sleep.ts",
+          "upstreamSha256": "be69817831045851d3395d0a0de6fc18a4556853284fc579602840c92ab94de3"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/lib/Time.ts",
+          "sha256": "10abcb21daa32bd6240ab761095b723638f14ae7353e7f9bfd16d84d37275f96",
+          "upstreamPath": "src/core/lib/Time.ts",
+          "upstreamSha256": "10abcb21daa32bd6240ab761095b723638f14ae7353e7f9bfd16d84d37275f96"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/lib/type-guards.ts",
+          "sha256": "cafa5d6b28fa45ac206df183085a0f802b8507bccc1a2b81d64244aafe88ce25",
+          "upstreamPath": "src/core/lib/type-guards.ts",
+          "upstreamSha256": "cafa5d6b28fa45ac206df183085a0f802b8507bccc1a2b81d64244aafe88ce25"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/models/chat.test.ts",
+          "sha256": "fe4f6c5e8dd15503f87a9dbac34883bb114e2e498dc3ac3f308efb8e1a8bb3bd",
+          "upstreamPath": "src/core/models/chat.test.ts",
+          "upstreamSha256": "0d5373887ac4525c55821a7844b0b1c8014d01f20ce363e31b72dfca1369d77f"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/models/chat.ts",
+          "sha256": "df59d22118f87bbe465baae32feb968689cc0865da67a8c6a9abb9ccfa4a8c97",
+          "upstreamPath": "src/core/models/chat.ts",
+          "upstreamSha256": "df59d22118f87bbe465baae32feb968689cc0865da67a8c6a9abb9ccfa4a8c97"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/models/network.ts",
+          "sha256": "1ba6e1978faa6277bca9b7e2375b96732f8d11a1d1c82fe80380e3b67cd6eba0",
+          "upstreamPath": "src/core/models/network.ts",
+          "upstreamSha256": "1ba6e1978faa6277bca9b7e2375b96732f8d11a1d1c82fe80380e3b67cd6eba0"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/models/settings.ts",
+          "sha256": "b6c24fe936e266c74183a6d3a6d7f33e98d026964ccccf2e3ac70daeb2bd02d3",
+          "upstreamPath": "src/core/models/settings.ts",
+          "upstreamSha256": "b6c24fe936e266c74183a6d3a6d7f33e98d026964ccccf2e3ac70daeb2bd02d3"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/names/peerNames.test.ts",
+          "sha256": "825e929ed098cdd9eecc79beca992f13fed75ca145ec772fb4a99c329930f33d",
+          "upstreamPath": "src/core/names/peerNames.test.ts",
+          "upstreamSha256": "d57b820265b7fd8c4472924659e44fed9094798175dbbe3e8c7256aee23a1665"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/names/peerNames.ts",
+          "sha256": "4bcb33699da4eeec791384d78d081cca59e26636cf2e549c8a442950f37c6ac1",
+          "upstreamPath": "src/core/names/peerNames.ts",
+          "upstreamSha256": "adb48255d0b45c3fbdce59dedfdbd716607cf884c053453c026ba8d5129b70dd"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/settings/serialization.ts",
+          "sha256": "2dc3b75c20081a33f9bca4e67eb5b4cb23e681c8da2ad4c3fb75a6febacb500d",
+          "upstreamPath": "src/core/settings/serialization.ts",
+          "upstreamSha256": "f9ded9abded9cf344d08ec9e083a93e5da23b1e193d62379297eb92b3df5e81d"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/settings/SettingsManager.test.ts",
+          "sha256": "30428d30d5809bc5195388bf319b6146b2c34bc3276b08726e66f80e4bbdc249",
+          "upstreamPath": "src/core/settings/SettingsManager.test.ts",
+          "upstreamSha256": "e17125ca5a9a3b6968fc009e6fc33f3bcaf5b5836d2bfa635fbf2ab343030980"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/settings/SettingsManager.ts",
+          "sha256": "e5a82fb7a18b38a27737f31b756efbbeae9f11b825f1edb327cc1fbeb443b775",
+          "upstreamPath": "src/core/settings/SettingsManager.ts",
+          "upstreamSha256": "7607940a400c773b38fb1427636b6fccdfc8bcbb29848ec0b6259cc591c8cae0"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/transport/InMemoryTransport.test.ts",
+          "sha256": "9d6b116e52527720133dc8db0f798e23e69431d2b64ad5407f5b75f9d4045ded",
+          "upstreamPath": "src/core/transport/InMemoryTransport.test.ts",
+          "upstreamSha256": "9c63cd765fadcd2b57e3c4d68339c4f92bcc1e20a71b6e84e7158591eef21771"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/transport/InMemoryTransport.ts",
+          "sha256": "4a5469281eef1e54c172e61b606b768c80021150eef176c9855960033266b9fe",
+          "upstreamPath": "src/core/transport/InMemoryTransport.ts",
+          "upstreamSha256": "5a5982f4f1c30f2f0eb056744e42938f1240cd25917cb771026eb3562754b30b"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/transport/TrysteroTransport.test.ts",
+          "sha256": "9ca0a0ee500ebaa7c64dd18bcd8010e50ced24d424618a0d315148cdc8118ddc",
+          "upstreamPath": "src/core/transport/TrysteroTransport.test.ts",
+          "upstreamSha256": "fb59255413faa5d595bc113e98ab1ad9e176338e2856eb0e556a11a938957cf3"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/transport/TrysteroTransport.ts",
+          "sha256": "91c69217d02a5597afc13b4cc8db679e4290c32d9756e85f787cca7f514c76d0",
+          "upstreamPath": "src/core/transport/TrysteroTransport.ts",
+          "upstreamSha256": "f809d3e41529ab277f31f45d0790e1f33c5df594bc212789f5a96f26d241f407"
+        },
+        {
+          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/transport/types.ts",
+          "sha256": "7d46da7539d55cae841855924fde34e89388c4637bf96ffabf627ab21d6c8c80",
+          "upstreamPath": "src/core/transport/types.ts",
+          "upstreamSha256": "5fc308abb42d51222b11a27b455fbb20395c833303d0ff443b62efc399c6e518"
+        }
+      ]
+    },
+    {
+      "name": "fileshare-interconnect",
+      "repository": "https://github.com/tri5m/file-share",
+      "commit": "7228df100f687cd33332331e9c590606623408e4",
+      "license": "MIT",
+      "scope": "Direct reuse of Rust HTTP engine, upstream tests and browser assets. WinOne adapts management, explicit paths, authentication and awaited shutdown; no transfer engine rewrite.",
+      "sourceFiles": [
+        "src-tauri/src/server.rs",
+        "src-tauri/src/downloads.rs",
+        "src-tauri/src/network.rs",
+        "src-tauri/src/localization.rs",
+        "src-tauri/src/assets.rs",
+        "public/"
+      ],
+      "notices": [
+        {
+          "file": "licenses/file-share-7228df1-LICENSE.txt",
+          "sha256": "64cb30e76190137fd577012eec846d32bbcfa8cfec14876f8cab59b0ddc36e75"
+        }
+      ],
+      "files": [
+        {
+          "path": "third_party/file-share/LICENSE",
+          "sha256": "64cb30e76190137fd577012eec846d32bbcfa8cfec14876f8cab59b0ddc36e75"
+        },
+        {
+          "path": "third_party/file-share/public/admin.html",
+          "sha256": "37ea45c1db1c758da09736c8ce3383f598c89272ca4aaba6342d82250562ed28"
+        },
+        {
+          "path": "third_party/file-share/public/app-core.js",
+          "sha256": "3964945951da16b384891f5a8d0d42bd346c7540817171334bd21df2a1bedcae"
+        },
+        {
+          "path": "third_party/file-share/public/app-utils.js",
+          "sha256": "120dd863d2e9123249d6fb5709a39d0880611cdc0f978f11938ac103601c3e58"
+        },
+        {
+          "path": "third_party/file-share/public/app.js",
+          "sha256": "fbaee3044ee9254fc98b89ed2295630a5756601e42f4a06abf17ed03b6b12b54"
+        },
+        {
+          "path": "third_party/file-share/public/client.html",
+          "sha256": "6a8d4d44c6244e3119d35d945108244f2633aa9e6c52b2670a003d66c8d16672"
+        },
+        {
+          "path": "third_party/file-share/public/i18n.js",
+          "sha256": "daef65748777d482082bfb2b0b0c43a64549b32687c534de6c71c7b1d31bd29d"
+        },
+        {
+          "path": "third_party/file-share/public/styles.css",
+          "sha256": "64a4475527dc501bb13c12c7143e20b0a724dc0a52eee9e35841152f9f8cf083"
+        },
+        {
+          "path": "third_party/file-share/src-tauri/Cargo.lock",
+          "sha256": "18cbd8fec276f8081c78aed21b8d9a75cdddb2c57aa5ab0e0ee5e2dea08710ff"
+        },
+        {
+          "path": "third_party/file-share/src-tauri/Cargo.toml",
+          "sha256": "8333504d49f50bfb297bcd51804cbb52cd3bbe0e918c4902a49f394b946741a6"
+        },
+        {
+          "path": "third_party/file-share/src-tauri/src/access.rs",
+          "sha256": "06cef5ff5a931d5f7c6e65a6b39b3cf1857aa2c066c5272f40bda3d4bd5d6e23"
+        },
+        {
+          "path": "third_party/file-share/src-tauri/src/assets.rs",
+          "sha256": "9fb0cd4058789c36fe1137bb3d2b46f32677ca6415cf0db86f24be0bbad35e9a"
+        },
+        {
+          "path": "third_party/file-share/src-tauri/src/downloads.rs",
+          "sha256": "9f446688b676712e27ac29d5b87f9e8007bc6618ec1ec1e8b816744ad8c96720"
+        },
+        {
+          "path": "third_party/file-share/src-tauri/src/lib.rs",
+          "sha256": "95efcf9f1c72e4111e7f47b91694dc5d9da397af44399f37ecc8297ad64a93cc"
+        },
+        {
+          "path": "third_party/file-share/src-tauri/src/localization.rs",
+          "sha256": "b07a9dd200c01cf89aed1a9dae2f2f209c607859070cbc0ac1c88fa61ea91144"
+        },
+        {
+          "path": "third_party/file-share/src-tauri/src/network.rs",
+          "sha256": "62a80d6d16749bc510e09756ca4265b027bd7878f0f7bcb3aba95fe5f6d12e7a"
+        },
+        {
+          "path": "third_party/file-share/src-tauri/src/server.rs",
+          "sha256": "06d96769953271f7a585e6e75694f8c115d402e8cdbd061252206af25306f5b2"
+        },
+        {
+          "path": "third_party/file-share/WINONE.md",
+          "sha256": "4dec4104725d309d6e635c6ce11db45643c275746807fd45cadf12a3d0c5df62"
+        }
+      ]
+    },
+    {
+      "name": "tailcat-interconnect",
+      "repository": "https://github.com/tailscale/tailcat",
+      "commit": "15ab9e68bfc6534a61797d7af28cedd42b54a3a5",
+      "license": "BSD-3-Clause",
+      "scope": "Official v0.7.0 library dependency; forward listener lifecycle adapted from cmd/tailcat/forward.go. WinOne adds process control and a standard HTTP gateway to the existing FileShare service.",
+      "sourceFiles": [
+        "cmd/tailcat/forward.go"
+      ],
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-tailscale-tailcat-v0.7.0-LICENSE.txt",
+          "sha256": "a7ca6186a7963a0a60740f6047760eecd7a0234e8c38bd7e1e0bbcb324bda45b"
+        }
+      ],
+      "files": [
+        {
+          "path": "modules/interconnect/peer/main.go",
+          "sha256": "eddcb7a48dbeebeca1775b34baa93e830dcf22ef02dafe403d6ef807f1910e5f"
+        },
+        {
+          "path": "modules/interconnect/peer/main_test.go",
+          "sha256": "241720d054b059928e1f488d959f8918a5791d4b549645911da959ab7796600c"
+        },
+        {
+          "path": "modules/interconnect/peer/network_test.go",
+          "sha256": "174037f8fef83fc2178a328a87b0031e521a0ddf8feafaff77e03ee923eed596"
+        },
+        {
+          "path": "modules/interconnect/peer/share_test.go",
+          "sha256": "9a5eb4b638ad4d7213ea73a424b9da072719e5907e4ee8f85294c1defd81acc5"
+        },
+        {
+          "path": "modules/interconnect/peer/source_windows.go",
+          "sha256": "d135aa93bb98e507310258bfc555161fd8899425560738fcfed7dfd7ef68d299"
+        }
+      ]
     }
   ]
 }

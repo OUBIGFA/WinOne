@@ -1,5 +1,20 @@
 # 开发状态
 
+## 固定安装器更新（2026-10-24，互联助手与闪聊）
+
+本轮落地互联助手（局域网共享、croc 直连传输、Tailcat 端口穿透）并把点对点聊天拆分为独立入口“闪聊”（紧随 Chat）；接入默认打开页选项。同时修复三个构建/打包问题。
+
+- **互联助手**：文件分享复用 FileShare（LAN）；传输复用 croc v11.5.5 Tailcat（Go 模块 modules/interconnect/transfer）；端口穿透复用 tailcat（modules/interconnect/peer）。点对点聊天复用 chittatter core + trystero（前端 vendor，见 third_party/import-notices.json 8 个引入源、302 份适配文件）。
+- **闪聊拆分**：flash-chat 页面紧随 chat，PeerChatFrame iframe 根相对路径 /interconnect-chat.html（修复测试环境下相对路径解析错误导致页面崩溃）；互联助手保留传输与穿透，聊天入口移除。
+- **构建修复**：互联三个构建脚本与 build-installer.ps1 在继承 GOROOT 指向另一工具链时（go 1.26.2 根 + go 1.27.1 命令）编译必挂，统一清空 GOROOT；transfer 集成测试写入根目录改到产物目录外，不再污染打包树；打包白名单登记 shared/interconnect 三个 exe 并要求要么全部存在要么全部缺失。
+- **验证**：前端 169 文件/1027 测试（ChatRoom 身份验证等待改为 30s 抗负载）、聊天三端真实 WebRTC（含群发/私聊隔离/未打开私聊接收/草稿保留/离开重进）、布局 8 组合、收纳 4 组合、互联 LAN/transfer/peer 集成测试、完整构建 Build verified（载荷 4,663 文件）。
+- **隔离安装矩阵**：安装、故障回滚、修复、覆盖、卸载中断恢复、导出卸载器与哈希核对通过（_temp/interconnect-research-20261024/installer-test-context/result.json）。
+- **固定安装器**：dist/release/WinOne-setup.exe 为 289,159,142 字节，SHA-256 382d9907d9632ee4763bdbdcfba360c959753a140d9509e603821ca944b30fbb，包清单 SHA-256 1d46425e66d11c8fba9b0485bb6f87f52dffaf8fd17d6a517efb69142d6c8283。安装器、卸载器与 ZIP Defender 静态扫描均无威胁。旧三件套备份在 _temp/interconnect-research-20261024/prior-release/。
+
+边界：未签名；WebRTC 信令依赖公共 tracker/自定义 WebSocket，真实公网 NAT 穿透未验证；管理员权限、混合 DPI/多屏及长期稳定性未验证。
+
+# 开发状态
+
 ## 固定安装器更新（2026-10-24，Chat 排队管理与定位修复）
 
 本轮完成四项 Chat 修复并重建固定安装器：工作过程折叠按钮跟随过程区而非输入框；返回顶部/底部导航只在真实遮挡输入面时避让；排队消息可编辑、取消或改为插话（复用 Cindy PendingQueuePanel）；文件记录长内容菜单不再溢出。

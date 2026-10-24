@@ -12,6 +12,7 @@ import (
 	"time"
 	"winone/internal/adminstartup"
 	"winone/internal/directorylinks"
+	"winone/internal/interconnect"
 	"winone/internal/logintask"
 	"winone/internal/maintenance"
 	"winone/internal/modules"
@@ -49,6 +50,9 @@ func prepareUninstallAt(installation, data, pipe string) error {
 		}
 	}
 	if err := directorylinks.RemoveExplorerMenuOwnedBy(filepath.Join(installation, "WinOne.exe")); err != nil {
+		return err
+	}
+	if err := interconnect.RemoveExplorerMenuOwnedBy(filepath.Join(installation, "WinOne.exe")); err != nil {
 		return err
 	}
 	return maintenance.RequireStoppedAt(installation)

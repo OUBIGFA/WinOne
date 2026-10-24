@@ -11,11 +11,11 @@ use windows_sys::Win32::{Foundation::*, Security::*, Storage::FileSystem::*, Sys
 pub struct Plan { pub standard: bool, pub warning: String, pub error: Option<String> }
 pub enum Decision { Continue(Plan), Redirected(String) }
 
-pub struct Options { pub pipe: String, pub directory: String, pub open_settings: bool, pub standard: bool, pub capture_draft: Option<String>,pub directory_links:bool,pub link_sources:Vec<String>,pub link_options:serde_json::Map<String,Value> }
+pub struct Options { pub pipe: String, pub directory: String, pub open_settings: bool, pub standard: bool, pub capture_draft: Option<String>,pub directory_links:bool,pub interconnect:bool,pub link_sources:Vec<String>,pub link_options:serde_json::Map<String,Value> }
 impl Options {
     pub fn parse(args: &[String], default_pipe: &str, local: &Path) -> Result<Self, String> {
         if !local.is_absolute() { return Err("无法确定本机配置目录。".into()); }
-        let mut result = Self {pipe:default_pipe.into(),directory:local.join("WinOne").to_string_lossy().into_owned(),open_settings:false,standard:false,capture_draft:None,directory_links:false,link_sources:vec![],link_options:serde_json::Map::new()};
+        let mut result = Self {pipe:default_pipe.into(),directory:local.join("WinOne").to_string_lossy().into_owned(),open_settings:false,standard:false,capture_draft:None,directory_links:false,interconnect:false,link_sources:vec![],link_options:serde_json::Map::new()};
         let mut seen = std::collections::HashSet::new();
         let mut index=0;
         while index<args.len() {
@@ -34,6 +34,7 @@ impl Options {
                 }
                 "--open-settings" => result.open_settings=true,
                 "--directory-links" => {result.directory_links=true;result.open_settings=true;},
+                "--interconnect" => {result.interconnect=true;result.open_settings=true;},
                 "--absolute-paths" => {result.link_options.insert("relative".into(),json!(false));},
                 "--link-retain-script"|"--retain-script" => {result.link_options.insert("retainScript".into(),json!(true));},
                 "--link-hide-success"|"--hide-success-dialog" => {result.link_options.insert("hideSuccess".into(),json!(true));},
@@ -49,7 +50,7 @@ impl Options {
         if result.capture_draft.as_ref().is_some_and(|id| id.len()!=32 || !id.bytes().all(|b|b.is_ascii_digit()||(b'a'..=b'f').contains(&b))) || (result.open_settings && result.capture_draft.is_some()) {
             return Err("截图启动参数无效。".into());
         }
-        if !result.directory_links&&(!result.link_sources.is_empty()||!result.link_options.is_empty())||result.link_sources.len()>200||result.link_sources.iter().any(|source|!Path::new(source).is_absolute()||source.contains('\0')){return Err("目录链接启动参数无效。".into());}
+        if result.directory_links&&result.interconnect||(!result.directory_links&&!result.interconnect&&!result.link_sources.is_empty())||(!result.directory_links&&!result.link_options.is_empty())||result.link_sources.len()>200||result.link_sources.iter().any(|source|!Path::new(source).is_absolute()||source.contains('\0')){return Err("目录链接启动参数无效。".into());}
         Ok(result)
     }
 }

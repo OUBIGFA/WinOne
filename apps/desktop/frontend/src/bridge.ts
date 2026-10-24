@@ -83,6 +83,7 @@ interface NativeApp {
   PickFile(): Promise<string>;
   PickDirectories():Promise<string[]>;
   DirectoryLinks(method:string,payload:string):Promise<string>;
+  Interconnect(method:string,payload:string):Promise<string>;
   Stroke(method:string,payload:string):Promise<string>;
   ReadDroppedImage(path:string):Promise<string>;
   InspectDroppedPaths(paths:string[]):Promise<{path:string;kind:"file"|"directory"}[]>;
@@ -230,6 +231,7 @@ export async function pickFile():Promise<string>{return native().PickFile();}
 export async function pickFiles():Promise<string[]>{return native().PickChatFiles();}
 export async function pickDirectories():Promise<string[]>{return native().PickDirectories();}
 export async function directoryLinksCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().DirectoryLinks(method,JSON.stringify(params))) as T;}
+export async function interconnectCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().Interconnect(method,JSON.stringify(params))) as T;}
 export async function strokeCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().Stroke(method,JSON.stringify(params))) as T;}
 // Multiple path fields may coexist with Chat or the link workspace. Keep the
 // native registration until the last consumer has unmounted.

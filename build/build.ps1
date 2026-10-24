@@ -93,6 +93,9 @@ if(-not $ResultGoExe){$ResultGoExe=$GoExe}
 & (Join-Path $PSScriptRoot 'build-results.ps1') -OutputDirectory (Join-Path $output 'shared/ui') -GoExe $ResultGoExe
 & (Join-Path $PSScriptRoot 'build-diagrams.ps1') -OutputDirectory (Join-Path $output 'shared/ui') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $DiagramTargetDirectory
 & (Join-Path $PSScriptRoot 'build-selection.ps1') -OutputDirectory (Join-Path $output 'selection') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $SelectionTargetDirectory
+& (Join-Path $PSScriptRoot 'build-interconnect-lan.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -CargoExe $CargoExe -Test
+& (Join-Path $PSScriptRoot 'build-interconnect-transfer.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -GoExe $ResultGoExe -Test -TestDirectory (Join-Path (Split-Path -Parent $output) 'interconnect-transfer-tests')
+& (Join-Path $PSScriptRoot 'build-interconnect-peer.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -GoExe $ResultGoExe -Test -TestDirectory (Join-Path (Split-Path -Parent $output) 'interconnect-peer-tests')
 & (Join-Path $PSScriptRoot 'build-capture-regions.ps1') -OutputDirectory (Join-Path $output 'capture')
 $regionLifetimeProbe = Join-Path $root '_temp/build/capture-regions-lifetime-probe'
 & (Join-Path $PSScriptRoot 'build-capture-regions.ps1') -TestLifetime -OutputDirectory $regionLifetimeProbe
@@ -139,6 +142,8 @@ if ($currentVersion -ne $buildVersion) { throw 'Version changed during build; re
 & (Join-Path $PSScriptRoot 'verify-notices.ps1') -GoExe $GoExe -BundleDirectory $output
 & (Join-Path $PSScriptRoot 'verify-ocr-ai-notices.ps1') -GoExe $GoExe -BundleDirectory $output
 & (Join-Path $PSScriptRoot 'verify-result-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output
+& (Join-Path $PSScriptRoot 'verify-interconnect-transfer-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output
+& (Join-Path $PSScriptRoot 'verify-interconnect-transfer-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output -Runtime peer
 & (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output
 & (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime selection
 & (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime recording

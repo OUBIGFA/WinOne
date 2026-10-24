@@ -32,6 +32,7 @@ export function ProcessCollapseAction(){
 export function ProcessBody({children,blockKey,onCollapse,version,onLongChange}:{children:ReactNode;blockKey:string;onCollapse?:()=>void;onLongChange?:(value:boolean)=>void;follow?:boolean;version?:unknown}){
  const navigation=useContext(ProcessNavigation),nested=useContext(ProcessScrollOwner),register=navigation?.register;
  const [content,setContent]=useState<HTMLDivElement|null>(null),[long,setLong]=useState(false);
+ const anchor=useRef<{element:HTMLElement;viewportTop:number;viewportBottom:number;bottom:number}|undefined>(undefined);
  const collapseRef=useRef(onCollapse);collapseRef.current=onCollapse;
  const lengthRef=useRef(onLongChange);lengthRef.current=onLongChange;
  useLayoutEffect(()=>{lengthRef.current?.(long);},[long]);
@@ -49,6 +50,12 @@ export function ProcessBody({children,blockKey,onCollapse,version,onLongChange}:
    // Keep the existing long-content threshold: the overlay reduces reading
    // space, but it is not the anchor for an already-visible collapse action.
    const readingBottom=footer?Math.min(bottom,footer.getBoundingClientRect().top-6):bottom;
+   // Capture a visible location when this body enters the reading pane. Only
+   // a change to the pane's geometry resets it. Scrolling, stream growth and
+   // composer resizing never pull the button toward the body's natural end.
+   if(bounds&&(!anchor.current||anchor.current.element!==content||anchor.current.viewportTop!==bounds.top||anchor.current.viewportBottom!==bounds.bottom)){
+    anchor.current={element:content,viewportTop:bounds.top,viewportBottom:bounds.bottom,bottom:readingBottom};
+   }
    const available=bounds&&bounds.height>0?Math.max(0,readingBottom-bounds.top):transcript?.clientHeight||window.innerHeight;
    const isLong=content.scrollHeight>Math.max(1,available)+1;setLong(isLong);
    if(nested||!register)return;
@@ -56,7 +63,7 @@ export function ProcessBody({children,blockKey,onCollapse,version,onLongChange}:
    // natural bottom is visible. Keep the action inside the visible body.
    const visible=isLong&&host&&bounds&&onCollapse&&body.top<bottom-32&&body.bottom>bounds.top+32;
    const origin=host?.getBoundingClientRect();
-   register(blockKey,visible&&origin?{element:content,host,left:body.right-origin.left-30,top:Math.min(bottom,body.bottom)-origin.top-30,collapse:()=>collapseRef.current?.()}:undefined);
+   register(blockKey,visible&&origin?{element:content,host,left:body.right-origin.left-30,top:(anchor.current?.bottom??readingBottom)-origin.top-30,collapse:()=>collapseRef.current?.()}:undefined);
   };
   const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(measure);};
   measure();window.addEventListener('resize',schedule);transcript?.addEventListener('scroll',schedule,{passive:true});

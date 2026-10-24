@@ -2,6 +2,7 @@
 // native boundary below is in-memory: no user configuration, hooks, files,
 // sign-in, Explorer integration or startup registration is changed.
 import type {Settings} from "../src/bridge";
+import {interconnectFixture} from './interconnect-fixture';
 import type {AIConfiguration} from "../src/features/ai-configuration";
 import type {DirectoryEntry} from "../src/features/directory-links-browser";
 import type {DirectoryLinkRecord} from "../src/features/directory-links";
@@ -80,6 +81,7 @@ Object.assign(window, {settingsDesignFixture: {calls, recover: () => query.delet
 
 type NativeApp = NonNullable<NonNullable<Window["go"]>["main"]>["App"];
 window.go = {main: {App: {
+  Interconnect: interconnectFixture(),
   Snapshot: async () => snapshot(),
   SaveSettings: async (value: Settings) => {record("settings.save", value); Object.assign(globalSettings, value, {revision: globalSettings.revision + 1}); return structuredClone(globalSettings);},
   SettingsNavigation: async () => 0,

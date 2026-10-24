@@ -18,9 +18,10 @@ import {chatMessages} from "./locales/chat";
 import {directoryLinksMessages} from './locales/directory-links';
 import {mouseGesturesMessages} from './locales/mouse-gestures';
 import {settingsDesignMessages} from './locales/settings-design';
+import {interconnectMessages} from './locales/interconnect';
 export { useTranslation } from "react-i18next";
 
-const zh={
+const zh={interconnect:interconnectMessages.zh,
   fileDrop:{single:"每次请拖入一个项目。",folderOnly:"此处只接收文件夹，原路径已保留。",fileOnly:"此处只接收文件，原内容已保留。",localOnly:"请从资源管理器拖入本地文件或文件夹。"},
   settingsDesign:settingsDesignMessages.zh,
   ...aiRoutingMessages.zh,
@@ -53,7 +54,7 @@ const zh={
   moduleDescription:{"quick-assistant":"AI 对话与快捷指令",capture:"截图、标注与截图置顶",selection:"选中文字后翻译、解释或继续对话","always-on-top":"让选定窗口保持在前面",wintray:"管理程序启动和托盘图标"},
   moduleStatus:{incomplete:"关闭未完成",faulted:"需要处理",unavailable:"组件不可用",working:"正在处理",enabled:"已开启",disabled:"已关闭"},
 };
-const en={fileDrop:{single:"Drop one entry at a time.",folderOnly:"This field accepts folders only. The previous path is retained.",fileOnly:"This field accepts files only. The previous value is retained.",localOnly:"Drop local files or folders from File Explorer."},...aiRoutingMessages.en,settingsDesign:settingsDesignMessages.en,stroke:mouseGesturesMessages.en,links:directoryLinksMessages.en,
+const en={interconnect:interconnectMessages.en,fileDrop:{single:"Drop one entry at a time.",folderOnly:"This field accepts folders only. The previous path is retained.",fileOnly:"This field accepts files only. The previous value is retained.",localOnly:"Drop local files or folders from File Explorer."},...aiRoutingMessages.en,settingsDesign:settingsDesignMessages.en,stroke:mouseGesturesMessages.en,links:directoryLinksMessages.en,
   chat:chatMessages.en,
   quickAssistant:{alwaysOnTop:"Keep Quick assistant on top by default",showReasoning:"Show reasoning in Quick assistant",loading:"Loading quick assistant settings",open:"Open quick assistant",toolbarHint:"Use these actions in the AI chat. Defaults are shared with the selection assistant; order, visibility, and custom actions are saved separately here."},
   sharedPackages:sharedPackageMessages.en,

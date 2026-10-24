@@ -31,3 +31,24 @@
 ShareX 的截图库与贴图代码用于独立 Capture Worker，相关许可保留在 `modules/capture/Licenses/`。录像选区线框复用其 `ScrollingCaptureRegionForm`，适配灰阶描边、不抢焦点和捕获排除；滚动截图继续使用其选区验证与拼接引擎。源码版本固定，下载缓存和编译产物不进入 Git；分发时提供对应源码与接入修改。
 
 OCR 生命周期仅调研参考 SnapFind（MIT，提交 `39416254c48aa7633254ecb79f890802fea2b401`），未引入其代码、模型或运行依赖。低内存说明与本机冷/热调用对照见 `docs/capture-experience-repair.md`；未采用会增加首次识别等待的闲置卸载策略。
+# FileShare · 互联助手局域网服务
+
+FileShare 1.0.13, commit `7228df100f687cd33332331e9c590606623408e4`,
+is distributed under MIT. The Rust HTTP engine and browser assets are reused
+directly; WinOne adapts the desktop management, data paths, authentication and
+shutdown boundaries. Original license: `third_party/file-share/LICENSE`.
+Source and changes: `third_party/file-share/WINONE.md`. Transitive dependency
+licenses: `third_party/interconnect-lan-notices.json`.
+# croc file transfer
+
+Interconnect directly reuses [croc v11.5.5](https://github.com/schollz/croc/tree/8a806c36956533f9c003c55f16e31fcf14133f8e) (MIT), including the original transfer and encrypted storage clients. Adaptations are documented in third_party/croc/WINONE.md. Original dependency licenses and their SHA-256 values are listed in third_party/interconnect-transfer-notices.json; upstream notices remain in third_party/croc/THIRD_PARTY_NOTICES.md.
+
+# Tailcat · 持续分享与 TCP 通道
+
+直接使用官方 Tailcat v0.7.0，提交 `15ab9e68bfc6534a61797d7af28cedd42b54a3a5`，BSD-3-Clause。TCP 转发生命周期参考其 `cmd/tailcat/forward.go`，WinOne 适配进程监督与 FileShare 的标准 HTTP 网关。原始许可、Go 工具链及传递依赖记录见 `third_party/interconnect-peer-notices.json`，改编文件与摘要见 `third_party/import-notices.json`。Tailcat-Box 仅用于调研，未复制其 PolyForm Noncommercial 实现。
+
+# Chitchatter · 点对点聊天
+
+完整无 UI 核心来自 [Chitchatter](https://github.com/jeremyckahn/chitchatter/tree/4093c21dad24af133c3c5c12042d3eb6112eece1)，提交 `4093c21dad24af133c3c5c12042d3eb6112eece1`，按上游 package.json 的 GPL-2.0-or-later 声明接入。原始许可见 `third_party/licenses/chitchatter-4093c21-LICENSE.txt`，源码、原始测试及适配说明保存在 `apps/desktop/frontend/src/vendor/chitchatter/`，来源摘要见 `third_party/import-notices.json`。Trystero 等前端依赖许可由 `third_party/runtime-notices.json` 记录。
+
+房间、身份、群聊、私聊、消息及 file offer 协议直接复用核心。文件适配器使用 FileShare + 官方 Tailcat 地址，双方需使用 WinOne；不宣称与原 Chitchatter WebTorrent 文件客户端互通。WinOne 以 GPLv3 与该 GPL-2.0-or-later 核心组合，分发时保留归属、原始许可、修改说明及对应源码提供义务。

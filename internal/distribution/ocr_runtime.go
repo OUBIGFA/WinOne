@@ -40,6 +40,7 @@ var chatRuntimeFiles = []string{"shared/chat/worker.js", "shared/chat/runtime.js
 var chatShareFiles = strings.Fields(chatShareInventory)
 var chatCodeModeFiles = strings.Fields(chatCodeModeInventory)
 var chatOptionalRuntimeFiles = []string{"shared/chat/scheduler.js", "shared/chat/script-runner.js", "shared/ai/runtime/photon_rs_bg.wasm"}
+var interconnectRuntimeFiles = []string{"shared/interconnect/WinOne.Interconnect.Lan.exe", "shared/interconnect/WinOne.Interconnect.Peer.exe", "shared/interconnect/WinOne.Interconnect.Transfer.exe"}
 var strokeRuntimeFiles = []string{"stroke/WinOne.Stroke.exe", "stroke/Stroke.Base.dll", "stroke/Base.dll", "stroke/Stroke.dll", "stroke/Stroke-LICENSE.txt", "stroke/schema.json", "stroke/defaults.json", "stroke/migrations.json"}
 
 var textRuntimeFiles = append(strings.Fields(ocrRuntimeInventory), "shared/ai/WinOne.AI.exe", "shared/ai/magpie-LICENSE.txt")
@@ -68,6 +69,9 @@ var textRuntimeAllowed = func() map[string]bool {
 	for _, name := range chatOptionalRuntimeFiles {
 		result[name] = true
 	}
+	for _, name := range interconnectRuntimeFiles {
+		result[name] = true
+	}
 	return result
 }()
 
@@ -75,7 +79,7 @@ var textRuntimeAllowed = func() map[string]bool {
 // feature file requires the complete new runtime, not a partial OCR upgrade.
 func requiredForPayload(seen map[string]bool) []string {
 	result := append([]string{}, requiredFiles...)
-	text, plugins, chat, share, codeMode, stroke, search, recording := false, false, false, false, false, false, false, false
+	text, plugins, chat, share, codeMode, stroke, search, recording, interconnect := false, false, false, false, false, false, false, false, false
 	for name := range seen {
 		lower := strings.ToLower(name)
 		if lower == "capture/winone.recording.dll" || lower == "capture/recording-runtime.json" {
@@ -113,6 +117,9 @@ func requiredForPayload(seen map[string]bool) []string {
 		if strings.HasPrefix(lower, "shared/ai/plugins/") || strings.HasPrefix(lower, "shared/ai/runtime/") {
 			plugins = true
 		}
+		if strings.HasPrefix(lower, "shared/interconnect/") {
+			interconnect = true
+		}
 	}
 	if text {
 		result = append(result, textRuntimeFiles...)
@@ -140,6 +147,11 @@ func requiredForPayload(seen map[string]bool) []string {
 	}
 	if stroke {
 		result = append(result, strokeRuntimeFiles...)
+	}
+	// The interconnect payload is one delivery: a partial copy must fail
+	// instead of silently removing the LAN, peer or transfer tool.
+	if interconnect {
+		result = append(result, interconnectRuntimeFiles...)
 	}
 	return result
 }

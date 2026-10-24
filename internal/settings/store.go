@@ -175,7 +175,7 @@ func Open(path string) (*Store, error) {
 
 func validate(s Settings) error {
 	switch s.DefaultPage {
-	case "", "overview", "capture", "selection", "quick-assistant", "wintray", "convenience", "chat", "ai-services", "settings":
+	case "", "overview", "capture", "selection", "quick-assistant", "interconnect", "wintray", "convenience", "chat", "flash-chat", "ai-services", "settings":
 	default:
 		return errors.New("unsupported default page")
 	}

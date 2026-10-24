@@ -84,10 +84,10 @@ fn run(args: &[String]) -> Result<(),String> {
 }
 #[cfg(windows)]
 fn enqueue_directory_links(options:&startup::Options,plan:&startup::Plan)->Result<(),String>{
-    if !options.directory_links{return Ok(());}
+    if !options.directory_links&&!options.interconnect{return Ok(());}
     let client=winone_desktop::transport::Client::new(&options.pipe,std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false))).map_err(|e|e.to_string())?;
     startup::ensure_host(&client,&options.pipe,&options.directory,plan).map_err(|e|e.to_string())?;
-    client.call("directory-links.open",serde_json::json!({"paths":options.link_sources,"options":options.link_options})).map_err(|e|e.to_string())?;
+    client.call(if options.interconnect {"interconnect.open"} else {"directory-links.open"},if options.interconnect {serde_json::json!({"paths":options.link_sources})} else {serde_json::json!({"paths":options.link_sources,"options":options.link_options})}).map_err(|e|e.to_string())?;
     Ok(())
 }
 #[cfg(windows)]

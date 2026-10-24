@@ -53,6 +53,14 @@ func warningNotification(base notifyIconData, title, message string) (notifyIcon
 // ShowWarning requests a one-shot Windows notification using this tray icon.
 // Windows controls visibility; quiet-time or disabled notifications are respected.
 func ShowWarning(title, message string) error {
+	return showNotification(title, message, false)
+}
+
+// ShowMessage uses the same one-shot lifecycle for a successful operation.
+func ShowMessage(title, message string) error {
+	return showNotification(title, message, true)
+}
+func showNotification(title, message string, information bool) error {
 	wt.muNID.Lock()
 	defer wt.muNID.Unlock()
 	if !wt.isReady() || wt.nid == nil {
@@ -61,6 +69,9 @@ func ShowWarning(title, message string) error {
 	data, err := warningNotification(*wt.nid, title, message)
 	if err != nil {
 		return err
+	}
+	if information {
+		data.InfoFlags = 0x1 | 0x10 | 0x80
 	}
 	err = data.modify()
 	if errors.Is(err, syscall.Errno(0)) {

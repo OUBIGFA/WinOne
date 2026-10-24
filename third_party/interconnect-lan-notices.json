@@ -1,0 +1,1301 @@
+{
+    "schemaVersion":  1,
+    "packages":  [
+                     {
+                         "name":  "async-stream",
+                         "version":  "0.3.6",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-async-stream-0.3.6-LICENSE.txt",
+                                             "sha256":  "157d381f6304eba77459fc10dfb5b1b22fc0d04e384a32865f32d8e67a34c0eb"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "async-stream-impl",
+                         "version":  "0.3.6",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-async-stream-impl-0.3.6-LICENSE.txt",
+                                             "sha256":  "157d381f6304eba77459fc10dfb5b1b22fc0d04e384a32865f32d8e67a34c0eb"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "async-trait",
+                         "version":  "0.1.89",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-async-trait-0.1.89-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-async-trait-0.1.89-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "atomic-waker",
+                         "version":  "1.1.2",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "Apache-2.0 OR MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-atomic-waker-1.1.2-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-atomic-waker-1.1.2-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-atomic-waker-1.1.2-LICENSE-THIRD-PARTY.txt",
+                                             "sha256":  "6226d0632e2e1a80c23597e964da9812ae193c535fe058154afb034e94167aa5"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "autocfg",
+                         "version":  "1.5.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "Apache-2.0 OR MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-autocfg-1.5.0-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-autocfg-1.5.0-LICENSE-MIT.txt",
+                                             "sha256":  "27995d58ad5c1145c1a8cd86244ce844886958a35eb2b78c6b772748669999ac"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "axum",
+                         "version":  "0.7.9",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-axum-0.7.9-LICENSE.txt",
+                                             "sha256":  "c14b6ed9d732322af9bae1551f6ca373b3893d7ce6e9d46429fc378478d00dfb"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "axum-core",
+                         "version":  "0.4.5",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-axum-core-0.4.5-LICENSE.txt",
+                                             "sha256":  "ab25eee08e7b6d209398f44e6f4a6f17c9446cd54b99fd64e041edadc96b6f9b"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "base64",
+                         "version":  "0.22.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-base64-0.22.1-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-base64-0.22.1-LICENSE-MIT.txt",
+                                             "sha256":  "0dd882e53de11566d50f8e8e2d5a651bcf3fabee4987d70f306233cf39094ba7"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "bitflags",
+                         "version":  "2.11.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-bitflags-2.11.1-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-bitflags-2.11.1-LICENSE-MIT.txt",
+                                             "sha256":  "6485b8ed310d3f0340bf1ad1f47645069ce4069dcc6bb46c7d5c6faf41de1fdb"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "bytemuck",
+                         "version":  "1.25.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "Zlib OR Apache-2.0 OR MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-bytemuck-1.25.0-LICENSE-APACHE.txt",
+                                             "sha256":  "e3ba223bb1423f0aad8c3dfce0fe3148db48926d41e6fbc3afbbf5ff9e1c89cb"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-bytemuck-1.25.0-LICENSE-MIT.txt",
+                                             "sha256":  "9df9ba60a11af705f2e451b53762686e615d86f76b169cf075c3237730dbd7e2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-bytemuck-1.25.0-LICENSE-ZLIB.txt",
+                                             "sha256":  "84b34dd7608f7fb9b17bd588a6bf392bf7de504e2716f024a77d89f1b145a151"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "byteorder-lite",
+                         "version":  "0.1.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "Unlicense OR MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-byteorder-lite-0.1.0-LICENSE-MIT.txt",
+                                             "sha256":  "0f96a83840e146e43c0ec96a22ec1f392e0680e6c1226e6f3ba87e0740af850f"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "bytes",
+                         "version":  "1.11.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-bytes-1.11.1-LICENSE.txt",
+                                             "sha256":  "45f522cacecb1023856e46df79ca625dfc550c94910078bd8aec6e02880b3d42"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "cfg-if",
+                         "version":  "1.0.4",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-cfg-if-1.0.4-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-cfg-if-1.0.4-LICENSE-MIT.txt",
+                                             "sha256":  "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "chrono",
+                         "version":  "0.4.44",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-chrono-0.4.44-LICENSE.txt.txt",
+                                             "sha256":  "946c9835d8034d24404f8cfec5f4654cee5dad17e944afc3d06d742cf2882831"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "dirs",
+                         "version":  "5.0.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-dirs-5.0.1-LICENSE-APACHE.txt",
+                                             "sha256":  "d3174ad63e721d4c9dccb8ad4320848992d314369bc46319720b5802c9153fe9"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-dirs-5.0.1-LICENSE-MIT.txt",
+                                             "sha256":  "6a2e0ade09a7d5f816f11566fee2b151b32235a7fad52b41d49cce96f833c1a9"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "dirs-sys",
+                         "version":  "0.4.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-dirs-sys-0.4.1-LICENSE-APACHE.txt",
+                                             "sha256":  "d3174ad63e721d4c9dccb8ad4320848992d314369bc46319720b5802c9153fe9"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-dirs-sys-0.4.1-LICENSE-MIT.txt",
+                                             "sha256":  "6a2e0ade09a7d5f816f11566fee2b151b32235a7fad52b41d49cce96f833c1a9"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "encoding_rs",
+                         "version":  "0.8.35",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "(Apache-2.0 OR MIT) AND BSD-3-Clause",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-encoding_rs-0.8.35-COPYRIGHT.txt",
+                                             "sha256":  "11789f45bb180841cd362a5eee6789c68ddb573a11105e30768c308a6add0190"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-encoding_rs-0.8.35-LICENSE-APACHE.txt",
+                                             "sha256":  "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-encoding_rs-0.8.35-LICENSE-MIT.txt",
+                                             "sha256":  "3fa4ca83dcc9237839b1bdeb2e6d16bdfb5ec0c5ce42b24694d8bbf0dcbef72c"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-encoding_rs-0.8.35-LICENSE-WHATWG.txt",
+                                             "sha256":  "838118388fe5c2e7f1dbbaeed13e1c7f3ebf88be91319c7c1d77c18e987d1a50"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "fastrand",
+                         "version":  "2.4.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "Apache-2.0 OR MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-fastrand-2.4.1-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-fastrand-2.4.1-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "form_urlencoded",
+                         "version":  "1.2.2",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-form_urlencoded-1.2.2-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-form_urlencoded-1.2.2-LICENSE-MIT.txt",
+                                             "sha256":  "20c7855c364d57ea4c97889a5e8d98470a9952dade37bd9248b9a54431670e5e"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "futures-channel",
+                         "version":  "0.3.32",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-futures-channel-0.3.32-LICENSE-APACHE.txt",
+                                             "sha256":  "275c491d6d1160553c32fd6127061d7f9606c3ea25abfad6ca3f6ed088785427"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-futures-channel-0.3.32-LICENSE-MIT.txt",
+                                             "sha256":  "6652c868f35dfe5e8ef636810a4e576b9d663f3a17fb0f5613ad73583e1b88fd"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "futures-core",
+                         "version":  "0.3.32",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-futures-core-0.3.32-LICENSE-APACHE.txt",
+                                             "sha256":  "275c491d6d1160553c32fd6127061d7f9606c3ea25abfad6ca3f6ed088785427"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-futures-core-0.3.32-LICENSE-MIT.txt",
+                                             "sha256":  "6652c868f35dfe5e8ef636810a4e576b9d663f3a17fb0f5613ad73583e1b88fd"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "futures-sink",
+                         "version":  "0.3.32",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-futures-sink-0.3.32-LICENSE-APACHE.txt",
+                                             "sha256":  "275c491d6d1160553c32fd6127061d7f9606c3ea25abfad6ca3f6ed088785427"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-futures-sink-0.3.32-LICENSE-MIT.txt",
+                                             "sha256":  "6652c868f35dfe5e8ef636810a4e576b9d663f3a17fb0f5613ad73583e1b88fd"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "futures-task",
+                         "version":  "0.3.32",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-futures-task-0.3.32-LICENSE-APACHE.txt",
+                                             "sha256":  "275c491d6d1160553c32fd6127061d7f9606c3ea25abfad6ca3f6ed088785427"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-futures-task-0.3.32-LICENSE-MIT.txt",
+                                             "sha256":  "6652c868f35dfe5e8ef636810a4e576b9d663f3a17fb0f5613ad73583e1b88fd"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "futures-util",
+                         "version":  "0.3.32",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-futures-util-0.3.32-LICENSE-APACHE.txt",
+                                             "sha256":  "275c491d6d1160553c32fd6127061d7f9606c3ea25abfad6ca3f6ed088785427"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-futures-util-0.3.32-LICENSE-MIT.txt",
+                                             "sha256":  "6652c868f35dfe5e8ef636810a4e576b9d663f3a17fb0f5613ad73583e1b88fd"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "getrandom",
+                         "version":  "0.4.2",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-getrandom-0.4.2-LICENSE-APACHE.txt",
+                                             "sha256":  "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-getrandom-0.4.2-LICENSE-MIT.txt",
+                                             "sha256":  "523a42c25d245dde9c015f882cec7f4555aad883382a6cf19b4b7d9b2cd5419b"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "http",
+                         "version":  "1.4.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-http-1.4.0-LICENSE-APACHE.txt",
+                                             "sha256":  "8bb1b50b0e5c9399ae33bd35fab2769010fa6c14e8860c729a52295d84896b7a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-http-1.4.0-LICENSE-MIT.txt",
+                                             "sha256":  "dc91f8200e4b2a1f9261035d4c18c33c246911a6c0f7b543d75347e61b249cff"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "httparse",
+                         "version":  "1.10.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-httparse-1.10.1-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-httparse-1.10.1-LICENSE-MIT.txt",
+                                             "sha256":  "391a5396cec6230bfabd4ef4eb2350eb895bc5efce377a2218f5702ed020d3e3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "http-body",
+                         "version":  "1.0.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-http-body-1.0.1-LICENSE.txt",
+                                             "sha256":  "cddabf8adc6ccd6c3e68f5d71eac9fae3094116623cf23a46af0a5fd6b8ee813"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "http-body-util",
+                         "version":  "0.1.3",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-http-body-util-0.1.3-LICENSE.txt",
+                                             "sha256":  "b843fb7430efdf9732c834b6814beda44fccf3f0ddf7c9e030b39da17f6b159c"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "httpdate",
+                         "version":  "1.0.3",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-httpdate-1.0.3-LICENSE-APACHE.txt",
+                                             "sha256":  "4d10fe5f3aa176b05b229a248866bad70b834c173f1252a814ff4748d8a13837"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-httpdate-1.0.3-LICENSE-MIT.txt",
+                                             "sha256":  "934887691e05d69d7c86ad3f2c360980fa30c15b035e351f3c9865e99da4debc"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "hyper",
+                         "version":  "1.9.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-hyper-1.9.0-LICENSE.txt",
+                                             "sha256":  "2d01890414494742ba4a509fcec8efa40f6d8be22cbd72be7cff08d6fda4ec89"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "hyper-util",
+                         "version":  "0.1.20",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-hyper-util-0.1.20-LICENSE.txt",
+                                             "sha256":  "9e0a97848ea543aef745c98e84fde696a9a3e0735538f6daefdd3cb1942effc1"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "image",
+                         "version":  "0.25.10",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-image-0.25.10-LICENSE-APACHE.txt",
+                                             "sha256":  "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-image-0.25.10-LICENSE-MIT.txt",
+                                             "sha256":  "c77a4cf9da729987d0fe7ccd811e3bd27393914ddf3d23467c18cc22954513b3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "itoa",
+                         "version":  "1.0.18",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-itoa-1.0.18-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-itoa-1.0.18-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "local-ip-address",
+                         "version":  "0.6.12",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-local-ip-address-0.6.12-LICENSE-APACHE.txt",
+                                             "sha256":  "b181eef0db675818306068b726419377e39377ede46b8939df9808a28b1dcd41"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-local-ip-address-0.6.12-LICENSE-MIT.txt",
+                                             "sha256":  "4a183ecc62532a975ece5067b64200c75dfcc0953c0034103b008cda54902fe7"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "log",
+                         "version":  "0.4.29",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-log-0.4.29-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-log-0.4.29-LICENSE-MIT.txt",
+                                             "sha256":  "6485b8ed310d3f0340bf1ad1f47645069ce4069dcc6bb46c7d5c6faf41de1fdb"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "matchit",
+                         "version":  "0.7.3",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT AND BSD-3-Clause",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-matchit-0.7.3-LICENSE.txt",
+                                             "sha256":  "de701d0618d694feb1af90f02181a1763d9b0bdeb70a3a592781e529077dba65"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-matchit-0.7.3-LICENSE.httprouter.txt",
+                                             "sha256":  "162ce11ad71338d0a0c6ebaf5c48af72c6ae237b468859d3656fe2d9ed3f3a85"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "memchr",
+                         "version":  "2.8.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "Unlicense OR MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-memchr-2.8.0-COPYING.txt",
+                                             "sha256":  "01c266bced4a434da0051174d6bee16a4c82cf634e2679b6155d40d75012390f"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-memchr-2.8.0-LICENSE-MIT.txt",
+                                             "sha256":  "0f96a83840e146e43c0ec96a22ec1f392e0680e6c1226e6f3ba87e0740af850f"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "mime",
+                         "version":  "0.3.17",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-mime-0.3.17-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-mime-0.3.17-LICENSE-MIT.txt",
+                                             "sha256":  "df9cfd06d8a44d9a671eadd39ffd97f166481da015a30f45dfd27886209c5922"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "mime_guess",
+                         "version":  "2.0.5",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-mime_guess-2.0.5-LICENSE.txt",
+                                             "sha256":  "816000f9c28f7005d931c77636eb79fa7020071eb0f6e6a995515dfccd3559cb"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "mio",
+                         "version":  "1.2.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-mio-1.2.0-LICENSE.txt",
+                                             "sha256":  "07919255c7e04793d8ea760d6c2ce32d19f9ff02bdbdde3ce90b1e1880929a9b"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "moxcms",
+                         "version":  "0.8.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "BSD-3-Clause OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-moxcms-0.8.1-LICENSE.md.txt",
+                                             "sha256":  "2aa92cada6431e75615e3fe6cb1a9082c98f777d48ae1c087c0da0e37f7b8bff"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-moxcms-0.8.1-LICENSE-APACHE.md.txt",
+                                             "sha256":  "90bf2d659c43045111b65c733ab2a6d4cbcb422a098368c8c58a9ba3db4ed0c5"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "multer",
+                         "version":  "3.1.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-multer-3.1.0-LICENSE.txt",
+                                             "sha256":  "cfb47b4c5832e5a204d86140ba385e683309e3c82f670e65dfaf491b13c5e2c4"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "num-traits",
+                         "version":  "0.2.19",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-num-traits-0.2.19-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-num-traits-0.2.19-LICENSE-MIT.txt",
+                                             "sha256":  "6485b8ed310d3f0340bf1ad1f47645069ce4069dcc6bb46c7d5c6faf41de1fdb"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "once_cell",
+                         "version":  "1.21.4",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-once_cell-1.21.4-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-once_cell-1.21.4-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "option-ext",
+                         "version":  "0.2.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MPL-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-option-ext-0.2.0-LICENSE.txt.txt",
+                                             "sha256":  "66a3107d5ad6a058aab753eaac2047ccb2ed0e39465dd0fe5844da3e300d5172"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "percent-encoding",
+                         "version":  "2.3.2",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-percent-encoding-2.3.2-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-percent-encoding-2.3.2-LICENSE-MIT.txt",
+                                             "sha256":  "b38f11f6096706e6de553dabe2a7ed142d59b6fa8c97e290c67496154745cdd5"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "pin-project-lite",
+                         "version":  "0.2.17",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "Apache-2.0 OR MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-pin-project-lite-0.2.17-LICENSE-APACHE.txt",
+                                             "sha256":  "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-pin-project-lite-0.2.17-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "proc-macro2",
+                         "version":  "1.0.106",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-proc-macro2-1.0.106-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-proc-macro2-1.0.106-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "pxfm",
+                         "version":  "0.1.29",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "BSD-3-Clause OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-pxfm-0.1.29-LICENSE.md.txt",
+                                             "sha256":  "2aa92cada6431e75615e3fe6cb1a9082c98f777d48ae1c087c0da0e37f7b8bff"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-pxfm-0.1.29-LICENSE-APACHE.md.txt",
+                                             "sha256":  "90bf2d659c43045111b65c733ab2a6d4cbcb422a098368c8c58a9ba3db4ed0c5"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "qrcode",
+                         "version":  "0.14.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-qrcode-0.14.1-LICENSE-APACHE.txt.txt",
+                                             "sha256":  "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-qrcode-0.14.1-LICENSE-MIT.txt.txt",
+                                             "sha256":  "7f865e72ab3644ea5887aa1f352aa435b36d139c35a964f47091e7dc02722e9a"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "quote",
+                         "version":  "1.0.45",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-quote-1.0.45-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-quote-1.0.45-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "rustversion",
+                         "version":  "1.0.22",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-rustversion-1.0.22-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-rustversion-1.0.22-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "ryu",
+                         "version":  "1.0.23",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "Apache-2.0 OR BSL-1.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-ryu-1.0.23-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-ryu-1.0.23-LICENSE-BOOST.txt",
+                                             "sha256":  "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "serde",
+                         "version":  "1.0.228",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-serde-1.0.228-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-serde-1.0.228-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "serde_core",
+                         "version":  "1.0.228",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-serde_core-1.0.228-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-serde_core-1.0.228-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "serde_derive",
+                         "version":  "1.0.228",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-serde_derive-1.0.228-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-serde_derive-1.0.228-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "serde_json",
+                         "version":  "1.0.149",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-serde_json-1.0.149-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-serde_json-1.0.149-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "serde_path_to_error",
+                         "version":  "0.1.20",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-serde_path_to_error-0.1.20-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-serde_path_to_error-0.1.20-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "serde_urlencoded",
+                         "version":  "0.7.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT/Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-serde_urlencoded-0.7.1-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-serde_urlencoded-0.7.1-LICENSE-MIT.txt",
+                                             "sha256":  "b9eb266294324f672cbe945fe8f2e32f85024f0d61a1a7d14382cdde0ac44769"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "slab",
+                         "version":  "0.4.12",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-slab-0.4.12-LICENSE.txt",
+                                             "sha256":  "8ce0830173fdac609dfb4ea603fdc002c2f4af0dc9b1a005653f5da9cf534b18"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "smallvec",
+                         "version":  "1.15.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-smallvec-1.15.1-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-smallvec-1.15.1-LICENSE-MIT.txt",
+                                             "sha256":  "0b28172679e0009b655da42797c03fd163a3379d5cfa67ba1f1655e974a2a1a9"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "socket2",
+                         "version":  "0.6.3",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-socket2-0.6.3-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-socket2-0.6.3-LICENSE-MIT.txt",
+                                             "sha256":  "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "spin",
+                         "version":  "0.9.8",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-spin-0.9.8-LICENSE.txt",
+                                             "sha256":  "6ac8711fb340c62ce0a4ecd463342d3fa0e8e70de697c863a2e1c0c53006003c"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "syn",
+                         "version":  "2.0.117",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-syn-2.0.117-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-syn-2.0.117-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "sync_wrapper",
+                         "version":  "1.0.2",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-sync_wrapper-1.0.2-LICENSE.txt",
+                                             "sha256":  "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "tempfile",
+                         "version":  "3.27.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-tempfile-3.27.0-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-tempfile-3.27.0-LICENSE-MIT.txt",
+                                             "sha256":  "8b427f5bc501764575e52ba4f9d95673cf8f6d80a86d0d06599852e1a9a20a36"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "tokio",
+                         "version":  "1.52.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-tokio-1.52.1-LICENSE.txt",
+                                             "sha256":  "253cd04c6714889df2d32f3f64d669179a1c95c76ac43c40882c52eb06bc3552"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "tokio-macros",
+                         "version":  "2.7.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-tokio-macros-2.7.0-LICENSE.txt",
+                                             "sha256":  "0b83dc40cba89b9922bb84b0a9c7d2768ce37c1d7e138b7424fd4549915778c9"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "tokio-util",
+                         "version":  "0.7.18",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-tokio-util-0.7.18-LICENSE.txt",
+                                             "sha256":  "253cd04c6714889df2d32f3f64d669179a1c95c76ac43c40882c52eb06bc3552"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "tower",
+                         "version":  "0.5.3",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-tower-0.5.3-LICENSE.txt",
+                                             "sha256":  "4249c8e6c5ebb85f97c77e6457c6fafc1066406eb8f1ef61e796fbdc5ff18482"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "tower-http",
+                         "version":  "0.6.8",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-tower-http-0.6.8-LICENSE.txt",
+                                             "sha256":  "5049cf464977eff4b4fcfa7988d84e74116956a3eb9d5f1d451b3f828f945233"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "tower-layer",
+                         "version":  "0.3.3",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-tower-layer-0.3.3-LICENSE.txt",
+                                             "sha256":  "4249c8e6c5ebb85f97c77e6457c6fafc1066406eb8f1ef61e796fbdc5ff18482"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "tower-service",
+                         "version":  "0.3.3",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-tower-service-0.3.3-LICENSE.txt",
+                                             "sha256":  "4249c8e6c5ebb85f97c77e6457c6fafc1066406eb8f1ef61e796fbdc5ff18482"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "tracing",
+                         "version":  "0.1.44",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-tracing-0.1.44-LICENSE.txt",
+                                             "sha256":  "898b1ae9821e98daf8964c8d6c7f61641f5f5aa78ad500020771c0939ee0dea1"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "tracing-core",
+                         "version":  "0.1.36",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-tracing-core-0.1.36-LICENSE.txt",
+                                             "sha256":  "898b1ae9821e98daf8964c8d6c7f61641f5f5aa78ad500020771c0939ee0dea1"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "unicase",
+                         "version":  "2.9.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-unicase-2.9.0-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-unicase-2.9.0-LICENSE-MIT.txt",
+                                             "sha256":  "4f6bd11a0f17fe5b085ace1daaedb7b002a08316850dd9577c246c6a68a68e8c"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "unicode-ident",
+                         "version":  "1.0.24",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "(MIT OR Apache-2.0) AND Unicode-3.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-unicode-ident-1.0.24-LICENSE-APACHE.txt",
+                                             "sha256":  "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-unicode-ident-1.0.24-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-unicode-ident-1.0.24-LICENSE-UNICODE.txt",
+                                             "sha256":  "f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "urlencoding",
+                         "version":  "2.1.3",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-urlencoding-2.1.3-LICENSE.txt",
+                                             "sha256":  "5a952e4a62a3022a7f39e9f0eb8d0638addd3efffb3f4092890923668152296e"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "uuid",
+                         "version":  "1.23.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "Apache-2.0 OR MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-uuid-1.23.1-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-uuid-1.23.1-LICENSE-MIT.txt",
+                                             "sha256":  "436bc5a105d8e57dcd8778730f3754f7bf39c14d2f530e4cde4bd2d17a83ec3d"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "version_check",
+                         "version":  "0.9.5",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT/Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-version_check-0.9.5-LICENSE-APACHE.txt",
+                                             "sha256":  "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-version_check-0.9.5-LICENSE-MIT.txt",
+                                             "sha256":  "b7e650f3fce5c53249d1cdc608b54df156a97edd636cf9d23498d0cfe7aec63e"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "windows_x86_64_msvc",
+                         "version":  "0.48.5",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-windows_x86_64_msvc-0.48.5-license-apache-2.0.txt",
+                                             "sha256":  "c16f8dcf1a368b83be78d826ea23de4079fe1b4469a0ab9ee20563f37ff3d44b"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-windows_x86_64_msvc-0.48.5-license-mit.txt",
+                                             "sha256":  "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "windows-link",
+                         "version":  "0.2.1",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-windows-link-0.2.1-license-apache-2.0.txt",
+                                             "sha256":  "c16f8dcf1a368b83be78d826ea23de4079fe1b4469a0ab9ee20563f37ff3d44b"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-windows-link-0.2.1-license-mit.txt",
+                                             "sha256":  "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "windows-sys",
+                         "version":  "0.48.0",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-windows-sys-0.48.0-license-apache-2.0.txt",
+                                             "sha256":  "c16f8dcf1a368b83be78d826ea23de4079fe1b4469a0ab9ee20563f37ff3d44b"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-windows-sys-0.48.0-license-mit.txt",
+                                             "sha256":  "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "windows-sys",
+                         "version":  "0.61.2",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-windows-sys-0.61.2-license-apache-2.0.txt",
+                                             "sha256":  "c16f8dcf1a368b83be78d826ea23de4079fe1b4469a0ab9ee20563f37ff3d44b"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-windows-sys-0.61.2-license-mit.txt",
+                                             "sha256":  "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "windows-targets",
+                         "version":  "0.48.5",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT OR Apache-2.0",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-windows-targets-0.48.5-license-apache-2.0.txt",
+                                             "sha256":  "c16f8dcf1a368b83be78d826ea23de4079fe1b4469a0ab9ee20563f37ff3d44b"
+                                         },
+                                         {
+                                             "file":  "licenses/interconnect-lan-windows-targets-0.48.5-license-mit.txt",
+                                             "sha256":  "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+                                         }
+                                     ]
+                     },
+                     {
+                         "name":  "zmij",
+                         "version":  "1.0.21",
+                         "source":  "registry+https://github.com/rust-lang/crates.io-index",
+                         "license":  "MIT",
+                         "notices":  [
+                                         {
+                                             "file":  "licenses/interconnect-lan-zmij-1.0.21-LICENSE-MIT.txt",
+                                             "sha256":  "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+                                         }
+                                     ]
+                     }
+                 ]
+}

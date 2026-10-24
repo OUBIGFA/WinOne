@@ -404,6 +404,11 @@ func run() (runErr error) {
 	if err = registerDirectoryLinks(service, *data); err != nil {
 		return err
 	}
+	closeInterconnect, err := registerInterconnect(service, *data, executable, *pipe, func() string { return applicationLanguage(store.Snapshot().Language) })
+	if err != nil {
+		return err
+	}
+	defer func() { runErr = errors.Join(runErr, closeInterconnect()) }()
 	defer func() { runErr = errors.Join(runErr, chatControl.stop()) }()
 	selectionModule.results = resultWindows
 	quickModule.results = resultWindows

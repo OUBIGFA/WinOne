@@ -51,7 +51,7 @@
     "module": "fyne.io/systray",
     "version": "v1.12.2",
     "localSource": "third_party/systray",
-    "adaptation": "Bounded PNG menu icons, native bitmap lifetime management, corrected NOTIFYICONDATAW union layout, one-shot Windows warnings, left-click foreground activation, content-measured popup width and conditional collection separators"
+    "adaptation": "Bounded PNG menu icons, native bitmap lifetime management, corrected NOTIFYICONDATAW union layout, one-shot Windows warnings and informational transfer notifications, left-click foreground activation, content-measured popup width and conditional collection separators"
   },
   "ui": {
     "openClaude": {
@@ -207,5 +207,30 @@
     ],
     "adaptation": "Direct calls to Magpie picture storage, HTTPS fetching and favicon discovery. React adapts its picker and headers with existing WinOne controls and Cindy collapse; picture URL is an additional source. Native ICO decoding uses github.com/fyne-io/image v0.1.1; licenses are in result-ui-notices.json.",
     "nativeAdaptation": "build/result-ui-overlay.ps1 patches Fyne v0.1.1 only in its isolated build copy: ICO zero dimension means 256 pixels, including alpha-mask loops. The original module cache is unchanged."
+  },
+  "interconnect": {
+    "source": "third_party/import-notices.json",
+    "lan": "third_party/file-share/WINONE.md",
+    "notices": "third_party/interconnect-lan-notices.json",
+    "verification": "docs/互联助手调研与设计.md",
+    "transfer": {
+      "repository": "https://github.com/schollz/croc",
+      "version": "v11.5.5",
+      "commit": "8a806c36956533f9c003c55f16e31fcf14133f8e",
+      "source": "third_party/croc",
+      "notices": "third_party/interconnect-transfer-notices.json"
+    },
+    "chat": {
+      "repository": "https://github.com/jeremyckahn/chitchatter",
+      "commit": "4093c21dad24af133c3c5c12042d3eb6112eece1",
+      "license": "GPL-2.0-or-later",
+      "source": "apps/desktop/frontend/src/vendor/chitchatter"
+    },
+    "peer": {
+      "repository": "https://github.com/tailscale/tailcat",
+      "version": "v0.7.0",
+      "commit": "15ab9e68bfc6534a61797d7af28cedd42b54a3a5",
+      "notices": "third_party/interconnect-peer-notices.json"
+    }
   }
 }
