@@ -472,6 +472,11 @@ unsafe extern "system" fn procedure(window:HWND,message:u32,w:WPARAM,l:LPARAM)->
         crate::permissions::GUARD_MESSAGE=>return (!state.dirty&&!state.close_pending)as isize,
         crate::lifecycle::WAKE=>{if state.frame_initialized{reveal(window);}if w!=0{state.navigation+=1;state.event("winone:open-settings");}return 0;},
         WM_SIZE=>{return 0;}, // drained after re-entrant ShowWindow/layout returns
+        // The OS modal sizing loop dispatches this with no State borrow
+        // outstanding (DefWindowProcW runs outside the borrow above), so the
+        // WebView can follow the frame live instead of waiting for the loop
+        // to exit; borrowed/re-entrant cases keep the posted-drain path.
+        WM_WINDOWPOSCHANGED if state.frame_initialized=>{state.sync_view();},
         WM_SETFOCUS=>{if let Some(view)=&state.webview{let _=view.focus();}return 0;},
         WM_DPICHANGED=>{let rect=unsafe{&*(l as *const RECT)};unsafe{SetWindowPos(window,null_mut(),rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top,SWP_NOZORDER|SWP_NOACTIVATE);PostMessageW(window,WM_SIZE,0,0);}return 0;},
         _=>{},
