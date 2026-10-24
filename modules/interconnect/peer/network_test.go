@@ -19,7 +19,7 @@ func waitReady(t *testing.T, task *task) snapshot {
 	deadline := time.Now().Add(20 * time.Second)
 	for time.Now().Before(deadline) {
 		state := task.read()
-		if state.Ready {
+		if state.Ready && (task.spec.Mode != "share_server" || state.RelayReady) {
 			return state
 		}
 		if state.Status != "running" {

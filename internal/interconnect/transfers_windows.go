@@ -193,6 +193,9 @@ func (m *Transfers) Call(ctx context.Context, method string, params json.RawMess
 		Answer   string   `json:"answer"`
 		Paths    []string `json:"paths,omitempty"`
 		ItemID   string   `json:"itemId,omitempty"`
+		Text     string   `json:"text,omitempty"`
+		Path     string   `json:"path,omitempty"`
+		Replace  bool     `json:"replace,omitempty"`
 	}
 	if err := configjson.DecodeObject(params, &command); err != nil {
 		return nil, err
@@ -204,6 +207,22 @@ func (m *Transfers) Call(ctx context.Context, method string, params json.RawMess
 		return nil, errors.New("传输任务不存在")
 	}
 	switch method {
+	case "share_code_restart", "share_code_stop", "share_code_answer", "share_add_text", "share_save_as":
+		job.mu.Lock()
+		defer job.mu.Unlock()
+		if job.process == nil || job.record.Spec["mode"] != "share_server" {
+			return nil, errors.New("共享未运行")
+		}
+		var value any
+		switch method {
+		case "share_code_answer":
+			value = map[string]any{"id": command.PromptID, "answer": command.Answer}
+		case "share_add_text":
+			value = command.Text
+		case "share_save_as":
+			value = map[string]any{"id": command.ItemID, "path": command.Path, "replace": command.Replace}
+		}
+		return job.process.call(ctx, strings.TrimPrefix(method, "share_"), value)
 	case "transfer_text", "transfer_text_open":
 		job.mu.Lock()
 		data, _ := job.record.Spec["dataDir"].(string)

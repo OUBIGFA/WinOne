@@ -7,7 +7,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
+	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/schollz/croc/v11/src/utils"
 )
 
@@ -43,7 +45,30 @@ func (t *task) prepareShare(ctx context.Context) (any, error) {
 			return nil, err
 		}
 	}
+	// croc's exclusion and gitignore switches describe one published selection.
+	// Apply them here so the LAN pool and the code transfer stay equal.
+	ignoredPaths, filterErr := t.gitIgnoredPaths(ctx)
+	if filterErr != nil {
+		return nil, filterErr
+	}
+	excluded := func(abs string, name string) bool {
+		if ignoredPaths[abs] {
+			return true
+		}
+		for _, pattern := range t.spec.Options.Exclude {
+			if matched, matchErr := filepath.Match(pattern, name); matchErr == nil && matched {
+				return true
+			}
+		}
+		for _, filter := range t.spec.Options.ExcludeFile {
+			if strings.EqualFold(filter, name) {
+				return true
+			}
+		}
+		return false
+	}
 	paths := []string{}
+	codePaths := []string{}
 	for i, path := range t.spec.Paths {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -52,11 +77,20 @@ func (t *task) prepareShare(ctx context.Context) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		absolute, absoluteErr := filepath.Abs(path)
+		if absoluteErr != nil {
+			return nil, absoluteErr
+		}
+		if excluded(absolute, source.Name()) {
+			continue
+		}
+		codePath := path
 		t.mu.Lock()
 		t.state.Detail = path
 		t.mu.Unlock()
 		if !source.IsDir() && total > 300*1024*1024 {
 			paths = append(paths, path)
+			codePaths = append(codePaths, codePath)
 			continue
 		}
 		directory := filepath.Join(t.spec.DataDir, fmt.Sprint(i))
@@ -66,7 +100,10 @@ func (t *task) prepareShare(ctx context.Context) (any, error) {
 		dest := filepath.Join(directory, filepath.Base(path))
 		if source.IsDir() {
 			dest += ".zip"
-			err = utils.ZipDirectoryContext(ctx, dest, path, nil, nil)
+			err = utils.ZipDirectoryContext(ctx, dest, path, ignoredPaths, t.spec.Options.Exclude)
+			if t.spec.Options.ZipFolder {
+				codePath = dest
+			}
 		} else {
 			var input, output *os.File
 			input, err = os.Open(path)
@@ -88,8 +125,9 @@ func (t *task) prepareShare(ctx context.Context) (any, error) {
 			return nil, err
 		}
 		paths = append(paths, dest)
+		codePaths = append(codePaths, codePath)
 	}
-	return map[string]any{"paths": paths, "cached": total <= 300*1024*1024, "bytes": total}, nil
+	return map[string]any{"paths": paths, "codePaths": codePaths, "cached": total <= 300*1024*1024, "bytes": total}, nil
 }
 
 type contextReader struct {
@@ -102,4 +140,75 @@ func (r *contextReader) Read(p []byte) (int, error) {
 		return 0, err
 	}
 	return r.Reader.Read(p)
+}
+
+// Mirror croc's gitignore handling: the working directory's .gitignore filters
+// the selection itself; a selected folder's .gitignore filters its subtree.
+func (t *task) gitIgnoredPaths(ctx context.Context) (map[string]bool, error) {
+	ignored := map[string]bool{}
+	if !t.spec.Options.GitIgnore {
+		return ignored, nil
+	}
+	if working, err := os.Stat(".gitignore"); err == nil {
+		if rules, err := ignore.CompileIgnoreFile(working.Name()); err == nil {
+			for _, path := range t.spec.Paths {
+				if !rules.MatchesPath(path) {
+					continue
+				}
+				abs, err := filepath.Abs(path)
+				if err != nil {
+					return nil, err
+				}
+				ignored[abs] = true
+			}
+		}
+	}
+	for _, path := range t.spec.Paths {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		info, err := os.Stat(path)
+		if err != nil || !info.IsDir() {
+			continue
+		}
+		rulesPath := filepath.Join(path, ".gitignore")
+		if _, err = os.Stat(rulesPath); err != nil {
+			continue
+		}
+		rules, err := ignore.CompileIgnoreFile(rulesPath)
+		if err != nil {
+			return nil, err
+		}
+		if err = markIgnored(ctx, path, rules, ignored); err != nil {
+			return nil, err
+		}
+	}
+	return ignored, nil
+}
+
+func markIgnored(ctx context.Context, dir string, rules *ignore.GitIgnore, ignored map[string]bool) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if err = ctx.Err(); err != nil {
+			return err
+		}
+		path := filepath.Join(dir, entry.Name())
+		if rules.MatchesPath(entry.Name()) {
+			abs, err := filepath.Abs(path)
+			if err != nil {
+				return err
+			}
+			ignored[abs] = true
+			continue
+		}
+		if entry.IsDir() {
+			if err = markIgnored(ctx, path, rules, ignored); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

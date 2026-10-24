@@ -19,6 +19,9 @@ interface ShellPage {id:string;title:string;icon:LucideIcon}
 // pages still unmount; the fixed navigation does not keep their workers alive.
 export function AppShell({page,pages,logo,onNavigate,children,windowPort,onWindowReady,toolbar}:{page:string;pages:ShellPage[];logo:string;onNavigate:(id:string)=>void;children:ReactNode;windowPort?:WindowFramePort;onWindowReady?:()=>void;toolbar?:ReactNode}) {
  const {t}=useTranslation();
+ // Both chat screens own their scrolling and composer; settings keep the
+ // shared page scrollbar and save footer.
+ const conversationPage=page==="chat"||page==="flash-chat";
  // Portalled menus/dialogs must inherit the same settings tokens as the page.
  // Remove the scope before Chat paints; its imported design system is intact.
  useLayoutEffect(()=>{
@@ -75,11 +78,11 @@ export function AppShell({page,pages,logo,onNavigate,children,windowPort,onWindo
   <ResizableHandle elementRef={separator} className="app-navigation-divider" aria-label={t("navigation.resizeSidebar")}/>
   <ResizablePanel id="app-page" minSize={320}>
   <SidebarInset className="settings-frame relative m-0 h-full min-h-0 max-w-none overflow-hidden p-0" style={{"--settings-scrollbar-width":`${scrollbarWidth}px`} as CSSProperties}>
-   <SettingsFooterTarget.Provider value={page==="chat"?null:footerTarget}>
-   <div ref={scroll} data-slot="page-scroll" data-page={page} className={page==="chat"?"min-h-0 flex-1 overflow-hidden":"min-h-0 flex-1 overflow-y-auto overscroll-contain"}>
-    <div data-slot="page-content" data-settings-page={page==="chat"?undefined:page} className={page==="chat"?"flex h-full min-h-0 flex-col [&>.chat-workspace]:flex-1":"settings-surface mx-auto w-full"}>{children}</div>
+   <SettingsFooterTarget.Provider value={conversationPage?null:footerTarget}>
+   <div ref={scroll} data-slot="page-scroll" data-page={page} className={conversationPage?"min-h-0 flex-1 overflow-hidden":"min-h-0 flex-1 overflow-y-auto overscroll-contain"}>
+    <div data-slot="page-content" data-settings-page={conversationPage?undefined:page} className={conversationPage?"flex h-full min-h-0 flex-col [&>.chat-workspace]:flex-1":"settings-surface mx-auto w-full"}>{children}</div>
    </div>
-   {page!=="chat"&&<div data-slot="settings-footer" className="settings-surface settings-footer"><div ref={setFooterTarget} className="settings-footer-actions"/><PageScrollControls key={page} viewportRef={scroll}/></div>}
+   {!conversationPage&&<div data-slot="settings-footer" className="settings-surface settings-footer"><div ref={setFooterTarget} className="settings-footer-actions"/><PageScrollControls key={page} viewportRef={scroll}/></div>}
    </SettingsFooterTarget.Provider>
   </SidebarInset>
   </ResizablePanel>

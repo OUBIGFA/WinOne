@@ -4,11 +4,37 @@ import (
 	"archive/zip"
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"strings"
 	"os"
 	"path/filepath"
-	"testing"
+"testing"
+
+ "github.com/schollz/croc/v11/src/croc"
 )
+
+func TestUnifiedPreparationKeepsFiltersAndFolderMode(t *testing.T) {
+ dir, source, _ := transferPaths(t)
+ folder := filepath.Join(source, "bundle")
+ if err := os.MkdirAll(folder, 0700); err != nil { t.Fatal(err) }
+ for name, content := range map[string]string{"keep.txt":"kept","skip.txt":"excluded","private.log":"ignored",".gitignore":"*.log"} {
+  if err := os.WriteFile(filepath.Join(folder,name), []byte(content),0600); err != nil { t.Fatal(err) }
+ }
+ for _, zipped := range []bool{false,true} {
+  task := &task{spec:specification{Paths:[]string{folder},DataDir:filepath.Join(dir,fmt.Sprint(zipped)),Options:croc.Options{ZipFolder:zipped,GitIgnore:true,ExcludeFile:[]string{"skip.txt"}}}}
+  result,err := task.prepareShare(context.Background()); if err != nil { t.Fatal(err) }
+  paths := result.(map[string]any)["paths"].([]string)
+  codePaths := result.(map[string]any)["codePaths"].([]string)
+  if zipped {
+   archive,err := zip.OpenReader(paths[0]); if err != nil { t.Fatal(err) }
+   for _,file := range archive.File { if strings.HasSuffix(file.Name,"private.log") { t.Fatal("excluded content published: "+file.Name) } }; archive.Close()
+  }
+  if zipped { if codePaths[0] != paths[0] { t.Fatal("ZIP mode not shared") } } else {
+   data,err := os.ReadFile(filepath.Join(codePaths[0],"keep.txt")); if err != nil || string(data)!="kept" { t.Fatalf("folder mode lost: %s %v",data,err) }
+  }
+ }
+}
 
 func TestSharePreparation(t *testing.T) {
 	root, err := filepath.Abs(filepath.Join("..", "..", "..", "_temp", "interconnect-prepare-tests"))

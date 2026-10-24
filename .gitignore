@@ -40,3 +40,7 @@ __pycache__/
 # Keep this final: ignore _temp at every depth, after all negation rules.
 /apps/desktop/frontend/public/pdfjs/
 _temp/
+
+
+# Go build outputs in source modules
+modules/**/*.exe

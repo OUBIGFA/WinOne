@@ -5,12 +5,13 @@ import {usePageActivity,type PageActivityChanged} from '../ui/page-navigation';
 import type {PeerRecord} from './interconnect-peer';
 import {PathDropArea} from '../ui/path-drop-zone';
 import {Notice} from '../ui/notice';
+import './interconnect.css';
 
 // Uses WinOne's existing iframe identity/theme pattern. The child alone needs
 // WebSocket signaling CSP; the settings document keeps its restricted policy.
 export function PeerChatFrame({active,onActivity}:{active:boolean;onActivity:PageActivityChanged}){
  const {t,i18n}=useTranslation(),frame=useRef<HTMLIFrameElement>(null);
- const [loaded,setLoaded]=useState(false),[height,setHeight]=useState(620),[dirty,setDirty]=useState(false),[busy,setBusy]=useState(false);
+ const [loaded,setLoaded]=useState(false),[dirty,setDirty]=useState(false),[busy,setBusy]=useState(false);
  const owned=useRef(new Set<string>());
  const [acceptsFiles,setAcceptsFiles]=useState(false),[error,setError]=useState('');
  useEffect(()=>{if(active)setLoaded(true);},[active]);
@@ -22,7 +23,7 @@ export function PeerChatFrame({active,onActivity}:{active:boolean;onActivity:Pag
   const receive=async(event:MessageEvent)=>{
    if(event.source!==frame.current?.contentWindow||event.origin!==location.origin)return;
    const data=event.data,child=frame.current?.contentWindow;
-   if(data?.type==='interconnect-state'){setDirty(data.dirty===true);setBusy(data.busy===true);setAcceptsFiles(data.acceptsFiles===true);if(Number.isFinite(data.height))setHeight(Math.max(400,Math.min(4000,data.height)));return;}
+   if(data?.type==='interconnect-state'){setDirty(data.dirty===true);setBusy(data.busy===true);setAcceptsFiles(data.acceptsFiles===true);return;}
    if(data?.type!=='interconnect-native'||typeof data.id!=='string')return;
    try{
     let result:unknown;
@@ -42,5 +43,5 @@ export function PeerChatFrame({active,onActivity}:{active:boolean;onActivity:Pag
   window.addEventListener('message',receive);
   return()=>{alive=false;window.removeEventListener('message',receive);for(const id of owned.current)void interconnectCall('transfer_stop',{id}).catch(console.error);owned.current.clear();};
  },[]);
- return loaded?<PathDropArea kind="file" multiple disabled={!active||!acceptsFiles||busy} onError={setError} onPaths={paths=>{void interconnectCall('transfer_files',{paths}).then(files=>frame.current?.contentWindow?.postMessage({type:'interconnect-files',files},location.origin)).catch(e=>setError(String(e)));}}>{error&&<Notice>{error}</Notice>}<iframe ref={frame} title={t('interconnect.peerChat')} src="/interconnect-chat.html" onLoad={sync} className="w-full border-0" style={{height}}/></PathDropArea>:null;
+ return loaded?<PathDropArea className="flash-chat-frame" kind="file" multiple disabled={!active||!acceptsFiles||busy} onError={setError} onPaths={paths=>{void interconnectCall('transfer_files',{paths}).then(files=>frame.current?.contentWindow?.postMessage({type:'interconnect-files',files},location.origin)).catch(e=>setError(String(e)));}}>{error&&<Notice>{error}</Notice>}<iframe ref={frame} title={t('interconnect.peerChat')} src="/interconnect-chat.html" onLoad={sync}/></PathDropArea>:null;
 }

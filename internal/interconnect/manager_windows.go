@@ -77,6 +77,13 @@ func (m *Manager) Call(ctx context.Context, method string, params json.RawMessag
 					spec["outputDir"] = m.General().DownloadDir
 				}
 			}
+			if spec["mode"] == "share_server" && spec["transfer"] != nil {
+				m.mu.Lock()
+				spec["bind"] = m.preferences.Bind
+				spec["port"] = m.preferences.Port
+				spec["downloadDir"] = m.preferences.DownloadDir
+				m.mu.Unlock()
+			}
 			var err error
 			params, err = json.Marshal(spec)
 			if err != nil {
@@ -90,8 +97,11 @@ func (m *Manager) Call(ctx context.Context, method string, params json.RawMessag
 	if method == "stop" {
 		return json.RawMessage("null"), m.stopLocked()
 	}
-	if method == "start" {
+	if method == "start" || method == "preferences.save" {
 		if m.process != nil {
+			if method == "preferences.save" {
+				return nil, errors.New("请先停止局域网共享，再保存共享设置")
+			}
 			return nil, errors.New("局域网共享已经运行")
 		}
 		var preferences Preferences
@@ -101,6 +111,19 @@ func (m *Manager) Call(ctx context.Context, method string, params json.RawMessag
 		address, err := netip.ParseAddr(preferences.Bind)
 		if err != nil || !address.Is4() || !filepath.IsAbs(preferences.DownloadDir) {
 			return nil, errors.New("请选择 IPv4 地址和有效的接收目录")
+		}
+		// Saving from the global footer must not publish files or open a port.
+		// Share startup keeps using this same validation and persisted format.
+		if method == "preferences.save" {
+			data, err := json.Marshal(preferences)
+			if err == nil {
+				err = settings.WriteAtomic(filepath.Join(m.data, "preferences.json"), data)
+			}
+			if err != nil {
+				return nil, err
+			}
+			m.preferences = preferences
+			return data, nil
 		}
 		p, err := startWorker(m.executable)
 		if err != nil {

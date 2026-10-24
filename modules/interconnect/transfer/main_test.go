@@ -43,6 +43,11 @@ func startProbe(t *testing.T) *probe {
 		t.Fatal(err)
 	}
 	cmd := exec.Command(exe, "-test.run=^TestAdapterProcess$", "winone-transfer-probe")
+	return startProbeCommand(t, cmd)
+}
+
+func startProbeCommand(t *testing.T, cmd *exec.Cmd) *probe {
+	t.Helper()
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		t.Fatal(err)
@@ -124,7 +129,7 @@ func (p *probe) finish(t *testing.T) map[string]any {
 		}
 		time.Sleep(30 * time.Millisecond)
 	}
-	t.Fatalf("transfer did not finish: %+v",p.call(t,"snapshot",nil))
+	t.Fatalf("transfer did not finish: %+v", p.call(t, "snapshot", nil))
 	return nil
 }
 func transferPaths(t *testing.T) (string, string, string) {

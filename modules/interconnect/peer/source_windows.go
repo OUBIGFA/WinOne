@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -202,44 +204,52 @@ func (t *task) saveAddress(address tailcat.Addr) error {
 	}
 	return os.Rename(pending, file)
 }
-func (t *task) prepareFiles(ctx context.Context, paths []string) ([]string, error) {
+func (t *task) prepareFiles(ctx context.Context, paths []string) ([]string, []string, error) {
 	p, err := childProcess("WinOne.Interconnect.Transfer.exe")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer p.close()
 	directory := filepath.Join(t.spec.DataDir, "prepared", rand.Text())
-	if _, err = p.call(ctx, "start", map[string]any{"mode": "prepare_share", "paths": paths, "dataDir": directory}); err != nil {
-		return nil, err
+	// A share without a code transfer still prepares through the same path.
+	prepareOptions := any(map[string]any{})
+	if t.spec.Transfer != nil {
+		prepareOptions = t.spec.Transfer.Options
+	}
+	if _, err = p.call(ctx, "start", map[string]any{"mode": "prepare_share", "paths": paths, "options": prepareOptions, "dataDir": directory}); err != nil {
+		return nil, nil, err
 	}
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
 	for {
 		raw, err := p.call(ctx, "snapshot", nil)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		var state struct {
 			Status string
 			Error  string
 			Detail string
-			Result struct{ Paths []string }
+			Result struct {
+				Paths     []string
+				CodePaths []string
+			}
 		}
 		if err = json.Unmarshal(raw, &state); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if state.Status == "completed" {
-			return state.Result.Paths, nil
+			return state.Result.Paths, state.Result.CodePaths, nil
 		}
 		if state.Status != "running" {
-			return nil, fmt.Errorf("准备共享内容失败: %s", state.Error)
+			return nil, nil, fmt.Errorf("准备共享内容失败: %s", state.Error)
 		}
 		t.mu.Lock()
 		t.state.Detail = state.Detail
 		t.mu.Unlock()
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, nil, ctx.Err()
 		case <-ticker.C:
 		}
 	}
@@ -255,7 +265,11 @@ func (t *task) prepareSource(ctx context.Context) error {
 			p.close()
 		}
 	}()
-	raw, err := p.call(ctx, "start", map[string]any{"bind": "127.0.0.1", "port": 0, "dataDir": filepath.Join(t.spec.DataDir, "lan"), "downloadDir": filepath.Join(t.spec.DataDir, "received")})
+	downloadDir := t.spec.DownloadDir
+	if downloadDir == "" {
+		downloadDir = filepath.Join(t.spec.DataDir, "received")
+	}
+	raw, err := p.call(ctx, "start", map[string]any{"bind": t.spec.Bind, "port": t.spec.Port, "readOnly": !t.spec.AllowWrites, "dataDir": filepath.Join(t.spec.DataDir, "lan"), "downloadDir": downloadDir})
 	if err != nil {
 		return err
 	}
@@ -264,18 +278,32 @@ func (t *task) prepareSource(ctx context.Context) error {
 		return err
 	}
 	if !t.spec.Resume && len(t.spec.Paths) > 0 {
-		paths, err := t.prepareFiles(ctx, t.spec.Paths)
+		paths, codePaths, err := t.prepareFiles(ctx, t.spec.Paths)
 		if err != nil {
 			return err
 		}
 		if _, err = p.call(ctx, "add_files", paths); err != nil {
 			return err
 		}
+		t.rememberCodeSources(paths, codePaths)
 	}
-	t.spec.ShareURL = info.URL
+	if !t.spec.Resume && t.spec.Text != "" {
+		if _, err = p.call(ctx, "add_text", t.spec.Text); err != nil {
+			return err
+		}
+	}
+	// Phones use the advertised LAN URL; Tailcat still proxies to loopback.
+	local, err := url.Parse(info.URL)
+	if err != nil {
+		return err
+	}
+	local.Host = net.JoinHostPort("127.0.0.1", local.Port())
+	t.spec.ShareURL = local.String()
 	t.mu.Lock()
 	t.lan = p
 	t.state.Detail = ""
+	t.state.Ready = true
+	t.state.QR = qr(info.URL)
 	t.mu.Unlock()
 	success = true
 	return nil
@@ -307,13 +335,19 @@ func (t *task) changeShare(method string, params []byte) error {
 		defer t.shareMu.Unlock()
 		var err error
 		if method == "add" {
-			var prepared []string
-			prepared, err = t.prepareFiles(t.ctx, paths)
+			var prepared, added []string
+			prepared, added, err = t.prepareFiles(t.ctx, paths)
 			if err == nil {
 				_, err = t.lan.call(t.ctx, "add_files", prepared)
 			}
+			if err == nil {
+				t.rememberCodeSources(prepared, added)
+			}
 		} else {
 			_, err = t.lan.call(t.ctx, "remove", id)
+		}
+		if err == nil {
+			t.restartCode(t.ctx)
 		}
 		t.mu.Lock()
 		defer t.mu.Unlock()
@@ -326,4 +360,19 @@ func (t *task) changeShare(method string, params []byte) error {
 		}
 	}()
 	return nil
+}
+
+// rememberCodeSources maps each prepared pool path to the path the code
+// transfer should send: folders keep their original form unless ZIP was chosen.
+func (t *task) rememberCodeSources(pool []string, code []string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.codeSources == nil {
+		t.codeSources = map[string]string{}
+	}
+	for i, path := range pool {
+		if i < len(code) {
+			t.codeSources[path] = code[i]
+		}
+	}
 }

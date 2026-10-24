@@ -28,6 +28,11 @@ import (
 )
 
 type specification struct {
+	Transfer    *codeSpecification   `json:"transfer,omitempty"`
+	Text        string               `json:"text,omitempty"`
+	Bind        string               `json:"bind,omitempty"`
+	Port        uint16               `json:"port,omitempty"`
+	DownloadDir string               `json:"downloadDir,omitempty"`
 	Mode        string               `json:"mode"`
 	Code        string               `json:"code"`
 	Target      string               `json:"target"`
@@ -43,19 +48,22 @@ type specification struct {
 	Resume      bool                 `json:"resume"`
 }
 type snapshot struct {
-	Status   string          `json:"status"`
-	Ready    bool            `json:"ready"`
-	Code     string          `json:"code,omitempty"`
-	QR       string          `json:"qr,omitempty"`
-	Address  string          `json:"address,omitempty"`
-	Error    string          `json:"error,omitempty"`
-	Detail   string          `json:"detail,omitempty"`
-	Active   int64           `json:"active"`
-	Sent     int64           `json:"sent"`
-	Received int64           `json:"received"`
-	Peers    []peerPath      `json:"peers,omitempty"`
-	Share    json.RawMessage `json:"share,omitempty"`
-	Updating bool            `json:"updating"`
+	Transfer   json.RawMessage `json:"transfer,omitempty"`
+	Status     string          `json:"status"`
+	Ready      bool            `json:"ready"`
+	Code       string          `json:"code,omitempty"`
+	QR         string          `json:"qr,omitempty"`
+	Address    string          `json:"address,omitempty"`
+	Error      string          `json:"error,omitempty"`
+	Detail     string          `json:"detail,omitempty"`
+	Active     int64           `json:"active"`
+	Sent       int64           `json:"sent"`
+	Received   int64           `json:"received"`
+	Peers      []peerPath      `json:"peers,omitempty"`
+	Share      json.RawMessage `json:"share,omitempty"`
+	Updating   bool            `json:"updating"`
+	RelayReady bool            `json:"relayReady"`
+	RelayError string          `json:"relayError,omitempty"`
 }
 type peerPath struct {
 	Direct   bool   `json:"direct"`
@@ -77,6 +85,8 @@ type task struct {
 	sent         atomic.Int64
 	received     atomic.Int64
 	lan          *child
+	codeTransfer *child
+	codeSources  map[string]string
 	shareMu      sync.Mutex
 	ctx          context.Context
 	savedAddress tailcat.Addr
@@ -119,6 +129,15 @@ func start(spec specification) (*task, error) {
 		if !filepath.IsAbs(spec.DataDir) {
 			return nil, errors.New("共享数据目录必须为绝对路径")
 		}
+		if spec.Bind == "" {
+			spec.Bind = "0.0.0.0"
+		}
+		if ip := net.ParseIP(spec.Bind); ip == nil || ip.To4() == nil {
+			return nil, errors.New("请选择 IPv4 访问范围")
+		}
+		if spec.DownloadDir != "" && !filepath.IsAbs(spec.DownloadDir) {
+			return nil, errors.New("接收目录必须为绝对路径")
+		}
 	default:
 		return nil, errors.New("不支持的互联服务")
 	}
@@ -140,7 +159,26 @@ func (t *task) read() snapshot {
 	s.Active = t.activeCount.Load()
 	s.Sent = t.sent.Load()
 	s.Received = t.received.Load()
-	if t.server != nil && s.Ready {
+	if t.codeTransfer != nil {
+		ctx, cancel := context.WithTimeout(t.ctx, 2*time.Second)
+		raw, e := t.codeTransfer.call(ctx, "snapshot", nil)
+		cancel()
+		if e != nil {
+			raw = codeFailure(e)
+		}
+		s.Transfer = raw
+		t.state.Transfer = raw
+		var status struct{ Status string }
+		_ = json.Unmarshal(raw, &status)
+		if status.Status != "running" {
+			if e := t.codeTransfer.close(); e != nil && status.Status != "failed" {
+				s.Transfer = codeFailure(e)
+				t.state.Transfer = s.Transfer
+			}
+			t.codeTransfer = nil
+		}
+	}
+	if t.server != nil && s.Ready && (t.spec.Mode != "share_server" || s.RelayReady) {
 		for _, p := range t.server.Status().Peer {
 			s.Peers = append(s.Peers, peerPath{Direct: p.CurAddr != "", Relay: p.Relay, Sent: p.TxBytes, Received: p.RxBytes})
 		}
@@ -179,10 +217,14 @@ func (t *task) run(ctx context.Context) {
 		cancelled := ctx.Err() != nil
 		t.mu.Lock()
 		t.state.Ready = false
+		t.state.RelayReady = false
 		t.mu.Unlock()
 		t.cancel()
 		t.active.Range(func(k, v any) bool { _ = k.(net.Conn).Close(); return true })
 		t.connections.Wait()
+		if t.codeTransfer != nil {
+			err = errors.Join(err, t.codeTransfer.close())
+		}
 		if t.lan != nil {
 			err = errors.Join(err, t.lan.close())
 		}
@@ -204,12 +246,27 @@ func (t *task) run(ctx context.Context) {
 		}
 		close(t.done)
 	}()
-	var listener net.Listener
 	if t.spec.Mode == "share_server" {
 		if err = t.prepareSource(ctx); err != nil {
 			return
 		}
+		t.restartCode(ctx)
 	}
+	err = t.runNetwork(ctx)
+	if err != nil && ctx.Err() == nil && t.spec.Mode == "share_server" {
+		// The authenticated LAN server has its own listener. Relay availability
+		// must not revoke a working phone link or stop live file management.
+		t.mu.Lock()
+		t.state.RelayReady = false
+		t.state.RelayError = err.Error()
+		t.mu.Unlock()
+		<-ctx.Done()
+		err = nil
+	}
+}
+
+func (t *task) runNetwork(ctx context.Context) (err error) {
+	var listener net.Listener
 	if strings.HasSuffix(t.spec.Mode, "_server") {
 		if err = t.identity(); err != nil {
 			return
@@ -242,7 +299,10 @@ func (t *task) run(ctx context.Context) {
 		}
 		t.mu.Lock()
 		t.state.Code = string(server.TailcatAddr())
-		t.state.QR = qr(t.state.Code)
+		if t.spec.Mode != "share_server" {
+			t.state.QR = qr(t.state.Code)
+		}
+		t.state.RelayReady = true
 		t.state.Ready = true
 		t.mu.Unlock()
 	} else {
@@ -456,6 +516,13 @@ func main() {
 					err = errors.New("服务未启动")
 				} else {
 					err = current.changeShare(req.Method, req.Params)
+				}
+				result = map[string]bool{"accepted": err == nil}
+			case "code_restart", "code_stop", "code_answer", "add_text", "save_as":
+				if current == nil {
+					err = errors.New("服务未启动")
+				} else {
+					err = current.shareCommand(req.Method, req.Params)
 				}
 				result = map[string]bool{"accepted": err == nil}
 			case "stop":

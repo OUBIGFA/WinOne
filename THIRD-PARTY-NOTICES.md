@@ -9,6 +9,7 @@
 | Go x/sys | Windows 系统调用 | BSD-3-Clause |
 | WinTray | 程序启动、窗口与托盘管理；核对 484e382 及 2026-10-22 Esc 修复工作树，来源与改编见 third_party/wintray-source.json | MIT，全文见 modules/wintray/LICENSE |
 | React / React DOM | 设置界面 | MIT |
+| Lucide messages-circle（7faf876） | 闪聊入口及页面图标，直接复用官方 SVG 路径；来源与摘要见 `third_party/import-notices.json` | ISC；全文见 `third_party/licenses/lucide.txt` |
 | Lucide React 1.27.0 | 官方 AppWindow / LogOut 托盘菜单图标及既有界面图标；由锁定 npm 包生成透明模板，不自绘替代 | ISC，Feather 派生 LogOut 同时保留 MIT；原文 `internal/branding/menu-icons/LICENSE.txt`，生成器与 SHA-256 见 `third_party/sources.json` |
 | ChatGPT-Desktop-UI / chatgpt-desktop-kit 0.6.0 | Chat 阅读内容、右栏工作区与项目栏 | MIT；包含发行包自带的第三方许可全文 |
 | Magpie | 共享 AI 适配器；本次来源提交 50f52b540b915bdf5912ddebc48c1fa46eef3025；社区插件 652f06d（37 包） | MIT；构建复制上游 LICENSE，依赖许可见 third_party/ocr-ai-notices.json 与 third_party/ai-plugins.json |

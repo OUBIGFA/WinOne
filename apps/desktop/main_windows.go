@@ -554,8 +554,8 @@ func (a *App) DirectoryLinks(method, payload string) (string, error) {
 // Interconnect exposes the same restricted adapter in the legacy desktop.
 func (a *App) Interconnect(method, payload string) (string, error) {
 	switch method {
-	case "transfer_text", "transfer_text_open", "pending", "menu.get", "menu.set", "general.get", "general.save", "entry.get", "entry.show", "entry.hide", "get", "start", "stop", "add_files", "add_text", "remove", "item_path", "download_name", "save_as":
- case "transfer_list", "transfer_start", "transfer_stop", "transfer_answer", "transfer_remove", "share_revoke", "transfer_restart", "share_add", "share_remove", "transfer_files":
+	case "transfer_text", "transfer_text_open", "pending", "menu.get", "menu.set", "general.get", "general.save", "entry.get", "entry.show", "entry.hide", "get", "start", "stop", "add_files", "add_text", "remove", "item_path", "download_name", "save_as", "preferences.save", "share_code_restart", "share_code_stop", "share_code_answer", "share_add_text", "share_save_as":
+	case "transfer_list", "transfer_start", "transfer_stop", "transfer_answer", "transfer_remove", "share_revoke", "transfer_restart", "share_add", "share_remove", "transfer_files":
 	default:
 		return "", errors.New("不支持的互联助手操作")
 	}

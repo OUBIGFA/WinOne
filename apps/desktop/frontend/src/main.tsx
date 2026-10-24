@@ -19,7 +19,8 @@ import "./style.css";
 import logo from "../../../../internal/branding/logo.png";
 import { WinTrayPage } from "./features/wintray";
 import { CapturePage } from "./features/capture";
-import {Network,MessagesSquare} from "lucide-react";
+import {Network} from "lucide-react";
+import {MessagesCircle} from "./components/icons/messages-circle";
 import {useInterconnectIntents,type InterconnectIntent} from './features/interconnect-intents';
 import {InterconnectPage} from "./features/interconnect";
 import {PeerChatFrame} from "./features/interconnect-chat-frame";
@@ -65,7 +66,7 @@ const pageDefinitions = [
 
 function App() {
   const {t}=useTranslation();
-  const pages=[pageDefinitions[0],...pageDefinitions.slice(1,-2).sort((a,b)=>moduleRank(a.id)-moduleRank(b.id)),{id:"chat",title:"chat.title",icon:Bot},{id:"flash-chat",title:"interconnect.peerChat",icon:MessagesSquare},...pageDefinitions.slice(-2)].map(page=>({...page,title:t(page.title)}));
+  const pages=[pageDefinitions[0],...pageDefinitions.slice(1,-2).sort((a,b)=>moduleRank(a.id)-moduleRank(b.id)),{id:"chat",title:"chat.title",icon:Bot},{id:"flash-chat",title:"interconnect.peerChat",icon:MessagesCircle},...pageDefinitions.slice(-2)].map(page=>({...page,title:t(page.title)}));
   const [page, setPage] = useState("overview");
   const navigation=usePageNavigation(page,setPage,settingsClosePort);
   const [snapshot, setSnapshot] = useState<Snapshot>();

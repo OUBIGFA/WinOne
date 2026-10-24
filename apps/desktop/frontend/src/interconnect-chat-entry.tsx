@@ -1,7 +1,8 @@
 import {useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {CSPProvider} from '@base-ui/react/csp-provider';
-import {ArrowLeft,Check,Copy,FilePlus,FolderOpen,Info,LogOut,MessageCircle,MessagesSquare,Send,Settings2,ShieldCheck,Users,X} from 'lucide-react';
+import {Check,Copy,FilePlus,FolderOpen,Info,LogOut,MessageCircle,Send,Settings2,ShieldCheck,Users,X} from 'lucide-react';
+import {MessagesCircle} from './components/icons/messages-circle';
 import {i18n,useTranslation} from './i18n';
 import './styles/shadcn.css';
 import './style.css';
@@ -45,7 +46,8 @@ async function ready(id:string,cancelled:()=>boolean){
   const record=(await native<PeerRecord[]>('list')).find(r=>r.id===id);
   if(!record)throw Error('共享任务不存在');
   if(record.state.status!=='running')throw Error(record.state.error||'共享已停止');
-  if(record.state.ready)return record;
+  if(record.state.relayError)throw new Error(record.state.relayError);
+  if(record.state.ready&&(record.spec.mode!=='share_server'||record.state.relayReady))return record;
   await new Promise(resolve=>setTimeout(resolve,500));
  }
 }
@@ -151,7 +153,7 @@ function PeerChat(){
  const typing=selected?activePeer?.isTypingDirectMessage:peers.some(peer=>peer.isTypingGroupMessage);
  return <div ref={root} className="settings-surface flash-chat-root">
   {!session?<div className="flash-chat-lobby"><div className="flash-chat-entry">
-   <header className="flash-chat-welcome"><MessagesSquare size={28} strokeWidth={1.5} aria-hidden="true"/><h1>{tr('peerChat')}</h1><p>{tr('chatWelcome')}</p></header>
+   <header className="flash-chat-welcome"><MessagesCircle size={28} strokeWidth={1.5} aria-hidden="true"/><h1>{tr('peerChat')}</h1><p>{tr('chatWelcome')}</p></header>
    {error&&<Notice>{error}</Notice>}
    <div className="flash-chat-field"><Label htmlFor="chat-nickname">{tr('nickname')}</Label><Input id="chat-nickname" value={nickname} onChange={e=>setNickname(e.target.value)} autoComplete="nickname"/></div>
    <Tabs value={entryMode} onValueChange={value=>setEntryMode(String(value))}><TabsList className="flash-chat-entry-tabs"><TabsTrigger value="create" disabled={busy}>{tr('createRoom')}</TabsTrigger><TabsTrigger value="join" disabled={busy}>{tr('joinRoom')}</TabsTrigger></TabsList></Tabs>
@@ -165,7 +167,7 @@ function PeerChat(){
    <footer className="flash-chat-entry-footer"><Button variant="ghost" icon={Settings2} onClick={()=>setPanel('network')}>{tr('networkOptions')}</Button><p><ShieldCheck size={15} aria-hidden="true"/>{tr('chatEncryption')}</p></footer>
   </div></div>:<div className="flash-chat-workspace" data-members-open={showPeers}>
    <aside className="flash-chat-sidebar" aria-label={tr('chatPeers')}>
-    <header className="flash-chat-sidebar-heading"><MessagesSquare size={20} aria-hidden="true"/><span>{tr('peerChat')}</span><Button className="flash-chat-mobile-only" variant="ghost" size="icon" icon={X} aria-label={tr('backToChat')} onClick={()=>setShowPeers(false)}/></header>
+    <header className="flash-chat-sidebar-heading"><MessagesCircle size={20} aria-hidden="true"/><span>{tr('peerChat')}</span><Button className="flash-chat-mobile-only" variant="ghost" size="icon" icon={X} aria-label={tr('backToChat')} onClick={()=>setShowPeers(false)}/></header>
     <nav className="flash-chat-conversations" aria-label={tr('chatConversations')}>
      <Button className="flash-chat-conversation" variant="ghost" aria-label={tr('groupRoom')} aria-pressed={!selected} disabled={busy} onClick={()=>void action(()=>selectPeer(''))}><Users size={19} aria-hidden="true"/><span className="flash-chat-peer-label"><span>{tr('groupRoom')}</span><small>{t('interconnect.memberCount',{count:peers.length+1})}</small></span></Button>
      <h2>{tr('chatPeers')}</h2>

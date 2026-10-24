@@ -80,8 +80,9 @@ const record = (method: string, params?: unknown) => {calls.push({method, params
 Object.assign(window, {settingsDesignFixture: {calls, recover: () => query.delete("failure"), state: () => structuredClone({globalSettings, capture, aot, selection, quick, stroke, programs, ai, gateway})}});
 
 type NativeApp = NonNullable<NonNullable<Window["go"]>["main"]>["App"];
+const interconnect=interconnectFixture();
 window.go = {main: {App: {
-  Interconnect: interconnectFixture(),
+  Interconnect: async(method:string,payload:string)=>{record('interconnect.'+method,JSON.parse(payload));return interconnect(method,payload);},
   Snapshot: async () => snapshot(),
   SaveSettings: async (value: Settings) => {record("settings.save", value); Object.assign(globalSettings, value, {revision: globalSettings.revision + 1}); return structuredClone(globalSettings);},
   SettingsNavigation: async () => 0,

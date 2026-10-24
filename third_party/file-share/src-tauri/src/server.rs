@@ -65,6 +65,7 @@ pub(crate) struct AppState {
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ServerInfo {
+    pub read_only: bool,
     pub host_name: Option<String>,
     pub port: u16,
     pub ip: String,
@@ -86,6 +87,9 @@ pub struct ShareAddress {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct StartOptions {
+    // Existing local transfers remain writable; persistent shares opt out.
+    #[serde(default)]
+    pub read_only: bool,
     pub port: u16,
     pub bind: std::net::Ipv4Addr,
     pub data_dir: PathBuf,
@@ -266,7 +270,7 @@ impl From<axum::extract::multipart::MultipartError> for AppError {
 
 /// Host-selected paths keep the reused engine out of other applications' data.
 pub async fn start(options: StartOptions) -> Result<ServerInfo, String> {
-    let StartOptions { port, bind, data_dir, download_dir: client_upload_dir } = options;
+    let StartOptions { port, bind, data_dir, download_dir: client_upload_dir, read_only } = options;
     if !data_dir.is_absolute() || !client_upload_dir.is_absolute() {
         return Err("数据和接收目录必须是绝对路径".into());
     }
@@ -295,6 +299,7 @@ pub async fn start(options: StartOptions) -> Result<ServerInfo, String> {
         }
     }
     let mut info = server_info(port, &lan_addresses).map_err(|error| error.to_string())?;
+    info.read_only = read_only;
     let access = Arc::new(crate::access::Access::new(&info));
     for address in &mut info.addresses {
         address.url = format!("{}/?key={}", address.url, access.token);
@@ -1174,6 +1179,7 @@ fn server_info(port: u16, lan_addresses: &[LanAddress]) -> Result<ServerInfo, qr
     }
     let primary = addresses[0].clone();
     Ok(ServerInfo {
+        read_only: false,
         host_name: crate::network::host_name(),
         port,
         ip: primary.ip,

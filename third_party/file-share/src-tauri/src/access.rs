@@ -6,13 +6,14 @@ use crate::server::ServerInfo;
 pub(crate) struct Access {
     pub token: String,
     authorities: Vec<String>,
+    read_only: bool,
 }
 impl Access {
     pub fn new(info: &ServerInfo) -> Self {
         let mut authorities: Vec<_> = info.addresses.iter().map(|a| format!("{}:{}", a.ip, info.port)).collect();
         authorities.push(format!("127.0.0.1:{}", info.port));
         authorities.push(format!("localhost:{}", info.port));
-        Self {token: uuid::Uuid::new_v4().simple().to_string(), authorities}
+        Self {token: uuid::Uuid::new_v4().simple().to_string(), authorities, read_only: info.read_only}
     }
 }
 
@@ -41,6 +42,11 @@ pub(crate) async fn protect(State(access): State<Arc<Access>>, request: Request,
     let cookie = request.headers().get(header::COOKIE).and_then(|v| v.to_str().ok()).and_then(|v| v.split(';').find_map(|p| p.trim().strip_prefix("winone_share=")));
     if bearer != Some(access.token.as_str()) && cookie != Some(access.token.as_str()) {
         return private_response((StatusCode::UNAUTHORIZED, "共享链接已失效，请使用发送方当前的链接或二维码").into_response());
+    }
+    // Apply the sender's permission at the actual service, so LAN access
+    // cannot bypass the read-only check in the encrypted relay adapter.
+    if access.read_only && !matches!(*request.method(), axum::http::Method::GET | axum::http::Method::HEAD) {
+        return private_response((StatusCode::FORBIDDEN, "此分享仅允许下载").into_response());
     }
     private_response(next.run(request).await)
 }

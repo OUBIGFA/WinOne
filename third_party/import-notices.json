@@ -2,6 +2,28 @@
   "schemaVersion": 1,
   "imports": [
     {
+      "name": "lucide-messages-circle",
+      "repository": "https://github.com/lucide-icons/lucide",
+      "commit": "7faf87628a1ad6175975bc595344337ce14a7db4",
+      "license": "ISC",
+      "scope": "Official messages-circle SVG paths reused without geometry changes for Flash Chat navigation and headings. Wrapped by the existing lucide-react createLucideIcon because version 1.27.0 does not yet export this icon.",
+      "sourceFiles": [
+        "icons/messages-circle.svg"
+      ],
+      "notices": [
+        {
+          "file": "licenses/lucide.txt",
+          "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+        }
+      ],
+      "files": [
+        {
+          "path": "apps/desktop/frontend/src/components/icons/messages-circle.ts",
+          "sha256": "ce85aab8d0f6b5f15b91a2992f9c2482f4522f0fcda6a67145a3f11dbf3e04a4"
+        }
+      ]
+    },
+    {
       "name": "open-claude-ui",
       "repository": "https://github.com/Caho1/open-claude-ui",
       "commit": "02d021fceaf2a907f9e63a8125621bdda1b85d60",
@@ -1374,7 +1396,7 @@
         },
         {
           "path": "third_party/file-share/public/app-core.js",
-          "sha256": "3964945951da16b384891f5a8d0d42bd346c7540817171334bd21df2a1bedcae"
+          "sha256": "490ef3d2f18caf81e71f83f330adfa9f3866a10ebdee5bc3132199f578dec940"
         },
         {
           "path": "third_party/file-share/public/app-utils.js",
@@ -1406,7 +1428,7 @@
         },
         {
           "path": "third_party/file-share/src-tauri/src/access.rs",
-          "sha256": "06cef5ff5a931d5f7c6e65a6b39b3cf1857aa2c066c5272f40bda3d4bd5d6e23"
+          "sha256": "b4fc008b679d5629148548dde0cca8b89c9817be830c54c3f356ad1f6266b54f"
         },
         {
           "path": "third_party/file-share/src-tauri/src/assets.rs",
@@ -1430,7 +1452,7 @@
         },
         {
           "path": "third_party/file-share/src-tauri/src/server.rs",
-          "sha256": "06d96769953271f7a585e6e75694f8c115d402e8cdbd061252206af25306f5b2"
+          "sha256": "e893d2a819d6b5430d73d143f19db737806eee120854676c2d862acd11b96751"
         },
         {
           "path": "third_party/file-share/WINONE.md",
@@ -1457,7 +1479,7 @@
       "files": [
         {
           "path": "modules/interconnect/peer/main.go",
-          "sha256": "eddcb7a48dbeebeca1775b34baa93e830dcf22ef02dafe403d6ef807f1910e5f"
+          "sha256": "1c7dea87d9fb579644e5aa73581f687156e60ed5742b4e966a97b65fa63f38f7"
         },
         {
           "path": "modules/interconnect/peer/main_test.go",
@@ -1465,7 +1487,7 @@
         },
         {
           "path": "modules/interconnect/peer/network_test.go",
-          "sha256": "174037f8fef83fc2178a328a87b0031e521a0ddf8feafaff77e03ee923eed596"
+          "sha256": "2565c08c594feef5f27dc71952aee1d9295431fe8f674bd714383b51628a8390"
         },
         {
           "path": "modules/interconnect/peer/share_test.go",
@@ -1473,7 +1495,7 @@
         },
         {
           "path": "modules/interconnect/peer/source_windows.go",
-          "sha256": "d135aa93bb98e507310258bfc555161fd8899425560738fcfed7dfd7ef68d299"
+          "sha256": "e17ab8f17f9fad0c853b5f6a4ea9cab9642ed24e8c964e602165726e7a9c0c30"
         }
       ]
     }

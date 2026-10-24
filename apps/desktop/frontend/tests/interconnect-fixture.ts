@@ -8,6 +8,7 @@ export function interconnectFixture(){
  return async(method:string,payload:string)=>{
   const params=JSON.parse(payload);
   if(method==='pending')return JSON.stringify({requested:false,paths:[]});
+  if(method==='preferences.save'){settings=params;return JSON.stringify(settings);}
   if(method==='general.get')return JSON.stringify(general);
   if(method==='general.save'){general=params;return JSON.stringify(general);}
   if(method==='menu.get')return JSON.stringify(menu);
@@ -20,7 +21,7 @@ export function interconnectFixture(){
   if(method==='share_remove'){const task=tasks.find(task=>task.id===params.id);if(task?.state.share)task.state.share.items=task.state.share.items.filter((item:any)=>item.id!==params.itemId);return 'null';}
   if(method==='transfer_start'){
    const id='task-'+tasks.length,stored=params.mode.startsWith('store_');
-   if(params.mode.startsWith('share_')||params.mode.startsWith('tunnel_')){tasks.unshift({id,spec:params,state:{status:'running',ready:true,code:'tc'+('verified-fixture-address-'.repeat(6)),active:1,sent:4567,received:8910,share:params.mode==='share_server'?{items:params.paths.map((path:string,index:number)=>({id:'file-'+index,title:path,size:123456,exists:true}))}:undefined}});return JSON.stringify({id});}
+   if(params.mode.startsWith('share_')||params.mode.startsWith('tunnel_')){tasks.unshift({id,spec:params,state:{status:'running',ready:true,relayReady:true,code:'tc'+('verified-fixture-address-'.repeat(6)),active:1,sent:4567,received:8910,transfer:params.mode==='share_server'?{status:'running',code:'1234-fixture-code-phrase'}:undefined,share:params.mode==='share_server'?{info:{url:'http://192.168.1.50:5421/?key=ui-fixture',qr:'<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"></svg>',addresses:[]},items:[...params.paths.map((path:string,index:number)=>({id:'file-'+index,kind:'file',title:path.split(/[\\/]/).pop()??path,size:123456,exists:true})),...(params.text?[{id:'text-0',kind:'text',title:params.text.slice(0,40),content:params.text,size:params.text.length,exists:true}]:[])],downloads:[]}:undefined}});return JSON.stringify({id});}
    const result=params.mode==='store_send'?{id:'fixture-share',code:'croc-store-v1.preview-capability',link:'https://example.invalid/s/fixture#test-key',expiresAt:'2026-10-25T12:00:00Z',downloads:2}:params.mode==='store_inspect'?{manifest:{f:[{n:'received.txt',s:2048}]}}:undefined;
    tasks.unshift({id,created:'2026-10-24T12:00:00Z',spec:params,state:{status:'completed',code:stored?undefined:'1234-fixture-code-phrase',result}});
    return JSON.stringify({id});

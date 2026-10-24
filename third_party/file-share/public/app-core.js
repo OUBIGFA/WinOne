@@ -126,7 +126,9 @@
         return false;
       }
     });
-    return { url: match?.url || state.shareInfo?.url || currentUrl, qr: match?.qr || state.shareInfo?.qr };
+    // A relay gateway has a different origin from the sender. Downloads must
+    // stay on that gateway; never fall back to the sender's private address.
+    return { url: match?.url || currentUrl, qr: match?.qr || '' };
   }
 
   async function request(url, options = {}) {
@@ -236,6 +238,7 @@
   function applyShareInfo(info) {
     state.shareInfo = info;
     if (state.role === 'client') {
+      document.querySelectorAll('[data-open="textDialog"], [data-open="fileDialog"]').forEach(button => { button.hidden = Boolean(info.readOnly); });
       const hostName = String(info.hostName || window.location.hostname).trim();
       const host = $('shareHost');
       if (host) {
@@ -272,7 +275,7 @@
     renderShareAddress();
     if (copy) {
       copy.onclick = async () => {
-        const copied = await copyText(state.role === 'admin' ? currentShareUrl() : window.location.origin);
+        const copied = await copyText(state.role === 'admin' ? currentShareUrl() : clientShareAddress().url);
         copy.classList.toggle('copied', copied);
         copy.classList.toggle('copy-failed', !copied);
         showToast(copied ? t('linkCopied') : t('copyFailed'), copied ? 'success' : 'error');
@@ -289,7 +292,9 @@
     const text = $('clientUrlText');
     if (!address) return;
     if (qr) {
-      qr.innerHTML = address.qr;
+      qr.innerHTML = address.qr || '';
+      const button = $('clientQrButton');
+      if (button) button.hidden = !address.qr;
     }
     if (text) {
       text.textContent = address.url;
