@@ -4,13 +4,13 @@ import {act,cleanup,fireEvent,render,screen} from '@testing-library/react';
 import {ProcessBody,ProcessCollapseAction,ProcessNavigationProvider} from './process-navigation';
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
 it('offers collapse as soon as the work is long, including at its natural bottom without scrolling',()=>{
- let height=300,bodyTop=150,bodyBottom=450;
+ let height=300,bodyTop=150,bodyBottom=450,footerTop=506;
  const observers:Array<()=>void>=[];
  vi.stubGlobal('ResizeObserver',class{constructor(callback:()=>void){observers.push(callback);}observe(){}disconnect(){}});
  vi.spyOn(HTMLElement.prototype,'scrollHeight','get').mockImplementation(function(this:HTMLElement){return this.classList.contains('process-body')?height:600;});
  vi.spyOn(HTMLElement.prototype,'getBoundingClientRect').mockImplementation(function(this:HTMLElement){
   if(this.classList.contains('process-body'))return {top:bodyTop,bottom:bodyBottom,right:600,height} as DOMRect;
-  if(this.classList.contains('chat-input-area'))return {top:506} as DOMRect;
+  if(this.classList.contains('chat-input-area'))return {top:footerTop} as DOMRect;
   return {top:100,bottom:700,right:620,height:600,left:0} as DOMRect;
  });
  const collapse=vi.fn();
@@ -21,6 +21,10 @@ it('offers collapse as soon as the work is long, including at its natural bottom
  const button=screen.getByRole('button',{name:'收起思考过程'});
  expect(button.style.top).toBe('370px');
  fireEvent.click(button);expect(collapse).toHaveBeenCalledTimes(1);
+ height=1000;bodyBottom=900;act(()=>observers.forEach(update=>update()));
+ expect(button.style.top).toBe('570px');
+ footerTop=340;act(()=>observers.forEach(update=>update()));
+ expect(button.style.top).toBe('570px');
  bodyTop=750;bodyBottom=1350;act(()=>observers.forEach(update=>update()));
  expect(screen.queryByRole('button',{name:'收起思考过程'})).toBeNull();
 });

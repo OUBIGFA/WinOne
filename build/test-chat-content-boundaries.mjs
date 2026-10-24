@@ -19,7 +19,7 @@ let page;const report=[];
 const settle=()=>page.evaluate(async()=>{await document.fonts.ready;await new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done)));});
 const geometry=()=>page.evaluate(()=>{
  const v=document.querySelector('.chat-transcript-viewport'),footer=document.querySelector('.chat-input-area'),nav=document.querySelector('.chat-scroll-controls');
- return {scrollTop:v.scrollTop,scrollHeight:v.scrollHeight,viewportHeight:v.clientHeight,footerTop:footer.getBoundingClientRect().top,spacerTop:v.querySelector('.chat-transcript-end-space').getBoundingClientRect().top,navBottom:nav.getBoundingClientRect().bottom,headerNav:nav.classList.contains('chat-scroll-controls--header'),horizontal:document.documentElement.scrollWidth-innerWidth};
+ return {scrollTop:v.scrollTop,scrollHeight:v.scrollHeight,viewportHeight:v.clientHeight,footerTop:footer.getBoundingClientRect().top,navClear:(()=>{const box=nav.getBoundingClientRect(),surface=document.querySelector('.chat-input-content')?.getBoundingClientRect();return !surface||box.right<=surface.left+1||surface.right<=box.left+1||box.bottom<=surface.top+1||surface.bottom<=box.top+1;})(),spacerTop:v.querySelector('.chat-transcript-end-space').getBoundingClientRect().top,navBottom:nav.getBoundingClientRect().bottom,headerNav:nav.classList.contains('chat-scroll-controls--header'),horizontal:document.documentElement.scrollWidth-innerWidth};
 });
 async function jumpToBottom(label){
  const button=page.getByRole('button',{name:label,exact:true}),before=await geometry();
@@ -27,8 +27,9 @@ async function jumpToBottom(label){
  // for that enabled state through click(), rather than skipping a fresh jump.
  if(Math.abs(before.spacerTop-before.footerTop+32)>=2)await button.click();
  await page.waitForFunction(()=>Math.abs(document.querySelector('.chat-transcript-end-space').getBoundingClientRect().top-document.querySelector('.chat-input-area').getBoundingClientRect().top+32)<2);
- await settle();const value=await geometry();assert(value.navBottom<=value.footerTop+1,'Navigation covers the input');assert(value.horizontal<=1,'Page overflows horizontally');
- if(!value.headerNav)assert(Math.abs(value.navBottom-(value.footerTop-32))<2,'Navigation bottom does not follow the input edge');
+ await settle();const value=await geometry();assert(value.headerNav||value.navClear,'Navigation covers the input content');assert(value.horizontal<=1,'Page overflows horizontally');
+ // Navigation has its own stable reading-gutter anchor. Only actual input
+ // collisions require displacement; bottom scrolling still uses the live edge.
  return value;
 }
 try{

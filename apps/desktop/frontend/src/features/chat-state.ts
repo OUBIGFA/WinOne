@@ -17,10 +17,10 @@ export interface ChatSubagent{name:string;role?:string;status:string;task?:strin
 export interface ChatWorkflow{items:{step:string;status:"pending"|"in_progress"|"completed"}[];explanation?:string}
 export interface ChatTask{id:number;kind:string;conversationId:number;owner?:number;background:boolean;state:string}
 export interface ChatTaskGraph{scheduling:string;tasks:ChatTask[];total:number}
-export interface ChatSnapshot{messages:ChatMessage[];operations?:ProcessOperation[];hasOlder:boolean;before?:string;modelError?:string;streaming?:boolean;notice?:string;usage?:ChatUsage;contextUsage?:ChatContextUsage;subagents?:ChatSubagent[];workflow?:ChatWorkflow;backgroundRunning?:boolean;paused?:boolean;taskGraph?:ChatTaskGraph}
+export interface ChatSnapshot{messages:ChatMessage[];operations?:ProcessOperation[];hasOlder:boolean;before?:string;modelError?:string;streaming?:boolean;notice?:string;usage?:ChatUsage;contextUsage?:ChatContextUsage;subagents?:ChatSubagent[];workflow?:ChatWorkflow;backgroundRunning?:boolean;paused?:boolean;queuePaused?:boolean;taskGraph?:ChatTaskGraph}
 export interface ToolActivity{id:string;name:string;args:Record<string,unknown>;running:boolean;result?:unknown;isError?:boolean;turnId?:string;files?:ChatChangedFile[]}
 export interface ChatState extends ChatSnapshot{running:boolean;status:string;approvals:Approval[];tools:ToolActivity[];reviewing:boolean}
-export interface ChatEvent{type:string;id?:string;requestId?:string;turnId?:string;operation?:ProcessOperation;request?:Approval;eventType?:string;message?:ChatMessage;kind?:string;index?:number;text?:string;toolCallId?:string;toolName?:string;args?:Record<string,unknown>;result?:unknown;isError?:boolean;status?:string;error?:string;state?:ChatSnapshot;running?:boolean;timestamp?:number;startedAt?:number;durationMs?:number;usage?:ChatUsage;contextUsage?:ChatContextUsage;subagents?:ChatSubagent[];workflow?:ChatWorkflow;backgroundRunning?:boolean;paused?:boolean;taskGraph?:ChatTaskGraph;before?:number;after?:number}
+export interface ChatEvent{type:string;id?:string;requestId?:string;turnId?:string;operation?:ProcessOperation;request?:Approval;eventType?:string;message?:ChatMessage;kind?:string;index?:number;text?:string;toolCallId?:string;toolName?:string;args?:Record<string,unknown>;result?:unknown;isError?:boolean;status?:string;error?:string;state?:ChatSnapshot;running?:boolean;timestamp?:number;startedAt?:number;durationMs?:number;usage?:ChatUsage;contextUsage?:ChatContextUsage;subagents?:ChatSubagent[];workflow?:ChatWorkflow;backgroundRunning?:boolean;paused?:boolean;queuePaused?:boolean;taskGraph?:ChatTaskGraph;before?:number;after?:number}
 export interface ChatPoll{events:{sequence:number;data:ChatEvent}[];cursor:number;reset?:boolean;more?:boolean;running:boolean;status:string;error?:string;approvals:Approval[]}
 export const emptyChatState=():ChatState=>({messages:[],operations:[],hasOlder:false,running:false,status:"idle",approvals:[],tools:[],reviewing:false});
 export function mergeChatOperations(older:ProcessOperation[]=[],newer:ProcessOperation[]=[]){return [...new Map([...older,...newer].map(operation=>[operation.id,operation])).values()];}
@@ -43,6 +43,10 @@ export function upsertChatMessage(current:ChatMessage[],incoming:ChatMessage):Ch
  messages.splice(before<0?messages.length:before,0,incoming);return messages;
 }
 export function applyChatEvent(state:ChatState,event:ChatEvent):ChatState{
+ if(event.type==='queue_changed'&&event.state){
+  const saved=state.messages.filter(message=>!message.pending),ids=new Set(saved.map(message=>message.requestId));
+  return {...state,queuePaused:event.state.queuePaused,messages:[...saved,...event.state.messages.filter(message=>message.pending&&!ids.has(message.requestId))]};
+ }
  if(event.type==="notice")return {...state,notice:event.text??""};
  if(event.type==="usage")return {...state,usage:event.usage??state.usage,contextUsage:event.contextUsage??state.contextUsage};
  if(event.type==="durable_state")return {...state,subagents:event.subagents??[],workflow:event.workflow??state.workflow,backgroundRunning:!!event.backgroundRunning,paused:event.paused??state.paused,taskGraph:event.taskGraph??state.taskGraph};

@@ -635,7 +635,7 @@ func (s *Service) Command(ctx context.Context, id, method string, params any) (j
 // captured turn before replacing its input without admitting a concurrent prompt.
 func (s *Service) CommandPrepared(ctx context.Context, id, method string, params any, prepare func() error) (json.RawMessage, error) {
 	switch method {
-	case "state", "resources", "permission", "question", "abort", "pause", "resume", "set_model", "set_permission", "rename", "compact", "retry", "thinking", "fast", "control":
+	case "state", "resources", "permission", "question", "abort", "pause", "resume", "set_model", "set_permission", "rename", "compact", "retry", "thinking", "fast", "control", "queue":
 	default:
 		return nil, errors.New("不支持的 Chat 操作")
 	}

@@ -105,3 +105,22 @@
 2026-10-13 本次正文与审查验证：`chat-rendering.test.tsx` 与 `chat-message-collapse.test.tsx` 共 8 项通过；`build/test-chat-rendering-layout.mjs` 共 14 组通过，无浏览器脚本错误，正文排版对照一致，无横向溢出，代码复制完整。审查空状态截图已目视核查。浏览器测试使用隔离的 Host 数据边界，不等同于已验证真实 Git 提交、推送或还原。
 
 其余可复现检查入口为 `build/test-chat-ui-rebuild.mjs`、`build/test-chat-panel-layout.mjs`、`build/test-chat-reading-layout.mjs`，以及前端 Chat 单元测试、`internal/chat` 文件预览测试和原生工作台检查。主流程、完整前端套件和正式交付结果写入 `docs/development.md`。
+
+
+## 排队管理与定位边界（2026-10-24）
+
+排队界面核对 Cindy 提交 b1d73b1f79ae812d0950c632db4785b1f06d48e7；原文摘要、许可证及适配范围见 third_party/cindy/chat-queue-source.json。复用对象是 WinOne 本地输入队列；Cindy 的跨设备、伙伴和插件来源元数据不属于此入口。
+
+| Cindy 能力／本轮要求 | WinOne 接入 | 验证 |
+| --- | --- | --- |
+| FIFO 紧凑列表、超过四条显示前三条、展开尾部 | cindy/PendingQueuePanel.tsx | 真实 ChatPage 浏览器用例 |
+| 主输入框编辑、保存／取消编辑、还原原草稿与附件 | chat.tsx、现有 SendButton 保存态 | chat-followup.test.tsx 与浏览器用例 |
+| 编辑锁、拖动及键盘排序 | Cindy 锁与活动帮助函数，Pi Durable inbox 事务 | worker-queue.test.mjs |
+| 取消排队、改为同轮插话、Ctrl+Enter | 真实队列撤回和现有工具轮中断路径；不停止整个任务 | worker-queue.test.mjs、worker-followup.test.mjs |
+| Stop 暂停队列，继续与重开保留状态 | Durable 持久队列、暂停及恢复 | 真实 Worker 重开测试 |
+| 系统状态不写入用户内容 | 独立排队列表、编辑状态栏与输入提示 | 浏览器及消息边界测试 |
+| 工作过程收起按钮随过程区 | 定位只读取过程区与正文视口；长内容阈值保留 | process-navigation.test.tsx、浏览器调整输入高度 |
+| 导航位置只在实际遮挡时避让 | 阅读区固定锚点，加输入区横向／纵向相交判断 | chat-scroll-controls.test.tsx、浏览器普通／窄窗 |
+| 文件记录长菜单不溢出 | 现有 Cindy Radio 菜单，视口限宽、完整换行及纵向滚动 | chat-turn-changes.test.tsx、长标题浏览器用例 |
+
+浏览器复现：点源 build/use-local-resources.ps1 后运行 node build/test-chat-queue-layout.mjs _temp/<任务>/browser。覆盖 1600、1120、420 像素窗口、中英文及深浅色；浏览器只替换 Host 传输，不访问真实配置或模型。队列执行测试使用真实 Pi Durable、Worker 和本地模拟模型，单独验证消息实际进入模型上下文的顺序。

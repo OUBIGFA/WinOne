@@ -25,7 +25,7 @@
 .process-body{min-width:0;max-width:100%;overflow:visible}
 .process-body[data-process-long=true]>.process-body-content{margin-right:36px}
 .process-body-content{min-width:0}
-.process-collapse-action{position:absolute;width:28px;height:28px;min-height:28px;padding:5px;color:var(--muted-foreground);background:var(--chat-page-bg,var(--background));border:1px solid var(--border);border-radius:4px;box-shadow:none;z-index:4}
+.process-collapse-action{position:absolute;width:28px;height:28px;min-height:28px;padding:5px;color:var(--muted-foreground);background:var(--chat-page-bg,var(--background));border:1px solid var(--border);border-radius:4px;box-shadow:none;z-index:2}
 /* Work rows remain still on hover. Focus outlines and deliberate disclosure
    transitions are preserved; pointer motion never animates the process area. */
 .chat-work-process :is([data-slot=cindy-work],[data-live-work-activity=thinking],.chat-work-entry>button){transition:none}

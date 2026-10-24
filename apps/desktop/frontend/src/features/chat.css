@@ -60,6 +60,9 @@
  .chat-main .chat-composer-model-actions{flex-basis:100%;max-width:100%}
 }
 .chat-send-confirm{max-width:440px}
+.chat-queue-container{margin-bottom:8px;min-width:0;--chat-input-border:var(--border);--chat-input-bg:var(--background);--chat-input-chip-bg:var(--muted)}
+.chat-pending-queue{min-width:0}.chat-pending-queue .pending-queue-scroll{scrollbar-gutter:auto;overflow-x:hidden}
+.chat-queue-edit-state{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:13px;color:var(--muted-foreground)}
 .chat-send-preview{max-height:180px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border-radius:8px;background:var(--muted);font-size:14px;line-height:1.6}
 .chat-send-confirm [data-slot=dialog-footer]{flex-wrap:wrap}
 .chat-thinking,.chat-tool-result{color:var(--muted-foreground);font-size:13px;margin:8px 0 15px;max-width:100%}
@@ -101,8 +104,15 @@
 .chat-session-controls>[data-slot=button]{width:100%;justify-content:flex-start;font-size:13px}
 .chat-retry-status{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 0;color:var(--muted-foreground);font-size:13px}
 .chat-retry-status>svg{flex:none}.chat-retry-status>span{flex:1;min-width:0;overflow-wrap:anywhere}
-.chat-change-turn-select{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;color:var(--muted-foreground)}
-.chat-change-turn-select>span{flex:none}.chat-change-turn-select>select{flex:1;min-width:0;max-width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--background);color:var(--foreground)}
+.chat-change-turn-select{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0;font-size:13px;color:var(--muted-foreground)}
+.chat-change-turn-select>span{flex:none}.chat-change-turn-select>button{display:flex;align-items:center;gap:8px;flex:1 1 220px;min-width:0;max-width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--background);color:var(--foreground)}
+.chat-change-turn-select>button>span{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}.chat-change-turn-select>button>svg{flex:none}
+/* Native option popups ignore CSS width limits. Use Cindy's portal menu,
+   bounded by both its trigger and the available viewport, with full titles. */
+.chat-change-history-menu{width:clamp(240px,var(--radix-dropdown-menu-trigger-width),480px);min-width:0;max-width:calc(100vw - 24px);max-height:min(360px,var(--radix-dropdown-menu-content-available-height));overflow-y:auto;overflow-x:hidden}
+.chat-change-history-menu [role=menuitemradio]{white-space:normal;overflow-wrap:anywhere;align-items:flex-start}
+.chat-change-history-menu [role=menuitemradio]>span:last-child{min-width:0;white-space:normal;overflow-wrap:anywhere}
+.chat-change-history-menu [data-menu-label]{display:block;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}
 .chat-plan{min-width:0;margin-block:4px}
 .chat-plan-reminder{position:absolute;left:0;right:0;bottom:calc(100% + 10px);z-index:5;display:flex;justify-content:center;pointer-events:none}
 .chat-plan-reminder>*{pointer-events:auto;max-width:100%}

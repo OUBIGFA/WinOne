@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {BACKGROUND_CONTEXT as context,withAbortSignal} from '@earendil-works/chord/context';
-import {Harness,createRegistry,defineExtension,defineTool,section,hook,GenerationTask,ToolTask,LiveDoc,watchEvents,defineDoc} from '@earendil-works/pi-durable';
+import {Harness,createRegistry,defineExtension,defineTool,section,hook,GenerationTask,ToolTask,LiveDoc,InboxDoc,watchEvents,defineDoc} from '@earendil-works/pi-durable';
 import {openDurableStorage} from './durable-storage.mjs';
 import {NodeExecutionEnv} from '@earendil-works/pi-durable/env/node';
 import {estimateContextTokens} from '@earendil-works/pi-ai/utils/estimate';
@@ -158,7 +158,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   // stored in the agent document; only an enabled WinOne route is persisted.
   await root.configure({model:{provider:'winone',modelId:config.model.id},thinkingLevel:thinkingLevel(),cwd:config.cwd,...(config.model.tools===false||config.runtimeSettings?.toolPreset==='chat-only'?{tools:[]}:config.runtimeSettings?.toolPreset==='read-only'?{tools:[...toolRegistrations.values()].filter(t=>readTools.has(t.name)).concat(workflow.extension.tools??[])}:{})},context);
   const state=await harness.snapshot(AdapterDoc,root.id,context);
-  extra.paused=!!state?.paused;
+  extra.paused=!!state?.paused;extra.queuePaused=!!state?.queuePaused;
   if(!state?.imported){
    const messages=manager.buildSessionProjection().messages.filter(message=>['user','assistant','toolResult'].includes(message.role));
    await root.commit(async tx=>{for(const message of messages)await tx.appendEntry(root.id,{kind:'winone.import',model:[plain(message)],data:{legacy:true}});(await tx.doc(AdapterDoc,root.id)).imported=true;},context);
@@ -311,6 +311,25 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   await root.commit(async tx=>{for(const message of messages)await tx.appendEntry(root.id,{kind:'winone.import',model:[plain(message)],data:{legacy:true}});},context);
   projectedTail=manager.getLeafId();
  }
+ function interruptToolRound(interrupted){
+  if(interrupted.some(tool=>tool.status!=='done')){
+   // Control work cannot reject an already-admitted input. Abort only this
+   // tool round, never root.abort(), which would end the run and its inbox.
+   track((async()=>{
+    let tasks=[];
+    await root.commit(async tx=>{
+     const live=await tx.doc(LiveDoc,root.id);
+     if(!live.tools?.some(tool=>tool.taskId!==undefined&&interrupted.some(prior=>prior.taskId===tool.taskId)))return;
+     const pending=live.tools.filter(tool=>tool.status!=='done');
+     const adapter=await tx.doc(AdapterDoc,root.id);
+     adapter.interruptedCalls=pending.map(tool=>tool.callId);
+     adapter.interruptedRun=live.run?.taskId??null;
+     tasks=pending.flatMap(tool=>tool.taskId===undefined?[]:[tool.taskId]);
+    },context);
+    await Promise.all(tasks.map(task=>harness.abortTask(task,context)));
+   })());
+  }
+ }
  async function prompt(text,options={}){
   if(closed)throw Error('Durable session is closed');
   if(extra.paused)throw Error('Resume the paused session before sending a message');
@@ -342,23 +361,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   const interrupted=wasRunning&&options.streamingBehavior==='steer'?(await harness.snapshot(LiveDoc,root.id,context))?.tools??[]:[];
   const submission=await root.submit({type:'input',content,requestId:id,whenBusy:options.streamingBehavior??'followUp',...(options.inputReceipt?{entry:{kind:'winone.input',data:{receipt:plain(options.inputReceipt)}}}:{})},context);
   streaming=true;notifiedIdle=false;
-  if(interrupted.some(tool=>tool.status!=='done')){
-   // Control work cannot reject an already-admitted input. Abort only this
-   // tool round, never root.abort(), which would end the run and its inbox.
-   track((async()=>{
-    let tasks=[];
-    await root.commit(async tx=>{
-     const live=await tx.doc(LiveDoc,root.id);
-     if(!live.tools?.some(tool=>tool.taskId!==undefined&&interrupted.some(prior=>prior.taskId===tool.taskId)))return;
-     const pending=live.tools.filter(tool=>tool.status!=='done');
-     const adapter=await tx.doc(AdapterDoc,root.id);
-     adapter.interruptedCalls=pending.map(tool=>tool.callId);
-     adapter.interruptedRun=live.run?.taskId??null;
-     tasks=pending.flatMap(tool=>tool.taskId===undefined?[]:[tool.taskId]);
-    },context);
-    await Promise.all(tasks.map(task=>harness.abortTask(task,context)));
-   })());
-  }
+  interruptToolRound(interrupted);
   if(wasRunning){options.preflightResult?.(options.streamingBehavior==='steer'?'steered':'queued');return;}
   options.preflightResult?.('started');
   const settled=await submission.wait(context);
@@ -370,6 +373,66 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   if(result.state.outcome.status!=='completed')throw Error('Context compaction did not complete');
   if(result.state.outcome.result?.submissionId){const submission=await harness.submission(result.state.outcome.result.submissionId,context);await submission.wait(context);}
   await refreshMetrics();
+ }
+ // The inbox and these held items share one transaction. An edit locks its
+ // FIFO tail; earlier items may drain. No editor operation aborts the live run.
+ async function changeQueue(action,{id,locked,text,images,receipt,targetIndex}={}){
+  const interrupted=action==='steer'?(await harness.snapshot(LiveDoc,root.id,context))?.tools??[]:[];
+  let result;
+  await root.commit(async tx=>{
+   const inbox=await tx.doc(InboxDoc,root.id),adapter=await tx.doc(AdapterDoc,root.id);
+   const held=adapter.heldInputs??[],order=adapter.queueOrder??[];
+   const all=[...inbox.items,...held].map(plain).sort((a,b)=>{
+    const ai=order.indexOf(a.id),bi=order.indexOf(b.id);
+    return ai<0&&bi<0?a.id-b.id:ai<0?1:bi<0?-1:ai-bi;
+   });
+   const key=item=>item.entry?.data?.receipt?.id;
+   const index=all.findIndex(item=>key(item)===id),item=all[index];
+   if(['update','cancel','steer','reorder'].includes(action)||action==='lock'&&locked){
+    if(!item)throw Error('这条消息已开始处理，无法再修改排队内容');
+   }
+   const locks=new Set(adapter.queueLocks??[]);
+   if(action==='lock'){if(locked)locks.add(id);else locks.delete(id);}
+   else if(action==='interaction')adapter.queueInteractionLocked=locked===true;
+   else if(action==='pause')adapter.queuePaused=true;
+   else if(action==='resume')adapter.queuePaused=false;
+   else if(action==='resetLocks'){locks.clear();adapter.queueInteractionLocked=false;}
+   else if(action==='reconcile'){}
+   else if(action==='update'){
+    item.content=images?.length?[{type:'text',text},...images]:text;
+    item.entry.data.receipt=plain(receipt);
+   }else if(action==='cancel'){
+    // Same settlement as Harness.abortSubmission, while also removing a held
+    // item in this atomic commit. A placed message is never a cancellation.
+    tx.settleSubmission(item.id,{status:'unanswered',reason:'aborted'});
+    all.splice(index,1);locks.delete(id);
+   }else if(action==='steer'){
+    item.mode='steer';item.entry.data.receipt={...item.entry.data.receipt,...receipt,queued:false,deliveryMode:'steer'};
+    locks.delete(id);
+   }else if(action==='reorder'){
+    if(!Number.isInteger(targetIndex)||targetIndex<0||targetIndex>all.length)throw Error('无效的排队位置');
+    all.splice(index,1);all.splice(targetIndex>index?targetIndex-1:targetIndex,0,item);
+   }else throw Error('不支持的排队操作');
+   adapter.queueLocks=[...locks];adapter.queueOrder=all.map(item=>item.id);
+   let blocked=adapter.queuePaused===true||adapter.queueInteractionLocked===true;
+   const active=[],waiting=[];
+   for(const input of all){
+    if(locks.has(key(input)))blocked=true;
+    // An explicit steer retains its same-turn semantics even across a held
+    // follow-up. It is never implemented as stop + restart.
+    (blocked&&input.mode!=='steer'?waiting:active).push(input);
+   }
+   inbox.items=active;adapter.heldInputs=waiting;
+   result={receipts:all.flatMap(input=>input.entry?.data?.receipt?[input.entry.data.receipt]:[]),paused:adapter.queuePaused===true};
+  },context);
+  interruptToolRound(interrupted);
+  extra.queuePaused=result.paused;
+  if(!['lock','interaction','pause','update','reconcile'].includes(action)||locked===false){
+   // An empty context write runs the official final boundary when idle. It
+   // introduces no model message; busy sessions keep their existing run.
+   await root.submit({type:'write',entry:{kind:'winone.queue',model:[]}},context);
+  }
+  return result;
  }
  async function setThinkingLevel(value){
   // '' and 'auto' restore the provider default: no reasoning_effort is injected.
@@ -383,7 +446,8 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   get messages(){return manager.buildSessionProjection().messages;},get model(){return sdk.model;},get thinkingLevel(){return thinkingLevel();},
   get sessionId(){return manager.getSessionId();},get sessionFile(){return file;},get isStreaming(){return streaming;},
   subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);},
-  prompt,compact,setThinkingLevel,setFastMode:value=>{config.fastMode=!!value;},
+  prompt,compact,changeQueue,setThinkingLevel,setFastMode:value=>{config.fastMode=!!value;},
+  inputStatus:id=>root.commit(async tx=>(await tx.submissionByRequest(root.id,id))?.status,context),
   async abort(){await root.abort(context,{background:true});await settleIfIdle();},
   steer:(text,options={})=>prompt(text,{...options,streamingBehavior:'steer'}),
   followUp:(text)=>prompt(text,{streamingBehavior:'followUp'}),waitForIdle:()=>root.waitForIdle(context),
@@ -428,7 +492,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  async function resume(explicit=false){
   if(extra.paused&&!explicit)return;
   if(explicit){await root.commit(async tx=>{(await tx.doc(AdapterDoc,root.id)).paused=false;},context);extra.paused=false;}
-  harness.resume();await updateExtras();
+  await changeQueue('resetLocks');harness.resume();await updateExtras();
   if(streaming){send({type:'agent_start'});void settleIfIdle().catch(report);}
  }
  return {

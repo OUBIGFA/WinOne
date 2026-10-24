@@ -41,6 +41,18 @@ it('uses the current input edge for bottom jumps without moving the transcript o
  footerTop=220;act(()=>resize());expect(screen.getByRole('navigation').parentElement?.classList.contains('chat-header')).toBe(true);
 });
 
+it('keeps navigation still when the composer has horizontal clearance',()=>{
+ render(<OverlayFixture/>);const viewport=screen.getByTestId('viewport'),footer=screen.getByTestId('footer');
+ Object.defineProperties(viewport,{clientHeight:{value:800},scrollHeight:{value:1600}});
+ viewport.getBoundingClientRect=()=>({top:100,bottom:900,height:800,right:1200} as DOMRect);
+ const editor=document.createElement('div');editor.className='chat-input-content';footer.append(editor);
+ let top=700;footer.getBoundingClientRect=()=>({top} as DOMRect);
+ editor.getBoundingClientRect=()=>({top,right:1100,left:100,bottom:900} as DOMRect);
+ act(()=>resize());const original=screen.getByRole('navigation').style.top;
+ top=350;act(()=>resize());expect(screen.getByRole('navigation').style.top).toBe(original);
+ expect(screen.getByRole('navigation').parentElement?.classList.contains('chat-header')).toBe(false);
+});
+
 it('moves between user rounds and both transcript boundaries',async()=>{
  render(<Fixture/>);const viewport=screen.getByTestId('viewport');
  Object.defineProperties(viewport,{clientHeight:{value:200},scrollHeight:{value:1200}});

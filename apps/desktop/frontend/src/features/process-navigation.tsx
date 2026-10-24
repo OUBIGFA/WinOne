@@ -42,9 +42,14 @@ export function ProcessBody({children,blockKey,onCollapse,version,onLongChange}:
   const footer=content.closest('.chat-main')?.querySelector<HTMLElement>('.chat-input-area');
   let frame=0;
   const measure=()=>{
-   const bounds=transcript?.getBoundingClientRect(),covered=footer?.getBoundingClientRect().top,body=content.getBoundingClientRect();
-   const bottom=bounds?Math.min(bounds.bottom,covered===undefined?bounds.bottom:covered-6):window.innerHeight;
-   const available=bounds&&bounds.height>0?Math.max(0,bottom-bounds.top):transcript?.clientHeight||window.innerHeight;
+   const bounds=transcript?.getBoundingClientRect(),body=content.getBoundingClientRect();
+   // This action belongs to the work body. The composer is an overlay, not
+   // its scroll boundary; resizing that overlay must not move the action.
+   const bottom=bounds?.bottom??window.innerHeight;
+   // Keep the existing long-content threshold: the overlay reduces reading
+   // space, but it is not the anchor for an already-visible collapse action.
+   const readingBottom=footer?Math.min(bottom,footer.getBoundingClientRect().top-6):bottom;
+   const available=bounds&&bounds.height>0?Math.max(0,readingBottom-bounds.top):transcript?.clientHeight||window.innerHeight;
    const isLong=content.scrollHeight>Math.max(1,available)+1;setLong(isLong);
    if(nested||!register)return;
    // Long work stays collapsible as soon as it grows, including while its
@@ -55,8 +60,6 @@ export function ProcessBody({children,blockKey,onCollapse,version,onLongChange}:
   };
   const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(measure);};
   measure();window.addEventListener('resize',schedule);transcript?.addEventListener('scroll',schedule,{passive:true});
-  // Like the transcript navigator, a footer resize must move this action
-  // before paint rather than leaving a stale hit target over the input.
   const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(()=>flushSync(measure)):undefined;
   observer?.observe(content);if(transcript)observer?.observe(transcript);if(footer)observer?.observe(footer);
   return()=>{cancelAnimationFrame(frame);window.removeEventListener('resize',schedule);transcript?.removeEventListener('scroll',schedule);observer?.disconnect();if(!nested)register?.(blockKey,undefined);};

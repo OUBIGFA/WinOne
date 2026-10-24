@@ -7,7 +7,7 @@ import {Button} from '../ui/button';
 import {chatCall} from '../bridge';
 import {useTranslation} from '../i18n';
 import {parseGitDiff} from './cindy/review/diffParser';
-import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger} from './cindy/panel-ui/dropdown-menu';
+import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger,DropdownMenuRadioGroup,DropdownMenuRadioItem} from './cindy/panel-ui/dropdown-menu';
 import {activateInlineLinkFromKeyboard,linkMenuPosition} from './cindy/linkInteraction';
 import {copyText} from './clipboard';
 
@@ -21,7 +21,7 @@ export function ChatTranscriptChanges({id,turns,disabled,onReview,onOpen}:{id:st
  const turn=turns.find(turn=>turn.turnId===selected)??turns.at(-1);
  if(!turn)return null;
  return <div className="chat-transcript-changes">
-  {turns.length>1&&<label className="chat-change-turn-select"><span>{t('chat.changeRecords')}</span><select aria-label={t('chat.changeRecords')} value={turn.turnId} onChange={event=>setSelected(event.target.value)}>{turns.map((value,index)=><option key={value.turnId} value={value.turnId}>{t('chat.changeRecord',{number:index+1})}{value.title?` · ${value.title}`:''}</option>)}</select></label>}
+  {turns.length>1&&<div className="chat-change-turn-select"><span>{t('chat.changeRecords')}</span><DropdownMenu><DropdownMenuTrigger asChild><button type="button" aria-label={t('chat.changeRecords')} title={turn.title}><span>{t('chat.changeRecord',{number:turns.indexOf(turn)+1})}{turn.title?` · ${turn.title}`:''}</span><ChevronDown size={14}/></button></DropdownMenuTrigger><DropdownMenuContent className="chat-change-history-menu" align="end" collisionPadding={12}><DropdownMenuRadioGroup value={turn.turnId} onValueChange={setSelected}>{turns.map((value,index)=><DropdownMenuRadioItem key={value.turnId} value={value.turnId} textValue={value.title} title={value.title}><span>{t('chat.changeRecord',{number:index+1})}{value.title?` · ${value.title}`:''}</span></DropdownMenuRadioItem>)}</DropdownMenuRadioGroup></DropdownMenuContent></DropdownMenu></div>}
   <ChatTurnChanges key={id+':'+turn.turnId} id={id} turnId={turn.turnId} version={turn.version} disabled={disabled} onReview={path=>onReview(turn.turnId,path)} onOpen={onOpen}/>
  </div>;
 }

@@ -77,6 +77,18 @@ if(query.has('editWidths'))messages.splice(0,messages.length,
  {id:'long-user',role:'user',content:query.get('editWidths')==='short'?'简短消息':'这是一条较长的原始消息，点击编辑时应保留气泡原有宽度。'.repeat(16)},
  {id:'long-answer',role:'assistant',content:Array.from({length:24},(_,index)=>`### 检查段落 ${index+1}\n\n这里保留正文，以核对输入区域升高或缩小之后的返回底部位置。`).join('\n\n')+'\n\n最后一段内容应完整显示在输入区域上方。'},
 );
+// Queue/layout regression fixture: long titles, multiple file-change rounds,
+// and accepted inputs. Only the native bridge is replaced.
+if(query.has('queueFixture')){
+ messages.splice(0,messages.length);
+ for(let i=0;i<3;i++)messages.push(
+  {id:'round-'+i,turnId:'round-'+i,role:'user',content:'Record '+i+' '+'VeryLongUnbrokenTitle'.repeat(65)},
+  {id:'work-'+i,turnId:'round-'+i,role:'assistant',content:[{type:'thinking',thinking:Array.from({length:150},(_,j)=>'Step '+j+': inspect the project.').join(String.fromCharCode(10))},{type:'toolCall',id:'write-'+i,name:'write',arguments:{path:'README.md'}}]},
+  {role:'toolResult',turnId:'round-'+i,toolCallId:'write-'+i,content:'Saved'},
+  {id:'reply-'+i,turnId:'round-'+i,role:'assistant',content:'Completed this round.'},
+ );
+ for(let i=0;i<5;i++)messages.push({id:'queued-'+i,requestId:'queued-'+i,role:'user',content:'Queued input '+i,pending:true,queued:true});
+}
 let streamRevision=0;
 const growThinking=()=>{const message=messages.find(message=>message.id==='thinking-stream');if(message){message.content=[{type:'thinking',thinking:Array.from({length:150},(_,index)=>`Real thinking line ${index+1}: preserve every detail.`).join('\n')}];streamRevision++;}};
 const browserStates=new Map<string,Record<string,unknown>>();
@@ -91,6 +103,14 @@ Object.assign(window,{chatExperienceGrowThinking:growThinking,chatExperienceCall
   if(ioFailures.has(method))throw Error(ioFailures.get(method));
   if(ioHolds.has(method))await new Promise<void>(resolve=>{const waiters=ioWaiters.get(method)??new Set();waiters.add(resolve);ioWaiters.set(method,waiters);});
   if(query.has('editWidths')&&method==='review.turn')return JSON.stringify({snapshot:{files:[],isReversible:false},patches:{}});
+  if(method==='queue'){
+   const index=messages.findIndex(message=>message.requestId===params.entry),message=messages[index];
+   if(params.action==='cancel')messages.splice(index,1);
+   if(params.action==='update'&&message)message.content=params.text;
+   if(params.action==='steer'&&message){message.queued=false;message.deliveryMode='steer';}
+   return JSON.stringify({messages,streaming:running,hasOlder:false});
+  }
+  if(query.has('queueFixture')&&method==='prompt'){messages.push({id:params.requestId,requestId:params.requestId,role:'user',content:params.text,pending:true,queued:true});return JSON.stringify({accepted:true});}
   if(method==='media.upload')return JSON.stringify({url:previewOrigin+'/image-upload?name='+encodeURIComponent(params.name||'image.png')});
   if(method==='media.source')return JSON.stringify({attachment:{name:'picture.png',path:'C:/fixture/Alpha/picture.png',mimeType:'image/png',size:320},preview:{name:'picture.png',path:'C:/fixture/Alpha/picture.png',kind:'image',mimeType:'image/png',size:320,revision:'image',url:previewOrigin+'/picture.png'}});
   if(method==='media.attach')return '{}';

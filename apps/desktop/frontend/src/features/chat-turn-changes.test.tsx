@@ -16,7 +16,8 @@ it('keeps one card for repeated file edits and retains access to each turn',asyn
  await screen.findByRole('button',{name:/second.md/});
  expect(document.querySelectorAll('.chat-turn-changes')).toHaveLength(1);
  await userEvent.click(screen.getByRole('button',{name:'查看文件改动'}));expect(onReview).toHaveBeenLastCalledWith('second',undefined);
- await userEvent.selectOptions(screen.getByRole('combobox',{name:'文件改动记录'}),'first');
+ await userEvent.click(screen.getByRole('button',{name:'文件改动记录'}));
+ await userEvent.click(await screen.findByRole('menuitemradio',{name:/First request/}));
  await screen.findByRole('button',{name:/first.md/});expect(document.querySelectorAll('.chat-turn-changes')).toHaveLength(1);
  await userEvent.click(screen.getByRole('button',{name:'撤销本轮修改'}));
  expect(bridge.call).toHaveBeenCalledWith('review.turn.apply',{sessionId:'chat',turnId:'first',mutation:{revision:'first',action:'undo'}});

@@ -1,5 +1,22 @@
 # 开发状态
 
+## 固定安装器更新（2026-10-24，Chat 排队管理与定位修复）
+
+本轮完成四项 Chat 修复并重建固定安装器：工作过程折叠按钮跟随过程区而非输入框；返回顶部/底部导航只在真实遮挡输入面时避让；排队消息可编辑、取消或改为插话（复用 Cindy PendingQueuePanel）；文件记录长内容菜单不再溢出。
+
+- **过程折叠按钮**：定位不再以输入区顶边为界，改用过程区自身边界与原长内容阈值；层级从输入层之上降回过程层。拖高输入框时按钮位置保持不变（1280 宽窗实测 navBottom 恒为 593px）。
+- **导航避让**：导航组锚定阅读区稳定位置；仅当输入面横向到达按钮区且纵向相交时压缩或移至页头。宽窗拉高输入框时按钮不动；窄窗（420px）仍正确避让（压缩至 515px 或页头模式 45.5px）。
+- **排队管理**：复用 Cindy b1d73b1f 的 PendingQueuePanel、pendingQueueRowActivity、pendingQueueLocks（来源记录在 third_party/cindy/chat-queue-source.json）。支持展开/收起、拖动/键盘排序、编辑（保存原草稿与附件，取消还原）、逐条取消、Ctrl+Enter 改插话（中断当前工具轮）、暂停/继续；排队行不进入工作过程投影；暂停队列在重开后保持不发。
+- **文件记录菜单**：轮次下拉换为 Cindy DropdownMenuRadioGroup，宽度 clamp(240px, 触发宽, 480px)、max-height min(360px, 可用高)，条目强制换行；长标题（无空格长串 ×3 轮）实测菜单宽 478px 无横向溢出、纵向可滚动。
+- **验证**：前端 157 文件/864 测试、chat-pi 82 项（含新 worker-queue 测试）、Go 全模块（wintray/config 复跑通过）、Rust 桌面 111 项、边界布局 8 组合与排队布局 4 组合 Playwright 全过；tsc --noEmit 与生产构建通过。
+- **统一构建**：Build verified: _temp/chat-controls-20261024/build/WinOne.exe；载荷 4,371 文件。
+- **隔离安装矩阵**：安装、故障回滚、修复、覆盖、卸载中断恢复、导出卸载器一致性与哈希核对通过。
+- **固定安装器**：dist/release/WinOne-setup.exe 为 274,622,086 字节，SHA-256 114c53d62b1b828ddc9173cb933378736f1cd90e7fefa79ecbb4cae793b930ed，包清单 SHA-256 91f8eb1329810d6c5b72134f41c65124c2669d113427deeb8bbdd2c415551ba0。安装器、卸载器与 ZIP 的 Defender 静态扫描均无威胁。旧三件套备份在 _temp/chat-controls-20261024/prior-release/。
+
+边界：未签名；排队消费行为以本地 SSE fixture 验证为准；管理员权限新后台浏览器、混合 DPI/多屏及长期稳定性未验证。
+
+# 开发状态
+
 ## 固定安装器更新（2026-10-24，插件后台浏览器与鼠标手势重构）
 
 本轮完成三项要求：修复第三方插件登录后模型不可用及后台浏览器闪现；把 Magpie AI 基座更新至 `50f52b540b915bdf5912ddebc48c1fa46eef3025`；按“只让已启用手势生效”重建 Stroke 输入状态机。

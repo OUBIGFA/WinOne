@@ -21,6 +21,30 @@ function backend(running:boolean){
   return {};
  });
 }
+it('edits the queued input in the composer, preserves its attachments and restores the next draft',async()=>{
+ backend(true);const original=native.call.getMockImplementation()!;
+ let queued={id:'queued',requestId:'queued',role:'user',content:'Original queue',pending:true,queued:true,attachments:[{path:'C:/fixture/a.txt',name:'a.txt',size:2,mimeType:'text/plain'}]};
+ native.call.mockImplementation(async(method,params)=>{
+  if(method==='open'||method==='state')return {messages:[queued],streaming:true};
+  if(method==='draft.get')return {text:'My next draft'};
+  if(method==='queue'){
+   if(params.action==='update')queued={...queued,content:params.text};
+   return {messages:[queued],streaming:true};
+  }
+  return original(method,params);
+ });
+ render(<ChatPage requestedConversationId='history'/>);
+ const row=await screen.findByText('Original queue',{exact:false});fireEvent.mouseEnter(row.closest('[role=listitem]')!);
+ await userEvent.click(screen.getByRole('button',{name:'编辑第 1 条排队消息'}));
+ const input=screen.getByRole('textbox',{name:'消息'});
+ await waitFor(()=>expect(input).toHaveProperty('value','Original queue'));
+ expect(native.call).toHaveBeenCalledWith('queue',expect.objectContaining({action:'lock',entry:'queued',locked:true}));
+ fireEvent.change(input,{target:{value:'Changed queue'}});
+ await userEvent.click(screen.getByRole('button',{name:'保存排队消息'}));
+ await waitFor(()=>expect(input).toHaveProperty('value','My next draft'));
+ expect(native.call).toHaveBeenCalledWith('queue',expect.objectContaining({action:'update',text:'Changed queue',attachments:['C:/fixture/a.txt']}));
+ expect(native.call.mock.calls.filter(([method])=>method==='prompt')).toHaveLength(0);
+});
 it('submits each mid-turn message to Pi without overwriting an earlier follow-up',async()=>{
  backend(true);render(<ChatPage requestedConversationId='history'/>);await findReply('Saved answer');
  const user=userEvent.setup(),input=screen.getByRole('textbox',{name:'消息'});

@@ -1,0 +1,42 @@
+{
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "b1d73b1f79ae812d0950c632db4785b1f06d48e7",
+  "licenseFile": "third_party/cindy/LICENSE",
+  "noticeFile": "third_party/cindy/NOTICE",
+  "licenseSHA256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+  "noticeSHA256": "77ad73b2535cd4011ed8b509aa51d7c745ae5a6f411370d8f94337562c03cd97",
+  "files": [
+    {
+      "source": "apps/desktop/src/renderer/components/new-chat/PendingQueuePanel.tsx",
+      "sourceSHA256": "cd70ebc0386a5e1afd9f36c551602b557570e92eecba3004675a5e2648917ef9",
+      "target": "apps/desktop/frontend/src/features/cindy/PendingQueuePanel.tsx",
+      "unchanged": false,
+      "adaptation": "Preserve FIFO rows, edit/steer/cancel actions, shortcut, drag/keyboard reorder, expansion and paused resume. Adapt imports, translations and local text/attachment rows to WinOne; its Host has no Cindy remote-device, bot or plugin-origin queue metadata. Remove permanent scrollbar-gutter to follow the project layout contract."
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/new-chat/pendingQueueRowActivity.ts",
+      "sourceSHA256": "d03c9c2c61327ce68443c214dca4f393b95c17454bff64f5f6b0292ad7821fcb",
+      "target": "apps/desktop/frontend/src/features/cindy/pendingQueueRowActivity.ts",
+      "unchanged": true,
+      "adaptation": "Unchanged upstream queue activity/lock ownership helper."
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/new-chat/pendingQueueLocks.ts",
+      "sourceSHA256": "c8fb2c13af6256592ce924592df1beef3c6bcf29914fe47a3f5ab0bf191036e8",
+      "target": "apps/desktop/frontend/src/features/cindy/pendingQueueLocks.ts",
+      "unchanged": true,
+      "adaptation": "Unchanged upstream queue activity/lock ownership helper."
+    }
+  ],
+  "reviewedSources": [
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/CCAgentSessionView.tsx",
+      "sha256": "5a10cabfeaa139f2e31810c6a094278bff2c95968071db92da7220d31e28ecda"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/new-chat/ChatInput.tsx",
+      "sha256": "cfbdea91fa51970dd0469f4fedde8ea33a41514590992f2d8419ba50d5735ea1"
+    }
+  ],
+  "hostAdaptation": "Queue edits use the shared composer and restore its original draft and attachments. The durable inbox owns atomic edit holds, cancellation, reordering and same-turn steering; the existing active tool-round interruption path is shared. Queue status is separate from user content."
+}

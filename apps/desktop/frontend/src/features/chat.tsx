@@ -40,6 +40,7 @@ import {readChatSoundEnabled,writeChatSoundEnabled,playChatDone,unlockChatAudio}
 import {messageText,mergeChatOperations,upsertChatMessage,type ChatDeliveryMode} from "./chat-state";
 import {projectChatProcess} from "./chat-process";
 import {WorkProcess} from "./cindy/WorkProcess";
+import {PendingQueuePanel,type QueuedMessage} from './cindy/PendingQueuePanel';
 import {QueuedSendConfirm} from './cindy/QueuedSendConfirm';
 import {captureComposerSendSnapshot,isComposerSendSnapshotCurrent} from './cindy/composerSendSnapshot';
 import {shouldUnpinOnWheel,shouldRepinOnWheel,shouldUnpinOnUpIntent,resolveNearBottomOnScroll} from './cindy/autoFollowIntent';
@@ -72,6 +73,10 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
  const [catalog,setCatalog]=useState<ChatCatalog>(emptyCatalog),[ai,setAI]=useState<AIConfiguration>(),[activeId,setActiveId]=useState("");
  const [view,setView]=useState<ChatState>(emptyChatState),[text,setText]=useState(""),[draftDirty,setDraftDirty]=useState(false),[saving,setSaving]=useState(false);
  const [submittingMessage,setSubmittingMessage]=useState<ChatMessage>();
+ const [queueExpanded,setQueueExpanded]=useState(false),[queueEdit,setQueueEdit]=useState<{id:string;text:string;attachments:ChatAttachment[]}>();
+ const queueEditRef=useRef(queueEdit);queueEditRef.current=queueEdit;
+ const queueWrites=useRef<Promise<unknown>>(Promise.resolve());
+ const [queueWorking,setQueueWorking]=useState<string[]>([]);
  const [queuedSend,setQueuedSend]=useState<{id:string;text:string;attachments:ChatAttachment[]} | null>(null);
  const [busy,setBusy]=useState(false),[opening,setOpening]=useState(false),[draftLoading,setDraftLoading]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const [modelsLoading,setModelsLoading]=useState(false),[modelsError,setModelsError]=useState('');
@@ -128,7 +133,7 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
  const conversation=catalog.conversations.find(value=>value.id===activeId);
  const visibleMessages=submittingMessage&&!view.messages.some(message=>message.requestId===submittingMessage.requestId||message.id===submittingMessage.id)?[...view.messages,submittingMessage]:view.messages;
  const [detailsFile,setDetailsFile]=useState<string>();
- const processItems=projectChatProcess(visibleMessages,view.tools,view.running,view.operations);
+ const processItems=projectChatProcess(visibleMessages.filter(message=>!(message.pending&&message.queued)),view.tools,view.running,view.operations);
  const activeRetry=view.running?[...(view.operations??[])].reverse().find(operation=>operation.kind==='retry'&&operation.status==='running'):undefined;
  const changedTurns=processItems.filter(item=>item.kind==='response'&&item.entries.some(entry=>entry.kind==='tool'&&!entry.tool.running&&!entry.tool.isError&&(/^(write|edit|apply_patch)$/.test(entry.tool.name)||!!entry.tool.files?.length)));
  // Generated file chips describe the conversation's current outputs. Keep
@@ -165,6 +170,7 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
  },[activeId,text,attachments,busy,opening,draftLoading]);
  function updateText(value:string,nextAttachments=attachments,id=activeId){
   latestComposer.current={text:value,attachments:nextAttachments};setText(value);setAttachments(nextAttachments);if(!id){newDraft.current=value;newAttachments.current=nextAttachments;setDraftDirty(value.length>0||nextAttachments.length>0);return;}
+  if(queueEditRef.current){setDraftDirty(true);return;}
   const revision=++draftRevision.current;setDraftDirty(true);
   // Failed first-send uploads remain a protected local draft. Never persist a
   // blob URL as if it were an imported Host file; resending retries the bytes.
@@ -182,6 +188,7 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
   // rerun the id-keyed effect. A revision also prevents a delayed save changing
   // the destination after the user has selected a newer conversation.
   if(id===selection.current&&id)return;
+  if(queueEditRef.current)throw Error(t('chat.queue_finishEdit'));
   if(selection.current&&latestComposer.current.attachments.some(file=>pendingFiles.current.has(file.path)))throw Error(t('chat.attachmentPending'));
   if(filesDirtyRef.current)throw new Error(t("chat.saveFileBeforeNavigate"));
   const revision=++selectionRevision.current;await draftWrites.current;if(revision!==selectionRevision.current||!stillRequested())return;
@@ -325,6 +332,9 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
    const paths=files.map(file=>file.path);receipt.attachments=paths;pendingInput.current=receipt;lastPrompt.current=content;awaitingInput.current=receipt.id;
    const result=await chatCall<{accepted?:boolean;error?:string}>('prompt',{id:target.id,requestId:receipt.id,text:content,deliveryMode,...(paths.length?{attachments:paths}:{})});
    if(result?.accepted===false)throw Error(result.error||t('chat.sendNotAccepted'));
+   // Accepted queue rows are not a new active run. Cancelling one later must
+   // not leave the UI waiting forever for that row's input_saved event.
+   if(queued&&awaitingInput.current===receipt.id)awaitingInput.current=undefined;
    if(pendingInput.current?.id===receipt.id)pendingInput.current=undefined;
    // A late acknowledgement never clears newer content or re-enables following
    // after the reader deliberately scrolled upward (Cindy autoFollowIntent).
@@ -341,7 +351,40 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
    throw error;
   }finally{releaseDraftWrites();setSubmittingMessage(undefined);setSendCleared(false);}
  }
- function requestSend(deliveryMode?:ChatDeliveryMode){if(inFlight.current||view.paused||!text.trim()&&!attachments.length)return;if(view.running&&activeId&&!deliveryMode)setQueuedSend({id:activeId,text,attachments:[...attachments]});else void run(()=>send(undefined,deliveryMode));}
+ // Serial writes preserve lock -> edit -> unlock ordering even during a drag.
+ function queueAction(action:string,entry='',params:Record<string,unknown>={}){
+  const id=activeId;
+  const task=queueWrites.current.catch(()=>{}).then(async()=>{
+   const snapshot=await chatCall<ChatSnapshot>('queue',{id,entry,action,...params});
+   if(selection.current===id)setView(current=>applyChatEvent(current,{type:'queue_changed',state:snapshot}));
+  });queueWrites.current=task;return task;
+ }
+ async function beginQueueEdit(entry:QueuedMessage){
+  if(queueEditRef.current)return;
+  const message=view.messages.find(message=>message.requestId===entry.clientId);if(!message)return;
+  await draftWrites.current;await queueAction('lock',entry.clientId,{locked:true});
+  const original={id:entry.clientId,text:latestComposer.current.text,attachments:latestComposer.current.attachments};
+  queueEditRef.current=original;setQueueEdit(original);
+  updateText(messageText(message),message.attachments??[]);
+ }
+ async function finishQueueEdit(save:boolean,steer=false){
+  const original=queueEditRef.current;if(!original)return;
+  if(save)await queueAction('update',original.id,{text:browserAnnotatedPrompt(text,attachments),attachments:attachments.map(file=>file.path)});
+  if(steer)await queueAction('steer',original.id);
+  else await queueAction('lock',original.id,{locked:false});
+  queueEditRef.current=undefined;setQueueEdit(undefined);updateText(original.text,original.attachments);
+ }
+ async function steerQueued(entry:string){
+  setQueueWorking(current=>[...current,entry]);
+  try{await queueAction('steer',entry);return true;}catch(error){setError(errorText(error));return false;}
+  finally{setQueueWorking(current=>current.filter(id=>id!==entry));}
+ }
+ useEffect(()=>()=>{const id=selection.current;if(id)void queueWrites.current.catch(()=>{}).then(()=>chatCall('queue',{id,action:'resetLocks'})).catch(console.error);},[]);
+ function requestSend(deliveryMode?:ChatDeliveryMode){
+  if(inFlight.current||view.paused||!text.trim()&&!attachments.length)return;
+  if(queueEditRef.current){void run(()=>finishQueueEdit(true,deliveryMode==='steer'));return;}
+  if(view.running&&activeId&&!deliveryMode)setQueuedSend({id:activeId,text,attachments:[...attachments]});else void run(()=>send(undefined,deliveryMode));
+ }
  function confirmSend(deliveryMode:ChatDeliveryMode){const intent=queuedSend;setQueuedSend(null);if(intent&&intent.id===activeId)void run(()=>send({text:intent.text,attachments:intent.attachments},deliveryMode));}
  async function addBrowserComment(annotation:ChatBrowserAnnotation){
   if(busy||opening||draftLoading)throw new Error(t("chat.browserDraftBusy"));
@@ -493,7 +536,7 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
  // local preflight, then stop the source session without clearing its new draft.
  async function stopCurrent(){
   if(stopInFlight.current||!activeId)return;stopInFlight.current=true;sendCancelGeneration.current++;setStopping(true);
-  try{await chatCall('stop',{id:activeId});if(selection.current===activeId)awaitingInput.current=undefined;}
+  try{await queueAction('pause');await chatCall('stop',{id:activeId});if(selection.current===activeId)awaitingInput.current=undefined;}
   catch(error){if(selection.current===activeId)setError(errorText(error));}
   finally{stopInFlight.current=false;setStopping(false);}
  }
@@ -504,7 +547,7 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
  }
  const queuedCount=view.messages.filter(message=>message.pending&&message.queued).length;
  const inputHint=queuedCount?t('chat.queuedCount',{count:queuedCount}):view.messages.some(message=>message.pending&&message.deliveryMode==='steer')?t('chat.steerSubmitted'):t(view.running?'chat.runningInputHint':'chat.inputHint');
- const composer=<ChatComposer onResizeIntent={()=>{resizeDetached.current=true;follow.current=false;}} key={activeId||`welcome:${welcomeRevision}`} conversationId={activeId} text={text} onText={updateText} onSend={requestSend} onStop={()=>void stopCurrent()} running={view.running} stopping={stopping} inputLocked={busy&&!sendCleared||opening||draftLoading||reconnecting||transferBusy} busy={busy||stopping||opening||draftLoading||reconnecting||transferBusy} saving={saving} providers={ai?.providers??[]} model={conversation?.model??newModel} permission={catalog.projects.find(project=>project.id===(conversation?.projectId??newProjectId))?.permission??conversation?.permission??newPermission} onModel={model=>void run(()=>configure({model}))} onPermission={permission=>void run(()=>configure({permission}))} onLocation={!activeId?editLocations:undefined} location={!activeId&&saveLocation?saveLocation:undefined} attachments={attachments} onAttach={()=>void run(addAttachments)} onImportFiles={(files,clipboard)=>void run(()=>addBrowserFiles(files,clipboard))} onImportPaths={paths=>void run(()=>addAttachments(paths))} onImportError={error=>setError(String(error))} onRemoveAttachment={path=>{releasePendingFile(path);updateText(text,removeBrowserAttachment(attachments,path));}} onTools={tab=>{setDetailsFile(undefined);setDetailsReview(undefined);setDetailsTab(tab);setDetailsActivation(value=>value+1);setDetails(true);}} thinkingLevel={conversation?.thinkingLevel??newThinking} fastMode={conversation?.fastMode??newFastMode} onThinkingLevel={value=>void run(()=>setThinkingLevel(value))} onFastMode={value=>void run(()=>setFastMode(value))} contextUsage={view.contextUsage} usage={view.usage} onCompact={conversation&&view.messages.length?()=>void run(async()=>{await chatCall("compact",{id:conversation.id});}):undefined} paused={view.paused} taskGraph={view.taskGraph} onPause={activeId?()=>void run(async()=>{await chatCall("pause",{id:activeId});}):undefined} onResume={activeId?()=>void run(async()=>{await chatCall("resume",{id:activeId});}):undefined} soundEnabled={soundEnabled} onSoundToggle={toggleSound} subagents={view.subagents} onStopSubagent={name=>void run(async()=>{if(activeId)await chatCall("agents",{id:activeId,action:"stop",name});})}/>;
+ const composer=<ChatComposer queueEditing={!!queueEdit} onResizeIntent={()=>{resizeDetached.current=true;follow.current=false;}} key={activeId||`welcome:${welcomeRevision}`} conversationId={activeId} text={text} onText={updateText} onSend={requestSend} onStop={()=>void stopCurrent()} running={view.running} stopping={stopping} inputLocked={busy&&!sendCleared||opening||draftLoading||reconnecting||transferBusy} busy={busy||stopping||opening||draftLoading||reconnecting||transferBusy} saving={saving} providers={ai?.providers??[]} model={conversation?.model??newModel} permission={catalog.projects.find(project=>project.id===(conversation?.projectId??newProjectId))?.permission??conversation?.permission??newPermission} onModel={model=>void run(()=>configure({model}))} onPermission={permission=>void run(()=>configure({permission}))} onLocation={!activeId?editLocations:undefined} location={!activeId&&saveLocation?saveLocation:undefined} attachments={attachments} onAttach={()=>void run(addAttachments)} onImportFiles={(files,clipboard)=>void run(()=>addBrowserFiles(files,clipboard))} onImportPaths={paths=>void run(()=>addAttachments(paths))} onImportError={error=>setError(String(error))} onRemoveAttachment={path=>{releasePendingFile(path);updateText(text,removeBrowserAttachment(attachments,path));}} onTools={tab=>{setDetailsFile(undefined);setDetailsReview(undefined);setDetailsTab(tab);setDetailsActivation(value=>value+1);setDetails(true);}} thinkingLevel={conversation?.thinkingLevel??newThinking} fastMode={conversation?.fastMode??newFastMode} onThinkingLevel={value=>void run(()=>setThinkingLevel(value))} onFastMode={value=>void run(()=>setFastMode(value))} contextUsage={view.contextUsage} usage={view.usage} onCompact={conversation&&view.messages.length?()=>void run(async()=>{await chatCall("compact",{id:conversation.id});}):undefined} paused={view.paused} taskGraph={view.taskGraph} onPause={activeId?()=>void run(async()=>{await chatCall("pause",{id:activeId});}):undefined} onResume={activeId?()=>void run(async()=>{await chatCall("resume",{id:activeId});}):undefined} soundEnabled={soundEnabled} onSoundToggle={toggleSound} subagents={view.subagents} onStopSubagent={name=>void run(async()=>{if(activeId)await chatCall("agents",{id:activeId,action:"stop",name});})}/>;
  return <ChatDesktopSurface><MediaProvider id={activeId} cwd={conversation?.directory}><ProcessNavigationProvider><ChatFileNavigation id={activeId} cwd={conversation?.directory??""} onBrowser={url=>{setDetailsFile(undefined);setDetailsReview(undefined);setDetailsURL(url);setDetailsTab('home');setDetailsActivation(value=>value+1);setDetails(true);}} files={view.messages.flatMap(message=>message.attachments??[])} onDirectory={path=>{setDetailsFile(undefined);setDetailsDirectory(path);setDetailsTab('files');setDetailsActivation(value=>value+1);setDetails(true);}} onOpen={(path,line)=>{setDetailsFile(path);setDetailsLine(line);setDetailsTab('home');setDetailsActivation(value=>value+1);setDetails(true);}}><div ref={workspaceRoot} className={"chat-workspace"+(sidebar?"":" chat-workspace--collapsed")}>
   <ResizablePanelGroup elementRef={sidebarGroup} orientation="horizontal" defaultLayout={panelLayout.defaultLayout} onLayoutChanged={(layout,meta)=>{panelLayout.onLayoutChanged(layout,meta);if(meta.isUserInteraction&&sidebarGroup.current){const pixels=(sidebarGroup.current.clientWidth-1)*layout.sidebar/100;if(sidebar&&pixels>=minimumSidebarWidth-1){sidebarWidth.current=Math.max(minimumSidebarWidth,pixels);rememberPanels();}}}}>
   <ResizablePanel className="chat-panel" style={{overflow:"hidden"}} id="sidebar" panelRef={sidebarPanel} defaultSize={restoredPanels.current.sidebar} minSize={sidebar?minimumSidebarWidth:0} maxSize={sidebar?400:0} groupResizeBehavior="preserve-pixel-size"><div hidden={!sidebar} className="h-full"><ChatSidebar catalog={catalog} activities={sidebarActivities} activityError={activityError} activeId={activeId} busy={busy} titleJobs={titleJobs} archived={archived} onArchived={setArchived} onChoose={id=>{setAutomationsOpen(false);void run(()=>choose(id));}} onNew={projectId=>{setAutomationsOpen(false);void run(async()=>{await choose("");setWelcomeRevision(value=>value+1);setNewProjectId(projectId??"");setNewThinking("");setNewFastMode(false);});}} onProject={openProjectDialog} onHide={()=>setSidebar(false)} onSettings={()=>setSettingsOpen(true)} onAutomations={()=>{setDetails(false);setAutomationsOpen(true);}} automationsOpen={automationsOpen} onAction={conversationAction} onProjectAction={(project,action)=>{setDialogProject(project);setName(project.name);setDialog(action==="rename"?"renameProject":"removeProject");}}/></div></ResizablePanel><ResizableHandle aria-label={t("chat.resizeSidebar")}/>
@@ -554,6 +597,8 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
    {activeId&&<footer className="chat-input-area"><div className="chat-input-content">
     <ChatPlanReminder key={activeId} workflow={currentPlan?.workflow} anchor={currentPlanAnchor} active={!!currentPlan&&(view.running||!!view.paused)} animated={view.running&&!view.paused} viewport={scroll}/>
     <ProcessCollapseAction/>
+    {queuedCount>0&&<div className="cindy-chat-ui chat-queue-container"><PendingQueuePanel queue={view.messages.filter(message=>message.pending&&message.queued).map(message=>({clientId:message.requestId??message.id!,text:messageText(message),attachmentCount:message.attachments?.length}))} expanded={queueExpanded} onToggle={()=>setQueueExpanded(value=>!value)} onRemove={entry=>void queueAction('cancel',entry).catch(error=>setError(errorText(error)))} editingClientId={queueEdit?.id} onEditBegin={entry=>void run(()=>beginQueueEdit(entry))} onSteer={steerQueued} steeringClientIds={queueWorking} paused={view.queuePaused} turnRunning={view.running} onResume={()=>void queueAction('resume').catch(error=>setError(errorText(error)))} onReorder={(entry,targetIndex)=>void queueAction('reorder',entry,{targetIndex}).catch(error=>setError(errorText(error)))} onInteractionLock={(_key,locked)=>void queueAction('interaction','',{locked}).catch(error=>setError(errorText(error)))}/></div>}
+    {queueEdit&&<div className="chat-queue-edit-state" role="status"><span>{t('chat.queue_editing')}</span><Button disabled={busy} onClick={()=>void run(()=>finishQueueEdit(false))}>{t('chat.queue_cancelEdit')}</Button></div>}
     {activeRetry&&<RetryStatus operation={activeRetry} stopping={stopping} onStop={()=>void stopCurrent()}/>}
     <div className="chat-composer-stack"><ChatProjectContext projects={catalog.projects} projectId={conversation?.projectId??""} onProject={id=>{if(id)void run(()=>moveCurrentConversation(id));}} onOpenProject={openProjectDialog} disabled={busy}/>
     {view.approvals[0]?.kind==="question"?<ChatQuestion key={view.approvals[0].id} request={view.approvals[0]} busy={busy} onStop={()=>void run(async()=>{await chatCall("stop",{id:activeId});})} onAnswer={answers=>respondQuestion(answers)} onCancel={()=>respondQuestion()}/>:view.approvals[0]?<ChatApproval request={view.approvals[0]} busy={busy} onStop={()=>void run(async()=>{await chatCall("stop",{id:activeId});})} onRespond={(allow,scope)=>void run(async()=>{const approvalId=view.approvals[0].id;await chatCall("permission",{id:activeId,approvalId,allow,scope});setView(current=>({...current,approvals:current.approvals.filter(a=>a.id!==approvalId)}));})}/>:composer}</div>

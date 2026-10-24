@@ -15,12 +15,15 @@ export function ChatScrollControls({viewportRef,conversationId,onNavigate}:{view
   const viewport=viewportRef.current;if(!viewport)return;
   let frame=0,previousPlacement=placement;
   const update=(beforePaint=false)=>{
-   const {main,origin,usableHeight,bottomTop}=chatScrollMetrics(viewport);
-   // The ordinary buttons float in the reading gutter. A very tall composer
-   // leaves too little vertical room: use the existing header's horizontal
-   // toolbar instead of covering the editor, approval card or text.
-   const header=usableHeight<134?main?.querySelector<HTMLElement>('.chat-header')??null:null;
-   const top=Math.max(8,usableHeight-118);
+   const {main,footer,origin,usableHeight,bottomTop}=chatScrollMetrics(viewport);
+   const bounds=viewport.getBoundingClientRect();
+   const input=footer?.querySelector<HTMLElement>('.chat-input-content')?.getBoundingClientRect();
+   // Anchor in the reading gutter. A resize only displaces the controls when
+   // the actual input surface reaches them horizontally AND vertically.
+   const overlapsInput=!!footer&&(!input||input.right>bounds.right-44);
+   const available=overlapsInput?usableHeight:viewport.clientHeight;
+   const header=available<134?main?.querySelector<HTMLElement>('.chat-header')??null:null;
+   const top=Math.max(8,Math.min((viewport.clientHeight-118)/2,available-118));
    if(previousPlacement.top!==top||previousPlacement.header!==header){
     previousPlacement={top,header};
     if(beforePaint)flushSync(()=>setPlacement(previousPlacement));else setPlacement(previousPlacement);

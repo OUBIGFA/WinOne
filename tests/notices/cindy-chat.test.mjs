@@ -6,7 +6,7 @@ const root=new URL('../../',import.meta.url);
 const read=path=>readFile(new URL(path,root));
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
 
-for(const filename of ['chat-interaction-source.json','chat-runtime-source.json','chat-resilience-source.json','chat-links-source.json'])test(`Cindy chat imports retain the pinned source, license and notice (${filename})`,async()=>{
+for(const filename of ['chat-interaction-source.json','chat-runtime-source.json','chat-resilience-source.json','chat-links-source.json','chat-queue-source.json'])test(`Cindy chat imports retain the pinned source, license and notice (${filename})`,async()=>{
  const source=JSON.parse(await read('third_party/cindy/'+filename));
  assert.equal(source.repository,'https://github.com/makecindy/cindy');
  assert.match(source.revision,/^[a-f0-9]{40}$/);

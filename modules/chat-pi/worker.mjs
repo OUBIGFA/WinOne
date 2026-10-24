@@ -106,14 +106,14 @@ function inputStatus(id,text,attachments=[],deliveryMode='queue'){
  return {saved:false};
 }
 function pendingReceipts(){
- const pending=new Map();let receipt;
+ const pending=new Map(),consumed=new Set();let receipt;
  for(const entry of live.session.sessionManager.getBranch()){
-  if(entry.type==="custom"&&entry.customType==="winone.queued")pending.set(entry.data.id,entry.data);
+  if(entry.type==="custom"&&entry.customType==="winone.queued"){pending.delete(entry.data.id);pending.set(entry.data.id,entry.data);}
   if(entry.type==="custom"&&entry.customType==="winone.input")receipt=entry.data?.id;
   if(entry.type==="custom"&&entry.customType==="winone.cancelled")pending.delete(entry.data?.id);
-  if(entry.type==="message"&&entry.message.role==="user"&&receipt){pending.delete(receipt);receipt=undefined;}
+  if(entry.type==="message"&&entry.message.role==="user"&&receipt){consumed.add(receipt);pending.delete(receipt);receipt=undefined;}
  }
- return [...pending.values()];
+ return [...pending.values()].filter(receipt=>!consumed.has(receipt.id));
 }
 function state(options){
  const value=live.state(),{messages,...summary}=value,page=messagePage(live.session.sessionManager,options);
@@ -344,6 +344,7 @@ async function handle(request){
     if(disposition!=="queued"&&disposition!=="steered"&&startedEpoch!==turn&&settledEpoch!==turn){running=false;settledEpoch=turn;operations.end("turn");await emit({type:"settled",status:"completed",error:"",state:state()});}
    },async error=>{if(pausing)return;discard();if(!wasRunning&&settledEpoch!==turn){running=false;settledEpoch=turn;operations.endAll("failed");await emit({type:"settled",status:"failed",error:String(error.message??error),state:state()});}throw error;});
    if(wasRunning)await task;else completion=task.catch(()=>{});
+   if(live.state().queuePaused)await live.session.changeQueue('reconcile');
    return reply(request.id,{accepted:true});
   }
   case "retry":{
@@ -374,6 +375,25 @@ async function handle(request){
   case "input_status":
    if(typeof params.id!=="string"||typeof params.text!=="string"||params.text.length>100000)throw Error("Invalid input receipt query");
    return reply(request.id,inputStatus(params.id,params.text,params.attachments,params.deliveryMode??'queue'));
+  case 'queue':{
+   let receipt=pendingReceipts().find(value=>value.id===params.id),prepared;
+   if(params.action==='update'){
+    if(!receipt)throw Error('这条消息已开始处理，无法再修改排队内容');
+    if(typeof params.text!=='string'||(!params.text.trim()&&!params.attachments?.length)||params.text.length>100000)throw Error('消息为空或过长');
+    prepared=await prepareAttachments(sessionDirectory,params.attachments,live.supportsImages());
+    receipt={...receipt,text:params.text,attachments:prepared.attachments,textHash:inputHash(params.text,params.attachments,receipt.deliveryMode)};
+   }else if(params.action==='steer'&&receipt)receipt={...receipt,queued:false,deliveryMode:'steer',textHash:inputHash(receipt.text,receipt.attachments?.map(file=>file.path),'steer')};
+   const changed=await live.session.changeQueue(params.action,{...params,receipt,text:prepared?(params.text||'Please inspect the attached files.')+prepared.context:undefined,images:prepared?.images});
+   if(params.action==='cancel'){live.session.sessionManager.appendCustomEntry('winone.cancelled',{id:params.id});const index=submittedInputs.findIndex(input=>input.id===params.id);if(index>=0)submittedInputs.splice(index,1);}
+   for(const value of changed.receipts){
+    live.session.sessionManager.appendCustomEntry('winone.queued',value);
+    const index=submittedInputs.findIndex(input=>input.id===value.id);if(index>=0)submittedInputs[index]=value;
+   }
+   const snapshot=state();snapshot.queuePaused=changed.paused;
+   // Queue management must not replace an in-flight assistant delta. Consumers
+   // reconcile only pending input rows from this event, leaving the run intact.
+   await emit({type:'queue_changed',state:snapshot});return reply(request.id,snapshot);
+  }
   case "steer":return handle({...request,method:'prompt',params:{...params,deliveryMode:'steer'}});
   case "abort":{const generation=++preflightGeneration;abortWanted=true;for(const resolve of approvals.values())resolve(false);for(const pending of questions.values())pending.finish();await live.session.abort();if(generation===preflightGeneration)running=false;return reply(request.id,state());}
   case "compact":{
@@ -388,7 +408,14 @@ async function handle(request){
 }
 
 async function replayReceipts(){
- for(const receipt of pendingReceipts())await handle({id:receipt.id,method:"prompt",params:{text:receipt.text,attachments:receipt.attachments?.map(file=>file.path),deliveryMode:receipt.deliveryMode??'queue'}});
+ for(const receipt of pendingReceipts()){
+  // Durable already owns admitted inputs, including held/paused queue rows.
+  // Replaying those as fresh prompts falsely marks a paused queue as running.
+  const status=await live.session.inputStatus(receipt.id);
+  if(status==='unanswered')live.session.sessionManager.appendCustomEntry('winone.cancelled',{id:receipt.id});
+  if(status)continue;
+  await handle({id:receipt.id,method:"prompt",params:{text:receipt.text,attachments:receipt.attachments?.map(file=>file.path),deliveryMode:receipt.deliveryMode??'queue'}});
+ }
 }
 
 // Split bytes only on LF. U+2028/U+2029 are legal inside JSON strings and

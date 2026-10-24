@@ -294,6 +294,8 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		ThinkingLevel   string           `json:"thinkingLevel"`
 		FastMode        *bool            `json:"fastMode"`
 		Action          string           `json:"action"`
+		Locked          bool             `json:"locked"`
+		TargetIndex     int              `json:"targetIndex"`
 		AgentCursor     map[string]any   `json:"agentCursor"`
 	}
 	if len(r.Params) > 0 && string(r.Params) != "null" {
@@ -438,6 +440,8 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		default:
 			err = errors.New("消息发送方式无效")
 		}
+	case "queue":
+		value, err = c.engine.Command(ctx, input.ID, "queue", map[string]any{"action": input.Action, "id": input.Entry, "text": input.Text, "attachments": input.Attachments, "locked": input.Locked, "targetIndex": input.TargetIndex})
 	case "retry", "edit":
 		params := map[string]any{"entry": input.Entry, "requestId": input.RequestID}
 		var prepare func() error
