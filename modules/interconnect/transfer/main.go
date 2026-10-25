@@ -71,6 +71,7 @@ type prompt struct {
 }
 type snapshot struct {
 	QR            string                       `json:"qr,omitempty"`
+	BrowserURL    string                       `json:"browserUrl,omitempty"`
 	Status        string                       `json:"status"`
 	Code          string                       `json:"code,omitempty"`
 	Error         string                       `json:"error,omitempty"`
@@ -291,6 +292,13 @@ func (t *task) direct(ctx context.Context) error {
 	options := t.spec.Options
 	options.IsSender = t.spec.Mode == "send"
 	options.SharedSecret = strings.TrimSpace(t.spec.Code)
+	if !options.IsSender {
+		var err error
+		options.SharedSecret, err = receiveCode(options.SharedSecret)
+		if err != nil {
+			return err
+		}
+	}
 	options.IgnoreStdin = true
 	options.DisableClipboard = true
 	options.ShowQrCode = false
@@ -327,9 +335,10 @@ func (t *task) direct(ctx context.Context) error {
 	}
 	t.mu.Lock()
 	t.state.Code = options.SharedSecret
-	qrValue := options.SharedSecret
-	if public && options.Transport != croc.TransportDERP {
-		qrValue = "https://getcroc.com/?code=" + url.QueryEscape(qrValue)
+	t.state.BrowserURL = browserReceiveURL(options.SharedSecret, public, options)
+	qrValue := t.state.BrowserURL
+	if qrValue == "" {
+		qrValue = options.SharedSecret
 	}
 	t.state.QR = qrData(qrValue)
 	t.mu.Unlock()
@@ -402,6 +411,26 @@ func (t *task) stored(ctx context.Context) (any, error) {
 		return map[string]any{"manifest": manifest, "expiresAt": expires}, nil
 	}
 	return nil, client.Receive(ctx, share, manifest, t.spec.OutputDir, callbacks)
+}
+
+// Follow croc's --qr contract: the public web bridge cannot reach a custom
+// relay or speak strict DERP. Never advertise those codes as browser links.
+func browserReceiveURL(code string, public bool, options croc.Options) string {
+	if !public || options.Transport == croc.TransportDERP || options.RelayPassword != models.DEFAULT_PASSPHRASE {
+		return ""
+	}
+	return "https://getcroc.com/?code=" + url.QueryEscape(code)
+}
+
+func receiveCode(value string) (string, error) {
+	if !strings.Contains(value, "://") {
+		return value, nil
+	}
+	link, err := url.Parse(value)
+	if err != nil || link.Scheme != "https" || link.Host != "getcroc.com" || link.User != nil || (link.Path != "" && link.Path != "/") || strings.TrimSpace(link.Query().Get("code")) == "" {
+		return "", errors.New("请输入 croc 口令或 https://getcroc.com/?code=… 接收链接")
+	}
+	return strings.TrimSpace(link.Query().Get("code")), nil
 }
 
 func qrData(value string) string {

@@ -62,6 +62,8 @@ export interface ChatRoomOptions {
   adapters: PlatformAdapters
   /** Set for a private room. Its presence is what makes the room private. */
   password?: string
+  /** WinOne rooms may share live history with members who hold the password. */
+  shareHistoryOnJoin?: boolean
   /** Set for a direct-message room. Its presence scopes every action to one peer. */
   targetPeerId?: string | null
   encryptionService?: EncryptionService
@@ -115,6 +117,8 @@ export class ChatRoom extends EventTarget {
   private readonly namespace: ActionNamespace
 
   private readonly transcriptSizeLimit: number
+
+  private readonly shareHistoryOnJoin: boolean
 
   private customUsername: string
 
@@ -180,6 +184,7 @@ export class ChatRoom extends EventTarget {
     targetPeerId = null,
     encryptionService = encryption,
     transcriptSizeLimit = messageTranscriptSizeLimit,
+    shareHistoryOnJoin = false,
   }: ChatRoomOptions) {
     super()
 
@@ -192,6 +197,7 @@ export class ChatRoom extends EventTarget {
     this.adapters = adapters
     this.encryptionService = encryptionService
     this.transcriptSizeLimit = transcriptSizeLimit
+    this.shareHistoryOnJoin = shareHistoryOnJoin
 
     this.isPrivate = password !== undefined
     this.targetPeerId = targetPeerId
@@ -610,8 +616,22 @@ export class ChatRoom extends EventTarget {
   ) => {
     if (!this.isFromRoomPeer(peerId)) return
 
-    // A transcript only backfills an empty log; it never overwrites messages
-    // this peer already has.
+    // Newcomers can send before the greeting arrives. Merge the live history
+    // without replacing local entries or duplicating several peers' backfill.
+    // Direct conversations never publish their history to other room members.
+    if (this.shareHistoryOnJoin) {
+      if (this.isDirectMessageRoom) return
+      const entries = new Map(
+        [...transcript, ...this.messageLog].map(message => [
+          JSON.stringify([message.authorId, message.id]), message,
+        ])
+      )
+      this.setMessageLog([...entries.values()].sort((a, b) =>
+        a.timeSent - b.timeSent || a.id.localeCompare(b.id)
+      ))
+      return
+    }
+    // Preserve the upstream behavior for hosts that do not opt into merging.
     if (this.messageLog.length) return
 
     this.setMessageLog(transcript)
@@ -767,7 +787,7 @@ export class ChatRoom extends EventTarget {
         // joining with the password should not hand over what was said before.
         // Neither do direct-message rooms, whose history belongs to the two
         // people in it and is already on both sides.
-        this.isPrivate || this.isDirectMessageRoom
+        (this.isPrivate && !this.shareHistoryOnJoin) || this.isDirectMessageRoom
           ? Promise.resolve()
           : this.senders?.transcript(
               this.messageLog.filter(isMessageReceived),

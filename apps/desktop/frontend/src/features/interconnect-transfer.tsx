@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
-import {Copy,FilePlus,FolderPlus,ClipboardPaste,Play,Square,QrCode,RefreshCw,Trash2,Send,Download,Cloud} from 'lucide-react';
+import {Copy,FilePlus,FolderPlus,ClipboardPaste,Play,Square,RefreshCw,Trash2,Send,Download,Cloud} from 'lucide-react';
 import {interconnectCall,pickFiles,pickDirectory,readClipboardFiles} from '../bridge';
 import {useTranslation} from '../i18n';
 import {Button} from '../ui/button';
@@ -20,19 +20,26 @@ const initial=():Form=>({derpMapURL:'',allowWrites:false,listen:'127.0.0.1:0',pa
 function Field({label,children}:{label:string;children:ReactNode}){return <div className="min-w-0 space-y-2"><Label>{label}</Label>{children}</div>;}
 const size=(n:number)=>new Intl.NumberFormat(undefined,{maximumFractionDigits:1}).format(n>=1048576?n/1048576:n/1024)+(n>=1048576?' MiB':' KiB');
 
-export type CodeTransferState={status:string;code?:string;error?:string;detail?:string;output?:string;prompt?:{id:number;text:string};progress?:{Progress?:{CurrentNum:number;Max:number;Description:string;KBsPerSecond:number}}};
+export type CodeTransferState={status:string;code?:string;qr?:string;browserUrl?:string;error?:string;detail?:string;output?:string;prompt?:{id:number;text:string};progress?:{Progress?:{CurrentNum:number;Max:number;Description:string;KBsPerSecond:number}}};
 function CodeTransferStatus({id,state,busy,action,copy}:{id:string;state:CodeTransferState;busy:boolean;action:(work:()=>Promise<unknown>)=>Promise<void>;copy:(value:string)=>Promise<void>}){
  const {t}=useTranslation(),tr=(key:string)=>t('interconnect.'+key),[answer,setAnswer]=useState('');
  const progress=state.progress?.Progress;
- return <div className="space-y-3">
-  <p className="settings-help">{tr('transfer')} · {tr(state.status==='completed'?'codeDelivered':state.status==='failed'?'failedTask':state.status==='running'?'runningTask':'cancelledTask')}</p>
-  {state.code&&<p className="break-all select-all">{state.code}</p>}
+ return <section className="interconnect-receive-route" aria-label={tr('internetReceive')}>
+  <h3>{tr('internetReceive')}</h3>
+  <p className="settings-help">{tr(state.status==='completed'?'codeDelivered':state.status==='failed'?'failedTask':state.status==='running'?'internetReceiveHint':'cancelledTask')}</p>
+  {state.status==='running'&&state.browserUrl&&<>
+   {state.qr&&<img className="interconnect-qr" src={state.qr} alt={tr('internetQR')}/>}
+   <Button icon={Copy} onClick={()=>void copy(state.browserUrl!)}>{tr('copyInternetLink')}</Button>
+   <p className="settings-help">{tr('browserReceiveSteps')}</p>
+  </>}
+  {state.status==='running'&&state.code&&!state.browserUrl&&<p className="settings-help">{tr('nativeCodeOnly')}</p>}
+  {state.code&&<p className="interconnect-receive-code break-all select-all">{state.code}</p>}
   {progress&&progress.Max>0&&<><p className="settings-help break-all">{progress.Description} · {size(progress.CurrentNum)} / {size(progress.Max)} · {size(progress.KBsPerSecond*1024)}/s</p><progress className="w-full" value={progress.CurrentNum} max={progress.Max} aria-label={tr('fileProgress')}/></>}
   {state.error&&<Notice>{state.error}</Notice>}
   {state.prompt&&<div className="space-y-2"><p className="whitespace-pre-wrap break-all">{state.output?.slice(-4096)}{state.prompt.text}</p><div className="flex flex-wrap gap-2">{['yes','no'].map(value=><Button key={value} disabled={busy} onClick={()=>void action(()=>interconnectCall('share_code_answer',{id,promptId:state.prompt!.id,answer:value}))}>{tr(value)}</Button>)}<Input aria-label={tr('answer')} value={answer} onChange={e=>setAnswer(e.target.value)}/><Button disabled={busy||!answer} onClick={()=>void action(()=>interconnectCall('share_code_answer',{id,promptId:state.prompt!.id,answer}))}>{tr('reply')}</Button></div></div>}
   <div className="flex flex-wrap gap-2">{state.code&&<Button icon={Copy} onClick={()=>void copy(state.code!)}>{tr('codeCopy')}</Button>}{state.status==='running'?<Button icon={Square} disabled={busy} onClick={()=>void action(()=>interconnectCall('share_code_stop',{id}))}>{tr('stopCodeTransfer')}</Button>:<Button icon={Play} disabled={busy} onClick={()=>void action(()=>interconnectCall('share_code_restart',{id}))}>{tr('sendCodeAgain')}</Button>}</div>
   {(state.output||state.detail)&&<SettingsDisclosure title={tr('details')}><pre className="whitespace-pre-wrap break-all text-sm">{state.detail}{state.output}</pre></SettingsDisclosure>}
- </div>;
+ </section>;
 }
 
 // Panels share the WinOne controls and native drop adapter. No file content is
@@ -40,31 +47,47 @@ function CodeTransferStatus({id,state,busy,action,copy}:{id:string;state:CodeTra
 export function TransferPanel({stored,active,onActivity,intent,onIntentConsumed,settingsPending=false}:{stored:boolean;active:boolean;settingsPending?:boolean;onActivity:PageActivityChanged;intent?:InterconnectIntent;onIntentConsumed?:()=>void}){
  const {t}=useTranslation(),tr=(key:string)=>t('interconnect.'+key);
  const [form,setForm]=useState(initial),[saved,setSaved]=useState(()=>JSON.stringify(initial()));
- const [direction,setDirection]=useState('send'),[payload,setPayload]=useState('files');
+ const [direction,setDirection]=useState('send'),[payload,setPayload]=useState('files'),[shareTarget,setShareTarget]=useState('');
  const [items,setItems]=useState<RecordItem[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
- const [qr,setQr]=useState(''),[answers,setAnswers]=useState<Record<string,string>>({});
- const mounted=useRef(true),epoch=useRef(0);
+ const [answers,setAnswers]=useState<Record<string,string>>({});
+ const mounted=useRef(true),epoch=useRef(0),revealTask=useRef('');
  useEffect(()=>{if(!intent)return;setDirection(intent.receive?'receive':'send');setPayload('files');setForm(current=>({...current,paths:[...new Set([...current.paths,...intent.paths])],code:intent.code??current.code}));onIntentConsumed?.();},[intent]);
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;epoch.current++;};},[]);
  const refresh=useCallback(async()=>{const version=++epoch.current;const all=await interconnectCall<RecordItem[]>('transfer_list');if(mounted.current&&version===epoch.current)setItems(all);},[]);
  useEffect(()=>{if(!active)return;void refresh().catch(e=>setError(String(e)));const interval=window.setInterval(()=>{if(document.visibilityState==='visible')void refresh().catch(e=>setError(String(e)));},750);return()=>clearInterval(interval);},[active,refresh]);
+ useEffect(()=>{
+  const item=items.find(item=>item.id===revealTask.current);
+  if(!active||!item||(!item.state.ready&&item.state.status==='running'))return;
+  // Move to the result once per send, not on each progress refresh. Keep the
+  // full QR at the top of the available scroll area instead of a corner.
+  document.getElementById('interconnect-task-'+item.id)?.scrollIntoView({block:'start',behavior:'instant'});
+  revealTask.current='';
+ },[items,active]);
  usePageActivity(onActivity,JSON.stringify(form)!==saved,busy,stored?'interconnect-store':'interconnect-transfer');
  const set=<K extends keyof Form>(key:K,value:Form[K])=>setForm(current=>({...current,[key]:value}));
  const option=(key:string,value:string|boolean|string[])=>setForm(current=>({...current,options:{...current.options,[key]:value}}));
  async function action(work:()=>Promise<unknown>){setBusy(true);setError('');setMessage('');try{await work();await refresh();}catch(e){if(mounted.current)setError(String(e));}finally{if(mounted.current)setBusy(false);}}
  const add=(paths:string[])=>setForm(current=>({...current,paths:[...new Map([...current.paths,...paths].map(p=>[p.toLowerCase(),p])).values()]}));
  async function copy(value:string){try{await navigator.clipboard.writeText(value);setMessage(tr('copiedTransfer'));}catch(e){setError(String(e));}}
+ const liveShares=items.filter(item=>item.spec.mode==='share_server'&&item.state.status==='running'&&item.state.ready);
+ // An explicit new share stays explicit; otherwise continue the latest pool.
+ const target=shareTarget==='new'?undefined:shareTarget?liveShares.find(item=>item.id===shareTarget):liveShares[0];
  async function start(mode:string,override?:Partial<Form>){
   const draft={...form,...override};
   const spec={...draft,mode,paths:payload==='text'&&mode==='send'?[]:draft.paths,text:payload==='text'&&mode==='send'?draft.text:'',options:{...draft.options,...(mode==='receive'?{transport:'auto'}:{})}};
-  if(!stored&&mode==='send'){
+  if(!stored&&mode==='send'&&target){
+   await interconnectCall(payload==='text'?'share_add_text':'share_add',payload==='text'?{id:target.id,text:spec.text}:{id:target.id,paths:spec.paths});
+   revealTask.current=target.id;
+  }else if(!stored&&mode==='send'){
    // A single worker owns the LAN pool, persistent relay and code sender.
-   await interconnectCall('transfer_start',{mode:'share_server',paths:spec.paths,text:spec.text,derpMapURL:draft.derpMapURL,allowWrites:draft.allowWrites,transfer:{code:draft.code,options:draft.options,socks5:draft.socks5,httpProxy:draft.httpProxy}});
+   const started=await interconnectCall<{id:string}>('transfer_start',{mode:'share_server',paths:spec.paths,text:spec.text,derpMapURL:draft.derpMapURL,allowWrites:draft.allowWrites,transfer:{code:draft.code,options:draft.options,socks5:draft.socks5,httpProxy:draft.httpProxy}});
+   setShareTarget(started.id);revealTask.current=started.id;
   }else if(!stored&&mode==='receive'&&draft.code.trim().startsWith('tc')){
    await interconnectCall('transfer_start',{mode:'share_client',code:draft.code.trim(),listen:draft.listen,derpMapURL:draft.derpMapURL});
   }else{
    const {derpMapURL,allowWrites,listen,...transferSpec}=spec;
-   await interconnectCall('transfer_start',transferSpec);
+   const started=await interconnectCall<{id:string}>('transfer_start',transferSpec);
+   if(mode==='store_send')revealTask.current=started.id;
   }
   const next={...form,paths:[],text:''};setForm(next);setSaved(JSON.stringify(next));
  }
@@ -75,9 +98,10 @@ export function TransferPanel({stored,active,onActivity,intent,onIntentConsumed,
  const records=items.filter(item=>stored?item.spec.mode.startsWith('store_'):['send','receive','share_server','share_client'].includes(item.spec.mode));
  return <div className="settings-stack">
   {error&&<Notice>{error}</Notice>}{message&&<p role="status" className="settings-help">{message}</p>}
-  <SettingsSection title={tr(stored?'store':'fileTransfer')} description={tr(stored?'storeHint':'unifiedSendHint')} icon={stored?Cloud:Send} className="interconnect-wide">
+  <SettingsSection title={tr(stored?'store':'sendOrReceive')} description={tr(stored?'storeHint':'unifiedSendHint')} icon={stored?Cloud:Send} className="interconnect-wide">
    <SettingsOptions label={tr('direction')} value={direction} onChange={setDirection} items={[{value:'send',label:tr('send')},{value:'receive',label:tr('receive')}]}/>
    {direction==='send'?<>
+    {!stored&&liveShares.length>0&&<Field label={tr('sendToShare')}><Select value={target?.id??'new'} disabled={busy} onValueChange={value=>setShareTarget(value??'new')}><SelectTrigger className="w-full" aria-label={tr('sendToShare')}><SelectValue>{target?tr('continueShare')+' · '+(target.state.share?.items[0]?.title??tr('publishShare')):tr('newShare')}</SelectValue></SelectTrigger><SelectContent>{liveShares.map(item=><SelectItem key={item.id} value={item.id}>{tr('continueShare')} · {item.state.share?.items[0]?.title??tr('publishShare')}</SelectItem>)}<SelectItem value="new">{tr('newShare')}</SelectItem></SelectContent></Select></Field>}
     {!stored&&<SettingsOptions label={tr('send')} value={payload} onChange={setPayload} items={[{value:'files',label:tr('sendFiles')},{value:'text',label:tr('sendText')}]}/>}
     {payload==='text'&&!stored?<Textarea aria-label={tr('sendText')} value={form.text} disabled={busy} onChange={e=>set('text',e.target.value)}/>:<PathDropArea multiple kind={stored?'file':'any'} disabled={busy||!active} onPaths={add} onError={setError} className="interconnect-drop">
      <p className="settings-help">{tr(stored?'dropFiles':'drop')}</p>
@@ -86,9 +110,15 @@ export function TransferPanel({stored,active,onActivity,intent,onIntentConsumed,
     </PathDropArea>}
     {stored?<><p className="settings-help">{tr('storeFilesOnly')}</p><div className="interconnect-fields">{field('storeOrigin','origin')}{field('downloads','downloads','number')}{field('expirationHours','expiration','number')}</div></>:null}
    </>:<>
+    {!stored&&<p className="settings-help">{tr('receiveSteps')}</p>}
     {field('code','code')}<Button icon={ClipboardPaste} disabled={busy} onClick={()=>void action(async()=>set('code',await navigator.clipboard.readText()))}>{tr('clipboardCode')}</Button>
     <div className="flex flex-wrap items-end gap-2"><div className="min-w-0 flex-1">{field('outputDir','output')}</div><Button icon={FolderPlus} disabled={busy} onClick={()=>void action(async()=>{const folder=await pickDirectory();if(folder)set('outputDir',folder);})}>{tr('choose')}</Button></div>
    </>}
+   {settingsPending&&<p className="settings-help">{tr('saveBeforeSending')}</p>}
+   <div><Button variant="primary" icon={direction==='send'?Send:Download} busy={busy} disabled={settingsPending||!!(direction==='send'&&target?.state.updating)||(direction==='send'?(payload==='text'&&!stored?!form.text.trim():!form.paths.length):!form.code.trim())} onClick={()=>void action(()=>start(stored?(direction==='send'?'store_send':'store_inspect'):(direction==='send'?'send':'receive')))}>{tr(stored?(direction==='send'?'publishStore':'inspect'):(direction==='send'?(target?'addToShare':'sendSelection'):'receiveNow'))}</Button></div>
+   {target&&direction==='send'&&!stored&&<p className="settings-help">{tr('appendShareHint')}</p>}
+   <SettingsDisclosure title={tr('advancedOptions')}>
+   <fieldset disabled={busy||(!stored&&direction==='send'&&!!target)} className="interconnect-advanced">
    <SettingsDisclosure title={tr('networkOptions')}><p className="settings-help">{tr('advancedHint')}</p><div className="interconnect-fields">
     {!stored&&<>{field('derpMapURL','derpMap')}{direction==='receive'&&field('listen','listenPort')}{optionField('relayAddress','relay',tr('automaticRelay'))}{optionField('relayAddress6','relay6')}{optionField('relayPassword','relayPassword')}{optionField('IP','senderIP')}{optionField('multicastAddress','multicast')}
     <Field label={tr('ports')}><Input aria-label={tr('ports')} value={(form.options.relayPorts as string[]??[]).join(',')} onChange={e=>option('relayPorts',e.target.value.split(',').map(v=>v.trim()).filter(Boolean))}/></Field></>}
@@ -101,21 +131,24 @@ export function TransferPanel({stored,active,onActivity,intent,onIntentConsumed,
     {optionField('curve','curve')}{direction==='send'&&<>{optionField('hashAlgorithm','hash')}{optionField('throttleUpload','throttle')}</>}
    </div>{direction==='send'&&<>{toggle('zipFolder','zip')}{toggle('gitIgnore','gitIgnore')}{toggle('noCompress','noCompress')}{toggle('noMultiplexing','noMulti')}{toggle('ask','verifyPeer')}
    {(['exclude','excludeFile'] as const).map(key=><Field key={key} label={tr(key)}><Input aria-label={tr(key)} value={(form.options[key] as string[]??[]).join(',')} onChange={e=>option(key,e.target.value.split(',').map(v=>v.trim()).filter(Boolean))}/></Field>)}</>}</SettingsDisclosure>}
-   {settingsPending&&<p className="settings-help">{tr('saveBeforeSending')}</p>}
-   <div><Button variant="primary" icon={direction==='send'?Send:Download} busy={busy} disabled={settingsPending||(direction==='send'?(payload==='text'&&!stored?!form.text.trim():!form.paths.length):!form.code.trim())} onClick={()=>void action(()=>start(stored?(direction==='send'?'store_send':'store_inspect'):(direction==='send'?'send':'receive')))}>{tr(stored?(direction==='send'?'publishStore':'inspect'):(direction==='send'?'sendSelection':'receiveNow'))}</Button></div>
+   </fieldset></SettingsDisclosure>
   </SettingsSection>
-  <SettingsSection title={tr('tasks')} icon={RefreshCw} className="interconnect-wide">
+  <SettingsSection title={tr(stored?'tasks':'receivingAndHistory')} icon={RefreshCw} className="interconnect-wide">
    {records.length===0?<p className="settings-help py-4">{tr('noTasks')}</p>:<div className="divide-y divide-border">{records.map(item=>{
     if(item.spec.mode.startsWith('share_'))return <PeerTask key={item.id} item={item} kind="share" busy={busy} action={action} copy={copy}>{item.state.transfer&&<CodeTransferStatus id={item.id} state={item.state.transfer} busy={busy} action={action} copy={copy}/>}</PeerTask>;
     const state=item.state,result=state.result,bar=state.progress?.Progress,progress=state.storeProgress;
     const code=result?.code??state.code??'',image=result?.qr??state.qr;
     const maximum=progress?.TotalSize??bar?.Max??0,current=progress?.TotalBytes??bar?.CurrentNum??0;
     const status=tr(({running:'runningTask',completed:'completedTask',failed:'failedTask',cancelled:'cancelledTask',interrupted:'interruptedTask'} as Record<string,string>)[state.status]??state.status);
-    return <article key={item.id} className="interconnect-task">
+    return <article key={item.id} id={'interconnect-task-'+item.id} className="interconnect-task">
      <div className="flex flex-wrap justify-between gap-2"><p className="font-medium break-all">{item.spec.paths?.map(p=>p.split(/[\\/]/).pop()).join(' · ')||tr(item.spec.mode==='store_inspect'?'inspect':item.spec.mode==='store_revoke'?'revoke':item.spec.mode==='send'?'sendText':'receive')}</p><span className="text-sm text-muted-foreground">{status}</span></div>
      {maximum>0&&<div className="space-y-2"><p className="settings-help break-all">{progress?.FileName??bar?.Description} · {tr('fileProgress')} {size(current)} / {size(maximum)}{bar?.KBsPerSecond?' · '+size(bar.KBsPerSecond*1024)+'/s':''}</p><progress className="w-full" aria-label={tr('fileProgress')} value={current} max={maximum}/></div>}
      {state.status==='running'&&!maximum&&!state.prompt&&<p className="settings-help">{tr('waitTask')}</p>}
-     {code&&<p className="break-all select-all text-sm">{code}</p>}
+     {(code||image)&&<section className="interconnect-receive-route">
+      {image&&<><h3>{tr('scanToReceive')}</h3><img src={image} alt={tr('scanToReceive')} className="interconnect-qr"/></>}
+      {code&&<p className="interconnect-receive-code break-all select-all">{code}</p>}
+      <div className="flex flex-wrap gap-2">{result?.link&&<Button icon={Copy} onClick={()=>void copy(result.link!)}>{tr('linkCopy')}</Button>}{code&&<Button icon={Copy} onClick={()=>void copy(code)}>{tr('codeCopy')}</Button>}</div>
+     </section>}
      {result?.expiresAt&&<p className="settings-help">{tr('expiresAt')} {new Date(result.expiresAt).toLocaleString()} · {tr('downloads')} {result.downloads}</p>}
      {result?.revoked&&<p>{tr('revoked')}</p>}
      {state.error&&<Notice>{state.error}</Notice>}{[state.persistenceError,state.cleanupError,state.notificationError].filter(Boolean).map((warning,i)=><Notice key={i}>{warning}</Notice>)}
@@ -123,13 +156,11 @@ export function TransferPanel({stored,active,onActivity,intent,onIntentConsumed,
      {result?.manifest&&<><ul className="space-y-1">{result.manifest.f.map(file=><li key={file.n} className="flex flex-wrap justify-between gap-2"><span className="break-all">{file.n}</span><span>{size(file.s)}</span></li>)}</ul><div><Button icon={Download} disabled={busy} onClick={()=>void action(()=>start('store_receive',{code:item.spec.code,outputDir:item.spec.outputDir}))}>{tr('accept')}</Button></div></>}
      {result?.textPath&&<div className="space-y-2"><p className="break-all">{tr('textReceived')} {result.textPath}</p><div className="flex flex-wrap gap-2"><Button onClick={()=>void action(()=>interconnectCall('transfer_text_open',{id:item.id}))}>{tr('openText')}</Button><Button icon={Copy} onClick={()=>void action(async()=>copy(await interconnectCall<string>('transfer_text',{id:item.id})))}>{tr('copyReceivedText')}</Button></div></div>}
      <div className="flex flex-wrap gap-2">
-      {code&&<Button icon={Copy} onClick={()=>void copy(code)}>{tr('codeCopy')}</Button>}{result?.link&&<Button icon={Copy} onClick={()=>void copy(result.link!)}>{tr('linkCopy')}</Button>}{image&&<Button icon={QrCode} onClick={()=>setQr(qr===item.id?'':item.id)}>{tr(qr===item.id?'hideQR':'qr')}</Button>}
       {state.status==='running'?<Button icon={Square} disabled={busy} onClick={()=>void action(()=>interconnectCall('transfer_stop',{id:item.id}))}>{tr('cancel')}</Button>:<>
        {item.spec.mode==='store_send'&&result?.code&&!result.revoked?<Button disabled={busy} onClick={()=>void action(()=>interconnectCall('share_revoke',{id:item.id}))}>{tr('revoke')}</Button>:<Button variant="ghost" icon={Trash2} disabled={busy} onClick={()=>void action(()=>interconnectCall('transfer_remove',{id:item.id}))}>{tr('forget')}</Button>}
        {item.spec.mode!=='store_revoke'&&<Button variant="ghost" icon={Play} onClick={()=>{setForm({...initial(),...item.spec});setDirection(item.spec.mode.endsWith('send')?'send':'receive');setPayload(item.spec.text?'text':'files');setMessage(tr('restoreDraft'));}}>{tr('reuse')}</Button>}
       </>}
      </div>
-     {qr===item.id&&image&&<img src={image} alt={tr('qr')} className="h-auto w-44 max-w-full"/>}
      {(state.output||state.detail)&&<SettingsDisclosure title={tr('details')}><pre className="whitespace-pre-wrap break-all text-sm">{state.detail}{state.detail?'\n':''}{state.output}</pre></SettingsDisclosure>}
     </article>;
    })}</div>}

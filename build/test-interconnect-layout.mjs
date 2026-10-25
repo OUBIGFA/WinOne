@@ -18,7 +18,7 @@ const built=await preview({root:frontend,configFile:join(frontend,'vite.config.t
 const builtBase='http://127.0.0.1:'+built.httpServer.address().port;
 const browser=await chromium.launch({headless:true,channel:'msedge'}),results=[],errors=[];
 try{
- for(const language of ['zh-CN','en-US'])for(const width of [520,900])for(const theme of ['light','dark']){
+ for(const language of ['zh-CN','en-US'])for(const width of [520,900,1280])for(const theme of ['light','dark']){
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'}),en=language==='en-US';
   // The fixture uses Vite, while the child document enforces production CSP.
   // Serve its actual build at the original URL to preserve the origin-checked
@@ -55,9 +55,48 @@ try{
   await page.getByRole('tab',{name:en?'File transfer':'文件互传',exact:true}).click();
   await page.getByRole('button',{name:en?'Choose files':'选择文件',exact:true}).click();
   await start.click();
+  const receiveQR=page.getByRole('img',{name:en?'Cross-network browser receive QR code':'跨网网页接收二维码',exact:true});
+  await receiveQR.waitFor();
+  const receiveTabs=page.getByRole('tablist',{name:en?'Receive method':'接收方式',exact:true});
+  assert.equal(await receiveTabs.count(),1,'Receiving routes must use a tab switcher');
+  const scanTab=receiveTabs.getByRole('tab',{name:en?'Scan to receive':'扫码接收',exact:true});
+  const lanTab=receiveTabs.getByRole('tab',{name:en?'LAN direct':'局域网直连',exact:true});
+  const lanQR=page.getByRole('img',{name:en?'LAN direct receive QR code':'局域网直连接收二维码',exact:true});
+  assert.equal(await scanTab.getAttribute('aria-selected'),'true','Scan to receive must be selected by default');
+  assert.equal(await lanQR.count(),0,'LAN QR must not be visible alongside the default QR');
+  const qrBounds=await receiveQR.boundingBox(),routeBounds=await receiveQR.locator('..').boundingBox();
+  assert.ok(qrBounds.width>=200&&qrBounds.y>=40&&qrBounds.y+qrBounds.height<850,'Sending did not directly reveal a prominent QR code');
+  assert.ok(Math.abs(qrBounds.x+qrBounds.width/2-routeBounds.x-routeBounds.width/2)<2,'QR code is not centered in the receive area');
+  await page.screenshot({path:join(output,[language,width,theme,'receive'].join('-')+'.png'),fullPage:true});
+  await receiveTabs.scrollIntoViewIfNeeded();
+  const tabsBounds=await receiveTabs.boundingBox();
+  const tabsContainerBounds=await receiveTabs.locator('..').boundingBox();
+  assert.ok(Math.abs(tabsBounds.x+tabsBounds.width/2-tabsContainerBounds.x-tabsContainerBounds.width/2)<2,'Receive tabs are not centered as a group');
+  await lanTab.click();await lanQR.waitFor();
+  assert.equal(await receiveQR.count(),0,'Cross-network QR remains visible in the LAN tab');
+  assert.equal(await lanTab.getAttribute('aria-selected'),'true');
+  await page.waitForTimeout(1600); // Cross two production polling ticks.
+  assert.equal(await lanTab.getAttribute('aria-selected'),'true','Task refresh reset the selected route');
+  const switchedBounds=await receiveTabs.boundingBox();
+  assert.ok(Math.abs(tabsBounds.x-switchedBounds.x)<2&&Math.abs(tabsBounds.y-switchedBounds.y)<2,'Switching receiving methods moves the tabs');
+  const lanBounds=await lanQR.boundingBox(),lanRouteBounds=await lanQR.locator('..').boundingBox();
+  assert.ok(Math.abs(lanBounds.x+lanBounds.width/2-lanRouteBounds.x-lanRouteBounds.width/2)<2,'LAN QR is not centered');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'LAN tab overflows');
+  await page.screenshot({path:join(output,[language,width,theme,'receive-lan'].join('-')+'.png'),fullPage:true});
+  await lanTab.focus();await page.keyboard.press('ArrowLeft');await page.keyboard.press('Enter');
+  await receiveQR.waitFor();
+  assert.equal(await scanTab.getAttribute('aria-selected'),'true','Keyboard cannot switch back to scan receive');
+  assert.equal(await lanQR.count(),0);
   await page.getByText(en?'Text':'文本',{exact:true}).click();
   await page.getByRole('textbox',{name:en?'Text':'文本',exact:true}).fill('互联助手 / Interconnect — preserved draft');
-  await start.click();
+  await page.getByRole('button',{name:en?'Add and send':'添加并发送',exact:true}).click();
+  const sends=await page.evaluate(()=>window.settingsDesignFixture.calls.filter(call=>['interconnect.transfer_start','interconnect.share_add_text'].includes(call.method)));
+  assert.deepEqual(sends.map(call=>call.method),['interconnect.transfer_start','interconnect.share_add_text'],'Sending text started a second server');
+  assert.equal(await page.getByRole('img',{name:en?'Cross-network browser receive QR code':'跨网网页接收二维码',exact:true}).count(),1);
+  assert.equal(await lanQR.count(),0);
+  const routes=await page.locator('.interconnect-receive-route h3').allTextContents();
+  assert.equal(routes[0],en?'Scan to receive (any network)':'扫码接收（不限网络）','croc must be the primary receiving route');
+  await page.getByText(en?'Manage shared content · 2':'管理共享内容 · 2',{exact:true}).click();
   await page.getByText('互联助手 / Interconnect — preserved draft',{exact:true}).first().waitFor({timeout:8000});
   await page.getByRole('button',{name:en?'Save as':'另存为',exact:true}).first().click({timeout:8000});
   await page.getByRole('dialog').waitFor();
@@ -76,6 +115,7 @@ try{
    await panel.getByRole('button',{name:en?'Choose files':'选择文件',exact:true}).click();
    await panel.getByRole('button',{name:en?'Upload encrypted copy':'上传加密副本',exact:true}).click();
    await panel.getByText(en?'Completed':'已完成',{exact:true}).waitFor();
+   await panel.getByText(en?'Advanced options':'高级选项',{exact:true}).click();
    await panel.getByText(en?'Network settings':'网络设置',{exact:true}).click();
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,tabName+' overflows');
    await page.screenshot({path:join(output,[language,width,theme,'store'].join('-')+'.png'),fullPage:true});
@@ -104,7 +144,23 @@ try{
   assert.equal(await page.getByRole('tab',{name:en?'Flash Chat':'闪聊',exact:true}).count(),0,'Chat remains in transfer tabs');
   await page.locator('[data-page-id=flash-chat]').click();
   const flash=page.frameLocator('iframe[title="'+(en?'Flash Chat':'闪聊')+'"]');
-  await flash.getByRole('tab',{name:en?'Join room':'加入房间',exact:true}).waitFor();
+  await flash.getByRole('button',{name:en?'Join room':'加入房间',exact:true}).waitFor();
+  const brand=await flash.locator('.flash-chat-brand').evaluate(node=>{const [icon,title]=node.children;return {icon:icon.getBoundingClientRect().y,title:title.getBoundingClientRect().y};});
+  assert.ok(Math.abs(brand.icon-brand.title)<8,'Flash Chat brand is not horizontal');
+  const checkWelcome=async()=>{
+   const layout=await flash.locator('.flash-chat-entry').evaluate(node=>{
+    const center=element=>{const rect=element.getBoundingClientRect();return rect.x+rect.width/2;};
+    const description=node.querySelector('.flash-chat-welcome > p');
+    return {entry:center(node),brand:center(node.querySelector('.flash-chat-brand')),description:center(description),align:getComputedStyle(description).textAlign};
+   });
+   assert.ok(Math.abs(layout.entry-layout.brand)<2,'Flash Chat icon and title are not centered together');
+   assert.ok(Math.abs(layout.entry-layout.description)<2&&layout.align==='center','Flash Chat welcome description is not centered');
+  };
+  await checkWelcome();
+  await flash.getByRole('button',{name:en?'Join room':'加入房间',exact:true}).click();
+  await checkWelcome();
+  await flash.getByPlaceholder(en?'Room ID':'房间标识',{exact:true}).waitFor();
+  await flash.getByPlaceholder(en?'Room password':'房间密码',{exact:true}).waitFor();
   assert.equal(await flash.locator('.flash-chat-lobby').evaluate(node=>getComputedStyle(node).display),'grid','Flash Chat stylesheet was not loaded');
   assert.equal(await page.locator('[data-slot=settings-footer]').count(),0,'Flash Chat must not have the settings footer');
   assert.equal(await page.locator('[data-slot=page-scroll]').evaluate(node=>node.scrollHeight>node.clientHeight),false,'Flash Chat outer page scrolls');

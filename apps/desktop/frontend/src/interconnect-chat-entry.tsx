@@ -14,7 +14,7 @@ import {Input} from './components/ui/input';
 import {Textarea} from './components/ui/textarea';
 import {Label} from './components/ui/label';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from './components/ui/dialog';
-import {Tabs,TabsList,TabsTrigger} from './components/ui/tabs';
+
 import {ChatMarkdown} from './features/chat-markdown';
 import {ChatRoom,type ChatRoomOptions} from './vendor/chitchatter/core/chat/ChatRoom';
 import {ChatRoomRegistry} from './vendor/chitchatter/core/chat/ChatRoomRegistry';
@@ -77,7 +77,7 @@ function PeerChat(){
  const [roomId,setRoomId]=useState(''),[password,setPassword]=useState(''),[nickname,setNickname]=useState('WinOne');
  const [tracker,setTracker]=useState(''),[rtc,setRTC]=useState(''),[drafts,setDrafts]=useState<Record<string,string>>({});
  const [session,setSession]=useState<Session>(),[selected,setSelected]=useState(''),[revision,setRevision]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState(''),[browser,setBrowser]=useState('');
- const [entryMode,setEntryMode]=useState('create'),[panel,setPanel]=useState<'network'|'room'|null>(null),[showPeers,setShowPeers]=useState(false),[copied,setCopied]=useState(false);
+ const [entryMode,setEntryMode]=useState('home'),[panel,setPanel]=useState<'network'|'room'|null>(null),[showPeers,setShowPeers]=useState(false),[copied,setCopied]=useState(false);
  const live=useRef<Session|undefined>(undefined),root=useRef<HTMLDivElement>(null),leaving=useRef(false),receivers=useRef(new Map<string,string>());
  const transcript=useRef<HTMLDivElement>(null),follow=useRef(true),composer=useRef<HTMLTextAreaElement>(null),copyTimer=useRef<number|undefined>(undefined);
  const room=session?(selected?session.registry.getDirect(selected):session.room):null;
@@ -96,7 +96,7 @@ function PeerChat(){
   subscriptions.push(room.on(ChatRoomEvent.ERROR,({error})=>setError(error.message)));
  }
  async function leave(){
-  leaving.current=true;const current=live.current;live.current=undefined;setSession(undefined);setSelected('');setBrowser('');setPanel(null);setShowPeers(false);setEntryMode('join');
+  leaving.current=true;const current=live.current;live.current=undefined;setSession(undefined);setSelected('');setBrowser('');setPanel(null);setShowPeers(false);setEntryMode('home');
   if(!current)return;
   current.subscriptions.forEach(f=>f());
   try{await Promise.all([current.room.leave(),current.registry.clearDirect(),...[...receivers.current.values()].map(id=>native('stop',id))]);}finally{current.transport.leaveRoom();current.registry.setGroup(null);receivers.current.clear();}
@@ -111,7 +111,7 @@ function PeerChat(){
   for(const text of urls){const url=new URL(text);if(url.protocol!=='wss:'&&!(url.protocol==='ws:'&&url.hostname==='127.0.0.1'))throw Error(tr('tracker'));}
   const identity=await encryption.generateKeyPair();leaving.current=false;
   const transport=new TrysteroTransport({appId:'winone-interconnect-chitchatter',password:secret,relayConfig:{urls:urls.length?urls:undefined,redundancy:4},rtcConfig},id);
-  const options={roomId:id,userId:crypto.randomUUID(),customUsername:nickname.trim()||'WinOne',publicKey:identity.publicKey,privateKey:identity.privateKey,transport,password:secret};
+  const options={roomId:id,userId:crypto.randomUUID(),customUsername:nickname.trim()||'WinOne',publicKey:identity.publicKey,privateKey:identity.privateKey,transport,password:secret,shareHistoryOnJoin:true};
   const registry=new ChatRoomRegistry(),subscriptions:(()=>void)[]=[];
   const group=new ChatRoom({...options,adapters:createPlatformAdapters({uuid:()=>crypto.randomUUID()},{fileTransfer:filesAdapter(),logger:{warn:message=>setError(message),error:message=>setError(message)}})});
   registry.setGroup(group);subscribe(group,subscriptions);
@@ -149,21 +149,23 @@ function PeerChat(){
  const peers=session?.room.getPeers()??[];
  const activePeer=peers.find(peer=>peer.peerId===selected),messages=room?.getMessageLog()??[];
  const conversation=selected?(activePeer?getPeerDisplayName(activePeer):tr('chatPrivate')):tr('groupRoom');
- const canSend=!busy&&!!draft.trim()&&!!room?.getPeers().length;
+ // Group messages are recorded immediately and backfilled to later members.
+ const canSend=!busy&&!!draft.trim()&&!!room&&(!selected||!!room.getPeers().length);
  const typing=selected?activePeer?.isTypingDirectMessage:peers.some(peer=>peer.isTypingGroupMessage);
  return <div ref={root} className="settings-surface flash-chat-root">
   {!session?<div className="flash-chat-lobby"><div className="flash-chat-entry">
-   <header className="flash-chat-welcome"><MessagesCircle size={28} strokeWidth={1.5} aria-hidden="true"/><h1>{tr('peerChat')}</h1><p>{tr('chatWelcome')}</p></header>
+   <header className="flash-chat-welcome"><div className="flash-chat-brand"><MessagesCircle size={28} strokeWidth={1.5} aria-hidden="true"/><h1>{tr('peerChat')}</h1></div><p>{tr('chatWelcome')}</p></header>
    {error&&<Notice>{error}</Notice>}
    <div className="flash-chat-field"><Label htmlFor="chat-nickname">{tr('nickname')}</Label><Input id="chat-nickname" value={nickname} onChange={e=>setNickname(e.target.value)} autoComplete="nickname"/></div>
-   <Tabs value={entryMode} onValueChange={value=>setEntryMode(String(value))}><TabsList className="flash-chat-entry-tabs"><TabsTrigger value="create" disabled={busy}>{tr('createRoom')}</TabsTrigger><TabsTrigger value="join" disabled={busy}>{tr('joinRoom')}</TabsTrigger></TabsList></Tabs>
-   <form className="flash-chat-entry-form" onSubmit={e=>{e.preventDefault();if(!busy)void action(()=>join(entryMode==='create'));}}>
-    {entryMode==='create'?<p className="flash-chat-help">{tr('createRoomHint')}</p>:<>
-     <div className="flash-chat-field"><Label htmlFor="chat-room-id">{tr('roomCode')}</Label><Input id="chat-room-id" value={roomId} onChange={e=>setRoomId(e.target.value)} autoComplete="off" required/></div>
-     <div className="flash-chat-field"><Label htmlFor="chat-room-password">{tr('roomPassword')}</Label><Input id="chat-room-password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="off" required/></div>
-    </>}
-    <Button type="submit" variant="primary" busy={busy} disabled={entryMode==='join'&&(!roomId.trim()||!password)}>{tr(entryMode==='create'?'createRoom':'joinRoom')}</Button>
-   </form>
+   {entryMode==='home'?<div className="flash-chat-entry-actions">
+    <Button variant="primary" busy={busy} onClick={()=>void action(()=>join(true))}>{tr('createRoom')}</Button>
+    <Button disabled={busy} onClick={()=>setEntryMode('join')}>{tr('joinRoom')}</Button>
+   </div>:<form className="flash-chat-entry-form" onSubmit={e=>{e.preventDefault();if(!busy)void action(()=>join(false));}}>
+    <Input id="chat-room-id" aria-label={tr('roomCode')} placeholder={tr('roomCode')} value={roomId} onChange={e=>setRoomId(e.target.value)} autoComplete="off" required autoFocus/>
+    <Input id="chat-room-password" aria-label={tr('roomPassword')} placeholder={tr('roomPassword')} value={password} onChange={e=>setPassword(e.target.value)} autoComplete="off" required/>
+    <Button type="submit" variant="primary" busy={busy} disabled={!roomId.trim()||!password}>{tr('joinRoom')}</Button>
+    <Button variant="ghost" disabled={busy} onClick={()=>setEntryMode('home')}>{tr('backToEntry')}</Button>
+   </form>}
    <footer className="flash-chat-entry-footer"><Button variant="ghost" icon={Settings2} onClick={()=>setPanel('network')}>{tr('networkOptions')}</Button><p><ShieldCheck size={15} aria-hidden="true"/>{tr('chatEncryption')}</p></footer>
   </div></div>:<div className="flash-chat-workspace" data-members-open={showPeers}>
    <aside className="flash-chat-sidebar" aria-label={tr('chatPeers')}>
@@ -184,14 +186,14 @@ function PeerChat(){
     </div>
     <div className="flash-chat-shares">{Object.entries(room?.getFileOffers()??{}).map(([peerId,offer])=><div key={peerId}><FolderOpen size={16} aria-hidden="true"/><span>{tr('fileOffer')}</span><Button disabled={busy} onClick={()=>void action(()=>receive(offer.magnetURI))}>{tr('browseShare')}</Button></div>)}</div>
     <form className="flash-chat-composer" onSubmit={e=>{e.preventDefault();if(canSend)void action(send);}}>
-     <p className="flash-chat-typing" aria-live="polite">{typing?tr('typing'):!room?.getPeers().length?tr('chatWaitingToSend'):'\u00a0'}</p>
+     <p className="flash-chat-typing" aria-live="polite">{typing?tr('typing'):!selected&&!peers.length?tr('chatSoloHint'):'\u00a0'}</p>
      <div className="flash-chat-input"><Textarea ref={composer} aria-label={tr('chatDraft')} placeholder={tr('chatDraft')} value={draft} onChange={e=>{setDrafts(current=>({...current,[selected]:e.target.value}));room?.notifyTyping();}} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing&&e.keyCode!==229){e.preventDefault();if(canSend)void action(send);}}}/><div className="flash-chat-compose-actions"><Button variant="ghost" size="icon" icon={FilePlus} aria-label={tr('shareInChat')} title={tr('shareInChat')} disabled={busy} onClick={()=>void action(async()=>{const files=await native<FileHandle[]>('files');if(files.length)await room!.offerFiles(files);})}/>{room?.getSelfFileOfferMagnetUri()&&<Button variant="ghost" disabled={busy} onClick={()=>void action(()=>room.rescindFileOffer())}>{tr('stopChatShare')}</Button>}<span className="flash-chat-shortcut">{tr('chatKeyboardHint')}</span><Button type="submit" icon={Send} variant="primary" disabled={!canSend} aria-label={tr('sendMessage')}>{tr('sendMessage')}</Button></div></div>
     </form>
    </main>
   </div>}
   <Dialog open={panel!==null} onOpenChange={open=>{if(!open)setPanel(null);}}><DialogContent className="flash-chat-dialog"><DialogHeader><DialogTitle>{tr(panel==='network'?'networkOptions':'roomDetails')}</DialogTitle><DialogDescription>{tr(panel==='network'?'chatNetworkHint':'roomDetailsHint')}</DialogDescription></DialogHeader>{panel==='network'?<>
    <div className="flash-chat-field"><Label htmlFor="chat-tracker">{tr('tracker')}</Label><Textarea id="chat-tracker" value={tracker} onChange={e=>setTracker(e.target.value)}/></div><div className="flash-chat-field"><Label htmlFor="chat-rtc">{tr('rtcConfig')}</Label><Textarea id="chat-rtc" value={rtc} onChange={e=>setRTC(e.target.value)}/></div><Button onClick={()=>setPanel(null)}>{t('common.close')}</Button>
-  </>:session&&<><div className="flash-chat-field"><Label htmlFor="chat-active-room">{tr('roomCode')}</Label><Input id="chat-active-room" readOnly value={session.roomId}/></div><div className="flash-chat-field"><Label htmlFor="chat-active-password">{tr('roomPassword')}</Label><Input id="chat-active-password" readOnly value={session.password}/></div><Button icon={copied?Check:Copy} disabled={busy} onClick={()=>void action(copyRoom)}>{tr(copied?'copied':'roomCopy')}</Button><p className="flash-chat-help">{tr('chatHint')}</p><Button icon={LogOut} disabled={busy} onClick={()=>void action(leave)}>{tr('leaveRoom')}</Button></>}</DialogContent></Dialog>
+  </>:session&&<><div className="flash-chat-field"><Label htmlFor="chat-active-room">{tr('roomCode')}</Label><Input id="chat-active-room" readOnly value={session.roomId}/></div><div className="flash-chat-field"><Label htmlFor="chat-active-password">{tr('roomPassword')}</Label><Input id="chat-active-password" readOnly value={session.password}/></div><Button icon={copied?Check:Copy} disabled={busy} onClick={()=>void action(copyRoom)}>{tr(copied?'copied':'roomCopy')}</Button><p className="flash-chat-help">{tr('chatHistoryHint')}</p><p className="flash-chat-help">{tr('chatHint')}</p><Button icon={LogOut} disabled={busy} onClick={()=>void action(leave)}>{tr('leaveRoom')}</Button></>}</DialogContent></Dialog>
   <Dialog open={!!browser} onOpenChange={open=>{if(!open)setBrowser('');}}><DialogContent className="flash-chat-file-dialog"><DialogHeader><DialogTitle>{tr('browseShare')}</DialogTitle></DialogHeader>{browser&&<iframe title={tr('browseShare')} src={browser} sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"/>}</DialogContent></Dialog>
  </div>;
 }

@@ -1,3 +1,4 @@
+import {transferFlowMessages} from './interconnect-flow';
 import {transferMessages} from './interconnect-transfer';
 import {peerMessages} from './interconnect-peer';
 import {generalMessages} from './interconnect-general';
@@ -15,4 +16,4 @@ const unifiedMessages={
  zh:{unifiedSendHint:'选择一次文件并发送，即可扫码下载、持续分享或通过口令接收。口令传输完成后，分享仍保持可用，直到你停止。',sendSelection:'发送',customCode:'自定义口令（留空自动生成）',codeDelivered:'已送达，持续分享仍可用',stopCodeTransfer:'停止口令传输',sendCodeAgain:'再次通过口令发送',saveBeforeSending:'请先保存或撤销设置修改，再发送。',settingsForNextSend:'这些设置用于下一次发送。端口设为 0 时自动分配，可同时保留多份分享。',manageShare:'管理共享内容'},
  en:{unifiedSendHint:'Select files once and send. Recipients can scan to download, use the persistent share, or receive by code. Sharing stays available after code delivery until you stop it.',sendSelection:'Send',customCode:'Custom code (blank to generate)',codeDelivered:'Delivered; persistent share remains available',stopCodeTransfer:'Stop code transfer',sendCodeAgain:'Send by code again',saveBeforeSending:'Save or discard the settings changes before sending.',settingsForNextSend:'Used for the next send. Set the port to 0 to assign one automatically and keep multiple shares active.',manageShare:'Manage shared content'}
 };
-export const interconnectMessages={zh:{...lanMessages.zh,...transferMessages.zh,...peerMessages.zh,...generalMessages.zh,...flashChatMessages.zh,...fileMessages.zh,...unifiedMessages.zh},en:{...lanMessages.en,...transferMessages.en,...peerMessages.en,...generalMessages.en,...flashChatMessages.en,...fileMessages.en,...unifiedMessages.en}};
+export const interconnectMessages={zh:{...lanMessages.zh,...transferMessages.zh,...peerMessages.zh,...generalMessages.zh,...flashChatMessages.zh,...fileMessages.zh,...unifiedMessages.zh,...transferFlowMessages.zh},en:{...lanMessages.en,...transferMessages.en,...peerMessages.en,...generalMessages.en,...flashChatMessages.en,...fileMessages.en,...unifiedMessages.en,...transferFlowMessages.en}};

@@ -269,7 +269,7 @@ func (t *task) prepareSource(ctx context.Context) error {
 	if downloadDir == "" {
 		downloadDir = filepath.Join(t.spec.DataDir, "received")
 	}
-	raw, err := p.call(ctx, "start", map[string]any{"bind": t.spec.Bind, "port": t.spec.Port, "readOnly": !t.spec.AllowWrites, "dataDir": filepath.Join(t.spec.DataDir, "lan"), "downloadDir": downloadDir})
+	raw, err := p.call(ctx, "start", map[string]any{"bind": t.spec.Bind, "port": t.spec.Port, "autoPort": true, "readOnly": !t.spec.AllowWrites, "dataDir": filepath.Join(t.spec.DataDir, "lan"), "downloadDir": downloadDir})
 	if err != nil {
 		return err
 	}

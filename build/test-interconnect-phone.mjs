@@ -1,6 +1,7 @@
 // Real peer/LAN processes and a mobile-sized browser. No public relay is used.
 import {spawn,execFileSync} from 'node:child_process';
 import {createInterface} from 'node:readline';
+import {createServer as createTCPServer} from 'node:net';
 import {createServer} from 'node:http';
 import {createRequire} from 'node:module';
 import {resolve,join} from 'node:path';
@@ -15,6 +16,8 @@ const {chromium}=createRequire(import.meta.url)(process.env.WINONE_PLAYWRIGHT_MO
 const browser=await chromium.launch({headless:true,channel:'msedge'});
 const relay=createServer((req,res)=>{res.writeHead(503);res.end('isolated relay outage');});
 await new Promise(resolve=>relay.listen(0,'127.0.0.1',resolve));
+const occupied=createTCPServer(socket=>socket.end());
+await new Promise(resolve=>occupied.listen(0,'127.0.0.1',resolve));
 const children=[],errors=[],results=[];
 function worker(){
  const process=spawn(join(bundle,'WinOne.Interconnect.Peer.exe'),[],{windowsHide:true,stdio:['pipe','pipe','pipe']});
@@ -28,11 +31,18 @@ try{
  await writeFile(source,contents);
  for(const allowWrites of [false,true]){
   const call=worker();
-  await call('start',{mode:'share_server',paths:[source],dataDir:join(output,allowWrites?'writable':'readonly'),allowWrites,derpMapURL:'http://127.0.0.1:'+relay.address().port});
+  await call('start',{mode:'share_server',paths:[source],bind:'127.0.0.1',port:occupied.address().port,dataDir:join(output,allowWrites?'writable':'readonly'),allowWrites,derpMapURL:'http://127.0.0.1:'+relay.address().port});
   let state;const deadline=Date.now()+15000;
   while(Date.now()<deadline){state=await call('snapshot');if(state.ready&&state.relayError)break;if(state.status!=='running')throw Error(state.error);await new Promise(resolve=>setTimeout(resolve,100));}
   assert.equal(state.ready,true);assert.ok(state.relayError);assert.equal(state.relayReady,false);
   const link=state.share.info.url;
+  assert.notEqual(Number(new URL(link).port),occupied.address().port,'Busy port was not avoided');
+  assert.ok(occupied.listening,'An existing listener was stopped');
+  await call('add_text','text after sending a file');
+  const appended=await call('snapshot');
+  assert.equal(appended.share.info.url,link,'Adding text changed the LAN link');
+  assert.equal(appended.share.items.length,2);
+  assert.equal(appended.share.items.find(item=>item.kind==='text').content,'text after sending a file');
   assert.equal(new URL(link).protocol,'http:');assert.ok(new URL(link).searchParams.get('key'));
   const context=await browser.newContext({viewport:{width:390,height:844},acceptDownloads:true});
   const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
@@ -59,12 +69,12 @@ try{
   assert.equal(status,allowWrites?200:403);
   await call('stop');
   await page.locator('#shareEndedNotice').getByText('分享已停止',{exact:true}).waitFor();
-  results.push({allowWrites,download:true,credentialRedirect:true,relayFailureSurvived:true,stoppedNotice:true});
+  results.push({allowWrites,download:true,credentialRedirect:true,relayFailureSurvived:true,stoppedNotice:true,autoPort:true,fileThenText:true,sameLink:true});
   await context.close();
  }
  assert.deepEqual(errors,[]);await writeFile(join(output,'results.json'),JSON.stringify({results,errors},null,2));
  console.log('Phone downloads: read-only and writable shares passed at 320/390/768px, including relay outage and stop');
 }finally{
  for(const child of children){child.stdin.end();if(child.exitCode===null)child.kill();}
- await browser.close();await new Promise(resolve=>relay.close(resolve));
+ await browser.close();await new Promise(resolve=>relay.close(resolve));await new Promise(resolve=>occupied.close(resolve));
 }

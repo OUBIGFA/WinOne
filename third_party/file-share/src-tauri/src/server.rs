@@ -90,6 +90,10 @@ pub struct StartOptions {
     // Existing local transfers remain writable; persistent shares opt out.
     #[serde(default)]
     pub read_only: bool,
+    // Prefer the configured port without displacing another listener. URLs
+    // and QR codes must always advertise the port actually acquired.
+    #[serde(default)]
+    pub auto_port: bool,
     pub port: u16,
     pub bind: std::net::Ipv4Addr,
     pub data_dir: PathBuf,
@@ -270,7 +274,7 @@ impl From<axum::extract::multipart::MultipartError> for AppError {
 
 /// Host-selected paths keep the reused engine out of other applications' data.
 pub async fn start(options: StartOptions) -> Result<ServerInfo, String> {
-    let StartOptions { port, bind, data_dir, download_dir: client_upload_dir, read_only } = options;
+    let StartOptions { port, bind, data_dir, download_dir: client_upload_dir, read_only, auto_port } = options;
     if !data_dir.is_absolute() || !client_upload_dir.is_absolute() {
         return Err("数据和接收目录必须是绝对路径".into());
     }
@@ -279,8 +283,14 @@ pub async fn start(options: StartOptions) -> Result<ServerInfo, String> {
     if guard.is_some() { return Err("共享服务已运行，请先停止".into()); }
     let data_path = data_dir.join("items.json");
     // Bind first: a port conflict must not leave background tasks running.
-    let listener = tokio::net::TcpListener::bind((bind, port)).await
-        .map_err(|error| bind_error_message(port, error))?;
+    let listener = match tokio::net::TcpListener::bind((bind, port)).await {
+        Ok(listener) => listener,
+        Err(error) if auto_port && port != 0 && error.kind() == std::io::ErrorKind::AddrInUse => {
+            tokio::net::TcpListener::bind((bind, 0)).await
+                .map_err(|error| bind_error_message(0, error))?
+        }
+        Err(error) => return Err(bind_error_message(port, error)),
+    };
     let port = listener.local_addr().map_err(|error| error.to_string())?.port();
 
     fs::create_dir_all(&data_dir)
@@ -1371,6 +1381,22 @@ mod tests {
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../_temp/interconnect-tests")
             .join(format!("fileshare-{name}-{}", Uuid::new_v4()))
+    }
+
+    #[tokio::test]
+    async fn automatic_port_keeps_an_existing_listener_and_publishes_the_actual_port() {
+        let occupied = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+        let port = occupied.local_addr().unwrap().port();
+        let dir = test_dir("auto-port");
+        let options = serde_json::from_value(serde_json::json!({
+            "bind": "127.0.0.1", "port": port, "autoPort": true,
+            "dataDir": dir, "downloadDir": dir.join("received")
+        })).unwrap();
+        let info = start(options).await.unwrap();
+        assert_ne!(info.port, port);
+        assert!(info.url.contains(&format!(":{}", info.port)));
+        assert!(tokio::net::TcpStream::connect((std::net::Ipv4Addr::LOCALHOST, port)).await.is_ok());
+        stop().await.unwrap();
     }
 
     // Regression: the imported server exposes every item to unauthenticated LAN peers.

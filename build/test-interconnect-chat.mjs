@@ -26,12 +26,12 @@ await mkdir(output,{recursive:true});
 const browser=await chromium.launch({headless:true,channel:'msedge'}),errors=[];
 const pages=[];
 try{
- const room=randomUUID(),password=randomUUID();
+ const room=randomUUID(),password=randomUUID(),solo='房主独自发送 '+randomUUID();
  for(const name of ['Alice','Bob','Carol']){
   const context=await browser.newContext({viewport:{width:780,height:900},reducedMotion:'reduce'}),page=await context.newPage();pages.push(page);
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto(base+'/interconnect-chat.html');
-  await page.getByRole('tab',{name:'加入房间',exact:true}).click({timeout:5000});
+  await page.getByRole('button',{name:'加入房间',exact:true}).click({timeout:5000});
   await page.getByRole('textbox',{name:'显示名称',exact:true}).fill(name);
   await page.getByRole('textbox',{name:'房间标识',exact:true}).fill(room);
   await page.getByRole('textbox',{name:'房间密码',exact:true}).fill(password);
@@ -42,6 +42,14 @@ try{
   await page.getByRole('dialog').waitFor({state:'hidden'});
   await page.getByRole('button',{name:'加入房间',exact:true}).click();
   await page.getByRole('button',{name:'离开房间',exact:true}).waitFor();
+  if(name==='Alice'){
+   await page.getByRole('textbox',{name:'输入消息，支持 Markdown 和代码块',exact:true}).fill(solo);
+   await page.getByRole('button',{name:'发送消息',exact:true}).click();
+   await page.getByRole('log').getByText(solo,{exact:true}).waitFor();
+  }else{
+   await page.getByRole('log').getByText(solo,{exact:true}).waitFor({timeout:30000});
+   assert.equal(await page.getByRole('log').getByText(solo,{exact:true}).count(),1,'History backfill duplicated the solo message');
+  }
  }
  const [alice,bob,carol]=pages;
  for(const page of pages)await page.getByText('身份已校验',{exact:true}).nth(1).waitFor({timeout:30000});
@@ -89,7 +97,10 @@ try{
  assert.deepEqual(await carol.locator('.flash-chat-composer').boundingBox(),composerBefore,'Scrolling moves the composer');
  for(const [index,page] of pages.entries()){assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:join(output,'peer-'+index+'.png'),fullPage:true});}
  await bob.getByRole('button',{name:'离开房间',exact:true}).click();await bob.getByRole('button',{name:'加入房间',exact:true}).waitFor();
+ await bob.getByRole('button',{name:'加入房间',exact:true}).click();
  await bob.getByRole('button',{name:'加入房间',exact:true}).click();await bob.getByRole('button',{name:'离开房间',exact:true}).waitFor();
+ await bob.getByRole('log').getByText(solo,{exact:true}).waitFor();
+ assert.equal(await bob.getByRole('log').getByText(direct,{exact:true}).count(),0,'Private content leaked into group history');
  // Exercise the isolated document's real theme and language bridge, including
  // the settings styles it must load independently of its parent window.
  const layouts=[];
@@ -118,7 +129,7 @@ try{
   }
  }
  await writeFile(join(output,'layouts.json'),JSON.stringify(layouts,null,2));
- assert.deepEqual(errors,[]);await writeFile(join(output,'result.json'),JSON.stringify({passed:true,peers:3,checks:['real WebRTC','verified identities','group delivery','private isolation','unopened private conversation','draft cleared on delivery','per-conversation drafts','keyboard send and newline','leave and rejoin','compact conversation rows','independent transcript scrolling','reading position preserved','fixed composer','narrow member navigation','bilingual light/dark layouts'],errors},null,2));
+ assert.deepEqual(errors,[]);await writeFile(join(output,'result.json'),JSON.stringify({passed:true,peers:3,checks:['solo send','password-room late-join history','history deduplication','private history isolation','real WebRTC','verified identities','group delivery','private isolation','unopened private conversation','draft cleared on delivery','per-conversation drafts','keyboard send and newline','leave and rejoin','compact conversation rows','independent transcript scrolling','reading position preserved','fixed composer','narrow member navigation','bilingual light/dark layouts'],errors},null,2));
  console.log('Real WebRTC chat: 3 peers, group/private delivery, identity and room lifecycle passed');
 }catch(error){
  for(const [index,page] of pages.entries()){await page.screenshot({path:join(output,'failure-'+index+'.png'),fullPage:true});await writeFile(join(output,'failure-'+index+'.txt'),await page.locator('body').innerText());}

@@ -73,10 +73,12 @@ const createClient = (
     password,
     customUsername = '',
     targetPeerId,
+    shareHistoryOnJoin,
   }: {
     password?: string
     customUsername?: string
     targetPeerId?: string
+    shareHistoryOnJoin?: boolean
   } = {}
 ): Client => {
   const peerId = `peer-${index}`
@@ -102,6 +104,7 @@ const createClient = (
     adapters,
     password,
     targetPeerId,
+    shareHistoryOnJoin,
   })
 
   return { chatRoom, transport, adapters, fileTransfer }
@@ -527,6 +530,32 @@ describe('ChatRoom', () => {
   })
 
   describe('transcript backfill', () => {
+    it('shares a solo message with a later password-room member when enabled', async () => {
+      const options = { password: 'room-secret', shareHistoryOnJoin: true }
+      const alice = createClient(network, 0, options)
+      await alice.chatRoom.join()
+      await alice.chatRoom.sendMessage('before anyone arrived')
+      expect(alice.chatRoom.getMessageLog()[0]).toSatisfy(isMessageReceived)
+      const bob = createClient(network, 1, options)
+      await bob.chatRoom.join()
+      await settle()
+      expect(bob.chatRoom.getMessageLog()).toHaveLength(1)
+      expect(bob.chatRoom.getMessageLog()[0]).toMatchObject({ text: 'before anyone arrived' })
+    })
+
+    it('merges enabled history with a message already sent by the newcomer, without duplicates', async () => {
+      const alice = createClient(network, 0, { password: 'room-secret', shareHistoryOnJoin: true })
+      await alice.chatRoom.join()
+      await alice.chatRoom.sendMessage('mine')
+      const sender = new InMemoryTransport(network, 'peer-9')
+      const [sendTranscript] = sender.makeAction<any>(PeerAction.MESSAGE_TRANSCRIPT, ActionNamespace.GROUP)
+      const history = [{ id: 'earlier', text: 'earlier', authorId: 'user-9', timeSent: 0, timeReceived: 0 }]
+      await sendTranscript(history)
+      await sendTranscript(history)
+      await settle()
+      expect(alice.chatRoom.getMessageLog().map(message => (message as ReceivedMessage).text)).toEqual(['earlier', 'mine'])
+    })
+
     it('hands history to a peer joining a public room', async () => {
       const alice = createClient(network, 0)
       const bob = createClient(network, 1)
