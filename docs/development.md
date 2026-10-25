@@ -1,5 +1,15 @@
 # 开发状态
 
+## 登录启动越界写入修复与 Defender 核查（2026-10-25）
+
+- Defender 实际记录：`Behavior:Win32/Persistence.A!ml` 关联定时关机候选 `WinOne.Host.exe` 与用户级 WinOne 登录任务；同日旧候选的另一份副本也被拦截。未恢复隔离文件、关闭防护、添加排除项或改动真实安装/自启。
+- 已用无系统写入的回归复现：旧 `syncProductStartup` 只核对默认配置目录，临时副本可继承默认配置并写入/删除已安装程序的任务。现在复用安装器 `CaptureRegistration` 的实际目录归属检查，先拒绝外来副本再访问调度器；无安装登记的便携版语义保留。
+- `LogonTask.Sync` 查询失败不再直接 `/Create /F`。只有独立查询明确不存在才创建，且新建不使用强制覆盖；查询不确定保留原错误。`Remove` 先确认存在，关闭状态反复应用不再对不存在任务发删除命令。
+- 验证：35 个顶层测试通过（`internal/logintask` 15、`internal/adminstartup` 12、Host 启动相关 8），包含读取真实安装登记但用记录型任务后端的只读校验；`go vet` 与 Host 构建通过。真实任务登记测试未开启；目录符号链接测试因权限不足跳过。临时输出：`_temp/defender-trigger-fix/`。
+- 新候选经 Defender 自定义文件扫描返回 0，明确报告无威胁，实时防护开启、定义版本 `1.461.190.0`，无该候选的新检测。对应 SHA-256：`1ca4f2e81c71d3e499740cf4690a00ee7c73aecb0c4862f35c2db4e350188020`；扫描不执行目标，结果见 `defender-scan-result.json`。
+- 证据边界：系统未开启任务调度历史，Support 日志不可读，无法证明上述缺陷是所有历史告警的唯一触发因素。未在虚拟机复现旧告警或验收完整安装/登录后的行为扫描；静态扫描通过不等于行为检测全部解决。候选包含当前工作树其他在途功能，仅用于本地核查，未替换固定安装器。
+- API 依据：Microsoft [TaskFolder.RegisterTask](https://learn.microsoft.com/en-us/windows/win32/taskschd/taskfolder-registertask) 区分创建与更新；[TaskFolder.GetTask](https://learn.microsoft.com/en-us/windows/win32/taskschd/taskfolder-gettask) 用于读取具体任务。未改用另一持久化渠道规避检测。
+
 ## 闪聊与文件互传重做（2026-10-25）
 
 - 接收区使用整体居中的「扫码接收 / 局域网直连」Tab，默认 croc 不限网络；一次只展示一个二维码，发送后自动定位，224 px 二维码、口令与链接操作居中。切换方式、轮询与连续发送保留选择；键盘可切换。

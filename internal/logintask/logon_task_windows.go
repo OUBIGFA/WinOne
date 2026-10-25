@@ -51,7 +51,20 @@ func (t *LogonTask) Sync(exePath, args string) error {
 		return errors.New("需要先确认管理员授权")
 	}
 	definition, fingerprint := taskXML(t.userSID, exePath, args, t.elevated, t.onDemand)
-	if out, err := t.run("/Query", "/TN", t.name, "/XML"); err == nil && t.canReuse(out, fingerprint, exePath) {
+	exported, queryErr := t.run("/Query", "/TN", t.name, "/XML")
+	exists := queryErr == nil
+	if queryErr != nil {
+		// Access errors, scheduler failures and AV blocks do not mean "absent".
+		// Only an explicit not-found result permits creating a new login task.
+		if t.lookup == nil {
+			return errors.Join(queryErr, errors.New("task existence lookup is unavailable"))
+		}
+		var lookupErr error
+		exists, lookupErr = t.lookup(t.name)
+		if lookupErr != nil || exists {
+			return errors.Join(queryErr, lookupErr)
+		}
+	} else if t.canReuse(exported, fingerprint, exePath) {
 		return nil
 	}
 	file, err := os.CreateTemp("", "winone-task-*.xml")
@@ -67,7 +80,11 @@ func (t *LogonTask) Sync(exePath, args string) error {
 	if writeErr != nil {
 		return writeErr
 	}
-	_, err = t.run("/Create", "/TN", t.name, "/XML", path, "/F")
+	arguments := []string{"/Create", "/TN", t.name, "/XML", path}
+	if exists {
+		arguments = append(arguments, "/F")
+	}
+	_, err = t.run(arguments...)
 	return err
 }
 
@@ -82,14 +99,20 @@ func (t *LogonTask) canReuse(exported []byte, fingerprint, executable string) bo
 
 // Remove deletes the task. A task that does not exist counts as removed.
 func (t *LogonTask) Remove() error {
+	if t.lookup == nil {
+		return errors.New("task existence lookup is unavailable")
+	}
+	// Disabled startup is commonly reapplied for unrelated preference saves.
+	// If no task exists, do not issue a system mutation on every such save.
+	exists, lookupErr := t.lookup(t.name)
+	if lookupErr != nil || !exists {
+		return lookupErr
+	}
 	_, err := t.run("/Delete", "/TN", t.name, "/F")
 	if err == nil {
 		return nil
 	}
-	if t.lookup == nil {
-		return errors.Join(err, errors.New("task existence lookup is unavailable"))
-	}
-	exists, lookupErr := t.lookup(t.name)
+	exists, lookupErr = t.lookup(t.name)
 	if lookupErr != nil {
 		return errors.Join(err, lookupErr)
 	}
