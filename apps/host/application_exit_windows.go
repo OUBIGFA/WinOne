@@ -28,10 +28,13 @@ var exitWindows []uintptr
 var exitUser32 = windows.NewLazySystemDLL("user32.dll")
 
 // Reuse the callback: Windows callback allocations cannot be released.
+// The Rust settings window registers WinOne.Desktop; the MyGo window keeps
+// MyGo's fixed MyGoWindow class. The PID and process identity checks in
+// closeSettingsForExit pin the window to this Host's instance either way.
 var enumExitWindows = windows.NewCallback(func(window, _ uintptr) uintptr {
 	var name [256]uint16
 	exitUser32.NewProc("GetClassNameW").Call(window, uintptr(unsafe.Pointer(&name[0])), uintptr(len(name)))
-	if windows.UTF16ToString(name[:]) == "WinOne.Desktop" {
+	if class := windows.UTF16ToString(name[:]); class == "WinOne.Desktop" || class == "MyGoWindow" {
 		exitWindows = append(exitWindows, window)
 	}
 	return 1
