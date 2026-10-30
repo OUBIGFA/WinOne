@@ -129,7 +129,9 @@ Function un.onInit
 FunctionEnd
 
 Function WinOneDirectorySelected
-  Call WinOneOfferRecovery
+  ; Normal setup always installs this package. Recovery of an old operation is
+  ; not a separate question and must never switch Install into Uninstall.
+  ClearErrors
 FunctionEnd
 
 !include "finish.nsh"
@@ -182,7 +184,6 @@ Function .onInit
   ${AndIf} $WinOneRepairMode != 1
   ${AndIf} $WinOneUninstallRecovery != 1
     StrCpy $INSTDIR $WinOneRegisteredLocation
-    Call WinOneOfferRecovery
   ${EndIf}
   ${IfNot} ${AtLeastWin11}
   ${OrIfNot} ${IsNativeAMD64}
@@ -239,22 +240,20 @@ Section "WinOne"
     ${EndIf}
     Goto targetAccepted
   ${EndIf}
+  ; The current package repairs registered, partial and unregistered installs.
+  ; Old /REPAIR and /FINISHUNINSTALL remain explicit compatibility commands;
+  ; ordinary setup never requires either, an old hash, or an old installer.
   ${If} $WinOneRegisteredLocation != ""
-    Call WinOneUpdateExisting
-    IfErrors updateFailed
-    Goto done
+    Goto installCurrentPackage
   ${EndIf}
-  IfFileExists "${WINONE_SHORTCUT}" 0 +4
-    MessageBox MB_ICONSTOP "$(ShortcutExists)" /SD IDOK
-    SetErrorLevel 1
-    Abort
-  ; A first-install transaction must never overwrite an existing tree.
+  IfFileExists "${WINONE_SHORTCUT}" installCurrentPackage
   Call WinOneDirectoryIsEmpty
-  ${If} ${Errors}
-    MessageBox MB_ICONSTOP "$(NeedEmpty)" /SD IDOK
-    SetErrorLevel 1
-    Abort
-  ${EndIf}
+  IfErrors installCurrentPackage
+  Goto targetAccepted
+installCurrentPackage:
+  Call WinOneUpdateExisting
+  IfErrors updateFailed
+  Goto done
 targetAccepted:
   Call WinOnePrepareOnboarding
   ClearErrors

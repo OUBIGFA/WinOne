@@ -184,7 +184,7 @@ func TestNativeInstallerSameVersionOverwrite(t *testing.T) {
 			if nextPackage == "" || broken {
 				nextPackage = nativeUpgradePackage(t, next, license, "0.0.1", broken)
 			}
-			oldInstaller, _, _ := compileNativeUpgradeInstaller(t, compiler, oldPackage, key, profile, shortcut)
+			oldInstaller, oldUninstaller, oldStaged := compileNativeUpgradeInstaller(t, compiler, oldPackage, key, profile, shortcut)
 			nextInstaller, _, _ := compileNativeUpgradeInstaller(t, compiler, nextPackage, key, profile, shortcut)
 			if os.Getenv("WINONE_INSTALLER_EVIDENCE_DIR") != "" {
 				for name, source := range map[string]string{"old-setup.exe": oldInstaller, "next-setup.exe": nextInstaller} {
@@ -205,8 +205,26 @@ func TestNativeInstallerSameVersionOverwrite(t *testing.T) {
 				}
 			}
 			verifyProfile := func() {}
+			var legacyJournal []byte
+			legacyWork := installation + ".update-27"
 			if !broken {
-				verifyProfile = checkInstalledProfilePreflight(t, nextInstaller, installation, profile, key, shortcut, oldPackage)
+				verifyProfile = checkInstalledProfilePreservation(t, profile)
+				uninstallBytes, err := os.ReadFile(oldUninstaller)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err = os.WriteFile(filepath.Join(oldStaged, "Uninstall.exe"), uninstallBytes, 0700); err != nil {
+					t.Fatal(err)
+				}
+				// Exact reported state: a previous package was prepared but its
+				// configuration check never let it start replacing files.
+				if _, err = prepareInstallerUpdate(InstallerUpdate{Installation: installation, Profile: profile, Staged: oldStaged, RegistryKey: key, ShortcutPath: shortcut}, legacyWork); err != nil {
+					t.Fatal(err)
+				}
+				legacyJournal, err = os.ReadFile(filepath.Join(legacyWork, "journal.json"))
+				if err != nil {
+					t.Fatal(err)
+				}
 			}
 			want := 0
 			if broken {
@@ -219,16 +237,16 @@ func TestNativeInstallerSameVersionOverwrite(t *testing.T) {
 			if raw, err := os.ReadFile(hintMarker); err != nil || string(raw) != "keep" {
 				t.Fatal("upgrade/rollback reset the machine hint", err)
 			}
-			journal, err := OpenUpgradeJournal(installation + ".update" + string(filepath.Separator) + "journal.json")
-			if err != nil {
-				t.Fatal("installer transaction missing", err)
+			attempts, err := filepath.Glob(installation + ".install-*")
+			if err != nil || len(attempts) != 1 {
+				t.Fatal("installer backup missing", attempts, err)
 			}
-			phase := "committed"
-			if broken {
-				phase = "rolled-back"
+			if _, err = os.Stat(filepath.Join(attempts[0], "before.json")); err != nil {
+				t.Fatal("installer did not preserve original state", err)
 			}
-			if journal.Snapshot().Phase != phase {
-				t.Fatal("installer did not finish the expected transaction", journal.Snapshot().Phase)
+			_, completeErr := os.Stat(filepath.Join(attempts[0], "complete.json"))
+			if (!broken && completeErr != nil) || (broken && !os.IsNotExist(completeErr)) {
+				t.Fatal("installer completion differs from actual result", completeErr)
 			}
 			reference := nextPackage
 			if broken {
@@ -238,6 +256,10 @@ func TestNativeInstallerSameVersionOverwrite(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !broken {
+				after, err := os.ReadFile(filepath.Join(legacyWork, "journal.json"))
+				if err != nil || string(after) != string(legacyJournal) {
+					t.Fatal("setup modified old prepared recovery evidence", err)
+				}
 				runNativeSetupBounded(t, 0, 5*time.Minute, nextInstaller, "/S", "/D="+installation)
 				verifyProfile()
 			}

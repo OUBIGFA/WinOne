@@ -3,20 +3,18 @@
 package distribution
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 	"winone/internal/modulestate"
 	"winone/internal/startupprobe"
 )
 
-// Opt-in extension of the full NSIS overwrite test. The production installer
-// must preserve the old installation on preflight failure, then run its actual
-// worker/UI checks once the injected unfinished state is released.
-func checkInstalledProfilePreflight(t *testing.T, installer, installation, profile, key, shortcut, previous string) func() {
+// Explicit setup repairs program bytes without making existing profile schema
+// or unfinished module state a prerequisite. Preserve every profile byte; the
+// automatic upgrade preflight below keeps its stricter compatibility contract.
+func checkInstalledProfilePreservation(t *testing.T, profile string) func() {
 	t.Helper()
 	fixture := os.Getenv("WINONE_INSTALLER_PROFILE_FIXTURE")
 	if fixture == "" {
@@ -36,68 +34,19 @@ func checkInstalledProfilePreflight(t *testing.T, installer, installation, profi
 	if err != nil {
 		t.Fatal(err)
 	}
-	registration, err := CaptureRegistration(installation, key)
-	if err != nil {
-		t.Fatal(err)
-	}
-	link, err := CaptureShortcut(shortcut)
-	if err != nil {
-		t.Fatal(err)
-	}
-	runNativeSetupBounded(t, 1, 5*time.Minute, installer, "/S", "/D="+installation)
-	if _, err = VerifyInstalled(installation, previous); err != nil {
-		t.Fatal("preflight changed installed payload", err)
-	}
-	journal, err := OpenUpgradeJournal(filepath.Join(installation+".update", "journal.json"))
-	if err != nil || journal.Snapshot().Phase != "prepared" {
-		t.Fatal("preflight did not retain the prepared transaction", err)
-	}
-	if _, err = os.Stat(filepath.Join(installation, ".winone-pending")); !os.IsNotExist(err) {
-		t.Fatal("preflight left old program blocked", err)
-	}
-	after, err := startupprobe.ReadProfileSnapshot(profile)
-	if err != nil || after.Digest() != before.Digest() {
-		t.Fatal("preflight changed profile", err)
-	}
-	actualRegistration, err := CaptureRegistration(installation, key)
-	if err != nil || !sameRegistration(actualRegistration, registration) {
-		t.Fatal("preflight changed registration", err)
-	}
-	actualLink, err := CaptureShortcut(shortcut)
-	if err != nil || actualLink.Exists != link.Exists || actualLink.SHA256 != link.SHA256 {
-		t.Fatal("preflight changed shortcut", err)
-	}
-	// This test never executed the optional payload. Only remove its injected
-	// pending-stop marker; production recovery remains the Host's responsibility.
-	if _, err = state.FinishStop("example.tool"); err != nil {
-		t.Fatal(err)
-	}
-	stable, err := startupprobe.ReadProfileSnapshot(profile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("NSIS preflight rejected unfinished module recovery and preserved payload, registration, shortcut and profile")
 	return func() {
 		t.Helper()
 		after, err := startupprobe.ReadProfileSnapshot(profile)
-		if err != nil || after.Digest() != stable.Digest() {
-			t.Fatal("successful overwrite changed profile controls", err)
-		}
-		raw, err := os.ReadFile(filepath.Join(installation+".update", "profile-check.json"))
-		if err != nil {
-			t.Fatal("full installer did not retain the profile check", err)
-		}
-		var report startupprobe.Report
-		if err = json.Unmarshal(raw, &report); err != nil {
-			t.Fatal(err)
-		}
-		if report.ProfileSHA256 != stable.Digest() || report.ProfileIssueCount != 1 || len(report.ProfileIssues) != 1 || report.ProfileIssues[0].ModuleID != "example.tool" {
-			t.Fatal("untrusted fixture module was not explicitly quarantined", report)
+		if err != nil || after.Digest() != before.Digest() {
+			t.Fatal("manual installation changed user configuration", err)
 		}
 		if _, err = os.Stat(filepath.Join(profile, "modules", "example.tool")); !os.IsNotExist(err) {
-			t.Fatal("installer ran or projected the quarantined module", err)
+			t.Fatal("installer executed or projected the optional module", err)
 		}
-		t.Log("NSIS retry and repeated overwrite preserved quarantined module data; actual worker and UI startup checks passed")
+		// Release only the fixture's artificial pending-stop for later uninstall.
+		if _, err = state.FinishStop("example.tool"); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 

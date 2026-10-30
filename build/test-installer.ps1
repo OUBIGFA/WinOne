@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$ContextFile,[switch]$RunSystemIntegration,[switch]$TestRollback,[switch]$TestRepair,[switch]$TestOverwrite,[switch]$TestHistoricalJournal,[switch]$TestUninstallRecovery,[string]$ExportedUninstaller,[ValidateRange(30,600)][int]$OperationTimeoutSeconds=120)
+param([Parameter(Mandatory=$true)][string]$ContextFile,[switch]$RunSystemIntegration,[switch]$TestRollback,[switch]$TestRepair,[switch]$TestOverwrite,[switch]$TestHistoricalJournal,[switch]$TestSelfContainedRepair,[switch]$TestUninstallRecovery,[string]$ExportedUninstaller,[ValidateRange(30,600)][int]$OperationTimeoutSeconds=120)
 $ErrorActionPreference='Stop'
 if(-not $RunSystemIntegration){throw 'Use -RunSystemIntegration to run the isolated installer and registry test'}
 if($TestHistoricalJournal -and -not $TestOverwrite){throw 'Historical journal checks require -TestOverwrite'}
@@ -86,18 +86,13 @@ if($TestOverwrite){
     # payload, registration and shortcut to match again.
     RunChecked $case.installer ('/S /D='+$case.installation)
     if($TestHistoricalJournal){
-        # The just-completed transaction is now history, not a candidate input.
-        # Model a retired dependency name in that closed record, leaving the
-        # installed payload intact. The real NSIS -> update helper entry must
-        # accept it without deleting history or relaxing new-package checks.
-        $history=Join-Path ($case.installation+'.update') 'journal.json'
-        $journal=Get-Content -LiteralPath $history -Raw -Encoding UTF8 | ConvertFrom-Json
-        if($journal.phase -ne 'committed'){throw 'Historical fixture requires a completed overwrite transaction'}
-        $entry=$journal.plan.files | Where-Object { $_.path -like 'capture/Ocr/*' -and $_.action -eq 'unchanged' } | Select-Object -First 1
-        if(-not $entry){throw 'The verified OCR payload has no unchanged dependency for the history fixture'}
-        Copy-Item -LiteralPath $history -Destination (Join-Path $testRoot 'historical-journal-original.json')
-        $entry.path='capture/Ocr/python/Lib/site-packages/retired_fixture-1.0.dist-info/METADATA'
-        $entry.previousPath=$entry.path
+        # Closed legacy history is not a prerequisite for manual setup. Keep a
+        # retired dependency plus damaged neighbouring history in place and
+        # verify the real NSIS entry neither parses nor deletes either record.
+        $historyDirectory=$case.installation+'.update'
+        [IO.Directory]::CreateDirectory($historyDirectory)|Out-Null
+        $history=Join-Path $historyDirectory 'journal.json'
+        $journal=@{schemaVersion=1;phase='committed';plan=@{files=@(@{path='capture/Ocr/python/Lib/site-packages/retired_fixture-1.0.dist-info/METADATA';action='unchanged'})}}
         [IO.File]::WriteAllText($history,($journal|ConvertTo-Json -Depth 12 -Compress),[Text.UTF8Encoding]::new($false))
         $historyHash=(Get-FileHash -LiteralPath $history -Algorithm SHA256).Hash
         RunChecked $case.installer ('/S /D='+$case.installation)
@@ -113,6 +108,38 @@ if($TestOverwrite){
     $entry=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($case.registryKey)
     if(-not $entry){throw 'Overwrite removed registration'}
     try{if($entry.GetValue('InstallLocation') -ne $case.installation){throw 'Overwrite changed registered location'}}finally{$entry.Close()}
+}
+if($TestSelfContainedRepair){
+    # Combine the real-world blockers: old incomplete state, lost registration,
+    # truncated executable, missing manifest/uninstaller and unreadable config.
+    # A normal /S install (no recovery switch) must repair from its own payload.
+    $oldHistory=$case.installation+'.update-27'
+    [IO.Directory]::CreateDirectory($oldHistory)|Out-Null
+    [IO.File]::WriteAllText((Join-Path $oldHistory 'journal.json'),'interrupted old journal')
+    [IO.File]::WriteAllText((Join-Path $case.installation '.winone-pending'),'old-transaction')
+    [IO.File]::WriteAllText((Join-Path $case.installation '.winone-recovery.ini'),'old-package-hash')
+    [IO.File]::WriteAllText((Join-Path $case.installation 'WinOne.exe'),'partial installation')
+    Move-Item -LiteralPath (Join-Path $case.installation 'manifest.json') -Destination (Join-Path $testRoot 'original-manifest.json')
+    Move-Item -LiteralPath (Join-Path $case.installation 'Uninstall.exe') -Destination (Join-Path $testRoot 'original-uninstall.exe')
+    [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($case.registryKey)
+    [IO.File]::WriteAllText($case.shortcut,'damaged shortcut')
+    $configuration=Join-Path $case.profile 'configuration.json'
+    [IO.File]::WriteAllText($configuration,'configuration must be retained, not parsed by setup')
+    RunChecked $case.installer ('/S /D='+$case.installation)
+    if([IO.File]::ReadAllText($configuration) -ne 'configuration must be retained, not parsed by setup'){throw 'Repair changed user configuration'}
+    if([IO.File]::ReadAllText((Join-Path $oldHistory 'journal.json')) -ne 'interrupted old journal'){throw 'Repair changed old recovery evidence'}
+    foreach($file in $manifest.files){
+        if((Get-FileHash -LiteralPath (Join-Path $case.installation $file.path) -Algorithm SHA256).Hash.ToLowerInvariant() -ne $file.sha256){throw "Repair hash mismatch: $($file.path)"}
+    }
+    foreach($name in @('.winone-pending','.winone-recovery.ini')){if(Test-Path -LiteralPath (Join-Path $case.installation $name)){throw 'Repair left a startup blocker'}}
+    # The application/uninstaller may require valid settings; this test keeps
+    # the malformed bytes as evidence and starts the remaining uninstall test
+    # with the original empty profile, without discarding the sentinel.
+    Move-Item -LiteralPath $configuration -Destination (Join-Path $testRoot 'retained-malformed-configuration.json')
+    $entry=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($case.registryKey)
+    if(-not $entry){throw 'Repair did not recreate registration'}
+    try{if($entry.GetValue('InstallLocation') -ne $case.installation){throw 'Repair registered the wrong directory'}}finally{$entry.Close()}
+    if([IO.File]::ReadAllText($extra) -ne 'extra' -or [IO.File]::ReadAllText($sentinel) -ne 'keep'){throw 'Repair changed retained user files'}
 }
 # Run the uninstaller outside the target, as NSIS normally does, with a
 # deterministic process handle so completion is observable by the test.
@@ -160,6 +187,7 @@ $registered=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($case.registryKey
 if($registered){$registered.Close();throw 'Registration remains after uninstall'}
 $result=@{installedFiles=@($manifest.files).Count; hashesVerified=$true; registrationVerified=$true; shortcutVerified=$true; uninstalled=$true; configurationPreserved=$true; extraFilePreserved=$true; rollbackVerified=[bool]$TestRollback; repairVerified=[bool]$TestRepair; uninstallRecoveryVerified=[bool]$TestUninstallRecovery; exportedUninstallerVerified=[bool]$ExportedUninstaller; overwriteVerified=[bool]$TestOverwrite}
 $result.historicalJournalVerified=[bool]$TestHistoricalJournal
+$result.selfContainedRepairVerified=[bool]$TestSelfContainedRepair
 $result.operationTimeoutSeconds=$OperationTimeoutSeconds
 $result.operationTimings=$operationTimings.ToArray()
 [IO.File]::WriteAllText((Join-Path $testRoot 'result.json'),($result|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))

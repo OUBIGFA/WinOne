@@ -37,6 +37,9 @@ Function WinOneUpdateExisting
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   IfErrors stageFailed
   StrCpy $INSTDIR $WinOneUpdateTarget
+  ClearErrors
+  CreateShortcut "$PLUGINSDIR\payload\WinOne.lnk" "$INSTDIR\WinOne.exe"
+  IfErrors stageFailed
   SetOutPath "$PLUGINSDIR"
   DetailPrint "$(Updating)"
   Call WinOneBeginUpdateProgress

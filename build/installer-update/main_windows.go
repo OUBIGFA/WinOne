@@ -29,7 +29,7 @@ func main() {
 		if progressErr != nil {
 			return progressErr
 		}
-		return distribution.RunInstallerUpdate(request)
+		return distribution.InstallCurrentPackage(request)
 	}(); err != nil {
 		if *report != "" {
 			// Unicode NSIS reads UTF-16LE explicitly, independent of the user's
