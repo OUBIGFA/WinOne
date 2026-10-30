@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "components": [
+    {
+      "kind": "go",
+      "name": "github.com/egoist/mygo",
+      "version": "v0.7.3",
+      "notices": [
+        {
+          "sha256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
+          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.7.3-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/Microsoft/go-winio",
+      "version": "v0.6.2",
+      "notices": [
+        {
+          "sha256": "cf248820bf1178370bb4f1670a59f8748d46bc96d0f64080cd631511c6046409",
+          "file": "licenses/go-github-com-Microsoft-go-winio-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/ebitengine/purego",
+      "version": "v0.11.1",
+      "notices": [
+        {
+          "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+          "file": "licenses/result-go-github.com-ebitengine-purego-v0.11.1-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/go-ole/go-ole",
+      "version": "v1.3.0",
+      "notices": [
+        {
+          "sha256": "d883dbca28769ff23dd4368a8edb7ad9f9f23a8f86adde2875c6e41a828aac62",
+          "file": "licenses/interconnect-github.com-go-ole-go-ole-v1.3.0-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/go-text/typesetting",
+      "version": "v0.3.5",
+      "notices": [
+        {
+          "sha256": "6b1bf94c77d7faa0ce94f8745595bfaf4c404f8b3873f5c2ce55ca15f8e44eca",
+          "file": "licenses/result-go-github.com-go-text-typesetting-v0.3.5-LICENSE.txt"
+        },
+        {
+          "sha256": "e45d96558ba3d406f95dffed6f22c3be07093475ef617bcfddf88444d6b66788",
+          "file": "licenses/result-go-github.com-go-text-typesetting-v0.3.5-harfbuzz-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "golang.org/x/image",
+      "version": "v0.46.0",
+      "notices": [
+        {
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "file": "licenses/magpie-go-golang.org-x-text-v0.39.0-0-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "golang.org/x/net",
+      "version": "v0.59.0",
+      "notices": [
+        {
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "file": "licenses/interconnect-golang.org-x-net-v0.59.0-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "golang.org/x/sys",
+      "version": "v0.48.0",
+      "notices": [
+        {
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "file": "licenses/interconnect-golang.org-x-sys-v0.48.0-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "golang.org/x/text",
+      "version": "v0.43.0",
+      "notices": [
+        {
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "file": "licenses/interconnect-golang.org-x-text-v0.43.0-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "toolchain",
+      "name": "Go",
+      "version": "go1.27.3",
+      "notices": [
+        {
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "file": "licenses/magpie-go-golang.org-x-text-v0.39.0-0-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "asset",
+      "name": "lucide-react icons",
+      "version": "1.27.0",
+      "notices": [
+        {
+          "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57",
+          "file": "licenses/lucide.txt"
+        }
+      ]
+    }
+  ]
+}
