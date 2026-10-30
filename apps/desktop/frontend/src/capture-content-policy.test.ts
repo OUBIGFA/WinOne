@@ -10,8 +10,8 @@ it("allows decoded local screenshot images without widening script origins",()=>
  // Wasm compilation only; inline scripts and JavaScript eval remain blocked.
  expect(directives.get("script-src")).toEqual(["'self'","'wasm-unsafe-eval'"]);
  expect(directives.get("object-src")).toEqual(["'none'"]);
- // Routing uses loopback; Flash Chat is a bundled same-origin document with
- // its own signaling policy. The settings shell still blocks remote frames.
- expect(directives.get("frame-src")).toEqual(["'self'","http://127.0.0.1:*"]);
+ // Routing uses loopback; rich answers may embed the explicitly supported YouTube
+ // player. Other remote frames remain blocked by the settings shell.
+ expect(directives.get("frame-src")).toEqual(["'self'","http://127.0.0.1:*","https://www.youtube.com"]);
  expect(directives.get("connect-src")).toContain("http://127.0.0.1:*");
 });

@@ -7,11 +7,15 @@ import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {BACKGROUND_CONTEXT as context,withAbortSignal} from '@earendil-works/chord/context';
-import {Harness,createRegistry,defineExtension,defineTool,section,hook,GenerationTask,ToolTask,LiveDoc,InboxDoc,watchEvents,defineDoc} from '@earendil-works/pi-durable';
+import {Harness,createRegistry,defineExtension,defineTool,section,hook,GenerationTask,ToolTask,LiveDoc,InboxDoc,ProviderDoc,watchEvents,defineDoc} from '@earendil-works/pi-durable';
 import {openDurableStorage} from './durable-storage.mjs';
+import {MemoryStorage} from '@earendil-works/pi-durable/storage/memory';
+import {SessionManager} from '@earendil-works/pi-coding-agent';
 import {NodeExecutionEnv} from '@earendil-works/pi-durable/env/node';
 import {estimateContextTokens} from '@earendil-works/pi-ai/utils/estimate';
-import {createWinOneSession} from './session.mjs';
+import {isRetryableAssistantError} from '@earendil-works/pi-ai/utils/retry';
+import {isContextOverflow} from '@earendil-works/pi-ai/utils/overflow';
+import {createWinOneSession,requestEffort} from './session.mjs';
 import {cindyRetrySettings} from './cindy/runtime-settings.mjs';
 import {buildSystemPrompt} from './node_modules/@earendil-works/pi-coding-agent/dist/core/system-prompt.js';
 import {limitChatPayload} from './attachments.mjs';
@@ -20,6 +24,10 @@ import {createWorkflow,WorkflowDoc} from './durable-workflow.mjs';
 import {createToolSearchExtension} from '@earendil-works/pi-durable/tool-search';
 import {createCodemodeExtension} from '@earendil-works/pi-durable/codemode';
 import {CodemodeSandbox,loadQuickJSWasm} from '@earendil-works/pi-codemode';
+import {captureOneBotInputReceipt,oneBotToolInputReceipt,oneBotToolInputSource} from './onebot/input-receipt.mjs';
+import {readOneBotRuntime,acknowledgeOneBotRuntime,acknowledgeOneBotModel} from './onebot/tools.mjs';
+import {nextBotModelRoute} from './cindy/bots/shared/botModelChain.ts';
+import {inspectResources} from './resources.mjs';
 
 // Explicit delta policy preserves pause/steering state across the 1.4 upgrade.
 const AdapterDoc=defineDoc({kind:'winone.adapter',version:1,scope:'conversation',history:'latest',fork:'initial',initial:()=>({imported:false,paused:false,interruptedCalls:[],interruptedRun:null}),checkpointWhen:()=>false});
@@ -30,7 +38,7 @@ const plain=value=>JSON.parse(JSON.stringify(value));
 /** One Host-owned worker opens one SQLite storage. Its JSONL file is a durable
  * entry-ID-addressed projection for existing history, review, export and usage
  * readers. A restart fills missing projection entries without repeating tools. */
-export async function createDurableSession(config,{event=()=>{},authorize=async()=>false,question=async()=>{throw Error('Question UI is unavailable');}}={}){
+export async function createDurableSession(config,{event=()=>{},authorize=async()=>false,question=async()=>{throw Error('Question UI is unavailable');},inMemory=false}={}){
  let currentMessages=[],liveSignal,closed=false,streaming=false,partial,root,harness,currentView,watch,events,notifiedIdle=true;
  let projectedTail,contextStats,usage={models:{},tools:{}},queue=[],settleTask,retrying=false;
  let extra={subagents:[],workflow:{items:[]},backgroundRunning:false,paused:false,taskGraph:{scheduling:'paused',tasks:[],total:0}};
@@ -38,10 +46,42 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  const send=value=>{event(value);for(const listener of listeners)listener(value);};
  const report=error=>send({type:'notice',message:String(error?.message??error)});
  const track=promise=>{pending.add(promise);promise.then(()=>pending.delete(promise),error=>{pending.delete(promise);report(error);});return promise;};
- const native=await createWinOneSession({...config,durableHost:true,intentMessages:()=>currentMessages},{authorize,event:value=>{if(['notice','review_start','review_end'].includes(value.type))send(value);}});
- const sdk=native.session,manager=sdk.sessionManager,registry=createRegistry();
- const basePromptOptions=sdk.extensionRunner.createCommandContext().getSystemPromptOptions();
+ const createNative=(settings,sessionManager)=>createWinOneSession({...settings,durableHost:true,intentMessages:()=>currentMessages,
+  reviewUserIntent:async()=>{
+   const call=calls.getStore();if(!call)return undefined;
+   const source=await oneBotToolInputSource(call.api,call.context);
+   const delegated=source?.presentation?.reviewRequest;
+   // Native task instructions and completion signals are not new owner words.
+   // The immutable originating receipt, not a model-written wrapper, is authority.
+   if(delegated)return typeof delegated.request?.userText==='string'?delegated.request.userText:'';
+   return config.onebotTask?(source?.text??''):undefined;
+  },
+  onebotInputReceipt:async()=>{
+   const call=calls.getStore();if(!config.onebot||!call)return null;
+   return oneBotToolInputReceipt(call.api,call.context);
+  },
+ },{authorize:async(request,signal)=>{
+  const call=calls.getStore();
+  return authorize({...request,...((config.onebot||config.onebotTask)&&call?{requestId:await oneBotToolInputReceipt(call.api,call.context)}:{})},signal);
+ },sessionManager,event:value=>{if(['notice','review_start','review_end'].includes(value.type))send(value);}});
+ // Protected IM uses the same Harness, tools and question/permission handling.
+ // Only its storage/projection is memory-backed; no reduced second agent loop.
+ const ephemeralManager=inMemory?SessionManager.inMemory(config.cwd):undefined;
+ if(ephemeralManager&&config.sessionFile){
+  const source=SessionManager.open(config.sessionFile,config.sessionDirectory,config.cwd);
+  for(const message of source.buildSessionProjection().messages)ephemeralManager.appendMessage(message);
+ }
+ let native=await createNative(config,ephemeralManager),sdk=native.session;
+ const manager=sdk.sessionManager,registry=createRegistry();
+ let basePromptOptions=sdk.extensionRunner.createCommandContext().getSystemPromptOptions();
  let runtimePrompt=sdk.systemPrompt;
+ let runtimeRefreshSequence=config.onebotRuntimeRefreshPending?1:0,appliedRuntimeSequence=0,runtimeRefreshTask,runtimeRefreshAbort,runtimeRefreshError=null,nativeOpen=true,runtimeReady=false;
+ const modelIdentities=new Map(),requestAxes=new Map();
+ function rememberModelIdentities(settings){
+  for(const model of [...(settings.models??[]),settings.model])if(model?.id)modelIdentities.set(model.id,Object.fromEntries(Object.entries({provider:model.provider,providerName:model.providerName,modelName:model.modelName??model.name}).filter(([,value])=>value!==undefined)));
+ }
+ rememberModelIdentities(config);
+ function messageIdentity(message){return {...(modelIdentities.get(message.model)??{modelName:message.model}),...(message.providerName?{providerName:message.providerName}:{}),...(message.modelName?{modelName:message.modelName}:{})};}
  // Reuse the official deterministic sandbox and nested-call journal. Model
  // access remains in WinOne AI services; scripts only call gated local tools.
  function withDiscovery(extension){
@@ -83,16 +123,17 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  });
  if(codeSandbox)registry.install(withDiscovery(createCodemodeExtension({sandbox:codeSandbox,models:false})));
  const file=manager.getSessionFile();
- if(!file||!path.isAbsolute(file))throw Error('A durable session needs an absolute history file');
- const storageFile=file+'.durable.sqlite';
+ if(!inMemory&&(!file||!path.isAbsolute(file)))throw Error('A durable session needs an absolute history file');
+ const storageFile=inMemory?undefined:file+'.durable.sqlite';
  const projected=new Map(),projectionWaiters=new Map();
  for(const entry of manager.getEntries()){
-  const id=entry.type==='message'?entry.message.durableEntryId:entry.details?.durableEntryId;
+  const id=entry.type==='message'?entry.message.durableEntryId:entry.customType==='winone.context-reset'?entry.data?.durableEntryId:entry.details?.durableEntryId;
   if(id){projected.set(id,entry.id);projectedTail=entry.id;}
  }
  let workflow,collaboration;
  const toolRegistrations=new Map();
  function makeTool(definition){
+  const toolNative=native,toolSDK=sdk;
   return defineTool({name:definition.name,description:definition.description,parameters:definition.parameters,
    replay:readTools.has(definition.name)?'safe':'unsafe',
    executionMode:readTools.has(definition.name)?'parallel':'sequential',
@@ -100,10 +141,10 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
    ...(definition.exposure==='codemode'?{callers:['tools']}:{}),
    execute:async(args,api,callContext)=>calls.run({api,context:callContext},async()=>{
     const signal=callContext.abortSignal;
-    if(!native.builtinToolNames.includes(definition.name))await native.checkExternalTool({id:api.callId,tool:definition.name,args},signal);
-    const intercepted=await sdk.extensionRunner.emitToolCall({type:'tool_call',toolName:definition.name,toolCallId:api.callId,input:args});
+    if(!toolNative.builtinToolNames.includes(definition.name))await toolNative.checkExternalTool({id:api.callId,tool:definition.name,args},signal);
+    const intercepted=await toolSDK.extensionRunner.emitToolCall({type:'tool_call',toolName:definition.name,toolCallId:api.callId,input:args});
     if(intercepted?.block)throw Error(intercepted.reason||'The extension blocked this operation');
-    const ctx={...sdk.extensionRunner.createToolContext(api.callId,signal),cwd:(await api.agent(callContext)).cwd??config.cwd,signal,
+    const ctx={...toolSDK.extensionRunner.createToolContext(api.callId,signal),cwd:(await api.agent(callContext)).cwd??config.cwd,signal,
      executeTool:async(name,input)=>{
       const result=await api.executeTool(name,input,callContext);
       const output=result.structuredOutput;
@@ -112,7 +153,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
     const result=await definition.execute(api.callId,args,signal,update=>{
      if(update?.details)void api.details(plain(update.details),callContext).catch(report);
     },ctx);
-    const changed=await sdk.extensionRunner.emitToolResult({type:'tool_result',toolName:definition.name,toolCallId:api.callId,input:args,content:result.content,details:result.details,isError:!!result.isError});
+    const changed=await toolSDK.extensionRunner.emitToolResult({type:'tool_result',toolName:definition.name,toolCallId:api.callId,input:args,content:result.content,details:result.details,isError:!!result.isError});
     return {output:changed?.content??result.content,details:plain(changed?.details??result.details??{}),isError:changed?.isError??result.isError??false};
    })});
  }
@@ -125,22 +166,94 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
    const definition=sdk.getToolDefinition(info.name);if(!definition)continue;
    toolRegistrations.set(info.name,makeTool({...definition,exposure:info.exposure}));
   }
-  registry.install(defineExtension({name:'winone.resources',tools:[...toolRegistrations.values()],sections:[section('winone',()=>runtimePrompt,{tag:false})],hooks:[hook(GenerationTask,{beforeRequest:async request=>{currentMessages=[...request.messages];return {messages:await sdk.extensionRunner.emitContext(currentMessages)};}})]}));
+  registry.install(defineExtension({name:'winone.resources',tools:[...toolRegistrations.values()],sections:[section('winone',()=>runtimePrompt,{tag:false})],hooks:[hook(GenerationTask,{beforeRequest:async(request,api,ctx)=>{
+   if(runtimeRefreshError)throw runtimeRefreshError;
+   if(config.onebot||config.onebotTask)await captureOneBotInputReceipt(harness,api,ctx);
+    if(config.taskBridge&&!await api.memo('winone.task-admitted',ctx)){
+     const source=await oneBotToolInputSource(api,ctx);
+     if(!source?.id||!source.execution)throw Error('独立任务输入缺少持久执行身份');
+     const response=await fetch(config.taskBridge.baseUrl+'/admit',{method:'POST',headers:{Authorization:'Bearer '+config.taskBridge.key,'Content-Type':'application/json'},body:JSON.stringify({requestId:source.id,execution:source.execution}),signal:ctx.abortSignal});
+     const result=await response.json();
+     if(!response.ok||result.accepted!==true)throw Error(result.error??'独立任务输入未获执行许可');
+     await api.memo('winone.task-admitted',true,ctx);
+    }
+    if(config.onebot)await captureRequestAxes(api,ctx);
+   currentMessages=[...request.messages];return {messages:await sdk.extensionRunner.emitContext(currentMessages)};
+  },afterResponse:applyOneBotModelFallback,onYield:async(_answer,api,ctx)=>{
+   if(api.conversationId===root.id)await applyPendingRuntime(true,ctx.abortSignal).catch(report);
+  }})]}));
  }
  refreshRegistry();
- workflow=createWorkflow({question,settings:config.runtimeSettings??{},onChange:()=>void updateExtras()});registry.install(workflow.extension);
- collaboration=createCollaboration({config,toolRegistrations,onChange:()=>void updateExtras()});registry.install(collaboration.extension);
- const models=new Proxy(native.modelRuntime,{get(target,key){
-  if(key==='streamSimple'||key==='completeSimple')return (model,modelContext,options={})=>target[key](model,modelContext,{...options,onPayload:async(payload,selectedModel)=>{
+ const changed=()=>{if(!closed)track(updateExtras());};
+ workflow=createWorkflow({question:async(request,signal,call)=>question({...request,...(config.onebot||config.onebotTask?{requestId:await oneBotToolInputReceipt(call.api,call.context)}:{})},signal),settings:config.runtimeSettings??{},onChange:changed});registry.install(workflow.extension);
+ collaboration=createCollaboration({config,toolRegistrations,onChange:changed});registry.install(collaboration.extension);
+ const models=new Proxy({}, {get(_target,key){
+  const target=native.modelRuntime;
+  if(key==='streamSimple'||key==='completeSimple')return (model,modelContext,options={})=>{
+   if(runtimeRefreshError)throw runtimeRefreshError;
+   const axes=requestAxes.get(options.sessionId)??{effort:config.thinkingLevel||config.runtimeSettings?.thinkingLevel,fast:!!config.fastMode};
+   return target[key](model,modelContext,{...options,onPayload:async(payload,selectedModel)=>{
    let value=(await options.onPayload?.(payload,selectedModel))??payload;
    value=(await sdk.extensionRunner.emitBeforeProviderRequest(value))??value;
-   const effort=thinkingLevel();if(effort!=='off')value.reasoning_effort=effort;else if(config.thinkingLevel)value.reasoning_effort='none';
-   if(config.fastMode)value.service_tier='priority';
+   requestEffort(value,model,options.reasoning,axes.effort);
+   if(axes.fast)value.service_tier='priority';
+   // A host-authored tool-free turn (OneBot's invitation welcome) offers the
+   // model no tools at all, not tools that would only be refused.
+   if(axes.toolsDisabled){for(const key of ['tools','tool_choice','parallel_tool_calls','toolConfig'])delete value[key];}
    return limitChatPayload(value);
-  }});
+  }});};
   const value=Reflect.get(target,key,target);return typeof value==='function'?value.bind(target):value;
  }});
  function thinkingLevel(){return config.thinkingLevel||config.runtimeSettings?.thinkingLevel||sdk.thinkingLevel||'off';}
+ async function captureRequestAxes(api,ctx){
+  let provider=await harness.snapshot(ProviderDoc,api.conversationId,ctx);
+  if(!provider){
+   const conversation=await harness.conversation(api.conversationId,ctx);
+   await conversation.commit(async tx=>{provider={sessionId:(await tx.doc(ProviderDoc,api.conversationId)).sessionId};},ctx);
+  }
+  let axes={effort:thinkingLevel(),fast:!!config.fastMode};
+  if(api.conversationId!==root.id){
+   const roster=await harness.snapshot(CollaborationDoc,root.id,ctx);
+   const child=Object.values(roster?.agents??{}).find(agent=>agent.conversationId===api.conversationId);
+   if(child)axes={effort:child.thinkingLevel??config.runtimeSettings?.subagentThinkingLevel??'medium',fast:child.fastMode??!!config.fastMode};
+  }
+  // The originating input decides a tool-free turn; the captured source is
+  // fixed at this generation's committed boundary.
+  if(api.conversationId===root.id&&(await api.memo('winone.onebot.input-source',ctx))?.presentation?.toolsDisabled===true)axes={...axes,toolsDisabled:true};
+  // Pi's persisted provider identity distinguishes overlapping requests even
+  // when a child and the main conversation use the same model.
+  requestAxes.set(provider.sessionId,axes);
+ }
+ async function applyOneBotModelFallback(answer,api,ctx){
+  if(!config.onebot?.modelChain||api.conversationId!==root.id||closed||runtimeRefreshSequence!==appliedRuntimeSequence)return;
+  const retry=cindyRetrySettings(config.runtimeSettings);
+  if(!retry.enabled||!isRetryableAssistantError(answer)||isContextOverflow(answer))return;
+  const task=await harness.getTask(api.taskId,ctx);
+  if(task.state.checkpoint.attempt>retry.maxRetries)return;
+  const descriptorFor=route=>(config.models??[]).find(model=>model.id===route.providerId+'/'+route.model);
+  const current={harness:'pi',providerId:config.model.provider,model:config.model.id.slice(config.model.provider.length+1)};
+  const route=nextBotModelRoute(config.onebot.modelChain,current,[],candidate=>candidate.harness==='pi'&&typeof candidate.fastMode==='boolean'&&!!descriptorFor(candidate));
+  if(!route)return;
+  // Only choose the next declared model here. The existing GenerationTask
+  // owns retries and the committed tool transcript, so no input is resubmitted.
+  const model=descriptorFor(route),previousModelId=config.model.id;
+  try{
+   await native.setModel(model,config.models);
+   const preset=config.runtimeSettings?.toolPreset;
+   await root.configure({model:{provider:'winone',modelId:model.id},thinkingLevel:route.effort||'off',
+    tools:model.tools===false||preset==='chat-only'?[]:preset==='read-only'?[...toolRegistrations.values()].filter(tool=>readTools.has(tool.name)).concat(workflow.extension.tools??[]):null},ctx);
+   Object.assign(config,{model,thinkingLevel:route.effort,fastMode:route.fastMode===true});
+   sdk.setThinkingLevel(route.effort||'off');
+   await acknowledgeOneBotModel(config,previousModelId,ctx.abortSignal);
+  }catch(error){
+   // Hook errors are reported and contained by Pi. Also close the request gate
+   // so an unacknowledged selection cannot be sent by its scheduled retry.
+   runtimeRefreshError=error;runtimeRefreshSequence++;config.onebotRuntimeRefreshPending=true;
+   extra.runtimeError=String(error.message??error);extra.runtimePending=true;
+   send({type:'durable_state',...extra});throw error;
+  }
+  send({type:'model_change',model:model.id,...native.modelIdentity(),thinkingLevel:thinkingLevel(),fastMode:!!config.fastMode});
+ }
  const settings={
   get retry(){return cindyRetrySettings(config.runtimeSettings);},
   // Cindy disables provider-internal retries; the official Harness is the
@@ -151,7 +264,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   steeringMode:config.runtimeSettings?.steeringMode??'one-at-a-time',followUpMode:config.runtimeSettings?.followUpMode??'one-at-a-time',
  };
  try{
-  harness=await Harness.open(await openDurableStorage(storageFile),{models,registry,settings,env:({cwd})=>new NodeExecutionEnv({cwd:cwd??config.cwd}),onReport:report},context);
+  harness=await Harness.open(inMemory?new MemoryStorage():await openDurableStorage(storageFile),{models,registry,settings,env:({cwd})=>new NodeExecutionEnv({cwd:cwd??config.cwd}),onReport:report},context);
   root=await harness.root(context,{agent:{model:{provider:'winone',modelId:config.model.id},thinkingLevel:thinkingLevel(),cwd:config.cwd}});
   collaboration.setHarness(harness);
   // Current Host choices always win over last run's model. No credential is
@@ -204,6 +317,12 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  }
  function project(entry,notify=true){
   if(entry.data?.legacy||projected.has(entry.id))return;
+  if(entry.kind==='pi.reset'){
+   // Reset is a durable context boundary, not deletion of the visible branch.
+   // Its stable entry identity makes recovery idempotent like message recovery.
+   const id=manager.appendCustomEntry('winone.context-reset',{durableEntryId:entry.id});
+   rememberProjection(entry.id,id);return;
+  }
   if(entry.kind==='pi.compaction'){
    const summary=textOf(entry.model?.[0]),first=projected.get(entry.head)??manager.getLeafId();
    const id=manager.appendCompaction(summary,first,contextStats?.tokens??0,{durableEntryId:entry.id});rememberProjection(entry.id,id);return;
@@ -211,7 +330,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   const message=entry.model?.[0];if(!message)return;
   const receipt=entry.data?.receipt;
   if(message.role==='user'&&receipt){manager.appendCustomEntry('winone.input',receipt);}
-  const decorated={...message,durableEntryId:entry.id,...(message.role==='toolResult'?{details:entry.data?.details,durationMs:entry.data?.durationMs}:{}),...(receipt?{requestId:receipt.id}:{}),...(message.role==='assistant'?native.modelIdentity():{})};
+  const decorated={...message,durableEntryId:entry.id,...(message.role==='toolResult'?{details:entry.data?.details,durationMs:entry.data?.durationMs}:{}),...(receipt?{requestId:receipt.id}:{}),...(message.role==='assistant'?messageIdentity(message):{})};
   const id=manager.appendMessage(decorated);
   sdk.refreshContext();
   if(notify){
@@ -225,6 +344,16 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  async function receive(value){
   if(closed)return;
   switch(value.type){
+   case 'submission':{
+    const receipt=value.record;
+    if(receipt.type!=='input'||!receipt.requestId||!['done','unanswered'].includes(receipt.status))break;
+    // A run can hand straight over to queued input without becoming idle.
+    // Use Durable's exact answer entry, not the last assistant in a newer run.
+    const answer=receipt.status==='done'?await root.commit(tx=>tx.entry(receipt.answer),context):null;
+    if(answer)project(answer);
+    send({type:'input_settled',requestId:receipt.requestId,status:receipt.status==='done'?'completed':'failed',resultText:textOf(answer?.model?.[0]),error:receipt.status==='unanswered'?receipt.reason:''});
+    break;
+   }
    case 'run_start':streaming=true;notifiedIdle=false;send({type:'agent_start'});break;
    // Do not block this reader at an intermediate run end: queued follow-ups
    // still need their events delivered while the harness finishes those runs.
@@ -280,6 +409,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   const live=await harness.snapshot(LiveDoc,root.id,context);
   extra.backgroundRunning=extra.subagents.some(agent=>agent.status==='running')||!!live?.compactions?.length;
   send({type:'durable_state',...extra});
+  if(runtimeReady&&!streaming&&!extra.backgroundRunning&&appliedRuntimeSequence!==runtimeRefreshSequence&&!runtimeRefreshTask&&!runtimeRefreshError)void applyPendingRuntime(false).catch(report);
  }
  async function taskGraph(){
   const inspection=await harness.inspect(context);
@@ -333,6 +463,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  async function prompt(text,options={}){
   if(closed)throw Error('Durable session is closed');
   if(extra.paused)throw Error('Resume the paused session before sending a message');
+  if(!streaming)await applyPendingRuntime(false);
   const command=/^\/([^\s]+)(?:\s+([\s\S]*))?$/.exec(text.trim());
   const registered=command&&sdk.extensionRunner.getCommand(command[1]);
   if(registered){await registered.handler(command[2]??'',sdk.extensionRunner.createCommandContext());options.preflightResult?.('handled');return;}
@@ -394,6 +525,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
    const locks=new Set(adapter.queueLocks??[]);
    if(action==='lock'){if(locked)locks.add(id);else locks.delete(id);}
    else if(action==='interaction')adapter.queueInteractionLocked=locked===true;
+   else if(action==='taskHold')adapter.taskHeld=locked===true;
    else if(action==='pause')adapter.queuePaused=true;
    else if(action==='resume')adapter.queuePaused=false;
    else if(action==='resetLocks'){locks.clear();adapter.queueInteractionLocked=false;}
@@ -414,7 +546,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
     all.splice(index,1);all.splice(targetIndex>index?targetIndex-1:targetIndex,0,item);
    }else throw Error('不支持的排队操作');
    adapter.queueLocks=[...locks];adapter.queueOrder=all.map(item=>item.id);
-   let blocked=adapter.queuePaused===true||adapter.queueInteractionLocked===true;
+   let blocked=adapter.queuePaused===true||adapter.queueInteractionLocked===true||adapter.taskHeld===true;
    const active=[],waiting=[];
    for(const input of all){
     if(locks.has(key(input)))blocked=true;
@@ -434,6 +566,21 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   }
   return result;
  }
+ async function enqueueHeld(text,receipt){
+  // Task resume first commits input behind the durable hold, then releases it.
+  // Use the same official submission/inbox records as changeQueue; no generation
+  // or external effect can start between enqueueing and the coordinator's CAS.
+  await root.commit(async tx=>{
+   const adapter=await tx.doc(AdapterDoc,root.id);
+   if(adapter.taskHeld!==true)throw Error('独立任务的输入屏障已解除');
+   const existing=await tx.submissionByRequest(root.id,receipt.id);
+   if(existing)return;
+   const submission=await tx.createSubmission({conversationId:root.id,requestId:receipt.id,type:'input',status:'queued'});
+   const item={id:submission.id,mode:'followUp',content:text,entry:{kind:'winone.input',data:{receipt:plain(receipt)}}};
+   adapter.heldInputs=[...(adapter.heldInputs??[]),item];
+   adapter.queueOrder=[...(adapter.queueOrder??[]),submission.id];
+  },context);
+ }
  async function setThinkingLevel(value){
   // '' and 'auto' restore the provider default: no reasoning_effort is injected.
  const level=value==='auto'?'':value;
@@ -446,9 +593,19 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   get messages(){return manager.buildSessionProjection().messages;},get model(){return sdk.model;},get thinkingLevel(){return thinkingLevel();},
   get sessionId(){return manager.getSessionId();},get sessionFile(){return file;},get isStreaming(){return streaming;},
   subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);},
-  prompt,compact,changeQueue,setThinkingLevel,setFastMode:value=>{config.fastMode=!!value;},
+  prompt,compact,changeQueue,enqueueHeld,setThinkingLevel,setFastMode:value=>{config.fastMode=!!value;},
   inputStatus:id=>root.commit(async tx=>(await tx.submissionByRequest(root.id,id))?.status,context),
   async abort(){await root.abort(context,{background:true});await settleIfIdle();},
+  async resetContext(){
+   if(streaming||extra.backgroundRunning||queue.length)throw Error('请先停止当前任务并处理排队消息');
+   await waitForProjection();
+   // Pi's reset writes a new context head in the same durable conversation.
+   // Do not reset the JSONL leaf: the owner keeps the full readable history.
+   await root.reset(undefined,context);
+   const latest=(await root.entries({order:'descending'},1,undefined,context)).items[0];
+   if(latest)project(latest,false);
+   await refreshMetrics();
+  },
   steer:(text,options={})=>prompt(text,{...options,streamingBehavior:'steer'}),
   followUp:(text)=>prompt(text,{streamingBehavior:'followUp'}),waitForIdle:()=>root.waitForIdle(context),
   setSessionName:name=>sdk.setSessionName(name),getActiveToolNames:()=>sdk.getActiveToolNames(),
@@ -457,7 +614,9 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  };
  // Rebind extension actions so an installed skill/plugin cannot accidentally
  // start the old SDK agent loop beside the durable one.
- const actions=native.resourceLoader.getExtensions().runtime;
+ function bindNativeExtensions(nativeInstance=native){
+ const sdk=nativeInstance.session;
+ const actions=nativeInstance.resourceLoader.getExtensions().runtime;
  const refreshNativeTools=actions.refreshTools;
  sdk.extensionRunner.bindCore({...actions,
   sendUserMessage:(content,options)=>track(prompt(typeof content==='string'?content:textOf({content}),options)),
@@ -471,16 +630,79 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   getCallableTools:()=>sdk.getAllTools().map(t=>sdk.getToolDefinition(t.name)).filter(Boolean),
   executeTool:async(_caller,name,args)=>{const current=calls.getStore();if(!current)throw Error('Nested tools require an active durable tool call');return current.api.executeTool(name,args,current.context);},
  });
- sdk.extensionRunner.bindCommandContext({waitForIdle:facade.waitForIdle,reload:async()=>{await native.resourceLoader.reload();refreshRegistry();},
+ sdk.extensionRunner.bindCommandContext({waitForIdle:facade.waitForIdle,reload:async()=>{await nativeInstance.resourceLoader.reload();refreshRegistry();},
   navigateTree:async id=>{if(streaming)throw Error('Stop the current run first');if(!manager.getEntry(id))throw Error('Unknown history entry');manager.branch(id);await syncBranch();return {cancelled:false};},
   newSession:async()=>{await root.reset(undefined,context);manager.resetLeaf();projectedTail=undefined;return {cancelled:false};},
   fork:async()=>{throw Error('Use the Chat branch action to keep the new conversation in the sidebar');},switchSession:async()=>{throw Error('Use the Chat sidebar to switch conversations');},
  });
+ }
+ bindNativeExtensions();
+ runtimeReady=true;
+
+ async function closeNative(){
+  if(!nativeOpen)return;
+  nativeOpen=false;
+  await native.close();
+ }
+ function requestRuntimeRefresh(){
+  if(!config.onebot)return {pending:false};
+  runtimeRefreshSequence++;runtimeRefreshError=null;
+  config.onebotRuntimeRefreshPending=true;
+  extra.runtimePending=true;extra.runtimeError=null;
+  send({type:'durable_state',...extra});
+  if(!closed&&!streaming)void applyPendingRuntime(false).catch(report);
+  return {pending:true};
+ }
+ async function applyPendingRuntime(atBoundary,signal){
+  if(!config.onebot||appliedRuntimeSequence===runtimeRefreshSequence||closed)return;
+  if(runtimeRefreshTask)return runtimeRefreshTask;
+  if(!atBoundary&&streaming)return;
+  runtimeRefreshAbort=new AbortController();
+  const refreshSignal=signal?AbortSignal.any([signal,runtimeRefreshAbort.signal]):runtimeRefreshAbort.signal;
+  // Own the refresh before the first await: idle notifications and prompt can
+  // arrive together, but must share one resource shutdown and replacement.
+  runtimeRefreshTask=(async()=>{
+   const agents=await collaboration.list(harness,root.id),live=await harness.snapshot(LiveDoc,root.id,context);
+   if(agents.some(agent=>agent.status==='running')||live?.compactions?.length)return;
+   while(appliedRuntimeSequence!==runtimeRefreshSequence&&!closed){
+    const sequence=runtimeRefreshSequence;
+    const recipe=await readOneBotRuntime(config,refreshSignal);
+    if(!recipe?.config||typeof recipe.revision!=='string')throw Error('Invalid OneBot runtime configuration');
+    const next={...config,...recipe.config,onebot:{...config.onebot,...recipe.config.onebot},runtimeSettings:{...config.runtimeSettings,...recipe.config.runtimeSettings}};
+    // Validate resource paths without loading code before retiring the live
+    // runtime. Durable owns the transcript, queue and tasks throughout the swap.
+    await inspectResources(next);
+    if(closed)return;
+    if(sequence!==runtimeRefreshSequence)continue;
+    await closeNative();
+    const replacement=await createNative(next,manager);
+    if(closed){await replacement.close();return;}
+    native=replacement;sdk=native.session;nativeOpen=true;Object.assign(config,next);
+    rememberModelIdentities(config);
+    basePromptOptions=sdk.extensionRunner.createCommandContext().getSystemPromptOptions();
+    runtimePrompt=sdk.systemPrompt;bindNativeExtensions();refreshRegistry();
+    const preset=config.runtimeSettings?.toolPreset;
+    await root.configure({model:{provider:'winone',modelId:config.model.id},thinkingLevel:thinkingLevel(),
+     tools:config.model.tools===false||preset==='chat-only'?[]:preset==='read-only'?[...toolRegistrations.values()].filter(tool=>readTools.has(tool.name)).concat(workflow.extension.tools??[]):null},context);
+    if(closed)return;
+    await acknowledgeOneBotRuntime(config,recipe.revision,native.state().resources,refreshSignal);
+    appliedRuntimeSequence=sequence;runtimeRefreshError=null;
+    extra.runtimePending=appliedRuntimeSequence!==runtimeRefreshSequence;extra.runtimeError=null;
+    config.onebotRuntimeRefreshPending=extra.runtimePending;
+    send({type:'durable_state',...extra});
+   }
+  })().catch(error=>{
+   runtimeRefreshError=error;extra.runtimeError=String(error.message??error);extra.runtimePending=true;
+   send({type:'durable_state',...extra});throw error;
+  }).finally(()=>{runtimeRefreshTask=undefined;runtimeRefreshAbort=undefined;});
+  return runtimeRefreshTask;
+ }
  async function close(){
   if(closed)return;closed=true;for(const resolve of projectionWaiters.values())resolve();projectionWaiters.clear();
+  runtimeRefreshAbort?.abort();
   // Even a failed Harness shutdown must release VM workers and native resources.
-  try{await harness.close(context);await events.stop();await watch.stop();await Promise.allSettled([...pending]);}
-  finally{try{await codeSandbox?.close();}finally{await native.close();}}
+  try{await harness.close(context);await runtimeRefreshTask?.catch(()=>{});await events.stop();await watch.stop();await Promise.allSettled([...pending]);}
+  finally{try{await codeSandbox?.close();}finally{await closeNative();}}
  }
  async function pause(){
   // Commit the user's scheduling choice before releasing execution resources.
@@ -492,16 +714,17 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  async function resume(explicit=false){
   if(extra.paused&&!explicit)return;
   if(explicit){await root.commit(async tx=>{(await tx.doc(AdapterDoc,root.id)).paused=false;},context);extra.paused=false;}
+  if(!streaming)await applyPendingRuntime(false);
   await changeQueue('resetLocks');harness.resume();await updateExtras();
   if(streaming){send({type:'agent_start'});void settleIfIdle().catch(report);}
  }
  return {
   session:facade,durable:true,harness,root,storageFile,
   state:()=>({...native.state(),messages:facade.messages,streaming:!extra.paused&&streaming,thinkingLevel:thinkingLevel(),fastMode:!!config.fastMode,runtime:'pi-durable',usage:usageSummary(),contextUsage:contextStats,...extra}),
-  liveMessages:()=>partial?[{...partial,...native.modelIdentity()}]:[],
-  modelIdentity:native.modelIdentity,supportsImages:native.supportsImages,setPermission:native.setPermission,
+  liveMessages:()=>partial?[{...partial,...messageIdentity(partial)}]:[],
+  modelIdentity:()=>native.modelIdentity(),supportsImages:()=>native.supportsImages(),setPermission:value=>native.setPermission(value),
   async setModel(model,models){await native.setModel(model,models);config.model=model;await root.configure({model:{provider:'winone',modelId:model.id}},context);await refreshMetrics();},
   async control(action,params={}){if(action==='tasks')return taskGraph();if(action==='list')return collaboration.list(harness,root.id);if(action==='workflow')return (await harness.snapshot(WorkflowDoc,root.id,context))??{items:[]};return collaboration.control(harness,root.id,action,params);},
-  pause,resume,close,
+  requestRuntimeRefresh,pause,resume,close,
  };
 }

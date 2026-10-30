@@ -13,6 +13,14 @@ vi.mock("../bridge",()=>({...api,captureCall:(method:string,...args:unknown[])=>
 }}));
 afterEach(()=>{cleanup();vi.clearAllMocks();});
 const original={revision:2,engine:"google",ocrEngine:"local",target:"auto",prompt:"",providers:[{id:"one",name:"个人服务",authMode:"api-key",protocol:"chat",baseUrl:"https://example.com/v1",models:["test-model"],hasKey:true}],tasks:{default:{provider:"one",model:"test-model"}}};
+it("defaults to resting limited keys and saves the explicit opt-out",async()=>{
+ const saved=fixture(),user=userEvent.setup();render(<AISettings/>);
+ const rest=await screen.findByRole("switch",{name:"配额不足或限流时暂停请求"});
+ expect(rest.getAttribute("aria-checked")).toBe("true");
+ await user.click(rest);expect(saved()).toBeUndefined();
+ await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));
+ await waitFor(()=>expect(saved().configuration.providers[0].limitRestOff).toBe(true));
+});
 it("enables routing groups without saving or losing another provider draft",async()=>{
  let committed:any=structuredClone(original);
  api.captureCall.mockImplementation(async(method,value)=>{

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/yetone/magpie/internal/gateway"
 	"net/http"
 	"strings"
 )
@@ -12,6 +13,7 @@ import (
 // Emit bounded NDJSON over the owned process pipe; never buffer a whole response
 // or forward raw error bodies that can repeat credentials and source text.
 type streamEvent struct {
+	Limited           bool   `json:"limited,omitempty"`
 	Type              string `json:"type"`
 	Delta             string `json:"delta,omitempty"`
 	Error             string `json:"error,omitempty"`
@@ -48,6 +50,7 @@ func (w *streamResponse) Write(p []byte) (int, error) {
 		return 0, w.err
 	}
 	if w.code != http.StatusOK {
+		w.pending = appendFailureBody(w.pending, p)
 		return len(p), nil
 	}
 	if len(w.pending)+len(p) > 1<<20 {
@@ -173,7 +176,7 @@ func (w *streamResponse) complete() error {
 		return w.err
 	}
 	if w.code != http.StatusOK {
-		return &upstreamFailure{Status: w.code, RetryAfterSeconds: retryDelay(w.header.Get("Retry-After"))}
+		return &upstreamFailure{Status: w.code, RetryAfterSeconds: retryDelay(w.header.Get("Retry-After")), Limited: gateway.WinOneLimitedResponse(w.code, w.pending)}
 	}
 	if !w.done || len(w.pending) != 0 || len(w.data) != 0 || (w.finish != "stop" && w.finish != "end_turn") || !w.hasText {
 		return errors.New("AI stream did not finish with a complete answer")

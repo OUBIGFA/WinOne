@@ -48,6 +48,7 @@ func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, pat
 	}
 	input["usageSource"] = source
 	input["additionalTools"] = p.AdditionalTools
+	input["limitRestOff"] = p.LimitRestOff
 	input["headers"] = p.Headers
 	input["modelMetadata"] = p.ModelMetadata
 	input["magpieSettings"] = p.MagpieSettings
@@ -68,6 +69,7 @@ func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, pat
 	total := 0
 	for scan.Scan() {
 		var event struct {
+			Limited bool        `json:"limited"`
 			Type    string      `json:"type"`
 			Status  int         `json:"status"`
 			Headers http.Header `json:"headers"`
@@ -83,7 +85,7 @@ func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, pat
 			}
 			status = event.Status
 			if status >= 400 {
-				return false, &AttemptFailure{Status: status, RetryAfter: gatewayRetryAfter(event.Headers.Get("Retry-After"), time.Now())}
+				return false, &AttemptFailure{Status: status, RetryAfter: gatewayRetryAfter(event.Headers.Get("Retry-After"), time.Now()), Limited: event.Limited}
 			}
 			for _, name := range []string{"Content-Type", "Cache-Control", "X-Request-Id"} {
 				if value := event.Headers.Get(name); value != "" {

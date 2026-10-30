@@ -111,7 +111,7 @@ export function ModulesPage({ onChanged,onActivity,onReady,only,controlsDisabled
   }
   // Stroke keeps its independent lifecycle inside Convenience. Home lists
   // navigation modules, so it must not offer a second mouse-gesture module card.
-  const visibleModules=snapshot?.modules.filter(entry=>only?entry.manifest.id===only:entry.manifest.id!=="stroke")??[];
+  const visibleModules=snapshot?.modules.filter(entry=>only?entry.manifest.id===only:entry.manifest.id!=="stroke"&&entry.manifest.id!=="timed-power")??[];
   const active=visibleModules.filter(entry=>entry.enabled&&!entry.pendingStop);
   const attention=snapshot?.modules.filter(entry=>entry.pendingStop||["faulted","unavailable"].includes(entry.runtime.state)).length??0;
   return <section className={only?"settings-group border-b border-border pb-4":"dashboard-workspace"}>

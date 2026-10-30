@@ -4,6 +4,35 @@ import {cleanup,render,screen,within} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {AISettings} from "./ai-settings";
 
+it("shows the image and vision MCP addresses beside their model choices and copies the selected endpoint",async()=>{
+ fixture();const user=userEvent.setup();render(<AISettings/>);
+ await user.click(within(await screen.findByRole('tablist',{name:'AI 服务'})).getByRole('tab',{name:'高级设置'}));
+ await user.click(await screen.findByRole('tab',{name:'模型设置'}));
+ await screen.findByText('http://127.0.0.1:3426/mcp/magpie/image');
+ expect(screen.getByText('http://127.0.0.1:3426/mcp/magpie/vision')).toBeTruthy();
+ await user.click(screen.getByRole('button',{name:'复制图像生成 MCP 地址'}));
+ expect(await navigator.clipboard.readText()).toBe('http://127.0.0.1:3426/mcp/magpie/image');
+});
+
+it("keeps local request archiving off until saved and preserves its limits on reopen",{timeout:30000},async()=>{
+ const saved=fixture(),user=userEvent.setup(),view=render(<AISettings/>);
+ const open=async()=>{await user.click(within(await screen.findByRole('tablist',{name:'AI 服务'})).getByRole('tab',{name:'高级设置'}));await user.click(await screen.findByRole('tab',{name:'隐私设置'}));};
+ await open();
+ expect(screen.getByRole('switch',{name:'在本机保存请求正文'}).getAttribute('aria-checked')).toBe('false');
+ await user.click(screen.getByRole('switch',{name:'在本机保存请求正文'}));
+ await user.clear(screen.getByRole('spinbutton',{name:'归档总容量（MiB）'}));await user.type(screen.getByRole('spinbutton',{name:'归档总容量（MiB）'}),'256');
+ await user.clear(screen.getByRole('spinbutton',{name:'每份正文上限（MiB）'}));await user.type(screen.getByRole('spinbutton',{name:'每份正文上限（MiB）'}),'8');
+ expect(saved()).toBeUndefined();
+ await user.click(screen.getByRole('button',{name:'保存 AI 设置'}));await screen.findByText('已保存');
+ expect(saved().configuration.magpieSettings).toMatchObject({requestArchiveLocal:true,requestArchiveLocalMB:256,requestArchiveMaxMB:8});
+ view.unmount();render(<AISettings/>);await open();
+ expect(screen.getByRole('switch',{name:'在本机保存请求正文'}).getAttribute('aria-checked')).toBe('true');
+ expect((screen.getByRole('spinbutton',{name:'归档总容量（MiB）'}) as HTMLInputElement).value).toBe('256');
+ await user.click(screen.getByRole('switch',{name:'在本机保存请求正文'}));
+ await user.click(screen.getByRole('button',{name:'撤销修改'}));
+ expect(screen.getByRole('switch',{name:'在本机保存请求正文'}).getAttribute('aria-checked')).toBe('true');
+});
+
 it("saves private download hosts and Claude's lean system prompt",{timeout:30000},async()=>{
  const saved=fixture(),user=userEvent.setup();render(<AISettings/>);
  const tabs=await screen.findByRole('tablist',{name:'AI 服务'});
@@ -28,7 +57,7 @@ function fixture(){let saved:any;const original={revision:1,engine:"google",ocrE
  if(method==="ai.magpie.privacy.open"||method==="ai.magpie.privacy.state"||method==="ai.magpie.privacy.action")return {on:false,supported:false,installed:false,size:1};
  if(method==="ai.magpie.privacy.close")return {};
  // Mirror the Host's object-only RPC contract; null params must fail in tests.
- if(method==="ai.magpie.catalog"){expect(value).toEqual({});return {searchVendors:[{id:"tavily",name:"Tavily",keysURL:"https://tavily.com"},{id:"searxng",name:"SearXNG",needURL:true,keyOptional:true},{id:"deepseek",name:"DeepSeek"},{id:"you",name:"You.com",keyOptional:true}],visionModels:[{id:"one/vision",name:"Vision",provider:"one",providerName:"示例服务"}],imageGenModels:[],searchChoices:[],codexUsers:["first@example.invalid","second@example.invalid"],pluginCheckins:[{id:"plugin-one",name:"Plugin One"}]};}
+ if(method==="ai.magpie.catalog"){expect(value).toEqual({});return {gateway:"http://127.0.0.1:3426",searchVendors:[{id:"tavily",name:"Tavily",keysURL:"https://tavily.com"},{id:"searxng",name:"SearXNG",needURL:true,keyOptional:true},{id:"deepseek",name:"DeepSeek"},{id:"you",name:"You.com",keyOptional:true}],visionModels:[{id:"one/vision",name:"Vision",provider:"one",providerName:"示例服务"}],imageGenModels:[],searchChoices:[],codexUsers:["first@example.invalid","second@example.invalid"],pluginCheckins:[{id:"plugin-one",name:"Plugin One"}]};}
  throw Error(method);
  });return ()=>saved;}
 
@@ -41,6 +70,7 @@ it("keeps quota and privacy drafts across tabs, saves them and restores them on 
  await user.click(screen.getByRole("switch",{name:"额度使用提醒"}));
  await user.clear(screen.getByLabelText("提醒时已用额度（%）"));await user.type(screen.getByLabelText("提醒时已用额度（%）"),"85");
  await user.click(screen.getByRole("tab",{name:"隐私设置"}));
+ await user.click(screen.getByRole("switch",{name:"保留密钥格式"}));
  await user.click(screen.getByRole("switch",{name:"脱敏个人信息"}));
  await user.click(screen.getByRole("switch",{name:"公网 IP 地址"}));
  await user.type(screen.getByLabelText("自定义脱敏词"),"Project Alpha,客户名称");
@@ -49,8 +79,8 @@ it("keeps quota and privacy drafts across tabs, saves them and restores them on 
  expect((screen.getByLabelText("提醒时已用额度（%）") as HTMLInputElement).value).toBe("85");
  expect(screen.queryByRole("button",{name:"移除此服务"})).toBeNull();
  await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));await screen.findByText("已保存");
- expect(saved().configuration.magpieSettings).toMatchObject({quotaLeft:true,quotaReads:"asked",usageAlert:85,redactPersonal:true,redactKinds:{ip:true},redactWords:["Project Alpha","客户名称"],redactWordsAnyCase:true,hideAccounts:true});
- view.unmount();render(<AISettings/>);const reopen=await screen.findByRole("tablist",{name:"AI 服务"});await user.click(within(reopen).getByRole("tab",{name:"高级设置"}));await user.click(await screen.findByRole("tab",{name:"隐私设置"}));expect(screen.getByRole("switch",{name:"公网 IP 地址"}).getAttribute("aria-checked")).toBe("true");
+ expect(saved().configuration.magpieSettings).toMatchObject({quotaLeft:true,quotaReads:"asked",usageAlert:85,redactPersonal:true,redactShape:true,redactKinds:{ip:true},redactWords:["Project Alpha","客户名称"],redactWordsAnyCase:true,hideAccounts:true});
+ view.unmount();render(<AISettings/>);const reopen=await screen.findByRole("tablist",{name:"AI 服务"});await user.click(within(reopen).getByRole("tab",{name:"高级设置"}));await user.click(await screen.findByRole("tab",{name:"隐私设置"}));expect(screen.getByRole("switch",{name:"保留密钥格式"}).getAttribute("aria-checked")).toBe("true");expect(screen.getByRole("switch",{name:"公网 IP 地址"}).getAttribute("aria-checked")).toBe("true");
 });
 
 it("saves an image helper, ordered search APIs and custom masking rules through the shared save flow",{timeout:60000},async()=>{

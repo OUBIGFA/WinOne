@@ -21,8 +21,9 @@ export function SettingsPanel({children, startup, permissions, profiles, connect
   const {t} = useTranslation();
   const [tab, setTab] = useState("general");
   const [aboutOpened, setAboutOpened] = useState(false);
-  // Tabs organize tasks, not transactions. Keep forms mounted so recording,
-  // import review and unsaved drafts survive an in-page navigation change.
+  // Tabs organize tasks, not transactions. Forms stay mounted, so a cancelled
+  // tab switch returns to the same recording, import review or draft; a
+  // confirmed switch reverts it through the shared unsaved-change guard.
   // Diagnostics is independent of reads/disabled fieldsets on every other tab.
   return <div className="settings-panel settings-stack">
     <Tabs value={tab} onValueChange={value => {

@@ -12,14 +12,8 @@
     "internal/gui/assets/context.js": "7eca3a1468a64b6bf7a5ce0f74b3cfdc9ef5d1d0206c173e534d531440cf7039",
     "internal/gui/assets/app.css": "4fb89f84e0eb76fd707c157e4b22e54fbc0d4909cb8db61e0986e3f923920e56"
   },
+  "ledgerSource": "third_party/magpie-usage-source.json",
   "components": {
-    "magpie-ledger-charts.ts": [
-      "LED_METRICS",
-      "drawLedColumns",
-      "drawLedRank",
-      "ledRankEdges",
-      "ledRail"
-    ],
     "magpie-context-graphics.ts": [
       "cellsOf",
       "headroom",

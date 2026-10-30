@@ -161,13 +161,46 @@ func (a *chatAutomations) call(ctx context.Context, method string, params json.R
 		return a.saveConnections(params)
 	}
 	switch method {
-	case "list", "get", "create", "update", "pause", "resume", "delete", "deleted", "restore", "run", "runs", "deleteRun", "markRead", "runtime", "preview", "silence", "notify", "events", "templates", "template.save", "template.delete", "template.apply", "project.read", "project.write", "project.reconcile", "project.promote", "project.clone", "project.demote":
+	case "hook.test":
+		return a.hookTest(ctx, params)
+	case "open":
+		return a.openPath(ctx, params)
+	case "detectCwd":
+		return a.detectCwd(ctx, params)
+	case "channels":
+		return a.channels()
+	case "capabilityStatus":
+		return a.capabilityStatus()
+	}
+	switch method {
+	case "list", "get", "create", "update", "pause", "resume", "delete", "deleted", "restore", "run", "runs", "deleteRun", "markRead", "runtime", "preview", "silence", "notify", "events", "templates", "template.save", "template.delete", "template.apply", "project.read", "project.write", "project.reconcile", "project.promote", "project.clone", "project.demote",
+		"hook.generate", "sidebarIndexRuns", "inflightCount", "markAllRead", "project.upsertSchedule", "project.removeSchedule":
 	default:
 		return nil, errors.New("不支持的自动化操作")
 	}
 	runner, err := a.ensure(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if method == "hook.generate" {
+		// A bound task's check lives in that task's folder and uses its model.
+		var input map[string]any
+		if err = json.Unmarshal(params, &input); err != nil {
+			return nil, err
+		}
+		if id, _ := input["targetSessionId"].(string); id != "" {
+			if conversation, lookup := a.control.store.Conversation(id); lookup == nil {
+				if dir, _ := input["workingDir"].(string); dir == "" {
+					input["workingDir"] = conversation.Directory
+				}
+				if provider, _ := input["providerId"].(string); provider == "" {
+					input["providerId"], input["model"] = conversation.Model.Provider, conversation.Model.Model
+				}
+			}
+		}
+		if params, err = json.Marshal(input); err != nil {
+			return nil, err
+		}
 	}
 	if method == "events" {
 		var input struct {
@@ -354,9 +387,11 @@ func (a *chatAutomations) prepare(ctx context.Context, schedule scheduledChat) (
 	if err != nil {
 		return chat.Conversation{}, false, err
 	}
+	// Cindy runs unattended automations with full access. Schedules saved by
+	// earlier WinOne versions keep the permission stored on them.
 	permission := schedule.PermissionMode
 	if permission == "" {
-		permission = "ask"
+		permission = "bypassPermissions"
 	}
 	thinking, fast := schedule.Effort, false
 	if schedule.FastMode != nil {
@@ -376,14 +411,15 @@ func (a *chatAutomations) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input struct {
-		Schedule scheduledChat       `json:"schedule"`
-		Run      automationRunNotice `json:"run"`
-		ID       string              `json:"id"`
-		RunID    string              `json:"runId"`
-		Prompt   string              `json:"prompt"`
-		Mode     string              `json:"mode"`
-		FiredAt  int64               `json:"firedAt"`
-		Call     json.RawMessage     `json:"call"`
+		Schedule    scheduledChat       `json:"schedule"`
+		Run         automationRunNotice `json:"run"`
+		ID          string              `json:"id"`
+		RunID       string              `json:"runId"`
+		Prompt      string              `json:"prompt"`
+		Attachments []string            `json:"attachments"`
+		Mode        string              `json:"mode"`
+		FiredAt     int64               `json:"firedAt"`
+		Call        json.RawMessage     `json:"call"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&input); err != nil {
 		http.Error(w, err.Error(), 400)
@@ -399,6 +435,19 @@ func (a *chatAutomations) serve(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 	}
 	switch strings.TrimPrefix(r.URL.Path, "/v1/") {
+	case "text":
+		var request struct {
+			Prompt     string `json:"prompt"`
+			ProviderID string `json:"providerId"`
+			Model      string `json:"model"`
+			TimeoutMs  int64  `json:"timeoutMs"`
+		}
+		if err := json.Unmarshal(input.Call, &request); err != nil || strings.TrimSpace(request.Prompt) == "" || len(request.Prompt) > 256<<10 {
+			http.Error(w, "Invalid text request", 400)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(a.utilityText(r.Context(), request.Prompt, request.ProviderID, request.Model, time.Duration(request.TimeoutMs)*time.Millisecond))
 	case "notify":
 		if err := a.notifyRun(r.Context(), input.Schedule, input.Run); err != nil {
 			fail(err)
@@ -510,7 +559,9 @@ func (a *chatAutomations) serve(w http.ResponseWriter, r *http.Request) {
 			fail(err)
 			return
 		}
-		if _, err = a.control.engine.Prompt(r.Context(), input.ID, input.RunID, input.Prompt); err != nil {
+		// Scheduled and channel inputs use the native inbox. They never consume
+		// an owner's unsent text or attachments in the conversation's composer.
+		if _, err = a.control.engine.DispatchInput(r.Context(), input.ID, input.RunID, input.Prompt, input.Attachments); err != nil {
 			fail(err)
 			return
 		}
@@ -548,7 +599,7 @@ func (a *chatAutomations) serve(w http.ResponseWriter, r *http.Request) {
 					Status    string `json:"status"`
 					Error     string `json:"error"`
 				}
-				if json.Unmarshal(entry.Data, &terminal) == nil && terminal.Type == "settled" && terminal.RequestID == input.RunID {
+				if json.Unmarshal(entry.Data, &terminal) == nil && (terminal.Type == "settled" || terminal.Type == "input_settled") && terminal.RequestID == input.RunID {
 					page.Events = page.Events[:index+1]
 					page.Cursor = entry.Sequence
 					page.Running = false

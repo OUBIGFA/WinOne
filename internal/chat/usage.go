@@ -18,14 +18,16 @@ import (
 )
 
 type UsageQuery struct {
-	Period   string `json:"period"`
-	Provider string `json:"provider"`
-	Model    string `json:"model"`
-	Project  string `json:"project"`
-	Query    string `json:"query"`
-	ID       string `json:"id"`
-	Offset   int    `json:"offset"`
-	TopBy    string `json:"topBy"`
+	// Resolved by Magpie for registered models, never accepted from UI JSON.
+	ModelAliases map[string]string `json:"-"`
+	Period       string            `json:"period"`
+	Provider     string            `json:"provider"`
+	Model        string            `json:"model"`
+	Project      string            `json:"project"`
+	Query        string            `json:"query"`
+	ID           string            `json:"id"`
+	Offset       int               `json:"offset"`
+	TopBy        string            `json:"topBy"`
 }
 type UsageCounts struct {
 	Sessions    int     `json:"sessions"`
@@ -167,12 +169,20 @@ func (s *Store) Usage(q UsageQuery, pricing ...map[string]UsagePrice) (UsageRepo
 		return report, errors.New("会话筛选条件无效")
 	}
 	data := s.Snapshot()
+	// These are already resolved names, not user alias definitions. Keep each
+	// session's original model for detail display and pricing.
+	modelGroup := func(model string) string {
+		if name := q.ModelAliases[model]; name != "" {
+			return name
+		}
+		return model
+	}
 	days := map[string]UsageCounts{}
 	// Keep the report arrays non-nil: a nil Go slice serializes as JSON null,
 	// and the settings UI reads rows, top and series as arrays.
 	matched := []UsageSession{}
 	for _, c := range data.Conversations {
-		if q.ID != "" && q.ID != c.ID || q.Provider != "" && q.Provider != c.Model.Provider || q.Model != "" && q.Model != c.Model.Model || q.Project != "" && q.Project != c.ProjectID {
+		if q.ID != "" && q.ID != c.ID || q.Provider != "" && q.Provider != c.Model.Provider || q.Model != "" && modelGroup(q.Model) != modelGroup(c.Model.Model) || q.Project != "" && q.Project != c.ProjectID {
 			continue
 		}
 		if q.Query != "" && !strings.Contains(strings.ToLower(c.Title+" "+c.Model.Model), strings.ToLower(q.Query)) {
@@ -209,7 +219,7 @@ func (s *Store) Usage(q UsageQuery, pricing ...map[string]UsagePrice) (UsageRepo
 			old.add(value)
 			days[key] = old
 		}
-		for dimension, key := range map[string]string{"model": u.Model, "provider": u.Provider, "project": u.Project} {
+		for dimension, key := range map[string]string{"model": modelGroup(u.Model), "provider": u.Provider, "project": u.Project} {
 			if report.By[dimension] == nil {
 				report.By[dimension] = map[string]UsageCounts{}
 			}

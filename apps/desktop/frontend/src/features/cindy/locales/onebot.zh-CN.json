@@ -1,0 +1,1880 @@
+{
+ "appError": {
+  "details": "错误详情"
+ },
+ "agentIsland": {
+  "native": {
+   "permissionPromptTitleWithTool": "允许 {{toolName}}？",
+   "allowOnce": "允许一次",
+   "alwaysAllowForSession": "本任务总是允许",
+   "deny": "拒绝"
+  }
+ },
+ "settings": {
+  "defaults": {
+   "customizedBadge": "已自定义",
+   "restore": "恢复默认"
+  },
+  "userProfile": {
+   "edit": {
+    "cancel": "取消",
+    "crop": {
+     "title": "调整头像",
+     "description": "拖动调整位置，滚动或双指缩放",
+     "done": "完成头像调整",
+     "stageLabel": "头像取景区域：用方向键移动，用加号或减号缩放",
+     "zoomLabel": "缩放",
+     "zoomValue": "{{percent}}%",
+     "zoomIn": "放大",
+     "zoomOut": "缩小",
+     "exportFailed": "未能导出调整后的头像"
+    }
+   }
+  },
+  "voiceInput": {
+   "serviceSource": {
+    "credentialError": {
+     "customAsrConfigMissing": "请先完整填写并保存实时 ASR 服务配置，再开始语音输入。"
+    }
+   },
+   "microphone": {
+    "errors": {
+     "fallbackToAuto": "已选择的麦克风不可用，已临时切换到自动麦克风。"
+    }
+   }
+  },
+  "wechatBot": {
+   "title": "个人微信",
+   "description": "扫码连接个人微信，在微信私聊中与 WinOne 工作。",
+   "statusAria": "个人微信状态：{{status}}",
+   "status": {
+    "disconnected": "未连接",
+    "authorizing": "准备授权…",
+    "waitingConfirmation": "等待微信确认…",
+    "connected": "已连接",
+    "reconnecting": "重新连接中…",
+    "needsReauth": "需要重新授权",
+    "disabled": "暂不可用",
+    "error": "连接失败"
+   },
+   "intro": "连接后，你发给该微信连接的私聊消息会进入本机 WinOne。授权网页由腾讯提供，页面中可能显示 OpenClaw。",
+   "errorNote": "本次连接未完成。请确认网络正常后重新扫码；WinOne 不会在连接失败时保存明文凭证。",
+   "disabledNote": "此版本的个人微信连接已因兼容性策略暂停。已保存的任务和设置不会被删除。",
+   "authorization": {
+    "title": "微信授权",
+    "rebindTitle": "将新的 WinOne 连接到微信",
+    "description": "即将跳转到腾讯提供的网页完成授权。扫码绑定后，即可在微信中与伙伴对话。",
+    "rebindDescription": "当前微信已有连接。继续扫码可能解除该微信原有的其他连接（例如 OpenClaw）。",
+    "confirm": "去授权",
+    "cancel": "取消",
+    "steps": {
+     "1": "点击「去授权」，在系统浏览器打开微信绑定页。",
+     "2": "使用微信 App 扫码，并在微信页面确认连接。",
+     "3": "绑定成功后回到 WinOne，连接状态会自动更新。",
+     "4": "授权页由腾讯提供，页面中可能显示 OpenClaw。"
+    }
+   },
+   "waiting": {
+    "heading": "等待你在微信中确认",
+    "note": "请在系统浏览器完成扫码和确认。成功后无需手动刷新；如果不想继续，可以取消本次授权。",
+    "cancel": "取消授权"
+   },
+   "bound": {
+    "heading": "个人微信已连接",
+    "attentionHeading": "个人微信需要处理",
+    "notes": {
+     "disconnected": "连接已保存，当前尚未启动。",
+     "authorizing": "正在准备新的微信授权。",
+     "waiting_confirmation": "正在等待微信扫码确认。",
+     "connected": "微信私聊消息会直接进入本机 WinOne，不经过 WinOne 服务器转发。",
+     "reconnecting": "本机正在恢复与微信的连接，无需重新扫码。",
+     "needs_reauth": "微信授权已失效或被新的连接替换，请重新扫码。",
+     "disabled_by_policy": "连接因当前版本的兼容性策略暂停；凭证和任务仍保留。",
+     "error": "连接暂时失败。可以重新扫码，或解绑后稍后再试。"
+    }
+   },
+   "actions": {
+    "connect": "连接微信",
+    "rebind": "重新连接",
+    "unbind": "解绑"
+   },
+   "workingDir": {
+    "title": "新对话工作目录",
+    "hint": "微信首次对话或发送 /new 后使用。更改不会移动当前上下文。",
+    "managed": "使用 WinOne 管理的专用目录",
+    "reset": "恢复默认",
+    "unavailable": "已选目录当前不可访问；新对话将暂时使用 WinOne 管理的专用目录。"
+   },
+   "unbind": {
+    "title": "解绑个人微信？",
+    "description": "解绑会停止收发、删除本机微信凭证并清理未完成的执行。已创建的任务、历史消息和已保存附件会保留。",
+    "confirm": "解绑",
+    "cancel": "取消"
+   },
+   "toasts": {
+    "authorizeFailed": "无法开始微信授权，请稍后重试",
+    "cancelFailed": "取消微信授权失败",
+    "unbound": "个人微信已解绑",
+    "unbindFailed": "解绑失败，请稍后重试",
+    "workingDirSaved": "微信新对话工作目录已更新",
+    "workingDirReset": "微信新对话已恢复使用默认目录",
+    "workingDirFailed": "更新工作目录失败，请重新选择"
+   },
+   "companion": {
+    "assigned": "由绑定的伙伴回复",
+    "description": "在微信中与 {{name}} 对话，共用记忆和主任务。此电脑上的微信连接一次只能交给一位伙伴。",
+    "other": "微信已交给另一位伙伴。请先在该伙伴的连接设置或个人微信设置中移除绑定。",
+    "permissionNote": "你在微信中发给伙伴的消息沿用伙伴的权限设置，包括完全访问。可在 OneBot 对话输入框下方切换权限；其他人的消息仍受权限限制。",
+    "remove": "移除伙伴绑定",
+    "useExisting": "使用已连接的微信与 {{name}} 对话",
+    "updateFailed": "未能更新绑定。请等待微信中的任务结束后重试，并确认伙伴仍可用。"
+   }
+  },
+  "builtinTools": {
+   "plugins": {
+    "feishu": {
+     "name": "飞书",
+     "description": "飞书 IM 集成 —— 消息、文档、知识库、日历"
+    },
+    "google": {
+     "name": "Google",
+     "description": "Google 集成 —— Sheets(只读)与 Gmail(搜索 / 读取 / 发送 / 草稿 / 标签)"
+    },
+    "feishu_bot": {
+     "name": "飞书机器人",
+     "description": "通过机器人向飞书用户发送文件和通知"
+    },
+    "scheduler": {
+     "name": "定时任务",
+     "description": "任务调度 —— cron 周期任务 + 一次性提醒"
+    },
+    "memory": {
+     "name": "OneBot 记忆",
+     "description": "跨 Agent 的长期记忆，让上下文在任务之间持续"
+    },
+    "docs": {
+     "name": "文档工坊",
+     "description": "把内容做成真文件 —— PDF、Word、Excel、PPT，并能回读核对产出。不需要另装任何软件。"
+    },
+    "xdt_helper": {
+     "name": "OneBot 助手",
+     "description": "宿主能力自省 —— 告诉 Agent 当前可用的工具与模型"
+    },
+    "collab": {
+     "name": "协同模式",
+     "description": "关闭后仅影响后续新建的任务，不会中止当前 Worker；用于多 Worker 团队编排"
+    },
+    "lsp": {
+     "name": "LSP",
+     "description": "TypeScript LSP 查询（Beta —— 由「设置 → 实验性 → LSP 模式」控制）"
+    },
+    "android": {
+     "name": "Android 自动化",
+     "description": "查看、点击和操作连接到本机的 Android 设备。"
+    },
+    "browser": {
+     "name": "浏览器",
+     "description": "浏览网页、读取页面、截图和操作网页。"
+    },
+    "computer": {
+     "name": "电脑控制",
+     "description": "查看和操作本机应用、窗口、鼠标与键盘。"
+    },
+    "wechat": {
+     "name": "个人微信",
+     "description": "向已知的微信联系人发送消息。"
+    },
+    "slack": {
+     "name": "Slack",
+     "description": "使用已连接的 Slack 账号搜索、读取和发送消息。"
+    },
+    "ssh": {
+     "name": "SSH 远程命令",
+     "description": "通过本机配置的 SSH 连接在远程电脑上执行命令。"
+    },
+    "contacts": {
+     "name": "智能通讯录",
+     "description": "查询、整理联系人资料与交往记录。"
+    }
+   }
+  },
+  "imBot": {
+   "defaults": {
+    "agents": {
+     "claude-code": "Claude Code",
+     "codex": "Codex",
+     "pi": "Pi"
+    }
+   }
+  }
+ },
+ "usageDetails": {
+  "durationHoursMinutes": "{{hours}} 小时 {{minutes}} 分",
+  "durationDaysHoursMinutes": "{{days}} 天 {{hours}} 小时 {{minutes}} 分"
+ },
+ "sidebar": {
+  "teammateUnreadCount": "{{count}} 段对话未读"
+ },
+ "bots": {
+  "workbench": {
+   "followingMark": "{{names}}在跟进这个任务"
+  },
+  "glance": {
+   "open": "{{name}}的近况",
+   "dueUnseen": "有待办到期",
+   "computers": "电脑",
+   "runningHere": "正在这台上运行",
+   "online": "在线",
+   "offline": "离线",
+   "current": "当前",
+   "offlineCount_other": "离线 {{count}} 台",
+   "todos": "待办",
+   "showMore": "显示更多",
+   "showLess": "收起",
+   "doneCount_other": "已完成 {{count}}",
+   "delete": "删除",
+   "deleted": "已删除，同一件事以后不再记",
+   "undo": "撤销",
+   "undoFailed": "没能撤销，请重试",
+   "deleteFailed": "没能删除，请重试",
+   "check": "帮我查查",
+   "checkMeta": "在已连接的邮件和消息里找新待办",
+   "checkPrompt": "帮我查查已连接的邮箱、消息等来源里，有没有需要我处理的新事项，有就记成待办。",
+   "checkFailed": "没能发送，请重试",
+   "dailyCheck": "每天帮我查一次",
+   "dailyCheckMeta": "工作日 9:00，没有新待办不打扰",
+   "dailyCheckFailed": "没能保存，请重试",
+   "outputs": "输出内容",
+   "outputMeta": "{{time}} · {{task}}",
+   "openFailed": "没能打开文件",
+   "source": {
+    "conversation": "你交代的",
+    "mail": "来自邮件",
+    "feishu": "来自飞书",
+    "github": "来自 GitHub",
+    "community": "来自社区",
+    "task": "来自任务"
+   }
+  },
+  "autonomy": {
+   "title": "跟进我的任务",
+   "descriptionOn": "{{name}}会在任务有变化时查看摘要并提醒你。",
+   "movedFrom": "已从{{name}}移到这里",
+   "heldBy": "现在由{{name}}负责，打开就移到这里。",
+   "routineScopeHint": "把你自己创建的任务也交给我跟进；下方内置跟进负责响应这些任务的变化。",
+   "heldByNobody": "尚未开启",
+   "saveFailed": "没能保存，请重试",
+   "allowSchedulerFollow": {
+    "title": "它开的任务也交给{{name}}跟进",
+    "description": "默认{{scheduler}}只看不跟。打开后，{{name}}开的任务没做完时，{{scheduler}}也会接着跟进。"
+   },
+   "consent": "开启后，我会读取这台电脑上你创建的任务摘要，分析进展并提醒你重要变化。这会使用模型额度，你可以随时关闭。",
+   "invitation": {
+    "title": "要我帮你跟进任务吗？",
+    "start": "开始跟进",
+    "notNow": "暂不开启"
+   }
+  },
+  "remoteSettings": {
+   "finishOnHost": "请在「{{device}}」上完成。"
+  },
+  "devicePicker": {
+   "local": "本机",
+   "unread": "有未读消息"
+  },
+  "creationName": "名字",
+  "settingsBack": "返回设置",
+  "title": "伙伴",
+  "add": "添加伙伴",
+  "createWizard": {
+   "createFailed": "无法创建伙伴，请重试。"
+  },
+  "homeFolder": {
+   "title": "高级配置",
+   "open": "打开文件夹",
+   "openFailed": "无法打开伙伴文件夹。"
+  },
+  "profile": {
+   "title": "资料",
+   "changeAvatar": "更换头像",
+   "avatarFailed": "无法更换头像，请选择小于 5 MB 的 PNG、JPEG 或 WebP 图片。",
+   "summary": "自我介绍",
+   "summaryPlaceholder": "例如：一个热爱写网文的小说家，有点幽默，喜欢琢磨人物的小心思。",
+   "avatarSelectionFailed": "头像未能读取，请选择 5 MB 以内的 PNG、JPEG 或 WebP 图片",
+   "personality": "性格与说话习惯"
+  },
+  "nameLabel": "怎么称呼",
+  "close": "关闭",
+  "list": {
+   "createMenu": "新建",
+   "createTeammate": "新建伙伴",
+   "joinWithLink": "输入邀请链接…",
+   "startChat": "开始对话",
+   "selectChat": "选择伙伴或群聊，开始对话",
+   "unread": "{{count}} 条未读消息",
+   "showHidden": "显示隐藏的伙伴",
+   "hideHidden": "收起隐藏的伙伴",
+   "hidden": "已隐藏（{{count}}）",
+   "hide": "隐藏",
+   "unhideNamed": "取消隐藏 {{name}}",
+   "pin": "置顶",
+   "unpin": "取消置顶",
+   "pinned": "已置顶",
+   "needsAttention": "需要处理",
+   "duplicate": "复制伙伴",
+   "sectionExpand": "展开伙伴",
+   "showLess": "收起",
+   "sectionCollapse": "收起伙伴"
+  },
+  "cancel": "取消",
+  "autosave": {
+   "saving": "正在保存…",
+   "saved": "已保存",
+   "retry": "重新保存"
+  },
+  "retry": "重试",
+  "backToBot": "返回伙伴",
+  "sessionLoadFailedTitle": "无法加载这个伙伴任务",
+  "sessionLoadFailedDescription": "任务关联仍然存在，但 WinOne 暂时无法读取伙伴状态。你可以重试，或返回伙伴总览。",
+  "sessionUnavailableTitle": "这个伙伴任务已不可用",
+  "sessionUnavailableDescription": "这条任务可能已丢失、被删除，或不再属于这个伙伴。返回后会打开恢复好的主任务。",
+  "settings": "设置",
+  "settingsTabs": {
+   "model": "模型"
+  },
+  "model": {
+   "description": "选择这个伙伴使用的模型。",
+   "primary": "主模型",
+   "task": "任务模型",
+   "inheritPrimary": "继承主模型",
+   "inheritingPrimary": "继承主模型，用于新建后台任务",
+   "restoreDefault": "恢复默认模型"
+  },
+  "modelChain": {
+   "routeLabel": "模型候选 {{index}}",
+   "add": "添加备用模型",
+   "remove": "移除这个候选",
+   "moveUp": "上移",
+   "moveDown": "下移",
+   "description": "最多设置 5 个模型。当前候选不可用时，伙伴会按顺序自动接替，不需要你切任务或重试。",
+   "options": "备用模型（{{count}}）"
+  },
+  "open": "打开",
+  "archived": "已归档",
+  "historyTitle": "归档历史",
+  "historyEmpty": "还没有归档的伙伴任务。",
+  "historySearch": {
+   "title": "搜索伙伴历史",
+   "search": "搜索",
+   "searching": "正在搜索…",
+   "failed": "无法搜索伙伴历史，请重试。",
+   "empty": "没有找到匹配的伙伴历史。"
+  },
+  "lifecycle": {
+   "stoppedBots": "需要处理的伙伴",
+   "title": "伙伴管理",
+   "stoppedTitle": "伙伴已停止运行",
+   "resume": "恢复伙伴",
+   "delete": "永久删除",
+   "deleteTitle": "永久删除伙伴",
+   "deleteDescription": "删除 {{name}} 后，伙伴的资料、记忆、工作目录、通道连接与自动化任务将被移除，无法撤销。任务历史与独立 worktree会保留。",
+   "working": "正在更新…",
+   "actionFailed": "操作未完成，请稍后重试。",
+   "deleteFailed": "删除没有完成。",
+   "restart": "重启伙伴",
+   "restarting": "正在重启…",
+   "restarted": "已重启，发送消息即可继续。"
+  },
+  "backToChat": "返回对话",
+  "memory": {
+   "title": "记忆",
+   "enabled": "开启记忆",
+   "disabledHint": "已关闭，不会读取或保存记忆",
+   "aboutMe": "关于我的记忆",
+   "search": "搜索记忆",
+   "empty": "还没有记忆",
+   "noResults": "没有找到相关记忆",
+   "loadFailed": "记忆读取失败",
+   "types": {
+    "user": "关于你",
+    "feedback": "你的要求",
+    "project": "项目",
+    "reference": "参考"
+   },
+   "today": "今天",
+   "updated": "{{time}} 更新",
+   "edit": "编辑",
+   "delete": "删除",
+   "cancel": "取消",
+   "done": "完成",
+   "titleLabel": "标题",
+   "bodyLabel": "内容",
+   "tooLong": "内容太长，缩短后才会保存",
+   "titleRequired": "填写标题后才会保存",
+   "bodyRequired": "填写内容后才会保存",
+   "deleteTitle": "删除这条记忆？",
+   "deleteDescription": "{{name}}之后不会再参考「{{title}}」。",
+   "deleted": "已删除",
+   "deleteFailed": "删除失败",
+   "changedTitle": "{{name}}刚更新了这条记忆",
+   "useLatest": "用最新内容",
+   "keepMine": "保留我的修改",
+   "saveFailed": "没有保存成功",
+   "unsavedTitle": "尚有未保存的修改",
+   "unsavedDescription": "离开后会丢弃这次对记忆的修改。",
+   "discard": "放弃修改",
+   "continueEditing": "继续编辑"
+  },
+  "profileSaveFailed": "伙伴设置未能保存，变更没有生效。",
+  "modelUnavailable": "{{model}}（当前不可用）",
+  "send": "发送消息",
+  "roster": {
+   "customNamePlaceholder": "给伙伴起个名字"
+  },
+  "chat": {
+   "newMessagesBoundary": "NEW",
+   "composerPlaceholder": "跟{{name}}说点什么…",
+   "composerPlaceholderLatin": "跟 {{name}} 说点什么…"
+  },
+  "globalSettings": {
+   "restoreFailed": "恢复默认失败，请重试。",
+   "defaultModel": "默认模型",
+   "defaultModelHint": "仅用于伙伴，与新任务的模型选择独立。单个伙伴可以另选。",
+   "title": "伙伴",
+   "showReplyTarget": "显示回复对应的消息",
+   "showReplyTargetHint": "伙伴回复上方标出它回的是你哪条消息。较早的回复不显示。"
+  },
+  "session": {
+   "ownedByBot": "{{name}} 的后台任务",
+   "backToBot": "回到 {{name}}"
+  },
+  "collab": {
+   "backgroundTask": "后台任务",
+   "messageSent": "已向后台任务发送消息",
+   "watchWork": "打开任务",
+   "stale": "详情可能已过期，暂时无法更新",
+   "artifactCount": "{{count}} 个文件",
+   "artifactCount_one": "{{count}} 个文件",
+   "artifactCount_other": "{{count}} 个文件",
+   "actionFailed": "没发出去，再试一次。",
+   "status": {
+    "queued": "正在开始",
+    "waiting": "等待处理",
+    "running": "正在做",
+    "completed": "已完成",
+    "failed": "失败了",
+    "cancelled": "已停止",
+    "timed-out": "已超时",
+    "unknown": "任务状态查不到了"
+   },
+   "duration": {
+    "seconds": "{{n}} 秒",
+    "minutes": "{{n}} 分钟",
+    "hoursMinutes": "{{h}} 小时 {{m}} 分",
+    "daysHoursMinutes": "{{d}} 天 {{h}} 小时 {{m}} 分"
+   },
+   "viewResult": "查看结果",
+   "noWrittenResult": "没有文字结果。",
+   "addNote": "补一句",
+   "addNotePlaceholder": "补充给后台任务的话，回车发送",
+   "addNoteSent": "已发给后台任务",
+   "stop": "停止",
+   "lookAt": "看看",
+   "awaitingConfirm": "等你确认：{{summary}}",
+   "awaitingConfirmGeneric": "等你确认",
+   "elapsed": "已做 {{duration}}",
+   "tookTime": "用时 {{duration}}",
+   "expandResult": "展开结果",
+   "collapseResult": "收起结果",
+   "expandDetails": "展开详情",
+   "collapseDetails": "收起详情",
+   "messageSentWithText": "已告诉后台任务：「{{text}}」"
+  },
+  "directMessage": {
+   "open": "查看伙伴之间的对话",
+   "readOnly": "此对话仅供查看",
+   "close": "关闭对话",
+   "unavailable": "这条伙伴对话已不可用。",
+   "empty": "还没有可查看的消息。",
+   "limitReached": "本轮伙伴对话已到上限，双方已回到各自的主任务",
+   "sentHeader": "发给 {{name}}",
+   "receivedHeader": "{{name}} 发来",
+   "expandThread": "展开往来",
+   "exchangeCountShort": "{{count}} 条往来",
+   "exchangeCountShort_one": "{{count}} 条往来",
+   "exchangeCountShort_other": "{{count}} 条往来",
+   "expand": "展开",
+   "collapse": "收起",
+   "fullThread": "完整对话",
+   "threadClosed": "本轮伙伴对话已结束 · 只供查看"
+  },
+  "groupChat": {
+   "migrationPending": "部分旧记录尚未上传完成，将自动重试。当前群聊可继续使用。",
+   "memberSeparator": "、",
+   "ownerOf": "{{name}} 的主人",
+   "elapsed": {
+    "seconds": "{{count}} 秒",
+    "minutes": "{{count}} 分钟",
+    "hours": "{{hours}} 小时 {{minutes}} 分"
+   },
+   "progress": {
+    "step": "第 {{step}}/{{total}} 步",
+    "speaking": "{{name}} 正在说…",
+    "elapsed": "已做 {{time}}",
+    "viewProcess": "看过程",
+    "stop": "停止",
+    "stopMine": "停止我发起的",
+    "stopAll": "全部停止",
+    "stopAllHint": "包括其他人发起的"
+   },
+   "header": {
+    "stepRunning": "{{name}} 正在做第 {{step}} 步",
+    "speaking": "{{name}} 正在说…",
+    "planning": "{{name}} 正在安排…"
+   },
+   "memberCount_one": "{{count}} 位伙伴",
+   "memberCount_other": "{{count}} 位伙伴",
+   "nameLabel": "群名称",
+   "waitingConfirm": "{{name}}在等你确认",
+   "loadFailedTitle": "无法加载这个群聊",
+   "loadFailedDescription": "WinOne 暂时读不到这个群的消息。你可以重试，或返回伙伴页。",
+   "unavailableTitle": "这个群聊已不可用",
+   "unavailableDescription": "它可能已被删除。返回伙伴页可以打开其他群聊和伙伴。",
+   "sidebar": {
+    "title": "群聊",
+    "empty": "还没有消息",
+    "preview": "{{name}}：{{text}}",
+    "previewYou": "你：{{text}}",
+    "sharedReplyYou": "你贴回了一条话题回复",
+    "sharedReply": "{{name}} 贴回了一条话题回复",
+    "waiting": "在等你确认",
+    "planProposed": "{{name}}：安排好了，等你开始",
+    "planProposedAnonymous": "安排好了，等你开始",
+    "planRunning": "分工 {{step}}/{{total}} · {{name}}正在做",
+    "planRunningNoStep": "{{name}}正在做",
+    "planPlanning": "{{name}}正在安排…",
+    "planStepDone": "{{name}}做完了，等你继续",
+    "planStepFailed": "{{name}}没做完",
+    "planWaitingAnonymous": "分工停下了，等你看看"
+   },
+   "create": {
+    "title": "新建群聊",
+    "description": "选几位伙伴放进一个群。你说一句，它们会一起接话。",
+    "namePlaceholder": "例如：周末出游",
+    "nameRequired": "给群起个名字",
+    "membersLabel": "选择伙伴",
+    "selectedCount_one": "已选 {{count}} 位，最多 {{max}} 位",
+    "selectedCount_other": "已选 {{count}} 位，最多 {{max}} 位",
+    "minMembers": "至少选 {{min}} 位伙伴",
+    "notEnoughBots": "至少需要 {{min}} 位可用的伙伴才能建群，先去添加伙伴吧。",
+    "submit": "创建群聊",
+    "failed": "群聊没有建成，请稍后重试"
+   },
+   "memberStatus": {
+    "paused": "已暂停",
+    "unavailable": "不可用"
+   },
+   "mention": {
+    "all": "所有人",
+    "allHint": "大家都回答",
+    "label": "点名伙伴"
+   },
+   "composer": {
+    "label": "群聊消息",
+    "placeholder": "在群里说点什么，@ 某位伙伴就只让它回答…",
+    "noMembers": "群里暂时没有能接话的伙伴，去群设置里添加一位吧",
+    "tooLong": "消息太长了，最多 {{max}} 个字",
+    "sendFailed": "消息没有发出去，请稍后重试",
+    "stopFailed": "没能停下这一轮，请再试一次",
+    "stop": "停止这一轮",
+    "more": "更多操作",
+    "division": "安排分工",
+    "divisionDescription": "让负责人先分好工，伙伴们一步步做",
+    "divisionDescriptionSteps": "按你写的步骤，或由负责人来分；伙伴们一步步做",
+    "divisionBusy": "正在分工，做完或停止后才能安排新的",
+    "divisionTag": "分工",
+    "removeDivision": "去掉分工",
+    "placeholderDivision": "说说要做成什么，负责人会先分好工…",
+    "placeholderDivisionSteps": "写好谁做什么（@A 出方案，@B 实现），或只说目标让负责人来分…",
+    "placeholderPlanProposed": "想换人或改步骤，直接说…",
+    "placeholderPlanWaiting": "想让{{name}}改改，直接说…",
+    "placeholderPlanRunning": "说的话会带给正在做的{{name}}…",
+    "placeholderQueueRunning": "说的话会带给正在说的{{name}}…",
+    "tooManyAttachments": "附件太多了，一条消息最多 {{max}} 个",
+    "attachmentsFailed": "附件没能发出去，请检查文件是否还在，或移除后重试",
+    "folderNotSupported": "文件夹不能作为附件，请选择其中的文件"
+   },
+   "outbox": {
+    "sending": "发送中…",
+    "failed": "没发出去",
+    "edit": "编辑",
+    "editBlocked": "输入框里还有内容，先发出或清空，再编辑这条消息"
+   },
+   "quote": {
+    "replyingTo": "引用 {{name}}",
+    "remove": "取消引用",
+    "jumpLabel": "查看 {{name}} 的原消息：{{summary}}",
+    "deleted": "原消息已删除",
+    "unavailable": "原消息不在可查看的记录里",
+    "attachments": "{{name}} 等 {{total}} 个附件"
+   },
+   "timeline": {
+    "loadEarlier": "查看更早的消息",
+    "loadEarlierFailed": "更早的消息没能加载，请再试一次",
+    "emptyTitle": "群里还没有消息",
+    "emptyDescription": "说一句话开始，伙伴们会接着聊。@ 某位伙伴就只让它回答。",
+    "roundEnded": "伙伴们说完了",
+    "stepTag": "第 {{count}} 步",
+    "sending": "发送中",
+    "continue": "继续讨论",
+    "continueFailed": "没能继续讨论，请再试一次",
+    "nextStep": "下一步：",
+    "continuePlan": "继续",
+    "continuePlanFailed": "没能继续下一步，请再试一次",
+    "stepFailed": "{{name}}没做完",
+    "retryStep": "重试",
+    "retryFailed": "没能重试这一步，请再试一次",
+    "endPlan": "结束分工",
+    "planDone_one": "{{count}} 步都做完了",
+    "planDone_other": "{{count}} 步都做完了",
+    "planDoneGeneric": "分工做完了",
+    "endTalk": "结束"
+   },
+   "notice": {
+    "memberJoined": "{{name}}加入了群聊",
+    "memberFailed": "{{name}}这次没能回复",
+    "memberTimeout": "{{name}}太久没有回复，这次先跳过",
+    "memberUnavailable": "{{name}}现在不可用，这次没有发言",
+    "planFailed": "{{name}}没排出分工，可以再试一次",
+    "planStopped": "分工已停止",
+    "workdirUnavailable": "{{name}}找不到工作目录",
+    "stepFailed": "{{name}}这一步出错了，没做完",
+    "stepTimeout": "{{name}}太久没做完，这一步先停下",
+    "stepUnavailable": "{{name}}现在不可用，这一步没法做",
+    "runtimeFailure": {
+     "IMAGE_INPUT_UNSUPPORTED": "{{name}}无法回复：当前模型不支持图片。\n请切换到支持图片的模型，或在「设置 → 个性化 → 视觉桥」开启并配置视觉模型后重新发送。",
+     "MODEL_UNAVAILABLE": "{{name}}无法回复：当前没有可用模型。\n请在伙伴设置中选择已连接的可用模型后重新发送。",
+     "AUTH_REQUIRED": "{{name}}无法回复：模型连接需要重新认证。\n请在设置中重新连接对应模型来源后重新发送。",
+     "RATE_LIMITED": "{{name}}无法回复：模型请求过于频繁。\n请稍后重新发送，或选择其他可用模型。",
+     "UPSTREAM_OVERLOADED": "{{name}}无法回复：模型服务暂时繁忙。\n请稍后重新发送，或选择其他可用模型。",
+     "QUOTA_EXCEEDED": "{{name}}无法回复：模型用量已达上限。\n请检查对应来源的配额，或选择其他可用模型。",
+     "NETWORK_ERROR": "{{name}}无法回复：网络连接失败。\n请检查网络或 Proxy 后重新发送。",
+     "RUNTIME_TIMEOUT": "{{name}}本次回复超时。\n请重新发送消息，或选择其他可用模型。",
+     "RUNTIME_ERROR": "{{name}}这次没能回复。\n请重新发送消息；如果仍失败，请查看日志并反馈问题。"
+    }
+   },
+   "settings": {
+    "open": "群设置",
+    "title": "群设置",
+    "members": "成员",
+    "remove": "移出",
+    "removeNamed": "把 {{name}} 移出群聊",
+    "minMembers": "群里至少要有 {{min}} 位伙伴",
+    "maxMembers": "最多 {{max}} 位",
+    "noMoreBots": "没有其他可以加入的伙伴了",
+    "nameSaveFailed": "群名称没能保存，已恢复原来的名字",
+    "membersSaveFailed": "成员没能更新，请再试一次",
+    "replyMode": "没有 @ 人的时候",
+    "replyModeAll": "大家都可以接话",
+    "replyModeMentioned": "只有被 @ 的回答",
+    "replyModeNote": "没什么可补充的伙伴不会说话。每轮最多聊 3 圈、10 条，之后等你点「继续讨论」。",
+    "replyModeSaveFailed": "回复方式没能保存，请再试一次",
+    "delete": "删除群聊",
+    "deleteNote": "只删除这个群和群里的消息，伙伴本身、它们的记忆和私聊都不受影响。",
+    "deleteConfirmTitle": "删除「{{name}}」？",
+    "deleteFailed": "群聊没能删除，请稍后重试",
+    "speakingMode": "发言方式",
+    "speakingModeAuto": "自动",
+    "speakingModeSequential": "始终轮流",
+    "speakingModeAutoNote": "未 @ 人或 @所有人时，首轮同时思考，之后轮流；@ 伙伴按提及顺序轮流。",
+    "speakingModeSequentialNote": "每次只有一位伙伴发言，后说的能看到前面的回答。",
+    "speakingModeSaveFailed": "发言方式没能保存，请再试一次",
+    "setOrganizer": "设为负责人",
+    "setOrganizerNamed": "把 {{name}} 设为负责人",
+    "organizerNote": "负责人帮你安排谁做哪一步，默认是第一位伙伴。",
+    "organizerSaveFailed": "负责人没能更换，请再试一次",
+    "projectDir": "项目文件夹",
+    "projectDirNone": "没选",
+    "projectDirChoose": "选择",
+    "projectDirChange": "更换",
+    "projectDirClear": "清除",
+    "projectDirNote": "分工做事时，伙伴们在这里干活。不选也行，会用这个群自己的文件夹；选了 git 项目，每次分工会新开一个 worktree 和分支，不动你手上的代码。",
+    "autoContinueSaveFailed": "分工交接没能保存，请再试一次",
+    "projectDirSaveFailed": "项目文件夹没能保存，确认文件夹还在后再试"
+   },
+   "errors": {
+    "memberLimit": "一个群需要 2–6 位伙伴",
+    "memberUnavailable": "有伙伴现在不可用，换一位再试",
+    "mentionUnavailable": "点名的成员已不可用，请重新选择后发送",
+    "notFound": "这个群聊已不存在",
+    "hostNotReady": "WinOne 还在准备中，请稍后重试",
+    "planOpen": "正在分工，做完或停止后才能安排新的",
+    "planClosed": "这个安排已经结束或更新了",
+    "invalidAttachment": "附件无法读取，请重新选择后发送。",
+    "attachmentUnavailable": "未能从手机取回附件，请检查设备连接后重试。",
+    "attachmentTooLarge": "附件超过 100 MB，请选择较小的文件。",
+    "mediaUploadFailed": "附件未能上传到群聊服务，请稍后重试。",
+    "authRequired": "登录已失效，请在电脑上重新登录。",
+    "chatUnavailable": "群聊服务暂时无法连接，请检查网络后重试。",
+    "importPending": "群历史记录仍在同步，请稍后重试。",
+    "requestTimeout": "还未确认操作结果，请刷新查看后再重试。",
+    "permissionDenied": "你没有执行此操作的群管理权限。",
+    "serviceError": "群聊服务处理失败，请稍后重试。",
+    "groupArchived": "本群已归档，不能执行此操作。",
+    "quoteUnavailable": "引用的消息已删除或不可见，已取消引用，请再发送一次",
+    "lifecycleUnavailable": "当前服务器或电脑暂不支持此操作。",
+    "groupDissolved": "群聊已解散，仍可查看有权访问的历史消息。",
+    "lastOwner": "请先转让群主或解散群聊，再退出。"
+   },
+   "organizer": "负责人",
+   "plan": {
+    "intro_one": "这件事分 {{count}} 步，我这样分工：",
+    "intro_other": "这件事分 {{count}} 步，我这样分工：",
+    "missing": "这个安排已经读不到了",
+    "start": "开始",
+    "dismiss": "不用了",
+    "editHint": "点某一步可以换人",
+    "pauseNote": "每做完一步会停下来，等你点「继续」。",
+    "autoContinue": "做完一步自动交给下一位",
+    "autoNote": "做完一步会自动交给下一位。",
+    "superseded": "已更新",
+    "dismissed": "不用了",
+    "stopped": "已停止",
+    "stepDone": "做完了",
+    "stepRunning": "正在做",
+    "stepFailed": "没做完",
+    "stepPending": "还没开始",
+    "stepMenuTitle": "谁来做这一步",
+    "removeStep": "删掉这一步",
+    "keepOneStep": "至少留一步",
+    "startFailed": "没能开始分工，请再试一次",
+    "dismissFailed": "没能结束这个安排，请再试一次",
+    "editFailed": "这一步没改成，请再试一次",
+    "talkTurn": "说说看法",
+    "stepSpeaking": "正在说",
+    "stepSpoken": "说完了",
+    "allTurns_one": "共 {{count}} 位",
+    "allTurns_other": "共 {{count}} 位",
+    "foldTurns": "收起"
+   },
+   "speaking": {
+    "planning": "正在安排…"
+   },
+   "task": {
+    "state": {
+     "started": "进行中",
+     "waiting": "等你确认",
+     "completed": "已完成",
+     "failed": "失败了",
+     "cancelled": "已取消",
+     "timed-out": "已超时"
+    }
+   },
+   "files": {
+    "openFailed": "文件没能打开，可能已被移动或删除",
+    "untitled": "附件",
+    "loading": "加载中…",
+    "unavailable": "暂时无法加载"
+   },
+   "addFromChat": {
+    "triggerFor": "将 {{name}} 添加到群聊",
+    "addTo": "将 {{name}} 添加到",
+    "newGroup": "发起群聊…",
+    "existingGroup": "添加到已有群聊",
+    "added": "已将 {{name}} 加入「{{group}}」",
+    "openGroup": "打开群聊",
+    "unavailable": "{{name}} 暂时无法加入群聊"
+   },
+   "server": {
+    "quoteReply": "引用回复",
+    "startTopic": "创建话题",
+    "openTopic": "查看话题 · {{count}} 条回复",
+    "topic": "话题",
+    "replies": "回复",
+    "replyCount_one": "{{count}} 条回复",
+    "replyCount_other": "{{count}} 条回复",
+    "thread": {
+     "open_one": "打开话题，{{count}} 条回复",
+     "open_other": "打开话题，{{count}} 条回复",
+     "lastReply": "最后回复 {{time}}",
+     "emptyReply": "没有文字内容",
+     "image": "图片",
+     "file": "文件",
+     "attachmentsSummary": "{{label}} · {{name}} 等 {{count}} 个附件",
+     "alsoSent": "回复了话题，也发到了群聊",
+     "sharedReplyFrom": "贴回了 {{name}} 的话题回复",
+     "sharedReply": "贴回了一条话题回复",
+     "edited": "已编辑",
+     "sourceUnavailable": "原回复已删除，或你无权查看。",
+     "viewThread": "查看话题",
+     "viewInMain": "在群聊中查看",
+     "postToMain": "贴回群聊",
+     "postedBySelf": "你已贴到群聊",
+     "postedToMain": "已贴到群聊",
+     "alsoSend": "同时发到群聊",
+     "alsoSendFailed_one": "回复已发到话题，但没能同时发到群聊。",
+     "alsoSendFailed_other": "有 {{count}} 条回复已发到话题，但没能同时发到群聊。",
+     "loadingSource": "正在读取原回复…",
+     "shareNotLoaded": "这条贴回在更早的群聊记录里，往上加载后可以看到。",
+     "retryPost": "重新发到群聊",
+     "alreadyPosted": "你已经把这条回复贴到群聊了",
+     "shareUnavailable": "这条回复已删除或无法查看，不能贴到群聊。",
+     "newReplies_one": "{{count}} 条新回复",
+     "newReplies_other": "{{count}} 条新回复",
+     "mentionedYou": "@你",
+     "hintOne": "话题有新回复",
+     "hintMany_one": "{{count}} 个话题有新回复",
+     "hintMany_other": "{{count}} 个话题有新回复",
+     "hintMentioned": "有人提到你",
+     "hintDismiss": "先不看",
+     "follow": "关注",
+     "following": "已关注",
+     "followTip": "关注后，有新回复时在群聊右下角提示你",
+     "unfollowTip": "取消关注后，只在有人提到你时提示",
+     "listLabel": "这个群聊里的话题",
+     "listNews": "有新回复",
+     "listOthers": "其他话题",
+     "newSeparator": "新回复"
+    },
+    "replyPlaceholder": "回复这条消息，可用 @ 点名伙伴…",
+    "sendReply": "发送回复",
+    "addReaction": "添加表情回应",
+    "reactionCount": "{{emoji}} · {{count}} 人回应",
+    "reactionWho": "{{emoji}} · {{count}} 人回应：{{names}}",
+    "reactorSelf": "你",
+    "reactorFormer": "{{name}}（已不在群中）",
+    "reactorsUnavailable_one": "另有 {{count}} 位成员的信息暂不可用",
+    "reactorsUnavailable_other": "另有 {{count}} 位成员的信息暂不可用",
+    "invite": "邀请加入群聊",
+    "join": "加入群聊",
+    "inviteDescription": "对方接受邀请后会成为群成员，可阅读群聊记录。",
+    "revokeLink": "撤销此链接",
+    "revokeDescription": "此链接将无法再用于加入群聊。其他邀请链接和已加入的成员不受影响。",
+    "revokedLink": "此邀请链接已撤销。",
+    "revokeUnsupported": "当前服务不支持撤销邀请链接。",
+    "reusableLink": "长期有效 · 多人可重复使用",
+    "singleUseUntil": "只能使用一次 · {{date}} 到期",
+    "expiredLink": "邀请链接已过期。",
+    "joinDescription": "粘贴邀请链接，查看群聊后再确认加入。",
+    "inviteLink": "邀请链接",
+    "pasteLink": "粘贴邀请链接…",
+    "invitedBy": "{{name}} 邀请你加入",
+    "copyLink": "复制邀请链接",
+    "copied": "邀请链接已复制",
+    "createLink": "生成邀请链接",
+    "accept": "接受并加入",
+    "previewInvite": "查看邀请",
+    "linkDescription": "确认后你会成为群成员，可阅读群聊记录。",
+    "loadingInvite": "正在读取邀请…",
+    "retryInvite": "重新读取邀请",
+    "malformedInvite": "邀请链接不完整或格式不对，请向邀请人重新获取链接。",
+    "invalidInvite": "邀请无效、已使用、已过期或已撤销，请获取新的邀请链接。",
+    "notAllowed": "当前账号没有权限，请检查账号或联系群主。",
+    "loginRequired": "请先登录当前账号，再重试。",
+    "requestFailed": "群聊服务暂时无法连接，请稍后重试。",
+    "copyFailed": "复制失败，请选中链接手动复制。",
+    "createDescription": "伙伴可以选，也可以先建群，再邀请朋友加入。",
+    "settings": {
+     "name": "群名称",
+     "topic": "群主题",
+     "description": "群简介",
+     "save": "保存",
+     "myProfile": "我在本群的资料",
+     "groupAvatar": "修改本群头像",
+     "groupAvatarHint": "仅在本群显示，不影响账号或其他群。恢复默认后使用账号头像。",
+     "editProfile": "修改昵称与头像",
+     "nickname": "我在本群的昵称",
+     "nicknameHint": "仅在本群显示；留空使用个人昵称。",
+     "members": "成员 · {{count}}",
+     "owner": "群主",
+     "admin": "管理员",
+     "member": "成员",
+     "guest": "访客",
+     "companionOf": "{{name}} 的伙伴",
+     "guestAccess": "其他成员使用权限",
+     "toolsHint": "本群成员可以使用伙伴已有的工具与私人资料，结果对全群可见。原有操作审批仍有效；撤回会停止进行中的请求，已执行的操作无法撤销。",
+     "chatHint": "默认只使用群内消息，不读取主人记忆、私人资料或调用工具。",
+     "none": "仅主人可使用",
+     "chat": "仅群内交流",
+     "tools": "主人已授权工具与资料",
+     "ownerOnly": "只有伙伴的主人可以修改此授权。",
+     "authorizeTitle": "授权本群使用 {{name}} 的工具与资料？",
+     "makeAdmin": "设为管理员",
+     "removeAdmin": "取消管理员",
+     "transfer": "转让群主",
+     "transferTitle": "将群主转让给 {{name}}？",
+     "transferHint": "对方成为群主，你将成为管理员。伙伴也可以担任群主。",
+     "removeTitle": "将 {{name}} 移出群？",
+     "removeHint": "该成员将无法继续查看或发消息；如果是伙伴的主人，其伙伴也会退出。",
+     "addCompanion": "邀请我的伙伴",
+     "leave": "退出群",
+     "leaveHint": "你和你的伙伴将退出此群聊，不再接收新消息，也无法查看群历史。",
+     "soleOwnerHint": "群里只剩你。可以归档群，保留历史记录，以后再恢复使用。",
+     "archive": "归档群",
+     "archiveHint": "归档会对所有成员停用本群，停止新消息和伙伴执行。历史记录保留，之后可通过搜索找到本群、查看历史并取消归档。",
+     "confirm": "确认",
+     "lastOwner": "请先将群主转让给其他成员，再退出或移除当前群主。",
+     "conflict": "群设置已被其他成员更新，请刷新后重试。",
+     "unarchive": "取消归档",
+     "unarchiveHint": "取消归档后，本群对所有成员恢复新消息和伙伴执行。",
+     "archived": "本群已归档，可继续查看历史记录。",
+     "noneHint": "本群只有伙伴的主人可以让伙伴回应。",
+     "companionPermissions": "伙伴权限",
+     "configureCapabilities": "工具与授权设置",
+     "capabilityScope": "这是 {{name}} 自己的工具与授权，不是仅限本群的设置。"
+    }
+   },
+   "lifecycle": {
+    "hide": "从我的列表移除",
+    "hideNote": "从你所有设备的列表中移除此群聊。不改变成员关系，不删除历史消息、不停止进行中的工作，也不影响其他成员。",
+    "unavailable": "当前服务器或电脑暂不支持此操作。",
+    "dissolved": "群聊已解散，仍可查看有权访问的历史消息。"
+   }
+  },
+  "joined": {
+   "today": "今天加入",
+   "yesterday": "昨天加入",
+   "days": "{{n}} 天前加入",
+   "months": "{{n}} 个月前加入",
+   "years": "{{n}} 年前加入"
+  },
+  "invitation": {
+   "title": "准备见面",
+   "waiting": "{{name}}，一会儿见",
+   "background": "你可以先去忙，准备好后再来见面。",
+   "profile": "正在写下自己的故事",
+   "skills": "正在为 {{name}} 准备电脑",
+   "avatar": "{{name}} 正在挑选新头像",
+   "welcome": "正在准备第一声问候",
+   "failed": "准备暂时停住了。已经完成的内容会保留，可以再试一次。",
+   "changeModel": "更换模型",
+   "retryFailed": "暂时无法重试，请稍后再试。",
+   "leave": "先去忙",
+   "avatarSkipped": "暂时用了默认头像，你随时可以换一张。"
+  },
+  "permissionRequest": "{{name}} 想请你确认一下",
+  "remote": {
+   "offline": "离线"
+  },
+  "capabilities": {
+   "title": "能力",
+   "search": "搜索能力",
+   "loading": "加载中…",
+   "skill": "技能",
+   "mcp": "MCP",
+   "toolset": "内置工具",
+   "unavailable": "不可用",
+   "empty": "没有匹配的能力",
+   "accessHint": "逐项选择伙伴可使用的内置工具、MCP 与技能。更改从下一次请求生效，也适用于已授权的群内请求。",
+   "inheritedHint": "当前跟随本机已开启的工具。关闭任意一项后，此列表只使用你选择的项目。",
+   "selectedHint": "此列表中，伙伴只使用已选中的项目。",
+   "personalHint": "伙伴自己学到的技能，随伙伴自动加载。",
+   "unavailableHint": "本机或当前执行环境暂不可用，请先配置连接或系统授权。",
+   "notOnThisComputer": "这台电脑不可用",
+   "configure": "前往配置",
+   "empty_toolset": "当前执行环境没有可用的内置工具。",
+   "empty_mcp": "尚未添加自定义 MCP 服务。",
+   "empty_skill": "暂无可选的技能。",
+   "inputHandoff": {
+    "title": "代输入",
+    "description": "遇到需要你本人输入的登录信息、密码或验证码时，允许这位伙伴请你在任意设备上填写。你填写的内容不会交给它。"
+   }
+  },
+  "guided": {
+   "title": "创建伙伴",
+   "generate": "生成伙伴",
+   "modelRequired": "请在上方选择可用模型后继续。",
+   "modelFollowsDefault": "跟随伙伴默认模型。",
+   "modelForThisBot": "此选择仅用于这位伙伴。",
+   "duplicateName": "已有同名伙伴，换一个更容易分辨的名字吧。",
+   "portrait": "头像 {{number}}",
+   "upload": "上传图片",
+   "generateAvatar": "生成头像",
+   "useAvatar": "使用这张"
+  },
+  "import": {
+   "title": "导入伙伴",
+   "entry": "从其他 Agent 导入",
+   "description": "选择要从 Hermes 或 OpenClaw 带来的内容。",
+   "empty": "这台电脑上没有找到已安装的 Agent。",
+   "personality": "性格与做事习惯",
+   "memory": "关于你的记忆",
+   "skills": "技能",
+   "connections": "环境与连接",
+   "automations": "自动化",
+   "paused": "导入后仍停用",
+   "itemAttention": "需要处理",
+   "takeover": "导入后检查并接管自动化",
+   "takeoverNote": "数据连接验证通过后才暂停原任务。取消所需依赖时，原任务继续运行。",
+   "submit": "导入",
+   "back": "上一步",
+   "open": "打开伙伴",
+   "running": "正在导入并检查连接…",
+   "complete": "导入已保存",
+   "attention": "部分内容需要处理，详见下方。",
+   "error": "未能完成导入，可按原选择重试。",
+   "keptAtSource": "尚未完成接管",
+   "retry": "重新检查",
+   "missingSelection": "没有选择这项自动化所需的内容。",
+   "authRefresh": "原授权的续期方式尚需接通。",
+   "toolMapping": "原来的工具限制尚需对应，暂不接管。",
+   "modelMapping": "原来的模型配置尚需对应。",
+   "contextMapping": "原来的工作目录或关联上下文尚需对应。",
+   "deliveryFailed": "尚未验证原来的发送位置。",
+   "sourceChanged": "原任务已变化，请重新读取。",
+   "credentialFailed": "凭证未能安全保存。",
+   "scriptMissing": "缺少这项任务所需的脚本。",
+   "sourceCommand": "找不到原 Agent 的控制命令。",
+   "readFailed": "尚未验证这项任务实际需要的数据查询。",
+   "search": "搜索",
+   "selectAll": "全选",
+   "previous": "上一页",
+   "next": "下一页",
+   "chatSetup": "已保存可导入的资料，可以开始交流了。部分内容还需要登录或检查，你方便时我们再继续。接管前，原来的自动化保持原状。",
+   "chatReady": "资料已经导入，可以开始交流了。",
+   "partial": "部分内容未完整导入",
+   "details": "查看导入详情",
+   "partlySaved": "仅部分保存",
+   "savedNeedsSetup": "已保存，尚未启用或完成设置",
+   "notSaved": "未保存",
+   "databaseDriver": "数据库驱动无法加载，请更新或修复 WinOne 后重试。",
+   "databaseUnavailable": "无法读取来源数据库，原数据未改动。修复后可重试。",
+   "fileTooLarge": "文件或本次资料超过读取上限，未截断导入。",
+   "memoryMetadata": "记忆摘要或标题不符合存储要求。",
+   "memoryWrite": "记忆写入或完整性检查失败，可重试。",
+   "memoryChanged": "已保存的记忆发生变化，未覆盖。",
+   "attachmentUnsupported": "此附件格式暂不支持，原文件保留在来源。",
+   "diskFull": "磁盘空间不足，释放空间后可重试。",
+   "permissionDenied": "没有权限读取或保存此项，修复权限后可重试。",
+   "setupDeferred": "可在伙伴对话中继续登录与验证。",
+   "automationInvalid": "自动化定义无法转换，尚未创建。",
+   "itemFailed": "此项未完成，可重试并查看导入详情。",
+   "chatPartial": "伙伴已创建，但部分资料未完整保存。以下项目仍需处理；其他内容和对话可以正常使用。",
+   "imBotOwnerMissing": "没找到主人的用户 ID，请到伙伴的「消息平台」页把这个机器人连上。",
+   "imBotGatewayRunning": "原来的网关还在用这个机器人。先停掉它，再到「消息平台」页连接。",
+   "imBotInUse": "这个机器人已经在这台电脑上用了：在 设置 → IM 机器人 里，或者在另一位伙伴那里。",
+   "imBotConnectFailed": "没能连上这个机器人，请到伙伴的「消息平台」页重试。",
+   "imBotSourceStopUnconfirmed": "原来的机器人还没停下，暂时没有接给伙伴。可以稍后在伙伴的「消息平台」页连接。",
+   "imBotSourceChanged": "原来的机器人在预览后换过了，没有停用它。请重新读取后再导入。",
+   "bots": "消息机器人",
+   "botsNote": "导入后，{{source}} 里的这些机器人会停用，由伙伴接管。",
+   "sourceDisabled": "原来已停用",
+   "botOwner": "主人 ID {{id}}"
+  },
+  "learning": {
+   "memory": "已记住：{{title}}",
+   "skillCreated": "已建立技能：{{title}}",
+   "skillUpdated": "已更新技能：{{title}}"
+  },
+  "cloud": {
+   "thisComputer": "这台电脑",
+   "unknownDevice": "另一台电脑",
+   "devicesFailed": "未能读取电脑列表",
+   "resumeToMove": "先恢复 {{name}}，再换到另一台电脑"
+  },
+  "market": {
+   "heading": "发现伙伴",
+   "description": "带着方法和技能加入，与你一起把工作往前推进。",
+   "invite": "邀请加入",
+   "open": "打开伙伴",
+   "remove": "移除伙伴",
+   "back": "返回列表",
+   "loading": "正在加载伙伴…",
+   "empty": "没有找到伙伴",
+   "loadFailed": "暂时无法加载伙伴列表，请稍后重新打开。",
+   "installFailed": "尚未完成添加。已保存的内容会保留，可以再试一次。",
+   "nameExists": "已有同名伙伴。请先在伙伴设置中改名，再邀请加入。",
+   "installing": "正在保存伙伴资料和技能…",
+   "memoryDisabled": "记忆已关闭，方法知识尚未导入；不会自动开启记忆。",
+   "knowledge": "知识与记忆",
+   "skills": "技能",
+   "routines": "例行任务",
+   "capabilities": "关键能力",
+   "workTogether": "我的配置",
+   "tools": "工作工具",
+   "remembersLead": "会记住你的",
+   "pluginInstalled": "已安装",
+   "pluginNotInstalled": "未安装",
+   "routineOff": "默认关闭",
+   "itemFailed": {
+    "routine": "例行任务「{{name}}」没能保存。",
+    "skill": "技能「{{name}}」没能保存。",
+    "knowledge": "知识「{{name}}」没能保存。",
+    "other": "「{{name}}」没能保存。",
+    "unknown": "有一项内容没能保存。"
+   },
+   "partialReady": "其他内容已就绪，可以先开始使用。",
+   "partialUnsaved": "伙伴还没有保存，请重新保存。",
+   "retry": "重新保存"
+  },
+  "starterOptions": "起步选项",
+  "channels": {
+   "title": "消息平台",
+   "platform": {
+    "telegram": "Telegram",
+    "feishu": "飞书",
+    "lark": "Lark",
+    "wecom": "企业微信",
+    "dingtalk": "钉钉",
+    "discord": "Discord"
+   },
+   "status": {
+    "connected": "已连接",
+    "connecting": "连接中…",
+    "offline": "已下线",
+    "conflict": "另一台设备正在用这个机器人",
+    "error": "出错",
+    "idle": "未连接"
+   },
+   "remove": "移除",
+   "removeAria": "移除 {{platform}}",
+   "empty": "把你已有的机器人添加到平台，或在下方连接个人微信，{{name}} 就会在那里回复。",
+   "externalNote": "给这个机器人发消息的人都是在和 {{name}} 对话。你自己的消息按 {{name}} 的权限执行；其他人各有一条隐藏任务，权限受限。",
+   "sharedMemoryNote": "{{name}} 会把这里和其它对话里的信息放在一起用。想隔开记忆，请换一位伙伴。",
+   "groups": {
+    "title": "群聊",
+    "hint": "{{name}} 进过的群会出现在这里。「全响应」= 每条消息都看，{{name}} 自己判断要不要插话（每条都会消耗 token）。",
+    "loadFailed": "未能读取群列表",
+    "saveFailed": "没保存上，已恢复原来的模式",
+    "retry": "重新读取",
+    "mode": {
+     "mention": "仅 @",
+     "always": "全响应"
+    }
+   },
+   "lanes": {
+    "title": "{{platform}}任务",
+    "expand": "展开{{platform}}任务",
+    "collapse": "收起{{platform}}任务",
+    "hint": "每个群、话题和其他人的私聊各有一条任务。卡住或答非所问，可以让它重新开始，记录会保留。归档只收起列表记录，不影响任务运行、上下文和历史；有新消息时会重新出现。",
+    "ownerName": "你的私聊",
+    "kind": {
+     "ownerDm": "主任务",
+     "group": "群聊",
+     "topic": "话题",
+     "guestDm": "私聊"
+    },
+    "state": {
+     "running": "正在回复",
+     "failed": "上次回复出错"
+    },
+    "noActivity": "还没有消息",
+    "messageCount_other": "当前上下文 {{count}} 条消息",
+    "reset": "重新开始",
+    "resetAria": "让「{{lane}}」重新开始",
+    "resetConfirm": {
+     "title": "让「{{lane}}」重新开始？",
+     "description": "下一条消息会从干净的上下文开始，正在进行的回复会停下。完整记录仍留在这条任务里，{{name}} 的记忆不变。",
+     "ownerDescription": "这是 {{name}} 的主任务，桌面上的对话和这里的私聊共用它。下一条消息会从干净的上下文开始，正在进行的回复会停下；记录、记忆和文件都保留。",
+     "confirm": "重新开始",
+     "cancel": "取消"
+    },
+    "resetDone": "「{{lane}}」已重新开始，下一条消息从干净的上下文开始。",
+    "resetFailed": "没能重新开始，请稍后再试",
+    "loadFailed": "未能读取任务",
+    "empty": "还没有群或其他人的私聊。有人在群里或私聊里和 {{name}} 说话后，会出现在这里。",
+    "archiveAria": "归档「{{lane}}」",
+    "archiveFailed": "未能归档任务"
+   },
+   "add": {
+    "button": "添加平台",
+    "title": "给 {{name}} 添加平台",
+    "description": "粘贴你在平台上申请的机器人凭证，只存在这台电脑上。",
+    "platformLabel": "平台",
+    "telegram": {
+     "tokenLabel": "Bot Token",
+     "tokenPlaceholder": "粘贴 @BotFather 生成的 Token",
+     "ownerLabel": "你的 Telegram 用户 ID",
+     "ownerPlaceholder": "纯数字 ID（向 @userinfobot 查询）",
+     "ownerHint": "来自这个 ID 的消息按 {{name}} 自己的权限执行，其他人都按访客处理。"
+    },
+    "feishu": {
+     "serviceLabel": "服务",
+     "appIdLabel": "App ID",
+     "appIdPlaceholder": "cli_xxxxxxxxxxxxxxxx",
+     "appSecretLabel": "App Secret",
+     "appSecretPlaceholder": "粘贴 App Secret"
+    },
+    "wecom": {
+     "botIdLabel": "Bot ID",
+     "botIdPlaceholder": "企业微信管理后台里的 Bot ID",
+     "secretLabel": "Secret",
+     "secretPlaceholder": "企业微信管理后台里的 Bot Secret",
+     "ownerHint": "首个私聊这个机器人的人会成为它的主人，按 {{name}} 自己的权限执行。先创建智能机器人并开启长连接。"
+    },
+    "dingtalk": {
+     "appKeyLabel": "Client ID",
+     "appKeyPlaceholder": "粘贴机器人应用的 Client ID",
+     "appSecretLabel": "Client Secret",
+     "appSecretPlaceholder": "粘贴机器人应用的 Client Secret",
+     "ownerHint": "首个私聊这个机器人的人会成为它的主人，按 {{name}} 自己的权限执行。群里被 @ 时才回复。"
+    },
+    "discord": {
+     "tokenLabel": "Bot Token",
+     "tokenPlaceholder": "粘贴 Discord Bot Token",
+     "ownerLabel": "你的 Discord 用户 ID",
+     "ownerPlaceholder": "17–20 位数字 ID",
+     "ownerHint": "只有来自这个 ID 的私聊会交给 {{name}}，按 {{name}} 自己的权限执行。"
+    },
+    "confirm": "连接",
+    "connecting": "连接中…",
+    "errors": {
+     "invalidToken": "这不像 Bot Token，格式应为 123456:ABC…",
+     "invalidOwner": "用户 ID 应该是一串数字。",
+     "invalidFeishu": "App ID 和 App Secret 都要填。",
+     "invalidWecom": "Bot ID 和 Secret 都要填。",
+     "invalidDingtalk": "Client ID 和 Client Secret 都要填。",
+     "invalidDiscordToken": "这不像 Bot Token。",
+     "invalidDiscordOwner": "用户 ID 应该是 17–20 位数字。",
+     "conflict": "这个机器人已经在这台电脑上用了：在 设置 → IM 机器人 里，或者在另一位伙伴那里。",
+     "botUnavailable": "{{name}} 现在不可用，等 TA 恢复后再试。",
+     "connectFailed": "没连上：{{reason}}",
+     "failed": "没能完成，请稍后再试。",
+     "personalBotGone": "设置 → IM 机器人 里已经没有这个机器人了，请改为填写凭证。"
+    },
+    "source": {
+     "label": "连接方式",
+     "existing": "使用已在 WinOne 设置的机器人",
+     "manual": "填写新的凭证",
+     "moveNote": "这个机器人会从 设置 → IM 机器人 移过来，那里将变为空；原来的私聊和群聊改由 {{name}} 接着回复。"
+    }
+   },
+   "removeConfirm": {
+    "title": "移除 {{platform}}？",
+    "description": "这个机器人不再回复，凭证从这台电脑删除，它的隐藏任务会归档。{{name}} 的记忆和性格不变。",
+    "confirm": "移除",
+    "cancel": "取消",
+    "failed": "没能移除，请稍后再试",
+    "ok": "知道了"
+   }
+  },
+  "voiceMode": {
+   "showDetails": "展开通话记录",
+   "hideDetails": "收起通话记录",
+   "transcriptTitle": "当前识别文字",
+   "transcriptEmpty": "说话后，识别文字会显示在这里。",
+   "composerPaused": "结束语音后，继续输入消息…",
+   "microphoneMuted": "麦克风已关闭",
+   "exit": {
+    "idle": "暂时没有说话，即将退出语音模式",
+    "farewell": "已听到告别，即将退出语音模式",
+    "semantic": "即将结束语音模式",
+    "sending": "正在提交，成功后退出语音模式…",
+    "countdown": "{{seconds}} 秒后退出语音模式",
+    "cancel": "取消退出",
+    "hint": "继续说话或点击「取消退出」可保留语音模式。进行中的任务不受影响。",
+    "mutedHint": "麦克风仍已静音，点击「取消退出」可保留语音模式。进行中的任务不受影响。"
+   },
+   "settingsTitle": "语音",
+   "openSettings": "语音设置",
+   "startConversation": "开始语音对话",
+   "settingsHint": "选择这位伙伴使用的朗读模型和音色。设置完成后，从输入框开始语音对话。",
+   "previewNeedsChat": "与伙伴开始对话后可试听。",
+   "voiceId": "音色 ID",
+   "manualVoice": "手动输入音色 ID",
+   "refreshVoices": "刷新音色列表",
+   "voicesLoading": "正在获取音色…",
+   "voicesError": "未能获取音色列表。可重试，或手动输入音色 ID。",
+   "voicesCustomError": "未能完整获取自定义音色。可重试，或手动输入音色 ID。",
+   "voicesReference": "这是该型号的参考音色；兼容服务的实际支持可能不同。",
+   "voicesTruncated": "仅显示部分音色；未列出的音色可手动输入 ID。",
+   "voicesManual": "此接口没有可用的音色列表，请手动输入音色 ID。",
+   "preview": "试听",
+   "stopPreview": "停止试听",
+   "previewVoice": "试听 {{voice}}",
+   "stopPreviewVoice": "停止试听 {{voice}}",
+   "previewText": "你好，这是我的声音。很高兴与你交流。",
+   "previewStatus": {
+    "idle": "试听会调用所选模型，可能产生用量。",
+    "preparing": "正在生成试听语音…",
+    "playing": "正在试听…",
+    "complete": "试听完成。",
+    "error": "试听失败"
+   },
+   "readAloud": "朗读",
+   "stopReadAloud": "停止朗读",
+   "finishBeforeReadAloud": "请先结束语音模式，再朗读消息。",
+   "readAloudFailed": "朗读失败",
+   "finishBeforeDictation": "请先结束语音模式，再开始听写。",
+   "title": "语音模式",
+   "model": "朗读模型",
+   "refresh": "刷新模型",
+   "voice": "音色",
+   "voiceHint": "填写所选模型支持的音色名称，例如 alloy。",
+   "modelUnavailable": "之前选择的朗读模型已不可用，请重新选择。",
+   "noModels": "暂无可用的语音合成模型。",
+   "noModelsSupportedProtocols": "支持 MiniMax、ElevenLabs、Qwen / CosyVoice HTTP，以及 OpenAI 兼容语音合成接口。",
+   "noModelsSetupHint": "连接供应商并启用语音模型后，即可设置伙伴的朗读声音。",
+   "openProviders": "前往模型供应商",
+   "catalogError": "语音设置读取或保存失败，请重试。",
+   "start": "开始说话",
+   "resume": "继续",
+   "retrySend": "重新连接并发送",
+   "mute": "静音",
+   "interrupt": "停止朗读",
+   "send": "发送",
+   "end": "结束",
+   "unsent": "尚未发送 · 可选中文字复制",
+   "hint": "停顿后自动发送，回复由 AI 语音朗读。随时开口即可插话。",
+   "status": {
+    "idle": "准备好就开始",
+    "connecting": "正在连接语音识别…",
+    "listening": "正在听",
+    "thinking": "正在思考…",
+    "speaking": "正在朗读…",
+    "paused": "已暂停 · 麦克风已关闭",
+    "error": "已暂停 · 麦克风已关闭",
+    "question": "等待选择 · 可说选项编号或名称",
+    "confirmation": "等待你的确认 · 麦克风已关闭",
+    "preparing": "正在准备语音…",
+    "loading": "正在读取语音设置…",
+    "microphone": "正在开启麦克风…",
+    "muted": "麦克风已关闭 · 可以继续收听"
+   },
+   "errors": {
+    "connection": "语音连接中断，未发送的文字已保留。",
+    "microphone": "麦克风已停止，请检查权限和设备连接后继续。",
+    "send": "这条消息未被接收，文字已保留。",
+    "speech": "回复朗读失败，文字回复仍保留在对话中。",
+    "speechTimeout": "语音响应超时"
+   },
+   "voiceIdHint": "填写该供应商账号可用的音色 ID。",
+   "speed": "语速",
+   "speedAdjusted": "已按所选模型调整为 {{speed}}×。",
+   "speedUnavailable": "当前模型暂不支持调整语速。",
+   "speedValue": "{{speed}}×",
+   "sentencePlayback": "按句朗读",
+   "sentencePlaybackHint": "回复生成时，尽早按完整句子朗读；关闭后等完整回复再朗读。需要等待回复处理时，会自动延后。",
+   "preferenceHint": "语音设置仅为当前伙伴保存。",
+   "resetPreference": "恢复默认",
+   "preferenceError": "未能读取或保存语音设置，请重试。",
+   "protocol": "语音接口",
+   "protocolOpenai": "OpenAI 兼容",
+   "protocolHint": "选择此地址实际支持的语音接口；切换接口不会更换供应商。",
+   "protocolCorrectedHint": "已按官方地址修正接口，请重新选择音色。",
+   "unmute": "取消静音",
+   "mutedHint": "麦克风已关闭，伙伴回复仍会朗读。取消静音后可继续说话。",
+   "microphoneResumeError": "未能开启麦克风，仍可继续收听。请检查权限和设备后重试取消静音。",
+   "callRecord": "本次通话",
+   "callHistoryTitle": "语音通话",
+   "you": "你",
+   "companion": "伙伴",
+   "callInProgress": "通话中",
+   "callSendFailed": "发送失败，原话已保留。",
+   "handoff": {
+    "sending": "正在交接…",
+    "accepted": "已交给伙伴处理",
+    "failed": "交接失败，原话已保留",
+    "completed": "结果已返回"
+   },
+   "callSaved": "记录已保存",
+   "taskFromCall": "来自通话的工作",
+   "viewTaskProgress": "查看进展",
+   "liveDraft": "正在识别",
+   "questionDraft": "待确认"
+  },
+  "dmThread": {
+   "newReply": "有新回复",
+   "you": "你",
+   "rootNotLoaded": "原消息不在已加载的记录里",
+   "rootUnavailable": "原消息已不在私聊里，不能开话题",
+   "openFailed": "话题没打开，请重试"
+  },
+  "projects": {
+   "title": "关联项目",
+   "description": "需要时读取项目资料。关联不会接手项目内的任务，也不会启动后台工作。",
+   "empty": "尚未关联项目",
+   "choose": "选择项目",
+   "add": "添加",
+   "remove": "移除 {{name}}",
+   "otherComputer": "位于另一台电脑",
+   "unavailable": "目录暂不可用",
+   "failed": "项目未能更新，请重新加载核对保存结果。",
+   "noAvailable": "更多项目可先在项目列表中添加。"
+  }
+ },
+ "commonUi": {
+  "retry": "重试",
+  "confirmDialog": {
+   "cancel": "取消"
+  }
+ },
+ "newChat": {
+  "sendButton": {
+   "send": "发送消息",
+   "stop": "停止生成"
+  },
+  "chatInput": {
+   "voiceInput": {
+    "start": "开始语音输入",
+    "stop": "停止语音输入",
+    "permissionDialog": {
+     "title": "需要麦克风权限",
+     "description": "请开启麦克风权限，再点击语音输入",
+     "confirm": "去授权",
+     "cancel": "取消"
+    }
+   },
+   "attachmentRejection": {
+    "dismiss": "关闭"
+   }
+  },
+  "mediaDownload": {
+   "allow": "允许本次下载",
+   "defer": "暂不下载"
+  },
+  "permissionPrompt": {
+   "alwaysAllowScoped": "本任务都允许 {{scope}}",
+   "alwaysAllowScopedHint": "作用于整个任务，且只限这里列出的范围。",
+   "alwaysAllowSessionHint": "作用于整个任务，不只是这一次请求。",
+   "autoReviewUnavailable": "自动审批没完成，请确认要不要允许这次操作。",
+   "autoReviewReason": "自动审批需要你决定：{{reason}}",
+   "titleCommand": "允许运行这条命令？",
+   "titleFileRead": "允许读取文件？",
+   "titleFileWrite": "允许修改文件？",
+   "titleBrowser": "允许浏览器执行这一步？",
+   "titlePlugin": "允许使用插件「{{plugin}}」？",
+   "ruleSeparator": "、",
+   "submitting": "正在提交确认…",
+   "submissionFailed": "未收到确认结果。请检查连接，若确认框仍在，可重新点击。"
+  }
+ },
+ "voiceInputOverlay": {
+  "rateLimited": "语音请求过于频繁，请稍后重试。",
+  "status": {
+   "submitting": "正在确认",
+   "refining": "正在润色"
+  },
+  "asrServiceUnavailable": "语音识别服务连接失败，请检查网络或稍后重试。",
+  "emptyTranscript": "检测到了语音，但没有识别出文字，请重试。",
+  "connectionInterrupted": "语音连接中断了，请检查网络后重试。",
+  "recognitionStalled": "语音识别没有继续返回结果，请重试。",
+  "transcriptKept": "{{message}}（识别出的文字已经保留，可以直接编辑）"
+ },
+ "chat": {
+  "jumpToBottom": "跳到底部",
+  "askUserQuestion": {
+   "voice": {
+    "hint": "可以说“第一项”或选项名称；多选后请说“确认选择”。",
+    "freeTextHint": "可以直接说出回答，检查后说“确认选择”提交。",
+    "confirm": "请检查当前选择，说“确认选择”提交，或说“取消选择”重选。",
+    "ambiguous": "无法确定你的选择，请再说一个选项编号或完整名称，也可以手动选择。",
+    "unknown": "没有识别到明确选项，请说选项编号或完整名称，也可以手动选择。",
+    "cancelled": "已取消语音选择，请重新选择。"
+   },
+   "pendingTitle": "等待回答",
+   "restoreAriaLabel": "展开问题卡片",
+   "minimizeAriaLabel": "收起问题卡片",
+   "back": "返回",
+   "skip": "跳过",
+   "next": "下一题",
+   "submit": "提交",
+   "sendAndContinue": "发送并继续",
+   "close": "关闭",
+   "customAnswer": "输入其他回答…",
+   "answerPlaceholder": "请输入回答…"
+  },
+  "workGroup": {
+   "working": "正在工作…",
+   "worked": "已工作 {{duration}}",
+   "workDetails": "工作过程"
+  },
+  "imageMissing": {
+   "title": "图片已丢失",
+   "unavailable": "图片暂时无法显示",
+   "loading": "正在加载图片…"
+  },
+  "newMessageIndicator": {
+   "aria": "回到底部，查看 {{count}} 条新消息",
+   "label_one": "{{count}} 条新消息",
+   "label_other": "{{count}} 条新消息"
+  },
+  "messageActionBar": {
+   "reply": "回复",
+   "relative": {
+    "justNow": "刚刚",
+    "minutesAgo_other": "{{count}} 分钟前",
+    "hoursAgo_other": "{{count}} 小时前",
+    "daysAgo_other": "{{count}} 天前"
+   }
+  },
+  "shareImage": {
+   "title": "分享对话",
+   "subtitle_other": "已选 {{count}} 条消息",
+   "selectAll": "全选",
+   "checkboxLabel": "选择这条消息",
+   "cancel": "取消",
+   "download": "下载到本地",
+   "copy": "复制为图片",
+   "copied": "图片已复制",
+   "saved": "图片已保存",
+   "notMounted": "有些已选消息暂未显示，请滚动回去让它们显示后重试",
+   "tooLarge": "所选内容过长或过宽，请减少选择后重试",
+   "failed": "图片生成失败，请重试"
+  },
+  "media": {
+   "modelPreviewAlt": "3D 模型预览",
+   "imageCopied": "图片已复制",
+   "copyFailed": "复制失败",
+   "openFolderFailed": "打开目录失败",
+   "longImagePreview": "长图 · 点击查看完整图片",
+   "copyImage": "复制图片",
+   "revealImage": "打开图片所在目录",
+   "revealImageSidebar": "在文件浏览器中显示",
+   "openInBrowser": "在浏览器打开",
+   "openWithApp": "用默认应用打开",
+   "openWithAppFailed": "打开失败",
+   "saveAs": "另存为…",
+   "imageSaved": "图片已保存",
+   "saveFailed": "保存失败",
+   "sendToChat": "发送到对话",
+   "sentToChat": "已添加到输入框",
+   "sendToChatFailed": "发送到对话失败",
+   "annotate": "标注",
+   "annotateUndo": "撤销上一笔",
+   "annotateDiscard": "放弃标注",
+   "annotateSave": "保存标注",
+   "annotateSaveFailed": "保存标注失败",
+   "annotateRedo": "重做",
+   "annotateDiscardConfirmTitle": "放弃本次标注？",
+   "annotateDiscardConfirmDescription": "将恢复到打开时的标注。",
+   "annotateDiscardConfirmAction": "放弃",
+   "annotateDiscardConfirmCancel": "继续标注",
+   "annotateBurnFailedNotSent": "标注图片合成失败，消息未发送。可重试，或移除标注后发送。",
+   "prevImage": "上一张",
+   "nextImage": "下一张",
+   "openModel": "打开模型",
+   "revealModel": "打开模型所在目录",
+   "openModelFailed": "打开模型失败",
+   "modelLoading": "正在加载 3D 模型…",
+   "modelLoadFailed": "加载 3D 模型失败",
+   "imageMissing": "图片已丢失"
+  },
+  "lightbox": {
+   "pathCopied": "路径已复制",
+   "contentCopied": "内容已复制",
+   "clickToCopyPath": "点击复制路径",
+   "openInExplorer": "在文件管理器中打开",
+   "close": "关闭"
+  },
+  "textLightbox": {
+   "unreadable": "无法读取该文件",
+   "openSystemFailed": "无法在系统中打开",
+   "copyAll": "复制全文",
+   "cannotRead": "无法读取文件",
+   "loading": "正在加载文件…",
+   "oversizeTitle": "文件过大，无法预览",
+   "oversizeBody": "该文件大小为 {{size}}，超过 {{limit}}MB 预览上限。请使用系统默认应用打开。",
+   "openInSystem": "用系统应用打开",
+   "closeHint": "或点击背景关闭"
+  },
+  "remoteFile": {
+   "previewFailed": "无法准备网页预览，请检查目录和连接后重试",
+   "previewNotFound": "找不到 HTML 文件，请确认文件仍然存在",
+   "previewFetching": "正在准备网页预览…",
+   "previewConnectionBusy": "连接拥堵，网页预览暂未完成，请稍后重试",
+   "previewTimeout": "等待远程网页超时，请稍后重试",
+   "previewDisconnected": "尚未连通远程设备，连接恢复后可重试",
+   "previewTooLarge": "正在准备的预览过多，请稍后重试",
+   "previewUnsupported": "此连接不支持预览此目录。",
+   "fetching": "正在从远端获取文件…",
+   "fetchFailed": "从远端获取文件失败",
+   "notFound": "远端文件不存在",
+   "outsideWorkdir": "该文件在任务工作目录之外，远程任务暂不支持访问",
+   "staleCopy": "远端连接不可用，已显示本地历史副本(可能不是最新版本)",
+   "staleBadge": "历史副本",
+   "downloadToLocal": "下载到本地",
+   "downloadPacking": "远程电脑正在打包…已打包 {{size}}",
+   "folderPreparing": "正在准备文件夹…",
+   "cancelFolderPreparation": "取消准备文件夹",
+   "folderPacking": "正在打包…{{size}}",
+   "folderFailed": "文件夹准备失败，请检查连接和磁盘空间后重新拖入",
+   "folderUnsupported": "此连接不支持传输文件夹。",
+   "folderConnectionUnsupported": "此连接暂不支持传输文件夹，请先将文件夹放到目标电脑，再引用其目录",
+   "downloadProgress": "正在下载…{{percent}}% · {{speed}}",
+   "downloadProgressUnknown": "正在下载…{{received}} · {{speed}}",
+   "uploadProgress": "远端正在上传…{{percent}}% · {{speed}}",
+   "uploadProgressUnknown": "远端正在上传…{{received}} · {{speed}}",
+   "downloadExtracting": "正在解压…",
+   "downloadUnsupported": "此连接不支持下载文件夹。",
+   "downloadNoSpace": "磁盘空间不足，无法完成下载",
+   "downloadSkipped": "已下载到「下载」文件夹，但有部分文件未能下载",
+   "cancelTransfer": "取消",
+   "downloadsInProgress": "正在下载 {{count}} 个文件"
+  },
+  "markdownRenderer": {
+   "copyFile": "复制",
+   "copyFilePath": "复制路径",
+   "copyLocation": "复制位置",
+   "locationCopied": "位置已复制",
+   "openWithAppFailed": "无法用所选应用打开",
+   "revealFile": "在文件夹中显示",
+   "fileCopied": "文件已复制",
+   "pathCopied": "路径已复制",
+   "openInBrowserFailed": "在浏览器中打开失败",
+   "openLinkFailed": "打开链接失败",
+   "openInSidebarBrowser": "在侧边栏打开",
+   "openInSidebarFileBrowser": "在文件列表中定位",
+   "openInSidebarFileBrowserFailed": "在侧边栏文件浏览器中打开失败",
+   "openInSidebarFileBrowserOutsideWorkdir": "该文件不在当前任务工作目录内，无法在侧边栏文件浏览器中定位",
+   "openInDefaultBrowser": "在浏览器打开",
+   "copyLink": "复制链接",
+   "linkCopied": "链接已复制",
+   "viewSourceFile": "查看源代码",
+   "openInSidebarFailed": "在侧边栏浏览器中打开失败",
+   "shiftClick": "Shift+点击"
+  },
+  "userMessage": {
+   "attachmentAttachedAria": "已附加 {{name}}",
+   "saveAttachmentAs": "另存附件 {{name}}",
+   "attachmentSaved": "附件 {{name}} 已保存",
+   "attachmentSavedUnsupported": "附件 {{name}} 已保存，但当前平台可能无法直接使用此文件类型",
+   "attachmentSaveForbidden": "无法保存附件：源文件路径不受信任",
+   "attachmentSourceMissing": "无法保存附件：源文件已不存在",
+   "attachmentSaveFailed": "无法保存附件，请检查目标目录权限后重试"
+  },
+  "agentActions": {
+   "part": {
+    "edited_other": "编辑 {{count}} 个文件",
+    "created_other": "创建 {{count}} 个文件",
+    "ran_other": "运行 {{count}} 条命令",
+    "read_other": "读取 {{count}} 个文件",
+    "updated_other": "更新待办",
+    "searched_other": "执行搜索",
+    "fetched_other": "访问网络",
+    "used_other": "调用 {{count}} 个工具"
+   },
+   "more_other": "另外 {{count}} 项",
+   "separator": "、",
+   "lastSeparator": "和"
+  }
+ },
+ "ccAgent": {
+  "agentStatus": {
+   "readingMemory": "正在读取记忆…",
+   "savingMemory": "正在保存记忆…",
+   "deletingMemory": "正在删除记忆…",
+   "organizingMemory": "正在整理记忆…",
+   "readingFile": "正在读取文件…",
+   "savingFile": "正在更新文件…",
+   "readingWeb": "正在读取网页…",
+   "searchingFiles": "正在查找文件…",
+   "testing": "正在运行测试…",
+   "checking": "正在检查代码…",
+   "reviewingMemory": "正在核对记忆…",
+   "reviewingFiles": "正在核对文件…",
+   "reviewingSources": "正在核对网页资料…",
+   "reviewingChecks": "正在核对检查结果…",
+   "replying": "正在回复…",
+   "processing": "正在处理…",
+   "organizingConversation": "正在整理对话…",
+   "thinking": "正在思考…",
+   "searchingWeb": "正在搜索网页…"
+  },
+  "common": {
+   "loading": "加载中…"
+  },
+  "time": {
+   "relative": {
+    "now": "刚刚",
+    "minute": "{{count}} 分钟",
+    "hour": "{{count}} 小时",
+    "day": "{{count}} 天",
+    "week": "{{count}} 周",
+    "month": "{{count}} 月",
+    "year": "{{count}} 年"
+   },
+   "future": {
+    "second": "还有 {{count}} 秒",
+    "minute": "还有 {{count}} 分钟",
+    "hour": "还有 {{count}} 小时",
+    "day": "还有 {{count}} 天",
+    "week": "还有 {{count}} 周",
+    "month": "还有 {{count}} 月",
+    "year": "还有 {{count}} 年"
+   }
+  },
+  "draft": {
+   "createSessionFailed": "创建任务失败，请重试"
+  },
+  "sidebar": {
+   "showAllSessions": "显示全部 {{count}} 项",
+   "sessionMenu": {
+    "archived": "归档"
+   }
+  },
+  "gitContext": {
+   "pr": {
+    "ghNotLoggedIn": "本机 gh 尚未登录 GitHub，看不到 PR 状态",
+    "ghMissing": "未检测到 GitHub CLI（gh），看不到 PR 状态",
+    "notFound": "PR 不存在，或当前账号无权限查看",
+    "statusUnknown": "状态获取失败"
+   }
+  }
+ },
+ "logic": {
+  "toasts": {
+   "attachmentLocalOnly": "仅支持本地文件：{{name}}",
+   "attachmentReadError": "{{name}}：{{reason}}",
+   "attachmentReadFailed": "读取失败：{{name}} - {{error}}",
+   "attachmentLocalCacheFailed": "本地缓存失败，本条消息重启后会丢失",
+   "attachmentPasteFailed": "粘贴失败：{{message}}"
+  },
+  "errors": {
+   "openFileFailed": "无法在系统中打开文件"
+  },
+  "fileTypes": {
+   "fileEmpty": "文件为空",
+   "readFailed": "读取文件失败"
+  }
+ },
+ "extraDirs": {
+  "addFiles": "添加文件、图片或视频…"
+ },
+ "routines": {
+  "onEvent": "事件：{{source}} · {{event}}",
+  "triggerDetails": "查看触发条件（{{count}} 项，满足任一项即运行）",
+  "noTriggers": "尚未设置触发条件",
+  "unsavedTitle": "尚有未保存的修改",
+  "unsavedDescription": "离开后会丢弃这次对例行任务的修改。",
+  "discard": "放弃修改",
+  "continueEditing": "继续编辑",
+  "title": "例行任务",
+  "add": "添加例行任务",
+  "back": "返回例行任务",
+  "error": "无法更新例行任务，请检查设置后重试",
+  "empty": "添加例行任务，告诉伙伴做什么、何时运行",
+  "enabled": "已启用",
+  "paused": "已暂停",
+  "runNow": "立即运行",
+  "running": "运行中…",
+  "name": "名称",
+  "instructions": "指令",
+  "when": "何时运行",
+  "addTrigger": "再添加一个",
+  "removeTrigger": "移除触发器",
+  "schedule": "定时",
+  "hourly": "每小时",
+  "daily": "每天",
+  "weekdays": "工作日",
+  "weekly": "每周",
+  "monthly": "每月",
+  "interval": "间隔",
+  "advanced": "高级…",
+  "everyMinutes": "每 {{count}} 分钟",
+  "minutes": "分钟",
+  "expression": "Cron 表达式",
+  "timezone": "时区",
+  "delete": "删除例行任务",
+  "save": "保存例行任务",
+  "deleteConfirm": "删除这条例行任务，并取消等待中的运行？",
+  "keep": "保留例行任务",
+  "history": "运行历史",
+  "noRuns": "这条例行任务还未运行",
+  "field": "字段",
+  "operator": "条件",
+  "value": "值",
+  "addFilter": "添加条件",
+  "removeFilter": "移除条件",
+  "pluginCapability": "向例行任务提交已声明的事件，只触发你配置的例行任务",
+  "time": "时间",
+  "day": "日期",
+  "weekday": "星期",
+  "status": {
+   "queued": "等待中",
+   "running": "运行中",
+   "success": "已完成",
+   "failed": "运行失败",
+   "interrupted": "已中断",
+   "cancelled": "已取消",
+   "skipped": "已检查 · 未唤醒模型"
+  },
+  "sourceStatus": {
+   "listening": "监听中",
+   "disconnected": "未监听",
+   "error": "来源需要检查"
+  },
+  "operators": {
+   "equals": "等于",
+   "contains": "包含",
+   "not-equals": "不等于"
+  },
+  "quiet": "检查没事不说话",
+  "quietHint": "仅报告变化或问题。提醒和定时发送可关闭此项。",
+  "checkCommand": "前置检查命令",
+  "checkHint": "可选。在电脑上先检查：退出码 2 跳过本轮，0 继续执行，异常仍会报告。清空可移除。",
+  "timeoutMs": "检查超时（毫秒，留空不限时）",
+  "advancedSettings": "高级设置",
+  "builtinFollowUp": {
+   "name": "跟进已接手的任务（内置）",
+   "hint": "任务卡住、等你、出错、达到用量上限或完成时跟进。只处理已交给我的任务。"
+  },
+  "builtinTodoCheck": {
+   "name": "每天查待办（内置）",
+   "hint": "工作日 9:00 在已连接的来源里找新待办，没有就不打扰；在近况里开关，只能暂停或恢复。"
+  },
+  "builtinNightlyLearning": {
+   "name": "夜间学习（内置）",
+   "title": "夜间学习",
+   "hint": "每天 3:30 整理和你的对话：合并记忆，把反复用到的做法总结成技能。没有新对话就跳过，不调用模型。",
+   "hintWeekly": "每周一 3:30 整理这一周和你的对话：合并记忆，把反复用到的做法总结成技能。没有新对话就跳过，不调用模型。"
+  },
+  "nightly": {
+   "switchLabel": "到点自动整理",
+   "paused": "已暂停。对话照常计数，打开后到点开始整理。",
+   "running": "正在整理…",
+   "memoryOff": "记忆已关闭，只整理技能。",
+   "pending": "待整理",
+   "pendingTurns_one": "{{count}} 轮对话",
+   "pendingTurns_other": "{{count}} 轮对话",
+   "pendingNone": "没有新对话，到点会跳过",
+   "last": "上次",
+   "lastNever": "还没整理过",
+   "lastFailed": "没整理完，下次会再试",
+   "lastLearned_one": "整理了 {{count}} 项",
+   "lastLearned_other": "整理了 {{count}} 项",
+   "nothing": "没有需要整理的",
+   "viewHistory": "查看记录",
+   "notHere": "夜间学习只在伙伴的主力电脑上运行。",
+   "switchHint": "没有新对话就跳过，不调用模型",
+   "frequency": "频率",
+   "daily": "每天",
+   "weekly": "每周",
+   "dailyHint": "每天 3:30",
+   "weeklyHint": "每周一 3:30",
+   "runNow": "现在整理",
+   "history": "记录",
+   "empty": "还没有整理过。有新对话后，到点会第一次整理。",
+   "manual": "手动整理",
+   "readTurns_one": "看了 {{count}} 轮对话",
+   "readTurns_other": "看了 {{count}} 轮对话",
+   "undone": "已撤销",
+   "undo": "撤销",
+   "redo": "恢复",
+   "watching": "在观察的做法",
+   "watchingHint": "只出现过一次的做法先放在这里，不会加载。再遇到同类事才会总结成技能。",
+   "promote": "现在记成技能",
+   "decline": "不用学",
+   "changedSince": "这一条之后被改过，不能撤销",
+   "failed": "没能完成，请重试",
+   "item": {
+    "memoryCreated": "新记住「{{title}}」",
+    "memoryUpdated": "整理了记忆「{{title}}」",
+    "memoryDeleted": "删除了记忆「{{title}}」",
+    "memoryMerged": "把记忆「{{title}}」并入「{{into}}」",
+    "skillCreated": "新学技能「{{title}}」",
+    "skillUpdated": "更新了技能「{{title}}」",
+    "skillDisabled": "停用了技能「{{title}}」",
+    "skillMerged": "把技能「{{title}}」并入「{{into}}」并停用"
+   }
+  }
+ },
+ "richAnswer": {
+  "send": "发送消息",
+  "sending": "正在发送…",
+  "sent": "已提交",
+  "sendFailed": "消息未提交，已保留填写内容",
+  "calculationUnavailable": "此项暂时无法计算。",
+  "incomplete": "部分内容未能显示。"
+ }
+}

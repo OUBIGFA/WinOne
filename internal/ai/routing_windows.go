@@ -135,12 +135,14 @@ func (r *RoutingProcess) modelFilter(ctx context.Context, allow func(Selection) 
 			}
 			// A fixed effort is appended to a member ID by Magpie. Vendor IDs
 			// such as :free keep their complete spelling and are never shortened.
+			// Same words as Magpie's provider.MemberEfforts; it does not fix a
+			// member at ultra, so ":ultra" stays part of a model's own ID.
 			base, effort, found := strings.Cut(model, ":")
 			if !found {
 				return false
 			}
 			switch effort {
-			case "none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra":
+			case "none", "minimal", "low", "medium", "high", "xhigh", "max":
 				return allow(Selection{Provider: provider, Model: base})
 			default:
 				return false
@@ -266,6 +268,15 @@ func (r *RoutingProcess) ServeBody(w http.ResponseWriter, request *http.Request,
 	cloned.RequestURI = path
 	r.ServeHTTP(w, cloned)
 }
+
+type mediaModelsKey struct{}
+
+// Carry the Host's current model policy and public listener address into
+// Magpie. These values never come from a client's lookalike headers.
+func (r *RoutingProcess) ServeMedia(w http.ResponseWriter, request *http.Request, models []string) {
+	r.ServeHTTP(w, request.WithContext(context.WithValue(request.Context(), mediaModelsKey{}, models)))
+}
+
 func (r *RoutingProcess) ServeHTTP(w http.ResponseWriter, request *http.Request) {
 	target, err := url.Parse(r.URL + request.URL.RequestURI())
 	if err != nil {
@@ -277,6 +288,12 @@ func (r *RoutingProcess) ServeHTTP(w http.ResponseWriter, request *http.Request)
 	cloned.RequestURI = ""
 	cloned.Host = target.Host
 	cloned.Header = cloned.Header.Clone()
+	cloned.Header.Del("X-WinOne-Media-Models")
+	if models, ok := request.Context().Value(mediaModelsKey{}).([]string); ok {
+		raw, _ := json.Marshal(models)
+		cloned.Header.Set("X-WinOne-Media-Models", string(raw))
+		cloned.Host = request.Host
+	}
 	// Discard an incoming lookalike; this metadata belongs to Host authentication.
 	cloned.Header.Del("X-WinOne-Caller-Key")
 	if id := GatewayCallerKeyID(request.Context()); id != "" {

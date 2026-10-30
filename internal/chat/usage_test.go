@@ -44,6 +44,53 @@ func TestUsageDateRangeIncludesBothWholeDaysAndExcludesLaterMessages(t *testing.
 	}
 }
 
+func TestUsageGroupsResolvedAliasesButKeepsOriginalSessionModels(t *testing.T) {
+	store, err := Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	prices := map[string]UsagePrice{}
+	for i, model := range []string{"vendor/old-model", "new-model"} {
+		c, err := store.NewConversation("", t.TempDir(), model, ai.Selection{Provider: "fixture", Model: model})
+		if err != nil {
+			t.Fatal(err)
+		}
+		entry, _ := json.Marshal(map[string]any{"type": "message", "timestamp": time.Now().Format(time.RFC3339Nano), "message": map[string]any{"role": "assistant", "usage": map[string]int{"input": 10, "output": 5}, "content": []any{}}})
+		path := filepath.Join(c.SessionDirectory, "session.jsonl")
+		if err := os.WriteFile(path, append(entry, '\n'), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := store.BindSession(c.ID, path); err != nil {
+			t.Fatal(err)
+		}
+		prices[c.ID] = UsagePrice{Cost: float64(i + 1), PricedCalls: 1}
+	}
+	aliases := map[string]string{"vendor/old-model": "new-model", "new-model": "new-model"}
+	for _, filter := range []string{"", "new-model", "vendor/old-model"} {
+		page, err := store.Usage(UsageQuery{Period: "all", Model: filter, ModelAliases: aliases}, prices)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if page.Total != 2 || len(page.By["model"]) != 1 || page.By["model"]["new-model"].Calls != 2 || page.Sum.Cost != 3 {
+			t.Fatalf("alias report: %+v", page)
+		}
+		originals := map[string]bool{}
+		for _, row := range page.Rows {
+			originals[row.Model] = true
+		}
+		if !originals["vendor/old-model"] || !originals["new-model"] {
+			t.Fatal("session model was renamed")
+		}
+	}
+	var external UsageQuery
+	if err := json.Unmarshal([]byte(`{"modelAliases":{"vendor/old-model":"spoofed"}}`), &external); err != nil {
+		t.Fatal(err)
+	}
+	if len(external.ModelAliases) != 0 {
+		t.Fatal("accepted client-supplied alias resolution")
+	}
+}
+
 func TestUsageReadsOnlyRegisteredSessionsAndKeepsPageTotals(t *testing.T) {
 	root := t.TempDir()
 	store, err := Open(root)

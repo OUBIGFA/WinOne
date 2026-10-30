@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 	"winone/internal/ai"
 	"winone/internal/configjson"
@@ -64,6 +65,35 @@ func (s *aiService) handleMagpie(r host.Request) host.Response {
 		ctx, cancel := context.WithTimeout(s.ctx, 25*time.Second)
 		defer cancel()
 		raw, err := s.translator.MagpieCatalog(ctx, prefs, providers...)
+		if err != nil {
+			return fail(err)
+		}
+		// MCP URLs use the Host listener, never the short worker's private port.
+		if s.gateway != nil {
+			var catalog map[string]json.RawMessage
+			if err := json.Unmarshal(raw, &catalog); err != nil {
+				return fail(err)
+			}
+			catalog["gateway"], _ = json.Marshal(strings.TrimSuffix(s.gateway.Status().BaseURL, "/v1"))
+			raw, err = json.Marshal(catalog)
+			if err != nil {
+				return fail(err)
+			}
+		}
+		return host.Response{ID: r.ID, Result: raw}
+	case "magpie.usage-aliases":
+		var params struct {
+			Aliases map[string]string  `json:"aliases"`
+			Edit    *ai.UsageAliasEdit `json:"edit,omitempty"`
+		}
+		if err = configjson.DecodeObject(r.Params, &params); err != nil {
+			return fail(err)
+		}
+		aliases, err := s.translator.UsageAliases(s.ctx, params.Aliases, params.Edit)
+		if err != nil {
+			return fail(err)
+		}
+		raw, err := json.Marshal(map[string]any{"usageAliases": aliases})
 		if err != nil {
 			return fail(err)
 		}

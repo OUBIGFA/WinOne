@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"golang.org/x/sys/windows"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -205,5 +206,54 @@ func TestRunnerRetainsFinalReplyAndReapsDescendants(t *testing.T) {
 		}
 	} else if err != windows.ERROR_INVALID_PARAMETER {
 		t.Fatal(err)
+	}
+}
+
+// A proxy configured for the user's network must not intercept worker calls to
+// loopback services: they carry private keys and a remote proxy cannot reach
+// this machine's 127.0.0.1. The proxy here is a closed port, so a proxied
+// request fails; the user's own NO_PROXY entries must survive the merge.
+func TestRunnerLoopbackRequestsBypassInheritedProxy(t *testing.T) {
+	bun := os.Getenv("WINONE_CHAT_BUN_EXE")
+	if bun == "" {
+		t.Skip("explicit Bun runtime fixture")
+	}
+	closed, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	proxy := "http://" + closed.Addr().String()
+	closed.Close()
+	t.Setenv("HTTP_PROXY", proxy)
+	t.Setenv("HTTPS_PROXY", proxy)
+	t.Setenv("NO_PROXY", "intranet.example")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "direct") }))
+	defer server.Close()
+	root := t.TempDir()
+	script := filepath.Join(root, "fixture.mjs")
+	code := `process.stdout.write(JSON.stringify({type:'ready',protocol:1})+'\n');let input='';process.stdin.on('data',async chunk=>{input+=chunk;const end=input.indexOf('\n');if(end<0)return;const request=JSON.parse(input.slice(0,end));input=input.slice(end+1);let value;try{const response=await fetch(request.params.url);value={body:await response.text(),bypass:process.env.NO_PROXY};}catch(error){value={error:String(error),bypass:process.env.NO_PROXY};}process.stdout.write(JSON.stringify({type:'response',id:request.id,ok:true,value})+'\n');});`
+	os.WriteFile(script, []byte(code), 0600)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	runner, err := StartRunner(ctx, bun, script, root, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		closeCtx, done := context.WithTimeout(context.Background(), 5*time.Second)
+		defer done()
+		runner.Close(closeCtx)
+	}()
+	data, err := runner.Call(ctx, "fetch", map[string]string{"url": server.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var value struct{ Body, Bypass, Error string }
+	json.Unmarshal(data, &value)
+	if value.Body != "direct" {
+		t.Fatalf("loopback request went through the proxy: %+v", value)
+	}
+	if !strings.HasPrefix(value.Bypass, "intranet.example,") || !strings.Contains(value.Bypass, "127.0.0.1") {
+		t.Fatal("NO_PROXY was not merged", value.Bypass)
 	}
 }

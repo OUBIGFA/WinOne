@@ -235,3 +235,28 @@
 .chat-usage-panel dl>div{display:flex;justify-content:space-between;gap:12px;font-size:12px}
 .chat-usage-panel dt{color:var(--muted-foreground)}
 .chat-usage-panel dd{margin:0;font-variant-numeric:tabular-nums}
+/* OneBot teammate chat (Cindy simplifiedBotConversation): the teammate's face
+   beside its replies, a bordered reply bubble, five-minute time groups and the
+   unread boundary captured when the chat opened. */
+.chat-bot-reply-row{display:flex;align-items:flex-start;gap:10px;min-width:0}
+.chat-bot-reply-row+.chat-bot-reply-row{margin-top:8px}
+.chat-bot-avatar{display:flex;flex:none;margin-top:2px}
+.chat-bot-avatar--spacer{visibility:hidden}
+.chat-bot-reply-column{display:flex;flex:1;flex-direction:column;align-items:flex-start;min-width:0}
+.chat-bot-reply-column>*{max-width:100%}
+.chat-bot-reply-column>.chat-work-process{width:100%}
+.desktop-conversation-message--bot.desktop-conversation-message--assistant{width:100%}
+.desktop-conversation-message--bot.desktop-conversation-message--assistant .chat-message-column{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
+.desktop-conversation-message--bot.desktop-conversation-message--assistant .chat-message-bubble{width:fit-content;max-width:min(720px,100%);padding:10px 14px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+.desktop-conversation-message--bot.desktop-conversation-message--assistant .chat-message-bubble:has(.chat-answer-content--rich){width:100%}
+.desktop-conversation-message--bot .chat-answer-content{gap:12px}
+.chat-bot-time{display:block;margin:0 0 12px;text-align:center;font-size:11px;line-height:16px;color:var(--muted-foreground)}
+.chat-bot-unread{display:flex;align-items:center;gap:12px;margin:0 0 12px;color:var(--bot-unread-bg,var(--muted-foreground))}
+.chat-bot-unread::before,.chat-bot-unread::after{content:"";flex:1;height:1px;background:currentColor;opacity:.3}
+.chat-bot-unread>span{flex:none;font-size:11px;font-weight:500;letter-spacing:.08em}
+.chat-bot-item{scroll-margin-top:80px;border-radius:12px;transition:background-color var(--desktop-motion-fast,150ms)}
+.chat-bot-item[data-located=true]{background:color-mix(in srgb,var(--foreground) 6%,transparent)}
+.chat-bot-quote-preview{margin-bottom:8px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+/* Cindy AtMentionPanel geometry: 480px above the composer, never wider than it. */
+.chat-bot-mentions{position:absolute;left:0;bottom:100%;z-index:50;width:min(480px,100%);margin-bottom:8px}
+@media(prefers-reduced-motion:reduce){.chat-bot-item{transition:none}}

@@ -130,6 +130,33 @@ func (t *task) prepareShare(ctx context.Context) (any, error) {
 	return map[string]any{"paths": paths, "codePaths": codePaths, "cached": total <= 300*1024*1024, "bytes": total}, nil
 }
 
+// Cloud services accept regular files; reuse the same cancellable archive
+// preparation as the LAN pool instead of a second ZIP implementation.
+func (t *task) prepareStoredPaths(ctx context.Context) ([]string, error) {
+	if t.spec.Text != "" {
+		if len(t.spec.Paths) != 0 {
+			return nil, errors.New("请选择文件或文本，不要混合发送")
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		path := filepath.Join(t.spec.DataDir, "WinOne-text.txt")
+		if err := os.WriteFile(path, []byte(t.spec.Text), 0600); err != nil {
+			return nil, err
+		}
+		return []string{path}, nil
+	}
+	result, err := t.prepareShare(ctx)
+	if err != nil {
+		return nil, err
+	}
+	paths := result.(map[string]any)["paths"].([]string)
+	if len(paths) == 0 {
+		return nil, errors.New("没有可上传的文件")
+	}
+	return paths, nil
+}
+
 type contextReader struct {
 	ctx context.Context
 	io.Reader

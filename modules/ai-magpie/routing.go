@@ -138,9 +138,19 @@ func serveRouting(ctx context.Context, in request, input io.Reader, output io.Wr
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		if in.Operation != "privacy.serve" && (strings.HasPrefix(r.URL.Path, "/v1/") || r.URL.Path == "/api/version" || r.URL.Path == "/api/tags" || r.URL.Path == "/api/show" || r.URL.Path == "/api/chat" || r.URL.Path == "/api/generate" || r.URL.Path == "/mcp/magpie/web-search" || r.URL.Path == "/mcp/magpie/tools") {
+		if in.Operation != "privacy.serve" && (strings.HasPrefix(r.URL.Path, "/v1/") || r.URL.Path == "/api/version" || r.URL.Path == "/api/tags" || r.URL.Path == "/api/show" || r.URL.Path == "/api/chat" || r.URL.Path == "/api/generate" || r.URL.Path == "/mcp/magpie/web-search" || r.URL.Path == "/mcp/magpie/tools" || r.URL.Path == gateway.ImageMCPPath || r.URL.Path == gateway.VisionMCPPath || strings.HasPrefix(r.URL.Path, gateway.ImageMCPFiles)) {
 			r.Header.Set("Authorization", "Bearer "+gateway.Token)
-			protocol.ServeHTTP(w, winOneCallerRequest(r))
+			r = winOneCallerRequest(r)
+			if raw := r.Header.Get("X-WinOne-Media-Models"); raw != "" {
+				r.Header.Del("X-WinOne-Media-Models")
+				var models []string
+				if json.Unmarshal([]byte(raw), &models) != nil || len(models) == 0 {
+					http.Error(w, "Invalid media model policy", 403)
+					return
+				}
+				r = gateway.WinOneMediaRequest(r, models)
+			}
+			protocol.ServeHTTP(w, r)
 			return
 		}
 		// Browser writes must come from this embedded page; external origins do

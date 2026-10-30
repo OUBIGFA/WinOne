@@ -31,9 +31,9 @@ async function flush(){
 // Cindy-style existence checks: coalesce the visible render's paths into stat
 // batches and share in-flight lookups. Preview bytes/tokens are requested only
 // when a viewer opens. A short cache avoids duplicate work across sibling rows.
-export function inspectChatPath(id:string,path:string):Promise<ChatFileStatResult>{
+export function inspectChatPath(id:string,path:string,fresh=false):Promise<ChatFileStatResult>{
  const identity=key(id,path),cached=cache.get(identity);
- if(cached&&Date.now()-cached.at<1500)return Promise.resolve(cached.value);
+ if(!fresh&&cached&&Date.now()-cached.at<1500)return Promise.resolve(cached.value);
  const prior=active.get(identity);if(prior)return prior;
  const request=new Promise<ChatFileStatResult>((resolve,reject)=>{
   let group=pending.get(id);if(!group){group=new Map();pending.set(id,group);}

@@ -11,6 +11,48 @@
   },
   "plugins": [
     {
+      "package": "@magpie-community/opencode-joycode-auth",
+      "name": "JoyCode",
+      "providers": [
+        "joycode"
+      ],
+      "community": true,
+      "summary": {
+        "en": "Unofficial JoyCode provider: JD account browser sign-in, live models and credit multipliers, plan credits and streaming tool calls.",
+        "zh": "非官方 JoyCode 插件：京东账号浏览器登录，动态模型与积分倍率、套餐额度及流式工具调用。"
+      },
+      "version": "0.1.1",
+      "directory": "joycode",
+      "entry": "index.mjs",
+      "files": [
+        {
+          "path": "CHANGELOG.md",
+          "size": 974,
+          "sha256": "423e14968b9b1acada34cd5fadd3a816622471e6d32eb467927451ba9592c333"
+        },
+        {
+          "path": "README.md",
+          "size": 5379,
+          "sha256": "1af41cc2b90e00807c91b5f11e91455cbcc35a1ec5f26b272c154bb11468e351"
+        },
+        {
+          "path": "icon.png",
+          "size": 1828,
+          "sha256": "a6526695b11f6cd71ea4868cae118afb6aa245628a271479a5daf85e92c921af"
+        },
+        {
+          "path": "index.mjs",
+          "size": 24595,
+          "sha256": "169afeec15ae1fa08fa03ddef1c752c015850365c6173b5bed9734b85dbc3828"
+        },
+        {
+          "path": "package.json",
+          "size": 3129,
+          "sha256": "e22dee577fa72f6212806922b2af14d34ad211a25ed42be030035913aed57432"
+        }
+      ]
+    },
+    {
       "package": "@magpie-community/opencode-kimi-work-auth",
       "name": "Kimi Work",
       "icon": "kimi",
@@ -22,7 +64,7 @@
         "en": "Kimi desktop Work subscription through its local sign-in, with live Work models and shared membership usage. Separate from Kimi Code.",
         "zh": "使用本机普通 Kimi 桌面版的 Work 登录，自动读取 Work 模型和会员共享用量；独立于 Kimi Code。"
       },
-      "version": "0.1.5",
+      "version": "0.1.11",
       "directory": "kimi-work",
       "entry": "index.mjs",
       "files": [
@@ -33,18 +75,18 @@
         },
         {
           "path": "README.md",
-          "size": 6917,
-          "sha256": "9e72d23e6e4acdb284f3b7e54f6873f1eb00fae13dee62e6016431dbfe5a5ab6"
+          "size": 8303,
+          "sha256": "862c4f499839deded030003efb3e13cf8e5eb64a0f7d10407c4c1b9ba86ea9a0"
         },
         {
           "path": "index.mjs",
-          "size": 16374,
-          "sha256": "370827376388c26504055a8d8ccf0eb30a1ec772e5c143add9f646201ba3c078"
+          "size": 26277,
+          "sha256": "257d61e3f517938a572b5b87b7a3291f9c90a3ebc389ad3815a7a1d2002fd2e1"
         },
         {
           "path": "package.json",
-          "size": 38193,
-          "sha256": "4a119728367f7dba2c61d5da3b09ca9c3280ea84ea8372b3dcf94351360d198f"
+          "size": 38194,
+          "sha256": "ca9e991d4fa96f6a1fa78c129a7e3618ca2166028c12831399ceee50661bd724"
         }
       ]
     },
@@ -60,7 +102,7 @@
         "en": "OpenCode Zen's free models with the public credential, automatic discovery and native streaming protocols.",
         "zh": "使用 public 凭证接入 OpenCode Zen 免费模型，自动发现模型并支持原生流式协议。"
       },
-      "version": "0.1.14",
+      "version": "0.1.15",
       "directory": "zen-free",
       "entry": "index.mjs",
       "files": [
@@ -71,8 +113,8 @@
         },
         {
           "path": "README.md",
-          "size": 4111,
-          "sha256": "cc74310769acc2abbb076f349957bae355d814be19c8169e1df36a33debed03b"
+          "size": 4734,
+          "sha256": "089ecf611f44afa08d147116e976c837d63b3d2db98f61be80f521feaf95a3ed"
         },
         {
           "path": "index.mjs",
@@ -87,12 +129,12 @@
         {
           "path": "package.json",
           "size": 696,
-          "sha256": "276a02d4a7724b9ca0edd67ab19c28cba7038becee5f04fd3f7defc66d7568dd"
+          "sha256": "f0112d0b506ce0f1c1934161ab4981fa0be268f551fcb5afd097cbfce4d02452"
         },
         {
           "path": "provider.mjs",
-          "size": 15370,
-          "sha256": "5f87a53815e427d38b8aec90af5b8b8928d1a63b210f7411213881877bf892cf"
+          "size": 18090,
+          "sha256": "9935f7636805565cfdbd6cb8b742c96693d3a6add2ea4233bde4e41af6718798"
         },
         {
           "path": "stream.mjs",
@@ -119,24 +161,24 @@
         "en": "Z.ai and BigModel GLM Coding Plan, team seats and ZCode's free Start Plan.",
         "zh": "Z.ai 与智谱 GLM Coding Plan，支持团队席位和 ZCode 免费 Start Plan。"
       },
-      "version": "0.1.20",
+      "version": "0.1.30",
       "directory": "zcode",
       "entry": "index.mjs",
       "files": [
         {
           "path": "README.md",
-          "size": 8936,
-          "sha256": "709407eb126465493d7af6a690e9c6da4cfa5464ae55d7c19429f18a8da65112"
+          "size": 11129,
+          "sha256": "b1929c7c7a5bd1500b3bde88d5a89342788eb0d43d54fac1233e23e1536f61d6"
         },
         {
           "path": "index.mjs",
-          "size": 80648,
-          "sha256": "37732eaed85cdf2497ae6905a16007fa50e61c0d742b204c7a0d38f85b46e841"
+          "size": 98281,
+          "sha256": "aba46ec4c69314012cf9042409b5c95fc0dd516fd8b9803dc4c9184df23e04b0"
         },
         {
           "path": "package.json",
           "size": 652,
-          "sha256": "1c7414e6b09c95b9591d7bdb5e9d6a23a35010d8682b0f24711685914e2818b3"
+          "sha256": "9c30dd238621221151b443c5fb23204b6097c12206af4dd7df74585bbbf394b4"
         },
         {
           "path": "prompt.mjs",
@@ -151,15 +193,17 @@
       "icon": "qoder",
       "providers": [
         "qoder",
-        "qoder-cn"
+        "qoder-cn",
+        "qwenwork",
+        "qwenwork-enterprise"
       ],
       "community": true,
       "replaces": "qoder",
       "summary": {
-        "en": "Your Qoder subscription, international (qoder.com) or Qoder CN (qoder.cn), with Qoder's own device sign-in.",
-        "zh": "用 Qoder 自己的设备登录使用 Qoder 订阅：国际版（qoder.com）或 Qoder CN（qoder.cn）。"
+        "en": "Your Qoder subscription (qoder.com or Qoder CN), and QwenWork (千问办公): the public cloud or the enterprise flagship with its own domain. Unofficial for QwenWork.",
+        "zh": "用 Qoder 自己的设备登录使用 Qoder 订阅（国际版或 Qoder CN）；也接入千问办公：公有云与企业旗舰版（输入企业自己的域名）。千问办公部分非官方。"
       },
-      "version": "0.2.31",
+      "version": "0.2.37",
       "directory": "qoder",
       "entry": "index.mjs",
       "files": [
@@ -170,18 +214,18 @@
         },
         {
           "path": "README.md",
-          "size": 21084,
-          "sha256": "fae6a75f52ed9f1e504c82851277899a7bcc7e8ab05b25985b7717816c3dcb6c"
+          "size": 24545,
+          "sha256": "4e313359f10cc1880ad8c236430aa251648299db2a204402bcdcb7b46ccca30d"
         },
         {
           "path": "index.mjs",
-          "size": 111062,
-          "sha256": "fb0a93a4403ab0dc6f25fa9e762b144c52a27db6eaebd483a5de5b76d511d89f"
+          "size": 136400,
+          "sha256": "2441ae037de62a5a414a881fb7f86a24f0fc8636d5f765df540cba8c3f3ac244"
         },
         {
           "path": "package.json",
-          "size": 556,
-          "sha256": "39ad2d7cb680ec06826641ba7a60835eb8ecb7eb3a78c8b5a38d51f7b9376cb8"
+          "size": 645,
+          "sha256": "8f50d33ed35bc0236397553a2c497d7edce46f2e64bfd53a4bbf862f2a8c585f"
         }
       ]
     },
@@ -266,14 +310,14 @@
         "en": "Factory's Droid subscription: 30 models from Anthropic, OpenAI, xAI and open labs.",
         "zh": "Factory Droid 订阅：Anthropic、OpenAI、xAI 及开源模型共 30 个。"
       },
-      "version": "0.1.37",
+      "version": "0.1.38",
       "directory": "factory",
       "entry": "index.mjs",
       "files": [
         {
           "path": "README.md",
-          "size": 17210,
-          "sha256": "af6b9d2a00d7c0cd98d60387220f6a80d04b0e22301a281d77ba3f47bc5cecef"
+          "size": 18494,
+          "sha256": "58f5b84ab89d27b5dc389618a700e92cec915eb70ffac2089596f4306942eee2"
         },
         {
           "path": "anthropic-tools.mjs",
@@ -287,13 +331,13 @@
         },
         {
           "path": "index.mjs",
-          "size": 105617,
-          "sha256": "73c2cb30e1bfbe593934e080828d427eed7789b4c14d3597b674834d478e979e"
+          "size": 107146,
+          "sha256": "b5297086304a6ebe9d7b073b0747fc44d35126fa771387b90e27e3b492686074"
         },
         {
           "path": "package.json",
           "size": 533,
-          "sha256": "03c7d390693a1842890a8ddf92f98e14c5ef259ec491c1efc3e34e4362585eff"
+          "sha256": "06dd0b12c31d83886ff3511763c0bbc38a420c2a887a8aadc640c975fb41b622"
         }
       ]
     },
@@ -344,7 +388,7 @@
         "en": "Command Code plans — Pro, GOAT, Max, Ultra, Go and Teams.",
         "zh": "Command Code 各档套餐：Pro、GOAT、Max、Ultra、Go 和 Teams。"
       },
-      "version": "0.1.15",
+      "version": "0.1.17",
       "directory": "commandcode",
       "entry": "index.mjs",
       "files": [
@@ -355,13 +399,13 @@
         },
         {
           "path": "index.mjs",
-          "size": 66521,
-          "sha256": "6af6232d000872ee2e4a58e408a03d931dce15ef0d6f27317a89ec071c50c290"
+          "size": 67583,
+          "sha256": "840766ee441c8bb41d59c14e2150a17e96a8aab87d782921a422f623171e0e10"
         },
         {
           "path": "package.json",
           "size": 530,
-          "sha256": "bf8915a22b2d98223704c5a1103c5df5ffe1efb4926059f4f8df2fb47de30f6f"
+          "sha256": "c2299a8efaa7981cdfec43b41261207d9155bccf054391da24dfe0b598d46618"
         }
       ]
     },
@@ -412,29 +456,29 @@
         "en": "Cursor Pro, Pro+, Ultra and Teams — every model your plan has, with tool calls.",
         "zh": "Cursor Pro、Pro+、Ultra 与 Teams：套餐里的所有模型，支持工具调用。"
       },
-      "version": "0.2.19",
+      "version": "0.2.23",
       "directory": "cursor",
       "entry": "index.mjs",
       "files": [
         {
           "path": "README.md",
-          "size": 13778,
-          "sha256": "230445a7321fb4348f3e7949dbe4ca75457bd1d37befd38e31d4c705d27a0511"
+          "size": 14433,
+          "sha256": "ec7aa1f763f33abbab3df12a99fbceb93b2b2d919617bfb720250fb88acb2793"
         },
         {
           "path": "index.mjs",
-          "size": 126999,
-          "sha256": "1658067d7be38b1fa4e565d6cbd27198a22a8518cfc7f697100d710e38e0e607"
+          "size": 130764,
+          "sha256": "3ccc6b7e78c78cd3891144176cc6dd4aab7c3dd3d44690bc3975658dd6123bdc"
         },
         {
           "path": "native-session.mjs",
-          "size": 43790,
-          "sha256": "c65cae928d1847db35ae7aa9ff7a0197bc2b2321a0adf380479a9a34c7c83727"
+          "size": 49461,
+          "sha256": "b11eb8f5ca3614833e23980958fdca98e579a1c6d5e0316e1aeb5d31391cc727"
         },
         {
           "path": "package.json",
           "size": 569,
-          "sha256": "9caa8d58fc3eed69469e00bfa24e748a7005ee3c150b3a63bb826fbe486208e2"
+          "sha256": "16e0b54876ca84d129ec2d463203a0c2f694b7d757f17036ab724d30c56b46dd"
         }
       ]
     },
@@ -451,7 +495,7 @@
         "en": "Kiro Free, Pro, Pro+ and Power — Kiro's sign-in, kiro-cli's, or an API key.",
         "zh": "Kiro Free、Pro、Pro+ 与 Power：Kiro 登录、沿用 kiro-cli 的登录，或 API key。"
       },
-      "version": "0.1.15",
+      "version": "0.1.16",
       "directory": "kiro",
       "entry": "index.mjs",
       "files": [
@@ -462,13 +506,13 @@
         },
         {
           "path": "index.mjs",
-          "size": 73614,
-          "sha256": "e21f939a3d1c49b586f4f1222294b1574f76fdd8bde4012ebc95e18aa896c641"
+          "size": 74430,
+          "sha256": "3a4526a515ebc4b6be79f52367ec249348490412fd0826d91332e56678b6cb39"
         },
         {
           "path": "package.json",
           "size": 499,
-          "sha256": "b18c463543b795e437513dda214a258fb7dd370a9f1b6851bc22841c7dc68bca"
+          "sha256": "bc1e61eba2a15a7972c1e70ecdd7b513d69b7cdbf512ddd6064679b6709c4bf5"
         }
       ]
     },
@@ -520,24 +564,24 @@
         "en": "WorkBuddy's China build (CodeBuddy plan) and its international build.",
         "zh": "WorkBuddy 国内版（CodeBuddy 套餐）与国际版。"
       },
-      "version": "0.1.30",
+      "version": "0.1.34",
       "directory": "workbuddy",
       "entry": "index.mjs",
       "files": [
         {
           "path": "README.md",
-          "size": 11965,
-          "sha256": "6af0df29c7e0e44c03e61fefb45e5b0cb2b99eb2889a91702b30321daa90deba"
+          "size": 15315,
+          "sha256": "288f5098a44d3b0a45a2a4eb2b0585df69f5c60596fab6c5a799a1a8a4ae429d"
         },
         {
           "path": "index.mjs",
-          "size": 85109,
-          "sha256": "b2422b62800187b2382b71466f5154a38ee7d7f847a5a4ed3d84cb84bd694d2c"
+          "size": 109378,
+          "sha256": "a9a5be3d6c4eff9e19a18684e5da4f2ef1e0c43c5e5aa7edb01f20636d4c052b"
         },
         {
           "path": "package.json",
           "size": 578,
-          "sha256": "dc492fc82eb5b6dec1a3c088209a054d7a37423fcaeb6586a5cff4892e112980"
+          "sha256": "a1281dfb7e9c37c86cfc83ea72ba62171e6519cb02b7188686e68e192708665a"
         }
       ]
     },
@@ -553,24 +597,24 @@
         "en": "Cline's models on your own Cline account — usage billing, ClinePass and Cline's free models — with Cline's device sign-in or an API key.",
         "zh": "用自己的 Cline 账号使用 Cline 的模型——用量计费、ClinePass 与免费模型——支持 Cline 设备登录或 API key。"
       },
-      "version": "0.1.10",
+      "version": "0.1.11",
       "directory": "cline",
       "entry": "index.mjs",
       "files": [
         {
           "path": "README.md",
-          "size": 6510,
-          "sha256": "c722caa3e914c87359debf166e11034e27687094bb30114596a61578b838c413"
+          "size": 7680,
+          "sha256": "f267c0839f552345da1078e670bb985ba857ed62f0f9ef28d073eb53d3243d2f"
         },
         {
           "path": "index.mjs",
-          "size": 50426,
-          "sha256": "9969f0698793a521aa72eeba3e63e6fa90e67cabdaed4db1e840b6ad4b3b6e52"
+          "size": 54863,
+          "sha256": "74e2e56a083a471b5ee4d41ddd64617c11532b1c34360ed1bb4e431208f3f6ed"
         },
         {
           "path": "package.json",
           "size": 562,
-          "sha256": "98b2b40c6abe737fc1295d8d32432c7493825216ceeeb95526048511b82deca4"
+          "sha256": "9e156e6414e9b544aefe75682a944f34bca561c517aecde675a25f314830a6bf"
         }
       ]
     },
@@ -587,24 +631,24 @@
         "en": "Trae CN (trae.cn) and Trae international (trae.ai) models with your own account, free tier included — Trae's own browser sign-in. Experimental.",
         "zh": "用 Trae CN（trae.cn）与 Trae 国际版（trae.ai）账号使用各自的模型，含免费版，使用 Trae 自己的浏览器登录。实验性。"
       },
-      "version": "0.2.20",
+      "version": "0.2.22",
       "directory": "trae",
       "entry": "index.mjs",
       "files": [
         {
           "path": "README.md",
-          "size": 24659,
-          "sha256": "c8eac37eb92b7ff44ab2996460c5618f6771b1bf59f771a1426f1a60c77c8afe"
+          "size": 27882,
+          "sha256": "a79f70584b4e6db0eb3afa728cba209f5d544e51ce566c01b6671a8d99add8eb"
         },
         {
           "path": "index.mjs",
-          "size": 160590,
-          "sha256": "8c04b13bd6c508ea498af8e1e75f84d3f9338213d54532f0fbb9ebcc5b20f8ca"
+          "size": 165398,
+          "sha256": "32f78a1e13bc9f2522c62dfe3f415b6ebbddc4975faa796a232e35a8d2f3fe7f"
         },
         {
           "path": "package.json",
           "size": 604,
-          "sha256": "e753c0bcc61032ed63cf0213790774e361a040b0c4f33ae3a6dc24b0c664acba"
+          "sha256": "ca18d8b0c90a50a8593e7f3bd2041bcbb615526fb648acd32c39fe88d831d53d"
         }
       ]
     },
@@ -619,7 +663,7 @@
         "en": "Open Design Cloud's Design Plan (open-design.ai): the account's device sign-in, the models the plan entitles it to, and the plan's 5-hour and 7-day allowance and wallet balance.",
         "zh": "Open Design Cloud 的 Design Plan（open-design.ai）：账号设备登录、套餐可用的模型，以及 5 小时与 7 天额度、钱包余额。"
       },
-      "version": "0.1.6",
+      "version": "0.1.7",
       "directory": "opendesign",
       "entry": "index.mjs",
       "files": [
@@ -630,8 +674,8 @@
         },
         {
           "path": "index.mjs",
-          "size": 21177,
-          "sha256": "97a64a80cabda2c44d9f1a2807e055d59a30451165a0cdb657de250e8b4ccc8c"
+          "size": 21578,
+          "sha256": "3f81e490d78043da67128b483629a21e38e311d3af38c692459e728949407959"
         },
         {
           "path": "models.mjs",
@@ -641,7 +685,7 @@
         {
           "path": "package.json",
           "size": 764,
-          "sha256": "f3e2fc72b9ed4521010df16c3bc65afad7240b34f2730086a238cc172bead2f4"
+          "sha256": "af0bb52d5c56ab76fba587b50b633c4ec131affb281afe4cb4e6e9c9b080e1e9"
         },
         {
           "path": "refresh-models.mjs",
@@ -662,7 +706,7 @@
         "en": "Nous Portal models, with Nous Portal's device sign-in.",
         "zh": "通过 Nous Portal 自己的设备码登录使用 Nous Portal 模型。"
       },
-      "version": "0.1.0",
+      "version": "0.1.1",
       "directory": "nous",
       "entry": "index.mjs",
       "files": [
@@ -678,13 +722,13 @@
         },
         {
           "path": "oauth.mjs",
-          "size": 13909,
-          "sha256": "9581e414875167abd89352572c6e25995174155fd721dc28364d9efa4a7681b8"
+          "size": 14240,
+          "sha256": "ed686e504da31fcddb325eceffa9c8c593a786781f32f63f552cc6f1af74266c"
         },
         {
           "path": "package.json",
           "size": 542,
-          "sha256": "3596f0d776ec3178e799c47a3645c12378299ec270ed89352dfcf13dc2d8c047"
+          "sha256": "5354f0a8a78fbc40a20f90c96a30aa6cf0b5c06101b26682b662ed0ed49b65db"
         }
       ]
     },
@@ -733,24 +777,24 @@
         "en": "AutoClaw (Zhipu OpenClaw) cloud accounts: oversea web sign-in (Google/z.ai) or CN phone SMS, credit balance and daily check-in.",
         "zh": "AutoClaw（智谱澳龙/OpenClaw）云端账号：国际版网页登录（Google/z.ai）或国内手机验证码，积分余额与每日签到。"
       },
-      "version": "0.2.5",
+      "version": "0.2.8",
       "directory": "autoclaw",
       "entry": "index.mjs",
       "files": [
         {
           "path": "README.md",
-          "size": 8208,
-          "sha256": "40b06ef669d56c27834a8aab018ff49da9d36ee291ec8ce59d52f804dd661809"
+          "size": 8247,
+          "sha256": "41e799037bf69297a2a6c8b2aad914040f84517883e4412ff3863a33f77ac915"
         },
         {
           "path": "index.mjs",
-          "size": 63042,
-          "sha256": "df8ac7fae989dfbf025262b00c073a5b6899566ff881b986198420e1ab091144"
+          "size": 64440,
+          "sha256": "53cf07ac7cf2754ccd65c0224babb48cf919f9658634b3c9a0561a5fd5c6574c"
         },
         {
           "path": "package.json",
           "size": 1096,
-          "sha256": "5311675faac1942f448b87cf8e3782809a6fe1093e748207e55b5b1cd4c98546"
+          "sha256": "7b3b390fb85f9f989d0b6201e950fc0f44f2207614eb2718e0a20c8bbcdf5a18"
         }
       ]
     },
@@ -788,6 +832,88 @@
           "path": "package.json",
           "size": 2638,
           "sha256": "f9363283f1c1ea5425521b3f592c002463e1cf4fb453f03375904e84e95c246a"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-gcp-ai-auth",
+      "name": "GCP AI",
+      "providers": [
+        "gcp-ai"
+      ],
+      "community": true,
+      "summary": {
+        "en": "Vertex AI models and Google Cloud promotional credits, signed with your own gcloud or ADC login. Lists only the models your project can call.",
+        "zh": "用本机 gcloud / ADC 登录使用 Vertex AI 模型，并读取 Google Cloud 促销赠金；只列出项目实际能调用的模型。"
+      },
+      "version": "0.1.0",
+      "directory": "gcp-ai",
+      "entry": "index.mjs",
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1084,
+          "sha256": "7dc0b4e9d6e0d8e7d08e8ad0ca5e0345bf64e4cf02278c749c8bcc90c2e396cc"
+        },
+        {
+          "path": "README.md",
+          "size": 5450,
+          "sha256": "88c026e95caaf155a4d9cb5d84dc5df0e5cb865e289fa952259858d8738007e2"
+        },
+        {
+          "path": "assets/icon.png",
+          "size": 2510,
+          "sha256": "e6786befba0594198155098853e31442163d9577a35f8079f62953ed1b8d7f6e"
+        },
+        {
+          "path": "index.mjs",
+          "size": 13754,
+          "sha256": "d47b17faabe1fce96c86ca5b64c22c66b7272e97e83e44f679e9d130cd6febba"
+        },
+        {
+          "path": "lib/browser.mjs",
+          "size": 28676,
+          "sha256": "4914ac493cd77034dde2d7622568b752658838f784a59d5e2b421453a903676b"
+        },
+        {
+          "path": "lib/cdp.mjs",
+          "size": 11882,
+          "sha256": "9c32bd2abe73184ce6eec83240f292cc4899382cd9718fb7fd357e4b6642eef2"
+        },
+        {
+          "path": "lib/credentials.mjs",
+          "size": 44370,
+          "sha256": "55c278050f047fd79bf646025e4cf8ddca7959d50656a5b6a0bdc2de22c8f572"
+        },
+        {
+          "path": "lib/credits.mjs",
+          "size": 17877,
+          "sha256": "e1f3d0eeb968f350bec1f536f21a5eee164804ecea63b56d0dfe6a5e16c1d98a"
+        },
+        {
+          "path": "lib/endpoint.mjs",
+          "size": 4835,
+          "sha256": "d16f3ac1f083be504efd36f7a258eecdf8f86f05490439705de21b454e45d084"
+        },
+        {
+          "path": "lib/fetch_credits.mjs",
+          "size": 5529,
+          "sha256": "7327ee60d223493422784ea53e56db3bf0ad68f4a654230b4e5ea678c5f55975"
+        },
+        {
+          "path": "lib/lock.mjs",
+          "size": 5033,
+          "sha256": "161031776eaf88727c359f8528d6fcc2af37b20ffa767d37e5ae4f8c18cb62b7"
+        },
+        {
+          "path": "lib/models.mjs",
+          "size": 15494,
+          "sha256": "11be11458a89e1c61db9de0b7a52275b7f494159fa9c9dbd1a5fedeb9839492f"
+        },
+        {
+          "path": "package.json",
+          "size": 4783,
+          "sha256": "dd8e526a839a62dcf9b393aeabffabcab6fa853d2445489119337d5a8eef0811"
         }
       ]
     },
@@ -1112,6 +1238,52 @@
       ]
     },
     {
+      "package": "@magpie-community/agent-cowork",
+      "name": "Tuanjie Cowork",
+      "kind": "agent",
+      "community": true,
+      "summary": {
+        "en": "Tuanjie Cowork (codely) on magpie's Agents page: pick one of magpie's models and Cowork chats with it, on the subscriptions magpie already holds.",
+        "zh": "把团结 Cowork（codely）加到 magpie 的 Agent 页：给它选一个 magpie 的模型，它聊天就走那个模型，用的是 magpie 里已登录的那些订阅的额度。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "cowork",
+      "entry": "cowork.agent.js",
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1092,
+          "sha256": "e3085408c6efa4b8bef8790970725c658ad5a2bcb79018c7acf374d283fe08ed"
+        },
+        {
+          "path": "README.md",
+          "size": 9569,
+          "sha256": "cc3e83905ea14f50208b0363b05a094eedb98bcefb11f949e607d08289249375"
+        },
+        {
+          "path": "cowork.agent.js",
+          "size": 5814,
+          "sha256": "fb3222fd2c04094243a0d7e9526c30ef828d65cfecf4b765d196007b1c45bcb7"
+        },
+        {
+          "path": "icon.png",
+          "size": 3533,
+          "sha256": "aa901ae939ae4da4ac3e2a69964d94806f47215d44f721e47d1508cd8364ecb8"
+        },
+        {
+          "path": "package.json",
+          "size": 5608,
+          "sha256": "f747961f2f2e38ab0e8c15a3843b32d2572a29097dae975e1534e5ab33e255ef"
+        },
+        {
+          "path": "seed.mjs",
+          "size": 21121,
+          "sha256": "ec04dce636366e54bb48b5ddbde25f24b286c560d7dc5468aecc603b77d724be"
+        }
+      ]
+    },
+    {
       "package": "@magpie-community/middleware-reserve",
       "name": "Reserve",
       "kind": "middleware",
@@ -1139,6 +1311,73 @@
           "path": "reserve.gateway.js",
           "size": 2469,
           "sha256": "47936fdc8861d6e5d911dae761b8a27639d287d75fbd3d1585f5aaa11ccd28d5"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/tools-search1api",
+      "name": "Search1API",
+      "icon": "https://s1.dev/icon.png",
+      "kind": "tools",
+      "community": true,
+      "summary": {
+        "en": "Search1API web search, news, agentic search, page retrieval, sitemaps and trends through Magpie's tools MCP server. Sign in with OAuth or an API key.",
+        "zh": "通过 Magpie 的工具 MCP 服务使用 Search1API 网页搜索、新闻、智能搜索、页面读取、站点链接和趋势；支持 OAuth 或 API key 登录。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "search1api",
+      "entry": "index.mjs",
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1088,
+          "sha256": "adbc39e7960fdf6e878e4949c08a38a5826c6067d69ef106c9518e4499855ca1"
+        },
+        {
+          "path": "README.md",
+          "size": 7336,
+          "sha256": "142daeb18c54644083d688f4855ab4fd04ab3c0c24110f23f081f8204ea7d593"
+        },
+        {
+          "path": "index.mjs",
+          "size": 131,
+          "sha256": "e1087fbe7ac5e08e46b706cd6409c1ec1c411d22d0e9f26940819c63fdf28c4c"
+        },
+        {
+          "path": "package.json",
+          "size": 1008,
+          "sha256": "4484e4652594c59a7eeb02e7a4d2e856d750dbec9f25145875de8b8c6819caf3"
+        },
+        {
+          "path": "src/auth.ts",
+          "size": 5780,
+          "sha256": "4ffedde70df265efcbfbd6680ef50e85cb5c2e1a56e33479a68b5ccd7dbe5601"
+        },
+        {
+          "path": "src/index.ts",
+          "size": 4361,
+          "sha256": "2391a2329e51e52dbcd2721c0f891416fe4b5f26fef4ed0f1e66f9536d737a06"
+        },
+        {
+          "path": "src/oauth.ts",
+          "size": 9843,
+          "sha256": "18f674d57b82e5d89cfdf9a5653b267fd40dae2ada9ad595e5ea4a5e23387731"
+        },
+        {
+          "path": "src/request.ts",
+          "size": 1417,
+          "sha256": "10c39dbb7485f4d60a9ada0b384d06e60a7d5cd046279724e0ed909f797606fa"
+        },
+        {
+          "path": "src/tools.ts",
+          "size": 3528,
+          "sha256": "55fd8e5799abb4aa0f56ea9b04a7f787ebe5835e21179f3e702fe40843c9d2de"
+        },
+        {
+          "path": "src/types.ts",
+          "size": 1086,
+          "sha256": "95fe484c20a10fe0be09315cc2876b2b25e7edb63095bdf584fab30d71cb4138"
         }
       ]
     },
@@ -1188,29 +1427,29 @@
         "zh": "给每个 agent 的 LayerFS 工作区：稳定的文件系统路径背后是可去重的检查点与分支，而不是每个 agent 各复制一棵项目树。"
       },
       "providers": [],
-      "version": "0.7.1",
+      "version": "0.7.3",
       "directory": "layerfs",
       "entry": "index.mjs",
       "files": [
         {
           "path": "README.md",
-          "size": 16926,
-          "sha256": "af826a8cde235c60b15b92c06f9064e379ed7ad5bc9799c2de4a56e466e76931"
+          "size": 17030,
+          "sha256": "51a31d7f0d1a8206d6468ba3de80878838310fc3684cf6c955700664831306c6"
         },
         {
           "path": "index.mjs",
-          "size": 13853,
-          "sha256": "31921720b9ff62a27edfbad6717ccd9fac8a7e8259c5453515ff326dacff224a"
+          "size": 13877,
+          "sha256": "632b8a00982ae83df97615c564d424a0f89370896f8963a7a6e7c09918370c95"
         },
         {
           "path": "layerfs.mjs",
-          "size": 36249,
-          "sha256": "df0ee6b5d77ec3a6f19f564919ea3a3263ecdf7aac143d31ccc81a9dcba3fa2e"
+          "size": 37698,
+          "sha256": "25a9b3b91872d9da567ec9c74c76252cc2737ffbbaacb4dd91f1a81541e45962"
         },
         {
           "path": "package.json",
           "size": 1187,
-          "sha256": "943734cdc7c0a8dd62b87e5d47a09c7da47839f7b696f794160e4fd84b0211d3"
+          "sha256": "ab406d5145c7063891d1ad1139e5c2abda05be9cac79f426a3ebc26d95fea395"
         },
         {
           "path": "page/app.js",
@@ -1305,19 +1544,19 @@
         "zh": "把普通 Kimi 桌面版 Work 接入 Magpie Agent 页，使用已配置的模型；断开恢复原连接。不是 Kimi Code CLI。"
       },
       "providers": [],
-      "version": "0.1.1",
+      "version": "0.1.3",
       "directory": "kimi-desktop",
       "entry": "index.mjs",
       "files": [
         {
           "path": "COMPATIBILITY.md",
-          "size": 5561,
-          "sha256": "a164a61e75e30fb51ff1292c306b8b6ae27b2b8b19c6a6fa6971657e0714ecfc"
+          "size": 12470,
+          "sha256": "44b45f2181dbe986b47f8fe5eb69c6123aad236ead73b53d25f7a7b0ef3ae8b4"
         },
         {
           "path": "README.md",
-          "size": 8832,
-          "sha256": "82198ba08b376d95c1668a1f9951d3258bcc3989a1234f62f4cab3b6ff6db511"
+          "size": 9820,
+          "sha256": "401e874b9972242a7aa1df0cf8529c2c71fe4c64ad6293427a22e6368c4c6840"
         },
         {
           "path": "adapter.mjs",
@@ -1326,8 +1565,8 @@
         },
         {
           "path": "catalog.mjs",
-          "size": 2881,
-          "sha256": "adcdd4d106ea48f9bacf4292e1e2004a20ba219efa04d379e219cd8017ec2b06"
+          "size": 3261,
+          "sha256": "76fbc2ab412be5842918e502e089bc629a0a1c002023e34b73e8b543dca9639a"
         },
         {
           "path": "index.mjs",
@@ -1341,13 +1580,13 @@
         },
         {
           "path": "library.mjs",
-          "size": 2225,
-          "sha256": "e3652c4d7fc5de9ae4e060d9a31499d41c1b448c287b657224e1328ecfad9235"
+          "size": 2569,
+          "sha256": "98d5ddb0b6fc163f6463018e98d33f0d05030845bc96ed2caf28f881e653f8ea"
         },
         {
           "path": "package.json",
           "size": 10712,
-          "sha256": "355f803161e79a65a75bb3fafb5f16863134d56852ef9602d15f3ec7fb18d278"
+          "sha256": "01e22ebc1810683c049574b6ac44283c4e283b61983be4bda3a4586d58981dd0"
         },
         {
           "path": "rpc.mjs",
@@ -1367,7 +1606,7 @@
         "en": "Cloudflare Workers AI with your API token (Workers AI:Edit): 28+ models discovered live from models.dev, the 8 paid-only models flagged, and a Neurons/day allowance row in magpie quota.",
         "zh": "用你的 Cloudflare API Token（Workers AI:Edit 权限）登录 Workers AI：28+ 模型经 models.dev 实时发现，付费专属模型自动标注，magpie quota 显示每日 Neurons 免费额度。"
       },
-      "version": "0.0.2",
+      "version": "0.0.3",
       "directory": "cloudflare-workers-ai",
       "entry": "index.mjs",
       "files": [
@@ -1379,17 +1618,17 @@
         {
           "path": "README.ja.md",
           "size": 8162,
-          "sha256": "4386f7c89a219eb49428b8edebd8bfb940c7cc22dabc05c414ab841d39e3dc4b"
+          "sha256": "02ebeae78be979b8479e7e7d8bc5ff9cef75d00e6f2c1ada682b68d40d95eb13"
         },
         {
           "path": "README.md",
           "size": 7507,
-          "sha256": "4143fa75f930b1894d9ccdd786e9e266ecf10d83d238c99a3d23e1f92f47f977"
+          "sha256": "2bd3fc9388d4847fac3c8e229e85ee4dafb42610fbd3291030918424dfa6f575"
         },
         {
           "path": "README.zh-CN.md",
           "size": 7340,
-          "sha256": "ed1ff608b2c2bc246c74e0619df9bb5e0bd385dc83db50ded87ce68d11a7c130"
+          "sha256": "302e2e58b3c619faf3cdff12ffedcc09791368be03437d18d3d4803e4963e285"
         },
         {
           "path": "index.mjs",
@@ -1398,8 +1637,8 @@
         },
         {
           "path": "package.json",
-          "size": 948,
-          "sha256": "5e2aa48cbaf9a98a7c170cb6dfab9f8f325d17d33d84d55196ac8379e83580b7"
+          "size": 1003,
+          "sha256": "7a9d83c16dcd35eea89e12c138899877c9cffcbf4f29ebfe43d4ed7ccbd5a030"
         },
         {
           "path": "src/index.mjs",

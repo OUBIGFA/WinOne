@@ -40,6 +40,20 @@ fn window_icon(module:HMODULE)->HICON{
 
 const DISPATCH:u32=WM_APP+20;
 const HOST_EXITED:u32=WM_APP+21;
+#[link(name="wtsapi32")]
+unsafe extern "system" {
+    fn WTSRegisterSessionNotification(window:HWND,flags:u32)->i32;
+    fn WTSUnRegisterSessionNotification(window:HWND)->i32;
+}
+// Cindy's power release contract: suspend and this workstation's lock release
+// capture. Resuming/unlocking is never an implicit request to restart a mic.
+fn voice_power_event(message:u32,parameter:usize)->Option<&'static str>{
+    match (message,parameter){
+        (0x218,4)=>Some("winone:voice-system-suspend"),
+        (0x2b1,7)=>Some("winone:voice-screen-locked"),
+        _=>None,
+    }
+}
 // Sent WM_SIZE/WM_WINDOWPOSCHANGED callbacks can run inside GetMessage without
 // making it return. Queue one wake so deferred layout cannot wait for a later
 // click, Host reply or screenshot to release the outer message loop.
@@ -101,6 +115,13 @@ impl BrowserLifetime{
 #[cfg(test)]
 mod background_tests {
     use super::*;
+    #[test]
+    fn system_power_and_workstation_lock_release_voice_capture() {
+        assert_eq!(voice_power_event(0x218,4),Some("winone:voice-system-suspend"));
+        assert_eq!(voice_power_event(0x2b1,7),Some("winone:voice-screen-locked"));
+        assert_eq!(voice_power_event(0x218,18),None); // Resume never starts a mic.
+        assert_eq!(voice_power_event(0x2b1,8),None);
+    }
     #[test]
     fn closing_preserves_activity_and_distinguishes_application_exit() {
         assert_eq!(close_action(true,false,false,false),CloseAction::Hide);
@@ -433,7 +454,7 @@ unsafe extern "system" fn procedure(window:HWND,message:u32,w:WPARAM,l:LPARAM)->
     }
     // DestroyWindow can re-enter while a UI request owns State. Quitting the
     // message loop must not depend on reacquiring that borrow.
-    if message==WM_DESTROY{unsafe{PostQuitMessage(0);}return 0;}
+    if message==WM_DESTROY{unsafe{WTSUnRegisterSessionNotification(window);PostQuitMessage(0);}return 0;}
     // ShowWindow/SetWindowPlacement request these constraints synchronously,
     // including while State is borrowed. They depend only on the HWND.
     if message==WM_GETMINMAXINFO&&l!=0{
@@ -454,7 +475,9 @@ unsafe extern "system" fn procedure(window:HWND,message:u32,w:WPARAM,l:LPARAM)->
         // user close (including Alt+F4); older window hosts ignore this marker.
         pending.set(Some(pending.get().unwrap_or(false)||message==HOST_EXITED||w==1));
     }
-    if !pointer.is_null(){if let Ok(mut state)=unsafe{&*pointer}.try_borrow_mut(){match message{
+    if !pointer.is_null(){if let Ok(mut state)=unsafe{&*pointer}.try_borrow_mut(){
+      if let Some(event)=voice_power_event(message,w){state.event(event);return 0;}
+      match message{
         DISPATCH=>{state.dispatch();return 0;},
         WM_CLOSE|HOST_EXITED=>{if state.webview.is_some(){state.exit_requested|=unsafe{&*pointer}.close_requested.take().unwrap_or(false);state.close();}return 0;},
         WM_DROPFILES=>{
@@ -547,6 +570,7 @@ fn run_inner(pipe:&str,directory:&str,open_settings:bool,plan:crate::startup::Pl
     if unsafe{RegisterClassW(&class)}==0{return Err(std::io::Error::last_os_error().to_string());}
     let window=unsafe{CreateWindowExW(WS_EX_CONTROLPARENT|WS_EX_APPWINDOW,class.lpszClassName,wide("WinOne").as_ptr(),WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN,CW_USEDEFAULT,CW_USEDEFAULT,1280,840,null_mut(),null_mut(),module,(&*state as *const WindowState).cast())};
     if window.is_null(){return Err(std::io::Error::last_os_error().to_string());}
+    if unsafe{WTSRegisterSessionNotification(window,0)}==0{eprintln!("voice workstation notification: {}",std::io::Error::last_os_error());}
     state.borrow_mut().window=window;if let Some(instance)=&mut instance{instance.attach(window)?;}
     crate::component_frame::decorations(window)?;
     crate::component_frame::theme(window,"system")?;

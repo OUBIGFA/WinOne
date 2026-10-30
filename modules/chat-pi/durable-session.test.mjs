@@ -43,6 +43,37 @@ test('official durable harness executes real tools, persists history and dedupli
  const history=await fs.readFile(file,'utf8');assert.equal(history.split('"role":"user"').length-1,2,'projection must not duplicate recovered entries');
 });
 
+test('memory-only protected turns keep the full plan and question tools without creating history',async t=>{
+ const replies=[{tool:'update_plan',args:{plan:[{step:'Confirm the protected request',status:'in_progress'}]}},{tool:'ask_user_question',args:{questions:[{question:'Allow this protected request?',options:['Yes','No']}]}},{text:'PRIVATE_ANSWER'}];
+ const f=await fixture(t,()=>replies.shift());let asked=false;
+ const agent=await createDurableSession(f.config,{inMemory:true,question:async()=>{asked=true;return ['Yes'];}});t.after(()=>agent.close());
+ await agent.session.prompt('PRIVATE_INPUT',{requestId:'protected-input',inputReceipt:{id:'protected-input',text:'PRIVATE_INPUT'}});
+ assert.equal(asked,true);assert.match(JSON.stringify(agent.session.messages),/PRIVATE_ANSWER/);
+ assert.equal(agent.storageFile,undefined,'protected turns must not allocate a durable database');
+ assert.equal(agent.session.sessionManager.getSessionFile(),undefined);
+ await agent.close();
+ assert.deepEqual(await fs.readdir(f.config.sessionDirectory),[],'no transcript or WAL may survive a protected turn');
+});
+
+test('resetting context preserves visible history and keeps it out of later model turns after reopening', async t=>{
+ const f=await fixture(t,()=>({text:'Received.'}));
+ let agent=await createDurableSession(f.config);t.after(()=>agent.close());
+ await agent.session.prompt('Remember OLD_CONTEXT_ONLY.',{requestId:'before-reset'});
+ const file=agent.state().file;
+ await agent.session.resetContext();
+ assert.equal(f.requests.length,1,'context reset must not call a model');
+ assert.ok(agent.session.sessionManager.getBranch().some(entry=>entry.message?.content==='Remember OLD_CONTEXT_ONLY.'));
+ assert.equal(agent.session.sessionManager.getBranch().filter(entry=>entry.customType==='winone.context-reset').length,1);
+ await agent.close();agent=await createDurableSession({...f.config,sessionFile:file});
+ await agent.session.prompt('Start with NEW_CONTEXT_ONLY.',{requestId:'after-reset'});
+ const messages=JSON.stringify(f.requests.at(-1).messages);
+ assert.ok(messages.includes('NEW_CONTEXT_ONLY'));
+ assert.ok(!messages.includes('OLD_CONTEXT_ONLY'),'old history must not return to the model after reset');
+ const branch=agent.session.sessionManager.getBranch();
+ assert.ok(branch.some(entry=>entry.message?.content==='Remember OLD_CONTEXT_ONLY.'));
+ assert.equal(branch.filter(entry=>entry.customType==='winone.context-reset').length,1,'reopening must not duplicate the reset marker');
+});
+
 test('busy steering immediately uses the native inbox without repeating startup hooks',async t=>{
  let release;const gate=new Promise(resolve=>{release=resolve;});t.after(()=>release());
  const f=await fixture(t,async(_request,index)=>{if(index===1){await gate;return {tool:'read',args:{path:'proof.txt'}};}return {text:'Accepted the correction.'};});
@@ -68,6 +99,15 @@ test('thinking changes and fast mode affect the real request without claiming an
  await agent.session.prompt('Use the provider default again.');
  assert.equal(f.requests[1].reasoning_effort,undefined,'auto must not force an effort');assert.equal(f.requests[1].service_tier,undefined,'fast mode must stop prioritizing');
  assert.equal(agent.state().fastMode,false);assert.equal(agent.state().thinkingLevel,'off');
+});
+
+test('a vendor reasoning ladder is not sent a Pi level it lacks',async t=>{
+ // Our Free Model's MiMo V2.5: light/balanced/deep. Its plugin applies its
+ // own default when no level it knows is asked for.
+ const f=await fixture(t,()=>({text:'Vendor default'}));
+ const agent=await createDurableSession({...f.config,model:{...f.config.model,levels:['light','balanced','deep'],efforts:['light','balanced','deep']}});t.after(()=>agent.close());
+ await agent.session.setThinkingLevel('high');await agent.session.prompt('Use the plugin default.');
+ assert.equal(f.requests[0].reasoning_effort,undefined,'a level the model lacks must not be sent');
 });
 
 test('unsafe command interrupted at shutdown is not replayed on recovery',async t=>{

@@ -184,7 +184,7 @@
   },
   "magpie": {
     "repository": "https://github.com/yetone/magpie",
-    "commit": "50f52b540b915bdf5912ddebc48c1fa46eef3025",
+    "commit": "42ec2700bd2a4cf8d4ceb76a95767ac221e283e5",
     "license": "MIT",
     "dependencyLocks": [
       "modules/ai-magpie/upstream.go.mod",
@@ -192,8 +192,8 @@
     ],
     "adapter": "modules/ai-magpie",
     "build": "build/build-ai.ps1",
-    "verification": "docs/magpie-update-20261023.md",
-    "previousCommit": "bac5be067744f1bcf5609d5bb790f41c5dc5c078",
+    "verification": "docs/magpie-update-20261025.md",
+    "previousCommit": "50f52b540b915bdf5912ddebc48c1fa46eef3025",
     "privacyModel": "third_party/privacy-model.json",
     "routingExtraction": "build/prepare-ai-routing.mjs"
   },

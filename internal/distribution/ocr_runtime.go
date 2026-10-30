@@ -28,6 +28,12 @@ var chatShareInventory string
 //go:embed chat_codemode_runtime_paths.txt
 var chatCodeModeInventory string
 
+// OneBot is an all-or-nothing optional addition for legacy rollback packages.
+//
+//go:embed chat_onebot_runtime_paths.txt
+var chatOneBotInventory string
+var chatOneBotFiles = strings.Fields(chatOneBotInventory)
+
 // The new search runtime remains optional for old verified rollback bundles.
 //
 //go:embed chat_search_runtime_paths.txt
@@ -61,6 +67,9 @@ var textRuntimeAllowed = func() map[string]bool {
 	for _, name := range chatShareFiles {
 		result[name] = true
 	}
+	for _, name := range chatOneBotFiles {
+		result[name] = true
+	}
 	for _, name := range chatCodeModeFiles {
 		result[name] = true
 	}
@@ -80,10 +89,17 @@ var textRuntimeAllowed = func() map[string]bool {
 func requiredForPayload(seen map[string]bool) []string {
 	result := append([]string{}, requiredFiles...)
 	text, plugins, chat, share, codeMode, stroke, search, recording, interconnect := false, false, false, false, false, false, false, false, false
+	onebot := false
 	for name := range seen {
 		lower := strings.ToLower(name)
 		if lower == "capture/winone.recording.dll" || lower == "capture/recording-runtime.json" {
 			recording = true
+		}
+		for _, resource := range chatOneBotFiles {
+			if lower == strings.ToLower(resource) {
+				onebot = true
+				break
+			}
 		}
 		for _, resource := range chatSearchFiles {
 			if lower == strings.ToLower(resource) {
@@ -135,6 +151,9 @@ func requiredForPayload(seen map[string]bool) []string {
 	if share {
 		result = append(result, chatShareFiles...)
 		result = append(result, chatOptionalRuntimeFiles...)
+	}
+	if onebot {
+		result = append(result, chatOneBotFiles...)
 	}
 	if codeMode {
 		result = append(result, chatCodeModeFiles...)

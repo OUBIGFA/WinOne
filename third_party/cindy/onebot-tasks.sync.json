@@ -1,0 +1,853 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+  "license": "Apache-2.0",
+  "scope": "Cindy independent companion task service. Native session, model catalog and database access use explicit WinOne adapters; no cloud, remote execution or Chat Server groups.",
+  "groups": [
+    {
+      "source": "apps/desktop/src/main/git-context",
+      "target": "modules/chat-pi/cindy/tasks/git",
+      "include": [
+        "prRefExtractor.ts",
+        "prStatusService.ts",
+        "ghCliTokenSource.ts",
+        "ghBinary.ts"
+      ]
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc",
+      "target": "modules/chat-pi/cindy/tasks",
+      "include": [
+        "botDelegationService.ts",
+        "botDelegationLifecycle.ts",
+        "botDelegationCompletionMessage.ts",
+        "botDelegationDispatchOutcome.ts",
+        "sessionExecutionOwnership.ts",
+        "taskActionAuthorization.ts",
+        "botGroupToolAuthorization.ts",
+        "forwardedRequest.ts",
+        "botDirectMessageService.ts",
+        "acceptedCallbackRunner.ts",
+        "agentInputReferences.ts",
+        "agentHandoff.ts",
+        "botGroupChatService.ts",
+        "botGroupDivision.ts",
+        "botGroupPlanDecider.ts",
+        "botGroupRuntimeFailure.ts",
+        "botGroupWorkDir.ts"
+      ]
+    },
+    {
+      "source": "apps/desktop/src/main/im/shared",
+      "target": "modules/chat-pi/cindy/tasks/im",
+      "include": [
+        "botImLaneRuntime.ts"
+      ]
+    },
+    {
+      "source": "apps/desktop/src/shared/",
+      "target": "modules/chat-pi/cindy/tasks/shared",
+      "include": [
+        "botDelegation.ts",
+        "botCollaboration.ts",
+        "botGroupChat.ts",
+        "forwardedRequest.ts",
+        "accountProviderReadiness.ts",
+        "agentInputQueue.ts",
+        "locale.ts",
+        "botTaskCoordination.ts",
+        "botDirectMessage.ts",
+        "botPeerAddress.ts",
+        "imMessageSource.ts",
+        "inputError.ts",
+        "attachmentSafety.ts"
+      ]
+    },
+    {
+      "source": "apps/desktop/src/main/localDb",
+      "target": "modules/chat-pi/cindy/tasks/db",
+      "include": [
+        "schema.ts"
+      ]
+    },
+    {
+      "source": "packages/maker-shared/src",
+      "target": "modules/chat-pi/cindy/tasks/core",
+      "include": [
+        "botCollaboration.ts",
+        "botDelegation.ts",
+        "botGroupChat.ts",
+        "permissionMode.ts",
+        "agentCapabilities.ts",
+        "sharedTask.ts",
+        "botGroupQuote.ts",
+        "botGroupTask.ts",
+        "agentInputProjection.ts",
+        "chatQuotes.ts",
+        "imageAnnotation.ts",
+        "mentionRef.ts",
+        "brandIdentity.ts",
+        "branding.ts"
+      ]
+    },
+    {
+      "source": "apps/desktop/src/main/localDb/worker/opHandlers/tx.ts",
+      "target": "modules/chat-pi/cindy/tasks/db/transactions.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/localDb/worker/opHandlers/botGroupsTx.ts",
+      "target": "modules/chat-pi/cindy/tasks/db/botGroupsTx.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/pathResolver.ts",
+      "target": "modules/chat-pi/cindy/tasks/pathResolver.ts",
+      "file": true
+    }
+  ],
+  "seams": {
+    "apps/desktop/src/main/appSessionState.ts": "modules/chat-pi/onebot/im-scope.mjs",
+    "apps/desktop/src/main/bot-autonomy/botsChangedSignal.ts": "modules/chat-pi/cindy/autonomy/botsChangedSignal.ts",
+    "apps/desktop/src/main/bot-import/types.ts": "modules/chat-pi/cindy/bots/import-types.ts",
+    "apps/desktop/src/main/cindy-media/sniffMediaMime.ts": "modules/chat-pi/cindy/bots/sniffMediaMime.ts",
+    "apps/desktop/src/main/companion-cloud/homes.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/companion-cloud/runtime.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/destructiveGuard.ts": "modules/chat-pi/cindy/bots/destructiveGuard.ts",
+    "apps/desktop/src/main/device-link/broadcast-tap.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/device-link/crossProcessLock.ts": "modules/chat-pi/cindy/bots/crossProcessLock.ts",
+    "apps/desktop/src/main/i18n.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/im/ownerScopedStorage.ts": "modules/chat-pi/onebot/im-scope.mjs",
+    "apps/desktop/src/main/im/shared/__tests__/channelToolPolicy.test.ts": "modules/chat-pi/cindy/bots/im-policy/__tests__/channelToolPolicy.test.ts",
+    "apps/desktop/src/main/im/shared/botImConnectionStore.ts": "modules/chat-pi/cindy/bots/botImConnectionStore.ts",
+    "apps/desktop/src/main/im/shared/channelToolPolicy.ts": "modules/chat-pi/cindy/bots/im-policy/channelToolPolicy.ts",
+    "apps/desktop/src/main/im/shared/imBotBindingRoute.ts": "modules/chat-pi/cindy/bots/imBotBindingRoute.ts",
+    "apps/desktop/src/main/im/shared/inboundMediaVerify.ts": "modules/chat-pi/cindy/bots/inboundMediaVerify.ts",
+    "apps/desktop/src/main/im/shared/interactionCardModel.ts": "modules/chat-pi/cindy/bots/im-policy/interactionCardModel.ts",
+    "apps/desktop/src/main/im/shared/types.ts": "modules/chat-pi/onebot/im-types.ts",
+    "apps/desktop/src/main/localDb/__tests__/conversationSearch.pure.test.ts": "modules/chat-pi/cindy/bots/search/__tests__/conversationSearch.pure.test.ts",
+    "apps/desktop/src/main/localDb/chatHistorySearch.pure.ts": "modules/chat-pi/cindy/bots/search/chatHistorySearch.pure.ts",
+    "apps/desktop/src/main/localDb/cjkSeg.ts": "modules/chat-pi/cindy/bots/search/cjkSeg.ts",
+    "apps/desktop/src/main/localDb/client/current.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/localDb/client/tx/types.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/localDb/conversationSearch.pure.ts": "modules/chat-pi/cindy/bots/search/conversationSearch.pure.ts",
+    "apps/desktop/src/main/localDb/ipc/botProfileVersioning.ts": "modules/chat-pi/cindy/bots/botProfileVersioning.ts",
+    "apps/desktop/src/main/localDb/ipc/bots.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/localDb/ipc/messages.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/localDb/ipc/projectAliases.ts": "modules/chat-pi/onebot/projects-host.mjs",
+    "apps/desktop/src/main/localDb/ipc/recentWorkdirs.ts": "modules/chat-pi/onebot/projects-host.mjs",
+    "apps/desktop/src/main/localDb/ipc/sessions.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/localDb/mapper.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/localDb/sessionOpening.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/logger.ts": "modules/chat-pi/onebot/logger.ts",
+    "apps/desktop/src/main/maker-host/logger-adapter.ts": "modules/chat-pi/onebot/im-scope.mjs",
+    "apps/desktop/src/main/maker-host/override-settings-file.ts": "modules/chat-pi/cindy/bots/override-settings-file.ts",
+    "apps/desktop/src/main/maker-ipc/__tests__/botLearningReviewPlan.test.ts": "modules/chat-pi/cindy/bots/__tests__/botLearningReviewPlan.test.ts",
+    "apps/desktop/src/main/maker-ipc/__tests__/botMemoryService.test.ts": "modules/chat-pi/cindy/bots/__tests__/botMemoryService.test.ts",
+    "apps/desktop/src/main/maker-ipc/__tests__/botProfileFolder.test.ts": "modules/chat-pi/cindy/bots/__tests__/botProfileFolder.test.ts",
+    "apps/desktop/src/main/maker-ipc/__tests__/botSkillRuntimeCache.test.ts": "modules/chat-pi/cindy/bots/__tests__/botSkillRuntimeCache.test.ts",
+    "apps/desktop/src/main/maker-ipc/__tests__/botSkillRuntimeSource.test.ts": "modules/chat-pi/cindy/bots/__tests__/botSkillRuntimeSource.test.ts",
+    "apps/desktop/src/main/maker-ipc/__tests__/botSkillStore.test.ts": "modules/chat-pi/cindy/bots/__tests__/botSkillStore.test.ts",
+    "apps/desktop/src/main/maker-ipc/__tests__/botTodoStore.test.ts": "modules/chat-pi/cindy/bots/__tests__/botTodoStore.test.ts",
+    "apps/desktop/src/main/maker-ipc/agent-input-coordinator.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/maker-ipc/appDefaultModelControl.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/maker-ipc/autoReviewUserIntent.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/maker-ipc/botCanonicalSessionRegistry.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/maker-ipc/botDelegationService.ts": "modules/chat-pi/onebot/lifecycle-host.mjs",
+    "apps/desktop/src/main/maker-ipc/botLearningReviewPlan.ts": "modules/chat-pi/cindy/bots/botLearningReviewPlan.ts",
+    "apps/desktop/src/main/maker-ipc/botLifecycleService.ts": "modules/chat-pi/cindy/bots/botLifecycleService.ts",
+    "apps/desktop/src/main/maker-ipc/botLinkedProjects.ts": "modules/chat-pi/cindy/bots/botLinkedProjects.ts",
+    "apps/desktop/src/main/maker-ipc/botMemoryService.ts": "modules/chat-pi/cindy/bots/botMemoryService.ts",
+    "apps/desktop/src/main/maker-ipc/botNightlyLearningPlan.ts": "modules/chat-pi/cindy/bots/botNightlyLearningPlan.ts",
+    "apps/desktop/src/main/maker-ipc/botNightlyLearningState.ts": "modules/chat-pi/cindy/bots/botNightlyLearningState.ts",
+    "apps/desktop/src/main/maker-ipc/botProfileFolder.ts": "modules/chat-pi/cindy/bots/botProfileFolder.ts",
+    "apps/desktop/src/main/maker-ipc/botProfileLock.ts": "modules/chat-pi/cindy/bots/botProfileLock.ts",
+    "apps/desktop/src/main/maker-ipc/botRemoteResourceInvalidation.ts": "modules/chat-pi/onebot/lifecycle-host.mjs",
+    "apps/desktop/src/main/maker-ipc/botSkillFrontmatter.ts": "modules/chat-pi/cindy/bots/botSkillFrontmatter.ts",
+    "apps/desktop/src/main/maker-ipc/botSkillQueryIndex.ts": "modules/chat-pi/cindy/bots/botSkillQueryIndex.ts",
+    "apps/desktop/src/main/maker-ipc/botSkillRuntimeCache.ts": "modules/chat-pi/cindy/bots/botSkillRuntimeCache.ts",
+    "apps/desktop/src/main/maker-ipc/botSkillRuntimeProjection.ts": "modules/chat-pi/cindy/bots/botSkillRuntimeProjection.ts",
+    "apps/desktop/src/main/maker-ipc/botSkillRuntimeSource.ts": "modules/chat-pi/cindy/bots/botSkillRuntimeSource.ts",
+    "apps/desktop/src/main/maker-ipc/botSkillStore.ts": "modules/chat-pi/cindy/bots/botSkillStore.ts",
+    "apps/desktop/src/main/maker-ipc/botSystemPrompt.ts": "modules/chat-pi/cindy/bots/botSystemPrompt.ts",
+    "apps/desktop/src/main/maker-ipc/botTodoStore.ts": "modules/chat-pi/cindy/bots/botTodoStore.ts",
+    "apps/desktop/src/main/maker-ipc/botWorkbenchLegacy.ts": "modules/chat-pi/cindy/bots/botWorkbenchLegacy.ts",
+    "apps/desktop/src/main/maker-ipc/botWorkbenchService.ts": "modules/chat-pi/cindy/bots/botWorkbenchService.ts",
+    "apps/desktop/src/main/maker-ipc/channels.ts": "modules/chat-pi/onebot/lifecycle-host.mjs",
+    "apps/desktop/src/main/maker-ipc/chatMessageNotifications.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/maker-ipc/sessionControlService.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/maker-ipc/sessionRuntimeControl.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/security/trustedAppRenderer.ts": "modules/chat-pi/onebot/lifecycle-host.mjs",
+    "apps/desktop/src/main/sessionIds.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/sidebarSettingsStore.ts": "modules/chat-pi/onebot/projects-host.mjs",
+    "apps/desktop/src/main/utility-model/oneShotCandidates.ts": "modules/chat-pi/onebot/learning-host.mjs",
+    "apps/desktop/src/main/utils/ipcValidate.ts": "modules/chat-pi/cindy/bots/ipcValidate.ts",
+    "apps/desktop/src/main/utils/readBoundedFile.ts": "modules/chat-pi/cindy/bots/readBoundedFile.ts",
+    "apps/desktop/src/renderer/i18n/locales/en/common.json": "modules/chat-pi/cindy/tasks/locales/en.json",
+    "apps/desktop/src/renderer/i18n/locales/ja/common.json": "modules/chat-pi/cindy/tasks/locales/ja.json",
+    "apps/desktop/src/renderer/i18n/locales/ko/common.json": "modules/chat-pi/cindy/tasks/locales/ko.json",
+    "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json": "modules/chat-pi/cindy/tasks/locales/zh-CN.json",
+    "apps/desktop/src/renderer/i18n/locales/zh-TW/common.json": "modules/chat-pi/cindy/tasks/locales/zh-TW.json",
+    "apps/desktop/src/shared/botCapabilitySelection.ts": "modules/chat-pi/cindy/bots/shared/botCapabilitySelection.ts",
+    "apps/desktop/src/shared/botCreation.ts": "modules/chat-pi/cindy/bots/shared/botCreation.ts",
+    "apps/desktop/src/shared/botImConnection.ts": "modules/chat-pi/cindy/bots/shared/botImConnection.ts",
+    "apps/desktop/src/shared/botLifecycle.ts": "modules/chat-pi/cindy/bots/shared/botLifecycle.ts",
+    "apps/desktop/src/shared/botMarket.ts": "modules/chat-pi/cindy/bots/shared/botMarket.ts",
+    "apps/desktop/src/shared/botMemory.ts": "modules/chat-pi/cindy/bots/shared/botMemory.ts",
+    "apps/desktop/src/shared/botModelChain.ts": "modules/chat-pi/cindy/bots/shared/botModelChain.ts",
+    "apps/desktop/src/shared/botNightlyLearning.ts": "modules/chat-pi/cindy/bots/shared/botNightlyLearning.ts",
+    "apps/desktop/src/shared/botProfileDefaults.ts": "modules/chat-pi/cindy/bots/shared/botProfileDefaults.ts",
+    "apps/desktop/src/shared/botWorkbench.ts": "modules/chat-pi/cindy/bots/shared/botWorkbench.ts",
+    "apps/desktop/src/shared/browserBackend.ts": "modules/chat-pi/cindy/bots/shared/browserBackend.ts",
+    "apps/desktop/src/shared/conversationSearch.ts": "modules/chat-pi/cindy/bots/shared/conversationSearch.ts",
+    "apps/desktop/src/shared/featureRetirements.ts": "modules/chat-pi/cindy/bots/shared/featureRetirements.ts",
+    "apps/desktop/src/shared/interruptedTurn.ts": "modules/chat-pi/cindy/bots/shared/interruptedTurn.ts",
+    "apps/desktop/src/shared/ipc-errors.ts": "modules/chat-pi/cindy/bots/shared/ipc-errors.ts",
+    "apps/desktop/src/shared/managedWorktreePaths.ts": "modules/chat-pi/cindy/bots/shared/managedWorktreePaths.ts",
+    "apps/desktop/src/shared/projectDisplayName.ts": "modules/chat-pi/cindy/bots/shared/projectDisplayName.ts",
+    "apps/desktop/src/shared/projectKeys.ts": "modules/chat-pi/cindy/bots/shared/projectKeys.ts",
+    "apps/desktop/src/shared/providerShareCredentialConsent.ts": "modules/chat-pi/cindy/bots/shared/providerShareCredentialConsent.ts",
+    "apps/desktop/src/shared/sessionSource.ts": "modules/chat-pi/cindy/bots/shared/sessionSource.ts",
+    "apps/desktop/src/shared/untrustedPrompt.ts": "modules/chat-pi/cindy/bots/shared/untrustedPrompt.ts",
+    "apps/desktop/src/shared/utilityTextResult.ts": "modules/chat-pi/onebot/learning-host.mjs",
+    "apps/desktop/src/shared/workingDir.ts": "modules/chat-pi/cindy/bots/shared/workingDir.ts",
+    "packages/lizi-im/src/BaseIM.ts": "modules/chat-pi/cindy/im/BaseIM.ts",
+    "packages/lizi-im/src/__tests__/inboundFacts.test.ts": "modules/chat-pi/cindy/im/__tests__/inboundFacts.test.ts",
+    "packages/lizi-im/src/__tests__/inboundKind.test.ts": "modules/chat-pi/cindy/im/__tests__/inboundKind.test.ts",
+    "packages/lizi-im/src/__tests__/processingReactions.test.ts": "modules/chat-pi/cindy/im/__tests__/processingReactions.test.ts",
+    "packages/lizi-im/src/__tests__/xdtRefs.test.ts": "modules/chat-pi/cindy/im/__tests__/xdtRefs.test.ts",
+    "packages/lizi-im/src/binding/index.ts": "modules/chat-pi/cindy/im/binding/index.ts",
+    "packages/lizi-im/src/binding/types.ts": "modules/chat-pi/cindy/im/binding/types.ts",
+    "packages/lizi-im/src/channelIM.ts": "modules/chat-pi/cindy/im/channelIM.ts",
+    "packages/lizi-im/src/createIM.ts": "modules/chat-pi/cindy/im/createIM.ts",
+    "packages/lizi-im/src/dingtalk/__tests__/api.test.ts": "modules/chat-pi/cindy/im/dingtalk/__tests__/api.test.ts",
+    "packages/lizi-im/src/dingtalk/__tests__/codec.test.ts": "modules/chat-pi/cindy/im/dingtalk/__tests__/codec.test.ts",
+    "packages/lizi-im/src/dingtalk/__tests__/dingtalkIM.test.ts": "modules/chat-pi/cindy/im/dingtalk/__tests__/dingtalkIM.test.ts",
+    "packages/lizi-im/src/dingtalk/__tests__/inbound.test.ts": "modules/chat-pi/cindy/im/dingtalk/__tests__/inbound.test.ts",
+    "packages/lizi-im/src/dingtalk/__tests__/outbound.test.ts": "modules/chat-pi/cindy/im/dingtalk/__tests__/outbound.test.ts",
+    "packages/lizi-im/src/dingtalk/api.ts": "modules/chat-pi/cindy/im/dingtalk/api.ts",
+    "packages/lizi-im/src/dingtalk/codec.ts": "modules/chat-pi/cindy/im/dingtalk/codec.ts",
+    "packages/lizi-im/src/dingtalk/inbound.ts": "modules/chat-pi/cindy/im/dingtalk/inbound.ts",
+    "packages/lizi-im/src/dingtalk/index.ts": "modules/chat-pi/cindy/im/dingtalk/index.ts",
+    "packages/lizi-im/src/dingtalk/outbound.ts": "modules/chat-pi/cindy/im/dingtalk/outbound.ts",
+    "packages/lizi-im/src/discord/__tests__/chunk.test.ts": "modules/chat-pi/cindy/im/discord/__tests__/chunk.test.ts",
+    "packages/lizi-im/src/discord/__tests__/codec.test.ts": "modules/chat-pi/cindy/im/discord/__tests__/codec.test.ts",
+    "packages/lizi-im/src/discord/__tests__/components.test.ts": "modules/chat-pi/cindy/im/discord/__tests__/components.test.ts",
+    "packages/lizi-im/src/discord/__tests__/discordIM.test.ts": "modules/chat-pi/cindy/im/discord/__tests__/discordIM.test.ts",
+    "packages/lizi-im/src/discord/__tests__/gateway.test.ts": "modules/chat-pi/cindy/im/discord/__tests__/gateway.test.ts",
+    "packages/lizi-im/src/discord/__tests__/inbound.test.ts": "modules/chat-pi/cindy/im/discord/__tests__/inbound.test.ts",
+    "packages/lizi-im/src/discord/__tests__/markdown.test.ts": "modules/chat-pi/cindy/im/discord/__tests__/markdown.test.ts",
+    "packages/lizi-im/src/discord/__tests__/outbound.test.ts": "modules/chat-pi/cindy/im/discord/__tests__/outbound.test.ts",
+    "packages/lizi-im/src/discord/__tests__/streamingText.test.ts": "modules/chat-pi/cindy/im/discord/__tests__/streamingText.test.ts",
+    "packages/lizi-im/src/discord/__tests__/strip-edge.test.ts": "modules/chat-pi/cindy/im/discord/__tests__/strip-edge.test.ts",
+    "packages/lizi-im/src/discord/chunk.ts": "modules/chat-pi/cindy/im/discord/chunk.ts",
+    "packages/lizi-im/src/discord/codec.ts": "modules/chat-pi/cindy/im/discord/codec.ts",
+    "packages/lizi-im/src/discord/components.ts": "modules/chat-pi/cindy/im/discord/components.ts",
+    "packages/lizi-im/src/discord/gateway.ts": "modules/chat-pi/cindy/im/discord/gateway.ts",
+    "packages/lizi-im/src/discord/inbound.ts": "modules/chat-pi/cindy/im/discord/inbound.ts",
+    "packages/lizi-im/src/discord/index.ts": "modules/chat-pi/cindy/im/discord/index.ts",
+    "packages/lizi-im/src/discord/markdown.ts": "modules/chat-pi/cindy/im/discord/markdown.ts",
+    "packages/lizi-im/src/discord/outbound.ts": "modules/chat-pi/cindy/im/discord/outbound.ts",
+    "packages/lizi-im/src/discord/streamingText.ts": "modules/chat-pi/cindy/im/discord/streamingText.ts",
+    "packages/lizi-im/src/feishu/__tests__/appRegistration.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/appRegistration.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/attachmentDownloader.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/attachmentDownloader.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/cards.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/cards.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/codec.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/codec.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/dualDelivery.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/dualDelivery.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/feishuOpenerConsume.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/feishuOpenerConsume.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/incomingContent.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/incomingContent.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/ipcAccountScope.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/ipcAccountScope.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/outboundApi.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/outboundApi.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/outboundFile.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/outboundFile.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/outboundLane.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/outboundLane.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/serviceRouting.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/serviceRouting.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/storageService.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/storageService.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/streamingText.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/streamingText.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/wsClientCardAction.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/wsClientCardAction.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/wsClientConflict.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/wsClientConflict.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/wsClientGroup.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/wsClientGroup.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/wsClientGroupThreadRouting.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/wsClientGroupThreadRouting.test.ts",
+    "packages/lizi-im/src/feishu/__tests__/wsClientInboundDedupe.test.ts": "modules/chat-pi/cindy/im/feishu/__tests__/wsClientInboundDedupe.test.ts",
+    "packages/lizi-im/src/feishu/appRegistration.ts": "modules/chat-pi/cindy/im/feishu/appRegistration.ts",
+    "packages/lizi-im/src/feishu/attachmentDownloader.ts": "modules/chat-pi/cindy/im/feishu/attachmentDownloader.ts",
+    "packages/lizi-im/src/feishu/cardActionParser.ts": "modules/chat-pi/cindy/im/feishu/cardActionParser.ts",
+    "packages/lizi-im/src/feishu/cards.ts": "modules/chat-pi/cindy/im/feishu/cards.ts",
+    "packages/lizi-im/src/feishu/codec.ts": "modules/chat-pi/cindy/im/feishu/codec.ts",
+    "packages/lizi-im/src/feishu/conflictDetector.ts": "modules/chat-pi/cindy/im/feishu/conflictDetector.ts",
+    "packages/lizi-im/src/feishu/dualDelivery.ts": "modules/chat-pi/cindy/im/feishu/dualDelivery.ts",
+    "packages/lizi-im/src/feishu/events.ts": "modules/chat-pi/cindy/im/feishu/events.ts",
+    "packages/lizi-im/src/feishu/incomingContent.ts": "modules/chat-pi/cindy/im/feishu/incomingContent.ts",
+    "packages/lizi-im/src/feishu/index.ts": "modules/chat-pi/cindy/im/feishu/index.ts",
+    "packages/lizi-im/src/feishu/internal-types.ts": "modules/chat-pi/cindy/im/feishu/internal-types.ts",
+    "packages/lizi-im/src/feishu/ipc.ts": "modules/chat-pi/cindy/im/feishu/ipc.ts",
+    "packages/lizi-im/src/feishu/mediaCache.ts": "modules/chat-pi/cindy/im/feishu/mediaCache.ts",
+    "packages/lizi-im/src/feishu/mediaStore.ts": "modules/chat-pi/cindy/im/feishu/mediaStore.ts",
+    "packages/lizi-im/src/feishu/messages.ts": "modules/chat-pi/cindy/im/feishu/messages.ts",
+    "packages/lizi-im/src/feishu/moduleScope.ts": "modules/chat-pi/cindy/im/feishu/moduleScope.ts",
+    "packages/lizi-im/src/feishu/outbound.ts": "modules/chat-pi/cindy/im/feishu/outbound.ts",
+    "packages/lizi-im/src/feishu/ownerGuard.ts": "modules/chat-pi/cindy/im/feishu/ownerGuard.ts",
+    "packages/lizi-im/src/feishu/storage.ts": "modules/chat-pi/cindy/im/feishu/storage.ts",
+    "packages/lizi-im/src/feishu/streamingText.ts": "modules/chat-pi/cindy/im/feishu/streamingText.ts",
+    "packages/lizi-im/src/feishu/wsClient.ts": "modules/chat-pi/cindy/im/feishu/wsClient.ts",
+    "packages/lizi-im/src/inboundFacts.ts": "modules/chat-pi/cindy/im/inboundFacts.ts",
+    "packages/lizi-im/src/inboundKind.ts": "modules/chat-pi/cindy/im/inboundKind.ts",
+    "packages/lizi-im/src/index.ts": "modules/chat-pi/cindy/im/index.ts",
+    "packages/lizi-im/src/logger.ts": "modules/chat-pi/cindy/im/logger.ts",
+    "packages/lizi-im/src/processingReactions.ts": "modules/chat-pi/cindy/im/processingReactions.ts",
+    "packages/lizi-im/src/telegram/__tests__/cardLayout.test.ts": "modules/chat-pi/cindy/im/telegram/__tests__/cardLayout.test.ts",
+    "packages/lizi-im/src/telegram/__tests__/codec.test.ts": "modules/chat-pi/cindy/im/telegram/__tests__/codec.test.ts",
+    "packages/lizi-im/src/telegram/__tests__/components.test.ts": "modules/chat-pi/cindy/im/telegram/__tests__/components.test.ts",
+    "packages/lizi-im/src/telegram/__tests__/htmlCap.test.ts": "modules/chat-pi/cindy/im/telegram/__tests__/htmlCap.test.ts",
+    "packages/lizi-im/src/telegram/__tests__/inbound.test.ts": "modules/chat-pi/cindy/im/telegram/__tests__/inbound.test.ts",
+    "packages/lizi-im/src/telegram/__tests__/markdown.test.ts": "modules/chat-pi/cindy/im/telegram/__tests__/markdown.test.ts",
+    "packages/lizi-im/src/telegram/__tests__/messageLifecycle.test.ts": "modules/chat-pi/cindy/im/telegram/__tests__/messageLifecycle.test.ts",
+    "packages/lizi-im/src/telegram/__tests__/outboundPolicy.test.ts": "modules/chat-pi/cindy/im/telegram/__tests__/outboundPolicy.test.ts",
+    "packages/lizi-im/src/telegram/__tests__/presentationCapabilities.test.ts": "modules/chat-pi/cindy/im/telegram/__tests__/presentationCapabilities.test.ts",
+    "packages/lizi-im/src/telegram/__tests__/reactionPool.test.ts": "modules/chat-pi/cindy/im/telegram/__tests__/reactionPool.test.ts",
+    "packages/lizi-im/src/telegram/__tests__/streamingText.test.ts": "modules/chat-pi/cindy/im/telegram/__tests__/streamingText.test.ts",
+    "packages/lizi-im/src/telegram/__tests__/telegramIM.test.ts": "modules/chat-pi/cindy/im/telegram/__tests__/telegramIM.test.ts",
+    "packages/lizi-im/src/telegram/api.ts": "modules/chat-pi/cindy/im/telegram/api.ts",
+    "packages/lizi-im/src/telegram/cardLayout.ts": "modules/chat-pi/cindy/im/telegram/cardLayout.ts",
+    "packages/lizi-im/src/telegram/chunk.ts": "modules/chat-pi/cindy/im/telegram/chunk.ts",
+    "packages/lizi-im/src/telegram/codec.ts": "modules/chat-pi/cindy/im/telegram/codec.ts",
+    "packages/lizi-im/src/telegram/components.ts": "modules/chat-pi/cindy/im/telegram/components.ts",
+    "packages/lizi-im/src/telegram/htmlCap.ts": "modules/chat-pi/cindy/im/telegram/htmlCap.ts",
+    "packages/lizi-im/src/telegram/inbound.ts": "modules/chat-pi/cindy/im/telegram/inbound.ts",
+    "packages/lizi-im/src/telegram/index.ts": "modules/chat-pi/cindy/im/telegram/index.ts",
+    "packages/lizi-im/src/telegram/markdown.ts": "modules/chat-pi/cindy/im/telegram/markdown.ts",
+    "packages/lizi-im/src/telegram/messageLifecycle.ts": "modules/chat-pi/cindy/im/telegram/messageLifecycle.ts",
+    "packages/lizi-im/src/telegram/outboundPolicy.ts": "modules/chat-pi/cindy/im/telegram/outboundPolicy.ts",
+    "packages/lizi-im/src/telegram/presentationCapabilities.ts": "modules/chat-pi/cindy/im/telegram/presentationCapabilities.ts",
+    "packages/lizi-im/src/telegram/progressFrame.ts": "modules/chat-pi/cindy/im/telegram/progressFrame.ts",
+    "packages/lizi-im/src/telegram/reactionPool.ts": "modules/chat-pi/cindy/im/telegram/reactionPool.ts",
+    "packages/lizi-im/src/telegram/streamingText.ts": "modules/chat-pi/cindy/im/telegram/streamingText.ts",
+    "packages/lizi-im/src/types.ts": "modules/chat-pi/cindy/im/types.ts",
+    "packages/lizi-im/src/wecom/__tests__/codec.test.ts": "modules/chat-pi/cindy/im/wecom/__tests__/codec.test.ts",
+    "packages/lizi-im/src/wecom/__tests__/index.test.ts": "modules/chat-pi/cindy/im/wecom/__tests__/index.test.ts",
+    "packages/lizi-im/src/wecom/__tests__/media.test.ts": "modules/chat-pi/cindy/im/wecom/__tests__/media.test.ts",
+    "packages/lizi-im/src/wecom/codec.ts": "modules/chat-pi/cindy/im/wecom/codec.ts",
+    "packages/lizi-im/src/wecom/index.ts": "modules/chat-pi/cindy/im/wecom/index.ts",
+    "packages/lizi-im/src/wecom/media.ts": "modules/chat-pi/cindy/im/wecom/media.ts",
+    "packages/lizi-im/src/xdtRefs.ts": "modules/chat-pi/cindy/im/xdtRefs.ts",
+    "packages/maker-core/src/interfaces/logger.ts": "modules/chat-pi/cindy/bots/memory/logger.ts",
+    "packages/maker-core/src/memory/fts.ts": "modules/chat-pi/cindy/bots/memory/fts.ts",
+    "packages/maker-core/src/memory/storage.ts": "modules/chat-pi/cindy/bots/memory/storage.ts",
+    "packages/maker-core/src/memory/store.ts": "modules/chat-pi/cindy/bots/memory/store.ts",
+    "packages/maker-core/src/memory/types.ts": "modules/chat-pi/cindy/bots/memory/types.ts",
+    "packages/maker-scheduler/src/index.ts": "third_party/cindy/scheduler/index.ts",
+    "packages/maker-shared/src/cindyMakeFeature.ts": "modules/chat-pi/cindy/bots/shared/cindyMakeFeature.ts",
+    "packages/maker-shared/src/companionImport.ts": "modules/chat-pi/cindy/bots/shared/companionImport.ts",
+    "packages/maker-shared/src/errorRedaction.ts": "modules/chat-pi/cindy/bots/search-shared/errorRedaction.ts",
+    "packages/maker-shared/src/forwardedRequestDisplay.ts": "modules/chat-pi/cindy/bots/search-shared/forwardedRequestDisplay.ts",
+    "packages/maker-shared/src/internalCitation.ts": "modules/chat-pi/cindy/bots/search-shared/internalCitation.ts",
+    "packages/maker-shared/src/messageSource.ts": "modules/chat-pi/cindy/bots/search-shared/messageSource.ts",
+    "packages/maker-shared/src/modelRoute.ts": "modules/chat-pi/cindy/bots/shared/modelRoute.ts",
+    "packages/maker-shared/src/sessionTitle.ts": "modules/chat-pi/cindy/bots/shared/sessionTitle.ts",
+    "packages/maker-shared/src/syntheticTrigger.ts": "modules/chat-pi/cindy/bots/search-shared/syntheticTrigger.ts",
+    "packages/maker-shared/src/teammateTodo.ts": "modules/chat-pi/cindy/bots/shared/teammate-todo.ts",
+    "packages/maker-shared/src/worktreePaths.ts": "modules/chat-pi/cindy/bots/shared/worktreePaths.ts",
+    "packages/wechat-ilink/src/__tests__/authorization.test.ts": "modules/chat-pi/cindy/wechat-ilink/__tests__/authorization.test.ts",
+    "packages/wechat-ilink/src/__tests__/protocol.test.ts": "modules/chat-pi/cindy/wechat-ilink/__tests__/protocol.test.ts",
+    "packages/wechat-ilink/src/apiClient.ts": "modules/chat-pi/cindy/wechat-ilink/apiClient.ts",
+    "packages/wechat-ilink/src/auth.ts": "modules/chat-pi/cindy/wechat-ilink/auth.ts",
+    "packages/wechat-ilink/src/chunk.ts": "modules/chat-pi/cindy/wechat-ilink/chunk.ts",
+    "packages/wechat-ilink/src/codec.ts": "modules/chat-pi/cindy/wechat-ilink/codec.ts",
+    "packages/wechat-ilink/src/errors.ts": "modules/chat-pi/cindy/wechat-ilink/errors.ts",
+    "packages/wechat-ilink/src/index.ts": "modules/chat-pi/cindy/wechat-ilink/index.ts",
+    "packages/wechat-ilink/src/markdown.ts": "modules/chat-pi/cindy/wechat-ilink/markdown.ts",
+    "packages/wechat-ilink/src/mediaCrypto.ts": "modules/chat-pi/cindy/wechat-ilink/mediaCrypto.ts",
+    "packages/wechat-ilink/src/mediaTransfer.ts": "modules/chat-pi/cindy/wechat-ilink/mediaTransfer.ts",
+    "packages/wechat-ilink/src/transport.ts": "modules/chat-pi/cindy/wechat-ilink/transport.ts",
+    "packages/wechat-ilink/src/types.ts": "modules/chat-pi/cindy/wechat-ilink/types.ts"
+  },
+  "modules": {
+    "@cindy/maker-shared/worktree-paths": "modules/chat-pi/cindy/bots/shared/worktreePaths.ts",
+    "@cindy/maker-core": "modules/chat-pi/onebot/memory-exports.ts",
+    "electron": "modules/chat-pi/onebot/lifecycle-host.mjs",
+    "@cindy/maker-shared/message-source": "modules/chat-pi/cindy/bots/search-shared/messageSource.ts",
+    "@cindy/maker-shared/internal-citation": "modules/chat-pi/cindy/bots/search-shared/internalCitation.ts",
+    "@cindy/maker-shared/synthetic-trigger": "modules/chat-pi/cindy/bots/search-shared/syntheticTrigger.ts",
+    "@cindy/mcps": "modules/chat-pi/onebot/task-host.mjs",
+    "@cindy/maker-shared": "modules/chat-pi/cindy/tasks/core/agentCapabilities.ts",
+    "@cindy/maker-shared/botDirectMessage": "third_party/cindy/maker-shared/botDirectMessage.ts",
+    "@cindy/maker-shared/error-redaction": "modules/chat-pi/cindy/bots/search-shared/errorRedaction.ts"
+  },
+  "patches": [
+    {
+      "file": "apps/desktop/src/shared/agentInputQueue.ts",
+      "reason": "Resolve the original attribution-only type to its defining module without importing the full maker-shared barrel",
+      "find": "import type { SharedTaskAuthor } from '../core/agentCapabilities';",
+      "replace": "import type { SharedTaskAuthor } from '../core/sharedTask';",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/main/im/shared/botImLaneRuntime.ts",
+      "reason": "Inject the Host-owned Pi transcript store through the production configuration seam; retain Cindy lane scoping, activity, reset and archive behavior unchanged",
+      "find": "export function configureBotImLaneRuntime(next: BotImLaneRuntimeDeps | null): void {\n  deps = next;\n}",
+      "replace": "export function configureBotImLaneRuntime(next: BotImLaneRuntimeDeps | null, adapter?: BotImLaneStore): void {\n  deps = next;\n  if (adapter) store = adapter;\n}",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/main/git-context/ghCliTokenSource.ts",
+      "reason": "WinOne reuses the pinned system gh lookup without reading Cindy-managed installations or account directories",
+      "find": "from './ghBinary.js'",
+      "replace": "from '../../../onebot/git-host.mjs'",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/main/maker-ipc/botDelegationService.ts",
+      "reason": "WinOne resolves native Pi interactions across an authenticated IPC bridge and waits for its real acknowledgement; preserve the original stale-interaction outcome instead of treating a queued HTTP request as success",
+      "find": "resolveInteraction?: (requestId: string, decision: InteractionDecision) => boolean;",
+      "replace": "resolveInteraction?: (requestId: string, decision: InteractionDecision) => boolean | Promise<boolean>;",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/main/maker-ipc/botDelegationService.ts",
+      "reason": "Await the native interaction acknowledgement before clearing or reporting the original pending interaction",
+      "find": "if (!deps.resolveInteraction?.(pending.requestId, decision)) {",
+      "replace": "if (!await deps.resolveInteraction?.(pending.requestId, decision)) {",
+      "count": 1
+    }
+  ],
+  "extract": [
+    {
+      "file": "apps/desktop/src/main/git-context/ghBinary.ts",
+      "imports": [
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "declarations": [
+        "systemGhBinary"
+      ],
+      "exports": []
+    },
+    {
+      "file": "apps/desktop/src/main/localDb/worker/opHandlers/tx.ts",
+      "imports": [
+        "@cindy/maker-shared",
+        "better-sqlite3"
+      ],
+      "declarations": [
+        "botsCreateDelegation",
+        "botsFinishDelegation",
+        "botsReopenDelegation",
+        "insertBotSession",
+        "asRecord",
+        "isRecord",
+        "expectString",
+        "nullableString",
+        "expectNumber",
+        "invalidArgs"
+      ],
+      "exports": [
+        "botsCreateDelegation",
+        "botsFinishDelegation",
+        "botsReopenDelegation"
+      ]
+    }
+  ],
+  "locales": {
+    "sources": {
+      "en": "apps/desktop/src/renderer/i18n/locales/en/common.json",
+      "zh-CN": "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json",
+      "zh-TW": "apps/desktop/src/renderer/i18n/locales/zh-TW/common.json",
+      "ja": "apps/desktop/src/renderer/i18n/locales/ja/common.json",
+      "ko": "apps/desktop/src/renderer/i18n/locales/ko/common.json"
+    },
+    "targets": {
+      "en": "modules/chat-pi/cindy/tasks/locales/en.json",
+      "zh-CN": "modules/chat-pi/cindy/tasks/locales/zh-CN.json",
+      "zh-TW": "modules/chat-pi/cindy/tasks/locales/zh-TW.json",
+      "ja": "modules/chat-pi/cindy/tasks/locales/ja.json",
+      "ko": "modules/chat-pi/cindy/tasks/locales/ko.json"
+    },
+    "extraPrefixes": [
+      "forwardedRequest",
+      "groupTools"
+    ]
+  },
+  "files": [
+    {
+      "source": "apps/desktop/src/main/git-context/ghBinary.ts",
+      "sourceSHA256": "d9b672beaa6abe5c9b7302193c9caa2dbb47552f54fdeb1868c0cf2ca989dcc6",
+      "target": "modules/chat-pi/cindy/tasks/git/ghBinary.ts",
+      "sha256": "5cdc71d1287d3fe1fb17e26c13bfd4b3d6bb9970ef894a3bf845c3adf16f4beb",
+      "adaptation": "import-paths; intact declarations: systemGhBinary"
+    },
+    {
+      "source": "apps/desktop/src/main/git-context/ghCliTokenSource.ts",
+      "sourceSHA256": "74f57477d3c5909828917aeb3a7853c5f4d930de492c0890530020af557ac057",
+      "target": "modules/chat-pi/cindy/tasks/git/ghCliTokenSource.ts",
+      "sha256": "b2cd509be637afdbc2a97ceb82d5c18797154ab724c9c21f5cf7126f25adace5",
+      "adaptation": "import-paths; WinOne reuses the pinned system gh lookup without reading Cindy-managed installations or account directories"
+    },
+    {
+      "source": "apps/desktop/src/main/git-context/prRefExtractor.ts",
+      "sourceSHA256": "5504090995c3a37f028397774b704559d9e5c043cd3234531109e6b85e398026",
+      "target": "modules/chat-pi/cindy/tasks/git/prRefExtractor.ts",
+      "sha256": "5504090995c3a37f028397774b704559d9e5c043cd3234531109e6b85e398026"
+    },
+    {
+      "source": "apps/desktop/src/main/git-context/prStatusService.ts",
+      "sourceSHA256": "d5e6a3d93ab5b2e5be8e60ef36cd1a810448be60b8384df4e37355d02c10c510",
+      "target": "modules/chat-pi/cindy/tasks/git/prStatusService.ts",
+      "sha256": "0070bde742c079fbd36ba701858501d51c1966940792eed86adb9cc5345eef79",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/acceptedCallbackRunner.ts",
+      "sourceSHA256": "f53f8ec00c10f82c28e252968e69f25e97e4a95aff1e54c283d4fc68594b36a1",
+      "target": "modules/chat-pi/cindy/tasks/acceptedCallbackRunner.ts",
+      "sha256": "27982b4eb636745e63e059521b23ed2f210a6ae3192f070e337d4195469288d4",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/agentHandoff.ts",
+      "sourceSHA256": "dc55068cde560e6b97eb3071d4a4c8ddc7e7a46eadba99719d86ed37bc2a244d",
+      "target": "modules/chat-pi/cindy/tasks/agentHandoff.ts",
+      "sha256": "6fef3056bacadd2c573a7662c76276989ead526fc6c20ef380b4ccdd1a68e010",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/agentInputReferences.ts",
+      "sourceSHA256": "3dbc9ba0fd1847c0d97a70c5741823ffac8ccb2edde4e7cf29916f0edae65e0c",
+      "target": "modules/chat-pi/cindy/tasks/agentInputReferences.ts",
+      "sha256": "b9ae19f3303aabb45e0c9d7173794523d64d6cdf5bed22f39d0569307fe9af47",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/botDelegationCompletionMessage.ts",
+      "sourceSHA256": "017ea9ee923aae3b90e315f7053af5a3d068a0a3f0708d3c78ad466a80184400",
+      "target": "modules/chat-pi/cindy/tasks/botDelegationCompletionMessage.ts",
+      "sha256": "017ea9ee923aae3b90e315f7053af5a3d068a0a3f0708d3c78ad466a80184400"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/botDelegationDispatchOutcome.ts",
+      "sourceSHA256": "34d61d99315d09d2aeb7c9f6ba2c7ea60f42474e5f8ea016f7355f597384257d",
+      "target": "modules/chat-pi/cindy/tasks/botDelegationDispatchOutcome.ts",
+      "sha256": "a23ce49d64c45ef0975d11b1e7c8c12c386e18ce13bd8dbcf314a924c2fdee15",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/botDelegationLifecycle.ts",
+      "sourceSHA256": "63a25d30e3a68cf66fb4f8a3b6a948d5a246c5b1870f075b06cd8b62b7efcfc3",
+      "target": "modules/chat-pi/cindy/tasks/botDelegationLifecycle.ts",
+      "sha256": "63a25d30e3a68cf66fb4f8a3b6a948d5a246c5b1870f075b06cd8b62b7efcfc3"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/botDelegationService.ts",
+      "sourceSHA256": "c19485b82f35c07495c1225b262a12c279132ed508ff172c17132bc57c1fcc32",
+      "target": "modules/chat-pi/cindy/tasks/botDelegationService.ts",
+      "sha256": "d792c74d1eb96e0cd894194056e49cb2accbf6dd6248d2f06d5366618b4e630b",
+      "adaptation": "import-paths; WinOne resolves native Pi interactions across an authenticated IPC bridge and waits for its real acknowledgement; preserve the original stale-interaction outcome instead of treating a queued HTTP request as success; Await the native interaction acknowledgement before clearing or reporting the original pending interaction"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/botDirectMessageService.ts",
+      "sourceSHA256": "0fb0525a7d147f854c12830ef2820ba1d819ef4a9415c0377d452a76d2b72327",
+      "target": "modules/chat-pi/cindy/tasks/botDirectMessageService.ts",
+      "sha256": "700165e4ef09a657685aa99d74d0a9c0664bffac0d5b553c524342b5536767ea",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/botGroupChatService.ts",
+      "sourceSHA256": "b1a7e0aaa930334bb5c43ea8f87ccec6a6ed50fa7c0b5870fc7eb8edf804e9ec",
+      "target": "modules/chat-pi/cindy/tasks/botGroupChatService.ts",
+      "sha256": "1bdf45ee2454f3c7fba8fbe0708fc216719e89e42c81fa541e2c0f0d306634be",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/botGroupDivision.ts",
+      "sourceSHA256": "61dbea897add4ffd4d4a4a0d38bc009021544474ed2bcd4d0e8479d1e3627a54",
+      "target": "modules/chat-pi/cindy/tasks/botGroupDivision.ts",
+      "sha256": "a3055faad66ee52fe5eab418054127990d5906f24409149dd3d5013a129e97fe",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/botGroupPlanDecider.ts",
+      "sourceSHA256": "d78c13a034bd62a51167cfea8c809edfcfbbf94466f7c7f4c4737eefaeecb9af",
+      "target": "modules/chat-pi/cindy/tasks/botGroupPlanDecider.ts",
+      "sha256": "4389df1b1c29e01c787e8dd843ccd65ed26a3ccfd0ce0bc3ecc09e77b758db37",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/botGroupRuntimeFailure.ts",
+      "sourceSHA256": "ed00504498ea510e7f0de498fea258de7e29a2b14ab83f947d1df3917fe45564",
+      "target": "modules/chat-pi/cindy/tasks/botGroupRuntimeFailure.ts",
+      "sha256": "47c5638373d34723d626b7672320882672cd8466a7ad940548bf3467cd3253a4",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/botGroupToolAuthorization.ts",
+      "sourceSHA256": "efa7ee54b4174d5ffc2ec8fc3bca931a95e9db2f273b70307138d8649e976cdf",
+      "target": "modules/chat-pi/cindy/tasks/botGroupToolAuthorization.ts",
+      "sha256": "178aa1b9213af094d559f8370a127ec2a11d7ef3f899b4dd4b2863d86fcd548c",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/botGroupWorkDir.ts",
+      "sourceSHA256": "cd7b491755aab0895dae444694bcced4563291f75977694ee8c5dd3c37535367",
+      "target": "modules/chat-pi/cindy/tasks/botGroupWorkDir.ts",
+      "sha256": "cf56b05e5b9ca3da629a9867db6ed32d80feebc4ad664fca737806fdcc5ecf1d",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/forwardedRequest.ts",
+      "sourceSHA256": "98264814d99c05d10603cc1d7b08831653dfbcc8467fd57cac57ea17ae433bc4",
+      "target": "modules/chat-pi/cindy/tasks/forwardedRequest.ts",
+      "sha256": "0b66bc3d15a06f8b17183e49f7bebf2dd3a2d3873307c209fb5c0079f3777b1c",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/sessionExecutionOwnership.ts",
+      "sourceSHA256": "6545fd2a5f279d07e95920dfc9d7ef7984ba09108a34fff41c7a7eecd0381d14",
+      "target": "modules/chat-pi/cindy/tasks/sessionExecutionOwnership.ts",
+      "sha256": "6545fd2a5f279d07e95920dfc9d7ef7984ba09108a34fff41c7a7eecd0381d14"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/taskActionAuthorization.ts",
+      "sourceSHA256": "9448f90b4044bd585e946faa7cb77aee9808bc253cbe29b2b97eb1491e009c6f",
+      "target": "modules/chat-pi/cindy/tasks/taskActionAuthorization.ts",
+      "sha256": "769313ce82ceac8c7530ba26ba0a10ca3908358dc0cc65f96b8094b5e2a4344e",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/im/shared/botImLaneRuntime.ts",
+      "sourceSHA256": "3ad3c2b826bd45cee6d9f9aa3e70ccfd34af20bdf6f2ac45d1da963461331265",
+      "target": "modules/chat-pi/cindy/tasks/im/botImLaneRuntime.ts",
+      "sha256": "6bd98736c956b087fee7b8d7896b4a824bb49256b4198df5c006f48947c38d7d",
+      "adaptation": "import-paths; Inject the Host-owned Pi transcript store through the production configuration seam; retain Cindy lane scoping, activity, reset and archive behavior unchanged"
+    },
+    {
+      "source": "apps/desktop/src/shared/accountProviderReadiness.ts",
+      "sourceSHA256": "a943d3c96e871e67247a1b1c0e21b4db4210e6c249d282b5d54c97300481ebb3",
+      "target": "modules/chat-pi/cindy/tasks/shared/accountProviderReadiness.ts",
+      "sha256": "a943d3c96e871e67247a1b1c0e21b4db4210e6c249d282b5d54c97300481ebb3"
+    },
+    {
+      "source": "apps/desktop/src/shared/agentInputQueue.ts",
+      "sourceSHA256": "47248e17f466bca630f45bb274b047cf92f41139646fe8481af58716a1bb17bc",
+      "target": "modules/chat-pi/cindy/tasks/shared/agentInputQueue.ts",
+      "sha256": "24ef48c4dde0877ecb95ab2780ea1d094261ba219765646951e0e3e3be9bd7d5",
+      "adaptation": "import-paths; Resolve the original attribution-only type to its defining module without importing the full maker-shared barrel"
+    },
+    {
+      "source": "apps/desktop/src/shared/attachmentSafety.ts",
+      "sourceSHA256": "9310e2a9dc4204f3f6e27248470217af5bb8f21e3a3a9ee006381b7928399a0a",
+      "target": "modules/chat-pi/cindy/tasks/shared/attachmentSafety.ts",
+      "sha256": "9310e2a9dc4204f3f6e27248470217af5bb8f21e3a3a9ee006381b7928399a0a"
+    },
+    {
+      "source": "apps/desktop/src/shared/botCollaboration.ts",
+      "sourceSHA256": "60327788d8676fd9b37e09b559888f5b2c168327acd83b96fde1431fe29ee4cd",
+      "target": "modules/chat-pi/cindy/tasks/shared/botCollaboration.ts",
+      "sha256": "ce5dcada30d810406cf06213cd41f1ce356b63ecfbcb0683365e2b4df3543dd0",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/shared/botDelegation.ts",
+      "sourceSHA256": "a1670168048028a5d1ab3db9c535540e06688d691d71d1de8c5005f5b2008a2c",
+      "target": "modules/chat-pi/cindy/tasks/shared/botDelegation.ts",
+      "sha256": "c26276bcb7fb670ff622cad325e3132b1bd658d78a5c5b343f1a149404217487",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/shared/botDirectMessage.ts",
+      "sourceSHA256": "5f6cdf0134f5c2b2764c6fecb95871d0314be1d6a150d2801950febe3e75cf05",
+      "target": "modules/chat-pi/cindy/tasks/shared/botDirectMessage.ts",
+      "sha256": "44bd90aa1a988bcc3075c3f696f1965f782a2c7789aace62bfb0dbabe2876c2c",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/shared/botGroupChat.ts",
+      "sourceSHA256": "009a26f6fb0b81e977d9b83995e2b7652b754cdbcc6c7963eb49d9fede985d83",
+      "target": "modules/chat-pi/cindy/tasks/shared/botGroupChat.ts",
+      "sha256": "b9b6bcce95ef3abcf3200e45b3d71adeec6de1f77d9df8219fbce34519aae884",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/shared/botPeerAddress.ts",
+      "sourceSHA256": "971f85f10afe332d9712197ff3de5e73d332c28e60ae3791c847a080333906cc",
+      "target": "modules/chat-pi/cindy/tasks/shared/botPeerAddress.ts",
+      "sha256": "971f85f10afe332d9712197ff3de5e73d332c28e60ae3791c847a080333906cc"
+    },
+    {
+      "source": "apps/desktop/src/shared/botTaskCoordination.ts",
+      "sourceSHA256": "e8edf148aa4bdf032282b28c410ccb09b8c0a6905d9deecea95fb36fb533357a",
+      "target": "modules/chat-pi/cindy/tasks/shared/botTaskCoordination.ts",
+      "sha256": "e8edf148aa4bdf032282b28c410ccb09b8c0a6905d9deecea95fb36fb533357a"
+    },
+    {
+      "source": "apps/desktop/src/shared/forwardedRequest.ts",
+      "sourceSHA256": "fa46890466fce1610f8d9524c6b55f1524993f8b05c9ad84d98a0103cced379a",
+      "target": "modules/chat-pi/cindy/tasks/shared/forwardedRequest.ts",
+      "sha256": "1c24d5bce7d2ce8ee12cc80c5b1f4329be16cc417edad77875c263928e1720b7",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/shared/imMessageSource.ts",
+      "sourceSHA256": "72c3b952adb80e6e6312cd73174a28c1e176c0fe446c3d2306d19cd71b38694f",
+      "target": "modules/chat-pi/cindy/tasks/shared/imMessageSource.ts",
+      "sha256": "72c3b952adb80e6e6312cd73174a28c1e176c0fe446c3d2306d19cd71b38694f"
+    },
+    {
+      "source": "apps/desktop/src/shared/inputError.ts",
+      "sourceSHA256": "e133e9668d2edcb9113ce74c6ce76a97c7e2462826872f09922388b27c9c775f",
+      "target": "modules/chat-pi/cindy/tasks/shared/inputError.ts",
+      "sha256": "e133e9668d2edcb9113ce74c6ce76a97c7e2462826872f09922388b27c9c775f"
+    },
+    {
+      "source": "apps/desktop/src/shared/locale.ts",
+      "sourceSHA256": "219f54bce0a14a3c717f1d20db0954ca85d3501c3be2cb75a931e3208931aa4d",
+      "target": "modules/chat-pi/cindy/tasks/shared/locale.ts",
+      "sha256": "219f54bce0a14a3c717f1d20db0954ca85d3501c3be2cb75a931e3208931aa4d"
+    },
+    {
+      "source": "apps/desktop/src/main/localDb/schema.ts",
+      "sourceSHA256": "85bad50ddc4b1898db2c75dce0468b9bad90b48420355c27aa31995a677dc812",
+      "target": "modules/chat-pi/cindy/tasks/db/schema.ts",
+      "sha256": "cc4eb9438cd391f3879956937a2a4eee052b5f707be417bc6038d71eb22706b2",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/maker-shared/src/agentCapabilities.ts",
+      "sourceSHA256": "549d89a63212c5ed0c9c4c2c971397a326a955c9368acbd277b86a3f3b6892e7",
+      "target": "modules/chat-pi/cindy/tasks/core/agentCapabilities.ts",
+      "sha256": "549d89a63212c5ed0c9c4c2c971397a326a955c9368acbd277b86a3f3b6892e7"
+    },
+    {
+      "source": "packages/maker-shared/src/agentInputProjection.ts",
+      "sourceSHA256": "3c34ef0e2629de194ecd4e19e2295713fce8c72466be308e1dfbb52826460311",
+      "target": "modules/chat-pi/cindy/tasks/core/agentInputProjection.ts",
+      "sha256": "3c34ef0e2629de194ecd4e19e2295713fce8c72466be308e1dfbb52826460311"
+    },
+    {
+      "source": "packages/maker-shared/src/botCollaboration.ts",
+      "sourceSHA256": "f23d75116534a6d52286598f85f9c62e9912570430614727e01fa44c2bf85469",
+      "target": "modules/chat-pi/cindy/tasks/core/botCollaboration.ts",
+      "sha256": "f23d75116534a6d52286598f85f9c62e9912570430614727e01fa44c2bf85469"
+    },
+    {
+      "source": "packages/maker-shared/src/botDelegation.ts",
+      "sourceSHA256": "67b6258a9cbc846877324336b78748bdaadd4bf3c14107e73edb26c7cf76efa1",
+      "target": "modules/chat-pi/cindy/tasks/core/botDelegation.ts",
+      "sha256": "67b6258a9cbc846877324336b78748bdaadd4bf3c14107e73edb26c7cf76efa1"
+    },
+    {
+      "source": "packages/maker-shared/src/botGroupChat.ts",
+      "sourceSHA256": "9d3d2d1777a9f10468ccb45113a130d6c9c142771d560f8dfb6e863da93259ff",
+      "target": "modules/chat-pi/cindy/tasks/core/botGroupChat.ts",
+      "sha256": "9d3d2d1777a9f10468ccb45113a130d6c9c142771d560f8dfb6e863da93259ff"
+    },
+    {
+      "source": "packages/maker-shared/src/botGroupQuote.ts",
+      "sourceSHA256": "2cf4bcb21a90b95b0f583615841b1cabd17a3e224a33a220d88f37c4df96384f",
+      "target": "modules/chat-pi/cindy/tasks/core/botGroupQuote.ts",
+      "sha256": "2cf4bcb21a90b95b0f583615841b1cabd17a3e224a33a220d88f37c4df96384f"
+    },
+    {
+      "source": "packages/maker-shared/src/botGroupTask.ts",
+      "sourceSHA256": "87f03a45462bda8a35dbf18910d1a3c5aeba0b19431a8e9c74266623e72b7c88",
+      "target": "modules/chat-pi/cindy/tasks/core/botGroupTask.ts",
+      "sha256": "87f03a45462bda8a35dbf18910d1a3c5aeba0b19431a8e9c74266623e72b7c88"
+    },
+    {
+      "source": "packages/maker-shared/src/brandIdentity.ts",
+      "sourceSHA256": "f64bbc1fcff3c3b7967dbb398f779708780e8067649ee790e2511278ce4f55dd",
+      "target": "modules/chat-pi/cindy/tasks/core/brandIdentity.ts",
+      "sha256": "f64bbc1fcff3c3b7967dbb398f779708780e8067649ee790e2511278ce4f55dd"
+    },
+    {
+      "source": "packages/maker-shared/src/branding.ts",
+      "sourceSHA256": "039900db5128f2e9818970a67a1b34c5aea49010e5a48d03ecb0c43a50a55639",
+      "target": "modules/chat-pi/cindy/tasks/core/branding.ts",
+      "sha256": "039900db5128f2e9818970a67a1b34c5aea49010e5a48d03ecb0c43a50a55639"
+    },
+    {
+      "source": "packages/maker-shared/src/chatQuotes.ts",
+      "sourceSHA256": "9c3ab47e48a3e478f2e3bdc3295f201d2d6acafe7e7aec2942a27f4585ff051e",
+      "target": "modules/chat-pi/cindy/tasks/core/chatQuotes.ts",
+      "sha256": "9c3ab47e48a3e478f2e3bdc3295f201d2d6acafe7e7aec2942a27f4585ff051e"
+    },
+    {
+      "source": "packages/maker-shared/src/imageAnnotation.ts",
+      "sourceSHA256": "50dc85af8fdb24bbcd1ee6d5bebdce932901115618941429cc865da2b75cf6df",
+      "target": "modules/chat-pi/cindy/tasks/core/imageAnnotation.ts",
+      "sha256": "50dc85af8fdb24bbcd1ee6d5bebdce932901115618941429cc865da2b75cf6df"
+    },
+    {
+      "source": "packages/maker-shared/src/mentionRef.ts",
+      "sourceSHA256": "678128e9e86593936af5d3851b76a28be618508bdeea2caff7e4752ac4391dbb",
+      "target": "modules/chat-pi/cindy/tasks/core/mentionRef.ts",
+      "sha256": "678128e9e86593936af5d3851b76a28be618508bdeea2caff7e4752ac4391dbb"
+    },
+    {
+      "source": "packages/maker-shared/src/permissionMode.ts",
+      "sourceSHA256": "b800b284136baea26f804e66ca14a90a5f2b58d45ea37c6bd3eaab054a33de2e",
+      "target": "modules/chat-pi/cindy/tasks/core/permissionMode.ts",
+      "sha256": "b800b284136baea26f804e66ca14a90a5f2b58d45ea37c6bd3eaab054a33de2e"
+    },
+    {
+      "source": "packages/maker-shared/src/sharedTask.ts",
+      "sourceSHA256": "b603372b78541f16ea65b4dce066afbe93e7458732cd1744f17d86485e071f05",
+      "target": "modules/chat-pi/cindy/tasks/core/sharedTask.ts",
+      "sha256": "b603372b78541f16ea65b4dce066afbe93e7458732cd1744f17d86485e071f05"
+    },
+    {
+      "source": "apps/desktop/src/main/localDb/worker/opHandlers/tx.ts",
+      "sourceSHA256": "17e7388e2d354faa4c2102dcde2fd8cbf3bc020bfe6aaa34272ea89e7c81f244",
+      "target": "modules/chat-pi/cindy/tasks/db/transactions.ts",
+      "sha256": "e7ddd9dc6cf3a97a5be6f3c95bc718c4fb829a4a8dc83a96605f3d505dfe4c8d",
+      "adaptation": "import-paths; intact declarations: botsCreateDelegation, botsFinishDelegation, botsReopenDelegation, insertBotSession, asRecord, isRecord, expectString, nullableString, expectNumber, invalidArgs"
+    },
+    {
+      "source": "apps/desktop/src/main/localDb/worker/opHandlers/botGroupsTx.ts",
+      "sourceSHA256": "3d02e784496fc0c7550d5ae45abd4f2d091168013c7c7cdfe5e0d36df7b7fec4",
+      "target": "modules/chat-pi/cindy/tasks/db/botGroupsTx.ts",
+      "sha256": "5349783e0ca0131a94d929920d63c4019f2b327aab10299aec537b24147dda4f",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/pathResolver.ts",
+      "sourceSHA256": "3bb295eb092346939548b86b79cd0718e359a48a705c9e099f5884896ed6b405",
+      "target": "modules/chat-pi/cindy/tasks/pathResolver.ts",
+      "sha256": "3bb295eb092346939548b86b79cd0718e359a48a705c9e099f5884896ed6b405"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/en/common.json",
+      "sourceSHA256": "270852ddcf1980a2422a99e8d71cf1b683c18109dfb60685f1068a367d06ccf3",
+      "target": "modules/chat-pi/cindy/tasks/locales/en.json",
+      "sha256": "52fce71022a7138c87aa593acf0a633595837d32c8a3634108ae30e7a65c264f",
+      "adaptation": "locale subset"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json",
+      "sourceSHA256": "e016b4695208b0ddf0f579f192760224337b8c3a9b0c017b5b7c38a74366ac60",
+      "target": "modules/chat-pi/cindy/tasks/locales/zh-CN.json",
+      "sha256": "d3e0465f2e77874805a5c2ef64a7587c3574162b9eed7e3af62c9448414adcc4",
+      "adaptation": "locale subset"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/zh-TW/common.json",
+      "sourceSHA256": "5d425cd95423c9906ff6a448becb49923631f305b463919855db100cf27b210a",
+      "target": "modules/chat-pi/cindy/tasks/locales/zh-TW.json",
+      "sha256": "540c89d336c0f62050c1cbb6cfb5525b877a0a49099aac03b84a31f91c956315",
+      "adaptation": "locale subset"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/ja/common.json",
+      "sourceSHA256": "3ab751dba147c312b216b3fd00920ab52fbc1005db83ab49567da9c9e1a0c8eb",
+      "target": "modules/chat-pi/cindy/tasks/locales/ja.json",
+      "sha256": "a23902aa87d171caf6bdf456e33cc56e5680224fef945fced724429995a5e923",
+      "adaptation": "locale subset"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/ko/common.json",
+      "sourceSHA256": "0ad8350daf34edd81d014123c27faf38310d97277f7c2a2a13c780d1d8396ca1",
+      "target": "modules/chat-pi/cindy/tasks/locales/ko.json",
+      "sha256": "25253c36e389bf64c662551fabd16f0ecc7f5af5506e794064fa6fff3aac7597",
+      "adaptation": "locale subset"
+    }
+  ]
+}

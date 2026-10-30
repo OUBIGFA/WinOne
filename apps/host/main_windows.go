@@ -33,6 +33,7 @@ import (
 
 	"winone/internal/host"
 	"winone/internal/modules"
+	"winone/internal/timedpower"
 	"winone/internal/transport"
 )
 
@@ -78,6 +79,14 @@ func run() (runErr error) {
 	profileProbe := flag.String("check-profile", "", "read-only profile probe nonce; reads stdin")
 	profileRoot := flag.String("profile-root", "", "explicit profile directory for read-only maintenance")
 	flag.Parse()
+	// A candidate copy must never silently migrate the real user profile:
+	// its catalog versions would exceed what the installed build can read back.
+	dataDirExplicit := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "data-dir" {
+			dataDirExplicit = true
+		}
+	})
 	probeRequested := false
 	profileRootSpecified := false
 	flag.Visit(func(f *flag.Flag) {
@@ -119,6 +128,12 @@ func run() (runErr error) {
 	}
 	if profileRootSpecified {
 		return errors.New("profile-root is reserved for read-only checks")
+	}
+	// Read-only maintenance probes above never open the live profile and must
+	// work before an installation is registered, including during rollback.
+	// Runtime and installer maintenance entries still enforce ownership.
+	if err := guardDefaultProfile(*data, dataDirExplicit); err != nil {
+		return err
 	}
 	if *guardDirectory != "" || *installerPID != 0 || *installerReady != "" || *installerRelease != "" {
 		if !filepath.IsAbs(*guardDirectory) || *installerPID == 0 || uint64(*installerPID) > 0xffffffff || *installerReady == "" || *autorun || *headless {
@@ -198,7 +213,7 @@ func run() (runErr error) {
 	var selectionModule *selectionRuntime
 	quickModule := &quickAssistantRuntime{preferences: quickassistant.Defaults()}
 	adapters := []configuration.ModuleAdapter{aotConfiguration(*data, func() *modules.Lazy { return alwaysOnTop }), captureConfiguration(*data, func() *modules.Lazy { return capture }), wintrayConfiguration(*data, func() *modules.Lazy { return wintray }, func() bool { return configurationReady && wintrayGate != nil && wintrayGate.Enabled() }), selectionConfiguration(*data, func() *selectionRuntime { return selectionModule }), quickAssistantConfiguration(*data, func() *quickAssistantRuntime { return quickModule })}
-	adapters = append(adapters, strokeConfiguration(*data, func() *modules.Lazy { return strokeWorker }))
+	adapters = append(adapters, strokeConfiguration(*data, func() *modules.Lazy { return strokeWorker }), timedPowerConfiguration())
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 	if *headless {
@@ -230,6 +245,8 @@ func run() (runErr error) {
 				handle = selectionConfigurationHandler(store, unavailable)
 			case "quick-assistant":
 				handle = quickAssistantConfigurationHandler(store, unavailable)
+			case "timed-power":
+				handle = timedPowerConfigurationHandler(store, unavailable)
 			case "stroke":
 				handle = strokeConfigurationHandler(store, unavailable)
 			}
@@ -356,6 +373,17 @@ func run() (runErr error) {
 		return gateErr
 	}
 	gates["quick-assistant"] = quickGate
+	powerManager := timedpower.New(timedpower.ExecuteNative, timedPowerNotifier(*data, func() string { return applicationLanguage(store.Snapshot().Language) }))
+	defer powerManager.Close()
+	powerGate, gateErr := modules.NewGate("timed-power", "定时关机", moduleState, modules.LifecycleHooks{
+		Start: func() error { return nil }, Stop: powerManager.Close,
+		Status: func() host.Module { return timedPowerStatus(powerManager) },
+		Handle: timedPowerHandler(powerManager, timedPowerDesktop(executable)), IntentChanged: func() error { return nil },
+	})
+	if gateErr != nil {
+		return gateErr
+	}
+	gates["timed-power"] = powerGate
 	var configurationJobs *host.ConfigurationQueue
 	packages, packageErr := openInstalledPackages(ctx, *data, *pipe, moduleState, func() (func(), bool) {
 		if configurationJobs == nil {
@@ -401,9 +429,16 @@ func run() (runErr error) {
 	defer resultWindows.ai.stopMagpieMaintenance()
 	defer selectionModule.stop()
 	chatControl := registerChat(service, ctx, *data, executable, resultWindows.ai, func() string { return applicationLanguage(store.Snapshot().Language) })
-	if err = registerDirectoryLinks(service, *data); err != nil {
+	closeDirectoryLinks, err := registerDirectoryLinks(service, *data, func() (func(), bool) {
+		if configurationJobs == nil {
+			return nil, false
+		}
+		return configurationJobs.AcquireAction()
+	})
+	if err != nil {
 		return err
 	}
+	defer func() { runErr = errors.Join(runErr, closeDirectoryLinks()) }()
 	closeInterconnect, err := registerInterconnect(service, *data, executable, *pipe, func() string { return applicationLanguage(store.Snapshot().Language) })
 	if err != nil {
 		return err
@@ -472,6 +507,9 @@ func run() (runErr error) {
 		if manifest.ID == "quick-assistant" {
 			handle = quickAssistantConfigurationHandler(store, handle)
 		}
+		if manifest.ID == "timed-power" {
+			handle = timedPowerConfigurationHandler(store, handle)
+		}
 		if manifest.ID == "stroke" {
 			handle = strokeConfigurationHandler(store, handle)
 		}
@@ -522,6 +560,9 @@ func run() (runErr error) {
 		if resultWindows.ai.gateway.Status().Running {
 			state.Reasons = append(state.Reasons, "ai-gateway")
 		}
+		if powerManager.Snapshot().Active {
+			state.Reasons = append(state.Reasons, "timed-power")
+		}
 		if packages.Running() {
 			state.Reasons = append(state.Reasons, "optional-modules")
 		}
@@ -541,6 +582,9 @@ func run() (runErr error) {
 	}
 	service.RegisterModule("residency", func() host.Module { return host.Module{ID: "residency", Name: "后台状态", State: "ready"} }, func(r host.Request) host.Response { return residencyResponse(r, checkResidency()) })
 	closeModules := func() error {
+		if err := powerManager.Close(); err != nil {
+			return err
+		}
 		if err := chatControl.stop(); err != nil {
 			chatControl.resume()
 			return err
@@ -589,6 +633,9 @@ func run() (runErr error) {
 		}
 		return nil
 	}, prepare: func() (func(), error) {
+		if err := powerManager.Close(); err != nil {
+			return nil, err
+		}
 		if err := chatControl.stop(); err != nil {
 			chatControl.resume()
 			return nil, err
@@ -732,6 +779,8 @@ func run() (runErr error) {
 				fmt.Fprintln(os.Stderr, "tray feedback:", err)
 			}
 		})
+		powerCancel := systray.AddMenuItem("取消定时关机", "")
+		powerCancel.Hide()
 		quit := systray.AddMenuItem("退出 WinOne", "")
 		if err := setTrayMenuIcons(open, quit); err != nil {
 			if reportErr := reportTrayFailure(*data, applicationLanguage(store.Snapshot().Language), err, systray.ShowWarning); reportErr != nil {
@@ -751,6 +800,7 @@ func run() (runErr error) {
 			for {
 				select {
 				case <-ticker.C:
+					updateTimedPowerMenu(powerCancel, powerManager, applicationLanguage(store.Snapshot().Language))
 					if *autorun && checkResidency().CanExit() {
 						if err := closeModules(); err != nil {
 							systray.SetTooltip(err.Error())
@@ -760,6 +810,11 @@ func run() (runErr error) {
 						systray.Quit()
 						return
 					}
+				case <-powerCancel.ClickedCh:
+					if _, err := powerManager.Cancel(); err != nil {
+						fmt.Fprintln(os.Stderr, err)
+					}
+					updateTimedPowerMenu(powerCancel, powerManager, applicationLanguage(store.Snapshot().Language))
 				case <-open.ClickedCh:
 					openWindow()
 				case <-trayOpen:

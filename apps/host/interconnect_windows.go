@@ -108,6 +108,14 @@ func registerInterconnect(service *host.Service, data, executable, pipe string, 
 			if err == nil {
 				value, err = interconnect.ConfigureExplorerMenu(desktop, enabled.Enabled)
 			}
+		case "chat.preferences.get":
+			value, err = manager.ChatPreferences()
+		case "chat.preferences.save":
+			var preferences interconnect.ChatPreferences
+			err = configjson.DecodeObject(request.Params, &preferences)
+			if err == nil {
+				value, err = manager.SaveChatPreferences(preferences)
+			}
 		case "general.get":
 			value = manager.General()
 		case "general.save":

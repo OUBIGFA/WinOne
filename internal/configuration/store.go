@@ -83,6 +83,8 @@ func openStore(path string, defaults Document, validate func(Document) error, up
 		backupSuffix = ".before-selection.bak"
 	} else if state.Committed.BuiltinVersion < 3 {
 		backupSuffix = ".before-quick-assistant.bak"
+	} else if state.Committed.BuiltinVersion >= 4 {
+		backupSuffix = ".before-timed-power.bak"
 	}
 	changed := false
 	if upgrade != nil {
@@ -147,7 +149,7 @@ func clone(source Document) Document {
 }
 
 func (s *Store) check(value Document) error {
-	if value.SchemaVersion != 1 || value.Values == nil || value.BuiltinVersion < 0 || value.BuiltinVersion > 4 {
+	if value.SchemaVersion != 1 || value.Values == nil || value.BuiltinVersion < 0 || value.BuiltinVersion > 5 {
 		return errors.New("配置格式无效")
 	}
 	for id, data := range value.Values {

@@ -1,0 +1,2587 @@
+{
+  "schemaVersion": 1,
+  "rootDependencies": [
+    "js-yaml",
+    "zod",
+    "gray-matter",
+    "@larksuiteoapi/node-sdk",
+    "@wecom/aibot-node-sdk",
+    "dingtalk-stream",
+    "discord.js",
+    "drizzle-orm",
+    "sharp",
+    "@modelcontextprotocol/sdk",
+    "json5",
+    "dotenv",
+    "silk-wasm"
+  ],
+  "sourceSpec": "third_party/cindy/onebot.sync.json",
+  "components": [
+    {
+      "kind": "source",
+      "name": "Cindy OneBot local foundation",
+      "repository": "https://github.com/makecindy/cindy",
+      "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+      "license": "Apache-2.0",
+      "notices": [
+        {
+          "file": "cindy/LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "file": "cindy/NOTICE",
+          "sha256": "77ad73b2535cd4011ed8b509aa51d7c745ae5a6f411370d8f94337562c03cd97"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "js-yaml",
+      "version": "4.3.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/js-yaml",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-js-yaml-4.3.0-LICENSE.txt",
+          "sha256": "a07bc24468b9654ce76a547d47a2db282d07733b715db4c73a98bd63961f9550"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "zod",
+      "version": "4.3.6",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/zod",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-zod-4.3.6-LICENSE.txt",
+          "sha256": "3f1189b28e3866e0d979968d466b78f813f76827cfdca1fbb124cc0a5c8841f8"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "argparse",
+      "version": "2.0.1",
+      "license": "Python-2.0",
+      "sourceDirectory": "node_modules/argparse",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-argparse-2.0.1-LICENSE.txt",
+          "sha256": "de4d1f2d2ad5ad0cfd1657a106476b31cb5db5ef9d1ff842b237c0c81f0c8a23"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "gray-matter",
+      "version": "4.0.3",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/gray-matter",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-gray-matter-4.0.3-LICENSE.txt",
+          "sha256": "e70ff771504ba41f2be55de812a017ff46433d7a250c862e38fc419159e44500"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "js-yaml",
+      "version": "3.15.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/gray-matter/node_modules/js-yaml",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-js-yaml-3.15.2-LICENSE.txt",
+          "sha256": "a07bc24468b9654ce76a547d47a2db282d07733b715db4c73a98bd63961f9550"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "argparse",
+      "version": "1.0.10",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/gray-matter/node_modules/argparse",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-argparse-1.0.10-LICENSE.txt",
+          "sha256": "c8442419dc614089ea022b3da6bfc089b41a58fb7b9030d1e651f2f36189dce2"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "sprintf-js",
+      "version": "1.0.3",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/sprintf-js",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-sprintf-js-1.0.3-LICENSE.txt",
+          "sha256": "a4cdda44b5adea4731d53dcae78fb5124f8fd853e994f01e25d8c33a7daf818b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "esprima",
+      "version": "4.0.1",
+      "license": "BSD-2-Clause",
+      "sourceDirectory": "node_modules/esprima",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.BSD",
+          "file": "licenses/npm-onebot-esprima-4.0.1-LICENSE.BSD.txt",
+          "sha256": "94bcb9959136723aa4fb36e1a6c4d5c662a2369978cfae344dabfb83ae619e79"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "kind-of",
+      "version": "6.0.3",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/kind-of",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-kind-of-6.0.3-LICENSE.txt",
+          "sha256": "4cd903859549d4b20b571041f96dfae1136ed079c476126268f9d7cc1b611150"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "section-matter",
+      "version": "1.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/section-matter",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-section-matter-1.0.0-LICENSE.txt",
+          "sha256": "6d99b653e1464192ef347e48fe78943bab7570e36d12a6de49b4474d46b4a39c"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "extend-shallow",
+      "version": "2.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/extend-shallow",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-extend-shallow-2.0.1-LICENSE.txt",
+          "sha256": "daca23d50b0f54d36d6da1b16c82dfea6461e2ae20de0e869957e44cc6d34781"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "is-extendable",
+      "version": "0.1.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/is-extendable",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-is-extendable-0.1.1-LICENSE.txt",
+          "sha256": "0798f37cff4a3f438c071316e41f94ffe110116a313ab0fc4f8caa07218f1f0f"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "strip-bom-string",
+      "version": "1.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/strip-bom-string",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-strip-bom-string-1.0.0-LICENSE.txt",
+          "sha256": "aab63d733edfbb74393d94d75ece4ca89577d9f4a852a4cb18fb25cc8e254209"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@larksuiteoapi/node-sdk",
+      "version": "1.71.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@larksuiteoapi/node-sdk",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-larksuiteoapi-node-sdk-1.71.1-LICENSE.txt",
+          "sha256": "f9bfd5e309b1523a2dd3937b44f516e6018605eb05b35336485b0a34cbd9f373"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "axios",
+      "version": "1.20.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/axios",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-axios-1.20.0-LICENSE.txt",
+          "sha256": "82761059eaedacb3356803aea8a170d8298609f91b14fc32ee1bfb40d690183c"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "follow-redirects",
+      "version": "1.16.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/follow-redirects",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-follow-redirects-1.16.2-LICENSE.txt",
+          "sha256": "bfa8a54bb952ccda79f0f1889721d108f5b605babbb2b8a3705ffb52f4132eb7"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "form-data",
+      "version": "4.0.6",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/form-data",
+      "notices": [
+        {
+          "sourceFile": "License",
+          "file": "licenses/npm-onebot-form-data-4.0.6-License.txt",
+          "sha256": "e5b780d4f38d1d3328e3e53186c4e62d3fa149ea6f2bacd5de5ad0c30ac85343"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "asynckit",
+      "version": "0.4.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/asynckit",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-asynckit-0.4.0-LICENSE.txt",
+          "sha256": "1953150d5d4b10c7542cee6f6e0c613b2682545233f069d75cfff1936386ce10"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "combined-stream",
+      "version": "1.0.8",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/combined-stream",
+      "notices": [
+        {
+          "sourceFile": "License",
+          "file": "licenses/npm-onebot-combined-stream-1.0.8-License.txt",
+          "sha256": "47eb8ca82c798246774946d1be0f9aa08f025fa8325ced0947aeeb4c05fe5547"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "delayed-stream",
+      "version": "1.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/delayed-stream",
+      "notices": [
+        {
+          "sourceFile": "License",
+          "file": "licenses/npm-onebot-delayed-stream-1.0.0-License.txt",
+          "sha256": "47eb8ca82c798246774946d1be0f9aa08f025fa8325ced0947aeeb4c05fe5547"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "es-set-tostringtag",
+      "version": "2.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/es-set-tostringtag",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-es-set-tostringtag-2.1.0-LICENSE.txt",
+          "sha256": "1a3aeb1f1398bd697d57c3c585faadf59d825aca6e3162cd7eeb72ff76eb2466"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "es-errors",
+      "version": "1.3.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/es-errors",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-es-errors-1.3.0-LICENSE.txt",
+          "sha256": "5e325595b4ea8cfec3802f545b1def5d7b73e4a5b8e9ba63e32a320f67732292"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "get-intrinsic",
+      "version": "1.3.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/get-intrinsic",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-get-intrinsic-1.3.0-LICENSE.txt",
+          "sha256": "39c5ec504cf6bd5cd782a7c695828e09189df79f5d94840e4f08feb97b9fd416"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "call-bind-apply-helpers",
+      "version": "1.0.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/call-bind-apply-helpers",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-call-bind-apply-helpers-1.0.2-LICENSE.txt",
+          "sha256": "5e325595b4ea8cfec3802f545b1def5d7b73e4a5b8e9ba63e32a320f67732292"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "function-bind",
+      "version": "1.1.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/function-bind",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-function-bind-1.1.2-LICENSE.txt",
+          "sha256": "773e131a7684726005a7e4688a80b4620033bc08499bc1404dd1a1eb3bca725e"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "es-define-property",
+      "version": "1.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/es-define-property",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-es-define-property-1.0.1-LICENSE.txt",
+          "sha256": "5e325595b4ea8cfec3802f545b1def5d7b73e4a5b8e9ba63e32a320f67732292"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "es-object-atoms",
+      "version": "1.1.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/es-object-atoms",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-es-object-atoms-1.1.2-LICENSE.txt",
+          "sha256": "5e325595b4ea8cfec3802f545b1def5d7b73e4a5b8e9ba63e32a320f67732292"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "get-proto",
+      "version": "1.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/get-proto",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-get-proto-1.0.1-LICENSE.txt",
+          "sha256": "be46ce1e3b0479af9ce82d22b465a6d7d2ff084fca0aaf3d54172da2b5eb5781"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "dunder-proto",
+      "version": "1.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/dunder-proto",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-dunder-proto-1.0.1-LICENSE.txt",
+          "sha256": "2b770a704c15de238c3f622b01b0044ddd60b49ee30608ea6991ebf19db7a7a1"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "gopd",
+      "version": "1.2.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/gopd",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-gopd-1.2.0-LICENSE.txt",
+          "sha256": "d90bf0a089da4cf43d644ed240a0b3825dcdb705e64e38371d56995a4cc9e4c5"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "has-symbols",
+      "version": "1.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/has-symbols",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-has-symbols-1.1.0-LICENSE.txt",
+          "sha256": "206c1adcf206dc0031b11232f5b054ec5f1662407ab1ca415247921cab2068ab"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "hasown",
+      "version": "2.0.4",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/hasown",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-hasown-2.0.4-LICENSE.txt",
+          "sha256": "bf9b0d665be2a689851eea667ca9f42066ea1d903b38349c51e6a44b2577680a"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "math-intrinsics",
+      "version": "1.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/math-intrinsics",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-math-intrinsics-1.1.0-LICENSE.txt",
+          "sha256": "2b770a704c15de238c3f622b01b0044ddd60b49ee30608ea6991ebf19db7a7a1"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "has-tostringtag",
+      "version": "1.0.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/has-tostringtag",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-has-tostringtag-1.0.2-LICENSE.txt",
+          "sha256": "e2560e002e13281578c75c850061d9255c33d16d732939e8c2db64c2506642fa"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "mime-types",
+      "version": "2.1.35",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/mime-types",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-mime-types-2.1.35-LICENSE.txt",
+          "sha256": "71f83c4c0621102a56d9853812777b85751bce7e9726f686f5b056c1f8a4b0e6"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "mime-db",
+      "version": "1.52.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/mime-db",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-mime-db-1.52.0-LICENSE.txt",
+          "sha256": "cc1dfd4dafa27271e8212cd3b274eeb3f262e40a6fdab36ddc3f9696f706f58b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "https-proxy-agent",
+      "version": "5.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/axios/node_modules/https-proxy-agent",
+      "notices": [
+        {
+          "sourceFile": "README.md",
+          "file": "licenses/npm-onebot-https-proxy-agent-5.0.1-README.md.txt",
+          "sha256": "32f0856d2c43df7d05cca960fdee84e1e38ab545bd7b2186433dfa41aa90a712"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "agent-base",
+      "version": "6.0.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/axios/node_modules/agent-base",
+      "notices": [
+        {
+          "sourceFile": "README.md",
+          "file": "licenses/npm-onebot-agent-base-6.0.2-README.md.txt",
+          "sha256": "f1425c3b72330fe4fb2aa5a2fb152e939bdf534692a32b5f0b38f74147b98556"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "debug",
+      "version": "4.4.3",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/debug",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-debug-4.4.3-LICENSE.txt",
+          "sha256": "3a61c6c96caf5c1d9b623fb9b04c822b783dfcb78aa7e49c76a3f643e6ed7f95"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "ms",
+      "version": "2.1.3",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/ms",
+      "notices": [
+        {
+          "sourceFile": "license.md",
+          "file": "licenses/npm-onebot-ms-2.1.3-license.md.txt",
+          "sha256": "1662fae9b5314d11cf51284e2dcd1f006a354f7343f08712a730fcff9a359801"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "proxy-from-env",
+      "version": "2.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/proxy-from-env",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-proxy-from-env-2.1.0-LICENSE.txt",
+          "sha256": "f55828df4b8752c48e765a806465b76a103e3cb363379c569b15a1df2ba2d79e"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "lodash.identity",
+      "version": "3.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/lodash.identity",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.txt",
+          "file": "licenses/npm-onebot-lodash.identity-3.0.0-LICENSE.txt.txt",
+          "sha256": "2b61a34ef17beffb1e555efa8b46110d25398d47f2e88b2cacc46f8bd382c639"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "lodash.merge",
+      "version": "4.6.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/lodash.merge",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-lodash.merge-4.6.2-LICENSE.txt",
+          "sha256": "f71e8ed126b46346494aad5486874cd8f0aafe95092ed67d2e3cb6110f939abc"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "lodash.pickby",
+      "version": "4.6.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/lodash.pickby",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-lodash.pickby-4.6.0-LICENSE.txt",
+          "sha256": "ffd8b33b354585f4ce119f19c53728281e48a97b074491eb6bf6d5c5ff305272"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "protobufjs",
+      "version": "7.6.6",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/protobufjs",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-protobufjs-7.6.6-LICENSE.txt",
+          "sha256": "49d6a1c9a623784c61c6cb70f773f3457faceb1914a13c8560a9823b7631950c"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@protobufjs/aspromise",
+      "version": "1.1.2",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/@protobufjs/aspromise",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-protobufjs-aspromise-1.1.2-LICENSE.txt",
+          "sha256": "a67b34a24a5daddcce46aea68c5004e4442bbfb63690329fa607bf4de4269794"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@protobufjs/base64",
+      "version": "1.1.2",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/@protobufjs/base64",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-protobufjs-base64-1.1.2-LICENSE.txt",
+          "sha256": "a67b34a24a5daddcce46aea68c5004e4442bbfb63690329fa607bf4de4269794"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@protobufjs/codegen",
+      "version": "2.0.5",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/@protobufjs/codegen",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-protobufjs-codegen-2.0.5-LICENSE.txt",
+          "sha256": "a67b34a24a5daddcce46aea68c5004e4442bbfb63690329fa607bf4de4269794"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@protobufjs/eventemitter",
+      "version": "1.1.1",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/@protobufjs/eventemitter",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-protobufjs-eventemitter-1.1.1-LICENSE.txt",
+          "sha256": "a67b34a24a5daddcce46aea68c5004e4442bbfb63690329fa607bf4de4269794"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@protobufjs/fetch",
+      "version": "1.1.1",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/@protobufjs/fetch",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-protobufjs-fetch-1.1.1-LICENSE.txt",
+          "sha256": "a67b34a24a5daddcce46aea68c5004e4442bbfb63690329fa607bf4de4269794"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@protobufjs/float",
+      "version": "1.0.2",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/@protobufjs/float",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-protobufjs-float-1.0.2-LICENSE.txt",
+          "sha256": "a67b34a24a5daddcce46aea68c5004e4442bbfb63690329fa607bf4de4269794"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@protobufjs/path",
+      "version": "1.1.2",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/@protobufjs/path",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-protobufjs-path-1.1.2-LICENSE.txt",
+          "sha256": "a67b34a24a5daddcce46aea68c5004e4442bbfb63690329fa607bf4de4269794"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@protobufjs/pool",
+      "version": "1.1.0",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/@protobufjs/pool",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-protobufjs-pool-1.1.0-LICENSE.txt",
+          "sha256": "a67b34a24a5daddcce46aea68c5004e4442bbfb63690329fa607bf4de4269794"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@protobufjs/utf8",
+      "version": "1.1.2",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/@protobufjs/utf8",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-protobufjs-utf8-1.1.2-LICENSE.txt",
+          "sha256": "a67b34a24a5daddcce46aea68c5004e4442bbfb63690329fa607bf4de4269794"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@types/node",
+      "version": "26.6.4",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@types/node",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-types-node-26.6.4-LICENSE.txt",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "undici-types",
+      "version": "8.9.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/undici-types",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-undici-types-8.9.0-LICENSE.txt",
+          "sha256": "a6db8096b2707bc0102d256917d4d33f298ba36d8c3f25de067a2b5bb379db27"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "long",
+      "version": "5.3.2",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/long",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-long-5.3.2-LICENSE.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "qs",
+      "version": "6.16.1",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/qs",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-onebot-qs-6.16.1-LICENSE.md.txt",
+          "sha256": "e7dc37bf662d7f786efcb46c545615e70c1daf458a38385521c63cf6607cdfe1"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "side-channel",
+      "version": "1.1.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/side-channel",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-side-channel-1.1.1-LICENSE.txt",
+          "sha256": "cfc3f455254c0af0655cc3ff46a41ed644b67599f6043346169d285bf2b3cf3b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "object-inspect",
+      "version": "1.13.4",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/object-inspect",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-object-inspect-1.13.4-LICENSE.txt",
+          "sha256": "bd40cc437e28a3ad7bef2ad34e6b72e757b182e67bda1acadbab4ef0476f8232"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "side-channel-list",
+      "version": "1.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/side-channel-list",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-side-channel-list-1.0.1-LICENSE.txt",
+          "sha256": "5e325595b4ea8cfec3802f545b1def5d7b73e4a5b8e9ba63e32a320f67732292"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "side-channel-map",
+      "version": "1.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/side-channel-map",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-side-channel-map-1.0.1-LICENSE.txt",
+          "sha256": "5e325595b4ea8cfec3802f545b1def5d7b73e4a5b8e9ba63e32a320f67732292"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "call-bound",
+      "version": "1.0.4",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/call-bound",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-call-bound-1.0.4-LICENSE.txt",
+          "sha256": "5e325595b4ea8cfec3802f545b1def5d7b73e4a5b8e9ba63e32a320f67732292"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "side-channel-weakmap",
+      "version": "1.0.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/side-channel-weakmap",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-side-channel-weakmap-1.0.2-LICENSE.txt",
+          "sha256": "cfc3f455254c0af0655cc3ff46a41ed644b67599f6043346169d285bf2b3cf3b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "ws",
+      "version": "8.22.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/ws",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-ws-8.22.0-LICENSE.txt",
+          "sha256": "2b29dcfe0d6471f7e8c92c5fb38c9f93edee10330937055440192f1832b1ecef"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@wecom/aibot-node-sdk",
+      "version": "1.0.7",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@wecom/aibot-node-sdk",
+      "noticePolicy": {
+        "kind": "cindy-package-metadata",
+        "licenseTextMissing": true,
+        "repository": "https://github.com/makecindy/cindy",
+        "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+        "path": "docs/legal/notices/desktop-win.txt",
+        "sourceSHA256": "49f7d3c4e2212b17ed500ab1b1444e6c6fb5d1a883fdce460624b9af2bca4fa4",
+        "declaration": "- npm:@wecom/aibot-node-sdk@1.0.7 (MIT)"
+      },
+      "notices": [
+        {
+          "sourceFile": "package.json",
+          "file": "licenses/npm-onebot-wecom-aibot-node-sdk-1.0.7-package.json.txt",
+          "sha256": "5af83244f312c0ec983b5858a9280948c4d99e39985ad4abb25c043a2a2480b3"
+        },
+        {
+          "sourceFile": "README.md",
+          "file": "licenses/npm-onebot-wecom-aibot-node-sdk-1.0.7-README.md.txt",
+          "sha256": "4d77a7582566c4f3e6b636fd81c82c8ac5d5bd05e99f8e3530d59def0f045d5e"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "eventemitter3",
+      "version": "5.0.4",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/eventemitter3",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-eventemitter3-5.0.4-LICENSE.txt",
+          "sha256": "3aecc12b1cb28832b5f65ab64291de96568c3f236a74d646281b4491f7bcadbf"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "dingtalk-stream",
+      "version": "v2.1.5",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/dingtalk-stream",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-dingtalk-stream-v2.1.5-LICENSE.txt",
+          "sha256": "d4560b1cd75490afdef0f84a710745c7be714402e67922cd8cdf196ac2ab13b7"
+        }
+      ],
+      "registryVersion": "2.1.5"
+    },
+    {
+      "kind": "npm",
+      "name": "discord.js",
+      "version": "14.27.0",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/discord.js",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-discord.js-14.27.0-LICENSE.txt",
+          "sha256": "5924242341702248e38114e62af453a788d6fdfe33d6565f146a574348dcd46f"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@discordjs/builders",
+      "version": "1.14.1",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/@discordjs/builders",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-discordjs-builders-1.14.1-LICENSE.txt",
+          "sha256": "55b8d145e3835bceefd0105834f01a5f22cfff195ec6dc063b447558697644b1"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@discordjs/formatters",
+      "version": "0.6.2",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/@discordjs/formatters",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-discordjs-formatters-0.6.2-LICENSE.txt",
+          "sha256": "342c72695cb7f65d08b2639616461482eab86ba47d52420d39d293eb8cb06df8"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "discord-api-types",
+      "version": "0.38.57",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/discord-api-types",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-discord-api-types-0.38.57-LICENSE.txt",
+          "sha256": "0adfaa12dd8b7912276277414fa318490c6aa5b1346cb793bff15e4ab6678e05"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@discordjs/util",
+      "version": "1.2.0",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/@discordjs/util",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-discordjs-util-1.2.0-LICENSE.txt",
+          "sha256": "ddc6cf61b1bc0088468181b7d503af0b71b56681ce9005c5030217d1fd66db4b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@sapphire/shapeshift",
+      "version": "4.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@sapphire/shapeshift",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-onebot-sapphire-shapeshift-4.0.0-LICENSE.md.txt",
+          "sha256": "8c94044d88de5b0c6b80aa8ae4f3d375da1b448002b20897f8091756a4d99d14"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "fast-deep-equal",
+      "version": "3.1.3",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/fast-deep-equal",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-fast-deep-equal-3.1.3-LICENSE.txt",
+          "sha256": "7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "lodash",
+      "version": "4.18.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/lodash",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-lodash-4.18.1-LICENSE.txt",
+          "sha256": "f71e8ed126b46346494aad5486874cd8f0aafe95092ed67d2e3cb6110f939abc"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "ts-mixer",
+      "version": "6.0.4",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/ts-mixer",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-ts-mixer-6.0.4-LICENSE.txt",
+          "sha256": "76259fd03cdfcdfff2eee620d78c57c6a6e2fceb80ca91887e061cbad8f97951"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "tslib",
+      "version": "2.8.1",
+      "license": "0BSD",
+      "sourceDirectory": "node_modules/tslib",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.txt",
+          "file": "licenses/npm-onebot-tslib-2.8.1-LICENSE.txt.txt",
+          "sha256": "210b19e543130388c68654b7497e967119ce17145f66ab7d85688fbd70f08751"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@discordjs/collection",
+      "version": "1.5.3",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/@discordjs/collection",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-discordjs-collection-1.5.3-LICENSE.txt",
+          "sha256": "5924242341702248e38114e62af453a788d6fdfe33d6565f146a574348dcd46f"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@discordjs/rest",
+      "version": "2.6.3",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/@discordjs/rest",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-discordjs-rest-2.6.3-LICENSE.txt",
+          "sha256": "2bb13d0bcfeef666dfde8e6c31ecfc73be645459381657efac37036732689044"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@discordjs/collection",
+      "version": "2.1.1",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/@discordjs/rest/node_modules/@discordjs/collection",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-discordjs-collection-2.1.1-LICENSE.txt",
+          "sha256": "5924242341702248e38114e62af453a788d6fdfe33d6565f146a574348dcd46f"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@sapphire/async-queue",
+      "version": "1.5.5",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@sapphire/async-queue",
+      "noticePolicy": {
+        "kind": "cindy-package-metadata",
+        "licenseTextMissing": true,
+        "repository": "https://github.com/makecindy/cindy",
+        "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+        "path": "docs/legal/notices/desktop-win.txt",
+        "sourceSHA256": "49f7d3c4e2212b17ed500ab1b1444e6c6fb5d1a883fdce460624b9af2bca4fa4",
+        "declaration": "- npm:@sapphire/async-queue@1.5.5 (MIT)"
+      },
+      "notices": [
+        {
+          "sourceFile": "package.json",
+          "file": "licenses/npm-onebot-sapphire-async-queue-1.5.5-package.json.txt",
+          "sha256": "fe5717e733d855d25f9d2c50af7c9c3a42970a100f56206af611d5a5c01195ce"
+        },
+        {
+          "sourceFile": "README.md",
+          "file": "licenses/npm-onebot-sapphire-async-queue-1.5.5-README.md.txt",
+          "sha256": "2fa3d9f606d4527bdf3ed0c26fc7e6c30400653d12b31d03b959d40ba8da03dd"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@sapphire/snowflake",
+      "version": "3.5.5",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@sapphire/snowflake",
+      "noticePolicy": {
+        "kind": "cindy-package-metadata",
+        "licenseTextMissing": true,
+        "repository": "https://github.com/makecindy/cindy",
+        "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+        "path": "docs/legal/notices/desktop-win.txt",
+        "sourceSHA256": "49f7d3c4e2212b17ed500ab1b1444e6c6fb5d1a883fdce460624b9af2bca4fa4",
+        "declaration": "- npm:@sapphire/snowflake@3.5.5 (MIT)"
+      },
+      "notices": [
+        {
+          "sourceFile": "package.json",
+          "file": "licenses/npm-onebot-sapphire-snowflake-3.5.5-package.json.txt",
+          "sha256": "31ccfe1a096851f0f61eaddc1f1406c6c164d4bb6f0f3b48712ed5180d9ab07d"
+        },
+        {
+          "sourceFile": "README.md",
+          "file": "licenses/npm-onebot-sapphire-snowflake-3.5.5-README.md.txt",
+          "sha256": "67eb2002a065d7d2348e04762c53ce1289a97fcea0bbb133cc95f28136948f50"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@vladfrangu/async_event_emitter",
+      "version": "2.4.7",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@vladfrangu/async_event_emitter",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-onebot-vladfrangu-async_event_emitter-2.4.7-LICENSE.md.txt",
+          "sha256": "ae9e0665153e0c1bb7f24d63ac445e9d3e277b0b02e04bb631dc99eb56116812"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "magic-bytes.js",
+      "version": "1.13.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/magic-bytes.js",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-magic-bytes.js-1.13.1-LICENSE.txt",
+          "sha256": "9eafa31f3f1a41e02a12823a7d2c7773dfeb80e6095558bda5d609b28fd5303e"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "undici",
+      "version": "6.29.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@discordjs/rest/node_modules/undici",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-undici-6.29.1-LICENSE.txt",
+          "sha256": "a6db8096b2707bc0102d256917d4d33f298ba36d8c3f25de067a2b5bb379db27"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@discordjs/ws",
+      "version": "1.2.3",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/@discordjs/ws",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-discordjs-ws-1.2.3-LICENSE.txt",
+          "sha256": "27e1d492340d4f9c2f25ec76a4aa3a53012ce344b1dd124d8d2adbe4ba5fd0c7"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@discordjs/collection",
+      "version": "2.1.1",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/@discordjs/ws/node_modules/@discordjs/collection",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-discordjs-collection-2.1.1-LICENSE.txt",
+          "sha256": "5924242341702248e38114e62af453a788d6fdfe33d6565f146a574348dcd46f"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@types/ws",
+      "version": "8.18.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@types/ws",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-types-ws-8.18.2-LICENSE.txt",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "lodash.snakecase",
+      "version": "4.1.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/lodash.snakecase",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-lodash.snakecase-4.1.1-LICENSE.txt",
+          "sha256": "ffd8b33b354585f4ce119f19c53728281e48a97b074491eb6bf6d5c5ff305272"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "undici",
+      "version": "6.29.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/discord.js/node_modules/undici",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-undici-6.29.1-LICENSE.txt",
+          "sha256": "a6db8096b2707bc0102d256917d4d33f298ba36d8c3f25de067a2b5bb379db27"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "drizzle-orm",
+      "version": "0.45.2",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/drizzle-orm",
+      "noticePolicy": {
+        "kind": "cindy-package-metadata",
+        "licenseTextMissing": true,
+        "repository": "https://github.com/makecindy/cindy",
+        "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+        "path": "docs/legal/notices/desktop-win.txt",
+        "sourceSHA256": "49f7d3c4e2212b17ed500ab1b1444e6c6fb5d1a883fdce460624b9af2bca4fa4",
+        "declaration": "- npm:drizzle-orm@0.45.2 (Apache-2.0)"
+      },
+      "notices": [
+        {
+          "sourceFile": "package.json",
+          "file": "licenses/npm-onebot-drizzle-orm-0.45.2-package.json.txt",
+          "sha256": "9fd30ce718965c19178ac6936462b77017f1fffe56865124d0cfe55850de09ff"
+        },
+        {
+          "sourceFile": "README.md",
+          "file": "licenses/npm-onebot-drizzle-orm-0.45.2-README.md.txt",
+          "sha256": "95713908300b712f1016419a73fa63cd908b2226fc9635e484736e2a6b6d227c"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "sharp",
+      "version": "0.35.0",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/sharp",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-sharp-0.35.0-LICENSE.txt",
+          "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@img/colour",
+      "version": "1.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@img/colour",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-onebot-img-colour-1.1.0-LICENSE.md.txt",
+          "sha256": "e2eaa4603c14cb26f301e88648c12a853fa3f0f5da6d4b0972958c666e7f2ab8"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "detect-libc",
+      "version": "2.1.2",
+      "license": "Apache-2.0",
+      "sourceDirectory": "node_modules/detect-libc",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-detect-libc-2.1.2-LICENSE.txt",
+          "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "semver",
+      "version": "7.8.5",
+      "license": "ISC",
+      "sourceDirectory": "node_modules/semver",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-semver-7.8.5-LICENSE.txt",
+          "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@img/sharp-win32-x64",
+      "version": "0.35.0",
+      "license": "Apache-2.0 AND LGPL-3.0-or-later",
+      "sourceDirectory": "node_modules/@img/sharp-win32-x64",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-img-sharp-win32-x64-0.35.0-LICENSE.txt",
+          "sha256": "dc1f5d2d43c5531dfe0acaf4e950ea5dbe3e61e1850cf0e983bda7efc10d6693"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@modelcontextprotocol/sdk",
+      "version": "1.31.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@modelcontextprotocol/sdk",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-modelcontextprotocol-sdk-1.31.0-LICENSE.txt",
+          "sha256": "5e13dbbc1d120fc2a03cecde7c91424ae2d7de11b63d58ded2f4431e261ee50d"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@hono/node-server",
+      "version": "2.1.5",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@hono/node-server",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-hono-node-server-2.1.5-LICENSE.txt",
+          "sha256": "6895190430d809c4c57a7582ecc2f99acbc2ea39a5dfad20262a41d5b3e91733"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "ajv",
+      "version": "8.20.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/ajv",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-ajv-8.20.0-LICENSE.txt",
+          "sha256": "a05350a88e318e4f5f2c2a1ff1e2e88daa4dd38e6e78b71cccae422bdc762cc3"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "fast-uri",
+      "version": "3.1.9",
+      "license": "BSD-3-Clause",
+      "sourceDirectory": "node_modules/fast-uri",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-fast-uri-3.1.9-LICENSE.txt",
+          "sha256": "b010b0dfdfdb23d7396e03b82cd4621fc9bb8f95d6b0aea70b9c24e12074c786"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "json-schema-traverse",
+      "version": "1.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/json-schema-traverse",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-json-schema-traverse-1.0.0-LICENSE.txt",
+          "sha256": "7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "require-from-string",
+      "version": "2.0.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/require-from-string",
+      "notices": [
+        {
+          "sourceFile": "license",
+          "file": "licenses/npm-onebot-require-from-string-2.0.2-license.txt",
+          "sha256": "6ee0feb1f6ef996ff5a68600f8cf98909cf412d39ef3cdceaefd87d636fa1b7f"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "ajv-formats",
+      "version": "3.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/ajv-formats",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-ajv-formats-3.0.1-LICENSE.txt",
+          "sha256": "9df3bb69929a3b650ed73b3bfa1756725aaff0ac296461605753547004eafeaf"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "content-type",
+      "version": "1.0.5",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/content-type",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-content-type-1.0.5-LICENSE.txt",
+          "sha256": "257aed98914108e91a337912727b6a802eef218248507f74b76faffaff517a38"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "cors",
+      "version": "2.8.6",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/cors",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-cors-2.8.6-LICENSE.txt",
+          "sha256": "1aa9a12863eefb583779b2ca0e5d73c610b6e6d07529ae0472721769a6ea0a32"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "object-assign",
+      "version": "4.1.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/object-assign",
+      "notices": [
+        {
+          "sourceFile": "license",
+          "file": "licenses/npm-onebot-object-assign-4.1.1-license.txt",
+          "sha256": "6fb9754611c20f6649f68805e8c990e83261f29316e29de9e6cedae607b8634c"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "vary",
+      "version": "1.1.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/vary",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-vary-1.1.2-LICENSE.txt",
+          "sha256": "bd47ce7b88c7759630d1e2b9fcfa170a0f1fde522be09e13fb1581a79d090400"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "cross-spawn",
+      "version": "7.0.6",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/cross-spawn",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-cross-spawn-7.0.6-LICENSE.txt",
+          "sha256": "aaa78451b6fecd1b9c4594c796c133c0e90cad100372ff8bc6de615e9ef9adf1"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "path-key",
+      "version": "3.1.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/path-key",
+      "notices": [
+        {
+          "sourceFile": "license",
+          "file": "licenses/npm-onebot-path-key-3.1.1-license.txt",
+          "sha256": "48da2f39e100d4085767e94966b43f4fa95ff6a0698fba57ed460914e35f94a0"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "shebang-command",
+      "version": "2.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/shebang-command",
+      "notices": [
+        {
+          "sourceFile": "license",
+          "file": "licenses/npm-onebot-shebang-command-2.0.0-license.txt",
+          "sha256": "69dee148a2cc470554dfa7142e830662062394d0fe67cddd379aba90dc60d6b3"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "shebang-regex",
+      "version": "3.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/shebang-regex",
+      "notices": [
+        {
+          "sourceFile": "license",
+          "file": "licenses/npm-onebot-shebang-regex-3.0.0-license.txt",
+          "sha256": "48da2f39e100d4085767e94966b43f4fa95ff6a0698fba57ed460914e35f94a0"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "which",
+      "version": "2.0.2",
+      "license": "ISC",
+      "sourceDirectory": "node_modules/which",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-which-2.0.2-LICENSE.txt",
+          "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "isexe",
+      "version": "2.0.0",
+      "license": "ISC",
+      "sourceDirectory": "node_modules/isexe",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-isexe-2.0.0-LICENSE.txt",
+          "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "eventsource",
+      "version": "3.0.7",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/eventsource",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-eventsource-3.0.7-LICENSE.txt",
+          "sha256": "f683a72ffe6a9675b5507af22fe0f448d8c8de3da1e14f139d370a7e6a54a23e"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "eventsource-parser",
+      "version": "3.1.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/eventsource-parser",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-eventsource-parser-3.1.1-LICENSE.txt",
+          "sha256": "835eb611a23301b27115ca1be9f754c876e643ceb7fe63049c6b50609a1cafeb"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "express",
+      "version": "5.3.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/express",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-express-5.3.0-LICENSE.txt",
+          "sha256": "95a5762890e5c1c9808921cef095661fc482c5e1f0bba31446ac85595df6237c"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "accepts",
+      "version": "2.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/accepts",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-accepts-2.0.0-LICENSE.txt",
+          "sha256": "71f83c4c0621102a56d9853812777b85751bce7e9726f686f5b056c1f8a4b0e6"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "mime-types",
+      "version": "3.0.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/accepts/node_modules/mime-types",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-mime-types-3.0.2-LICENSE.txt",
+          "sha256": "71f83c4c0621102a56d9853812777b85751bce7e9726f686f5b056c1f8a4b0e6"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "mime-db",
+      "version": "1.54.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/accepts/node_modules/mime-db",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-mime-db-1.54.0-LICENSE.txt",
+          "sha256": "cc1dfd4dafa27271e8212cd3b274eeb3f262e40a6fdab36ddc3f9696f706f58b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "negotiator",
+      "version": "1.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/negotiator",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-negotiator-1.1.0-LICENSE.txt",
+          "sha256": "553d4d20029a24e315b428a1a54a9e109eaa340f2e958a4f50a92362c2c4070b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "content-type",
+      "version": "2.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/negotiator/node_modules/content-type",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-content-type-2.1.0-LICENSE.txt",
+          "sha256": "257aed98914108e91a337912727b6a802eef218248507f74b76faffaff517a38"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "body-parser",
+      "version": "2.4.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/body-parser",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-body-parser-2.4.0-LICENSE.txt",
+          "sha256": "23d466b1b134b415b66fa50c6526b4cf3e7b9258554da88d3abb371721e7ce68"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "bytes",
+      "version": "3.1.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/bytes",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-bytes-3.1.2-LICENSE.txt",
+          "sha256": "e3b44af066615de2ea48d18d852d0762f18c0b2efcea714fa48a6f729d405b85"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "content-type",
+      "version": "2.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/body-parser/node_modules/content-type",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-content-type-2.1.0-LICENSE.txt",
+          "sha256": "257aed98914108e91a337912727b6a802eef218248507f74b76faffaff517a38"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "http-errors",
+      "version": "2.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/http-errors",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-http-errors-2.0.1-LICENSE.txt",
+          "sha256": "dcb94ff9b1e037a847bc20589dc81a1066d041fd4c16deb18b0fa968c66cf395"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "depd",
+      "version": "2.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/depd",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-depd-2.0.0-LICENSE.txt",
+          "sha256": "bd134b41da59e452fb5a1d366b660886f741c87c2bf9428e93764c419fbc40f5"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "inherits",
+      "version": "2.0.4",
+      "license": "ISC",
+      "sourceDirectory": "node_modules/inherits",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-inherits-2.0.4-LICENSE.txt",
+          "sha256": "5ffe28e7ade7d8f10d85d5337a73fd793dac5c462fb9a28fbf8c5046c7fbca3b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "setprototypeof",
+      "version": "1.2.0",
+      "license": "ISC",
+      "sourceDirectory": "node_modules/setprototypeof",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-setprototypeof-1.2.0-LICENSE.txt",
+          "sha256": "76d6d1ea0c268da37dd3c961b4fcfb23dee8417fff9e8786d4d44c585b781b69"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "statuses",
+      "version": "2.0.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/statuses",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-statuses-2.0.2-LICENSE.txt",
+          "sha256": "512cfa4d5e7a7569c7ae4dd95241cb6ae2aaf648ef9ebd080c01bd24868d26e9"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "toidentifier",
+      "version": "1.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/toidentifier",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-toidentifier-1.0.1-LICENSE.txt",
+          "sha256": "a832d679750e49ab433626ab196350b89964b60eb0d3edd3341887c7d5f4c128"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "iconv-lite",
+      "version": "0.7.3",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/iconv-lite",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-iconv-lite-0.7.3-LICENSE.txt",
+          "sha256": "ac779f7314c74f232ef847ea86e714abe25cf6eeb5cc97b69451b74e2af6492d"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "safer-buffer",
+      "version": "2.1.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/safer-buffer",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-safer-buffer-2.1.2-LICENSE.txt",
+          "sha256": "4bc935e71be198c67ddf3c2b5fddb195f6edc182bfc155a96a6db61b44b494b9"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "on-finished",
+      "version": "2.4.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/on-finished",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-on-finished-2.4.2-LICENSE.txt",
+          "sha256": "8089bcc08845ec143e5761f4a101a65b8c792a0dedbfeeb90a15560c0b77f768"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "ee-first",
+      "version": "1.1.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/ee-first",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-ee-first-1.1.1-LICENSE.txt",
+          "sha256": "965ef284f7f4c176842ec2e87fa13e79feed777d56d7a21a5a3b38f1bb6dc288"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "raw-body",
+      "version": "3.0.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/raw-body",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-raw-body-3.0.2-LICENSE.txt",
+          "sha256": "37876d7de8bdf5e5b9b58a697ebc34044624e493e6f49eff5c938e5226dcac6b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "unpipe",
+      "version": "1.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/unpipe",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-unpipe-1.0.0-LICENSE.txt",
+          "sha256": "1a526fbe8d8577f5a4b1c2821842b55b7c0e18862531c62ae4ce69c9b19b74b6"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "type-is",
+      "version": "2.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/type-is",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-type-is-2.1.0-LICENSE.txt",
+          "sha256": "23d466b1b134b415b66fa50c6526b4cf3e7b9258554da88d3abb371721e7ce68"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "content-type",
+      "version": "2.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/type-is/node_modules/content-type",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-content-type-2.1.0-LICENSE.txt",
+          "sha256": "257aed98914108e91a337912727b6a802eef218248507f74b76faffaff517a38"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "media-typer",
+      "version": "1.1.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/media-typer",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-media-typer-1.1.1-LICENSE.txt",
+          "sha256": "bd47ce7b88c7759630d1e2b9fcfa170a0f1fde522be09e13fb1581a79d090400"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "mime-types",
+      "version": "3.0.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/type-is/node_modules/mime-types",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-mime-types-3.0.2-LICENSE.txt",
+          "sha256": "71f83c4c0621102a56d9853812777b85751bce7e9726f686f5b056c1f8a4b0e6"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "mime-db",
+      "version": "1.54.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/type-is/node_modules/mime-db",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-mime-db-1.54.0-LICENSE.txt",
+          "sha256": "cc1dfd4dafa27271e8212cd3b274eeb3f262e40a6fdab36ddc3f9696f706f58b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "content-disposition",
+      "version": "2.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/content-disposition",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-content-disposition-2.0.1-LICENSE.txt",
+          "sha256": "bd47ce7b88c7759630d1e2b9fcfa170a0f1fde522be09e13fb1581a79d090400"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "content-type",
+      "version": "2.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/express/node_modules/content-type",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-content-type-2.1.0-LICENSE.txt",
+          "sha256": "257aed98914108e91a337912727b6a802eef218248507f74b76faffaff517a38"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "cookie",
+      "version": "0.7.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/cookie",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-cookie-0.7.2-LICENSE.txt",
+          "sha256": "c02110eedc16c7114f1a9bdc026c65626ce1d9c7e27fd51a8e0feee8a48a6858"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "cookie-signature",
+      "version": "1.2.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/cookie-signature",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-cookie-signature-1.2.2-LICENSE.txt",
+          "sha256": "0dd4e47333485760cf8c265db5a5e24ae8d7401064c6f2e19793ee81a5bef42f"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "encodeurl",
+      "version": "2.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/encodeurl",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-encodeurl-2.0.1-LICENSE.txt",
+          "sha256": "7585ea7bba616ccbbe43cb54ecb67956688c3c5641bb84f3099a652a73193afe"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "escape-html",
+      "version": "1.0.3",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/escape-html",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-escape-html-1.0.3-LICENSE.txt",
+          "sha256": "255aa557a1f55224ce522f311629c0bf20854740a67955cefd798fbd1d3d1ded"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "etag",
+      "version": "1.8.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/etag",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-etag-1.8.1-LICENSE.txt",
+          "sha256": "a7996721249a136fbcfc1c201bcb5f414f38a701d4a24f28abe65e16cfcce813"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "finalhandler",
+      "version": "2.1.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/finalhandler",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-finalhandler-2.1.1-LICENSE.txt",
+          "sha256": "47dcccf62bf40469d23849b0b1dc8df9fc91bce219b880c638d4dc4596e6b5cf"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "parseurl",
+      "version": "1.3.3",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/parseurl",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-parseurl-1.3.3-LICENSE.txt",
+          "sha256": "11d017c3b9f1ee3f44caf7203035f0461d5b57e0db8ce1bc03a9af34fa7d3f6b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "fresh",
+      "version": "2.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/fresh",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-fresh-2.0.0-LICENSE.txt",
+          "sha256": "a0ec0dab16b3666f24950f86d257930ac2ad475557b4bfe245620e0817d8a45d"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "merge-descriptors",
+      "version": "2.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/merge-descriptors",
+      "notices": [
+        {
+          "sourceFile": "license",
+          "file": "licenses/npm-onebot-merge-descriptors-2.0.0-license.txt",
+          "sha256": "70b126abc64d7ea06e1243349073935caa16fa47a41a571773ccf0b350b1d574"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "mime-types",
+      "version": "3.0.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/express/node_modules/mime-types",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-mime-types-3.0.2-LICENSE.txt",
+          "sha256": "71f83c4c0621102a56d9853812777b85751bce7e9726f686f5b056c1f8a4b0e6"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "mime-db",
+      "version": "1.54.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/express/node_modules/mime-db",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-mime-db-1.54.0-LICENSE.txt",
+          "sha256": "cc1dfd4dafa27271e8212cd3b274eeb3f262e40a6fdab36ddc3f9696f706f58b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "once",
+      "version": "1.4.0",
+      "license": "ISC",
+      "sourceDirectory": "node_modules/once",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-once-1.4.0-LICENSE.txt",
+          "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "wrappy",
+      "version": "1.0.2",
+      "license": "ISC",
+      "sourceDirectory": "node_modules/wrappy",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-wrappy-1.0.2-LICENSE.txt",
+          "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "proxy-addr",
+      "version": "2.0.8",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/proxy-addr",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-proxy-addr-2.0.8-LICENSE.txt",
+          "sha256": "a7996721249a136fbcfc1c201bcb5f414f38a701d4a24f28abe65e16cfcce813"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "forwarded",
+      "version": "0.2.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/forwarded",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-forwarded-0.2.0-LICENSE.txt",
+          "sha256": "bd47ce7b88c7759630d1e2b9fcfa170a0f1fde522be09e13fb1581a79d090400"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "ipaddr.js",
+      "version": "1.9.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/ipaddr.js",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-ipaddr.js-1.9.1-LICENSE.txt",
+          "sha256": "62568a2d1337b77171ecca9db10579163446de1ba6151678e81f06cdc199971b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "range-parser",
+      "version": "1.3.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/range-parser",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-range-parser-1.3.0-LICENSE.txt",
+          "sha256": "f655e6291356ec0de7a8f0e69f294961a2cea86678ec94588be1e6a492e278ab"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "router",
+      "version": "2.2.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/router",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-router-2.2.0-LICENSE.txt",
+          "sha256": "d0bca4e517157b7a6120c085f5fe43a35b90c095e3bbeb9e67f220c608506a16"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "is-promise",
+      "version": "4.0.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/is-promise",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-is-promise-4.0.0-LICENSE.txt",
+          "sha256": "44191656d296391e0ec97e32f5385f0d02b6f2992694082d22ea04ba0f66f9e4"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "path-to-regexp",
+      "version": "8.4.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/path-to-regexp",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-path-to-regexp-8.4.2-LICENSE.txt",
+          "sha256": "4eeb3271453a891df609e5a9f4ee79a68307f730c13417a3bfeffa604ac8cf25"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "send",
+      "version": "1.2.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/send",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-send-1.2.1-LICENSE.txt",
+          "sha256": "25a328069fe771f8ed5b6f983ed4b0e6c84b3312ac0f69b28c3d52dc277962c9"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "mime-types",
+      "version": "3.0.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/send/node_modules/mime-types",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-mime-types-3.0.2-LICENSE.txt",
+          "sha256": "71f83c4c0621102a56d9853812777b85751bce7e9726f686f5b056c1f8a4b0e6"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "mime-db",
+      "version": "1.54.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/send/node_modules/mime-db",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-mime-db-1.54.0-LICENSE.txt",
+          "sha256": "cc1dfd4dafa27271e8212cd3b274eeb3f262e40a6fdab36ddc3f9696f706f58b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "serve-static",
+      "version": "2.2.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/serve-static",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-serve-static-2.2.1-LICENSE.txt",
+          "sha256": "63b9a188d7d43e64b0558b7115255045b9fe20a5fc3ff483421cb899e7f52bcb"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "express-rate-limit",
+      "version": "8.7.2",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/express-rate-limit",
+      "notices": [
+        {
+          "sourceFile": "license",
+          "file": "licenses/npm-onebot-express-rate-limit-8.7.2-license.txt",
+          "sha256": "a752c164b45840ef677e68c738aefabfd665ee9f112ada4538761301a97118b0"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "ip-address",
+      "version": "10.7.5",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/ip-address",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-ip-address-10.7.5-LICENSE.txt",
+          "sha256": "f8d791359a50cbcac82c29cb7b0b1b889b28be76fdd35b8ee33f0f7c8704702a"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "hono",
+      "version": "4.13.14",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/hono",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-hono-4.13.14-LICENSE.txt",
+          "sha256": "a6ab98e5c77b9070c443eaff2ff81034a6f8cc05a7524d5098eb0f24defa0115"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "jose",
+      "version": "6.2.14",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/jose",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-onebot-jose-6.2.14-LICENSE.md.txt",
+          "sha256": "8078b0829d6c3e9ecde2f003e1966e4cad3efc6e7a640efbab0313cc166b1af1"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "json-schema-typed",
+      "version": "8.0.2",
+      "license": "BSD-2-Clause",
+      "sourceDirectory": "node_modules/json-schema-typed",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-onebot-json-schema-typed-8.0.2-LICENSE.md.txt",
+          "sha256": "bbe87b573c12bda5baf18742117330efa177e0886b3b0a278dacf8f236e1e129"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "pkce-challenge",
+      "version": "5.0.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/pkce-challenge",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-pkce-challenge-5.0.1-LICENSE.txt",
+          "sha256": "feb87a2e0c305de3464cc44077da5393c52d8ca6362d37427157d04ec6f4510d"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "zod-to-json-schema",
+      "version": "3.25.2",
+      "license": "ISC",
+      "sourceDirectory": "node_modules/zod-to-json-schema",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-zod-to-json-schema-3.25.2-LICENSE.txt",
+          "sha256": "80d3168ad2f70f6f5bb2ab22b23414707abf6f0a392034891481ae36a1a429d4"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "json5",
+      "version": "2.2.3",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/json5",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-onebot-json5-2.2.3-LICENSE.md.txt",
+          "sha256": "53e59feb13058722d977c699eb0407c7bce2f93c949b681bbd2ff31698535927"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "dotenv",
+      "version": "16.6.1",
+      "license": "BSD-2-Clause",
+      "sourceDirectory": "node_modules/dotenv",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-dotenv-16.6.1-LICENSE.txt",
+          "sha256": "74b629b24865e1e83c5277ee84590b7937644d6fd959d0c7bdce758676cd2ced"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "silk-wasm",
+      "version": "3.7.1",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/silk-wasm",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-silk-wasm-3.7.1-LICENSE.txt",
+          "sha256": "3b1585c0e6d9d501e86383948fc0d1734bcb86517a13111d97749c65ad2bfb74"
+        }
+      ]
+    }
+  ]
+}

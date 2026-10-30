@@ -17,7 +17,7 @@ func ValidateGeneration(input Generation) error {
 		return errors.New("AI 输入过大")
 	}
 	if len(input.Messages) == 0 {
-		if strings.TrimSpace(input.Text) == "" || len(input.Text) > 100000 {
+		if strings.TrimSpace(input.Text) == "" || len(input.Text) > 1<<20 {
 			return errors.New("AI 输入为空或过大")
 		}
 		return nil

@@ -1,66 +1,70 @@
 # Cindy 自动化接入与验证
 
-来源为 `makecindy/cindy@a152497ac24d155dd46142b73dda4fa10ad08ad0`。排期引擎、类型、六个内置模板和英文模板文案保存在 `third_party/cindy/scheduler/`。脚本协议与前置检查由原实现适配，来源及摘要见 `scheduler-source.json`。
+来源为 `makecindy/cindy@b7e46bcbbe41eeee2f16381fef00df61a31a3b8b`（Apache-2.0）。Chat 的自动化页面直接复用 Cindy 的完整渲染端功能 `features/scheduler`（总览、任务列表、运行历史、新建/编辑表单、计划与模型胶囊、模板、删除确认、项目自动化提示），以及 `packages/maker-scheduler`（排期引擎、类型、例行任务、模板）和前置检查生成器。WinOne 只在接缝层替换宿主能力。
 
-WinOne 使用 Pi 作为执行器；供应商、模型、权限和凭据仍由 WinOne 管理。任务的思考强度与 Fast 选择会传入真实请求。供应商是否接受这些参数取决于其模型能力。绑定会话未指定这些选项时，保留会话现有选择。
+## 复用方式
 
-## 功能对照
+`build/sync-cindy.mjs` 按 `third_party/cindy/scheduler.sync.json` 从固定提交读取原文件（`git show`，不受工作区换行影响），只做三类机械改动：改写导入路径、把 `window.electronAPI` 指向接缝、执行登记过的文本补丁。每个文件都记录上游与落地 SHA-256。
 
-| 上游能力 | WinOne 入口与执行 | 已执行的验证 |
+```powershell
+node build/sync-cindy.mjs --spec third_party/cindy/scheduler.sync.json --write   # 升级时重新同步
+node build/sync-cindy.mjs --spec third_party/cindy/scheduler.sync.json --check   # 构建时校验
+```
+
+没有 Cindy 源码副本时，`--check` 只核对已登记摘要，手工改动仍会失败。升级到新提交时修改 `revision` 后执行 `--write`，再查看报错的接缝与补丁。
+
+登记的补丁只表达宿主事实：新任务默认 Pi 引擎；表单宽度不超过窗口，避免横向滚动；Radix 弹层带上 Cindy 主题作用域。文案子集由同一工具从 Cindy 中英文语言包生成，`{{appName}}` 写为 WinOne，涉及 Cindy 云和其他引擎的提示改为 WinOne 措辞，远程设备错误不收录。
+
+## 用户裁决（2026-10-25）
+
+- 完全按 Cindy：表单不提供权限选择，新建的“每次新建 / 持续任务”以完全访问运行；绑定已有任务时沿用该任务的权限。
+- “一次”采用 Cindy 语义：在下一个触发点运行一次，不再提供指定日期时间。
+- 已有任务保留原权限和原执行时间：升级时一次性为未记录权限的独立任务写入“询问”；已有的指定时间任务继续按原时刻执行。
+- 只用 Pi；不接入 Cindy 云、其他电脑和共享供应商。
+
+## 接缝
+
+| Cindy 宿主能力 | WinOne 实现 |
+| --- | --- |
+| `window.electronAPI.maker.schedule/projectAutomation` | `features/cindy/host/electronAPI.ts` → Host `chat.automations.*`；事件由 Host 长轮询提供，订阅不重放旧事件 |
+| 供应商、模型、能力、思考强度、Fast | WinOne AI 服务；模型选择器沿用 Chat 的分组列表（`host/modelSelector.tsx`） |
+| 任务、项目、引用解析、归档/删除 | WinOne Chat 目录与 `conversation.update/delete` |
+| 路由 | 打开任务 → 切换 Chat 对话；供应商设置 → AI 服务；IM 设置 → OneBot 消息平台 |
+| 飞书机器人、企业微信群通知 | 就绪状态取自 Chat 设置的自动化连接器（`notify.feishu`、`notify.wecom`），OneBot 消息平台接入后改由其提供 |
+| 脚本能力就绪状态 | 连接器方法映射（`capabilityStatus`） |
+| 前置检查测试/AI 生成 | Host 的命令执行路径（Windows Job、随包 Bun）；生成器原样复用，模型调用经 Host AI 服务 |
+| worktree 探测、打开目录/项目配置 | Host `detectCwd`、`open`（只允许自动化或项目目录及其 `.cindy/automations/schedules.json`） |
+| 侧栏未读索引、全部已读 | Bun 调度存储的 `sidebarIndexRuns`、`markAllRead`，语义对应 Cindy storage |
+
+Host 新增方法同时登记在 Rust 组件桥、Host 只读白名单和 Wails 入口。
+
+## 能力对照
+
+| 上游能力 | 入口 | 验证 |
 | --- | --- | --- |
-| Cron、时区、月末日期、预设频率 | 编辑 → 执行时间；原 scheduler/cron/monthlyClamp | 表单预设往返；运行时排期回归 |
-| 相对间隔、一次执行、仅手动 | 时间方式；onceAt 适配 | 绝对时间、恢复过期任务、手动运行真实 ID |
-| 新会话、持续会话、绑定会话 | 运行会话；Host prepare → Pi | 真实 Pi 两次复用、已删除绑定暂停、持续会话重建 |
-| 项目目录、隔离 Git 工作树 | 项目目录与工作树选项 | 真实 detached 工作树；源分支/提交不变；忽略串仓库环境变量 |
-| Agent/script、命令、超时 | 执行与检查；独立 Host Job → script-runner.js | 真实脚本、中文结果、环境变量隔离、超时及回收 |
-| cindy-script/1 与旧协议 | 原脚本 JSONL 协议适配 | 新旧协议、无 complete、无效 JSON、重复 complete |
-| 能力默认拒绝、能力发现 | 全部四项能力选择；host.capabilities | 未授权拒绝、未配置明确不可用、完整七方法目录 |
-| Jira get/search/comment | 连接器 → 既有 MCP 服务和工具映射 | 真实本地 MCP 调用；字段、分页、ADF、out_file、参数失败回归 |
-| 飞书最近会话/消息 | 连接器 → MCP 方法映射 | 能力授权、count 范围、start_time 与调用参数回归 |
-| sessions.dispatch | Host 真实 Pi 会话；绑定目标/宿主设置保护 | 完整 script → Cindy → Host → Pi → 已登记会话；拒绝覆盖权限/目录/绑定 |
-| preRunHook | 原 stdin 上下文及退出协议 | 实际 exit 0 继续、2 跳过、7 失败；stdout/stderr/耗时 |
-| 六模板、分类、参数、编辑 | 模板入口；原模板及参数替换 | 六模板/三分类、英文原文、必填参数、应用后编辑且不提前创建任务 |
-| 用户模板保存、删除、JSON 复制/导入 | 模板管理；SQLite templates | 保存、参数应用、删除；UI 导入/复制路径已接 |
-| 项目配置、旧目录兼容 | 项目配置；.cindy/automations/schedules.json，兼容 .xdmaker 读取 | 个人→项目、编辑同步、重载、复制、转个人；重载保留暂停状态 |
-| 桌面/飞书/企业微信群通知 | 通知选项；桌面入口及显式 MCP 映射 | 注入的桌面投递错误；两外部渠道参数；投递失败保存到运行记录 |
-| 无事静默、主动报告 | schedule_silence / schedule_notify；双重当前轮验证 | 正常静默、主动报告、拒绝错误 request ID、通知失败不丢执行结果 |
-| 排队、并发、延迟、恢复 | 原引擎 + SQLite 执行锁 + Host | 活跃锁不被另一进程接管；真实 owner 退出后恢复 |
-| 结果、Hook 详情、耗时、状态 | 运行历史与前置检查详情 | 真实结果、错误及结构化 Hook 显示；中英/明暗/窄宽布局 |
-| 暂停、恢复、删除、删除后恢复 | 任务操作与已删除任务入口 | 运行中取消；删除保留可恢复历史；恢复保持暂停 |
-| 删除记录、已读、分页 | 运行历史操作 | 已读后打开真实会话；历史游标与删除 API |
-| 模型、思考、Fast、权限 | 运行会话；Pi 请求与权限管线 | reasoning_effort/service_tier 到达实际模型请求；缺省不重置绑定会话选项 |
-| 退出、取消、崩溃 | 每命令独立 Windows Job，按句柄终止并确认 ActiveProcesses=0 | 真实超时回收；调度 worker 失联停止自身 Pi 轮次；HTTP 断开不停止后续用户轮次 |
-
-项目文件语法错误会保留文件、暂停已有项目任务并报告错误。旧目录配置读取后写入新位置时保留旧文件。项目任务的暂停是运行状态，重载不会擅自重新启用。
+| 总览、空态、模板库、筛选与排序、拖动列表宽度 | Cindy SchedulerPage | 浏览器检查中英明暗、1000/520 宽、空态；组件测试 |
+| 新建/编辑、执行方式、计划胶囊（Cron/间隔/手动/一次）、运行会话三态、绑定任务、工作目录与 worktree、模型/思考/Fast、静默、通知、前置检查（测试、AI 生成、浏览）、脚本能力 | ScheduleFormDialog | 上游表单逻辑测试；浏览器表单检查；Host 方法测试 |
+| 立即运行、暂停/恢复（运行中确认）、重命名、删除及生成任务的保留/归档/删除 | 列表与详情 | 集成测试；Bun 后端测试 |
+| 运行历史、前置检查详情、打开任务、删除记录、未读与失败标记 | RunHistoryPane | 浏览器检查；Bun 索引测试 |
+| 项目自动化：重载、编辑写回、提升、克隆为个人、移除或转个人、变更提示 | 列表分组菜单 | Bun 项目条目与 reconcile 事件测试 |
+| 引擎：DST 修正、例行任务、删除不存在任务报错、运行位置字段 | maker-scheduler | 原有 18 项与新增 5 项 Bun 测试 |
 
 ## 连接器配置
 
-先在 Chat 设置中配置 MCP 服务，再在自动化 → 连接器中填写方法映射。该页只保存服务名称、工具名称及参数映射，不另存凭据。OAuth 和服务配置复用 WinOne Chat 的存储。
-
-例如，已配置名为 `jira` 的 MCP 服务，并且它提供 `jira_issues` 工具时：
+在 Chat 设置的 MCP 页底部填写“连接器”方法映射，复用已配置的 MCP 服务，不另存凭据。
 
 ```json
 {
   "methods": {
-    "jira.get": {
-      "server": "jira",
-      "tool": "jira_issues",
-      "arguments": { "action": "get" }
-    }
+    "jira.get": { "server": "jira", "tool": "jira_issues", "arguments": { "action": "get" } }
   }
 }
 ```
 
-`parameterMap` 可将协议参数名改为工具实际参数名；例如 `{ "issue_key": "issueKey" }`。`arguments` 是用户设定的固定参数。外部通知映射使用 `notify.feishu`、`notify.wecom`，会传入 `text`。在固定参数中配置接收目标，并启用任务对应通知选项。
+`parameterMap` 把协议参数改名为工具参数。`notify.feishu`、`notify.wecom` 接收 `text`。脚本遵循 `cindy-script/1` JSONL，保留旧 `xdt-maker-script/1`；`winone-node`/`xdt-node` 使用随包 Bun。
 
-脚本能力始终默认关闭。`host.capabilities` 同时报告授权和配置状态。未配置的方法返回明确错误。`out_file` 仅允许写入项目内文件；父目录须存在，目录联接不得越出项目。
+## 验证与未覆盖
 
-脚本遵循 `cindy-script/1` JSONL：stdin 首帧为 start，stdout 只能写 call/complete 帧，普通日志写 stderr。保留旧 `xdt-maker-script/1` 协议。`winone-node script.mjs` 和兼容别名 `xdt-node` 使用随 WinOne 打包的 Bun，不需要机器路径。
+2026-10-26：前端类型检查无错误；Cindy 上游排期逻辑测试 127 项、宿主集成测试、Chat 相关 250 项通过；Bun 自动化测试 23 项通过；Host Go 测试与 Rust 编译检查通过；浏览器检查 8 个场景无错误、无横向滚动，Chat 外观、工作台与面板布局检查通过。
 
-## 验证范围
-
-本轮完成 41 项打包 Bun 检查、3 项能力测试、21 项自动化前端测试，以及真实 Host 脚本/MCP/Pi、Git 和绑定选项回归。自动化界面检查覆盖中英、明暗主题及 520/1000 像素宽度。
-
-前序证据：`_temp/20261010-chat-completion/automations-complete/verification.json`、`layout/report.json`。2026-10-10 总构建已重新生成最终 worker、scheduler、script-runner，并通过 41 项打包 Bun 检查、3 项能力测试及 9 项 Host 自动化测试；最终摘要见 `_temp/20261010-takeover-6e0f/verification/chat-runtime.json`。总包已通过隔离安装、覆盖、回滚、修复和卸载检查，不再将前序候选摘要作为最终产物摘要。
-
-真实 Jira、飞书及企业微信账号未被连接，本轮没有发送外部消息。外部方法用本地 MCP/调用夹具验证；需要用户配置账号后才能验收其真实服务。桌面通知显示受 Windows 设置控制，本轮测试投递入口及失败反馈，未触发真实系统通知。总包和安装器状态见 `docs/development.md`。
+真实 Jira、飞书、企业微信账号未连接，未发送外部消息。前置检查 AI 生成的真实模型调用、拖入脚本文件取路径（WebView2 不提供文件路径，需用“浏览”）需在实机验证。

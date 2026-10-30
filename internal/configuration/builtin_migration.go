@@ -15,7 +15,10 @@ func upgradeSelectionDocument(document Document, registered map[string]ModuleAda
 	if _, ok := registered["stroke"]; ok {
 		target = 4
 	}
-	if document.BuiltinVersion < 0 || document.BuiltinVersion > 4 {
+	if _, ok := registered["timed-power"]; ok {
+		target = 5
+	}
+	if document.BuiltinVersion < 0 || document.BuiltinVersion > 5 {
 		return document, false, errors.New("不支持的基础模块版本")
 	}
 	if target == 0 || document.BuiltinVersion >= target {
@@ -42,9 +45,14 @@ func upgradeSelectionDocument(document Document, registered map[string]ModuleAda
 				}
 			}
 		}
-		if target == 4 {
+		if document.BuiltinVersion < 4 && target >= 4 {
 			if _, exists := next.ModuleEnabled["stroke"]; !exists {
 				next.ModuleEnabled["stroke"] = true
+			}
+		}
+		if document.BuiltinVersion < 5 && target >= 5 {
+			if _, exists := next.ModuleEnabled["timed-power"]; !exists {
+				next.ModuleEnabled["timed-power"] = true
 			}
 		}
 	}

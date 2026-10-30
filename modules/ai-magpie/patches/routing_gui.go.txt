@@ -16,6 +16,14 @@ import (
 // Prefix is trusted only after WinOne authenticated its capability URL. The
 // plugin CSP must name that exact path, never the full host or a forged header.
 type winOnePagePrefixKey struct{}
+
+// Only the original read handler is exposed to the private one-shot worker.
+// Archive switches remain in WinOne's saved settings transaction.
+func WinOneArchiveHandler() http.Handler {
+ original:=http.NewServeMux();archiveRoutes(original)
+ mux:=http.NewServeMux();mux.Handle("GET /api/archive",original)
+ return mux
+}
 func WinOneWithPagePrefix(r *http.Request,prefix string)*http.Request{return r.WithContext(context.WithValue(r.Context(),winOnePagePrefixKey{},prefix))}
 func winOnePagePrefix(r *http.Request)string{prefix,_:=r.Context().Value(winOnePagePrefixKey{}).(string);return prefix}
 
@@ -65,7 +73,7 @@ func WinOneRoutingHandler(gw *gateway.Server, bundled []string) http.Handler {
   b,err:=fs.ReadFile(files,"winone-plugins.html");if err!=nil{http.Error(w,"Plugin page unavailable",500);return}
   w.Header().Set("Content-Type","text/html; charset=utf-8");w.Write(b)
  })
- for _,path:=range []string{"masking.html","winone-masking-host.js","winone-masking-shared.js","winone-masking.css","plugins.css","winone-plugin-pages.js","winone-plugin-bridge.js","winone-plugin-host.js","winone-plugin-manager.js","winone-plugin-shared.js","winone-plugins.css"}{mux.Handle("GET /"+path,static)}
+ for _,path:=range []string{"masking.html","winone-masking-host.js","winone-masking-prehost.js","winone-masking-client.js","winone-masking-shared.js","winone-masking-page.js","winone-masking.css","plugins/redact/i18n.js","plugins/redact/client.js","plugins/redact/redact.css","plugins.css","winone-plugin-pages.js","winone-plugin-bridge.js","winone-plugin-host.js","winone-plugin-manager.js","winone-plugin-shared.js","winone-plugins.css"}{mux.Handle("GET /"+path,static)}
  mux.HandleFunc("GET /{$}",func(w http.ResponseWriter,r *http.Request){
   b,err:=fs.ReadFile(files,"winone-routing.html");if err!=nil{http.Error(w,"Routing page unavailable",500);return}
   w.Header().Set("Content-Type","text/html; charset=utf-8");w.Write(b)

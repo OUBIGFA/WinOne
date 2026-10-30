@@ -128,4 +128,38 @@ export class ScheduleStore{
  async hasRunningRuns(id){return !!(id?this.db.query("SELECT 1 FROM runs WHERE status='running' AND schedule_id=? LIMIT 1").get(id):this.db.query("SELECT 1 FROM runs WHERE status='running' LIMIT 1").get());}
  async getRun(id){return parse(this.db.query('SELECT data FROM runs WHERE id=?').get(id));}
  async unreadCounts(id){return this.db.query("SELECT COUNT(*) AS unreadRunCount,COALESCE(SUM(status IN ('failed','interrupted')),0) AS unreadFailureCount FROM runs WHERE schedule_id=? AND status IN ('success','failed','interrupted') AND json_extract(data,'$.readAt') IS NULL").get(id);}
+ // Cindy markAllRunsRead (b7e46bc): every unread terminal run outside bot
+ // routines becomes read at once. Returns the number of runs changed.
+ async markAllRead(now=Date.now()){
+  return this.db.query("UPDATE runs SET data=json_set(data,'$.readAt',?) WHERE status IN ('success','failed','interrupted') AND json_extract(data,'$.readAt') IS NULL AND schedule_id NOT IN (SELECT id FROM schedules WHERE json_extract(data,'$.source')='bot')").run(now).changes;
+ }
+ // Cindy listSidebarIndexRuns (scheduler-host/storage.ts, b7e46bc): unread
+ // terminal runs (newest 200), running runs, each session's latest run and
+ // its latest unrecovered failure, with failure kind and recovery.
+ async sidebarIndexRuns(){
+  this.db.exec("CREATE INDEX IF NOT EXISTS runs_session ON runs(json_extract(data,'$.sessionId'),fired DESC)");
+  const schedules=new Map(this.db.query("SELECT id,data FROM schedules WHERE json_extract(data,'$.source') IS NOT 'bot'").all().map(row=>[row.id,parse(row)]));
+  const kind=run=>{const hook=run.preRunHookResult;if(hook?.decision==='block')return /rate limit/i.test(hook.stderr??'')?'rate-limit':'precheck';return run.errorMsg?.startsWith('pre-run hook')?'precheck':'execution';};
+  const recovered=run=>{
+   if(run.status!=='failed'&&run.status!=='interrupted')return false;const failure=kind(run);
+   return this.db.query('SELECT data FROM runs WHERE schedule_id=? AND (fired>? OR fired=? AND id>?)').all(run.scheduleId,run.firedAt,run.firedAt,run.id).map(parse).some(later=>later.status==='success'||failure!=='execution'&&['skipped','success','failed'].includes(later.status)&&later.preRunHookResult?.checkSucceeded===true);
+  };
+  const project=run=>{const schedule=schedules.get(run.scheduleId);return schedule?{runId:run.id,scheduleId:run.scheduleId,scheduleName:schedule.name,scheduleStatus:schedule.status,scheduleSource:schedule.source,nextFireAt:schedule.nextFireAt,workingDir:schedule.workingDir,projectConfigId:schedule.projectConfigId,sessionId:run.sessionId,status:run.status,readAt:run.readAt,firedAt:run.firedAt,failureKind:run.status==='failed'||run.status==='interrupted'?kind(run):undefined,failureRecovered:recovered(run)}:null;};
+  const rows=sql=>this.db.query(sql).all().map(parse).filter(run=>schedules.has(run.scheduleId));
+  const latest=rows("SELECT r.data FROM runs r WHERE json_extract(r.data,'$.sessionId') IS NOT NULL AND r.id=(SELECT x.id FROM runs x WHERE json_extract(x.data,'$.sessionId')=json_extract(r.data,'$.sessionId') ORDER BY x.fired DESC,x.id DESC LIMIT 1)");
+  const unread=rows("SELECT data FROM runs WHERE status IN ('success','failed','interrupted') AND json_extract(data,'$.readAt') IS NULL ORDER BY fired DESC,id DESC LIMIT 200").reverse();
+  const running=rows("SELECT data FROM runs WHERE status='running'");
+  const latestIds=new Set(latest.map(run=>run.id)),unreadIds=new Set(unread.map(run=>run.id));
+  const failures=[];
+  for(const sessionId of new Set(latest.map(run=>run.sessionId))){
+   const failed=this.db.query("SELECT data FROM runs WHERE json_extract(data,'$.sessionId')=? AND status IN ('failed','interrupted') ORDER BY fired DESC,id DESC").all(sessionId).map(parse).find(run=>schedules.has(run.scheduleId)&&!recovered(run));
+   if(failed&&!latestIds.has(failed.id)&&!unreadIds.has(failed.id))failures.push(failed);
+  }
+  return [...unread.filter(run=>!latestIds.has(run.id)),...failures,...running.filter(run=>!latestIds.has(run.id)).map(run=>({...run,sessionId:undefined})),...latest].map(project).filter(Boolean);
+ }
+ // One-time data upgrades recorded in the scheduler database.
+ hasMigration(name){this.db.exec('CREATE TABLE IF NOT EXISTS automation_meta(key TEXT PRIMARY KEY,value TEXT NOT NULL)');return !!this.db.query('SELECT 1 FROM automation_meta WHERE key=?').get('migration:'+name);}
+ completeMigration(name){this.db.query('INSERT OR REPLACE INTO automation_meta VALUES(?,?)').run('migration:'+name,String(Date.now()));}
+ projectHash(directory){this.db.exec('CREATE TABLE IF NOT EXISTS automation_meta(key TEXT PRIMARY KEY,value TEXT NOT NULL)');return this.db.query('SELECT value FROM automation_meta WHERE key=?').get('project-hash:'+directory)?.value??null;}
+ setProjectHash(directory,hash){this.db.query('INSERT OR REPLACE INTO automation_meta VALUES(?,?)').run('project-hash:'+directory,hash);}
 }

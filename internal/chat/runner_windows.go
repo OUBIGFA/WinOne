@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -74,6 +75,30 @@ type Runner struct {
 	prefix      string
 }
 
+// loopbackDirectEnvironment keeps worker loopback traffic off the user's proxy.
+// Bun's fetch applies HTTP(S)_PROXY to 127.0.0.1 too, unlike Go's
+// ProxyFromEnvironment. Worker calls to the Host bridges and the AI gateway
+// carry private bearer keys and only exist on this machine, so loopback hosts
+// join NO_PROXY. Model providers and IM channels keep the inherited proxy.
+// Windows treats variable names case-insensitively, so any NO_PROXY spelling is
+// merged into one entry instead of producing an ambiguous duplicate.
+func loopbackDirectEnvironment(environment []string) []string {
+	const loopback = "localhost,127.0.0.1,::1"
+	result := make([]string, 0, len(environment)+1)
+	bypass := ""
+	for _, entry := range environment {
+		if name, value, found := strings.Cut(entry, "="); found && strings.EqualFold(name, "NO_PROXY") {
+			bypass = value
+			continue
+		}
+		result = append(result, entry)
+	}
+	if bypass != "" {
+		bypass += ","
+	}
+	return append(result, "NO_PROXY="+bypass+loopback)
+}
+
 // StartRunner uses the same Windows job ownership as the existing AI workers.
 // No init or tool command is sent until the process is assigned to the job.
 // Closing it also ends normal descendant commands, even after a worker crash.
@@ -101,6 +126,7 @@ func StartRunner(ctx context.Context, bun, script, directory string, onEvent fun
 	defer reader.Close()
 	cmd := exec.Command(bun, script)
 	cmd.Dir = directory
+	cmd.Env = loopbackDirectEnvironment(os.Environ())
 	cmd.Stdin = reader
 	diagnostics := &runnerDiagnostics{}
 	cmd.Stderr = diagnostics

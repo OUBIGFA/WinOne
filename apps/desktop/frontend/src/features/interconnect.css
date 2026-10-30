@@ -4,7 +4,35 @@
 .settings-surface .settings-section-block.interconnect-wide > .settings-group-heading,
 .settings-surface .settings-section-block.interconnect-wide > .settings-group-body { grid-column: 1 / -1; max-width: none; padding-top: 0; }
 .interconnect-fields { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;min-width:0; }
-.interconnect-drop { display:grid;gap:1rem;padding:1rem;border:1px dashed var(--color-border);border-radius:.5rem;min-width:0; }
+.interconnect-drop {display:flex;flex-direction:column;justify-content:center;gap:24px;min-height:300px;padding:28px 24px;border:1px dashed var(--settings-input-edge);border-radius:var(--settings-panel-radius);min-width:0;background:var(--settings-well);}
+/* Keep the primary content entry large and centered. Options and explanations
+   are deliberately outside it, so they cannot read as another field row. */
+.interconnect-composer {display:grid;gap:20px;min-width:0;}
+.interconnect-service-tabs {align-items:center;min-width:0;}
+/* Same box as the cloud service row; reserves height only, never seen or used. */
+.interconnect-service-placeholder {visibility:hidden;pointer-events:none;}
+.interconnect-mode-row {display:flex;align-items:center;justify-content:center;flex-wrap:wrap;column-gap:32px;row-gap:12px;min-width:0;}
+:root[data-settings-ui] .interconnect-mode-row .settings-option-field {display:flex;align-items:center;gap:12px;min-width:0;container:none;}
+.interconnect-mode-row .settings-field-label {flex-shrink:0;margin:0;color:var(--settings-muted);}
+:root[data-settings-ui] .interconnect-mode-row .settings-options {display:flex;width:auto;min-width:0;}
+:root[data-settings-ui] .interconnect-mode-row .settings-choice {white-space:nowrap;align-items:center;}
+:root[data-settings-ui] .interconnect-mode-row .settings-choice [role=radio] {margin-top:0;flex-shrink:0;}
+.interconnect-drop-prompt {display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;min-width:0;}
+.interconnect-drop-prompt > svg,.interconnect-receive-input > svg {width:32px;height:32px;color:var(--settings-muted);stroke-width:1.5;}
+.interconnect-drop-prompt > p {font-size:1.25rem;font-weight:500;line-height:1.5;margin:0;}
+.interconnect-file-actions {display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:100%;}
+.interconnect-selected-files {width:100%;min-width:0;border-top:1px solid var(--settings-line);padding-top:16px;}
+.interconnect-selected-files > ul {max-height:220px;overflow-y:auto;}
+.interconnect-text-area {min-width:0;}
+.interconnect-text-area [data-slot=textarea] {min-height:300px;width:100%;padding:24px;font-size:1rem;line-height:1.7;resize:vertical;background:var(--settings-well);}
+.interconnect-receive-input {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;min-height:300px;padding:28px 24px;background:var(--settings-well);border:1px solid var(--settings-input-edge);border-radius:var(--settings-panel-radius);min-width:0;text-align:center;}
+.interconnect-receive-input h3 {font-size:1.25rem;font-weight:500;margin:0;}
+.interconnect-receive-input > input {width:100%;max-width:560px;min-width:0;min-height:44px;text-align:center;}
+.interconnect-submit {display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;min-width:0;}
+.interconnect-submit > button {min-width:160px;min-height:42px;}
+.interconnect-submit > .settings-help {max-width:62ch;}
+.interconnect-share-link {max-width:560px;font-size:.875rem;line-height:1.6;overflow-wrap:anywhere;}
+@container(max-width:440px){.interconnect-mode-row {column-gap:16px;}.interconnect-mode-row .settings-option-field {gap:8px;}.interconnect-drop,.interconnect-receive-input {padding:24px 16px;}}
 .interconnect-task { display:grid;gap:.75rem;padding:1.25rem 0;min-width:0; }
 /* Reuse the settings Tabs: one centered receive route at a time.
    Query the panel, not the window, because the app sidebar is resizable. */

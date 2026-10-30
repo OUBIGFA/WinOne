@@ -29,6 +29,9 @@ type ExportedSettings struct {
 // future worker versions require an explicit adapter rather than a blind copy.
 // This is not an import validator or a configuration consistency barrier.
 func ExportBuiltinSettings(id string, raw json.RawMessage, options ExportOptions) (ExportedSettings, error) {
+	if id == "timed-power" {
+		return exportTimedPower(raw)
+	}
 	if id == "stroke" {
 		return exportStroke(raw)
 	}

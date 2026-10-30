@@ -20,7 +20,7 @@ export function AIGateway({active,providers,onActivity}:{active:boolean;provider
  const [working,setBusy]=useState(false),[loading,setLoading]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[key,setKey]=useState("");
  const busy=working||loading;
  const dirty=!!saved&&(saved.enabled!==enabled||String(saved.port)!==port||JSON.stringify(models)!==JSON.stringify(saved.models??null));
- usePageActivity(onActivity,dirty,working,"ai-gateway");
+ usePageActivity(onActivity,dirty,working,"ai-gateway",()=>{if(saved)accept(saved);});
  function accept(value:GatewayStatus){setSaved(value);setEnabled(value.enabled);setPort(String(value.port));setModels(value.models??null);setKey("");}
  // Reading status blocks this form, but never owns navigation or window close.
  async function load(){setLoading(true);setError("");try{accept(await captureCall<GatewayStatus>("ai.gateway.get"));}catch(e){setError(String(e));}finally{setLoading(false);}}
@@ -51,7 +51,7 @@ export function AIGateway({active,providers,onActivity}:{active:boolean;provider
     <div className="space-y-2"><Label htmlFor="gateway-key">{t("gateway.key")}</Label><Input id="gateway-key" readOnly value={key} placeholder={saved.hasKey?"••••••••":""}/><div className="flex flex-wrap gap-2"><Button icon={key?EyeOff:Eye} disabled={!saved.hasKey} onClick={()=>key?setKey(""):void accessKey()}>{t(key?"gateway.hideKey":"gateway.showKey")}</Button><Button icon={Copy} disabled={!saved.hasKey} onClick={()=>void accessKey(true)}>{t("gateway.copyKey")}</Button><Button icon={RotateCcw} disabled={dirty} onClick={()=>void save(true)}>{t("gateway.resetKey")}</Button></div><p className="muted">{t("gateway.keyHint")}</p></div>
     </SettingsSection>
     <AIGatewayModels providers={providers} value={models} disabled={busy} onChange={setModels}/>
-    <SettingsSaveBar><Button icon={Save} variant="primary" disabled={!dirty&&saved.running===saved.enabled&&!saved.error} onClick={()=>void save()}>{t("gateway.save")}</Button>{dirty&&<Button icon={RotateCcw} onClick={()=>accept(saved)}>{t("shortcuts.undo")}</Button>}</SettingsSaveBar>
+    <SettingsSaveBar undo={{disabled:!dirty,onClick:()=>accept(saved)}}><Button icon={Save} variant="primary" disabled={!dirty&&saved.running===saved.enabled&&!saved.error} onClick={()=>void save()}>{t("gateway.save")}</Button></SettingsSaveBar>
    </fieldset>
    <SettingsDisclosure title={t("settingsDesign.gatewayInterfaces")}><p className="settings-help">{t("gateway.protocols")}</p></SettingsDisclosure>
   </>}

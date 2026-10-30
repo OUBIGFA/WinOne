@@ -17,7 +17,7 @@ func DecodeSnapshot(data []byte) (Snapshot, error) {
 	if err := configjson.DecodeObject(data, &result); err != nil {
 		return result, err
 	}
-	if result.Modules == nil || result.SchemaVersion < 1 || result.SchemaVersion > 4 {
+	if result.Modules == nil || result.SchemaVersion < 1 || result.SchemaVersion > 5 {
 		return result, errors.New("模块状态版本无效")
 	}
 	required := []string{"capture", "always-on-top", "wintray"}
@@ -29,6 +29,9 @@ func DecodeSnapshot(data []byte) (Snapshot, error) {
 	}
 	if result.SchemaVersion >= 4 {
 		required = append(required, "stroke")
+	}
+	if result.SchemaVersion >= 5 {
+		required = append(required, "timed-power")
 	}
 	for _, id := range required {
 		if _, ok := result.Modules[id]; !ok {

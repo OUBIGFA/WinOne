@@ -37,6 +37,9 @@ func (m *Manager) Scan(ctx context.Context, directory string, recursive bool) (S
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	result := ScanResult{Records: []Record{}, Issues: []ScanIssue{}}
+	if m.migrating {
+		return result, errMigrationBusy
+	}
 	path, err := localPath(directory)
 	if err != nil {
 		return result, err

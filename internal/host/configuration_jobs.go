@@ -107,9 +107,9 @@ func (q *ConfigurationQueue) Handle(request Request) Response {
 	// write lock (AI streams can hold an action lease for minutes).
 	background := false
 	switch request.Method {
-	case "directory-links.browse", "directory-links.list", "directory-links.preview", "directory-links.previewBatch", "directory-links.create", "directory-links.create.elevated", "directory-links.createBatch", "directory-links.createBatch.elevated", "directory-links.rename", "directory-links.inspect", "directory-links.inspectBatch", "directory-links.scan", "directory-links.remove", "directory-links.forget", "directory-links.forgetInvalid", "directory-links.exportPlan", "directory-links.reveal", "directory-links.menu.set":
+	case "directory-links.browse", "directory-links.list", "directory-links.preview", "directory-links.previewBatch", "directory-links.create", "directory-links.create.elevated", "directory-links.createBatch", "directory-links.createBatch.elevated", "directory-links.rename", "directory-links.inspect", "directory-links.inspectBatch", "directory-links.scan", "directory-links.remove", "directory-links.forget", "directory-links.forgetInvalid", "directory-links.history.export", "directory-links.history.preview", "directory-links.history.import", "directory-links.exportPlan", "directory-links.reveal", "directory-links.menu.set":
 		background = true
-	case "settings.save", "capture.settings.save", "always-on-top.settings.save", "wintray.settings.save", "selection.settings.save", "quick-assistant.settings.save", "stroke.settings.save", "modules.setEnabled", "modules.recoverConfiguration", "modules.recoverPackage", "modules.installPackage", "modules.updatePackage", "modules.removePackage", "modules.cleanupPackages", "modules.resetWinTray", "profiles.import.apply", "packages.settings.save":
+	case "timed-power.settings.save", "settings.save", "capture.settings.save", "always-on-top.settings.save", "wintray.settings.save", "selection.settings.save", "quick-assistant.settings.save", "stroke.settings.save", "modules.setEnabled", "modules.recoverConfiguration", "modules.recoverPackage", "modules.installPackage", "modules.updatePackage", "modules.removePackage", "modules.cleanupPackages", "modules.resetWinTray", "profiles.import.apply", "packages.settings.save":
 	default:
 		return q.next.Handle(request)
 	}

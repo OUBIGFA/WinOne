@@ -198,6 +198,8 @@ func PrepareBuiltinImport(id string, module ModuleSettings, paths map[string]Pat
 	var patch map[string]any
 	var err error
 	switch id {
+	case "timed-power":
+		patch, err = importTimedPower(source)
 	case "stroke":
 		patch, err = importStroke(source, resolve)
 	case "quick-assistant":

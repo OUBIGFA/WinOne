@@ -48,6 +48,22 @@ test('scheduled effort and priority reach the actual provider request',async(t)=
  try{await agent.session.prompt('Use the selected options.');assert.equal(f.requests[0].reasoning_effort,'high');assert.equal(f.requests[0].service_tier,'priority');}
  finally{await agent.close();}
 });
+test('a model reporting its own reasoning levels is never sent a level it lacks',async(t)=>{
+ // Our Free Model's MiMo V2.5 reports light/balanced/deep. Pi has no such
+ // level, so none is sent and the plugin applies its own default.
+ const f=await fixture(t,[{text:'Vendor default'},{text:'Highest'},{text:'Off'}]);
+ const vendor=await createWinOneSession({...f.config,thinkingLevel:'high',model:{...f.config.model,levels:['light','balanced','deep'],efforts:['light','balanced','deep']}});
+ try{await vendor.session.prompt('Use the vendor default.');assert.equal(f.requests[0].reasoning_effort,undefined);}
+ finally{await vendor.close();}
+ // Levels the model has are mapped by Pi itself, including max and off.
+ const levels={...f.config.model,efforts:['none','low','medium','high','max']};
+ const highest=await createWinOneSession({...f.config,thinkingLevel:'max',model:levels});
+ try{await highest.session.prompt('Use the highest level.');assert.equal(f.requests[1].reasoning_effort,'max');}
+ finally{await highest.close();}
+ const off=await createWinOneSession({...f.config,thinkingLevel:'off',model:levels});
+ try{await off.session.prompt('Do not reason.');assert.equal(f.requests[2].reasoning_effort,'none');}
+ finally{await off.close();}
+});
 
 test("percentage triggers Pi's real summary, persists it and retains original history",async(t)=>{
  const f=await fixture(t,[{text:'First answer'},{text:'Second answer'},{text:'Saved checkpoint: first request completed.'},{text:'Continued from checkpoint'}]);

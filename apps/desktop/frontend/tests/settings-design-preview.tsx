@@ -70,6 +70,7 @@ const source = "C:\\WinOne-test\\source", destination = "C:\\WinOne-test\\links"
 const entries: DirectoryEntry[] = [{name: "项目", path: source + "\\项目", objectType: "directory"}, ...Array.from({length: 24}, (_, index) => ({name: `document-${index + 1}.txt`, path: source + `\\document-${index + 1}.txt`, objectType: "file" as const}))];
 let records: DirectoryLinkRecord[] = ["hardlink", "junction", "symlink", "shortcut"].map((kind, index) => ({id: `known-${index}`, name: `example-${kind}`, linkPath: destination + `\\example-${kind}`, targetPath: source + `\\example-${kind}`, kind: kind as DirectoryLinkRecord["kind"], objectType: index % 2 ? "directory" : "file", targetText: source, relative: false, createdAt: "2026-10-15T00:00:00Z", checkedAt: "2026-10-15T00:00:00Z", status: "active", reason: "target-accessible", accessible: true, entryIdentity: {file: `fixture-${index}`}}));
 if(query.has("history-states")){records[1].status="broken";records[1].reason="target-missing";records[2].status="unavailable";records[2].reason="target-offline";records[3].targetPath=records[0].targetPath;}
+let historyPreview: DirectoryLinkRecord[] = [];
 let menu = {enabled: false, partial: false};
 let administrator = false;
 const snapshot = () => ({settings: structuredClone(globalSettings), modules: modules.map(module => ({...module.runtime})), locale: language, administrator});
@@ -97,6 +98,7 @@ window.go = {main: {App: {
   OpenModuleLogFolder: async () => {record("logs.open");},
   ExportProfile: async () => {record("profile.export"); return "C:\\WinOne-test\\profile.winone";},
   PickDirectory: async () => source,
+  PickFile: async () => "C:\\WinOne-test\\history-backup.json",
   PickProgram: async () => "C:\\WinOne-test\\replacement.exe",
   PickPrograms: async () => ["C:\\WinOne-test\\new-program.exe"],
   ProgramInfo: async (path: string) => ({name: path.split(/[\\/]/).at(-1)?.replace(/\.[^.]+$/, "") || "Example"}),
@@ -152,6 +154,15 @@ window.go = {main: {App: {
     if (method === "menu.get") return JSON.stringify(menu);
     if (method === "menu.set") {menu = {enabled: params.enabled, partial: false}; return JSON.stringify(menu);}
     if (method === "forgetInvalid") {const previous=records.length;records=records.filter(row=>!["broken","removed","replaced","unlinked","target-changed","source-changed"].includes(row.status));return JSON.stringify({records,forgotten:previous-records.length});}
+    if (method === "history.export") return JSON.stringify({path:"C:\\WinOne-test\\WinOne-links-backup.json"});
+    if (method === "history.preview") {
+      historyPreview = [{...records[0], id:"imported-record",name:"Imported record",linkPath:destination+"\\"+"LongFolderName-".repeat(28),targetPath:source+"\\Imported.txt"}];
+      return JSON.stringify({id:"archive-preview",records:historyPreview,issues:[{path:"C:\\WinOne-test\\duplicate",error:"Already registered"}]});
+    }
+    if (method === "history.import") {
+      if(params.token!=="archive-preview"||!params.confirmed||!historyPreview.length)throw Error("Invalid import confirmation");
+      const imported=historyPreview;historyPreview=[];records=[...records,...imported];return JSON.stringify(imported);
+    }
     if (method === "list" || method === "inspectBatch") return JSON.stringify(records);
     if (method === "browse") return JSON.stringify({directory: params.directory, parent: "C:\\WinOne-test", entries: params.directory === source ? entries : [], total: params.directory === source ? entries.length : 0, offset: 0, hasMore: false});
     if (method === "scan") return JSON.stringify({records, issues: [], scanned: 24, truncated: false, cancelled: false});

@@ -1,0 +1,333 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+  "license": "Apache-2.0",
+  "scope": "Original personal WeChat iLink authorization, encrypted durable inbox/outbox, attachments and owner turn confirmation. WinOne provides the native Pi runner and database.",
+  "groups": [
+    {
+      "source": "apps/desktop/src/main/im/wechat/WechatIM.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/WechatIM.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/shared/autoReviewUnavailablePrompt.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/im/shared/autoReviewUnavailablePrompt.ts",
+      "file": true
+    },
+    {
+      "source": "packages/maker-shared/src/interaction.ts",
+      "target": "modules/chat-pi/cindy/wechat/packages/maker-shared/src/interaction.ts",
+      "file": true
+    },
+    {
+      "source": "packages/maker-shared/src/questionReferences.ts",
+      "target": "modules/chat-pi/cindy/wechat/packages/maker-shared/src/questionReferences.ts",
+      "file": true
+    },
+    {
+      "source": "packages/maker-shared/src/urlTextBoundary.ts",
+      "target": "modules/chat-pi/cindy/wechat/packages/maker-shared/src/urlTextBoundary.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/shared/replyContext.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/im/shared/replyContext.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/permissionPolicy.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/permissionPolicy.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/uiText.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/uiText.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/taskStore.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/taskStore.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/contextCrypto.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/contextCrypto.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/mediaStaging.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/mediaStaging.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/silkDecoder.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/silkDecoder.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/channelSettings.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/channelSettings.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/silkWorker.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/silkWorker.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/silkWav.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/silkWav.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/localDb/worker/opHandlers/wechatTx.ts",
+      "target": "modules/chat-pi/cindy/wechat/main/localDb/worker/opHandlers/wechatTx.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/shared/permissionPresentation.ts",
+      "target": "modules/chat-pi/cindy/wechat/shared/permissionPresentation.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/shared/permissionModeControl.ts",
+      "target": "modules/chat-pi/cindy/wechat/shared/permissionModeControl.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/im/shared/groupWindowCore.ts",
+      "target": "modules/chat-pi/cindy/wechat/shared/groupWindowCore.ts",
+      "file": true
+    },
+    {
+      "source": "packages/maker-core/src/types/permissions.ts",
+      "target": "modules/chat-pi/cindy/wechat/permissionUpdates.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/sharedPermission.ts",
+      "target": "modules/chat-pi/cindy/wechat/expiredPermission.ts",
+      "file": true
+    }
+  ],
+  "seams": {
+    "apps/desktop/src/main/maker-ipc/sharedPermission.ts": "modules/chat-pi/onebot/wechat-host.mjs",
+    "apps/desktop/src/main/im/shared/sessionRepo.ts": "modules/chat-pi/onebot/wechat-host.mjs",
+    "apps/desktop/src/main/im/shared/types.ts": "modules/chat-pi/onebot/wechat-host.mjs",
+    "apps/desktop/src/main/im/shared/turnRunner.ts": "modules/chat-pi/onebot/wechat-host.mjs",
+    "apps/desktop/src/main/localDb/client/DbClient.ts": "modules/chat-pi/onebot/wechat-host.mjs",
+    "apps/desktop/src/main/im/shared/permissionPresentation.ts": "modules/chat-pi/cindy/wechat/shared/permissionPresentation.ts",
+    "packages/maker-shared/src/presentationLocalization.ts": "third_party/cindy/maker-shared/presentationLocalization.ts",
+    "apps/desktop/src/main/im/shared/groupWindowCore.ts": "modules/chat-pi/cindy/wechat/shared/groupWindowCore.ts",
+    "apps/desktop/src/shared/imMessageSource.ts": "modules/chat-pi/cindy/tasks/shared/imMessageSource.ts",
+    "apps/desktop/src/main/im/shared/channelToolPolicy.ts": "modules/chat-pi/cindy/bots/im-policy/channelToolPolicy.ts",
+    "apps/desktop/src/main/im/shared/permissionModeControl.ts": "modules/chat-pi/cindy/wechat/shared/permissionModeControl.ts",
+    "apps/desktop/src/main/localDb/client/tx/types.ts": "modules/chat-pi/onebot/wechat-host.mjs",
+    "apps/desktop/src/main/cindy-media/blobStore.ts": "modules/chat-pi/onebot/wechat-host.mjs",
+    "apps/desktop/src/main/cindy-media/ingest.ts": "modules/chat-pi/onebot/wechat-host.mjs",
+    "apps/desktop/src/main/im/ownerScopedStorage.ts": "modules/chat-pi/onebot/im-scope.mjs",
+    "apps/desktop/src/shared/workingDir.ts": "modules/chat-pi/cindy/bots/shared/workingDir.ts",
+    "apps/desktop/src/main/logger.ts": "modules/chat-pi/onebot/wechat-host.mjs"
+  },
+  "modules": {
+    "@cindy/im": "modules/chat-pi/cindy/im/index.ts",
+    "@cindy/wechat-ilink": "modules/chat-pi/cindy/wechat-ilink/index.ts",
+    "@cindy/maker-core": "modules/chat-pi/onebot/wechat-host.mjs"
+  },
+  "patches": [
+    {
+      "file": "apps/desktop/src/main/im/wechat/silkDecoder.ts",
+      "find": "new Worker(path.join(__dirname, 'silkWorker.js'))",
+      "replace": "new Worker(new URL(typeof WINONE_CHAT_BUNDLE !== 'undefined' && WINONE_CHAT_BUNDLE ? './wechat-silk-worker.js' : './silkWorker.ts', import.meta.url))",
+      "count": 1,
+      "reason": "Resolve the original bounded SILK worker in WinOne source and packaged Bun layouts."
+    }
+  ],
+  "extract": [
+    {
+      "file": "apps/desktop/src/main/im/shared/permissionPresentation.ts",
+      "declarations": [
+        "INTERACTION_CHOICE_RECEIVED_TEXT",
+        "permissionOutcomeText"
+      ],
+      "imports": [
+        "@cindy/maker-core",
+        "../../maker-ipc/sharedPermission"
+      ],
+      "exports": []
+    },
+    {
+      "file": "apps/desktop/src/main/im/shared/permissionModeControl.ts",
+      "declarations": [
+        "permissionModeCommandContext",
+        "resolvePermissionMode",
+        "renderTextPermissionModePicker",
+        "renderTextPermissionModeResult"
+      ],
+      "imports": [],
+      "exports": []
+    },
+    {
+      "file": "apps/desktop/src/main/im/shared/groupWindowCore.ts",
+      "declarations": [
+        "createFenceNeutralizer",
+        "GROUP_WINDOW_ENTRY_TEXT_MAX_CHARS"
+      ],
+      "imports": [],
+      "exports": []
+    },
+    {
+      "file": "apps/desktop/src/main/maker-ipc/sharedPermission.ts",
+      "declarations": [
+        "isExpiredPermissionDecision"
+      ],
+      "imports": [],
+      "exports": []
+    }
+  ],
+  "files": [
+    {
+      "source": "apps/desktop/src/main/im/wechat/WechatIM.ts",
+      "sourceSHA256": "8607f10c902abf3c7f8597f645f73dd85ae2b81b8ac3fd298b573ac81d3ea252",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/WechatIM.ts",
+      "sha256": "5bb2415453880a9b652784fe8e98e266d94decf9c8d4db6d1b9c5ea718d43036",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/im/shared/autoReviewUnavailablePrompt.ts",
+      "sourceSHA256": "d472fa4493ec8d270557ab69173512187b8273f48045f849a949c8700519aa8b",
+      "target": "modules/chat-pi/cindy/wechat/main/im/shared/autoReviewUnavailablePrompt.ts",
+      "sha256": "b25ee9c1211523d0628577f523bb2711db9160409e39b8f0f916119aaf516950",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/maker-shared/src/interaction.ts",
+      "sourceSHA256": "b2bdbf69e89aea77ad75966fd33b30c4a60d501ae24527058c45489d70cedee8",
+      "target": "modules/chat-pi/cindy/wechat/packages/maker-shared/src/interaction.ts",
+      "sha256": "388c3b1754f1086b14ec870fb58277a45a6484f63ddf1fffd529911195e499d6",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/maker-shared/src/questionReferences.ts",
+      "sourceSHA256": "4c37fa963f43e83afcdbd6beb249d0b865b4318dcf0179738ac26d1b12e6634e",
+      "target": "modules/chat-pi/cindy/wechat/packages/maker-shared/src/questionReferences.ts",
+      "sha256": "4c37fa963f43e83afcdbd6beb249d0b865b4318dcf0179738ac26d1b12e6634e"
+    },
+    {
+      "source": "packages/maker-shared/src/urlTextBoundary.ts",
+      "sourceSHA256": "66fa67f2b86fd41046f49a3e293c00c5d014f17b95b21ea9b9413a129ae56be8",
+      "target": "modules/chat-pi/cindy/wechat/packages/maker-shared/src/urlTextBoundary.ts",
+      "sha256": "66fa67f2b86fd41046f49a3e293c00c5d014f17b95b21ea9b9413a129ae56be8"
+    },
+    {
+      "source": "apps/desktop/src/main/im/shared/replyContext.ts",
+      "sourceSHA256": "b58f97bf46cc0ee7696c3a44663b900ca119851c6789aeb1180da68c0ca7f13c",
+      "target": "modules/chat-pi/cindy/wechat/main/im/shared/replyContext.ts",
+      "sha256": "4d8f85c79c861b2bac297a858e6dc1cbb9e8a6c067d33e037e8db40457924962",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/permissionPolicy.ts",
+      "sourceSHA256": "4c44c2b876f2568927384e5bdf41459cc0d3555737b5f8c4c7112ea144a46338",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/permissionPolicy.ts",
+      "sha256": "e3726352b9572a4795e1de3a36d430c1caf708a53b72f492012ad011792009fc",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/uiText.ts",
+      "sourceSHA256": "20598f50d11abf58031355a06f0531d4dd1efdb179d69a82f92a75ed3de1e577",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/uiText.ts",
+      "sha256": "43f478940e114dc4e61e52a30c8133b3d47cda004c4df002afa6eecc1d13f4de",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/taskStore.ts",
+      "sourceSHA256": "95ccb4bc0f1d54ce8bbdaea78393537239af58f2e0a6b3dfc27bc396034ddd2b",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/taskStore.ts",
+      "sha256": "73c89596be601e7e5e6400ef3f3b7bd270c6a168142d798868b43b77c0bd87f3",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/contextCrypto.ts",
+      "sourceSHA256": "dcbbe53953b41c706c15663108ef1997764c1efb5aabf4f4c9fd9e74add97f78",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/contextCrypto.ts",
+      "sha256": "934410364233c31352c35bcdb51321ebe0ef7e7df699d13857ad0614810f3e75",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/mediaStaging.ts",
+      "sourceSHA256": "c6b46e49615845721b43f073e3b01b814190c9c247497576d1947be5efd08f36",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/mediaStaging.ts",
+      "sha256": "f07e8c02e79ae2aa10cdf76d4ceb1d378f62ce3cde1e006f582598b444a2086b",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/silkDecoder.ts",
+      "sourceSHA256": "388ebed1064808fc83c8f66a227a10b0320f6521eeb1d4705a356d4743d600b3",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/silkDecoder.ts",
+      "sha256": "e9a9ad233bcf955bf3d7ff6c8245da7efa383d7f934a190c0c232cb0aa063187",
+      "adaptation": "import-paths; Resolve the original bounded SILK worker in WinOne source and packaged Bun layouts."
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/channelSettings.ts",
+      "sourceSHA256": "37e4f62c51a39298eb17a671c287ac0bb32561a4a405e53d7a6efaaa39c381dc",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/channelSettings.ts",
+      "sha256": "b4cb5a883a24d3eab62ab09e38fec1968bc35b03030ce16ad3f102e96b1eafa0",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/silkWorker.ts",
+      "sourceSHA256": "969b3a39cb31391cb315fcc3929a36ef1cc3396d7fc89bbdf31abae6bbfe4f66",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/silkWorker.ts",
+      "sha256": "969b3a39cb31391cb315fcc3929a36ef1cc3396d7fc89bbdf31abae6bbfe4f66"
+    },
+    {
+      "source": "apps/desktop/src/main/im/wechat/silkWav.ts",
+      "sourceSHA256": "897d1ccfb8bccb42f0007f3bef4f134cd9d0534c2e045e394bf6bba7c783928f",
+      "target": "modules/chat-pi/cindy/wechat/main/im/wechat/silkWav.ts",
+      "sha256": "897d1ccfb8bccb42f0007f3bef4f134cd9d0534c2e045e394bf6bba7c783928f"
+    },
+    {
+      "source": "apps/desktop/src/main/localDb/worker/opHandlers/wechatTx.ts",
+      "sourceSHA256": "986141169b9e9da64221c11815855039ee3d4204da922ff089c05116b621a20b",
+      "target": "modules/chat-pi/cindy/wechat/main/localDb/worker/opHandlers/wechatTx.ts",
+      "sha256": "054aeaf2a2d72bfb3dc479e18218e4e8ea07dbef863cfd12e83d2ada9bdd38be",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/im/shared/permissionPresentation.ts",
+      "sourceSHA256": "cd77e39991d682390f4f7830c11c446b646dd6a55492ccca59af27a6102a988f",
+      "target": "modules/chat-pi/cindy/wechat/shared/permissionPresentation.ts",
+      "sha256": "46e90041bd015c6a917ad2b1439896dd21d430e958d341964fec7b5738e07803",
+      "adaptation": "import-paths; intact declarations: INTERACTION_CHOICE_RECEIVED_TEXT, permissionOutcomeText"
+    },
+    {
+      "source": "apps/desktop/src/main/im/shared/permissionModeControl.ts",
+      "sourceSHA256": "45341615c2ce74d20b7853a327d762808be1bef118dac81b524946b8e82662f8",
+      "target": "modules/chat-pi/cindy/wechat/shared/permissionModeControl.ts",
+      "sha256": "410a7349436ba8136f38133abca2e9a236eb45853681e7ae51ada8ee34d7ce4f",
+      "adaptation": "import-paths; intact declarations: permissionModeCommandContext, resolvePermissionMode, renderTextPermissionModePicker, renderTextPermissionModeResult"
+    },
+    {
+      "source": "apps/desktop/src/main/im/shared/groupWindowCore.ts",
+      "sourceSHA256": "0d4c6109714d1c42e39e5f0a4f5da44936dae4277d53e3a70e2b885453c45a71",
+      "target": "modules/chat-pi/cindy/wechat/shared/groupWindowCore.ts",
+      "sha256": "21bc5a893054378d1625a7b99b23a0bf2d73db8cb61418691978f06d38410699",
+      "adaptation": "import-paths; intact declarations: createFenceNeutralizer, GROUP_WINDOW_ENTRY_TEXT_MAX_CHARS"
+    },
+    {
+      "source": "packages/maker-core/src/types/permissions.ts",
+      "sourceSHA256": "b460750b4ee0a5bdc00b462f2c3d827b3dce23025cca3f26b4dbe39f47d0b404",
+      "target": "modules/chat-pi/cindy/wechat/permissionUpdates.ts",
+      "sha256": "b460750b4ee0a5bdc00b462f2c3d827b3dce23025cca3f26b4dbe39f47d0b404"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/sharedPermission.ts",
+      "sourceSHA256": "0d6cebdc8278d4770e0d226daa67ce55eddcd6b642199c89ff9f1845700a0c48",
+      "target": "modules/chat-pi/cindy/wechat/expiredPermission.ts",
+      "sha256": "80ce889ebcbe7700abbf134a039b614b4295250df0b61af9dca7e24cb3b1253d",
+      "adaptation": "import-paths; intact declarations: isExpiredPermissionDecision"
+    }
+  ]
+}

@@ -3276,6 +3276,19 @@
     },
     {
       "kind": "npm",
+      "name": "cookie",
+      "version": "1.1.1",
+      "license": "MIT",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-cookie-1.1.1-LICENSE.txt",
+          "sha256": "c02110eedc16c7114f1a9bdc026c65626ce1d9c7e27fd51a8e0feee8a48a6858"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
       "name": "cose-base",
       "version": "1.0.3",
       "notices": [
@@ -5605,6 +5618,32 @@
     },
     {
       "kind": "npm",
+      "name": "react-router-dom",
+      "version": "7.18.1",
+      "license": "MIT",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-react-router-dom-7.18.1-LICENSE.md.txt",
+          "sha256": "77c9ee6a9c5d5782fb0c50b50d101189116314c14f7df0a1b0d385fc96a7ba49"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "react-router",
+      "version": "7.18.1",
+      "license": "MIT",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-react-router-7.18.1-LICENSE.md.txt",
+          "sha256": "77c9ee6a9c5d5782fb0c50b50d101189116314c14f7df0a1b0d385fc96a7ba49"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
       "name": "react-style-singleton",
       "version": "2.2.3",
       "notices": [
@@ -5829,6 +5868,19 @@
         }
       ],
       "license": "MIT"
+    },
+    {
+      "kind": "npm",
+      "name": "set-cookie-parser",
+      "version": "2.7.3",
+      "license": "MIT",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-set-cookie-parser-2.7.3-LICENSE.txt",
+          "sha256": "c5c6c5183a789d122f267c405f685037efb87e27fcde28ab1dd7378a2d2f5962"
+        }
+      ]
     },
     {
       "kind": "npm",

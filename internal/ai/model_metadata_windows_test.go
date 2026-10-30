@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"math"
 	"path/filepath"
+	"slices"
 	"testing"
 	"winone/internal/configjson"
 )
@@ -133,12 +134,40 @@ func TestPercentageMetadataValidationKeepsLegacyTokenSemantics(t *testing.T) {
 }
 
 func TestModelMetadataRejectsInvalidLimits(t *testing.T) {
-	for _, patch := range []string{`"contextWindow":-1`, `"maxTokens":-1`, `"reasoningEffort":"invented"`, `"tier":"invented"`} {
+	// Levels are vendor words, so only text that cannot be a level is refused:
+	// padding, Magpie's model:effort separator, control text, an empty entry.
+	for _, patch := range []string{`"contextWindow":-1`, `"maxTokens":-1`, `"reasoningEffort":" high"`, `"reasoningEffort":"low:high"`, `"tier":"a\u0000b"`, `"efforts":[""]`, `"levels":["deep\n"]`} {
 		s, _ := Open(filepath.Join(t.TempDir(), "ai.json"))
 		c := s.Configuration()
 		_ = json.Unmarshal([]byte(`[{"id":"custom","name":"Custom","authMode":"api-key","protocol":"chat","baseUrl":"https://example.invalid/v1","models":["model"],"modelMetadata":{"model":{`+patch+`}}}]`), &c.Providers)
 		if _, err := s.SaveConfiguration(c, nil); err == nil {
 			t.Fatal("accepted invalid metadata", patch)
 		}
+	}
+}
+
+// Regression: Our Free Model's MiMo V2.5 reports light/balanced/deep. The old
+// fixed ladder refused the save with "MiMo V2.5：可用思考档位无效 (ai)".
+func TestModelMetadataKeepsVendorReasoningLevels(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "ai.json")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := store.Configuration()
+	if err = json.Unmarshal([]byte(`[{"id":"custom","name":"Custom","authMode":"api-key","protocol":"chat","baseUrl":"https://example.invalid/v1","models":["mimo-v2.5-free"],"modelNames":{"mimo-v2.5-free":"MiMo V2.5"},"modelMetadata":{"mimo-v2.5-free":{"levels":["light","balanced","deep"],"efforts":["balanced","deep"],"reasoningEffort":"deep","tiers":["priority","persistent"]}}}]`), &config.Providers); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.SaveConfiguration(config, nil); err != nil {
+		t.Fatalf("vendor reasoning levels refused: %v", err)
+	}
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider, _ := reopened.Configuration().Provider("custom")
+	metadata := provider.ModelMetadataFor("mimo-v2.5-free")
+	if !slices.Equal(metadata.Levels, []string{"light", "balanced", "deep"}) || !slices.Equal(metadata.Efforts, []string{"balanced", "deep"}) || metadata.ReasoningEffort != "deep" {
+		t.Fatalf("vendor reasoning levels lost: %+v", metadata)
 	}
 }

@@ -16,7 +16,8 @@ const MaxProviderModels = 4096
 // Provider identifies a configured service or an isolated signed-in account.
 // API keys are write-only. User-defined request headers remain editable here.
 type Provider struct {
-	Searches bool `json:"searches,omitempty"`
+	LimitRestOff bool `json:"limitRestOff,omitempty"`
+	Searches     bool `json:"searches,omitempty"`
 	RequestLimits
 	ModelMetadata   map[string]ModelMetadata `json:"modelMetadata,omitempty"`
 	AdditionalTools bool                     `json:"additionalTools,omitempty"`

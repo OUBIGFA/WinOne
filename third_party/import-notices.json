@@ -47,7 +47,7 @@
         },
         {
           "path": "apps/desktop/frontend/src/styles/settings.css",
-          "sha256": "3d7b31584a774ee238d7ea760a71f5b99beb0804f8400479593b04cd84a7f3ee"
+          "sha256": "314635c39b51b77fbf1b72f49970eb5cc6c0eff24b3623f4e622f28b7ba82c8d"
         },
         {
           "path": "third_party/systray/menu_style_windows.go",

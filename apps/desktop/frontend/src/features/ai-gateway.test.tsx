@@ -29,7 +29,7 @@ it("shows provider and model names with icons and saves a separate gateway selec
  expect(screen.queryByText(/opaque-supplier|opaque-model-a/)).toBeNull();
  expect(document.querySelectorAll('[data-icon="openai"]').length).toBeGreaterThan(0);
  expect(document.querySelector('[data-icon="claude-color"]')).not.toBeNull();
- await user.click(model);expect(activity).toHaveBeenLastCalledWith(true,false,"ai-gateway");
+ await user.click(model);expect(activity).toHaveBeenLastCalledWith(true,false,"ai-gateway",expect.any(Function));
  await user.click(screen.getByRole("button",{name:"保存网关设置"}));await screen.findByText("已保存");
  const payload=call.mock.calls.find(([method])=>method==="ai.gateway.save")?.[1];
  expect(payload.settings.models).toEqual([{provider:"opaque-supplier",model:"claude-sonnet-4"},{provider:"another-supplier",model:"opaque-model-a"}]);
@@ -39,7 +39,7 @@ it("saves a local gateway without modifying providers and protects an unsaved po
  const activity=vi.fn();call.mockImplementation(async(method,value)=>method==="ai.gateway.get"?original:{...original,...value.settings,revision:1,running:true,hasKey:true});
  render(<AIGateway active providers={[]} onActivity={activity}/>);const user=userEvent.setup();
  await user.click(await screen.findByRole("switch",{name:"启用本地网关"}));fireEvent.change(screen.getByLabelText("端口"),{target:{value:"3456"}});
- expect(activity).toHaveBeenLastCalledWith(true,false,"ai-gateway");
+ expect(activity).toHaveBeenLastCalledWith(true,false,"ai-gateway",expect.any(Function));
  await user.click(screen.getByRole("button",{name:"保存网关设置"}));await screen.findByText("已保存");
  expect(call).toHaveBeenCalledWith("ai.gateway.save",{settings:{revision:0,enabled:true,port:3456,models:null},resetKey:false});
  expect(call.mock.calls.every(([method])=>method.startsWith("ai.gateway."))).toBe(true);

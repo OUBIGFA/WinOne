@@ -15,7 +15,7 @@ func TestSelectionIsAddedToLegacyStateWithoutEnablingOldModules(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := store.Snapshot()
-	if got.SchemaVersion != 4 || !got.Modules["stroke"].Enabled || !got.Modules["quick-assistant"].Enabled || !got.Modules["selection"].Enabled || got.Modules["capture"].Enabled || !got.Modules["capture"].PendingStop || got.Modules["wintray"].Enabled {
+	if got.SchemaVersion != 5 || !got.Modules["timed-power"].Enabled || !got.Modules["stroke"].Enabled || !got.Modules["quick-assistant"].Enabled || !got.Modules["selection"].Enabled || got.Modules["capture"].Enabled || !got.Modules["capture"].PendingStop || got.Modules["wintray"].Enabled {
 		t.Fatalf("module migration lost intent: %+v", got)
 	}
 	backup, err := os.ReadFile(path + ".before-selection.bak")

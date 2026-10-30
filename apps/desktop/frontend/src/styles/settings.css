@@ -339,17 +339,24 @@
 :root[data-settings-ui] .settings-disclosure[open] > summary .settings-disclosure-chevron { rotate: 90deg; }
 :root[data-settings-ui] .settings-disclosure-content { display: grid; gap: 1.25rem; min-width: 0; margin-top: 1rem; padding-left: 1rem; border-left: var(--settings-hairline) solid var(--settings-edge); }
 .settings-surface .settings-disclosure-content:has(> .settings-section-block) { gap: var(--settings-group-gap); }
-/* One shell-owned row stays below both short pages and inner scroll panes.
-   It reserves its own height, so the last field is never covered. */
-.settings-surface.settings-footer { display: flex; flex: none; align-items: center; gap: .75rem; width: calc(100% - var(--settings-scrollbar-width, 0px)); margin-inline: max(0px, calc((100% - var(--settings-scrollbar-width, 0px) - var(--settings-content-width, 68rem)) / 2)) auto; padding: 6px 2rem; border-top: var(--settings-hairline) solid var(--settings-line); background: var(--background); }
+/* Overlay controls never reduce the content width. From top to bottom: Save,
+   Undo, one button-sized gap, top, bottom. Pages without a manual save show
+   Save/Undo disabled; the transparent 204px anchor and fixed edge inset keep
+   them stationary when navigation or scrollbars disappear. Only buttons
+   intercept input, not gaps; dialogs (z-50) still protect the page. */
+.settings-surface.settings-action-rail { position: absolute; inset-inline-end: 28px; bottom: 24px; z-index: 40; display: flex; flex-direction: column; align-items: center; width: 36px; max-width: 36px; height: 204px; padding: 0; margin: 0; gap: 44px; border: 0; background: none; pointer-events: none; }
+.settings-action-rail button { pointer-events: auto; }
+.settings-action-save { display: flex; flex-direction: column; align-items: center; }
+.settings-surface.settings-action-rail .settings-save-bar { flex-direction: column; align-items: center; gap: 8px; }
+.settings-action-rail [data-slot="page-scroll-controls"] { flex-direction: column; margin: auto 0 0; gap: 8px; }
+.settings-surface .settings-action-rail button,.settings-surface.settings-action-rail button { width: 36px; height: 36px; min-height: 36px; padding: 0; }
 @container settings-scroll (max-width: 600px) {
-  .settings-surface.settings-footer { padding-inline: 1rem; }
+  .settings-surface.settings-action-rail { inset-inline-end: 24px; bottom: 16px; }
 }
-.settings-footer:not(:has(.settings-save-bar:not([hidden]), [data-slot="page-scroll-controls"])) { display: none; }
-.settings-footer-actions { flex: 1; min-width: 0; }
-.settings-surface .settings-save-bar { position: static; display: flex; flex-wrap: wrap; align-items: center; min-width: 0; gap: .5rem; margin: 0; padding: 0; border: 0; background: var(--background); }
+.settings-surface .settings-save-bar { display: flex; min-width: 0; margin: 0; padding: 0; border: 0; background: none; }
 .settings-surface .settings-save-bar[hidden] { display: none; }
-.settings-save-bar > p[role="status"]:empty { display: none; }
+.settings-surface .settings-inline-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; min-width: 0; margin: 0; padding: 0; border: 0; background: none; }
+.settings-inline-actions > p[role="status"]:empty { display: none; }
 .settings-surface .settings-save-progress { position: sticky; bottom: 1rem; z-index: 2; justify-self: start; align-self: flex-start; max-width: 100%; margin: 0; padding: .5rem .75rem; border: 1px solid var(--settings-edge); border-radius: .5rem; background: var(--settings-surface); color: var(--foreground); font-size: .875rem; line-height: 1.5; }
 
 /* Capture keeps multiple output actions as a checklist, not exclusive options. */

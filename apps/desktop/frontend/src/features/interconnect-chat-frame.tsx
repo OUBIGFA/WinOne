@@ -27,7 +27,9 @@ export function PeerChatFrame({active,onActivity}:{active:boolean;onActivity:Pag
    if(data?.type!=='interconnect-native'||typeof data.id!=='string')return;
    try{
     let result:unknown;
-    if(data.method==='files'){const paths=await pickFiles();result=await interconnectCall('transfer_files',{paths});}
+    if(data.method==='preferences.get')result=await interconnectCall('chat.preferences.get');
+    else if(data.method==='preferences.save')result=await interconnectCall('chat.preferences.save',{nickname:data.params?.nickname});
+    else if(data.method==='files'){const paths=await pickFiles();result=await interconnectCall('transfer_files',{paths});}
     else if(data.method==='folder'){const path=await pickDirectory();result=path?await interconnectCall('transfer_files',{paths:[path]}):[];}
     else if(data.method==='share'){
      const started=await interconnectCall<{id:string}>('transfer_start',{mode:'share_server',paths:data.params});owned.current.add(started.id);result=started;

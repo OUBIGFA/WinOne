@@ -21,31 +21,32 @@ const googleEndpoint = "https://translate-pa.googleapis.com/v1/translateHtml"
 const googleCommunityKey = "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520"
 
 type Preferences struct {
-	GlobalGateway  bool              `json:"-"`
-	Auxiliaries    []RuntimeProvider `json:"-"`
-	MagpieSettings *MagpieSettings   `json:"-"`
-	ModelMetadata  ModelMetadata     `json:"-"`
-	RequestLimits  RequestLimits     `json:"-"`
-	AdditionalTools bool             `json:"-"`
-	Headers        map[string]string `json:"-"` // Immutable request snapshot, separate from the legacy UI projection.
-	ProviderID     string            `json:"-"`
-	ProviderName   string            `json:"-"` // Request snapshot only; not a second configuration field.
-	ModelName      string            `json:"-"`
-	ProviderIcon   string            `json:"-"`
-	Revision       uint64            `json:"revision"`
-	Engine         string            `json:"engine"`
-	Target         string            `json:"target"`
-	Protocol       string            `json:"protocol"`
-	BaseURL        string            `json:"baseUrl"`
-	Model          string            `json:"model"`
-	Prompt         string            `json:"prompt"`
-	HasKey         bool              `json:"hasKey"`
-	AuthMode       string            `json:"authMode,omitempty"`
-	Agent          string            `json:"agent,omitempty"`
-	AgentBackend   string            `json:"agentBackend,omitempty"`
-	Preset         string            `json:"preset,omitempty"`
-	PresetRegion   string            `json:"presetRegion,omitempty"`
-	OCREngine      string            `json:"ocrEngine,omitempty"`
+	LimitRestOff    bool              `json:"-"`
+	GlobalGateway   bool              `json:"-"`
+	Auxiliaries     []RuntimeProvider `json:"-"`
+	MagpieSettings  *MagpieSettings   `json:"-"`
+	ModelMetadata   ModelMetadata     `json:"-"`
+	RequestLimits   RequestLimits     `json:"-"`
+	AdditionalTools bool              `json:"-"`
+	Headers         map[string]string `json:"-"` // Immutable request snapshot, separate from the legacy UI projection.
+	ProviderID      string            `json:"-"`
+	ProviderName    string            `json:"-"` // Request snapshot only; not a second configuration field.
+	ModelName       string            `json:"-"`
+	ProviderIcon    string            `json:"-"`
+	Revision        uint64            `json:"revision"`
+	Engine          string            `json:"engine"`
+	Target          string            `json:"target"`
+	Protocol        string            `json:"protocol"`
+	BaseURL         string            `json:"baseUrl"`
+	Model           string            `json:"model"`
+	Prompt          string            `json:"prompt"`
+	HasKey          bool              `json:"hasKey"`
+	AuthMode        string            `json:"authMode,omitempty"`
+	Agent           string            `json:"agent,omitempty"`
+	AgentBackend    string            `json:"agentBackend,omitempty"`
+	Preset          string            `json:"preset,omitempty"`
+	PresetRegion    string            `json:"presetRegion,omitempty"`
+	OCREngine       string            `json:"ocrEngine,omitempty"`
 }
 
 func DefaultPreferences() Preferences {
@@ -156,6 +157,10 @@ type Generation struct {
 	System   string
 	ImagePNG []byte
 	Messages []Message
+	// Auxiliary calls may request a smaller output budget and their own
+	// bounded deadline without rewriting saved provider/model preferences.
+	MaxTokens int
+	Timeout   time.Duration
 }
 
 func (t Translator) Generate(ctx context.Context, p Preferences, key string, input Generation) (string, error) {
@@ -177,7 +182,11 @@ func (t Translator) generate(ctx context.Context, p Preferences, key string, inp
 	if len(input.ImagePNG) > 0 && p.ModelMetadata.Vision != nil && !*p.ModelMetadata.Vision && (p.MagpieSettings == nil || p.MagpieSettings.Vision == "off") {
 		return "", errors.New("此模型已关闭图像输入，请在 AI 服务中启用或选择其他模型")
 	}
-	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	timeout := input.Timeout
+	if timeout <= 0 {
+		timeout = 90 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	release, err := t.acquireRequest(ctx, p, key)
 	if err != nil {
@@ -190,8 +199,13 @@ func (t Translator) generate(ctx context.Context, p Preferences, key string, inp
 	}
 	request := map[string]any{"providerId": p.ProviderID, "agent": agent, "protocol": p.Protocol, "baseUrl": p.BaseURL, "model": p.Model, "key": key, "system": input.System, "text": input.Text, "imagePng": input.ImagePNG, "messages": input.Messages}
 	request["additionalTools"] = p.AdditionalTools
+	request["limitRestOff"] = p.LimitRestOff
 	request["headers"] = p.Headers
-	request["modelMetadata"] = p.ModelMetadata
+	metadata := p.ModelMetadata
+	if input.MaxTokens > 0 && (metadata.MaxTokens == 0 || input.MaxTokens < metadata.MaxTokens) {
+		metadata.MaxTokens = input.MaxTokens
+	}
+	request["modelMetadata"] = metadata
 	request["magpieSettings"] = p.MagpieSettings
 	auxiliary, stopAuxiliary, err := t.auxiliaryBridge(ctx, p.Auxiliaries, p.MagpieSettings)
 	if err != nil {

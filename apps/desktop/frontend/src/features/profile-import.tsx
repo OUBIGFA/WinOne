@@ -45,7 +45,7 @@ export function ProfileImport({onApplied,onActivity}:{onApplied:()=>void;onActiv
   const [needsReview,setNeedsReview]=useState(false);
   // A reviewed import contains choices and local mappings that must survive
   // cancelled navigation. Applying clears them only after the host confirms.
-  usePageActivity(onActivity,!!preview,busy,"profile-import");
+  usePageActivity(onActivity,!!preview,busy,"profile-import",()=>{setPreview(undefined);setNeedsReview(false);setError("");setNotice("");});
   async function review(path:string,mappings:Record<string,string>,reset=false) {
     const next=await profileCall<Preview>("import.preview",{path,bindings:mappings});
     setPreview(next);setSource(path);setBindings(mappings);setNeedsReview(false);
@@ -108,7 +108,7 @@ export function ProfileImport({onApplied,onActivity}:{onApplied:()=>void;onActiv
       <div className="settings-stack-compact"><h3>{preview.name||t("profiles.import")}</h3>
       <p className="break-all text-sm text-muted-foreground">{source}</p></div>
       <fieldset className="plain-fieldset" disabled={busy}>
-        <Tabs value={view} onValueChange={value=>setView(String(value))}><TabsList variant="line" aria-label={t("profiles.import")}><TabsTrigger value="overview">{t("profiles.contents")}</TabsTrigger><TabsTrigger value="details">{t("profiles.details")}</TabsTrigger><TabsTrigger value="locations">{t("profiles.localPaths")}</TabsTrigger></TabsList><TabsContent value="overview">
+        <Tabs navigation={false} value={view} onValueChange={value=>setView(String(value))}><TabsList variant="line" aria-label={t("profiles.import")}><TabsTrigger value="overview">{t("profiles.contents")}</TabsTrigger><TabsTrigger value="details">{t("profiles.details")}</TabsTrigger><TabsTrigger value="locations">{t("profiles.localPaths")}</TabsTrigger></TabsList><TabsContent value="overview">
         <label className="check-row"><Checkbox checked={global} onCheckedChange={setGlobal}/>{t("profiles.global")}</label>
         {global&&<div className="muted">
           <p>{t(`shell.${preview.preferences.theme}`)} · {t(languages[preview.preferences.language])} · {t("profiles.signIn",{value:t(preview.preferences.runAtLogon?"profiles.on":"profiles.off")})} · {t("profiles.hidden",{value:t(preview.preferences.startMinimized?"profiles.on":"profiles.off")})}</p>

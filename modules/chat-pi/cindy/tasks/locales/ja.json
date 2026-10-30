@@ -1,0 +1,39 @@
+{
+ "bots": {
+  "collab": {
+   "backgroundTask": "バックグラウンドタスク"
+  },
+  "groupChat": {
+   "task": {
+    "label": "タスク",
+    "state": {
+     "started": "進行中",
+     "waiting": "確認待ち",
+     "completed": "完了",
+     "failed": "失敗",
+     "cancelled": "キャンセル済み",
+     "timed-out": "タイムアウト"
+    }
+   }
+  }
+ },
+ "groupTools": {
+  "authorizationRequired": "グループの許可が失効したか、この操作は許可されていません。パートナーの所有者からこのグループで再度依頼してください。",
+  "localPeersOnly": "グループからのメッセージは、この端末の同じアカウントのパートナーにのみ送信できます。",
+  "ownerChanged": "アカウントが切り替わりました。もう一度お試しください。",
+  "invalidMessage": "メッセージまたは再試行識別子が無効です。",
+  "privateUnavailable": "このパートナーの個別チャットを利用できません。後でもう一度お試しください。",
+  "idempotencyConflict": "この再試行識別子は別のメッセージに使用されています。",
+  "privateUnconfirmed": "個別メッセージの配信は未確認です。同じ識別子で再試行してください。",
+  "verificationUnavailable": "グループの権限を確認できませんでした。接続が回復してから再試行してください。"
+ },
+ "forwardedRequest": {
+  "sourcePresent": "[出典] ホストがユーザーの原文を依頼の背景としてそのまま保持しています。現在の依頼は Agent の補足にあります。",
+  "sourceMissing": "[出典] 確認可能なユーザーの原文が見つかりません。",
+  "userPrefix": "ユーザーの原文：",
+  "agentPrefix": "Agent の補足：",
+  "taskSource": "[タスクの出典] このタスクはパートナーが開始しました。",
+  "taskId": "タスク ID：",
+  "contextReferences": "参考資料："
+ }
+}

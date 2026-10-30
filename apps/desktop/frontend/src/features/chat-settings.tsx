@@ -7,6 +7,7 @@ import {Button} from "../ui/button";
 import {PageScrollControls} from "../components/page-scroll-controls";
 import {Dialog,DialogContent,DialogTitle,DialogFooter} from "../components/ui/dialog";
 import {Tabs,TabsList,TabsTrigger,TabsContent} from "../components/ui/tabs";
+import {AutomationConnections} from "./chat-automation-connections";
 
 
 import type {AIProvider,AISelection} from "./ai-configuration";
@@ -61,7 +62,7 @@ export function ChatSettings({open,onOpenChange,providers,modelsLoading=false,mo
      <label className="chat-dialog-field">{t('chat.mcpDescription')}<input maxLength={4096} value={server.description??''} disabled={busy} onChange={event=>updateServer(index,{description:event.target.value})}/></label>
      {server.url!==undefined?<label className="chat-dialog-field">{t("chat.serverUrl")}<input value={server.url} disabled={busy} onChange={event=>updateServer(index,{url:event.target.value})}/></label>:<><label className="chat-dialog-field">{t("chat.command")}<PathDropInput kind="file" onError={setError} onPaths={paths=>updateServer(index,{command:paths[0]})} value={server.command??""} disabled={busy} onChange={event=>updateServer(index,{command:event.target.value})}/></label><label className="chat-dialog-field">{t("chat.arguments")}<textarea rows={3} value={(server.args??[]).join("\n")} disabled={busy} onChange={event=>updateServer(index,{args:event.target.value?event.target.value.split("\n"):[]})}/></label></>}
      <details className="chat-settings-advanced"><summary>{t("chat.advanced")}</summary>{mapField(server,index,"env",t("chat.environment"))}{mapField(server,index,"headers",t("chat.headers"))}{mapField(server,index,"toolExposure",t("chat.mcpToolExposure"))}<label className="chat-dialog-field">{t("chat.sourcePath")}<PathDropInput kind="directory" onError={setError} onPaths={paths=>updateServer(index,{cwd:paths[0]})} value={server.cwd??""} disabled={busy} onChange={event=>updateServer(index,{cwd:event.target.value})}/></label><label className="chat-dialog-field">{t("chat.timeout")}<input type="number" min={1} value={server.timeout??30} disabled={busy} onChange={event=>updateServer(index,{timeout:Number(event.target.value)})}/></label></details>
-    </section>)}<Button icon={Plus} disabled={busy} onClick={()=>change({mcpServers:[...value.mcpServers,{name:"",enabled:true,command:"",args:[]}]})}>{t("chat.addServer")}</Button></TabsContent>
+    </section>)}<Button icon={Plus} disabled={busy} onClick={()=>change({mcpServers:[...value.mcpServers,{name:"",enabled:true,command:"",args:[]}]})}>{t("chat.addServer")}</Button><AutomationConnections/></TabsContent>
 
    </div>
    <PageScrollControls viewportRef={scrollBody}/>

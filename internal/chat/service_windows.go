@@ -19,6 +19,16 @@ type ServiceOptions struct {
 	// Configure supplies an ephemeral model endpoint and its release function.
 	// Credentials never enter navigation metadata or desktop responses.
 	Configure func(Conversation) (map[string]any, func(), error)
+	// ResourceConfig preserves owner-specific resource choices when the model
+	// cannot be configured. It supplies metadata inputs without starting tools.
+	ResourceConfig func(context.Context, Conversation) (map[string]any, error)
+	// OnTurnSettled is a nonblocking host invalidation, after the Pi receipt.
+	// OneBot uses it to count/learn completed replies outside the agent loop.
+	OnTurnSettled func(string)
+	// OnActivity reports that a conversation's activity snapshot changed
+	// (phase, pending interactions, turn or tool in flight). It runs on its own
+	// goroutine; OneBot's teammate follow-up reads ActivitySnapshots.
+	OnActivity func(string)
 }
 type Event struct {
 	Sequence uint64          `json:"sequence"`
@@ -59,6 +69,9 @@ type liveSession struct {
 	approvals         map[string]json.RawMessage
 	changed           chan struct{}
 	activeRequest     string
+	// Activity projection for teammate follow-up (see activity_windows.go).
+	activity   activityState
+	onActivity func()
 }
 
 var ErrBusy = errors.New("请等待当前任务结束或先停止")
@@ -68,11 +81,16 @@ func (p *liveSession) notifyLocked() {
 		close(p.changed)
 	}
 	p.changed = make(chan struct{})
+	// Every state change passes here: the activity projection observes them all.
+	if p.observeActivityLocked() && p.onActivity != nil {
+		go p.onActivity()
+	}
 }
 
 type sessionOutcome struct {
 	status, failure string
 	paused          bool
+	activity        activityState
 }
 
 type Service struct {
@@ -150,7 +168,10 @@ func (p *liveSession) activityLocked() ConversationActivity {
 
 func (s *Service) newSessionLocked(id string) *liveSession {
 	outcome := s.outcomes[id]
-	p := &liveSession{gate: make(chan struct{}, 1), owners: map[uint32]bool{}, approvals: map[string]json.RawMessage{}, status: outcome.status, failure: outcome.failure, sessionPaused: outcome.paused}
+	p := &liveSession{gate: make(chan struct{}, 1), owners: map[uint32]bool{}, approvals: map[string]json.RawMessage{}, status: outcome.status, failure: outcome.failure, sessionPaused: outcome.paused, activity: outcome.activity}
+	if s.options.OnActivity != nil {
+		p.onActivity = func() { s.options.OnActivity(id) }
+	}
 	if p.status == "" {
 		p.status = "idle"
 	}
@@ -258,6 +279,12 @@ func (s *Service) Open(ctx context.Context, id string, owner uint32) (json.RawMe
 		}
 		config, release, modelErr := s.options.Configure(c)
 		p.release = release
+		// An owner may reconcile its saved model/permission choice while
+		// configuring the endpoint. Initialize from that committed metadata.
+		c, err = s.store.Conversation(id)
+		if err != nil {
+			return fail(err)
+		}
 		runner, err := StartRunner(s.ctx, s.options.Bun, s.options.Worker, c.Directory, func(raw json.RawMessage) { s.event(id, p, raw) })
 		if err != nil {
 			return fail(err)
@@ -396,6 +423,7 @@ func (s *Service) event(id string, p *liveSession, raw json.RawMessage) {
 		State                   json.RawMessage
 		Paused                  bool
 		BackgroundRunning       bool
+		EventType, ToolCallID   string
 	}
 	if err := json.Unmarshal(raw, &value); err != nil {
 		return
@@ -412,6 +440,10 @@ func (s *Service) event(id string, p *liveSession, raw json.RawMessage) {
 	}
 	p.mu.Lock()
 	switch value.Type {
+	case "execution_started":
+		p.running = true
+		p.status = "running"
+		p.failure = ""
 	case "durable_state":
 		p.backgroundRunning = value.BackgroundRunning
 		p.sessionPaused = value.Paused
@@ -444,7 +476,9 @@ func (s *Service) event(id string, p *liveSession, raw json.RawMessage) {
 	case "settled":
 		var tagged map[string]json.RawMessage
 		if json.Unmarshal(raw, &tagged) == nil {
-			tagged["requestId"], _ = json.Marshal(p.activeRequest)
+			if len(tagged["requestId"]) == 0 {
+				tagged["requestId"], _ = json.Marshal(p.activeRequest)
+			}
 			if encoded, err := json.Marshal(tagged); err == nil {
 				raw = encoded
 			}
@@ -453,6 +487,9 @@ func (s *Service) event(id string, p *liveSession, raw json.RawMessage) {
 		p.status = value.Status
 		p.failure = value.Error
 		p.approvals = map[string]json.RawMessage{}
+		p.activity.tools = nil
+	case "pi_event":
+		p.activity.trackTool(value.EventType, value.ToolCallID)
 	}
 	if persistence != nil {
 		p.failure = "保存 Chat 状态失败：" + persistence.Error()
@@ -469,6 +506,9 @@ func (s *Service) event(id string, p *liveSession, raw json.RawMessage) {
 	idle := !p.running && !p.backgroundRunning && len(p.owners) == 0 && p.executionOwners == 0
 	p.notifyLocked()
 	p.mu.Unlock()
+	if (value.Type == "settled" || value.Type == "input_settled") && s.options.OnTurnSettled != nil {
+		s.options.OnTurnSettled(id)
+	}
 	if idle {
 		go s.closeIdle(id, p)
 	}
@@ -505,16 +545,57 @@ func (s *Service) Poll(id string, after uint64) (EventPage, error) {
 	return page, nil
 }
 func (s *Service) Prompt(ctx context.Context, id, requestID, text string, attachmentPaths ...[]string) (json.RawMessage, error) {
-	return s.submitInput(ctx, id, requestID, text, "queue", attachmentPaths...)
+	return s.submitInput(ctx, id, requestID, text, "queue", false, nil, attachmentPaths...)
 }
 
 // Steer shares validation, draft protection and durable receipts with Prompt.
 // It does not abort the current turn; Pi delivers at its next input boundary.
 func (s *Service) Steer(ctx context.Context, id, requestID, text string, attachmentPaths ...[]string) (json.RawMessage, error) {
-	return s.submitInput(ctx, id, requestID, text, "steer", attachmentPaths...)
+	return s.submitInput(ctx, id, requestID, text, "steer", false, nil, attachmentPaths...)
 }
 
-func (s *Service) submitInput(ctx context.Context, id, requestID, text, deliveryMode string, attachmentPaths ...[]string) (json.RawMessage, error) {
+// DispatchInput uses the same native queue and permission checks as Prompt,
+// but a background delivery must never replace the user's unsent draft.
+func (s *Service) DispatchInput(ctx context.Context, id, requestID, text string, attachmentPaths ...[]string) (json.RawMessage, error) {
+	return s.submitInput(ctx, id, requestID, text, "queue", true, nil, attachmentPaths...)
+}
+
+// NativeInputPresentation separates host-authored context from what the user
+// wrote. Only private dispatch adapters supply provenance; public prompts do not.
+type NativeInputPresentation struct {
+	Text            *string         `json:"text,omitempty"`
+	Hidden          bool            `json:"hidden,omitempty"`
+	ReviewRequest   json.RawMessage `json:"reviewRequest,omitempty"`
+	OriginSessionID string          `json:"originSessionId,omitempty"`
+	// ToolsDisabled runs this one input with no tools (Cindy's invitation
+	// welcome). The worker restores the session's tools when the turn settles.
+	ToolsDisabled bool `json:"toolsDisabled,omitempty"`
+	// ReplyQuote is the owner's quote of an earlier message in a companion
+	// chat (Cindy ChatReplyQuote). It is saved with the input for display only.
+	ReplyQuote json.RawMessage `json:"replyQuote,omitempty"`
+	// AgentReferences are the owner's @teammate references in that text (Cindy
+	// agentReferences), kept without host snapshots for display.
+	AgentReferences json.RawMessage `json:"agentReferences,omitempty"`
+}
+
+func (s *Service) DispatchPresentedInput(ctx context.Context, id, requestID, text, mode string, presentation NativeInputPresentation, attachmentPaths ...[]string) (json.RawMessage, error) {
+	if mode != "queue" && mode != "steer" {
+		return nil, errors.New("输入交付方式无效")
+	}
+	return s.submitInput(ctx, id, requestID, text, mode, true, &presentation, attachmentPaths...)
+}
+
+// PromptPresented submits an owner's prompt whose model text differs from what
+// the owner wrote (a companion reply-quote note before it). The draft and the
+// transcript keep the owner's own text; receipts work exactly as for Prompt.
+func (s *Service) PromptPresented(ctx context.Context, id, requestID, text, mode string, presentation NativeInputPresentation, attachmentPaths []string) (json.RawMessage, error) {
+	if mode != "queue" && mode != "steer" {
+		return nil, errors.New("输入交付方式无效")
+	}
+	return s.submitInput(ctx, id, requestID, text, mode, false, &presentation, attachmentPaths)
+}
+
+func (s *Service) submitInput(ctx context.Context, id, requestID, text, deliveryMode string, native bool, presentation *NativeInputPresentation, attachmentPaths ...[]string) (json.RawMessage, error) {
 	var paths []string
 	if len(attachmentPaths) > 1 {
 		return nil, errors.New("附件参数无效")
@@ -550,13 +631,22 @@ func (s *Service) submitInput(ctx context.Context, id, requestID, text, delivery
 		return nil, err
 	}
 	var state struct {
-		Saved bool `json:"saved"`
+		Saved     bool            `json:"saved"`
+		Queued    bool            `json:"queued"`
+		Execution json.RawMessage `json:"execution"`
 	}
 	if err = json.Unmarshal(raw, &state); err != nil {
 		return nil, err
 	}
 	if state.Saved {
-		return json.RawMessage(`{"accepted":true,"replayed":true}`), s.store.ConfirmInput(id, requestID)
+		result, err := json.Marshal(map[string]any{"accepted": true, "replayed": true, "queued": state.Queued, "execution": state.Execution})
+		if err != nil {
+			return nil, err
+		}
+		if native {
+			return result, nil
+		}
+		return result, s.store.ConfirmInput(id, requestID)
 	}
 	p.mu.Lock()
 	running, paused := p.running, p.sessionPaused
@@ -566,8 +656,14 @@ func (s *Service) submitInput(ctx context.Context, id, requestID, text, delivery
 	}
 	// Both modes use Pi's durable inbox. Only the scheduling boundary differs;
 	// the same receipt prevents ambiguous retries becoming a second input.
-	if err = s.store.SaveDraft(id, Draft{Text: text, PendingID: requestID, PendingDelivery: deliveryMode, Attachments: attachments}); err != nil {
-		return nil, err
+	if !native {
+		draft := text
+		if presentation != nil && presentation.Text != nil {
+			draft = *presentation.Text
+		}
+		if err = s.store.SaveDraft(id, Draft{Text: draft, PendingID: requestID, PendingDelivery: deliveryMode, Attachments: attachments}); err != nil {
+			return nil, err
+		}
 	}
 	p.mu.Lock()
 	p.running = true
@@ -578,7 +674,7 @@ func (s *Service) submitInput(ctx context.Context, id, requestID, text, delivery
 	p.failure = ""
 	p.notifyLocked()
 	p.mu.Unlock()
-	raw, err = p.runner.CallOnce(ctx, requestID, "prompt", map[string]any{"text": text, "attachments": paths, "deliveryMode": deliveryMode})
+	raw, err = p.runner.CallOnce(ctx, requestID, "prompt", map[string]any{"text": text, "attachments": paths, "deliveryMode": deliveryMode, "trackExecution": native, "allowHeld": native, "presentation": presentation})
 	if err != nil {
 		// An ambiguous acknowledgement remains pending for state reconciliation.
 		// Marking it idle here would allow a second prompt into a running agent.
@@ -599,8 +695,16 @@ func (s *Service) submitInput(ctx context.Context, id, requestID, text, delivery
 	if err == nil {
 		var result struct {
 			Accepted bool `json:"accepted"`
+			Queued   bool `json:"queued"`
 		}
 		if err = json.Unmarshal(raw, &result); err == nil && result.Accepted {
+			if native && result.Queued && !running {
+				p.mu.Lock()
+				p.running = false
+				p.status = "idle"
+				p.notifyLocked()
+				p.mu.Unlock()
+			}
 			err = s.store.ConfirmInput(id, requestID)
 		}
 	}
@@ -635,7 +739,7 @@ func (s *Service) Command(ctx context.Context, id, method string, params any) (j
 // captured turn before replacing its input without admitting a concurrent prompt.
 func (s *Service) CommandPrepared(ctx context.Context, id, method string, params any, prepare func() error) (json.RawMessage, error) {
 	switch method {
-	case "state", "resources", "permission", "question", "abort", "pause", "resume", "set_model", "set_permission", "rename", "compact", "retry", "thinking", "fast", "control", "queue":
+	case "state", "resources", "permission", "question", "abort", "context.reset", "pause", "resume", "set_model", "set_permission", "rename", "compact", "retry", "thinking", "fast", "control", "queue", "timeline.append", "timeline.voice", "input.result", "input.source", "abort.input", "execution.inspect", "task.hold":
 	default:
 		return nil, errors.New("不支持的 Chat 操作")
 	}
@@ -733,13 +837,32 @@ func (s *Service) CommandPrepared(ctx context.Context, id, method string, params
 		p.mu.Unlock()
 	}
 	if err == nil {
-		if method == "state" || method == "abort" {
+		if method == "execution.inspect" || method == "task.hold" {
+			var execution struct {
+				Running, Paused, Held, QueuePaused bool
+				Pending                            []json.RawMessage
+			}
+			if err = json.Unmarshal(raw, &execution); err == nil && (execution.Running || !execution.Paused && !execution.Held && !execution.QueuePaused && len(execution.Pending) > 0) {
+				// A released durable queue can start without Host.Prompt. Publish
+				// that reservation before releasing the native execution lease;
+				// otherwise idle cleanup can close the just-resumed worker.
+				p.mu.Lock()
+				p.running = true
+				p.status = "running"
+				p.notifyLocked()
+				p.mu.Unlock()
+			}
+		}
+		if method == "state" || method == "abort" || method == "context.reset" {
 			err = s.remember(id, raw)
 		}
-		if method == "abort" {
+		if method == "abort" || method == "context.reset" {
 			p.mu.Lock()
 			p.running = false
 			p.status = "stopped"
+			if method == "context.reset" {
+				p.status, p.failure, p.activeRequest = "idle", "", ""
+			}
 			p.approvals = map[string]json.RawMessage{}
 			p.notifyLocked()
 			p.mu.Unlock()
@@ -917,7 +1040,7 @@ func (s *Service) closeIdle(id string, p *liveSession) {
 func (s *Service) retire(id string, p *liveSession) {
 	p.mu.Lock()
 	p.closed = true
-	outcome := sessionOutcome{status: p.status, failure: p.failure, paused: p.sessionPaused}
+	outcome := sessionOutcome{status: p.status, failure: p.failure, paused: p.sessionPaused, activity: p.activity.retired()}
 	p.notifyLocked()
 	p.mu.Unlock()
 	if p.release != nil {
@@ -938,6 +1061,35 @@ func (s *Service) Active() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return len(s.sessions) > 0 || s.archiveRunner != nil
+}
+
+// CloseSession is the same owned-worker shutdown used by Stop, scoped to one
+// conversation. It preserves the transcript and draft and can be reopened.
+func (s *Service) CloseSession(ctx context.Context, id string) error {
+	s.mu.Lock()
+	p := s.sessions[id]
+	s.mu.Unlock()
+	if p == nil {
+		return nil
+	}
+	if err := p.lock(ctx); err != nil {
+		return err
+	}
+	defer p.unlock()
+	p.mu.Lock()
+	p.closed = true
+	p.mu.Unlock()
+	var err error
+	if p.runner != nil {
+		err = p.runner.Close(ctx)
+		select {
+		case <-p.runner.Done():
+		default:
+			return err
+		}
+	}
+	s.retire(id, p)
+	return err
 }
 
 // Stop is a reversible preparation step. A later module may refuse to exit;
@@ -967,31 +1119,8 @@ func (s *Service) Stop(ctx context.Context) error {
 			results <- err
 		}()
 	}
-	for id, p := range sessions {
-		go func(id string, p *liveSession) {
-			if err := p.lock(ctx); err != nil {
-				results <- err
-				return
-			}
-			defer p.unlock()
-			p.mu.Lock()
-			p.closed = true
-			p.mu.Unlock()
-			var err error
-			if p.runner != nil {
-				err = p.runner.Close(ctx)
-			}
-			if p.runner != nil {
-				select {
-				case <-p.runner.Done():
-				default:
-					results <- err
-					return
-				}
-			}
-			s.retire(id, p)
-			results <- err
-		}(id, p)
+	for id := range sessions {
+		go func(id string) { results <- s.CloseSession(ctx, id) }(id)
 	}
 	var result error
 	for range count {

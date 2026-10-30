@@ -11,6 +11,7 @@ import (
 
 // AttemptFailure carries only bounded protocol metadata, never vendor bodies.
 type AttemptFailure struct {
+	Limited    bool // Magpie's quota, credit or rate classification; no response body.
 	Status     int
 	RetryAfter time.Duration
 }
@@ -26,14 +27,16 @@ type credential struct{ id, sealed string }
 
 // KeyPlan is an immutable request snapshot. It cannot be serialized as secrets.
 type KeyPlan struct {
-	provider   string
-	keys       []credential
-	configured bool
-	policy     KeyPolicy
+	limitRestOff bool
+	provider     string
+	keys         []credential
+	configured   bool
+	policy       KeyPolicy
 }
 type keyRest struct {
-	sealed string
-	until  time.Time
+	limited bool
+	sealed  string
+	until   time.Time
 }
 type keyRound struct {
 	next string
@@ -41,7 +44,7 @@ type keyRound struct {
 }
 
 func (s *Store) keyPlanLocked(p Provider) KeyPlan {
-	plan := KeyPlan{provider: p.ID, policy: keyPolicy(p)}
+	plan := KeyPlan{provider: p.ID, policy: keyPolicy(p), limitRestOff: p.LimitRestOff}
 	for _, slot := range p.Keys {
 		sealed := s.sealedCredentialLocked(p.ID, slot.ID)
 		if sealed == "" {
@@ -69,9 +72,9 @@ func (s *Store) keyNow() time.Time {
 	}
 	return time.Now()
 }
-func restingKey(round *keyRound, key credential, now time.Time) bool {
+func restingKey(round *keyRound, key credential, now time.Time, limitRestOff bool) bool {
 	rest, ok := round.rest[key.id]
-	return ok && rest.sealed == key.sealed && now.Before(rest.until)
+	return ok && !(limitRestOff && rest.limited) && rest.sealed == key.sealed && now.Before(rest.until)
 }
 
 func (s *Store) orderedKeys(plan KeyPlan) ([]credential, error) {
@@ -101,7 +104,7 @@ func (s *Store) orderedKeys(plan KeyPlan) ([]credential, error) {
 	now := s.keyNow()
 	for step := range len(plan.keys) {
 		index := (start + step) % len(plan.keys)
-		if !restingKey(round, plan.keys[index], now) {
+		if !restingKey(round, plan.keys[index], now, plan.limitRestOff) {
 			first = index
 			break
 		}
@@ -115,7 +118,7 @@ func (s *Store) orderedKeys(plan KeyPlan) ([]credential, error) {
 	ordered := make([]credential, 0, len(plan.keys))
 	for step := range len(plan.keys) {
 		key := plan.keys[(first+step)%len(plan.keys)]
-		if !restingKey(round, key, now) {
+		if !restingKey(round, key, now, plan.limitRestOff) {
 			ordered = append(ordered, key)
 		}
 	}
@@ -168,7 +171,7 @@ func (s *Store) WithKeys(ctx context.Context, plan KeyPlan, run func(context.Con
 		}
 		s.mu.Lock()
 		round := s.keyRounds[plan.provider]
-		cooling := round != nil && restingKey(round, key, s.keyNow())
+		cooling := round != nil && restingKey(round, key, s.keyNow(), plan.limitRestOff)
 		s.mu.Unlock()
 		if cooling {
 			continue
@@ -208,8 +211,9 @@ func (s *Store) WithKeys(ctx context.Context, plan KeyPlan, run func(context.Con
 		s.mu.Lock()
 		// An in-flight request can finish after a key was edited or deleted.
 		// Its outcome is relevant only while this exact ciphertext still exists.
-		if round := s.keyRounds[plan.provider]; round != nil && s.sealedCredentialLocked(plan.provider, key.id) == key.sealed {
-			round.rest[key.id] = keyRest{sealed: key.sealed, until: s.keyNow().Add(duration)}
+		limited := rejected.Limited || rejected.Status == 429
+		if round := s.keyRounds[plan.provider]; round != nil && !(plan.limitRestOff && limited) && s.sealedCredentialLocked(plan.provider, key.id) == key.sealed {
+			round.rest[key.id] = keyRest{sealed: key.sealed, until: s.keyNow().Add(duration), limited: limited}
 		}
 		s.mu.Unlock()
 		if partial || attempts >= limit {

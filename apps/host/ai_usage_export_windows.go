@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,8 +32,9 @@ func (s *aiService) handleUsageExport(r host.Request) host.Response {
 	}
 	defer owner.Close()
 	var params struct {
-		Query ai.UsageQuery `json:"query"`
-		Path  string        `json:"path"`
+		Archive string        `json:"archive"`
+		Query   ai.UsageQuery `json:"query"`
+		Path    string        `json:"path"`
 	}
 	if err := configjson.DecodeObject(r.Params, &params); err != nil {
 		return fail(err)
@@ -41,7 +43,7 @@ func (s *aiService) handleUsageExport(r host.Request) host.Response {
 	if err != nil {
 		return fail(err)
 	}
-	value, err := writeUsageExport(s.ctx, params.Path, params.Query, runtime.Usage, func() error {
+	alive := func() error {
 		if err := s.ctx.Err(); err != nil {
 			return err
 		}
@@ -53,7 +55,23 @@ func (s *aiService) handleUsageExport(r host.Request) host.Response {
 			return errors.New("导出窗口已关闭")
 		}
 		return nil
-	})
+	}
+	if r.Method == "archive.export.save" {
+		if !filepath.IsAbs(params.Path) || strings.ContainsRune(params.Path, '\x00') || !strings.EqualFold(filepath.Ext(params.Path), ".json") {
+			return fail(errors.New("请选择 JSON 文件保存位置"))
+		}
+		if err := settings.WriteAtomicStream(params.Path, func(w io.Writer) error {
+			if err := runtime.CopyRequestArchive(s.ctx, params.Archive, w); err != nil {
+				return err
+			}
+			return alive()
+		}); err != nil {
+			return fail(err)
+		}
+		raw, _ := json.Marshal(map[string]string{"state": "saved", "path": params.Path})
+		return host.Response{ID: r.ID, Result: raw}
+	}
+	value, err := writeUsageExport(s.ctx, params.Path, params.Query, runtime.Usage, alive)
 	if err != nil {
 		return fail(err)
 	}

@@ -24,7 +24,7 @@ it("does not mark recording the saved shortcut as an unsaved change",async()=>{
  await user.click(await screen.findByRole("textbox",{name:"开始截图"}));await screen.findByText("请按下组合键，Esc 取消，Delete 清除。");
  await user.keyboard('{Control>}{Alt>}s{/Alt}{/Control}');
  expect(screen.getByRole("button",{name:"保存快捷键"}).hasAttribute("disabled")).toBe(true);
- expect(screen.queryByRole("button",{name:"撤销修改"})).toBeNull();
+ expect(screen.getByRole("button",{name:"撤销修改"}).hasAttribute("disabled")).toBe(true);
 });
 it("reports persisted settings even if refreshing registration status fails",async()=>{
  api.getSnapshot.mockResolvedValue({settings:{schemaVersion:1,revision:0,theme:"system",captureShortcut:"Ctrl+Alt+S"}});api.getShortcuts.mockResolvedValue({bindings:[]});

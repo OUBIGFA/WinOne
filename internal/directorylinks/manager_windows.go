@@ -20,12 +20,17 @@ import (
 
 const maxRecords = 1000
 
+var errMigrationBusy = errors.New("目录搬迁正在进行，请等待或取消当前任务")
+
 type Manager struct {
-	mu        sync.Mutex
-	directory string
-	records   []Record
-	plans     map[string]Plan
-	batches   map[string][]Plan
+	mu             sync.Mutex
+	directory      string
+	records        []Record
+	plans          map[string]Plan
+	batches        map[string][]Plan
+	historyImports map[string]HistoryImportPreview
+	migrationPlans map[string]migrationIntent
+	migrating      bool
 }
 
 // New reads only this tool's local history. Opening the settings page does not
@@ -186,6 +191,9 @@ func (m *Manager) CreateWith(ctx context.Context, token string, execute func(Pla
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	p, ok := m.plans[token]
+	if m.migrating {
+		return Record{}, errMigrationBusy
+	}
 	if !ok {
 		return Record{}, errors.New("请先预览本次链接")
 	}
@@ -246,6 +254,9 @@ func (m *Manager) Check(ctx context.Context, id string) (Record, error) {
 func (m *Manager) CheckMany(ctx context.Context, ids []string) ([]Record, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.migrating {
+		return nil, errMigrationBusy
+	}
 	if len(ids) == 0 || len(ids) > maxRecords {
 		return nil, errors.New("请选择需要检查的记录")
 	}
@@ -280,6 +291,9 @@ func (m *Manager) CheckMany(ctx context.Context, ids []string) ([]Record, error)
 func (m *Manager) Remove(ctx context.Context, id string, checkedAt ...string) (Record, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.migrating {
+		return Record{}, errMigrationBusy
+	}
 	i := m.index(id)
 	if i < 0 {
 		return Record{}, errors.New("链接记录不存在")
@@ -361,6 +375,9 @@ func (m *Manager) Remove(ctx context.Context, id string, checkedAt ...string) (R
 func (m *Manager) ForgetInvalid(ctx context.Context) ([]Record, int, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.migrating {
+		return nil, 0, errMigrationBusy
+	}
 	before := m.records
 	kept := make([]Record, 0, len(before))
 	removed := 0
@@ -370,6 +387,10 @@ func (m *Manager) ForgetInvalid(ctx context.Context) ([]Record, int, error) {
 		}
 		if record.Status != "removed" {
 			record = checked(record)
+		}
+		if record.Migration != nil {
+			kept = append(kept, record)
+			continue
 		}
 		switch record.Status {
 		case "broken", "replaced", "target-changed", "source-changed", "unlinked", "removed":
@@ -389,9 +410,15 @@ func (m *Manager) ForgetInvalid(ctx context.Context) ([]Record, int, error) {
 func (m *Manager) Forget(id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.migrating {
+		return errMigrationBusy
+	}
 	i := m.index(id)
 	if i < 0 {
 		return errors.New("链接记录不存在")
+	}
+	if j := m.records[i].Migration; j != nil && (j.Phase != "complete" && j.Phase != "failed" || len(j.Retained) > 0) {
+		return errors.New("请先恢复中断任务并处理保留的备份，再移除记录")
 	}
 	before := append([]Record{}, m.records...)
 	m.records = append(m.records[:i], m.records[i+1:]...)
@@ -415,6 +442,9 @@ func (m *Manager) save() error {
 		Version int      `json:"version"`
 		Records []Record `json:"records"`
 	}{1, m.records}, "", "  ")
+	if err == nil && len(data) > 4<<20 {
+		return errors.New("链接历史已达到安全大小上限，请先处理不需要的旧记录")
+	}
 	if err != nil {
 		return err
 	}

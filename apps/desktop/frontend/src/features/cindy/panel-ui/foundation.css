@@ -98,7 +98,7 @@
     --quota-bar-crit: var(--error-flat);
     --quota-bar-track: var(--surface-chip);
   }
-  .dark :where(.cindy-chat-ui, .cindy-panel-popup) {
+  :is(.dark,[data-theme="dark"]) :where(.cindy-chat-ui, .cindy-panel-popup) {
     --quota-bar-fill: var(--text-secondary);
     --quota-bar-warn: var(--warning-fg);
     --quota-bar-crit: var(--error-flat);
@@ -925,7 +925,7 @@
   );
 }
 
-.dark :where(.cindy-chat-ui, .cindy-panel-popup) {
+:is(.dark,[data-theme="dark"]) :where(.cindy-chat-ui, .cindy-panel-popup) {
   --model-budget-gradient: linear-gradient(
     90deg,
     #fb7185,

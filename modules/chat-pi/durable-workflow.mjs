@@ -18,7 +18,7 @@ export function createWorkflow({question,settings,onChange=()=>{}}){
  }});
  const ask=defineTool({name:'ask_user_question',description:'Ask the user up to three concrete questions and await their answers. Give clear choices where useful. Cancellation is not an answer and never authorizes an action.',parameters:Type.Object({questions:Type.Array(Type.Object({question:Type.String({minLength:1,maxLength:512}),options:Type.Optional(Type.Array(Type.String({minLength:1,maxLength:256}),{minItems:2,maxItems:6}))}),{minItems:1,maxItems:3})}),replay:'unsafe',execute:async(args,api,ctx)=>{
   const request={id:api.callId,questions:args.questions};await api.details({question:request},ctx);
-  const answers=await question(request,ctx.abortSignal);
+  const answers=await question(request,ctx.abortSignal,{api,context:ctx});
   if(!Array.isArray(answers)||answers.length!==args.questions.length||answers.some(answer=>typeof answer!=='string'||!answer.trim()||answer.length>4000))throw Error('The user did not provide valid answers');
   return {output:[{type:'text',text:JSON.stringify(args.questions.map((q,i)=>({question:q.question,answer:answers[i]})))}],details:{questions:args.questions,answers}};
  }});

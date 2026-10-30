@@ -65,6 +65,31 @@ func TestTranslationThroughMagpie(t *testing.T) {
 	}
 }
 
+func TestLearningSnapshotReachesProviderWithoutTruncation(t *testing.T) {
+	snapshot := strings.Repeat("学习证据", 40000)
+	called := false
+	vendor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Messages []struct{ Role, Content string }
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Error(err)
+		}
+		if len(body.Messages) != 2 || body.Messages[1].Content != snapshot {
+			t.Error("learning evidence was truncated")
+		}
+		called = true
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"{}"}}]}`)
+	}))
+	defer vendor.Close()
+	raw, _ := json.Marshal(request{Protocol: "chat", BaseURL: vendor.URL + "/v1", Model: "learning-fixture", System: "Return JSON only.", Text: snapshot})
+	actual, err := run(context.Background(), strings.NewReader(string(raw)))
+	if err != nil || actual != "{}" || !called {
+		t.Fatal("bounded learning request did not complete", actual, called, err)
+	}
+}
+
 func TestCustomHeadersApplyToModelDiscoveryAndGeneration(t *testing.T) {
 	calls := 0
 	vendor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -196,6 +221,14 @@ func TestTextGenerationUsesTheSignedInAgent(t *testing.T) {
 			return
 		}
 		if r.Method != http.MethodPost || r.URL.Path != "/responses" {
+			// Current Magpie offers a streamed Codex turn over the backend's
+			// WebSocket first (gateway/codex_socket.go) and sends the same
+			// turn over HTTP when it is refused, as on a network without
+			// WebSockets. Refuse it so the HTTP turn below is what is checked.
+			if r.Method == http.MethodGet && r.URL.Path == "/responses" && strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
+				http.Error(w, "fixture has no WebSocket", http.StatusNotFound)
+				return
+			}
 			t.Errorf("unexpected account request: %s %s", r.Method, r.URL.Path)
 		}
 		// Magpie now follows Codex's native account transport: /responses is

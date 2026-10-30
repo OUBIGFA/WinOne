@@ -13,13 +13,15 @@ execFileSync('git',['check-ignore','--quiet','--no-index',join(output,'probe')])
 const labels=JSON.parse(await readFile('apps/desktop/frontend/src/features/cindy/panel-ui/en.json','utf8'));
 const policy=(await readFile('apps/desktop/frontend/index.html','utf8')).match(/content="(default-src[^"]+)"/)[1];
 const source='# Project notes\n\nRead this **important** document.\n\n| Feature | Status |\n| --- | --- |\n| Preview | Ready |\n| Search | Ready |\n\n![Local picture](picture.png)\n\n```mermaid\nflowchart LR\n  A[Read] --> B[Edit]\n```\n\nFinal paragraph.\n';
+let externalSource=source;
 const png=await readFile('internal/branding/logo.png');
-const server=createServer((req,res)=>{res.setHeader('Access-Control-Allow-Origin','*');res.setHeader('Cache-Control','no-store');if(req.url?.endsWith('.png')){res.setHeader('Content-Type','image/png');res.end(png);}else{res.setHeader('Content-Type','text/plain; charset=utf-8');res.end(source);}});
+const server=createServer((req,res)=>{res.setHeader('Access-Control-Allow-Origin','*');res.setHeader('Cache-Control','no-store');if(req.url?.endsWith('.png')){res.setHeader('Content-Type','image/png');res.end(png);}else{res.setHeader('Content-Type','text/plain; charset=utf-8');res.end(externalSource);}});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const origin=`http://127.0.0.1:${server.address().port}`;
 const browser=await chromium.launch({headless:true,channel:'msedge'}),results=[];let lastPage;
 try{
  for(const width of [1440,900])for(const theme of ['light','dark']){
+  externalSource=source;
   const page=await browser.newPage({viewport:{width,height:1000},reducedMotion:'reduce'}),errors=[];
   lastPage=page;
   page.on('pageerror',error=>errors.push(error.message));
@@ -40,6 +42,21 @@ try{
   await page.waitForFunction(()=>{const host=document.querySelector('.cindy-file-editor'),image=host?.shadowRoot?.querySelector('.cm-md-image-widget img');return image?.naturalWidth>0;});
   const metrics=await editor.evaluate(el=>({font:getComputedStyle(el).fontFamily,background:getComputedStyle(el).backgroundColor,width:el.getBoundingClientRect().width,root:el.getRootNode().constructor.name,table:el.querySelectorAll('.cm-md-table-widget').length}));
   assert.equal(metrics.root,'ShadowRoot');assert(metrics.width>100);assert(metrics.table>0);
+  // Exercise pointer selection, not only keyboard typing; a rendered Markdown
+  // editor must remain selectable across its ShadowRoot boundary.
+  await page.evaluate(()=>{document.body.style.userSelect='none';});
+  const prose=editor.locator('.cm-line').filter({hasText:'Read this'}).first();
+  const proseBox=await prose.boundingBox();
+  await page.mouse.move(proseBox.x+5,proseBox.y+proseBox.height/2);
+  await page.mouse.down();await page.mouse.move(proseBox.x+Math.min(190,proseBox.width-5),proseBox.y+proseBox.height/2,{steps:12});await page.mouse.up();
+  const selection=await editor.evaluate(el=>(el.getRootNode().getSelection?.()??document.getSelection())?.toString());
+  assert.ok(selection&&selection.length>5,'Rendered Markdown cannot select text by dragging');
+  const originalEditor=await editor.elementHandle();
+  externalSource=source+'\nExternal file change.\n';
+  await page.evaluate(()=>window.chatExperienceIO.fileChanged());
+  await editor.getByText('External file change.',{exact:true}).waitFor({timeout:5000});
+  assert.ok(await originalEditor.evaluate(node=>node.isConnected),'Refresh rebuilt the editor');
+  assert.equal(await editor.evaluate(el=>(el.getRootNode().getSelection?.()??document.getSelection())?.toString()),selection,'Refresh lost the text selection');
   // The document contains clickable image widgets. Focus the text surface
   // explicitly instead of clicking its center, which may open an image.
   const content=editor.locator('.cm-content');await content.focus();await content.press('Control+End');await page.keyboard.insertText('\nAdded during the browser check.');
@@ -51,7 +68,7 @@ try{
   assert.equal(await panel.locator('.cm-md-table-widget').count(),0,'Source view still hides the Markdown table');
   await panel.getByRole('button',{name:'View preview',exact:true}).click();await panel.locator('.cindy-file-editor .cm-scroller').evaluate(el=>{el.scrollTop=0;});await panel.locator('.cm-md-table-widget').waitFor();
   await panel.getByRole('button',{name:labels.rightSidebar.tabs.addAria,exact:true}).click();
-  for(const name of ['Files','Review','Browser','Terminal','Resources'])assert(await page.getByRole('menuitem',{name:new RegExp('^'+name+'(?:\\s|$)')}).isVisible(),`Missing ${name} entry`);
+  for(const name of ['Review','Browser','Terminal','New page'])assert(await page.getByRole('menuitem',{name:new RegExp('^'+name+'(?:\\s|$)')}).isVisible(),`Missing ${name} entry`);
   await page.keyboard.press('Escape');
   await page.screenshot({path:join(output,`workbench-${width}-${theme}.png`)});
   const policyViolations=await page.evaluate(()=>window.cindyPolicyViolations);

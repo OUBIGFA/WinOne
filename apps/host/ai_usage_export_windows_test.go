@@ -85,10 +85,12 @@ func TestUsageExportRejectsArbitraryPipePeer(t *testing.T) {
 	service := newAIService(context.Background(), root, filepath.Join(root, "WinOne.Host.exe"))
 	path := filepath.Join(root, "never.csv")
 	params, _ := json.Marshal(map[string]any{"query": map[string]string{"period": "7d"}, "path": path})
-	for _, pid := range []uint32{0, uint32(os.Getpid())} {
-		response := service.handle(host.Request{ID: "export", Method: "usage.export.save", PeerPID: pid, Params: params})
-		if response.Error == nil {
-			t.Fatal("non-WinOne pipe client accepted")
+	for _, method := range []string{"usage.export.save", "archive.export.save"} {
+		for _, pid := range []uint32{0, uint32(os.Getpid())} {
+			response := service.handle(host.Request{ID: "export", Method: method, PeerPID: pid, Params: params})
+			if response.Error == nil {
+				t.Fatal("non-WinOne pipe client accepted")
+			}
 		}
 	}
 	if _, err := os.Stat(path); !os.IsNotExist(err) {

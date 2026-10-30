@@ -13,9 +13,14 @@ import (
 // MagpieSettings preserves upstream setting names. WinOne owns persistence;
 // each worker receives one immutable snapshot, never another app's settings.
 type MagpieSettings struct {
-	ClassifyTimeout int `json:"classifyTimeout,omitempty"` // Seconds; 0 follows Magpie's 8-second default.
-	ClaudeLeanPrompt bool `json:"claudeLeanPrompt,omitempty"`
-	ClaudeRunsMost   int  `json:"claudeRunsMost,omitempty"` // 0 retains upstream automatic sizing.
+	RequestArchiveLocal   bool   `json:"requestArchiveLocal,omitempty"`
+	RequestArchiveLocalMB int    `json:"requestArchiveLocalMB,omitempty"`
+	RequestArchiveMaxMB   int    `json:"requestArchiveMaxMB,omitempty"`
+	Proxy                 string `json:"proxy,omitempty"`
+	ProxyCustom           string `json:"proxyCustom,omitempty"`
+	ClassifyTimeout       int    `json:"classifyTimeout,omitempty"` // Seconds; 0 follows Magpie's 8-second default.
+	ClaudeLeanPrompt      bool   `json:"claudeLeanPrompt,omitempty"`
+	ClaudeRunsMost        int    `json:"claudeRunsMost,omitempty"` // 0 retains upstream automatic sizing.
 	// Empty preserves the upstream public-address-only download policy.
 	FetchPrivate    []string                       `json:"fetchPrivate,omitempty"`
 	BuiltinPreset   string                         `json:"builtinPreset,omitempty"`
@@ -28,55 +33,59 @@ type MagpieSettings struct {
 	CodexTitles     string                         `json:"codexTitles,omitempty"`
 	CodexAutoReview string                         `json:"codexAutoReview,omitempty"`
 	// Filled only in the private runtime snapshot for historical usage pricing.
-	ModelPrices        map[string]ModelPrice `json:"modelPrices,omitempty"`
-	ModelSameAs        map[string]string     `json:"modelSameAs,omitempty"`
-	QuotaLeft          bool                  `json:"quotaLeft,omitempty"`
-	QuotaReads         string                `json:"quotaReads,omitempty"`
-	Currency           string                `json:"currency,omitempty"`
-	ChineseUnits       bool                  `json:"chineseUnits,omitempty"`
-	UsageAlert         int                   `json:"usageAlert,omitempty"`
-	BalanceAlert       float64               `json:"balanceAlert,omitempty"`
-	ResetReminder      int                   `json:"resetReminder,omitempty"`
-	TrayUsages         []string              `json:"trayUsages,omitempty"`
-	TrayUsageEvery     int                   `json:"trayUsageEvery,omitempty"`
-	TrayNoLogos        bool                  `json:"trayNoLogos,omitempty"`
-	TrayNoBird         bool                  `json:"trayNoBird,omitempty"`
-	CodexWarmup        string                `json:"codexWarmup,omitempty"`
-	ClaudeWarmup       string                `json:"claudeWarmup,omitempty"`
-	CodexWarmAt        string                `json:"codexWarmAt,omitempty"`
-	ClaudeWarmAt       string                `json:"claudeWarmAt,omitempty"`
-	CodexWarmAts       []string              `json:"codexWarmAts,omitempty"`
-	ClaudeWarmAts      []string              `json:"claudeWarmAts,omitempty"`
-	CodexWarmAtOf      map[string]string     `json:"codexWarmAtOf,omitempty"`
-	CodexAutoReset     []string              `json:"codexAutoReset,omitempty"`
-	CodexNoCredits     []string              `json:"codexNoCredits,omitempty"`
-	WorkBuddyCheckin   bool                  `json:"workbuddyCheckin,omitempty"`
-	TraeCheckin        bool                  `json:"traeCheckin,omitempty"`
-	MiniMaxCheckin     bool                  `json:"minimaxCheckin,omitempty"`
-	QoderCheckin       bool                  `json:"qoderCheckin,omitempty"`
-	PluginCheckins     map[string]bool       `json:"pluginCheckins,omitempty"`
-	Vision             string                `json:"vision,omitempty"`
-	ImageGen           string                `json:"imageGen,omitempty"`
-	ImageTimeout       int                   `json:"imageTimeout,omitempty"` // Minutes; 0 uses Magpie's 5-minute default.
-	Searcher           string                `json:"searcher,omitempty"`
-	SearchFirst        string                `json:"searchFirst,omitempty"`
-	SearchAPIs         []SearchAPI           `json:"searchAPIs,omitempty"`
-	MemberModel        bool                  `json:"memberModel,omitempty"`
-	NoLoopGuard        bool                  `json:"noLoopGuard,omitempty"`
-	PlainNames         bool                  `json:"plainNames,omitempty"`
-	PlainOwnNames      bool                  `json:"plainOwnNames,omitempty"`
-	Redact             bool                  `json:"redact,omitempty"`
-	RedactPersonal     bool                  `json:"redactPersonal,omitempty"`
-	RedactKinds        map[string]bool       `json:"redactKinds,omitempty"`
-	RedactWords        []string              `json:"redactWords,omitempty"`
-	RedactWordsAnyCase bool                  `json:"redactWordsAnyCase,omitempty"`
-	RedactActions      map[string]string     `json:"redactActions,omitempty"`
-	RedactAllow        []string              `json:"redactAllow,omitempty"`
-	RedactRules        []RedactRule          `json:"redactRules,omitempty"`
-	HideAccounts       bool                  `json:"hideAccounts,omitempty"`
-	NoStats            bool                  `json:"noStats"`
-	NoUsageStats       bool                  `json:"noUsageStats"`
-	NoAccountDiscovery bool                  `json:"noAccountDiscovery,omitempty"`
+	ModelPrices map[string]ModelPrice `json:"modelPrices,omitempty"`
+	ModelSameAs map[string]string     `json:"modelSameAs,omitempty"`
+	// Display-only grouping. It never changes routing IDs, requests or prices.
+	UsageAliases     map[string]string `json:"usageAliases,omitempty"`
+	QuotaLeft        bool              `json:"quotaLeft,omitempty"`
+	QuotaReads       string            `json:"quotaReads,omitempty"`
+	Currency         string            `json:"currency,omitempty"`
+	ChineseUnits     bool              `json:"chineseUnits,omitempty"`
+	UsageAlert       int               `json:"usageAlert,omitempty"`
+	BalanceAlert     float64           `json:"balanceAlert,omitempty"`
+	ResetReminder    int               `json:"resetReminder,omitempty"`
+	TrayUsages       []string          `json:"trayUsages,omitempty"`
+	TrayUsageEvery   int               `json:"trayUsageEvery,omitempty"`
+	TrayNoLogos      bool              `json:"trayNoLogos,omitempty"`
+	TrayNoBird       bool              `json:"trayNoBird,omitempty"`
+	CodexWarmup      string            `json:"codexWarmup,omitempty"`
+	ClaudeWarmup     string            `json:"claudeWarmup,omitempty"`
+	CodexWarmAt      string            `json:"codexWarmAt,omitempty"`
+	ClaudeWarmAt     string            `json:"claudeWarmAt,omitempty"`
+	CodexWarmAts     []string          `json:"codexWarmAts,omitempty"`
+	ClaudeWarmAts    []string          `json:"claudeWarmAts,omitempty"`
+	CodexWarmAtOf    map[string]string `json:"codexWarmAtOf,omitempty"`
+	CodexAutoReset   []string          `json:"codexAutoReset,omitempty"`
+	CodexNoCredits   []string          `json:"codexNoCredits,omitempty"`
+	WorkBuddyCheckin bool              `json:"workbuddyCheckin,omitempty"`
+	TraeCheckin      bool              `json:"traeCheckin,omitempty"`
+	MiniMaxCheckin   bool              `json:"minimaxCheckin,omitempty"`
+	QoderCheckin     bool              `json:"qoderCheckin,omitempty"`
+	PluginCheckins   map[string]bool   `json:"pluginCheckins,omitempty"`
+	Vision           string            `json:"vision,omitempty"`
+	ImageGen         string            `json:"imageGen,omitempty"`
+	ImageTimeout     int               `json:"imageTimeout,omitempty"` // Minutes; 0 uses Magpie's 5-minute default.
+	Searcher         string            `json:"searcher,omitempty"`
+	SearchFirst      string            `json:"searchFirst,omitempty"`
+	SearchAPIs       []SearchAPI       `json:"searchAPIs,omitempty"`
+	MemberModel      bool              `json:"memberModel,omitempty"`
+	NoLoopGuard      bool              `json:"noLoopGuard,omitempty"`
+	PlainNames       bool              `json:"plainNames,omitempty"`
+	PlainOwnNames    bool              `json:"plainOwnNames,omitempty"`
+	Redact           bool              `json:"redact,omitempty"`
+	// Preserve upstream key-shape masking; false keeps placeholder defaults.
+	RedactShape        bool              `json:"redactShape,omitempty"`
+	RedactPersonal     bool              `json:"redactPersonal,omitempty"`
+	RedactKinds        map[string]bool   `json:"redactKinds,omitempty"`
+	RedactWords        []string          `json:"redactWords,omitempty"`
+	RedactWordsAnyCase bool              `json:"redactWordsAnyCase,omitempty"`
+	RedactActions      map[string]string `json:"redactActions,omitempty"`
+	RedactAllow        []string          `json:"redactAllow,omitempty"`
+	RedactRules        []RedactRule      `json:"redactRules,omitempty"`
+	HideAccounts       bool              `json:"hideAccounts,omitempty"`
+	NoStats            bool              `json:"noStats"`
+	NoUsageStats       bool              `json:"noUsageStats"`
+	NoAccountDiscovery bool              `json:"noAccountDiscovery,omitempty"`
 }
 
 // Plugin choices are one saved WinOne draft, not account-local YAML files.
@@ -121,6 +130,22 @@ func (s *MagpieSettings) validate() error {
 	if s == nil {
 		return nil
 	}
+	for _, value := range []string{s.Proxy, s.ProxyCustom} {
+		if len(value) > 4096 {
+			return errors.New("代理地址过长")
+		}
+		if err := validateMagpieProxy(value); err != nil {
+			return errors.New("代理地址无效，请填写 HTTP、HTTPS 或 SOCKS5 地址")
+		}
+	}
+	if len(s.UsageAliases) > 4096 {
+		return errors.New("用量归并别名过多")
+	}
+	for from, to := range s.UsageAliases {
+		if len(from) > 1024 || len(to) > 1024 || strings.ContainsRune(from, '\x00') || strings.ContainsRune(to, '\x00') {
+			return errors.New("用量归并标识格式无效")
+		}
+	}
 	if s.ClassifyTimeout < 0 || s.ClassifyTimeout > 60 {
 		return errors.New("路由判断超时须为 1–60 秒，0 使用默认 8 秒")
 	}
@@ -129,6 +154,9 @@ func (s *MagpieSettings) validate() error {
 	}
 	if s.ImageTimeout < 0 || s.ImageTimeout > 60 {
 		return errors.New("图片生成超时须为 1–60 分钟，0 使用默认 5 分钟")
+	}
+	if s.RequestArchiveMaxMB < 0 || s.RequestArchiveMaxMB > 1024 || s.RequestArchiveLocalMB < 0 || s.RequestArchiveLocalMB > 1<<20 {
+		return errors.New("请求归档容量无效")
 	}
 	if len(s.FetchPrivate) > 128 {
 		return errors.New("最多允许 128 个内网下载地址")

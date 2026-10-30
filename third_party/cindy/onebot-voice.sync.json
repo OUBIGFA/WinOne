@@ -1,0 +1,1154 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+  "license": "Apache-2.0",
+  "scope": "Local OneBot voice conversation, dictation, playback and preferences. WinOne supplies its AI service credentials, canonical task queue, owner-scoped storage and desktop transport; Cindy accounts and remote control are excluded.",
+  "groups": [
+    {
+      "source": "apps/desktop/src/main/voice-conversation/service.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/service.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/dialogue.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/dialogue.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/semanticExit.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/semanticExit.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/utility-model/utilityTextTimeout.ts",
+      "target": "modules/chat-pi/cindy/voice/main/utility-model/utilityTextTimeout.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/semanticExitConfig.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/semanticExitConfig.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/lease.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/lease.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/speech.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/speech.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/speechProtocols.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/speechProtocols.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/speechError.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/speechError.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/adapters/openai.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/adapters/openai.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/adapters/types.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/adapters/types.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/openrouter.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/openrouter.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/adapters/elevenlabs.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/adapters/elevenlabs.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/adapters/minimax.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/adapters/minimax.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/adapters/sse.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/adapters/sse.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/adapters/dashscope.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/adapters/dashscope.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/speechQueue.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/speechQueue.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/voices.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/voices.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/dashscopeVoices.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/dashscopeVoices.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/preferences.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/preferences.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/models.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/models.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/index.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/index.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/modelDisplayPricing.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelDisplayPricing.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/providerProtocolProbe.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerProtocolProbe.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/types.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/types.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/modelMetadataLayers.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelMetadataLayers.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/modelGeneration.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelGeneration.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/modelAccessBean.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelAccessBean.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/localModelCatalog.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/localModelCatalog.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/remoteModels.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/remoteModels.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/registry.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/registry.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/classification.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/classification.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/modelList.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelList.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/providerBranding.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerBranding.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/provider-identity.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/provider-identity.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/disableOverrides.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/disableOverrides.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/providerMediaModels.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerMediaModels.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/byok.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/byok.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/modelAccessValidator.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelAccessValidator.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/modelInterfaceContract.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelInterfaceContract.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/providerPresetIdentity.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerPresetIdentity.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/mimoPresentation.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/mimoPresentation.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/pi-catalog-marker.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/pi-catalog-marker.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/codexCompatibility.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/codexCompatibility.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/modelProtocol.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelProtocol.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-compat/src/protocol.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-compat/src/protocol.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/catalog.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/catalog.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/presetModels.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/presetModels.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/builtin.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/builtin.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/piProviderPresets.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/piProviderPresets.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/providerInterfaceRoutes.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerInterfaceRoutes.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/catalog/model-registry.json",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/catalog/model-registry.json",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/providerModelCatalog.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerModelCatalog.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/providerEndpointTemplate.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerEndpointTemplate.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/catalog/provider-models.json",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/catalog/provider-models.json",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/catalog/providers.json",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/catalog/providers.json",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/piNativeCatalog.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/piNativeCatalog.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/effortResolution.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/effortResolution.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/piThinkingLevels.mjs",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/piThinkingLevels.mjs",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/provider-oauth.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/provider-oauth.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/provider-url.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/provider-url.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/user-provider.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/user-provider.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/modelRegistry.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelRegistry.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/modelRegistryCanonical.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelRegistryCanonical.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/source.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/source.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/sections.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/sections.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/unifiedSelection.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/unifiedSelection.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/invocation.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/invocation.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/visionCapability.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/visionCapability.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/modelDiscovery.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelDiscovery.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/providerSetupLinks.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerSetupLinks.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/providerPresetOAuth.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerPresetOAuth.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/providerDetection.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerDetection.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/VoiceInputDataStore.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/VoiceInputDataStore.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/VoiceDictionarySyncStore.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/VoiceDictionarySyncStore.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/LiteLlmTranscriptionProvider.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/LiteLlmTranscriptionProvider.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/language.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/language.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/FallbackAsrProvider.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/FallbackAsrProvider.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/VoiceInputProviderHealth.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/VoiceInputProviderHealth.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/voiceInputAsrConfig.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/voiceInputAsrConfig.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/shared/voiceInputAsrProfiles.ts",
+      "target": "modules/chat-pi/cindy/voice/shared/voiceInputAsrProfiles.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/voiceInputStartError.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/voiceInputStartError.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/SystemAudioMuteGuard.ts",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/SystemAudioMuteGuard.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/VoiceInputController.ts",
+      "target": "third_party/cindy/voice-core/VoiceInputController.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/VoiceTimelineLogger.ts",
+      "target": "third_party/cindy/voice-core/VoiceTimelineLogger.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/pauseRefinement.ts",
+      "target": "third_party/cindy/voice-core/pauseRefinement.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/BufferedAsrProvider.ts",
+      "target": "third_party/cindy/voice-core/BufferedAsrProvider.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/pcmActivity.ts",
+      "target": "third_party/cindy/voice-core/pcmActivity.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/index.ts",
+      "target": "third_party/cindy/voice-core/dictionary-sync/index.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/types.ts",
+      "target": "third_party/cindy/voice-core/dictionary-sync/types.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/hlc.ts",
+      "target": "third_party/cindy/voice-core/dictionary-sync/hlc.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/merge.ts",
+      "target": "third_party/cindy/voice-core/dictionary-sync/merge.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/mutate.ts",
+      "target": "third_party/cindy/voice-core/dictionary-sync/mutate.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/materialize.ts",
+      "target": "third_party/cindy/voice-core/dictionary-sync/materialize.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/moved-aliases.ts",
+      "target": "third_party/cindy/voice-core/dictionary-sync/moved-aliases.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/move-tag.ts",
+      "target": "third_party/cindy/voice-core/dictionary-sync/move-tag.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/alias-removal.ts",
+      "target": "third_party/cindy/voice-core/dictionary-sync/alias-removal.ts",
+      "file": true
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/reconcile.ts",
+      "target": "third_party/cindy/voice-core/dictionary-sync/reconcile.ts",
+      "file": true
+    }
+  ],
+  "seams": {
+    "packages/maker-core/src/index.ts": "modules/chat-pi/cindy/host/maker-core-types.ts",
+    "apps/desktop/src/main/appSessionState.ts": "modules/chat-pi/onebot/voice-host.mjs",
+    "apps/desktop/src/main/localDb/client/current.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/localDb/ipc/messages.ts": "modules/chat-pi/onebot/voice-host.mjs",
+    "apps/desktop/src/main/device-link/broadcast-tap.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/maker-ipc/forwardedRequest.ts": "modules/chat-pi/cindy/tasks/forwardedRequest.ts",
+    "apps/desktop/src/main/sessionTaskSummary.logic.ts": "modules/chat-pi/onebot/voice-host.mjs",
+    "apps/desktop/src/main/utility-model/oneShotCandidates.ts": "modules/chat-pi/onebot/voice-host.mjs",
+    "apps/desktop/src/shared/voiceConversation.ts": "apps/desktop/frontend/src/features/cindy/shared/voiceConversation.ts",
+    "apps/desktop/src/shared/utilityTextResult.ts": "modules/chat-pi/onebot/learning-host.mjs",
+    "apps/desktop/src/main/logger.ts": "modules/chat-pi/onebot/logger.ts",
+    "apps/desktop/src/main/voice-conversation/taskBridge.ts": "modules/chat-pi/onebot/voice-host.mjs",
+    "apps/desktop/src/shared/speechProtocols.ts": "apps/desktop/frontend/src/features/cindy/shared/speechProtocols.ts",
+    "apps/desktop/src/shared/speechVoices.ts": "apps/desktop/frontend/src/features/cindy/shared/speechVoices.ts",
+    "apps/desktop/src/shared/alibabaSpeechVoices.ts": "apps/desktop/frontend/src/features/cindy/shared/alibabaSpeechVoices.ts",
+    "apps/desktop/src/shared/voiceInputData.ts": "apps/desktop/frontend/src/features/cindy/group-shared/shared/voiceInputData.ts",
+    "apps/desktop/src/main/utils/ipcValidate.ts": "modules/chat-pi/onebot/voice-host.mjs",
+    "apps/desktop/src/main/security/trustedAppRenderer.ts": "modules/chat-pi/onebot/voice-host.mjs",
+    "apps/desktop/src/main/maker-host/outbound-fetch.ts": "modules/chat-pi/onebot/voice-host.mjs",
+    "apps/desktop/src/main/model-access/gatewayKeyRejection.ts": "modules/chat-pi/onebot/voice-host.mjs",
+    "apps/desktop/src/shared/voiceInputErrors.ts": "apps/desktop/frontend/src/features/cindy/group-shared/shared/voiceInputErrors.ts",
+    "packages/voice-input-core/src/types.ts": "third_party/cindy/voice-core/types.ts",
+    "packages/voice-input-core/src/SpeakerGate.ts": "third_party/cindy/voice-core/SpeakerGate.ts",
+    "packages/voice-input-core/src/DictationRefiner.ts": "third_party/cindy/voice-core/DictationRefiner.ts",
+    "packages/voice-input-core/src/DictationDictionaryAdvisor.ts": "third_party/cindy/voice-core/DictationDictionaryAdvisor.ts",
+    "packages/voice-input-core/src/dictionary-sync/text.ts": "third_party/cindy/voice-core/dictionary-sync/text.ts",
+    "packages/voice-input-core/src/dictionaryLearningPolicy.ts": "third_party/cindy/voice-core/dictionaryLearningPolicy.ts"
+  },
+  "modules": {
+    "electron": "modules/chat-pi/onebot/voice-host.mjs",
+    "loudness": "modules/chat-pi/onebot/voice-host.mjs",
+    "@cindy/voice-input-core": "modules/chat-pi/onebot/voice-core.mjs"
+  },
+  "patches": [
+    {
+      "file": "apps/desktop/src/main/voice-input/LiteLlmTranscriptionProvider.ts",
+      "find": "elevenLabsLanguageCode",
+      "replace": "openAiLanguageCode",
+      "count": 2,
+      "reason": "WinOne uses this batch adapter for its configured OpenAI-compatible ASR endpoints; preserve their ISO 639-1 language contract instead of the removed Cindy Gateway convention."
+    }
+  ],
+  "files": [
+    {
+      "source": "apps/desktop/src/main/voice-conversation/service.ts",
+      "sourceSHA256": "19485471c3a64fa79707b5402962a897a196f32caaf3c66eb17b749848c4f9c5",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/service.ts",
+      "sha256": "25746dc88eeee3105dbed5d0757895084087590d435d82c4657ff66b702746e3",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/dialogue.ts",
+      "sourceSHA256": "307e4f92610c46f7f5df3e479a569b9c7585d45340a08d5ac2d73ebc8d93b1f8",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/dialogue.ts",
+      "sha256": "3f61d0fae5dd2eea0e1e35373c7f68329ad91ea55036ce6391594fb53e6b7e4e",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/semanticExit.ts",
+      "sourceSHA256": "1daef8a50be98ed03ac305666f99e8a7078ee2394ec0b27556fa84cbec621333",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/semanticExit.ts",
+      "sha256": "9e5735ebfb49ce5a843fb32f5ce4b7243f97767fe7cc890fa8b5984b55e930e5",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/utility-model/utilityTextTimeout.ts",
+      "sourceSHA256": "8bf6be86e9c07578a24811136539e808e8a5db7a1b239d549b9de14041ded0db",
+      "target": "modules/chat-pi/cindy/voice/main/utility-model/utilityTextTimeout.ts",
+      "sha256": "a907c3c4a383c84a84d890435cffb4e30d75f220d3cdfac056846ffcfc6d97da",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/semanticExitConfig.ts",
+      "sourceSHA256": "ea15afd4a10714af4545995e83b3be3240e7fc55cd96af10b28f495d56e3e33e",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/semanticExitConfig.ts",
+      "sha256": "ea15afd4a10714af4545995e83b3be3240e7fc55cd96af10b28f495d56e3e33e"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/lease.ts",
+      "sourceSHA256": "4db9cb9e1399a4c43fa0d55b09c1133a65dc15fb583fe3bfaadb75d618901249",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/lease.ts",
+      "sha256": "4db9cb9e1399a4c43fa0d55b09c1133a65dc15fb583fe3bfaadb75d618901249"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/speech.ts",
+      "sourceSHA256": "fde13b7433e1d4249fb3320e2d5349bb061c14911659dd8da4695a84e58144e5",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/speech.ts",
+      "sha256": "d1cec32692e4158745588466f22ee90b5488a01366ad9ab5c8d110c26fe9efbe",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/speechProtocols.ts",
+      "sourceSHA256": "4cd66334de7b7b1336ebb7bb434cff205d1c0a7050ae206c3df93634a32ad240",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/speechProtocols.ts",
+      "sha256": "31f06b3bb2c85ccc0b14f171f91b2d0d3fb4dadd0a47cc81a9ace17b5337d6a8",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/speechError.ts",
+      "sourceSHA256": "08cd76c3b61f65fef3abce27abd4c5759fd157c947466f19a3f36a90d8a0477c",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/speechError.ts",
+      "sha256": "08cd76c3b61f65fef3abce27abd4c5759fd157c947466f19a3f36a90d8a0477c"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/adapters/openai.ts",
+      "sourceSHA256": "d3d512afd1fce42d182c4c4a29664dc61afdfeab006ed4b5c33e604216152dfe",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/adapters/openai.ts",
+      "sha256": "d3d512afd1fce42d182c4c4a29664dc61afdfeab006ed4b5c33e604216152dfe"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/adapters/types.ts",
+      "sourceSHA256": "17aef686f30c1ad39e03185b73aba5a7baeb6df5e0ac04afee9d19154ed61214",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/adapters/types.ts",
+      "sha256": "28ece7d9e76af44b74d081ce578fd203719015c6f4804bcc4b27d2763a49368f",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/openrouter.ts",
+      "sourceSHA256": "f83349ca2716eb3d88b22817c2b29005ef7828dd18f04e2a195aeea83d8f1e00",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/openrouter.ts",
+      "sha256": "f83349ca2716eb3d88b22817c2b29005ef7828dd18f04e2a195aeea83d8f1e00"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/adapters/elevenlabs.ts",
+      "sourceSHA256": "591a87aeed18f0de1d37e007b0662dd4bf094e632e61b982890140c978ccafa7",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/adapters/elevenlabs.ts",
+      "sha256": "591a87aeed18f0de1d37e007b0662dd4bf094e632e61b982890140c978ccafa7"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/adapters/minimax.ts",
+      "sourceSHA256": "519adf64658d1656adcda952f8171a38d40f1bce800aa7fc2022f5a3f05e0b7d",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/adapters/minimax.ts",
+      "sha256": "519adf64658d1656adcda952f8171a38d40f1bce800aa7fc2022f5a3f05e0b7d"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/adapters/sse.ts",
+      "sourceSHA256": "93b1627d387ff96f08af4108413f8d7e4559d9d85f53cec8814ce3dab76c3078",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/adapters/sse.ts",
+      "sha256": "93b1627d387ff96f08af4108413f8d7e4559d9d85f53cec8814ce3dab76c3078"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/adapters/dashscope.ts",
+      "sourceSHA256": "58ed36d7a8a5bb8e19e08facf6372b139371428c5d8948deebd71ed3d5377f44",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/adapters/dashscope.ts",
+      "sha256": "58ed36d7a8a5bb8e19e08facf6372b139371428c5d8948deebd71ed3d5377f44"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/speechQueue.ts",
+      "sourceSHA256": "1ab1b05c9d40c6e2590ccd5ee03193ba19945652625a64170d0175dd66f5aa5e",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/speechQueue.ts",
+      "sha256": "df241fa8613f6ee283587301d8c7342c9dfd98d0ada4a01164400f12da68d077",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/voices.ts",
+      "sourceSHA256": "e134c6fa75930b1a006d32a86e96d48a3392ef55e5e269779c60a963799653a1",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/voices.ts",
+      "sha256": "a97242e7728c8cbd771b160261969dd087ce06e7c97a6f36b5e265ffcd6701c1",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/dashscopeVoices.ts",
+      "sourceSHA256": "568c3b4f32a56b27122471aef5b89aeb8b362893b8acda39f6411c4ed72c4140",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/dashscopeVoices.ts",
+      "sha256": "0a4fbfa8e7fe9bfcfa37b05aaf0556078c08459a33ff16f593e782aa5ca249cb",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/preferences.ts",
+      "sourceSHA256": "f622c6dfe52393dda2d31d5009674cdd2e731d9c040155aeda1748658c5b330f",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/preferences.ts",
+      "sha256": "d9ab1e3a62fc2d6f5bc5ea493a455d0a63608ac76449e27437a1f99f416adc77",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/models.ts",
+      "sourceSHA256": "19a5d6e33d960813a418db23f44e85c4a40245e4926d6310ce7762243dfc21c7",
+      "target": "modules/chat-pi/cindy/voice/main/voice-conversation/models.ts",
+      "sha256": "6f280d65f235e5d48bdeff1892bc8a60bc0f3f61e90b1512dbfe3fe6e770f5d1",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/model-providers/src/index.ts",
+      "sourceSHA256": "74d704738d8062a85b75c4ae3b44db5c73412e1678d7431f93c80ce18069e6da",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/index.ts",
+      "sha256": "74d704738d8062a85b75c4ae3b44db5c73412e1678d7431f93c80ce18069e6da"
+    },
+    {
+      "source": "packages/model-providers/src/modelDisplayPricing.ts",
+      "sourceSHA256": "4a523d1040ffca2dc429b7a7cbf684f93a9fd3cd881f2064af3c9b44ccb075ed",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelDisplayPricing.ts",
+      "sha256": "4a523d1040ffca2dc429b7a7cbf684f93a9fd3cd881f2064af3c9b44ccb075ed"
+    },
+    {
+      "source": "packages/model-providers/src/providerProtocolProbe.ts",
+      "sourceSHA256": "fcbe0c0c1aeec6bddb74e9d35c1ffc04112546450ac576c3e97a6bd4e08265a6",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerProtocolProbe.ts",
+      "sha256": "fcbe0c0c1aeec6bddb74e9d35c1ffc04112546450ac576c3e97a6bd4e08265a6"
+    },
+    {
+      "source": "packages/model-providers/src/types.ts",
+      "sourceSHA256": "904eca29aca410af462b2fc184a217e27c6e1e79ec70662baf1af841da54bee9",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/types.ts",
+      "sha256": "904eca29aca410af462b2fc184a217e27c6e1e79ec70662baf1af841da54bee9"
+    },
+    {
+      "source": "packages/model-providers/src/modelMetadataLayers.ts",
+      "sourceSHA256": "719c6a542850669175d33f6306874429e805f260bfa602c76049a1c37270641f",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelMetadataLayers.ts",
+      "sha256": "719c6a542850669175d33f6306874429e805f260bfa602c76049a1c37270641f"
+    },
+    {
+      "source": "packages/model-providers/src/modelGeneration.ts",
+      "sourceSHA256": "d4bbe9cc73d7a58248223ca19bbf48f686b2f2f6bf073be0f7459a42f711da3e",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelGeneration.ts",
+      "sha256": "d4bbe9cc73d7a58248223ca19bbf48f686b2f2f6bf073be0f7459a42f711da3e"
+    },
+    {
+      "source": "packages/model-providers/src/modelAccessBean.ts",
+      "sourceSHA256": "c34208524ef3341e1cc6b96ba2791f6e7888a07acb81875c662e64c2afe0aab2",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelAccessBean.ts",
+      "sha256": "c34208524ef3341e1cc6b96ba2791f6e7888a07acb81875c662e64c2afe0aab2"
+    },
+    {
+      "source": "packages/model-providers/src/localModelCatalog.ts",
+      "sourceSHA256": "3f3fd15938bb659c215880d5b9c8ef0c650735c0d1342c7440543d7461fb6747",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/localModelCatalog.ts",
+      "sha256": "3f3fd15938bb659c215880d5b9c8ef0c650735c0d1342c7440543d7461fb6747"
+    },
+    {
+      "source": "packages/model-providers/src/remoteModels.ts",
+      "sourceSHA256": "681e8e1d0aa51a1121718f81a076055c36017dd6f27e8b8df8bf3a4e8545feb6",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/remoteModels.ts",
+      "sha256": "681e8e1d0aa51a1121718f81a076055c36017dd6f27e8b8df8bf3a4e8545feb6"
+    },
+    {
+      "source": "packages/model-providers/src/registry.ts",
+      "sourceSHA256": "aa4c4bd0435745ae868133099220f3f579f690bb5e6e2d6121793a35d02a5c36",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/registry.ts",
+      "sha256": "aa4c4bd0435745ae868133099220f3f579f690bb5e6e2d6121793a35d02a5c36"
+    },
+    {
+      "source": "packages/model-providers/src/classification.ts",
+      "sourceSHA256": "d0fd7398aa4cec9843b53352dbdcdd96c45a0280c12b6193c3094d86d0a267bc",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/classification.ts",
+      "sha256": "d0fd7398aa4cec9843b53352dbdcdd96c45a0280c12b6193c3094d86d0a267bc"
+    },
+    {
+      "source": "packages/model-providers/src/modelList.ts",
+      "sourceSHA256": "7ff186ca7799c16d0402cf7e8513b72228f029923dbea4c2aae0f8fd9b8f08bc",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelList.ts",
+      "sha256": "7ff186ca7799c16d0402cf7e8513b72228f029923dbea4c2aae0f8fd9b8f08bc"
+    },
+    {
+      "source": "packages/model-providers/src/providerBranding.ts",
+      "sourceSHA256": "f611e3e89c39cdfd29d478fd43422ac227e96785123d4fcee160e3398c85f8bc",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerBranding.ts",
+      "sha256": "f611e3e89c39cdfd29d478fd43422ac227e96785123d4fcee160e3398c85f8bc"
+    },
+    {
+      "source": "packages/model-providers/src/provider-identity.ts",
+      "sourceSHA256": "b10eeed53db5d7bfd8d4f83bbb19094d9537b53d0d99d551d9739122b0e9a711",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/provider-identity.ts",
+      "sha256": "b10eeed53db5d7bfd8d4f83bbb19094d9537b53d0d99d551d9739122b0e9a711"
+    },
+    {
+      "source": "packages/model-providers/src/disableOverrides.ts",
+      "sourceSHA256": "b6f7d8de6894ebf3812dea7b951efd0127b4d68e775848ab33a166c70a9c660f",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/disableOverrides.ts",
+      "sha256": "b6f7d8de6894ebf3812dea7b951efd0127b4d68e775848ab33a166c70a9c660f"
+    },
+    {
+      "source": "packages/model-providers/src/providerMediaModels.ts",
+      "sourceSHA256": "141562d34d08276248c63fd4559b56e7358743bd77ae460015391e7f83e69104",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerMediaModels.ts",
+      "sha256": "141562d34d08276248c63fd4559b56e7358743bd77ae460015391e7f83e69104"
+    },
+    {
+      "source": "packages/model-providers/src/byok.ts",
+      "sourceSHA256": "7749529b273d71b263b417d7d07c6e39f53f2da2a9836b7e6ce1cfa37bea2930",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/byok.ts",
+      "sha256": "7749529b273d71b263b417d7d07c6e39f53f2da2a9836b7e6ce1cfa37bea2930"
+    },
+    {
+      "source": "packages/model-providers/src/modelAccessValidator.ts",
+      "sourceSHA256": "b634ccecc41bea12032f6b06e9fe8b6b5682eef788b9d7169ec5b558f40c4503",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelAccessValidator.ts",
+      "sha256": "b634ccecc41bea12032f6b06e9fe8b6b5682eef788b9d7169ec5b558f40c4503"
+    },
+    {
+      "source": "packages/model-providers/src/modelInterfaceContract.ts",
+      "sourceSHA256": "92040820dc7a085e11fed91b536e4d01a5080d876102ae3a26c991c041c078fb",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelInterfaceContract.ts",
+      "sha256": "92040820dc7a085e11fed91b536e4d01a5080d876102ae3a26c991c041c078fb"
+    },
+    {
+      "source": "packages/model-providers/src/providerPresetIdentity.ts",
+      "sourceSHA256": "0b05015e06324c43d7acba4e5aeb7cfb0df677a02885f5d52602ebe1285e0fa9",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerPresetIdentity.ts",
+      "sha256": "0b05015e06324c43d7acba4e5aeb7cfb0df677a02885f5d52602ebe1285e0fa9"
+    },
+    {
+      "source": "packages/model-providers/src/mimoPresentation.ts",
+      "sourceSHA256": "e990e87d85c65f462464befba72f75160330e287553a46b6aea5fb2cef8b1996",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/mimoPresentation.ts",
+      "sha256": "e990e87d85c65f462464befba72f75160330e287553a46b6aea5fb2cef8b1996"
+    },
+    {
+      "source": "packages/model-providers/src/pi-catalog-marker.ts",
+      "sourceSHA256": "e256a0e4b8ab041a96531f8e34f4dad0656e35ffc76a385ebef085b177be42cd",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/pi-catalog-marker.ts",
+      "sha256": "e256a0e4b8ab041a96531f8e34f4dad0656e35ffc76a385ebef085b177be42cd"
+    },
+    {
+      "source": "packages/model-providers/src/codexCompatibility.ts",
+      "sourceSHA256": "c6f6e7534b931e120763837cfdb7efabdb6fabc4d8c4ac63693c0b0c11c60d46",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/codexCompatibility.ts",
+      "sha256": "c6f6e7534b931e120763837cfdb7efabdb6fabc4d8c4ac63693c0b0c11c60d46"
+    },
+    {
+      "source": "packages/model-providers/src/modelProtocol.ts",
+      "sourceSHA256": "d4097715ed6096818434952ed67aa96ba8515ce14401e3ca5da3f201dcdaf7eb",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelProtocol.ts",
+      "sha256": "36f30eee1d23df109f24b6544da2ed843c8193021f63c692fc56d07289cb2d1f",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/model-compat/src/protocol.ts",
+      "sourceSHA256": "5e5d16f74ae012a6578bd9184e4f2e089b0587ef7dbaf15e323da046c1bc5e49",
+      "target": "modules/chat-pi/cindy/voice/packages/model-compat/src/protocol.ts",
+      "sha256": "5e5d16f74ae012a6578bd9184e4f2e089b0587ef7dbaf15e323da046c1bc5e49"
+    },
+    {
+      "source": "packages/model-providers/src/catalog.ts",
+      "sourceSHA256": "486362897d9303cb1c345c557a4b657270df8346e1c717bad0206fb5a05f050d",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/catalog.ts",
+      "sha256": "486362897d9303cb1c345c557a4b657270df8346e1c717bad0206fb5a05f050d"
+    },
+    {
+      "source": "packages/model-providers/src/presetModels.ts",
+      "sourceSHA256": "9f4cb43970d8ba0690ef671c1719f7811fd19203b1803efafebf1b1881d22320",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/presetModels.ts",
+      "sha256": "9f4cb43970d8ba0690ef671c1719f7811fd19203b1803efafebf1b1881d22320"
+    },
+    {
+      "source": "packages/model-providers/src/builtin.ts",
+      "sourceSHA256": "ba6d52824abaf01cbdb66adb7e4e9fb9582d59cb1bad520551dea51b833f9590",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/builtin.ts",
+      "sha256": "ba6d52824abaf01cbdb66adb7e4e9fb9582d59cb1bad520551dea51b833f9590"
+    },
+    {
+      "source": "packages/model-providers/src/piProviderPresets.ts",
+      "sourceSHA256": "a93f2940c4b6e9bb20003870536a38c86ad6070602737ca0943980f108a109b9",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/piProviderPresets.ts",
+      "sha256": "86184cf67224c2faa410d1cd281d7c66848b9c0eb711f51718e1e81061608c78",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/model-providers/src/providerInterfaceRoutes.ts",
+      "sourceSHA256": "fb814411c40c3b0395f10e8ce485b1cb3bf7bb47458855148146c91db367c655",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerInterfaceRoutes.ts",
+      "sha256": "551bc08b85320edb1151b5a55f48ab4d00ff1325e7952ca7aa2363e5a60b68c5",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/model-providers/catalog/model-registry.json",
+      "sourceSHA256": "64ad41f017ad62f991e5fd41f5a172b1bb5f0ddc34477b0c304d58206cf47fa4",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/catalog/model-registry.json",
+      "sha256": "64ad41f017ad62f991e5fd41f5a172b1bb5f0ddc34477b0c304d58206cf47fa4"
+    },
+    {
+      "source": "packages/model-providers/src/providerModelCatalog.ts",
+      "sourceSHA256": "86a5643aebe7ba9ecb85c42d1da47618b8a881f97b4f3903ffa9993f916a35d4",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerModelCatalog.ts",
+      "sha256": "86a5643aebe7ba9ecb85c42d1da47618b8a881f97b4f3903ffa9993f916a35d4"
+    },
+    {
+      "source": "packages/model-providers/src/providerEndpointTemplate.ts",
+      "sourceSHA256": "41c96fa9f3e380cdfe25cd2844572db990bb88b738da3f9b26fb738861e71fa8",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerEndpointTemplate.ts",
+      "sha256": "41c96fa9f3e380cdfe25cd2844572db990bb88b738da3f9b26fb738861e71fa8"
+    },
+    {
+      "source": "packages/model-providers/catalog/provider-models.json",
+      "sourceSHA256": "9d320f58b2972e8cd87e6365630c4310e77584e6068801b6cfa7adb3cfde6bad",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/catalog/provider-models.json",
+      "sha256": "9d320f58b2972e8cd87e6365630c4310e77584e6068801b6cfa7adb3cfde6bad"
+    },
+    {
+      "source": "packages/model-providers/catalog/providers.json",
+      "sourceSHA256": "43cad9ea5c431c67d753f9d4f5358c034917965aa7f9edd486d94e42cc3fb354",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/catalog/providers.json",
+      "sha256": "43cad9ea5c431c67d753f9d4f5358c034917965aa7f9edd486d94e42cc3fb354"
+    },
+    {
+      "source": "packages/model-providers/src/piNativeCatalog.ts",
+      "sourceSHA256": "4f17d9e68179e6d4de5133f56bcd8d30b59fb47ce1a316b88dd67bffd84d051a",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/piNativeCatalog.ts",
+      "sha256": "4f17d9e68179e6d4de5133f56bcd8d30b59fb47ce1a316b88dd67bffd84d051a"
+    },
+    {
+      "source": "packages/model-providers/src/effortResolution.ts",
+      "sourceSHA256": "29f7b5c100abaa79d7ecc769246e495a163c2f4b8664398e2895de436db912ba",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/effortResolution.ts",
+      "sha256": "29f7b5c100abaa79d7ecc769246e495a163c2f4b8664398e2895de436db912ba"
+    },
+    {
+      "source": "packages/model-providers/src/piThinkingLevels.mjs",
+      "sourceSHA256": "7f7d9e89908979834edf6e424e0857ae4e7c116775d13ae9d58797886c0a8f45",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/piThinkingLevels.mjs",
+      "sha256": "7f7d9e89908979834edf6e424e0857ae4e7c116775d13ae9d58797886c0a8f45"
+    },
+    {
+      "source": "packages/model-providers/src/provider-oauth.ts",
+      "sourceSHA256": "258f6c3de1ce131aabed88f98c167bfd623e83c2f1ebced0cfd6373279865cde",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/provider-oauth.ts",
+      "sha256": "258f6c3de1ce131aabed88f98c167bfd623e83c2f1ebced0cfd6373279865cde"
+    },
+    {
+      "source": "packages/model-providers/src/provider-url.ts",
+      "sourceSHA256": "3ee894635849828f1fb7599faef710a3330259e93a3de6a37df7263056ec7e5a",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/provider-url.ts",
+      "sha256": "3ee894635849828f1fb7599faef710a3330259e93a3de6a37df7263056ec7e5a"
+    },
+    {
+      "source": "packages/model-providers/src/user-provider.ts",
+      "sourceSHA256": "66ce5e54870b6f6a6490a2168953837e4768f8e201ab6fe19252125041f8431e",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/user-provider.ts",
+      "sha256": "66ce5e54870b6f6a6490a2168953837e4768f8e201ab6fe19252125041f8431e"
+    },
+    {
+      "source": "packages/model-providers/src/modelRegistry.ts",
+      "sourceSHA256": "bdb0d4172ca1f1c08463248c3334c34e8f70986c797abb1fb85554e85221b439",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelRegistry.ts",
+      "sha256": "bdb0d4172ca1f1c08463248c3334c34e8f70986c797abb1fb85554e85221b439"
+    },
+    {
+      "source": "packages/model-providers/src/modelRegistryCanonical.ts",
+      "sourceSHA256": "877e535fd783c54528d7fbcd10777310c54a580e127a037d3c3c14923e5e5875",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelRegistryCanonical.ts",
+      "sha256": "877e535fd783c54528d7fbcd10777310c54a580e127a037d3c3c14923e5e5875"
+    },
+    {
+      "source": "packages/model-providers/src/source.ts",
+      "sourceSHA256": "584e9fad7dacebaa904a4e56b9a7a9f37925d34426bd14f657c873aeab79bad3",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/source.ts",
+      "sha256": "584e9fad7dacebaa904a4e56b9a7a9f37925d34426bd14f657c873aeab79bad3"
+    },
+    {
+      "source": "packages/model-providers/src/sections.ts",
+      "sourceSHA256": "317569354b426e9120bee8655a931760b5ca378eb65280d4cc4f4e57e305ceeb",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/sections.ts",
+      "sha256": "317569354b426e9120bee8655a931760b5ca378eb65280d4cc4f4e57e305ceeb"
+    },
+    {
+      "source": "packages/model-providers/src/unifiedSelection.ts",
+      "sourceSHA256": "56ab7f1032c40dba934e159f685ade222b9744b9e58a9c6d2183e49399248fa9",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/unifiedSelection.ts",
+      "sha256": "56ab7f1032c40dba934e159f685ade222b9744b9e58a9c6d2183e49399248fa9"
+    },
+    {
+      "source": "packages/model-providers/src/invocation.ts",
+      "sourceSHA256": "a7a9f94cf87c5d7786a17530c6fe6db1a4fe76e5db919d4951efc0d72551d106",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/invocation.ts",
+      "sha256": "a7a9f94cf87c5d7786a17530c6fe6db1a4fe76e5db919d4951efc0d72551d106"
+    },
+    {
+      "source": "packages/model-providers/src/visionCapability.ts",
+      "sourceSHA256": "3d56b3b4360a88eb957e20338dace516b07ac0a2ab16e54d42c73bfa72530ff9",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/visionCapability.ts",
+      "sha256": "3d56b3b4360a88eb957e20338dace516b07ac0a2ab16e54d42c73bfa72530ff9"
+    },
+    {
+      "source": "packages/model-providers/src/modelDiscovery.ts",
+      "sourceSHA256": "6ccfccbf840fd13478d7358f7c5b55e594b30fa44d6aac196b475738b699a5d7",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelDiscovery.ts",
+      "sha256": "6ccfccbf840fd13478d7358f7c5b55e594b30fa44d6aac196b475738b699a5d7"
+    },
+    {
+      "source": "packages/model-providers/src/providerSetupLinks.ts",
+      "sourceSHA256": "bdc0501606f4622e2ddc1f9804d0546149ee692fa88c4a243ce0f562a4b70498",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerSetupLinks.ts",
+      "sha256": "bdc0501606f4622e2ddc1f9804d0546149ee692fa88c4a243ce0f562a4b70498"
+    },
+    {
+      "source": "packages/model-providers/src/providerPresetOAuth.ts",
+      "sourceSHA256": "2aa0fcfd9d20f1fd1fddbe6ef6300bbb6755c301bc588060bfba3fe414dd478e",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerPresetOAuth.ts",
+      "sha256": "2aa0fcfd9d20f1fd1fddbe6ef6300bbb6755c301bc588060bfba3fe414dd478e"
+    },
+    {
+      "source": "packages/model-providers/src/providerDetection.ts",
+      "sourceSHA256": "870f7350baec408d5bbc95fe00b0fbaa403723ddc71bca96ea11576115515f9e",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerDetection.ts",
+      "sha256": "870f7350baec408d5bbc95fe00b0fbaa403723ddc71bca96ea11576115515f9e"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/VoiceInputDataStore.ts",
+      "sourceSHA256": "57f016602b2ea7fec0ebc97c92ddb9ab45e56e1cdde4cdc226b44bfb7ea79672",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/VoiceInputDataStore.ts",
+      "sha256": "b8c7e09539b40bd643d86e6741d5777e6c27f6dc321ac2d9b7453f9c91a45e75",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/VoiceDictionarySyncStore.ts",
+      "sourceSHA256": "54b864dccb9bbefe9a8396fe167e62e2d16c57de58a9de82e218012ce2b0a955",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/VoiceDictionarySyncStore.ts",
+      "sha256": "2c37ad5410b6d1e733f1c09de6d6ba34166ffcc68d9716fda258fd9743b18dd7",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/LiteLlmTranscriptionProvider.ts",
+      "sourceSHA256": "c10cc72eff3444a3d71477d6e0abcd918de8e0ca9d6c7e962b23737b62cc933f",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/LiteLlmTranscriptionProvider.ts",
+      "sha256": "7fc9b8253750a9671b7379ae3842f1e5558389057392f6300e487ccc2dcf31ac",
+      "adaptation": "import-paths; WinOne uses this batch adapter for its configured OpenAI-compatible ASR endpoints; preserve their ISO 639-1 language contract instead of the removed Cindy Gateway convention."
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/language.ts",
+      "sourceSHA256": "562a06cc1cfbd6e10dba36251413a2c51174e5f85563c905d4580b4049ae6be4",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/language.ts",
+      "sha256": "562a06cc1cfbd6e10dba36251413a2c51174e5f85563c905d4580b4049ae6be4"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/FallbackAsrProvider.ts",
+      "sourceSHA256": "9bbc5f16b098ff911b987a4cc8cda57af90c77b6ef590ee3620f62656af6d18e",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/FallbackAsrProvider.ts",
+      "sha256": "78538b6935f6050ad2a05cb556e5cb619e1eb863c117567dcb718ed3f3802334",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/VoiceInputProviderHealth.ts",
+      "sourceSHA256": "6f580dbfb2a5a52a14bcc0dd2fd82fd5e411577e2d852c6691a81739026ab131",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/VoiceInputProviderHealth.ts",
+      "sha256": "380ca9aaa1ea46752f78f84fc48f721422466291ced2908d2e0a94cba0817882",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/voiceInputAsrConfig.ts",
+      "sourceSHA256": "cb4736dc8973cff71028c90f1c7e41a69831992c7e9440eaf5b29d4d16a0701a",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/voiceInputAsrConfig.ts",
+      "sha256": "cb4736dc8973cff71028c90f1c7e41a69831992c7e9440eaf5b29d4d16a0701a"
+    },
+    {
+      "source": "apps/desktop/src/shared/voiceInputAsrProfiles.ts",
+      "sourceSHA256": "6a1a04400f2ebf17fa6e0051613fb75c9d958086a0be6cdbccbbe39598473d04",
+      "target": "modules/chat-pi/cindy/voice/shared/voiceInputAsrProfiles.ts",
+      "sha256": "6a1a04400f2ebf17fa6e0051613fb75c9d958086a0be6cdbccbbe39598473d04"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/voiceInputStartError.ts",
+      "sourceSHA256": "510de9ef4d39a91321ada31afa2beea843920ac23040ec8acb998f679ba9ed33",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/voiceInputStartError.ts",
+      "sha256": "69536cc1b8a247f0cd03fef84f8f57574855706355386a8fda4419be1859328b",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/voice-input/SystemAudioMuteGuard.ts",
+      "sourceSHA256": "0557112b8053143ead0557af70ddce51a529cf2013cbae3b8c9b4a8d8ab68a69",
+      "target": "modules/chat-pi/cindy/voice/main/voice-input/SystemAudioMuteGuard.ts",
+      "sha256": "f55eff09d54fc08cc0c2518e73aced61b3c24b794722349b9af0322881a8b8e6",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/voice-input-core/src/VoiceInputController.ts",
+      "sourceSHA256": "06054228c5cbbfdd77c1ed32d16a39a5c7d6db84f6e4ae118d8b37ba9a76234b",
+      "target": "third_party/cindy/voice-core/VoiceInputController.ts",
+      "sha256": "06054228c5cbbfdd77c1ed32d16a39a5c7d6db84f6e4ae118d8b37ba9a76234b"
+    },
+    {
+      "source": "packages/voice-input-core/src/VoiceTimelineLogger.ts",
+      "sourceSHA256": "b5c62cd2f9c042e86c5253a54b950680ea487fd037d2209bc2d6bd855056e930",
+      "target": "third_party/cindy/voice-core/VoiceTimelineLogger.ts",
+      "sha256": "b5c62cd2f9c042e86c5253a54b950680ea487fd037d2209bc2d6bd855056e930"
+    },
+    {
+      "source": "packages/voice-input-core/src/pauseRefinement.ts",
+      "sourceSHA256": "bb07e7be18ad41254d43580c857ff2c0b8cd9067bc862eaaeee0b0054f120c08",
+      "target": "third_party/cindy/voice-core/pauseRefinement.ts",
+      "sha256": "bb07e7be18ad41254d43580c857ff2c0b8cd9067bc862eaaeee0b0054f120c08"
+    },
+    {
+      "source": "packages/voice-input-core/src/BufferedAsrProvider.ts",
+      "sourceSHA256": "2ce24ae1c05def95bf7d7c3bd798ee9359e385fe0b9453607d4ce0a9156abd87",
+      "target": "third_party/cindy/voice-core/BufferedAsrProvider.ts",
+      "sha256": "2ce24ae1c05def95bf7d7c3bd798ee9359e385fe0b9453607d4ce0a9156abd87"
+    },
+    {
+      "source": "packages/voice-input-core/src/pcmActivity.ts",
+      "sourceSHA256": "1d0380ed8fd228bd7b57babd9d5d51a28d3c2fcb1f21eeea4ec6d1cb2761d777",
+      "target": "third_party/cindy/voice-core/pcmActivity.ts",
+      "sha256": "1d0380ed8fd228bd7b57babd9d5d51a28d3c2fcb1f21eeea4ec6d1cb2761d777"
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/index.ts",
+      "sourceSHA256": "f4439c1efdaab57aebcc5a6b3810f505453203343c9cf2388b88f62e770fc7b1",
+      "target": "third_party/cindy/voice-core/dictionary-sync/index.ts",
+      "sha256": "f4439c1efdaab57aebcc5a6b3810f505453203343c9cf2388b88f62e770fc7b1"
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/types.ts",
+      "sourceSHA256": "5384e0df40d77b1b09692f3c5039805d03fb7dc0482e66fe9df9faba31567c6e",
+      "target": "third_party/cindy/voice-core/dictionary-sync/types.ts",
+      "sha256": "5384e0df40d77b1b09692f3c5039805d03fb7dc0482e66fe9df9faba31567c6e"
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/hlc.ts",
+      "sourceSHA256": "374c484d7cc1272cc837fdda10f1d7b530128da70324bb4aefd351ed6e4b8dad",
+      "target": "third_party/cindy/voice-core/dictionary-sync/hlc.ts",
+      "sha256": "374c484d7cc1272cc837fdda10f1d7b530128da70324bb4aefd351ed6e4b8dad"
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/merge.ts",
+      "sourceSHA256": "b3d38d4c61a4b4ec8ae7e759c855966f2030156e77777ac4fb713b1078486a7c",
+      "target": "third_party/cindy/voice-core/dictionary-sync/merge.ts",
+      "sha256": "b3d38d4c61a4b4ec8ae7e759c855966f2030156e77777ac4fb713b1078486a7c"
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/mutate.ts",
+      "sourceSHA256": "ffe5fcb5583a82b014a6f94f46bdd26bc5e73fd99073e8ed4a650195f16f55ca",
+      "target": "third_party/cindy/voice-core/dictionary-sync/mutate.ts",
+      "sha256": "ffe5fcb5583a82b014a6f94f46bdd26bc5e73fd99073e8ed4a650195f16f55ca"
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/materialize.ts",
+      "sourceSHA256": "bda64f7cbfdde91d856a4b1ec0b078f22888bc0d63f1c697caabb2974069d508",
+      "target": "third_party/cindy/voice-core/dictionary-sync/materialize.ts",
+      "sha256": "bda64f7cbfdde91d856a4b1ec0b078f22888bc0d63f1c697caabb2974069d508"
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/moved-aliases.ts",
+      "sourceSHA256": "de647175a4602b0d6575eda3f6e07516efbac79f544c6498bb613d3d084cf22a",
+      "target": "third_party/cindy/voice-core/dictionary-sync/moved-aliases.ts",
+      "sha256": "de647175a4602b0d6575eda3f6e07516efbac79f544c6498bb613d3d084cf22a"
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/move-tag.ts",
+      "sourceSHA256": "e57644c5d46d51a3c900135cac6afbbaad26f91265e6a1f687836392cdc9b732",
+      "target": "third_party/cindy/voice-core/dictionary-sync/move-tag.ts",
+      "sha256": "e57644c5d46d51a3c900135cac6afbbaad26f91265e6a1f687836392cdc9b732"
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/alias-removal.ts",
+      "sourceSHA256": "db51427b9a28334a7c97dd666b367d2b5849e054765d2cfda0586297ce18f27f",
+      "target": "third_party/cindy/voice-core/dictionary-sync/alias-removal.ts",
+      "sha256": "db51427b9a28334a7c97dd666b367d2b5849e054765d2cfda0586297ce18f27f"
+    },
+    {
+      "source": "packages/voice-input-core/src/dictionary-sync/reconcile.ts",
+      "sourceSHA256": "0e19a892f2802344287a9f232e324eba030c20484777c2dab6cf180337bc475b",
+      "target": "third_party/cindy/voice-core/dictionary-sync/reconcile.ts",
+      "sha256": "0e19a892f2802344287a9f232e324eba030c20484777c2dab6cf180337bc475b"
+    }
+  ]
+}

@@ -55,7 +55,7 @@ func (t Translator) TestModels(ctx context.Context, p Provider, key string, mode
 	}
 	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
-	input := map[string]any{"operation": "models.test", "protocol": p.Protocol, "baseUrl": p.BaseURL, "key": key, "headers": p.Headers, "preset": p.Preset, "presetRegion": p.PresetRegion, "testModels": models, "testClient": client, "additionalTools": p.AdditionalTools, "modelPreferences": p.ModelMetadata, "magpieSettings": prefs}
+	input := map[string]any{"operation": "models.test", "protocol": p.Protocol, "baseUrl": p.BaseURL, "key": key, "headers": p.Headers, "preset": p.Preset, "presetRegion": p.PresetRegion, "testModels": models, "testClient": client, "limitRestOff": p.LimitRestOff, "additionalTools": p.AdditionalTools, "modelPreferences": p.ModelMetadata, "magpieSettings": prefs}
 	if p.AuthMode == "account" {
 		t.AccountBackend = p.AgentBackend
 		input["agent"] = p.Agent
@@ -94,7 +94,7 @@ func (t Translator) KeyBalances(ctx context.Context, p Provider, plan KeyPlan) (
 	}
 	ctx, cancel := context.WithTimeout(ctx, 25*time.Second)
 	defer cancel()
-	raw, err := t.ForProvider(p.ID).invoke(ctx, map[string]any{"operation": "accounts.key-balance", "providerId": p.ID, "protocol": p.Protocol, "baseUrl": p.BaseURL, "headers": p.Headers, "preset": p.Preset, "presetRegion": p.PresetRegion, "balanceKeys": keys})
+	raw, err := t.ForProvider(p.ID).invoke(ctx, map[string]any{"operation": "accounts.key-balance", "providerId": p.ID, "protocol": p.Protocol, "baseUrl": p.BaseURL, "headers": p.Headers, "preset": p.Preset, "presetRegion": p.PresetRegion, "limitRestOff": p.LimitRestOff, "balanceKeys": keys})
 	if err != nil {
 		return nil, errors.New("余额读取失败，请刷新重试")
 	}

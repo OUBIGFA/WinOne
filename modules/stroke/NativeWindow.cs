@@ -27,6 +27,8 @@ namespace WinOne.StrokeRuntime
     // painting through PaintEventArgs also respects clipping and WM_PRINT.
     internal sealed class TrailWindow:Form
     {
+        [DllImport("dwmapi.dll")]private static extern int DwmFlush();
+        internal string Diagnostic {get;private set;}
         private readonly PenDefinition pen;
         private readonly System.Drawing.Pen brush;
         private readonly List<Tuple<Point,Point>> segments=new List<Tuple<Point,Point>>();
@@ -40,7 +42,20 @@ namespace WinOne.StrokeRuntime
         protected override bool ShowWithoutActivation {get{return true;}}
         internal void Segment(Point from,Point to){if(!pen.enabled||pen.opacity==0||pen.thickness==0)return;segments.Add(Tuple.Create(from,to));if(!Visible){Bounds=SystemInformation.VirtualScreen;Show();API.SetWindowPos(Handle,API.IA.TOPMOST,0,0,0,0,API.SWP.NOSIZE|API.SWP.NOMOVE|API.SWP.NOACTIVATE);}var dirty=Rectangle.FromLTRB(Math.Min(from.X,to.X)-Left,Math.Min(from.Y,to.Y)-Top,Math.Max(from.X,to.X)-Left+1,Math.Max(from.Y,to.Y)-Top+1);dirty.Inflate(pen.thickness,pen.thickness);Invalidate(dirty);Update();}
         protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);foreach(var segment in segments)e.Graphics.DrawLine(brush,segment.Item1.X-Left,segment.Item1.Y-Top,segment.Item2.X-Left,segment.Item2.Y-Top);}
-        internal void ClearTrail(){if(IsDisposed)return;segments.Clear();Hide();Invalidate();}
+        internal void ClearTrail()
+        {
+            if(IsDisposed)return;
+            if(Visible&&segments.Count>0){
+                // Update() completes GDI painting, not DWM presentation. When a
+                // short gesture's draw and clear are drained in one UI turn,
+                // Hide can otherwise erase it before a single frame is shown.
+                // Wait for the actual compositor boundary, never a fixed delay;
+                // this is on the UI queue, not the low-level input callback.
+                int result=DwmFlush();
+                Diagnostic=result<0&&result!=unchecked((int)0x80263001)?"手势画笔显示同步失败：0x"+result.ToString("X8"):null;
+            }
+            segments.Clear();Hide();Invalidate();
+        }
         protected override void Dispose(bool disposing){if(disposing)brush.Dispose();base.Dispose(disposing);}
     }
 }

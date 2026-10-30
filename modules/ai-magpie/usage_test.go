@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/yetone/magpie/internal/catalog"
 	"github.com/yetone/magpie/internal/provider"
+	"github.com/yetone/magpie/internal/settings"
 	"github.com/yetone/magpie/internal/usage"
 	"io"
 	"net/http"
@@ -20,6 +21,107 @@ import (
 )
 
 type usagePriceTransport func(*http.Request) (*http.Response, error)
+
+func TestUsageAliasesUseUpstreamValidationWithoutSavingAnotherProfile(t *testing.T) {
+	t.Cleanup(func() { settings.WinOneSettings.Store(nil) })
+	aliases := map[string]string{"a-model": "b-model"}
+	var out bytes.Buffer
+	if err := editUsageAliases(request{UsageAliases: aliases, UsageAlias: &usageAliasEdit{From: " b-model ", To: "c-model"}}, &out); err != nil {
+		t.Fatal(err)
+	}
+	if got := provider.UsageAlias()("a-model"); got != "c-model" {
+		t.Fatalf("chain: %s", got)
+	}
+	if aliases["b-model"] != "" {
+		t.Fatal("validation mutated the caller draft")
+	}
+	for _, edit := range []usageAliasEdit{{From: "c-model", To: "a-model"}, {From: "a-model", To: "A_MODEL"}, {From: "-flag", To: "model"}} {
+		if err := editUsageAliases(request{UsageAliases: map[string]string{"a-model": "b-model", "b-model": "c-model"}, UsageAlias: &edit}, &bytes.Buffer{}); err == nil {
+			t.Fatalf("accepted invalid alias: %+v", edit)
+		}
+	}
+	out.Reset()
+	if err := editUsageAliases(request{UsageAliases: aliases, UsageAlias: &usageAliasEdit{From: "A_MODEL", To: ""}}, &out); err != nil {
+		t.Fatal(err)
+	}
+	if len(provider.UsageAliases()) != 0 {
+		t.Fatal("reset did not recognize the upstream canonical spelling")
+	}
+}
+
+func TestUsageAliasGroupsChartsAndFiltersWithoutRepricingOrRewritingRequests(t *testing.T) {
+	t.Setenv("WINONE_AI_USAGE_PATH", filepath.Join(t.TempDir(), "usage.jsonl"))
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	if err := os.MkdirAll(filepath.Dir(catalog.CachePath()), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(catalog.CachePath(), []byte(usagePriceFixture), 0600); err != nil {
+		t.Fatal(err)
+	}
+	catalog.Reset()
+	t.Cleanup(func() {
+		catalog.Reset()
+		usage.WinOnePath = ""
+		usage.WinOneRecord = nil
+		settings.WinOneSettings.Store(nil)
+	})
+	settings.WinOneUse(settings.Settings{NoStats: true, NoUsageStats: true, UsageAliases: map[string]string{"deepseek-v4.1-flash": "deepseek-flash"}, ModelPrices: map[string]settings.ModelPrice{
+		"*/deepseek-v4.1-flash": {Input: new(2.0), Output: new(0.0), CacheRead: new(0.0), CacheWrite: new(0.0)},
+		"*/deepseek-flash":      {Input: new(100.0), Output: new(0.0), CacheRead: new(0.0), CacheWrite: new(0.0)},
+	}})
+	if err := configureUsage(request{ProviderID: "fixture"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, model := range []string{"deepseek-v4.1-flash", "deepseek-flash"} {
+		usage.Append(usage.Record{Time: time.Now(), Model: model, Input: 1000000, Status: 200})
+	}
+	for _, model := range []string{"", "deepseek-flash", "deepseek-v4.1-flash"} {
+		var out bytes.Buffer
+		if err := readUsage(request{Usage: &usageQuery{Period: "7d", Model: model, Models: []string{"DEEPSEEK_V4.1_FLASH", "unrelated-model"}}}, &out); err != nil {
+			t.Fatal(err)
+		}
+		var page struct {
+			Total        int
+			Rows         []usage.Row
+			By           map[string][]usage.Share
+			Series       []usage.SeriesPoint
+			Sum          usage.Totals
+			Heatmap      usage.Heatmap
+			ModelAliases map[string]string `json:"modelAliases"`
+		}
+		if err := json.Unmarshal(out.Bytes(), &page); err != nil {
+			t.Fatal(err)
+		}
+		if page.ModelAliases["DEEPSEEK_V4.1_FLASH"] != "deepseek-flash" || page.ModelAliases["unrelated-model"] != "unrelated-model" {
+			t.Fatalf("session model aliases not resolved by upstream: %+v", page.ModelAliases)
+		}
+		if page.Total != 2 || len(page.By["model"]) != 1 || page.By["model"][0].ID != "deepseek-flash" || page.Sum.Cost != 102 {
+			t.Fatalf("group/filter/price changed for %q: %s", model, out.String())
+		}
+		originals := map[string]bool{}
+		for _, row := range page.Rows {
+			originals[row.Model] = true
+		}
+		if !originals["deepseek-v4.1-flash"] || !originals["deepseek-flash"] {
+			t.Fatal("request model was rewritten")
+		}
+		for _, point := range page.Series {
+			if _, ok := point.By["model"]["deepseek-v4.1-flash"]; ok {
+				t.Fatal("trend did not use the same grouping")
+			}
+		}
+		if len(page.Heatmap.Days) != 1 || page.Heatmap.Days[0].Calls != 2 {
+			t.Fatal("heatmap ignored the group filter")
+		}
+	}
+	var csv bytes.Buffer
+	if err := readUsage(request{Usage: &usageQuery{Period: "7d", Model: "deepseek-flash", Export: true}}, &csv); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(csv.String(), "deepseek-v4.1-flash") {
+		t.Fatal("CSV lost the original model")
+	}
+}
 
 func TestGatewayCallerIdentityReachesLedgerButNeverVendor(t *testing.T) {
 	t.Setenv("WINONE_AI_USAGE_PATH", filepath.Join(t.TempDir(), "usage.jsonl"))
@@ -88,6 +190,44 @@ func TestUsagePreservesReportedPlanCreditsAndServiceTimings(t *testing.T) {
 		if got.Credits == nil || *got.Credits != credit || got.FirstText != 300 || got.Flow != 500 || got.TierServed != "ultrafast" || got.Error != "Request failed" {
 			t.Fatalf("usage metadata dropped: %+v", got)
 		}
+	}
+}
+
+func TestUsagePersistsUnknownCacheAcrossWinOneProviderIDs(t *testing.T) {
+	t.Setenv("WINONE_AI_USAGE_PATH", filepath.Join(t.TempDir(), "usage.jsonl"))
+	t.Cleanup(func() { usage.WinOnePath = ""; usage.WinOneRecord = nil })
+	if err := configureUsage(request{ProviderID: "saved-custom-provider"}); err != nil {
+		t.Fatal(err)
+	}
+	// The saved connection ID cannot be used to infer the upstream vendor.
+	// Verify the real on-disk roundtrip, not just the record adapter return.
+	for _, r := range []usage.Record{
+		{Time: time.Now(), Model: "fixture", Input: 100, CacheUnknown: true, Status: 200},
+		{Time: time.Now(), Model: "fixture", Input: 80, CacheRead: 80, CacheWrite: 40, Status: 200},
+	} {
+		usage.Append(r)
+	}
+	rows := usage.Load(time.Time{})
+	if len(rows) != 2 || !rows[0].CacheUnknown || rows[1].CacheUnknown {
+		t.Fatalf("cache reporting flag changed on disk: %+v", rows)
+	}
+	page := usage.QueryPage(usage.Period("all"), usage.Filter{Provider: "saved-custom-provider"}, 0, 15)
+	raw, err := json.Marshal(page.Sum)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sum struct {
+		Unknown int `json:"cache_unknown"`
+		Calls   int `json:"cache_unknown_calls"`
+		Input   int `json:"input"`
+		Read    int `json:"cache_read"`
+		Write   int `json:"cache_write"`
+	}
+	if err := json.Unmarshal(raw, &sum); err != nil {
+		t.Fatal(err)
+	}
+	if sum.Unknown != 100 || sum.Calls != 1 || sum.Read*100/(sum.Input+sum.Read+sum.Write-sum.Unknown) != 40 {
+		t.Fatalf("unknown cache diluted hit rate: %s", raw)
 	}
 }
 

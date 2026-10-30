@@ -61,15 +61,36 @@ Copy-Item -LiteralPath (Join-Path $photonDirectory 'photon_rs_bg.wasm') -Destina
 Copy-Item -LiteralPath (Join-Path $module 'node_modules/quickjs-wasi/quickjs.wasm') -Destination (Join-Path $output 'quickjs.wasm')
 Invoke-ChatBuildTool $BunExe @('build',(Join-Path $module 'codemode-worker.mjs'),'--target=bun','--outfile',(Join-Path $output 'codemode-worker.js')) 'Code Mode VM worker bundle failed'
 Invoke-ChatBuildTool $BunExe @('build',(Join-Path $module 'worker.mjs'),'--target=bun','--define','WINONE_CHAT_BUNDLE=true','--outfile',(Join-Path $output 'worker.js')) 'Pi worker bundle failed'
+# Vendored Cindy automation sources must equal the pinned sync (or its recorded digests).
+Invoke-ChatBuildTool $BunExe @((Join-Path $PSScriptRoot 'sync-cindy.mjs'),'--spec',(Join-Path $root 'third_party/cindy/scheduler.sync.json'),'--check') 'Vendored Cindy automation sources changed'
+Invoke-ChatBuildTool $BunExe @((Join-Path $PSScriptRoot 'sync-cindy.mjs'),'--spec',(Join-Path $root 'third_party/cindy/onebot.sync.json'),'--check') 'Vendored Cindy OneBot sources changed'
+Invoke-ChatBuildTool $BunExe @((Join-Path $PSScriptRoot 'sync-cindy.mjs'),'--spec',(Join-Path $root 'third_party/cindy/onebot-tasks.sync.json'),'--check') 'Vendored Cindy OneBot task sources changed'
+Invoke-ChatBuildTool $BunExe @((Join-Path $PSScriptRoot 'sync-cindy.mjs'),'--spec',(Join-Path $root 'third_party/cindy/onebot-worktree.sync.json'),'--check') 'Vendored Cindy OneBot worktree sources changed'
+Invoke-ChatBuildTool $BunExe @((Join-Path $PSScriptRoot 'sync-cindy.mjs'),'--spec',(Join-Path $root 'third_party/cindy/onebot-voice.sync.json'),'--check') 'Vendored Cindy OneBot voice sources changed'
+Invoke-ChatBuildTool $BunExe @((Join-Path $PSScriptRoot 'sync-cindy.mjs'),'--spec',(Join-Path $root 'third_party/cindy/onebot-import.sync.json'),'--check') 'Vendored Cindy OneBot import sources changed'
+Invoke-ChatBuildTool $BunExe @((Join-Path $PSScriptRoot 'sync-cindy.mjs'),'--spec',(Join-Path $root 'third_party/cindy/onebot-wechat.sync.json'),'--check') 'Vendored Cindy WeChat sources changed'
+Invoke-ChatBuildTool $BunExe @((Join-Path $PSScriptRoot 'verify-onebot-notices.mjs')) 'OneBot source notices failed'
+$oneBotNotices=Get-Content -LiteralPath (Join-Path $root 'third_party/onebot-notices.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+foreach($component in $oneBotNotices.components){foreach($notice in $component.notices){
+ $destination=Join-Path $output $notice.file
+ New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
+ Copy-Item -LiteralPath (Join-Path $root ('third_party/'+$notice.file)) -Destination $destination
+}}
+Copy-Item -LiteralPath (Join-Path $root 'third_party/onebot-notices.json') -Destination (Join-Path $output 'licenses/onebot-notices.json')
+Invoke-ChatBuildTool $BunExe @((Join-Path $PSScriptRoot 'onebot-runtime-assets.mjs'),'--copy',$output) 'OneBot runtime assets changed'
+Invoke-ChatBuildTool $BunExe @('build',(Join-Path $module 'cindy/wechat/main/im/wechat/silkWorker.ts'),'--target=bun','--external','silk-wasm','--outfile',(Join-Path $output 'wechat-silk-worker.js')) 'WeChat SILK decoder bundle failed'
+Invoke-ChatBuildTool $BunExe @('build',(Join-Path $module 'onebot/worker.mjs'),'--target=bun','--define','WINONE_CHAT_BUNDLE=true','--external','sharp','--outfile',(Join-Path $output 'onebot.js')) 'OneBot worker bundle failed'
+Invoke-ChatBuildTool $BunExe @((Join-Path $PSScriptRoot 'verify-onebot-notices.mjs'),$output) 'OneBot bundled notices failed'
 Invoke-ChatBuildTool $BunExe @('build',(Join-Path $module 'scheduler-worker.mjs'),'--target=bun','--outfile',(Join-Path $output 'scheduler.js')) 'Cindy scheduler bundle failed'
 Invoke-ChatBuildTool $BunExe @('build',(Join-Path $module 'scheduler-command-worker.mjs'),'--target=bun','--outfile',(Join-Path $output 'script-runner.js')) 'Cindy command runner bundle failed'
 Invoke-ChatBuildTool $BunExe @((Join-Path $PSScriptRoot 'verify-chat-codemode-notices.mjs'),$output) 'Code Mode bundled notices failed'
-$runtime=@{schemaVersion=1;piVersion=$installed.version;repository='https://github.com/earendil-works/pi';revision='4a080252f06caf63a525d7873c5d94d3c23887e0';workerSHA256=(Get-FileHash -LiteralPath (Join-Path $output 'worker.js')).Hash.ToLowerInvariant();schedulerSHA256=(Get-FileHash -LiteralPath (Join-Path $output 'scheduler.js')).Hash.ToLowerInvariant();scriptRunnerSHA256=(Get-FileHash -LiteralPath (Join-Path $output 'script-runner.js')).Hash.ToLowerInvariant();photonVersion=$photon.version;photonSHA256=(Get-FileHash -LiteralPath (Join-Path $output 'photon_rs_bg.wasm')).Hash.ToLowerInvariant();dependencyLockSHA256=(Get-FileHash -LiteralPath (Join-Path $module 'package-lock.json')).Hash.ToLowerInvariant();cindyRevision='a152497ac24d155dd46142b73dda4fa10ad08ad0'}
+$runtime=@{schemaVersion=1;piVersion=$installed.version;repository='https://github.com/earendil-works/pi';revision='4a080252f06caf63a525d7873c5d94d3c23887e0';workerSHA256=(Get-FileHash -LiteralPath (Join-Path $output 'worker.js')).Hash.ToLowerInvariant();schedulerSHA256=(Get-FileHash -LiteralPath (Join-Path $output 'scheduler.js')).Hash.ToLowerInvariant();scriptRunnerSHA256=(Get-FileHash -LiteralPath (Join-Path $output 'script-runner.js')).Hash.ToLowerInvariant();photonVersion=$photon.version;photonSHA256=(Get-FileHash -LiteralPath (Join-Path $output 'photon_rs_bg.wasm')).Hash.ToLowerInvariant();dependencyLockSHA256=(Get-FileHash -LiteralPath (Join-Path $module 'package-lock.json')).Hash.ToLowerInvariant();cindyRevision='b7e46bcbbe41eeee2f16381fef00df61a31a3b8b'}
+$runtime.onebotSHA256=(Get-FileHash -LiteralPath (Join-Path $output 'onebot.js')).Hash.ToLowerInvariant()
 $runtime.codeModeWorkerSHA256=(Get-FileHash -LiteralPath (Join-Path $output 'codemode-worker.js')).Hash.ToLowerInvariant()
 $runtime.quickjsSHA256=(Get-FileHash -LiteralPath (Join-Path $output 'quickjs.wasm')).Hash.ToLowerInvariant()
 [IO.File]::WriteAllText((Join-Path $output 'runtime.json'),($runtime|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
 if($Test){
- $previous=@{};foreach($key in @('WINONE_CHAT_BUN_EXE','WINONE_CHAT_WORKER','WINONE_CHAT_TEST_DIRECTORY','WINONE_CHAT_RG_EXE','TEMP','TMP','HOME')){$previous[$key]=[Environment]::GetEnvironmentVariable($key,'Process')}
+ $previous=@{};foreach($key in @('WINONE_CHAT_BUN_EXE','WINONE_CHAT_WORKER','WINONE_CHAT_TEST_DIRECTORY','WINONE_CHAT_RG_EXE','WINONE_ONEBOT_TEST_OUTPUT','WINONE_ONEBOT_WORKER','TEMP','TMP','HOME','NO_PROXY')){$previous[$key]=[Environment]::GetEnvironmentVariable($key,'Process')}
  # Keep Pi's session fixtures outside the bundle tree. The package verifier
  # treats every file below the bundle as a shipped runtime resource.
  $temporaryRoot=[IO.Path]::GetFullPath((Join-Path $root '_temp'))+[IO.Path]::DirectorySeparatorChar
@@ -84,8 +105,13 @@ if($Test){
   # fixture workers an isolated shared-skills home instead of importing the
   # developer's real ~/.agents catalog into persisted test conversations.
   $env:HOME=Join-Path $testDirectory 'home';New-Item -ItemType Directory -Path $env:HOME -Force | Out-Null
+  # Bun tests start workers without StartRunner. Apply its loopback proxy
+  # bypass so fixture servers on 127.0.0.1 are reached directly, as in production.
+  $env:NO_PROXY=(@($env:NO_PROXY,'localhost,127.0.0.1,::1')|Where-Object {$_}) -join ','
   $env:WINONE_CHAT_BUN_EXE=$BunExe;$env:WINONE_CHAT_WORKER=Join-Path $output 'worker.js';$env:WINONE_CHAT_TEST_DIRECTORY=$testDirectory;$env:WINONE_CHAT_RG_EXE=Join-Path $output 'rg.exe';$env:TEMP=$testDirectory;$env:TMP=$testDirectory
-  Invoke-ChatBuildTool $BunExe @('test',(Join-Path $module 'session.test.mjs'),(Join-Path $module 'durable-session.test.mjs'),(Join-Path $module 'durable-storage.test.mjs'),(Join-Path $module 'permissions.test.mjs'),(Join-Path $module 'operations.test.mjs'),(Join-Path $module 'resources.test.mjs'),(Join-Path $module 'attachments.test.mjs'),(Join-Path $module 'worker-cancellation.test.mjs'),(Join-Path $module 'worker-followup.test.mjs'),(Join-Path $module 'worker-queue.test.mjs'),(Join-Path $module 'worker-transport.test.mjs'),(Join-Path $module 'worker-controls.test.mjs'),(Join-Path $module 'worker-question.test.mjs'),(Join-Path $module 'worker-codemode.test.mjs'),(Join-Path $module 'worker-history.test.mjs'),(Join-Path $module 'file-changes.test.mjs'),(Join-Path $module 'scheduler-store.test.mjs'),(Join-Path $module 'automations.test.mjs'),(Join-Path $module 'archive.test.mjs'),'--timeout','20000') 'Pi session and permission checks failed'
+  Invoke-ChatBuildTool $BunExe @('test',(Join-Path $module 'session.test.mjs'),(Join-Path $module 'durable-session.test.mjs'),(Join-Path $module 'durable-storage.test.mjs'),(Join-Path $module 'permissions.test.mjs'),(Join-Path $module 'operations.test.mjs'),(Join-Path $module 'resources.test.mjs'),(Join-Path $module 'attachments.test.mjs'),(Join-Path $module 'worker-cancellation.test.mjs'),(Join-Path $module 'worker-followup.test.mjs'),(Join-Path $module 'worker-queue.test.mjs'),(Join-Path $module 'worker-transport.test.mjs'),(Join-Path $module 'worker-controls.test.mjs'),(Join-Path $module 'worker-question.test.mjs'),(Join-Path $module 'worker-codemode.test.mjs'),(Join-Path $module 'worker-history.test.mjs'),(Join-Path $module 'file-changes.test.mjs'),(Join-Path $module 'scheduler-store.test.mjs'),(Join-Path $module 'automations.test.mjs'),(Join-Path $module 'automations-cindy.test.mjs'),(Join-Path $module 'archive.test.mjs'),'--timeout','20000') 'Pi session and permission checks failed'
+  $env:WINONE_ONEBOT_TEST_OUTPUT=$testDirectory;$env:WINONE_ONEBOT_WORKER=Join-Path $output 'onebot.js'
+  Invoke-ChatBuildTool $BunExe @('test',(Join-Path $module 'onebot'),'--timeout','20000') 'OneBot local runtime checks failed'
   Invoke-ChatBuildTool $BunExe @('test',(Join-Path $module 'worker-pause.test.mjs'),'--timeout','30000') 'Durable pause and recovery checks failed'
   Invoke-ChatBuildTool $GoExe @('-C',$root,'test','./internal/chat','-count=1') 'Bundled Pi process checks failed'
  }finally{foreach($key in $previous.Keys){[Environment]::SetEnvironmentVariable($key,$previous[$key],'Process')}}

@@ -17,6 +17,7 @@ Set-Hook 'internal/settings/settings.go' @{
  'func Shared() Settings {'='func Shared() Settings { if s,ok:=WinOneLoad();ok{return s};'
  'func Load() Settings {'='func Load() Settings { if s,ok:=WinOneLoad();ok{return s.clone()};'
  'func LoadChecked() (Settings, error) {'='func LoadChecked() (Settings, error) { if s,ok:=WinOneLoad();ok{return s.clone(),nil};'
+ 'func EditUsageAliases(edit func(map[string]string) (map[string]string, error)) error {'='func EditUsageAliases(edit func(map[string]string) (map[string]string, error)) error { if _,ok:=WinOneLoad();ok{return winOneEditUsageAliases(edit)};'
  'func SetRedactModel(on bool) error {'='func SetRedactModel(on bool) error { if _,ok:=WinOneLoad();ok{return winOneSetRedactModel(on)};'
 }
 # JS cannot round-trip UnixNano record IDs. Stringify only public DTOs;
@@ -43,6 +44,16 @@ Set-Hook 'internal/provider/search_api.go' @{
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/settings_embed.go.txt') -Destination (Join-Path $SourceDirectory 'internal/settings/winone_embed.go')
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/settings_provider.go.txt') -Destination (Join-Path $SourceDirectory 'internal/provider/winone_settings.go')
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/settings_gateway.go.txt') -Destination (Join-Path $SourceDirectory 'internal/gateway/winone_settings.go')
+# WinOne's enabled gateway models apply to helper calls too. Keep upstream
+# resolution, group checks and errors; only mark the Host-authenticated path.
+foreach($media in @('draw','video')){
+ Set-Hook ("internal/gateway/$media.go") @{
+  'if keyHeld && named &&'='if keyHeld && (named || winOneMediaRestricted(r)) &&'
+ }
+}
+Set-Hook 'internal/gateway/vision_mcp.go' @{
+ 'release, err := reserveFor(access.Caller(r.Context()), int64(len(src)+len(prompt)), "", limitClock())'='if err:=winOneMediaAllowed(r,model);err!=nil{return "",err}; release, err := reserveFor(access.Caller(r.Context()), int64(len(src)+len(prompt)), "", limitClock())'
+}
 Set-Hook 'internal/pii/find.go' @{
  'func Find(texts []string) ([][]redact.Found, error) {'='func Find(texts []string) ([][]redact.Found, error) { if remote := winOneRemoteFind.Load(); remote != nil { return (*remote)(texts) };'
 }

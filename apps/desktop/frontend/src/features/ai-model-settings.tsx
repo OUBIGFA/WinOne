@@ -15,8 +15,13 @@ import {SettingsDisclosure,SettingsOptions} from "../components/settings-layout"
 const contextPresets=[128000,200000,256000,1000000];
 const outputPresets=[8000,16000,32000,64000,128000];
 const compactionPresets=[50,60,70,80,90,95];
-// Magpie provider/modelprefs.go Levels plus WinOne's retained ultra option.
-const reasoningEfforts=["none","minimal","low","medium","high","xhigh","max","ultra"];
+// A model's levels are its vendor's words (Our Free Model's light/balanced/
+// deep), never a fixed ladder. Magpie provider/modelprefs.go Levels is only
+// what a model with no reported levels may be declared with; catalog
+// EffortRank (Levels plus ultra, which Magpie fits to max) is the request
+// choice for such a model.
+const genericLevels=["none","minimal","low","medium","high","xhigh","max"];
+const effortRank=[...genericLevels,"ultra"];
 const tokenLabel=(value:number)=>value%1000000===0?`${value/1000000}M`:value%1000===0?`${value/1000}K`:String(value);
 function PresetButtons<T extends number|string>({label,value,options,disabled,onSelect}:{label:string;value:T|undefined;options:{value:T;label:string}[];disabled:boolean;onSelect:(value:T)=>void}){
  return <div role="group" aria-label={label} className="settings-preset-actions">{options.map(option=><Button key={option.label} variant="secondary" disabled={disabled} aria-pressed={value===option.value} onClick={()=>onSelect(option.value)}>{option.label}</Button>)}</div>;
@@ -28,9 +33,14 @@ export function AIModelSettings({provider,model,disabled,onChange,onClose}:{prov
  const {t}=useTranslation(),id=useId(),metadata=provider.modelMetadata?.[model]??{};
  function change(patch:Partial<AIModelMetadata>){onChange({modelMetadata:{...provider.modelMetadata,[model]:{...metadata,...patch}}});}
  const defaults={value:"",label:t("ai.modelDefault")};
+ // Offer the levels this model reports. Older saved metadata had only the
+ // offered list: vendor words there are the model's levels; otherwise the
+ // model's levels are unknown and Magpie's declarable Levels apply.
+ const legacyVendor=!metadata.levels?.length&&!!metadata.efforts?.some(effort=>!effortRank.includes(effort));
+ const levelChoices=[...new Set([...(metadata.levels?.length?metadata.levels:legacyVendor?metadata.efforts??[]:genericLevels),...(metadata.efforts??[])])];
  // A known vendor list governs the request choices; older or manual models
  // keep the full list. Retain a saved override so refreshing never hides it.
- const offeredEfforts=[...new Set([...(metadata.efforts?.length?metadata.efforts:reasoningEfforts),...(metadata.reasoningEffort?[metadata.reasoningEffort]:[])])];
+ const offeredEfforts=[...new Set([...(metadata.efforts?.length?metadata.efforts:metadata.levels?.length?metadata.levels:effortRank),...(metadata.reasoningEffort?[metadata.reasoningEffort]:[])])];
  const offeredTiers=[...new Set(["auto","default",...(metadata.tiers?.length?metadata.tiers:["flex","priority","ultrafast"]),...(metadata.tier?[metadata.tier]:[])])];
  const configuredPercent=metadata.compactionPercent??0;
  const legacyThreshold=configuredPercent<=0?metadata.compactionThreshold??0:0;
@@ -44,7 +54,7 @@ export function AIModelSettings({provider,model,disabled,onChange,onClose}:{prov
   <Field><FieldLabel htmlFor={id+"-name"}>{t("ai.modelDisplayName")}</FieldLabel><Input id={id+"-name"} value={provider.modelNames?.[model]??""} placeholder={model} maxLength={80} disabled={disabled} onChange={event=>{const modelNames={...provider.modelNames};if(event.target.value)modelNames[model]=event.target.value;else delete modelNames[model];onChange({modelNames});}}/></Field>
   <div className="grid gap-4 sm:grid-cols-2">{(["upstreamName","same"] as const).map(key=><Field key={key}><FieldLabel htmlFor={id+key}>{t("ai.model"+key)}</FieldLabel><Input id={id+key} value={metadata[key]??""} placeholder={model} disabled={disabled} spellCheck={false} onChange={event=>change({[key]:event.target.value})}/><p className="settings-help">{t("ai.model"+key+"Hint")}</p></Field>)}</div>
   <CaptureOptionSelect stacked label={t("ai.modelAPI")} value={metadata.api??""} disabled={disabled} items={[{value:"",label:t("ai.modelDefault")},{value:"chat",label:"OpenAI Chat Completions"},{value:"responses",label:"OpenAI Responses"},{value:"anthropic",label:"Anthropic Messages"}]} onChange={api=>change({api})}/>
-  <div role="group" aria-label={t("ai.modelOfferedEfforts")} className="space-y-2"><h3 className="settings-group-title">{t("ai.modelOfferedEfforts")}</h3><div className="flex flex-wrap gap-x-4 gap-y-2">{reasoningEfforts.map(effort=><label key={effort} className="flex items-center gap-1.5"><Checkbox checked={metadata.efforts?.includes(effort)??false} disabled={disabled} onCheckedChange={checked=>change({efforts:reasoningEfforts.filter(value=>value===effort?checked===true:metadata.efforts?.includes(value))})}/>{effort}</label>)}</div><p className="settings-help">{t("ai.modelOfferedEffortsHint")}</p></div>
+  <div role="group" aria-label={t("ai.modelOfferedEfforts")} className="space-y-2"><h3 className="settings-group-title">{t("ai.modelOfferedEfforts")}</h3><div className="flex flex-wrap gap-x-4 gap-y-2">{levelChoices.map(effort=><label key={effort} className="flex items-center gap-1.5"><Checkbox checked={metadata.efforts?.includes(effort)??false} disabled={disabled} onCheckedChange={checked=>change({...(legacyVendor?{levels:levelChoices}:{}),efforts:levelChoices.filter(value=>value===effort?checked===true:metadata.efforts?.includes(value))})}/>{effort}</label>)}</div><p className="settings-help">{t("ai.modelOfferedEffortsHint")}</p></div>
   <AIModelPricing value={metadata.price} disabled={disabled} onChange={price=>change({price})}/>
   <Button disabled={disabled} onClick={()=>{const next={...metadata},modelNames={...provider.modelNames};for(const key of ["same","upstreamName","api","efforts","price","vision"] as const)delete next[key];delete modelNames[model];onChange({modelNames,modelMetadata:{...provider.modelMetadata,[model]:next}});}}>{t("ai.modelRestoreDefaults")}</Button>
   <div className="grid gap-4 sm:grid-cols-2">

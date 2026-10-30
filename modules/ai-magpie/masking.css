@@ -1,25 +1,26 @@
-/* Upstream masking widgets, composed with WinOne's flat settings surfaces.
-   Semantic labels, chart interactions, filters and record details are retained. */
+/* Upstream privacy page (redact plugin's Insights › Masking, Settings ›
+   Privacy's Try it), composed with WinOne's flat settings surfaces. Charts,
+   filters, record details and labels are retained; only surfaces change. */
 html.winone-masking,.winone-masking body { height:auto;min-height:0;overflow:visible; }
 /* Contain the upstream card's bottom margin in the published iframe height;
    overflow stays visible instead of clipping content to hide a scrollbar. */
 .winone-masking body { display:flow-root;padding:0; }
-.winone-masking #setPage-privacy { position:static;display:block;min-width:0;padding:0; }
-.winone-masking .mask-obs { padding:0;border:0;border-radius:0;background:none;box-shadow:none; }
-.winone-masking :is(.mo-head,.mo-hero,.mo-sec,.mr-head,.mr-filters) { gap:.75rem;padding:1rem 0;flex-wrap:wrap; }
-.winone-masking .mask-obs::before { content:none; }
-.winone-masking :is(.mo-shield,.mo-hub),.winone-masking .mask-obs.off .mo-shield { background:none;border:0;box-shadow:none;color:var(--fg-2); }
-.winone-masking :is(.mo-sub,.mo-meta,.mo-hint,.mo-chip,.mo-unit,.mo-empty,.mr-row,.mr-none,.mr-kind,.mr-time,.mr-body,.mask-tip) { font-size:.875rem;line-height:1.6; }
-.winone-masking :is(.mo-name,.mr-title) { font-size:1.0625rem;font-weight:600; }
-.winone-masking .mo-num { font-size:2rem;font-weight:500;background:none;-webkit-text-fill-color:var(--fg); }
-.winone-masking #setPage-privacy.recs > :not(.mask-recs) { display:none; }
-.winone-masking :is(.mo-model,.mr-group) { background:none;box-shadow:none;border-radius:0; }
-.winone-masking :is(.mr-row,.mo-chip,.mo-val) { padding:.5rem .75rem;gap:.5rem; }
-.winone-masking :is(.mo-flow,.mo-chart,.mr-route,.mr-body,.mr-vals) { min-width:0;max-width:100%; }
-.winone-masking :is(.mr-snip,.mr-val,.mask-tip .v) { white-space:pre-wrap;overflow-wrap:anywhere; }
-.winone-masking :is(.mo-legend,.mo-values,.mr-vals,.mr-kinds) { flex-wrap:wrap;gap:.5rem; }
-.winone-masking .mr-row { height:auto;min-height:2.75rem;flex-wrap:wrap; }
-.winone-masking :is(.mr-route,.mo-val) { overflow-wrap:anywhere; }
-/* Kinds retain labels and counts rather than using saturated theme colours. */
+.winone-masking #setPage-privacy,.winone-masking #view-masking { position:static;display:block;flex:none;min-width:0;min-height:0;padding:0;overflow:visible;animation:none; }
+.winone-masking #view-masking[hidden] { display:none; }
+.winone-masking .msk-card { padding:1rem 0;border:0;border-radius:0;background:none;box-shadow:none; }
+.winone-masking :is(.msk-list,.msk-one) { min-width:0;max-width:100%; }
+.winone-masking .msk-num { font-size:2rem;font-weight:500;line-height:1.1; }
+.winone-masking :is(.msk-sub,.msk-meta,.msk-hint,.msk-chip,.msk-flow-none,.msk-row,.msk-also,.mask-tip) { font-size:.875rem;line-height:1.6; }
+.winone-masking :is(.msk-row,.msk-chip) { padding:.5rem .75rem;gap:.5rem; }
+.winone-masking .msk-row { height:auto;min-height:2.75rem;flex-wrap:wrap; }
+/* Long values wrap inside the iframe: WinOne pages never scroll sideways. */
+.winone-masking .msk-route { flex:1 1 65%;flex-wrap:wrap;white-space:normal;overflow-wrap:anywhere; }
+.winone-masking :is(.msk-facets,.msk-cols) { flex-wrap:wrap;gap:.5rem; }
+.winone-masking :is(.msk-content,.mask-tip .v) { white-space:pre-wrap;overflow-wrap:anywhere; }
+/* Kinds retain labels and counts rather than saturated theme colours; a
+   held-back request keeps its warning colour. */
 .winone-masking { --c1:var(--fg);--c2:var(--fg-2);--c3:var(--settings-muted);--c4:var(--fg);--c5:var(--fg-2);--c6:var(--settings-muted);--c7:var(--fg); }
-@media(max-width:560px){.winone-masking .mo-hero{display:flex;flex-direction:column;align-items:stretch}.winone-masking .mr-route{flex:1 1 65%}.winone-masking .mo-flow{height:auto}.winone-masking .mr-kinds{flex-basis:100%;}}
+/* The upstream sticky back bar bleeds 16px into its padded app shell. This
+   iframe has no shell padding, so that bleed would create horizontal scroll. */
+.winone-masking body.window .msk-onebar::before { left:0;right:0; }
+@media(max-width:560px){.winone-masking .msk-route{flex-basis:100%}}

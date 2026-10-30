@@ -4,3 +4,12 @@ package usage
 // configured once by its short-lived worker, never by an HTTP client.
 var WinOnePath string
 var WinOneRecord func(Record) Record
+
+// WinOne presents the ledger's chart on its overview too. Use the same
+// upstream alias resolver as Summary, only for grouping and filtering; the
+// original records and their prices must remain untouched.
+var WinOneModelAlias func(string) string
+func WinOneModelGroup(model string) string {
+ if WinOneModelAlias != nil && model != "" { return WinOneModelAlias(model) }
+ return model
+}

@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -106,4 +108,108 @@ func TestMagpieCatalogFailureIsExplicitAndDoesNotRewriteSettings(t *testing.T) {
 	if err != nil || string(data) != "invalid" {
 		t.Fatal("catalog rewrote invalid settings")
 	}
+}
+
+func TestPackagedUsageAliasDraftAndSaveTransaction(t *testing.T) {
+	executable := os.Getenv("WINONE_AI_TEST_EXE")
+	if executable == "" {
+		t.Skip("set WINONE_AI_TEST_EXE")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	directory := t.TempDir()
+	engine := newAIService(ctx, directory, filepath.Join(directory, "WinOne.Host.exe"))
+	engine.translator.Executable = executable
+	store, err := engine.magpieStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	configuration := store.Configuration()
+	configuration.MagpieSettings = &ai.MagpieSettings{NoStats: true, NoUsageStats: true}
+	configuration, err = store.SaveConfiguration(configuration, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(engine.storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	validate := engine.handle(host.Request{ID: "draft", Method: "magpie.usage-aliases", Params: json.RawMessage(`{"aliases":{},"edit":{"from":" DEEPSEEK_V4.1_FLASH ","to":"deepseek-flash"}}`)})
+	if validate.Error != nil {
+		t.Fatal(validate.Error)
+	}
+	var draft struct {
+		Aliases map[string]string `json:"usageAliases"`
+	}
+	if err := json.Unmarshal(validate.Result, &draft); err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.ReadFile(engine.storePath)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("validation changed saved settings")
+	}
+	configuration.MagpieSettings.UsageAliases = draft.Aliases
+	save := func(value ai.Configuration) host.Response {
+		raw, _ := json.Marshal(map[string]any{"configuration": value})
+		return engine.handle(host.Request{ID: "save", Method: "configuration.save", Params: raw})
+	}
+	response := save(configuration)
+	if response.Error != nil {
+		t.Fatal(response.Error)
+	}
+	if err := json.Unmarshal(response.Result, &configuration); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := ai.Open(engine.storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reopened.Configuration().MagpieSettings.UsageAliases["DEEPSEEK_V4.1_FLASH"] != "deepseek-flash" {
+		t.Fatal("saved aliases did not survive reopening")
+	}
+	runtime, err := engine.magpieTranslator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := runtime.Usage(ctx, ai.UsageQuery{Period: "all", Models: []string{"deepseek-v4.1-flash"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var usage struct {
+		Aliases map[string]string `json:"modelAliases"`
+	}
+	if err := json.Unmarshal(raw, &usage); err != nil {
+		t.Fatal(err)
+	}
+	if usage.Aliases["deepseek-v4.1-flash"] != "deepseek-flash" {
+		t.Fatalf("saved settings did not reach worker: %s", raw)
+	}
+	before, err = os.ReadFile(engine.storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configuration.MagpieSettings.UsageAliases["deepseek-flash"] = "deepseek-v4.1-flash"
+	if rejected := save(configuration); rejected.Error == nil {
+		t.Fatal("cyclic alias was saved")
+	}
+	after, err = os.ReadFile(engine.storePath)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("rejected alias changed saved settings")
+	}
+}
+
+func TestPackagedModelDiscoveryUsesSavedGlobalProxy(t *testing.T){
+ executable:=os.Getenv("WINONE_AI_TEST_EXE");if executable==""{t.Skip("set WINONE_AI_TEST_EXE")}
+ called:=false
+ proxy:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){called=true;if r.URL.Host!="model-list.invalid"||r.URL.Path!="/v1/models"{t.Errorf("unexpected destination %s",r.URL)};w.Header().Set("Content-Type","application/json");w.Write([]byte(`{"data":[{"id":"proxy-model"}]}`))}));defer proxy.Close()
+ ctx,cancel:=context.WithCancel(context.Background());defer cancel()
+ directory:=t.TempDir();engine:=newAIService(ctx,directory,filepath.Join(directory,"WinOne.Host.exe"));engine.translator.Executable=executable
+ store,err:=engine.magpieStore();if err!=nil{t.Fatal(err)}
+ config:=store.Configuration();config.Providers=[]ai.Provider{{ID:"fixture",Name:"Fixture",AuthMode:"api-key",Protocol:"chat",BaseURL:"http://model-list.invalid/v1",Models:[]string{}}};config.Tasks=map[string]ai.Selection{}
+	config.MagpieSettings=&ai.MagpieSettings{Proxy:proxy.URL,NoStats:true,NoUsageStats:true}
+	key:="model-proxy-fixture-key"
+	if _,err:=store.SaveConfiguration(config,map[string]*string{"fixture":&key});err!=nil{t.Fatal(err)}
+ result:=engine.handle(host.Request{ID:"models",Method:"models.fetch",Params:json.RawMessage(`{"provider":"fixture"}`)})
+ if result.Error!=nil{t.Fatal(result.Error)}
+ if !called||!bytes.Contains(result.Result,[]byte("proxy-model")){t.Fatalf("proxy model discovery failed: %s",result.Result)}
 }

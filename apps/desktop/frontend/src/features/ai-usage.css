@@ -49,11 +49,18 @@
 .ai-usage .usage-totals dt,.ai-usage .usage-row-details dt { font-size:14px; color:var(--color-muted-foreground); }
 .ai-usage .usage-totals dd { margin-top:8px; font-size:21px; font-weight:500; overflow-wrap:anywhere; }
 .ai-usage .usage-detail,.ai-usage small,.ai-usage .usage-totals dd.usage-detail { display:block; color:var(--color-muted-foreground); font-size:14px; line-height:1.5; margin-top:5px; }
+.ai-usage .usage-chart-controls { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:end; gap:12px; }
+.ai-usage .usage-chart-style { display:flex; gap:4px; }
+.ai-usage .usage-chart-style button { width:36px; height:36px; padding:8px; }
+.ai-usage .usage-chart-style button[aria-pressed=true] { background:var(--color-accent); color:var(--color-foreground); }
+@media(max-width:600px){.ai-usage .usage-chart-controls{grid-template-columns:minmax(0,1fr) auto;}.ai-usage .usage-chart-controls>:last-child{grid-column:1/-1;}}
 .ai-usage .usage-chart-layout { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(220px,1fr); gap:20px; margin-top:18px; }
 .ai-usage .led-rank { max-height:none; overflow:visible; }
 .ai-usage .led-chart .plot { height:310px; }
 .ai-usage .led-chart .axis { font-size:12px; }
-.ai-usage .led-chart .tip { font-size:13px; border:1px solid var(--color-border); }
+.ai-usage .led-chart .tip { font-size:13px; border:1px solid var(--color-border); min-width:min(172px,100%); max-width:min(260px,100%); }
+.ai-usage .led-chart .tip.speed[hidden] { display:none; }
+@media(prefers-reduced-motion:reduce){.ai-usage .led-chart .col{transition:none;}}
 .ai-usage .led-rank .rk-a,.ai-usage .led-rank .rk-b { font-size:14px; }
 .ai-usage .usage-group-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr)); gap:24px; }
 .ai-usage .usage-breakdowns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:28px 32px; }

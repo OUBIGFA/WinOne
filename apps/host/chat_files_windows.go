@@ -95,16 +95,26 @@ func (c *chatControl) fileAction(method string, raw json.RawMessage) (any, error
 		if method == "file.resolve" {
 			return map[string]string{"path": path}, nil
 		}
-		// Only an explicit desktop action reaches ShellExecute; model-generated
-		// links are previewed internally and cannot launch a program on hover.
-		verb, _ := windows.UTF16PtrFromString("open")
-		if method == "file.reveal" {
-			exe, _ := windows.UTF16PtrFromString("explorer.exe")
-			args, _ := windows.UTF16PtrFromString("/select,\"" + strings.ReplaceAll(path, "\"", "") + "\"")
-			return nil, windows.ShellExecute(0, verb, exe, args, nil, windows.SW_SHOWNORMAL)
-		}
-		target, _ := windows.UTF16PtrFromString(path)
-		return nil, windows.ShellExecute(0, verb, target, nil, nil, windows.SW_SHOWNORMAL)
+		return nil, openVerifiedChatPath(path, method == "file.reveal")
 	}
 	return nil, errors.New("未知文件操作")
+}
+
+// Only explicit desktop actions reach the shell after the owning store resolves
+// their path. Group attachments share these same native actions with Chat.
+func openVerifiedChatPath(path string, reveal bool) error {
+	verb, _ := windows.UTF16PtrFromString("open")
+	if reveal {
+		exe, _ := windows.UTF16PtrFromString("explorer.exe")
+		args, err := windows.UTF16PtrFromString("/select,\"" + strings.ReplaceAll(path, "\"", "") + "\"")
+		if err != nil {
+			return err
+		}
+		return windows.ShellExecute(0, verb, exe, args, nil, windows.SW_SHOWNORMAL)
+	}
+	target, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		return err
+	}
+	return windows.ShellExecute(0, verb, target, nil, nil, windows.SW_SHOWNORMAL)
 }

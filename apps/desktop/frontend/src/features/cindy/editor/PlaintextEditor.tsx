@@ -43,6 +43,7 @@ import {
   RangeSetBuilder,
   StateEffect,
   StateField,
+  Transaction,
 } from '@codemirror/state';
 import {
   Decoration,
@@ -1140,14 +1141,21 @@ export const PlaintextEditor = forwardRef<PlaintextEditorHandle, PlaintextEditor
           view.focus();
         },
         setValue: (next: string) => {
-          // dispatch 一个把 [0, doc.length) 替换成 next 的事务。
-          // 这条事务会被 history() 当成一次普通编辑记账; 但调用者只在 readOnly /
-          // 非 edit 模式下推外部更新,本地 history 此时本来就没意义。
+          // External refresh is not a local edit. Replace only the changed
+          // span so selections in untouched text survive, and retain the
+          // current reading position instead of rebuilding the EditorView.
           const view = cmViewRef.current;
           if (!view) return;
           const cur = view.state.doc.toString();
           if (cur === next) return;
-          view.dispatch({ changes: { from: 0, to: cur.length, insert: next } });
+          let from = 0, oldEnd = cur.length, newEnd = next.length;
+          while (from < oldEnd && from < newEnd && cur[from] === next[from]) from++;
+          while (oldEnd > from && newEnd > from && cur[oldEnd - 1] === next[newEnd - 1]) { oldEnd--; newEnd--; }
+          view.dispatch({
+            changes: { from, to: oldEnd, insert: next.slice(from, newEnd) },
+            annotations: Transaction.addToHistory.of(false),
+            effects: view.scrollSnapshot(),
+          });
         },
         search,
         getViewportTopLine: () =>

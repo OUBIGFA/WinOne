@@ -100,20 +100,20 @@ impl Client {
     }
     pub fn call(&self, method: &str, params: Value) -> Result<Value, RpcError> {
         let id = format!("rust-{}-{}", std::process::id(), self.sequence.fetch_add(1, Ordering::Relaxed));
-        let timeout = if method=="chat.export" { 150 } else if method.starts_with("chat.") || method=="capture.ai.usage.export.save" { 30 } else if method.starts_with("capture.") || method.starts_with("always-on-top.") { 15 } else { 5 };
+        let timeout = if matches!(method,"chat.export"|"capture.ai.archive.export.save"|"capture.ai.archive.read") { 150 } else if method.starts_with("chat.") || method=="capture.ai.usage.export.save" { 30 } else if method.starts_with("capture.") || method.starts_with("always-on-top.") { 15 } else { 5 };
         self.request(&id, method, params, Instant::now() + Duration::from_secs(timeout))
     }
     pub fn call_completing(&self, method: &str, params: Value) -> Result<Value, RpcError> {
         let id = format!("rust-{}-{}", std::process::id(), self.sequence.fetch_add(1, Ordering::Relaxed));
         // Batch model probes retain Magpie's 90-second request budget. Other
         // desktop actions keep their existing short response window.
-        let budget=if method=="capture.ai.models.test" {100}else{30};
+        let budget=if matches!(method,"capture.ai.archive.export.save"|"capture.ai.archive.read") {150}else if method=="capture.ai.models.test" {100}else{30};
         let deadline = Instant::now() + Duration::from_secs(budget);
         // Export has a bounded 20-second producer before its atomic write.
         // Keep ordinary requests responsive without timing out a valid export.
         // Account reads serialize against token refresh/login in the Host and
         // have a 25-second total budget, including their wait for the profile.
-        let first_wait=if method=="capture.ai.models.test" {100}else if method=="capture.ai.usage.export.save" || matches!(method,"capture.ai.magpie.catalog"|"capture.ai.accounts.catalog"|"capture.ai.accounts.list"|"capture.ai.accounts.models"|"capture.ai.accounts.quota"|"capture.ai.accounts.checkin"){30}else{15};
+        let first_wait=if matches!(method,"capture.ai.archive.export.save"|"capture.ai.archive.read") {150}else if method=="capture.ai.models.test" {100}else if method=="capture.ai.usage.export.save" || matches!(method,"capture.ai.magpie.catalog"|"capture.ai.accounts.catalog"|"capture.ai.accounts.list"|"capture.ai.accounts.models"|"capture.ai.accounts.quota"|"capture.ai.accounts.checkin"){30}else{15};
         let first = self.request(&id, method, params, deadline.min(Instant::now() + Duration::from_secs(first_wait)))?;
         let Some(ticket) = first.get("configurationJob").and_then(Value::as_str) else { return Ok(first); };
         loop {

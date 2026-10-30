@@ -31,7 +31,7 @@ export function PeerPanel({kind,active,onActivity,incomingCode,onCodeConsumed}:{
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;sequence.current++;};},[]);
  const refresh=useCallback(async()=>{const version=++sequence.current,items=await interconnectCall<PeerRecord[]>('transfer_list');if(mounted.current&&version===sequence.current)setRecords(items);},[]);
  useEffect(()=>{if(!active)return;let alive=true;const update=()=>{if(alive&&document.visibilityState==='visible')void refresh().catch(e=>{if(alive)setError(String(e));});};update();const timer=setInterval(update,1000);return()=>{alive=false;clearInterval(timer);};},[active,refresh]);
- usePageActivity(onActivity,JSON.stringify(form)!==saved,busy,'interconnect-'+kind);
+ usePageActivity(onActivity,JSON.stringify(form)!==saved,busy,'interconnect-'+kind,()=>setForm(JSON.parse(saved)));
  async function action(work:()=>Promise<unknown>){setBusy(true);setError('');try{await work();await refresh();}catch(e){setError(String(e));}finally{setBusy(false);}}
  const add=(paths:string[])=>setForm(f=>({...f,paths:[...new Set([...f.paths,...paths])]}));
  const field=(key:'code'|'target'|'listen'|'derpMapURL',label:string)=><div className="space-y-2"><Label>{tr(label)}</Label><Input aria-label={tr(label)} value={form[key]} disabled={busy} onChange={e=>setForm({...form,[key]:e.target.value})}/></div>;
@@ -74,7 +74,7 @@ export function PeerTask({item,kind,busy,action,copy,children}:{item:PeerRecord;
      <div className="flex flex-wrap justify-between gap-2"><p className="font-medium break-all">{(s.share?.items.map(file=>file.title)??item.spec.paths?.map(p=>p.split(/[\\/]/).pop()))?.join(' · ')||item.spec.target||tr(server?'publishShare':'receiveShare')}</p><span className="settings-help">{tr(s.status==='running'?(s.ready?'serviceReady':'servicePreparing'):s.status==='failed'?'failedTask':'serviceStopped')}</span></div>
      {/* Keep route selection local to this task, so polling never resets it.
          Mounted panels preserve confirmation drafts; inactive routes stay hidden. */}
-     {published&&s.ready&&<Tabs defaultValue={children?'internet':'lan'} className="interconnect-receive-tabs">
+     {published&&s.ready&&<Tabs navigation={false} defaultValue={children?'internet':'lan'} className="interconnect-receive-tabs">
       <TabsList aria-label={tr('receiveMethod')} className="interconnect-receive-tablist">
        {children&&<TabsTrigger value="internet">{tr('scanToReceive')}</TabsTrigger>}
        <TabsTrigger value="lan">{tr('lanDirect')}</TabsTrigger>

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/yetone/magpie",
+  "revision": "42ec2700bd2a4cf8d4ceb76a95767ac221e283e5",
+  "license": "MIT",
+  "notice": "licenses/upstream-magpie-42ec2700bd2a4cf8d4ceb76a95767ac221e283e5-0-LICENSE.txt",
+  "sourceFiles": {
+    "LICENSE": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572",
+    "internal/gui/assets/app.js": "fb16f1a58900129a010063072d7dc9f6d533cae640965f086bc8ad3161f4dc8f",
+    "internal/gui/assets/plugins/usage/page.js": "0b6a9c54457a178ce32ffe27aa98579c8f73942e1d9907982b5abc32222de5ae",
+    "internal/gui/assets/app.css": "1803c95e2dad2f25f547ff68bb664ed414d765ab72a3eccc264b91196b1d9db7",
+    "internal/gui/assets/i18n.js": "582c75012bb7a2b20d8ae97f1ca5be337af0c4489ae58cc1644aa469dd717417",
+    "internal/gui/assets/plugins/usage/i18n.js": "53b87cc9e84802e80601483564cb3a1fc06c0a60e71bd0b4213cfd84cb7898e2"
+  },
+  "files": {
+    "apps/desktop/frontend/src/features/magpie-ledger-charts.ts": "74ea7938b8d71f8c9f61c634980ccb662a02dd65cfb11a2ad21d7f5751185771",
+    "apps/desktop/frontend/src/features/magpie-ledger-messages.ts": "b70fbcb1342ef82a115de0bf7d8f23b5d31fe91e5492201bcac4016a61c0a1dd",
+    "apps/desktop/frontend/src/features/magpie-ledger-lines.css": "5c94d5c350a56bef91ea633d02e0896de7ad34174680045ed581a5f57f8700c2"
+  },
+  "adaptations": [
+    "DOM/locale helpers use WinOne; chart algorithms remain upstream",
+    "Namespace CSS tokens, retain expandable overview rankings and compact summaries",
+    "React supplies the immutable page/metric/split rather than Magpie app globals"
+  ]
+}

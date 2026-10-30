@@ -37,6 +37,9 @@ func (m *Manager) Rename(ctx context.Context, request RenameRequest) (RenameResu
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	result := RenameResult{Records: []Record{}}
+	if m.migrating {
+		return result, errMigrationBusy
+	}
 	if err := ctx.Err(); err != nil {
 		return result, err
 	}

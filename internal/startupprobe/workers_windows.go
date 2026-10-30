@@ -50,9 +50,11 @@ func CheckWorkers(ctx context.Context, installation, scratch string) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if manifest.ID == "quick-assistant" {
+		if manifest.ID == "quick-assistant" || manifest.ID == "timed-power" {
+			// Host-resident modules have no standalone worker protocol. Probe
+			// readiness only; power actions must never run during an update.
 			if err := Check(ctx, filepath.Join(installation, filepath.FromSlash(manifest.Worker))); err != nil {
-				return fmt.Errorf("quick assistant startup probe: %w", err)
+				return fmt.Errorf("%s startup probe: %w", manifest.ID, err)
 			}
 			continue
 		}

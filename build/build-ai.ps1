@@ -23,6 +23,14 @@ $encoding=New-Object Text.UTF8Encoding($false)
 $entry=Join-Path $source 'cmd/winone-ai'
 & node (Join-Path $root 'build/verify-ai-source.mjs') $source
 if($LASTEXITCODE -ne 0){throw 'AI source/license verification failed'}
+$previousGofmt=$env:WINONE_GOFMT
+try {
+ $env:WINONE_GOFMT=Join-Path (Split-Path -Parent (Get-Command $GoExe -ErrorAction Stop).Source) 'gofmt.exe'
+ & node (Join-Path $root 'build/sync-magpie-usage.mjs') --source $source
+ if($LASTEXITCODE -ne 0){throw 'Magpie usage source verification failed'}
+ & node (Join-Path $root 'build/sync-magpie-proxy.mjs') --source $source
+ if($LASTEXITCODE -ne 0){throw 'Magpie proxy source verification failed'}
+} finally {$env:WINONE_GOFMT=$previousGofmt}
 New-Item -ItemType Directory -Force -Path $entry,$output | Out-Null
 & node (Join-Path $root 'build/prepare-ai-plugins.mjs') $PluginSourceDirectory $BunExe $output
 if($LASTEXITCODE -ne 0){throw 'Bundled account plugin preparation failed'}

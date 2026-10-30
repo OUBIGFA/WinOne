@@ -64,6 +64,31 @@ func TestChatSharePayloadCannotOmitItsNoticesOrResources(t *testing.T) {
 	}
 }
 
+func TestOneBotPayloadRequiresAllReviewedResources(t *testing.T) {
+	for _, marker := range chatOneBotFiles {
+		if !allowed(marker) {
+			t.Fatalf("OneBot resource rejected: %s", marker)
+		}
+		required := requiredForPayload(map[string]bool{strings.ToLower(marker): true})
+		for _, file := range chatOneBotFiles {
+			if !slices.Contains(required, file) {
+				t.Errorf("%s can omit %s", marker, file)
+			}
+		}
+	}
+	legacy := requiredForPayload(map[string]bool{"shared/chat/worker.js": true})
+	for _, file := range chatOneBotFiles {
+		if slices.Contains(legacy, file) {
+			t.Errorf("legacy payload requires %s", file)
+		}
+	}
+	for _, file := range []string{"shared/chat/profiles.db", "shared/chat/onebot/credentials.json", "shared/chat/cindy/config.json"} {
+		if allowed(file) {
+			t.Errorf("OneBot data accepted as runtime: %s", file)
+		}
+	}
+}
+
 func TestLegacyChatPayloadDoesNotRequireNewShareNotices(t *testing.T) {
 	required := requiredForPayload(map[string]bool{"shared/chat/worker.js": true, "shared/chat/scheduler.js": true})
 	for _, name := range []string{"shared/chat/Cindy-LICENSE.txt", "shared/chat/licenses/chat-share-notices.json", "shared/ai/runtime/photon_rs_bg.wasm"} {

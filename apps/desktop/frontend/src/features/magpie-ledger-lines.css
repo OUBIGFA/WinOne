@@ -1,0 +1,13 @@
+/* Generated Magpie line chart and speed tooltip rules; MIT. */
+.ai-usage .led-chart g.ln { fill: none; stroke-linecap: round; stroke-linejoin: round; transition: opacity .12s; }
+.ai-usage .led-chart g.ln .line { stroke-width: 1.8; }
+.ai-usage .led-chart g.ln .line.all { stroke-width: 1.2; stroke-dasharray: 3 3; }
+.ai-usage .led-chart g.ln .band { stroke: none; fill-opacity: .14; }
+.ai-usage .led-chart .tip.speed { display: grid; grid-template-columns: 7px minmax(0, 1fr) auto auto; column-gap: 6px; align-items: center; max-width: min(400px, 100%); }
+.ai-usage .led-chart .tip.speed b { grid-column: 1 / -1; }
+.ai-usage .led-chart .tip.speed > div { display: contents; }
+.ai-usage .led-chart .tip.speed div span { white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
+.ai-usage .led-chart .tip.speed em { margin-left: 0; padding-left: 6px; text-align: right; white-space: nowrap; }
+.ai-usage .led-chart .tip.speed .ttft { color: var(--usage-muted); }
+.ai-usage .led-chart .tip.speed .sum > * { align-self: stretch; margin-top: 3px; padding-top: 3px; border-top: 1px solid var(--usage-line-2); }
+.ai-usage .led-chart .tip.speed .sum > span { grid-column: 1 / 3; }

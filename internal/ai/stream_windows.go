@@ -41,6 +41,7 @@ func (t Translator) invokeStream(ctx context.Context, input any, progress func(D
 	done := false
 	for scanner.Scan() {
 		var event struct {
+			Limited           bool   `json:"limited"`
 			Type              string `json:"type"`
 			Delta             string `json:"delta"`
 			Status            int    `json:"status"`
@@ -64,7 +65,7 @@ func (t Translator) invokeStream(ctx context.Context, input any, progress func(D
 			done = true
 		case "error":
 			if event.Status >= 400 && event.Status <= 599 && event.RetryAfterSeconds >= 0 && event.RetryAfterSeconds <= 86400 {
-				return finish(&AttemptFailure{Status: event.Status, RetryAfter: time.Duration(event.RetryAfterSeconds) * time.Second})
+				return finish(&AttemptFailure{Status: event.Status, RetryAfter: time.Duration(event.RetryAfterSeconds) * time.Second, Limited: event.Limited})
 			}
 			return finish(errors.New("AI 输出中断，请检查服务后重试"))
 		default:

@@ -38,10 +38,18 @@ type Conversation struct {
 	Permission       string       `json:"permission"`
 	ThinkingLevel    string       `json:"thinkingLevel,omitempty"`
 	FastMode         bool         `json:"fastMode,omitempty"`
-	Archived         bool         `json:"archived"`
-	Pinned           bool         `json:"pinned"`
-	CreatedAt        string       `json:"createdAt"`
-	UpdatedAt        string       `json:"updatedAt"`
+	// Companion-only binding: unchanged profile chains retain an accepted
+	// runtime fallback or manual choice; ordinary Chat leaves this empty.
+	OneBotModelKey string `json:"oneBotModelKey,omitempty"`
+	// A prepared independent task is admitted by the private OneBot worker.
+	// These immutable receipt fields prevent retries from claiming another chat.
+	OneBotTaskID   string `json:"oneBotTaskId,omitempty"`
+	OneBotOwnerID  string `json:"oneBotOwnerId,omitempty"`
+	OneBotParentID string `json:"oneBotParentId,omitempty"`
+	Archived       bool   `json:"archived"`
+	Pinned         bool   `json:"pinned"`
+	CreatedAt      string `json:"createdAt"`
+	UpdatedAt      string `json:"updatedAt"`
 }
 type Catalog struct {
 	Version       int            `json:"version"`
@@ -265,6 +273,20 @@ func (s *Store) RenameProject(id, name string) (Project, error) {
 	return project, err
 }
 func (s *Store) NewConversation(projectID, directory, title string, model ai.Selection, saveDirectory ...string) (Conversation, error) {
+	return s.newConversation(rand.Text(), projectID, directory, title, model, saveDirectory...)
+}
+
+// NewRegisteredConversation keeps the identity preallocated by a native
+// coordinator (for example, the owner of a group plan's worktree). Existing
+// conversations are never replaced; retry must resolve their original route.
+func (s *Store) NewRegisteredConversation(id, directory, title string, model ai.Selection, saveDirectory string) (Conversation, error) {
+	if !identifier.MatchString(id) {
+		return Conversation{}, errors.New("预登记会话标识无效")
+	}
+	return s.newConversation(id, "", directory, title, model, saveDirectory)
+}
+
+func (s *Store) newConversation(id, projectID, directory, title string, model ai.Selection, saveDirectory ...string) (Conversation, error) {
 	if len(saveDirectory) > 1 {
 		return Conversation{}, errors.New("只能选择一个会话保存位置")
 	}
@@ -276,13 +298,15 @@ func (s *Store) NewConversation(projectID, directory, title string, model ai.Sel
 			return Conversation{}, err
 		}
 	}
-	id := rand.Text()
 	if strings.TrimSpace(title) == "" {
 		title = "Chat"
 	}
 	c := Conversation{ID: id, ProjectID: projectID, Title: strings.TrimSpace(title), Permission: "ask", Model: model, CreatedAt: time.Now().UTC().Format(time.RFC3339Nano)}
 	c.UpdatedAt = c.CreatedAt
 	err := s.change(func(value *Catalog) error {
+		if slices.ContainsFunc(value.Conversations, func(existing Conversation) bool { return existing.ID == id }) {
+			return errors.New("会话标识已被使用，未覆盖已有内容")
+		}
 		if projectID != "" {
 			index := slices.IndexFunc(value.Projects, func(p Project) bool { return p.ID == projectID })
 			if index < 0 {

@@ -52,6 +52,9 @@ func (s *aiService) handleGateway(r host.Request) host.Response {
 			return fail(err)
 		}
 		result = value
+		if !value.Enabled {
+			s.releaseRoutingViewer("gateway-media")
+		}
 	default:
 		return fail(errors.New("不支持的本地网关操作"))
 	}
@@ -179,6 +182,10 @@ func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guar
 		return
 	}
 	path := r.URL.Path
+	if path == "/mcp/magpie/image" || path == "/mcp/magpie/vision" || strings.HasPrefix(path, "/mcp/magpie/image/files/") || strings.HasPrefix(path, "/v1/videos/") {
+		s.serveMediaMCP(w, r, store, allowModel)
+		return
+	}
 	if !strings.HasPrefix(path, "/v1/") && path != "/mcp/magpie/web-search" && path != "/api/chat" && path != "/api/generate" {
 		path = "/v1" + path
 	}

@@ -4,8 +4,8 @@ import "testing"
 
 func TestBuiltinCatalogKeepsWinTrayWithoutShortcuts(t *testing.T) {
 	modules := Builtins()
-	if len(modules) != 6 {
-		t.Fatal("default package must describe six base modules")
+	if len(modules) != 7 {
+		t.Fatal("default package must describe seven base modules")
 	}
 	for _, m := range modules {
 		if (m.ID == "wintray" || m.ID == "stroke") && len(m.ShortcutActions) != 0 {

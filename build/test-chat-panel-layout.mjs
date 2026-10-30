@@ -13,14 +13,17 @@ try{
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});
   await page.goto(`${base}/tests/chat-experience-preview.html?theme=${theme}&language=en-US`);await page.locator('.chat-composer').waitFor();await page.getByRole('button',{name:'Show chat details',exact:true}).click();await page.locator('.chat-side-panel').waitFor();
   const geometry=await page.evaluate(()=>{
-   const panel=document.querySelector('.chat-side-panel'),allocation=document.getElementById('details'),main=document.querySelector('.chat-main'),footer=document.querySelector('.chat-input-area'),tabs=panel.querySelector('.chat-pane-tabstrip');const box=node=>node.getBoundingClientRect().toJSON();
+   const panel=document.querySelector('.chat-side-panel'),allocation=document.getElementById('details'),main=document.querySelector('.chat-main'),footer=document.querySelector('.chat-input-area'),tabs=panel.querySelector('.overflow-x-auto.scrollbar-hide');const box=node=>node.getBoundingClientRect().toJSON();
    return {panel:box(panel),allocation:box(allocation),main:box(main),footer:box(footer),panelPadding:getComputedStyle(panel).padding,mainOverflow:getComputedStyle(main).overflowX,tabScrollbar:getComputedStyle(tabs).scrollbarWidth};
   });
   if(Math.abs(geometry.panel.width-geometry.allocation.width)>1||Math.abs(geometry.panel.right-geometry.allocation.right)>1||geometry.panelPadding!=='0px')throw Error('Side panel does not fill its allocation: '+JSON.stringify(geometry));
   if(!['clip','hidden'].includes(geometry.mainOverflow)||geometry.footer.left<geometry.main.left||geometry.footer.right>geometry.main.right+1)throw Error('Composer gradient is not isolated to the conversation');
   if(geometry.tabScrollbar!=='none')throw Error('Panel tabs expose a horizontal scrollbar');
   await page.getByRole('button',{name:'Tab actions',exact:true}).click();await page.getByRole('menuitem',{name:'Move to bottom',exact:true}).click();
-  const dock=await page.locator('.chat-side-panel').boundingBox();const allocation=await page.locator('#details').boundingBox();if(Math.abs(dock.width-allocation.width)>1||Math.abs(dock.height-allocation.height)>1)throw Error('Bottom dock does not fill its panel');
+  // Moving the dock re-lays out the panel group; measure once it is stable.
+  const fills=async()=>{const dock=await page.locator('.chat-side-panel').boundingBox(),allocation=await page.locator('#details').boundingBox();return {dock,allocation,ok:Math.abs(dock.width-allocation.width)<=1&&Math.abs(dock.height-allocation.height)<=1};};
+  let docked=await fills();for(let attempt=0;attempt<20&&!docked.ok;attempt++){await page.waitForTimeout(100);docked=await fills();}
+  if(!docked.ok)throw Error('Bottom dock does not fill its panel: '+JSON.stringify(docked));
   await page.screenshot({path:join(output,`panels-${width}-${theme}.png`)});
   await page.goto(`${base}/tests/chat-experience-preview.html?welcome&theme=${theme}&language=en-US`);await page.locator('.chat-welcome-logo').waitFor();
   const welcome=await page.evaluate(()=>{const logo=document.querySelector('.chat-welcome-logo').getBoundingClientRect(),composer=document.querySelector('.chat-welcome-composer').getBoundingClientRect();return {gap:composer.top-logo.bottom,overflow:document.documentElement.scrollWidth-innerWidth};});

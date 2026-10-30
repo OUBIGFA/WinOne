@@ -33,8 +33,8 @@ try{
   await page.goto(base+'/tests/settings-design-preview.html?page=interconnect&language='+language+'&theme='+theme);
   const start=page.getByRole('button',{name:en?'Send':'发送',exact:true});
   await start.waitFor();await page.evaluate(()=>document.fonts.ready);
-  assert.deepEqual(await page.getByRole('tablist',{name:en?'Interconnect':'互联助手',exact:true}).getByRole('tab').allTextContents(),en?['File transfer','Stored sharing','Port forwarding','General']:['文件互传','托管分享','端口穿透','常规']);
-  const footer=page.locator('[data-slot=settings-footer]');
+  assert.deepEqual(await page.getByRole('tablist',{name:en?'Interconnect':'互联助手',exact:true}).getByRole('tab').allTextContents(),en?['File transfer','Cloud sharing','Port forwarding','General']:['文件互传','云端分享','端口穿透','常规']);
+  const footer=page.locator('[data-slot=settings-actions]');
   const saveSettings=footer.getByRole('button',{name:en?'Save settings':'保存设置',exact:true});
   await saveSettings.waitFor({timeout:5000});
   assert.equal(await saveSettings.isEnabled(),false,'Unchanged settings can be saved');
@@ -47,12 +47,31 @@ try{
   assert.equal(await saveSettings.isEnabled(),false,'Saved settings remain dirty');
   assert.equal(await page.getByRole('spinbutton',{name:en?'Port':'端口',exact:true}).inputValue(),'5422');
   await page.getByRole('spinbutton',{name:en?'Port':'端口',exact:true}).fill('5423');
-  await footer.getByRole('button',{name:en?'Discard changes':'撤销修改',exact:true}).click();
+  await page.getByRole('button',{name:en?'Discard changes':'撤销修改',exact:true}).click();
   assert.equal(await page.getByRole('spinbutton',{name:en?'Port':'端口',exact:true}).inputValue(),'5422');
-  const footerBounds=await footer.boundingBox();
-  assert.ok(footerBounds.y+footerBounds.height<=900&&footerBounds.y>800,'Save bar is not fixed at the bottom');
+  const footerBounds=await footer.boundingBox(),pageBounds=await page.locator('.settings-frame').boundingBox();
+  assert.ok(footerBounds.y+footerBounds.height<=884&&pageBounds.x+pageBounds.width-footerBounds.x-footerBounds.width>=12&&pageBounds.x+pageBounds.width-footerBounds.x-footerBounds.width<=40&&footerBounds.width<=40,'Save rail lacks a comfortable right-side inset');
+  assert.equal(await page.locator('[data-slot=settings-footer]').count(),0,'Old full-width save bar remains');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'Stopped page overflows');
   await page.getByRole('tab',{name:en?'File transfer':'文件互传',exact:true}).click();
+  const checkComposer=async()=>{
+   const drop=page.locator('.interconnect-composer:visible .interconnect-drop');
+   const geometry=await drop.evaluate(node=>{
+    const rect=node.getBoundingClientRect(),prompt=node.querySelector('.interconnect-drop-prompt > p').getBoundingClientRect(),actions=node.querySelector('.interconnect-file-actions').getBoundingClientRect();
+    return {height:rect.height,center:rect.x+rect.width/2,prompt:prompt.x+prompt.width/2,actions:actions.x+actions.width/2};
+   });
+   assert.ok(geometry.height>=300,'Primary file entry must dominate the form');
+   assert.ok(Math.abs(geometry.center-geometry.prompt)<2&&Math.abs(geometry.center-geometry.actions)<2,'Drop prompt and file buttons must be centered as groups');
+   const row=page.locator('.interconnect-composer:visible .interconnect-mode-row');
+   const controls=await row.locator('.settings-option-field').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().y));
+   if(width>=900&&controls.length===2)assert.ok(Math.abs(controls[0]-controls[1])<2,'Action and payload choices must share one row');
+  };
+  // The action/content row must not jump when switching File transfer and
+  // Cloud sharing. Measure it relative to its own visible panel.
+  const modeRowOffset=()=>page.locator('.interconnect-composer:visible .interconnect-mode-row').evaluate(row=>row.getBoundingClientRect().top-row.closest('[role=tabpanel]').getBoundingClientRect().top);
+  await checkComposer();
+  const filesModeRow=await modeRowOffset();
+  await page.screenshot({path:join(output,[language,width,theme,'composer'].join('-')+'.png'),fullPage:true});
   await page.getByRole('button',{name:en?'Choose files':'选择文件',exact:true}).click();
   await start.click();
   const receiveQR=page.getByRole('img',{name:en?'Cross-network browser receive QR code':'跨网网页接收二维码',exact:true});
@@ -87,7 +106,7 @@ try{
   await receiveQR.waitFor();
   assert.equal(await scanTab.getAttribute('aria-selected'),'true','Keyboard cannot switch back to scan receive');
   assert.equal(await lanQR.count(),0);
-  await page.getByText(en?'Text':'文本',{exact:true}).click();
+  await page.getByRole('radio',{name:en?'Text':'文本',exact:true}).click();
   await page.getByRole('textbox',{name:en?'Text':'文本',exact:true}).fill('互联助手 / Interconnect — preserved draft');
   await page.getByRole('button',{name:en?'Add and send':'添加并发送',exact:true}).click();
   const sends=await page.evaluate(()=>window.settingsDesignFixture.calls.filter(call=>['interconnect.transfer_start','interconnect.share_add_text'].includes(call.method)));
@@ -109,17 +128,35 @@ try{
   results.push({language,width,theme,overflow});
   await page.getByRole('button',{name:en?'Stop service':'停止服务',exact:true}).first().click();
   {
-   const tabName=en?'Stored sharing':'托管分享';
+   const tabName=en?'Cloud sharing':'云端分享';
    await page.getByRole('tab',{name:tabName,exact:true}).click();
    const panel=page.getByRole('tabpanel').filter({visible:true}).last();
-   await panel.getByRole('button',{name:en?'Choose files':'选择文件',exact:true}).click();
-   await panel.getByRole('button',{name:en?'Upload encrypted copy':'上传加密副本',exact:true}).click();
-   await panel.getByText(en?'Completed':'已完成',{exact:true}).waitFor();
-   await panel.getByText(en?'Advanced options':'高级选项',{exact:true}).click();
-   await panel.getByText(en?'Network settings':'网络设置',{exact:true}).click();
-   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,tabName+' overflows');
-   await page.screenshot({path:join(output,[language,width,theme,'store'].join('-')+'.png'),fullPage:true});
-   await panel.getByRole('button',{name:en?'Revoke share':'撤销分享',exact:true}).click();await panel.getByText(en?'Revoked':'已撤销',{exact:true}).waitFor();
+   const services=page.getByRole('tablist',{name:en?'Cloud sharing service':'云端分享服务'});
+   assert.equal(await services.getByRole('tab',{name:'GoFile',exact:true}).getAttribute('aria-selected'),'true','GoFile must be the default');
+   const cloudModeRow=await modeRowOffset();
+   assert.ok(Math.abs(cloudModeRow-filesModeRow)<1,`File transfer action row is not aligned with Cloud sharing: ${filesModeRow} vs ${cloudModeRow}`);
+   results.push({language,width,theme,filesModeRow,cloudModeRow});
+   for(const service of ['gofile','croc']){
+    await services.getByRole('tab',{name:service==='gofile'?'GoFile':en?'croc encrypted':'croc 加密分享',exact:true}).click();
+    await services.scrollIntoViewIfNeeded();
+    const tabs=await services.boundingBox(),parent=await services.locator('..').boundingBox();
+    assert.ok(Math.abs(tabs.x+tabs.width/2-parent.x-parent.width/2)<2,'Cloud service tabs must be centered together');
+    await checkComposer();
+    await page.screenshot({path:join(output,[language,width,theme,service,'composer'].join('-')+'.png'),fullPage:true});
+    await panel.getByRole('button',{name:en?'Choose files':'选择文件',exact:true}).click();
+    await panel.getByRole('button',{name:en?'Upload and share':'上传并分享',exact:true}).click();
+    const cloudQR=panel.getByRole('img',{name:en?'Cloud share receive QR code':'云端分享接收二维码'});
+    await cloudQR.waitFor();
+    const qr=await cloudQR.boundingBox(),route=await cloudQR.locator('..').boundingBox();
+    assert.ok(qr.width>=200&&Math.abs(qr.x+qr.width/2-route.x-route.width/2)<2,'Cloud QR must be prominent and centered');
+    assert.ok(qr.y>=0&&qr.y+qr.height<850,'Upload completion did not reveal the QR automatically');
+    await panel.getByRole('button',{name:en?'Copy share link':'复制分享链接'}).waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,tabName+' overflows');
+    await page.screenshot({path:join(output,[language,width,theme,service,'result'].join('-')+'.png'),fullPage:true});
+    await panel.getByRole('button',{name:en?'Revoke share':'撤销分享',exact:true}).click();
+    await panel.getByText(en?'Revoked':'已撤销',{exact:true}).waitFor();
+    assert.equal(await cloudQR.count(),0,'Revoked share still advertises a QR');
+   }
   }
   for(const kind of ['share','tunnel']){
   {
@@ -159,10 +196,12 @@ try{
   await checkWelcome();
   await flash.getByRole('button',{name:en?'Join room':'加入房间',exact:true}).click();
   await checkWelcome();
+  await flash.getByPlaceholder(en?'Room name':'房间名称',{exact:true}).waitFor();
+  await flash.getByPlaceholder(en?'Nickname':'个人昵称',{exact:true}).waitFor();
   await flash.getByPlaceholder(en?'Room ID':'房间标识',{exact:true}).waitFor();
   await flash.getByPlaceholder(en?'Room password':'房间密码',{exact:true}).waitFor();
   assert.equal(await flash.locator('.flash-chat-lobby').evaluate(node=>getComputedStyle(node).display),'grid','Flash Chat stylesheet was not loaded');
-  assert.equal(await page.locator('[data-slot=settings-footer]').count(),0,'Flash Chat must not have the settings footer');
+  assert.equal(await page.locator('[data-slot=settings-actions]').count(),0,'Flash Chat must not have a settings action rail');
   assert.equal(await page.locator('[data-slot=page-scroll]').evaluate(node=>node.scrollHeight>node.clientHeight),false,'Flash Chat outer page scrolls');
   await page.screenshot({path:join(output,[language,width,theme,'flash-chat'].join('-')+'.png'),fullPage:true});
   await page.close();

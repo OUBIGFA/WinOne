@@ -10,7 +10,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css';
-import {Check,Copy} from 'lucide-react';
+import {Bot,Check,Copy} from 'lucide-react';
 import {cn} from '../adapter';
 import {Tip} from '../panel-ui/tooltip';
 import {useTranslation} from './translation';
@@ -36,6 +36,8 @@ import {CopyAsImageBlock,mathBlockToLatex,tableToTsv} from './CopyAsImageBlock';
 import {FitMathBlock} from './FitMathBlock';
 import {MarkdownDiffBlock} from './MarkdownDiffBlock';
 import {MarkdownMermaidBlock} from './MarkdownMermaidBlock';
+import {InlineReferenceChip} from '../rich/InlineReferenceChip';
+import {parseBotReferenceHref} from '../../../../../../../modules/chat-pi/cindy/tasks/core/agentInputProjection';
 function nodeToText(node: ReactNode): string {
   if (node == null || typeof node === 'boolean') return '';
   if (typeof node === 'string' || typeof node === 'number') return String(node);
@@ -549,7 +551,8 @@ export interface MarkdownRendererProps {
  allowPrivilegedLinks?:boolean;
 }
 
-const trustedUrlTransform:UrlTransform=(url,key)=>/^(?:file:\/\/|[A-Za-z]:[\\/])/.test(url)||(key==='src'&&/^data:image\//i.test(url))?url:defaultUrlTransform(url);
+// A teammate reference (Cindy's bot deep link) stays intact for its chip below.
+const trustedUrlTransform:UrlTransform=(url,key)=>/^(?:file:\/\/|[A-Za-z]:[\\/])/.test(url)||(key==='src'&&/^data:image\//i.test(url))||key==='href'&&parseBotReferenceHref(url)?url:defaultUrlTransform(url);
 // Relative images still use the saved conversation's scoped preview resolver.
 // Disabling privileged links must not remove document images from rich diffs.
 const previewSafeUrlTransform:UrlTransform=(url,key)=>key==='src'&&/^data:image\//i.test(url)?url:defaultUrlTransform(url);
@@ -571,6 +574,12 @@ export const MarkdownRenderer=memo(function MarkdownRenderer({content,isStreamin
    const raw=props as Record<string,unknown>,safe=omitMarkdownInternalProps(raw);
    const original=raw[RAW_LOCAL_LINK_HREF_PROP]??node?.properties?.[RAW_LOCAL_LINK_HREF_PROP];
    delete safe[BARE_PATH_ATTR];delete safe[RAW_LOCAL_LINK_HREF_PROP];
+   // Cindy SentAgentReferenceChip: a referenced teammate is a read-only chip with its name.
+   const bot=allowPrivilegedLinks&&typeof href==='string'?parseBotReferenceHref(href):null;
+   if(bot){
+    const label=nodeToText(children).replace(/\s+/g,' ').trim()||bot.botId;
+    return <InlineReferenceChip label={label} icon={<Bot aria-hidden/>} tooltip={label} ariaLabel={label} className="relative top-[-1px] -my-[1px] max-w-[min(240px,55vw)] align-middle"/>;
+   }
    return <ChatFileLink {...safe} chip href={allowPrivilegedLinks&&typeof original==='string'?original:href}>{children}</ChatFileLink>;
   },
   img:({src,alt,node,...props})=>{

@@ -65,17 +65,6 @@ func (c *chatControl) generateTitle(ctx context.Context, id, text string, reques
 	if selection.Provider == "" {
 		selection = conversation.Model
 	}
-	if _, err = c.aiConfiguration(); err != nil {
-		return conversation, err
-	}
-	c.ai.mu.Lock()
-	preferences, plan, err := c.ai.store.ForTaskKeys("chat", &selection)
-	store := c.ai.store
-	runtime := c.ai.translator
-	c.ai.mu.Unlock()
-	if err != nil {
-		return conversation, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	prompt, err := c.store.TitlePrompt(id, text, c.language(), explicit)
@@ -84,21 +73,58 @@ func (c *chatControl) generateTitle(ctx context.Context, id, text string, reques
 	}
 	// Cindy's complete one-shot prompt goes in the request itself. The quoted
 	// task can never become an unadorned user turn in the dialogue worker.
-	input := ai.Generation{Text: prompt}
-	var title string
+	title, err := c.generateWithModel(ctx, selection, ai.Generation{Text: prompt}, generateTitleText)
+	if err != nil {
+		return conversation, err
+	}
+	title, err = chat.ValidateTitleOutput(title)
+	if err != nil {
+		return conversation, err
+	}
+	if explicit {
+		return c.store.ApplyRequestedTitle(conversation, title)
+	}
+	return c.store.ApplyGeneratedTitle(id, title)
+}
+
+// generateWithModel runs one generation on a Chat model route with the same
+// key rotation, account gate and streaming boundary as title generation. The
+// attempt policy decides retries; the result is returned whole.
+func (c *chatControl) generateWithModel(ctx context.Context, selection ai.Selection, input ai.Generation, attempt func(context.Context, func(context.Context) (string, error)) (string, error)) (string, error) {
+	return c.generateWithModelProgress(ctx, selection, input, attempt, nil)
+}
+
+// Voice uses the same credential rotation and account gate while observing real
+// text snapshots. Other auxiliary callers still receive one atomic result.
+func (c *chatControl) generateWithModelProgress(ctx context.Context, selection ai.Selection, input ai.Generation, attempt func(context.Context, func(context.Context) (string, error)) (string, error), progress func(string) error) (string, error) {
+	if _, err := c.aiConfiguration(); err != nil {
+		return "", err
+	}
+	c.ai.mu.Lock()
+	preferences, plan, err := c.ai.store.ForTaskKeys("chat", &selection)
+	store := c.ai.store
+	runtime := c.ai.translator
+	c.ai.mu.Unlock()
+	if err != nil {
+		return "", err
+	}
+	var text string
 	run := func(callCtx context.Context, key string) (bool, error) {
 		var failure error
-		title, failure = generateTitleText(callCtx, func(attemptCtx context.Context) (string, error) {
+		text, failure = attempt(callCtx, func(attemptCtx context.Context) (string, error) {
 			var output strings.Builder
 			// The stream boundary preserves typed HTTP status/Retry-After and
-			// whether output began. The title remains atomic to the desktop.
+			// whether output began. The text remains atomic to the caller.
 			_, err := runtime.ForProvider(preferences.ProviderID).GenerateStream(attemptCtx, preferences, key, input, func(delta ai.Delta) error {
 				output.WriteString(delta.Text)
+				if progress != nil && delta.Text != "" {
+					return progress(output.String())
+				}
 				return nil
 			})
 			return output.String(), err
 		})
-		return title != "", failure
+		return text != "", failure
 	}
 	if preferences.AuthMode == "account" {
 		gate := c.ai.accountGateFor(preferences.ProviderID)
@@ -112,17 +138,7 @@ func (c *chatControl) generateTitle(ctx context.Context, id, text string, reques
 	} else {
 		err = store.WithKeys(ctx, plan, run)
 	}
-	if err != nil {
-		return conversation, err
-	}
-	title, err = chat.ValidateTitleOutput(title)
-	if err != nil {
-		return conversation, err
-	}
-	if explicit {
-		return c.store.ApplyRequestedTitle(conversation, title)
-	}
-	return c.store.ApplyGeneratedTitle(id, title)
+	return text, err
 }
 
 // Retry one transient, unanswered provider request within the original title

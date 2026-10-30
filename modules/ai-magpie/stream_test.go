@@ -28,6 +28,36 @@ func TestStreamFailureReportsOnlyStatusAndRetryDelay(t *testing.T) {
 	}
 }
 
+func TestLimitFailureClassificationDoesNotExposeVendorBodies(t *testing.T) {
+	for _, test := range []struct {
+		status  int
+		body    string
+		limited bool
+	}{
+		{429, "private-vendor-data", true},
+		{403, `{"error":{"message":"Your quota has been exhausted","type":"insufficient_quota"}}`, true},
+		{402, `{"error":{"message":"Insufficient balance","type":"insufficient_balance"}}`, true},
+		{503, `{"error":{"message":"server unavailable private-vendor-data"}}`, false},
+	} {
+		w := newStreamResponse(func(streamEvent) error { return nil })
+		w.WriteHeader(test.status)
+		_, _ = w.Write([]byte(test.body))
+		raw, _ := json.Marshal(failureEvent(w.complete()))
+		var event struct {
+			Limited bool `json:"limited"`
+		}
+		if err := json.Unmarshal(raw, &event); err != nil {
+			t.Fatal(err)
+		}
+		if event.Limited != test.limited {
+			t.Fatalf("status %d classification=%s", test.status, raw)
+		}
+		if strings.Contains(string(raw), "private-vendor-data") || strings.Contains(string(raw), "quota has") {
+			t.Fatal("vendor body escaped worker")
+		}
+	}
+}
+
 func TestStreamingPublishesReasoningAndTextBeforeCompletion(t *testing.T) {
 	seen := make(chan struct{})
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

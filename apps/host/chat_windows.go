@@ -32,9 +32,14 @@ type chatControl struct {
 	owners             map[uint32]*processidentity.Process
 	guard              func() (func(), bool)
 	automations        *chatAutomations
-	previews           *chat.PreviewServer
-	terminals          *chat.TerminalManager
-	fileSearches       sync.Map
+	onebot             *chatOneBot
+	// prepareInput turns an owner's companion-chat message with a reply quote or
+	// @teammate references into model text and its display presentation; only
+	// the OneBot conversation store sets it.
+	prepareInput func(ctx context.Context, sessionID, text string, quote, references json.RawMessage) (string, chat.NativeInputPresentation, error)
+	previews     *chat.PreviewServer
+	terminals    *chat.TerminalManager
+	fileSearches sync.Map
 }
 
 func registerChat(service *host.Service, ctx context.Context, directory, executable string, engine *aiService, language func() string) *chatControl {
@@ -42,9 +47,12 @@ func registerChat(service *host.Service, ctx context.Context, directory, executa
 	c.store, c.failure = chat.Open(filepath.Join(directory, "chat"))
 	if c.failure == nil {
 		c.terminals = chat.NewTerminalManager(ctx)
-		c.engine = chat.NewService(ctx, c.store, chat.ServiceOptions{Bun: filepath.Join(filepath.Dir(executable), "shared", "ai", "runtime", "bun.exe"), Worker: filepath.Join(filepath.Dir(executable), "shared", "chat", "worker.js"), Configure: c.configure})
+		// Teammate follow-up also watches ordinary Chat conversations.
+		c.engine = chat.NewService(ctx, c.store, chat.ServiceOptions{Bun: filepath.Join(filepath.Dir(executable), "shared", "ai", "runtime", "bun.exe"), Worker: filepath.Join(filepath.Dir(executable), "shared", "chat", "worker.js"), Configure: c.configure, OnActivity: func(id string) { c.onebot.noteActivity(id) }})
 		c.automations = newChatAutomations(c)
+		c.onebot = newChatOneBot(c)
 		go c.automations.startSaved()
+		go c.onebot.startSaved()
 	}
 	service.RegisterModule("chat", func() host.Module { return host.Module{ID: "chat", Name: "Chat", State: "ready"} }, c.handle)
 	return c
@@ -65,7 +73,7 @@ func chatModel(config ai.Configuration, selection ai.Selection) (map[string]any,
 	for _, provider := range config.Providers {
 		if provider.ID == selection.Provider && slices.Contains(provider.Models, selection.Model) {
 			metadata := provider.ModelMetadataFor(selection.Model)
-			return map[string]any{"id": provider.ID + "/" + selection.Model, "name": provider.ModelName(selection.Model), "provider": provider.ID, "providerName": provider.Name, "modelName": provider.ModelName(selection.Model), "contextWindow": metadata.ContextWindow, "listedContextWindow": metadata.ListedContextWindow, "maxContextWindow": metadata.MaxContextWindow, "maxTokens": metadata.MaxTokens, "reasoning": metadata.Reasoning, "vision": metadata.Vision, "tools": metadata.Tools, "compactionThreshold": metadata.CompactionThreshold, "compactionPercent": metadata.CompactionPercent}, nil
+			return map[string]any{"id": provider.ID + "/" + selection.Model, "name": provider.ModelName(selection.Model), "provider": provider.ID, "providerName": provider.Name, "modelName": provider.ModelName(selection.Model), "contextWindow": metadata.ContextWindow, "listedContextWindow": metadata.ListedContextWindow, "maxContextWindow": metadata.MaxContextWindow, "maxTokens": metadata.MaxTokens, "reasoning": metadata.Reasoning, "efforts": metadata.Efforts, "levels": metadata.Levels, "vision": metadata.Vision, "tools": metadata.Tools, "compactionThreshold": metadata.CompactionThreshold, "compactionPercent": metadata.CompactionPercent}, nil
 		}
 	}
 	return nil, errors.New("请在 AI 服务中启用模型，再为对话选择模型")
@@ -116,7 +124,22 @@ func (c *chatControl) configure(conversation chat.Conversation) (map[string]any,
 	}
 	runtimeSettings := prefs.RuntimeSettings()
 	runtimeSettings["subagentModel"] = subagentModel
-	return map[string]any{"baseUrl": bridge.BaseURL, "key": bridge.Key, "model": model, "thinkingLevel": conversation.ThinkingLevel, "fastMode": conversation.FastMode, "runtimeSettings": runtimeSettings, "models": models, "language": c.language(), "agentDir": filepath.Join(c.directory, "chat", "agents", conversation.ID), "mcpAuthDirectory": filepath.Join(c.directory, "chat", "mcp"), "skillDirectories": prefs.SkillDirectories, "pluginDirectories": prefs.PluginDirectories, "mcpServers": prefs.MCPServers, "logPath": filepath.Join(c.directory, "logs", "host.log"), "protectedPaths": []string{filepath.Join(c.directory, "ai-settings.json"), filepath.Join(c.directory, "ai-runtime"), filepath.Join(c.directory, "chat", "agents"), filepath.Join(c.directory, "chat", "index.json"), filepath.Join(c.directory, "chat", "settings.json"), filepath.Join(c.directory, "chat", "mcp"), conversation.SessionDirectory, filepath.Dir(c.desktop)}}, bridge.Close, nil
+	release := bridge.Close
+	var taskBridge map[string]string
+	if conversation.OneBotTaskID != "" {
+		if c.onebot == nil {
+			bridge.Close()
+			return nil, nil, errors.New("OneBot 任务控制尚未就绪")
+		}
+		admission, err := c.onebot.taskAdmissionBridge(conversation)
+		if err != nil {
+			bridge.Close()
+			return nil, nil, err
+		}
+		taskBridge = map[string]string{"baseUrl": admission.BaseURL, "key": admission.Key}
+		release = func() { admission.Close(); bridge.Close() }
+	}
+	return map[string]any{"taskBridge": taskBridge, "onebotTask": conversation.OneBotTaskID != "", "baseUrl": bridge.BaseURL, "key": bridge.Key, "model": model, "thinkingLevel": conversation.ThinkingLevel, "fastMode": conversation.FastMode, "runtimeSettings": runtimeSettings, "models": models, "language": c.language(), "agentDir": filepath.Join(c.directory, "chat", "agents", conversation.ID), "mcpAuthDirectory": filepath.Join(c.directory, "chat", "mcp"), "skillDirectories": prefs.SkillDirectories, "pluginDirectories": prefs.PluginDirectories, "mcpServers": prefs.MCPServers, "logPath": filepath.Join(c.directory, "logs", "host.log"), "protectedPaths": []string{filepath.Join(c.directory, "ai-settings.json"), filepath.Join(c.directory, "ai-runtime"), filepath.Join(c.directory, "chat", "agents"), filepath.Join(c.directory, "chat", "index.json"), filepath.Join(c.directory, "chat", "settings.json"), filepath.Join(c.directory, "chat", "mcp"), conversation.SessionDirectory, filepath.Dir(c.desktop)}}, release, nil
 }
 
 // Verify the actual pipe peer, never a PID supplied by browser content. Keeping
@@ -164,13 +187,19 @@ func (c *chatControl) handle(r host.Request) host.Response {
 	if c.failure != nil {
 		return fail(c.failure)
 	}
+	if c.onebot != nil && !strings.HasPrefix(r.Method, "onebot.") && c.onebot.ownsConversation(r.Params) {
+		r.Method = "onebot.chat." + r.Method
+		return c.onebot.handleChat(r)
+	}
 	if err := c.attach(r.PeerPID); err != nil {
 		return fail(err)
 	}
+	_, oneBotRead := oneBotMethod(strings.TrimPrefix(r.Method, "onebot."))
+	oneBotRead = strings.HasPrefix(r.Method, "onebot.") && oneBotRead
 	switch r.Method {
-	case "usage", "project.git", "catalog", "activity", "settings.get", "resources", "files", "draft.get", "poll", "state", "stop", "release", "detach", "automations.deleted", "automations.project.read", "automations.connections.get", "automations.templates", "automations.template.apply", "automations.list", "automations.get", "automations.runs", "automations.events", "automations.runtime", "automations.preview":
+	case "usage", "project.git", "catalog", "activity", "settings.get", "resources", "files", "draft.get", "poll", "state", "stop", "release", "detach", "automations.deleted", "automations.project.read", "automations.connections.get", "automations.templates", "automations.template.apply", "automations.list", "automations.get", "automations.runs", "automations.events", "automations.runtime", "automations.preview", "automations.sidebarIndexRuns", "automations.inflightCount", "automations.detectCwd", "automations.channels", "automations.capabilityStatus":
 	default:
-		if c.guard != nil {
+		if c.guard != nil && !oneBotRead {
 			release, ok := c.guard()
 			if !ok {
 				return fail(errors.New("WinOne 正在维护，请稍后重试"))
@@ -191,27 +220,47 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		}
 		var pricing struct {
 			SessionCosts map[string]chat.UsagePrice `json:"sessionCosts"`
+			ModelAliases map[string]string          `json:"modelAliases"`
 		}
 		var priceError error
 		if c.ai != nil {
 			runtime, err := c.ai.magpieTranslator()
 			var raw json.RawMessage
 			if err == nil {
-				raw, err = runtime.Usage(ctx, ai.UsageQuery{Period: query.Period, Provider: query.Provider, Model: query.Model})
+				// Resolve each registered model once in the existing pricing read;
+				// the host does not implement Magpie's spelling or alias-chain rules.
+				models := []string{}
+				for _, conversation := range c.store.Snapshot().Conversations {
+					models = append(models, conversation.Model.Model)
+				}
+				slices.Sort(models)
+				models = slices.Compact(models)
+				raw, err = runtime.Usage(ctx, ai.UsageQuery{Period: query.Period, Provider: query.Provider, Model: query.Model, Models: models})
 			}
 			priceError = err
 			if err == nil {
 				priceError = json.Unmarshal(raw, &pricing)
 			}
 		}
+		query.ModelAliases = pricing.ModelAliases
 		usage, err := c.store.Usage(query, pricing.SessionCosts)
 		if err != nil {
 			return fail(err)
 		}
 		if priceError != nil {
-			usage.Warnings = append(usage.Warnings, "会话费用暂不可用，Token 统计仍可查看。")
+			usage.Warnings = append(usage.Warnings, "会话费用与模型归并暂不可用，Token 按原模型统计。请刷新重试。")
 		}
 		return result(usage)
+	}
+	if strings.HasPrefix(r.Method, "onebot.chat.") {
+		return c.onebot.handleChat(r)
+	}
+	if strings.HasPrefix(r.Method, "onebot.") {
+		value, err := c.onebot.call(ctx, strings.TrimPrefix(r.Method, "onebot."), r.Params)
+		if err != nil {
+			return fail(err)
+		}
+		return result(value)
 	}
 	if strings.HasPrefix(r.Method, "automations.") {
 		value, err := c.automations.call(ctx, strings.TrimPrefix(r.Method, "automations."), r.Params)
@@ -277,6 +326,9 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		Text            string           `json:"text"`
 		RequestID       string           `json:"requestId"`
 		DeliveryMode    string           `json:"deliveryMode"`
+		PreserveDraft   bool             `json:"preserveDraft"`
+		ReplyQuote      json.RawMessage  `json:"replyQuote"`
+		AgentReferences json.RawMessage  `json:"agentReferences"`
 		RestoreRevision string           `json:"restoreRevision"`
 		Draft           chat.Draft       `json:"draft"`
 		Cursor          uint64           `json:"cursor"`
@@ -324,6 +376,10 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		}
 		if err == nil {
 			value, err = c.store.SavePreferences(input.Settings)
+			if err == nil && c.onebot != nil {
+				c.onebot.resourcesChanged()
+				err = c.onebot.flushRuntimeRefresh(ctx)
+			}
 		}
 	case "title.generate":
 		value, err = c.generateTitle(ctx, input.ID, input.Text)
@@ -432,6 +488,48 @@ func (c *chatControl) handle(r host.Request) host.Response {
 	case "poll":
 		value, err = c.engine.Poll(input.ID, input.Cursor)
 	case "prompt":
+		if input.PreserveDraft {
+			if len(input.Attachments) > 0 || len(input.ReplyQuote) > 0 || len(input.AgentReferences) > 0 {
+				err = errors.New("此补充入口仅接受文字")
+				break
+			}
+			mode := input.DeliveryMode
+			if mode == "" {
+				mode = "queue"
+			}
+			if mode != "queue" && mode != "steer" {
+				err = errors.New("消息发送方式无效")
+				break
+			}
+			if _, err = c.engine.Open(ctx, input.ID, 0); err != nil {
+				break
+			}
+			defer c.engine.Release(input.ID, 0)
+			value, err = c.engine.DispatchPresentedInput(ctx, input.ID, input.RequestID, input.Text, mode, chat.NativeInputPresentation{})
+			break
+		}
+		if c.prepareInput != nil || len(input.ReplyQuote) > 0 && string(input.ReplyQuote) != "null" || len(input.AgentReferences) > 0 && string(input.AgentReferences) != "null" {
+			// Cindy's private-chat reply quote and @teammate references: the
+			// store rereads the quoted original and resolves each teammate; the
+			// model text differs from what the owner sees. Every owner message
+			// in a companion chat passes here, so the working memory refresh
+			// after a compaction reaches it as well.
+			if c.prepareInput == nil {
+				err = errors.New("引用回复和伙伴引用只用于 OneBot 对话")
+				break
+			}
+			mode := input.DeliveryMode
+			if mode == "" {
+				mode = "queue"
+			}
+			modelText, presentation, prepareErr := c.prepareInput(ctx, input.ID, input.Text, input.ReplyQuote, input.AgentReferences)
+			if prepareErr != nil {
+				err = prepareErr
+				break
+			}
+			value, err = c.engine.PromptPresented(ctx, input.ID, input.RequestID, modelText, mode, presentation, input.Attachments)
+			break
+		}
 		switch input.DeliveryMode {
 		case "steer":
 			value, err = c.engine.Steer(ctx, input.ID, input.RequestID, input.Text, input.Attachments)
@@ -558,7 +656,7 @@ func (c *chatControl) handle(r host.Request) host.Response {
 	return result(value)
 }
 func (c *chatControl) active() bool {
-	return c.engine != nil && c.engine.Active() || c.automations != nil && c.automations.active.Load()
+	return c.engine != nil && c.engine.Active() || c.automations != nil && c.automations.active.Load() || c.onebot != nil && c.onebot.active()
 }
 func (c *chatControl) stop() error {
 	if c.terminals != nil {
@@ -579,7 +677,11 @@ func (c *chatControl) stop() error {
 	if c.automations != nil {
 		schedulerError = c.automations.close(ctx)
 	}
-	return errors.Join(schedulerError, c.engine.Stop(ctx))
+	var oneBotError error
+	if c.onebot != nil {
+		oneBotError = c.onebot.close(ctx)
+	}
+	return errors.Join(schedulerError, oneBotError, c.engine.Stop(ctx))
 }
 func (c *chatControl) resume() {
 	if c.engine != nil {
@@ -587,5 +689,8 @@ func (c *chatControl) resume() {
 	}
 	if c.automations != nil {
 		c.automations.resume()
+	}
+	if c.onebot != nil {
+		c.onebot.resume()
 	}
 }

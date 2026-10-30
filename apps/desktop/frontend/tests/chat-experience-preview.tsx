@@ -35,7 +35,8 @@ if(query.get('sample')==='reading')messages.splice(0,messages.length,
 const previewOrigin=query.get('previewOrigin')??location.origin;
 const calls:{method:string;params:unknown}[]=[];
 const ioHolds=new Set<string>(),ioWaiters=new Map<string,Set<()=>void>>(),ioFailures=new Map<string,string>();
-const fixtureIO={hold(method:string){ioHolds.add(method);},release(method:string){ioHolds.delete(method);for(const release of ioWaiters.get(method)??[])release();ioWaiters.delete(method);},fail(method:string,message?:string){if(message)ioFailures.set(method,message);else ioFailures.delete(method);}};
+let fileModified=1700000000000;
+const fixtureIO={fileChanged(){fileModified++;},hold(method:string){ioHolds.add(method);},release(method:string){ioHolds.delete(method);for(const release of ioWaiters.get(method)??[])release();ioWaiters.delete(method);},fail(method:string,message?:string){if(message)ioFailures.set(method,message);else ioFailures.delete(method);}};
 const alignment=query.has('alignment'),changedFiles=['README.md','example.ts','notes.md','guide.md','plan.md'].map(path=>({path,status:'M'}));
 const patch='diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new\n';
 let workspaceState='applied',promptRevision=0;
@@ -133,11 +134,11 @@ Object.assign(window,{chatExperienceGrowThinking:growThinking,chatExperienceCall
   if(method==="files")return JSON.stringify({directory:conversation.directory,entries:['README.md','example.ts','picture.png','page.html','sample.pdf','sound.wav','clip.webm'].map(name=>({name,path:'C:\\fixture\\Alpha\\'+name,directory:false,size:120}))});
   if(links&&method==='file.stat')return JSON.stringify({files:params.paths.map((path:string)=>path.endsWith('private.txt')?{requested:path,error:'文件不在当前会话允许访问的范围内。'}:{requested:path,file:{path,name:path.split(/[\\/]/).filter(Boolean).pop(),directory:/[\\/]docs[\\/]?$/.test(path),size:120,modified:1700000000000}})});
   if(links&&['file.open','file.reveal','link.open'].includes(method))return '{}';
-  if(method==='file.stat')return JSON.stringify({files:params.paths.map((path:string)=>({requested:path,file:{path:/^[A-Za-z]:/.test(path)?path:conversation.directory+'\\'+path,name:path.split(/[\\/]/).pop(),directory:false,size:120,modified:1700000000000}}))});
+  if(method==='file.stat')return JSON.stringify({files:params.paths.map((path:string)=>({requested:path,file:{path:/^[A-Za-z]:/.test(path)?path:conversation.directory+'\\'+path,name:path.split(/[\\/]/).pop(),directory:false,size:120,modified:fileModified}}))});
   if(method==='file.preview'||method==='file.save'){
    const name=String(params.path).split(/[\\/]/).pop()!;
    const kind=name.endsWith('.png')?'image':name.endsWith('.pdf')?'pdf':name.endsWith('.wav')?'audio':name.endsWith('.webm')?'video':'text';
-   return JSON.stringify({path:params.path,name,kind,size:120,modified:1700000000000,revision:method==='file.save'?'saved':'original',url:previewOrigin+'/'+name,mimeType:kind==='image'?'image/png':'text/plain'});
+   return JSON.stringify({path:params.path,name,kind,size:120,modified:fileModified,revision:method==='file.save'?'saved':'original-'+fileModified,url:previewOrigin+'/'+name,mimeType:kind==='image'?'image/png':'text/plain'});
   }
   if(method==="resources")return JSON.stringify({agents:[{path:'C:\\fixture\\Alpha\\AGENTS.md'}],skills:[{name:'Review project',description:'Inspect changes and check the project rules before continuing.',path:'C:\\fixture\\skills\\review\\SKILL.md'}],plugins:[{name:'Project tools',path:'C:\\fixture\\plugins\\project-tools',enabled:true}],mcpServers:[{name:'Local documents',enabled:true,status:'Connected'}],diagnostics:[]});
   if(method==="draft.get")return JSON.stringify({text:"保留这段草稿"});

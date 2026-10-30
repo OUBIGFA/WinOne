@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 const root=resolve('.'),frontend=join(root,'apps/desktop/frontend');
 const trackerPath=process.env.WINONE_TRACKER_MODULE;
 if(!trackerPath)throw Error('Set WINONE_TRACKER_MODULE to an isolated bittorrent-tracker@11.2.3 package');
-const {Server}=await import(pathToFileURL(resolve(trackerPath,'index.js')));
+const {default:Server}=await import(pathToFileURL(resolve(trackerPath,'server.js')));
 const tracker=new Server({udp:false,http:false,ws:true,stats:false});
 await new Promise(resolve=>tracker.listen(0,'127.0.0.1',resolve));
 const trackerURL='ws://127.0.0.1:'+tracker.ws.address().port;
@@ -30,9 +30,22 @@ try{
  for(const name of ['Alice','Bob','Carol']){
   const context=await browser.newContext({viewport:{width:780,height:900},reducedMotion:'reduce'}),page=await context.newPage();pages.push(page);
   page.on('pageerror',e=>errors.push(e.message));
+  await context.addInitScript(()=>{
+   // Only native preferences are simulated; chat still uses real WebRTC.
+   window.addEventListener('message',event=>{
+    const data=event.data;
+    if(event.source!==window||data?.type!=='interconnect-native')return;
+    if(data.method==='preferences.get'||data.method==='preferences.save'){
+     if(data.method==='preferences.save')localStorage.setItem('probe-nickname',data.params.nickname);
+     window.postMessage({type:'interconnect-result',id:data.id,result:{nickname:localStorage.getItem('probe-nickname')??''}},location.origin);
+    }
+   });
+  });
   await page.goto(base+'/interconnect-chat.html');
+  await page.getByRole('textbox',{name:'个人昵称',exact:true}).waitFor();
+  await page.getByRole('textbox',{name:'个人昵称',exact:true}).fill(name);
+  await page.getByRole('textbox',{name:'房间名称',exact:true}).fill('隔离房间');
   await page.getByRole('button',{name:'加入房间',exact:true}).click({timeout:5000});
-  await page.getByRole('textbox',{name:'显示名称',exact:true}).fill(name);
   await page.getByRole('textbox',{name:'房间标识',exact:true}).fill(room);
   await page.getByRole('textbox',{name:'房间密码',exact:true}).fill(password);
   await page.getByText('网络设置',{exact:true}).click();
@@ -52,6 +65,7 @@ try{
   }
  }
  const [alice,bob,carol]=pages;
+ assert.equal(await alice.locator('.flash-chat-conversation-title h1').textContent(),'隔离房间','Room name was confused with nickname');
  for(const page of pages)await page.getByText('身份已校验',{exact:true}).nth(1).waitFor({timeout:30000});
  // A room must fill its viewport, and conversation rows must stay compact.
  // Legacy settings padding and nav grid stretching previously passed the
@@ -97,6 +111,8 @@ try{
  assert.deepEqual(await carol.locator('.flash-chat-composer').boundingBox(),composerBefore,'Scrolling moves the composer');
  for(const [index,page] of pages.entries()){assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:join(output,'peer-'+index+'.png'),fullPage:true});}
  await bob.getByRole('button',{name:'离开房间',exact:true}).click();await bob.getByRole('button',{name:'加入房间',exact:true}).waitFor();
+ assert.equal(await bob.getByRole('textbox',{name:'个人昵称',exact:true}).inputValue(),'Bob','Leaving a room reset the nickname');
+ await bob.getByRole('textbox',{name:'个人昵称',exact:true}).fill('Bobby');
  await bob.getByRole('button',{name:'加入房间',exact:true}).click();
  await bob.getByRole('button',{name:'加入房间',exact:true}).click();await bob.getByRole('button',{name:'离开房间',exact:true}).waitFor();
  await bob.getByRole('log').getByText(solo,{exact:true}).waitFor();
@@ -105,6 +121,9 @@ try{
  // the settings styles it must load independently of its parent window.
  const layouts=[];
  await carol.getByRole('button',{name:'离开房间',exact:true}).click();
+ await carol.reload();
+ await carol.getByRole('textbox',{name:'个人昵称',exact:true}).waitFor();
+ assert.equal(await carol.getByRole('textbox',{name:'个人昵称',exact:true}).inputValue(),'Carol','Reopening did not restore the default nickname');
  for(const language of ['zh-CN','en-US'])for(const theme of ['light','dark'])for(const width of [320,520,900]){
   for(const [state,page] of [['room',alice],['join',carol]]){
    await page.setViewportSize({width,height:900});

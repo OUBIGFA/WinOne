@@ -44,7 +44,7 @@ try{
  const notify=page.getByRole('switch',{name:'传输完成或失败时通知',exact:true});
  await notify.click();
  const expected=await notify.getAttribute('aria-checked');
- const footer=page.locator('[data-slot=settings-footer]');
+ const footer=page.locator('[data-slot=settings-actions]');
  await footer.getByRole('button',{name:'保存设置',exact:true}).click();
  await page.getByText('已保存',{exact:true}).waitFor();
  const saved=await page.evaluate(async()=>({
@@ -95,7 +95,7 @@ try{
  await page.evaluate(async id=>window.go.main.App.Interconnect('transfer_remove',JSON.stringify({id})),task.id);
  await page.locator('[data-page-id=flash-chat]').click();
  assert.equal(await page.locator('[data-page-id=flash-chat] .lucide-messages-circle').count(),1);
- assert.equal(await page.locator('[data-slot=settings-footer]').count(),0);
+ assert.equal(await page.locator('[data-slot=settings-actions]').count(),0);
  const frame=page.frameLocator('iframe[title="闪聊"]');
  await frame.locator('.flash-chat-welcome .lucide-messages-circle').waitFor();
  const welcome=await frame.locator('.flash-chat-entry').evaluate(node=>{
@@ -104,7 +104,7 @@ try{
  });
  assert.ok(Math.abs(welcome.entry-welcome.brand)<2&&Math.abs(welcome.entry-welcome.description)<2,'Native Flash Chat welcome is not centered');
  await page.screenshot({path:resolve(output,'flash-chat-lobby.png')});
- const {Server}=await import(pathToFileURL(resolve(process.env.WINONE_TRACKER_MODULE,'index.js')));
+ const {default:Server}=await import(pathToFileURL(resolve(process.env.WINONE_TRACKER_MODULE,'server.js')));
  tracker=new Server({udp:false,http:false,ws:{clientTracking:true},stats:false});
  await new Promise(resolve=>tracker.listen(0,'127.0.0.1',resolve));
  await frame.getByRole('button',{name:'网络设置',exact:true}).click();

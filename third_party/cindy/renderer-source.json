@@ -153,7 +153,7 @@
       "source": "apps/desktop/src/renderer/components/chat/MarkdownRenderer.tsx",
       "target": "apps/desktop/frontend/src/features/cindy/markdown/MarkdownRenderer.tsx",
       "sourceSHA256": "d97a9b6ce95c4d49a4251d6182f01a0422449249cac1656a97351704dfad0344",
-      "adaptation": "Parser, normalizer, streaming throttle/chunks, code block JSX, block renderers and document line anchors retained; scoped file/link/image controls use the WinOne Host."
+      "adaptation": "Parser, normalizer, streaming throttle/chunks, code block JSX, block renderers and document line anchors retained; scoped file/link/image controls use the WinOne Host. A teammate reference link (Cindy bot deep link) renders as the read-only InlineReferenceChip of Cindy's SentAgentReferenceChip bot branch, because WinOne has no deep link router."
     }
   ]
 }

@@ -10,6 +10,19 @@
     "@earendil-works/pi-codemode": "1.4.0",
     "@earendil-works/pi-coding-agent": "1.4.0",
     "@earendil-works/pi-durable": "1.4.0",
-    "jszip": "3.10.1"
+    "@larksuiteoapi/node-sdk": "1.71.1",
+    "@modelcontextprotocol/sdk": "1.31.0",
+    "@wecom/aibot-node-sdk": "1.0.7",
+    "dingtalk-stream": "2.1.5",
+    "discord.js": "14.27.0",
+    "dotenv": "16.6.1",
+    "drizzle-orm": "0.45.2",
+    "gray-matter": "4.0.3",
+    "js-yaml": "4.3.0",
+    "json5": "2.2.3",
+    "jszip": "3.10.1",
+    "sharp": "0.35.0",
+    "silk-wasm": "3.7.1",
+    "zod": "4.3.6"
   }
 }

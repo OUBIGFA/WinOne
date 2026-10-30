@@ -24,6 +24,8 @@ import (
 )
 
 type request struct {
+	Archive            string                   `json:"archive,omitempty"`
+	LimitRestOff       bool                     `json:"limitRestOff,omitempty"`
 	BalanceKeys        []provider.KeyAccount    `json:"balanceKeys,omitempty"` // Private saved-key snapshot; never a UI response.
 	MagpieSettings     json.RawMessage          `json:"magpieSettings,omitempty"`
 	AuxiliaryProviders []auxiliaryProvider      `json:"auxiliaryProviders,omitempty"`
@@ -36,6 +38,8 @@ type request struct {
 	Headers            map[string]string        `json:"headers,omitempty"`
 	ProviderID         string                   `json:"providerId,omitempty"`
 	Usage              *usageQuery              `json:"usage,omitempty"`
+	UsageAliases       map[string]string        `json:"usageAliases,omitempty"`
+	UsageAlias         *usageAliasEdit          `json:"usageAlias,omitempty"`
 	UsageSource        string                   `json:"usageSource,omitempty"`
 	GatewayPath        string                   `json:"gatewayPath,omitempty"`
 	GatewayBody        json.RawMessage          `json:"gatewayBody,omitempty"`
@@ -92,7 +96,7 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 		return "", errors.New("model is required")
 	}
 	if len(in.Messages) == 0 {
-		if strings.TrimSpace(in.Text) == "" || len(in.Text) > 100000 {
+		if strings.TrimSpace(in.Text) == "" || len(in.Text) > 1<<20 {
 			return "", errors.New("text is required or too long")
 		}
 	} else {
@@ -117,6 +121,7 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 			return "", err
 		}
 		model = account.ID + "/" + in.Model
+		account.LimitRestOff = in.LimitRestOff
 		provider.WinOneProviders = []provider.Provider{*account}
 	} else {
 		p, err := configuredProvider(in)
@@ -163,6 +168,7 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 		response := newStreamResponse(emit)
 		response.cancel = cancel
 		gateway.New().Handler().ServeHTTP(response, req.WithContext(streamContext))
+		gateway.WinOneWaitArchive()
 		if ctx.Err() != nil {
 			return "", ctx.Err()
 		}
@@ -170,9 +176,10 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 	}
 	response := httptest.NewRecorder()
 	gateway.New().Handler().ServeHTTP(response, req)
+	gateway.WinOneWaitArchive()
 	if response.Code != http.StatusOK {
 		// Vendor bodies can repeat prompts or API keys. Only expose the status.
-		return "", &upstreamFailure{Status: response.Code, RetryAfterSeconds: retryDelay(response.Header().Get("Retry-After"))}
+		return "", &upstreamFailure{Status: response.Code, RetryAfterSeconds: retryDelay(response.Header().Get("Retry-After")), Limited: gateway.WinOneLimitedResponse(response.Code, response.Body.Bytes())}
 	}
 	var out struct {
 		Choices []struct {
@@ -208,6 +215,20 @@ func main() {
 	if err := decoder.Decode(&in); err != nil {
 		_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": "invalid AI request"})
 		os.Exit(1)
+	}
+	if in.Operation == "archive.read" || in.Operation == "archive.file" {
+		if err := readArchive(in, os.Stdout); err != nil {
+			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": "Request archive unavailable"})
+			os.Exit(1)
+		}
+		return
+	}
+	if in.Operation == "usage.aliases" {
+		if err := editUsageAliases(in, os.Stdout); err != nil {
+			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
+			os.Exit(1)
+		}
+		return
 	}
 	if in.Operation == "routing.serve" || in.Operation == "privacy.serve" {
 		if err := serveRouting(context.Background(), in, reader, os.Stdout); err != nil {

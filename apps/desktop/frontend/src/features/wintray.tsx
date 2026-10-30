@@ -130,7 +130,7 @@ export function WinTrayPage({ disabled = false,onChanged=()=>{},onActivity }: { 
   const validNames=invalidNames.length===0;
   const dirty =
     !!saved && JSON.stringify(saved.settings) !== JSON.stringify(draft);
-  usePageActivity(onActivity,dirty,busy);
+  usePageActivity(onActivity,dirty,busy,"wintray",()=>void reload());
   function update(patch: Partial<Program>, id=selected) {
     if(busy||saved?.recoveryError)return;
     setDraft((current) =>
@@ -346,7 +346,7 @@ export function WinTrayPage({ disabled = false,onChanged=()=>{},onActivity }: { 
 
       </Tabs>
       {/* The shared save transaction stays outside both scrolling panes. */}
-      {draft&&<SettingsSaveBar>
+      {draft&&<SettingsSaveBar undo={{disabled:busy||!dirty,onClick:()=>void reload()}}>
         <Button icon={Save} variant="primary"
           disabled={busy || !dirty || !validNumbers || !validNames || !!saved?.recoveryError}
           onClick={() => void runJob("settings.save", {revision: saved!.revision, settings: draft})}>

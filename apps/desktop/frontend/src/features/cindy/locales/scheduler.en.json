@@ -1,0 +1,621 @@
+{
+ "commonUi": {
+  "toastContainer": {
+   "ariaLabel": "Notifications"
+  }
+ },
+ "newChat": {
+  "addRemoteProject": {
+   "tabBrowse": "Browse folders",
+   "existingEmpty": "No projects on that machine yet — browse folders to add one.",
+   "existingLoading": "Loading projects…"
+  },
+  "projectPicker": {
+   "addRemoteProject": "Add remote project"
+  },
+  "modelSelector": {
+   "trigger": {
+    "agentDevice": "Agent runs on {{device}}",
+    "agent": {
+     "claudeCode": "Claude Code",
+     "codex": "Codex",
+     "pi": "Pi",
+     "pending": "Next: {{agent}}"
+    }
+   }
+  },
+  "folderPicker": {
+   "selectProject": "Select project",
+   "projects": "Projects",
+   "noProjects": "No projects",
+   "recent": "Recent",
+   "browseFolder": "Choose a different folder",
+   "browseProjectFolder": "Choose another project folder",
+   "browseFailed": "Could not open the folder picker. Please try again.",
+   "dialogue": "Chat",
+   "dialogueOrSelectProject": "Chat or select project",
+   "searchProjects": "Search projects",
+   "noMatchingProjects": "No matching projects",
+   "remoteProjectsLoadFailed": "Couldn't load projects from {{device}}. Check the connection and try again.",
+   "retryRemoteProjects": "Reload projects",
+   "removeFromList": "Remove from list",
+   "missingDir": "Folder not found"
+  }
+ },
+ "chat": {
+  "errorBanner": {
+   "cancelTitle": "Dismiss error",
+   "networkShowRaw": "Error Details",
+   "networkHideRaw": "Hide Details",
+   "diagnose": "Diagnose",
+   "diagnoseTitle": "Diagnose this error in a new session"
+  },
+  "remoteFile": {
+   "downloadsInProgress": "Downloads in progress ({{count}})"
+  }
+ },
+ "ccAgent": {
+  "sidebar": {
+   "confirmArchive": {
+    "description": "Archive this session? It will be removed from the list.",
+    "dirtyWorktreeWarning": "This session's worktree has uncommitted changes; they will be saved as a git snapshot before archiving and can be restored from the session later.",
+    "scheduleWarning_one": "The linked automation {{names}} will keep running and restore this session.",
+    "scheduleWarning_other": "The linked automations {{names}} will keep running and restore this session.",
+    "scheduleWarningMany_one": "{{count}} of these sessions has linked automations that will restore it when they run.",
+    "scheduleWarningMany_other": "{{count}} of these sessions have linked automations that will restore them when they run.",
+    "scheduleName": "“{{name}}”",
+    "scheduleNameSeparator": ", "
+   }
+  }
+ },
+ "effortLevels": {
+  "off": "Off",
+  "minimal": "Minimal",
+  "low": "Low",
+  "medium": "Medium",
+  "high": "High",
+  "xhigh": "Extra High",
+  "max": "Maximum",
+  "ultra": "Ultra"
+ },
+ "scheduler": {
+  "presentation": {
+   "status": {
+    "active": "Active",
+    "paused": "Paused",
+    "expired": "Once",
+    "running": "Running"
+   },
+   "summary": {
+    "hourly": "Hourly",
+    "daily": "Daily at {{time}}",
+    "weekly": "{{weekday}} at {{time}}",
+    "weekdays": "Weekdays at {{time}}",
+    "weekends": "Weekends at {{time}}",
+    "monthly": "Monthly on day {{day}} at {{time}}",
+    "custom": "Custom"
+   },
+   "weekday": {
+    "full": {
+     "0": "Sunday",
+     "1": "Monday",
+     "2": "Tuesday",
+     "3": "Wednesday",
+     "4": "Thursday",
+     "5": "Friday",
+     "6": "Saturday"
+    },
+    "short": {
+     "0": "Su",
+     "1": "Mo",
+     "2": "Tu",
+     "3": "We",
+     "4": "Th",
+     "5": "Fr",
+     "6": "Sa"
+    }
+   },
+   "time": {
+    "last": "Last {{value}}",
+    "today": "Today · {{time}}",
+    "yesterday": "Yesterday · {{time}}",
+    "daysAgo": "{{count}} days ago · {{time}}",
+    "startedSeconds": "Started {{count}}s ago",
+    "startedMinutes": "Started {{count}}m ago",
+    "startedHours": "Started {{count}}h ago",
+    "intervalMinutes": "{{count}}m",
+    "intervalHours": "{{count}}h",
+    "intervalDays": "{{count}}d",
+    "nextLessThanMinute": "Next less than 1 min",
+    "next": "Next {{when}} (in {{interval}})"
+   },
+   "destination": {
+    "boundSession": "Bound to session {{id}}",
+    "newDialogue": "New dialogue",
+    "newWorktreeSession": "New worktree session",
+    "newSession": "New session",
+    "inDirectory": "{{base}} in "
+   }
+  },
+  "page": {
+   "title": "Automations",
+   "totalCount": "{{count}} total",
+   "totalCountWithDir": "{{dir}} · {{count}} total",
+   "loadFailed": "Failed to load: {{error}}"
+  },
+  "empty": {
+   "promptHeading": "No Automations yet",
+   "promptDescription": "Create a cron Automation to run your prompt on a schedule."
+  },
+  "template": {
+   "useTemplate": "Getting Started",
+   "blank": "Blank",
+   "params": {
+    "heading": "Template parameters"
+   },
+   "gallery": {
+    "heading": "Start from a template"
+   },
+   "capability": {
+    "worktree": "Isolated worktree",
+    "pr": "PR automation",
+    "web": "Web search",
+    "params": "Customizable"
+   }
+  },
+  "projectAutomation": {
+   "toast": {
+    "summary": "added {{inserted}} · updated {{updated}} · removed {{deleted}}",
+    "installed": "Project automation installed for {{projectName}} ({{summary}})",
+    "updated": "Project automation updated for {{projectName}} ({{summary}})"
+   },
+   "cell": {
+    "tag": "Project",
+    "tooltip": "Managed by .cindy/automations/schedules.json — cannot edit in UI"
+   }
+  },
+  "button": {
+   "newAutomation": "New Automation",
+   "runNow": "Run now",
+   "close": "Close",
+   "edit": "Edit",
+   "enable": "Enable",
+   "disable": "Disable",
+   "delete": "Delete"
+  },
+  "list": {
+   "filterAria": "Filter (Status: {{status}})",
+   "filterStatusHeading": "Status",
+   "status": {
+    "all": "All",
+    "active": "Active",
+    "paused": "Paused"
+   },
+   "section": {
+    "otherGroup": "Other",
+    "createProject": "New automation in this project",
+    "createProjectAria": "Create a new automation in this project (working directory prefilled)",
+    "openConfig": "Open config file",
+    "openConfigAria": "Open project automation config",
+    "openConfigFailed": "Failed to open file",
+    "reload": "Reload",
+    "reloadAria": "Reload project automation"
+   },
+   "promote": {
+    "menu": "Promote to project automation",
+    "noWorkingDir": "Cannot promote schedule without a working directory",
+    "success": "Promoted to project automation"
+   },
+   "editProject": {
+    "menu": "Edit config"
+   },
+   "cloneToUser": {
+    "menu": "Clone to personal",
+    "namePrefix": "{{name}} (copy)",
+    "success": "Cloned to personal"
+   },
+   "removeProject": {
+    "menu": "Remove from project",
+    "confirmTitle": "Remove from project automation?",
+    "confirmDescription": "Removes \"{{name}}\" from .cindy/automations/schedules.json. After commit this affects all collaborators.",
+    "confirm": "Remove",
+    "demote": "Remove and keep personal copy",
+    "demoteSuccess": "Removed from project, kept as personal"
+   },
+   "resizeAria": "Resize task list pane"
+  },
+  "cell": {
+   "subtitlePaused": "Paused",
+   "subtitleWaitingForResources": "Waiting for a slot ({{inFlight}}/{{max}})",
+   "subtitleQueuedForSession": "Queued until the session is idle",
+   "subtitleManual": "Manual",
+   "subtitleOnce": "Once",
+   "tagOnce": "Once",
+   "tagManual": "Manual",
+   "menu": {
+    "rename": "Rename",
+    "resume": "Resume",
+    "pause": "Pause",
+    "deleteAutomation": "Delete Automation"
+   }
+  },
+  "detail": {
+   "manualTrigger": "Manual trigger",
+   "recentRuns": "RECENT RUNS · {{count}}",
+   "noRunsHeading": "No runs yet",
+   "noRunsHint": "Trigger Run now or wait for the next scheduled fire.",
+   "runsLoadFailed": "Failed to load: {{error}}",
+   "openWorkdirFailed": "Failed to open folder"
+  },
+  "runs": {
+   "status": {
+    "running": "Running",
+    "success": "Success",
+    "failed": "Failed",
+    "aborted": "Aborted",
+    "interrupted": "Interrupted",
+    "skipped": "Skipped"
+   },
+   "statusAria": "Status: {{status}}",
+   "took": "Took {{duration}}",
+   "openSession": "Open session",
+   "sessionDeleted": "Session deleted",
+   "sessionUnavailable": "Could not verify the session. Try again.",
+   "markReadTitle": "Click to mark as read",
+   "runCost": "Run cost {{cost}}",
+   "runTokens": "Token usage {{tokens}}",
+   "costUnavailable": "Cost unavailable",
+   "legacyCostUnavailable": "Historical cost unavailable",
+   "persistentSessionGroup": "Persistent session {{session}} · {{count}} runs",
+   "expandRemainingRuns": "Show {{count}} more",
+   "expandSessionRuns": "Show {{count}} runs",
+   "collapseSessionRuns": "Collapse history",
+   "restart": "Restart",
+   "moreAria": "More actions",
+   "delete": "Delete",
+   "preRun": {
+    "status": {
+     "passed": "Pre-run check passed",
+     "skipped": "Condition not met",
+     "failed": "Pre-run check failed",
+     "timed_out": "Pre-run check timed out",
+     "aborted": "Pre-run check aborted"
+    },
+    "decision": {
+     "run": "Run task",
+     "skip": "Skip task",
+     "block": "Block run"
+    },
+    "duration": "{{ms}} ms",
+    "exitCode": "Exit code {{code}}",
+    "stdout": "stdout",
+    "stderr": "stderr",
+    "truncated": "output truncated",
+    "noOutput": "No output"
+   }
+  },
+  "editor": {
+   "promptDialog": {
+    "titleEdit": "Edit Automation",
+    "titleCreate": "Create Automation",
+    "titleProjectCreate": "New project automation",
+    "titleProjectEdit": "Edit project automation",
+    "subtitle": "Run a prompt on a schedule with Pi.",
+    "subtitleFromGhost": "\"{{name}}\" is asking you to create an automation. Pick a model and save to enable it.",
+    "save": "Save",
+    "create": "Create",
+    "saveAria": "Save automation",
+    "createAria": "Create automation",
+    "namePlaceholder": "Name this Automation",
+    "promptPlaceholder": "Example: Find new crashes in Sentry and summarize the top regressions."
+   },
+   "executionMode": {
+    "label": "Execution",
+    "agent": "AI task",
+    "script": "Script only"
+   },
+   "script": {
+    "protocolSummary": "stdout must emit one complete cindy-script/1 JSON object per line (JSONL); type must be call or complete. Write regular logs to stderr, and always finish with a complete frame.",
+    "protocolCapabilities": "When using granted capabilities, the script must also read the host's start and call_result JSONL frames from stdin, then wait for each call result before continuing or emitting complete.",
+    "protocolExample": "View minimal Python example without capabilities",
+    "command": "Script command",
+    "commandPlaceholder": "python scripts/auto.py",
+    "timeout": "Timeout (seconds, optional)",
+    "timeoutPlaceholder": "No timeout",
+    "capabilities": {
+     "jira_read": "Read Jira",
+     "jira_comment": "Comment on Jira",
+     "sessions_dispatch": "Dispatch sessions",
+     "feishu_read": "Read Feishu messages"
+    },
+    "project": "Project directory",
+    "capabilitiesLabel": "Allowed capabilities",
+    "capabilitiesPlaceholder": "Select capabilities the script may call (all denied by default)",
+    "capabilitiesSearch": "Search capabilities",
+    "capabilitiesEmpty": "No matching capabilities",
+    "capabilityDescs": {
+     "jira_read": "Read Jira issues (get by key / JQL search)",
+     "jira_comment": "Add comments to Jira issues",
+     "sessions_dispatch": "Create or wake WinOne sessions and deliver messages",
+     "feishu_read": "List recently-active chats; fetch recent messages from a chat (group or DM)"
+    },
+    "capabilityWarn": {
+     "ghostMissing": "Requires the \"{{name}}\" plugin, which is not installed — this capability will fail at run time",
+     "ghostAsleep": "Requires the \"{{name}}\" plugin, which is disabled — this capability will fail at run time"
+    }
+   },
+   "fields": {
+    "title": "Title",
+    "schedule": "Schedule",
+    "notify": "Notify",
+    "prompt": "Prompt",
+    "once": "Once",
+    "automatic": "Automatic",
+    "manually": "Manually",
+    "session": "Session",
+    "silentRun": "Stay quiet when checks find nothing",
+    "silentRunTooltip": "Report changes or problems only. Turn off for reminders and scheduled messages.",
+    "silentRunInfoAria": "View silent run rules",
+    "finishSendToFeishu": "Finish Send To FeishuBot",
+    "finishSendToWecomGroup": "Send result to WeCom group",
+    "configWecomGroup": "Configure WeCom group notifications",
+    "configFeishu": "Config FeishuBot"
+   },
+   "runSession": {
+    "label": "Run session",
+    "fresh": "New each run",
+    "persistent": "Continuous session",
+    "bound": "Bind existing session",
+    "card": {
+     "open": "Open session",
+     "unbind": "Unbind",
+     "persistentNote": "If archived, the same session is restored on the next run",
+     "deleted": "Bound session deleted",
+     "deletedPersistentNote": "Creates and binds a new session on the next run",
+     "fallbackTitle": "Session {{id}}"
+    },
+    "switchModelHint": "The bound session will switch to this model on the next run"
+   },
+   "thread": {
+    "label": "Target thread",
+    "loading": "Loading sessions…",
+    "loadFailed": "Failed to load: {{error}}",
+    "empty": "No active sessions available",
+    "deletedBinding": "Bound session deleted — select another session",
+    "archivedBinding": "Bound session archived — restore it before saving or select another session",
+    "selectPlaceholder": "— Select a session —"
+   },
+   "preRunHook": {
+    "label": "Pre-run check",
+    "enable": "Enable",
+    "tooltip": "Runs this script when the task fires: exit code 0 lets the round proceed; exit code 2 skips this round (no agent started, no tokens used); script errors or timeouts block the run and record a failure. The script runs in the task's working directory; on Windows use an explicit interpreter (e.g. node check.mjs).",
+    "infoAria": "View pre-run check rules",
+    "protocol": "How to write it: exit code 0 = run the task this round, exit code 2 = skip this round (no usage cost); other exit codes, errors, or timeouts block the run. After a complete successful check, including a normal no-work skip, print CINDY_PRECHECK_OK on its own stdout line before exit 0 or 2. This clears earlier precheck warnings only, not execution failures. Do not print it during rate-limit backoff or incomplete checks.",
+    "commandPlaceholder": "node scripts/schedule-checks/check.mjs",
+    "test": "Test",
+    "resultRun": "exit {{code}} · {{ms}}ms — this round would run",
+    "resultSkip": "exit 2 · {{ms}}ms — this round would be skipped",
+    "resultTimeout": "Timed out — this round would be blocked",
+    "resultError": "Failed to execute ({{error}}) — this round would be blocked",
+    "aiCreate": "Generate with AI",
+    "aiModify": "Modify with AI",
+    "aiPlaceholder": "Describe when the task should run, e.g. only when the repo has new open PRs",
+    "aiCancel": "Cancel",
+    "aiGenerate": "Generate script",
+    "aiDone": "Script written to {{path}} — run Test to verify",
+    "aiFailure": {
+     "no_candidate": "No model is currently available. Enable a model in AI services, then try again.",
+     "all_candidates_failed": "Every utility model request failed. Check the provider connection and try again.",
+     "empty_response": "The utility models returned no usable content. Try again or check the provider connection.",
+     "timeout": "The utility model request timed out. Check the connection and try again.",
+     "checkedCandidates": "Candidates checked:",
+     "openProviders": "Open AI services",
+     "attemptReason": {
+      "unsupportedTransport": "not supported for this operation",
+      "agentUnavailable": "the agent is unavailable",
+      "modelUnavailable": "the selected model is unavailable for this provider",
+      "notAuthenticated": "AI service account sign-in required",
+      "authProbeFailed": "could not verify the AI service account sign-in",
+      "apiKeyMissing": "AI service key is unavailable",
+      "endpointMissing": "AI service endpoint is unavailable",
+      "timeout": "request timed out",
+      "emptyResponse": "empty response",
+      "httpError": "HTTP {{status}}",
+      "requestFailed": "request failed"
+     }
+    },
+    "browse": "Choose a script file (or drag one onto the input)"
+   },
+   "validation": {
+    "nameRequired": "Name is required",
+    "promptRequired": "Prompt is required",
+    "scriptCommandRequired": "Script command is required",
+    "scheduleRequired": "Schedule is required",
+    "timezoneRequired": "Timezone is required",
+    "selectThread": "Select a target thread",
+    "selectProject": "Select a project directory",
+    "modelUnavailable": "Model {{model}} is no longer available. Select another model.",
+    "reasoningInvalid": "Reasoning must be one of {{values}}",
+    "preRunHookCommandRequired": "Enter the pre-run check command",
+    "templateParamRequired": "Enter {{label}}",
+    "templateApplyFailed": "Could not apply the template. Check the parameters and try again."
+   }
+  },
+  "chips": {
+   "chooseTime": "Choose time",
+   "advanced": "Advanced",
+   "worktree": "worktree",
+   "worktreeHint": "Creates a temporary worktree from the project's current branch when triggered; persistent sessions reuse it",
+   "advancedAria": "Advanced settings (worktree)",
+   "useWorktreeAria": "Use worktree isolation",
+   "branchHints": {
+    "detecting": "Detecting workspace…",
+    "gitMissing": "Git is not installed",
+    "notRepo": "Selected folder is not a git repository",
+    "insideWorktree": "Already inside a worktree"
+   },
+   "timingMode": {
+    "cron": "Cron",
+    "interval": "Relative interval",
+    "cronHint": "Runs at calendar clock slots.",
+    "intervalHint": "Waits this long after the previous run finishes.",
+    "intervalUnsupportedHint": "This exact interval is preserved. Choosing a minute or hour preset will replace it.",
+    "currentExact": "Current · {{schedule}}",
+    "exactIntervalPanelHint": "Choose a minute or hour preset on the left only when you want to replace this exact interval.",
+    "cronChip": "Cron · {{schedule}}",
+    "intervalChip": "After completion · {{schedule}}"
+   },
+   "scheduleMenu": {
+    "intervalMinutes": "Minutes (Every N Minutes)",
+    "interval": "Hourly (every N hours)",
+    "daily": "Daily (every day)",
+    "weekdays": "Weekdays",
+    "weekly": "Weekly (specific day)",
+    "monthly": "Monthly (specific day)"
+   },
+   "schedulePreview": {
+    "everyMinute": "Runs every minute",
+    "everyMinutes": "Runs every {{count}} minutes",
+    "everyHour": "Runs every 1 hour",
+    "everyHours": "Runs every {{count}} hours"
+   },
+   "scheduleField": {
+    "minutesSuffix": "minute(s)",
+    "hoursSuffix": "hour(s)",
+    "daySuffix": "Day",
+    "hourLabel": "Hour",
+    "minuteLabel": "Minute",
+    "scheduleHourAria": "Schedule hour",
+    "scheduleMinuteAria": "Schedule minute",
+    "intervalMinutesAria": "Repeat Interval (Minutes)",
+    "openTimePickerAria": "Open time picker",
+    "minuteIntervalHint": "Only minute intervals that divide an hour are available: 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, or 30 minutes. For 60 minutes, choose 1 hour.",
+    "unsupportedMinuteInterval": "This task uses the legacy {{count}}-minute Cron setting. Choose an available interval to correct it."
+   },
+   "model": {
+    "followSession": "Follow session",
+    "boundLocationLocked": "Bound tasks keep running where they are. Choose a model from that computer."
+   }
+  },
+  "toast": {
+   "updated": "Updated",
+   "created": "Created",
+   "deleted": "Deleted",
+   "runDeleted": "Run deleted",
+   "restarted": "Restarted",
+   "runFailed": "Failed to run: {{error}}",
+   "actionFailed": "Action failed: {{error}}",
+   "renameFailed": "Rename failed: {{error}}",
+   "deleteFailed": "Failed to delete: {{error}}",
+   "restartFailed": "Failed to restart: {{error}}",
+   "pluginDraftIgnoredFormOpen": "\"{{name}}\" asked to create an automation, but a form is already open. Your edits were kept — save or close it, then trigger the request again."
+  },
+  "deleteDialog": {
+   "title": "Delete automation \"{{name}}\"?",
+   "titleFallback": "Delete automation?",
+   "description": "Future triggers will stop. Choose what to do with sessions already generated by this automation.",
+   "sessionCountPending": "Counting generated sessions…",
+   "sessionCount": "{{count}} generated session(s)",
+   "inflightCount": "{{count}} execution(s) are currently running and will be stopped",
+   "optionAria": "Choose how to handle generated sessions",
+   "option": {
+    "keep": {
+     "title": "Keep sessions",
+     "description": "Delete only the automation task. Sessions stay in the sidebar."
+    },
+    "archive": {
+     "title": "Archive sessions",
+     "description": "Delete the automation task and move generated sessions to Archive."
+    },
+    "delete": {
+     "title": "Delete sessions",
+     "description": "Delete the automation task and its generated sessions. This cannot be undone."
+    }
+   },
+   "confirm": "Delete automation",
+   "confirmDeleteSessions": "Delete automation and sessions",
+   "sessionUpdatePartial": "Automation deleted, but {{fail}} session(s) could not be updated"
+  },
+  "confirm": {
+   "delete": {
+    "cancel": "Cancel"
+   },
+   "pause": {
+    "title": "Pause automation \"{{name}}\"?",
+    "withInflight": "This automation has {{count}} execution(s) currently in progress. Pausing will stop them immediately and in-progress work may be lost. Continue?",
+    "confirm": "Pause",
+    "cancel": "Cancel"
+   },
+   "deleteRun": {
+    "title": "Delete this run record?",
+    "description": "The run history entry will be removed. This cannot be undone.",
+    "confirm": "Delete",
+    "cancel": "Cancel"
+   }
+  },
+  "builtinTemplates": {
+   "schedule": {
+    "everyMinute": "Every minute",
+    "hourlyAt": "Hourly at minute {{minutes}}",
+    "atTimes": "At {{times}}",
+    "atHoursMinutes": "Hours {{hours}}, minutes {{minutes}}",
+    "monthDays": "Days {{days}} of the month",
+    "daysOrWeekdays": "{{days}} or {{weekdays}}",
+    "inMonths": "In {{months}}",
+    "daily": "Daily at {{time}}",
+    "weekdays": "Weekdays at {{time}}",
+    "weekly": "{{weekday}} at {{time}}",
+    "monthly": "Monthly on day {{day}} at {{time}}"
+   },
+   "categories": {
+    "dev-automation": "Development automation",
+    "info-radar": "Information radar",
+    "office-docs": "Docs & office work"
+   },
+   "items": {
+    "nightly-test-heal": {
+     "name": "Nightly test self-healing",
+     "description": "Run tests every night and attempt minimal fixes for failures in an isolated worktree",
+     "prompt": "Run the project's test suite. If there are failures, attempt a minimal fix in an isolated worktree.\nConstraints:\n- Determine the standard test command from the repo docs or package scripts before running the full suite\n- Only fix issues backed by clear failing evidence; prefer the smallest possible change and avoid drive-by refactoring\n- Re-run the affected tests after fixing to confirm they pass, and review the full diff\n- Deliver fixes through the repo's workflow (e.g. create a branch and open a PR); never commit directly to the main branch\n- For failures that cannot be fixed safely, report the cause, suspicious files, and suggested next steps"
+    },
+    "pr-gatekeeper": {
+     "name": "PR gatekeeper",
+     "description": "Pre-review new changes on open PRs each weekday and report risks by severity",
+     "prompt": "Review the repository's open PRs and pre-screen their new changes.\nConstraints:\n- Go through open PRs with new commits in the past 24 hours (on Monday, look back over the whole weekend), citing PR numbers, file paths, and concrete diffs\n- Focus on correctness, security, data-loss, and compatibility issues, graded by severity\n- Only report issues backed by evidence and describe the failure scenario; do not nitpick on style preferences\n- Unless explicitly authorized, only output review conclusions; do not comment on PRs or change code"
+    },
+    "domain-radar": {
+     "name": "Domain radar",
+     "description": "Periodically collect the latest updates in a topic you follow and deliver an opinionated digest",
+     "prompt": "Collect the latest developments about \"{{topic}}\" from the past 24 hours (on Monday, look back over the whole weekend) and produce an opinionated digest.\nConstraints:\n- Use web search, cross-check multiple sources before trusting a claim, and cite the source link for every item\n- Prefer substantive developments (releases, research, policy, notable discussions); filter out marketing fluff and reposts\n- For each item, add a one-line judgement on why it matters instead of dumping links\n- When information is scarce or sources are questionable, say so honestly; never fabricate",
+     "params": {
+      "topic": {
+       "label": "Topic to follow",
+       "placeholder": "e.g. AI agents, EV market, frontend frameworks"
+      }
+     }
+    },
+    "competitor-watch": {
+     "name": "Competitor watch",
+     "description": "Weekly roundup of competitors' product and market moves, with impact analysis",
+     "prompt": "Track the past week's activity of these competitors: {{competitors}}.\nConstraints:\n- Use web search to cover product updates, releases, pricing changes, market moves, and user sentiment, citing sources\n- Distinguish official information from third-party accounts; clearly mark unverified rumors\n- For each significant update, analyze what it means for us and suggest a response\n- If nothing substantive happened, say so honestly instead of padding the report",
+     "params": {
+      "competitors": {
+       "label": "Competitors",
+       "placeholder": "e.g. Notion, Linear, Figma"
+      }
+     }
+    },
+    "weekly-work-draft": {
+     "name": "Weekly report drafter",
+     "description": "Compile this week's work from documents in the working directory into a report draft",
+     "prompt": "Based on this week's changes to documents, notes, and works in the working directory, compile a weekly report draft.\nConstraints:\n- Only use content with actual modification traces in the working directory as evidence, citing the files\n- Organize as \"Done this week / In progress / Next week / Needs coordination\", concise enough to submit directly\n- Separate substantive progress from routine chores and highlight valuable output\n- Leave placeholders with notes where the material is insufficient so the user can fill them in"
+    },
+    "knowledge-freshness": {
+     "name": "Knowledge base freshness check",
+     "description": "Monthly health check of working-directory docs for outdated or conflicting content",
+     "prompt": "Health-check the documents in the working directory and find content that needs updating.\nConstraints:\n- Look for outdated information (stale dates, dead links, deprecated processes or tools), contradictions, and duplication\n- Cite the file path and location for every issue and explain the reasoning\n- Categorize as \"update / merge / delete\" suggestions and produce a revision checklist\n- Only output the report; do not modify the documents"
+    }
+   }
+  }
+ }
+}

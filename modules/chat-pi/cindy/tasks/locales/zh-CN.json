@@ -1,0 +1,39 @@
+{
+ "bots": {
+  "collab": {
+   "backgroundTask": "后台任务"
+  },
+  "groupChat": {
+   "task": {
+    "label": "任务",
+    "state": {
+     "started": "进行中",
+     "waiting": "等你确认",
+     "completed": "已完成",
+     "failed": "失败了",
+     "cancelled": "已取消",
+     "timed-out": "已超时"
+    }
+   }
+  }
+ },
+ "groupTools": {
+  "authorizationRequired": "群内授权已失效或不允许此操作，请由伙伴主人在当前群重新发起。",
+  "localPeersOnly": "群内私聊只能发送给本机同账号伙伴。",
+  "ownerChanged": "账号已经切换，请重试。",
+  "invalidMessage": "消息或重试标识无效。",
+  "privateUnavailable": "当前伙伴私聊不可用，请稍后重试。",
+  "idempotencyConflict": "此重试标识已用于另一条消息。",
+  "privateUnconfirmed": "私聊未确认送达，请使用同一重试标识重试。",
+  "verificationUnavailable": "暂时无法核验群聊授权，请在连接恢复后重试。"
+ },
+ "forwardedRequest": {
+  "sourcePresent": "[来源] 用户原话由宿主原样保留，作为请求背景；当前请求在 Agent补充。",
+  "sourceMissing": "[来源] 未找到可核验的用户原话。",
+  "userPrefix": "用户原话：",
+  "agentPrefix": "Agent补充：",
+  "taskSource": "[任务来源] 本任务由伙伴发起。",
+  "taskId": "任务 ID：",
+  "contextReferences": "参考资料："
+ }
+}

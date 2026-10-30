@@ -11,19 +11,20 @@ import (
 )
 
 type UsageQuery struct {
-	Zone      string `json:"tz,omitempty"`
-	CallerKey string `json:"callerKey,omitempty"`
-	Period    string `json:"period"`
-	Provider  string `json:"provider"`
-	Source    string `json:"source"`
-	Failed    bool   `json:"failed"`
-	Offset    int    `json:"offset"`
-	Day       string `json:"day"`
-	Model     string `json:"model"`
-	Account   string `json:"account"`
-	Purpose   string `json:"purpose"`
-	Query     string `json:"query"`
-	Export    bool   `json:"export,omitempty"`
+	Models    []string `json:"models,omitempty"`
+	Zone      string   `json:"tz,omitempty"`
+	CallerKey string   `json:"callerKey,omitempty"`
+	Period    string   `json:"period"`
+	Provider  string   `json:"provider"`
+	Source    string   `json:"source"`
+	Failed    bool     `json:"failed"`
+	Offset    int      `json:"offset"`
+	Day       string   `json:"day"`
+	Model     string   `json:"model"`
+	Account   string   `json:"account"`
+	Purpose   string   `json:"purpose"`
+	Query     string   `json:"query"`
+	Export    bool     `json:"export,omitempty"`
 }
 
 // Usage reads only the shared installation profile's Magpie ledger. Provider
@@ -41,6 +42,11 @@ func (t Translator) Usage(ctx context.Context, query UsageQuery) (json.RawMessag
 	if query.Day != "" {
 		if _, err := time.Parse("2006-01-02", query.Day); err != nil {
 			return nil, errors.New("用量日期无效")
+		}
+	}
+	for _, model := range query.Models {
+		if len(model) > 512 || strings.ContainsRune(model, '\x00') {
+			return nil, errors.New("用量模型标识无效")
 		}
 	}
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)

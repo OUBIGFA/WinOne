@@ -108,9 +108,11 @@ func TestDirectoryLinksOpenQueuesOnlyPathsAndConsumesInOrder(t *testing.T) {
 func TestDirectoryLinksProductionRegistrationRejectsNonDesktopMutationClients(t *testing.T) {
 	root := t.TempDir()
 	service := host.New(nil)
-	if err := registerDirectoryLinks(service, root); err != nil {
+	closeLinks, err := registerDirectoryLinks(service, root)
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer closeLinks()
 	r := service.Handle(host.Request{Version: 1, ID: "foreign", PeerPID: uint32(os.Getpid()), Method: "directory-links.preview", Params: json.RawMessage(`{}`)})
 	if r.Error == nil {
 		t.Fatal("a same-user test executable acquired desktop mutation authority")

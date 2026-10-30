@@ -37,10 +37,11 @@ __pycache__/
 !third_party/gifski/src/bin/*.rs
 # Agent entry point is AGENTS.md; CLAUDE.md is a local tool copy and must not drift.
 /CLAUDE.md
-# Keep this final: ignore _temp at every depth, after all negation rules.
 /apps/desktop/frontend/public/pdfjs/
-_temp/
-
-
 # Go build outputs in source modules
 modules/**/*.exe
+# Preserve ad-hoc local Host builds without tracking or deleting them.
+/host.exe
+/apps/host/host.exe
+# Keep this final: ignore _temp at every depth, after all negation rules.
+_temp/

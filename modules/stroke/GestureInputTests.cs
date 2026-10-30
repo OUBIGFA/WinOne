@@ -70,7 +70,8 @@ namespace WinOne.StrokeRuntime
         // only this disposable window. Default tests never inject OS input.
         private static void NativeRoundTrip(){
             Point cursor=Cursor.Position;
-            using(var form=new Form{Text="WinOne gesture input fixture",StartPosition=FormStartPosition.CenterScreen,Size=new Size(420,300),TopMost=true}){
+            using(var form=new Form{Text="WinOne gesture input fixture",StartPosition=FormStartPosition.CenterScreen,Size=new Size(420,300),TopMost=true,BackColor=Color.White})
+            using(var trail=new TrailWindow(new PenDefinition{enabled=true,color="#1f7fff",opacity=.8,thickness=5})){
                 form.Show();form.Activate();Pump();
                 var config=Configuration.Parse(File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"defaults.json")));
                 foreach(var pack in config.actionPackages)foreach(var a in pack.actions)a.enabled=a.gesture=="left"||a.gesture=="right";
@@ -78,24 +79,40 @@ namespace WinOne.StrokeRuntime
                 form.MouseDown+=(_,e)=>{if(e.Button==MouseButtons.Right){downs++;origin=e.Location;}};
                 form.MouseUp+=(_,e)=>{if(e.Button==MouseButtons.Right)ups++;};
                 form.MouseMove+=(_,e)=>{if(e.Button==MouseButtons.Right)drags++;};form.MouseWheel+=(_,e)=>wheels+=e.Delta;
-                var engine=new GestureEngine(config,p=>new WindowTarget{processId=Process.GetCurrentProcess().Id,window=form.Bounds.Contains(p)?form.Handle.ToInt64():0,processPath=Path.Combine(@"C:/Windows","explorer.exe"),windowClass=form.Bounds.Contains(p)?"CabinetWClass":"Progman"},(a,b)=>{},()=>{},(a,m,t)=>actions++,NativeGestureInput.Replay,new ScopePolicy(config,@"C:/Windows"),modified:()=>false);
+                // Match the actual owned process/window, and use the same
+                // dedicated hook -> queued UI drawing path as StrokeApplication.
+                config.scopes=new[]{new ScopeDefinition{id="fixture",name="Fixture",kind="application",enabled=true,processPath=Process.GetCurrentProcess().MainModule.FileName,packages=config.actionPackages.Select(p=>p.id).ToArray()}};
+                var engine=new GestureEngine(config,NativeWindowIdentity.At,(a,b)=>form.BeginInvoke(new System.Action(()=>trail.Segment(a,b))),()=>form.BeginInvoke(new System.Action(trail.ClearTrail)),(a,m,t)=>actions++,NativeGestureInput.Replay,modified:()=>false);
                 Point start=form.PointToScreen(new Point(120,80)),end=form.PointToScreen(new Point(120,155));
-                MouseHook.MouseAction+=engine.Process;MouseHook.StartHook();
+                var hit=NativeWindowIdentity.At(start);
+                Check(hit!=null&&hit.window==form.Handle.ToInt64(),"Native input fixture is obscured; no input will be sent. Hit="+(hit?.windowClass??"none")+", pid="+(hit?.processId??0));
+                var observed=new System.Collections.Concurrent.ConcurrentQueue<string>();
+                MouseHook.MouseActionHandler observe=e=>{observed.Enqueue(e.MouseButtonState+" "+e.MouseButton+" "+e.Location);return false;};
+                MouseHook.MouseAction+=observe;MouseHook.MouseAction+=engine.Process;
+                using(var loop=new MouseHookLoop(engine.Cancel,engine.Tick))
                 try{
                     Inject(Event(start.X,start.Y,MouseHook.MouseButtonStates.Down,MouseButtons.Right));
                     Inject(Event(end.X,end.Y,MouseHook.MouseButtonStates.Move));
                     Inject(Event(end.X,end.Y,MouseHook.MouseButtonStates.Up,MouseButtons.Right));
-                    Check(downs==1&&ups==1&&drags>0&&origin==new Point(120,80)&&actions==0,"Native target did not receive the rejected vertical drag from its original point");
+                    Check(downs==1&&ups==1&&drags>0&&origin==new Point(120,80)&&actions==0,"Native target did not receive the rejected vertical drag from its original point: downs="+downs+", ups="+ups+", drags="+drags+", origin="+origin+", actions="+actions+", observed="+String.Join(";",observed));
                     Inject(Event(start.X,start.Y,MouseHook.MouseButtonStates.Down,MouseButtons.Right));
                     Inject(Event(start.X-60,start.Y,MouseHook.MouseButtonStates.Move));
+                    Check(trail.Visible,"Real hook did not show its queued trail");
+                    // GetDC/WM_PRINT can pass while a layered window remains
+                    // invisible to DWM. Read only a pixel inside our white fixture.
+                    using(var pixel=new ScreenPixelProbe()){
+                        var color=pixel.Read(start.X-30,start.Y);
+                        Check(color.B>color.R+60,"Trail is painted but not visibly composited: "+color);
+                    }
                     Inject(Event(start.X-60,start.Y,MouseHook.MouseButtonStates.Up,MouseButtons.Right));
+                    Check(!trail.Visible,"Real button release left its trail visible");
                     Check(actions==1&&downs==1&&ups==1,"Enabled horizontal gesture leaked a native click");
                     Inject(Event(start.X,start.Y,MouseHook.MouseButtonStates.Down,MouseButtons.Right));
                     Inject(Event(start.X,start.Y,MouseHook.MouseButtonStates.Wheel,MouseButtons.None,120));
                     Inject(Event(start.X,start.Y,MouseHook.MouseButtonStates.Up,MouseButtons.Right));
-                    Check(downs==2&&ups==2&&wheels==120,"Unassigned wheel did not reach the native target");
-                    Console.WriteLine("PASS: real hook -> SendInput -> owned native window: vertical right-drag, enabled horizontal gesture, unassigned wheel");
-                }finally{MouseHook.StopHook();MouseHook.MouseAction-=engine.Process;engine.Cancel();NativeGestureInput.Replay(new[]{Event(start.X,start.Y,MouseHook.MouseButtonStates.Up,MouseButtons.Right)});Cursor.Position=cursor;}
+                    Check(downs==2&&ups==2&&wheels==120,"Unassigned wheel did not reach the native target: downs="+downs+", ups="+ups+", wheels="+wheels+", actions="+actions+", target="+(NativeWindowIdentity.At(start)?.windowClass??"none"));
+                    Console.WriteLine("PASS: real dedicated hook -> verified owned window -> queued UI trail -> visible DWM pixel -> release; native vertical drag and wheel preserved");
+                }finally{MouseHook.MouseAction-=observe;MouseHook.MouseAction-=engine.Process;engine.Cancel();NativeGestureInput.Replay(new[]{Event(start.X,start.Y,MouseHook.MouseButtonStates.Up,MouseButtons.Right)});Cursor.Position=cursor;}
             }
         }
     }

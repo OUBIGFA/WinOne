@@ -1,5 +1,5 @@
 import {SettingsSaveBar} from "../components/settings-save-bar";
-import {Save,RotateCcw,RefreshCw} from "lucide-react";
+import {Save,RefreshCw} from "lucide-react";
 import {Notice} from "../ui/notice";
 import { useEffect, useState, type ReactNode } from "react";
 import { getSnapshot, getShortcuts, saveSettings, shortcutRecordingPort, type Settings, type ShortcutStatus } from "../bridge";
@@ -23,7 +23,7 @@ export function Shortcuts({ onSaved,moduleId,onActivity,renderLayout }: { onSave
   const [recording,setRecording]=useState(false);
   // Reading bindings is safe to leave; recording and saving still need the
   // existing guard because they change registrations or persisted settings.
-  usePageActivity(onActivity,dirty,working||recording,"shortcuts");
+  usePageActivity(onActivity,dirty,working||recording,"shortcuts",()=>void reload());
   const registrationError=status?.bindings.find(binding=>fields.some(([, ,id])=>id===binding.id)&&binding.error)?.error;
   async function refresh() {
     try {setStatus(await getShortcuts());}
@@ -60,9 +60,8 @@ export function Shortcuts({ onSaved,moduleId,onActivity,renderLayout }: { onSave
   </>;
   // Keep the save transaction alongside this editor; the shared component
   // renders it in the shell footer even when the composed tab is very short.
-  const actions=draft&&<SettingsSaveBar disabled={busy}>
+  const actions=draft&&<SettingsSaveBar disabled={busy} undo={{disabled:!dirty,onClick:()=>void reload()}}>
     <Button icon={Save} variant="primary" disabled={!dirty||recording} onClick={()=>void save()}>{t("shortcuts.save")}</Button>
-    {dirty&&<Button icon={RotateCcw} onClick={()=>void reload()}>{t("shortcuts.undo")}</Button>}
     {!dirty&&registrationError&&<Button icon={RefreshCw} onClick={()=>void save()}>{t("shortcuts.retry")}</Button>}
   </SettingsSaveBar>;
   // The editor stays mounted for the whole page, so its draft survives a tab

@@ -65,8 +65,11 @@ func (r Report) Validate(pid int, executable, nonce string) error {
 	if len(r.Modules) >= 5 {
 		expected["quick-assistant"] = false
 	}
-	if len(r.Modules) == 6 {
+	if len(r.Modules) >= 6 {
 		expected["stroke"] = false
+	}
+	if len(r.Modules) == 7 {
+		expected["timed-power"] = false
 	}
 	if len(r.Modules) != len(expected) {
 		return errors.New("startup probe module list incomplete")

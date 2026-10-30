@@ -1,5 +1,5 @@
 import {Notice} from "./ui/notice";
-import React, { useEffect, useRef, useState } from "react";
+import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {CSPProvider} from "@base-ui/react/csp-provider";
 import {
@@ -19,7 +19,7 @@ import "./style.css";
 import logo from "../../../../internal/branding/logo.png";
 import { WinTrayPage } from "./features/wintray";
 import { CapturePage } from "./features/capture";
-import {Network} from "lucide-react";
+import {FolderUp} from "lucide-react";
 import {MessagesCircle} from "./components/icons/messages-circle";
 import {useInterconnectIntents,type InterconnectIntent} from './features/interconnect-intents';
 import {InterconnectPage} from "./features/interconnect";
@@ -28,8 +28,10 @@ import {ConveniencePage} from "./features/convenience";
 import {SelectionPage} from "./features/selection";
 import {AISettings} from "./features/ai-settings";
 import {ChatPage} from "./features/chat";
+// Loaded on first visit: the teammate store reads profiles as soon as its module loads.
+const OneBotPage=lazy(()=>import("./features/onebot").then(module=>({default:module.OneBotPage})));
 import {createAccountReader} from "./features/ai-account-reader";
-import { Home, ScanLine, Rocket, LaptopMinimal, Settings as SettingsIcon,RefreshCw,Palette,Activity,MousePointer2,Sparkles,Bot,SendHorizontal } from "lucide-react";
+import { Home, ScanLine, Rocket, LaptopMinimal, Settings as SettingsIcon,RefreshCw,Palette,Activity,MousePointer2,Sparkles,Bot,SendHorizontal,Panda } from "lucide-react";
 import {QuickAssistantIcon} from "./components/quick-assistant-icon";
 import {moduleRank} from "./module-order";
 import {IconLabel} from "./ui/icon-label";
@@ -40,6 +42,7 @@ import { setApplicationLanguage, useTranslation } from "./i18n";
 import {runCaptureJob,type CaptureDraft} from "./features/capture-draft-api";
 import {finishStartupProbe} from "./startup-probe";
 import {usePageNavigation,usePageActivity} from "./ui/page-navigation";
+import {TabChangeGuardContext} from "./components/tab-change-guard";
 import {AppShell} from "./components/app-shell";
 import {ModulePanel} from "./components/module-panel";
 import {SettingsPanel} from "./components/settings-panel";
@@ -57,16 +60,18 @@ const pageDefinitions = [
   { id: "capture", title: "nav.capture", icon: ScanLine },
   { id: "selection", title: "nav.selection", icon: MousePointer2 },
   { id: "quick-assistant", title: "nav.quick-assistant", icon: QuickAssistantIcon },
-  { id: "interconnect", title: "interconnect.title", icon: Network },
+  { id: "interconnect", title: "interconnect.title", icon: FolderUp },
   { id: "convenience", title: "nav.convenience", icon: Rocket },
   { id: "wintray", title: "nav.wintray", icon: LaptopMinimal },
+  { id: "onebot", title: "onebot.title", icon: Panda },
   { id: "ai-services", title: "ai.serviceTitle", icon: Sparkles },
   { id: "settings", title: "nav.settings", icon: SettingsIcon },
 ];
 
 function App() {
   const {t}=useTranslation();
-  const pages=[pageDefinitions[0],...pageDefinitions.slice(1,-2).sort((a,b)=>moduleRank(a.id)-moduleRank(b.id)),{id:"chat",title:"chat.title",icon:Bot},{id:"flash-chat",title:"interconnect.peerChat",icon:MessagesCircle},...pageDefinitions.slice(-2)].map(page=>({...page,title:t(page.title)}));
+  // OneBot sits directly above Chat; Flash chat follows Chat.
+  const pages=[pageDefinitions[0],...pageDefinitions.slice(1,-2).filter(page=>page.id!=="onebot").sort((a,b)=>moduleRank(a.id)-moduleRank(b.id)),pageDefinitions.find(page=>page.id==="onebot")!,{id:"chat",title:"chat.title",icon:Bot},{id:"flash-chat",title:"interconnect.peerChat",icon:MessagesCircle},...pageDefinitions.slice(-2)].map(page=>({...page,title:t(page.title)}));
   const [page, setPage] = useState("overview");
   const navigation=usePageNavigation(page,setPage,settingsClosePort);
   const [snapshot, setSnapshot] = useState<Snapshot>();
@@ -81,14 +86,27 @@ function App() {
   const initialPageApplied=useRef(false);
   const [linkIntent,setLinkIntent]=useState<DirectoryLinkIntent>();
   const [requestedConversationId,setRequestedConversationId]=useState<string>();
+  const [requestedChatFile,setRequestedChatFile]=useState<{path:string;line?:number;directory?:boolean}>();
+  const [chatSettingsRequest,setChatSettingsRequest]=useState(0);
   const [interconnectIntent,setInterconnectIntent]=useState<InterconnectIntent>();
   const interconnectPending=useRef(false);
   useInterconnectIntents(!!snapshot,intent=>{initialPageApplied.current=true;interconnectPending.current=true;navigation.requestPage('interconnect',()=>setInterconnectIntent(current=>({...intent,paths:[...(current?.paths??[]),...intent.paths]})));},setError);
   const linkIntentPending=useRef(false);
   useDirectoryLinkIntents(!!snapshot,intent=>{initialPageApplied.current=true;navigation.requestPage('convenience',()=>{linkIntentPending.current=true;setLinkIntent(current=>({...intent,paths:[...(current?.paths??[]),...intent.paths]}));});},setError);
   useEffect(()=>{
-    const open=(event:Event)=>{const id=(event as CustomEvent<{id?:unknown}>).detail?.id;if(typeof id!=="string"||!id||id.length>128)return;navigation.requestPage("chat",()=>setRequestedConversationId(id));};
-    window.addEventListener("winone-open-chat",open);return()=>window.removeEventListener("winone-open-chat",open);
+    const open=(event:Event)=>{
+      const detail=(event as CustomEvent<{id?:unknown;file?:{path?:unknown;line?:unknown;directory?:unknown}}>).detail,id=detail?.id;
+      if(typeof id!=="string"||!id||id.length>128)return;
+      const value=detail.file;
+      const file=value&&typeof value.path==='string'&&value.path.length<=32768&&!value.path.includes('\0')?{path:value.path,line:typeof value.line==='number'&&Number.isSafeInteger(value.line)&&value.line>0?value.line:undefined,directory:value.directory===true}:undefined;
+      navigation.requestPage("chat",()=>{setRequestedConversationId(id);setRequestedChatFile(file);});
+    };
+    // Embedded Cindy pages ask for WinOne pages by id (e.g. AI services).
+    // OneBot asks for Chat settings, where Skills, plugins and MCP servers are configured.
+    const page=(event:Event)=>{const detail=(event as CustomEvent<{id?:unknown;section?:unknown}>).detail,id=detail?.id;
+      if(id==="chat"&&detail?.section==="settings"){navigation.requestPage("chat",()=>setChatSettingsRequest(value=>value+1));return;}
+      if(typeof id==="string"&&pageDefinitions.some(item=>item.id===id))navigation.requestPage(id);};
+    window.addEventListener("winone-open-chat",open);window.addEventListener("winone-open-page",page);return()=>{window.removeEventListener("winone-open-chat",open);window.removeEventListener("winone-open-page",page);};
   },[navigation.requestPage]);
   useSettingsNavigation(settingsNavigationPort,page=>navigation.requestPage(interconnectPending.current?'interconnect':linkIntentPending.current?'convenience':page),setError,defaultPage,!!snapshot);
   useEffect(()=>{if(snapshot&&!initialPageApplied.current){initialPageApplied.current=true;navigation.requestPage(defaultPage);}},[snapshot,defaultPage]);
@@ -208,7 +226,10 @@ function App() {
   const settingsError = error && <Notice title={t("common.failed")} actions={
     <Button disabled={busy} onClick={() => void refresh()}>{t("common.reconnect")}</Button>
   }>{error}</Notice>;
+  // Settings tabs share the page's unsaved-change decision. Chat keeps its own
+  // composer/file protections and is excluded from this guard.
   return (
+    <TabChangeGuardContext.Provider value={page==="chat"||page==="flash-chat"?null:navigation.requestChange}>
     <AppShell key={formEpoch} page={page} pages={pages} logo={logo} onNavigate={id=>{navigation.requestPage(id);setNotice("");}} windowPort={windowFramePort} onWindowReady={()=>setWindowReady(true)} toolbar={<Button icon={RefreshCw} size="icon" variant="ghost" busy={busy} aria-label={t("common.refresh")} title={t(navigation.activity.dirty||navigation.activity.busy?"settingsDesign.refreshAfterEditing":"common.refresh")} disabled={navigation.activity.dirty||navigation.activity.busy} onClick={()=>void refresh()}/>}>
         {page!=="settings"&&settingsError}
         {snapshot?.runtimeWarning&&<Notice tone="info">{snapshot.runtimeWarning}</Notice>}
@@ -235,20 +256,21 @@ function App() {
           </SettingsPanel>
         )}
         {page === "ai-services" && <AISettings onActivity={navigation.onActivity} accountReader={accountReader}/>}
-        {page === "chat" && <ChatPage onActivity={navigation.onActivity} onOpenAI={()=>navigation.requestPage("ai-services")} requestedConversationId={requestedConversationId} onRequestedConversationHandled={()=>setRequestedConversationId(undefined)}/>}
+        {page === "onebot" && <Suspense fallback={null}><OneBotPage /></Suspense>}
+        {page === "chat" && <ChatPage onActivity={navigation.onActivity} onOpenAI={()=>navigation.requestPage("ai-services")} requestedConversationId={requestedConversationId} requestedFile={requestedChatFile} settingsRequest={chatSettingsRequest} onRequestedConversationHandled={()=>{setRequestedConversationId(undefined);setRequestedChatFile(undefined);}}/>}
         {page === "flash-chat" && <PeerChatFrame active onActivity={navigation.onActivity}/>}
         <>
           {page === "wintray" && <WinTrayPage disabled={module?.state === "disabled"} onChanged={()=>void refresh()} onActivity={navigation.onActivity}/>}
           {page === "capture" && <ModulePanel moduleId="capture"><CapturePage disabled={module?.state === "disabled"} onEdit={editCapture} onOpenDraft={openCapturedDraft} refreshKey={captureRefresh} onActivity={navigation.onActivity} onSaved={()=>void refresh()}/></ModulePanel>}
           {page === "interconnect" && <InterconnectPage onActivity={navigation.onActivity} intent={interconnectIntent} onIntentConsumed={()=>{setInterconnectIntent(undefined);interconnectPending.current=false;}}/>}
-          {page === "convenience" && <ConveniencePage disabled={snapshot?.modules.find(value=>value.id==="always-on-top")?.state === "disabled"} strokeDisabled={snapshot?.modules.find(value=>value.id==="stroke")?.state === "disabled"} actionsDisabled={busy} onChanged={()=>void refresh()} onActivity={navigation.onActivity} linkIntent={linkIntent} onLinkIntentConsumed={()=>{linkIntentPending.current=false;setLinkIntent(undefined);}}/>}
+          {page === "convenience" && <ConveniencePage disabled={snapshot?.modules.find(value=>value.id==="always-on-top")?.state === "disabled"} powerDisabled={snapshot?.modules.find(value=>value.id==="timed-power")?.state === "disabled"} strokeDisabled={snapshot?.modules.find(value=>value.id==="stroke")?.state === "disabled"} actionsDisabled={busy} onChanged={()=>void refresh()} onActivity={navigation.onActivity} linkIntent={linkIntent} onLinkIntentConsumed={()=>{linkIntentPending.current=false;setLinkIntent(undefined);}}/>}
           {page === "quick-assistant" && <ModulePanel moduleId="quick-assistant"><SelectionPage key="quick-assistant" moduleId="quick-assistant" disabled={module?.state === "disabled"} onActivity={navigation.onActivity} onSaved={()=>void refresh()}/></ModulePanel>}
           {page === "selection" && <ModulePanel moduleId="selection"><SelectionPage disabled={module?.state === "disabled"} onActivity={navigation.onActivity} onSaved={()=>void refresh()}/></ModulePanel>}
         </>
         {page !== "overview" &&
           page !== "settings" &&
           page !== "wintray" &&
-          page !== "capture" && page !== "quick-assistant" && page !== "selection" && page !== "ai-services" && page !== "chat" && page !== "flash-chat" && page !== "convenience" && page !== "modules" && page !== "interconnect" && (
+          page !== "capture" && page !== "quick-assistant" && page !== "selection" && page !== "ai-services" && page !== "onebot" && page !== "chat" && page !== "flash-chat" && page !== "convenience" && page !== "modules" && page !== "interconnect" && (
             <section className="empty">
               <span className="empty-icon" aria-hidden>
                 <selected.icon size={28} strokeWidth={1.75} />
@@ -263,6 +285,7 @@ function App() {
 
       {navigation.dialog}
     </AppShell>
+    </TabChangeGuardContext.Provider>
   );
 }
 

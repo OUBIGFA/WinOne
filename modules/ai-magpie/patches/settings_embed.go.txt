@@ -1,6 +1,10 @@
 package settings
 
-import "sync/atomic"
+import (
+ "errors"
+ "maps"
+ "sync/atomic"
+)
 
 // Set only by the embedding entry before a request starts. A worker owns one
 // snapshot; no global save or another desktop client's file is involved.
@@ -9,6 +13,17 @@ var WinOneSettings atomic.Pointer[Settings]
 // Upstream Load is a mutable copy while Shared is read-only. Keep the same
 // contract for Host snapshots so preference editors cannot mutate a reader.
 func WinOneUse(s Settings) { normalized := s.normal(); WinOneSettings.Store(&normalized) }
+
+// Reuse provider.SetUsageAlias's actual validation and normalization without
+// writing a separate Magpie profile. The Host later saves the accepted draft.
+func winOneEditUsageAliases(edit func(map[string]string) (map[string]string,error)) error {
+ for {
+  prior:=WinOneSettings.Load();if prior==nil{return errors.New("missing WinOne settings snapshot")}
+  aliases,err:=edit(maps.Clone(prior.UsageAliases));if err!=nil{return err}
+  if len(aliases)==0{aliases=nil};next:=*prior;next.UsageAliases=aliases
+  if WinOneSettings.CompareAndSwap(prior,&next){return nil}
+ }
+}
 
 // Routing can update its naming preference while requests read the snapshot.
 func WinOneLoad() (Settings, bool) {

@@ -29,7 +29,7 @@ func writeConfigurationProbe(output io.Writer, input io.Reader, nonce string) er
 	if err != nil {
 		return err
 	}
-	if err = configuration.CheckUpgrade(data, aotConfiguration("", nil), captureConfiguration("", nil), wintrayConfiguration("", nil, nil), selectionConfiguration("", nil), quickAssistantConfiguration("", nil), strokeConfiguration("", nil)); err != nil {
+	if err = configuration.CheckUpgrade(data, aotConfiguration("", nil), captureConfiguration("", nil), wintrayConfiguration("", nil, nil), selectionConfiguration("", nil), quickAssistantConfiguration("", nil), strokeConfiguration("", nil), timedPowerConfiguration()); err != nil {
 		return err
 	}
 	sum := sha256.Sum256(data)

@@ -1,0 +1,39 @@
+{
+ "bots": {
+  "collab": {
+   "backgroundTask": "Background task"
+  },
+  "groupChat": {
+   "task": {
+    "label": "Task",
+    "state": {
+     "started": "In progress",
+     "waiting": "Waiting for your confirmation",
+     "completed": "Done",
+     "failed": "Failed",
+     "cancelled": "Cancelled",
+     "timed-out": "Timed out"
+    }
+   }
+  }
+ },
+ "groupTools": {
+  "authorizationRequired": "Group authorization has expired or does not allow this action. Ask the teammate owner to make a new request in this group.",
+  "localPeersOnly": "Group messages can only target teammates on this device and account.",
+  "ownerChanged": "The account changed. Please try again.",
+  "invalidMessage": "The message or retry identifier is invalid.",
+  "privateUnavailable": "This teammate’s private chat is unavailable. Please try again later.",
+  "idempotencyConflict": "This retry identifier was already used for a different message.",
+  "privateUnconfirmed": "Private message delivery is unconfirmed. Retry with the same identifier.",
+  "verificationUnavailable": "Group authorization could not be verified. Try again when the connection recovers."
+ },
+ "forwardedRequest": {
+  "sourcePresent": "[Source] The host preserved the user’s original words as request background, without changes. The current request is in the Agent supplement.",
+  "sourceMissing": "[Source] No verifiable original user text was found.",
+  "userPrefix": "User’s original words:",
+  "agentPrefix": "Agent supplement:",
+  "taskSource": "[Task source] A companion started this task.",
+  "taskId": "Task ID:",
+  "contextReferences": "Context references:"
+ }
+}

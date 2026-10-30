@@ -16,16 +16,18 @@ import (
 )
 
 type gatewayEvent struct {
+	Limited bool        `json:"limited,omitempty"`
 	Type    string      `json:"type"`
 	Status  int         `json:"status,omitempty"`
 	Headers http.Header `json:"headers,omitempty"`
 	Data    []byte      `json:"data,omitempty"`
 }
 type gatewayResponse struct {
-	header http.Header
-	status int
-	encode func(gatewayEvent) error
-	err    error
+	errorBody []byte
+	header    http.Header
+	status    int
+	encode    func(gatewayEvent) error
+	err       error
 }
 
 func (w *gatewayResponse) Header() http.Header { return w.header }
@@ -34,6 +36,11 @@ func (w *gatewayResponse) WriteHeader(status int) {
 		return
 	}
 	w.status = status
+	// An error's header waits until its bounded body can be classified. A
+	// successful response still starts streaming immediately.
+	if status >= 400 {
+		return
+	}
 	w.err = w.encode(gatewayEvent{Type: "headers", Status: status, Headers: w.header})
 }
 func (w *gatewayResponse) Write(data []byte) (int, error) {
@@ -46,6 +53,7 @@ func (w *gatewayResponse) Write(data []byte) (int, error) {
 	// Upstream errors may repeat a provider key or a prompt. Only status and
 	// Retry-After leave this worker; successful protocol bodies stay byte-exact.
 	if w.status >= 400 {
+		w.errorBody = appendFailureBody(w.errorBody, data)
 		return len(data), nil
 	}
 	total := len(data)
@@ -92,6 +100,7 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 			return err
 		}
 		model = p.ID + "/" + in.Model
+		p.LimitRestOff = in.LimitRestOff
 		provider.WinOneProviders = []provider.Provider{*p}
 	} else {
 		p, err := configuredProvider(in)
@@ -107,13 +116,13 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 	if err := installAuxiliaryProviders(in); err != nil {
 		return err
 	}
- metadata := in.ModelMetadata
- if gateway.WinOneTransportOnly {
-  // The outer router already chose the effort/tier. A provider transport
-  // must retain that decision instead of applying its saved defaults again.
-  metadata.ReasoningEffort, metadata.Tier, metadata.Reasoning = "", "", nil
- }
- if err := applyRawModelMetadata(payload, in.GatewayPath, metadata); err != nil {
+	metadata := in.ModelMetadata
+	if gateway.WinOneTransportOnly {
+		// The outer router already chose the effort/tier. A provider transport
+		// must retain that decision instead of applying its saved defaults again.
+		metadata.ReasoningEffort, metadata.Tier, metadata.Reasoning = "", "", nil
+	}
+	if err := applyRawModelMetadata(payload, in.GatewayPath, metadata); err != nil {
 		return err
 	}
 	body, err := json.Marshal(payload)
@@ -139,11 +148,17 @@ func serveGatewayBody(ctx context.Context, in request, body []byte, output io.Wr
 		req.Header.Set("X-WinOne-Caller-Key", id)
 	}
 	gateway.New().Handler().ServeHTTP(response, winOneCallerRequest(req))
+	gateway.WinOneWaitArchive()
 	if response.status == 0 {
 		response.WriteHeader(200)
 	}
 	if response.err != nil {
 		return response.err
+	}
+	if response.status >= 400 {
+		if err := encoder.Encode(gatewayEvent{Type: "headers", Status: response.status, Headers: response.header, Limited: gateway.WinOneLimitedResponse(response.status, response.errorBody)}); err != nil {
+			return err
+		}
 	}
 	return encoder.Encode(gatewayEvent{Type: "done"})
 }

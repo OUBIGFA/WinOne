@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"testing"
+	"winone/internal/catalog"
 	"winone/internal/configuration"
 	"winone/internal/host"
 	"winone/internal/modules"
@@ -139,7 +140,7 @@ func TestLargeProfilePreviewUsesBoundedVerifiedChunks(t *testing.T) {
 func TestExportWritesAllCommittedModulesWithoutStartingWorkers(t *testing.T) {
 	directory := t.TempDir()
 	get := func() *modules.Lazy { return nil }
-	store, err := configuration.OpenHost(directory, aotConfiguration(directory, get), captureConfiguration(directory, get), wintrayConfiguration(directory, get), selectionConfiguration(directory, nil), quickAssistantConfiguration(directory, nil), strokeConfiguration(directory, get))
+	store, err := configuration.OpenHost(directory, aotConfiguration(directory, get), captureConfiguration(directory, get), wintrayConfiguration(directory, get), selectionConfiguration(directory, nil), quickAssistantConfiguration(directory, nil), strokeConfiguration(directory, get), timedPowerConfiguration())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +168,7 @@ func TestExportWritesAllCommittedModulesWithoutStartingWorkers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(archive.Modules) != 6 || archive.Preferences.Enabled["capture"] || archive.Preferences.Name != "公司与家里" || archive.Preferences.Shortcuts["always-on-top.toggle"] != "Alt+Q" || archive.Preferences.Shortcuts["quick-assistant.show"] != "Ctrl+Shift+Q" {
+	if len(archive.Modules) != len(catalog.Builtins()) || archive.Preferences.Enabled["capture"] || archive.Preferences.Name != "公司与家里" || archive.Preferences.Shortcuts["always-on-top.toggle"] != "Alt+Q" || archive.Preferences.Shortcuts["quick-assistant.show"] != "Ctrl+Shift+Q" {
 		t.Fatal(archive.Preferences)
 	}
 	if len(archive.Paths) != 1 || archive.Paths["capture.output"].Kind != "directory" {

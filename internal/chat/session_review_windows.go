@@ -17,6 +17,10 @@ import (
 	"github.com/pmezard/go-difflib/difflib"
 )
 
+// ErrReviewTurnNotFound distinguishes a cancelled/unplaced input alias from a
+// damaged transcript, so task artifact collection can retain other valid turns.
+var ErrReviewTurnNotFound = errors.New("此工作轮次不在当前会话分支中")
+
 type reviewSessionEntry struct {
 	CustomType string `json:"customType"`
 	Data       struct {
@@ -224,7 +228,7 @@ func (s *Store) sessionReview(id, turnID string) (ReviewSnapshot, map[string]str
 		add(call.Arguments.Path, patch, "M", nil)
 	}
 	if !foundTurn {
-		return result, nil, errors.New("此工作轮次不在当前会话分支中")
+		return result, nil, ErrReviewTurnNotFound
 	}
 	result.captured = captures
 	if turnID != "" {

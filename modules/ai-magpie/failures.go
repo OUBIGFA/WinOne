@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/yetone/magpie/internal/gateway"
+	"github.com/yetone/magpie/internal/netproxy"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,7 +15,18 @@ import (
 	"time"
 )
 
-type upstreamFailure struct{ Status, RetryAfterSeconds int }
+type upstreamFailure struct {
+	Status, RetryAfterSeconds int
+	Limited                   bool
+}
+
+const failureBodyLimit = 64 << 10
+
+// A bounded error prefix is used only for upstream's classification. Never
+// write it to diagnostics, usage records, or the response sent to the Host.
+func appendFailureBody(prefix, chunk []byte) []byte {
+	return append(prefix, chunk[:min(len(chunk), failureBodyLimit-len(prefix))]...)
+}
 
 func (e *upstreamFailure) Error() string { return fmt.Sprintf("AI request failed (HTTP %d)", e.Status) }
 
@@ -33,6 +48,7 @@ func failureEvent(err error) streamEvent {
 	if errors.As(err, &failure) && failure.Status >= 400 && failure.Status <= 599 {
 		event.Status = failure.Status
 		event.RetryAfterSeconds = max(0, min(failure.RetryAfterSeconds, 86400))
+		event.Limited = failure.Limited
 	}
 	return event
 }
@@ -63,13 +79,26 @@ func (t metadataTransport) RoundTrip(request *http.Request) (*http.Response, err
 	}
 	response, err := base.RoundTrip(request)
 	if observer, ok := request.Context().Value(observationKey{}).(*failureObservation); ok && response != nil && response.StatusCode >= 400 {
+		var prefix []byte
+		if response.Body != nil {
+			reader := bufio.NewReaderSize(response.Body, failureBodyLimit)
+			// Peek retains both the bytes and any eventual read error for Fetch.
+			prefix, _ = reader.Peek(failureBodyLimit)
+			response.Body = struct {
+				io.Reader
+				io.Closer
+			}{reader, response.Body}
+		}
 		observer.mu.Lock()
-		observer.failure = &upstreamFailure{Status: response.StatusCode, RetryAfterSeconds: retryDelay(response.Header.Get("Retry-After"))}
+		observer.failure = &upstreamFailure{Status: response.StatusCode, RetryAfterSeconds: retryDelay(response.Header.Get("Retry-After")), Limited: gateway.WinOneLimitedResponse(response.StatusCode, prefix)}
 		observer.mu.Unlock()
 	}
 	return response, err
 }
 func init() {
+	// The standalone adapter bypasses Magpie's CLI startup. Install its real
+	// proxy dispatcher before wrapping it for safe failure observations.
+	netproxy.Install()
 	client := *http.DefaultClient
 	client.Transport = metadataTransport{base: client.Transport}
 	http.DefaultClient = &client

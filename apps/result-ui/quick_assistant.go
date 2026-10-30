@@ -112,7 +112,7 @@ func (p *Panel) quickToolbar(c *ui.Context, t *ui.Theme) {
 	if len(actions) > count {
 		count--
 	}
-	ui.Row(c).FillWidth().Height(42).Shrink(0).AlignItems(ui.Center).Label(p.T("快捷功能", "Quick actions")).Children(func() {
+	ui.Row(c).FillWidth().Height(quickToolbarHeight).Shrink(0).AlignItems(ui.Center).Label(p.T("快捷功能", "Quick actions")).Children(func() {
 		ui.Row(c).Grow(1).MinWidth(0).AlignItems(ui.Center).Justify(ui.Center).Gap(4).Children(func() {
 			for i, action := range actions {
 				if i >= count {

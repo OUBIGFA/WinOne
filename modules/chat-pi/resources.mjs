@@ -36,7 +36,12 @@ export async function discoverResources(config={}){
  // trust. Only Skill metadata is imported here; project extensions stay inert.
  const projectSkills=config.cwd?collectPiProjectResourceCliPaths(config.cwd).skills:[];
  const result={skillPaths:[...projectSkills,...(config.skillDirectories??[])],extensionPaths:[],promptPaths:[],plugins:[],mcpServers:[],diagnostics:[]};
- for(const configured of config.mcpServers??[]){const {name,...entry}=configured;result.mcpServers.push(serverEntry(name,entry,'WinOne settings'));}
+ const capabilities=config.onebot?.capabilities;
+ for(const configured of config.mcpServers??[]){
+  const {name,...entry}=configured;
+  if(capabilities?.mcpMode==='allowlist'&&!(capabilities.mcpServers??[]).includes(name))continue;
+  result.mcpServers.push(serverEntry(name,entry,'WinOne settings'));
+ }
  for(const directory of config.pluginDirectories??[]){
   const root=await fs.realpath(directory);
   let manifest=await readJSON(path.join(root,'.codex-plugin','plugin.json'),true);
@@ -44,26 +49,60 @@ export async function discoverResources(config={}){
   const pi=pkg?.pi;
   manifest??=await readJSON(path.join(root,'.claude-plugin','plugin.json'),true);
   const name=manifest?.name??pkg?.name??path.basename(root);
+  const id=manifest?.id??name;
+  if(typeof name!=='string'||!name.trim()||typeof id!=='string'||!id.trim())throw Error('Plugin name or identifier is invalid');
+  const description=manifest?.description??pkg?.description;
+  const enabled=capabilities?.toolsetMode!=='allowlist'||(capabilities.toolsets??[]).includes(id);
   const paths=async(value,target)=>{for(const item of Array.isArray(value)?value:value?[value]:[])result[target].push(await packagePath(root,item));};
+  // Skills are a separate, explicit selection. Reading their metadata never
+  // authorizes the package's executable extensions or MCP connections.
   await paths(manifest?.skills??pi?.skills??(await exists(path.join(root,'skills'))?'./skills':undefined),'skillPaths');
-  await paths(pi?.extensions,'extensionPaths');
-  await paths(pi?.prompts??manifest?.commands,'promptPaths');
+  if(enabled){await paths(pi?.extensions,'extensionPaths');await paths(pi?.prompts??manifest?.commands,'promptPaths');}
   if(!manifest&&!pi){
    const entry=(await Promise.all(['index.ts','index.js','index.mjs'].map(async file=>await exists(path.join(root,file))?file:null))).find(Boolean);
-   if(entry)result.extensionPaths.push(await packagePath(root,entry));
+   if(entry){if(enabled)result.extensionPaths.push(await packagePath(root,entry));}
    else if(!await exists(path.join(root,'skills')))throw Error('No plugin manifest, skills or extension entry in '+root);
   }
   const mcp=manifest?.mcpServers??(await exists(path.join(root,'.mcp.json'))?'./.mcp.json':undefined);
   const documents=Array.isArray(mcp)?mcp:mcp?[mcp]:[];
-  for(const document of documents){
+  for(const document of enabled?documents:[]){
    const data=typeof document==='string'?await readJSON(await packagePath(root,document)):document;
    const entries=data?.mcpServers??data;
    for(const [server,entry] of Object.entries(entries??{}))result.mcpServers.push(serverEntry(server,entry,root));
   }
-  result.plugins.push({name,path:root,enabled:true});
+  result.plugins.push({id,name,description:typeof description==='string'?description:'',path:root,enabled});
  }
  const names=new Set();for(const entry of result.mcpServers){const name=entry.name.replaceAll('-','_');if(names.has(name))throw Error('MCP server name is duplicated: '+entry.name);names.add(name);}
  return result;
+}
+
+// A Bot owns its personal library. External skills are explicit name-based
+// references, including for legacy "inherit" profiles (which grant none).
+// Resolve through Pi's metadata loader, then give the live loader exact files
+// with ambient discovery disabled. Personal copies take precedence on a name
+// collision; extension-driven reloads cannot reintroduce an unselected file.
+export async function oneBotSkillOptions(config,discovered){
+ if(!config.onebot)return {additionalSkillPaths:discovered.skillPaths};
+ const own=config.onebot.skillDirectories??[],capabilities=config.onebot.capabilities??{};
+ const names=new Set(capabilities.skillMode==='inherit'?[]:capabilities.skills??[]);
+ const key=value=>process.platform==='win32'?path.resolve(value).toLowerCase():path.resolve(value);
+ const personal=new Set(own.map(key));
+ const selected=[];
+ if(names.size){
+  const catalog=new DefaultResourceLoader({cwd:config.cwd,agentDir:config.agentDir,settingsManager:SettingsManager.inMemory(),
+   noExtensions:true,noPromptTemplates:true,noThemes:true,noContextFiles:true,
+   additionalSkillPaths:discovered.skillPaths.filter(file=>!personal.has(key(file)))});
+  await catalog.reload();
+  for(const skill of catalog.getSkills().skills)if(names.has(skill.name)){selected.push(skill.filePath);names.delete(skill.name);}
+  discovered.diagnostics.push(...catalog.getSkills().diagnostics.map(item=>item.message),...[...names].map(name=>'Selected Skill is unavailable: '+name));
+ }
+ const files=new Set(selected.map(key));
+ return {noSkills:true,additionalSkillPaths:[...own,...selected],skillsOverride:({skills,diagnostics})=>({
+  skills:skills.filter(skill=>files.has(key(skill.filePath))||own.some(root=>{
+   const relative=path.relative(root,skill.filePath);
+   return relative!== '..'&&!relative.startsWith('..'+path.sep)&&!path.isAbsolute(relative);
+  })),diagnostics,
+ })};
 }
 
 // Resource browsing remains useful without a configured model. This path only
@@ -72,7 +111,7 @@ export async function discoverResources(config={}){
 export async function inspectResources(config){
  if(!path.isAbsolute(config.cwd)||!path.isAbsolute(config.agentDir))throw Error('Invalid resource location');
  const discovered=await discoverResources(config);
- const loader=new DefaultResourceLoader({cwd:config.cwd,agentDir:config.agentDir,settingsManager:SettingsManager.inMemory(),noExtensions:true,noPromptTemplates:true,noThemes:true,additionalSkillPaths:discovered.skillPaths});
+ const loader=new DefaultResourceLoader({cwd:config.cwd,agentDir:config.agentDir,settingsManager:SettingsManager.inMemory(),noExtensions:true,noPromptTemplates:true,noThemes:true,...await oneBotSkillOptions(config,discovered)});
  await loader.reload();return resourceSummary(loader,discovered);
 }
 

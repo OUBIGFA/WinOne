@@ -2,7 +2,7 @@ param(
  [Parameter(Mandatory)][int]$OwnedProcessId,
  [Parameter(Mandatory)][string]$ProfileDirectory,
  [Parameter(Mandatory)][string]$OutputPath,
- [Parameter(Mandatory)][ValidateSet('terminal','browser')][string]$Scenario
+ [Parameter(Mandatory)][ValidateSet('terminal','browser','onebot')][string]$Scenario
 )
 $ErrorActionPreference='Stop'
 $profilePath=[IO.Path]::GetFullPath($ProfileDirectory)

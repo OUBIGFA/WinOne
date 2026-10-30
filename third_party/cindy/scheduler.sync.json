@@ -1,0 +1,976 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+  "license": "third_party/cindy/LICENSE",
+  "notice": "third_party/cindy/NOTICE",
+  "purpose": "Chat automations reuse Cindy's scheduler engine and the complete renderer feature (SchedulerPage, task list, run history, form, chips, templates). WinOne seams supply the Host transport, Pi-only harness, local-only runtime location, AI service catalog, i18n merge and conversation navigation.",
+  "groups": [
+    {
+      "source": "packages/maker-scheduler/src",
+      "target": "third_party/cindy/scheduler",
+      "include": [
+        "**/*.ts"
+      ],
+      "exclude": [
+        "__tests__/**"
+      ]
+    },
+    {
+      "source": "packages/maker-shared/src",
+      "target": "third_party/cindy/maker-shared",
+      "include": [
+        "scheduleModel.ts",
+        "scheduleTypes.ts",
+        "scheduleForm.ts",
+        "presentationLocalization.ts",
+        "errorRedaction.ts",
+        "cindyMakeFeature.ts",
+        "brandIdentity.ts",
+        "branding.ts",
+        "usageFormat.ts",
+        "runningTokenRateHistory.ts"
+      ]
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler",
+      "include": [
+        "**/*.ts",
+        "**/*.tsx",
+        "**/*.css"
+      ],
+      "exclude": [
+        "**/__tests__/**"
+      ]
+    },
+    {
+      "source": "apps/desktop/src/renderer",
+      "target": "apps/desktop/frontend/src/features/cindy",
+      "include": [
+        "hooks/useHorizontalResize.ts",
+        "hooks/useWindowVisible.ts",
+        "components/sidebar/AttentionDot.tsx",
+        "components/icons/PiMark.tsx",
+        "components/ui/error-notice.tsx",
+        "components/ui/select.tsx",
+        "components/ui/select-parts.tsx",
+        "components/ui/dropdown-menu-highlight.ts",
+        "components/ui/select.css",
+        "components/new-chat/FolderPickerPopover.tsx",
+        "lib/usageFormat.ts",
+        "lib/toast.ts",
+        "lib/fileTransferToasts.ts",
+        "components/ui/toast/Toast.tsx",
+        "components/ui/toast/ToastContainer.tsx",
+        "components/ui/toast/DownloadToast.tsx",
+        "components/ui/toast/index.ts"
+      ]
+    },
+    {
+      "source": "apps/desktop/src/shared",
+      "target": "apps/desktop/frontend/src/features/cindy/shared",
+      "include": [
+        "sessionReference.ts",
+        "projectAutomationPaths.ts",
+        "openPathResult.ts",
+        "utilityTextResult.ts",
+        "utilityModelProfiles.ts",
+        "sessionSource.ts",
+        "regionalMoney.ts",
+        "brandRegion.ts",
+        "usageModelLabel.ts"
+      ]
+    },
+    {
+      "source": "apps/desktop/src/main/scheduler-host",
+      "target": "modules/chat-pi/cindy/scheduler-host",
+      "include": [
+        "hook-script-generator.ts"
+      ]
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/__tests__",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/__tests__",
+      "include": [
+        "cronToHuman.test.ts",
+        "formatters.test.ts",
+        "projectAutomationConfig.test.ts",
+        "runHistoryGrouping.test.ts",
+        "scheduleFormLogic.test.ts",
+        "pluginScheduleCreateIntent.test.ts",
+        "cronCodexPreset.test.ts"
+      ]
+    }
+  ],
+  "seams": {
+    "packages/maker-shared/src/index.ts": "third_party/cindy/maker-shared/scheduleForm.ts",
+    "apps/desktop/src/shared/pathText.ts": "apps/desktop/frontend/src/features/cindy/shared/pathText.ts",
+    "apps/desktop/src/renderer/lib/utils.ts": "apps/desktop/frontend/src/features/cindy/review/utils.ts",
+    "apps/desktop/src/renderer/components/ui/button.tsx": "apps/desktop/frontend/src/features/cindy/panel-ui/button.tsx",
+    "apps/desktop/src/renderer/components/ui/popover.tsx": "apps/desktop/frontend/src/features/cindy/panel-ui/popover.tsx",
+    "apps/desktop/src/renderer/components/ui/tooltip.tsx": "apps/desktop/frontend/src/features/cindy/panel-ui/tooltip.tsx",
+    "apps/desktop/src/renderer/components/ui/dropdown-menu.tsx": "apps/desktop/frontend/src/features/cindy/panel-ui/dropdown-menu.tsx",
+    "apps/desktop/src/renderer/components/ui/confirm-dialog-provider.tsx": "apps/desktop/frontend/src/features/cindy/panel-ui/confirm-dialog-provider.tsx",
+    "apps/desktop/src/renderer/components/ui/segmented-control.tsx": "apps/desktop/frontend/src/features/cindy/panel-ui/segmented-control.tsx",
+    "apps/desktop/src/renderer/components/ui/menu-row.tsx": "apps/desktop/frontend/src/features/cindy/panel-ui/menu-row.tsx",
+    "apps/desktop/src/renderer/components/layout/windowDrag.tsx": "apps/desktop/frontend/src/features/cindy/editor/windowDrag.tsx",
+    "apps/desktop/src/renderer/contexts/dataOwnerGeneration.ts": "apps/desktop/frontend/src/features/cindy/host/dataOwner.ts",
+    "apps/desktop/src/renderer/lib/sessionService.ts": "apps/desktop/frontend/src/features/cindy/host/sessionService.ts",
+    "packages/model-providers/src/index.ts": "apps/desktop/frontend/src/features/cindy/host/modelProviders.ts",
+    "apps/desktop/src/renderer/lib/logger.ts": "apps/desktop/frontend/src/features/cindy/host/logger.ts",
+    "apps/desktop/src/renderer/lib/ccAgent.types.ts": "apps/desktop/frontend/src/features/cindy/host/sessionTypes.ts",
+    "apps/desktop/src/renderer/hooks/useProviders.ts": "apps/desktop/frontend/src/features/cindy/host/providers.ts",
+    "apps/desktop/src/renderer/hooks/useDeviceProviders.ts": "apps/desktop/frontend/src/features/cindy/host/providers.ts",
+    "apps/desktop/src/renderer/hooks/useModelRouteDevices.ts": "apps/desktop/frontend/src/features/cindy/host/providers.ts",
+    "apps/desktop/src/renderer/hooks/useAvailableAgents.ts": "apps/desktop/frontend/src/features/cindy/host/providers.ts",
+    "apps/desktop/src/renderer/hooks/useAgentCapabilities.ts": "apps/desktop/frontend/src/features/cindy/host/agentCapabilities.ts",
+    "apps/desktop/src/renderer/hooks/useProjectPickerOptions.ts": "apps/desktop/frontend/src/features/cindy/host/projects.ts",
+    "apps/desktop/src/renderer/features/cc-agent/lib/projectGrouping.ts": "apps/desktop/frontend/src/features/cindy/host/projects.ts",
+    "apps/desktop/src/renderer/hooks/useWorktreeQueries.ts": "apps/desktop/frontend/src/features/cindy/host/projects.ts",
+    "apps/desktop/src/renderer/lib/recentWorkdirsStore.ts": "apps/desktop/frontend/src/features/cindy/host/projects.ts",
+    "apps/desktop/src/renderer/features/device-link/remoteProjectsStore.ts": "apps/desktop/frontend/src/features/cindy/host/remote.ts",
+    "apps/desktop/src/renderer/features/device-link/refreshRemoteSessions.ts": "apps/desktop/frontend/src/features/cindy/host/remote.ts",
+    "apps/desktop/src/renderer/hooks/useCCSessions.ts": "apps/desktop/frontend/src/features/cindy/host/sessions.ts",
+    "apps/desktop/src/renderer/lib/sessionAttentionStore.ts": "apps/desktop/frontend/src/features/cindy/host/sessions.ts",
+    "apps/desktop/src/renderer/lib/makerChatStore.ts": "apps/desktop/frontend/src/features/cindy/host/sessions.ts",
+    "apps/desktop/src/renderer/lib/composerDraftStore.ts": "apps/desktop/frontend/src/features/cindy/host/sessions.ts",
+    "apps/desktop/src/renderer/features/cc-agent/hooks/useAutomationScheduleSessionIndex.ts": "apps/desktop/frontend/src/features/cindy/host/sessions.ts",
+    "apps/desktop/src/renderer/features/cc-agent/lib/automationSidebarGrouping.ts": "apps/desktop/frontend/src/features/cindy/host/sessions.ts",
+    "apps/desktop/src/renderer/state/newMakerDraft.ts": "apps/desktop/frontend/src/features/cindy/host/drafts.ts",
+    "apps/desktop/src/renderer/lib/draftModelCalibration.ts": "apps/desktop/frontend/src/features/cindy/host/drafts.ts",
+    "apps/desktop/src/renderer/state/agentDeviceModelMemory.ts": "apps/desktop/frontend/src/features/cindy/host/drafts.ts",
+    "apps/desktop/src/renderer/hooks/useFeishuBot.ts": "apps/desktop/frontend/src/features/cindy/host/notifications.ts",
+    "apps/desktop/src/renderer/hooks/useWecomGroupNotificationSettings.ts": "apps/desktop/frontend/src/features/cindy/host/notifications.ts",
+    "apps/desktop/src/renderer/components/new-chat/ModelSelector.tsx": "apps/desktop/frontend/src/features/cindy/host/modelSelector.tsx",
+    "apps/desktop/src/renderer/components/new-chat/useModelDiscoveryPending.ts": "apps/desktop/frontend/src/features/cindy/host/modelSelector.tsx",
+    "apps/desktop/src/renderer/components/sidebar/VendorIcon.tsx": "apps/desktop/frontend/src/features/cindy/host/icons.tsx",
+    "apps/desktop/src/renderer/components/icons/RemoteSourceMark.tsx": "apps/desktop/frontend/src/features/cindy/host/icons.tsx",
+    "apps/desktop/src/renderer/components/icons/CodexMark.tsx": "apps/desktop/frontend/src/features/cindy/host/icons.tsx",
+    "apps/desktop/src/renderer/components/icons/ClaudeMark.tsx": "apps/desktop/frontend/src/features/cindy/host/icons.tsx",
+    "apps/desktop/src/renderer/utils/ipcError.ts": "apps/desktop/frontend/src/features/cindy/host/ipcError.ts",
+    "apps/desktop/src/renderer/components/ui/spinner.tsx": "apps/desktop/frontend/src/features/cindy/panel-ui/spinner.tsx",
+    "packages/maker-core/src/index.ts": "modules/chat-pi/cindy/host/maker-core-types.ts",
+    "apps/desktop/src/main/utility-model/oneShotCandidates.ts": "modules/chat-pi/cindy/host/unavailable.ts",
+    "apps/desktop/src/main/scheduler-host/hook-runtimes.ts": "modules/chat-pi/cindy/host/unavailable.ts",
+    "apps/desktop/src/main/scheduler-host/pre-run-hook.ts": "modules/chat-pi/cindy/host/unavailable.ts",
+    "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json": "apps/desktop/frontend/src/features/cindy/locales/scheduler.zh-CN.json"
+  },
+  "modules": {
+    "react-router-dom": "apps/desktop/frontend/src/features/cindy/host/router.tsx"
+  },
+  "replacements": [
+    {
+      "pattern": "window.electronAPI",
+      "with": "electronAPI",
+      "import": "apps/desktop/frontend/src/features/cindy/host/electronAPI.ts",
+      "importName": "electronAPI"
+    }
+  ],
+  "files": [
+    {
+      "source": "packages/maker-scheduler/src/builtin-templates.ts",
+      "sourceSHA256": "a4057b4c55d3ec8527671cf579940b4eaee221a1e561600e58959f769622b731",
+      "target": "third_party/cindy/scheduler/builtin-templates.ts",
+      "sha256": "a4057b4c55d3ec8527671cf579940b4eaee221a1e561600e58959f769622b731"
+    },
+    {
+      "source": "packages/maker-scheduler/src/engine/attemptLifecycle.ts",
+      "sourceSHA256": "5680ced4ea5cb3b24f76ff5bdafb12f95c3b5f915cb0dc7220e8d5661c4ea988",
+      "target": "third_party/cindy/scheduler/engine/attemptLifecycle.ts",
+      "sha256": "5680ced4ea5cb3b24f76ff5bdafb12f95c3b5f915cb0dc7220e8d5661c4ea988"
+    },
+    {
+      "source": "packages/maker-scheduler/src/engine/cron.ts",
+      "sourceSHA256": "a2f67a030c477e16468e7cbf109b7347a6500f29e9d2bd1065aa39b2f3496da2",
+      "target": "third_party/cindy/scheduler/engine/cron.ts",
+      "sha256": "a2f67a030c477e16468e7cbf109b7347a6500f29e9d2bd1065aa39b2f3496da2"
+    },
+    {
+      "source": "packages/maker-scheduler/src/engine/monthlyClamp.ts",
+      "sourceSHA256": "982402afbb38c4f8c7f241a9a648e2733054279edae1bde0528559fb0ad15638",
+      "target": "third_party/cindy/scheduler/engine/monthlyClamp.ts",
+      "sha256": "982402afbb38c4f8c7f241a9a648e2733054279edae1bde0528559fb0ad15638"
+    },
+    {
+      "source": "packages/maker-scheduler/src/engine/scheduler.ts",
+      "sourceSHA256": "5e97025ad5df2363a93561e597bd1a0028828a15fc84acb5702633c2ce18634d",
+      "target": "third_party/cindy/scheduler/engine/scheduler.ts",
+      "sha256": "5e97025ad5df2363a93561e597bd1a0028828a15fc84acb5702633c2ce18634d"
+    },
+    {
+      "source": "packages/maker-scheduler/src/engine/template.ts",
+      "sourceSHA256": "19d505f570ed8439b9c42543655819235fd87238ad908be78d6bf94c4d4bc907",
+      "target": "third_party/cindy/scheduler/engine/template.ts",
+      "sha256": "19d505f570ed8439b9c42543655819235fd87238ad908be78d6bf94c4d4bc907"
+    },
+    {
+      "source": "packages/maker-scheduler/src/index.ts",
+      "sourceSHA256": "7e8f3b9d9e270ff2d734b5d9df5a27067971a122d1c70cb07851541dcb3ca78a",
+      "target": "third_party/cindy/scheduler/index.ts",
+      "sha256": "7e8f3b9d9e270ff2d734b5d9df5a27067971a122d1c70cb07851541dcb3ca78a"
+    },
+    {
+      "source": "packages/maker-scheduler/src/interfaces/clock.ts",
+      "sourceSHA256": "0ff6786377040e7decc99ec6fb9c3ab50806ed3f84f57069497a943db1833442",
+      "target": "third_party/cindy/scheduler/interfaces/clock.ts",
+      "sha256": "0ff6786377040e7decc99ec6fb9c3ab50806ed3f84f57069497a943db1833442"
+    },
+    {
+      "source": "packages/maker-scheduler/src/interfaces/logger.ts",
+      "sourceSHA256": "cc0828653e0ab98715c3ad29f2fa8bebdedc0413c9f49b9e6d9054979545e604",
+      "target": "third_party/cindy/scheduler/interfaces/logger.ts",
+      "sha256": "cc0828653e0ab98715c3ad29f2fa8bebdedc0413c9f49b9e6d9054979545e604"
+    },
+    {
+      "source": "packages/maker-scheduler/src/interfaces/notifier.ts",
+      "sourceSHA256": "c2e5eb1ddd27e8a0dfe46f57e7a249958f4832d69e76aaa310e57f4ba07775b2",
+      "target": "third_party/cindy/scheduler/interfaces/notifier.ts",
+      "sha256": "c2e5eb1ddd27e8a0dfe46f57e7a249958f4832d69e76aaa310e57f4ba07775b2"
+    },
+    {
+      "source": "packages/maker-scheduler/src/interfaces/schedule-runner.ts",
+      "sourceSHA256": "da8021a5a02ce1bb7a3378d484dda0df59a7bd1be7300446e868196e81f83a6d",
+      "target": "third_party/cindy/scheduler/interfaces/schedule-runner.ts",
+      "sha256": "da8021a5a02ce1bb7a3378d484dda0df59a7bd1be7300446e868196e81f83a6d"
+    },
+    {
+      "source": "packages/maker-scheduler/src/interfaces/schedule-storage.ts",
+      "sourceSHA256": "b4fd6cff4738b252c95424892a71bd7c3535d54434b9b8e81d218cf24e1e662d",
+      "target": "third_party/cindy/scheduler/interfaces/schedule-storage.ts",
+      "sha256": "b4fd6cff4738b252c95424892a71bd7c3535d54434b9b8e81d218cf24e1e662d"
+    },
+    {
+      "source": "packages/maker-scheduler/src/pre-run-hook-update.ts",
+      "sourceSHA256": "9d8b242f09302cff8b62aa9ba73786cca6e9ea7aa1480c36e6cfffecc0891d99",
+      "target": "third_party/cindy/scheduler/pre-run-hook-update.ts",
+      "sha256": "9d8b242f09302cff8b62aa9ba73786cca6e9ea7aa1480c36e6cfffecc0891d99"
+    },
+    {
+      "source": "packages/maker-scheduler/src/routine-engine.ts",
+      "sourceSHA256": "4eb2f05667eec9c4b8f66395ddf078c9bb8965af0434749eb9768ccb2457edc5",
+      "target": "third_party/cindy/scheduler/routine-engine.ts",
+      "sha256": "4eb2f05667eec9c4b8f66395ddf078c9bb8965af0434749eb9768ccb2457edc5"
+    },
+    {
+      "source": "packages/maker-scheduler/src/routine-event-admission.ts",
+      "sourceSHA256": "cb66b4036c2fc8a6a806d76ce7efd0dcc9f2bd302ca461393b875e60fd32f7f7",
+      "target": "third_party/cindy/scheduler/routine-event-admission.ts",
+      "sha256": "cb66b4036c2fc8a6a806d76ce7efd0dcc9f2bd302ca461393b875e60fd32f7f7"
+    },
+    {
+      "source": "packages/maker-scheduler/src/routines.ts",
+      "sourceSHA256": "5fa84e1b56cae3cca6b41faaeec692f65a4c5a8a73fb354e9fd8ff6c71ab5c77",
+      "target": "third_party/cindy/scheduler/routines.ts",
+      "sha256": "5fa84e1b56cae3cca6b41faaeec692f65a4c5a8a73fb354e9fd8ff6c71ab5c77"
+    },
+    {
+      "source": "packages/maker-scheduler/src/types.ts",
+      "sourceSHA256": "fea4bf56be040fb523044453ae7ca38ddc561a43e30dafef7ceb105739967c5d",
+      "target": "third_party/cindy/scheduler/types.ts",
+      "sha256": "fea4bf56be040fb523044453ae7ca38ddc561a43e30dafef7ceb105739967c5d"
+    },
+    {
+      "source": "packages/maker-shared/src/brandIdentity.ts",
+      "sourceSHA256": "f64bbc1fcff3c3b7967dbb398f779708780e8067649ee790e2511278ce4f55dd",
+      "target": "third_party/cindy/maker-shared/brandIdentity.ts",
+      "sha256": "f64bbc1fcff3c3b7967dbb398f779708780e8067649ee790e2511278ce4f55dd"
+    },
+    {
+      "source": "packages/maker-shared/src/branding.ts",
+      "sourceSHA256": "039900db5128f2e9818970a67a1b34c5aea49010e5a48d03ecb0c43a50a55639",
+      "target": "third_party/cindy/maker-shared/branding.ts",
+      "sha256": "039900db5128f2e9818970a67a1b34c5aea49010e5a48d03ecb0c43a50a55639"
+    },
+    {
+      "source": "packages/maker-shared/src/cindyMakeFeature.ts",
+      "sourceSHA256": "d384fc4e7986c15b23668301aad3fcff16bdb8ea65825d8e8f8ee3c53b76f1c4",
+      "target": "third_party/cindy/maker-shared/cindyMakeFeature.ts",
+      "sha256": "d384fc4e7986c15b23668301aad3fcff16bdb8ea65825d8e8f8ee3c53b76f1c4"
+    },
+    {
+      "source": "packages/maker-shared/src/errorRedaction.ts",
+      "sourceSHA256": "d2e65395ab615fac89a918ddc4e0e1af6a7defb824dcc7cbc91f23a5075da2a5",
+      "target": "third_party/cindy/maker-shared/errorRedaction.ts",
+      "sha256": "d2e65395ab615fac89a918ddc4e0e1af6a7defb824dcc7cbc91f23a5075da2a5"
+    },
+    {
+      "source": "packages/maker-shared/src/presentationLocalization.ts",
+      "sourceSHA256": "508a3b4f976391dc75da4f8867ca95fa3b02816a370363a3135db6fc96d6dc8f",
+      "target": "third_party/cindy/maker-shared/presentationLocalization.ts",
+      "sha256": "508a3b4f976391dc75da4f8867ca95fa3b02816a370363a3135db6fc96d6dc8f"
+    },
+    {
+      "source": "packages/maker-shared/src/runningTokenRateHistory.ts",
+      "sourceSHA256": "0e1797f42a4d3d9c36590baa54ad5a0253b7e484db399ab4e0259584720ddda3",
+      "target": "third_party/cindy/maker-shared/runningTokenRateHistory.ts",
+      "sha256": "0e1797f42a4d3d9c36590baa54ad5a0253b7e484db399ab4e0259584720ddda3"
+    },
+    {
+      "source": "packages/maker-shared/src/scheduleForm.ts",
+      "sourceSHA256": "e59f1b71c5164c1ec785aae245bfa8098ae36ce292a8bc7e10bbe92fcad7892d",
+      "target": "third_party/cindy/maker-shared/scheduleForm.ts",
+      "sha256": "e59f1b71c5164c1ec785aae245bfa8098ae36ce292a8bc7e10bbe92fcad7892d"
+    },
+    {
+      "source": "packages/maker-shared/src/scheduleModel.ts",
+      "sourceSHA256": "b193d251c510aa158d0a9dabc81c984ca87b17114a9995780e39d408fe552ed9",
+      "target": "third_party/cindy/maker-shared/scheduleModel.ts",
+      "sha256": "b193d251c510aa158d0a9dabc81c984ca87b17114a9995780e39d408fe552ed9"
+    },
+    {
+      "source": "packages/maker-shared/src/scheduleTypes.ts",
+      "sourceSHA256": "74392b40ece4b5121b4dc6a92d38cd1ddd22f84a9791e9aae2ead586d9816527",
+      "target": "third_party/cindy/maker-shared/scheduleTypes.ts",
+      "sha256": "74392b40ece4b5121b4dc6a92d38cd1ddd22f84a9791e9aae2ead586d9816527"
+    },
+    {
+      "source": "packages/maker-shared/src/usageFormat.ts",
+      "sourceSHA256": "83b02cad63d5e7a93464683317e47029ea77d6cc09943742c3cd8408b52f21a7",
+      "target": "third_party/cindy/maker-shared/usageFormat.ts",
+      "sha256": "83b02cad63d5e7a93464683317e47029ea77d6cc09943742c3cd8408b52f21a7"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/SchedulerPage.tsx",
+      "sourceSHA256": "16ca837a731c048978cbdf854594704800d8c5be7d9017c4e3c0f0d145418846",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/SchedulerPage.tsx",
+      "sha256": "1cb1c99eb39a1085343f29bb300de087def02b859ac363d8a602af9a6bccf039",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/AgentMark.tsx",
+      "sourceSHA256": "84461835f5b8b5b0c846c8ee6af652d35a693f6f0f1709f8c9660088459aa304",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/AgentMark.tsx",
+      "sha256": "9df85b6895c1651b9e88ff450f4c4b01052240efde9762e22b664a8b66b5fec0",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/BoundSessionCard.tsx",
+      "sourceSHA256": "1e6020f89cf7f713961c9f8fd6784a429011108e944d33f162562dd67e02bb6f",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/BoundSessionCard.tsx",
+      "sha256": "a332c290a0e3fb0258a7622b7239ecb6ee6273c6c59f85ba81f9a67a5473e025",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/ProjectAutomationNotifyBridge.tsx",
+      "sourceSHA256": "ad9643980708ae091d20d17ebaf99c4a6a213c525fea9aead7cdfa65a47dc19b",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/ProjectAutomationNotifyBridge.tsx",
+      "sha256": "0130d4c0149950fb12bafebd56809486114650fbcddefe5147044ee25cd29c43",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/RunHistoryCard.tsx",
+      "sourceSHA256": "0c7f5210b6ad7c12729eaf622eddcfe84640cd9a5764adb5eac5133fce8ff276",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/RunHistoryCard.tsx",
+      "sha256": "8e5653c14e102e2bd03d5d8aab4b157171b714ffa44d24546b97bbb5fd0ac4b8",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/RunHistoryPane.tsx",
+      "sourceSHA256": "6191dc5facadf51f3efa7a0b7dbb1049d2416307e715f75b57a3ff8a898539ad",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/RunHistoryPane.tsx",
+      "sha256": "a6afdfc4414604d35b45b78501a9fc4f294c4c5878fb2b2aa4d5cb0ea8ed8f10",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/ScheduleChips.tsx",
+      "sourceSHA256": "1d3ae2f7bb8a3f36c377c4286f236db4f02826dc7fae62dd945860e7fd16d450",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/ScheduleChips.tsx",
+      "sha256": "0a40a0ec161c295dd09955438d3b6147c9c09cd408da41785f9a03c551fc18a9",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/ScheduleFormDialog.tsx",
+      "sourceSHA256": "73f676a252de0cf5a5e0e58b61d8e37b0cdb7c95fe3155b590cdde4eb5498dc3",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/ScheduleFormDialog.tsx",
+      "sha256": "542b80203113a5e4fceed2607965b0f95468c0ec28640f54d4ac84492a50dba0",
+      "adaptation": "import-paths; Radix portals render outside the Cindy theme scope; WinOne popups carry cindy-panel-popup like the vendored primitives; WinOne forbids horizontal overflow: the form never exceeds the window; Radix portals render outside the Cindy theme scope; WinOne popups carry cindy-panel-popup like the vendored primitives"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/ScheduleSessionIndexOwner.tsx",
+      "sourceSHA256": "aa26d5945397c739391e5aa1db710acae21a52b0b8ad8e37aaf9fc3b84ab431d",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/ScheduleSessionIndexOwner.tsx",
+      "sha256": "75857062397a94a9306224a73f1783c412e51d1b9d129c9b30bba6a129c75598",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/ScheduleStatusChip.tsx",
+      "sourceSHA256": "58ed3876cbb8617d3010c03decfe9971e74bb08ebae0299445bbe019d880989b",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/ScheduleStatusChip.tsx",
+      "sha256": "abc25ea0fac4af7d10e88d576ff879dd24d24fe4b9a09ac6c5c3740d0e8bee23",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/ScriptCapabilityMultiSelect.tsx",
+      "sourceSHA256": "5336d7b4daab167e69fa8114dd720f556c4bb3388356f89445a791ab70ac286b",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/ScriptCapabilityMultiSelect.tsx",
+      "sha256": "eaffa165dbd373e7d8c1465baeba5740873d950e94da1337494ce300e4189d0b",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/TaskListCell.tsx",
+      "sourceSHA256": "952bc4c2e0b346f89afed653ef7d69cf6e21252c352deb5d3e5dd0dfe127759a",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/TaskListCell.tsx",
+      "sha256": "323a7c1d5f9d831a9113f07ed3b167e1993e3b6cbb0d4b67dccc4aceb1e5bf9d",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/TaskListFilterPopover.tsx",
+      "sourceSHA256": "ecc976e20fda7b3472d0c28153babdc62e33467272415f2bb95388a1fd3ce759",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/TaskListFilterPopover.tsx",
+      "sha256": "03018940e1ee8b326152fcf13cc03e6ab879ad0c93555ad00f4a900d2b54de06",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/TaskListPane.tsx",
+      "sourceSHA256": "5d7ce76948c26c05eda15ab53aa8aeeb75beeb84c5a3e86dc033d1fbd29e02cc",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/TaskListPane.tsx",
+      "sha256": "7e266355cb61ca52e2b1d809aa9618dfb89dd5d5cb4031b8ebba57d6c8bdacaa",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/TemplateCard.tsx",
+      "sourceSHA256": "167fa807a263c3065bfbf109077ec956bd5d2a0d25f1336d403546ff4043847c",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/TemplateCard.tsx",
+      "sha256": "867a578c758a1d8e9143ab39f7b2571c81943d65ef781015e1053d7812ca8922",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/TemplateGallery.tsx",
+      "sourceSHA256": "8a640103df3965ac17e9edaee170cc19158caefc53f29977a29c29daa50c0381",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/TemplateGallery.tsx",
+      "sha256": "708c1f75e04235420709122ae521598a0c81e32388f084c29740268f5d5d17c1",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/TemplateParamForm.tsx",
+      "sourceSHA256": "87cd8aba6f86cf3928f60469d39beaa6cb70af6e7fc7cf3f4773ca1accb090db",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/TemplateParamForm.tsx",
+      "sha256": "6a87f2d1ca283f4a15f0ab976a72cf1e7d04d325425c66f73f00103dfd546999",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/hooks/useDeleteScheduleWithSessions.tsx",
+      "sourceSHA256": "3655a3505186126ea406b480626f54ea56d795fff1f9484c21d9d20d122b3cae",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/hooks/useDeleteScheduleWithSessions.tsx",
+      "sha256": "302f61fe9bc1df92b377c8267686fddeb2e6f67fdf11e4b3a5e7e0a45d06a3d8",
+      "adaptation": "import-paths; Radix portals render outside the Cindy theme scope; WinOne popups carry cindy-panel-popup like the vendored primitives; Radix portals render outside the Cindy theme scope; WinOne popups carry cindy-panel-popup like the vendored primitives"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/hooks/useReadFailedScheduleRuns.ts",
+      "sourceSHA256": "4c013ef60d76598c79c27ea2146794a7780d0ddbfef0f11024e008b67d904698",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/hooks/useReadFailedScheduleRuns.ts",
+      "sha256": "a55b4128551e41dceb061bb150e82c0b13572ea354dc33e85dd153a54ca715d4",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/hooks/useRunNowBusyGuard.ts",
+      "sourceSHA256": "98f8d60bd5d1d8903f23b5558fd6ab8893604587c65cbd62988646d426907d96",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/hooks/useRunNowBusyGuard.ts",
+      "sha256": "60c25ee3232736519501af40a33ae065a242211bf939bba4705cd767c68fede2",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/hooks/useRuns.ts",
+      "sourceSHA256": "6e00ac63f22757d1ba06ebf061abc4f8786f19f5fe07a62f2361e64895daaca9",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/hooks/useRuns.ts",
+      "sha256": "c591f17047e4bbd6f352dadd0e53c1de6c87922257f94f943f3d29b0f41a3eea",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/hooks/useScheduleForm.ts",
+      "sourceSHA256": "040adde511b545550b7fa94c6326dc15b5a477c247d064aa728fda583dbe30e7",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/hooks/useScheduleForm.ts",
+      "sha256": "7c2f77944bdbeb6c0bb379163aeade31a57508ac57392498225a42c5e0eb66ba",
+      "adaptation": "import-paths; WinOne runs only the Pi harness: new automations default to pi"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/hooks/useScheduleUnreadRunCounts.ts",
+      "sourceSHA256": "9f824def982520f35b801429ddaab8a95526aabfd52fb603edf7c605d55932c6",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/hooks/useScheduleUnreadRunCounts.ts",
+      "sha256": "3f6b71e6ee9419655f2b002fc45ebebd7631a671d0d98dfa98c97ad128aadf7c",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/hooks/useSchedules.ts",
+      "sourceSHA256": "60965f424fd72503191c8043e2aebec722a90153262bac69f914dcb791563b18",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/hooks/useSchedules.ts",
+      "sha256": "d7da435e8fb0d5784e4a8a27f71a55e03fccf3b0f72cad3f54ec3e74eb736684",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/hooks/useSessionReferences.ts",
+      "sourceSHA256": "2246a65506d6feadae0dfacbfbe116ed2157b73080b673e9b7ab75820d9fb2cd",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/hooks/useSessionReferences.ts",
+      "sha256": "a4423851af1d7cf8e03bbab52954d2a6d15544fee481123c1835eb396ca32539",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/hooks/useTemplates.ts",
+      "sourceSHA256": "9e1fcf73f132ee937ecc777f4de9ac8ea6f68dbbd7524ae6a5f9d410abecfb63",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/hooks/useTemplates.ts",
+      "sha256": "76b315d642d86f948aee72839da7c77ceda304bebc1801f7cf1f524313b12087",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/index.ts",
+      "sourceSHA256": "e6895b41df523ff0aaca89d0d8847de1d5d5f40f277cc29c55afc4f57a06fa9b",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/index.ts",
+      "sha256": "e6895b41df523ff0aaca89d0d8847de1d5d5f40f277cc29c55afc4f57a06fa9b"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/archiveScheduleWarning.ts",
+      "sourceSHA256": "a716d419d1c7264601214cf782dfea042707399cff6ccaa147d84f9f10fab3b5",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/archiveScheduleWarning.ts",
+      "sha256": "19290ad6b11d100ab05d649b5a48c352d0aee6315eb0f5397a009602478c4e32",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/cronCodexPreset.ts",
+      "sourceSHA256": "9718aa1c9fc3c3c897403b6573bc2238f69906e83ea5922962a2a7d0c42feed9",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/cronCodexPreset.ts",
+      "sha256": "99ce39f9683170b550a019511503a4fb834e101f963c16a2db0f7a08d015953a",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/cronToHuman.ts",
+      "sourceSHA256": "409516d00c0d66acb563e127e08710a5f151b5c7a1b2d31c00c12f79d298f300",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/cronToHuman.ts",
+      "sha256": "213dd5127303cb9c5282eb294c548038082ef1c9ded1fe04208fb1b0a0babc04",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/failedScheduleDismissal.ts",
+      "sourceSHA256": "8c9642209162960f25a6967f3434ad6b3cef6afddcd03e31f2c970bb81cecfe9",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/failedScheduleDismissal.ts",
+      "sha256": "54b493d61d85f2507b705614b51f8ff4055452baaa21d8399cbedf6679b4b785",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/formatters.ts",
+      "sourceSHA256": "b98b24bbc078d4f7fe0c7c2e25664f19cab99dd24672112344aa0a493f943447",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/formatters.ts",
+      "sha256": "3b76d3bd8834bab06c97b5ccd2d8252a705276c63e6d03c33764e396ea090e6f",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/pluginScheduleCreateIntent.ts",
+      "sourceSHA256": "2b1192a3868dd3dde2a008171c6df5eddd03326f89d40f8c7f0e838aad69dc12",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/pluginScheduleCreateIntent.ts",
+      "sha256": "2b1192a3868dd3dde2a008171c6df5eddd03326f89d40f8c7f0e838aad69dc12"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/projectAutomationConfig.ts",
+      "sourceSHA256": "89e6b5af9119a49b3f172100e35c8d6c094da94747d554b83a523ef00bc97d19",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/projectAutomationConfig.ts",
+      "sha256": "c4ec9b01e91012dca2c5092cac861df2aae485e25113bb1f27d056ea34b305af",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/projectScheduleSidebarIndex.ts",
+      "sourceSHA256": "bdb3b7012c692f6ee28f0c237a2c0a0e95f8ea3eb66148c90a1d8551d0356ee0",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/projectScheduleSidebarIndex.ts",
+      "sha256": "e4948aca8f3014216dde1073bb6fce207bf85bde36f0db4de0162eec9f055983",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/runHistoryGrouping.ts",
+      "sourceSHA256": "5bb4de4b367703619a3ed0c8b6a05969209539c7587669732cd8722db52e9900",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/runHistoryGrouping.ts",
+      "sha256": "3e9381bd65988a88227ea827b457bb693822242a15deff53279e9c8b9f411cd0",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/runUnread.ts",
+      "sourceSHA256": "82830df6b3c7780420365e4704e4526050c275394fc14b52a741866dfe5c8007",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/runUnread.ts",
+      "sha256": "54c16dd8878640bfd6a9907e42da3f4db88cba3ea941c12cede0f526c9ff7bdb",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/scheduleBindingIndex.ts",
+      "sourceSHA256": "bd7d285eb1b918350538111bb4403f77d1046d16d982d9d0bc1a6ff0f609e012",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/scheduleBindingIndex.ts",
+      "sha256": "8518226304c73b4c65865ba4abf57b8927d05a1fa48ae97bf35ab0c0a0ebed23",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/scheduleFormLogic.ts",
+      "sourceSHA256": "5ee5b49d7c37c8cf2f5962e3fdf9050ecd35c7e7a4c5e2f2cba97cda330bc3ca",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/scheduleFormLogic.ts",
+      "sha256": "710985ef86dc5a01abb3ad1577ddbb924d5d78e2acebe379e2dfff71e2e86421",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/scheduleRunReadSync.ts",
+      "sourceSHA256": "af674e5d8e4a61fa71c0f91bb1f00d33b82f797ef49d54ec97a00d91ffc286d6",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/scheduleRunReadSync.ts",
+      "sha256": "a64bcdb08615ba38ecb7d70c4e5d040cf8140e0953a2093d37ac3e4ce3098835",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/scheduleSessionBinding.ts",
+      "sourceSHA256": "534db1f72c44f3d8dd9d2d89b1551ab0d382ed99e5fa022b3a754b8f6aef2425",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/scheduleSessionBinding.ts",
+      "sha256": "aae7f3a6a746afa56efc24ae0bfc72636a3802c74a75d57808632555762525c1",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/scheduleSidebarIndexRuns.ts",
+      "sourceSHA256": "1c75657bfacbb7e103592169664abddbe62c96e7821df71bb851bbffa0baa57d",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/scheduleSidebarIndexRuns.ts",
+      "sha256": "15835bae90e6bed5e0add0f1151277381f1269723c7584cb26232bdd97e2e6c1",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/schedulesStore.ts",
+      "sourceSHA256": "8ca5067101c417be83fe77d666c662ba96a1aeffb811727e8e4828cf28d94cb4",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/schedulesStore.ts",
+      "sha256": "81833eb3b93fe3b2643f24dc96d0a8b57577f755bc9fdb9c75acfe6809263a19",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/statusFilter.ts",
+      "sourceSHA256": "b40827076081fd34b661c6fa389d140a26d9ec0cdcc89f96467cd3a504a12172",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/statusFilter.ts",
+      "sha256": "b40827076081fd34b661c6fa389d140a26d9ec0cdcc89f96467cd3a504a12172"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/statusFilterStorage.ts",
+      "sourceSHA256": "c3cb62efad9aecebb3f6c91ec912871a6fd18ec2c732a9ef6683d7df5c656cc1",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/statusFilterStorage.ts",
+      "sha256": "c3cb62efad9aecebb3f6c91ec912871a6fd18ec2c732a9ef6683d7df5c656cc1"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/templateLocalization.ts",
+      "sourceSHA256": "e85175efa47aff4bf93072de2eba319cb0da2245d7e2d756dfbc1217ef25b589",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/templateLocalization.ts",
+      "sha256": "bec9136247ebeba161b320397aa8d90d513ffb0142303e44af803a902fdfc15b",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/icons/PiMark.tsx",
+      "sourceSHA256": "80431986300931f6b534b505285517dab8f40bba77154f6216202db62f2013a7",
+      "target": "apps/desktop/frontend/src/features/cindy/components/icons/PiMark.tsx",
+      "sha256": "80431986300931f6b534b505285517dab8f40bba77154f6216202db62f2013a7"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/new-chat/FolderPickerPopover.tsx",
+      "sourceSHA256": "9854a006da40935721ebda5e512090a54bf5226683458a68fdfbf3a840c48743",
+      "target": "apps/desktop/frontend/src/features/cindy/components/new-chat/FolderPickerPopover.tsx",
+      "sha256": "3271ad2498e67a3bed3385f61249ecb93a730c248b6b815db5e139f3e86a292d",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/sidebar/AttentionDot.tsx",
+      "sourceSHA256": "4b65edd8cd837fa22aebb353fea4121e8de3b384a24298b0f1aae64e5b2b91e0",
+      "target": "apps/desktop/frontend/src/features/cindy/components/sidebar/AttentionDot.tsx",
+      "sha256": "59b1102daa8ab752b9f313d41443932742c7fc92f463f06613f85cb758c4a995",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/dropdown-menu-highlight.ts",
+      "sourceSHA256": "7eda0a2cc2bb73724c15c7b94f3d4950222abcd46cbf1e32e4e41a549d11f757",
+      "target": "apps/desktop/frontend/src/features/cindy/components/ui/dropdown-menu-highlight.ts",
+      "sha256": "7eda0a2cc2bb73724c15c7b94f3d4950222abcd46cbf1e32e4e41a549d11f757"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/error-notice.tsx",
+      "sourceSHA256": "ed2f856321a64facd5ef753cb273f77af436bf18f225387e640dab460c90c0cc",
+      "target": "apps/desktop/frontend/src/features/cindy/components/ui/error-notice.tsx",
+      "sha256": "f64cf0003df9b3b10c70778dfd88114c3d64e24ea8ffc82aca3e078bfb696210",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/select-parts.tsx",
+      "sourceSHA256": "04b0878a6688abc8b4b48330d3ef081578d48c3cc4b29041614d983386b567c2",
+      "target": "apps/desktop/frontend/src/features/cindy/components/ui/select-parts.tsx",
+      "sha256": "96c4eed47d4d98338ccc806c213b0b28a17f205fed9fc9b63d70df70838c5734",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/select.css",
+      "sourceSHA256": "8bf2dd958055dc4abcf3503771fd029f23651ad8c177216b4116b3e6d13bd032",
+      "target": "apps/desktop/frontend/src/features/cindy/components/ui/select.css",
+      "sha256": "8bf2dd958055dc4abcf3503771fd029f23651ad8c177216b4116b3e6d13bd032"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/select.tsx",
+      "sourceSHA256": "8ed8db8bb4c71f387e04bc324c01d9dd2a7262d0221c71e35401f64bf438186d",
+      "target": "apps/desktop/frontend/src/features/cindy/components/ui/select.tsx",
+      "sha256": "c87bf23e9e5a537c39527095baedbd5eb5b0c3e353a9e1444a95398800b8c9ff",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/toast/DownloadToast.tsx",
+      "sourceSHA256": "4a43b33c3d31b41221651afec72d3d8b1c99ae2c0b576dc37be2225d7de296fd",
+      "target": "apps/desktop/frontend/src/features/cindy/components/ui/toast/DownloadToast.tsx",
+      "sha256": "cc98ffb2ce675d4c573c2fe46b2886fccc716b1348c675be67f719d09ea9f1cf",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/toast/Toast.tsx",
+      "sourceSHA256": "a85e9eefa4b840dc1728e278ae7ed9da39437120c712c8f829256bb8e096ee58",
+      "target": "apps/desktop/frontend/src/features/cindy/components/ui/toast/Toast.tsx",
+      "sha256": "170eb874656ebbd81e00e11c8ee67b8ac82575de61422ee2b97157975bd241fe",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/toast/ToastContainer.tsx",
+      "sourceSHA256": "d1439eb8ffcbc6f8c54af5572810b7493b0dff6e5a92ca7014db66d1f6bc757c",
+      "target": "apps/desktop/frontend/src/features/cindy/components/ui/toast/ToastContainer.tsx",
+      "sha256": "f8d6c7ab30f176a55b633bf02ab03fbdb233320367fb272735c40dad8ce9cd79",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/ui/toast/index.ts",
+      "sourceSHA256": "d56c3197ec7e9e5d953223abadc3c9a3b30fa304f73c8db999cbbd728c450817",
+      "target": "apps/desktop/frontend/src/features/cindy/components/ui/toast/index.ts",
+      "sha256": "57131d461377c06162b42134ac21130c2d662a7587d9be5d46b6ece4e1604f83",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/hooks/useHorizontalResize.ts",
+      "sourceSHA256": "d1b214f4d12b5b8964cb65b9fea22a705bd61d9b5853812de485812488ac3ba1",
+      "target": "apps/desktop/frontend/src/features/cindy/hooks/useHorizontalResize.ts",
+      "sha256": "d1b214f4d12b5b8964cb65b9fea22a705bd61d9b5853812de485812488ac3ba1"
+    },
+    {
+      "source": "apps/desktop/src/renderer/hooks/useWindowVisible.ts",
+      "sourceSHA256": "d342c30b485faec14985305fb09f03d6e7254871dc43717a73d3f699a9bcf76a",
+      "target": "apps/desktop/frontend/src/features/cindy/hooks/useWindowVisible.ts",
+      "sha256": "d342c30b485faec14985305fb09f03d6e7254871dc43717a73d3f699a9bcf76a"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/fileTransferToasts.ts",
+      "sourceSHA256": "ce0704d6a872d056f56dd3ce92da2f0541d879f7674c2d20273181af26ae9b63",
+      "target": "apps/desktop/frontend/src/features/cindy/lib/fileTransferToasts.ts",
+      "sha256": "ce0704d6a872d056f56dd3ce92da2f0541d879f7674c2d20273181af26ae9b63"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/toast.ts",
+      "sourceSHA256": "d43e37f62d030abf42da821d7cbc93ecc95e39c8896b9a85f49c2a52578aa01a",
+      "target": "apps/desktop/frontend/src/features/cindy/lib/toast.ts",
+      "sha256": "d43e37f62d030abf42da821d7cbc93ecc95e39c8896b9a85f49c2a52578aa01a"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/usageFormat.ts",
+      "sourceSHA256": "93ac01ae7b297500766c2639511b7d8aa2aa0b0be35248fe540bdf6580cf6d91",
+      "target": "apps/desktop/frontend/src/features/cindy/lib/usageFormat.ts",
+      "sha256": "9f10ba91d6f5b3b95098a558709795335e146e78e5f8332104cfb2d74b331d64",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/shared/brandRegion.ts",
+      "sourceSHA256": "4400dce5d64172de775f61bba1d085b32c225e1c508f6766ee8be1dc4699bb85",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/brandRegion.ts",
+      "sha256": "4adb55230e95e9d0b158bde69f2fb20f50ce6cc9aff40a891db32fe6536953f8",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/shared/openPathResult.ts",
+      "sourceSHA256": "c25432c60ee49b481ddd95f89395231816aabfb1d4577a09511235e4ca8c98f1",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/openPathResult.ts",
+      "sha256": "c25432c60ee49b481ddd95f89395231816aabfb1d4577a09511235e4ca8c98f1"
+    },
+    {
+      "source": "apps/desktop/src/shared/projectAutomationPaths.ts",
+      "sourceSHA256": "1fe9163649ce2d0ef3e104d9668bd1d41cdc067f03444c3a7eeb1008e2e4416d",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/projectAutomationPaths.ts",
+      "sha256": "1fe9163649ce2d0ef3e104d9668bd1d41cdc067f03444c3a7eeb1008e2e4416d"
+    },
+    {
+      "source": "apps/desktop/src/shared/regionalMoney.ts",
+      "sourceSHA256": "0f765c6640a1616f8b5cfb60f746890296aa7d2bf1b6d3b9b8984bd30a7d43b0",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/regionalMoney.ts",
+      "sha256": "53507a3b199678b4dff37b590b04c009970e1389c7ed12a24ad7b868a86a2004",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/shared/sessionReference.ts",
+      "sourceSHA256": "ab4520ca1e66f20c1e9fa8c3f0646f69784f230748d253e3e9f0d9fdb4d9369a",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/sessionReference.ts",
+      "sha256": "ab4520ca1e66f20c1e9fa8c3f0646f69784f230748d253e3e9f0d9fdb4d9369a"
+    },
+    {
+      "source": "apps/desktop/src/shared/sessionSource.ts",
+      "sourceSHA256": "358c7963b2f9bf5b031aa4bdd20283d722d3c8701a899c40f4a712e537b4b6f8",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/sessionSource.ts",
+      "sha256": "0fef850ae98526c992729f80bf48aa49bb6dcbabdcd33914ff8827d503081d61",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/shared/usageModelLabel.ts",
+      "sourceSHA256": "3758725b841cf45219583be283523c0b023399d6968f03edf26ec10fd18d3962",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/usageModelLabel.ts",
+      "sha256": "0cfc5d099afbbb227e1ef7e27e7d4a06e31ed297961d9914641892fcccdf6407",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/shared/utilityModelProfiles.ts",
+      "sourceSHA256": "961f6017c0692ec0ed3a1faa3b43192e7868b831e516ee7c263c424a7d939f10",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/utilityModelProfiles.ts",
+      "sha256": "961f6017c0692ec0ed3a1faa3b43192e7868b831e516ee7c263c424a7d939f10"
+    },
+    {
+      "source": "apps/desktop/src/shared/utilityTextResult.ts",
+      "sourceSHA256": "0d5dfd672eed0bfaf59dd5906a2466ed0de15ed36c415e59d05efb2a484ddf4f",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/utilityTextResult.ts",
+      "sha256": "0d5dfd672eed0bfaf59dd5906a2466ed0de15ed36c415e59d05efb2a484ddf4f"
+    },
+    {
+      "source": "apps/desktop/src/main/scheduler-host/hook-script-generator.ts",
+      "sourceSHA256": "7d4ad71904c7ff0967ffacd5e8bbdbdc798e4a7eda890e0e8f8241f6fb086ccc",
+      "target": "modules/chat-pi/cindy/scheduler-host/hook-script-generator.ts",
+      "sha256": "2606e82055365f70889ae7ade4d5a8e80aed9f2046b2b61e03bde708606ba295",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/__tests__/cronToHuman.test.ts",
+      "sourceSHA256": "768a4ffca964cd0571f6db43a8e660c05580ad1c51dedf401d5b9666e571c82c",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/__tests__/cronToHuman.test.ts",
+      "sha256": "982948e776d2c3998ec88ede7bcbc73df3a280a86b4e8ef5065691fa4fc91c0c",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/__tests__/formatters.test.ts",
+      "sourceSHA256": "cc556cb47eb2579ce2e3adaa3dfcd8fc36c581c84d0215c51b37fd8531e1cece",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/__tests__/formatters.test.ts",
+      "sha256": "cc556cb47eb2579ce2e3adaa3dfcd8fc36c581c84d0215c51b37fd8531e1cece"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/__tests__/pluginScheduleCreateIntent.test.ts",
+      "sourceSHA256": "9c4414a3dc3bc4799ae8a95843eb2d9da1b2aa203aaa089cc75595f571fa3305",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/__tests__/pluginScheduleCreateIntent.test.ts",
+      "sha256": "9c4414a3dc3bc4799ae8a95843eb2d9da1b2aa203aaa089cc75595f571fa3305"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/__tests__/projectAutomationConfig.test.ts",
+      "sourceSHA256": "46d383378d71b36d623779981adcbbde65c1eaec4398080230576e2b4dcc5825",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/__tests__/projectAutomationConfig.test.ts",
+      "sha256": "16bbaa21f04dfb1ee9bd2ec703db2a666e1b1a3e138c8f77830f8366956cc005",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/__tests__/runHistoryGrouping.test.ts",
+      "sourceSHA256": "8f61c157fea311d6cdd992ed020d23cb6f29047a5595e286ca93c4f4a1e38490",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/__tests__/runHistoryGrouping.test.ts",
+      "sha256": "677d3bd0792d23e6db17bc7cd14e41fc07df3e005cb859e49ae22633945b8cc5",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/scheduler/lib/__tests__/scheduleFormLogic.test.ts",
+      "sourceSHA256": "50baf8d9872353141541c5ef1eeea0515dba0b613ca1257db922b8c949ab8184",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/__tests__/scheduleFormLogic.test.ts",
+      "sha256": "597fb5a68c9cee3bd4717ee1fe52307bba637977f44e0c5daa69cdf327a1a18c",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json",
+      "sourceSHA256": "e016b4695208b0ddf0f579f192760224337b8c3a9b0c017b5b7c38a74366ac60",
+      "target": "apps/desktop/frontend/src/features/cindy/locales/scheduler.zh-CN.json",
+      "sha256": "a633d8d669629d5583171193919700a73bf2c116f510fe12fc1d8019a19df914",
+      "adaptation": "locale subset; excluded chat.remoteError; WinOne wording for scheduler.editor.preRunHook.aiFailure.no_candidate, scheduler.editor.preRunHook.aiFailure.attemptReason.apiKeyMissing, scheduler.editor.preRunHook.aiFailure.attemptReason.endpointMissing, scheduler.editor.preRunHook.aiFailure.openProviders, scheduler.editor.promptDialog.subtitle, scheduler.editor.preRunHook.aiFailure.attemptReason.agentUnavailable, scheduler.editor.preRunHook.aiFailure.attemptReason.notAuthenticated, scheduler.editor.preRunHook.aiFailure.attemptReason.authProbeFailed; {{appName}} substituted"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/en/common.json",
+      "sourceSHA256": "270852ddcf1980a2422a99e8d71cf1b683c18109dfb60685f1068a367d06ccf3",
+      "target": "apps/desktop/frontend/src/features/cindy/locales/scheduler.en.json",
+      "sha256": "d64e678d0e728c5bfaadd9a29486a5647e5596226f5a4acca47af6a509744621",
+      "adaptation": "locale subset; excluded chat.remoteError; WinOne wording for scheduler.editor.preRunHook.aiFailure.no_candidate, scheduler.editor.preRunHook.aiFailure.attemptReason.apiKeyMissing, scheduler.editor.preRunHook.aiFailure.attemptReason.endpointMissing, scheduler.editor.preRunHook.aiFailure.openProviders, scheduler.editor.promptDialog.subtitle, scheduler.editor.preRunHook.aiFailure.attemptReason.agentUnavailable, scheduler.editor.preRunHook.aiFailure.attemptReason.notAuthenticated, scheduler.editor.preRunHook.aiFailure.attemptReason.authProbeFailed; {{appName}} substituted"
+    }
+  ],
+  "patches": [
+    {
+      "file": "apps/desktop/src/renderer/features/scheduler/hooks/useScheduleForm.ts",
+      "reason": "WinOne runs only the Pi harness: new automations default to pi",
+      "find": "  manual: false,\n  agentKind: 'claude-code',",
+      "replace": "  manual: false,\n  agentKind: 'pi',",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/renderer/features/scheduler/components/ScheduleFormDialog.tsx",
+      "reason": "Radix portals render outside the Cindy theme scope; WinOne popups carry cindy-panel-popup like the vendored primitives",
+      "find": "            'modal-scrim fixed inset-0 z-[10000]',",
+      "replace": "            'cindy-panel-popup modal-scrim fixed inset-0 z-[10000]',",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/renderer/features/scheduler/hooks/useDeleteScheduleWithSessions.tsx",
+      "reason": "Radix portals render outside the Cindy theme scope; WinOne popups carry cindy-panel-popup like the vendored primitives",
+      "find": "            'modal-scrim fixed inset-0 z-[10000]',",
+      "replace": "            'cindy-panel-popup modal-scrim fixed inset-0 z-[10000]',",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/renderer/features/scheduler/hooks/useDeleteScheduleWithSessions.tsx",
+      "reason": "Radix portals render outside the Cindy theme scope; WinOne popups carry cindy-panel-popup like the vendored primitives",
+      "find": "            'modal-panel fixed left-1/2 top-1/2 z-[10000] -translate-x-1/2 -translate-y-1/2',\n            'w-full max-w-[460px] p-4',",
+      "replace": "            'cindy-panel-popup modal-panel fixed left-1/2 top-1/2 z-[10000] -translate-x-1/2 -translate-y-1/2',\n            'w-full max-w-[460px] p-4',",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/renderer/features/scheduler/components/ScheduleFormDialog.tsx",
+      "reason": "WinOne forbids horizontal overflow: the form never exceeds the window",
+      "find": "'flex max-h-[88vh] w-[760px] flex-col overflow-hidden',",
+      "replace": "'flex max-h-[88vh] w-[min(760px,calc(100vw-32px))] flex-col overflow-hidden',",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/renderer/features/scheduler/components/ScheduleFormDialog.tsx",
+      "reason": "Radix portals render outside the Cindy theme scope; WinOne popups carry cindy-panel-popup like the vendored primitives",
+      "find": "            'modal-panel fixed left-1/2 top-1/2 z-[10000] -translate-x-1/2 -translate-y-1/2',\n            'flex max-h-[88vh] w-[min(760px,calc(100vw-32px))]",
+      "replace": "            'cindy-panel-popup modal-panel fixed left-1/2 top-1/2 z-[10000] -translate-x-1/2 -translate-y-1/2',\n            'flex max-h-[88vh] w-[min(760px,calc(100vw-32px))]",
+      "count": 1
+    }
+  ],
+  "redirects": [
+    {
+      "from": "packages/maker-scheduler/src/index.ts",
+      "to": "packages/maker-scheduler/src/types.ts",
+      "importers": "apps/desktop/src/renderer/",
+      "reason": "Renderer imports from the package index are type-only; the engine (node:events) stays out of the WebView type graph."
+    }
+  ],
+  "locales": {
+    "sources": {
+      "zh-CN": "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json",
+      "en": "apps/desktop/src/renderer/i18n/locales/en/common.json"
+    },
+    "targets": {
+      "zh-CN": "apps/desktop/frontend/src/features/cindy/locales/scheduler.zh-CN.json",
+      "en": "apps/desktop/frontend/src/features/cindy/locales/scheduler.en.json"
+    },
+    "variables": {
+      "appName": "WinOne"
+    },
+    "forbid": [
+      "Cindy"
+    ],
+    "exclude": [
+      "chat.remoteError"
+    ],
+    "overrides": {
+      "zh-CN": {
+        "scheduler.editor.preRunHook.aiFailure.no_candidate": "当前没有可用的模型。请先在 AI 服务中启用模型，然后重试。",
+        "scheduler.editor.preRunHook.aiFailure.attemptReason.apiKeyMissing": "AI 服务密钥不可用",
+        "scheduler.editor.preRunHook.aiFailure.attemptReason.endpointMissing": "AI 服务地址不可用",
+        "scheduler.editor.preRunHook.aiFailure.openProviders": "前往 AI 服务",
+        "scheduler.editor.promptDialog.subtitle": "用 Pi 按计划运行 Prompt。",
+        "scheduler.editor.preRunHook.aiFailure.attemptReason.agentUnavailable": "执行引擎不可用",
+        "scheduler.editor.preRunHook.aiFailure.attemptReason.notAuthenticated": "需要登录 AI 服务账号",
+        "scheduler.editor.preRunHook.aiFailure.attemptReason.authProbeFailed": "无法确认 AI 服务账号登录状态"
+      },
+      "en": {
+        "scheduler.editor.preRunHook.aiFailure.no_candidate": "No model is currently available. Enable a model in AI services, then try again.",
+        "scheduler.editor.preRunHook.aiFailure.attemptReason.apiKeyMissing": "AI service key is unavailable",
+        "scheduler.editor.preRunHook.aiFailure.attemptReason.endpointMissing": "AI service endpoint is unavailable",
+        "scheduler.editor.preRunHook.aiFailure.openProviders": "Open AI services",
+        "scheduler.editor.promptDialog.subtitle": "Run a prompt on a schedule with Pi.",
+        "scheduler.editor.preRunHook.aiFailure.attemptReason.agentUnavailable": "the agent is unavailable",
+        "scheduler.editor.preRunHook.aiFailure.attemptReason.notAuthenticated": "AI service account sign-in required",
+        "scheduler.editor.preRunHook.aiFailure.attemptReason.authProbeFailed": "could not verify the AI service account sign-in"
+      }
+    }
+  }
+}

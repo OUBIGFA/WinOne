@@ -1,10 +1,49 @@
 package gateway
 
-import "context"
+import (
+ "context"
+ "errors"
+ "net/http"
+ "net/http/httptest"
+ "github.com/yetone/magpie/internal/access"
+ "github.com/yetone/magpie/internal/provider"
+)
+
+type winOneMediaModelsKey struct{}
+
+// WinOne's gateway model list also limits its configured helper models.
+// Ordinary upstream callers retain their original helper-model policy.
+func WinOneMediaRequest(r *http.Request,models []string)*http.Request{
+ who:=access.Caller(r.Context());who.Models=models
+ ctx:=context.WithValue(access.WithIdentity(r.Context(),who),winOneMediaModelsKey{},true)
+ return r.WithContext(ctx)
+}
+func winOneMediaRestricted(r *http.Request)bool{held,_:=r.Context().Value(winOneMediaModelsKey{}).(bool);return held}
+
+// Check before vision's cache as well as before its next provider request.
+// countHeld resolves original model/group IDs with Magpie's own rules.
+func winOneMediaAllowed(r *http.Request,model string)error{
+ if winOneMediaRestricted(r)&&countHeld(httptest.NewRecorder(),r,provider.Chat,model){return errors.New("model not allowed by WinOne gateway")}
+ return nil
+}
+
+// Export only the classification used by restAfter. Error bodies never cross
+// WinOne IPC; its host needs this bit to honor LimitRestOff across workers.
+func WinOneLimitedResponse(status int,body []byte) bool {
+ why:=failure(status,body)
+ return status==http.StatusTooManyRequests||why==failQuota||why==failCredit||why==failRate
+}
 
 // Set before serving an owned provider bridge, never from public HTTP input.
 // The outer gateway owns the user-request hooks and JS middleware.
 var WinOneTransportOnly bool
+
+// All provider profiles share the installation-owned local request archive.
+var WinOneArchiveDirectory string
+
+// Short-lived workers must finish the upstream archive queue before closing
+// stdout; otherwise a successful reply could exit before its file is written.
+func WinOneWaitArchive(){archivePending.Wait()}
 
 // Fixed before serving: public account kinds carried by WinOne's otherwise
 // ordinary HTTP bridges. This cannot select credentials or a native backend.

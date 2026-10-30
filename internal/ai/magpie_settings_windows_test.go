@@ -12,6 +12,23 @@ import (
 
 // Removing the global settings persistence or exposing search keys makes this
 // fail at the public save/read boundary, without testing a private helper.
+func TestMagpieProxySettingsPreserveCredentialsAndRejectInvalidAddresses(t *testing.T){
+ store,err:=Open(filepath.Join(t.TempDir(),"ai.json"));if err!=nil{t.Fatal(err)}
+ config:=store.Configuration();value:="socks5h://na%40me:p%3Ass@127.0.0.1:1080"
+ config.MagpieSettings=&MagpieSettings{Proxy:value,ProxyCustom:value,NoStats:true,NoUsageStats:true}
+ saved,err:=store.SaveConfiguration(config,nil);if err!=nil{t.Fatal(err)}
+ if saved.MagpieSettings.Proxy!=value{t.Fatal("proxy userinfo changed")}
+ for _,invalid:=range []string{"file:///proxy","ftp://proxy.invalid","http://","https://bad%host"}{
+  config=saved;config.MagpieSettings=config.MagpieSettings.clone();config.MagpieSettings.Proxy=invalid
+  if _,err:=store.SaveConfiguration(config,nil);err==nil{t.Fatalf("invalid proxy accepted: %s",invalid)}
+ }
+ for _,mode:=range []string{"direct",""}{
+  config=store.Configuration();config.MagpieSettings.Proxy=mode
+  if _,err:=store.SaveConfiguration(config,nil);err!=nil{t.Fatal(err)}
+  if store.Configuration().MagpieSettings.ProxyCustom!=value{t.Fatal("last custom proxy lost")}
+ }
+}
+
 func TestMagpieSettingsPersistWithoutPlaintextSearchKeys(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "ai.json")
 	s, err := Open(path)
@@ -22,7 +39,7 @@ func TestMagpieSettingsPersistWithoutPlaintextSearchKeys(t *testing.T) {
 	data, _ := json.Marshal(c)
 	var body map[string]any
 	_ = json.Unmarshal(data, &body)
-	body["magpieSettings"] = map[string]any{"redact": true, "quotaReads": "asked", "vision": "off", "searchAPIs": []any{map[string]any{"vendor": "tavily", "key": "test-secret-search-key"}}}
+	body["magpieSettings"] = map[string]any{"redact": true, "redactShape": true, "quotaReads": "asked", "vision": "off", "searchAPIs": []any{map[string]any{"vendor": "tavily", "key": "test-secret-search-key"}}}
 	data, _ = json.Marshal(body)
 	_ = json.Unmarshal(data, &c)
 	saved, err := s.SaveConfiguration(c, nil)
@@ -46,6 +63,9 @@ func TestMagpieSettingsPersistWithoutPlaintextSearchKeys(t *testing.T) {
 	reopened, err := Open(path)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !reopened.Configuration().MagpieSettings.RedactShape {
+		t.Fatal("key-shape masking disappeared after restart")
 	}
 	data, _ = json.Marshal(reopened.Configuration())
 	if !strings.Contains(string(data), `"hasKey":true`) {

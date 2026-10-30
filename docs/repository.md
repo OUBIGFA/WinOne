@@ -75,7 +75,7 @@
 | `sources/PowerToys` | 锁定提交的置顶引擎及其恢复的编译依赖；由准备脚本维护 |
 | `sources/ShareX-21.0.0`、`sources/ShareX-v21.0.0.zip` | ShareX 准备脚本的固定源码和归档 |
 | `sources/ShareX-native` | 现用原生截图引擎的独立源码；需要测试改写时再复制到 `_temp/<任务>/` |
-| `sources/magpie-50f52b5`、`sources/ai-plugins-652f06d` | AI 适配器来源与当前 `third_party/ai-plugins.json` 对应的账号插件源码；Magpie 构建读取所选来源的 HEAD，不固定阻塞版本；测试输出仍回到根 `_temp/` |
+| `sources/magpie-42ec270`、`sources/ai-plugins-e513644` | AI 适配器来源与当前 `third_party/ai-plugins.json` 对应的账号插件源码；Magpie 构建读取所选来源的 HEAD，不固定阻塞版本；测试输出仍回到根 `_temp/` |
 | `sources/mygo-3ad015a` | 结果窗锁定版本的源码参考；正式构建按 Go 锁和 overlay 准备 |
 | `runtimes/ocr` | OCR Python、离线依赖与模型，供反复打包；以 OCR 清单校验 |
 | `cache/cargo`、`cache/go`、`cache/npm` | 分别通过 `CARGO_HOME`、`GOCACHE`、`npm_config_cache` 复用 Cargo 依赖、Go 编译和 npm 下载缓存；不放测试报告 |

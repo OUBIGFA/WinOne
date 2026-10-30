@@ -67,7 +67,7 @@ it("clears unsaved status when changes are restored to their saved values",async
  const sound=await screen.findByRole("switch",{name:"播放提示音"});
  await user.click(sound);await user.click(sound);
  expect(screen.getByRole("button",{name:"保存设置"}).hasAttribute("disabled")).toBe(true);
- expect(activity).toHaveBeenLastCalledWith(false,false,"page");
+ expect(activity).toHaveBeenLastCalledWith(false,false,"always-on-top",expect.any(Function));
 });
 it("uses the last successful save as the baseline for further edits",async()=>{
  call.mockImplementation(async(method:string,payload?:unknown)=>method==="settings.get"?settings:{...payload as object,revision:1});

@@ -82,13 +82,13 @@ func TestTraySelectionPreservesWholeAccountWindows(t *testing.T) {
 // These assertions exercise the snapshots consumed by the upstream gateway,
 // not a duplicate WinOne redaction or search implementation.
 func TestRuntimeSettingsReachUpstream(t *testing.T) {
-	in := request{MagpieSettings: json.RawMessage(`{"redact":true,"redactPersonal":true,"redactWords":["private-project"],"vision":"off","searcher":"off","searchFirst":"api","noLoopGuard":true,"searchAPIs":[{"vendor":"tavily","key":"test-key"}]}`)}
+	in := request{MagpieSettings: json.RawMessage(`{"redact":true,"redactShape":true,"redactPersonal":true,"redactWords":["private-project"],"vision":"off","searcher":"off","searchFirst":"api","noLoopGuard":true,"searchAPIs":[{"vendor":"tavily","key":"test-key"}]}`)}
 	if err := applyRuntimeSettings(in); err != nil {
 		t.Fatal(err)
 	}
 	defer func() { settings.WinOneSettings.Store(nil); provider.WinOneSearchAPIs = nil }()
 	s := settings.Load()
-	if !s.Redact || !s.RedactPersonal || s.Vision != "off" || s.Searcher != "off" || s.SearchFirst != "api" || !s.NoLoopGuard {
+	if !s.Redact || !s.RedactShape || !s.RedactPersonal || s.Vision != "off" || s.Searcher != "off" || s.SearchFirst != "api" || !s.NoLoopGuard {
 		t.Fatalf("settings not applied: %+v", s)
 	}
 	if !s.NoWSLAgents {

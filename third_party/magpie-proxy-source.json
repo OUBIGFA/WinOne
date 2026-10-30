@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/yetone/magpie",
+  "revision": "42ec2700bd2a4cf8d4ceb76a95767ac221e283e5",
+  "license": "MIT",
+  "notice": "licenses/upstream-magpie-42ec2700bd2a4cf8d4ceb76a95767ac221e283e5-0-LICENSE.txt",
+  "sourceFiles": {
+    "internal/gui/assets/app.js": "fb16f1a58900129a010063072d7dc9f6d533cae640965f086bc8ad3161f4dc8f",
+    "internal/settings/settings.go": "e2c6232322d30ff89eff63b3cf72c13b5938d424c4d53730a663dba9100c2064",
+    "LICENSE": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+  },
+  "files": {
+    "apps/desktop/frontend/src/features/magpie-proxy-fields.ts": "1149fded53067f96186153e15113cb04ddc42f70c02eb090123a2db94e9d5f3b",
+    "internal/ai/magpie_proxy.go": "090346feb5492b370989616f102395642aa49186b4be4d7a55d2086a3e29181e"
+  },
+  "adaptations": [
+    "Export proxyFields, proxyAddress and proxyDisplay for WinOne form components; original parsing and escaping unchanged",
+    "Rename the upstream CheckProxy for the Host, preserving its validation and gofmt formatting"
+  ]
+}

@@ -31,6 +31,17 @@ func (c *chatControl) automationPolicy(w http.ResponseWriter, r *http.Request, i
 		http.Error(w, "Invalid run policy", 400)
 		return true
 	}
+	if c.onebot != nil && c.onebot.ownsSession(id) {
+		// A teammate's routine run belongs to the OneBot routine scheduler.
+		value, status, err := c.onebot.routinePolicy(r.Context(), id, input.Action)
+		if err != nil {
+			http.Error(w, err.Error(), status)
+			return true
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(value)
+		return true
+	}
 	requestID := c.engine.ActiveRequest(id)
 	if requestID == "" || c.automations == nil {
 		http.Error(w, "No active automation turn", 409)

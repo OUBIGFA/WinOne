@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"github.com/yetone/magpie/internal/catalog"
 	"github.com/yetone/magpie/internal/provider"
+	"github.com/yetone/magpie/internal/settings"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -255,5 +257,56 @@ func TestConfiguredModelDiscoveryUsesMagpieAndPreservesManualFallback(t *testing
 	defer missing.Close()
 	if _, err = fetchModels(context.Background(), request{Protocol: "chat", BaseURL: missing.URL + "/v1"}); err == nil {
 		t.Fatal("unsupported discovery reported success")
+	}
+}
+
+// Regression for Our Free Model's MiMo V2.5 (light/balanced/deep): levels
+// stay the vendor's words and only the offered ones are narrowed, as
+// upstream setModelEfforts/effortsKept keep them.
+func TestKeptReasoningLevelsFollowUpstreamSemantics(t *testing.T) {
+	vendor := []string{"light", "balanced", "deep"}
+	for name, value := range map[string]struct {
+		levels, offered, want []string
+	}{
+		"all offered":      {vendor, []string{"deep", "light", "balanced"}, nil},
+		"narrowed":         {vendor, []string{" Deep", "light", "light"}, []string{"light", "deep"}},
+		"stale only":       {vendor, []string{"high"}, nil},
+		"none offered":     {vendor, nil, nil},
+		"unknown levels":   {nil, []string{"max", "low", "ultra"}, []string{"low", "max"}},
+		"unknown all kept": {nil, []string{"invented"}, nil},
+	} {
+		if got := keptReasoningLevels(value.levels, value.offered); !slices.Equal(got, value.want) {
+			t.Errorf("%s: kept %v, want %v", name, got, value.want)
+		}
+	}
+}
+
+func TestDescribedModelKeepsVendorLevelsAndReasonlessUsesUpstream(t *testing.T) {
+	metadata := describeModel(provider.Provider{ID: "winone"}, catalog.Model{ID: "mimo-v2.5-free", Efforts: []string{"light", "balanced", "deep"}}, modelMetadata{})
+	if !slices.Equal(metadata.Levels, []string{"light", "balanced", "deep"}) || !slices.Equal(metadata.Efforts, metadata.Levels) || metadata.Reasoning == nil || !*metadata.Reasoning {
+		t.Fatalf("vendor levels lost: %+v", metadata)
+	}
+	prior := settings.Load()
+	t.Cleanup(func() { settings.WinOneUse(prior) })
+	off := false
+	if err := installModelPreferences("winone", "mimo-v2.5-free", modelMetadata{Levels: metadata.Levels, Efforts: []string{"deep"}, Reasoning: &off}); err != nil {
+		t.Fatal(err)
+	}
+	s := settings.Load()
+	if !s.ModelReasonless["winone/mimo-v2.5-free"] || !slices.Equal(s.ModelEfforts["winone/mimo-v2.5-free"], []string{"deep"}) {
+		t.Fatalf("upstream preferences not installed: reasonless=%v efforts=%v", s.ModelReasonless, s.ModelEfforts)
+	}
+	// No reasoning is the gateway's reasonless model, not an invented "none"
+	// level that a light/balanced/deep vendor would fit to its nearest level.
+	body := map[string]any{"reasoning_effort": "high"}
+	applyModelMetadata(body, "/v1/chat/completions", modelMetadata{ReasoningEffort: "deep", Reasoning: &off})
+	if body["reasoning_effort"] != "high" {
+		t.Fatalf("reasonless model rewrote the effort: %v", body)
+	}
+	if err := installModelPreferences("winone", "mimo-v2.5-free", modelMetadata{Levels: metadata.Levels, Efforts: metadata.Levels}); err != nil {
+		t.Fatal(err)
+	}
+	if s = settings.Load(); s.ModelReasonless["winone/mimo-v2.5-free"] || s.ModelEfforts["winone/mimo-v2.5-free"] != nil {
+		t.Fatalf("restored model kept narrowed preferences: reasonless=%v efforts=%v", s.ModelReasonless, s.ModelEfforts)
 	}
 }

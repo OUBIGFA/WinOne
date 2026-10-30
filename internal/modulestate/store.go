@@ -30,7 +30,7 @@ type Store struct {
 }
 
 func Open(path string) (*Store, error) {
-	defaults := Snapshot{SchemaVersion: 4, Modules: map[string]Record{}}
+	defaults := Snapshot{SchemaVersion: 5, Modules: map[string]Record{}}
 	for _, m := range catalog.Builtins() {
 		defaults.Modules[m.ID] = Record{Enabled: true}
 	}
@@ -95,6 +95,23 @@ func Open(path string) (*Store, error) {
 			saved.Revision++
 			migrated = true
 		}
+		if saved.SchemaVersion == 4 {
+			if !migrated {
+				backupSuffix = ".before-timed-power.bak"
+			}
+			if _, exists := saved.Modules["stroke"]; !exists {
+				return nil, errors.New("模块状态缺少鼠标手势")
+			}
+			if saved.Revision == math.MaxUint64 {
+				return nil, errors.New("模块状态修订已耗尽")
+			}
+			if _, exists := saved.Modules["timed-power"]; !exists {
+				saved.Modules["timed-power"] = Record{Enabled: true}
+			}
+			saved.SchemaVersion = 5
+			saved.Revision++
+			migrated = true
+		}
 		for id := range defaults.Modules {
 			if _, ok := saved.Modules[id]; !ok {
 				return nil, errors.New("模块状态缺少基础模块，请检查备份")
@@ -102,7 +119,7 @@ func Open(path string) (*Store, error) {
 		}
 		defaults = saved
 	}
-	if defaults.SchemaVersion != 4 || defaults.Modules == nil {
+	if defaults.SchemaVersion != 5 || defaults.Modules == nil {
 		return nil, errors.New("不支持的模块状态格式")
 	}
 	for id, record := range defaults.Modules {

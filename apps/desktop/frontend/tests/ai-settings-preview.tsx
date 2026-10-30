@@ -37,11 +37,18 @@ const pendingLogin={id:"fixture",status:{agent:"codex",state:login==="failure"?"
 window.go={main:{App:{
  Chat:async(method:string,payload:string)=>{const value=usageFixture("chat."+method,payload);if(value===undefined)throw Error("Unsupported Chat fixture method: "+method);return JSON.stringify(value);},
  Capture:async(method:string,payload:string)=>{
+  if(method==="ai.magpie.catalog")return JSON.stringify({gateway:"http://127.0.0.1:3426",visionModels:[],imageGenModels:[],searchChoices:[],searchVendors:[]});
+  if(method==="ai.magpie.privacy.open"||method==="ai.magpie.privacy.state")return JSON.stringify({on:false,supported:false,installed:false,size:0});
+  if(method==="ai.magpie.privacy.close")return '{}';
   const usage=usageFixture(method,payload);if(usage!==undefined)return JSON.stringify(usage);
   if(method==="ai.configuration.get"){if(query.has("failure"))throw Error("The AI settings file could not be read.");return JSON.stringify(preferences);}
   if(method==="ai.configuration.save"){const submission=JSON.parse(payload);Object.assign(window,{fixtureLastSave:submission});preferences={...submission.configuration,revision:preferences.revision+1};return JSON.stringify(preferences);}
   if(method==="ai.accounts.catalog")return JSON.stringify({presets,agents:[{id:"codex",name:"ChatGPT / Codex",icon:"openai"},{id:"claude",name:"Claude Code",icon:"claude-color"},{id:"copilot",name:"GitHub Copilot",icon:"githubcopilot"},{id:"chatgpt-api",name:"ChatGPT API",icon:"openai"},{id:"cursor",name:"Cursor",icon:"cursor"},{id:"workbuddy",name:"WorkBuddy",icon:"workbuddy-color"},{id:"zcode",name:"ZCode",icon:"zcode"}]});
   if(method==="ai.accounts.list"){const request=JSON.parse(payload);return JSON.stringify({accounts:signedIn.has(request.provider)?[{agent:request.agent,user:"test@example.invalid",plan:"Test plan"}]:[]});}
+  // This settings fixture has no installed UI extensions. Return the real
+  // empty discovery shape so unrelated pages do not inherit a fixture error.
+  if(method==="ai.routing.extensions.open")return JSON.stringify({url:location.href,pages:[],panels:[]});
+  if(method==="ai.routing.extensions.close")return JSON.stringify({closed:true});
   if(method==="ai.models.fetch")return JSON.stringify({models:[{id:"discovered-model"}]});
   if(method==="ai.accounts.models")return JSON.stringify({models:[{id:"shared-model",name:"Shared model"}]});
   if(method==="ai.accounts.signin.start"){const request=JSON.parse(payload);loginProvider=request.provider;pendingLogin.status.agent=request.agent;return JSON.stringify(pendingLogin);}

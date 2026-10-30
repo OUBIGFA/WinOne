@@ -14,17 +14,18 @@ type auxiliaryKey struct {
 }
 
 type auxiliaryProvider struct {
-	AccountKind string                   `json:"accountKind,omitempty"` // Public account type for provider-specific middleware, never auth.
-	ID          string                   `json:"id"`
-	Name        string                   `json:"name"`
-	Icon        string                   `json:"icon,omitempty"`
-	Chat        string                   `json:"chat,omitempty"`
-	Responses   string                   `json:"responses,omitempty"`
-	Anthropic   string                   `json:"anthropic,omitempty"`
-	Key         string                   `json:"key"`
-	KeyName     string                   `json:"keyName,omitempty"`
-	Keys        []auxiliaryKey           `json:"keys,omitempty"`
-	Models      []string                 `json:"models"`
-	Searches    bool                     `json:"searches,omitempty"`
-	Metadata    map[string]ModelMetadata `json:"metadata,omitempty"`
+	LimitRestOff bool                     `json:"limitRestOff,omitempty"`
+	AccountKind  string                   `json:"accountKind,omitempty"` // Public account type for provider-specific middleware, never auth.
+	ID           string                   `json:"id"`
+	Name         string                   `json:"name"`
+	Icon         string                   `json:"icon,omitempty"`
+	Chat         string                   `json:"chat,omitempty"`
+	Responses    string                   `json:"responses,omitempty"`
+	Anthropic    string                   `json:"anthropic,omitempty"`
+	Key          string                   `json:"key"`
+	KeyName      string                   `json:"keyName,omitempty"`
+	Keys         []auxiliaryKey           `json:"keys,omitempty"`
+	Models       []string                 `json:"models"`
+	Searches     bool                     `json:"searches,omitempty"`
+	Metadata     map[string]ModelMetadata `json:"metadata,omitempty"`
 }

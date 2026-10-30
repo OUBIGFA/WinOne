@@ -39,7 +39,7 @@ export function DirectoryLinksBatch({disabled=false,onActivity,onChanged,incomin
  const [paneSize,setPaneSize]=useState({height:256,maximum:4000});
  function resizePanes(height:number){preferredHeight.current=Math.max(256,Math.min(paneSize.maximum,height));try{localStorage.setItem("winone.directory-links.pane-height.v1",String(preferredHeight.current));}catch(error){console.warn("Pane height could not be saved",error);}fitHeight.current?.();}
  const source=useDirectoryBrowser(),target=useDirectoryBrowser();const directory=target.address;
- usePageActivity(onActivity,!!text||!!renaming&&renameName!==renaming.entry.name,busy||source.loading||target.loading||!!renaming,"directory-links-batch");
+ usePageActivity(onActivity,!!text||!!renaming&&renameName!==renaming.entry.name,busy||source.loading||target.loading||!!renaming,"directory-links-batch",()=>{setText("");resetPlan();});
  const locked=disabled||busy||!!renaming;const sources=pathsFromText(text);const selected=new Set(sources.map(pathKey));
  const singleSource=sources.length===1?sources[0]:"";
  useEffect(()=>{setCustomName(undefined);},[singleSource]);

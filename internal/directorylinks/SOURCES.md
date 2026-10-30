@@ -29,6 +29,15 @@
 
 上游三项目没有“移动既有目录内容、再用链接替换原目录”的迁移器。SymlinkCreator README 明确不移动、复制或删除源内容；因此本模块不凭该示例新增自动搬迁行为。四种创建类型和上游实际批量/查找/管理能力均保留；WinOne 的目标平台仍按项目约定为 Windows 11 x64。
 
+## 历史备份补充（2026-10-26）
+
+按用户指定的 2026-10-23《WinOne目录链接迁移能力可行性方案（viap 借鉴）》中的 P1 需求补充历史导入导出；参考项目为 [Chunyu33/viap](https://github.com/Chunyu33/viap)。本项仅采用需求/流程说明，未复制或翻译该项目源码、未引入依赖；不能把它标成 viap 迁移器已接入。
+
+- `ExportHistory` 仅导出选中关系；不携带本机身份、ID、核查时间。
+- `PreviewHistoryImport` 逐项按实际入口类型/目标核实，列出重复、已登记和不匹配项；`ImportHistory` 再核对身份、单次确认并原子保存，失败不修改真实链接/数据。
+- “查找并登记”原来已经写入历史，继续沿用，不新增重复扫描路径；危险迁移、复制、占用与回滚仍需另外实施。
+- 验证：`history_archive_windows_test.go`、Host `directory_links_archive_windows_test.go`、前端 `directory-links-archive.test.tsx`、`build/test-directory-history-archive.mjs`。后者为生产 UI + 内存边界，真实文件系统由 Go 测试覆盖。
+
 ## 相比上游执行方式的必要适配
 
 - Symbolic11 创建路径没有检查 CMD 退出码即报告成功。这里改为创建后读取真实类型、原始/解析目标、文件身份和可访问性。

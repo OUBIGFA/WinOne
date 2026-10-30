@@ -8,7 +8,8 @@ vi.mock('../bridge',()=>({chatCall:call,pickDirectory:vi.fn(),setFileDropTarget:
 afterEach(()=>{cleanup();vi.resetAllMocks();});
 const settings={workspaceDirectory:'C:\\work',skillDirectories:[],pluginDirectories:[],automations:[],mcpServers:[{name:'fixture',enabled:true,url:'http://127.0.0.1:12345',headers:{'X-Fixture':'saved'},toolExposure:{read:'direct'}}]};
 async function open(){
- call.mockImplementation(async(method,params)=>method==='settings.get'?settings:params.settings);
+ // The automation connector section on the MCP tab loads its own mappings.
+ call.mockImplementation(async(method,params)=>method==='settings.get'?settings:method==='automations.connections.get'?{settings:{methods:{}},servers:[]}:params.settings);
  render(<ChatSettings open onOpenChange={()=>{}} providers={[]} defaultModel={{provider:'',model:''}} onSaved={()=>{}} onConversation={()=>{}}/>);
  const user=userEvent.setup();await user.click(await screen.findByRole('tab',{name:'MCP'}));
  await user.click(screen.getByText('高级'));return user;

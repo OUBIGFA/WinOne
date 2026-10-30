@@ -37,7 +37,7 @@ func TestDormantUnloadedPackageDoesNotBlockBuiltinLifecycle(t *testing.T) {
 		gates[id] = gate
 	}
 	lifecycle := nativeModuleLifecycle(state, func() map[string]*modules.Gate { return gates })
-	if len(lifecycle.Initial) != 6 {
+	if len(lifecycle.Initial) != len(catalog.Builtins()) {
 		t.Fatal("unloaded package leaked into active configuration")
 	}
 	if err = lifecycle.Before(lifecycle.Initial); err != nil {
@@ -210,7 +210,7 @@ func TestNewPackageConfigurationUsesHostEnableAndRemovalFlow(t *testing.T) {
 	if err = control.UnregisterPackage(manifest.ID, gate); err != nil {
 		t.Fatal(err)
 	}
-	if len(control.Snapshot().Modules) != 6 {
+	if len(control.Snapshot().Modules) != len(catalog.Builtins()) {
 		t.Fatal("removed package remains visible")
 	}
 	next := store.Snapshot()

@@ -1,41 +1,74 @@
 // @ts-nocheck
-// Directly adapted from yetone/magpie ede1e32aec1a4f6bf06aeef6ed2e03d4218db226,
-// internal/gui/assets/app.js (LED_METRICS through ledRail). MIT; see third_party/licenses.
-// The adapter supplies locale and DOM helpers; chart arithmetic and interaction
-// remain upstream so speed, cache tokens, day selection and Top 7 + Other agree.
+// Generated from yetone/magpie 42ec2700bd2a4cf8d4ceb76a95767ac221e283e5. MIT.
+// Run node build/sync-magpie-usage.mjs --write; provenance: third_party/magpie-usage-source.json.
 export function magpieLedgerCharts(translate, language, options = {}) {
  const t=(key,values={})=>translate(key,values);
  const intlLang=()=>language;
- const ledNum=value=>new Intl.NumberFormat(language).format(value||0);
- const fmtN=value=>new Intl.NumberFormat(language,{notation:'compact',maximumFractionDigits:1}).format(value||0);
+ const numbers=new Intl.NumberFormat(language), compactNumbers=new Intl.NumberFormat(language,{notation:'compact',maximumFractionDigits:1});
+ const ledNum=value=>numbers.format(value||0);
+ const fmtN=value=>compactNumbers.format(value||0);
  const ledMoney=value=>new Intl.NumberFormat(language,{style:'currency',currency:'USD',maximumFractionDigits:2}).format(value||0);
  const fmtCost=value=>new Intl.NumberFormat(language,{style:'currency',currency:'USD',maximumFractionDigits:6}).format(value.cost||0);
  const ledTook=value=>(value/1000).toFixed(2)+' s';
+ const tipLines=(...values)=>values.filter(Boolean).join('\n');
  const el=(tag,cls='',text)=>{const e=document.createElement(tag);e.className=cls;if(text!=null)e.textContent=text;return e;};
  const icon=()=>el('span');
-// WinOne lets overview rankings expand every row; trends retain Top 7 + Other.
 const LED_METRICS = [["tokens", "Tokens"], ["cost", "Cost"], ["calls", "Requests"]];
-// the window's chart can also say how fast the replies came (#860)
-const LED_TREND = [...LED_METRICS, ["speed", "Speed"]];
-// "modelAt" is a model at the provider it went to, so one model's speed at
-// each provider is ranked side by side (inaction on Discord)
-const LED_SPLITS = [["model", "Model"], ["modelAt", "Model · provider"], ["provider", "Provider"], ["agent", "Agent"]];
 const LED_SHOWN = Math.max(7, options.shown || 7); // told apart in a chart; the rest are "Other"
 const allTokens = (x) => x.input + x.output + x.cache_read + x.cache_write;
-// cacheTTLs: a call's cache writes split by how long they are kept, where
-// some were for an hour (Anthropic bills those at 2× input, 5 minutes'
-// at 1.25×); nothing when none were
-function cacheTTLs(x, fmt) {
-  const h = Math.min(x.cache_write_1h || 0, x.cache_write || 0);
-  return h ? " · " + t("{m} for 5 minutes, {h} for an hour", { m: fmt(x.cache_write - h), h: fmt(h) }) : "";
-}
+// a total's cache hit rate, leaving out cache_unknown (calls whose vendor
+// counts no cache); null when nothing is left (#3464)
+const cacheHitOf = (x) => {
+  const prompt = (x.input || 0) + (x.cache_read || 0) + (x.cache_write || 0) - (x.cache_unknown || 0);
+  return prompt > 0 ? (x.cache_read || 0) / prompt : null;
+};
+// what a hit rate leaves out, when it leaves anything out
+const cacheLeftOut = (x) => x.cache_unknown_calls
+  ? t(x.cache_unknown_calls === 1 ? "{n} request left out: its vendor doesn't count the cache" : "{n} requests left out: their vendor doesn't count the cache", { n: ledNum(x.cache_unknown_calls) })
+  : "";
 // how fast the timed replies of a point, a share or a part wrote, in tokens
 // a second after their first (usage.Totals.Speed): 0 for none timed
 const ledSpeed = (x) => x?.decode_ms > 0 ? (1000 * x.decode_out) / x.decode_ms : 0;
+// the least the replies of a group that has no first token wrote at
+// (usage.Totals.Floor, ledFloorSpeed's for each): 0 for none
+const ledFloor = (x) => x?.floor_ms > 0 ? (1000 * x.floor_out) / x.floor_ms : 0;
+// a group's speed as every ranking and the Output speed card say it, by one
+// rule (Fallmonkey on Discord): with replies whose speed was measured, their
+// speed and how many they are, "125 tok/s · 1 timed reply", not beside "260
+// requests" alone; with replies read from a session file that tell the least
+// they wrote at, that floor and how many, "≥100 tok/s · 30 replies"; with
+// both, both, the one of more replies first, "≥71 tok/s · 54 replies; 62
+// tok/s · 2 timed replies", as two replies are too few to stand for 56; else
+// nothing. Counts are words, not a bare "(2)" only its tooltip explains. The
+// Requests tab says each row's alone: "125 tok/s" or "≥100 tok/s". v is the
+// figure a speed ranking orders by and bars, the first one's; main is the
+// first, other the second ("" with one).
+function ledGroupSpeed(x) {
+  const v = ledSpeed(x), f = ledFloor(x), kv = x?.decode_n || 0, kf = x?.floor_n || 0;
+  if (!v && !f) return null;
+  const tok = (s) => t("{n} tok/s", { n: ledNum(Math.round(s)) });
+  const count = (k, timed) => !k ? "" : t(timed ? (k === 1 ? "{k} timed reply" : "{k} timed replies") : (k === 1 ? "{k} reply" : "{k} replies"), { k: ledNum(k) });
+  const vTitle = !v || !kv ? "" : f ? t(kv === 1 ? "Measured on {k} reply, from its first token to its end" : "Measured on {k} replies, from their first token to their end", { k: ledNum(kv) })
+    : t(kv === 1 ? "Measured on {k} reply, from its first token to its end; the others tell no speed" : "Measured on {k} replies, from their first token to their end; the others tell no speed", { k: ledNum(kv) });
+  const fTitle = !f || !kf ? "" : t(kf === 1 ? "At least: {k} reply read from a session file, which doesn't say when its answer began, so time before that is counted too" : "At least: {k} replies read from session files, which don't say when their answers began, so time before that is counted too", { k: ledNum(kf) });
+  // each figure as its speed and its count, kept apart so a narrow card can
+  // put the count under the speed rather than run past its edge (#1623); the
+  // card sets the count as a caption, with no "·" to lead a wrapped line
+  const measured = v ? { s: v, head: tok(v), count: count(kv, true), title: vTitle } : null;
+  const floor = f ? { s: f, head: "≥" + tok(f), count: count(kf, false), title: fTitle } : null;
+  // the larger sample first; a tie keeps the measured one first
+  const [a, b] = measured && floor && kf > kv ? [floor, measured] : [measured || floor, measured && floor];
+  const say = (p) => p.count ? p.head + " · " + p.count : p.head;
+  const main = say(a), other = b ? say(b) : "";
+  return { v: a.s, text: other ? t("{a}; {b}", { a: main, b: other }) : main, main, mainParts: a.count ? [a.head, " " + a.count] : [a.head], other, title: tipLines(a.title, b?.title) };
+}
 // their mean wait for the first token, 0 for none
 const ledTTFT = (x) => x?.timed > 0 ? x.ttft_ms / x.timed : 0;
 // a metric's value of a point or a share, as the chart counts it
 const ledValue = (m, x) => m === "speed" ? ledSpeed(x) : m === "cost" ? +x.cost || 0 : m === "calls" ? +x.calls || 0 : allTokens(x);
+// of a share in the ranking: a speed is what its row says first, the one of
+// more replies (ledGroupSpeed)
+const ledRankValue = (m, x) => m === "speed" ? ledGroupSpeed(x)?.v || 0 : ledValue(m, x);
 // of a point's part, which has its calls, tokens, cost and speed
 const ledPart = (m, x) => m === "speed" ? ledSpeed(x) : m === "cost" ? +x.cost || 0 : m === "calls" ? +x.calls || 0 : +x.tokens || 0;
 // a metric as its axis and its values say it
@@ -53,14 +86,14 @@ function ledAxis(max) {
 // what a chart tells apart, most first, and the colour of each: those of the
 // ranking's top, and the rest together as "Other"
 function ledCategories(l, split, metric) {
-  const list = (l.by?.[split] || []).slice().sort((a, b) => ledValue(metric, b) - ledValue(metric, a) || allTokens(b) - allTokens(a));
+  const list = (l.by?.[split] || []).slice().sort((a, b) => ledRankValue(metric, b) - ledRankValue(metric, a) || allTokens(b) - allTokens(a));
   const top = list.slice(0, LED_SHOWN).map((x, i) => ({ ...x, color: `var(--usage-c${i % 7 + 1})` }));
   return { top, rest: list.slice(LED_SHOWN), list };
 }
 
 // when a point is: the hour, the day or the week it stands for
 function ledWhen(p, bucket) {
-  const d = new Date(p.time), lang = intlLang() || "en";
+  const d = new Date(p.time), lang = intlLang();
   if (bucket === "hour") return d.toLocaleString(lang, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
   const day = d.toLocaleDateString(lang, { year: "numeric", month: "2-digit", day: "2-digit" });
   return bucket === "week" ? t("week of {label}", { label: day }) : day;
@@ -68,7 +101,7 @@ function ledWhen(p, bucket) {
 function ledTick(p, bucket) {
   const d = new Date(p.time);
   if (bucket === "hour") return String(d.getHours()).padStart(2, "0") + ":00";
-  return d.toLocaleDateString(intlLang() || "en", { month: "numeric", day: "numeric" });
+  return d.toLocaleDateString(intlLang(), { month: "numeric", day: "numeric" });
 }
 
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -102,8 +135,7 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
   }
   const topV = ledAxis(max);
   const selectable = l.bucket === "day" && !!box.chooseDay;
-  const g = sv("svg", { viewBox: `0 0 ${W} ${H}`, role: selectable ? "group" : "img" });
-  g.setAttribute("aria-label", t("Usage trend"));
+  const g = sv("svg", { viewBox: `0 0 ${W} ${H}`, role: selectable ? "group" : "img", "aria-label": t("Usage trend") });
   // the side's labels, measured as drawn: the plot starts where the widest
   // ends ("8000 万", "¥1250" are wider than "80M"), so none reaches past the
   // card's padding
@@ -143,9 +175,7 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
     let y0 = 0;
     const draw = (key, color, v) => {
       if (!(v > 0)) return;
-      const r = sv("rect", { x, width: bw, y: Y(y0 + v), height: Math.max(0.5, Y(y0) - Y(y0 + v)), rx: 1, class: "col", "data-k": key, "data-day": p.time.slice(0, 10), "data-color": color }, { fill: color });
-      g.append(r);
-      segs.push(r);
+      segs.push(g.appendChild(sv("rect", { x, width: bw, y: Y(y0 + v), height: Math.max(0.5, Y(y0) - Y(y0 + v)), rx: 1, class: "col", "data-k": key, "data-day": p.time.slice(0, 10), "data-color": color }, { fill: color })));
       y0 += v;
     };
     const by = p.by?.[split] || {};
@@ -165,16 +195,12 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
         // be drawn back down into the column
         if (v > totals[i]) {
           const top = Y(totals[i]);
-          const stem = sv("line", {
+          segs.push(g.appendChild(sv("line", {
             x1: x + bw / 2, x2: x + bw / 2, y1: top, y2: Math.min(Y(v) + 1.5, top),
             class: "col stem", "data-k": c.id, "data-day": p.time.slice(0, 10), "data-color": c.color,
-          }, { stroke: c.color, strokeWidth: 1, strokeOpacity: ".45" });
-          g.append(stem);
-          segs.push(stem);
+          }, { stroke: c.color, strokeWidth: 1, strokeOpacity: ".45" })));
         }
-        const r = sv("rect", { x, width: bw, y: Y(v) - 1.5, height: 3, rx: 1.5, class: "col mark", "data-k": c.id, "data-day": p.time.slice(0, 10), "data-color": c.color }, { fill: c.color });
-        g.append(r);
-        segs.push(r);
+        segs.push(g.appendChild(sv("rect", { x, width: bw, y: Y(v) - 1.5, height: 3, rx: 1.5, class: "col mark", "data-k": c.id, "data-day": p.time.slice(0, 10), "data-color": c.color }, { fill: c.color })));
       }
       return;
     }
@@ -182,6 +208,8 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
     for (const c of top) { const v = ledPart(metric, by[c.id] || {}); stacked += v; draw(c.id, c.color, v); }
     draw("\0other", "var(--usage-faint)", Math.max(0, totals[i] - stacked));
   });
+  // the Usage page's lines take the columns' place (ledLines)
+  box.drawn?.(g, Y, M.l + slot / 2, slot, segs);
   if (selectable) pts.forEach((p, i) => {
     const day = p.time.slice(0, 10);
     const hit = sv("rect", { class: "led-day", x: M.l + slot * i, y: M.t, width: slot, height: ph, fill: "transparent", role: "button", tabindex: 0, "aria-label": ledWhen(p, l.bucket), "aria-pressed": day === l.day, "data-day": day });
@@ -202,6 +230,9 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
     hot.setAttribute("x", M.l + slot * i);
     hot.style.display = "";
     tip.replaceChildren(el("b", "", ledWhen(p, l.bucket)));
+    // speeds are read across: a model's name in full, its speed and its
+    // first token each in a column of their own (#2343)
+    tip.classList.toggle("speed", speed);
     const by = p.by?.[split] || {};
     const rows = top.map((c) => [name(c), c.color, ledPart(metric, by[c.id] || {}), by[c.id]]);
     if (!speed) rows.push([t("Other"), "var(--usage-faint)", Math.max(0, totals[i] - rows.reduce((a, x) => a + x[2], 0))]);
@@ -209,15 +240,18 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
       const row = el("div");
       const sw = el("i");
       sw.style.background = color;
-      const said = el("em", "", ledFormatLong(metric, v));
-      if (speed && ledTTFT(part)) said.append(" · " + t("TTFT {ms}", { ms: ledTook(ledTTFT(part)) }));
-      row.append(sw, el("span", "", nm), said);
+      row.append(sw, el("span", "", nm), el("em", "", ledFormatLong(metric, v)));
+      if (speed) row.append(el("em", "ttft", ledTTFT(part) ? t("TTFT {ms}", { ms: ledTook(ledTTFT(part)) }) : ""));
       tip.append(row);
     }
     const sum = el("div", "sum");
-    sum.append(el("span", "", t(speed ? "All" : "Total")), el("em", "", ledFormatLong(metric, totals[i])));
-    if (speed && ledTTFT(p)) sum.lastChild.append(" · " + t("TTFT {ms}", { ms: ledTook(ledTTFT(p)) }));
-    if (metric !== "calls" && p.calls) sum.lastChild.append(" · " + t(p.calls === 1 ? "{n} request" : "{n} requests", { n: ledNum(p.calls) }));
+    const calls = metric !== "calls" && p.calls ? t(p.calls === 1 ? "{n} request" : "{n} requests", { n: ledNum(p.calls) }) : "";
+    if (speed) {
+      sum.append(el("span", "", t("All") + (calls ? " · " + calls : "")), el("em", "", ledFormatLong(metric, totals[i])),
+        el("em", "ttft", ledTTFT(p) ? t("TTFT {ms}", { ms: ledTook(ledTTFT(p)) }) : ""));
+    } else {
+      sum.append(el("span", "", t("Total")), el("em", "", ledFormatLong(metric, totals[i]) + (calls ? " · " + calls : "")));
+    }
     tip.append(sum);
     tip.hidden = false;
     const x = M.l + slot * (i + 0.5), w = tip.offsetWidth;
@@ -232,9 +266,8 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
       const dimDay = l.day && r.dataset.day !== l.day;
       const color = dimDay ? "var(--usage-faint)" : r.dataset.color;
       r.style.opacity = dimDay || key != null && r.dataset.k !== key ? ".22" : "";
-      // a mark's leader line is a line, which is stroked, not filled
-      if (r.tagName === "line") r.style.stroke = color;
-      else r.style.fill = color;
+      // a leader line or a line chart's series is stroked, not filled
+      r.style[r.tagName == "rect" ? "fill" : "stroke"] = color;
     }
   };
   box.emphasize(null);
@@ -257,11 +290,11 @@ function drawLedRank(box, l, split, metric, picked, choose, compact) {
   }
   if (!list.length) return;
   const sum = list.reduce((a, x) => a + ledValue(metric, x), 0) || 1;
-  const leader = Math.max(1, ledValue(metric, top[0]));
+  const leader = Math.max(1, ledRankValue(metric, top[0]));
   const one = (x, color, plain) => {
     const b = el("button", "rk" + (plain ? " plain" : "") + (picked && picked === x.id ? " on" : ""));
     b.type = "button";
-    const v = ledValue(metric, x);
+    const v = ledRankValue(metric, x), gs = ledGroupSpeed(x);
     const l1 = el("div", "rk-a");
     const sw = el("i", "rk-sw");
     sw.style.background = color;
@@ -269,7 +302,9 @@ function drawLedRank(box, l, split, metric, picked, choose, compact) {
     if (x.icon && split !== "model") l1.append(icon(x.icon));
     const nm = el("span", "rk-nm", t(x.name || x.id || "—"));
     nm.title = t(x.name || x.id || "");
-    l1.append(nm, el("span", "rk-val", ledFormatLong(metric, v)));
+    const val = el("span", "rk-val", metric === "speed" ? gs?.text || "—" : ledFormatLong(metric, v));
+    if (metric === "speed" && gs?.title) val.title = gs.title;
+    l1.append(nm, val);
     const bar = el("div", "rk-bar"), fill = el("i");
     fill.style.width = Math.max(1.5, (100 * v) / leader).toFixed(1) + "%";
     fill.style.background = color;
@@ -278,25 +313,25 @@ function drawLedRank(box, l, split, metric, picked, choose, compact) {
     if (metric !== "calls") more.push(t(x.calls === 1 ? "{n} request" : "{n} requests", { n: ledNum(x.calls) }));
     if (metric !== "tokens") more.push(t("{n} tokens", { n: fmtN(allTokens(x)) }));
     if (metric !== "cost" && x.cost) more.push("≈" + fmtCost(x));
+    if (x.credited) more.push(ledCredits(x));
     // how fast its replies came, beside what they cost (#860)
-    if (metric !== "speed" && ledSpeed(x)) more.push(t("{n} tok/s", { n: ledNum(Math.round(ledSpeed(x))) }));
+    if (metric !== "speed" && gs) more.push(Object.assign(el("span", "rk-speed", gs.text), { title: gs.title }));
     if (ledTTFT(x)) more.push(t("TTFT {ms}", { ms: ledTook(ledTTFT(x)) }));
-    const prompt = x.input + x.cache_write + x.cache_read;
-    if (prompt && !compact) more.push(t("hit rate {p}", { p: Math.round((100 * x.cache_read) / prompt) + "%" }));
+    const hit = cacheHitOf(x);
+    if (hit !== null && !compact) more.push(t("hit rate {p}", { p: Math.round(100 * hit) + "%" }));
     // a speed is no one's share of all
     if (metric !== "speed") more.push(Math.round((100 * v) / sum) + "%");
     const l2 = el("div", "rk-b");
-    // Overview columns keep the three summary figures together. The complete
-    // upstream timing/cache details remain in the accessible description and
-    // tooltip; the trend's ranking still prints every metric inline.
+    b.title = more.map(m => typeof m === "string" ? m : m.textContent).join(" · ");
+    b.setAttribute("aria-description", b.title);
     const brief = [];
     if (metric !== "calls") brief.push(t(x.calls === 1 ? "{n} request" : "{n} requests", { n: ledNum(x.calls) }));
     if (metric !== "cost" && x.cost) brief.push("≈" + fmtCost(x));
     if (metric !== "speed") brief.push(Math.round((100 * v) / sum) + "%");
-    b.title = more.join(" · ");
-    b.setAttribute("aria-description", b.title);
-    l2.append((compact ? brief : more).join(" · "));
+    (compact ? brief : more).forEach((m, i) => l2.append(...(i ? [" · ", m] : [m])));
     if (x.errors) l2.append(" · ", Object.assign(el("span", "rk-bad"), { textContent: t("{n} failed", { n: x.errors }) }));
+    // of those, the replies magpie ended stuck in a loop (#1858)
+    if (x.loops) l2.append(" · ", Object.assign(el("span", "rk-bad rk-loop"), { textContent: t("{n} looped", { n: ledNum(x.loops) }), title: t("Replies magpie ended because the model kept repeating itself") }));
     b.append(l1, bar, l2);
     if (!plain) b.onclick = () => choose(x);
     b.onpointerenter = () => box.chart?.emphasize?.(x.id);
@@ -306,7 +341,7 @@ function drawLedRank(box, l, split, metric, picked, choose, compact) {
   for (const x of top) box.append(one(x, x.color));
   if (rest.length) {
     const tot = rest.reduce((acc, x) => {
-      for (const k of ["calls", "errors", "input", "output", "cache_read", "cache_write", "cost", "timed", "ttft_ms", "decode_ms", "decode_out"]) acc[k] = (acc[k] || 0) + (x[k] || 0);
+      for (const k of ["calls", "errors", "loops", "input", "output", "cache_read", "cache_write", "cache_unknown", "cache_unknown_calls", "cost", "credits", "credited", "timed", "ttft_ms", "decode_ms", "decode_out", "decode_n", "floor_out", "floor_ms", "floor_n"]) acc[k] = (acc[k] || 0) + (x[k] || 0);
       return acc;
     }, { id: "\0other", name: t("Other ({n})", { n: rest.length }) });
     box.append(one(tot, "var(--usage-faint)", true));
@@ -333,7 +368,14 @@ function ledRankEdges(box) {
   rail.firstChild.style.transform = `translateY(${((h - thumb) * box.scrollTop) / end}px)`;
 }
 
-// the rail's thumb drags the ranking; a click on the rail takes it there
+function ledCredits(x) {
+  if (!x?.credited) return null;
+  const n = x.credits || 0;
+  const s = el("span", "rk-credits", t("{n} credits", { n: n > 0 && n < 0.01 ? "<0.01" : (+n.toFixed(2)).toLocaleString(intlLang()) }));
+  s.title = t("What {n} of these requests cost in their plan's credits, as the replies said", { n: ledNum(x.credited) });
+  return s;
+}
+
 function ledRail(rail, box) {
   box.rail = rail;
   rail.onpointerdown = (e) => {
@@ -357,5 +399,93 @@ function ledRail(rail, box) {
   };
 }
 
-return {drawLedColumns,drawLedRank,ledCategories,ledRail};
+// The chart as lines (drawLedColumns' box.drawn): the columns drawn on its
+// axis are taken away and each one told apart becomes a line through its
+// points. Tokens, cost and requests stay stacked, each line where its part
+// of the column ended, with its band softly filled under it, so the top
+// line is the total as the column's top was; speeds don't add up, so each
+// model's line is at its own speed, broken where it had none, over the
+// point's own speed dashed. The tooltip, the hover, a day's pick and the
+// ranking's emphasis are drawLedColumns' own, over the same slots.
+// A smooth line through points [x, y], as d3's curveMonotoneX draws it
+// (Fritsch–Carlson): it bends between points but never past one, so a
+// quiet hour isn't drawn dipping under zero or a peak over its value.
+// "from" starts it ("M", or "L" to go on from where a path is).
+function ledCurve(ps, from = "M") {
+  const n = ps.length, f = (v) => v.toFixed(1);
+  if (!n) return "";
+  let d = from + f(ps[0][0]) + " " + f(ps[0][1]);
+  if (n === 1) return d;
+  const s = [], m = [];
+  for (let i = 0; i < n - 1; i++) s.push((ps[i + 1][1] - ps[i][1]) / (ps[i + 1][0] - ps[i][0]));
+  for (let i = 1; i < n - 1; i++) {
+    const h0 = ps[i][0] - ps[i - 1][0], h1 = ps[i + 1][0] - ps[i][0], p = (s[i - 1] * h1 + s[i] * h0) / (h0 + h1);
+    m[i] = s[i - 1] * s[i] <= 0 ? 0 : (Math.sign(s[i - 1]) + Math.sign(s[i])) * Math.min(Math.abs(s[i - 1]), Math.abs(s[i]), Math.abs(p) / 2);
+  }
+  m[0] = n > 2 ? (3 * s[0] - m[1]) / 2 : s[0];
+  m[n - 1] = n > 2 ? (3 * s[n - 2] - m[n - 2]) / 2 : s[0];
+  for (let i = 0; i < n - 1; i++) {
+    const [xa, ya] = ps[i], [xb, yb] = ps[i + 1], dx = (xb - xa) / 3;
+    d += "C" + f(xa + dx) + " " + f(ya + dx * m[i]) + " " + f(xb - dx) + " " + f(yb - dx * m[i + 1]) + " " + f(xb) + " " + f(yb);
+  }
+  return d;
+}
+
+function ledLines(l, split, metric, g, Y, x0, slot, segs) {
+  const pts = l?.series || [];
+  for (const r of segs) r.remove();
+  segs.length = 0;
+  if (!l) return;
+  const speed = metric === "speed";
+  const { top } = ledCategories(l.chartBy ? { by: l.chartBy } : l, split, metric);
+  const X = (i) => x0 + slot * i, dot = slot >= 12 ? 4.5 : 3;
+  const at = (i, v) => [X(i), Y(v)];
+  // stacked, each one goes under those before it, so a band never covers
+  // the line under it
+  let head = null;
+  const totals = pts.map((p) => ledValue(metric, p));
+  // one series: its line, the dots at its points and the band under it
+  const series = (key, color, vals, base, dashed) => {
+    const s = sv("g", { class: "col ln", "data-k": key, "data-day": l.day || "", "data-color": color }, { stroke: color });
+    // each unbroken run is one smooth curve; a point alone in its run has
+    // no line to sit on, so it is a dot
+    let line = "", dots = "", run = [];
+    const end = () => {
+      if (run.length === 1 && !dashed) dots += "M" + run[0][0].toFixed(1) + " " + run[0][1].toFixed(1) + "h0";
+      line += ledCurve(run);
+      run = [];
+    };
+    vals.forEach((v, i) => { if (v == null) end(); else run.push(at(i, v)); });
+    end();
+    if (!line) return;
+    if (base) {
+      const up = ledCurve(vals.map((v, i) => at(i, v)));
+      const down = ledCurve(base.map((v, i) => at(i, v)).reverse(), "L");
+      s.append(sv("path", { d: up + down + "Z", class: "band" }, { fill: color }));
+    }
+    s.append(sv("path", { d: line, class: "line" + (dashed ? " all" : "") }));
+    if (dots) s.append(sv("path", { d: dots, class: "dots" }, { strokeWidth: dot }));
+    head = g.insertBefore(s, speed ? null : head);
+    segs.push(s);
+  };
+  if (speed) {
+    series("\0all", "var(--usage-muted)", totals.map((v) => (v > 0 ? v : null)), null, true);
+    for (const c of top) series(c.id, c.color, pts.map((p) => ledSpeed(p.by?.[split]?.[c.id]) || null));
+    return;
+  }
+  // from the bottom up: each one's part on what is under it, "Other" last
+  let under = pts.map(() => 0);
+  const parts = top.map((c) => [c.id, c.color, pts.map((p) => ledPart(metric, p.by?.[split]?.[c.id] || {}))]);
+  parts.push(["\0other", "var(--usage-faint)", pts.map((p, i) => Math.max(0, totals[i] - parts.reduce((a, x) => a + x[2][i], 0)))]);
+  for (const [key, color, vs] of parts) {
+    const over = under.map((u, i) => u + vs[i]);
+    if (vs.some((v) => v > 0)) series(key, color, over, under);
+    under = over;
+  }
+}
+return {
+ drawLedColumns:(...args)=>{args[0].drawn=null;return drawLedColumns(...args);},
+ drawLedLines:(box,l,split,metric,compact,chooseDay,focusDay)=>{box.drawn=(...args)=>ledLines(l,split,metric,...args);return drawLedColumns(box,l,split,metric,compact,chooseDay,focusDay);},
+ drawLedRank,ledCategories,ledRail,cacheHitOf,ledGroupSpeed
+};
 }

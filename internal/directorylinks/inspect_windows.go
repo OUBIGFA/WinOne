@@ -12,6 +12,22 @@ import (
 )
 
 func checked(r Record) Record {
+	if r.Migration != nil {
+		if r.Migration.Phase != "complete" {
+			r.Accessible = false
+			r.Status = "unknown"
+			r.Reason = "migration-incomplete"
+			if r.Migration.Phase == "failed" {
+				r.Status = "failed"
+				r.Reason = "migration-failed"
+			}
+			r.Detail = r.Migration.Message
+			return r
+		}
+		if r.Migration.Operation == "restore" {
+			return checkedRestoredMigration(r)
+		}
+	}
 	r.CheckedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	r.Status, r.Reason, r.Detail = "unknown", "cannot-check", ""
 	r.Accessible = false

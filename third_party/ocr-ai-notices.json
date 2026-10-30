@@ -474,6 +474,28 @@
     },
     {
       "kind": "magpie-go",
+      "name": "github.com/coder/websocket",
+      "version": "v1.8.14",
+      "notices": [
+        {
+          "file": "licenses/interconnect-github.com-coder-websocket-v1.8.14-LICENSE.txt.txt",
+          "sha256": "cc0975a5f6305145bdd7b41ce9479632fdac3870e6ac4281f28017f18c767c4e"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
+      "name": "github.com/google/uuid",
+      "version": "v1.6.0",
+      "notices": [
+        {
+          "file": "licenses/go-github-com-google-uuid-LICENSE.txt",
+          "sha256": "0a8d61ed3cbfd5312326e8126c31ce9c627a283adc99131b56896d29ada04b2d"
+        }
+      ]
+    },
+    {
+      "kind": "magpie-go",
       "name": "github.com/dustin/go-humanize",
       "version": "v1.0.1",
       "notices": [
@@ -833,6 +855,17 @@
       "notices": [
         {
           "file": "licenses/upstream-magpie-50f52b540b915bdf5912ddebc48c1fa46eef3025-0-LICENSE.txt",
+          "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "magpie",
+      "version": "42ec2700bd2a4cf8d4ceb76a95767ac221e283e5",
+      "notices": [
+        {
+          "file": "licenses/upstream-magpie-42ec2700bd2a4cf8d4ceb76a95767ac221e283e5-0-LICENSE.txt",
           "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
         }
       ]

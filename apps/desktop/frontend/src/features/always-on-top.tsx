@@ -1,5 +1,5 @@
 import {SettingsSaveBar} from "../components/settings-save-bar";
-import {Settings,SlidersHorizontal,Save,RotateCcw,SendHorizontal,Frame,BellRing,Gamepad2} from "lucide-react";
+import {Settings,SlidersHorizontal,Save,SendHorizontal,Frame,BellRing,Gamepad2} from "lucide-react";
 import {IconLabel} from "../ui/icon-label";
 import {Notice,InlineError} from "../ui/notice";
 import {Tabs,TabsList,TabsTrigger,TabsContent} from "../components/ui/tabs";
@@ -43,7 +43,7 @@ export function AlwaysOnTopPage({ disabled = false,onActivity,onSaved }: { disab
   const exclusionDrop=usePathDrop({kind:"file",multiple:true,disabled:busy||!settings,onError:setError,onPaths:paths=>{setError("");setExclusions(value=>[...new Set([...value.split(/\r?\n/).filter(Boolean),...paths])].join("\n"));}});
   const dirty=!!settings&&JSON.stringify({...settings,excludedApps})!==JSON.stringify(savedSettings);
 
-  usePageActivity(onActivity,dirty,working);
+  usePageActivity(onActivity,dirty,working,"always-on-top",()=>void action(()=>refresh(true),true));
 
   async function refresh(includeSettings: boolean) {
     if (disabled && !includeSettings) return;
@@ -123,10 +123,9 @@ export function AlwaysOnTopPage({ disabled = false,onActivity,onSaved }: { disab
 
       <TabsContent value="shortcuts" className="settings-section-stack"><Shortcuts moduleId="always-on-top" onSaved={()=>onSaved?.()} onActivity={onActivity}/></TabsContent>
       </Tabs>
-      {settings&&tab!=="shortcuts"&&<SettingsSaveBar disabled={busy}>
+      {settings&&tab!=="shortcuts"&&<SettingsSaveBar disabled={busy} undo={{disabled:!dirty,onClick:()=>void action(()=>refresh(true),true)}}>
       {!validNumbers&&<InlineError className="basis-full text-sm">{t("aot.numberRange")}</InlineError>}
         <Button icon={Save} variant="primary" disabled={!dirty||!validNumbers} onClick={() => void action(save)}>{t("aot.save")}</Button>
-        <Button icon={RotateCcw} disabled={!dirty} onClick={() => void action(() => refresh(true),true)}>{t("aot.undo")}</Button>
       <p role="status">{dirty ? t("aot.dirty") : notice?t(notice):""}</p>
       </SettingsSaveBar>}
   </section>;

@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {FolderOpen,Network,Send,Cloud,Save,RotateCcw} from 'lucide-react';
+import {FolderOpen,Network,Send,Cloud,Save} from 'lucide-react';
 import {interconnectCall,pickDirectory} from '../bridge';
 import {useTranslation} from '../i18n';
 import {Button} from '../ui/button';
@@ -30,7 +30,7 @@ export function InterconnectPage({onActivity,intent,onIntentConsumed}:{onActivit
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [tab,setTab]=useState('files');
  const [clipboard,setClipboard]=useState<{kind:'share'|'transfer'|'store';code:string}>(),[clipboardIntent,setClipboardIntent]=useState<InterconnectIntent>(),[storeCode,setStoreCode]=useState<InterconnectIntent>();
- useEffect(()=>{let live=true;const read=async()=>{try{const settings=await interconnectCall<InterconnectGeneral>('general.get');if(!live||!settings?.clipboard)return;const code=(await navigator.clipboard.readText()).trim();if(!live||code.length>4096)return;const kind=code.startsWith('tc')&&code.length>40?'share':code.startsWith('croc-store-v1.')||code.startsWith('https://getcroc.com/s/')?'store':/^[0-9]+-[a-z0-9-]+$/i.test(code)?'transfer':undefined;if(kind)setClipboard({kind,code});}catch(e){if(live)setError(String(e));}};window.addEventListener('focus',read);void read();return()=>{live=false;window.removeEventListener('focus',read);};},[]);
+ useEffect(()=>{let live=true;const read=async()=>{try{const settings=await interconnectCall<InterconnectGeneral>('general.get');if(!live||!settings?.clipboard)return;const code=(await navigator.clipboard.readText()).trim();if(!live||code.length>4096)return;const kind=code.startsWith('tc')&&code.length>40?'share':code.startsWith('croc-store-v1.')||code.startsWith('https://getcroc.com/s/')||code.startsWith('https://gofile.io/d/')?'store':/^[0-9]+-[a-z0-9-]+$/i.test(code)?'transfer':undefined;if(kind)setClipboard({kind,code});}catch(e){if(live)setError(String(e));}};window.addEventListener('focus',read);void read();return()=>{live=false;window.removeEventListener('focus',read);};},[]);
  useEffect(()=>{if(intent)setTab('files');},[intent]);
  const alive=useRef(true),version=useRef(0);
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;version.current++;};},[]);
@@ -46,7 +46,8 @@ export function InterconnectPage({onActivity,intent,onIntentConsumed}:{onActivit
  const settingsDirty=preferencesDirty||generalDirty;
  const dirty=settingsDirty;
  // Sharing survives navigation; only unfinished input and current actions need protection.
- usePageActivity(onActivity,dirty,busy,'interconnect');
+ const undoSettings=()=>{setPreferences(state?.settings);setGeneralDraft(general);setError('');setNotice('');};
+ usePageActivity(onActivity,dirty,busy,'interconnect',undoSettings);
  async function action(work:()=>Promise<unknown>){
   setBusy(true);setError('');setNotice('');version.current++;
   try{await work();await refresh();}catch(e){if(alive.current)setError(String(e));}finally{if(alive.current)setBusy(false);}
@@ -78,9 +79,8 @@ export function InterconnectPage({onActivity,intent,onIntentConsumed}:{onActivit
    </SettingsSection>
    <InterconnectGeneralPanel active={tab==='general'} onActivity={onActivity} general={generalDraft} onChange={setGeneralDraft} disabled={busy}/>
   </TabsContent>
-  <SettingsSaveBar disabled={busy}>
+  <SettingsSaveBar disabled={busy} undo={{disabled:!settingsDirty,onClick:undoSettings}}>
    <Button icon={Save} variant="primary" disabled={!settingsDirty||!preferences||!generalDraft||!Number.isInteger(preferences.port)||preferences.port<0||preferences.port>65535} onClick={()=>void action(saveSettings)}>{t('interconnect.saveSettings')}</Button>
-   <Button icon={RotateCcw} disabled={!settingsDirty} onClick={()=>{setPreferences(state?.settings);setGeneralDraft(general);setError('');setNotice('');}}>{t('shortcuts.undo')}</Button>
   </SettingsSaveBar>
  </Tabs>;
 }

@@ -216,7 +216,11 @@ func (p *Panel) palette(c *ui.Context) *ui.Theme {
 	return t
 }
 
-const resultHeaderHeight float32 = 40
+const (
+	resultHeaderHeight float32 = 40
+	composerInset             = 12
+	quickToolbarHeight        = 42
+)
 
 func (p *Panel) View(c *ui.Context) {
 	t := p.palette(c)
@@ -225,17 +229,17 @@ func (p *Panel) View(c *ui.Context) {
 	// The framework splitter owns dragging, keyboard resizing and capture. Keep
 	// an input-height preference so enlarging the window still gives space to reading.
 	available := max(0, height-resultHeaderHeight-1)
+	// The shared top region holds spacing or the quick toolbar. Its height
+	// replaces the spacing, so the toolbar stays centered between both edges.
+	topHeight := float32(composerInset)
+	if p.Source == "quick-assistant" {
+		topHeight = quickToolbarHeight
+	}
 	desired := p.composerHeight
 	if desired == 0 {
-		desired = 120
-		if p.Source == "quick-assistant" {
-			desired = 170
-		}
+		desired = 120 + topHeight
 	}
-	minimum := float32(96)
-	if p.Source == "quick-assistant" {
-		minimum = 150
-	}
+	minimum := 96 + topHeight
 	composer := max(minimum, min(desired, available-72))
 	reading := max(40, available-composer-1)
 	// The native window owns its outer border/corners; only content is painted here.
@@ -651,17 +655,18 @@ func (p *Panel) conversation(c *ui.Context, t *ui.Theme) {
 	}
 }
 func (p *Panel) composer(c *ui.Context, t *ui.Theme) {
-	// Give the quick-action strip its complete region above the input. Its
-	// symmetric inset centers the icons without moving or shrinking the input.
-	topPadding := float32(12)
-	if p.Source == "quick-assistant" {
-		topPadding = 0
-	}
-	ui.Column(c).Fill().MaxWidth(872).AlignSelf(ui.Center).Padding(topPadding, 12, 12, 12).Children(func() {
-		if p.Source == "quick-assistant" {
-			p.quickToolbar(c, t)
-		}
-		box := ui.Column(c).Grow(1).MinHeight(0).Key("composer").Padding(10, 12).Gap(8).Border(1, t.Border).Radius(12).Children(func() {
+	// Anchor shared conversation controls to this entire pane, including any
+	// toolbar, so input padding and editor resizing cannot pull them inside it.
+	// The top region owns all spacing between the divider and editor. Never
+	// add outer top padding: it would push the quick toolbar off center.
+	region := ui.Column(c).Fill().MaxWidth(872).AlignSelf(ui.Center).Padding(0, composerInset, composerInset, composerInset)
+	region.Children(func() {
+		ui.Column(c).FillWidth().MinHeight(composerInset).Shrink(0).Justify(ui.Center).Children(func() {
+			if p.Source == "quick-assistant" {
+				p.quickToolbar(c, t)
+			}
+		})
+		box := ui.Column(c).Grow(1).MinHeight(0).Key("composer").Label(p.T("消息输入框", "Message input box")).Padding(10, 12).Gap(8).Border(1, t.Border).Radius(12).Children(func() {
 			input := ui.TextArea(c, &p.Prompt).Placeholder(p.T("围绕结果继续提问…", "Ask about this result…")).Label(p.T("继续提问", "Ask a follow-up")).FontSize(14).LineHeight(1.5).Grow(1).MinHeight(24).Padding(0).Border(0, ui.Transparent).Background(ui.Transparent)
 			if p.ContextReset {
 				input.Placeholder(p.T("输入新一轮消息…", "Start a new conversation…"))
@@ -719,18 +724,13 @@ func (p *Panel) composer(c *ui.Context, t *ui.Theme) {
 		if box.FocusWithin() {
 			box.Border(1, t.Focus)
 		}
-		if (p.Source == "selection" || p.Source == "quick-assistant" || p.Actions.ClearAll != nil || p.Actions.Restart != nil) && !p.ModelPickerOpen && !p.TranslationPickerOpen && !p.quickMore {
-			// MyGo's anchored overlay follows composer resizing without taking
-			// space from the editor or being clipped by the split-pane boundary.
-			gap := float32(8)
-			if p.Source == "quick-assistant" {
-				gap += 42 // Keep the complete quick-action strip unobstructed.
-			}
-			ui.Overlay(c, func() {
-				ui.Column(c).Key("conversation-controls").AttachTo(box, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, 0, gap, 0).Gap(4).Children(func() { p.conversationControls(c, t) })
-			})
-		}
 	})
+	if (p.Source == "selection" || p.Source == "quick-assistant" || p.Actions.ClearAll != nil || p.Actions.Restart != nil) && !p.ModelPickerOpen && !p.TranslationPickerOpen && !p.quickMore {
+		// Include the one-DIP split line in the eight-DIP clearance above it.
+		ui.Overlay(c, func() {
+			ui.Column(c).Key("conversation-controls").AttachTo(region, ui.AnchorTopRight, ui.AnchorBottomRight).Margin(0, composerInset, 9, 0).Gap(4).Children(func() { p.conversationControls(c, t) })
+		})
+	}
 }
 func (p *Panel) conversationControls(c *ui.Context, t *ui.Theme) {
 	// Opaque button surfaces keep each floating glyph legible over old replies.

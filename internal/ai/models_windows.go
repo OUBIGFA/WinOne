@@ -22,6 +22,7 @@ func (t Translator) Models(ctx context.Context, p Provider, key string) ([]Model
 	defer cancel()
 	input := map[string]any{"operation": "models.fetch", "protocol": p.Protocol, "baseUrl": p.BaseURL, "key": key}
 	input["headers"] = p.Headers
+	input["limitRestOff"] = p.LimitRestOff
 	if p.Preset != "" {
 		input["preset"] = p.Preset
 		input["presetRegion"] = p.PresetRegion
@@ -33,6 +34,7 @@ func (t Translator) Models(ctx context.Context, p Provider, key string) ([]Model
 	}
 	output, err := t.ForProvider(p.ID).invoke(ctx, input)
 	var result struct {
+		Limited           bool          `json:"limited"`
 		Models            []ModelOption `json:"models"`
 		Error             string        `json:"error"`
 		Status            int           `json:"status"`
@@ -40,7 +42,7 @@ func (t Translator) Models(ctx context.Context, p Provider, key string) ([]Model
 	}
 	decodeErr := json.Unmarshal(output, &result)
 	if decodeErr == nil && result.Error != "" && result.Status >= 400 && result.Status <= 599 && result.RetryAfterSeconds >= 0 && result.RetryAfterSeconds <= 86400 {
-		return nil, &AttemptFailure{Status: result.Status, RetryAfter: time.Duration(result.RetryAfterSeconds) * time.Second}
+		return nil, &AttemptFailure{Status: result.Status, RetryAfter: time.Duration(result.RetryAfterSeconds) * time.Second, Limited: result.Limited}
 	}
 	if err != nil || decodeErr != nil || result.Error != "" {
 		return nil, errors.New("无法获取模型列表，可以手动添加模型")

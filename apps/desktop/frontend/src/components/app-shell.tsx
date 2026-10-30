@@ -1,4 +1,4 @@
-import {useLayoutEffect,useRef,useState,type ReactNode,type CSSProperties} from "react";
+import {useCallback,useLayoutEffect,useMemo,useRef,useState,type ReactNode} from "react";
 import {usePanelRef} from "react-resizable-panels";
 import type {LucideIcon} from "lucide-react";
 import {SidebarSimple} from "@phosphor-icons/react";
@@ -10,7 +10,7 @@ import {TooltipProvider} from "./ui/tooltip";
 import {WindowTitlebar,type WindowFramePort} from "./window-titlebar";
 import {readSidebarLayout,sidebarStorageKey,useSidebarStartup} from "./sidebar-preference";
 import {PageScrollControls} from "./page-scroll-controls";
-import {SettingsFooterTarget} from "./settings-save-bar";
+import {SettingsActionsTarget,SettingsSavePlaceholder} from "./settings-save-bar";
 import "../styles/settings.css";
 
 interface ShellPage {id:string;title:string;icon:LucideIcon}
@@ -19,13 +19,13 @@ interface ShellPage {id:string;title:string;icon:LucideIcon}
 // pages still unmount; the fixed navigation does not keep their workers alive.
 export function AppShell({page,pages,logo,onNavigate,children,windowPort,onWindowReady,toolbar}:{page:string;pages:ShellPage[];logo:string;onNavigate:(id:string)=>void;children:ReactNode;windowPort?:WindowFramePort;onWindowReady?:()=>void;toolbar?:ReactNode}) {
  const {t}=useTranslation();
- // Both chat screens own their scrolling and composer; settings keep the
- // shared page scrollbar and save footer.
- const conversationPage=page==="chat"||page==="flash-chat";
+ // Conversation screens own their scrolling and composer; settings keep the
+ // shared page scrollbar and the right-side action rail.
+ const conversationPage=page==="chat"||page==="flash-chat"||page==="onebot";
  // Portalled menus/dialogs must inherit the same settings tokens as the page.
  // Remove the scope before Chat paints; its imported design system is intact.
  useLayoutEffect(()=>{
-  if(page==="chat")return;
+  if(page==="chat"||page==="onebot")return;
   document.documentElement.dataset.settingsUi="true";
   return()=>{delete document.documentElement.dataset.settingsUi;};
  },[page]);
@@ -46,10 +46,16 @@ export function AppShell({page,pages,logo,onNavigate,children,windowPort,onWindo
   setSidebar(next);panel.current?.resize(next.width);
  },[startup,sidebar]);
  const scroll=useRef<HTMLDivElement>(null);
- const [footerTarget,setFooterTarget]=useState<HTMLDivElement|null>(null);
- const [scrollbarWidth,setScrollbarWidth]=useState(0);
- // Match the page's usable width, including a native scrollbar when present.
- useLayoutEffect(()=>{const viewport=scroll.current;if(!viewport)return;let frame=0;const measure=()=>{frame=0;const width=viewport.offsetWidth-viewport.clientWidth;setScrollbarWidth(previous=>previous===width?previous:width);};const schedule=()=>{if(!frame)frame=requestAnimationFrame(measure);};const observer=new ResizeObserver(schedule);observer.observe(viewport);schedule();return()=>{observer.disconnect();if(frame)cancelAnimationFrame(frame);};},[page]);
+ const [actionsTarget,setActionsTarget]=useState<HTMLDivElement|null>(null);
+ // Count visible page transactions. Without one, the rail keeps disabled Save
+ // and Undo in the same place instead of collapsing or moving controls.
+ const activeSaves=useRef(new Set<object>());
+ const [saveCount,setSaveCount]=useState(0);
+ const setActive=useCallback((id:object,active:boolean)=>{
+  if(active)activeSaves.current.add(id);else activeSaves.current.delete(id);
+  setSaveCount(activeSaves.current.size);
+ },[]);
+ const actions=useMemo(()=>actionsTarget?{target:actionsTarget,setActive}:null,[actionsTarget,setActive]);
  useLayoutEffect(()=>{if(scroll.current)scroll.current.scrollTop=0;},[page]);
  const renderPage=(item:ShellPage,rail=false)=><SidebarMenuItem key={item.id}>
   {item.id==="ai-services"&&pages.some(item=>item.id==="chat")&&<div role="separator" className="mx-3 my-2 border-t border-border"/>}
@@ -77,13 +83,13 @@ export function AppShell({page,pages,logo,onNavigate,children,windowPort,onWindo
   </ResizablePanel>
   <ResizableHandle elementRef={separator} className="app-navigation-divider" aria-label={t("navigation.resizeSidebar")}/>
   <ResizablePanel id="app-page" minSize={320}>
-  <SidebarInset className="settings-frame relative m-0 h-full min-h-0 max-w-none overflow-hidden p-0" style={{"--settings-scrollbar-width":`${scrollbarWidth}px`} as CSSProperties}>
-   <SettingsFooterTarget.Provider value={conversationPage?null:footerTarget}>
+  <SidebarInset className="settings-frame relative m-0 h-full min-h-0 max-w-none overflow-hidden p-0">
+   <SettingsActionsTarget.Provider value={conversationPage?null:actions}>
    <div ref={scroll} data-slot="page-scroll" data-page={page} className={conversationPage?"min-h-0 flex-1 overflow-hidden":"min-h-0 flex-1 overflow-y-auto overscroll-contain"}>
     <div data-slot="page-content" data-settings-page={conversationPage?undefined:page} className={conversationPage?"flex h-full min-h-0 flex-col [&>.chat-workspace]:flex-1":"settings-surface mx-auto w-full"}>{children}</div>
    </div>
-   {!conversationPage&&<div data-slot="settings-footer" className="settings-surface settings-footer"><div ref={setFooterTarget} className="settings-footer-actions"/><PageScrollControls key={page} viewportRef={scroll}/></div>}
-   </SettingsFooterTarget.Provider>
+   {!conversationPage&&<div data-slot="settings-actions" className="settings-surface settings-action-rail"><div className="settings-action-save"><div ref={setActionsTarget} className="contents"/>{saveCount===0&&<SettingsSavePlaceholder/>}</div><PageScrollControls key={page} viewportRef={scroll}/></div>}
+   </SettingsActionsTarget.Provider>
   </SidebarInset>
   </ResizablePanel>
   </ResizablePanelGroup>

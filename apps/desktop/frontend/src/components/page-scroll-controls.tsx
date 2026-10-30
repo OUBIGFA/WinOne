@@ -49,8 +49,8 @@ export function PageScrollControls({viewportRef}:{viewportRef:RefObject<HTMLDivE
   node.scrollTo({top:bottom?Math.max(0,node.scrollHeight-node.clientHeight):0,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
  }
  if(!position.visible)return null;
- // Share the bottom action row with Save; the pair never wraps vertically.
- return <div data-slot="page-scroll-controls" className="ml-auto flex shrink-0 flex-row items-center gap-2">
+ // Order is Save, Undo, one button-sized gap, top, bottom in the shell rail.
+ return <div data-slot="page-scroll-controls" className="mt-auto flex shrink-0 flex-col items-center gap-2">
   <Button variant="outline" size="icon" className="bg-background" title={t("navigation.scrollToTop")} aria-label={t("navigation.scrollToTop")} disabled={position.atTop} onClick={()=>jump(false)}><ArrowUpToLine aria-hidden="true"/></Button>
   <Button variant="outline" size="icon" className="bg-background" title={t("navigation.scrollToBottom")} aria-label={t("navigation.scrollToBottom")} disabled={position.atBottom} onClick={()=>jump(true)}><ArrowDownToLine aria-hidden="true"/></Button>
  </div>;

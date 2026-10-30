@@ -1,10 +1,10 @@
-import {useCallback,useEffect,useLayoutEffect,useRef,useState} from "react";
+import {lazy,Suspense,useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState,Fragment,type ReactNode} from "react";
 import {FolderOpen,FolderInput,Download,MoreHorizontal,Archive,Pin,GitBranch,Copy,Settings2,RefreshCw,LoaderCircle,Trash2,Sparkles} from "lucide-react";
 import {SidebarSimple} from '@phosphor-icons/react';
 import {PathDropArea} from "../ui/path-drop-zone";
 import {useDefaultLayout,usePanelRef} from "react-resizable-panels";
 import welcomeLogo from "../../../../../internal/branding/chat-welcome.png";
-import {chatCall,captureCall,pickDirectory,pickChatFiles,setFileDropTarget,readClipboardFiles,inspectDroppedPaths} from "../bridge";
+import {chatCall as baseChatCall,captureCall,pickDirectory,pickChatFiles,setFileDropTarget,readClipboardFiles,inspectDroppedPaths} from "../bridge";
 import {importChatAttachments,uploadChatAttachment} from './chat-attachment-input';
 import {useTranslation} from "../i18n";
 import {Button} from "../ui/button";
@@ -33,7 +33,10 @@ import {ChatProjectFields} from "./chat-project-dialog";
 import {ChatSettings} from "./chat-settings";
 import {ChatFeedback} from "./chat-feedback";
 import {ChatMoveDialog,ChatExportDialog,chatArchiveNotice,type ChatArchiveOutcome} from "./chat-transfer-dialogs";
-import {ChatAutomations} from "./chat-automations";
+// Cindy automations load with their page; Chat alone starts no scheduler polling.
+const SchedulerHost=lazy(()=>import("./cindy/host/SchedulerHost").then(module=>({default:module.SchedulerHost})));
+import {publishCindyHost} from "./cindy/host/store";
+import {SESSIONS_CHANGED_EVENT} from "./cindy/host/electronAPI";
 import {browserAnnotatedPrompt,removeBrowserAttachment} from "./chat-browser-annotations";
 import type {ChatAttachment,ChatBrowserAnnotation} from "./chat-types";
 import {readChatSoundEnabled,writeChatSoundEnabled,playChatDone,unlockChatAudio} from "./chat-sound";
@@ -42,6 +45,7 @@ import {projectChatProcess} from "./chat-process";
 import {WorkProcess} from "./cindy/WorkProcess";
 import {PendingQueuePanel,type QueuedMessage} from './cindy/PendingQueuePanel';
 import {QueuedSendConfirm} from './cindy/QueuedSendConfirm';
+import {SessionQuickSendProvider} from './cindy/rich/SessionQuickSendContext';
 import {captureComposerSendSnapshot,isComposerSendSnapshotCurrent} from './cindy/composerSendSnapshot';
 import {shouldUnpinOnWheel,shouldRepinOnWheel,shouldUnpinOnUpIntent,resolveNearBottomOnScroll} from './cindy/autoFollowIntent';
 import {copyText} from "./clipboard";
@@ -49,6 +53,21 @@ import {ScrollArea} from "./lobe/scroll-area/ScrollArea";
 import {ChatFileNavigation} from './chat-file-navigation';
 import {ProcessNavigationProvider,ProcessCollapseAction} from "./process-navigation";
 import {applyChatEvent,emptyChatState,type ChatActivities,type ChatCatalog,type ChatProject,type Conversation,type ChatPermission,type ChatSnapshot,type ChatState,type ChatPoll,type ChatMessage} from "./chat-state";
+import type {OneBotChatBinding} from "./cindy/host/onebotUI";
+import {BotAvatar} from './cindy/bots/BotAvatar';
+import {BotSessionContentHeaderRegistration} from './cindy/bots/BotSessionContentHeader';
+import {CompanionVoicePanel} from './cindy/bots/voice/CompanionVoicePanel';
+import {useMessageReadAloud} from './cindy/bots/voice/useMessageReadAloud';
+import {MessageReadAloudContext} from './cindy/components/chat/MessageReadAloudContext';
+import {OneBotQuestion,voiceTranscriptRows,visibleNativeVoiceMessages} from './chat-bot-voice';
+import type {VoiceQuestionBridge} from './cindy/group-shared/renderer/components/new-chat/voiceQuestionSelection';
+import {BotChatQuoteProvider} from './cindy/bots/botChatQuoteContext';
+import {BotChatQuoteComposerPreview} from './cindy/bots/BotChatQuoteViews';
+import {clearSentBotReplyQuote,getPendingBotReplyQuote,usePendingBotReplyQuote} from './cindy/bots/botDmQuote';
+import {BotOpeningPending} from './cindy/bots/BotOpeningPending';
+import {botComposerPlaceholderKey,isBotOpeningPending} from './cindy/bots/botChatPresentation';
+import {botItemClientId,botTranscriptRows,useBotChatQuoteValue,useBotLearningReceipts,useBotTimeline,usePublishBotChat,withBotLearningReceipts,BotTimelineMarkers} from './chat-bot-mode';
+import {serializeBotMentions} from './chat-bot-mentions';
 import "./chat.css";
 import "./cindy/theme.css";
 import "./cindy/message-tokens.css";
@@ -67,10 +86,19 @@ const expandedPanelsKey='winone.chat.expanded-panels.v1';
 const minimumSidebarWidth=224;
 function readExpandedPanels(){const defaults={sidebar:240,right:420,bottom:300};try{const saved=JSON.parse(localStorage.getItem(expandedPanelsKey)||'{}');for(const key of ['sidebar','right','bottom'] as const)if(Number.isFinite(saved[key])&&saved[key]>=40&&saved[key]<=2000)defaults[key]=key==='sidebar'?Math.max(minimumSidebarWidth,saved[key]):saved[key];}catch{}return defaults;}
 
-export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequestedConversationHandled}:{onActivity?:PageActivityChanged;onOpenAI?:()=>void;requestedConversationId?:string;onRequestedConversationHandled?:()=>void}){
+export interface ChatFileRequest {path:string;line?:number;directory?:boolean}
+export function ChatPage({onActivity,onOpenAI,requestedConversationId,requestedFile,onRequestedConversationHandled,transportScope,embeddedConversation=false,bot,settingsRequest}:{onActivity?:PageActivityChanged;onOpenAI?:()=>void;requestedConversationId?:string;requestedFile?:ChatFileRequest;onRequestedConversationHandled?:()=>void;transportScope?:'onebot';embeddedConversation?:boolean;
+ /** Increments when another page asks to open Chat settings (Skills, plugins, MCP servers). */
+ settingsRequest?:number;
+ /** A OneBot teammate's conversation: identity, mentions and read state of Cindy's companion chat. */
+ bot?:OneBotChatBinding}){
+ const chatCall=useCallback(<T,>(method:string,params:unknown={})=>baseChatCall<T>(transportScope?`onebot.chat.${method}`:method,params),[transportScope]);
  const {t}=useTranslation();
  const workspaceRoot=useRef<HTMLDivElement>(null);
  const [catalog,setCatalog]=useState<ChatCatalog>(emptyCatalog),[ai,setAI]=useState<AIConfiguration>(),[activeId,setActiveId]=useState("");
+ // Only ordinary Chat publishes its catalog to Cindy features; a OneBot
+ // conversation's catalog belongs to the OneBot store.
+ useEffect(()=>{if(!transportScope)publishCindyHost({catalog});},[catalog,transportScope]);
  const [view,setView]=useState<ChatState>(emptyChatState),[text,setText]=useState(""),[draftDirty,setDraftDirty]=useState(false),[saving,setSaving]=useState(false);
  const [submittingMessage,setSubmittingMessage]=useState<ChatMessage>();
  const [queueExpanded,setQueueExpanded]=useState(false),[queueEdit,setQueueEdit]=useState<{id:string;text:string;attachments:ChatAttachment[]}>();
@@ -88,8 +116,9 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
  const [detailsDirectory,setDetailsDirectory]=useState<string>();
  const titleRequests=useRef(new Set<string>());
  const titleEdits=useRef(new Map<string,number>());
- const [archived,setArchived]=useState(false),[sidebar,setSidebarVisible]=useState(true),[details,setDetailsVisible]=useState(false),[settingsOpen,setSettingsOpen]=useState(false);
+ const [archived,setArchived]=useState(false),[sidebar,setSidebarVisible]=useState(!embeddedConversation),[details,setDetailsVisible]=useState(false),[settingsOpen,setSettingsOpen]=useState(false);
  const [detailsMounted,setDetailsMounted]=useState(false);
+ useEffect(()=>{if(settingsRequest)setSettingsOpen(true);},[settingsRequest]);
  const [attachments,setAttachments]=useState<ChatAttachment[]>([]),[detailsTab,setDetailsTab]=useState<"home"|"files"|"resources"|"review">("home");
  const [detailsActivation,setDetailsActivation]=useState(0),[welcomeRevision,setWelcomeRevision]=useState(0),[historyLoading,setHistoryLoading]=useState(false);
  const historyAnchor=useRef<{height:number;top:number;nodes:Set<Element>}|undefined>(undefined),historyRequest=useRef<object|null>(null);
@@ -105,7 +134,7 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
  useLayoutEffect(()=>{sidebarPanel.current?.resize(sidebar?Math.max(minimumSidebarWidth,sidebarWidth.current):0);},[sidebar]);
  function setDetails(open:boolean){const current=detailsPanel.current?.getSize().inPixels;if(!open&&current&&current>4){detailsSize.current[panelDock]=current;rememberPanels();}if(open)setDetailsMounted(true);detailsPanel.current?.resize(open?detailsSize.current[panelDock]:0);setDetailsVisible(open);}
  useLayoutEffect(()=>{if(dockTarget.current!==undefined){detailsPanel.current?.resize(dockTarget.current);dockTarget.current=undefined;}},[panelDock]);
- const [automationsOpen,setAutomationsOpen]=useState(false),[automationEditing,setAutomationEditing]=useState(false);
+ const [automationsOpen,setAutomationsOpen]=useState(false);
  const [moveTarget,setMoveTarget]=useState<Conversation>(),[exportTarget,setExportTarget]=useState<Conversation>(),[transferBusy,setTransferBusy]=useState(false),[reconnecting,setReconnecting]=useState(false);
  const [newProjectId,setNewProjectId]=useState(""),[location,setLocation]=useState(""),[saveLocation,setSaveLocation]=useState(""),[newModel,setNewModel]=useState<AISelection>(()=>readLastModel()??{provider:"",model:""}),[newPermission,setNewPermission]=useState<ChatPermission>("ask"),[projectPermission,setProjectPermission]=useState<ChatPermission>("ask");
  const [newThinking,setNewThinking]=useState(""),[newFastMode,setNewFastMode]=useState(false),[soundEnabled,setSoundEnabled]=useState(()=>readChatSoundEnabled());
@@ -117,8 +146,8 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
  const panelLayout=useDefaultLayout({id:"winone-chat-panels",panelIds:["sidebar","workbench"]});
  const modelsRevision=useRef(0);
  const [refreshToken,setRefreshToken]=useState(0),[catalogLoaded,setCatalogLoaded]=useState(false);
- const requestedNavigation=useRef({id:requestedConversationId,handled:onRequestedConversationHandled}),handledNavigation=useRef<string|undefined>(undefined);
- requestedNavigation.current={id:requestedConversationId,handled:onRequestedConversationHandled};
+ const requestedNavigation=useRef({id:requestedConversationId,file:requestedFile,handled:onRequestedConversationHandled}),handledNavigation=useRef<string|undefined>(undefined);
+ requestedNavigation.current={id:requestedConversationId,file:requestedFile,handled:onRequestedConversationHandled};
  const inFlight=useRef(false),draftWrites=useRef(Promise.resolve()),draftRevision=useRef(0),openDraftRevision=useRef(0),pendingInput=useRef<{id:string;text:string;attachments?:string[];deliveryMode?:ChatDeliveryMode}|undefined>(undefined),scroll=useRef<HTMLDivElement>(null),follow=useRef(true),resizeDetached=useRef(false),newDraft=useRef(""),newAttachments=useRef<ChatAttachment[]>([]);
  const awaitingInput=useRef<string|undefined>(undefined),retryReceipt=useRef<{key:string;id:string}|undefined>(undefined);
  const [sendCleared,setSendCleared]=useState(false),[stopping,setStopping]=useState(false);
@@ -133,7 +162,11 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
  const conversation=catalog.conversations.find(value=>value.id===activeId);
  const visibleMessages=submittingMessage&&!view.messages.some(message=>message.requestId===submittingMessage.requestId||message.id===submittingMessage.id)?[...view.messages,submittingMessage]:view.messages;
  const [detailsFile,setDetailsFile]=useState<string>();
- const processItems=projectChatProcess(visibleMessages.filter(message=>!(message.pending&&message.queued)),view.tools,view.running,view.operations);
+ const [activeVoiceCallId,setActiveVoiceCallId]=useState<string|null>(null);
+ // A teammate's replies show what it learned from them (Cindy botLearning).
+ const learningReceipts=useBotLearningReceipts(activeId,!!bot);
+ const transcriptMessages=useMemo(()=>visibleNativeVoiceMessages(withBotLearningReceipts(visibleMessages,learningReceipts),activeVoiceCallId),[visibleMessages,learningReceipts,activeVoiceCallId]);
+ const processItems=projectChatProcess(transcriptMessages.filter(message=>!(message.pending&&message.queued)),view.tools,view.running,view.operations);
  const activeRetry=view.running?[...(view.operations??[])].reverse().find(operation=>operation.kind==='retry'&&operation.status==='running'):undefined;
  const changedTurns=processItems.filter(item=>item.kind==='response'&&item.entries.some(entry=>entry.kind==='tool'&&!entry.tool.running&&!entry.tool.isError&&(/^(write|edit|apply_patch)$/.test(entry.tool.name)||!!entry.tool.files?.length)));
  // Generated file chips describe the conversation's current outputs. Keep
@@ -145,10 +178,70 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
  const hasInlinePlan=processItems.some(item=>item.kind==='response'&&planForResponse(item));
  const latestReviewPaths=latestReviewTurn?.kind==='response'?latestReviewTurn.entries.flatMap(entry=>entry.kind==='tool'&&!entry.tool.running&&!entry.tool.isError?(entry.tool.files?.map(file=>file.path)??(/^(write|edit)$/.test(entry.tool.name)&&typeof entry.tool.args.path==='string'?[entry.tool.args.path]:[])):[]):[];
  function openFile(path:string,line?:number){setDetailsFile(path);setDetailsLine(line);setDetailsTab('home');setDetailsActivation(value=>value+1);setDetails(true);}
+ // A OneBot teammate's chat (Cindy simplifiedBotConversation): its face beside
+ // replies, time groups, the unread boundary, private-chat reply quotes and
+ // topics, and the rows Cindy's teammate pages read from the open chat.
+ const botIdentity=bot?.identity;
+ const [voiceOpen,setVoiceOpen]=useState(false);
+ const voiceAllowed=!!botIdentity?.canonicalChat&&!!activeId&&!bot?.readOnly&&!bot?.topic;
+ const voiceQuestionBridge=useMemo<VoiceQuestionBridge>(()=>({current:null}),[activeId]);
+ const voiceMessages=useMemo(()=>voiceTranscriptRows(visibleMessages),[visibleMessages]);
+ const messageReadAloud=useMessageReadAloud({botId:botIdentity?.id,sessionId:activeId,enabled:voiceAllowed,voiceModeOpen:voiceOpen});
+ useEffect(()=>{setVoiceOpen(false);},[activeId,voiceAllowed]);
+ const toggleVoice=()=>{if(voiceOpen){setVoiceOpen(false);return;}void messageReadAloud.stopForVoiceMode().then(current=>{if(current)setVoiceOpen(true);}).catch(error=>setError(String(error)));};
+ const configureVoice=()=>{setVoiceOpen(false);window.dispatchEvent(new CustomEvent('winone-onebot-settings',{detail:{botId:botIdentity?.id,sessionId:activeId,page:'voice'}}));};
+ const botAvatar=useMemo(()=>botIdentity?<BotAvatar bot={botIdentity} size="sm"/>:null,[botIdentity]);
+ const botRows=useMemo(()=>bot?botTranscriptRows(visibleMessages):[],[!!bot,visibleMessages]);
+ usePublishBotChat(activeId,!!bot,botRows,view.approvals,!!view.queuePaused);
+ const botTimeline=useBotTimeline(processItems,!!bot,bot?.unreadBoundaryAt);
+ const hasOwnerMessage=botRows.some(row=>row.role==='user');
+ const pendingQuote=usePendingBotReplyQuote(bot&&!bot.readOnly?activeId:null);
+ // Scroll to a quoted message, loading earlier history until it is present.
+ const locateRequest=useRef<{clientId:string;attempts:number}|null>(null);
+ function locateLoaded(clientId:string){
+  const node=scroll.current?.querySelector<HTMLElement>(`[data-message-client-id="${CSS.escape(clientId)}"]`);
+  if(!node)return false;
+  follow.current=false;
+  node.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+  node.dataset.located='true';window.setTimeout(()=>{delete node.dataset.located;},1600);
+  return true;
+ }
+ function locateMessage(clientId:string){
+  locateRequest.current=null;
+  if(locateLoaded(clientId)||!view.hasOlder)return;
+  locateRequest.current={clientId,attempts:1};void loadEarlier();
+ }
+ function locateVoiceTask(clientId:string){const reply=view.messages.find(message=>message.role==='assistant'&&message.turnId===clientId);if(reply?.id)locateMessage(reply.id);else if(!locateLoaded(clientId))followLatest();}
+ const voiceTaskLocation=useRef(locateVoiceTask);voiceTaskLocation.current=locateVoiceTask;
+ useEffect(()=>{const listener=(event:Event)=>{const detail=(event as CustomEvent<{id:string;clientId:string}>).detail;if(detail.id===activeId)voiceTaskLocation.current(detail.clientId);};window.addEventListener('winone-voice-task',listener);return()=>window.removeEventListener('winone-voice-task',listener);},[activeId]);
+ const botChatQuote=useBotChatQuoteValue({sessionId:activeId,companion:botIdentity?.name??'',enabled:!!bot,readOnly:!!bot?.readOnly,rows:botRows,locate:locateMessage});
+ // Only the chat's rendered tail acknowledges replies (Cindy onBotReadThrough):
+ // history reading, a hidden window and a streaming turn never advance it.
+ const readThrough=useRef(()=>{});
+ readThrough.current=()=>{
+  if(!bot?.onReadThrough||opening||view.running||!follow.current||document.visibilityState!=='visible'||!document.hasFocus())return;
+  if(botTimeline.latestReplyAt>0)bot.onReadThrough(botTimeline.latestReplyAt);
+ };
+ const botReadThrough=bot?.onReadThrough;
+ useEffect(()=>{
+  if(!botReadThrough)return;
+  const acknowledge=()=>readThrough.current();
+  const frame=requestAnimationFrame(acknowledge);
+  window.addEventListener('focus',acknowledge);document.addEventListener('visibilitychange',acknowledge);
+  return()=>{cancelAnimationFrame(frame);window.removeEventListener('focus',acknowledge);document.removeEventListener('visibilitychange',acknowledge);};
+ },[botReadThrough,botTimeline.latestReplyAt,view.running,opening]);
+ const botOpeningPending=!!bot&&isBotOpeningPending({invitationStage:bot.invitationStage,historyLoaded:!!activeId&&!opening,messageCount:botRows.length});
+ const footerRef=useRef<HTMLElement>(null),[footerHeight,setFooterHeight]=useState(0);
+ useEffect(()=>{
+  const footer=footerRef.current;if(!botOpeningPending||!footer)return;
+  const measure=()=>setFooterHeight(footer.offsetHeight);
+  const observer=new ResizeObserver(measure);observer.observe(footer);measure();
+  return()=>observer.disconnect();
+ },[botOpeningPending]);
  function openTurnReview(turnId:string,path?:string){setDetailsFile(undefined);setDetailsReview({turnId,path});setDetailsTab('review');setDetailsActivation(value=>value+1);setDetails(true);}
  // Refresh saved AI services on each settings opening without discarding its draft.
  useEffect(()=>{if(!settingsOpen)return;let alive=true;const revision=++modelsRevision.current;setModelsLoading(true);setModelsError('');void captureCall<AIConfiguration>('ai.configuration.get').then(models=>{if(alive&&revision===modelsRevision.current)setAI(models);}).catch(error=>{if(alive)setModelsError(errorText(error));}).finally(()=>{if(alive)setModelsLoading(false);});return()=>{alive=false;};},[settingsOpen]);
- usePageActivity(onActivity,draftDirty||automationEditing||filesDirty,busy||saving||opening||transferBusy||reconnecting,"chat");
+ usePageActivity(onActivity,draftDirty||filesDirty,busy||saving||opening||transferBusy||reconnecting,"chat");
  async function refresh(){const revision=++modelsRevision.current;const [value,models]=await Promise.all([chatCall<ChatCatalog>("catalog"),captureCall<AIConfiguration>("ai.configuration.get")]);setCatalog(value);setCatalogLoaded(true);if(revision===modelsRevision.current){setAI(models);setNewModel(current=>initialModel(models,current));}}
  useEffect(()=>{let alive=true;const revision=++modelsRevision.current;void Promise.all([chatCall<ChatCatalog>("catalog"),captureCall<AIConfiguration>("ai.configuration.get")]).then(([value,models])=>{if(alive){setCatalog(value);setCatalogLoaded(true);if(revision===modelsRevision.current){setAI(models);setNewModel(initialModel(models));}}}).catch(error=>{if(alive)setError(errorText(error));});return()=>{alive=false;};},[]);
  // One lightweight projection for the entire sidebar, including background
@@ -159,6 +252,13 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
   const poll=async()=>{try{if(!document.hidden){const value=await chatCall<ChatActivities>('activity');if(alive){setActivities(current=>JSON.stringify(current)===JSON.stringify(value??{})?current:value??{});setActivityError('');}}}catch(error){if(alive)setActivityError(errorText(error));}finally{if(alive)timer=setTimeout(()=>void poll(),1500);}};
   void poll();return()=>{alive=false;if(timer)clearTimeout(timer);};
  },[sidebar]);
+ // Cindy automation pages call these after render; refs keep them current.
+ const automationConversation=useRef<(id:string)=>void>(()=>{});
+ automationConversation.current=(id:string)=>void run(async()=>{await refresh();await choose(id);setAutomationsOpen(false);});
+ const openAutomationConversation=useCallback((id:string)=>automationConversation.current(id),[]);
+ const catalogRefresh=useRef<()=>Promise<void>>(async()=>{});
+ catalogRefresh.current=refresh;
+ useEffect(()=>{const changed=()=>{void catalogRefresh.current().catch(error=>setError(errorText(error)));};window.addEventListener(SESSIONS_CHANGED_EVENT,changed);return()=>window.removeEventListener(SESSIONS_CHANGED_EVENT,changed);},[]);
  const run=async(action:()=>Promise<void>)=>{
   if(inFlight.current)return;inFlight.current=true;setBusy(true);setError("");setNotice("");
   try{await action();}catch(error){setError(errorText(error));}finally{inFlight.current=false;setBusy(false);}
@@ -204,20 +304,23 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
  }
  useEffect(()=>{
   if(!requestedConversationId){handledNavigation.current=undefined;return;}
-  if(!catalogLoaded||busy||handledNavigation.current===requestedConversationId)return;
-  const id=requestedConversationId;handledNavigation.current=id;
-  // Cross-page navigation uses the same draft barrier as a sidebar selection.
-  // A newer request invalidates an older request that is still waiting to save.
+  const requestKey=JSON.stringify([requestedConversationId,requestedFile]);
+  if(!catalogLoaded||busy||handledNavigation.current===requestKey)return;
+  const id=requestedConversationId,file=requestedFile;handledNavigation.current=requestKey;
+  const current=()=>requestedNavigation.current.id===id&&requestedNavigation.current.file===file;
+  // Cross-page and result-file navigation use the same draft barrier.
   void run(async()=>{
    try{
-    const target=catalog.conversations.find(value=>value.id===id);
+    let target=catalog.conversations.find(value=>value.id===id);
+    if(!target){const latest=await chatCall<ChatCatalog>('catalog');setCatalog(latest);target=latest.conversations.find(value=>value.id===id);}
     if(!target)throw new Error(t("chat.requestedConversationMissing"));
-    await choose(id,()=>requestedNavigation.current.id===id);
-    if(requestedNavigation.current.id!==id)return;
+    await choose(id,current);
+    if(!current())return;
     setArchived(!!target.archived);setAutomationsOpen(false);setSettingsOpen(false);setDialog(null);
-   }finally{if(requestedNavigation.current.id===id)requestedNavigation.current.handled?.();}
+    if(file){if(file.directory){setDetailsDirectory(file.path);setDetailsTab('files');setDetails(true);}else openFile(file.path,file.line);}
+   }finally{if(current())requestedNavigation.current.handled?.();}
   });
- },[requestedConversationId,catalogLoaded,catalog,busy]);
+ },[requestedConversationId,requestedFile,catalogLoaded,catalog,busy]);
  function openConversation(id:string){
   let request=openingRequests.current.get(id);
   if(!request){request=chatCall<ChatSnapshot>("open",{id});openingRequests.current.set(id,request);void request.finally(()=>openingRequests.current.delete(id)).catch(()=>{});}
@@ -290,17 +393,31 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
   }catch(error){if(selection.current===id&&selectionRevision.current===revision&&historyRequest.current===request)setError(errorText(error));}
   finally{if(historyRequest.current===request){historyRequest.current=null;setHistoryLoading(false);}}
  }
+ // A quoted original may be older than the loaded pages: keep loading earlier
+ // history until it renders, within a bounded number of pages.
+ useEffect(()=>{
+  const request=locateRequest.current;if(!request||historyLoading)return;
+  if(locateLoaded(request.clientId)){locateRequest.current=null;return;}
+  if(view.hasOlder&&request.attempts<20){request.attempts++;void loadEarlier();}else locateRequest.current=null;
+ },[view.messages,historyLoading]);
  async function startConversation(projectId=newProjectId){
   let created=await chatCall<Conversation>("conversation.new",{projectId,directory:projectId?"":location,saveDirectory:saveLocation,model:newModel,title:"Chat",...(newThinking?{thinkingLevel:newThinking}:{}),...(newFastMode?{fastMode:true}:{})});
   if(!projectId&&newPermission!=="ask")created=await chatCall<Conversation>("configure",{id:created.id,permission:newPermission});
   setCatalog(current=>({...current,conversations:[...current.conversations,created]}));await choose(created.id);return created;
  }
  async function send(override?:{text:string;attachments:ChatAttachment[]},deliveryMode:ChatDeliveryMode='queue'){
-  const originalContent=override?override.text:text;let files=override?override.attachments:attachments;const originalFiles=files;const content=browserAnnotatedPrompt(originalContent,files);if(view.paused)return;if(!content.trim()&&!files.length)return;
+  const originalContent=override?override.text:text;let files=override?override.attachments:attachments;const originalFiles=files;
+  // Cindy's composer sends each @teammate as its reference link with an exact
+  // range; the owner's bubble shows the same links as reference chips.
+  const mentions=bot&&!bot.readOnly?bot.mentions:[];
+  const {text:content,agentReferences}=serializeBotMentions(browserAnnotatedPrompt(originalContent,files),mentions),shownContent=serializeBotMentions(originalContent,mentions).text;
+  if(view.paused)return;if(!content.trim()&&!files.length)return;
   const queued=view.running&&deliveryMode==='queue';
   unlockChatAudio();
   const receipt=pendingInput.current?.text===content&&(pendingInput.current.deliveryMode??'queue')===deliveryMode&&JSON.stringify(pendingInput.current.attachments??[])===JSON.stringify(files.map(file=>file.path))?pendingInput.current:{id:crypto.randomUUID(),text:content,attachments:files.map(file=>file.path),deliveryMode};
   const sendSnapshot=captureComposerSendSnapshot(originalContent,files,[]),previousWrites=draftWrites.current,cancelGeneration=sendCancelGeneration.current;
+  // Cindy's private-chat reply quote leaves with this message and is cleared once accepted.
+  const replyQuote=bot&&activeId?getPendingBotReplyQuote(activeId):null;
   let target=conversation,releaseDraftWrites=()=>{},cleared=false;
   // Cindy ChatInput.dispatchSend freezes this input, clears it before dispatch,
   // then allows typing while keeping send/settings locked until acknowledgement.
@@ -315,7 +432,7 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
    draftWrites.current=previousWrites.catch(()=>{}).then(()=>receiptBarrier);setSendCleared(true);
   }
   if(target)clearSubmittedDraft();
-  setSubmittingMessage({id:receipt.id,requestId:receipt.id,turnId:receipt.id,pending:true,queued,deliveryMode,role:'user',content:originalContent,attachments:files,timestamp:Date.now()});followLatest();
+  setSubmittingMessage({id:receipt.id,requestId:receipt.id,turnId:receipt.id,pending:true,queued,deliveryMode,role:'user',content:shownContent,attachments:files,timestamp:Date.now(),...(replyQuote?{replyQuote}:{})});followLatest();
   try{
    await previousWrites;
    if(!target){
@@ -330,15 +447,16 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
    }
    if(cancelGeneration!==sendCancelGeneration.current)throw Error(t('chat.sendCancelled'));
    const paths=files.map(file=>file.path);receipt.attachments=paths;pendingInput.current=receipt;lastPrompt.current=content;awaitingInput.current=receipt.id;
-   const result=await chatCall<{accepted?:boolean;error?:string}>('prompt',{id:target.id,requestId:receipt.id,text:content,deliveryMode,...(paths.length?{attachments:paths}:{})});
+   const result=await chatCall<{accepted?:boolean;error?:string}>('prompt',{id:target.id,requestId:receipt.id,text:content,deliveryMode,...(paths.length?{attachments:paths}:{}),...(replyQuote?{replyQuote}:{}),...(agentReferences.length?{agentReferences}:{})});
    if(result?.accepted===false)throw Error(result.error||t('chat.sendNotAccepted'));
+   if(replyQuote)clearSentBotReplyQuote(target.id,replyQuote);
    // Accepted queue rows are not a new active run. Cancelling one later must
    // not leave the UI waiting forever for that row's input_saved event.
    if(queued&&awaitingInput.current===receipt.id)awaitingInput.current=undefined;
    if(pendingInput.current?.id===receipt.id)pendingInput.current=undefined;
    // A late acknowledgement never clears newer content or re-enables following
    // after the reader deliberately scrolled upward (Cindy autoFollowIntent).
-   setView(current=>{const optimistic:ChatMessage={id:receipt.id,requestId:receipt.id,turnId:receipt.id,pending:true,queued,deliveryMode,role:'user',content:originalContent,attachments:files,timestamp:Date.now()};return {...current,messages:current.messages.some(message=>message.id===receipt.id||message.requestId===receipt.id)?current.messages:upsertChatMessage(current.messages,optimistic),running:!!awaitingInput.current||current.running,status:awaitingInput.current?'running':current.status};});
+   setView(current=>{const optimistic:ChatMessage={id:receipt.id,requestId:receipt.id,turnId:receipt.id,pending:true,queued,deliveryMode,role:'user',content:shownContent,attachments:files,timestamp:Date.now(),...(replyQuote?{replyQuote}:{})};return {...current,messages:current.messages.some(message=>message.id===receipt.id||message.requestId===receipt.id)?current.messages:upsertChatMessage(current.messages,optimistic),running:!!awaitingInput.current||current.running,status:awaitingInput.current?'running':current.status};});
    for(const file of originalFiles)releasePendingFile(file.path);
    if(target.title==='Chat')void generateTitle(target,content);
   }catch(error){
@@ -545,14 +663,26 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
   const request=view.approvals[0];if(request?.kind!=="question")return;
   void run(async()=>{await chatCall("question",{id:activeId,approvalId:request.id,...(answers?{answers}:{cancel:true})});setView(current=>({...current,approvals:current.approvals.filter(value=>value.id!==request.id)}));});
  }
- const queuedCount=view.messages.filter(message=>message.pending&&message.queued).length;
+ const queuedCount=view.messages.filter(message=>message.pending&&message.queued&&!message.hiddenInput).length;
  const inputHint=queuedCount?t('chat.queuedCount',{count:queuedCount}):view.messages.some(message=>message.pending&&message.deliveryMode==='steer')?t('chat.steerSubmitted'):t(view.running?'chat.runningInputHint':'chat.inputHint');
- const composer=<ChatComposer queueEditing={!!queueEdit} onResizeIntent={()=>{resizeDetached.current=true;follow.current=false;}} key={activeId||`welcome:${welcomeRevision}`} conversationId={activeId} text={text} onText={updateText} onSend={requestSend} onStop={()=>void stopCurrent()} running={view.running} stopping={stopping} inputLocked={busy&&!sendCleared||opening||draftLoading||reconnecting||transferBusy} busy={busy||stopping||opening||draftLoading||reconnecting||transferBusy} saving={saving} providers={ai?.providers??[]} model={conversation?.model??newModel} permission={catalog.projects.find(project=>project.id===(conversation?.projectId??newProjectId))?.permission??conversation?.permission??newPermission} onModel={model=>void run(()=>configure({model}))} onPermission={permission=>void run(()=>configure({permission}))} onLocation={!activeId?editLocations:undefined} location={!activeId&&saveLocation?saveLocation:undefined} attachments={attachments} onAttach={()=>void run(addAttachments)} onImportFiles={(files,clipboard)=>void run(()=>addBrowserFiles(files,clipboard))} onImportPaths={paths=>void run(()=>addAttachments(paths))} onImportError={error=>setError(String(error))} onRemoveAttachment={path=>{releasePendingFile(path);updateText(text,removeBrowserAttachment(attachments,path));}} onTools={tab=>{setDetailsFile(undefined);setDetailsReview(undefined);setDetailsTab(tab);setDetailsActivation(value=>value+1);setDetails(true);}} thinkingLevel={conversation?.thinkingLevel??newThinking} fastMode={conversation?.fastMode??newFastMode} onThinkingLevel={value=>void run(()=>setThinkingLevel(value))} onFastMode={value=>void run(()=>setFastMode(value))} contextUsage={view.contextUsage} usage={view.usage} onCompact={conversation&&view.messages.length?()=>void run(async()=>{await chatCall("compact",{id:conversation.id});}):undefined} paused={view.paused} taskGraph={view.taskGraph} onPause={activeId?()=>void run(async()=>{await chatCall("pause",{id:activeId});}):undefined} onResume={activeId?()=>void run(async()=>{await chatCall("resume",{id:activeId});}):undefined} soundEnabled={soundEnabled} onSoundToggle={toggleSound} subagents={view.subagents} onStopSubagent={name=>void run(async()=>{if(activeId)await chatCall("agents",{id:activeId,action:"stop",name});})}/>;
- return <ChatDesktopSurface><MediaProvider id={activeId} cwd={conversation?.directory}><ProcessNavigationProvider><ChatFileNavigation id={activeId} cwd={conversation?.directory??""} onBrowser={url=>{setDetailsFile(undefined);setDetailsReview(undefined);setDetailsURL(url);setDetailsTab('home');setDetailsActivation(value=>value+1);setDetails(true);}} files={view.messages.flatMap(message=>message.attachments??[])} onDirectory={path=>{setDetailsFile(undefined);setDetailsDirectory(path);setDetailsTab('files');setDetailsActivation(value=>value+1);setDetails(true);}} onOpen={(path,line)=>{setDetailsFile(path);setDetailsLine(line);setDetailsTab('home');setDetailsActivation(value=>value+1);setDetails(true);}}><div ref={workspaceRoot} className={"chat-workspace"+(sidebar?"":" chat-workspace--collapsed")}>
+ const composer=<ChatComposer queueEditing={!!queueEdit} onResizeIntent={()=>{resizeDetached.current=true;follow.current=false;}} key={activeId||`welcome:${welcomeRevision}`} conversationId={activeId} text={text} onText={updateText} onSend={requestSend} onStop={()=>void stopCurrent()} running={view.running} stopping={stopping} inputLocked={busy&&!sendCleared||opening||draftLoading||reconnecting||transferBusy} busy={busy||stopping||opening||draftLoading||reconnecting||transferBusy} saving={saving} providers={ai?.providers??[]} model={conversation?.model??newModel} permission={catalog.projects.find(project=>project.id===(conversation?.projectId??newProjectId))?.permission??conversation?.permission??newPermission} onModel={model=>void run(()=>configure({model}))} onPermission={permission=>void run(()=>configure({permission}))} onLocation={!activeId?editLocations:undefined} location={!activeId&&saveLocation?saveLocation:undefined} attachments={attachments} onAttach={()=>void run(addAttachments)} onImportFiles={(files,clipboard)=>void run(()=>addBrowserFiles(files,clipboard))} onImportPaths={paths=>void run(()=>addAttachments(paths))} onImportError={error=>setError(String(error))} onRemoveAttachment={path=>{releasePendingFile(path);updateText(text,removeBrowserAttachment(attachments,path));}} onTools={tab=>{setDetailsFile(undefined);setDetailsReview(undefined);setDetailsTab(tab);setDetailsActivation(value=>value+1);setDetails(true);}} thinkingLevel={conversation?.thinkingLevel??newThinking} fastMode={conversation?.fastMode??newFastMode} onThinkingLevel={value=>void run(()=>setThinkingLevel(value))} onFastMode={value=>void run(()=>setFastMode(value))} contextUsage={view.contextUsage} usage={view.usage} onCompact={conversation&&view.messages.length?()=>void run(async()=>{await chatCall("compact",{id:conversation.id});}):undefined} paused={view.paused} taskGraph={view.taskGraph} onPause={activeId?()=>void run(async()=>{await chatCall("pause",{id:activeId});}):undefined} onResume={activeId?()=>void run(async()=>{await chatCall("resume",{id:activeId});}):undefined} soundEnabled={soundEnabled} onSoundToggle={toggleSound} subagents={view.subagents} onStopSubagent={name=>void run(async()=>{if(activeId)await chatCall("agents",{id:activeId,action:"stop",name});})} placeholder={botIdentity?t(botComposerPlaceholderKey(botIdentity.name),{name:botIdentity.name}):undefined} hideRuntimeControls={!!bot} onVoice={voiceAllowed?toggleVoice:undefined} mentions={bot&&!bot.readOnly?bot.mentions:undefined}/>;
+ const richSender=!activeId||busy||view.paused||opening||draftLoading?null:{send:async(value:string,options?:{requestId?:string})=>{
+  const id=activeId;if(selection.current!==id)return false;
+  try{
+   await draftWrites.current;if(selection.current!==id)return false;
+   const key=options?.requestId;
+   const digest=key?await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify([id,key,value]))):null;
+   const requestId=digest?'rich:'+Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join(''):crypto.randomUUID();
+   const result=await chatCall<{accepted:boolean}>('prompt',{id,text:value,requestId,preserveDraft:true});
+   return result.accepted===true;
+  }catch(error){setError(errorText(error));return false;}
+ }};
+ return <MessageReadAloudContext.Provider value={messageReadAloud.value}><ChatDesktopSurface><SessionQuickSendProvider value={richSender}><BotChatQuoteProvider value={botChatQuote}><MediaProvider id={activeId} cwd={conversation?.directory}><ProcessNavigationProvider><ChatFileNavigation id={activeId} cwd={conversation?.directory??""} onBrowser={url=>{setDetailsFile(undefined);setDetailsReview(undefined);setDetailsURL(url);setDetailsTab('home');setDetailsActivation(value=>value+1);setDetails(true);}} files={view.messages.flatMap(message=>message.attachments??[])} onDirectory={path=>{setDetailsFile(undefined);setDetailsDirectory(path);setDetailsTab('files');setDetailsActivation(value=>value+1);setDetails(true);}} onOpen={(path,line)=>{setDetailsFile(path);setDetailsLine(line);setDetailsTab('home');setDetailsActivation(value=>value+1);setDetails(true);}}><div ref={workspaceRoot} className={"chat-workspace"+(sidebar?"":" chat-workspace--collapsed")}>
   <ResizablePanelGroup elementRef={sidebarGroup} orientation="horizontal" defaultLayout={panelLayout.defaultLayout} onLayoutChanged={(layout,meta)=>{panelLayout.onLayoutChanged(layout,meta);if(meta.isUserInteraction&&sidebarGroup.current){const pixels=(sidebarGroup.current.clientWidth-1)*layout.sidebar/100;if(sidebar&&pixels>=minimumSidebarWidth-1){sidebarWidth.current=Math.max(minimumSidebarWidth,pixels);rememberPanels();}}}}>
   <ResizablePanel className="chat-panel" style={{overflow:"hidden"}} id="sidebar" panelRef={sidebarPanel} defaultSize={restoredPanels.current.sidebar} minSize={sidebar?minimumSidebarWidth:0} maxSize={sidebar?400:0} groupResizeBehavior="preserve-pixel-size"><div hidden={!sidebar} className="h-full"><ChatSidebar catalog={catalog} activities={sidebarActivities} activityError={activityError} activeId={activeId} busy={busy} titleJobs={titleJobs} archived={archived} onArchived={setArchived} onChoose={id=>{setAutomationsOpen(false);void run(()=>choose(id));}} onNew={projectId=>{setAutomationsOpen(false);void run(async()=>{await choose("");setWelcomeRevision(value=>value+1);setNewProjectId(projectId??"");setNewThinking("");setNewFastMode(false);});}} onProject={openProjectDialog} onHide={()=>setSidebar(false)} onSettings={()=>setSettingsOpen(true)} onAutomations={()=>{setDetails(false);setAutomationsOpen(true);}} automationsOpen={automationsOpen} onAction={conversationAction} onProjectAction={(project,action)=>{setDialogProject(project);setName(project.name);setDialog(action==="rename"?"renameProject":"removeProject");}}/></div></ResizablePanel><ResizableHandle aria-label={t("chat.resizeSidebar")}/>
-  <ResizablePanel className="chat-panel" style={{overflow:"hidden"}} id="workbench" minSize="30%"><ResizablePanelGroup elementRef={workbenchGroup} orientation={panelDock==='right'?'horizontal':'vertical'} defaultLayout={collapsedWorkbenchLayout} onLayoutChanged={(layout,meta)=>{if(meta.isUserInteraction&&workbenchGroup.current){const pixels=((panelDock==='right'?workbenchGroup.current.clientWidth:workbenchGroup.current.clientHeight)-1)*layout.details/100;if(pixels<=4)detailsPanel.current?.resize(0);else{detailsSize.current[panelDock]=pixels;rememberPanels();}}}}><ResizablePanel className="chat-panel" style={{overflow:"hidden"}} id="conversation" minSize={panelDock==='right'?'240px':'20%'}>{automationsOpen?<ChatAutomations providers={ai?.providers??[]} defaultModel={newModel} conversations={catalog.conversations} onBack={()=>setAutomationsOpen(false)} onEditingChange={setAutomationEditing} onConversation={id=>void run(async()=>{await refresh();await choose(id);setAutomationsOpen(false);})}/>:<main className="chat-main">
-   <header className="chat-header">{!sidebar&&<Button variant="ghost" size="icon" aria-label={t("chat.showSidebar")} onClick={()=>setSidebar(true)}><SidebarSimple size={16}/></Button>}
+  <ResizablePanel className="chat-panel" style={{overflow:"hidden"}} id="workbench" minSize="30%"><ResizablePanelGroup elementRef={workbenchGroup} orientation={panelDock==='right'?'horizontal':'vertical'} defaultLayout={collapsedWorkbenchLayout} onLayoutChanged={(layout,meta)=>{if(meta.isUserInteraction&&workbenchGroup.current){const pixels=((panelDock==='right'?workbenchGroup.current.clientWidth:workbenchGroup.current.clientHeight)-1)*layout.details/100;if(pixels<=4)detailsPanel.current?.resize(0);else{detailsSize.current[panelDock]=pixels;rememberPanels();}}}}><ResizablePanel className="chat-panel" style={{overflow:"hidden"}} id="conversation" minSize={panelDock==='right'?'240px':'20%'}>{automationsOpen?<Suspense fallback={null}><SchedulerHost providers={ai?.providers??null} defaultModel={newModel.model?newModel:null} onOpenConversation={openAutomationConversation} onOpenAIServices={()=>onOpenAI?.()} onOpenIMSettings={()=>window.dispatchEvent(new CustomEvent("winone-open-page",{detail:{id:"onebot",section:"im"}}))}/></Suspense>:<main className="chat-main">
+   {bot&&!bot.topic&&botIdentity&&<BotSessionContentHeaderRegistration bot={botIdentity}/>}
+   {!bot&&<header className="chat-header">{!sidebar&&!embeddedConversation&&<Button variant="ghost" size="icon" aria-label={t("chat.showSidebar")} onClick={()=>setSidebar(true)}><SidebarSimple size={16}/></Button>}
     <div className="chat-header-title"><strong>{conversation?.title??t("chat.newChat")}</strong><span title={conversation?.directory}>{conversation?.directory??catalog.projects.find(p=>p.id===newProjectId)?.name??t("chat.noProject")}</span></div>
     {conversation&&<DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon" icon={MoreHorizontal} aria-label={t("chat.more")}/>}/><DropdownMenuContent align="end" className="chat-row-menu">
      <DropdownMenuItem disabled={busy} onClick={()=>conversationAction(conversation,"rename")}>{t("chat.rename")}</DropdownMenuItem>
@@ -569,21 +699,31 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
     </DropdownMenuContent></DropdownMenu>}
     {!activeId&&<Button variant="ghost" size="icon" icon={FolderOpen} aria-label={t("chat.saveLocation")} onClick={editLocations}/>}
     {!details&&<Button variant="ghost" size="icon" aria-label={t("chat.showDetails")} onClick={()=>setDetails(true)}><SidebarSimple size={16}/></Button>}
-   </header>
+   </header>}
    <ChatFeedback key={'notice:'+activeId} message={notice||view.notice}/>
    <ChatFeedback key={'error:'+activeId} message={dialog==='project'?'':error} role="alert" className="chat-error"><Button variant="ghost" icon={RefreshCw} onClick={()=>void run(async()=>{await refresh();if(activeId)setRefreshToken(value=>value+1);})}>{t("chat.retry")}</Button></ChatFeedback>
    <ChatFeedback key={'model:'+activeId} message={view.modelError} className="chat-error">{onOpenAI&&<Button onClick={onOpenAI}>{t("chat.openAI")}</Button>}</ChatFeedback>
    <div className="chat-conversation-body"><div className="chat-reading-pane">
-   {!activeId&&!opening&&!submittingMessage?<div className="chat-welcome-stage"><div className="chat-welcome"><img className="chat-welcome-logo" src={welcomeLogo} alt="" draggable={false}/><div className="chat-welcome-composer"><div className="chat-composer-stack"><ChatProjectContext projects={catalog.projects} projectId={newProjectId} onProject={setNewProjectId} onOpenProject={openProjectDialog} disabled={busy}/>{composer}</div></div></div></div>:<ScrollArea disableContentFit className="chat-transcript" viewportProps={{"data-scroll-container":"",ref:scroll,className:"chat-transcript-viewport",onWheel:event=>{const el=event.currentTarget;if(shouldUnpinOnWheel({deltaX:event.deltaX,deltaY:event.deltaY,scrollHeight:el.scrollHeight,clientHeight:el.clientHeight}))follow.current=false;else if(!resizeDetached.current&&shouldRepinOnWheel({deltaX:event.deltaX,deltaY:event.deltaY,distanceFromBottom:chatScrollMetrics(el).bottomTop-el.scrollTop}))follow.current=true;},onKeyDown:event=>{if(['PageUp','Home','ArrowUp'].includes(event.key)&&!(event.target as HTMLElement).closest('input,textarea,[contenteditable=true]')&&shouldUnpinOnUpIntent(event.currentTarget))follow.current=false;},onScroll:()=>{const el=scroll.current;if(el){if(!resizeDetached.current)follow.current=resolveNearBottomOnScroll({wasNearBottom:follow.current,distanceFromBottom:chatScrollMetrics(el).bottomTop-el.scrollTop,scrollDelta:el.scrollTop-lastScrollTop.current,thresholdPx:80,directionDeadZonePx:1});lastScrollTop.current=el.scrollTop;}}}}>
+   {!activeId&&!opening&&!submittingMessage?<div className="chat-welcome-stage"><div className="chat-welcome"><img className="chat-welcome-logo" src={welcomeLogo} alt="" draggable={false}/><div className="chat-welcome-composer"><div className="chat-composer-stack"><ChatProjectContext projects={catalog.projects} projectId={newProjectId} onProject={setNewProjectId} onOpenProject={openProjectDialog} disabled={busy}/>{composer}</div></div></div></div>:<ScrollArea disableContentFit className="chat-transcript" viewportProps={{"data-scroll-container":"",ref:scroll,className:"chat-transcript-viewport",onWheel:event=>{const el=event.currentTarget;if(shouldUnpinOnWheel({deltaX:event.deltaX,deltaY:event.deltaY,scrollHeight:el.scrollHeight,clientHeight:el.clientHeight}))follow.current=false;else if(!resizeDetached.current&&shouldRepinOnWheel({deltaX:event.deltaX,deltaY:event.deltaY,distanceFromBottom:chatScrollMetrics(el).bottomTop-el.scrollTop}))follow.current=true;},onKeyDown:event=>{if(['PageUp','Home','ArrowUp'].includes(event.key)&&!(event.target as HTMLElement).closest('input,textarea,[contenteditable=true]')&&shouldUnpinOnUpIntent(event.currentTarget))follow.current=false;},onScroll:()=>{const el=scroll.current;if(el){if(!resizeDetached.current)follow.current=resolveNearBottomOnScroll({wasNearBottom:follow.current,distanceFromBottom:chatScrollMetrics(el).bottomTop-el.scrollTop,scrollDelta:el.scrollTop-lastScrollTop.current,thresholdPx:80,directionDeadZonePx:1});lastScrollTop.current=el.scrollTop;if(follow.current)readThrough.current();}}}}>
     {opening&&!submittingMessage?<div className="chat-loading"><LoaderCircle className="animate-spin" size={18}/>{t("chat.loading")}</div>:<div className="client-thread client-thread--chat">
      {view.hasOlder&&<Button className="chat-load-older" variant="ghost" busy={historyLoading} disabled={busy} onClick={()=>void loadEarlier()}>{t(historyLoading?'chat.loadingOlder':'chat.loadOlder')}</Button>}
      {processItems.map((item,index)=>{
-      if(item.kind==="user")return <div key={"user:"+item.key} data-chat-turn={item.key}><ChatMessageView conversationId={activeId} message={item.message} running={view.running} busy={busy||view.paused} onEdit={!item.message.pending&&item.message.id&&item.message.id===[...view.messages].reverse().find(message=>message.role==='user')?.id?(text,revision)=>editMessage(item.message.id!,text,revision):undefined} onStopForEdit={view.running?async()=>{await chatCall('stop',{id:activeId});}:undefined} onRetry={!item.message.pending&&item.message.id?()=>void run(()=>retryMessage(item.message.id)):undefined} onCopy={copy} canFork={!view.running&&!busy} onFork={id=>void run(()=>fork(id))}/></div>;
-      const group=ai?.showReasoning===false?{...item,entries:item.entries.filter(entry=>entry.kind!=="thinking")}:item;
-      // Thinking-only and tool turns share one Cindy work surface, including
-      // completion. No empty-start or completed-thinking legacy fallback.
-      const grouped=group.entries.length>0;
-      return <ChatMessageView key={"response:"+item.key} message={item.answer??{role:"assistant",content:[]}} providers={ai?.providers} onOpenFile={openFile} onCopy={copy} canFork={!view.running&&!busy} onFork={id=>void run(()=>fork(id))} onRetry={index===processItems.length-1&&view.messages.some(message=>message.role==="user"&&message.id&&!message.pending)?()=>void run(()=>retryMessage()):undefined} running={item.running} busy={busy||view.paused||view.running} showReasoning={ai?.showReasoning!==false} conversationId={activeId} process={grouped?<WorkProcess group={group} conversationId={activeId} onCopy={copy} providers={ai?.providers} canFork={!view.running&&!busy} onFork={id=>void run(()=>fork(id))} onOpenFile={openFile}/>:undefined}/>;
+      const itemKey=item.kind+':'+item.key;
+      const botMessage=bot&&botAvatar?{avatar:botAvatar,clientId:botItemClientId(item),replyToClientId:item.kind==='response'?item.answer?.turnId:undefined,starterOptionsLocked:hasOwnerMessage}:undefined;
+      let content:ReactNode;
+      if(item.kind==="presentation")content=<ChatMessageView message={item.message} conversationId={activeId} onCopy={copy} canFork={false} onFork={()=>{}} onOpenFile={openFile} bot={botMessage}/>;
+      else if(item.kind==="user")content=<ChatMessageView conversationId={activeId} message={item.message} running={view.running} busy={busy||view.paused} onEdit={!bot?.readOnly&&!item.message.pending&&item.message.id&&item.message.id===[...view.messages].reverse().find(message=>message.role==='user')?.id?(text,revision)=>editMessage(item.message.id!,text,revision):undefined} onStopForEdit={view.running?async()=>{await chatCall('stop',{id:activeId});}:undefined} onRetry={!bot?.readOnly&&!item.message.pending&&item.message.id?()=>void run(()=>retryMessage(item.message.id)):undefined} onCopy={copy} canFork={!view.running&&!busy} onFork={id=>void run(()=>fork(id))} bot={botMessage}/>;
+      else{
+       const group=ai?.showReasoning===false?{...item,entries:item.entries.filter(entry=>entry.kind!=="thinking")}:item;
+       // Thinking-only and tool turns share one Cindy work surface, including
+       // completion. No empty-start or completed-thinking legacy fallback.
+       const grouped=group.entries.length>0;
+       content=<ChatMessageView message={item.answer??{role:"assistant",content:[]}} providers={ai?.providers} onOpenFile={openFile} onCopy={copy} canFork={!view.running&&!busy} onFork={id=>void run(()=>fork(id))} onRetry={!bot?.readOnly&&index===processItems.length-1&&view.messages.some(message=>message.role==="user"&&message.id&&!message.pending)?()=>void run(()=>retryMessage()):undefined} running={item.running} busy={busy||view.paused||view.running} showReasoning={ai?.showReasoning!==false} conversationId={activeId} process={grouped?<WorkProcess group={group} conversationId={activeId} onCopy={copy} providers={ai?.providers} canFork={!view.running&&!busy} onFork={id=>void run(()=>fork(id))} onOpenFile={openFile}/>:undefined} bot={botMessage}/>;
+      }
+      // A teammate's chat groups messages by time and marks its first unread
+      // reply; each row carries its Cindy clientId for quotes and topics.
+      if(bot)return <div key={itemKey} className="chat-bot-item" data-message-client-id={botItemClientId(item)} data-chat-turn={item.kind==='user'?item.key:undefined}><BotTimelineMarkers timestamp={botTimeline.groups.get(itemKey)} unread={botTimeline.unreadKey===itemKey}/>{content}</div>;
+      return item.kind==='user'?<div key={itemKey} data-chat-turn={item.key}>{content}</div>:<Fragment key={itemKey}>{content}</Fragment>;
      })}
      {!hasInlinePlan&&<ChatPlan key={activeId} workflow={view.workflow} animated={view.running}/>}
        {/* Files have one transcript footer; no response owns or repositions it. */}
@@ -594,14 +734,17 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
     </div>}
     <div className="chat-transcript-end-space" aria-hidden="true"/>
    </ScrollArea>}
-   {activeId&&<footer className="chat-input-area"><div className="chat-input-content">
+   {botOpeningPending&&botIdentity&&<BotOpeningPending name={botIdentity.name} bottomInset={footerHeight}/>}
+   {activeId&&!bot?.readOnly&&<footer ref={footerRef} className="chat-input-area"><div className="chat-input-content">
     <ChatPlanReminder key={activeId} workflow={currentPlan?.workflow} anchor={currentPlanAnchor} active={!!currentPlan&&(view.running||!!view.paused)} animated={view.running&&!view.paused} viewport={scroll}/>
     <ProcessCollapseAction/>
-    {queuedCount>0&&<div className="cindy-chat-ui chat-queue-container"><PendingQueuePanel queue={view.messages.filter(message=>message.pending&&message.queued).map(message=>({clientId:message.requestId??message.id!,text:messageText(message),attachmentCount:message.attachments?.length}))} expanded={queueExpanded} onToggle={()=>setQueueExpanded(value=>!value)} onRemove={entry=>void queueAction('cancel',entry).catch(error=>setError(errorText(error)))} editingClientId={queueEdit?.id} onEditBegin={entry=>void run(()=>beginQueueEdit(entry))} onSteer={steerQueued} steeringClientIds={queueWorking} paused={view.queuePaused} turnRunning={view.running} onResume={()=>void queueAction('resume').catch(error=>setError(errorText(error)))} onReorder={(entry,targetIndex)=>void queueAction('reorder',entry,{targetIndex}).catch(error=>setError(errorText(error)))} onInteractionLock={(_key,locked)=>void queueAction('interaction','',{locked}).catch(error=>setError(errorText(error)))}/></div>}
+    {queuedCount>0&&<div className="cindy-chat-ui chat-queue-container"><PendingQueuePanel queue={view.messages.filter(message=>message.pending&&message.queued&&!message.hiddenInput).map(message=>({clientId:message.requestId??message.id!,text:messageText(message),attachmentCount:message.attachments?.length}))} expanded={queueExpanded} onToggle={()=>setQueueExpanded(value=>!value)} onRemove={entry=>void queueAction('cancel',entry).catch(error=>setError(errorText(error)))} editingClientId={queueEdit?.id} onEditBegin={entry=>void run(()=>beginQueueEdit(entry))} onSteer={steerQueued} steeringClientIds={queueWorking} paused={view.queuePaused} turnRunning={view.running} onResume={()=>void queueAction('resume').catch(error=>setError(errorText(error)))} onReorder={(entry,targetIndex)=>void queueAction('reorder',entry,{targetIndex}).catch(error=>setError(errorText(error)))} onInteractionLock={(_key,locked)=>void queueAction('interaction','',{locked}).catch(error=>setError(errorText(error)))}/></div>}
     {queueEdit&&<div className="chat-queue-edit-state" role="status"><span>{t('chat.queue_editing')}</span><Button disabled={busy} onClick={()=>void run(()=>finishQueueEdit(false))}>{t('chat.queue_cancelEdit')}</Button></div>}
     {activeRetry&&<RetryStatus operation={activeRetry} stopping={stopping} onStop={()=>void stopCurrent()}/>}
-    <div className="chat-composer-stack"><ChatProjectContext projects={catalog.projects} projectId={conversation?.projectId??""} onProject={id=>{if(id)void run(()=>moveCurrentConversation(id));}} onOpenProject={openProjectDialog} disabled={busy}/>
-    {view.approvals[0]?.kind==="question"?<ChatQuestion key={view.approvals[0].id} request={view.approvals[0]} busy={busy} onStop={()=>void run(async()=>{await chatCall("stop",{id:activeId});})} onAnswer={answers=>respondQuestion(answers)} onCancel={()=>respondQuestion()}/>:view.approvals[0]?<ChatApproval request={view.approvals[0]} busy={busy} onStop={()=>void run(async()=>{await chatCall("stop",{id:activeId});})} onRespond={(allow,scope)=>void run(async()=>{const approvalId=view.approvals[0].id;await chatCall("permission",{id:activeId,approvalId,allow,scope});setView(current=>({...current,approvals:current.approvals.filter(a=>a.id!==approvalId)}));})}/>:composer}</div>
+    <div className="chat-composer-stack">{!bot&&<ChatProjectContext projects={catalog.projects} projectId={conversation?.projectId??""} onProject={id=>{if(id)void run(()=>moveCurrentConversation(id));}} onOpenProject={openProjectDialog} disabled={busy}/>}
+    {bot&&pendingQuote&&botChatQuote&&<div className="chat-bot-quote-preview"><BotChatQuoteComposerPreview sessionId={activeId} quote={pendingQuote} getMessage={botChatQuote.getMessage} names={botChatQuote.names}/></div>}
+    {voiceAllowed&&botIdentity&&<CompanionVoicePanel key={activeId} onCallIdChange={setActiveVoiceCallId} open={voiceOpen} bot={botIdentity} sessionId={activeId} messages={voiceMessages} blocked={view.approvals.some(request=>request.kind!=="question")||opening} questionPending={view.approvals.some(request=>request.kind==="question")} questionBridge={voiceQuestionBridge} taskBusy={view.running||!!view.backgroundRunning} onClose={()=>setVoiceOpen(false)} onConfigure={configureVoice} onOpenTask={locateVoiceTask} onSend={async(value,onCreated,isCurrent)=>{if(!isCurrent())return false;const requestId=crypto.randomUUID();const result=await chatCall<{accepted:boolean}>("prompt",{id:activeId,text:value,requestId,preserveDraft:true});if(result.accepted)onCreated(requestId);return result.accepted;}}/>}
+    {view.approvals[0]?.kind==="question"?(bot?<OneBotQuestion key={view.approvals[0].id} sessionId={activeId} workingDir={conversation?.directory??""} request={view.approvals[0]} voiceBridge={voiceOpen?voiceQuestionBridge:undefined} onAnswer={(approvalId,answers)=>chatCall("question",{id:activeId,approvalId,answers})}/>:<ChatQuestion key={view.approvals[0].id} request={view.approvals[0]} busy={busy} onStop={()=>void run(async()=>{await chatCall("stop",{id:activeId});})} onAnswer={answers=>respondQuestion(answers)} onCancel={()=>respondQuestion()}/>):view.approvals[0]?<ChatApproval request={view.approvals[0]} busy={busy} onStop={()=>void run(async()=>{await chatCall("stop",{id:activeId});})} onRespond={(allow,scope)=>void run(async()=>{const approvalId=view.approvals[0].id;await chatCall("permission",{id:activeId,approvalId,allow,scope});setView(current=>({...current,approvals:current.approvals.filter(a=>a.id!==approvalId)}));})}/>:<div className={voiceOpen?"w-full opacity-60":"contents"} inert={voiceOpen} aria-hidden={voiceOpen||undefined}>{composer}</div>}</div>
     <p className="chat-input-hint" role="status"><span title={inputHint}>{inputHint}</span></p>
    </div></footer>}
    {activeId&&<ChatScrollControls viewportRef={scroll} conversationId={activeId} onNavigate={latest=>{resizeDetached.current=false;follow.current=latest;}}/>}</div></div>
@@ -623,5 +766,5 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,onRequeste
    {dialog&&dialog!=="project"&&error&&<p role="alert" className="chat-error">{error}</p>}
    {dialog==="project"&&error&&<div role="alert" className="chat-error">{error}</div>}
    <DialogFooter><Button disabled={busy} onClick={()=>setDialog(null)}>{t("chat.cancel")}</Button><Button variant="primary" disabled={busy||!["locations","delete","removeProject"].includes(dialog??"")&&(!name.trim()||dialog==="project"&&!parent)} onClick={()=>void run(async()=>{if(dialog==="locations"){await saveLocations();return;}if(dialog==="delete"&&dialogConversation){await draftWrites.current;const updated=await chatCall<ChatCatalog>("conversation.delete",{id:dialogConversation.id});setCatalog(updated);if(activeId===dialogConversation.id)await choose("");}else if(dialog==="project"){await saveProject();}else if((dialog==="renameProject"||dialog==="removeProject")&&dialogProject){await chatCall(dialog==="renameProject"?"project.update":"project.remove",{id:dialogProject.id,...(dialog==="renameProject"?{name}:{})});if(dialog==="removeProject"&&newProjectId===dialogProject.id)setNewProjectId("");await refresh();}else await updateConversation({title:name},dialogConversation);setDialog(null);})}>{t(dialog==="project"?(projectMode==="open"?"chat.openProject":"chat.create"):dialog==="locations"?"chat.apply":dialog==="delete"?"chat.delete":dialog==="removeProject"?"chat.remove":"chat.rename")}</Button></DialogFooter></DialogContent></Dialog>
- </div></ChatFileNavigation></ProcessNavigationProvider></MediaProvider></ChatDesktopSurface>;
+ </div></ChatFileNavigation></ProcessNavigationProvider></MediaProvider></BotChatQuoteProvider></SessionQuickSendProvider></ChatDesktopSurface></MessageReadAloudContext.Provider>;
 }

@@ -554,7 +554,7 @@
  --button-secondary-pressed:color-mix(in srgb, var(--button-secondary-hover) 90%, var(--text-primary));
  --button-cta-pressed:color-mix(in srgb, var(--button-cta-hover) 90%, var(--accent-pure-cta-fg));
 }
-:root.dark .cindy-chat-ui, :root.dark .cindy-panel-popup {
+:root:is(.dark,[data-theme="dark"]) .cindy-chat-ui, :root:is(.dark,[data-theme="dark"]) .cindy-panel-popup {
  --surface:#181818;
  --surface-hsl:0 0% 9.4%;
  --surface-elevated:#1F1F1F;

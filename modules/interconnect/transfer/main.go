@@ -46,6 +46,8 @@ type specification struct {
 	Downloads       int          `json:"downloads"`
 	ExpirationHours float64      `json:"expirationHours"`
 	UploadToken     string       `json:"uploadToken"`
+	AccountDir      string       `json:"accountDir,omitempty"`
+	StoreID         string       `json:"storeID,omitempty"`
 }
 
 func defaults() specification {
@@ -153,7 +155,7 @@ func newTask(spec specification, diagnostics *diagnostics) (*task, error) {
 			return nil, errors.New("source paths must be absolute")
 		}
 	}
-	if spec.Mode == "store_send" && (spec.Downloads < 1 || spec.ExpirationHours <= 0 || spec.ExpirationHours > 24*365) {
+	if spec.Mode == "store_send" && strings.TrimRight(spec.StoreOrigin, "/") != gofileOrigin && (spec.Downloads < 1 || spec.ExpirationHours <= 0 || spec.ExpirationHours > 24*365) {
 		return nil, errors.New("invalid download count or expiration")
 	}
 	if spec.Options.ThrottleUpload != "" && !regexp.MustCompile(`^[1-9][0-9]*[kKmMgG]?$`).MatchString(spec.Options.ThrottleUpload) {
@@ -376,6 +378,16 @@ func (t *task) direct(ctx context.Context) error {
 	return client.Send(files, folders, count)
 }
 func (t *task) stored(ctx context.Context) (any, error) {
+	if t.spec.Mode == "store_send" {
+		paths, err := t.prepareStoredPaths(ctx)
+		if err != nil {
+			return nil, err
+		}
+		t.spec.Paths = paths
+	}
+	if strings.TrimRight(t.spec.StoreOrigin, "/") == gofileOrigin {
+		return t.gofile(ctx)
+	}
 	client := &storeclient.Client{}
 	callbacks := storeclient.Callbacks{
 		Status:   func(detail string) { t.mu.Lock(); t.state.Detail = detail; t.mu.Unlock() },

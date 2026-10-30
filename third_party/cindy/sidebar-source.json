@@ -142,13 +142,13 @@
       "source": "apps/desktop/src/renderer/styles/generated/tokens.css",
       "target": "apps/desktop/frontend/src/features/cindy/panel-ui/foundation.css",
       "sourceSHA256": "26cb98a61d8770fa4a616bba9d890c75ae97a95788312816bf10c4ef5225de7a",
-      "adaptation": "All spacing, radii, typography and motion tokens; root scope only."
+      "adaptation": "All spacing, radii, typography and motion tokens; root scope only. Dark tokens also apply under WinOne <html data-theme=\"dark\">, the host dark-mode marker; Cindy uses a .dark class."
     },
     {
       "source": "apps/desktop/src/renderer/styles/globals.css",
       "target": "apps/desktop/frontend/src/features/cindy/panel-ui/foundation.css",
       "sourceSHA256": "094498be5c665a664ba8b1e216398ba89e6e23b1c6e5b23d5ffad46533733fe5",
-      "adaptation": "Referenced shared component rules, scoped to Cindy surfaces; Windows scrim branch."
+      "adaptation": "Referenced shared component rules, scoped to Cindy surfaces; Windows scrim branch. Dark tokens also apply under WinOne <html data-theme=\"dark\">, the host dark-mode marker; Cindy uses a .dark class."
     }
   ],
   "adaptation": "Original Windows tab chrome, sortable interactions and UI primitives; plugin metadata, file state and callbacks belong to WinOne. All existing WinOne tabs and actions remain connected. Shared primitives include their structural tokens and modal/menu styles. react-style-singleton uses constructable stylesheets through build/prepare-radix-csp.mjs without relaxing the production CSP. Shared primitives include their structural tokens and modal/menu styles. react-style-singleton uses constructable stylesheets through build/prepare-radix-csp.mjs without relaxing the production CSP."

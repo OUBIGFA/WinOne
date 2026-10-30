@@ -24,13 +24,18 @@ test('Pi consumes multiple follow-ups once and retries saved history without dup
  const send=(id,method,params={})=>new Promise(resolve=>{pending.set(id,resolve);child.stdin.write(JSON.stringify({id,method,params})+'\n');});
  try{
   await until(()=>ready);assert.equal((await send('init','init',{cwd:workspace,sessionDirectory:sessions,agentDir:path.join(root,'agent'),baseUrl:`http://127.0.0.1:${server.address().port}/v1`,key:'fixture-session-token',model:{id:'fixture',name:'Fixture'},permission:'ask'})).ok,true);
-  assert.equal((await send('original','prompt',{text:'Original request'})).ok,true);await until(()=>calls===1);
-  for(const id of ['follow-one','follow-two'])assert.equal((await send(id,'prompt',{text:id})).ok,true,'mid-turn input must reach Pi');
+  assert.equal((await send('original','prompt',{text:'Original request',trackExecution:true})).ok,true);await until(()=>calls===1);
+  for(const id of ['follow-one','follow-two'])assert.equal((await send(id,'prompt',{text:id,trackExecution:true})).ok,true,'mid-turn input must reach Pi');
   release();
   // Force the first reply to reach the renderer while the next run is still
   // executing. Execution becoming idle must not outrun committed event delivery.
   await until(()=>calls>=2&&events.some(event=>event.type==='pi_event'&&event.eventType==='message_end'&&event.message?.role==='assistant'));
   assert.ok(!events.some(event=>event.type==='settled'),'queued follow-ups are still running');
+  await until(()=>events.some(event=>event.type==='input_settled'&&event.requestId==='original'));
+  const originalResult=(await send('original-result','input.result',{id:'original'})).value;
+  assert.equal(originalResult.status,'completed');assert.equal(originalResult.resultText,'Done');
+  assert.ok(originalResult.execution.instanceId);assert.equal(originalResult.execution.generation,1);
+  assert.equal((await send('pending-result','input.result',{id:'follow-one'})).value.status,undefined,'a queued input must not borrow the previous result');
   releaseFollowup();await until(()=>events.some(event=>event.type==='settled'));
   for(const id of ['original','follow-one','follow-two']){
    const liveRows=events.filter(event=>event.type==='pi_event'&&event.message?.role==='user'&&event.message?.turnId===id);

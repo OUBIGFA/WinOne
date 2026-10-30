@@ -5,6 +5,17 @@ import (
 	"testing"
 )
 
+// Nightly learning uses the upstream 60k-message/40k-memory/30k-skill
+// snapshot budgets. Chinese UTF-8 text must fit without dropping evidence.
+func TestNightlyLearningSnapshotFitsGenerationBoundary(t *testing.T) {
+	if err := ValidateGeneration(Generation{Text: strings.Repeat("学", 150000), System: "Return the learning plan as JSON."}); err != nil {
+		t.Fatal("bounded upstream learning snapshot was rejected", err)
+	}
+	if err := ValidateGeneration(Generation{Text: strings.Repeat("x", (1<<20)+1)}); err == nil {
+		t.Fatal("unbounded learning input accepted")
+	}
+}
+
 func TestConversationPreservesRolesAndRejectsUnboundedHistory(t *testing.T) {
 	history := []Message{{Role: "user", Content: "Recognized text: Hello"}, {Role: "assistant", Content: "你好"}, {Role: "user", Content: "Explain the translation"}}
 	input := Generation{Messages: history}

@@ -64,6 +64,8 @@ try{
  if(!await content().locator('.lucide-send-horizontal').count())throw Error('Shortcut icon differs');
  await nav().nth(2).click();await page.locator('.selection-action-trigger').first().waitFor();if(!await content().locator('.lucide-code-xml').count())throw Error('Code icon differs');
  await nav().nth(5).click();await page.getByRole('tab',{name:'置顶功能',exact:true}).waitFor();
+ const convenienceTabs=await tabs().getByRole('tab').allTextContents();
+ if(JSON.stringify(convenienceTabs)!==JSON.stringify(['置顶功能','鼠标手势','文件与目录链接','定时关机']))throw Error('Convenience tab order: '+JSON.stringify(convenienceTabs));
  const enabled=content().getByRole('switch',{name:'置顶功能',exact:true});await enabled.waitFor();
  const initial=await enabled.isChecked();await enabled.click();await page.waitForFunction(expected=>document.querySelector('[aria-labelledby="module-always-on-top-name"]')?.getAttribute('aria-checked')===String(expected),!initial);
  await enabled.click();await page.waitForFunction(expected=>document.querySelector('[aria-labelledby="module-always-on-top-name"]')?.getAttribute('aria-checked')===String(expected),initial);
@@ -71,7 +73,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('[aria-labelledby="module-always-on-top-name"]')?.matches(':disabled,[aria-disabled="true"],[data-disabled]'));
  await nav().first().click();await page.getByRole('dialog').waitFor();await page.locator('[data-slot="dialog-overlay"]').click({position:{x:8,y:8}});await page.getByRole('dialog').waitFor({state:'hidden'});
  if(await sound.isChecked()===originalSound)throw Error('Outside click discarded the convenience draft');
- await content().getByRole('button',{name:'撤销修改',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('[aria-labelledby="module-always-on-top-name"]')?.matches(':disabled,[aria-disabled="true"],[data-disabled]'));
+ await page.locator('[data-slot="settings-actions"]').getByRole('button',{name:'撤销修改',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('[aria-labelledby="module-always-on-top-name"]')?.matches(':disabled,[aria-disabled="true"],[data-disabled]'));
  for(const language of ['zh-CN','en-US'])for(const theme of ['light','dark']){
   await nav().nth(7).click();await page.getByRole('radio',{name:language==='zh-CN'?'简体中文':'English',exact:true}).click();await page.waitForFunction(value=>document.documentElement.lang===value,language);
   await page.getByRole('radio',{name:language==='zh-CN'?(theme==='light'?'浅色':'深色'):(theme==='light'?'Light':'Dark'),exact:true}).click();await page.waitForFunction(value=>document.documentElement.dataset.theme===value,theme);

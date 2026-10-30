@@ -18,7 +18,7 @@ if($LASTEXITCODE -ne 0){throw 'Cannot isolate the upstream third-party plugin ma
 foreach($name in @('plugin-bridge.js','plugin-host.js','plugins.css')){
  Copy-Item -LiteralPath (Join-Path $root ('modules/ai-magpie/'+$name)) -Destination (Join-Path $SourceDirectory ('internal/gui/assets/winone-'+$name))
 }
-foreach($name in @('masking-host.js','masking.css')){
+foreach($name in @('masking-host.js','masking-prehost.js','masking.css')){
  Copy-Item -LiteralPath (Join-Path $root ('modules/ai-magpie/'+$name)) -Destination (Join-Path $SourceDirectory ('internal/gui/assets/winone-'+$name))
 }
 & node (Join-Path $root 'build/prepare-ai-masking.mjs') $SourceDirectory

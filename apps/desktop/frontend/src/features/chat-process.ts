@@ -2,7 +2,7 @@ import {messageText,type ChatMessage,type MessagePart,type ToolActivity,type Pro
 
 export type ProcessEntry={at?:number;endedAt?:number}&({kind:"thinking";key:string;part:MessagePart}|{kind:"commentary";key:string;text:string;message?:ChatMessage;delivered?:boolean}|{kind:"tool";key:string;tool:ToolActivity}|{kind:"operation";key:string;operation:ProcessOperation});
 export type ProcessResponse={kind:"response";key:string;messages:ChatMessage[];entries:ProcessEntry[];answer?:ChatMessage;running:boolean;startedAt?:number;durationMs?:number;hasTools:boolean};
-export type ProcessRenderItem={kind:"user";key:string;message:ChatMessage}|ProcessResponse;
+export type ProcessRenderItem={kind:"user";key:string;message:ChatMessage}|{kind:"presentation";key:string;message:ChatMessage}|ProcessResponse;
 
 // Pi stores one assistant/tool sequence per user turn. Project it into Cindy's
 // work-process grouping. Every public text part is a normal reply; only thinking
@@ -11,8 +11,12 @@ export function projectChatProcess(messages:ChatMessage[],liveTools:ToolActivity
  const output:ProcessRenderItem[]=[],groups=new Map<string,ProcessResponse>();let turn="history";
  function response(key:string){let group=groups.get(key);if(!group){group={kind:"response",key,messages:[],entries:[],running:false,hasTools:false};groups.set(key,group);const user=output.findIndex(item=>item.kind==="user"&&item.key===key);if(user>=0)output.splice(user+1,0,group);else output.push(group);}return group;}
  for(const [index,message] of messages.entries()){
+  if(message.presentationOnly){output.push({kind:'presentation',key:message.id??message.turnId??`presentation-${index}`,message});continue;}
   if(message.role==="user"){
    turn=message.turnId??message.requestId??message.id??`user-${message.timestamp??index}`;
+   // Host-authored completion wakes remain in model history, never in the
+   // owner's message bubble. Their subsequent replies keep this exact turn.
+   if(message.hiddenInput)continue;
    // A progress batch can expose a partial before the committed user entry.
    // Re-anchor that response when its owner arrives; never leave it above input.
    const existing=groups.get(turn);if(existing)output.splice(output.indexOf(existing),1);

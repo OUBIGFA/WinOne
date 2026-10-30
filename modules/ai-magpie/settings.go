@@ -47,6 +47,9 @@ func applyRuntimeSettings(in request) error {
 		}
 	}
 	// WinOne language tags use regions; Magpie's saved settings validate its
+	if err := settings.CheckProxy(s.Proxy); err != nil {
+		return err
+	}
 	// own locale keys. Normalize before any route preference can be saved.
 	switch s.Lang {
 	case "zh-CN", "zh-Hans":
@@ -63,6 +66,12 @@ func applyRuntimeSettings(in request) error {
 		return err
 	}
 	s.RedactRules = rules
+	// The outer router owns the logical request and its archive. Auxiliary
+	// transport workers must not archive the same content a second time.
+	if gateway.WinOneTransportOnly {
+		s.RequestArchiveLocal = false
+		s.RequestArchive = false
+	}
 	// WinOne owns a private profile; upstream discovery must not reach real
 	// WSL agent accounts, even when an imported preference requests discovery.
 	s.NoWSLAgents = true
@@ -114,7 +123,9 @@ func installModelPreferences(pid, model string, m modelMetadata) error {
 	s := settings.Load()
 	id := pid + "/" + model
 	if m.Searches {
-		if provider.WinOneSearchModels == nil { provider.WinOneSearchModels = map[string]bool{} }
+		if provider.WinOneSearchModels == nil {
+			provider.WinOneSearchModels = map[string]bool{}
+		}
 		provider.WinOneSearchModels[id] = true
 	}
 	if m.Same != "" {
@@ -136,10 +147,24 @@ func installModelPreferences(pid, model string, m modelMetadata) error {
 		s.ModelAPIs[id] = m.API
 	}
 	if m.Efforts != nil {
-		if s.ModelEfforts == nil {
-			s.ModelEfforts = map[string][]string{}
+		if kept := keptReasoningLevels(m.Levels, m.Efforts); kept != nil {
+			if s.ModelEfforts == nil {
+				s.ModelEfforts = map[string][]string{}
+			}
+			s.ModelEfforts[id] = kept
+		} else {
+			delete(s.ModelEfforts, id)
 		}
-		s.ModelEfforts[id] = slices.Clone(m.Efforts)
+	}
+	// "No reasoning" is upstream's reasonless model (SetModelReasonless):
+	// it offers no levels and the gateway sends no reasoning field.
+	if m.Reasoning != nil && !*m.Reasoning {
+		if s.ModelReasonless == nil {
+			s.ModelReasonless = map[string]bool{}
+		}
+		s.ModelReasonless[id] = true
+	} else {
+		delete(s.ModelReasonless, id)
 	}
 	if m.Vision != nil {
 		if s.ModelImages == nil {
@@ -165,6 +190,50 @@ func installModelPreferences(pid, model string, m modelMetadata) error {
 	}
 	settings.WinOneUse(s)
 	return nil
+}
+
+// keptReasoningLevels is upstream's setModelEfforts/effortsKept without its
+// settings write: offered levels, trimmed and lowercased as Magpie reads
+// them, in the vendor's order and spelling. nil means none were narrowed
+// (all offered), which Magpie stores as no entry. A model with no reported
+// levels keeps the declared ones of provider.Levels, in that order, as
+// `magpie model efforts` does. A stale level no longer listed is dropped
+// rather than refused, so a vendor's renamed ladder never blocks saving.
+func keptReasoningLevels(levels, offered []string) []string {
+	var keep []string
+	for _, level := range offered {
+		level = strings.ToLower(strings.TrimSpace(level))
+		if level != "" && !slices.Contains(keep, level) {
+			keep = append(keep, level)
+		}
+	}
+	if len(keep) == 0 {
+		return nil
+	}
+	if len(levels) == 0 {
+		var declared []string
+		for _, level := range provider.Levels {
+			if slices.Contains(keep, level) {
+				declared = append(declared, level)
+			}
+		}
+		return declared
+	}
+	var vendor, ordered []string
+	for _, level := range levels {
+		if !slices.ContainsFunc(vendor, func(seen string) bool { return strings.EqualFold(seen, level) }) {
+			vendor = append(vendor, level)
+		}
+	}
+	for _, level := range vendor {
+		if slices.Contains(keep, strings.ToLower(level)) {
+			ordered = append(ordered, level)
+		}
+	}
+	if len(ordered) == 0 || len(ordered) == len(vendor) {
+		return nil
+	}
+	return ordered
 }
 
 type settingModel struct {
@@ -262,6 +331,7 @@ func testModels(ctx context.Context, in request, output io.Writer) error {
 			return err
 		}
 		p = *a
+		p.LimitRestOff = in.LimitRestOff
 	} else {
 		var err error
 		p, err = configuredProvider(in)

@@ -47,7 +47,10 @@ export function CapturePage({ disabled = false,onEdit,onOpenDraft,onEditorActivi
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const pendingSettings=!!draft&&!!state&&JSON.stringify(draft)!==JSON.stringify(state.settings);
-  usePageActivity(onActivity,pendingSettings,busy);
+  // Reverting is local: the last Host snapshot is already the saved baseline.
+  // Edits create new objects, so sharing that snapshot cannot mutate it.
+  function discardDraft(){if(state){setDraft(state.settings);setError("");setMessage("");}}
+  usePageActivity(onActivity,pendingSettings,busy,"capture",discardDraft);
   useEffect(()=>{onEditorActivity?.(busy||pendingSettings);return()=>onEditorActivity?.(false);},[busy,pendingSettings]);
   async function reload(preserveDraft = false) {
     if (!preserveDraft) setError("");
@@ -159,7 +162,7 @@ export function CapturePage({ disabled = false,onEdit,onOpenDraft,onEditorActivi
           <NumberField id="capture-scroll-delay" label={t("capture.delay")} min={100} max={2000} value={draft.scrollDelay} onChange={value=>setDraft({...draft,scrollDelay:value})}/>
         </SettingsSection>
         </fieldset>:unavailable}</TabsContent><TabsContent value="ai" keepMounted className="">{aiOpened&&<CaptureAISettings onActivity={onActivity}/>}</TabsContent><TabsContent value="shortcuts" className="settings-section-stack"><Shortcuts moduleId="capture" onSaved={()=>onSaved?.()} onActivity={onActivity}/></TabsContent></Tabs>
-        {draft&&settingsTab!=="ai"&&settingsTab!=="shortcuts"&&<SettingsSaveBar>
+        {draft&&settingsTab!=="ai"&&settingsTab!=="shortcuts"&&<SettingsSaveBar undo={{disabled:busy||!dirty,onClick:discardDraft}}>
           {!validScrollDelay&&settingsTab!=="scroll"&&<Notice actions={<Button onClick={()=>{setSettingsTab("scroll");requestAnimationFrame(()=>document.getElementById("capture-scroll-delay")?.focus());}}>{t("capture.checkScrollDelay")}</Button>}>{t("capture.invalidScrollDelay")}</Notice>}
           <Button icon={Save} variant="primary" disabled={busy||!dirty||!validScrollDelay} onClick={() => void save()}>{t("capture.save")}</Button></SettingsSaveBar>}
       </section>

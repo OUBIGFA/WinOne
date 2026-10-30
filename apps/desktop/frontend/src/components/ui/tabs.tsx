@@ -1,12 +1,38 @@
+import { useContext, useState } from "react"
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
+import { TabChangeGuardContext } from "../tab-change-guard"
 
+// User-initiated switches pass through the page's unsaved-change guard when a
+// settings page provides one. Automatic corrections (a removed or disabled
+// tab) are applied directly. navigation={false} marks tabs that represent a
+// form value or alternate views of one pending item rather than navigation.
 function Tabs({
   className,
   orientation = "horizontal",
+  navigation = true,
+  value,
+  defaultValue,
+  onValueChange,
   ...props
-}: TabsPrimitive.Root.Props) {
+}: TabsPrimitive.Root.Props & { navigation?: boolean }) {
+  const guard = useContext(TabChangeGuardContext)
+  // Keep a local copy for uncontrolled tabs so a deferred, confirmed switch
+  // can still be applied after the dialog closes.
+  const [uncontrolled, setUncontrolled] = useState(defaultValue)
+  const controlled = value !== undefined
+  const change: NonNullable<TabsPrimitive.Root.Props["onValueChange"]> = (next, details) => {
+    const apply = () => {
+      if (!controlled) setUncontrolled(next)
+      onValueChange?.(next, details)
+    }
+    if (!navigation || !guard || details.reason !== "none") { apply(); return }
+    // The guard applies immediately when nothing is pending. Otherwise the
+    // selection stays put until the user decides in the shared dialog.
+    details.cancel()
+    guard(apply)
+  }
   return (
     <TabsPrimitive.Root
       orientation={orientation}
@@ -17,6 +43,8 @@ function Tabs({
         className
       )}
       {...props}
+      value={controlled ? value : uncontrolled}
+      onValueChange={change}
     />
   )
 }

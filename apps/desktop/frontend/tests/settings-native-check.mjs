@@ -90,21 +90,25 @@ try{
    const result=await viewport.evaluate(root=>{
     const visible=node=>node.getClientRects().length>0&&!node.closest('[hidden],[aria-hidden="true"]');
     const shell=root.parentElement,clip=shell.getBoundingClientRect();
-    const footer=shell.querySelector('[data-slot="settings-footer"]'),footerRect=footer?.getBoundingClientRect();
+    const footer=shell.querySelector('[data-slot="settings-actions"]'),footerRect=footer?.getBoundingClientRect();
     const navigation=[...shell.querySelectorAll('[data-slot="page-scroll-controls"] button')].map(node=>node.getBoundingClientRect());
     const bars=[...shell.querySelectorAll('.settings-save-bar')].filter(visible).map(bar=>{
      const rect=bar.getBoundingClientRect();
-     return {inFooter:!!bar.closest('[data-slot="settings-footer"]'),visible:rect.top>=clip.top-1&&rect.bottom<=clip.bottom+1,buttons:[...bar.querySelectorAll('button')].filter(visible).map(button=>{
+     return {top:rect.top,bottom:rect.bottom,inFooter:!!bar.closest('[data-slot="settings-actions"]'),visible:rect.top>=clip.top-1&&rect.bottom<=clip.bottom+1,buttons:[...bar.querySelectorAll('button')].filter(visible).map(button=>{
       const bounds=button.getBoundingClientRect(),hit=document.elementFromPoint(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
       return {name:button.textContent.trim(),visible:bounds.top>=clip.top-1&&bounds.bottom<=clip.bottom+1,unobscured:!!hit&&bar.contains(hit)};
      })};
     });
     const unanchored=[...shell.querySelectorAll('button')].filter(visible).filter(button=>/^(保存(设置|快捷键)?|Save( settings| shortcuts)?)$/i.test(button.textContent.trim())&&!button.closest('.settings-save-bar')).map(button=>button.textContent.trim());
-    return {scrollTop:root.scrollTop,bars,unanchored,footerAtBottom:!footerRect?.height||Math.abs(footerRect.bottom-clip.bottom)<=1,
-     navigationInRow:navigation.length!==2||Math.abs(navigation[0].top-navigation[1].top)<=1&&navigation[0].right<=navigation[1].left};
+    return {scrollTop:root.scrollTop,bars,unanchored,
+     railSafe:!footerRect?.height||clip.right-footerRect.right>=11.5&&clip.right-footerRect.right<=40&&footerRect.bottom<=clip.bottom-15.5&&footerRect.top>=clip.top,
+     noReservedSpace:Math.abs(root.getBoundingClientRect().width-clip.width)<=1&&Math.abs(root.getBoundingClientRect().height-clip.height)<=1,
+     saveNavigationGap:bars.length&&navigation.length?navigation[0].top-bars.at(-1).bottom:null,
+     navigationInColumn:navigation.length!==2||Math.abs(navigation[0].left-navigation[1].left)<=1&&navigation[0].bottom+7.5<=navigation[1].top};
    });
    footers.push(result);
-   assert.ok(result.footerAtBottom&&result.navigationInRow&&result.bars.every(bar=>bar.inFooter), 'Native footer stays at bottom with horizontal navigation');
+   assert.ok(result.railSafe&&result.noReservedSpace&&result.navigationInColumn&&result.bars.every(bar=>bar.inFooter), 'Native action rail overlays the full viewport with safe margins and vertical navigation');
+   assert.ok(result.saveNavigationGap===null||result.saveNavigationGap>=43.5,'Save needs one extra button gap above navigation');
    assert.equal(result.unanchored.length,0,`Native save outside footer: ${id} ${path}`);
    assert.ok(result.bars.every(bar=>bar.visible&&bar.buttons.every(button=>button.visible&&button.unobscured)),`Native save hidden after scrolling: ${id} ${path} ${top}`);
   }
@@ -133,6 +137,9 @@ try{
   const names=await list.getByRole('tab').allTextContents();
   for(let index=0;index<names.length;index++){
    await page.getByRole('tablist').nth(depth).getByRole('tab',{name:names[index].trim(),exact:true}).click();await settle();
+   // Reviewing tabs never edits; a brief "operation in progress" prompt
+   // may appear while a real Host read finishes, but no prompt may remain.
+   await page.waitForFunction(()=>!document.querySelector('[data-slot="dialog-content"]'),null,{timeout:8000});
    await tabs(id,variant,depth+1,[...path,index]);
   }
  }
@@ -201,9 +208,16 @@ try{
  await template.fill(savedTemplate);
  await page.locator('.app-navigation [data-page-id="overview"]').click();
  await page.getByRole('dialog').waitFor();
+ const saveButton=page.locator('.settings-save-bar:not([hidden]):not(.settings-save-placeholder) .settings-global-save');
+ assert.ok(await saveButton.evaluate(button=>{const box=button.getBoundingClientRect();return !button.contains(document.elementFromPoint(box.x+box.width/2,box.y+box.height/2));}),'Modal protects the overlay save action');
  await page.getByRole('button',{name:'继续编辑',exact:true}).click();
  assert.equal(await template.inputValue(),savedTemplate,'Navigation cancellation keeps the manual-save draft');
- await page.getByRole('tab',{name:'截图后',exact:true}).click();await settle();
+ // Switching tabs asks exactly like leaving the page; keep editing stays here.
+ await page.getByRole('tab',{name:'截图后',exact:true}).click();
+ await page.getByRole('dialog').waitFor();
+ await page.getByRole('button',{name:'继续编辑',exact:true}).click();
+ await page.getByRole('dialog').waitFor({state:'hidden'});
+ assert.equal(await template.inputValue(),savedTemplate,'Tab-switch cancellation keeps the manual-save draft');
  await page.locator('[data-slot="page-scroll"]').evaluate(root=>{root.scrollTop=0;});await settle();
  await page.getByRole('button',{name:'保存设置',exact:true}).click();
  await page.getByRole('status').filter({hasText:'已保存'}).waitFor();

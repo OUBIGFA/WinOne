@@ -11,12 +11,12 @@ afterEach(cleanup); // tests/setup.ts owns the lifetime of browser polyfills.
 it("keeps short-page save actions outside the scroll area and retains their callbacks",async()=>{
  const save=vi.fn(),props={pages:[],logo:"/logo.png",onNavigate:()=>{},page:"capture"};
  const view=render(<AppShell {...props}><input aria-label="Draft" defaultValue="original"/><SettingsSaveBar><button onClick={save}>保存设置</button></SettingsSaveBar></AppShell>);
- const footer=view.container.querySelector('[data-slot="settings-footer"]')!;
- expect(within(footer as HTMLElement).getByRole("button",{name:"保存设置"})).toBeTruthy();
+ const rail=view.container.querySelector('[data-slot="settings-actions"]')!;
+ expect(within(rail as HTMLElement).getByRole("button",{name:"保存设置"})).toBeTruthy();
  expect(view.container.querySelector('[data-slot="page-scroll"] .settings-save-bar')).toBeNull();
  await userEvent.setup().click(screen.getByRole("button",{name:"保存设置"}));expect(save).toHaveBeenCalledOnce();
 });
-it("mirrors kept-mounted tabs and parent fieldset locks into the footer",async()=>{
+it("mirrors kept-mounted tabs and parent fieldset locks into the action rail",async()=>{
  const props={pages:[],logo:"/logo.png",onNavigate:()=>{},page:"capture"};
  const content=(hidden:boolean,disabled:boolean)=><AppShell {...props}><div hidden={hidden}><fieldset disabled={disabled}><SettingsSaveBar><button>保存设置</button></SettingsSaveBar></fieldset></div></AppShell>;
  const view=render(content(false,true));
@@ -24,7 +24,23 @@ it("mirrors kept-mounted tabs and parent fieldset locks into the footer",async()
  view.rerender(content(true,false));await waitFor(()=>expect(screen.queryByRole("button",{name:"保存设置"})).toBeNull());
  view.rerender(content(false,false));await waitFor(()=>expect(screen.getByRole("button",{name:"保存设置"}).matches(':disabled')).toBe(false));
  view.rerender(<AppShell {...props} page="chat"><p>Chat</p></AppShell>);
- expect(view.container.querySelector('[data-slot="settings-footer"]')).toBeNull();
+ expect(view.container.querySelector('[data-slot="settings-actions"]')).toBeNull();
+});
+it("keeps disabled Save and Undo in place on pages without a manual save",async()=>{
+ const undo=vi.fn(),props={pages:[],logo:"/logo.png",onNavigate:()=>{},page:"capture"};
+ const view=render(<AppShell {...props}><p>自动保存的设置</p></AppShell>);
+ const rail=view.container.querySelector<HTMLElement>('[data-slot="settings-actions"]')!;
+ expect(within(rail).getByRole<HTMLButtonElement>("button",{name:"保存"}).matches(":disabled")).toBe(true);
+ expect(within(rail).getByRole<HTMLButtonElement>("button",{name:"撤销修改"}).matches(":disabled")).toBe(true);
+ view.rerender(<AppShell {...props}><SettingsSaveBar undo={{onClick:undo}}><button>保存设置</button></SettingsSaveBar></AppShell>);
+ await waitFor(()=>expect(within(rail).queryByRole("button",{name:"保存"})).toBeNull());
+ const buttons=within(rail).getAllByRole("button").map(button=>button.textContent);
+ expect(buttons.slice(0,2)).toEqual(["保存设置","撤销修改"]);
+ await userEvent.setup().click(within(rail).getByRole("button",{name:"撤销修改"}));expect(undo).toHaveBeenCalledOnce();
+ view.rerender(<AppShell {...props}><SettingsSaveBar><button>保存设置</button></SettingsSaveBar></AppShell>);
+ expect(within(rail).getByRole<HTMLButtonElement>("button",{name:"撤销修改"}).matches(":disabled")).toBe(true);
+ view.rerender(<AppShell {...props} page="chat"><p>Chat</p></AppShell>);
+ expect(view.container.querySelector('[data-slot="settings-actions"]')).toBeNull();
 });
 it("keeps settings actions in the fixed titlebar and leaves Chat unchanged",async()=>{
  const refresh=vi.fn(),props={pages:[],logo:"/logo.png",onNavigate:()=>{},toolbar:<button onClick={refresh}>刷新状态</button>};
@@ -42,6 +58,15 @@ it("shows one navigation entry per page and preserves the active location",async
  expect(screen.getByRole("button",{name:"首页"}).getAttribute("aria-current")).toBe("page");
  await userEvent.setup().click(screen.getByRole("button",{name:"设置"}));
  expect(navigate).toHaveBeenCalledWith("settings");expect(screen.getByRole("heading",{name:"首页内容"})).toBeTruthy();
+});
+
+it.each(['chat','onebot'])('keeps %s outside the settings surface and action rail',page=>{
+ const view=render(<AppShell page={page} pages={[]} logo="/logo.png" onNavigate={()=>{}}><main>Conversation</main></AppShell>);
+ const content=view.container.querySelector('[data-slot="page-content"]')!;
+ expect(content.classList.contains('settings-surface')).toBe(false);
+ expect(content.classList.contains('h-full')).toBe(true);
+ expect(view.container.querySelector('[data-slot="settings-actions"]')).toBeNull();
+ expect(document.documentElement.hasAttribute('data-settings-ui')).toBe(false);
 });
 
 it("limits settings styling to non-Chat pages across navigation",()=>{

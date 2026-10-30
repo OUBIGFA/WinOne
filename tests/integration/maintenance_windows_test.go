@@ -4,6 +4,7 @@ package integration
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -62,12 +63,16 @@ func TestInstallerGuardHoldsUntilInstallerExit(t *testing.T) {
 	profile := t.TempDir()
 	pipe := fmt.Sprintf(`\\.\pipe\WinOne-guard-%d`, time.Now().UnixNano())
 	guard := exec.Command(copyPath, "--guard-installation", filepath.Dir(exe), "--installer-pid", strconv.Itoa(owner.Process.Pid), "--installer-ready", name, "--prepare-uninstall", "--pipe", pipe, "--data-dir", profile)
+	var diagnostic bytes.Buffer
+	guard.Stdout, guard.Stderr = &diagnostic, &diagnostic
 	if err = guard.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer func() { guard.Process.Kill(); guard.Wait() }()
 	if state, err := windows.WaitForSingleObject(event, 15000); err != nil || state != windows.WAIT_OBJECT_0 {
-		t.Fatal("guard not ready", state, err)
+		_ = guard.Process.Kill()
+		_ = guard.Wait()
+		t.Fatal("guard not ready", state, err, diagnostic.String())
 	}
 	if lease, err := maintenance.AcquireRuntimeForInstallation(t.TempDir(), filepath.Dir(exe)); err == nil {
 		lease.Close()

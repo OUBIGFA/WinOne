@@ -55,6 +55,25 @@ it("offers the vendor's reported reasoning levels and service tiers",async()=>{
  expect(await screen.findByRole("option",{name:"priority"})).toBeTruthy();
  expect(screen.queryByRole("option",{name:"ultrafast"})).toBeNull();
 });
+it("offers a plugin's own reasoning levels instead of a fixed ladder",async()=>{
+ // Our Free Model's MiMo V2.5 reports light/balanced/deep, not low..max.
+ const current=modelFixture({opaque:{levels:["light","balanced","deep"],efforts:["light","balanced","deep"]}});
+ const offered=screen.getByRole("group",{name:"向客户端提供的思考档位"});
+ expect(within(offered).getAllByRole("checkbox").length).toBe(3);
+ expect(within(offered).queryByRole("checkbox",{name:"high"})).toBeNull();
+ await userEvent.click(within(offered).getByRole("checkbox",{name:"light"}));
+ expect(current().modelMetadata?.opaque).toMatchObject({levels:["light","balanced","deep"],efforts:["balanced","deep"]});
+ expect(within(screen.getByRole("group",{name:"向客户端提供的思考档位"})).getByRole("checkbox",{name:"light"})).toBeTruthy();
+ const presets=screen.getByRole("group",{name:"思考档位快捷值"});
+ expect(within(presets).queryByRole("button",{name:"high"})).toBeNull();
+ await userEvent.click(within(presets).getByRole("button",{name:"deep"}));
+ expect(current().modelMetadata?.opaque?.reasoningEffort).toBe("deep");
+});
+it("keeps a legacy saved vendor ladder when narrowing its offer",async()=>{
+ const current=modelFixture({opaque:{efforts:["light","balanced","deep"]}});
+ await userEvent.click(within(screen.getByRole("group",{name:"向客户端提供的思考档位"})).getByRole("checkbox",{name:"deep"}));
+ expect(current().modelMetadata?.opaque).toMatchObject({levels:["light","balanced","deep"],efforts:["light","balanced"]});
+});
 it("retains manual request limits where upstream has no shortcut presets",async()=>{
  let current:AIProvider={id:"p",name:"P",authMode:"account",hasKey:false,models:[]};function Fixture(){const [provider,setProvider]=useState(current);return <AIRequestLimits provider={provider} disabled={false} onChange={patch=>setProvider(value=>current={...value,...patch})}/>;}render(<Fixture/>);const user=userEvent.setup();await user.click(screen.getByText("请求限制",{selector:"summary"}));for(const [name,value] of [["并发上限","3"],["每分钟请求数（RPM）","20"],["排队上限","10"],["排队等待（秒）","30"]])await user.type(screen.getByLabelText(name),value);expect(current).toMatchObject({maxConcurrency:3,maxRPM:20,queueLimit:10,queueWait:30});
 });

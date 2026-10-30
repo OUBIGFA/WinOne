@@ -115,6 +115,9 @@ func (a *App) request(method string, params any, result any) error {
 	if method == "capture.ai.usage.export.save" {
 		timeout = 30 * time.Second
 	}
+	if method == "capture.ai.archive.export.save" || method == "capture.ai.archive.read" {
+		timeout = 150 * time.Second
+	}
 	if method == "capture.ai.magpie.catalog" {
 		timeout = 30 * time.Second
 	}
@@ -299,8 +302,10 @@ func (a *App) Chat(method, payload string) (string, error) {
 	if method == "export" {
 		return a.exportChatArchive(payload)
 	}
-	switch method {
-	case "usage", "project.git", "automations.deleted", "automations.restore", "automations.project.read", "automations.project.write", "automations.project.reconcile", "automations.project.promote", "automations.project.clone", "automations.project.demote", "automations.silence", "automations.notify", "automations.connections.get", "automations.connections.save", "automations.templates", "automations.template.apply", "automations.template.save", "automations.template.delete", "automations.list", "automations.get", "automations.create", "automations.update", "automations.pause", "automations.resume", "automations.delete", "automations.run", "automations.runs", "automations.deleteRun", "automations.markRead", "automations.runtime", "automations.preview", "automations.events", "catalog", "settings.get", "settings.save", "resources", "files", "attachments.add", "automation.run", "project.add", "project.create", "project.update", "project.remove", "conversation.new", "conversation.update", "conversation.move", "conversation.delete", "title.generate", "title.regenerate", "configure", "location", "fork", "draft.get", "draft.save", "open", "poll", "prompt", "state", "permission", "stop", "compact", "release", "detach":
+	switch strings.TrimPrefix(method, "onebot.chat.") {
+	case "onebot.tasks.pr.refs", "onebot.tasks.pr.statuses", "onebot.tasks.list", "onebot.tasks.get", "onebot.tasks.stop", "onebot.tasks.message", "onebot.tasks.trace", "onebot.capabilities.get", "onebot.events", "onebot.projects.list", "onebot.projects.set", "onebot.history.search", "onebot.lifecycle.action", "onebot.session.open", "onebot.profiles.list", "onebot.profiles.get", "onebot.profiles.versions", "onebot.profile.content.read", "onebot.memory.list", "onebot.memory.read", "onebot.memory.index", "onebot.memory.search", "onebot.skills.list", "onebot.skills.query", "onebot.skills.read", "onebot.skills.readSource", "onebot.skills.mounts", "onebot.todos.read",
+		"onebot.profiles.create", "onebot.profiles.update", "onebot.profile.content.write", "onebot.memory.update", "onebot.memory.delete", "onebot.memory.write", "onebot.memory.consolidate", "onebot.memory.importDocument", "onebot.skills.save", "onebot.skills.saveSource", "onebot.skills.delete", "onebot.todos.patch":
+	case "usage", "project.git", "automations.deleted", "automations.restore", "automations.project.read", "automations.project.write", "automations.project.reconcile", "automations.project.promote", "automations.project.clone", "automations.project.demote", "automations.silence", "automations.notify", "automations.connections.get", "automations.connections.save", "automations.templates", "automations.template.apply", "automations.template.save", "automations.template.delete", "automations.list", "automations.get", "automations.create", "automations.update", "automations.pause", "automations.resume", "automations.delete", "automations.run", "automations.runs", "automations.deleteRun", "automations.markRead", "automations.runtime", "automations.preview", "automations.sidebarIndexRuns", "automations.inflightCount", "automations.detectCwd", "automations.channels", "automations.capabilityStatus", "automations.hook.test", "automations.hook.generate", "automations.markAllRead", "automations.project.upsertSchedule", "automations.project.removeSchedule", "automations.open", "automations.events", "catalog", "settings.get", "settings.save", "resources", "files", "attachments.add", "automation.run", "project.add", "project.create", "project.update", "project.remove", "conversation.new", "conversation.update", "conversation.move", "conversation.delete", "title.generate", "title.regenerate", "configure", "location", "fork", "draft.get", "draft.save", "open", "poll", "prompt", "state", "permission", "stop", "compact", "release", "detach":
 	default:
 		return "", errors.New("不支持的 Chat 操作")
 	}
@@ -344,6 +349,16 @@ func (a *App) PickPrograms() ([]string, error) {
 
 // Capture forwards only supported image commands; it hides settings before starting capture.
 func (a *App) Capture(method, payload string) (string, error) {
+	if method == "ai.archive.export" {
+		return a.exportRequestArchive(payload)
+	}
+	if method == "ai.archive.read" {
+		var result json.RawMessage
+		if err := a.request("capture.ai.archive.read", json.RawMessage(payload), &result); err != nil {
+			return "", err
+		}
+		return string(result), nil
+	}
 	if method == "ai.usage.export" {
 		return a.exportUsage(payload)
 	}
@@ -536,7 +551,7 @@ func (a *App) PickFile() (string, error) {
 }
 func (a *App) DirectoryLinks(method, payload string) (string, error) {
 	switch method {
-	case "browse", "preview", "previewBatch", "create", "create.elevated", "createBatch", "createBatch.elevated", "list", "inspect", "inspectBatch", "scan", "scan.cancel", "remove", "forget", "forgetInvalid", "exportPlan", "menu.get", "menu.set", "reveal", "open", "pending":
+	case "browse", "preview", "previewBatch", "create", "create.elevated", "createBatch", "createBatch.elevated", "list", "inspect", "inspectBatch", "scan", "scan.cancel", "remove", "forget", "forgetInvalid", "exportPlan", "history.export", "history.preview", "history.import", "migration.preview", "migration.execute", "migration.status", "migration.cancel", "migration.recover", "migration.cleanup", "menu.get", "menu.set", "reveal", "open", "pending":
 	default:
 		return "", errors.New("不支持的目录链接操作")
 	}
@@ -569,6 +584,25 @@ func (a *App) Interconnect(method, payload string) (string, error) {
 	}
 	return string(result), nil
 }
+
+// TimedPower retains the restricted bridge for the legacy desktop.
+func (a *App) TimedPower(method, payload string) (string, error) {
+	switch method {
+	case "snapshot", "settings.get", "settings.save", "start", "cancel":
+	default:
+		return "", errors.New("不支持的定时关机操作")
+	}
+	var params any
+	if err := json.Unmarshal([]byte(payload), &params); err != nil {
+		return "", err
+	}
+	var result json.RawMessage
+	if err := a.request("timed-power."+method, params, &result); err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+
 func (a *App) Stroke(method, payload string) (string, error) {
 	switch method {
 	case "snapshot", "settings.get", "settings.save", "record.start", "record.read", "record.cancel", "inspect.target", "windows.list":

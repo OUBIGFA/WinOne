@@ -5,6 +5,8 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // ModelPrice uses the upstream USD-per-million-token units. A nil price means
@@ -26,6 +28,31 @@ type ModelPriceTier struct {
 	CacheWrite1h float64 `json:"cache_write_1h,omitempty"`
 }
 
+// Reasoning levels and service tiers are the vendor's own words. Magpie keeps
+// whatever a provider or plugin lists (light/balanced/deep on Our Free Model,
+// persistent on Codex) and checks a kept level against that model's list at
+// the worker, where the catalog is (provider.SetModelEfforts). The Host has no
+// catalog, so it only rejects what cannot be a level: empty, control text, a
+// colon (Magpie's "model:effort" member syntax) or an unbounded value. It must
+// not substitute a fixed ladder, which turned valid plugin levels into
+// "可用思考档位无效".
+func validVendorLevel(value string) bool {
+	return value != "" && strings.TrimSpace(value) == value && utf8.RuneCountInString(value) <= 64 &&
+		!strings.ContainsRune(value, ':') && strings.IndexFunc(value, unicode.IsControl) < 0
+}
+
+func validVendorLevels(values []string) bool {
+	if len(values) > 64 {
+		return false
+	}
+	for _, value := range values {
+		if !validVendorLevel(value) {
+			return false
+		}
+	}
+	return true
+}
+
 func (m ModelMetadata) validateExtended() error {
 	if len(m.Same) > 256 || len(m.UpstreamName) > 256 || strings.ContainsAny(m.Same+m.UpstreamName, "\x00\r\n") {
 		return errors.New("模型映射名称无效")
@@ -33,15 +60,11 @@ func (m ModelMetadata) validateExtended() error {
 	if !slices.Contains([]string{"", "chat", "responses", "anthropic", "gemini"}, m.API) {
 		return errors.New("模型协议无效")
 	}
-	for _, effort := range m.Efforts {
-		if !slices.Contains([]string{"none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"}, effort) {
-			return errors.New("可用思考档位无效")
-		}
+	if !validVendorLevels(m.Efforts) || !validVendorLevels(m.Levels) {
+		return errors.New("可用思考档位无效")
 	}
-	for _, tier := range m.Tiers {
-		if !slices.Contains([]string{"auto", "default", "flex", "priority", "ultrafast"}, tier) {
-			return errors.New("可用服务档位无效")
-		}
+	if !validVendorLevels(m.Tiers) {
+		return errors.New("可用服务档位无效")
 	}
 	if m.Price == nil {
 		return nil

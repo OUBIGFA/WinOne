@@ -25,7 +25,7 @@ import (
 
 // registerDirectoryLinks adds a nonresident tool; history is local machine
 // state, outside portable settings and the optional-module inventory.
-func registerDirectoryLinks(service *host.Service, dataDirectory string) error {
+func registerDirectoryLinks(service *host.Service, dataDirectory string, guards ...func() (func(), bool)) (func() error, error) {
 	m, err := directorylinks.New(filepath.Join(dataDirectory, "tools", "directory-links"))
 	if err != nil {
 		// A damaged tool history must remain visible without preventing the
@@ -36,11 +36,11 @@ func registerDirectoryLinks(service *host.Service, dataDirectory string) error {
 		}, func(r host.Request) host.Response {
 			return host.Response{ID: r.ID, Error: &host.RPCError{Code: "directory_links_history", Message: failure}}
 		})
-		return nil
+		return func() error { return nil }, nil
 	}
 	executable, err := os.Executable()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	authorize := func(pid uint32) error {
 		process, err := processidentity.Open(pid, filepath.Join(filepath.Dir(executable), "WinOne.exe"))
@@ -50,13 +50,21 @@ func registerDirectoryLinks(service *host.Service, dataDirectory string) error {
 		process.Close()
 		return nil
 	}
+	jobs := &directoryMigrationJobs{}
+	if len(guards) > 0 {
+		jobs.guard = guards[0]
+	}
 	service.RegisterModule("directory-links", func() host.Module {
 		return host.Module{ID: "directory-links", Name: "文件与目录链接", State: "ready"}
-	}, directoryLinksHandler(m, authorize))
-	return nil
+	}, directoryLinksHandler(m, authorize, jobs))
+	return jobs.Close, nil
 }
 
-func directoryLinksHandler(m *directorylinks.Manager, authorize func(uint32) error) func(host.Request) host.Response {
+func directoryLinksHandler(m *directorylinks.Manager, authorize func(uint32) error, registries ...*directoryMigrationJobs) func(host.Request) host.Response {
+	jobs := &directoryMigrationJobs{}
+	if len(registries) > 0 {
+		jobs = registries[0]
+	}
 	var mu sync.Mutex
 	owners := map[string]uint32{}
 	pendingPaths := []string{}
@@ -65,6 +73,12 @@ func directoryLinksHandler(m *directorylinks.Manager, authorize func(uint32) err
 	var scanCancel context.CancelFunc
 	var scanOwner uint32
 	var scanSequence uint64
+	// History previews have a distinct ownership table; a create token must
+	// never authorize an import (or consume an import in another window).
+	historyOwners := map[string]struct {
+		pid     uint32
+		expires time.Time
+	}{}
 	return func(request host.Request) host.Response {
 		fail := func(err error) host.Response {
 			return host.Response{ID: request.ID, Error: &host.RPCError{Code: "directory_links", Message: err.Error()}}
@@ -78,6 +92,9 @@ func directoryLinksHandler(m *directorylinks.Manager, authorize func(uint32) err
 			if err := authorize(request.PeerPID); err != nil {
 				return fail(err)
 			}
+		}
+		if strings.HasPrefix(request.Method, "migration.") {
+			return jobs.handle(m, request)
 		}
 		var result any
 		var err error
@@ -130,6 +147,62 @@ func directoryLinksHandler(m *directorylinks.Manager, authorize func(uint32) err
 				value["options"] = options
 			}
 			result = value
+		case "history.export":
+			var args struct {
+				IDs       []string `json:"ids"`
+				Directory string   `json:"directory"`
+			}
+			if err = configjson.DecodeObject(request.Params, &args); err != nil {
+				return fail(err)
+			}
+			var path string
+			path, err = m.ExportHistoryFile(args.IDs, args.Directory)
+			result = map[string]string{"path": path}
+		case "history.preview":
+			var args struct {
+				Path string `json:"path"`
+			}
+			if err = configjson.DecodeObject(request.Params, &args); err != nil {
+				return fail(err)
+			}
+			var preview directorylinks.HistoryImportPreview
+			preview, err = m.PreviewHistoryFile(ctx, args.Path)
+			if err == nil && preview.ID != "" {
+				mu.Lock()
+				for id, owner := range historyOwners {
+					if time.Now().After(owner.expires) {
+						delete(historyOwners, id)
+					}
+				}
+				expires, _ := time.Parse(time.RFC3339Nano, preview.ExpiresAt)
+				historyOwners[preview.ID] = struct {
+					pid     uint32
+					expires time.Time
+				}{request.PeerPID, expires}
+				mu.Unlock()
+			}
+			result = preview
+		case "history.import":
+			var args struct {
+				Token     string `json:"token"`
+				Confirmed bool   `json:"confirmed"`
+			}
+			if err = configjson.DecodeObject(request.Params, &args); err != nil {
+				return fail(err)
+			}
+			if !args.Confirmed {
+				return fail(errors.New("请确认导入预览中的本机链接记录"))
+			}
+			mu.Lock()
+			owner, ok := historyOwners[args.Token]
+			if ok && owner.pid == request.PeerPID {
+				delete(historyOwners, args.Token)
+			}
+			mu.Unlock()
+			if !ok || owner.pid != request.PeerPID {
+				return fail(errors.New("导入预览属于另一窗口或已使用，请重新预览"))
+			}
+			result, err = m.ImportHistory(ctx, args.Token)
 		case "list":
 			result = m.List()
 		case "browse":

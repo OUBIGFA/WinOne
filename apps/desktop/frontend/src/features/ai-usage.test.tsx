@@ -4,12 +4,35 @@ import {act,cleanup,fireEvent,render,screen,waitFor,within} from "@testing-libra
 import userEvent from "@testing-library/user-event";
 import {AIUsage} from "./ai-usage";
 
+it("opens archived request bodies on demand, retries failures and reports only completed exports",async()=>{
+ const archive='2026-10-26/101010-00000000000000aa';let reads=0,exports=0;
+ call.mockImplementation(async(method)=>{
+  if(method==='ai.archive.read'){if(++reads===1)throw Error('归档读取失败');return {id:archive,bytes:20,request:{body:'request fixture',headers:{},size:15},response:{body:'reply fixture',headers:{},size:13}};}
+  if(method==='ai.archive.export'){if(++exports===3)throw Error('归档保存失败');return exports===1?{state:'cancelled'}:{state:'saved',path:'archive.json'};}
+  return {...empty,rows:[{archive,t:'2026-10-26T00:00:00Z',provider:'one',agent:'winone',model:'fixture',in:3,out:2,ms:1,status:200,priced:false,cost:0}]};
+ });
+ const user=userEvent.setup();render(<AIUsage active providers={[]}/>);
+ await user.click(screen.getByRole('tab',{name:'请求明细'}));
+ const table=await screen.findByRole('table');await user.click(within(table).getByRole('button'));
+ expect(reads).toBe(0);
+ await user.click(screen.getByRole('button',{name:'查看请求归档'}));await screen.findByText(/归档读取失败/);
+ await user.click(screen.getByRole('button',{name:'重试'}));await screen.findByText('request fixture');
+ expect(screen.getByText('reply fixture')).toBeTruthy();
+ await user.click(screen.getByRole('button',{name:'导出归档 JSON'}));expect(screen.queryByText('archive.json')).toBeNull();
+ await user.click(screen.getByRole('button',{name:'导出归档 JSON'}));await screen.findByText('archive.json');
+ expect(call).toHaveBeenLastCalledWith('ai.archive.export',{archive});
+ await user.click(screen.getByRole('button',{name:'导出归档 JSON'}));await screen.findByText(/归档保存失败/);
+ await user.click(screen.getByRole('button',{name:'重试'}));await screen.findByText('archive.json');expect(reads).toBe(2);expect(exports).toBe(4);
+});
+
 it("filters requests by gateway key, including calls made without a key",async()=>{
  call.mockResolvedValue({...empty,callerKeys:[{id:'public-hash',callerKeyId:'public-hash',callerKeyName:'Fixture gateway'}]});
  const user=userEvent.setup();render(<AIUsage active providers={[]}/>);
  await user.click(screen.getByRole('tab',{name:'请求明细'}));
  await user.click(await screen.findByRole('combobox',{name:'网关密钥'}));
- await user.click(screen.getByRole('option',{name:'Fixture gateway'}));
+ // Options mount after the popup's deferred transition, including under
+ // whole-suite load; wait for the option rather than sampling mid-transition.
+ await user.click(await screen.findByRole('option',{name:'Fixture gateway'}));
  await waitFor(()=>expect(call).toHaveBeenLastCalledWith('ai.usage.get',expect.objectContaining({callerKey:'public-hash',offset:0})));
  // Wait for the popup to return focus before opening it again. An immediate
  // second click races Base UI's deferred focus restoration in jsdom.

@@ -9,6 +9,7 @@ import {BUILTIN_TEMPLATES,TEMPLATE_CATEGORIES} from '../../third_party/cindy/sch
 import {applyTemplateParams} from '../../third_party/cindy/scheduler/engine/template.ts';
 import enTemplates from '../../third_party/cindy/scheduler/en-templates.json' with {type:'json'};
 import {createProjectAutomations} from './scheduler-projects.mjs';
+import {generateHookScript} from './cindy/scheduler-host/hook-script-generator.ts';
 
 function localizedTemplate(template,language){
  const translation=language?.startsWith('en')&&template.source==='builtin'?enTemplates.items[template.id]:undefined;
@@ -18,6 +19,8 @@ function localizedTemplate(template,language){
 const clearedFields=new Set(['fastMode','effort','modelAgentKind','intervalMs','model','providerId','targetSessionId','workingDir','onceAt','scriptConfig','preRunHook']);
 function normalized(input,now,current){
  const patch={...input};for(const key of clearedFields)if(patch[key]===null)patch[key]=undefined;
+ if(patch.agentDeviceId!==undefined&&patch.agentDeviceId!==null&&patch.agentDeviceId!=='')throw Error('Automations run on this computer only.');
+ if(Object.hasOwn(patch,'agentDeviceId'))patch.agentDeviceId=undefined;
  const value={...current,...patch};
  if(typeof value.name!=='string'||!value.name.trim()||value.name.length>160)throw Error('Enter an automation name within 160 characters.');
  if(value.agentKind!=='pi'||value.modelAgentKind&&value.modelAgentKind!=='pi')throw Error('WinOne automations use the configured Pi agent.');
@@ -37,7 +40,7 @@ function normalized(input,now,current){
  return patch;
 }
 
-export async function createAutomationRuntime({directory,projectDirectories=[],dispatch,notify=async()=>{},event=()=>{},clock={now:()=>Date.now()},passive=false,validateTarget=async()=>{}}){
+export async function createAutomationRuntime({directory,projectDirectories=[],dispatch,notify=async()=>{},event=()=>{},clock={now:()=>Date.now()},passive=false,validateTarget=async()=>{},text=async()=>({ok:false,reason:'no_candidate',attempts:[]}),hookSelfTest=async()=>{throw Error('Pre-run check test is unavailable.');}}){
  if(!path.isAbsolute(directory))throw Error('Absolute automation storage directory is required.');
  await fs.mkdir(directory,{recursive:true});
  const storage=new ScheduleStore(path.join(directory,'automations.db'));
@@ -66,7 +69,14 @@ export async function createAutomationRuntime({directory,projectDirectories=[],d
   })()).catch(error=>logger.error('Notification result could not be saved',String(error)));
  });
  storage.db.exec('CREATE TABLE IF NOT EXISTS automation_templates(id TEXT PRIMARY KEY,data TEXT NOT NULL)');
- const projects=createProjectAutomations({scheduler,storage,normalize:value=>normalized(value,clock.now())});
+ const projects=createProjectAutomations({scheduler,storage,normalize:value=>normalized(value,clock.now()),event});
+ // Schedules saved before Cindy's permission-free form ran fresh conversations
+ // with "ask". Record that explicitly so the new full-access default for new
+ // automations never changes an existing task. Bound tasks keep inheriting.
+ if(!storage.hasMigration('legacy-permission-ask')){
+  for(const schedule of await storage.list())if(schedule.permissionMode===undefined&&!schedule.targetSessionId&&schedule.source!=='bot')await storage.update(schedule.id,{permissionMode:'ask'});
+  storage.completeMigration('legacy-permission-ask');
+ }
  for(const workingDir of new Set([...projectDirectories,...(await storage.list()).filter(value=>value.source==='project'&&value.workingDir).map(value=>value.workingDir)])){try{await projects.reconcile(workingDir);}catch(error){logger.warn('Project automation configuration needs attention',String(error));}}
  await storage.recoverAbandonedClaims(clock.now());
  // One-time calendar choices must not turn into a fresh full interval after
@@ -103,7 +113,7 @@ export async function createAutomationRuntime({directory,projectDirectories=[],d
     if(method==='project.clone')return projects.clone(schedule);
     return projects.remove(schedule,true);
    }
-   case 'templates':return {categories:TEMPLATE_CATEGORIES.map(category=>params.language?.startsWith('en')?{...category,name:enTemplates.categories[category.id]??category.name}:category),templates:[...BUILTIN_TEMPLATES.map(template=>localizedTemplate(template,params.language)),...storage.db.query('SELECT data FROM automation_templates').all().map(row=>JSON.parse(row.data))]};
+   case 'templates':return {categories:TEMPLATE_CATEGORIES.map(category=>params.language?.startsWith('en')?{...category,name:enTemplates.categories[category.id]??category.name}:category),templates:[...BUILTIN_TEMPLATES.map(template=>({...localizedTemplate(template,params.language),agentKind:'pi'})),...storage.db.query('SELECT data FROM automation_templates').all().map(row=>({...JSON.parse(row.data),agentKind:'pi'}))]};
    case 'template.save':{
     const input=params.template;if(!input||typeof input.name!=='string'||!input.name.trim()||typeof input.prompt!=='string')throw Error('Template name and prompt are required.');
     const value={...input,id:params.id??randomUUID(),source:'user'};if(BUILTIN_TEMPLATES.some(template=>template.id===value.id))throw Error('Built-in templates cannot be overwritten.');
@@ -114,7 +124,8 @@ export async function createAutomationRuntime({directory,projectDirectories=[],d
     const template=BUILTIN_TEMPLATES.find(template=>template.id===params.id)??JSON.parse(storage.db.query('SELECT data FROM automation_templates WHERE id=?').get(params.id)?.data??'null');if(!template)throw Error('Template no longer exists.');
     const localized=localizedTemplate(template,params.language);return {...localized,prompt:applyTemplateParams(localized.prompt,params.parameters??{},localized.parameters)};
    }
-   case 'list':return Promise.all((await scheduler.list(params.filter)).map(withCounts));
+   // Bot routines have their own lifecycle; the general list never shows them.
+   case 'list':return Promise.all((await scheduler.list(params.filter)).filter(schedule=>schedule.source!=='bot').map(withCounts));
    case 'get':return withCounts(await scheduler.get(params.id));
    case 'create':return withCounts(await scheduler.create(normalized(params.input,clock.now())));
    case 'update':{
@@ -148,7 +159,20 @@ export async function createAutomationRuntime({directory,projectDirectories=[],d
    case 'runs':return storage.listRuns(params.id,params.limit,params.before,params.beforeId);
    case 'deleteRun':await scheduler.deleteRun(params.runId);return {deleted:true};
    case 'markRead':{
-    const run=await storage.updateRun(params.runId,{readAt:clock.now()});if(!run)throw Error('Run no longer exists.');event({type:'changed',scheduleId:run.scheduleId});return run;
+    const run=await storage.updateRun(params.runId,{readAt:clock.now()});if(!run)throw Error('Run no longer exists.');event({type:'changed',scheduleId:run.scheduleId});event({type:'read',scheduleId:run.scheduleId});return run;
+   }
+   case 'markAllRead':{const changed=await storage.markAllRead(clock.now());if(changed)event({type:'all-read'});return changed;}
+   case 'sidebarIndexRuns':return {runs:await storage.sidebarIndexRuns(),inflightRunIds:scheduler.listInflightRunIds(),inflightPolicies:scheduler.listInflightRunPolicies()};
+   case 'inflightCount':return scheduler.getInflightCount(params.id);
+   case 'project.upsertSchedule':return projects.upsertConfig(params.workingDir,params.config);
+   case 'project.removeSchedule':return projects.removeConfig(params.workingDir,params.id);
+   case 'hook.generate':{
+    // Cindy installHookScript: write the generated check, then self-test it.
+    // The model call and the test run through the Host (AI services, Job).
+    let written;
+    try{written=await generateHookScript({maker:null,fallbackDir:path.join(directory,'schedule-checks'),hasSystemNode:async()=>false,requestText:async(_maker,prompt,options)=>text({prompt,providerId:params.providerId??options.providerId,model:params.model??options.model,timeoutMs:options.timeoutMs})},{description:params.description,scheduleName:params.scheduleName,workingDir:params.workingDir,currentCommand:params.currentCommand,providerId:params.providerId,model:params.model});}
+    catch(error){if(error?.failure)return error.failure;throw error;}
+    return {ok:true,...written,test:await hookSelfTest({command:written.command,workingDir:params.workingDir,targetSessionId:params.targetSessionId,scheduleName:params.scheduleName})};
    }
    case 'runtime':return scheduler.getRuntimeSnapshot();
    case 'preview':return {nextFireAt:nextCronOrMonthlyFire(params.cronExpr,params.from??clock.now(),params.timezone),description:cronToHuman(params.cronExpr)};
@@ -167,5 +191,28 @@ export async function createAutomationRuntime({directory,projectDirectories=[],d
    default:throw Error('Unsupported automation action.');
   }
  };
- return {call,async settled(){await Promise.allSettled([...pending]);},async close(){closed=true;if(recoveryTimer)clearInterval(recoveryTimer);await recovery;await scheduler.stop();await Promise.allSettled([...pending]);storage.close();}};
+ // Private composition API for OneBot's original RoutineEngine. It cannot be
+ // reached through `call`; user automations cannot rewrite host-owned rules.
+ const routines={
+  async execute(schedule,{signal,canDispatch}){
+   if(closed||signal.aborted)throw new DOMException('aborted','AbortError');
+   const existing=await storage.get(schedule.id);
+   if(existing)await storage.update(schedule.id,{...schedule,createdAt:existing.createdAt});
+   else await storage.insert(schedule);
+   if(signal.aborted)throw new DOMException('aborted','AbortError');
+   let cancellation;
+   const abort=()=>{cancellation=scheduler.pause(schedule.id,{internalRoutine:true});};
+   signal.addEventListener('abort',abort,{once:true});
+   try{
+    const result=await scheduler.runNow(schedule.id,{deferToCaller:true,internalRoutine:true,canDispatch});
+    if(result.deferred)return {deferred:true};
+    const completed=(await storage.listRuns(schedule.id,10)).find(row=>row.id===result.runId);
+    if(!completed)throw Error('Routine execution record is missing');
+    return {scheduleRunId:result.runId,resultText:completed.resultText,skipped:completed.status==='skipped',
+     ...(['success','skipped'].includes(completed.status)?{}:{error:completed.errorMsg??'Routine execution did not complete'})};
+   }finally{signal.removeEventListener('abort',abort);await cancellation;}
+  },
+  async remove(id){if(await storage.get(id))await scheduler.delete(id,{internalRoutine:true});},
+ };
+ return {call,routines,async settled(){await Promise.allSettled([...pending]);},async close(){closed=true;if(recoveryTimer)clearInterval(recoveryTimer);await recovery;await scheduler.stop();await Promise.allSettled([...pending]);storage.close();}};
 }

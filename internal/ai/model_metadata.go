@@ -14,6 +14,10 @@ type ModelMetadata struct {
 	Same         string      `json:"same,omitempty"`
 	UpstreamName string      `json:"upstreamName,omitempty"`
 	API          string      `json:"api,omitempty"`
+	// Levels are the reasoning levels the vendor reports for the model, kept
+	// apart from Efforts (the ones the user offers) so narrowing the offer
+	// never loses a level from the choices. Both use the vendor's own words.
+	Levels       []string    `json:"levels,omitempty"`
 	Efforts      []string    `json:"efforts,omitempty"`
 	Tiers        []string    `json:"tiers,omitempty"`
 	Price        *ModelPrice `json:"price,omitempty"`
@@ -34,6 +38,7 @@ type ModelMetadata struct {
 }
 
 func (m ModelMetadata) clone() ModelMetadata {
+	m.Levels = slices.Clone(m.Levels)
 	m.Efforts = slices.Clone(m.Efforts)
 	m.Tiers = slices.Clone(m.Tiers)
 	if m.Price != nil {
@@ -82,10 +87,12 @@ func validateModelMetadata(m ModelMetadata) error {
 	if m.ContextWindow > 0 && m.MaxTokens > m.ContextWindow {
 		return errors.New("最大输出不能超过上下文窗口")
 	}
-	if !slices.Contains([]string{"", "none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"}, m.ReasoningEffort) {
+	// The default level and tier are the vendor's words too; Magpie fits the
+	// requested level to the model's own list when it sends the request.
+	if m.ReasoningEffort != "" && !validVendorLevel(m.ReasoningEffort) {
 		return errors.New("模型思考档位无效")
 	}
-	if !slices.Contains([]string{"", "auto", "default", "flex", "priority", "ultrafast"}, m.Tier) {
+	if m.Tier != "" && !validVendorLevel(m.Tier) {
 		return errors.New("模型服务档位无效")
 	}
 	return nil

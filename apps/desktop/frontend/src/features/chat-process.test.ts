@@ -1,6 +1,16 @@
 import {expect,it} from "vitest";
 import {projectChatProcess} from "./chat-process";
 
+it('keeps native completion inputs out of user bubbles without hiding the reply',()=>{
+ const items=projectChatProcess([
+  {id:'owner',role:'user',content:'Do the task'},
+  {id:'wake',turnId:'wake',role:'user',hiddenInput:true,content:'Internal task completion'},
+  {id:'result',turnId:'wake',role:'assistant',content:'Task result'},
+ ],[],false);
+ expect(items.filter(item=>item.kind==='user').map(item=>item.message.id)).toEqual(['owner']);
+ expect(items.find(item=>item.kind==='response'&&item.key==='wake')).toMatchObject({answer:{content:'Task result'}});
+});
+
 it("groups thinking, working text and tool results while keeping the final answer outside",()=>{
  const items=projectChatProcess([
   {id:"user",role:"user",content:"Create a file",timestamp:1},

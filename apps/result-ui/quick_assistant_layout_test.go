@@ -24,15 +24,24 @@ func TestQuickAssistantChatActionsAndLayouts(t *testing.T) {
 			p.Actions.Send = func(text string) { sent = text }
 			p.Actions.Quick = func(a resultwindow.SelectionAction) { inputs = append(inputs, a.ID+":"+p.Prompt) }
 			tt := ui.NewTester(p.View, 520, 600)
-			bar, ok := tt.Find(p.T("快捷功能", "Quick actions"))
-			if !ok {
-				t.Fatal("quick action region missing")
+			assertCentered := func() {
+				t.Helper()
+				bar, ok := tt.Find(p.T("快捷功能", "Quick actions"))
+				if !ok {
+					t.Fatal("quick action region missing")
+				}
+				first, _ := tt.Find(p.T("翻译", "Translate"))
+				last, _ := tt.Find(p.T("代码", "Code"))
+				if math.Abs(float64(first.Y+first.H/2-bar.Y-bar.H/2)) > 1 || math.Abs(float64((first.X+last.X+last.W)/2-bar.X-bar.W/2)) > 1 {
+					t.Fatalf("actions not centered in region: region=%+v first=%+v last=%+v", bar, first, last)
+				}
+				inputBox, ok := tt.Find(p.T("消息输入框", "Message input box"))
+				divider, dividerOK := tt.Find("Divider")
+				if !ok || !dividerOK || math.Abs(float64(first.Y+first.H/2-(divider.Y+divider.H+inputBox.Y)/2)) > 1 {
+					t.Fatalf("quick icons must be centered between the divider and input border: divider=%+v input=%+v icon=%+v", divider, inputBox, first)
+				}
 			}
-			first, _ := tt.Find(p.T("翻译", "Translate"))
-			last, _ := tt.Find(p.T("代码", "Code"))
-			if math.Abs(float64(first.Y+first.H/2-bar.Y-bar.H/2)) > 1 || math.Abs(float64((first.X+last.X+last.W)/2-bar.X-bar.W/2)) > 1 {
-				t.Fatalf("actions not centered in region: region=%+v first=%+v last=%+v", bar, first, last)
-			}
+			assertCentered()
 			if _, ok := tt.Find(p.T("复制", "Copy")); ok {
 				t.Fatal("quick toolbar must not contain Copy")
 			}
@@ -88,6 +97,7 @@ func TestQuickAssistantChatActionsAndLayouts(t *testing.T) {
 			for _, size := range [][2]int{{320, 300}, {520, 600}, {1000, 700}} {
 				tt.SetSize(size[0], size[1])
 				tt.Frame()
+				assertCentered()
 				for _, label := range []string{p.T("输入消息", "Message"), p.T("发送", "Send"), p.T("翻译", "Translate"), p.T("切换供应商和模型", "Change provider and model")} {
 					box, ok := tt.Find(label)
 					if !ok || box.X < 0 || box.Y < 0 || box.X+box.W > float32(size[0])+1 || box.Y+box.H > float32(size[1])+1 {

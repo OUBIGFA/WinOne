@@ -320,6 +320,48 @@ func TestKeyCooldownAndEditingAKeyDoNotShareFailureState(t *testing.T) {
 	}
 }
 
+func TestProviderLimitRestOffKeepsLimitsRetryableButPreservesOtherCooldowns(t *testing.T) {
+	for _, off := range []bool{false, true} {
+		for _, failure := range []*AttemptFailure{{Status: 429}, {Status: 403, Limited: true}, {Status: 503}} {
+			t.Run(fmt.Sprintf("off=%t/status=%d", off, failure.Status), func(t *testing.T) {
+				s, _ := multiKeyStore(t)
+				c := s.Configuration()
+				c.Providers[0].LimitRestOff = off
+				c.Providers[0].KeyPolicy = &KeyPolicy{Strategy: "ordered", Failover: true, MaxAttempts: 3, CooldownSeconds: 60}
+				if _, err := s.SaveConfiguration(c, nil); err != nil {
+					t.Fatal(err)
+				}
+				for round := 0; round < 2; round++ {
+					_, plan, err := s.ForTaskKeys("chat", nil)
+					if err != nil {
+						t.Fatal(err)
+					}
+					var seen []string
+					err = s.WithKeys(context.Background(), plan, func(_ context.Context, key string) (bool, error) {
+						seen = append(seen, key)
+						if round == 0 && key == "fixture-first-secret" {
+							return false, failure
+						}
+						return false, nil
+					})
+					if err != nil {
+						t.Fatal(err)
+					}
+					if round == 1 {
+						want := "fixture-second-secret"
+						if off && (failure.Status == 429 || failure.Limited) {
+							want = "fixture-first-secret"
+						}
+						if len(seen) != 1 || seen[0] != want {
+							t.Fatalf("manual retry=%v, want %s", seen, want)
+						}
+					}
+				}
+			})
+		}
+	}
+}
+
 func TestKeyFailoverStopsAfterOutputBadRequestOrCancellation(t *testing.T) {
 	for _, test := range []struct {
 		name    string

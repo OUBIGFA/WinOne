@@ -37,6 +37,8 @@ if (-not $SkipInstall) { & npm.cmd ci --prefix apps/desktop/frontend --no-audit 
 # it must never be the first time a missing external license is discovered.
 & node (Join-Path $PSScriptRoot 'verify-frontend-notices.mjs'); CheckExit
 & node (Join-Path $PSScriptRoot 'verify-import-notices.mjs'); CheckExit
+& node (Join-Path $PSScriptRoot 'sync-cindy.mjs') --spec (Join-Path $root 'third_party/cindy/onebot-renderer.sync.json') --check; CheckExit
+& node --test (Join-Path $root 'tests/notices/cindy-binary.test.mjs'); CheckExit
 & (Join-Path $PSScriptRoot 'build-provider-icons.ps1') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $DiagramTargetDirectory -WorkDirectory (Join-Path (Split-Path -Parent $output) 'provider-icons'); CheckExit
 # Keep the UI suite within a fixed worker budget; unconstrained forks can
 # contend with native compiler workers and time out before tests even start.
@@ -123,31 +125,6 @@ if($DesktopImplementation -eq 'Rust'){
 }else{
     & $GoExe build -trimpath -tags desktop,production -ldflags "-H windowsgui -X main.updateRepository=$UpdateRepository -X main.updateVersion=$buildVersion" -o (Join-Path $output 'WinOne.exe') ./apps/desktop; CheckExit
 }
-$previousHost = $env:WINONE_HOST_EXE
-$previousCapture = $env:WINONE_CAPTURE_EXE
-$previousProbeBundle = $env:WINONE_PROBE_BUNDLE
-$previousDesktopProbe = $env:WINONE_DESKTOP_PROBE_EXE
-$previousNativeHotkey = $env:WINONE_NATIVE_HOTKEY_TEST
-try {
-    $env:WINONE_HOST_EXE = Join-Path $output 'WinOne.Host.exe'
-    $env:WINONE_CAPTURE_EXE = Join-Path $output 'capture/WinOne.Capture.exe'
-    if ($RunStartupProbes) { $env:WINONE_PROBE_BUNDLE = $output; $env:WINONE_DESKTOP_PROBE_EXE = Join-Path $output 'WinOne.exe'; $env:WINONE_NATIVE_HOTKEY_TEST='1' }
-    & $GoExe test ./internal/startupprobe -count=1; CheckExit
-    & $GoExe test ./apps/host -run '^TestNativeConfigurationProbe$|^TestNativeRecordingReleasesAndRestoresRegistration$' -count=1; CheckExit
-    & $GoExe test ./tests/integration -count=1; CheckExit
-} finally { $env:WINONE_HOST_EXE = $previousHost; $env:WINONE_CAPTURE_EXE = $previousCapture; $env:WINONE_PROBE_BUNDLE = $previousProbeBundle; $env:WINONE_DESKTOP_PROBE_EXE = $previousDesktopProbe; $env:WINONE_NATIVE_HOTKEY_TEST=$previousNativeHotkey }
-$currentVersion = (Get-Content -LiteralPath (Join-Path $root 'apps/desktop/frontend/package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
-if ($currentVersion -ne $buildVersion) { throw 'Version changed during build; rebuild before packaging' }
-& node (Join-Path $root 'tests/notices/frontend.test.mjs'); CheckExit
-& (Join-Path $PSScriptRoot 'verify-notices.ps1') -GoExe $GoExe -BundleDirectory $output
-& (Join-Path $PSScriptRoot 'verify-ocr-ai-notices.ps1') -GoExe $GoExe -BundleDirectory $output
-& (Join-Path $PSScriptRoot 'verify-result-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output
-& (Join-Path $PSScriptRoot 'verify-interconnect-transfer-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output
-& (Join-Path $PSScriptRoot 'verify-interconnect-transfer-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output -Runtime peer
-& (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output
-& (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime selection
-& (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime recording
-& (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime search
-if($DesktopImplementation -eq 'Rust') { & (Join-Path $PSScriptRoot 'verify-rust-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output }
-& $GoExe run ./build/package --record-build --bundle $output --license (Join-Path $root 'LICENSE') --version $buildVersion; CheckExit
-Write-Output "Build verified: $output/WinOne.exe"
+# Keep these gates reusable after an interrupted native verification; do not
+# rebuild already-verified compilers/modules merely to rerun the final checks.
+& (Join-Path $PSScriptRoot 'verify-built-bundle.ps1') -BundleDirectory $output -Version $buildVersion -GoExe $GoExe -ResultGoExe $ResultGoExe -CargoExe $CargoExe -DesktopImplementation $DesktopImplementation -RunStartupProbes:$RunStartupProbes

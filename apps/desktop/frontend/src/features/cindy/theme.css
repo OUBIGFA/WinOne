@@ -1,7 +1,7 @@
 /* Cindy component tokens mapped to WinOne's shared design system. */
 @layer base { :where(.cindy-chat-ui) { font-family:inherit; color:var(--foreground); font-size:14px; } }
 .cindy-chat-ui, .cindy-panel-popup{
- --surface:var(--chat-page-bg,var(--background));--surface-elevated:var(--chat-raised-bg,var(--popover));--surface-elevated-soft:var(--muted);--surface-chip:var(--muted);--surface-chip-alt:var(--muted);--surface-hover:var(--accent);--panel-bg:var(--chat-page-bg,var(--background));
+ --surface:var(--chat-page-bg,var(--background));--surface-elevated:var(--chat-raised-bg,var(--popover));--surface-elevated-soft:var(--muted);--surface-card-ivory:var(--popover);--surface-chip:var(--muted);--surface-chip-alt:var(--muted);--surface-hover:var(--accent);--panel-bg:var(--chat-page-bg,var(--background));
  --text-primary-body-strong:var(--foreground);--text-primary-emphasis:var(--foreground);--text-secondary:var(--muted-foreground);--text-secondary-mid:var(--muted-foreground);--text-tertiary:var(--muted-foreground);--text-placeholder:var(--muted-foreground);
  --tooltip-bg:#2b2b2b;--tooltip-text:#ffffff;--confirm-bg:var(--popover);--confirm-title:var(--foreground);
  --msg-user-bg:var(--muted);--msg-user-text:var(--foreground);--msg-user-border:var(--border);

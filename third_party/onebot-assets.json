@@ -1,0 +1,1145 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/ad-spend-watch/0.5.1/assets/avatar.webp",
+      "target": "bot-packages/ad-spend-watch/0.5.1/assets/avatar.webp",
+      "sha256": "ddc3bb04bf0fd04bf2712b601aaef6bcbacd6e6117fbd1239d6fda53a60098a9"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/ad-spend-watch/0.5.1/knowledge/method.md",
+      "target": "bot-packages/ad-spend-watch/0.5.1/knowledge/method.md",
+      "sha256": "d53519408f665393a63408baee663fdee4afa1c410306b5749356dd1b8150790"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/ad-spend-watch/0.5.1/manifest.json",
+      "target": "bot-packages/ad-spend-watch/0.5.1/manifest.json",
+      "sha256": "0b7dd40963402dafa3368dac552ea1c78daa5442fb35a214d82449a5b34e9738"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-evidence/scripts/spend_ledger.py",
+      "target": "bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-evidence/scripts/spend_ledger.py",
+      "sha256": "06e99f7de144792cbd59c00323ce950ce5301201346c80d582f08a665debaeef"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-evidence/SKILL.md",
+      "target": "bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-evidence/SKILL.md",
+      "sha256": "4c79c2b6a3b5ed9815913e647e8b3f822a8c772899016dc5671e8b23a5c03275"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-evidence/templates/contract.md",
+      "target": "bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-evidence/templates/contract.md",
+      "sha256": "f421e444b4a1c21e441bbab4cc1e6e581e9f82d21b89b744c014318c34fe6452"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-evidence/templates/input.json",
+      "target": "bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-evidence/templates/input.json",
+      "sha256": "2984437d933dd13a9a5858f758757a8e699478fba1e4111ec7865f9f60424c80"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-getting-started/SKILL.md",
+      "target": "bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-getting-started/SKILL.md",
+      "sha256": "c4c1e935ba90f2e4a1698d5ac12e754d09ca163fc183dc4a35e89db967e755c2"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-ops/SKILL.md",
+      "target": "bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-ops/SKILL.md",
+      "sha256": "7c1359a01948c75f7b06b8570f090b17b48255290d609a968ce880f349ddb0b3"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-ops/templates/delivery.md",
+      "target": "bot-packages/ad-spend-watch/0.5.1/skills/ad-spend-watch-ops/templates/delivery.md",
+      "sha256": "58969ff887260a364002bb0409f8cfe27e5a633150d24e3fa83b2b787ae5bba7"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/apple-search-ads-review/0.5.1/assets/avatar.webp",
+      "target": "bot-packages/apple-search-ads-review/0.5.1/assets/avatar.webp",
+      "sha256": "5a52ba83e04742cf76bf81d23afd60c9744d39a12834049892f070554d2282fa"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/apple-search-ads-review/0.5.1/knowledge/method.md",
+      "target": "bot-packages/apple-search-ads-review/0.5.1/knowledge/method.md",
+      "sha256": "d5e770cccc63ee601882fee6d86d43371f0ba5ea8b0e95f2c081daf2475d93f9"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/apple-search-ads-review/0.5.1/manifest.json",
+      "target": "bot-packages/apple-search-ads-review/0.5.1/manifest.json",
+      "sha256": "b1428ff85f915d1bdf3e7ee02ee20e9d5c6ab228df794c52e9700e614e7dda2d"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-evidence/scripts/asa_terms.py",
+      "target": "bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-evidence/scripts/asa_terms.py",
+      "sha256": "de3120b4973ad44a43a1780c79ebd424bd56222f7bac0223ef656c5e3f1a4d5c"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-evidence/SKILL.md",
+      "target": "bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-evidence/SKILL.md",
+      "sha256": "c3d329e30aef7c6eb37334d5daafb6dc9bbd7978add9a667807585a26b21bc63"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-evidence/templates/contract.md",
+      "target": "bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-evidence/templates/contract.md",
+      "sha256": "a38cb7031dbf3f0936b7258756459b2fd6db6c46a345e9eaa7974a2e77f70fa7"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-evidence/templates/input.json",
+      "target": "bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-evidence/templates/input.json",
+      "sha256": "5af624a223f94fa06882df3fd5be57d9bf725a678aa2116dcb02553f71dcb7c6"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-getting-started/SKILL.md",
+      "target": "bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-getting-started/SKILL.md",
+      "sha256": "d07ca9a14bf90f4e12b1af319cf69423ec4361e9482196b732e7c65c58e6c0a6"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-ops/SKILL.md",
+      "target": "bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-ops/SKILL.md",
+      "sha256": "2d784d80dc20d8f36cc49c3f065b29d9c4b3bbe388444c9eae6c945727cd9ffd"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-ops/templates/delivery.md",
+      "target": "bot-packages/apple-search-ads-review/0.5.1/skills/apple-search-ads-review-ops/templates/delivery.md",
+      "sha256": "ce4f9672eda4d7908417c6383797d45dddb2c9ae8057fe1d3d1ee1b66202507d"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/cooper/0.5.1/assets/avatar.webp",
+      "target": "bot-packages/cooper/0.5.1/assets/avatar.webp",
+      "sha256": "bc46d3c28d17102636eac416468edb2e60316fa02e97030afa11a218f62f7d4c"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/cooper/0.5.1/knowledge/method.md",
+      "target": "bot-packages/cooper/0.5.1/knowledge/method.md",
+      "sha256": "7c6fd4a2b1a904f17a98bd6d0a154d42866785cb30f34014dc0db9112c11617b"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/cooper/0.5.1/manifest.json",
+      "target": "bot-packages/cooper/0.5.1/manifest.json",
+      "sha256": "4291e0a060354d60f609193ea683335b8daa264738764f43ba4f8766cced44d3"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/cooper/0.5.1/skills/cooper-evidence/scripts/source_dedup.py",
+      "target": "bot-packages/cooper/0.5.1/skills/cooper-evidence/scripts/source_dedup.py",
+      "sha256": "1dad8363d86489646c69f1ab51071e4119b85478efdb639164e331736d9ae3c0"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/cooper/0.5.1/skills/cooper-evidence/SKILL.md",
+      "target": "bot-packages/cooper/0.5.1/skills/cooper-evidence/SKILL.md",
+      "sha256": "fd473d831b59b94043220c25beeebe73921787c8a2597697d85a72358c406998"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/cooper/0.5.1/skills/cooper-evidence/templates/contract.md",
+      "target": "bot-packages/cooper/0.5.1/skills/cooper-evidence/templates/contract.md",
+      "sha256": "1b72076f9455125cf094745caf8d7567a321ebc09ea655e73f27adeb866bec11"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/cooper/0.5.1/skills/cooper-evidence/templates/input.json",
+      "target": "bot-packages/cooper/0.5.1/skills/cooper-evidence/templates/input.json",
+      "sha256": "aa61fbf1027aefd39f50efcd717761f9d21fdcf640539def1b4031f29c4c94aa"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/cooper/0.5.1/skills/cooper-getting-started/SKILL.md",
+      "target": "bot-packages/cooper/0.5.1/skills/cooper-getting-started/SKILL.md",
+      "sha256": "db9c9235b07f6134c0d834a01b7d8d825768d8de30de68d276bb29115f379df9"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/cooper/0.5.1/skills/cooper-ops/SKILL.md",
+      "target": "bot-packages/cooper/0.5.1/skills/cooper-ops/SKILL.md",
+      "sha256": "8f82942214dda7d6ef6c43c6093a4ca9a0287e4023244ac5b977f861345e6d56"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/cooper/0.5.1/skills/cooper-ops/templates/delivery.md",
+      "target": "bot-packages/cooper/0.5.1/skills/cooper-ops/templates/delivery.md",
+      "sha256": "e2885098dc0d1f65112ee0847764f0d77b5dc0c07e0578862351db258fa1ecd7"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/engineer-bot/0.5.1/assets/avatar.webp",
+      "target": "bot-packages/engineer-bot/0.5.1/assets/avatar.webp",
+      "sha256": "06a8b9d38be201ef49e004d58432093630ae3cfa43e57b770aca2fdabef64b61"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/engineer-bot/0.5.1/knowledge/method.md",
+      "target": "bot-packages/engineer-bot/0.5.1/knowledge/method.md",
+      "sha256": "055283ac244be30479dab12c31573bb9c18db956b99bb756300739b984e8899b"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/engineer-bot/0.5.1/manifest.json",
+      "target": "bot-packages/engineer-bot/0.5.1/manifest.json",
+      "sha256": "ff6226984a7c94b5d03fde3c5b68994564ca2040629b03a711b45055936084a9"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/engineer-bot/0.5.1/skills/engineer-bot-evidence/scripts/evidence_check.py",
+      "target": "bot-packages/engineer-bot/0.5.1/skills/engineer-bot-evidence/scripts/evidence_check.py",
+      "sha256": "93a75767ecc568c1e5a52ad3cc4d6f2e83023661990900efb8d81d891ffff4c0"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/engineer-bot/0.5.1/skills/engineer-bot-evidence/SKILL.md",
+      "target": "bot-packages/engineer-bot/0.5.1/skills/engineer-bot-evidence/SKILL.md",
+      "sha256": "d8c74bf17e57f9e266b1c73c320a32da316ca0b98cf3aa79b1aa5dfdedbab754"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/engineer-bot/0.5.1/skills/engineer-bot-evidence/templates/contract.md",
+      "target": "bot-packages/engineer-bot/0.5.1/skills/engineer-bot-evidence/templates/contract.md",
+      "sha256": "a71ccfb0a19859c2845051a1ee83a5826fcc5c89d4e81ee24fa44246af1cf553"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/engineer-bot/0.5.1/skills/engineer-bot-evidence/templates/input.json",
+      "target": "bot-packages/engineer-bot/0.5.1/skills/engineer-bot-evidence/templates/input.json",
+      "sha256": "d2c07855590572812db59749a8d53daea50c0155f5ec8f5753b35e780cbe2db3"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/engineer-bot/0.5.1/skills/engineer-bot-getting-started/SKILL.md",
+      "target": "bot-packages/engineer-bot/0.5.1/skills/engineer-bot-getting-started/SKILL.md",
+      "sha256": "905b4a04bd7ad6ced42542c46e6ecc53d2495812aaf1fc95ffbd82561f23837d"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/engineer-bot/0.5.1/skills/engineer-bot-ops/SKILL.md",
+      "target": "bot-packages/engineer-bot/0.5.1/skills/engineer-bot-ops/SKILL.md",
+      "sha256": "1fcac6a87de7436031e08fc3e69458d15023c88dacf6b6caff69c4fda8d61380"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/engineer-bot/0.5.1/skills/engineer-bot-ops/templates/delivery.md",
+      "target": "bot-packages/engineer-bot/0.5.1/skills/engineer-bot-ops/templates/delivery.md",
+      "sha256": "799e38a49673310c960225a11e31af6622e916f2812f8ffd184e241cca650c2a"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/nightly-audit-engineer/0.5.1/assets/avatar.webp",
+      "target": "bot-packages/nightly-audit-engineer/0.5.1/assets/avatar.webp",
+      "sha256": "e5a1447b2b99e44e2f33fda43c611173c74fb971e9c28aea0fb8cb0ccbbf5daf"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/nightly-audit-engineer/0.5.1/knowledge/method.md",
+      "target": "bot-packages/nightly-audit-engineer/0.5.1/knowledge/method.md",
+      "sha256": "13331131c3c22f7234b6be82e52402cf0f8dc85faa49b7e0e34269c777abe86a"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/nightly-audit-engineer/0.5.1/manifest.json",
+      "target": "bot-packages/nightly-audit-engineer/0.5.1/manifest.json",
+      "sha256": "9937274e2b5dfa91bf851cad017f98757819671a05cbe7149888b98e7c6bb791"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-evidence/scripts/finding_keys.py",
+      "target": "bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-evidence/scripts/finding_keys.py",
+      "sha256": "4e2c637106a77ea327da5ec05eb3ffa9098fb51e00aeaf4778edbeb00f0575f1"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-evidence/SKILL.md",
+      "target": "bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-evidence/SKILL.md",
+      "sha256": "29106ab8b38b0dfe1422e56cc9254640ea3f4b6105193ae8bc3d23a3fe0f38f4"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-evidence/templates/contract.md",
+      "target": "bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-evidence/templates/contract.md",
+      "sha256": "7ba7d000e26355cf590f6261dd8fc79fd52c51e1a62b416a909378498aaa0c5d"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-evidence/templates/input.json",
+      "target": "bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-evidence/templates/input.json",
+      "sha256": "648f17e535b637d4f271943133cc25b2a96fc4bb3cc5b4f7eee3c2c8069e56c0"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-getting-started/SKILL.md",
+      "target": "bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-getting-started/SKILL.md",
+      "sha256": "c66b78834f02d683b16c5d7d55762de8c0eddf5b757e69265781937e91bc85bf"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-ops/SKILL.md",
+      "target": "bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-ops/SKILL.md",
+      "sha256": "3d27b94ddec4ec2e431f8bc0dff6a8246ac678b5a7fe8bac1c2c6157e0c71917"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-ops/templates/delivery.md",
+      "target": "bot-packages/nightly-audit-engineer/0.5.1/skills/nightly-audit-engineer-ops/templates/delivery.md",
+      "sha256": "7c69aa92d900bcd2f2d6e30e771d41079312b50217181b6c569ea52324887f86"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/proto-bot/0.5.1/assets/avatar.webp",
+      "target": "bot-packages/proto-bot/0.5.1/assets/avatar.webp",
+      "sha256": "8e2cfa64306cb94105a3dbb0039880e1e83cc398fa1754d1bea5abf4ccd6f3fb"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/proto-bot/0.5.1/knowledge/method.md",
+      "target": "bot-packages/proto-bot/0.5.1/knowledge/method.md",
+      "sha256": "a1be8bf2a7d2971e019c5e7dc31036ab3e4313030cf6031448edcc119975ced1"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/proto-bot/0.5.1/manifest.json",
+      "target": "bot-packages/proto-bot/0.5.1/manifest.json",
+      "sha256": "ccb69b3839f4024aa26a17826f29b3eb8ad9392c32fa1ace1c71ced9d4c2456c"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/proto-bot/0.5.1/skills/proto-bot-evidence/scripts/acceptance_check.py",
+      "target": "bot-packages/proto-bot/0.5.1/skills/proto-bot-evidence/scripts/acceptance_check.py",
+      "sha256": "ed7ce637a0f1a4de4d03be3318bff6a0ca997414a2fb22adab49cc17e1b0d50f"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/proto-bot/0.5.1/skills/proto-bot-evidence/SKILL.md",
+      "target": "bot-packages/proto-bot/0.5.1/skills/proto-bot-evidence/SKILL.md",
+      "sha256": "cafd6f94ade5d1d64b3313707f23ec54408fffc9bac0dfc0fbc697c0e1437abd"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/proto-bot/0.5.1/skills/proto-bot-evidence/templates/contract.md",
+      "target": "bot-packages/proto-bot/0.5.1/skills/proto-bot-evidence/templates/contract.md",
+      "sha256": "86b3df6eb5f5e9a595c75868d54ca631952b6a827aae553d680beecb625d56d6"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/proto-bot/0.5.1/skills/proto-bot-evidence/templates/input.json",
+      "target": "bot-packages/proto-bot/0.5.1/skills/proto-bot-evidence/templates/input.json",
+      "sha256": "2e75786cf4fad4e0bbb4e07ffd62159784b081e706c1d638ce8e8adeb66b92ca"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/proto-bot/0.5.1/skills/proto-bot-getting-started/SKILL.md",
+      "target": "bot-packages/proto-bot/0.5.1/skills/proto-bot-getting-started/SKILL.md",
+      "sha256": "5b191121952e44edd03f27108a0cf1fc36f8c70cef9171b7fcac9d539e1c6404"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/proto-bot/0.5.1/skills/proto-bot-ops/SKILL.md",
+      "target": "bot-packages/proto-bot/0.5.1/skills/proto-bot-ops/SKILL.md",
+      "sha256": "9cc76162daace6bbd9235712ee49a04a5a490f72d32474a124ff0f56757ec538"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/proto-bot/0.5.1/skills/proto-bot-ops/templates/delivery.md",
+      "target": "bot-packages/proto-bot/0.5.1/skills/proto-bot-ops/templates/delivery.md",
+      "sha256": "ce4784e1856aa5393b4fb110704ed3c913ccedeb10efcc2a52fa4006cd71d56a"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/sable-game-art/0.5.1/assets/avatar.webp",
+      "target": "bot-packages/sable-game-art/0.5.1/assets/avatar.webp",
+      "sha256": "b44997f4f6a11ee4750b3a8d8d1f7694a6a9c4aa64cc0238067bf633a858d874"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/sable-game-art/0.5.1/knowledge/method.md",
+      "target": "bot-packages/sable-game-art/0.5.1/knowledge/method.md",
+      "sha256": "f84f81c456e4a227a1d20150b3ddf21a5b3e3a9bdf4fcd9ba8af6ca9f804ea44"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/sable-game-art/0.5.1/manifest.json",
+      "target": "bot-packages/sable-game-art/0.5.1/manifest.json",
+      "sha256": "e2154e3edaa92d38172630cd9ca5b103dbf09697c72354017d4d83bd2f0e6270"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/sable-game-art/0.5.1/skills/sable-game-art-evidence/scripts/sprite_audit.py",
+      "target": "bot-packages/sable-game-art/0.5.1/skills/sable-game-art-evidence/scripts/sprite_audit.py",
+      "sha256": "5740bc2f58569d082c1e1a5e1c63ebafac48b3d3622ac593025f1c9c877a8904"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/sable-game-art/0.5.1/skills/sable-game-art-evidence/SKILL.md",
+      "target": "bot-packages/sable-game-art/0.5.1/skills/sable-game-art-evidence/SKILL.md",
+      "sha256": "1ee7eb36675e2e5f3155089f6190dfd7c7c36f4d886b19e6f7454bac76aae8f2"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/sable-game-art/0.5.1/skills/sable-game-art-evidence/templates/contract.md",
+      "target": "bot-packages/sable-game-art/0.5.1/skills/sable-game-art-evidence/templates/contract.md",
+      "sha256": "ec77dc3e1612c8668f72d7983d8b282063afa01c35b726327f3274a784c4e8ff"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/sable-game-art/0.5.1/skills/sable-game-art-evidence/templates/input.json",
+      "target": "bot-packages/sable-game-art/0.5.1/skills/sable-game-art-evidence/templates/input.json",
+      "sha256": "6cc0a6efea7a19ed83777e0aeb749cec731b6434376393d4e2e5d9f16179e713"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/sable-game-art/0.5.1/skills/sable-game-art-getting-started/SKILL.md",
+      "target": "bot-packages/sable-game-art/0.5.1/skills/sable-game-art-getting-started/SKILL.md",
+      "sha256": "a48ee5645f604b570e7011f3c8aa20b3b2af3afed34977beb84bb12d68203051"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/sable-game-art/0.5.1/skills/sable-game-art-ops/SKILL.md",
+      "target": "bot-packages/sable-game-art/0.5.1/skills/sable-game-art-ops/SKILL.md",
+      "sha256": "9f32c6d8765efd46d76890eae09ef387384b9355421e5a122b6318c285b55c57"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/sable-game-art/0.5.1/skills/sable-game-art-ops/templates/delivery.md",
+      "target": "bot-packages/sable-game-art/0.5.1/skills/sable-game-art-ops/templates/delivery.md",
+      "sha256": "e68a505e1d5d79155ca9175f4828c4951e9af50c33b1bd824c917cf8367f36fd"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/seo-aeo-desk/0.5.1/assets/avatar.webp",
+      "target": "bot-packages/seo-aeo-desk/0.5.1/assets/avatar.webp",
+      "sha256": "de1a0ecd134ef813f13820c37dfd8630698512c998dc7124da3376e13a8ab381"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/seo-aeo-desk/0.5.1/knowledge/method.md",
+      "target": "bot-packages/seo-aeo-desk/0.5.1/knowledge/method.md",
+      "sha256": "7d2604f47138a8efe4669cb86a9b6fb4d2637d7903dbb504f64b93b871835737"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/seo-aeo-desk/0.5.1/manifest.json",
+      "target": "bot-packages/seo-aeo-desk/0.5.1/manifest.json",
+      "sha256": "61cb37daeb06f77f87687f6bb143b0ab5cc0090211dd31d206ed969b8a167bac"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-evidence/scripts/keyword_board.py",
+      "target": "bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-evidence/scripts/keyword_board.py",
+      "sha256": "f476d108165a57be66300a7bf329ddeac566118f6f3e125589ed0806ee7a98e0"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-evidence/SKILL.md",
+      "target": "bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-evidence/SKILL.md",
+      "sha256": "a055b15f7e1c848cbfa6fb927d296295ceb1d8ab047b8f5c4580524bd3332174"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-evidence/templates/contract.md",
+      "target": "bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-evidence/templates/contract.md",
+      "sha256": "971546f442afff5ac80e739e46682ba640cede4d86d9f950027cfcb7048ee332"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-evidence/templates/input.json",
+      "target": "bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-evidence/templates/input.json",
+      "sha256": "9737458f4d40b06847853e953f6554ee7c557d894744379f470713180f5b39ae"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-getting-started/SKILL.md",
+      "target": "bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-getting-started/SKILL.md",
+      "sha256": "c02d62061dd836c689c28a0b9dde0ace33a004c7608fbd06828df7b2dbea9e43"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-ops/SKILL.md",
+      "target": "bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-ops/SKILL.md",
+      "sha256": "6933c1aa257b08cdcdefecf971cfbb6dfea5f67a5628f6362f67efaba8cc8680"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-ops/templates/delivery.md",
+      "target": "bot-packages/seo-aeo-desk/0.5.1/skills/seo-aeo-desk-ops/templates/delivery.md",
+      "sha256": "9a29ac7aafa2a321c67ea563d703fca8e5d416ba38e32609411c84854f6ef641"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/startup-qa-bot/0.5.1/assets/avatar.webp",
+      "target": "bot-packages/startup-qa-bot/0.5.1/assets/avatar.webp",
+      "sha256": "d000e60047b78c011289c2b21d2283f09bdbeaec741998f4980140bb1bf4beef"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/startup-qa-bot/0.5.1/knowledge/method.md",
+      "target": "bot-packages/startup-qa-bot/0.5.1/knowledge/method.md",
+      "sha256": "3e016fe3d017702f1636d9975fdc2b42cbdf96de340ab719e162db521a9643f3"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/startup-qa-bot/0.5.1/manifest.json",
+      "target": "bot-packages/startup-qa-bot/0.5.1/manifest.json",
+      "sha256": "029ada430364626b8077d0281f49ba38dc6049d591662a3cd5a85a5236c92331"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-evidence/scripts/page_diff.py",
+      "target": "bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-evidence/scripts/page_diff.py",
+      "sha256": "35888e96d24bc9cf41f782740d2de84d6d5c7db6916e22dee3ca87b395aa994c"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-evidence/SKILL.md",
+      "target": "bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-evidence/SKILL.md",
+      "sha256": "8b1163b3f91d155c061a1fe66f1105595c68dd1dc01b8a68366015024debfaac"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-evidence/templates/contract.md",
+      "target": "bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-evidence/templates/contract.md",
+      "sha256": "0686cd4d34c4a1d88914dab943dcbc03203fc257949ad750286c27bf2e60b7d7"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-evidence/templates/input.json",
+      "target": "bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-evidence/templates/input.json",
+      "sha256": "d44621a8b2cce91850198b748bf0ac4fe0f04bbebf017c3fd5c4cd1c0847e886"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-getting-started/SKILL.md",
+      "target": "bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-getting-started/SKILL.md",
+      "sha256": "d3b063f8e2422d106812e66853857e225829d9e3a93a1a0828c568ce66a435de"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-ops/SKILL.md",
+      "target": "bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-ops/SKILL.md",
+      "sha256": "a156ca6d449773ddd47fbe110ffac24caa353cb360a4299830f011e5935e9176"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-ops/templates/delivery.md",
+      "target": "bot-packages/startup-qa-bot/0.5.1/skills/startup-qa-bot-ops/templates/delivery.md",
+      "sha256": "a8f0494118d37aa7891fdbef2fbd744c0788d530ac091fc6bc93e7bf96398aec"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/video-editor/0.5.1/assets/avatar.webp",
+      "target": "bot-packages/video-editor/0.5.1/assets/avatar.webp",
+      "sha256": "d9f24f2f8770c569a278547d1d4ad5ca70bf71d9f1b481707327f7c2d983f906"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/video-editor/0.5.1/knowledge/method.md",
+      "target": "bot-packages/video-editor/0.5.1/knowledge/method.md",
+      "sha256": "9adf8a5bc7e5254a9a7ff26408f79492f24dbf8df2b11b16d985a3c7f3897723"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/video-editor/0.5.1/manifest.json",
+      "target": "bot-packages/video-editor/0.5.1/manifest.json",
+      "sha256": "bda0f9c3ab74ca5389226a7ee66a185507d2524c8ab5498334f821dfc3654f09"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/video-editor/0.5.1/skills/video-editor-evidence/scripts/timeline_check.py",
+      "target": "bot-packages/video-editor/0.5.1/skills/video-editor-evidence/scripts/timeline_check.py",
+      "sha256": "1ded88b238c7443b7fbed147de237118489721ff8d7a520992173b78515cc7bb"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/video-editor/0.5.1/skills/video-editor-evidence/SKILL.md",
+      "target": "bot-packages/video-editor/0.5.1/skills/video-editor-evidence/SKILL.md",
+      "sha256": "d99ab5703e74bfd202453bc0183cfe0418a06739395148ffd00f025ec61d252b"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/video-editor/0.5.1/skills/video-editor-evidence/templates/contract.md",
+      "target": "bot-packages/video-editor/0.5.1/skills/video-editor-evidence/templates/contract.md",
+      "sha256": "a302655efed23d565958423da79222e08ef875c1d1176df27c34f4ab0cc19b3b"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/video-editor/0.5.1/skills/video-editor-evidence/templates/input.json",
+      "target": "bot-packages/video-editor/0.5.1/skills/video-editor-evidence/templates/input.json",
+      "sha256": "fe3b2e1728b2ad868db3acbcc228607a50202b0a4bf28be9d30810c2237a9f0f"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/video-editor/0.5.1/skills/video-editor-getting-started/SKILL.md",
+      "target": "bot-packages/video-editor/0.5.1/skills/video-editor-getting-started/SKILL.md",
+      "sha256": "d5706d2de186ef4e97a702f4924f1b3fd764584f50c6fe58e7557968687746ca"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/video-editor/0.5.1/skills/video-editor-ops/SKILL.md",
+      "target": "bot-packages/video-editor/0.5.1/skills/video-editor-ops/SKILL.md",
+      "sha256": "a178feb3928dd54a23b9a2f3fe256479c2c58c396aa1feab14fc91507ec9bd97"
+    },
+    {
+      "source": "modules/chat-pi/cindy/bot-packages/video-editor/0.5.1/skills/video-editor-ops/templates/delivery.md",
+      "target": "bot-packages/video-editor/0.5.1/skills/video-editor-ops/templates/delivery.md",
+      "sha256": "2f3095593c5fce7b06830de1b2fee2a72fc9eb30037ee9bfa5ccad5f991c32e8"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/colour/color.cjs",
+      "target": "node_modules/@img/colour/color.cjs",
+      "sha256": "f7c3efcf482624007f2019fffee3e1dec56b8cb893faa9a420b2832805888dce"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/colour/index.cjs",
+      "target": "node_modules/@img/colour/index.cjs",
+      "sha256": "e6e93e7fb209420a20fdf2ec676e9c67413be8d5ace99eec64f9468480f0368d"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/colour/index.d.ts",
+      "target": "node_modules/@img/colour/index.d.ts",
+      "sha256": "2467b00d963828f540f4acd7910f4c04cfe4b489550e6bb682212f65583bca5b"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/colour/LICENSE.md",
+      "target": "node_modules/@img/colour/LICENSE.md",
+      "sha256": "e2eaa4603c14cb26f301e88648c12a853fa3f0f5da6d4b0972958c666e7f2ab8"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/colour/package.json",
+      "target": "node_modules/@img/colour/package.json",
+      "sha256": "bc38c5097693ed53b91c32f35fb0a52569736c7854ba2eb6d080f3252071f75c"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/colour/README.md",
+      "target": "node_modules/@img/colour/README.md",
+      "sha256": "be7edf3bc6467f761168cef3bb2b9b3def2532c98a86249848376ea00338ad1d"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/sharp-win32-x64/index.cjs",
+      "target": "node_modules/@img/sharp-win32-x64/index.cjs",
+      "sha256": "6d6c6c125e887260d0b4025213e3c49c8690d52dfd4c0e69507a5c26f0787fb4"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/sharp-win32-x64/lib/libvips-42.dll",
+      "target": "node_modules/@img/sharp-win32-x64/lib/libvips-42.dll",
+      "sha256": "6d8ec83a826a1b46ef25a670501fd186475568dd3e48893cb4f756d0f2f428d8"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/sharp-win32-x64/lib/libvips-cpp-8.18.3.dll",
+      "target": "node_modules/@img/sharp-win32-x64/lib/libvips-cpp-8.18.3.dll",
+      "sha256": "1d055426c068f6c9282d1c8030e967014ffb2e878005c70e501d743ccaa69351"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/sharp-win32-x64/lib/sharp-win32-x64-0.35.0.node",
+      "target": "node_modules/@img/sharp-win32-x64/lib/sharp-win32-x64-0.35.0.node",
+      "sha256": "367b2df2d1ffb1ecaecf022816a3ac5914399397c959c5adb512e74533daa4a0"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/sharp-win32-x64/LICENSE",
+      "target": "node_modules/@img/sharp-win32-x64/LICENSE",
+      "sha256": "dc1f5d2d43c5531dfe0acaf4e950ea5dbe3e61e1850cf0e983bda7efc10d6693"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/sharp-win32-x64/package.json",
+      "target": "node_modules/@img/sharp-win32-x64/package.json",
+      "sha256": "2096274c14f501c6f29b4a292ddee3e17127254b6f64987405d4478423ef9927"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/sharp-win32-x64/README.md",
+      "target": "node_modules/@img/sharp-win32-x64/README.md",
+      "sha256": "280e7d164420cfc1a1b192a582bf53e3dba97b86a5c3575f878b674ad1d41e13"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/@img/sharp-win32-x64/versions.json",
+      "target": "node_modules/@img/sharp-win32-x64/versions.json",
+      "sha256": "5155cd67e4f2e5df99e26d2919458a21dbb8236eca2ca632d896dd49ba9c42fc"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/detect-libc/index.d.ts",
+      "target": "node_modules/detect-libc/index.d.ts",
+      "sha256": "9500090533aafe039c41d8d368a44959f04482bb75636d96bc843c06f3d6a348"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/detect-libc/lib/detect-libc.js",
+      "target": "node_modules/detect-libc/lib/detect-libc.js",
+      "sha256": "5de6a1c1abec8bba5ea1261cf819d83a73c92ebe72b879ae48c59ca12320a462"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/detect-libc/lib/elf.js",
+      "target": "node_modules/detect-libc/lib/elf.js",
+      "sha256": "0e8820f00ee11d179d94894d4f97a6e87c34ab59e5dd4d3a571dfabcecf043af"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/detect-libc/lib/filesystem.js",
+      "target": "node_modules/detect-libc/lib/filesystem.js",
+      "sha256": "5c98fb66b559d0b4fa82c7a3e39d9ab6840f022c4c73e6b1a73ac6d16ec13fd7"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/detect-libc/lib/process.js",
+      "target": "node_modules/detect-libc/lib/process.js",
+      "sha256": "f37dd0ead9f70b50c6f5529c600e1cdf076e3c3bc8e6b4a0a9820a8d65244628"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/detect-libc/LICENSE",
+      "target": "node_modules/detect-libc/LICENSE",
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/detect-libc/package.json",
+      "target": "node_modules/detect-libc/package.json",
+      "sha256": "ee88e5b954fdf3a8480b1d01ef767d68d8ca2c6da269f58c5cf1c5550e9aa2a7"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/detect-libc/README.md",
+      "target": "node_modules/detect-libc/README.md",
+      "sha256": "51a97449c443889155bc872522e6de5a91a5fa73edeffa03d749e186bf0eebca"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/bin/semver.js",
+      "target": "node_modules/semver/bin/semver.js",
+      "sha256": "bd6c871026985937dc945011fc54b74b47f5998154216d7b8d40d5ed782e4402"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/classes/comparator.js",
+      "target": "node_modules/semver/classes/comparator.js",
+      "sha256": "054202956430d63d5ff4599fae09760ce465b489e4f0b5ef5ce7cc7ac21157ac"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/classes/index.js",
+      "target": "node_modules/semver/classes/index.js",
+      "sha256": "3bb69280c2a788d0eb16f915bb9df4dbe812075182024c753dca2283bcea1b17"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/classes/range.js",
+      "target": "node_modules/semver/classes/range.js",
+      "sha256": "a6544485aa8575aa9854c67e2caa67726815de18a482d0ceb8a1003244de3bc1"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/classes/semver.js",
+      "target": "node_modules/semver/classes/semver.js",
+      "sha256": "813b2c185512d30c9b931c2fed8140889d9d7490ceeeedc370da30337dc8ca57"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/clean.js",
+      "target": "node_modules/semver/functions/clean.js",
+      "sha256": "4eadb0892844cf3ae295121a86163a66c73f89acd1b7f0b114ec115b4539512f"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/cmp.js",
+      "target": "node_modules/semver/functions/cmp.js",
+      "sha256": "a63d74e87b73788e78e9ce0a4892b5333d6b809c0de88b31e4ed76cbf17f94b3"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/coerce.js",
+      "target": "node_modules/semver/functions/coerce.js",
+      "sha256": "28a251c5ab210ddf9e97551b9f37a53329fcce91f0c3943dcbc02de1a1de915a"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/compare-build.js",
+      "target": "node_modules/semver/functions/compare-build.js",
+      "sha256": "5ab651d5b40af289bd85c645a92b6d8cfe1a986dc413c797cfcc8d623d7c844c"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/compare-loose.js",
+      "target": "node_modules/semver/functions/compare-loose.js",
+      "sha256": "07b6a3a1db0a5210ceb784c1708bd4679f3a94fc73a9c9eb349349e7070a6f78"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/compare.js",
+      "target": "node_modules/semver/functions/compare.js",
+      "sha256": "d404b5aa48aaddc8a654c5da8fb7d4443404b7948589b21ac4b045d1cee4e34c"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/diff.js",
+      "target": "node_modules/semver/functions/diff.js",
+      "sha256": "7a11fd39b987cdf06c65e928cb1aca49bec583feb86fb5c8fe47a6fd61d7de31"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/eq.js",
+      "target": "node_modules/semver/functions/eq.js",
+      "sha256": "b6e30a7168e52723216fc163d300e2bbabf92ec0251f9ac5438bb6ccf57c8936"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/gt.js",
+      "target": "node_modules/semver/functions/gt.js",
+      "sha256": "135523704aa48cd98834dd170ee9f74f0e68043b379f32d021db11e6304c5c93"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/gte.js",
+      "target": "node_modules/semver/functions/gte.js",
+      "sha256": "991c5bbe48ecb210a562646872f05862ad9fc0d42186d85aa60bdc6fa323eb9d"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/inc.js",
+      "target": "node_modules/semver/functions/inc.js",
+      "sha256": "952069fc8690b7d3af0fe9d55f7c54fe2ac067b48c5e74f6a54f9ce19a334493"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/lt.js",
+      "target": "node_modules/semver/functions/lt.js",
+      "sha256": "1c897a9bc849320e2e9dc0f6c09555c01ee3ddf30734515d717b88ad7740ea25"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/lte.js",
+      "target": "node_modules/semver/functions/lte.js",
+      "sha256": "3a8d0b1d00423f60cc7cb810b36ab77b61330831ad237dbe73eb5cecfa412800"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/major.js",
+      "target": "node_modules/semver/functions/major.js",
+      "sha256": "5c678480d882f511200fed2c16ec3847dfedb08a1d70328dc2f031d35d825276"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/minor.js",
+      "target": "node_modules/semver/functions/minor.js",
+      "sha256": "1b051794f1713adec2a236517196691687c35f82e0b596ff3316a78b3cc10ae6"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/neq.js",
+      "target": "node_modules/semver/functions/neq.js",
+      "sha256": "a662883751918822c162183b46b9e20d09489132f82686c92ab78bee67f3a127"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/parse.js",
+      "target": "node_modules/semver/functions/parse.js",
+      "sha256": "29a69e15b6d02fe381d573f861881a89590e9d0f0f0ca740c5f85eaf0234c4ad"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/patch.js",
+      "target": "node_modules/semver/functions/patch.js",
+      "sha256": "f02d3c1b059fe3d96ce124886f7eef321d381a95638fd3c4a8d5ccd8e76ffadd"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/prerelease.js",
+      "target": "node_modules/semver/functions/prerelease.js",
+      "sha256": "baedbf503d5610ad041bfb56071efa48feb331ca278295c399537d35d3ffb593"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/rcompare.js",
+      "target": "node_modules/semver/functions/rcompare.js",
+      "sha256": "84fa5e88adf08d15c993cac8cdec6d1a65045b7e95a9c55184230a7f807f4dc0"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/rsort.js",
+      "target": "node_modules/semver/functions/rsort.js",
+      "sha256": "6ec659ce3b6c2b173c719286caab04409adba046c0917874ec3b5e36ddfbc7e3"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/satisfies.js",
+      "target": "node_modules/semver/functions/satisfies.js",
+      "sha256": "8cf5e122b757251671ed6c9d9680904b71cd375845853f05312e608cf2cc2946"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/sort.js",
+      "target": "node_modules/semver/functions/sort.js",
+      "sha256": "c2fe2d3ed0be8a4e9de8f02abdfd5d9c0d3bcc510d88e87af84185592882c4b8"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/truncate.js",
+      "target": "node_modules/semver/functions/truncate.js",
+      "sha256": "e145833a250311927c92f424f56498c52f1b7bb1271ce6afbf006db87773ff43"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/functions/valid.js",
+      "target": "node_modules/semver/functions/valid.js",
+      "sha256": "0de7ea736cb7807179d46dfac09c830a9338e02b6a07db12d7040cde2def6025"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/index.js",
+      "target": "node_modules/semver/index.js",
+      "sha256": "4b3e57d3d40e29e0706002eba113d09f35aea593578376bbeec83b777b9912ab"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/internal/constants.js",
+      "target": "node_modules/semver/internal/constants.js",
+      "sha256": "38a112baf27ceca0260082ff26ac2fd7a9861cab1af12dd65e720277f68e6ce9"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/internal/debug.js",
+      "target": "node_modules/semver/internal/debug.js",
+      "sha256": "8a9f420572260f3cf944463b5090d62a60f0730589dc23a7ec4ca25e2ee41bb3"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/internal/identifiers.js",
+      "target": "node_modules/semver/internal/identifiers.js",
+      "sha256": "b4916b09dc7869ae0eb05e71c855c942a3a7365f7e6e89185d59a9e45a2451d7"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/internal/lrucache.js",
+      "target": "node_modules/semver/internal/lrucache.js",
+      "sha256": "14d087c87da87b6f5c36fc4cdd7d2d14077874b14a68e20fce5b6138fa2ca34f"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/internal/parse-options.js",
+      "target": "node_modules/semver/internal/parse-options.js",
+      "sha256": "fdf51d0de8d5442c35a997ef58cd530d239ce206f961d14c5121354451b01d01"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/internal/re.js",
+      "target": "node_modules/semver/internal/re.js",
+      "sha256": "5833262888e2b5d843a69193f83c05e374818dbe55379b497819b5bf58e48cd8"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/LICENSE",
+      "target": "node_modules/semver/LICENSE",
+      "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/package.json",
+      "target": "node_modules/semver/package.json",
+      "sha256": "7c94cb7f2a53c27b20d76386ec144c062894dbcc909cfabd0f728c37874b1776"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/preload.js",
+      "target": "node_modules/semver/preload.js",
+      "sha256": "edb6808911bebcb324b2df57e5c9935149e56984ff083b74c6cfe215f5b710ba"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/range.bnf",
+      "target": "node_modules/semver/range.bnf",
+      "sha256": "15d0baf9b7b98e6d862c0cb9e822d2533d2bc23e136bb75314d802ca1fcb0392"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/ranges/gtr.js",
+      "target": "node_modules/semver/ranges/gtr.js",
+      "sha256": "8fadad28e36d28e93d498ac7ac20badba2a407312845eabc18e82e90a0732b19"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/ranges/intersects.js",
+      "target": "node_modules/semver/ranges/intersects.js",
+      "sha256": "fe87ac5d3020010ad3ec00636dadbf0c669ff07d0f57e0a8165a8264f79a676f"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/ranges/ltr.js",
+      "target": "node_modules/semver/ranges/ltr.js",
+      "sha256": "e5186fcc03018acf9be6d968755d4c49727aeb0d981d179eb568ae5fbe983038"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/ranges/max-satisfying.js",
+      "target": "node_modules/semver/ranges/max-satisfying.js",
+      "sha256": "e1a2c0d6144cc772cd20bbc8ecb9e8a3a4074e9172a3d8e794838b591cdeb416"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/ranges/min-satisfying.js",
+      "target": "node_modules/semver/ranges/min-satisfying.js",
+      "sha256": "2681abf54098aa670f12826b76a6ec77a2441186ae4243afde3be8ae4908f7ca"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/ranges/min-version.js",
+      "target": "node_modules/semver/ranges/min-version.js",
+      "sha256": "fefba0a88c2bf74d5cede504b5ae50a8dc3edfd69cf0174a491e2cf3e442614b"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/ranges/outside.js",
+      "target": "node_modules/semver/ranges/outside.js",
+      "sha256": "3a2b0b23593d2f49419c06af2af75450cab103b0c25d665d48fe5bca495a21ca"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/ranges/simplify.js",
+      "target": "node_modules/semver/ranges/simplify.js",
+      "sha256": "7b78581c13322bc68ece2088685386b2a9b51c15b94d0a2063bdf2546bd41934"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/ranges/subset.js",
+      "target": "node_modules/semver/ranges/subset.js",
+      "sha256": "ceb9eb6ed5bfc6c7ac7af7f47e5c3535444a4e66a0e2b58cdad4bd02a35d454d"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/ranges/to-comparators.js",
+      "target": "node_modules/semver/ranges/to-comparators.js",
+      "sha256": "6c5e966210cff270fa2850668aaf8460fac7759f8d99f282521ef7a78f4564e9"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/ranges/valid.js",
+      "target": "node_modules/semver/ranges/valid.js",
+      "sha256": "5ef6f995af801868925940cf8df5735d565ebabb090b068695cae65218bcd3ac"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/semver/README.md",
+      "target": "node_modules/semver/README.md",
+      "sha256": "f1a789dcec285150be24db2ea04dd3175031554fa9834ec92fab83fb5e025a57"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/channel.cjs",
+      "target": "node_modules/sharp/dist/channel.cjs",
+      "sha256": "7445567e8001f4be3126374e4c17e282777ed14c718acca875c91bec69a2d7a1"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/channel.mjs",
+      "target": "node_modules/sharp/dist/channel.mjs",
+      "sha256": "6067b0ba5ebcc9682a01d0b450a12b54849a95c8ed017f8485bddb5fd0b9db91"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/colour.cjs",
+      "target": "node_modules/sharp/dist/colour.cjs",
+      "sha256": "8dce007ca64ae9a3a39b2002c659885bf8b070c66bb4db51f4ed5392fd3a853c"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/colour.mjs",
+      "target": "node_modules/sharp/dist/colour.mjs",
+      "sha256": "b08f52011697e5fe2acbfdfcb04ac5a77d6f6485fd43dffb7cfa4cf5f9168407"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/composite.cjs",
+      "target": "node_modules/sharp/dist/composite.cjs",
+      "sha256": "154e7abc45fe5b801b859e4254df4b6e850ada205e76620ab363ac3fa62f4bff"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/composite.mjs",
+      "target": "node_modules/sharp/dist/composite.mjs",
+      "sha256": "f8182845a85a72836f69aab3119eb371115caa5054f8892f4424a046076fbad1"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/constructor.cjs",
+      "target": "node_modules/sharp/dist/constructor.cjs",
+      "sha256": "51186c3f1813d5f8e03cad3e7176d2f30ee234ae9ad44a5bd5b363e1e2afbad6"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/constructor.mjs",
+      "target": "node_modules/sharp/dist/constructor.mjs",
+      "sha256": "2420fe1860b5bcc88de73ca43adae7d2410c37ff23adf4ef87e3ec922e5bf9d3"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/index.cjs",
+      "target": "node_modules/sharp/dist/index.cjs",
+      "sha256": "d69f275bc49fcd2a6188b26b35c986d4db32a1b008653fef88adb4598688232a"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/index.mjs",
+      "target": "node_modules/sharp/dist/index.mjs",
+      "sha256": "0e8f955c68a1b0bccf0ba5343c924dbfa6a46a76a0d491ec27fe6b328311363e"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/input.cjs",
+      "target": "node_modules/sharp/dist/input.cjs",
+      "sha256": "eaa4f89be626d3e0c34318fe9cf37419c4508eae27c9a029173ee9a8f700a5f1"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/input.mjs",
+      "target": "node_modules/sharp/dist/input.mjs",
+      "sha256": "4514e52a37b7c59f7bffa3f8928c99ed0d91a2e8972d9fa745e96780d82f7506"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/is.cjs",
+      "target": "node_modules/sharp/dist/is.cjs",
+      "sha256": "7ecb71679b5b58e7ddf7e14fa697ff6a31bbe9ef107745170095031519e93463"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/is.mjs",
+      "target": "node_modules/sharp/dist/is.mjs",
+      "sha256": "648fec82cba7fada56463e4581fb665299469081371b97b6ea2c083841fabe9c"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/libvips.cjs",
+      "target": "node_modules/sharp/dist/libvips.cjs",
+      "sha256": "3419f6cb4303feaf4a76abe122ce1caf5dc755f9f17fa013afd5561827b61062"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/libvips.mjs",
+      "target": "node_modules/sharp/dist/libvips.mjs",
+      "sha256": "d9984601b0aafe44c393b29ce4b0712b1c40890c3d740d4fda49842a4ea5873d"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/operation.cjs",
+      "target": "node_modules/sharp/dist/operation.cjs",
+      "sha256": "0fbdba5a79e268f395ebd915791e4e0f9fc1704cccc0d4bf56e1a2df43dfdc72"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/operation.mjs",
+      "target": "node_modules/sharp/dist/operation.mjs",
+      "sha256": "52ed513b571097b074ec27826595f79c776a360487f3178a54d3f0828d0c49f1"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/output.cjs",
+      "target": "node_modules/sharp/dist/output.cjs",
+      "sha256": "8c1b29ff24947eeb907544a7bad88bc81ec0a8f1fee141af15ad43bd5bb37b31"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/output.mjs",
+      "target": "node_modules/sharp/dist/output.mjs",
+      "sha256": "6ddf6c2921d33dcc507f2584dafe19eba4a884139a7c6ace675df55449e0f4bd"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/resize.cjs",
+      "target": "node_modules/sharp/dist/resize.cjs",
+      "sha256": "e00340286366d88715e337156435334deaf18b125334cdf058ee9057f503922f"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/resize.mjs",
+      "target": "node_modules/sharp/dist/resize.mjs",
+      "sha256": "dd04c0159bd7497c97086f7c5d6be17d42eb8cf623722dfc569bcc24102d3889"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/sharp.cjs",
+      "target": "node_modules/sharp/dist/sharp.cjs",
+      "sha256": "97c5f6107707737d8af93166bb5741e9925b698810bdc4d290d6ac8e85ae3e9a"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/sharp.mjs",
+      "target": "node_modules/sharp/dist/sharp.mjs",
+      "sha256": "38dbb6e8f06a26729d455efb14ce9c2e37c0c90fe9dbde309738fb070bd79335"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/utility.cjs",
+      "target": "node_modules/sharp/dist/utility.cjs",
+      "sha256": "33b22f7e6057403026e530d010a5cf6469ff4cd69c83f00f547d90123ae18745"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/dist/utility.mjs",
+      "target": "node_modules/sharp/dist/utility.mjs",
+      "sha256": "08e641cfbb925b7fde5d4ce32510bb3eccc23b0c0e0785118e8a3627bfb83ee2"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/install/build.js",
+      "target": "node_modules/sharp/install/build.js",
+      "sha256": "fea92e0d55cce8692413c479021173aa1512304e1b849039949cbee9d6ceb1de"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/lib/index.d.ts",
+      "target": "node_modules/sharp/lib/index.d.ts",
+      "sha256": "ba45108378c322b60479967aa8bc57e69d60e3fb6c96fb2e70cf2933738dc177"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/LICENSE",
+      "target": "node_modules/sharp/LICENSE",
+      "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/package.json",
+      "target": "node_modules/sharp/package.json",
+      "sha256": "67c2bff4efe83533244796941561aa0e20185e4f2210d7993a271cd7c215e7a9"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/README.md",
+      "target": "node_modules/sharp/README.md",
+      "sha256": "ecf81c62ccf83baaae9945e65033b196da7f32def0eb6f8efcf660fe5422c536"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/binding.gyp",
+      "target": "node_modules/sharp/src/binding.gyp",
+      "sha256": "9d0a43b5db5db4e6a4a662ff059d8bf30e57ea403d2e207fc408a8c6aa0ab8c8"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/common.cc",
+      "target": "node_modules/sharp/src/common.cc",
+      "sha256": "fb4f9cb3ee5114a8310c156f921d7089b6ed9c127c998d91d7aa151fee3699a8"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/common.h",
+      "target": "node_modules/sharp/src/common.h",
+      "sha256": "ae63afe0934198f55e88de544410bbe0c1e763b9bddfad094485efa37cf6319a"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/metadata.cc",
+      "target": "node_modules/sharp/src/metadata.cc",
+      "sha256": "a127c134c9e537db9c63962ff1aa1d0762a8d517d746a844e6b43b299e11a581"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/metadata.h",
+      "target": "node_modules/sharp/src/metadata.h",
+      "sha256": "5e02c25ec821a525b0caf31161b1e8675ff32cfd098c17cda0b888440362b057"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/operations.cc",
+      "target": "node_modules/sharp/src/operations.cc",
+      "sha256": "a61e6545cde7d2f2ae508b4eceeeec9db9ef711211d5cba1ed470f9325f914fb"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/operations.h",
+      "target": "node_modules/sharp/src/operations.h",
+      "sha256": "6f41d329634471dff8e093d12e38ff356293079e2aeecc5b922fc23ba99799e6"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/pipeline.cc",
+      "target": "node_modules/sharp/src/pipeline.cc",
+      "sha256": "eafbf83b7b0b0f1f611188951d51334e6393bdecd6eda3e3bd776ea6dc8482fa"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/pipeline.h",
+      "target": "node_modules/sharp/src/pipeline.h",
+      "sha256": "a2322f1c05ea4fedce0b237e4d1db08ae728c80e83c0a432cf1e490eaed5580b"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/sharp.cc",
+      "target": "node_modules/sharp/src/sharp.cc",
+      "sha256": "9f407b50bb2d02e5eb711b769f05d3e6659028430e055c4271e5ab1593f5a257"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/stats.cc",
+      "target": "node_modules/sharp/src/stats.cc",
+      "sha256": "72f8f2ad0e4315951c88b115511eb96741fd0479385ed094141f7bd254739791"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/stats.h",
+      "target": "node_modules/sharp/src/stats.h",
+      "sha256": "db854f0c3c4a0db1751021ed676413c6d5ca00becc08bdc13258b29047450b8c"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/utilities.cc",
+      "target": "node_modules/sharp/src/utilities.cc",
+      "sha256": "7b258a506267ab2ae5ad4b91cece4bfc562a9ff6d93b3b7708b8d1de2d6c44fa"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/sharp/src/utilities.h",
+      "target": "node_modules/sharp/src/utilities.h",
+      "sha256": "0b126ab63cf1aedf8e71e6cb8179899d3ef02c46419100e847b2ca4284b8901b"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/silk-wasm/lib/index.cjs",
+      "target": "node_modules/silk-wasm/lib/index.cjs",
+      "sha256": "74bb76aba57b1b52787e1eace2870eaaab2deec32241e28f47a138c6b98de065"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/silk-wasm/lib/index.d.ts",
+      "target": "node_modules/silk-wasm/lib/index.d.ts",
+      "sha256": "bc593f9a24fa56a4bb6f425857e793f3a544214b5346f2547a576a259f6a7139"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/silk-wasm/lib/index.mjs",
+      "target": "node_modules/silk-wasm/lib/index.mjs",
+      "sha256": "1a95755169e70de059b47a7e7d81a2c3e4f0f0d2ac8d26a8d1d90eaeaac4f937"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/silk-wasm/lib/silk.wasm",
+      "target": "node_modules/silk-wasm/lib/silk.wasm",
+      "sha256": "88152af59af535b8056ac806710824b2259a361027451b494f175f48fb39c807"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/silk-wasm/lib/utils.d.ts",
+      "target": "node_modules/silk-wasm/lib/utils.d.ts",
+      "sha256": "adb07c215f734561e22dcf50bb22bd7d8a5ea6c8d1cef806cc32f097da0b3321"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/silk-wasm/LICENSE",
+      "target": "node_modules/silk-wasm/LICENSE",
+      "sha256": "3b1585c0e6d9d501e86383948fc0d1734bcb86517a13111d97749c65ad2bfb74"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/silk-wasm/package.json",
+      "target": "node_modules/silk-wasm/package.json",
+      "sha256": "55f69255696623a29fee616525eab2b9f7aab9f21adf9b667155b68b653410d5"
+    },
+    {
+      "source": "modules/chat-pi/node_modules/silk-wasm/README.md",
+      "target": "node_modules/silk-wasm/README.md",
+      "sha256": "00f00d767766c03906efbeee281e7912f5b94bb04a553d29377d6122f705eede"
+    }
+  ]
+}

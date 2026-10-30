@@ -1,6 +1,6 @@
 import {SettingsSaveBar} from "../components/settings-save-bar";
 import {useEffect,useState} from "react";
-import {Save,RotateCcw,ScanText,Languages,MessagesSquare} from "lucide-react";
+import {Save,ScanText,Languages,MessagesSquare} from "lucide-react";
 import {captureCall} from "../bridge";
 import {useTranslation} from "../i18n";
 import {Button} from "../ui/button";
@@ -22,7 +22,7 @@ export function CaptureAISettings({onActivity}:{onActivity?:PageActivityChanged}
  const busy=working||loading;
  const dirty=!!draft&&JSON.stringify(draft)!==JSON.stringify(saved);
  // Protect saves and edits; a slow read can safely finish after leaving.
- usePageActivity(onActivity,dirty,working,"capture-ai");
+ usePageActivity(onActivity,dirty,working,"capture-ai",()=>void load());
  async function load(){setLoading(true);setError("");setNotice("");try{const value=await captureCall<AIConfiguration>("ai.configuration.get");setDraft(value);setSaved(value);}catch(error){setError(String(error));}finally{setLoading(false);}}
  useEffect(()=>{void load();},[]);
  async function save(){setBusy(true);setError("");setNotice("");try{const value=await captureCall<AIConfiguration>("ai.configuration.save",{configuration:draft});setDraft(value);setSaved(value);setNotice(t("common.saved"));}catch(error){setError(String(error));}finally{setBusy(false);}}
@@ -43,7 +43,7 @@ export function CaptureAISettings({onActivity}:{onActivity?:PageActivityChanged}
    {draft.engine==="llm"&&<div className="space-y-2"><Label htmlFor="capture-ai-prompt">{t("ai.prompt")}</Label><Textarea id="capture-ai-prompt" value={draft.prompt} placeholder={t("ai.promptDefault")} onChange={event=>setDraft({...draft,prompt:event.target.value})}/><p className="muted">{t("ai.promptHint")}</p></div>}
    </SettingsSection>
    <SettingsSection icon={MessagesSquare} title={t("ai.conversationGroup")}>{select("chat")}</SettingsSection>
-   <SettingsSaveBar><Button icon={Save} variant="primary" disabled={!dirty||busy} onClick={()=>void save()}>{t("capture.save")}</Button>{dirty&&<Button icon={RotateCcw} disabled={busy} onClick={()=>void load()}>{t("shortcuts.undo")}</Button>}</SettingsSaveBar>
+   <SettingsSaveBar undo={{disabled:!dirty||busy,onClick:()=>void load()}}><Button icon={Save} variant="primary" disabled={!dirty||busy} onClick={()=>void save()}>{t("capture.save")}</Button></SettingsSaveBar>
    {notice&&!dirty&&<p role="status">{notice}</p>}
   </fieldset>}
  </div>;

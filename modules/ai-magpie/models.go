@@ -9,6 +9,7 @@ import (
 	"github.com/yetone/magpie/internal/settings"
 	"math"
 	"net/url"
+	"slices"
 	"strings"
 )
 
@@ -25,13 +26,16 @@ type modelOption struct {
 // The host owns persistence. Worker options mirror Magpie's model window,
 // output and effort semantics without writing agents' configuration files.
 type modelMetadata struct {
-	Searches bool `json:"searches,omitempty"`
-	Same         string         `json:"same,omitempty"`
-	UpstreamName string         `json:"upstreamName,omitempty"`
-	API          string         `json:"api,omitempty"`
-	Efforts      []string       `json:"efforts,omitempty"`
-	Tiers        []string       `json:"tiers,omitempty"`
-	Price        *catalog.Price `json:"price,omitempty"`
+	Searches     bool   `json:"searches,omitempty"`
+	Same         string `json:"same,omitempty"`
+	UpstreamName string `json:"upstreamName,omitempty"`
+	API          string `json:"api,omitempty"`
+	// Levels are the vendor's reported reasoning levels; Efforts the offered
+	// (kept) ones. Both are the vendor's own words, never a fixed ladder.
+	Levels  []string       `json:"levels,omitempty"`
+	Efforts []string       `json:"efforts,omitempty"`
+	Tiers   []string       `json:"tiers,omitempty"`
+	Price   *catalog.Price `json:"price,omitempty"`
 	// Keep the vendor's current and pre-discount credit rates for model tags.
 	Rate                float64 `json:"rate,omitempty"`
 	RateWas             float64 `json:"rateWas,omitempty"`
@@ -78,7 +82,7 @@ func describeModel(p provider.Provider, model catalog.Model, override modelMetad
 	if threshold == 0 && override.CompactionPercent <= 0 && override.CompactionThreshold <= 0 {
 		threshold = model.Compact
 	}
-	metadata := modelMetadata{Searches: model.WebSearch == "native", Efforts: model.Efforts, Tiers: model.Tiers, Price: model.Price, Rate: model.Rate, RateWas: model.RateWas, ContextWindow: window, ListedContextWindow: provider.ListedWindow(model), MaxContextWindow: model.MaxContext, MaxTokens: p.ReplyLimitIn(model, snapshot), CompactionThreshold: threshold, CompactionPercent: override.CompactionPercent, Vision: model.ImageInput}
+	metadata := modelMetadata{Searches: model.WebSearch == "native", Levels: slices.Clone(model.Efforts), Efforts: slices.Clone(model.Efforts), Tiers: model.Tiers, Price: model.Price, Rate: model.Rate, RateWas: model.RateWas, ContextWindow: window, ListedContextWindow: provider.ListedWindow(model), MaxContextWindow: model.MaxContext, MaxTokens: p.ReplyLimitIn(model, snapshot), CompactionThreshold: threshold, CompactionPercent: override.CompactionPercent, Vision: model.ImageInput}
 	if model.Reasoning || len(model.Efforts) > 0 {
 		yes := true
 		metadata.Reasoning = &yes
@@ -111,9 +115,13 @@ func applyModelMetadata(body map[string]any, path string, m modelMetadata) {
 			delete(body, "max_tokens")
 		}
 	}
+	// A model the user said takes no reasoning is Magpie's reasonless model
+	// (installModelPreferences): the gateway then sends no reasoning field on
+	// any API. Writing "none" here instead asked vendors whose levels lack it
+	// for their nearest level, so "no reasoning" still reasoned.
 	effort := m.ReasoningEffort
 	if m.Reasoning != nil && !*m.Reasoning {
-		effort = "none"
+		effort = ""
 	}
 	if effort != "" {
 		if strings.Contains(path, "responses") {
@@ -226,6 +234,7 @@ func configuredProvider(in request) (provider.Provider, error) {
 		}
 	}
 	p.AdditionalTools = in.AdditionalTools
+	p.LimitRestOff = in.LimitRestOff
 	// Magpie applies these after protocol authentication, preserving names and
 	// merging list-valued headers through the same path as its provider editor.
 	for name, value := range in.Headers {
@@ -255,6 +264,7 @@ func fetchModels(ctx context.Context, in request) ([]modelOption, error) {
 			return nil, findErr
 		}
 		p = *account
+		p.LimitRestOff = in.LimitRestOff
 	} else {
 		p, err = configuredProvider(in)
 		if err != nil {

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"golang.org/x/sys/windows"
+	"maps"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -140,8 +141,24 @@ func (s *aiService) handle(r host.Request) host.Response {
 			return fail(err)
 		}
 		return result(map[string]bool{"queued": queued})
-	case "usage.export.save":
+	case "usage.export.save", "archive.export.save":
 		return s.handleUsageExport(r)
+	case "archive.read":
+		var params struct {
+			Archive string `json:"archive"`
+		}
+		if err := configjson.DecodeObject(r.Params, &params); err != nil {
+			return fail(err)
+		}
+		runtime, err := s.magpieTranslator()
+		if err != nil {
+			return fail(err)
+		}
+		raw, err := runtime.RequestArchive(s.ctx, params.Archive)
+		if err != nil {
+			return fail(err)
+		}
+		return host.Response{ID: r.ID, Result: raw}
 	case "usage.get", "usage.export":
 		var query ai.UsageQuery
 		if err := configjson.DecodeObject(r.Params, &query); err != nil {
@@ -193,18 +210,24 @@ func (s *aiService) handle(r host.Request) host.Response {
 		ctx, cancel := context.WithTimeout(s.ctx, 20*time.Second)
 		defer cancel()
 		var models []ai.ModelOption
+		// Discovery uses the saved global proxy and other runtime preferences,
+		// just like generation and account requests.
+		runtime, err := s.magpieTranslator()
+		if err != nil {
+			return fail(err)
+		}
 		if params.Connection != nil {
 			err = s.store.WithModelDraft(ctx, params.Provider, *params.Connection, params.KeyUpdates, func(ctx context.Context, p ai.Provider, key string) error {
 				var err error
-				models, err = s.translator.Models(ctx, p, key)
+				models, err = runtime.Models(ctx, p, key)
 				return err
 			})
 		} else if params.Draft != nil {
-			models, err = s.translator.Models(ctx, provider, "")
+			models, err = runtime.Models(ctx, provider, "")
 		} else {
 			err = s.store.WithKeys(ctx, keyPlan, func(ctx context.Context, key string) (bool, error) {
 				var err error
-				models, err = s.translator.Models(ctx, provider, key)
+				models, err = runtime.Models(ctx, provider, key)
 				return false, err
 			})
 		}
@@ -235,6 +258,20 @@ func (s *aiService) handle(r host.Request) host.Response {
 		}
 		if err := configjson.DecodeObject(r.Params, &input); err != nil {
 			return fail(err)
+		}
+		if preferences := input.Configuration.MagpieSettings; preferences != nil {
+			old := s.store.Configuration().MagpieSettings
+			var oldAliases map[string]string
+			if old != nil {
+				oldAliases = old.UsageAliases
+			}
+			if !maps.Equal(preferences.UsageAliases, oldAliases) {
+				aliases, err := s.translator.UsageAliases(s.ctx, preferences.UsageAliases, nil)
+				if err != nil {
+					return fail(err)
+				}
+				preferences.UsageAliases = aliases
+			}
 		}
 		saved, err := s.store.SaveConfigurationWithKeys(input.Configuration, input.Keys, input.KeyUpdates)
 		if err != nil {

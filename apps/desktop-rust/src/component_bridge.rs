@@ -16,14 +16,19 @@ impl Request{
         match self.method.as_str(){
             // Account/configuration reads may start a short-lived worker, but
             // cannot lose a settings edit when the user closes this window.
-            "Capture" if self.args.first().and_then(Value::as_str).is_some_and(|method|matches!(method,"ai.magpie.catalog"|"ai.magpie.search-key"|"ai.accounts.catalog"|"ai.accounts.list"|"ai.accounts.quota"|"ai.accounts.checkin"|"ai.accounts.signin.get"|"ai.configuration.get"|"ai.keys.reveal"|"ai.settings.get"|"ai.usage.get"|"ai.gateway.get"|"ai.icons.read"|"ai.routing.open"|"ai.routing.close"|"ai.routing.plugins.open"|"ai.routing.plugins.close"|"ai.routing.extensions.open"|"ai.routing.extensions.close"|"ai.magpie.privacy.open"|"ai.magpie.privacy.state"|"ai.magpie.privacy.close"))=>false,
+            "Capture" if self.args.first().and_then(Value::as_str).is_some_and(|method|matches!(method,"ai.magpie.catalog"|"ai.magpie.search-key"|"ai.magpie.usage-aliases"|"ai.accounts.catalog"|"ai.accounts.list"|"ai.accounts.quota"|"ai.accounts.checkin"|"ai.accounts.signin.get"|"ai.configuration.get"|"ai.keys.reveal"|"ai.settings.get"|"ai.archive.read"|"ai.usage.get"|"ai.gateway.get"|"ai.icons.read"|"ai.routing.open"|"ai.routing.close"|"ai.routing.plugins.open"|"ai.routing.plugins.close"|"ai.routing.extensions.open"|"ai.routing.extensions.close"|"ai.magpie.privacy.open"|"ai.magpie.privacy.state"|"ai.magpie.privacy.close"))=>false,
             "ChatMedia"|"SaveSettings"|"SetAdministratorPreference"|"RestartAsAdministrator"|"BeginShortcutRecording"|"EndShortcutRecording"|"ExportProfile"|"OpenCaptureWindow"=>true,
-            "Chat"=>self.args.first().and_then(Value::as_str).is_some_and(|method|!matches!(method,"file.resolve"|"file.stat"|"files.list"|"files.index"|"files.search"|"files.cancel"|"file.preview"|"media.source"|"media.upload"|"terminal.poll"|"terminal.resize"|"review.turn"|"review.snapshot"|"review.diff"|"review.diff.preview"|"review.file.preview"|"review.metadata"|"review.branches"|"review.commits"|"usage"|"project.git"|"automations.deleted"|"automations.project.read"|"automations.connections.get"|"automations.templates"|"automations.template.apply"|"automations.list"|"automations.get"|"automations.runs"|"automations.events"|"automations.runtime"|"automations.preview"|"catalog"|"activity"|"settings.get"|"resources"|"files"|"state"|"poll"|"draft.get"|"release"|"detach")),
-            "DirectoryLinks"=>self.args.first().and_then(Value::as_str).is_some_and(|method|matches!(method,"create"|"create.elevated"|"createBatch"|"createBatch.elevated"|"rename"|"remove"|"forget"|"forgetInvalid"|"inspectBatch"|"scan"|"exportPlan"|"menu.set")),
+            "Chat" if self.args.first().and_then(Value::as_str).is_some_and(|method|method.starts_with("onebot.chat."))=>{
+                let method=self.args[0].as_str().unwrap().strip_prefix("onebot.chat.").unwrap();
+                Request{id:self.id,method:"Chat".into(),args:vec![json!(method)]}.mutates()
+            },
+            "Chat" if self.args.first().and_then(Value::as_str).is_some_and(|method|method.starts_with("onebot."))=>self.args.first().and_then(Value::as_str).and_then(onebot_method).unwrap_or(true),
+            "Chat"=>self.args.first().and_then(Value::as_str).is_some_and(|method|!matches!(method,"file.resolve"|"file.stat"|"files.list"|"files.index"|"files.search"|"files.cancel"|"file.preview"|"media.source"|"media.upload"|"terminal.poll"|"terminal.resize"|"review.turn"|"review.snapshot"|"review.diff"|"review.diff.preview"|"review.file.preview"|"review.metadata"|"review.branches"|"review.commits"|"usage"|"project.git"|"automations.deleted"|"automations.project.read"|"automations.connections.get"|"automations.templates"|"automations.template.apply"|"automations.list"|"automations.get"|"automations.runs"|"automations.events"|"automations.runtime"|"automations.preview"|"automations.sidebarIndexRuns"|"automations.inflightCount"|"automations.detectCwd"|"automations.channels"|"automations.capabilityStatus"|"catalog"|"activity"|"settings.get"|"resources"|"files"|"state"|"poll"|"draft.get"|"release"|"detach")),
+            "DirectoryLinks"=>self.args.first().and_then(Value::as_str).is_some_and(|method|matches!(method,"create"|"create.elevated"|"createBatch"|"createBatch.elevated"|"rename"|"remove"|"forget"|"forgetInvalid"|"inspectBatch"|"scan"|"exportPlan"|"history.import"|"history.export"|"migration.execute"|"migration.recover"|"migration.cleanup"|"menu.set")),
             "Interconnect"=>self.args.first().and_then(Value::as_str).is_some_and(|method|!matches!(method,"get"|"item_path"|"download_name")),
             "Stroke"=>self.args.first().and_then(Value::as_str).is_some_and(|method|!matches!(method,"snapshot"|"settings.get"|"record.read"|"inspect.target"|"windows.list")),
             "WinTray" if self.args.first().and_then(Value::as_str)==Some("program.state")=>false,
-            "WinTray"|"Modules"|"AlwaysOnTop"|"Selection"|"QuickAssistant"|"Capture"|"Profiles"=>self.args.first().and_then(Value::as_str).is_some_and(|method|!matches!(method,"snapshot"|"catalog"|"settings.get"|"jobs.get"|"packagePreview.start"|"packagePreview.get"|"packagePreview.cancel"|"icons"|"privilege.status"|"import.preview"|"resetWinTray.preview"|"filename.preview"|"draft.get"|"selection.candidates"|"edit.preview")),
+            "TimedPower"|"WinTray"|"Modules"|"AlwaysOnTop"|"Selection"|"QuickAssistant"|"Capture"|"Profiles"=>self.args.first().and_then(Value::as_str).is_some_and(|method|!matches!(method,"snapshot"|"catalog"|"settings.get"|"jobs.get"|"packagePreview.start"|"packagePreview.get"|"packagePreview.cancel"|"icons"|"privilege.status"|"import.preview"|"resetWinTray.preview"|"filename.preview"|"draft.get"|"selection.candidates"|"edit.preview")),
             _=>false,
         }
     }
@@ -60,6 +65,27 @@ fn activate_quick_assistant(value:&Value)->Result<(),RpcError>{
 
 pub fn text<'a>(locale:&str,zh:&'a str,en:&'a str)->&'a str{if locale=="en-US"{en}else{zh}}
 
+// Some OneBot reads repair derived indexes; they do not change user settings.
+// Init, lifecycle ownership and dispatch receipts are never renderer methods.
+fn onebot_method(method:&str)->Option<bool>{
+    match method.strip_prefix("onebot.")?{
+        "wechat.state"|"wechat.settings"=>Some(false),
+        "wechat.authorize"|"wechat.cancelAuthorization"|"wechat.unbind"|"wechat.setCompanion"|"wechat.setWorkingDirectory"|"wechat.resetWorkingDirectory"=>Some(true),
+        "market.list"|"market.status"|"import.sources"|"import.preview"|"import.status"=>Some(false),
+        "market.invite"|"import.start"|"bots.generateDraft"|"bots.generateAvatar"=>Some(true),
+        "voice.models"|"voice.voices"|"voice.preference"|"voice.readPreview"|"voice.readSpeech"|"voice.input.data"|"voice.input.history"|"voice.input.historyForRefinement"=>Some(false),
+        value if value.starts_with("voice.")=>Some(true),
+        "groups.list"|"groups.get"|"groups.files.describe"|"groups.files.read"|"groups.files.classify"|"groups.files.resolvePath"|"groups.files.resolvePathBatch"=>Some(false),
+        "groups.create"|"groups.update"|"groups.setMembers"|"groups.delete"|"groups.send"|"groups.continue"|"groups.stop"|"groups.plan.start"|"groups.plan.dismiss"|"groups.plan.continue"|"groups.plan.retry"|"groups.plan.edit"|"groups.attachments.stage"|"groups.attachments.image"=>Some(true),
+        "groups.files.begin"|"groups.files.chunk"|"groups.files.finish"|"groups.files.image"|"groups.files.discard"|"groups.files.open"|"groups.files.reveal"|"groups.files.remoteImage"|"groups.files.draftUrls"=>Some(true),
+        "routines.list"|"routines.history"|"routines.sources"|"routines.nightly.get"=>Some(false),
+        "routines.save"|"routines.remove"|"routines.runNow"|"routines.nightly.setEnabled"|"routines.nightly.setFrequency"|"routines.nightly.runNow"|"routines.nightly.revert"|"routines.nightly.candidate"=>Some(true),
+        "tasks.pr.refs"|"tasks.pr.statuses"|"tasks.list"|"tasks.get"|"capabilities.get"|"events"|"projects.list"|"history.search"|"profiles.list"|"profiles.get"|"profiles.versions"|"profile.content.read"|"bots.list"|"bots.history"|"avatar.source"|"media.read"|"modelChain.get"|"dmThread.list"|"workbench.get"|"workbench.followScopes"|"workbench.readTask"|"directMessage.get"|"im.list"|"imConnection.list"|"imConnection.listGroups"|"imConnection.listLanes"|"imConnection.listAdoptable"|"memory.list"|"memory.read"|"memory.index"|"memory.search"|"messages.learning"|"skills.list"|"skills.query"|"skills.read"|"skills.readSource"|"skills.mounts"|"todos.read"|"autonomy.glance"|"autonomy.settings"=>Some(false),
+        "tasks.stop"|"tasks.message"|"tasks.trace"|"projects.set"|"lifecycle.action"|"session.open"|"profiles.create"|"profiles.update"|"profile.content.write"|"bots.createCanonicalSession"|"bots.chooseAvatar"|"modelChain.set"|"modelChain.reset"|"dmThread.ensure"|"todos.act"|"im.add"|"im.remove"|"im.reconnect"|"im.online"|"im.offline"|"im.groups.setMode"|"imConnection.add"|"imConnection.remove"|"imConnection.setGroupActivation"|"imConnection.resetLane"|"imConnection.archiveLane"|"imConnection.adopt"|"memory.update"|"memory.delete"|"memory.write"|"memory.consolidate"|"memory.importDocument"|"skills.save"|"skills.saveSource"|"skills.delete"|"todos.patch"|"autonomy.setSettings"|"autonomy.resetSettings"|"todos.dailyCheck"=>Some(true),
+        _=>None,
+    }
+}
+
 pub fn module_method(namespace:&str,method:&str)->Result<String,RpcError>{
     let allowed=match namespace{
         "wintray"=>matches!(method,"program.state"|"program.window"|"program.stop"|"snapshot"|"settings.get"|"settings.save"|"launch"|"jobs.get"|"icons"|"icon.activate"|"recover"|"import.preview"|"startup.retry"),
@@ -67,11 +93,14 @@ pub fn module_method(namespace:&str,method:&str)->Result<String,RpcError>{
         "always-on-top"=>matches!(method,"snapshot"|"settings.get"|"settings.save"|"window.set"|"clear"|"privilege.start"|"privilege.status"),
         "quick-assistant"=>matches!(method,"snapshot"|"settings.get"|"settings.save"|"show"),
         "selection"=>matches!(method,"snapshot"|"settings.get"|"settings.save"),
-        "directory-links"=>matches!(method,"browse"|"open"|"pending"|"menu.get"|"menu.set"|"scan.cancel"|"reveal"|"preview"|"previewBatch"|"create"|"create.elevated"|"createBatch"|"createBatch.elevated"|"rename"|"list"|"inspect"|"inspectBatch"|"scan"|"remove"|"forget"|"forgetInvalid"|"exportPlan"),
+        "directory-links"=>matches!(method,"browse"|"open"|"pending"|"menu.get"|"menu.set"|"scan.cancel"|"reveal"|"preview"|"previewBatch"|"create"|"create.elevated"|"createBatch"|"createBatch.elevated"|"rename"|"list"|"inspect"|"inspectBatch"|"scan"|"remove"|"forget"|"forgetInvalid"|"exportPlan"|"history.export"|"history.preview"|"history.import"|"migration.preview"|"migration.execute"|"migration.status"|"migration.cancel"|"migration.recover"|"migration.cleanup"),
+        "timed-power"=>matches!(method,"snapshot"|"settings.get"|"settings.save"|"start"|"cancel"),
         "stroke"=>matches!(method,"inspect.target"|"windows.list"|"snapshot"|"settings.get"|"settings.save"|"record.start"|"record.read"|"record.cancel"),
-        "interconnect"=>matches!(method,"transfer_text"|"transfer_text_open"|"pending"|"menu.get"|"menu.set"|"general.get"|"general.save"|"entry.get"|"entry.show"|"entry.hide"|"get"|"start"|"stop"|"add_files"|"add_text"|"remove"|"item_path"|"download_name"|"save_as"|"transfer_list"|"transfer_start"|"transfer_stop"|"transfer_answer"|"transfer_remove"|"share_revoke"|"transfer_restart"|"share_add"|"share_remove"|"share_code_restart"|"share_code_stop"|"share_code_answer"|"share_add_text"|"share_save_as"|"transfer_files"|"preferences.save"),
-        "chat"=>matches!(method,"file.resolve"|"file.stat"|"files.list"|"files.index"|"files.search"|"files.cancel"|"thinking"|"fast"|"agents"|"file.preview"|"media.source"|"media.upload"|"media.attach"|"file.save"|"file.create"|"file.open"|"file.reveal"|"terminal.create"|"terminal.poll"|"terminal.write"|"terminal.resize"|"terminal.dispose"|"terminal.restart"|"review.turn.apply"|"review.turn"|"review.snapshot"|"review.diff"|"review.diff.preview"|"review.file.preview"|"review.metadata"|"review.branches"|"review.commits"|"review.mutate"|"review.push"|"title.generate"|"title.regenerate"|"project.permission"|"link.open"|"usage"|"project.git"|"automations.deleted"|"automations.project.read"|"automations.connections.get"|"automations.templates"|"automations.template.apply"|"automations.list"|"automations.get"|"automations.restore"|"automations.project.write"|"automations.project.reconcile"|"automations.project.promote"|"automations.project.clone"|"automations.project.demote"|"automations.silence"|"automations.notify"|"automations.connections.save"|"automations.template.save"|"automations.template.delete"|"automations.create"|"automations.update"|"automations.pause"|"automations.resume"|"automations.delete"|"automations.run"|"automations.runs"|"automations.deleteRun"|"automations.markRead"|"automations.runtime"|"automations.preview"|"automations.events"|"catalog"|"activity"|"settings.get"|"settings.save"|"resources"|"files"|"attachments.add"|"attachments.upload"|"automation.run"|"project.add"|"project.create"|"project.update"|"project.remove"|"export"|"conversation.new"|"conversation.update"|"conversation.move"|"conversation.delete"|"configure"|"location"|"fork"|"draft.get"|"draft.save"|"open"|"poll"|"prompt"|"queue"|"edit"|"retry"|"state"|"permission"|"question"|"stop"|"pause"|"resume"|"compact"|"release"|"detach"),
-        "capture"=>matches!(method,"ai.magpie.catalog"|"ai.magpie.search-key"|"ai.models.test"|"ai.icons.store"|"ai.icons.read"|"ai.icons.fetch"|"ai.icons.website"|"ai.icons.cancel"|"ai.usage.get"|"ai.usage.export"|"ai.gateway.get"|"ai.gateway.save"|"ai.gateway.key"|"ai.models.fetch"|"ai.accounts.catalog"|"ai.accounts.list"|"ai.accounts.models"|"ai.accounts.signin.start"|"ai.accounts.signin.get"|"ai.accounts.signin.cancel"|"ai.accounts.signin.submit"|"ai.accounts.signin.open"|"ai.settings.get"|"ai.settings.save"|"ai.configuration.get"|"ai.keys.reveal"|"ai.configuration.save"|"ai.routing.open"|"ai.routing.close"|"ai.routing.plugins.open"|"ai.routing.plugins.close"|"ai.routing.extensions.open"|"ai.routing.extensions.close"|"ai.magpie.privacy.open"|"ai.magpie.privacy.state"|"ai.magpie.privacy.action"|"ai.magpie.privacy.close"|"snapshot"|"settings.get"|"settings.save"|"filename.preview"|"capture.start"|"capture.unified"|"scroll.stop"|"scroll.retake"|"handoff.release"|"draft.begin"|"draft.get"|"draft.update"|"draft.cancel"|"draft.complete"|"draft.confirm"|"selection.candidates"|"selection.commit"|"draft.copy"|"draft.pin"|"edit.last"|"edit.apply"|"edit.preview"|"copy.last"|"save.last"|"pin.last"|"pins.close"|"jobs.get"),
+        "interconnect"=>matches!(method,"chat.preferences.get"|"chat.preferences.save"|"transfer_open_cloud"|"transfer_text"|"transfer_text_open"|"pending"|"menu.get"|"menu.set"|"general.get"|"general.save"|"entry.get"|"entry.show"|"entry.hide"|"get"|"start"|"stop"|"add_files"|"add_text"|"remove"|"item_path"|"download_name"|"save_as"|"transfer_list"|"transfer_start"|"transfer_stop"|"transfer_answer"|"transfer_remove"|"share_revoke"|"transfer_restart"|"share_add"|"share_remove"|"share_code_restart"|"share_code_stop"|"share_code_answer"|"share_add_text"|"share_save_as"|"transfer_files"|"preferences.save"),
+        "chat" if method.starts_with("onebot.chat.")=>module_method("chat",method.strip_prefix("onebot.chat.").unwrap()).is_ok(),
+        "chat" if method.starts_with("onebot.")=>onebot_method(method).is_some(),
+        "chat"=>matches!(method,"file.resolve"|"file.stat"|"files.list"|"files.index"|"files.search"|"files.cancel"|"thinking"|"fast"|"agents"|"file.preview"|"media.source"|"media.upload"|"media.attach"|"file.save"|"file.create"|"file.open"|"file.reveal"|"terminal.create"|"terminal.poll"|"terminal.write"|"terminal.resize"|"terminal.dispose"|"terminal.restart"|"review.turn.apply"|"review.turn"|"review.snapshot"|"review.diff"|"review.diff.preview"|"review.file.preview"|"review.metadata"|"review.branches"|"review.commits"|"review.mutate"|"review.push"|"title.generate"|"title.regenerate"|"project.permission"|"link.open"|"usage"|"project.git"|"automations.deleted"|"automations.project.read"|"automations.connections.get"|"automations.templates"|"automations.template.apply"|"automations.list"|"automations.get"|"automations.restore"|"automations.project.write"|"automations.project.reconcile"|"automations.project.promote"|"automations.project.clone"|"automations.project.demote"|"automations.silence"|"automations.notify"|"automations.connections.save"|"automations.template.save"|"automations.template.delete"|"automations.create"|"automations.update"|"automations.pause"|"automations.resume"|"automations.delete"|"automations.run"|"automations.runs"|"automations.deleteRun"|"automations.markRead"|"automations.runtime"|"automations.preview"|"automations.sidebarIndexRuns"|"automations.inflightCount"|"automations.detectCwd"|"automations.channels"|"automations.capabilityStatus"|"automations.hook.test"|"automations.hook.generate"|"automations.markAllRead"|"automations.project.upsertSchedule"|"automations.project.removeSchedule"|"automations.open"|"automations.events"|"catalog"|"activity"|"settings.get"|"settings.save"|"resources"|"files"|"attachments.add"|"attachments.upload"|"automation.run"|"project.add"|"project.create"|"project.update"|"project.remove"|"export"|"conversation.new"|"conversation.update"|"conversation.move"|"conversation.delete"|"configure"|"location"|"fork"|"draft.get"|"draft.save"|"open"|"poll"|"prompt"|"queue"|"edit"|"retry"|"state"|"permission"|"question"|"stop"|"pause"|"resume"|"compact"|"release"|"detach"),
+        "capture"=>matches!(method,"ai.magpie.catalog"|"ai.magpie.search-key"|"ai.magpie.usage-aliases"|"ai.models.test"|"ai.icons.store"|"ai.icons.read"|"ai.icons.fetch"|"ai.icons.website"|"ai.icons.cancel"|"ai.archive.read"|"ai.archive.export"|"ai.usage.get"|"ai.usage.export"|"ai.gateway.get"|"ai.gateway.save"|"ai.gateway.key"|"ai.models.fetch"|"ai.accounts.catalog"|"ai.accounts.list"|"ai.accounts.models"|"ai.accounts.signin.start"|"ai.accounts.signin.get"|"ai.accounts.signin.cancel"|"ai.accounts.signin.submit"|"ai.accounts.signin.open"|"ai.settings.get"|"ai.settings.save"|"ai.configuration.get"|"ai.keys.reveal"|"ai.configuration.save"|"ai.routing.open"|"ai.routing.close"|"ai.routing.plugins.open"|"ai.routing.plugins.close"|"ai.routing.extensions.open"|"ai.routing.extensions.close"|"ai.magpie.privacy.open"|"ai.magpie.privacy.state"|"ai.magpie.privacy.action"|"ai.magpie.privacy.close"|"snapshot"|"settings.get"|"settings.save"|"filename.preview"|"capture.start"|"capture.unified"|"scroll.stop"|"scroll.retake"|"handoff.release"|"draft.begin"|"draft.get"|"draft.update"|"draft.cancel"|"draft.complete"|"draft.confirm"|"selection.candidates"|"selection.commit"|"draft.copy"|"draft.pin"|"edit.last"|"edit.apply"|"edit.preview"|"copy.last"|"save.last"|"pin.last"|"pins.close"|"jobs.get"),
         _=>false,
     };
     if !allowed{return Err(RpcError::new("unsupported","不支持的模块操作"));}Ok(format!("{namespace}.{method}"))
@@ -83,15 +112,27 @@ pub fn execute(request:&Request,client:Arc<Client>,directory:&str,pipe:&str,owne
         "Snapshot"=>client.call("snapshot",Value::Null),
         "Chat" if request.text(0)?=="export"=>crate::chat_export::export(&client,serde_json::from_str(request.text(1)?)?,owner,locale),
         "Chat"=>Ok(json!(client.call(&module_method("chat",request.text(0)?)?,serde_json::from_str(request.text(1)?)?)?.to_string())),
+        "TimedPower"=>Ok(json!(client.call_completing(&module_method("timed-power",request.text(0)?)?,serde_json::from_str(request.text(1)?)?)?.to_string())),
         "Interconnect"=>Ok(json!(client.call_completing(&module_method("interconnect",request.text(0)?)?,serde_json::from_str(request.text(1)?)?)?.to_string())),
         "DirectoryLinks"|"Stroke"=>{let namespace=if request.method=="DirectoryLinks"{"directory-links"}else{"stroke"};Ok(json!(client.call_completing(&module_method(namespace,request.text(0)?)?,serde_json::from_str(request.text(1)?)?)?.to_string()))},
         "SaveSettings"=>client.call_completing("settings.save",request.value(0)?),
         "ChatMedia"=>{
             let method=request.text(0)?;
-            if !matches!(method,"copy"|"copy-file"|"save-as"){return Err(RpcError::new("media","不支持的文件操作"));}
+            if !matches!(method,"copy"|"copy-file"|"save-as"|"save-file"){return Err(RpcError::new("media","不支持的文件操作"));}
             let params:Value=serde_json::from_str(request.text(1)?)?;
+            let group=params["id"].as_str().is_some_and(|id|id.starts_with("bot-group:"));
+            let describe=if group {"chat.onebot.groups.files.describe"} else {"chat.file.preview"};
+            if method=="save-file" {
+                let file=client.call(if group{describe}else{"chat.file.resolve"},params.clone())?;
+                let path=file["path"].as_str().ok_or_else(invalid)?;
+                let name=params["suggestedName"].as_str().or_else(||file["name"].as_str()).unwrap_or("attachment");
+                let selected=crate::dialogs::save_file(owner,text(locale,"另存附件","Save attachment"),"File\0*.*\0","",name).map_err(|e|RpcError::new("media",e))?;
+                if let Some(target)=selected {std::fs::copy(path,&target).map_err(|e|RpcError::new("media",e.to_string()))?;return Ok(json!(json!({"canceled":false,"path":target}).to_string()));}
+                return Ok(json!(json!({"canceled":true}).to_string()));
+            }
             if method=="copy-file"{
-                let file=client.call("chat.file.resolve",params)?;
+                let file=client.call(if group{describe}else{"chat.file.resolve"},params)?;
+                if file["downloadOnly"]==true{return Err(RpcError::new("media","此类附件只能另存为"));}
                 let path=file["path"].as_str().ok_or_else(invalid)?;
                 crate::browser_capture::copy_file(owner,path).map_err(|error|RpcError::new("media",error))?;
                 return Ok(json!(json!({"success":true}).to_string()));
@@ -99,7 +140,7 @@ pub fn execute(request:&Request,client:Arc<Client>,directory:&str,pipe:&str,owne
             // The Host resolves the saved conversation's file boundary. The
             // native action receives only a verified image, never an arbitrary
             // URL or executable; bytes stay outside the 1 MB JSON pipe.
-            let file=client.call("chat.file.preview",params.clone())?;
+            let file=client.call(describe,params.clone())?;
             if file["kind"]!="image"{return Err(RpcError::new("media","内容不是图片"));}
             let path=file["resolvedPath"].as_str().or_else(||file["path"].as_str()).ok_or_else(invalid)?;
             if method=="copy"{
@@ -203,6 +244,39 @@ pub fn execute(request:&Request,client:Arc<Client>,directory:&str,pipe:&str,owne
 
 #[cfg(test)]mod tests{
     use super::*;
+    #[test]fn onebot_groups_keep_mutation_guards_and_private_lanes_stay_private(){
+        for method in ["groups.list","groups.get","groups.create","groups.update","groups.setMembers","groups.delete","groups.send","groups.continue","groups.stop","groups.plan.start","groups.plan.dismiss","groups.plan.continue","groups.plan.retry","groups.plan.edit","groups.attachments.stage","groups.attachments.image"]{
+            let wire=format!("onebot.{method}");
+            assert_eq!(module_method("chat",&wire).unwrap(),format!("chat.{wire}"));
+            assert_eq!(Request{id:1,method:"Chat".into(),args:vec![json!(wire),json!("{}")]}.mutates(),!matches!(method,"groups.list"|"groups.get"));
+        }
+        for method in ["onebot.group-lane","onebot.group-lanes-close","onebot.group-worktree","onebot.group-folder-recycle","onebot.groups.dispatch"]{assert!(module_method("chat",method).is_err());}
+    }
+    #[test]fn onebot_routines_keep_mutation_guards_and_private_learning_is_not_a_page_method(){
+        for (method,mutates) in [("routines.list",false),("routines.history",false),("routines.sources",false),("routines.nightly.get",false),("routines.save",true),("routines.runNow",true),("routines.remove",true),("routines.nightly.setEnabled",true),("routines.nightly.setFrequency",true),("routines.nightly.runNow",true),("routines.nightly.revert",true),("routines.nightly.candidate",true)]{
+            let method=format!("onebot.{method}");
+            assert_eq!(module_method("chat",&method).unwrap(),format!("chat.{method}"));
+            let request=Request{id:1,method:"Chat".into(),args:vec![json!(method),json!("{}")]};
+            assert_eq!(request.mutates(),mutates);
+        }
+        for method in ["onebot.learning.scan","onebot.routines.tick","onebot.routines.start","onebot.authorize-routine"]{assert!(module_method("chat",method).is_err());}
+    }
+    #[test]fn onebot_content_routes_preserve_close_guards_and_refuse_private_controls(){
+        for (method,mutates) in [("onebot.capabilities.get",false),("onebot.events",false),("onebot.projects.list",false),("onebot.projects.set",true),("onebot.history.search",false),("onebot.profiles.get",false),("onebot.memory.list",false),("onebot.skills.query",false),("onebot.imConnection.list",false),("onebot.imConnection.listLanes",false),("onebot.imConnection.add",true),("onebot.imConnection.resetLane",true),("onebot.imConnection.archiveLane",true),("onebot.profiles.create",true),("onebot.memory.update",true),("onebot.todos.patch",true)]{
+            assert_eq!(module_method("chat",method).unwrap(),format!("chat.{method}"));
+            let request=Request{id:1,method:"Chat".into(),args:vec![json!(method),json!("{}")]};
+            assert_eq!(request.mutates(),mutates);
+        }
+        for method in ["onebot.capabilities.query","onebot.projects.query","onebot.projects.link","onebot.history.query","onebot.init","onebot.close","onebot.todos.prepareAction","onebot.cloud.connect","onebot.imLanes.retire","onebot.im.startSaved"]{assert!(module_method("chat",method).is_err());}
+    }
+    #[test]fn power_timer_routes_preserve_mutation_and_close_guards(){
+        for method in ["snapshot","settings.get","settings.save","start","cancel"]{
+            assert_eq!(module_method("timed-power",method).unwrap(),format!("timed-power.{method}"));
+            let request=Request{id:1,method:"TimedPower".into(),args:vec![json!(method),json!("{}")]};
+            assert_eq!(request.mutates(),!matches!(method,"snapshot"|"settings.get"));
+        }
+        for method in ["execute","shutdown","shell","start.force"]{assert!(module_method("timed-power",method).is_err());}
+    }
     #[test]fn quick_activation_rejects_missing_stale_and_overflowing_targets(){
         for value in [json!({}),json!({"window":"0","processId":1}),json!({"window":"-1","processId":1}),json!({"window":"123","processId":4294967296u64}),json!({"window":"123","processId":1})]{
             assert!(activate_quick_assistant(&value).is_err());
@@ -240,10 +314,10 @@ pub fn execute(request:&Request,client:Arc<Client>,directory:&str,pipe:&str,owne
         assert!(module_method("capture","ai.keys.export").is_err());
     }
     #[test]fn magpie_settings_reads_and_connection_tests_reach_the_host(){
-        for method in ["ai.magpie.catalog","ai.magpie.search-key","ai.models.test"]{
+        for method in ["ai.magpie.catalog","ai.magpie.search-key","ai.magpie.usage-aliases","ai.models.test"]{
             assert_eq!(module_method("capture",method).unwrap(),format!("capture.{method}"));
         }
-        for method in ["ai.magpie.catalog","ai.magpie.search-key"]{
+        for method in ["ai.magpie.catalog","ai.magpie.search-key","ai.magpie.usage-aliases"]{
             let request=Request{id:1,method:"Capture".into(),args:vec![json!(method),json!("{}")]};
             assert!(!request.mutates(),"reading settings must not prevent closing the window");
         }
@@ -254,6 +328,14 @@ pub fn execute(request:&Request,client:Arc<Client>,directory:&str,pipe:&str,owne
         assert!(!browse.mutates(),"a read must not acquire mutation/close protection");
         let create=Request{id:2,method:"DirectoryLinks".into(),args:vec![json!("createBatch"),json!("{}")]};
         assert!(create.mutates(),"actual creation must retain transaction protection");
+    }
+    #[test]fn history_backups_reach_host_and_guard_only_committed_writes(){
+        for method in ["history.preview","history.import","history.export"]{
+            assert_eq!(module_method("directory-links",method).unwrap(),format!("directory-links.{method}"));
+            let request=Request{id:1,method:"DirectoryLinks".into(),args:vec![json!(method),json!("{}")]};
+            assert_eq!(request.mutates(),method!="history.preview");
+        }
+        assert!(module_method("directory-links","history.replace").is_err());
     }
     #[test]fn entry_rename_reaches_the_host_with_close_protection(){
         // Rename is a real file mutation: admitting the route without the

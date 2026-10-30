@@ -79,6 +79,7 @@ func CheckUpgrade(data []byte, adapters ...ModuleAdapter) error {
 	}
 	legacySelection := state.Committed.BuiltinVersion < 2
 	legacyQuick := state.Committed.BuiltinVersion < 3
+	legacyPower := state.Committed.BuiltinVersion < 5
 	legacyStroke := state.Committed.BuiltinVersion < 4
 	upgraded, _, err := upgradeSelectionDocument(state.Committed, registered)
 	if err != nil {
@@ -97,7 +98,7 @@ func CheckUpgrade(data []byte, adapters ...ModuleAdapter) error {
 			if registered[id].Unavailable != nil || registered[id].PackageSchemaVersion > 0 && !state.Committed.ModuleEnabled[id] {
 				continue
 			}
-			if id == "selection" && legacySelection || id == "quick-assistant" && legacyQuick || id == "stroke" && legacyStroke {
+			if id == "selection" && legacySelection || id == "quick-assistant" && legacyQuick || id == "stroke" && legacyStroke || id == "timed-power" && legacyPower {
 				continue
 			}
 			return errors.New("请先完成模块配置迁移")

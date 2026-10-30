@@ -71,12 +71,49 @@ func NewTransfers(executable, data string) (*Transfers, error) {
 			record.State["error"] = "应用已退出，请重新开始传输"
 			delete(record.State, "prompt")
 		}
+		if err := m.recoverGofileReceipt(&record); err != nil {
+			return nil, err
+		}
 		done := make(chan struct{})
 		close(done)
 		m.jobs[record.ID] = &transferJob{record: record, done: done}
 	}
 	return m, nil
 }
+
+// A worker writes this before uploading. Recover after cancellation/process
+// death as well as Host restart; stop exits the worker and cannot be followed
+// by another snapshot RPC. Caller owns the job lock (or an unpublished record).
+func (m *Transfers) recoverGofileReceipt(record *transferRecord) error {
+	origin, _ := record.Spec["storeOrigin"].(string)
+	if strings.TrimRight(origin, "/") != "https://gofile.io" || record.Spec["mode"] != "store_send" {
+		return nil
+	}
+	result, _ := record.State["result"].(map[string]any)
+	if result["uploadToken"] != nil || result["revoked"] == true {
+		return nil
+	}
+	data, err := os.ReadFile(filepath.Join(m.data, "tasks", record.ID, "gofile-receipt.json"))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	var receipt map[string]any
+	if err = configjson.DecodeObject(data, &receipt); err != nil {
+		return err
+	}
+	if result == nil {
+		result = map[string]any{}
+		record.State["result"] = result
+	}
+	for _, key := range []string{"id", "service", "uploadToken"} {
+		result[key] = receipt[key]
+	}
+	return nil
+}
+
 func (m *Transfers) all() []*transferJob {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -108,6 +145,7 @@ func (m *Transfers) records(public bool) ([]transferRecord, error) {
 			}
 			delete(record.Spec, "uploadToken")
 			delete(record.Spec, "dataDir")
+			delete(record.Spec, "accountDir")
 			if result, ok := record.State["result"].(map[string]any); ok {
 				delete(result, "uploadToken")
 			}
@@ -139,6 +177,19 @@ func (m *Transfers) persist() (err error) {
 	return settings.WriteAtomic(filepath.Join(m.data, "tasks.json"), data)
 }
 func (m *Transfers) Call(ctx context.Context, method string, params json.RawMessage) (json.RawMessage, error) {
+	if method == "transfer_open_cloud" {
+		var request struct {
+			URL string `json:"url"`
+		}
+		if err := configjson.DecodeObject(params, &request); err != nil {
+			return nil, err
+		}
+		link, err := cloudDownloadLink(request.URL)
+		if err != nil {
+			return nil, err
+		}
+		return json.RawMessage("null"), windows.ShellExecute(0, windows.StringToUTF16Ptr("open"), windows.StringToUTF16Ptr(link), nil, nil, windows.SW_SHOWNORMAL)
+	}
 	if method == "transfer_files" {
 		var request struct {
 			Paths []string `json:"paths"`
@@ -295,11 +346,12 @@ func (m *Transfers) Call(ctx context.Context, method string, params json.RawMess
 		if job.process != nil {
 			_, err := job.process.call(ctx, "stop", nil)
 			closeErr := job.process.close()
+			receiptErr := m.recoverGofileReceipt(&job.record)
 			job.process = nil
 			job.record.State["status"] = "cancelled"
 			delete(job.record.State, "prompt")
 			job.mu.Unlock()
-			stopErr = errors.Join(err, closeErr)
+			stopErr = errors.Join(err, closeErr, receiptErr)
 		} else {
 			job.mu.Unlock()
 		}
@@ -321,7 +373,7 @@ func (m *Transfers) Call(ctx context.Context, method string, params json.RawMess
 			return nil, errors.New("请先取消传输")
 		}
 		if hasReceipt {
-			return nil, errors.New("请先撤销托管分享，保留撤销凭据")
+			return nil, errors.New("请先撤销云端分享，保留撤销凭据")
 		}
 		m.mu.Lock()
 		delete(m.jobs, command.ID)
@@ -337,11 +389,13 @@ func (m *Transfers) Call(ctx context.Context, method string, params json.RawMess
 		job.mu.Lock()
 		result, _ := job.record.State["result"].(map[string]any)
 		code, token := result["code"], result["uploadToken"]
+		origin, storeID := job.record.Spec["storeOrigin"], result["id"]
+		socks5, httpProxy := job.record.Spec["socks5"], job.record.Spec["httpProxy"]
 		job.mu.Unlock()
 		if token == nil || token == "" {
 			return nil, errors.New("未找到分享撤销凭据")
 		}
-		return m.start(ctx, map[string]any{"mode": "store_revoke", "code": code, "uploadToken": token, "revokeTask": command.ID})
+		return m.start(ctx, map[string]any{"mode": "store_revoke", "code": code, "uploadToken": token, "storeOrigin": origin, "storeID": storeID, "socks5": socks5, "httpProxy": httpProxy, "revokeTask": command.ID})
 	default:
 		return nil, errors.New("不支持的传输操作")
 	}
@@ -350,7 +404,7 @@ func configDecode(params []byte, spec *map[string]any) error {
 	if err := configjson.DecodeObject(params, spec); err != nil {
 		return err
 	}
-	for _, name := range []string{"_resumeData", "resume", "key", "psk", "shareURL", "revokeTask", "uploadToken"} {
+	for _, name := range []string{"_resumeData", "resume", "key", "psk", "shareURL", "revokeTask", "uploadToken", "accountDir", "storeID"} {
 		if _, ok := (*spec)[name]; ok {
 			return errors.New("请求包含内部字段")
 		}
@@ -366,6 +420,9 @@ func configDecode(params []byte, spec *map[string]any) error {
 func (m *Transfers) start(ctx context.Context, spec map[string]any) (json.RawMessage, error) {
 	id := rand.Text()
 	spec["dataDir"] = filepath.Join(m.data, "tasks", id)
+	if spec["mode"] == "store_send" {
+		spec["accountDir"] = filepath.Join(m.data, "gofile")
+	}
 	if existing, ok := spec["_resumeData"]; ok {
 		spec["dataDir"] = existing
 		delete(spec, "_resumeData")
@@ -444,7 +501,13 @@ func (m *Transfers) monitor(job *transferJob) {
 		if err != nil {
 			state = map[string]any{"status": "failed", "error": err.Error()}
 		}
+		priorResult, _ := job.record.State["result"].(map[string]any)
+		newResult, _ := state["result"].(map[string]any)
+		newReceipt := priorResult["uploadToken"] == nil && newResult["uploadToken"] != nil
 		job.record.State = state
+		if err := m.recoverGofileReceipt(&job.record); err != nil {
+			state["cleanupError"] = "读取云端撤销凭据失败: " + err.Error()
+		}
 		finished := state["status"] != "running"
 		if finished {
 			if closeErr := p.close(); closeErr != nil {
@@ -455,6 +518,9 @@ func (m *Transfers) monitor(job *transferJob) {
 		revokeID, _ := job.record.Spec["revokeTask"].(string)
 		completed := state["status"] == "completed"
 		job.mu.Unlock()
+		if newReceipt {
+			_ = m.persist()
+		}
 		if finished {
 			mode, _ := job.record.Spec["mode"].(string)
 			if m.notify != nil && (mode == "send" || mode == "receive" || mode == "store_send" || mode == "store_receive") && (completed || state["status"] == "failed") {

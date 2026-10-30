@@ -14,7 +14,7 @@ async function handle(request){
  const params=request.params??{};
  if(request.method==='init'){
   if(runtime||initializing)throw Error('Automation scheduler already initialized');initializing=true;
-  try{storageDirectory=params.directory;const dispatch=createScheduleDispatcher(params);runtime=await createAutomationRuntime({directory:params.directory,projectDirectories:params.projectDirectories,dispatch,notify:dispatch.notify,event});updateActivation();await stateTail;return {ready:true};}finally{initializing=false;}
+  try{storageDirectory=params.directory;const dispatch=createScheduleDispatcher(params);runtime=await createAutomationRuntime({directory:params.directory,projectDirectories:params.projectDirectories,dispatch,notify:dispatch.notify,text:dispatch.text,hookSelfTest:dispatch.hookSelfTest,event});updateActivation();await stateTail;return {ready:true};}finally{initializing=false;}
  }
  if(!runtime||closing)throw Error('Automation scheduler is not ready');
  const result=await runtime.call(request.method,params);

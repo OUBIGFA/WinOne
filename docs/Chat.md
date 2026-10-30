@@ -2,9 +2,15 @@
 
 用户已确定：Chat 嵌入 WinOne 主窗口，使用 Pi 执行代理能力；UI、布局、输入框和权限交互参考 Cindy。原有打开文件夹、新建项目、无项目对话自选位置、AI 修改文件和执行命令要求继续适用。
 
+## 2026-10-26 自动化与 OneBot 接入
+
+自动化当前直接同步 Cindy `b7e46bcb` 的 scheduler renderer、引擎与相关实现（108 文件），由宿主适配复用，不再维护旧 `chat-automations-*` 页面。新建不显示权限选择，使用完全访问；绑定会话继承其权限；旧任务保留原权限和原定时刻；“一次”沿用 `recurring=false`，表示下一次触发。模板、前置检查、项目配置、历史与未读操作见 `modules/chat-pi/AUTOMATIONS.md`。
+
+OneBot 使用同一 Pi/Host 基座但独立本地内容 worker。档案/版本、记忆/FTS、技能与待办已接入宿主接口；主会话、三层身份提示词和会话绑定的 Pi 工具已通过隔离验证。**OneBot 页面与 IM 实用回路尚未接通，整体未完成**。完整剩余清单与验证边界见 [OneBot](OneBot.md)。本轮没有更新正式安装器。
+
 ## 固定参考
 
-- Pi：`@earendil-works/pi-coding-agent` 1.1.0；[源码](https://github.com/earendil-works/pi/tree/abe508e1b89912adde45528136c3221eb69acdd7)，MIT。依赖锁位于 `modules/chat-pi/package-lock.json`。
+- Pi：`@earendil-works/pi-coding-agent` 1.4.0；[源码](https://github.com/earendil-works/pi/tree/4a080252f06caf63a525d7873c5d94d3c23887e0)，MIT。依赖锁位于 `modules/chat-pi/package-lock.json`。
 - Cindy：[源码](https://github.com/makecindy/cindy/tree/a152497ac24d155dd46142b73dda4fa10ad08ad0)，Apache-2.0，Copyright 2026 XD Inc. 直接改编代码时保留 LICENSE 与 NOTICE，并记录改编范围。
 - Cindy 的具体界面入口：`components/new-chat/ChatInput.tsx`、`PermissionSelector.tsx`、`PermissionPrompt.tsx`；`features/cc-agent/SessionContentHeader.tsx`；`features/cc-agent/sidebar/sections/{ProjectsSection,ProjectNode,DialogueSection}.tsx`。
 - Cindy 权限入口：`packages/maker-core/src/agents/pi/auto-review-policy.ts`、`agents/shared/auto-review.ts`、`auto-review-decision.ts`。其 Pi 采用 Ask、Auto-review、Full access；Auto-review 不等于自动允许所有命令。

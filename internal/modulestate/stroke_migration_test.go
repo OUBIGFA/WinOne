@@ -18,7 +18,7 @@ func TestStrokeMigrationPreservesExistingIntentAndAddsExplorerGestures(t *testin
 		t.Fatal(err)
 	}
 	state := store.Snapshot()
-	if state.SchemaVersion != 4 || state.Revision != 13 || !state.Modules["stroke"].Enabled || !state.Modules["capture"].PendingStop || state.Modules["wintray"].Enabled || state.Modules["quick-assistant"].Enabled {
+	if state.SchemaVersion != 5 || state.Revision != 14 || !state.Modules["timed-power"].Enabled || !state.Modules["stroke"].Enabled || !state.Modules["capture"].PendingStop || state.Modules["wintray"].Enabled || state.Modules["quick-assistant"].Enabled {
 		t.Fatalf("lost migration intent: %+v", state)
 	}
 	backup, err := os.ReadFile(path + ".before-stroke.bak")

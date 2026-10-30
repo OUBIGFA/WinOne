@@ -77,6 +77,16 @@
   },
   {
     "manifestVersion": 1,
+    "id": "timed-power",
+    "name": {"zh-CN": "定时关机", "en-US": "Shutdown timer"},
+    "distribution": "bundled",
+    "worker": "WinOne.Host.exe",
+    "activation": "on-demand",
+    "shortcutActions": [],
+    "settingsSchemaVersion": 1
+  },
+  {
+    "manifestVersion": 1,
     "id": "quick-assistant",
     "name": {
       "zh-CN": "快捷助手",

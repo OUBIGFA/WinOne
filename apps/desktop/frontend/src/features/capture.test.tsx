@@ -32,9 +32,9 @@ it.each(["cancel","failure"])("restores directory selection after %s without cha
  native.pick.mockImplementation(()=>new Promise((resolve,reject)=>{finish=resolve;fail=reject;}));const activity=vi.fn();
  render(<CapturePage disabled onActivity={activity}/>);const user=userEvent.setup();
  await user.click(await screen.findByRole("button",{name:"选择目录"}));
- expect(activity).toHaveBeenLastCalledWith(false,true,"page");
+ expect(activity).toHaveBeenLastCalledWith(false,true,"capture",expect.any(Function));
  await act(async()=>{if(outcome==="cancel")finish("");else fail(Error("Folder picker failed"));});
- expect(activity).toHaveBeenLastCalledWith(false,false,"page");
+ expect(activity).toHaveBeenLastCalledWith(false,false,"capture",expect.any(Function));
  expect(screen.getByText("C:\\Images")).toBeTruthy();
  expect(screen.getByRole("button",{name:"保存设置"}).hasAttribute("disabled")).toBe(true);
  expect(screen.getByRole("button",{name:"选择目录"}).matches(":disabled")).toBe(false);

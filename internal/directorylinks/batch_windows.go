@@ -105,6 +105,9 @@ func (m *Manager) CreateBatchWith(ctx context.Context, token string, execute fun
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	plans, ok := m.batches[token]
+	if m.migrating {
+		return BatchResult{}, errMigrationBusy
+	}
 	if !ok {
 		return BatchResult{}, errors.New("批量预览已过期，请重新预览")
 	}

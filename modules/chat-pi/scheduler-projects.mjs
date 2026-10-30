@@ -1,13 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import {randomUUID} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {nextCronOrMonthlyFire} from '../../third_party/cindy/scheduler/engine/monthlyClamp.ts';
 
 // Cindy project-file schema and promote/clone/demote semantics; the existing
 // Pi host supplies execution. User task pause state survives reconciliation.
 const fields=['name','prompt','cronExpr','timezone','recurring','manual','intervalMs','model','providerId','effort','fastMode','useWorktree','persistentSession','silentWhenIdle','preRunHook','notify','executionMode','scriptConfig','permissionMode'];
 const samePath=(a,b)=>path.resolve(a??'.').toLowerCase()===path.resolve(b).toLowerCase();
-export function createProjectAutomations({scheduler,storage,normalize}){
+export function createProjectAutomations({scheduler,storage,normalize,event=()=>{}}){
  const queues=new Map();
  async function location(directory){if(!path.isAbsolute(directory))throw Error('Choose an absolute project directory.');const root=await fs.realpath(directory);if(!(await fs.stat(root)).isDirectory())throw Error('Project path is not a directory.');return {root,file:path.join(root,'.cindy','automations','schedules.json')};}
  async function read(directory){
@@ -22,8 +22,14 @@ export function createProjectAutomations({scheduler,storage,normalize}){
   try{loaded=await read(root);}catch(error){for(const current of await storage.list())if(current.source==='project'&&samePath(current.workingDir,root))await scheduler.pause(current.id);throw error;}
   const existing=(await storage.list()).filter(schedule=>schedule.source==='project'&&samePath(schedule.workingDir,root)),byID=new Map(existing.map(schedule=>[schedule.projectConfigId,schedule]));
   const result={inserted:0,updated:0,deleted:0};
-  for(const config of loaded.config.schedules){const next=input(config,root),old=byID.get(config.id);if(!old){await scheduler.create(next);result.inserted++;}else{const patch={...next};for(const key of [...fields,'modelAgentKind'])if(!(key in patch))patch[key]=undefined;const changed=Object.keys(patch).some(key=>JSON.stringify(old[key])!==JSON.stringify(patch[key]));if(changed){await scheduler.update(old.id,patch);result.updated++;}byID.delete(config.id);}}
-  for(const old of byID.values()){await scheduler.delete(old.id);result.deleted++;}return {...loaded,...result};
+  for(const config of loaded.config.schedules){const next=input(config,root),old=byID.get(config.id);if(!old){await scheduler.create(next);result.inserted++;}else{const patch={...next};for(const key of [...fields,'modelAgentKind'])if(!(key in patch)&&key!=='permissionMode')patch[key]=undefined;const changed=Object.keys(patch).some(key=>JSON.stringify(old[key])!==JSON.stringify(patch[key]));if(changed){await scheduler.update(old.id,patch);result.updated++;}byID.delete(config.id);}}
+  for(const old of byID.values()){await scheduler.delete(old.id);result.deleted++;}
+  // Cindy ProjectAutomationLoader: report each reconcile; the renderer shows a
+  // toast only when the file content changed since the last reconcile.
+  const hash=createHash('sha256').update(JSON.stringify(loaded.config)).digest('hex'),previous=storage.projectHash(root);
+  storage.setProjectHash(root,hash);
+  event({type:'reconciled',workingDir:root,...result,isFirstTime:previous===null,hashChanged:previous!==hash});
+  return {...loaded,...result};
  }
  async function write(directory,config){
   const {root,file}=await location(directory);validate(config,root);const parent=path.dirname(file);await fs.mkdir(parent,{recursive:true});const resolved=await fs.realpath(parent);if(!samePath(resolved,parent))throw Error('Project automation configuration cannot be written through a junction.');
@@ -32,7 +38,11 @@ export function createProjectAutomations({scheduler,storage,normalize}){
  async function upsert(schedule,remove=false){const loaded=await read(schedule.workingDir),id=schedule.projectConfigId??'task-'+randomUUID();const config={id};for(const key of fields)if(schedule[key]!==undefined)config[key]=schedule[key];const rows=loaded.config.schedules.filter(value=>value.id!==id);if(!remove)rows.push(config);return write(schedule.workingDir,{version:1,schedules:rows});}
  function serial(directory,work){const key=path.resolve(directory);const pending=(queues.get(key)??Promise.resolve()).catch(()=>{}).then(work);queues.set(key,pending);void pending.finally(()=>{if(queues.get(key)===pending)queues.delete(key)}).catch(()=>{});return pending;}
  const personal=schedule=>({...Object.fromEntries([...fields,'kind','agentKind','modelAgentKind','workspaceKind','workingDir','targetSessionId','onceAt'].filter(key=>schedule[key]!==undefined).map(key=>[key,schedule[key]])),source:'user'});
+ // Cindy projectAutomation.upsertSchedule / removeSchedule: one entry by id.
+ async function upsertConfig(directory,config){const loaded=await read(directory);if(!config||typeof config.id!=='string')throw Error('Project schedule id is required.');const rows=loaded.config.schedules.filter(value=>value.id!==config.id);rows.push(config);return write(directory,{version:1,schedules:rows});}
+ async function removeConfig(directory,id){const loaded=await read(directory);return write(directory,{version:1,schedules:loaded.config.schedules.filter(value=>value.id!==id)});}
  return {
+  upsertConfig:(directory,config)=>serial(directory,()=>upsertConfig(directory,config)),removeConfig:(directory,id)=>serial(directory,()=>removeConfig(directory,id)),
   read,reconcile:directory=>serial(directory,()=>reconcile(directory)),write:(directory,config)=>serial(directory,()=>write(directory,config)),
   async update(schedule,patch){await serial(schedule.workingDir,()=>upsert({...schedule,...patch}));return scheduler.get(schedule.id);},
   async remove(schedule,keepUser=false){if(keepUser)await scheduler.create(personal(schedule));await serial(schedule.workingDir,()=>upsert(schedule,true));return {deleted:true};},

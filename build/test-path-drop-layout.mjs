@@ -23,14 +23,19 @@ async function open(id,width,theme='light',extra=''){
  await page.locator(`[data-settings-page="${id}"]`).waitFor();
 }
 async function boundaries(){
- await page.locator('[data-slot="settings-footer"]').waitFor();
+ await page.locator('[data-slot="settings-actions"]').waitFor();
  await page.evaluate(()=>new Promise(requestAnimationFrame));
  const value=await page.evaluate(()=>{
-  const content=document.querySelector('[data-slot="page-content"]'),footer=document.querySelector('[data-slot="settings-footer"]');
-  const bounds=element=>{const rect=element.getBoundingClientRect(),style=getComputedStyle(element);return {x:rect.x,width:rect.width,start:rect.x+parseFloat(style.paddingLeft),end:rect.right-parseFloat(style.paddingRight)};};
-  return {content:bounds(content),footer:bounds(footer),overflow:document.documentElement.scrollWidth>innerWidth,scroll:document.querySelector('[data-slot="page-scroll"]').scrollWidth};
+  const content=document.querySelector('[data-slot="page-content"]'),rail=document.querySelector('[data-slot="settings-actions"]'),frame=document.querySelector('.settings-frame');
+  const viewport=document.querySelector('[data-slot="page-scroll"]');
+  const buttons=[...rail.querySelectorAll('button')].filter(button=>button.getClientRects().length);
+  return {content:content.getBoundingClientRect().toJSON(),viewport:viewport.getBoundingClientRect().toJSON(),rail:rail.getBoundingClientRect().toJSON(),frame:frame.getBoundingClientRect().toJSON(),overflow:document.documentElement.scrollWidth>innerWidth,scroll:viewport.scrollWidth,buttonsOnTop:buttons.every(button=>{const box=button.getBoundingClientRect();return button.contains(document.elementFromPoint(box.x+box.width/2,box.y+box.height/2));})};
  });
- for(const key of ['x','width','start','end'])assert.ok(Math.abs(value.content[key]-value.footer[key])<=1,`Content/footer ${key}: ${JSON.stringify(value)}`);
+ // Overlay actions intentionally share the content area; they must not reserve
+ // a side lane or shorten the viewport as the former footer did.
+ assert.ok(Math.abs(value.viewport.width-value.frame.width)<=1&&Math.abs(value.viewport.height-value.frame.height)<=1,`Action rail reserves content space: ${JSON.stringify(value)}`);
+ assert.equal(value.buttonsOnTop,true,'Page content covers an action button');
+ assert.ok(value.frame.right-value.rail.right>=11.5&&value.frame.right-value.rail.right<=40,'Rail needs a safe right inset');
  assert.equal(value.overflow,false);return value;
 }
 async function drop(locator,paths){await locator.evaluate((element,paths)=>element.dispatchEvent(new CustomEvent('winone:paths-drop',{bubbles:true,cancelable:true,detail:{paths}})),paths);}
@@ -44,7 +49,7 @@ try{
   await open('capture',width,theme);await page.locator('.settings-save-bar button').first().waitFor();const capture=await boundaries();
   await drop(page.locator('.capture-directory-setting'),['C:\\WinOne-test\\DroppedFolder']);await page.getByText('C:\\WinOne-test\\DroppedFolder',{exact:true}).waitFor();
   await drop(page.locator('.capture-directory-setting'),['C:\\WinOne-test\\invalid.txt']);await page.getByText(/此处只接收文件夹/).waitFor();assert.equal(await page.locator('#capture-path').textContent(),'C:\\WinOne-test\\DroppedFolder');
-  results.push({scenario:'shared content and footer bounds / validated drops',theme,width,programs,capture});
+  results.push({scenario:'right-side action rail / validated drops',theme,width,programs,capture});
  }
  for(const width of [520,1280]){
   await open('convenience',width,'dark');await page.getByRole('tab',{name:'鼠标手势',exact:true}).click();await page.locator('.stroke-scene-row').first().waitFor();

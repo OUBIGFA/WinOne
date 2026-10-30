@@ -69,6 +69,7 @@ namespace WinOne.StrokeRuntime
                 engine.Process(down);Check(engine.Process(new MouseHook.MouseActionArgs(new Point(100,100),MouseButtons.None,MouseHook.MouseButtonStates.Wheel,120)),"Enabled wheel gesture escaped");engine.Process(up);Check(actions.Last()=="media.volume-up"&&marks.Last()==0,"Enabled wheel action did not run");
                 engine.Process(down);engine.Cancel();Check(!engine.Tracking&&!engine.Process(up),"Shutdown kept a gesture active");
                 GestureInputTests.Run();
+                if(Environment.GetEnvironmentVariable("WINONE_STROKE_PRESENT_TEST")=="1")TrailPresentationTests.Run();
                 var exact=new Gesture("left",new List<Point>{new Point(100,100),new Point(0,100)});
                 Check(exact.Vectors.Length==128&&exact.Similarity(Configuration.ToGesture(config.gestures.First(g=>g.id=="left")))==128,"Stroke resampling changed");
                 // A real owned fixture window is resolved by its handle. Mouse

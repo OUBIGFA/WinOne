@@ -11,18 +11,18 @@ export function createPermissionGate({mode="ask",cwd,review,authorize=async()=>f
   setMode(value){if(!permissionModes.includes(value))throw Error("Invalid permission mode");mode=value;grants.clear();},
   async check(request,signal){
    if(signal?.aborted)throw Error("Operation cancelled");
-   const {tool,args,outside,protectedFile,external}=request;
+   const {tool,args,outside,protectedFile,external,forceConfirm}=request;
    const mutation=tool==="write"||tool==="edit";
    const controlWrite=mutation&&protectedFile;
-   if(mode==="bypassPermissions"&&!controlWrite)return;
+   if(mode==="bypassPermissions"&&!controlWrite&&!forceConfirm)return;
    const sensitive=args.path&&isSensitiveCredentialPath(args.path);
    // Session approvals never cover an entire command family. The UI displays
    // the exact command/file; changes to that scope require a new decision.
-   const scopeLabel=!controlWrite&&!sensitive?(tool==="powershell"?args.command:args.path):undefined;
+   const scopeLabel=!controlWrite&&!sensitive&&!forceConfirm?(tool==="powershell"?args.command:args.path):undefined;
    const scopeKey=scopeLabel?createHash("sha256").update(tool+"\0"+scopeLabel).digest("hex"):undefined;
    if(scopeKey&&grants.has(scopeKey))return;
    let decision={verdict:"ask"};
-   if(!controlWrite){
+   if(!controlWrite&&!forceConfirm){
     if(mode==="ask"&&!external&&!mutation&&tool!=="powershell"&&!outside&&!sensitive)return;
     if(mode==="auto"){
      const action=external?{kind:'external-tool',tool,args}:mutation?{kind:"file-write",path:args.path,resolvedPath:args.path,resolvedWritableRoots:[cwd]}

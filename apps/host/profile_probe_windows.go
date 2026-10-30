@@ -94,7 +94,7 @@ func checkProfileUpgrade(ctx context.Context, directory string, input startuppro
 		ids = append(ids, id)
 	}
 	sort.Strings(ids)
-	adapters := []configuration.ModuleAdapter{aotConfiguration("", nil), captureConfiguration("", nil), wintrayConfiguration("", nil, nil), selectionConfiguration("", nil), quickAssistantConfiguration("", nil), strokeConfiguration("", nil)}
+	adapters := []configuration.ModuleAdapter{aotConfiguration("", nil), captureConfiguration("", nil), wintrayConfiguration("", nil, nil), selectionConfiguration("", nil), quickAssistantConfiguration("", nil), strokeConfiguration("", nil), timedPowerConfiguration()}
 	issues := []startupprobe.ProfileIssue{}
 	if runtimes != nil {
 		shared, err := runtimes.Snapshot()

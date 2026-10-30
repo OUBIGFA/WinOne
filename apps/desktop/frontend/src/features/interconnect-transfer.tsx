@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useRef,useState,type ReactNode} from 'react';
-import {Copy,FilePlus,FolderPlus,ClipboardPaste,Play,Square,RefreshCw,Trash2,Send,Download,Cloud} from 'lucide-react';
+import {Copy,FilePlus,FolderPlus,ClipboardPaste,Play,Square,RefreshCw,Trash2,Send,Download,Upload} from 'lucide-react';
 import {interconnectCall,pickFiles,pickDirectory,readClipboardFiles} from '../bridge';
 import {useTranslation} from '../i18n';
 import {Button} from '../ui/button';
@@ -13,10 +13,11 @@ import {Label} from '../components/ui/label';
 import {PeerTask,type PeerRecord} from './interconnect-peer';
 import type {InterconnectIntent} from './interconnect-intents';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '../components/ui/select';
+import {Tabs,TabsList,TabsTrigger} from '../components/ui/tabs';
 
 type Form={derpMapURL:string;allowWrites:boolean;listen:string;paths:string[];text:string;code:string;outputDir:string;options:Record<string,string|boolean|string[]>;socks5:string;httpProxy:string;storeOrigin:string;downloads:number;expirationHours:number};
-type RecordItem={id:string;created:string;spec:Partial<Form>&{mode:string};state:PeerRecord['state']&{status:string;code?:string;qr?:string;output?:string;detail?:string;error?:string;persistenceError?:string;cleanupError?:string;notificationError?:string;prompt?:{id:number;text:string};progress?:{Progress?:{CurrentNum:number;Max:number;Description:string;KBsPerSecond:number}};storeProgress?:{TotalBytes:number;TotalSize:number;FileName:string};result?:{code?:string;link?:string;qr?:string;expiresAt?:string;downloads?:number;revoked?:boolean;textPath?:string;manifest?:{f:{n:string;s:number}[]}}}};
-const initial=():Form=>({derpMapURL:'',allowWrites:false,listen:'127.0.0.1:0',paths:[],text:'',code:'',outputDir:'',options:{},socks5:'',httpProxy:'',storeOrigin:'https://getcroc.com',downloads:1,expirationHours:24});
+type RecordItem={id:string;created:string;spec:Partial<Form>&{mode:string};state:PeerRecord['state']&{status:string;code?:string;qr?:string;output?:string;detail?:string;error?:string;persistenceError?:string;cleanupError?:string;notificationError?:string;prompt?:{id:number;text:string};progress?:{Progress?:{CurrentNum:number;Max:number;Description:string;KBsPerSecond:number}};storeProgress?:{TotalBytes:number;TotalSize:number;FileName:string};result?:{service?:string;id?:string;code?:string;link?:string;qr?:string;expiresAt?:string;downloads?:number;revoked?:boolean;textPath?:string;manifest?:{f:{n:string;s:number}[]}}}};
+const initial=():Form=>({derpMapURL:'',allowWrites:false,listen:'127.0.0.1:0',paths:[],text:'',code:'',outputDir:'',options:{},socks5:'',httpProxy:'',storeOrigin:'https://gofile.io',downloads:1,expirationHours:24});
 function Field({label,children}:{label:string;children:ReactNode}){return <div className="min-w-0 space-y-2"><Label>{label}</Label>{children}</div>;}
 const size=(n:number)=>new Intl.NumberFormat(undefined,{maximumFractionDigits:1}).format(n>=1048576?n/1048576:n/1024)+(n>=1048576?' MiB':' KiB');
 
@@ -48,10 +49,20 @@ export function TransferPanel({stored,active,onActivity,intent,onIntentConsumed,
  const {t}=useTranslation(),tr=(key:string)=>t('interconnect.'+key);
  const [form,setForm]=useState(initial),[saved,setSaved]=useState(()=>JSON.stringify(initial()));
  const [direction,setDirection]=useState('send'),[payload,setPayload]=useState('files'),[shareTarget,setShareTarget]=useState('');
+ const [crocOrigin,setCrocOrigin]=useState('https://getcroc.com');
+ const gofile=stored&&form.storeOrigin==='https://gofile.io';
+ const service=gofile?'gofile':'croc';
  const [items,setItems]=useState<RecordItem[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [answers,setAnswers]=useState<Record<string,string>>({});
  const mounted=useRef(true),epoch=useRef(0),revealTask=useRef('');
  useEffect(()=>{if(!intent)return;setDirection(intent.receive?'receive':'send');setPayload('files');setForm(current=>({...current,paths:[...new Set([...current.paths,...intent.paths])],code:intent.code??current.code}));onIntentConsumed?.();},[intent]);
+ useEffect(()=>{
+  if(!stored)return;
+  const code=form.code.trim();
+  // Pasting a recognized share chooses its protocol without an extra click.
+  if(code.startsWith('https://gofile.io/d/'))setForm(current=>({...current,storeOrigin:'https://gofile.io'}));
+  else if(code.startsWith('croc-store-v1.')||code.startsWith('https://getcroc.com/s/'))setForm(current=>({...current,storeOrigin:crocOrigin}));
+ },[stored,form.code]);
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;epoch.current++;};},[]);
  const refresh=useCallback(async()=>{const version=++epoch.current;const all=await interconnectCall<RecordItem[]>('transfer_list');if(mounted.current&&version===epoch.current)setItems(all);},[]);
  useEffect(()=>{if(!active)return;void refresh().catch(e=>setError(String(e)));const interval=window.setInterval(()=>{if(document.visibilityState==='visible')void refresh().catch(e=>setError(String(e)));},750);return()=>clearInterval(interval);},[active,refresh]);
@@ -63,7 +74,12 @@ export function TransferPanel({stored,active,onActivity,intent,onIntentConsumed,
   document.getElementById('interconnect-task-'+item.id)?.scrollIntoView({block:'start',behavior:'instant'});
   revealTask.current='';
  },[items,active]);
- usePageActivity(onActivity,JSON.stringify(form)!==saved,busy,stored?'interconnect-store':'interconnect-transfer');
+ // Choosing a cloud service is a preference, not unsent input, so switching it
+ // never raises the unsaved-change prompt. A custom origin is still input.
+ const presetOrigin=(value:string)=>value==='https://gofile.io'||value==='https://getcroc.com';
+ const comparable=(value:Form)=>JSON.stringify(presetOrigin(value.storeOrigin)?{...value,storeOrigin:''}:value);
+ const unsent=comparable(form)!==comparable(JSON.parse(saved) as Form);
+ usePageActivity(onActivity,unsent,busy,stored?'interconnect-store':'interconnect-transfer',()=>setForm(current=>{const baseline=JSON.parse(saved) as Form;return presetOrigin(current.storeOrigin)?{...baseline,storeOrigin:current.storeOrigin}:baseline;}));
  const set=<K extends keyof Form>(key:K,value:Form[K])=>setForm(current=>({...current,[key]:value}));
  const option=(key:string,value:string|boolean|string[])=>setForm(current=>({...current,options:{...current.options,[key]:value}}));
  async function action(work:()=>Promise<unknown>){setBusy(true);setError('');setMessage('');try{await work();await refresh();}catch(e){if(mounted.current)setError(String(e));}finally{if(mounted.current)setBusy(false);}}
@@ -74,7 +90,11 @@ export function TransferPanel({stored,active,onActivity,intent,onIntentConsumed,
  const target=shareTarget==='new'?undefined:shareTarget?liveShares.find(item=>item.id===shareTarget):liveShares[0];
  async function start(mode:string,override?:Partial<Form>){
   const draft={...form,...override};
-  const spec={...draft,mode,paths:payload==='text'&&mode==='send'?[]:draft.paths,text:payload==='text'&&mode==='send'?draft.text:'',options:{...draft.options,...(mode==='receive'?{transport:'auto'}:{})}};
+  if(mode==='store_inspect'&&gofile){
+   await interconnectCall('transfer_open_cloud',{url:draft.code.trim()});return;
+  }
+  const sending=mode==='send'||mode==='store_send';
+  const spec={...draft,mode,paths:payload==='text'&&sending?[]:draft.paths,text:payload==='text'&&sending?draft.text:'',options:{...draft.options,...(mode==='receive'?{transport:'auto'}:{})}};
   if(!stored&&mode==='send'&&target){
    await interconnectCall(payload==='text'?'share_add_text':'share_add',payload==='text'?{id:target.id,text:spec.text}:{id:target.id,paths:spec.paths});
    revealTask.current=target.id;
@@ -87,7 +107,7 @@ export function TransferPanel({stored,active,onActivity,intent,onIntentConsumed,
   }else{
    const {derpMapURL,allowWrites,listen,...transferSpec}=spec;
    const started=await interconnectCall<{id:string}>('transfer_start',transferSpec);
-   if(mode==='store_send')revealTask.current=started.id;
+   if(mode==='store_send'||mode==='store_inspect')revealTask.current=started.id;
   }
   const next={...form,paths:[],text:''};setForm(next);setSaved(JSON.stringify(next));
  }
@@ -95,30 +115,40 @@ export function TransferPanel({stored,active,onActivity,intent,onIntentConsumed,
  const optionField=(key:string,label:string,placeholder?:string)=><Field label={tr(label)}><Input aria-label={tr(label)} placeholder={placeholder} value={String(form.options[key]??'')} disabled={busy} onChange={e=>option(key,e.target.value)}/></Field>;
  const toggle=(key:string,label:string)=><SettingsToggle label={tr(label)} checked={form.options[key]===true} disabled={busy} onChange={v=>option(key,v)}/>;
  const select=(label:string,value:string,choices:{value:string;label:string}[],change:(v:string)=>void)=><Field label={tr(label)}><Select value={value} disabled={busy} onValueChange={v=>change(v??'')}><SelectTrigger className="w-full" aria-label={tr(label)}><SelectValue>{tr(choices.find(c=>c.value===value)?.label??value)}</SelectValue></SelectTrigger><SelectContent>{choices.map(c=><SelectItem key={c.value} value={c.value}>{tr(c.label)}</SelectItem>)}</SelectContent></Select></Field>;
- const records=items.filter(item=>stored?item.spec.mode.startsWith('store_'):['send','receive','share_server','share_client'].includes(item.spec.mode));
+ const records=items.filter(item=>stored?item.spec.mode.startsWith('store_')&&(item.spec.storeOrigin==='https://gofile.io')===gofile:['send','receive','share_server','share_client'].includes(item.spec.mode));
  return <div className="settings-stack">
   {error&&<Notice>{error}</Notice>}{message&&<p role="status" className="settings-help">{message}</p>}
-  <SettingsSection title={tr(stored?'store':'sendOrReceive')} description={tr(stored?'storeHint':'unifiedSendHint')} icon={stored?Cloud:Send} className="interconnect-wide">
-   <SettingsOptions label={tr('direction')} value={direction} onChange={setDirection} items={[{value:'send',label:tr('send')},{value:'receive',label:tr('receive')}]}/>
+  <section aria-label={tr(stored?'store':'sendOrReceive')} className="interconnect-composer interconnect-wide">
+   {/* File transfer keeps an invisible, inert copy of the cloud service row so
+       its action/content row sits at the same height as Cloud sharing and
+       switching between the two tabs does not jump vertically. */}
+   <Tabs navigation={false} value={service} onValueChange={value=>{if(!stored)return;if(!gofile)setCrocOrigin(form.storeOrigin);set('storeOrigin',value==='gofile'?'https://gofile.io':crocOrigin);}} className={stored?'interconnect-service-tabs':'interconnect-service-tabs interconnect-service-placeholder'} aria-hidden={stored?undefined:true} inert={!stored||undefined}><TabsList aria-label={stored?tr('cloudService'):undefined} className="interconnect-receive-tablist"><TabsTrigger value="gofile" disabled={busy||!stored}>GoFile</TabsTrigger><TabsTrigger value="croc" disabled={busy||!stored}>{tr('crocCloud')}</TabsTrigger></TabsList></Tabs>
+   <div className="interconnect-mode-row">
+    <SettingsOptions label={tr('direction')} value={direction} disabled={busy} onChange={setDirection} items={[{value:'send',label:tr('send')},{value:'receive',label:tr('receive')}]}/>
+    {direction==='send'&&<SettingsOptions label={tr('sendContent')} value={payload} disabled={busy} onChange={setPayload} items={[{value:'files',label:tr('sendFiles')},{value:'text',label:tr('sendText')}]}/>}
+   </div>
    {direction==='send'?<>
     {!stored&&liveShares.length>0&&<Field label={tr('sendToShare')}><Select value={target?.id??'new'} disabled={busy} onValueChange={value=>setShareTarget(value??'new')}><SelectTrigger className="w-full" aria-label={tr('sendToShare')}><SelectValue>{target?tr('continueShare')+' · '+(target.state.share?.items[0]?.title??tr('publishShare')):tr('newShare')}</SelectValue></SelectTrigger><SelectContent>{liveShares.map(item=><SelectItem key={item.id} value={item.id}>{tr('continueShare')} · {item.state.share?.items[0]?.title??tr('publishShare')}</SelectItem>)}<SelectItem value="new">{tr('newShare')}</SelectItem></SelectContent></Select></Field>}
-    {!stored&&<SettingsOptions label={tr('send')} value={payload} onChange={setPayload} items={[{value:'files',label:tr('sendFiles')},{value:'text',label:tr('sendText')}]}/>}
-    {payload==='text'&&!stored?<Textarea aria-label={tr('sendText')} value={form.text} disabled={busy} onChange={e=>set('text',e.target.value)}/>:<PathDropArea multiple kind={stored?'file':'any'} disabled={busy||!active} onPaths={add} onError={setError} className="interconnect-drop">
-     <p className="settings-help">{tr(stored?'dropFiles':'drop')}</p>
-     <div className="flex flex-wrap gap-2"><Button icon={FilePlus} disabled={busy} onClick={()=>void action(async()=>add(await pickFiles()))}>{tr('chooseFiles')}</Button>{!stored&&<Button icon={FolderPlus} disabled={busy} onClick={()=>void action(async()=>{const folder=await pickDirectory();if(folder)add([folder]);})}>{tr('chooseFolder')}</Button>}<Button icon={ClipboardPaste} disabled={busy} onClick={()=>void action(async()=>add(await readClipboardFiles()))}>{tr('paste')}</Button></div>
-     {form.paths.length>0&&<><div className="flex items-center justify-between gap-2"><span>{t('interconnect.selectedFiles',{count:form.paths.length})}</span><Button variant="ghost" onClick={()=>set('paths',[])}>{tr('clear')}</Button></div><ul className="space-y-2">{form.paths.map(path=><li key={path} className="flex min-w-0 items-start gap-2"><span className="min-w-0 flex-1 break-all" title={path}>{path}</span><Button variant="ghost" icon={Trash2} aria-label={tr('remove')+' '+path} onClick={()=>set('paths',form.paths.filter(p=>p!==path))}/></li>)}</ul></>}
+    {payload==='text'?<div className="interconnect-text-area"><Textarea aria-label={tr('sendText')} placeholder={tr('textPlaceholder')} value={form.text} disabled={busy} onChange={e=>set('text',e.target.value)}/></div>:<PathDropArea multiple kind="any" disabled={busy||!active} onPaths={add} onError={setError} className="interconnect-drop">
+     <div className="interconnect-drop-prompt"><Upload aria-hidden="true"/><p>{tr('drop')}</p>
+      <div className="interconnect-file-actions"><Button icon={FilePlus} disabled={busy} onClick={()=>void action(async()=>add(await pickFiles()))}>{tr('chooseFiles')}</Button><Button icon={FolderPlus} disabled={busy} onClick={()=>void action(async()=>{const folder=await pickDirectory();if(folder)add([folder]);})}>{tr('chooseFolder')}</Button><Button icon={ClipboardPaste} disabled={busy} onClick={()=>void action(async()=>add(await readClipboardFiles()))}>{tr('paste')}</Button></div>
+     </div>
+     {form.paths.length>0&&<div className="interconnect-selected-files"><div className="flex items-center justify-between gap-2"><span>{t('interconnect.selectedFiles',{count:form.paths.length})}</span><Button variant="ghost" disabled={busy} onClick={()=>set('paths',[])}>{tr('clear')}</Button></div><ul className="space-y-2">{form.paths.map(path=><li key={path} className="flex min-w-0 items-start gap-2"><span className="min-w-0 flex-1 break-all" title={path}>{path}</span><Button variant="ghost" icon={Trash2} disabled={busy} aria-label={tr('remove')+' '+path} onClick={()=>set('paths',form.paths.filter(p=>p!==path))}/></li>)}</ul></div>}
     </PathDropArea>}
-    {stored?<><p className="settings-help">{tr('storeFilesOnly')}</p><div className="interconnect-fields">{field('storeOrigin','origin')}{field('downloads','downloads','number')}{field('expirationHours','expiration','number')}</div></>:null}
-   </>:<>
-    {!stored&&<p className="settings-help">{tr('receiveSteps')}</p>}
-    {field('code','code')}<Button icon={ClipboardPaste} disabled={busy} onClick={()=>void action(async()=>set('code',await navigator.clipboard.readText()))}>{tr('clipboardCode')}</Button>
-    <div className="flex flex-wrap items-end gap-2"><div className="min-w-0 flex-1">{field('outputDir','output')}</div><Button icon={FolderPlus} disabled={busy} onClick={()=>void action(async()=>{const folder=await pickDirectory();if(folder)set('outputDir',folder);})}>{tr('choose')}</Button></div>
-   </>}
+   </>:<div className="interconnect-receive-input">
+    <Download aria-hidden="true"/><h3>{tr(gofile?'enterCloudLink':'enterReceiveCode')}</h3>
+    <Input aria-label={tr('code')} placeholder={tr(gofile?'cloudLinkPlaceholder':'receivePlaceholder')} value={form.code} disabled={busy} onChange={e=>set('code',e.target.value)}/>
+    <Button icon={ClipboardPaste} disabled={busy} onClick={()=>void action(async()=>set('code',await navigator.clipboard.readText()))}>{tr('clipboardCode')}</Button>
+   </div>}
    {settingsPending&&<p className="settings-help">{tr('saveBeforeSending')}</p>}
-   <div><Button variant="primary" icon={direction==='send'?Send:Download} busy={busy} disabled={settingsPending||!!(direction==='send'&&target?.state.updating)||(direction==='send'?(payload==='text'&&!stored?!form.text.trim():!form.paths.length):!form.code.trim())} onClick={()=>void action(()=>start(stored?(direction==='send'?'store_send':'store_inspect'):(direction==='send'?'send':'receive')))}>{tr(stored?(direction==='send'?'publishStore':'inspect'):(direction==='send'?(target?'addToShare':'sendSelection'):'receiveNow'))}</Button></div>
-   {target&&direction==='send'&&!stored&&<p className="settings-help">{tr('appendShareHint')}</p>}
-   <SettingsDisclosure title={tr('advancedOptions')}>
+   <div className="interconnect-submit"><Button variant="primary" icon={direction==='send'?Send:Download} busy={busy} disabled={settingsPending||!!(!stored&&direction==='send'&&target?.state.updating)||(direction==='send'?(payload==='text'?!form.text.trim():!form.paths.length):!form.code.trim())} onClick={()=>void action(()=>start(stored?(direction==='send'?'store_send':'store_inspect'):(direction==='send'?'send':'receive')))}>{tr(stored?(direction==='send'?'uploadAndShare':gofile?'openCloudDownload':'inspect'):(direction==='send'?(target?'addToShare':'sendSelection'):'receiveNow'))}</Button>
+    <p className="settings-help">{tr(stored?(gofile?'gofileHint':'crocHint'):direction==='receive'?'receiveSteps':target?'appendShareHint':'sendOnlineHint')}</p>
+    {gofile&&<p className="settings-help">{tr('gofileRetention')}</p>}
+   </div>
+   {!(gofile&&direction==='receive')&&<SettingsDisclosure title={tr(stored?'shareSettings':'advancedOptions')}>
    <fieldset disabled={busy||(!stored&&direction==='send'&&!!target)} className="interconnect-advanced">
+   {stored&&direction==='send'&&<>{!gofile&&<>{field('storeOrigin','origin')}<p className="settings-help">{tr('storeOriginHint')}</p><div className="interconnect-fields">{field('downloads','downloads','number')}{field('expirationHours','expiration','number')}</div></>}<p className="settings-help">{tr(gofile?'gofileLimits':'storeFilesOnly')}</p><p className="settings-help">{tr('cloudPayloadHint')}</p></>}
+   {direction==='receive'&&!gofile&&<div className="flex flex-wrap items-end gap-2"><div className="min-w-0 flex-1">{field('outputDir','output')}</div><Button icon={FolderPlus} disabled={busy} onClick={()=>void action(async()=>{const folder=await pickDirectory();if(folder)set('outputDir',folder);})}>{tr('choose')}</Button></div>}
    <SettingsDisclosure title={tr('networkOptions')}><p className="settings-help">{tr('advancedHint')}</p><div className="interconnect-fields">
     {!stored&&<>{field('derpMapURL','derpMap')}{direction==='receive'&&field('listen','listenPort')}{optionField('relayAddress','relay',tr('automaticRelay'))}{optionField('relayAddress6','relay6')}{optionField('relayPassword','relayPassword')}{optionField('IP','senderIP')}{optionField('multicastAddress','multicast')}
     <Field label={tr('ports')}><Input aria-label={tr('ports')} value={(form.options.relayPorts as string[]??[]).join(',')} onChange={e=>option('relayPorts',e.target.value.split(',').map(v=>v.trim()).filter(Boolean))}/></Field></>}
@@ -131,12 +161,14 @@ export function TransferPanel({stored,active,onActivity,intent,onIntentConsumed,
     {optionField('curve','curve')}{direction==='send'&&<>{optionField('hashAlgorithm','hash')}{optionField('throttleUpload','throttle')}</>}
    </div>{direction==='send'&&<>{toggle('zipFolder','zip')}{toggle('gitIgnore','gitIgnore')}{toggle('noCompress','noCompress')}{toggle('noMultiplexing','noMulti')}{toggle('ask','verifyPeer')}
    {(['exclude','excludeFile'] as const).map(key=><Field key={key} label={tr(key)}><Input aria-label={tr(key)} value={(form.options[key] as string[]??[]).join(',')} onChange={e=>option(key,e.target.value.split(',').map(v=>v.trim()).filter(Boolean))}/></Field>)}</>}</SettingsDisclosure>}
-   </fieldset></SettingsDisclosure>
-  </SettingsSection>
+   </fieldset></SettingsDisclosure>}
+  </section>
   <SettingsSection title={tr(stored?'tasks':'receivingAndHistory')} icon={RefreshCw} className="interconnect-wide">
-   {records.length===0?<p className="settings-help py-4">{tr('noTasks')}</p>:<div className="divide-y divide-border">{records.map(item=>{
+   {records.length===0?<p className="settings-help py-4">{tr(stored?(direction==='send'?'storeEmpty':'storeReceiveEmpty'):'noTasks')}</p>:<div className="divide-y divide-border">{records.map(item=>{
     if(item.spec.mode.startsWith('share_'))return <PeerTask key={item.id} item={item} kind="share" busy={busy} action={action} copy={copy}>{item.state.transfer&&<CodeTransferStatus id={item.id} state={item.state.transfer} busy={busy} action={action} copy={copy}/>}</PeerTask>;
     const state=item.state,result=state.result,bar=state.progress?.Progress,progress=state.storeProgress;
+    const expired=!!result?.expiresAt&&Date.parse(result.expiresAt)<=Date.now();
+    const available=(state.status==='completed'||!stored&&state.status==='running')&&!result?.revoked&&!expired;
     const code=result?.code??state.code??'',image=result?.qr??state.qr;
     const maximum=progress?.TotalSize??bar?.Max??0,current=progress?.TotalBytes??bar?.CurrentNum??0;
     const status=tr(({running:'runningTask',completed:'completedTask',failed:'failedTask',cancelled:'cancelledTask',interrupted:'interruptedTask'} as Record<string,string>)[state.status]??state.status);
@@ -144,21 +176,24 @@ export function TransferPanel({stored,active,onActivity,intent,onIntentConsumed,
      <div className="flex flex-wrap justify-between gap-2"><p className="font-medium break-all">{item.spec.paths?.map(p=>p.split(/[\\/]/).pop()).join(' · ')||tr(item.spec.mode==='store_inspect'?'inspect':item.spec.mode==='store_revoke'?'revoke':item.spec.mode==='send'?'sendText':'receive')}</p><span className="text-sm text-muted-foreground">{status}</span></div>
      {maximum>0&&<div className="space-y-2"><p className="settings-help break-all">{progress?.FileName??bar?.Description} · {tr('fileProgress')} {size(current)} / {size(maximum)}{bar?.KBsPerSecond?' · '+size(bar.KBsPerSecond*1024)+'/s':''}</p><progress className="w-full" aria-label={tr('fileProgress')} value={current} max={maximum}/></div>}
      {state.status==='running'&&!maximum&&!state.prompt&&<p className="settings-help">{tr('waitTask')}</p>}
-     {(code||image)&&<section className="interconnect-receive-route">
-      {image&&<><h3>{tr('scanToReceive')}</h3><img src={image} alt={tr('scanToReceive')} className="interconnect-qr"/></>}
-      {code&&<p className="interconnect-receive-code break-all select-all">{code}</p>}
-      <div className="flex flex-wrap gap-2">{result?.link&&<Button icon={Copy} onClick={()=>void copy(result.link!)}>{tr('linkCopy')}</Button>}{code&&<Button icon={Copy} onClick={()=>void copy(code)}>{tr('codeCopy')}</Button>}</div>
+     {available&&(code||image||result?.link)&&<section className="interconnect-receive-route">
+      {image&&<><h3>{tr(stored?'storeReady':'scanToReceive')}</h3><img src={image} alt={tr(stored?'storeQR':'scanToReceive')} className="interconnect-qr"/></>}
+      {stored&&<p className="settings-help">{tr('storeReceiveHint')}</p>}
+      {result?.link&&<p className="interconnect-share-link select-all">{result.link}</p>}
+      {!stored&&code&&<p className="interconnect-receive-code break-all select-all">{code}</p>}
+      <div className="flex flex-wrap gap-2">{result?.link&&<Button variant="primary" icon={Copy} onClick={()=>void copy(result.link!)}>{tr('linkCopy')}</Button>}{result?.service==='gofile'&&result.link&&<Button icon={Download} onClick={()=>void action(()=>interconnectCall('transfer_open_cloud',{url:result.link}))}>{tr('openCloudDownload')}</Button>}{!stored&&code&&<Button icon={Copy} onClick={()=>void copy(code)}>{tr('codeCopy')}</Button>}</div>
+      {result?.expiresAt&&<p className="settings-help">{tr('expiresAt')} {new Date(result.expiresAt).toLocaleString()}{result.downloads?' · '+tr('downloads')+' '+result.downloads:''}</p>}
+      {stored&&code&&<SettingsDisclosure title={tr('storeNativeCode')}><p className="break-all select-all">{code}</p><Button icon={Copy} onClick={()=>void copy(code)}>{tr('codeCopy')}</Button></SettingsDisclosure>}
      </section>}
-     {result?.expiresAt&&<p className="settings-help">{tr('expiresAt')} {new Date(result.expiresAt).toLocaleString()} · {tr('downloads')} {result.downloads}</p>}
-     {result?.revoked&&<p>{tr('revoked')}</p>}
+     {result?.revoked?<p className="settings-help">{tr('revoked')}</p>:expired&&<p className="settings-help">{tr('storeExpired')}</p>}
      {state.error&&<Notice>{state.error}</Notice>}{[state.persistenceError,state.cleanupError,state.notificationError].filter(Boolean).map((warning,i)=><Notice key={i}>{warning}</Notice>)}
      {state.prompt&&<div className="interconnect-confirm"><p className="font-medium">{tr('confirmation')}</p><pre className="whitespace-pre-wrap break-all text-sm">{state.output?.slice(-4096)}{state.prompt.text}</pre><div className="flex flex-wrap gap-2">{['yes','no'].map(answer=><Button key={answer} disabled={busy} onClick={()=>void action(()=>interconnectCall('transfer_answer',{id:item.id,promptId:state.prompt!.id,answer}))}>{tr(answer)}</Button>)}<Input aria-label={tr('answer')} className="min-w-0 flex-1" value={answers[item.id]??''} onChange={e=>setAnswers({...answers,[item.id]:e.target.value})}/><Button disabled={busy||!answers[item.id]} onClick={()=>void action(()=>interconnectCall('transfer_answer',{id:item.id,promptId:state.prompt!.id,answer:answers[item.id]}))}>{tr('reply')}</Button></div></div>}
      {result?.manifest&&<><ul className="space-y-1">{result.manifest.f.map(file=><li key={file.n} className="flex flex-wrap justify-between gap-2"><span className="break-all">{file.n}</span><span>{size(file.s)}</span></li>)}</ul><div><Button icon={Download} disabled={busy} onClick={()=>void action(()=>start('store_receive',{code:item.spec.code,outputDir:item.spec.outputDir}))}>{tr('accept')}</Button></div></>}
      {result?.textPath&&<div className="space-y-2"><p className="break-all">{tr('textReceived')} {result.textPath}</p><div className="flex flex-wrap gap-2"><Button onClick={()=>void action(()=>interconnectCall('transfer_text_open',{id:item.id}))}>{tr('openText')}</Button><Button icon={Copy} onClick={()=>void action(async()=>copy(await interconnectCall<string>('transfer_text',{id:item.id})))}>{tr('copyReceivedText')}</Button></div></div>}
      <div className="flex flex-wrap gap-2">
       {state.status==='running'?<Button icon={Square} disabled={busy} onClick={()=>void action(()=>interconnectCall('transfer_stop',{id:item.id}))}>{tr('cancel')}</Button>:<>
-       {item.spec.mode==='store_send'&&result?.code&&!result.revoked?<Button disabled={busy} onClick={()=>void action(()=>interconnectCall('share_revoke',{id:item.id}))}>{tr('revoke')}</Button>:<Button variant="ghost" icon={Trash2} disabled={busy} onClick={()=>void action(()=>interconnectCall('transfer_remove',{id:item.id}))}>{tr('forget')}</Button>}
-       {item.spec.mode!=='store_revoke'&&<Button variant="ghost" icon={Play} onClick={()=>{setForm({...initial(),...item.spec});setDirection(item.spec.mode.endsWith('send')?'send':'receive');setPayload(item.spec.text?'text':'files');setMessage(tr('restoreDraft'));}}>{tr('reuse')}</Button>}
+       {item.spec.mode==='store_send'&&(result?.code||result?.id)&&!result?.revoked?<Button disabled={busy} onClick={()=>void action(()=>interconnectCall('share_revoke',{id:item.id}))}>{tr('revoke')}</Button>:<Button variant="ghost" icon={Trash2} disabled={busy} onClick={()=>void action(()=>interconnectCall('transfer_remove',{id:item.id}))}>{tr('forget')}</Button>}
+       {item.spec.mode!=='store_revoke'&&<Button variant="ghost" icon={Play} disabled={busy} onClick={()=>{setForm({...initial(),...item.spec});setDirection(item.spec.mode.endsWith('send')?'send':'receive');setPayload(item.spec.text?'text':'files');setMessage(tr('restoreDraft'));}}>{tr('reuse')}</Button>}
       </>}
      </div>
      {(state.output||state.detail)&&<SettingsDisclosure title={tr('details')}><pre className="whitespace-pre-wrap break-all text-sm">{state.detail}{state.detail?'\n':''}{state.output}</pre></SettingsDisclosure>}

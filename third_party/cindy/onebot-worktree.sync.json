@@ -1,0 +1,367 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/makecindy/cindy",
+  "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+  "license": "Apache-2.0",
+  "scope": "Original named worktree creation and handoff for OneBot group plans. Native storage and process paths are owner-scoped WinOne seams.",
+  "groups": [
+    {
+      "source": "apps/desktop/src/main/worktree/WorktreeManager.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/WorktreeManager.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/nameGenerator.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/nameGenerator.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/shared/managedWorktreeBranches.ts",
+      "target": "modules/chat-pi/cindy/worktree/shared/managedWorktreeBranches.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/cwdProbeScheduler.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/cwdProbeScheduler.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/errorClassifier.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/errorClassifier.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/types.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/types.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/gitExec.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/gitExec.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/scheduler-host/proc-util.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/scheduler-host/proc-util.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/utils/execFileDiagnostics.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/utils/execFileDiagnostics.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/gitPathOutput.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/gitPathOutput.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/includePatternsEngine.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/includePatternsEngine.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/safety.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/safety.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/dirty.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/dirty.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/liveSessionRefs.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/liveSessionRefs.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/resourceLock.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/resourceLock.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/runtimeLeases.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/runtimeLeases.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/recycleEvents.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/recycleEvents.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/desktopProcessIdentity.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/desktopProcessIdentity.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/piSubagentReferences.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/piSubagentReferences.ts",
+      "file": true
+    },
+    {
+      "source": "packages/maker-core/src/agents/pi/pi-subagent-runs.ts",
+      "target": "modules/chat-pi/cindy/worktree/packages/maker-core/src/agents/pi/pi-subagent-runs.ts",
+      "file": true
+    },
+    {
+      "source": "packages/maker-shared/src/subagentWorkspace.ts",
+      "target": "modules/chat-pi/cindy/worktree/packages/maker-shared/src/subagentWorkspace.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/precreatedCancellation.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/precreatedCancellation.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/handoffWorktree.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/maker-ipc/handoffWorktree.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/freshBase.ts",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/freshBase.ts",
+      "file": true
+    }
+  ],
+  "seams": {
+    "apps/desktop/src/main/device-link/crossProcessLock.ts": "modules/chat-pi/cindy/bots/crossProcessLock.ts",
+    "apps/desktop/src/main/logger.ts": "modules/chat-pi/onebot/logger.ts",
+    "apps/desktop/src/shared/managedWorktreePaths.ts": "modules/chat-pi/cindy/bots/shared/managedWorktreePaths.ts",
+    "apps/desktop/src/main/localDb/client/current.ts": "modules/chat-pi/onebot/task-host.mjs",
+    "apps/desktop/src/main/worktree/worktreeStore.ts": "modules/chat-pi/onebot/worktree-store.mjs",
+    "apps/desktop/src/main/workdir-probe-host/index.ts": "modules/chat-pi/onebot/worktree-host.mjs"
+  },
+  "modules": {
+    "electron": "modules/chat-pi/onebot/worktree-host.mjs"
+  },
+  "extract": [
+    {
+      "file": "apps/desktop/src/main/worktree/WorktreeManager.ts",
+      "imports": [
+        "./types",
+        "node:path",
+        "./precreatedCancellation",
+        "./nameGenerator",
+        "../logger",
+        "./cwdProbeScheduler",
+        "./gitExec",
+        "../workdir-probe-host/index",
+        "./gitPathOutput",
+        "../../shared/managedWorktreePaths",
+        "./errorClassifier",
+        "./worktreeStore",
+        "node:fs/promises",
+        "./resourceLock",
+        "./runtimeLeases",
+        "./safety",
+        "./liveSessionRefs",
+        "./dirty",
+        "./includePatternsEngine",
+        "node:crypto"
+      ],
+      "declarations": [
+        "createWorktree",
+        "withCreateWorktreeQueue",
+        "createWorktreeQueues",
+        "createWorktreeInner",
+        "CreatedSnapshot",
+        "MIN_RECOVERY_KEY_LENGTH",
+        "MAX_RECOVERY_KEY_LENGTH",
+        "RECOVERY_KEY_PATTERN",
+        "timed",
+        "log",
+        "detectCwd",
+        "detectCwdOnce",
+        "CWD_PROBE_TIMEOUT_MS",
+        "listBranches",
+        "getTakenNames",
+        "pathExists",
+        "buildWorktreeAddArgs",
+        "classifyAny",
+        "stageCheckout",
+        "STAGE_CHECKOUT_PATHS",
+        "backgroundCheckouts",
+        "configureHooksPath",
+        "awaitBackgroundCheckout",
+        "rollbackPartialCreate",
+        "copyClaudeSiviDirs",
+        "CopyClaudeSiviDirsOptions",
+        "listProtectedClaudeSiviPaths",
+        "copyDirIfExists",
+        "CopyDirOptions",
+        "shouldCopyPath",
+        "CLAUDE_COPY_EXCLUDED_TOP_LEVEL_DIRS",
+        "nowIso",
+        "withPrecreatedWorktreeOperationQueue",
+        "precreatedWorktreeOperationQueues",
+        "revParseCommit",
+        "suggestName",
+        "getForSession",
+        "listAll"
+      ],
+      "exports": []
+    }
+  ],
+  "files": [
+    {
+      "source": "apps/desktop/src/main/worktree/WorktreeManager.ts",
+      "sourceSHA256": "4de1f9eab2f9d7e59d30e057c21106a36be4005eefe7b161bf64dcee4e28b3a0",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/WorktreeManager.ts",
+      "sha256": "d665860f8909b41dde9dfd7d5e240e40b7066ed11871bc1dd9b0391622230600",
+      "adaptation": "import-paths; intact declarations: createWorktree, withCreateWorktreeQueue, createWorktreeQueues, createWorktreeInner, CreatedSnapshot, MIN_RECOVERY_KEY_LENGTH, MAX_RECOVERY_KEY_LENGTH, RECOVERY_KEY_PATTERN, timed, log, detectCwd, detectCwdOnce, CWD_PROBE_TIMEOUT_MS, listBranches, getTakenNames, pathExists, buildWorktreeAddArgs, classifyAny, stageCheckout, STAGE_CHECKOUT_PATHS, backgroundCheckouts, configureHooksPath, awaitBackgroundCheckout, rollbackPartialCreate, copyClaudeSiviDirs, CopyClaudeSiviDirsOptions, listProtectedClaudeSiviPaths, copyDirIfExists, CopyDirOptions, shouldCopyPath, CLAUDE_COPY_EXCLUDED_TOP_LEVEL_DIRS, nowIso, withPrecreatedWorktreeOperationQueue, precreatedWorktreeOperationQueues, revParseCommit, suggestName, getForSession, listAll"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/nameGenerator.ts",
+      "sourceSHA256": "afc82a3676647c65c8c1a428af09f424cb2edac6807757c662daaadcf1e4d27c",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/nameGenerator.ts",
+      "sha256": "afc82a3676647c65c8c1a428af09f424cb2edac6807757c662daaadcf1e4d27c"
+    },
+    {
+      "source": "apps/desktop/src/shared/managedWorktreeBranches.ts",
+      "sourceSHA256": "c512f4f7192e045f1bf0b054309538993ab4434410a01b64b1d2ac5dae107fdc",
+      "target": "modules/chat-pi/cindy/worktree/shared/managedWorktreeBranches.ts",
+      "sha256": "c512f4f7192e045f1bf0b054309538993ab4434410a01b64b1d2ac5dae107fdc"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/cwdProbeScheduler.ts",
+      "sourceSHA256": "e5a0dec2567ee9ddfb29e0d710e50d307fa55c681f8a1ea9d74aa5109496dc72",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/cwdProbeScheduler.ts",
+      "sha256": "e5a0dec2567ee9ddfb29e0d710e50d307fa55c681f8a1ea9d74aa5109496dc72"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/errorClassifier.ts",
+      "sourceSHA256": "9208ca4b8f3fdb7a13795d46bc9adae23d7de8b0185351ece0d6db8df94c149f",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/errorClassifier.ts",
+      "sha256": "9208ca4b8f3fdb7a13795d46bc9adae23d7de8b0185351ece0d6db8df94c149f"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/types.ts",
+      "sourceSHA256": "04d9799c6a4235e645eef42921ec674c58ec190634313127645b41d2d5ce5216",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/types.ts",
+      "sha256": "04d9799c6a4235e645eef42921ec674c58ec190634313127645b41d2d5ce5216"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/gitExec.ts",
+      "sourceSHA256": "67aca7b77fc85c345bb14faa1a4b24e36bddd4956f599b9c823363fb0712a60d",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/gitExec.ts",
+      "sha256": "ddd9bdd60cc7aace3a0eecb696f1ca55fc292bb170b2a011952b4c1e9162039d",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/scheduler-host/proc-util.ts",
+      "sourceSHA256": "83ce95cb29465fccf5b8ed53db42f21043fa81160f0c555655716b85d97dc622",
+      "target": "modules/chat-pi/cindy/worktree/main/scheduler-host/proc-util.ts",
+      "sha256": "83ce95cb29465fccf5b8ed53db42f21043fa81160f0c555655716b85d97dc622"
+    },
+    {
+      "source": "apps/desktop/src/main/utils/execFileDiagnostics.ts",
+      "sourceSHA256": "409c713237dbd5d5edc4a31693403e79ae9e4e9eb739ace9405233de9823f739",
+      "target": "modules/chat-pi/cindy/worktree/main/utils/execFileDiagnostics.ts",
+      "sha256": "b429a45e40da39127b588d79b74e94a79fcce67db3c96fa94df51e9e9b3c7c68",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/gitPathOutput.ts",
+      "sourceSHA256": "581971dfdbea0fd01d28fdc72a0442de63ba6bce5e7a82ecbbbf4ebdd1c464bf",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/gitPathOutput.ts",
+      "sha256": "581971dfdbea0fd01d28fdc72a0442de63ba6bce5e7a82ecbbbf4ebdd1c464bf"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/includePatternsEngine.ts",
+      "sourceSHA256": "44810b6a3102f7887f7a60e58a74bb49db4fe9aaf9d8090fc77ccae62c06810f",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/includePatternsEngine.ts",
+      "sha256": "012c53afb0f1d8e49d6775f18dd4d7a2254412847c8e9c66b39871289ccba363",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/safety.ts",
+      "sourceSHA256": "44bb6606219ee37faaf9cb411a851366a5c477932cb1c5d24296b7a63154ecfa",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/safety.ts",
+      "sha256": "26ec97eec21789db8583d555ca58b5387fce553a5bb8ab8643931343ce405788",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/dirty.ts",
+      "sourceSHA256": "c286390bdc848f7b482b11e442d07f991216d790d35598feea56c5f882313aa4",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/dirty.ts",
+      "sha256": "83c0f35657442ec2d3a7f0ca333ab43efc7748973bb93c928237d24e7be22ebb",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/liveSessionRefs.ts",
+      "sourceSHA256": "fc3ad3fe30726e3ec6488666377c0fdd01a2f4d9a5ca5356ff2e18c4f096dc84",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/liveSessionRefs.ts",
+      "sha256": "c21dc4db0e2090593f7a30d64d643127de279616595456cf111b2be3f7121666",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/resourceLock.ts",
+      "sourceSHA256": "4b234332afeffa3c597d5fc53cbab55cfbd7c814906f6e3446f5203172490294",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/resourceLock.ts",
+      "sha256": "a09d5350593c864082318385cc916dc0361a2f0857f5917dea604f3d683bf43f",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/runtimeLeases.ts",
+      "sourceSHA256": "4a7a0e267903c3e1487ab9ef7471044f1ae5e4122c5e393b6c2f4312969ca714",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/runtimeLeases.ts",
+      "sha256": "1dac54fcaa9a2e7f73bf442039117b41019cd7a3619ea9683d6666b2611c3464",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/recycleEvents.ts",
+      "sourceSHA256": "002fa3af7dceea24cba488c3835a1c8e17ece9ea6205c5a9f483928ff36fa00c",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/recycleEvents.ts",
+      "sha256": "002fa3af7dceea24cba488c3835a1c8e17ece9ea6205c5a9f483928ff36fa00c"
+    },
+    {
+      "source": "apps/desktop/src/main/desktopProcessIdentity.ts",
+      "sourceSHA256": "f319e386ae95f22b86ae62f772a390bac3338c0b3e0b52c8854d4dc6d6d3cc12",
+      "target": "modules/chat-pi/cindy/worktree/main/desktopProcessIdentity.ts",
+      "sha256": "f319e386ae95f22b86ae62f772a390bac3338c0b3e0b52c8854d4dc6d6d3cc12"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/piSubagentReferences.ts",
+      "sourceSHA256": "08b5af62e0ec6355b6fc05794b779064a610ced9bbaa15c473dce8c14aa8a42a",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/piSubagentReferences.ts",
+      "sha256": "5668fbebf31f3297c77c8e01e04d676a1a27554ef1c8707b4deecfee6e40f8e9",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/maker-core/src/agents/pi/pi-subagent-runs.ts",
+      "sourceSHA256": "1bffbd8bee01e218a13cca5427ef205982c5f0f97b8682390e904a996c8f9852",
+      "target": "modules/chat-pi/cindy/worktree/packages/maker-core/src/agents/pi/pi-subagent-runs.ts",
+      "sha256": "fee2dd578f9cb4849bd3e49eec51c78b51b0ac54a82178af821c1e0b2c2d9228",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/maker-shared/src/subagentWorkspace.ts",
+      "sourceSHA256": "377a8ee7d7c5c719a6c5759902e044430ed44b4e063157d2c3e153c4fce47a1c",
+      "target": "modules/chat-pi/cindy/worktree/packages/maker-shared/src/subagentWorkspace.ts",
+      "sha256": "377a8ee7d7c5c719a6c5759902e044430ed44b4e063157d2c3e153c4fce47a1c"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/precreatedCancellation.ts",
+      "sourceSHA256": "54876c4eacf98be035bc36762930a60fe9fb9d4bc28af138ad4534e1d07d355d",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/precreatedCancellation.ts",
+      "sha256": "fb26cfb4d9406ad7bfa0fb5de9a5ac412ee63f6dc975ba0e245191ca919eb2de",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/handoffWorktree.ts",
+      "sourceSHA256": "ad96eb7d3a7b05decd482ab8cd14f3583ee7421ba53b0f49921bac852bfc3802",
+      "target": "modules/chat-pi/cindy/worktree/main/maker-ipc/handoffWorktree.ts",
+      "sha256": "ad96eb7d3a7b05decd482ab8cd14f3583ee7421ba53b0f49921bac852bfc3802"
+    },
+    {
+      "source": "apps/desktop/src/main/worktree/freshBase.ts",
+      "sourceSHA256": "948fbede4e3e3122eafa59d1a3141d1aa68ed4eff42a21d67df42b67e9100def",
+      "target": "modules/chat-pi/cindy/worktree/main/worktree/freshBase.ts",
+      "sha256": "b9b100dfb8edceae544bca622f90d7d74e5fce7b654ec1f3b394263ab7a982b0",
+      "adaptation": "import-paths"
+    }
+  ]
+}

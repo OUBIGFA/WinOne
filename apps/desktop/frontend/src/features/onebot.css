@@ -1,0 +1,9 @@
+/* The original roster and route views share the full conversation viewport.
+   Stack the same roster above the chat when two useful columns cannot fit;
+   no teammate, group entry or action is hidden at narrow widths. */
+[data-page="onebot"] { container-type:inline-size; }
+.onebot-page { min-width:0; }
+@container (max-width:640px) {
+ .onebot-page { flex-direction:column; }
+ .onebot-page>aside { width:100%; max-height:144px; flex-shrink:0; border-right:0; border-bottom:1px solid var(--border-default); }
+}

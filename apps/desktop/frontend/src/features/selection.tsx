@@ -1,6 +1,6 @@
 import {SettingsSaveBar} from "../components/settings-save-bar";
 import {useEffect,useLayoutEffect,useRef,useState} from "react";
-import {Settings,Save,RotateCcw,Plus,Trash2,SlidersHorizontal,Copy,Languages,MessageCircleQuestion,ListCheck,Sparkles,PenLine,CodeXml,MessageCircleMore,PlugZap,BookOpen,Lightbulb,Search,FileText,CheckCheck,NotebookPen,Mail,Globe,GraduationCap,Calculator,Terminal,Braces,ListChecks,TextCursorInput,CaseSensitive,WandSparkles,Astroid,ChevronDown,SendHorizontal,MousePointerClick,Ban,AppWindow} from "lucide-react";
+import {Settings,Save,Plus,Trash2,SlidersHorizontal,Copy,Languages,MessageCircleQuestion,ListCheck,Sparkles,PenLine,CodeXml,MessageCircleMore,PlugZap,BookOpen,Lightbulb,Search,FileText,CheckCheck,NotebookPen,Mail,Globe,GraduationCap,Calculator,Terminal,Braces,ListChecks,TextCursorInput,CaseSensitive,WandSparkles,Astroid,ChevronDown,SendHorizontal,MousePointerClick,Ban,AppWindow} from "lucide-react";
 import {QuickAssistantIcon} from "../components/quick-assistant-icon";
 import {Accordion} from "@base-ui/react/accordion";
 import {selectionCall,quickAssistantCall,captureCall} from "../bridge";
@@ -48,7 +48,7 @@ export function SelectionPage({disabled=false,onActivity,onSaved,moduleId="selec
   const exclusionDrop=usePathDrop({kind:"file",multiple:true,disabled:busy||!draft,onError:setError,onPaths:paths=>{setError("");setExcluded(value=>[...new Set([...value.split(/\r?\n/).filter(Boolean),...paths])].join("\n"));}});
   const dirty=!!draft&&JSON.stringify(quick?draft:{...draft,excludedApps})!==JSON.stringify(saved);
   // Discovery does not need to keep either assistant's settings page open.
-  usePageActivity(onActivity,dirty,working,moduleId);
+  usePageActivity(onActivity,dirty,working,moduleId,()=>void load());
   async function load(){setLoading(true);setError("");setNotice("");try{const value=await call<Preferences>("settings.get");setDraft(value);setSaved(value);setExcluded((value.excludedApps??[]).join("\n"));}catch(error){setError(String(error));}finally{setLoading(false);}}
   useEffect(()=>{void load();},[moduleId]);
   async function save(){if(!draft)return;setBusy(true);setError("");setNotice("");try{const value=await call<Preferences>("settings.save",quick?draft:{...draft,excludedApps});setDraft(value);setSaved(value);setExcluded((value.excludedApps??[]).join("\n"));setNotice(t("common.saved"));}catch(error){setError(String(error));}finally{setBusy(false);}}
@@ -58,7 +58,7 @@ export function SelectionPage({disabled=false,onActivity,onSaved,moduleId="selec
   const actions=draft?.actions??[];
   const changeAction=(index:number,patch:Partial<SelectionAction>)=>{if(draft)setDraft({...draft,actions:actions.map((action,i)=>i===index?{...action,...patch}:action)});};
   const moveAction=(from:number,to:number)=>{if(!draft)return;const next=[...actions];const [action]=next.splice(from,1);next.splice(to,0,action);setDraft({...draft,actions:next});};
-  const saveActions=<SettingsSaveBar><Button icon={Save} variant="primary" disabled={!dirty||busy} onClick={()=>void save()}>{t("selection.save")}</Button>{dirty&&<Button icon={RotateCcw} disabled={busy} onClick={()=>void load()}>{t("selection.undo")}</Button>}</SettingsSaveBar>;
+  const saveActions=<SettingsSaveBar undo={{disabled:!dirty||busy,onClick:()=>void load()}}><Button icon={Save} variant="primary" disabled={!dirty||busy} onClick={()=>void save()}>{t("selection.save")}</Button></SettingsSaveBar>;
   return <Tabs value={tab} onValueChange={value=>setTab(String(value))}>
     <div className="settings-tab-bar">
     <TabsList variant="default" className="max-w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto" aria-label={t("nav."+moduleId)}>
