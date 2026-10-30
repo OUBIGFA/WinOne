@@ -98,7 +98,11 @@ func New(t testing.TB, handler Handler) *Harness {
 		Activity:      &core.Activity{},
 		Rail:          &core.Rail{},
 		Dialogs:       dialogs{h},
+		Directory:     t.TempDir(),
 	}
+	sidebar := "collapsed"
+	h.Env.SidebarStartup = func() string { return sidebar }
+	h.Env.SetSidebarStartup = func(value string) error { sidebar = value; return nil }
 	return h
 }
 

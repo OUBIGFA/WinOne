@@ -77,3 +77,21 @@ func unavailable(env *core.Env, s pageSpec) core.Page {
 		})
 	})
 }
+
+// PageInfo describes a page of the sidebar for other pages, as the
+// default page setting lists them.
+type PageInfo struct {
+	ID string
+	// Title is the page's i18n key.
+	Title string
+	Icon  *ui.SVG
+}
+
+// Catalog lists the sidebar's pages in its order.
+func Catalog() []PageInfo {
+	catalog := make([]PageInfo, len(registry))
+	for i, p := range registry {
+		catalog[i] = PageInfo{ID: p.id, Title: p.title, Icon: p.icon}
+	}
+	return catalog
+}

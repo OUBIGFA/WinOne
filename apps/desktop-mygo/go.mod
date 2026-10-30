@@ -6,6 +6,7 @@ require (
 	github.com/egoist/mygo v0.7.3
 	golang.org/x/sys v0.48.0
 	winone v0.0.0-00010101000000-000000000000
+	winone/resultui v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -23,3 +24,5 @@ replace winone => ../..
 replace winone/modules/wintray => ../../modules/wintray
 
 replace fyne.io/systray => ../../third_party/systray
+
+replace winone/resultui => ../result-ui

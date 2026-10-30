@@ -212,6 +212,25 @@ func (s *Shell) sidebarHandle(c *ui.Context) {
 	}
 }
 
+// setSidebarStartup stores how the sidebar opens; the current sidebar
+// follows at once, as the React window's setting did.
+func (s *Shell) setSidebarStartup(value string) error {
+	if value != "expanded" {
+		value = "collapsed"
+	}
+	next := s.ui
+	next.SidebarStartup = value
+	if err := next.save(s.opts.Directory); err != nil {
+		return err
+	}
+	s.ui = next
+	s.sidebarWidth = collapsedWidth
+	if value == "expanded" {
+		s.sidebarWidth = s.ui.ExpandedWidth
+	}
+	return nil
+}
+
 func (s *Shell) rememberSidebar() {
 	if s.sidebarWidth >= compactWidth {
 		s.ui.ExpandedWidth = max(minExpandedWidth, s.sidebarWidth)

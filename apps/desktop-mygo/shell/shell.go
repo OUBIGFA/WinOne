@@ -99,6 +99,9 @@ func New(env *core.Env, window WindowPort, opts Options) *Shell {
 	env.Refresh = s.refresh
 	env.Navigate = s.requestPage
 	env.RequestChange = s.requestChange
+	env.Directory = opts.Directory
+	env.SidebarStartup = func() string { return s.ui.SidebarStartup }
+	env.SetSidebarStartup = s.setSidebarStartup
 	if env.Activity == nil {
 		env.Activity = &core.Activity{}
 	}

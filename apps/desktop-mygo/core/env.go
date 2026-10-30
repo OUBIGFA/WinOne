@@ -39,6 +39,15 @@ type Env struct {
 	// Spawn starts background work; nil starts a goroutine. Tests set it
 	// to know when every request finished.
 	Spawn func(func())
+	// Directory is the profile's data directory, where the Host keeps its
+	// settings and logs. The shell sets it.
+	Directory string
+	// SidebarStartup returns how the sidebar opens: "collapsed" (icons
+	// only) or "expanded" (icons and names).
+	SidebarStartup func() string
+	// SetSidebarStartup stores how the sidebar opens and folds or unfolds
+	// it at once, as the setting shows its effect when chosen.
+	SetSidebarStartup func(value string) error
 }
 
 func (env *Env) spawn(fn func()) {

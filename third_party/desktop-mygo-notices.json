@@ -125,6 +125,28 @@
           "file": "licenses/lucide.txt"
         }
       ]
+    },
+    {
+      "kind": "asset",
+      "name": "LobeHub Icons",
+      "version": "82e641b4fece9d1028a127149af9ded00df5ac0c",
+      "notices": [
+        {
+          "sha256": "add9d7531d1b21646317a8958e38fc727506fa39d24bdecb44154d943c82753a",
+          "file": "licenses/lobehub-icons-LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "kind": "asset",
+      "name": "magpie account icons",
+      "version": "8c71cd27f95432362b91fe140bbffacc550def8b",
+      "notices": [
+        {
+          "sha256": "5f1c506829e4a534b54a2e8c8b6780316fd462d842830b35570e70252cdc6cee",
+          "file": "licenses/magpie-icons-LICENSE.txt"
+        }
+      ]
     }
   ]
 }

@@ -22,6 +22,9 @@ if (-not $Version) { $Version = (Get-Content -LiteralPath (Join-Path $root 'apps
 if ($Version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Invalid version' }
 if ($UpdateRepository -and $UpdateRepository -notmatch '^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/[A-Za-z0-9_.-]{1,100}$') { throw 'UpdateRepository must be owner/repository' }
 
+# Provider marks come from the result window's inventory, sampled by
+# build-provider-icons.ps1 (Git-ignored output).
+if (-not (Test-Path -LiteralPath (Join-Path $root 'apps/result-ui/assets/provider-bitmaps/manifest.json'))) { throw 'Run build/build-provider-icons.ps1 before building the MyGo window' }
 & node (Join-Path $PSScriptRoot 'generate-mygo-icons.mjs') --check
 if ($LASTEXITCODE -ne 0) { throw 'MyGo icons are stale' }
 
