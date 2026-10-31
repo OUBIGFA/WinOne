@@ -1,4 +1,6 @@
-param([Parameter(Mandatory)][string]$OutputDirectory,[string]$GoExe='go',[switch]$SkipTests)
+param([Parameter(Mandatory)][string]$OutputDirectory,[string]$GoExe='go',[switch]$SkipTests,[switch]$RunWindowChecks)
+# Both native windows use the unmodified MyGo v0.7.3 module. Selection,
+# pointer release and tool-window behavior now use its public APIs.
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 if(-not(Test-Path -LiteralPath (Join-Path $root 'apps/result-ui/assets/provider-bitmaps/manifest.json'))){throw 'Run build/build-provider-icons.ps1 before building the shared result UI'}
@@ -9,23 +11,33 @@ $output=[IO.Path]::GetFullPath($OutputDirectory)
 if($LASTEXITCODE -ne 0){throw 'Result UI output must be ignored'}
 & node (Join-Path $PSScriptRoot 'generate-result-icons.mjs')
 if($LASTEXITCODE -ne 0){throw 'Result icon generation failed'}
-$oldRoot=$env:GOROOT;$oldCgo=$env:CGO_ENABLED;$oldFlags=$env:GOFLAGS
+$saved=@{GOROOT=$env:GOROOT;CGO_ENABLED=$env:CGO_ENABLED;GOTOOLCHAIN=$env:GOTOOLCHAIN;GOCACHE=$env:GOCACHE}
 try {
- $env:GOROOT=Split-Path -Parent (Split-Path -Parent $go);$env:CGO_ENABLED='0'
- $overlay=& (Join-Path $PSScriptRoot 'result-ui-overlay.ps1') -GoExe $go
- $env:GOFLAGS=($oldFlags+' "-modfile='+$overlay+'"').Trim()
+ $env:GOROOT=Split-Path -Parent (Split-Path -Parent $go);$env:CGO_ENABLED='0';$env:GOTOOLCHAIN='local'
+ if(-not $env:GOCACHE){$env:GOCACHE=Join-Path $root 'dist/resources/cache/go'}
  Push-Location (Join-Path $root 'apps/result-ui')
  try {
+  & (Join-Path $PSScriptRoot 'verify-result-notices.ps1') -GoExe $go -SourceOnly
   if(-not $SkipTests){
-   & $go test github.com/egoist/mygo/ui -run '^Test(WinOneFastSelection|SelectableText|TextArea)' -count=1
-   if($LASTEXITCODE -ne 0){throw 'MyGo fast selection regression failed'}
    & $go test ./... -count=1;if($LASTEXITCODE -ne 0){throw 'Result UI tests failed'}
   }
   & $go vet ./...;if($LASTEXITCODE -ne 0){throw 'Result UI vet failed'}
+  & $go vet -tags mygo_noinspector ./...;if($LASTEXITCODE -ne 0){throw 'Result UI production vet failed'}
   & $go run github.com/akavel/rsrc@v0.10.2 -manifest (Join-Path $root 'build/windows/app.manifest') -ico (Join-Path $root 'internal/branding/icon.ico') -o cmd/winone-results/resource_windows.syso
   if($LASTEXITCODE -ne 0){throw 'Result UI resource generation failed'}
   New-Item -ItemType Directory -Path $output -Force|Out-Null
-  & $go build -trimpath -ldflags '-s -w -H windowsgui' -o (Join-Path $output 'WinOne.Results.exe') ./cmd/winone-results
+  $exe=Join-Path $output 'WinOne.Results.exe'
+  & $go build -trimpath -tags mygo_noinspector -ldflags '-s -w -H windowsgui -X github.com/egoist/mygo.production=1' -o $exe ./cmd/winone-results
   if($LASTEXITCODE -ne 0){throw 'Result UI build failed'}
+  & (Join-Path $PSScriptRoot 'verify-result-notices.ps1') -GoExe $go -Executable $exe
+  if($RunWindowChecks){
+   $priorProbe=$env:WINONE_RESULT_PROBE_EXE;$priorDirectory=$env:WINONE_RESULT_PROBE_DIR
+   try{
+    $env:WINONE_RESULT_PROBE_EXE=$exe
+    $env:WINONE_RESULT_PROBE_DIR=Join-Path (Split-Path -Parent $output) 'native-probe'
+    & $go test -run '^TestNativeResult' -count=1 -v .
+    if($LASTEXITCODE -ne 0){throw 'Result UI native window checks failed'}
+   }finally{$env:WINONE_RESULT_PROBE_EXE=$priorProbe;$env:WINONE_RESULT_PROBE_DIR=$priorDirectory}
+  }
  }finally{Pop-Location}
-}finally{$env:GOROOT=$oldRoot;$env:CGO_ENABLED=$oldCgo;$env:GOFLAGS=$oldFlags}
+}finally{foreach($name in $saved.Keys){[Environment]::SetEnvironmentVariable($name,$saved[$name],'Process')}}

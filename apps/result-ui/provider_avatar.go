@@ -2,11 +2,11 @@ package resultui
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
-	"github.com/egoist/mygo/ui"
-	_ "github.com/fyne-io/image/ico"
 	"image"
+
+	"github.com/egoist/mygo/ui"
+
 	"winone/internal/ai"
 )
 
@@ -40,17 +40,10 @@ func (p *Panel) messageProviderIcon(message *Message) string {
 	return message.ProviderIcon
 }
 
-// Decode with the shared native image loader (including photo orientation).
-// Fyne supplies ICO support; its decoder assumes valid directory records, so
-// bound and select one entry before it can allocate from an untrusted length.
+// Decode with the shared native image loader (including photo orientation);
+// icon files use the local decoder (ico.go), bounded before it allocates.
 func decodeProviderAvatar(data []byte) (avatar *providerAvatar, err error) {
 	invalid := errors.New("头像图片无法解码，请重新选择图片")
-	defer func() {
-		if recover() != nil {
-			avatar = nil
-			err = invalid
-		}
-	}()
 	if len(data) == 0 || len(data) > ai.MaxAvatarBytes {
 		return nil, invalid
 	}
@@ -62,10 +55,13 @@ func decodeProviderAvatar(data []byte) (avatar *providerAvatar, err error) {
 		return &providerAvatar{svg: svg, bytes: len(data)}, nil
 	}
 	if len(data) >= 4 && bytes.Equal(data[:4], []byte{0, 0, 1, 0}) {
-		data, err = singleICOImage(data)
+		picture, err := icoImage(data)
 		if err != nil {
 			return nil, invalid
 		}
+		bitmap := ui.NewBitmap(picture)
+		w, h := bitmap.Size()
+		return &providerAvatar{bitmap: bitmap, bytes: w * h * 4}, nil
 	}
 	config, _, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil || config.Width <= 0 || config.Height <= 0 || config.Width > 4096 || config.Height > 4096 || int64(config.Width)*int64(config.Height) > 16_000_000 {
@@ -79,48 +75,7 @@ func decodeProviderAvatar(data []byte) (avatar *providerAvatar, err error) {
 	return &providerAvatar{bitmap: bitmap, bytes: w * h * 4}, nil
 }
 
-func singleICOImage(data []byte) ([]byte, error) {
-	invalid := errors.New("invalid icon directory")
-	if len(data) < 6 {
-		return nil, invalid
-	}
-	count := int(binary.LittleEndian.Uint16(data[4:6]))
-	if count < 1 || count > 64 || len(data) < 6+16*count {
-		return nil, invalid
-	}
-	var selected []byte
-	best := -1
-	var payload []byte
-	for i := 0; i < count; i++ {
-		entry := data[6+16*i : 6+16*(i+1)]
-		size := uint64(binary.LittleEndian.Uint32(entry[8:12]))
-		offset := uint64(binary.LittleEndian.Uint32(entry[12:16]))
-		if size < 8 || offset < uint64(6+16*count) || offset+size > uint64(len(data)) {
-			return nil, invalid
-		}
-		width, height := int(entry[0]), int(entry[1])
-		if width == 0 {
-			width = 256
-		}
-		if height == 0 {
-			height = 256
-		}
-		if score := width * height; score > best {
-			selected = entry
-			payload = data[offset : offset+size]
-			best = score
-		}
-	}
-	result := make([]byte, 22+len(payload))
-	copy(result, data[:6])
-	binary.LittleEndian.PutUint16(result[4:], 1)
-	copy(result[6:], selected)
-	binary.LittleEndian.PutUint32(result[18:], 22)
-	copy(result[22:], payload)
-	return result, nil
-}
-
-func (p *Panel) providerImage(c *ui.Context, t *ui.Theme, name string, size float32) *ui.Element {
+func (p *Panel) providerImage(c *ui.Context, t *ui.Theme, name string, size float32) ui.Element {
 	if !ai.IsStoredAvatar(name) {
 		return providerImage(c, t, name, size)
 	}

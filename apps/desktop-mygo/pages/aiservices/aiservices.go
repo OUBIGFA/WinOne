@@ -593,7 +593,7 @@ func (p *page) View(c *ui.Context) {
 		ui.Column(c).FillWidth().Gap(16).Disabled(p.saving).Children(func() {
 			ui.Column(c).FillWidth().Disabled(p.navigationLocked()).Children(func() {
 				next := p.tab
-				if kit.Tabs(c, &next, []kit.Tab{
+				kit.Tabs(c, &next, []kit.Tab{
 					{Label: i18n.T("ai.customProviders"), Icon: icons.LayersPlus},
 					{Label: i18n.T("ai.addProvidersTab"), Icon: icons.UserPlus},
 					{Label: i18n.T("ai.defaultService"), Icon: icons.LayoutGrid},
@@ -602,10 +602,16 @@ func (p *page) View(c *ui.Context) {
 					{Label: i18n.T("usage.title"), Icon: icons.ChartNoAxesCombined},
 					{Label: i18n.T("aiPlugins.title"), Icon: icons.Blocks},
 					{Label: i18n.T("ai.advanced"), Icon: icons.SlidersHorizontal},
-				}, p.env.RequestChange) {
-					// kit.Tabs set next once the guard allowed it.
-					p.switchTab(next)
-				}
+				}, func(apply func()) {
+					// The guard may apply after this frame. Both the local
+					// tab choice and the page transition must live in it.
+					change := func() { apply(); p.switchTab(next) }
+					if p.env.RequestChange == nil {
+						change()
+					} else {
+						p.env.RequestChange(change)
+					}
+				})
 			})
 			p.notices(c)
 			switch p.tab {

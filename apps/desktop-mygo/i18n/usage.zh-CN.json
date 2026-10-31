@@ -1,0 +1,8 @@
+{
+ "usage.exportDialog": "导出用量 CSV",
+ "usage.exportCsvFilter": "CSV 表格",
+ "usage.exportUnconfirmed": "无法确认 CSV 已保存",
+ "usage.exportExists": "{{path}} 已存在。请重新导出，选择该文件并确认替换。",
+ "usage.archiveDialog": "导出请求归档",
+ "usage.archiveFilter": "JSON"
+}

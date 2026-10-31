@@ -1,5 +1,19 @@
 # 开发状态
 
+## 当前 MyGo 成果与测试安装器（2026-11-01）
+
+- **交付范围**：按用户 2026-10-31 的最新要求，先提供当前成果测试包，暂停闪聊、Chat、OneBot 迁移；三个页面在本包暂不可用，原后台实现及数据保留。不把本轮交付标为全面一比一迁移完成。统一构建仍默认 Rust，本轮显式使用 `-DesktopImplementation MyGo`。
+- **截图工具栏**：截图不迁移到 MyGo，只把截图工具栏的外观与 MyGo 设置窗口统一。新增 `modules/capture/NativeUI/NativeStyle.cs`（同步 `apps/desktop-mygo/kit/theme.go` 的配色、圆角与字体）和 `NativeRenderer.cs`；控件仍是原生 ToolStrip，命令、键盘、无障碍、溢出菜单与定位不变，画布不变。
+- 可见变化：工具栏为 8 DIP 圆角面板；按钮悬停、按下为 6 DIP 圆角底色；当前工具加底色和侧栏同款选中条；禁用项半透明；图标按主题文字色着色；字体为 Segoe UI Variable Text（Windows 10 回退 Segoe UI）。“样式”按钮加 kit 下拉箭头并与图标按钮等高；线宽改为 kit 数字框（无微调按钮，方向键与滚轮仍可调）。更多操作、样式、自定义工具栏和置顶截图菜单采用 kit 下拉样式：内缩圆角悬停、对勾、次要文字色的分组标题与快捷键；Windows 11 菜单请求系统圆角并设置边框色。去掉菜单最小宽度，修正此前菜单项未填满菜单宽度的问题。
+- 截图验证沿用未变化的 2026-10-31 证据：私有桌面 `toolbar`（深浅色 × 中英）、`customization`（深浅色）、`preferences`、`workflow`、`scroll-progress`、`paint`、`--menu-arrows` 与 `--native-pin-menu` 均通过，渲染图在 `_temp/capture-toolbar-style/`；本次统一构建重新通过截图单元测试及发布编译。`workflow` 首轮在重拍的 8 秒等待处超时（原因未确认），随后连续 3 轮通过；未改期限。`preferences` 的原期望缺少已上线的视频/GIF 固定按钮，改动前基线同样失败，已更新期望。Windows 11 菜单系统圆角/边框/阴影、真实鼠标和高 DPI 仍待验收。
+- **结果窗**：`apps/result-ui` 改用原版 MyGo v0.7.3/Go 1.27.3；删除旧选区/指针/ICO 构建补丁，使用公开选区、`OnTextKey`、`Panel`、原生顶边和 Markdown 接口。共享阅读/输入区重新组织，保留原文弱化与居中拖动把手；IME Enter、无末尾换行的 Mermaid 围栏、窄窗“更多”功能等回归通过。功能核查与未验证边界见 [结果窗对照](mygo-parity/result-window.md)。
+- **AI 用量**：原生概览、请求明细、上下文、会话和模型归并实际挂载到 AI 服务页；父页测试覆盖未保存草稿、统一保存和撤销。原父页失败是测试按错误坐标点击字段，改用 MyGo `Field` 的标签聚焦行为后通过，未削减产品功能。35 张中英/深浅/1100、700、520 宽的正式组件渲染图在 `_temp/mygo-test-installer/usage-shots/`，已检查窄窗、请求与归并；见 [用量对照](mygo-parity/ai-usage.md)。
+- **安装接线**：补齐 `app/probe_windows.go` 的 `--check-ui`：校验配套 Host，只读私有管道驱动正式 Shell，等待请求及 UI 回调、原生绘制和 PNG 导出后正常退出；失败只写 stderr、不弹消息框。维护锁/未完成标记下的原生探针通过，实际窗口图和回执在 `desktop-native/`。MyGo 许可校验正确识别第一方 `winone/resultui`，外部模块仍必须逐项匹配声明。
+- **构建与回归**：统一入口已完成前端、截图/录制与 AI；Cindy 来源校验发现 4 份原版文件的 EOF 空行被删，已用锁定生成器恢复并保留其摘要/空白约束，8 份同步规格全部复验。随后从 `build/` 剩余入口续接，没有重做已完成页面。React **195 文件/1238 项**、Pi/自动化 **91 项**、OneBot 后台 **117 项**、暂停恢复 **2 项**、Go 全源与 vet、MyGo/结果窗全套与普通/生产 vet、Rust 录制 **12**/图表 **5**/局域网 **16**、源码/二进制许可及最终包清单均通过；后台测试通过不表示这三个暂停页面在 MyGo 中可用。
+- **实窗与安装**：当前结果 EXE 的中英 × 深浅 4 组真实窗口、句柄/PID/令牌、置顶、工具窗口/owner、顶边 HTTOP、空选区、关闭/quit 及启动握手通过；4 张 `result-native/*/quick.png` 无黑边。`install-test/result.json` 的 **14 次真实隔离进程操作**覆盖两处失败回滚、旧修复兼容、普通覆盖、历史日志、组合残缺/损坏配置普通安装、两处卸载中断恢复、5279 文件哈希/登记/快捷方式与配置/额外文件保留，各退出码和保留状态符合预期。生产更新帮助程序与已测帮助程序 SHA-256 相同。
+- **固定安装器已更新**：`dist/release/WinOne-setup.exe`，**263674448 字节**，SHA-256 `7dddf045b8279211d2fd94396c936455751da3b64e25b0476eaeecd22e94b733`。同目录 SHA-256、匹配卸载器和 `release-info.json` 已同步；包清单 SHA-256 `93bfbb08c66a61ae8fc0af33d7bfab6be7554ec761b26508f1f61faf12933f59`。正式安装器/卸载器/ZIP 的 Defender 自定义扫描均未发现威胁。旧固定包完整保存在 `_temp/mygo-test-installer/prior-release/`；构建、原生、安装、扫描记录均在该任务目录。
+- **边界**：没有操作真实安装、配置、账号或真实 ProgramData；由用户自行运行生产安装器。未签名、未创建 tag 或对外 release。真实供应商/IM、物理中文输入法和麦克风、WebView 插件完整流程、混合 DPI/多屏、长期稳定性与完整进程组性能仍待验收；安装保留损坏配置原文，不冒充修复配置。
+
 ## 手动安装自包含修复（2026-10-30）
 
 - 根因：旧 `RunInstallerUpdate` 把配置预检失败留下的 `phase=prepared` 也绑定到旧 `next.zip` 和卸载程序；新包不同就报“请使用上次的安装包”。旧恢复目录、程序/登记缺失和配置预检共同成为重装门槛。

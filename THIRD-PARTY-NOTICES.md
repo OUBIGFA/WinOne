@@ -10,7 +10,7 @@
 | WinTray | 程序启动、窗口与托盘管理；核对 484e382 及 2026-10-22 Esc 修复工作树，来源与改编见 third_party/wintray-source.json | MIT，全文见 modules/wintray/LICENSE |
 | React / React DOM | 设置界面 | MIT |
 | Lucide messages-circle（7faf876） | 闪聊入口及页面图标，直接复用官方 SVG 路径；来源与摘要见 `third_party/import-notices.json` | ISC；全文见 `third_party/licenses/lucide.txt` |
-| MyGo v0.7.3 | MyGo 原生设置窗口（`apps/desktop-mygo`，迁移进行中）：窗口、组件与 GPU 绘制；同时链接 purego、go-text/typesetting、golang.org/x/image、x/net、x/text、x/sys、go-winio、go-ole | MIT（MyGo）；依赖许可原文与 SHA-256 见 `third_party/desktop-mygo-notices.json`，`build/verify-desktop-mygo-notices.ps1` 按实际链接的模块校验 |
+| MyGo v0.7.3 | 原生设置窗口（`apps/desktop-mygo`，迁移进行中）与共享结果窗（`apps/result-ui`）：窗口、组件、Markdown 与绘制；直接使用原版模块，不再加选中文字或鼠标释放补丁 | MIT（MyGo）；依赖许可原文与 SHA-256 见 `third_party/desktop-mygo-notices.json` 和 `third_party/result-ui-notices.json`，对应构建校验实际链接模块；结果窗另在源码阶段校验 |
 | Lucide React 1.27.0 | 官方 AppWindow / LogOut 托盘菜单图标及既有界面图标；由锁定 npm 包生成透明模板，不自绘替代 | ISC，Feather 派生 LogOut 同时保留 MIT；原文 `internal/branding/menu-icons/LICENSE.txt`，生成器与 SHA-256 见 `third_party/sources.json` |
 | ChatGPT-Desktop-UI / chatgpt-desktop-kit 0.6.0 | Chat 阅读内容、右栏工作区与项目栏 | MIT；包含发行包自带的第三方许可全文 |
 | Magpie | 共享 AI 适配器；本次来源提交 42ec2700bd2a4cf8d4ceb76a95767ac221e283e5；社区插件 e513644（41 包） | MIT；构建复制上游 LICENSE，依赖许可见 third_party/ocr-ai-notices.json 与 third_party/ai-plugins.json |

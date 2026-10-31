@@ -3,6 +3,8 @@ package resultui
 import (
 	"crypto/sha256"
 	"fmt"
+	"strings"
+
 	"github.com/egoist/mygo/ui"
 )
 
@@ -27,8 +29,14 @@ func (p *Panel) renderDiagram(c *ui.Context, t *ui.Theme, source string, ready b
 	entry := p.diagrams[key]
 	if entry == nil {
 		if len(p.diagrams) >= 64 {
-			ui.Text(c, p.T("图表数量较多，请复制源码查看。", "Too many diagrams. Copy the source to view it separately."))
-			p.codeBlock(c, t, "mermaid", source)
+			ui.Text(c, p.T("图表数量较多，请复制源码查看。", "Too many diagrams. Copy the source to view it separately.")).FontSize(em(t, sizeLabel)).TextColor(t.TextMuted)
+			ui.Row(c).FillWidth().Children(func() {
+				ui.Spacer(c)
+				if iconButton(c, "copy", p.T("复制图表源码", "Copy diagram source"), false).Clicked() && p.Actions.Copy != nil {
+					p.Actions.Copy(source)
+				}
+			})
+			p.diagramSource(c, t, source)
 			return
 		}
 		entry = &diagramEntry{zoom: 1}
@@ -80,21 +88,31 @@ func (p *Panel) renderDiagram(c *ui.Context, t *ui.Theme, source string, ready b
 	if entry.state == "" {
 		request()
 	}
+	// The diagram never scrolls sideways (WinOne forbids horizontal
+	// scrolling): it shows at its own size or the reading column's width,
+	// whichever is smaller, and zooms within that room.
 	ui.Column(c).FillWidth().Gap(6).Children(func() {
-		ui.Row(c).Gap(4).Children(func() {
-			ui.Text(c, "Mermaid").TextColor(t.TextMuted).Grow(1)
+		var base, limit float32
+		if entry.bitmap != nil {
+			w, _ := entry.bitmap.Size()
+			base = min(p.readingWidth(c), float32(w)/2) // the renderer draws at 2x
+			limit = min(3, p.readingWidth(c)/max(base, 1))
+			entry.zoom = min(entry.zoom, limit)
+		}
+		ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(4).Children(func() {
+			ui.Text(c, "Mermaid").FontSize(em(t, sizeMeta)).TextColor(t.TextMuted).Grow(1)
 			if entry.bitmap != nil {
-				if iconButton(c, "minus", p.T("缩小图表", "Zoom out")).Clicked() {
+				if iconButton(c, "minus", p.T("缩小图表", "Zoom out"), entry.zoom <= .4).Clicked() {
 					entry.zoom = max(.4, entry.zoom-.25)
 				}
-				if iconButton(c, "plus", p.T("放大图表", "Zoom in")).Clicked() {
-					entry.zoom = min(3, entry.zoom+.25)
+				if iconButton(c, "plus", p.T("放大图表", "Zoom in"), entry.zoom >= limit).Clicked() {
+					entry.zoom = min(limit, entry.zoom+.25)
 				}
 			}
-			if iconButton(c, "code", p.T("显示或隐藏源码", "Show or hide source")).Clicked() {
+			if iconButton(c, "code", p.T("显示或隐藏源码", "Show or hide source"), false).Clicked() {
 				entry.sourceOpen = !entry.sourceOpen
 			}
-			if entry.sourceOpen && iconButton(c, "copy", p.T("复制图表源码", "Copy diagram source")).Clicked() && p.Actions.Copy != nil {
+			if entry.sourceOpen && iconButton(c, "copy", p.T("复制图表源码", "Copy diagram source"), false).Clicked() && p.Actions.Copy != nil {
 				p.Actions.Copy(source)
 			}
 		})
@@ -102,15 +120,13 @@ func (p *Panel) renderDiagram(c *ui.Context, t *ui.Theme, source string, ready b
 		case "loading":
 			ui.Spinner(c).Size(16, 16).AlignSelf(ui.Start).Label(p.T("正在渲染图表…", "Rendering diagram…"))
 		case "ready":
-			width, _ := c.Size()
 			w, h := entry.bitmap.Size()
-			fit := min(1, min(width-48, 840)/(float32(w)/2))
-			scale := fit * entry.zoom / 2
-			ui.ScrollBoth(c).FillWidth().Height(min(440, float32(h)*scale+8)).Padding(4).Children(func() {
-				ui.Image(c, entry.bitmap).Size(float32(w)*scale, float32(h)*scale).Label(p.T("Mermaid 图表", "Mermaid diagram"))
-			})
+			width := base * entry.zoom
+			ui.Image(c, entry.bitmap).Size(width, float32(h)*width/float32(w)).AlignSelf(ui.Start).Label(p.T("Mermaid 图表", "Mermaid diagram"))
 		case "failed":
-			ui.Text(c, entry.error).TextColor(t.Danger).Selectable()
+			p.selectable(c, ui.Column(c).FillWidth(), func() {
+				ui.Text(c, entry.error).FillWidth().FontSize(em(t, sizeLabel)).TextColor(t.Danger)
+			})
 			if ui.Button(c, p.T("重试图表", "Retry diagram")).AlignSelf(ui.Start).Clicked() {
 				request()
 			}
@@ -120,17 +136,21 @@ func (p *Panel) renderDiagram(c *ui.Context, t *ui.Theme, source string, ready b
 			}
 		}
 		if entry.sourceOpen {
-			height := min(260, float32(20*(1+countLines(source))))
-			ui.ScrollBoth(c).FillWidth().Height(height).Padding(8).Background(t.SurfaceHover).Children(func() { ui.Text(c, source).Font("Consolas").NoWrap().Selectable() })
+			p.diagramSource(c, t, source)
 		}
 	})
 }
-func countLines(value string) int {
-	n := 0
-	for _, r := range value {
-		if r == '\n' {
-			n++
-		}
-	}
-	return n
+
+// readingWidth is the reading column's width in this window.
+func (p *Panel) readingWidth(c *ui.Context) float32 {
+	width, _ := c.Size()
+	return max(40, min(width-2*gutter, readingMaxWidth))
+}
+
+// diagramSource shows a diagram's source as code blocks show code: in the
+// code font, wrapped rather than scrolled, selectable.
+func (p *Panel) diagramSource(c *ui.Context, t *ui.Theme, source string) {
+	p.selectable(c, ui.Column(c).FillWidth().Padding(8, 12).Radius(8).Background(t.Text.Alpha(0.035)).Border(1, t.Border), func() {
+		ui.Text(c, strings.TrimSuffix(source, "\n")).FillWidth().Font(monoFont).FontSize(em(t, sizeMeta)).LineHeight(1.5)
+	})
 }

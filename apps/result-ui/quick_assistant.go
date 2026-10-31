@@ -1,8 +1,10 @@
 package resultui
 
 import (
-	"github.com/egoist/mygo/ui"
 	"strings"
+
+	"github.com/egoist/mygo/ui"
+
 	"winone/internal/ai"
 	"winone/internal/resultwindow"
 )
@@ -98,6 +100,10 @@ func (p *Panel) quickActionLabel(action resultwindow.SelectionAction) string {
 	}
 	return action.Name
 }
+// quickToolbar shows the Quick assistant's actions as MyGo's toolbar,
+// centered between the divider and the input box (user requirement). The
+// toolbar measures its buttons and moves those without room, from the
+// last, into its "More" menu; Left and Right move among them.
 func (p *Panel) quickToolbar(c *ui.Context, t *ui.Theme) {
 	var actions []resultwindow.SelectionAction
 	for _, action := range p.QuickActions {
@@ -105,46 +111,14 @@ func (p *Panel) quickToolbar(c *ui.Context, t *ui.Theme) {
 			actions = append(actions, action)
 		}
 	}
-	width, _ := c.Size()
-	// Conversation controls float above this strip. Use its complete width for
-	// quick actions so narrow windows do not reserve two empty side regions.
-	count := max(1, int((min(width, 872)-24+4)/34))
-	if len(actions) > count {
-		count--
-	}
-	ui.Row(c).FillWidth().Height(quickToolbarHeight).Shrink(0).AlignItems(ui.Center).Label(p.T("快捷功能", "Quick actions")).Children(func() {
-		ui.Row(c).Grow(1).MinWidth(0).AlignItems(ui.Center).Justify(ui.Center).Gap(4).Children(func() {
-			for i, action := range actions {
-				if i >= count {
-					break
-				}
-				label := p.quickActionLabel(action)
-				if selectionButton(c, action.Icon, label, p.Busy).Tooltip(label).Clicked() && p.Actions.Quick != nil {
-					p.Actions.Quick(action)
-				}
+	ui.Toolbar(c.Key("quick-actions"), func() {
+		for _, action := range actions {
+			label := p.quickActionLabel(action)
+			if selectionButton(c, action.Icon, label, p.Busy).Tooltip(label).Clicked() && p.Actions.Quick != nil {
+				p.Actions.Quick(action)
 			}
-			if len(actions) > count {
-				more := iconButton(c, "chevron", p.T("更多功能", "More actions")).Disabled(p.Busy)
-				if more.Clicked() {
-					p.quickMore = !p.quickMore
-				}
-				ui.PopoverBase(c, more, &p.quickMore, func(panel *ui.Element) {
-					panel.MinWidth(180).MaxWidth(max(180, width-48)).MaxHeight(280).Children(func() {
-						ui.Scroll(c).Children(func() {
-							ui.Column(c).Gap(2).Children(func() {
-								for _, action := range actions[count:] {
-									if ui.Button(c, p.quickActionLabel(action)).FillWidth().Disabled(p.Busy).Clicked() && p.Actions.Quick != nil {
-										p.quickMore = false
-										p.Actions.Quick(action)
-									}
-								}
-							})
-						})
-					})
-				})
-			}
-		})
-	})
+		}
+	}).FillWidth().Height(quickToolbarHeight).Padding(0).Gap(4).Justify(ui.Center).Label(p.T("快捷功能", "Quick actions"))
 }
 
 // ReceiveQuickInput fills a new chat or appends to an unsent draft. It never

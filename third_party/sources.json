@@ -205,8 +205,8 @@
       "internal/provider/favicon.go",
       "internal/gui/assets/app.js (iconPicker, headerEditor)"
     ],
-    "adaptation": "Direct calls to Magpie picture storage, HTTPS fetching and favicon discovery. React adapts its picker and headers with existing WinOne controls and Cindy collapse; picture URL is an additional source. Native ICO decoding uses github.com/fyne-io/image v0.1.1; licenses are in result-ui-notices.json.",
-    "nativeAdaptation": "build/result-ui-overlay.ps1 patches Fyne v0.1.1 only in its isolated build copy: ICO zero dimension means 256 pixels, including alpha-mask loops. The original module cache is unchanged."
+    "adaptation": "Direct calls to Magpie picture storage, HTTPS fetching and favicon discovery. React adapts its picker and headers with existing WinOne controls and Cindy collapse; picture URL is an additional source.",
+    "nativeAdaptation": "apps/result-ui/ico.go decodes PNG and DIB icon entries with the same algorithm as apps/desktop-mygo/widgets/provider_icon.go, including ICO zero dimensions (256 pixels) and alpha masks. Fyne image and its build-time patch are no longer used."
   },
   "interconnect": {
     "source": "third_party/import-notices.json",

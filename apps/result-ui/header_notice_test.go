@@ -22,7 +22,7 @@ func TestShortHeaderNoticesHaveTheirMeasuredWidth(t *testing.T) {
 				var naturalWidth float32
 				tt := ui.NewTester(func(c *ui.Context) {
 					p.View(c)
-					naturalWidth, _ = c.MeasureText(0, ui.Span{Text: p.Notice})
+					naturalWidth, _ = c.MeasureText(0, ui.Span{Text: p.Notice, Size: em(c.Theme(), sizeMeta)})
 				}, 520, 600)
 				for _, scale := range []float32{1, 1.5} {
 					tt.SetPreferences(ui.Preferences{ReduceMotion: true, TextScale: scale})
@@ -58,8 +58,8 @@ func TestShortHeaderNoticesHaveTheirMeasuredWidth(t *testing.T) {
 							if math.Abs(float64(grip.Y+grip.H/2-resultHeaderHeight/2)) > 0.5 {
 								t.Fatal("notice moved the drag handle vertically")
 							}
-							if status.X+status.W > grip.X {
-								t.Fatal("notice overlaps the centered title group")
+							if status.X < grip.X+grip.W {
+								t.Fatal("notice overlaps the centered handle")
 							}
 						}
 					}

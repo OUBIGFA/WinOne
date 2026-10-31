@@ -8,3 +8,6 @@
 # Upstream license hashes require the original bytes, including whitespace.
 third_party/licenses/** -text -whitespace
 **/LICENSE* -text -whitespace
+# Pinned Cindy imports keep upstream EOF blank lines for source digest checks.
+/apps/desktop/frontend/src/features/cindy/** -whitespace
+/modules/chat-pi/cindy/** -whitespace

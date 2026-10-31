@@ -12,7 +12,7 @@ import (
 	"winone/internal/resultwindow"
 )
 
-func TestConversationActionsFloatAboveComposer(t *testing.T) {
+func TestConversationActionsStayInComposerWithoutCoveringReading(t *testing.T) {
 	for _, scenario := range []struct{ source, mode string }{{"selection", "chat"}, {"quick-assistant", "chat"}, {"capture", "ocr"}, {"capture", "translate"}} {
 		source, mode := scenario.source, scenario.mode
 		for _, theme := range []string{"light", "dark"} {
@@ -35,19 +35,19 @@ func TestConversationActionsFloatAboveComposer(t *testing.T) {
 							input, _ := tt.Find(inputLabel)
 							clear, clearOK := tt.Find(p.T("清空全部", "Clear all"))
 							restart, restartOK := tt.Find(p.T("重新开始", "Restart"))
-							if !clearOK || !restartOK || math.Abs(float64(clear.X+clear.W/2-restart.X-restart.W/2)) > 1 || clear.Y+clear.H >= restart.Y || restart.Y+restart.H >= input.Y {
-								t.Fatalf("actions must form a vertical stack above the input: input=%+v clear=%+v restart=%+v", input, clear, restart)
+							if !clearOK || !restartOK || math.Abs(float64(clear.Y-restart.Y)) > 1 || restart.X+restart.W > clear.X || input.Y+input.H > restart.Y {
+								t.Fatalf("actions must share a row below the input: input=%+v clear=%+v restart=%+v", input, clear, restart)
 							}
 							divider, ok := tt.Find("Divider")
-							if !ok || restart.Y+restart.H > divider.Y-8 {
-								t.Fatalf("conversation actions cross into the composer pane: divider=%+v restart=%+v", divider, restart)
+							if !ok || restart.Y < divider.Y+divider.H {
+								t.Fatalf("conversation actions cover reading: divider=%+v restart=%+v", divider, restart)
 							}
 							box, ok := tt.Find(p.T("消息输入框", "Message input box"))
 							if !ok || box.Y-divider.Y-divider.H < 12 {
 								t.Fatalf("input box touches the resize divider: divider=%+v box=%+v", divider, box)
 							}
-							if restart.X+restart.W < input.X+input.W-20 {
-								t.Fatalf("actions are not at the input's right edge: input=%+v restart=%+v", input, restart)
+							if clear.X+clear.W > input.X+input.W {
+								t.Fatalf("actions exceed the input's right edge: input=%+v clear=%+v", input, clear)
 							}
 							for _, rect := range []ui.Rect{clear, restart, input} {
 								if rect.X < 0 || rect.Y < 40 || rect.X+rect.W > float32(width) || rect.Y+rect.H > float32(height) {
@@ -56,13 +56,13 @@ func TestConversationActionsFloatAboveComposer(t *testing.T) {
 							}
 							model, _ := tt.Find(p.T("切换供应商和模型", "Change provider and model"))
 							send, _ := tt.Find(p.T("发送", "Send"))
-							if model.X+model.W > send.X {
-								t.Fatalf("model picker overlaps send: model=%+v send=%+v", model, send)
+							if model.X+model.W > restart.X || clear.X+clear.W > send.X || send.Y != clear.Y {
+								t.Fatalf("composer controls overlap: model=%+v restart=%+v clear=%+v send=%+v", model, restart, clear, send)
 							}
 							if source == "quick-assistant" {
 								bar, ok := tt.Find(p.T("快捷功能", "Quick actions"))
-								if !ok || restart.Y+restart.H >= bar.Y {
-									t.Fatalf("floating actions overlap the quick-action strip: bar=%+v restart=%+v", bar, restart)
+								if !ok || bar.Y+bar.H > input.Y {
+									t.Fatalf("quick-action strip overlaps input: bar=%+v input=%+v", bar, input)
 								}
 							}
 						}

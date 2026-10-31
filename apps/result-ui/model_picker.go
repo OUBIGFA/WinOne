@@ -2,10 +2,12 @@ package resultui
 
 import (
 	"fmt"
-	"github.com/egoist/mygo/ui"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/egoist/mygo/ui"
+
 	"winone/internal/ai"
 )
 
@@ -24,18 +26,13 @@ func (p *Panel) modelLabel(provider ai.Provider, id string) string {
 }
 
 // Match Magpie's separate green Free badge rather than changing model names.
+// Its green is a data color, kept in the neutral interface.
 func (p *Panel) freeModelBadge(c *ui.Context, t *ui.Theme, provider ai.Provider, id string) {
 	if !provider.IsFreeModel(id) {
 		return
 	}
-	color, background := ui.Hex("#166534"), ui.Hex("#dcfce7")
-	if t.Dark {
-		color, background = ui.Hex("#86efac"), ui.Hex("#143322")
-	}
-	if c.Preferences().HighContrast {
-		color, background = t.Text, t.SurfaceHover
-	}
-	ui.Text(c, p.T("免费", "Free")).Label(p.T("免费模型", "Free model")).FontSize(12).Padding(1, 4).Radius(4).Shrink(0).TextColor(color).Background(background)
+	tn := toneFor(t, c.Preferences().HighContrast)
+	ui.Text(c, p.T("免费", "Free")).Label(p.T("免费模型", "Free model")).FontSize(em(t, sizeBadge)).Padding(1, 4).Radius(4).Shrink(0).TextColor(tn.free).Background(tn.freeBackground)
 }
 
 var contextInModelName = regexp.MustCompile(`\b\d+M\b`)
@@ -44,6 +41,7 @@ var contextInModelName = regexp.MustCompile(`\b\d+M\b`)
 // Routing IDs remain unchanged; labels are separate, non-shrinking controls.
 func (p *Panel) modelBadges(c *ui.Context, t *ui.Theme, provider ai.Provider, id string) {
 	p.freeModelBadge(c, t, provider, id)
+	tn := toneFor(t, c.Preferences().HighContrast)
 	metadata := provider.ModelMetadataFor(id)
 	rate, was := metadata.Rate, metadata.RateWas
 	times := func(n float64) string {
@@ -60,12 +58,12 @@ func (p *Panel) modelBadges(c *ui.Context, t *ui.Theme, provider ai.Provider, id
 				title = fmt.Sprintf(p.T("当前免费，原为 %s", "Free now, previously %s"), times(was))
 			}
 		}
-		ui.Row(c).Label(p.T("额度倍率", "Model rate")).Tooltip(title).Gap(3).Padding(1, 4).Radius(4).Shrink(0).Background(t.SurfaceHover).Children(func() {
+		ui.Row(c).Label(p.T("额度倍率", "Model rate")).Tooltip(title).Gap(3).Padding(1, 4).Radius(4).Shrink(0).Background(tn.hover).Children(func() {
 			if was > rate {
-				ui.Text(c, times(was)).FontSize(12).TextColor(t.TextMuted).Strikethrough().Shrink(0)
+				ui.Text(c, times(was)).FontSize(em(t, sizeBadge)).TextColor(t.TextMuted).Strikethrough().Shrink(0)
 			}
 			if rate > 0 {
-				ui.Text(c, times(rate)).FontSize(12).TextColor(t.TextMuted).Shrink(0)
+				ui.Text(c, times(rate)).FontSize(em(t, sizeBadge)).TextColor(t.TextMuted).Shrink(0)
 			}
 		})
 	}
@@ -78,8 +76,8 @@ func (p *Panel) modelBadges(c *ui.Context, t *ui.Theme, provider ai.Provider, id
 		if context%1000000 == 0 {
 			value = strconv.Itoa(context / 1000000)
 		}
-		ui.Box(c).Label(p.T("百万级上下文", "Large context")).Tooltip(fmt.Sprintf(p.T("可容纳 %d Token", "Holds %d tokens"), context)).Padding(1, 4).Radius(4).Shrink(0).Background(t.SurfaceHover).Children(func() {
-			ui.Text(c, value+"M").FontSize(12).TextColor(t.TextMuted)
+		ui.Box(c).Label(p.T("百万级上下文", "Large context")).Tooltip(fmt.Sprintf(p.T("可容纳 %d Token", "Holds %d tokens"), context)).Padding(1, 4).Radius(4).Shrink(0).Background(tn.hover).Children(func() {
+			ui.Text(c, value+"M").FontSize(em(t, sizeBadge)).TextColor(t.TextMuted)
 		})
 	}
 }
@@ -127,13 +125,16 @@ func (p *Panel) chooseModel(selection *ai.Selection) {
 
 func (p *Panel) modelPicker(c *ui.Context, t *ui.Theme) { p.modelPickerFor(c, t, false) }
 func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
+	tn := toneFor(t, c.Preferences().HighContrast)
 	open := &p.ModelPickerOpen
 	choose := p.chooseModel
 	triggerLabel := p.T("切换供应商和模型", "Change provider and model")
+	key := "model-picker"
 	if translation {
 		open = &p.TranslationPickerOpen
 		choose = p.chooseTranslationModel
 		triggerLabel = p.T("切换翻译模型", "Change translation model")
+		key = "translation-picker"
 	}
 	selected := p.defaultSelection()
 	if p.Selection != nil {
@@ -171,27 +172,25 @@ func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
 	}
 	// The trigger hugs its label. A separate flex spacer in the composer keeps
 	// send at the right edge without stretching either this button or its popup.
-	button := ui.Button(c, "").Label(triggerLabel).Tooltip(provider.Name+" · "+label).
-		MinWidth(0).MaxWidthPercent(78).Padding(3, 4).Gap(5).Radius(6).Border(0, ui.Transparent).Background(ui.Transparent).Cursor(ui.CursorPointer).Disabled(p.Busy).
+	button := ui.ButtonBase(c.Key(key)).Label(triggerLabel).Tooltip(provider.Name+" · "+label).
+		MinWidth(0).MaxWidthPercent(78).Padding(3, 6).Gap(5).Radius(6).AlignItems(ui.Center).Cursor(ui.CursorPointer).Disabled(p.Busy).
 		Children(func() {
 			p.providerImage(c, t, provider.DisplayIcon(), 16)
 			// Show the account as well as the model: identical model IDs can be
 			// served by different providers. The full route remains in the tooltip.
 			if provider.Name != "" {
-				ui.Text(c, provider.Name).Label(func() string {
-					if translation {
-						return provider.Name
-					}
-					return p.T("当前供应商：", "Current provider: ") + provider.Name
-				}()).SingleLine().Ellipsis("…").MinWidth(0).MaxWidth(88).FontSize(13).TextColor(t.TextMuted)
-				ui.Text(c, "·").TextColor(t.TextMuted).Shrink(0)
-			}
-			ui.Text(c, label).Label(func() string {
+				name := p.T("当前供应商：", "Current provider: ") + provider.Name
 				if translation {
-					return label
+					name = provider.Name
 				}
-				return p.T("当前模型：", "Current model: ") + label
-			}()).SingleLine().Ellipsis("…").MinWidth(0).FontSize(14).TextColor(t.Text)
+				ui.Text(c, provider.Name).Label(name).SingleLine().Ellipsis("…").MinWidth(0).MaxWidth(88).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted)
+				ui.Text(c, "·").FontSize(em(t, sizeMeta)).TextColor(t.TextMuted).Shrink(0)
+			}
+			name := p.T("当前模型：", "Current model: ") + label
+			if translation {
+				name = label
+			}
+			ui.Text(c, label).Label(name).SingleLine().Ellipsis("…").MinWidth(0).FontSize(em(t, sizeMeta)).TextColor(t.Text)
 			p.modelBadges(c, t, provider, selected.Model)
 			ui.Icon(c, svg("chevron")).Size(14, 14).Shrink(0).TextColor(t.TextMuted)
 		})
@@ -205,19 +204,22 @@ func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
 	}
 	if translation {
 		button.AlignSelf(ui.Start)
-	}
-	if !translation {
+	} else {
 		width, _ := c.Size()
-		// Reset actions live above the composer; reserve only send/stop and
-		// the optional reasoning control in this bottom row.
-		reserved := float32(28 + 2*8)
+		// Reserve the bottom row's other controls: restart, clear, send or
+		// stop, and the optional reasoning control.
+		reserved := 3*iconButtonSize + 4*4
 		if p.expandedReasoning() {
-			reserved += 28 + 8
+			reserved += iconButtonSize + 4
 		}
-		button.MaxWidth(max(24, min(width, 872)-48-reserved))
+		button.MaxWidth(max(24, min(width, readingMaxWidth+2*gutter)-2*composerInset-2*bleed-reserved))
 	}
-	if button.Hovered() {
-		button.Background(t.SurfaceHover)
+	if !p.Busy {
+		if button.Pressed() {
+			button.Background(tn.pressed)
+		} else if button.Hovered() || *open {
+			button.Background(tn.hover)
+		}
 	}
 	if button.Clicked() {
 		*open = !*open
@@ -225,7 +227,7 @@ func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
 	if p.Busy {
 		*open = false
 	}
-	ui.PopoverBase(c, button, open, func(panel *ui.Element) {
+	ui.PopoverBase(c, button, open, func(panel ui.Element) {
 		width, height := c.Size()
 		// A single popup fits even the 320-DIP result window. Its list scrolls
 		// independently; there is no nested combobox extending past the window.
@@ -234,10 +236,11 @@ func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
 		highlight := ui.Local(panel, "highlight", func() int { return -1 })
 		state := ui.Local(panel, "list", func() ui.ListState { return ui.ListState{} })
 		searchCollapsed := ui.Local(panel, "searchCollapsed", func() map[string]bool { return map[string]bool{} })
-		var search *ui.Element
+		var search ui.Element
 		ui.Row(c).AlignItems(ui.Center).Gap(8).Padding(5, 8).Children(func() {
 			ui.Icon(c, svg("search")).Size(16, 16).Shrink(0).TextColor(t.TextMuted)
-			search = ui.TextInput(c, query).Label(p.T("搜索供应商或模型", "Search providers or models")).Placeholder(p.T("搜索供应商或模型", "Search providers or models")).AutoFocus().Grow(1).MinWidth(0).Padding(3, 0).Border(0, ui.Transparent).Background(ui.Transparent)
+			search = ui.TextInput(c.Key("model-search"), query).Label(p.T("搜索供应商或模型", "Search providers or models")).Placeholder(p.T("搜索供应商或模型", "Search providers or models")).
+				AutoFocus().Grow(1).MinWidth(0).Padding(3, 0).Border(0, ui.Transparent).Background(ui.Transparent)
 		})
 		ui.Box(c).Height(1).Background(t.Border)
 		if search.Changed() {
@@ -285,9 +288,9 @@ func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
 			listHeight := float32(0)
 			for i, row := range rows {
 				if row.model == "" {
-					listHeight += 36 // title plus separation from its first model
+					listHeight += 34 // heading plus separation from its first model
 					if i > 0 {
-						listHeight += 6
+						listHeight += 8
 					}
 				} else {
 					listHeight += 34
@@ -297,39 +300,45 @@ func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
 			state.Key = func(i int) any { return [2]string{rows[i].provider.ID, rows[i].model} }
 			state.Header = func(i int) bool { return rows[i].model == "" }
 			state.Label = func(i int) string { return rows[i].provider.Name + " " + p.modelLabel(rows[i].provider, rows[i].model) }
-			list := ui.List(c, state, len(rows), func(i int) {
+			list := ui.List(c.Key("models"), state, len(rows), func(i int) {
 				row := rows[i]
 				if row.model == "" {
 					open := !collapsed[row.provider.ID]
-					group := ui.Column(c).Background(t.Background).Padding(0, 0, 4, 0)
+					// A sticky header needs its own background; groups are
+					// apart by room above every heading but the first.
+					group := ui.Column(c).Background(t.Background).Padding(0, 0, 2, 0)
 					if i > 0 {
-						group.Padding(6, 0, 4, 0)
+						group.Padding(8, 0, 2, 0)
 					}
 					group.Children(func() {
 						// Use MyGo's disclosure for mouse, keyboard and accessibility;
 						// models remain virtual rows so large groups stay inexpensive.
 						disclosure := ui.CollapsibleBase(c, &open)
-						disclosure.Trigger.Label(p.T("供应商：", "Provider: ")+row.provider.Name).Tooltip(row.provider.Name).Height(32).Padding(6, 8).Gap(6).AlignItems(ui.Center).Radius(99).Border(1, t.Border).Background(ui.Transparent).Cursor(ui.CursorPointer).Children(func() {
+						heading := disclosure.Trigger.Label(p.T("供应商：", "Provider: ")+row.provider.Name).Tooltip(row.provider.Name).Height(30).Padding(4, 8).Gap(6).AlignItems(ui.Center).Radius(6).Background(tn.region).Cursor(ui.CursorPointer)
+						if heading.Hovered() {
+							heading.Background(tn.hover)
+						}
+						heading.Children(func() {
 							arrow := ui.Icon(c, svg("chevron")).Size(14, 14).Shrink(0).TextColor(t.TextMuted)
 							if !open {
 								arrow.Rotate(-90)
 							}
 							p.providerImage(c, t, row.provider.DisplayIcon(), 14)
-							ui.Text(c, row.provider.Name).SingleLine().Ellipsis("…").MinWidth(0).Grow(1).FontSize(13).TextColor(t.TextMuted)
-							ui.Textf(c, "%d", row.count).FontSize(13).Shrink(0).TextColor(t.TextMuted)
+							ui.Text(c, row.provider.Name).SingleLine().Ellipsis("…").MinWidth(0).Grow(1).FontSize(em(t, sizeMeta)).FontWeight(500).TextColor(t.Text)
+							ui.Textf(c, "%d", row.count).FontSize(em(t, sizeMeta)).Shrink(0).TextColor(t.TextMuted)
 						})
-						if disclosure.Trigger.Changed() {
+						if heading.Changed() {
 							collapsed[row.provider.ID] = !open
 							*highlight = -1
 						}
 					})
 					return
 				}
-				// One compact level of indentation keeps each model beneath its
+				// Two columns of indentation keep each model beneath its
 				// provider without pushing the icon away from its name.
-				item := ui.Button(c, "").Label(p.modelLabel(row.provider, row.model)).Tooltip(row.provider.Name+" · "+row.model).Height(34).MinWidth(0).Padding(6, 8, 6, 28).Gap(6).Border(0, ui.Transparent).Background(t.Background).Radius(6).Cursor(ui.CursorPointer)
+				item := ui.ButtonBase(c).Label(p.modelLabel(row.provider, row.model)).Tooltip(row.provider.Name+" · "+row.model).Height(34).MinWidth(0).Padding(6, 8, 6, 30).Gap(6).AlignItems(ui.Center).Radius(6).Cursor(ui.CursorPointer)
 				if item.Hovered() || i == *highlight {
-					item.Background(t.SurfaceHover)
+					item.Background(tn.hover)
 				}
 				item.Children(func() {
 					providerImage(c, t, row.provider.ModelIcon(row.model), 18)
@@ -338,7 +347,7 @@ func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
 						p.modelBadges(c, t, row.provider, row.model)
 					})
 					if row.provider.ID == selected.Provider && row.model == selected.Model {
-						ui.Icon(c, svg("check")).Size(16, 16).Shrink(0).TextColor(t.TextMuted)
+						ui.Icon(c, svg("check")).Size(16, 16).Shrink(0).TextColor(t.Text)
 					}
 				})
 				if item.Clicked() {
@@ -356,12 +365,12 @@ func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
 			chooseRow(*highlight)
 		}
 		ui.Box(c).Height(1).Background(t.Border)
-		reset := ui.Button(c, "").Label(p.T("使用任务默认", "Use task defaults")).Height(30).Padding(5, 8).Gap(8).Border(0, ui.Transparent).Background(ui.Transparent).Cursor(ui.CursorPointer).Children(func() {
+		reset := ui.ButtonBase(c).Label(p.T("使用任务默认", "Use task defaults")).Height(30).Padding(5, 8).Gap(8).AlignItems(ui.Center).Radius(6).Cursor(ui.CursorPointer).Children(func() {
 			ui.Icon(c, svg("retry")).Size(14, 14).TextColor(t.TextMuted)
 			ui.Text(c, p.T("使用任务默认", "Use task defaults")).TextColor(t.TextMuted)
 		})
 		if reset.Hovered() {
-			reset.Background(t.SurfaceHover)
+			reset.Background(tn.hover)
 		}
 		if reset.Clicked() {
 			choose(nil)

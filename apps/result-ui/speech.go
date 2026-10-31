@@ -3,15 +3,12 @@ package resultui
 import (
 	"context"
 	"errors"
-	"html"
 	"strings"
 	"sync"
 	"unicode"
 
 	"github.com/egoist/mygo/ui"
-	"github.com/yuin/goldmark/ast"
-	gmtext "github.com/yuin/goldmark/text"
-	"github.com/yuin/goldmark/util"
+	"github.com/egoist/mygo/ui/markdown/parser"
 )
 
 // All result windows share one main thread and one cancellable playback lane.
@@ -39,13 +36,14 @@ func (p *Panel) speechButton(c *ui.Context, key, text, label string, markdown, w
 			tip = p.T("正在准备语音，点击停止。", "Preparing speech. Click to stop.")
 		}
 	}
-	button := contentIconButton(c, label, func() {
+	disabled := !active && (working || strings.TrimSpace(text) == "")
+	button := contentIconButton(c.Key("speech-"+key), label, disabled, func() {
 		if active && p.SpeechLoading {
 			ui.Spinner(c).Size(16, 16).Label(p.T("正在准备语音", "Preparing speech"))
 		} else {
-			ui.Icon(c, svg(icon)).FontSize(18)
+			ui.Icon(c, svg(icon)).Size(18, 18)
 		}
-	}).Key("speech-" + key).Tooltip(tip).Disabled(!active && (working || strings.TrimSpace(text) == ""))
+	}).Tooltip(tip)
 	if button.Clicked() && p.Actions.Speak != nil {
 		p.Actions.Speak(key, text, markdown)
 	}
@@ -53,7 +51,7 @@ func (p *Panel) speechButton(c *ui.Context, key, text, label string, markdown, w
 
 func (p *Panel) speechFeedback(c *ui.Context, t *ui.Theme, key string) {
 	if p.SpeechErrorKey == key && p.SpeechError != "" {
-		ui.Text(c, p.SpeechError).FillWidth().LineHeight(1.5).TextColor(t.Danger)
+		ui.Text(c, p.SpeechError).FillWidth().FontSize(em(t, sizeLabel)).LineHeight(1.5).TextColor(t.Danger)
 	}
 }
 
@@ -129,46 +127,31 @@ func (c *Controller) toggleSpeech(key, raw string, markdown bool) {
 
 // Read visible prose and code, not Markdown punctuation, link destinations or
 // diagram source. Source/OCR text bypasses Markdown so literal symbols survive.
+// The same parser as the Markdown view reads the text, so what is spoken is
+// what the window shows.
 func speechText(raw string, markdown bool) string {
 	if markdown {
-		source := []byte(raw)
-		root := markdownParser.Parse(gmtext.NewReader(source))
+		document := parser.Parse(raw)
 		var out strings.Builder
-		_ = ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
-			if !entering {
-				if node.Type() == ast.TypeBlock {
-					out.WriteByte('\n')
-				}
-				return ast.WalkContinue, nil
-			}
-			switch n := node.(type) {
-			case *ast.Text:
-				value := n.Segment.Value(source)
-				if n.IsRaw() {
-					out.Write(value)
-				} else {
-					out.WriteString(html.UnescapeString(string(util.UnescapePunctuations(value))))
-				}
-				if n.SoftLineBreak() || n.HardLineBreak() {
-					out.WriteByte(' ')
-				}
-			case *ast.String:
-				out.Write(n.Value)
-			case *ast.AutoLink:
-				out.Write(n.Label(source))
-			case *ast.FencedCodeBlock:
-				if !strings.EqualFold(string(n.Language(source)), "mermaid") {
-					out.Write(n.Lines().Value(source))
+		var walk func(parent int)
+		walk = func(parent int) {
+			for i := range document.Children(parent) {
+				switch block := document.Block(i); block.Kind {
+				case parser.CodeBlock:
+					if !strings.EqualFold(block.Language(), "mermaid") {
+						out.WriteString(document.Lines(i))
+					}
+				case parser.HTMLBlock, parser.MathBlock:
+					out.WriteString(document.Lines(i))
+				case parser.Paragraph, parser.Heading, parser.TableCell:
+					out.WriteString(parser.PlainText(document.Inlines(i)))
+				default:
+					walk(i)
 				}
 				out.WriteByte('\n')
-				return ast.WalkSkipChildren, nil
-			case *ast.CodeBlock, *ast.HTMLBlock:
-				out.Write(node.Lines().Value(source))
-				out.WriteByte('\n')
-				return ast.WalkSkipChildren, nil
 			}
-			return ast.WalkContinue, nil
-		})
+		}
+		walk(0)
 		raw = out.String()
 	}
 	// XML 1.0 rejects control characters that can occur in clipboard/OCR text.

@@ -30,7 +30,7 @@ Worker连续验证可设置 `WINONE_WORKER_REPEAT=100`，逐次原子保存计�
 
 工具栏、完成事务、定位及图标已移入 `modules/capture/NativeUI`，测试通过项目引用使用同一份实现。图标由 `build/generate-capture-icons.mjs` 在开发时生成并嵌入截图模块程序集，运行时不依赖浏览器。握柄、显示器约束及原生溢出菜单继续沿用已有验证。
 
-`--native-toolbar-render-probe <新目录>` 只允许在自建私有桌面运行，输出标准宽度和320px宽度的实际控件渲染。静态渲染与六个显示器边界几何案例通过；握柄定向消息及后续完整原型操作通过。真实鼠标、多DPI、深色主题及完整工具集尚未验收。
+`--native-toolbar-render-probe <新目录>` 只允许在自建私有桌面运行，输出标准宽度和320px宽度的实际控件渲染：工具栏按窗口区域叠在灰色底上显示圆角外形，另有悬停与选中状态（`toolbar-hover*.png`）、两个溢出菜单和样式菜单。`WINONE_PROBE_THEME=dark` 渲染深色主题，`WINONE_PROBE_LANGUAGE=en-US` 渲染英文。静态渲染与六个显示器边界几何案例通过；握柄定向消息及后续完整原型操作通过。真实鼠标与多DPI尚未验收；Windows 11 为菜单绘制的圆角、边框和阴影不进入 DrawToBitmap 渲染图。
 
 原生文字可行性入口：`--native-text-render-probe <新输出目录>`。标准Windows EDIT控件通过WM_CTLCOLOREDIT显示画布背景；导出在原生HDC上按照EM_LINEINDEX、EM_LINELENGTH、EM_POSFROMCHAR给出的实际分行绘制，不另行计算换行。中文、自动换行、制表符、文件名标点和空白五组样本与控件DrawToBitmap逐像素一致。原生文字已接入原型会话；真实IME、滚动与混合DPI仍未验收。
 

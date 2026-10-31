@@ -1,4 +1,9 @@
-param([Parameter(Mandatory)][string]$BundleDirectory,[string]$GoExe='go')
+param(
+ [Parameter(Mandatory,ParameterSetName='Bundle')][string]$BundleDirectory,
+ [Parameter(Mandatory,ParameterSetName='Executable')][string]$Executable,
+ [Parameter(Mandatory,ParameterSetName='Source')][switch]$SourceOnly,
+ [string]$GoExe='go'
+)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $source=Join-Path $root 'third_party/result-ui-notices.json'
@@ -9,19 +14,42 @@ foreach($component in $catalog.components){
  if($records.ContainsKey($key) -or @($component.notices).Count -eq 0){throw "Invalid result notice record: $key"}
  $records[$key]=$component
  foreach($notice in $component.notices){
-  foreach($base in @((Join-Path $root 'third_party'),$BundleDirectory)){
+  $bases=@((Join-Path $root 'third_party'))
+  if($BundleDirectory){$bases+=$BundleDirectory}
+  foreach($base in $bases){
    if((Get-FileHash -LiteralPath (Join-Path $base $notice.file) -Algorithm SHA256).Hash.ToLowerInvariant() -ne $notice.sha256){throw "Result notice mismatch: $($notice.file)"}
   }
  }
 }
+# Check source dependencies at upgrade time as well as the linked binary.
+# Source mode does not need a bundle and never writes files.
+if($SourceOnly){
+ Push-Location (Join-Path $root 'apps/result-ui')
+ try {
+  $modules=@(& $GoExe list -deps -f '{{if .Module}}{{.Module.Path}}|{{.Module.Version}}{{end}}' ./cmd/winone-results | Sort-Object -Unique)
+  if($LASTEXITCODE -ne 0){throw 'Cannot inspect result UI source dependencies'}
+  foreach($module in $modules){
+   if(-not $module){continue}
+   $parts=$module -split '\|'
+   if($parts[0] -notin @('winone','winone/resultui') -and -not $records.ContainsKey('go|'+$module)){throw "Missing result source dependency notice: $module"}
+  }
+ }finally{Pop-Location}
+ Write-Output "Result UI source dependency notices verified: $($catalog.components.Count) records"
+ return
+}
 # Inspect the actual executable, including its independent Go toolchain.
-$info=@(& $GoExe version -m (Join-Path $BundleDirectory 'shared/ui/WinOne.Results.exe'))
+if($BundleDirectory){$Executable=Join-Path $BundleDirectory 'shared/ui/WinOne.Results.exe'}
+$info=@(& $GoExe version -m $Executable)
 if($LASTEXITCODE -ne 0 -or $info.Count -eq 0){throw 'Cannot inspect result UI dependencies'}
 $version=($info[0] -split '\s+')[-1]
 if(-not $records.ContainsKey('toolchain|Go|'+$version)){throw 'Result UI toolchain notice mismatch'}
 foreach($line in $info){
  $parts=$line.Trim() -split '\s+'
  if($parts[0] -eq 'dep' -and $parts[1] -ne 'winone' -and -not $records.ContainsKey('go|'+$parts[1]+'|'+$parts[2])){throw "Missing result dependency notice: $line"}
+}
+if(-not $BundleDirectory){
+ Write-Output "Result UI dependency notices verified: $($catalog.components.Count) records"
+ return
 }
 Copy-Item -LiteralPath $source -Destination (Join-Path $BundleDirectory 'licenses/result-ui-notices.txt') -Force
 $iconsPath=Join-Path $root 'third_party/provider-icons.json'

@@ -1,5 +1,3 @@
-//go:build usage_ready
-
 package aiservices
 
 import (
@@ -17,6 +15,9 @@ type usageTab = usage.Usage
 // them, with the panels plugins add below.
 func (p *page) usageView(c *ui.Context) {
 	if page := p.extensions.replacement("usage"); page != nil {
+		if p.usage != nil {
+			p.usage.View(c, usage.Options{Active: false})
+		}
 		p.extensions.Page(c, *page, nil, p.locked())
 		return
 	}

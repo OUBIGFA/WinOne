@@ -49,7 +49,12 @@ func Main(args []string) int {
 		return exitCode(err)
 	}
 	if IsProbe(args) {
-		return exitCode(runProbe(args))
+		// Read-only installer probes cannot wait for a message box on failure.
+		if err := runProbe(args); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		return 0
 	}
 	defaultPipe, err := transport.PipeName()
 	if err != nil {

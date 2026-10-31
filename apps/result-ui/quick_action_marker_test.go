@@ -16,9 +16,7 @@ func TestQuickActionShowsSeparateIconWithoutAddingActionNameToUserText(t *testin
 			panel.Theme = theme
 			panel.Source = "quick-assistant"
 			panel.Messages = []Message{{Role: "user", Text: "A paragraph to translate.", ActionIcon: "translate", ActionLabel: "翻译"}}
-			tt := ui.NewTester(func(c *ui.Context) {
-				ui.Column(c).Fill().Background(panel.palette(c).Background).Children(func() { panel.conversation(c, panel.palette(c)) })
-			}, width, 160)
+			tt := ui.NewTester(panel.View, width, 500)
 			icon, ok := tt.Find("快捷操作：翻译")
 			user, _ := tt.Find("用户消息气泡")
 			if !ok || icon.X != user.X || icon.Y+icon.H > user.Y {

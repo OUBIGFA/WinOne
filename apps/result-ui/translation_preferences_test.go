@@ -80,8 +80,8 @@ func TestPinAndDragHandleUseRequestedTitlebarPositions(t *testing.T) {
 				title = "快捷助手"
 			}
 			label, found := tt.Find(title)
-			if !found || label.X < grip.X+grip.W || (grip.X+label.X+label.W)/2 != float32(size[0])/2 || grip.Y+grip.H/2 != resultHeaderHeight/2 {
-				t.Fatalf("%s: drag/title group is not centered: grip=%+v title=%+v", source, grip, label)
+			if !found || label.X < pin.X+pin.W || label.X+label.W > grip.X || grip.X+grip.W/2 != float32(size[0])/2 || grip.Y+grip.H/2 != resultHeaderHeight/2 {
+				t.Fatalf("%s: handle is not centered independently of title: grip=%+v title=%+v", source, grip, label)
 			}
 		}
 	}

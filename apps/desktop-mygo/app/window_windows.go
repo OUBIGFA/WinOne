@@ -93,8 +93,10 @@ func runWindow(o Options, launch plan) error {
 	return mygo.App.Run()
 }
 
-func (w *window) open() {
-	w.win = mygo.NewWindow(mygo.WindowOptions{
+// settingsWindowOptions keeps the installed window and its native startup
+// probe on the same frame, dimensions and production content path.
+func settingsWindowOptions(content mygo.Content) mygo.WindowOptions {
+	return mygo.WindowOptions{
 		Title:             "WinOne",
 		Width:             1280,
 		Height:            840,
@@ -104,8 +106,12 @@ func (w *window) open() {
 		HideWindowButtons: true,
 		Hidden:            true,
 		BackgroundColor:   "light-dark(#fcfcfc, #191919)",
-		Content:           ui.View(w.shell.View),
-	})
+		Content:           content,
+	}
+}
+
+func (w *window) open() {
+	w.win = mygo.NewWindow(settingsWindowOptions(ui.View(w.shell.View)))
 	w.hwnd = w.win.NativeHandle()
 	subclass(w.hwnd, &w.exit)
 	if err := w.instance.attach(w.hwnd, w.wake); err != nil {

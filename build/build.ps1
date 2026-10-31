@@ -1,4 +1,4 @@
-param([string]$GoExe = 'go', [string]$CargoExe = 'cargo', [string]$Downloader, [switch]$SkipInstall, [string]$OutputDirectory = '_temp/build/current', [switch]$RunStartupProbes, [string]$UpdateRepository = '', [string]$ShareXSourceDirectory, [string]$RustTargetDirectory='dist/resources/cache/rust-desktop', [ValidateSet('Rust','Legacy')][string]$DesktopImplementation='Rust', [string]$OcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY, [string]$MagpieSourceDirectory=$env:WINONE_MAGPIE_SOURCE_DIRECTORY, [string]$PluginSourceDirectory=$env:WINONE_AI_PLUGIN_SOURCE_DIRECTORY, [string]$BunExe=$env:WINONE_AI_BUN_EXE, [string]$ResultGoExe=$env:WINONE_RESULT_GO_EXE, [string]$DiagramTargetDirectory='dist/resources/cache/rust-diagrams', [string]$SelectionTargetDirectory='dist/resources/cache/rust-selection', [string]$ModuleTrustFile='')
+param([string]$GoExe = 'go', [string]$CargoExe = 'cargo', [string]$Downloader, [switch]$SkipInstall, [string]$OutputDirectory = '_temp/build/current', [switch]$RunStartupProbes, [string]$UpdateRepository = '', [string]$ShareXSourceDirectory, [string]$RustTargetDirectory='dist/resources/cache/rust-desktop', [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='Rust', [string]$OcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY, [string]$MagpieSourceDirectory=$env:WINONE_MAGPIE_SOURCE_DIRECTORY, [string]$PluginSourceDirectory=$env:WINONE_AI_PLUGIN_SOURCE_DIRECTORY, [string]$BunExe=$env:WINONE_AI_BUN_EXE, [string]$ResultGoExe=$env:WINONE_RESULT_GO_EXE, [string]$DiagramTargetDirectory='dist/resources/cache/rust-diagrams', [string]$SelectionTargetDirectory='dist/resources/cache/rust-selection', [string]$ModuleTrustFile='')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 if(-not $OcrRuntimeDirectory -or -not $MagpieSourceDirectory){throw 'Pass OcrRuntimeDirectory (build/prepare-ocr.ps1 output) and the pinned MagpieSourceDirectory'}
@@ -121,6 +121,11 @@ CheckExit
 & (Join-Path $PSScriptRoot 'build-host.ps1') -GoExe $GoExe -OutputDirectory $output -Version $buildVersion -UpdateRepository $UpdateRepository -ModulePublishers $moduleKeys; CheckExit
 if($DesktopImplementation -eq 'Rust'){
     & (Join-Path $PSScriptRoot 'build-desktop-rust.ps1') -CargoExe $CargoExe -GoExe $GoExe -OutputDirectory $output -TargetDirectory $RustTargetDirectory -ComponentUI -FrontendAlreadyBuilt -UpdateRepository $UpdateRepository
+    CheckExit
+}elseif($DesktopImplementation -eq 'MyGo'){
+    # Explicit preview only: the user chose to test completed native pages;
+    # Chat, OneBot and Flash chat remain unavailable in this build.
+    & (Join-Path $PSScriptRoot 'build-desktop-mygo.ps1') -GoExe $ResultGoExe -OutputDirectory $output -Version $buildVersion -UpdateRepository $UpdateRepository
     CheckExit
 }else{
     & $GoExe build -trimpath -tags desktop,production -ldflags "-H windowsgui -X main.updateRepository=$UpdateRepository -X main.updateVersion=$buildVersion" -o (Join-Path $output 'WinOne.exe') ./apps/desktop; CheckExit

@@ -2,6 +2,7 @@ package resultui
 
 import (
 	"fmt"
+	_ "github.com/egoist/mygo/locales/zh-Hans"
 	"github.com/egoist/mygo/ui"
 	"image/png"
 	"math"
@@ -24,6 +25,7 @@ func TestQuickAssistantChatActionsAndLayouts(t *testing.T) {
 			p.Actions.Send = func(text string) { sent = text }
 			p.Actions.Quick = func(a resultwindow.SelectionAction) { inputs = append(inputs, a.ID+":"+p.Prompt) }
 			tt := ui.NewTester(p.View, 520, 600)
+			tt.SetLocale(LocaleTag(lang))
 			assertCentered := func() {
 				t.Helper()
 				bar, ok := tt.Find(p.T("快捷功能", "Quick actions"))
@@ -36,7 +38,7 @@ func TestQuickAssistantChatActionsAndLayouts(t *testing.T) {
 					t.Fatalf("actions not centered in region: region=%+v first=%+v last=%+v", bar, first, last)
 				}
 				inputBox, ok := tt.Find(p.T("消息输入框", "Message input box"))
-				divider, dividerOK := tt.Find("Divider")
+				divider, dividerOK := tt.Find(p.T("分隔条", "Divider"))
 				if !ok || !dividerOK || math.Abs(float64(first.Y+first.H/2-(divider.Y+divider.H+inputBox.Y)/2)) > 1 {
 					t.Fatalf("quick icons must be centered between the divider and input border: divider=%+v input=%+v icon=%+v", divider, inputBox, first)
 				}
@@ -110,10 +112,17 @@ func TestQuickAssistantChatActionsAndLayouts(t *testing.T) {
 				p.QuickActions = append(p.QuickActions, resultwindow.SelectionAction{ID: fmt.Sprintf("custom-%d", n), Name: fmt.Sprintf("自定义 %d", n), Icon: "polish", Kind: "ai", Prompt: "Summarize", Enabled: true})
 			}
 			tt.SetSize(320, 400)
-			if err := tt.Click(p.T("更多功能", "More actions")); err != nil {
+			if err := tt.Click(p.T("更多", "More")); err != nil {
 				t.Fatal(err)
 			}
 			save("more")
+			if err := tt.ChooseMenuItem("自定义 17"); err != nil {
+				t.Fatal(err)
+			}
+			tt.Frame()
+			if len(inputs) != 3 || inputs[2] != "custom-17:测试内容" {
+				t.Fatal("overflow menu did not run its original action", inputs)
+			}
 		}
 	}
 }

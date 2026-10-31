@@ -1,7 +1,10 @@
+using System.Runtime.InteropServices;
+
 namespace WinOne.Capture.NativeUI;
 
 // Native presentation only: commands are handled by the capture session.
-// Standard ToolStrip controls own focus, accessibility and button interaction.
+// Standard ToolStrip controls own focus, accessibility and button interaction;
+// NativeRenderer draws them in the settings window's style (NativeStyle).
 internal sealed class NativeToolbarControl : UserControl
 {
     protected override CreateParams CreateParams {
@@ -26,7 +29,7 @@ internal sealed class NativeToolbarControl : UserControl
     private bool scrollEnabled;
     private bool recordingAvailable;
     private readonly bool dark;
-    private readonly Color borderColor;
+    private readonly NativeStyle style;
     private Image? overflowImage;
     private readonly Dictionary<string, ToolStripButton> buttons = new();
     private readonly HashSet<string> drawingCommands = new(StringComparer.Ordinal);
@@ -46,7 +49,7 @@ internal sealed class NativeToolbarControl : UserControl
     public NativeToolbarControl(bool dark = false, string? language = null, IReadOnlyList<string>? toolbarTools = null, Func<string[]?, Task<string[]?>>? saveToolbar = null)
     {
         this.dark = dark;
-        borderColor = new NativeMenuColors(dark: dark).ToolStripBorder;
+        style = NativeStyle.For(dark);
         SetStyle(ControlStyles.ResizeRedraw, true);
         this.saveToolbar = saveToolbar;
         if (toolbarTools is not null) {
@@ -59,14 +62,14 @@ internal sealed class NativeToolbarControl : UserControl
         var english = (language ?? System.Globalization.CultureInfo.CurrentUICulture.Name).StartsWith("en", StringComparison.OrdinalIgnoreCase);
         string T(string chinese, string translated) => english ? translated : chinese;
         AutoScaleMode = AutoScaleMode.Dpi;
-        BackColor = dark ? Color.FromArgb(23, 23, 23) : Color.White;
-        ForeColor = dark ? Color.FromArgb(250, 250, 250) : Color.FromArgb(23, 23, 23);
+        BackColor = style.Panel;
+        ForeColor = style.Text;
         foreach (var row in new ToolStrip[] { actions, tools, grip }) {
             row.BackColor = BackColor; row.ForeColor = ForeColor;
-            row.Renderer = new OverflowRenderer(new NativeMenuColors(borderless: true, dark: dark), () => overflowImage, menuTheme.DrawArrow) { RoundedEdges = false };
+            row.Renderer = new NativeRenderer(style, menuTheme.DrawArrow, () => overflowImage);
             var previousMenu = row.OverflowButton.DropDown;
             var menu = new ToolStripDropDownMenu { BackColor = BackColor, ForeColor = ForeColor, Renderer = row.Renderer,
-                Padding = new Padding(4), MinimumSize = new Size(160, 0), ImageScalingSize = new Size(18, 18) };
+                ImageScalingSize = new Size(18, 18) };
             row.OverflowButton.DropDown = menu; previousMenu.Dispose();
             menuTheme.Apply(menu);
             row.OverflowButton.DropDownOpening += (_, _) => {
@@ -94,7 +97,7 @@ internal sealed class NativeToolbarControl : UserControl
         Controls.Add(actions); Controls.Add(tools); Controls.Add(grip);
         grip.GripStyle = ToolStripGripStyle.Hidden;
         grip.Items.Add(gripIcon);
-        grip.Renderer = new ToolStripProfessionalRenderer(new NativeMenuColors(borderless: true, dark: dark)) { RoundedEdges = false };
+        grip.Renderer = new NativeRenderer(style, menuTheme.DrawArrow);
         grip.CanOverflow = false; grip.DedicatedGrip = true; grip.Cursor = Cursors.SizeAll;
         grip.AccessibleName = T("拖动工具栏", "Drag toolbar");
         gripHint.SetToolTip(grip, T("按住拖动工具栏", "Hold to drag toolbar"));
@@ -191,15 +194,35 @@ internal sealed class NativeToolbarControl : UserControl
         } finally { preferencesBusy = false; if (!IsDisposed) customization.Enabled = true; }
     }
     private int GripColumnWidth => (int)Math.Round(32d * DeviceDpi / 96);
+    private int FaceRadius => NativeStyle.Scale(NativeStyle.PanelRadius, DeviceDpi);
+
+    [DllImport("gdi32.dll")] private static extern IntPtr CreateRoundRectRgn(int left, int top, int right, int bottom, int width, int height);
+    [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr region);
+    // GDI's round rectangle covers [left, right - 1] x [top, bottom - 1].
+    private static Region RoundRegion(int left, int top, int right, int bottom, int radius)
+    {
+        var handle = CreateRoundRectRgn(left, top, right, bottom, radius * 2, radius * 2);
+        if (handle == IntPtr.Zero) throw new InvalidOperationException("Toolbar shape unavailable");
+        try { return Region.FromHrgn(handle); } finally { DeleteObject(handle); }
+    }
+
+    // The face is kit's rounded panel. A child window cannot blend its corners
+    // with the capture below, so the window region and the border take the
+    // same GDI round-rectangle pixels: crisp corners without a light halo.
+    // Control.Region disposes the region it replaces.
+    private void UpdateShape() => Region = RoundRegion(0, 0, Width + 1, Height + 1, FaceRadius);
+    protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); UpdateShape(); }
 
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
         // Keep the floating toolbar distinct from a white capture without
         // adding a shadow; native child controls remain inside the padding.
-        var border = SystemInformation.HighContrast ? SystemColors.WindowFrame
-            : borderColor;
-        ControlPaint.DrawBorder(e.Graphics, ClientRectangle, border, ButtonBorderStyle.Solid);
+        using var edge = new SolidBrush(SystemInformation.HighContrast ? SystemColors.WindowFrame : style.Border);
+        using var face = new SolidBrush(BackColor);
+        using var inside = RoundRegion(1, 1, Width, Height, FaceRadius - 1);
+        e.Graphics.FillRectangle(edge, ClientRectangle);
+        e.Graphics.FillRegion(face, inside);
     }
 
     protected override void OnLayout(LayoutEventArgs e)
@@ -226,28 +249,40 @@ internal sealed class NativeToolbarControl : UserControl
     {
         var pixels = Math.Max(18, (int)Math.Ceiling(18d * DeviceDpi / 96));
         var resourceSize = new[] { 18, 24, 36, 48, 72 }.FirstOrDefault(size => size >= pixels, 72);
+        // The packaged icons are masks: each takes the theme's text color, the
+        // drag handle its secondary color, as MyGo colors icons.
+        Bitmap Icon(string name, Color color)
+        {
+            using var stream = typeof(NativeToolbarControl).Assembly.GetManifestResourceStream($"WinOne.Capture.Icons.{name}{(dark ? "-dark" : "")}-{resourceSize}.png")
+                ?? throw new InvalidOperationException("Missing local capture icon: " + name);
+            using var image = Image.FromStream(stream);
+            return NativeStyle.Tint(image, color);
+        }
         actions.ImageScalingSize = tools.ImageScalingSize = new Size(pixels, pixels);
         foreach (var pair in buttons) {
-            var iconName = pair.Key == "retake" ? "redo" : pair.Key;
-            using var stream = typeof(NativeToolbarControl).Assembly.GetManifestResourceStream($"WinOne.Capture.Icons.{iconName}{(dark ? "-dark" : "")}-{resourceSize}.png")
-                ?? throw new InvalidOperationException("Missing local capture icon: " + pair.Key);
-            using var image = Image.FromStream(stream);
             var previous = pair.Value.Image;
-            pair.Value.Image = new Bitmap(image); previous?.Dispose();
+            pair.Value.Image = Icon(pair.Key == "retake" ? "redo" : pair.Key, style.Text); previous?.Dispose();
             pair.Value.Size = new Size((int)Math.Round(36d * DeviceDpi / 96), (int)Math.Round(36d * DeviceDpi / 96));
         }
-        using var gripStream = typeof(NativeToolbarControl).Assembly.GetManifestResourceStream($"WinOne.Capture.Icons.grip{(dark ? "-dark" : "")}-{resourceSize}.png")
-            ?? throw new InvalidOperationException("Missing local drag icon");
-        using var gripImage = Image.FromStream(gripStream);
-        var oldGrip = gripIcon.Image; gripIcon.Image = new Bitmap(gripImage); oldGrip?.Dispose();
+        var oldGrip = gripIcon.Image; gripIcon.Image = Icon("grip", style.TextMuted); oldGrip?.Dispose();
         grip.ImageScalingSize = new Size(pixels, pixels);
-        using var overflowStream = typeof(NativeToolbarControl).Assembly.GetManifestResourceStream($"WinOne.Capture.Icons.overflow{(dark ? "-dark" : "")}-{resourceSize}.png")
-            ?? throw new InvalidOperationException("Missing local overflow icon");
-        using var overflow = Image.FromStream(overflowStream);
-        var oldOverflow = overflowImage; overflowImage = new Bitmap(overflow); oldOverflow?.Dispose();
+        var oldOverflow = overflowImage; overflowImage = Icon("overflow", style.Text); oldOverflow?.Dispose();
+        // The style menu's arrow: kit's 14 DIP chevron, pointing down, in the
+        // secondary color.
+        var arrowPixels = NativeStyle.Scale(14, DeviceDpi);
+        var arrow = new Bitmap(arrowPixels, arrowPixels);
+        using (var mask = Icon("chevron", style.TextMuted))
+        using (var graphics = Graphics.FromImage(arrow)) {
+            graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+            graphics.DrawImage(mask, new Rectangle(0, 0, arrowPixels, arrowPixels));
+        }
+        arrow.RotateFlip(RotateFlipType.Rotate90FlipNone);
+        options.ReplaceArrow(arrow)?.Dispose();
+        // As tall as the icon buttons, so all faces line up.
+        options.Size = new Size(options.PreferredWidth(DeviceDpi), (int)Math.Round(36d * DeviceDpi / 96));
         foreach (var row in new[] { actions, tools }) row.OverflowButton.Width = (int)Math.Round(32d * DeviceDpi / 96);
     }
-    protected override void OnDpiChangedAfterParent(EventArgs e) { base.OnDpiChangedAfterParent(e); LoadIcons(); }
+    protected override void OnDpiChangedAfterParent(EventArgs e) { base.OnDpiChangedAfterParent(e); LoadIcons(); UpdateShape(); }
     protected override void Dispose(bool disposing)
     {
         if (disposing) {
@@ -255,6 +290,7 @@ internal sealed class NativeToolbarControl : UserControl
             gripHint.Dispose();
             overflowImage?.Dispose(); overflowImage = null;
             var dragImage = gripIcon.Image; gripIcon.Image = null; dragImage?.Dispose();
+            options.ReplaceArrow(null)?.Dispose();
             foreach (var button in buttons.Values) { var image = button.Image; button.Image = null; image?.Dispose(); }
         }
         base.Dispose(disposing);
@@ -263,7 +299,6 @@ internal sealed class NativeToolbarControl : UserControl
 
     private static GripToolStrip Row() => new() {
         AutoSize = false, Height = 36, GripStyle = ToolStripGripStyle.Hidden,
-        BackColor = Color.White, ForeColor = Color.FromArgb(23, 23, 23),
         Padding = Padding.Empty, ImageScalingSize = new Size(18, 18),
         LayoutStyle = ToolStripLayoutStyle.HorizontalStackWithOverflow,
         CanOverflow = true, ShowItemToolTips = true, ClickThrough = true,
@@ -360,20 +395,6 @@ internal sealed class NativeToolbarControl : UserControl
             base.OnMouseUp(mouse);
         }
         protected override void OnMouseCaptureChanged(EventArgs e) { if (!Capture) dragPointer = null; base.OnMouseCaptureChanged(e); }
-    }
-
-    // Change only the native overflow button's presentation; ToolStrip keeps
-    // its hit testing, keyboard navigation, menu lifetime and screen placement.
-    private sealed class OverflowRenderer(ProfessionalColorTable colors, Func<Image?> icon, Action<ToolStripArrowRenderEventArgs> drawArrow) : ToolStripProfessionalRenderer(colors)
-    {
-        protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e) => drawArrow(e);
-        protected override void OnRenderOverflowButtonBackground(ToolStripItemRenderEventArgs e)
-        {
-            base.OnRenderButtonBackground(e);
-            var image = icon(); if (image is null) return;
-            var size = e.ToolStrip?.ImageScalingSize ?? new Size(18, 18);
-            e.Graphics.DrawImage(image, new Rectangle((e.Item.Width - size.Width) / 2, (e.Item.Height - size.Height) / 2, size.Width, size.Height));
-        }
     }
 
 }

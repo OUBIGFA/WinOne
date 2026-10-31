@@ -1,36 +1,43 @@
 package resultui
 
 import (
-	"golang.org/x/sys/windows"
-	"runtime"
 	"testing"
-	"unsafe"
+
+	"winone/internal/resultwindow"
 )
 
+// MyGo owns native styles now; test the production options rather than a
+// removed Win32 patch. Real-window style checks belong to the window probe.
 func TestSelectionWindowNeverQualifiesForTaskbar(t *testing.T) {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-	class, _ := windows.UTF16PtrFromString("STATIC")
-	create := frameUser.NewProc("CreateWindowExW")
-	window, _, err := create.Call(0x40008, uintptr(unsafe.Pointer(class)), 0, 0xcf0000, 0, 0, 420, 420, 0, 0, 0, 0)
-	if window == 0 {
-		t.Fatal(err)
+	for _, toolbar := range []bool{true, false} {
+		c := &Controller{Initial: resultwindow.Initial{Source: "selection"}, Panel: NewPanel("ocr", "zh-CN", "light"), Toolbar: toolbar}
+		o := c.WindowOptions()
+		if !o.Panel || !o.AlwaysOnTop || o.DisableResize != toolbar {
+			t.Fatalf("selection toolbar=%v: %+v", toolbar, o)
+		}
+		if toolbar {
+			w, h := c.ToolbarDimensions()
+			if o.Width != w || o.Height != h || o.MinWidth != 0 || o.MinHeight != 0 {
+				t.Fatalf("toolbar geometry: %+v", o)
+			}
+		} else if o.Width != DefaultResultWidth || o.Height != DefaultResultHeight || o.MinWidth != 320 || o.MinHeight != 300 {
+			t.Fatalf("result geometry: %+v", o)
+		}
 	}
-	defer frameUser.NewProc("DestroyWindow").Call(window)
-	for i := 0; i < 2; i++ {
-		if err := prepareSelectionToolWindow(window); err != nil {
-			t.Fatal(err)
-		}
-		ex, _, _ := frameStyle.Call(window, ^uintptr(19))
-		if ex&0x80 == 0 || ex&0x40000 != 0 {
-			t.Fatalf("selection remains taskbar-eligible: %#x", ex)
-		}
-		if ex&8 == 0 {
-			t.Fatal("topmost behavior changed")
-		}
-		style, _, _ := frameStyle.Call(window, ^uintptr(15))
-		if style&0x40000 == 0 {
-			t.Fatal("resizable frame removed")
+}
+
+func TestResultWindowOptionsPreserveVisibilityAndPinning(t *testing.T) {
+	for _, source := range []string{"capture", "quick-assistant"} {
+		for _, pinned := range []bool{false, true} {
+			c := &Controller{Initial: resultwindow.Initial{Source: source}, Panel: NewPanel("ocr", "en-US", "dark")}
+			c.Panel.Pinned = pinned
+			o := c.WindowOptions()
+			if o.Panel || !o.Hidden || !o.Frameless || !o.UseContentSize || !o.DisableMaximize || o.DisableResize || o.CornerRadius != 8 {
+				t.Fatalf("result options: %+v", o)
+			}
+			if o.AlwaysOnTop != (source != "quick-assistant" || pinned) {
+				t.Fatalf("pin policy source=%s pinned=%v", source, pinned)
+			}
 		}
 	}
 }

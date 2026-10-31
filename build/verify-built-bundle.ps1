@@ -6,7 +6,7 @@ param(
  [string]$GoExe='go',
  [string]$ResultGoExe='go',
  [string]$CargoExe='cargo',
- [ValidateSet('Rust','Legacy')][string]$DesktopImplementation='Rust',
+ [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='Rust',
  [switch]$RunStartupProbes
 )
 $ErrorActionPreference='Stop'
@@ -39,6 +39,7 @@ try{
  & (Join-Path $PSScriptRoot 'verify-interconnect-transfer-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output -Runtime peer
  foreach($runtime in @('diagram','selection','recording','search')){& (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime $runtime}
  if($DesktopImplementation -eq 'Rust'){& (Join-Path $PSScriptRoot 'verify-rust-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output}
+ if($DesktopImplementation -eq 'MyGo'){& (Join-Path $PSScriptRoot 'verify-desktop-mygo-notices.ps1') -GoExe $ResultGoExe -Executable (Join-Path $output 'WinOne.exe') -BundleDirectory $output}
  & $GoExe run ./build/package --record-build --bundle $output --license (Join-Path $root 'LICENSE') --version $Version; CheckExit
  Write-Output "Build verified: $output/WinOne.exe"
 }finally{

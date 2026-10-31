@@ -36,3 +36,4 @@ export function buildBaseVoiceInputRefinementContext(
     ...buildVoiceInputHistoryContext(getVoiceInputHistoryForRefinement()),
   };
 }
+

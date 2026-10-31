@@ -1,12 +1,14 @@
 namespace WinOne.Capture.NativeUI;
 
-// One owned font and renderer serve a complete menu tree. Menu input, focus,
-// placement and accessibility remain provided by the native controls.
+// One owned font and renderer serve a complete menu tree, in the settings
+// window's style (NativeStyle). Menu input, focus, placement and
+// accessibility remain provided by the native controls.
 internal sealed class NativeMenuTheme : IDisposable
 {
-    private readonly Font font = new("Segoe UI", 10.5f, FontStyle.Regular, GraphicsUnit.Point);
+    private readonly Font font = NativeStyle.CreateFont();
     private readonly bool contrast = SystemInformation.HighContrast;
     private readonly Dictionary<ArrowDirection, Bitmap> arrows = LoadArrows();
+    public NativeStyle Style { get; }
     public Color Background { get; }
     public Color Foreground { get; }
     public ToolStripRenderer Renderer { get; }
@@ -14,22 +16,26 @@ internal sealed class NativeMenuTheme : IDisposable
 
     public NativeMenuTheme(bool dark)
     {
-        Background = contrast ? SystemColors.Menu : dark ? Color.FromArgb(35, 35, 35) : Color.White;
-        Foreground = contrast ? SystemColors.MenuText : dark ? Color.FromArgb(233, 233, 233) : Color.FromArgb(38, 38, 38);
-        Renderer = contrast ? new SystemMenuRenderer(DrawArrow) : new MenuRenderer(new NativeMenuColors(dark: dark), DrawArrow) { RoundedEdges = false };
+        Style = NativeStyle.For(dark);
+        Background = contrast ? SystemColors.Menu : Style.Panel;
+        Foreground = contrast ? SystemColors.MenuText : Style.Text;
+        Renderer = contrast ? new SystemMenuRenderer(DrawArrow) : new NativeRenderer(Style, DrawArrow);
     }
     public void Apply(ToolStrip menu)
     {
         menu.Font = font; menu.BackColor = Background; menu.ForeColor = Foreground; menu.Renderer = Renderer;
-        if (menu is ToolStripDropDown) {
-            menu.Padding = new Padding(6);
-            menu.MinimumSize = new Size(224, 0);
+        if (menu is ToolStripDropDown dropDown) {
+            // A drop-down menu computes its own padding and sizes its items to
+            // its widest one; a minimum width would leave the items short of
+            // the right edge. The renderer insets the item faces as kit does.
             menu.ImageScalingSize = new Size(18, 18);
+            if (!contrast) Style.Round(dropDown);
         }
         foreach (ToolStripItem item in menu.Items) {
             item.ForeColor = Foreground; item.BackColor = Background; item.Font = font;
             if (item is ToolStripMenuItem entry) {
-                entry.Padding = new Padding(8, 7, 8, 7);
+                // kit's drop-down rows are 32 DIP high with this font.
+                entry.Padding = new Padding(8, 6, 8, 6);
                 if (entry.HasDropDownItems) Apply(entry.DropDown);
             } else if (item is ToolStripControlHost host) {
                 host.Control.Font = font; host.Control.BackColor = Background; host.Control.ForeColor = Foreground;
@@ -63,7 +69,9 @@ internal sealed class NativeMenuTheme : IDisposable
     // filled triangle while the rest of the menu uses the packaged chevron.
     internal void DrawArrow(ToolStripArrowRenderEventArgs e)
     {
-        var colour = e.Item?.Enabled != false ? Foreground : SystemColors.GrayText;
+        // Arrows are secondary, as MyGo's submenu and select arrows.
+        var colour = contrast ? (e.Item?.Enabled != false ? Foreground : SystemColors.GrayText)
+            : e.Item?.Enabled != false ? Style.TextMuted : Style.Faded(Style.TextMuted);
         var size = Math.Min(Math.Min(e.ArrowRectangle.Width, e.ArrowRectangle.Height), (int)Math.Round(16 * (e.Item?.Owner?.DeviceDpi ?? 96) / 96d));
         if (size <= 0) return;
         var rect = new Rectangle(e.ArrowRectangle.X + (e.ArrowRectangle.Width - size) / 2,
@@ -76,10 +84,6 @@ internal sealed class NativeMenuTheme : IDisposable
             new float[] {0,0,0,0,0}, new float[] {0,0,0,0,0}, new float[] {0,0,0,0,0},
             new float[] {0,0,0,1,0}, new float[] {colour.R/255f,colour.G/255f,colour.B/255f,0,1} }));
         e.Graphics.DrawImage(image, rect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
-    }
-    private sealed class MenuRenderer(ProfessionalColorTable colors, Action<ToolStripArrowRenderEventArgs> drawArrow) : ToolStripProfessionalRenderer(colors)
-    {
-        protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e) => drawArrow(e);
     }
     private sealed class SystemMenuRenderer(Action<ToolStripArrowRenderEventArgs> drawArrow) : ToolStripSystemRenderer
     {

@@ -126,7 +126,7 @@ internal static class NativeCaptureWorkflowTests
                     input.Text = "原位文字 WinOne"; var originalHandle = input.Handle;
                     var options = items.OfType<NativeToolOptions>().Single(); options.ShowDropDown();
                     Stage("font size");
-                    var numeric = options.DropDownItems.OfType<ToolStripControlHost>().Select(host => host.Control).OfType<NumericUpDown>().Single();
+                    var numeric = options.DropDownItems.OfType<ToolStripControlHost>().SelectMany(host => host.Control.Controls.OfType<NumericUpDown>()).Single();
                     numeric.Value = 36;
                     Stage("text color");
                     options.DropDownItems.OfType<ToolStripMenuItem>().Single(item => item.Tag is Color color && color.ToArgb() == Color.RoyalBlue.ToArgb()).PerformClick();

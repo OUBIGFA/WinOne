@@ -4,6 +4,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"image"
 	"testing"
+	"time"
 )
 
 func TestMermaidWaitsForClosedFenceAndDoesNotRenderOnEveryFrame(t *testing.T) {
@@ -22,10 +23,10 @@ func TestMermaidWaitsForClosedFenceAndDoesNotRenderOnEveryFrame(t *testing.T) {
 		t.Fatal("unfinished diagram was rendered")
 	}
 	p.Pending.Text += "-->B\n```"
-	tt.Frame()
+	tt.Advance(500 * time.Millisecond)
 	tt.Frame()
 	if calls != 1 || source != "flowchart LR\n A-->B\n" {
-		t.Fatalf("diagram dispatch: %d %q", calls, source)
+		t.Fatalf("diagram dispatch: %d %q; rendered=%q", calls, source, tt.Texts())
 	}
 }
 

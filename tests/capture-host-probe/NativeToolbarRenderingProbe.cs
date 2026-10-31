@@ -2,6 +2,18 @@ using System.Text.Json;
 
 internal static class NativeToolbarRenderingProbe
 {
+    // DrawToBitmap ignores the window region. Show the toolbar as the screen
+    // does: its rounded face over a mid-gray stand-in for a dimmed capture.
+    private static void OverCapture(Control toolbar, Bitmap image)
+    {
+        if (toolbar.Region is not { } shape) throw new Exception("Toolbar lost its rounded shape");
+        using var graphics = Graphics.FromImage(image);
+        using var outside = new Region(new Rectangle(Point.Empty, image.Size));
+        outside.Exclude(shape);
+        using var capture = new SolidBrush(Color.FromArgb(96, 96, 96));
+        graphics.FillRegion(capture, outside);
+    }
+
     public static int Run(string output)
     {
         if (!HostedToolbar.CurrentDesktopName().StartsWith("WinOne-Resource-", StringComparison.Ordinal))
@@ -66,7 +78,8 @@ internal static class NativeToolbarRenderingProbe
         toolbar.ToolStyleChanged += style => selectedStyle = style;
         parent.Controls.Add(toolbar);
         toolbar.CreateControl(); toolbar.SetState(true, false, "rectangle", false);
-        toolbar.SetToolStyle("rectangle", new ShareX.ScreenCaptureLib.WinOneToolStyle(Color.Red, 3), false);
+        // The palette's red, so the style menu shows its check mark.
+        toolbar.SetToolStyle("rectangle", new ShareX.ScreenCaptureLib.WinOneToolStyle(Color.FromArgb(226, 59, 48), 3), false);
         var sizes = new[] { toolbar.PreferredToolbarSize, new Size(320, toolbar.PreferredToolbarSize.Height) };
         parent.ClientSize = sizes[0]; parent.Show();
         foreach (var size in sizes) {
@@ -114,6 +127,7 @@ internal static class NativeToolbarRenderingProbe
             }
             using var image = new Bitmap(size.Width, size.Height);
             toolbar.DrawToBitmap(image, new Rectangle(Point.Empty, size));
+            OverCapture(toolbar, image);
             image.Save(Path.Combine(output, $"toolbar-{size.Width}.png"));
             // A separator with the background color is still present in the
             // control tree. Inspect rendered pixels so that regression fails.
@@ -133,7 +147,9 @@ internal static class NativeToolbarRenderingProbe
             if (size.Width == 320) {
                 foreach (var tools in toolbar.Controls.OfType<ToolStrip>().Where(strip => strip.Name is "capture-actions" or "capture-tools")) {
                 tools.OverflowButton.ShowDropDown();
-                var menu = tools.OverflowButton.DropDown; menu.Update();
+                var menu = tools.OverflowButton.DropDown;
+                menu.Items.OfType<ToolStripMenuItem>().First(item => item.Enabled).Select();
+                menu.Update();
                 using var menuImage = new Bitmap(menu.Width, menu.Height);
                 menu.DrawToBitmap(menuImage, new Rectangle(Point.Empty, menu.Size));
                 menuImage.Save(Path.Combine(output, tools.Name == "capture-tools" ? "overflow.png" : "actions-overflow.png"));
@@ -162,15 +178,28 @@ internal static class NativeToolbarRenderingProbe
                 row.OverflowButton.DropDown.Close();
             } else retake.PerformClick();
             if(selectedCommand!="retake")throw new Exception("Scrolling retake was not reachable");
-            using var image=new Bitmap(toolbar.Width,toolbar.Height);toolbar.DrawToBitmap(image,new Rectangle(Point.Empty,image.Size));
+            using var image=new Bitmap(toolbar.Width,toolbar.Height);toolbar.DrawToBitmap(image,new Rectangle(Point.Empty,image.Size));OverCapture(toolbar,image);
             image.Save(Path.Combine(output,$"toolbar-retake-{width}.png"));
         }
         toolbar.SetRetakeAvailable(false);
+        // Keyboard selection takes the hover face: show it beside the chosen
+        // rectangle tool and the disabled redo, then on the text button, whose
+        // face must match the icon buttons' height.
+        toolbar.SetState(true, false, "rectangle", false);
+        toolbar.Size = sizes[0]; parent.ClientSize = sizes[0]; toolbar.PerformLayout(); parent.Update();
+        foreach (var (item, file) in new[] { ("ellipse", "toolbar-hover.png"), ("capture-style", "toolbar-hover-style.png") }) {
+            ((ToolStrip)toolbar.Controls["capture-tools"]!).Items[item]!.Select();
+            using var hover = new Bitmap(sizes[0].Width, sizes[0].Height);
+            toolbar.DrawToBitmap(hover, new Rectangle(Point.Empty, sizes[0]));
+            OverCapture(toolbar, hover);
+            hover.Save(Path.Combine(output, file));
+        }
         var styleButton = toolbar.Controls.OfType<ToolStrip>().SelectMany(strip => strip.Items.Cast<ToolStripItem>()).OfType<NativeToolOptions>().Single();
         styleButton.ShowDropDown();
-        var numeric = styleButton.DropDownItems.OfType<ToolStripControlHost>().Select(host => host.Control).OfType<NumericUpDown>().Single();
+        var numeric = styleButton.DropDownItems.OfType<ToolStripControlHost>().SelectMany(host => host.Control.Controls.OfType<NumericUpDown>()).Single();
         numeric.Value = 7;
         if (selectedStyle?.Value != 7) throw new Exception("Native numeric input did not emit the style change");
+        styleButton.DropDownItems.OfType<ToolStripMenuItem>().Skip(1).First().Select();
         styleButton.DropDown.Update();
         using (var menuImage = new Bitmap(styleButton.DropDown.Width, styleButton.DropDown.Height)) {
             styleButton.DropDown.DrawToBitmap(menuImage, new Rectangle(Point.Empty, menuImage.Size));

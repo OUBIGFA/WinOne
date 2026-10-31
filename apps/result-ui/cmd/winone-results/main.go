@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/egoist/mygo"
-	"github.com/egoist/mygo/ui"
+	_ "github.com/egoist/mygo/locales/zh-Hans"
 	"golang.org/x/sys/windows"
 	"os"
 	"runtime/debug"
@@ -56,6 +56,13 @@ func run() error {
 		debug.SetGCPercent(50)
 	}
 	mygo.App.SetName("WinOne")
+	// MyGo's own words (context menus, the toolbar's More menu) follow
+	// WinOne's language. MYGO_LOCALE chooses it for this run only and keeps
+	// nothing on disk, unlike App.SetLocale.
+	if _, set := os.LookupEnv("MYGO_LOCALE"); !set {
+		_ = os.Setenv("MYGO_LOCALE", resultui.LocaleTag(initial.Language))
+	}
+	mygo.App.SetLanguages("en", "zh-Hans")
 	defer resultui.ShutdownSpeech()
 	controllers := map[string]*resultui.Controller{}
 	open := func(input *resultwindow.Initial) {
@@ -70,14 +77,12 @@ func run() error {
 		// Keep no second copy of Quick drafts or source content after handoff.
 		input.Text = ""
 		input.State = nil
-		width, height, minWidth, minHeight := resultui.DefaultResultWidth, resultui.DefaultResultHeight, 320, 300
-		if controller.Toolbar {
-			width, height = controller.ToolbarDimensions()
-			minWidth, minHeight = 0, 0
-		}
+		// MyGo draws the native frame in WinOne's theme, for every window of
+		// this process; the view keeps its own palette per window.
+		mygo.Theme.SetSource(resultui.ThemeSource(input.Theme))
 		// A transient result floats above the capture it replaces. Pinning
 		// keeps it open when focus leaves; it does not create a second runtime.
-		window := mygo.NewWindow(mygo.WindowOptions{Title: "WinOne", Width: width, Height: height, UseContentSize: true, MinWidth: minWidth, MinHeight: minHeight, Frameless: true, Hidden: true, AlwaysOnTop: input.Source != "quick-assistant" || controller.Panel.Pinned, SkipTaskbar: controller.SkipTaskbar(), DisableResize: controller.Toolbar, DisableMaximize: true, Content: ui.View(controller.View)})
+		window := mygo.NewWindow(controller.WindowOptions())
 		controller.Window = window
 		controller.Panel.Actions.Pin = window.SetAlwaysOnTop
 		controllers[input.ID] = controller

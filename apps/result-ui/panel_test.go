@@ -6,6 +6,7 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"time"
 	"winone/internal/ai"
 )
 
@@ -120,6 +121,7 @@ func TestEveryReplyCopiesItsOwnAnswerBelowTheBody(t *testing.T) {
 	var copied string
 	p.Actions.Copy = func(value string) { copied = value }
 	tt := ui.NewTester(p.View, 520, 1000)
+	tt.Advance(500 * time.Millisecond)
 	first, _ := tt.Find("First complete answer")
 	button, ok := tt.Find("复制回复")
 	gap := button.Y - first.Y - first.H

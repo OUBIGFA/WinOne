@@ -1,8 +1,9 @@
 param([Parameter(Mandatory)][string]$Executable,[string]$GoExe='dist/resources/tools/go-1.27.3/bin/go.exe',[string]$BundleDirectory='')
 # Checks the MyGo window's notices against what it actually links: every
-# Go module and the toolchain `go version -m` reports must have a recorded,
-# unchanged license in third_party/desktop-mygo-notices.json. With a bundle
-# directory, the inventory and its license files are copied there.
+# external Go module and the toolchain `go version -m` reports must have a
+# recorded, unchanged license in third_party/desktop-mygo-notices.json. WinOne
+# and the shared result-ui assets are first-party modules under the root license.
+# With a bundle directory, the inventory and its licenses are copied there.
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $source=Join-Path $root 'third_party/desktop-mygo-notices.json'
@@ -24,7 +25,7 @@ $toolchain=($info[0] -split '\s+')[-1]
 if(-not $records.ContainsKey('toolchain|Go|'+$toolchain)){throw "Missing toolchain notice: $toolchain"}
 foreach($line in $info){
     $parts=$line.Trim() -split '\s+'
-    if($parts[0] -eq 'dep' -and $parts[1] -ne 'winone' -and -not $records.ContainsKey('go|'+$parts[1]+'|'+$parts[2])){throw "Missing MyGo window dependency notice: $line"}
+    if($parts[0] -eq 'dep' -and $parts[1] -notin @('winone','winone/resultui') -and -not $records.ContainsKey('go|'+$parts[1]+'|'+$parts[2])){throw "Missing MyGo window dependency notice: $line"}
 }
 # The icons come from the locked lucide-react package; its license must be
 # the one recorded.

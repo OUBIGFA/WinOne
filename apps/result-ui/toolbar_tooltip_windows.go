@@ -146,7 +146,7 @@ func (t *toolbarTooltip) close() {
 	}
 }
 
-func (c *Controller) toolbarHint(button *ui.Element, label string, theme *ui.Theme) {
+func (c *Controller) toolbarHint(button ui.Element, label string, theme *ui.Theme) {
 	if !c.Toolbar {
 		return
 	}

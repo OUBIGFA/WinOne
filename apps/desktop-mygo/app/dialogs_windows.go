@@ -4,7 +4,6 @@ package app
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -140,11 +139,4 @@ func (p *placement) save(hwnd uintptr) {
 		return
 	}
 	p.saved = &record
-}
-
-// runProbe is the installer's startup check (--check-ui). The MyGo
-// window does not provide it yet; the installer keeps using the window
-// that does until the switch (docs/MyGo前端迁移.md, stage 4).
-func runProbe(args []string) error {
-	return errors.New("启动检查尚未接入 MyGo 窗口")
 }

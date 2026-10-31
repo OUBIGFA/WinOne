@@ -3,7 +3,7 @@
 $resourceRepository = Split-Path -Parent $PSScriptRoot
 $resourcePaths = @{
     GoExe = 'dist/resources/tools/go-1.26.2/bin/go.exe'
-    ResultGoExe = 'dist/resources/tools/go-1.27.1/bin/go.exe'
+    ResultGoExe = 'dist/resources/tools/go-1.27.3/bin/go.exe'
     CargoExe = 'dist/resources/tools/rust-1.99.0/bin/cargo.exe'
     ShareXSourceDirectory = 'dist/resources/sources/ShareX-native'
     OcrRuntimeDirectory = 'dist/resources/runtimes/ocr-3.10.0'

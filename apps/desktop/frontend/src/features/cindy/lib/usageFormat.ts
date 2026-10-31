@@ -72,3 +72,4 @@ export function formatTurnCostMoney(money: RegionalMoney): string {
   }
   return `<${symbol}0.01`;
 }
+

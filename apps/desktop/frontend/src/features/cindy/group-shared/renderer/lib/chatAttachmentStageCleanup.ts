@@ -37,3 +37,4 @@ export function cleanupStagedChatAttachmentFiles(
     log.warn('staged attachment cleanup failed', error);
   }
 }
+

@@ -42,8 +42,8 @@ func newFakeAI(t *testing.T) *fakeAI {
 		"providers": []any{
 			map[string]any{"id": "one", "name": "Relay", "authMode": "api-key", "protocol": "chat", "baseUrl": "https://relay.example/v1",
 				"models": []any{"gpt-a"}, "availableModels": []any{"gpt-a", "gpt-b"}, "hasKey": true,
-				"keys": []any{map[string]any{"id": "primary", "enabled": true, "hasKey": true}},
-				"keyPolicy": map[string]any{"strategy": "round-robin", "failover": true, "maxAttempts": 3, "cooldownSeconds": 60},
+				"keys":                []any{map[string]any{"id": "primary", "enabled": true, "hasKey": true}},
+				"keyPolicy":           map[string]any{"strategy": "round-robin", "failover": true, "maxAttempts": 3, "cooldownSeconds": 60},
 				"futureProviderField": "kept"},
 		},
 		"tasks":          map[string]any{"default": map[string]any{"provider": "one", "model": "gpt-a"}, "ocr": map[string]any{"provider": "one", "model": "gpt-b"}},
@@ -116,6 +116,22 @@ func (f *fakeAI) handle(method string, params json.RawMessage) (any, error) {
 		f.gateway["enabled"], f.gateway["port"], f.gateway["models"] = settings["enabled"], settings["port"], settings["models"]
 		f.gateway["running"] = settings["enabled"]
 		return f.gateway, nil
+	case "capture.ai.usage.get":
+		return map[string]any{"rows": []any{}, "sum": map[string]any{"calls": 0}, "by": map[string]any{}, "total": 0, "offset": 0, "limit": 15}, nil
+	case "capture.ai.accounts.quota":
+		return map[string]any{"quotas": []any{}}, nil
+	case "capture.ai.magpie.usage-aliases":
+		aliases, _ := p["aliases"].(map[string]any)
+		if aliases == nil {
+			aliases = map[string]any{}
+		}
+		edit := p["edit"].(map[string]any)
+		if edit["to"] == "" {
+			delete(aliases, edit["from"].(string))
+		} else {
+			aliases[edit["from"].(string)] = edit["to"]
+		}
+		return map[string]any{"usageAliases": aliases}, nil
 	case "capture.ai.magpie.catalog":
 		return f.catalog, nil
 	case "capture.ai.routing.extensions.open":

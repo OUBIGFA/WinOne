@@ -9,12 +9,14 @@ internal static class NativeToolbarPreferencesProbe
         if (Directory.Exists(output)) throw new IOException("Choose a new output directory");
         Directory.CreateDirectory(output);
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); Application.EnableVisualStyles();
+        // Scrolling, video and GIF are fixed capture actions: they stay in the
+        // row whatever the stored annotation tools are.
         var cases = new (string name, string[]? preferences, string[] visible)[] {
-            ("default", null, new[] { "select", "region", "scroll", "rectangle", "ellipse", "arrow", "pen", "cover", "mosaic", "blur", "text", "ocr", "translate" }),
-            ("empty", Array.Empty<string>(), new[] { "scroll", "rectangle" }),
-            ("subset", new[] { "mosaic", "crop" }, new[] { "region", "scroll", "rectangle", "mosaic" }),
-            ("legacy-move", new[] { "select" }, new[] { "select", "scroll", "rectangle" }),
-            ("text-actions", new[] { "ocr", "translate" }, new[] { "scroll", "rectangle", "ocr", "translate" }),
+            ("default", null, new[] { "select", "region", "scroll", "video", "gif", "rectangle", "ellipse", "arrow", "pen", "cover", "mosaic", "blur", "text", "ocr", "translate" }),
+            ("empty", Array.Empty<string>(), new[] { "scroll", "video", "gif", "rectangle" }),
+            ("subset", new[] { "mosaic", "crop" }, new[] { "region", "scroll", "video", "gif", "rectangle", "mosaic" }),
+            ("legacy-move", new[] { "select" }, new[] { "select", "scroll", "video", "gif", "rectangle" }),
+            ("text-actions", new[] { "ocr", "translate" }, new[] { "scroll", "video", "gif", "rectangle", "ocr", "translate" }),
         };
         var records = new List<object>();
         foreach (var item in cases) {

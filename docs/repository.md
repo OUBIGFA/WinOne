@@ -68,7 +68,7 @@
 
 | 固定子目录 | 用途与维护方式 |
 | --- | --- |
-| `tools/go-1.26.2`、`tools/go-1.27.1` | 分别用于 Host/模块和结果窗；版本固定 |
+| `tools/go-1.26.2`、`tools/go-1.27.3` | 分别用于 Host/模块和 MyGo 设置/结果窗；AI 与 Go 互传复用后者；旧 `go-1.27.1` 保留用于回退 |
 | `tools/rust-1.99.0`、`tools/nsis-3.13`、`tools/bun-1.4.2` | Rust 编译、安装器编译、AI 插件运行时；Bun SHA-256 按 `third_party/ai-plugins.json` 校验 |
 | `tools/playwright-1.58.2` | 可复用的浏览器测试依赖；版本及完整性由 `build/browser-tools/package.json`、`package-lock.json` 锁定。入口设置 `WINONE_PLAYWRIGHT_MODULE`，现有布局检查直接使用；不包含浏览器安装包 |
 | `assets/provider-icons` | 供应商图标的 128×128 PNG、`manifest.json` 和 `inputs.sha256`；由 `build/build-provider-icons.ps1` 校验并复用，源图或生成器变化后重建 |
@@ -76,7 +76,7 @@
 | `sources/ShareX-21.0.0`、`sources/ShareX-v21.0.0.zip` | ShareX 准备脚本的固定源码和归档 |
 | `sources/ShareX-native` | 现用原生截图引擎的独立源码；需要测试改写时再复制到 `_temp/<任务>/` |
 | `sources/magpie-42ec270`、`sources/ai-plugins-e513644` | AI 适配器来源与当前 `third_party/ai-plugins.json` 对应的账号插件源码；Magpie 构建读取所选来源的 HEAD，不固定阻塞版本；测试输出仍回到根 `_temp/` |
-| `sources/mygo-3ad015a` | 结果窗锁定版本的源码参考；正式构建按 Go 锁和 overlay 准备 |
+| `sources/mygo-v0.7.3` | 设置窗口和结果窗的源码参考；正式构建直接使用 Go 锁定的原版模块。旧 `sources/mygo-3ad015a` 仅留作历史参考 |
 | `runtimes/ocr` | OCR Python、离线依赖与模型，供反复打包；以 OCR 清单校验 |
 | `cache/cargo`、`cache/go`、`cache/npm` | 分别通过 `CARGO_HOME`、`GOCACHE`、`npm_config_cache` 复用 Cargo 依赖、Go 编译和 npm 下载缓存；不放测试报告 |
 | `cache/nuget-notices/microsoft.web.webview2.1.0.3800.47.nupkg` | Microsoft WebView2 SDK 原包，供 `build/verify-rust-notices.ps1 -Update -WebView2Package <路径>` 核对 Loader 与原始许可证；来源为 NuGet 官方包，SHA-256 `56c9f26bdd07916a2d1949fb58a5c7e434dfa1173577dca879206050c4e718db` |

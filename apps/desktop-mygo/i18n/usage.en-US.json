@@ -1,0 +1,8 @@
+{
+ "usage.exportDialog": "Export usage CSV",
+ "usage.exportCsvFilter": "CSV spreadsheet",
+ "usage.exportUnconfirmed": "Unable to confirm that the CSV was saved",
+ "usage.exportExists": "{{path}} already exists. Export again, choose that file and confirm replacing it.",
+ "usage.archiveDialog": "Export request archive",
+ "usage.archiveFilter": "JSON"
+}

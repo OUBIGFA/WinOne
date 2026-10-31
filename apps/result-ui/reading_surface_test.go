@@ -20,9 +20,9 @@ func TestResultSurfaceDoesNotPaintASecondOuterFrame(t *testing.T) {
 				p.Mode = "ocr"
 			}
 			tt := ui.NewTester(controller.View, width, height)
-			background := color.RGBA{255, 255, 255, 255}
+			background := color.RGBA{252, 252, 252, 255}
 			if theme == "dark" {
-				background = color.RGBA{23, 23, 23, 255}
+				background = color.RGBA{25, 25, 25, 255}
 			}
 			for _, point := range [][2]int{{width / 2, 0}, {0, height / 2}, {width - 1, height / 2}, {width / 2, height - 1}, {0, 0}, {width - 1, 0}, {0, height - 1}, {width - 1, height - 1}} {
 				if got := color.RGBAModel.Convert(tt.Image().At(point[0], point[1])); got != background {
