@@ -1,0 +1,6 @@
+{
+ "web.unavailable": "Web pages cannot be shown in this window",
+ "web.invalidAddress": "The page address is invalid",
+ "web.downloaded": "Downloaded to {{path}}",
+ "web.downloadFailed": "Download failed: {{error}}"
+}

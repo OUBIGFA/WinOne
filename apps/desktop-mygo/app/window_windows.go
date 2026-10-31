@@ -3,6 +3,7 @@
 package app
 
 import (
+	"errors"
 	"sync/atomic"
 
 	"github.com/egoist/mygo"
@@ -11,7 +12,9 @@ import (
 
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/host"
+	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/shell"
+	"winone/desktopmygo/web"
 	internalhost "winone/internal/host"
 )
 
@@ -62,6 +65,18 @@ func runWindow(o Options, launch plan) error {
 			w.win.Update(fn)
 		}
 	}
+	env.WebViews = func(o mygo.WebViewOptions) (*mygo.WebView, error) {
+		if w.win == nil || w.win.IsDestroyed() {
+			return nil, errors.New(i18n.T("web.unavailable"))
+		}
+		return w.win.NewWebView(o)
+	}
+	// The pages of web views reach Go through this scheme, which the
+	// window handles only if it exists when the window opens.
+	if err := web.Register(); err != nil {
+		inst.close()
+		return err
+	}
 	w.shell = shell.New(env, w, shell.Options{
 		Directory:      o.Directory,
 		EnsureHost:     func() (internalhost.Snapshot, error) { return ensureHost(client, o.Pipe, o.Directory, launch) },
@@ -98,6 +113,9 @@ func (w *window) open() {
 	}
 	maximized := w.place.restore(w.hwnd)
 	w.win.OnClose(w.onClose)
+	// Explorer's commands queue prefills while the window is open: read
+	// them as it gains the focus, as the React window did.
+	w.win.OnFocus(func() { w.shell.Focused() })
 	// Native content draws its first frame at once; only a web page's
 	// window waits for OnReadyToShow, which MyGo fires for pages alone.
 	w.shown = true

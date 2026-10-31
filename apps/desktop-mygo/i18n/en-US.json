@@ -2204,7 +2204,7 @@
  "settingsDesign.responseBehavior": "Result behavior",
  "settingsDesign.saving": "Saving…",
  "settingsDesign.schedule": "Timing",
- "settingsDesign.scheduleRequired": "Turn on Custom timing to limit automatic runs.",
+ "settingsDesign.scheduleRequired": "Turn on Custom schedule to limit automatic runs.",
  "settingsDesign.selectionKeyboardRequires": "Enable “Show toolbar after selecting text” to also support keyboard selection.",
  "settingsDesign.selectionTriggers": "When to show the toolbar",
  "settingsDesign.shortcutActive": "Active",

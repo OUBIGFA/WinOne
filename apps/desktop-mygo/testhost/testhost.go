@@ -7,7 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -28,6 +30,9 @@ type Error struct{ Code, Message string }
 
 func (e Error) Error() string { return e.Message }
 
+// pipes numbers the harnesses of this test process.
+var pipes atomic.Int64
+
 // Harness is a page environment connected to a fake Host.
 type Harness struct {
 	Env *core.Env
@@ -40,6 +45,14 @@ type Harness struct {
 	handler Handler
 	// Picked is what the fake dialogs return, by title.
 	Picked map[string]any
+	toasts []string
+}
+
+// Toasts returns the messages the page asked the shell to show.
+func (h *Harness) Toasts() []string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return append([]string(nil), h.toasts...)
 }
 
 // Call is a request the page sent.
@@ -73,7 +86,9 @@ func (s service) Handle(request internalhost.Request) internalhost.Response {
 // New serves handler on a fresh pipe for the test's duration.
 func New(t testing.TB, handler Handler) *Harness {
 	t.Helper()
-	pipe := fmt.Sprintf(`\\.\pipe\WinOne-test-%d`, time.Now().UnixNano())
+	// The clock alone repeats within a millisecond on Windows: two harnesses
+	// would then share a pipe name. The process and a counter keep it unique.
+	pipe := fmt.Sprintf(`\\.\pipe\WinOne-test-%d-%d-%d`, os.Getpid(), pipes.Add(1), time.Now().UnixNano())
 	listener, err := transport.Listen(pipe)
 	if err != nil {
 		t.Fatal(err)
@@ -100,6 +115,9 @@ func New(t testing.TB, handler Handler) *Harness {
 		Dialogs:       dialogs{h},
 		Directory:     t.TempDir(),
 	}
+	h.Env.TakeIntents = func(string) []core.Intent { return nil }
+	h.Env.Focuses = func() int { return 0 }
+	h.Env.Toast = func(message string) { h.mu.Lock(); h.toasts = append(h.toasts, message); h.mu.Unlock() }
 	sidebar := "collapsed"
 	h.Env.SidebarStartup = func() string { return sidebar }
 	h.Env.SetSidebarStartup = func(value string) error { sidebar = value; return nil }

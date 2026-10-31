@@ -8,14 +8,15 @@ import (
 
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/testhost"
+	"winone/desktopmygo/widgets"
 )
 
-func catalog(enabled bool) moduleSnapshot {
+func catalog(enabled bool) widgets.ModuleSnapshot {
 	names := func(zh, en string) map[string]string { return map[string]string{"zh-CN": zh, "en-US": en} }
-	return moduleSnapshot{Revision: 7, Modules: []moduleEntry{
-		{Manifest: manifest{ID: "wintray", Name: names("程序管理", "Programs"), Distribution: "builtin"}, Enabled: enabled, Runtime: runtimeState{ID: "wintray", State: "running"}},
-		{Manifest: manifest{ID: "capture", Name: names("截图", "Capture"), Distribution: "builtin"}, Runtime: runtimeState{ID: "capture", State: "disabled"}},
-		{Manifest: manifest{ID: "stroke", Name: names("鼠标手势", "Gestures"), Distribution: "builtin"}},
+	return widgets.ModuleSnapshot{Revision: 7, Modules: []widgets.ModuleEntry{
+		{Manifest: widgets.ModuleManifest{ID: "wintray", Name: names("程序管理", "Programs"), Distribution: "builtin"}, Enabled: enabled, Runtime: widgets.ModuleRuntime{ID: "wintray", State: "running"}},
+		{Manifest: widgets.ModuleManifest{ID: "capture", Name: names("截图", "Capture"), Distribution: "builtin"}, Runtime: widgets.ModuleRuntime{ID: "capture", State: "disabled"}},
+		{Manifest: widgets.ModuleManifest{ID: "stroke", Name: names("鼠标手势", "Gestures"), Distribution: "builtin"}},
 	}}
 }
 

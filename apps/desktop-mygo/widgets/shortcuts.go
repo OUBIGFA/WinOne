@@ -218,7 +218,7 @@ func (s *Shortcuts) Save(c *ui.Context) {
 		}
 		next, kept := saved, saved
 		s.draft, s.saved = &next, &kept
-		c.Toast(i18n.T("common.saved"))
+		s.env.Toast(i18n.T("common.saved"))
 		s.env.Refresh()
 		s.refreshStatus()
 	})
@@ -310,9 +310,11 @@ func (s *Shortcuts) View(c *ui.Context) {
 	})
 }
 
-// Close ends a recording in progress when the page closes.
+// Close ends a recording in progress and withdraws the editor's
+// activity, when its page or tab closes and drops it.
 func (s *Shortcuts) Close() {
 	for _, r := range s.recorders {
 		r.Stop()
 	}
+	s.env.Activity.Report("shortcuts:"+s.module, false, false, nil)
 }

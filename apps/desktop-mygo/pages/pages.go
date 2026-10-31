@@ -3,5 +3,11 @@
 package pages
 
 import (
+	_ "winone/desktopmygo/pages/capture"
+	_ "winone/desktopmygo/pages/convenience"
+	_ "winone/desktopmygo/pages/interconnect"
 	_ "winone/desktopmygo/pages/overview"
+	_ "winone/desktopmygo/pages/selection"
+	_ "winone/desktopmygo/pages/settings"
+	_ "winone/desktopmygo/pages/wintray"
 )

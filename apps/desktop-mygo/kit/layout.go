@@ -1,6 +1,10 @@
 package kit
 
-import "github.com/egoist/mygo/ui"
+import (
+	"time"
+
+	"github.com/egoist/mygo/ui"
+)
 
 // Spacing of settings pages, in DIPs. Rows inside a group sit tight; groups
 // stand apart, so a page reads as a few named tasks.
@@ -111,11 +115,44 @@ func Indented(c *ui.Context, fn func()) ui.Element {
 	return ui.Column(c).FillWidth().PaddingStart(28).Children(fn)
 }
 
-// Toggle is a Row with a switch; it returns the switch, whose Changed
-// reports a click.
+// Toggle is a Row that is a switch as a whole: clicking its label toggles
+// it as clicking the switch does, as an HTML label did for its control.
+// It returns the switch, whose Changed reports a toggle and which Disabled
+// dims with its label.
 func Toggle(c *ui.Context, value *bool, label, help string) ui.Element {
-	var sw ui.Element
-	Row(c, label, help, func() { sw = ui.Switch(c, value).Label(label) })
+	t := c.Theme()
+	sw := ui.SwitchBase(c, value).FillWidth().Shrink(1).MinHeight(RowMinHeight).Padding(10, 16).GapX(16).GapY(8).
+		AlignItems(ui.Center).Wrap().Label(label).Cursor(ui.CursorPointer)
+	if help != "" {
+		sw.Description(help)
+	}
+	on := float32(0)
+	if *value {
+		on = 1
+	}
+	pos := sw.Animate("knob", on, 140*time.Millisecond)
+	hovered := sw.Hovered()
+	sw.Children(func() {
+		ui.Column(c).Basis(220).Grow(1).Shrink(1).Gap(2).Children(func() {
+			Label(c, label)
+			if help != "" {
+				Help(c, help)
+			}
+		})
+		// The track and knob of MyGo's Switch, drawn inside the row.
+		off := t.Border.Mix(t.Text, 0.15)
+		if hovered {
+			off = t.Border.Mix(t.Text, 0.25)
+		}
+		ui.Box(c).Size(t.Space(9), t.Space(5)).Radius(t.Space(2.5)).Shrink(0).Background(off.Mix(t.Accent, pos)).
+			Draw(func(p *ui.Painter, r ui.Rect) {
+				in := t.Space(0.5)
+				d := r.H - 2*in
+				knob := ui.Rect{X: r.X + in + pos*(r.W-r.H), Y: r.Y + in, W: d, H: d}
+				p.Shadow(knob, d/2, 0, 1, 3, 0, ui.RGBA(0, 0, 0, 0.25))
+				p.Fill(knob, ui.RGB(255, 255, 255), d/2)
+			})
+	})
 	return sw
 }
 

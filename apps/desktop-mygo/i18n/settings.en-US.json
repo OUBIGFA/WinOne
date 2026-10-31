@@ -1,0 +1,15 @@
+{
+ "permission.cancelled": "The permission change was cancelled.",
+ "permission.helperExit": "The permission helper exited: {{status}}",
+ "permission.helperStuck": "The permission helper did not exit.",
+ "permission.killFailed": "Could not end the permission helper: {{error}}",
+ "permission.protocol": "Could not confirm the result of the permission change. Read the settings again.",
+ "permission.timeout": "The permission change timed out. Check the current settings.",
+ "profiles.exportExists": "{{path}} already exists. Export again, choose that file and confirm replacing it.",
+ "profiles.exportName": "My configuration",
+ "profiles.fileFilter": "WinOne configuration",
+ "profiles.pickFile": "Choose a file",
+ "profiles.pickFolder": "Choose a folder",
+ "profiles.pickProgram": "Choose a program or script",
+ "profiles.programFilter": "Programs and scripts"
+}

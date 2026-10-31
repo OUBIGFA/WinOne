@@ -19,73 +19,16 @@ import (
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/shell"
+	"winone/desktopmygo/widgets"
 )
 
 func init() {
 	shell.Register("overview", core.Settings, func(env *core.Env) core.Page { return newPage(env) })
 }
 
-type manifest struct {
-	ID           string     `json:"id"`
-	Name         core.Names `json:"name"`
-	Distribution string     `json:"distribution"`
-}
-
-type runtimeState struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	State  string `json:"state"`
-	Detail string `json:"detail"`
-}
-
-type moduleEntry struct {
-	Manifest    manifest     `json:"manifest"`
-	Enabled     bool         `json:"enabled"`
-	PendingStop bool         `json:"pendingStop"`
-	Runtime     runtimeState `json:"runtime"`
-	Blocked     bool         `json:"blocked,omitempty"`
-	RecoveryID  string       `json:"recoveryId,omitempty"`
-}
-
-type packageReference struct {
-	Kind           string `json:"kind"`
-	ID             string `json:"id"`
-	Version        string `json:"version"`
-	ManifestSHA256 string `json:"manifestSha256"`
-}
-
-type sharedRuntime struct {
-	packageReference
-	Name       core.Names         `json:"name"`
-	RequiredBy []packageReference `json:"requiredBy"`
-	CanRemove  bool               `json:"canRemove"`
-	Error      string             `json:"error,omitempty"`
-}
-
-type moduleSnapshot struct {
-	Revision           uint64        `json:"revision"`
-	Modules            []moduleEntry `json:"modules"`
-	ConfigurationError string        `json:"configurationError,omitempty"`
-	Cleanup            *struct {
-		Pending bool   `json:"pending"`
-		Error   string `json:"error,omitempty"`
-	} `json:"cleanup,omitempty"`
-	Packages *struct {
-		Runtimes     []sharedRuntime               `json:"runtimes"`
-		Dependencies map[string][]packageReference `json:"dependencies"`
-		Error        string                        `json:"error,omitempty"`
-	} `json:"packages,omitempty"`
-}
-
 type page struct {
-	env      *core.Env
-	snapshot *moduleSnapshot
-	loading  bool
-	loadErr  string
-	// busy names the operation running: a module ID, "recovery" or
-	// "cleanup"; one at a time, as the switches would race otherwise.
-	busy string
-	err  string
+	*widgets.Modules
+	env *core.Env
 
 	install installer
 	removal removal
@@ -93,9 +36,8 @@ type page struct {
 }
 
 func newPage(env *core.Env) *page {
-	p := &page{env: env, details: map[string]*bool{}}
+	p := &page{Modules: widgets.NewModules(env), env: env, details: map[string]*bool{}}
 	p.install.page, p.removal.page = p, p
-	p.reload(nil)
 	return p
 }
 
@@ -112,122 +54,19 @@ func moduleRank(id string) int {
 	return len(moduleOrder)
 }
 
-func (p *page) reload(done func()) {
-	p.loading = true
-	core.Go(p.env, func() (moduleSnapshot, error) {
-		var snapshot moduleSnapshot
-		err := p.env.Host.CallCompletingInto("modules.snapshot", nil, &snapshot)
-		return snapshot, err
-	}, func(snapshot moduleSnapshot, err error) {
-		p.loading = false
-		if err != nil {
-			p.loadErr = err.Error()
-		} else {
-			p.loadErr, p.snapshot = "", &snapshot
-		}
-		if done != nil {
-			done()
-		}
-	})
-}
-
-// finish ends an operation: re-read the catalog either way, so a failure
-// never leaves a stale switch, and let the shell refresh the sidebar.
-func (p *page) finish(c *ui.Context, err error, success string) {
-	if err != nil {
-		p.err = err.Error()
-	} else if success != "" {
-		c.Toast(success)
-	}
-	p.reload(func() {
-		p.busy = ""
-		p.env.Refresh()
-	})
-}
-
-func (p *page) setEnabled(c *ui.Context, entry moduleEntry, enabled bool) {
-	if p.snapshot == nil || p.busy != "" {
-		return
-	}
-	p.busy, p.err = entry.Manifest.ID, ""
-	revision := p.snapshot.Revision
-	name := entry.Manifest.Name.String()
-	core.Do(p.env, func() error {
-		var job core.ModuleJob
-		if err := p.env.Host.CallCompletingInto("modules.setEnabled", map[string]any{"id": entry.Manifest.ID, "enabled": enabled, "revision": revision}, &job); err != nil {
-			return err
-		}
-		job, err := core.FollowJob(p.env, "modules", job)
-		if err != nil {
-			return err
-		}
-		if job.State != "completed" {
-			if job.Error != "" {
-				return core.Errorf(job.Error)
-			}
-			return core.Errorf(i18n.T("module.failed"))
-		}
-		return nil
-	}, func(err error) {
-		key := "module.disabled"
-		if enabled {
-			key = "module.enabled"
-		}
-		p.finish(c, err, i18n.T(key, "name", name))
-	})
-}
-
-// run performs a module-service operation that returns a job, then
-// reloads.
-func (p *page) run(c *ui.Context, busy, method string, params any, failure, success string) {
-	if p.busy != "" {
-		return
-	}
-	p.busy, p.err = busy, ""
-	core.Do(p.env, func() error {
-		var job core.ModuleJob
-		if err := p.env.Host.CallCompletingInto("modules."+method, params, &job); err != nil {
-			return err
-		}
-		if job.State != "completed" {
-			if job.Error != "" {
-				return core.Errorf(job.Error)
-			}
-			return core.Errorf(failure)
-		}
-		return nil
-	}, func(err error) { p.finish(c, err, success) })
-}
-
-func status(entry moduleEntry) string {
-	switch {
-	case entry.PendingStop:
-		return "moduleStatus.incomplete"
-	case entry.Runtime.State == "faulted":
-		return "moduleStatus.faulted"
-	case entry.Runtime.State == "unavailable":
-		return "moduleStatus.unavailable"
-	case entry.Runtime.State == "starting" || entry.Runtime.State == "stopping":
-		return "moduleStatus.working"
-	case entry.Enabled:
-		return "moduleStatus.enabled"
-	}
-	return "moduleStatus.disabled"
-}
-
 func (p *page) View(c *ui.Context) {
-	busy := p.busy != "" || p.install.busy || p.install.choosing || p.removal.busy
+	busy := p.Busy != "" || p.install.busy || p.install.choosing || p.removal.busy
 	p.env.Activity.Report("module-availability", false, busy, nil)
 	kit.Page(c, func() {
-		p.notices(c)
-		if p.snapshot == nil {
-			if p.loading {
+		p.Notices(c)
+		if p.Snapshot == nil {
+			if p.Loading {
 				kit.Skeleton(c, 5)
 			} else {
 				kit.Empty(c, icons.House, i18n.T("module.loading"), "", func() {
 					if kit.Button(c, i18n.T("common.retry"), icons.RefreshCw, false).Clicked() {
-						p.err = ""
-						p.reload(nil)
+						p.Err = ""
+						p.Reload(nil)
 					}
 				})
 			}
@@ -240,41 +79,21 @@ func (p *page) View(c *ui.Context) {
 	p.removal.dialog(c)
 }
 
-func (p *page) notices(c *ui.Context) {
-	s := p.snapshot
-	switch {
-	case s != nil && s.ConfigurationError != "":
-		message := s.ConfigurationError
-		if p.err != "" {
-			message = p.err
-		}
-		kit.Notice(c, kit.Failure, "", message, func() {
-			if kit.Button(c, i18n.T("module.retryRecovery"), nil, p.busy == "recovery").Disabled(p.busy != "").Clicked() {
-				p.run(c, "recovery", "recoverConfiguration", nil, i18n.T("module.recoveryFailed"), i18n.T("module.recovered"))
-			}
-		})
-	case p.err != "":
-		kit.Notice(c, kit.Failure, "", p.err, nil)
-	case p.loadErr != "":
-		kit.Notice(c, kit.Failure, "", p.loadErr, nil)
-	}
-}
-
-func (p *page) visible() []moduleEntry {
+func (p *page) visible() []widgets.ModuleEntry {
 	// Mouse gestures and timed power keep their own lifecycle inside
 	// Convenience; Home lists the navigation modules.
-	var entries []moduleEntry
-	for _, entry := range p.snapshot.Modules {
+	var entries []widgets.ModuleEntry
+	for _, entry := range p.Snapshot.Modules {
 		if entry.Manifest.ID != "stroke" && entry.Manifest.ID != "timed-power" {
 			entries = append(entries, entry)
 		}
 	}
-	slices.SortStableFunc(entries, func(a, b moduleEntry) int { return moduleRank(a.Manifest.ID) - moduleRank(b.Manifest.ID) })
+	slices.SortStableFunc(entries, func(a, b widgets.ModuleEntry) int { return moduleRank(a.Manifest.ID) - moduleRank(b.Manifest.ID) })
 	return entries
 }
 
 func (p *page) tools(c *ui.Context) {
-	s := p.snapshot
+	s := p.Snapshot
 	entries := p.visible()
 	active, attention := 0, 0
 	for _, entry := range entries {
@@ -292,7 +111,7 @@ func (p *page) tools(c *ui.Context) {
 			kit.Help(c, i18n.T("module.intro")).Basis(240).Grow(1)
 			ui.Row(c).Gap(12).AlignItems(ui.Center).Children(func() {
 				kit.Caption(c, i18n.T("dashboard.enabledCount", "count", active, "total", len(entries))).SingleLine()
-				p.install.button(c, p.busy != "" || s.ConfigurationError != "")
+				p.install.button(c, p.Busy != "" || s.ConfigurationError != "")
 			})
 		})
 		if attention > 0 {
@@ -304,8 +123,8 @@ func (p *page) tools(c *ui.Context) {
 				message = i18n.T("module.cleanupPending")
 			}
 			kit.Notice(c, kit.Info, "", message, func() {
-				if kit.Button(c, i18n.T("module.retryCleanup"), icons.RefreshCw, p.busy == "cleanup").Disabled(p.busy != "").Clicked() {
-					p.run(c, "cleanup", "cleanupPackages", map[string]any{}, i18n.T("module.cleanupFailed"), i18n.T("module.cleanupDone"))
+				if kit.Button(c, i18n.T("module.retryCleanup"), icons.RefreshCw, p.Busy == "cleanup").Disabled(p.Busy != "").Clicked() {
+					p.Run(c, "cleanup", "cleanupPackages", map[string]any{}, i18n.T("module.cleanupFailed"), i18n.T("module.cleanupDone"))
 				}
 			})
 		}
@@ -330,9 +149,9 @@ func iconFor(id string) *ui.SVG {
 	return icons.LaptopMinimal
 }
 
-func (p *page) toolRow(c *ui.Context, entry moduleEntry) {
+func (p *page) toolRow(c *ui.Context, entry widgets.ModuleEntry) {
 	t := c.Theme()
-	s := p.snapshot
+	s := p.Snapshot
 	id := entry.Manifest.ID
 	// Pinning is listed as Convenience, the page that holds it.
 	grouped := id == "always-on-top"
@@ -353,23 +172,23 @@ func (p *page) toolRow(c *ui.Context, entry moduleEntry) {
 			p.toolExtras(c, entry)
 		})
 		ui.Row(c).Gap(12).AlignItems(ui.Center).Shrink(0).MinHeight(28).Children(func() {
-			text := i18n.T(status(entry))
-			if p.busy == id {
+			text := i18n.T(widgets.ModuleStatus(entry))
+			if p.Busy == id {
 				text = i18n.T("module.updated")
 			}
 			kit.Help(c, text).SingleLine()
 			on := entry.Enabled && !entry.PendingStop
 			sw := ui.Switch(c, &on).Label(i18n.T("module.enableTool", "name", title)).
-				Disabled(p.busy != "" || entry.PendingStop || entry.Blocked || s.ConfigurationError != "")
+				Disabled(p.Busy != "" || entry.PendingStop || entry.Blocked || s.ConfigurationError != "")
 			if sw.Changed() {
-				p.setEnabled(c, entry, on)
+				p.SetEnabled(c, entry, on)
 			}
 		})
 	})
 }
 
-func (p *page) toolExtras(c *ui.Context, entry moduleEntry) {
-	s := p.snapshot
+func (p *page) toolExtras(c *ui.Context, entry widgets.ModuleEntry) {
+	s := p.Snapshot
 	id := entry.Manifest.ID
 	if entry.Blocked {
 		kit.Help(c, i18n.T("module.packageBlocked"))
@@ -382,16 +201,16 @@ func (p *page) toolExtras(c *ui.Context, entry moduleEntry) {
 			label = "module.restorePackage"
 		}
 		ui.Row(c).Margin(4, 0, 0, 0).Children(func() {
-			if kit.Button(c, i18n.T(label), icons.RefreshCw, p.busy == id).Disabled(p.busy != "").Clicked() {
-				p.run(c, id, "recoverPackage", map[string]any{"id": id, "revision": s.Revision, "recoveryId": entry.RecoveryID},
+			if kit.Button(c, i18n.T(label), icons.RefreshCw, p.Busy == id).Disabled(p.Busy != "").Clicked() {
+				p.Run(c, id, "recoverPackage", map[string]any{"id": id, "revision": s.Revision, "recoveryId": entry.RecoveryID},
 					i18n.T("module.recoveryFailed"), i18n.T("module.packageRecovered", "name", entry.Manifest.Name.String()))
 			}
 		})
 	}
 	if entry.PendingStop && !entry.Blocked && s.ConfigurationError == "" {
 		ui.Row(c).Margin(4, 0, 0, 0).Children(func() {
-			if kit.Button(c, i18n.T("module.retryClose"), nil, false).Disabled(p.busy != "").Clicked() {
-				p.setEnabled(c, entry, false)
+			if kit.Button(c, i18n.T("module.retryClose"), nil, false).Disabled(p.Busy != "").Clicked() {
+				p.SetEnabled(c, entry, false)
 			}
 		})
 	}
@@ -406,7 +225,7 @@ func (p *page) toolExtras(c *ui.Context, entry moduleEntry) {
 		}
 	}
 	if entry.Manifest.Distribution == "optional" && !entry.Blocked {
-		disabled := p.busy != "" || entry.Enabled || entry.PendingStop || s.ConfigurationError != ""
+		disabled := p.Busy != "" || entry.Enabled || entry.PendingStop || s.ConfigurationError != ""
 		ui.Row(c).Margin(2, 0, 0, -10).Children(func() {
 			b := kit.GhostButton(c, i18n.T("module.removePackage"), icons.Trash2, false).Disabled(disabled || p.removal.busy)
 			if disabled {
@@ -430,7 +249,7 @@ func (p *page) detail(key string) *bool {
 
 // runtimes lists the shared runtime packages modules depend on.
 func (p *page) runtimes(c *ui.Context) {
-	s := p.snapshot
+	s := p.Snapshot
 	if s.Packages == nil || len(s.Packages.Runtimes) == 0 && s.Packages.Error == "" {
 		return
 	}
@@ -461,7 +280,7 @@ func (p *page) runtimes(c *ui.Context) {
 							kit.Help(c, i18n.T("sharedPackages.unused"))
 						}
 					})
-					disabled := p.busy != "" || !runtime.CanRemove || s.ConfigurationError != ""
+					disabled := p.Busy != "" || !runtime.CanRemove || s.ConfigurationError != ""
 					b := kit.GhostButton(c, i18n.T("sharedPackages.remove"), icons.Trash2, false).Disabled(disabled || p.removal.busy)
 					if !runtime.CanRemove {
 						b.Tooltip(i18n.T("sharedPackages.inUse"))
@@ -475,13 +294,13 @@ func (p *page) runtimes(c *ui.Context) {
 	})
 }
 
-func (p *page) referenceName(reference packageReference) string {
-	for _, entry := range p.snapshot.Modules {
+func (p *page) referenceName(reference widgets.PackageReference) string {
+	for _, entry := range p.Snapshot.Modules {
 		if entry.Manifest.ID == reference.ID {
 			return entry.Manifest.Name.String()
 		}
 	}
-	for _, runtime := range p.snapshot.Packages.Runtimes {
+	for _, runtime := range p.Snapshot.Packages.Runtimes {
 		if runtime.ID == reference.ID {
 			return runtime.Name.String()
 		}

@@ -70,6 +70,14 @@ type Shell struct {
 	sidebarWidth float32
 	scroll       ui.ScrollState
 	railHeight   float32
+	// toasts wait for the next frame, which shows them.
+	toasts []string
+	// intents are prefills arrived at their page, until it takes them;
+	// reading tells a read of the Host's queues in progress.
+	intents   map[string][]core.Intent
+	reading   bool
+	intentErr string
+	focuses   int
 }
 
 type pendingKind int
@@ -102,6 +110,16 @@ func New(env *core.Env, window WindowPort, opts Options) *Shell {
 	env.Directory = opts.Directory
 	env.SidebarStartup = func() string { return s.ui.SidebarStartup }
 	env.SetSidebarStartup = s.setSidebarStartup
+	env.Focuses = func() int { return s.focuses }
+	env.TakeIntents = func(page string) []core.Intent {
+		intents := s.intents[page]
+		delete(s.intents, page)
+		return intents
+	}
+	env.Toast = func(message string) {
+		s.toasts = append(s.toasts, message)
+		env.Post(func() {})
+	}
 	if env.Activity == nil {
 		env.Activity = &core.Activity{}
 	}
@@ -144,6 +162,79 @@ func (s *Shell) apply(snapshot internalhost.Snapshot) {
 		s.initial = true
 		s.requestPage(s.defaultPage(), nil)
 	}
+	if first {
+		s.ReadIntents()
+	}
+}
+
+// intentPages are the Host's prefill queues and the pages that show them.
+var intentPages = []struct{ method, page string }{
+	{"interconnect.pending", "interconnect"},
+	{"directory-links.pending", "convenience"},
+}
+
+// Focused tells that the window gained the focus: prefills are read again
+// and pages see the new focus count.
+func (s *Shell) Focused() {
+	s.focuses++
+	s.ReadIntents()
+}
+
+// ReadIntents takes the prefills other launches queued in the Host and
+// shows their pages, through the unsaved-change guard: a declined change
+// drops them, so none waits to open on a later visit. The window reads
+// them when it starts, when another launch wakes it and when it gains the
+// focus.
+func (s *Shell) ReadIntents() {
+	if !s.loaded || s.reading {
+		return
+	}
+	s.reading = true
+	type found struct {
+		page   string
+		intent core.Intent
+	}
+	core.Go(s.env, func() ([]found, error) {
+		var all []found
+		var failure error
+		for _, queue := range intentPages {
+			var intent core.Intent
+			if err := s.env.Host.CallCompletingInto(queue.method, nil, &intent); err != nil {
+				failure = err
+				continue
+			}
+			if intent.Requested {
+				all = append(all, found{queue.page, intent})
+			}
+		}
+		return all, failure
+	}, func(all []found, err error) {
+		s.reading = false
+		s.intentErr = ""
+		if err != nil {
+			s.intentErr = err.Error()
+		}
+		for _, f := range all {
+			f := f
+			s.requestPage(f.page, func() {
+				if s.intents == nil {
+					s.intents = map[string][]core.Intent{}
+				}
+				s.intents[f.page] = append(s.intents[f.page], f.intent)
+			})
+		}
+	})
+}
+
+// pendingIntentPage is a page with prefills it has not taken yet, which a
+// request for the settings shows instead of the default page.
+func (s *Shell) pendingIntentPage() string {
+	for _, queue := range intentPages {
+		if len(s.intents[queue.page]) > 0 {
+			return queue.page
+		}
+	}
+	return ""
 }
 
 // defaultPage is the page the settings open on, if it still exists.
@@ -159,8 +250,13 @@ func (s *Shell) defaultPage() string {
 // --open-settings, which shows the default page through the guard.
 func (s *Shell) Wake(settings bool) {
 	if settings && s.loaded {
-		s.requestPage(s.defaultPage(), nil)
+		page := s.pendingIntentPage()
+		if page == "" {
+			page = s.defaultPage()
+		}
+		s.requestPage(page, nil)
 	}
+	s.ReadIntents()
 }
 
 // requestPage shows target, after the user decides about unsaved changes.
@@ -293,6 +389,10 @@ func (s *Shell) View(c *ui.Context) {
 	})
 	s.settle()
 	s.guard(c)
+	for _, message := range s.toasts {
+		c.Toast(message)
+	}
+	s.toasts = nil
 	// Ctrl+S saves the page's current transaction, as its Save button.
 	if c.Shortcut(ui.Cmd, ui.KeyS) {
 		if save := s.env.Rail.Save; s.env.Rail.Active() && !save.Disabled && !save.Busy && save.Run != nil {

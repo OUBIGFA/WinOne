@@ -9,6 +9,7 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
+	"winone/desktopmygo/widgets"
 )
 
 type identity struct {
@@ -23,7 +24,7 @@ type packageMetadata struct {
 	Version      string             `json:"version"`
 	Module       *identity          `json:"module,omitempty"`
 	Runtime      *identity          `json:"runtime,omitempty"`
-	Dependencies []packageReference `json:"dependencies,omitempty"`
+	Dependencies []widgets.PackageReference `json:"dependencies,omitempty"`
 }
 
 func (m packageMetadata) name() string {
@@ -53,7 +54,7 @@ type preview struct {
 	RestoresSettings bool             `json:"restoresSettings,omitempty"`
 	Error            string           `json:"error,omitempty"`
 	DependencyLock   *struct {
-		Packages []packageReference `json:"packages"`
+		Packages []widgets.PackageReference `json:"packages"`
 	} `json:"dependencyLock,omitempty"`
 }
 
@@ -85,7 +86,7 @@ func (in *installer) button(c *ui.Context, disabled bool) {
 			if len(files) == 1 {
 				in.inspect(files[0])
 			} else {
-				in.page.err = i18n.T("fileDrop.single")
+				in.page.Err = i18n.T("fileDrop.single")
 			}
 		}
 	}
@@ -227,11 +228,11 @@ func (in *installer) install(c *ui.Context) {
 		}
 		// A failed switch can restore the old version or leave a recovery
 		// entry: re-read the catalog either way, never showing success.
-		in.page.reload(func() {
+		in.page.Reload(func() {
 			in.busy = false
 			in.page.env.Refresh()
 			if success != "" {
-				c.Toast(success)
+				in.page.env.Toast(success)
 			}
 		})
 	})
@@ -433,9 +434,9 @@ func (r *removal) remove(c *ui.Context) {
 				success = i18n.T("sharedPackages.removed")
 			}
 		}
-		r.page.reload(func() {
+		r.page.Reload(func() {
 			r.page.env.Refresh()
-			c.Toast(success)
+			r.page.env.Toast(success)
 		})
 	})
 }

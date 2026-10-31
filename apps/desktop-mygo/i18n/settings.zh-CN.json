@@ -1,0 +1,15 @@
+{
+ "permission.cancelled": "权限操作已取消",
+ "permission.helperExit": "权限辅助进程退出：{{status}}",
+ "permission.helperStuck": "权限辅助进程未正常退出。",
+ "permission.killFailed": "无法结束权限辅助进程：{{error}}",
+ "permission.protocol": "无法确认权限操作结果，请重新读取设置。",
+ "permission.timeout": "权限操作超时，请检查当前设置。",
+ "profiles.exportExists": "{{path}} 已存在。请重新导出，选择该文件并确认替换。",
+ "profiles.exportName": "我的配置",
+ "profiles.fileFilter": "WinOne 配置",
+ "profiles.pickFile": "选择文件",
+ "profiles.pickFolder": "选择文件夹",
+ "profiles.pickProgram": "选择程序或脚本",
+ "profiles.programFilter": "程序与脚本"
+}

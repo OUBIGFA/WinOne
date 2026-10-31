@@ -42,18 +42,22 @@ func Dialog(c *ui.Context, open *bool, o DialogOptions) bool {
 	stay := *open
 	ui.DialogBase(c, &stay, func(backdrop, panel ui.Element) {
 		backdrop.Background(ui.RGBA(0, 0, 0, backdropAlpha(t)))
-		panel.Width(width).MaxWidthPercent(92).Padding(24).Gap(12).Radius(12).Background(p.Panel).
+		// A long form scrolls between the title and the buttons, which
+		// stay in view, as the panel never outgrows the window.
+		panel.Width(width).MaxWidthPercent(92).MaxHeightPercent(88).Padding(24).Gap(12).Radius(12).Background(p.Panel).
 			Border(1, p.Hairline).Shadow(0, 12, 32, 0, ui.RGBA(0, 0, 0, 2*shadowAlpha(t))).
 			Role(ui.RoleDialog).Label(o.Title).Children(func() {
-			Title(c, o.Title).FontSize(t.Rem(headingSize) + 2)
-			if o.Message != "" {
-				ui.Text(c, o.Message).LineHeight(1.5).TextColor(t.TextMuted).Selectable()
-			}
-			if o.Body != nil {
-				o.Body()
-			}
-			InlineError(c, o.Error)
-			ui.Row(c).Gap(8).Justify(ui.End).Wrap().Margin(8, 0, 0, 0).Children(func() {
+			Title(c, o.Title).FontSize(t.Rem(headingSize) + 2).Shrink(0)
+			ui.Scroll(c).FillWidth().Shrink(1).MinHeight(0).Gap(12).Children(func() {
+				if o.Message != "" {
+					ui.Text(c, o.Message).LineHeight(1.5).TextColor(t.TextMuted).Selectable()
+				}
+				if o.Body != nil {
+					o.Body()
+				}
+				InlineError(c, o.Error)
+			})
+			ui.Row(c).Shrink(0).Gap(8).Justify(ui.End).Wrap().Margin(8, 0, 0, 0).Children(func() {
 				if o.Actions != nil {
 					o.Actions()
 				}

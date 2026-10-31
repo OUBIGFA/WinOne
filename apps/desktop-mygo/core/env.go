@@ -5,6 +5,8 @@
 package core
 
 import (
+	"github.com/egoist/mygo"
+
 	"winone/desktopmygo/host"
 
 	internalhost "winone/internal/host"
@@ -48,6 +50,22 @@ type Env struct {
 	// SetSidebarStartup stores how the sidebar opens and folds or unfolds
 	// it at once, as the setting shows its effect when chosen.
 	SetSidebarStartup func(value string) error
+	// Toast shows a short message about what just finished, as a save.
+	// The shell shows it with the next frame, so the callbacks of
+	// background work can call it: ui.Context.Toast works only while a
+	// frame is built.
+	Toast func(message string)
+	// TakeIntents returns and forgets the prefills queued for page, as
+	// Explorer's commands queue them; the shell shows the page first.
+	TakeIntents func(page string) []Intent
+	// Focuses counts the times the window gained the focus, for pages that
+	// read the clipboard or other state then, as the React window's focus
+	// listeners did.
+	Focuses func() int
+	// WebViews makes a web view of the window, for the pages the Host
+	// serves inside a page (package web). Nil where the window has none,
+	// as in tests.
+	WebViews func(mygo.WebViewOptions) (*mygo.WebView, error)
 }
 
 func (env *Env) spawn(fn func()) {

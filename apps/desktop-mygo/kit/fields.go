@@ -107,17 +107,6 @@ func Segmented(c *ui.Context, selected *string, options []SelectOption, label st
 	return false
 }
 
-// NumberField edits a whole or decimal number within a range, typed or
-// stepped; unit follows it, as "秒".
-func NumberField(c *ui.Context, value *float64, minimum, maximum, step float64, unit string) ui.Element {
-	return ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.NumberInput(c, value, minimum, maximum, step).Width(120)
-		if unit != "" {
-			Help(c, unit).SingleLine()
-		}
-	})
-}
-
 // PathField shows a chosen path, shortened in the middle when it does not
 // fit, with the action that chooses another; the full path is its tooltip.
 func PathField(c *ui.Context, path, empty, action string, disabled bool) (choose ui.Element) {

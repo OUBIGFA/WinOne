@@ -1,0 +1,6 @@
+{
+ "web.unavailable": "无法在此窗口中显示网页",
+ "web.invalidAddress": "网页地址无效",
+ "web.downloaded": "已下载到 {{path}}",
+ "web.downloadFailed": "下载失败：{{error}}"
+}

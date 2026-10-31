@@ -168,7 +168,10 @@ func (s *Shell) navItem(c *ui.Context, item pageSpec, compact bool) {
 		}
 		ui.Icon(c, item.icon).FontSize(19).TextColor(color).Shrink(0)
 		if !compact {
-			text := ui.Text(c, title).SingleLine().MinWidth(0).Shrink(1)
+			// Selected gives the row the accent's text color, meant for an
+			// accent fill; the row's fill is neutral, so the label keeps
+			// the text color.
+			text := ui.Text(c, title).SingleLine().MinWidth(0).Shrink(1).TextColor(t.Text)
 			if selected {
 				text.FontWeight(600)
 			}
@@ -280,6 +283,12 @@ func (s *Shell) content(c *ui.Context) {
 						if warning != "" {
 							kit.Notice(c, kit.Info, "", warning, nil)
 						}
+					})
+				}
+				// A prefill that could not be read, as React's window showed it.
+				if s.intentErr != "" {
+					ui.Column(c).FillWidth().MaxWidth(kit.WidePageWidth).Margin(0, ui.Auto, 16, ui.Auto).Children(func() {
+						kit.Notice(c, kit.Failure, "", s.intentErr, nil)
 					})
 				}
 				s.pageView(c)
