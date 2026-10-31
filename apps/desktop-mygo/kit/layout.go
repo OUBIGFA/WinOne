@@ -156,6 +156,30 @@ func Toggle(c *ui.Context, value *bool, label, help string) ui.Element {
 	return sw
 }
 
+// CheckMark draws a check box as MyGo's Checkbox does, for a
+// ui.CheckboxBase whose row holds more than a label: a picture and badges
+// beside the name, all of which toggle it. hovered is the row's.
+func CheckMark(c *ui.Context, on, hovered bool) ui.Element {
+	t := c.Theme()
+	box := ui.Box(c).Size(t.Space(4), t.Space(4)).Radius(t.Space(1)).Shrink(0)
+	switch {
+	case on:
+		box.Background(t.Accent)
+	case hovered:
+		box.Background(t.Background).Border(1, t.Accent)
+	default:
+		box.Background(t.Background).Border(1, t.Border.Mix(t.Text, 0.25))
+	}
+	if on {
+		box.Draw(func(p *ui.Painter, r ui.Rect) {
+			var path ui.Path
+			path.MoveTo(r.X+r.W*0.22, r.Y+r.H*0.52).LineTo(r.X+r.W*0.42, r.Y+r.H*0.71).LineTo(r.X+r.W*0.78, r.Y+r.H*0.31)
+			p.StrokePath(&path, t.Space(0.5), t.AccentText)
+		})
+	}
+	return box
+}
+
 // Option is one choice of Choices.
 type Option struct {
 	Label, Help string

@@ -8,7 +8,6 @@
 package overview
 
 import (
-	"slices"
 	"strconv"
 	"strings"
 
@@ -41,17 +40,62 @@ func newPage(env *core.Env) *page {
 	return p
 }
 
-// moduleOrder is the shared order of Home and the sidebar (module-order.ts).
-var moduleOrder = []string{"capture", "selection", "quick-assistant", "interconnect", "wintray", "convenience"}
+// homeModules names, for each feature of the sidebar, the module whose
+// switch Home shows for it. Home lists the sidebar's features in its
+// order (shell.Features); its test fails for a feature it does not know,
+// so adding or removing one in the sidebar changes Home too.
+var homeModules = map[string]string{"capture": "capture", "selection": "selection", "quick-assistant": "quick-assistant",
+	"wintray": "wintray", "convenience": "always-on-top"}
 
-func moduleRank(id string) int {
-	if id == "always-on-top" {
-		id = "convenience"
+// builtIn are the features without a module: always available, no switch.
+var builtIn = map[string]bool{"interconnect": true}
+
+// homeRow is one feature of Home: its sidebar page, and its module unless
+// it is built in.
+type homeRow struct {
+	page  shell.PageInfo
+	entry *widgets.ModuleEntry
+}
+
+// rows lists the sidebar's features in its order, each with its module.
+// A module the snapshot lacks (an optional one not installed) leaves its
+// feature out, as the sidebar's page then has nothing to show.
+func (p *page) rows() []homeRow {
+	var rows []homeRow
+	for _, feature := range shell.Features() {
+		row := homeRow{page: feature}
+		if id, ok := homeModules[feature.ID]; ok {
+			for i := range p.Snapshot.Modules {
+				if p.Snapshot.Modules[i].Manifest.ID == id {
+					row.entry = &p.Snapshot.Modules[i]
+				}
+			}
+			if row.entry == nil {
+				continue
+			}
+		} else if !builtIn[feature.ID] {
+			continue
+		}
+		rows = append(rows, row)
 	}
-	if rank := slices.Index(moduleOrder, id); rank >= 0 {
-		return rank
+	return rows
+}
+
+// others are the installed modules no feature of the sidebar holds:
+// optional packages, kept here to switch and remove. Mouse gestures and
+// timed power keep their lifecycle inside Convenience.
+func (p *page) others() []widgets.ModuleEntry {
+	held := map[string]bool{"stroke": true, "timed-power": true}
+	for _, id := range homeModules {
+		held[id] = true
 	}
-	return len(moduleOrder)
+	var entries []widgets.ModuleEntry
+	for _, entry := range p.Snapshot.Modules {
+		if !held[entry.Manifest.ID] {
+			entries = append(entries, entry)
+		}
+	}
+	return entries
 }
 
 func (p *page) View(c *ui.Context) {
@@ -79,25 +123,12 @@ func (p *page) View(c *ui.Context) {
 	p.removal.dialog(c)
 }
 
-func (p *page) visible() []widgets.ModuleEntry {
-	// Mouse gestures and timed power keep their own lifecycle inside
-	// Convenience; Home lists the navigation modules.
-	var entries []widgets.ModuleEntry
-	for _, entry := range p.Snapshot.Modules {
-		if entry.Manifest.ID != "stroke" && entry.Manifest.ID != "timed-power" {
-			entries = append(entries, entry)
-		}
-	}
-	slices.SortStableFunc(entries, func(a, b widgets.ModuleEntry) int { return moduleRank(a.Manifest.ID) - moduleRank(b.Manifest.ID) })
-	return entries
-}
-
 func (p *page) tools(c *ui.Context) {
 	s := p.Snapshot
-	entries := p.visible()
+	rows := p.rows()
 	active, attention := 0, 0
-	for _, entry := range entries {
-		if entry.Enabled && !entry.PendingStop {
+	for _, row := range rows {
+		if row.entry == nil || row.entry.Enabled && !row.entry.PendingStop {
 			active++
 		}
 	}
@@ -110,7 +141,7 @@ func (p *page) tools(c *ui.Context) {
 		ui.Row(c).FillWidth().GapX(24).GapY(12).Wrap().AlignItems(ui.Center).Children(func() {
 			kit.Help(c, i18n.T("module.intro")).Basis(240).Grow(1)
 			ui.Row(c).Gap(12).AlignItems(ui.Center).Children(func() {
-				kit.Caption(c, i18n.T("dashboard.enabledCount", "count", active, "total", len(entries))).SingleLine()
+				kit.Caption(c, i18n.T("dashboard.enabledCount", "count", active, "total", len(rows))).SingleLine()
 				p.install.button(c, p.Busy != "" || s.ConfigurationError != "")
 			})
 		})
@@ -129,38 +160,54 @@ func (p *page) tools(c *ui.Context) {
 			})
 		}
 		kit.Panel(c, func() {
-			for _, entry := range entries {
-				p.toolRow(c, entry)
+			for _, row := range rows {
+				if row.entry == nil {
+					p.builtInRow(c, row.page)
+				} else {
+					p.toolRow(c, *row.entry, row.page.Icon, i18n.T(row.page.Title))
+				}
 			}
 		}).Role(ui.RoleList)
+		if others := p.others(); len(others) > 0 {
+			kit.Section(c, icons.Package, i18n.T("overview.otherModules"), "", func() {
+				kit.Panel(c, func() {
+					for _, entry := range others {
+						p.toolRow(c, entry, icons.Package, entry.Manifest.Name.String())
+					}
+				}).Role(ui.RoleList)
+			})
+		}
 	})
 }
 
-var moduleIcons = map[string]*ui.SVG{}
-
-func iconFor(id string) *ui.SVG {
-	if len(moduleIcons) == 0 {
-		moduleIcons = map[string]*ui.SVG{"capture": icons.ScanLine, "selection": icons.MousePointer2,
-			"quick-assistant": icons.Astroid, "always-on-top": icons.Rocket, "wintray": icons.LaptopMinimal}
-	}
-	if icon := moduleIcons[id]; icon != nil {
-		return icon
-	}
-	return icons.LaptopMinimal
+// builtInRow is a feature without a module: always available.
+func (p *page) builtInRow(c *ui.Context, page shell.PageInfo) {
+	t := c.Theme()
+	title := i18n.T(page.Title)
+	ui.Row(c.Key(page.ID)).FillWidth().Padding(14, 16).GapX(14).GapY(10).AlignItems(ui.Start).Wrap().Role(ui.RoleListItem).Children(func() {
+		ui.Icon(c, page.Icon).FontSize(20).TextColor(t.TextMuted).Shrink(0).Margin(1, 0, 0, 0)
+		ui.Column(c).Basis(260).Grow(1).Shrink(1).MinWidth(0).Gap(3).Children(func() {
+			kit.Strong(c, title).Role(ui.RoleHeading).Level(3)
+			if key := "moduleDescription." + page.ID; i18n.Has(key) {
+				kit.Help(c, i18n.T(key))
+			}
+		})
+		ui.Row(c).Gap(12).AlignItems(ui.Center).Shrink(0).MinHeight(28).Children(func() {
+			kit.Help(c, i18n.T("overview.alwaysAvailable")).SingleLine()
+		})
+	})
 }
 
-func (p *page) toolRow(c *ui.Context, entry widgets.ModuleEntry) {
+// toolRow is a module's row: its feature's icon and name, its state and
+// switch, and what needs the user's attention.
+func (p *page) toolRow(c *ui.Context, entry widgets.ModuleEntry, icon *ui.SVG, title string) {
 	t := c.Theme()
 	s := p.Snapshot
 	id := entry.Manifest.ID
 	// Pinning is listed as Convenience, the page that holds it.
 	grouped := id == "always-on-top"
-	title := entry.Manifest.Name.String()
-	if grouped {
-		title = i18n.T("nav.convenience")
-	}
 	ui.Row(c.Key(id)).FillWidth().Padding(14, 16).GapX(14).GapY(10).AlignItems(ui.Start).Wrap().Role(ui.RoleListItem).Children(func() {
-		ui.Icon(c, iconFor(id)).FontSize(20).TextColor(t.TextMuted).Shrink(0).Margin(1, 0, 0, 0)
+		ui.Icon(c, icon).FontSize(20).TextColor(t.TextMuted).Shrink(0).Margin(1, 0, 0, 0)
 		ui.Column(c).Basis(260).Grow(1).Shrink(1).MinWidth(0).Gap(3).Children(func() {
 			kit.Strong(c, title).Role(ui.RoleHeading).Level(3)
 			if grouped {

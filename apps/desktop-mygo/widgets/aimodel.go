@@ -207,6 +207,31 @@ type aiPickItem struct {
 	badge        func(c *ui.Context)
 }
 
+// PictureOption is one option of PictureSelect: its value and label, a
+// picture before the label (a provider's or model's mark) and badges
+// after it.
+type PictureOption struct {
+	Value, Label string
+	Picture      func(c *ui.Context)
+	Badge        func(c *ui.Context)
+}
+
+// PictureSelect is kit.Select for options marked by pictures rather than
+// icons, as the provider pickers are. name labels it for assistive
+// technology; placeholder shows while nothing is chosen. It returns
+// whether the user chose another option.
+func PictureSelect(c *ui.Context, selected *string, options []PictureOption, placeholder, name string, disabled bool) bool {
+	items := make([]aiPickItem, len(options))
+	for i, o := range options {
+		items[i] = aiPickItem{value: o.Value, label: o.Label, icon: o.Picture, badge: o.Badge}
+	}
+	return aiPickSelect(c, selected, items, placeholder, name, disabled)
+}
+
+// ModelBadges returns the badges of a model of p (free, credit rate,
+// context window), nil when it has none.
+func ModelBadges(p *AIProvider, id string) func(c *ui.Context) { return aiPickBadges(p, id) }
+
 // aiPickSelect is kit.Select for options whose marks are pictures, not
 // icons: a provider's logo, a model family's, with badges after the label.
 // The trigger shows the chosen option, the value itself when no option

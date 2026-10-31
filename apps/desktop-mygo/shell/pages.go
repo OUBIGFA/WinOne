@@ -21,10 +21,11 @@ type pageSpec struct {
 	make              func(env *core.Env) core.Page
 }
 
-// registry lists every page in the sidebar's order: Home, the modules in
-// their shared order (module-order.ts), OneBot, then Chat, Flash chat, AI
-// services and Settings at the bottom. Pages without make show the
-// unavailable state until they are built.
+// registry lists every page in the sidebar's order: Home and the features
+// above (Home lists the same features in the same order, which its test
+// checks), then Chat, OneBot, Flash chat, AI services and Settings at the
+// bottom. Pages without make show the unavailable state until they are
+// built.
 var registry []pageSpec
 
 // Register adds or replaces the constructor of a page; page packages call
@@ -48,8 +49,8 @@ func init() {
 		{id: "interconnect", title: "interconnect.title", icon: icons.FolderUp},
 		{id: "wintray", title: "nav.wintray", icon: icons.LaptopMinimal},
 		{id: "convenience", title: "nav.convenience", icon: icons.Rocket},
-		{id: "onebot", title: "onebot.title", icon: icons.Panda, layout: core.Conversation},
 		{id: "chat", title: "chat.title", icon: icons.Bot, layout: core.Conversation, footer: true},
+		{id: "onebot", title: "onebot.title", icon: icons.Panda, layout: core.Conversation, footer: true},
 		{id: "flash-chat", title: "interconnect.peerChat", icon: icons.MessagesCircle, layout: core.Conversation, footer: true},
 		{id: "ai-services", title: "ai.serviceTitle", icon: icons.Sparkles, footer: true, separated: true},
 		{id: "settings", title: "nav.settings", icon: icons.Settings, footer: true},
@@ -85,13 +86,28 @@ type PageInfo struct {
 	// Title is the page's i18n key.
 	Title string
 	Icon  *ui.SVG
+	// Footer pages sit at the bottom of the sidebar; the others, after
+	// Home, are the features Home lists.
+	Footer bool
 }
 
 // Catalog lists the sidebar's pages in its order.
 func Catalog() []PageInfo {
 	catalog := make([]PageInfo, len(registry))
 	for i, p := range registry {
-		catalog[i] = PageInfo{ID: p.id, Title: p.title, Icon: p.icon}
+		catalog[i] = PageInfo{ID: p.id, Title: p.title, Icon: p.icon, Footer: p.footer}
 	}
 	return catalog
+}
+
+// Features lists the features at the top of the sidebar after Home, in
+// its order: what Home lists.
+func Features() []PageInfo {
+	var features []PageInfo
+	for _, page := range Catalog() {
+		if !page.Footer && page.ID != "overview" {
+			features = append(features, page)
+		}
+	}
+	return features
 }

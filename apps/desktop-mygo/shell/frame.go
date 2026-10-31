@@ -148,10 +148,14 @@ func (s *Shell) navItem(c *ui.Context, item pageSpec, compact bool) {
 	t, p := c.Theme(), kit.Colors(c)
 	title := i18n.T(item.title)
 	selected := item.id == s.page
-	row := ui.ButtonBase(c.Key(item.id)).Height(44).Padding(0, 0, 0, 14).Gap(12).AlignItems(ui.Center).
+	row := ui.ButtonBase(c.Key(item.id)).FillWidth().Height(44).Gap(12).AlignItems(ui.Center).
 		Radius(t.Radius).Label(title).Selected(selected)
 	if compact {
-		row.Tooltip(title)
+		// The icon alone, in the middle of the narrow sidebar.
+		row.Justify(ui.Center).Tooltip(title)
+	} else {
+		// Icons line up in one column and names start at one edge.
+		row.Justify(ui.Start).Padding(0, 12)
 	}
 	switch {
 	case selected:
@@ -166,19 +170,22 @@ func (s *Shell) navItem(c *ui.Context, item pageSpec, compact bool) {
 		if selected {
 			color = t.Text
 		}
-		ui.Icon(c, item.icon).FontSize(19).TextColor(color).Shrink(0)
+		// A fixed slot centers each icon, whatever its glyph's width.
+		ui.Row(c).Size(24, 24).Shrink(0).Justify(ui.Center).AlignItems(ui.Center).Children(func() {
+			ui.Icon(c, item.icon).FontSize(19).TextColor(color)
+		})
 		if !compact {
 			// Selected gives the row the accent's text color, meant for an
 			// accent fill; the row's fill is neutral, so the label keeps
 			// the text color.
-			text := ui.Text(c, title).SingleLine().MinWidth(0).Shrink(1).TextColor(t.Text)
+			text := ui.Text(c, title).SingleLine().Grow(1).MinWidth(0).Shrink(1).TextAlign(ui.Start).TextColor(t.Text)
 			if selected {
 				text.FontWeight(600)
 			}
 		}
 		if selected {
 			// Windows' navigation marks the chosen page with a short bar at
-			// its leading edge; the row keeps its place and size.
+			// its leading edge, drawn over the row: it takes no room.
 			ui.Box(c).Absolute().Left(0).Top(14).Bottom(14).Width(3).Radius(2).Background(t.Accent)
 		}
 	})

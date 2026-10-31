@@ -2,11 +2,13 @@ package overview
 
 import (
 	"encoding/json"
+	"slices"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
 
 	"winone/desktopmygo/i18n"
+	"winone/desktopmygo/shell"
 	"winone/desktopmygo/testhost"
 	"winone/desktopmygo/widgets"
 )
@@ -62,5 +64,58 @@ func TestHomeListsToolsInOrderAndTogglesThroughTheHost(t *testing.T) {
 	}
 	if !tt.HasText("已开启") {
 		t.Fatalf("status after enabling %q", tt.Texts())
+	}
+}
+
+// Home lists exactly the sidebar's features above its footer, in the same
+// order. Adding a feature to the sidebar without telling Home how to show
+// it (its module, or built in) fails here, as does a mapping left behind.
+func TestHomeMatchesTheSidebar(t *testing.T) {
+	i18n.SetLocale(i18n.Chinese)
+	features := shell.Features()
+	names := func(zh, en string) map[string]string { return map[string]string{"zh-CN": zh, "en-US": en} }
+	snapshot := widgets.ModuleSnapshot{Revision: 1}
+	for _, feature := range features {
+		id, ok := homeModules[feature.ID]
+		if !ok && !builtIn[feature.ID] {
+			t.Fatalf("Home does not know the sidebar feature %q", feature.ID)
+		}
+		if ok {
+			snapshot.Modules = append(snapshot.Modules, widgets.ModuleEntry{Manifest: widgets.ModuleManifest{ID: id, Name: names(id, id),
+				Distribution: "builtin"}, Runtime: widgets.ModuleRuntime{ID: id, State: "disabled"}})
+		}
+	}
+	for id := range homeModules {
+		if !slices.ContainsFunc(features, func(f shell.PageInfo) bool { return f.ID == id }) {
+			t.Fatalf("Home maps %q, which the sidebar no longer has", id)
+		}
+	}
+	h := testhost.New(t, func(method string, params json.RawMessage) (any, error) {
+		if method == "modules.snapshot" {
+			return snapshot, nil
+		}
+		t.Errorf("unexpected %s", method)
+		return nil, nil
+	})
+	page := newPage(h.Env)
+	tt := ui.NewTester(page.View, 900, 1400)
+	h.Settle(tt)
+	rows := page.rows()
+	if len(rows) != len(features) {
+		t.Fatalf("Home lists %d features, the sidebar %d", len(rows), len(features))
+	}
+	previous := float32(-1)
+	for i, feature := range features {
+		if rows[i].page.ID != feature.ID {
+			t.Fatalf("row %d is %q, the sidebar's %q", i, rows[i].page.ID, feature.ID)
+		}
+		r, ok := tt.Find(i18n.T(feature.Title))
+		if !ok || r.Y <= previous {
+			t.Fatalf("%q is not shown in the sidebar's order: %q", i18n.T(feature.Title), tt.Texts())
+		}
+		previous = r.Y
+	}
+	if tt.HasText(i18n.T("onebot.title")) || tt.HasText(i18n.T("chat.title")) {
+		t.Fatal("Home lists only the features above the sidebar's footer")
 	}
 }
