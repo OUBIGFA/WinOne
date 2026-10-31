@@ -180,6 +180,16 @@ func CheckMark(c *ui.Context, on, hovered bool) ui.Element {
 	return box
 }
 
+// PartialMark is CheckMark for a check box over several, some of them
+// checked: a dash in the accent's box.
+func PartialMark(c *ui.Context) ui.Element {
+	t := c.Theme()
+	return ui.Box(c).Size(t.Space(4), t.Space(4)).Radius(t.Space(1)).Shrink(0).Background(t.Accent).
+		Draw(func(p *ui.Painter, r ui.Rect) {
+			p.Line(r.X+r.W*0.25, r.Y+r.H/2, r.X+r.W*0.75, r.Y+r.H/2, t.Space(0.5), t.AccentText)
+		})
+}
+
 // Option is one choice of Choices.
 type Option struct {
 	Label, Help string

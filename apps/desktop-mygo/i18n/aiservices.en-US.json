@@ -1,0 +1,5 @@
+{
+ "ai.avatarFiles": "Images",
+ "ai.avatarInvalidReply": "The picture service returned no valid picture",
+ "ai.avatarIncomplete": "The picture did not transfer completely. Choose it again."
+}

@@ -1,0 +1,5 @@
+{
+ "ai.avatarFiles": "图片",
+ "ai.avatarInvalidReply": "头像服务未返回有效图片",
+ "ai.avatarIncomplete": "图片传输不完整，请重新选择"
+}
