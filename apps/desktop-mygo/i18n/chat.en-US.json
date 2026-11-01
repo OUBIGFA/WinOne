@@ -1,0 +1,6 @@
+{
+ "chat.exportTitle": "Export complete task",
+ "chat.exportFileType": "Cindy task archive",
+ "chat.exportUnconfirmed": "The export could not be confirmed.",
+ "chat.exportInvalid": "Invalid export request."
+}

@@ -15,6 +15,7 @@
 - **闪聊**：原生重写，并与现有 Chitchatter/Trystero 房间互通。
 - **分工**：用户允许同时最多两个子代理。外壳、共用组件、对照验收和提交由主 Agent 负责。
 - **顺序**：Chat 与 OneBot 也改写为 MyGo，但排在其他页面之后。改写后 Cindy 上游更新改为手工移植，用户已知此取舍。
+- **Chat 与 OneBot 的方式**（用户 2026-11-01 决定，混合方案）：会话列表、消息流、输入框、排队、审批、提问、计划等核心交互原生重写；代码编辑器、差异审阅、PDF、终端、内置浏览器与 HTML 预览、自动化整页及 OneBot 管理页在 MyGo WebView 中运行现有 React/Cindy 组件。功能清单见 [Chat 对照](mygo-parity/chat.md)。
 - **切换时机**：完整迁移仍须全部页面验收后再切换统一构建默认值（当前仍为 Rust）。用户于 2026-10-31 另行要求先测试当前成果、暂缓闪聊/Chat/OneBot：本轮显式使用 `build/build.ps1 -DesktopImplementation MyGo`，2026-11-01 已更新固定测试安装器；这三个页面在本测试版暂不可用，原后台实现和数据保留，不把测试包等同于全面迁移完成。
 
 此决策取代 [Rust 桌面迁移可行性调研](Rust桌面迁移可行性调研.md) 第 5.1 节“需先同意 Go GUI 与 UI 重写”的前提，也取代 [Rust 桌面 UI 迁移](Rust桌面UI迁移.md) 中“直接复用 React 源码”的路线。
@@ -88,9 +89,9 @@ flowchart LR
 | AI 服务 | `features/ai-*.tsx`、`magpie-*.ts` | `pages/aiservices` | 已实现（[对照](mygo-parity/ai-services.md)）；用量统计见 [对照](mygo-parity/ai-usage.md) |
 | 结果窗与划词工具栏 | `apps/result-ui`（MyGo v0.2.13） | `apps/result-ui`（MyGo v0.7.3） | 已接入测试包；单元回归、构建/许可、原生进程与样式通过（[对照](mygo-parity/result-window.md)） |
 | 截图工具栏外观 | `modules/capture/NativeUI`（原生 ToolStrip） | 不迁移；`NativeStyle.cs` 同步 `kit` 令牌 | 已接入测试包；私有桌面渲染验证，Windows 11 菜单圆角未实窗验证 |
-| 闪聊 | `interconnect-chat-entry.tsx`、`vendor/chitchatter` | `pages/flashchat` | 用户本轮暂缓；本测试版暂不可用 |
-| Chat | `features/chat*.tsx`、`features/cindy` | `pages/chat` | 用户本轮暂缓；本测试版暂不可用 |
-| OneBot | `features/onebot.tsx`、`features/cindy/bots` | `pages/onebot` | 用户本轮暂缓；本测试版暂不可用 |
+| 闪聊 | `interconnect-chat-entry.tsx`、`vendor/chitchatter` | `pages/flashchat` | 进行中（原生重写并与现有房间互通）；2026-11-01 前的测试安装器中不可用 |
+| Chat | `features/chat*.tsx`、`features/cindy` | `pages/chat`、`chat/model` | 进行中（混合方案，[对照](mygo-parity/chat.md)）；2026-11-01 前的测试安装器中不可用 |
+| OneBot | `features/onebot.tsx`、`features/cindy/bots` | `pages/onebot` | 未开始（队友对话复用原生 Chat，其余页面 WebView）；2026-11-01 前的测试安装器中不可用 |
 
 ## 7. 风险与待确认
 

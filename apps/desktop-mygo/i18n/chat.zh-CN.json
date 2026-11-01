@@ -1,0 +1,6 @@
+{
+ "chat.exportTitle": "导出完整任务",
+ "chat.exportFileType": "Cindy 任务文件",
+ "chat.exportUnconfirmed": "无法确认任务已导出。",
+ "chat.exportInvalid": "任务导出参数无效。"
+}
