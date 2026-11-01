@@ -182,6 +182,10 @@ func (w *window) onClose(e *mygo.CloseEvent) {
 		w.win.Hide()
 		return
 	}
+	// The page ends with the window: it releases what it holds in the
+	// Host (the flash chat leaves its room and stops its shares) while
+	// the Host can still be reached.
+	w.shell.Discarded()
 	w.client.Cancel()
 }
 

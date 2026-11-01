@@ -1498,6 +1498,145 @@
           "sha256": "7394e98f6eb375bff31f407051d2fac7478a7a7491eddb3c14260abe8801b8da"
         }
       ]
+    },
+    {
+      "name": "chitchatter-flashchat-go",
+      "repository": "https://github.com/jeremyckahn/chitchatter",
+      "commit": "4093c21dad24af133c3c5c12042d3eb6112eece1",
+      "license": "GPL-2.0-or-later",
+      "scope": "Go port of the same vendored headless chat core for the MyGo window: rooms, identity and verification, group and direct messages, typing, history on join and file offers, with the wire shapes and action names unchanged so native and browser peers share rooms. ChatRoom.test.ts is ported as chatroom_test.go.",
+      "sourceFiles": [
+        "src/core/"
+      ],
+      "notices": [
+        {
+          "file": "licenses/chitchatter-4093c21-LICENSE.txt",
+          "sha256": "189b1af95d661151e054cea10c91b3d754e4de4d3fecfb074c1fb29476f7167b"
+        }
+      ],
+      "files": [
+        {
+          "path": "apps/desktop-mygo/flashchat/models.go",
+          "sha256": "88c0c92276aaf6d82cc2f9144735c6ec11607cff62774e1786076272ae4bcee2"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/identity.go",
+          "sha256": "a44f854eb7782791496d09a4647ddf35bd0272fa252400b4326e9f984d08f584"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/chatroom.go",
+          "sha256": "893d5ef421e2667f5ec49a0d951a9031394f69dba9237b2131837a9306865ebe"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/chatroom_test.go",
+          "sha256": "678d0599f1decb5e927c23340e556d32f73169adc2524f650ba17cc75b5c889e"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/registry.go",
+          "sha256": "b8bef631bb6966050ba0a41d0ae4ab7cf3bba97dd090d840ec2ec40a41440d21"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/transport.go",
+          "sha256": "324c231c57b7c79d8173412eeb2981d98258659eda1d96fc7d1b1b880bb6e379"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/memory.go",
+          "sha256": "eaad8d4a6bd0caf3930a15d424f3ac85655ae294de08f3717d0822c522736bd8"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/session.go",
+          "sha256": "7d8c6e427614b55589b8d6f54d7d1c565cfdf9593b24d84532d27730aee6a8d3"
+        }
+      ]
+    },
+    {
+      "name": "trystero-flashchat-go",
+      "repository": "https://github.com/dmotz/trystero",
+      "commit": "44b5073effd1b664e3a1fad19a73f1164c3ead0e",
+      "license": "MIT",
+      "scope": "Go rewrite of the Trystero 0.26.0 torrent-strategy wire protocol on Pion WebRTC: room topics and info hashes, password-encrypted offers and answers over WebTorrent trackers, the handshake, shared-peer room frames and the chunked action wire. Timings and limits keep upstream values. A local test tracker serves the same announce shape.",
+      "sourceFiles": [
+        "packages/core/src/",
+        "packages/torrent/src/"
+      ],
+      "notices": [
+        {
+          "file": "licenses/npm--trystero-p2p-core-0.26.0-LICENSE.txt",
+          "sha256": "bbf91fd979faac0def9551c570e2e9f92b4e02d22f38ca5d98860b6284e1ea25"
+        },
+        {
+          "file": "licenses/npm--trystero-p2p-torrent-0.26.0-LICENSE.txt",
+          "sha256": "bbf91fd979faac0def9551c570e2e9f92b4e02d22f38ca5d98860b6284e1ea25"
+        }
+      ],
+      "files": [
+        {
+          "path": "apps/desktop-mygo/flashchat/trystero/doc.go",
+          "sha256": "57c1007ea17e535a92b3ae6f952446db76b0bde515d758535ffe4d509af2da4c"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/trystero/config.go",
+          "sha256": "c2cc477c6e750941ec2dfac79c0bddacde60e7c9d381df5d6e0f0b46cb45efce"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/trystero/crypto.go",
+          "sha256": "f665c32aab05feffe10dd6c68cff07c12ef0c75dfbd541e7a07a8d464d97c9d5"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/trystero/peer.go",
+          "sha256": "742db96a14095a08322159785154ab4f351a9033569a6b9799a9bbbc149d656e"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/trystero/queue.go",
+          "sha256": "e1489d4de8b42240d7a808917f49103a090093bd6d8ab95b0432ae0f9a269cbb"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/trystero/relay.go",
+          "sha256": "5f85af9be0f5a0990e7b81c1a342c4d1970c09f61e1b3effafc0cee7dd4855ea"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/trystero/room.go",
+          "sha256": "12f615572d64844eb09be28d4aa0ef8226212d6d487dc4ef7b55a9633b1a6aee"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/trystero/wire.go",
+          "sha256": "1f6d2767049862a2dc485e051e647a541339f8c90a10c409e4a41a0bdd1638e8"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/trystero/wire_test.go",
+          "sha256": "71222b0bcd6e3463ae1672e01c947bed5c905ddc7248cde7dea933c7f410a66b"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/trystero/room_test.go",
+          "sha256": "1c9c0823e195ff2dfc5da5550b2e7593a8817e706bce417bd52de03994e6dc56"
+        },
+        {
+          "path": "apps/desktop-mygo/flashchat/trystero/trackertest/tracker.go",
+          "sha256": "38e4462bd0e20ac9f5dec35c62f7d54ee51998673a0268fe3b9ff38f28a76868"
+        }
+      ]
+    },
+    {
+      "name": "fun-animal-names-flashchat",
+      "repository": "https://github.com/jeremyckahn/fun-animal-names",
+      "commit": "2cebf3eb736f9b6b86656021f04d262b7ba77b03",
+      "license": "MIT",
+      "scope": "Adjective and animal word lists of fun-animal-names 0.1.1 copied verbatim, so the native window derives the same peer names as Chitchatter.",
+      "sourceFiles": [
+        "src/"
+      ],
+      "notices": [
+        {
+          "file": "licenses/npm-fun-animal-names-0.1.1-LICENSE.txt",
+          "sha256": "5e6cabe7e89135aed50b9451d7b9fb934580f09b0bb413d4dbaacade01bbb801"
+        }
+      ],
+      "files": [
+        {
+          "path": "apps/desktop-mygo/flashchat/names_data.go",
+          "sha256": "34b057e0c5d71067c8b712f46d54b327146c56647fe178fddbf0eb2348ea1716"
+        }
+      ]
     }
   ]
 }

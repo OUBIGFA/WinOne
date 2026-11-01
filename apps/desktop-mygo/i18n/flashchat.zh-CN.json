@@ -1,0 +1,12 @@
+{
+ "flashChat.roomClosed": "房间已关闭",
+ "flashChat.localFilesOnly": "请选择本机文件",
+ "flashChat.shareMissing": "共享任务不存在",
+ "flashChat.shareStopped": "共享已停止",
+ "flashChat.cancelled": "操作已取消",
+ "flashChat.nicknameNotLoaded": "个人昵称尚未读取，请重新打开闪聊后重试",
+ "flashChat.invalidRtc": "WebRTC 配置无效：{{error}}",
+ "flashChat.invalidTracker": "信令服务地址无效：{{url}}。请使用 wss:// 地址，或本机的 ws://127.0.0.1 地址。",
+ "flashChat.stopShareFailed": "停止分享文件失败：{{error}}",
+ "flashChat.peerError": "与房间成员通信失败：{{error}}"
+}

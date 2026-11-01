@@ -7,6 +7,7 @@ import (
 	_ "winone/desktopmygo/pages/capture"
 	_ "winone/desktopmygo/pages/chat"
 	_ "winone/desktopmygo/pages/convenience"
+	_ "winone/desktopmygo/pages/flashchat"
 	_ "winone/desktopmygo/pages/interconnect"
 	_ "winone/desktopmygo/pages/overview"
 	_ "winone/desktopmygo/pages/selection"

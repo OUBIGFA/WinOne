@@ -89,13 +89,13 @@ flowchart LR
 | AI 服务 | `features/ai-*.tsx`、`magpie-*.ts` | `pages/aiservices` | 已实现（[对照](mygo-parity/ai-services.md)）；用量统计见 [对照](mygo-parity/ai-usage.md) |
 | 结果窗与划词工具栏 | `apps/result-ui`（MyGo v0.2.13） | `apps/result-ui`（MyGo v0.7.3） | 已接入测试包；单元回归、构建/许可、原生进程与样式通过（[对照](mygo-parity/result-window.md)） |
 | 截图工具栏外观 | `modules/capture/NativeUI`（原生 ToolStrip） | 不迁移；`NativeStyle.cs` 同步 `kit` 令牌 | 已接入测试包；私有桌面渲染验证，Windows 11 菜单圆角未实窗验证 |
-| 闪聊 | `interconnect-chat-entry.tsx`、`vendor/chitchatter` | `pages/flashchat` | 进行中（原生重写并与现有房间互通）；2026-11-01 前的测试安装器中不可用 |
+| 闪聊 | `interconnect-chat-entry.tsx`、`vendor/chitchatter` | `pages/flashchat`、`flashchat` | 已实现（[对照](mygo-parity/flash-chat.md)）；与 React/Chitchatter 页面本机互通 21/21，跨网络与实窗待验证；2026-11-01 的测试安装器中不可用 |
 | Chat | `features/chat*.tsx`、`features/cindy` | `pages/chat`、`chat/model` | 进行中（混合方案，[对照](mygo-parity/chat.md)）；2026-11-01 前的测试安装器中不可用 |
 | OneBot | `features/onebot.tsx`、`features/cindy/bots` | `pages/onebot` | 未开始（队友对话复用原生 Chat，其余页面 WebView）；2026-11-01 前的测试安装器中不可用 |
 
 ## 7. 风险与待确认
 
 - **网页内容**：Chat 的浏览器与 HTML 预览、Host 提供的网页（第 1 节）用 MyGo WebView 显示。桥接有单元测试；真实窗口中的主题同步、高度和原生请求尚待验证。
-- **点对点闪聊**：现有实现依赖浏览器的 WebRTC。原生实现需要 Go 的 WebRTC 库并与手机端协议兼容，开始阶段 2 前单独核对依赖、许可证和互通方案。
+- **点对点闪聊**：原生实现用 Pion WebRTC 和 Go 版 Trystero 线协议，依赖与许可已记录并校验。本机互通测试通过；手机浏览器、跨网络（公共 tracker、TURN）尚未验证。
 - **PDF、数学公式、Mermaid**：MyGo 没有 PDF 与 KaTeX 组件。Mermaid 继续使用结果窗已在用的一次性本地渲染器；PDF 与公式在阶段 3 前选型。
 - **结果窗版本**：已接入 MyGo v0.7.3，改用公开选区、输入事件、工具窗口和 Markdown 接口，本地补丁已删除。当前单元回归与中英/深浅实窗通过；真实供应商请求、中文输入法、多屏/DPI 和长期资源仍待验收。

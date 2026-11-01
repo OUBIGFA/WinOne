@@ -1,0 +1,13 @@
+{
+ "flashChat.roomClosed": "The room is closed.",
+ "flashChat.localFilesOnly": "Choose files on this computer.",
+ "flashChat.shareMissing": "The share no longer exists.",
+ "flashChat.shareStopped": "The share stopped.",
+ "flashChat.cancelled": "Cancelled.",
+ "flashChat.nicknameNotLoaded": "Your nickname has not loaded yet. Reopen Flash Chat and try again.",
+ "flashChat.invalidRtc": "The WebRTC configuration is not valid: {{error}}",
+ "flashChat.invalidTracker": "Signaling address not valid: {{url}}. Use a wss:// address, or ws://127.0.0.1 on this computer.",
+ "flashChat.stopShareFailed": "Could not stop sharing files: {{error}}",
+ "flashChat.peerError": "Could not reach a room member: {{error}}",
+ "interconnect.memberCount_one": "{{count}} member"
+}
