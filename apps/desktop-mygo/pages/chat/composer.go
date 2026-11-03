@@ -17,12 +17,14 @@ import (
 // default.
 var thinkingLevels = []string{"", "off", "minimal", "low", "medium", "high", "xhigh", "max"}
 
-// inputArea is the footer of an open conversation: the queue, the queue
-// edit state, the retry state, the project, then the question, the
-// approval or the composer, and the hint.
+// inputArea is the footer of an open conversation: the plan reminder
+// floating above it, the queue, the queue edit state, the retry state,
+// the project, then the question, the approval or the composer, and the
+// hint.
 func (p *Chat) inputArea(c *ui.Context) {
 	t := c.Theme()
 	ui.Column(c).FillWidth().MaxWidth(readingWidth+48).AlignSelf(ui.Center).Padding(0, 24, 12, 24).Gap(8).Shrink(0).Children(func() {
+		p.planReminder(c, p.ui.items.plan)
 		p.queuePanel(c)
 		if p.queueEdit != nil {
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
@@ -106,6 +108,7 @@ func (p *Chat) composer(c *ui.Context) {
 	mainIsStop := !queueEditing && running && (busy || !canSend)
 	secondaryStop := running && canSend && !busy
 	locked := busy || paused || inputLocked
+	p.releasePasted()
 
 	box := ui.Column(c.Key("composer")).FillWidth().Padding(10, 12, 8, 12).Gap(8).Radius(14).Border(1, t.Border).Background(pal.Panel).Bind(&p.ui.composerBox)
 	// In a narrow composer the pills show their icons only, their names
@@ -130,6 +133,8 @@ func (p *Chat) composer(c *ui.Context) {
 		if input.Changed() {
 			p.updateText(p.text, p.files, p.activeID)
 		}
+		// Files and pictures pasted attach, as dropped ones do (paste.go).
+		p.onPaste(input, locked)
 		composing := input.Composing()
 		input.OnTextKey(func(k ui.TextKey) bool {
 			// Enter sends, Shift+Enter (and Alt+Enter) break the line,
@@ -642,10 +647,4 @@ func (p *Chat) projectContext(c *ui.Context, projectID string, choose func(strin
 			p.openProjectDialog()
 		}
 	})
-}
-
-// openTools opens a side panel tab, as the composer's + menu asks.
-func (p *Chat) openTools(tab string) {
-	p.ui.details = true
-	p.ui.detailsTab = tab
 }

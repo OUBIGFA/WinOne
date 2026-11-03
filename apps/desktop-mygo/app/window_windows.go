@@ -15,6 +15,7 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/shell"
 	"winone/desktopmygo/web"
+	"winone/desktopmygo/webui"
 	internalhost "winone/internal/host"
 )
 
@@ -77,6 +78,9 @@ func runWindow(o Options, launch plan) error {
 		inst.close()
 		return err
 	}
+	// Chat's React tools are the window's frontend, and call Go through
+	// the App service it binds; both must exist before the app runs.
+	webui.Register()
 	w.shell = shell.New(env, w, shell.Options{
 		Directory:      o.Directory,
 		EnsureHost:     func() (internalhost.Snapshot, error) { return ensureHost(client, o.Pipe, o.Directory, launch) },

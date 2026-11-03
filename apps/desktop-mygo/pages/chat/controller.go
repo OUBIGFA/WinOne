@@ -25,6 +25,11 @@ type Chat struct {
 	catalog       Catalog
 	catalogLoaded bool
 	ai            *AIConfiguration
+	// providersRaw are the AI services' providers as the Host returned
+	// them, for the React tools, which read fields ai does not keep.
+	providersRaw json.RawMessage
+	// tools are the React tools' web views (panel_host.go).
+	tools tools
 	// modelsRevision drops a slow AI configuration read that a newer
 	// one replaced.
 	modelsRevision int
@@ -209,11 +214,25 @@ func (p *Chat) refresh(done func(error)) {
 	revision := p.modelsRevision
 	var catalog Catalog
 	var models AIConfiguration
+	var providers json.RawMessage
 	core.Do(p.env, func() error {
 		if err := p.env.Host.CallInto(p.method("catalog"), map[string]any{}, &catalog); err != nil {
 			return err
 		}
-		return p.env.Host.CallInto("capture.ai.configuration.get", nil, &models)
+		raw, err := p.env.Host.Call("capture.ai.configuration.get", nil)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(raw, &models); err != nil {
+			return err
+		}
+		var configuration struct {
+			Providers json.RawMessage `json:"providers"`
+		}
+		if json.Unmarshal(raw, &configuration) == nil {
+			providers = configuration.Providers
+		}
+		return nil
 	}, func(err error) {
 		if err != nil {
 			done(err)
@@ -221,7 +240,7 @@ func (p *Chat) refresh(done func(error)) {
 		}
 		p.catalog, p.catalogLoaded = catalog, true
 		if revision == p.modelsRevision {
-			p.ai = &models
+			p.ai, p.providersRaw = &models, providers
 			p.newModel = p.initialModel(&models, p.newModel)
 		}
 		done(nil)
@@ -686,5 +705,6 @@ func (p *Chat) Close() {
 		})
 	}
 	p.release(p.activeID)
+	p.closeTools()
 	p.ui.close()
 }

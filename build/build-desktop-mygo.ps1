@@ -6,8 +6,9 @@ param(
     [switch]$SkipTests
 )
 # Builds the MyGo settings window (apps/desktop-mygo) as WinOne.exe: icon
-# check, tests, vet, Windows resources, then a production binary without
-# MyGo's inspector. Go 1.27.3 is MyGo v0.7.3's minimum; the Host and
+# check, Chat's React tools page, tests, vet, Windows resources, then a
+# production binary without MyGo's inspector that embeds the tools page
+# (webui build tag). Go 1.27.3 is MyGo v0.7.3's minimum; the Host and
 # modules keep their own toolchain.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -27,6 +28,10 @@ if ($UpdateRepository -and $UpdateRepository -notmatch '^[A-Za-z0-9](?:[A-Za-z0-
 if (-not (Test-Path -LiteralPath (Join-Path $root 'apps/result-ui/assets/provider-bitmaps/manifest.json'))) { throw 'Run build/build-provider-icons.ps1 before building the MyGo window' }
 & node (Join-Path $PSScriptRoot 'generate-mygo-icons.mjs') --check
 if ($LASTEXITCODE -ne 0) { throw 'MyGo icons are stale' }
+# Chat's side panel, automations and settings stay React (chat-embed.html);
+# the frontend's dependencies come from its npm ci.
+& npm.cmd run build:mygo --prefix (Join-Path $root 'apps/desktop/frontend')
+if ($LASTEXITCODE -ne 0) { throw 'Chat tools page build failed' }
 
 $saved = @{ GOROOT = $env:GOROOT; CGO_ENABLED = $env:CGO_ENABLED; GOTOOLCHAIN = $env:GOTOOLCHAIN; GOCACHE = $env:GOCACHE }
 try {
@@ -42,13 +47,13 @@ try {
         }
         & $go vet ./...
         if ($LASTEXITCODE -ne 0) { throw 'MyGo window vet failed' }
-        & $go vet -tags mygo_noinspector ./...
+        & $go vet -tags 'mygo_noinspector,webui' ./...
         if ($LASTEXITCODE -ne 0) { throw 'MyGo window production vet failed' }
         & $go run github.com/akavel/rsrc@v0.10.2 -manifest (Join-Path $root 'build/windows/app.manifest') -ico (Join-Path $root 'internal/branding/icon.ico') -o cmd/winone/resource_windows.syso
         if ($LASTEXITCODE -ne 0) { throw 'MyGo window resources failed' }
         New-Item -ItemType Directory -Path $output -Force | Out-Null
         $flags = "-s -w -H windowsgui -X github.com/egoist/mygo.production=1 -X winone/desktopmygo/core.Version=$Version -X winone/desktopmygo/core.UpdateRepository=$UpdateRepository"
-        & $go build -trimpath -tags mygo_noinspector -ldflags $flags -o (Join-Path $output 'WinOne.exe') ./cmd/winone
+        & $go build -trimpath -tags 'mygo_noinspector,webui' -ldflags $flags -o (Join-Path $output 'WinOne.exe') ./cmd/winone
         if ($LASTEXITCODE -ne 0) { throw 'MyGo window build failed' }
         # Every linked module must have its recorded license before packaging.
         & (Join-Path $PSScriptRoot 'verify-desktop-mygo-notices.ps1') -Executable (Join-Path $output 'WinOne.exe') -GoExe $go

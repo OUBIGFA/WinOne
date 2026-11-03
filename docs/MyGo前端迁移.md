@@ -90,7 +90,7 @@ flowchart LR
 | 结果窗与划词工具栏 | `apps/result-ui`（MyGo v0.2.13） | `apps/result-ui`（MyGo v0.7.3） | 已接入测试包；单元回归、构建/许可、原生进程与样式通过（[对照](mygo-parity/result-window.md)） |
 | 截图工具栏外观 | `modules/capture/NativeUI`（原生 ToolStrip） | 不迁移；`NativeStyle.cs` 同步 `kit` 令牌 | 已接入测试包；私有桌面渲染验证，Windows 11 菜单圆角未实窗验证 |
 | 闪聊 | `interconnect-chat-entry.tsx`、`vendor/chitchatter` | `pages/flashchat`、`flashchat` | 已实现（[对照](mygo-parity/flash-chat.md)）；与 React/Chitchatter 页面本机互通 21/21，跨网络与实窗待验证；2026-11-01 的测试安装器中不可用 |
-| Chat | `features/chat*.tsx`、`features/cindy` | `pages/chat`、`chat/model` | 进行中（混合方案，[对照](mygo-parity/chat.md)）；2026-11-01 前的测试安装器中不可用 |
+| Chat | `features/chat*.tsx`、`features/cindy` | `pages/chat`、`chat/model`、`webui` | 核心交互、侧面板、自动化、设置已实现（混合方案，[对照](mygo-parity/chat.md)）；Bot 模式随 OneBot；真实 Host 联调待验证；2026-11-01 的测试安装器中不可用 |
 | OneBot | `features/onebot.tsx`、`features/cindy/bots` | `pages/onebot` | 未开始（队友对话复用原生 Chat，其余页面 WebView）；2026-11-01 前的测试安装器中不可用 |
 
 ## 7. 风险与待确认

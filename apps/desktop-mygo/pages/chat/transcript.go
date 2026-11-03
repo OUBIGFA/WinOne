@@ -15,7 +15,8 @@ import (
 )
 
 // turns shows the transcript rows: user messages, each turn's work
-// process and answer, then the plan and the conversation's files.
+// process, plan and answer, then the plan when no turn shows one, and the
+// conversation's files.
 func (p *Chat) turns(c *ui.Context) {
 	var messages []model.Message
 	for _, m := range p.visibleMessages() {
@@ -38,9 +39,32 @@ func (p *Chat) turns(c *ui.Context) {
 			break
 		}
 	}
+	s := &p.ui.items
+	s.turnOrder = s.turnOrder[:0]
+	if s.turnRows == nil {
+		s.turnRows = map[string]*ui.Handle{}
+	}
+	// The latest turn's plan is the one the reminder floats; any turn's
+	// plan replaces the conversation's plan card at the end.
+	s.plan, s.planAnchor = currentPlan(items), ""
+	inlinePlan := false
+	for _, item := range items {
+		inlinePlan = inlinePlan || item.Kind == "response" && model.PlanOf(item.Response) != nil
+	}
 	for index, item := range items {
 		item := item
-		ui.Column(c.Key(item.Kind + ":" + item.Key)).FillWidth().Gap(8).Children(func() {
+		row := ui.Column(c.Key(item.Kind + ":" + item.Key)).FillWidth().Gap(8)
+		if item.Kind == "user" {
+			// Each user message starts a round the scroll controls stop at.
+			h := s.turnRows[item.Key]
+			if h == nil {
+				h = &ui.Handle{}
+				s.turnRows[item.Key] = h
+			}
+			row.Bind(h)
+			s.turnOrder = append(s.turnOrder, item.Key)
+		}
+		row.Children(func() {
 			switch item.Kind {
 			case "presentation":
 				p.answerView(c, *item.Message, false, "")
@@ -51,9 +75,10 @@ func (p *Chat) turns(c *ui.Context) {
 			}
 		})
 	}
-	if p.view.Workflow != nil && len(p.view.Workflow.Items) > 0 {
-		p.planCard(c, *p.view.Workflow)
+	if !inlinePlan && p.view.Workflow != nil && len(p.view.Workflow.Items) > 0 {
+		p.planCard(c, *p.view.Workflow, nil)
 	}
+	p.conversationFiles(c, items)
 }
 
 // userMessage is the user's bubble: its text, attachments, and actions
@@ -121,20 +146,28 @@ func attachmentChip(c *ui.Context, f model.Attachment, remove func()) {
 }
 
 // responseView is a turn's reply: its work process, folded once the
-// turn ends, and its answer with actions.
+// turn ends, its plan, and its answer with actions and the files it names.
 func (p *Chat) responseView(c *ui.Context, r *model.Response, last bool) {
-	entries := r.Entries
-	if !p.ai.reasoning() {
-		var kept []model.Entry
-		for _, e := range entries {
-			if e.Kind != "thinking" {
-				kept = append(kept, e)
-			}
+	// Plan calls are not action rows: the turn's plan shows once, as a
+	// card at its first call, updated from the newest (Cindy's
+	// workGroupsForResponse).
+	var entries []model.Entry
+	for _, e := range r.Entries {
+		if e.Kind == "thinking" && !p.ai.reasoning() || e.Kind == "tool" && model.WorkflowFromTool(e.Tool) != nil {
+			continue
 		}
-		entries = kept
+		entries = append(entries, e)
 	}
 	if len(entries) > 0 || r.Running && r.Answer == nil {
 		p.workProcess(c, r, entries)
+	}
+	if plan := model.PlanOf(r); plan != nil {
+		var card *ui.Handle
+		if latest := p.ui.items.plan; latest != nil && latest.Anchor == plan.Anchor {
+			p.ui.items.planAnchor = p.activeID + ":" + r.Key + ":" + plan.Anchor
+			card = &p.ui.items.planCard
+		}
+		p.planCard(c, plan.Workflow, card)
 	}
 	if r.Answer != nil {
 		p.answerView(c, *r.Answer, r.Running, r.Key)
@@ -170,15 +203,22 @@ func modelSource(m model.Message) string {
 	}
 }
 
-// answerView is a reply's text as Markdown, streamed while its turn runs.
+// answerView is a reply's text as Markdown, streamed while its turn runs,
+// then, once written, the files it names.
 func (p *Chat) answerView(c *ui.Context, m model.Message, streaming bool, key string) {
 	text := m.Text()
 	if m.ErrorMessage != "" && strings.TrimSpace(text) == "" {
 		kit.Notice(c, kit.Failure, "", m.ErrorMessage, nil)
 		return
 	}
+	if key == "" {
+		key = "presentation:" + m.ID
+		if m.ID == "" && m.Timestamp != nil {
+			key += number(*m.Timestamp)
+		}
+	}
 	ui.Column(c.Key("answer:" + key)).FillWidth().Children(func() {
-		o := p.markdownOptions(c)
+		o := p.answerOptions(key)
 		var root ui.Element
 		if streaming {
 			root = markdown.Stream(c, text, o)
@@ -190,19 +230,9 @@ func (p *Chat) answerView(c *ui.Context, m model.Message, streaming bool, key st
 	if m.ErrorMessage != "" {
 		kit.InlineError(c, m.ErrorMessage)
 	}
-}
-
-// markdownOptions are the replies' Markdown: code wraps rather than
-// scrolling sideways, and links open only web addresses.
-func (p *Chat) markdownOptions(c *ui.Context) *markdown.Options {
-	if p.ui.markdown == nil {
-		p.ui.markdown = &markdown.Options{WrapCode: true, OnLink: func(destination string) {
-			if safeLink(destination) {
-				p.ui.services.OpenURL(destination)
-			}
-		}}
+	if !streaming {
+		p.answerFiles(c, key, text)
 	}
-	return p.ui.markdown
 }
 
 // workProcess is the turn's work: thinking, commentary, tools and
@@ -275,37 +305,15 @@ func (p *Chat) entryView(c *ui.Context, e model.Entry, running bool) {
 			ui.Text(c, e.Part.Thinking).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted).LineHeight(1.5).Selectable()
 		})
 	case "commentary":
-		root := markdown.View(c, e.Text, p.markdownOptions(c))
-		root.FillWidth()
-	case "tool":
-		tool := e.Tool
-		label := tool.Name
-		detail := toolSummary(tool)
-		icon := icons.Wrench
-		if tool.IsError {
-			icon = icons.CircleAlert
+		key := "commentary:" + e.Key
+		markdown.View(c, e.Text, p.answerOptions(key)).FillWidth()
+		if !running {
+			p.answerFiles(c, key, e.Text)
 		}
-		p.disclosure(c, "tool:"+e.Key, icon, label, detail, func() {
-			if len(tool.Args) > 0 {
-				ui.Text(c, i18n.T("chat.toolInput")).FontSize(kit.CaptionSize(c)).TextColor(t.TextMuted)
-				data, _ := json.MarshalIndent(tool.Args, "", "  ")
-				kit.Mono(c, string(data)).FontSize(kit.HelpSize(c)).Selectable().MaxHeight(240)
-			}
-			if result := resultText(tool.Result); result != "" {
-				ui.Text(c, i18n.T("chat.toolOutput")).FontSize(kit.CaptionSize(c)).TextColor(t.TextMuted)
-				out := kit.Mono(c, truncate(result, 20000)).FontSize(kit.HelpSize(c)).Selectable()
-				if tool.IsError {
-					out.TextColor(t.Danger)
-				}
-			}
-		}, tool.Running)
+	case "tool":
+		p.toolRow(c, e)
 	case "operation":
-		op := e.Operation
-		ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, icons.Activity).FontSize(14).TextColor(t.TextMuted)
-			ui.Text(c, i18n.T(operationLabels[op.Kind])).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted)
-			ui.Text(c, i18n.T("chat.operationStatus_"+op.Status)).FontSize(kit.CaptionSize(c)).TextColor(t.TextMuted)
-		})
+		p.operationRow(c, e.Operation)
 	}
 }
 
@@ -340,17 +348,6 @@ func (p *Chat) disclosure(c *ui.Context, key string, icon *ui.SVG, label, detail
 	}
 }
 
-// toolSummary is the argument a tool row names: its command, path or
-// query.
-func toolSummary(tool model.Tool) string {
-	for _, key := range []string{"command", "path", "file_path", "pattern", "query", "url"} {
-		if v, ok := tool.Args[key].(string); ok && v != "" {
-			return strings.Join(strings.Fields(v), " ")
-		}
-	}
-	return ""
-}
-
 func resultText(result any) string {
 	switch v := result.(type) {
 	case nil:
@@ -369,8 +366,9 @@ func truncate(s string, limit int) string {
 	return s[:limit] + "\n…"
 }
 
-// planCard is the agent's plan: its steps and their state.
-func (p *Chat) planCard(c *ui.Context, w model.Workflow) {
+// planCard is the agent's plan: its steps and their state. bind, when
+// given, is the card the plan reminder measures.
+func (p *Chat) planCard(c *ui.Context, w model.Workflow, bind *ui.Handle) {
 	t, pal := c.Theme(), kit.Colors(c)
 	done := 0
 	for _, item := range w.Items {
@@ -378,7 +376,11 @@ func (p *Chat) planCard(c *ui.Context, w model.Workflow) {
 			done++
 		}
 	}
-	ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(10).Border(1, pal.Hairline).Background(pal.Panel).Children(func() {
+	card := ui.Column(c).FillWidth().Padding(12, 14).Gap(8).Radius(10).Border(1, pal.Hairline).Background(pal.Panel).Label(i18n.T("chat.planTitle"))
+	if bind != nil {
+		card.Bind(bind)
+	}
+	card.Children(func() {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Icon(c, icons.ListTodo).FontSize(15)
 			ui.Text(c, i18n.T("chat.planTitle")).FontWeight(600).Grow(1)
@@ -387,21 +389,6 @@ func (p *Chat) planCard(c *ui.Context, w model.Workflow) {
 		if w.Explanation != "" {
 			kit.Help(c, w.Explanation)
 		}
-		for i, item := range w.Items {
-			ui.Row(c.Key(fmt.Sprint("step-", i))).Gap(8).AlignItems(ui.Start).Children(func() {
-				icon, color := icons.Circle, t.TextMuted
-				switch item.Status {
-				case "completed":
-					icon = icons.CircleCheck
-				case "in_progress":
-					icon, color = icons.CircleDot, t.Text
-				}
-				ui.Icon(c, icon).FontSize(15).TextColor(color).Shrink(0).Margin(2, 0, 0, 0)
-				text := ui.Text(c, item.Step).LineHeight(1.45).MinWidth(0)
-				if item.Status == "completed" {
-					text.TextColor(t.TextMuted)
-				}
-			})
-		}
+		planSteps(c, w.Items, p.view.Running && !isPaused(p.view))
 	})
 }

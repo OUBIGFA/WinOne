@@ -42,6 +42,13 @@ func TestEveryKeyIsInBothLanguages(t *testing.T) {
 	for _, status := range []string{"running", "completed", "failed", "stopped", "allowed", "denied"} {
 		keys["chat.operationStatus_"+status] = true
 	}
+	// Tool rows name a file tool's action, its dialog the snapshot's source.
+	for _, action := range []string{"read", "edit", "create"} {
+		keys["chat.toolVerb_"+action] = true
+	}
+	for _, source := range []string{"read", "write", "edit"} {
+		keys["chat.toolSnapshot_"+source] = true
+	}
 	for key := range keys {
 		for _, locale := range []string{i18n.Chinese, i18n.English} {
 			if got := i18n.Translate(locale, key); got == key {

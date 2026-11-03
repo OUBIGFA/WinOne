@@ -17,9 +17,8 @@ type uiState struct {
 	closed bool
 	// sidebar shows the conversation list; details, the side panel.
 	sidebar, details bool
-	// automations shows the scheduled tasks in place of the transcript;
-	// settings shows Chat's settings.
-	automations, settings bool
+	// automations shows the scheduled tasks in place of the conversation.
+	automations bool
 	// filesDirty marks an unsaved file in the side panel, which blocks
 	// leaving the conversation.
 	filesDirty bool
@@ -60,9 +59,17 @@ type uiState struct {
 	// focusedApproval is the approval card that took the focus.
 	focusedApproval string
 	detailsTab      string
+	// panelRequest is the side panel's latest request, numbered by
+	// panelRequests so that the panel sees each once (panel.go).
+	panelRequest  *panelRequest
+	panelRequests int
 
 	services ui.Services
 	markdown *markdown.Options
+
+	// items is what the transcript's file chips, change card, tool
+	// dialog, scroll controls, plan reminder and paste keep (files.go).
+	items itemsState
 }
 
 // resetDetails closes what a conversation opened in the side panel.
@@ -103,8 +110,9 @@ func (p *Chat) View(c *ui.Context) {
 				p.automationsView(c)
 				return
 			}
-			p.mainView(c)
+			p.dockedView(c, func() { p.mainView(c) })
 		})
+		p.settingsView(c)
 	})
 	p.dialogs(c)
 }
@@ -211,45 +219,68 @@ func (p *Chat) setSidebar(open bool) {
 }
 
 // transcriptView shows the conversation's turns and keeps the end in view
-// while followed.
+// while followed, with the scroll controls at the reading area's right.
 func (p *Chat) transcriptView(c *ui.Context) {
 	t := c.Theme()
 	s := &p.ui.transcript
+	// committed is where the container showed the content last frame,
+	// within its range: comparing with an end set as MaxFloat32 would read
+	// every frame after a follow as the reader scrolling up.
+	committed := max(0, min(s.Y, s.MaxY))
 	// The reader scrolling up stops following; returning near the end
-	// (80 DIPs, as Cindy's resolveNearBottomOnScroll) follows again.
-	if s.Y < p.ui.lastY-1 && !p.ui.pinNext {
+	// (80 DIPs, as Cindy's resolveNearBottomOnScroll) follows again. A
+	// jump of the scroll controls on its way decides once it lands.
+	gliding := p.startJump()
+	switch {
+	case gliding:
+	case committed < p.ui.lastY-1 && !p.ui.pinNext:
 		p.ui.follow = false
-	} else if s.MaxY-s.Y <= 80 {
+	case s.MaxY-committed <= 80:
 		p.ui.follow = true
 	}
 	if p.ui.toTop {
 		s.Y, p.ui.toTop = 0, false
-	} else if p.ui.follow || p.ui.pinNext {
+	} else if (p.ui.follow || p.ui.pinNext) && !gliding {
 		s.Y = math.MaxFloat32
 	}
 	p.ui.pinNext = false
-	ui.Scroll(c.Key("transcript")).Grow(1).Basis(0).MinHeight(0).FillWidth().TrackScroll(s).Children(func() {
-		ui.Column(c).FillWidth().MaxWidth(readingWidth+48).AlignSelf(ui.Center).Padding(16, 24, 24, 24).Gap(16).Children(func() {
-			if p.opening && p.submitting == nil {
-				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-					kit.Loader(c)
-					ui.Text(c, i18n.T("chat.loading")).TextColor(t.TextMuted)
-				})
-				return
-			}
-			if p.view.HasOlder {
-				label := i18n.T("chat.loadOlder")
-				if p.historyLoading {
-					label = i18n.T("chat.loadingOlder")
+	// A turn that ended may have written or removed files.
+	items := &p.ui.items
+	if items.wasRunning && !p.view.Running {
+		p.forgetChecks()
+	}
+	items.wasRunning = p.view.Running
+	items.controls = p.measureRounds(c, items.content)
+	padding := p.readingPadding(c)
+	ui.Column(c.Key("transcript-area")).Grow(1).Basis(0).MinHeight(0).FillWidth().Children(func() {
+		ui.Scroll(c.Key("transcript")).Grow(1).Basis(0).MinHeight(0).FillWidth().TrackScroll(s).Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(readingWidth+48).AlignSelf(ui.Center).Padding(16, padding, 24, 24).Gap(16).Bind(&items.content).Children(func() {
+				if p.opening && p.submitting == nil {
+					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+						kit.Loader(c)
+						ui.Text(c, i18n.T("chat.loading")).TextColor(t.TextMuted)
+					})
+					return
 				}
-				if kit.GhostButton(c, label, icons.ChevronUp, p.historyLoading).Disabled(p.busy).AlignSelf(ui.Center).Clicked() {
-					p.loadEarlier()
+				if p.view.HasOlder {
+					label := i18n.T("chat.loadOlder")
+					if p.historyLoading {
+						label = i18n.T("chat.loadingOlder")
+					}
+					if kit.GhostButton(c, label, icons.ChevronUp, p.historyLoading).Disabled(p.busy).AlignSelf(ui.Center).Clicked() {
+						p.loadEarlier()
+					}
 				}
-			}
-			p.turns(c)
+				p.turns(c)
+			})
 		})
+		if p.activeID != "" {
+			p.scrollNav(c)
+		}
 	})
-	p.ui.lastY = s.Y
+	p.flushChecks()
+	p.toolDialogView(c)
+	p.ui.lastY = committed
 }
 
 // visibleMessages are the conversation's messages with the one being

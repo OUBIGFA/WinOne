@@ -147,9 +147,20 @@ func (k *ticks) run() {
 var dark bool
 
 func setup(t *testing.T) (*fakeChat, *testhost.Harness, *Chat, *ui.Tester, *ticks) {
-	i18n.SetLocale(i18n.Chinese)
 	f := newFakeChat(t)
-	h := testhost.New(t, f.handle)
+	h, p, tt, k := setupHost(t, f.handle)
+	return f, h, p, tt, k
+}
+
+// setupWith draws the page on handler, a Host that extends f's.
+func setupWith(t *testing.T, f *fakeChat, handler testhost.Handler) (*testhost.Harness, *Chat, *ui.Tester) {
+	h, p, tt, _ := setupHost(t, handler)
+	return h, p, tt
+}
+
+func setupHost(t *testing.T, handler testhost.Handler) (*testhost.Harness, *Chat, *ui.Tester, *ticks) {
+	i18n.SetLocale(i18n.Chinese)
+	h := testhost.New(t, handler)
 	p := New(h.Env)
 	k := &ticks{}
 	p.after = k.after
@@ -159,7 +170,7 @@ func setup(t *testing.T) (*fakeChat, *testhost.Harness, *Chat, *ui.Tester, *tick
 	}, 1100, 760)
 	settle(h, tt)
 	t.Cleanup(p.Close)
-	return f, h, p, tt, k
+	return h, p, tt, k
 }
 
 func settle(h *testhost.Harness, tt *ui.Tester) {

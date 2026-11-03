@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node ../../../build/prepare-mermaid-csp.mjs && node ../../../build/prepare-radix-csp.mjs && node ../../../build/prepare-cindy-fonts.mjs && vite",
     "build": "node ../../../build/prepare-mermaid-csp.mjs && node ../../../build/prepare-radix-csp.mjs && node ../../../build/prepare-cindy-fonts.mjs && node ../../../build/prepare-chat-pdf.mjs && tsc --noEmit && vite build",
+    "build:mygo": "node ../../../build/prepare-mermaid-csp.mjs && node ../../../build/prepare-radix-csp.mjs && node ../../../build/prepare-cindy-fonts.mjs && node ../../../build/prepare-chat-pdf.mjs && tsc --noEmit && vite build --config vite.mygo.config.ts",
     "test": "vitest run"
   },
   "dependencies": {

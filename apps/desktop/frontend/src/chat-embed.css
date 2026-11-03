@@ -1,0 +1,7 @@
+/* The Chat tools page fills its web view; the MyGo window draws the frame
+   around it, so the page has no margin and keeps its scrolling inside. */
+html,body,#root{height:100%;margin:0;overflow:hidden}
+body.chat-embed-document{background:var(--background)}
+.chat-embed-root{height:100%;min-height:0;display:flex;flex-direction:column}
+.chat-embed-root>*{flex:1 1 auto;min-height:0}
+.chat-embed-failure{padding:16px}
