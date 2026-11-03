@@ -1,5 +1,6 @@
 {
  "overview.otherModules": "其他模块",
  "overview.alwaysAvailable": "始终可用",
- "moduleDescription.interconnect": "在设备间收发文件和文字、云端分享与端口穿透"
+ "moduleDescription.interconnect": "在设备间收发文件和文字、云端分享与端口穿透",
+ "overview.groupedFeature": "{{name}}：{{description}}"
 }

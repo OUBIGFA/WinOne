@@ -142,6 +142,10 @@ func TestLinkRemovalAsksAndSendsTheCheckedRecord(t *testing.T) {
 	tab.tab = linksScan
 	tt := ui.NewTester(linksView(tab), 1100, 1800)
 	h.Settle(tt)
+	h.Shots(t, "links-scan", linksView(tab), 1400, nil)
+	tab.tab = 0
+	h.Shots(t, "links-create", linksView(tab), 1400, nil)
+	tab.tab = linksScan
 	if err := tt.Click("source.txt"); err != nil {
 		t.Fatal(err)
 	}

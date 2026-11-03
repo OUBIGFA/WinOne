@@ -1345,7 +1345,7 @@
  "interconnect.automaticRelay": "留空自动选择官方中继",
  "interconnect.backToChat": "返回聊天",
  "interconnect.backToEntry": "返回",
- "interconnect.backgroundHint": "关闭互联页面后，传输继续；退出 WinOne 时停止全部互联服务。聊天房间离开后关闭聊天文件分享。界面后台保留沿用 WinOne 全局设置。",
+ "interconnect.backgroundHint": "关闭互联页面后，传输继续；退出 WinOne 时停止全部互联服务。聊天房间离开后关闭聊天文件分享。",
  "interconnect.browseShare": "浏览并接收",
  "interconnect.browserReceiveSteps": "扫码或打开链接后，在 croc 网页确认接收。也可打开 getcroc.com 输入下方口令。发送端须保持在线；一次接收后可点“再次通过口令发送”。",
  "interconnect.bytes": "{{count}} 字节",
@@ -2451,6 +2451,7 @@
  "timedPower.dryRun": "仅提醒，不执行电源操作",
  "timedPower.dryRunHint": "用于试运行，到点只发送通知。",
  "timedPower.dryRunTag": "仅提醒",
+ "timedPower.reminderGroup": "提醒",
  "timedPower.executing": "正在提交，无法取消",
  "timedPower.failed": "任务未完成，请检查原因后重新开始",
  "timedPower.force": "强制关闭程序",
@@ -2826,5 +2827,8 @@
  "wintray.wechatAutoLoginHint": "自动点击登录按钮；扫码或手机确认仍需手动完成",
  "wintray.windowChanged": "窗口状态已更新",
  "wintray.windowWait": "最长等待程序窗口（秒）",
- "wintray.working": "正在处理"
+ "wintray.working": "正在处理",
+ "interconnect.directoryHint": "其他设备通过局域网分享上传的文件保存在这里。",
+ "interconnect.defaultDownloadHint": "口令传输和云端分享收到的文件默认保存在这里。",
+ "interconnect.transfersAndEntries": "传输与入口"
 }

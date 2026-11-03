@@ -78,6 +78,7 @@ func TestPinningSavesEditsAndKeepsUnknownFields(t *testing.T) {
 	if dirty, _ := h.Env.Activity.State(); dirty {
 		t.Fatal("still dirty after saving")
 	}
+	h.Shots(t, "pin", p.View, 1600, nil)
 }
 
 func TestTimedPowerConfirmsBeforeStarting(t *testing.T) {
@@ -115,8 +116,11 @@ func TestTimedPowerConfirmsBeforeStarting(t *testing.T) {
 		t.Fatal(err)
 	}
 	h.Settle(tt)
+	h.Shots(t, "timedpower-form", p.View, 1400, nil)
 	// A schedule is what turns timed power on: no switch, no Save of its own.
-	if !tt.HasText("倒计时时长") || !tt.HasText("暂无运行中的任务") || tt.HasText("启用timed-power") || tt.HasText("保存设置") {
+	// With nothing scheduled the form is the page, without an idle status
+	// line above it.
+	if !tt.HasText("倒计时时长") || tt.HasText("暂无运行中的任务") || tt.HasText("启用timed-power") || tt.HasText("保存设置") {
 		t.Fatalf("timed power %q", tt.Texts())
 	}
 	if err := tt.Click("30 分钟"); err != nil {
@@ -152,4 +156,5 @@ func TestTimedPowerConfirmsBeforeStarting(t *testing.T) {
 	if !tt.HasText("取消任务") || tt.HasText("倒计时时长") {
 		t.Fatalf("running task %q", tt.Texts())
 	}
+	h.Shots(t, "timedpower-running", p.View, 1000, nil)
 }

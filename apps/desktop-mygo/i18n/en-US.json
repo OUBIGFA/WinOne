@@ -1348,7 +1348,7 @@
  "interconnect.automaticRelay": "Leave blank to select an official relay",
  "interconnect.backToChat": "Back to chat",
  "interconnect.backToEntry": "Back",
- "interconnect.backgroundHint": "Transfers continue when you leave this page and stop when WinOne exits. Leaving a chat room closes its file shares. Background UI follows the global WinOne setting.",
+ "interconnect.backgroundHint": "Transfers continue when you leave this page and stop when WinOne exits. Leaving a chat room closes its file shares.",
  "interconnect.browseShare": "Browse and receive",
  "interconnect.browserReceiveSteps": "Scan or open the link, then confirm receipt in croc. Or open getcroc.com and enter the code below. Keep the sender online. After one receipt, choose “Send by code again” for another.",
  "interconnect.bytes": "{{count}} bytes",
@@ -2455,6 +2455,7 @@
  "timedPower.dryRun": "Reminder only — no power action",
  "timedPower.dryRunHint": "Try the timer safely. Only a notification is sent.",
  "timedPower.dryRunTag": "Reminder only",
+ "timedPower.reminderGroup": "Reminder",
  "timedPower.executing": "Submitting — cancellation unavailable",
  "timedPower.failed": "Timer failed. Check the error before starting again.",
  "timedPower.force": "Force close applications",
@@ -2831,5 +2832,8 @@
  "wintray.wechatAutoLoginHint": "Click the login button automatically; scan the QR code or confirm on your phone when required",
  "wintray.windowChanged": "Window state updated",
  "wintray.windowWait": "Maximum wait for a window (seconds)",
- "wintray.working": "Working"
+ "wintray.working": "Working",
+ "interconnect.directoryHint": "Files other devices upload through LAN sharing are saved here.",
+ "interconnect.defaultDownloadHint": "Files received by code or from cloud sharing are saved here by default.",
+ "interconnect.transfersAndEntries": "Transfers and entry points"
 }

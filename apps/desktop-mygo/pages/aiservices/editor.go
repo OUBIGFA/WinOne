@@ -254,21 +254,21 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 		})
 	}
 	if pr.AuthMode == "account" { e.preferences(c, pr, locked) }
+	// Resting on limits belongs to the provider's keys, not to its model
+	// list, so it stands apart from the models below.
+	kit.Panel(c, func() {
+		rest := !pr.LimitRestOff
+		if kit.Toggle(c, &rest, i18n.T("ai.limitRest"), i18n.T("ai.limitRestHint")).Disabled(locked).Changed() {
+			p.change(pr.ID, func(t *provider) { t.LimitRestOff = !rest })
+		}
+	})
 	section := ui.Column(c).FillWidth().Gap(12).Label(i18n.T("ai.modelSettings")).Focusable()
 	if p.focusModels {
 		p.focusModels = false
 		section.ScrollIntoView()
 		section.Focus()
 	}
-	section.Children(func() {
-		kit.Panel(c, func() {
-			rest := !pr.LimitRestOff
-			if kit.Toggle(c, &rest, i18n.T("ai.limitRest"), i18n.T("ai.limitRestHint")).Disabled(locked).Changed() {
-				p.change(pr.ID, func(t *provider) { t.LimitRestOff = !rest })
-			}
-		})
-		e.models.View(c, pr)
-	})
+	section.Children(func() { e.models.View(c, pr) })
 	if old != nil {
 		p.extensions.Slot(c, "provider", &named{ID: old.ID, Name: old.Name}, locked)
 	}
@@ -284,7 +284,9 @@ func (e *editor) connection(c *ui.Context, pr *provider, locked bool) {
 	p := e.p
 	preset := p.catalog.preset(pr.Preset)
 	id := pr.ID
-	kit.Group(c, icons.PlugZap, i18n.T("ai.connection"), "", func() {
+	// The sub-tab above names the connection, so its rows need no
+	// heading of their own.
+	kit.Panel(c, func() {
 		kit.Row(c, i18n.T("ai.protocol"), "", func() {
 			protocol := pr.Protocol
 			if protocol == "" {

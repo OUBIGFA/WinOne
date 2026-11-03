@@ -237,7 +237,9 @@ func (t *pinTab) general(c *ui.Context, busy, valid bool) {
 		if v.UseAccent {
 			source = "system"
 		}
-		kit.Row(c, i18n.T("settingsDesign.accentSource"), "", func() {
+		// The hint sits on the choice it explains, above the options it
+		// unlocks.
+		kit.Row(c, i18n.T("settingsDesign.accentSource"), i18n.T("settingsDesign.customBorderHint"), func() {
 			if kit.Segmented(c, &source, []kit.SelectOption{
 				{Value: "system", Label: i18n.T("settingsDesign.accentSystem")},
 				{Value: "custom", Label: i18n.T("settingsDesign.accentCustom")},
@@ -266,11 +268,9 @@ func (t *pinTab) general(c *ui.Context, busy, valid bool) {
 			})
 			kit.Toggle(c, &v.RoundCorners, i18n.T("aot.rounded"), "").Disabled(custom)
 		})
-		kit.Stack(c, "", i18n.T("settingsDesign.customBorderHint"), func() {
-			if !valid {
-				kit.InlineError(c, i18n.T("aot.numberRange"))
-			}
-		})
+		if !valid {
+			kit.Stack(c, "", "", func() { kit.InlineError(c, i18n.T("aot.numberRange")) })
+		}
 	})
 	kit.Group(c, icons.BellRing, i18n.T("settingsDesign.feedback"), "", func() {
 		kit.Toggle(c, &v.Sound, i18n.T("aot.sound"), "").Disabled(busy)

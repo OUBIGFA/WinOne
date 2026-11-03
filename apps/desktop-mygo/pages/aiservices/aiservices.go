@@ -592,7 +592,7 @@ func (p *page) View(c *ui.Context) {
 	kit.WidePage(c, func() {
 		kit.Help(c, i18n.T("ai.shared"))
 		p.overview(c)
-		ui.Column(c).FillWidth().Gap(16).Disabled(p.saving).Children(func() {
+		ui.Column(c).FillWidth().Gap(kit.GroupGap).Disabled(p.saving).Children(func() {
 			ui.Column(c).FillWidth().Disabled(p.navigationLocked()).Children(func() {
 				next := p.tab
 				kit.Tabs(c, &next, []kit.Tab{
@@ -804,7 +804,10 @@ func (p *page) defaultsView(c *ui.Context) {
 	}
 	d := &p.draft.Value
 	locked := p.locked()
-	kit.Section(c, icons.LayoutGrid, i18n.T("ai.defaultService"), i18n.T("ai.defaultServiceHint"), func() {
+	// The tab already names this group; its purpose leads it instead of a
+	// heading that repeats the tab.
+	ui.Column(c).FillWidth().Gap(kit.HeadingGap).Children(func() {
+		kit.Help(c, i18n.T("ai.defaultServiceHint"))
 		current, has := d.Tasks["default"]
 		var offered []widgets.AIProvider
 		for i := range d.Providers {

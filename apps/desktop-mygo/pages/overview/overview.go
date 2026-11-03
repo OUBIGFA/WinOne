@@ -210,10 +210,11 @@ func (p *page) toolRow(c *ui.Context, entry widgets.ModuleEntry, icon *ui.SVG, t
 		ui.Icon(c, icon).FontSize(20).TextColor(t.TextMuted).Shrink(0).Margin(1, 0, 0, 0)
 		ui.Column(c).Basis(260).Grow(1).Shrink(1).MinWidth(0).Gap(3).Children(func() {
 			kit.Strong(c, title).Role(ui.RoleHeading).Level(3)
-			if grouped {
-				kit.Label(c, i18n.T("nav.always-on-top"))
-			}
-			if key := "moduleDescription." + id; i18n.Has(key) {
+			// A grouped feature names what its switch turns on in the same
+			// muted line as its purpose, so the row keeps one title.
+			if key := "moduleDescription." + id; grouped && i18n.Has(key) {
+				kit.Help(c, i18n.T("overview.groupedFeature", "name", i18n.T("nav.always-on-top"), "description", i18n.T(key)))
+			} else if i18n.Has(key) {
 				kit.Help(c, i18n.T(key))
 			}
 			p.toolExtras(c, entry)

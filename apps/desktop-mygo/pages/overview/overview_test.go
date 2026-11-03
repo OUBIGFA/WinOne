@@ -118,4 +118,5 @@ func TestHomeMatchesTheSidebar(t *testing.T) {
 	if tt.HasText(i18n.T("onebot.title")) || tt.HasText(i18n.T("chat.title")) {
 		t.Fatal("Home lists only the features above the sidebar's footer")
 	}
+	h.Shots(t, "overview", page.View, 1000, nil)
 }

@@ -327,7 +327,7 @@ func (p *page) generalView(c *ui.Context) {
 		kit.Row(c, tr("port"), "", func() {
 			kit.NumberField(c, &d.Port, 0, 65535, 1, "", tr("port")).Disabled(p.busy)
 		})
-		kit.Stack(c, tr("directory"), "", func() {
+		kit.Stack(c, tr("directory"), tr("directoryHint"), func() {
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.TextInput(c, &d.DownloadDir).Grow(1).MinWidth(0).Label(tr("directory")).Disabled(p.busy)
 				if kit.Button(c, tr("choose"), icons.FolderOpen, false).Disabled(p.busy).Clicked() {
@@ -424,9 +424,9 @@ func (g *generalPanel) View(c *ui.Context, draft *general, disabled bool, pick f
 	if g.err != "" {
 		kit.Notice(c, kit.Failure, "", g.err, nil)
 	}
-	kit.Group(c, icons.Settings, tr("general"), "", func() {
+	kit.Group(c, icons.Settings, tr("transfersAndEntries"), "", func() {
 		if draft != nil {
-			kit.Stack(c, tr("defaultDownload"), "", func() {
+			kit.Stack(c, tr("defaultDownload"), tr("defaultDownloadHint"), func() {
 				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 					value := draft.DownloadDir
 					ui.TextInput(c, &value).Grow(1).MinWidth(0).ReadOnly(true).Label(tr("defaultDownload"))

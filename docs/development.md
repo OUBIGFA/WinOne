@@ -1,5 +1,13 @@
 # 开发状态
 
+## 参考 impeccable 与 unslop 打磨界面（2026-11-04）
+
+- **方法**：只采用两个项目的审查规则（impeccable 的 polish/Operate 模式，unslop 的间距、文案与细节清单），不复制代码或素材；WinOne 保持黑白灰方向。新增 `testhost.Harness.Shots`，各页面的 `TestShots` 在设置 `WINONE_SHOTS` 后输出深浅色 × 1000/560 宽的渲染图（共 224 张，改动前后各一组，在 `_temp/ui-polish-20261104/`）。
+- **改动**：首页“便捷功能”行不再出现两行标题，改为一行“置顶功能：说明”；定时关机空闲时不再显示“暂无运行中的任务”，开始按钮改为主按钮，“仅提醒”组改称“提醒”；置顶边框的提示移到“边框颜色来源”行，不再写“下方”；AI 服务各标签组间距统一为 32，默认服务与连接设置不再重复标签名，“限流暂停”与模型列表分开；互联助手“常规”页的两个接收目录各加一句说明区分用途，“常规”组改称“传输与入口”，去掉界面里“沿用全局设置”的内部说明。
+- **验证**：MyGo 全部 22 个包通过；完整构建 `-SkipInstall -RunStartupProbes` 通过（首次运行 MyGo vet 步骤偶发无诊断退出，复跑 3 次与整体重建均通过）；隔离安装测试、Defender 扫描安装器与卸载器均通过。
+- **固定安装器已更新**：`dist/release/WinOne-setup.exe`，**317844618 字节**，SHA-256 `3966601fd0ffbc198f17f152151caf59f418b9d6589a445f9c2ac3ee1a507f82`；卸载器 SHA-256 `0e4b034bc7df3763b9fa089cbf5ef4a1356e0119c6bd5a270bed4968540b8526`。旧包在 `_temp/ui-polish-20261104/prior-release/`。未签名、未创建 tag；没有操作真实安装与配置，由用户自行运行安装器。
+- **未覆盖**：截图、划词、程序管理等页面本轮只做了渲染检查，未发现需要改的问题；`docs/mygo-parity` 的“待验证”条目未处理。
+
 ## 界面打磨、MyGo 0.7.4 与 Pi 1.5.0（2026-11-03）
 
 - **程序管理**：WinTab 提示“等待程序自启动超时”的根因是配置路径经过目录联接（AppData 迁移到 D 盘），运行中的进程报告最终路径，`executablePathsMatch` 因此认不出已运行的程序。现按 `GetFinalPathNameByHandle` 的最终路径比较同名文件，并新增 `TestExecutablePathMatchesThroughJunction`。

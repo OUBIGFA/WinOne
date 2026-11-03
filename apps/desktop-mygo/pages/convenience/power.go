@@ -291,7 +291,7 @@ func (t *powerTab) View(c *ui.Context, locked bool) {
 				kit.InlineError(c, i18n.T("timedPower.invalid"))
 			}
 			ui.Row(c).Children(func() {
-				if kit.Button(c, i18n.T("timedPower.start"), icons.Play, t.busy).Disabled(pageLocked || !valid).Clicked() {
+				if kit.PrimaryButton(c, i18n.T("timedPower.start"), icons.Play, t.busy).Disabled(pageLocked || !valid).Clicked() {
 					p := t.draft.toPreferences()
 					if p.DryRun {
 						t.start(p, false)
@@ -307,7 +307,8 @@ func (t *powerTab) View(c *ui.Context, locked bool) {
 }
 
 // current shows the running task from the Host's state: a large,
-// centered countdown while one runs, a single status line otherwise.
+// centered countdown while one runs, a single status line for a task
+// that ended. With nothing scheduled the form below is the page.
 func (t *powerTab) current(c *ui.Context) {
 	theme := c.Theme()
 	s := t.status
@@ -336,11 +337,9 @@ func (t *powerTab) current(c *ui.Context) {
 			kit.Help(c, i18n.T("timedPower.missed"))
 		}
 	} else {
-		state := "idle"
-		if s != nil && s.State != "" {
-			state = s.State
+		if s != nil && s.State != "" && s.State != "idle" {
+			kit.Status(c, i18n.T("timedPower."+s.State))
 		}
-		kit.Status(c, i18n.T("timedPower."+state))
 	}
 	if s != nil && s.Error != "" {
 		kit.Notice(c, kit.Failure, "", s.Error, nil)
@@ -450,7 +449,7 @@ func (t *powerTab) power(c *ui.Context) {
 
 func (t *powerTab) reminder(c *ui.Context) {
 	d := t.draft
-	kit.Group(c, icons.BellRing, i18n.T("timedPower.dryRunTag"), "", func() {
+	kit.Group(c, icons.BellRing, i18n.T("timedPower.reminderGroup"), "", func() {
 		kit.Row(c, i18n.T("timedPower.reminder"), "", func() {
 			kit.NumberField(c, &d.reminder, 0, 3600, 1, i18n.T("timedPower.secondsUnit"), i18n.T("timedPower.reminder"))
 		})

@@ -63,6 +63,7 @@ func TestGesturesOpenExplorerFirstWithoutReorderingScopes(t *testing.T) {
 	if !h.Env.Rail.Save.Disabled {
 		t.Fatal("Save is available before any edit")
 	}
+	h.Shots(t, "gestures", gestureView(tab), 1600, nil)
 }
 
 func TestAssigningAGestureCopiesOnlyThisScenesPackage(t *testing.T) {
