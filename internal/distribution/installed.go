@@ -83,11 +83,11 @@ func readInstalledManifest(root *os.Root) (Manifest, []byte, error) {
 	if err != nil {
 		return result, nil, err
 	}
-	data, readErr := io.ReadAll(io.LimitReader(file, (1<<20)+1))
+	data, readErr := io.ReadAll(io.LimitReader(file, maxBuildInfoBytes+1))
 	if err = errors.Join(readErr, file.Close()); err != nil {
 		return result, nil, err
 	}
-	if len(data) > 1<<20 {
+	if len(data) > maxBuildInfoBytes {
 		return result, nil, errors.New("installed manifest exceeds size limit")
 	}
 	if err = configjson.DecodeObject(data, &result); err != nil {

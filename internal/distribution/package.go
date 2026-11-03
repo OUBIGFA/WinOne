@@ -353,16 +353,16 @@ func verifyPackage(filename string, historical bool) (Manifest, error) {
 		seen[key] = true
 	}
 	index := entries["manifest.json"]
-	if index == nil || index.UncompressedSize64 > 1<<20 {
+	if index == nil || index.UncompressedSize64 > maxBuildInfoBytes {
 		return Manifest{}, errors.New("package manifest missing or too large")
 	}
 	reader, err := index.Open()
 	if err != nil {
 		return Manifest{}, err
 	}
-	data, err := io.ReadAll(io.LimitReader(reader, (1<<20)+1))
+	data, err := io.ReadAll(io.LimitReader(reader, maxBuildInfoBytes+1))
 	reader.Close()
-	if err != nil || len(data) > 1<<20 {
+	if err != nil || len(data) > maxBuildInfoBytes {
 		return Manifest{}, errors.New("invalid package manifest")
 	}
 	var manifest Manifest

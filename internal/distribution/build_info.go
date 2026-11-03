@@ -9,7 +9,7 @@ import (
 	"winone/internal/configjson"
 )
 
-// maxBuildInfoBytes bounds the file inventory. It lists every shipped file
+// maxBuildInfoBytes bounds the file inventory and the package manifest that carries it. It lists every shipped file
 // with its hash (about 200 bytes each), so it grows with the AI plugins.
 const maxBuildInfoBytes = 4 << 20
 
