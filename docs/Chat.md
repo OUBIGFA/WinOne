@@ -10,7 +10,7 @@ OneBot 使用同一 Pi/Host 基座但独立本地内容 worker。档案/版本�
 
 ## 固定参考
 
-- Pi：`@earendil-works/pi-coding-agent` 1.4.0；[源码](https://github.com/earendil-works/pi/tree/4a080252f06caf63a525d7873c5d94d3c23887e0)，MIT。依赖锁位于 `modules/chat-pi/package-lock.json`。
+- Pi：`@earendil-works/pi-coding-agent` 1.5.0；[源码](https://github.com/earendil-works/pi/tree/f9a26365568127461c47a07a37dcb42c140a3ac5)，MIT。1.5.0 移除了 `watchEvents()`；`modules/chat-pi/durable-events.mjs` 按 1.4.0 `harness/events.js` 的事件形状，从会话视图监视（`pi.live`、条目、`pi.usage`）推导同样的流式、工具、重试、压缩与运行事件，输入结算改为读取 `Submission.status()`（不调用会启动调度的 `wait()`），任务状态 `pending` 在协议中仍报为 `ready`。依赖锁位于 `modules/chat-pi/package-lock.json`。
 - Cindy：[源码](https://github.com/makecindy/cindy/tree/a152497ac24d155dd46142b73dda4fa10ad08ad0)，Apache-2.0，Copyright 2026 XD Inc. 直接改编代码时保留 LICENSE 与 NOTICE，并记录改编范围。
 - Cindy 的具体界面入口：`components/new-chat/ChatInput.tsx`、`PermissionSelector.tsx`、`PermissionPrompt.tsx`；`features/cc-agent/SessionContentHeader.tsx`；`features/cc-agent/sidebar/sections/{ProjectsSection,ProjectNode,DialogueSection}.tsx`。
 - Cindy 权限入口：`packages/maker-core/src/agents/pi/auto-review-policy.ts`、`agents/shared/auto-review.ts`、`auto-review-decision.ts`。其 Pi 采用 Ask、Auto-review、Full access；Auto-review 不等于自动允许所有命令。

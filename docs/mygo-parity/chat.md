@@ -56,7 +56,7 @@
 | C3 | 权限（完全访问先确认；属于项目时改项目权限）、思考强度与快速模式 | `permissionPill`、`thinkingPill`、`configure` | 代码审查 | 待验证 |
 | C4 | 会话工具：压缩、提示音、任务图、暂停；继续任务 | `sessionTools` | 代码审查 | 待验证 |
 | C5 | 上下文用量弹层 | `usageButton` | 代码审查 | 待验证 |
-| C6 | 子代理列表与停止 | `subagents` | 代码审查 | 待验证（React 的子代理对话窗口未开始） |
+| C6 | 子代理列表与停止；子代理消息窗口（读取最新一页与更早记录、状态变化时重读、暂停时只读、发送后续消息并重读，草稿按子代理保留） | `subagents`、`agents.go` 的 `agentDialogView` | 测试 `TestSubagentMessagesReadPagesAndFollowUp` | 已验证（2026-11-03 补齐） |
 | C7 | 附件：选择（≤16）、拖放（文件夹转 `@路径`）、移除（浏览器批注链修复） | `addPaths`、`DropArea`、`model.RemoveAttachment` | 代码审查 | 待验证 |
 | C8 | 附件粘贴（剪贴板文件路径或截图字节，`attachments.upload`） | `paste.go` | `TestPastingFilesAndPicturesAttachesThem`、`TestAPictureForANewChatWaitsInAFileUntilRemoved` | 已验证（物理剪贴板待测） |
 | C9 | 浏览器批注随消息发送（`# Browser comments:` 段） | `model.AnnotatedPrompt` | 代码审查 | 待验证 |

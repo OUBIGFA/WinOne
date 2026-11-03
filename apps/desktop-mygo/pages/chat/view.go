@@ -43,6 +43,8 @@ type uiState struct {
 	confirmFull bool
 	edit        *editState
 	usageOpen   bool
+	// agents is the subagent whose messages are open.
+	agents agentDialog
 	// The model picker: open, its search, the providers it folds, and
 	// whether it has shown the chosen model yet.
 	modelsOpen      bool
@@ -281,6 +283,7 @@ func (p *Chat) transcriptView(c *ui.Context) {
 	})
 	p.flushChecks()
 	p.toolDialogView(c)
+	p.agentDialogView(c)
 	p.ui.lastY = committed
 }
 

@@ -279,7 +279,7 @@ shared/chat/licenses/npm-onebot-wecom-aibot-node-sdk-1.0.7-README.md.txt
 shared/chat/licenses/npm-onebot-wecom-aibot-node-sdk-1.0.7-package.json.txt
 shared/chat/licenses/npm-onebot-which-2.0.2-LICENSE.txt
 shared/chat/licenses/npm-onebot-wrappy-1.0.2-LICENSE.txt
-shared/chat/licenses/npm-onebot-ws-8.22.0-LICENSE.txt
+shared/chat/licenses/npm-onebot-ws-8.21.0-LICENSE.txt
 shared/chat/licenses/npm-onebot-zod-4.3.6-LICENSE.txt
 shared/chat/licenses/npm-onebot-zod-to-json-schema-3.25.2-LICENSE.txt
 shared/chat/licenses/onebot-notices.json

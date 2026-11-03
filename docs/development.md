@@ -1,5 +1,15 @@
 # 开发状态
 
+## 界面打磨、MyGo 0.7.4 与 Pi 1.5.0（2026-11-03）
+
+- **程序管理**：WinTab 提示“等待程序自启动超时”的根因是配置路径经过目录联接（AppData 迁移到 D 盘），运行中的进程报告最终路径，`executablePathsMatch` 因此认不出已运行的程序。现按 `GetFinalPathNameByHandle` 的最终路径比较同名文件，并新增 `TestExecutablePathMatchesThroughJunction`。
+- **定时关机**：去掉“启用定时关机”开关；设置时间并点“开始计时”即启用（已关闭的模块先启用），并把表单记为下次模板；右侧保存/撤销与无保存页一致置灰；运行中倒计时居中放大并独占页面。
+- **界面**：截图/录制/贴图共用的原生工具栏移除当前工具底部的强调线；互联助手文件互传与云端分享的发送/接收、内容类型居中，两页顶部各有服务行（文件互传新增“互传服务”），二维码、复制按钮与说明整体居中。Chat 补齐子代理消息窗口。颜色保持黑白灰。
+- **MyGo v0.7.4、Pi 1.5.0**：许可、清单、构建脚本同步。Pi 1.5.0 不兼容改动：`pi-ai` 不再导出 TypeBox（改为直接依赖 `typebox`）；移除 `watchEvents()`，新增 `modules/chat-pi/durable-events.mjs` 从会话视图推导同样的事件；输入结算改读 `Submission.status()`（`wait()` 会启动调度，暂停会话不允许）；任务状态 `pending` 在协议里仍报为 `ready`。Pi 会话 91、OneBot 117、暂停恢复 2、`internal/chat` 全部通过。“随时跟进最新版”已写入 `docs/working-rules/architecture-performance.md`。
+- **构建提速**：MyGo 构建的前端只跑它实际打包文件对应的 160 个测试文件（205 秒 → 约 88 秒，`npm run test:mygo`）；`internal/chat` 不再在 Go 全量测试里重复；截图滚动测试只在 `-RunStartupProbes` 时编译；统一构建默认桌面实现改为 MyGo。文件清单 `build-info.json` 上限由 1 MiB 调到 4 MiB（AI 插件同步后清单已超过 1 MiB）。
+- **验证**：完整构建（`-SkipInstall -RunStartupProbes`，MyGo）及 `verify-built-bundle.ps1` 通过。本机代理环境变量会让互联局域网测试返回 502，构建前须清除 `HTTP_PROXY`/`HTTPS_PROXY`。
+- **未完成**：`docs/mygo-parity` 仍有约 80 条“待验证”；本轮只补了定时关机与子代理。
+
 ## 程序管理按上游 WinTray 更新（2026-10-31，不提交、不推送、不更新安装器）
 
 以独立仓库 `E:\_Free code\WinTray`（HEAD `03a809f`）为依据，更新 WinOne 侧程序管理（`modules/wintray`）的缺陷并移植微信自动登录。两侧已分叉（166 个同名 Go 文件中 101 个内容不同），只做逐项外科式移植，未整体同步。

@@ -7,7 +7,8 @@ import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {BACKGROUND_CONTEXT as context,withAbortSignal} from '@earendil-works/chord/context';
-import {Harness,createRegistry,defineExtension,defineTool,section,hook,GenerationTask,ToolTask,LiveDoc,InboxDoc,ProviderDoc,watchEvents,defineDoc} from '@earendil-works/pi-durable';
+import {Harness,createRegistry,defineExtension,defineTool,section,hook,GenerationTask,ToolTask,LiveDoc,InboxDoc,ProviderDoc,defineDoc} from '@earendil-works/pi-durable';
+import {translateView,viewParts,viewSubmissions} from './durable-events.mjs';
 import {openDurableStorage} from './durable-storage.mjs';
 import {MemoryStorage} from '@earendil-works/pi-durable/storage/memory';
 import {SessionManager} from '@earendil-works/pi-coding-agent';
@@ -39,10 +40,12 @@ const plain=value=>JSON.parse(JSON.stringify(value));
  * entry-ID-addressed projection for existing history, review, export and usage
  * readers. A restart fills missing projection entries without repeating tools. */
 export async function createDurableSession(config,{event=()=>{},authorize=async()=>false,question=async()=>{throw Error('Question UI is unavailable');},inMemory=false}={}){
- let currentMessages=[],liveSignal,closed=false,streaming=false,partial,root,harness,currentView,watch,events,notifiedIdle=true;
+ let currentMessages=[],liveSignal,closed=false,streaming=false,partial,root,harness,currentView,watch,notifiedIdle=true,lastEntry=-Infinity;
  let projectedTail,contextStats,usage={models:{},tools:{}},queue=[],settleTask,retrying=false;
  let extra={subagents:[],workflow:{items:[]},backgroundRunning:false,paused:false,taskGraph:{scheduling:'paused',tasks:[],total:0}};
  const calls=new AsyncLocalStorage(),listeners=new Set(),pending=new Set();
+ // Submissions whose settlement is already awaited (see watchSubmissions).
+ const watchedSubmissions=new Set(),unsettled=new Set();let checking=Promise.resolve(),recheck=false;
  const send=value=>{event(value);for(const listener of listeners)listener(value);};
  const report=error=>send({type:'notice',message:String(error?.message??error)});
  const track=promise=>{pending.add(promise);promise.then(()=>pending.delete(promise),error=>{pending.delete(promise);report(error);});return promise;};
@@ -264,7 +267,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   steeringMode:config.runtimeSettings?.steeringMode??'one-at-a-time',followUpMode:config.runtimeSettings?.followUpMode??'one-at-a-time',
  };
  try{
-  harness=await Harness.open(inMemory?new MemoryStorage():await openDurableStorage(storageFile),{models,registry,settings,env:({cwd})=>new NodeExecutionEnv({cwd:cwd??config.cwd}),onReport:report},context);
+  harness=await Harness.open(inMemory?new MemoryStorage():await openDurableStorage(storageFile),{models,registry,settings,env:({cwd})=>new NodeExecutionEnv({cwd:cwd??config.cwd}),onReport:value=>report(value.error??Error(value.kind))},context);
   root=await harness.root(context,{agent:{model:{provider:'winone',modelId:config.model.id},thinkingLevel:thinkingLevel(),cwd:config.cwd}});
   collaboration.setHarness(harness);
   // Current Host choices always win over last run's model. No credential is
@@ -279,27 +282,80 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   // Do not schedule while opening history. Attach the snapshot before resume,
   // and never project imported legacy messages a second time.
   let cursor;
-  do{const page=await root.entries({order:'ascending'},500,cursor,context);for(const entry of page.items)project(entry,false);cursor=page.cursor;}while(cursor);
+  do{const page=await root.entries({order:'ascending'},500,cursor,context);for(const entry of page.items){project(entry,false);lastEntry=Math.max(lastEntry,entry.id);}cursor=page.cursor;}while(cursor);
+  // One view watch feeds the worker's events and the durable extras. Its
+  // first value is what watchEvents' snapshot was; later calls translate.
   watch=await root.watch(context);currentView=watch.value;
-  watch.start(async value=>{currentView=value;usage=value.docs['pi.usage']??usage;queue=value.docs['pi.inbox']?.items??[];await updateExtras();});
-  events=await watchEvents(harness,root.id,context);usage=events.snapshot.usage;partial=events.snapshot.generation?.message;
-  streaming=!!events.snapshot.run;notifiedIdle=!streaming;
-  events.start(async batch=>{
-   // watchEvents pairs a committed message_start with message_end using the
-   // same entry.model message. Branch imports already exist in the JSONL/UI
-   // snapshot: suppress their starts as well as project()'s skipped ends.
-   // Checking the batch's provenance (not text, timestamps or a reset flag)
-   // also covers legacy history and cannot suppress a new identical reply.
-   const imported=new Set(batch.filter(value=>value.type==='message_end'&&value.entry.data?.legacy).map(value=>value.entry.model?.[0]));
-   for(const value of batch){
-    if(value.type==='message_start'&&imported.has(value.message))continue;
-    await receive(value);
-   }
+  {const {live,usage:current,inbox}=viewParts(currentView);usage=current??usage;queue=inbox?.items??[];partial=live.generation?.message;streaming=!!live.run;notifiedIdle=!streaming;}
+  for(const entry of currentView.entries??[])lastEntry=Math.max(lastEntry,entry.id);
+  watchSubmissions(viewSubmissions(currentView));
+  watch.start(async call=>{
+   if(call.kind!=='value'||closed)return;
+   try{
+    const before=currentView;currentView=call.value;
+    const {usage:current,inbox}=viewParts(currentView);usage=current??usage;queue=inbox?.items??[];
+    const batch=translateView(before,currentView,call.ops??[],await appended(currentView));
+    // A committed message_start pairs with message_end on the same entry.model
+    // message. Branch imports already exist in the JSONL/UI snapshot: suppress
+    // their starts as well as project()'s skipped ends. Checking provenance
+    // (not text, timestamps or a reset flag) also covers legacy history and
+    // cannot suppress a new identical reply.
+    const imported=new Set(batch.filter(value=>value.type==='message_end'&&value.entry.data?.legacy).map(value=>value.entry.model?.[0]));
+    for(const value of batch){
+     if(value.type==='message_start'&&imported.has(value.message))continue;
+     await receive(value);
+    }
+    await watchSubmissions(viewSubmissions(currentView));
+    await updateExtras();
+   }catch(error){if(!closed)report(error);}
   });
   currentMessages=(await root.context(context)).messages;
   await updateExtras();
  }catch(error){await harness?.close(context).catch(()=>{});await codeSandbox?.close().catch(()=>{});await native.close().catch(()=>{});throw error;}
 
+ // The entries appended since the last call, in ID order. A window overflow
+ // shows only the newest; read the ones it skipped from the transcript.
+ async function appended(view){
+  const shown=(view.entries??[]).filter(entry=>entry.id>lastEntry);
+  let added=shown;
+  if(view.before!==undefined&&view.before>lastEntry){
+   const missed=[];let cursor;
+   do{
+    const page=await root.entries({order:'descending'},500,cursor,context);
+    const older=page.items.filter(entry=>entry.id>lastEntry&&!shown.some(item=>item.id===entry.id));
+    missed.push(...older);cursor=page.items.some(entry=>entry.id<=lastEntry)?undefined:page.cursor;
+   }while(cursor);
+   added=[...missed.sort((a,b)=>a.id-b.id),...shown];
+  }
+  for(const entry of added)lastEntry=Math.max(lastEntry,entry.id);
+  return added;
+ }
+ // Durable no longer publishes submission records as events. Read each known
+ // input's status after the view changes and report its settlement once.
+ // Only status() is read: Submission.wait() would enable scheduling, which a
+ // paused session must not do before its explicit resume.
+ function watchSubmissions(ids){
+  for(const id of ids){
+   if(id===undefined||watchedSubmissions.has(id))continue;
+   watchedSubmissions.add(id);unsettled.add(id);
+  }
+  return checkSubmissions();
+ }
+ function checkSubmissions(){
+  if(recheck)return checking;
+  recheck=true;
+  checking=checking.then(async()=>{
+   recheck=false;
+   for(const id of [...unsettled]){
+    if(closed)return;
+    const record=await (await harness.submission(id,context))?.status(context);
+    if(!record){unsettled.delete(id);continue;}
+    if(record.status!=='done'&&record.status!=='unanswered')continue;
+    unsettled.delete(id);await receive({type:'submission',record});
+   }
+  }).catch(error=>{if(!closed)report(error);});
+  return checking;
+ }
  function rememberProjection(entryId,id){
   projected.set(entryId,id);projectedTail=id;
   projectionWaiters.get(entryId)?.();projectionWaiters.delete(entryId);
@@ -415,7 +471,8 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   const inspection=await harness.inspect(context);
   // Inspector records contain tool arguments and model inputs. Send only task
   // identity, ownership and scheduler state, bounded with an explicit total.
-  return {scheduling:inspection.scheduling,total:inspection.tasks.length,tasks:inspection.tasks.slice(0,512).map(({record,state})=>({id:record.id,kind:record.kind,conversationId:record.conversationId,owner:record.owner,background:record.background,state:state.kind}))};
+  // Durable 1.5 calls a task that can run 'pending'; the protocol keeps 'ready'.
+  return {scheduling:inspection.scheduling,total:inspection.tasks.length,tasks:inspection.tasks.slice(0,512).map(({record,state})=>({id:record.id,kind:record.kind,conversationId:record.conversationId,owner:record.owner,background:record.background,state:state.kind==='pending'?'ready':state.kind}))};
  }
  function settleIfIdle(){
   // run_end and a finished submission may both observe the idle edge. One
@@ -491,6 +548,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   // without comparing task identities could interrupt the corrected response.
   const interrupted=wasRunning&&options.streamingBehavior==='steer'?(await harness.snapshot(LiveDoc,root.id,context))?.tools??[]:[];
   const submission=await root.submit({type:'input',content,requestId:id,whenBusy:options.streamingBehavior??'followUp',...(options.inputReceipt?{entry:{kind:'winone.input',data:{receipt:plain(options.inputReceipt)}}}:{})},context);
+  watchSubmissions([submission.id]);
   streaming=true;notifiedIdle=false;
   interruptToolRound(interrupted);
   if(wasRunning){options.preflightResult?.(options.streamingBehavior==='steer'?'steered':'queued');return;}
@@ -509,7 +567,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  // FIFO tail; earlier items may drain. No editor operation aborts the live run.
  async function changeQueue(action,{id,locked,text,images,receipt,targetIndex}={}){
   const interrupted=action==='steer'?(await harness.snapshot(LiveDoc,root.id,context))?.tools??[]:[];
-  let result;
+  let result,ids=[];
   await root.commit(async tx=>{
    const inbox=await tx.doc(InboxDoc,root.id),adapter=await tx.doc(AdapterDoc,root.id);
    const held=adapter.heldInputs??[],order=adapter.queueOrder??[];
@@ -555,8 +613,10 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
     (blocked&&input.mode!=='steer'?waiting:active).push(input);
    }
    inbox.items=active;adapter.heldInputs=waiting;
+   ids=all.map(input=>input.id);
    result={receipts:all.flatMap(input=>input.entry?.data?.receipt?[input.entry.data.receipt]:[]),paused:adapter.queuePaused===true};
   },context);
+  await watchSubmissions(ids);
   interruptToolRound(interrupted);
   extra.queuePaused=result.paused;
   if(!['lock','interaction','pause','update','reconcile'].includes(action)||locked===false){
@@ -570,6 +630,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   // Task resume first commits input behind the durable hold, then releases it.
   // Use the same official submission/inbox records as changeQueue; no generation
   // or external effect can start between enqueueing and the coordinator's CAS.
+  let held;
   await root.commit(async tx=>{
    const adapter=await tx.doc(AdapterDoc,root.id);
    if(adapter.taskHeld!==true)throw Error('独立任务的输入屏障已解除');
@@ -578,8 +639,9 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
    const submission=await tx.createSubmission({conversationId:root.id,requestId:receipt.id,type:'input',status:'queued'});
    const item={id:submission.id,mode:'followUp',content:text,entry:{kind:'winone.input',data:{receipt:plain(receipt)}}};
    adapter.heldInputs=[...(adapter.heldInputs??[]),item];
-   adapter.queueOrder=[...(adapter.queueOrder??[]),submission.id];
+   adapter.queueOrder=[...(adapter.queueOrder??[]),submission.id];held=submission.id;
   },context);
+  watchSubmissions([held]);
  }
  async function setThinkingLevel(value){
   // '' and 'auto' restore the provider default: no reasoning_effort is injected.
@@ -701,7 +763,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   if(closed)return;closed=true;for(const resolve of projectionWaiters.values())resolve();projectionWaiters.clear();
   runtimeRefreshAbort?.abort();
   // Even a failed Harness shutdown must release VM workers and native resources.
-  try{await harness.close(context);await runtimeRefreshTask?.catch(()=>{});await events.stop();await watch.stop();await Promise.allSettled([...pending]);}
+  try{await harness.close(context);await runtimeRefreshTask?.catch(()=>{});await watch?.stop();await Promise.allSettled([...pending]);}
   finally{try{await codeSandbox?.close();}finally{await closeNative();}}
  }
  async function pause(){

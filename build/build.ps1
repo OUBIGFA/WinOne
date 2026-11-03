@@ -1,4 +1,4 @@
-param([string]$GoExe = 'go', [string]$CargoExe = 'cargo', [string]$Downloader, [switch]$SkipInstall, [string]$OutputDirectory = '_temp/build/current', [switch]$RunStartupProbes, [string]$UpdateRepository = '', [string]$ShareXSourceDirectory, [string]$RustTargetDirectory='dist/resources/cache/rust-desktop', [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='Rust', [string]$OcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY, [string]$MagpieSourceDirectory=$env:WINONE_MAGPIE_SOURCE_DIRECTORY, [string]$PluginSourceDirectory=$env:WINONE_AI_PLUGIN_SOURCE_DIRECTORY, [string]$BunExe=$env:WINONE_AI_BUN_EXE, [string]$ResultGoExe=$env:WINONE_RESULT_GO_EXE, [string]$DiagramTargetDirectory='dist/resources/cache/rust-diagrams', [string]$SelectionTargetDirectory='dist/resources/cache/rust-selection', [string]$ModuleTrustFile='')
+param([string]$GoExe = 'go', [string]$CargoExe = 'cargo', [string]$Downloader, [switch]$SkipInstall, [string]$OutputDirectory = '_temp/build/current', [switch]$RunStartupProbes, [string]$UpdateRepository = '', [string]$ShareXSourceDirectory, [string]$RustTargetDirectory='dist/resources/cache/rust-desktop', [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='MyGo', [string]$OcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY, [string]$MagpieSourceDirectory=$env:WINONE_MAGPIE_SOURCE_DIRECTORY, [string]$PluginSourceDirectory=$env:WINONE_AI_PLUGIN_SOURCE_DIRECTORY, [string]$BunExe=$env:WINONE_AI_BUN_EXE, [string]$ResultGoExe=$env:WINONE_RESULT_GO_EXE, [string]$DiagramTargetDirectory='dist/resources/cache/rust-diagrams', [string]$SelectionTargetDirectory='dist/resources/cache/rust-selection', [string]$ModuleTrustFile='')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 if(-not $OcrRuntimeDirectory -or -not $MagpieSourceDirectory){throw 'Pass OcrRuntimeDirectory (build/prepare-ocr.ps1 output) and the pinned MagpieSourceDirectory'}
@@ -40,14 +40,24 @@ if (-not $SkipInstall) { & npm.cmd ci --prefix apps/desktop/frontend --no-audit 
 & node (Join-Path $PSScriptRoot 'sync-cindy.mjs') --spec (Join-Path $root 'third_party/cindy/onebot-renderer.sync.json') --check; CheckExit
 & node --test (Join-Path $root 'tests/notices/cindy-binary.test.mjs'); CheckExit
 & (Join-Path $PSScriptRoot 'build-provider-icons.ps1') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $DiagramTargetDirectory -WorkDirectory (Join-Path (Split-Path -Parent $output) 'provider-icons'); CheckExit
-# Keep the UI suite within a fixed worker budget; unconstrained forks can
-# contend with native compiler workers and time out before tests even start.
-Invoke-NativeCommand 'npm.cmd' @('test','--prefix','apps/desktop/frontend','--','--pool=threads','--maxWorkers=2') 'Frontend tests failed'
-Invoke-NativeCommand 'npm.cmd' @('run','build','--prefix','apps/desktop/frontend') 'Frontend build failed'
-# Bundle the same Cindy selection overlay consumed by the native browser. Keep
-# this in the unified build so a preload edit cannot leave a stale guest asset.
-& (Join-Path $PSScriptRoot 'build-browser-comment.ps1') -OutputDirectory (Join-Path (Split-Path -Parent $output) 'browser-comment') -BunExe $BunExe
-Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $output) 'browser-comment/browser_comment_guest.js') -Destination (Join-Path $root 'apps/desktop-rust/src/browser_comment_guest.js') -Force
+# The UI suite runs within vitest.config.ts's worker budget, alone at this
+# point of the build. MyGo ships only the Chat tools page from React, so its
+# build runs the tests related to that page's sources; the Rust and legacy
+# desktops ship the whole settings window and run every test.
+if($DesktopImplementation -eq 'MyGo'){
+    Invoke-NativeCommand 'npm.cmd' @('run','test:mygo','--prefix','apps/desktop/frontend') 'Frontend tests failed'
+}else{
+    Invoke-NativeCommand 'npm.cmd' @('test','--prefix','apps/desktop/frontend','--','--pool=threads') 'Frontend tests failed'
+}
+# The settings window bundle and the native browser's comment overlay serve
+# only the Rust and legacy desktops; MyGo builds its Chat tools page itself.
+if($DesktopImplementation -ne 'MyGo'){
+    Invoke-NativeCommand 'npm.cmd' @('run','build','--prefix','apps/desktop/frontend') 'Frontend build failed'
+    # Bundle the same Cindy selection overlay consumed by the native browser. Keep
+    # this in the unified build so a preload edit cannot leave a stale guest asset.
+    & (Join-Path $PSScriptRoot 'build-browser-comment.ps1') -OutputDirectory (Join-Path (Split-Path -Parent $output) 'browser-comment') -BunExe $BunExe
+    Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $output) 'browser-comment/browser_comment_guest.js') -Destination (Join-Path $root 'apps/desktop-rust/src/browser_comment_guest.js') -Force
+}
 Push-Location third_party/systray
 try { & $GoExe test ./...; CheckExit } finally { Pop-Location }
 & $GoExe run ./build/icon -out internal/branding/icon.ico -native-png internal/branding/logo-native.png; CheckExit
@@ -61,7 +71,9 @@ if($ShareXSourceDirectory){
     Initialize-ShareXNativeHost -SourceDirectory $sharex
 }
 & dotnet build tests/capture-unit/CaptureTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" --nologo; CheckExit
-& dotnet build tests/capture-scroll/ScrollTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" --nologo; CheckExit
+# The scrolling checks drive real windows; only build/test-native-context.ps1
+# runs them, so they are compiled with the other system probes.
+if ($RunStartupProbes) { & dotnet build tests/capture-scroll/ScrollTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" --nologo; CheckExit }
 Invoke-NativeCommand 'dotnet' @('tests/capture-unit/bin/Release/net10.0-windows/WinOne.Capture.Tests.dll',(Join-Path $root '_temp/capture-tests')) 'Capture unit tests failed'
 & dotnet publish modules/capture/WinOne.Capture.csproj -c Release -r win-x64 --self-contained true "-p:ShareXSourceDirectory=$sharex" -o (Join-Path $output 'capture') --nologo; CheckExit
 & (Join-Path $PSScriptRoot 'build-recording.ps1') -CargoExe $CargoExe -OutputDirectory (Join-Path $output 'capture')
@@ -113,7 +125,10 @@ if ($RunStartupProbes) {
 & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o apps/host/resource_windows.syso; CheckExit
 # Keep Go package discovery within the maintained source directories.
 $goSourcePackages=@('./apps/...','./build/...','./internal/...','./modules/...','./tests/...')
-& $GoExe test @goSourcePackages; CheckExit
+# build-chat.ps1 -Test above already ran internal/chat completely, with the
+# bundled Pi worker; the sweep does not repeat it without that worker.
+$goTestPackages=@(& $GoExe list @goSourcePackages | Where-Object { $_ -ne 'winone/internal/chat' }); CheckExit
+& $GoExe test @goTestPackages; CheckExit
 & $GoExe vet @goSourcePackages; CheckExit
 & (Join-Path $PSScriptRoot 'build-wintray.ps1') -GoExe $GoExe -OutputDirectory $output -RunConsoleChecks:$RunStartupProbes
 CheckExit

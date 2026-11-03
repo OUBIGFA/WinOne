@@ -323,7 +323,11 @@ func (p *Chat) sessionTools(c *ui.Context, busy, running, paused, queueEditing b
 			m.Separator()
 			if graph != nil {
 				for _, task := range graph.Tasks {
-					m.Item(fmt.Sprintf("#%v %s · %s", task.ID, task.Kind, task.State)).Disabled(true)
+					state := task.State
+					if key := "chat.taskState_" + state; i18n.Has(key) {
+						state = i18n.T(key)
+					}
+					m.Item(fmt.Sprintf("#%v %s · %s", task.ID, task.Kind, state)).Disabled(true)
 				}
 			}
 			if !paused && m.Item(i18n.T("chat.pauseTask")).Disabled(busy || !running).Chosen() {
@@ -347,17 +351,24 @@ func (p *Chat) subagents(c *ui.Context) {
 	label := i18n.T("chat.agents", "count", len(p.view.Subagents))
 	b := kit.GhostButton(c, label, icons.Users, running > 0)
 	b.Menu(func(m *ui.Menu) {
+		paused := isPaused(p.view)
 		for _, a := range p.view.Subagents {
 			name := a.Name
-			text := name + " · " + i18n.T("chat.agentStatus_"+a.Status)
+			status := "chat.agentStatus_" + a.Status
+			if paused {
+				status = "chat.taskWaitingForResume"
+			}
+			text := name + " · " + i18n.T(status)
+			// Each child opens its own messages; a running one can also stop.
+			if m.Item(text + " · " + i18n.T("chat.agentMessages")).Disabled(p.busy || paused).Chosen() {
+				p.openAgent(name)
+			}
 			if a.Status == "running" {
-				if m.Item(text + " · " + i18n.T("chat.stopAgent")).Disabled(p.busy || isPaused(p.view)).Chosen() {
+				if m.Item(name + " · " + i18n.T("chat.stopAgent")).Disabled(p.busy || paused).Chosen() {
 					p.run(func(done func(error)) {
 						p.simple("agents", map[string]any{"id": p.activeID, "action": "stop", "name": name}, done)
 					})
 				}
-			} else {
-				m.Item(text).Disabled(true)
 			}
 		}
 	})

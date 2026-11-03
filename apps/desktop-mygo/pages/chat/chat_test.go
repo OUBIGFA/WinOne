@@ -398,3 +398,52 @@ func TestLinksFromOtherPagesOpenTheirConversationAndFile(t *testing.T) {
 		t.Fatal("Chat settings did not open")
 	}
 }
+
+// A subagent's own messages open from the agents menu: its conversation,
+// an older page above it, and a follow-up that reads it again.
+func TestSubagentMessagesReadPagesAndFollowUp(t *testing.T) {
+	f := newFakeChat(t)
+	f.snapshot.Subagents = []model.Subagent{{Name: "scout", Status: "completed", Model: "gpt-a"}}
+	var reads, followUps []map[string]any
+	h, p, tt := setupWith(t, f, func(method string, params json.RawMessage) (any, error) {
+		if method != "chat.agents" {
+			return f.handle(method, params)
+		}
+		var args map[string]any
+		_ = json.Unmarshal(params, &args)
+		if args["action"] == "follow_up" {
+			followUps = append(followUps, args)
+			return map[string]any{"accepted": true}, nil
+		}
+		reads = append(reads, args)
+		if args["agentCursor"] != nil {
+			return map[string]any{"entries": []any{map[string]any{"id": 1, "model": []any{map[string]any{"role": "user", "content": "Map the build scripts"}}}}, "cursor": nil}, nil
+		}
+		return map[string]any{"entries": []any{map[string]any{"id": 2, "model": []any{
+			map[string]any{"role": "assistant", "content": []any{map[string]any{"type": "toolCall", "id": "t1", "name": "grep", "arguments": map[string]any{}}}},
+			map[string]any{"role": "assistant", "content": "Found **three** scripts."}}}}, "cursor": 7}, nil
+	})
+	open(t, h, p, tt, "c1")
+	p.openAgent("scout")
+	settle(h, tt)
+	if len(reads) != 1 || !tt.HasText("Found three scripts.") || !tt.HasText(i18n.T("chat.tool")+" · grep") {
+		t.Fatalf("reads %v texts %q", reads, tt.Texts())
+	}
+	if err := tt.Click(i18n.T("chat.loadOlder")); err != nil {
+		t.Fatal(err)
+	}
+	settle(h, tt)
+	if len(reads) != 2 || reads[1]["agentCursor"] != 7.0 || !tt.HasText("Map the build scripts") || !tt.HasText("Found three scripts.") {
+		t.Fatalf("older reads %v texts %q", reads, tt.Texts())
+	}
+	shot(t, tt, "chat-subagent")
+	p.ui.agents.drafts["scout"] = "Also check the tests"
+	settle(h, tt)
+	if err := tt.Click(i18n.T("chat.agentFollowUp")); err != nil {
+		t.Fatal(err)
+	}
+	settle(h, tt)
+	if len(followUps) != 1 || followUps[0]["text"] != "Also check the tests" || followUps[0]["name"] != "scout" || len(reads) != 3 || p.ui.agents.drafts["scout"] != "" {
+		t.Fatalf("follow-ups %v reads %d draft %q", followUps, len(reads), p.ui.agents.drafts["scout"])
+	}
+}

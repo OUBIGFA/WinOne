@@ -8,7 +8,7 @@ New-Item -ItemType Directory -Path $runDir -Force | Out-Null
 $checks = @()
 if ($Suite -in @('capture-scroll','all')) {
     $exe = Join-Path $root 'tests/capture-scroll/bin/Release/net10.0-windows/WinOne.Capture.ScrollTests.exe'
-    if (-not (Test-Path -LiteralPath $exe)) { throw 'Build tests/capture-scroll/ScrollTests.csproj with ShareXSourceDirectory first' }
+    if (-not (Test-Path -LiteralPath $exe)) { throw 'Run build/build.ps1 -RunStartupProbes (or build tests/capture-scroll/ScrollTests.csproj with ShareXSourceDirectory) first' }
     $checks += @{ exe=$exe; name='capture-scroll'; args=@($runDir) }
 }
 function CompileTest([string]$directory, [string]$package, [string]$name) {

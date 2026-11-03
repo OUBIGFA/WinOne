@@ -27,7 +27,7 @@
 | Cindy OneBot 语音 | 复用 `b7e46bcb` 的通话、试听、朗读队列、语音输入核心、语音设置/本地词典及模型目录。系统音频静音沿用原版所有权保护，Windows Core Audio 调用由 WinOne Host 承接，不分发 loudness 的原生辅助程序 | Apache-2.0；保留 Cindy LICENSE/NOTICE，原文和产物摘要见 `third_party/cindy/onebot-voice.sync.json` 与 `onebot-renderer.sync.json` |
 | js-yaml 4.3.0、zod 4.3.6、argparse 2.0.1 | OneBot 技能 YAML 与学习计划 schema；版本与 Cindy 锁文件一致，未修改包源码 | MIT（js-yaml/zod）、Python-2.0（argparse）；完整原始许可与 SHA-256 见 `third_party/onebot-notices.json`，通过 `node build/verify-onebot-notices.mjs` 校验 |
 | gray-matter 4.0.3 及其传递依赖 | OneBot 记忆 frontmatter 与原文导入；不另写 YAML 解析器 | MIT/BSD/Python-2.0 等按锁定包逐项核实；原始许可、全部 OneBot npm 依赖与摘要见 `third_party/onebot-notices.json` |
-| Pi / Pi Durable / Pi Code Mode 1.4.0、quickjs-wasi 3.6.2 | Chat 持久执行及独立 QuickJS VM；模型与工具仍经过 WinOne 服务与权限控制 | MIT；原始 Pi、QuickJS-NG、WASI libc 与编译器运行时许可见 `third_party/chat-codemode-notices.json`，构建核对源码与随包副本 |
+| Pi / Pi Durable / Pi Code Mode 1.5.0、quickjs-wasi 3.6.2 | Chat 持久执行及独立 QuickJS VM；模型与工具仍经过 WinOne 服务与权限控制 | MIT；原始 Pi、QuickJS-NG、WASI libc 与编译器运行时许可见 `third_party/chat-codemode-notices.json`，构建核对源码与随包副本 |
 
 精确版本见各模块依赖锁文件。引入或升级时同步原始版权、许可全文、传递依赖与来源摘要，并立即做源码级验证；分发前再对实际产物复核，而不是到构建结束才补许可证。
 

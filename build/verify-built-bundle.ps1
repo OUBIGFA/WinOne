@@ -6,7 +6,7 @@ param(
  [string]$GoExe='go',
  [string]$ResultGoExe='go',
  [string]$CargoExe='cargo',
- [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='Rust',
+ [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='MyGo',
  [switch]$RunStartupProbes
 )
 $ErrorActionPreference='Stop'

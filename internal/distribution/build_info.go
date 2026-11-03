@@ -9,6 +9,10 @@ import (
 	"winone/internal/configjson"
 )
 
+// maxBuildInfoBytes bounds the file inventory. It lists every shipped file
+// with its hash (about 200 bytes each), so it grows with the AI plugins.
+const maxBuildInfoBytes = 4 << 20
+
 func newManifest(version string) Manifest {
 	return Manifest{SchemaVersion: 1, Product: "WinOne", Version: version, Platform: "windows-x64", EntryPoint: "WinOne.exe"}
 }
@@ -35,7 +39,7 @@ func RecordBuild(directory, license, version string) error {
 	if err != nil {
 		return err
 	}
-	if len(data) > 1<<20 {
+	if len(data) > maxBuildInfoBytes {
 		return errors.New("build inventory too large")
 	}
 	file, err := os.CreateTemp(directory, ".build-info-*.tmp")
@@ -59,7 +63,7 @@ func ReadBuildInfo(directory string) (Manifest, error) {
 	if err != nil {
 		return Manifest{}, err
 	}
-	if !info.Mode().IsRegular() || info.Size() > 1<<20 {
+	if !info.Mode().IsRegular() || info.Size() > maxBuildInfoBytes {
 		return Manifest{}, errors.New("invalid build inventory file")
 	}
 	file, err := os.Open(path)
@@ -67,11 +71,11 @@ func ReadBuildInfo(directory string) (Manifest, error) {
 		return Manifest{}, err
 	}
 	defer file.Close()
-	data, err := io.ReadAll(io.LimitReader(file, (1<<20)+1))
+	data, err := io.ReadAll(io.LimitReader(file, maxBuildInfoBytes+1))
 	if err != nil {
 		return Manifest{}, err
 	}
-	if len(data) > 1<<20 {
+	if len(data) > maxBuildInfoBytes {
 		return Manifest{}, errors.New("build inventory too large")
 	}
 	var manifest Manifest
