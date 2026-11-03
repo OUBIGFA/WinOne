@@ -116,6 +116,14 @@ func New(env *core.Env, window WindowPort, opts Options) *Shell {
 		delete(s.intents, page)
 		return intents
 	}
+	env.Open = func(page string, intent core.Intent) {
+		s.requestPage(page, func() {
+			if s.intents == nil {
+				s.intents = map[string][]core.Intent{}
+			}
+			s.intents[page] = append(s.intents[page], intent)
+		})
+	}
 	env.Toast = func(message string) {
 		s.toasts = append(s.toasts, message)
 		env.Post(func() {})

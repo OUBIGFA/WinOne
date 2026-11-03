@@ -1,12 +1,12 @@
 // The Chat page's React tools inside the MyGo window. The MyGo window draws
 // Chat natively and shows this page in its web views for what stays React
 // (the user's hybrid plan): the side panel with its library, editors, PDF,
-// review, terminal and browser tabs; the automations page; Chat settings.
-// `?view=` chooses which. The window binds `App`, the methods the Rust
+// review, terminal and browser tabs; the automations page; Chat settings;
+// the OneBot page (Cindy's teammates). `?view=` chooses which. The window binds `App`, the methods the Rust
 // window's bridge offered (window.go.main.App), and tells this page what
 // to show with `winone:embed` events; what the page asks of the Chat page
 // goes back through App.Embed.
-import {Component,useEffect,useState,type ReactNode} from 'react';
+import {Component,lazy,Suspense,useEffect,useState,type ReactNode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {CSPProvider} from '@base-ui/react/csp-provider';
 import {setApplicationLanguage,useTranslation} from './i18n';
@@ -27,6 +27,9 @@ import {SchedulerHost} from './features/cindy/host/SchedulerHost';
 import {publishCindyHost,setCindyNavigation,type CindyHostSnapshot} from './features/cindy/host/store';
 import type {AIProvider,AISelection} from './features/ai-configuration';
 import type {ChatBrowserAnnotation} from './features/chat-types';
+// Loaded only by the OneBot view: the teammate store reads profiles as
+// soon as its module loads, as main.tsx loaded it on first use.
+const OneBotPage=lazy(()=>import('./features/onebot').then(module=>({default:module.OneBotPage})));
 
 /** What the window tells every view: its look, and the Chat data Cindy's
  * hooks read (publishCindyHost). */
@@ -49,6 +52,22 @@ function ask<T=unknown>(kind:string,value?:unknown):Promise<T>{
  return app.Embed(kind,JSON.stringify(value??null)).then(text=>text?JSON.parse(text) as T:undefined as T);
 }
 const tell=(kind:string,value?:unknown)=>{void ask(kind,value).catch(console.error);};
+
+// Links into the window, as main.tsx took them: a Chat conversation (at a
+// file of it) or a page by id (Chat settings, AI services, OneBot). The
+// native window follows them through its unsaved-change guard.
+window.addEventListener('winone-open-chat',event=>{
+ const detail=(event as CustomEvent<{id?:unknown;file?:{path?:unknown;line?:unknown;directory?:unknown}}>).detail;
+ if(typeof detail?.id!=='string'||!detail.id)return;
+ const file=detail.file,path=file&&typeof file.path==='string'?file.path:'';
+ tell('navigate',{to:'conversation',id:detail.id,file:path?{path,line:typeof file!.line==='number'&&Number.isSafeInteger(file!.line)&&file!.line>0?file!.line:0,directory:file!.directory===true}:undefined});
+});
+window.addEventListener('winone-open-page',event=>{
+ const detail=(event as CustomEvent<{id?:unknown;section?:unknown}>).detail;
+ if(typeof detail?.id==='string')tell('navigate',{to:'page',id:detail.id,section:typeof detail.section==='string'?detail.section:''});
+});
+const openConversation=(id:string)=>tell('navigate',{to:'conversation',id});
+const openPage=(id:string,section='')=>tell('navigate',{to:'page',id,section});
 
 function applyLook(state:EmbedCommon){
  const root=document.documentElement;
@@ -101,17 +120,19 @@ function Embed(){
  // Cindy's links to a conversation, AI services or IM settings go to the
  // native window, which navigates through its own unsaved-change guard.
  useEffect(()=>setCindyNavigation({
-  openConversation:id=>tell('navigate',{to:'conversation',id}),
-  openAIServices:()=>tell('navigate',{to:'ai-services'}),
-  openIMSettings:()=>tell('navigate',{to:'onebot',section:'im'}),
+  openConversation,
+  openAIServices:()=>openPage('ai-services'),
+  openIMSettings:()=>openPage('onebot','im'),
  }),[]);
  if(!state)return null;
  if(view==='automations')return <Surface><SchedulerHost providers={state.host.providers??null} defaultModel={state.host.defaultModel?.model?state.host.defaultModel:null}
-  onOpenConversation={id=>tell('navigate',{to:'conversation',id})} onOpenAIServices={()=>tell('navigate',{to:'ai-services'})}
-  onOpenIMSettings={()=>tell('navigate',{to:'onebot',section:'im'})}/></Surface>;
+  onOpenConversation={openConversation} onOpenAIServices={()=>openPage('ai-services')}
+  onOpenIMSettings={()=>openPage('onebot','im')}/></Surface>;
  if(view==='settings'&&state.settings)return <Surface><ChatSettings open onOpenChange={open=>{if(!open)tell('close');}}
   providers={state.settings.providers} defaultModel={state.settings.defaultModel} modelsLoading={state.settings.modelsLoading}
-  modelsError={state.settings.modelsError} onSaved={()=>tell('saved')} onConversation={id=>tell('navigate',{to:'conversation',id})}/></Surface>;
+  modelsError={state.settings.modelsError} onSaved={()=>tell('saved')} onConversation={openConversation}/></Surface>;
+ // OneBot sets its own Cindy navigation, which raises the window events above.
+ if(view==='onebot')return <Surface><Suspense fallback={null}><OneBotPage/></Suspense></Surface>;
  if(view==='panel'&&state.panel)return <Surface><Panel props={state.panel}/></Surface>;
  return null;
 }

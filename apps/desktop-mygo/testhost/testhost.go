@@ -46,6 +46,14 @@ type Harness struct {
 	// Picked is what the fake dialogs return, by title.
 	Picked map[string]any
 	toasts []string
+	opened []string
+}
+
+// Opened returns the pages the page asked to show with Env.Open.
+func (h *Harness) Opened() []string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return append([]string(nil), h.opened...)
 }
 
 // Toasts returns the messages the page asked the shell to show.
@@ -115,7 +123,20 @@ func New(t testing.TB, handler Handler) *Harness {
 		Dialogs:       dialogs{h},
 		Directory:     t.TempDir(),
 	}
-	h.Env.TakeIntents = func(string) []core.Intent { return nil }
+	// Intents opened for a page wait for it, as in the shell; Opened
+	// lists the pages asked for.
+	intents := map[string][]core.Intent{}
+	h.Env.TakeIntents = func(page string) []core.Intent {
+		taken := intents[page]
+		delete(intents, page)
+		return taken
+	}
+	h.Env.Open = func(page string, intent core.Intent) {
+		intents[page] = append(intents[page], intent)
+		h.mu.Lock()
+		h.opened = append(h.opened, page)
+		h.mu.Unlock()
+	}
 	h.Env.Focuses = func() int { return 0 }
 	h.Env.Toast = func(message string) { h.mu.Lock(); h.toasts = append(h.toasts, message); h.mu.Unlock() }
 	sidebar := "collapsed"

@@ -14,4 +14,18 @@ type Intent struct {
 	// share code.
 	Receive bool   `json:"receive,omitempty"`
 	Code    string `json:"code,omitempty"`
+	// Conversation, File and ChatSettings are Chat's, from links of other
+	// pages (OneBot's): the conversation to open, a file of it to show,
+	// or Chat settings.
+	Conversation string      `json:"conversation,omitempty"`
+	File         *IntentFile `json:"file,omitempty"`
+	ChatSettings bool        `json:"chatSettings,omitempty"`
+}
+
+// IntentFile is a file a link shows: at a line, or a folder in the file
+// library.
+type IntentFile struct {
+	Path      string `json:"path"`
+	Line      int    `json:"line,omitempty"`
+	Directory bool   `json:"directory,omitempty"`
 }

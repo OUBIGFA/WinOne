@@ -58,6 +58,9 @@ type Env struct {
 	// TakeIntents returns and forgets the prefills queued for page, as
 	// Explorer's commands queue them; the shell shows the page first.
 	TakeIntents func(page string) []Intent
+	// Open shows another page through the unsaved-change guard with an
+	// intent for it, which the page takes with TakeIntents.
+	Open func(page string, intent Intent)
 	// Focuses counts the times the window gained the focus, for pages that
 	// read the clipboard or other state then, as the React window's focus
 	// listeners did.

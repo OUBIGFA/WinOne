@@ -1,6 +1,6 @@
 # MyGo 前端迁移
 
-更新：2026-11-01。本文件记录 WinOne 桌面前端改写为 MyGo 原生界面的决策、方案、分工和验收方法。实施状态同步写入 [开发状态](development.md)。
+更新：2026-11-03。本文件记录 WinOne 桌面前端改写为 MyGo 原生界面的决策、方案、分工和验收方法。实施状态同步写入 [开发状态](development.md)。
 
 ## 1. 目标与决策
 
@@ -91,7 +91,7 @@ flowchart LR
 | 截图工具栏外观 | `modules/capture/NativeUI`（原生 ToolStrip） | 不迁移；`NativeStyle.cs` 同步 `kit` 令牌 | 已接入测试包；私有桌面渲染验证，Windows 11 菜单圆角未实窗验证 |
 | 闪聊 | `interconnect-chat-entry.tsx`、`vendor/chitchatter` | `pages/flashchat`、`flashchat` | 已实现（[对照](mygo-parity/flash-chat.md)）；与 React/Chitchatter 页面本机互通 21/21，跨网络与实窗待验证；2026-11-01 的测试安装器中不可用 |
 | Chat | `features/chat*.tsx`、`features/cindy` | `pages/chat`、`chat/model`、`webui` | 核心交互、侧面板、自动化、设置已实现（混合方案，[对照](mygo-parity/chat.md)）；Bot 模式随 OneBot；真实 Host 联调待验证；2026-11-01 的测试安装器中不可用 |
-| OneBot | `features/onebot.tsx`、`features/cindy/bots` | `pages/onebot` | 未开始（队友对话复用原生 Chat，其余页面 WebView）；2026-11-01 前的测试安装器中不可用 |
+| OneBot | `features/onebot.tsx`、`features/cindy/bots` | `pages/onebot`、`webui` | 已实现：整页在网页视图中运行（[对照](mygo-parity/onebot.md)）；队友对话暂为 React Chat，改原生待确认；真实 Host 联调待验证 |
 
 ## 7. 风险与待确认
 

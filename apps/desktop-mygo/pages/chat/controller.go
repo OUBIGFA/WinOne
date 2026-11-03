@@ -30,6 +30,9 @@ type Chat struct {
 	providersRaw json.RawMessage
 	// tools are the React tools' web views (panel_host.go).
 	tools tools
+	// requested is a conversation another page asked to open, until the
+	// catalog is read and the page idle (takeIntents).
+	requested *core.Intent
 	// modelsRevision drops a slow AI configuration read that a newer
 	// one replaced.
 	modelsRevision int

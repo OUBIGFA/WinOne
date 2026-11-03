@@ -242,6 +242,9 @@ var (
 		if message == 0x0010 && wparam == 1 && exitFlag != nil {
 			exitFlag.Store(true)
 		}
+		if name := voicePowerEvent(message, wparam); name != "" {
+			webui.DispatchAll(name)
+		}
 		result, _, _ := procCallWindowProcW.Call(subclassed, hwnd, message, wparam, lparam)
 		return result
 	})
@@ -252,6 +255,28 @@ const gwlpWndProc = ^uintptr(3) // GWLP_WNDPROC (-4)
 func subclass(hwnd uintptr, exit *atomic.Bool) {
 	exitFlag = exit
 	subclassed, _, _ = procSetWindowLongPtrW.Call(hwnd, gwlpWndProc, subclassProc)
+	// Locking the workstation reaches the window only once it asks; a
+	// failure leaves suspend as the only stop of a microphone.
+	if ok, _, err := procWTSRegisterSessionNotification.Call(hwnd, 0); ok == 0 {
+		reportError(err)
+	}
+}
+
+var procWTSRegisterSessionNotification = windows.NewLazySystemDLL("wtsapi32.dll").NewProc("WTSRegisterSessionNotification")
+
+// voicePowerEvent names the window event that stops OneBot's voice input,
+// as the Rust window raised it: the system suspending
+// (WM_POWERBROADCAST, PBT_APMSUSPEND) and the workstation locking
+// (WM_WTSSESSION_CHANGE, WTS_SESSION_LOCK). Resuming or unlocking never
+// starts a microphone.
+func voicePowerEvent(message, wparam uintptr) string {
+	switch {
+	case message == 0x218 && wparam == 4:
+		return "winone:voice-system-suspend"
+	case message == 0x2b1 && wparam == 7:
+		return "winone:voice-screen-locked"
+	}
+	return ""
 }
 
 var (

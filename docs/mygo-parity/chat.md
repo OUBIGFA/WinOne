@@ -71,7 +71,7 @@
 | M4 | 计划卡；运行中计划卡滚出视野时在输入框上方显示当前步骤，可展开、可关闭 | `planCard`、`plan_reminder.go` | `TestOnlyAFinishedPlanCallPublishesAPlan`、`TestThePlanFloatsAboveTheInputWhileItsCardIsOutOfView`；渲染图 items-plan | 已验证 |
 | M5 | 自动跟随到底部，上滚取消，靠近底部 80 DIP 恢复；滚动导航（顶部、上一轮、下一轮、底部） | `transcriptView`、`scrollnav.go` | `TestScrollControlsStepThroughRoundsAndFollowTheEnd` | 已验证（实窗滚动待测） |
 | M6 | 生成文件 chip、本轮改动卡（撤销本轮、查看改动）、回答中的文件链接 chip | `files.go`、`links.go`、`chat/model/paths.go` | `TestTheTranscriptEndsWithTheConversationsFilesAndChanges`、`TestAnswersOfferTheFilesTheyName`、`TestLinksResolveToTheFilesTheyName`；渲染图 items-end | 已验证 |
-| M7 | Bot 模式（OneBot 队友对话的时间线、引用、语音） | — | — | 未开始（随 OneBot） |
+| M7 | Bot 模式（OneBot 队友对话的时间线、引用、语音） | 暂在 OneBot 网页视图中由 React Chat 提供 | — | 原生未开始 |
 
 ## 其余区域
 
@@ -80,7 +80,8 @@
 | P1 | Chat 设置（常规、资源、MCP、自动化连接）：React `ChatSettings` 在覆盖页面的网页视图中运行 | 已实现；实窗探针渲染通过 |
 | P2 | 右侧工作面板：React `ChatSidePanel` 整体在网页视图中运行（文件库、资源、文件预览/编辑、PDF、Review、终端、浏览器与批注），可停靠右侧或下方、拖动调整大小；网页标签由 Go 网页视图叠放在面板指定位置 | 已实现；实窗探针：文件库经 Host 列出目录，网页标签加载页面并把标题回传面板 |
 | P3 | 自动化整页：React `SchedulerHost` 在网页视图中运行 | 已实现；实窗探针渲染通过 |
-| P4 | OneBot（队友对话复用原生 Chat，其余页面 WebView） | 未开始 |
+| P4 | OneBot：整页在网页视图中运行，队友对话暂为 React Chat（[OneBot 对照](onebot.md)） | 已实现；实窗探针渲染首屏 |
+| P5 | 其他页面打开某个会话（可带文件或文件夹）或 Chat 设置（`takeIntents`） | 已验证（`TestLinksFromOtherPagesOpenTheirConversationAndFile`） |
 
 ## 网页视图承载（P1–P3）
 

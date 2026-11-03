@@ -61,6 +61,15 @@ func (h *fakeHost) Handle(r internalhost.Request) internalhost.Response {
 	switch r.Method {
 	case "chat.files.list":
 		result = map[string]any{"url": h.files}
+	// What the OneBot page reads before it shows its teammates.
+	case "capture.ai.configuration.get":
+		result = map[string]any{"providers": []any{}, "tasks": map[string]any{}}
+	case "chat.onebot.voice.input.data":
+		result = map[string]any{"settings": map[string]any{}, "history": []any{}}
+	case "chat.onebot.bots.list":
+		result = []any{}
+	case "chat.catalog":
+		result = map[string]any{"projects": []any{}, "conversations": []any{}}
 	case "chat.settings.get":
 		result = map[string]any{"workspaceDirectory": h.dir, "skillDirectories": []string{}, "pluginDirectories": []string{},
 			"mcpServers": []any{}, "automations": []any{}}
@@ -167,6 +176,8 @@ func main() {
 		Receive: func(kind string, _ json.RawMessage, reply func(any, error)) { reply(nil, nil) }})
 	settings := webui.New(env, webui.Options{View: "settings", Label: "settings",
 		Receive: func(kind string, _ json.RawMessage, reply func(any, error)) { reply(nil, nil) }})
+	onebot := webui.New(env, webui.Options{View: "onebot", Label: "onebot", Browser: browser,
+		Receive: func(kind string, _ json.RawMessage, reply func(any, error)) { reply(nil, nil) }})
 	view := func(c *ui.Context) {
 		ui.Column(c).Fill().Children(func() {
 			switch show {
@@ -174,6 +185,8 @@ func main() {
 				automations.View(c, state).Fill()
 			case "settings":
 				settings.View(c, state).Fill()
+			case "onebot":
+				onebot.View(c, state).Fill()
 			default:
 				panel.View(c, state).Fill().Children(func() { browser.Overlay(c) })
 			}
@@ -197,11 +210,8 @@ func main() {
 				if err := printWindow(uintptr(win.NativeHandle()), filepath.Join(out, "window.png")); err != nil {
 					r.Error = "window capture: " + err.Error()
 				}
-				for _, name := range []string{"automations", "settings"} {
-					surface := automations
-					if name == "settings" {
-						surface = settings
-					}
+				for _, name := range []string{"automations", "settings", "onebot"} {
+					surface := map[string]*webui.Surface{"automations": automations, "settings": settings, "onebot": onebot}[name]
 					win.Update(func() { show = name })
 					// Chat settings is a dialog, rendered in a portal of the body.
 					selector := ".chat-embed-root"

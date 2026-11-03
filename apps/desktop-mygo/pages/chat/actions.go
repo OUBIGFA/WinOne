@@ -9,6 +9,7 @@ import (
 	"winone/desktopmygo/chat/model"
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
+	"winone/desktopmygo/webui"
 	"winone/desktopmygo/widgets"
 )
 
@@ -420,10 +421,6 @@ type exportOutcome struct {
 // did (apps/desktop-rust/src/chat_export.rs); the Host's receipt must name
 // that file, or report the size it exceeds.
 func (p *Chat) export(id, password string, excludeMedia bool, done func(exportOutcome, error)) {
-	if id == "" || len([]rune(password)) > 4096 {
-		done(exportOutcome{}, core.Errorf(i18n.T("chat.exportInvalid")))
-		return
-	}
 	params := map[string]any{"id": id}
 	if password != "" {
 		params["password"] = password
@@ -431,26 +428,15 @@ func (p *Chat) export(id, password string, excludeMedia bool, done func(exportOu
 	if excludeMedia {
 		params["excludeMedia"] = true
 	}
+	request, _ := json.Marshal(params)
 	p.afterWrites(func() {
 		core.Go(p.env, func() (exportOutcome, error) {
-			path, err := p.env.Dialogs.SaveFile(i18n.T("chat.exportTitle"), core.Filter{Name: i18n.T("chat.exportFileType"), Extensions: []string{"cshare"}}, "WinOne-task.cshare")
-			if err != nil {
-				return exportOutcome{}, err
-			}
-			if path == "" {
-				return exportOutcome{Status: "canceled"}, nil
-			}
-			params["targetPath"] = path
 			var out exportOutcome
-			if err := p.env.Host.CallInto("chat.export", params, &out); err != nil {
-				return out, err
+			receipt, err := webui.ExportTask(p.env, request)
+			if err == nil {
+				err = json.Unmarshal(receipt, &out)
 			}
-			ok := out.Status == "ok" && out.FilePath == path && (out.Fidelity == "full" || out.Fidelity == "partial" || out.Fidelity == "db-only")
-			oversize := out.Status == "oversize" && out.LimitBytes > 0 && out.TotalBytes > out.LimitBytes
-			if !ok && !oversize {
-				return out, core.Errorf(i18n.T("chat.exportUnconfirmed"))
-			}
-			return out, nil
+			return out, err
 		}, done)
 	})
 }

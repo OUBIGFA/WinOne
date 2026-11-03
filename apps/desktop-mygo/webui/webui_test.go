@@ -1,6 +1,14 @@
 package webui
 
-import "testing"
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+
+	"winone/desktopmygo/core"
+	"winone/desktopmygo/i18n"
+	"winone/desktopmygo/testhost"
+)
 
 func TestTheBridgeAllowsWhatTheRustWindowAllowed(t *testing.T) {
 	for _, method := range []string{"file.preview", "terminal.poll", "review.turn", "automations.list", "onebot.chat.poll", "onebot.bots.list", "onebot.voice.anything"} {
@@ -94,5 +102,54 @@ func TestPagesSendOnlyCommentsAndPanelKeys(t *testing.T) {
 	}
 	if len(sent) != 4 {
 		t.Fatal(sent)
+	}
+}
+
+func TestLinksOfPagesGoThroughTheShell(t *testing.T) {
+	var opened []core.Intent
+	var pages []string
+	env := &core.Env{
+		Open:     func(page string, intent core.Intent) { pages = append(pages, page); opened = append(opened, intent) },
+		Navigate: func(page string, _ func()) { pages = append(pages, page) },
+	}
+	Navigate(env, json.RawMessage(`{"to":"conversation","id":"c1","file":{"path":"E:/a.md","line":4}}`))
+	Navigate(env, json.RawMessage(`{"to":"conversation","id":"c2","file":{"path":"a\u0000b"}}`))
+	Navigate(env, json.RawMessage(`{"to":"page","id":"chat","section":"settings"}`))
+	Navigate(env, json.RawMessage(`{"to":"page","id":"ai-services"}`))
+	Navigate(env, json.RawMessage(`{"to":"page","id":"settings"}`))
+	Navigate(env, json.RawMessage(`{"to":"conversation"}`))
+	if strings.Join(pages, ",") != "chat,chat,chat,ai-services" {
+		t.Fatalf("pages %v", pages)
+	}
+	if opened[0].Conversation != "c1" || opened[0].File == nil || opened[0].File.Line != 4 || opened[1].File != nil || !opened[2].ChatSettings {
+		t.Fatalf("intents %+v", opened)
+	}
+}
+
+func TestExportsSaveOnlyWhereTheWindowChose(t *testing.T) {
+	var receipt any = map[string]any{"status": "ok", "filePath": "", "fidelity": "partial"}
+	h := testhost.New(t, func(method string, params json.RawMessage) (any, error) { return receipt, nil })
+	// A page never names the destination.
+	if _, err := ExportTask(h.Env, json.RawMessage(`{"id":"task","targetPath":"x.cshare"}`)); err == nil {
+		t.Fatal("a page's destination was accepted")
+	}
+	// Cancelling the dialog writes nothing.
+	out, err := ExportTask(h.Env, json.RawMessage(`{"id":"task"}`))
+	if err != nil || string(out) != `{"status":"canceled"}` || len(h.Calls()) != 0 {
+		t.Fatalf("%s %v %v", out, err, h.Calls())
+	}
+	h.Picked = map[string]any{i18n.T("chat.exportTitle"): `C:\out\task.cshare`}
+	receipt = map[string]any{"status": "ok", "filePath": `C:\elsewhere.cshare`, "fidelity": "full"}
+	if _, err := ExportTask(h.Env, json.RawMessage(`{"id":"task","password":"secret"}`)); err == nil {
+		t.Fatal("a receipt for another file was accepted")
+	}
+	receipt = map[string]any{"status": "ok", "filePath": `C:\out\task.cshare`, "fidelity": "full"}
+	if _, err := ExportTask(h.Env, json.RawMessage(`{"id":"task","excludeMedia":true}`)); err != nil {
+		t.Fatal(err)
+	}
+	var sent map[string]any
+	calls := h.Called("chat.export")
+	if json.Unmarshal(calls[len(calls)-1].Params, &sent) != nil || sent["targetPath"] != `C:\out\task.cshare` || sent["excludeMedia"] != true {
+		t.Fatalf("sent %v", sent)
 	}
 }

@@ -35,11 +35,18 @@ func (app) env(ctx context.Context) (*Surface, *core.Env, error) {
 // result as JSON text, as the bridge did. Export stays with the native
 // page, which owns its save dialog.
 func (a app) Chat(ctx context.Context, method, payload string) (string, error) {
-	_, env, err := a.env(ctx)
+	s, env, err := a.env(ctx)
 	if err != nil {
 		return "", err
 	}
-	if !chatAllowed(method) || method == "export" || method == "onebot.chat.export" {
+	if method == "export" || chatMutates(method) {
+		defer s.mutating()()
+	}
+	if method == "export" {
+		receipt, err := ExportTask(env, json.RawMessage(params(payload)))
+		return string(receipt), err
+	}
+	if !chatAllowed(method) || method == "onebot.chat.export" {
 		return "", errors.New(i18n.T("chat.unsupportedOperation"))
 	}
 	result, err := env.Host.Call("chat."+method, json.RawMessage(params(payload)))
@@ -92,10 +99,11 @@ func (a app) ChatBrowser(ctx context.Context, method, payload string) (string, e
 // the Host resolves inside the conversation's boundary: the page never
 // names an arbitrary path.
 func (a app) ChatMedia(ctx context.Context, method, payload string) (string, error) {
-	_, env, err := a.env(ctx)
+	s, env, err := a.env(ctx)
 	if err != nil {
 		return "", err
 	}
+	defer s.mutating()()
 	var p struct {
 		ID            string `json:"id"`
 		SuggestedName string `json:"suggestedName"`

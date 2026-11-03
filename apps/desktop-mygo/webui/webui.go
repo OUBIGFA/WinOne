@@ -22,6 +22,7 @@ import (
 	"io/fs"
 	"net/url"
 	"sync"
+	"sync/atomic"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -101,6 +102,39 @@ type Surface struct {
 	loaded bool
 	closed bool
 	offs   []func()
+	// writes counts the page's requests that may change something and
+	// are not answered yet (Busy).
+	writes atomic.Int32
+}
+
+// DispatchAll fires a window event, with no detail, in every page shown,
+// as the Rust window raised system events in its page.
+func DispatchAll(name string) {
+	surfaces.Lock()
+	all := make([]*Surface, 0, len(surfaces.byPage))
+	for _, s := range surfaces.byPage {
+		all = append(all, s)
+	}
+	surfaces.Unlock()
+	for _, s := range all {
+		s.emit(dispatch{Name: name})
+	}
+}
+
+// Busy reports whether a request of the page that may change something
+// is in flight: the window must not close under it, as the Rust window
+// kept it open for such requests.
+func (s *Surface) Busy() bool { return s.writes.Load() > 0 }
+
+// mutating counts a changing request until the returned func runs, and
+// draws a frame at both ends so the page reports its state.
+func (s *Surface) mutating() func() {
+	s.writes.Add(1)
+	s.env.Post(func() {})
+	return func() {
+		s.writes.Add(-1)
+		s.env.Post(func() {})
+	}
 }
 
 // surfaces finds the Surface of a page that calls App.

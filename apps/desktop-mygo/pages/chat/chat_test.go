@@ -13,6 +13,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"winone/desktopmygo/chat/model"
+	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/testhost"
@@ -376,5 +377,24 @@ func TestShots(t *testing.T) {
 				shot(t, tt, "question-"+name)
 			}
 		}
+	}
+}
+
+func TestLinksFromOtherPagesOpenTheirConversationAndFile(t *testing.T) {
+	_, h, p, tt, _ := setup(t)
+	h.Env.Open("chat", core.Intent{Conversation: "c1", File: &core.IntentFile{Path: `E:\WinOne\notes.md`, Line: 3}})
+	settle(h, tt)
+	if p.activeID != "c1" || !p.ui.details || p.ui.panelRequest == nil || p.ui.panelRequest.File != `E:\WinOne\notes.md` || p.ui.panelRequest.Line != 3 {
+		t.Fatalf("active %q details %v request %+v err %q", p.activeID, p.ui.details, p.ui.panelRequest, p.err)
+	}
+	h.Env.Open("chat", core.Intent{Conversation: "missing"})
+	settle(h, tt)
+	if p.activeID != "c1" || p.err != i18n.T("chat.requestedConversationMissing") {
+		t.Fatalf("active %q err %q", p.activeID, p.err)
+	}
+	h.Env.Open("chat", core.Intent{ChatSettings: true})
+	settle(h, tt)
+	if !p.tools.settingsOpen {
+		t.Fatal("Chat settings did not open")
 	}
 }

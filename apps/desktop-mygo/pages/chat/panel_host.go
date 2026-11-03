@@ -229,7 +229,7 @@ func (p *Chat) receivePanel(kind string, payload json.RawMessage, reply func(any
 			})
 		}
 	case "navigate":
-		p.navigate(payload)
+		webui.Navigate(p.env, payload)
 	default:
 		reply(nil, core.Errorf(i18n.T("chat.unsupportedOperation")))
 		return
@@ -285,36 +285,6 @@ func formatMarker(n float64) string {
 	return string(data)
 }
 
-// navigate follows a link of Cindy's pages: to a conversation, AI
-// services or OneBot's IM settings, through the shell's guard.
-func (p *Chat) navigate(payload json.RawMessage) {
-	var to struct {
-		To      string `json:"to"`
-		ID      string `json:"id"`
-		Section string `json:"section"`
-	}
-	if json.Unmarshal(payload, &to) != nil {
-		return
-	}
-	switch to.To {
-	case "conversation":
-		p.ui.automations, p.tools.settingsOpen = false, false
-		p.run(func(done func(error)) {
-			p.refresh(func(err error) {
-				if err != nil {
-					done(err)
-					return
-				}
-				p.choose(to.ID, nil, done)
-			})
-		})
-	case "ai-services":
-		p.env.Navigate("ai-services", nil)
-	case "onebot":
-		p.env.Navigate("onebot", nil)
-	}
-}
-
 // automationsView is the automations page.
 func (p *Chat) automationsView(c *ui.Context) {
 	if p.tools.automations == nil {
@@ -358,7 +328,7 @@ func (p *Chat) receiveTools(kind string, payload json.RawMessage, reply func(any
 			}
 		})
 	case "navigate":
-		p.navigate(payload)
+		webui.Navigate(p.env, payload)
 	default:
 		reply(nil, core.Errorf(i18n.T("chat.unsupportedOperation")))
 		return
@@ -453,4 +423,71 @@ func (p *Chat) dockedView(c *ui.Context, main func()) {
 		}
 		panel.Children(func() { p.panelView(c).Fill() })
 	})
+}
+
+// takeIntents follows links of other pages into Chat (env.Open): Chat
+// settings open at once; a conversation opens once the catalog is read
+// and the page is idle, as chat.tsx's requestedConversationId did.
+func (p *Chat) takeIntents() {
+	for _, intent := range p.env.TakeIntents("chat") {
+		if intent.ChatSettings {
+			p.tools.settingsOpen = true
+		}
+		if intent.Conversation != "" {
+			request := intent
+			p.requested = &request
+		}
+	}
+	if p.requested == nil || !p.catalogLoaded || p.busy {
+		return
+	}
+	request := p.requested
+	p.requested = nil
+	current := func() bool { return p.requested == nil }
+	p.run(func(done func(error)) {
+		open := func() {
+			target := p.catalog.conversation(request.Conversation)
+			if target == nil {
+				done(core.Errorf(i18n.T("chat.requestedConversationMissing")))
+				return
+			}
+			archived := target.Archived
+			p.choose(request.Conversation, current, func(err error) {
+				if err == nil && current() {
+					p.ui.archived, p.ui.automations, p.tools.settingsOpen = archived, false, false
+					p.ui.dialog = dialogState{}
+					if f := request.File; f != nil {
+						if f.Directory {
+							p.openPanel(panelRequest{Tab: "files", Directory: f.Path})
+						} else {
+							p.openFile(f.Path, f.Line)
+						}
+					}
+				}
+				done(err)
+			})
+		}
+		if p.catalog.conversation(request.Conversation) != nil {
+			open()
+			return
+		}
+		p.refresh(func(err error) {
+			if err != nil {
+				done(err)
+				return
+			}
+			open()
+		})
+	})
+}
+
+// busy reports a change the React tools asked of the Host and that is not
+// answered yet: an editor's save, a review's commit.
+func (t *tools) busy() bool {
+	for _, s := range []*webui.Surface{t.panel, t.automations, t.settings} {
+		if s != nil && s.Busy() {
+			return true
+		}
+	}
+	return false
 }

@@ -94,8 +94,9 @@ func (u *uiState) close() {}
 // View draws the page.
 func (p *Chat) View(c *ui.Context) {
 	p.ui.services = c.Services()
+	p.takeIntents()
 	p.env.Activity.Report("chat", p.draftDirty || p.ui.filesDirty,
-		p.busy || p.saving || p.opening || p.transferBusy || p.reconnecting, nil)
+		p.busy || p.saving || p.opening || p.transferBusy || p.reconnecting || p.tools.busy(), nil)
 	if p.ui.sidebar {
 		p.pollActivity()
 	}
