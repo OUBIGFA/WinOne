@@ -309,8 +309,10 @@ func (c *Client) request(id, method string, params any, deadline time.Time) (jso
 		if c.Cancelled() {
 			return nil, newError("cancelled", "操作已取消")
 		}
-		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, newError("timeout", "后台请求已取消或超时")
+		// A deadline met while reading the reply reads as the pipe's
+		// "i/o timeout"; it is the same timeout.
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, os.ErrDeadlineExceeded) {
+			return nil, newError("timeout", "后台响应超时，请稍后重试")
 		}
 		return nil, newError("transport", "无法连接后台："+err.Error())
 	}

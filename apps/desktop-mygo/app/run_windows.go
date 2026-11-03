@@ -173,7 +173,16 @@ func ensureHost(client *host.Client, pipe, directory string, launch plan) (inter
 	// that does not exist starts a Host.
 	name, _ := windows.UTF16PtrFromString(pipe)
 	if err := waitNamedPipe(name, 100); err == nil || !errors.Is(err, windows.ERROR_FILE_NOT_FOUND) {
-		return read()
+		// The Host runs but is busy (a module starting, say): wait for it
+		// as long as for a Host this window starts, not one more read.
+		deadline := time.Now().Add(8 * time.Second)
+		for {
+			snapshot, err = read()
+			if err == nil || client.Cancelled() || time.Now().After(deadline) {
+				return snapshot, err
+			}
+			time.Sleep(200 * time.Millisecond)
+		}
 	}
 	executable, err := os.Executable()
 	if err != nil {

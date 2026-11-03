@@ -17,12 +17,17 @@ type Lazy struct {
 	ctx                       context.Context
 	id, name, exe, pipe, data string
 	process                   *Process
-	everStarted               bool
-	closing                   bool
-	inflight                  sync.WaitGroup
-	privilege                 PrivilegeState
-	autorun                   bool
-	launchArgs                []string
+	// starting is closed when a worker launch, which waits up to eight
+	// seconds for the worker, ends. The launch runs without mu, so Status
+	// (the Host's snapshot reads every module's) answers meanwhile; while
+	// it is set no other caller launches or replaces the process.
+	starting    chan struct{}
+	everStarted bool
+	closing     bool
+	inflight    sync.WaitGroup
+	privilege   PrivilegeState
+	autorun     bool
+	launchArgs  []string
 }
 
 func NewLogonLazy(ctx context.Context, id, name, exe, pipe, data string, autorun bool) *Lazy {
@@ -37,6 +42,9 @@ func NewLazy(ctx context.Context, id, name, exe, pipe, data string, launchArgs .
 func (l *Lazy) Status() host.Module {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.starting != nil {
+		return host.Module{ID: l.id, Name: l.name, State: "starting", Detail: "正在启动"}
+	}
 	if l.process != nil {
 		s := l.process.Status()
 		if s.State != "stopped" {
@@ -53,10 +61,20 @@ func (l *Lazy) Handle(request host.Request) host.Response {
 		return l.handlePrivilege(request)
 	}
 	l.mu.Lock()
+	// A launch in progress serves this request too, once it ends.
+	for l.starting != nil {
+		wait := l.starting
+		l.mu.Unlock()
+		<-wait
+		l.mu.Lock()
+	}
 	if l.closing || l.privilege.State == "running" {
 		l.mu.Unlock()
 		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "stopping", Message: "模块正在退出"}}
 	}
+	// Close and privilege changes wait for in-flight work, the launch included.
+	l.inflight.Add(1)
+	defer l.inflight.Done()
 	exited := l.process == nil
 	if l.process != nil {
 		select {
@@ -74,22 +92,26 @@ func (l *Lazy) Handle(request host.Request) host.Response {
 			l.mu.Unlock()
 			return host.Response{ID: request.ID, Error: &host.RPCError{Code: "stopped", Message: "模块已退出，任务状态不可用"}}
 		}
+		autorun, args := l.autorun, l.launchArgs
 		if l.id == "wintray" && (request.Method == "deactivate" || request.Method == "uninstall.prepare") {
-			l.process = start(l.ctx, l.id, l.name, l.exe, l.pipe, l.data, false, false, "--recover-only")
-		} else {
-			l.process = start(l.ctx, l.id, l.name, l.exe, l.pipe, l.data, l.autorun, false, l.launchArgs...)
+			autorun, args = false, []string{"--recover-only"}
 		}
 		l.autorun = false
+		done := make(chan struct{})
+		l.starting = done
+		l.mu.Unlock()
+		started := start(l.ctx, l.id, l.name, l.exe, l.pipe, l.data, autorun, false, args...)
+		l.mu.Lock()
+		l.process, l.starting = started, nil
+		close(done)
 		// Creation is immutable once start returns. Keep the history even if a
 		// later launch fails; absence of a current process is not cleanup proof.
-		if l.process.pid != 0 {
+		if started.pid != 0 {
 			l.everStarted = true
 		}
 	}
 	p := l.process
-	l.inflight.Add(1)
 	l.mu.Unlock()
-	defer l.inflight.Done()
 	p.GrantForeground()
 	return p.Handle(request)
 }
@@ -110,9 +132,13 @@ func (l *Lazy) close(requireAcknowledgement bool) error {
 		return errors.New("请先完成或取消管理员授权")
 	}
 	l.closing = true
+	l.mu.Unlock()
+	// In-flight requests, a launch among them, finish before the process is
+	// read: the launch may only now have set it.
+	l.inflight.Wait()
+	l.mu.Lock()
 	p := l.process
 	l.mu.Unlock()
-	l.inflight.Wait()
 	if p == nil {
 		if requireAcknowledgement {
 			return errors.New("模块未启动，无法确认资源恢复")
@@ -144,7 +170,7 @@ func (l *Lazy) SuppressAutorun() { l.mu.Lock(); l.autorun = false; l.mu.Unlock()
 func (l *Lazy) Running() bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.privilege.State == "running" {
+	if l.privilege.State == "running" || l.starting != nil {
 		return true
 	}
 	if l.process == nil {

@@ -1,5 +1,9 @@
 using WinOne.Capture;
 
+if (args.Length == 1 && args[0] == "--many-windows") {
+    ManyWindowsTests.Run(); return 0;
+}
+
 if (args.Length == 1 && args[0] == "--menu-arrows") {
     NativeMenuArrowTests.Run(); return 0;
 }
@@ -53,6 +57,7 @@ if ((args.Length is 1 or 2) && args[0] == "-778")
 if (args.Length == 1 && args[0] == "--native-window-regions")
 {
     WindowCaptureRegionTests.Run();
+    ManyWindowsTests.Run();
     return 0;
 }
 

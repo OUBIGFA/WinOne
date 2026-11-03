@@ -38,6 +38,7 @@ internal static class Program
         if (args.Length == 2 && args[0] == "--native-toolbar-customization") return NativeToolbarCustomizationProbe.Run(args[1]);
         if (args.Length == 2 && args[0] == "--native-toolbar-preferences") return NativeToolbarPreferencesProbe.Run(args[1]);
         if (args.Length == 2 && args[0] == "--native-workflow-probe") return NativeCaptureWorkflowTests.Run(args[1]);
+        if (args.Length == 2 && args[0] == "--workflow-windows") return WorkflowWindowsProbe.Run(args[1]);
         if (args.Length == 4 && args[0] == "--component-lifetime") return ComponentLifetimeProbe.Run(args[1], args[2], args[3]);
         if (args.Length == 5 && args[0] == "--worker-probe") return NativeWorkerProbe.Run(args[1], args[2], args[3], args[4]);
         if (args.Length == 2 && args[0] == "--native-text-render-probe") return NativeTextRenderingProbe.Run(args[1]);
