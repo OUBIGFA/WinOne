@@ -36,6 +36,7 @@ type program struct {
 	Args                     string                       `json:"args"`
 	RunOnStartup             bool                         `json:"runOnStartup"`
 	CollectTrayIcon          bool                         `json:"collectTrayIcon"`
+	WeChatAutoLogin          bool                         `json:"wechatAutoLogin"`
 	LaunchViaLogonTask       bool                         `json:"launchViaLogonTask"`
 	LaunchHiddenInBackground bool                         `json:"launchHiddenInBackground"`
 	TrayBehavior             core.Preserved[trayBehavior] `json:"trayBehavior"`
@@ -91,6 +92,13 @@ func same(a, b core.Preserved[traySettings]) bool {
 // programs can be started by the sign-in task, collapse into the tray or
 // have their tray icon collected.
 func executable(path string) bool { return strings.EqualFold(filepath.Ext(path), ".exe") }
+
+// weChatProgram reports whether the path is one of the WeChat desktop clients.
+// Only those clients expose the login window the auto-login option drives.
+func weChatProgram(path string) bool {
+	name := baseName(path)
+	return strings.EqualFold(name, "Weixin.exe") || strings.EqualFold(name, "WeChat.exe")
+}
 
 // samePath compares paths as Windows does, whatever the slashes and case.
 func samePath(a, b string) bool {

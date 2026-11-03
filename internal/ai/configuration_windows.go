@@ -242,6 +242,7 @@ func (s *Store) ForTaskKeys(task string, override *Selection) (Preferences, KeyP
 	p.ProviderIcon = provider.DisplayIcon()
 	p.AdditionalTools = provider.AdditionalTools
 	p.LimitRestOff = provider.LimitRestOff
+	p.ProviderPreferences = provider.ProviderPreferences.clone()
 	p.Headers = maps.Clone(provider.Headers)
 	p.ModelMetadata = provider.ModelMetadataFor(selection.Model)
 	p.RequestLimits = provider.RequestLimits

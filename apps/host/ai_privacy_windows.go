@@ -77,6 +77,8 @@ func (s *aiService) handlePrivacyModel(r host.Request) host.Response {
 	var input struct {
 		Viewer string `json:"viewer"`
 		Action string `json:"action,omitempty"`
+		Model string `json:"model,omitempty"`
+		Score float64 `json:"score,omitempty"`
 	}
 	if err := configjson.DecodeObject(r.Params, &input); err != nil {
 		return fail(err)
@@ -92,12 +94,13 @@ func (s *aiService) handlePrivacyModel(r host.Request) host.Response {
 	default:
 		return fail(errors.New("不支持的隐私模型操作"))
 	}
-	if r.Method != "magpie.privacy.action" && input.Action != "" {
+	if r.Method != "magpie.privacy.action" && (input.Action != "" || input.Model != "" || input.Score != 0) {
 		return fail(errors.New("状态读取不能修改隐私模型"))
 	}
-	if r.Method == "magpie.privacy.action" && input.Action != "on" && input.Action != "off" && input.Action != "cancel" && input.Action != "remove" {
+	if r.Method == "magpie.privacy.action" && input.Action != "on" && input.Action != "off" && input.Action != "cancel" && input.Action != "remove" && input.Action != "pick" && input.Action != "score" {
 		return fail(errors.New("隐私模型操作无效"))
 	}
+	if input.Model != "" && input.Model != "privacy-filter" && input.Model != "astrlink-guard" || input.Score != 0 && (input.Score < 0.5 || input.Score >= 1) { return fail(errors.New("本地隐私模型或置信阈值无效")) }
 	s.privacy.mu.Lock()
 	if s.privacy.viewers == nil {
 		s.privacy.viewers = map[string]bool{}
@@ -111,7 +114,7 @@ func (s *aiService) handlePrivacyModel(r host.Request) host.Response {
 	}
 	ctx, cancel := context.WithTimeout(s.ctx, 30*time.Second)
 	defer cancel()
-	state, err := process.PrivacyModel(ctx, input.Action)
+	state, err := process.PrivacyModelChoice(ctx, input.Action, input.Model, input.Score)
 	if err != nil {
 		return fail(err)
 	}

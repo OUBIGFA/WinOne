@@ -235,6 +235,7 @@ func configuredProvider(in request) (provider.Provider, error) {
 	}
 	p.AdditionalTools = in.AdditionalTools
 	p.LimitRestOff = in.LimitRestOff
+	if err := applyProviderPreferences(&p, in); err != nil { return p, err }
 	// Magpie applies these after protocol authentication, preserving names and
 	// merging list-valued headers through the same path as its provider editor.
 	for name, value := range in.Headers {
@@ -265,6 +266,7 @@ func fetchModels(ctx context.Context, in request) ([]modelOption, error) {
 		}
 		p = *account
 		p.LimitRestOff = in.LimitRestOff
+		if err := applyProviderPreferences(&p, in); err != nil { return nil, err }
 	} else {
 		p, err = configuredProvider(in)
 		if err != nil {

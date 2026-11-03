@@ -372,6 +372,13 @@ func (a *advancedPanel) receiveRecords(m web.Message) {
 
 // privacyStatus is the local privacy model's state.
 type privacyStatus struct {
+	Model string `json:"model"`
+	MinScore float64 `json:"minScore"`
+	DefaultScore float64 `json:"defaultScore"`
+	Models []privacyStatus `json:"models,omitempty"`
+	Via string `json:"via,omitempty"`
+	Loading bool `json:"loading,omitempty"`
+	Waiting float64 `json:"waiting,omitempty"`
 	On          *bool   `json:"on"`
 	Supported   *bool   `json:"supported"`
 	Installed   bool    `json:"installed"`
@@ -413,6 +420,9 @@ func newPrivacyModel(p *page) *privacyModel {
 
 // load asks the Host for the state, or acts; a newer request wins.
 func (m *privacyModel) load(method, action string) {
+	m.loadChoice(method, action, "", 0)
+}
+func (m *privacyModel) loadChoice(method, action, model string, score float64) {
 	p := m.p
 	m.sequence++
 	ticket := m.sequence
@@ -422,7 +432,7 @@ func (m *privacyModel) load(method, action string) {
 	if m.state == nil {
 		m.busy = true
 	}
-	params := map[string]string{"viewer": m.viewer}
+	params := map[string]any{"viewer": m.viewer, "model": model, "score":score}
 	if action != "" {
 		params["action"] = action
 	}
@@ -484,6 +494,14 @@ func (m *privacyModel) View(c *ui.Context, disabled bool) {
 		size = s.Size
 	}
 	sizeText := strconv.FormatFloat(size/1e9, 'f', 1, 64) + " GB"
+	if size < 1e9 { sizeText = strconv.FormatFloat(size/1e6, 'f', 1, 64) + " MB" }
+	if s != nil && len(s.Models)>0 {
+		model:=s.Model
+		if choiceRow(c,i18n.T("ai.privacyModelChoice"),"",&model,options("astrlink-guard","AstrLink Guard","privacy-filter","Privacy Filter"),disabled||m.busy) {m.loadChoice("action","pick",model,0)}
+		score:=s.MinScore
+		numberRow(c,i18n.T("ai.privacyModelScore"),&score,0.5,0.999,false,"",disabled||m.busy,func(v *float64){if v!=nil{m.loadChoice("action","score",s.Model,*v)}})
+		if kit.GhostButton(c,i18n.T("ai.privacyDefaultScore"),icons.RotateCcw,false).Disabled(disabled||m.busy).Clicked(){m.loadChoice("action","score",s.Model,0)}
+	}
 	description := i18n.T("ai.privacyModelHint", "size", sizeText)
 	if s != nil {
 		supported, on := *s.Supported, *s.On

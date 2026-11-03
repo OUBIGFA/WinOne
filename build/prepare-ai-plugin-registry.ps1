@@ -55,9 +55,11 @@ Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_registry_test.
 $relative='internal/gui/pluginpage.go'
 $source=(& git -C $SourceDirectory show ($Revision+':'+$relative)) -join [Environment]::NewLine
 if($LASTEXITCODE -ne 0){throw 'Cannot read upstream plugin page policy'}
-$from='own = r.Host + pluginPagePrefix + tok + "/"'
+$from='func ownSources(r *http.Request, path string) []string {'
 if(-not $source.Contains($from)){throw 'Upstream plugin page policy changed'}
-$source=$source.Replace($from,'own = r.Host + winOnePagePrefix(r) + pluginPagePrefix + tok + "/"')
+# New upstream scopes both sandbox assets and page-service CSP here. Carry
+# the authenticated prefix through both without widening the allowed origin.
+$source=$source.Replace($from,$from+' path=winOnePagePrefix(r)+path;')
 [IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$source+[Environment]::NewLine,$utf8)
 
 # Installed rows belong to the user's registry; verified request overlays are

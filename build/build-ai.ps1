@@ -36,6 +36,13 @@ New-Item -ItemType Directory -Force -Path $entry,$output | Out-Null
 if($LASTEXITCODE -ne 0){throw 'Bundled account plugin preparation failed'}
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/main.go'),(Join-Path $root 'modules/ai-magpie/main_test.go'),(Join-Path $root 'modules/ai-magpie/accounts.go'),(Join-Path $root 'modules/ai-magpie/stream_test.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/stream.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/provider_preferences.go') -Destination $entry
+# One typed provider-options contract is shared with the Host. Only its
+# package name changes; the proxy validator is already a reviewed extract.
+foreach($relative in @('provider_preferences.go','magpie_proxy.go')) {
+ $dto=[IO.File]::ReadAllText((Join-Path $root ('internal/ai/'+$relative))).Replace('package ai','package main')
+ [IO.File]::WriteAllText((Join-Path $entry ('host_'+$relative)),$dto,$encoding)
+}
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/icons.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/gateway.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/signin_state_test.go') -Destination $entry
@@ -63,8 +70,9 @@ $text=[IO.File]::ReadAllText($provider).Replace('return append([]Provider(nil), 
 [IO.File]::WriteAllText((Join-Path $source 'internal/provider/winone_embedded.go'),"package provider`n// Set once before serving a WinOne request; never persisted.`nvar WinOneProviders []Provider`nvar WinOneSearchModels map[string]bool`nfunc WinOneAccountIDs() []string { return append([]string(nil), accountIDs...) }`nfunc winOneConfiguredProviders() []Provider { result := make([]Provider, len(WinOneProviders)); for i, p := range WinOneProviders { result[i] = normalize(p) }; return result }`n",$encoding)
 $models=Join-Path $source 'internal/provider/models.go'
 $text=(& git -C $source show "${revision}:internal/provider/models.go") -join "`n"
-if(-not $text.Contains('ms := p.available()')){throw 'Upstream provider model metadata boundary changed'}
-$text=$text.Replace('ms := p.available()', 'ms := p.available(); if len(WinOneSearchModels)>0 { ms=slices.Clone(ms); for _,id:=range p.Models { if WinOneSearchModels[p.ID+"/"+id] && !slices.ContainsFunc(ms,func(m catalog.Model)bool{return m.ID==id}) { ms=append(ms,catalog.Model{ID:id,Name:id}) } }; for i,m:=range ms { if WinOneSearchModels[p.ID+"/"+m.ID] { ms[i].WebSearch="native" } } }')
+if(-not $text.Contains('ms := p.ids().list(p.available())')){throw 'Upstream provider model metadata boundary changed'}
+# Preserve upstream Listed as model IDs before adding Host-declared native search.
+$text=$text.Replace('ms := p.ids().list(p.available())', 'ms := p.ids().list(p.available()); if len(WinOneSearchModels)>0 { ms=slices.Clone(ms); for _,id:=range p.Models { if WinOneSearchModels[p.ID+"/"+id] && !slices.ContainsFunc(ms,func(m catalog.Model)bool{return m.ID==id}) { ms=append(ms,catalog.Model{ID:id,Name:id}) } }; for i,m:=range ms { if WinOneSearchModels[p.ID+"/"+m.ID] { ms[i].WebSearch="native" } } }')
 [IO.File]::WriteAllText($models,$text+"`n",$encoding)
 $accounts=Join-Path $source 'internal/provider/account.go'
 $text=[IO.File]::ReadAllText($accounts)

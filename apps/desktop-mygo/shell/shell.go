@@ -27,9 +27,8 @@ type WindowPort interface {
 	ApproveClose()
 	// CancelClose forgets a close the user declined.
 	CancelClose()
-	// ApplySettings applies the snapshot's theme and whether closing
-	// keeps the window in the background.
-	ApplySettings(theme string, keepRunning bool)
+	// ApplySettings applies the snapshot's theme.
+	ApplySettings(theme string)
 }
 
 // Options configure a Shell.
@@ -161,11 +160,7 @@ func (s *Shell) apply(snapshot internalhost.Snapshot) {
 	s.snapshot, s.loaded = snapshot, true
 	settings := snapshot.Settings
 	i18n.SetLocale(i18n.Resolve(settings.Language, snapshot.Locale))
-	keep := true
-	if settings.Startup != nil && settings.Startup.KeepUIRunning != nil {
-		keep = *settings.Startup.KeepUIRunning
-	}
-	s.window.ApplySettings(settings.Theme, keep)
+	s.window.ApplySettings(settings.Theme)
 	if first && !s.initial {
 		s.initial = true
 		s.requestPage(s.defaultPage(), nil)
@@ -315,8 +310,8 @@ func (s *Shell) RequestClose() bool {
 // Activity reports the page's unsaved changes and running work.
 func (s *Shell) Activity() (dirty, busy bool) { return s.env.Activity.State() }
 
-// Discarded resets every page after the user discarded changes and the
-// window stayed in the background, so it reopens without the old draft.
+// Discarded releases the current page and its UI-local drafts, either on
+// final window close or after an approved page transition.
 func (s *Shell) Discarded() {
 	s.env.Activity.Reset()
 	s.closePage()

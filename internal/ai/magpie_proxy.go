@@ -1,4 +1,4 @@
-// Generated from yetone/magpie 42ec2700bd2a4cf8d4ceb76a95767ac221e283e5; MIT.
+// Generated from yetone/magpie 22f5cf69e583dab7723523be514cbafc9c870ebd; MIT.
 // Only package and function names change; see third_party/magpie-proxy-source.json.
 package ai
 

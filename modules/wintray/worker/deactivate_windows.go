@@ -52,12 +52,9 @@ func (r *Runtime) startResourceRelease(uninstall bool) job {
 					return nil, err
 				}
 			}
-			if err := r.onUI(func() error {
-				if err := r.box.Close(); err != nil {
-					return err
-				}
-				return nil
-			}); err != nil {
+			// Deactivation/maintenance is retryable, not terminal process exit.
+			// Keep the selected collector alive if Explorer refuses restoration.
+			if err := r.onUI(func() error { return r.box.SetPaths(nil) }); err != nil {
 				return nil, err
 			}
 			if err := r.restoreHostedWindows(); err != nil {

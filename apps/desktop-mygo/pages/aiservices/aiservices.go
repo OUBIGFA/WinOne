@@ -89,6 +89,7 @@ type page struct {
 	advancedTab int
 	// pluginInvalid holds Save while a plugin's options are not JSON.
 	pluginInvalid bool
+	preferenceFields map[string]*preferenceField
 	// maskRecord opens the privacy records at one record.
 	maskRecord string
 	// focusModels moves to the model list after the overview opens a
@@ -147,7 +148,7 @@ func (p *page) navigationLocked() bool {
 func (p *page) locked() bool { return p.navigationLocked() || p.loading }
 
 func (p *page) dirty() bool {
-	return p.draft != nil && (!equal(p.draft, p.saved) || len(p.keys) > 0)
+	return p.draft != nil && (!equal(p.draft, p.saved) || len(p.keys) > 0 || p.preferencesInvalid())
 }
 
 // load reads the configuration, replacing the draft; Undo and discarding
@@ -186,11 +187,12 @@ func (p *page) accept(value document) {
 	saved, draft := clone(value), clone(value)
 	p.saved, p.draft = &saved, &draft
 	p.keys = keyEdits{}
+	p.preferenceFields = nil
 	p.savedGen++
 }
 
 func (p *page) save() {
-	if p.draft == nil || p.locked() || p.pluginInvalid {
+	if p.draft == nil || p.locked() || p.pluginInvalid || p.preferencesInvalid() {
 		return
 	}
 	p.saving, p.err = true, ""
@@ -697,7 +699,7 @@ func (p *page) rail() {
 	}
 	dirty := p.dirty()
 	p.env.Rail.Set(
-		core.Action{Label: i18n.T("ai.save"), Disabled: !dirty || p.locked() || p.pluginInvalid, Busy: p.saving, Run: p.save},
+		core.Action{Label: i18n.T("ai.save"), Disabled: !dirty || p.locked() || p.pluginInvalid || p.preferencesInvalid(), Busy: p.saving, Run: p.save},
 		core.Action{Disabled: !dirty || p.locked(), Run: p.load},
 	)
 }

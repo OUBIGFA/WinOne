@@ -112,7 +112,11 @@ func (t Translator) startMode(ctx context.Context, signingIn bool) (*aiProcess, 
 			return nil, err
 		}
 		if address != "" {
-			cmd.Env = append(cmd.Env, "WINONE_AI_PRIVACY_URL="+address, "WINONE_AI_PRIVACY_KEY="+key)
+			choice, err := t.privacyPreferences()
+			if err != nil { return nil, err }
+			model:=choice.Model; if model==""{model="privacy-filter"}
+			scores, _ := json.Marshal(choice.Scores)
+			cmd.Env = append(cmd.Env, "WINONE_AI_PRIVACY_URL="+address, "WINONE_AI_PRIVACY_KEY="+key, "WINONE_AI_PRIVACY_MODEL="+model, "WINONE_AI_PRIVACY_SCORE="+string(scores))
 		}
 	}
 	// Share user-installed plugin code, while isolatedEnvironment keeps auth

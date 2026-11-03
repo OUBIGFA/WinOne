@@ -411,7 +411,7 @@ func (t *peerTask) View(c *ui.Context, item taskRecord, kind string, busy bool, 
 			}
 		})
 		if !published && t.qrOn && s.QR != "" {
-			qrImage(c, s.QR, tr("qr"))
+			ui.Column(c).FillWidth().AlignItems(ui.Center).Children(func() { qrImage(c, s.QR, tr("qr")) })
 		}
 		if t.browsing && s.Ready && s.Address != "" && kind == "share" && !server {
 			address := "http://" + s.Address
@@ -454,12 +454,12 @@ func (t *peerTask) routes(c *ui.Context, id string, s taskState, addresses []sha
 	ui.Column(c).FillWidth().Gap(8).Role(ui.RoleGroup).Label(tr("lanReceive")).Children(func() {
 		kit.Strong(c, tr("lanReceive"))
 		kit.Help(c, tr("lanReceiveHint"))
-		if phoneQR != "" {
-			qrImage(c, "data:image/svg+xml;charset=utf-8,"+url.PathEscape(phoneQR), tr("lanQR"))
-		}
-		if phoneURL != "" {
-			ui.Row(c).Children(func() {
-				if kit.Button(c, tr("copyPhoneLink"), icons.Copy, false).Clicked() {
+		if phoneQR != "" || phoneURL != "" {
+			ui.Column(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+				if phoneQR != "" {
+					qrImage(c, "data:image/svg+xml;charset=utf-8,"+url.PathEscape(phoneQR), tr("lanQR"))
+				}
+				if phoneURL != "" && kit.Button(c, tr("copyPhoneLink"), icons.Copy, false).Clicked() {
 					copy(phoneURL)
 				}
 			})
@@ -503,15 +503,15 @@ func (t *peerTask) codeTransfer(c *ui.Context, id string, state codeTransfer, bu
 		}
 		kit.Help(c, tr(hint))
 		if state.Status == "running" && state.BrowserURL != "" {
-			if state.QR != "" {
-				qrImage(c, state.QR, tr("internetQR"))
-			}
-			ui.Row(c).Children(func() {
+			ui.Column(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+				if state.QR != "" {
+					qrImage(c, state.QR, tr("internetQR"))
+				}
 				if kit.Button(c, tr("copyInternetLink"), icons.Copy, false).Clicked() {
 					copy(state.BrowserURL)
 				}
+				kit.Help(c, tr("browserReceiveSteps")).TextAlign(ui.Center)
 			})
-			kit.Help(c, tr("browserReceiveSteps"))
 		}
 		if state.Status == "running" && state.Code != "" && state.BrowserURL == "" {
 			kit.Help(c, tr("nativeCodeOnly"))

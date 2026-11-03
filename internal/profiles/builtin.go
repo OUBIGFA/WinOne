@@ -127,7 +127,13 @@ func ExportBuiltinSettings(id string, raw json.RawMessage, options ExportOptions
 		seen := map[string]bool{}
 		for index, entry := range entries {
 			var app map[string]any
-			app, err = projectFields(entry, "id:s name:s runOnStartup:b collectTrayIcon:b launchViaLogonTask:b launchHiddenInBackground:b")
+			fields := "id:s name:s runOnStartup:b collectTrayIcon:b launchViaLogonTask:b launchHiddenInBackground:b"
+			// This opt-in preference was added after the first portable format;
+			// retain it when present without requiring it in legacy profiles.
+			if _, exists := entry["wechatAutoLogin"]; exists {
+				fields += " wechatAutoLogin:b"
+			}
+			app, err = projectFields(entry, fields)
 			if err != nil {
 				break
 			}

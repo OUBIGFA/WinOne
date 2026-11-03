@@ -318,7 +318,6 @@ func (p *page) startup(c *ui.Context, disabled bool) {
 	if p.settings.Startup != nil {
 		startup = *p.settings.Startup
 	}
-	keep := startup.KeepUIRunning == nil || *startup.KeepUIRunning
 	kit.Group(c, icons.Power, i18n.T("startup.title"), "", func() {
 		// Each switch saves its own field, merged into the Host's current
 		// startup preferences.
@@ -336,10 +335,6 @@ func (p *page) startup(c *ui.Context, disabled bool) {
 		}
 		if kit.Toggle(c, &silent, i18n.T("startup.silent"), i18n.T("startup.silentHint")).Disabled(disabled).Changed() {
 			save(func(s *internalsettings.StartupPreferences) { s.StartMinimized = silent })
-		}
-		if kit.Toggle(c, &keep, i18n.T("startup.keepUI"), i18n.T("startup.keepUIHint")).Disabled(disabled).Changed() {
-			value := keep
-			save(func(s *internalsettings.StartupPreferences) { s.KeepUIRunning = &value })
 		}
 	})
 	p.shortcuts.View(c)

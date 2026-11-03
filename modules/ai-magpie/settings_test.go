@@ -51,7 +51,10 @@ func TestRuntimeRedactionRestoresResponseAndUsesWireName(t *testing.T) {
 				}
 			}
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"id": "test", "object": "chat.completion", "model": body.Model, "choices": []any{map[string]any{"index": 0, "message": map[string]any{"role": "assistant", "content": receivedText}, "finish_reason": "stop"}}})
+		// Current Magpie appends guidance about using masking placeholders.
+		// Echo the user's line, not the instruction text, as a vendor answer.
+		reply, _, _ := strings.Cut(receivedText, "\n\nValues written like ")
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": "test", "object": "chat.completion", "model": body.Model, "choices": []any{map[string]any{"index": 0, "message": map[string]any{"role": "assistant", "content": reply}, "finish_reason": "stop"}}})
 	}))
 	defer server.Close()
 	in := request{Protocol: "chat", BaseURL: server.URL + "/v1", Model: "gpt-4.1", Text: "private-project", ModelMetadata: modelMetadata{UpstreamName: "wire-model"}, MagpieSettings: json.RawMessage(`{"redact":true,"redactWords":["private-project"]}`)}

@@ -50,6 +50,26 @@ if(contextEnd<0)throw Error('Magpie context-card export changed');
 const routingContext=context.slice(0,contextEnd+'window.ctxFmt = fmtK;'.length)+'\n})();\n';
 const originalRouting=await read('plugins/routing/client.js');
 let routing=originalRouting;
+// Sign-in still belongs to the saved WinOne account editor. Keep the new
+// routing-card action without pulling Magpie's entire Providers page in.
+const signInEdits=[];
+traverse(parse(routing,{sourceType:'script'}),{FunctionDeclaration(p){if(p.node.id?.name==='signInAgain')signInEdits.push([p.node.start,p.node.end,'async function signInAgain(w) { return window.winOneRoutingSignIn(w); }']);}});
+if(signInEdits.length!==1)throw Error('Review routing sign-in action boundary');
+for(const [a,b,value]of signInEdits)routing=routing.slice(0,a)+value+routing.slice(b);
+// Upstream split its body viewer and archive/HTTP-header panels out of
+// app.js. Extract only those shared helpers, never their page registration.
+const gatewayClient=await read('plugins/gateway/client.js'),usagePage=await read('plugins/usage/page.js');
+const bodyStart=gatewayClient.indexOf('// A recorded call\'s request and response bodies,');
+const archiveStart=usagePage.indexOf('const archivedCalls ='),archiveEnd=usagePage.indexOf('const PERIODS =');
+if(bodyStart<0||archiveStart<0||archiveEnd<archiveStart)throw Error('Review routing body/archive helper boundary');
+let archiveHelpers=usagePage.slice(archiveStart,archiveEnd);
+const downloadStart=archiveHelpers.indexOf('async function downloadArchive(name, b) {'),downloadEnd=archiveHelpers.indexOf('// one body read back from the archive:',downloadStart);
+if(downloadStart<0||downloadEnd<0)throw Error('Review routing archive export boundary');
+archiveHelpers=archiveHelpers.slice(0,downloadStart)+'async function downloadArchive(name, b) { return window.winOneRoutingArchive(name, b); }\n\n'+archiveHelpers.slice(downloadEnd);
+source+='\n'+gatewayClient.slice(bodyStart)+'\n'+archiveHelpers;
+// These lazy files are now included above. Their page render callbacks do
+// not apply to this routing-only document.
+source=source.replace('import("./quotaall.js").then(() => renderQuotas(), () => {})','import("./quotaall.js").then(() => window.dispatchEvent(new Event("winone-routing-quotas")))');
 // These are presentation boundaries, not a second routing implementation.
 // Keep every editor, template, setting, trace and permission callback intact.
 const {createElement}=require('react'),{renderToStaticMarkup}=require('react-dom/server'),{Waypoints}=require('lucide-react');
@@ -74,7 +94,7 @@ function referenced(p){
 }
 const seed=new Set(['scrollOnPurpose','redrawNoNames','closePicker','filter','move','commit','toggleFold','prefsSettled']);
 for(const text of roots)traverse(parse(text,{sourceType:'script'}),{Identifier(p){if((p.isReferencedIdentifier()||p.isBindingIdentifier())&&!p.scope.getBinding(p.node.name))seed.add(p.node.name);}});
-const overrides=new Set(['openMaskRecord','load','loadProviders','show','mode','state','view','applyPrefs','fit']);
+const overrides=new Set(['openMaskRecord','load','loadProviders','show','mode','state','view','applyPrefs','fit','usagePageJS']);
 const selected=new Set(),names=new Set(),queue=[...seed];
 const reasons=new Map([...seed].map(name=>[name,'routing plugin']));
 const enqueue=(refs,reason)=>{for(const name of refs){if(!reasons.has(name))reasons.set(name,reason);queue.push(name);}};
@@ -123,7 +143,7 @@ const page=`<!doctype html>
 <link rel="stylesheet" href="app.css"><link rel="stylesheet" href="plugins/routing/routing.css"><link rel="stylesheet" href="plugins/library/library.css"><link rel="stylesheet" href="context.css"><link rel="stylesheet" href="winone-ai-settings.css"><link rel="stylesheet" href="winone-routing.css"></head>
 <body class="window win"><svg width="0" height="0" aria-hidden="true" class="winone-routing-defs">${html.serializeOuter(bird)}</svg>
 <template data-slot="page"></template><span id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></span>${only('modal')}${only('pop')}
-<script src="i18n.js"></script><script src="kernel.js"></script><script src="plugins/routing/i18n.js"></script><script src="plugins/usage/i18n.js"></script><script src="purposes.js"></script>
+<script src="i18n.js"></script><script src="kernel.js"></script><script src="plugins/routing/i18n.js"></script><script src="plugins/usage/i18n.js"></script><script src="purposes.js"></script><script>function usagePageJS(){return Promise.resolve();}</script>
 <script src="winone-routing-client.js"></script><script src="winone-routing-shared.js"></script><script src="winone-routing-context.js"></script><script src="winone-routing.js"></script></body></html>\n`;
 const revision=execFileSync('git',['-C',sourceRoot,'rev-parse','HEAD'],{encoding:'utf8',windowsHide:true}).trim();
 const hash=value=>createHash('sha256').update(value).digest('hex');

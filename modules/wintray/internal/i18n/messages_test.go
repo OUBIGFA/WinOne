@@ -179,3 +179,12 @@ func TestTranslateResultCode_UsesTypedCode(t *testing.T) {
 		t.Fatalf("TranslateResultCode(unknown) = %q, want empty", got)
 	}
 }
+
+func TestScriptAssociationErrorGivesNextStep(t *testing.T) {
+	for _, language := range []string{"zh-CN", "en-US"} {
+		text := TranslateResultCode(language, "script_association_missing")
+		if !strings.Contains(text, "AutoHotkey") || !strings.Contains(text, ".ahk") {
+			t.Fatalf("%s association error lacks installation guidance: %q", language, text)
+		}
+	}
+}

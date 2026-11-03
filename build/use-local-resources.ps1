@@ -7,8 +7,8 @@ $resourcePaths = @{
     CargoExe = 'dist/resources/tools/rust-1.99.0/bin/cargo.exe'
     ShareXSourceDirectory = 'dist/resources/sources/ShareX-native'
     OcrRuntimeDirectory = 'dist/resources/runtimes/ocr-3.10.0'
-    MagpieSourceDirectory = 'dist/resources/sources/magpie-42ec270'
-    PluginSourceDirectory = 'dist/resources/sources/ai-plugins-e513644'
+    MagpieSourceDirectory = 'dist/resources/sources/magpie-22f5cf6'
+    PluginSourceDirectory = 'dist/resources/sources/ai-plugins-1ed2f55'
     BunExe = 'dist/resources/tools/bun-1.4.2/bun.exe'
     RustTargetDirectory = 'dist/resources/cache/rust-desktop'
     DiagramTargetDirectory = 'dist/resources/cache/rust-diagrams'
@@ -32,6 +32,10 @@ if (-not (Test-Path -LiteralPath $WinOneNsisExe)) { throw "Missing registered in
 $env:GOROOT = Split-Path -Parent (Split-Path -Parent $WinOneBuildParameters.GoExe)
 $env:CARGO_HOME = Join-Path $resourceRepository 'dist/resources/cache/cargo'
 $env:GOCACHE = Join-Path $resourceRepository 'dist/resources/cache/go'
+# Dependency downloads and tool helpers belong to the repository as well.
+# Existing user caches can be read as a file proxy during initial preparation.
+$env:GOMODCACHE = Join-Path $resourceRepository 'dist/resources/cache/go-mod'
+$env:GOPATH = Join-Path $resourceRepository 'dist/resources/cache/go-path'
 $env:npm_config_cache = Join-Path $resourceRepository 'dist/resources/cache/npm'
 
 # Icon generation fills this cache only when local source inputs change.

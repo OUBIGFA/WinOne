@@ -24,6 +24,7 @@ import (
 )
 
 type request struct {
+	ProviderPreferences *ProviderPreferences `json:"providerPreferences,omitempty"`
 	Archive            string                   `json:"archive,omitempty"`
 	LimitRestOff       bool                     `json:"limitRestOff,omitempty"`
 	BalanceKeys        []provider.KeyAccount    `json:"balanceKeys,omitempty"` // Private saved-key snapshot; never a UI response.
@@ -122,6 +123,7 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 		}
 		model = account.ID + "/" + in.Model
 		account.LimitRestOff = in.LimitRestOff
+		if err := applyProviderPreferences(account, in); err != nil { return "", err }
 		provider.WinOneProviders = []provider.Provider{*account}
 	} else {
 		p, err := configuredProvider(in)

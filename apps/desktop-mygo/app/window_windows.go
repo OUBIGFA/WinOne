@@ -4,7 +4,6 @@ package app
 
 import (
 	"errors"
-	"sync/atomic"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -19,10 +18,9 @@ import (
 	internalhost "winone/internal/host"
 )
 
-// window is the settings window and its lifetime: closing keeps it in the
-// background when the settings say so, unsaved changes and running work
-// ask first, and the Host's tray exit (WM_CLOSE with wParam 1) or its
-// normal exit closes it for good.
+// window owns the settings UI and its lifetime. Closing releases the UI
+// process after the unsaved-change/running-work guard; the Host and its
+// enabled modules keep their own lifetimes.
 type window struct {
 	options  Options
 	launch   plan
@@ -33,10 +31,6 @@ type window struct {
 	instance *instance
 	place    *placement
 
-	keepRunning bool
-	// exit is set by the Host's tray exit and by a Host that ended: the
-	// next close ends the process instead of hiding the window.
-	exit     atomic.Bool
 	approved bool
 	shown    bool
 	stop     chan struct{}
@@ -59,7 +53,7 @@ func runWindow(o Options, launch plan) error {
 		inst.close()
 		return err
 	}
-	w := &window{options: o, launch: launch, client: client, instance: inst, keepRunning: true, stop: make(chan struct{})}
+	w := &window{options: o, launch: launch, client: client, instance: inst, stop: make(chan struct{})}
 	env := &core.Env{Host: client, Dialogs: dialogs{w: w}}
 	env.Post = func(fn func()) {
 		if w.win != nil && !w.win.IsDestroyed() {
@@ -117,7 +111,7 @@ func settingsWindowOptions(content mygo.Content) mygo.WindowOptions {
 func (w *window) open() {
 	w.win = mygo.NewWindow(settingsWindowOptions(ui.View(w.shell.View)))
 	w.hwnd = w.win.NativeHandle()
-	subclass(w.hwnd, &w.exit)
+	subclass(w.hwnd)
 	if err := w.instance.attach(w.hwnd, w.wake); err != nil {
 		reportError(err)
 	}
@@ -140,10 +134,7 @@ func (w *window) open() {
 		go func() {
 			code, ended := server.Wait(w.stop)
 			if ended && code == 0 && !w.client.Cancelled() {
-				w.win.Update(func() {
-					w.exit.Store(true)
-					w.win.Close()
-				})
+				w.win.Update(w.win.Close)
 			}
 		}()
 	})
@@ -170,7 +161,6 @@ func (w *window) reveal() {
 }
 
 func (w *window) onClose(e *mygo.CloseEvent) {
-	exit := w.exit.Load()
 	if w.approved {
 		w.approved = false
 	} else if !w.shell.RequestClose() {
@@ -180,12 +170,12 @@ func (w *window) onClose(e *mygo.CloseEvent) {
 		w.win.Invalidate()
 		return
 	}
+	// The guard has accepted closing. Hide before placement I/O or page
+	// teardown so slower WebView/room disposal cannot leave a frozen UI
+	// onscreen. Do not prevent this close: resources and the process still
+	// end below, even if a legacy profile has keepUIRunning=true.
+	w.win.Hide()
 	w.place.save(w.hwnd)
-	if w.keepRunning && !exit {
-		e.PreventDefault()
-		w.win.Hide()
-		return
-	}
 	// The page ends with the window: it releases what it holds in the
 	// Host (the flash chat leaves its room and stops its shares) while
 	// the Host can still be reached.
@@ -207,21 +197,16 @@ func (w *window) Close() { w.win.Close() }
 
 // ApproveClose implements shell.WindowPort: the user discarded changes.
 func (w *window) ApproveClose() {
-	if w.keepRunning && !w.exit.Load() {
-		// The window stays in the background: reopening must not show
-		// the discarded draft.
-		w.shell.Discarded()
-	}
 	w.approved = true
 	w.win.Close()
 }
 
-// CancelClose implements shell.WindowPort.
-func (w *window) CancelClose() { w.exit.Store(false) }
+// CancelClose implements shell.WindowPort. A declined close has changed
+// neither visibility nor lifetime, so there is no exit flag to reset.
+func (w *window) CancelClose() {}
 
 // ApplySettings implements shell.WindowPort.
-func (w *window) ApplySettings(theme string, keepRunning bool) {
-	w.keepRunning = keepRunning
+func (w *window) ApplySettings(theme string) {
 	switch theme {
 	case "dark":
 		mygo.Theme.SetSource(mygo.ThemeDark)
@@ -235,13 +220,7 @@ func (w *window) ApplySettings(theme string, keepRunning bool) {
 var (
 	procCallWindowProcW = user32.NewProc("CallWindowProcW")
 	subclassed          uintptr
-	exitFlag            *atomic.Bool
 	subclassProc        = windows.NewCallback(func(hwnd, message, wparam, lparam uintptr) uintptr {
-		// The Host's tray exit sends WM_CLOSE with wParam 1: an exit, not a
-		// close to the background. MyGo's close event does not carry it.
-		if message == 0x0010 && wparam == 1 && exitFlag != nil {
-			exitFlag.Store(true)
-		}
 		if name := voicePowerEvent(message, wparam); name != "" {
 			webui.DispatchAll(name)
 		}
@@ -252,8 +231,7 @@ var (
 
 const gwlpWndProc = ^uintptr(3) // GWLP_WNDPROC (-4)
 
-func subclass(hwnd uintptr, exit *atomic.Bool) {
-	exitFlag = exit
+func subclass(hwnd uintptr) {
 	subclassed, _, _ = procSetWindowLongPtrW.Call(hwnd, gwlpWndProc, subclassProc)
 	// Locking the workstation reaches the window only once it asks; a
 	// failure leaves suspend as the only stop of a microphone.

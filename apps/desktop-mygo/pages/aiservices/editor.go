@@ -253,6 +253,7 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 			}
 		})
 	}
+	if pr.AuthMode == "account" { e.preferences(c, pr, locked) }
 	section := ui.Column(c).FillWidth().Gap(12).Label(i18n.T("ai.modelSettings")).Focusable()
 	if p.focusModels {
 		p.focusModels = false
@@ -364,6 +365,7 @@ func (e *editor) advanced(c *ui.Context, pr *provider, locked bool) {
 		}
 	})
 	e.headersView(c, pr, locked)
+	e.preferences(c, pr, locked)
 }
 
 // keyRow is one key slot's state in the editor: the text the field shows,

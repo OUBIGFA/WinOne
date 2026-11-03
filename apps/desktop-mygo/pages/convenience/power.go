@@ -164,27 +164,67 @@ func (t *powerTab) run(work func() error, done func()) {
 // setStatus shows a state an operation returned.
 func (t *powerTab) setStatus(s timedpower.Snapshot) { t.status, t.now = &s, time.Now() }
 
+// start runs a schedule: setting one is what turns timed power on. The
+// form is kept as the next template and a turned-off module is turned on
+// first, so there is no separate switch or Save.
 func (t *powerTab) start(p timedpower.Preferences, confirmed bool) {
 	var s timedpower.Snapshot
+	revision, enable := t.moduleToEnable()
+	changed := !reflect.DeepEqual(p, t.saved.toPreferences())
+	var saved *timedpower.Preferences
 	t.run(func() error {
+		if enable {
+			if err := t.enableModule(revision); err != nil {
+				return err
+			}
+		}
+		// The template is a convenience; failing to keep it never
+		// blocks the task itself.
+		if changed {
+			var kept timedpower.Preferences
+			if t.env.Host.CallCompletingInto("timed-power.settings.save", p, &kept) == nil {
+				saved = &kept
+			}
+		}
 		return t.env.Host.CallCompletingInto("timed-power.start", map[string]any{"preferences": p, "confirmed": confirmed}, &s)
 	}, func() {
 		t.setStatus(s)
 		t.confirm, t.confirmOn = nil, false
+		if saved != nil {
+			kept := toDraft(*saved)
+			t.saved = &kept
+		}
+		if enable {
+			t.modules.Reload(nil)
+		}
 	})
 }
 
-func (t *powerTab) dirty() bool {
-	return t.draft != nil && t.saved != nil && !reflect.DeepEqual(t.draft.toPreferences(), t.saved.toPreferences())
+// moduleToEnable reports whether timed power is turned off, with the
+// module revision the change applies to.
+func (t *powerTab) moduleToEnable() (uint64, bool) {
+	if !moduleDisabled(t.env, "timed-power") || t.modules.Snapshot == nil {
+		return 0, false
+	}
+	return t.modules.Snapshot.Revision, true
 }
 
-func (t *powerTab) discard() {
-	if t.saved != nil {
-		draft := *t.saved
-		draft.preferences = draft.preferences.Clone()
-		t.draft = &draft
+func (t *powerTab) enableModule(revision uint64) error {
+	var job core.ModuleJob
+	if err := t.env.Host.CallCompletingInto("modules.setEnabled", map[string]any{"id": "timed-power", "enabled": true, "revision": revision}, &job); err != nil {
+		return err
 	}
-	t.err = ""
+	job, err := core.FollowJob(t.env, "modules", job)
+	if err != nil {
+		return err
+	}
+	if job.State != "completed" {
+		if job.Error != "" {
+			return core.Errorf(job.Error)
+		}
+		return core.Errorf(i18n.T("module.failed"))
+	}
+	return nil
 }
 
 func (t *powerTab) Close() {
@@ -208,8 +248,8 @@ func (t *powerTab) taskLabel(p timedpower.Preferences) string {
 
 func (t *powerTab) View(c *ui.Context, locked bool) {
 	disabled := moduleDisabled(t.env, "timed-power")
-	t.env.Activity.Report("timed-power", t.dirty(), t.busy, t.discard)
-	t.modules.Switch(c, "timed-power", locked)
+	t.env.Activity.Report("timed-power", false, t.busy, nil)
+	t.modules.Notices(c)
 	// The running task follows the Host once a second while it runs.
 	if disabled {
 		t.status = nil
@@ -229,10 +269,11 @@ func (t *powerTab) View(c *ui.Context, locked bool) {
 				}
 			})
 		}
-		if disabled {
-			kit.Status(c, i18n.T("timedPower.disabled"))
-		}
 		t.current(c)
+		// A running task is the page's focus; the next one is set after it.
+		if t.status != nil && t.status.Active {
+			return
+		}
 		if t.draft == nil {
 			if t.err == "" {
 				kit.Status(c, i18n.T("timedPower.loading"))
@@ -240,11 +281,6 @@ func (t *powerTab) View(c *ui.Context, locked bool) {
 			return
 		}
 		valid := t.draft.toPreferences().Validate() == nil
-		dirty := t.dirty()
-		t.env.Rail.Set(
-			core.Action{Label: i18n.T("timedPower.save"), Disabled: !dirty || !valid || pageLocked, Busy: t.busy, Run: func() { t.save(c) }},
-			core.Action{Disabled: !dirty || pageLocked, Run: t.discard},
-		)
 		ui.Column(c).FillWidth().Gap(kit.GroupGap).Disabled(pageLocked).Children(func() {
 			t.schedule(c)
 			t.power(c)
@@ -255,8 +291,7 @@ func (t *powerTab) View(c *ui.Context, locked bool) {
 				kit.InlineError(c, i18n.T("timedPower.invalid"))
 			}
 			ui.Row(c).Children(func() {
-				active := t.status != nil && t.status.Active
-				if kit.Button(c, i18n.T("timedPower.start"), icons.Play, false).Disabled(pageLocked || disabled || !valid || active).Clicked() {
+				if kit.Button(c, i18n.T("timedPower.start"), icons.Play, t.busy).Disabled(pageLocked || !valid).Clicked() {
 					p := t.draft.toPreferences()
 					if p.DryRun {
 						t.start(p, false)
@@ -271,40 +306,48 @@ func (t *powerTab) View(c *ui.Context, locked bool) {
 	t.confirmation(c)
 }
 
-// current shows the running task from the Host's state.
+// current shows the running task from the Host's state: a large,
+// centered countdown while one runs, a single status line otherwise.
 func (t *powerTab) current(c *ui.Context) {
 	theme := c.Theme()
-	kit.Section(c, icons.Timer, i18n.T("timedPower.current"), "", func() {
-		s := t.status
-		state := "idle"
-		if s != nil && s.State != "" {
-			state = s.State
-		}
-		kit.Status(c, i18n.T("timedPower."+state))
-		if s != nil && s.Active && s.Task != nil {
-			kit.Label(c, t.taskLabel(*s.Task)+" · "+s.Deadline.Local().Format("2006/1/2 15:04:05"))
-			ui.Text(c, remaining(s.Deadline, time.Now())).FontSize(theme.Rem(1.875)).FontWeight(500).
-				Label(i18n.T("timedPower.remaining")).Font(kit.MonoFont)
-			ui.Row(c).Children(func() {
-				if kit.Button(c, i18n.T("timedPower.cancel"), icons.Square, false).Disabled(t.busy || s.State == "executing").Clicked() {
+	s := t.status
+	if s != nil && s.Active && s.Task != nil {
+		kit.Panel(c, func() {
+			ui.Column(c).FillWidth().Gap(12).AlignItems(ui.Center).Padding(24, 0).Children(func() {
+				// The caption names the number under it; other states say
+				// why the task is past counting.
+				caption := i18n.T("timedPower.remaining")
+				if s.State != "scheduled" {
+					caption = i18n.T("timedPower." + s.State)
+				}
+				ui.Text(c, caption).FontSize(kit.HelpSize(c)).TextColor(theme.TextMuted)
+				ui.Text(c, remaining(s.Deadline, time.Now())).FontSize(theme.Rem(3.5)).FontWeight(500).
+					Label(i18n.T("timedPower.remaining")).Font(kit.MonoFont)
+				ui.Text(c, t.taskLabel(*s.Task)+" · "+s.Deadline.Local().Format("2006/1/2 15:04:05")).TextColor(theme.TextMuted)
+				if kit.Button(c, i18n.T("timedPower.cancel"), icons.Square, t.busy).Disabled(t.busy || s.State == "executing").Clicked() {
 					var next timedpower.Snapshot
 					t.run(func() error {
 						return t.env.Host.CallCompletingInto("timed-power.cancel", map[string]any{}, &next)
 					}, func() { t.setStatus(next) })
 				}
 			})
-			kit.Help(c, i18n.T("timedPower.activeHint"))
-		}
-		if s != nil && s.LastEvent == "missed" && s.Active {
+		})
+		if s.LastEvent == "missed" {
 			kit.Help(c, i18n.T("timedPower.missed"))
 		}
-		if s != nil && s.Error != "" {
-			kit.Notice(c, kit.Failure, "", s.Error, nil)
+	} else {
+		state := "idle"
+		if s != nil && s.State != "" {
+			state = s.State
 		}
-		if s != nil && s.NoticeError != "" {
-			kit.Notice(c, kit.Failure, "", i18n.T("timedPower.noticeError", "message", s.NoticeError), nil)
-		}
-	})
+		kit.Status(c, i18n.T("timedPower."+state))
+	}
+	if s != nil && s.Error != "" {
+		kit.Notice(c, kit.Failure, "", s.Error, nil)
+	}
+	if s != nil && s.NoticeError != "" {
+		kit.Notice(c, kit.Failure, "", i18n.T("timedPower.noticeError", "message", s.NoticeError), nil)
+	}
 }
 
 // clockFields edits hours, minutes and seconds side by side; after shows
@@ -412,18 +455,6 @@ func (t *powerTab) reminder(c *ui.Context) {
 			kit.NumberField(c, &d.reminder, 0, 3600, 1, i18n.T("timedPower.secondsUnit"), i18n.T("timedPower.reminder"))
 		})
 		kit.Toggle(c, &d.preferences.DryRun, i18n.T("timedPower.dryRun"), i18n.T("timedPower.dryRunHint"))
-	})
-}
-
-func (t *powerTab) save(c *ui.Context) {
-	p := t.draft.toPreferences()
-	var saved timedpower.Preferences
-	t.run(func() error {
-		return t.env.Host.CallCompletingInto("timed-power.settings.save", p, &saved)
-	}, func() {
-		draft, kept := toDraft(saved), toDraft(saved)
-		t.draft, t.saved = &draft, &kept
-		t.env.Toast(i18n.T("timedPower.saved"))
 	})
 }
 

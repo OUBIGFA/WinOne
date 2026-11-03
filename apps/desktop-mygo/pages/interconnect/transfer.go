@@ -354,7 +354,7 @@ func (p *transferPanel) composer(c *ui.Context, active, settingsPending bool) {
 				if gofile {
 					service = "gofile"
 				}
-				kit.Row(c, tr("cloudService"), "", func() {
+				serviceRow(c, tr("cloudService"), func() {
 					if kit.Segmented(c, &service, []kit.SelectOption{{Value: "gofile", Label: "GoFile"}, {Value: "croc", Label: tr("crocCloud")}}, tr("cloudService")) {
 						if !gofile {
 							p.croc = f.StoreOrigin
@@ -366,8 +366,14 @@ func (p *transferPanel) composer(c *ui.Context, active, settingsPending bool) {
 						}
 					}
 				})
+			} else {
+				// Mirrors the cloud service row, so the direction and
+				// content choices sit at the same place in both tabs.
+				serviceRow(c, tr("transferService"), func() {
+					ui.Text(c, tr("transferServiceValue")).TextColor(c.Theme().TextMuted).SingleLine()
+				})
 			}
-			ui.Row(c).FillWidth().GapX(16).GapY(10).Wrap().Children(func() {
+			ui.Row(c).FillWidth().GapX(16).GapY(10).Wrap().Justify(ui.Center).Children(func() {
 				kit.Segmented(c, &p.direction, []kit.SelectOption{{Value: "send", Label: tr("send")}, {Value: "receive", Label: tr("receive")}}, tr("direction"))
 				if p.direction == "send" {
 					kit.Segmented(c, &p.payload, []kit.SelectOption{{Value: "files", Label: tr("sendFiles")}, {Value: "text", Label: tr("sendText")}}, tr("sendContent"))
@@ -379,13 +385,22 @@ func (p *transferPanel) composer(c *ui.Context, active, settingsPending bool) {
 				p.receiveInput(c, gofile)
 			}
 			if settingsPending {
-				kit.Help(c, tr("saveBeforeSending"))
+				kit.Help(c, tr("saveBeforeSending")).AlignSelf(ui.Center)
 			}
 			p.submit(c, gofile, target, settingsPending)
 			if !(gofile && p.direction == "receive") {
 				p.advanced(c, gofile, target)
 			}
 		})
+	})
+}
+
+// serviceRow names the service a tab sends with, at the same height and
+// inset in both tabs; the composer's padding already insets it.
+func serviceRow(c *ui.Context, label string, control func()) {
+	ui.Row(c).FillWidth().MinHeight(kit.ControlHeight+6).GapX(16).GapY(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).Children(func() {
+		kit.Label(c, label)
+		ui.Row(c).MinHeight(kit.ControlHeight+6).Gap(8).AlignItems(ui.Center).Children(control)
 	})
 }
 
@@ -518,12 +533,11 @@ func (p *transferPanel) submit(c *ui.Context, gofile bool, target *taskRecord, s
 		}
 	}
 	updating := !p.stored && p.direction == "send" && target != nil && target.State.Updating
-	ui.Column(c).FillWidth().Gap(6).Children(func() {
-		ui.Row(c).Children(func() {
-			if kit.PrimaryButton(c, tr(label), icon, p.busy).Disabled(settingsPending || updating || empty).Clicked() {
-				p.start(mode, nil)
-			}
-		})
+	// The action sits under the centered choices and drop zone it acts on.
+	ui.Column(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+		if kit.PrimaryButton(c, tr(label), icon, p.busy).Disabled(settingsPending || updating || empty).Clicked() {
+			p.start(mode, nil)
+		}
 		hint := "sendOnlineHint"
 		switch {
 		case p.stored && gofile:
@@ -535,9 +549,9 @@ func (p *transferPanel) submit(c *ui.Context, gofile bool, target *taskRecord, s
 		case target != nil:
 			hint = "appendShareHint"
 		}
-		kit.Help(c, tr(hint))
+		kit.Help(c, tr(hint)).TextAlign(ui.Center)
 		if gofile {
-			kit.Help(c, tr("gofileRetention"))
+			kit.Help(c, tr("gofileRetention")).TextAlign(ui.Center)
 		}
 	})
 }
@@ -852,7 +866,8 @@ func (p *transferPanel) taskView(c *ui.Context, item taskRecord) {
 			kit.Help(c, tr("waitTask"))
 		}
 		if available && (code != "" || image != "" || r.Link != "") {
-			ui.Column(c).FillWidth().Gap(8).Children(func() {
+			// The code, its link and their buttons read as one centered block.
+			ui.Column(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				if image != "" {
 					heading := "scanToReceive"
 					if p.stored {
@@ -862,15 +877,15 @@ func (p *transferPanel) taskView(c *ui.Context, item taskRecord) {
 					qrImage(c, image, tr(heading))
 				}
 				if p.stored {
-					kit.Help(c, tr("storeReceiveHint"))
+					kit.Help(c, tr("storeReceiveHint")).TextAlign(ui.Center)
 				}
 				if r.Link != "" {
-					ui.Text(c, r.Link).Selectable().MinWidth(0)
+					ui.Text(c, r.Link).Selectable().MinWidth(0).TextAlign(ui.Center)
 				}
 				if !p.stored && code != "" {
-					ui.Text(c, code).Font(kit.MonoFont).FontSize(theme.Rem(1.25)).Selectable().MinWidth(0)
+					ui.Text(c, code).Font(kit.MonoFont).FontSize(theme.Rem(1.25)).Selectable().MinWidth(0).TextAlign(ui.Center)
 				}
-				ui.Row(c).Gap(8).Wrap().Children(func() {
+				ui.Row(c).Gap(8).Wrap().Justify(ui.Center).Children(func() {
 					if r.Link != "" && kit.PrimaryButton(c, tr("linkCopy"), icons.Copy, false).Clicked() {
 						p.copy(c, r.Link)
 					}
@@ -889,7 +904,7 @@ func (p *transferPanel) taskView(c *ui.Context, item taskRecord) {
 					if r.Downloads > 0 {
 						line += " · " + tr("downloads") + " " + kit.Itoa(r.Downloads)
 					}
-					kit.Help(c, line)
+					kit.Help(c, line).TextAlign(ui.Center)
 				}
 				if p.stored && code != "" {
 					p.disclosure(c, "native:"+item.ID, tr("storeNativeCode"), func() {

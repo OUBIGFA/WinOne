@@ -23,6 +23,7 @@ import (
 	"winone/internal/residency"
 	"winone/internal/transport"
 	"winone/modules/wintray/internal/config"
+	"winone/modules/wintray/internal/i18n"
 	"winone/modules/wintray/internal/ipc"
 	"winone/modules/wintray/internal/logging"
 	"winone/modules/wintray/internal/orchestrator"
@@ -164,7 +165,13 @@ func Run(parent context.Context, pipe, dataDir string, autorun, recoverOnly bool
 	if recoverOnly {
 		r.initializationState = "ready"
 	}
-	defer r.box.Close()
+	defer func() {
+		// A failed restoration is logged, not swallowed: the icons stay in the
+		// notification area only if Explorer accepted the handover.
+		if err := r.box.Close(); err != nil {
+			logger.Warn("退出时托盘图标未完全还原：" + err.Error())
+		}
+	}()
 	defer func() {
 		if err := r.hosted.RestoreAll(); err != nil {
 			logger.Warn("退出时仍有窗口未恢复：" + err.Error())
@@ -303,11 +310,16 @@ func (r *Runtime) Reconcile(settings config.Settings, allowElevated bool) error 
 	if err := r.syncTasks(settings, allowElevated); err != nil {
 		return err
 	}
+	if err := r.onUI(func() error { r.hosted.SetLanguage(settings.Language); return nil }); err != nil {
+		return err
+	}
+	// Not inside onUI: each attempt goes to the UI thread itself, and the
+	// wait for a taskbar that is not ready yet must not hold that thread.
+	// walk's Synchronize only queues, so a nested onUI would never run.
+	if err := r.collectTrayIcons(settings); err != nil {
+		return err
+	}
 	return r.onUI(func() error {
-		r.hosted.SetLanguage(settings.Language)
-		if err := r.box.SetPaths(config.CollectedTrayIconPaths(settings)); err != nil {
-			return err
-		}
 		if r.readyRelease == nil {
 			release, err := ipc.MarkReady(r.readyName)
 			if err != nil {
@@ -564,7 +576,7 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 			out := r.orchestrator.StartNow(r.ctx, *entry, settings.CloseWindowRetrySeconds)
 			r.adopt(*entry, out)
 			if !out.Managed {
-				return out, errors.New(out.Message)
+				return out, errors.New(i18n.TranslateResultMessage(settings.Language, out.Message))
 			}
 			return out, nil
 		})
@@ -682,23 +694,18 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 		r.jobsMu.Lock()
 		r.closing = true
 		r.jobsMu.Unlock()
-		// Closing the collector may fail; keep the worker available for recovery in that case.
-		if err := r.onUI(func() error {
-			if err := r.box.Close(); err != nil {
-				return err
-			}
-			return nil
-		}); err != nil {
-			r.jobsMu.Lock()
-			r.closing = false
-			r.jobsMu.Unlock()
-			return fail(err)
-		}
+		// Hosted-window restoration can still refuse shutdown. Complete that
+		// recoverable preflight before closing the collector terminally.
 		if err := r.restoreHostedWindows(); err != nil {
 			r.jobsMu.Lock()
 			r.closing = false
 			r.jobsMu.Unlock()
 			return fail(err)
+		}
+		// Closing the collector is terminal: a rejected icon restoration is
+		// logged, and the recovery companion keeps its acknowledged snapshot.
+		if err := r.onUI(func() error { return r.box.Close() }); err != nil {
+			r.logger.Warn("退出时托盘图标未完全还原：" + err.Error())
 		}
 		result = map[string]bool{"stopping": true}
 		go func() { time.Sleep(100 * time.Millisecond); r.cancel() }()

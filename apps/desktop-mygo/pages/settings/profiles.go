@@ -670,11 +670,8 @@ func (im *importer) contents(c *ui.Context) {
 					page = pageName(*prefs.DefaultPage)
 				}
 				kit.Help(c, i18n.T("profiles.defaultPage", "value", page))
-				keep := i18n.T("profiles.keepCurrent")
-				if prefs.KeepUIRunning != nil {
-					keep = onOff(*prefs.KeepUIRunning)
-				}
-				kit.Help(c, i18n.T("profiles.keepUI", "value", keep))
+				// Legacy residency stays in the portable data for compatibility,
+				// but is not an effective setting of the native window anymore.
 				open := i18n.T("profiles.keepCurrent")
 				if prefs.OpenShortcut != nil {
 					open = *prefs.OpenShortcut

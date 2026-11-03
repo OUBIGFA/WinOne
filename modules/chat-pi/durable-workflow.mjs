@@ -1,7 +1,7 @@
 // Durable plan/todo and structured questions. Inspired by oh-my-pi's todo/ask
 // surfaces and Pi Durable's official plan-mode example. All state is committed
 // before UI updates, so reopening never resets a plan or fabricates an answer.
-import {Type} from '@earendil-works/pi-ai';
+import {Type} from 'typebox';
 import {defineDoc,defineTool,defineExtension,section} from '@earendil-works/pi-durable';
 
 // Keep branch-rewindable plan changes as deltas under Durable 1.4.

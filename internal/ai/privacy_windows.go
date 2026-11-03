@@ -17,6 +17,13 @@ import (
 // PrivacyStatus is upstream pii.Status plus its independent local on/off
 // preference. It never carries request text, credentials or model contents.
 type PrivacyStatus struct {
+	Model string `json:"model"`
+	MinScore float64 `json:"minScore"`
+	DefaultScore float64 `json:"defaultScore"`
+	Models []PrivacyStatus `json:"models,omitempty"`
+	Via string `json:"via,omitempty"`
+	Loading bool `json:"loading,omitempty"`
+	Waiting int `json:"waiting,omitempty"`
 	On          bool   `json:"on"`
 	Supported   bool   `json:"supported"`
 	Installed   bool   `json:"installed"`
@@ -36,24 +43,33 @@ type PrivacyStatus struct {
 // Upstream stores this machine's opt-in separately, like routing preferences.
 // Checking an absent profile must not start a process or download anything.
 func (t Translator) PrivacyEnabled() (bool, error) {
+	setting, err := t.privacyPreferences()
+	return setting.On, err
+}
+
+type localPrivacyPreferences struct {
+ On bool `json:"redactModel"`
+ Model string `json:"redactModelName"`
+ Scores map[string]float64 `json:"redactModelScore"`
+}
+
+func (t Translator) privacyPreferences() (localPrivacyPreferences, error) {
+	var setting localPrivacyPreferences
 	root := t.RootDataDirectory
 	if root == "" {
 		root = t.DataDirectory
 	}
 	raw, err := os.ReadFile(filepath.Join(root, "privacy", "config", "magpie", "settings.json"))
 	if errors.Is(err, os.ErrNotExist) {
-		return false, nil
+		return setting, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("本地隐私模型设置无法读取：%w", err)
-	}
-	var setting struct {
-		On bool `json:"redactModel"`
+		return setting, fmt.Errorf("本地隐私模型设置无法读取：%w", err)
 	}
 	if len(raw) > 4<<20 || json.Unmarshal(raw, &setting) != nil || len(bytes.TrimSpace(raw)) == 0 || bytes.TrimSpace(raw)[0] != '{' {
-		return false, errors.New("本地隐私模型设置无效，请恢复配置后重试")
+		return setting, errors.New("本地隐私模型设置无效，请恢复配置后重试")
 	}
-	return setting.On, nil
+	return setting, nil
 }
 
 // StartPrivacy reuses the owned HTTP/pipe transport but has no routing or
@@ -70,16 +86,22 @@ func (t Translator) StartPrivacy(ctx context.Context) (*RoutingProcess, error) {
 }
 
 func (r *RoutingProcess) PrivacyModel(ctx context.Context, action string) (PrivacyStatus, error) {
+	return r.PrivacyModelChoice(ctx, action, "", 0)
+}
+
+// Picking a backend or threshold uses the same upstream durable action as its
+// on/off switch, independently of the AI-service draft.
+func (r *RoutingProcess) PrivacyModelChoice(ctx context.Context, action, model string, score float64) (PrivacyStatus, error) {
 	var result PrivacyStatus
 	method := http.MethodGet
 	var body io.Reader
 	if action != "" {
 		switch action {
-		case "on", "off", "cancel", "remove":
+		case "on", "off", "cancel", "remove", "pick", "score":
 		default:
 			return result, errors.New("本地隐私模型操作无效")
 		}
-		raw, _ := json.Marshal(map[string]string{"do": action})
+		raw, _ := json.Marshal(map[string]any{"do": action, "model":model, "score":score})
 		body = bytes.NewReader(raw)
 		method = http.MethodPost
 	}

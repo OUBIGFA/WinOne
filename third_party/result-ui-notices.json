@@ -26,11 +26,11 @@
     {
       "kind": "go",
       "name": "github.com/egoist/mygo",
-      "version": "v0.7.3",
+      "version": "v0.7.4",
       "notices": [
         {
           "sha256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
-          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.7.3-LICENSE.txt"
+          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.7.4-LICENSE.txt"
         }
       ]
     },

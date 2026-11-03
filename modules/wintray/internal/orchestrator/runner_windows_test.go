@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 func TestStartProcess_PreservesWindowsArguments(t *testing.T) {
@@ -129,8 +130,21 @@ func TestRunnerHelperProcess(t *testing.T) {
 			var mode uint32
 			return windows.GetConsoleMode(handle, &mode) == nil
 		}
-		window, _, _ := windows.NewLazySystemDLL("kernel32.dll").NewProc("GetConsoleWindow").Call()
-		visible, _, _ := windows.NewLazySystemDLL("user32.dll").NewProc("IsWindowVisible").Call(window)
+		consoleWindow := windows.NewLazySystemDLL("kernel32.dll").NewProc("GetConsoleWindow")
+		isVisible := windows.NewLazySystemDLL("user32.dll").NewProc("IsWindowVisible")
+		window, _, _ := consoleWindow.Call()
+		visible, _, _ := isVisible.Call(window)
+		var startup windows.StartupInfo
+		windows.NewLazySystemDLL("kernel32.dll").NewProc("GetStartupInfoW").Call(uintptr(unsafe.Pointer(&startup)))
+		// CREATE_NEW_CONSOLE creates the child before conhost necessarily shows
+		// its HWND. Observe the requested visible state before the short helper
+		// exits; an immediate sample incorrectly reports a hidden launch.
+		if window != 0 && startup.Flags&windows.STARTF_USESHOWWINDOW != 0 && startup.ShowWindow != windows.SW_HIDE {
+			for deadline := time.Now().Add(2 * time.Second); visible == 0 && time.Now().Before(deadline); {
+				time.Sleep(10 * time.Millisecond)
+				visible, _, _ = isVisible.Call(window)
+			}
+		}
 		cwd, err := os.Getwd()
 		if err != nil {
 			t.Fatal(err)

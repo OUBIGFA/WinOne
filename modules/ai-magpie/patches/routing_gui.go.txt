@@ -34,7 +34,10 @@ func WinOneRoutingHandler(gw *gateway.Server, bundled []string) http.Handler {
  served.Store(gw)
  mux:=http.NewServeMux()
  groupRoutes(mux);traceRoutes(mux);contextRoutesAPI(mux);maskingRoutes(mux)
- pluginRoutes(mux,nil);pluginPageRoutes(mux)
+ pluginRoutes(mux,nil);pluginPageRoutes(mux,true)
+ // Routing's body/HTTP-header panels may fetch an explicitly kept archive.
+ // Export still goes through the native Host and its destination protection.
+ archiveRead:=WinOneArchiveHandler();mux.Handle("GET /api/archive",archiveRead)
  // These read-only allowances belong to the routing account rows. Register
  // the original handlers privately without exposing the Usage application.
  quotaMux:=http.NewServeMux();usageRoutes(quotaMux,nil)
@@ -79,7 +82,7 @@ func WinOneRoutingHandler(gw *gateway.Server, bundled []string) http.Handler {
   w.Header().Set("Content-Type","text/html; charset=utf-8");w.Write(b)
  })
  // Other Magpie applications cannot be opened by a deep link inside Routing.
- for _,path:=range []string{"app.css","context.css","compat.js","theme.js","kernel.js","i18n.js","purposes.js","plugins/routing/client.js","plugins/routing/i18n.js","plugins/routing/routing.css","plugins/library/library.css","plugins/usage/i18n.js","winone-routing-client.js","winone-ai-settings.css","winone-routing.js","winone-routing-bridge.js","winone-routing-shared.js","winone-routing-context.js","winone-routing.css"}{mux.Handle("GET /"+path,static)}
+ for _,path:=range []string{"app.css","context.css","compat.js","theme.js","kernel.js","i18n.js","purposes.js","plugins/routing/client.js","plugins/routing/i18n.js","plugins/routing/routing.css","plugins/library/library.css","plugins/usage/i18n.js","quotaall.js","winone-routing-client.js","winone-ai-settings.css","winone-routing.js","winone-routing-bridge.js","winone-routing-shared.js","winone-routing-context.js","winone-routing.css"}{mux.Handle("GET /"+path,static)}
  mux.Handle("GET /icons/",static);mux.Handle("GET /fonts/",static)
  return mux
 }

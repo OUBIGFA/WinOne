@@ -3,7 +3,7 @@ module winone/resultui
 go 1.27.3
 
 require (
-	github.com/egoist/mygo v0.7.3
+	github.com/egoist/mygo v0.7.4
 	github.com/gorilla/websocket v1.5.3
 	golang.org/x/sys v0.48.0
 	winone v0.0.0-00010101000000-000000000000

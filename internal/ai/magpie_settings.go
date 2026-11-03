@@ -13,6 +13,28 @@ import (
 // MagpieSettings preserves upstream setting names. WinOne owns persistence;
 // each worker receives one immutable snapshot, never another app's settings.
 type MagpieSettings struct {
+	// Current Magpie options, persisted with the existing WinOne transaction.
+	ReplyModel       string `json:"replyModel,omitempty"`
+	BusyLoad         int `json:"busyLoad,omitempty"`
+	SearcherThen     []string `json:"searcherThen,omitempty"`
+	SearchAll        bool `json:"searchAll,omitempty"`
+	ClaudePrintMode  bool `json:"claudePrintMode,omitempty"`
+	SignInLinkOnly   bool `json:"signInLinkOnly,omitempty"`
+	RedactWordsWhole bool `json:"redactWordsWhole,omitempty"`
+	RedactRouteTo    string `json:"redactRouteTo,omitempty"`
+	MaskAlert        bool `json:"maskAlert,omitempty"`
+	NPMRegistry      string `json:"npmRegistry,omitempty"`
+	RouterNote       string `json:"routerNote,omitempty"`
+	CodexResetLead   int `json:"codexResetLead,omitempty"`
+	CodexCreditsLast []string `json:"codexCreditsLast,omitempty"`
+	CodexCreditsFirst []string `json:"codexCreditsFirst,omitempty"`
+	TrayWindows      map[string][]string `json:"trayWindows,omitempty"`
+	TrayNoNumber     bool `json:"trayNoNumber,omitempty"`
+	UsageCardsHidden []string `json:"usageCardsHidden,omitempty"`
+	UsageCleared     []UsageClear `json:"usageCleared,omitempty"`
+	// These are populated only from the private local-model profile.
+	RedactModelName  string `json:"redactModelName,omitempty"`
+	RedactModelScore map[string]float64 `json:"redactModelScore,omitempty"`
 	RequestArchiveLocal   bool   `json:"requestArchiveLocal,omitempty"`
 	RequestArchiveLocalMB int    `json:"requestArchiveLocalMB,omitempty"`
 	RequestArchiveMaxMB   int    `json:"requestArchiveMaxMB,omitempty"`
@@ -88,6 +110,12 @@ type MagpieSettings struct {
 	NoAccountDiscovery bool              `json:"noAccountDiscovery,omitempty"`
 }
 
+type UsageClear struct {
+	Provider string `json:"provider,omitempty"`
+	Model string `json:"model,omitempty"`
+	At int64 `json:"at"`
+}
+
 // Plugin choices are one saved WinOne draft, not account-local YAML files.
 type BuiltinPluginChoice struct {
 	Enabled *bool          `json:"enabled,omitempty"`
@@ -130,6 +158,14 @@ func (s *MagpieSettings) validate() error {
 	if s == nil {
 		return nil
 	}
+	if s.BusyLoad < 0 || s.BusyLoad > 9999 || s.CodexResetLead < 0 || s.CodexResetLead > 1440 || (s.CodexResetLead > 0 && s.CodexResetLead < 15) {
+		return errors.New("繁忙模型阈值或提前重置时间无效")
+	}
+	if !slices.Contains([]string{"", "asked", "member", "vendor"}, s.ReplyModel) { return errors.New("回复模型名称模式无效") }
+	if len(s.SearcherThen) > 64 || len(s.UsageCleared) > 4096 || len(s.UsageCardsHidden) > 4096 { return errors.New("搜索链或用量显示选项过多") }
+	for _, entry := range s.UsageCleared { if entry.At < 0 || len(entry.Provider) > 1024 || len(entry.Model) > 1024 { return errors.New("用量清零标识无效") } }
+	if s.NPMRegistry != "" { u, err := url.Parse(s.NPMRegistry); if err != nil || u.Scheme != "https" && u.Scheme != "http" || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" { return errors.New("npm 注册表需要无凭据的 HTTP 或 HTTPS 地址") } }
+	for _, value := range []string{s.RedactRouteTo, s.RouterNote} { if len(value) > 4096 || strings.ContainsRune(value, '\x00') { return errors.New("隐私模型路由或 MCP 说明无效") } }
 	for _, value := range []string{s.Proxy, s.ProxyCustom} {
 		if len(value) > 4096 {
 			return errors.New("代理地址过长")
@@ -210,7 +246,7 @@ func (s *MagpieSettings) validate() error {
 	}
 	seen := map[string]bool{}
 	for _, api := range s.SearchAPIs {
-		if !slices.Contains([]string{"tavily", "brave", "exa", "firecrawl", "searxng", "deepseek", "you"}, api.Vendor) || seen[api.Vendor] || len(api.Key) > 16384 {
+		if !slices.Contains([]string{"tavily", "brave", "exa", "firecrawl", "searxng", "deepseek", "you", "volcengine", "wsa"}, api.Vendor) || seen[api.Vendor] || len(api.Key) > 16384 {
 			return errors.New("搜索 API 无效或重复")
 		}
 		seen[api.Vendor] = true

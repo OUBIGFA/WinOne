@@ -3,7 +3,7 @@ module winone/desktopmygo
 go 1.27.3
 
 require (
-	github.com/egoist/mygo v0.7.3
+	github.com/egoist/mygo v0.7.4
 	github.com/gorilla/websocket v1.5.3
 	github.com/pion/logging v0.2.4
 	github.com/pion/webrtc/v4 v4.2.26

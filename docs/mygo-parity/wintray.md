@@ -65,6 +65,7 @@
 | D10 | 程序信息：“名称”必填（为空时标红并显示原因）、“启动参数（可选）” | `ui.TextInput` + `Error` | `TestEmptyNameBlocksSavingAcrossTabs`；真实窗口截图 | 已验证 |
 | D11 | 数字字段：未完成或超范围的输入原样保留并显示“请输入 a–b 的整数”，禁止保存（即使字段已隐藏） | 页面内数字字段：保存原文，`Error` 标红，上下键步进 | `TestInvalidNumbersStayAsTypedAndBlockSaving` | 已验证 |
 | D12 | 更换程序：选一个文件；同一路径（不区分大小写与斜杠）不变；否则保留 id、参数、计划，名称取新文件，关闭托盘收纳；换成脚本时强制后台启动 | `env.Dialogs.PickFile` | `TestReplacingWithAScriptKeepsIdentityAndSchedule` | 已验证 |
+| D13 | 微信自动登录：仅 Weixin.exe / WeChat.exe 在“收进托盘”下显示“微信自动登录”开关与说明；保存为 `wechatAutoLogin` | `kit.Toggle` | `TestWeChatAutoLoginOptionOnlyAppearsForWeChat`、`TestWeChatAutoLoginIsSaved`；模块侧 `internal/config/wechat_login_test.go` | 已验证 |
 
 ## 启动设置
 
@@ -91,3 +92,4 @@
 - 真实窗口没有开启并保存托盘收纳：开启后 Worker 会接入资源管理器的任务栏。
 - 行的拖动排序与分隔条拖动只在单元测试中验证（截图工具不能拖动）。
 - W11 的 ID 不符与 5 分钟上限、L7 的 Enter/Space 选中：只做了代码核对。
+- 微信自动登录只在本机夹具（模拟登录窗口的子进程）上验证过真实 UI Automation 调用；没有对已安装的微信客户端做过实窗验证（需要 `WINTRAY_WECHAT_LIVE_EXE`，且会弹出登录界面）。

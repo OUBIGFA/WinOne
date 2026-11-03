@@ -27,7 +27,7 @@ func Validate(s Settings) error {
 			return errors.New("请填写程序名称和绝对路径")
 		}
 		ext := strings.ToLower(filepath.Ext(a.ExePath))
-		if ext != ".exe" && ext != ".bat" && ext != ".cmd" && ext != ".ps1" && ext != ".py" && ext != ".pyw" {
+		if ext != ".exe" && ext != ".bat" && ext != ".cmd" && ext != ".ps1" && ext != ".py" && ext != ".pyw" && ext != ".ahk" {
 			return errors.New("不支持的程序类型")
 		}
 		if ext != ".exe" && (a.LaunchViaLogonTask || a.TrayBehavior.AutoMinimizeAndHideOnLaunch || a.CollectTrayIcon) {

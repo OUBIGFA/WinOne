@@ -83,7 +83,7 @@ pub fn pick_programs(owner: HWND, title: &str, multiple: bool) -> Result<Vec<Str
 }
 pub fn pick_programs_labeled(owner: HWND, title: &str, multiple: bool,label:&str) -> Result<Vec<String>,String> {
     let title = wide(title);
-    let filter = wide(&format!("{label}\0*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw\0All files\0*.*\0"));
+    let filter = wide(&format!("{label}\0*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw;*.ahk\0All files\0*.*\0"));
     let mut buffer = vec![0u16;65536];
     let mut dialog: OPENFILENAMEW = unsafe { std::mem::zeroed() };
     dialog.lStructSize = std::mem::size_of::<OPENFILENAMEW>() as u32;

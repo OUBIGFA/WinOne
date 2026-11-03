@@ -142,3 +142,31 @@ func TestInstalledLauncherCloseToTray(t *testing.T) {
 	}
 	t.Logf("installed launcher closed to tray and its process remains running: %+v", result)
 }
+
+// A program configured through a junction (relocated AppData) reports its
+// final path once running; both paths must identify the same program.
+func TestExecutablePathMatchesThroughJunction(t *testing.T) {
+	dir := t.TempDir()
+	real := filepath.Join(dir, "real")
+	if err := os.MkdirAll(real, 0700); err != nil {
+		t.Fatal(err)
+	}
+	exe := filepath.Join(real, "Tool.exe")
+	if err := os.WriteFile(exe, []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(dir, "link")
+	if out, err := exec.Command("cmd", "/c", "mklink", "/J", link, real).CombinedOutput(); err != nil {
+		t.Skipf("junction unavailable: %v %s", err, out)
+	}
+	if !executablePathsMatch(exe, filepath.Join(link, "Tool.exe")) {
+		t.Fatal("same file through a junction did not match")
+	}
+	other := filepath.Join(real, "Other.exe")
+	if err := os.WriteFile(other, []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if executablePathsMatch(other, filepath.Join(link, "Tool.exe")) {
+		t.Fatal("different file matched")
+	}
+}

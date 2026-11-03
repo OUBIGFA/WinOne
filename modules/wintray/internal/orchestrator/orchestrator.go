@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,6 +30,7 @@ type startOptions struct {
 	hideProcessWindow      bool
 	hideConsoleWindow      bool
 	manageWindow           bool
+	autoLogin              bool
 	windowOptional         bool
 	respectExternalStartup bool
 	externalOwned          bool
@@ -55,6 +57,7 @@ func managedStartOptions(entry config.ManagedAppEntry) startOptions {
 		hideProcessWindow:      entry.LaunchHiddenInBackground,
 		manageWindow:           !entry.LaunchHiddenInBackground && entry.TrayBehavior.AutoMinimizeAndHideOnLaunch,
 		externalOwned:          entry.LaunchViaLogonTask,
+		autoLogin:              config.WeChatAutoLoginEnabled(entry),
 	}
 	// A task-launched program runs outside WinTray: no launch mode of
 	// WinTray's own can apply to it, and its window is left alone.
@@ -83,11 +86,12 @@ func (s *Service) StartNow(ctx context.Context, entry config.ManagedAppEntry, re
 	// The startup switch controls automatic launches only. Manual launches
 	// still honor the independently editable window mode, without a quota.
 	if entry.LaunchViaLogonTask {
-		return s.start(ctx, entry, retrySeconds, startOptions{windowOptional: true, launchViaTask: true})
+		return s.start(ctx, entry, retrySeconds, startOptions{windowOptional: true, launchViaTask: true, autoLogin: config.WeChatAutoLoginEnabled(entry)})
 	}
 	return s.start(ctx, entry, retrySeconds, startOptions{
 		hideProcessWindow: entry.LaunchHiddenInBackground,
 		manageWindow:      !entry.LaunchHiddenInBackground && entry.TrayBehavior.AutoMinimizeAndHideOnLaunch,
+		autoLogin:         config.WeChatAutoLoginEnabled(entry),
 		windowOptional:    true,
 	})
 }
@@ -135,7 +139,9 @@ func (s *Service) start(ctx context.Context, entry config.ManagedAppEntry, retry
 	// Preserve the real console and its buffers for background launch too.
 	// Closing discards the process; CREATE_NO_WINDOW discards recoverable I/O.
 	consoleProgram := (opts.manageWindow || opts.hideProcessWindow) && hasNativeConsole(entry.ExePath)
-	if opts.manageWindow && !consoleProgram {
+	// Authentication may need a QR code or phone confirmation. Keep its UI
+	// visible throughout login instead of applying the startup window shield.
+	if opts.manageWindow && !consoleProgram && !opts.autoLogin {
 		var err error
 		s, err = s.withStartupVisibility(entry.ExePath)
 		if err != nil {
@@ -232,7 +238,7 @@ func (s *Service) start(ctx context.Context, entry config.ManagedAppEntry, retry
 			return Result{AppName: entry.Name, Code: ResultExternalStartupTimeout, Message: "original startup task did not start the process"}
 		}
 		unlockLaunch()
-		if opts.manageWindow || consoleProgram {
+		if opts.manageWindow || consoleProgram || opts.autoLogin {
 			return s.manageRunning(ctx, entry, retrySeconds, opts, consoleProgram, expectedPath, expectedName)
 		}
 		return startedResult(entry, opts)
@@ -264,6 +270,10 @@ func (s *Service) start(ctx context.Context, entry config.ManagedAppEntry, retry
 		return result
 	}
 
+	loginWindow, err := s.completeWeChatLogin(ctx, entry, opts)
+	if err != nil {
+		return weChatLoginFailure(entry, err)
+	}
 	if !opts.manageWindow {
 		return startedResult(entry, opts)
 	}
@@ -273,7 +283,7 @@ func (s *Service) start(ctx context.Context, entry config.ManagedAppEntry, retry
 	}
 
 	managed, ok := s.manageFirstMatchingWindow(ctx, func(w ManagedWindowInfo) bool {
-		return w.ProcessID == pid || matchesExecutableWithIdentityFallback(w, expectedPath, expectedName)
+		return weChatManagedWindowMatches(opts.autoLogin, loginWindow, w) && (w.ProcessID == pid || matchesExecutableWithIdentityFallback(w, expectedPath, expectedName))
 	}, expectedPath, expectedName, &pid, baseline, retrySeconds, "close", closeDelay(entry))
 	if !ok {
 		return windowNotManagedResult(entry, opts)
@@ -297,6 +307,9 @@ func frequencyLaunchError(entry config.ManagedAppEntry, opts startOptions, err e
 	code := ResultProcessStartFailed
 	if opts.limitFrequency {
 		code = ResultFrequencyCheckFailed
+	}
+	if isAutoHotkeyScript(entry.ExePath) && errors.Is(err, windows.ERROR_NO_ASSOCIATION) {
+		code = ResultScriptNoAssociation
 	}
 	return Result{AppName: entry.Name, Code: code, Message: err.Error()}
 }
@@ -330,6 +343,10 @@ func (s *Service) manageRunning(ctx context.Context, entry config.ManagedAppEntr
 		return cancelledResult(entry)
 	}
 	s.logger.Info(fmt.Sprintf("skip start: already running %s", entry.Name))
+	loginWindow, err := s.completeWeChatLogin(ctx, entry, opts)
+	if err != nil {
+		return weChatLoginFailure(entry, err)
+	}
 	if consoleProgram {
 		if hidden, ok := s.adoptRunningConsole(ctx, entry, expectedPath, expectedName); ok {
 			result := hiddenToTrayResult(entry, hidden)
@@ -345,7 +362,7 @@ func (s *Service) manageRunning(ctx context.Context, entry config.ManagedAppEntr
 			return cancelledResult(entry)
 		}
 		managed, ok := s.manageFirstMatchingWindow(ctx, func(w ManagedWindowInfo) bool {
-			return matchesExecutableWithIdentityFallback(w, expectedPath, expectedName)
+			return weChatManagedWindowMatches(opts.autoLogin, loginWindow, w) && matchesExecutableWithIdentityFallback(w, expectedPath, expectedName)
 		}, expectedPath, expectedName, nil, nil, retrySeconds, "close", closeDelay(entry))
 		if ok {
 			return managedResult(entry, managed, ResultAlreadyRunningManaged, "already running managed existing")

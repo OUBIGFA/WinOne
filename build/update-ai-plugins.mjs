@@ -27,11 +27,14 @@ async function filesIn(directory,relative){
  if(!stat.isFile())throw Error('Not a regular plugin resource: '+name);
  return [relative.replaceAll('\\','/')];
 }
-const plugins=[];
+const plugins=[], installable=[];
 for(const listed of registry.plugins){
- const found=packages.get(listed.package);if(!found)throw Error('Listed plugin has no source: '+listed.package);
+ const found=packages.get(listed.package);
+ // Public discovery includes packages maintained in other repositories and
+ // packages with native/runtime dependencies. Keep them installable through
+ // Magpie's real manager instead of shipping an incomplete copied package.
+ if(!found || Object.keys(found.info.dependencies??{}).length || Object.keys(found.info.optionalDependencies??{}).length){installable.push(listed);continue;}
  const {info,folder}=found,directory='packages/'+folder;
- if(Object.keys(info.dependencies??{}).length)throw Error('Review new runtime dependencies before bundling '+info.name);
  const names=new Set(['package.json',...(await Promise.all((info.files??[]).map(name=>filesIn(path.join(source,directory),name)))).flat()]);
  const files=[];
  for(const name of [...names].sort()){
@@ -43,7 +46,7 @@ for(const listed of registry.plugins){
 const licenseBytes=await fs.readFile(path.join(source,'LICENSE'));
 const previousLicense=await fs.readFile(path.join(root,'third_party',old.license.file));
 if(licenseBytes.toString('utf8').replaceAll('\r\n','\n')!==previousLicense.toString('utf8').replaceAll('\r\n','\n'))throw Error('Community license changed; review it before updating the lock');
-const lock={...old,license:{...old.license,sha256:hash(licenseBytes)},revision,registrySHA256:hash(registryBytes),plugins};
+const lock={...old,license:{...old.license,sha256:hash(licenseBytes)},revision,registrySHA256:hash(registryBytes),plugins,installable};
 const catalog={bun:old.bun,plugins:plugins.map(p=>({...p,directory:p.directory.slice('packages/'.length),files:p.files.map(f=>({...f,path:f.path.slice(p.directory.length+1)}))}))};
 const inventory=[...plugins.flatMap(p=>p.files.map(f=>'shared/ai/plugins/'+f.path.slice('packages/'.length))),'shared/ai/plugins/LICENSE.txt','shared/ai/plugins/source-lock.json','shared/ai/runtime/bun.exe'].sort();
 // These three generated projections must change together: the build checks
@@ -51,4 +54,4 @@ const inventory=[...plugins.flatMap(p=>p.files.map(f=>'shared/ai/plugins/'+f.pat
 for(const [name,value]of [['third_party/ai-plugins.json',lock],['modules/ai-magpie/plugin-catalog.json',catalog]])await fs.writeFile(path.join(root,name),JSON.stringify(value,null,2)+'\n');
 await fs.writeFile(path.join(root,'third_party',old.license.file),licenseBytes);
 await fs.writeFile(path.join(root,'internal/distribution/ai_plugin_runtime_paths.txt'),inventory.join('\n')+'\n');
-console.log(`Locked ${plugins.length} bundled plugins at ${revision}; ${inventory.length} runtime files`);
+console.log(`Locked ${plugins.length} bundled plugins at ${revision}; ${inventory.length} runtime files; ${installable.length} additional packages use upstream install/discovery`);

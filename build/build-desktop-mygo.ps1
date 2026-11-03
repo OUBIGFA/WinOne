@@ -8,7 +8,7 @@ param(
 # Builds the MyGo settings window (apps/desktop-mygo) as WinOne.exe: icon
 # check, Chat's React tools page, tests, vet, Windows resources, then a
 # production binary without MyGo's inspector that embeds the tools page
-# (webui build tag). Go 1.27.3 is MyGo v0.7.3's minimum; the Host and
+# (webui build tag). Go 1.27.3 is MyGo v0.7.4's minimum; the Host and
 # modules keep their own toolchain.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -18,7 +18,7 @@ $output = if ([IO.Path]::IsPathRooted($OutputDirectory)) { [IO.Path]::GetFullPat
 if ($LASTEXITCODE -ne 0) { throw 'OutputDirectory must be inside a Git-ignored directory' }
 $go = if ([IO.Path]::IsPathRooted($GoExe)) { $GoExe } else { Join-Path $root $GoExe }
 $go = (Get-Command $go -ErrorAction Stop).Source
-if ((& $go version) -notmatch 'go1\.27\.([3-9]|[1-9][0-9])') { throw 'MyGo v0.7.3 needs Go 1.27.3 or later' }
+if ((& $go version) -notmatch 'go1\.27\.([3-9]|[1-9][0-9])') { throw 'MyGo v0.7.4 needs Go 1.27.3 or later' }
 if (-not $Version) { $Version = (Get-Content -LiteralPath (Join-Path $root 'apps/desktop/frontend/package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version }
 if ($Version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Invalid version' }
 if ($UpdateRepository -and $UpdateRepository -notmatch '^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/[A-Za-z0-9_.-]{1,100}$') { throw 'UpdateRepository must be owner/repository' }

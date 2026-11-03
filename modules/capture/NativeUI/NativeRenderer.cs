@@ -48,8 +48,7 @@ internal sealed class NativeRenderer : ToolStripProfessionalRenderer
     }
 
     // kit's ghost and icon buttons: no face until hovered or pressed. The
-    // chosen tool keeps a fill and the sidebar's selection bar, so hovering
-    // another tool never looks like choosing it.
+    // chosen tool keeps its fill, with no accent line beneath it.
     private void Face(Graphics graphics, ToolStripItem item, bool chosen)
     {
         var fill = item.Pressed ? style.Pressed : chosen ? style.Selected : item.Selected && item.Enabled ? style.Hover : Color.Empty;
@@ -57,11 +56,6 @@ internal sealed class NativeRenderer : ToolStripProfessionalRenderer
         if (!item.Enabled) fill = style.Faded(fill);
         var bounds = new Rectangle(Point.Empty, item.Size);
         NativeStyle.FillRounded(graphics, bounds, Scale(item, NativeStyle.Radius), fill);
-        if (!chosen) return;
-        // The sidebar's bar is 3 × 16 DIP; across a tool it lies under the icon.
-        var width = Scale(item, 16); var height = Math.Max(2, Scale(item, 3));
-        var bar = new Rectangle((bounds.Width - width) / 2, bounds.Height - height - Scale(item, 2), width, height);
-        NativeStyle.FillRounded(graphics, bar, height / 2f, item.Enabled ? style.Accent : style.Faded(style.Accent));
     }
 
     // A menu item shows kit's hover face, 4 DIP inside the panel's sides,

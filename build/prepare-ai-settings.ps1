@@ -19,15 +19,16 @@ Set-Hook 'internal/settings/settings.go' @{
  'func LoadChecked() (Settings, error) {'='func LoadChecked() (Settings, error) { if s,ok:=WinOneLoad();ok{return s.clone(),nil};'
  'func EditUsageAliases(edit func(map[string]string) (map[string]string, error)) error {'='func EditUsageAliases(edit func(map[string]string) (map[string]string, error)) error { if _,ok:=WinOneLoad();ok{return winOneEditUsageAliases(edit)};'
  'func SetRedactModel(on bool) error {'='func SetRedactModel(on bool) error { if _,ok:=WinOneLoad();ok{return winOneSetRedactModel(on)};'
+ 'func SetRedactModelName(name string) error {'='func SetRedactModelName(name string) error { if _,ok:=WinOneLoad();ok{return winOneEditPrivacy(func(s *Settings){s.RedactModelName=name})};'
+ 'func SetRedactModelScore(id string, score float64) error {'='func SetRedactModelScore(id string, score float64) error { if _,ok:=WinOneLoad();ok{return winOneSetPrivacyScore(id,score)};'
+ 'func UseRedactModel(name string) error {'='func UseRedactModel(name string) error { if _,ok:=WinOneLoad();ok{return winOneEditPrivacy(func(s *Settings){s.RedactModel=true;s.RedactModelOff=false;s.RedactModelName=name})};'
 }
-# JS cannot round-trip UnixNano record IDs. Stringify only public DTOs;
-# the upstream on-disk int64 format and older history remain compatible.
-Set-Hook 'internal/gui/masking.go' @{
- 'type maskedRecord struct {'='type maskedRecord struct { Key int64 `json:"key,string"`;'
- 'out := maskedRecord{Record: r}'='out := maskedRecord{Record: r, Key: r.Key}'
-}
-Set-Hook 'internal/gateway/masked.go' @{
- '`json:"key,omitempty"`'='`json:"key,omitempty,string"`'
+# Current upstream already stringifies UnixNano record IDs in both public
+# DTOs. Keep the originals instead of stacking a duplicate Key on the record.
+foreach($relative in @('internal/gui/masking.go','internal/gateway/masked.go')) {
+ $original=(& git -C $SourceDirectory show ($Revision+':'+$relative)) -join "`n"
+ if($LASTEXITCODE -ne 0 -or $original -notmatch 'json:"key(?:,omitempty)?,string"'){throw "Upstream masking record identity changed: $relative"}
+ [IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$original+"`n",$utf8)
 }
 Set-Hook 'internal/gateway/claude_room.go' @{
  'if dir == "/" {'='if filepath.Dir(dir) == dir {'
@@ -55,7 +56,10 @@ Set-Hook 'internal/gateway/vision_mcp.go' @{
  'release, err := reserveFor(access.Caller(r.Context()), int64(len(src)+len(prompt)), "", limitClock())'='if err:=winOneMediaAllowed(r,model);err!=nil{return "",err}; release, err := reserveFor(access.Caller(r.Context()), int64(len(src)+len(prompt)), "", limitClock())'
 }
 Set-Hook 'internal/pii/find.go' @{
- 'func Find(texts []string) ([][]redact.Found, error) {'='func Find(texts []string) ([][]redact.Found, error) { if remote := winOneRemoteFind.Load(); remote != nil { return (*remote)(texts) };'
+ 'func Find(texts []string) ([][]redact.Found, error) {'='func Find(texts []string) ([][]redact.Found, error) { if remote := winOneRemoteFind.Load(); remote != nil { return (*remote)(context.Background(),texts) };'
+}
+Set-Hook 'internal/masking/masking.go' @{
+ 'return pii.Of(id)'='return pii.WinOneModel(pii.Of(id))'
 }
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/privacy_pii.go.txt') -Destination (Join-Path $SourceDirectory 'internal/pii/winone_private.go')
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/privacy_gui.go.txt') -Destination (Join-Path $SourceDirectory 'internal/gui/winone_privacy.go')

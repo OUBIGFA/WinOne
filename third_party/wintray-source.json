@@ -1,18 +1,18 @@
 {
   "repository": "https://github.com/OUBIGFA/WinTray",
-  "revision": "484e38273456f04182d9e19190669e7295f7f3a9",
-  "localChanges": "2026-10-22 working-tree Esc-only dismissal and process-survival fixes",
+  "revision": "03a809f94b7eec97ae123636b86879357a0052e4",
+  "localChanges": "2026-11-03 reviewed upstream 03a809f plus its current uncommitted AutoHotkey association/runtime, DC-backed startup rendering, delayed tray readiness and native program-state changes; retains the earlier 76512a8 terminal-exit and 5ef48d7 WeChat login fixes",
   "license": "MIT",
   "licenseFile": "modules/wintray/LICENSE",
   "licenseSHA256": "0eb3eb100d2f43201dc92197547561de0478614ea9a3b54b2e25bddc3d343ac7",
   "files": [
     {
       "path": "internal/orchestrator/orchestrator.go",
-      "sourceSHA256": "6dbc45e6628a709e04cac2b771264ce7491be3f2a7f4abac27410d99e8f3f7cd"
+      "sourceSHA256": "e9900f237a10f5908c685fec66e1f62e4e26b3e9da353927fde303e95d75308d"
     },
     {
       "path": "internal/orchestrator/types.go",
-      "sourceSHA256": "00d0ef7d0bfd8589e255be2270d4b3a95c11bff44428f2300b7b4f2fe422cdc1"
+      "sourceSHA256": "46468fc73433f14fd5a37a6b33171618f625fdd55ba7d5bf54d7a83adee4d393"
     },
     {
       "path": "internal/orchestrator/window_manager_windows.go",
@@ -28,7 +28,7 @@
     },
     {
       "path": "internal/orchestrator/script_process_windows.go",
-      "sourceSHA256": "8e81251ee6c1ed74b104c579c744293a822ab968a0296bbbd7bbf6df23e33350"
+      "sourceSHA256": "f27541cbc6f7d6fd898d7085e31c43c1adb92d65ced69d3afc200caa4d58a459"
     },
     {
       "path": "internal/orchestrator/runner_console_windows.go",
@@ -36,7 +36,7 @@
     },
     {
       "path": "internal/orchestrator/window_enum_windows.go",
-      "sourceSHA256": "f4942fd169d0a2242b1f7bba1e39d15998d55c861d3d9c923ec48b3cf4ce0c31"
+      "sourceSHA256": "cf4028515c8188692e44a855a0d5c72160b08c0a6b648d8cfd2b559a3352edee"
     },
     {
       "path": "internal/orchestrator/process_scan_windows.go",
@@ -48,15 +48,43 @@
     },
     {
       "path": "internal/orchestrator/program_window_windows_test.go",
-      "sourceSHA256": "7d5435b02cb5d17aa1cf422220601ccc6900b6af3290d47c6758a235dbb3add5"
+      "sourceSHA256": "b52db9d2153064ed450c717ead362a0cd95bd27c46d35c425309daf03e3636b9"
     },
     {
       "path": "internal/orchestrator/native_console_windows_test.go",
       "sourceSHA256": "58f6f17df8f268ebe9b80c24bdb717da05b8786d7e88aee8b2251b5275f6aaec"
     },
     {
+      "path": "internal/orchestrator/wechat_login_windows.go",
+      "sourceSHA256": "4228757e10100892540c3598978710789a975df5dd68a889139b53f9c0c7cb72"
+    },
+    {
+      "path": "internal/orchestrator/wechat_uia_windows.go",
+      "sourceSHA256": "63e6347bd212449f598a7d90d1cfbf803c15f5359beb535eff008bfbf04d61de"
+    },
+    {
+      "path": "internal/orchestrator/wechat_login_windows_test.go",
+      "sourceSHA256": "fa586fda712bde06d1db183dd41b80e1fc21b754e5bc859678ab4989b442c600"
+    },
+    {
+      "path": "internal/orchestrator/wechat_uia_windows_test.go",
+      "sourceSHA256": "7e7a4a1304660a4498a66a075ca960c22a8c30b900885dab614cc0a657fe7e6b"
+    },
+    {
+      "path": "internal/config/wechat_login_test.go",
+      "sourceSHA256": "3a5f2900e8b8ee56cc865c42ded017fc9641b4dd587574fd3d434a7f3df6ae26"
+    },
+    {
+      "path": "internal/config/schema.go",
+      "sourceSHA256": "e16da4be6826bb6a2c655bda4b3a72a2008df74579720d3348480d3baaa73f37"
+    },
+    {
+      "path": "internal/i18n/messages.go",
+      "sourceSHA256": "6a800723cc6699ce5735cce2ea0bc272b4804e1cccbb815dffe0faec34a1a1c2"
+    },
+    {
       "path": "internal/orchestrator/startup_visibility_windows_test.go",
-      "sourceSHA256": "d2caf831676cd2d54b7fd3c820a213217077c33c72c9802af5ac42b23334353c"
+      "sourceSHA256": "78d5a344b99d3f7848ef11ba0e284ee034f07c3dd2bb5bc794a8b24c1b060be8"
     },
     {
       "path": "internal/traybox/activate_windows.go",
@@ -68,7 +96,7 @@
     },
     {
       "path": "internal/traybox/listener_windows.go",
-      "sourceSHA256": "47669d0943161d14a28d8ae2f4e58f372de707ae7a738d9d6b03c3dc3a05c522"
+      "sourceSHA256": "bf97af79bcb8449abcc97632cfcbaa554836c97cc3ce48dca77f499bf4ee5ed7"
     },
     {
       "path": "internal/traybox/listener_windows_test.go",
@@ -76,7 +104,7 @@
     },
     {
       "path": "internal/traybox/bridge_windows.go",
-      "sourceSHA256": "94c54c803d0f6fa92193316a611f90d375e3aacf284bdaeb7b788abc045bf306"
+      "sourceSHA256": "aa4581dde6a6fc9f679a9b1f1f11dca7673fb080d905b3b6a7557c9e05b43f60"
     },
     {
       "path": "internal/traybox/bridge_manager_windows.go",
@@ -92,7 +120,7 @@
     },
     {
       "path": "native/traybridge/bridge.c",
-      "sourceSHA256": "da3dbe2f0bbecd792fcd87e4d9ebbcabaa7deec15690007d68e59627e5d30b90"
+      "sourceSHA256": "38780ba0627bfc03cb666f0bc23af5023b4bbd4fb998817edf7609a2beadfadd"
     },
     {
       "path": "native/traybridge/bridge.h",
@@ -101,7 +129,47 @@
     {
       "path": "native/traybridge/injector.c",
       "sourceSHA256": "e53f3a7ca56652c0966dfeb4286cfc690322e85c870e0a8b712caf6f8726f747"
+    },
+    {
+      "path": "internal/orchestrator/runner.go",
+      "sourceSHA256": "211b9c47c285674086bc123242d479ee63cbd8eccabbef2dba0f649eaa0b3fd3"
+    },
+    {
+      "path": "internal/orchestrator/runner_association_windows.go",
+      "sourceSHA256": "fdd3f24becdcff3de9940059217c560a05812eb33f2030ce6c06a1fed8cd9c7e"
+    },
+    {
+      "path": "internal/orchestrator/runner_association_windows_test.go",
+      "sourceSHA256": "ba2063353c15c6cb65b3993e3bd5e3283190267be41de92518493ce45499ebed"
+    },
+    {
+      "path": "internal/orchestrator/ahk_runtime_windows_test.go",
+      "sourceSHA256": "0c4f6bf42eb5150932b65f8c43d086a1e42862f49847c3f1111b599497b2c856"
+    },
+    {
+      "path": "internal/orchestrator/startup_visibility_windows.go",
+      "sourceSHA256": "42f1bfb273f3daac24a7a819423cc954b2dfecb868fcf99f0b3694cf6ef4608c"
+    },
+    {
+      "path": "internal/orchestrator/startup_visibility_rendering_windows_test.go",
+      "sourceSHA256": "94b19c979267dbba184bed2fc1046df031374787f3424ad2048de53aa300dabb"
+    },
+    {
+      "path": "internal/app/bootstrap_windows.go",
+      "sourceSHA256": "fb6e505c21c4f3946ec73ef7230b962c0fb310d508f16e881f5bba50bba91a1e"
+    },
+    {
+      "path": "internal/app/tray_startup_windows.go",
+      "sourceSHA256": "a8ce17809f3b4a254b2097f0ef140ecc8fc28a1420dc34684264a65ee8a04a93"
+    },
+    {
+      "path": "internal/app/tray_startup_windows_test.go",
+      "sourceSHA256": "91cec9b77ba515e29a95ede7a5470411e52e58d05df80e5c1dab5b4f0e394563"
+    },
+    {
+      "path": "internal/ui/program_status_windows.go",
+      "sourceSHA256": "f32b334a87507cf758d6e50c69827fc99e5ea9e16a4cad39d9e62312680967c0"
     }
   ],
-  "adaptation": "Retain WinOne module namespace, unified configuration/logs/tray, recovery errors and PID-reuse protection. Reuse scoped Esc/native-close handling, script identity, original-window visibility and queued tray gestures. Existing WinOne native console creation retains its explicit environment/ownership handling. UI uses existing WinOne controls; program exit requires confirmation. Manual launch settings stay independent from the startup switch; collected-icon single click still automatically adds a double click. No new dependency or standalone WinTray UI. Tray collection uses the same local WinTray receiving-end bridge; WinOne permits EPOCH/RESUME through its per-window UIPI filter for elevated operation and preserves native handshake errors instead of reporting every delivery failure as a timeout."
+  "adaptation": "Retain WinOne module namespace, unified configuration/logs/tray, recovery errors and PID-reuse protection. Reuse scoped Esc/native-close handling, script identity, original-window visibility and queued tray gestures. Existing WinOne native console creation retains its explicit environment/ownership handling. UI uses existing WinOne controls; program exit requires confirmation. Manual launch settings stay independent from the startup switch; collected-icon single click still automatically adds a double click. No new dependency or standalone WinTray UI. Tray collection uses the same local WinTray receiving-end bridge; WinOne permits EPOCH/RESUME through its per-window UIPI filter for elevated operation and preserves native handshake errors instead of reporting every delivery failure as a timeout. The 2026-11-03 review keeps WinOne's explicit os.Process wait/exit-status callback for ShellExecuteEx scripts, preserves the fixture's no-foreground-activation constraint, and reuses transactional deselection for retryable maintenance before terminal collector shutdown. Portable WeChat opt-in settings round-trip without account data or credentials. Capability mapping and verification boundaries: docs/wintray-sync-20261103.md."
 }

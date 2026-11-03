@@ -123,8 +123,8 @@ if($DesktopImplementation -eq 'Rust'){
     & (Join-Path $PSScriptRoot 'build-desktop-rust.ps1') -CargoExe $CargoExe -GoExe $GoExe -OutputDirectory $output -TargetDirectory $RustTargetDirectory -ComponentUI -FrontendAlreadyBuilt -UpdateRepository $UpdateRepository
     CheckExit
 }elseif($DesktopImplementation -eq 'MyGo'){
-    # Explicit preview only: the user chose to test completed native pages;
-    # Chat, OneBot and Flash chat remain unavailable in this build.
+    # Native settings, Chat and Flash chat; approved WebViews retain OneBot
+    # and the heavy Chat tools without changing their existing functionality.
     & (Join-Path $PSScriptRoot 'build-desktop-mygo.ps1') -GoExe $ResultGoExe -OutputDirectory $output -Version $buildVersion -UpdateRepository $UpdateRepository
     CheckExit
 }else{

@@ -78,7 +78,11 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 	for _, p := range providers {
 		byID[p.Provider.ID] = p
 		url := base + "/" + p.Provider.ID
-		helper := auxiliaryProvider{ID: p.Provider.ID, Name: p.Provider.Name, Icon: p.Provider.DisplayIcon(), Chat: url + "/v1", Responses: url + "/v1", Anthropic: url, Key: token, Models: slices.Clone(p.Provider.Models), Metadata: p.Provider.ModelMetadata, Searches: p.Provider.Searches, LimitRestOff: p.Provider.LimitRestOff}
+		helper := auxiliaryProvider{ProviderPreferences: p.Provider.ProviderPreferences, ID: p.Provider.ID, Name: p.Provider.Name, Icon: p.Provider.DisplayIcon(), Chat: url + "/v1", Responses: url + "/v1", Anthropic: url, Key: token, Models: slices.Clone(p.Provider.Models), Metadata: p.Provider.ModelMetadata, Searches: p.Provider.Searches, LimitRestOff: p.Provider.LimitRestOff}
+		// The outer router talks only to its authenticated local bridge.
+		// Transport choices apply once, to the vendor, in the inner worker.
+		helper.Proxy, helper.AuthHeader, helper.ExtraBody = "direct", "", nil
+		helper.InsecureTLS = false
 		if p.Provider.AuthMode == "account" {
 			helper.AccountKind = p.Provider.Agent
 		}
@@ -139,7 +143,7 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 				return
 			}
 		}
-		inner := Preferences{ProviderID: p.ID, ProviderName: p.Name, Protocol: p.Protocol, BaseURL: p.BaseURL, Model: envelope.Model, Agent: p.Agent, AgentBackend: p.AgentBackend, AuthMode: p.AuthMode, Preset: p.Preset, PresetRegion: p.PresetRegion, LimitRestOff: p.LimitRestOff, AdditionalTools: p.AdditionalTools, Headers: p.Headers, ModelMetadata: p.ModelMetadataFor(envelope.Model), RequestLimits: p.RequestLimits, MagpieSettings: prefs.clone()}
+		inner := Preferences{ProviderPreferences: p.ProviderPreferences, ProviderID: p.ID, ProviderName: p.Name, Protocol: p.Protocol, BaseURL: p.BaseURL, Model: envelope.Model, Agent: p.Agent, AgentBackend: p.AgentBackend, AuthMode: p.AuthMode, Preset: p.Preset, PresetRegion: p.PresetRegion, LimitRestOff: p.LimitRestOff, AdditionalTools: p.AdditionalTools, Headers: p.Headers, ModelMetadata: p.ModelMetadataFor(envelope.Model), RequestLimits: p.RequestLimits, MagpieSettings: prefs.clone()}
 		// The outer gateway already chose a helper; a helper cannot recursively
 		// add more helpers, and its quota belongs to the original held request.
 		inner.MagpieSettings.Vision = "off"

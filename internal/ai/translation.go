@@ -21,6 +21,7 @@ const googleEndpoint = "https://translate-pa.googleapis.com/v1/translateHtml"
 const googleCommunityKey = "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520"
 
 type Preferences struct {
+	ProviderPreferences
 	LimitRestOff    bool              `json:"-"`
 	GlobalGateway   bool              `json:"-"`
 	Auxiliaries     []RuntimeProvider `json:"-"`
@@ -198,6 +199,7 @@ func (t Translator) generate(ctx context.Context, p Preferences, key string, inp
 		agent = p.Agent
 	}
 	request := map[string]any{"providerId": p.ProviderID, "agent": agent, "protocol": p.Protocol, "baseUrl": p.BaseURL, "model": p.Model, "key": key, "system": input.System, "text": input.Text, "imagePng": input.ImagePNG, "messages": input.Messages}
+	request["providerPreferences"] = p.ProviderPreferences
 	request["additionalTools"] = p.AdditionalTools
 	request["limitRestOff"] = p.LimitRestOff
 	request["headers"] = p.Headers

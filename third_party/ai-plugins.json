@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/magpie-community/plugins",
-  "revision": "e5136447b7e5047095c6e9d355e79379736549a9",
-  "registrySHA256": "f63c9dc16f8b97e56c4705685c26d5f65f37196f01ee745838fb153da5729a88",
+  "revision": "1ed2f5544e19718511dec039e6a6e3805d82dd8b",
+  "registrySHA256": "2f1bb8d48f85d2fd536b4843659f0ae20a1bc7d9245643bd797c0d5df983dd6f",
   "license": {
     "file": "licenses/magpie-community-plugins-LICENSE.txt",
     "sha256": "bebc3d1ec74f197b010ed6f6b6743dbae73fe4865d71bd0670b0a4e203056679"
@@ -19,6 +19,478 @@
   },
   "plugins": [
     {
+      "package": "@magpie-community/opencode-agnes-auth",
+      "name": "Agnes AI",
+      "icon": "https://www.agnes-ai.com/images/biglogo.png",
+      "providers": [
+        "agnes"
+      ],
+      "community": true,
+      "summary": {
+        "en": "Agnes AI international with Chrome browser sign-in: live OpenAI-compatible text models, Token Plan and Agent Plan usage, and the USD wallet balance.",
+        "zh": "通过 Chrome 浏览器登录 Agnes AI 国际版：动态发现 OpenAI 兼容文本模型，显示 Token Plan、Agent Plan 用量与美元余额，无需手动复制会话 token。"
+      },
+      "version": "0.1.1",
+      "directory": "packages/agnes",
+      "entry": "opencode.mjs",
+      "files": [
+        {
+          "path": "packages/agnes/LICENSE",
+          "size": 1107,
+          "sha256": "bebc3d1ec74f197b010ed6f6b6743dbae73fe4865d71bd0670b0a4e203056679"
+        },
+        {
+          "path": "packages/agnes/README.md",
+          "size": 5664,
+          "sha256": "367717b35b406f0f4a2992c3f65f7fde40164eee4f94526a1a48277b7e0cf85f"
+        },
+        {
+          "path": "packages/agnes/index.mjs",
+          "size": 28164,
+          "sha256": "b31a9c0f92609a46c51d38a9a23ee19708044a70aab0821792610e7378a9a3a7"
+        },
+        {
+          "path": "packages/agnes/opencode.mjs",
+          "size": 298,
+          "sha256": "b5ceedf976492892f396572f7effcc8f691a4f7f26eab7b013c9633abceb6a82"
+        },
+        {
+          "path": "packages/agnes/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
+          "path": "packages/agnes/package.json",
+          "size": 842,
+          "sha256": "161e7378956d850d9aabe61b400492e3fd1d5aa716af88bf74bda31b22fd2f62"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/gateway-powercontext",
+      "name": "PowerContext",
+      "kind": "middleware",
+      "community": true,
+      "icon": "https://raw.githubusercontent.com/oceanbase/powercontext/master/src/powercontext/server/dashboard/static/brand/favicon-color.svg",
+      "summary": {
+        "en": "Recall from your PowerContext service and optionally save complete conversations. Configure the service URL first; capture is off by default.",
+        "zh": "从自己的 PowerContext 服务召回记忆，并按需存回完整对话。先配置服务地址；对话存回默认关闭。"
+      },
+      "providers": [],
+      "version": "0.2.1",
+      "directory": "packages/powercontext",
+      "entry": "page/settings.html",
+      "files": [
+        {
+          "path": "packages/powercontext/README.md",
+          "size": 15039,
+          "sha256": "228c2cb43e0f93d3eedf82eb4a47824aa43e1028ac13113a78e7d9a8ec985467"
+        },
+        {
+          "path": "packages/powercontext/conversation.mjs",
+          "size": 9163,
+          "sha256": "7344dbf96e7624c7e0beaaf3f6cefe6fee2ad74597e3bd817dc5be6e3576804c"
+        },
+        {
+          "path": "packages/powercontext/package.json",
+          "size": 1360,
+          "sha256": "20fbabb52a0e0595c5a43cf307eaec141220a016991327d60cb2fc08e87a809e"
+        },
+        {
+          "path": "packages/powercontext/page/BRAND.md",
+          "size": 742,
+          "sha256": "74d557b6ab622ece59781632cc1860cd46ed06ea7431f71d6c8dae25b5a25120"
+        },
+        {
+          "path": "packages/powercontext/page/i18n.js",
+          "size": 24367,
+          "sha256": "05cfd751583f9edf5cd19aa93adf32b03bd90dcefaa6de21e57abb6a13122790"
+        },
+        {
+          "path": "packages/powercontext/page/powercontext-favicon-color.svg",
+          "size": 40310,
+          "sha256": "bec8dd205eeb123b3c8c2f7b33d44cd6cbe40678111d4fa06078a9459e641d8d"
+        },
+        {
+          "path": "packages/powercontext/page/powercontext-favicon-reverse.svg",
+          "size": 31566,
+          "sha256": "d4df1cfe3d77bfb28d8962e0627c2422a25cf5e979415ff104b141ba17fd5340"
+        },
+        {
+          "path": "packages/powercontext/page/settings.html",
+          "size": 8171,
+          "sha256": "c4edff1d555dcc139db4539a78e66a78881fc4e583f0b354051f89ed13789a57"
+        },
+        {
+          "path": "packages/powercontext/page/settings.js",
+          "size": 6492,
+          "sha256": "0e1a113131d4c33886284caf629a134b6d709f9c32b492e8a31d2d52a57be704"
+        },
+        {
+          "path": "packages/powercontext/page/style.css",
+          "size": 11429,
+          "sha256": "f07af8b3d999932c04adc60431f5597f6ea0f5ea82fb84c1cfcd036003bb16b7"
+        },
+        {
+          "path": "packages/powercontext/powercontext.hooks.mjs",
+          "size": 28694,
+          "sha256": "16f98d9e3e5eac8cfc674a011d867bc3aec4ebdff815ed5e91e040b3333b5043"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/gateway-nowledge-mem",
+      "name": "Nowledge Mem",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "Give every harness behind Magpie Nowledge Mem automatically: recall and the Context Bundle (or Working Memory) before each request, per-harness provenance, optional import of completed conversations as Mem Threads, and a real connection test in the page. A local or remote Mem; saving conversations is off by default.",
+        "zh": "让 Magpie 后面的每个 harness 自动接入 Nowledge Mem：每次请求前召回记忆与 Context Bundle（缺失时用 Working Memory），记录来自哪个 harness，按需把已完成的对话导入为 Mem Thread，并在页面中提供真实的连接测试。本机或远端 Mem 都可用；对话导入默认关闭。"
+      },
+      "providers": [],
+      "version": "0.1.5",
+      "directory": "packages/nowledge-mem",
+      "entry": "service.mjs",
+      "files": [
+        {
+          "path": "packages/nowledge-mem/CAPTURE_FILTER.md",
+          "size": 11148,
+          "sha256": "7d4d9eebc62534681daf708aafcc3ca3cbd31ebd4ee763daddcd4e06cc3d6878"
+        },
+        {
+          "path": "packages/nowledge-mem/README.md",
+          "size": 17547,
+          "sha256": "59c82b8facc981aa7bc0698c5b8d10c6bf4d7f86af0b7e68229900ae9d49c307"
+        },
+        {
+          "path": "packages/nowledge-mem/capture-filter.mjs",
+          "size": 9907,
+          "sha256": "c640dd9b0193f28903672ba48d6f992f6b59c4a431896cb66be12a6e41711813"
+        },
+        {
+          "path": "packages/nowledge-mem/conversation.mjs",
+          "size": 9677,
+          "sha256": "890a28a00848932b6470b23d03f9e40ea8095c33939fa6e8498391ab4a0b7d6c"
+        },
+        {
+          "path": "packages/nowledge-mem/mem.mjs",
+          "size": 8722,
+          "sha256": "cf9f5694a66db89723f602bcd54aad4c98dae4f600af29fab42722cfddf614c1"
+        },
+        {
+          "path": "packages/nowledge-mem/nowledge-mem.hooks.mjs",
+          "size": 25357,
+          "sha256": "96dca3f86f60775618318d9411b164c9ffdda0c14b6e0009bd0c013a9ade9960"
+        },
+        {
+          "path": "packages/nowledge-mem/package.json",
+          "size": 1570,
+          "sha256": "c3344b3e417a4690534dbd3d2e8fa6c1299c4ec5847c4b3c23cd5e5415b30d83"
+        },
+        {
+          "path": "packages/nowledge-mem/page/i18n.js",
+          "size": 36001,
+          "sha256": "c1758f3844754cc5086a62e6d47ca69651d2e86a8a2714d4b82315172c99549b"
+        },
+        {
+          "path": "packages/nowledge-mem/page/icon.svg",
+          "size": 570,
+          "sha256": "7f3111320a1701bbd5781ce3ce8c56242441883ce64e3944cd7e4f2d22381c22"
+        },
+        {
+          "path": "packages/nowledge-mem/page/settings.html",
+          "size": 13050,
+          "sha256": "056db87e206dc07c87b64248578ef972a6361d26f9a0311f490375d7de0c48ff"
+        },
+        {
+          "path": "packages/nowledge-mem/page/settings.js",
+          "size": 15428,
+          "sha256": "179c9eb80590250afb9e3f29065b9d041a16ce83e8b31a0c66626922791f5b9e"
+        },
+        {
+          "path": "packages/nowledge-mem/page/style.css",
+          "size": 8808,
+          "sha256": "874fe6720dbdd8db4a4fe83a981bf627783c783ae61814c81dcea43d5cbe5445"
+        },
+        {
+          "path": "packages/nowledge-mem/page/validate.js",
+          "size": 2032,
+          "sha256": "9d5d344466c5c63e0d98755dcc86656a4d6e60c40b5417dc00491a00baf9fdfd"
+        },
+        {
+          "path": "packages/nowledge-mem/probe.mjs",
+          "size": 3614,
+          "sha256": "0a67ef04f347c809fc11006d52b37f9a20343f5e9f3685eebfaf003a4a44bf87"
+        },
+        {
+          "path": "packages/nowledge-mem/service.mjs",
+          "size": 5655,
+          "sha256": "ef95638caad44b75417dc4b8b341cac2e0b062b8ff22a9e4cf0aaeb203ea4763"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/gateway-aelios",
+      "name": "Aelios",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "Long-term memory from your own Aelios on Cloudflare: recall before each turn for every agent behind magpie, and optionally record the conversation so Aelios can learn it. Set it up on the plugin's own page, with a connection test and per-model or per-agent routing to separate assistants. Recording is off by default.",
+        "zh": "接入你自己部署在 Cloudflare 上的 Aelios 长期记忆：magpie 后面的每个 agent 每轮自动召回，按需把对话交给 Aelios 记住。在插件自己的页面里配置，可选择连接测试，并按模型或客户端分流到不同的助手。记录默认关闭。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "packages/aelios",
+      "entry": "service.mjs",
+      "files": [
+        {
+          "path": "packages/aelios/README.md",
+          "size": 14680,
+          "sha256": "a1b89820203140eab15c24a84f209f26b93c02a2614bf66a0e4ab0b459c9b99c"
+        },
+        {
+          "path": "packages/aelios/aelios.hooks.mjs",
+          "size": 18313,
+          "sha256": "cdc416d4c885c92d4aecdc8bec337309e570aa10974bbfe883874468fb86200e"
+        },
+        {
+          "path": "packages/aelios/package.json",
+          "size": 1200,
+          "sha256": "b56d5945857f11dbdfc7dbf457f597d0140193eee33000ad7407626e50315d5a"
+        },
+        {
+          "path": "packages/aelios/page/form.js",
+          "size": 3141,
+          "sha256": "6a9dfa6c3ac20b5b60672913eba64e16eb57e7cbba4b2e9540b3f7bb7544e284"
+        },
+        {
+          "path": "packages/aelios/page/i18n.js",
+          "size": 9513,
+          "sha256": "37514faf82f1620760fb5f40ceba4e53e7f7bb9b21ff80f39086777325d0d76c"
+        },
+        {
+          "path": "packages/aelios/page/icon.svg",
+          "size": 354,
+          "sha256": "5a6f498886d2a07869772508a84b2f5fc8bb10c6ba94c25a087fee8389bfb3fe"
+        },
+        {
+          "path": "packages/aelios/page/settings.html",
+          "size": 6122,
+          "sha256": "5e90182448d5620104db0b4e981a39cb9a9954e512bbcd913fb2feec9074f44a"
+        },
+        {
+          "path": "packages/aelios/page/settings.js",
+          "size": 11818,
+          "sha256": "8bfff54b5a9038148d7894cf41124a1a7ac4452779b0c0ed9b4acbd0ee90e5a0"
+        },
+        {
+          "path": "packages/aelios/page/style.css",
+          "size": 4798,
+          "sha256": "612f358b39098f767baf79eb980033243aa81918bab60fd6363f15b7a3ea4c6f"
+        },
+        {
+          "path": "packages/aelios/probe.mjs",
+          "size": 9578,
+          "sha256": "0ca196fb45fdd85fe7b505b9ecc5b8459e3f8954d3f379a9c12c6a59232633de"
+        },
+        {
+          "path": "packages/aelios/service.mjs",
+          "size": 8602,
+          "sha256": "ee2dc427419bfbc8cd0695cf30dfd6fa8da1205f365ff25bae6def96cb2635d7"
+        },
+        {
+          "path": "packages/aelios/slim.mjs",
+          "size": 15731,
+          "sha256": "2f53e22f70ab6db24128de5a36f7eab2d6f66e33357df62694709df392db6796"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/gateway-respire-memory",
+      "name": "respire-memory",
+      "kind": "middleware",
+      "community": true,
+      "icon": "https://raw.githubusercontent.com/risense-ai/respire-magpie/v0.3.0/page/icon.svg",
+      "summary": {
+        "en": "Help AI agents evolve through experience: per-turn recall and complete engine-policy reads, automatic process diaries and grounded archival with write readback. Configure an existing local Runtime and generation model first. Archival defaults on; raw capture off. Background storage happens after reply completion.",
+        "zh": "让 AI Agent 通过经验积累持续自进化：每轮召回并读完整政策，自动保存过程日记与整理长期记忆，写后回读。先配置已有本地 Runtime 和生成模型；归档默认开启，原始采集关闭。宿主限制下存储在回复完成后执行。"
+      },
+      "providers": [],
+      "version": "0.3.15",
+      "directory": "packages/respire-memory",
+      "entry": "page/settings.html",
+      "files": [
+        {
+          "path": "packages/respire-memory/LICENSE",
+          "size": 1086,
+          "sha256": "5e8730b694ba31696dd68d693f8bf5e2c75f7e40fd5f6fbc3f067cf9490b24fb"
+        },
+        {
+          "path": "packages/respire-memory/NOTICE",
+          "size": 879,
+          "sha256": "b0a1a6b6285e8ebb6fddf491183bafea4db5ba103eab0b91c30300f4c912fdea"
+        },
+        {
+          "path": "packages/respire-memory/README.md",
+          "size": 7589,
+          "sha256": "8d55b09db375c1eaf8612f6e1eaeb15fa69a85ea2134c7bc1cf7ce5755acf8a9"
+        },
+        {
+          "path": "packages/respire-memory/archive-context.mjs",
+          "size": 5038,
+          "sha256": "8a1e93a1db23cc083e849c08893240d36e0667f5264951bd4b37850522898021"
+        },
+        {
+          "path": "packages/respire-memory/archive.mjs",
+          "size": 7603,
+          "sha256": "41e6d5ea0d63abe14a065878709a782897d777a1dc40f275cb7ffedbf8464466"
+        },
+        {
+          "path": "packages/respire-memory/conversation.mjs",
+          "size": 9015,
+          "sha256": "e5bb8db72e3bda8bf9981426ba2e9e87661e97a9956862919721130836ac929a"
+        },
+        {
+          "path": "packages/respire-memory/generation.mjs",
+          "size": 1866,
+          "sha256": "92bcc51e1d03fa95e5ed30aea98869bed9f52b1b6f7c89ec38545584f9299ba6"
+        },
+        {
+          "path": "packages/respire-memory/lock.mjs",
+          "size": 4262,
+          "sha256": "68da7c411b0fe3e1f149bc91000ab7ad639cfb43e6d1f9201fc20a25ec3f4e65"
+        },
+        {
+          "path": "packages/respire-memory/memory-tools.mjs",
+          "size": 10971,
+          "sha256": "edc93c57df28f238fc8fee92ba8b28a6991b01565181f47e7abd8d38e141c09e"
+        },
+        {
+          "path": "packages/respire-memory/package.json",
+          "size": 12384,
+          "sha256": "b1efbdf6f85b917b21ce4ffc10b65ef76d4fe7da20b2b7900b0add70db02540c"
+        },
+        {
+          "path": "packages/respire-memory/page/icon-respire-ai-memory-light.svg",
+          "size": 5228,
+          "sha256": "1e08abcb75a46bc72faeda1214660b1888b3d0169bb0f0c711d9787c1722d4de"
+        },
+        {
+          "path": "packages/respire-memory/page/icon-respire-ai-memory.svg",
+          "size": 5055,
+          "sha256": "b84f41e245e1393df3fe6a1475c79d72caf64d74690dcf08f12262d55b192180"
+        },
+        {
+          "path": "packages/respire-memory/page/icon.svg",
+          "size": 7970,
+          "sha256": "77ee1d08f2f197adb7fff7953f2b7ff64e59cf1681a2a09c13fd261f6c8ed2f9"
+        },
+        {
+          "path": "packages/respire-memory/page/settings.html",
+          "size": 5722,
+          "sha256": "f2ec78ecd737316d57dffe53be0a832e24f854d9073e4490d38fd87b9d11aa3e"
+        },
+        {
+          "path": "packages/respire-memory/page/settings.js",
+          "size": 3457,
+          "sha256": "8ba277528b6557628d2e65c1f4b26689f26bc8a2e3644b99355b428c31170d1a"
+        },
+        {
+          "path": "packages/respire-memory/page/style.css",
+          "size": 2200,
+          "sha256": "d6a6d90cdd454801befaf56daf7f517271ffd62e2bef27a697106ff4442bc0c6"
+        },
+        {
+          "path": "packages/respire-memory/policy.mjs",
+          "size": 4623,
+          "sha256": "74fb655060a3ffc5c14f1fc20bd4476e76279813e0e16237a05cebebd90a3ea7"
+        },
+        {
+          "path": "packages/respire-memory/queue.mjs",
+          "size": 2453,
+          "sha256": "00e66817d5d80a4ce7a17723e691520370c1a963a9bbf44454f27f8f6946ce46"
+        },
+        {
+          "path": "packages/respire-memory/respire.hooks.mjs",
+          "size": 15813,
+          "sha256": "66c7f95ab1418500b1961a507f099a548667f236079233b498b02a75b9e51a0c"
+        },
+        {
+          "path": "packages/respire-memory/runtime.mjs",
+          "size": 6286,
+          "sha256": "8fe179d4af2b95cf44ff62026362f2f893a6691c240c7fa624616d64b1e3607c"
+        },
+        {
+          "path": "packages/respire-memory/state.mjs",
+          "size": 6895,
+          "sha256": "9024a15ac816d09032c476b8d0c975684e722756619b4c747c7f9bc778d7117b"
+        },
+        {
+          "path": "packages/respire-memory/worker.mjs",
+          "size": 11053,
+          "sha256": "4af5e54c6c949ea991e4e13adce6a74db319deae259b47388f9d5fe734ba6447"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-copilot-auth",
+      "name": "GitHub Copilot",
+      "icon": "githubcopilot",
+      "providers": [
+        "github-copilot"
+      ],
+      "community": true,
+      "summary": {
+        "en": "GitHub Copilot on GitHub.com or GitHub Enterprise, with premium request or credit usage, remaining allowance and quota reset dates.",
+        "zh": "GitHub Copilot：支持 GitHub.com 与 GitHub Enterprise，显示高级请求或积分用量、剩余额度和重置时间。"
+      },
+      "version": "0.1.2",
+      "directory": "packages/copilot",
+      "entry": "opencode.mjs",
+      "files": [
+        {
+          "path": "packages/copilot/LICENSE",
+          "size": 1081,
+          "sha256": "817c4a9835462815b48432b2b9cf130bc7cbaeb27ff5e80695d735ece3b0f62d"
+        },
+        {
+          "path": "packages/copilot/README.md",
+          "size": 7851,
+          "sha256": "2926bc7ec4040530849b35ba51e4b42597fbddb7d98d6aa8821bb3e81c0cae25"
+        },
+        {
+          "path": "packages/copilot/endpoints.mjs",
+          "size": 1181,
+          "sha256": "46d3db2c74b4cf265a7fb3bb7bffa64db19fef8e7e5f9eef8573548c7e562c61"
+        },
+        {
+          "path": "packages/copilot/index.mjs",
+          "size": 10612,
+          "sha256": "13cb5d16e554816eb0a13104a2463ebaddb3b1da6e2b2502bebbf5ccb58a79fd"
+        },
+        {
+          "path": "packages/copilot/opencode.mjs",
+          "size": 304,
+          "sha256": "30a810bb9ec309489ac504aa7f48e147b96c01205ee28716a0c97fc0e4f32804"
+        },
+        {
+          "path": "packages/copilot/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
+          "path": "packages/copilot/package.json",
+          "size": 690,
+          "sha256": "c061d9ceec0e5f9c95892d3de2566c138282e3d6a29160dff1e0bffc5359b186"
+        },
+        {
+          "path": "packages/copilot/usage.mjs",
+          "size": 7304,
+          "sha256": "261c8a53b0944b7ac4417d1eba85cea8d87ce0597ffb6db7732c17f05c0e2578"
+        }
+      ]
+    },
+    {
       "package": "@magpie-community/opencode-joycode-auth",
       "name": "JoyCode",
       "providers": [
@@ -29,19 +501,19 @@
         "en": "Unofficial JoyCode provider: JD account browser sign-in, live models and credit multipliers, plan credits and streaming tool calls.",
         "zh": "非官方 JoyCode 插件：京东账号浏览器登录，动态模型与积分倍率、套餐额度及流式工具调用。"
       },
-      "version": "0.1.1",
+      "version": "0.2.3",
       "directory": "packages/joycode",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/joycode/CHANGELOG.md",
-          "size": 974,
-          "sha256": "423e14968b9b1acada34cd5fadd3a816622471e6d32eb467927451ba9592c333"
+          "size": 3586,
+          "sha256": "4b233e8715da2f3cc29cc95ba640ec15c50c24de4a6fb43f8c0c489351f7cdc2"
         },
         {
           "path": "packages/joycode/README.md",
-          "size": 5379,
-          "sha256": "1af41cc2b90e00807c91b5f11e91455cbcc35a1ec5f26b272c154bb11468e351"
+          "size": 7761,
+          "sha256": "99640533c5087fb7fe61c8f3e1f83c6cc56c1c7aac2c5ce8e0a35a2e97b0f6af"
         },
         {
           "path": "packages/joycode/icon.png",
@@ -50,13 +522,23 @@
         },
         {
           "path": "packages/joycode/index.mjs",
-          "size": 24595,
-          "sha256": "169afeec15ae1fa08fa03ddef1c752c015850365c6173b5bed9734b85dbc3828"
+          "size": 33904,
+          "sha256": "e3190f1a0dbe497e0c3f207a6d78a8fda841e23714949e643680a2ed00d29ee4"
+        },
+        {
+          "path": "packages/joycode/opencode.mjs",
+          "size": 304,
+          "sha256": "3183421c6ef8972685f3c2db1d7d4440edbd3c988618bac21c13d643bf3572ce"
+        },
+        {
+          "path": "packages/joycode/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/joycode/package.json",
-          "size": 3129,
-          "sha256": "e22dee577fa72f6212806922b2af14d34ad211a25ed42be030035913aed57432"
+          "size": 3217,
+          "sha256": "83c334c030e548bcf9a5271718fca22cf08cd6a92cb4729839d226082a0498e2"
         }
       ]
     },
@@ -72,29 +554,39 @@
         "en": "Kimi desktop Work subscription through its local sign-in, with live Work models and shared membership usage. Separate from Kimi Code.",
         "zh": "使用本机普通 Kimi 桌面版的 Work 登录，自动读取 Work 模型和会员共享用量；独立于 Kimi Code。"
       },
-      "version": "0.1.11",
+      "version": "0.1.16",
       "directory": "packages/kimi-work",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/kimi-work/COMPATIBILITY.md",
-          "size": 5318,
-          "sha256": "42bfd92e7cd261aa27b1c9eb51bb6be869d47588c837e99dae3bdc3419c32b30"
+          "size": 10140,
+          "sha256": "ac7f7250cf199420b768124ef4d01730669d56a5c1f78e329b5d2746d0293960"
         },
         {
           "path": "packages/kimi-work/README.md",
-          "size": 8303,
-          "sha256": "862c4f499839deded030003efb3e13cf8e5eb64a0f7d10407c4c1b9ba86ea9a0"
+          "size": 15373,
+          "sha256": "29282e3e2bcccab9a962ad38ce9238850d776fb4e1e09aff5f022e2e3e2a0614"
         },
         {
           "path": "packages/kimi-work/index.mjs",
-          "size": 26277,
-          "sha256": "257d61e3f517938a572b5b87b7a3291f9c90a3ebc389ad3815a7a1d2002fd2e1"
+          "size": 39794,
+          "sha256": "eceb2585991eaea44955e5028a2070168243576412b20a727c8b0cdcfceb4472"
+        },
+        {
+          "path": "packages/kimi-work/opencode.mjs",
+          "size": 294,
+          "sha256": "27df82e508ee9057f06a8ab90475815695e9fa002a9d60298189320538a4c8b5"
+        },
+        {
+          "path": "packages/kimi-work/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/kimi-work/package.json",
-          "size": 38194,
-          "sha256": "ca9e991d4fa96f6a1fa78c129a7e3618ca2166028c12831399ceee50661bd724"
+          "size": 38253,
+          "sha256": "e5f3dd884f433953a1c143436cfea24f02a8002b749e880720d303d834759d8e"
         }
       ]
     },
@@ -110,9 +602,9 @@
         "en": "OpenCode Zen's free models with the public credential, automatic discovery and native streaming protocols.",
         "zh": "使用 public 凭证接入 OpenCode Zen 免费模型，自动发现模型并支持原生流式协议。"
       },
-      "version": "0.1.15",
+      "version": "0.1.24",
       "directory": "packages/zen-free",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/zen-free/LICENSE",
@@ -121,8 +613,8 @@
         },
         {
           "path": "packages/zen-free/README.md",
-          "size": 4734,
-          "sha256": "089ecf611f44afa08d147116e976c837d63b3d2db98f61be80f521feaf95a3ed"
+          "size": 6681,
+          "sha256": "ee64cbd83e9caa1478305c2e07fcd9d868e7ac0cb198c2b1dfd374ad73d4d82c"
         },
         {
           "path": "packages/zen-free/index.mjs",
@@ -131,18 +623,28 @@
         },
         {
           "path": "packages/zen-free/models.mjs",
-          "size": 8260,
-          "sha256": "e4e028792a38f59274a84459281672c5584f382be07fe7fe8378a4f1191061be"
+          "size": 9071,
+          "sha256": "4b61f8867e2937625356fe596a72eb920fb153b22402eefcb44805a6a818c4f8"
+        },
+        {
+          "path": "packages/zen-free/opencode.mjs",
+          "size": 300,
+          "sha256": "c3db7ba4a0b3a980be1a5fc504bb0cb0d2e097ebfa89f25bf4971f98e0fcb72b"
+        },
+        {
+          "path": "packages/zen-free/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/zen-free/package.json",
-          "size": 696,
-          "sha256": "f0112d0b506ce0f1c1934161ab4981fa0be268f551fcb5afd097cbfce4d02452"
+          "size": 774,
+          "sha256": "d75aaf6a0b5b7698eefaa27d1d3360cd3c18d4eeaad8d908f20503cbb59a69da"
         },
         {
           "path": "packages/zen-free/provider.mjs",
-          "size": 18090,
-          "sha256": "9935f7636805565cfdbd6cb8b742c96693d3a6add2ea4233bde4e41af6718798"
+          "size": 33937,
+          "sha256": "a0cb5498681f9d46f168dddabb0273649edc095e11d6399b87ad6a929e10afc2"
         },
         {
           "path": "packages/zen-free/stream.mjs",
@@ -151,8 +653,8 @@
         },
         {
           "path": "packages/zen-free/tool-response.mjs",
-          "size": 32740,
-          "sha256": "51d5b0b4d988048298f0c5c2327fdaa9ac6f2bf590319f4c5930bb6da762f758"
+          "size": 32842,
+          "sha256": "23bbfebade4a5a6a6024aa8303754c68080897256bd12a4fd812997967e7a630"
         }
       ]
     },
@@ -166,27 +668,37 @@
       "community": true,
       "replaces": "zcode",
       "summary": {
-        "en": "Z.ai and BigModel GLM Coding Plan, team seats and ZCode's free Start Plan.",
-        "zh": "Z.ai 与智谱 GLM Coding Plan，支持团队席位和 ZCode 免费 Start Plan。"
+        "en": "Z.ai and BigModel GLM Coding Plan, team seats and ZCode's free Start Plan, with a daily claim of its gift plans.",
+        "zh": "Z.ai 与智谱 GLM Coding Plan，支持团队席位和 ZCode 免费 Start Plan，可每日领取 ZCode 活动包。"
       },
-      "version": "0.1.30",
+      "version": "0.1.44",
       "directory": "packages/zcode",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/zcode/README.md",
-          "size": 11129,
-          "sha256": "b1929c7c7a5bd1500b3bde88d5a89342788eb0d43d54fac1233e23e1536f61d6"
+          "size": 20289,
+          "sha256": "0636a7c32167906e90de38fa647632c3276d3e59dda2efc41f613cc715cb3c7d"
         },
         {
           "path": "packages/zcode/index.mjs",
-          "size": 98281,
-          "sha256": "aba46ec4c69314012cf9042409b5c95fc0dd516fd8b9803dc4c9184df23e04b0"
+          "size": 131580,
+          "sha256": "0c09b6bee9ae04349ddad1fa2b454ffbf3d583b088c927217ce7b2a161da4955"
+        },
+        {
+          "path": "packages/zcode/opencode.mjs",
+          "size": 302,
+          "sha256": "2f11d253ed1f3f85d6d94bc2876855ad997ed585e9b78e4439582195eec40b38"
+        },
+        {
+          "path": "packages/zcode/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/zcode/package.json",
-          "size": 652,
-          "sha256": "9c30dd238621221151b443c5fb23204b6097c12206af4dd7df74585bbbf394b4"
+          "size": 803,
+          "sha256": "e8ac5e579fc7674c4738818b5d198b3af06735e35930f0bd17c6b445d233e467"
         },
         {
           "path": "packages/zcode/prompt.mjs",
@@ -208,12 +720,12 @@
       "community": true,
       "replaces": "qoder",
       "summary": {
-        "en": "Your Qoder subscription (qoder.com or Qoder CN), and QwenWork (千问办公): the public cloud or the enterprise flagship with its own domain. Unofficial for QwenWork.",
-        "zh": "用 Qoder 自己的设备登录使用 Qoder 订阅（国际版或 Qoder CN）；也接入千问办公：公有云与企业旗舰版（输入企业自己的域名）。千问办公部分非官方。"
+        "en": "Your Qoder subscription: international (qoder.com) or Qoder CN, the China site (qoder.cn, Alibaba Cloud or phone sign-in), each its own provider. Also QwenWork (千问办公): the public cloud or the enterprise flagship with its own domain. Unofficial for QwenWork.",
+        "zh": "用 Qoder 自己的设备登录使用 Qoder 订阅：国际版（qoder.com）与 Qoder 中国版（Qoder CN，qoder.cn，阿里云账号 / 手机号登录）各是一个订阅；也接入千问办公：公有云与企业旗舰版（输入企业自己的域名）。千问办公部分非官方。"
       },
-      "version": "0.2.37",
+      "version": "0.2.59",
       "directory": "packages/qoder",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/qoder/LICENSE-CLIProxyAPI",
@@ -222,18 +734,28 @@
         },
         {
           "path": "packages/qoder/README.md",
-          "size": 24545,
-          "sha256": "4e313359f10cc1880ad8c236430aa251648299db2a204402bcdcb7b46ccca30d"
+          "size": 35857,
+          "sha256": "a4661ce85e898ae43acf773c9ee0ace5ad68162acce6c313032243bcedd1d020"
         },
         {
           "path": "packages/qoder/index.mjs",
-          "size": 136400,
-          "sha256": "2441ae037de62a5a414a881fb7f86a24f0fc8636d5f765df540cba8c3f3ac244"
+          "size": 188040,
+          "sha256": "d9d2f85e1f75bafb74d663ab0bd734c57ea3b0ecee6e497178fc4f97df7034c2"
+        },
+        {
+          "path": "packages/qoder/opencode.mjs",
+          "size": 371,
+          "sha256": "904697e8c5436b33ac702a22b9e174b93ccad835a144c2d38c3d1b946ce47885"
+        },
+        {
+          "path": "packages/qoder/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/qoder/package.json",
-          "size": 645,
-          "sha256": "8f50d33ed35bc0236397553a2c497d7edce46f2e64bfd53a4bbf862f2a8c585f"
+          "size": 803,
+          "sha256": "b473d41b54f5700fd32374b5c9b0eb2a61d5121050b2a220d6b9d92aa86475fe"
         }
       ]
     },
@@ -250,24 +772,24 @@
         "en": "Devin's models with your Devin account — a browser sign-in or the devin CLI's.",
         "zh": "用 Devin 账号使用 Devin 的模型：浏览器登录，或沿用 devin CLI 的登录。"
       },
-      "version": "0.1.23",
+      "version": "0.1.35",
       "directory": "packages/devin",
       "entry": "index.mjs",
       "files": [
         {
           "path": "packages/devin/README.md",
-          "size": 5507,
-          "sha256": "dce94509cf829c0f4c378f00f95df2c53271da6eed6320a4a047ea341a628c54"
+          "size": 10537,
+          "sha256": "8db79be0ba54d7934ae1e685ed6cf048d5bdec919edb435bce47f0cf3c69efb7"
         },
         {
           "path": "packages/devin/index.mjs",
-          "size": 102060,
-          "sha256": "4af024ba82ae173cfd9073c4b229bb6a42ae8c80c86c93bfbd1987a8707407f2"
+          "size": 161634,
+          "sha256": "8e7ddae85846582c8280cf24f5c087ff3ad80b80f17aea020522ac9f5f35f79e"
         },
         {
           "path": "packages/devin/package.json",
-          "size": 516,
-          "sha256": "a8c5c8bca9adb06f10953ca66a05ab2fc892984f63c842fb4b374ef53870434b"
+          "size": 608,
+          "sha256": "250607ee01d963839fe79b36dc1079251c200bfdd9af73fecf7ae628e0c68697"
         }
       ]
     },
@@ -284,24 +806,34 @@
         "en": "Claude, GPT, Gemini and Grok hosted by Zed, on your Zed plan.",
         "zh": "用 Zed 订阅使用 Zed 托管的 Claude、GPT、Gemini 和 Grok。"
       },
-      "version": "0.1.11",
+      "version": "0.1.16",
       "directory": "packages/zed",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/zed/README.md",
-          "size": 5995,
-          "sha256": "df7b034bde56855742fbf992eac7c1a16f2db22918ecc9f664cecd7ca0d658c3"
+          "size": 6275,
+          "sha256": "ed8ef932372e9ed069e1277d2cd4ac7765ca018dca5914d4efec588f8c3be315"
         },
         {
           "path": "packages/zed/index.mjs",
-          "size": 53507,
-          "sha256": "164b8de514bead036002220c2b02b3165a9306fbcdf20fca550b69cb116f9113"
+          "size": 56836,
+          "sha256": "29e8f3c4ca710824576ab1d847294c76b1e00b6961502627d70271184cd462c0"
+        },
+        {
+          "path": "packages/zed/opencode.mjs",
+          "size": 300,
+          "sha256": "f5bb67baf33aebb19d0af29ab64c6c306eb54c7bdab4b0b753f8a7e6b14575a5"
+        },
+        {
+          "path": "packages/zed/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/zed/package.json",
-          "size": 490,
-          "sha256": "52b87c58af8ae1393704553e3b98e7b1195a9a3e76697614f7c959ff541655ba"
+          "size": 568,
+          "sha256": "e1e011e8e7c616525000832f7a40be65005e91d5c323a5e5bf859ad3948b284e"
         }
       ]
     },
@@ -318,14 +850,14 @@
         "en": "Factory's Droid subscription: 30 models from Anthropic, OpenAI, xAI and open labs.",
         "zh": "Factory Droid 订阅：Anthropic、OpenAI、xAI 及开源模型共 30 个。"
       },
-      "version": "0.1.38",
+      "version": "0.1.42",
       "directory": "packages/factory",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/factory/README.md",
-          "size": 18494,
-          "sha256": "58f5b84ab89d27b5dc389618a700e92cec915eb70ffac2089596f4306942eee2"
+          "size": 19034,
+          "sha256": "8d578636039d1de2f8834b133ed6909b2f2b224bd2b758c91c43ef38b0870c61"
         },
         {
           "path": "packages/factory/anthropic-tools.mjs",
@@ -339,13 +871,23 @@
         },
         {
           "path": "packages/factory/index.mjs",
-          "size": 107146,
-          "sha256": "b5297086304a6ebe9d7b073b0747fc44d35126fa771387b90e27e3b492686074"
+          "size": 111041,
+          "sha256": "4f3c3f85728032a9dc44b1a245e8b3fad7c4d0824d7588ad97b736c601c95ebf"
+        },
+        {
+          "path": "packages/factory/opencode.mjs",
+          "size": 304,
+          "sha256": "5858c19156614e2720e736b60a5af9bd53816c2ba285034eb01325561518407a"
+        },
+        {
+          "path": "packages/factory/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/factory/package.json",
-          "size": 533,
-          "sha256": "06dd0b12c31d83886ff3511763c0bbc38a420c2a887a8aadc640c975fb41b622"
+          "size": 611,
+          "sha256": "e626865ed64c727ba5daf3ed63d8184ae0c434435ce4254f31107a4259760bcd"
         }
       ]
     },
@@ -362,24 +904,34 @@
         "en": "SuperGrok and X Premium+, through the Grok Build CLI's sign-in.",
         "zh": "通过 Grok Build CLI 的登录使用 SuperGrok 和 X Premium+。"
       },
-      "version": "0.2.1",
+      "version": "0.2.4",
       "directory": "packages/grok",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/grok/README.md",
-          "size": 8704,
-          "sha256": "f3d1aaf25a44ae30692cdd24f4d60592f3b36ba05e733747f46a0fed9070245e"
+          "size": 8930,
+          "sha256": "2927387450a5c8f2c774a2f158bae27fada86d213849b00b9536c3c3b6bd0050"
         },
         {
           "path": "packages/grok/index.mjs",
-          "size": 49319,
-          "sha256": "347154d7ac166adbd7800a4d50a988efc93801a41a0afedcb527be54c02801a2"
+          "size": 50745,
+          "sha256": "3848ef787f0804788529ea06a82e8443b5e2ba0324323869aae724f8e3fd4284"
+        },
+        {
+          "path": "packages/grok/opencode.mjs",
+          "size": 301,
+          "sha256": "6d9a5ccc05dcc2c94553c3994e8102a8abdbb3768ff93df670bb6b423bdec3a6"
+        },
+        {
+          "path": "packages/grok/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/grok/package.json",
-          "size": 552,
-          "sha256": "0633055317a41e6db022112bfa5ea012795ebdaa4ec84bde1f7e147673580a49"
+          "size": 601,
+          "sha256": "7737b48bf7189147b1b262fca3ff70f16edb9a08dba03f4df191e7a048d5d39b"
         }
       ]
     },
@@ -396,24 +948,39 @@
         "en": "Command Code plans — Pro, GOAT, Max, Ultra, Go and Teams.",
         "zh": "Command Code 各档套餐：Pro、GOAT、Max、Ultra、Go 和 Teams。"
       },
-      "version": "0.1.17",
+      "version": "0.1.23",
       "directory": "packages/commandcode",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
+          "path": "packages/commandcode/CHANGELOG.md",
+          "size": 1682,
+          "sha256": "117c24c4cfe5e007aed0347d869b1c31aa5d5d0738c9bdf32b8c6e064fcc77c3"
+        },
+        {
           "path": "packages/commandcode/README.md",
-          "size": 6121,
-          "sha256": "87029cb3b40f9595117777b47be18ef2392451349539161d5f71d0e71cf147e0"
+          "size": 7257,
+          "sha256": "0f2c1931d51874690a2d6e2d2e3e313f7cdcb5f3c5a476316cb0902f0f7f83e9"
         },
         {
           "path": "packages/commandcode/index.mjs",
-          "size": 67583,
-          "sha256": "840766ee441c8bb41d59c14e2150a17e96a8aab87d782921a422f623171e0e10"
+          "size": 81267,
+          "sha256": "95bc752b3f84e9c06154f3c90f0118c9c5be824f7643039df9df9cf25aeea884"
+        },
+        {
+          "path": "packages/commandcode/opencode.mjs",
+          "size": 304,
+          "sha256": "00812b0f0f3d2506e62d4bdd2b6ec5f2d60a9c8e5ceec85f04a48ed5d2d057eb"
+        },
+        {
+          "path": "packages/commandcode/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/commandcode/package.json",
-          "size": 530,
-          "sha256": "c2299a8efaa7981cdfec43b41261207d9155bccf054391da24dfe0b598d46618"
+          "size": 595,
+          "sha256": "e47ede3a8f03ef07d62b9dd205bdd04171983691a63931a1e940d2ad9b27a5d0"
         }
       ]
     },
@@ -430,9 +997,9 @@
         "en": "Xiaomi MiMo models with your Xiaomi account.",
         "zh": "用小米账号使用小米 MiMo 模型。"
       },
-      "version": "0.1.9",
+      "version": "0.1.10",
       "directory": "packages/mimo",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/mimo/README.md",
@@ -445,9 +1012,19 @@
           "sha256": "7bd7ae7eccc413511969a5b490812d8a7c91faa0cc26224ee3d116ded54aac44"
         },
         {
+          "path": "packages/mimo/opencode.mjs",
+          "size": 301,
+          "sha256": "2749f958446503c416e190b70fa91a2a1af1ef9b35b960d3a466d274faa9103e"
+        },
+        {
+          "path": "packages/mimo/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
           "path": "packages/mimo/package.json",
-          "size": 6939,
-          "sha256": "95da035b50568fb9160af0a4792c4d056dd040352306c398194d8fed2a130ac7"
+          "size": 6989,
+          "sha256": "09336ab39f94234f495dae5874604dc5bb8ecf5a1ae95c9e04d874a2c35a405e"
         }
       ]
     },
@@ -464,29 +1041,39 @@
         "en": "Cursor Pro, Pro+, Ultra and Teams — every model your plan has, with tool calls.",
         "zh": "Cursor Pro、Pro+、Ultra 与 Teams：套餐里的所有模型，支持工具调用。"
       },
-      "version": "0.2.23",
+      "version": "0.2.40",
       "directory": "packages/cursor",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/cursor/README.md",
-          "size": 14433,
-          "sha256": "ec7aa1f763f33abbab3df12a99fbceb93b2b2d919617bfb720250fb88acb2793"
+          "size": 22586,
+          "sha256": "034e072e55f2b382f0d2fd01ec631f032f3fa9e9128d6097322bfe10465e8512"
         },
         {
           "path": "packages/cursor/index.mjs",
-          "size": 130764,
-          "sha256": "3ccc6b7e78c78cd3891144176cc6dd4aab7c3dd3d44690bc3975658dd6123bdc"
+          "size": 165479,
+          "sha256": "7588d2a2a0db8d8b32dad61875675ab55cc29f91dfc6ff1335773c5c4bc7e922"
         },
         {
           "path": "packages/cursor/native-session.mjs",
-          "size": 49461,
-          "sha256": "b11eb8f5ca3614833e23980958fdca98e579a1c6d5e0316e1aeb5d31391cc727"
+          "size": 64440,
+          "sha256": "aba74470e94f2613b312f14627e4b91d408a02dab0f4168da4c8986113509066"
+        },
+        {
+          "path": "packages/cursor/opencode.mjs",
+          "size": 303,
+          "sha256": "5e9ea629f16dc5aa435952506ba527d6936d761a41df60866e6c3dc572b0353c"
+        },
+        {
+          "path": "packages/cursor/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/cursor/package.json",
-          "size": 569,
-          "sha256": "16e0b54876ca84d129ec2d463203a0c2f694b7d757f17036ab724d30c56b46dd"
+          "size": 618,
+          "sha256": "74e1033fe69378827f2ee0785d1a576ae8885085502cc87c012124b48fc214af"
         }
       ]
     },
@@ -503,24 +1090,34 @@
         "en": "Kiro Free, Pro, Pro+ and Power — Kiro's sign-in, kiro-cli's, or an API key.",
         "zh": "Kiro Free、Pro、Pro+ 与 Power：Kiro 登录、沿用 kiro-cli 的登录，或 API key。"
       },
-      "version": "0.1.16",
+      "version": "0.1.26",
       "directory": "packages/kiro",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/kiro/README.md",
-          "size": 6702,
-          "sha256": "fce440314f2b45d33cf0849e8f165e480cf3a9ee68fb4a615fa2e2378fb657fe"
+          "size": 14671,
+          "sha256": "94c892212ae24068a6e0c6c15db33622e4c95623bdf4cf7396330f2f88995dfe"
         },
         {
           "path": "packages/kiro/index.mjs",
-          "size": 74430,
-          "sha256": "3a4526a515ebc4b6be79f52367ec249348490412fd0826d91332e56678b6cb39"
+          "size": 116426,
+          "sha256": "c5efb622430b022a80b1d4a67ca096427f0914504a935ca628b0281c8a06a816"
+        },
+        {
+          "path": "packages/kiro/opencode.mjs",
+          "size": 301,
+          "sha256": "10c6e2b10095fe4013607269f2847195512044067776557f35776f11b16e2c7f"
+        },
+        {
+          "path": "packages/kiro/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/kiro/package.json",
-          "size": 499,
-          "sha256": "bc1e61eba2a15a7972c1e70ecdd7b513d69b7cdbf512ddd6064679b6709c4bf5"
+          "size": 548,
+          "sha256": "1700e20ee24db4178b2e6aef87c82adbbf84edea7fd300ad31a907f861ce3844"
         }
       ]
     },
@@ -534,27 +1131,57 @@
       ],
       "community": true,
       "summary": {
-        "en": "MiniMax Code account credits (daily check-in) and M Plan, with MiniMax Code's own device sign-in.",
-        "zh": "用 MiniMax Code 账号的积分（每日签到）与 M Plan，使用 MiniMax Code 自己的设备登录。"
+        "en": "MiniMax Code credits and M Plan with device sign-in, native web search, image/video generation and media tools through Magpie MCP.",
+        "zh": "MiniMax Code 积分与 M Plan、设备登录，提供原生网络搜索、生图、生视频及多模态 MCP 工具。"
       },
-      "version": "0.1.5",
+      "version": "0.2.1",
       "directory": "packages/minimax",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/minimax/README.md",
-          "size": 6220,
-          "sha256": "f39236c4b55616e2ef0c93034ddf8c25638bfabafe829e51997762b45cd563b6"
+          "size": 11467,
+          "sha256": "885ee04c53bee033815b09923a0d5e5fe8aa5188944879d37105b4c3bd5c8010"
+        },
+        {
+          "path": "packages/minimax/connector-tools.mjs",
+          "size": 18110,
+          "sha256": "2365de094dfacd13445c7de6e836d8ca6e4f225d29c7a4abf4697c6a04a87215"
         },
         {
           "path": "packages/minimax/index.mjs",
-          "size": 42280,
-          "sha256": "c164d8c2d97dd8d73e05d424623f69b7b7015f1d1ef7c197ac6396e3cb7517dc"
+          "size": 57122,
+          "sha256": "a84e73ea3b43c463c4a53bb75b188e90d1f14e50aba15d60cca400b239c06e17"
+        },
+        {
+          "path": "packages/minimax/magpie.mjs",
+          "size": 249,
+          "sha256": "0b74e27695e5b41c6bcd79cda745e4e16d7a47e3e0ae6bae8979382105cd8f76"
+        },
+        {
+          "path": "packages/minimax/matrix-tools.json",
+          "size": 23428,
+          "sha256": "46b36f8c1e38b4a944069aa20178193774acdf9f8433473325f34d096223373d"
+        },
+        {
+          "path": "packages/minimax/opencode.mjs",
+          "size": 337,
+          "sha256": "2859d067ad8441947015d5ea53a464feb3f6a8c539e219852f7a626705392ce6"
+        },
+        {
+          "path": "packages/minimax/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/minimax/package.json",
-          "size": 635,
-          "sha256": "cc9d706e34c60291a52051b3f74a7d32551ea5a9c8a1878e00468568e5a01a1b"
+          "size": 787,
+          "sha256": "0802c42ae23e6ac8d5afc17eba87eca7b832f43810395389a54c66794cdccdd1"
+        },
+        {
+          "path": "packages/minimax/web-tools.mjs",
+          "size": 2772,
+          "sha256": "0324677943af36d97590541015e728a1d04c9af5d91aaab8348abf0daf31810c"
         }
       ]
     },
@@ -572,24 +1199,34 @@
         "en": "WorkBuddy's China build (CodeBuddy plan) and its international build.",
         "zh": "WorkBuddy 国内版（CodeBuddy 套餐）与国际版。"
       },
-      "version": "0.1.34",
+      "version": "0.2.20",
       "directory": "packages/workbuddy",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/workbuddy/README.md",
-          "size": 15315,
-          "sha256": "288f5098a44d3b0a45a2a4eb2b0585df69f5c60596fab6c5a799a1a8a4ae429d"
+          "size": 31430,
+          "sha256": "54a76c00a0543b7e3994dda5994f754f2351e7273d68da062e731262120ce088"
         },
         {
           "path": "packages/workbuddy/index.mjs",
-          "size": 109378,
-          "sha256": "a9a5be3d6c4eff9e19a18684e5da4f2ef1e0c43c5e5aa7edb01f20636d4c052b"
+          "size": 200413,
+          "sha256": "220d7bc7eeed03e1854e0eb166583d0691e91559eda316d7af80bacf2cfed242"
+        },
+        {
+          "path": "packages/workbuddy/opencode.mjs",
+          "size": 329,
+          "sha256": "b7accb5eaa017186cd1afaf0662088866993682fd3c6a21fc3d3f2c5f4a923a0"
+        },
+        {
+          "path": "packages/workbuddy/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/workbuddy/package.json",
-          "size": 578,
-          "sha256": "a1281dfb7e9c37c86cfc83ea72ba62171e6519cb02b7188686e68e192708665a"
+          "size": 695,
+          "sha256": "63d15982560c6cef9542015c9ad6f4bc1c42a326ceb2ab2e5add95f723844d1b"
         }
       ]
     },
@@ -605,9 +1242,9 @@
         "en": "Cline's models on your own Cline account — usage billing, ClinePass and Cline's free models — with Cline's device sign-in or an API key.",
         "zh": "用自己的 Cline 账号使用 Cline 的模型——用量计费、ClinePass 与免费模型——支持 Cline 设备登录或 API key。"
       },
-      "version": "0.1.11",
+      "version": "0.1.12",
       "directory": "packages/cline",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/cline/README.md",
@@ -620,9 +1257,19 @@
           "sha256": "74e2e56a083a471b5ee4d41ddd64617c11532b1c34360ed1bb4e431208f3f6ed"
         },
         {
+          "path": "packages/cline/opencode.mjs",
+          "size": 298,
+          "sha256": "3f618733d82b01906fc61bb983b11994910ff87e71efcd3e341ece7b41d1dbd4"
+        },
+        {
+          "path": "packages/cline/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
           "path": "packages/cline/package.json",
-          "size": 562,
-          "sha256": "9e156e6414e9b544aefe75682a944f34bca561c517aecde675a25f314830a6bf"
+          "size": 611,
+          "sha256": "d3efe9b2d6dfa00d7537f70899e126c1dc3eca3b64545d79ec70b59d2b8e2a20"
         }
       ]
     },
@@ -639,24 +1286,34 @@
         "en": "Trae CN (trae.cn) and Trae international (trae.ai) models with your own account, free tier included — Trae's own browser sign-in. Experimental.",
         "zh": "用 Trae CN（trae.cn）与 Trae 国际版（trae.ai）账号使用各自的模型，含免费版，使用 Trae 自己的浏览器登录。实验性。"
       },
-      "version": "0.2.22",
+      "version": "0.2.27",
       "directory": "packages/trae",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/trae/README.md",
-          "size": 27882,
-          "sha256": "a79f70584b4e6db0eb3afa728cba209f5d544e51ce566c01b6671a8d99add8eb"
+          "size": 30049,
+          "sha256": "d87564f837df32cb13f878ed67ea6c2fdb14f64a8473523c764525153faba836"
         },
         {
           "path": "packages/trae/index.mjs",
-          "size": 165398,
-          "sha256": "32f78a1e13bc9f2522c62dfe3f415b6ebbddc4975faa796a232e35a8d2f3fe7f"
+          "size": 176236,
+          "sha256": "38c50ab398c046be5a4be5d094ea0cc52b50c45004c415bf91e3ad41bd23a02c"
+        },
+        {
+          "path": "packages/trae/opencode.mjs",
+          "size": 325,
+          "sha256": "c3613c86ed52cbad818ccf335b2a8d6c777749950e225bb957ef50a6d0f03dcb"
+        },
+        {
+          "path": "packages/trae/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/trae/package.json",
-          "size": 604,
-          "sha256": "ca18d8b0c90a50a8593e7f3bd2041bcbb615526fb648acd32c39fe88d831d53d"
+          "size": 653,
+          "sha256": "074cca04e66868ca6789ba41b016a8a32612690f5e39565d7ca2a8ed0cbc8611"
         }
       ]
     },
@@ -671,9 +1328,9 @@
         "en": "Open Design Cloud's Design Plan (open-design.ai): the account's device sign-in, the models the plan entitles it to, and the plan's 5-hour and 7-day allowance and wallet balance.",
         "zh": "Open Design Cloud 的 Design Plan（open-design.ai）：账号设备登录、套餐可用的模型，以及 5 小时与 7 天额度、钱包余额。"
       },
-      "version": "0.1.7",
+      "version": "0.1.8",
       "directory": "packages/opendesign",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/opendesign/README.md",
@@ -691,14 +1348,108 @@
           "sha256": "4d7ccff702fab656125e21037e7c29d09183dca04efa84a5d3ea23b019550f42"
         },
         {
+          "path": "packages/opendesign/opencode.mjs",
+          "size": 307,
+          "sha256": "86a77fb68c0fea6e9074186b92b5f59e19d0d9b8fa931a157ceb3e0fd91e6d6b"
+        },
+        {
+          "path": "packages/opendesign/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
           "path": "packages/opendesign/package.json",
-          "size": 764,
-          "sha256": "af0bb52d5c56ab76fba587b50b633c4ec131affb281afe4cb4e6e9c9b080e1e9"
+          "size": 823,
+          "sha256": "50cff67765b64d3004d524bf81f5bf2020a50071c122510a6cb15b143d050d35"
         },
         {
           "path": "packages/opendesign/refresh-models.mjs",
           "size": 4582,
           "sha256": "666e9238260151830f7dee2d37fdbdbbe6758e6d818c86fe062ba1faf7ba3e0d"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-catpaw-auth",
+      "name": "CatPaw",
+      "providers": [
+        "catpaw"
+      ],
+      "community": true,
+      "summary": {
+        "en": "Meituan's 妙手 CatPaw (ai.catpaw.meituan.com): a browser web sign-in or the desktop client's saved credentials, chat through its round/event/turn conversation protocol, models and credit balance.",
+        "zh": "美团妙手 CatPaw（ai.catpaw.meituan.com）：浏览器网页登录或妙手桌面端已保存的登录态，经其 round/event/turn 会话协议对话，含模型与积分余额。"
+      },
+      "version": "0.1.2",
+      "directory": "packages/catpaw",
+      "entry": "opencode.mjs",
+      "files": [
+        {
+          "path": "packages/catpaw/README.md",
+          "size": 4266,
+          "sha256": "e66c7c85a67acdc4bda376a4e650ee90e3e94705640f638da6300c16799cdf9a"
+        },
+        {
+          "path": "packages/catpaw/index.mjs",
+          "size": 31133,
+          "sha256": "2c5f55954f089a39094d294d5da8d00779bde72983f569e98bc1c9311ecb9262"
+        },
+        {
+          "path": "packages/catpaw/opencode.mjs",
+          "size": 303,
+          "sha256": "7e19b258b9d26f70b5ac775aa65d153bdd0d891c377ed01d9575df875e81b957"
+        },
+        {
+          "path": "packages/catpaw/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
+          "path": "packages/catpaw/package.json",
+          "size": 797,
+          "sha256": "80cf2cb89dff502cd3667296f5e5107d18bfe48bdae8d8a801771a93c08d42c0"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-loomy-auth",
+      "name": "Loomy",
+      "providers": [
+        "loomy"
+      ],
+      "community": true,
+      "summary": {
+        "en": "iFlytek's Loomy (loomyad.xunfei.cn): SMS sign-in, OpenAI-compatible chat with reasoning-effort folding and image markers, the live model catalog, two point wallets and the daily first-login grant.",
+        "zh": "讯飞 Loomy（loomyad.xunfei.cn）：短信验证码登录，OpenAI 兼容对话（思考档折叠与图片标记适配），实时模型目录、双积分钱包与每日首登赠送。"
+      },
+      "version": "0.1.3",
+      "directory": "packages/loomy",
+      "entry": "opencode.mjs",
+      "files": [
+        {
+          "path": "packages/loomy/README.md",
+          "size": 3794,
+          "sha256": "8f3e1875f8ab3037d6e7d9f47a9d2451c2c3204263c66fee59d7f7fb20a72a6a"
+        },
+        {
+          "path": "packages/loomy/index.mjs",
+          "size": 30148,
+          "sha256": "186129d076a63b2dd9ed042c053fbe64f146bf847831b619160215f1f7d36864"
+        },
+        {
+          "path": "packages/loomy/opencode.mjs",
+          "size": 302,
+          "sha256": "b3fc1c4ea6236bf667b926f7b8069a6779d71ce95b4b73e3e1e562c39a72de80"
+        },
+        {
+          "path": "packages/loomy/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
+          "path": "packages/loomy/package.json",
+          "size": 735,
+          "sha256": "0c53e5bb13c32a1cfb65d24602b9d1e78997155fd63b52518df4387fa52c58e0"
         }
       ]
     },
@@ -714,9 +1465,9 @@
         "en": "Nous Portal models, with Nous Portal's device sign-in.",
         "zh": "通过 Nous Portal 自己的设备码登录使用 Nous Portal 模型。"
       },
-      "version": "0.1.1",
+      "version": "0.1.2",
       "directory": "packages/nous",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/nous/README.md",
@@ -734,9 +1485,19 @@
           "sha256": "ed686e504da31fcddb325eceffa9c8c593a786781f32f63f552cc6f1af74266c"
         },
         {
+          "path": "packages/nous/opencode.mjs",
+          "size": 307,
+          "sha256": "ba3cc7f65e5f91ffe900f0c8cf346a111ea3f30554bd2d50ce82badc1831380b"
+        },
+        {
+          "path": "packages/nous/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
           "path": "packages/nous/package.json",
-          "size": 542,
-          "sha256": "5354f0a8a78fbc40a20f90c96a30aa6cf0b5c06101b26682b662ed0ed49b65db"
+          "size": 591,
+          "sha256": "a45f4b56c0bfc9caae0e43f3aa55c853d9e3a49fe584b4e226d15481f4f864e8"
         }
       ]
     },
@@ -752,24 +1513,77 @@
         "en": "SenseTime Raccoon (xiaohuanxiong.com) models, account credits and daily check-in, with browser sign-in or Raccoon desktop's live sign-in.",
         "zh": "商汤小浣熊（xiaohuanxiong.com）模型、积分余额与每日签到，支持浏览器登录或直接复用小浣熊桌面端登录态。"
       },
-      "version": "0.1.3",
+      "version": "0.1.6",
       "directory": "packages/raccoon",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/raccoon/README.md",
-          "size": 5408,
-          "sha256": "09dd2f5c2e30b0d456fd5451f487816e2accd6d9ebb24564e47e53cdb7574985"
+          "size": 6399,
+          "sha256": "897ac68993f2d9b552a52fb3c949e82e8f305dc396d99bebc0f63f53a625b4a8"
         },
         {
           "path": "packages/raccoon/index.mjs",
-          "size": 41985,
-          "sha256": "bd79a34e8d9b6a2e4063e8cbd07f47bad25b894a80a63a4c3f807017384de585"
+          "size": 47668,
+          "sha256": "c81e83bc86797980309a5d629aec5203f445ff07196b27873971dac67fa5d4ec"
+        },
+        {
+          "path": "packages/raccoon/opencode.mjs",
+          "size": 304,
+          "sha256": "45100b0b30b63c8cc90999422cdc1d95d65c488e7555b55f8ea9c33ba2bb1c57"
+        },
+        {
+          "path": "packages/raccoon/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/raccoon/package.json",
-          "size": 7075,
-          "sha256": "1630753403352e79ef92b00452c79675d2119a1ba9ce04e6562f2059e27eaaf1"
+          "size": 7134,
+          "sha256": "561c7720cb3133e60488dad66ff2cf2d288f59f221dc4e0244c281d91d3e5013"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-sensenova-auth",
+      "name": "SenseNova",
+      "icon": "sensenova-color",
+      "providers": [
+        "sensenova-token-plan"
+      ],
+      "community": true,
+      "summary": {
+        "en": "SenseNova (SenseTime 日日新) Token Plan: one console sign-in reads the credit pools, their 5-hour and 7-day windows and the expiring grants, and — with an API key pasted at sign-in — serves the plan's own models for chat.",
+        "zh": "商汤日日新 Token Plan：一次控制台登录即可读取积分池、5 小时 / 7 天窗口与将过期的返赠余额；登录时粘贴 API Key，同一个账号就能直接调用计划内模型对话。"
+      },
+      "version": "0.1.1",
+      "directory": "packages/sensenova",
+      "entry": "opencode.mjs",
+      "files": [
+        {
+          "path": "packages/sensenova/README.md",
+          "size": 5568,
+          "sha256": "09f3359bc7f50cf8c4def79f81a05887d7633a349684fc6dd4c10e89f4de57e7"
+        },
+        {
+          "path": "packages/sensenova/index.mjs",
+          "size": 35602,
+          "sha256": "09395ecd5a1c9a9e937dce24b28e0fa84d1a9a90342843a744d9d29b7ab6a839"
+        },
+        {
+          "path": "packages/sensenova/opencode.mjs",
+          "size": 306,
+          "sha256": "ef0ee3b7abd025513d187a722a36487b912effa21928a29c0d291730bb101cc0"
+        },
+        {
+          "path": "packages/sensenova/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
+          "path": "packages/sensenova/package.json",
+          "size": 928,
+          "sha256": "beaa0b65153aaeaf90ed435f7bf292c7e7d2cf79d64a09ab0ebe2816cacaff1e"
         }
       ]
     },
@@ -785,41 +1599,52 @@
         "en": "AutoClaw (Zhipu OpenClaw) cloud accounts: oversea web sign-in (Google/z.ai) or CN phone SMS, credit balance and daily check-in.",
         "zh": "AutoClaw（智谱澳龙/OpenClaw）云端账号：国际版网页登录（Google/z.ai）或国内手机验证码，积分余额与每日签到。"
       },
-      "version": "0.2.8",
+      "version": "0.2.14",
       "directory": "packages/autoclaw",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/autoclaw/README.md",
-          "size": 8247,
-          "sha256": "41e799037bf69297a2a6c8b2aad914040f84517883e4412ff3863a33f77ac915"
+          "size": 10577,
+          "sha256": "7b674b22862cc0c6b32f43258759a6ed84f91c4ff4137ec4050966d46a413125"
         },
         {
           "path": "packages/autoclaw/index.mjs",
-          "size": 64440,
-          "sha256": "53cf07ac7cf2754ccd65c0224babb48cf919f9658634b3c9a0561a5fd5c6574c"
+          "size": 78174,
+          "sha256": "609425350e86686f023b53f5efbf055dec65e36226ed3f5a02fe222cbe2fe567"
+        },
+        {
+          "path": "packages/autoclaw/opencode.mjs",
+          "size": 327,
+          "sha256": "c141f77fa75fae4d36167b40018fd09b820e5cae6f17a37e7bcf1e665a264f9c"
+        },
+        {
+          "path": "packages/autoclaw/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/autoclaw/package.json",
-          "size": 1096,
-          "sha256": "7b3b390fb85f9f989d0b6201e950fc0f44f2207614eb2718e0a20c8bbcdf5a18"
+          "size": 1156,
+          "sha256": "01f8ac646e914ed9ea0202d293edc0ae809786c5ed7d97ad390b0f1b9256ea98"
         }
       ]
     },
     {
       "package": "@magpie-community/opencode-codearts-auth",
-      "name": "CodeArts",
+      "name": "CodeArts / OfficeAce",
       "providers": [
-        "codearts"
+        "codearts",
+        "officeace"
       ],
       "community": true,
       "summary": {
-        "en": "Unofficial: Huawei Cloud CodeArts (码道) coding plans with Huawei Cloud OAuth sign-in — GLM, DeepSeek, openPangu, live models and credit rates, credit usage and daily check-in.",
-        "zh": "非官方：华为云码道（CodeArts）编码套餐，华为云 OAuth 登录；GLM、DeepSeek、openPangu 等模型，实时模型与积分倍率、积分用量和每日签到。"
+        "en": "Unofficial: Huawei Cloud CodeArts (码道) coding plans and OfficeAce (AgentArts), each signed in with Huawei Cloud OAuth on its own card — GLM, DeepSeek, openPangu and OfficeAce's MaaS models, live models and credit rates, credit usage by bucket and the daily check-in. Replaces officeace-auth; accounts signed in there keep working.",
+        "zh": "非官方：华为云码道（CodeArts）编码套餐与 OfficeAce（AgentArts），两张卡各自用华为云 OAuth 登录；GLM、DeepSeek、openPangu 与 OfficeAce 的 MaaS 模型，实时模型与积分倍率、分桶积分用量和每日签到。取代 officeace-auth，原已登录的账号继续可用。"
       },
-      "version": "0.2.1",
+      "version": "0.3.1",
       "directory": "packages/codearts",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/codearts/LICENSE",
@@ -828,18 +1653,28 @@
         },
         {
           "path": "packages/codearts/README.md",
-          "size": 9746,
-          "sha256": "4da096781f64365b00f634bb3d0e963b2549d4c90e889e1a54c89103f6793ffc"
+          "size": 24346,
+          "sha256": "25062cd01d454397d5c497575e51077ddb3511f164cbb44f42e531f63a004601"
         },
         {
           "path": "packages/codearts/index.mjs",
-          "size": 107791,
-          "sha256": "83be5b22e3e4d75a274d164cbe9fa368b1fb538da79a94f87dab5e7fba51e07a"
+          "size": 199248,
+          "sha256": "6542b455850a83b69e6bfebe2dca26384f8b6ca3efb3ec80aa32d73b70b66db7"
+        },
+        {
+          "path": "packages/codearts/opencode.mjs",
+          "size": 326,
+          "sha256": "f232971d44e295f9f95af3e125393db599407f37f2303a60857792215b6847a7"
+        },
+        {
+          "path": "packages/codearts/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
         },
         {
           "path": "packages/codearts/package.json",
-          "size": 2638,
-          "sha256": "f9363283f1c1ea5425521b3f592c002463e1cf4fb453f03375904e84e95c246a"
+          "size": 2779,
+          "sha256": "b825658225393f462a4ecf0b7912fb64ea93b09be815f6e4e6ad87261a442d69"
         }
       ]
     },
@@ -854,9 +1689,9 @@
         "en": "Vertex AI models and Google Cloud promotional credits, signed with your own gcloud or ADC login. Lists only the models your project can call.",
         "zh": "用本机 gcloud / ADC 登录使用 Vertex AI 模型，并读取 Google Cloud 促销赠金；只列出项目实际能调用的模型。"
       },
-      "version": "0.1.0",
+      "version": "0.1.5",
       "directory": "packages/gcp-ai",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/gcp-ai/LICENSE",
@@ -865,8 +1700,8 @@
         },
         {
           "path": "packages/gcp-ai/README.md",
-          "size": 5450,
-          "sha256": "88c026e95caaf155a4d9cb5d84dc5df0e5cb865e289fa952259858d8738007e2"
+          "size": 10395,
+          "sha256": "6947cb23f5cf1da00bac9a7986b9b33ba3f35ad28763cbeb07935aa47f240ed6"
         },
         {
           "path": "packages/gcp-ai/assets/icon.png",
@@ -875,13 +1710,13 @@
         },
         {
           "path": "packages/gcp-ai/index.mjs",
-          "size": 13754,
-          "sha256": "d47b17faabe1fce96c86ca5b64c22c66b7272e97e83e44f679e9d130cd6febba"
+          "size": 17892,
+          "sha256": "303cee7871913fd3740c8c7ddd49f98fab14abd231015526801c7734c2208bf9"
         },
         {
           "path": "packages/gcp-ai/lib/browser.mjs",
-          "size": 28676,
-          "sha256": "4914ac493cd77034dde2d7622568b752658838f784a59d5e2b421453a903676b"
+          "size": 32145,
+          "sha256": "12b09001a594bdd89762bbaabce708f002f046ba3f71e4f60f1845bc19c68ee5"
         },
         {
           "path": "packages/gcp-ai/lib/cdp.mjs",
@@ -890,13 +1725,13 @@
         },
         {
           "path": "packages/gcp-ai/lib/credentials.mjs",
-          "size": 44370,
-          "sha256": "55c278050f047fd79bf646025e4cf8ddca7959d50656a5b6a0bdc2de22c8f572"
+          "size": 47861,
+          "sha256": "d391c7d1999484a1f1b93326f457dc4c48d7d095f5c9ab67192a7e8b4465b512"
         },
         {
           "path": "packages/gcp-ai/lib/credits.mjs",
-          "size": 17877,
-          "sha256": "e1f3d0eeb968f350bec1f536f21a5eee164804ecea63b56d0dfe6a5e16c1d98a"
+          "size": 29314,
+          "sha256": "ecef301fb6ed6e580b5795cb942ae64cd5865bf1dae4e4498dbd8784c5325d76"
         },
         {
           "path": "packages/gcp-ai/lib/endpoint.mjs",
@@ -905,13 +1740,13 @@
         },
         {
           "path": "packages/gcp-ai/lib/fetch_credits.mjs",
-          "size": 5529,
-          "sha256": "7327ee60d223493422784ea53e56db3bf0ad68f4a654230b4e5ea678c5f55975"
+          "size": 6190,
+          "sha256": "d67e12dd45b4c7373b662af5d3393ee1c8a7b89fdeed43755e9c502673a4bec5"
         },
         {
           "path": "packages/gcp-ai/lib/lock.mjs",
-          "size": 5033,
-          "sha256": "161031776eaf88727c359f8528d6fcc2af37b20ffa767d37e5ae4f8c18cb62b7"
+          "size": 5538,
+          "sha256": "1149e1c84e08bfa9e78298df03543359ce48926c16592ad538e26e8c12913306"
         },
         {
           "path": "packages/gcp-ai/lib/models.mjs",
@@ -919,9 +1754,19 @@
           "sha256": "11be11458a89e1c61db9de0b7a52275b7f494159fa9c9dbd1a5fedeb9839492f"
         },
         {
+          "path": "packages/gcp-ai/opencode.mjs",
+          "size": 309,
+          "sha256": "613e6ef3bf662180fd8a010f61d6becfdbd22b1a3fe3e9561d79f42446dd0dd8"
+        },
+        {
+          "path": "packages/gcp-ai/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
           "path": "packages/gcp-ai/package.json",
-          "size": 4783,
-          "sha256": "dd8e526a839a62dcf9b393aeabffabcab6fa853d2445489119337d5a8eef0811"
+          "size": 4842,
+          "sha256": "ed03b33062532cc8693aefc22ce636b2486a70ed8524052dfd57d7d3ee204d0b"
         }
       ]
     },
@@ -1081,6 +1926,38 @@
       ]
     },
     {
+      "package": "@magpie-community/agent-kilo",
+      "name": "Kilo Code",
+      "kind": "agent",
+      "community": true,
+      "icon": "https://github.com/Kilo-Org.png",
+      "summary": {
+        "en": "Kilo Code (kilo.ai) on magpie's Agents page: pick one of magpie's models for it, and switch it off to put its config back.",
+        "zh": "把 Kilo Code（kilo.ai）加到 magpie 的 Agent 页：选择 magpie 的模型，关掉即恢复原来的配置。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "packages/kilo",
+      "entry": "kilo.agent.js",
+      "files": [
+        {
+          "path": "packages/kilo/README.md",
+          "size": 2148,
+          "sha256": "370d1e45c136b987593b6c607eefd252730d40ae93739d9c9f74e8318a95dc10"
+        },
+        {
+          "path": "packages/kilo/kilo.agent.js",
+          "size": 2779,
+          "sha256": "c2e81e38e5d205357f83d331a7cc9ba3299f664faf1f0e0a0de74d17d6119ff7"
+        },
+        {
+          "path": "packages/kilo/package.json",
+          "size": 565,
+          "sha256": "3c0080c5e690eb09cf423d0b494e3e8082dee7b175411e51b25d437ba433ec15"
+        }
+      ]
+    },
+    {
       "package": "@magpie-community/middleware-antigravity-cloak",
       "name": "Antigravity Cloak",
       "kind": "middleware",
@@ -1090,24 +1967,24 @@
         "zh": "让 Claude Code 和 Claude Desktop 能用 Antigravity 账号：只在发给 Antigravity 的请求里拆开它据以拒绝系统提示词的那几个词。"
       },
       "providers": [],
-      "version": "0.1.0",
+      "version": "0.1.2",
       "directory": "packages/antigravity-cloak",
       "entry": "antigravity-cloak.middleware.js",
       "files": [
         {
           "path": "packages/antigravity-cloak/README.md",
-          "size": 2829,
-          "sha256": "bb14d8ea9855e7c3361ddbec5fbfe9db879086e02bb5c13ad2895f1e314717dd"
+          "size": 3840,
+          "sha256": "52105aced5c97c1ae808093e9f2ef78b88d45d910372ccb3b539e94bead997bf"
         },
         {
           "path": "packages/antigravity-cloak/antigravity-cloak.middleware.js",
-          "size": 3150,
-          "sha256": "57f8d53037b994ac214ca5a3767ca7d5afd46eed87125ebf9aef766bcacd30f5"
+          "size": 3721,
+          "sha256": "80d897a08d6b175423812b14cae60fd0345d7dab8cc158e770280eb083d897f5"
         },
         {
           "path": "packages/antigravity-cloak/package.json",
           "size": 720,
-          "sha256": "64d9a598323da5921731fac882f9b67bc58155c07c68801ca266c4fb2ea940c8"
+          "sha256": "dbb0017b93c578310c463f45ee59f14a2f3af07cf52544fb1e03f3e57cefc4f5"
         }
       ]
     },
@@ -1121,7 +1998,7 @@
         "zh": "按供应商开关 Codex Responses 历史过滤，缓解切换上游后的密文和历史 ID 兼容问题；保留正文与工具配对，不运行模型检测。"
       },
       "providers": [],
-      "version": "0.1.1",
+      "version": "0.1.2",
       "directory": "packages/codex-history",
       "entry": "codex-history.middleware.js",
       "files": [
@@ -1132,23 +2009,64 @@
         },
         {
           "path": "packages/codex-history/PROVENANCE.json",
-          "size": 1014,
-          "sha256": "982bc397f517c42d51f6700dc4eb7b3b96da33948629b41fcbc6edd3573a0278"
+          "size": 2116,
+          "sha256": "268fcaee29bb9d44b0af723398f2753de0efa9978b189778609617b166e2dc17"
         },
         {
           "path": "packages/codex-history/README.md",
-          "size": 7891,
-          "sha256": "761fb0261bb7833f21da93e3cccf73e2bf29812d381193cd1f10daad74ecc20f"
+          "size": 9868,
+          "sha256": "075a3e02608cdef10d123830d4dd396d870370f0cffbd04496fe6a2a6f509669"
         },
         {
           "path": "packages/codex-history/codex-history.middleware.js",
-          "size": 6325,
-          "sha256": "8fcc96775113daacb2c8ee6e9a75427ec97328148e77df6991a7673f555aff1f"
+          "size": 7611,
+          "sha256": "f0c6d986283f9d0e6ce141f1e1776d38efd72302d3fca112898aa85f12277271"
         },
         {
           "path": "packages/codex-history/package.json",
           "size": 740,
-          "sha256": "1b8405ccfa50acd0a9c70063c36b5b57ba2cc4dfde2f602bda6ed15b37022ede"
+          "sha256": "46cf4b0f216d84064e8f9204dc1079c0dca9a401709263ade194a7ec29a8bf21"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/middleware-history-trim",
+      "name": "History Trim",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "Send a request's history smaller: fold a run of blank lines, drop a system prompt written twice and a message repeated right after itself, and cut a past tool result longer than maxToolLength at a word boundary. The turn being sent now is left whole.",
+        "zh": "把请求的历史发得更小：折叠连续空行、去掉逐字重复的 system 提示与紧挨着重复的消息、把历史中超过 maxToolLength 的工具结果在词边界处截断；正在发送的这一轮原样不动。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "packages/history-trim",
+      "entry": "history-trim.middleware.js",
+      "files": [
+        {
+          "path": "packages/history-trim/LICENSE",
+          "size": 1285,
+          "sha256": "2c6dec92373f5e0a095a29c1e1a7d565cd86e63e51028cdf7d401d1fdf1e779a"
+        },
+        {
+          "path": "packages/history-trim/PROVENANCE.json",
+          "size": 2523,
+          "sha256": "3d48e25183e2b284b5815db9743c835624eccd28336a1d56ee09073412c1588c"
+        },
+        {
+          "path": "packages/history-trim/README.md",
+          "size": 4087,
+          "sha256": "418c27df890b5894b60bbda838ec68dd0b37b31ad9b6d4c8433a4c548be4779c"
+        },
+        {
+          "path": "packages/history-trim/history-trim.middleware.js",
+          "size": 10448,
+          "sha256": "8f23c2f9840bc3c901a84041b1d2d8fd107d674c8a2899e684a25f097aed817f"
+        },
+        {
+          "path": "packages/history-trim/package.json",
+          "size": 810,
+          "sha256": "df9298953e36d318b246fed0c3c0de9831b1cb4d59768a755c485c740abe15de"
         }
       ]
     },
@@ -1211,6 +2129,37 @@
           "path": "packages/pig/pig.agent.js",
           "size": 2087,
           "sha256": "10867ae6900bfc1f1c9518de506188275bad967f241fbe2d49633c5747d25176"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/agent-bub",
+      "name": "Bub",
+      "kind": "agent",
+      "community": true,
+      "summary": {
+        "en": "Bub (bub.build) on magpie's Agents page: pick one of magpie's models and Bub uses it, through ~/.bub/config.yml. Needs Bub 0.5.1 or later.",
+        "zh": "把 Bub（bub.build）加到 magpie 的 Agent 页：给它选一个 magpie 的模型，通过 ~/.bub/config.yml 生效。需要 Bub 0.5.1 或更新版本。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "packages/bub",
+      "entry": "bub.agent.js",
+      "files": [
+        {
+          "path": "packages/bub/README.md",
+          "size": 3373,
+          "sha256": "9174dfe3a535bb7a3648c89c84d41e3d1bf5b4fce20237290192ab6740ad6efa"
+        },
+        {
+          "path": "packages/bub/bub.agent.js",
+          "size": 682,
+          "sha256": "d383aad9287c0ce21c88dd3fc804dcef2b3d503c20296652dfad9bea08854dd8"
+        },
+        {
+          "path": "packages/bub/package.json",
+          "size": 587,
+          "sha256": "947fd6f200174807fc4d17d2d51e7f91605711629b41fd9929f5a3d3c9927eee"
         }
       ]
     },
@@ -1292,6 +2241,79 @@
       ]
     },
     {
+      "package": "@magpie-community/agent-opencodereview",
+      "name": "Open Code Review",
+      "kind": "agent",
+      "community": true,
+      "summary": {
+        "en": "Open Code Review (Alibaba's ocr CLI) on magpie's Agents page: pick one of magpie's models and ocr review / ocr scan use it, read from the config on the next run.",
+        "zh": "把 Open Code Review（阿里巴巴的 ocr CLI）加到 magpie 的 Agent 页：给它选 magpie 的模型，下一次 ocr review / ocr scan 即从配置中读到并生效。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "packages/opencodereview",
+      "entry": "opencodereview.agent.js",
+      "files": [
+        {
+          "path": "packages/opencodereview/README.md",
+          "size": 4671,
+          "sha256": "cec1189d19b70d39b6f57b810529979677805f3a893492a1cb78cd0cbd7bbbf2"
+        },
+        {
+          "path": "packages/opencodereview/opencodereview.agent.js",
+          "size": 2295,
+          "sha256": "61056ed5e23ba552b02f89c4531d68bc4b1d8739397d8937cb79316e6a2e199d"
+        },
+        {
+          "path": "packages/opencodereview/package.json",
+          "size": 712,
+          "sha256": "a227830b85f72b45e0835d79dfa82d46a09765310f5f5032cfffa9a65bfdde09"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/agent-junie",
+      "name": "Junie CLI",
+      "kind": "agent",
+      "community": true,
+      "icon": "https://junie.jetbrains.com/favicons/favicon.svg",
+      "summary": {
+        "en": "An explicit seed copies Magpie's full model catalog into Junie CLI and uses Magpie's selected model as the launch default, without LiteLLM. Native ECO is unavailable for custom profiles in Junie 3893.6.",
+        "zh": "手动 seed 向 Junie CLI 同步全部模型，并将 Magpie 所选模型设为启动默认模型，无需 LiteLLM。Junie 3893.6 的自定义 profile 不支持原生 ECO。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "packages/junie",
+      "entry": "junie.agent.js",
+      "files": [
+        {
+          "path": "packages/junie/LICENSE",
+          "size": 1107,
+          "sha256": "bebc3d1ec74f197b010ed6f6b6743dbae73fe4865d71bd0670b0a4e203056679"
+        },
+        {
+          "path": "packages/junie/README.md",
+          "size": 5280,
+          "sha256": "e962c43952100cdf35cfd40fcedc09400bac095ad416f419f22bb85436ca3e6e"
+        },
+        {
+          "path": "packages/junie/junie.agent.js",
+          "size": 936,
+          "sha256": "0888ce3a4342608edbe00b299c06c30f8afec70d8aaca5eaa7677b93da542614"
+        },
+        {
+          "path": "packages/junie/package.json",
+          "size": 713,
+          "sha256": "d5747da076566ee9f7c8632054640aba0109947c8f09a9383dc2f6cff466d1a6"
+        },
+        {
+          "path": "packages/junie/seed.mjs",
+          "size": 11558,
+          "sha256": "c85a7dc9ccd0fba7eb3fe8e631005d3fdf572c2a51da3703c30af3f8d109c0c2"
+        }
+      ]
+    },
+    {
       "package": "@magpie-community/middleware-reserve",
       "name": "Reserve",
       "kind": "middleware",
@@ -1333,7 +2355,7 @@
         "zh": "通过 Magpie 的工具 MCP 服务使用 Search1API 网页搜索、新闻、智能搜索、页面读取、站点链接和趋势；支持 OAuth 或 API key 登录。"
       },
       "providers": [],
-      "version": "0.1.0",
+      "version": "0.1.1",
       "directory": "packages/search1api",
       "entry": "index.mjs",
       "files": [
@@ -1344,8 +2366,8 @@
         },
         {
           "path": "packages/search1api/README.md",
-          "size": 7336,
-          "sha256": "142daeb18c54644083d688f4855ab4fd04ab3c0c24110f23f081f8204ea7d593"
+          "size": 8295,
+          "sha256": "020aaa52beb1676f6168a7015dc60027b3489ebca45c7c87415cb21b60662626"
         },
         {
           "path": "packages/search1api/index.mjs",
@@ -1355,7 +2377,7 @@
         {
           "path": "packages/search1api/package.json",
           "size": 1008,
-          "sha256": "4484e4652594c59a7eeb02e7a4d2e856d750dbec9f25145875de8b8c6819caf3"
+          "sha256": "d2596b401647f43d0a943c77b651b89b4424d2b639e4acc43700af312c30c29e"
         },
         {
           "path": "packages/search1api/src/auth.ts",
@@ -1363,19 +2385,24 @@
           "sha256": "4ffedde70df265efcbfbd6680ef50e85cb5c2e1a56e33479a68b5ccd7dbe5601"
         },
         {
+          "path": "packages/search1api/src/feedback.ts",
+          "size": 1155,
+          "sha256": "45e3ff6a254afd25a7d6e7548510f30a0c749ed8843864126c0400ca3f36df81"
+        },
+        {
           "path": "packages/search1api/src/index.ts",
-          "size": 4361,
-          "sha256": "2391a2329e51e52dbcd2721c0f891416fe4b5f26fef4ed0f1e66f9536d737a06"
+          "size": 6118,
+          "sha256": "c0c134e9d069aa1caca12e042985378df3d42a832071675ed62288d862b5d631"
         },
         {
           "path": "packages/search1api/src/oauth.ts",
-          "size": 9843,
-          "sha256": "18f674d57b82e5d89cfdf9a5653b267fd40dae2ada9ad595e5ea4a5e23387731"
+          "size": 12291,
+          "sha256": "4f63cb1c52cc2cf290d1f21b6d654e0f050d0099b481dcab926393ba2efeb967"
         },
         {
           "path": "packages/search1api/src/request.ts",
-          "size": 1417,
-          "sha256": "10c39dbb7485f4d60a9ada0b384d06e60a7d5cd046279724e0ed909f797606fa"
+          "size": 1483,
+          "sha256": "35b1b226802d23aec9432d15742473631db70c0c1a802c5868e8fdc5b71fa356"
         },
         {
           "path": "packages/search1api/src/tools.ts",
@@ -1384,8 +2411,8 @@
         },
         {
           "path": "packages/search1api/src/types.ts",
-          "size": 1086,
-          "sha256": "95fe484c20a10fe0be09315cc2876b2b25e7edb63095bdf584fab30d71cb4138"
+          "size": 1217,
+          "sha256": "2c53cf16864b8f082f67767f0d2d20afbf27780c872b00d0d2e21c0b21885e4b"
         }
       ]
     },
@@ -1435,34 +2462,49 @@
         "zh": "给每个 agent 的 LayerFS 工作区：稳定的文件系统路径背后是可去重的检查点与分支，而不是每个 agent 各复制一棵项目树。"
       },
       "providers": [],
-      "version": "0.7.3",
+      "version": "0.10.0",
       "directory": "packages/layerfs",
       "entry": "index.mjs",
       "files": [
         {
           "path": "packages/layerfs/README.md",
-          "size": 17030,
-          "sha256": "51a31d7f0d1a8206d6468ba3de80878838310fc3684cf6c955700664831306c6"
+          "size": 23645,
+          "sha256": "cacf13303366c092a8205962382f6d97a5cbfec22431eb25f85252c2f9dca48c"
+        },
+        {
+          "path": "packages/layerfs/icon.svg",
+          "size": 712,
+          "sha256": "6947f5d1cac9caaf7657fc81f51b3865492bb9c67e5fc67bde1c9f2d58f1f220"
         },
         {
           "path": "packages/layerfs/index.mjs",
-          "size": 13877,
-          "sha256": "632b8a00982ae83df97615c564d424a0f89370896f8963a7a6e7c09918370c95"
+          "size": 16357,
+          "sha256": "2e1c86804b4a60c0a9e1ca779885306ab46fdb1b766bdef401c53c662677606b"
         },
         {
           "path": "packages/layerfs/layerfs.mjs",
-          "size": 37698,
-          "sha256": "25a9b3b91872d9da567ec9c74c76252cc2737ffbbaacb4dd91f1a81541e45962"
+          "size": 40558,
+          "sha256": "e57d7c979e2fe59adbd45d634da42f5220e6f31a711ad8e30874fe14b0303cc6"
         },
         {
           "path": "packages/layerfs/package.json",
-          "size": 1187,
-          "sha256": "ab406d5145c7063891d1ad1139e5c2abda05be9cac79f426a3ebc26d95fea395"
+          "size": 2235,
+          "sha256": "9af612fafb25fa6c076c9cb007108a89752c804d14775d94a9ea7120a14f0a58"
+        },
+        {
+          "path": "packages/layerfs/page-service.mjs",
+          "size": 8099,
+          "sha256": "b2ea08809b5c38ed378316e22b9d0f9c1bcee8343b7ae991aa563a14e3cf60e0"
         },
         {
           "path": "packages/layerfs/page/app.js",
-          "size": 21367,
-          "sha256": "c7315d053fe806f45f8ccb2a31c958d2c7accb7d037458aabbab6407912fd769"
+          "size": 24949,
+          "sha256": "81c2e774405f6a8e2fc0510d1b2abb2eb66b1b03777a8ef2b1a4e1ddf4898f44"
+        },
+        {
+          "path": "packages/layerfs/page/boot.js",
+          "size": 1841,
+          "sha256": "36b712dd9f14a266ba0c033f4903c8cd4196a1026dc4761fe6738afde328361a"
         },
         {
           "path": "packages/layerfs/page/icon.svg",
@@ -1471,23 +2513,23 @@
         },
         {
           "path": "packages/layerfs/page/index.html",
-          "size": 2944,
-          "sha256": "48005ce2154bdf7ee8cbcb321ea6d3b779d6e9ca54d29bfcf6385a49817fbcc3"
+          "size": 918,
+          "sha256": "8ee2b1464eb53e07ab6c7693a27a0b43021ba2f65e59dfa6c0f44237702c060b"
         },
         {
           "path": "packages/layerfs/page/style.css",
-          "size": 9245,
-          "sha256": "aff42c511e309feb7beb71f4d97d7414ca2ffeea5936db79e5bbfd51450e4820"
+          "size": 10028,
+          "sha256": "59d0a16cfe0bba4e2f7cd1eb37904a7133c52407ecd3ab855467fa2bcb4c52ef"
         },
         {
-          "path": "packages/layerfs/page/trajectory.js",
-          "size": 10254,
-          "sha256": "90f09855b6cb0db0facb09c4946849b6518d7a7ac75af1e775200c0e83731bf1"
+          "path": "packages/layerfs/page/trajectory.html",
+          "size": 3291,
+          "sha256": "7de7982f9b1ee69c31c7c54025716d14c2a53c0b05093a279dfa9d18a9d40734"
         },
         {
           "path": "packages/layerfs/page/view.js",
-          "size": 28393,
-          "sha256": "32a9bd07a39ed54774d4e0b28dc581e3e064db8ac5466325cd959c81bd3a3f4d"
+          "size": 32394,
+          "sha256": "9cf086121416ba0ae58a0135fb5571ab88e93f9332de1482c3f99eb6fe11e92b"
         }
       ]
     },
@@ -1543,6 +2585,834 @@
       ]
     },
     {
+      "package": "@magpie-community/page-fingerprint",
+      "name": "Fingerprint",
+      "kind": "page",
+      "community": true,
+      "summary": {
+        "en": "Check for suspected model substitution by comparing response fingerprints across Magpie providers. Uses lm-detector with shared challenges, local evidence history and JSON export; sampling uses provider quota. Reference data is downloaded on demand from lm.ikale.io, falling back to cdn.jsdmirror.com.",
+        "zh": "在 Magpie 内检测响应指纹，为疑似模型替换提供核查线索。基于 lm-detector，支持跨渠道共享挑战、保留本地证据与 JSON 导出；采样会消耗模型额度。参考库按需从 lm.ikale.io 下载，备用源为 cdn.jsdmirror.com。"
+      },
+      "providers": [],
+      "version": "0.2.2",
+      "directory": "packages/fingerprint",
+      "entry": "dist/plugin.js",
+      "files": [
+        {
+          "path": "packages/fingerprint/LICENSE",
+          "size": 1088,
+          "sha256": "f04cac9cbd0492e924b1075f84f2bb21d7b3f83a3ce8e1e7a754beb7bf7ad684"
+        },
+        {
+          "path": "packages/fingerprint/README.md",
+          "size": 4570,
+          "sha256": "846fa0751ac9c56bb0a494a70ca625a7c665798b6dc13505fbc500360a8fcce1"
+        },
+        {
+          "path": "packages/fingerprint/README.zh-CN.md",
+          "size": 3766,
+          "sha256": "e14ded80eb53de22b0cd9393eaa0a2ffb5e65c96f67e9e5eaf52fe557f8ff673"
+        },
+        {
+          "path": "packages/fingerprint/THIRD_PARTY_NOTICES.md",
+          "size": 6882,
+          "sha256": "a4fa7dea6b0239b1b11ecb6fad66261d4d5b218cdb378edf5df66747d3959e07"
+        },
+        {
+          "path": "packages/fingerprint/dist/cli.js",
+          "size": 80750,
+          "sha256": "cffc7af571620df9d753b74ff2b78ca0bae0ccdcf3a6881e5112430ac9d270eb"
+        },
+        {
+          "path": "packages/fingerprint/dist/plugin.js",
+          "size": 81399,
+          "sha256": "6664c15618909d4eda8f2961bbafa4b192a606081827a109a7211798da00d0fc"
+        },
+        {
+          "path": "packages/fingerprint/dist/ui/assets/index-BzHYFND5.js",
+          "size": 291063,
+          "sha256": "a18169ec260ad2fde639ab3cc5d48e046d4c68cd2c4df5a63e2e5cf7d4ed3e26"
+        },
+        {
+          "path": "packages/fingerprint/dist/ui/assets/index-C9z1QhHD.css",
+          "size": 21541,
+          "sha256": "13d4399a22ed082a277a6fd57442cc553698790085f905d9e05dd66ecaf59e17"
+        },
+        {
+          "path": "packages/fingerprint/dist/ui/assets/magpie-bridge-CFX0m8VY.js",
+          "size": 4344,
+          "sha256": "ea4eec2a6830bfb57433d50b796b2c07595b4dee8b944e9170ebc06c4d6e5031"
+        },
+        {
+          "path": "packages/fingerprint/dist/ui/index.html",
+          "size": 476,
+          "sha256": "2ac44abf349d6afe750b4c218d22b33df2fb68a3fd82b209614a6e1a109befc5"
+        },
+        {
+          "path": "packages/fingerprint/integration.md",
+          "size": 7342,
+          "sha256": "b983d07cbc21645a5d6feea54b1942050eebd0940abb6abf0ec72e87da2f70fa"
+        },
+        {
+          "path": "packages/fingerprint/package.json",
+          "size": 2513,
+          "sha256": "7a6229bf22a6753201c8781165957ce8395463170b7919ee7974767765f8e1b6"
+        },
+        {
+          "path": "packages/fingerprint/page/boot.js",
+          "size": 4415,
+          "sha256": "9c5444e43124b1c22ab58cb344acf22174497e4b287e8adc78b08c89ed2f5eae"
+        },
+        {
+          "path": "packages/fingerprint/page/index.html",
+          "size": 1007,
+          "sha256": "dc0e9c7553459d25a67742bf4a1df43d8dc8db46b06d22d6eb272a6d470451eb"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/page-chat",
+      "name": "Chat",
+      "kind": "page",
+      "community": true,
+      "summary": {
+        "en": "A chat page in magpie's window by Magic_zero: talk to magpie's own models with your MCP servers, instructions and skills, images and LaTeX. Runs a local service on 127.0.0.1 that only its own page can use.",
+        "zh": "Magic_zero 做的 magpie 窗口内「对话」页面：用 magpie 自己的模型聊天，带上你的 MCP 服务器、指令和技能，支持图片与 LaTeX。本地服务只在 127.0.0.1，只给自己的页面用。"
+      },
+      "providers": [],
+      "version": "0.1.11",
+      "directory": "packages/chat",
+      "entry": "index.mjs",
+      "files": [
+        {
+          "path": "packages/chat/LICENSE",
+          "size": 1090,
+          "sha256": "cc857b3b96d034da65d9ff9604d86d4835e939b432f3f10f84402dc5ff06da52"
+        },
+        {
+          "path": "packages/chat/README.md",
+          "size": 9255,
+          "sha256": "3dada8ab5ab825e6be73a2b96ed9226479e943939c711cfaa71670ba4bf14a47"
+        },
+        {
+          "path": "packages/chat/SERVE.md",
+          "size": 2425,
+          "sha256": "18bf1a0a33e2326a0429f84c5d88a57f0c60d2328213cd9f9a964ee46ed8efd2"
+        },
+        {
+          "path": "packages/chat/assets/icon.svg",
+          "size": 415,
+          "sha256": "8cc8d9f0b8b2a697961999d4dccb790a037bb6ce3acc006e3df69bd008f9b8e0"
+        },
+        {
+          "path": "packages/chat/chat/app.js",
+          "size": 111494,
+          "sha256": "04084b5dbba4fe331e0480f5556ec358b6f9e4450f81b357b8ba64b58e1e4c87"
+        },
+        {
+          "path": "packages/chat/chat/epub-reader.js",
+          "size": 12217,
+          "sha256": "531f304689a0205ae61ed33aba48db9b51d0cdabcb39c2c062d48d4f2f8dd01a"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/NOTICE",
+          "size": 1222,
+          "sha256": "42470f3de153924c02850c44245950eb4f3e2ccaece558e22ac7bf480b11e4eb"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/anthropic.svg",
+          "size": 368,
+          "sha256": "e833fdfa7e7187a86a05b870925067556a506dcd4239089aed73e1e58c9366a3"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/baichuan.svg",
+          "size": 571,
+          "sha256": "7d49311206402734850ed9dc112759780429bb363dcee31eccb5a92f428532a6"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/baidu.svg",
+          "size": 1384,
+          "sha256": "1059750a2069aec6080ff48732931e87a99bd3d22db3e8471cebe255b6014b75"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/bytedance.svg",
+          "size": 953,
+          "sha256": "3d37647be262c79b044e293bb1a4993202537e9f9ffdbd2bbe7e9fc5378d1005"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/claude.svg",
+          "size": 1701,
+          "sha256": "365a70a7eb3956d9b9a96086058ebe04e1dbd8e291a756ad964e8a283fbd6d38"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/cohere.svg",
+          "size": 769,
+          "sha256": "84d0ee3cbe66f030e5a18cb2c86da9166ab2137c7a98781693bb1fbf31e392b9"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/deepseek.svg",
+          "size": 2164,
+          "sha256": "deba5f98a5c1796e20fcac3149bcd7eb8a32f0bdd04d048819400b1f28bd1439"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/google.svg",
+          "size": 920,
+          "sha256": "4e6aa8892ef15a6b431f40f2c9045979bf7e2357524e7bbb89b353cf4f32a5ac"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/grok.svg",
+          "size": 756,
+          "sha256": "9175fc90c22655160231976c849f25a03b888d7cc0e04c5f1b987b659bb07c95"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/groq.svg",
+          "size": 568,
+          "sha256": "078d5cf6e7a54905040c15ddacf5ea33c13042fe7739e820cedc2096e4406651"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/kimi.svg",
+          "size": 786,
+          "sha256": "ed08131b46acf70e6e2144eceb775e74098b58ea65fa21eaee04be7b05cfe63b"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/meta.svg",
+          "size": 6022,
+          "sha256": "adf9f2c1a646ccd3a37ca8c2e7e5985d64630cd633f4b95fba393d1d44e0578c"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/microsoft.svg",
+          "size": 399,
+          "sha256": "5cfb0ffa3231313c2968b5e3fedfcce8e2e96c61bde4572384c3889a77a80350"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/minimax.svg",
+          "size": 1570,
+          "sha256": "7f7187fa6d9b341ac5f22f6c5a970523afb439dc45566d64eb4f4b9b604d6b01"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/mistral.svg",
+          "size": 655,
+          "sha256": "722f74b289d95486b43662fe24fa883b333701296f618406cd0ed502299170b6"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/moonshot.svg",
+          "size": 4028,
+          "sha256": "435f41b74e6a87639b6bf860e9628f20cbe7d6229bece412d548f4cea3081852"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/nvidia.svg",
+          "size": 1025,
+          "sha256": "8c941e4eb8b782eccaaea1240c059d20be33ab8eda28d7c9ed9b53ac802fe683"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/openai.svg",
+          "size": 1687,
+          "sha256": "a595df6b423920c67a7f8f73c063e4bfb72d415948097b6cac063a2366bb5186"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/qwen.svg",
+          "size": 1016,
+          "sha256": "a158a0e3ed5b541e4f91384ece02c3acf0a0d81b7b11a46d77bafb248b09e32c"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/sensenova.svg",
+          "size": 1559,
+          "sha256": "bd2e0f8e310ff6a5edcc56a85560221923262767ba76b660a193f45c40c123fa"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/xai.svg",
+          "size": 372,
+          "sha256": "89eb7de9f0d02a41cfecd9109e253d7fd3529e27467dee4254faa67f3ac21451"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/xiaomimimo.svg",
+          "size": 2544,
+          "sha256": "b04ad7dad52af2212c4567daf0ee6856f2c4625c92c680a27f9880295d558b71"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/yi.svg",
+          "size": 786,
+          "sha256": "d78b1ce0eeb7a7d1a6132785dfa0218be48d6d1ccd3751ca3f9240a2e3b38756"
+        },
+        {
+          "path": "packages/chat/chat/icons/models/zhipu.svg",
+          "size": 3597,
+          "sha256": "8174e65ff71647d5c705c920c953a82bd723d9e3e42887bdd4ffc9dfe51207a0"
+        },
+        {
+          "path": "packages/chat/chat/index.html",
+          "size": 10514,
+          "sha256": "223b58c8179f250d1258f4a5c2b72b0287301850a2b900ccb2ee12530764e7f8"
+        },
+        {
+          "path": "packages/chat/chat/style.css",
+          "size": 41044,
+          "sha256": "b4215d8d54ed4e71878168264b33c982817da4e33aa0905777355af7c6032de1"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_AMS-Regular.woff2",
+          "size": 28076,
+          "sha256": "0cdd387c9590a1a9f9794560022dbb59654a7d86f187aa0c81495ad42d3a7308"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Caligraphic-Bold.woff2",
+          "size": 6912,
+          "sha256": "de7701e42cf1f4cf0b766c03fb27977207eee2f4fd5d76fa82188406da43ea4c"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Caligraphic-Regular.woff2",
+          "size": 6908,
+          "sha256": "5d53e70ad607c2352162dec9e0923fb54ecdafaccbf604cd8dcf7d00facb989b"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Fraktur-Bold.woff2",
+          "size": 11348,
+          "sha256": "74444efd593c005e3f4573b44524704c0af0a937fe911cca9e94068d0d140d3f"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Fraktur-Regular.woff2",
+          "size": 11316,
+          "sha256": "51814d270d06ff0255dba0799994fa4d8c84d11f09951d47595f4abb1f3602dc"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Main-Bold.woff2",
+          "size": 25324,
+          "sha256": "0f60d1b897938ec918c8ce073092411baf9438f6739465693ff18b0f9d20b021"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Main-BoldItalic.woff2",
+          "size": 16780,
+          "sha256": "99cd42a3c072d918f2f44984a807cf7aa16e13545fd0875fc07c6c65f99e715b"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Main-Italic.woff2",
+          "size": 16988,
+          "sha256": "97479ca6cce906abc961ecac96faa5f9ca2e61b8e7670d475826bcdee9a7c267"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Main-Regular.woff2",
+          "size": 26272,
+          "sha256": "c2342cd8b869e01752a9321dc17213fc40d4d04c79688c1d43f2cf316abd7866"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Math-BoldItalic.woff2",
+          "size": 16400,
+          "sha256": "dc47344dbb6cb5b655c8460d561f4df5f501b90c804ad3c6cec65fe322351ab1"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Math-Italic.woff2",
+          "size": 16440,
+          "sha256": "7af58c5ec8f132a2ddde9027c6d7814decce4d3b822a11192a42a20e2e973264"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_SansSerif-Bold.woff2",
+          "size": 12216,
+          "sha256": "e99ae51144bf1232efcc1bfe5add36262c6866b0faab24fa75740e1b98577a62"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_SansSerif-Italic.woff2",
+          "size": 12028,
+          "sha256": "00b26ac825e2095056396e0553b8ac26d3f8ad158c3826e28b4c45b385c4714a"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_SansSerif-Regular.woff2",
+          "size": 10344,
+          "sha256": "68e8c73ef42afd3ccec58bf0fba302cce448938e7fc020a5e31f8a952eee1342"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Script-Regular.woff2",
+          "size": 9644,
+          "sha256": "036d4e95149b69ff9bcc0cd55771efeb25ffa3947293e69acd78d5ac328c684b"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Size1-Regular.woff2",
+          "size": 5468,
+          "sha256": "6b47c40166b6dbe21a5dfca7718413f2147fd2399be1ba605d8ad39cedf25dfe"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Size2-Regular.woff2",
+          "size": 5208,
+          "sha256": "d04c54219f9eaec6d4d4fd42dfb28785975a4794d6b2fc71e566b9cd6db842dd"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Size3-Regular.woff2",
+          "size": 3624,
+          "sha256": "73d591271b1604960cb10bb90fee021670af7297017e0e98480b332d11f51995"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Size4-Regular.woff2",
+          "size": 4928,
+          "sha256": "a4af7d414440a1c1790825cfb700cf9cf43b0f2c4b04f0ebc523011ad9853ec0"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/fonts/KaTeX_Typewriter-Regular.woff2",
+          "size": 13568,
+          "sha256": "71d517d67827787cfabdf186914cc3358eda539e37931941f2b2fd4a21f68c0b"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/katex.min.css",
+          "size": 23336,
+          "sha256": "4597f0d14fe81bdcf985a0a667e2cc16d4cae413f6f1f66b5bcd6f4f32bceb96"
+        },
+        {
+          "path": "packages/chat/chat/vendor/katex/katex.min.js",
+          "size": 275414,
+          "sha256": "e6bfe5deebd4c7ccd272055bab63bd3ab2c73b907b6e6a22d352740a81381fd4"
+        },
+        {
+          "path": "packages/chat/index.mjs",
+          "size": 2138,
+          "sha256": "865e89021e99d4d0fbc95cb7ed385c324119fe80ac0378e5e4846df15f6a657b"
+        },
+        {
+          "path": "packages/chat/install-autostart.cmd",
+          "size": 332,
+          "sha256": "a89af385ebb7fc9c1a1abec443fed7769da5c47e18fb23d363746ba27c92bfbc"
+        },
+        {
+          "path": "packages/chat/install-autostart.ps1",
+          "size": 927,
+          "sha256": "8ae5e483d6ff596cde3bfe28a1a37c394a33c556285aaf97b0ac007ff418b679"
+        },
+        {
+          "path": "packages/chat/lib/gateway.mjs",
+          "size": 8669,
+          "sha256": "2f0be04360d5ba47af025f880cae67fd333b64d72e73dc6ec98743057ec4e2b2"
+        },
+        {
+          "path": "packages/chat/lib/library.mjs",
+          "size": 9006,
+          "sha256": "1fd3acc48366852153991fad798ca1d05a8c6c91e4ed00211483756e32695cfe"
+        },
+        {
+          "path": "packages/chat/lib/mcp.mjs",
+          "size": 17444,
+          "sha256": "e7df53bc91effe6d8a2ec9ebc6ef7e49d17a26c5e879b97612fa431a1a014f89"
+        },
+        {
+          "path": "packages/chat/lib/server.mjs",
+          "size": 42280,
+          "sha256": "b7446fad5b5b1417127c1cc523e6c42bb5602331780fce5bddd1a3814bfe3466"
+        },
+        {
+          "path": "packages/chat/package.json",
+          "size": 2266,
+          "sha256": "f2aeb72d0c5cc4ec5880124019662173890bad4b0fb743a74276ee9a9240cf7e"
+        },
+        {
+          "path": "packages/chat/page/boot.js",
+          "size": 6123,
+          "sha256": "c719422b96ff1da60c4fd75009a35d88297e25e096d597e401df4a30ed7341bb"
+        },
+        {
+          "path": "packages/chat/page/index.html",
+          "size": 1039,
+          "sha256": "e1992441bb39065881711b47d69aea198e0fc9295566f86c023c4d7478785daf"
+        },
+        {
+          "path": "packages/chat/serve.mjs",
+          "size": 1771,
+          "sha256": "69eb540c4c9755727cbab9a8d83bbb4a075fc1baf4c4eac4a4f074148a89135c"
+        },
+        {
+          "path": "packages/chat/start-server.cmd",
+          "size": 216,
+          "sha256": "7a1601e8c3b7eabd18f81bd8b357416ade57317e8bacd1e0b37f6be53799a85e"
+        },
+        {
+          "path": "packages/chat/start-server.vbs",
+          "size": 346,
+          "sha256": "ab88c64e1990487f2bf9fbc0f2e235286ba7ca88964beb3aa38aabe11f94ef32"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/page-agent-office",
+      "name": "Agent Office",
+      "kind": "page",
+      "community": true,
+      "summary": {
+        "en": "Reads the session files of Claude Code, Codex, Copilot CLI, Kimi Code, DeepSeek Harness, Gemini CLI, Qwen Code, Pi, omp, Qoder, WorkBuddy, CodeBuddy and Grok Build on this computer (prompts, replies and tool commands; text can be turned off). Shows them in a real WebGL 3D office with eleven scenes, an isometric/2D office, or a grouped workbench with Today usage, recent conversations and approvals.",
+        "zh": "读取本机 Claude Code、Codex、Copilot CLI、Kimi Code、DeepSeek Harness、Gemini CLI、Qwen Code、Pi、omp、Qoder、WorkBuddy、CodeBuddy、Grok Build 的会话文件（含提问、回复与工具命令，可关闭文本），用真 3D 办公室（十一种场景）、等距/2D 办公室或分组工作台展示，带今日用量、最近对话与批准状态。"
+      },
+      "providers": [],
+      "version": "0.3.1",
+      "directory": "packages/agent-office",
+      "entry": "page/index.html",
+      "files": [
+        {
+          "path": "packages/agent-office/CHANGELOG.md",
+          "size": 7782,
+          "sha256": "55de9a17d106d53d972f1b558542950a60afd9448edc47da84b4abf5bc3434e7"
+        },
+        {
+          "path": "packages/agent-office/LICENSE",
+          "size": 1085,
+          "sha256": "189abd1b362f0c700b4846d1ddb035314b626e087417947cb840e50334de4274"
+        },
+        {
+          "path": "packages/agent-office/README.md",
+          "size": 14107,
+          "sha256": "8d181b6596f678a4292be7d866f2d05fb8d9f306e506353251d44fc3d9718b98"
+        },
+        {
+          "path": "packages/agent-office/SKILL.md",
+          "size": 1874,
+          "sha256": "2d5d17abe3f3a11ccede7a14ded62ef3577fc167142d43a7d0f474f3f336d0f7"
+        },
+        {
+          "path": "packages/agent-office/bin/agent-office.mjs",
+          "size": 10801,
+          "sha256": "2274ef951f8815d0e369fa16652bf04893a2c24cb759e3b373986bf3c6e8fa42"
+        },
+        {
+          "path": "packages/agent-office/lib/jump.mjs",
+          "size": 27678,
+          "sha256": "ff1d28180f332667f0d4a4b4e14c6d48f442e564c06b8ec04c8a12040fe42aad"
+        },
+        {
+          "path": "packages/agent-office/lib/readers.mjs",
+          "size": 39913,
+          "sha256": "0a2f219bf81e3b3df691a08f6c47cdf598e580f0f22d51dbb5c4d923a8ed514a"
+        },
+        {
+          "path": "packages/agent-office/lib/scan.mjs",
+          "size": 25442,
+          "sha256": "850086bd56a4d2a55fe13acc9564f8a7efd7f2bcc1080e6fe6ab4b8a6654bcc2"
+        },
+        {
+          "path": "packages/agent-office/lib/track.mjs",
+          "size": 10239,
+          "sha256": "3f4e184b7558f1e195e6499edb2f781f09081d55b0df54ce29364c8cbeb20b51"
+        },
+        {
+          "path": "packages/agent-office/office.hooks.mjs",
+          "size": 11230,
+          "sha256": "c545b8ec78cc549ba9613f04a0f55e712566a66fa491ba9013b2a48126c80be3"
+        },
+        {
+          "path": "packages/agent-office/package.json",
+          "size": 2350,
+          "sha256": "2755f855bfcba91c8cc5b942eeb6db9e3b369821fa4240aad5eab5418fba75e0"
+        },
+        {
+          "path": "packages/agent-office/page/agents.js",
+          "size": 5536,
+          "sha256": "53d82e6e9f8a2a766b4f2e17273325e39a617230564a05842cc2c652079f43bc"
+        },
+        {
+          "path": "packages/agent-office/page/app.js",
+          "size": 48268,
+          "sha256": "cd72bee3834f6bb1b65ccc904c4cedabd36fa7451dc274b51587be09a64b022b"
+        },
+        {
+          "path": "packages/agent-office/page/icon.svg",
+          "size": 261,
+          "sha256": "6df4736749a8a9739110168ccb94197496d22d09a9d0682d0111726102e3fd79"
+        },
+        {
+          "path": "packages/agent-office/page/icons.js",
+          "size": 1218,
+          "sha256": "c43d7284700b3baf7009b188c7fe5467388243728cd196a67887ed764d8854df"
+        },
+        {
+          "path": "packages/agent-office/page/icons/aionui.svg",
+          "size": 426,
+          "sha256": "49f1073904cd57116bfa9d987119c312e47a84a4ded524d984e6dcd35e66b560"
+        },
+        {
+          "path": "packages/agent-office/page/icons/air.svg",
+          "size": 19431,
+          "sha256": "ffa2fe3cd5c10dd276bc8965a1ee1b5d27693ac1ada671a7509808694127f7f9"
+        },
+        {
+          "path": "packages/agent-office/page/icons/alma.png",
+          "size": 4573,
+          "sha256": "4cca00f442597907a4eab7cd395b50050f953d22740ab44151580f3b909a23cf"
+        },
+        {
+          "path": "packages/agent-office/page/icons/antigravity-color.svg",
+          "size": 7634,
+          "sha256": "652128cf55a28bb958563ee372d0bd00208d9e6fd446f523f77aafd811eef8ca"
+        },
+        {
+          "path": "packages/agent-office/page/icons/aside.svg",
+          "size": 11120,
+          "sha256": "c186bada639813bf4715ac303c2b8751b1e217e7b158938c74b35b0daa24f9d9"
+        },
+        {
+          "path": "packages/agent-office/page/icons/astrbot.svg",
+          "size": 923,
+          "sha256": "6d9066b4076719c688f6b9796d34b6ad430116e6afb630a863ff14da7363a9f0"
+        },
+        {
+          "path": "packages/agent-office/page/icons/atomcode.png",
+          "size": 14059,
+          "sha256": "033e3cb2effe16e88e74c0b4b7221e3c742036c2052ae2d9ead17e53022b33b0"
+        },
+        {
+          "path": "packages/agent-office/page/icons/cindy.png",
+          "size": 8102,
+          "sha256": "fd7ad23096a2e968a23d3ea9ad30b954705870c6ffa10a3695dd45820f08b2a1"
+        },
+        {
+          "path": "packages/agent-office/page/icons/claude-color.svg",
+          "size": 1696,
+          "sha256": "a3101f3047a119aa11825ad9369510f0c472428c8c52d420e31bc62db44a8364"
+        },
+        {
+          "path": "packages/agent-office/page/icons/claudecode-color.svg",
+          "size": 424,
+          "sha256": "670b3d8d749d0815ad8f7e62a59d51cb5e2053cb19403f3541a8aed7036a877f"
+        },
+        {
+          "path": "packages/agent-office/page/icons/cline.svg",
+          "size": 750,
+          "sha256": "9003d2cdce82b016147b732abb4def60af55c348ba2cea2ba0b69a3c7d159b19"
+        },
+        {
+          "path": "packages/agent-office/page/icons/codebuddy-color.svg",
+          "size": 1589,
+          "sha256": "033d5da624460e686046f22b4e242b6b86484ad84ec4877e4efa15a9fb642b97"
+        },
+        {
+          "path": "packages/agent-office/page/icons/codex-color.svg",
+          "size": 1769,
+          "sha256": "4a2f43ce46b5b6e3722c95088f88d26ef91e6a8c2e598e70642a1c54367386e4"
+        },
+        {
+          "path": "packages/agent-office/page/icons/commandcode.svg",
+          "size": 2850,
+          "sha256": "3967e444cdb5cc55e754206d692308ef8a2237278ffbfc065d2b4b9ff727f825"
+        },
+        {
+          "path": "packages/agent-office/page/icons/crush.png",
+          "size": 16519,
+          "sha256": "76167b40452da7da049779bf3b6e6211af406e9a9748c146a1d9bdacfbf7c504"
+        },
+        {
+          "path": "packages/agent-office/page/icons/cursor.svg",
+          "size": 547,
+          "sha256": "0cb51bddf264ae108926fd554c063ef40fc1aac3c5c921ddb39ad184e4e5d0ef"
+        },
+        {
+          "path": "packages/agent-office/page/icons/deepseek-color.svg",
+          "size": 2164,
+          "sha256": "deba5f98a5c1796e20fcac3149bcd7eb8a32f0bdd04d048819400b1f28bd1439"
+        },
+        {
+          "path": "packages/agent-office/page/icons/devin.svg",
+          "size": 3302,
+          "sha256": "8d197b0c31522517ffa896cd4a1ee65719eb73bff9eb9bbf7edf64db6b1a573d"
+        },
+        {
+          "path": "packages/agent-office/page/icons/empryo-color.svg",
+          "size": 2925,
+          "sha256": "de842ec0c3a379d4a941348cf9ed27ef7b0b5320ec5cc940826aec23e45e81fa"
+        },
+        {
+          "path": "packages/agent-office/page/icons/factory.svg",
+          "size": 6047,
+          "sha256": "60250a5dfa3ff85ef7f665799904310aa5479b3c10ed46c35996b4bc6f59e55c"
+        },
+        {
+          "path": "packages/agent-office/page/icons/geminicli-color.svg",
+          "size": 921,
+          "sha256": "c2f54ebaa4c3b9191c6a07f7b0c66bc78e4abe486003dc564469cf650672663e"
+        },
+        {
+          "path": "packages/agent-office/page/icons/githubcopilot.svg",
+          "size": 2019,
+          "sha256": "bbc7fddc13448236e5edea8c399d2072dc40aa5da5bca07f7a2f412405c500a3"
+        },
+        {
+          "path": "packages/agent-office/page/icons/goose.svg",
+          "size": 1807,
+          "sha256": "8779d9a61c5b0be78a3d36cab6843ba5af86218ba2ff1b18eb918c7a8d25bb99"
+        },
+        {
+          "path": "packages/agent-office/page/icons/grok.svg",
+          "size": 756,
+          "sha256": "9175fc90c22655160231976c849f25a03b888d7cc0e04c5f1b987b659bb07c95"
+        },
+        {
+          "path": "packages/agent-office/page/icons/hanako.png",
+          "size": 21062,
+          "sha256": "f899034194797adb3f4b266724d922a0b8c60956e9e79d2391efa44ea0b9fe25"
+        },
+        {
+          "path": "packages/agent-office/page/icons/hermes.svg",
+          "size": 285,
+          "sha256": "e089ec627d3fabeba2845ae4a5c580796314d9b6310b3fe3720b571bd9550057"
+        },
+        {
+          "path": "packages/agent-office/page/icons/jcode.svg",
+          "size": 12515,
+          "sha256": "53afd3d79d1a7e3ca32f38f3c6e09638e01ad224cb084c8fea8534084f3bbdb8"
+        },
+        {
+          "path": "packages/agent-office/page/icons/kilocode.svg",
+          "size": 652,
+          "sha256": "a2aef0e0bb992ebe768bfb8c3a3ab6ff2c2638448b09dd88db27877de1c07a22"
+        },
+        {
+          "path": "packages/agent-office/page/icons/kimi.svg",
+          "size": 786,
+          "sha256": "ed08131b46acf70e6e2144eceb775e74098b58ea65fa21eaee04be7b05cfe63b"
+        },
+        {
+          "path": "packages/agent-office/page/icons/kiro-color.svg",
+          "size": 960,
+          "sha256": "4eae4d6e818da7342c32c7d443ab7c97b93c544db9af379d5b5bf7f0a3127d66"
+        },
+        {
+          "path": "packages/agent-office/page/icons/lody.png",
+          "size": 6056,
+          "sha256": "e593417b41884ef4a69810ca8ef7894cec727a07052eba893bdf75e89726efdc"
+        },
+        {
+          "path": "packages/agent-office/page/icons/meta-color.svg",
+          "size": 2517,
+          "sha256": "4976fd1cb4da0654032adcc6168ba84f090d822a9406065ccd4e87ed41343d57"
+        },
+        {
+          "path": "packages/agent-office/page/icons/minimax-color.svg",
+          "size": 1570,
+          "sha256": "7f7187fa6d9b341ac5f22f6c5a970523afb439dc45566d64eb4f4b9b604d6b01"
+        },
+        {
+          "path": "packages/agent-office/page/icons/mistermorph-color.svg",
+          "size": 13466,
+          "sha256": "9db37d203f382b593d582d4708c7e0019c26c9c1d4adfb6faec9f4ad3717a5c0"
+        },
+        {
+          "path": "packages/agent-office/page/icons/mothx.png",
+          "size": 10545,
+          "sha256": "bb3763301ecb74133619157e83bae5fc3a1348edebcdeea6c50a2fd596285741"
+        },
+        {
+          "path": "packages/agent-office/page/icons/omp.svg",
+          "size": 240,
+          "sha256": "cc1e9fac8bc435b56cc57307872b64ce2793d9664df7c96aea38b0eb74d654e1"
+        },
+        {
+          "path": "packages/agent-office/page/icons/openchamber.svg",
+          "size": 835,
+          "sha256": "387be34cf088ec67434c3438d16f26e0e1004e9767079d4fe314ce9e5a773832"
+        },
+        {
+          "path": "packages/agent-office/page/icons/opencode.svg",
+          "size": 235,
+          "sha256": "7cfa6e9d6726f7c9fa26c7d9aef0dfec52d20a137380454340f30f12ccbfd302"
+        },
+        {
+          "path": "packages/agent-office/page/icons/penguin-color.svg",
+          "size": 4640,
+          "sha256": "412d505b246c898beac3d7e8d0a77dc28eb3a988975a6e615c1850385da93488"
+        },
+        {
+          "path": "packages/agent-office/page/icons/pi.svg",
+          "size": 313,
+          "sha256": "d82978781b824273c55473822c1f243a6ed34fc6e8c2dbfe1a90dfc66ae43ee8"
+        },
+        {
+          "path": "packages/agent-office/page/icons/qoder.svg",
+          "size": 6214,
+          "sha256": "f8503aacc41a58e723430488d082f6730c8a6a9ffecdd0a00c522e6bcdb4abb9"
+        },
+        {
+          "path": "packages/agent-office/page/icons/qwen-color.svg",
+          "size": 2044,
+          "sha256": "77f5768c66d08ce1d3d14e73373975c1bc0454be88c81523ddd0ffd7e2974029"
+        },
+        {
+          "path": "packages/agent-office/page/icons/raycast.svg",
+          "size": 617,
+          "sha256": "3a3352f28af4df22aa0c76383dfbde6b8d309f5977a802a049da45092ddb459f"
+        },
+        {
+          "path": "packages/agent-office/page/icons/reasonix-color.svg",
+          "size": 3753,
+          "sha256": "cba93875029821fc6dba4228899298746d0621c04de582e4913829ca65c9a733"
+        },
+        {
+          "path": "packages/agent-office/page/icons/snow.png",
+          "size": 6375,
+          "sha256": "f62d61e2fd399f45f2f12fd82cdc879a08418c18c5177d79440d02e13a3652eb"
+        },
+        {
+          "path": "packages/agent-office/page/icons/stepfun-color.svg",
+          "size": 676,
+          "sha256": "f55afc0e6004c8854f76bd5bbcc0fce9fc0ed9316691d54fb02d088c24fab40d"
+        },
+        {
+          "path": "packages/agent-office/page/icons/t3code.svg",
+          "size": 1017,
+          "sha256": "1796c86fe5a09b742cad9e6d7c4b1cad00399c52ff5332835ef7b22c33c2588c"
+        },
+        {
+          "path": "packages/agent-office/page/icons/trae.svg",
+          "size": 402,
+          "sha256": "59ef6255dfce52d4b1e77aff4e1b4ee3cda71cda735b4fb45575e9874a1c11f6"
+        },
+        {
+          "path": "packages/agent-office/page/icons/workbuddy-color.svg",
+          "size": 4119,
+          "sha256": "ade134028e69e03453bff956059a0e7f23c7341a0295f16994cecd8d03fc2fd4"
+        },
+        {
+          "path": "packages/agent-office/page/icons/xai.svg",
+          "size": 372,
+          "sha256": "89eb7de9f0d02a41cfecd9109e253d7fd3529e27467dee4254faa67f3ac21451"
+        },
+        {
+          "path": "packages/agent-office/page/icons/zcode.png",
+          "size": 8170,
+          "sha256": "df3aba17ddb55b9cfb21f1f30d11fde7ea93d3193c40b3d6433cf684af942b99"
+        },
+        {
+          "path": "packages/agent-office/page/icons/zed.svg",
+          "size": 761,
+          "sha256": "e9738a231662d93b1aa9cde08698b76162b6d9669a38dd33e2c31398e4df5e86"
+        },
+        {
+          "path": "packages/agent-office/page/icons/zoo-code.png",
+          "size": 18982,
+          "sha256": "22e6e76317e1d026ce92f7f678494b4dda1689132634d143be800173db4f7c98"
+        },
+        {
+          "path": "packages/agent-office/page/index.html",
+          "size": 6236,
+          "sha256": "46cdf804da8d96c254cce2dbcfb7feb3b5f372cd27e8b377aa78352668e743f7"
+        },
+        {
+          "path": "packages/agent-office/page/model.js",
+          "size": 54423,
+          "sha256": "87e8e056ea954a9d3608040418c10e97b9c185fc2a368a234cb62f5a340088f4"
+        },
+        {
+          "path": "packages/agent-office/page/scene.js",
+          "size": 69362,
+          "sha256": "d0d969b55f2bf72e355eba3830cd4622ec74250d84a09af808b611167f2aad05"
+        },
+        {
+          "path": "packages/agent-office/page/scene3d.js",
+          "size": 112142,
+          "sha256": "37e4be47741c61a7c4e57546ff983dd52f88befef3dfecc7feb5ee71fe1c7e72"
+        },
+        {
+          "path": "packages/agent-office/page/style.css",
+          "size": 22496,
+          "sha256": "c96332be7c22a236313675768ee4ab31b9366806c408c6bad5305a6e991547e8"
+        },
+        {
+          "path": "packages/agent-office/page/three.min.js",
+          "size": 686114,
+          "sha256": "01a0aa7bc2a413926433c8a9cfb1494c63368b7ee85f2d4785e87cfeea40870b"
+        }
+      ]
+    },
+    {
       "package": "@magpie-community/agent-kimi-desktop",
       "name": "Kimi",
       "kind": "agent",
@@ -1552,7 +3422,7 @@
         "zh": "把普通 Kimi 桌面版 Work 接入 Magpie Agent 页，使用已配置的模型；断开恢复原连接。不是 Kimi Code CLI。"
       },
       "providers": [],
-      "version": "0.1.3",
+      "version": "0.1.5",
       "directory": "packages/kimi-desktop",
       "entry": "index.mjs",
       "files": [
@@ -1563,13 +3433,13 @@
         },
         {
           "path": "packages/kimi-desktop/README.md",
-          "size": 9820,
-          "sha256": "401e874b9972242a7aa1df0cf8529c2c71fe4c64ad6293427a22e6368c4c6840"
+          "size": 11035,
+          "sha256": "d047f22e304dc4dc7d8880484a0b43e1e4134367acb75701f370859c3a646115"
         },
         {
           "path": "packages/kimi-desktop/adapter.mjs",
-          "size": 21856,
-          "sha256": "9b788842e95f094353c9c8096b9e8dcf78ad6cfb56cefca4c320347736b399e0"
+          "size": 24068,
+          "sha256": "636d15cc92ef4a8247026ce2df5ab364d10f23ade9da008182100f8ea23f78e6"
         },
         {
           "path": "packages/kimi-desktop/catalog.mjs",
@@ -1594,12 +3464,114 @@
         {
           "path": "packages/kimi-desktop/package.json",
           "size": 10712,
-          "sha256": "01e22ebc1810683c049574b6ac44283c4e283b61983be4bda3a4586d58981dd0"
+          "sha256": "1421e3e02345da80d86d28e8a29df2ef95a42a2ba23ceeb17dfd3cd3e3605d2a"
         },
         {
           "path": "packages/kimi-desktop/rpc.mjs",
           "size": 2126,
           "sha256": "5382974c886158222d3b0aba744ba8e2e8cc3e7f328ab5601afcc94c346ccbe8"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/gateway-notify",
+      "name": "Notify",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "A push when an agent's turn is done or fails, after it ran long enough to be worth one: ntfy, Bark, Gotify, Server酱, Feishu, DingTalk, WeCom, Telegram or your own webhook. Agent, project, model and time only by default; the reply's text is opt-in.",
+        "zh": "agent 一轮任务跑完或失败时推送提醒（只提醒跑够设定时长的任务）：支持 ntfy、Bark、Gotify、Server酱、飞书、钉钉、企业微信、Telegram 和自定义 webhook。默认只发 agent、项目、模型和用时，回复正文需手动开启。"
+      },
+      "providers": [],
+      "version": "0.1.2",
+      "directory": "packages/notify",
+      "entry": "",
+      "files": [
+        {
+          "path": "packages/notify/README.md",
+          "size": 10402,
+          "sha256": "a83d311b59faa82c1dfc351e374713666cbdec28aa349c3d7e00f8b29d9459a5"
+        },
+        {
+          "path": "packages/notify/channels.mjs",
+          "size": 4635,
+          "sha256": "1d45a242a216caf3d7c6b2fbaa4cb648b4ac38b33dafec2f6cd11c0d0e73909f"
+        },
+        {
+          "path": "packages/notify/notify.hooks.mjs",
+          "size": 13585,
+          "sha256": "a490b4c09d10883b0601849b7273d130b40a99aba3eff9801cae866ea2bc6553"
+        },
+        {
+          "path": "packages/notify/package.json",
+          "size": 941,
+          "sha256": "0efca1321cb55c858029ad0c922cfddfe202da392827535a2258f3a8259671cc"
+        },
+        {
+          "path": "packages/notify/turn.mjs",
+          "size": 17596,
+          "sha256": "d77c46833def01abb81eefa6c7e40728f0cbb90c4dd246d08f92148742219d01"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/hooks-mail-watch",
+      "name": "Mail Watch",
+      "kind": "middleware",
+      "community": true,
+      "summary": {
+        "en": "Email alerts when a provider call fails or a quota window runs out: your own SMTP account, your own words in the mail, and your own list of what to watch, with cooldowns and an hourly cap so a bad hour stays bounded — plus an optional periodic usage digest.",
+        "zh": "供应商调用失败或额度窗口用尽时发邮件提醒：用你自己的 SMTP 账号、自己的邮件文案、自己勾选的监控事项；同类事件冷却合并，另有每小时上限，糟糕的一小时不会失控；另可开启定期用量摘要。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "packages/mail-watch",
+      "entry": "",
+      "files": [
+        {
+          "path": "packages/mail-watch/README.md",
+          "size": 8239,
+          "sha256": "0d3d6cb013e16aa0ca0e6c2a74f44258b924914edfb900b37de3189e44a1c305"
+        },
+        {
+          "path": "packages/mail-watch/digest.js",
+          "size": 6599,
+          "sha256": "82bd18663611e21baf4627554404bc99a0b99a87394298e2d2238812fa9a110d"
+        },
+        {
+          "path": "packages/mail-watch/icon.svg",
+          "size": 726,
+          "sha256": "e65c0d392c7f29b58c89fb3a9953c44ff216d63741b83032872b5d2d8fc8d1e6"
+        },
+        {
+          "path": "packages/mail-watch/mail-watch.hooks.js",
+          "size": 16059,
+          "sha256": "c3963fd2b2dd708ba6c0f683512a536eaea0ad05d445ac23df1227837ea926fd"
+        },
+        {
+          "path": "packages/mail-watch/package.json",
+          "size": 2538,
+          "sha256": "3eb14530cef90e6611cde2ee79e34365d3e592468f9fb6ffc5dbb6e26818df3b"
+        },
+        {
+          "path": "packages/mail-watch/paths.js",
+          "size": 2847,
+          "sha256": "ae292830df2b2d4ee6b56bf98939aaecc604dd1349171bdaee4f3f275ea5ee60"
+        },
+        {
+          "path": "packages/mail-watch/smtp.js",
+          "size": 10107,
+          "sha256": "763c433f1423a6c1ab02ecef1de1e16d0b08aba81d82401a83c8497962c302f6"
+        },
+        {
+          "path": "packages/mail-watch/template.js",
+          "size": 7471,
+          "sha256": "61cf3ffccd5ce176b5530eef1c53d910c66c177a8f64f5e96de07f1d3145189b"
+        },
+        {
+          "path": "packages/mail-watch/watch.js",
+          "size": 10940,
+          "sha256": "723f72e7be2d634d25a45202628a4862bebce7d49c981f7602b683c462b3b070"
         }
       ]
     },
@@ -1614,9 +3586,9 @@
         "en": "Cloudflare Workers AI with your API token (Workers AI:Edit): 28+ models discovered live from models.dev, the 8 paid-only models flagged, and a Neurons/day allowance row in magpie quota.",
         "zh": "用你的 Cloudflare API Token（Workers AI:Edit 权限）登录 Workers AI：28+ 模型经 models.dev 实时发现，付费专属模型自动标注，magpie quota 显示每日 Neurons 免费额度。"
       },
-      "version": "0.0.3",
+      "version": "0.0.5",
       "directory": "packages/cloudflare-workers-ai",
-      "entry": "index.mjs",
+      "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/cloudflare-workers-ai/LICENSE",
@@ -1625,18 +3597,18 @@
         },
         {
           "path": "packages/cloudflare-workers-ai/README.ja.md",
-          "size": 8162,
-          "sha256": "02ebeae78be979b8479e7e7d8bc5ff9cef75d00e6f2c1ada682b68d40d95eb13"
+          "size": 8835,
+          "sha256": "6cf6261e922b850dcc5a2c8fd4882ec23aa377cd43f1ce0aeef7a505220556ad"
         },
         {
           "path": "packages/cloudflare-workers-ai/README.md",
-          "size": 7507,
-          "sha256": "2bd3fc9388d4847fac3c8e229e85ee4dafb42610fbd3291030918424dfa6f575"
+          "size": 8058,
+          "sha256": "56381f666a350a4a9fe9317bbe5f22a19719c52d1d38033c3f326e81c78ff5af"
         },
         {
           "path": "packages/cloudflare-workers-ai/README.zh-CN.md",
-          "size": 7340,
-          "sha256": "302e2e58b3c619faf3cdff12ffedcc09791368be03437d18d3d4803e4963e285"
+          "size": 7883,
+          "sha256": "a2f5aed052fff63201e49fb3c5cd4a21d5389b3fe47eb551ae31a85e2042e8b9"
         },
         {
           "path": "packages/cloudflare-workers-ai/index.mjs",
@@ -1644,16 +3616,444 @@
           "sha256": "1c11e593763fd6bfd1ceca6c977fc669f474ba2c4bf4a70e2d2bcc647b74d251"
         },
         {
+          "path": "packages/cloudflare-workers-ai/opencode.mjs",
+          "size": 312,
+          "sha256": "cbf2aa2dc658b31b08ea241d5aa021dca0c09c2071d8c19d3d6918cab05b853f"
+        },
+        {
+          "path": "packages/cloudflare-workers-ai/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
           "path": "packages/cloudflare-workers-ai/package.json",
-          "size": 1003,
-          "sha256": "7a9d83c16dcd35eea89e12c138899877c9cffcbf4f29ebfe43d4ed7ccbd5a030"
+          "size": 1091,
+          "sha256": "aa346d09ec7a9f66a6148a6028ac481e8693f288bd0d874bd2171eb9c9289c0f"
         },
         {
           "path": "packages/cloudflare-workers-ai/src/index.mjs",
-          "size": 16289,
-          "sha256": "c686cddd7f713d3c201b4ad7211aa043b84268e5f66436af3d5019ce12088403"
+          "size": 20117,
+          "sha256": "d0b9c54ce705056f8d1ad7650179d93c9061a07b5421a858c7aa5c60fb394751"
         }
       ]
+    },
+    {
+      "package": "@magpie-community/opencode-river-auth",
+      "name": "River",
+      "providers": [
+        "river"
+      ],
+      "community": true,
+      "summary": {
+        "en": "River (river.ai) pay-as-you-go inference with your API key: per-account models from /v1/models, documented reasoning efforts and live prices from River's public pricing endpoint.",
+        "zh": "用你的 API key 接入 River (river.ai) 按量计费推理：按账号从 /v1/models 列出模型，带官方推理档位与实时价格。"
+      },
+      "version": "0.1.1",
+      "directory": "packages/river",
+      "entry": "opencode.mjs",
+      "files": [
+        {
+          "path": "packages/river/LICENSE",
+          "size": 1089,
+          "sha256": "6598de979d0d9593c44689e58f39f75c20f6815eccb01a392b887d2eead89596"
+        },
+        {
+          "path": "packages/river/README.md",
+          "size": 2374,
+          "sha256": "346c80b5884aa021392d92227c77631d0ae4056669cc17ccb4799ec50ae3cbb1"
+        },
+        {
+          "path": "packages/river/index.mjs",
+          "size": 10930,
+          "sha256": "2682f30621ec4c60e60dfaa8f2c983e670991c4853be03248e31c067e17024cc"
+        },
+        {
+          "path": "packages/river/opencode.mjs",
+          "size": 298,
+          "sha256": "9667a15effd8c05cea27b2d3622c5b99e5288150152de0e95ee9feaef1193ddc"
+        },
+        {
+          "path": "packages/river/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
+          "path": "packages/river/package.json",
+          "size": 779,
+          "sha256": "96519acf72bcc4d26b8c5366a42bcc60716c6e227e1ee1d75886472f0b282fbe"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/tools-goanyapi",
+      "name": "GoAnyAPI",
+      "kind": "tools",
+      "community": true,
+      "summary": {
+        "en": "Explore Google Trends, website traffic, domain rating (DR), keyword suggestions, SERPs, backlinks, and ads statistics for market, keyword, and competitor research.",
+        "zh": "查询 Google 趋势、网站流量、域名权重（DR）、关键词建议、SERP、外链和广告统计，辅助市场、关键词与竞品研究。"
+      },
+      "providers": [],
+      "version": "0.1.1",
+      "directory": "packages/goanyapi",
+      "entry": "index.mjs",
+      "files": [
+        {
+          "path": "packages/goanyapi/LICENSE",
+          "size": 1099,
+          "sha256": "6849356d3b06279cbf6442efd8ab99c9afd064a32ab2b87693d9af25954611e4"
+        },
+        {
+          "path": "packages/goanyapi/README.md",
+          "size": 2743,
+          "sha256": "d3fc11515101dc8facbb61264998e2c550890d99d8d15254f50a14b907e212dd"
+        },
+        {
+          "path": "packages/goanyapi/index.mjs",
+          "size": 9549,
+          "sha256": "39cfd02b8cf9d26e71307bd85ad1985eede6ae114c5e541f09dfe2f587713c82"
+        },
+        {
+          "path": "packages/goanyapi/package.json",
+          "size": 875,
+          "sha256": "ae0111ce9edc6e43e80cb540dfc6f973ceeff702474c4b908e987074379d0fd4"
+        },
+        {
+          "path": "packages/goanyapi/src/auth.ts",
+          "size": 5766,
+          "sha256": "44ef4ad97cef075e9ea1b2b709e0a2349325e1e83013cbac4109a6be8f810332"
+        },
+        {
+          "path": "packages/goanyapi/src/catalog-fallback.ts",
+          "size": 61766,
+          "sha256": "1a5f88798b98ed834bf51ca0a3148752996c043a8a1aff5da8f37d79796b551e"
+        },
+        {
+          "path": "packages/goanyapi/src/catalog.ts",
+          "size": 5957,
+          "sha256": "63f702e9230e33b7087b30a45d6b59e7a0a7506ad5b1ceabad6b17b9b740013b"
+        },
+        {
+          "path": "packages/goanyapi/src/oauth.ts",
+          "size": 12236,
+          "sha256": "c1669599566e3293d5db00bff0e462008cab294d9a160de32ec114b09c2c0397"
+        },
+        {
+          "path": "packages/goanyapi/src/types.ts",
+          "size": 1284,
+          "sha256": "f54b2179bb57dad7c010531f4c10f1f7d2b2ac0780963d7a77fd687d7504636b"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-orcaterm-auth",
+      "name": "OrcaTerm",
+      "providers": [
+        "orcaterm"
+      ],
+      "community": true,
+      "summary": {
+        "en": "Tencent Cloud OrcaTerm (遨驰终端) AI assistant models — DeepSeek, Hunyuan, GLM, Kimi — on the account's monthly question allowance. Unofficial; the README sets out the terms.",
+        "zh": "用腾讯云遨驰终端（OrcaTerm）AI 助手的模型——DeepSeek、混元、GLM、Kimi——走账号每月问答额度。非官方，条款风险见 README。"
+      },
+      "version": "0.1.3",
+      "directory": "packages/orcaterm",
+      "entry": "opencode.mjs",
+      "files": [
+        {
+          "path": "packages/orcaterm/LICENSE",
+          "size": 1107,
+          "sha256": "bebc3d1ec74f197b010ed6f6b6743dbae73fe4865d71bd0670b0a4e203056679"
+        },
+        {
+          "path": "packages/orcaterm/README.md",
+          "size": 22484,
+          "sha256": "ecf81b603caa29f2b727ec1e459369ba1a886bb3e427910da46b15713d4bade5"
+        },
+        {
+          "path": "packages/orcaterm/index.mjs",
+          "size": 91005,
+          "sha256": "45683dac23a69b65525f72e947f44d6c40f59561b4c8f93c8c62d8ed1b2bddd4"
+        },
+        {
+          "path": "packages/orcaterm/opencode.mjs",
+          "size": 305,
+          "sha256": "49dad69580f6425f0c318e2fc9360d9423091ccd2954097f674b13d038e47aa3"
+        },
+        {
+          "path": "packages/orcaterm/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
+          "path": "packages/orcaterm/package.json",
+          "size": 1411,
+          "sha256": "818d0c9c0f4e4c61dbdc9e310d05bfff082e37c1bb7f5e2f8e4b28cb057cebca"
+        },
+        {
+          "path": "packages/orcaterm/wechat.mjs",
+          "size": 19023,
+          "sha256": "43fa45ad0b08ffd1323c532d0907e9095ca76e352911cb5e6a3e32a8450d399d"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/page-window-warmup",
+      "name": "Window Warmup",
+      "kind": "page",
+      "community": true,
+      "icon": "https://raw.githubusercontent.com/magpie-community/plugins/main/packages/window-warmup/page/icon.svg",
+      "summary": {
+        "en": "Window warmup (formerly Scheduled Messages): warm up a subscription's 5-hour or weekly quota / usage window ahead of time with a keep-alive (keep alive) message. It sends one fixed short message (\"hi\", max_tokens 16) to a provider, account and model you pick, on a schedule: right after its rate limit window resets, daily at set times or every few hours. Each send uses that provider's quota. Runs a local service on 127.0.0.1 that only calls magpie's own gateway; only its own page gets the token.",
+        "zh": "窗口预热（原「定时消息」）：提前开启订阅的 5 小时或每周额度窗口，给额度保活。给指定的供应商、账号和模型发一条固定短消息（\"hi\"，max_tokens 16），可在窗口重置后、每天定时或每隔几小时发送。每次发送都会消耗该供应商的额度（配额）。在本机 127.0.0.1 跑一个本地服务，只调用 magpie 自己的网关；令牌只交给自己的页面。"
+      },
+      "providers": [],
+      "version": "0.1.0",
+      "directory": "packages/window-warmup",
+      "entry": "dist/plugin.js",
+      "files": [
+        {
+          "path": "packages/window-warmup/LICENSE",
+          "size": 1082,
+          "sha256": "fbfc3439aa35883fa17ded7944f09a97a043b0cad36b96bd2536c9a2a53f9bf8"
+        },
+        {
+          "path": "packages/window-warmup/README.md",
+          "size": 18429,
+          "sha256": "fac5ae6c563d1cb9e52aef8e932a393ebf4c0465f04700b43bd1f84c2195fbca"
+        },
+        {
+          "path": "packages/window-warmup/dist/plugin.js",
+          "size": 77924,
+          "sha256": "7877d0fb1edcebcba8e837efd2aba7e4bd32391f4112863429a90baeefdf593b"
+        },
+        {
+          "path": "packages/window-warmup/dist/ui/app.js",
+          "size": 75015,
+          "sha256": "6597bb78fdc1a36661c66125b3988197113196a054d122be135337762ee55f56"
+        },
+        {
+          "path": "packages/window-warmup/dist/ui/index.html",
+          "size": 983,
+          "sha256": "04ac406ce96f8d1e620ab99b6855ba2600f2c1d92f8a89fe57042572ce86b48f"
+        },
+        {
+          "path": "packages/window-warmup/dist/ui/style.css",
+          "size": 11684,
+          "sha256": "e8a09d32fd3a11678b0c3aee12571c209a33b9699749a3ab17a3a62c8904e62a"
+        },
+        {
+          "path": "packages/window-warmup/package.json",
+          "size": 2699,
+          "sha256": "655988c23943aff9dd19748af72a6e68a36d7ee5802e09492e17baefc6bef86c"
+        },
+        {
+          "path": "packages/window-warmup/page/boot.js",
+          "size": 5260,
+          "sha256": "0ccbd0618dbeb7c349fced68f22148c521f8f5bd2d286a2ef70827d6dc1527ca"
+        },
+        {
+          "path": "packages/window-warmup/page/icon.svg",
+          "size": 551,
+          "sha256": "51319df6fcc1fb4114655fc474ebd24a9729316479018f0558f5b7f7e5da21d3"
+        },
+        {
+          "path": "packages/window-warmup/page/index.html",
+          "size": 1045,
+          "sha256": "8dc26f1c4df9af5e455adf946751f2cc2f6ae505abde4ee2b72df0a64c78a246"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-astudio-auth",
+      "name": "AStudio",
+      "providers": [
+        "astudio"
+      ],
+      "community": true,
+      "summary": {
+        "en": "Unofficial AStudio (iFLYTEK Astron Studio desktop): reuse the desktop sign-in to serve its Responses model gateway, with the live model catalog, daily login-points check-in and points balance. Desktop discovery runs on Windows (registry lookup), with a paste-token fallback. Differs from Providers Hub's hub-astudio, which signs in on a local page (SMS, password or WeChat QR) and calls chat/completions; on one account both share the same daily points pool.",
+        "zh": "非官方 AStudio（科大讯飞 Astron Studio 桌面端）：复用桌面端登录态接入其模型网关，含实时模型目录、每日登录积分签到与积分余额。桌面端发现仅 Windows（注册表定位），另有粘贴凭据方式。与 Providers Hub 的 hub-astudio 不同：那边在本地登录页用短信、密码或微信扫码登录，走 chat/completions；同一账号两边共用一个每日积分池。"
+      },
+      "version": "0.1.3",
+      "directory": "packages/astudio",
+      "entry": "opencode.mjs",
+      "files": [
+        {
+          "path": "packages/astudio/LICENSE",
+          "size": 1088,
+          "sha256": "002543d943c275b1fa16cfe8a36f4a39ea509f2003edd688bc86ecd1ca2bb7d2"
+        },
+        {
+          "path": "packages/astudio/README.md",
+          "size": 6323,
+          "sha256": "108d3aef336c84c5da6741b2d2b8323796d656dce5b2213893e893ec4993c24f"
+        },
+        {
+          "path": "packages/astudio/index.mjs",
+          "size": 29590,
+          "sha256": "be0f2b12e68abd581de515f0e24e97de0fa90a7b83c5b3729ccc270f8bc5f862"
+        },
+        {
+          "path": "packages/astudio/opencode.mjs",
+          "size": 300,
+          "sha256": "271ccd256929b4cbbe166f31a6e61df2e19b051ba21741a89664242eefaded25"
+        },
+        {
+          "path": "packages/astudio/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
+          "path": "packages/astudio/package.json",
+          "size": 2828,
+          "sha256": "f2c04c08dfa522c9e8cf9f479c666920ddeb94c91e1897405393e660c3881048"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/opencode-agnes-code-auth",
+      "name": "Agnes Code",
+      "providers": [
+        "agnes-code"
+      ],
+      "community": true,
+      "summary": {
+        "en": "Unofficial Agnes Code desktop: reuse the desktop sign-in for its OpenAI-compatible gateway, with the live model catalog, daily credit check-in and points balance. Desktop decryption is Windows-only; a paste-token method covers the rest. Differs from opencode-agnes-auth (`agnes`), which signs in to Agnes AI international in Chrome and meters that product's plans and USD balance: this one serves the Agnes Code desktop product and its daily credits.",
+        "zh": "非官方 Agnes Code 桌面端：复用桌面端登录态接入其 OpenAI 兼容网关，含实时模型目录、每日积分签到与余额显示。桌面端解密仅限 Windows，其余平台用粘贴 accessToken。与 opencode-agnes-auth（`agnes`）不同：那边在 Chrome 里登录 Agnes AI 国际版、显示该产品的套餐与美元余额；本包服务 Agnes Code 桌面端产品与它的每日积分。"
+      },
+      "version": "0.1.2",
+      "directory": "packages/agnes-code",
+      "entry": "opencode.mjs",
+      "files": [
+        {
+          "path": "packages/agnes-code/LICENSE",
+          "size": 1088,
+          "sha256": "002543d943c275b1fa16cfe8a36f4a39ea509f2003edd688bc86ecd1ca2bb7d2"
+        },
+        {
+          "path": "packages/agnes-code/README.md",
+          "size": 5479,
+          "sha256": "76445f79423506033fe93eefa974ad8d2f297ab8c3edd3a37a20f9dcbcc4e5f7"
+        },
+        {
+          "path": "packages/agnes-code/index.mjs",
+          "size": 24779,
+          "sha256": "c50aa9367dc6f6a6d9ab4df70769648648eaf426243bc878ca80697b499d8349"
+        },
+        {
+          "path": "packages/agnes-code/opencode.mjs",
+          "size": 298,
+          "sha256": "b5ceedf976492892f396572f7effcc8f691a4f7f26eab7b013c9633abceb6a82"
+        },
+        {
+          "path": "packages/agnes-code/opencode2.mjs",
+          "size": 25117,
+          "sha256": "1887a2d8a5ffb017090f9090f979c455f3e1549c520acd13490a237ed2666100"
+        },
+        {
+          "path": "packages/agnes-code/package.json",
+          "size": 1963,
+          "sha256": "7bfac4f5f5d86f0e65c2e37b6c407153e45b381af9d1b26a094f5b7d857d6f6d"
+        }
+      ]
+    }
+  ],
+  "installable": [
+    {
+      "package": "@openviking/magpie-plugin",
+      "name": "OpenViking",
+      "kind": "middleware",
+      "community": true,
+      "icon": "https://raw.githubusercontent.com/volcengine/OpenViking/main/docs/images/ov-logo-icon.png",
+      "summary": {
+        "en": "Recall OpenViking context before model requests and optionally capture completed conversations. Reuses your existing OpenViking configuration; capture is off by default. Maintained by the OpenViking project.",
+        "zh": "在模型请求前召回 OpenViking 上下文，并按需采集完整对话。复用现有 OpenViking 配置；采集默认关闭。由 OpenViking 项目维护。"
+      }
+    },
+    {
+      "package": "magpie-comfyui-link",
+      "name": "ComfyUI",
+      "kind": "tools",
+      "community": true,
+      "summary": {
+        "en": "A bridge between Magpie agents and locally hosted ComfyUI models, exposing native workflows, model resources and generated images through Magpie's tools MCP endpoint.",
+        "zh": "连接 Magpie Agent 与本地 ComfyUI 模型的桥接层，通过 Magpie 工具 MCP 入口提供原生工作流、模型资源和生成图片。"
+      }
+    },
+    {
+      "package": "magpie-plugin-pink",
+      "name": "PinK",
+      "kind": "agent",
+      "icon": "https://raw.githubusercontent.com/YuchenWell/magpie-plugin-pink/main/assets/pink.png",
+      "summary": {
+        "en": "Connect PinK to Magpie's models from the Agents page and track gateway usage and cost. Disconnecting restores the managed configuration.",
+        "zh": "在 Agent 页面连接 PinK，使用 Magpie 中配置的模型并查看调用用量与费用；断开时恢复插件管理的配置。"
+      }
+    },
+    {
+      "package": "@hoptoper/magpie-agent-wispterm",
+      "name": "WispTerm",
+      "kind": "agent",
+      "summary": {
+        "en": "WispTerm on magpie's Agents page: pick one of magpie's models for its Agent, switch reasoning effort with /effort, and switch it off to put its config back. Needs WispTerm 1.46.1 or later.",
+        "zh": "把 WispTerm 加到 magpie 的 Agent 页：给它的 Agent 选 magpie 的模型，用 /effort 切换思考强度，关掉即恢复原来的配置。需要 WispTerm 1.46.1 或更新版本。"
+      }
+    },
+    {
+      "package": "@hoptoper/magpie-agent-citebox",
+      "name": "CiteBox",
+      "kind": "agent",
+      "summary": {
+        "en": "CiteBox on magpie's Agents page: pick one of magpie's models for its text AI, set reasoning effort in Settings, and switch it off to put its config back. Needs CiteBox 0.38.0 or later.",
+        "zh": "把 CiteBox 加到 magpie 的 Agent 页：给它的文本 AI 选 magpie 的模型，在设置里调整思考强度，关掉即恢复原来的配置。需要 CiteBox 0.38.0 或更新版本。"
+      }
+    },
+    {
+      "package": "@hoptoper/magpie-agent-wisp-science",
+      "name": "Wisp Science",
+      "kind": "agent",
+      "summary": {
+        "en": "Wisp Science on magpie's Agents page: pick one of magpie's models, set reasoning effort in the composer, and switch it off to put its config back. Needs Wisp Science 1.23.0 or later.",
+        "zh": "把 Wisp Science 加到 magpie 的 Agent 页：选择 magpie 的模型，在输入框里设置思考强度，关掉即恢复原来的配置。需要 Wisp Science 1.23.0 或更新版本。"
+      }
+    },
+    {
+      "package": "magpie-aws-bedrock-sso",
+      "name": "AWS Bedrock SSO",
+      "providers": [
+        "bedrock-sso"
+      ],
+      "summary": {
+        "en": "Use Amazon Bedrock Claude and GPT models with your AWS CLI profile, including SSO / IAM Identity Center. SigV4 authentication; no Bedrock API key needed.",
+        "zh": "使用 AWS CLI 配置（支持 SSO / IAM Identity Center）接入 Amazon Bedrock 的 Claude 和 GPT 模型，通过 SigV4 签名，无需 Bedrock API 密钥。"
+      }
+    },
+    {
+      "package": "magpie-providers-hub",
+      "name": "Providers Hub",
+      "providers": [
+        "hub-astudio",
+        "hub-accio",
+        "hub-lobsterai",
+        "hub-magicrew",
+        "hub-magicrew-intl"
+      ],
+      "community": true,
+      "summary": {
+        "en": "Third-party Magpie adapter for dsh-providers-hub (by JetLi): five providers, each a separate channel you can sign in to, meter and switch off on its own — AStudio (iFlytek), Accio (Alibaba), LobsterAI (Youdao), MagiCrew (letsmagic.cn / magicrew.ai). Channels that already exist in the registry are not shipped. Runs without DSH. Its AStudio signs in on a local page (SMS, password or WeChat QR, no desktop app needed) and calls chat/completions; the standalone AStudio plugin (astudio) reuses the desktop sign-in and calls Responses. On one account both share the same daily points pool.",
+        "zh": "dsh-providers-hub（作者 JetLi）的第三方适配：五条供应商（每渠道一条，可各自登录/看额度/单独关闭）——AStudio（讯飞）、Accio（阿里）、LobsterAI（有道）、超级麦吉/MagiCrew（letsmagic.cn / magicrew.ai）。与社区 registry 已有插件重叠的渠道不随包提供。不依赖 DSH 运行。其中 AStudio 在本地登录页用短信、密码或微信扫码登录（不需要桌面端），走 chat/completions；独立的 AStudio 插件（astudio）复用桌面端登录态，走 Responses。同一账号两边共用一个每日积分池。"
+      }
+    },
+    {
+      "package": "@magpie-community/page-agent-console",
+      "name": "Agent Console",
+      "kind": "page",
+      "community": true,
+      "summary": {
+        "en": "Use your terminal Agent CLIs right inside magpie, by chat. Runs a local service on 127.0.0.1 that starts when the page opens and stops with magpie; only its own page gets the token. First install ~46 MB; Claude Code isn't bundled, so install the `claude` CLI yourself.",
+        "zh": "把终端里的 Agent CLI 搬进 magpie 窗口，直接对话使用。会在本机 127.0.0.1 跑一个后台服务，打开页面才启动，随 magpie 退出；令牌只交给自己的页面。首次安装约 46 MB；不自带 Claude Code，要用请自己装 `claude` CLI。"
+      }
     }
   ]
 }

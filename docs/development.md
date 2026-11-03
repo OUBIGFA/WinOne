@@ -1,5 +1,20 @@
 # 开发状态
 
+## 程序管理按上游 WinTray 更新（2026-10-31，不提交、不推送、不更新安装器）
+
+以独立仓库 `E:\_Free code\WinTray`（HEAD `03a809f`）为依据，更新 WinOne 侧程序管理（`modules/wintray`）的缺陷并移植微信自动登录。两侧已分叉（166 个同名 Go 文件中 101 个内容不同），只做逐项外科式移植，未整体同步。
+
+- **窗口枚举死锁**：`internal/orchestrator/window_enum_windows.go` 删除持锁读取窗口标题的 `enumState`，改为锁内只收集句柄、锁外读标题与类名；新增 `window_enum_windows_test.go`（子进程＋看门狗），旧实现 12 秒超时死锁。
+- **托盘收纳终态关闭**：`internal/traybox/listener_windows.go` 新增 `msgClose = WM_APP+7`；还原失败不再阻止退出，销毁窗口并 `PostQuitMessage`；`restoreIcons` 错误带 hwnd/uid/delivered。`box_windows.go` 的 `Box.Close()` 改为终态。新增 `shutdown_windows_test.go`。
+- **原生桥接嵌套超时残留暂停令牌**：`native/traybridge/bridge.c` 的 resume 分支区分「无 pause_token」与「token 不同」，不再谎报已恢复；超时路径回填当前 serial。新增 `bridge_nested_timeout_windows_test.go`（需原生夹具）。
+- **任务栏未就绪导致模块启动失败**：`internal/traybox/bridge_windows.go` 新增哨兵 `ErrTaskbarUnavailable`；`worker/tray_startup_windows.go`（新增）让 `Reconcile` 在任务栏未就绪时每秒重试，不再让整个程序管理初始化失败。
+- **退出流程一致性**：`worker/runtime_windows.go` 的 `box.Close()` 失败原先被静默丢弃或回滚 `closing` 状态（与终态语义矛盾），改为记录中文警告并继续退出。
+- **既有缺陷**：`internal/ui/hosted_collection_windows_test.go` 未跟上 `host.RestoreAll` 返回 `error` 的签名，`go vet ./...` 此前失败，已修。
+- **微信自动登录（上游 5ef48d7 全量移植）**：`internal/config/schema.go` 新增 `wechatAutoLogin` 字段与 `IsWeChatExecutable`/`WeChatAutoLoginEnabled`；新增 `internal/orchestrator/wechat_login_windows.go` 与 `wechat_uia_windows.go`（系统 UI Automation，无 Python 运行时），通过 `CUIAutomation8` 定位登录按钮并 Invoke，只点一次，不代选账号，扫码/手机确认留给用户；`orchestrator.go` 接入登录先于窗口收起，并只收起已确认登录的同一进程主窗口；新增结果码 `wechat_login_incomplete`。MyGo 前端在「收进托盘」下对 Weixin.exe/WeChat.exe 显示「微信自动登录」开关（`pages/wintray/details.go`、`model.go`），中英文案同步。
+- **验证**：`modules/wintray` 的 `go build`、`go vet ./...`、`go test ./...`（含原生 DLL 夹具）全部通过；`apps/desktop-mygo` 的 `go vet ./...`、`go test ./...` 全部通过。微信原生测试用子进程模拟登录窗口（按钮嵌套六层）走真实 UIA provider，覆盖登录成功、扫码、手机确认、按钮禁用、按钮歧义五种情形。`go vet ./...` 与模块测试此前也一并修复。
+- **来源与许可**：`third_party/wintray-source.json` 更新 revision 至 `03a809f` 及受影响文件的 SHA-256，新增 5 个微信文件条目；`third_party/sources.json` 与 `THIRD-PARTY-NOTICES.md` 同步。
+- **未验证与边界**：微信自动登录只在本机夹具上验证过真实 UIA 调用，未对已安装的微信客户端做过实窗验证（需 `WINTRAY_WECHAT_LIVE_EXE`，会弹出登录界面）。未提交、未推送、未更新固定安装器；工作区内其他 AI 的未提交改动未被触碰。
+
 ## 当前 MyGo 成果与测试安装器（2026-11-01）
 
 - **交付范围**：按用户 2026-10-31 的最新要求，先提供当前成果测试包，暂停闪聊、Chat、OneBot 迁移；三个页面在本包暂不可用，原后台实现及数据保留。不把本轮交付标为全面一比一迁移完成。统一构建仍默认 Rust，本轮显式使用 `-DesktopImplementation MyGo`。

@@ -92,7 +92,12 @@ func applyRuntimeSettings(in request) error {
 	// account-specific preference file. The shared router keeps native Find.
 	if address != "" {
 		s.RedactModel = true
+		if model := os.Getenv("WINONE_AI_PRIVACY_MODEL"); model != "" { s.RedactModelName = model }
+		if score := os.Getenv("WINONE_AI_PRIVACY_SCORE"); score != "" { if err := json.Unmarshal([]byte(score), &s.RedactModelScore); err != nil { return err } }
 	}
+	// WinOne keeps its established explicit-download boundary, including for
+	// a new upstream whose local model is automatically downloaded by default.
+	s.RedactModelOff = !s.RedactModel
 	settings.WinOneUse(s)
 	// These protocol features now register through Magpie's plugin runtime.
 	// Compose their actual upstream implementations in WinOne's private
@@ -332,6 +337,7 @@ func testModels(ctx context.Context, in request, output io.Writer) error {
 		}
 		p = *a
 		p.LimitRestOff = in.LimitRestOff
+		if err := applyProviderPreferences(&p, in); err != nil { return err }
 	} else {
 		var err error
 		p, err = configuredProvider(in)

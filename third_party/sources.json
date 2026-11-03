@@ -155,7 +155,7 @@
     }
   },
   "wintray": {
-    "latestReviewedCommit": "484e38273456f04182d9e19190669e7295f7f3a9",
+    "latestReviewedCommit": "03a809f94b7eec97ae123636b86879357a0052e4",
     "latestSourceSnapshot": "third_party/wintray-source.json",
     "baseCommit": "57789d13c9c2b451a71f51adfcf21d7b4e285690",
     "localFix": "2026-09-29 taskbar icon drag",
@@ -167,7 +167,7 @@
       "internal/traybox/testdata/taskbar_drag.ps1": "3966edae8eeee8c1d30f8c68e4818520dedbef107c153274ea2df62d58312c79"
     },
     "previousBaseCommit": "dea17c108357109d6c2c04e80c9df45279bfdc51",
-    "adaptation": "WinOne hosted menus and unified logs; private data directory, bounded recovery pipes and final process exit; latest tray registration combined with process/window identity checks."
+    "adaptation": "WinOne hosted menus and unified logs; private data directory, bounded recovery pipes and final process exit; latest tray registration combined with process/window identity checks; upstream 76512a8 exit and tray restoration fixes plus 5ef48d7 WeChat auto login adapted to the MyGo settings page. 2026-11-03 also reviews the upstream working tree's AutoHotkey association/runtime, DC-backed rendering and delayed tray-readiness changes; details and source hashes remain in latestSourceSnapshot."
   },
   "sharex": {
     "repository": "https://github.com/ShareX/ShareX",
@@ -184,7 +184,7 @@
   },
   "magpie": {
     "repository": "https://github.com/yetone/magpie",
-    "commit": "42ec2700bd2a4cf8d4ceb76a95767ac221e283e5",
+    "commit": "22f5cf69e583dab7723523be514cbafc9c870ebd",
     "license": "MIT",
     "dependencyLocks": [
       "modules/ai-magpie/upstream.go.mod",
@@ -192,8 +192,8 @@
     ],
     "adapter": "modules/ai-magpie",
     "build": "build/build-ai.ps1",
-    "verification": "docs/magpie-update-20261025.md",
-    "previousCommit": "50f52b540b915bdf5912ddebc48c1fa46eef3025",
+    "verification": "docs/magpie-update-20261103.md",
+    "previousCommit": "42ec2700bd2a4cf8d4ceb76a95767ac221e283e5",
     "privacyModel": "third_party/privacy-model.json",
     "routingExtraction": "build/prepare-ai-routing.mjs"
   },

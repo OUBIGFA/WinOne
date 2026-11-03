@@ -1,6 +1,6 @@
 # 设置页（settings）功能对照
 
-更新：2026-10-31。React 来源：`apps/desktop/frontend/src/components/settings-panel.tsx`、`appearance-settings.tsx`、`default-page-setting.tsx`、`startup-settings.tsx`、`permission-settings.tsx`、`sidebar-preference.ts`、`settings-layout.tsx`，`features/shortcuts.tsx`、`profiles.tsx`、`profile-import.tsx`、`profile-settings-review.tsx`、`updates.tsx`、`diagnostics.tsx`，以及 `main.tsx` 中设置页的接线（主题、语言、起始页、启动偏好、管理员偏好与重启、连接状态）。旧窗口桥接：`apps/desktop-rust/src/component_bridge.rs`、`component_ui.rs`、`permissions.rs`、`profile_transfer.rs`、`diagnostics.rs`、`dialogs.rs`，旧 Go 窗口 `apps/desktop/updates_windows.go`、`diagnostics_windows.go`。MyGo 实现：`apps/desktop-mygo/pages/settings`（页面）与 `apps/desktop-mygo/desktop`（管理员辅助进程、退出本窗口、打开文件夹）。
+更新：2026-11-03。React 来源：`apps/desktop/frontend/src/components/settings-panel.tsx`、`appearance-settings.tsx`、`default-page-setting.tsx`、`startup-settings.tsx`、`permission-settings.tsx`、`sidebar-preference.ts`、`settings-layout.tsx`，`features/shortcuts.tsx`、`profiles.tsx`、`profile-import.tsx`、`profile-settings-review.tsx`、`updates.tsx`、`diagnostics.tsx`，以及 `main.tsx` 中设置页的接线（主题、语言、起始页、启动偏好、管理员偏好与重启、连接状态）。旧窗口桥接：`apps/desktop-rust/src/component_bridge.rs`、`component_ui.rs`、`permissions.rs`、`profile_transfer.rs`、`diagnostics.rs`、`dialogs.rs`，旧 Go 窗口 `apps/desktop/updates_windows.go`、`diagnostics_windows.go`。MyGo 实现：`apps/desktop-mygo/pages/settings`（页面）与 `apps/desktop-mygo/desktop`（管理员辅助进程、退出本窗口、打开文件夹）。
 
 状态：**已验证** = 有单元测试或真实窗口证据；**部分验证** = 列出的部分有证据，其余见“未验证范围”；**待验证** = 已实现但没有证据。
 
@@ -40,7 +40,7 @@
 
 | 编号 | React 入口/行为 | MyGo 实现 | 证据 | 状态 |
 | --- | --- | --- | --- | --- |
-| T1 | “启动与界面”（Power）：登录 Windows 时启动、静默启动到托盘、保持界面后台运行（未设置时视为开），各带说明；切换后立即保存，只提交改变的字段，合并到最新快照的 `startup`（缺省 `runAtLogon:false,startMinimized:true`） | `kit.Toggle` ×3；`snapshot` → 合并 → `settings.save` | `TestStartupSwitchesMergeIntoTheCurrentPreferences`（断言请求体）；真实窗口只核对显示，未切换（避免触及真实自启） | 已验证 |
+| T1 | “启动与界面”（Power）：登录 Windows 时启动、静默启动到托盘，各带说明；切换后立即保存，只提交改变的字段，合并到最新快照的 `startup`（缺省 `runAtLogon:false,startMinimized:true`）。2026-11-03 按用户要求删除界面常驻开关；旧字段与管理员偏好原样保留 | `kit.Toggle` ×2；`snapshot` → 合并 → `settings.save` | `TestStartupSwitchesMergeIntoTheCurrentPreferences`、`TestStartupEditsPreserveLegacyResidencyAndAdministratorPreferences`；`build/test-desktop-mygo-close.ps1` 覆盖未设置/旧 true/旧 false、保护、单实例、托盘退出、慢清理及真正进程退出 | 已验证 |
 | T2 | “快捷键”：“打开 WinOne”录入（默认 Alt+A）、注册状态、清除、录制时暂停注册、保存/撤销放到右下按钮组、“重试启用”、“重新读取快捷键”、动作失败提示 | 共享 `widgets.NewShortcuts(env, "application")`；标签显示时 `View`，隐藏时 `Report`，页面关闭 `Close` | 接入：`TestStartupSwitchesMergeIntoTheCurrentPreferences`（显示“打开 WinOne”“Alt+A”）、`TestAdministratorActionsWaitForUnsavedShortcuts`；真实窗口显示录入框、状态与“清除”。录制与注册行为由共享组件负责，不在本页测试 | 部分验证 |
 
 ## 运行权限
@@ -91,6 +91,7 @@
 4. 导入审阅中的定时关机模块显示为“定时关机”；React 显示原始 ID `timed-power`。
 5. 管理员辅助进程：Rust 在关闭“始终以管理员身份运行”时，把返回设置中缺少的 `preferAdministrator` 当作不一致；这里按 false 处理，修正该缺陷。辅助进程询问 guard 时，本页只能看到页面活动与本页状态，看不到外壳层面的待关闭状态。
 6. “连接状态”只反映本页读取与保存的结果；外壳刷新失败由外壳自己提示。
+7. 用户 2026-11-03 明确去掉界面常驻：批准关闭后立即隐藏，再保存位置并释放页面与 UI 进程。Host 和启用模块不随设置窗口强制退出。配置仍保留旧 `keepUIRunning`，导入预览不再把它显示成有效的原生窗口设置；七种关闭场景的专用实窗证据在 `_temp/post-migration-20261103/close-fourth/`。
 
 ## 未验证范围
 

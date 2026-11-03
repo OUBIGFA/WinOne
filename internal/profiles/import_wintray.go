@@ -43,7 +43,13 @@ func importTray(source map[string]json.RawMessage, resolve pathResolver) (map[st
 }
 
 func importTrayApp(entry map[string]json.RawMessage, resolve pathResolver) (map[string]any, error) {
-	app, err := exactFields(entry, "id:s name:s programRef:s args:s runOnStartup:b collectTrayIcon:b launchViaLogonTask:b launchHiddenInBackground:b", "trayBehavior", "schedule")
+	fields := "id:s name:s programRef:s args:s runOnStartup:b collectTrayIcon:b launchViaLogonTask:b launchHiddenInBackground:b"
+	// Accept the new preference only as a boolean; absent legacy values stay
+	// absent so importing an old profile never enables automatic login.
+	if _, exists := entry["wechatAutoLogin"]; exists {
+		fields += " wechatAutoLogin:b"
+	}
+	app, err := exactFields(entry, fields, "trayBehavior", "schedule")
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +96,7 @@ func importTrayApp(entry map[string]json.RawMessage, resolve pathResolver) (map[
 			extension = strings.ToLower(path[index:])
 		}
 		switch extension {
-		case ".exe", ".bat", ".cmd", ".ps1", ".py", ".pyw":
+		case ".exe", ".bat", ".cmd", ".ps1", ".py", ".pyw", ".ahk":
 		default:
 			return nil, errors.New("不支持的程序类型")
 		}

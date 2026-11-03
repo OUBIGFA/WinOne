@@ -26,8 +26,12 @@ Push-Location (Join-Path $root 'modules/wintray')
 try {
     $env:WINTRAY_CONSOLE_LIVE_TEST=if($RunConsoleChecks){'1'}else{''}
     $testOptions=@();if($RunConsoleChecks){$testOptions=@('-count=1')}
-    & $GoExe test ./worker ./internal/config ./internal/stringutil ./internal/tray ./internal/traybox ./internal/orchestrator @testOptions
+    # WinTray is a nested Go module, so the root's ./modules/... sweep does
+    # not discover its UI/startup packages. Verify the complete module here.
+    & $GoExe test ./... @testOptions
     if($LASTEXITCODE -ne 0){throw 'WinTray regression checks failed'}
+    & $GoExe vet ./...
+    if($LASTEXITCODE -ne 0){throw 'WinTray vet failed'}
     $worker=Join-Path $output 'WinOne.WinTray.exe'
     & $GoExe build -trimpath -ldflags '-H windowsgui' -o $worker ./cmd/worker
     if($LASTEXITCODE -ne 0){throw 'WinTray build failed'}

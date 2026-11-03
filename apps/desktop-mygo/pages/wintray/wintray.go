@@ -223,7 +223,7 @@ func (p *page) displayName(app program) string {
 }
 
 func programFilter() core.Filter {
-	return core.Filter{Name: i18n.T("wintray.programFilter"), Extensions: []string{"exe", "bat", "cmd", "ps1", "py", "pyw"}}
+	return core.Filter{Name: i18n.T("wintray.programFilter"), Extensions: []string{"exe", "bat", "cmd", "ps1", "py", "pyw", "ahk"}}
 }
 
 // remember keeps a program's name and icon, decoding the icon on the UI

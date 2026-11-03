@@ -21,6 +21,7 @@ func (t Translator) Models(ctx context.Context, p Provider, key string) ([]Model
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	input := map[string]any{"operation": "models.fetch", "protocol": p.Protocol, "baseUrl": p.BaseURL, "key": key}
+	input["providerPreferences"] = p.ProviderPreferences
 	input["headers"] = p.Headers
 	input["limitRestOff"] = p.LimitRestOff
 	if p.Preset != "" {

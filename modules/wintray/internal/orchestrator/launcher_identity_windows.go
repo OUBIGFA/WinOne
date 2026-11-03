@@ -25,6 +25,13 @@ func executablePathsMatch(actual, expected string) bool {
 	if strings.EqualFold(actual, expected) {
 		return true
 	}
+	// The same file reached through a junction or symlink (for example a
+	// relocated AppData) is the same program; the process reports the final path.
+	if strings.EqualFold(filepath.Base(actual), filepath.Base(expected)) {
+		if a, b := finalFilePath(actual), finalFilePath(expected); a != "" && strings.EqualFold(a, b) {
+			return true
+		}
+	}
 	if !launcherMainPath(actual, expected) {
 		return false
 	}
@@ -39,6 +46,26 @@ func executablePathsMatch(actual, expected string) bool {
 	}
 	signer := cachedExecutableSigner(resolvedExpected)
 	return signer != "" && signer == cachedExecutableSigner(resolvedActual)
+}
+
+// finalFilePath returns the path Windows resolves for an existing file, with
+// every junction and symlink followed, or "" when the file cannot be opened.
+func finalFilePath(path string) string {
+	path16, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		return ""
+	}
+	handle, err := windows.CreateFile(path16, 0, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE|windows.FILE_SHARE_DELETE, nil, windows.OPEN_EXISTING, windows.FILE_FLAG_BACKUP_SEMANTICS, 0)
+	if err != nil {
+		return ""
+	}
+	defer windows.CloseHandle(handle)
+	buf := make([]uint16, windows.MAX_LONG_PATH)
+	n, err := windows.GetFinalPathNameByHandle(handle, &buf[0], uint32(len(buf)), 0)
+	if err != nil || n == 0 || int(n) > len(buf) {
+		return ""
+	}
+	return strings.TrimPrefix(windows.UTF16ToString(buf[:n]), `\\?\`)
 }
 
 func launcherMainPath(actual, expected string) bool {

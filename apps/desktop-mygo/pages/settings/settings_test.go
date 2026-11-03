@@ -302,11 +302,30 @@ func TestStartupSwitchesMergeIntoTheCurrentPreferences(t *testing.T) {
 	if _, set := startup["keepUIRunning"]; set {
 		t.Fatalf("an untouched default was written: %v", startup)
 	}
-	// Keeping the interface is on when never set; turning it off stores it.
-	f.click(t, "保持界面后台运行")
-	startup, _ = f.fake.lastSaved()["startup"].(map[string]any)
-	if startup["keepUIRunning"] != false || startup["runAtLogon"] != true {
-		t.Fatalf("startup %v", startup)
+	if f.tt.HasText(i18n.T("startup.keepUI")) {
+		t.Fatal("the removed background UI setting is still offered")
+	}
+}
+
+func TestStartupEditsPreserveLegacyResidencyAndAdministratorPreferences(t *testing.T) {
+	for _, legacy := range []bool{false, true} {
+		f := setup(t)
+		f.fake.mu.Lock()
+		// sync only takes a snapshot newer than what the page shows, so the
+		// seeded legacy profile must arrive as a later revision.
+		f.fake.settings["revision"] = 8
+		f.fake.settings["startup"] = map[string]any{"runAtLogon": false, "startMinimized": true, "keepUIRunning": legacy, "preferAdministrator": true}
+		f.fake.mu.Unlock()
+		f.h.Settle(f.tt)
+		f.tab(t, "启动与快捷键")
+		if f.tt.HasText(i18n.T("startup.keepUI")) {
+			t.Fatal("legacy settings restored the removed switch")
+		}
+		f.click(t, "登录 Windows 时启动")
+		startup := f.fake.lastSaved()["startup"].(map[string]any)
+		if startup["keepUIRunning"] != legacy || startup["preferAdministrator"] != true || startup["startMinimized"] != true || startup["runAtLogon"] != true {
+			t.Fatalf("unrelated startup preferences were rewritten: %v", startup)
+		}
 	}
 }
 

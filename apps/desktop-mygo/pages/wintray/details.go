@@ -242,6 +242,15 @@ func (p *page) timing(c *ui.Context, app *program) {
 		if current == "tray" {
 			kit.Indented(c, func() {
 				p.numberRow(c, programKey(id, "closeDelay"), i18n.T("wintray.closeDelay"), &app.TrayBehavior.Value.CloseDelaySeconds, 0, 600, p.blocked())
+				if weChatProgram(app.ExePath) {
+					// The login window stays visible while the program signs in,
+					// so a background launch cannot use this option. The saved
+					// choice is kept when the mode changes.
+					auto := app.WeChatAutoLogin
+					if kit.Toggle(c, &auto, i18n.T("wintray.wechatAutoLogin"), i18n.T("wintray.wechatAutoLoginHint")).Disabled(p.blocked()).Changed() {
+						p.update(id, func(a *program) { a.WeChatAutoLogin = auto })
+					}
+				}
 			})
 		}
 	})
@@ -298,6 +307,7 @@ func (p *page) information(c *ui.Context, app *program) {
 			if args != app.Args {
 				p.update(id, func(a *program) { a.Args = args })
 			}
+			kit.Help(c, i18n.T("wintray.argsHint"))
 		})
 	})
 }

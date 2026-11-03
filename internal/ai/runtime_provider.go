@@ -14,6 +14,7 @@ type auxiliaryKey struct {
 }
 
 type auxiliaryProvider struct {
+	ProviderPreferences
 	LimitRestOff bool                     `json:"limitRestOff,omitempty"`
 	AccountKind  string                   `json:"accountKind,omitempty"` // Public account type for provider-specific middleware, never auth.
 	ID           string                   `json:"id"`

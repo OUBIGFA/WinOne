@@ -5,6 +5,7 @@ import (
 
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/widgets"
+	"winone/internal/ai"
 )
 
 // The configuration is the Host's capture.ai.configuration document. The
@@ -85,6 +86,7 @@ type metadata = core.Preserved[modelMetadata]
 // provider is one AI service: a custom API connection ("api-key") or an
 // agent account ("account").
 type provider struct {
+	ai.ProviderPreferences
 	ID              string              `json:"id"`
 	Name            string              `json:"name"`
 	AuthMode        string              `json:"authMode"`
@@ -189,6 +191,24 @@ type bundledChoice struct {
 // in Magpie's Settings JSON. Numbers are pointers: a missing number takes
 // a default that zero does not mean.
 type magpieSettings struct {
+	ReplyModel       string `json:"replyModel,omitempty"`
+	BusyLoad         *float64 `json:"busyLoad,omitempty"`
+	SearcherThen     []string `json:"searcherThen,omitempty"`
+	SearchAll        bool `json:"searchAll,omitempty"`
+	ClaudePrintMode  bool `json:"claudePrintMode,omitempty"`
+	SignInLinkOnly   bool `json:"signInLinkOnly,omitempty"`
+	RedactWordsWhole bool `json:"redactWordsWhole,omitempty"`
+	RedactRouteTo    string `json:"redactRouteTo,omitempty"`
+	MaskAlert        bool `json:"maskAlert,omitempty"`
+	NPMRegistry      string `json:"npmRegistry,omitempty"`
+	RouterNote       string `json:"routerNote,omitempty"`
+	CodexResetLead   *float64 `json:"codexResetLead,omitempty"`
+	CodexCreditsLast []string `json:"codexCreditsLast,omitempty"`
+	CodexCreditsFirst []string `json:"codexCreditsFirst,omitempty"`
+	TrayWindows      map[string][]string `json:"trayWindows,omitempty"`
+	TrayNoNumber     bool `json:"trayNoNumber,omitempty"`
+	UsageCardsHidden []string `json:"usageCardsHidden,omitempty"`
+	UsageCleared     []ai.UsageClear `json:"usageCleared,omitempty"`
 	RequestArchiveLocal   bool                                    `json:"requestArchiveLocal,omitempty"`
 	RequestArchiveLocalMB *float64                                `json:"requestArchiveLocalMB,omitempty"`
 	RequestArchiveMaxMB   *float64                                `json:"requestArchiveMaxMB,omitempty"`

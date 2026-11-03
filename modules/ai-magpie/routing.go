@@ -39,7 +39,7 @@ func serveRouting(ctx context.Context, in request, input io.Reader, output io.Wr
 	if in.Operation == "privacy.serve" {
 		// Model management must not enumerate accounts, execute installed
 		// extensions or require Bun just because its status page was opened.
-		settings.WinOneUse(settings.Settings{NoStats: true, NoUsageStats: true, NoWSLAgents: true})
+		settings.WinOneUse(settings.Settings{NoStats: true, NoUsageStats: true, NoWSLAgents: true, RedactModelOff: true})
 	} else if err := applyRuntimeSettings(in); err != nil {
 		return err
 	}
@@ -49,11 +49,14 @@ func serveRouting(ctx context.Context, in request, input io.Reader, output io.Wr
 		s.PlainOwnNames = savedNames.PlainOwnNames
 		if in.Operation == "privacy.serve" {
 			s.RedactModel = savedNames.RedactModel
+			s.RedactModelOff = !s.RedactModel
+			s.RedactModelName, s.RedactModelScore = savedNames.RedactModelName, savedNames.RedactModelScore
+			// Existing opt-ins selected Privacy Filter before models were named.
+			if s.RedactModel && s.RedactModelName == "" { s.RedactModelName = pii.PrivacyFilter }
 		}
 		settings.WinOneUse(s)
 	}
-	defer pii.Cancel()
-	defer pii.Stop()
+	defer func(){ for _, m := range pii.Models() { m.Cancel(); m.Stop() } }()
 	provider.WinOneProviders = []provider.Provider{}
 	var page, protocol http.Handler
 	if in.Operation == "privacy.serve" {

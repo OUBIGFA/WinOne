@@ -101,6 +101,7 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 		}
 		model = p.ID + "/" + in.Model
 		p.LimitRestOff = in.LimitRestOff
+		if err := applyProviderPreferences(p, in); err != nil { return err }
 		provider.WinOneProviders = []provider.Provider{*p}
 	} else {
 		p, err := configuredProvider(in)

@@ -84,11 +84,16 @@ func TestTimedPowerConfirmsBeforeStarting(t *testing.T) {
 	i18n.SetLocale(i18n.Chinese)
 	preferences := timedpower.Defaults()
 	preferences.Force = false
-	var started []json.RawMessage
+	var started, saved []json.RawMessage
 	h := testhost.New(t, func(method string, params json.RawMessage) (any, error) {
 		switch method {
 		case "modules.snapshot":
 			return modules("timed-power"), nil
+		case "timed-power.settings.save":
+			saved = append(saved, params)
+			var next timedpower.Preferences
+			err := json.Unmarshal(params, &next)
+			return next, err
 		case "always-on-top.snapshot":
 			return map[string]any{"settings": map[string]any{"schemaVersion": 1, "frameThickness": 3, "frameOpacity": 100, "frameColor": "#808080", "excludedApps": []string{}}}, nil
 		case "timed-power.settings.get":
@@ -110,9 +115,14 @@ func TestTimedPowerConfirmsBeforeStarting(t *testing.T) {
 		t.Fatal(err)
 	}
 	h.Settle(tt)
-	if !tt.HasText("倒计时时长") || !tt.HasText("暂无运行中的任务") {
+	// A schedule is what turns timed power on: no switch, no Save of its own.
+	if !tt.HasText("倒计时时长") || !tt.HasText("暂无运行中的任务") || tt.HasText("启用timed-power") || tt.HasText("保存设置") {
 		t.Fatalf("timed power %q", tt.Texts())
 	}
+	if err := tt.Click("30 分钟"); err != nil {
+		t.Fatal(err)
+	}
+	h.Settle(tt)
 	if err := tt.Click("开始计时"); err != nil {
 		t.Fatal(err)
 	}
@@ -131,10 +141,15 @@ func TestTimedPowerConfirmsBeforeStarting(t *testing.T) {
 		Preferences timedpower.Preferences `json:"preferences"`
 		Confirmed   bool                   `json:"confirmed"`
 	}
-	if err := json.Unmarshal(started[0], &request); err != nil || !request.Confirmed || request.Preferences.DelaySeconds != 3600 {
+	if err := json.Unmarshal(started[0], &request); err != nil || !request.Confirmed || request.Preferences.DelaySeconds != 1800 {
 		t.Fatalf("start %s", started[0])
 	}
-	if !tt.HasText("取消任务") {
+	// Starting keeps the changed form as the next template.
+	if len(saved) != 1 {
+		t.Fatalf("template saves %d", len(saved))
+	}
+	// The running countdown is the page's focus; the form waits for it.
+	if !tt.HasText("取消任务") || tt.HasText("倒计时时长") {
 		t.Fatalf("running task %q", tt.Texts())
 	}
 }

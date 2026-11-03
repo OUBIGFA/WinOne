@@ -16,6 +16,7 @@ const MaxProviderModels = 4096
 // Provider identifies a configured service or an isolated signed-in account.
 // API keys are write-only. User-defined request headers remain editable here.
 type Provider struct {
+	ProviderPreferences
 	LimitRestOff bool `json:"limitRestOff,omitempty"`
 	Searches     bool `json:"searches,omitempty"`
 	RequestLimits
@@ -103,6 +104,7 @@ func cloneConfiguration(c Configuration) Configuration {
 		c.Providers = []Provider{}
 	}
 	for i := range c.Providers {
+		c.Providers[i].ProviderPreferences = c.Providers[i].ProviderPreferences.clone()
 		c.Providers[i].Keys = slices.Clone(c.Providers[i].Keys)
 		if c.Providers[i].AuthMode == "api-key" {
 			policy := keyPolicy(c.Providers[i])
@@ -233,6 +235,7 @@ func validateConfiguration(c Configuration) error {
 	ids := map[string]bool{}
 	names := map[string]bool{}
 	for _, p := range c.Providers {
+		if err := p.ProviderPreferences.validate(); err != nil { return err }
 		if err := p.RequestLimits.validate(); err != nil {
 			return err
 		}

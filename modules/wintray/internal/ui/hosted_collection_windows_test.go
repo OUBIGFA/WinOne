@@ -152,7 +152,11 @@ func TestHostedIconsCanBeCollectedAndReleased(t *testing.T) {
 		if !await("reselected hosted icon", func() bool { return len(box.Icons()) == 1 }) {
 			return
 		}
-		ui(host.RestoreAll)
+		ui(func() { err = host.RestoreAll() })
+		if err != nil {
+			t.Error(err)
+			return
+		}
 		await("release restores window and removes collection", func() bool { return win.IsWindowVisible(hwnd) && len(box.Icons()) == 0 })
 	}()
 	loop.Run()

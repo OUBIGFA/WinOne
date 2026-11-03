@@ -184,7 +184,7 @@ var zhCN = Messages{
 	LanguageLabel:                  "语言 / Language",
 	ManagedListTitle:               "开机启动项",
 	ManagedListHint:                "拖入文件可添加；序号调整顺序；勾选开机启动或托盘收纳",
-	ManagedDropRejected:            "以下项目不存在、是文件夹或类型不受支持，未添加：\r\n%s\r\n\r\n请拖入 .exe、.bat、.cmd、.ps1、.py 或 .pyw 文件",
+	ManagedDropRejected:            "以下项目不存在、是文件夹或类型不受支持，未添加：\r\n%s\r\n\r\n请拖入 .exe、.bat、.cmd、.ps1、.py、.pyw 或 .ahk 文件",
 	ManagedListEmpty:               "还没有添加程序",
 	ManagedListEmptyHint:           "从资源管理器拖入程序或脚本，或点击“添加程序”，可一次添加多个",
 	ManagedColumnName:              "程序名称",
@@ -192,7 +192,7 @@ var zhCN = Messages{
 	BrowseProgram:                  "更换…",
 	BrowseProgramHint:              "换成另一个程序文件",
 	ManagedAppArgs:                 "启动参数（可选）",
-	ManagedArgsHint:                "适用于 .exe 程序及 .bat、.cmd、.ps1、.py 等脚本",
+	ManagedArgsHint:                "适用于程序和脚本；含空格的参数请用双引号括起",
 	ManagedArgsPlaceholder:         "例如 --minimized",
 	ManagedEnabled:                 "开机启动此程序",
 	ManagedEnabledHint:             "取消后仅停止 WinTray 的启动安排，程序自身的自启会保留或恢复",
@@ -269,7 +269,7 @@ var zhCN = Messages{
 	HostedReleaseWindow:            "结束托管并显示窗口",
 	SelectManagedExe:               "选择要添加的程序（可多选）",
 	SelectReplacementExe:           "选择新的程序文件",
-	ExeFilter:                      "程序和脚本 (*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw)|*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw",
+	ExeFilter:                      "程序和脚本 (*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw;*.ahk)|*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw;*.ahk",
 	AllFilesFilter:                 "所有文件 (*.*)|*.*",
 	NewAppName:                     "新程序",
 	ManagedListItemTemplate:        "%s | %s | 启动后关闭窗口=%t",
@@ -331,7 +331,7 @@ var enUS = Messages{
 	LanguageLabel:                  "Language / 语言",
 	ManagedListTitle:               "Startup programs",
 	ManagedListHint:                "Drop files to add; choose numbers for start order; check sign-in or tray collection",
-	ManagedDropRejected:            "These items were not added because they are missing, folders, or unsupported file types:\r\n%s\r\n\r\nDrop .exe, .bat, .cmd, .ps1, .py or .pyw files",
+	ManagedDropRejected:            "These items were not added because they are missing, folders, or unsupported file types:\r\n%s\r\n\r\nDrop .exe, .bat, .cmd, .ps1, .py, .pyw or .ahk files",
 	ManagedListEmpty:               "No programs yet",
 	ManagedListEmptyHint:           "Drag programs or scripts here from File Explorer, or select Add Program; you can add several at once",
 	ManagedColumnName:              "Program name",
@@ -339,7 +339,7 @@ var enUS = Messages{
 	BrowseProgram:                  "Change…",
 	BrowseProgramHint:              "Use a different program file",
 	ManagedAppArgs:                 "Arguments (optional)",
-	ManagedArgsHint:                "For .exe programs and scripts such as .bat, .cmd, .ps1 and .py",
+	ManagedArgsHint:                "For programs and scripts; enclose arguments containing spaces in double quotes",
 	ManagedArgsPlaceholder:         "Example: --minimized",
 	ManagedEnabled:                 "Start this program at sign-in",
 	ManagedEnabledHint:             "Stops only WinTray's launch scheduling; the app's own startup remains or is restored",
@@ -416,7 +416,7 @@ var enUS = Messages{
 	HostedReleaseWindow:            "Stop Hosting and Show Window",
 	SelectManagedExe:               "Select programs to add (you can pick several)",
 	SelectReplacementExe:           "Select the new program file",
-	ExeFilter:                      "Programs and scripts (*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw)|*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw",
+	ExeFilter:                      "Programs and scripts (*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw;*.ahk)|*.exe;*.bat;*.cmd;*.ps1;*.py;*.pyw;*.ahk",
 	AllFilesFilter:                 "All Files (*.*)|*.*",
 	NewAppName:                     "New App",
 	ManagedListItemTemplate:        "%s | %s | CloseAfterLaunch=%t",
@@ -517,10 +517,12 @@ func TranslateResultCode(language, code string) string {
 		"empty_exe_path":                 "empty exe path",
 		"invalid_exe_path":               "invalid exe path",
 		"process_start_failed":           "process start failed",
+		"script_association_missing":     "script association missing",
 		"startup_check_failed":           "startup check failed",
 		"startup_frequency_limit":        "automatic startup limit reached",
 		"startup_frequency_check_failed": "automatic startup limit check failed",
 		"external_startup_timeout":       "external startup timeout",
+		"wechat_login_incomplete":        "wechat login incomplete",
 		"cancelled":                      "cancelled",
 		"started_only":                   "started only",
 		"started_hidden":                 "started hidden",
@@ -568,6 +570,11 @@ func TranslateResultMessage(language, message string) string {
 			return "process start failed"
 		}
 		return "启动进程失败"
+	case "script association missing":
+		if Resolve(language) == LangEnUS {
+			return "no app is associated with .ahk files; install AutoHotkey and check that double-clicking the script runs it"
+		}
+		return "未设置 .ahk 文件的打开方式；请安装 AutoHotkey，并确认双击脚本可运行"
 	case "startup check failed":
 		if Resolve(language) == LangEnUS {
 			return "could not check Windows startup; skipped launch to avoid a duplicate"
@@ -583,6 +590,11 @@ func TranslateResultMessage(language, message string) string {
 			return "cancelled before launch"
 		}
 		return "已取消启动"
+	case "wechat login incomplete":
+		if Resolve(language) == LangEnUS {
+			return "WeChat login is not confirmed; complete login in the WeChat window"
+		}
+		return "尚未确认微信登录成功，请在微信窗口中完成登录"
 	case "started only":
 		if Resolve(language) == LangEnUS {
 			return "started only"

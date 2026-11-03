@@ -31,17 +31,17 @@ if(!plugin['plugins/redact/client.js'].includes('key: "masking"'))throw Error('M
 let shared=[...selected].sort((a,b)=>a.node.start-b.node.start).map(p=>text.slice(p.node.start,p.node.end)).join('\n\n');
 // The standalone document has no app modal, and a retryable error must stay
 // visible (ms=0). Retain the upstream status widget without those shell assumptions.
-for(const [from,to] of [['!!msg && !m.hidden','!!msg && !!m && !m.hidden'],['if (msg) status.t =','if (msg && ms > 0) status.t =']]){
+for(const [from,to] of [['!m.hidden && !m.classList.contains("out")','m && !m.hidden && !m.classList.contains("out")'],['if (!msg) return;','if (!msg || ms === 0) return;']]){
  if(shared.split(from).length!==2)throw Error('Review privacy status boundary: '+from);
  shared=shared.replace(from,to);
 }
 // An unavailable summary is not a perpetual skeleton or an empty success.
 let page=plugin['plugins/redact/page.js'];
-// WinOne's public record DTO uses decimal strings: UnixNano IDs exceed JS's
-// exact integer range. Preserve that identity through both deep-link entries.
-const client=plugin['plugins/redact/client.js'].replace('maskOneOpen(+key)', 'maskOneOpen(String(key))');
-if(client===plugin['plugins/redact/client.js']||!page.includes('const k = +params.get("key");'))throw Error('Review masking record identity boundary');
-page=page.replace('const k = +params.get("key");','const k = params.get("key");');
+// Current Magpie already transports record IDs as decimal strings. Retain
+// its client and disk format; assert the fixed upstream contract instead of
+// inserting another numeric conversion workaround.
+const client=plugin['plugins/redact/client.js'];
+if(!page.includes('const k = params.get("key");')||client.includes('maskOneOpen(+key)'))throw Error('Review masking record identity boundary');
 // Settings belong to WinOne's draft transaction, not a second Magpie file.
 // Keep the action, but let the parent stage the requested per-kind changes.
 const blockedAction=`      b.disabled = true;

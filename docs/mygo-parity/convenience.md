@@ -42,7 +42,7 @@
 | T3 | 电源操作：六种操作；关机/重启/注销时显示“强制关闭程序”及说明 | `powerTab.power` | 截图 | 已验证 |
 | T4 | 仅提醒：提前提醒秒数 0–3600；仅提醒不执行 | `powerTab.reminder` | 代码审查 | 待验证 |
 | T5 | 校验失败提示；开始计时（仅提醒直接开始，否则先确认；强制时为危险确认） | 使用 Host 的 `timedpower.Preferences.Validate` 判断；`kit.Dialog` | 测试 | 已验证 |
-| T6 | 保存/撤销模板，不影响正在运行的任务 | `env.Rail`；活动来源 `timed-power` | 代码审查 | 待验证 |
+| T6 | 用户 2026-11-03 调整：不单设“启用定时关机”开关和保存；设置时间计划并开始即启用（已关闭的模块先启用），开始时把表单记为下次模板；右侧保存/撤销按无保存页置灰；运行中倒计时居中放大为主焦点，表单待任务结束后显示 | `powerTab.start`、`powerTab.current` | 测试 `TestTimedPowerConfirmsBeforeStarting` | 已验证 |
 
 ## 鼠标手势
 

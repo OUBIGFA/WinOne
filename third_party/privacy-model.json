@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "upstream": "42ec2700bd2a4cf8d4ceb76a95767ac221e283e5",
+  "upstream": "22f5cf69e583dab7723523be514cbafc9c870ebd",
   "scope": "Opt-in download only; model and pf-serve are not bundled in WinOne. Uses upstream verified downloads, native lifecycle, GPU-to-CPU fallback and idle release in the private WinOne runtime cache.",
   "model": {
     "repository": "https://huggingface.co/LocalAI-io/privacy-filter-GGUF",
@@ -25,9 +25,9 @@
     ]
   },
   "runtime": {
-    "tag": "pf-v2",
-    "url": "https://github.com/yetone/magpie/releases/download/pf-v2/pf-serve-windows-amd64.zip",
-    "sha256": "f4993000cc09500c907d3dd7042d783fa0b9310f272bc0bdf323ba9d012556f0",
+    "tag": "pf-v3",
+    "url": "https://github.com/yetone/magpie/releases/download/pf-v3/pf-serve-windows-amd64.zip",
+    "sha256": "8fd8f7295743197311d13ed34aa9fb7be891f4e2586dfda6c4a3335e6cef52f3",
     "source": "native/privacy-filter/build.sh",
     "dependencies": [
       {
@@ -51,6 +51,11 @@
     ],
     "patches": [
       "native/privacy-filter/patches/weights-once.patch"
+    ],
+    "targets": [
+      "pf-serve",
+      "pf-serve-vulkan",
+      "pf-serve-base"
     ]
   }
 }

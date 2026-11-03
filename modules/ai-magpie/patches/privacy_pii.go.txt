@@ -2,6 +2,7 @@ package pii
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/yetone/magpie/internal/redact"
@@ -17,7 +18,7 @@ import (
 // and cache. There is deliberately no native/rules fallback on a failed call.
 // Atomic replacement keeps in-flight masking calls safe while the Host
 // updates the local opt-in or replaces a crashed private model process.
-type winOneFind func([]string) ([][]redact.Found, error)
+type winOneFind func(context.Context, []string) ([][]redact.Found, error)
 
 var winOneRemoteFind atomic.Pointer[winOneFind]
 
@@ -31,12 +32,14 @@ func WinOneUseRemote(address, key string) error {
 		return errors.New("invalid private masking service")
 	}
 	client := &http.Client{Timeout: 90 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	find := winOneFind(func(texts []string) ([][]redact.Found, error) {
-		raw, err := json.Marshal(map[string]any{"texts": texts})
+	find := winOneFind(func(ctx context.Context, texts []string) ([][]redact.Found, error) {
+		var deadline int64
+		if at, ok := ctx.Deadline(); ok { deadline=at.UnixMilli() }
+		raw, err := json.Marshal(map[string]any{"texts": texts, "deadline":deadline})
 		if err != nil {
 			return nil, err
 		}
-		request, err := http.NewRequest(http.MethodPost, address, bytes.NewReader(raw))
+		request, err := http.NewRequestWithContext(ctx, http.MethodPost, address, bytes.NewReader(raw))
 		if err != nil {
 			return nil, err
 		}
@@ -61,8 +64,21 @@ func WinOneUseRemote(address, key string) error {
 				}
 			}
 		}
+		if response.Header.Get("X-WinOne-Privacy-Partial") == "1" { return found, &Partial{Of:len(texts), Err:context.DeadlineExceeded} }
 		return found, nil
 	})
 	winOneRemoteFind.Store(&find)
 	return nil
 }
+
+// Wrap the selected upstream model, not Privacy Filter alone. This retains
+// its ID, confidence and name semantics while sharing the Host's cache and
+// lifecycle for AstrLink Guard and Privacy Filter alike.
+func WinOneModel(m Model) Model {
+ if find:=winOneRemoteFind.Load();find!=nil{return winOneModel{Model:m,find:*find}}
+ return m
+}
+type winOneModel struct{ Model; find winOneFind }
+func (m winOneModel) Installed()bool{return true}
+func (m winOneModel) Find(ctx context.Context,texts []string)([][]redact.Found,error){return m.find(ctx,texts)}
+func (m winOneModel) Warm(){}

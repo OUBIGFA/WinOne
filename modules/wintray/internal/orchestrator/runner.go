@@ -36,6 +36,9 @@ type startedProcess struct {
 func (p *startedProcess) Wait() error { return p.wait() }
 
 func startProcess(exePath, args string, mode launchMode) (*startedProcess, error) {
+	if isAutoHotkeyScript(exePath) {
+		return startAssociatedScript(exePath, args, mode != launchVisible)
+	}
 	hidden := mode == launchNoWindow
 	dir := filepath.Dir(exePath)
 	cmd := buildLaunchCommand(exePath, args, hidden)

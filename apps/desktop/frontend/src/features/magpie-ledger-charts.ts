@@ -1,5 +1,5 @@
 // @ts-nocheck
-// Generated from yetone/magpie 42ec2700bd2a4cf8d4ceb76a95767ac221e283e5. MIT.
+// Generated from yetone/magpie 22f5cf69e583dab7723523be514cbafc9c870ebd. MIT.
 // Run node build/sync-magpie-usage.mjs --write; provenance: third_party/magpie-usage-source.json.
 export function magpieLedgerCharts(translate, language, options = {}) {
  const t=(key,values={})=>translate(key,values);
@@ -51,9 +51,7 @@ function ledGroupSpeed(x) {
   const vTitle = !v || !kv ? "" : f ? t(kv === 1 ? "Measured on {k} reply, from its first token to its end" : "Measured on {k} replies, from their first token to their end", { k: ledNum(kv) })
     : t(kv === 1 ? "Measured on {k} reply, from its first token to its end; the others tell no speed" : "Measured on {k} replies, from their first token to their end; the others tell no speed", { k: ledNum(kv) });
   const fTitle = !f || !kf ? "" : t(kf === 1 ? "At least: {k} reply read from a session file, which doesn't say when its answer began, so time before that is counted too" : "At least: {k} replies read from session files, which don't say when their answers began, so time before that is counted too", { k: ledNum(kf) });
-  // each figure as its speed and its count, kept apart so a narrow card can
-  // put the count under the speed rather than run past its edge (#1623); the
-  // card sets the count as a caption, with no "·" to lead a wrapped line
+  // speed and count kept apart for a narrow card (#1623)
   const measured = v ? { s: v, head: tok(v), count: count(kv, true), title: vTitle } : null;
   const floor = f ? { s: f, head: "≥" + tok(f), count: count(kf, false), title: fTitle } : null;
   // the larger sample first; a tie keeps the measured one first
@@ -271,7 +269,7 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
     }
   };
   box.emphasize(null);
-  if (focusDay) box.querySelector(`.led-day[data-day="${CSS.escape(focusDay)}"]`)?.focus({ preventScroll: true });
+  if (focusDay) box.querySelector(`.led-day[data-day="${CSS.escape(focusDay)}"]`)?.focus(NO_SCROLL);
 }
 
 // the ranking: who the requests were of, by the metric, the most first —

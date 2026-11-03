@@ -1,5 +1,5 @@
 param([Parameter(Mandatory)][string]$OutputDirectory,[string]$GoExe='go',[switch]$SkipTests,[switch]$RunWindowChecks)
-# Both native windows use the unmodified MyGo v0.7.3 module. Selection,
+# Both native windows use the unmodified MyGo v0.7.4 module. Selection,
 # pointer release and tool-window behavior now use its public APIs.
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot

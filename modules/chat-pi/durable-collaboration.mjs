@@ -3,7 +3,8 @@
 // bounded persisted roster. Ownership, recovery and delivery stay upstream's.
 import {randomUUID} from 'node:crypto';
 import {BACKGROUND_CONTEXT as context} from '@earendil-works/chord/context';
-import {Type,validateToolArguments} from '@earendil-works/pi-ai';
+import {validateToolArguments} from '@earendil-works/pi-ai';
+import {Type} from 'typebox';
 import {defineDoc,defineTask,defineTool,defineExtension,configure,LiveDoc,AssistantEntry,UsageDoc} from '@earendil-works/pi-durable';
 
 // Durable 1.4 requires an explicit policy; retain ordinary updates as deltas.

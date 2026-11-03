@@ -1,5 +1,5 @@
 // @ts-nocheck
-// Generated from yetone/magpie 42ec2700bd2a4cf8d4ceb76a95767ac221e283e5; MIT.
+// Generated from yetone/magpie 22f5cf69e583dab7723523be514cbafc9c870ebd; MIT.
 // Only module exports are added. See third_party/magpie-proxy-source.json.
 export function proxyFields(value) {
   const [, scheme = "", auth, rest] = /^([a-z][\w+.-]*:\/\/)?([^/?#]*)(.*)$/is.exec((value || "").trim());
@@ -16,6 +16,41 @@ export function proxyAddress(a, f, user, pass) {
   const enc = (t, l, e) => t === l && e !== undefined ? e : encodeURIComponent(t);
   const [, scheme = "", rest] = /^([a-z][\w+.-]*:\/\/)?(.*)$/is.exec(a);
   return scheme + enc(user, f.username, f.eu) + (pass ? ":" + enc(pass, f.password, f.ep) : "") + "@" + rest;
+}
+// proxyLoginRow: a proxy login's fields for the proxy rows outside
+// Settings (#3382), split and joined as Settings' row does (proxyFields,
+// proxyAddress), so setURL gets the address Settings would save.
+export function proxyLoginRow(addr, setURL, changed) {
+  const fields = {};
+  const auth = el("div", "proxy-auth proxy-login");
+  const username = input("", t("Username (optional)"));
+  const password = input("", t("Password (optional)"), "password");
+  for (const f of [username, password]) {
+    f.className = "proxy-credential";
+    f.setAttribute("aria-label", f.placeholder);
+  }
+  auth.append(username, password);
+  const join = () => {
+    let v = addr.value;
+    try {
+      v = proxyAddress(addr.value.trim(), fields, username.value, password.value);
+    } catch {} // a half-typed address is kept as it was typed
+    setURL(v);
+  };
+  const split = (quiet) => {
+    const parsed = proxyFields(addr.value.trim());
+    if (parsed.username || parsed.password) {
+      Object.assign(fields, { username: parsed.username, password: parsed.password, eu: parsed.eu, ep: parsed.ep });
+      username.value = parsed.username;
+      password.value = parsed.password;
+      addr.value = parsed.address;
+    }
+    if (!quiet) { join(); if (changed) changed(); }
+  };
+  username.oninput = password.oninput = join;
+  addr.oninput = () => split();
+  split(true);
+  return auth;
 }
 export function proxyDisplay(value) {
   // Also mask an older backend's proxyNow, and environment/system proxies.
