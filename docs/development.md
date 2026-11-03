@@ -8,6 +8,7 @@
 - **MyGo v0.7.4、Pi 1.5.0**：许可、清单、构建脚本同步。Pi 1.5.0 不兼容改动：`pi-ai` 不再导出 TypeBox（改为直接依赖 `typebox`）；移除 `watchEvents()`，新增 `modules/chat-pi/durable-events.mjs` 从会话视图推导同样的事件；输入结算改读 `Submission.status()`（`wait()` 会启动调度，暂停会话不允许）；任务状态 `pending` 在协议里仍报为 `ready`。Pi 会话 91、OneBot 117、暂停恢复 2、`internal/chat` 全部通过。“随时跟进最新版”已写入 `docs/working-rules/architecture-performance.md`。
 - **构建提速**：MyGo 构建的前端只跑它实际打包文件对应的 160 个测试文件（205 秒 → 约 88 秒，`npm run test:mygo`）；`internal/chat` 不再在 Go 全量测试里重复；截图滚动测试只在 `-RunStartupProbes` 时编译；统一构建默认桌面实现改为 MyGo。文件清单 `build-info.json` 上限由 1 MiB 调到 4 MiB（AI 插件同步后清单已超过 1 MiB）。
 - **验证**：完整构建（`-SkipInstall -RunStartupProbes`，MyGo）及 `verify-built-bundle.ps1` 通过。本机代理环境变量会让互联局域网测试返回 502，构建前须清除 `HTTP_PROXY`/`HTTPS_PROXY`。
+- **固定安装器已更新**：`dist/release/WinOne-setup.exe`，**317853652 字节**，SHA-256 `123daaa94d0f36df676a43e3a223974272a20aa9025ab3a5e491d40095f6796a`；卸载器 SHA-256 `b0edbb7b9ccca6b2a319ee2583e431dacfaa86bc2a777187a053915c77dc67bc`，`release-info.json` 同步。体积较上一版（263674448）增加，主要来自另一对话同步的 AI 插件（约 485 个文件）。隔离安装测试 12 次真实进程操作（失败回滚、修复、覆盖、卸载恢复、注册、快捷方式、5765 个文件哈希、配置保留）通过；Defender 自定义扫描安装器、卸载器和 ZIP 均未发现威胁。旧包在 `_temp/test-slim/prior-release/`。未签名、未创建 tag；没有操作真实安装与配置，由用户自行运行安装器。
 - **未完成**：`docs/mygo-parity` 仍有约 80 条“待验证”；本轮只补了定时关机与子代理。
 
 ## 程序管理按上游 WinTray 更新（2026-10-31，不提交、不推送、不更新安装器）
