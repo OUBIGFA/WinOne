@@ -1529,7 +1529,7 @@
         },
         {
           "path": "apps/desktop-mygo/flashchat/chatroom_test.go",
-          "sha256": "678d0599f1decb5e927c23340e556d32f73169adc2524f650ba17cc75b5c889e"
+          "sha256": "54c45111a6ffd2bba13d058530612ed8dbbb650f68a5962f6c922bd03bd347fa"
         },
         {
           "path": "apps/desktop-mygo/flashchat/registry.go",

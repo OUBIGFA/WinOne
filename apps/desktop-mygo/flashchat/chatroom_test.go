@@ -436,11 +436,24 @@ func TestStandingOfferReachesLaterPeerAndLeavesWithItsPeer(t *testing.T) {
 	alice.room.Join()
 	_, _ = alice.room.OfferFiles([]FileHandle{{Name: "doc.pdf", Type: "application/pdf", Size: 10}})
 	bob := newClient(t, n, 1, clientOptions{})
-	bob.room.Join()
-	waitFor(t, "the standing offer", func() bool { return bob.room.FileOffers()["peer-0"].MagnetURI == "magnet:peer-0" })
+	// The offer may reach bob twice (alice's broadcast and her greeting),
+	// and listeners hear a change after the room's state shows it: count
+	// from the start, and only once the arrival has settled.
 	changes := record(bob.room, FileOfferChange)
+	bob.room.Join()
+	waitFor(t, "the standing offer", func() bool {
+		return bob.room.FileOffers()["peer-0"].MagnetURI == "magnet:peer-0" && len(changes.list()) > 0
+	})
+	settle()
+	before := len(changes.list())
 	alice.transport.Leave()
-	waitFor(t, "the offer to go with alice", func() bool { return len(bob.room.FileOffers()) == 0 && len(changes.list()) == 1 })
+	waitFor(t, "the offer to go with alice", func() bool {
+		return len(bob.room.FileOffers()) == 0 && len(changes.list()) == before+1
+	})
+	settle()
+	if got := len(changes.list()); got != before+1 {
+		t.Fatalf("alice's departure changed the offers %d times", got-before)
+	}
 	if !bob.files.rescindedWith("magnet:peer-0") {
 		t.Error("departed offer not rescinded")
 	}
