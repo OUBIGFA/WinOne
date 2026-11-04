@@ -39,6 +39,7 @@ if (-not $SkipInstall) { & npm.cmd ci --prefix apps/desktop/frontend --no-audit 
 & node (Join-Path $PSScriptRoot 'verify-import-notices.mjs'); CheckExit
 & node (Join-Path $PSScriptRoot 'sync-cindy.mjs') --spec (Join-Path $root 'third_party/cindy/onebot-renderer.sync.json') --check; CheckExit
 & node --test (Join-Path $root 'tests/notices/cindy-binary.test.mjs'); CheckExit
+& node --test (Join-Path $root 'tests/cindy-ports/check.test.mjs'); CheckExit
 & (Join-Path $PSScriptRoot 'build-provider-icons.ps1') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $DiagramTargetDirectory -WorkDirectory (Join-Path (Split-Path -Parent $output) 'provider-icons'); CheckExit
 # The UI suite runs within vitest.config.ts's worker budget, alone at this
 # point of the build. MyGo ships only the Chat tools page from React, so its

@@ -1,8 +1,8 @@
 # Chat 页功能对照
 
-更新：2026-11-03。React 来源：`apps/desktop/frontend/src/features/chat*.ts(x)` 及其引用的 `features/cindy/**`（功能清单见下文分区）。MyGo 实现：`apps/desktop-mygo/pages/chat`（视图与操作）、`apps/desktop-mygo/chat/model`（`chat-state.ts`、`chat-process.ts` 与浏览器批注格式的 Go 移植）。
+更新：2026-11-04。React 来源：`apps/desktop/frontend/src/features/chat*.ts(x)` 及其引用的 `features/cindy/**`（功能清单见下文分区）。MyGo 实现：`apps/desktop-mygo/pages/chat`（视图与操作）、`apps/desktop-mygo/chat/model`（`chat-state.ts`、`chat-process.ts` 与浏览器批注格式的 Go 移植）。
 
-用户 2026-11-01 选择**混合方案**：会话列表、消息流、输入框、排队、审批、提问、计划等核心交互原生重写；代码编辑器、差异审阅、PDF、终端、内置浏览器与 HTML 预览、自动化整页等重型组件在 MyGo WebView 中运行现有 React/Cindy 组件。
+用户 2026-11-04 改为**全部原生**（取代 11-01 的混合方案）：P2、P3 与 M7 仍在网页视图中运行 React，按 [迁移计划](../MyGo前端迁移.md#9-全部原生改写计划2026-11-04) 改写；只有浏览器标签与 HTML 预览继续用网页视图。各原生模块跟随的 Cindy 文件登记在 `third_party/cindy/native-ports.json`。
 
 状态：**已验证** = 有单元测试、`ui.Tester` 渲染或实窗探针；**待验证** = 已实现、还缺证据；**未开始** = 尚未实现。单元测试在 `pages/chat/chat_test.go` 与 `chat/model/state_test.go`；渲染图在本地 `_temp/mygo-chat/shots/`（不入库，深浅色 × 中英 × 1100/640 宽）。
 
@@ -77,7 +77,7 @@
 
 | 编号 | 内容 | 状态 |
 | --- | --- | --- |
-| P1 | Chat 设置（常规、资源、MCP、自动化连接）：React `ChatSettings` 在覆盖页面的网页视图中运行 | 已实现；实窗探针渲染通过 |
+| P1 | Chat 设置（常规、资源、MCP、自动化连接）：原生 `kit.Dialog`（`pages/chat/settings.go`） | 已验证（`TestSettingsDialogIsNativeAndSavesTheDraft`） |
 | P2 | 右侧工作面板：React `ChatSidePanel` 整体在网页视图中运行（文件库、资源、文件预览/编辑、PDF、Review、终端、浏览器与批注），可停靠右侧或下方、拖动调整大小；网页标签由 Go 网页视图叠放在面板指定位置 | 已实现；实窗探针：文件库经 Host 列出目录，网页标签加载页面并把标题回传面板 |
 | P3 | 自动化整页：React `SchedulerHost` 在网页视图中运行 | 已实现；实窗探针渲染通过 |
 | P4 | OneBot：整页在网页视图中运行，队友对话暂为 React Chat（[OneBot 对照](onebot.md)） | 已实现；实窗探针渲染首屏 |

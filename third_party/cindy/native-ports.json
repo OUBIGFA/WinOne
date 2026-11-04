@@ -1,0 +1,403 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/makecindy/cindy",
+  "license": "third_party/cindy/LICENSE",
+  "notice": "third_party/cindy/NOTICE",
+  "purpose": "Cindy files that the native MyGo Chat, automations and OneBot follow by hand. Each upstream entry is the Cindy revision the Go code is aligned with. Check with build/check-cindy-ports.mjs; see docs/MyGo前端迁移.md section 8.",
+  "ports": [
+    {
+      "id": "chat-model",
+      "purpose": "Event merge, turn projection and work-process grouping",
+      "native": [
+        "apps/desktop-mygo/chat/model/state.go",
+        "apps/desktop-mygo/chat/model/process.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat-state.ts",
+        "apps/desktop/frontend/src/features/chat-process.ts"
+      ],
+      "upstream": [
+        {
+          "path": "packages/maker-shared/src/workRunGrouping.ts",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "0f0e60b97a6ace4fed1ac3d6394a7b981cc0551de5a6db5645f87aeabed38846"
+        },
+        {
+          "path": "packages/maker-shared/src/workActivityProjection.ts",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "6a8fd9d157223ab0e3eb673c9ff2cc14df8df0b07db7815d617acd4517710b28"
+        }
+      ],
+      "ignore": [
+        "apps/desktop/src/renderer/features/bots/**",
+        "apps/desktop/src/shared/bot*",
+        "apps/desktop/src/renderer/styles/**",
+        "apps/desktop/src/renderer/themes/**",
+        "apps/desktop/src/renderer/components/chat/MessageReadAloudContext.ts",
+        "apps/desktop/src/renderer/components/chat/SessionQuickSendContext.tsx",
+        "apps/desktop/src/renderer/components/chat/ChatReplyIcon.tsx",
+        "apps/desktop/src/shared/chatReplyQuote.ts"
+      ]
+    },
+    {
+      "id": "chat-tools",
+      "purpose": "Tool rows, plan state and file snapshots",
+      "native": [
+        "apps/desktop-mygo/chat/model/tools.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat-plan-state.ts",
+        "apps/desktop/frontend/src/features/chat-tool-content.ts",
+        "apps/desktop/frontend/src/features/cindy/shared/toolUseDescriptor.ts"
+      ],
+      "upstream": [
+        {
+          "path": "packages/maker-shared/src/toolUseDescriptor.ts",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "942b21c58df6df8b439e2a040e6f38174de991ad1d1f312a4058e8e2f0e73f72"
+        }
+      ]
+    },
+    {
+      "id": "chat-paths",
+      "purpose": "Local path and file-link resolution",
+      "native": [
+        "apps/desktop-mygo/chat/model/paths.go",
+        "apps/desktop-mygo/pages/chat/links.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat-file-navigation.tsx",
+        "apps/desktop/frontend/src/features/cindy/localPathResolver.ts"
+      ],
+      "upstream": [
+        {
+          "path": "apps/desktop/src/renderer/components/chat/ErrorBanner.tsx",
+          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "sha256": "f4582de3d66183640eb5ac06f1187fd80a894f1f81848fd9dfae03e1a57d97e4"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/linkInteraction.ts",
+          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "sha256": "8771ae9f62c12fc32ce19cea451ec0f59bde69789e44b4db54c310d6543d2aac"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/MarkdownRenderer.tsx",
+          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "sha256": "d6011bf4ab1f7f4f037c46e530e3246f32ccd9c591d8c468c4846ff9fb38269c"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/useFileChipContextMenu.tsx",
+          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "sha256": "8aeee52d847680f2a5a4ba6f4bb9b8d87bc73729489f297fbdc161e47d991609"
+        }
+      ]
+    },
+    {
+      "id": "chat-comments",
+      "purpose": "Browser comment format sent with a message",
+      "native": [
+        "apps/desktop-mygo/chat/model/comments.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat-browser-annotations.ts"
+      ],
+      "upstream": [
+        {
+          "path": "apps/desktop/src/renderer/lib/browserComments.ts",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "58981c7a3dd72bfb492789e13386ba4622cc1534ae35e3d2182a85a90b791575"
+        }
+      ]
+    },
+    {
+      "id": "chat-sidebar",
+      "purpose": "Conversation list, projects, activity and conversation menu",
+      "native": [
+        "apps/desktop-mygo/pages/chat/sidebar.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat-sidebar.tsx"
+      ],
+      "upstream": [
+        {
+          "path": "apps/desktop/src/renderer/features/cc-agent/sidebar/SectionCollapse.tsx",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "290200be95022f170c19733b011b1eba986a79abb462604953f73f861db5229e"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/cc-agent/sidebar/SidebarRightStatusIndicator.tsx",
+          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "sha256": "8871482c9f3419bed98ed1b047556c2a5ad370c7c0126bab06bca2914a5e908f"
+        },
+        {
+          "path": "packages/maker-shared/src/sessionActivity.ts",
+          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "sha256": "747a97da6fadaf56973acd6017bd10cc9acbe71f41d0d7c728b9a1aa2f07b9e8"
+        }
+      ]
+    },
+    {
+      "id": "chat-composer",
+      "purpose": "Input box, send/steer/queue, attachments, paste, model/permission/thinking pickers, pending queue",
+      "native": [
+        "apps/desktop-mygo/pages/chat/composer.go",
+        "apps/desktop-mygo/pages/chat/send.go",
+        "apps/desktop-mygo/pages/chat/paste.go",
+        "apps/desktop-mygo/pages/chat/model_picker.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat-composer.tsx",
+        "apps/desktop/frontend/src/features/chat-attachment-input.ts",
+        "apps/desktop/frontend/src/features/chat-composer-boundary.ts"
+      ],
+      "upstream": [
+        {
+          "path": "apps/desktop/src/renderer/components/new-chat/ListComposerTextarea.tsx",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "791d9545109049369c8a5962b423aba3de39acab571742d820980a9d1f305446"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/new-chat/PermissionSelector.tsx",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "06c95567464113ce149ae0234ab6db9dacb1a266f13b706163f3652eafa4b528"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/new-chat/SendButton.tsx",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "d8b187da454f5de3e2e8d9f04deec59ed87e48623b8932ded7ab402969959358"
+        },
+        {
+          "path": "apps/desktop/src/renderer/hooks/useComposerSendShortcutPreference.ts",
+          "revision": "77e2c32d0b028920116bfac744a04c6b6876257a",
+          "sha256": "7f5f04c9f728e86c9a4281e24db6ca66a6d78f4f9a549a1d545628c9645e6375"
+        },
+        {
+          "path": "apps/desktop/src/renderer/lib/fileTypes.ts",
+          "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+          "sha256": "ccc7f9954c37f45b34c83e6f650d55c08180f189b3b3cdaec8dfe39cdabe5efc"
+        }
+      ]
+    },
+    {
+      "id": "chat-transcript",
+      "purpose": "Messages, work process, plan, approvals, questions, files and changes, scrolling",
+      "native": [
+        "apps/desktop-mygo/pages/chat/transcript.go",
+        "apps/desktop-mygo/pages/chat/tools.go",
+        "apps/desktop-mygo/pages/chat/process_collapse.go",
+        "apps/desktop-mygo/pages/chat/files.go",
+        "apps/desktop-mygo/pages/chat/plan_reminder.go",
+        "apps/desktop-mygo/pages/chat/scrollnav.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat-messages.tsx",
+        "apps/desktop/frontend/src/features/chat-plan.tsx",
+        "apps/desktop/frontend/src/features/chat-question.tsx",
+        "apps/desktop/frontend/src/features/chat-turn-changes.tsx",
+        "apps/desktop/frontend/src/features/chat-generated-files.tsx",
+        "apps/desktop/frontend/src/features/chat-scroll-controls.tsx",
+        "apps/desktop/frontend/src/features/chat-tool-file-preview.tsx",
+        "apps/desktop/frontend/src/features/chat-feedback.tsx"
+      ],
+      "upstream": [
+        {
+          "path": "apps/desktop/src/main/git-review/diffParser.ts",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "9a23ef1422c4f7043a17d085a8caef68643781fe25ce9b09f9c5329f8c7427f7"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/AgentActionRow.tsx",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "d9d1ea693f7e8991979eabf2f3cc2bbb76c7eace659da694e939230a0248f309"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/ErrorBanner.tsx",
+          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "sha256": "f4582de3d66183640eb5ac06f1187fd80a894f1f81848fd9dfae03e1a57d97e4"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/GeneratedFilesCard.tsx",
+          "revision": "69661422beeb85d692fa3704df6d2b42884f4c4b",
+          "sha256": "f966f3e2051646625a845997a9cd02b2707be7ea0f8810057341adc20fdc6708"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/linkInteraction.ts",
+          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "sha256": "8771ae9f62c12fc32ce19cea451ec0f59bde69789e44b4db54c310d6543d2aac"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/MarkdownDiffBlock.tsx",
+          "revision": "779b5237917a173fd32d2a6a381c5fe61b21695b",
+          "sha256": "687b2eed5a0f91d3f9c76f4064b37533c823993dca5b97a2531368f4a452597b"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/MarkdownRenderer.tsx",
+          "revision": "69661422beeb85d692fa3704df6d2b42884f4c4b",
+          "sha256": "d97a9b6ce95c4d49a4251d6182f01a0422449249cac1656a97351704dfad0344"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/TodoListCard.tsx",
+          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "sha256": "1d04abde5bfcbb92a1d7ea814e8cffb5b7d5ffb63919ddec483453acea2b29cc"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/TurnChangesCard.tsx",
+          "revision": "69661422beeb85d692fa3704df6d2b42884f4c4b",
+          "sha256": "a26abd25a12e5301adc4ac45a58c172176113fe51358ccc379a02edef492cb83"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/UserMessage.tsx",
+          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "sha256": "733be7d751f1ac22f22835643530f14f78eafbaa3c1221b174bc60135469272f"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/WorkGroupBlock.tsx",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "90a4e13f91c5fa490f6c2aec82c43d21c551b3727e864f30156849d65c29efa9"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/new-chat/SendButton.tsx",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "d8b187da454f5de3e2e8d9f04deec59ed87e48623b8932ded7ab402969959358"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/ui/dropdown-menu.tsx",
+          "revision": "779b5237917a173fd32d2a6a381c5fe61b21695b",
+          "sha256": "a034b63338c42f37803fdceb2deae82c16e83a9c4e99e71bb8a7f4566d88a0cc"
+        },
+        {
+          "path": "packages/maker-shared/src/richAnswer.ts",
+          "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+          "sha256": "488d0ba85a7ac148add3b9ada5f9c1e2632672bdc22b1c1db32a4e5f22592e70"
+        }
+      ],
+      "ignore": [
+        "apps/desktop/src/renderer/features/bots/**",
+        "apps/desktop/src/shared/bot*",
+        "apps/desktop/src/renderer/styles/**",
+        "apps/desktop/src/renderer/themes/**",
+        "apps/desktop/src/renderer/components/chat/MessageReadAloudContext.ts",
+        "apps/desktop/src/renderer/components/chat/SessionQuickSendContext.tsx",
+        "apps/desktop/src/renderer/components/chat/ChatReplyIcon.tsx",
+        "apps/desktop/src/shared/chatReplyQuote.ts"
+      ]
+    },
+    {
+      "id": "chat-agents",
+      "purpose": "Subagent list and subagent message window",
+      "native": [
+        "apps/desktop-mygo/pages/chat/agents.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat-agents.tsx"
+      ],
+      "upstream": [],
+      "note": "Mirrors WinOne-authored chat-agents.tsx; no Cindy file to follow."
+    },
+    {
+      "id": "chat-dialogs",
+      "purpose": "Rename, project, location, export, edit-and-resend dialogs",
+      "native": [
+        "apps/desktop-mygo/pages/chat/dialogs.go",
+        "apps/desktop-mygo/pages/chat/actions.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat-transfer-dialogs.tsx",
+        "apps/desktop/frontend/src/features/chat-project-dialog.tsx",
+        "apps/desktop/frontend/src/features/chat-message-edit.tsx",
+        "apps/desktop/frontend/src/features/chat-project-context.tsx"
+      ],
+      "upstream": [
+        {
+          "path": "apps/desktop/src/renderer/components/chat/TurnChangesCard.tsx",
+          "revision": "69661422beeb85d692fa3704df6d2b42884f4c4b",
+          "sha256": "a26abd25a12e5301adc4ac45a58c172176113fe51358ccc379a02edef492cb83"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/new-chat/ListComposerTextarea.tsx",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "791d9545109049369c8a5962b423aba3de39acab571742d820980a9d1f305446"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/new-chat/PermissionSelector.tsx",
+          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "sha256": "06c95567464113ce149ae0234ab6db9dacb1a266f13b706163f3652eafa4b528"
+        }
+      ]
+    },
+    {
+      "id": "chat-page",
+      "purpose": "Page controller: open, poll, release, draft saves, preferences, chime",
+      "native": [
+        "apps/desktop-mygo/pages/chat/controller.go",
+        "apps/desktop-mygo/pages/chat/serial.go",
+        "apps/desktop-mygo/pages/chat/view.go",
+        "apps/desktop-mygo/pages/chat/prefs.go",
+        "apps/desktop-mygo/pages/chat/chime_windows.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat.tsx",
+        "apps/desktop/frontend/src/features/chat-sound.ts"
+      ],
+      "upstream": [
+        {
+          "path": "apps/desktop/src/renderer/components/chat/autoFollowIntent.ts",
+          "revision": "77e2c32d0b028920116bfac744a04c6b6876257a",
+          "sha256": "eaf7ee84a377497fc96b536a486930fef4615e9cd41147381b82ea9148a856cf"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/ErrorBanner.tsx",
+          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "sha256": "f4582de3d66183640eb5ac06f1187fd80a894f1f81848fd9dfae03e1a57d97e4"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/GeneratedFilesCard.tsx",
+          "revision": "69661422beeb85d692fa3704df6d2b42884f4c4b",
+          "sha256": "f966f3e2051646625a845997a9cd02b2707be7ea0f8810057341adc20fdc6708"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/TurnChangesCard.tsx",
+          "revision": "69661422beeb85d692fa3704df6d2b42884f4c4b",
+          "sha256": "a26abd25a12e5301adc4ac45a58c172176113fe51358ccc379a02edef492cb83"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/new-chat/composerSendSnapshot.ts",
+          "revision": "77e2c32d0b028920116bfac744a04c6b6876257a",
+          "sha256": "48fb90a6d3d8a63ebbbf373745a681ce2b260e2714f61f72b107ec5ad4ff2b54"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/new-chat/PendingQueuePanel.tsx",
+          "revision": "b1d73b1f79ae812d0950c632db4785b1f06d48e7",
+          "sha256": "cd70ebc0386a5e1afd9f36c551602b557570e92eecba3004675a5e2648917ef9"
+        }
+      ],
+      "ignore": [
+        "apps/desktop/src/renderer/features/bots/**",
+        "apps/desktop/src/shared/bot*",
+        "apps/desktop/src/renderer/styles/**",
+        "apps/desktop/src/renderer/themes/**",
+        "apps/desktop/src/renderer/components/chat/MessageReadAloudContext.ts",
+        "apps/desktop/src/renderer/components/chat/SessionQuickSendContext.tsx",
+        "apps/desktop/src/renderer/components/chat/ChatReplyIcon.tsx",
+        "apps/desktop/src/shared/chatReplyQuote.ts"
+      ]
+    },
+    {
+      "id": "chat-settings",
+      "purpose": "Chat settings dialog: general, resources, MCP, automation connectors",
+      "native": [
+        "apps/desktop-mygo/pages/chat/settings.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat-settings.tsx",
+        "apps/desktop/frontend/src/features/chat-automation-connections.tsx",
+        "apps/desktop/frontend/src/features/chat-resources.tsx"
+      ],
+      "upstream": [],
+      "ignore": [
+        "apps/desktop/src/renderer/components/**"
+      ],
+      "note": "Mirrors WinOne-authored settings pages; generic Cindy UI primitives are replaced by kit."
+    }
+  ]
+}

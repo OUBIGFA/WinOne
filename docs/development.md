@@ -1,5 +1,12 @@
 # 开发状态
 
+## Chat、自动化、OneBot 全部原生与上游追踪（2026-11-04）
+
+- **决定**：用户改为全部原生（取代 11-01 的混合方案），OneBot 的 Bot 模式也改原生；只有浏览器标签与 HTML 预览继续用网页视图。同时要求原生代码能随时跟进 Cindy 上游。计划见 [MyGo 前端迁移](MyGo前端迁移.md) 第 9 节。
+- **9.1 已完成**：`third_party/cindy/native-ports.json` 登记 11 个原生 Chat 模块跟随的 Cindy 文件（每个文件带对齐提交与 SHA-256）；`build/check-cindy-ports.mjs` 核对清单、按模块列出上游变化、移植后 `--accept` 推进。`tests/cindy-ports/check.test.mjs` 2 项通过，已接入 `build/build.ps1`。方法见同文第 8 节。
+- **当前结果**：相对本地 Cindy b7e46bc，`chat-model`、`chat-paths`、`chat-composer`、`chat-transcript`、`chat-dialogs`、`chat-page` 落后（原生代码移植自较早的 React 副本，如 `SendButton.tsx` 自 a152497 起上游 +101/−23），8 个同步规格与 b7e46bc 一致。远端 Cindy 已到 9a392a8，本地尚未拉取完成。
+- **MyGo / Pi**：v0.7.4、1.5.0，均为最新。
+
 ## Chat/快捷助手回归与云端代理（2026-11-04）
 
 - 快捷助手注入内容自适应高度；Chat 恢复权限图标、修复会话选中态对比度、恢复长过程收纳、修正逐帧贴底打断滚轮动画的问题；模型删除后按“有效默认 AI 服务→首供应商首模型”回退并同步实际运行时。

@@ -1,6 +1,6 @@
 # MyGo 前端迁移
 
-更新：2026-11-03。本文件记录 WinOne 桌面前端改写为 MyGo 原生界面的决策、方案、分工和验收方法。实施状态同步写入 [开发状态](development.md)。
+更新：2026-11-04。本文件记录 WinOne 桌面前端改写为 MyGo 原生界面的决策、方案、分工和验收方法。实施状态同步写入 [开发状态](development.md)。
 
 ## 1. 目标与决策
 
@@ -11,11 +11,12 @@
 - **控件来源**：MyGo `ui` 包的组件及其无外观基础组件（Base）。图标继续使用本地 Lucide SVG，字体继续使用本地 Inter 与系统中文字体。
 - **不变部分**：Host、各模块进程、配置格式和 Host RPC 方法名保持不变。
 - **截图与结果窗**（用户 2026-10-31 决定）：截图不迁移到 MyGo，画布、选区与标注保持现状；截图工具栏及其菜单的外观与设置窗口的 `kit` 统一，控件仍是原生 ToolStrip（约定见 [截图与划词](working-rules/capture-selection.md)）。划词助手、快捷助手的结果窗与划词工具栏迁移到 MyGo v0.7.3，并重构界面。
-- **网页内容**（用户 2026-10-31 决定）：Magpie 路由页、第三方插件管理、脱敏记录、插件扩展页，以及 Chat 的内置浏览器与 HTML 预览，用 MyGo WebView（`ui.WebView`）嵌入。网页原有的 postMessage 协议不变，由 `apps/desktop-mygo/web` 转给 Go。
+- **网页内容**（用户 2026-10-31 决定）：Magpie 路由页、第三方插件管理、脱敏记录、插件扩展页，以及 Chat 的内置浏览器标签与 HTML 预览，用 MyGo WebView（`ui.WebView`）嵌入。网页原有的 postMessage 协议不变，由 `apps/desktop-mygo/web` 转给 Go。这里的网页指真正的网页内容，不包括 WinOne 自己的 React 组件。
 - **闪聊**：原生重写，并与现有 Chitchatter/Trystero 房间互通。
 - **分工**：用户允许同时最多两个子代理。外壳、共用组件、对照验收和提交由主 Agent 负责。
-- **顺序**：Chat 与 OneBot 也改写为 MyGo，但排在其他页面之后。改写后 Cindy 上游更新改为手工移植，用户已知此取舍。
-- **Chat 与 OneBot 的方式**（用户 2026-11-01 决定，混合方案）：会话列表、消息流、输入框、排队、审批、提问、计划等核心交互原生重写；代码编辑器、差异审阅、PDF、终端、内置浏览器与 HTML 预览、自动化整页及 OneBot 管理页在 MyGo WebView 中运行现有 React/Cindy 组件。功能清单见 [Chat 对照](mygo-parity/chat.md)。
+- **顺序**：Chat 与 OneBot 也改写为 MyGo，但排在其他页面之后。
+- **Chat、自动化与 OneBot 的方式**（用户 2026-11-04 决定，取代 11-01 的混合方案）：全部原生，不再用网页视图承载 React/Cindy 组件。包括 Chat 核心、右侧工作面板（文件库、文件预览与编辑、PDF、终端、Review）、Chat 设置、自动化整页、OneBot 整页，以及 OneBot 队友对话的 Bot 模式。只有浏览器标签与 HTML 预览这类真正的网页内容继续用 MyGo WebView。功能清单见 [Chat 对照](mygo-parity/chat.md) 与 [OneBot 对照](mygo-parity/onebot.md)。
+- **跟进上游**（用户 2026-11-04 要求）：原生代码必须能随时跟进 Cindy 上游更新。每个原生模块在 `third_party/cindy/native-ports.json` 登记它跟随的 Cindy 文件，用 `build/check-cindy-ports.mjs` 列出上游变化，方法见第 8 节。上游更新仍需人工移植到 Go，但有清单，不会遗漏。
 - **切换时机**：完整迁移仍须全部页面验收后再切换统一构建默认值（当前仍为 Rust）。用户于 2026-10-31 另行要求先测试当前成果、暂缓闪聊/Chat/OneBot：本轮显式使用 `build/build.ps1 -DesktopImplementation MyGo`，2026-11-01 已更新固定测试安装器；这三个页面在本测试版暂不可用，原后台实现和数据保留，不把测试包等同于全面迁移完成。
 
 此决策取代 [Rust 桌面迁移可行性调研](Rust桌面迁移可行性调研.md) 第 5.1 节“需先同意 Go GUI 与 UI 重写”的前提，也取代 [Rust 桌面 UI 迁移](Rust桌面UI迁移.md) 中“直接复用 React 源码”的路线。
@@ -65,7 +66,7 @@ flowchart LR
 | 0 基础 | 模块与构建脚本、启动与生命周期、Host 客户端、`kit`、`i18n`、外壳、首页 | 构建与单元测试通过；隔离 Host 下真实窗口启动、导航、主题与语言切换、关闭到后台、托盘退出、重复打开唤醒均通过 |
 | 1 设置类页面 | 设置、首页、程序管理、便捷功能、截图、划词助手、快捷助手、互联助手、AI 服务 | 每页功能对照表逐项通过；`ui.Tester` 覆盖保存、撤销、标签保护；真实窗口截图与基线对照（中英 × 深浅 × 520/1000 DIP），无横向溢出 |
 | 2 闪聊 | 会话侧栏、消息区、输入栏与点对点传输 | 与手机端/另一台电脑互通；断线重连与晚加入历史 |
-| 3 Chat、OneBot | Cindy 改写部分 | 按 Chat 与 OneBot 现有能力对照逐项验收 |
+| 3 Chat、自动化、OneBot | 全部原生改写，见第 9 节 | 按 Chat 与 OneBot 对照逐项验收；`check-cindy-ports.mjs` 无清单错误 |
 | 4 切换 | 统一构建默认 MyGo、安装器、性能 | 完整进程组冷/热启动、内存、CPU、句柄、退出回收；安装覆盖与卸载矩阵 |
 
 每个页面的功能对照表写在 `docs/mygo-parity/<页面>.md`（第 6 节列出），格式为“React 入口/行为 → MyGo 实现 → 验证证据”。未验证的项目不标记完成。
@@ -99,3 +100,28 @@ flowchart LR
 - **点对点闪聊**：原生实现用 Pion WebRTC 和 Go 版 Trystero 线协议，依赖与许可已记录并校验。本机互通测试通过；手机浏览器、跨网络（公共 tracker、TURN）尚未验证。
 - **PDF、数学公式、Mermaid**：MyGo 没有 PDF 与 KaTeX 组件。Mermaid 继续使用结果窗已在用的一次性本地渲染器；PDF 与公式在阶段 3 前选型。
 - **结果窗版本**：已接入 MyGo v0.7.3，改用公开选区、输入事件、工具窗口和 Markdown 接口，本地补丁已删除。当前单元回归与中英/深浅实窗通过；真实供应商请求、中文输入法、多屏/DPI 和长期资源仍待验收。
+
+## 8. 跟进 Cindy 上游
+
+原生代码由人工从 Cindy（及 WinOne 的 React 适配）移植，`sync-cindy.mjs` 无法重现。为了随时跟进上游，按下面的约定维护：
+
+- **清单**：`third_party/cindy/native-ports.json` 的每个 `ports[]` 是一个原生模块，写明 `native`（Go 文件）、`mirrors`（对应的 WinOne React 文件）和 `upstream`（跟随的 Cindy 文件，各带对齐的提交 `revision` 与该提交下的 SHA-256）。`ignore` 排除有意不跟随的文件，`watch` 可列出需要发现新增文件的上游目录。
+- **检查**：`node build/check-cindy-ports.mjs --cindy <Cindy 仓库>`。先核对清单（Go 文件存在，上游文件在记录的提交下存在且 SHA-256 一致），再列出每个模块从对齐提交到 `--ref`（默认 `origin/main`）之间变化的上游文件及增删行数，最后报告各 `*.sync.json` 同步组是否落后。`--strict` 在有落后时返回 1。
+- **跟进**：按报告逐个模块阅读上游差异（`git -C <Cindy> diff <revision> <ref> -- <文件>`），把行为变化移植到 Go 并补测试，再运行 `--accept <模块> --ref <提交>` 推进该模块的对齐提交。没有移植完不得 accept。
+- **新模块**：先写 `native` 与 `mirrors`，运行 `--resolve <模块> --write` 从来源清单推导上游文件（默认只取镜像文件直接 import 的 Cindy 副本，`--depth` 可加深），检查结果后补充或用 `ignore` 排除，再提交。
+- **本地 Cindy 仓库**：`dist/resources/sources/cindy`（不入库，部分克隆）。检查前先 `git -C dist/resources/sources/cindy fetch origin main`。
+
+## 9. 全部原生改写计划（2026-11-04）
+
+按依赖顺序执行。每阶段完成后提交，并更新对照表与本文件状态。
+
+| 阶段 | 内容 | 验收 |
+| --- | --- | --- |
+| 9.1 上游追踪 | 清单与检查脚本；登记已有原生 Chat 模块 | 已完成：11 个模块登记；`tests/cindy-ports/check.test.mjs` 通过并接入 `build.ps1` |
+| 9.2 跟进上游 | 把已有原生 Chat 拉齐到 Cindy 最新提交（检查报告中的落后项） | 对应模块 accept 到最新提交；`pages/chat`、`chat/model` 测试通过 |
+| 9.3 Chat 设置 | 常规、资源、MCP、自动化连接原生页 | 已完成（2026-11-04，`pages/chat/settings.go`，`TestSettingsDialogIsNativeAndSavesTheDraft`） |
+| 9.4 自动化 | `SchedulerPage` 任务列表、运行历史、表单、模板原生页；调度引擎不变 | 对照逐项；假 Host 下新建、编辑、运行、删除 |
+| 9.5 右侧工作面板 | 文件库、文件预览与编辑（CodeEditor）、Review（DiffViewer）、终端、PDF；浏览器标签保留 WebView | 对照逐项；PDF 先选型并登记许可 |
+| 9.6 Bot 模式与 OneBot | 原生 Bot 模式（时间线、引用、语音、@提及、已读边界）；OneBot 伙伴、名册、市场、私聊群聊、历史、IM、语音、记忆、例行任务原生页 | 对照逐项；147 个 onebot 方法均有原生入口 |
+| 9.7 收尾 | 删除网页视图对 React 组件的承载（`webui` 的 chat-embed）；安装器启用这三页；真实 Host 联调与实窗验收 | 完整进程组测试；安装器验证 |
+
