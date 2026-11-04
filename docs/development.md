@@ -1,5 +1,14 @@
 # 开发状态
 
+## 闪聊在代理 TUN 下的外网连接（2026-11-04）
+
+- **原因**：开着 Karing TUN 时，到真实 IP 的 UDP 可以送达；但 TUN 的 fake-ip DNS 把 STUN 服务器名解析成 `198.20.x.x` 假地址，53 端口 DNS 也被拦截，所以 STUN 全部超时，本机拿不到外网可连接的地址，外网成员无法加入。
+- **修复**（`48cd475e`，`apps/desktop-mygo/flashchat/trystero/direct*.go`）：STUN/TURN 主机名改用 DoH（223.5.5.5、1.1.1.1、8.8.8.8 并行，取最先返回的结果，系统 DNS 兜底）解析出真实地址；WebRTC 的 UDP 用 `IP_UNICAST_IF` 从拥有该地址的实体网卡发出（未绑定地址时用跃点数最小的实体网卡）；有实体网卡可用时，不提供 TUN 等隧道网卡的地址作为候选。没有 TUN 时行为与原来一致。房间内“外网可能无法加入”的提示改为说明剩余原因（代理拦截全部 UDP 或网络封锁 UDP）。
+- **实测（TUN 开启）**：`ProbeReach` 从无公网地址变为拿到 `120.235.204.118`；同一端口访问 Google 与 Cloudflare 的 STUN 得到相同映射（端点无关映射，可直接打洞）；两个房间经公共信令互相发现从约 15 秒缩短到约 2 秒。新增 `direct_test.go` 单元测试与 `direct_live_test.go` 联网测试（设置 `WINONE_FLASHCHAT_LIVE=1` 才运行）。
+- **测试修正**（`c90e79af`）：`TestStandingOfferReachesLaterPeerAndLeavesWithItsPeer` 偶发失败（200 次中 13 次），原因是测试本身：文件分享可能经广播和问候到达两次，且监听者在状态更新后才收到通知。改为等到达过程结束后，只验证成员离开带来的那一次变化，200 次全部通过。
+- **未验证**：本机路由器不支持 NAT 回环，也没有第二台机器或第二个网络，因此没有实测另一个网络的成员真正加入。双方都在对称型 NAT 后面，或代理拦截全部 UDP 时，仍需要 TURN 中继。
+- **固定安装器已更新**：`dist/release/WinOne-setup.exe`，**322946185 字节**，SHA-256 `dde0383a2d7298eadbe702d951250f3258545a7a5b4f758f3a69768e3582233b`；卸载器 SHA-256 `fc270e976e9228e441f4c251ba255db9e814175dd25af5140d607a1d84b013d0`。完整构建（`-SkipInstall -RunStartupProbes`）、隔离安装测试（回滚、修复、覆盖、历史日志、自带修复、卸载恢复）与 Defender 扫描全部通过，期间没有新增 WinOne 检测，也没有残留进程。旧包在 `_temp/flashchat-tun-20261104/prior-release/`。未签名、未创建 tag；没有操作真实安装与配置。
+
 ## Defender 安装维护边界与本地复验（2026-11-04）
 
 - **实际检测**：12:34 的 `Trojan:Win32/Bearfoos.A!ml` 隔离的是测试安装器临时解压的 `WinOne.Maintenance.exe`（旧流程复制的完整 Host），不是 SmartScreen 的未知发布者提示。12 个外部 Go 模块源码与锁定摘要一致，干净缓存重建仍被拦；不能据此声称已证实误报。
