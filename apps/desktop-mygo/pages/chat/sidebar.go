@@ -135,8 +135,8 @@ func (p *Chat) visibleConversations() []Conversation {
 // the section (projects-all folds every project).
 func (p *Chat) groupHeading(c *ui.Context, label, section string) {
 	t := c.Theme()
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(10, 0, 2, 8).Children(func() {
-		ui.Text(c, label).FontSize(kit.CaptionSize(c)).FontWeight(500).TextColor(t.TextMuted).Grow(1)
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Margin(10, 0, 0).Children(func() {
+		ui.Text(c, label).FontSize(12).FontWeight(500).TextColor(t.TextMuted).Padding(7, 8).Grow(1)
 		if section == "" || section == "conversations" && p.archived() {
 			return
 		}
@@ -158,7 +158,7 @@ func (p *Chat) groupHeading(c *ui.Context, label, section string) {
 				key = "chat.expandProjectConversations"
 			}
 		}
-		b := kit.IconButton(c, icon, i18n.T(key, "name", name))
+		b := sidebarButton(c, icon, i18n.T(key, "name", name), 24, 24, 0.45, false)
 		if section == "projects-all" && len(p.catalog.Projects) == 0 {
 			b.Disabled(true)
 		}
@@ -186,21 +186,20 @@ func (p *Chat) groupHeading(c *ui.Context, label, section string) {
 func (p *Chat) projectRow(c *ui.Context, pr Project, visible []Conversation) {
 	t := c.Theme()
 	collapsed := slices.Contains(p.prefs.CollapsedProjects, pr.ID)
-	ui.Column(c.Key("project-" + pr.ID)).FillWidth().Gap(2).Children(func() {
-		ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(2).Children(func() {
-			b := ui.ButtonBase(c).Grow(1).MinWidth(0).Height(32).Padding(0, 6).Gap(6).Radius(t.Radius).AlignItems(ui.Center).
+	ui.Column(c.Key("project-" + pr.ID)).FillWidth().Children(func() {
+		heading := ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(8)
+		hovered := heading.Hovered()
+		heading.Children(func() {
+			b := ui.ButtonBase(c).Grow(1).MinWidth(0).Padding(7, 2).Gap(6).Radius(t.Radius).Justify(ui.Start).AlignItems(ui.Center).
 				Label(pr.Name).Expanded(!collapsed).Tooltip(pr.Path)
-			if b.Hovered() {
-				b.Background(t.SurfaceHover)
-			}
 			b.Children(func() {
 				chevron := icons.ChevronDown
 				if collapsed {
 					chevron = icons.ChevronRight
 				}
-				ui.Icon(c, chevron).FontSize(14).TextColor(t.TextMuted).Shrink(0)
+				ui.Icon(c, chevron).FontSize(14).Shrink(0)
 				ui.Icon(c, icons.FolderOpen).FontSize(15).Shrink(0)
-				ui.Text(c, pr.Name).SingleLine().Ellipsis("…").MinWidth(0)
+				ui.Text(c, pr.Name).FontSize(sidebarFontSize).SingleLine().Ellipsis("…").MinWidth(0)
 			})
 			if b.Clicked() {
 				if collapsed {
@@ -210,7 +209,7 @@ func (p *Chat) projectRow(c *ui.Context, pr Project, visible []Conversation) {
 				}
 				p.prefs.save()
 			}
-			if kit.IconButton(c, icons.Plus, i18n.T("chat.newChat")+" · "+pr.Name).Disabled(p.busy).Clicked() {
+			if sidebarButton(c, icons.Plus, i18n.T("chat.newChat")+" · "+pr.Name, 26, 25, 0.4, hovered).Disabled(p.busy).Clicked() {
 				p.ui.automations = false
 				id := pr.ID
 				p.run(func(done func(error)) {
@@ -222,7 +221,7 @@ func (p *Chat) projectRow(c *ui.Context, pr Project, visible []Conversation) {
 					})
 				})
 			}
-			more := kit.IconButton(c, icons.Ellipsis, i18n.T("chat.moreFor", "name", pr.Name)).Disabled(p.busy)
+			more := sidebarButton(c, icons.Ellipsis, i18n.T("chat.moreFor", "name", pr.Name), 26, 25, 0.4, hovered).Disabled(p.busy)
 			more.Menu(func(m *ui.Menu) {
 				if m.Item(i18n.T("chat.renameProject")).Chosen() {
 					p.ui.dialog = dialogState{kind: dialogRenameProject, project: pr, name: pr.Name}
@@ -259,14 +258,19 @@ func (p *Chat) rows(c *ui.Context, list []Conversation) {
 		}
 		active := p.activeID == conv.ID && !p.ui.automations
 		ui.Column(c.Key("conversation-" + conv.ID)).FillWidth().Children(func() {
-			ui.Row(c).FillWidth().AlignItems(ui.Center).Radius(7).Children(func() {
-				row := ui.ButtonBase(c).Grow(1).MinWidth(0).Padding(8, 10, 8, 28).Radius(7).AlignItems(ui.Center).Gap(8).
-					Label(conv.Title).Selected(active).Disabled(p.busy)
-				switch {
-				case active:
-					row.Background(pal.Selected).TextColor(t.Text)
-				case row.Hovered():
-					row.Background(t.SurfaceHover)
+			item := ui.Row(c).FillWidth().AlignItems(ui.Center).Radius(7).Margin(1, 0)
+			hovered := item.Hovered()
+			switch {
+			case active:
+				item.Background(pal.Selected)
+			case hovered:
+				item.Background(t.SurfaceHover)
+			}
+			item.Children(func() {
+				row := ui.ButtonBase(c).Grow(1).MinWidth(0).Padding(8, 10, 8, 28).Radius(7).Justify(ui.Start).AlignItems(ui.Center).Gap(8).
+					FontSize(sidebarFontSize).LineHeight(1.4).Label(conv.Title).Selected(active).Disabled(p.busy)
+				if active {
+					row.TextColor(t.Text)
 				}
 				if kind == "time" {
 					hint := i18n.T("chat.sidebarEmpty")
@@ -277,7 +281,7 @@ func (p *Chat) rows(c *ui.Context, list []Conversation) {
 				}
 				row.Children(func() {
 					if kind != "time" {
-						statusIcon(c, kind).Absolute().Left(6).Top(0).Bottom(0)
+						statusIcon(c, kind).Absolute().Left(4).Top(0).Bottom(0)
 					}
 					title := ui.Text(c, conv.Title).Grow(1).SingleLine().Ellipsis("…").MinWidth(0)
 					if kind == "running" {
@@ -292,7 +296,7 @@ func (p *Chat) rows(c *ui.Context, list []Conversation) {
 					id := conv.ID
 					p.run(func(done func(error)) { p.choose(id, nil, done) })
 				}
-				p.conversationMenu(c, conv, false)
+				p.conversationMenu(c, conv, false, hovered)
 			})
 			if job := p.titleJobs[conv.ID]; job.err != "" {
 				kit.InlineError(c, i18n.T("chat.titleRequestFailed", "name", conv.Title)+" · "+job.err).Padding(0, 10, 4, 28)
@@ -349,9 +353,18 @@ func statusAwaiting(t *ui.Theme) ui.Color {
 
 // conversationMenu is a conversation's actions; the header's (open)
 // adds those of the open conversation.
-func (p *Chat) conversationMenu(c *ui.Context, conv Conversation, open bool) {
+// In the list (hovered tells whether its row is) the trigger is the faint
+// small one React's rows had; in the header (open) the ordinary button.
+func (p *Chat) conversationMenu(c *ui.Context, conv Conversation, open, hovered bool) {
 	running := open && p.view.Running
-	more := kit.IconButton(c, icons.Ellipsis, i18n.T("chat.moreFor", "name", conv.Title)).Disabled(p.busy && !open)
+	label := i18n.T("chat.moreFor", "name", conv.Title)
+	var more ui.Element
+	if open {
+		more = kit.IconButton(c, icons.Ellipsis, label)
+	} else {
+		more = sidebarButton(c, icons.Ellipsis, label, 27, 27, 0.35, hovered)
+	}
+	more.Disabled(p.busy && !open)
 	more.Menu(func(m *ui.Menu) {
 		if m.Item(i18n.T("chat.rename")).Disabled(p.busy).Chosen() {
 			p.ui.dialog = dialogState{kind: dialogRename, conversation: conv, name: conv.Title}
@@ -406,3 +419,23 @@ func (p *Chat) conversationMenu(c *ui.Context, conv Conversation, open bool) {
 
 // copy puts text on the clipboard.
 func (p *Chat) copy(text string) { p.ui.services.WriteClipboard(text) }
+
+// sidebarFontSize is the list's text size, React's 14px rows.
+const sidebarFontSize = 14
+
+// sidebarButton is a list row's small muted action, as React's: faint
+// until its row is hovered, clear while hovered, focused or open.
+func sidebarButton(c *ui.Context, icon *ui.SVG, label string, w, h, faint float32, rowHovered bool) ui.Element {
+	t := c.Theme()
+	b := ui.ButtonBase(c).Size(w, h).Shrink(0).Radius(t.Radius).Justify(ui.Center).AlignItems(ui.Center).Label(label).Tooltip(label)
+	opacity := faint
+	switch {
+	case b.Hovered() || b.FocusVisible() || b.Pressed():
+		opacity = 1
+		b.Background(t.SurfaceHover)
+	case rowHovered:
+		opacity = 0.75
+	}
+	b.Children(func() { ui.Icon(c, icon).FontSize(14).TextColor(t.TextMuted).Opacity(opacity) })
+	return b
+}

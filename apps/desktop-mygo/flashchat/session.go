@@ -35,6 +35,8 @@ type JoinOptions struct {
 	Logf    func(format string, args ...any)
 	// Transport replaces the Trystero transport, for tests.
 	Transport Transport
+	// ReceiveDir is where files members send directly are saved.
+	ReceiveDir func() (string, error)
 }
 
 // ErrRoomRequired is returned when only one of the room id and password
@@ -53,6 +55,8 @@ type Session struct {
 	group     *ChatRoom
 	base      Options
 	onEvent   func(*ChatRoom, Event)
+
+	files *files
 
 	mu       sync.Mutex
 	nickname string
@@ -100,9 +104,34 @@ func Join(o JoinOptions) (*Session, error) {
 	s.mu.Lock()
 	s.offs = append(s.offs, s.group.On(PeerJoin, func(e Event) { s.Direct(e.PeerID) }))
 	s.mu.Unlock()
+	dir := o.ReceiveDir
+	if dir == nil {
+		dir = func() (string, error) { return "", errors.New("no folder for received files") }
+	}
+	s.files = newFiles(s, dir, func(direct bool, peerID string) {
+		if s.onEvent == nil {
+			return
+		}
+		room := s.group
+		if direct {
+			if existing := s.Existing(peerID); existing != nil {
+				room = existing
+			}
+		}
+		s.onEvent(room, Event{Kind: DirectFileChange, PeerID: peerID})
+	})
+	transport.OnPeerLeave("WINONE_FILES", s.files.peerLeft)
 	s.group.Join()
 	return s, nil
 }
+
+// SendFile sends a file directly to everyone in the group ("") or to one
+// member, over the room's own connections.
+func (s *Session) SendFile(path, peerID string) error { return s.files.send(path, peerID) }
+
+// Transfers lists the files sent and received directly in the group
+// conversation ("") or the conversation with one member.
+func (s *Session) Transfers(peerID string) []DirectFile { return s.files.snapshot(peerID) }
 
 // TrackerError names a tracker address the flash chat does not accept.
 type TrackerError struct{ URL string }
@@ -200,6 +229,7 @@ func (s *Session) Leave() {
 	for _, off := range offs {
 		off()
 	}
+	s.files.stop()
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() { defer wg.Done(); s.group.Leave() }()

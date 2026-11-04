@@ -9,5 +9,15 @@
  "flashChat.invalidTracker": "Signaling address not valid: {{url}}. Use a wss:// address, or ws://127.0.0.1 on this computer.",
  "flashChat.stopShareFailed": "Could not stop sharing files: {{error}}",
  "flashChat.peerError": "Could not reach a room member: {{error}}",
- "interconnect.memberCount_one": "{{count}} member"
+ "interconnect.memberCount_one": "{{count}} member",
+ "flashChat.filesTitle": "Files in this room",
+ "flashChat.fileSending": "Sending {{percent}}%",
+ "flashChat.fileReceiving": "Receiving {{percent}}%",
+ "flashChat.fileSent": "Sent",
+ "flashChat.fileReceived": "Saved",
+ "flashChat.fileFailed": "Not finished: {{error}}",
+ "flashChat.openFile": "Open",
+ "flashChat.showInFolder": "Show in folder",
+ "flashChat.unreachableTitle": "Members on other networks may not be able to join",
+ "flashChat.unreachableHint": "This computer got no address that other networks can reach, usually because a proxy's TUN or virtual adapter takes UDP traffic. Members on the same local network can still join. To let others join, let WinOne or UDP bypass the proxy, or add a TURN server to the WebRTC configuration in Network settings."
 }

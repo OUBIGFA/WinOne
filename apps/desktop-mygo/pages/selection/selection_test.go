@@ -317,9 +317,7 @@ func TestCustomActionFlow(t *testing.T) {
 	click(t, tt, "常规")
 	click(t, tt, "工具栏")
 	h.Settle(tt)
-	click(t, tt, "邮件回复 · 供应商")
-	click(t, tt, "工作服务")
-	click(t, tt, "邮件回复 · 模型名称")
+	click(t, tt, "邮件回复 · 模型")
 	if tt.HasText("disabled") {
 		t.Fatal("only enabled models are offered")
 	}
@@ -347,7 +345,7 @@ func TestFollowDefaultRemovesTheActionsModel(t *testing.T) {
 	document["actions"].([]map[string]any)[1]["selection"] = map[string]any{"provider": "work", "model": "fast"}
 	fake, h, _, tt := setup(t, "selection", "running", document)
 	edit(t, tt, "解释")
-	click(t, tt, "解释 · 供应商")
+	click(t, tt, "解释 · 模型")
 	click(t, tt, "跟随 AI 服务默认设置")
 	h.Env.Rail.Save.Run()
 	h.Settle(tt)

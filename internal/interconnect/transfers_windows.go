@@ -247,6 +247,9 @@ func (m *Transfers) Call(ctx context.Context, method string, params json.RawMess
 		Text     string   `json:"text,omitempty"`
 		Path     string   `json:"path,omitempty"`
 		Replace  bool     `json:"replace,omitempty"`
+		// Force removes a cloud share's record with its revocation receipt,
+		// after the user confirmed the share can no longer be revoked.
+		Force bool `json:"force,omitempty"`
 	}
 	if err := configjson.DecodeObject(params, &command); err != nil {
 		return nil, err
@@ -372,7 +375,7 @@ func (m *Transfers) Call(ctx context.Context, method string, params json.RawMess
 		if active {
 			return nil, errors.New("请先取消传输")
 		}
-		if hasReceipt {
+		if hasReceipt && !command.Force {
 			return nil, errors.New("请先撤销云端分享，保留撤销凭据")
 		}
 		m.mu.Lock()

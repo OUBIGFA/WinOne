@@ -190,7 +190,7 @@ type pluginsPanel struct {
 func newPluginsPanel(p *page) *pluginsPanel {
 	x := &pluginsPanel{hostPage: hostPage{p: p, open: "capture.ai.routing.plugins.open", close: "capture.ai.routing.plugins.close"}}
 	x.options = web.Options{Label: i18n.T("aiPlugins.title"), Theme: "winone-plugin-theme", Height: 600,
-		Accept:     []string{"winone-plugin-height", "winone-plugin-changed", "winone-plugin-native"},
+		Accept:     []string{"winone-plugin-height", "winone-plugin-changed", "winone-plugin-native", "winone-plugin-status"},
 		HeightType: "winone-plugin-height", Receive: x.receive}
 	return x
 }
@@ -233,6 +233,11 @@ func (x *pluginsPanel) receive(m web.Message) {
 		p.reader.InvalidateCatalog()
 		p.reader.Invalidate()
 		p.catalog.loaded = false
+	case "winone-plugin-status":
+		// The page's results, as "plugin removed", use WinOne's own toast.
+		if message := m.String("message"); message != "" && p.env.Toast != nil {
+			p.env.Toast(message)
+		}
 	case "winone-plugin-native":
 		id := m.String("id")
 		if id == "" {

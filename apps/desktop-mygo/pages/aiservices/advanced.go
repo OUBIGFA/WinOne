@@ -652,9 +652,9 @@ func (a *advancedPanel) helperModel(c *ui.Context, label string, current string,
 		}
 		auto += " · " + name
 	}
-	items := []widgets.PictureOption{{Value: "", Label: auto}, {Value: "off", Label: i18n.T("ai.off")}}
+	choices := []widgets.ModelChoice{{Value: "", Label: auto, Icon: icons.Sparkles}, {Value: "off", Label: i18n.T("ai.off"), Icon: icons.Ban}}
+	var groups []widgets.ModelGroup
 	for _, m := range models {
-		m := m
 		name := m.Name
 		if name == "" {
 			name = m.ID
@@ -663,15 +663,17 @@ func (a *advancedPanel) helperModel(c *ui.Context, label string, current string,
 		if owner == "" {
 			owner = m.Provider
 		}
-		items = append(items, widgets.PictureOption{Value: m.ID, Label: name + " · " + owner,
-			Picture: func(c *ui.Context) { widgets.ModelIcon(c, p.env, m.ID, m.Name, 16) }})
-	}
-	if current != "" && !slices.ContainsFunc(items, func(o widgets.PictureOption) bool { return o.Value == current }) {
-		items = append(items, widgets.PictureOption{Value: current, Label: current})
+		if len(groups) == 0 || groups[len(groups)-1].ID != m.Provider {
+			groups = append(groups, widgets.ModelGroup{ID: m.Provider, Name: owner, Mark: m.Icon})
+		}
+		group := &groups[len(groups)-1]
+		group.Models = append(group.Models, widgets.ModelEntry{Value: m.ID, ID: m.ID, Name: m.Name, Label: name})
 	}
 	kit.Stack(c, label, "", func() {
-		value := current
-		if widgets.PictureSelect(c, &value, items, "", label, locked) {
+		if value, picked := widgets.ModelField(c, widgets.ModelFieldOptions{
+			ModelMenuOptions: widgets.ModelMenuOptions{Env: p.env, Choices: choices, Groups: groups, Selected: current, Label: label},
+			Disabled:         locked,
+		}); picked && value != current {
 			set(value)
 		}
 		if missing != "" {

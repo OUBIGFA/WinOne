@@ -315,8 +315,9 @@ func (p *page) add(paths []string) {
 	})
 }
 
-// replace points a program at another file chosen in the dialog.
-func (p *page) replace(id string) {
+// replace points a program at another file: path, or the one chosen in
+// the dialog when path is empty.
+func (p *page) replace(id, path string) {
 	if p.busy {
 		return
 	}
@@ -327,9 +328,13 @@ func (p *page) replace(id string) {
 		info desktop.ProgramMetadata
 	}
 	core.Go(env, func() (chosen, error) {
-		path, err := env.Dialogs.PickFile(i18n.T("wintray.pickProgram"), programFilter())
-		if err != nil || path == "" {
-			return chosen{}, err
+		path := path
+		if path == "" {
+			var err error
+			path, err = env.Dialogs.PickFile(i18n.T("wintray.pickProgram"), programFilter())
+			if err != nil || path == "" {
+				return chosen{}, err
+			}
 		}
 		info, err := programInfo(env.Directory, path)
 		return chosen{path, info}, err

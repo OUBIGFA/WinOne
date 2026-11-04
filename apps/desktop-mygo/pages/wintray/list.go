@@ -8,6 +8,7 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
+	"winone/desktopmygo/widgets"
 )
 
 // draggedProgram is a list row being dragged to another place.
@@ -97,8 +98,17 @@ func (p *page) programRow(c *ui.Context, index int, app program) {
 				replace := kit.IconButton(c, icons.FolderOpen, i18n.T("wintray.replaceNamed", "name", name)).
 					Tooltip(i18n.T("wintray.replaceProgram")).Disabled(blocked)
 				if replace.Clicked() {
-					p.replace(app.ID)
+					p.replace(app.ID, "")
 				}
+				// A program dragged onto the button replaces this one,
+				// rather than joining the list.
+				widgets.DropArea(c, p.env, replace, widgets.DropFiles, false, blocked, func(paths []string, err error) {
+					if err != nil {
+						p.err = err.Error()
+						return
+					}
+					p.replace(app.ID, paths[0])
+				})
 			})
 			p.orderSelect(c, index, app, name, blocked)
 		})

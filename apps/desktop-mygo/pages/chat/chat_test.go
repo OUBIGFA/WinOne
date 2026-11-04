@@ -37,6 +37,9 @@ type fakeChat struct {
 	answers []map[string]any
 	created int
 	export  map[string]any
+	// settings is what chat.settings.save received last.
+	settings    map[string]any
+	connections map[string]any
 }
 
 func newFakeChat(t *testing.T) *fakeChat {
@@ -104,6 +107,22 @@ func (f *fakeChat) handle(method string, params json.RawMessage) (any, error) {
 		f.catalog.Conversations = append(f.catalog.Conversations, c)
 		f.snapshot = model.Snapshot{}
 		return c, nil
+	case "chat.settings.get":
+		if f.settings != nil {
+			return f.settings, nil
+		}
+		return map[string]any{"workspaceDirectory": `C:\Users\me\workspaces`, "titleModel": map[string]any{"provider": "", "model": ""},
+			"skillDirectories": []any{}, "pluginDirectories": []any{},
+			"mcpServers":  []any{map[string]any{"name": "jira", "enabled": true, "command": "jira-mcp"}},
+			"automations": []any{map[string]any{"id": "a1", "name": "Daily", "prompt": "Summarize"}}}, nil
+	case "chat.settings.save":
+		f.settings, _ = p["settings"].(map[string]any)
+		return f.settings, nil
+	case "chat.automations.connections.get":
+		return map[string]any{"settings": map[string]any{"methods": map[string]any{}}, "servers": []any{map[string]any{"name": "jira", "enabled": true}}}, nil
+	case "chat.automations.connections.save":
+		f.connections = p
+		return nil, nil
 	case "chat.export":
 		f.export = p
 		if p["excludeMedia"] == true {
@@ -445,5 +464,54 @@ func TestSubagentMessagesReadPagesAndFollowUp(t *testing.T) {
 	settle(h, tt)
 	if len(followUps) != 1 || followUps[0]["text"] != "Also check the tests" || followUps[0]["name"] != "scout" || len(reads) != 3 || p.ui.agents.drafts["scout"] != "" {
 		t.Fatalf("follow-ups %v reads %d draft %q", followUps, len(reads), p.ui.agents.drafts["scout"])
+	}
+}
+
+// Chat settings open as a native dialog over Chat: the conversation list
+// stays, the tabs switch, a change is saved with the automations the
+// dialog does not edit, and malformed MCP JSON keeps it from saving.
+func TestSettingsDialogIsNativeAndSavesTheDraft(t *testing.T) {
+	f, h, p, tt, _ := setup(t)
+	if err := tt.Click("Chat 设置"); err != nil {
+		t.Fatal(err)
+	}
+	settle(h, tt)
+	shot(t, tt, "chat-settings")
+	if !p.tools.settingsOpen || p.settings.value == nil || !tt.HasText("默认工作目录") || !tt.HasText("Fix the build") {
+		t.Fatalf("settings did not open over Chat: %+v err %q", p.settings, p.settings.err)
+	}
+	if err := tt.Click("自动重试"); err != nil {
+		t.Fatal(err)
+	}
+	if !p.settings.dirty() || !tt.HasText("尚有未保存设置") {
+		t.Fatal("a change is not reported as unsaved")
+	}
+	if err := tt.Click("MCP"); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.HasText("自动化连接器") || !tt.HasText("jira") {
+		t.Fatal("the MCP tab is missing its servers or connectors")
+	}
+	shot(t, tt, "chat-settings-mcp")
+	p.settings.maps = map[int]map[string]string{0: {"env": "{"}}
+	p.settings.advanced = map[int]bool{0: true}
+	tt.Frame()
+	if !p.settings.invalidMaps() || !tt.HasText(i18n.T("chat.mcpMapInvalid")) {
+		t.Fatal("malformed JSON is not reported")
+	}
+	p.settings.maps = nil
+	tt.Frame()
+	if err := tt.Click("保存设置"); err != nil {
+		t.Fatal(err)
+	}
+	settle(h, tt)
+	if p.tools.settingsOpen || f.settings == nil || f.settings["autoRetry"] != false {
+		t.Fatalf("saved %+v open %v err %q", f.settings, p.tools.settingsOpen, p.settings.err)
+	}
+	if automations, _ := f.settings["automations"].([]any); len(automations) != 1 {
+		t.Fatalf("automations were not kept: %+v", f.settings["automations"])
+	}
+	if _, ok := f.settings["titleModel"]; ok {
+		t.Fatal("following the session model saved an empty model")
 	}
 }

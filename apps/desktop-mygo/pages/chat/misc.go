@@ -29,9 +29,6 @@ func jsonIndent(v any) (string, error) {
 	return string(data), err
 }
 
-// openSettings shows Chat's settings.
-func (p *Chat) openSettings() { p.tools.settingsOpen = true }
-
 func init() {
 	shell.Register("chat", core.Conversation, func(env *core.Env) core.Page { return New(env) })
 }

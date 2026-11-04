@@ -1,0 +1,4 @@
+{
+ "interconnect.forgetLiveShare": "Remove the record of a cloud share that is still online?",
+ "interconnect.forgetLiveShareHint": "The share can still be downloaded. Removing the record deletes its revocation receipt, so you cannot revoke the share later. To stop downloads first, select Revoke share."
+}

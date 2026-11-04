@@ -96,6 +96,9 @@ type transferPanel struct {
 	disclosures map[string]bool
 	numbers     struct{ downloads, expiration float64 }
 	tasks       map[string]*peerTask
+	// forgetting is the live cloud share whose record removal waits for
+	// the user to confirm it can no longer be revoked.
+	forgetting string
 }
 
 func newTransferPanel(env *core.Env, stored bool) *transferPanel {
@@ -671,7 +674,7 @@ func (p *transferPanel) advanced(c *ui.Context, gofile bool, target *taskRecord)
 				kit.Help(c, tr("cloudPayloadHint"))
 			}
 			if !send && !gofile {
-				kit.Stack(c, tr("output"), "", func() {
+				zone := kit.Stack(c, tr("output"), "", func() {
 					ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 						ui.TextInput(c, &f.OutputDir).Grow(1).MinWidth(0).Label(tr("output"))
 						if kit.Button(c, tr("choose"), icons.FolderPlus, false).Clicked() {
@@ -684,6 +687,7 @@ func (p *transferPanel) advanced(c *ui.Context, gofile bool, target *taskRecord)
 						}
 					})
 				})
+				dropFolder(c, p.env, zone, p.busy, func(path string) { f.OutputDir = path }, func(err error) { p.err = err.Error() })
 			}
 			p.disclosure(c, "network", tr("networkOptions"), func() {
 				kit.Help(c, tr("advancedHint"))
@@ -979,12 +983,33 @@ func (p *transferPanel) taskView(c *ui.Context, item taskRecord) {
 				}
 				return
 			}
-			if item.Spec.Mode == "store_send" && (r.Code != "" || r.ID != "") && !r.Revoked {
-				if kit.Button(c, tr("revoke"), nil, false).Disabled(p.busy).Clicked() {
-					call("share_revoke")
+			live := item.Spec.Mode == "store_send" && (r.Code != "" || r.ID != "") && !r.Revoked
+			if live && kit.Button(c, tr("revoke"), nil, false).Disabled(p.busy).Clicked() {
+				call("share_revoke")
+			}
+			// Finished records, succeeded or failed, can always go; a share
+			// still online asks first, as it cannot be revoked afterwards.
+			if kit.GhostButton(c, tr("forget"), icons.Trash2, false).Disabled(p.busy).Clicked() {
+				if live && !expired {
+					p.forgetting = id
+				} else {
+					p.action(func() error {
+						return p.env.Host.CallCompletingInto("interconnect.transfer_remove", map[string]any{"id": id, "force": live}, nil)
+					}, nil)
 				}
-			} else if kit.GhostButton(c, tr("forget"), icons.Trash2, false).Disabled(p.busy).Clicked() {
-				call("transfer_remove")
+			}
+			if p.forgetting == id {
+				open := true
+				if kit.Dialog(c, &open, kit.DialogOptions{Title: tr("forgetLiveShare"), Message: tr("forgetLiveShareHint"),
+					Confirm: tr("forget"), Cancel: i18n.T("common.cancel"), Danger: true}) {
+					open = false
+					p.action(func() error {
+						return p.env.Host.CallCompletingInto("interconnect.transfer_remove", map[string]any{"id": id, "force": true}, nil)
+					}, nil)
+				}
+				if !open {
+					p.forgetting = ""
+				}
 			}
 			if item.Spec.Mode != "store_revoke" && kit.GhostButton(c, tr("reuse"), icons.Play, false).Disabled(p.busy).Clicked() {
 				p.reuse(item.Spec)

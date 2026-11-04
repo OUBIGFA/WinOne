@@ -73,4 +73,13 @@ func TestGofileReceiptRecoveryAndPublicRedaction(t *testing.T) {
 	if job.record.State["result"].(map[string]any)["uploadToken"] != nil {
 		t.Fatal("revoked receipt resurrected")
 	}
+	// The user may remove the record anyway once they confirmed losing
+	// the receipt.
+	job.record.State = map[string]any{"status": "completed", "result": map[string]any{"uploadToken": "private-revocation-token"}}
+	if _, err = manager.Call(context.Background(), "transfer_remove", []byte(`{"id":"test-task","force":true}`)); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := manager.jobs["test-task"]; ok {
+		t.Fatal("forced removal kept the record")
+	}
 }

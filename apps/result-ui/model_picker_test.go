@@ -185,11 +185,15 @@ func TestProviderGroupsCollapseIndependentlyAndSearchRestoresThem(t *testing.T) 
 	if err := tt.Click("切换供应商和模型"); err != nil {
 		t.Fatal(err)
 	}
-	if tt.HasText("claude-sonnet-4") {
-		t.Fatal("reopening forgot collapsed provider")
+	// As every model list of WinOne (the Chat composer's), opening unfolds
+	// the chosen model's group so its check is in view.
+	if !tt.HasText("claude-sonnet-4") || !tt.HasText("deepseek-chat") {
+		t.Fatal("reopening did not show the chosen model's group")
 	}
-	if err := tt.Click("供应商：个人服务"); err != nil {
-		t.Fatal(err)
+	for _, group := range []string{"供应商：个人服务", "供应商：团队服务"} {
+		if err := tt.Click(group); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if !tt.HasText("团队服务") || !tt.HasText("个人服务") || tt.HasText("deepseek-chat") || tt.HasText("没有匹配的模型") {
 		t.Fatal("all collapsed groups lost their expandable headings")

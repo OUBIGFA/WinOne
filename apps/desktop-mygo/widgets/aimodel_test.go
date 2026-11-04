@@ -93,30 +93,30 @@ func aiPickTestClick(t *testing.T, tt *ui.Tester, label string) {
 	}
 }
 
-func TestAIModelSelectFollowsTheDefaultAndChoosesTheFirstModel(t *testing.T) {
+func TestAIModelSelectFollowsTheDefaultAndChoosesAModelFromTheSharedMenu(t *testing.T) {
 	v, tt := aiPickTestSetup(t, nil, true)
-	if !tt.HasText("跟随 AI 服务默认设置") || !tt.HasText("使用默认模型") || tt.HasText("未配置") {
+	if !tt.HasText("跟随 AI 服务默认设置") || tt.HasText("未配置") {
 		t.Fatalf("texts %q", tt.Texts())
 	}
-	aiPickTestClick(t, tt, "任务 · 供应商")
-	aiPickTestClick(t, tt, "工作服务")
-	if v.value == nil || v.value.Provider != "work" || v.value.Model != "openai/gpt-5" {
-		t.Fatalf("value %+v", v.value)
-	}
-	aiPickTestClick(t, tt, "任务 · 模型名称")
-	for _, badge := range []string{"免费", "0.5×", "1×", "1.0M", "2M"} {
-		if !tt.HasText(badge) {
-			t.Errorf("badge %q missing: %q", badge, tt.Texts())
+	aiPickTestClick(t, tt, "任务 · 模型")
+	for _, text := range []string{"工作服务", "4", "免费", "0.5×", "1×", "1.0M", "2M"} {
+		if !tt.HasText(text) {
+			t.Errorf("%q missing: %q", text, tt.Texts())
 		}
 	}
-	if tt.HasText("off") {
-		t.Error("models not enabled are not offered")
+	if tt.HasText("off") || tt.HasText("空服务") {
+		t.Error("models not enabled and providers without models are not offered")
 	}
+	aiPickTestClick(t, tt, "GPT-5 · azure")
+	if v.value == nil || v.value.Provider != "work" || v.value.Model != "azure/gpt-5" {
+		t.Fatalf("value %+v", v.value)
+	}
+	aiPickTestClick(t, tt, "任务 · 模型")
 	aiPickTestClick(t, tt, "Deep")
 	if v.value.Model != "deep" {
 		t.Fatalf("value %+v", v.value)
 	}
-	aiPickTestClick(t, tt, "任务 · 供应商")
+	aiPickTestClick(t, tt, "任务 · 模型")
 	aiPickTestClick(t, tt, "跟随 AI 服务默认设置")
 	if v.value != nil || v.changes != 3 {
 		t.Fatalf("following the default is no selection: %+v after %d changes", v.value, v.changes)
@@ -125,12 +125,12 @@ func TestAIModelSelectFollowsTheDefaultAndChoosesTheFirstModel(t *testing.T) {
 
 func TestAIModelSelectKeepsUnavailableChoicesVisible(t *testing.T) {
 	v, tt := aiPickTestSetup(t, &AISelection{Provider: "gone", Model: "old"}, true)
-	if !tt.HasText("gone") || !tt.HasText("old 未启用或已移除，请重新选择。") {
+	if !tt.HasText("gone · old") || !tt.HasText("old 未启用或已移除，请重新选择。") {
 		t.Fatalf("a removed provider stays shown: %q", tt.Texts())
 	}
 	v.value = &AISelection{Provider: "work", Model: "off"}
 	tt.Frame()
-	if !tt.HasText("off 未启用或已移除，请重新选择。") {
+	if !tt.HasText("工作服务 · off") || !tt.HasText("off 未启用或已移除，请重新选择。") {
 		t.Fatalf("a disabled model is reported: %q", tt.Texts())
 	}
 	v.value = &AISelection{}
@@ -140,19 +140,24 @@ func TestAIModelSelectKeepsUnavailableChoicesVisible(t *testing.T) {
 	}
 	v.value = &AISelection{Provider: "empty"}
 	tt.Frame()
-	if !tt.HasText("请先在 AI 服务中勾选模型") || !strings.Contains(strings.Join(tt.Texts(), "|"), "空服务") {
+	if !strings.Contains(strings.Join(tt.Texts(), "|"), "空服务") {
 		t.Fatalf("a provider without enabled models: %q", tt.Texts())
 	}
 }
 
-func TestAIModelSelectWithoutInheritOffersChoosingAProvider(t *testing.T) {
+func TestAIModelSelectWithoutInheritCanClearTheChoice(t *testing.T) {
 	v, tt := aiPickTestSetup(t, nil, false)
-	if !tt.HasText("选择供应商") || !tt.HasText("请先选择供应商") || tt.HasText("跟随 AI 服务默认设置") {
+	if !tt.HasText("选择模型") || tt.HasText("跟随 AI 服务默认设置") {
 		t.Fatalf("texts %q", tt.Texts())
 	}
-	aiPickTestClick(t, tt, "任务 · 供应商")
-	aiPickTestClick(t, tt, "空服务")
-	if v.value == nil || v.value.Provider != "empty" || v.value.Model != "" {
+	aiPickTestClick(t, tt, "任务 · 模型")
+	aiPickTestClick(t, tt, "Deep")
+	if v.value == nil || v.value.Provider != "work" || v.value.Model != "deep" {
 		t.Fatalf("value %+v", v.value)
+	}
+	aiPickTestClick(t, tt, "任务 · 模型")
+	aiPickTestClick(t, tt, "未配置")
+	if v.value != nil {
+		t.Fatalf("clearing leaves no selection: %+v", v.value)
 	}
 }

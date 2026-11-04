@@ -492,12 +492,12 @@ func TestAISettingsSaveWholeConfigurationAndSurviveTabs(t *testing.T) {
 	if !tt.HasText("图片发送到所选供应商。请选择支持图像的模型。") {
 		t.Fatalf("ai ocr %q", tt.Texts())
 	}
-	click(t, tt, "截图 OCR · 供应商")
-	click(t, tt, "工作服务")
+	click(t, tt, "截图 OCR · 模型")
+	click(t, tt, "fast")
 	if got := p.ai.draft.Value.Tasks["ocr"]; got.Provider != "work" || got.Model != "fast" {
 		t.Fatalf("ocr task %+v", got)
 	}
-	click(t, tt, "截图 OCR · 模型名称")
+	click(t, tt, "截图 OCR · 模型")
 	if tt.HasText("disabled") {
 		t.Fatal("only enabled models are offered")
 	}
@@ -541,7 +541,7 @@ func TestAIFollowDefaultRemovesTheTask(t *testing.T) {
 	if !tt.HasText("gone 未启用或已移除，请重新选择。") {
 		t.Fatalf("a removed model is reported %q", tt.Texts())
 	}
-	click(t, tt, "结果对话 · 供应商")
+	click(t, tt, "结果对话 · 模型")
 	click(t, tt, "跟随 AI 服务默认设置")
 	if _, ok := p.ai.draft.Value.Tasks["chat"]; ok {
 		t.Fatal("following the default removes the task")
@@ -639,8 +639,8 @@ func TestAITranslationWithAModel(t *testing.T) {
 	if p.ai.draft.Value.Engine != "llm" || !tt.HasText("翻译提示词") || tt.HasText("翻译时将识别文字发送到 Google。") {
 		t.Fatalf("engine %q texts %q", p.ai.draft.Value.Engine, tt.Texts())
 	}
-	click(t, tt, "截图翻译 · 供应商")
-	click(t, tt, "工作服务")
+	click(t, tt, "截图翻译 · 模型")
+	click(t, tt, "fast")
 	click(t, tt, "翻译提示词")
 	tt.Type("译成 {target}")
 	click(t, tt, "智能中英互译")

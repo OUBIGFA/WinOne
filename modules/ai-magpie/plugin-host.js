@@ -1,6 +1,15 @@
 // Complete plugin operations in WinOne's settings layout. The upstream owns
 // registry and sandbox semantics; WinOne owns visual hierarchy and navigation.
 magpie.strings({zh:{"Install a plugin":"安装插件","About plugins":"插件说明","Plugin provider is unavailable; refresh the plugin list and try again":"插件供应商暂不可用，请刷新插件列表后重试"}});
+// Results show as WinOne's native toast: the page is embedded at its full
+// height, so an in-page fixed pill would land below the visible area.
+function status(msg, kind = "") {
+  const s = document.getElementById("status");
+  s.textContent = ""; s.className = "status";
+  if (!msg) return;
+  if (winOnePluginParent) parent.postMessage({type: "winone-plugin-status", message: String(msg), kind}, winOnePluginParent);
+  else { s.textContent = msg; s.className = "status " + kind; }
+}
 async function loadProviders() { providers = await api("providers"); }
 async function openProvider(id, signIn = false) {
   try {

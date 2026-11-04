@@ -9,6 +9,26 @@
 - **固定安装器已更新**：`dist/release/WinOne-setup.exe`，322927579 字节，SHA-256 `8bf2e204abbb9ac2ea3afd0b06b4b8eb679bd287b2b0029e426d2b03133f91be`。匹配卸载器、SHA-256 和元数据同步；旧四件套在 `_temp/windows-security-20261104/prior-release/`。完整载荷与生产文件扫描均明确未检出，完整安装验证没有新增 WinOne 检测或测试进程残留。
 - **边界**：未修改真实安装、配置、自启、ProgramData 或 Defender 设置，未恢复隔离文件、添加排除、显式上传复核样本、签名或发布；当前非管理员会话无法完成实时排除检查，自定义扫描按微软说明忽略文件排除。微软具体判据和其他机器/未来定义/SmartScreen 结果仍未保证。详见 [本轮核查](2026-11-04-Defender安装维护核查.md)。
 
+## Chat 设置原生化、全局模型菜单、插件移除提示（2026-11-04）
+
+- **全局模型菜单**：结果窗（快捷助手、划词、OCR、翻译）此前仍用 `apps/result-ui/model_picker.go` 里自己的一套菜单，样式与 Chat 不同。菜单本体移到根模块共享包 `internal/nativeui/modelmenu`（Chat 输入框的样式，图标随包内嵌），设置窗口的 `widgets.ModelMenu` 与结果窗都调用它。结果窗原有的“使用任务默认”改为列表顶部的选项；搜索框 ↓/↑ 移动高亮、回车确认、多关键词搜索与“免费”可搜索并入共享菜单，所有模型菜单都可用。打开菜单时展开当前模型所在分组（Chat 规则），结果窗测试随之调整。根模块因此依赖 MyGo v0.7.4（已是最新），`go` 版本随之为 1.27.3。
+- **Chat 设置**：原为铺满 Chat 页的 React WebView（网页自绘遮罩与弹窗，底部居中的回顶/回底按钮），改为原生 `kit.Dialog`（`pages/chat/settings.go`），在 Chat 页上方弹出。常规、资源、MCP 三个 Tab 固定在标题下，内容按设置页的分组面板、开关行与选择框排列；子代理选项单列一组。功能逐项保留：工作目录（选择与拖放）、标题模型、会话默认、工具预设、子代理、技能/插件目录（拖放多个）、MCP 服务（命令或 URL、调用方式、说明、参数、环境变量/请求头/单工具调用方式 JSON 校验、工作目录、超时）与自动化连接器（单独保存）。关闭后保留草稿直到保存或重置；未保存设置计入页面的未保存保护。`kit.Dialog` 新增固定区 `Header` 与按钮行状态 `Note`。
+- **Chat 侧栏与新对话**：项目行按钮未设左对齐，项目名居中，已改回左对齐（会话行、移动对话、工具步骤标题同样补齐）。新对话页的 Logo 与输入框原用滚动区内 `MinHeightPercent(100)`，滚动区不拉伸内容导致整体偏上；改为按上一帧滚动区高度设最小高度（与闪聊大厅相同），整体垂直居中。
+- **插件移除提示**：Magpie 插件页的 `status()` 提示在 WebView 内固定在页面底部并撑满宽度，WebView 按内容高度嵌入，提示落在可视区外且样式不统一。WinOne 宿主脚本改写 `status()`，把提示发给原生页面，用统一的 Toast 显示（`winone-plugin-status`）。
+- **验证**：desktop-mygo 全部 `go test` 通过（新增 `TestSettingsDialogIsNativeAndSavesTheDraft`、`TestPluginPageStatusUsesTheNativeToast`）；result-ui 全部通过；根模块 `internal`、`apps/host`、`modules` 编译通过；插件页准备脚本在 Magpie 22f5cf6 上生成成功，`status` 转发用 node 模拟验证。截图检查了 Chat 设置常规/MCP 页、新对话页与 320–900 宽结果窗模型菜单。
+
+## 模型菜单统一、闪聊、账号供应商与 Chat 修复（2026-11-04）
+
+- **模型下拉统一**：原生窗口新增 `widgets/modelmenu.go`（`ModelMenu`、表单用 `ModelField`），Chat 输入框、默认 AI 服务、截图 OCR/翻译/对话、划词功能、视觉/作图/标题/自动审查辅助模型全部改用它；内嵌 React 页面新增 `features/ai-model-menu.tsx`，Chat 输入框与 `AIModelSelect`（Chat 设置、截图、划词等）共用。原“供应商 + 模型名称”两个下拉合成一个模型字段。
+- **互联助手**：所有已结束（成功或失败）的传输/接收记录都显示“移除记录”；仍在线的云端分享先确认“移除后无法撤销”，Host 的 `transfer_remove` 新增 `force`（`TestGofileReceiptRecoveryAndPublicRedaction` 覆盖）。
+- **闪聊**：外壳新增 `core.Keeper`，闪聊离开页面不再提示、切回保持房间与草稿，只在关闭窗口时离房。加入房间不再显示房间名称。离开房间导致窗口崩溃（同一帧内会话被置空后继续绘制，`Session.Group` 空指针）已修复，离房改在帧后执行（`TestLeaveButtonReturnsToTheLobby`）。文件改为经房间自身的 WebRTC 连接直接分片发送（`flashchat/filesend.go`，单文件上限 8 GiB，保存到互联助手的下载目录，同名自动加序号，文件名清洗），不再依赖 Tailcat 持续分享；真实公共信令下两端 5 MB 约 1 秒送达。新增 `trystero.ProbeReach`：本机拿不到外网可达地址时在房间顶部提示原因与处理办法。
+- **跨网络无法加入的原因**：本机 Karing TUN 虚拟网卡接管 UDP，STUN 全部超时，WebRTC 只有局域网候选地址，外网成员无法连入；同机两端可在约 15 秒内互通。上游 Chitchatter 公开实例与其示例 TURN（expressturn）及 openrelay 实测均不可用，因此没有内置 TURN；需代理对 UDP 直连，或在网络设置中自填 TURN。
+- **AI 服务账号供应商**：登录后的“供应商选项”默认折叠。WorkBuddy“获取模型”失败的根因：WinOne 只把内置账号插件放进请求的有效插件列表，Magpie 的 `plugin.Cached()` 与 `keepUnloaded` 却读原始 `plugins.json`，内置插件账号（WorkBuddy、Trae、Qoder 等）因此永远找不到，获取模型与经这些账号的请求都会失败。`build/prepare-ai-plugin-registry.ps1` 补丁改为读有效列表，新增 `TestWinOneCachedProvidersIncludeTheBundle`（修复前失败）。用 WorkBuddy 登录数据的隔离副本实测，修复后返回 16 个模型；副本已移入回收站。账号相关 Host 调用（目录、列表、登录、签到、额度）与旧版逐项对照无缺失。
+- **拖放**：补齐 Chat 项目/工作/保存目录、互联助手下载/输出目录、另存为、持续分享添加文件、目录链接迁移文件夹与历史导入、WinTray“更换”按钮（拖到按钮即替换该程序）。
+- **Chat**：左栏可拖动调宽（224–400 DIP，键盘左右键，记住宽度）；项目行与会话行按旧版 React 格式（14px、会话行内边距、淡显操作按钮、整行悬停）；页头恢复打开右侧栏的按钮；新对话 Logo 与输入框水平居中。“点自动化或 Chat 设置先跳到闪聊”在隔离窗口中未能复现（先访问闪聊再打开两者亦正常）。
+- **离开确认**：“操作尚未完成”对话框新增“不等待，直接离开／切换／关闭”。
+- **验证**：MyGo 全部包 `go test`、`go vet` 通过；React `test:mygo` 980 项通过（8 项旧双下拉测试已改为新菜单）；`internal/interconnect` 通过；隔离窗口实测 Chat 侧栏、设置模型菜单、闪聊建房与离房。
+
 ## 参考 impeccable 与 unslop 打磨界面（2026-11-04）
 
 - **方法**：只采用两个项目的审查规则（impeccable 的 polish/Operate 模式，unslop 的间距、文案与细节清单），不复制代码或素材；WinOne 保持黑白灰方向。新增 `testhost.Harness.Shots`，各页面的 `TestShots` 在设置 `WINONE_SHOTS` 后输出深浅色 × 1000/560 宽的渲染图（共 224 张，改动前后各一组，在 `_temp/ui-polish-20261104/`）。

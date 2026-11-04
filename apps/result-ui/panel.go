@@ -12,6 +12,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"winone/internal/ai"
+	"winone/internal/nativeui/modelmenu"
 	"winone/internal/resultwindow"
 )
 
@@ -76,7 +77,7 @@ type Panel struct {
 	TranslationModelChanged                 bool
 	TranslationPickerOpen                   bool
 	ModelPickerOpen                         bool
-	modelPickerCollapsed                    map[string]bool
+	modelMenu, translationMenu              modelmenu.State
 	scroll                                  ui.ScrollState
 	composerHeight                          float32
 	diagrams                                map[string]*diagramEntry

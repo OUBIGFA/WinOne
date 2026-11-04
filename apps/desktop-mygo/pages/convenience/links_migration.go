@@ -14,6 +14,7 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
+	"winone/desktopmygo/widgets"
 	"winone/internal/directorylinks"
 )
 
@@ -321,7 +322,15 @@ func (m *linkMigration) detailPath() string {
 // folderField is a path input with its folder picker.
 func (m *linkMigration) folderField(c *ui.Context, label string, value *string, locked bool) {
 	kit.Label(c, label)
-	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+	row := ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center)
+	widgets.DropArea(c, m.env, row, widgets.DropFolders, false, locked, func(paths []string, err error) {
+		if err != nil {
+			m.err = err.Error()
+			return
+		}
+		*value, m.plan = paths[0], nil
+	})
+	row.Children(func() {
 		if ui.TextInput(c, value).Grow(1).MinWidth(0).Label(label).Disabled(locked).Changed() {
 			m.plan = nil
 		}

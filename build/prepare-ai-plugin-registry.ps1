@@ -24,6 +24,19 @@ $replacements=@{
 }
 foreach($key in $replacements.Keys){if(-not $source.Contains($key)){throw "Upstream plugin registry changed: $key"};$source=$source.Replace($key,$replacements[$key])}
 [IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$source+[Environment]::NewLine,$utf8)
+# The verified account backends live only in the request's effective list.
+# Cached providers (and the ones a failed load keeps) must read that list too,
+# or a bundled account (WorkBuddy, Trae, Qoder...) never becomes a provider:
+# listing its models and every request through it fail as "not signed in".
+$relative='internal/plugin/providers.go'
+$source=(& git -C $SourceDirectory show ($Revision+':'+$relative)) -join [Environment]::NewLine
+if($LASTEXITCODE -ne 0){throw 'Cannot read upstream plugin providers'}
+$replacements=[ordered]@{
+ 'l := list() // one read of plugins.json for the whole call'='l := winOneEffective(list()) // one read of plugins.json for the whole call'
+ 'for _, e := range list().Plugins {'='for _, e := range winOneEffective(list()).Plugins {'
+}
+foreach($key in $replacements.Keys){if(([regex]::Matches($source,[regex]::Escape($key))).Count -ne 1){throw "Upstream plugin providers changed: $key"};$source=$source.Replace($key,$replacements[$key])}
+[IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$source+[Environment]::NewLine,$utf8)
 # A private transport worker is behind an already processed gateway request.
 # Preserve upstream serving and provider hooks, without running user-request
 # hooks/middleware twice across WinOne's authenticated provider bridge.

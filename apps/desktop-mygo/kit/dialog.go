@@ -18,8 +18,12 @@ type DialogOptions struct {
 	Busy bool
 	// ConfirmDisabled keeps Confirm unavailable, as before a check ends.
 	ConfirmDisabled bool
+	// Header adds content under the title that does not scroll, as tabs.
+	Header func()
 	// Body adds content between the message and the buttons.
 	Body func()
+	// Note is a short muted status left of the buttons, as unsaved changes.
+	Note string
 	// Actions adds buttons before Cancel, as "check again".
 	Actions func()
 	// Width is the panel's width; zero is 420.
@@ -48,6 +52,9 @@ func Dialog(c *ui.Context, open *bool, o DialogOptions) bool {
 			Border(1, p.Hairline).Shadow(0, 12, 32, 0, ui.RGBA(0, 0, 0, 2*shadowAlpha(t))).
 			Role(ui.RoleDialog).Label(o.Title).Children(func() {
 			Title(c, o.Title).FontSize(t.Rem(headingSize) + 2).Shrink(0)
+			if o.Header != nil {
+				ui.Column(c).FillWidth().Shrink(0).Children(o.Header)
+			}
 			ui.Scroll(c).FillWidth().Shrink(1).MinHeight(0).Gap(12).Children(func() {
 				if o.Message != "" {
 					ui.Text(c, o.Message).LineHeight(1.5).TextColor(t.TextMuted).Selectable()
@@ -57,7 +64,10 @@ func Dialog(c *ui.Context, open *bool, o DialogOptions) bool {
 				}
 				InlineError(c, o.Error)
 			})
-			ui.Row(c).Shrink(0).Gap(8).Justify(ui.End).Wrap().Margin(8, 0, 0, 0).Children(func() {
+			ui.Row(c).FillWidth().Shrink(0).Gap(8).Justify(ui.End).AlignItems(ui.Center).Wrap().Margin(8, 0, 0, 0).Children(func() {
+				if o.Note != "" {
+					ui.Text(c, o.Note).FontSize(HelpSize(c)).TextColor(t.TextMuted).Grow(1).MinWidth(0).Role(ui.RoleStatus)
+				}
 				if o.Actions != nil {
 					o.Actions()
 				}

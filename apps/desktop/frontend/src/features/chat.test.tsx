@@ -21,10 +21,10 @@ it('loads all currently enabled title models on the first settings opening',asyn
  await waitFor(()=>expect(screen.getByRole('button',{name:'模型'}).textContent).toContain('Model'));
  native.ai.mockResolvedValue({providers:[{id:'provider',name:'Local service',models:['model','second','third']}],tasks:{}});
  await user.click(screen.getByRole('button',{name:'Chat 设置'}));
- const model=await screen.findByRole('combobox',{name:/标题生成模型.*模型/});
+ const model=await screen.findByRole('button',{name:/标题生成模型 · 模型/});
  await waitFor(()=>expect(model).toHaveProperty('disabled',false));await user.click(model);
  expect(await screen.findByRole('option',{name:'third'})).toBeTruthy();
- expect(screen.getAllByRole('option').filter(option=>!option.closest('select'))).toHaveLength(3);
+ expect(screen.getAllByRole('option').filter(option=>!option.closest('select')&&!option.classList.contains('ai-model-choice'))).toHaveLength(3);
 });
 
 it('does not let a late startup catalog restore the old title model list',async()=>{
@@ -34,7 +34,7 @@ it('does not let a late startup catalog restore the old title model list',async(
  render(<ChatPage/>);const user=userEvent.setup();
  native.ai.mockResolvedValue({providers:[{id:'provider',name:'Local service',models:['model','newly-enabled']}],tasks:{}});
  await user.click(screen.getByRole('button',{name:'Chat 设置'}));
- const model=await screen.findByRole('combobox',{name:/标题生成模型.*模型/});
+ const model=await screen.findByRole('button',{name:/标题生成模型 · 模型/});
  await waitFor(()=>expect(model).toHaveProperty('disabled',false));
  await act(async()=>{finishCatalog({projects:[],conversations:[]});});
  await user.click(model);

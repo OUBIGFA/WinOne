@@ -306,8 +306,8 @@ it("places global defaults after account providers and preserves drafts across t
  fixture();render(<AISettings/>);const user=userEvent.setup();await screen.findByRole("button",{name:"重命名服务"});
  await user.type(screen.getByLabelText("API 密钥"),"draft-key");
  expect(within(screen.getByRole("tablist",{name:"AI 服务"})).getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["自定义供应商","账号供应商","默认 AI 服务","本地网关","路由","用量统计","插件","高级设置"]);
- expect(screen.queryByRole("combobox",{name:"默认 AI 服务 · 供应商"})).toBeNull();
- await user.click(screen.getByRole("tab",{name:"默认 AI 服务"}));expect(screen.getByRole("combobox",{name:"默认 AI 服务 · 供应商"})).toBeTruthy();
+ expect(screen.queryByRole("button",{name:"默认 AI 服务 · 模型"})).toBeNull();
+ await user.click(screen.getByRole("tab",{name:"默认 AI 服务"}));expect(screen.getByRole("button",{name:"默认 AI 服务 · 模型"})).toBeTruthy();
  await waitFor(()=>expect(screen.queryByLabelText("API 基础地址")).toBeNull());
  await user.click(screen.getByRole("tab",{name:"自定义供应商"}));expect((screen.getByLabelText("API 密钥") as HTMLInputElement).value).toBe("draft-key");
 });
@@ -327,7 +327,7 @@ it("fills a new blank custom service from a local preset without leaving an inva
 it("sets the global default without replacing feature overrides",async()=>{
  let saved:any;const second={id:"two",name:"第二服务",authMode:"api-key",protocol:"chat",baseUrl:"https://second.example/v1",models:["second-model"],hasKey:false};
  api.captureCall.mockImplementation(async(method,value)=>{if(method==="ai.configuration.get")return {...structuredClone(original),providers:[...original.providers,second],tasks:{...original.tasks,translate:{provider:"one",model:"test-model"}}};if(method==="ai.configuration.save"){saved=value;return {...value.configuration,revision:3}};throw Error(method)});
- render(<AISettings/>);const user=userEvent.setup();await user.click(await screen.findByRole("tab",{name:"默认 AI 服务"}));await user.click(screen.getByRole("combobox",{name:"默认 AI 服务 · 供应商"}));await user.click(await screen.findByRole("option",{name:"第二服务"}));
+ render(<AISettings/>);const user=userEvent.setup();await user.click(await screen.findByRole("tab",{name:"默认 AI 服务"}));await user.click(screen.getByRole("button",{name:"默认 AI 服务 · 模型"}));await user.click(await screen.findByRole("option",{name:"second-model"}));
  await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));await screen.findByText("已保存");expect(saved.configuration.tasks.default).toEqual({provider:"two",model:"second-model"});expect(saved.configuration.tasks.translate).toEqual({provider:"one",model:"test-model"});
 });
 

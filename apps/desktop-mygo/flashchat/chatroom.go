@@ -30,6 +30,9 @@ const (
 	SelfFileOfferChange
 	SendingStateChange
 	Error
+	// DirectFileChange: a file sent or received directly changed
+	// (Session.Transfers); rooms do not raise it, sessions do.
+	DirectFileChange
 )
 
 // ErrorContext names the operation an Error event came out of.

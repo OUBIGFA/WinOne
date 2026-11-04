@@ -175,13 +175,18 @@ func (a *linkArchive) exportHistory(ids []string) {
 	})
 }
 
-func (a *linkArchive) previewHistory() {
+// previewHistory reads an archive to import: path, or the file chosen
+// when path is empty.
+func (a *linkArchive) previewHistory(path string) {
 	a.busy, a.err, a.notice, a.preview = true, "", "", nil
 	var preview *directorylinks.HistoryImportPreview
 	core.Do(a.env, func() error {
-		path, err := a.env.Dialogs.PickFile(i18n.T("links.archiveImport"), core.Filter{})
-		if err != nil || path == "" {
-			return err
+		if path == "" {
+			var err error
+			path, err = a.env.Dialogs.PickFile(i18n.T("links.archiveImport"), core.Filter{})
+			if err != nil || path == "" {
+				return err
+			}
 		}
 		var value directorylinks.HistoryImportPreview
 		if err := a.env.Host.CallCompletingInto("directory-links.history.preview", map[string]any{"path": path}, &value); err != nil {
@@ -230,9 +235,18 @@ func (a *linkArchive) View(c *ui.Context, ids []string, disabled bool, changed f
 			if kit.Button(c, i18n.T("links.archiveExport"), icons.Download, false).Disabled(locked || len(ids) == 0).Clicked() {
 				a.exportHistory(ids)
 			}
-			if kit.Button(c, i18n.T("links.archiveImport"), icons.Upload, false).Disabled(locked).Clicked() {
-				a.previewHistory()
+			// An archive dragged onto Import is imported, as one chosen.
+			importButton := kit.Button(c, i18n.T("links.archiveImport"), icons.Upload, false).Disabled(locked)
+			if importButton.Clicked() {
+				a.previewHistory("")
 			}
+			widgets.DropArea(c, a.env, importButton, widgets.DropFiles, false, locked, func(paths []string, err error) {
+				if err != nil {
+					a.err = err.Error()
+					return
+				}
+				a.previewHistory(paths[0])
+			})
 		})
 		if a.err != "" {
 			kit.Notice(c, kit.Failure, "", a.err, nil)

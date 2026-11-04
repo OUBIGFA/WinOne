@@ -160,7 +160,7 @@ try {
    $ErrorActionPreference='Stop'
    if($LASTEXITCODE -ne 0){throw 'Magpie OAuth adapter test failed'}
    $ErrorActionPreference='Continue'
-   & $GoExe test ./internal/plugin -run '^TestWinOne(AccountSnapshot|Extension|PluginCommand)' -count=1 -v
+   & $GoExe test ./internal/plugin -run '^TestWinOne(AccountSnapshot|Extension|PluginCommand|CachedProviders)' -count=1 -v
    $ErrorActionPreference='Stop'
    if($LASTEXITCODE -ne 0){throw 'Magpie account snapshot parity test failed'}
   } finally {foreach($name in $priorTestEnvironment.Keys){[Environment]::SetEnvironmentVariable($name,$priorTestEnvironment[$name])}}

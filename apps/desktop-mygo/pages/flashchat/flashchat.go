@@ -9,6 +9,9 @@ package flashchat
 
 import (
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -64,6 +67,10 @@ type page struct {
 
 	busy bool
 	err  string
+	// unreachable tells that this computer offers peers on other networks
+	// no address (ProbeReach), as when a proxy's virtual adapter takes
+	// the UDP traffic WebRTC needs.
+	unreachable bool
 	// area is the page's frame, whose width chooses the narrow layout;
 	// nickFocused saves the nickname when its field loses the focus.
 	area, empty ui.Handle
@@ -196,6 +203,7 @@ func (p *page) enter(create bool) {
 	p.stopped.Store(false)
 	p.shares = newShares(p.tasks)
 	o.Files = p.shares
+	o.ReceiveDir = p.receiveDir
 	o.OnEvent = func(_ *flashchat.ChatRoom, e flashchat.Event) {
 		p.env.Post(func() {
 			p.revision++
@@ -222,8 +230,18 @@ func (p *page) enter(create bool) {
 		}
 		p.session, p.selected = session, ""
 		p.roomID, p.password = session.RoomID, session.Password
+		p.unreachable = false
+		rtc := o.RTC
+		core.Go(p.env, func() (trystero.Reach, error) { return probeReach(rtc, 8*time.Second) }, func(r trystero.Reach, err error) {
+			if p.session == session {
+				p.unreachable = err == nil && !r.Public && !r.Relayed
+			}
+		})
 	})
 }
+
+// probeReach checks this computer's reach; tests stay off the network.
+var probeReach = trystero.ProbeReach
 
 // roomError words a failure the room reported.
 func roomError(e flashchat.Event) string {
@@ -238,7 +256,15 @@ func roomError(e flashchat.Event) string {
 
 // leave leaves the room at once on screen, then on the network, and
 // stops the shares the room was receiving.
+//
+// It happens after the frame that asked for it: the room's views later in
+// that frame still read the session, and leaving at once crashed the
+// window instead of returning to the lobby.
 func (p *page) leave() {
+	p.env.Post(p.leaveNow)
+}
+
+func (p *page) leaveNow() {
 	session := p.session
 	p.stopped.Store(true)
 	p.session, p.selected, p.panel, p.showPeers, p.joining = nil, "", "", false, false
@@ -335,10 +361,11 @@ func (p *page) files(paths []string) ([]flashchat.FileHandle, error) {
 	return files, err
 }
 
-// shareFiles chooses files and offers them to the conversation shown.
+// shareFiles chooses files and sends them to the conversation shown,
+// straight over the room's connections.
 func (p *page) shareFiles() {
-	room := p.room()
-	if room == nil {
+	session, peer := p.session, p.selected
+	if session == nil {
 		return
 	}
 	p.action(func() error {
@@ -346,29 +373,43 @@ func (p *page) shareFiles() {
 		if err != nil || len(paths) == 0 {
 			return err
 		}
-		files, err := p.files(paths)
-		if err != nil || len(files) == 0 {
-			return err
-		}
-		_, err = room.OfferFiles(files)
-		return err
+		return sendAll(session, paths, peer)
 	}, nil)
 }
 
-// offerDropped offers files dragged onto the conversation.
+// offerDropped sends files dragged onto the conversation.
 func (p *page) offerDropped(paths []string) {
-	room := p.room()
-	if room == nil {
+	session, peer := p.session, p.selected
+	if session == nil {
 		return
 	}
-	p.action(func() error {
-		files, err := p.files(paths)
-		if err != nil || len(files) == 0 {
-			return err
+	p.action(func() error { return sendAll(session, paths, peer) }, nil)
+}
+
+// sendAll sends each file; the first that cannot go stops the rest.
+func sendAll(session *flashchat.Session, paths []string, peer string) error {
+	for _, path := range paths {
+		if err := session.SendFile(path, peer); err != nil {
+			return fmt.Errorf("%s: %w", filepath.Base(path), err)
 		}
-		_, err = room.OfferFiles(files)
-		return err
-	}, nil)
+	}
+	return nil
+}
+
+// receiveDir is where files members send are saved: the folder chosen in
+// the interconnect settings, or Downloads.
+func (p *page) receiveDir() (string, error) {
+	var general struct {
+		DownloadDir string `json:"downloadDir"`
+	}
+	if err := p.env.Host.CallCompletingInto("interconnect.general.get", nil, &general); err == nil && filepath.IsAbs(general.DownloadDir) {
+		return general.DownloadDir, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, "Downloads"), nil
 }
 
 func (p *page) stopSharing() {
@@ -443,6 +484,13 @@ func (p *page) copyRoom(services ui.Services) {
 		p.copyTimer.Stop()
 	}
 	p.copyTimer = time.AfterFunc(2*time.Second, func() { p.env.Post(func() { p.copied = false }) })
+}
+
+// SetAside implements core.Keeper: the room, its shares and the drafts go
+// on while the user visits other pages; only the browsed share, a web view
+// on screen, closes.
+func (p *page) SetAside() {
+	p.closeBrowse()
 }
 
 // closeTimeout bounds how long closing waits for the goodbye and the

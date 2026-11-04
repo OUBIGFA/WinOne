@@ -1,0 +1,4 @@
+{
+ "interconnect.forgetLiveShare": "移除仍在线的云端分享记录？",
+ "interconnect.forgetLiveShareHint": "分享仍可下载。移除记录后，WinOne 会删除撤销凭据，之后无法再撤销这个分享。要先停止下载，请点击“撤销分享”。"
+}

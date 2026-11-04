@@ -9,13 +9,8 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"winone/internal/ai"
+	"winone/internal/nativeui/modelmenu"
 )
-
-type modelPickerRow struct {
-	provider ai.Provider
-	model    string // An empty model denotes a provider heading, never a choice.
-	count    int
-}
 
 func (p *Panel) modelLabel(provider ai.Provider, id string) string {
 	name := provider.ModelName(id)
@@ -80,39 +75,6 @@ func (p *Panel) modelBadges(c *ui.Context, t *ui.Theme, provider ai.Provider, id
 			ui.Text(c, value+"M").FontSize(em(t, sizeBadge)).TextColor(t.TextMuted)
 		})
 	}
-}
-
-// Search a provider and its model together. IDs, rather than display names,
-// identify a route, so two accounts with the same name remain independent.
-func (p *Panel) modelPickerRows(query string, collapsed map[string]bool) []modelPickerRow {
-	terms := strings.Fields(strings.ToLower(query))
-	var rows []modelPickerRow
-	for _, provider := range p.Configuration.Providers {
-		var models []modelPickerRow
-		for _, model := range provider.Models {
-			text := strings.ToLower(provider.Name + " " + model + " " + p.modelLabel(provider, model))
-			if provider.IsFreeModel(model) {
-				text += " " + strings.ToLower(p.T("免费", "Free"))
-			}
-			matches := true
-			for _, term := range terms {
-				if !strings.Contains(text, term) {
-					matches = false
-					break
-				}
-			}
-			if matches {
-				models = append(models, modelPickerRow{provider: provider, model: model})
-			}
-		}
-		if len(models) > 0 {
-			rows = append(rows, modelPickerRow{provider: provider, count: len(models)})
-			if !collapsed[provider.ID] {
-				rows = append(rows, models...)
-			}
-		}
-	}
-	return rows
 }
 
 func (p *Panel) chooseModel(selection *ai.Selection) {
@@ -221,159 +183,71 @@ func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
 			button.Background(tn.hover)
 		}
 	}
+	menu := &p.modelMenu
+	if translation {
+		menu = &p.translationMenu
+	}
 	if button.Clicked() {
-		*open = !*open
+		menu.Open = *open
+		modelmenu.Toggle(menu, selected.Provider)
 	}
 	if p.Busy {
-		*open = false
+		menu.Open = false
 	}
-	ui.PopoverBase(c, button, open, func(panel ui.Element) {
-		width, height := c.Size()
-		// A single popup fits even the 320-DIP result window. Its list scrolls
-		// independently; there is no nested combobox extending past the window.
-		panel.Width(min(340, width-24)).Padding(6).Gap(4).Margin(6, 0, 0, 0).Radius(10).Background(t.Background).Border(1, t.Border)
-		query := ui.Local(panel, "query", func() string { return "" })
-		highlight := ui.Local(panel, "highlight", func() int { return -1 })
-		state := ui.Local(panel, "list", func() ui.ListState { return ui.ListState{} })
-		searchCollapsed := ui.Local(panel, "searchCollapsed", func() map[string]bool { return map[string]bool{} })
-		var search ui.Element
-		ui.Row(c).AlignItems(ui.Center).Gap(8).Padding(5, 8).Children(func() {
-			ui.Icon(c, svg("search")).Size(16, 16).Shrink(0).TextColor(t.TextMuted)
-			search = ui.TextInput(c.Key("model-search"), query).Label(p.T("搜索供应商或模型", "Search providers or models")).Placeholder(p.T("搜索供应商或模型", "Search providers or models")).
-				AutoFocus().Grow(1).MinWidth(0).Padding(3, 0).Border(0, ui.Transparent).Background(ui.Transparent)
-		})
-		ui.Box(c).Height(1).Background(t.Border)
-		if search.Changed() {
-			*highlight = -1
-			state.ScrollTo(0, ui.Start)
-			clear(*searchCollapsed)
-		}
-		if p.modelPickerCollapsed == nil {
-			p.modelPickerCollapsed = map[string]bool{}
-		}
-		collapsed := p.modelPickerCollapsed
-		// Search reveals matches without discarding the user's normal group
-		// state. Collapsing a search result stays local to that query.
-		if strings.TrimSpace(*query) != "" {
-			collapsed = *searchCollapsed
-		}
-		rows := p.modelPickerRows(*query, collapsed)
-		if *highlight < 0 || *highlight >= len(rows) {
-			*highlight = -1
-			for i, row := range rows {
-				if row.model != "" && *highlight < 0 {
-					*highlight = i
-				}
-				if *query == "" && row.provider.ID == selected.Provider && row.model == selected.Model {
-					*highlight = i
-					break
-				}
-			}
-			if *highlight >= 0 {
-				state.ScrollTo(*highlight, ui.Center)
-			}
-		}
-		chooseRow := func(index int) {
-			if index >= 0 && index < len(rows) && rows[index].model != "" {
-				choose(&ai.Selection{Provider: rows[index].provider.ID, Model: rows[index].model})
-			}
-		}
-		if len(rows) == 0 {
-			message := p.T("没有匹配的模型", "No matching models")
-			if len(p.modelPickerRows("", nil)) == 0 {
-				message = p.T("请先在 AI 服务中启用模型", "Enable a model in AI services first")
-			}
-			ui.Text(c, message).Padding(18, 10).TextColor(t.TextMuted)
-		} else {
-			listHeight := float32(0)
-			for i, row := range rows {
-				if row.model == "" {
-					listHeight += 34 // heading plus separation from its first model
-					if i > 0 {
-						listHeight += 8
-					}
-				} else {
-					listHeight += 34
-				}
-			}
-			state.Selected = highlight
-			state.Key = func(i int) any { return [2]string{rows[i].provider.ID, rows[i].model} }
-			state.Header = func(i int) bool { return rows[i].model == "" }
-			state.Label = func(i int) string { return rows[i].provider.Name + " " + p.modelLabel(rows[i].provider, rows[i].model) }
-			list := ui.List(c.Key("models"), state, len(rows), func(i int) {
-				row := rows[i]
-				if row.model == "" {
-					open := !collapsed[row.provider.ID]
-					// A sticky header needs its own background; groups are
-					// apart by room above every heading but the first.
-					group := ui.Column(c).Background(t.Background).Padding(0, 0, 2, 0)
-					if i > 0 {
-						group.Padding(8, 0, 2, 0)
-					}
-					group.Children(func() {
-						// Use MyGo's disclosure for mouse, keyboard and accessibility;
-						// models remain virtual rows so large groups stay inexpensive.
-						disclosure := ui.CollapsibleBase(c, &open)
-						heading := disclosure.Trigger.Label(p.T("供应商：", "Provider: ")+row.provider.Name).Tooltip(row.provider.Name).Height(30).Padding(4, 8).Gap(6).AlignItems(ui.Center).Radius(6).Background(tn.region).Cursor(ui.CursorPointer)
-						if heading.Hovered() {
-							heading.Background(tn.hover)
-						}
-						heading.Children(func() {
-							arrow := ui.Icon(c, svg("chevron")).Size(14, 14).Shrink(0).TextColor(t.TextMuted)
-							if !open {
-								arrow.Rotate(-90)
-							}
-							p.providerImage(c, t, row.provider.DisplayIcon(), 14)
-							ui.Text(c, row.provider.Name).SingleLine().Ellipsis("…").MinWidth(0).Grow(1).FontSize(em(t, sizeMeta)).FontWeight(500).TextColor(t.Text)
-							ui.Textf(c, "%d", row.count).FontSize(em(t, sizeMeta)).Shrink(0).TextColor(t.TextMuted)
-						})
-						if heading.Changed() {
-							collapsed[row.provider.ID] = !open
-							*highlight = -1
-						}
-					})
-					return
-				}
-				// Two columns of indentation keep each model beneath its
-				// provider without pushing the icon away from its name.
-				item := ui.ButtonBase(c).Label(p.modelLabel(row.provider, row.model)).Tooltip(row.provider.Name+" · "+row.model).Height(34).MinWidth(0).Padding(6, 8, 6, 30).Gap(6).AlignItems(ui.Center).Radius(6).Cursor(ui.CursorPointer)
-				if item.Hovered() || i == *highlight {
-					item.Background(tn.hover)
-				}
-				item.Children(func() {
-					providerImage(c, t, row.provider.ModelIcon(row.model), 18)
-					ui.Row(c).MinWidth(0).Grow(1).Gap(4).AlignItems(ui.Center).Children(func() {
-						ui.Text(c, p.modelLabel(row.provider, row.model)).SingleLine().Ellipsis("…").MinWidth(0)
-						p.modelBadges(c, t, row.provider, row.model)
-					})
-					if row.provider.ID == selected.Provider && row.model == selected.Model {
-						ui.Icon(c, svg("check")).Size(16, 16).Shrink(0).TextColor(t.Text)
-					}
-				})
-				if item.Clicked() {
-					chooseRow(i)
-				}
-			}).Height(min(listHeight, min(320, max(80, height-180)))).Padding(0, 8, 0, 0).Label(p.T("可用模型", "Available models"))
-			if search.Shortcut(0, ui.KeyDown) {
-				list.Focus()
-			}
-			if list.Submitted() {
-				chooseRow(*highlight)
-			}
-		}
-		if search.Submitted() && !search.Composing() {
-			chooseRow(*highlight)
-		}
-		ui.Box(c).Height(1).Background(t.Border)
-		reset := ui.ButtonBase(c).Label(p.T("使用任务默认", "Use task defaults")).Height(30).Padding(5, 8).Gap(8).AlignItems(ui.Center).Radius(6).Cursor(ui.CursorPointer).Children(func() {
-			ui.Icon(c, svg("retry")).Size(14, 14).TextColor(t.TextMuted)
-			ui.Text(c, p.T("使用任务默认", "Use task defaults")).TextColor(t.TextMuted)
-		})
-		if reset.Hovered() {
-			reset.Background(tn.hover)
-		}
-		if reset.Clicked() {
-			choose(nil)
-		}
+	*open = menu.Open
+	// The window shares the settings window's model list: the Chat
+	// composer's, drawn by modelmenu. "使用任务默认" comes first, as the
+	// list's other choices do.
+	chosen, picked := modelmenu.Menu(c, button, menu, modelmenu.Options{
+		Choices:  []modelmenu.Choice{{Value: "", Label: p.T("使用任务默认", "Use task defaults"), Icon: svg("retry")}},
+		Groups:   p.modelMenuGroups(),
+		Selected: modelValue(selected),
+		Strings: modelmenu.Strings{Search: p.T("搜索供应商或模型", "Search providers or models"), List: p.T("可用模型", "Available models"),
+			Empty: p.T("请先在 AI 服务中启用模型", "Enable a model in AI services first"), NoMatch: p.T("没有匹配的模型", "No matching models"),
+			Group: p.T("供应商：", "Provider: ")},
 	})
+	*open = menu.Open
+	if !picked {
+		return
+	}
+	if provider, model, ok := strings.Cut(chosen, "\x00"); ok {
+		choose(&ai.Selection{Provider: provider, Model: model})
+	} else {
+		choose(nil)
+	}
+}
+
+// modelValue names a route in the model list.
+func modelValue(s ai.Selection) string {
+	if s.Provider == "" && s.Model == "" {
+		return "\x01"
+	}
+	return s.Provider + "\x00" + s.Model
+}
+
+// modelMenuGroups are the enabled models by provider. IDs, rather than
+// display names, identify a route, so two accounts with the same name
+// remain independent; the free badge's word is searched too.
+func (p *Panel) modelMenuGroups() []modelmenu.Group {
+	groups := make([]modelmenu.Group, 0, len(p.Configuration.Providers))
+	for _, provider := range p.Configuration.Providers {
+		provider := provider
+		group := modelmenu.Group{ID: provider.ID, Name: provider.Name, Icon: func(c *ui.Context, size float32) ui.Element {
+			return p.providerImage(c, c.Theme(), provider.DisplayIcon(), size)
+		}}
+		for _, model := range provider.Models {
+			model := model
+			keywords := model
+			if provider.IsFreeModel(model) {
+				keywords += " " + p.T("免费", "Free")
+			}
+			group.Models = append(group.Models, modelmenu.Entry{Value: provider.ID + "\x00" + model, Label: p.modelLabel(provider, model), Keywords: keywords,
+				Icon: func(c *ui.Context, size float32) ui.Element {
+					return providerImage(c, c.Theme(), provider.ModelIcon(model), size)
+				},
+				Badge: func(c *ui.Context) { p.modelBadges(c, c.Theme(), provider, model) }})
+		}
+		groups = append(groups, group)
+	}
+	return groups
 }

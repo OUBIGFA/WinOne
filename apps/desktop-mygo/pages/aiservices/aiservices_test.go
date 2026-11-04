@@ -489,3 +489,17 @@ func TestMaskingRecordsStageTheirKinds(t *testing.T) {
 		t.Fatal("an invalid kind changed the draft")
 	}
 }
+
+// The plugin page's results, as a removed plugin, show as WinOne's own
+// toast: the page is embedded at its full height, where its own pill
+// would be out of view.
+func TestPluginPageStatusUsesTheNativeToast(t *testing.T) {
+	_, h, p, _ := setup(t)
+	var shown []string
+	h.Env.Toast = func(message string) { shown = append(shown, message) }
+	p.plugins.receive(web.Message{"type": "winone-plugin-status", "message": "已移除 示例插件", "kind": "ok"})
+	p.plugins.receive(web.Message{"type": "winone-plugin-status", "message": ""})
+	if len(shown) != 1 || shown[0] != "已移除 示例插件" {
+		t.Fatalf("toasts %q", shown)
+	}
+}

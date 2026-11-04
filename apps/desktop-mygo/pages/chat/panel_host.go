@@ -13,16 +13,16 @@ import (
 	"winone/desktopmygo/widgets"
 )
 
-// The side panel, the automations page and Chat settings stay React (the
+// The side panel and the automations page stay React (the
 // user's hybrid plan): package webui shows chat-embed.html in web views
 // and this file is their native side, as chat.tsx was their parent: the
 // props it gave them, the callbacks they called, the panel's dock.
 
 // tools are the page's web views, made the first time each shows.
 type tools struct {
-	panel, automations, settings *webui.Surface
-	browser                      *webui.Browser
-	// settingsOpen shows Chat settings over the page.
+	panel, automations *webui.Surface
+	browser            *webui.Browser
+	// settingsOpen shows the native Chat settings dialog (settings.go).
 	settingsOpen bool
 	// panelURLHandled drops a page address the panel already opened.
 	panelURLHandled int
@@ -40,11 +40,10 @@ type embedHost struct {
 
 // embedState is what a view of the page is told (chat-embed-entry.tsx).
 type embedState struct {
-	Language string         `json:"language"`
-	Theme    string         `json:"theme"`
-	Host     embedHost      `json:"host"`
-	Panel    *panelProps    `json:"panel,omitempty"`
-	Settings *settingsProps `json:"settings,omitempty"`
+	Language string      `json:"language"`
+	Theme    string      `json:"theme"`
+	Host     embedHost   `json:"host"`
+	Panel    *panelProps `json:"panel,omitempty"`
 }
 
 // panelProps are ChatSidePanel's props, as chat.tsx gave them.
@@ -70,14 +69,6 @@ type panelProps struct {
 type reviewProps struct {
 	TurnID string `json:"turnId"`
 	Path   string `json:"path,omitempty"`
-}
-
-// settingsProps are ChatSettings' props.
-type settingsProps struct {
-	Providers     json.RawMessage     `json:"providers"`
-	DefaultModel  widgets.AISelection `json:"defaultModel"`
-	ModelsLoading bool                `json:"modelsLoading"`
-	ModelsError   string              `json:"modelsError"`
 }
 
 func (p *Chat) embedCommon(c *ui.Context) embedState {
@@ -294,39 +285,9 @@ func (p *Chat) automationsView(c *ui.Context) {
 	p.tools.automations.View(c, p.embedCommon(c)).Grow(1).AlignSelf(ui.Stretch)
 }
 
-// settingsView shows Chat settings over the page while open.
-func (p *Chat) settingsView(c *ui.Context) {
-	if !p.tools.settingsOpen {
-		return
-	}
-	if p.tools.settings == nil {
-		p.tools.settings = webui.New(p.env, webui.Options{View: "settings", Label: i18n.T("chat.settings"),
-			Receive: p.receiveTools})
-	}
-	state := p.embedCommon(c)
-	state.Settings = &settingsProps{Providers: p.providersJSON(), DefaultModel: p.newModel,
-		ModelsLoading: !p.catalogLoaded && p.err == "", ModelsError: p.view.ModelError}
-	ui.Box(c).Absolute().Top(0).Left(0).Right(0).Bottom(0).Children(func() {
-		p.tools.settings.View(c, state).Fill()
-	})
-}
-
-// receiveTools answers the automations page and Chat settings.
+// receiveTools answers the automations page.
 func (p *Chat) receiveTools(kind string, payload json.RawMessage, reply func(any, error)) {
 	switch kind {
-	case "close":
-		p.tools.settingsOpen = false
-		// The dialog opens afresh next time, as React remounted it.
-		if p.tools.settings != nil {
-			p.tools.settings.Close()
-			p.tools.settings = nil
-		}
-	case "saved":
-		p.refresh(func(err error) {
-			if err != nil {
-				p.err = err.Error()
-			}
-		})
 	case "navigate":
 		webui.Navigate(p.env, payload)
 	default:
@@ -338,7 +299,7 @@ func (p *Chat) receiveTools(kind string, payload json.RawMessage, reply func(any
 
 // closeTools destroys the page's web views.
 func (p *Chat) closeTools() {
-	for _, s := range []*webui.Surface{p.tools.panel, p.tools.automations, p.tools.settings} {
+	for _, s := range []*webui.Surface{p.tools.panel, p.tools.automations} {
 		if s != nil {
 			s.Close()
 		}
@@ -484,7 +445,7 @@ func (p *Chat) takeIntents() {
 // busy reports a change the React tools asked of the Host and that is not
 // answered yet: an editor's save, a review's commit.
 func (t *tools) busy() bool {
-	for _, s := range []*webui.Surface{t.panel, t.automations, t.settings} {
+	for _, s := range []*webui.Surface{t.panel, t.automations} {
 		if s != nil && s.Busy() {
 			return true
 		}

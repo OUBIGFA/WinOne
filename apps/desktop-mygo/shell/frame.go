@@ -255,6 +255,10 @@ func (s *Shell) content(c *ui.Context) {
 	// Pages talk to the Host from their first frame: wait for the first
 	// snapshot, which starts the Host when needed, as every request of
 	// the previous window waited for that start.
+	if kept, ok := s.kept[s.page]; ok && s.instance == nil {
+		s.instance = kept
+		delete(s.kept, s.page)
+	}
 	if s.instance == nil && s.loaded {
 		if current.make != nil {
 			s.instance = current.make(s.env)

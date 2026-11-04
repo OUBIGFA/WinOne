@@ -42,9 +42,26 @@ func preferenceJSON[T any](c *ui.Context, p *page, key, label, hint string, valu
 // Use the existing settings controls with the exact upstream fields/units.
 // Structured per-account maps and windows remain complete, typed JSON; they
 // are not reduced to a fixed subset of account names, days or header names.
+//
+// An account provider shows them folded, below its accounts: they are
+// rarely changed, and open they would push the model list far down.
 func (e *editor) preferences(c *ui.Context, pr *provider, locked bool) {
+	if pr.AuthMode == "account" {
+		ui.Collapsible(c.Key("provider-options"), i18n.T("ai.providerOptions"), &e.optionsOpen, func() {
+			ui.Column(c).FillWidth().Padding(8, 0, 0).Children(func() { e.preferenceRows(c, pr, locked, "") })
+		})
+		return
+	}
+	e.preferenceRows(c, pr, locked, i18n.T("ai.providerOptions"))
+}
+
+func (e *editor) preferenceRows(c *ui.Context, pr *provider, locked bool, title string) {
 	s := &pr.ProviderPreferences
-	kit.Group(c, nil, i18n.T("ai.providerOptions"), "", func() {
+	group := kit.Group
+	if title == "" {
+		group = func(c *ui.Context, _ *ui.SVG, _, _ string, rows func()) ui.Element { return kit.Panel(c, rows) }
+	}
+	group(c, nil, title, "", func() {
 		max := 0.0; if s.MaxAccounts != nil { max = float64(*s.MaxAccounts) }
 		numberRow(c, i18n.T("ai.maxAccounts"), &max, 0, 1024, true, "", locked, func(v *float64) { if v==nil {s.MaxAccounts=nil} else {n:=int(*v);s.MaxAccounts=&n} })
 		wait := float64(s.Patience)

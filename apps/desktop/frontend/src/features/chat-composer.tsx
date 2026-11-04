@@ -1,6 +1,6 @@
 import "./ai-model-menu.css";
 import {useEffect,useRef,useState} from "react";
-import {Bot,Brain,ChevronDown,ChevronRight,Check,FolderOpen,Gauge,Minimize2,MoreHorizontal,Play,Plus,LoaderCircle,Paperclip,FileText,Phone,Volume2,VolumeX,Wrench,X} from "lucide-react";
+import {Bot,Brain,ChevronDown,Check,FolderOpen,Gauge,Minimize2,MoreHorizontal,Play,Plus,LoaderCircle,Paperclip,FileText,Phone,Volume2,VolumeX,Wrench,X} from "lucide-react";
 import {useTranslation} from "../i18n";
 import {Button} from "../ui/button";
 import {Popover,PopoverTrigger,PopoverContent} from "../components/ui/popover";
@@ -18,7 +18,7 @@ import {FILE_REFERENCE_MIME} from "./chat-panel-state";
 import {ComposerFrame} from "./cindy/ComposerFrame";
 import {ComposerAttachments} from "./cindy/ComposerAttachments";
 import {modelLabel} from "./ai-model-label";
-import {ScrollArea} from "./lobe/scroll-area/ScrollArea";
+import {AIModelMenuContent} from "./ai-model-menu";
 import type {AIProvider,AISelection} from "./ai-configuration";
 import {ChatTasks} from "./chat-tasks";
 import {ChatAgents} from "./chat-agents";
@@ -70,21 +70,12 @@ export function ChatComposer({queueEditing=false,text,onText,onSend,onStop,onRes
  /** The canonical OneBot chat supplies the original voice call surface. */
  onVoice?:()=>void;
 }){
- const {t}=useTranslation();const input=useRef<HTMLTextAreaElement>(null),selectedModel=useRef<HTMLButtonElement>(null);
+ const {t}=useTranslation();const input=useRef<HTMLTextAreaElement>(null);
  const thinkingKey=thinkingLevel?"chat.thinking_"+thinkingLevel:"chat.thinkingAuto";
  const contextPercent=usage&&contextUsage&&contextUsage.contextWindow>0?Math.max(0,Math.min(100,contextUsage.percent??contextUsage.tokens/contextUsage.contextWindow*100)):undefined;
  const usageView=usage&&contextUsage&&contextPercent!==undefined?{tokens:contextUsage.tokens,window:contextUsage.contextWindow,percent:contextPercent,input:usage.input,output:usage.output,cacheRead:usage.cacheRead,cacheWrite:usage.cacheWrite,totalTokens:usage.totalTokens,cost:usage.cost,costKnown:usage.costKnown}:undefined;
- const [modelsOpen,setModelsOpen]=useState(false),[search,setSearch]=useState(""),[fullConfirm,setFullConfirm]=useState(false),[collapsedProviders,setCollapsedProviders]=useState(new Set<string>());
- function openModels(open:boolean){
-  if(open){setSearch('');setCollapsedProviders(current=>{const next=new Set(current);next.delete(model.provider);return next;});}
-  setModelsOpen(open);
- }
- useEffect(()=>{
-  if(!modelsOpen)return;
-  // Wait for the portalled list to lay out without stealing focus from search.
-  const frame=requestAnimationFrame(()=>selectedModel.current?.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'}));
-  return()=>cancelAnimationFrame(frame);
- },[modelsOpen]);
+ const [modelsOpen,setModelsOpen]=useState(false),[fullConfirm,setFullConfirm]=useState(false);
+ const openModels=setModelsOpen;
  // Cindy treats every selected file as message content. A file-only prompt
  // must therefore remain sendable even when it has no browser annotation.
  const canSend=!!text.trim()||attachments.length>0;
@@ -169,9 +160,7 @@ export function ChatComposer({queueEditing=false,text,onText,onSend,onStop,onRes
     </div><div className="chat-composer-model-actions">
     {usageView&&<Popover><PopoverTrigger render={<Button variant="ghost" size="icon" icon={Gauge} aria-label={t("chat.contextUsage")+" · "+Math.round(usageView.percent)+"%"} disabled={busy}/>}/><PopoverContent side="top" align="end" className="chat-usage-panel"><dl><div><dt>{t("chat.contextUsage")}</dt><dd>{compactCount(usageView.tokens)} / {compactCount(usageView.window)}</dd></div><div><dt>{t("chat.usageInput")}</dt><dd>{compactCount(usageView.input)}</dd></div><div><dt>{t("chat.usageOutput")}</dt><dd>{compactCount(usageView.output)}</dd></div><div><dt>{t("chat.usageCacheRead")}</dt><dd>{compactCount(usageView.cacheRead)}</dd></div><div><dt>{t("chat.usageCacheWrite")}</dt><dd>{compactCount(usageView.cacheWrite)}</dd></div><div><dt>{t("chat.usageTotal")}</dt><dd>{compactCount(usageView.totalTokens)}</dd></div><div><dt>{t("chat.usageCost")}</dt><dd>{usageView.costKnown?usageView.cost.toFixed(4):t("chat.usageCostUnknown")}</dd></div></dl></PopoverContent></Popover>}
     {!hideRuntimeControls&&<Popover open={modelsOpen} onOpenChange={openModels}><PopoverTrigger render={<button data-slot="cindy-model" type="button" className="chat-model-trigger" disabled={busy||running||paused||queueEditing} aria-label={t("chat.model")} title={providerName?`${providerName} · ${modelName}`:modelName}/>}>{provider?<AIProviderIcon icon={provider.avatar||provider.icon}/>:<Bot size={15}/>}{providerName&&<><span className="chat-provider-name">{providerName}</span><span aria-hidden="true">·</span></>}<span className="chat-model-name">{modelName}</span>{provider&&model.model&&<AIModelBadge provider={provider} id={model.model}/>}<ChevronDown size={14}/></PopoverTrigger>
-     <PopoverContent side="top" align="end" className="ai-model-menu chat-model-menu"><input autoFocus aria-label={t("chat.searchModels")} placeholder={t("chat.searchModels")} value={search} onChange={event=>setSearch(event.target.value)}/><ScrollArea disableContentFit viewportProps={{className:"chat-model-viewport"}}><div role="listbox" aria-label={t("chat.model")}>{providers.map(p=>{
-      const matches=p.models.filter(id=>(p.name+" "+id+" "+p.modelNames?.[id]).toLowerCase().includes(search.toLowerCase()));const expanded=!!search||!collapsedProviders.has(p.id);return matches.length>0&&<section key={p.id}><h4><button type="button" className="chat-model-group" aria-label={p.name} aria-expanded={expanded} onClick={()=>setCollapsedProviders(current=>{const next=new Set(current);if(next.has(p.id))next.delete(p.id);else next.add(p.id);return next;})}><AIProviderIcon icon={p.avatar||p.icon}/><span className="chat-model-label">{p.name}</span><small>{matches.length}</small>{expanded?<ChevronDown size={13}/>:<ChevronRight size={13}/>}</button></h4>{expanded&&matches.map(id=><button key={id} ref={model.provider===p.id&&model.model===id?selectedModel:undefined} type="button" role="option" aria-selected={model.provider===p.id&&model.model===id} onClick={()=>{onModel({provider:p.id,model:id});setModelsOpen(false);}}><AIModelIcon model={id} name={p.modelNames?.[id]}/><span className="chat-model-label">{modelLabel(p,id)}</span><AIModelBadge provider={p} id={id}/><span className="chat-model-check" aria-hidden="true">{model.provider===p.id&&model.model===id&&<Check size={14}/>}</span></button>)}</section>;
-     })}</div></ScrollArea>{!providers.some(p=>p.models.length)&&<p>{t("chat.modelUnavailable")}</p>}</PopoverContent>
+     <PopoverContent side="top" align="end" className="ai-model-menu chat-model-menu"><AIModelMenuContent providers={providers} selected={model} open={modelsOpen} label={t("chat.model")} onModel={value=>{onModel(value);setModelsOpen(false);}}/></PopoverContent>
     </Popover>}
     {saving&&<span className="sr-only" role="status">{t("chat.saving")}</span>}
     {showSecondaryStop&&!paused&&<SendButton disabled={stopping} isStreaming onClick={onStop}/>}

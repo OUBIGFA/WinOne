@@ -1,26 +1,46 @@
 import "./ai-model-menu.css";
-import {CaptureOptionSelect} from "../ui/capture-option-select";
+import {useState} from "react";
+import {Ban,Bot,ChevronDown,Sparkles} from "lucide-react";
 import {useTranslation} from "../i18n";
-import {AIModelIcon} from "./ai-model-icon";
+import {Popover,PopoverTrigger,PopoverContent} from "../components/ui/popover";
 import {modelLabel} from "./ai-model-label";
 import {AIProviderIcon} from "./ai-provider-icon";
 import {AIModelBadge} from "./ai-model-badge";
+import {AIModelMenuContent,type AIModelChoice} from "./ai-model-menu";
 import type {AIProvider,AISelection} from "./ai-configuration";
 
+const inherit="__inherit";
+
 // Feature settings store references only. Disabled historical choices remain
-// visible as a warning, never silently switch to another provider.
+// visible as a warning, never silently switch to another provider. The field
+// opens the shared model menu (AIModelMenuContent), the Chat composer's.
 export function AIModelSelect({providers,value,onChange,disabled=false,label,inheritLabel}:{providers:AIProvider[];value?:AISelection;onChange:(value:AISelection|undefined)=>void;disabled?:boolean;label:string;inheritLabel?:string}) {
  const {t}=useTranslation();
+ const [open,setOpen]=useState(false);
  const provider=providers.find(p=>p.id===value?.provider);
  const invalid=!!value?.provider&&(!provider||!provider.models.includes(value.model));
- const providerItems=[...(inheritLabel?[{value:"__inherit",label:inheritLabel},...(value&&!value.provider?[{value:"",label:t("ai.unconfigured")}]:[])]:[{value:"",label:t("ai.chooseProvider")}]),...providers.map(p=>({value:p.id,label:p.name,icon:<AIProviderIcon icon={p.avatar||p.icon}/>}))];
- if(value?.provider&&!provider)providerItems.push({value:value.provider,label:value.provider});
- const modelItems=(provider?.models??[]).map(model=>({value:model,label:modelLabel(provider!,model),icon:<AIModelIcon model={model} name={provider?.modelNames?.[model]}/>,badge:<AIModelBadge provider={provider!} id={model}/>}));
+ const choices:AIModelChoice[]=inheritLabel?[{value:inherit,label:inheritLabel,icon:<Sparkles size={15}/>},...(value&&!value.provider?[{value:"",label:t("ai.unconfigured"),icon:<Ban size={15}/>}]:[])]:value?[{value:"",label:t("ai.unconfigured"),icon:<Ban size={15}/>}]:[];
+ const choice=value===undefined&&inheritLabel?inherit:value&&!value.provider?"":undefined;
+ const shownChoice=choices.find(item=>item.value===choice);
+ const name=provider&&value?.model?modelLabel(provider,value.model):value?.model??"";
+ const text=shownChoice?shownChoice.label:value?.provider?`${provider?.name??value.provider}${name?" · "+name:""}`:t("chat.chooseModel");
+ const accessible=`${label} · ${t("chat.model")}`;
  return <div className="space-y-2">
-  <div className="settings-field-grid">
-   <CaptureOptionSelect stacked label={t("ai.supplier")} accessibleLabel={`${label} · ${t("ai.supplier")}`} value={value===undefined&&inheritLabel?"__inherit":value?.provider||""} items={providerItems} disabled={disabled} onChange={id=>{const next=providers.find(p=>p.id===id);onChange(next?{provider:id,model:next.models[0]??""}:inheritLabel&&id===""?{provider:"",model:""}:undefined);}}/>
-   <CaptureOptionSelect contentClassName="ai-model-menu" stacked label={t("ai.model")} accessibleLabel={`${label} · ${t("ai.model")}`} value={value?.model||""} placeholder={t(value===undefined&&inheritLabel?"ai.inherit":provider?"ai.noEnabledModels":"ai.chooseProviderFirst")} items={modelItems} disabled={disabled||!provider||!modelItems.length} onChange={model=>onChange({provider:provider!.id,model})}/>
-  </div>
+  <label className="ai-model-field-label">{t("chat.model")}</label>
+  <Popover open={open} onOpenChange={next=>{if(!disabled)setOpen(next);}}>
+   <PopoverTrigger render={<button type="button" className="ai-model-field" disabled={disabled} aria-label={accessible} title={text}/>}>
+    <span className="ai-model-field-value">
+     {shownChoice?shownChoice.icon:provider?<AIProviderIcon icon={provider.avatar||provider.icon}/>:value?.provider?null:<Bot size={15}/>}
+     {provider&&!shownChoice?<><span className="chat-provider-name">{provider.name}</span><span aria-hidden="true">·</span><span className="chat-model-name">{name}</span>{value?.model&&provider.models.includes(value.model)&&<AIModelBadge provider={provider} id={value.model}/>}</>:<span className={value===undefined&&!inheritLabel?"chat-model-name muted":"chat-model-name"}>{text}</span>}
+    </span>
+    <ChevronDown size={14}/>
+   </PopoverTrigger>
+   <PopoverContent align="start" className="ai-model-menu chat-model-menu">
+    <AIModelMenuContent providers={providers} selected={value} choice={choice} choices={choices} open={open} label={accessible}
+     onModel={next=>{setOpen(false);if(next.provider!==value?.provider||next.model!==value?.model||choice!==undefined)onChange(next);}}
+     onChoice={next=>{setOpen(false);if(next===choice)return;onChange(next===inherit?undefined:inheritLabel?{provider:"",model:""}:undefined);}}/>
+   </PopoverContent>
+  </Popover>
   {invalid&&<p role="status" className="muted">{t("ai.selectionUnavailable",{model:value?.model||t("ai.unconfigured")})}</p>}
  </div>;
 }

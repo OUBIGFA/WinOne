@@ -1525,7 +1525,7 @@
         },
         {
           "path": "apps/desktop-mygo/flashchat/chatroom.go",
-          "sha256": "893d5ef421e2667f5ec49a0d951a9031394f69dba9237b2131837a9306865ebe"
+          "sha256": "0bfba21dee09c274b0b83854a0d34704dbe094c959475f13854fc7d78dec9005"
         },
         {
           "path": "apps/desktop-mygo/flashchat/chatroom_test.go",
@@ -1545,7 +1545,7 @@
         },
         {
           "path": "apps/desktop-mygo/flashchat/session.go",
-          "sha256": "7d8c6e427614b55589b8d6f54d7d1c565cfdf9593b24d84532d27730aee6a8d3"
+          "sha256": "33ec9bdb3b6390734030195f1888b8001615a39dff743d80158882da2702393e"
         }
       ]
     },

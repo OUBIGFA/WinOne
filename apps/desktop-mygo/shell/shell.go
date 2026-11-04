@@ -59,6 +59,8 @@ type Shell struct {
 
 	page     string
 	instance core.Page
+	// kept are the pages (core.Keeper) left for another, by page ID.
+	kept map[string]core.Page
 	// arrived pages, recreated on each visit: as the React window
 	// unmounted a page, leaving one ends its drafts and reads.
 	initial bool
@@ -314,12 +316,31 @@ func (s *Shell) Activity() (dirty, busy bool) { return s.env.Activity.State() }
 // final window close or after an approved page transition.
 func (s *Shell) Discarded() {
 	s.env.Activity.Reset()
-	s.closePage()
+	if closer, ok := s.instance.(core.Closer); ok {
+		closer.Close()
+	}
+	s.instance = nil
+	for id, page := range s.kept {
+		if closer, ok := page.(core.Closer); ok {
+			closer.Close()
+		}
+		delete(s.kept, id)
+	}
 }
 
 // closePage ends the current page's instance; the next visit makes a new
-// one, as the React window remounted a page.
+// one, as the React window remounted a page. A Keeper is put aside for
+// the next visit instead.
 func (s *Shell) closePage() {
+	if keeper, ok := s.instance.(core.Keeper); ok {
+		keeper.SetAside()
+		if s.kept == nil {
+			s.kept = map[string]core.Page{}
+		}
+		s.kept[s.page] = s.instance
+		s.instance = nil
+		return
+	}
 	if closer, ok := s.instance.(core.Closer); ok {
 		closer.Close()
 	}
@@ -360,6 +381,21 @@ func (s *Shell) discard() {
 	}
 	if p.kind == pendingChange {
 		// The page stays: its sections revert their drafts in place.
+		s.env.Activity.Discard()
+	}
+	s.env.Activity.Reset()
+	s.finish()
+}
+
+// leaveNow goes where the pending decision leads without waiting for the
+// page's running work and without saving: the page's drafts are dropped,
+// and work the page started ends with it (core.Closer) or goes on in the
+// Host as it would after any other page change.
+func (s *Shell) leaveNow() {
+	if s.pending == nil {
+		return
+	}
+	if s.pending.kind == pendingChange {
 		s.env.Activity.Discard()
 	}
 	s.env.Activity.Reset()
@@ -428,10 +464,20 @@ func (s *Shell) guard(c *ui.Context) {
 	cancelLabel := i18n.T("navigation.keepEditing")
 	confirmLabel := i18n.T(confirm)
 	if busy {
-		cancelLabel, confirmLabel = i18n.T("navigation.stay"), ""
+		// Waiting stays the default; the user may also go at once,
+		// without the result and without saving.
+		leave := map[pendingKind]string{pendingClose: "navigation.closeNow", pendingChange: "navigation.switchNow"}[kind]
+		if leave == "" {
+			leave = "navigation.leaveNow"
+		}
+		cancelLabel, confirmLabel = i18n.T("navigation.stay"), i18n.T(leave)
 	}
 	if kitDialog(c, &open, i18n.T(title), i18n.T(description), s.pending.err, confirmLabel, cancelLabel) {
-		s.discard()
+		if busy {
+			s.leaveNow()
+		} else {
+			s.discard()
+		}
 		return
 	}
 	if !open {

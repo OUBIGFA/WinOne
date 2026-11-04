@@ -1,10 +1,12 @@
 package flashchat
 
 import (
+	"fmt"
 	"strings"
 	"time"
 	"unicode/utf8"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
 
@@ -28,13 +30,9 @@ const (
 
 // View builds the page.
 func (p *page) View(c *ui.Context) {
-	dirty := p.session != nil
-	for _, draft := range p.drafts {
-		dirty = dirty || draft != ""
-	}
-	// Leaving the page leaves the room: a joined room counts as unsaved,
-	// so the shell asks first, as the React frame reported it.
-	p.env.Activity.Report("flash-chat", dirty, p.busy, nil)
+	// The shell keeps the page, with its room and drafts, while the user
+	// visits others (SetAside), so nothing here needs guarding.
+	p.env.Activity.Report("flash-chat", false, false, nil)
 	root := ui.Column(c).Fill().Bind(&p.area)
 	width := p.area.Bounds(c).W
 	root.Children(func() {
@@ -85,7 +83,12 @@ func (p *page) lobby(c *ui.Context) {
 					})
 				}
 				ui.Column(c).FillWidth().Gap(12).Children(func() {
-					textField(c, &p.roomName, tr("roomName"), p.busy)
+					// A room's name is this side's own label for it; joining
+					// needs only its code and password, and the name can be
+					// set in the room.
+					if !p.joining {
+						textField(c, &p.roomName, tr("roomName"), p.busy)
+					}
 					p.nicknameField(c, false)
 				})
 				if !p.joining {
@@ -94,7 +97,7 @@ func (p *page) lobby(c *ui.Context) {
 							p.enter(true)
 						}
 						if kit.Button(c, tr("joinRoom"), nil, false).FillWidth().Justify(ui.Center).Disabled(p.busy).Clicked() {
-							p.joining, p.err = true, ""
+							p.joining, p.err, p.roomName = true, "", ""
 						}
 					})
 				} else {
@@ -162,7 +165,7 @@ func (p *page) workspace(c *ui.Context, width float32) {
 		if !narrow || p.showPeers {
 			p.sidebar(c, narrow)
 		}
-		if !narrow || !p.showPeers {
+		if p.session != nil && (!narrow || !p.showPeers) {
 			p.conversation(c, narrow, width)
 		}
 	})
@@ -316,6 +319,15 @@ func (p *page) conversation(c *ui.Context, narrow bool, width float32) {
 				p.panel = "room"
 			}
 		})
+		if p.unreachable {
+			ui.Column(c).FillWidth().Padding(12, gutter, 0, gutter).Shrink(0).Children(func() {
+				kit.Notice(c, kit.Caution, own("unreachableTitle"), own("unreachableHint"), func() {
+					if kit.GhostButton(c, tr("networkOptions"), icons.Settings2, false).Clicked() {
+						p.panel = "network"
+					}
+				})
+			})
+		}
 		if p.err != "" {
 			ui.Column(c).FillWidth().Padding(12, gutter, 0, gutter).Shrink(0).MaxHeightPercent(25).Children(func() {
 				kit.Notice(c, kit.Failure, "", p.err, func() {
@@ -327,6 +339,7 @@ func (p *page) conversation(c *ui.Context, narrow bool, width float32) {
 		}
 		p.transcript(c, room, groupPeers, gutter)
 		p.offers(c, room, groupPeers, gutter)
+		p.transfers(c, groupPeers, gutter)
 		p.composer(c, room, typing, width, gutter)
 	})
 }
@@ -429,6 +442,103 @@ func (p *page) offers(c *ui.Context, room *flashchat.ChatRoom, peers []flashchat
 			})
 		}
 	})
+}
+
+// Opening and revealing a received file go to the system's shell, off the
+// UI thread; tests replace them.
+var (
+	openPath     = func(path string) { go func() { _ = mygo.Shell.OpenPath(path) }() }
+	revealInFold = func(path string) { go mygo.Shell.ShowItemInFolder(path) }
+)
+
+// transfers lists the files sent and received in the conversation, with
+// their progress, and opens received ones.
+func (p *page) transfers(c *ui.Context, peers []flashchat.Peer, gutter float32) {
+	list := p.session.Transfers(p.selected)
+	if len(list) == 0 {
+		return
+	}
+	t := c.Theme()
+	nameOf := func(id string) string {
+		for _, peer := range peers {
+			if peer.PeerID == id {
+				return flashchat.PeerDisplayName(peer)
+			}
+		}
+		return ""
+	}
+	ui.Scroll(c).FillWidth().Shrink(0).MaxHeightPercent(30).Label(own("filesTitle")).Children(func() {
+		ui.Column(c).FillWidth().Padding(4, gutter).Gap(2).Children(func() {
+			for _, f := range list {
+				f := f
+				ui.Row(c.Key("file-"+f.ID)).FillWidth().Padding(6, 0).Gap(10).Wrap().AlignItems(ui.Center).Children(func() {
+					icon := icons.FileDown
+					if f.Outgoing {
+						icon = icons.FileUp
+					}
+					ui.Icon(c, icon).FontSize(18).TextColor(t.TextMuted).Shrink(0)
+					ui.Column(c).Grow(1).Shrink(1).Basis(160).MinWidth(0).Gap(2).Children(func() {
+						ui.Text(c, f.Name).SingleLine().Ellipsis("…").MinWidth(0).Tooltip(f.Path)
+						who := nameOf(f.PeerID)
+						status := ""
+						switch f.State {
+						case flashchat.TransferSending, flashchat.TransferReceiving:
+							percent := 100
+							if f.Size > 0 {
+								percent = int(f.Moved * 100 / f.Size)
+							}
+							key := "fileReceiving"
+							if f.Outgoing {
+								key = "fileSending"
+							}
+							status = own(key, "percent", percent)
+						case flashchat.TransferDone:
+							status = own(map[bool]string{true: "fileSent", false: "fileReceived"}[f.Outgoing])
+						default:
+							status = own("fileFailed", "error", f.Err)
+						}
+						line := fileSize(f.Size) + " · " + status
+						if who != "" && !f.Outgoing {
+							line = who + " · " + line
+						}
+						caption := kit.Caption(c, line).SingleLine().Ellipsis("…").MinWidth(0).Tooltip(line)
+						if f.State == flashchat.TransferFailed {
+							caption.TextColor(t.Danger)
+						}
+						if f.State == flashchat.TransferSending || f.State == flashchat.TransferReceiving {
+							value := float64(1)
+							if f.Size > 0 {
+								value = float64(f.Moved) / float64(f.Size)
+							}
+							ui.Progress(c, value).FillWidth().Label(f.Name)
+						}
+					})
+					if f.State == flashchat.TransferDone && !f.Outgoing {
+						if kit.Button(c, own("openFile"), nil, false).Clicked() {
+							openPath(f.Path)
+						}
+						if kit.IconButton(c, icons.FolderOpen, own("showInFolder")).Clicked() {
+							revealInFold(f.Path)
+						}
+					}
+				})
+			}
+		})
+	})
+}
+
+// fileSize writes a byte count in the largest unit that keeps it above 1.
+func fileSize(n int64) string {
+	value, units := float64(n), []string{"B", "KB", "MB", "GB"}
+	unit := 0
+	for value >= 1024 && unit < len(units)-1 {
+		value /= 1024
+		unit++
+	}
+	if unit == 0 {
+		return fmt.Sprintf("%d B", n)
+	}
+	return fmt.Sprintf("%.1f %s", value, units[unit])
 }
 
 func (p *page) composer(c *ui.Context, room *flashchat.ChatRoom, typing bool, width, gutter float32) {

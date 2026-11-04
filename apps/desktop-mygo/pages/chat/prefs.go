@@ -39,6 +39,8 @@ const (
 	// minimumSidebar is the narrowest readable sidebar; only its button
 	// hides it.
 	minimumSidebar = 224
+	// maximumSidebar is the widest, React's panel's 400 DIPs.
+	maximumSidebar = 400
 )
 
 func defaultPrefs(directory string) prefs {
@@ -72,7 +74,7 @@ func loadPrefs(env *core.Env) prefs {
 		}
 		return fallback
 	}
-	p.Sidebar = max(minimumSidebar, size(saved.Sidebar, p.Sidebar))
+	p.Sidebar = min(max(minimumSidebar, size(saved.Sidebar, p.Sidebar)), maximumSidebar)
 	p.Right, p.Bottom = size(saved.Right, p.Right), size(saved.Bottom, p.Bottom)
 	if saved.Dock == "bottom" {
 		p.Dock = "bottom"

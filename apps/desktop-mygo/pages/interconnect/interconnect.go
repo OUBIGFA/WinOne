@@ -19,6 +19,7 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
+	"winone/desktopmygo/widgets"
 	"winone/desktopmygo/shell"
 )
 
@@ -327,7 +328,7 @@ func (p *page) generalView(c *ui.Context) {
 		kit.Row(c, tr("port"), "", func() {
 			kit.NumberField(c, &d.Port, 0, 65535, 1, "", tr("port")).Disabled(p.busy)
 		})
-		kit.Stack(c, tr("directory"), tr("directoryHint"), func() {
+		zone := kit.Stack(c, tr("directory"), tr("directoryHint"), func() {
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.TextInput(c, &d.DownloadDir).Grow(1).MinWidth(0).Label(tr("directory")).Disabled(p.busy)
 				if kit.Button(c, tr("choose"), icons.FolderOpen, false).Disabled(p.busy).Clicked() {
@@ -335,6 +336,7 @@ func (p *page) generalView(c *ui.Context) {
 				}
 			})
 		})
+		dropFolder(c, p.env, zone, p.busy, func(path string) { p.draft.DownloadDir = path }, func(err error) { p.err = err.Error() })
 	})
 	p.settings.View(c, p.draftGen, p.busy, p.pickFolder)
 }
@@ -348,6 +350,18 @@ func (p *page) pickFolder(set func(string)) {
 		} else if path != "" {
 			set(path)
 		}
+	})
+}
+
+// dropFolder lets a folder field take a folder dragged from File Explorer,
+// as choosing it would; fail reports a drop it refused.
+func dropFolder(c *ui.Context, env *core.Env, zone ui.Element, disabled bool, set func(string), fail func(error)) {
+	widgets.DropArea(c, env, zone, widgets.DropFolders, false, disabled, func(paths []string, err error) {
+		if err != nil {
+			fail(err)
+			return
+		}
+		set(paths[0])
 	})
 }
 
@@ -426,7 +440,7 @@ func (g *generalPanel) View(c *ui.Context, draft *general, disabled bool, pick f
 	}
 	kit.Group(c, icons.Settings, tr("transfersAndEntries"), "", func() {
 		if draft != nil {
-			kit.Stack(c, tr("defaultDownload"), tr("defaultDownloadHint"), func() {
+			zone := kit.Stack(c, tr("defaultDownload"), tr("defaultDownloadHint"), func() {
 				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 					value := draft.DownloadDir
 					ui.TextInput(c, &value).Grow(1).MinWidth(0).ReadOnly(true).Label(tr("defaultDownload"))
@@ -435,6 +449,7 @@ func (g *generalPanel) View(c *ui.Context, draft *general, disabled bool, pick f
 					}
 				})
 			})
+			dropFolder(c, g.env, zone, g.busy || disabled, func(path string) { draft.DownloadDir = path }, func(err error) { g.err = err.Error() })
 			kit.Toggle(c, &draft.Notify, tr("completionNotice"), "").Disabled(g.busy || disabled)
 			kit.Toggle(c, &draft.Clipboard, tr("clipboardRecognition"), tr("clipboardHint")).Disabled(g.busy || disabled)
 		}

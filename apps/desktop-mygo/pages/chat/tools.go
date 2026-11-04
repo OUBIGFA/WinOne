@@ -65,7 +65,7 @@ func (p *Chat) toolRow(c *ui.Context, e model.Entry) {
 		label += " " + param
 	}
 	ui.Column(c.Key(key)).FillWidth().MinWidth(0).Children(func() {
-		head := ui.ButtonBase(c).FillWidth().Gap(6).AlignItems(ui.Center).Padding(3, 8).Radius(8).Label(label)
+		head := ui.ButtonBase(c).FillWidth().Gap(6).Justify(ui.Start).AlignItems(ui.Center).Padding(3, 8).Radius(8).Label(label)
 		if !file {
 			head.Expanded(open)
 		}

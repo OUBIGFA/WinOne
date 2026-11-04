@@ -31,8 +31,8 @@ it("adds a custom AI instruction and preserves it when switching settings tabs",
   fireEvent.change(screen.getByLabelText("AI 指令"),{target:{value:"根据选中文字写一封简短的邮件回复。"}});
   await user.click(screen.getByRole("tab",{name:"常规"}));await user.click(screen.getByRole("tab",{name:"工具栏"}));
   expect((screen.getByLabelText("功能名称") as HTMLInputElement).value).toBe("邮件回复");
-  await user.click(screen.getByRole("combobox",{name:"邮件回复 · 供应商"}));await user.click(await screen.findByRole("option",{name:"工作服务"}));
-  await user.click(screen.getByRole("combobox",{name:"邮件回复 · 模型名称"}));expect(screen.queryByRole("option",{name:"disabled"})).toBeNull();await user.click(await screen.findByRole("option",{name:"precise"}));
+
+  await user.click(screen.getByRole("button",{name:"邮件回复 · 模型"}));expect(screen.queryByRole("option",{name:"disabled"})).toBeNull();await user.click(await screen.findByRole("option",{name:"precise"}));
   await user.click(screen.getByRole("button",{name:"保存设置"}));await screen.findByText("已保存");
   expect(call).toHaveBeenCalledWith("settings.save",expect.objectContaining({actions:expect.arrayContaining([expect.objectContaining({name:"邮件回复",kind:"ai",selection:{provider:"selected-provider",model:"precise"},prompt:"根据选中文字写一封简短的邮件回复。"})])}));
 });

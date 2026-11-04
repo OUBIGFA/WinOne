@@ -8,5 +8,15 @@
  "flashChat.invalidRtc": "WebRTC 配置无效：{{error}}",
  "flashChat.invalidTracker": "信令服务地址无效：{{url}}。请使用 wss:// 地址，或本机的 ws://127.0.0.1 地址。",
  "flashChat.stopShareFailed": "停止分享文件失败：{{error}}",
- "flashChat.peerError": "与房间成员通信失败：{{error}}"
+ "flashChat.peerError": "与房间成员通信失败：{{error}}",
+ "flashChat.filesTitle": "房间中的文件",
+ "flashChat.fileSending": "发送中 {{percent}}%",
+ "flashChat.fileReceiving": "接收中 {{percent}}%",
+ "flashChat.fileSent": "已发送",
+ "flashChat.fileReceived": "已保存",
+ "flashChat.fileFailed": "未完成：{{error}}",
+ "flashChat.openFile": "打开",
+ "flashChat.showInFolder": "在文件夹中显示",
+ "flashChat.unreachableTitle": "其他网络的成员可能无法加入",
+ "flashChat.unreachableHint": "这台电脑没有拿到可供外网连接的地址，常见原因是代理软件的 TUN/虚拟网卡接管了 UDP。同一局域网的成员仍可加入。要让其他网络的成员加入：在代理中让 WinOne 或 UDP 直连，或在网络设置的 WebRTC 配置中填写 TURN 服务器。"
 }

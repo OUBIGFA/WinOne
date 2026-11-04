@@ -15,3 +15,15 @@
 .chat-model-label{flex:1;min-width:0;overflow-wrap:anywhere}.chat-model-check{display:flex;flex:0 0 16px;width:16px;height:16px;align-items:center;justify-content:center}
 .chat-model-viewport{max-height:350px;overflow-x:hidden!important}
 .chat-model-menu [role=listbox]{max-height:none;overflow:visible}
+
+/* A form's model field, opening the same menu as the Chat composer. */
+.ai-model-field-label{display:block;font-size:13px;font-weight:500}
+.ai-model-field{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-width:0;min-height:32px;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-md,6px);background:var(--background);color:var(--foreground);font:inherit;font-size:14px;text-align:left}
+.ai-model-field:hover:not(:disabled),.ai-model-field[data-popup-open]{background:color-mix(in srgb,var(--foreground) 5%,var(--background))}
+.ai-model-field:disabled{opacity:.6;cursor:not-allowed}
+.ai-model-field>svg{flex:none;color:var(--muted-foreground)}
+.ai-model-field-value{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
+.ai-model-field-value>:is(.chat-provider-name,.chat-model-name){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ai-model-field-value>.chat-provider-name,.ai-model-field-value>[aria-hidden]{color:var(--muted-foreground);flex-shrink:2}
+.ai-model-field-value>.muted{color:var(--muted-foreground)}
+.ai-model-menu .ai-model-choice{padding-left:10px}

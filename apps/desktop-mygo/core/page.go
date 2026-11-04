@@ -30,3 +30,9 @@ const (
 // Closer is a page that releases something when the shell leaves it, as a
 // check the Host runs for it.
 type Closer interface{ Close() }
+
+// Keeper is a page the shell keeps while the user visits other pages, as
+// the flash chat keeps its room: leaving it and coming back shows it as it
+// was. SetAside runs as the user leaves it, to put away what only shows
+// on screen; the shell closes it (Closer) only with the window.
+type Keeper interface{ SetAside() }

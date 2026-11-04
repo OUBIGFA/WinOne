@@ -102,7 +102,7 @@ const pageSource=originalPages
  .replace('async function act(key, id, context) {','window.winOnePluginAction = act;\n  async function act(key, id, context) {');
 const queue=['scrollOnPurpose','closeModal'],reasons=new Map(),selected=new Set(),names=new Set();
 for(const text of [manager,pageSource,kernel])traverse(parse(text,{sourceType:'script'}),{Identifier(p){if((p.isReferencedIdentifier()||p.isBindingIdentifier())&&!p.scope.getBinding(p.node.name))queue.push(p.node.name);}});
-const overrides=new Set(['mode','view','state','params','loadProviders','openProvider','pluginSignIn','renderProviders','show','fit','load','renderPluginDot','renderBuiltins','navSubs','setSetTab','setTab']);
+const overrides=new Set(['status','mode','view','state','params','loadProviders','openProvider','pluginSignIn','renderProviders','show','fit','load','renderPluginDot','renderBuiltins','navSubs','setSetTab','setTab']);
 while(queue.length){
  const name=queue.shift();if(names.has(name)||overrides.has(name))continue;names.add(name);
  const binding=program.scope.getBinding(name);if(!binding)continue;

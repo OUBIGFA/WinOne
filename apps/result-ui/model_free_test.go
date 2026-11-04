@@ -5,6 +5,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"winone/internal/ai"
 )
@@ -47,9 +48,13 @@ func TestFreeModelBadgeFitsNativePicker(t *testing.T) {
 func TestModelPickerSearchesLocalizedFreeMetadataAndKeepsIDs(t *testing.T) {
 	provider := ai.Provider{ID: "service", Name: "Service", Models: []string{"opaque", "freedom"}, ModelNames: map[string]string{"opaque": "Model A"}, ModelFree: map[string]bool{"opaque": true}}
 	panel := &Panel{Language: "zh-CN", Configuration: ai.Configuration{Providers: []ai.Provider{provider}}}
-	rows := panel.modelPickerRows("免费", nil)
-	if len(rows) != 2 || rows[1].model != "opaque" {
-		t.Fatal("free search lost the original route", rows)
+	groups := panel.modelMenuGroups()
+	if len(groups) != 1 || len(groups[0].Models) != 2 {
+		t.Fatal("model groups", groups)
+	}
+	free := groups[0].Models[0]
+	if free.Value != "service\x00opaque" || !strings.Contains(free.Keywords, "免费") || strings.Contains(groups[0].Models[1].Keywords, "免费") {
+		t.Fatal("free search lost the original route", free)
 	}
 	if panel.modelLabel(provider, "freedom") != "freedom" {
 		t.Fatal("non-free name was marked")

@@ -105,6 +105,9 @@ type Chat struct {
 	newThinking                          string
 	newFastMode                          bool
 
+	// settings is the Chat settings dialog's draft.
+	settings settingsDialog
+
 	historyLoading bool
 	historyRequest *struct{}
 

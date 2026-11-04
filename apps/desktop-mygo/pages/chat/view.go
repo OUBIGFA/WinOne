@@ -10,6 +10,7 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
+	"winone/desktopmygo/widgets"
 )
 
 // uiState is what the page's views keep between frames.
@@ -47,12 +48,11 @@ type uiState struct {
 	agents agentDialog
 	// The model picker: open, its search, the providers it folds, and
 	// whether it has shown the chosen model yet.
-	modelsOpen      bool
-	modelSearch     string
-	collapsedModels map[string]bool
-	modelShown      bool
-	composerBox     ui.Handle
-	compact         bool
+	models      widgets.ModelMenuState
+	composerBox ui.Handle
+	// welcomeArea is the new chat's frame, whose height centers it.
+	welcomeArea ui.Handle
+	compact     bool
 	// expanded remembers which work processes and steps are open.
 	expanded map[string]bool
 	// answers are the question card's answers, for the question asked.
@@ -97,8 +97,8 @@ func (u *uiState) close() {}
 func (p *Chat) View(c *ui.Context) {
 	p.ui.services = c.Services()
 	p.takeIntents()
-	p.env.Activity.Report("chat", p.draftDirty || p.ui.filesDirty,
-		p.busy || p.saving || p.opening || p.transferBusy || p.reconnecting || p.tools.busy(), nil)
+	p.env.Activity.Report("chat", p.draftDirty || p.ui.filesDirty || p.settings.dirty(),
+		p.busy || p.saving || p.opening || p.transferBusy || p.reconnecting || p.tools.busy() || p.settings.saving, nil)
 	if p.ui.sidebar {
 		p.pollActivity()
 	}
@@ -107,6 +107,7 @@ func (p *Chat) View(c *ui.Context) {
 		if p.ui.sidebar {
 			ui.Column(c).Width(p.prefs.Sidebar).Shrink(0).MinWidth(0).Background(pal.Sidebar).
 				BorderWidth(0, 1, 0, 0).BorderColor(pal.Hairline).Children(func() { p.sidebarView(c) })
+			p.sidebarHandle(c)
 		}
 		ui.Column(c).Grow(1).Basis(0).MinWidth(0).Children(func() {
 			if p.ui.automations {
@@ -143,9 +144,14 @@ func (p *Chat) mainView(c *ui.Context) {
 			ui.Text(c, place).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted).SingleLine().Ellipsis("…").MinWidth(0).Tooltip(place)
 		})
 		if conversation != nil {
-			p.conversationMenu(c, *conversation, true)
+			p.conversationMenu(c, *conversation, true, false)
 		} else if kit.IconButton(c, icons.FolderOpen, i18n.T("chat.saveLocation")).Clicked() {
 			p.openLocations()
+		}
+		// The side panel (files, resources, review, terminal, browser)
+		// opens from here, as the React header's button did.
+		if !p.ui.details && !p.ui.automations && kit.IconButton(c, icons.PanelRightOpen, i18n.T("chat.showDetails")).Clicked() {
+			p.openTools("home")
 		}
 	})
 	p.feedback(c)
@@ -198,15 +204,59 @@ func (p *Chat) feedback(c *ui.Context) {
 
 // welcome is the new chat: WinOne's mark, the project and the composer.
 func (p *Chat) welcome(c *ui.Context) {
-	ui.Scroll(c).Fill().Children(func() {
-		ui.Column(c).FillWidth().MinHeightPercent(100).Justify(ui.Center).AlignItems(ui.Center).Padding(32, 24).Gap(24).Children(func() {
+	// A scroll view does not stretch its content: the column takes the
+	// frame's height from the last layout, so the mark and the composer
+	// are centered as a whole and scroll when the window is too low.
+	height := p.ui.welcomeArea.Bounds(c).H
+	ui.Scroll(c).Fill().Bind(&p.ui.welcomeArea).Children(func() {
+		ui.Column(c).FillWidth().MinHeight(height).Justify(ui.Center).AlignItems(ui.Center).Padding(32, 24).Gap(24).Children(func() {
 			ui.Image(c, welcomeLogo()).Size(160, 160).Fit(ui.Contain).Label("")
-			ui.Column(c).FillWidth().MaxWidth(readingWidth).Gap(8).Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(readingWidth).AlignSelf(ui.Center).Gap(8).Children(func() {
 				p.projectContext(c, p.newProjectID, func(id string) { p.newProjectID = id })
 				p.composer(c)
 			})
 		})
 	})
+}
+
+// sidebarHandle widens or narrows the conversation list by dragging the
+// edge between it and the conversation, or with the Left and Right keys
+// once focused, down to the narrowest readable list and up to half the
+// window, as React's resizable panel kept it; the width is remembered.
+func (p *Chat) sidebarHandle(c *ui.Context) {
+	t := c.Theme()
+	handle := ui.Box(c).FillHeight().Width(5).Margin(0, 0, 0, -3).Shrink(0).Cursor(ui.CursorResizeEW).Focusable().
+		Role(ui.RoleSplitter).Label(i18n.T("chat.resizeSidebar")).Tooltip(i18n.T("chat.resizeSidebar"))
+	line := ui.Color{}
+	if handle.Hovered() || handle.Pressed() {
+		line = t.Border
+	}
+	focus := handle.FocusVisible()
+	handle.Draw(func(painter *ui.Painter, r ui.Rect) {
+		if line != (ui.Color{}) {
+			painter.Fill(ui.Rect{X: r.X + 2, Y: r.Y, W: 1, H: r.H}, line, 0)
+		}
+		if focus {
+			painter.FocusRing(r, [4]float32{})
+		}
+	})
+	move := func(delta float32) {
+		p.prefs.Sidebar = min(max(p.prefs.Sidebar+delta, minimumSidebar), maximumSidebar)
+	}
+	if dx, _, ok := handle.Dragged(); ok {
+		move(dx)
+	}
+	if _, _, ended := handle.DragEnded(); ended {
+		p.prefs.save()
+	}
+	if handle.Shortcut(0, ui.KeyLeft) {
+		move(-16)
+		p.prefs.save()
+	}
+	if handle.Shortcut(0, ui.KeyRight) {
+		move(16)
+		p.prefs.save()
+	}
 }
 
 // readingWidth is the transcript's and input's widest column.

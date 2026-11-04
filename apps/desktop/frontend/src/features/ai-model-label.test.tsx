@@ -41,5 +41,5 @@ it("retains and clears explicit free metadata when fetching an updated catalog",
 it("uses a separate free badge in feature model selectors",()=>{
  render(<AIModelSelect providers={[provider]} value={{provider:"test",model:"opaque"}} label="Task" onChange={()=>{}}/>);
  expect(screen.getByText("Model A")).toBeTruthy();
- expect(screen.getByText("免费").closest('[data-slot="select-trigger"]')).toBeTruthy();
+ expect(screen.getByText("免费").closest('.ai-model-field')).toBeTruthy();
 });

@@ -35,6 +35,8 @@ type editor struct {
 	avatar  avatarState
 	models  *modelsPanel
 	account *accountPanel
+	// optionsOpen unfolds an account provider's options.
+	optionsOpen bool
 }
 
 func newEditor(p *page, pr *provider, key string) *editor {

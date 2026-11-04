@@ -73,3 +73,20 @@ func TestWinOneExtensionBundleIsEphemeralAndOptionsAreIndependent(t *testing.T) 
 		t.Fatal("integrated account backend was persisted in third-party registry")
 	}
 }
+
+// A verified account backend is not in plugins.json; its cached providers
+// still count, so its signed-in account becomes a provider.
+func TestWinOneCachedProvidersIncludeTheBundle(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("WINONE_AI_PLUGINS_HOME", t.TempDir())
+	winOneBundles.Lock()
+	winOneBundles.entries = nil
+	winOneBundles.Unlock()
+	t.Cleanup(func() { winOneBundles.Lock(); winOneBundles.entries = nil; winOneBundles.Unlock(); UseCached(nil) })
+	WinOneUseBundle(Entry{Spec: "verified-bundled-account"})
+	UseCached([]Provider{{ID: "bundled", Spec: "verified-bundled-account"}})
+	cached := Cached()
+	if len(cached) != 1 || cached[0].ID != "bundled" {
+		t.Fatalf("the bundle's providers are left out: %#v", cached)
+	}
+}

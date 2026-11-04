@@ -11,6 +11,7 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
+	"winone/desktopmygo/widgets"
 )
 
 type dialogKind int
@@ -80,6 +81,18 @@ func (p *Chat) pickFolder(use func(string)) {
 				use(path)
 			}
 		})
+}
+
+// dropFolder lets a folder field take a folder dragged from File Explorer,
+// as choosing it would.
+func (p *Chat) dropFolder(c *ui.Context, zone ui.Element, disabled bool, use func(string)) {
+	widgets.DropArea(c, p.env, zone, widgets.DropFolders, false, disabled, func(paths []string, err error) {
+		if err != nil {
+			p.err = err.Error()
+			return
+		}
+		use(paths[0])
+	})
 }
 
 // dialogs draws the page's open dialog.
@@ -204,17 +217,19 @@ func (p *Chat) projectFields(c *ui.Context, d *dialogState) {
 	if d.create {
 		label = i18n.T("chat.projectParent")
 	}
-	kit.Stack(c, label, "", func() {
+	useFolder := func(path string) {
+		d.folder = path
+		if !d.create {
+			d.name = lastPathPart(path)
+		}
+	}
+	zone := kit.Stack(c, label, "", func() {
 		choose := kit.PathField(c, d.folder, i18n.T("chat.chooseLocation"), i18n.T("chat.chooseLocation"), p.busy)
 		if choose.Clicked() {
-			p.pickFolder(func(path string) {
-				d.folder = path
-				if !d.create {
-					d.name = lastPathPart(path)
-				}
-			})
+			p.pickFolder(useFolder)
 		}
 	})
+	p.dropFolder(c, zone, p.busy, useFolder)
 	if d.folder != "" {
 		destination := d.folder
 		if d.create {
@@ -249,18 +264,20 @@ func lastPathPart(path string) string {
 // only) and the save folder.
 func (p *Chat) locationFields(c *ui.Context, d *dialogState) {
 	newChat := p.conversation() == nil && p.newProjectID == ""
-	kit.Stack(c, i18n.T("chat.sourcePath"), "", func() {
+	working := kit.Stack(c, i18n.T("chat.sourcePath"), "", func() {
 		choose := kit.PathField(c, d.working, i18n.T("chat.defaultLocation"), i18n.T("chat.chooseLocation"), p.busy || !newChat)
 		if choose.Clicked() {
 			p.pickFolder(func(path string) { d.working = path })
 		}
 	})
-	kit.Stack(c, i18n.T("chat.saveLocation"), i18n.T("chat.storageHint"), func() {
+	p.dropFolder(c, working, p.busy || !newChat, func(path string) { d.working = path })
+	saved := kit.Stack(c, i18n.T("chat.saveLocation"), i18n.T("chat.storageHint"), func() {
 		choose := kit.PathField(c, d.saved, i18n.T("chat.defaultLocation"), i18n.T("chat.chooseLocation"), p.busy)
 		if choose.Clicked() {
 			p.pickFolder(func(path string) { d.saved = path })
 		}
 	})
+	p.dropFolder(c, saved, p.busy, func(path string) { d.saved = path })
 }
 
 // moveDialog moves a conversation to another project.
@@ -280,7 +297,7 @@ func (p *Chat) moveDialog(c *ui.Context) {
 			ui.Column(c).FillWidth().Gap(2).Children(func() {
 				for _, pr := range options {
 					pr := pr
-					b := ui.ButtonBase(c.Key("move-"+pr.ID)).FillWidth().Padding(8, 10).Gap(10).Radius(t.Radius).AlignItems(ui.Center).Label(pr.Name).Disabled(p.busy)
+					b := ui.ButtonBase(c.Key("move-"+pr.ID)).FillWidth().Padding(8, 10).Gap(10).Radius(t.Radius).Justify(ui.Start).AlignItems(ui.Center).Label(pr.Name).Disabled(p.busy)
 					chosen := *p.ui.moveTo == pr.ID
 					if chosen {
 						b.Background(pal.Selected)

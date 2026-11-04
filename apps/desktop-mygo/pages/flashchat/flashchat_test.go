@@ -13,11 +13,19 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"winone/desktopmygo/core"
 	"winone/desktopmygo/flashchat"
+	"winone/desktopmygo/flashchat/trystero"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/testhost"
 )
+
+func init() {
+	probeReach = func(*trystero.RTCConfig, time.Duration) (trystero.Reach, error) {
+		return trystero.Reach{Public: true}, nil
+	}
+}
 
 // fakeHost answers the flash chat's Host calls: the nickname, file
 // handles and the transfer tasks it starts.
@@ -29,6 +37,8 @@ type fakeHost struct {
 	stopped  []string
 	started  []map[string]any
 	failGet  bool
+	// downloads is the interconnect download folder files are saved in.
+	downloads string
 }
 
 func (f *fakeHost) handle(method string, params json.RawMessage) (any, error) {
@@ -45,6 +55,8 @@ func (f *fakeHost) handle(method string, params json.RawMessage) (any, error) {
 	case "interconnect.chat.preferences.save":
 		f.nickname = args["nickname"].(string)
 		return map[string]string{"nickname": f.nickname}, nil
+	case "interconnect.general.get":
+		return map[string]any{"downloadDir": f.downloads}, nil
 	case "interconnect.transfer_files":
 		var files []map[string]any
 		for _, p := range args["paths"].([]any) {
@@ -246,8 +258,11 @@ func TestTwoPagesTalkShareAndLeave(t *testing.T) {
 	a.p.roomName = "周会"
 	a.click(t, tr("createRoom"))
 	a.until(t, "the room", func() bool { return a.p.session != nil })
-	if dirty, _ := a.h.Env.Activity.State(); !dirty {
-		t.Fatal("a joined room does not ask before leaving the page")
+	if dirty, busy := a.h.Env.Activity.State(); dirty || busy {
+		t.Fatal("the shell keeps the room across pages, so leaving the page does not ask")
+	}
+	if _, ok := any(a.p).(core.Keeper); !ok {
+		t.Fatal("the page is kept across pages")
 	}
 	if a.host.nickname != "Ada" || !a.tt.HasText("周会") || !a.tt.HasText(tr("chatSoloHint")) {
 		t.Fatalf("workspace %q", a.tt.Texts())
@@ -298,34 +313,33 @@ func TestTwoPagesTalkShareAndLeave(t *testing.T) {
 	a.until(t, "the private conversation", func() bool { return a.tt.HasText("只给你") })
 	shot(t, a, "zh-1000-light-private")
 
-	// a offers a file in the group; b browses it through its Host.
+	// a sends a file to the group straight over the room; b saves it in
+	// its interconnect download folder.
 	a.click(t, tr("groupRoom"))
-	a.h.Picked[tr("shareInChat")] = []string{`C:\interop\report.pdf`}
+	source := filepath.Join(t.TempDir(), "report.pdf")
+	if err := os.WriteFile(source, []byte("%PDF-1.7 report"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	b.host.mu.Lock()
+	b.host.downloads = t.TempDir()
+	b.host.mu.Unlock()
+	a.h.Picked[tr("shareInChat")] = []string{source}
 	a.click(t, tr("shareInChat"))
-	a.until(t, "a's offer", func() bool { return a.tt.HasText(tr("stopChatShare")) })
-	if s := a.host.starts(); len(s) != 1 || s[0]["mode"] != "share_server" {
-		t.Fatalf("starts %v", s)
+	a.until(t, "a's file", func() bool { return a.tt.HasText(own("fileSent")) })
+	b.until(t, "b's file", func() bool { return b.tt.HasText(own("openFile")) })
+	if got, err := os.ReadFile(filepath.Join(b.host.downloads, "report.pdf")); err != nil || string(got) != "%PDF-1.7 report" {
+		t.Fatalf("saved %q %v", got, err)
 	}
-	b.until(t, "the offer", func() bool { return b.tt.HasText(tr("browseShare")) })
-	b.click(t, tr("browseShare"))
-	b.until(t, "the share page", func() bool { return b.p.browsing })
-	if s := b.host.starts(); len(s) != 1 || s[0]["mode"] != "share_client" || s[0]["code"] != "tc-task-1" || s[0]["listen"] != "127.0.0.1:0" {
-		t.Fatalf("receive %v", s)
+	if s := a.host.starts(); len(s) != 0 {
+		t.Fatalf("a file needs no live share: %v", s)
 	}
-	b.p.closeBrowse()
+	shot(t, b, "zh-1000-light-file")
 
-	// a leaves: its share stops, and b waits again.
+	// a leaves, and b waits again.
 	a.p.leave()
 	a.until(t, "a's lobby", func() bool { return a.p.session == nil && !a.p.busy })
-	if stopped := a.host.stoppedIDs(); len(stopped) != 1 || stopped[0] != "task-1" {
-		t.Fatalf("a stopped %v", stopped)
-	}
 	b.until(t, "a to go", func() bool { return peersOf(b.p) == 0 })
-	// Closing the page stops what it was receiving.
 	b.p.Close()
-	if stopped := b.host.stoppedIDs(); len(stopped) != 1 {
-		t.Fatalf("b stopped %v", stopped)
-	}
 }
 
 func TestEnterSendsAndShiftEnterBreaksTheLine(t *testing.T) {
@@ -416,4 +430,41 @@ func TestShots(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestJoiningAsksOnlyForTheCodeAndPassword(t *testing.T) {
+	i18n.SetLocale(i18n.Chinese)
+	a := newFixture(t, flashchat.NewMemoryNetwork(), "peer-a", "Ada", 1000, 760, false)
+	if !a.tt.HasText(tr("roomName")) {
+		t.Fatalf("creating a room offers to name it: %q", a.tt.Texts())
+	}
+	a.click(t, tr("joinRoom"))
+	if a.tt.HasText(tr("roomName")) || !a.tt.HasText(tr("roomCode")) || !a.tt.HasText(tr("roomPassword")) {
+		t.Fatalf("joining asks for the code and password only: %q", a.tt.Texts())
+	}
+}
+
+// Leaving from the room's own button returns to the lobby; the room's
+// views drawn after the button in that frame must not lose the session.
+func TestLeaveButtonReturnsToTheLobby(t *testing.T) {
+	i18n.SetLocale(i18n.Chinese)
+	a := newFixture(t, flashchat.NewMemoryNetwork(), "peer-a", "Ada", 1000, 760, false)
+	a.click(t, tr("createRoom"))
+	a.until(t, "the room", func() bool { return a.p.session != nil })
+	a.click(t, tr("leaveRoom"))
+	a.until(t, "the lobby", func() bool { return a.p.session == nil && !a.p.busy })
+	if !a.tt.HasText(tr("createRoom")) {
+		t.Fatalf("lobby %q", a.tt.Texts())
+	}
+}
+
+// A computer no other network can reach says so in the room.
+func TestUnreachableComputerIsReported(t *testing.T) {
+	i18n.SetLocale(i18n.Chinese)
+	saved := probeReach
+	probeReach = func(*trystero.RTCConfig, time.Duration) (trystero.Reach, error) { return trystero.Reach{}, nil }
+	t.Cleanup(func() { probeReach = saved })
+	a := newFixture(t, flashchat.NewMemoryNetwork(), "peer-a", "Ada", 1000, 760, false)
+	a.click(t, tr("createRoom"))
+	a.until(t, "the notice", func() bool { return a.tt.HasText(own("unreachableTitle")) })
 }

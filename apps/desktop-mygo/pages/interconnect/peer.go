@@ -14,6 +14,7 @@ import (
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/web"
+	"winone/desktopmygo/widgets"
 )
 
 // React source: features/interconnect-peer.tsx and CodeTransferStatus in
@@ -632,7 +633,17 @@ func (t *peerTask) manage(c *ui.Context, id string, s taskState, published bool,
 				})
 			}
 			if s.Ready && published {
-				ui.Row(c).Gap(8).Wrap().Children(func() {
+				// Files and folders dragged here join the share, as chosen.
+				add := ui.Row(c).FillWidth().Gap(8).Wrap()
+				widgets.DropArea(c, t.env, add, widgets.DropAny, true, busy || s.Updating, func(paths []string, err error) {
+					action(func() error {
+						if err != nil {
+							return err
+						}
+						return t.env.Host.CallCompletingInto("interconnect.share_add", map[string]any{"id": id, "paths": paths}, nil)
+					}, nil)
+				})
+				add.Children(func() {
 					if kit.Button(c, tr("files"), icons.FilePlus, false).Disabled(busy || s.Updating).Clicked() {
 						action(func() error {
 							paths, err := t.env.Dialogs.PickFiles(tr("files"), core.Filter{})
@@ -667,7 +678,17 @@ func (t *peerTask) saveDialog(c *ui.Context, id string, busy bool, action func(f
 		Title: tr("save"), Cancel: i18n.T("common.close"), Confirm: tr("save"), Busy: busy, ConfirmDisabled: save.path == "",
 		Body: func() {
 			kit.Label(c, tr("savePath"))
-			ui.TextInput(c, &save.path).FillWidth().Label(tr("savePath")).Disabled(busy)
+			field := ui.Column(c).FillWidth().Gap(8)
+			dropFolder(c, t.env, field, busy, func(folder string) {
+				name := save.path
+				if i := strings.LastIndexAny(name, `\/`); i >= 0 {
+					name = name[i+1:]
+				}
+				save.path = folder + `\` + name
+			}, func(err error) { action(func() error { return err }, nil) })
+			field.Children(func() {
+				ui.TextInput(c, &save.path).FillWidth().Label(tr("savePath")).Disabled(busy)
+			})
 			ui.Row(c).Children(func() {
 				if kit.Button(c, tr("choose"), icons.FolderOpen, false).Disabled(busy).Clicked() {
 					folder := ""

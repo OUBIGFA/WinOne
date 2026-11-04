@@ -66,24 +66,24 @@ type AIModelSelectOptions struct {
 	// InheritLabel offers following the default service under this name;
 	// empty offers "选择供应商" instead.
 	InheritLabel string
-	Disabled     bool
+	// FieldLabel names the field; empty is "模型".
+	FieldLabel string
+	Disabled   bool
 }
 
 // aiPickInherit is the provider picker's value for following the default.
 const aiPickInherit = "__inherit"
 
-// AIModelSelect chooses the provider and model of one task, as React's
-// AIModelSelect did (features/ai-model-select.tsx): settings store a
-// reference only, and a choice that is no longer enabled stays shown with
-// a warning instead of silently switching to another provider.
+// AIModelSelect chooses the provider and model of one task in a form,
+// with the shared model menu (ModelField): settings store a reference only,
+// and a choice that is no longer enabled stays shown with a warning instead
+// of silently switching to another provider.
 //
-// The provider list offers following the default service (InheritLabel),
-// "未配置" while the value names no provider, every provider with its
-// mark, and a removed provider the value still names. Choosing a provider
-// selects its first enabled model; choosing to follow the default returns
-// nil; choosing "未配置" returns an empty provider. The model list offers
-// the provider's enabled models with their marks, labels told apart and
-// badges.
+// The menu offers following the default service (InheritLabel), "未配置"
+// while the value names no provider (or, without InheritLabel, to clear
+// the choice), then every provider's enabled models. Following the
+// default returns nil; "未配置" returns an empty provider with
+// InheritLabel and nil without.
 //
 // It returns the new selection and whether the user changed it.
 func AIModelSelect(c *ui.Context, o AIModelSelectOptions) (*AISelection, bool) {
@@ -94,81 +94,51 @@ func AIModelSelect(c *ui.Context, o AIModelSelectOptions) (*AISelection, bool) {
 	}
 	invalid := value != nil && value.Provider != "" && (provider == nil || !slices.Contains(provider.Models, value.Model))
 
-	var providerItems []aiPickItem
-	if o.InheritLabel != "" {
-		providerItems = append(providerItems, aiPickItem{value: aiPickInherit, label: o.InheritLabel})
+	var choices []ModelChoice
+	switch {
+	case o.InheritLabel != "":
+		choices = append(choices, ModelChoice{Value: aiPickInherit, Label: o.InheritLabel, Icon: icons.Sparkles})
 		if value != nil && value.Provider == "" {
-			providerItems = append(providerItems, aiPickItem{value: "", label: i18n.T("ai.unconfigured")})
+			choices = append(choices, ModelChoice{Value: "", Label: i18n.T("ai.unconfigured"), Icon: icons.Ban})
 		}
-	} else {
-		providerItems = append(providerItems, aiPickItem{value: "", label: i18n.T("ai.chooseProvider")})
-	}
-	for i := range o.Providers {
-		p := &o.Providers[i]
-		mark := p.Avatar
-		if mark == "" {
-			mark = p.Icon
-		}
-		providerItems = append(providerItems, aiPickItem{value: p.ID, label: p.Name, icon: func(c *ui.Context) {
-			ProviderIcon(c, o.Env, mark, aiPickIconSize)
-		}})
-	}
-	if value != nil && value.Provider != "" && provider == nil {
-		providerItems = append(providerItems, aiPickItem{value: value.Provider, label: value.Provider})
-	}
-	var modelItems []aiPickItem
-	if provider != nil {
-		for _, model := range provider.Models {
-			name := provider.ModelNames[model]
-			modelItems = append(modelItems, aiPickItem{value: model, label: ModelLabel(provider, model),
-				icon:  func(c *ui.Context) { ModelIcon(c, o.Env, model, name, aiPickIconSize) },
-				badge: aiPickBadges(provider, model)})
-		}
-	}
-
-	providerValue, modelValue := "", ""
-	switch {
-	case value == nil && o.InheritLabel != "":
-		providerValue = aiPickInherit
 	case value != nil:
-		providerValue, modelValue = value.Provider, value.Model
+		// Choosing "未配置" clears the selection, as the provider list's
+		// first entry did.
+		choices = append(choices, ModelChoice{Value: "", Label: i18n.T("ai.unconfigured"), Icon: icons.Ban})
 	}
-	placeholder := "ai.chooseProviderFirst"
+	selected := ""
 	switch {
 	case value == nil && o.InheritLabel != "":
-		placeholder = "ai.inherit"
-	case provider != nil:
-		placeholder = "ai.noEnabledModels"
+		selected = aiPickInherit
+	case value != nil && value.Provider != "":
+		selected = SelectionValue(*value)
 	}
 
 	next, changed := value, false
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
-		ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().AlignItems(ui.Start).Children(func() {
-			aiPickColumn(c, i18n.T("ai.supplier"), func() {
-				if aiPickSelect(c, &providerValue, providerItems, "", o.Label+" · "+i18n.T("ai.supplier"), o.Disabled) {
-					changed = true
-					switch chosen := aiPickFind(o.Providers, providerValue); {
-					case chosen != nil:
-						model := ""
-						if len(chosen.Models) > 0 {
-							model = chosen.Models[0]
-						}
-						next = &AISelection{Provider: chosen.ID, Model: model}
-					case o.InheritLabel != "" && providerValue == "":
-						next = &AISelection{}
-					default:
-						next = nil
-					}
-				}
+		field := o.FieldLabel
+		if field == "" {
+			field = i18n.T("chat.model")
+		}
+		ui.Field(c, field, func() {
+			chosen, picked := ModelField(c, ModelFieldOptions{
+				ModelMenuOptions: ModelMenuOptions{Env: o.Env, Choices: choices, Groups: ProviderGroups(o.Providers), Selected: selected,
+					Label: o.Label + " · " + i18n.T("chat.model"), Empty: i18n.T("chat.modelUnavailable")},
+				Placeholder: i18n.T("chat.chooseModel"), Disabled: o.Disabled,
 			})
-			aiPickColumn(c, i18n.T("ai.model"), func() {
-				disabled := o.Disabled || provider == nil || len(modelItems) == 0
-				if aiPickSelect(c, &modelValue, modelItems, i18n.T(placeholder), o.Label+" · "+i18n.T("ai.model"), disabled) && provider != nil {
-					changed = true
-					next = &AISelection{Provider: provider.ID, Model: modelValue}
-				}
-			})
-		})
+			if !picked || chosen == selected {
+				return
+			}
+			changed = true
+			switch s, ok := ParseSelectionValue(chosen); {
+			case ok:
+				next = &s
+			case chosen == "" && o.InheritLabel != "":
+				next = &AISelection{}
+			default:
+				next = nil
+			}
+		}).FillWidth()
 		if invalid {
 			model := value.Model
 			if model == "" {
