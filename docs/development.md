@@ -11,11 +11,11 @@
 
 ## Chat 设置原生化、全局模型菜单、插件移除提示（2026-11-04）
 
-- **全局模型菜单**：结果窗（快捷助手、划词、OCR、翻译）此前仍用 `apps/result-ui/model_picker.go` 里自己的一套菜单，样式与 Chat 不同。菜单本体移到根模块共享包 `internal/nativeui/modelmenu`（Chat 输入框的样式，图标随包内嵌），设置窗口的 `widgets.ModelMenu` 与结果窗都调用它。结果窗原有的“使用任务默认”改为列表顶部的选项；搜索框 ↓/↑ 移动高亮、回车确认、多关键词搜索与“免费”可搜索并入共享菜单，所有模型菜单都可用。打开菜单时展开当前模型所在分组（Chat 规则），结果窗测试随之调整。根模块因此依赖 MyGo v0.7.4（已是最新），`go` 版本随之为 1.27.3。
+- **全局模型菜单**：结果窗（快捷助手、划词、OCR、翻译）此前仍用 `apps/result-ui/model_picker.go` 里自己的一套菜单，样式与 Chat 不同。菜单本体移到独立小模块 `modules/nativeui`（包 `modelmenu`，Go 1.27.3，与 MyGo 一致；根模块仍用固定的 Go 1.26.2，不引入 MyGo）（Chat 输入框的样式，图标随包内嵌），设置窗口的 `widgets.ModelMenu` 与结果窗都调用它。结果窗原有的“使用任务默认”改为列表顶部的选项；搜索框 ↓/↑ 移动高亮、回车确认、多关键词搜索与“免费”可搜索并入共享菜单，所有模型菜单都可用。打开菜单时展开当前模型所在分组（Chat 规则），结果窗测试随之调整。MyGo 仍为 v0.7.4（已是最新）。两份 MyGo 声明校验脚本把 `winone/modules/nativeui` 视为自家模块。
 - **Chat 设置**：原为铺满 Chat 页的 React WebView（网页自绘遮罩与弹窗，底部居中的回顶/回底按钮），改为原生 `kit.Dialog`（`pages/chat/settings.go`），在 Chat 页上方弹出。常规、资源、MCP 三个 Tab 固定在标题下，内容按设置页的分组面板、开关行与选择框排列；子代理选项单列一组。功能逐项保留：工作目录（选择与拖放）、标题模型、会话默认、工具预设、子代理、技能/插件目录（拖放多个）、MCP 服务（命令或 URL、调用方式、说明、参数、环境变量/请求头/单工具调用方式 JSON 校验、工作目录、超时）与自动化连接器（单独保存）。关闭后保留草稿直到保存或重置；未保存设置计入页面的未保存保护。`kit.Dialog` 新增固定区 `Header` 与按钮行状态 `Note`。
 - **Chat 侧栏与新对话**：项目行按钮未设左对齐，项目名居中，已改回左对齐（会话行、移动对话、工具步骤标题同样补齐）。新对话页的 Logo 与输入框原用滚动区内 `MinHeightPercent(100)`，滚动区不拉伸内容导致整体偏上；改为按上一帧滚动区高度设最小高度（与闪聊大厅相同），整体垂直居中。
 - **插件移除提示**：Magpie 插件页的 `status()` 提示在 WebView 内固定在页面底部并撑满宽度，WebView 按内容高度嵌入，提示落在可视区外且样式不统一。WinOne 宿主脚本改写 `status()`，把提示发给原生页面，用统一的 Toast 显示（`winone-plugin-status`）。
-- **验证**：desktop-mygo 全部 `go test` 通过（新增 `TestSettingsDialogIsNativeAndSavesTheDraft`、`TestPluginPageStatusUsesTheNativeToast`）；result-ui 全部通过；根模块 `internal`、`apps/host`、`modules` 编译通过；插件页准备脚本在 Magpie 22f5cf6 上生成成功，`status` 转发用 node 模拟验证。截图检查了 Chat 设置常规/MCP 页、新对话页与 320–900 宽结果窗模型菜单。
+- **验证**：desktop-mygo 全部 `go test` 通过（新增 `TestSettingsDialogIsNativeAndSavesTheDraft`、`TestPluginPageStatusUsesTheNativeToast`）；result-ui 全部通过；插件页准备脚本在 Magpie 22f5cf6 上生成成功，`status` 转发用 node 模拟验证。截图检查了 Chat 设置常规/MCP 页、新对话页与 320–900 宽结果窗模型菜单。完整构建与打包核验通过（首轮 `TestHostUninstallPreparation` 因一个当时存在、无权读取映像的 WinOne 进程失败，单独重跑核验通过）；隔离安装矩阵（回滚、修复、覆盖、卸载恢复）与安装器/卸载器/zip/构建目录 Defender 扫描通过。固定安装器 `dist/release/WinOne-setup.exe` 已更新，SHA-256 `ea4d6cbabb06d6d7e5a4e454739462e197e45b4064c5190f80f7f6fba51dc8d7`，旧包在 `_temp/installer-20261104b/prior-release/`。
 
 ## 模型菜单统一、闪聊、账号供应商与 Chat 修复（2026-11-04）
 

@@ -7,6 +7,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	golang.org/x/sys v0.48.0
 	winone v0.0.0-00010101000000-000000000000
+	winone/modules/nativeui v0.0.0
 )
 
 require (
@@ -23,3 +24,5 @@ replace winone => ../..
 replace winone/modules/wintray => ../../modules/wintray
 
 replace fyne.io/systray => ../../third_party/systray
+
+replace winone/modules/nativeui => ../../modules/nativeui

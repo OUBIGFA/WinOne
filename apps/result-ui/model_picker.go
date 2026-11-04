@@ -9,7 +9,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"winone/internal/ai"
-	"winone/internal/nativeui/modelmenu"
+	"winone/modules/nativeui/modelmenu"
 )
 
 func (p *Panel) modelLabel(provider ai.Provider, id string) string {

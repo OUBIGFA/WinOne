@@ -9,6 +9,7 @@ require (
 	github.com/pion/webrtc/v4 v4.2.26
 	golang.org/x/sys v0.48.0
 	winone v0.0.0-00010101000000-000000000000
+	winone/modules/nativeui v0.0.0
 	winone/resultui v0.0.0-00010101000000-000000000000
 )
 
@@ -47,3 +48,5 @@ replace winone/modules/wintray => ../../modules/wintray
 replace fyne.io/systray => ../../third_party/systray
 
 replace winone/resultui => ../result-ui
+
+replace winone/modules/nativeui => ../../modules/nativeui

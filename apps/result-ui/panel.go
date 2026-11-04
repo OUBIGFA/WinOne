@@ -12,7 +12,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"winone/internal/ai"
-	"winone/internal/nativeui/modelmenu"
+	"winone/modules/nativeui/modelmenu"
 	"winone/internal/resultwindow"
 )
 

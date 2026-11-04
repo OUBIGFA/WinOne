@@ -31,7 +31,7 @@ if($SourceOnly){
   foreach($module in $modules){
    if(-not $module){continue}
    $parts=$module -split '\|'
-   if($parts[0] -notin @('winone','winone/resultui') -and -not $records.ContainsKey('go|'+$module)){throw "Missing result source dependency notice: $module"}
+   if($parts[0] -notin @('winone','winone/resultui','winone/modules/nativeui') -and -not $records.ContainsKey('go|'+$module)){throw "Missing result source dependency notice: $module"}
   }
  }finally{Pop-Location}
  Write-Output "Result UI source dependency notices verified: $($catalog.components.Count) records"
@@ -45,7 +45,7 @@ $version=($info[0] -split '\s+')[-1]
 if(-not $records.ContainsKey('toolchain|Go|'+$version)){throw 'Result UI toolchain notice mismatch'}
 foreach($line in $info){
  $parts=$line.Trim() -split '\s+'
- if($parts[0] -eq 'dep' -and $parts[1] -ne 'winone' -and -not $records.ContainsKey('go|'+$parts[1]+'|'+$parts[2])){throw "Missing result dependency notice: $line"}
+ if($parts[0] -eq 'dep' -and $parts[1] -notin @('winone','winone/modules/nativeui') -and -not $records.ContainsKey('go|'+$parts[1]+'|'+$parts[2])){throw "Missing result dependency notice: $line"}
 }
 if(-not $BundleDirectory){
  Write-Output "Result UI dependency notices verified: $($catalog.components.Count) records"

@@ -25,7 +25,7 @@ $toolchain=($info[0] -split '\s+')[-1]
 if(-not $records.ContainsKey('toolchain|Go|'+$toolchain)){throw "Missing toolchain notice: $toolchain"}
 foreach($line in $info){
     $parts=$line.Trim() -split '\s+'
-    if($parts[0] -eq 'dep' -and $parts[1] -notin @('winone','winone/resultui') -and -not $records.ContainsKey('go|'+$parts[1]+'|'+$parts[2])){throw "Missing MyGo window dependency notice: $line"}
+    if($parts[0] -eq 'dep' -and $parts[1] -notin @('winone','winone/resultui','winone/modules/nativeui') -and -not $records.ContainsKey('go|'+$parts[1]+'|'+$parts[2])){throw "Missing MyGo window dependency notice: $line"}
 }
 # The icons come from the locked lucide-react package; its license must be
 # the one recorded.

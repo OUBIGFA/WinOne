@@ -5,7 +5,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"winone/internal/nativeui/modelmenu"
+	"winone/modules/nativeui/modelmenu"
 
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
@@ -14,7 +14,7 @@ import (
 )
 
 // ModelMenu is the one model list every model picker of WinOne opens,
-// the Chat composer's, drawn by winone/internal/nativeui/modelmenu which
+// the Chat composer's, drawn by winone/modules/nativeui/modelmenu which
 // the result windows share too. Change it there and every picker follows;
 // this file only turns the window's providers into its data.
 
