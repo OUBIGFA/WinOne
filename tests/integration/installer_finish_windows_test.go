@@ -86,7 +86,7 @@ func TestNSISFinishPageLaunchChoice(t *testing.T) {
 			if err := os.Mkdir(installation, 0700); err != nil {
 				t.Fatal(err)
 			}
-			for source, target := range map[string]string{host: filepath.Join(dir, "WinOne.Maintenance.exe"), frontend: filepath.Join(installation, "WinOne.exe")} {
+			for source, target := range map[string]string{installerMaintenanceSource(t): filepath.Join(dir, "WinOne.Maintenance.exe"), frontend: filepath.Join(installation, "WinOne.exe")} {
 				data, err := os.ReadFile(source)
 				if err != nil {
 					t.Fatal(err)

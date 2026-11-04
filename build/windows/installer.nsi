@@ -261,7 +261,10 @@ targetAccepted:
   IfErrors failed
   InitPluginsDir
   SetOutPath "$PLUGINSDIR"
-  File /oname=WinOne.Maintenance.exe "${WINONE_PAYLOAD_DIR}\WinOne.Host.exe"
+  ; The dedicated helper has no Host runtime/login/account entry points.
+  ClearErrors
+  File /oname=WinOne.Maintenance.exe "${WINONE_MAINTENANCE_HELPER}"
+  IfErrors failed
   StrCpy $WinOneGuardCommand '"$PLUGINSDIR\WinOne.Maintenance.exe" --guard-installation "$INSTDIR" --data-dir "${WINONE_PROFILE_DIR}"'
   Call WinOneStartGuard
   IfErrors failed
@@ -329,7 +332,9 @@ completeUninstall:
   ${EndIf}
   InitPluginsDir
   SetOutPath "$PLUGINSDIR"
-  File /oname=WinOne.Maintenance.exe "${WINONE_PAYLOAD_DIR}\WinOne.Host.exe"
+  ClearErrors
+  File /oname=WinOne.Maintenance.exe "${WINONE_MAINTENANCE_HELPER}"
+  IfErrors uninstallRecoveryFailed
   StrCpy $WinOneGuardCommand '"$PLUGINSDIR\WinOne.Maintenance.exe" --guard-installation "$INSTDIR" --data-dir "${WINONE_PROFILE_DIR}"'
   Call WinOneStartGuard
   IfErrors uninstallRecoveryFailed
@@ -419,8 +424,11 @@ Section "Uninstall"
     ${GetOptions} $0 "/FAILPOINT=" $WinOneFailurePoint
   !endif
   InitPluginsDir
+  SetOutPath "$PLUGINSDIR"
   ClearErrors
-  CopyFiles /SILENT "$INSTDIR\WinOne.Host.exe" "$PLUGINSDIR\WinOne.Maintenance.exe"
+  ; Embed the same helper in uninstall as setup; never execute a renamed copy
+  ; of the installed Host, which may be missing, damaged or an older build.
+  File /oname=WinOne.Maintenance.exe "${WINONE_MAINTENANCE_HELPER}"
   IfErrors failed
   StrCpy $WinOneGuardCommand '"$PLUGINSDIR\WinOne.Maintenance.exe" --guard-installation "$INSTDIR" --data-dir "${WINONE_PROFILE_DIR}" --prepare-uninstall'
   Call un.WinOneStartGuard

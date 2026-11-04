@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory=$true)][string]$NsisExe,
     [string]$GoExe='go',
     [string]$OutputDirectory='_temp/installer-build/output',
-    [string]$TestDirectory
+    [string]$TestDirectory,
+    [switch]$VerifyWindowsSecurity
 )
 $ErrorActionPreference='Stop'
 $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -17,6 +18,7 @@ $preparation=Join-Path $root ('_temp/installer-build/'+[Guid]::NewGuid().ToStrin
 $priorRoot=$env:GOROOT
 $env:GOROOT=''
 $updateHelper=Join-Path $preparation 'WinOne.Update.exe'
+$maintenanceHelper=Join-Path $preparation 'WinOne.Maintenance.exe'
 try {
  # An inherited GOROOT can point at another registered toolchain; the
  # selected binary must resolve its own compiler.
@@ -25,6 +27,7 @@ try {
  & $GoExe build -trimpath -ldflags '-H windowsgui' -o $updateHelper ./build/installer-update
  if($LASTEXITCODE -ne 0){throw 'Installer update helper build failed'}
 } finally { Pop-Location; $env:GOROOT=$priorRoot }
+& (Join-Path $PSScriptRoot 'build-installer-maintenance.ps1') -GoExe $GoExe -OutputDirectory $preparation
 $manifest=Get-Content -LiteralPath (Join-Path $preparation 'payload/manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $manifestHash=(Get-FileHash -LiteralPath (Join-Path $preparation 'payload/manifest.json') -Algorithm SHA256).Hash.ToLowerInvariant()
 $suffix=if($TestDirectory){'-windows-x64-test-setup.exe'}else{'-windows-x64-setup.exe'}
@@ -35,7 +38,7 @@ foreach($path in @($target,$uninstallerTarget,$uninstallerTarget+'.partial',$art
     if(Test-Path -LiteralPath $path){throw 'Installer output already exists'}
 }
 [IO.Directory]::CreateDirectory($output)|Out-Null
-$testDefinitions=@("/DWINONE_UPDATE_HELPER=$updateHelper")
+$testDefinitions=@("/DWINONE_UPDATE_HELPER=$updateHelper","/DWINONE_MAINTENANCE_HELPER=$maintenanceHelper")
 if($TestDirectory){
     $testRoot=[IO.Path]::GetFullPath($TestDirectory)
     & git -C $root check-ignore --quiet --no-index -- (Join-Path $testRoot 'test.probe')
@@ -59,6 +62,9 @@ try{
     if($LASTEXITCODE -ne 0){throw 'Onboarding initializer build failed'}
 }finally{Pop-Location;$env:GOROOT=$priorRoot}
 $testDefinitions+="/DWINONE_ONBOARDING_HELPER=$onboardingHelper"
+if($VerifyWindowsSecurity){
+    & (Join-Path $PSScriptRoot 'verify-windows-security.ps1') -Paths @((Join-Path $preparation 'payload'),$maintenanceHelper,$updateHelper,$onboardingHelper) -OutputDirectory (Join-Path $output 'security-payload')
+}
 $previousExport=$env:WINONE_UNINSTALLER_EXPORT
 # NSIS reads File sources during compilation. The installer's long-path
 # manifest cannot affect that compiler process, so use the documented Unicode
@@ -72,6 +78,9 @@ try {
     & $NsisExe /V3 /INPUTCHARSET UTF8 /DWINONE_EXPORT_UNINSTALLER "/DWINONE_PAYLOAD_DIR=$payloadSource" "/DWINONE_FILES_NSH=$preparation\files.nsh" "/DWINONE_INSTALLER_OUT=$target" "/DWINONE_VERSION=$($manifest.version)" "/DWINONE_MANIFEST_SHA256=$manifestHash" "/DWINONE_ICON=$root\internal\branding\icon.ico" @testDefinitions (Join-Path $PSScriptRoot 'windows/installer.nsi')
     if($LASTEXITCODE -ne 0){throw 'Installer compilation failed'}
 } finally { $env:WINONE_UNINSTALLER_EXPORT=$previousExport }
+if($VerifyWindowsSecurity){
+    & (Join-Path $PSScriptRoot 'verify-windows-security.ps1') -Paths @($target,$uninstallerTarget) -OutputDirectory (Join-Path $output 'security-installers')
+}
 $digest=(Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()
 $uninstallerDigest=(Get-FileHash -LiteralPath $uninstallerTarget -Algorithm SHA256).Hash.ToLowerInvariant()
 [IO.File]::WriteAllText($target+'.sha256',$digest+'  '+[IO.Path]::GetFileName($target)+"`n",[Text.UTF8Encoding]::new($false))

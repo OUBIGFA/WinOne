@@ -57,6 +57,13 @@ func compileNativeUpgradeInstaller(t *testing.T, compiler, archive, key, profile
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("update helper: %v: %s", err, output)
 	}
+	maintenanceHelper := filepath.Join(work, "WinOne.Maintenance.exe")
+	// Use the same entry as production, including the helper's own manifest.
+	build = exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-File", filepath.Join(root, "build", "build-installer-maintenance.ps1"), "-GoExe", filepath.Join(runtime.GOROOT(), "bin", "go.exe"), "-OutputDirectory", work)
+	build.Dir = root
+	if output, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("maintenance helper: %v: %s", err, output)
+	}
 	onboardingHelper := filepath.Join(work, "WinOne.Onboarding.exe")
 	// All installer versions in this scenario share one simulated machine.
 	onboardingDirectory := filepath.Join(filepath.Dir(profile), "machine", "WinOne", "onboarding")
@@ -77,6 +84,7 @@ func compileNativeUpgradeInstaller(t *testing.T, compiler, archive, key, profile
 	}
 	cmd := exec.CommandContext(ctx, compiler, "/V2", "/INPUTCHARSET", "UTF8", "/DWINONE_TEST_BUILD", "/DWINONE_EXPORT_UNINSTALLER",
 		"/DWINONE_UPDATE_HELPER="+updateHelper,
+		"/DWINONE_MAINTENANCE_HELPER="+maintenanceHelper,
 		"/DWINONE_ONBOARDING_HELPER="+onboardingHelper,
 		"/DWINONE_PAYLOAD_DIR="+source, "/DWINONE_FILES_NSH="+macroFile, "/DWINONE_INSTALLER_OUT="+setup,
 		"/DWINONE_VERSION="+manifest.Version, "/DWINONE_MANIFEST_SHA256="+hex.EncodeToString(sum[:]),

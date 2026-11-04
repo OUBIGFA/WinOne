@@ -29,13 +29,27 @@ func TestInstallerProcessOwner(t *testing.T) {
 	_, _ = os.Stdin.Read(b[:])
 }
 
+// Maintenance fixtures can exercise either the dedicated helper or the legacy
+// Host protocol, which remains supported for already installed packages.
+func installerMaintenanceSource(t *testing.T) string {
+	t.Helper()
+	if path := os.Getenv("WINONE_INSTALLER_MAINTENANCE_EXE"); path != "" {
+		return path
+	}
+	if path := os.Getenv("WINONE_HOST_EXE"); path != "" {
+		return path
+	}
+	t.Skip("set WINONE_INSTALLER_MAINTENANCE_EXE or WINONE_HOST_EXE")
+	return ""
+}
+
 func TestInstallerGuardHoldsUntilInstallerExit(t *testing.T) {
 	exe := os.Getenv("WINONE_HOST_EXE")
 	if exe == "" {
 		t.Skip("set WINONE_HOST_EXE for guard integration")
 	}
 	copyPath := filepath.Join(t.TempDir(), "WinOne.Maintenance.exe")
-	data, err := os.ReadFile(exe)
+	data, err := os.ReadFile(installerMaintenanceSource(t))
 	if err != nil {
 		t.Fatal(err)
 	}

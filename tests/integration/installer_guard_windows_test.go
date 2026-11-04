@@ -31,7 +31,7 @@ func TestNSISGuardProtocol(t *testing.T) {
 		t.Run(scenario, func(t *testing.T) {
 			dir := t.TempDir()
 			helper := filepath.Join(dir, "WinOne.Maintenance.exe")
-			data, err := os.ReadFile(host)
+			data, err := os.ReadFile(installerMaintenanceSource(t))
 			if err != nil {
 				t.Fatal(err)
 			}
