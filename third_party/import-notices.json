@@ -1596,7 +1596,7 @@
         },
         {
           "path": "apps/desktop-mygo/flashchat/trystero/room.go",
-          "sha256": "12f615572d64844eb09be28d4aa0ef8226212d6d487dc4ef7b55a9633b1a6aee"
+          "sha256": "1ffd666fa838d8a96c02462214dee42c928e156d03c7a42166d1818cc7e82f1c"
         },
         {
           "path": "apps/desktop-mygo/flashchat/trystero/wire.go",

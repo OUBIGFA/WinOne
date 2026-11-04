@@ -24,6 +24,9 @@ func ProbeReach(rtc *RTCConfig, timeout time.Duration) (Reach, error) {
 	}
 	var se webrtc.SettingEngine
 	se.LoggerFactory = &logging.DefaultLoggerFactory{Writer: io.Discard}
+	if dn, err := newDirectNet(); err == nil {
+		se.SetNet(dn)
+	}
 	pc, err := webrtc.NewAPI(webrtc.WithSettingEngine(se)).NewPeerConnection(config)
 	if err != nil {
 		return Reach{}, err

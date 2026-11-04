@@ -98,6 +98,11 @@ func Join(cfg Config, roomID string) (*Room, error) {
 	r.pattern = patternFor(servers)
 	var se webrtc.SettingEngine
 	se.LoggerFactory = &logging.DefaultLoggerFactory{Writer: io.Discard}
+	// Peers on other networks must reach this computer even behind a
+	// proxy's TUN adapter (directNet).
+	if dn, err := newDirectNet(); err == nil {
+		se.SetNet(dn)
+	}
 	r.api = webrtc.NewAPI(webrtc.WithSettingEngine(se))
 	r.registerInternal()
 	for _, u := range cfg.relays() {

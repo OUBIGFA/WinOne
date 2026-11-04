@@ -19,5 +19,5 @@
  "flashChat.openFile": "Open",
  "flashChat.showInFolder": "Show in folder",
  "flashChat.unreachableTitle": "Members on other networks may not be able to join",
- "flashChat.unreachableHint": "This computer got no address that other networks can reach, usually because a proxy's TUN or virtual adapter takes UDP traffic. Members on the same local network can still join. To let others join, let WinOne or UDP bypass the proxy, or add a TURN server to the WebRTC configuration in Network settings."
+ "flashChat.unreachableHint": "This computer got no address that other networks can reach; members on the same local network can still join. WinOne already bypasses a proxy's TUN adapter and fake DNS. If this persists, the proxy usually blocks all UDP (for example, with strict routing) or the network blocks UDP. Let WinOne bypass the proxy, or add a TURN server to the WebRTC configuration in Network settings."
 }
