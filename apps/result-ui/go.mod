@@ -26,3 +26,6 @@ replace winone/modules/wintray => ../../modules/wintray
 replace fyne.io/systray => ../../third_party/systray
 
 replace winone/modules/nativeui => ../../modules/nativeui
+
+// Prepared from verified upstream by build/prepare-mygo-filedrop.ps1.
+replace github.com/egoist/mygo => ../../dist/resources/sources/mygo-winone-v0.7.4

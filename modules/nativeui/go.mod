@@ -10,3 +10,6 @@ require (
 	golang.org/x/image v0.46.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 )
+
+// Prepared from verified upstream by build/prepare-mygo-filedrop.ps1.
+replace github.com/egoist/mygo => ../../dist/resources/sources/mygo-winone-v0.7.4

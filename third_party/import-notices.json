@@ -2,6 +2,36 @@
   "schemaVersion": 1,
   "imports": [
     {
+      "name": "mygo-winone-shell-file-drop",
+      "repository": "https://github.com/egoist/mygo",
+      "commit": "9bd34e1eb9525d9a1fe698aadc964c49c8ff8e7e",
+      "license": "MIT",
+      "scope": "MyGo v0.7.4, complete verified upstream in a repository source cache; only Windows cross-integrity Shell file-drop hooks added, adapting WinOne's existing component_file_drop.rs. OLE, native hit testing, data/file dispatch, UI and all upstream features remain unchanged.",
+      "sourceFiles": [
+        "internal/windows/surface_drop.go"
+      ],
+      "notices": [
+        {
+          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.7.4-LICENSE.txt",
+          "sha256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4"
+        }
+      ],
+      "files": [
+        {
+          "path": "third_party/mygo-winone/source.json",
+          "sha256": "173f30511ab11fc437ddc1fe37f87dcddbea8225b4ba3ff693ff74aeeb7263b3"
+        },
+        {
+          "path": "third_party/mygo-winone/surface_file_drop_windows.go",
+          "sha256": "9be0ca147d804db7b7b1216828d45ecf82be7fc2e239c6801bfa99f799438750"
+        },
+        {
+          "path": "build/prepare-mygo-filedrop.ps1",
+          "sha256": "79e41c65f5873a1726aef6aa15b67fd391708f494366c27c68b3fe4492efd60e"
+        }
+      ]
+    },
+    {
       "name": "lucide-messages-circle",
       "repository": "https://github.com/lucide-icons/lucide",
       "commit": "7faf87628a1ad6175975bc595344337ce14a7db4",

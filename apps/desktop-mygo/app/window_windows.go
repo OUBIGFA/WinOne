@@ -110,6 +110,10 @@ func settingsWindowOptions(content mygo.Content) mygo.WindowOptions {
 
 func (w *window) open() {
 	w.win = mygo.NewWindow(settingsWindowOptions(ui.View(w.shell.View)))
+	// Leave unmatched native drops to MyGo's trusted-page delivery. WebView
+	// pages receive the original paths as `mygo:file-drop`; native DropArea
+	// targets consume their own drops first in SurfaceEvent.
+	w.win.OnFileDrop(func(*mygo.FileDropEvent) {})
 	w.hwnd = w.win.NativeHandle()
 	subclass(w.hwnd)
 	if err := w.instance.attach(w.hwnd, w.wake); err != nil {

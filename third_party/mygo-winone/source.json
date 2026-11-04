@@ -1,0 +1,30 @@
+{
+  "module": "github.com/egoist/mygo",
+  "version": "v0.7.4",
+  "repository": "https://github.com/egoist/mygo",
+  "commit": "9bd34e1eb9525d9a1fe698aadc964c49c8ff8e7e",
+  "moduleSum": "h1:0qkDpDRo7C9g8PM8eu4V6FVouhLiTrUdqKD6I31Lv3Q=",
+  "license": "MIT",
+  "notice": "licenses/desktop-go-github.com-egoist-mygo-v0.7.4-LICENSE.txt",
+  "licenseSHA256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
+  "scope": "Windows Shell cross-integrity file-drop receiver, adapted from WinOne's existing Rust component_file_drop.rs. Native UI, OLE, hit testing and file dispatch stay upstream. Prepared from the pinned verified module into an isolated repository source cache; never modifies the Go module cache.",
+  "patches": [
+    {
+      "path": "internal/windows/surface_drop.go",
+      "sha256": "5c9b10202b11855fa234e2cbbfa8aaade106c18f260c6fca469b374da0eaceb5",
+      "edits": [
+        {
+          "oldText": "func (s *surface) acceptFileDrops() {\n\tdropOnce.Do(initDropTarget)",
+          "newText": "func (s *surface) acceptFileDrops() {\n\ts.acceptShellFileDrops()\n\tdropOnce.Do(initDropTarget)"
+        },
+        {
+          "oldText": "func (s *surface) revokeFileDrops() {\n\tif s.dropTarget != 0 {",
+          "newText": "func (s *surface) revokeFileDrops() {\n\ts.revokeShellFileDrops()\n\tif s.dropTarget != 0 {"
+        }
+      ]
+    }
+  ],
+  "additions": [
+    {"path": "internal/windows/surface_file_drop_winone.go", "source": "surface_file_drop_windows.go"}
+  ]
+}

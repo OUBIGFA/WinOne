@@ -1,6 +1,6 @@
 param([Parameter(Mandatory)][string]$OutputDirectory,[string]$GoExe='go',[switch]$SkipTests,[switch]$RunWindowChecks)
-# Both native windows use the unmodified MyGo v0.7.4 module. Selection,
-# pointer release and tool-window behavior now use its public APIs.
+# MyGo v0.7.4 with the scoped Windows Shell file-drop adaptation. Selection,
+# pointer release and tool-window behavior still use its public APIs.
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 if(-not(Test-Path -LiteralPath (Join-Path $root 'apps/result-ui/assets/provider-bitmaps/manifest.json'))){throw 'Run build/build-provider-icons.ps1 before building the shared result UI'}
@@ -14,6 +14,7 @@ if($LASTEXITCODE -ne 0){throw 'Result icon generation failed'}
 $saved=@{GOROOT=$env:GOROOT;CGO_ENABLED=$env:CGO_ENABLED;GOTOOLCHAIN=$env:GOTOOLCHAIN;GOCACHE=$env:GOCACHE}
 try {
  $env:GOROOT=Split-Path -Parent (Split-Path -Parent $go);$env:CGO_ENABLED='0';$env:GOTOOLCHAIN='local'
+ & (Join-Path $PSScriptRoot 'prepare-mygo-filedrop.ps1') -GoExe $go
  if(-not $env:GOCACHE){$env:GOCACHE=Join-Path $root 'dist/resources/cache/go'}
  Push-Location (Join-Path $root 'apps/result-ui')
  try {

@@ -13,6 +13,7 @@ $priorRoot=$env:GOROOT; $priorCache=$env:GOCACHE
 try {
     $env:GOROOT=Split-Path -Parent (Split-Path -Parent $go)
     $env:GOCACHE=Join-Path $root 'dist/resources/cache/go'
+    & (Join-Path $PSScriptRoot 'prepare-mygo-filedrop.ps1') -GoExe $go
     foreach($module in $Modules) {
         Push-Location (Join-Path $root ('apps/'+$module))
         try {

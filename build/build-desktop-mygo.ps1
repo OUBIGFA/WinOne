@@ -38,6 +38,7 @@ try {
     $env:GOROOT = Split-Path -Parent (Split-Path -Parent $go)
     $env:CGO_ENABLED = '0'
     $env:GOTOOLCHAIN = 'local'
+    & (Join-Path $PSScriptRoot 'prepare-mygo-filedrop.ps1') -GoExe $go
     if (-not $env:GOCACHE) { $env:GOCACHE = Join-Path $root 'dist/resources/cache/go' }
     Push-Location (Join-Path $root 'apps/desktop-mygo')
     try {
