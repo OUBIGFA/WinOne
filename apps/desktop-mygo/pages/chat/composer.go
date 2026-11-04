@@ -79,10 +79,11 @@ func (p *Chat) permission() model.Permission {
 
 // currentModel is the open (or new) conversation's model.
 func (p *Chat) currentModel() widgets.AISelection {
+	selection := p.newModel
 	if c := p.conversation(); c != nil {
-		return c.Model
+		selection = c.Model
 	}
-	return p.newModel
+	return resolveModel(p.ai, selection)
 }
 
 // composer is the message input and its tools, as the React ChatComposer.
@@ -255,7 +256,10 @@ func stopButton(c *ui.Context) ui.Element {
 func (p *Chat) permissionPill(c *ui.Context, disabled bool) {
 	current := p.permission()
 	labels := map[model.Permission]string{model.PermissionAsk: "chat.ask", model.PermissionAuto: "chat.auto", model.PermissionBypass: "chat.full"}
-	pill := p.pill(c, i18n.T(labels[current]), icons.Shield, i18n.T("chat.permissions")+" · "+i18n.T(labels[current])).Disabled(disabled)
+	// The former React PermissionSelector used a distinct Lucide icon for
+	// each mode; keep the same meaning in the native pill.
+	modeIcons := map[model.Permission]*ui.SVG{model.PermissionAsk: icons.ShieldUser, model.PermissionAuto: icons.Sparkles, model.PermissionBypass: icons.TriangleAlert}
+	pill := p.pill(c, i18n.T(labels[current]), modeIcons[current], i18n.T("chat.permissions")+" · "+i18n.T(labels[current])).Disabled(disabled)
 	pill.Menu(func(m *ui.Menu) {
 		for _, mode := range []model.Permission{model.PermissionAsk, model.PermissionAuto, model.PermissionBypass} {
 			if m.Item(i18n.T(labels[mode])).Checked(mode == current).Chosen() && mode != current {

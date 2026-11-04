@@ -13,8 +13,8 @@ import (
 // provider's mark, its name and the model, opening a searchable list of
 // the enabled models grouped by provider: widgets.ModelMenu, which every
 // model picker of the window shares.
-// A model since removed is not a usable choice: the trigger asks to
-// choose one rather than keep it.
+// Removed models resolve through the same fallback as send preflight, so
+// this label always names the selection that will actually be configured.
 func (p *Chat) modelPicker(c *ui.Context, provider *widgets.AIProvider, selection widgets.AISelection, disabled bool) {
 	if p.ai == nil {
 		return

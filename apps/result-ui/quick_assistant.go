@@ -100,6 +100,7 @@ func (p *Panel) quickActionLabel(action resultwindow.SelectionAction) string {
 	}
 	return action.Name
 }
+
 // quickToolbar shows the Quick assistant's actions as MyGo's toolbar,
 // centered between the divider and the input box (user requirement). The
 // toolbar measures its buttons and moves those without room, from the
@@ -130,6 +131,9 @@ func (c *Controller) ReceiveQuickInput(text string) {
 		} else if c.Panel.Prompt != text {
 			c.Panel.Prompt += "\n\n" + text
 		}
+		// A new selection handoff returns to content-sized input; a later
+		// explicit splitter drag can still choose a manual height.
+		c.Panel.composerHeight = 0
 		c.quickInput = text
 	}
 	c.Panel.FocusComposer = true

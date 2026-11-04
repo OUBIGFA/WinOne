@@ -28,10 +28,11 @@ type uiState struct {
 	transcript ui.ScrollState
 	// follow keeps the transcript at its end as replies stream, until
 	// the reader scrolls up; lastY is where the reader was last frame.
-	follow  bool
-	lastY   float32
-	toTop   bool
-	pinNext bool
+	follow   bool
+	lastY    float32
+	lastMaxY float32
+	toTop    bool
+	pinNext  bool
 
 	// archived lists archived conversations instead of the others.
 	archived bool
@@ -55,6 +56,10 @@ type uiState struct {
 	compact     bool
 	// expanded remembers which work processes and steps are open.
 	expanded map[string]bool
+	// processBodies are committed bounds used by the viewport's sticky
+	// collapse controls; the controls never scroll out with the body.
+	processBodies map[string]*ui.Handle
+	openProcesses []string
 	// answers are the question card's answers, for the question asked.
 	answers    []string
 	answersFor string
@@ -286,14 +291,22 @@ func (p *Chat) transcriptView(c *ui.Context) {
 	gliding := p.startJump()
 	switch {
 	case gliding:
-	case committed < p.ui.lastY-1 && !p.ui.pinNext:
-		p.ui.follow = false
-	case s.MaxY-committed <= 80:
+	case committed < min(p.ui.lastY, s.MaxY)-0.01:
+		p.ui.follow, p.ui.pinNext = false, false
+	case committed > p.ui.lastY && s.MaxY-committed <= 80:
 		p.ui.follow = true
 	}
+	if p.ui.follow && s.MaxY != p.ui.lastMaxY {
+		// Reflow (resizing/opening the side panel) changes the end too.
+		p.ui.pinNext = true
+	}
+	p.ui.lastMaxY = s.MaxY
 	if p.ui.toTop {
 		s.Y, p.ui.toTop = 0, false
-	} else if (p.ui.follow || p.ui.pinNext) && !gliding {
+	} else if p.ui.pinNext && !gliding {
+		// Only new content or an explicit follow request may set an offset.
+		// Writing MaxFloat32 every frame cancels MyGo's wheel glide in
+		// adoptScroll, even before its first small movement is visible.
 		s.Y = math.MaxFloat32
 	}
 	p.ui.pinNext = false
@@ -306,7 +319,13 @@ func (p *Chat) transcriptView(c *ui.Context) {
 	items.controls = p.measureRounds(c, items.content)
 	padding := p.readingPadding(c)
 	ui.Column(c.Key("transcript-area")).Grow(1).Basis(0).MinHeight(0).FillWidth().Children(func() {
-		ui.Scroll(c.Key("transcript")).Grow(1).Basis(0).MinHeight(0).FillWidth().TrackScroll(s).Children(func() {
+		ui.Scroll(c.Key("transcript")).Label(i18n.T("chat.readingArea")).Grow(1).Basis(0).MinHeight(0).FillWidth().TrackScroll(s).HandleInput(func(ev ui.InputEvent) bool {
+			if ev.Kind == ui.InputScroll && ev.DY < 0 {
+				p.ui.follow, p.ui.pinNext = false, false
+				p.ui.items.jump = nil
+			}
+			return false // Observe intent; MyGo still owns scrolling and smoothing.
+		}).Children(func() {
 			ui.Column(c).FillWidth().MaxWidth(readingWidth+48).AlignSelf(ui.Center).Padding(16, padding, 24, 24).Gap(16).Bind(&items.content).Children(func() {
 				if p.opening && p.submitting == nil {
 					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
@@ -329,6 +348,7 @@ func (p *Chat) transcriptView(c *ui.Context) {
 		})
 		if p.activeID != "" {
 			p.scrollNav(c)
+			p.processCollapseControls(c)
 		}
 	})
 	p.flushChecks()

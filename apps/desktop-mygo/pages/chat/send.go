@@ -71,6 +71,24 @@ func mergeFiles(lists ...[]model.Attachment) []model.Attachment {
 // acknowledges; newer draft saves wait behind the receipt so they cannot
 // overwrite what was typed meanwhile. On failure the text comes back.
 func (p *Chat) send(override *queuedSend, mode model.DeliveryMode, done func(error)) {
+	selection := p.currentModel()
+	if p.ai != nil && selection.Model == "" {
+		done(core.Errorf(i18n.T("chat.modelUnavailable")))
+		return
+	}
+	if conversation := p.conversation(); conversation != nil && conversation.Model != selection && !p.view.Running {
+		// Configure the runtime as well as the pill, before clearing the draft
+		// or opening the send receipt barrier (configure waits for draft writes).
+		p.configure(&selection, "", func(err error) {
+			if err != nil {
+				done(err)
+				return
+			}
+			p.send(override, mode, done)
+		})
+		return
+	}
+	p.newModel = selection
 	original, files := p.text, p.files
 	if override != nil {
 		original, files = override.text, override.files

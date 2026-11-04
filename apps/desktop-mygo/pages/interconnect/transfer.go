@@ -401,9 +401,9 @@ func (p *transferPanel) composer(c *ui.Context, active, settingsPending bool) {
 // serviceRow names the service a tab sends with, at the same height and
 // inset in both tabs; the composer's padding already insets it.
 func serviceRow(c *ui.Context, label string, control func()) {
-	ui.Row(c).FillWidth().MinHeight(kit.ControlHeight+6).GapX(16).GapY(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).Children(func() {
+	ui.Row(c).FillWidth().MinHeight(kit.ControlHeight + 6).GapX(16).GapY(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).Children(func() {
 		kit.Label(c, label)
-		ui.Row(c).MinHeight(kit.ControlHeight+6).Gap(8).AlignItems(ui.Center).Children(control)
+		ui.Row(c).MinHeight(kit.ControlHeight + 6).Gap(8).AlignItems(ui.Center).Children(control)
 	})
 }
 
@@ -690,7 +690,11 @@ func (p *transferPanel) advanced(c *ui.Context, gofile bool, target *taskRecord)
 				dropFolder(c, p.env, zone, p.busy, func(path string) { f.OutputDir = path }, func(err error) { p.err = err.Error() })
 			}
 			p.disclosure(c, "network", tr("networkOptions"), func() {
-				kit.Help(c, tr("advancedHint"))
+				if p.stored {
+					kit.Help(c, tr("cloudProxyHint"))
+				} else {
+					kit.Help(c, tr("advancedHint"))
+				}
 				if !p.stored {
 					p.textField(c, tr("derpMap"), &f.DerpMapURL)
 					if !send {

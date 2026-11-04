@@ -12,8 +12,8 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"winone/internal/ai"
-	"winone/modules/nativeui/modelmenu"
 	"winone/internal/resultwindow"
+	"winone/modules/nativeui/modelmenu"
 )
 
 //go:embed assets/*.svg assets/providers/*.svg assets/providers/*.png assets/provider-bitmaps/*.png assets/logo.png
@@ -238,6 +238,9 @@ func (p *Panel) View(c *ui.Context) {
 	desired := p.composerHeight
 	if desired == 0 {
 		desired = 120 + topHeight
+		if p.Source == "quick-assistant" {
+			desired = max(desired, p.promptHeight(c, t)+topHeight+composerInset+18+8+iconButtonSize+2)
+		}
 	}
 	minimum := 96 + topHeight
 	composer := max(minimum, min(desired, available-72))

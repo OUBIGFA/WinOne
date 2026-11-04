@@ -270,7 +270,9 @@ func (p *Chat) rows(c *ui.Context, list []Conversation) {
 				row := ui.ButtonBase(c).Grow(1).MinWidth(0).Padding(8, 10, 8, 28).Radius(7).Justify(ui.Start).AlignItems(ui.Center).Gap(8).
 					FontSize(sidebarFontSize).LineHeight(1.4).Label(conv.Title).Selected(active).Disabled(p.busy)
 				if active {
-					row.TextColor(t.Text)
+					// Selected also paints MyGo's accent background. This list
+					// owns a neutral whole-row selection, so override BOTH.
+					row.Background(ui.Transparent).TextColor(t.Text)
 				}
 				if kind == "time" {
 					hint := i18n.T("chat.sidebarEmpty")

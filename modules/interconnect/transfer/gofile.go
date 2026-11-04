@@ -43,24 +43,11 @@ type gofileClient struct {
 }
 
 func newGofileClient(spec specification) (*gofileClient, error) {
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.ResponseHeaderTimeout = 45 * time.Second
-	// Match croc's explicit SOCKS5-first precedence; never ignore invalid input.
-	address, scheme := spec.Socks5, "socks5"
-	if address == "" {
-		address, scheme = spec.HTTPProxy, "http"
+	client, err := newTransferHTTP(spec)
+	if err != nil {
+		return nil, fmt.Errorf("GoFile: %w", err)
 	}
-	if address != "" {
-		if !strings.Contains(address, "://") {
-			address = scheme + "://" + address
-		}
-		proxy, err := url.Parse(address)
-		if err != nil || proxy.Host == "" || (proxy.Scheme != "http" && proxy.Scheme != "https" && proxy.Scheme != "socks5" && proxy.Scheme != "socks5h") {
-			return nil, errors.New("GoFile: invalid proxy address")
-		}
-		transport.Proxy = http.ProxyURL(proxy)
-	}
-	return &gofileClient{http: &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("GoFile: unexpected redirect") }}, api: "https://api.gofile.io", upload: "https://upload.gofile.io/uploadfile"}, nil
+	return &gofileClient{http: client, api: "https://api.gofile.io", upload: "https://upload.gofile.io/uploadfile"}, nil
 }
 
 func (c *gofileClient) request(ctx context.Context, method, path, token string, body any, out any) error {

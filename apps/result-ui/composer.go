@@ -1,10 +1,31 @@
 package resultui
 
 import (
+	"math"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
 )
+
+// promptHeight measures wrapped text with the same native font as the editor,
+// including blank/trailing lines. Count native line boxes, then apply the
+// editor's 1.5 line height; character-count estimates break for CJK and paths.
+func (p *Panel) promptHeight(c *ui.Context, t *ui.Theme) float32 {
+	width, _ := c.Size()
+	width = max(1, min(width, readingMaxWidth+2*gutter)-2*composerInset-2*bleed-2)
+	fontSize := em(t, sizeBody)
+	_, line := c.MeasureText(0, ui.Span{Text: "Ag国", Size: fontSize})
+	var lines float32
+	for _, paragraph := range strings.Split(strings.ReplaceAll(p.Prompt, "\r\n", "\n"), "\n") {
+		if paragraph == "" {
+			lines++
+			continue
+		}
+		_, height := c.MeasureText(width, ui.Span{Text: paragraph, Size: fontSize})
+		lines += max(1, float32(math.Ceil(float64(height/line)-0.01)))
+	}
+	return lines * max(line, fontSize*1.5)
+}
 
 func (p *Panel) composer(c *ui.Context, t *ui.Theme) {
 	// The region's width follows the reading column, so the input box's

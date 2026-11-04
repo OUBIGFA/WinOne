@@ -388,7 +388,12 @@ func (t *task) stored(ctx context.Context) (any, error) {
 	if strings.TrimRight(t.spec.StoreOrigin, "/") == gofileOrigin {
 		return t.gofile(ctx)
 	}
-	client := &storeclient.Client{}
+	httpClient, err := newTransferHTTP(t.spec)
+	if err != nil {
+		return nil, err
+	}
+	defer httpClient.CloseIdleConnections()
+	client := &storeclient.Client{HTTP: httpClient}
 	callbacks := storeclient.Callbacks{
 		Status:   func(detail string) { t.mu.Lock(); t.state.Detail = detail; t.mu.Unlock() },
 		Progress: func(p storeclient.Progress) { t.mu.Lock(); t.state.StoreProgress = &p; t.mu.Unlock() },

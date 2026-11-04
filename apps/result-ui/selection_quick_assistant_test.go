@@ -3,6 +3,7 @@ package resultui
 import (
 	"github.com/egoist/mygo/ui"
 	"math"
+	"strings"
 	"testing"
 	"winone/internal/ai"
 	"winone/internal/resultwindow"
@@ -55,5 +56,36 @@ func TestQuickHandoffFillsInputWithoutSendingOrDiscardingDraft(t *testing.T) {
 	c.ReceiveQuickInput("新的原文")
 	if c.Panel.Prompt != "新的原文" {
 		t.Fatal("duplicate activation duplicated the input")
+	}
+}
+
+// Both the first selection and later append handoffs resize the real input.
+// Manual resizing remains available and a narrow/short window keeps Send in view.
+func TestQuickHandoffSizesComposerToWrappedContent(t *testing.T) {
+	c := NewController(nil, resultwindow.Initial{Source: "quick-assistant", Mode: "chat", Text: "短文本", Language: "zh-CN"})
+	defer c.close()
+	c.Panel.Busy = false
+	tt := ui.NewTester(c.Panel.View, 600, 720)
+	before, _ := tt.Find("输入消息")
+	c.ReceiveQuickInput(strings.Repeat("第几行选中的内容，需要完整显示。\n", 8))
+	tt.Frame()
+	tt.Frame()
+	after, _ := tt.Find("输入消息")
+	if after.H < before.H+100 {
+		t.Fatalf("handoff kept fixed height: before=%+v after=%+v", before, after)
+	}
+	c.Panel.Prompt = strings.Repeat("连续中文选中内容", 20)
+	tt.Frame()
+	tt.Frame()
+	wide, _ := tt.Find("输入消息")
+	tt.SetSize(360, 720)
+	narrow, _ := tt.Find("输入消息")
+	if narrow.H <= wide.H {
+		t.Fatalf("wrapped text did not grow: wide=%+v narrow=%+v", wide, narrow)
+	}
+	tt.SetSize(320, 320)
+	send, _ := tt.Find("发送")
+	if send.Y+send.H > 320 || send.X+send.W > 320 {
+		t.Fatalf("small window hid send: %+v", send)
 	}
 }

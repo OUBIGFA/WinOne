@@ -253,32 +253,42 @@ func (p *Chat) refresh(done func(error)) {
 	})
 }
 
-// initialModel is the new chat's model: the last one chosen while it is
-// still enabled, else the chat task's, the default task's, or the first
-// enabled model.
+// initialModel retains a usable draft/last choice, otherwise follows the
+// default AI service. Stale task assignments must also be validated.
 func (p *Chat) initialModel(models *AIConfiguration, current widgets.AISelection) widgets.AISelection {
-	if last := p.prefs.LastModel; last != nil {
+	if current.Provider == "" && p.prefs.LastModel != nil {
+		current = *p.prefs.LastModel
+	}
+	return resolveModel(models, current)
+}
+
+// resolveModel is shared by initial selection, the visible pill and send
+// preflight: current -> default AI service -> first provider's first model.
+// An empty catalog remains unavailable; it must not retain a deleted choice.
+func resolveModel(models *AIConfiguration, current widgets.AISelection) widgets.AISelection {
+	if models == nil {
+		return current
+	}
+	valid := func(s widgets.AISelection) bool {
 		for _, provider := range models.Providers {
-			if provider.ID == last.Provider {
-				for _, m := range provider.Models {
-					if m == last.Model {
-						return *last
-					}
-				}
+			if provider.ID == s.Provider && contains(provider.Models, s.Model) {
+				return true
 			}
 		}
+		return false
 	}
-	for _, task := range []string{"chat", "default"} {
-		if s := models.Tasks[task]; s != nil {
-			return *s
-		}
+	if valid(current) {
+		return current
+	}
+	if s := models.Tasks["default"]; s != nil && valid(*s) {
+		return *s
 	}
 	for _, provider := range models.Providers {
 		if len(provider.Models) > 0 {
 			return widgets.AISelection{Provider: provider.ID, Model: provider.Models[0]}
 		}
 	}
-	return current
+	return widgets.AISelection{}
 }
 
 // pollActivity reads every conversation's activity for the sidebar, at

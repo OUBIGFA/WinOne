@@ -40,6 +40,7 @@ func (p *Chat) turns(c *ui.Context) {
 		}
 	}
 	s := &p.ui.items
+	p.ui.openProcesses = p.ui.openProcesses[:0]
 	s.turnOrder = s.turnOrder[:0]
 	if s.turnRows == nil {
 		s.turnRows = map[string]*ui.Handle{}
@@ -252,9 +253,6 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 	}
 	ui.Column(c).FillWidth().Gap(4).Children(func() {
 		head := ui.ButtonBase(c).AlignSelf(ui.Start).Gap(6).AlignItems(ui.Center).Padding(4, 6).Radius(t.Radius).Label(summary).Expanded(open)
-		if head.Hovered() {
-			head.Background(t.SurfaceHover)
-		}
 		head.Children(func() {
 			if r.Running {
 				ui.Spinner(c).Size(14, 14)
@@ -272,7 +270,16 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 		if !open {
 			return
 		}
-		ui.Column(c).FillWidth().Gap(6).Padding(4, 0, 4, 12).BorderWidth(0, 0, 0, 2).BorderColor(pal.Hairline).Children(func() {
+		if p.ui.processBodies == nil {
+			p.ui.processBodies = map[string]*ui.Handle{}
+		}
+		body := p.ui.processBodies[r.Key]
+		if body == nil {
+			body = &ui.Handle{}
+			p.ui.processBodies[r.Key] = body
+		}
+		p.ui.openProcesses = append(p.ui.openProcesses, r.Key)
+		ui.Column(c).FillWidth().Gap(6).Padding(4, 40, 4, 12).BorderWidth(0, 0, 0, 2).BorderColor(pal.Hairline).Bind(body).Children(func() {
 			for _, e := range entries {
 				e := e
 				ui.Column(c.Key("entry:" + e.Key)).FillWidth().Children(func() { p.entryView(c, e, r.Running) })
