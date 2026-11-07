@@ -317,7 +317,9 @@ func (p *Panel) inlines(c *ui.Context, in []parser.Inline, from, to int) {
 		n := in[k]
 		next := max(n.Next, k+1)
 		switch n.Kind {
-		case parser.Text:
+		case parser.Text, parser.Mention, parser.Reference:
+			// A result has no GitHub repository context to resolve these;
+			// preserve the author's spelling instead of inventing a link.
 			ui.Text(c, n.Text)
 		case parser.SoftBreak:
 			ui.Text(c, " ")

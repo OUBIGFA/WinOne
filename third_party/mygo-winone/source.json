@@ -1,15 +1,15 @@
 {
   "module": "github.com/egoist/mygo",
-  "version": "v0.8.1",
+  "version": "v0.8.3",
   "repository": "https://github.com/egoist/mygo",
-  "commit": "8f07b6f282873fd526a4f8153d727063b00dcdeb",
-  "moduleSum": "h1:88fxq0OvlxToKNoyN/99xRKFX7PhMquC83nK54stS4g=",
+  "commit": "5add3817c74bb7505d0b473bc5fb28abe2201b99",
+  "moduleSum": "h1:aTLEhS221YhsX+gKGNLQ5xEKMLCcYYr3pH9AkTwIRs4=",
   "license": "MIT",
-  "notice": "licenses/desktop-go-github.com-egoist-mygo-v0.8.1-LICENSE.txt",
+  "notice": "licenses/desktop-go-github.com-egoist-mygo-v0.8.3-LICENSE.txt",
   "licenseSHA256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
   "scope": "Windows Shell cross-integrity file-drop receiver, adapted from WinOne's existing Rust component_file_drop.rs. Native UI, OLE, hit testing and file dispatch stay upstream. Also adds an explicit asynchronous inline-math paragraph revision hook (with source/selection preservation regression) and an embedded-page native-focus accessor for the plugin navigation gate, actual native input gesture notifications, and a trusted native WebView object handle for frame policy. Prepared from the pinned verified module into an isolated repository source cache; never modifies the Go module cache.",
   "patches": [
-    {"path":"internal/windows/webview.go","sha256":"d79119bb63eea35ccbffc6702a06654da6f79f554c0a2d4523c522952d653635","edits":[
+    {"path":"internal/windows/webview.go","sha256":"7bfaa9db019fe198a7d89fbfffefdeb2ae424f9988157eb3f588f041b8cce870","edits":[
       {"oldText":"func (w *window) acceleratorKeyPressed(_, args uintptr) {\n\tw = w.top() // a web view's keys are its window's","newText":"func (w *window) acceleratorKeyPressed(_, args uintptr) {\n\torigin := w\n\tw = w.top() // a web view's keys are its window's"},
       {"oldText":"\tvar vk uint32\n\tcomCall(args, accelGetVirtualKey","newText":"\torigin.winOneRecordUserGesture()\n\tvar vk uint32\n\tcomCall(args, accelGetVirtualKey"}
     ]},
@@ -18,7 +18,7 @@
     ]},
     {
       "path": "ui/markdown/view.go",
-      "sha256": "968c678da0d546a5231cdedbe21f2c3ad121bdcea5e14e9037e9568978d399c7",
+      "sha256": "21cdde4f7a969bfeeba771835f638b45304417eb9cc0bc2e673c2c912563295a",
       "edits": [
         {
           "oldText": "\tInlineMath func(tex string, size float32) (InlineObject, bool)",

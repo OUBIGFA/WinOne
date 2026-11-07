@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	github.com/ebitengine/purego v0.11.1
-	github.com/egoist/mygo v0.8.1
+	github.com/egoist/mygo v0.8.3
 	github.com/gorilla/websocket v1.5.3
 	github.com/pion/logging v0.2.4
 	github.com/pion/transport/v5 v5.1.4
@@ -52,4 +52,4 @@ replace winone/resultui => ../result-ui
 replace winone/modules/nativeui => ../../modules/nativeui
 
 // Prepared from verified upstream by build/prepare-mygo-filedrop.ps1.
-replace github.com/egoist/mygo => ../../dist/resources/sources/mygo-winone-v0.8.1
+replace github.com/egoist/mygo => ../../dist/resources/sources/mygo-winone-v0.8.3

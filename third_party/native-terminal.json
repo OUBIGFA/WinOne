@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "mygoVersion": "v0.8.1",
+  "mygoVersion": "v0.8.3",
   "mygoManifestSHA256": "2d7c464140e016bf4790671bcd4e61af8995c75a86e491f347297b1a637a29a4",
   "library": {
     "name": "ghostty-vt.dll",
@@ -162,7 +162,7 @@
         {
           "file": "licenses/native-terminal-iterm2-LICENSE.txt",
           "sha256": "6f49fb95a92b2669e1c54c1ef812186da4e2be7d41891cd5ff55f1c754ae2e97",
-          "sourceFile": "dist/resources/sources/mygo-winone-v0.8.1/plugins/terminal/ghostty_themes.go",
+          "sourceFile": "dist/resources/sources/mygo-winone-v0.8.3/plugins/terminal/ghostty_themes.go",
           "sourceSHA256": "5a87ca81f4f0aec1ed9617149e89e0b735095f71386aa118bbfd2ab797cf6dca",
           "adaptation": "original license/attribution comment excerpt; no license text rewritten"
         }

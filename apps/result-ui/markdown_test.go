@@ -59,6 +59,19 @@ func TestMarkdownRendersHeadingsListsTablesAndCode(t *testing.T) {
 	}
 }
 
+// MyGo 0.8.2 recognizes mentions and issue references as separate inline
+// kinds; table cells must preserve their visible text as ordinary prose.
+func TestMarkdownTablePreservesMentionsAndReferences(t *testing.T) {
+	p := NewPanel("ocr", "zh-CN", "light")
+	p.Result = "| Owner | Issue |\n|---|---|\n| @octocat | #123 |"
+	tt := ui.NewTester(p.View, 760, 1000)
+	for _, text := range []string{"@octocat", "#123"} {
+		if !tt.HasText(text) {
+			t.Errorf("table inline content missing: %s; rendered=%q", text, tt.Texts())
+		}
+	}
+}
+
 func TestMarkdownDoesNotExecuteHTMLOrUnsafeLinks(t *testing.T) {
 	p := NewPanel("ocr", "zh-CN", "light")
 	p.Result = "[文档](https://example.invalid/guide) [危险](javascript:alert(1))\n\n<script>alert(1)</script>"
