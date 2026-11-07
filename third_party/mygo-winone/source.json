@@ -7,7 +7,7 @@
   "license": "MIT",
   "notice": "licenses/desktop-go-github.com-egoist-mygo-v0.8.3-LICENSE.txt",
   "licenseSHA256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
-  "scope": "Windows Shell cross-integrity file-drop receiver, adapted from WinOne's existing Rust component_file_drop.rs. Native UI, OLE, hit testing and file dispatch stay upstream. Also adds an explicit asynchronous inline-math paragraph revision hook (with source/selection preservation regression) and an embedded-page native-focus accessor for the plugin navigation gate, actual native input gesture notifications, and a trusted native WebView object handle for frame policy. Prepared from the pinned verified module into an isolated repository source cache; never modifies the Go module cache.",
+  "scope": "Windows Shell cross-integrity file-drop receiver, adapted from WinOne's existing Rust component_file_drop.rs. Native UI, OLE, hit testing and file dispatch stay upstream. Also adds an explicit asynchronous inline-math paragraph revision hook (with source/selection preservation regression) and an embedded-page native-focus accessor for the plugin navigation gate, actual native input gesture notifications, and a trusted native WebView object handle for frame policy. Prepared from the pinned verified module into an isolated repository source cache; never modifies the Go module cache. Opaque Windows native surfaces paint the complete interactive scene with the existing CPU renderer while D3D11 device creation runs asynchronously, then retain the same UI state on GPU handoff. Device cancellation owns late cleanup; composed surfaces keep the original path.",
   "patches": [
     {"path":"internal/windows/webview.go","sha256":"7bfaa9db019fe198a7d89fbfffefdeb2ae424f9988157eb3f588f041b8cce870","edits":[
       {"oldText":"func (w *window) acceleratorKeyPressed(_, args uintptr) {\n\tw = w.top() // a web view's keys are its window's","newText":"func (w *window) acceleratorKeyPressed(_, args uintptr) {\n\torigin := w\n\tw = w.top() // a web view's keys are its window's"},
@@ -81,7 +81,9 @@
           "newText": "func (s *surface) revokeFileDrops() {\n\ts.revokeShellFileDrops()\n\tif s.dropTarget != 0 {"
         }
       ]
-    }
+    },
+    {"path": "internal/gpu/d3d11/d3d11.go", "sha256": "4927f0d7b054e8c25f16a72fc605f17f053157268e03a34b70f4e5e528db01f5", "edits": [{"oldText": "\tif err := r.init(); err != nil {\n\t\tr.Release()\n\t\treturn nil, err\n\t}\n\treturn r, nil", "newText": "\treturn initializeRenderer(r)"}]},
+    {"path": "ui/window.go", "sha256": "d4aadd624bb8758f8e361035eb5cf85f73cab4396cb6d0e401271d158ef8b780", "edits": [{"oldText": "\th.uiFont()\n\th.textLanguage()", "newText": "\th.prepareGraphics()\n\th.uiFont()\n\th.textLanguage()"}, {"oldText": "\tgpu  gpuRenderer\n", "newText": "\tgpu  gpuRenderer\n\tpreparing *gpuPreparation\n"}, {"oldText": "func (h *windowHost) makeGPU() {\n", "newText": "func (h *windowHost) makeGPU() {\n\tif p := h.preparing; p != nil {\n\t\tselect {\n\t\tcase <-p.ready:\n\t\tdefault:\n\t\t\treturn // The complete scene and input continue on the CPU.\n\t\t}\n\t}\n"}, {"oldText": "\tr, err := newGPU(n)", "newText": "\tconstruct := func() (gpuRenderer, error) { return newGPU(n) }\n\tif p := h.preparing; p != nil {\n\t\th.preparing = nil\n\t\tconstruct = func() (gpuRenderer, error) { return p.finish(n) }\n\t}\n\tr, err := construct()"}, {"oldText": "\th.gpu, h.gpuSince = r, time.Now()", "newText": "\th.soft.Release() // The GPU owns the next frame; free the CPU buffer now.\n\th.gpu, h.gpuSince = r, time.Now()"}, {"oldText": "func (h *windowHost) detach() {\n\th.detached = true", "newText": "func (h *windowHost) detach() {\n\th.detached = true\n\th.cancelGraphics()"}]}
   ],
   "additions": [
     {"path": "internal/windows/surface_file_drop_winone.go", "source": "surface_file_drop_windows.go"},
@@ -89,6 +91,11 @@
     {"path": "winone_webview_focus.go", "source": "webview_focus.go"},
     {"path": "winone_page_native_handle.go", "source": "page_native_handle.go"},
     {"path": "internal/windows/winone_webview_query_interface_windows.go", "source": "webview_query_interface_windows.go"},
-    {"path": "internal/windows/webview_user_gesture_winone.go", "source": "webview_user_gesture_windows.go"}
+    {"path": "internal/windows/webview_user_gesture_winone.go", "source": "webview_user_gesture_windows.go"},
+    {"path": "internal/gpu/d3d11/winone_async_device_windows.go", "source": "async_device_windows.go"},
+    {"path": "internal/gpu/d3d11/winone_async_device_test.go", "source": "async_device_test.go"},
+    {"path": "ui/winone_async_gpu_windows.go", "source": "async_gpu_windows.go"},
+    {"path": "ui/winone_async_gpu.go", "source": "async_gpu.go"},
+    {"path": "ui/winone_async_gpu_test.go", "source": "async_gpu_test.go"}
   ]
 }

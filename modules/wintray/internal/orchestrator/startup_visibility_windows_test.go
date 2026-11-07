@@ -45,6 +45,10 @@ var fixtureProc = syscall.NewCallback(func(hwnd win.HWND, msg uint32, w uintptr,
 		}
 	case win.WM_APP + 25:
 		return uintptr(fixtureLayeredChanges)
+	case win.WM_APP + 26:
+		// Deterministic process-exit fixture, independent of which unrelated
+		// desktop application currently owns keyboard focus.
+		os.Exit(0)
 	case win.WM_SETFOCUS:
 		if fixtureEscapeMode != "" {
 			// Like an embedded renderer, only the child consumes keyboard input.

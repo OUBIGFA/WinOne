@@ -142,6 +142,18 @@ func TestUnresponsiveEscapeNeverEscalatesToDisabledClose(t *testing.T) {
 	}
 }
 
+type exitingFixtureManager struct {
+	*Win32WindowManager
+	owner uintptr
+}
+
+func (m *exitingFixtureManager) SendEscape(context.Context, uintptr) (bool, error) {
+	if win.PostMessage(win.HWND(m.owner), win.WM_APP+26, 0, 0) == 0 {
+		return false, errors.New("could not request fixture process exit")
+	}
+	return true, nil
+}
+
 func TestProcessExitIsNotSuccessfulDismissal(t *testing.T) {
 	entry, file := startupFixtureEntry(t, "escape-exits")
 	entry.TrayBehavior.CloseDelaySeconds = 0
@@ -151,8 +163,11 @@ func TestProcessExitIsNotSuccessfulDismissal(t *testing.T) {
 	}
 	defer cmd.Process.Release()
 	state := awaitStartupFixture(t, file)
-	svc := NewService(NewWin32WindowEnumerator(), NewWin32WindowManager(), &liveEscapeLogger{t})
-	focusEscapeFixture(t, state, state.Forms[1])
+	// This case verifies real process lifetime, not input routing (covered by
+	// the native Esc cases above). Request exit through the fixture's own
+	// message loop so a foreground change cannot turn it into a no-op.
+	manager := &exitingFixtureManager{Win32WindowManager: NewWin32WindowManager(), owner: state.Owner}
+	svc := NewService(NewWin32WindowEnumerator(), manager, &liveEscapeLogger{t})
 	window := windowInfo(state.Forms[1], 0, nil)
 	_, ok := svc.tryManageAndVerify(context.Background(), window, closeAllowedScoreThreshold, "close")
 	if ok {

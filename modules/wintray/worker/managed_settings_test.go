@@ -2,11 +2,60 @@ package worker
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 	"winone/modules/wintray/internal/config"
 )
+
+type activationEffects struct {
+	err   error
+	allow bool
+	calls int
+}
+
+func (e *activationEffects) Reconcile(_ config.Settings, allow bool) error {
+	e.calls++
+	e.allow = allow
+	return e.err
+}
+
+func TestManagedRecoveryRetriesUnchangedSettingsAfterStartupFailure(t *testing.T) {
+	directory := t.TempDir()
+	projection := filepath.Join(directory, "managed-settings.json")
+	initial := config.DefaultSettings()
+	writeManaged(t, projection, 1, initial)
+	effect := &activationEffects{err: errors.New("task access denied")}
+	manager, err := newManagedManager(config.NewStore(filepath.Join(directory, "settings.json")), projection, effect)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = manager.Activate(false); err == nil {
+		t.Fatal("startup failure accepted")
+	}
+	if manager.Snapshot().RecoveryError == "" {
+		t.Fatal("startup failure did not expose the existing recovery action")
+	}
+	if _, err = manager.Recover(true); err == nil {
+		t.Fatal("unchanged configuration falsely reported as recovered")
+	}
+	effect.err = nil
+	before := effect.calls
+	if _, err = manager.Recover(true); err != nil {
+		t.Fatal(err)
+	}
+	if effect.calls != before+1 || !effect.allow {
+		t.Fatal("recovery skipped the system changes or disallowed confirmation")
+	}
+	if manager.Snapshot().RecoveryError != "" {
+		t.Fatal("successful recovery left an error")
+	}
+	before = effect.calls
+	if _, err = manager.ReloadManaged(true); err != nil || effect.calls != before {
+		t.Fatalf("successful unchanged settings were reapplied: %v", err)
+	}
+}
 
 func writeManaged(t *testing.T, path string, revision uint64, value config.Settings) {
 	t.Helper()

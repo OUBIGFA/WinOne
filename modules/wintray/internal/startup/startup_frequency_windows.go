@@ -127,19 +127,7 @@ func (t *AppTasks) writeNativeTask(name, definition string, allowElevated bool) 
 	for _, principal := range task.Principals {
 		highest = highest || principal.RunLevel == "HighestAvailable"
 	}
-	path, cleanup, err := writeTaskDefinition(definition)
-	if err != nil {
-		return err
-	}
-	defer cleanup()
-	if highest && !t.isElevated() {
-		if !allowElevated || t.elevateSelf == nil {
-			return errElevationNeeded
-		}
-		return t.elevateSelf(AppTaskHelperRegister, name, path)
-	}
-	_, err = t.run("/Create", "/TN", name, "/XML", path, "/F")
-	return err
+	return t.registerTask(name, definition, highest, allowElevated)
 }
 
 func (t *AppTasks) syncLimitedNative(spec appTaskSpec, name string, previous appMigration, state *migrationState, allowElevated bool) error {

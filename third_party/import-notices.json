@@ -121,10 +121,13 @@
       "repository": "https://github.com/egoist/mygo",
       "commit": "5add3817c74bb7505d0b473bc5fb28abe2201b99",
       "license": "MIT",
-      "scope": "MyGo v0.8.3, complete verified upstream in a repository source cache; Windows cross-integrity Shell file-drop hooks and async inline-math revision adapt WinOne's existing integration. Source.json records the committed narrow native adaptations. Original OLE, hit testing and file dispatch remain unchanged.",
+      "scope": "MyGo v0.8.3, complete verified upstream in a repository source cache; Windows cross-integrity Shell file-drop hooks and async inline-math revision adapt WinOne's existing integration. Source.json records the committed narrow native adaptations. Original OLE, hit testing and file dispatch remain unchanged. Opaque Windows native surfaces draw the full interactive scene through the upstream CPU renderer while the D3D11 device initializes off-thread, then transfer to the GPU without replacing control state; device cancellation releases late results.",
       "sourceFiles": [
         "internal/windows/surface_drop.go",
-        "ui/markdown/view.go"
+        "ui/markdown/view.go",
+        "ui/window.go",
+        "internal/gpu/d3d11/d3d11.go",
+        "internal/gpu/d3d11/device/device.go"
       ],
       "notices": [
         {
@@ -135,7 +138,7 @@
       "files": [
         {
           "path": "third_party/mygo-winone/source.json",
-          "sha256": "efb4882556465981cc2d8467ef261a961a43cd2f4e497047ee37f4778616ae46"
+          "sha256": "0762c8e35ad319e7cd4a337daea929dba90bc9e17180d77ce29ddfe3ada05488"
         },
         {
           "path": "third_party/mygo-winone/inline_math_test.go",
@@ -148,6 +151,26 @@
         {
           "path": "build/prepare-mygo-filedrop.ps1",
           "sha256": "bdcc8696fdfd1386eb3f30c6c5c0cecef604286d68d98283d3b7db6de4aea5a5"
+        },
+        {
+          "path": "third_party/mygo-winone/async_device_windows.go",
+          "sha256": "c6b5ddee07b5990f48b75ac2f2144fb8a583776545f313dc85a835688da59d04"
+        },
+        {
+          "path": "third_party/mygo-winone/async_device_test.go",
+          "sha256": "9556f14e03310fbb33cd56171a807a7f596c5ab1a27b967cf32849dd5e9bbb91"
+        },
+        {
+          "path": "third_party/mygo-winone/async_gpu.go",
+          "sha256": "64d4e678b2b104db5e24a0457779fe85043f65c18b23c0407225b92a300cf4d8"
+        },
+        {
+          "path": "third_party/mygo-winone/async_gpu_windows.go",
+          "sha256": "1ea7d5b9c5869b15bfeb15e5e1260799d460fc4b80dfc64e63e513853cae9585"
+        },
+        {
+          "path": "third_party/mygo-winone/async_gpu_test.go",
+          "sha256": "584e589bb1f374e87dfa56c68c91b17160af8f9e733e5b2b1252856acb9602f3"
         }
       ]
     },

@@ -82,13 +82,14 @@ func (m *Manager) ReloadManaged(allowElevated bool) (Snapshot, error) {
 	if err != nil {
 		return m.snapshotLocked(), err
 	}
-	if m.recoveryError == "" && revision(value.Settings) == revision(m.current) {
+	if m.reconciled && m.recoveryError == "" && revision(value.Settings) == revision(m.current) {
 		m.managedRevision = value.Revision
 		return m.snapshotLocked(), nil
 	}
 	before := clone(m.current)
 	if err = m.effects.Reconcile(value.Settings, allowElevated); err != nil {
 		rollbackErr := m.effects.Reconcile(before, allowElevated)
+		m.reconciled = rollbackErr == nil
 		if rollbackErr != nil {
 			m.recoveryError = "恢复失败：" + rollbackErr.Error()
 		} else {
@@ -99,6 +100,7 @@ func (m *Manager) ReloadManaged(allowElevated bool) (Snapshot, error) {
 	m.current = clone(value.Settings)
 	m.managedRevision = value.Revision
 	m.recoveryError = ""
+	m.reconciled = true
 	return m.snapshotLocked(), nil
 }
 

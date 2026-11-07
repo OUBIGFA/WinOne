@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory)][string]$OutputDirectory,
     [ValidateRange(2,100)][int]$Runs=21,
     [switch]$EnforceWarmBudget,
-    [ValidateSet('WebView2','MyGo')][string]$Frontend='WebView2'
+    [ValidateSet('WebView2','MyGo')][string]$Frontend='WebView2',
+    [switch]$ObserveGPUHandoff
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
@@ -21,6 +22,7 @@ $desktopExe=Join-Path $bundle 'WinOne.exe'
 $hostExe=Join-Path $bundle 'WinOne.Host.exe'
 foreach($file in @($desktopExe,$hostExe)){if(-not(Test-Path -LiteralPath $file -PathType Leaf)){throw "Missing binary: $file"}}
 if($EnforceWarmBudget -and $Runs -lt 21){throw 'Budget enforcement requires at least 20 same-profile reopens'}
+if($ObserveGPUHandoff -and ($Frontend -ne 'MyGo' -or $EnforceWarmBudget)){throw 'GPU handoff observation is a separate MyGo diagnostic, not a budget measurement'}
 & git -C $workspace check-ignore -q --no-index -- (Join-Path $output 'result.json')
 if($LASTEXITCODE -ne 0 -or (Test-Path -LiteralPath $output)){throw 'Choose a new Git-ignored output directory'}
 New-Item -ItemType Directory -Path $output | Out-Null
@@ -37,12 +39,14 @@ foreach($id in $catalog.id){$moduleRecords[$id]=@{enabled=$false;pendingStop=$fa
 $pipe='\\.\pipe\WinOne-startup-benchmark-'+[guid]::NewGuid().ToString('N')
 $savedTrace=$env:WINONE_DESKTOP_STARTUP_TRACE
 $savedBrowser=$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
+$savedFrameStats=$env:MYGO_FRAME_STATS
 $reports=[Collections.Generic.List[object]]::new()
 $process=$null
 $failure=$null
 $result=[ordered]@{
     Scope='Visible UI; isolated profile; no debugger or resident WebView. First launch uses a fresh profile, not a verified cold OS cache. Readiness means committed Home data and controls, not physical input-to-photon latency.'
     Frontend=$Frontend
+    GPUHandoffDiagnostic=[bool]$ObserveGPUHandoff
     StartedUtc=[DateTime]::UtcNow.ToString('o')
     OSVersion=[Environment]::OSVersion.VersionString
     Processor=@(Get-CimInstance Win32_Processor | ForEach-Object {$_.Name})
@@ -55,6 +59,9 @@ $result=[ordered]@{
 try{
     $env:WINONE_DESKTOP_STARTUP_TRACE='1'
     $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=$null
+    # A separate run verifies that a live CPU-rendered window subsequently
+    # draws through the GPU. Frame logging is excluded from budget runs.
+    $env:MYGO_FRAME_STATS=if($ObserveGPUHandoff){'all'}else{$null}
     for($run=1;$run -le $Runs;$run++){
         $start=[Diagnostics.ProcessStartInfo]::new($desktopExe,'--standard-session --pipe "'+$pipe+'" --data-dir "'+$profile+'"')
         $start.UseShellExecute=$false;$start.CreateNoWindow=$true;$start.RedirectStandardError=$true
@@ -63,7 +70,7 @@ try{
         $null=$process.Handle
         $trace=[Collections.Generic.List[string]]::new()
         $traceFile=Join-Path $output "trace-$run.log"
-        $ready=$false;$deadline=[DateTime]::UtcNow.AddSeconds(20)
+        $ready=$false;$gpuReadyMs=$null;$deadline=[DateTime]::UtcNow.AddSeconds(20)
         while(-not $ready){
             $lineTask=$process.StandardError.ReadLineAsync()
             while(-not $lineTask.Wait(50)){
@@ -73,10 +80,25 @@ try{
             $line=$lineTask.Result
             if($null -eq $line){throw 'UI trace ended before readiness'}
             $trace.Add($line)
+            if($ObserveGPUHandoff -and $null -eq $gpuReadyMs -and $line -match 'drawn on the GPU:'){$gpuReadyMs=$timer.Elapsed.TotalMilliseconds}
             if($line -match '^startup ([0-9.]+)ms ui-ready$'){
                 $ready=$true
                 $internalReady=[double]::Parse($Matches[1],[Globalization.CultureInfo]::InvariantCulture)
                 $externalReady=$timer.Elapsed.TotalMilliseconds
+            }
+        }
+        if($ObserveGPUHandoff){
+            $deadline=[DateTime]::UtcNow.AddSeconds(10)
+            while($null -eq $gpuReadyMs){
+                $lineTask=$process.StandardError.ReadLineAsync()
+                while(-not $lineTask.Wait(50)){
+                    if($process.HasExited){throw 'UI exited before GPU handoff'}
+                    if([DateTime]::UtcNow -gt $deadline){throw 'GPU did not present a frame after UI readiness'}
+                }
+                $line=$lineTask.Result
+                if($null -eq $line){throw 'UI trace ended before GPU handoff'}
+                $trace.Add($line)
+                if($line -match 'drawn on the GPU:'){$gpuReadyMs=$timer.Elapsed.TotalMilliseconds}
             }
         }
         # Disk writes stay outside the startup measurement; finally also saves
@@ -105,6 +127,7 @@ try{
         $uiIdentities=@($uiDescendants | Select-Object ProcessId,ParentProcessId,Name,@{Name='CreatedUtc';Expression={$_.CreationDate.ToUniversalTime().ToString('o')}})
         $sample=[pscustomobject]@{Run=$run;NativeReadyMs=$internalReady;ProcessStartToReadyMs=$externalReady;CloseMs=$null;DesktopProcessId=$process.Id;DesktopCreatedUtc=$root[0].CreationDate.ToUniversalTime().ToString('o');ObservedWebViews=$webviews.Count;WebViewIdentities=$identities;UIIdentities=$uiIdentities;RemainingUIIdentities=@();ObservedUIProcessesExited=$false;RemainingWebViewIdentities=@();ExitCode=$null;ObservedWebViewsExited=$false;Trace=$trace.ToArray()}
         $reports.Add($sample)
+        if($ObserveGPUHandoff){$sample | Add-Member -NotePropertyName FirstGPUFrameMs -NotePropertyValue $gpuReadyMs}
         $close=[Diagnostics.Stopwatch]::StartNew()
         if($Frontend -eq 'MyGo'){[WinOnePrivateTestDesktop]::CloseCurrentWindow([uint32]$process.Id)}elseif(-not $process.CloseMainWindow()){throw 'Owned settings window refused normal close'}
         if(-not $process.WaitForExit(10000)){throw 'Owned UI did not close normally'}
@@ -134,7 +157,7 @@ try{
     # Nearest-rank P95; the fresh-profile launch is reported separately.
     $warm=@($reports | Select-Object -Skip 1 | ForEach-Object {$_.ProcessStartToReadyMs} | Sort-Object)
     $result.WarmP95Ms=$warm[[int][Math]::Ceiling(0.95*$warm.Count)-1]
-    $result.WarmBudgetPassed=$warm.Count -ge 20 -and $result.WarmP95Ms -le $result.WarmBudgetMs
+    $result.WarmBudgetPassed=-not $ObserveGPUHandoff -and $warm.Count -ge 20 -and $result.WarmP95Ms -le $result.WarmBudgetMs
     $result.Completed=$true
     if($EnforceWarmBudget -and -not $result.WarmBudgetPassed){throw "Warm startup P95 exceeded 300ms: $($result.WarmP95Ms)ms"}
 }catch{
@@ -143,6 +166,7 @@ try{
 }finally{
     $env:WINONE_DESKTOP_STARTUP_TRACE=$savedTrace
     $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=$savedBrowser
+    $env:MYGO_FRAME_STATS=$savedFrameStats
     try{
         if($process){
             if(-not $process.HasExited){[void]$process.CloseMainWindow();if(-not $process.WaitForExit(3000)){$process.Kill();$process.WaitForExit()}}

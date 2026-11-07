@@ -40,8 +40,8 @@ var errElevationNeeded = errors.New("program task needs one elevated confirmatio
 
 // AppTasks reuses an application's existing interactive logon task, or creates
 // a current-user replacement for its original Run/shortcut trigger. Original
-// startup data remains owned by the application. Only newly created elevated
-// tasks need a one-time administrator confirmation.
+// startup data remains owned by the application. Elevated tasks and changes to
+// administrator-owned tasks need administrator confirmation.
 type AppTasks struct {
 	mu            sync.Mutex
 	userSID       string
@@ -236,22 +236,36 @@ func (t *AppTasks) syncOne(spec appTaskSpec, allowElevated bool) error {
 			}
 		}
 	}
+	return t.registerTask(spec.name, definition, needsElevation, allowElevated)
+}
+
+// RunLevel controls the launched program, not who can update the task. Even a
+// LeastPrivilege task created by an administrator may be read-only to our
+// filtered token. Retry a failed registration through the existing helper only
+// during a user-initiated operation, keeping the requested run level unchanged.
+func (t *AppTasks) registerTask(name, definition string, needsElevation, allowElevated bool) error {
 	path, cleanup, err := writeTaskDefinition(definition)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	if !needsElevation || IsProcessElevated() {
-		_, err = t.run("/Create", "/TN", spec.name, "/XML", path, "/F")
-		return err
+	elevated := t.isElevated()
+	if !needsElevation || elevated {
+		_, err = t.run("/Create", "/TN", name, "/XML", path, "/F")
+		if err == nil || elevated {
+			return err
+		}
 	}
 	if !allowElevated {
-		return errElevationNeeded
+		return errors.Join(errElevationNeeded, err)
 	}
 	if t.elevateSelf == nil {
-		return errors.New("elevation helper unavailable")
+		return errors.Join(errors.New("elevation helper unavailable"), err)
 	}
-	return t.elevateSelf(AppTaskHelperRegister, spec.name, path)
+	if helperErr := t.elevateSelf(AppTaskHelperRegister, name, path); helperErr != nil {
+		return errors.Join(err, helperErr)
+	}
+	return nil
 }
 
 // remove deletes one task; a task that does not exist counts as removed. A

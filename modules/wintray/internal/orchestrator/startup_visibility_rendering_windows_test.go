@@ -7,9 +7,23 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/lxn/win"
 )
+
+// Preserve real launch/close timing when a native fixture fails; a silent
+// logger hides whether the window was absent or a close confirmation expired.
+type startupRenderingLogger struct {
+	t     *testing.T
+	start time.Time
+}
+
+func (l *startupRenderingLogger) Info(text string) {
+	l.t.Logf("%s %s", time.Since(l.start).Round(time.Millisecond), text)
+}
+func (l *startupRenderingLogger) Warn(text string)  { l.Info(text) }
+func (l *startupRenderingLogger) Error(text string) { l.Info(text) }
 
 // DC-backed renderers cannot use WS_EX_LAYERED. Checking only the final style
 // misses the incompatible transition during initialization, so the real helper
@@ -62,7 +76,7 @@ func TestDCBackedLaunchPreservesNativeTrayRestore(t *testing.T) {
 				entry, file := startupFixtureEntry(t, mode)
 				entry.RunOnStartup = true
 				entry.TrayBehavior.CloseDelaySeconds = 0
-				svc := NewService(NewWin32WindowEnumerator(), NewWin32WindowManager(), &testLogger{})
+				svc := NewService(NewWin32WindowEnumerator(), NewWin32WindowManager(), &startupRenderingLogger{t: t, start: time.Now()})
 				launch := svc.StartAndManage
 				if manual {
 					launch = svc.StartNow

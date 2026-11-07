@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory)][string]$BundleDirectory,
     [Parameter(Mandatory)][string]$OutputDirectory,
     [ValidateRange(2,100)][int]$Runs=21,
-    [switch]$EnforceWarmBudget
+    [switch]$EnforceWarmBudget,
+    [switch]$ObserveGPUHandoff
 )
 # Explicit real-process benchmark on a repository-owned private desktop. No
 # foreground switching, user profile, account or installed application is used.
@@ -29,6 +30,7 @@ try{
     $runner=Join-Path $output 'run.ps1'
     $command="& '"+(Join-Path $PSScriptRoot 'benchmark-component-startup.ps1').Replace("'","''")+"' -BundleDirectory '"+$bundle.Replace("'","''")+"' -OutputDirectory '"+$measurements.Replace("'","''")+"' -Runs "+$Runs+" -Frontend MyGo"
     if($EnforceWarmBudget){$command+=' -EnforceWarmBudget'}
+    if($ObserveGPUHandoff){$command+=' -ObserveGPUHandoff'}
     $run="`$ErrorActionPreference='Stop'`ntry { "+$command+" *> '"+$log.Replace("'","''")+"'; exit 0 } catch { `$_ | Out-String | Add-Content -LiteralPath '"+$log.Replace("'","''")+"'; exit 1 }`n"
     [IO.File]::WriteAllText($runner,$run,[Text.UTF8Encoding]::new($false))
     $process=$desktop.Start((Get-Command powershell.exe).Source,('-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$runner+'"'),$root)

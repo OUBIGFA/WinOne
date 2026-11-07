@@ -41,6 +41,7 @@ type Manager struct {
 	pending         *transaction
 	managedPath     string
 	managedRevision uint64
+	reconciled      bool // Equal settings can skip system work only after a successful apply.
 }
 
 func NewManager(store *config.Store, initial config.Settings, effects Effects) *Manager {
@@ -72,9 +73,16 @@ func (m *Manager) Activate(allowElevated bool) (Snapshot, error) {
 	if m.recoveryError != "" {
 		return m.snapshotLocked(), errors.New(m.recoveryError)
 	}
+	m.reconciled = false
 	if err := m.effects.Reconcile(clone(m.current), allowElevated); err != nil {
+		// Managed recovery reapplies the Host projection. Expose its existing
+		// UI action when startup fails, even though no settings were edited.
+		if m.managedPath != "" {
+			m.recoveryError = err.Error()
+		}
 		return m.snapshotLocked(), err
 	}
+	m.reconciled = true
 	return m.snapshotLocked(), nil
 }
 

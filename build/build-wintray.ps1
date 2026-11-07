@@ -19,7 +19,7 @@ if($LASTEXITCODE -ne 0){throw 'WinTray WeChat source/license verification failed
 & (Join-Path $PSScriptRoot 'build-wintray-native.ps1') -OutputDir (Join-Path $output 'native') -Test
 Push-Location $root
 try {
-    & $GoExe run ./build/icon -out internal/branding/icon.ico
+    & $GoExe run ./build/icon -out internal/branding/icon.ico -native-png internal/branding/logo-native.png
     if($LASTEXITCODE -ne 0){throw 'WinTray icon generation failed'}
     & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o modules/wintray/cmd/worker/resource_windows.syso
     if($LASTEXITCODE -ne 0){throw 'WinTray Windows resources failed'}

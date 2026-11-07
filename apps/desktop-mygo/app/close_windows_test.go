@@ -60,7 +60,14 @@ func TestWindowCloseLifecycle(t *testing.T) {
 			go transport.Serve(ctx, listener, h)
 			cmd := exec.CommandContext(ctx, self, "--close-window-helper", pipe, directory, mode)
 			cmd.Dir = directory
-			cmd.Env = append(os.Environ(), "APPDATA="+directory, "LOCALAPPDATA="+directory, "MYGO_GPU=0")
+			gpu := "0"
+			if os.Getenv("WINONE_MYGO_CLOSE_CHECK_GPU") == "1" {
+				gpu = "1"
+			}
+			cmd.Env = append(os.Environ(), "APPDATA="+directory, "LOCALAPPDATA="+directory, "MYGO_GPU="+gpu)
+			if gpu == "1" {
+				cmd.Env = append(cmd.Env, "MYGO_FRAME_STATS=all")
+			}
 			var output bytes.Buffer
 			cmd.Stdout, cmd.Stderr = &output, &output
 			if err := cmd.Start(); err != nil {
@@ -69,7 +76,13 @@ func TestWindowCloseLifecycle(t *testing.T) {
 			exited := make(chan struct{})
 			var exitErr error
 			go func() { exitErr = cmd.Wait(); close(exited) }()
-			defer func() { cancel(); <-exited }()
+			defer func() {
+				cancel()
+				<-exited
+				if err := os.WriteFile(filepath.Join(directory, "frames.log"), output.Bytes(), 0600); err != nil {
+					t.Error(err)
+				}
+			}()
 			await := func(condition func() bool, budget time.Duration, message string) {
 				t.Helper()
 				deadline := time.Now().Add(budget)
@@ -180,6 +193,9 @@ func runWindowCloseHelper() error {
 	mygo.App.SetPath(mygo.PathUserData, directory)
 	page := &lifecyclePage{directory: directory, mode: mode}
 	shell.Register("overview", core.Workspace, func(env *core.Env) core.Page {
+		if mode == "startup-input" {
+			return &startupInputPage{directory: directory, env: env}
+		}
 		page.env = env
 		return page
 	})

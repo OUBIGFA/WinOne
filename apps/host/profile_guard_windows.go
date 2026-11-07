@@ -10,6 +10,10 @@ import (
 	"winone/internal/distribution"
 )
 
+// Keep the read-only Windows registration boundary replaceable in tests; a
+// normal test run must not depend on, or modify, the machine's real install.
+var captureProfileRegistration = distribution.CaptureRegistration
+
 // A copy outside the installed directory must never silently open the real
 // user profile: catalog migrations there would bump schema versions the
 // installed build cannot read back. The installer's read-only ownership check
@@ -24,7 +28,7 @@ func guardDefaultProfile(data string, dataDirExplicit bool) error {
 	if err != nil {
 		return err
 	}
-	if _, err := distribution.CaptureRegistration(filepath.Dir(executable), `Software\Microsoft\Windows\CurrentVersion\Uninstall\WinOne`); err != nil {
+	if _, err := captureProfileRegistration(filepath.Dir(executable), `Software\Microsoft\Windows\CurrentVersion\Uninstall\WinOne`); err != nil {
 		return errors.New("当前副本不属于已安装的 WinOne，为保护真实配置已停止；请从安装目录打开，或测试时用 --data-dir 指定独立目录")
 	}
 	return nil

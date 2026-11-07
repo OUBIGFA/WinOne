@@ -778,8 +778,11 @@ func (s *Service) captureBaseline(predicate func(ManagedWindowInfo) bool) map[ui
 func (s *Service) verifyActionApplied(ctx context.Context, hwnd uintptr, score int, action string) bool {
 	// Keep verification responsive for hide (avoids long per-candidate stalls)
 	// while still allowing async framework event loops enough time.
-	attempts := 10
-	delay := 400 * time.Millisecond
+	// Native close-to-tray can complete between polls. Observe it promptly so
+	// several windows still fit the shared startup budget; keep the original
+	// 3.6-second maximum verification span (36 waits, previously 9 x 400ms).
+	attempts := 37
+	delay := 100 * time.Millisecond
 	if action == "escape" {
 		// Leave time for the target input queue before considering native close.
 		attempts, delay = 4, 250*time.Millisecond
