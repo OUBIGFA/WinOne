@@ -1,4 +1,4 @@
-name: Windows checks
+name: Windows source checks
 on:
   push:
     branches: ['**']
@@ -17,13 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
-          cache-dependency-path: apps/desktop/frontend/package-lock.json
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.203'
-      - name: Test and build
+      - name: Test sources and build Host
         shell: pwsh
         run: |
-          ./build/verify-repository.ps1
-          ./build/build.ps1
+          ./build/test-source.ps1

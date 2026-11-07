@@ -1,10 +1,32 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {syncCindy} from '../../build/sync-cindy.mjs';
-test('Cindy synchronization preserves original WebP portrait bytes',()=>{
- const cindy='dist/resources/sources/cindy';
- if(!fs.existsSync(cindy+'/.git'))return;
- const result=syncCindy({cindy,mode:'check',spec:{schemaVersion:1,revision:'b7e46bcbbe41eeee2f16381fef00df61a31a3b8b',groups:[{source:'apps/desktop/resources/bot-packages/engineer-bot/0.5.1/assets/avatar.webp',target:'modules/chat-pi/cindy/bot-packages/engineer-bot/0.5.1/assets/avatar.webp',file:true}]}});
- assert.equal(result.files[0].sha256,result.files[0].sourceSHA256,'An asset must remain byte-identical to the pinned original');
+test('Cindy synchronization preserves binary bytes on a clean checkout',(t)=>{
+ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+ const base=path.join(root,'_temp','cindy-binary-tests');
+ fs.mkdirSync(base,{recursive:true});
+ const cindy=fs.mkdtempSync(path.join(base,'upstream-'));
+ t.after(()=>fs.rmSync(cindy,{recursive:true,force:true}));
+ const git=(...args)=>execFileSync('git',['-C',cindy,...args],{encoding:'utf8'}).trim();
+ git('init','-q');
+ git('config','core.autocrlf','false');
+ // Include invalid UTF-8 and NUL bytes so an accidental text round trip fails.
+ const bytes=Buffer.from([0x52,0x49,0x46,0x46,0,0xff,0xfe,0x80,0x57,0x45,0x42,0x50]);
+ fs.writeFileSync(path.join(cindy,'avatar.webp'),bytes);
+ fs.writeFileSync(path.join(cindy,'empty.png'),Buffer.alloc(0));
+ fs.writeFileSync(path.join(cindy,'notes.md'),'字节边界\nblob 123\n');
+ git('add','avatar.webp','empty.png','notes.md');
+ git('-c','user.name=WinOne test','-c','user.email=test@example.invalid','commit','-q','-m','binary fixture');
+ const revision=git('rev-parse','HEAD');
+ const target=path.relative(root,path.join(cindy,'output','avatar.webp')).split(path.sep).join('/');
+ const groups=['avatar.webp','empty.png','notes.md'].map(source=>({source,target:target.replace('avatar.webp',source),file:true}));
+ const result=syncCindy({cindy,mode:'write',spec:{schemaVersion:1,revision,groups}});
+ assert.deepEqual(fs.readFileSync(path.join(root,target)),bytes,'Vendoring must preserve the original payload');
+ assert.equal(fs.readFileSync(path.join(root,target.replace('avatar.webp','empty.png'))).length,0);
+ assert.equal(fs.readFileSync(path.join(root,target.replace('avatar.webp','notes.md')),'utf8'),'字节边界\nblob 123\n');
+ assert.equal(result.files[0].sha256,result.files[0].sourceSHA256,'The recorded digest must describe the original binary');
 });

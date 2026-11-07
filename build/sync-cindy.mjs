@@ -2,7 +2,7 @@
 //
 // A spec under third_party/cindy/*.sync.json lists upstream groups and the
 // WinOne seams that replace Cindy host modules. Files are read from the pinned
-// revision with `git show`, so working-tree line endings never leak in. Only
+// revision with `git cat-file`, so working-tree line endings never leak in. Only
 // mechanical edits are applied:
 //   1. import specifiers are re-pointed to the vendored copy or to a seam;
 //   2. configured literal replacements (e.g. window.electronAPI -> electronAPI)
@@ -145,7 +145,6 @@ export function syncCindy({spec, cindy, mode}) {
   const resolved = git(cindy, ['rev-parse', revision + '^{commit}']).trim();
   if (resolved !== revision) throw Error('Cindy revision is not available: ' + revision);
   const tree = new Set(git(cindy, ['ls-tree', '-r', '--name-only', revision]).split('\n').filter(Boolean));
-  const read = (file) => execFileSync('git', ['-C', cindy, 'show', revision + ':' + file], {maxBuffer: 256 * 1024 * 1024});
 
   // Package export maps for @cindy/* bare specifiers.
   const exportsCache = new Map();
@@ -216,6 +215,35 @@ export function syncCindy({spec, cindy, mode}) {
   }
   const seams = spec.seams ?? {};
   for (const target of Object.values(seams)) safeTarget(target);
+
+  // One Git process reads the pinned blobs. Starting git show per source made
+  // Windows verification spend most of its time launching hundreds of processes.
+  // Parse byte lengths, not lines: assets and UTF-8 text share this stream.
+  const inputs = [...new Set([
+    ...vendored.keys(), ...Object.values(spec.locales?.sources ?? {}),
+    ...[...tree].filter(file => /^packages\/[^/]+\/package\.json$/.test(file)),
+  ])];
+  const batch = execFileSync('git', ['-C', cindy, 'cat-file', '--batch'], {
+    input: inputs.map(file => revision + ':' + file + '\n').join(''),
+    maxBuffer: 256 * 1024 * 1024,
+  });
+  const blobs = new Map();
+  let offset = 0;
+  for (const file of inputs) {
+    const end = batch.indexOf(10, offset);
+    const header = end < 0 ? null : /^[a-f0-9]+ blob (\d+)$/.exec(batch.toString('ascii', offset, end));
+    if (!header) throw Error('Cannot read pinned Cindy blob: ' + file);
+    const size = Number(header[1]);
+    const next = end + 1 + size;
+    if (!Number.isSafeInteger(size) || next >= batch.length || batch[next] !== 10) throw Error('Incomplete Cindy blob: ' + file);
+    blobs.set(file, batch.subarray(end + 1, next));
+    offset = next + 1;
+  }
+  if (offset !== batch.length) throw Error('Unexpected data after Cindy blobs');
+  const read = file => {
+    if (!blobs.has(file)) throw Error('Cindy source was not selected: ' + file);
+    return blobs.get(file);
+  };
 
   const specifierPatterns = [
     /(\bfrom\s*)(['"])([^'"\n]+)\2/g,
