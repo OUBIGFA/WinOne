@@ -34,6 +34,7 @@ func quickAssistantConfiguration(directory string, runtime func() *quickAssistan
 			}
 			value.Revision = revision
 			value.Actions = value.EffectiveActions()
+			value.LearningVersion = 1
 			data, err := json.Marshal(value)
 			if err != nil {
 				return err
@@ -84,6 +85,7 @@ func quickAssistantConfigurationHandler(store *configuration.HostStore, next fun
 		}
 		value.Revision = revision
 		value.Actions = value.EffectiveActions()
+		value.LearningVersion = 1
 		data, err := json.Marshal(value)
 		if err != nil {
 			return fail(err)

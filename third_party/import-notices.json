@@ -1852,6 +1852,33 @@
           "sha256": "34b057e0c5d71067c8b712f46d54b327146c56647fe178fddbf0eb2348ea1716"
         }
       ]
+    },
+    {
+      "name": "edge-speech-gec-v2",
+      "repository": "https://github.com/leopold7/edge-tts-go",
+      "commit": "ac5ef46a82ea20fe3be7601b3219c436538308d8",
+      "license": "LGPL-3.0-only",
+      "scope": "Go Sec-MS-GEC v2 protocol implementation derived from rany2/edge-tts 7.3.1 drm.py. Modified package/token names and removed standalone clock functions to retain WinOne cancellation, clock-skew correction and transport. Full corresponding modified source is apps/result-ui/edge_gec.go and is rebuilt by build/build-results.ps1; WinOne is GPL-3.0. No Python or external TTS runtime is bundled.",
+      "sourceFiles": [
+        "gec.go"
+      ],
+      "upstreamSHA256": "c6c8f53497c35ea9d43a334a5184c3e741b8e21a3a674f8981d1aaf431c93a54",
+      "notices": [
+        {
+          "file": "licenses/edge-tts-go-ac5ef46-LICENSE.txt",
+          "sha256": "a5681bf9b05db14d86776930017c647ad9e6e56ff6bbcfdf21e5848288dfaf1b"
+        },
+        {
+          "file": "licenses/edge-tts-7.3.1-LICENSE.txt",
+          "sha256": "3613045a46a5bce847f80eadbbf013e4260ef19d728ffd061d61e792689ec3a8"
+        }
+      ],
+      "files": [
+        {
+          "path": "apps/result-ui/edge_gec.go",
+          "sha256": "ef9a0c467d7e084916fdd28a7c4c5ff49b0976e18aebbac751c5b0c582327b38"
+        }
+      ]
     }
   ]
 }

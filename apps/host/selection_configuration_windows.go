@@ -34,6 +34,7 @@ func selectionConfiguration(directory string, runtime func() *selectionRuntime) 
 			}
 			value.Revision = revision
 			value.Actions = value.EffectiveActions()
+			value.LearningVersion = 1
 			value.ToolbarVersion = 1
 			data, err := json.Marshal(value)
 			if err != nil {
@@ -85,6 +86,7 @@ func selectionConfigurationHandler(store *configuration.HostStore, next func(hos
 		}
 		value.Revision = revision
 		value.Actions = value.EffectiveActions()
+		value.LearningVersion = 1
 		value.ToolbarVersion = 1
 		data, err := json.Marshal(value)
 		if err != nil {

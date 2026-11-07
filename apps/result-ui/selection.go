@@ -135,6 +135,12 @@ func (c *Controller) selectionResult() {
 		c.Panel.Error = c.Panel.T("不支持的划词操作", "Unsupported selection action")
 		return
 	}
+	if selected.Kind == "learn" {
+		c.startStudy(*selected, c.Panel.Original, false, false)
+		return
+	}
+	c.Panel.Study = nil
+	c.activeStudy = nil
 	method, values, err := resultwindow.ActionRequest(*selected, c.Panel.Original, c.Panel.Target, c.Panel.Language)
 	if err != nil {
 		c.Panel.Error = err.Error()

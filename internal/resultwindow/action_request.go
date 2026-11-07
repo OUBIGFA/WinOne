@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"winone/internal/ai"
+	"winone/internal/learning"
 )
 
 // ActionRequest describes the same operation in the selection and chat UIs.
@@ -20,6 +21,14 @@ func ActionRequest(action SelectionAction, text, target string, resolvedLocale .
 	}
 	action = UpgradeBuiltinActions([]SelectionAction{action})[0]
 	prompt := strings.ReplaceAll(action.Prompt, "{replyLanguage}", language)
+	if action.Kind == "learn" {
+		locale := "zh-CN"
+		if len(resolvedLocale) > 0 {
+			locale = resolvedLocale[0]
+		}
+		prompt = learning.Prompt(learning.Effective(action.Learning), learning.Classify(text), prompt, locale)
+		return "ai.generate.start", map[string]any{"system": prompt, "messages": []ai.Message{{Role: "user", Content: "Selected content:\n" + text}}}, nil
+	}
 	if action.Kind == "translate" {
 		return "ai.translate.start", map[string]any{"text": text, "target": target, "prompt": prompt}, nil
 	}

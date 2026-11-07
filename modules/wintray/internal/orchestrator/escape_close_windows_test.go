@@ -17,10 +17,12 @@ import (
 )
 
 func TestNativeCloseHonorsWindowCloseCapability(t *testing.T) {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
 	for _, mode := range []string{"enabled", "disabled", "removed", "no menu", "disabled window"} {
 		t.Run(mode, func(t *testing.T) {
+			// Each subtest runs in its own goroutine. Keep window creation,
+			// queue inspection and destruction on that window's owner thread.
+			runtime.LockOSThread()
+			defer runtime.UnlockOSThread()
 			style := uint32(win.WS_OVERLAPPEDWINDOW)
 			if mode == "no menu" {
 				style = win.WS_POPUP
@@ -29,7 +31,11 @@ func TestNativeCloseHonorsWindowCloseCapability(t *testing.T) {
 			if hwnd == 0 {
 				t.Fatal("create capability fixture")
 			}
-			defer win.DestroyWindow(hwnd)
+			defer func() {
+				if !win.DestroyWindow(hwnd) {
+					t.Error("destroy capability fixture on its owner thread")
+				}
+			}()
 			menu := win.GetSystemMenu(hwnd, false)
 			switch mode {
 			case "disabled":

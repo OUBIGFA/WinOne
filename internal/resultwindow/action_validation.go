@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 	"unicode/utf8"
+	"winone/internal/learning"
 )
 
 var selectionProviderID = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$`)
@@ -37,6 +38,13 @@ func ValidateActions(actions []SelectionAction) error {
 			return errors.New("请选择支持的功能图标")
 		}
 		switch action.Kind {
+		case "learn":
+			if len(action.Prompt) > 16000 {
+				return errors.New("AI 指令超过 16000 字节")
+			}
+			if err := learning.Effective(action.Learning).Validate(); err != nil {
+				return err
+			}
 		case "copy", "translate":
 			if len(action.Prompt) > 16000 {
 				return errors.New("AI 指令超过 16000 字节")

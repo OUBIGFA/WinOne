@@ -29,7 +29,7 @@ func blockSpacing(prev, next string) float32 {
 
 // quickEmpty tells the Quick assistant's state before the first message.
 func (p *Panel) quickEmpty() bool {
-	return p.Source == "quick-assistant" && len(p.Messages) == 0 && p.Pending == nil
+	return p.Source == "quick-assistant" && len(p.Messages) == 0 && p.Pending == nil && p.Study == nil
 }
 
 func (p *Panel) reading(c *ui.Context, t *ui.Theme, height float32) {
@@ -70,6 +70,9 @@ func (p *Panel) reading(c *ui.Context, t *ui.Theme, height float32) {
 				}))
 			}
 			p.conversation(c, t, place)
+			if p.Source == "quick-assistant" && p.Study != nil {
+				place("assistant", ui.Column(c).FillWidth().Children(func() { p.studyView(c, t, p.Study) }))
+			}
 			if p.Busy && p.Pending == nil && p.ResultPending == nil {
 				place("status", ui.Spinner(c).Size(16, 16).AlignSelf(ui.Start).Label(p.T("正在处理…", "Working…")))
 			}
@@ -101,6 +104,9 @@ func (p *Panel) original(c *ui.Context, t *ui.Theme) {
 
 func (p *Panel) result(c *ui.Context, t *ui.Theme) {
 	ui.Column(c).Key("initial-result").FillWidth().Gap(8).Children(func() {
+		if p.Study != nil {
+			p.studyView(c, t, p.Study)
+		}
 		label, copyLabel, text := p.T("识别结果", "OCR result"), p.T("复制原文", "Copy original"), p.Original
 		if p.Mode == "translate" {
 			label, copyLabel, text = p.T("译文", "Translation"), p.T("复制译文", "Copy translation"), p.Result
@@ -290,6 +296,9 @@ func (p *Panel) reasoning(c *ui.Context, t *ui.Theme, message *Message) {
 // thinking body nor the surrounding identity/action layout adds to it.
 func (p *Panel) replyContent(c *ui.Context, t *ui.Theme, message *Message, key string, working bool) {
 	ui.Column(c).Key("content").FillWidth().Gap(16).Children(func() {
+		if message.Study != nil {
+			p.studyView(c, t, message.Study)
+		}
 		p.reasoning(c, t, message)
 		if message.Text != "" {
 			p.markdownView(c, key, message.Text, markdownReply, working)

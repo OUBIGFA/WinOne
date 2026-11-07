@@ -3,19 +3,21 @@ package resultwindow
 import (
 	"strings"
 	"winone/internal/ai"
+	"winone/internal/learning"
 )
 
 // SelectionAction is a saved user action snapshot shared by settings, the
 // transient toolbar and the existing result controller. Order is array order.
 type SelectionAction struct {
-	Selection   ai.Selection `json:"selection,omitzero"` // Reference to the shared enabled model collection.
-	ID          string       `json:"id"`
-	Name        string       `json:"name"`
-	EnglishName string       `json:"englishName,omitempty"`
-	Icon        string       `json:"icon"`
-	Kind        string       `json:"kind"`
-	Prompt      string       `json:"prompt,omitempty"`
-	Enabled     bool         `json:"enabled"`
+	Learning    *learning.Options `json:"learning,omitempty"`
+	Selection   ai.Selection      `json:"selection,omitzero"` // Reference to the shared enabled model collection.
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	EnglishName string            `json:"englishName,omitempty"`
+	Icon        string            `json:"icon"`
+	Kind        string            `json:"kind"`
+	Prompt      string            `json:"prompt,omitempty"`
+	Enabled     bool              `json:"enabled"`
 }
 
 // Keep this exact prior prompt text for migrations. It also supplies unchanged
@@ -60,7 +62,34 @@ func DefaultSelectionActions() []SelectionAction {
 		action.Prompt = strings.ReplaceAll(action.Prompt, "Keep its meaning, language, tone, and level of certainty.", "Keep its meaning, tone, and level of certainty.")
 		action.Prompt += " " + replyLanguageTemplate
 	}
-	return actions
+	return AddLearningAction(actions)
+}
+
+func LearningAction() SelectionAction {
+	return SelectionAction{ID: "learn", Name: "学习", EnglishName: "Learn", Icon: "book", Kind: "learn", Enabled: true}
+}
+
+// Add the new builtin once at the configuration migration boundary. A full
+// user toolbar is preserved; settings can explicitly restore Learn after room
+// is made. Never replace a custom action that already owns the same ID.
+func AddLearningAction(actions []SelectionAction) []SelectionAction {
+	if len(actions) >= 24 {
+		return actions
+	}
+	position := 0
+	for i, a := range actions {
+		if a.ID == "learn" || a.Kind == "learn" {
+			return actions
+		}
+		if a.ID == "translate" {
+			position = i + 1
+		}
+	}
+	result := make([]SelectionAction, 0, len(actions)+1)
+	result = append(result, actions[:position]...)
+	result = append(result, LearningAction())
+	result = append(result, actions[position:]...)
+	return result
 }
 
 // QuickAssistantActions shares the same capabilities but omits the redundant

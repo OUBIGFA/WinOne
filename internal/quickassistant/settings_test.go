@@ -12,7 +12,7 @@ func TestSharedDefaultsHaveIndependentOrderAndCustomActions(t *testing.T) {
 	if err := first.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if second.Actions[0].ID != "translate" || len(second.Actions) != 5 {
+	if second.Actions[0].ID != "translate" || len(second.Actions) != 6 {
 		t.Fatal("separate assistant settings mutated defaults")
 	}
 	snapshot := first.EffectiveActions()
@@ -28,7 +28,7 @@ func TestSharedDefaultsHaveIndependentOrderAndCustomActions(t *testing.T) {
 
 func TestQuickAssistantOmitsCopyFromLegacyActions(t *testing.T) {
 	p := Preferences{SchemaVersion: 1, Actions: resultwindow.DefaultSelectionActions()}
-	if len(p.EffectiveActions()) != 5 {
+	if len(p.EffectiveActions()) != 6 {
 		t.Fatal("legacy copy action retained")
 	}
 	for _, action := range p.EffectiveActions() {
@@ -36,7 +36,7 @@ func TestQuickAssistantOmitsCopyFromLegacyActions(t *testing.T) {
 			t.Fatal("toolbar copy retained")
 		}
 	}
-	if len(resultwindow.DefaultSelectionActions()) != 6 {
+	if len(resultwindow.DefaultSelectionActions()) != 7 {
 		t.Fatal("selection copy was removed")
 	}
 }

@@ -14,6 +14,7 @@
 package selection
 
 import (
+	"context"
 	"path/filepath"
 	"reflect"
 	"slices"
@@ -27,6 +28,7 @@ import (
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/shell"
 	"winone/desktopmygo/widgets"
+	"winone/internal/learning"
 )
 
 func init() {
@@ -39,12 +41,14 @@ const (
 	tabToolbar = iota
 	tabGeneral
 	tabShortcuts
+	tabLearning
 )
 
 // action is a toolbar action as the Host stores it
 // (resultwindow.SelectionAction); fields it adds later are kept by
 // core.Preserved.
 type action struct {
+	Learning    *learning.Options    `json:"learning,omitempty"`
 	Selection   *widgets.AISelection `json:"selection,omitempty"`
 	ID          string               `json:"id"`
 	Name        string               `json:"name"`
@@ -71,10 +75,15 @@ type preferences struct {
 type document = core.Preserved[preferences]
 
 type page struct {
-	env    *core.Env
-	module string // "selection" or "quick-assistant"
-	quick  bool
-	tab    int
+	learningBusy   bool
+	learningRead   int
+	learningCancel context.CancelFunc
+	learningStatus *learning.AnkiStatus
+	learningError  string
+	env            *core.Env
+	module         string // "selection" or "quick-assistant"
+	quick          bool
+	tab            int
 	// shown is the tab of the last frame, to read the AI services again
 	// each time the toolbar shows, as React did.
 	shown int
@@ -149,6 +158,12 @@ func (p *page) load() {
 
 // accept makes value the saved baseline and the draft.
 func (p *page) accept(value document) {
+	for i := range value.Value.Actions {
+		if a := &value.Value.Actions[i].Value; a.Kind == "learn" && a.Learning == nil {
+			options := learning.Defaults()
+			a.Learning = &options
+		}
+	}
 	saved, draft := value, clone(value)
 	p.saved, p.draft = &saved, &draft
 	p.excluded = ""
@@ -161,6 +176,16 @@ func (p *page) accept(value document) {
 func clone(d document) document {
 	d.Value.Actions = slices.Clone(d.Value.Actions)
 	for i := range d.Value.Actions {
+		if options := d.Value.Actions[i].Value.Learning; options != nil {
+			copied := *options
+			if options.Templates != nil {
+				copied.Templates = map[learning.Kind]string{}
+				for key, value := range options.Templates {
+					copied.Templates[key] = value
+				}
+			}
+			d.Value.Actions[i].Value.Learning = &copied
+		}
 		if s := d.Value.Actions[i].Value.Selection; s != nil {
 			copied := *s
 			d.Value.Actions[i].Value.Selection = &copied
@@ -319,6 +344,8 @@ func (p *page) View(c *ui.Context) {
 		ui.Column(c).FillWidth().Gap(kit.GroupGap).Disabled(p.busy()).Children(func() {
 			if p.tab == tabToolbar {
 				p.toolbar(c)
+			} else if p.tab == tabLearning {
+				p.learningPage(c)
 			} else {
 				p.general(c)
 			}
@@ -333,6 +360,7 @@ func (p *page) tabBar(c *ui.Context) {
 		{Label: i18n.T("selection.toolbar"), Icon: icons.SlidersHorizontal},
 		{Label: i18n.T("selection.general"), Icon: icons.Settings},
 		{Label: i18n.T("shortcuts.title"), Icon: icons.SendHorizontal},
+		{Label: i18n.T("learning.title"), Icon: icons.BookOpen},
 	}
 	if !p.quick {
 		kit.Tabs(c, &p.tab, tabs, p.env.RequestChange)
@@ -426,6 +454,10 @@ func appendPrograms(text string, paths []string) string {
 // Close implements core.Closer: leaving the page ends a shortcut
 // recording and drops answers still on their way.
 func (p *page) Close() {
+	p.learningRead++
+	if p.learningCancel != nil {
+		p.learningCancel()
+	}
 	p.read++
 	p.aiRead++
 	if p.shortcuts != nil {

@@ -20,21 +20,22 @@ type QuickOptions struct {
 }
 
 type Initial struct {
-	State    json.RawMessage   `json:"state,omitempty"`
-	Quick    QuickOptions      `json:"quick,omitzero"`
-	Actions  []SelectionAction `json:"actions,omitempty"`
-	ID       string            `json:"id"`
-	Token    string            `json:"token"`
-	Pipe     string            `json:"pipe"`
-	HostPID  uint32            `json:"hostPid"`
-	Mode     string            `json:"mode"`
-	Language string            `json:"language"`
-	Theme    string            `json:"theme"`
-	Source   string            `json:"source,omitempty"`
-	Text     string            `json:"text,omitempty"`
-	Action   string            `json:"action,omitempty"`
-	Toolbar  bool              `json:"toolbar,omitempty"`
-	Anchor   [2]int32          `json:"anchor,omitempty"`
+	LearningCache string            `json:"learningCache,omitempty"`
+	State         json.RawMessage   `json:"state,omitempty"`
+	Quick         QuickOptions      `json:"quick,omitzero"`
+	Actions       []SelectionAction `json:"actions,omitempty"`
+	ID            string            `json:"id"`
+	Token         string            `json:"token"`
+	Pipe          string            `json:"pipe"`
+	HostPID       uint32            `json:"hostPid"`
+	Mode          string            `json:"mode"`
+	Language      string            `json:"language"`
+	Theme         string            `json:"theme"`
+	Source        string            `json:"source,omitempty"`
+	Text          string            `json:"text,omitempty"`
+	Action        string            `json:"action,omitempty"`
+	Toolbar       bool              `json:"toolbar,omitempty"`
+	Anchor        [2]int32          `json:"anchor,omitempty"`
 }
 
 type Command struct {

@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$OutputDirectory,[string]$GoExe='go',[switch]$SkipTests,[switch]$RunWindowChecks)
+param([Parameter(Mandatory)][string]$OutputDirectory,[string]$GoExe='go',[switch]$SkipTests,[switch]$RunWindowChecks,[string]$LearningResourceDirectory='dist/resources/assets/learning')
 # MyGo v0.8.3 with the scoped Windows Shell file-drop adaptation. Selection,
 # pointer release and tool-window behavior still use its public APIs.
 $ErrorActionPreference='Stop'
@@ -30,6 +30,7 @@ try {
   $exe=Join-Path $output 'WinOne.Results.exe'
   & $go build -trimpath -tags mygo_noinspector -ldflags '-s -w -H windowsgui -X github.com/egoist/mygo.production=1' -o $exe ./cmd/winone-results
   if($LASTEXITCODE -ne 0){throw 'Result UI build failed'}
+  & (Join-Path $PSScriptRoot 'copy-learning.ps1') -OutputDirectory (Join-Path $output 'learning') -ResourceDirectory $LearningResourceDirectory
   & (Join-Path $PSScriptRoot 'verify-result-notices.ps1') -GoExe $go -Executable $exe
   if($RunWindowChecks){
    $priorProbe=$env:WINONE_RESULT_PROBE_EXE;$priorDirectory=$env:WINONE_RESULT_PROBE_DIR

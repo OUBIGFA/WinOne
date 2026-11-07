@@ -77,6 +77,11 @@ func PackageName(version string) (string, error) {
 	return "WinOne-" + version + "-windows-x64.zip", nil
 }
 func allowed(name string) bool {
+	for _, file := range learningRuntimeFiles {
+		if name == file {
+			return true
+		}
+	}
 	// Accept only the named result runtime; older verified 0.0.1 payloads
 	// remain valid for upgrade/rollback without this newly added component.
 	if name == "shared/ui/WinOne.Results.exe" || name == "shared/ui/WinOne.Diagrams.exe" || name == "selection/WinOne.Selection.exe" || name == "WinOne.WinTray.Recovery.exe" {

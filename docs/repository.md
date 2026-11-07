@@ -62,6 +62,8 @@
 
 ## 可重复使用的本地资源
 
+英语学习词库固定放在 `dist/resources/assets/learning/`，包括 `ecdict.db`、`manifest.json` 和 `ECDICT-LICENSE.txt`。锁定原始 CSV 保存在 `dist/resources/sources/ecdict-39cfb96/`，来源与摘要见 `third_party/learning-data.json`。`build/prepare-learning.ps1 -PythonExe <已有 Python> -Downloader <aria2-next>` 可校验或重建；统一构建自动调用，`build/copy-learning.ps1` 将验证过的三件套放入 `shared/ui/learning/`。数据与工具不入库，生成器、测试、许可和来源记录入库。缓存不一致时脚本报错，先在任务临时目录重建并验证，再更新固定资源。
+
 目前整理的复用资源位于 `dist/resources/`，不入库。这是现有调用位置，不是允许目录白名单。版本以源码锁、运行时清单和工具自报版本核对；更新这些资源时同步这里及 `build/use-local-resources.ps1`。
 
 下载、安装依赖或生成资源前，先查下表、源码中的已有资源和 `build/use-local-resources.ps1`。版本及摘要一致时直接使用；不能因为新建了任务目录就再下载、再安装或再生成一份。只有所需版本缺失、校验失败或明确更新版本时才补齐资源。新增的可复用内容在本次任务内归入固定目录，并同步来源、版本、校验依据和调用方法。

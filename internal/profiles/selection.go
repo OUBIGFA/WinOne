@@ -12,17 +12,26 @@ import (
 func selectionFields(source map[string]json.RawMessage, strict bool) (map[string]any, error) {
 	var values map[string]any
 	var err error
+	fields := "automatic:b keyboard:b"
+	if _, ok := source["learningVersion"]; ok {
+		fields += " learningVersion:n"
+	}
 	if strict {
 		nested := []string{"excludedApps"}
 		if _, exists := source["actions"]; exists {
 			nested = append(nested, "actions")
 		}
-		values, err = exactFields(source, "automatic:b keyboard:b", nested...)
+		values, err = exactFields(source, fields, nested...)
 	} else {
-		values, err = projectFields(source, "automatic:b keyboard:b")
+		values, err = projectFields(source, fields)
 	}
 	if err != nil {
 		return nil, err
+	}
+	if _, ok := values["learningVersion"]; ok {
+		if err = numberRange(values, "learningVersion", 0, 1); err != nil {
+			return nil, err
+		}
 	}
 	var apps []string
 	if err = json.Unmarshal(source["excludedApps"], &apps); err != nil || apps == nil {

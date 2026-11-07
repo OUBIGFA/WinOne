@@ -56,7 +56,10 @@ try{
  $catalog=[ordered]@{schemaVersion=1;packages=$packages}
  $path=Join-Path $root ('third_party/'+$Runtime+'-notices.json');$encoded=$catalog|ConvertTo-Json -Depth 8
  if($Update){[IO.File]::WriteAllText($path,$encoded,[Text.UTF8Encoding]::new($false))}
- if((Get-Content -Raw -Encoding UTF8 $path).Trim() -ne $encoded.Trim()){throw 'Diagram dependency catalog changed'}
+ # Git checks out LF, while Windows PowerShell serializes CRLF. Compare the
+ # same catalog text after newline normalization; all recorded values and
+ # original license bytes remain checked above.
+ if((Get-Content -Raw -Encoding UTF8 $path).Replace("`r`n","`n").Trim() -ne $encoded.Replace("`r`n","`n").Trim()){throw 'Diagram dependency catalog changed'}
  if($BundleDirectory){
   foreach($package in $packages){foreach($notice in $package.notices){if((Hash (Join-Path $BundleDirectory $notice.file)) -ne $notice.sha256){throw "Packaged dependency license mismatch: $($notice.file)"}}}
   Copy-Item -LiteralPath $path -Destination (Join-Path $BundleDirectory ('licenses/'+$Runtime+'-notices.txt')) -Force

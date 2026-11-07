@@ -12,7 +12,7 @@ func TestCopyMovesLastOnceWithoutDiscardingCustomOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 	actions := old.EffectiveActions()
-	if actions[0].ID != "custom-reply" || actions[1].ID != "translate" || actions[2].ID != "copy" {
+	if actions[0].ID != "custom-reply" || actions[1].ID != "translate" || actions[2].ID != "learn" || actions[3].ID != "copy" {
 		t.Fatal("copy was not placed last while preserving the other actions")
 	}
 	if old.Actions[1].ID != "copy" {
@@ -54,5 +54,22 @@ func TestCustomActionsKeepOrderAndRejectInvalidConfiguration(t *testing.T) {
 	invalid.Actions[0].Enabled = false
 	if invalid.Validate() == nil {
 		t.Fatal("empty toolbar accepted")
+	}
+}
+
+func TestLearningMigrationDoesNotRestoreRemovedOrHiddenAction(t *testing.T) {
+	p := Defaults()
+	p.Actions = append(p.Actions[:1], p.Actions[2:]...)
+	for _, a := range p.EffectiveActions() {
+		if a.Kind == "learn" {
+			t.Fatal("removed learning action restored")
+		}
+	}
+	a := resultwindow.LearningAction()
+	a.Enabled = false
+	p.Actions = append(p.Actions, a)
+	got := p.EffectiveActions()
+	if got[len(got)-1].Enabled {
+		t.Fatal("hidden learning action reenabled")
 	}
 }

@@ -3,7 +3,7 @@ package resultwindow
 import "testing"
 
 func TestBuiltinPromptUpgradeKeepsUserEditsAndCopy(t *testing.T) {
-	actions := DefaultSelectionActions()
+	actions := previousSelectionActions()
 	actions[0].Prompt = ""
 	actions[1].Prompt = "Explain the selected content clearly and concisely. Match the user's language."
 	actions[1].Name = "My explanation"

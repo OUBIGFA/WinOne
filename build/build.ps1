@@ -99,6 +99,9 @@ $strokeBuild = Join-Path (Split-Path -Parent $output) 'stroke-build'
 New-Item -ItemType Directory -Path (Join-Path $output 'stroke') -Force | Out-Null
 foreach ($file in @('WinOne.Stroke.exe','Stroke.Base.dll','Base.dll','Stroke.dll','Stroke-LICENSE.txt','schema.json','defaults.json','migrations.json')) { Copy-Item -LiteralPath (Join-Path $strokeBuild $file) -Destination (Join-Path $output 'stroke') -Force }
 if(-not $ResultGoExe){$ResultGoExe=$GoExe}
+$learningPrepare=@{PythonExe=(Join-Path $OcrRuntimeDirectory 'python/python.exe')}
+if($Downloader){$learningPrepare.Downloader=$Downloader}
+& (Join-Path $PSScriptRoot 'prepare-learning.ps1') @learningPrepare
 & (Join-Path $PSScriptRoot 'build-results.ps1') -OutputDirectory (Join-Path $output 'shared/ui') -GoExe $ResultGoExe
 & (Join-Path $PSScriptRoot 'build-diagrams.ps1') -OutputDirectory (Join-Path $output 'shared/ui') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $DiagramTargetDirectory
 & (Join-Path $PSScriptRoot 'build-selection.ps1') -OutputDirectory (Join-Path $output 'selection') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $SelectionTargetDirectory

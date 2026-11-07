@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 	"unsafe"
@@ -34,6 +35,9 @@ func (h *nativeResultHost) Handle(r host.Request) host.Response {
 		h.requests <- r
 	case "ai.configuration.get":
 		value = ai.Configuration{}
+	case "ai.generate.start":
+		h.requests <- r
+		return host.Response{ID: r.ID, Error: &host.RPCError{Code: "configuration", Message: "请先配置 AI 服务"}}
 	case "results.composerHint.claim":
 		value = map[string]bool{"show": false}
 	case "quick-assistant.settings.get":
@@ -182,6 +186,33 @@ func TestNativeResultProcess(t *testing.T) {
 				selected := await("results.selected", "quick")
 				if selected["request"] != "read-empty" || selected["text"] != "" {
 					t.Fatal("unexpected selection", selected)
+				}
+				// Exercise the production learning route and real bundled dictionary
+				// for all four input classes without using any account or AI network.
+				for i, text := range []string{"went", "take care", "Sustainable development needs coordination.", strings.Repeat("Sustainable development needs coordination and investment. ", 15)} {
+					id := fmt.Sprintf("learning-%d", i)
+					send(resultwindow.Command{Kind: "open", Initial: &resultwindow.Initial{ID: id, Token: "probe-token", Pipe: pipe, HostPID: uint32(os.Getpid()), Mode: "chat", Source: "selection", Action: "learn", Text: text, Language: language, Theme: theme}})
+					await("results.ready", id)
+					select {
+					case request := <-h.requests:
+						var params struct {
+							Session, System string
+							Messages        []ai.Message
+						}
+						if err := json.Unmarshal(request.Params, &params); err != nil {
+							t.Fatal(err)
+						}
+						if request.Method != "ai.generate.start" || params.Session != id || !strings.Contains(params.System, "English learning tutor") || len(params.Messages) != 1 {
+							t.Fatalf("learning route: %s %+v", request.Method, params)
+						}
+						if i == 0 && !strings.Contains(params.Messages[0].Content, `"word":"go"`) {
+							t.Fatal("bundled inflection lookup missing")
+						}
+					case <-ctx.Done():
+						t.Fatal("learning route timed out")
+					}
+					send(resultwindow.Command{Kind: "close", ID: id})
+					await("results.closed", id)
 				}
 				send(resultwindow.Command{Kind: "quit"})
 				stdin.Close()

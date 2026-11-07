@@ -7,8 +7,21 @@ import (
 )
 
 func quickAssistantFields(source map[string]json.RawMessage, strict bool) (map[string]any, error) {
+	fields := ""
+	if _, ok := source["learningVersion"]; ok {
+		fields = "learningVersion:n"
+	}
+	values, err := projectFields(source, fields)
+	if err != nil {
+		return nil, err
+	}
+	if fields != "" {
+		if err = numberRange(values, "learningVersion", 0, 1); err != nil {
+			return nil, err
+		}
+	}
 	if strict {
-		if _, err := exactFields(source, "", "actions"); err != nil {
+		if _, err := exactFields(source, fields, "actions"); err != nil {
 			return nil, err
 		}
 	}
@@ -19,5 +32,6 @@ func quickAssistantFields(source map[string]json.RawMessage, strict bool) (map[s
 	if err := resultwindow.ValidateActions(actions); err != nil {
 		return nil, err
 	}
-	return map[string]any{"actions": actions}, nil
+	values["actions"] = actions
+	return values, nil
 }

@@ -364,6 +364,7 @@ func (s *resultWindows) openSource(id, mode string, image *ai.ImageReference, te
 	entry.token = hex.EncodeToString(token[:])
 	theme, language := s.appearance()
 	command := resultwindow.Command{Kind: "open", Initial: &resultwindow.Initial{ID: id, Token: entry.token, Pipe: s.pipe, HostPID: uint32(os.Getpid()), Mode: mode, Theme: theme, Language: language}}
+	command.Initial.LearningCache = filepath.Join(s.logDirectory, "cache", "learning-audio")
 	if len(quick) > 0 {
 		command.Initial.Quick = quick[0]
 	}

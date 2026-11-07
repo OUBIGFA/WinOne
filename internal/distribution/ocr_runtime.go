@@ -47,6 +47,7 @@ var chatOneBotFiles = strings.Fields(chatOneBotInventory)
 var chatSearchInventory string
 var chatSearchFiles = strings.Fields(chatSearchInventory)
 var recordingRuntimeFiles = []string{"capture/WinOne.Recording.dll", "capture/recording-runtime.json"}
+var learningRuntimeFiles = []string{"shared/ui/learning/ecdict.db", "shared/ui/learning/manifest.json", "shared/ui/learning/ECDICT-LICENSE.txt"}
 
 var accountPluginFiles = strings.Fields(accountPluginInventory)
 var chatRuntimeFiles = []string{"shared/chat/worker.js", "shared/chat/runtime.json"}
@@ -97,6 +98,13 @@ var textRuntimeAllowed = func() map[string]bool {
 // Older verified packages stay readable for rollback. Presence of any text
 // feature file requires the complete new runtime, not a partial OCR upgrade.
 func requiredForPayload(seen map[string]bool) []string {
+	var learningFiles []string
+	for _, name := range learningRuntimeFiles {
+		if seen[name] {
+			learningFiles = learningRuntimeFiles
+			break
+		}
+	}
 	result := append([]string{}, requiredFiles...)
 	text, plugins, chat, share, codeMode, stroke, search, recording, interconnect := false, false, false, false, false, false, false, false, false
 	onebot, math, library := false, false, false
@@ -199,5 +207,5 @@ func requiredForPayload(seen map[string]bool) []string {
 	if interconnect {
 		result = append(result, interconnectRuntimeFiles...)
 	}
-	return result
+	return append(result, learningFiles...)
 }

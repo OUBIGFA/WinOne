@@ -21,6 +21,7 @@ var assets embed.FS
 var iconCache sync.Map
 
 type Message struct {
+	Study                                                                     *study
 	Role, Text, Model, Provider, ProviderName, ProviderIcon, Reasoning, State string
 	ActionIcon, ActionLabel                                                   string
 	ReasoningOpen                                                             bool
@@ -33,6 +34,10 @@ type Message struct {
 	thinkingMeasuredOpen                                                      bool
 }
 type Actions struct {
+	StudyCheck                        func(*study)
+	StudySpeak                        func(*study, string, string)
+	StudyNavigate                     func(*study, bool, string)
+	StudyAdd                          func(*study, []int)
 	loadAvatar                        func(string, func(*providerAvatar, error))
 	OpenQuick                         func(string)
 	Quick                             func(resultwindow.SelectionAction)
@@ -51,6 +56,7 @@ type Actions struct {
 // View state is confined to MyGo's main thread. Async callers update it with
 // Window.Update; original OCR text is independent of every conversation reply.
 type Panel struct {
+	Study                                               *study
 	avatars                                             map[string]*providerAvatar
 	avatarClock                                         uint64
 	QuickReasoning                                      *bool

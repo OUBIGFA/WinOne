@@ -2,6 +2,8 @@
 
 | 组件 | 用途 | 许可证 |
 | --- | --- | --- |
+| Edge TTS GEC v2（leopold7/edge-tts-go ac5ef46） | 修复微软朗读接口 403；只移植公开协议的令牌计算，沿用 WinOne 语音请求、取消与播放。改编源码为 `apps/result-ui/edge_gec.go`，来源和摘要见 `third_party/import-notices.json` | LGPL-3.0-only；保留 Go 移植与 rany2/edge-tts 7.3.1 完整许可。WinOne 继续使用 GPL-3.0，构建入口可重建改编源码，不分发 Python 语音运行时 |
+| ECDICT 39cfb96 | 英语学习离线词典，保留核心词及关联词形；来源、数据摘要和加工说明见 `third_party/learning-data.json` | MIT，Copyright (c) 2025 Linwei；全文 `third_party/licenses/ecdict-39cfb96-LICENSE.txt`。AnkiConnect 与在线词典仅调用 HTTP API，不复制或分发服务端代码；Windows 系统 SQLite 由系统提供 |
 | Fluent UI motion（19e2d5c） | WinOne 功能性位移动效标准：`durationNormal=200ms`、`curveDecelerateMin=cubic-bezier(0.33,0,0.1,1)`；MyGo 执行可中断过渡与减少动效，首帧直接就位，不引入弹跳或装饰动画 | MIT，Microsoft Corporation；原始令牌与完整许可见 `third_party/fluent-motion/`、`third_party/licenses/fluent-ui-19e2d5c-LICENSE.txt`，摘要见 `third_party/import-notices.json` |
 | Wails v2 | 设置窗口与 WebView2 桥接 | MIT |
 | go-webview2 | Windows WebView2 绑定 | MIT |

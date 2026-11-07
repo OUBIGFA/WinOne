@@ -38,7 +38,7 @@ func TestQuickAssistantPreferencesAreIndependentAndRevisionProtected(t *testing.
 	}
 	var loaded quickassistant.Preferences
 	json.Unmarshal(saved.Result, &loaded)
-	if loaded.Actions[0].ID != "explain" || len(loaded.Actions) != 6 || loaded.Revision <= prefs.Revision {
+	if loaded.Actions[0].ID != prefs.Actions[0].ID || len(loaded.Actions) != len(prefs.Actions) || loaded.Revision <= prefs.Revision {
 		t.Fatal(loaded)
 	}
 	if stale := handle(host.Request{Method: "settings.save", Params: payload}); stale.Error == nil {

@@ -9,17 +9,18 @@ import (
 // Preferences contain only model references, never connections or credentials.
 // All AI actions are routed by the shared service after a toolbar action.
 type Preferences struct {
-	ToolbarVersion int                            `json:"toolbarVersion,omitempty"`
-	Actions        []resultwindow.SelectionAction `json:"actions,omitempty"`
-	SchemaVersion  int                            `json:"schemaVersion"`
-	Revision       uint64                         `json:"revision"`
-	Automatic      bool                           `json:"automatic"`
-	Keyboard       bool                           `json:"keyboard"`
-	ExcludedApps   []string                       `json:"excludedApps"`
+	LearningVersion int                            `json:"learningVersion,omitempty"`
+	ToolbarVersion  int                            `json:"toolbarVersion,omitempty"`
+	Actions         []resultwindow.SelectionAction `json:"actions,omitempty"`
+	SchemaVersion   int                            `json:"schemaVersion"`
+	Revision        uint64                         `json:"revision"`
+	Automatic       bool                           `json:"automatic"`
+	Keyboard        bool                           `json:"keyboard"`
+	ExcludedApps    []string                       `json:"excludedApps"`
 }
 
 func Defaults() Preferences {
-	return Preferences{SchemaVersion: 1, ToolbarVersion: 1, Automatic: true, Keyboard: true, ExcludedApps: []string{}, Actions: resultwindow.DefaultSelectionActions()}
+	return Preferences{SchemaVersion: 1, ToolbarVersion: 1, LearningVersion: 1, Automatic: true, Keyboard: true, ExcludedApps: []string{}, Actions: resultwindow.DefaultSelectionActions()}
 }
 
 func (p Preferences) EffectiveActions() []resultwindow.SelectionAction {
@@ -37,10 +38,13 @@ func (p Preferences) EffectiveActions() []resultwindow.SelectionAction {
 			}
 		}
 	}
+	if p.LearningVersion == 0 {
+		actions = resultwindow.AddLearningAction(actions)
+	}
 	return actions
 }
 func (p Preferences) Validate() error {
-	if p.SchemaVersion != 1 || p.ToolbarVersion < 0 || p.ToolbarVersion > 1 {
+	if p.SchemaVersion != 1 || p.ToolbarVersion < 0 || p.ToolbarVersion > 1 || p.LearningVersion < 0 || p.LearningVersion > 1 {
 		return errors.New("不支持的划词设置版本")
 	}
 	if len(p.ExcludedApps) > 100 {

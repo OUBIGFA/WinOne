@@ -7,11 +7,13 @@ import (
 	"strings"
 	"time"
 	"winone/internal/ai"
+	"winone/internal/learning"
 	"winone/internal/quickassistant"
 	"winone/internal/resultwindow"
 )
 
 type Controller struct {
+	activeStudy           *study
 	Panel                 *Panel
 	Window                *mygo.Window
 	Client                *Client
@@ -70,6 +72,10 @@ func NewController(client *Client, initial resultwindow.Initial) *Controller {
 	c.Panel.Actions.ClearAll = c.clearAll
 	c.Panel.Actions.Restart = c.restartConversation
 	c.Panel.Actions.OpenQuick = c.openQuickFromSelection
+	c.Panel.Actions.StudyCheck = c.checkStudyAnki
+	c.Panel.Actions.StudySpeak = c.speakStudy
+	c.Panel.Actions.StudyNavigate = c.studyNavigate
+	c.Panel.Actions.StudyAdd = c.addStudyNotes
 	return c
 }
 func (c *Controller) Ready() {
@@ -244,6 +250,9 @@ func (c *Controller) completeRequest(epoch uint64, fn func(), err error) {
 	fn()
 }
 func (c *Controller) cancel() {
+	if c.Panel.Study != nil {
+		c.Panel.Study.Loading = false
+	}
 	if c.request != nil {
 		c.request()
 		c.request = nil
@@ -382,6 +391,9 @@ func (c *Controller) chatParameters(history []ai.Message) map[string]any {
 	} else if c.Initial.Source == "selection" {
 		params["system"] = params["system"].(string) + " " + resultwindow.ReplyLanguageInstruction(c.Panel.Language)
 	}
+	if c.activeStudy != nil {
+		params["system"] = learning.Prompt(c.activeStudy.Options, c.activeStudy.Kind, "Answer the follow-up question about this study content. Do not repeat the full initial analysis.", c.Panel.Language)
+	}
 	if _, explicit := params["selection"]; !explicit {
 		if selection := c.Panel.defaultSelection(); selection.Provider != "" {
 			params["selection"] = selection
@@ -442,6 +454,11 @@ func (c *Controller) acceptReply(value Outcome, replacing bool) {
 		started, duration = c.Panel.Pending.ReasoningStartedAt, c.Panel.Pending.ReasoningDurationMs
 	}
 	c.Panel.Messages = append(c.Panel.Messages, Message{Role: "assistant", Text: value.Text, Reasoning: value.Reasoning, ReasoningOpen: open, ReasoningStartedAt: started, ReasoningDurationMs: duration, Model: value.displayModel(), Provider: value.Provider, ProviderName: value.ProviderName, ProviderIcon: value.ProviderIcon})
+	if c.activeStudy != nil && c.quickRequest != nil && c.quickRequest.action.Kind == "learn" {
+		c.activeStudy.acceptAnalysis(value.Text)
+		c.Panel.Messages[len(c.Panel.Messages)-1].Study = c.activeStudy
+		c.Panel.Study = nil
+	}
 	c.Panel.Pending = nil
 	if follow {
 		c.Panel.FollowEnd()

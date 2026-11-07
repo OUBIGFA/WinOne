@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/xml"
@@ -92,8 +91,7 @@ func speechChunks(text string, budget int) []string {
 func speechGEC(now time.Time) string {
 	seconds := now.Unix() + 11644473600 // Windows epoch (1601), in seconds.
 	ticks := (seconds - seconds%300) * 10000000
-	hash := sha256.Sum256([]byte(fmt.Sprintf("%d%s", ticks, edgeSpeechToken)))
-	return strings.ToUpper(hex.EncodeToString(hash[:]))
+	return generateSecMSGECv2(uint64(ticks))
 }
 
 func speechRequestID() (string, error) {
@@ -121,7 +119,7 @@ func (s *edgeSynthesizer) connect(ctx context.Context) (*websocket.Conn, error) 
 		query.Set("TrustedClientToken", edgeSpeechToken)
 		query.Set("ConnectionId", id)
 		query.Set("Sec-MS-GEC", speechGEC(time.Now().Add(time.Duration(s.skew.Load())*time.Second)))
-		query.Set("Sec-MS-GEC-Version", "1-"+edgeSpeechVersion)
+		query.Set("Sec-MS-GEC-Version", "2-"+edgeSpeechVersion)
 		u.RawQuery = query.Encode()
 		headers := http.Header{
 			"Origin":     {"chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold"},
@@ -150,10 +148,13 @@ func (s *edgeSynthesizer) connect(ctx context.Context) (*websocket.Conn, error) 
 }
 
 func speechSSML(text string) string {
+	return speechSSMLVoice(text, edgeSpeechVoice)
+}
+func speechSSMLVoice(text, voice string) string {
 	var escaped bytes.Buffer
 	_ = xml.EscapeText(&escaped, []byte(text))
 	// The multilingual voice detects the text language, including mixed text.
-	return "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='" + edgeSpeechVoice + "'><prosody pitch='+0Hz' rate='+0%' volume='+0%'>" + escaped.String() + "</prosody></voice></speak>"
+	return "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='" + voice + "'><prosody pitch='+0Hz' rate='+0%' volume='+0%'>" + escaped.String() + "</prosody></voice></speak>"
 }
 
 func speechHeader(header, name string) string {
@@ -182,6 +183,9 @@ func speechAudioFrame(data []byte) ([]byte, error) {
 }
 
 func (s *edgeSynthesizer) synthesize(parent context.Context, text string) ([]byte, error) {
+	return s.synthesizeVoice(parent, text, edgeSpeechVoice)
+}
+func (s *edgeSynthesizer) synthesizeVoice(parent context.Context, text, voice string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(parent, 45*time.Second)
 	defer cancel()
 	conn, err := s.connect(ctx)
@@ -206,7 +210,7 @@ func (s *edgeSynthesizer) synthesize(parent context.Context, text string) ([]byt
 	timestamp := time.Now().UTC().Format("Mon Jan 02 2006 15:04:05 GMT+0000 (Coordinated Universal Time)")
 	config := "X-Timestamp:" + timestamp + "\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n" +
 		`{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`
-	ssml := "X-RequestId:" + id + "\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:" + timestamp + "Z\r\nPath:ssml\r\n\r\n" + speechSSML(text)
+	ssml := "X-RequestId:" + id + "\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:" + timestamp + "Z\r\nPath:ssml\r\n\r\n" + speechSSMLVoice(text, voice)
 	for _, message := range []string{config, ssml} {
 		if err = conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
 			return nil, err
