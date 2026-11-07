@@ -72,6 +72,7 @@ type uiState struct {
 	processBodies  map[string]*ui.Handle
 	processEntries map[string][]model.Entry
 	openProcesses  []string
+	collapseAnchor string
 	// answers are the question card's answers, for the question asked.
 	answers    []string
 	answersFor string
@@ -371,6 +372,14 @@ func (p *Chat) setSidebar(open bool) {
 func (p *Chat) transcriptView(c *ui.Context) {
 	t := c.Theme()
 	s := &p.ui.transcript
+	if key := p.ui.collapseAnchor; key != "" {
+		// Use the committed position before folding changes the scroll range.
+		// This works for both the header and the floating collapse control.
+		if body := p.ui.processBodies[key]; body != nil {
+			s.Y = max(0, s.Y+body.Bounds(c).Y-s.Bounds(c).Y)
+		}
+		p.ui.collapseAnchor = ""
+	}
 	// committed is where the container showed the content last frame,
 	// within its range: comparing with an end set as MaxFloat32 would read
 	// every frame after a follow as the reader scrolling up.

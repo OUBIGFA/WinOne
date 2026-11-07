@@ -18,7 +18,13 @@
         "internal/gui/providers.go",
         "internal/gui/assets/plugins/routing/client.js",
         "internal/gui/assets/plugins.js",
-        "internal/gui/assets/plugins/redact/client.js"
+        "internal/gui/assets/plugins/redact/client.js",
+        "internal/gateway/trace.go",
+        "internal/gateway/rules.go",
+        "internal/gateway/affinity.go",
+        "internal/gateway/history.go",
+        "internal/gateway/prompt_text.go",
+        "internal/usage/purpose.go"
       ],
       "notices": [
         {
@@ -41,7 +47,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_pools.go",
-          "sha256": "1ede8020595ba4fa53398ef0dc0d59e42e27f696921747ea0082ffd4482cfdf2"
+          "sha256": "68f7420f029b73ebbb4d4794bfabfaba1c02fb36bee7daa5c07057990c4445ce"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_patterns.go",
@@ -49,11 +55,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing.go",
-          "sha256": "0f30d06a38b18a10c1f640eb9d0a0da1cf54c83cd289ff22ad643621ff9fea72"
+          "sha256": "0086845c6b3c372cecc9435837b6d7c5a8e7593912a5803989fb96b23bbbd79d"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_groups.go",
-          "sha256": "b718b3e80ba71dafb7202e5a3b1e42de772ca8b4420aad3336a1272b70cd8e90"
+          "sha256": "68751288b775aa70081bd83a00e9fe02626ffa7dbb28c61f08d4bc1c91b77de8"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_members.go",
@@ -61,11 +67,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_trace.go",
-          "sha256": "6c545c21970ec5410a1f31f7be048cc25e12d6ac9845b24ededc79530ba03f85"
+          "sha256": "753eb0854d99f118c35d8de7eeaea3a1937bc067718a0b503335ef4e7390e2d4"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_evidence.go",
-          "sha256": "b22d3bcbac1a38a525c2571aaa84ee7ace59a1c994bbaf4d3358a1168992a79a"
+          "sha256": "57838d33da5dfcb5fb3d385e70d6ab274ed4432b82ddefc3ecf6137a033eb268"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/plugins_native.go",
@@ -82,6 +88,42 @@
         {
           "path": "build/prepare-ai-routing.ps1",
           "sha256": "ed0c6105b5ae1a42838f5ba280b299c024b3c812b10719eebcece1d5de05339d"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_replay.go",
+          "sha256": "8d958572a3bd703560041876ad1fa14e28ef3ad2b5ad9de9920ff2e00274f667"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_metrics.go",
+          "sha256": "941fc5bbf1f1e20bfc06adc08b6e1e94fd90e3a8c0d0c5c9d774d25c022f9d74"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_details.go",
+          "sha256": "c8f4fd1d3517c3b41002ef5d5d92b3603a4e47b14027db45c405fdb7798bf369"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_accounts.go",
+          "sha256": "c2e9960964cbdc75e16f03bef2a29cf94d23a8bbdf8cf26f1c68bed71b27fa1a"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_privacy.go",
+          "sha256": "4cd8d1f97f7a8e2ec9717afd582ed7df1ac8c734557a4ddc87f295eae6b4db6a"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/preferences_accounts.go",
+          "sha256": "5af8c4b69b0b5f0a828c290d13b4c30aecbe9e0c9decc6c650132c7b8130ebb0"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/preferences_billing.go",
+          "sha256": "fd3e906ae98ea03baaf544e45e8fe46956f2500285e022c8b300eb58fee3b25d"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_purposes.go",
+          "sha256": "d28ea9e68470ac8c85d80a8f6b388cccbdacb0ceb7ac7aa2322af79d5e5a62af"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_titles.go",
+          "sha256": "ad45956ad843a3b40b206a1babdbbce219b4c95a4c830b1b8c350a27d7900662"
         }
       ]
     },

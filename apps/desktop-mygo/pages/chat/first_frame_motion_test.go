@@ -3,7 +3,6 @@ package chat
 import (
 	"math"
 	"testing"
-	"time"
 
 	"github.com/egoist/mygo/ui"
 	"winone/desktopmygo/i18n"
@@ -42,8 +41,8 @@ func TestWelcomeComposerHasItsFinalPositionOnFirstFrame(t *testing.T) {
 	}
 }
 
-// The real control retargets without overshoot and never leaves its process.
-func TestProcessCollapseUsesBoundedMotionAndReducedMotion(t *testing.T) {
+// The control follows layout immediately; it never glides over prose.
+func TestProcessCollapseHasNoMotion(t *testing.T) {
 	for _, reduced := range []bool{false, true} {
 		p := &Chat{}
 		p.ui.openProcesses = []string{"group"}
@@ -61,20 +60,16 @@ func TestProcessCollapseUsesBoundedMotionAndReducedMotion(t *testing.T) {
 		tt.SetPreferences(ui.Preferences{ReduceMotion: reduced})
 		tt.Frame()
 		tt.Frame()
-		start, ok := tt.Find(i18n.T("chat.collapseProcess"))
+		_, ok := tt.Find(i18n.T("chat.collapseProcess"))
 		if !ok {
 			t.Fatal("missing collapse control")
 		}
 		height = 400
 		tt.Frame()
 		tt.Frame()
-		tt.Advance(80 * time.Millisecond)
 		middle, _ := tt.Find(i18n.T("chat.collapseProcess"))
-		if !reduced && (middle.Y <= start.Y || middle.Y >= 364) {
-			t.Fatalf("not gliding: %+v -> %+v", start, middle)
-		}
-		if reduced && middle.Y != 364 {
-			t.Fatalf("ReduceMotion did not settle immediately: %+v", middle)
+		if middle.Y != 364 {
+			t.Fatalf("collapse control still animates: %+v", middle)
 		}
 		height = 260
 		tt.Frame()

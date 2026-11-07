@@ -113,8 +113,13 @@ func (t Translator) startMode(ctx context.Context, signingIn bool) (*aiProcess, 
 		}
 		if address != "" {
 			choice, err := t.privacyPreferences()
-			if err != nil { return nil, err }
-			model:=choice.Model; if model==""{model="privacy-filter"}
+			if err != nil {
+				return nil, err
+			}
+			model := choice.Model
+			if model == "" {
+				model = "privacy-filter"
+			}
 			scores, _ := json.Marshal(choice.Scores)
 			cmd.Env = append(cmd.Env, "WINONE_AI_PRIVACY_URL="+address, "WINONE_AI_PRIVACY_KEY="+key, "WINONE_AI_PRIVACY_MODEL="+model, "WINONE_AI_PRIVACY_SCORE="+string(scores))
 		}
@@ -259,12 +264,17 @@ func (t Translator) SignIn(ctx context.Context, agent string, controls <-chan st
 // A selected method is an index from this provider's own plugin, never a
 // package name or executable supplied by the settings window.
 func (t Translator) SignInMethod(ctx context.Context, agent string, method *int, controls <-chan string, progress func(json.RawMessage)) error {
+	return t.SignInAccount(ctx, agent, method, "", controls, progress)
+}
+
+// SignInAccount retains Magpie's per-account proxy selection when renewing a login.
+func (t Translator) SignInAccount(ctx context.Context, agent string, method *int, user string, controls <-chan string, progress func(json.RawMessage)) error {
 	process, err := t.startMode(ctx, true)
 	if err != nil {
 		return err
 	}
 	encoder := json.NewEncoder(process.input)
-	if err = encoder.Encode(map[string]any{"operation": "accounts.signin", "agent": agent, "agentBackend": t.AccountBackend, "method": method}); err != nil {
+	if err = encoder.Encode(map[string]any{"operation": "accounts.signin", "agent": agent, "agentBackend": t.AccountBackend, "method": method, "user": user}); err != nil {
 		process.closeJob()
 		process.finish()
 		return err

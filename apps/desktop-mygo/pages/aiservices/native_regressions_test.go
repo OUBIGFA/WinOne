@@ -21,6 +21,7 @@ func TestGroupAccountChoiceUsesTheExactUpstreamID(t *testing.T) {
 	}
 	p.routing.state = &state
 	p.routing.begin(core.Preserved[routeGroup]{Value: routeGroup{ID: "g", Members: []string{"fixture/model"}}})
+	p.routing.editorTab = 4
 	tt := ui.NewTester(p.routing.editor, 900, 8000)
 	if err := tt.Click("Fixture key"); err != nil {
 		t.Fatal(err)

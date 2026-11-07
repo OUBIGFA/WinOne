@@ -10,12 +10,12 @@ import (
 // account persistence and cancellation), but registers it before Authorize.
 // A plugin may prepare its dedicated browser there. Its preparation shares
 // the explicit login's deadline, not a separate one-minute request budget.
-func WinOneStartPluginSignIn(ctx context.Context, id string, method int, inputs map[string]string) (SignInState, error) {
+func WinOneStartPluginSignIn(ctx context.Context, id string, method int, inputs map[string]string, options SignInOptions) (SignInState, error) {
  if settings.AccountDiscoveryOff() { return SignInState{}, errAccountDiscoveryOff }
  if cli, missing := pluginCLI(id); missing { return SignInState{}, fmt.Errorf("%s is required; install the official client first", cli.Name) }
  begin, cancel := context.WithCancel(ctx)
  s := &signInFlow{done: make(chan struct{}), stop: cancel}
- if err := s.pickProxy(PluginID(id), SignInOptions{}); err != nil { cancel(); return SignInState{}, err }
+ if err := s.pickProxy(PluginID(id), options); err != nil { cancel(); return SignInState{}, err }
  s.st = SignInState{ID: randomToken(9), Agent: PluginID(id), State: "starting", Proxy: s.proxy}
  signIns.Lock()
  for sid, old := range signIns.m { if old.st.Agent == s.st.Agent { old.finish(SignInState{State:"canceled"}); delete(signIns.m,sid) } }

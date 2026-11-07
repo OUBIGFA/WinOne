@@ -124,6 +124,7 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 		Keys     bool             `json:"keys"`
 		Provider string           `json:"provider,omitempty"`
 		Method   *int             `json:"method,omitempty"`
+		User     string           `json:"user,omitempty"`
 		Draft    *ai.AccountDraft `json:"draft,omitempty"`
 	}
 	if err := configjson.DecodeObject(r.Params, &params); err != nil {
@@ -259,7 +260,7 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 					}()
 				}
 			}
-			err := runtime.SignInMethod(ctx, params.Agent, params.Method, job.input, func(raw json.RawMessage) {
+			err := runtime.SignInAccount(ctx, params.Agent, params.Method, params.User, job.input, func(raw json.RawMessage) {
 				var event aiSignInProgress
 				if json.Unmarshal(raw, &event) != nil {
 					return

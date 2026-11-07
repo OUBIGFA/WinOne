@@ -136,6 +136,7 @@ type advancedPanel struct {
 	records   *maskingRecords
 	// focusPrivacy moves to the privacy form when the records ask.
 	focusPrivacy   bool
+	privacyTab     int
 	options        map[string]*pluginOptions
 	builtinTab     int
 	opens          map[string]bool

@@ -17,22 +17,13 @@ import (
 // original remains available below, while common decisions and actions have
 // labeled native controls rather than making the owner navigate raw JSON.
 type traceEvidence struct {
-	Order []traceCandidate `json:"order"`
-	Left  []traceCandidate `json:"left"`
-	Tries []struct {
-		ID     string     `json:"id"`
-		Model  string     `json:"model"`
-		Status int        `json:"status"`
-		Error  string     `json:"error"`
-		Fail   string     `json:"fail"`
-		Millis int        `json:"ms"`
-		Effort string     `json:"effort"`
-		Rest   *traceRest `json:"rest"`
-	} `json:"tries"`
-	Group    json.RawMessage `json:"group"`
-	Rule     json.RawMessage `json:"rule"`
-	Nested   json.RawMessage `json:"nested"`
-	Affinity json.RawMessage `json:"affinity"`
+	Order    []traceCandidate `json:"order"`
+	Left     []traceCandidate `json:"left"`
+	Tries    []traceAttempt   `json:"tries"`
+	Group    json.RawMessage  `json:"group"`
+	Rule     json.RawMessage  `json:"rule"`
+	Nested   json.RawMessage  `json:"nested"`
+	Affinity json.RawMessage  `json:"affinity"`
 	Prompt   struct {
 		Window int `json:"window"`
 		Tokens int `json:"tokens"`
@@ -45,6 +36,21 @@ type traceEvidence struct {
 			} `json:"items"`
 		} `json:"parts"`
 	} `json:"prompt"`
+}
+
+type traceAttempt struct {
+	ID     string     `json:"id"`
+	Model  string     `json:"model"`
+	Start  string     `json:"start"`
+	Done   bool       `json:"done"`
+	Status int        `json:"status"`
+	Error  string     `json:"error"`
+	Fail   string     `json:"fail"`
+	Millis int64      `json:"ms"`
+	TTFT   int64      `json:"ttft"`
+	Effort string     `json:"effort"`
+	Served string     `json:"served"`
+	Rest   *traceRest `json:"rest"`
 }
 type traceRest struct {
 	Why    string `json:"why"`
@@ -73,10 +79,22 @@ type traceCandidate struct {
 }
 
 func (t *nativeTrace) evidenceView(c *ui.Context, p *page, r *traceRoute) {
+	mask := p.routing.accountMasker()
 	var evidence traceEvidence
 	if json.Unmarshal(r.Raw, &evidence) != nil {
 		return
 	}
+	kit.Help(c, t.metricText(*r))
+	var raw map[string]json.RawMessage
+	json.Unmarshal(r.Raw, &raw)
+	var ordered, left, tries []json.RawMessage
+	json.Unmarshal(raw["order"], &ordered)
+	json.Unmarshal(raw["left"], &left)
+	json.Unmarshal(raw["tries"], &tries)
+	timing := ui.Local(ui.Column(c), "timing", func() bool { return false })
+	ui.Collapsible(c, i18n.T("aiRouting.timing"), timing, func() {
+		traceFields(c, r.Raw, mask, "order", "left", "tries", "group", "rule", "nested", "affinity", "prompt")
+	})
 	for _, section := range []struct {
 		label string
 		rows  []traceCandidate
@@ -87,10 +105,10 @@ func (t *nativeTrace) evidenceView(c *ui.Context, p *page, r *traceRoute) {
 		kit.Strong(c, nativeT(section.label))
 		for index, row := range section.rows {
 			ui.Column(c.Key(section.label+row.ID)).FillWidth().Gap(5).Padding(8, 0).Children(func() {
-				kit.Strong(c, fmt.Sprintf("%d. %s · %s · %s", index+1, row.Name, row.Who, row.Model)).Selectable()
+				kit.Strong(c, mask(fmt.Sprintf("%d. %s · %s · %s", index+1, row.Name, row.Who, row.Model))).Selectable()
 				var facts []string
 				if row.Known {
-					facts = append(facts, nativeT("quotaUsed")+fmt.Sprintf(" %.1f%%", row.Used*100))
+					facts = append(facts, nativeT("quotaUsed")+fmt.Sprintf(" %.1f%%", row.Used))
 				}
 				if row.UseFirst {
 					facts = append(facts, nativeT("useFirst"))
@@ -117,6 +135,16 @@ func (t *nativeTrace) evidenceView(c *ui.Context, p *page, r *traceRoute) {
 					kit.Help(c, strings.Join(facts, " · "))
 				}
 				t.restView(c, p, row.Rest)
+				more := ui.Local(ui.Column(c), "more", func() bool { return false })
+				ui.Collapsible(c, i18n.T("aiRouting.candidateFacts"), more, func() {
+					items := ordered
+					if section.label == "excludedCandidates" {
+						items = left
+					}
+					if index < len(items) {
+						traceFields(c, items[index], mask, "rest")
+					}
+				})
 			})
 		}
 	}
@@ -124,15 +152,21 @@ func (t *nativeTrace) evidenceView(c *ui.Context, p *page, r *traceRoute) {
 		kit.Strong(c, nativeT("attempts"))
 		for i, attempt := range evidence.Tries {
 			ui.Column(c.Key(i)).FillWidth().Gap(4).Padding(8, 0).Children(func() {
-				kit.Strong(c, fmt.Sprintf("%d. %s · %s", i+1, attempt.ID, attempt.Model))
+				kit.Strong(c, mask(fmt.Sprintf("%d. %s · %s", i+1, attempt.ID, attempt.Model)))
 				kit.Help(c, fmt.Sprintf("HTTP %d · %d ms · %s", attempt.Status, attempt.Millis, attempt.Effort))
 				if attempt.Error != "" {
-					kit.Help(c, attempt.Error).Selectable()
+					kit.Help(c, mask(attempt.Error)).Selectable()
 				}
 				if attempt.Fail != "" {
 					kit.Help(c, attempt.Fail).Selectable()
 				}
 				t.restView(c, p, attempt.Rest)
+				more := ui.Local(ui.Column(c), "more", func() bool { return false })
+				ui.Collapsible(c, i18n.T("aiRouting.attemptFacts"), more, func() {
+					if i < len(tries) {
+						traceFields(c, tries[i], mask, "rest")
+					}
+				})
 			})
 		}
 	}
@@ -144,7 +178,17 @@ func (t *nativeTrace) evidenceView(c *ui.Context, p *page, r *traceRoute) {
 			continue
 		}
 		open := ui.Local(ui.Column(c.Key(part.key)), "open", func() bool { return false })
-		ui.Collapsible(c, nativeT(part.key), open, func() { nativeJSON(c, part.value) })
+		ui.Collapsible(c, nativeT(part.key), open, func() {
+			if part.key == "nestedRules" {
+				var rows []json.RawMessage
+				json.Unmarshal(part.value, &rows)
+				for i, row := range rows {
+					ui.Column(c.Key(i)).FillWidth().Gap(6).Children(func() { traceFields(c, row, mask) })
+				}
+			} else {
+				traceFields(c, part.value, mask)
+			}
+		})
 	}
 	if len(evidence.Prompt.Parts) > 0 {
 		kit.Strong(c, nativeT("contextText"))
@@ -165,7 +209,7 @@ func (t *nativeTrace) evidenceView(c *ui.Context, p *page, r *traceRoute) {
 		}
 	}
 	open := ui.Local(ui.Column(c), "all-evidence", func() bool { return false })
-	ui.Collapsible(c, nativeT("completeEvidence"), open, func() { nativeJSON(c, r.Raw) })
+	ui.Collapsible(c, nativeT("completeEvidence"), open, func() { routingJSON(c, r.Raw, mask) })
 }
 func (t *nativeTrace) contextRead(p *page, r *traceRoute, kind string, item int) {
 	q := url.Values{"id": {strconv.FormatInt(r.ID, 10)}, "kind": {kind}, "day": {strings.Split(r.Time, "T")[0]}}
@@ -178,7 +222,7 @@ func (t *nativeTrace) restView(c *ui.Context, p *page, rest *traceRest) {
 	if rest == nil {
 		return
 	}
-	kit.Help(c, nativeT("resting")+" · "+rest.Why+" · "+rest.Until)
+	kit.Help(c, p.routing.accountMasker()(nativeT("resting")+" · "+rest.Why+" · "+rest.Until))
 	ui.Row(c).Gap(8).Wrap().Children(func() {
 		if rest.Key != "" && kit.Button(c, nativeT("unrest"), icons.RefreshCw, false).Disabled(t.detailAPI.busy).Clicked() {
 			t.detailAPI.request(p, "POST", "/api/gateway/unrest", map[string]string{"key": rest.Key}, func(raw json.RawMessage) { t.detail = raw; t.load(p) })

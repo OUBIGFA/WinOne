@@ -77,6 +77,9 @@ func TestNativeGroupDeletingMiddleRuleDoesNotLoseFollowingRules(t *testing.T) {
 		},
 	}}
 	r.begin(doc)
+	// The editor opens on the identity section. Enter the rules section before
+	// exercising the row action so the test follows the user-visible workflow.
+	r.editorTab = 2
 	tt := ui.NewTester(r.editor, 900, 4000)
 	tt.Frame()
 	// Click the first delete control while later rows are still rendered.

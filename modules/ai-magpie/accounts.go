@@ -245,7 +245,7 @@ func signIn(ctx context.Context, in request, input io.Reader) error {
 			return json.NewEncoder(os.Stdout).Encode(map[string]any{"signin": state})
 		}
 	} else {
-		state, err = provider.StartSignIn(in.Agent)
+		state, err = provider.StartSignInWith(in.Agent, provider.SignInOptions{User: in.User})
 	}
 	if err != nil {
 		return err

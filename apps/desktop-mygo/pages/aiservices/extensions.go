@@ -80,7 +80,7 @@ type pageRequest struct {
 }
 
 // signInRequest continues a sign-in the plugin manager asked for.
-type signInRequest struct{ provider, nonce string }
+type signInRequest struct{ provider, user, nonce string }
 
 func nonce() string {
 	b := make([]byte, 16)

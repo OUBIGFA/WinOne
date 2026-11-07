@@ -68,54 +68,123 @@ type ruleForm struct {
 	initialized bool
 }
 
-// privacy is masking, the local privacy model, custom rules and actions,
-// statistics, the request archive, private downloads and account reads,
-// below Magpie's own privacy records.
+// Privacy separates protection policy from history and data retention. Model
+// leases and unmasked records live only while their own section is visible.
 func (a *advancedPanel) privacy(c *ui.Context, catalog *magpieCatalog, locked bool) {
-	p := a.p
+	// A route opens a particular record, not the default protection section.
+	if a.p.maskRecord != "" {
+		a.privacyTab = 2
+	}
+	if a.focusPrivacy {
+		a.privacyTab = 1
+		a.focusPrivacy = false
+	}
+	kit.SubTabs(c, &a.privacyTab, []string{i18n.T("aiPrivacy.protection"), i18n.T("aiPrivacy.rules"), i18n.T("aiPrivacy.records"), i18n.T("aiPrivacy.access")}, a.p.env.RequestChange)
+	if a.privacyTab != 0 && a.model != nil {
+		a.model.Close()
+		a.model = nil
+	}
+	if a.privacyTab != 2 && a.records != nil {
+		a.records.Close()
+		a.records = nil
+	}
+	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
+		switch a.privacyTab {
+		case 0:
+			a.privacyProtection(c, locked)
+		case 1:
+			a.privacyRules(c, locked)
+		case 2:
+			a.recordsView(c, locked)
+			a.privacyArchive(c, locked)
+		case 3:
+			a.privacyAccess(c, catalog, locked)
+		}
+	})
+}
+
+func (a *advancedPanel) privacyProtection(c *ui.Context, locked bool) {
 	s := a.settings()
-	a.recordsView(c, locked)
-	form := kit.Group(c, icons.ShieldCheck, i18n.T("ai.privacySettings"), "", func() {
+	kit.Panel(c, func() {
 		kit.Toggle(c, &s.Redact, i18n.T("ai.redact"), i18n.T("ai.redactHint")).Disabled(locked)
 		kit.Toggle(c, &s.RedactShape, i18n.T("ai.redactShape"), i18n.T("ai.redactShapeHint")).Disabled(locked)
 		personal := s.RedactPersonal
 		if kit.Toggle(c, &personal, i18n.T("ai.redactPersonal"), i18n.T("ai.redactPersonalHint")).Disabled(locked).Changed() {
 			s.RedactPersonal = personal
 			if personal {
-				// Masking people hides the accounts shown too.
 				s.HideAccounts = true
 			}
 		}
-		if s.RedactPersonal {
-			kit.Indented(c, func() {
+		kit.Toggle(c, &s.HideAccounts, i18n.T("ai.hideAccounts"), i18n.T("ai.hideAccountsHint")).Disabled(locked)
+	})
+	if s.RedactPersonal {
+		kit.Section(c, nil, i18n.T("aiPrivacy.personalKinds"), "", func() {
+			ui.Row(c).FillWidth().GapX(24).GapY(12).Wrap().Children(func() {
 				for i, kind := range redactKinds {
-					kind := kind
 					on, set := s.RedactKinds[kind]
 					if !set {
 						on = i < 6
 					}
-					if kit.Toggle(c.Key(kind), &on, i18n.T("ai.redactKind"+kind), "").Disabled(locked).Changed() {
-						next := map[string]bool{}
-						for k, v := range s.RedactKinds {
-							next[k] = v
+					if ui.Checkbox(c.Key(kind), &on, i18n.T("ai.redactKind"+kind)).Basis(220).Grow(1).Disabled(locked).Changed() {
+						if s.RedactKinds == nil {
+							s.RedactKinds = map[string]bool{}
 						}
-						next[kind] = on
-						s.RedactKinds = next
+						s.RedactKinds[kind] = on
 					}
 				}
 			})
-		}
-		if a.model == nil {
-			a.model = newPrivacyModel(p)
-		}
-		a.model.View(c, locked)
-		kit.Toggle(c, &s.HideAccounts, i18n.T("ai.hideAccounts"), i18n.T("ai.hideAccountsHint")).Disabled(locked)
+		})
+	}
+	if a.model == nil {
+		a.model = newPrivacyModel(a.p)
+	}
+	kit.Group(c, nil, i18n.T("aiPrivacy.localModel"), "", func() { a.model.View(c, locked) })
+}
+
+func (a *advancedPanel) privacyRules(c *ui.Context, locked bool) {
+	s := a.settings()
+	kit.Group(c, nil, i18n.T("aiPrivacy.words"), "", func() {
 		kit.Stack(c, i18n.T("ai.redactWords"), i18n.T("ai.redactWordsHint"), func() {
 			a.listInput(c, "words", i18n.T("ai.redactWords"), s.RedactWords, locked, func(v []string) { s.RedactWords = v })
 		})
 		kit.Toggle(c, &s.RedactWordsAnyCase, i18n.T("ai.redactWordsAnyCase"), "").Disabled(locked)
-		a.rules(c, locked)
-		a.actions(c, locked)
+	})
+	kit.Section(c, icons.ListFilter, i18n.T("ai.redactRules"), "", func() { a.rules(c, locked) })
+	if _, exists := a.opens["actions"]; !exists {
+		a.opens["actions"] = true
+	}
+	a.actions(c, locked)
+}
+
+func (a *advancedPanel) privacyArchive(c *ui.Context, locked bool) {
+	s := a.settings()
+	kit.Group(c, nil, i18n.T("ai.requestArchive"), "", func() {
+		kit.Toggle(c, &s.RequestArchiveLocal, i18n.T("ai.requestArchiveLocal"), i18n.T("ai.requestArchiveHint")).Disabled(locked)
+		local, most := value(s.RequestArchiveLocalMB), value(s.RequestArchiveMaxMB)
+		numberRow(c, i18n.T("ai.requestArchiveLocalMB"), &local, 0, 1048576, true, "", locked, func(v *float64) { s.RequestArchiveLocalMB = ptr(value(v)) })
+		numberRow(c, i18n.T("ai.requestArchiveMaxMB"), &most, 0, 1024, true, "", locked, func(v *float64) { s.RequestArchiveMaxMB = ptr(value(v)) })
+		kit.Stack(c, "", i18n.T("ai.requestArchiveLimitsHint"), func() {})
+	})
+}
+
+func (a *advancedPanel) privacyAccess(c *ui.Context, catalog *magpieCatalog, locked bool) {
+	s := a.settings()
+	kit.Group(c, nil, i18n.T("ai.accountDiscovery"), "", func() {
+		discovery := !s.NoAccountDiscovery && !catalog.NoAccountsEnv
+		hint := "ai.accountDiscoveryHint"
+		if catalog.NoAccountsEnv {
+			hint = "ai.accountDiscoveryLocked"
+		}
+		if kit.Toggle(c, &discovery, i18n.T("ai.subscriptionAccounts"), i18n.T(hint)).Disabled(locked || catalog.NoAccountsEnv).Changed() {
+			s.NoAccountDiscovery = !discovery
+		}
+	})
+	kit.Group(c, nil, i18n.T("ai.fetchPrivate"), "", func() {
+		kit.Stack(c, "", i18n.T("ai.fetchPrivateHint"), func() {
+			a.listInput(c, "fetchPrivate", i18n.T("ai.fetchPrivate"), s.FetchPrivate, locked, func(v []string) { s.FetchPrivate = v })
+		})
+	})
+	kit.Group(c, nil, i18n.T("aiPrivacy.telemetry"), "", func() {
 		stats := !s.NoStats
 		if kit.Toggle(c, &stats, i18n.T("ai.sendStats"), i18n.T("ai.sendStatsHint")).Disabled(locked).Changed() {
 			s.NoStats = !stats
@@ -125,32 +194,6 @@ func (a *advancedPanel) privacy(c *ui.Context, catalog *magpieCatalog, locked bo
 			if kit.Toggle(c, &usage, i18n.T("ai.sendUsageStats"), i18n.T("ai.sendUsageStatsHint")).Disabled(locked).Changed() {
 				s.NoUsageStats = !usage
 			}
-		}
-	})
-	if a.focusPrivacy {
-		a.focusPrivacy = false
-		form.ScrollIntoView()
-	}
-	kit.Group(c, nil, i18n.T("ai.requestArchive"), "", func() {
-		kit.Toggle(c, &s.RequestArchiveLocal, i18n.T("ai.requestArchiveLocal"), i18n.T("ai.requestArchiveHint")).Disabled(locked)
-		local, most := value(s.RequestArchiveLocalMB), value(s.RequestArchiveMaxMB)
-		numberRow(c, i18n.T("ai.requestArchiveLocalMB"), &local, 0, 1048576, true, "", locked, func(v *float64) { s.RequestArchiveLocalMB = ptr(value(v)) })
-		numberRow(c, i18n.T("ai.requestArchiveMaxMB"), &most, 0, 1024, true, "", locked, func(v *float64) { s.RequestArchiveMaxMB = ptr(value(v)) })
-		kit.Stack(c, "", i18n.T("ai.requestArchiveLimitsHint"), func() {})
-	})
-	kit.Group(c, nil, i18n.T("ai.fetchPrivate"), "", func() {
-		kit.Stack(c, i18n.T("ai.fetchPrivate"), i18n.T("ai.fetchPrivateHint"), func() {
-			a.listInput(c, "fetchPrivate", i18n.T("ai.fetchPrivate"), s.FetchPrivate, locked, func(v []string) { s.FetchPrivate = v })
-		})
-	})
-	kit.Group(c, nil, i18n.T("ai.accountDiscovery"), "", func() {
-		discovery := !s.NoAccountDiscovery && !catalog.NoAccountsEnv
-		hint := "ai.accountDiscoveryHint"
-		if catalog.NoAccountsEnv {
-			hint = "ai.accountDiscoveryLocked"
-		}
-		if kit.Toggle(c, &discovery, i18n.T("ai.subscriptionAccounts"), i18n.T(hint)).Disabled(locked || catalog.NoAccountsEnv).Changed() {
-			s.NoAccountDiscovery = !discovery
 		}
 	})
 }
@@ -163,7 +206,7 @@ func (a *advancedPanel) rules(c *ui.Context, locked bool) {
 		f.editing, f.by, f.initialized = -1, "prefix", true
 	}
 	reset := func() { f.editing, f.kind, f.by, f.match = -1, "", "prefix", "" }
-	kit.Stack(c, i18n.T("ai.redactRules"), "", func() {
+	ui.Column(c).FillWidth().Gap(12).Children(func() {
 		ui.Field(c, i18n.T("ai.redactRuleKind"), func() {
 			ui.TextInput(c, &f.kind).FillWidth().Placeholder("API_KEY").Label(i18n.T("ai.redactRuleKind")).Disabled(locked)
 		})

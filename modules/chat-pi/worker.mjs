@@ -105,7 +105,9 @@ function messagePage(manager,{before,limit=30}={}){
    all.push({...entry,message:{...entry.data,...(voiceCall?{agentMeta:{...entry.data.agentMeta,voiceCall}}:{}),id:entry.id,timestamp:entry.data.createdAt,turnId:'timeline:'+entry.data.clientId,presentationOnly:true}});
   }
   if(entry.type==="message"){
-   const message=displayMessage({...entry.message},sessionDirectory);
+   // Keep old media untouched while locating this page. Materializing every
+   // historical image here made opening recent text pay for the whole file.
+   const message={...entry.message};
    if(message.role==="user")turn=input??entry.id;
    if(turn)message.turnId=turn;
    if(message.role==="user"&&input){message.requestId=input;if(typeof receipt?.text==='string'){message.content=receipt.presentation?.text??receipt.text;message.hiddenInput=receipt.presentation?.hidden===true;message.attachments=receipt.attachments;if(receipt.presentation?.replyQuote)message.replyQuote=receipt.presentation.replyQuote;if(receipt.presentation?.agentReferences)message.agentReferences=receipt.presentation.agentReferences;if(receipt.presentation?.sourcePlugin)message.agentMeta={sourcePlugin:receipt.presentation.sourcePlugin};}savedInputs.push(input);input=undefined;}
@@ -120,7 +122,7 @@ function messagePage(manager,{before,limit=30}={}){
  page:while(start>0&&turnCount<Math.max(1,Math.min(limit,50))){
   const turnId=all[start-1].message.turnId,group=[];let cursor=start,groupBytes=0;
   while(cursor>0&&all[cursor-1].message.turnId===turnId){
-   const entry=all[cursor-1],message={...withThinking(entry.message,timing.get(entry.message.timestamp)??(entry.message.timestamp===thinkingMessage?[...thinkingBlocks.values()]:undefined)),...identities.get(entry.message.timestamp),id:entry.id};
+   const entry=all[cursor-1],message={...withThinking(displayMessage(entry.message,sessionDirectory),timing.get(entry.message.timestamp)??(entry.message.timestamp===thinkingMessage?[...thinkingBlocks.values()]:undefined)),...identities.get(entry.message.timestamp),id:entry.id};
    const size=Buffer.byteLength(JSON.stringify(message));
    if(size>600*1024)throw Error("A saved message is too large to display; keep the Pi session file");
    if(bytes+groupBytes+size>600*1024){if(messages.length)break page;break;}

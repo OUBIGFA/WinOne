@@ -68,6 +68,9 @@ func TestLongProcessHasVisibleCollapseControl(t *testing.T) {
 	if p.ui.expanded["process:u1"] {
 		t.Fatal("process did not collapse")
 	}
+	if p.ui.transcript.Y >= 240 || p.ui.follow {
+		t.Fatal("collapse left the reader below the folded process")
+	}
 }
 
 func TestModelFallbackValidatesDefaultAndEmptyCatalog(t *testing.T) {

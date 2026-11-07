@@ -3,7 +3,6 @@ package provider
 
 import (
 	"context"
-	"strings"
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -21,11 +21,38 @@ func TestWinOneOAuthMissingClientNeverRunsAnInstaller(t *testing.T) {
 	oldExe, oldInstaller := DevinExecutable, runInstaller
 	DevinExecutable = func() string { return "" }
 	called := false
-	runInstaller = func(context.Context, agentCLI) ([]byte,error) { called = true; return nil,nil }
+	runInstaller = func(context.Context, agentCLI) ([]byte, error) { called = true; return nil, nil }
 	t.Cleanup(func() { DevinExecutable, runInstaller = oldExe, oldInstaller })
 	_, err := StartPluginSignIn("devin", 0, nil)
 	if err == nil || !strings.Contains(err.Error(), "install the official client first") || called {
 		t.Fatalf("missing CLI was not safely reported: called=%v err=%v", called, err)
+	}
+}
+
+// Reauth must use the selected account's proxy for both backend paths.
+func TestWinOneOAuthReauthenticationUsesAccountProxy(t *testing.T) {
+	claudeHome(t)
+	const user = "selected@example.invalid"
+	setProxies(t, "codex", "http://127.0.0.1:9", map[string]string{user: "direct"})
+	setProxies(t, "fakeco", "http://127.0.0.1:9", map[string]string{user: "direct"})
+	previous := codexCallbackAddr
+	codexCallbackAddr = "127.0.0.1:0"
+	t.Cleanup(func() { codexCallbackAddr = previous })
+	for _, backend := range []string{"builtin", "plugin"} {
+		var state SignInState
+		var err error
+		if backend == "builtin" {
+			state, err = StartSignInWith("codex", SignInOptions{User: user})
+		} else {
+			state, err = WinOneStartPluginSignIn(t.Context(), "fakeco", 0, nil, SignInOptions{User: user})
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		CancelSignIn(state.ID)
+		if state.Proxy != "direct" {
+			t.Fatalf("%s reauthentication used provider proxy %q", backend, state.Proxy)
+		}
 	}
 }
 

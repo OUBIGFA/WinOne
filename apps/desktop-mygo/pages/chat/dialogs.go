@@ -472,14 +472,13 @@ func (p *Chat) beginEdit(m model.Message) {
 // row. Support controls live outside it and cannot stretch a short input.
 func (p *Chat) editInPlace(c *ui.Context) {
 	e := p.ui.edit
-	pal := kit.Colors(c)
 	width, _ := c.MeasureText(0, ui.Span{Text: e.text})
 	width += 28
 	if e.text == e.original && e.width > 0 {
 		width = e.width
 	}
 	ui.Column(c.Key("edit:" + e.entry)).FillWidth().AlignItems(ui.End).Gap(8).Children(func() {
-		ui.Column(c.Key("bubble")).Width(width).MaxWidthPercent(85).MinWidth(28).Padding(10, 14).Radius(14).Background(pal.Selected).Children(func() {
+		ui.Column(c.Key("bubble")).Width(width).MaxWidthPercent(85).MinWidth(28).Padding(10, 14).Radius(14).Background(messageBackground(c)).Children(func() {
 			input := ui.TextArea(c, &e.text).FillWidth().MinWidth(0).Lines(1, 12).MinHeight(24).MaxHeight(320).Padding(0).Border(0, ui.Transparent).Background(ui.Transparent).LineHeight(1.5).
 				Label(i18n.T("chat.editMessage")).AutoFocus().Disabled(e.busy)
 			composing := input.Composing()

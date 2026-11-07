@@ -29,6 +29,7 @@ type fakeAI struct {
 	accounts      []map[string]any
 	signIn        []map[string]any // states the sign-in goes through
 	signInIndex   int
+	signInParams  map[string]any
 	keys          map[string]string
 	catalog       map[string]any
 }
@@ -86,6 +87,7 @@ func (f *fakeAI) handle(method string, params json.RawMessage) (any, error) {
 	case "capture.ai.accounts.list":
 		return map[string]any{"accounts": f.accounts, "methods": []any{map[string]any{"type": "oauth", "label": "Browser"}}}, nil
 	case "capture.ai.accounts.signin.start":
+		f.signInParams = p
 		f.signInIndex = 0
 		if len(f.signIn) == 0 {
 			// A sign-in the test does not follow: it waits for the vendor.
@@ -336,6 +338,21 @@ func TestAccountSignInRefreshesTheAccounts(t *testing.T) {
 		t.Fatalf("after sign-in %q", tt.Texts())
 	}
 	shot(t, tt, "ai-accounts")
+}
+
+func TestRoutingReauthenticationRetainsSelectedAccount(t *testing.T) {
+	f, h, p, tt := setup(t)
+	p.switchTab(tabAccounts)
+	settle(h, tt)
+	p.add(&agent{ID: "codex", Name: "Codex"})
+	settle(h, tt)
+	p.extensions.signIn = &signInRequest{provider: p.selected, user: "selected@example.invalid", nonce: nonce()}
+	settle(h, tt)
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.signInParams["user"] != "selected@example.invalid" || f.signInParams["agent"] != "codex" {
+		t.Fatalf("reauthentication lost its account: %v", f.signInParams)
+	}
 }
 
 func TestGatewayValidatesItsPortAndSavesApart(t *testing.T) {

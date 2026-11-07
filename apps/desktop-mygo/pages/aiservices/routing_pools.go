@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 
 	"github.com/egoist/mygo/ui"
+	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
+	"winone/desktopmygo/kit/icons"
 )
 
 func (r *routingPanel) routingChoices(saved string) []kit.SelectOption {
@@ -33,13 +35,17 @@ func (r *routingPanel) setPool(action string, body any) {
 }
 
 func (r *routingPanel) poolsView(c *ui.Context) {
-	open := ui.Local(ui.Column(c), "pools", func() bool { return false })
-	ui.Collapsible(c, nativeT("accountPools"), open, func() {
+	mask := r.accountMasker()
+	if len(r.state.Pools) == 0 {
+		kit.Empty(c, icons.Users, i18n.T("aiRouting.noPools"), i18n.T("aiRouting.noPoolsHint"), nil)
+		return
+	}
+	kit.Section(c, icons.Users, nativeT("accountPools"), "", func() {
 		for _, pool := range r.state.Pools {
 			ui.Column(c.Key(pool.Provider+"/"+pool.Protocol)).FillWidth().Gap(8).Padding(10, 0).Children(func() {
 				kit.Strong(c, pool.Name)
 				for _, who := range pool.Who {
-					kit.Help(c, who).Selectable()
+					kit.Help(c, mask(who)).Selectable()
 				}
 				if pool.Protocol != "" {
 					kit.Help(c, pool.Protocol)

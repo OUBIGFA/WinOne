@@ -55,6 +55,7 @@ type request struct {
 	Preset              string                   `json:"preset,omitempty"`
 	PresetRegion        string                   `json:"presetRegion,omitempty"`
 	Method              *int                     `json:"method,omitempty"`
+	User                string                   `json:"user,omitempty"`
 	Protocol            string                   `json:"protocol"`
 	BaseURL             string                   `json:"baseUrl"`
 	Key                 string                   `json:"key"`

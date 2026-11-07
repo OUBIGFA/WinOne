@@ -478,7 +478,7 @@ func (p *Chat) botReplyButton(c *ui.Context, m model.Message) {
 	if p.bot.ReadOnly {
 		return
 	}
-	if kit.IconButton(c.Key("reply"), icons.Reply, botT("chat.messageActionBar.reply")).Clicked() {
+	if messageAction(c.Key("reply"), icons.Reply, botT("chat.messageActionBar.reply")).Clicked() {
 		if quote := botQuoteFor(m); quote != nil {
 			p.botMode.quote = quote
 		}

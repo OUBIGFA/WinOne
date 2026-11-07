@@ -118,6 +118,12 @@ func TestNativeRoutingRealCreateReadSaveAndNoWebView(t *testing.T) {
 	if p.routing.trace.detailAPI.err != "" || p.routing.trace.detail == nil {
 		t.Fatal("route call body:", p.routing.trace.detailAPI.err)
 	}
+	p.routing.trace.startReplay(p,[]traceRoute{route})
+	settle(h,tt)
+	if p.routing.trace.replayAPI.err!="" || p.routing.trace.replay==nil || len(p.routing.trace.replay.routes)!=1 {
+		t.Fatal("real route replay:",p.routing.trace.replayAPI.err)
+	}
+	p.routing.trace.stopReplay()
 	shot(t, tt, "native-routing-real-trace")
 }
 func kitID(v int64) string { b, _ := json.Marshal(v); return string(b) }
@@ -126,6 +132,8 @@ func TestNativeMaskingRealPreviewAndClear(t *testing.T) {
 	p, h, tt, _ := nativeAIWithRuntime(t)
 	p.switchTab(tabAdvanced)
 	p.advancedTab = advancedPrivacy
+	settle(h, tt)
+	if err := tt.Click(i18n.T("aiPrivacy.records")); err != nil { t.Fatal(err) }
 	settle(h, tt)
 	m := p.advanced.records
 	if m == nil || !m.loaded || m.api.err != "" {

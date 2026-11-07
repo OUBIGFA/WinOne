@@ -36,7 +36,11 @@ type editor struct {
 	models  *modelsPanel
 	account *accountPanel
 	// optionsOpen unfolds an account provider's options.
-	optionsOpen bool
+	optionsOpen          bool
+	preferenceTab        int
+	preferenceAccount    string
+	newPreferenceAccount string
+	newCapWindow         string
 }
 
 func newEditor(p *page, pr *provider, key string) *editor {
@@ -240,6 +244,24 @@ var httpAddress = regexp.MustCompile(`(?i)^http://`)
 func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 	p := e.p
 	locked := p.locked()
+	if pr.AuthMode == "account" {
+		label := "aiOptions.open"
+		if e.optionsOpen {
+			label = "aiOptions.back"
+		}
+		if kit.Button(c, i18n.T(label), icons.Settings2, false).Clicked() {
+			change := func() { e.optionsOpen = !e.optionsOpen }
+			if p.env.RequestChange != nil {
+				p.env.RequestChange(change)
+			} else {
+				change()
+			}
+		}
+		if e.optionsOpen {
+			e.preferences(c, pr, locked)
+			return
+		}
+	}
 	if pr.AuthMode == "account" && e.account != nil {
 		e.account.View(c, pr, old)
 	}
@@ -255,7 +277,6 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 			}
 		})
 	}
-	if pr.AuthMode == "account" { e.preferences(c, pr, locked) }
 	// Resting on limits belongs to the provider's keys, not to its model
 	// list, so it stands apart from the models below.
 	kit.Panel(c, func() {

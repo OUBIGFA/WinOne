@@ -144,7 +144,9 @@ func (a *accountPanel) reset() {
 func (a *accountPanel) cancelRunning() {
 	if job := a.job; job.running() {
 		id := job.ID
-		spawn(a.p.env, func() { _ = a.p.env.Host.CallCompletingInto("capture.ai.accounts.signin.cancel", map[string]string{"id": id}, nil) })
+		spawn(a.p.env, func() {
+			_ = a.p.env.Host.CallCompletingInto("capture.ai.accounts.signin.cancel", map[string]string{"id": id}, nil)
+		})
 	}
 }
 
@@ -195,11 +197,19 @@ func (a *accountPanel) load(r accountRequest, refresh bool) {
 // start begins a sign-in. A reply that arrives after the connection
 // changed is cancelled at once.
 func (a *accountPanel) start(r accountRequest) {
+	a.startFor(r, "")
+}
+
+// Reauthentication retains the selected account so Magpie uses its proxy.
+func (a *accountPanel) startFor(r accountRequest, user string) {
 	p := a.p
 	p.reader.Invalidate()
 	a.err, a.starting, a.loading, a.callback, a.copied = "", true, true, "", ""
 	owner := a.owner
 	params := map[string]any{"agent": r.Agent, "provider": r.Provider}
+	if user != "" {
+		params["user"] = user
+	}
 	if r.Draft != nil {
 		params["draft"] = r.Draft
 	}
@@ -220,7 +230,9 @@ func (a *accountPanel) start(r accountRequest) {
 		if owner != a.owner {
 			if err == nil {
 				id := job.ID
-				spawn(p.env, func() { _ = p.env.Host.CallCompletingInto("capture.ai.accounts.signin.cancel", map[string]string{"id": id}, nil) })
+				spawn(p.env, func() {
+					_ = p.env.Host.CallCompletingInto("capture.ai.accounts.signin.cancel", map[string]string{"id": id}, nil)
+				})
 			}
 			return
 		}
@@ -257,7 +269,9 @@ func (a *accountPanel) poll(after time.Duration) {
 		if err != nil {
 			a.err = err.Error()
 			a.job.Status.State = "failed"
-			spawn(p.env, func() { _ = p.env.Host.CallCompletingInto("capture.ai.accounts.signin.cancel", map[string]string{"id": id}, nil) })
+			spawn(p.env, func() {
+				_ = p.env.Host.CallCompletingInto("capture.ai.accounts.signin.cancel", map[string]string{"id": id}, nil)
+			})
 			return
 		}
 		previousPrompt := ""
@@ -316,7 +330,9 @@ func (a *accountPanel) cancel() {
 }
 
 // prompt helpers: what is asked, and whether the answer can be sent.
-func (a *accountPanel) inputBusy() bool { return a.job != nil && (a.job.InputPending || a.action != "") }
+func (a *accountPanel) inputBusy() bool {
+	return a.job != nil && (a.job.InputPending || a.action != "")
+}
 
 func (a *accountPanel) canSubmit() bool {
 	job := a.job
@@ -412,7 +428,7 @@ func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
 		// methods are known, once: navigating never signs in.
 		a.signInNonce = request.nonce
 		p.extensions.signIn = nil
-		a.start(r)
+		a.startFor(r, request.user)
 	}
 	hidden := p.draft != nil && p.draft.Value.magpie().HideAccounts
 	accountType := p.catalog.agent(r.Agent)
@@ -451,7 +467,7 @@ func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
 				if len(a.accounts) > 0 {
 					ui.Column(c).FillWidth().Gap(8).Children(func() {
 						for i, acct := range a.accounts {
-							ui.Column(c.Key(acct.Agent+acct.User)).Gap(2).MinWidth(0).Children(func() {
+							ui.Column(c.Key(acct.Agent + acct.User)).Gap(2).MinWidth(0).Children(func() {
 								user := acct.User
 								if hidden {
 									user = i18n.T("usage.maskedAccount", "number", i+1)

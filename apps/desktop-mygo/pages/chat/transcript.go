@@ -99,7 +99,6 @@ func (p *Chat) turns(c *ui.Context) {
 // userMessage is the user's bubble: its text, attachments, and actions
 // to copy, edit (the latest), retry and fork.
 func (p *Chat) userMessage(c *ui.Context, m model.Message, latest bool) {
-	t, pal := c.Theme(), kit.Colors(c)
 	if p.botCardFor(c, m) {
 		return
 	}
@@ -107,8 +106,9 @@ func (p *Chat) userMessage(c *ui.Context, m model.Message, latest bool) {
 		ui.Column(c).FillWidth().Children(func() { p.editInPlace(c) })
 		return
 	}
-	root := ui.Column(c).AlignSelf(ui.End).MaxWidthPercent(85).Gap(6).AlignItems(ui.End).Children(func() {
-		bubble := ui.Column(c).Padding(10, 14).Radius(14).Background(pal.Selected).Gap(6)
+	root := ui.Column(c).AlignSelf(ui.End).MaxWidthPercent(85).Gap(6).AlignItems(ui.End)
+	root.Children(func() {
+		bubble := ui.Column(c).Padding(10, 14).Radius(14).Background(messageBackground(c)).Gap(6)
 		if m.ID != "" {
 			if p.ui.userWidths == nil {
 				p.ui.userWidths = map[string]float32{}
@@ -142,18 +142,24 @@ func (p *Chat) userMessage(c *ui.Context, m model.Message, latest bool) {
 		if m.Pending {
 			return
 		}
-		ui.Row(c).Gap(2).Children(func() {
-			if kit.IconButton(c, icons.Copy, i18n.T("chat.copy")).Clicked() {
+		// Retain the row's space and keyboard focus while its icons are hidden.
+		// Hovering the bubble or the row reveals the same stable hit targets.
+		actions := ui.Row(c).Gap(2)
+		if !root.Hovered() && !root.FocusWithin() {
+			actions.Opacity(0)
+		}
+		actions.Children(func() {
+			if messageAction(c, icons.Copy, i18n.T("chat.copy")).Clicked() {
 				p.copy(m.Text())
 			}
-			if latest && m.ID != "" && kit.IconButton(c, icons.Pencil, i18n.T("chat.editMessage")).Disabled(p.busy || isPaused(p.view)).Clicked() {
+			if latest && m.ID != "" && messageAction(c, icons.Pencil, i18n.T("chat.editMessage")).Disabled(p.busy || isPaused(p.view)).Clicked() {
 				p.beginEdit(m)
 			}
-			if m.ID != "" && kit.IconButton(c, icons.RotateCcw, i18n.T("chat.retry")).Disabled(p.busy || p.view.Running || isPaused(p.view)).Clicked() {
+			if m.ID != "" && messageAction(c, icons.RotateCcw, i18n.T("chat.retry")).Disabled(p.busy || p.view.Running || isPaused(p.view)).Clicked() {
 				id := m.ID
 				p.run(func(done func(error)) { p.retryMessage(id, done) })
 			}
-			if p.bot == nil && m.ID != "" && kit.IconButton(c, icons.GitBranch, i18n.T("chat.fork")).Disabled(p.busy || p.view.Running).Clicked() {
+			if p.bot == nil && m.ID != "" && messageAction(c, icons.GitBranch, i18n.T("chat.fork")).Disabled(p.busy || p.view.Running).Clicked() {
 				id := m.ID
 				p.run(func(done func(error)) { p.fork(id, done) })
 			}
@@ -165,7 +171,6 @@ func (p *Chat) userMessage(c *ui.Context, m model.Message, latest bool) {
 		if p.bot != nil {
 			p.botThreadPreview(c, m)
 		}
-		_ = t
 	})
 	p.revealMessage(root, m)
 }
@@ -231,13 +236,13 @@ func (p *Chat) replyView(c *ui.Context, message model.Message, running bool, key
 		return
 	}
 	ui.Row(c).Gap(2).Children(func() {
-		if kit.IconButton(c, icons.Copy, i18n.T("chat.copy")).Clicked() {
+		if messageAction(c, icons.Copy, i18n.T("chat.copy")).Clicked() {
 			p.copy(message.Text())
 		}
-		if retry && kit.IconButton(c, icons.RotateCcw, i18n.T("chat.retry")).Disabled(p.busy || p.view.Running || isPaused(p.view)).Clicked() {
+		if retry && messageAction(c, icons.RotateCcw, i18n.T("chat.retry")).Disabled(p.busy || p.view.Running || isPaused(p.view)).Clicked() {
 			p.run(func(done func(error)) { p.retryMessage("", done) })
 		}
-		if message.ID != "" && kit.IconButton(c, icons.GitBranch, i18n.T("chat.fork")).Disabled(p.busy || p.view.Running).Clicked() {
+		if message.ID != "" && messageAction(c, icons.GitBranch, i18n.T("chat.fork")).Disabled(p.busy || p.view.Running).Clicked() {
 			id := message.ID
 			p.run(func(done func(error)) { p.fork(id, done) })
 		}
@@ -369,7 +374,8 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 			summary = label
 		}
 	}
-	ui.Column(c.Key("process:" + r.Key)).FillWidth().Gap(4).Children(func() {
+	process := ui.Column(c.Key("process:" + r.Key)).FillWidth().Gap(4)
+	process.Children(func() {
 		head := ui.ButtonBase(c).AlignSelf(ui.Start).Gap(6).AlignItems(ui.Center).Padding(4, 6).Radius(t.Radius).Label(summary).Expanded(open || expandedStep).Disabled(!canToggle)
 		head.Children(func() {
 			if r.Running {
@@ -405,10 +411,11 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 			body = &ui.Handle{}
 			p.ui.processBodies[r.Key] = body
 		}
+		process.Bind(body)
 		if open || expandedStep {
 			p.ui.openProcesses = append(p.ui.openProcesses, r.Key)
 		}
-		ui.Column(c).FillWidth().Gap(6).Padding(4, 40, 4, 12).BorderWidth(0, 0, 0, 2).BorderColor(pal.Hairline).Bind(body).Children(func() {
+		ui.Column(c).FillWidth().Gap(6).Padding(4, 40, 4, 12).BorderWidth(0, 0, 0, 2).BorderColor(pal.Hairline).Children(func() {
 			for _, entry := range shown {
 				ui.Column(c.Key("entry:" + entry.Key)).FillWidth().Children(func() { p.entryView(c, entry, r.Running) })
 			}

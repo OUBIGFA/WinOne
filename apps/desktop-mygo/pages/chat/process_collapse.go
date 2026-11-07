@@ -11,6 +11,9 @@ import (
 // Collecting a group restores compact rows as well as the latest-four window;
 // otherwise a single expanded thought could remain pages long with no button.
 func (p *Chat) collapseProcess(key string) {
+	p.ui.collapseAnchor = key
+	p.ui.follow, p.ui.pinNext = false, false
+	p.ui.items.jump = nil
 	p.ui.expanded["process:"+key] = false
 	for _, entry := range p.ui.processEntries[key] {
 		delete(p.ui.expanded, entry.Kind+":"+entry.Key)
@@ -36,10 +39,6 @@ func (p *Chat) processCollapseControls(c *ui.Context) {
 		button := kit.IconButton(c.Key("collapse-process-"+key), icons.ChevronsUp, i18n.T("chat.collapseProcess")).
 			Attach(ui.AnchorTopLeft, ui.AnchorTopLeft).Left(x).Size(28, 28).
 			Border(1, c.Theme().Border).Background(kit.Colors(c).Panel)
-		// Retarget from the current position rather than restarting a slide.
-		// The current process intersection is a hard boundary: animation may
-		// never trail over another reply or float above the input layer.
-		y = max(top-viewport.Y+8, min(y, button.AnimateTo("follow-y", y, kit.MotionStandard)))
 		button.Top(y)
 		if button.Clicked() {
 			p.collapseProcess(key)

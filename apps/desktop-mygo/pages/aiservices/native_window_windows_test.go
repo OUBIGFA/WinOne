@@ -12,6 +12,7 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
+	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/web"
@@ -50,10 +51,17 @@ func TestRealNativeAIWindowsNeedNoWebViewForBuiltInPages(t *testing.T) {
 	var window *mygo.Window
 	dark := false
 	webviews, frames := 0, 0
+	var section func(*ui.Context)
 	mygo.RunOnMain(func() {
 		window = mygo.NewWindow(mygo.WindowOptions{Title: "WinOne AI native verification", Width: 1000, Height: 900, Hidden: true, Content: ui.View(func(c *ui.Context) {
 			c.SetTheme(kit.Theme(c.Preferences(), dark))
-			ui.Scroll(c).Fill().Padding(20).Children(func() { p.View(c) })
+			ui.Scroll(c).Fill().Padding(20).Children(func() {
+				if section != nil {
+					section(c)
+				} else {
+					p.View(c)
+				}
+			})
 			frames++
 		})})
 		h.Env.Post = func(fn func()) {
@@ -86,15 +94,42 @@ func TestRealNativeAIWindowsNeedNoWebViewForBuiltInPages(t *testing.T) {
 	for _, locale := range []string{i18n.Chinese, i18n.English} {
 		for _, night := range []bool{false, true} {
 			for _, width := range []int{1000, 560} {
-				for _, tab := range []int{tabRouting, tabPlugins, tabAdvanced} {
+				// Use actual Windows rendering for every rebuilt section, not
+				// only each page's default tab. Policy APIs keep the private runtime.
+				for scene := 0; scene < 17; scene++ {
 					before := 0
 					mygo.RunOnMain(func() {
 						i18n.SetLocale(locale)
 						dark = night
 						window.SetContentSize(width, 900)
-						p.switchTab(tab)
-						if tab == tabAdvanced {
+						section = nil
+						if scene < 3 {
+							p.switchTab([]int{tabRouting, tabPlugins, tabAdvanced}[scene])
+							p.routing.discard()
+							p.routing.tab = 0
+						}
+						if scene == 2 {
 							p.advancedTab = advancedPrivacy
+						}
+						if scene >= 3 && scene < 7 {
+							pr := &p.draft.Value.Providers[0].Value
+							ed := newEditor(p, pr, pr.ID)
+							ed.preferenceTab = scene - 3
+							section = func(c *ui.Context) { ed.preferences(c, pr, false) }
+						}
+						if scene >= 7 && scene < 11 {
+							p.advanced.privacyTab = scene - 7
+							section = func(c *ui.Context) { p.advanced.privacy(c, &magpieCatalog{}, false) }
+						}
+						if scene >= 11 && scene < 16 {
+							p.routing.begin(core.Preserved[routeGroup]{Value: routeGroup{ID: "window-check", Name: "Daily assistant", Members: []string{"fixture/model"}, Rules: []core.Preserved[routeRule]{{Value: routeRule{Use: "fixture/model", Intent: "coding"}}}}})
+							p.routing.editorTab = scene - 11
+							section = p.routing.editor
+						}
+						if scene == 16 {
+							p.routing.discard()
+							p.switchTab(tabRouting)
+							p.routing.tab = 1
 						}
 						before = frames
 						window.Invalidate()
@@ -109,7 +144,7 @@ func TestRealNativeAIWindowsNeedNoWebViewForBuiltInPages(t *testing.T) {
 					if len(frame) < 10000 {
 						t.Fatal("原生窗口截图为空")
 					}
-					path := filepath.Join(os.Getenv("WINONE_AI_NATIVE_PROFILE"), fmt.Sprintf("%s-%t-%d-%d.png", locale, night, width, tab))
+					path := filepath.Join(os.Getenv("WINONE_AI_NATIVE_PROFILE"), fmt.Sprintf("%s-%t-%d-%d.png", locale, night, width, scene))
 					if err := os.WriteFile(path, frame, 0600); err != nil {
 						t.Fatal(err)
 					}

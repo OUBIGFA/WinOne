@@ -53,61 +53,101 @@ func preferenceJSON[T any](c *ui.Context, p *page, key, label, hint string, valu
 	})
 }
 
-// Use the existing settings controls with the exact upstream fields/units.
-// Structured per-account maps and windows remain complete, typed JSON; they
-// are not reduced to a fixed subset of account names, days or header names.
-//
-// An account provider shows them folded, below its accounts: they are
-// rarely changed, and open they would push the model list far down.
+// These are views of one provider draft. Every option keeps its original
+// Magpie field; ordinary structured values use controls rather than JSON.
 func (e *editor) preferences(c *ui.Context, pr *provider, locked bool) {
-	if pr.AuthMode == "account" {
-		ui.Collapsible(c.Key("provider-options"), i18n.T("ai.providerOptions"), &e.optionsOpen, func() {
-			ui.Column(c).FillWidth().Padding(8, 0, 0).Children(func() { e.preferenceRows(c, pr, locked, "") })
-		})
-		return
-	}
-	e.preferenceRows(c, pr, locked, i18n.T("ai.providerOptions"))
+	kit.SubTabs(c, &e.preferenceTab, []string{i18n.T("aiOptions.requests"), i18n.T("aiOptions.accounts"), i18n.T("aiOptions.billing"), i18n.T("aiOptions.compatibility")}, e.p.env.RequestChange)
+	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
+		switch e.preferenceTab {
+		case 0:
+			e.requestPreferences(c, pr, locked)
+		case 1:
+			e.accountPreferences(c, pr, locked)
+		case 2:
+			e.billingPreferences(c, pr, locked)
+		case 3:
+			e.compatibilityPreferences(c, pr, locked)
+		}
+	})
 }
 
-func (e *editor) preferenceRows(c *ui.Context, pr *provider, locked bool, title string) {
+func (e *editor) requestPreferences(c *ui.Context, pr *provider, locked bool) {
 	s := &pr.ProviderPreferences
-	group := kit.Group
-	if title == "" {
-		group = func(c *ui.Context, _ *ui.SVG, _, _ string, rows func()) ui.Element { return kit.Panel(c, rows) }
-	}
-	group(c, nil, title, "", func() {
-		max := 0.0
-		if s.MaxAccounts != nil {
-			max = float64(*s.MaxAccounts)
-		}
-		numberRow(c, i18n.T("ai.maxAccounts"), &max, 0, 1024, true, "", locked, func(v *float64) {
-			if v == nil {
-				s.MaxAccounts = nil
-			} else {
-				n := int(*v)
-				s.MaxAccounts = &n
-			}
-		})
+	kit.Group(c, nil, i18n.T("aiOptions.transport"), "", func() {
+		kit.Stack(c, "", "", func() { e.proxyPreference(c, "provider", &s.Proxy, locked) })
+		choiceRow(c, i18n.T("ai.authHeader"), "", &s.AuthHeader, options("", i18n.T("ai.automatic"), "x-api-key", "x-api-key", "bearer", "Authorization: Bearer"), locked)
+		kit.Toggle(c, &s.InsecureTLS, i18n.T("ai.insecureTLS"), i18n.T("ai.insecureTLSHint")).Disabled(locked)
 		wait := float64(s.Patience)
 		numberRow(c, i18n.T("ai.providerPatience"), &wait, -1, 240, true, "", locked, func(v *float64) { s.Patience = int(value(v)) })
-		kit.Help(c, i18n.T("ai.providerPatienceHint"))
-		kit.Toggle(c, &s.CountFree, i18n.T("ai.countFree"), i18n.T("ai.countFreeHint")).Disabled(locked)
-		kit.Toggle(c, &s.CapStop, i18n.T("ai.capStop"), "").Disabled(locked)
-		kit.Toggle(c, &s.CapCareful, i18n.T("ai.capCareful"), "").Disabled(locked)
-		kit.Toggle(c, &s.AdditionalToolsOff, i18n.T("ai.additionalToolsOff"), "").Disabled(locked)
-		kit.Toggle(c, &s.Unredacted, i18n.T("ai.unredacted"), i18n.T("ai.unredactedHint")).Disabled(locked)
-		if s.Unredacted && (pr.AuthMode == "account" || !strings.Contains(pr.BaseURL, "127.0.0.1") && !strings.Contains(pr.BaseURL, "localhost")) {
-			kit.Notice(c, kit.Caution, "", i18n.T("ai.unredactedWarning"), nil)
+	})
+	kit.Group(c, nil, i18n.T("aiOptions.response"), "", func() {
+		kit.Stack(c, i18n.T("ai.passHeaders"), i18n.T("ai.passHeadersHint"), func() { e.preferenceList(c, "passHeaders", i18n.T("ai.passHeaders"), &s.PassHeaders, locked) })
+		kit.Stack(c, i18n.T("ai.replyHeaders"), i18n.T("ai.passHeadersHint"), func() { e.preferenceList(c, "replyHeaders", i18n.T("ai.replyHeaders"), &s.ReplyHeaders, locked) })
+	})
+}
+
+func (e *editor) preferenceList(c *ui.Context, key, label string, values *[]string, locked bool) {
+	f := e.fields.get("preferences:" + key)
+	if text, changed := f.sync(strings.Join(*values, "\n")); changed {
+		var next []string
+		for _, line := range strings.Split(text, "\n") {
+			if line = strings.TrimSpace(line); line != "" {
+				next = append(next, line)
+			}
 		}
+		*values = unique(next)
+	}
+	ui.TextArea(c, &f.text).FillWidth().Lines(2, 5).Label(label).Disabled(locked)
+}
+
+func (e *editor) proxyPreference(c *ui.Context, key string, value *string, locked bool) {
+	mode := ""
+	if *value == "direct" {
+		mode = "direct"
+	} else if *value != "" {
+		mode = "custom"
+	}
+	// Custom with an empty address is an editing state. Keep it until the
+	// stored value changes externally (Save/Undo); otherwise Direct would
+	// replace the user's new selection on the next frame.
+	type proxyDraft struct{ mode, shown string }
+	state := ui.Local(ui.Column(c.Key(key)).FillWidth(), "proxy-mode", func() proxyDraft { return proxyDraft{mode, *value} })
+	if state.shown != *value {
+		state.mode = mode
+	}
+	label := i18n.T("ai.providerProxy")
+	if key != "provider" {
+		label = i18n.T("ai.accountProxies")
+	}
+	if nativeSelect(c, label, &state.mode, options("", i18n.T("aiOptions.default"), "direct", i18n.T("aiOptions.direct"), "custom", i18n.T("aiOptions.customProxy")), locked) {
+		if state.mode != "custom" {
+			*value = state.mode
+		} else if *value == "direct" {
+			*value = ""
+		}
+	}
+	if state.mode == "custom" {
+		f := e.fields.get("proxy:" + key)
+		current := *value
+		if current == "direct" {
+			current = ""
+		}
+		if text, changed := f.sync(current); changed {
+			*value = text
+		}
+		ui.TextInput(c, &f.text).FillWidth().Placeholder("http://127.0.0.1:7890").Label(i18n.T("aiOptions.proxyAddress")).Disabled(locked)
+	}
+	state.shown = *value
+}
+
+func (e *editor) compatibilityPreferences(c *ui.Context, pr *provider, locked bool) {
+	s := &pr.ProviderPreferences
+	kit.Panel(c, func() {
+		kit.Toggle(c, &s.AdditionalToolsOff, i18n.T("ai.additionalToolsOff"), "").Disabled(locked)
 		if pr.Agent == "antigravity" {
 			kit.Toggle(c, &s.PromptAsWritten, i18n.T("ai.promptAsWritten"), "").Disabled(locked)
 		}
 		kit.Toggle(c, &s.CodexAsSent, i18n.T("ai.codexAsSent"), "").Disabled(locked)
-		rate := s.PriceRate
-		numberRow(c, i18n.T("ai.priceRate"), &rate, 0, 1000, false, "", locked, func(v *float64) { s.PriceRate = value(v) })
-		ui.Field(c, i18n.T("ai.providerProxy"), func() { ui.TextInput(c, &s.Proxy).FillWidth().Label(i18n.T("ai.providerProxy")).Disabled(locked) })
-		choiceRow(c, i18n.T("ai.authHeader"), "", &s.AuthHeader, options("", i18n.T("ai.automatic"), "x-api-key", "x-api-key", "bearer", "Authorization: Bearer"), locked)
-		kit.Toggle(c, &s.InsecureTLS, i18n.T("ai.insecureTLS"), i18n.T("ai.insecureTLSHint")).Disabled(locked)
 		if pr.AuthMode == "api-key" {
 			kit.Toggle(c, &s.HTTP1, nativeT("http1"), nativeT("http1Hint")).Disabled(locked)
 			kit.Toggle(c, &s.ImageFilesOff, nativeT("inlineImages"), nativeT("inlineImagesHint")).Disabled(locked)
@@ -115,23 +155,13 @@ func (e *editor) preferenceRows(c *ui.Context, pr *provider, locked bool, title 
 			kit.Toggle(c, &s.KeepSelf, nativeT("keepSelf"), nativeT("keepSelfHint")).Disabled(locked)
 		}
 		kit.Toggle(c, &s.UseFirst, nativeT("useFirst"), nativeT("useFirstHint")).Disabled(locked)
-		if pr.AuthMode == "api-key" {
-			ui.Field(c, i18n.T("ai.keyPlan"), func() { ui.TextInput(c, &s.KeyPlan).FillWidth().Label(i18n.T("ai.keyPlan")).Disabled(locked) })
-		}
-		jsonField := func(key string) string { return pr.ID + ":" + key }
-		preferenceJSON(c, e.p, jsonField("passHeaders"), i18n.T("ai.passHeaders"), i18n.T("ai.passHeadersHint"), &s.PassHeaders, locked)
-		preferenceJSON(c, e.p, jsonField("replyHeaders"), i18n.T("ai.replyHeaders"), "", &s.ReplyHeaders, locked)
-		preferenceJSON(c, e.p, jsonField("extraBody"), i18n.T("ai.extraBody"), i18n.T("ai.extraBodyHint"), &s.ExtraBody, locked)
-		preferenceJSON(c, e.p, jsonField("rateWindows"), i18n.T("ai.rateWindows"), i18n.T("ai.rateWindowsHint"), &s.RateWindows, locked)
-		preferenceJSON(c, e.p, jsonField("accountWeights"), i18n.T("ai.accountWeights"), i18n.T("ai.accountMapHint"), &s.AccountWeights, locked)
-		preferenceJSON(c, e.p, jsonField("accountConcurrency"), i18n.T("ai.accountConcurrency"), i18n.T("ai.accountMapHint"), &s.AccountConcurrency, locked)
-		preferenceJSON(c, e.p, jsonField("accountModels"), i18n.T("ai.accountModels"), i18n.T("ai.accountMapHint"), &s.AccountModels, locked)
-		preferenceJSON(c, e.p, jsonField("accountModelsAll"), nativeT("accountModelsAll"), nativeT("accountModelsAllHint"), &s.AccountModelsAll, locked)
-		preferenceJSON(c, e.p, jsonField("accountProxies"), i18n.T("ai.accountProxies"), i18n.T("ai.accountMapHint"), &s.AccountProxies, locked)
-		preferenceJSON(c, e.p, jsonField("accountNames"), i18n.T("ai.accountNames"), i18n.T("ai.accountMapHint"), &s.AccountNames, locked)
-		preferenceJSON(c, e.p, jsonField("accountCaps"), i18n.T("ai.accountCaps"), i18n.T("ai.accountMapHint"), &s.AccountCaps, locked)
-		preferenceJSON(c, e.p, jsonField("accountWindowCaps"), i18n.T("ai.accountWindowCaps"), i18n.T("ai.windowCapsHint"), &s.AccountWindowCaps, locked)
-		preferenceJSON(c, e.p, jsonField("keySpendCaps"), i18n.T("ai.keySpendCaps"), i18n.T("ai.keySpendCapsHint"), &s.KeySpendCaps, locked)
-		preferenceJSON(c, e.p, jsonField("autoGroupSkip"), i18n.T("ai.autoGroupSkip"), "", &s.AutoGroupSkip, locked)
 	})
+	kit.Group(c, nil, i18n.T("aiOptions.privacy"), "", func() {
+		kit.Toggle(c, &s.Unredacted, i18n.T("ai.unredacted"), i18n.T("ai.unredactedHint")).Disabled(locked)
+		if s.Unredacted && (pr.AuthMode == "account" || !strings.Contains(pr.BaseURL, "127.0.0.1") && !strings.Contains(pr.BaseURL, "localhost")) {
+			kit.Stack(c, "", i18n.T("ai.unredactedWarning"), func() {})
+		}
+	})
+	kit.Section(c, nil, i18n.T("ai.extraBody"), i18n.T("ai.extraBodyHint"), func() { preferenceJSON(c, e.p, pr.ID+":extraBody", "", "", &s.ExtraBody, locked) })
+	kit.Section(c, nil, i18n.T("ai.autoGroupSkip"), "", func() { e.preferenceList(c, "autoGroupSkip", i18n.T("ai.autoGroupSkip"), &s.AutoGroupSkip, locked) })
 }

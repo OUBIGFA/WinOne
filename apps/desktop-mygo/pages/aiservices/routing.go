@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"winone/desktopmygo/core"
@@ -128,7 +129,16 @@ type routeGroups struct {
 	} `json:"accounts"`
 	Clock    json.RawMessage `json:"clock"`
 	Shared   string          `json:"shared"`
-	Imported json.RawMessage `json:"imported"`
+	Imported *routeImport    `json:"imported"`
+}
+
+type routeImport struct {
+	ID       string   `json:"id"`
+	Name     string   `json:"name"`
+	Missing  []string `json:"missing"`
+	Instead  []string `json:"instead"`
+	Rules    int      `json:"rules"`
+	Replaced bool     `json:"replaced"`
 }
 
 type routingPanel struct {
@@ -140,6 +150,7 @@ type routingPanel struct {
 	state                            *routeGroups
 	source                           string
 	tab                              int
+	editorTab                        int
 	search                           string
 	selected                         map[string]bool
 	edit, saved                      *core.Preserved[routeGroup]
@@ -148,11 +159,17 @@ type routingPanel struct {
 	newMember                        string
 	dialog, text, name               string
 	replaceImport                    bool
+	newGroup, showHidden             bool
+	imported                         *routeImport
 	trace                            nativeTrace
 }
 
 func newRoutingPanel(p *page) *routingPanel {
-	return &routingPanel{p: p, selected: map[string]bool{}, fields: fields{}}
+	r := &routingPanel{p: p, selected: map[string]bool{}, fields: fields{}}
+	if p != nil {
+		r.trace.loadViewPrefs(p.env.Directory)
+	}
+	return r
 }
 func (r *routingPanel) Close() { r.Leave() }
 func (r *routingPanel) Leave() {
@@ -162,11 +179,17 @@ func (r *routingPanel) Leave() {
 	r.trace.api.close()
 	r.trace.detailAPI.close()
 	r.trace.titleAPI.close()
+	r.trace.routeAPI.close()
+	r.trace.daysAPI.close()
+	r.trace.stopReplay()
+	if r.trace.quotas != nil {
+		r.trace.quotas.Close()
+	}
 	r.source = ""
 	r.p.env.Activity.Report("ai-routing", false, false, nil)
 }
-func (r *routingPanel) dirty() bool { return r.edit != nil && !equal(r.edit, r.saved) }
-func (r *routingPanel) discard()    { r.edit, r.saved = nil, nil; r.fields = fields{} }
+func (r *routingPanel) dirty() bool { return r.edit != nil && (r.newGroup || !equal(r.edit, r.saved)) }
+func (r *routingPanel) discard()    { r.edit, r.saved = nil, nil; r.newGroup = false; r.fields = fields{} }
 func (r *routingPanel) load() {
 	if r.capabilities == nil && !r.capabilitiesAPI.busy && r.capabilitiesAPI.err == "" {
 		r.capabilitiesAPI.request(r.p, "GET", "/api/settings", nil, func(raw json.RawMessage) {
@@ -190,12 +213,23 @@ func (r *routingPanel) act(action string, body any, done func()) {
 			return
 		}
 		r.state = &value
+		if value.Imported != nil {
+			r.imported = value.Imported
+		}
 		if done != nil {
 			done()
 		}
 	})
 }
 func (r *routingPanel) begin(group core.Preserved[routeGroup]) {
+	r.beginEdit(group, false)
+}
+
+// Templates have an ID but are still new. Never send that ID as a rename source.
+func (r *routingPanel) beginNew(group core.Preserved[routeGroup]) {
+	r.beginEdit(group, true)
+}
+func (r *routingPanel) beginEdit(group core.Preserved[routeGroup], fresh bool) {
 	change := func() {
 		data, _ := json.Marshal(group)
 		var a, b core.Preserved[routeGroup]
@@ -204,6 +238,8 @@ func (r *routingPanel) begin(group core.Preserved[routeGroup]) {
 		r.patternAPI.close()
 		r.previewPatterns, r.previewFor = nil, nil
 		r.edit, r.saved = &a, &b
+		r.newGroup = fresh
+		r.editorTab = 0
 		r.fields = fields{}
 	}
 	if r.dirty() && r.p.env.RequestChange != nil {
@@ -219,7 +255,9 @@ func (r *routingPanel) saveGroup() {
 	data, _ := json.Marshal(r.edit)
 	var body map[string]json.RawMessage
 	_ = json.Unmarshal(data, &body)
-	body["from"], _ = json.Marshal(r.saved.Value.ID)
+	if !r.newGroup {
+		body["from"], _ = json.Marshal(r.saved.Value.ID)
+	}
 	r.act("save", body, r.discard)
 }
 func (r *routingPanel) View(c *ui.Context) {
@@ -240,6 +278,19 @@ func (r *routingPanel) View(c *ui.Context) {
 		r.trace.api.close()
 		r.trace.detailAPI.close()
 		r.trace.titleAPI.close()
+		r.trace.routeAPI.close()
+		r.trace.daysAPI.close()
+		r.trace.stopReplay()
+		r.trace.daysLoaded = false
+		r.trace.daysAPI.err = ""
+		r.trace.days, r.trace.routes = nil, nil
+		r.trace.tallies, r.trace.titles = nil, nil
+		r.trace.nextTitles = time.Time{}
+		r.trace.seq = 0
+		if r.trace.quotas != nil {
+			r.trace.quotas.Close()
+			r.trace.quotas = nil
+		}
 		r.trace.loaded, r.trace.selected = false, nil
 		r.source = p.extensions.state.URL
 		r.load()
@@ -253,7 +304,7 @@ func (r *routingPanel) View(c *ui.Context) {
 	if p.draft != nil {
 		kit.Toggle(c, &p.draft.Value.RoutingEnabled, i18n.T("routing.enabled"), i18n.T("routing.hint")).Disabled(p.locked() || r.api.busy)
 	}
-	kit.SubTabs(c, &r.tab, []string{i18n.T("aiNative.groups"), i18n.T("aiNative.requests")}, p.env.RequestChange)
+	kit.SubTabs(c, &r.tab, []string{i18n.T("aiRouting.groups"), i18n.T("aiNative.requests"), i18n.T("aiRouting.pools")}, p.env.RequestChange)
 	r.api.notice(c, r.load)
 	r.capabilitiesAPI.notice(c, func() { r.capabilitiesAPI.err = ""; r.capabilities = nil; r.load() })
 	if r.capabilities != nil {
@@ -275,6 +326,18 @@ func (r *routingPanel) View(c *ui.Context) {
 		r.trace.View(c, p)
 		return
 	}
+	// Hidden request views must not keep polling or advance a replay's clock.
+	if r.trace.api.busy {
+		r.trace.api.close()
+	}
+	r.trace.daysAPI.close()
+	r.trace.titleAPI.close()
+	if r.trace.quotas != nil {
+		r.trace.quotas.Close()
+	}
+	if r.trace.replay != nil {
+		r.trace.replay.last = time.Time{}
+	}
 	if r.state == nil {
 		if r.api.busy || p.extensions.state == nil {
 			kit.Status(c, i18n.T("capture.loading"))
@@ -285,7 +348,11 @@ func (r *routingPanel) View(c *ui.Context) {
 		r.editor(c)
 		return
 	}
-	r.groupsView(c)
+	if r.tab == 2 {
+		r.poolsView(c)
+	} else {
+		r.groupsView(c)
+	}
 	r.dialogView(c)
 }
 

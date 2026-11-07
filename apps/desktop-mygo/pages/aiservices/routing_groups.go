@@ -16,10 +16,11 @@ func nativeT(key string) string { return i18n.T("aiNative." + key) }
 
 func (r *routingPanel) groupsView(c *ui.Context) {
 	locked := r.api.busy || r.p.locked()
+	r.routingSummary(c, locked)
 	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
 		ui.TextInput(c, &r.search).Grow(1).MinWidth(180).Placeholder(nativeT("searchGroups")).Label(nativeT("searchGroups"))
 		if kit.PrimaryButton(c, nativeT("newGroup"), icons.Plus, false).Disabled(locked).Clicked() {
-			r.begin(core.Preserved[routeGroup]{Value: routeGroup{Members: []string{}}})
+			r.beginNew(core.Preserved[routeGroup]{Value: routeGroup{Members: []string{}}})
 		}
 		if kit.Button(c, nativeT("import"), icons.Import, false).Disabled(locked).Clicked() {
 			r.dialog = "import"
@@ -30,6 +31,26 @@ func (r *routingPanel) groupsView(c *ui.Context) {
 			r.load()
 		}
 	})
+	if r.imported != nil {
+		result := r.imported
+		kit.Group(c, icons.Import, i18n.T("aiRouting.imported", "name", result.Name), "", func() {
+			ui.Column(c).FillWidth().Gap(8).Padding(12, 16).Children(func() {
+				kit.Help(c, i18n.T("aiRouting.importedRules", "count", result.Rules))
+				if result.Replaced {
+					kit.Help(c, i18n.T("aiRouting.importedReplaced"))
+				}
+				if len(result.Missing) > 0 {
+					kit.Help(c, i18n.T("aiRouting.importedMissing", "models", strings.Join(result.Missing, " · ")))
+				}
+				if len(result.Instead) > 0 {
+					kit.Help(c, i18n.T("aiRouting.importedInstead", "models", strings.Join(result.Instead, " · ")))
+				}
+				if kit.GhostButton(c, i18n.T("common.close"), nil, false).Clicked() {
+					r.imported = nil
+				}
+			})
+		})
+	}
 	found := r.state.Found
 	if kit.Toggle(c, &found, nativeT("findGroups"), nativeT("findGroupsHint")).Disabled(locked).Changed() {
 		r.act("found", map[string]any{"on": found}, nil)
@@ -45,12 +66,12 @@ func (r *routingPanel) groupsView(c *ui.Context) {
 	if len(r.state.Templates) > 0 {
 		kit.Group(c, icons.LayoutTemplate, nativeT("templates"), nativeT("templatesHint"), func() {
 			for _, tp := range r.state.Templates {
-				ui.Row(c.Key(tp.Kind)).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+				name := tp.Group.Value.Name
+				if i18n.Has("aiNative.template." + tp.Kind) {
+					name = nativeT("template." + tp.Kind)
+				}
+				ui.Row(c.Key(tp.Kind)).FillWidth().Gap(8).Padding(12, 16).Wrap().AlignItems(ui.Center).Children(func() {
 					ui.Column(c).Grow(1).MinWidth(0).Children(func() {
-						name := tp.Group.Value.Name
-						if i18n.Has("aiNative.template." + tp.Kind) {
-							name = nativeT("template." + tp.Kind)
-						}
 						kit.Strong(c, name)
 						why := tp.Why
 						if i18n.Has("aiNative.templateNeed." + tp.Need) {
@@ -60,8 +81,13 @@ func (r *routingPanel) groupsView(c *ui.Context) {
 							kit.Help(c, why)
 						}
 					})
+					if kit.GhostButton(c, i18n.T("aiRouting.editTemplate"), icons.Pencil, false).Disabled(locked || len(tp.Group.Value.Members) == 0).Clicked() {
+						group := tp.Group
+						group.Value.Name = name
+						r.beginNew(group)
+					}
 					if kit.Button(c, nativeT("add"), icons.Plus, false).Disabled(locked || len(tp.Group.Value.Members) == 0).Clicked() {
-						r.act("template", map[string]string{"kind": tp.Kind, "name": tp.Group.Value.Name}, nil)
+						r.act("template", map[string]string{"kind": tp.Kind, "name": name}, nil)
 					}
 				})
 			}
@@ -69,9 +95,7 @@ func (r *routingPanel) groupsView(c *ui.Context) {
 	}
 	ui.Row(c).Gap(8).Wrap().Children(func() {
 		if kit.GhostButton(c, nativeT("selectAll"), nil, false).Clicked() {
-			for _, g := range r.state.Groups {
-				r.selected[g.Value.ID] = true
-			}
+			r.selectVisible()
 		}
 		if kit.GhostButton(c, nativeT("selectNone"), nil, false).Clicked() {
 			clear(r.selected)
@@ -80,9 +104,10 @@ func (r *routingPanel) groupsView(c *ui.Context) {
 			r.dialog = "delete-selected"
 		}
 	})
+	kit.Toggle(c, &r.showHidden, i18n.T("aiRouting.showHidden"), "")
 	for index, doc := range r.state.Groups {
 		g := doc.Value
-		if r.search != "" && !strings.Contains(strings.ToLower(g.Name+" "+g.ID+" "+strings.Join(g.Members, " ")), strings.ToLower(r.search)) {
+		if !r.groupVisible(g) {
 			continue
 		}
 		ui.Column(c.Key(g.ID)).FillWidth().Gap(8).Padding(12, 0).BorderWidth(0, 0, 1, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
@@ -146,9 +171,45 @@ func (r *routingPanel) groupsView(c *ui.Context) {
 	if len(r.state.Groups) == 0 {
 		kit.Empty(c, icons.Waypoints, nativeT("noGroups"), nativeT("templatesHint"), nil)
 	}
-	if len(r.state.Pools) > 0 {
-		r.poolsView(c)
+}
+
+func (r *routingPanel) groupVisible(g routeGroup) bool {
+	return (r.showHidden || !g.Hidden) && strings.Contains(strings.ToLower(g.Name+" "+g.ID+" "+strings.Join(g.Members, " ")), strings.ToLower(r.search))
+}
+func (r *routingPanel) selectVisible() {
+	clear(r.selected)
+	for _, g := range r.state.Groups {
+		if r.groupVisible(g.Value) {
+			r.selected[g.Value.ID] = true
+		}
 	}
+}
+
+// routingSummary answers the first question on the page—whether routing is
+// ready—before the editable group list. It uses the same upstream snapshot as
+// the rows, so the counts never become a second source of truth.
+func (r *routingPanel) routingSummary(c *ui.Context, locked bool) {
+	ready := 0
+	for _, group := range r.state.Groups {
+		if group.Value.Ready && !group.Value.Disabled && !group.Value.Hidden {
+			ready++
+		}
+	}
+	kit.Group(c, icons.Waypoints, nativeT("overview"), "", func() {
+		ui.Row(c).FillWidth().Gap(12).Wrap().AlignItems(ui.Center).Children(func() {
+			ui.Column(c).Grow(1).MinWidth(220).Children(func() {
+				kit.Strong(c, i18n.T("aiRouting.groupSummary", "count", len(r.state.Groups), "ready", ready))
+				if len(r.state.Pools) > 0 {
+					kit.Help(c, i18n.T("aiRouting.poolSummary", "count", len(r.state.Pools)))
+				} else {
+					kit.Help(c, i18n.T("aiRouting.noPoolsHint"))
+				}
+			})
+			if kit.GhostButton(c, nativeT("requests"), icons.Waypoints, false).Disabled(locked).Clicked() {
+				r.tab = 1
+			}
+		})
+	})
 }
 func (r *routingPanel) moveGroup(index, delta int) {
 	var order []string
@@ -215,6 +276,7 @@ func (r *routingPanel) dialogView(c *ui.Context) {
 
 func (r *routingPanel) editor(c *ui.Context) {
 	g := &r.edit.Value
+	mask := r.accountMasker()
 	locked := r.api.busy || r.p.locked()
 	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
 		kit.Strong(c, nativeT("editGroup")).Grow(1)
@@ -229,37 +291,60 @@ func (r *routingPanel) editor(c *ui.Context) {
 			}
 		}
 	})
-	nativeText(c, nativeT("groupName"), &g.Name, locked)
-	nativeText(c, nativeT("groupID"), &g.ID, locked || g.Auto)
-	nativeSelect(c, nativeT("strategy"), &g.Routing, r.routingChoices(g.Routing), locked)
-	kit.Help(c, nativeT("strategyHint"))
-	if strings.Contains(g.Routing, "/") {
-		nativeText(c, nativeT("pluginStrategy"), &g.Routing, locked)
-	}
-	nativeSelect(c, nativeT("affinity"), &g.Affinity, options("", nativeT("auto"), "session", nativeT("affinitySession"), "turn", nativeT("affinityTurn"), "off", nativeT("off"), "strict", nativeT("affinityStrict")), locked)
-	kit.Toggle(c, &g.Sink, nativeT("sink"), nativeT("sinkHint")).Disabled(locked)
-	nativeInt(c, nativeT("firstToken"), &g.FirstToken, 0, 3600, locked)
-	nativeInt(c, nativeT("patience"), &g.Patience, -1, 240, locked)
-	kit.Help(c, nativeT("patienceHint"))
-	nativeInt(c, nativeT("context"), &g.Context, -1, 10000000, locked)
-	kit.Help(c, nativeT("contextHint"))
-	nativeText(c, nativeT("family"), &g.Family, locked)
-	kit.Toggle(c, &g.Unlists, nativeT("unlistMembers"), "").Disabled(locked)
-	nativeList(c, r.fields, "match", nativeT("patterns"), &g.Match, locked)
-	r.patternsView(c, g, locked)
-	nativeList(c, r.fields, "levels", nativeT("offeredLevels"), &g.Levels, locked)
-	r.membersView(c, g, locked)
-	r.rulesView(c, g, locked)
-	kit.Group(c, icons.Users, nativeT("accounts"), nativeT("accountsHint"), func() {
-		for provider, accounts := range r.state.Accounts {
-			kit.Strong(c, provider)
-			for _, account := range accounts {
-				id := account.ID // Magpie already prefixes the provider; never add it twice.
-				on := slices.Contains(g.Accounts, id)
-				if ui.Checkbox(c.Key(id), &on, account.Name).Disabled(locked).Changed() {
-					g.Accounts = toggleString(g.Accounts, id, on)
+
+	// These tabs are views of the same group form, not navigation away from it.
+	// A draft spans all sections and is saved or discarded only as a whole.
+	kit.SubTabs(c, &r.editorTab, []string{i18n.T("aiRouting.basics"), nativeT("members"), nativeT("rules"), i18n.T("aiRouting.advanced"), nativeT("accounts")}, nil)
+	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
+		switch r.editorTab {
+		case 0:
+			kit.Section(c, nil, i18n.T("aiRouting.basics"), "", func() {
+				ui.Column(c).FillWidth().Gap(16).Children(func() {
+					nativeText(c, nativeT("groupName"), &g.Name, locked)
+					nativeText(c, nativeT("groupID"), &g.ID, locked || g.Auto)
+					nativeSelect(c, nativeT("strategy"), &g.Routing, r.routingChoices(g.Routing), locked)
+					kit.Help(c, nativeT("strategyHint"))
+					if strings.Contains(g.Routing, "/") {
+						nativeText(c, nativeT("pluginStrategy"), &g.Routing, locked)
+					}
+				})
+			})
+			r.memberSummary(c, g)
+		case 1:
+			r.membersView(c, g, locked)
+			ui.Column(c).FillWidth().Gap(8).Children(func() {
+				nativeList(c, r.fields, "match", nativeT("patterns"), &g.Match, locked)
+				r.patternsView(c, g, locked)
+			})
+		case 2:
+			r.rulesView(c, g, locked)
+		case 3:
+			kit.Group(c, nil, i18n.T("aiRouting.advanced"), "", func() {
+				kit.Stack(c, "", "", func() {
+					nativeSelect(c, nativeT("affinity"), &g.Affinity, options("", nativeT("auto"), "session", nativeT("affinitySession"), "turn", nativeT("affinityTurn"), "off", nativeT("off"), "strict", nativeT("affinityStrict")), locked)
+				})
+				kit.Toggle(c, &g.Sink, nativeT("sink"), nativeT("sinkHint")).Disabled(locked)
+				kit.Stack(c, "", "", func() { nativeInt(c, nativeT("firstToken"), &g.FirstToken, 0, 3600, locked) })
+				kit.Stack(c, "", nativeT("patienceHint"), func() { nativeInt(c, nativeT("patience"), &g.Patience, -1, 240, locked) })
+				kit.Stack(c, "", nativeT("contextHint"), func() { nativeInt(c, nativeT("context"), &g.Context, -1, 10000000, locked) })
+				kit.Stack(c, "", "", func() { nativeText(c, nativeT("family"), &g.Family, locked) })
+				kit.Toggle(c, &g.Unlists, nativeT("unlistMembers"), "").Disabled(locked)
+				kit.Stack(c, "", "", func() { nativeList(c, r.fields, "levels", nativeT("offeredLevels"), &g.Levels, locked) })
+			})
+		case 4:
+			kit.Section(c, icons.Users, nativeT("accounts"), nativeT("accountsHint"), func() {
+				for _, provider := range sortedKeys(r.state.Accounts) {
+					kit.Section(c, nil, provider, "", func() {
+						for _, account := range r.state.Accounts[provider] {
+							id := account.ID
+							on := slices.Contains(g.Accounts, id)
+							if ui.Checkbox(c.Key(id), &on, mask(account.Name)).Disabled(locked).Changed() {
+								g.Accounts = toggleString(g.Accounts, id, on)
+							}
+						}
+					})
 				}
-			}
+			})
 		}
 	})
 }
@@ -267,7 +352,7 @@ func (r *routingPanel) editor(c *ui.Context) {
 func (r *routingPanel) membersView(c *ui.Context, g *routeGroup, locked bool) {
 	kit.Group(c, icons.Layers, nativeT("members"), nativeT("membersHint"), func() {
 		for i, id := range g.Members {
-			ui.Column(c.Key(id)).FillWidth().Gap(6).Children(func() {
+			ui.Column(c.Key(id)).FillWidth().Gap(6).Padding(12, 16).Children(func() {
 				ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
 					on := !slices.Contains(g.Off, id)
 					if ui.Checkbox(c, &on, id).Grow(1).MinWidth(0).Disabled(locked).Changed() {
@@ -307,10 +392,12 @@ func (r *routingPanel) membersView(c *ui.Context, g *routeGroup, locked bool) {
 			})
 		}
 		if g.Routing == "manual" {
-			nativeSelect(c, nativeT("manualPick"), &g.Pick, stringChoices(g.Members), locked)
+			kit.Stack(c, "", "", func() { nativeSelect(c, nativeT("manualPick"), &g.Pick, stringChoices(g.Members), locked) })
 		}
-		ui.TextInput(c, &r.memberSearch).FillWidth().Placeholder(nativeT("searchModels")).Label(nativeT("searchModels"))
-		ui.Scroll(c).FillWidth().Height(240).Children(func() {
+		kit.Stack(c, "", "", func() {
+			ui.TextInput(c, &r.memberSearch).FillWidth().Placeholder(nativeT("searchModels")).Label(nativeT("searchModels"))
+		})
+		ui.Scroll(c).FillWidth().Height(240).Padding(8, 16).Children(func() {
 			all := append(append([]routeModel{}, r.state.Models...), r.state.Drawers...)
 			for _, other := range r.state.Groups {
 				if other.Value.ID != g.ID {
@@ -340,28 +427,40 @@ func (r *routingPanel) membersView(c *ui.Context, g *routeGroup, locked bool) {
 }
 
 func (r *routingPanel) rulesView(c *ui.Context, g *routeGroup, locked bool) {
-	kit.Group(c, icons.ListFilter, nativeT("rules"), nativeT("rulesHint"), func() {
+	kit.Section(c, icons.ListFilter, nativeT("rules"), nativeT("rulesHint"), func() {
 		all := append(append([]routeModel{}, r.state.Models...), r.state.Deciders...)
 		for _, other := range r.state.Groups {
 			if other.Value.ID != g.ID {
 				all = append(all, routeModel{ID: other.Value.Ref, Name: other.Value.Name, Provider: "group", ProviderName: nativeT("groups")})
 			}
 		}
-		nativeModelField(c, r.p, nativeT("classifier"), &g.Classifier, all, []widgets.ModelChoice{{Value: "", Label: nativeT("none")}}, locked)
-		var n float64
-		if g.IntentSure != nil {
-			n = *g.IntentSure
-		} else {
-			n = .4
-		}
-		numberRow(c, nativeT("intentSure"), &n, 0, 1, false, "0.4", locked, func(v *float64) { g.IntentSure = v })
-		choiceRow(c, nativeT("automaticEffort"), "", &g.Effort, options("", nativeT("off"), "auto", nativeT("auto")), locked)
+		kit.Panel(c, func() {
+			kit.Stack(c, "", "", func() {
+				nativeModelField(c, r.p, nativeT("classifier"), &g.Classifier, all, []widgets.ModelChoice{{Value: "", Label: nativeT("none")}}, locked)
+			})
+			var n float64
+			if g.IntentSure != nil {
+				n = *g.IntentSure
+			} else {
+				n = .4
+			}
+			numberRow(c, nativeT("intentSure"), &n, 0, 1, false, "0.4", locked, func(v *float64) { g.IntentSure = v })
+			choiceRow(c, nativeT("automaticEffort"), "", &g.Effort, options("", nativeT("off"), "auto", nativeT("auto")), locked)
+		})
 		remove := -1
 		for i := range g.Rules {
 			rule := &g.Rules[i].Value
 			ui.Column(c.Key(i)).FillWidth().Gap(8).Padding(12, 0).BorderWidth(1, 0, 0, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
-				ui.Row(c).Gap(8).Wrap().Children(func() {
-					kit.Strong(c, nativeT("rule")+" "+kit.Itoa(i+1)).Grow(1)
+				open := ui.Local(ui.Column(c), "editing", func() bool { return len(g.Rules) == 1 })
+				section := ui.Local(ui.Column(c), "section", func() int { return 0 })
+				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+					ui.Column(c).Grow(1).MinWidth(0).Children(func() {
+						kit.Strong(c, nativeT("rule")+" "+kit.Itoa(i+1))
+						kit.Help(c, rule.Use+" · "+rule.Intent)
+					})
+					if kit.IconButton(c, icons.Pencil, i18n.T("aiRouting.editRule")).Disabled(locked).Clicked() {
+						*open = !*open
+					}
 					if kit.IconButton(c, icons.ArrowUp, nativeT("moveUp")).Disabled(locked || i == 0).Clicked() {
 						g.Rules[i], g.Rules[i-1] = g.Rules[i-1], g.Rules[i]
 						r.fields = fields{}
@@ -374,35 +473,62 @@ func (r *routingPanel) rulesView(c *ui.Context, g *routeGroup, locked bool) {
 						remove = i
 					}
 				})
-				nativeSelect(c, nativeT("useMember"), &rule.Use, stringChoices(g.Members), locked)
-				kit.Toggle(c, &rule.Pause, nativeT("pauseMember"), "").Disabled(locked)
-				prefix := "rule-" + kit.Itoa(i) + ":"
-				if !rule.Pause {
-					nativeList(c, r.fields, prefix+"more", nativeT("thenMembers"), &rule.More, locked)
-					nativeText(c, nativeT("useEffort"), &rule.UseEffort, locked)
-					nativeInt(c, nativeT("minimumTokens"), &rule.Tokens, 0, 10000000, locked)
-					kit.Toggle(c, &rule.Images, nativeT("hasImages"), "").Disabled(locked)
-					kit.Toggle(c, &rule.Compact, nativeT("compacting"), "").Disabled(locked)
-					nativeText(c, nativeT("minimumEffort"), &rule.Effort, locked)
-					nativeText(c, nativeT("intent"), &rule.Intent, locked)
+				if !*open {
+					return
 				}
-				nativeList(c, r.fields, prefix+"agents", nativeT("clients"), &rule.Agents, locked)
-				nativeFolderList(c, r.p, r.fields, prefix+"folders", nativeT("folders"), &rule.Folders, locked)
-				nativeFolderList(c, r.p, r.fields, prefix+"except", nativeT("exceptFolders"), &rule.ExceptFolders, locked)
-				timed := rule.Time != nil
-				if kit.Toggle(c, &timed, nativeT("timeWindow"), "").Disabled(locked).Changed() {
-					if timed {
-						rule.Time = &routeTime{From: "09:00", To: "18:00"}
-					} else {
-						rule.Time = nil
+				// A rule is one draft. Tabs expose its action, matching conditions
+				// and scope without interleaving three unrelated sets of fields.
+				kit.SubTabs(c, section, []string{i18n.T("aiRouting.ruleAction"), i18n.T("aiRouting.ruleConditions"), i18n.T("aiRouting.ruleScope")}, nil)
+				kit.Panel(c, func() {
+					prefix := "rule-" + kit.Itoa(i) + ":"
+					switch *section {
+					case 0:
+						kit.Stack(c, "", "", func() {
+							nativeSelect(c, nativeT("useMember"), &rule.Use, stringChoices(g.Members), locked)
+						})
+						kit.Toggle(c, &rule.Pause, nativeT("pauseMember"), "").Disabled(locked)
+						if !rule.Pause {
+							kit.Stack(c, "", "", func() {
+								nativeList(c, r.fields, prefix+"more", nativeT("thenMembers"), &rule.More, locked)
+								nativeText(c, nativeT("useEffort"), &rule.UseEffort, locked)
+							})
+						}
+					case 1:
+						if !rule.Pause {
+							nativeInt(c, nativeT("minimumTokens"), &rule.Tokens, 0, 10000000, locked)
+							kit.Toggle(c, &rule.Images, nativeT("hasImages"), "").Disabled(locked)
+							kit.Toggle(c, &rule.Compact, nativeT("compacting"), "").Disabled(locked)
+							kit.Stack(c, "", "", func() {
+								nativeText(c, nativeT("minimumEffort"), &rule.Effort, locked)
+								nativeText(c, nativeT("intent"), &rule.Intent, locked)
+							})
+						}
+						kit.Stack(c, "", "", func() {
+							nativeList(c, r.fields, prefix+"agents", nativeT("clients"), &rule.Agents, locked)
+						})
+					case 2:
+						kit.Stack(c, "", "", func() {
+							nativeFolderList(c, r.p, r.fields, prefix+"folders", nativeT("folders"), &rule.Folders, locked)
+							nativeFolderList(c, r.p, r.fields, prefix+"except", nativeT("exceptFolders"), &rule.ExceptFolders, locked)
+						})
+						timed := rule.Time != nil
+						if kit.Toggle(c, &timed, nativeT("timeWindow"), "").Disabled(locked).Changed() {
+							if timed {
+								rule.Time = &routeTime{From: "09:00", To: "18:00"}
+							} else {
+								rule.Time = nil
+							}
+						}
+						if rule.Time != nil {
+							kit.Stack(c, "", "", func() {
+								nativeText(c, nativeT("from"), &rule.Time.From, locked)
+								nativeText(c, nativeT("to"), &rule.Time.To, locked)
+								nativeText(c, nativeT("timeZone"), &rule.Time.Zone, locked)
+								nativeWeekdays(c, &rule.Time.Days, locked)
+							})
+						}
 					}
-				}
-				if rule.Time != nil {
-					nativeText(c, nativeT("from"), &rule.Time.From, locked)
-					nativeText(c, nativeT("to"), &rule.Time.To, locked)
-					nativeText(c, nativeT("timeZone"), &rule.Time.Zone, locked)
-					nativeWeekdays(c, &rule.Time.Days, locked)
-				}
+				})
 			})
 		}
 		if remove >= 0 {
@@ -411,6 +537,22 @@ func (r *routingPanel) rulesView(c *ui.Context, g *routeGroup, locked bool) {
 		}
 		if kit.Button(c, nativeT("addRule"), icons.Plus, false).Disabled(locked).Clicked() {
 			g.Rules = append(g.Rules, core.Preserved[routeRule]{})
+		}
+	})
+}
+
+// The first editor section shows the current members and a direct route to
+// manage them; choosing a strategy never buries the group identity or Save.
+func (r *routingPanel) memberSummary(c *ui.Context, g *routeGroup) {
+	kit.Section(c, icons.Layers, nativeT("members"), nativeT("membersHint"), func() {
+		if len(g.Members) == 0 {
+			kit.Help(c, nativeT("noGroups"))
+		}
+		for _, id := range g.Members {
+			ui.Column(c.Key(id)).FillWidth().Padding(8, 0).Children(func() { kit.Strong(c, id).Selectable() })
+		}
+		if kit.Button(c, nativeT("addMember"), icons.Plus, false).Clicked() {
+			r.editorTab = 1
 		}
 	})
 }

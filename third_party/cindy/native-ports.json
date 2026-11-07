@@ -233,6 +233,7 @@
       "purpose": "Messages, work process, plan, approvals, questions, files and changes, scrolling",
       "native": [
         "apps/desktop-mygo/pages/chat/transcript.go",
+        "apps/desktop-mygo/pages/chat/message_style.go",
         "apps/desktop-mygo/pages/chat/tools.go",
         "apps/desktop-mygo/pages/chat/process_collapse.go",
         "apps/desktop-mygo/pages/chat/files.go",
