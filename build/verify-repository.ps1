@@ -5,7 +5,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect Git tracking' }
 # 'bin' and 'obj' only match build-output directories. Source entry points
 # such as apps/diagram-renderer/src/bin/*.rs stay tracked by design, so a 'bin'
 # segment is forbidden only when it is not a Rust/Go source bin directory.
-$forbidden = $tracked | Where-Object { $_ -match '(^|/)(_temp|node_modules|dist|obj|target|__pycache__|\.workbuddy|coverage|test-results|playwright-report)/|(^|/)bin/|(\.syso|\.local\.(ps1|json))$|(^|/)\.env($|\.)' -and $_ -notmatch '(^|/)\.env\.example$' -and $_ -notmatch '^src/bin/.*\.rs$' -and $_ -notmatch '/src/bin/.*\.rs$' }
+# Croc's upstream empty placeholder is source for go:embed on clean checkouts;
+# import-notices.json verifies its bytes. Other dist contents remain generated.
+$forbidden = $tracked | Where-Object { $_ -match '(^|/)(_temp|node_modules|dist|obj|target|__pycache__|\.workbuddy|coverage|test-results|playwright-report)/|(^|/)bin/|(\.syso|\.local\.(ps1|json))$|(^|/)\.env($|\.)' -and $_ -notmatch '(^|/)\.env\.example$' -and $_ -notmatch '^src/bin/.*\.rs$' -and $_ -notmatch '/src/bin/.*\.rs$' -and $_ -ne 'third_party/croc/src/webassets/dist/.gitkeep' }
 if ($forbidden) { throw "Local files are tracked:`n$($forbidden -join "`n")" }
 function Assert-DiffCheck {
     param([string[]]$Arguments, [string]$Message)
@@ -19,7 +21,7 @@ function Assert-DiffCheck {
 }
 Assert-DiffCheck @('diff','--check') 'Working diff contains whitespace errors'
 Assert-DiffCheck @('diff','--cached','--check') 'Staged diff contains whitespace errors'
-foreach ($sample in '_temp/probe.txt', 'apps/desktop/_temp/probe.txt', 'dist/WinOne.exe', 'apps/desktop/frontend/node_modules/probe.js') {
+foreach ($sample in '_temp/probe.txt', 'apps/desktop/_temp/probe.txt', 'dist/WinOne.exe', 'apps/desktop/frontend/node_modules/probe.js', 'third_party/croc/src/webassets/dist/generated.js') {
     & git check-ignore -q --no-index -- $sample
     if ($LASTEXITCODE -ne 0) { throw "Missing ignore rule: $sample" }
 }

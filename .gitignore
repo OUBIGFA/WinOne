@@ -43,5 +43,9 @@ modules/**/*.exe
 # Preserve ad-hoc local Host builds without tracking or deleting them.
 /host.exe
 /apps/host/host.exe
+# Croc embeds this upstream placeholder on a clean checkout; generated assets stay local.
+!/third_party/croc/src/webassets/dist/
+/third_party/croc/src/webassets/dist/*
+!/third_party/croc/src/webassets/dist/.gitkeep
 # Keep this final: ignore _temp at every depth, after all negation rules.
 _temp/
