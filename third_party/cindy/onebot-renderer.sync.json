@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/makecindy/cindy",
-  "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+  "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
   "license": "third_party/cindy/LICENSE",
   "notice": "third_party/cindy/NOTICE",
   "purpose": "Complete local OneBot renderer integration from Cindy b7e46bc. WinOne host seams provide profile, memory, lifecycle and history operations; remaining feature coverage is tracked in docs/OneBot.md.",
@@ -13,14 +13,39 @@
         "InlineReferenceChip.tsx",
         "RichAnswer.tsx",
         "rich-answer.css",
-        "SessionQuickSendContext.tsx"
+        "SessionQuickSendContext.tsx",
+        "AttachmentCollectionContext.ts",
+        "AttachmentCollection.tsx",
+        "PreviewChrome.tsx",
+        "MarkdownMermaidBlock.tsx",
+        "JumpToBottomChip.tsx",
+        "messageStreamIndicatorPosition.ts",
+        "useJumpToBottomVisibility.ts",
+        "ChatBubble.tsx",
+        "useCopyAsImage.tsx",
+        "VideoLightbox.tsx",
+        "MermaidLightbox.tsx",
+        "FileLightbox.tsx",
+        "useVideoContextMenu.ts",
+        "videoContextMenu.css",
+        "WorkGroupBlock.tsx",
+        "ThinkingCard.tsx",
+        "ThinkingText.tsx",
+        "activityRowChrome.ts",
+        "messageProjectionCache.ts"
       ]
     },
     {
       "source": "apps/desktop/src/renderer/features/cc-agent",
       "target": "apps/desktop/frontend/src/features/cindy/bots",
       "include": [
-        "gitContextPrVisuals.ts"
+        "gitContextPrVisuals.ts",
+        "workdir-browse/DocSearchBar.tsx",
+        "lib/dateSessionGrouping.ts",
+        "sidebar/AutomationTimerIcon.tsx",
+        "SessionEntryError.tsx",
+        "workdir-browse/lib/imageExt.ts",
+        "workdir-browse/lib/pdfExt.ts"
       ]
     },
     {
@@ -46,7 +71,7 @@
         "ChatInvite*",
         "ChatServer*",
         "ChatThreadPanel*",
-        "ChatGroupSettings*",
+        "ChatGroupSettings.tsx",
         "ChatReactionButton*",
         "ChatBotAccessField*",
         "useRemoteBots.ts",
@@ -95,7 +120,10 @@
         "speechProtocols.ts",
         "speechVoices.ts",
         "textFileExts.ts",
-        "voiceConversation.ts"
+        "voiceConversation.ts",
+        "botSystemSkills.ts",
+        "botGroupOutboxStorage.ts",
+        "agentActionVerbKeys.ts"
       ]
     },
     {
@@ -128,7 +156,21 @@
         "sessionPrRefs.ts",
         "sessionTitle.ts",
         "workingStatus.ts",
-        "youtubeVideo.ts"
+        "youtubeVideo.ts",
+        "attachmentPreview.ts",
+        "teammateStatus.ts",
+        "mermaidAutofix.ts",
+        "messageWindow.ts",
+        "thinkingText.ts",
+        "expandedBlockMemory.ts",
+        "historyAfter.ts",
+        "historyViewController.ts",
+        "historyViewHandoff.ts",
+        "historyViewPrefetch.ts",
+        "historyViewProjection.ts",
+        "historyViewRender.ts",
+        "remoteTextStream.ts",
+        "payloadSummary.ts"
       ]
     },
     {
@@ -161,7 +203,16 @@
         "lib/fileTypes.ts",
         "lib/sidebarOwnerStorage.ts",
         "lib/composerActionsBus.ts",
-        "state/agentIslandActivity.ts"
+        "state/agentIslandActivity.ts",
+        "lib/lightboxLayer.ts",
+        "components/find-in-page/findInPageOwnership.ts",
+        "voice-input/useSpeakerFilterNotice.ts",
+        "components/new-chat/ComposerCard.tsx",
+        "features/right-sidebar/plugins/background-tasks/chatTaskFocusIntent.ts",
+        "voice-input/composerLongPressGesture.ts",
+        "lib/mediaPlaybackBus.ts",
+        "hooks/useExpandedBlockMemory.ts",
+        "lib/agent-actions/workActivityProjection.ts"
       ]
     },
     {
@@ -796,6 +847,11 @@
       "source": "packages/voice-input-core/src/conversationActivity.ts",
       "target": "third_party/cindy/voice-core/conversationActivity.ts",
       "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/voice-conversation/callCoordinator.ts",
+      "target": "apps/desktop/frontend/src/features/cindy/voice-main/callCoordinator.ts",
+      "file": true
     }
   ],
   "seams": {
@@ -992,7 +1048,16 @@
     "packages/maker-shared/src/richAnswer.ts": "third_party/cindy/maker-shared/richAnswer.ts",
     "packages/maker-shared/src/historyGap.ts": "third_party/cindy/maker-shared/historyGap.ts",
     "apps/desktop/src/renderer/features/bots/botConversationTimeline.ts": "apps/desktop/frontend/src/features/cindy/bots/botConversationTimeline.ts",
-    "apps/desktop/src/renderer/components/chat/MessageReadAloudContext.ts": "apps/desktop/frontend/src/features/cindy/components/chat/MessageReadAloudContext.ts"
+    "apps/desktop/src/renderer/components/chat/MessageReadAloudContext.ts": "apps/desktop/frontend/src/features/cindy/components/chat/MessageReadAloudContext.ts",
+    "apps/desktop/src/renderer/hooks/useCCSessions.ts": "apps/desktop/frontend/src/features/cindy/host/sessions.ts",
+    "apps/desktop/src/renderer/lib/deviceName.ts": "apps/desktop/frontend/src/features/cindy/host/remote.ts",
+    "apps/desktop/src/renderer/features/bots/remoteBotSettingsClient.ts": "apps/desktop/frontend/src/features/cindy/host/remote.ts",
+    "apps/desktop/src/renderer/features/device-link/refreshRemoteSessions.ts": "apps/desktop/frontend/src/features/cindy/host/remote.ts",
+    "apps/desktop/src/renderer/features/cc-agent/hooks/useRemoteSessionSync.ts": "apps/desktop/frontend/src/features/cindy/host/remote.ts",
+    "apps/desktop/src/renderer/hooks/useSessionBinding.ts": "apps/desktop/frontend/src/features/cindy/host/sessionBinding.ts",
+    "apps/desktop/src/renderer/features/scheduler/components/PreRunPluginFields.tsx": "apps/desktop/frontend/src/features/cindy/scheduler/components/PreRunPluginFields.tsx",
+    "apps/desktop/src/renderer/features/cc-agent/workdir-browse/FileBodyView.tsx": "apps/desktop/frontend/src/features/cindy/host/fileBody.tsx",
+    "apps/desktop/src/renderer/features/cc-agent/workdir-browse/hooks/useFileContent.ts": "apps/desktop/frontend/src/features/cindy/host/fileBody.tsx"
   },
   "locales": {
     "sources": {
@@ -1028,7 +1093,13 @@
         "settings.wechatBot.workingDir.unavailable": "已选目录当前不可访问；新对话将暂时使用 WinOne 管理的专用目录。",
         "chat.remoteFile.previewUnsupported": "此连接不支持预览此目录。",
         "chat.remoteFile.folderUnsupported": "此连接不支持传输文件夹。",
-        "chat.remoteFile.downloadUnsupported": "此连接不支持下载文件夹。"
+        "chat.remoteFile.downloadUnsupported": "此连接不支持下载文件夹。",
+        "bots.remoteSettings.unsupported": "请更新另一台设备上的 WinOne 以编辑这些设置。",
+        "bots.capabilities.core.hint": "开任务、联系伙伴、换模型、用工具和插件、记忆。随 WinOne 更新。",
+        "bots.capabilities.core.meta": "所有伙伴共用 · 始终开启 · 随 WinOne 更新",
+        "bots.capabilities.core.items.self.title": "了解与设置 WinOne",
+        "bots.capabilities.core.items.self.body": "了解 WinOne 的功能和用法，按你的要求查询、调整设置；需要你填写或确认时，在任务里交给你完成。",
+        "bots.capabilities.system.pageMeta": "系统技能 · 随 WinOne 更新"
       },
       "en": {
         "settings.builtinTools.plugins.memory.name": "OneBot Memory",
@@ -1052,7 +1123,13 @@
         "settings.wechatBot.workingDir.unavailable": "The selected directory is unavailable. New conversations temporarily use a WinOne-managed directory.",
         "chat.remoteFile.previewUnsupported": "This connection cannot preview this directory.",
         "chat.remoteFile.folderUnsupported": "This connection cannot transfer folders.",
-        "chat.remoteFile.downloadUnsupported": "This connection cannot download folders."
+        "chat.remoteFile.downloadUnsupported": "This connection cannot download folders.",
+        "bots.remoteSettings.unsupported": "Update WinOne on the other device to edit these settings.",
+        "bots.capabilities.core.hint": "Tasks, other teammates, models, tools and plugins, memory. Updated with WinOne.",
+        "bots.capabilities.core.meta": "Shared by all teammates · Always on · Updated with WinOne",
+        "bots.capabilities.core.items.self.title": "Knowing and configuring WinOne",
+        "bots.capabilities.core.items.self.body": "Understands WinOne’s features and usage, and checks or changes settings as you request. Asks you in the task when your input or confirmation is needed.",
+        "bots.capabilities.system.pageMeta": "System skill · Updated with WinOne"
       }
     },
     "extraPrefixes": [
@@ -1077,18 +1154,74 @@
   },
   "files": [
     {
+      "source": "apps/desktop/src/renderer/components/chat/AttachmentCollection.tsx",
+      "sourceSHA256": "4703f694523f6f8031cc0316b139ceaeb4a5fceb4e5feacb5d6a71e1e7848215",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/AttachmentCollection.tsx",
+      "sha256": "1de95668fbae55f4d83d19c60fbba9d617226654ab59258f5bb1747d9e11c1c8",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/AttachmentCollectionContext.ts",
+      "sourceSHA256": "9956345ed7fa3df3c3ae01abbd13c7b9d8e094115d36cb9185d70bcc36131324",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/AttachmentCollectionContext.ts",
+      "sha256": "b0885dae8555ead6d83f5c663063f94ef97d5d075e7973e4b7f3260d7eee5b32",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/ChatBubble.tsx",
+      "sourceSHA256": "746f296e9122e163848930397bc58837b5d9893334e3d741543e7c7f1cfd5e9a",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/ChatBubble.tsx",
+      "sha256": "4b77f82523a54929d084adfccc61e3d52ff28ca5d15b8fc0e7f501d0145dd74a",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/FileLightbox.tsx",
+      "sourceSHA256": "6ece66aff86d91625db5e1c924b416a3a6f50452c623c12d324998c38694f5bd",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/FileLightbox.tsx",
+      "sha256": "1378863434193003673b0fcff6e54960791836190ac49324f9b0a0768adc043f",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/renderer/components/chat/InlineReferenceChip.tsx",
-      "sourceSHA256": "8c4414437eec47aee299eb65f8389dcf4802bb2ce8afdafcd84c7ac601a817da",
+      "sourceSHA256": "fb684b2630e6106b19051c61b850825231a5470188305cc865165ed3854f198a",
       "target": "apps/desktop/frontend/src/features/cindy/rich/InlineReferenceChip.tsx",
-      "sha256": "f649c50df0935ddbcd45c51e9b4ed3a06f8ee086bb5f0d5fad2199672db21424",
+      "sha256": "84430b6639f89ca9ca3ea662c17db7f2dbe4003cea03e94b682c3881f33518e1",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/JumpToBottomChip.tsx",
+      "sourceSHA256": "8c122164e101eb7a263b40e2bc49b7311112b7824a8e36b229e8b4abbef9e4f4",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/JumpToBottomChip.tsx",
+      "sha256": "32085b20bf38d72e0dfe5ec21b462ff7d7856fb46861ca1ed5603453b44ecd23",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/MarkdownMermaidBlock.tsx",
+      "sourceSHA256": "9516b9f9027e60d510078796e9b97b33bc907839c38de063fe6e8f0780290b05",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/MarkdownMermaidBlock.tsx",
+      "sha256": "e570e6d37cef348c8e807c1f43dfc7982c227d57033509729a76c7340763467a",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/MermaidLightbox.tsx",
+      "sourceSHA256": "7f30e6f73c9eefba2cee76a4620c2bb48a4e90f1e8830f4a6160e897735a989f",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/MermaidLightbox.tsx",
+      "sha256": "1a2e2a72957074c5522fb623fbff1c78379b381afd281c3a8e25114978528fc7",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/PreviewChrome.tsx",
+      "sourceSHA256": "4b5d69e8905ebb7201531f2d8ff4ac7e889bfcb14aea7d3635dda3e1e894f761",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/PreviewChrome.tsx",
+      "sha256": "d112d168e33d6e9b42a7c7091abd0dd53a746077f26b257f84a966b62bf96861",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/RichAnswer.tsx",
       "sourceSHA256": "ac1ef571da0b268700a9542c58e1a62248b7741cefabd8b58ccbf3c360d3cce1",
       "target": "apps/desktop/frontend/src/features/cindy/rich/RichAnswer.tsx",
-      "sha256": "d1eddadade134c438742a8b495722fb21f70e6ae115e993d2fbd2d637341ca7c",
-      "adaptation": "import-paths; A lost native acknowledgement must retry the same visible action rather than send its text twice"
+      "sha256": "dd1cdcc4bf967cb2e089b33e032107b00e2737e59de26176587d7a43bfedd73c",
+      "adaptation": "import-paths; WinOne user requires an explicit close control for every retained web status/warning; dismissal is presentation-only; Retain rich send failure and original submission receipt, but let the owner close its visible warning; Close unavailable-calculation status without changing values or enabling calculations; Close incomplete-stream status without hiding or rewriting the original rich answer; A lost native acknowledgement must retry the same visible action rather than send its text twice"
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/SessionQuickSendContext.tsx",
@@ -1098,10 +1231,89 @@
       "adaptation": "import-paths; Carry the visible control's stable receipt into WinOne's native input deduplication boundary"
     },
     {
+      "source": "apps/desktop/src/renderer/components/chat/ThinkingCard.tsx",
+      "sourceSHA256": "a8e5b09f96af2c7487c2f867e5cf51e0903c6d461fddd5f2d1e5f76fd6b727e7",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/ThinkingCard.tsx",
+      "sha256": "2956a5dbad3e6e485e691b2ff5dd83340ba3f18886453000d45cc236ebd5e62e",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/ThinkingText.tsx",
+      "sourceSHA256": "43a5960976fe6d0307631d46d04ecae35acbb145788d69afbb364cf107c4f0bf",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/ThinkingText.tsx",
+      "sha256": "99f257f06d7327e138667bf9451c0d1bcbae5186820971375439f8041c239c4a",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/VideoLightbox.tsx",
+      "sourceSHA256": "fc88c5ef578ba965b1319ed336ea679e2f3e08b6f1fc0ae7cef8d48660e4803f",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/VideoLightbox.tsx",
+      "sha256": "1d7a631d0c1b9e36c172a0af6be071638447df1d3a79adf493efc88105779244",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/WorkGroupBlock.tsx",
+      "sourceSHA256": "d60ba5b929709ff11f3542a2692a18e8bc49c9096cab13daeca8fb2374acd2ba",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/WorkGroupBlock.tsx",
+      "sha256": "9158c2b57bdec95c0354ccef15821e04b5c496635376a9f807a444672b290bb5",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/activityRowChrome.ts",
+      "sourceSHA256": "b15740a58a0b32738519f2945a38d13420ff64ba2d04d9c6fc07a81f13cd3d4a",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/activityRowChrome.ts",
+      "sha256": "fdf3ece69153c0a5c776ca78470d895399097453509bc2343a8bdc467e91ffbb",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/messageProjectionCache.ts",
+      "sourceSHA256": "0ffecb02ab4871cff406a9e7c44b475682dca67c21acf0a7ad12944b35fed14c",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/messageProjectionCache.ts",
+      "sha256": "0ffecb02ab4871cff406a9e7c44b475682dca67c21acf0a7ad12944b35fed14c"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/messageStreamIndicatorPosition.ts",
+      "sourceSHA256": "43f0bc0260c8f40b19802c13a116c6e33f6bd385ff39a70106883cadd2d58627",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/messageStreamIndicatorPosition.ts",
+      "sha256": "43f0bc0260c8f40b19802c13a116c6e33f6bd385ff39a70106883cadd2d58627"
+    },
+    {
       "source": "apps/desktop/src/renderer/components/chat/rich-answer.css",
       "sourceSHA256": "11ea0bfc37c811fc82d73a757849499ffa7cea102a383163012dcb8eb2781d19",
       "target": "apps/desktop/frontend/src/features/cindy/rich/rich-answer.css",
       "sha256": "11ea0bfc37c811fc82d73a757849499ffa7cea102a383163012dcb8eb2781d19"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/useCopyAsImage.tsx",
+      "sourceSHA256": "1077ab96d4900712230d1a785c0d0a4c6b3e35adc132099ed6ccfbff504e699c",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/useCopyAsImage.tsx",
+      "sha256": "6a9b2ea1d397d1af9a29468ce1ea986da1b3157359f5de846f5735170d422f30",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/useJumpToBottomVisibility.ts",
+      "sourceSHA256": "40ef10be869790be32d4ee1618cf68e6b32db64bd437d17b9f8fe547a428e577",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/useJumpToBottomVisibility.ts",
+      "sha256": "40ef10be869790be32d4ee1618cf68e6b32db64bd437d17b9f8fe547a428e577"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/useVideoContextMenu.ts",
+      "sourceSHA256": "1b21c8d588f775a27b71f5ffad8dddf6d86e524224f50574e4540ca9921ae2f1",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/useVideoContextMenu.ts",
+      "sha256": "1b21c8d588f775a27b71f5ffad8dddf6d86e524224f50574e4540ca9921ae2f1"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/chat/videoContextMenu.css",
+      "sourceSHA256": "94597130825502ab6481ec79d5d08461a2d07d58ae85bb17d0351d01ef5ec7d7",
+      "target": "apps/desktop/frontend/src/features/cindy/rich/videoContextMenu.css",
+      "sha256": "94597130825502ab6481ec79d5d08461a2d07d58ae85bb17d0351d01ef5ec7d7"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/SessionEntryError.tsx",
+      "sourceSHA256": "a965f90b38a4d4a1704455f534176b891cbc88006723c11245ceaacdaa272e54",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/SessionEntryError.tsx",
+      "sha256": "d5093e548972d48e25af47ff0152dc62997db5974aaeb6a458f19359c1d1f0de",
+      "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/cc-agent/gitContextPrVisuals.ts",
@@ -1111,24 +1323,57 @@
       "adaptation": "import-paths"
     },
     {
+      "source": "apps/desktop/src/renderer/features/cc-agent/lib/dateSessionGrouping.ts",
+      "sourceSHA256": "f0246fdb36661554d656720da82d88e588161866ab6c25d971faec1cebdefff7",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/lib/dateSessionGrouping.ts",
+      "sha256": "a9fc81a7119a1210aad4cd92619d2fdffc251ff3000b8241bf83040091aac646",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/sidebar/AutomationTimerIcon.tsx",
+      "sourceSHA256": "0614a739a3ed3837124d445532223597ff135e901241aa1c27d3f69b653591bc",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/sidebar/AutomationTimerIcon.tsx",
+      "sha256": "408a454fd5855a0549493bc7e48d73593b037ba2d19b7e9565f3ce8e4f90fd1e",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/DocSearchBar.tsx",
+      "sourceSHA256": "5aa86e6a0dd744536721c3915b9d1ec416919e85713ca70f23ba4bc3099dc8b7",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/workdir-browse/DocSearchBar.tsx",
+      "sha256": "71aa0450386825ec1c4015d3533f961f3056a299febbb7a84fee573e12585927",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/lib/imageExt.ts",
+      "sourceSHA256": "5eaefd8eb84d8f4406ea36a449710d3724dc5b1b5e3e2a50b53c8a6cde1d14b6",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/workdir-browse/lib/imageExt.ts",
+      "sha256": "5eaefd8eb84d8f4406ea36a449710d3724dc5b1b5e3e2a50b53c8a6cde1d14b6"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/lib/pdfExt.ts",
+      "sourceSHA256": "ed7322254ca01aaa3bea3446ff9cfe2155f009ce6a513e765c32635c1f42e23e",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/workdir-browse/lib/pdfExt.ts",
+      "sha256": "ed7322254ca01aaa3bea3446ff9cfe2155f009ce6a513e765c32635c1f42e23e"
+    },
+    {
       "source": "apps/desktop/src/renderer/features/bots/BotAddToGroupMenu.tsx",
-      "sourceSHA256": "6c5b6208596162410cd57869c9aeb86ce3fa2089679ed965ebf0cf172d65b704",
+      "sourceSHA256": "8495cfcf87e8d789080bbd4204f8f5ee42c129963741ce048c9dc771cdea9cd2",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotAddToGroupMenu.tsx",
-      "sha256": "3419997870ab3db60ce63afc50c0d0e6eee7790e2c81948b21370b4fe5eb6fcd",
+      "sha256": "a693d1281e94457ae1bc6e180907914b45aae7b11dad34a8ed53f03812c2d6aa",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotAutonomySettings.tsx",
-      "sourceSHA256": "7a4f301206c5837b9ad0944d2e5bce723ed579807b3284d6390ce8dbe9a4ba9b",
+      "sourceSHA256": "733957413f78f94ebed32423506762380bb8cf4ba83111db8dd69001fe285ac8",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotAutonomySettings.tsx",
-      "sha256": "b50c76532b7b0da75853c5a01ecbaf0ea6e804408d7b9f77e1b37b00c77c8cfd",
+      "sha256": "5c1314c9b7c6837fdb6b820cac31dc6594ac72ee7b2be86217c34ffc4afe67d6",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotAvatar.tsx",
-      "sourceSHA256": "0880c291caaf64b013c5e593497b585d3bdc83fc02f04751d61ad63751ab24bf",
+      "sourceSHA256": "eac621063cef3ea2010cd49253eb68f43126166ca486e9f72762eb31914065da",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotAvatar.tsx",
-      "sha256": "d672b0f5aafc6675ae29a7e2dacdb77c629db2c247dc26543c4e1ac8fa05a27f",
+      "sha256": "c16a8478302f27ab95b211e02999b0e16afe7d6f8148d893f8e01364cea46938",
       "adaptation": "import-paths"
     },
     {
@@ -1140,16 +1385,16 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotCapabilitySettings.tsx",
-      "sourceSHA256": "2331d626e4371654792981bcad3785236e36cada6bdb4c69db62f3b867a183e1",
+      "sourceSHA256": "266878e086b6cbecf80436ca519b802282a56f5ab3b411fd2a0fae714401562c",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotCapabilitySettings.tsx",
-      "sha256": "3d60eb57e11dc177eb691f74554ffbdbabd99a44565f2436f2a13129339c1b70",
+      "sha256": "f6c5b7693cec752fcdada79e3b51aaf9f7ba1e7695cfda30928bac17694a6f9c",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotChannelsPage.tsx",
-      "sourceSHA256": "b2e872c6e6cb90ad42c4ef0aba943aa324b818f2551b45e005efb3e531781e3a",
+      "sourceSHA256": "a4523ebe647bdb0aad9b3dfc1ae74048acc736273f78ba388a78806c7312bf10",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotChannelsPage.tsx",
-      "sha256": "4a942585b16f1003c53daa2eaf8a368ba6d21e74c8dac61eb4424a3461f15c5d",
+      "sha256": "6556e33e11d84d9fa191ae631887ed5ac6b136e8b65f867bed8a26c6dee34536",
       "adaptation": "import-paths"
     },
     {
@@ -1161,9 +1406,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotCollaborationCard.tsx",
-      "sourceSHA256": "0ad235be76dddcf55b5b6452c3f6f6fb2d5ab45524178d98822863e37b4d6c9a",
+      "sourceSHA256": "44dc04b6b2b25a6fe88269e475417fb49e758b5890fe08e714af3ad2f6279bfd",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotCollaborationCard.tsx",
-      "sha256": "b783fe1d5da39918da9654558cd6a4fe12eeffe3444dc34883d34cbeed84effc",
+      "sha256": "b4e119b6a839efe386007a885c041f039fd04c974f7151da835872c5c70d5f83",
       "adaptation": "import-paths"
     },
     {
@@ -1175,9 +1420,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotCreateMenu.tsx",
-      "sourceSHA256": "2cde6788118e94d1d128f38696793cc7c1923de2c3d59cf337c3fb14e65d850e",
+      "sourceSHA256": "3d8a32911142c15cf92493b8e7505a540e0cb7b396af4149abe4f07a7a067c30",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotCreateMenu.tsx",
-      "sha256": "ac35c5be0e658c47aa763c4ca4b93166d1581432f489d828a582dfc5c2bac64f",
+      "sha256": "f658dc8d680ac6bd714f9e84773b608692fbf333262b4b5cec0efab3f6a81559",
       "adaptation": "import-paths"
     },
     {
@@ -1189,9 +1434,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotDirectMessageCard.tsx",
-      "sourceSHA256": "a9b54deb1ef9923423ef7cc9bb05f533105a84f25398cbe39e3f284e15c43127",
+      "sourceSHA256": "57facad929ee12e067859cdafc0e49e4757a3993bd1ad5a718ac754ece205d1a",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotDirectMessageCard.tsx",
-      "sha256": "51f86bb9a23667f86d1c71d8b85116877b26c10dbbfad5b9c44c095293d695cd",
+      "sha256": "0e7b7d0c44e41718bdb5d73f5761f7d5820e0855a521bfc9c5fb857671b78b7e",
       "adaptation": "import-paths"
     },
     {
@@ -1203,9 +1448,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotDmThreadHost.tsx",
-      "sourceSHA256": "dbce1e89568855747e0d8d3447e73d34a4abc5d1ef3103f24455a2a7b68b8f7d",
+      "sourceSHA256": "a194a177b8153bc56c67cdcf0101dba249bcd5cbb2f9eeca0645935109a38b08",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotDmThreadHost.tsx",
-      "sha256": "848be3165a1b03999f6c78ef18bcce0b3294df68695f4b7f4a8e2c2f61c4f9e7",
+      "sha256": "48e247a5e59259f4566b6feb80cb0eb287bd93e2a09418ab159b3e635014ac79",
       "adaptation": "import-paths"
     },
     {
@@ -1217,23 +1462,23 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotDmThreadViews.tsx",
-      "sourceSHA256": "68cd3e654820d8f4f94356829125e4a1055f778850bd6aa6ca6ffe32cca302d0",
+      "sourceSHA256": "cfbd61ccede525eabacf54f2902b92bd3e6bbf22a53e4794d9559e58556fcb37",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotDmThreadViews.tsx",
-      "sha256": "e98427ce43c93b8f89c771ee9f8c66dc89f8b2ea8be0d095dd2466713e904821",
+      "sha256": "94a21391a4f556a6a59eb0ed7e7c24e4585cfa906b64c1fe9652d235dc166e0b",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotFollowMark.tsx",
-      "sourceSHA256": "ae0d9b942df135543696358be9cd56a93953e95e00a2ab299d91b177b7dc57c0",
+      "sourceSHA256": "a68869d97f2304039b8385b7cbe3055ce1e991c7fb5ed13aae4905aa3fa6d817",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotFollowMark.tsx",
-      "sha256": "15a657c8c3176ae2e76de82f349ca5e9c20e6f5fe66d7a2d8d1f942164addf50",
+      "sha256": "1c06951c7c63803f223bee811645f26f9c41a7ad2bd76ee6cd7b0e1ee246f478",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotFollowUpInvitation.tsx",
-      "sourceSHA256": "4c6162d26ad42f3943ca4cff335ad03bf2beafdf8eee29a68ae7122c7514cfb4",
+      "sourceSHA256": "1d83c329c7c7067e318efcf384d38d7861953cb404238eba776daf4d9d048785",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotFollowUpInvitation.tsx",
-      "sha256": "9ca564615dad852969c56d47dcc60b49d35898a1ed0dbbceb7ed1057476f435d",
+      "sha256": "07096531a36582fb0ac6b5aa235d9c99049c87539ee129488b091a3a50ab6365",
       "adaptation": "import-paths"
     },
     {
@@ -1245,37 +1490,44 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGlancePopover.tsx",
-      "sourceSHA256": "14457463f6ba6de59a1f48a4b6dfc62785f807e31873d3f53e29366f0df6a176",
+      "sourceSHA256": "e6e9d93f3083dfb56805b0ebe5a5f79fcf3b9fe636896f9389c4d05a4c51bb63",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGlancePopover.tsx",
-      "sha256": "d50a58d09d1ce408beeb7da7efafddee9f5400b7bd1e2d43ea5d72931b44181c",
+      "sha256": "06329c3f5e359e6b33e893846e8c69036c78a1ee82883ef027f70cf6b1c1da99",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupAvatars.tsx",
-      "sourceSHA256": "788c4a3f63b1434edd38fe14d276a204fc26350c5eb3e328b4fac2c59d10a8e9",
+      "sourceSHA256": "aa3561b998b91ffe62d748dc36f9db06583dc36366ee8a571701322842271deb",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupAvatars.tsx",
-      "sha256": "b268948e22c4ef50a930862110f44cabb6ae0fdd3e0266ce60b0c63f977b15c3",
+      "sha256": "c2b394071fbd7324228e36c6540548c534808de50d9ddc7f27362d0e3be3de0f",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/BotGroupCapabilityNotice.tsx",
+      "sourceSHA256": "31c7ba294facb07a66f408760159a7bcb690130fcce488002d8b99dba632fb74",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupCapabilityNotice.tsx",
+      "sha256": "6c438f7e628163cf6bc08f7f28d403589475f9cd87740fe7e3b218b30fbb3523",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupChatView.tsx",
-      "sourceSHA256": "5e016c5d91c55322e5fd14b39493906fc020db35f8bf8bd18fb17df5ab9210a1",
+      "sourceSHA256": "83c80edc4ae70191b6d4b2a183e4c7be342c5489007eb10344fcd68d8ee90861",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupChatView.tsx",
-      "sha256": "98cbd609d8fe5023480fb0c25b480af005374116b7b59f4b758a66962f0b2287",
+      "sha256": "345ea5c03c5322c5c424328f2fc7d972a99c9099f4a4c59e3a14e8caa6295402",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupComposer.tsx",
-      "sourceSHA256": "7743712befe334cd8bd4211dad827c604a921eeb82aa3817f1289750b137bd7c",
+      "sourceSHA256": "72c1e0cb20a1232652403cda61bf114bbe5bd90c5a127e5c2a88cd82c7b234de",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupComposer.tsx",
-      "sha256": "7ba30ed00f66ce9cfe3d393bca4f1607c1d4eb5f3166be066548c0beeefd6f3c",
+      "sha256": "4f526f9d812fd70c8a89b6cdb66b9cbdea837e443f8e81fa9ff1e0297c6a70e1",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupCreateDialog.tsx",
-      "sourceSHA256": "564cd570239a47785dc8f395e8050ea23d17d6ab99ec8fdf75feb6edbd0326e8",
+      "sourceSHA256": "2df6427fb314e4a369d22897686bc61447d7265798c3cdd35f32d26e40119ced",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupCreateDialog.tsx",
-      "sha256": "d5570994c4c73116a461045a330b6dd02863c601b4717d7e1687b93449be0cf1",
+      "sha256": "f7393a0ee1a21dbae49459e70f568794c8ec8520d8c25fc35f5e857286d05abe",
       "adaptation": "import-paths"
     },
     {
@@ -1286,51 +1538,64 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupLivePreview.tsx",
-      "sourceSHA256": "a22b82cda1f2ef9f22386d1e5d0d17e33c5353477b6edd7a5376569de0e766f3",
+      "sourceSHA256": "995e730cdf680469b36b1d20da3c75ccc5648d9a258c2b50a4427432080928d2",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupLivePreview.tsx",
-      "sha256": "a874129f6e52c253f79dfafe60ac6f51c60780b67772f40b563dc8d4a3b3539e",
+      "sha256": "c6bb017b240b45a9e43fc8399dfa2f571252ed1ee90032eb40ab852e5be68635",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupLiveStatus.tsx",
-      "sourceSHA256": "6fe6c8fd39a8862a7f077cbdbfd93d72d2362bc840ce7262800f010661427099",
+      "sourceSHA256": "2c1d3e6ae581e9a183cce1cfd8d5ddac1dfbcdaec6877dda516b7b859e9c5fa2",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupLiveStatus.tsx",
-      "sha256": "9fff384ec776fa8d0659b6fb2e6407d9a9f915b5e7530353b9cb5e789da769d3",
+      "sha256": "23ea29f951361e7920f1aed35a91dae05faf4b069ca038665e5bc3dcb204a184",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupMentionCard.tsx",
-      "sourceSHA256": "051b8609121921e218134f0c44d336514fa7548e1512134aab754c2f7966effd",
+      "sourceSHA256": "2e831a194c528a08d7d8507edf8ca4c3c15f7d6ea963644cf3bce7f433dab939",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupMentionCard.tsx",
-      "sha256": "08e575d32e9cb3d47afbd34d4e5c6931df0e268b233061cad804d0c76007a2d6",
+      "sha256": "e1cbb924fb936b411f6c7163629f62f877f84f053f4088fbe2ecb922e1c926c9",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupMessageAttachments.tsx",
-      "sourceSHA256": "b4d9150358b156638e60b68e29f085620b23580983e0c89436afdb18d250669d",
+      "sourceSHA256": "af5f36a8a4c730db6685acd3e157b2065d2cdf35d906dffb110a5d3a7eeed615",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupMessageAttachments.tsx",
-      "sha256": "8422f464de616a4c039ff6df9a9c847c95e03aa931d3258ef5c0cbf54d3f1d80",
+      "sha256": "357446b06fc6f556c504d4df68e0aedb8adafe42b453dc025b418de5781c501c",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupPendingInteraction.tsx",
-      "sourceSHA256": "053fe94f902f48a7ec6c6d8253486c16019cb03b952bc44dcc64e9a94b7931f3",
+      "sourceSHA256": "43ada2683074f44f1155b8f62adb259ea4b805466585188f2644566bc5991bba",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupPendingInteraction.tsx",
-      "sha256": "09fee9cb3833118cecb2033df4efb14c707dc02327c2576d4e257fb631a38a30",
+      "sha256": "f8ed60e1ed293298a45d129ea7d20528f98cf9c345cd61debb6d6c1f4b6f7717",
       "adaptation": "import-paths; WinOne uses Pi tool permissions/questions; the excluded Cindy input-handoff channel cannot be emitted by this runtime.; Only native Pi interactions are available; cross-device input handoff is excluded."
     },
     {
+      "source": "apps/desktop/src/renderer/features/bots/BotGroupPlan.css",
+      "sourceSHA256": "8deaea4c5c0e296ed33d0f15df1799b6557f4f9d4b952908955c3c71c6f0052e",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupPlan.css",
+      "sha256": "8deaea4c5c0e296ed33d0f15df1799b6557f4f9d4b952908955c3c71c6f0052e"
+    },
+    {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupPlan.tsx",
-      "sourceSHA256": "882cb893efedcf225a41a4d6f9b851e209f6fdc9072996119812f2ca5dee8d39",
+      "sourceSHA256": "7fbabbc57d76e6a84334ce0ba4833cade45777ad8b636f42e7fb9650ae922036",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupPlan.tsx",
-      "sha256": "d47be801a546e34840b8d8cd741a3b9261a49d3058399afb1fbb08ba12149550",
+      "sha256": "88787115521084f225abca0056c2c8bf5eacc05168ea09c91d2d61f0890eb202",
       "adaptation": "import-paths; Group handoff files use the group file boundary instead of the unrelated scheduler path opener."
     },
     {
+      "source": "apps/desktop/src/renderer/features/bots/BotGroupProcess.tsx",
+      "sourceSHA256": "6d90f514df3a997c56befb9f11cdfe5388405411ae0ba97eb977f06f640190fd",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupProcess.tsx",
+      "sha256": "e430b52d7a5047732c9091c991705a13e1759485f3b0c826cc060e06f1f64e86",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupQuote.tsx",
-      "sourceSHA256": "be3522b61157ba7e0c82c9c7a04cffd000391e13bba56df4309f06e411cadb5e",
+      "sourceSHA256": "7f530f8220920ab5b60b45612c1306a01caa41f068cd0aec4697d6299489b3b5",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupQuote.tsx",
-      "sha256": "56755fc9dfee17f1c7a7e81409d5f2df13b1912777025841c342fdb74de87f9b",
+      "sha256": "a036c8a262cf883a07173652e9c0e2edcfe4fe766b8918bc66b715f909025547",
       "adaptation": "import-paths"
     },
     {
@@ -1342,16 +1607,16 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupSettingsDrawer.tsx",
-      "sourceSHA256": "59b4e59f7c32b20cc58498b566f546744ffffcb75bd95e5a64ee9c9976fa7ca3",
+      "sourceSHA256": "2309125675930fb47249cb838e1053acae3f27a67f636c4caff2b545a700e8bd",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupSettingsDrawer.tsx",
-      "sha256": "2defca2a37209e945c2bab4c9064958cf31096a126a4a7c68a39ca2f0a875bc3",
+      "sha256": "0e5ddd6b15f8244dcb368a5fabb8408058d109ec86c5ec0a375cba34951e414a",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupSidebarRow.tsx",
-      "sourceSHA256": "72a94bf7b3b3e90342647085b8a7dd6e5a8888048500156e6cd30f204b8a0f11",
+      "sourceSHA256": "a43bb93d193a5cadeadba9ba66f756ccbf7fb590d2b39e3fdf9184d4b1faa569",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupSidebarRow.tsx",
-      "sha256": "2ee74fc291da65ecf9e91c84b336ac3ec1a3cbbfcea1ef90c7a2d723a9ac0fbf",
+      "sha256": "619c71f09244303de5dd884a239211e6d739f0f120d10cf465f7afaec041c79a",
       "adaptation": "import-paths"
     },
     {
@@ -1363,9 +1628,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupThreadHint.tsx",
-      "sourceSHA256": "9540d5bd10d110750d8f7473a5ca9aa2b9dbe5c2ef4a82984560dca95ad5c352",
+      "sourceSHA256": "9f5ab081d94cef1caa91dea47addebb3743c02891189915a0869a8278b41c97c",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupThreadHint.tsx",
-      "sha256": "f248fd65d777ebaebfe7ff98d0fa94fd590c7253b250bc787b1dcae9829066cd",
+      "sha256": "dec68bba5e4dd52cf30e0aff6eb860a94ec354726ef40d3a86c8717df4017d08",
       "adaptation": "import-paths"
     },
     {
@@ -1377,23 +1642,23 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupTimelineItem.tsx",
-      "sourceSHA256": "fcc5d980c42287d7bafb0047014b08c334bca11164949f2923df1c80d47e4dd6",
+      "sourceSHA256": "48b8272801494268750af36515739b7a27c050d90c1a609e1dae02662fc0144b",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupTimelineItem.tsx",
-      "sha256": "77ea56e49e6d7cea0d7cbf2f32123f713ad4ac73b7d7c789b01cca471cb059a4",
+      "sha256": "497330bd290c939c87bf16e5cce7eecb0cd2fbefabf7ac6bc95d4fcd26bac6a2",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotGroupTimelineModel.ts",
-      "sourceSHA256": "71a4b9886066eaa363028cc75d35d27eecd00d74ca39f07622d6335b88142d9b",
+      "sourceSHA256": "25cdb839d13fe3607abe3f319bc800364507ead34332a5a00a7d65f98c059cdd",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotGroupTimelineModel.ts",
-      "sha256": "c9bb12b4bdc60f5ba7374202fbf8216d7627ec654efa8462ded23718128e0f90",
+      "sha256": "1a638dd7034f7df30dca619f6122cedbecc43dddd74fd8df697a70ffe8252369",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotHistorySessionView.tsx",
-      "sourceSHA256": "5567d7e171ad5fe9dacfed13a98e66129e0fd6371cd89a33cff2c3c1c2f47b0e",
+      "sourceSHA256": "60cd6d7fd454133fe5ba72865e90e5d0acbb7a49fe55ab68ce3a23634d26bfe1",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotHistorySessionView.tsx",
-      "sha256": "caa1e85bfbc04fc657612397b3a8e446162c52d251971e54a505018a42ecf85d",
+      "sha256": "05f6d797e38983bf3d6b7302f7c5735cb5d307a1357412f251dc2b9fd6f4a34a",
       "adaptation": "import-paths"
     },
     {
@@ -1447,9 +1712,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotModelChainEditor.tsx",
-      "sourceSHA256": "a5a373d45f5a37c94024369bdfe2decceaa849ee6d39cb64baa389f8018355b4",
+      "sourceSHA256": "789f63c1eedf1232566e7422ead041c0d55e142419b97150a0ee45f45e9972bb",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotModelChainEditor.tsx",
-      "sha256": "d080bf159529392dedf313be8a8b6ca4284d17d525873671c0c5b75a396f99a7",
+      "sha256": "2b0d70b6b4a315dce0a747446d13013d2e71f56215bb5ea7b0b6cd2ef65f56cd",
       "adaptation": "import-paths"
     },
     {
@@ -1489,9 +1754,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotRoutines.tsx",
-      "sourceSHA256": "88fae79a4f8dbfb0a3289f41ba8326d540a97148a680afe4b9659d7072bd4fca",
+      "sourceSHA256": "0a0cd78a7186d3cb37b897d96ac2970320f5c4682c8060d2a0dd156735a01960",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotRoutines.tsx",
-      "sha256": "4ac8774f0f3a3f96b3fca30d876ef083c41d87a305b401b73cc80254f161be71",
+      "sha256": "5e6c658ac86ee5e480bb66f35cccae1e6b7347b5b12398e6c0947db82e350e57",
       "adaptation": "import-paths"
     },
     {
@@ -1510,9 +1775,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotSessionView.tsx",
-      "sourceSHA256": "7cec093e1df4b6704ad7dd42e293072c9bcde03850c74bac5ebedaa65004aefb",
+      "sourceSHA256": "5ada0f9f31400644e364744edf82b5c27a1189552f63c8d43ba1f0334c2d4c05",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotSessionView.tsx",
-      "sha256": "29dc35cffeb4e6e5d0765a18456b64c557415224f1ac96c12cac0127d615ae69",
+      "sha256": "75bc512cae7ed0685d7257a88d1488225b150f349bdd31d5d089b89a8cb23dd6",
       "adaptation": "import-paths"
     },
     {
@@ -1524,9 +1789,16 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotSettingsDrawer.tsx",
-      "sourceSHA256": "609aa24307253691a692db4b4d0ab79717824f0cad0d1e4211ad76d5ce8e62a5",
+      "sourceSHA256": "8979c7bd1ad0c88b7de42c383948cd60b930fc0b1cad30d1dc72721aef82c2d7",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotSettingsDrawer.tsx",
-      "sha256": "e22bdfa9c141e6986e591d7d9fcf872264ee0aac97d4a77cb0194ac6b98701c7",
+      "sha256": "c3382fac066583f7f1ddd3d4fc250d44ca6d51e645295d13d685fa0887b915cf",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/BotSkillPage.tsx",
+      "sourceSHA256": "8c43da0082fb978631b5a2618a08f71a5a59530850bac4c2d67e852a8507fb3f",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/BotSkillPage.tsx",
+      "sha256": "2f7677336acaf411f4e58350c8946ad02c88f47a3a2e2f98e092d1db4a3de89d",
       "adaptation": "import-paths"
     },
     {
@@ -1538,9 +1810,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotTaskModelEditor.tsx",
-      "sourceSHA256": "1efc362e96879e043d07bed56679f654cee9209a872889f76b1cb8c7c2e34412",
+      "sourceSHA256": "f388e5b868a5241333ad718ab17fa91ef34aa38defe632e29c747b2784d056d7",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotTaskModelEditor.tsx",
-      "sha256": "3abd79be8aa0e50250020b5d1256f8c2430da5825e119d8175e2b5c3664fdbcc",
+      "sha256": "1dc45fd2fccd96f9ced3dbdc7f0cb9f3666d133d47af73ba26ea14eb6f03ebd6",
       "adaptation": "import-paths"
     },
     {
@@ -1552,9 +1824,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotsFeatureLayout.tsx",
-      "sourceSHA256": "b62916d184785c3ca691ea28e18a455248cdd0008803dba330f6bd64430fd913",
+      "sourceSHA256": "5f0085091907117a29159b1575b754d4aaf2960d8d771cb6154d4560e7bd4eda",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotsFeatureLayout.tsx",
-      "sha256": "6b1afcc213b21d2df59277199341e456822311cfdb658c7c1a53d98d7621fa9e",
+      "sha256": "f1a2b6b59febf798580e098bfe99504eaac079ce150811ef2f92e72ef12885e3",
       "adaptation": "import-paths"
     },
     {
@@ -1566,9 +1838,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/BotsHomeView.tsx",
-      "sourceSHA256": "44a8bdebb28c2eec2c28558c5266a14ec799a5d45294f0af2da2c5b6809aeaed",
+      "sourceSHA256": "070787e2d3d88ce33ded47564ad71f95f3ae2aa0f7d5288e04c996b81ec8771e",
       "target": "apps/desktop/frontend/src/features/cindy/bots/BotsHomeView.tsx",
-      "sha256": "c6ca7f1c1a4f2d663a743328929d08bb0610645ac7f16b8240c65c49c5b69d25",
+      "sha256": "f07be4cbe1f3b0b6205505228722841e1570184b0dff5b599be2e41bda6643e7",
       "adaptation": "import-paths"
     },
     {
@@ -1578,10 +1850,73 @@
       "sha256": "e4f31a0ddeab7a82632dccda2ebf5002d5e289bff11067bbb895f702fcf6e0ca"
     },
     {
+      "source": "apps/desktop/src/renderer/features/bots/ChatGroupInviteMenu.tsx",
+      "sourceSHA256": "cd1d66b1264bd4acfa4636ec7837ab33426a03715ac3e40d9ca1ad5beb29823f",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/ChatGroupInviteMenu.tsx",
+      "sha256": "ef25884494e96ef884890718cece19186ded80ce66780f25d7b528831218873d",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/ChatGroupMembersTab.tsx",
+      "sourceSHA256": "56021bbe3b9ba5b0b796decae2722f803c6f991ec93aa873ea907a784400330c",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/ChatGroupMembersTab.tsx",
+      "sha256": "06f5badab3f9b95b3fdfa6e3d941822754bc3dead63bb633821d6aea72c801fc",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/ChatGroupNotificationSettings.tsx",
+      "sourceSHA256": "caedfd46fa4357af189a62c7b0b8613d5c6e1e305613759e20e338be8fb80eab",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/ChatGroupNotificationSettings.tsx",
+      "sha256": "9016c2c631366b968ccb1816b9da4f0cd4c69f82f60c8803d08b085515bf5c2a",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/ChatGroupSettingsRows.tsx",
+      "sourceSHA256": "785f8364cc5fe9205d596a97dd1aef280a4a6d42c4436b18ce40f55ef48f385a",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/ChatGroupSettingsRows.tsx",
+      "sha256": "37b8c45d8fcc0ce6d24955ee3c8a4ed5a2cf7bcf25244b35b79b80757c89b362",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/ChatMessageReaders.tsx",
+      "sourceSHA256": "70e09eb7b187f03004cbb6cc9732201c0032c80b5173407dbefd2a621f8732b9",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/ChatMessageReaders.tsx",
+      "sha256": "9990938cbf00d7c8d33f6fd37584ccac1349b750c9466920eb6e48ddaabbf7bb",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/GroupMaskControls.tsx",
+      "sourceSHA256": "41772e6d11958c45965e8ea368b45ad81a8c9235213f4f86c1265eac527198b9",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/GroupMaskControls.tsx",
+      "sha256": "8845edc203d6f5f94dbc55cf2b42c188402943e756c78fe882347ea8842246ad",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/GroupMaskProvider.tsx",
+      "sourceSHA256": "dfebd4ebf8e0e3098a9ca1bdafd145e59e6f08b9feb08e0f4f3c3fae50a0881a",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/GroupMaskProvider.tsx",
+      "sha256": "e06b42c2b7165742d0676c5f8e2d653f6f7d762e5a9e61d196c685137556642d",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/GroupMaskSettings.tsx",
+      "sourceSHA256": "ffcd13e2fc83163b40105ea10092d724f45c3f517330c0386d8e376955643145",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/GroupMaskSettings.tsx",
+      "sha256": "d21f7e1171b7eb1ab5b1df89e2fae1ffedff63bcaa4bde48204bf76d080bee0c",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/renderer/features/bots/RemoveChatFromListButton.tsx",
       "sourceSHA256": "7ff1d09fd612542e1fbe63fc42d4c14ecd522f7645b653b5601f158b551bbb47",
       "target": "apps/desktop/frontend/src/features/cindy/bots/RemoveChatFromListButton.tsx",
       "sha256": "7ee9cf441f859ef22ab7c62f8d78cd15ca23e3edb5b4d28a09eb53e06f5f2936",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/TeammateProcessStatus.tsx",
+      "sourceSHA256": "add43dbe49bf9b430fa79a1fc96edb4a6da724f89d2439e34aa56c56cb7759f5",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/TeammateProcessStatus.tsx",
+      "sha256": "f5b19603580cf383118a5772e9bc4a156e576d66724a85bdf5ec98074173a315",
       "adaptation": "import-paths"
     },
     {
@@ -1592,10 +1927,30 @@
       "adaptation": "import-paths"
     },
     {
+      "source": "apps/desktop/src/renderer/features/bots/TeammateStatusDot.tsx",
+      "sourceSHA256": "91fb087f54f4f190fec426f0c3d7a482b33973b4e8a54e38a1c337e7b41364d0",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/TeammateStatusDot.tsx",
+      "sha256": "3680bb8e8fcebcbbb8da4e807d71a171b01cfc1921a664e665f6f55efe3a9cc8",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/renderer/features/bots/TeammatesSection.tsx",
-      "sourceSHA256": "52b4f1715807b76dd2e1d4dcca1cd63af0f010a474d91dbe88252cebff8d1afe",
+      "sourceSHA256": "a1fa43053e393c69520771a3b5cc0e729f51cf6acaf3afada504e1a5c1cfc867",
       "target": "apps/desktop/frontend/src/features/cindy/bots/TeammatesSection.tsx",
-      "sha256": "bb7819712ea8b4b99495970b6c484a518eb3d10bd2524b486155cc9947290b45",
+      "sha256": "6d21e9ddc07f3bf190c08086bba2e8bba4d876db213d551d18f2b9ecacded455",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/ThreadPanel.css",
+      "sourceSHA256": "f1ddb56f68fd0eb57d8705acf7a93add0ccc095d083590ab5670be2631484702",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/ThreadPanel.css",
+      "sha256": "f1ddb56f68fd0eb57d8705acf7a93add0ccc095d083590ab5670be2631484702"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/ThreadPanel.tsx",
+      "sourceSHA256": "8ccebf6524c035e83083b08ab4fad33cd287f57bbede58806308037c171c5385",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/ThreadPanel.tsx",
+      "sha256": "873d770d7a648769277ebb6e1dafe9b84f36443748ee7c8d9f63b3adf66bf862",
       "adaptation": "import-paths"
     },
     {
@@ -1659,9 +2014,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/botFollowScopes.ts",
-      "sourceSHA256": "3d33c31ff9caaa391b3000f1de7618b17b62a84c782994dff5a0359842891ea3",
+      "sourceSHA256": "caa2794a4725f725d714d8d9e3588c7b6daf2d7d48c4ae27680049cd2263331e",
       "target": "apps/desktop/frontend/src/features/cindy/bots/botFollowScopes.ts",
-      "sha256": "5df3a89cf90199105bd019cd8edd57732e644a8002dc14025313aa4233ed078b",
+      "sha256": "ae3c98221ab18431c90fb848c733e529fa7e8ed2b8794b87fdfddad50dbf22ce",
       "adaptation": "import-paths"
     },
     {
@@ -1680,16 +2035,16 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/botGroupAttachments.ts",
-      "sourceSHA256": "950887c90a075b301a4d88f2e05f36104f132924700699c45d91bcd94f44853b",
+      "sourceSHA256": "2bee655fe5abd3d5e1050fcd7fcdf71cebfb14f06fca985b3d2b39c254e7a600",
       "target": "apps/desktop/frontend/src/features/cindy/bots/botGroupAttachments.ts",
-      "sha256": "7a2f47fa55041ed82d673147c056f7e1e1be8dafa2a0efaf9ab36823065d2a31",
+      "sha256": "6cff932ff9c4bea40fab97350f162220413ede9e5a99d4747a384fc9f3b6e18a",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/botGroupComposerChrome.ts",
-      "sourceSHA256": "c97edf39cf509024adb65eae6dad618467bd86e37a8c7465cd8b21e6ae6d6e66",
+      "sourceSHA256": "3032dec8f785a6b3d2cf5826d86d3912667a45a9754287ef8a51eb93abdae9dd",
       "target": "apps/desktop/frontend/src/features/cindy/bots/botGroupComposerChrome.ts",
-      "sha256": "c97edf39cf509024adb65eae6dad618467bd86e37a8c7465cd8b21e6ae6d6e66"
+      "sha256": "3032dec8f785a6b3d2cf5826d86d3912667a45a9754287ef8a51eb93abdae9dd"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/botGroupLane.ts",
@@ -1706,23 +2061,30 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/botGroupOutbox.ts",
-      "sourceSHA256": "5a08c3d559c454e6a871664c1d0bf03c3acccb3e01003058f9946ce2123c3909",
+      "sourceSHA256": "4d530a5b5bb7eec785020e1f05a382e2ef61831e3b909958f0333f785677fbc5",
       "target": "apps/desktop/frontend/src/features/cindy/bots/botGroupOutbox.ts",
-      "sha256": "7ca965810dffd7b7288dcc8a47c4b70633189bed69fade88292c267993017c61",
+      "sha256": "5e4389696892a8b653390016f504375618d00d323cb71da4bb30fd10eef6a3be",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/botGroupPresentation.ts",
-      "sourceSHA256": "eb867e3f99c7a759adb94b319b037d0bca9d7c94c4d44f5929538f6360ddb40f",
+      "sourceSHA256": "cace42c941db6db400e21824e8737b033156f3ba95808c527dfb6de5a02de896",
       "target": "apps/desktop/frontend/src/features/cindy/bots/botGroupPresentation.ts",
-      "sha256": "14908d235d8b785e466bf92c0a7a06b995edd2e7c4be31260d5bb9e985528fb5",
+      "sha256": "278d6bfca250d86a0be7ee885a265bb0b0ec47876d99845ade055692f68c3f10",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/botGroupStore.ts",
-      "sourceSHA256": "ba1a57e4a959d72393c771ff24c871e8acf44882f8b1be825759e67c4f517a7e",
+      "sourceSHA256": "752c1f72b198f20923ded40862a9890bcd0ceb786c50a3ed242000ac57fbf8a0",
       "target": "apps/desktop/frontend/src/features/cindy/bots/botGroupStore.ts",
-      "sha256": "684bfa20f5d5e9304b6d1b6ce5d33470b5722c74ab44995e82c25d199110c7be",
+      "sha256": "63ff657c599f3891dc6b2f375282f8031fd3bf81018ac963e85ccb673dbbf25f",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/botGroupThreadReplies.ts",
+      "sourceSHA256": "13dc27deaf2a29f3277c31b1947dec5ea7e56dbe132a6ad9d9b5b8fd836ee9be",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/botGroupThreadReplies.ts",
+      "sha256": "42bcd94e5db2d1b0a661f7311cb0b5507d2991a667e04005a222bbdda6c9f3d9",
       "adaptation": "import-paths"
     },
     {
@@ -1769,22 +2131,23 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/botRosterDisplay.ts",
-      "sourceSHA256": "3a1e7d39e7c916b500d82c99eb57822a1765eed24014f5aec67f12a014cdd633",
+      "sourceSHA256": "9681c0dd9e87d5891beaa797f337360d1fc86bd544e6766f2ed8a0c06a9a05aa",
       "target": "apps/desktop/frontend/src/features/cindy/bots/botRosterDisplay.ts",
-      "sha256": "3a1e7d39e7c916b500d82c99eb57822a1765eed24014f5aec67f12a014cdd633"
+      "sha256": "67541ad1a562b49bf73731ce5b62227722c8c26cfbf513533e1027b1fb13bc6e",
+      "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/botSessionOwners.ts",
-      "sourceSHA256": "0e4d0b94f7f076cfa2d9f3bd1ada10b78a9927993ce3c85083be11b971c0c2f2",
+      "sourceSHA256": "40d979a49ed99151f73a2ca37d37ce2dcfa7cabdebfc12a747dc64a3da30b337",
       "target": "apps/desktop/frontend/src/features/cindy/bots/botSessionOwners.ts",
-      "sha256": "9dd1179336b47d278bb8ae0c2a338920829a3fa4de67c9e421850266a38c81ff",
+      "sha256": "756afbb1e836c6cec89d49f8da824f053b2c7b6285e88fb42da270a5c67e3cf8",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/botSettingsAutosave.ts",
-      "sourceSHA256": "f9e6fafec648d889557fcb83eb4ee17989ea4f6e21a7bceb9a97fbb190d5a982",
+      "sourceSHA256": "c3fa0c45b728836035d9a40c5691b64f0925201f2be4dff7496c76ec02cc8c9b",
       "target": "apps/desktop/frontend/src/features/cindy/bots/botSettingsAutosave.ts",
-      "sha256": "1aadf72c0c1546a017580aa29f71ed41fbaeb0e115546bc952ba778ff0a1bde1",
+      "sha256": "4435505fcaa7d50c2c320b079a9fdc75ac3bdead6e870b1f5146b25e0794046f",
       "adaptation": "import-paths; Pair detached cleanup with effect reattachment in WinOne's React StrictMode root without deferring the final synchronous flush; Restore autosave admission when the same mounted editor's effect is reattached"
     },
     {
@@ -1795,16 +2158,16 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/botSettingsTarget.ts",
-      "sourceSHA256": "7b6e0b867aa800090d82069b27453d8acf97f36b09e56a76c39d4f02a63be969",
+      "sourceSHA256": "0de3a9a44d277972d7661b41ba8e0b78a9186ddac5cb1ed472a67504543fdc61",
       "target": "apps/desktop/frontend/src/features/cindy/bots/botSettingsTarget.ts",
-      "sha256": "1cdefdd5cc5042b8422e2024ede9b0eb6bec95e0df551f39db9cd4e5edd09588",
+      "sha256": "9725c8b78ce8d84e371d16011730679a8ce6116d87728f4ce40e5e697573e5a7",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/botStore.ts",
-      "sourceSHA256": "53fc55bb5b2a467435255cfe2779d70bb39b02f43d4e59e5e8f7f11eca4f79ac",
+      "sourceSHA256": "74fc76ca4426c622822595574386a992a81b7f120c40aa8a06326a9d52aac600",
       "target": "apps/desktop/frontend/src/features/cindy/bots/botStore.ts",
-      "sha256": "7438b5b45be20498fc769e41a6d1a3f9ba285e547b2362f8ce249725bf7e6dc3",
+      "sha256": "8935385e141eb6782e230385d56e9b0f376effec8ed07e6acc4a90ae4a6d7e82",
       "adaptation": "import-paths"
     },
     {
@@ -1822,16 +2185,35 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/chatError.ts",
-      "sourceSHA256": "e12af752d77ca466cc284b849e69ebb6945d0db9c8b7f5b3aec6e2c35e3e9c34",
+      "sourceSHA256": "dcc62a85437e974d11606159cdd849a571504ac3b27c3f6832f3a52a271caacc",
       "target": "apps/desktop/frontend/src/features/cindy/bots/chatError.ts",
-      "sha256": "e12af752d77ca466cc284b849e69ebb6945d0db9c8b7f5b3aec6e2c35e3e9c34"
+      "sha256": "dcc62a85437e974d11606159cdd849a571504ac3b27c3f6832f3a52a271caacc"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/groupMaskPresentation.tsx",
+      "sourceSHA256": "275d77ad9efe592979e7dee15b026ba07a395521b2a2c08ca1432447f50aa379",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/groupMaskPresentation.tsx",
+      "sha256": "275d77ad9efe592979e7dee15b026ba07a395521b2a2c08ca1432447f50aa379"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/localBotSettingsTarget.ts",
-      "sourceSHA256": "fd1d1943c11871bf0bf5952b8909586c4e60296a1c2d65584a988d3ea4064ad4",
+      "sourceSHA256": "0d22484e0f6d2356bdba11482cc278b90f91c705648cb7068cbdbd72704c178e",
       "target": "apps/desktop/frontend/src/features/cindy/bots/localBotSettingsTarget.ts",
-      "sha256": "9f8587f0645ed7a872ab6fda1dfb8ab457942081a88932381dc3be12da00631d",
+      "sha256": "6296e1d5cb27a5577f7e4f1f3ca3aeb84b5c6c1b138cf60b4a047967fdf9cef5",
       "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/teammateRosterStatus.ts",
+      "sourceSHA256": "59d60f8f80a9a4ce8bd42ed5a5a3318bb54ad1b4ef9fb284a9a0e343e3cf9a20",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/teammateRosterStatus.ts",
+      "sha256": "d51e8314b73cf9c05d5aebbc5e1e85d32b0291bfd0948a1f54db37e594620cec",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/teammateSelection.ts",
+      "sourceSHA256": "6322297fdb56b78e2e5833d9511fb215cb9139361574ada69eeb2c5b602b0b17",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/teammateSelection.ts",
+      "sha256": "6322297fdb56b78e2e5833d9511fb215cb9139361574ada69eeb2c5b602b0b17"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/teammatesSectionPrefs.ts",
@@ -1842,16 +2224,23 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/useBotGroupMentionPicker.tsx",
-      "sourceSHA256": "0ba9df37c9d404d80318ede7f9c7e4ff8e03f92fbca25d5e598ff7071b9350a7",
+      "sourceSHA256": "f05b5ac79323ded7635e261cb32a1b72ddc88572eba50a505a5b63e164c3afc2",
       "target": "apps/desktop/frontend/src/features/cindy/bots/useBotGroupMentionPicker.tsx",
-      "sha256": "6fcecf55b255734081e632663833a485589d5cf1b2813e69fd493100920559de",
+      "sha256": "f314f4ecaf0b1902144318da331a6c9eab8d38c59f512ac013d89bbf190d21c5",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/useBotGroupWorkTargets.ts",
+      "sourceSHA256": "ed073c68b575b4e4da6a8e9cf6066d57e2a564b9363fa1e6821a807619198f95",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/useBotGroupWorkTargets.ts",
+      "sha256": "cbdd0cd2925cafcbcb962c8bf6ef8d8273035270007a71df8b416270d2a9223f",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/useBotIslandVisibleSession.ts",
-      "sourceSHA256": "8e1444e0803c2ca27204c5f028fc8013b426bf993856c11ca0e10a234d9eee38",
+      "sourceSHA256": "5d5828b9aa50d3de06618ecca208b151d93529808d847b119f98c0f6579c40aa",
       "target": "apps/desktop/frontend/src/features/cindy/bots/useBotIslandVisibleSession.ts",
-      "sha256": "2283f0dbe5528aeb94ea5545a36b21402b275dada2e00ff4af8a3d6b5f3d69ff",
+      "sha256": "7fdeb205ed0e87f9f6b62d6931b16b5fea20558626420e8f236f428964ac9163",
       "adaptation": "import-paths"
     },
     {
@@ -1869,9 +2258,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/useBotSettingsAutosave.ts",
-      "sourceSHA256": "781bf697c45ebed0f3ea123e37258e965f73c4fd4007fa4380c05e8c5739c42d",
+      "sourceSHA256": "f8a21118918bf8fb8785d6f8d8e7e495175adb2ee22b2c028389c86273f8754a",
       "target": "apps/desktop/frontend/src/features/cindy/bots/useBotSettingsAutosave.ts",
-      "sha256": "94436303410e7243c40be3a519ecf9ba6c963ee19e01a567452a8275e449fdd1",
+      "sha256": "01b598ef6128f2711f7f6a8cbab5e3c6636ca0b21958cf1431c600d71dcad828",
       "adaptation": "import-paths; React StrictMode setup/cleanup rehearsal must not permanently disable the current OneBot editor"
     },
     {
@@ -1882,9 +2271,16 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/useBotUnreadSync.ts",
-      "sourceSHA256": "5b81362e1532978f78eabdfdcac587e859cee4e122001786df4f49df7b86ef60",
+      "sourceSHA256": "2aa074bac2cb296cb52d588b2a0d51311364a8ab96a191ed1f2cebd69810cd24",
       "target": "apps/desktop/frontend/src/features/cindy/bots/useBotUnreadSync.ts",
-      "sha256": "0c7cd79628b6cf7f338cb8aca45ead2407d9519adf947cef499fe5d50034ce87",
+      "sha256": "699e5313a96148d514311e55c8391109da2d2093a80907d1d646730176768a73",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/useCompanionIslandChats.ts",
+      "sourceSHA256": "1779c0335ccba376d1210f3472c536718c03355b42a4b405599a0ac29aa82631",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/useCompanionIslandChats.ts",
+      "sha256": "7de7a9d139bd21ba5a21356fa80bd45b9e5345ca8a3a74e45110c5a1fbfcdc76",
       "adaptation": "import-paths"
     },
     {
@@ -1915,23 +2311,30 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/voice/CompanionVoicePanel.tsx",
-      "sourceSHA256": "096b13976ba8c7ca12b226b76b19644ceed308a99d1cc3762874db0351913b25",
+      "sourceSHA256": "85ade5713705cdc0f36717c2a00269c3af1d6cb39821a6c0f53f4eb7d85abb3f",
       "target": "apps/desktop/frontend/src/features/cindy/bots/voice/CompanionVoicePanel.tsx",
-      "sha256": "930c18a02c73324ed66f92592e1c6fffc6a9c0287f65d2ea7dd48eeb9d554906",
+      "sha256": "893d5cbaec46701afca7ad0c02a9794ea3c0455bc915626a3dd1302c9780284c",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/voice/CompanionVoiceSettings.tsx",
-      "sourceSHA256": "23e3aaefe14db293b3960e74c365ab6d7a6295a14eb6d9b9825496365012a308",
+      "sourceSHA256": "5d04d41f8efceea35babbb29ee9fb68c80cf82f2b48d9b43c27da2945f62d7f0",
       "target": "apps/desktop/frontend/src/features/cindy/bots/voice/CompanionVoiceSettings.tsx",
-      "sha256": "5a67b3f4e16776bd89edd782db37348722d2d8a288515143521b886bc4350b88",
+      "sha256": "30aefe0362edba8ed8867e1551bc60321a5a4a97934f0ae79f5ff2b7e7d787fd",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/voice/CompanionVoiceToolbar.tsx",
-      "sourceSHA256": "83c82aabef2a9794c3ed2b0dc49be2d61397dfe45dbd863c40f2d0cdd0e1730b",
+      "sourceSHA256": "73d7a85f7539a1eaaebd2d0c38a47825b158e4ccd8fba1594aae3745629c89cd",
       "target": "apps/desktop/frontend/src/features/cindy/bots/voice/CompanionVoiceToolbar.tsx",
-      "sha256": "b21dc63228ccc5564e0fb03106183c81a67b5991012ca48cadef18a9d73b0219",
+      "sha256": "16387e98628466e246aa09eaee6cfee7feaa9f4ef6d434c7fd6e70bb4f690cc4",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/features/bots/voice/GlobalVoiceCall.tsx",
+      "sourceSHA256": "dbcc49246c8f17d8c82f27abb1a176d3abbea4530b7e90f93ebd69069f16b545",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/voice/GlobalVoiceCall.tsx",
+      "sha256": "8c206349c8076ee3f1eea58f64dd05f8b4c0525a133d4cd3edd586b4b7060264",
       "adaptation": "import-paths"
     },
     {
@@ -1984,9 +2387,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/voice/VoiceConversationController.ts",
-      "sourceSHA256": "c6ccf49c67b2338c7d10e305744c9bff9722c0486b574c921563acf70e4df3d0",
+      "sourceSHA256": "fe8b94e78e37a6e375cab3895dcee259f6adddb6808e3abc671b3484f8efd75f",
       "target": "apps/desktop/frontend/src/features/cindy/bots/voice/VoiceConversationController.ts",
-      "sha256": "8bfb1d545f5543f2880a9979d2ca2f2978881049f81509fc34f5367ea0a0641e",
+      "sha256": "28257f992ab2a0e09c5df57ee503878703a5fa9f1c85682d208938a7b6088955",
       "adaptation": "import-paths"
     },
     {
@@ -2031,6 +2434,13 @@
       "adaptation": "import-paths"
     },
     {
+      "source": "apps/desktop/src/renderer/features/bots/voice/voiceCallStore.ts",
+      "sourceSHA256": "e76e2ca38c5b9a2b753d085419bf797601320416cae689822d8113d1db3cede1",
+      "target": "apps/desktop/frontend/src/features/cindy/bots/voice/voiceCallStore.ts",
+      "sha256": "ec49788650b427831dedeea04ecc8d89a052a2e7fd5a8c2a191ec70d4f4458fc",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/renderer/features/bots/voice/voiceConfiguration.ts",
       "sourceSHA256": "a9f362f145d4faa38b851545036ee42373484dee712d74f7ebab5414e9813903",
       "target": "apps/desktop/frontend/src/features/cindy/bots/voice/voiceConfiguration.ts",
@@ -2039,9 +2449,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/voice/voiceConversation.css",
-      "sourceSHA256": "bdf46d0a9d374f0d3886deb1d9134d867b0eed431c02112e74478bc2a1434048",
+      "sourceSHA256": "abdc72f6c998ae523d3bb8c25f6eac61719e59912f586940de08251bd114b94b",
       "target": "apps/desktop/frontend/src/features/cindy/bots/voice/voiceConversation.css",
-      "sha256": "bdf46d0a9d374f0d3886deb1d9134d867b0eed431c02112e74478bc2a1434048"
+      "sha256": "abdc72f6c998ae523d3bb8c25f6eac61719e59912f586940de08251bd114b94b"
     },
     {
       "source": "apps/desktop/src/renderer/features/bots/voice/voiceExitIntent.ts",
@@ -2050,10 +2460,17 @@
       "sha256": "abd5819994003b8fcddb4540137402161cc868618647e854026360bd43e2d30a"
     },
     {
+      "source": "apps/desktop/src/shared/agentActionVerbKeys.ts",
+      "sourceSHA256": "c20c639f0c0fba0f3c65071b4a055e4c9ce1f6c07fa991808ab7fc4c89f2ceec",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/agentActionVerbKeys.ts",
+      "sha256": "e8138a27cb7129c3cc76ffb7d06c9e3066011be925d6def5a6b79a56975f5ba7",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/shared/agentIsland.ts",
-      "sourceSHA256": "e0b9aead92f0739d1d710f5fec5e07244b7a9608e1d3616decb2331c54645b44",
+      "sourceSHA256": "b8383a7d45db4a5edd0bbacc8430bf32c1e913395fd5571002a3f909430e4885",
       "target": "apps/desktop/frontend/src/features/cindy/shared/agentIsland.ts",
-      "sha256": "a6d232587afa6113b33536ceef7820f0b7bccb9e07b257d25cee22985732d128",
+      "sha256": "0e5d315c2b0cdec081465ada37d291b0cde00deebaeae9e4354ce40b6d27740c",
       "adaptation": "import-paths"
     },
     {
@@ -2064,9 +2481,9 @@
     },
     {
       "source": "apps/desktop/src/shared/botAutonomy.ts",
-      "sourceSHA256": "3b3f2692a0f84cc2c089277ec3c28f4ddf56c35da157cfb2c9fb175f40833b10",
+      "sourceSHA256": "ec9a2abccdfbeb4f9d1539f10d440e8a90f8cd40b2b3279d2bf5373b3a793265",
       "target": "apps/desktop/frontend/src/features/cindy/shared/botAutonomy.ts",
-      "sha256": "543f4cbe74cacf8a2805a548f5bcbb8b8674cedd374c8a1cc9dbbfaf8413d418",
+      "sha256": "a8fd4756db72215195e9a0b7a8e5b50eefb3087a2041599304d5daddb5286471",
       "adaptation": "import-paths"
     },
     {
@@ -2108,21 +2525,28 @@
     },
     {
       "source": "apps/desktop/src/shared/botDmThread.ts",
-      "sourceSHA256": "7f281fa948970c97d76c567666816afbb65da321b5cacab540451fe9c216ebc6",
+      "sourceSHA256": "cbd9372b3655a2a377330ecab2465972a60ea5c41e9cd68a623c20712bac5d5d",
       "target": "apps/desktop/frontend/src/features/cindy/shared/botDmThread.ts",
-      "sha256": "7f281fa948970c97d76c567666816afbb65da321b5cacab540451fe9c216ebc6"
+      "sha256": "898bf28b2d09a5798c900686d8a30c8d6be5a676a773d5a982160a8d89ffb782",
+      "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/shared/botFailureReason.ts",
-      "sourceSHA256": "4eda9416062d52608ee841aff8b4a46071a0f149225ac79191b28a1f063183b0",
+      "sourceSHA256": "3c4c24721a48eb3eda05db21c5307e476c7af9b447e5998af9a5e8dd533d8cb4",
       "target": "apps/desktop/frontend/src/features/cindy/shared/botFailureReason.ts",
-      "sha256": "4eda9416062d52608ee841aff8b4a46071a0f149225ac79191b28a1f063183b0"
+      "sha256": "3c4c24721a48eb3eda05db21c5307e476c7af9b447e5998af9a5e8dd533d8cb4"
     },
     {
       "source": "apps/desktop/src/shared/botGender.ts",
       "sourceSHA256": "4f297bd2a1d579a39e8a4a743934b54b7b1b908e53ece79792b77e220fe5ebbe",
       "target": "apps/desktop/frontend/src/features/cindy/shared/botGender.ts",
       "sha256": "4f297bd2a1d579a39e8a4a743934b54b7b1b908e53ece79792b77e220fe5ebbe"
+    },
+    {
+      "source": "apps/desktop/src/shared/botGroupOutboxStorage.ts",
+      "sourceSHA256": "4e24933c52ff63cccbeec3fbe9b0a91d6b19fdcdb3df4367120d385c72e9bfcb",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/botGroupOutboxStorage.ts",
+      "sha256": "4e24933c52ff63cccbeec3fbe9b0a91d6b19fdcdb3df4367120d385c72e9bfcb"
     },
     {
       "source": "apps/desktop/src/shared/botInvitation.ts",
@@ -2144,16 +2568,22 @@
     },
     {
       "source": "apps/desktop/src/shared/botModelChain.ts",
-      "sourceSHA256": "30d9e9e95b5c8e43536817bb177837a27d1dc5a6b0b65655aa6a2ba12cf64835",
+      "sourceSHA256": "f9e074ff6eaa2598554b1e96a6ec6b98a70923ebb996db6bbb371c3b7051141e",
       "target": "apps/desktop/frontend/src/features/cindy/shared/botModelChain.ts",
-      "sha256": "a0fedd498bef60b988866e9780ed2ad407eea91ccb8240f346ccde795c929487",
+      "sha256": "be0823b384a3104b981e457f0290ecc499fb952f495714a6baed086666b3d539",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/shared/botSkill.ts",
-      "sourceSHA256": "ca8542c0e5ef00339c5d1bda049b9013169da854554274eb48f13d620e557a2b",
+      "sourceSHA256": "b6709015e788974817cfb2635e21721a89da4ead998d1bb9035b0372dae8732f",
       "target": "apps/desktop/frontend/src/features/cindy/shared/botSkill.ts",
-      "sha256": "ca8542c0e5ef00339c5d1bda049b9013169da854554274eb48f13d620e557a2b"
+      "sha256": "b6709015e788974817cfb2635e21721a89da4ead998d1bb9035b0372dae8732f"
+    },
+    {
+      "source": "apps/desktop/src/shared/botSystemSkills.ts",
+      "sourceSHA256": "19ef0daed67c9939cdb05295e5024c3f2cab34fbf81e7685c52b995dddd8e524",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/botSystemSkills.ts",
+      "sha256": "19ef0daed67c9939cdb05295e5024c3f2cab34fbf81e7685c52b995dddd8e524"
     },
     {
       "source": "apps/desktop/src/shared/botWelcomeContext.ts",
@@ -2176,9 +2606,9 @@
     },
     {
       "source": "apps/desktop/src/shared/conversationSearch.ts",
-      "sourceSHA256": "cd875d4216e2d17c3246fc9c1d81a89964755d0477a56be4d3bd886fd4ca1954",
+      "sourceSHA256": "9c74441bfbce2248a0033d6166bbd28cbd907a9bf8225d9b4c3e8f942e12b387",
       "target": "apps/desktop/frontend/src/features/cindy/shared/conversationSearch.ts",
-      "sha256": "45b06b29aa65d2a4b3e321d716de2516fdff89128577552a5c9aa5dc32a037c7",
+      "sha256": "eaa562c8af9f8a9d1018b5a17aa723a735d22cdd0687c10742e46b7e1c8eff4b",
       "adaptation": "import-paths"
     },
     {
@@ -2189,9 +2619,9 @@
     },
     {
       "source": "apps/desktop/src/shared/featureRetirements.ts",
-      "sourceSHA256": "0ea26b4394ae11ce1d302882ee622082f0b17d9cf082fb04cedd1569a7d019f5",
+      "sourceSHA256": "85c5be46e67b59fb8f93502ba5722a0a85399f6718ca220921c4f50140f80762",
       "target": "apps/desktop/frontend/src/features/cindy/shared/featureRetirements.ts",
-      "sha256": "0ea26b4394ae11ce1d302882ee622082f0b17d9cf082fb04cedd1569a7d019f5"
+      "sha256": "85c5be46e67b59fb8f93502ba5722a0a85399f6718ca220921c4f50140f80762"
     },
     {
       "source": "apps/desktop/src/shared/htmlImage.ts",
@@ -2201,9 +2631,9 @@
     },
     {
       "source": "apps/desktop/src/shared/imDefaultSettings.ts",
-      "sourceSHA256": "651770980b28d3af31f188a689082243f4fc1be679f07509ee92561d89ae4dda",
+      "sourceSHA256": "cb0e8c002b7b88383e2bb1c0de96cefcae02e1f037dcdacc77a7e613a0749b4d",
       "target": "apps/desktop/frontend/src/features/cindy/shared/imDefaultSettings.ts",
-      "sha256": "651770980b28d3af31f188a689082243f4fc1be679f07509ee92561d89ae4dda"
+      "sha256": "cb0e8c002b7b88383e2bb1c0de96cefcae02e1f037dcdacc77a7e613a0749b4d"
     },
     {
       "source": "apps/desktop/src/shared/ipcError.ts",
@@ -2214,9 +2644,9 @@
     },
     {
       "source": "apps/desktop/src/shared/markdownPreviewText.ts",
-      "sourceSHA256": "1cbf56fc1edceb11e38a1eb8b4fbb7936dc7e0dbd9bdefb78d9573e1a276a4d3",
+      "sourceSHA256": "e8f3db2db8c680e777d24584cd1068f8545e4be9212676c439119f54c9397759",
       "target": "apps/desktop/frontend/src/features/cindy/shared/markdownPreviewText.ts",
-      "sha256": "910f309e88a475fa8596da07ef36ebd75c780d6bb470eabc69cf1f494c8bcb52",
+      "sha256": "14d43f0b0437ac67482e904406c67d12ab83cfbd2c9c6f017bf1a5852b42ed7b",
       "adaptation": "import-paths"
     },
     {
@@ -2246,9 +2676,9 @@
     },
     {
       "source": "apps/desktop/src/shared/voiceConversation.ts",
-      "sourceSHA256": "1a72d9bac70a63c78dd6f67aa5e5a68f37509923997a08c5daac56356c477fe3",
+      "sourceSHA256": "3523f0d3b80091daebb6f394d643faacc91fb5107f40febcb4142411cecdfd8b",
       "target": "apps/desktop/frontend/src/features/cindy/shared/voiceConversation.ts",
-      "sha256": "be759d5eab62491ebb036aba0156718d98225c17b7209864b27fbb5e5cb2cf00",
+      "sha256": "12fbbd97a8d510b03a2e719809e51332e5bec4f33917e6ea94280d9e46344ded",
       "adaptation": "import-paths"
     },
     {
@@ -2266,6 +2696,13 @@
       "adaptation": "import-paths"
     },
     {
+      "source": "packages/maker-shared/src/attachmentPreview.ts",
+      "sourceSHA256": "300134f02af3c91f4fbae13c5d7442b10492cd96996ef4ddab029391529824b2",
+      "target": "third_party/cindy/maker-shared/attachmentPreview.ts",
+      "sha256": "75d18ec2d113be754ef0d72bf0c203213b9b480cdbfdbe49e643d32da9da7094",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "packages/maker-shared/src/botDeliverable.ts",
       "sourceSHA256": "18291fb40c5e1db5375c974ee29e3fc305e9f9e946f0fbaa732b876f85ba7e62",
       "target": "third_party/cindy/maker-shared/botDeliverable.ts",
@@ -2279,16 +2716,16 @@
     },
     {
       "source": "packages/maker-shared/src/botGroupMentions.ts",
-      "sourceSHA256": "10e0e4fe216961d8da48e97ba5a4ffea65db5e0501e65d0c6e6cecd3faa55a9e",
+      "sourceSHA256": "6cfa86b79b241752ae7ff39b8881c4f9bc8633a552e632e22a9019dc855df259",
       "target": "third_party/cindy/maker-shared/botGroupMentions.ts",
-      "sha256": "b26bf03159749524324a6b4147aa59e7bd54449b423203d3f23f75b2a8ea1e61",
+      "sha256": "d1772a1607210e0b783344eb80e5aa25e46e061a0f20a73a1ed1f9bde5c1f579",
       "adaptation": "import-paths"
     },
     {
       "source": "packages/maker-shared/src/botGroupPresentation.ts",
-      "sourceSHA256": "753205f58e67dae5908d79e231e8580d4c4301e600bdd8ab296e5e2dac5d1883",
+      "sourceSHA256": "bf5cfc1fc989d6b23aca33e08c69f793a9ed307f3c4e1dba9fcfd6e61c6b6bf0",
       "target": "third_party/cindy/maker-shared/botGroupPresentation.ts",
-      "sha256": "b80dcf386f47ef788301886dedd1cd65020c3ec9c278234e2e8e28302d64d772",
+      "sha256": "2333d9064249ff7c3448e9bbbadc2c2b160b8e140eeaa778b09db9ebdcb36fbe",
       "adaptation": "import-paths"
     },
     {
@@ -2310,16 +2747,63 @@
       "sha256": "76a2d0e2cfc1bcd3ce87131901d706923bcea806c206f31db5fe755e0bc19d31"
     },
     {
+      "source": "packages/maker-shared/src/expandedBlockMemory.ts",
+      "sourceSHA256": "3d0d28242c9301c4a3e7c7088881444040cfb35cebc5ea098e3cf6b150d9da05",
+      "target": "third_party/cindy/maker-shared/expandedBlockMemory.ts",
+      "sha256": "3d0d28242c9301c4a3e7c7088881444040cfb35cebc5ea098e3cf6b150d9da05"
+    },
+    {
       "source": "packages/maker-shared/src/ghostCardForm.ts",
-      "sourceSHA256": "3b05ee1e43e316943c6dc2e13b55cd33c2e8df2b4dabe2daa1329056bd1aff3d",
+      "sourceSHA256": "2634e5ad6f993b1982ed951f1ca67688a7db17dceddc885f8be23ef80369a3b3",
       "target": "third_party/cindy/maker-shared/ghostCardForm.ts",
-      "sha256": "3b05ee1e43e316943c6dc2e13b55cd33c2e8df2b4dabe2daa1329056bd1aff3d"
+      "sha256": "2634e5ad6f993b1982ed951f1ca67688a7db17dceddc885f8be23ef80369a3b3"
+    },
+    {
+      "source": "packages/maker-shared/src/historyAfter.ts",
+      "sourceSHA256": "9661e81c7f1201e6f3532ddae315fbccd31ecf4445e004aba11db182dfd2633d",
+      "target": "third_party/cindy/maker-shared/historyAfter.ts",
+      "sha256": "9661e81c7f1201e6f3532ddae315fbccd31ecf4445e004aba11db182dfd2633d"
     },
     {
       "source": "packages/maker-shared/src/historyGap.ts",
       "sourceSHA256": "cd554b112d5aa2e2514cb58309da2376e2d5c397852afc1bc2977d6e089e57ea",
       "target": "third_party/cindy/maker-shared/historyGap.ts",
       "sha256": "cd554b112d5aa2e2514cb58309da2376e2d5c397852afc1bc2977d6e089e57ea"
+    },
+    {
+      "source": "packages/maker-shared/src/historyViewController.ts",
+      "sourceSHA256": "af17cd1a3b95b3eac2a5cffd2315f9433d9faafd9f68d11492e95e7a90e5330b",
+      "target": "third_party/cindy/maker-shared/historyViewController.ts",
+      "sha256": "e1a7ad13929676dc42be5e1c362fcfb5413c11d103f37935563f555bcd67b78b",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/maker-shared/src/historyViewHandoff.ts",
+      "sourceSHA256": "707481feee49417ef2b34496577a67b5009b4244ec3e3691f746e4b26ad397f6",
+      "target": "third_party/cindy/maker-shared/historyViewHandoff.ts",
+      "sha256": "0992116effb1d412e2d621e98096872265d7bbf031cf9e7bbe12ee21a9fa3915",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/maker-shared/src/historyViewPrefetch.ts",
+      "sourceSHA256": "1a1d793e300e3ee39f8b52ea6851f664606952c699cb40505ba523c6527dfa1a",
+      "target": "third_party/cindy/maker-shared/historyViewPrefetch.ts",
+      "sha256": "2d40d43a0eb1e2b7a1508108f0d00ffb7bde3f1d097b06990c811dd46eee8ce7",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/maker-shared/src/historyViewProjection.ts",
+      "sourceSHA256": "af8cb6a713a1da60b86f83c99e883db87ec2b691cd3617583251be9ebd0a3889",
+      "target": "third_party/cindy/maker-shared/historyViewProjection.ts",
+      "sha256": "b98aca2c9fa5d892acca012a79849c9a98cabbd9ab0fc30986761de2e8f1eaff",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/maker-shared/src/historyViewRender.ts",
+      "sourceSHA256": "568ed833938152bad9dc122d598840ccbb62243ad69ac2f816e17b40c6220bcb",
+      "target": "third_party/cindy/maker-shared/historyViewRender.ts",
+      "sha256": "db08587ffff4e3ac7df4d99fbe660c0b81d5956aef84275efc39ccbb49973863",
+      "adaptation": "import-paths"
     },
     {
       "source": "packages/maker-shared/src/imageAnnotation.ts",
@@ -2334,16 +2818,42 @@
       "sha256": "ae7d4f46b66a0560a66414b832515f4a772bc50cfccb1682a744d6a4e1beb45b"
     },
     {
+      "source": "packages/maker-shared/src/mermaidAutofix.ts",
+      "sourceSHA256": "13efca4d4f5179b4d8c427f292d60a92689dd2acbe67089174ed47526b07ffd2",
+      "target": "third_party/cindy/maker-shared/mermaidAutofix.ts",
+      "sha256": "13efca4d4f5179b4d8c427f292d60a92689dd2acbe67089174ed47526b07ffd2"
+    },
+    {
+      "source": "packages/maker-shared/src/messageWindow.ts",
+      "sourceSHA256": "18f81ad46a964a5b0c49155feb6fa862951f208e5942721460321ea95b0d0f08",
+      "target": "third_party/cindy/maker-shared/messageWindow.ts",
+      "sha256": "c80f231444380eafdd0f80be0b5bb9c14b88fc9a5771e15c025da5d0a68f4ca8",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "packages/maker-shared/src/modelRoute.ts",
       "sourceSHA256": "c2f006a6e113bc8f58abe344bdea028f4e0a295a47761007699c2638148b899b",
       "target": "third_party/cindy/maker-shared/modelRoute.ts",
       "sha256": "c2f006a6e113bc8f58abe344bdea028f4e0a295a47761007699c2638148b899b"
     },
     {
+      "source": "packages/maker-shared/src/payloadSummary.ts",
+      "sourceSHA256": "8d1ed017d98a6029219f0ac7c01d2f36ded968268243c800c54a4f38b9e60e41",
+      "target": "third_party/cindy/maker-shared/payloadSummary.ts",
+      "sha256": "fd59a94812a04cf0a28ee2045f1d8849a47523e4340e6689a7191589c60e58e7",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/maker-shared/src/remoteTextStream.ts",
+      "sourceSHA256": "622b4466cc6ac361eb95ad8793dd67d5bb6dc8599163f153e48de25f396c8a0b",
+      "target": "third_party/cindy/maker-shared/remoteTextStream.ts",
+      "sha256": "622b4466cc6ac361eb95ad8793dd67d5bb6dc8599163f153e48de25f396c8a0b"
+    },
+    {
       "source": "packages/maker-shared/src/richAnswer.ts",
-      "sourceSHA256": "488d0ba85a7ac148add3b9ada5f9c1e2632672bdc22b1c1db32a4e5f22592e70",
+      "sourceSHA256": "af1083faffc2ffba7cf03994996b1f5d9a6be802eb5c7772c5d7461cc65e40ef",
       "target": "third_party/cindy/maker-shared/richAnswer.ts",
-      "sha256": "488d0ba85a7ac148add3b9ada5f9c1e2632672bdc22b1c1db32a4e5f22592e70"
+      "sha256": "af1083faffc2ffba7cf03994996b1f5d9a6be802eb5c7772c5d7461cc65e40ef"
     },
     {
       "source": "packages/maker-shared/src/richAnswerVisual.ts",
@@ -2353,21 +2863,33 @@
     },
     {
       "source": "packages/maker-shared/src/sessionActivity.ts",
-      "sourceSHA256": "747a97da6fadaf56973acd6017bd10cc9acbe71f41d0d7c728b9a1aa2f07b9e8",
+      "sourceSHA256": "cb05d2c1b1d66f540619ec0bac9d52a8eeec3697d524bcf84373fbeb7f76cde4",
       "target": "third_party/cindy/maker-shared/sessionActivity.ts",
-      "sha256": "747a97da6fadaf56973acd6017bd10cc9acbe71f41d0d7c728b9a1aa2f07b9e8"
+      "sha256": "cb05d2c1b1d66f540619ec0bac9d52a8eeec3697d524bcf84373fbeb7f76cde4"
     },
     {
       "source": "packages/maker-shared/src/sessionPrRefs.ts",
-      "sourceSHA256": "4e1b0ff933b53c69aaafbf74fbe7ff0ff89be972b684cd6218baceca1ecf4886",
+      "sourceSHA256": "3854b33f2e60d7eb39e28bc5a69b5389f053363240e551112dc47ef774b93585",
       "target": "third_party/cindy/maker-shared/sessionPrRefs.ts",
-      "sha256": "4e1b0ff933b53c69aaafbf74fbe7ff0ff89be972b684cd6218baceca1ecf4886"
+      "sha256": "3854b33f2e60d7eb39e28bc5a69b5389f053363240e551112dc47ef774b93585"
     },
     {
       "source": "packages/maker-shared/src/sessionTitle.ts",
       "sourceSHA256": "91d25853dfbd7c02856c661f489320f8e35a88583e563e4746b124cc6a58d9d8",
       "target": "third_party/cindy/maker-shared/sessionTitle.ts",
       "sha256": "91d25853dfbd7c02856c661f489320f8e35a88583e563e4746b124cc6a58d9d8"
+    },
+    {
+      "source": "packages/maker-shared/src/teammateStatus.ts",
+      "sourceSHA256": "4a82630edcb8055085dc1417db0dd51ae2b122103450434db571a905566878a9",
+      "target": "third_party/cindy/maker-shared/teammateStatus.ts",
+      "sha256": "4a82630edcb8055085dc1417db0dd51ae2b122103450434db571a905566878a9"
+    },
+    {
+      "source": "packages/maker-shared/src/thinkingText.ts",
+      "sourceSHA256": "852a2ef96387448e0ba5f34a7644a9cd2057a5ff777b6951cdc5b06f0df259e4",
+      "target": "third_party/cindy/maker-shared/thinkingText.ts",
+      "sha256": "852a2ef96387448e0ba5f34a7644a9cd2057a5ff777b6951cdc5b06f0df259e4"
     },
     {
       "source": "packages/maker-shared/src/workingStatus.ts",
@@ -2390,9 +2912,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/ImageMissingPlaceholder.tsx",
-      "sourceSHA256": "e1263e213923e37bff62ddfb610ed7f6c2b57d091f2c59ae2111c9837bce349e",
+      "sourceSHA256": "12cb896d0696731443ff4b4fc1ea25c489795c06e63ee13271d0e434843880cb",
       "target": "apps/desktop/frontend/src/features/cindy/components/chat/ImageMissingPlaceholder.tsx",
-      "sha256": "021274d4501887176d0ad5a64597fc4a7dec8c16c7eaf3cf48eeeea63dad683e",
+      "sha256": "fc33186fd6e405bcde5781125e3dfb2a8fb5fa00185372d250f9911466fc8e49",
       "adaptation": "import-paths"
     },
     {
@@ -2403,9 +2925,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/NewMessageIndicator.tsx",
-      "sourceSHA256": "b876aff6066eac8c745d1b6fc791f305c245f5b9f262f72bc017eacef7ff781b",
+      "sourceSHA256": "6b322f83b08ae677128c2341e2808267ba6cd3410429c1c905aa7f31221a382f",
       "target": "apps/desktop/frontend/src/features/cindy/components/chat/NewMessageIndicator.tsx",
-      "sha256": "92f65a9104b73203ab75948cf074ef20eeaff598a2889661ebc2d7077f616ddf",
+      "sha256": "79264f5b392f245d39410c5a751c5444d99d65f8c327162888143b86232b59d8",
       "adaptation": "import-paths"
     },
     {
@@ -2419,6 +2941,19 @@
       "sourceSHA256": "669f71302e87fe6c2134e1b82ec2f6cf1f88a55e61f4a3768342fdc5af168c68",
       "target": "apps/desktop/frontend/src/features/cindy/components/chat/lightboxGestures.ts",
       "sha256": "669f71302e87fe6c2134e1b82ec2f6cf1f88a55e61f4a3768342fdc5af168c68"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/find-in-page/findInPageOwnership.ts",
+      "sourceSHA256": "bccb84b046ff563235be6afa864d9187c4b7265fd7d8e75772693fba0ef71d57",
+      "target": "apps/desktop/frontend/src/features/cindy/components/find-in-page/findInPageOwnership.ts",
+      "sha256": "bccb84b046ff563235be6afa864d9187c4b7265fd7d8e75772693fba0ef71d57"
+    },
+    {
+      "source": "apps/desktop/src/renderer/components/new-chat/ComposerCard.tsx",
+      "sourceSHA256": "6f0638bccc7c904987fd037d89e729e4886b6eb1f853f28ffc2408f49d4dadb6",
+      "target": "apps/desktop/frontend/src/features/cindy/components/new-chat/ComposerCard.tsx",
+      "sha256": "bcbc2842b4fbcf41c20000e11bc601f29d5fe19bf2d355a99d5fb7083a626f34",
+      "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/components/settings/AvatarCropEditor.tsx",
@@ -2500,6 +3035,19 @@
       "sha256": "b39b68437b96bac6b574800c1b1db9ee13684e56742a43f82a6662b34a2b5503"
     },
     {
+      "source": "apps/desktop/src/renderer/features/right-sidebar/plugins/background-tasks/chatTaskFocusIntent.ts",
+      "sourceSHA256": "b9a6cf9123be12970cc32e4894f87d00d3cea3f068104f620a41b4548e0aa9d1",
+      "target": "apps/desktop/frontend/src/features/cindy/features/right-sidebar/plugins/background-tasks/chatTaskFocusIntent.ts",
+      "sha256": "b9a6cf9123be12970cc32e4894f87d00d3cea3f068104f620a41b4548e0aa9d1"
+    },
+    {
+      "source": "apps/desktop/src/renderer/hooks/useExpandedBlockMemory.ts",
+      "sourceSHA256": "bae55fc9f6d0affe3922a0479917ca2f0bd260dc0e9a9ae1481a9c58d1900138",
+      "target": "apps/desktop/frontend/src/features/cindy/hooks/useExpandedBlockMemory.ts",
+      "sha256": "6cde07562dfce0d2a262f01cc79724a4dbd9654bf84ad93349a681f04c0a12de",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/renderer/hooks/useReducedMotion.ts",
       "sourceSHA256": "965220bcd957d7d114075c18e6683b7c3aa2f52f2828ae2914d801ff44018c1f",
       "target": "apps/desktop/frontend/src/features/cindy/hooks/useReducedMotion.ts",
@@ -2525,10 +3073,18 @@
       "adaptation": "import-paths"
     },
     {
+      "source": "apps/desktop/src/renderer/lib/agent-actions/workActivityProjection.ts",
+      "sourceSHA256": "87aaa99f933d50f8c0703cc634d7b52eff5db9e5d1e443f4d2569752f271c377",
+      "target": "apps/desktop/frontend/src/features/cindy/lib/agent-actions/workActivityProjection.ts",
+      "sha256": "3a6c88072196ab1e1663be7a5f550fc14f624b642b094997dcc86c84413afce8",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/renderer/lib/composerActionsBus.ts",
-      "sourceSHA256": "170e74768ca8d7f6850b83e2b9bbbb41559974b91addad89430722b3ec38e0ca",
+      "sourceSHA256": "344315ea1b264c2f1cbc67ebbb43b3c7d785ce814fec65de3bfacb47f998b3c6",
       "target": "apps/desktop/frontend/src/features/cindy/lib/composerActionsBus.ts",
-      "sha256": "170e74768ca8d7f6850b83e2b9bbbb41559974b91addad89430722b3ec38e0ca"
+      "sha256": "dd41f414441960a411740ddca88402af3876e4cabeef93ccf51e1e5292b69e3a",
+      "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/lib/fileTypes.ts",
@@ -2545,6 +3101,18 @@
       "adaptation": "import-paths"
     },
     {
+      "source": "apps/desktop/src/renderer/lib/lightboxLayer.ts",
+      "sourceSHA256": "3696bf15f5ffcf920a187e77b21afdb91b07ab80d2c99613eafb6141e63ddd66",
+      "target": "apps/desktop/frontend/src/features/cindy/lib/lightboxLayer.ts",
+      "sha256": "3696bf15f5ffcf920a187e77b21afdb91b07ab80d2c99613eafb6141e63ddd66"
+    },
+    {
+      "source": "apps/desktop/src/renderer/lib/mediaPlaybackBus.ts",
+      "sourceSHA256": "cedbb11c9a83b270c50f506ba77df73d085f1442821a2684ad8d329c2d5516b2",
+      "target": "apps/desktop/frontend/src/features/cindy/lib/mediaPlaybackBus.ts",
+      "sha256": "cedbb11c9a83b270c50f506ba77df73d085f1442821a2684ad8d329c2d5516b2"
+    },
+    {
       "source": "apps/desktop/src/renderer/lib/sidebarOwnerStorage.ts",
       "sourceSHA256": "dee4152abb5f0c74bd875d79fbb50623ca5c8a8881fee271616c55d77b6365f1",
       "target": "apps/desktop/frontend/src/features/cindy/lib/sidebarOwnerStorage.ts",
@@ -2559,6 +3127,20 @@
       "adaptation": "import-paths"
     },
     {
+      "source": "apps/desktop/src/renderer/voice-input/composerLongPressGesture.ts",
+      "sourceSHA256": "92f31e73419191fe5779b8e895765a53a579d40f4577fd018b0b23eeb59c0732",
+      "target": "apps/desktop/frontend/src/features/cindy/voice-input/composerLongPressGesture.ts",
+      "sha256": "ba0c42169e2d2dfeeeacfc6b240718dd6e101d473968a81448661137357cb5d6",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/renderer/voice-input/useSpeakerFilterNotice.ts",
+      "sourceSHA256": "2811fc44f1ac19f5f75e9000dd4705a65a7af9a01fa99de0e2337b3a344b15dd",
+      "target": "apps/desktop/frontend/src/features/cindy/voice-input/useSpeakerFilterNotice.ts",
+      "sha256": "6b24f336b397b3b12a18bdebad24b9610e4ce9eb9fd06bcf98a98eda72b006e7",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "packages/file-browser-core/src/textFileExts.ts",
       "sourceSHA256": "9d847f7ba72915687cb7a7b4134c9e79940c787c5895b4b7207e496c6d407398",
       "target": "third_party/cindy/file-browser-core/textFileExts.ts",
@@ -2566,9 +3148,9 @@
     },
     {
       "source": "packages/device-link/src/remoteResources.ts",
-      "sourceSHA256": "e64f0a3764eef67dc10a6db544f20ee812118d03da854c24983fddffbe5a7c31",
+      "sourceSHA256": "46668f7f73b47b639ec139598dac25078aa122366480860f80ae9cf0b6b5df1a",
       "target": "apps/desktop/frontend/src/features/cindy/shared/deviceLinkRemoteResources.ts",
-      "sha256": "e64f0a3764eef67dc10a6db544f20ee812118d03da854c24983fddffbe5a7c31"
+      "sha256": "46668f7f73b47b639ec139598dac25078aa122366480860f80ae9cf0b6b5df1a"
     },
     {
       "source": "apps/desktop/resources/legacy-teammate-avatars/dash.png",
@@ -2623,16 +3205,16 @@
     },
     {
       "source": "apps/desktop/src/renderer/lib/rasterizeToImage.ts",
-      "sourceSHA256": "92b3fc9df3a87138098fc81ec7268a2f25eeaa842a000d7d92f230c89e001aff",
+      "sourceSHA256": "cd52585166707b8aed1f41b9ac007708e462a90f836a809e0c1cc61199fe6af8",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/lib/rasterizeToImage.ts",
-      "sha256": "ed0da22e08e91379d82f07026453d0aa4feac939606d4581388da42c0883f5d4",
+      "sha256": "e59ea5178bc859590cf1b7da903f8550793eed650a4bfbae81dfc118c46d0784",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/lib/shareConversationImage.ts",
-      "sourceSHA256": "1ff720ac2982402b9465071bba9c5725317f33c3af1da72f193b770c2d013b9d",
+      "sourceSHA256": "55dc8fe833bd4d9a0d17f5556df40c22563254e9be304bc0764051cd0bc0973d",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/lib/shareConversationImage.ts",
-      "sha256": "eed86899cc357f56dade8faf8120d4ab023eb7a4c4aed1c3b3a57a5e7e6bc7c1",
+      "sha256": "b927f8c6a64607226ce855217948fa493b273f1a2690575755c38ea33fb46e82",
       "adaptation": "import-paths"
     },
     {
@@ -2663,9 +3245,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/hooks/useAttachments.ts",
-      "sourceSHA256": "d5e90b41b0f7d926ddb57c30efc42aae7afe6cc81149d66a726ab796e9f3f5ff",
+      "sourceSHA256": "2b96d6d5031377323158d7d24f4a2cafb4d27ab53d18f3b372e42ba53820b2ab",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/hooks/useAttachments.ts",
-      "sha256": "41cb82d18f2da111694dead34380c4f727ffbce46b9b1ab57097dd5013699980",
+      "sha256": "07f1dead347c39c7ea7c5ad23cf1be17a66d39c6e539cd66b50746798add598d",
       "adaptation": "import-paths; WebView2 File has no Electron native path; the host stages its bytes before the unchanged attachment validation and preview flow."
     },
     {
@@ -2683,9 +3265,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/lib/composerDraftStore.ts",
-      "sourceSHA256": "8ecbfa0c61918122e4e4b214921aa4b9c95c5096b73371eda350e88a0eb3193d",
+      "sourceSHA256": "37cf00a6c02afc483840063cd8f72f25c94deb328361d915dfa1bcb38d5b3f53",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/lib/composerDraftStore.ts",
-      "sha256": "f16c4bec1e6ab7aea6f84bdb83c7a1d0a04cc2aa2fe7d617d6d83664bc62b3dd",
+      "sha256": "1cff736533d111219eda99bb393c711cf337e0b250d0129c3dfeea774e343b2f",
       "adaptation": "import-paths"
     },
     {
@@ -2768,16 +3350,16 @@
     },
     {
       "source": "apps/desktop/src/renderer/components/new-chat/ComposerAttachments.tsx",
-      "sourceSHA256": "a6f543f1f47a629a5802f72c82df1a68c1661fca4d89dd685d695484c93d54af",
+      "sourceSHA256": "ed94735f8ddf2eef771918b5073b6a46031cb4955daa075f678e51e8fd7d51fa",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/components/new-chat/ComposerAttachments.tsx",
-      "sha256": "cfd2259ea286a12880dbf2b9584e9d017c52ab0d4f39ff6f9827d898b9e38288",
+      "sha256": "fc5182cf975ff1b298cace8aa673c613f7297b92346f904c763c749393a823c2",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/ImageLightbox.tsx",
-      "sourceSHA256": "067a81d9f594db2710fb0f664d5ecf39c43b813ead72ef5f88f8b4e7b90a3230",
+      "sourceSHA256": "e69f6eb744850557b4587bfca24f0ebd086afab91ebbe1f26f971441ffeec3cf",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/components/chat/ImageLightbox.tsx",
-      "sha256": "145b889b8bd9e30ec179a69b2d48378e364ffb0d6afb9f1e0491245f56d62c7e",
+      "sha256": "72f81e587f3f518a38f98fefc852ca8bce3f83306dcdae121e1e5cd04c9f1ff6",
       "adaptation": "import-paths"
     },
     {
@@ -2814,9 +3396,10 @@
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/ImageGalleryContext.tsx",
-      "sourceSHA256": "3a6e3b16cfad6139abcedd650bfca4bdeff700d97512dca82ca20f2dd5c26a7b",
+      "sourceSHA256": "f1e666c9c59ea634c80e4cbfa6319c00a085fa13944f81deb359c2b521928420",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/components/chat/ImageGalleryContext.tsx",
-      "sha256": "3a6e3b16cfad6139abcedd650bfca4bdeff700d97512dca82ca20f2dd5c26a7b"
+      "sha256": "aaf7947093142da7d66656f77339491263e8bfde3e54d1abc1f460db5f5d2033",
+      "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/imageDisplaySize.ts",
@@ -2832,9 +3415,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/TextLightbox.tsx",
-      "sourceSHA256": "93dcc90b19aec181ead2b2810302d02de65ddc8c80e42288dd4a2a6694f87154",
+      "sourceSHA256": "b8b325744e6c086767805f7558cf240ca91bc609f9074477ab9b363ddd94a402",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/components/chat/TextLightbox.tsx",
-      "sha256": "d41a14a8aab29361fe210f34ec75553b83198bada4a589dc3db81d4f3ed37fac",
+      "sha256": "3c8643161260a5e9ab518a13952c032a1afa77876e150fa2402ce0d9c0da284c",
       "adaptation": "import-paths"
     },
     {
@@ -2888,10 +3471,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/lib/filePreview.ts",
-      "sourceSHA256": "a0f406a75a81fb1274bef6ad628f0cbb4649f5e127d230c247a1cd3de09aa246",
+      "sourceSHA256": "c53dc7e7f1b173bd8573c60b2a8e1966ae2e5ccc2f1c2399b381b7714eea2b59",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/lib/filePreview.ts",
-      "sha256": "34f96d6fc7e689569b492acafea2c41ec218b1fe4df0f1813b33b6d01c051a12",
-      "adaptation": "import-paths"
+      "sha256": "c53dc7e7f1b173bd8573c60b2a8e1966ae2e5ccc2f1c2399b381b7714eea2b59"
     },
     {
       "source": "apps/desktop/src/renderer/components/new-chat/SendButton.tsx",
@@ -2902,9 +3484,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/components/new-chat/AskUserQuestionPrompt.tsx",
-      "sourceSHA256": "54a3da3abac78c3728a056a8ee8e5aeff88537554adc1940b81e27edd6933dd9",
+      "sourceSHA256": "635ec9f079809bfa6895cc2a56240199227c270c2a45976a966e99a52696605b",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/components/new-chat/AskUserQuestionPrompt.tsx",
-      "sha256": "90d6401205582b961f30486c29047c3b837c5bc6db7d256c37430a168fecbf65",
+      "sha256": "2367bf2abc722d5e3d175225b6798b4a7c1ea01f436d1b606bc073496b9854fb",
       "adaptation": "import-paths"
     },
     {
@@ -2960,9 +3542,9 @@
     },
     {
       "source": "apps/desktop/src/shared/voiceInputData.ts",
-      "sourceSHA256": "5d003d7c1e2e639293bb53cb7bd4e0a2f6aedda7ac41793fe78865dcfd36b0cd",
+      "sourceSHA256": "26df7268ae6021d9b617eb63ab40c54988ad8c66934e28dd95c9e71717c01905",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/shared/voiceInputData.ts",
-      "sha256": "59d7479959f4e141a190ce1dc41063b659cc5cf6deb8f5a14972aad7df81f210",
+      "sha256": "44a0338ebfeef2db583ebf550861a3cd3d8c5baab3b24715edeaba7312375f60",
       "adaptation": "import-paths"
     },
     {
@@ -2980,9 +3562,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/components/new-chat/useAskUserDictation.ts",
-      "sourceSHA256": "bba0a82587c0ea4f2d981f016c5b1f47423bd6fc194b8ad8a0ae67ee6f63631a",
+      "sourceSHA256": "1a7cc0fef1e92bc424e1b316636a7bfbb6c3b13b391eef3ccef64e417074f2cc",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/components/new-chat/useAskUserDictation.ts",
-      "sha256": "d7dbb0ddbebdc77f614ea30558198f5e66582b5330ebcd2f0e0fb18e04191344",
+      "sha256": "668b14d6563de12d6ad3940cbda2972bf28989445e1c987cfcaa1fe21277d960",
       "adaptation": "import-paths"
     },
     {
@@ -3021,9 +3603,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/voice-input/WebMicAudioEngine.ts",
-      "sourceSHA256": "f47148ac409037eeb4f58b160ca923c53115c35a2eca0b51e397e3fdfb494467",
+      "sourceSHA256": "41fdfbcc97ac377133b6d24ce1bc795c62f914c030fd07b6c4707f8a0ba003da",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/voice-input/WebMicAudioEngine.ts",
-      "sha256": "1b318ab2628d247e6903eaab4f253a69a0c72666311189fc3390ac25c40d55d8",
+      "sha256": "28e3cbb1471429c262ce48270e1e5afde283b6da8e8e3a468290e52c0371c83e",
       "adaptation": "import-paths"
     },
     {
@@ -3116,7 +3698,7 @@
     },
     {
       "source": "apps/desktop/src/shared/ghostInstallConsent.ts",
-      "sourceSHA256": "d2ab651b0a837506a83a6b668d1f94a5715bb340d5f47a5ad97e0a27b9cd9b01",
+      "sourceSHA256": "04cee49bd2e3143c8433f65382d083f6b4ee469d785b47da34adfd5d1fc549b7",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/shared/ghostInstallConsent.ts",
       "sha256": "1601de01b44f55b3aafdd693ad2eea55762b913108ffb9311eaf478da5271e43",
       "adaptation": "import-paths; intact declarations: GHOST_INSTALL_CONSENT_TOOL_NAME"
@@ -3130,23 +3712,23 @@
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/ChatImageView.tsx",
-      "sourceSHA256": "d7516fe7f19c1403cb720f27846f9922becd6e7932ed67ae76afdf2659376189",
+      "sourceSHA256": "04c5e4e9df99b5cbfc4550acd75174d5f065483e137909f02623c3215a891779",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/components/chat/ChatImageView.tsx",
-      "sha256": "039348c03022c282e411cb4f1a0a677872ecc5acf069cedaa7e4476675c2c512",
+      "sha256": "75562b1ef79232770741a81db0777363cfdb4fabf5d3b46e3a39178c9aae8b32",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/ModelLightbox.tsx",
-      "sourceSHA256": "0694130e404de84659e237a53400e6e81c36fffe22dd992fc62cd67e5e3da889",
+      "sourceSHA256": "ca714d860c7647c3caec093a9d65228dc4af637d25c7bfeb27850723feb4bcfe",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/components/chat/ModelLightbox.tsx",
-      "sha256": "868e7caf0a3cb4fbde4b23633ee1470e99f4b2d9fc52931fe98a200342bcdb61",
+      "sha256": "cd2812fca723d9d1bab2dc3056406e32cdf1c70efc4c67ed9d45d3ae5a3a7abd",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/lib/localPathResolver.ts",
-      "sourceSHA256": "c99a3b5651c44cfed1408640e70cd841cf420b212d90cfc83daada34bb99e3ec",
+      "sourceSHA256": "96459e79b758dcad070dd17b02043ec3aefd261f8fb6b5706a097d5f4acd21b3",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/lib/localPathResolver.ts",
-      "sha256": "279d1c0fe10b6282c446d4346ab36dccffd0b7a456042797dc99f9bd3f893e31",
+      "sha256": "51593363dc6923accf0ee2a146c3b554a6fc3395d965926ff9eab5ffd43e6977",
       "adaptation": "import-paths"
     },
     {
@@ -3157,9 +3739,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/ChatLoadingImage.tsx",
-      "sourceSHA256": "ba487842d049e55f33e129e8453762737789baa816bb90ed132e93bc0bf34f87",
+      "sourceSHA256": "9d2b2b79e024dc5f1969842485818cf7a8d63721640dae68841872158354f7a4",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/components/chat/ChatLoadingImage.tsx",
-      "sha256": "6ada358e7c309092c6c83c989a00c57a0ccfd4b86ceae12e463019d8d6e354b5",
+      "sha256": "ef9483a84147e507e55a45a875dd6e50d8766c452df9e6b98bd70541911e8040",
       "adaptation": "import-paths"
     },
     {
@@ -3178,16 +3760,16 @@
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/useImageLoadFailure.ts",
-      "sourceSHA256": "58b6c64d7faeddbcd84ffd50e1e4d9e9553344f104579da76c156c3f9d4efc8b",
+      "sourceSHA256": "5767f9b9b0124e6a662555141adad2633324be0b38398fd76c52d7b721f2ffc3",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/components/chat/useImageLoadFailure.ts",
-      "sha256": "4ebc4d7a224ea9b0f7775b6a2aec8ccb45bf929af55d57b61814935712e655d6",
+      "sha256": "98d5142a573a0d26aa8a68937e40f071974ada02fcd3882b0ad707a9bc936d36",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/components/chat/UserAttachmentChip.tsx",
-      "sourceSHA256": "479137f356cb41984bca4f90c9f37e64958616c06d57468a7ef5313dec783476",
+      "sourceSHA256": "dea233e0563a9758526f3bf9e4cd786278acd143dcba353074fcc1fd5949504d",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/renderer/components/chat/UserAttachmentChip.tsx",
-      "sha256": "844fd5d7e50a729b0d6007d17223242f776460f8393004a519941bc1fce2ab5b",
+      "sha256": "b1d67ac2498ff23f5e542b45252c9ee9b325dbc90431a86c1ccd072949ab36ba",
       "adaptation": "import-paths"
     },
     {
@@ -3238,16 +3820,16 @@
     },
     {
       "source": "packages/maker-shared/src/messageRender.ts",
-      "sourceSHA256": "9a2d6fb4d2de3c64d61a39d3b6fa30c954faa9a4285db744c6f365df3bba6e7d",
+      "sourceSHA256": "0142fbb897f28d4bac458317acec17ea18884b6f413b72f5bf3ecfb6943d1538",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/packages/maker-shared/src/messageRender.ts",
-      "sha256": "e04e1352b1bcad7dd9331333ad90b7ed045326001ba8a357d445f345bd91785d",
+      "sha256": "11f780b3065431b04b045318f3154c6cb36f5fc2ecf4c5d1abf33f1da6fe9456",
       "adaptation": "import-paths"
     },
     {
       "source": "packages/maker-shared/src/workRunGrouping.ts",
-      "sourceSHA256": "e8f595c71d2c27e5b16da8d2fd69c95d36d0432e56e4be6f1dc5534a23ad5015",
+      "sourceSHA256": "6482a115fc0bdbdd5bcd77a210b65e119e379f33aabc13a731f8f58f80fd8f1f",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/packages/maker-shared/src/workRunGrouping.ts",
-      "sha256": "72db0ac1a351453f2d009dde820b25d49fef46488c2d11ba79b0b4333d6be320",
+      "sha256": "8f897ebaf4a0165def06002ed4437aa2aebc64034fe3143569edda3812fdf9cc",
       "adaptation": "import-paths"
     },
     {
@@ -3258,22 +3840,22 @@
     },
     {
       "source": "packages/maker-shared/src/historyView.ts",
-      "sourceSHA256": "3cb9a2a150ce5e0e2119a72fabff9c19cfc57e7fceeac37d900edd968f98448e",
+      "sourceSHA256": "4b22685ab2ba0073ab384e6c8956624f1860f4e3a5b8e4487ab694bd94eec0fa",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/packages/maker-shared/src/historyView.ts",
-      "sha256": "3cb9a2a150ce5e0e2119a72fabff9c19cfc57e7fceeac37d900edd968f98448e"
+      "sha256": "4b22685ab2ba0073ab384e6c8956624f1860f4e3a5b8e4487ab694bd94eec0fa"
     },
     {
       "source": "packages/maker-shared/src/historyWorkLines.ts",
-      "sourceSHA256": "00f213e44312555f9c83787b3114afbd7186f226f9271d78d5432a9f4eef5b6e",
+      "sourceSHA256": "7c5a665d463e32c973f8d37f2c76e7119e51997e535d1b5482675f163540f166",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/packages/maker-shared/src/historyWorkLines.ts",
-      "sha256": "1b5db87a6b6e682bc5365aec775311123186f440da0592816fd79ef080d46f28",
+      "sha256": "e073870766c0755cf99408679b9ef112c0f51906e3476cbc7e6febaec438dbd7",
       "adaptation": "import-paths"
     },
     {
       "source": "packages/maker-shared/src/messagePresentation.ts",
-      "sourceSHA256": "65d212bb49233c7ed80458ee7333015de85ca6be95045cc80434f975b03f926f",
+      "sourceSHA256": "6b2c9fa1b12b6a5cae8573e92d2ce106d931ba973469076aa8f8e1a84ce44308",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/packages/maker-shared/src/messagePresentation.ts",
-      "sha256": "4d726d20d2209159f8d8ffdfaafab1bbf36d47bd1b8e17b9f11d87c0c2658c8c",
+      "sha256": "af9d8b951731a9853c57fb2cd5cbc2d5cdf15623d7143d683b0b81d9276e8a7b",
       "adaptation": "import-paths"
     },
     {
@@ -3284,9 +3866,9 @@
     },
     {
       "source": "packages/maker-shared/src/filePreview.ts",
-      "sourceSHA256": "53898152e70400b549e8a5e7ec3f7b4961a8e0c153a00f7b6790c3b496732e25",
+      "sourceSHA256": "a59a3c3c74ea7863600506d38904285e6c9f2525ce5e2fd77306cb7c7d3b183e",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/packages/maker-shared/src/filePreview.ts",
-      "sha256": "53898152e70400b549e8a5e7ec3f7b4961a8e0c153a00f7b6790c3b496732e25"
+      "sha256": "a59a3c3c74ea7863600506d38904285e6c9f2525ce5e2fd77306cb7c7d3b183e"
     },
     {
       "source": "packages/maker-shared/src/pathText.ts",
@@ -3308,9 +3890,9 @@
     },
     {
       "source": "packages/maker-shared/src/workActivityProjection.ts",
-      "sourceSHA256": "6a8fd9d157223ab0e3eb673c9ff2cc14df8df0b07db7815d617acd4517710b28",
+      "sourceSHA256": "a5fa7495f0d7f9d62f4eda33742124cb1720ecb69f7ca6da1685ddc50141e8ca",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/packages/maker-shared/src/workActivityProjection.ts",
-      "sha256": "cc32fe2a3694933418d058943442fc6a8b9fe49846792c874f135df3aa365f9a",
+      "sha256": "97a2d33af9c043e7f5ed9b31ca7063674390b34cfde54bf05daf2f8658d3ff4a",
       "adaptation": "import-paths"
     },
     {
@@ -3327,15 +3909,15 @@
     },
     {
       "source": "packages/device-link/src/attachmentOssRef.ts",
-      "sourceSHA256": "85dedc8959dc941704c4ac177c263dc7bebae20d99192d445c23dcb15eeedc55",
+      "sourceSHA256": "352a6b21d379404d442abe907f13cbf1320458de432f135c9f6f1f8b83c1b86a",
       "target": "apps/desktop/frontend/src/features/cindy/group-shared/packages/device-link/src/attachmentOssRef.ts",
-      "sha256": "85dedc8959dc941704c4ac177c263dc7bebae20d99192d445c23dcb15eeedc55"
+      "sha256": "352a6b21d379404d442abe907f13cbf1320458de432f135c9f6f1f8b83c1b86a"
     },
     {
       "source": "packages/voice-input-core/src/types.ts",
-      "sourceSHA256": "ccd5e71edcfbb78cd8167dca987f1ac945793a711945232dd224f3638d034964",
+      "sourceSHA256": "a477fa238236eca82c064253f1f10417e6ceaed7e7ed88d4262047afe136523a",
       "target": "third_party/cindy/voice-core/types.ts",
-      "sha256": "ccd5e71edcfbb78cd8167dca987f1ac945793a711945232dd224f3638d034964"
+      "sha256": "a477fa238236eca82c064253f1f10417e6ceaed7e7ed88d4262047afe136523a"
     },
     {
       "source": "packages/voice-input-core/src/refinementContext.ts",
@@ -3345,9 +3927,9 @@
     },
     {
       "source": "packages/voice-input-core/src/SpeakerGate.ts",
-      "sourceSHA256": "2f3526c5edf5ba73edbebea06a10535c02fd4058b52a93e95a79e8f58b9e6813",
+      "sourceSHA256": "280b37443d70bcdf270da828f400db6cf131b27a0c5c643a5cbeec168bcf0ce9",
       "target": "third_party/cindy/voice-core/SpeakerGate.ts",
-      "sha256": "2f3526c5edf5ba73edbebea06a10535c02fd4058b52a93e95a79e8f58b9e6813"
+      "sha256": "280b37443d70bcdf270da828f400db6cf131b27a0c5c643a5cbeec168bcf0ce9"
     },
     {
       "source": "packages/voice-input-core/src/dictionaryLearningPolicy.ts",
@@ -3386,18 +3968,25 @@
       "sha256": "8d94c6665eb19738cd238022d952ed4b349d0d45236360ab567eeadab78e0545"
     },
     {
+      "source": "apps/desktop/src/main/voice-conversation/callCoordinator.ts",
+      "sourceSHA256": "375a3ae544ebd804cd38f0dbed1f2db5cb571312592b6407e47cb8533fe866d1",
+      "target": "apps/desktop/frontend/src/features/cindy/voice-main/callCoordinator.ts",
+      "sha256": "6dcf64cddc7623ee7b9f5d4053226f58fd821228fc4b7bfb6c5b4f5752ed5b3e",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json",
-      "sourceSHA256": "e016b4695208b0ddf0f579f192760224337b8c3a9b0c017b5b7c38a74366ac60",
+      "sourceSHA256": "09fd9b1f6d9eb2e270f3d41c3a8e66fd90e74a03a0b112531f933dae470e4e13",
       "target": "apps/desktop/frontend/src/features/cindy/locales/onebot.zh-CN.json",
-      "sha256": "c8eb689b0151ba67409e72100a25e4908e58164acb3983d1699b3fb6fe4d551e",
-      "adaptation": "locale subset; WinOne wording for settings.builtinTools.plugins.memory.name, settings.builtinTools.plugins.xdt_helper.name, bots.channels.add.source.existing, bots.groupChat.errors.hostNotReady, bots.groupChat.loadFailedDescription, bots.import.databaseDriver, bots.sessionLoadFailedDescription, settings.wechatBot.authorization.description, settings.wechatBot.authorization.rebindDescription, settings.wechatBot.authorization.rebindTitle, settings.wechatBot.authorization.steps.3, settings.wechatBot.bound.notes.connected, settings.wechatBot.companion.permissionNote, settings.wechatBot.errorNote, settings.wechatBot.intro, settings.wechatBot.unbind.description, settings.wechatBot.workingDir.managed, settings.wechatBot.workingDir.unavailable, chat.remoteFile.previewUnsupported, chat.remoteFile.folderUnsupported, chat.remoteFile.downloadUnsupported; {{appName}} substituted"
+      "sha256": "aad654fe0d245ce5ed38ced54a66c0d8b36a6497c5d7b885f41c7d0ee7f203ba",
+      "adaptation": "locale subset; WinOne wording for settings.builtinTools.plugins.memory.name, settings.builtinTools.plugins.xdt_helper.name, bots.channels.add.source.existing, bots.groupChat.errors.hostNotReady, bots.groupChat.loadFailedDescription, bots.import.databaseDriver, bots.sessionLoadFailedDescription, settings.wechatBot.authorization.description, settings.wechatBot.authorization.rebindDescription, settings.wechatBot.authorization.rebindTitle, settings.wechatBot.authorization.steps.3, settings.wechatBot.bound.notes.connected, settings.wechatBot.companion.permissionNote, settings.wechatBot.errorNote, settings.wechatBot.intro, settings.wechatBot.unbind.description, settings.wechatBot.workingDir.managed, settings.wechatBot.workingDir.unavailable, chat.remoteFile.previewUnsupported, chat.remoteFile.folderUnsupported, chat.remoteFile.downloadUnsupported, bots.remoteSettings.unsupported, bots.capabilities.core.hint, bots.capabilities.core.meta, bots.capabilities.core.items.self.title, bots.capabilities.core.items.self.body, bots.capabilities.system.pageMeta; {{appName}} substituted"
     },
     {
       "source": "apps/desktop/src/renderer/i18n/locales/en/common.json",
-      "sourceSHA256": "270852ddcf1980a2422a99e8d71cf1b683c18109dfb60685f1068a367d06ccf3",
+      "sourceSHA256": "bfc848af3fc107b643c9ad8dd6ad7e04060a90ea3c63e61268c08411d5f692e4",
       "target": "apps/desktop/frontend/src/features/cindy/locales/onebot.en.json",
-      "sha256": "f4010c06cf762ad67742b7ac854c5775868d93c305987ed342a8ac47d596ec58",
-      "adaptation": "locale subset; WinOne wording for settings.builtinTools.plugins.memory.name, settings.builtinTools.plugins.xdt_helper.name, bots.channels.add.source.existing, bots.groupChat.errors.hostNotReady, bots.groupChat.loadFailedDescription, bots.import.databaseDriver, bots.sessionLoadFailedDescription, settings.wechatBot.authorization.description, settings.wechatBot.authorization.rebindDescription, settings.wechatBot.authorization.rebindTitle, settings.wechatBot.authorization.steps.3, settings.wechatBot.bound.notes.connected, settings.wechatBot.companion.permissionNote, settings.wechatBot.errorNote, settings.wechatBot.intro, settings.wechatBot.unbind.description, settings.wechatBot.waiting.note, settings.wechatBot.workingDir.managed, settings.wechatBot.workingDir.unavailable, chat.remoteFile.previewUnsupported, chat.remoteFile.folderUnsupported, chat.remoteFile.downloadUnsupported; {{appName}} substituted"
+      "sha256": "2c3e0b744aa5bd88141324c80d5b715c75250e2b302411a1beaba01fea61e9fd",
+      "adaptation": "locale subset; WinOne wording for settings.builtinTools.plugins.memory.name, settings.builtinTools.plugins.xdt_helper.name, bots.channels.add.source.existing, bots.groupChat.errors.hostNotReady, bots.groupChat.loadFailedDescription, bots.import.databaseDriver, bots.sessionLoadFailedDescription, settings.wechatBot.authorization.description, settings.wechatBot.authorization.rebindDescription, settings.wechatBot.authorization.rebindTitle, settings.wechatBot.authorization.steps.3, settings.wechatBot.bound.notes.connected, settings.wechatBot.companion.permissionNote, settings.wechatBot.errorNote, settings.wechatBot.intro, settings.wechatBot.unbind.description, settings.wechatBot.waiting.note, settings.wechatBot.workingDir.managed, settings.wechatBot.workingDir.unavailable, chat.remoteFile.previewUnsupported, chat.remoteFile.folderUnsupported, chat.remoteFile.downloadUnsupported, bots.remoteSettings.unsupported, bots.capabilities.core.hint, bots.capabilities.core.meta, bots.capabilities.core.items.self.title, bots.capabilities.core.items.self.body, bots.capabilities.system.pageMeta; {{appName}} substituted"
     }
   ],
   "replacements": [
@@ -3414,6 +4003,34 @@
       "reason": "Carry the visible control's stable receipt into WinOne's native input deduplication boundary",
       "find": "options?: { literalText?: boolean; independent?: boolean }",
       "replace": "options?: { literalText?: boolean; independent?: boolean; requestId?: string }",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/renderer/components/chat/RichAnswer.tsx",
+      "reason": "WinOne user requires an explicit close control for every retained web status/warning; dismissal is presentation-only",
+      "find": "import { useTranslation } from 'react-i18next';",
+      "replace": "import { useTranslation } from 'react-i18next';\nimport { InlineNotice } from '../../../ui/notice';",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/renderer/components/chat/RichAnswer.tsx",
+      "reason": "Retain rich send failure and original submission receipt, but let the owner close its visible warning",
+      "find": "{status === 'failed' && <p className=\"rich-answer-caption\" role=\"alert\">{t('richAnswer.sendFailed')}</p>}",
+      "replace": "{status === 'failed' && <InlineNotice className=\"rich-answer-caption\" role=\"alert\">{t('richAnswer.sendFailed')}</InlineNotice>}",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/renderer/components/chat/RichAnswer.tsx",
+      "reason": "Close unavailable-calculation status without changing values or enabling calculations",
+      "find": "<p className=\"rich-answer-caption\" role=\"status\">\n          {complete ? t('richAnswer.calculationUnavailable') : '…'}\n        </p>",
+      "replace": "<InlineNotice className=\"rich-answer-caption\">\n          {complete ? t('richAnswer.calculationUnavailable') : '…'}\n        </InlineNotice>",
+      "count": 1
+    },
+    {
+      "file": "apps/desktop/src/renderer/components/chat/RichAnswer.tsx",
+      "reason": "Close incomplete-stream status without hiding or rewriting the original rich answer",
+      "find": "<p className=\"rich-answer-caption\" role=\"status\">\n          {t('richAnswer.incomplete')}\n        </p>",
+      "replace": "<InlineNotice className=\"rich-answer-caption\">\n          {t('richAnswer.incomplete')}\n        </InlineNotice>",
       "count": 1
     },
     {

@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
+	"winone/desktopmygo/chat/pluginhost"
+	"winone/desktopmygo/chat/workspace"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
@@ -34,6 +37,32 @@ type toolDialog struct {
 // below when the row names it otherwise. A click opens the call's input
 // and output, or, for a read, write or edit of one file, the dialog with
 // what the tool read or changed.
+// toolLabel is a tool's row text: its verb and what it acts on.
+func toolLabel(tool model.Tool) string {
+	d := model.DescribeTool(tool.Name, tool.Args)
+	verb := tool.Name
+	switch {
+	case d.Kind == "file":
+		verb = i18n.T("chat.toolVerb_" + d.Action)
+	case verb == "":
+		verb = i18n.T("chat.tool")
+	}
+	if param := d.DisplayParam(tool.Args); param != "" {
+		return verb + " " + param
+	}
+	return verb
+}
+
+// teammateWorkLabel names the latest tool of a teammate's work, running or not.
+func teammateWorkLabel(entries []model.Entry) string {
+	for i := len(entries) - 1; i >= 0; i-- {
+		if entries[i].Kind == "tool" {
+			return toolLabel(entries[i].Tool)
+		}
+	}
+	return ""
+}
+
 func (p *Chat) toolRow(c *ui.Context, e model.Entry) {
 	t := c.Theme()
 	tool := e.Tool
@@ -60,17 +89,11 @@ func (p *Chat) toolRow(c *ui.Context, e model.Entry) {
 	if tool.IsError {
 		state, stateIcon = i18n.T("chat.failed"), icons.TriangleAlert
 	}
-	label := verb
-	if param != "" {
-		label += " " + param
-	}
+	label := toolLabel(tool)
 	ui.Column(c.Key(key)).FillWidth().MinWidth(0).Children(func() {
 		head := ui.ButtonBase(c).FillWidth().Gap(6).Justify(ui.Start).AlignItems(ui.Center).Padding(3, 8).Radius(8).Label(label)
 		if !file {
 			head.Expanded(open)
-		}
-		if head.Hovered() {
-			head.Background(t.SurfaceHover)
 		}
 		head.Children(func() {
 			ui.Row(c).Size(16, 18).Shrink(0).Justify(ui.Center).AlignItems(ui.Center).Children(func() {
@@ -103,15 +126,35 @@ func (p *Chat) toolRow(c *ui.Context, e model.Entry) {
 				p.ui.expanded[key] = !open
 			}
 		}
+		if id := pluginCardID(tool); id != "" {
+			pluginhost.For(p.env).Card(c, id)
+		}
 		if command != "" && command != param && !open {
 			kit.Mono(c, command).FontSize(kit.CaptionSize(c)).TextColor(t.TextMuted).SingleLine().Ellipsis("…").MinWidth(0).
 				Padding(0, 8, 3, 30).Tooltip(command)
 		}
 		if open {
 			ui.Column(c).FillWidth().Margin(4, 0).Padding(8, 10).Radius(6).Border(1, kit.Colors(c).Hairline).Background(kit.Colors(c).Panel).
-				Children(func() { p.toolPayload(c, tool) })
+				Children(func() {
+					p.toolPayload(c, tool)
+					p.toolImageViews(c, toolImagePaths(tool))
+				})
 		}
 	})
+}
+
+var pluginCardPattern = regexp.MustCompile(`\\?"xdt_card_id\\?"\s*:\s*\\?"([^"\\]+)`)
+
+// pluginCardID is the card a plugin's tool call supplied, from the token Cindy's
+// switchboard puts in its result. The model never sees more than that id.
+func pluginCardID(tool model.Tool) string {
+	if tool.Name != "ghost_call" {
+		return ""
+	}
+	if match := pluginCardPattern.FindStringSubmatch(resultText(tool.Result)); match != nil {
+		return match[1]
+	}
+	return ""
 }
 
 // toolInput is the call's input as the details show it: a command alone
@@ -153,6 +196,45 @@ func (p *Chat) toolPayload(c *ui.Context, tool model.Tool) {
 			section(i18n.T("chat.toolOutput"), resultText(tool.Result), tool.IsError)
 		}
 	})
+}
+
+// toolImagePaths accepts only the real worker's persisted image metadata. A
+// data-only compatibility part never becomes a fabricated file or URL here.
+func toolImagePaths(tool model.Tool) []string {
+	var paths []string
+	seen := map[string]bool{}
+	for _, part := range tool.ResultParts {
+		if part.Type == "image" && part.Path != "" && !seen[part.Path] {
+			seen[part.Path] = true
+			paths = append(paths, part.Path)
+		}
+	}
+	return paths
+}
+
+// Tool results share the native document/image viewer, including zoom and
+// rotation. Its preview authority is still this conversation's Host fileRead
+// boundary; neither tool arguments nor display metadata grant filesystem access.
+func (p *Chat) toolImageViews(c *ui.Context, paths []string) {
+	for _, path := range paths {
+		if p.toolMedia == nil {
+			p.toolMedia = map[string]*workspace.DocumentPane{}
+		}
+		pane := p.toolMedia[path]
+		if pane == nil {
+			pane = workspace.NewDocumentPane(p.env, workspace.DocumentOptions{Prefix: p.method(""), SessionID: p.activeID, Path: path})
+			p.toolMedia[path] = pane
+		}
+		p.mediaShown["tool:"+path] = true
+		ui.Column(c.Key("tool-image:" + path)).FillWidth().MinWidth(0).Height(320).Children(func() { pane.View(c) })
+	}
+}
+
+func (p *Chat) closeToolMedia() {
+	for _, pane := range p.toolMedia {
+		pane.Close()
+	}
+	p.toolMedia = nil
 }
 
 // operationRow is an operation of a turn, as WorkProcess's Operation:
@@ -251,8 +333,10 @@ func (p *Chat) toolDialogView(c *ui.Context) {
 	name := strings.ToLower(tool.Name)
 	path := model.ResolveToolFilePath(d.FilePath, p.directory())
 	snapshot, hasSnapshot := model.ToolFileSnapshot(tool.Name, tool.Args, tool.Result)
-	image := name == "read" && imageFile(d.FilePath) && !tool.IsError
-	if image && dialog.imageOf != path {
+	images := toolImagePaths(tool)
+	legacyImage := len(images) == 0 && name == "read" && imageFile(d.FilePath) && !tool.IsError && !tool.Running && tool.Result != nil
+	image := len(images) > 0 || legacyImage
+	if legacyImage && dialog.imageOf != path {
 		dialog.imageOf = path
 		p.loadToolImage(dialog, path)
 	}
@@ -293,7 +377,9 @@ func (p *Chat) toolDialogView(c *ui.Context) {
 				}
 			})
 			switch {
-			case image:
+			case len(images) > 0:
+				p.toolImageViews(c, images)
+			case legacyImage:
 				if dialog.image != nil {
 					ui.Image(c, dialog.image).MaxWidthPercent(100).MaxHeight(480).Fit(ui.Contain).Label(d.FileName)
 				} else if dialog.err == "" {

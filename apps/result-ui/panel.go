@@ -51,39 +51,40 @@ type Actions struct {
 // View state is confined to MyGo's main thread. Async callers update it with
 // Window.Update; original OCR text is independent of every conversation reply.
 type Panel struct {
-	avatars                                 map[string]*providerAvatar
-	avatarClock                             uint64
-	QuickReasoning                          *bool
-	QuickActions                            []resultwindow.SelectionAction
-	FocusComposer                           bool
-	ContextReset, ShowComposerHint          bool
-	composerEdited                          bool
-	Mode, Language, Theme                   string
-	Source, Action                          string
-	ActionLabel                             string
-	Original, Result, Prompt, Error, Notice string
-	Target                                  string
-	Busy, Pinned                            bool
-	Recognizing                             bool
-	Messages                                []Message
-	Pending, ResultPending                  *Message
-	ResultDetails                           Message
-	Actions                                 Actions
-	Configuration                           ai.Configuration
-	ActionSelection                         ai.Selection
-	ResultSelection                         ai.Selection
-	Selection                               *ai.Selection
-	TranslationSelection                    *ai.Selection
-	TranslationModelChanged                 bool
-	TranslationPickerOpen                   bool
-	ModelPickerOpen                         bool
-	modelMenu, translationMenu              modelmenu.State
-	scroll                                  ui.ScrollState
-	composerHeight                          float32
-	diagrams                                map[string]*diagramEntry
-	diagramClock                            uint64
-	SpeechKey, SpeechErrorKey, SpeechError  string
-	SpeechLoading                           bool
+	avatars                                             map[string]*providerAvatar
+	avatarClock                                         uint64
+	QuickReasoning                                      *bool
+	QuickActions                                        []resultwindow.SelectionAction
+	FocusComposer                                       bool
+	ContextReset, ShowComposerHint                      bool
+	composerEdited                                      bool
+	Mode, Language, Theme                               string
+	Source, Action                                      string
+	ActionLabel                                         string
+	Original, Result, Prompt, Error, Notice             string
+	errorVisibility, noticeVisibility, speechVisibility feedbackVisibility
+	Target                                              string
+	Busy, Pinned                                        bool
+	Recognizing                                         bool
+	Messages                                            []Message
+	Pending, ResultPending                              *Message
+	ResultDetails                                       Message
+	Actions                                             Actions
+	Configuration                                       ai.Configuration
+	ActionSelection                                     ai.Selection
+	ResultSelection                                     ai.Selection
+	Selection                                           *ai.Selection
+	TranslationSelection                                *ai.Selection
+	TranslationModelChanged                             bool
+	TranslationPickerOpen                               bool
+	ModelPickerOpen                                     bool
+	modelMenu, translationMenu                          modelmenu.State
+	scroll                                              ui.ScrollState
+	composerHeight                                      float32
+	diagrams                                            map[string]*diagramEntry
+	diagramClock                                        uint64
+	SpeechKey, SpeechErrorKey, SpeechError              string
+	SpeechLoading                                       bool
 	// markdown holds the options every Markdown view of this panel shares.
 	markdown markdownViews
 	// selected is the text the focused selectable block or the input
@@ -224,6 +225,9 @@ func (p *Panel) View(c *ui.Context) {
 	t := p.palette(c)
 	c.SetTheme(t)
 	p.services = c.Services()
+	p.errorVisibility.observe(p.Error)
+	p.noticeVisibility.observe(p.Notice)
+	p.speechVisibility.observe(p.SpeechErrorKey + "\x00" + p.SpeechError)
 	p.selected = ""
 	_, height := c.Size()
 	// The framework splitter owns dragging, keyboard resizing and capture. Keep
@@ -303,8 +307,9 @@ func (p *Panel) header(c *ui.Context, t *ui.Theme) {
 			ui.Icon(c, svg("grip")).Size(16, 16).TextColor(t.TextMuted).DragWindow().Cursor(ui.CursorGrab).Role(ui.RoleNone)
 		})
 		ui.Row(c).Grow(1).Basis(0).MinWidth(0).AlignItems(ui.Center).Justify(ui.End).Gap(6).DragWindow().Children(func() {
-			if p.Notice != "" {
+			if p.Notice != "" && !p.noticeVisibility.dismissed {
 				ui.Text(c, p.Notice).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Tooltip(p.Notice).MinWidth(0).Shrink(1).DragWindow()
+				p.closeFeedback(c.Key("notice-close"), &p.noticeVisibility, p.T("关闭提示", "Dismiss notice"))
 			}
 			if iconButton(c, "close", p.T("关闭", "Close"), false).Clicked() && p.Actions.Close != nil {
 				p.Actions.Close()

@@ -14,9 +14,9 @@ function insertBotSession(db: Database.Database, s: Record<string, unknown>): vo
      sdk_session_id, total_token_usage, total_cost_usd, context_tokens, context_window,
      fast_mode, plan_mode_enabled, cleared_at, pinned_at, user_send_at, agent_kind,
      orca_role, parent_session_id, forked_at_message_id, worktree_path, extra_dirs,
-     remote_host_id, provider_id, source, created_at, updated_at, agent_device_id)
+     remote_host_id, provider_id, source, created_at, updated_at, agent_device_id, project_dir)
     VALUES (?, ?, ?, ?, ?, ?, ?, 'active', NULL, 0, 0, 0, 0, ?, 0, NULL, NULL, NULL,
-     ?, NULL, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?)`)
+     ?, NULL, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(expectString(s.id, 'session.id'), expectString(s.title, 'session.title'),
       nullableString(s.workingDir), expectString(s.workspaceKind, 'session.workspaceKind'),
       expectString(s.model, 'session.model'), expectString(s.effort, 'session.effort'),
@@ -25,7 +25,7 @@ function insertBotSession(db: Database.Database, s: Record<string, unknown>): vo
       nullableString(s.parentSessionId),
       expectString(s.extraDirs, 'session.extraDirs'), nullableString(s.remoteHostId), nullableString(s.providerId),
       expectString(s.source, 'session.source'), expectNumber(s.createdAt, 'session.createdAt'),
-      expectNumber(s.updatedAt, 'session.updatedAt'), nullableString(s.agentDeviceId));
+      expectNumber(s.updatedAt, 'session.updatedAt'), nullableString(s.agentDeviceId), nullableString(s.projectDir));
 }
 
 

@@ -1,0 +1,93 @@
+{
+ "bots": {
+  "glance": {
+   "checkPrompt": "Verifique as minhas fontes ligadas, como correio e mensagens, para encontrar novidades de que preciso de tratar e adicione-as aos meus afazeres."
+  },
+  "collab": {
+   "deliveryFailed": "Não foi possível entregar o resultado na conversa original. Está guardado nesta sessão.",
+   "backgroundTask": "Tarefa em segundo plano"
+  },
+  "groupChat": {
+   "task": {
+    "label": "Tarefa",
+    "state": {
+     "started": "Em curso",
+     "waiting": "À espera da sua confirmação",
+     "completed": "Concluído",
+     "failed": "Falhou",
+     "cancelled": "Cancelado",
+     "timed-out": "Tempo esgotado"
+    }
+   }
+  }
+ },
+ "chat": {
+  "workGroup": {
+   "working": "A processar…",
+   "worked": "Trabalhou durante {{duration}}",
+   "workDetails": "Detalhes do trabalho"
+  },
+  "remoteError": {
+   "REMOTE_AGENT_BUSY": "Estão em execução demasiadas sessões no outro computador. Termina algumas e tenta novamente.",
+   "REMOTE_AGENT_DEVICE_LIMIT": "Este dispositivo atingiu o limite de sessões remotas. Arquiva sessões não utilizadas ou pede ao proprietário do fornecedor para aumentar o limite em Acesso remoto e partilha.",
+   "REMOTE_AGENT_TOTAL_LIMIT": "O computador do fornecedor atingiu o limite total de sessões remotas. Pede ao proprietário para libertar sessões não utilizadas ou aumentar o limite em Acesso remoto e partilha."
+  },
+  "agentActions": {
+   "part": {
+    "edited_one": "editou um ficheiro",
+    "edited_other": "editou {{count}} ficheiros",
+    "created_one": "criou um ficheiro",
+    "created_other": "criou {{count}} ficheiros",
+    "ran_one": "executou um comando",
+    "ran_other": "executou {{count}} comandos",
+    "read_one": "leu um ficheiro",
+    "read_other": "leu {{count}} ficheiros",
+    "updated_one": "atualizou a lista de afazeres",
+    "updated_other": "atualizou a lista de afazeres",
+    "searched_one": "pesquisou",
+    "searched_other": "pesquisou",
+    "fetched_one": "obteve conteúdo da web",
+    "fetched_other": "obteve conteúdo da web",
+    "used_one": "utilizou uma ferramenta",
+    "used_other": "utilizou {{count}} ferramentas",
+    "edited_many": "editou {{count}} ficheiros",
+    "created_many": "criou {{count}} ficheiros",
+    "ran_many": "executou {{count}} comandos",
+    "read_many": "leu {{count}} ficheiros",
+    "updated_many": "atualizou a lista de afazeres",
+    "searched_many": "pesquisou",
+    "fetched_many": "obteve conteúdo da web",
+    "used_many": "utilizou {{count}} ferramentas"
+   },
+   "more_one": "mais {{count}}",
+   "more_other": "mais {{count}}",
+   "separator": ", ",
+   "lastSeparator": " e ",
+   "more_many": "mais {{count}}"
+  }
+ },
+ "routines": {
+  "todoCheck": {
+   "name": "Verificação diária de afazeres"
+  }
+ },
+ "groupTools": {
+  "authorizationRequired": "A autorização do grupo expirou ou não permite esta ação. Peça ao proprietário do colega para fazer um novo pedido neste grupo.",
+  "localPeersOnly": "As mensagens de grupo só podem ser dirigidas a colegas neste dispositivo e nesta conta.",
+  "ownerChanged": "A conta mudou. Tente novamente.",
+  "invalidMessage": "O identificador da mensagem ou da nova tentativa é inválido.",
+  "privateUnavailable": "A conversa privada deste colega está indisponível. Tente novamente mais tarde.",
+  "idempotencyConflict": "Este identificador de nova tentativa já foi usado para outra mensagem.",
+  "privateUnconfirmed": "A entrega da mensagem privada não está confirmada. Tente novamente com o mesmo identificador.",
+  "verificationUnavailable": "Não foi possível verificar a autorização do grupo. Tente novamente quando a ligação for restabelecida."
+ },
+ "forwardedRequest": {
+  "sourcePresent": "[Origem] O anfitrião preservou as palavras originais do utilizador como contexto do pedido, sem alterações. O pedido atual está no suplemento do Agent.",
+  "sourceMissing": "[Origem] Não foi encontrado texto original verificável do utilizador.",
+  "userPrefix": "Palavras originais do utilizador:",
+  "agentPrefix": "Suplemento do Agent:",
+  "taskSource": "[Origem da tarefa] Um companheiro iniciou esta tarefa.",
+  "taskId": "ID da tarefa:",
+  "contextReferences": "Referências de contexto:"
+ }
+}

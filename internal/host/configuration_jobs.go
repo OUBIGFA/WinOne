@@ -11,6 +11,8 @@ type ConfigurationJob struct {
 	ID       string    `json:"id"`
 	State    string    `json:"state"`
 	Response *Response `json:"response,omitempty"`
+	// Kept only in this Host process; serialized job history cannot recreate it.
+	done chan struct{}
 }
 
 // A stuck volume must not accumulate unlimited goroutines or completion data.
@@ -85,14 +87,28 @@ func (q *ConfigurationQueue) Handle(request Request) Response {
 	}
 	if request.Method == "configuration.jobs.get" {
 		var args struct {
-			ID string `json:"id"`
+			ID     string `json:"id"`
+			WaitMs int    `json:"waitMs,omitempty"`
 		}
-		if json.Unmarshal(request.Params, &args) != nil || args.ID == "" {
-			return fail("invalid", "任务标识无效")
+		if json.Unmarshal(request.Params, &args) != nil || args.ID == "" || args.WaitMs < 0 || args.WaitMs > 1000 {
+			return fail("invalid", "任务标识或等待时间无效")
 		}
 		q.mu.Lock()
 		job, exists := q.jobs[args.ID]
 		q.mu.Unlock()
+		if exists && job.State == "running" && args.WaitMs > 0 {
+			// Wait on the original job, not a periodic poll or a new action.
+			// A disconnected reader can retain at most this bounded second.
+			timer := time.NewTimer(time.Duration(args.WaitMs) * time.Millisecond)
+			select {
+			case <-job.done:
+			case <-timer.C:
+			}
+			timer.Stop()
+			q.mu.Lock()
+			job, exists = q.jobs[args.ID]
+			q.mu.Unlock()
+		}
 		if !exists {
 			return fail("not_found", "配置任务不存在或已过期")
 		}
@@ -139,7 +155,7 @@ func (q *ConfigurationQueue) Handle(request Request) Response {
 	}
 	q.sequence++
 	id := fmt.Sprintf("%s-%d", q.session, q.sequence)
-	q.jobs[id] = ConfigurationJob{ID: id, State: "running"}
+	q.jobs[id] = ConfigurationJob{ID: id, State: "running", done: make(chan struct{})}
 	q.mu.Unlock()
 	// Copy caller-owned bytes before returning to the pipe handler.
 	request.Params = append(json.RawMessage(nil), request.Params...)
@@ -151,7 +167,9 @@ func (q *ConfigurationQueue) Handle(request Request) Response {
 		}
 		q.mu.Lock()
 		defer q.mu.Unlock()
+		job.done = q.jobs[id].done
 		q.jobs[id] = job
+		close(job.done)
 		q.completed = append(q.completed, id)
 		for len(q.completed) > 32 {
 			delete(q.jobs, q.completed[0])
@@ -165,6 +183,6 @@ func (q *ConfigurationQueue) Handle(request Request) Response {
 			q.active = false
 		}
 	}()
-	data, _ := json.Marshal(map[string]string{"configurationJob": id})
+	data, _ := json.Marshal(map[string]any{"configurationJob": id, "configurationJobWaitMs": 1000})
 	return Response{ID: request.ID, Result: data}
 }

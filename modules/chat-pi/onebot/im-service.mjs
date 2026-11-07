@@ -218,5 +218,29 @@ export function createOneBotIMService({directory,masterKey,readBot,dispatch,lane
  async function resumeBot(botId){requireBotId(botId);for(const record of scoped(listBotImConnections))if(record.botId===botId&&!live.has(record.id)){const item=instantiate(record);await scoped(()=>item.im.init());}changed();}
  async function removeBot(botId){await pauseBot(botId);for(const record of scoped(listBotImConnections))if(record.botId===botId){purge(record);queue.removeConnection(record.id);await scoped(()=>removeBotImConnectionRecord(record.id));}changed();}
  function findIdentity(channel,identity){return scoped(()=>listBotImConnections().find(record=>record.channel===channel&&secrets.read(secretKeyPrefixFor(record.id)+identityKey[channel])===identity));}
- return {call,startSaved,close,pauseBot,resumeBot,removeBot,findIdentity};
+ // Cindy routines/delivery.ts resolveTargets: only this teammate's connected bots
+ // and recipients it already knows. Ids are opaque and hold no credentials.
+ async function deliveryTargets(botId){
+  const out=[];
+  for(const record of list(botId).connections){
+   const item=live.get(record.id);
+   if(!item||record.status.kind!=='connected')continue;
+   const name=item.im.getBotDisplayName?.()||record.channel;
+   const add=(receiver,recipient)=>out.push({id:JSON.stringify([record.id,receiver]),channel:record.channel,name,recipient,receiver,connection:record.id});
+   const owner=ownerId(item);
+   if(owner)add(owner,owner);
+   const {lanes:rows=[]}=await lanes('list',{id:record.id});
+   for(const lane of rows){
+    if(!lane.chatId||lane.kind==='group'||lane.kind==='topic')continue;
+    if(lane.chatId!==owner)add(lane.chatId,lane.name||lane.chatId);
+   }
+  }
+  return out;
+ }
+ async function deliver(botId,targetId,text){
+  const target=(await deliveryTargets(botId)).find(row=>row.id===targetId);
+  if(!target)throw Error('Routine destination is disconnected or unavailable');
+  await live.get(target.connection).im.sendMarkdownText(target.receiver,text);
+ }
+ return {call,startSaved,close,pauseBot,resumeBot,removeBot,findIdentity,deliveryTargets,deliver};
 }

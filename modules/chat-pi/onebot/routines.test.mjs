@@ -138,3 +138,35 @@ test('run-now uses the teammate canonical Pi chat, preserves hooks and records t
     assert.equal((await runtime.call('routines.list', {botId: 'reporter'}))[0].activity, undefined);
   } finally { await runtime.close(); }
 });
+
+test('a fresh routine runs in its own lane and its result reaches the chosen IM destination', async () => {
+  const directory = await fs.mkdtemp(path.join(base, 'routines-'));
+  const dispatched = [], lanes = [], discarded = [], sent = [];
+  const host = {
+    routineLane: async input => { lanes.push(input); return {ok: true, sessionId: 'L'.repeat(26)}; },
+    discardRoutineLane: async id => { discarded.push(id); },
+  };
+  const runtime = createOneBotRuntime({directory, host, routineDispatch: async (schedule) => {
+    dispatched.push(schedule.targetSessionId);
+    return {sessionId: schedule.targetSessionId, resultText: 'REPORT_DONE'};
+  }});
+  runtime.attachIMService({
+    deliveryTargets: async () => [{id: 'target', channel: 'telegram', name: 'Bot', recipient: 'Owner', receiver: 'secret'}],
+    deliver: async (botId, targetId, text) => { sent.push({botId, targetId, text}); },
+  });
+  try {
+    await runtime.call('profiles.create', {input: {id: 'reporter', name: 'reporter'}});
+    await runtime.call('sessions.bind', {botId: 'reporter', sessionId: 'R'.repeat(26)});
+    const targets = await runtime.call('routines.deliveryTargets', {botId: 'reporter'});
+    assert.deepEqual(targets, [{id: 'target', channel: 'telegram', name: 'Bot', recipient: 'Owner'}]);
+    const saved = await runtime.call('routines.save', {botId: 'reporter', input: {name: 'Daily', prompt: 'Report', enabled: true, sessionMode: 'fresh', delivery: {kind: 'im', targetId: 'target'}, modelOverride: {agentKind: 'pi', model: 'other'}, triggers: [{id: 'daily', kind: 'cron', expression: '0 9 * * *', timezone: 'UTC'}]}});
+    await runtime.call('routines.runNow', {botId: 'reporter', id: saved.id});
+    const run = await completed(runtime, saved.id);
+    assert.equal(run.delivery?.status, 'delivered', JSON.stringify(run));
+    assert.deepEqual(dispatched, ['L'.repeat(26)]);
+    assert.equal(lanes[0].modelOverride.model, 'other');
+    assert.match(lanes[0].routineId, new RegExp(`^${saved.id}:`));
+    assert.deepEqual(sent, [{botId: 'reporter', targetId: 'target', text: 'Daily\n\nREPORT_DONE'}]);
+    assert.deepEqual(discarded, []);
+  } finally { await runtime.close(); }
+});

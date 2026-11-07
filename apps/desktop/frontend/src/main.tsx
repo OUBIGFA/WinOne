@@ -88,6 +88,7 @@ function App() {
   const [requestedConversationId,setRequestedConversationId]=useState<string>();
   const [requestedChatFile,setRequestedChatFile]=useState<{path:string;line?:number;directory?:boolean}>();
   const [chatSettingsRequest,setChatSettingsRequest]=useState(0);
+  const [newChatRequest,setNewChatRequest]=useState<{text:string;key:number}>();
   const [interconnectIntent,setInterconnectIntent]=useState<InterconnectIntent>();
   const interconnectPending=useRef(false);
   useInterconnectIntents(!!snapshot,intent=>{initialPageApplied.current=true;interconnectPending.current=true;navigation.requestPage('interconnect',()=>setInterconnectIntent(current=>({...intent,paths:[...(current?.paths??[]),...intent.paths]})));},setError);
@@ -106,7 +107,9 @@ function App() {
     const page=(event:Event)=>{const detail=(event as CustomEvent<{id?:unknown;section?:unknown}>).detail,id=detail?.id;
       if(id==="chat"&&detail?.section==="settings"){navigation.requestPage("chat",()=>setChatSettingsRequest(value=>value+1));return;}
       if(typeof id==="string"&&pageDefinitions.some(item=>item.id===id))navigation.requestPage(id);};
-    window.addEventListener("winone-open-chat",open);window.addEventListener("winone-open-page",page);return()=>{window.removeEventListener("winone-open-chat",open);window.removeEventListener("winone-open-page",page);};
+    // Embedded Cindy pages prefill a new conversation (automation error diagnosis).
+    const newChat=(event:Event)=>{const text=(event as CustomEvent<{text?:unknown}>).detail?.text;navigation.requestPage("chat",()=>setNewChatRequest(value=>({text:typeof text==="string"?text:"",key:(value?.key??0)+1})));};
+    window.addEventListener("winone-open-chat",open);window.addEventListener("winone-open-page",page);window.addEventListener("winone-new-chat",newChat);return()=>{window.removeEventListener("winone-open-chat",open);window.removeEventListener("winone-open-page",page);window.removeEventListener("winone-new-chat",newChat);};
   },[navigation.requestPage]);
   useSettingsNavigation(settingsNavigationPort,page=>navigation.requestPage(interconnectPending.current?'interconnect':linkIntentPending.current?'convenience':page),setError,defaultPage,!!snapshot);
   useEffect(()=>{if(snapshot&&!initialPageApplied.current){initialPageApplied.current=true;navigation.requestPage(defaultPage);}},[snapshot,defaultPage]);
@@ -257,7 +260,7 @@ function App() {
         )}
         {page === "ai-services" && <AISettings onActivity={navigation.onActivity} accountReader={accountReader}/>}
         {page === "onebot" && <Suspense fallback={null}><OneBotPage /></Suspense>}
-        {page === "chat" && <ChatPage onActivity={navigation.onActivity} onOpenAI={()=>navigation.requestPage("ai-services")} requestedConversationId={requestedConversationId} requestedFile={requestedChatFile} settingsRequest={chatSettingsRequest} onRequestedConversationHandled={()=>{setRequestedConversationId(undefined);setRequestedChatFile(undefined);}}/>}
+        {page === "chat" && <ChatPage onActivity={navigation.onActivity} onOpenAI={()=>navigation.requestPage("ai-services")} requestedConversationId={requestedConversationId} requestedFile={requestedChatFile} settingsRequest={chatSettingsRequest} newChatRequest={newChatRequest} onRequestedConversationHandled={()=>{setRequestedConversationId(undefined);setRequestedChatFile(undefined);}}/>}
         {page === "flash-chat" && <PeerChatFrame active onActivity={navigation.onActivity}/>}
         <>
           {page === "wintray" && <WinTrayPage disabled={module?.state === "disabled"} onChanged={()=>void refresh()} onActivity={navigation.onActivity}/>}

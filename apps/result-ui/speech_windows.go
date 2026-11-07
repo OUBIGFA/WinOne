@@ -31,6 +31,10 @@ func speechMCICommand(command string) (string, error) {
 
 // Windows' built-in MPEG decoder owns playback; no browser, helper process or
 // persistent audio cache is needed. Close the device before deleting its file.
+// PlayEncodedSpeech reuses the result window's native MPEG player for a
+// Host-synthesized MP3. It performs no synthesis, network request or routing.
+func PlayEncodedSpeech(ctx context.Context, audio []byte) error { return playSpeech(ctx, audio) }
+
 func playSpeech(ctx context.Context, audio []byte) (err error) {
 	if err = ctx.Err(); err != nil {
 		return err

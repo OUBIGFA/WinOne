@@ -17,6 +17,7 @@ import {createLogger} from './logger.ts';
 import {branchRows} from './learning-data.mjs';
 
 const SENDER=1;
+const speechWire=async promise=>{const result=await promise;if(result?.format==='mp3')return {format:'mp3',encodedBase64:Buffer.from(result.data).toString('base64')};return result;};
 const audioWire=async promise=>{const result=await promise;return {...result,pcm:Buffer.from(result.pcm).toString('base64')};};
 const audioBuffer=value=>{const bytes=Buffer.from(value,'base64');return bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength);};
 
@@ -81,13 +82,13 @@ export function createOneBotVoice(scope){
  }
  const methods={
   models:()=>service.models(),voices:p=>service.voices(p.selection),
-  preview:p=>service.startPreview(SENDER,p.input),readPreview:p=>audioWire(service.readPreview(SENDER,p.previewId)),stopPreview:p=>{service.stopPreview(SENDER,p.previewId);return {ok:true};},
+  preview:p=>speechWire(service.startPreview(SENDER,p.input)),readPreview:p=>audioWire(service.readPreview(SENDER,p.previewId)),stopPreview:p=>{service.stopPreview(SENDER,p.previewId);return {ok:true};},
   preference:p=>{scope.profiles.get(p.botId);return companionVoicePreference(data.getSettings(),p.botId);},
   setPreference:p=>{scope.profiles.get(p.botId);const settings=data.getSettings(),selection=p.selection===null?null:normalizeVoiceConversationSelection(p.selection);if(p.selection!==null&&!selection)throw oneBotError('INVALID_PARAMS','语音设置无效');data.updateSettings({conversationSelections:updateCompanionVoicePreference(settings,p.botId,selection),...(p.sentencePlayback!==undefined?{conversationSentencePlayback:updateSentencePlaybackPreference(settings,p.botId,p.sentencePlayback)}:{})});return companionVoicePreference(data.getSettings(),p.botId);},
   start:p=>service.start(SENDER,p.input),startPlayback:p=>service.startPlayback(SENDER,p.input),promoteTurn:p=>service.promoteTurn(SENDER,p.callId,p.inputId),submitTurn:p=>service.submitTurn(SENDER,p.callId,p.inputId,p.text,p.forceHandoff===true),
   classifyExit:p=>service.classifyExit(SENDER,p.callId,p.utteranceId,p.inputGeneration),audio:p=>{service.audio(SENDER,p.callId,audioBuffer(p.pcm),p.trace,p.inputGeneration);return {ok:true};},
   setInputMuted:p=>service.setInputMuted(SENDER,p.callId,p.muted),finishUtterance:p=>{service.finishUtterance(SENDER,p.callId);return {ok:true};},end:async p=>{scope.voiceInputAbort?.abort();await service.end(SENDER,p.callId);return {ok:true};},
-  speak:p=>service.speak(SENDER,p.input.callId,p.input.requestId,p.input.text,p.input.streaming),readSpeech:p=>audioWire(service.readSpeech(SENDER,p.callId,p.requestId)),interrupt:p=>{service.interrupt(SENDER,p.callId);return {ok:true};},
+  speak:p=>speechWire(service.speak(SENDER,p.input.callId,p.input.requestId,p.input.text,p.input.streaming)),readSpeech:p=>audioWire(service.readSpeech(SENDER,p.callId,p.requestId)),interrupt:p=>{service.interrupt(SENDER,p.callId);return {ok:true};},
   'input.data':()=>data.getSnapshot(),'input.settings':p=>data.updateSettings(p.patch),'input.migrate':p=>data.migrateLegacyRendererStorage(p),
   'input.readiness':async()=>{await refresh();return catalog.providers.some(provider=>(provider.audioModels??[]).some(model=>model.mode==='audio_transcription'&&model.defaultEnabled!==false))?{ok:true}:{ok:false,error:'请在 AI 服务中配置并启用语音识别模型'};},
   'input.history':p=>data.getHistory(p.limit),'input.historyForRefinement':()=>data.getHistoryForRefinement(),'input.recordHistory':p=>data.recordHistory(p.text),'input.updateHistory':p=>data.updateHistoryEntry(p.id,p.text),'input.deleteHistory':p=>data.deleteHistoryEntry(p.id),

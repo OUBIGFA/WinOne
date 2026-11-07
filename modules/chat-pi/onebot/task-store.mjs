@@ -3,7 +3,7 @@
 import {Database} from 'bun:sqlite';
 import {drizzle} from 'drizzle-orm/bun-sqlite';
 import {eq} from 'drizzle-orm';
-import {getTableConfig,SQLiteSyncDialect} from 'drizzle-orm/sqlite-core';
+import {createRuntimeTable} from '../runtime-schema.mjs';
 import * as schema from '../cindy/tasks/db/schema.ts';
 import * as transactions from '../cindy/tasks/db/transactions.ts';
 import * as groupTransactions from '../cindy/tasks/db/botGroupsTx.ts';
@@ -43,11 +43,9 @@ const transactionMethods={
  'botGroups.settleStep':groupTransactions.botGroupsSettleStep,
  'botGroups.removePlanStep':groupTransactions.botGroupsRemovePlanStep,
 };
-const quote=name=>'"'+name.replaceAll('"','""')+'"';
-
 export function createOneBotTaskStore(directory,{onArchive=()=>{}}={}){
  const paths=createOneBotPaths(directory),file=path.join(paths.root,'tasks.db');paths.assertPath(file);
- const sqlite=new Database(file,{create:true}),dialect=new SQLiteSyncDialect();
+ const sqlite=new Database(file,{create:true});
  try{
   const version=sqlite.query('PRAGMA user_version').get().user_version;
   if(!Object.hasOwn(SCHEMA_ADDITIONS,version)&&version!==0)throw oneBotError('UNSUPPORTED_VERSION','OneBot 任务库版本不兼容');
@@ -57,30 +55,7 @@ export function createOneBotTaskStore(directory,{onArchive=()=>{}}={}){
    // Each version only adds tables from the pinned schema; existing task and
    // timeline rows are untouched and all DDL comes from that schema.
    for(let next=version+1;next<=LATEST_VERSION;next++)for(const table of SCHEMA_ADDITIONS[next]){
-    const config=getTableConfig(table),relational=RELATIONAL_VERSIONS.has(next);
-    const columns=config.columns.map(column=>{
-     let definition=quote(column.name)+' '+column.getSQLType()+(column.primary?' PRIMARY KEY':'')+(column.notNull?' NOT NULL':'');
-     if(column.default!==undefined){
-      const value=column.default;
-      if(value&&typeof value==='object'&&typeof value.getSQL==='function')definition+=' DEFAULT ('+dialect.sqlToQuery(value.inlineParams()).sql+')';
-      else{const stored=column.mapToDriverValue(value);definition+=' DEFAULT '+(typeof stored==='string'?"'"+stored.replaceAll("'","''")+"'":stored===null?'NULL':Number(stored));}
-     }
-     return definition;
-    });
-    if(relational){
-     for(const key of config.primaryKeys)columns.push('PRIMARY KEY ('+key.columns.map(column=>quote(column.name)).join(',')+')');
-     for(const key of config.foreignKeys){
-      const reference=key.reference();
-      columns.push('FOREIGN KEY ('+reference.columns.map(column=>quote(column.name)).join(',')+') REFERENCES '+quote(getTableConfig(reference.foreignTable).name)
-       +' ('+reference.foreignColumns.map(column=>quote(column.name)).join(',')+')'+(key.onDelete?' ON DELETE '+key.onDelete.toUpperCase():''));
-     }
-    }
-    sqlite.exec('CREATE TABLE '+quote(config.name)+' ('+columns.join(',')+')');
-    for(const {config:index} of config.indexes){
-     const names=index.columns.map(column=>quote(column.name)).join(',');
-     const where=index.where?' WHERE '+dialect.sqlToQuery(index.where.inlineParams()).sql:'';
-     sqlite.exec('CREATE '+(index.unique?'UNIQUE ':'')+'INDEX '+quote(index.name)+' ON '+quote(config.name)+' ('+names+')'+where);
-    }
+    createRuntimeTable(sqlite,table,RELATIONAL_VERSIONS.has(next));
    }
    sqlite.exec('PRAGMA user_version='+LATEST_VERSION);
   })();

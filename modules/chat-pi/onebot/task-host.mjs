@@ -12,7 +12,8 @@ import {hydrateQueuedAgentReferences} from '../cindy/tasks/agentInputReferences.
 import {projectAgentFacingText,readAgentInputReferences} from '../cindy/tasks/core/agentInputProjection.ts';
 import {readReplyQuoteNote} from '../cindy/bots/chatReplyQuoteNote.ts';
 import {readChatReplyQuote} from '../cindy/bots/shared/chatReplyQuote.ts';
-import {admitTaskAction,NEEDS_OWNER_REQUEST,TaskActionAuthorizationError} from '../cindy/tasks/taskActionAuthorization.ts';
+import {admitTaskAction,taskActionRisk,TaskActionAuthorizationError} from '../cindy/tasks/taskActionAuthorization.ts';
+import {teammateCallOf} from './task-risk.mjs';
 import {formatPrStatuses} from '../cindy/bots/taskDigest.ts';
 import {buildWorkingMemoryRefreshNote,pruneWorkingMemoryForMessages,readBotWorkingMemory,renderWorkingMemory,WORKING_MEMORY_REFRESH_TERMINATOR} from '../cindy/bots/botWorkingMemory.ts';
 import {readBranch} from './history.mjs';
@@ -62,7 +63,8 @@ export const getCurrentDbClientSnapshot=()=>{const owner=oneBotOwnerScope();retu
 // WinOne has no Cindy cloud homes: a local companion is never a demoted copy
 // that runs on another computer.
 export const isCompanionShadowed=()=>false;
-export const getResolvedMainLocale=()=>oneBotOwnerScope().tasksNative.language==='en-US'?'en':'zh-CN';
+// Routine templates also use these strings before any task client is created.
+export const getResolvedMainLocale=()=>oneBotOwnerScope().language==='en-US'?'en':'zh-CN';
 export function t(key,values={}){
  const tree=getResolvedMainLocale()==='en'?en:zh;
  const text=key.split('.').reduce((node,part)=>node?.[part],tree);
@@ -268,13 +270,13 @@ export function createOneBotTaskService(owner,native){
   taskStore.syncSession({...sessionCreateToRow(row.id,row),...row});
   if(['tasks.start','tasks.message','tasks.stop'].includes(method)){
    const ownerInput=params.ownerAuthorized===true;
-   if(!ownerInput){
-    // Cindy taskActionHost.autonomousActionAllowed: on its own initiative a
-    // teammate may advance or stop only the background tasks it started;
-    // new tasks, permission decisions and resuming a pause need the owner.
-    if(params.principal!=='autonomous')throw oneBotError('OWNER_ONLY','创建独立任务需要当前轮次的主人授权');
-    const own=method!=='tasks.start'&&taskStore.drizzle.select({botId:botDelegations.requestingBotId}).from(botDelegations).where(eq(botDelegations.id,String(params.delegationId??''))).get()?.botId===linked.botId;
-    if(!own||method==='tasks.message'&&['approve','deny','resume'].includes(params.input?.kind))return NEEDS_OWNER_REQUEST;
+   // Cindy 2d8d3c3 teammate-authority: ordinary task control follows the task's
+   // permissions for every principal. On an autonomous turn an explicit risk
+   // (answering a permission request, resuming a pause) needs the owner's
+   // one-time confirmation, which the Host binds to this call.
+   if(!ownerInput&&params.principal==='autonomous'&&params.riskConfirmed!==true){
+    const call=teammateCallOf(method,{delegationId:params.delegationId,input:params.input});
+    if(call&&taskActionRisk({server:'cindy_helper',...call}))return {ok:false,errorCode:'CONFIRMATION_REQUIRED',message:'This action needs the owner’s confirmation in this chat. It was not executed; call it again so the owner sees the confirmation card.'};
    }
    const profile=owner.profiles.get(linked.botId),permission=profile.capabilities.permissions;
    const assertCurrentSync=()=>{
@@ -285,7 +287,7 @@ export function createOneBotTaskService(owner,native){
     assertCurrentSync();
     // The native lease owns per-turn authorization; a worker/model boolean is
     // insufficient after model admission, worktree preparation or another await.
-    if(!native.assertTaskAuthority||await native.assertTaskAuthority({sessionId:params.callerSessionId,requestId:params.requestId,permissionMode:row.permissionMode,delegationId:params.delegationId,action:method,replyKind:params.input?.kind})!==true)throw new TaskActionAuthorizationError();
+    if(!native.assertTaskAuthority||await native.assertTaskAuthority({sessionId:params.callerSessionId,requestId:params.requestId,riskConfirmation:params.riskConfirmation,permissionMode:row.permissionMode,delegationId:params.delegationId,action:method,replyKind:params.input?.kind})!==true)throw new TaskActionAuthorizationError();
     assertCurrentSync();
    };
    const tool=method==='tasks.start'?'start_session_task':method==='tasks.message'?'message_session_task':'stop_session_task';

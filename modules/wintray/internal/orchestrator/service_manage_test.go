@@ -674,7 +674,9 @@ func TestProcessStartTime_ReportsCurrentProcess(t *testing.T) {
 	if age < 0 || age > time.Hour {
 		t.Fatalf("test process reported as started %s ago (%s), want a recent past time", age, started)
 	}
-	if _, ok := processStartTime(1234); ok {
-		t.Fatal("pid 1234 is never a valid Windows pid, must report unavailable")
+	// Windows ignores a pid's two low bits, so an unaligned pid can still open a
+	// live process; this one is beyond any pid the system assigns.
+	if _, ok := processStartTime(0xFFFFFFF0); ok {
+		t.Fatal("an unassigned pid must report unavailable")
 	}
 }

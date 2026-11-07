@@ -61,6 +61,31 @@ func (a *chatAutomations) saveConnections(raw json.RawMessage) (json.RawMessage,
 	return value, nil
 }
 
+// connectorStates reports configuration readiness without contacting an
+// external account. A mapping to a removed or disabled MCP server must not
+// appear deliverable merely because its name is still in the mapping file.
+func (a *chatAutomations) connectorStates(connections automationConnections) map[string]string {
+	servers := map[string]bool{}
+	if a.control.store != nil {
+		for _, server := range a.control.store.Preferences().MCPServers {
+			servers[server.Name] = server.Enabled
+		}
+	}
+	states := map[string]string{}
+	for method, mapping := range connections.Methods {
+		enabled, exists := servers[mapping.Server]
+		switch {
+		case !exists || strings.TrimSpace(mapping.Tool) == "":
+			states[method] = "ghost-missing"
+		case !enabled:
+			states[method] = "ghost-asleep"
+		default:
+			states[method] = "ok"
+		}
+	}
+	return states
+}
+
 // The script supplies only message/title/target. Model, workspace, permissions
 // and binding come from the saved schedule; script input cannot override them.
 func (a *chatAutomations) dispatchScript(ctx context.Context, schedule scheduledChat, raw json.RawMessage) (any, error) {

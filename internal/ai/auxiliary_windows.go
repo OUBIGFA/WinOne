@@ -111,7 +111,8 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 		}
 		id, path, ok := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
 		target, known := byID[id]
-		if !ok || !known || r.Method != http.MethodPost {
+		videoRead := r.Method == http.MethodGet && strings.HasPrefix(path, "v1/videos/")
+		if !ok || !known || r.Method != http.MethodPost && !videoRead {
 			GatewayError(w, 404, "辅助模型不存在")
 			return
 		}
@@ -123,7 +124,30 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 		var envelope struct {
 			Model string `json:"model"`
 		}
-		if json.Unmarshal(body, &envelope) != nil || !slices.Contains(target.Provider.Models, envelope.Model) {
+		if videoRead {
+			// The opaque video id and original enabled provider bind the read;
+			// GETs have no model body and never create a new vendor operation.
+			if len(target.Provider.Models) == 0 {
+				GatewayError(w, 404, "辅助模型未启用")
+				return
+			}
+			envelope.Model = target.Provider.Models[0]
+		} else if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+			parsed := r.Clone(r.Context())
+			parsed.Body = io.NopCloser(strings.NewReader(string(body)))
+			if err := parsed.ParseMultipartForm(48 << 20); err != nil {
+				GatewayError(w, 400, "辅助图片请求无效")
+				return
+			}
+			if parsed.MultipartForm != nil {
+				defer parsed.MultipartForm.RemoveAll()
+			}
+			envelope.Model = parsed.FormValue("model")
+			if !slices.Contains(target.Provider.Models, envelope.Model) {
+				GatewayError(w, 400, "辅助模型未启用")
+				return
+			}
+		} else if json.Unmarshal(body, &envelope) != nil || !slices.Contains(target.Provider.Models, envelope.Model) {
 			GatewayError(w, 400, "辅助模型未启用")
 			return
 		}
@@ -156,7 +180,7 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 		if root.RootDataDirectory != "" {
 			root.DataDirectory = root.RootDataDirectory
 		}
-		partial, err := root.ForProvider(p.ID).ChatRequest(r.Context(), inner, key, "/"+path, body, r.Header, w)
+		partial, err := root.ForProvider(p.ID).ChatRequest(r.Context(), inner, key, "/"+path, body, r.Header, w, r.Method)
 		if err != nil && !partial {
 			status := 502
 			var failed *AttemptFailure

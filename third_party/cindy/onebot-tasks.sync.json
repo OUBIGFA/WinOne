@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/makecindy/cindy",
-  "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+  "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
   "license": "Apache-2.0",
   "scope": "Cindy independent companion task service. Native session, model catalog and database access use explicit WinOne adapters; no cloud, remote execution or Chat Server groups.",
   "groups": [
@@ -35,7 +35,9 @@
         "botGroupDivision.ts",
         "botGroupPlanDecider.ts",
         "botGroupRuntimeFailure.ts",
-        "botGroupWorkDir.ts"
+        "botGroupWorkDir.ts",
+        "botGroupTaskPostSnapshot.ts",
+        "chatServerMigration.ts"
       ]
     },
     {
@@ -61,7 +63,8 @@
         "botPeerAddress.ts",
         "imMessageSource.ts",
         "inputError.ts",
-        "attachmentSafety.ts"
+        "attachmentSafety.ts",
+        "remoteAgentLimits.ts"
       ]
     },
     {
@@ -88,7 +91,29 @@
         "imageAnnotation.ts",
         "mentionRef.ts",
         "brandIdentity.ts",
-        "branding.ts"
+        "branding.ts",
+        "chatHistory.ts",
+        "autoReviewIntent.ts",
+        "botGroupProcess.ts",
+        "messageNormalize.ts",
+        "workActivityProjection.ts",
+        "toolUseDescriptor.ts",
+        "commandDisplay.ts",
+        "filePreview.ts",
+        "htmlPreviewCsp.ts",
+        "pathText.ts",
+        "commandIntent.ts",
+        "messagePresentation.ts",
+        "messageRender.ts",
+        "presentationLocalization.ts",
+        "agentTask.ts",
+        "historyGap.ts",
+        "historyView.ts",
+        "richAnswer.ts",
+        "workRunGrouping.ts",
+        "historyWorkLines.ts",
+        "richAnswerVisual.ts",
+        "youtubeVideo.ts"
       ]
     },
     {
@@ -104,6 +129,11 @@
     {
       "source": "apps/desktop/src/main/pathResolver.ts",
       "target": "modules/chat-pi/cindy/tasks/pathResolver.ts",
+      "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/agent-island/groupChat.ts",
+      "target": "modules/chat-pi/cindy/tasks/agent-island/groupChat.ts",
       "file": true
     }
   ],
@@ -359,7 +389,14 @@
     "packages/wechat-ilink/src/mediaCrypto.ts": "modules/chat-pi/cindy/wechat-ilink/mediaCrypto.ts",
     "packages/wechat-ilink/src/mediaTransfer.ts": "modules/chat-pi/cindy/wechat-ilink/mediaTransfer.ts",
     "packages/wechat-ilink/src/transport.ts": "modules/chat-pi/cindy/wechat-ilink/transport.ts",
-    "packages/wechat-ilink/src/types.ts": "modules/chat-pi/cindy/wechat-ilink/types.ts"
+    "packages/wechat-ilink/src/types.ts": "modules/chat-pi/cindy/wechat-ilink/types.ts",
+    "apps/desktop/src/renderer/i18n/locales/de/common.json": "modules/chat-pi/cindy/tasks/locales/de.json",
+    "apps/desktop/src/renderer/i18n/locales/es/common.json": "modules/chat-pi/cindy/tasks/locales/es.json",
+    "apps/desktop/src/renderer/i18n/locales/fr/common.json": "modules/chat-pi/cindy/tasks/locales/fr.json",
+    "apps/desktop/src/renderer/i18n/locales/pt-BR/common.json": "modules/chat-pi/cindy/tasks/locales/pt-BR.json",
+    "apps/desktop/src/renderer/i18n/locales/pt-PT/common.json": "modules/chat-pi/cindy/tasks/locales/pt-PT.json",
+    "apps/desktop/src/renderer/i18n/locales/zh-Hans-x-lzh/common.json": "modules/chat-pi/cindy/tasks/locales/zh-Hans-x-lzh.json",
+    "apps/desktop/src/renderer/i18n/locales/zh-Hant-x-lzh/common.json": "modules/chat-pi/cindy/tasks/locales/zh-Hant-x-lzh.json"
   },
   "modules": {
     "@cindy/maker-shared/worktree-paths": "modules/chat-pi/cindy/bots/shared/worktreePaths.ts",
@@ -454,18 +491,34 @@
       "zh-CN": "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json",
       "zh-TW": "apps/desktop/src/renderer/i18n/locales/zh-TW/common.json",
       "ja": "apps/desktop/src/renderer/i18n/locales/ja/common.json",
-      "ko": "apps/desktop/src/renderer/i18n/locales/ko/common.json"
+      "ko": "apps/desktop/src/renderer/i18n/locales/ko/common.json",
+      "de": "apps/desktop/src/renderer/i18n/locales/de/common.json",
+      "es": "apps/desktop/src/renderer/i18n/locales/es/common.json",
+      "fr": "apps/desktop/src/renderer/i18n/locales/fr/common.json",
+      "pt-BR": "apps/desktop/src/renderer/i18n/locales/pt-BR/common.json",
+      "pt-PT": "apps/desktop/src/renderer/i18n/locales/pt-PT/common.json",
+      "zh-Hans-x-lzh": "apps/desktop/src/renderer/i18n/locales/zh-Hans-x-lzh/common.json",
+      "zh-Hant-x-lzh": "apps/desktop/src/renderer/i18n/locales/zh-Hant-x-lzh/common.json"
     },
     "targets": {
       "en": "modules/chat-pi/cindy/tasks/locales/en.json",
       "zh-CN": "modules/chat-pi/cindy/tasks/locales/zh-CN.json",
       "zh-TW": "modules/chat-pi/cindy/tasks/locales/zh-TW.json",
       "ja": "modules/chat-pi/cindy/tasks/locales/ja.json",
-      "ko": "modules/chat-pi/cindy/tasks/locales/ko.json"
+      "ko": "modules/chat-pi/cindy/tasks/locales/ko.json",
+      "de": "modules/chat-pi/cindy/tasks/locales/de.json",
+      "es": "modules/chat-pi/cindy/tasks/locales/es.json",
+      "fr": "modules/chat-pi/cindy/tasks/locales/fr.json",
+      "pt-BR": "modules/chat-pi/cindy/tasks/locales/pt-BR.json",
+      "pt-PT": "modules/chat-pi/cindy/tasks/locales/pt-PT.json",
+      "zh-Hans-x-lzh": "modules/chat-pi/cindy/tasks/locales/zh-Hans-x-lzh.json",
+      "zh-Hant-x-lzh": "modules/chat-pi/cindy/tasks/locales/zh-Hant-x-lzh.json"
     },
     "extraPrefixes": [
       "forwardedRequest",
-      "groupTools"
+      "groupTools",
+      "routines.todoCheck",
+      "bots.glance.checkPrompt"
     ]
   },
   "files": [
@@ -491,9 +544,9 @@
     },
     {
       "source": "apps/desktop/src/main/git-context/prStatusService.ts",
-      "sourceSHA256": "d5e6a3d93ab5b2e5be8e60ef36cd1a810448be60b8384df4e37355d02c10c510",
+      "sourceSHA256": "e34c2545f60346d81dafb42bc8fed2b796a5f2e9a8c8dc8b3cb62184662a5ce1",
       "target": "modules/chat-pi/cindy/tasks/git/prStatusService.ts",
-      "sha256": "0070bde742c079fbd36ba701858501d51c1966940792eed86adb9cc5345eef79",
+      "sha256": "f6b80f3ed341c79cf72248ced8dcc0db47771eab281338b8d6d7cc4b5278e650",
       "adaptation": "import-paths"
     },
     {
@@ -505,9 +558,9 @@
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/agentHandoff.ts",
-      "sourceSHA256": "dc55068cde560e6b97eb3071d4a4c8ddc7e7a46eadba99719d86ed37bc2a244d",
+      "sourceSHA256": "fa492088077424fd1281ad2b66e53600189faf641e9972de8a8d50fff255752a",
       "target": "modules/chat-pi/cindy/tasks/agentHandoff.ts",
-      "sha256": "6fef3056bacadd2c573a7662c76276989ead526fc6c20ef380b4ccdd1a68e010",
+      "sha256": "d4dcf0410d52be31704c19cce0cf6bb0bd6f1922da5c01a08e6b4abc6f31f2ec",
       "adaptation": "import-paths"
     },
     {
@@ -538,23 +591,23 @@
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/botDelegationService.ts",
-      "sourceSHA256": "c19485b82f35c07495c1225b262a12c279132ed508ff172c17132bc57c1fcc32",
+      "sourceSHA256": "af3377ad9ec861851aedf7c043af33ecad70fcd5551563ee834f813b071b43e4",
       "target": "modules/chat-pi/cindy/tasks/botDelegationService.ts",
-      "sha256": "d792c74d1eb96e0cd894194056e49cb2accbf6dd6248d2f06d5366618b4e630b",
+      "sha256": "417b1c6e900c5d6a273636b01a461e4e2f68d88025c846b2dbb6a124e7e2ae28",
       "adaptation": "import-paths; WinOne resolves native Pi interactions across an authenticated IPC bridge and waits for its real acknowledgement; preserve the original stale-interaction outcome instead of treating a queued HTTP request as success; Await the native interaction acknowledgement before clearing or reporting the original pending interaction"
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/botDirectMessageService.ts",
-      "sourceSHA256": "0fb0525a7d147f854c12830ef2820ba1d819ef4a9415c0377d452a76d2b72327",
+      "sourceSHA256": "ffc3829aa24a1834b8459a4c8c3b647aa604da1657ff92977e3ee63a0d52715e",
       "target": "modules/chat-pi/cindy/tasks/botDirectMessageService.ts",
-      "sha256": "700165e4ef09a657685aa99d74d0a9c0664bffac0d5b553c524342b5536767ea",
+      "sha256": "7378277e4edcf4bbaaa492eb20a72611942a52777ea1344f1c7a87c50de89931",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/botGroupChatService.ts",
-      "sourceSHA256": "b1a7e0aaa930334bb5c43ea8f87ccec6a6ed50fa7c0b5870fc7eb8edf804e9ec",
+      "sourceSHA256": "708dd0814c12674886573b9941650617876d6f0b1300853a26bcca453fa35000",
       "target": "modules/chat-pi/cindy/tasks/botGroupChatService.ts",
-      "sha256": "1bdf45ee2454f3c7fba8fbe0708fc216719e89e42c81fa541e2c0f0d306634be",
+      "sha256": "74c1ad17d777f52a73945677f20dc80cf4cb43dcca0bb9960acfed7a3f0969e9",
       "adaptation": "import-paths"
     },
     {
@@ -573,16 +626,23 @@
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/botGroupRuntimeFailure.ts",
-      "sourceSHA256": "ed00504498ea510e7f0de498fea258de7e29a2b14ab83f947d1df3917fe45564",
+      "sourceSHA256": "a4b7b810a0ba790d719ea629929b7c75061e6d36628f7db12e637b923756246d",
       "target": "modules/chat-pi/cindy/tasks/botGroupRuntimeFailure.ts",
-      "sha256": "47c5638373d34723d626b7672320882672cd8466a7ad940548bf3467cd3253a4",
+      "sha256": "5e3512b670df32f6470a7c6c07edaf86a05e636a5c989f3f8b3008acc8fdc74b",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-ipc/botGroupTaskPostSnapshot.ts",
+      "sourceSHA256": "e217c0a90f8058e53686e2535ee637dce2bcf8a2e6427a8a29324bacb27dc168",
+      "target": "modules/chat-pi/cindy/tasks/botGroupTaskPostSnapshot.ts",
+      "sha256": "00fa7541418d72c914cd5863df668b696ba4178ebe849d09eb11310edbd75245",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/botGroupToolAuthorization.ts",
-      "sourceSHA256": "efa7ee54b4174d5ffc2ec8fc3bca931a95e9db2f273b70307138d8649e976cdf",
+      "sourceSHA256": "712d26bc1f07dcc12c3dd5464d71a1151b1e44d90ee4bd10aaa93d93fad2aa8a",
       "target": "modules/chat-pi/cindy/tasks/botGroupToolAuthorization.ts",
-      "sha256": "178aa1b9213af094d559f8370a127ec2a11d7ef3f899b4dd4b2863d86fcd548c",
+      "sha256": "12a172b1c91836611608a2a4c52b616bf7a888ce14b1a4d195c3096725668167",
       "adaptation": "import-paths"
     },
     {
@@ -593,10 +653,17 @@
       "adaptation": "import-paths"
     },
     {
+      "source": "apps/desktop/src/main/maker-ipc/chatServerMigration.ts",
+      "sourceSHA256": "fc9ec30e2770e787447e9bef7a711259661269ecf6153c622259e536dfe29e6e",
+      "target": "modules/chat-pi/cindy/tasks/chatServerMigration.ts",
+      "sha256": "085597e799f62208d7301c15f1b11ed2fbbf760e1415b89a2867ff142273fa15",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/main/maker-ipc/forwardedRequest.ts",
-      "sourceSHA256": "98264814d99c05d10603cc1d7b08831653dfbcc8467fd57cac57ea17ae433bc4",
+      "sourceSHA256": "5df92635be004160ad71f39f81bedf4cfa2962e4de75d5ff3057e84ff65d4033",
       "target": "modules/chat-pi/cindy/tasks/forwardedRequest.ts",
-      "sha256": "0b66bc3d15a06f8b17183e49f7bebf2dd3a2d3873307c209fb5c0079f3777b1c",
+      "sha256": "ae1401f5cfb22243417cd436f17cff09838c048addc12a718ad18310aa19ce69",
       "adaptation": "import-paths"
     },
     {
@@ -607,9 +674,9 @@
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/taskActionAuthorization.ts",
-      "sourceSHA256": "9448f90b4044bd585e946faa7cb77aee9808bc253cbe29b2b97eb1491e009c6f",
+      "sourceSHA256": "60b2e2dc5a74db791dc14b45a96d6f2946ad4cf72233053b342848720a485312",
       "target": "modules/chat-pi/cindy/tasks/taskActionAuthorization.ts",
-      "sha256": "769313ce82ceac8c7530ba26ba0a10ca3908358dc0cc65f96b8094b5e2a4344e",
+      "sha256": "50118a233bb329d7d1b91ad3f99d79f703ea7781367c4a9165773c22fd40554d",
       "adaptation": "import-paths"
     },
     {
@@ -627,9 +694,9 @@
     },
     {
       "source": "apps/desktop/src/shared/agentInputQueue.ts",
-      "sourceSHA256": "47248e17f466bca630f45bb274b047cf92f41139646fe8481af58716a1bb17bc",
+      "sourceSHA256": "b381d712eda3b1c9251223bff6dc7a3b32d4c8521286001f46806e9f96f5ddbe",
       "target": "modules/chat-pi/cindy/tasks/shared/agentInputQueue.ts",
-      "sha256": "24ef48c4dde0877ecb95ab2780ea1d094261ba219765646951e0e3e3be9bd7d5",
+      "sha256": "ad7adb353c9a001ba0a4d1ff94c997c7fcaa8d71870d5bce7aed17d4b69fd84f",
       "adaptation": "import-paths; Resolve the original attribution-only type to its defining module without importing the full maker-shared barrel"
     },
     {
@@ -680,9 +747,9 @@
     },
     {
       "source": "apps/desktop/src/shared/forwardedRequest.ts",
-      "sourceSHA256": "fa46890466fce1610f8d9524c6b55f1524993f8b05c9ad84d98a0103cced379a",
+      "sourceSHA256": "5a3aa94178d59130eaf6ab5a05042932596725c192151543acc8ac28ec11236c",
       "target": "modules/chat-pi/cindy/tasks/shared/forwardedRequest.ts",
-      "sha256": "1c24d5bce7d2ce8ee12cc80c5b1f4329be16cc417edad77875c263928e1720b7",
+      "sha256": "5903416a8b79f67ce82052e6f8ae1ea41d3d352b07d143ea17f6282cb81fe366",
       "adaptation": "import-paths"
     },
     {
@@ -699,28 +766,46 @@
     },
     {
       "source": "apps/desktop/src/shared/locale.ts",
-      "sourceSHA256": "219f54bce0a14a3c717f1d20db0954ca85d3501c3be2cb75a931e3208931aa4d",
+      "sourceSHA256": "4fdab9d79466d01f3876806e1f0fed4e36670d0c5ced911d72cbba5917c3854b",
       "target": "modules/chat-pi/cindy/tasks/shared/locale.ts",
-      "sha256": "219f54bce0a14a3c717f1d20db0954ca85d3501c3be2cb75a931e3208931aa4d"
+      "sha256": "4fdab9d79466d01f3876806e1f0fed4e36670d0c5ced911d72cbba5917c3854b"
+    },
+    {
+      "source": "apps/desktop/src/shared/remoteAgentLimits.ts",
+      "sourceSHA256": "3258e3c46156f037cec1cbbf0cfe040f066b04987ffb4798e298aac49caa2ee7",
+      "target": "modules/chat-pi/cindy/tasks/shared/remoteAgentLimits.ts",
+      "sha256": "3258e3c46156f037cec1cbbf0cfe040f066b04987ffb4798e298aac49caa2ee7"
     },
     {
       "source": "apps/desktop/src/main/localDb/schema.ts",
-      "sourceSHA256": "85bad50ddc4b1898db2c75dce0468b9bad90b48420355c27aa31995a677dc812",
+      "sourceSHA256": "3e01f4e3f4f24d5099e4d2da19e10c1843060c64eb9f07d4c58c0bd806d611c1",
       "target": "modules/chat-pi/cindy/tasks/db/schema.ts",
-      "sha256": "cc4eb9438cd391f3879956937a2a4eee052b5f707be417bc6038d71eb22706b2",
+      "sha256": "68cb5af86d0a5d4a9da5b50ed51afa5a33493e5933d771fba9290b00f975d598",
       "adaptation": "import-paths"
     },
     {
       "source": "packages/maker-shared/src/agentCapabilities.ts",
-      "sourceSHA256": "549d89a63212c5ed0c9c4c2c971397a326a955c9368acbd277b86a3f3b6892e7",
+      "sourceSHA256": "bb308262d0d6dd52cbf6c54e6aa496325347932f3422bba052dd2af54d78730e",
       "target": "modules/chat-pi/cindy/tasks/core/agentCapabilities.ts",
-      "sha256": "549d89a63212c5ed0c9c4c2c971397a326a955c9368acbd277b86a3f3b6892e7"
+      "sha256": "bb308262d0d6dd52cbf6c54e6aa496325347932f3422bba052dd2af54d78730e"
     },
     {
       "source": "packages/maker-shared/src/agentInputProjection.ts",
-      "sourceSHA256": "3c34ef0e2629de194ecd4e19e2295713fce8c72466be308e1dfbb52826460311",
+      "sourceSHA256": "4bd84f1bb889ef63c8dbd2918ae312fe420907e370328d3162a0788d3713f5f5",
       "target": "modules/chat-pi/cindy/tasks/core/agentInputProjection.ts",
-      "sha256": "3c34ef0e2629de194ecd4e19e2295713fce8c72466be308e1dfbb52826460311"
+      "sha256": "4bd84f1bb889ef63c8dbd2918ae312fe420907e370328d3162a0788d3713f5f5"
+    },
+    {
+      "source": "packages/maker-shared/src/agentTask.ts",
+      "sourceSHA256": "d7901956d84d5bb60380a801387da3032d7c5631960dd6c7504c36149066fd87",
+      "target": "modules/chat-pi/cindy/tasks/core/agentTask.ts",
+      "sha256": "d7901956d84d5bb60380a801387da3032d7c5631960dd6c7504c36149066fd87"
+    },
+    {
+      "source": "packages/maker-shared/src/autoReviewIntent.ts",
+      "sourceSHA256": "a1859c9ff39e7f24df7e46af809f23fc18883f4473cb311fb42debcc7f3889cc",
+      "target": "modules/chat-pi/cindy/tasks/core/autoReviewIntent.ts",
+      "sha256": "a1859c9ff39e7f24df7e46af809f23fc18883f4473cb311fb42debcc7f3889cc"
     },
     {
       "source": "packages/maker-shared/src/botCollaboration.ts",
@@ -736,9 +821,15 @@
     },
     {
       "source": "packages/maker-shared/src/botGroupChat.ts",
-      "sourceSHA256": "9d3d2d1777a9f10468ccb45113a130d6c9c142771d560f8dfb6e863da93259ff",
+      "sourceSHA256": "8555d5a0a401d1b22c67a1e4402f847c43d53a33ed0b5e6742efc9c1ca7aa6e5",
       "target": "modules/chat-pi/cindy/tasks/core/botGroupChat.ts",
-      "sha256": "9d3d2d1777a9f10468ccb45113a130d6c9c142771d560f8dfb6e863da93259ff"
+      "sha256": "8555d5a0a401d1b22c67a1e4402f847c43d53a33ed0b5e6742efc9c1ca7aa6e5"
+    },
+    {
+      "source": "packages/maker-shared/src/botGroupProcess.ts",
+      "sourceSHA256": "a8e900baf773f304e1160a74bdf7d8906643a84c6e2860fbe4717a6e49fcb605",
+      "target": "modules/chat-pi/cindy/tasks/core/botGroupProcess.ts",
+      "sha256": "a8e900baf773f304e1160a74bdf7d8906643a84c6e2860fbe4717a6e49fcb605"
     },
     {
       "source": "packages/maker-shared/src/botGroupQuote.ts",
@@ -765,10 +856,58 @@
       "sha256": "039900db5128f2e9818970a67a1b34c5aea49010e5a48d03ecb0c43a50a55639"
     },
     {
+      "source": "packages/maker-shared/src/chatHistory.ts",
+      "sourceSHA256": "b8cb92a6c6acd451b78037d02dd3b325ea21f9af220c6b0835b56dfecbb5ba58",
+      "target": "modules/chat-pi/cindy/tasks/core/chatHistory.ts",
+      "sha256": "b8cb92a6c6acd451b78037d02dd3b325ea21f9af220c6b0835b56dfecbb5ba58"
+    },
+    {
       "source": "packages/maker-shared/src/chatQuotes.ts",
       "sourceSHA256": "9c3ab47e48a3e478f2e3bdc3295f201d2d6acafe7e7aec2942a27f4585ff051e",
       "target": "modules/chat-pi/cindy/tasks/core/chatQuotes.ts",
       "sha256": "9c3ab47e48a3e478f2e3bdc3295f201d2d6acafe7e7aec2942a27f4585ff051e"
+    },
+    {
+      "source": "packages/maker-shared/src/commandDisplay.ts",
+      "sourceSHA256": "f23cad9408cd1c53bb155ef3748b43c0a4d7ffe7f4f04f80749e5d1b5505adac",
+      "target": "modules/chat-pi/cindy/tasks/core/commandDisplay.ts",
+      "sha256": "f23cad9408cd1c53bb155ef3748b43c0a4d7ffe7f4f04f80749e5d1b5505adac"
+    },
+    {
+      "source": "packages/maker-shared/src/commandIntent.ts",
+      "sourceSHA256": "5803deb7d5fd020acd609023315461fc60e730f0373fe688013e610e0b2e150c",
+      "target": "modules/chat-pi/cindy/tasks/core/commandIntent.ts",
+      "sha256": "5803deb7d5fd020acd609023315461fc60e730f0373fe688013e610e0b2e150c"
+    },
+    {
+      "source": "packages/maker-shared/src/filePreview.ts",
+      "sourceSHA256": "a59a3c3c74ea7863600506d38904285e6c9f2525ce5e2fd77306cb7c7d3b183e",
+      "target": "modules/chat-pi/cindy/tasks/core/filePreview.ts",
+      "sha256": "a59a3c3c74ea7863600506d38904285e6c9f2525ce5e2fd77306cb7c7d3b183e"
+    },
+    {
+      "source": "packages/maker-shared/src/historyGap.ts",
+      "sourceSHA256": "cd554b112d5aa2e2514cb58309da2376e2d5c397852afc1bc2977d6e089e57ea",
+      "target": "modules/chat-pi/cindy/tasks/core/historyGap.ts",
+      "sha256": "cd554b112d5aa2e2514cb58309da2376e2d5c397852afc1bc2977d6e089e57ea"
+    },
+    {
+      "source": "packages/maker-shared/src/historyView.ts",
+      "sourceSHA256": "4b22685ab2ba0073ab384e6c8956624f1860f4e3a5b8e4487ab694bd94eec0fa",
+      "target": "modules/chat-pi/cindy/tasks/core/historyView.ts",
+      "sha256": "4b22685ab2ba0073ab384e6c8956624f1860f4e3a5b8e4487ab694bd94eec0fa"
+    },
+    {
+      "source": "packages/maker-shared/src/historyWorkLines.ts",
+      "sourceSHA256": "7c5a665d463e32c973f8d37f2c76e7119e51997e535d1b5482675f163540f166",
+      "target": "modules/chat-pi/cindy/tasks/core/historyWorkLines.ts",
+      "sha256": "7c5a665d463e32c973f8d37f2c76e7119e51997e535d1b5482675f163540f166"
+    },
+    {
+      "source": "packages/maker-shared/src/htmlPreviewCsp.ts",
+      "sourceSHA256": "53e4e569a3962ee25092df6af7e95767096dc85eaa971837b838a3a4ec9b597d",
+      "target": "modules/chat-pi/cindy/tasks/core/htmlPreviewCsp.ts",
+      "sha256": "53e4e569a3962ee25092df6af7e95767096dc85eaa971837b838a3a4ec9b597d"
     },
     {
       "source": "packages/maker-shared/src/imageAnnotation.ts",
@@ -783,10 +922,53 @@
       "sha256": "678128e9e86593936af5d3851b76a28be618508bdeea2caff7e4752ac4391dbb"
     },
     {
+      "source": "packages/maker-shared/src/messageNormalize.ts",
+      "sourceSHA256": "28b5d4ba9d859ba21b192c7bf8e89ffa495a2802969b2e995855fe7bdfff01fa",
+      "target": "modules/chat-pi/cindy/tasks/core/messageNormalize.ts",
+      "sha256": "28b5d4ba9d859ba21b192c7bf8e89ffa495a2802969b2e995855fe7bdfff01fa"
+    },
+    {
+      "source": "packages/maker-shared/src/messagePresentation.ts",
+      "sourceSHA256": "6b2c9fa1b12b6a5cae8573e92d2ce106d931ba973469076aa8f8e1a84ce44308",
+      "target": "modules/chat-pi/cindy/tasks/core/messagePresentation.ts",
+      "sha256": "6b2c9fa1b12b6a5cae8573e92d2ce106d931ba973469076aa8f8e1a84ce44308"
+    },
+    {
+      "source": "packages/maker-shared/src/messageRender.ts",
+      "sourceSHA256": "0142fbb897f28d4bac458317acec17ea18884b6f413b72f5bf3ecfb6943d1538",
+      "target": "modules/chat-pi/cindy/tasks/core/messageRender.ts",
+      "sha256": "66faf10fc7c06dd5e58ae405426b59d32c1a4a078e71675375b6c833d4757a95",
+      "adaptation": "import-paths"
+    },
+    {
+      "source": "packages/maker-shared/src/pathText.ts",
+      "sourceSHA256": "35c6fa3c396a333ab08b84771368f72c4fbc174a6871c3cfca5dcadbd16281b7",
+      "target": "modules/chat-pi/cindy/tasks/core/pathText.ts",
+      "sha256": "35c6fa3c396a333ab08b84771368f72c4fbc174a6871c3cfca5dcadbd16281b7"
+    },
+    {
       "source": "packages/maker-shared/src/permissionMode.ts",
       "sourceSHA256": "b800b284136baea26f804e66ca14a90a5f2b58d45ea37c6bd3eaab054a33de2e",
       "target": "modules/chat-pi/cindy/tasks/core/permissionMode.ts",
       "sha256": "b800b284136baea26f804e66ca14a90a5f2b58d45ea37c6bd3eaab054a33de2e"
+    },
+    {
+      "source": "packages/maker-shared/src/presentationLocalization.ts",
+      "sourceSHA256": "508a3b4f976391dc75da4f8867ca95fa3b02816a370363a3135db6fc96d6dc8f",
+      "target": "modules/chat-pi/cindy/tasks/core/presentationLocalization.ts",
+      "sha256": "508a3b4f976391dc75da4f8867ca95fa3b02816a370363a3135db6fc96d6dc8f"
+    },
+    {
+      "source": "packages/maker-shared/src/richAnswer.ts",
+      "sourceSHA256": "af1083faffc2ffba7cf03994996b1f5d9a6be802eb5c7772c5d7461cc65e40ef",
+      "target": "modules/chat-pi/cindy/tasks/core/richAnswer.ts",
+      "sha256": "af1083faffc2ffba7cf03994996b1f5d9a6be802eb5c7772c5d7461cc65e40ef"
+    },
+    {
+      "source": "packages/maker-shared/src/richAnswerVisual.ts",
+      "sourceSHA256": "b3bacc4719d2681bc4a24354280ea24bef52757724bd7c4f728a3cfd004e1cfc",
+      "target": "modules/chat-pi/cindy/tasks/core/richAnswerVisual.ts",
+      "sha256": "b3bacc4719d2681bc4a24354280ea24bef52757724bd7c4f728a3cfd004e1cfc"
     },
     {
       "source": "packages/maker-shared/src/sharedTask.ts",
@@ -795,10 +977,34 @@
       "sha256": "b603372b78541f16ea65b4dce066afbe93e7458732cd1744f17d86485e071f05"
     },
     {
+      "source": "packages/maker-shared/src/toolUseDescriptor.ts",
+      "sourceSHA256": "942b21c58df6df8b439e2a040e6f38174de991ad1d1f312a4058e8e2f0e73f72",
+      "target": "modules/chat-pi/cindy/tasks/core/toolUseDescriptor.ts",
+      "sha256": "942b21c58df6df8b439e2a040e6f38174de991ad1d1f312a4058e8e2f0e73f72"
+    },
+    {
+      "source": "packages/maker-shared/src/workActivityProjection.ts",
+      "sourceSHA256": "a5fa7495f0d7f9d62f4eda33742124cb1720ecb69f7ca6da1685ddc50141e8ca",
+      "target": "modules/chat-pi/cindy/tasks/core/workActivityProjection.ts",
+      "sha256": "a5fa7495f0d7f9d62f4eda33742124cb1720ecb69f7ca6da1685ddc50141e8ca"
+    },
+    {
+      "source": "packages/maker-shared/src/workRunGrouping.ts",
+      "sourceSHA256": "6482a115fc0bdbdd5bcd77a210b65e119e379f33aabc13a731f8f58f80fd8f1f",
+      "target": "modules/chat-pi/cindy/tasks/core/workRunGrouping.ts",
+      "sha256": "6482a115fc0bdbdd5bcd77a210b65e119e379f33aabc13a731f8f58f80fd8f1f"
+    },
+    {
+      "source": "packages/maker-shared/src/youtubeVideo.ts",
+      "sourceSHA256": "12d8658a5bec0759f2dec73534573ea7fb595bdedfdf98b02a8cd8b5707f7a7f",
+      "target": "modules/chat-pi/cindy/tasks/core/youtubeVideo.ts",
+      "sha256": "12d8658a5bec0759f2dec73534573ea7fb595bdedfdf98b02a8cd8b5707f7a7f"
+    },
+    {
       "source": "apps/desktop/src/main/localDb/worker/opHandlers/tx.ts",
-      "sourceSHA256": "17e7388e2d354faa4c2102dcde2fd8cbf3bc020bfe6aaa34272ea89e7c81f244",
+      "sourceSHA256": "dc52f1c948e9cd80fa0b6d48961be3fd8349ebaeed801cfe708d1ee1d7551306",
       "target": "modules/chat-pi/cindy/tasks/db/transactions.ts",
-      "sha256": "e7ddd9dc6cf3a97a5be6f3c95bc718c4fb829a4a8dc83a96605f3d505dfe4c8d",
+      "sha256": "6594883b70df5380fd3418a4692d9f8f1713027feeba7bf2da6bc60b12555bb1",
       "adaptation": "import-paths; intact declarations: botsCreateDelegation, botsFinishDelegation, botsReopenDelegation, insertBotSession, asRecord, isRecord, expectString, nullableString, expectNumber, invalidArgs"
     },
     {
@@ -810,43 +1016,98 @@
     },
     {
       "source": "apps/desktop/src/main/pathResolver.ts",
-      "sourceSHA256": "3bb295eb092346939548b86b79cd0718e359a48a705c9e099f5884896ed6b405",
+      "sourceSHA256": "459843f860cfe933d0c5a3b54aa85191612cfb058ec24c9667c5cc6bf6fb3134",
       "target": "modules/chat-pi/cindy/tasks/pathResolver.ts",
-      "sha256": "3bb295eb092346939548b86b79cd0718e359a48a705c9e099f5884896ed6b405"
+      "sha256": "459843f860cfe933d0c5a3b54aa85191612cfb058ec24c9667c5cc6bf6fb3134"
+    },
+    {
+      "source": "apps/desktop/src/main/agent-island/groupChat.ts",
+      "sourceSHA256": "28e7a7ff193b7122f21e9ed19022f3e2734ab4a5202a21f1238c65e27e23ef6f",
+      "target": "modules/chat-pi/cindy/tasks/agent-island/groupChat.ts",
+      "sha256": "28e7a7ff193b7122f21e9ed19022f3e2734ab4a5202a21f1238c65e27e23ef6f"
     },
     {
       "source": "apps/desktop/src/renderer/i18n/locales/en/common.json",
-      "sourceSHA256": "270852ddcf1980a2422a99e8d71cf1b683c18109dfb60685f1068a367d06ccf3",
+      "sourceSHA256": "bfc848af3fc107b643c9ad8dd6ad7e04060a90ea3c63e61268c08411d5f692e4",
       "target": "modules/chat-pi/cindy/tasks/locales/en.json",
-      "sha256": "52fce71022a7138c87aa593acf0a633595837d32c8a3634108ae30e7a65c264f",
+      "sha256": "90dcf708164b23acd52f784e3f411d7bfdce6ec78d0b383a326898808de5f77f",
       "adaptation": "locale subset"
     },
     {
       "source": "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json",
-      "sourceSHA256": "e016b4695208b0ddf0f579f192760224337b8c3a9b0c017b5b7c38a74366ac60",
+      "sourceSHA256": "09fd9b1f6d9eb2e270f3d41c3a8e66fd90e74a03a0b112531f933dae470e4e13",
       "target": "modules/chat-pi/cindy/tasks/locales/zh-CN.json",
-      "sha256": "d3e0465f2e77874805a5c2ef64a7587c3574162b9eed7e3af62c9448414adcc4",
+      "sha256": "26713ff986c712d9fd541788b30f8ac90da0fff1fc9a4bf78fb3430c76cff07a",
       "adaptation": "locale subset"
     },
     {
       "source": "apps/desktop/src/renderer/i18n/locales/zh-TW/common.json",
-      "sourceSHA256": "5d425cd95423c9906ff6a448becb49923631f305b463919855db100cf27b210a",
+      "sourceSHA256": "86df28e5e80e62f2a51ba3d18c9a7aeaccc20a2c5d0b69102835e8984b046c2a",
       "target": "modules/chat-pi/cindy/tasks/locales/zh-TW.json",
-      "sha256": "540c89d336c0f62050c1cbb6cfb5525b877a0a49099aac03b84a31f91c956315",
+      "sha256": "480b7815ccbc111ebe342c33f49d0bb1611481a2b52c005271a6984b91ec2953",
       "adaptation": "locale subset"
     },
     {
       "source": "apps/desktop/src/renderer/i18n/locales/ja/common.json",
-      "sourceSHA256": "3ab751dba147c312b216b3fd00920ab52fbc1005db83ab49567da9c9e1a0c8eb",
+      "sourceSHA256": "7f4d9cd681dba5e7fa3dfb201be0b5794b8f0fce86f72b7e7512b7015190115e",
       "target": "modules/chat-pi/cindy/tasks/locales/ja.json",
-      "sha256": "a23902aa87d171caf6bdf456e33cc56e5680224fef945fced724429995a5e923",
+      "sha256": "9dc66e1ae3161fd8d67eae3bac0d6d8ad92dee7c3c782c55a9f5ffc59714f76d",
       "adaptation": "locale subset"
     },
     {
       "source": "apps/desktop/src/renderer/i18n/locales/ko/common.json",
-      "sourceSHA256": "0ad8350daf34edd81d014123c27faf38310d97277f7c2a2a13c780d1d8396ca1",
+      "sourceSHA256": "e2168777b108ca6443312dafe310c2813c695d432c2e568618d10b039a058ca8",
       "target": "modules/chat-pi/cindy/tasks/locales/ko.json",
-      "sha256": "25253c36e389bf64c662551fabd16f0ecc7f5af5506e794064fa6fff3aac7597",
+      "sha256": "82ed6894f26d85fd7030b66af89fd81c6de405f3ac15f6659aa757adf23f02a0",
+      "adaptation": "locale subset"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/de/common.json",
+      "sourceSHA256": "7b171836e4bcbaec9aeeadf14c8ea300d68abc42f3bcdda866b87787bb785a55",
+      "target": "modules/chat-pi/cindy/tasks/locales/de.json",
+      "sha256": "453266459f2f061982bbc0772b6cb1ffebb68f402eb560b031cbfea0b18ad15a",
+      "adaptation": "locale subset"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/es/common.json",
+      "sourceSHA256": "e702d8e7ee5f37d4b142debcae29caa47b181232ba50cea7a1229fd1cac06a48",
+      "target": "modules/chat-pi/cindy/tasks/locales/es.json",
+      "sha256": "0a9cdb8c0416143c43ef65cbddcbe808dc8b968934f48591c6e37b0dbe28c336",
+      "adaptation": "locale subset"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/fr/common.json",
+      "sourceSHA256": "c1b4507d183ee478361812e2496db4260493465bbde63f23a34dd6608ca05c25",
+      "target": "modules/chat-pi/cindy/tasks/locales/fr.json",
+      "sha256": "1e18c79c8bdf7e5f0134e04be0772e6edfa948303b3f40a266765ffeab828f24",
+      "adaptation": "locale subset"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/pt-BR/common.json",
+      "sourceSHA256": "5579260ef1cb0bd20fe08d09072ce7ce45586291b590d7748fcc80c5dae290e8",
+      "target": "modules/chat-pi/cindy/tasks/locales/pt-BR.json",
+      "sha256": "181195a9686777865882395802ae528e2f59dbd5c2ab9386400801f47363dd49",
+      "adaptation": "locale subset"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/pt-PT/common.json",
+      "sourceSHA256": "4b366173c5ca17ebfb8f641d0f30d41e3133f0847e6a24e0ca603d8842bb47ea",
+      "target": "modules/chat-pi/cindy/tasks/locales/pt-PT.json",
+      "sha256": "8f44ee4885a7d1668a1104704829db56df020fbc5f389460bdf819589891c286",
+      "adaptation": "locale subset"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/zh-Hans-x-lzh/common.json",
+      "sourceSHA256": "965e15343d00312019d063bd8e6d4d9428c07b103b36b0b1cff7f8258a5442f9",
+      "target": "modules/chat-pi/cindy/tasks/locales/zh-Hans-x-lzh.json",
+      "sha256": "bc04310e613e93e40b52d0310de9195effe02970515f1a77b775dab8875c57ce",
+      "adaptation": "locale subset"
+    },
+    {
+      "source": "apps/desktop/src/renderer/i18n/locales/zh-Hant-x-lzh/common.json",
+      "sourceSHA256": "fc2004100e26efd414deb0ea12068e75bd9e6ace77147ad05206a2f8fba7a2b6",
+      "target": "modules/chat-pi/cindy/tasks/locales/zh-Hant-x-lzh.json",
+      "sha256": "0da3eea4100c588dbced8d5531faaf69ac3fb3c68f664ac6f60a07a562d3cd05",
       "adaptation": "locale subset"
     }
   ]

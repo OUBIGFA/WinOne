@@ -207,6 +207,9 @@ func (p *Chat) saveSettings() {
 			return
 		}
 		normalizeSettings(&s)
+		if p.tools.automations != nil {
+			p.tools.automations.RefreshSupport()
+		}
 		d.value, d.saved, d.maps = copySettings(&s), copySettings(&s), nil
 		d.advanced = nil
 		p.tools.settingsOpen = false
@@ -670,6 +673,9 @@ func (p *Chat) saveConnections() {
 			return
 		}
 		d.connectionsSaved = text
+		if p.tools.automations != nil {
+			p.tools.automations.RefreshSupport()
+		}
 		if p.env.Toast != nil {
 			p.env.Toast(i18n.T("chat.connectionsSaved"))
 		}

@@ -3,3 +3,4 @@
 // OneBot worker; the page only needs its record shapes.
 export type {Routine, RoutineInput, RoutineSource, RoutineTrigger} from '../../../../../../../third_party/cindy/scheduler/routines';
 export type {RoutineRun} from '../../../../../../../third_party/cindy/scheduler/routine-engine';
+export type {RoutineDeliveryTarget} from '../../../../../../../third_party/cindy/scheduler/routines';

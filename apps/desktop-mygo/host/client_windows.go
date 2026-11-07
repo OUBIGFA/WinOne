@@ -149,7 +149,8 @@ func (c *Client) CallCompleting(method string, params any) (json.RawMessage, err
 		return nil, err
 	}
 	var ticket struct {
-		ID string `json:"configurationJob"`
+		ID     string `json:"configurationJob"`
+		WaitMs int    `json:"configurationJobWaitMs"`
 	}
 	if json.Unmarshal(first, &ticket) != nil || ticket.ID == "" {
 		return first, nil
@@ -158,7 +159,8 @@ func (c *Client) CallCompleting(method string, params any) (json.RawMessage, err
 		if err := c.check(deadline); err != nil {
 			return nil, err
 		}
-		raw, err := c.request(id+"-configuration", "configuration.jobs.get", map[string]string{"id": ticket.ID}, deadline)
+		waitMs := min(max(ticket.WaitMs, 0), 1000, max(1, int(time.Until(deadline)/time.Millisecond/2)))
+		raw, err := c.request(id+"-configuration", "configuration.jobs.get", map[string]any{"id": ticket.ID, "waitMs": waitMs}, deadline)
 		if err != nil {
 			return nil, err
 		}
@@ -175,8 +177,12 @@ func (c *Client) CallCompleting(method string, params any) (json.RawMessage, err
 		}
 		switch job.State {
 		case "running":
-			if err := c.sleep(150*time.Millisecond, deadline); err != nil {
-				return nil, err
+			// A supported Host already awaited the original completion signal;
+			// only a legacy Host needs the old polling pause.
+			if waitMs == 0 {
+				if err := c.sleep(150*time.Millisecond, deadline); err != nil {
+					return nil, err
+				}
 			}
 		case "completed", "failed":
 			if job.Response == nil {

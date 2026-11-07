@@ -38,6 +38,8 @@ export function createOneBotHostClient({baseUrl, key}) {
     },
     /** A saved standing instruction, tied to the exact original canonical chat. */
     authorizeRoutine: (input, signal) => post('authorize-routine', input, {signal}),
+    routineLane: input => post('routine-lane', input),
+    discardRoutineLane: sessionId => post('routine-lane-discard', {sessionId}),
     /** Global installed skill metadata for duplicate detection, without personal skills. */
     installedSkills: botId => post('skills-catalog', {botId}).then(value => value.entries.skill.filter(skill => !skill.personal)),
     /** The Chat record (title, files) of a OneBot conversation. */

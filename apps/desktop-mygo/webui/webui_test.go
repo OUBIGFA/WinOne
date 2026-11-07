@@ -10,19 +10,6 @@ import (
 	"winone/desktopmygo/testhost"
 )
 
-func TestTheBridgeAllowsWhatTheRustWindowAllowed(t *testing.T) {
-	for _, method := range []string{"file.preview", "terminal.poll", "review.turn", "automations.list", "onebot.chat.poll", "onebot.bots.list", "onebot.voice.anything"} {
-		if !chatAllowed(method) {
-			t.Errorf("%s refused", method)
-		}
-	}
-	for _, method := range []string{"", "secret.read", "onebot.chat.secret", "onebot.unknown", "settings.unknown"} {
-		if chatAllowed(method) {
-			t.Errorf("%s allowed", method)
-		}
-	}
-}
-
 func TestTabsShowWebPagesOnly(t *testing.T) {
 	for _, address := range []string{"https://example.com/path?q=a#b", "http://127.0.0.1:8080/preview.html", "http://localhost:5173/", "about:blank"} {
 		if got, err := navigationURL(address); err != nil || got != address {
@@ -81,14 +68,12 @@ func TestPagesSendOnlyCommentsAndPanelKeys(t *testing.T) {
 	var sent []map[string]any
 	b := &Browser{tabs: map[string]*browserTab{}}
 	tab := &browserTab{state: BrowserState{SessionID: "s", TabID: "t"}, commenting: true}
-	b.surface = nil
 	tell := func(text string) {
 		before := tab.commenting
 		b.receive(tab, text)
 		sent = append(sent, map[string]any{"commenting": before})
 	}
-	// Without a surface nothing is dispatched; receive still applies what
-	// a message means for the tab.
+	// receive applies what a message means for the tab.
 	tell(`{"kind":"command","value":"reload"}`)
 	tell(`{"kind":"command","value":"eval"}`)
 	tell(`{"kind":"comment","channel":"browser-comment:mode-exited"}`)
@@ -118,10 +103,11 @@ func TestLinksOfPagesGoThroughTheShell(t *testing.T) {
 	Navigate(env, json.RawMessage(`{"to":"page","id":"ai-services"}`))
 	Navigate(env, json.RawMessage(`{"to":"page","id":"settings"}`))
 	Navigate(env, json.RawMessage(`{"to":"conversation"}`))
-	if strings.Join(pages, ",") != "chat,chat,chat,ai-services" {
+	Navigate(env, json.RawMessage(`{"to":"new-chat","text":"Diagnose"}`))
+	if strings.Join(pages, ",") != "chat,chat,chat,ai-services,chat" {
 		t.Fatalf("pages %v", pages)
 	}
-	if opened[0].Conversation != "c1" || opened[0].File == nil || opened[0].File.Line != 4 || opened[1].File != nil || !opened[2].ChatSettings {
+	if opened[0].Conversation != "c1" || opened[0].File == nil || opened[0].File.Line != 4 || opened[1].File != nil || !opened[2].ChatSettings || !opened[3].NewChat || opened[3].Prefill != "Diagnose" {
 		t.Fatalf("intents %+v", opened)
 	}
 }

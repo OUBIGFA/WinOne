@@ -106,6 +106,20 @@ func (s *Store) PreviewFile(id, path string) (FilePreview, error) {
 	if err != nil {
 		return FilePreview{}, err
 	}
+	c, err := s.Conversation(id)
+	if err != nil {
+		return FilePreview{}, err
+	}
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(c.Directory, path)
+	}
+	p, err := previewOf(filepath.Clean(path), resolved)
+	p.ReadOnly = !within(c.Directory, resolved) || within(filepath.Join(c.SessionDirectory, "attachments"), resolved)
+	return p, err
+}
+
+// previewOf reads what a preview says about a file at resolved, shown as path.
+func previewOf(path, resolved string) (FilePreview, error) {
 	file, err := os.Open(resolved)
 	if err != nil {
 		return FilePreview{}, err
@@ -129,15 +143,7 @@ func (s *Store) PreviewFile(id, path string) (FilePreview, error) {
 	if extension == ".ts" && utf8.Valid(data) && !bytes.ContainsRune(data, 0) {
 		mimeType = "text/plain; charset=utf-8"
 	}
-	c, err := s.Conversation(id)
-	if err != nil {
-		return FilePreview{}, err
-	}
-	if !filepath.IsAbs(path) {
-		path = filepath.Join(c.Directory, path)
-	}
-	path = filepath.Clean(path)
-	p := FilePreview{Path: path, Name: filepath.Base(path), Size: info.Size(), Modified: info.ModTime().UnixMilli(), Kind: "binary", MIME: mimeType, ReadOnly: !within(c.Directory, resolved) || within(filepath.Join(c.SessionDirectory, "attachments"), resolved)}
+	p := FilePreview{Path: path, Name: filepath.Base(path), Size: info.Size(), Modified: info.ModTime().UnixMilli(), Kind: "binary", MIME: mimeType}
 	if !strings.EqualFold(path, resolved) {
 		p.ResolvedPath = resolved
 	}

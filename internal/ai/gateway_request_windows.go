@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -21,11 +22,21 @@ func (t Translator) GatewayRequest(ctx context.Context, p Preferences, key, path
 
 // ChatRequest preserves Pi tool payloads through Magpie while attributing usage
 // to WinOne. The caller, never the incoming HTTP body, chooses the usage source.
-func (t Translator) ChatRequest(ctx context.Context, p Preferences, key, path string, body json.RawMessage, headers http.Header, w http.ResponseWriter) (partial bool, err error) {
-	return t.protocolRequest(ctx, p, key, path, body, headers, w, "winone")
+func (t Translator) ChatRequest(ctx context.Context, p Preferences, key, path string, body json.RawMessage, headers http.Header, w http.ResponseWriter, method ...string) (partial bool, err error) {
+	return t.protocolRequest(ctx, p, key, path, body, headers, w, "winone", method...)
 }
 
-func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, path string, body json.RawMessage, headers http.Header, w http.ResponseWriter, source string) (partial bool, err error) {
+func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, path string, body json.RawMessage, headers http.Header, w http.ResponseWriter, source string, methods ...string) (partial bool, err error) {
+	method := http.MethodPost
+	if len(methods) > 0 {
+		method = methods[0]
+	}
+	if method != http.MethodPost && (method != http.MethodGet || !strings.HasPrefix(path, "/v1/videos/")) {
+		return false, errors.New("unsupported media transport method")
+	}
+	if method == http.MethodGet && len(body) == 0 {
+		body = json.RawMessage("null")
+	}
 	release, err := t.acquireRequest(ctx, p, key)
 	if err != nil {
 		return false, err
@@ -42,7 +53,12 @@ func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, pat
 			_ = process.finish()
 		}
 	}()
-	input := map[string]any{"operation": "gateway", "providerId": p.ProviderID, "protocol": p.Protocol, "baseUrl": p.BaseURL, "key": key, "model": p.Model, "agent": p.Agent, "agentBackend": p.AgentBackend, "preset": p.Preset, "presetRegion": p.PresetRegion, "gatewayPath": path, "gatewayBody": body, "gatewayHeaders": headers}
+	input := map[string]any{"operation": "gateway", "providerId": p.ProviderID, "protocol": p.Protocol, "baseUrl": p.BaseURL, "key": key, "model": p.Model, "agent": p.Agent, "agentBackend": p.AgentBackend, "preset": p.Preset, "presetRegion": p.PresetRegion, "gatewayPath": path, "gatewayMethod": method, "gatewayBody": body, "gatewayHeaders": headers}
+	if strings.HasPrefix(headers.Get("Content-Type"), "multipart/form-data") {
+		input["gatewayBinaryBody"] = []byte(body)
+		input["gatewayBody"] = json.RawMessage(`{}`)
+		input["gatewayContentType"] = headers.Get("Content-Type")
+	}
 	if p.GlobalGateway {
 		input["operation"] = "magpie.gateway"
 	}

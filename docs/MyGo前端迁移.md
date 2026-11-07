@@ -17,7 +17,7 @@
 - **顺序**：Chat 与 OneBot 也改写为 MyGo，但排在其他页面之后。
 - **Chat、自动化与 OneBot 的方式**（用户 2026-11-04 决定，取代 11-01 的混合方案）：全部原生，不再用网页视图承载 React/Cindy 组件。包括 Chat 核心、右侧工作面板（文件库、文件预览与编辑、PDF、终端、Review）、Chat 设置、自动化整页、OneBot 整页，以及 OneBot 队友对话的 Bot 模式。只有浏览器标签与 HTML 预览这类真正的网页内容继续用 MyGo WebView。功能清单见 [Chat 对照](mygo-parity/chat.md) 与 [OneBot 对照](mygo-parity/onebot.md)。
 - **跟进上游**（用户 2026-11-04 要求）：原生代码必须能随时跟进 Cindy 上游更新。每个原生模块在 `third_party/cindy/native-ports.json` 登记它跟随的 Cindy 文件，用 `build/check-cindy-ports.mjs` 列出上游变化，方法见第 8 节。上游更新仍需人工移植到 Go，但有清单，不会遗漏。
-- **切换时机**：完整迁移仍须全部页面验收后再切换统一构建默认值（当前仍为 Rust）。用户于 2026-10-31 另行要求先测试当前成果、暂缓闪聊/Chat/OneBot：本轮显式使用 `build/build.ps1 -DesktopImplementation MyGo`，2026-11-01 已更新固定测试安装器；这三个页面在本测试版暂不可用，原后台实现和数据保留，不把测试包等同于全面迁移完成。
+- **切换与交付现状**：当前 `build/build.ps1` 的默认值已经是 MyGo，但这只代表窗口宿主切换，不代表 Chat/自动化/OneBot 已全面原生化；这三处仍有旧 React 承载。早期测试安装器的范围是历史记录，不能当成本轮完成证据。完整原生迁移、生产构建与验收通过后再更新固定安装器，详见 [2026-11-04 核查](mygo-parity/chat-onebot-audit.md)。
 
 此决策取代 [Rust 桌面迁移可行性调研](Rust桌面迁移可行性调研.md) 第 5.1 节“需先同意 Go GUI 与 UI 重写”的前提，也取代 [Rust 桌面 UI 迁移](Rust桌面UI迁移.md) 中“直接复用 React 源码”的路线。
 
@@ -91,8 +91,8 @@ flowchart LR
 | 结果窗与划词工具栏 | `apps/result-ui`（MyGo v0.2.13） | `apps/result-ui`（MyGo v0.7.3） | 已接入测试包；单元回归、构建/许可、原生进程与样式通过（[对照](mygo-parity/result-window.md)） |
 | 截图工具栏外观 | `modules/capture/NativeUI`（原生 ToolStrip） | 不迁移；`NativeStyle.cs` 同步 `kit` 令牌 | 已接入测试包；私有桌面渲染验证，Windows 11 菜单圆角未实窗验证 |
 | 闪聊 | `interconnect-chat-entry.tsx`、`vendor/chitchatter` | `pages/flashchat`、`flashchat` | 已实现（[对照](mygo-parity/flash-chat.md)）；与 React/Chitchatter 页面本机互通 21/21，跨网络与实窗待验证；2026-11-01 的测试安装器中不可用 |
-| Chat | `features/chat*.tsx`、`features/cindy` | `pages/chat`、`chat/model`、`webui` | 核心交互、侧面板、自动化、设置已实现（混合方案，[对照](mygo-parity/chat.md)）；Bot 模式随 OneBot；真实 Host 联调待验证；2026-11-01 的测试安装器中不可用 |
-| OneBot | `features/onebot.tsx`、`features/cindy/bots` | `pages/onebot`、`webui` | 已实现：整页在网页视图中运行（[对照](mygo-parity/onebot.md)）；队友对话暂为 React Chat，改原生待确认；真实 Host 联调待验证 |
+| Chat | `features/chat*.tsx`、`features/cindy` | `pages/chat`、`chat/model`、`webui` | 普通核心、设置及自动化主体原生；面板与 Bot 模式仍为 React，**原生迁移未完成**（[对照](mygo-parity/chat.md)） |
+| OneBot | `features/onebot.tsx`、`features/cindy/bots` | `pages/onebot`、`webui` | 整页仍为网页承载壳，**原生迁移未完成**（[对照](mygo-parity/onebot.md)）；原生改写已明确要求，无需再确认 |
 
 ## 7. 风险与待确认
 
@@ -113,15 +113,15 @@ flowchart LR
 
 ## 9. 全部原生改写计划（2026-11-04）
 
-按依赖顺序执行。每阶段完成后提交，并更新对照表与本文件状态。
+按依赖顺序执行。每阶段完成后提交，并更新对照表与本文件状态。**2026-11-04 核查：尚未全部完成**，详见 [核查报告](mygo-parity/chat-onebot-audit.md)。
 
 | 阶段 | 内容 | 验收 |
 | --- | --- | --- |
-| 9.1 上游追踪 | 清单与检查脚本；登记已有原生 Chat 模块 | 已完成：11 个模块登记；`tests/cindy-ports/check.test.mjs` 通过并接入 `build.ps1` |
-| 9.2 跟进上游 | 把已有原生 Chat 拉齐到 Cindy 最新提交（检查报告中的落后项） | 对应模块 accept 到最新提交；`pages/chat`、`chat/model` 测试通过 |
+| 9.1 上游追踪 | 清单与检查脚本；登记已有原生 Chat 模块 | 工具已有：11 个模块登记，工具测试 2 项通过；当前构建未调用该检查器，自动化/面板/OneBot 原生覆盖待补 |
+| 9.2 跟进上游 | 把已有原生 Chat 拉齐到 Cindy 最新提交（检查报告中的落后项） | **未完成**：7 个模块落后于 2d8d3c3，移植与测试后才 accept；后续上游区间待核对 |
 | 9.3 Chat 设置 | 常规、资源、MCP、自动化连接原生页 | 已完成（2026-11-04，`pages/chat/settings.go`，`TestSettingsDialogIsNativeAndSavesTheDraft`） |
-| 9.4 自动化 | `SchedulerPage` 任务列表、运行历史、表单、模板原生页；调度引擎不变 | 对照逐项；假 Host 下新建、编辑、运行、删除 |
-| 9.5 右侧工作面板 | 文件库、文件预览与编辑（CodeEditor）、Review（DiffViewer）、终端、PDF；浏览器标签保留 WebView | 对照逐项；PDF 先选型并登记许可 |
-| 9.6 Bot 模式与 OneBot | 原生 Bot 模式（时间线、引用、语音、@提及、已读边界）；OneBot 伙伴、名册、市场、私聊群聊、历史、IM、语音、记忆、例行任务原生页 | 对照逐项；147 个 onebot 方法均有原生入口 |
-| 9.7 收尾 | 删除网页视图对 React 组件的承载（`webui` 的 chat-embed）；安装器启用这三页；真实 Host 联调与实窗验收 | 完整进程组测试；安装器验证 |
+| 9.4 自动化 | `SchedulerPage` 任务列表、运行历史、表单、模板原生页；调度引擎不变 | **原生主体已接入、验收未完成**：`chat/automations.Page` 已替换 WebView；插件检查执行、通知渠道与实窗流程仍待补齐（[对照](mygo-parity/automations.md)） |
+| 9.5 右侧工作面板 | 文件库、文件预览与编辑（CodeEditor）、Review（DiffViewer）、终端、PDF；浏览器标签保留 WebView | **未完成**：仍为 React 面板；PDF 先选型并登记许可 |
+| 9.6 Bot 模式与 OneBot | 原生 Bot 模式（时间线、引用、语音、@提及、已读边界）；OneBot 伙伴、名册、市场、私聊群聊、历史、IM、语音、记忆、例行任务原生页 | **未完成**：当前仅网页壳；方法白名单不是原生入口验收 |
+| 9.7 收尾 | 删除网页视图对 React 组件的承载（`webui` 的 chat-embed）；安装器启用这三页；真实 Host 联调与实窗验收 | **未完成**：当前生产路径仍依赖 React，且其 TypeScript 编译失败 |
 

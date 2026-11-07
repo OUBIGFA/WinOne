@@ -203,13 +203,15 @@ func (p *Chat) openPreview(path, surface string, system bool) {
 
 // fileChip is a file's chip: its icon and name, the path as its tip. A
 // click opens it in the side panel; the context menu offers menu.
-func fileChip(c *ui.Context, key, name, path string, directory bool, menu func(m *ui.Menu)) ui.Element {
+func fileChip(c *ui.Context, key, name, path string, directory bool, menu func(m *ui.Menu), activate func()) ui.Element {
 	t, pal := c.Theme(), kit.Colors(c)
 	chip := ui.ButtonBase(c.Key(key)).Height(28).MaxWidth(280).Gap(6).AlignItems(ui.Center).Padding(0, 10).Radius(99).
 		Background(pal.Panel).Border(1, pal.Hairline).Label(name).Tooltip(path).ContextMenu(menu)
 	if chip.Hovered() {
 		chip.Background(t.SurfaceHover)
 	}
+	bounds := chip.Bounds()
+	chip.HandleInput(func(event ui.InputEvent) bool { return fileMiddleClick(event, bounds, activate) })
 	chip.Children(func() {
 		icon := icons.FileText
 		if directory {
@@ -219,6 +221,30 @@ func fileChip(c *ui.Context, key, name, path string, directory bool, menu func(m
 		ui.Text(c, name).FontSize(kit.HelpSize(c)).SingleLine().Ellipsis("…").MinWidth(0)
 	})
 	return chip
+}
+
+// MyGo buttons already provide Enter/Space and the native keyboard context
+// menu. Keep Cindy's middle-button activation on the same file authority; a
+// release outside the chip is not activation.
+func fileMiddleClick(event ui.InputEvent, bounds ui.Rect, activate func()) bool {
+	if event.Button != 2 {
+		return false
+	}
+	if event.Kind == ui.InputPointerDown {
+		return true
+	}
+	if event.Kind != ui.InputPointerUp {
+		return false
+	}
+	// Capture loss and window/menu takeover deliver a canceled release, not
+	// a completed middle click. Let go without opening the protected file.
+	if event.Canceled {
+		return true
+	}
+	if event.X >= 0 && event.Y >= 0 && event.X < bounds.W && event.Y < bounds.H {
+		activate()
+	}
+	return true
 }
 
 // moreToggle shows the rest of a list, or folds it again.
@@ -260,7 +286,6 @@ func (p *Chat) generatedFiles(c *ui.Context, paths []string) {
 	if len(files) == 0 && message == "" {
 		return
 	}
-	t := c.Theme()
 	ui.Column(c.Key("generated")).FillWidth().Gap(8).Children(func() {
 		ui.Row(c).FillWidth().Wrap().Gap(8).AlignItems(ui.Center).Children(func() {
 			shown := files
@@ -282,7 +307,7 @@ func (p *Chat) generatedFiles(c *ui.Context, paths []string) {
 					if m.Item(i18n.T("chat.openSystem")).Chosen() {
 						p.fileAction("file.open", path, "generated")
 					}
-				})
+				}, func() { p.openFile(path, 0) })
 				if chip.Clicked() {
 					p.openFile(path, 0)
 				}
@@ -293,7 +318,7 @@ func (p *Chat) generatedFiles(c *ui.Context, paths []string) {
 		})
 		if message != "" {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, message).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted).MinWidth(0)
+				kit.Status(c, message).MinWidth(0)
 				if kit.IconButton(c, icons.RefreshCw, i18n.T("chat.retry")).Clicked() {
 					p.setItemError("generated", "")
 					p.forgetChecks()
@@ -502,6 +527,10 @@ func (p *Chat) turnCard(c *ui.Context, turn model.ChangedTurn) {
 							p.fileAction("file.open", abs, surface)
 						}
 					})
+					bounds := line.Bounds()
+					line.HandleInput(func(event ui.InputEvent) bool {
+						return fileMiddleClick(event, bounds, func() { p.openReview(turn.TurnID, path) })
+					})
 					if line.Hovered() {
 						line.Background(t.SurfaceHover)
 					}
@@ -519,17 +548,14 @@ func (p *Chat) turnCard(c *ui.Context, turn model.ChangedTurn) {
 				}
 			})
 		}
-		status := func(text string, color ui.Color) {
-			ui.Text(c, text).FontSize(kit.HelpSize(c)).TextColor(color).LineHeight(1.45).Padding(8, 14).Selectable()
-		}
 		if r.Snapshot.WorkspaceState == "conflict" {
-			status(i18n.T("chat.turnConflict"), t.Text)
+			kit.Notice(c, kit.Caution, "", i18n.T("chat.turnConflict"), nil)
 		}
 		if r.loaded && !r.Snapshot.IsReversible {
-			status(i18n.T("chat.turnCapturePartial"), t.TextMuted)
+			kit.Status(c, i18n.T("chat.turnCapturePartial"))
 		}
 		if message := first(r.err, p.ui.items.errors[surface]); message != "" {
-			status(message, t.Text)
+			kit.InlineError(c, message)
 		}
 	})
 }

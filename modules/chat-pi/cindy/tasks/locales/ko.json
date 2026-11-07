@@ -1,6 +1,10 @@
 {
  "bots": {
+  "glance": {
+   "checkPrompt": "연결된 메일, 메시지 등에서 내가 처리해야 할 새 일이 있는지 확인하고, 있으면 할 일에 추가해 줘."
+  },
   "collab": {
+   "deliveryFailed": "원래 채팅에 결과를 전달하지 못했습니다. 결과는 이 세션에 저장되어 있습니다.",
    "backgroundTask": "백그라운드 작업"
   },
   "groupChat": {
@@ -15,6 +19,38 @@
      "timed-out": "시간 초과"
     }
    }
+  }
+ },
+ "chat": {
+  "workGroup": {
+   "working": "작업 중…",
+   "worked": "{{duration}} 동안 작업함",
+   "workDetails": "작업 내역"
+  },
+  "remoteError": {
+   "REMOTE_AGENT_BUSY": "상대 컴퓨터에서 실행 중인 세션이 너무 많습니다. 일부를 종료한 뒤 다시 시도하세요.",
+   "REMOTE_AGENT_DEVICE_LIMIT": "이 기기의 원격 세션 수가 한도에 도달했습니다. 사용하지 않는 세션을 보관하거나 제공자에게 원격 및 공유에서 한도를 높여 달라고 요청하세요.",
+   "REMOTE_AGENT_TOTAL_LIMIT": "제공자 컴퓨터의 전체 원격 세션 수가 한도에 도달했습니다. 제공자에게 불필요한 세션을 해제하거나 원격 및 공유에서 한도를 높여 달라고 요청하세요."
+  },
+  "agentActions": {
+   "part": {
+    "edited_other": "파일 {{count}}개 편집",
+    "created_other": "파일 {{count}}개 생성",
+    "ran_other": "명령 {{count}}개 실행",
+    "read_other": "파일 {{count}}개 읽기",
+    "updated_other": "할 일 업데이트",
+    "searched_other": "검색 수행",
+    "fetched_other": "웹 조회",
+    "used_other": "도구 {{count}}개 사용"
+   },
+   "more_other": "외 {{count}}건",
+   "separator": ", ",
+   "lastSeparator": " 및 "
+  }
+ },
+ "routines": {
+  "todoCheck": {
+   "name": "매일 할 일 확인"
   }
  },
  "groupTools": {

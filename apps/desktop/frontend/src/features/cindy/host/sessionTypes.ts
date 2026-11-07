@@ -43,4 +43,6 @@ export interface Session {
   deviceLinkDeviceId?: string;
   runtimeEffective?: SessionRuntimeProfileProjection;
   runtimePending?: SessionRuntimePendingProjection | null;
+  /** Cindy 2d8d3c3: the companion lane this session belongs to (routine sessions carry routineId). */
+  companion?: {id: string; role: string; channel?: string; routineId?: string} | null;
 }

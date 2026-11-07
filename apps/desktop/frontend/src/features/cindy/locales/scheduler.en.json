@@ -48,7 +48,12 @@
    "networkShowRaw": "Error Details",
    "networkHideRaw": "Hide Details",
    "diagnose": "Diagnose",
-   "diagnoseTitle": "Diagnose this error in a new session"
+   "diagnoseTitle": "Diagnose this error in a new session",
+   "diagnosePrompt": "Please diagnose this error: find the cause and tell me how to fix it.\n\nSession: {{sessionUrl}}\nError: {{message}}\nDetails:\n{{details}}\n\nIf you find it is a problem with WinOne itself, let me know.",
+   "diagnosePromptWithoutSession": "Please diagnose this error: find the cause and tell me how to fix it.\n\nError: {{message}}\nDetails:\n{{details}}\n\nIf you find it is a problem with WinOne itself, let me know."
+  },
+  "unreadFailedScheduleBanner": {
+   "text": "An automatic run failed."
   },
   "remoteFile": {
    "downloadsInProgress": "Downloads in progress ({{count}})"
@@ -164,6 +169,14 @@
    }
   },
   "projectAutomation": {
+   "import": {
+    "found": "Repository automations found in {{projectName}}",
+    "review": "Review Import",
+    "title": "Import Repository Automations",
+    "description": "Source: {{workingDir}}. Review the definitions below. Importing applies these changes and enables new automations, which can run commands and start Agents with full access. Import only content you trust.",
+    "accept": "Confirm Import",
+    "removed": "Will remove: {{names}}"
+   },
    "toast": {
     "summary": "added {{inserted}} · updated {{updated}} · removed {{deleted}}",
     "installed": "Project automation installed for {{projectName}} ({{summary}})",
@@ -323,6 +336,7 @@
     "timeout": "Timeout (seconds, optional)",
     "timeoutPlaceholder": "No timeout",
     "capabilities": {
+     "github_read": "Read GitHub",
      "jira_read": "Read Jira",
      "jira_comment": "Comment on Jira",
      "sessions_dispatch": "Dispatch sessions",
@@ -334,6 +348,7 @@
     "capabilitiesSearch": "Search capabilities",
     "capabilitiesEmpty": "No matching capabilities",
     "capabilityDescs": {
+     "github_read": "Read PR status, CI, reviews and observed changes; queries do not link tasks",
      "jira_read": "Read Jira issues (get by key / JQL search)",
      "jira_comment": "Add comments to Jira issues",
      "sessions_dispatch": "Create or wake WinOne sessions and deliver messages",
@@ -426,6 +441,25 @@
     },
     "browse": "Choose a script file (or drag one onto the input)"
    },
+   "preRunPlugin": {
+    "sourceLabel": "Check with",
+    "source": {
+     "script": "Script",
+     "plugin": "Plugin"
+    },
+    "tooltip": "Before each run, WinOne asks the plugin you choose. It can let the run go ahead, skip this run, or stop it. It can never approve anything that needs your confirmation.",
+    "choose": "Choose a plugin",
+    "unavailable": "Unavailable plugin",
+    "unavailableHint": "This plugin is no longer available. Until you choose another one, runs follow “If the plugin fails”.",
+    "hint": "The plugin can let the run go ahead, skip this run, or stop it. It can never approve anything for you.",
+    "empty": "No plugin can check runs yet. Install a plugin that supports pre-run checks and allow it when you install or update it.",
+    "onFailureLabel": "If the plugin fails",
+    "onFailure": {
+     "allow": "Run as usual",
+     "skip": "Skip this run",
+     "block": "Stop and mark as failed"
+    }
+   },
    "validation": {
     "nameRequired": "Name is required",
     "promptRequired": "Prompt is required",
@@ -437,6 +471,7 @@
     "modelUnavailable": "Model {{model}} is no longer available. Select another model.",
     "reasoningInvalid": "Reasoning must be one of {{values}}",
     "preRunHookCommandRequired": "Enter the pre-run check command",
+    "preRunPluginRequired": "Choose a plugin for the pre-run check",
     "templateParamRequired": "Enter {{label}}",
     "templateApplyFailed": "Could not apply the template. Check the parameters and try again."
    }
@@ -493,8 +528,7 @@
     "unsupportedMinuteInterval": "This task uses the legacy {{count}}-minute Cron setting. Choose an available interval to correct it."
    },
    "model": {
-    "followSession": "Follow session",
-    "boundLocationLocked": "Bound tasks keep running where they are. Choose a model from that computer."
+    "followSession": "Follow session"
    }
   },
   "toast": {

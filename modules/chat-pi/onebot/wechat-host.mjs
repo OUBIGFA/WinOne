@@ -21,3 +21,14 @@ export async function ingestMedia(input){
  const now=Date.now();scope.taskStore.exec('INSERT INTO media_blobs(hash,ext,mime_type,bytes,is_cache,created_at,last_access_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(hash) DO NOTHING',[hash,ext,input.mimeType,buffer.length,0,now,now]);
  return {url,hash,ext,mimeType:input.mimeType,bytes:buffer.length};
 }
+
+// Cindy 2d8d3c3 im/shared/receivedImageHistory.ts: personal WeChat indexes
+// received images into Cindy's IM group history (hook_group_messages) so the
+// teammate can look them up later with the group-history tools. WinOne has
+// neither that table nor those tools (a gap that predates 2d8d3c3; see
+// docs/mygo-parity/onebot.md), so the scope is reported and nothing is indexed.
+export function receivedHistoryScope(channel, botId, chatId, threadId = '') {
+  const provider = `${channel}-personal:${botId}`;
+  return {access: 'lane', provider, lane: {provider, chatId, threadId}};
+}
+export async function recordReceivedImageMessage(_args) {}

@@ -41,6 +41,9 @@ type AIProvider struct {
 // AIModelMetadata is what a model's badges show: its credit rate, the rate
 // before a discount, and the context window the vendor lists.
 type AIModelMetadata struct {
+	// Preserve provider-reported effort names for native task forms.
+	Efforts             []string `json:"efforts,omitempty"`
+	Levels              []string `json:"levels,omitempty"`
 	Rate                float64  `json:"rate,omitempty"`
 	RateWas             float64  `json:"rateWas,omitempty"`
 	ContextWindow       *float64 `json:"contextWindow,omitempty"`

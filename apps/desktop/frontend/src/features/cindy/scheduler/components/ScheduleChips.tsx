@@ -1,4 +1,5 @@
 import { electronAPI } from '../../host/electronAPI';
+import { deviceDisplayName } from '../../host/remote';
 import { Button } from '../../panel-ui/button';
 import { useModelPickerAgents } from '../../host/providers';
 import * as React from 'react';
@@ -18,13 +19,9 @@ import { useAgentCapabilities, type ModelDescriptor } from '../../host/agentCapa
 import { useProviders } from '../../host/providers';
 import { useDeviceProviders } from '../../host/providers';
 import { useModelRouteDevices } from '../../host/providers';
-import { agentDeviceModelMemoryAccessors } from '../../host/drafts';
 import { RemoteSourceMark } from '../../host/icons';
-import {
-  ModelIconMark,
-  ModelSelectorContent,
-  type RemoteAgentSelectorOptions,
-} from '../../host/modelSelector';
+import { ModelIconMark } from '../../host/modelSelector';
+import { ModelRouteSelectorContent } from '../../host/onebotModelRouteSelector';
 import { useModelDiscoveryPending } from '../../host/modelSelector';
 import {
   effectiveSourceIdForModel,
@@ -1059,6 +1056,7 @@ export function ModelEffortChip({
   onSelect,
   onFollowSession,
   agentKind,
+  agentDeviceId,
   modelValue,
   onChangeModel,
   effortValue,
@@ -1070,22 +1068,11 @@ export function ModelEffortChip({
   onNavigateToProviders,
   fastMode,
   onChangeFast,
-  agentDeviceId = null,
-  remoteLocation = 'none',
 }: {
-  onSelect: NonNullable<React.ComponentProps<typeof ModelSelectorContent>['onUnifiedSelect']>;
-  /**
-   * Agent 运行位置(同账号另一台电脑或分享来的供应商);null = 本机。模型目录、能力与
-   * 按钮上的来源标识都按这个位置读。
-   */
-  agentDeviceId?: string | null;
-  /**
-   * 模型面板是否列出其他电脑与分享来的供应商:any = 全部可选(每次新建任务);
-   * locked = 只列 agentDeviceId 那一处(绑定已有任务,运行位置跟随任务);none = 只列本机。
-   */
-  remoteLocation?: 'any' | 'locked' | 'none';
+  onSelect: NonNullable<React.ComponentProps<typeof ModelRouteSelectorContent>['onUnifiedSelect']>;
   onFollowSession: () => void;
   agentKind: AgentKind;
+  agentDeviceId?: string;
   modelValue: string;
   onChangeModel: (v: string) => void;
   effortValue: EffortValue | '';
@@ -1132,30 +1119,21 @@ export function ModelEffortChip({
     },
     [disabled, discovery],
   );
-  const pickerAgents = useModelPickerAgents(agentKind, agentDeviceId);
-  const caps = useAgentCapabilities(agentKind, agentDeviceId ?? undefined);
+  const pickerAgents = useModelPickerAgents(agentKind, agentDeviceId || undefined);
+  const caps = useAgentCapabilities(agentKind, agentDeviceId || undefined);
   // 触发器(trigger)展示用:仍按 openai-codex/ 与 codex/ 折扣模型的 XD 网关来源可见性过滤,算出当前
   // 选中模型名。下拉内容本体改用聊天的 ModelSelectorContent(它内部按来源/api-key 自行
-  // 过滤 + 分组),这里只为 trigger 文案保留最小化 model 解析。Agent 在另一台电脑时读那台的目录。
+  // 过滤 + 分组),这里只为 trigger 文案保留最小化 model 解析。
   const localProviders = useProviders();
-  const deviceProviders = useDeviceProviders(agentDeviceId ?? undefined);
-  const { providers, loading: providersLoading } = agentDeviceId ? deviceProviders : localProviders;
-  // 其他电脑与分享来的供应商:与普通任务同一份候选(useModelRouteDevices)。locked 只留
-  // 当前所在的那一处,绑定任务的运行位置跟随任务本身。
+  const remoteProviders = useDeviceProviders(agentDeviceId || undefined);
+  const { providers, loading: providersLoading } = agentDeviceId ? remoteProviders : localProviders;
+  // 触发器的位置说明与统一选择器使用相同候选，沿用设备名称的统一回退规则。
   const routeDevices = useModelRouteDevices({
-    controlledDeviceId: remoteLocation === 'none' ? undefined : null,
+    controlledDeviceId: null,
     leadAgentDeviceId: agentDeviceId,
   });
-  const remoteAgent = useMemo<RemoteAgentSelectorOptions | undefined>(() => {
-    const devices = remoteLocation === 'locked'
-      ? routeDevices.devices?.filter((device) => device.deviceId === agentDeviceId)
-      : routeDevices.devices;
-    return devices && devices.length > 0
-      ? { devices, selectedDeviceId: agentDeviceId, deviceModelMemory: agentDeviceModelMemoryAccessors }
-      : undefined;
-  }, [agentDeviceId, remoteLocation, routeDevices.devices]);
   const agentDeviceName = agentDeviceId
-    ? (routeDevices.devices?.find((device) => device.deviceId === agentDeviceId)?.name || agentDeviceId)
+    ? deviceDisplayName(agentDeviceId, undefined, routeDevices.devices ?? [])
     : null;
   const xdConnected = providers.some((p) => p.id === 'xd' && p.connected);
   const availableModels = caps.capabilities?.availableModels;
@@ -1215,20 +1193,18 @@ export function ModelEffortChip({
     [providers, effectiveProviderId, effectiveId, agentKind],
   );
   const activeProvider = providers.find((p) => p.id === activeSourceId);
-  const activeMark = activeSourceId ? (
-    // 图标统一规则(与聊天 trigger 同口径):模型条目 icon(AI Gateway / 目录设定)
-    // 优先,缺省回落来源供应商标。
+  const modelIcon = !isFollowingSession && (activeSourceId || agentDeviceId) ? (
     <ModelIconMark
       icon={activeProvider ? getModel(activeProvider, effectiveId, agentKind)?.icon : undefined}
-      providerId={activeSourceId}
+      providerId={activeSourceId ?? providerId}
       name={activeProvider?.name}
       routing={activeProvider?.routing}
       logoKind={activeProvider?.logoKind}
-      colorClass={agentDeviceId ? 'text-current' : ''}
+      colorClass=""
       withMargin={false}
     />
-  ) : null;
-  // Agent 在另一台电脑:与聊天 trigger 一样在来源标上叠信号波纹,悬停说出是哪台。
+  ) : undefined;
+
   const agentDeviceTitle = agentDeviceName
     ? t('newChat.modelSelector.trigger.agentDevice', { device: agentDeviceName })
     : null;
@@ -1237,13 +1213,9 @@ export function ModelEffortChip({
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <ChipButton
-          icon={
-            !isFollowingSession && activeMark
-              ? agentDeviceId ? <RemoteSourceMark>{activeMark}</RemoteSourceMark> : activeMark
-              : undefined
-          }
-          title={agentDeviceTitle ? `${display} · ${agentDeviceTitle}` : undefined}
+          icon={agentDeviceId && modelIcon ? <RemoteSourceMark>{modelIcon}</RemoteSourceMark> : modelIcon}
           label={display}
+          title={agentDeviceTitle ? `${display} · ${agentDeviceTitle}` : undefined}
           active={open}
           disabled={disabled}
           className="[&>span:last-of-type]:min-w-[106px] max-w-[240px] px-2"
@@ -1265,12 +1237,11 @@ export function ModelEffortChip({
       >
         {/* 直接复用聊天的下拉内容本体(唯一真源:聊天选择器改了这里跟着变)。
             来源轨 / 模型分组 / 搜索 / effort / 空态全套自带;followSession 行为 opt-in。 */}
-        <ModelSelectorContent
+        <ModelRouteSelectorContent
+          agentDeviceId={agentDeviceId || null}
           fastModeConfigurable={['codex', 'pi']}
           unifiedAgents={pickerAgents}
           onUnifiedSelect={onSelect}
-          {...(remoteAgent ? { remoteAgent } : {})}
-          {...(agentDeviceId ? { modelMemory: agentDeviceModelMemoryAccessors(agentDeviceId) } : {})}
           vendorKey={vendorKey}
           modelId={effectiveId}
           effort={effectiveEffort}

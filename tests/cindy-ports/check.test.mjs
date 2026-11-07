@@ -4,18 +4,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
+import {syncCindy} from '../../build/sync-cindy.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const script = path.join(root, 'build/check-cindy-ports.mjs');
 const sha = (text) => createHash('sha256').update(text).digest('hex');
 
 function upstream() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cindy-ports-'));
+  const base=path.join(root,'_temp','cindy-ports-tests');
+  fs.mkdirSync(base,{recursive:true});
+  const dir = fs.mkdtempSync(path.join(base, 'upstream-'));
   const git = (...args) => execFileSync('git', ['-C', dir, ...args], {encoding: 'utf8'}).trim();
   git('init', '-q');
   git('config', 'user.email', 'test@example.invalid');
@@ -36,6 +38,11 @@ function upstream() {
 function run(cindy, manifest, ...args) {
   return spawnSync(process.execPath, [script, '--cindy', cindy, '--manifest', manifest, ...args], {encoding: 'utf8'});
 }
+
+test('literal sync patches reject a missing replacement before touching source', () => {
+  const base={schemaVersion:1,revision:'0'.repeat(40),patches:[{file:'source.ts',find:'x',with:'y',reason:'fixture'}]};
+  assert.throws(()=>syncCindy({spec:base,cindy:'not-read',mode:'write'}),/file\/find\/replace\/reason are required/);
+});
 
 test('ports are reported behind until accepted', (t) => {
   const repo = upstream();
@@ -65,6 +72,20 @@ test('ports are reported behind until accepted', (t) => {
   const accepted = JSON.parse(fs.readFileSync(manifest, 'utf8')).ports[0].upstream[0];
   assert.deepEqual(accepted, {path: 'src/send.ts', revision: second, sha256: sha('v2\nmore\n')});
   assert.equal(run(repo.dir, manifest, '--ref', 'HEAD', '--strict').status, 0);
+});
+
+test('a copied baseline with pending work is not reported or accepted as complete', (t) => {
+  const repo=upstream();t.after(repo.cleanup);
+  const revision=repo.commit({'src/page.ts':'page\n'});
+  const manifest=path.join(repo.dir,'manifest.json');
+  const data={ports:[{id:'page',native:['build/check-cindy-ports.mjs'],pending:['Verify the real native page'],upstream:[{path:'src/page.ts',revision,sha256:sha('page\n')}]}]};
+  fs.writeFileSync(manifest,JSON.stringify(data));
+  const result=run(repo.dir,manifest,'--ref','HEAD','--strict');
+  assert.equal(result.status,1);
+  assert.match(result.stdout,/pending page/);
+  assert.doesNotMatch(result.stdout,/ok +page/);
+  assert.equal(run(repo.dir,manifest,'--ref','HEAD','--accept','page').status,1);
+  assert.deepEqual(JSON.parse(fs.readFileSync(manifest,'utf8')),data,'failed acceptance must leave the record unchanged');
 });
 
 test('a wrong record or a missing native file fails the check', (t) => {

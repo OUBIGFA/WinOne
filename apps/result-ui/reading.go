@@ -192,11 +192,14 @@ func (p *Panel) errorFeedback(c *ui.Context, t *ui.Theme, area string) ui.Elemen
 	} else if p.Pending != nil {
 		location = "reply"
 	}
-	if location != area {
+	if location != area || p.errorVisibility.dismissed {
 		return ui.Element{}
 	}
-	return p.selectable(c, ui.Column(c).Key("error-"+area).FillWidth(), func() {
-		ui.Text(c, p.Error).FillWidth().FontSize(em(t, sizeLabel)).LineHeight(1.5).TextColor(t.Danger)
+	return ui.Row(c.Key("error-" + area)).FillWidth().Gap(6).AlignItems(ui.Start).Role(ui.RoleStatus).Children(func() {
+		p.selectable(c, ui.Column(c).Grow(1).MinWidth(0), func() {
+			ui.Text(c, p.Error).FillWidth().FontSize(em(t, sizeLabel)).LineHeight(1.5).TextColor(t.Danger)
+		})
+		p.closeFeedback(c.Key("error-close"), &p.errorVisibility, p.T("关闭错误提示", "Dismiss error"))
 	})
 }
 

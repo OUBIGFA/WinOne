@@ -1,7 +1,9 @@
 package chat
 
 import (
+	"encoding/json"
 	"math"
+	"winone/desktopmygo/chat/pluginhost"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
@@ -15,7 +17,10 @@ import (
 
 // uiState is what the page's views keep between frames.
 type uiState struct {
-	closed bool
+	closed         bool
+	workdirPlugins *workdirPluginDialog
+	teamRevision   uint64
+	teamRefreshing bool
 	// sidebar shows the conversation list; details, the side panel.
 	sidebar, details bool
 	// automations shows the scheduled tasks in place of the conversation.
@@ -44,13 +49,21 @@ type uiState struct {
 	exportState exportState
 	confirmFull bool
 	edit        *editState
-	usageOpen   bool
+	// userWidths are the actual bubbles, independent of the action row.
+	userWidths map[string]float32
+	usageOpen  bool
 	// agents is the subagent whose messages are open.
 	agents agentDialog
 	// The model picker: open, its search, the providers it folds, and
 	// whether it has shown the chosen model yet.
 	models      widgets.ModelMenuState
 	composerBox ui.Handle
+	// pageBox and workspaceBox keep the actual available bounds, excluding
+	// the shell and conversation sidebars, for responsive panel sizing.
+	pageBox, workspaceBox ui.Handle
+	// recommendations are enabled plugins' suggested tasks for a new conversation.
+	recommendations      []pluginhost.Recommendation
+	recommendationsAsked bool
 	// welcomeArea is the new chat's frame, whose height centers it.
 	welcomeArea ui.Handle
 	compact     bool
@@ -77,6 +90,7 @@ type uiState struct {
 	// items is what the transcript's file chips, change card, tool
 	// dialog, scroll controls, plan reminder and paste keep (files.go).
 	items itemsState
+	queue queueUI
 }
 
 // resetDetails closes what a conversation opened in the side panel.
@@ -101,20 +115,78 @@ func (u *uiState) close() {}
 // View draws the page.
 func (p *Chat) View(c *ui.Context) {
 	p.ui.services = c.Services()
+	if p.mediaShown == nil {
+		p.mediaShown = map[string]bool{}
+	} else {
+		clear(p.mediaShown)
+	}
 	p.takeIntents()
-	p.env.Activity.Report("chat", p.draftDirty || p.ui.filesDirty || p.settings.dirty(),
-		p.busy || p.saving || p.opening || p.transferBusy || p.reconnecting || p.tools.busy() || p.settings.saving, nil)
+	plugins := pluginhost.For(p.env)
+	if plugins.TeamRevision > p.ui.teamRevision && !p.ui.teamRefreshing {
+		p.ui.teamRevision, p.ui.teamRefreshing = plugins.TeamRevision, true
+		p.refresh(func(err error) { p.ui.teamRefreshing = false; p.showError(err) })
+	}
+	plugins.LoadReplies(p.activeID)
+	p.consumePluginAttachments()
+	for _, payload := range plugins.TakePreviews(p.activeID) {
+		var preview struct {
+			URL              string `json:"url"`
+			SessionID        string `json:"sessionId"`
+			MailReaderBypass bool   `json:"mailReaderBypass"`
+		}
+		if json.Unmarshal(payload, &preview) == nil && preview.URL != "" && (preview.SessionID == "" || preview.SessionID == p.activeID) {
+			if preview.MailReaderBypass {
+				p.mailNavigation(func() { p.openBrowserURL(preview.URL) })
+			} else {
+				p.openURL(preview.URL)
+			}
+		}
+	}
+	if !p.embedded {
+		if p.ui.automations {
+			plugins.FocusSession("")
+		} else {
+			plugins.FocusSession(p.activeID)
+		}
+	}
+	if p.activeID != "" && !p.ui.automations {
+		for _, instance := range plugins.TakeTaskViews(p.activeID) {
+			plugins.OpenTaskPage(instance, p.activeID)
+		}
+	}
+	if p.tools.panel != nil {
+		p.tools.panel.SetVisible(p.ui.details && !p.ui.automations)
+		p.ui.filesDirty = p.tools.panel.Dirty()
+		p.env.Activity.Report(p.intentPage+"-workspace", p.ui.filesDirty, p.tools.panel.Busy() || p.tools.panel.HasTerminal(), p.tools.panel.Discard)
+		if !p.ui.details || p.ui.automations {
+			p.tools.panel.Dialogs(c)
+		}
+	} else {
+		p.env.Activity.Report(p.intentPage+"-workspace", false, false, nil)
+	}
+	if p.tools.automations != nil {
+		p.tools.automations.SetVisible(p.ui.automations)
+		p.env.Activity.Report("chat-automations", p.tools.automations.Dirty(), p.tools.automations.Busy(), p.tools.automations.Discard)
+	}
+	p.env.Activity.Report(p.intentPage, p.draftDirty || p.settings.dirty(),
+		p.busy || p.saving || p.closing || p.opening || p.transferBusy || p.reconnecting || p.tools.busy() || p.settings.saving, nil)
 	if p.ui.sidebar {
 		p.pollActivity()
 	}
 	t, pal := c.Theme(), kit.Colors(c)
-	ui.Row(c).Fill().AlignItems(ui.Stretch).Background(t.Background).Children(func() {
+	sidebarWidth := p.prefs.Sidebar
+	if width := p.ui.pageBox.Bounds(c).W; width > 0 {
+		// A saved wide list yields to the conversation in a narrow window;
+		// resizing must not overwrite the user's preferred width.
+		sidebarWidth = min(sidebarWidth, max(minimumSidebar, width-minimumConversationWidth-2))
+	}
+	page := ui.Row(c).Fill().AlignItems(ui.Stretch).Background(t.Background).Bind(&p.ui.pageBox).Children(func() {
 		if p.ui.sidebar {
-			ui.Column(c).Width(p.prefs.Sidebar).Shrink(0).MinWidth(0).Background(pal.Sidebar).
+			ui.Column(c).Width(sidebarWidth).Shrink(0).MinWidth(0).Background(pal.Sidebar).
 				BorderWidth(0, 1, 0, 0).BorderColor(pal.Hairline).Children(func() { p.sidebarView(c) })
-			p.sidebarHandle(c)
+			p.sidebarHandle(c, sidebarWidth)
 		}
-		ui.Column(c).Grow(1).Basis(0).MinWidth(0).Children(func() {
+		ui.Column(c).Grow(1).Basis(0).MinWidth(0).Bind(&p.ui.workspaceBox).Children(func() {
 			if p.ui.automations {
 				p.automationsView(c)
 				return
@@ -123,7 +195,18 @@ func (p *Chat) View(c *ui.Context) {
 		})
 		p.settingsView(c)
 	})
+	if p.embedded && p.activeID != "" && (page.FocusWithin() || !plugins.HasFocusedSession()) {
+		plugins.FocusSession(p.activeID)
+	}
 	p.dialogs(c)
+	// Inline media that is no longer rendered (automation, a collapsed work
+	// group or a reply override) must stop playback and polling immediately.
+	for key, pane := range p.richMedia {
+		pane.SetVisible(p.mediaShown[key])
+	}
+	for path, pane := range p.toolMedia {
+		pane.SetVisible(p.mediaShown["tool:"+path])
+	}
 }
 
 // mainView is the conversation: header, notices, transcript or welcome,
@@ -132,7 +215,7 @@ func (p *Chat) mainView(c *ui.Context) {
 	t, pal := c.Theme(), kit.Colors(c)
 	conversation := p.conversation()
 	ui.Row(c).FillWidth().Padding(10, 16).Gap(8).AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Shrink(0).Children(func() {
-		if !p.ui.sidebar {
+		if !p.ui.sidebar && !p.embedded {
 			if kit.IconButton(c, icons.PanelLeftOpen, i18n.T("chat.showSidebar")).Clicked() {
 				p.setSidebar(true)
 			}
@@ -166,7 +249,10 @@ func (p *Chat) mainView(c *ui.Context) {
 			return
 		}
 		p.transcriptView(c)
-		if p.activeID != "" {
+		if p.botOpeningPending() {
+			ui.Text(c, botT("bots.invitation.welcome", "name", p.bot.Name)).FontSize(kit.HelpSize(c)).TextColor(c.Theme().TextMuted).AlignSelf(ui.Center).Padding(0, 24, 8, 24)
+		}
+		if p.activeID != "" && (p.bot == nil || !p.bot.ReadOnly) {
 			p.inputArea(c)
 		}
 	})
@@ -219,6 +305,7 @@ func (p *Chat) welcome(c *ui.Context) {
 			ui.Column(c).FillWidth().MaxWidth(readingWidth).AlignSelf(ui.Center).Gap(8).Children(func() {
 				p.projectContext(c, p.newProjectID, func(id string) { p.newProjectID = id })
 				p.composer(c)
+				p.pluginRecommendations(c)
 			})
 		})
 	})
@@ -228,7 +315,7 @@ func (p *Chat) welcome(c *ui.Context) {
 // edge between it and the conversation, or with the Left and Right keys
 // once focused, down to the narrowest readable list and up to half the
 // window, as React's resizable panel kept it; the width is remembered.
-func (p *Chat) sidebarHandle(c *ui.Context) {
+func (p *Chat) sidebarHandle(c *ui.Context, displayedWidth float32) {
 	t := c.Theme()
 	handle := ui.Box(c).FillHeight().Width(5).Margin(0, 0, 0, -3).Shrink(0).Cursor(ui.CursorResizeEW).Focusable().
 		Role(ui.RoleSplitter).Label(i18n.T("chat.resizeSidebar")).Tooltip(i18n.T("chat.resizeSidebar"))
@@ -246,7 +333,8 @@ func (p *Chat) sidebarHandle(c *ui.Context) {
 		}
 	})
 	move := func(delta float32) {
-		p.prefs.Sidebar = min(max(p.prefs.Sidebar+delta, minimumSidebar), maximumSidebar)
+		p.prefs.Sidebar = min(max(displayedWidth+delta, minimumSidebar), maximumSidebar)
+		displayedWidth = p.prefs.Sidebar
 	}
 	if dx, _, ok := handle.Dragged(); ok {
 		move(dx)

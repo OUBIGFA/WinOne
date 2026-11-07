@@ -16,5 +16,5 @@ try {
  & $go build -o (Join-Path $output 'WinOne.NativeAutomation.exe') ./tests/native-automation
  if($LASTEXITCODE -ne 0){throw 'Native automation client build failed'}
  Push-Location (Join-Path $root 'apps/desktop-mygo')
- try { & $go build -tags 'webui,nativee2e' -o (Join-Path $output 'WinOne.exe') ./cmd/winone; if($LASTEXITCODE -ne 0){throw 'Native E2E app build failed'} }finally{Pop-Location}
+ try { & $go build -tags 'nativee2e' -o (Join-Path $output 'WinOne.exe') ./cmd/winone; if($LASTEXITCODE -ne 0){throw 'Native E2E app build failed'} }finally{Pop-Location}
 }finally{$env:GOROOT=$prior;$env:GOCACHE=$cache}

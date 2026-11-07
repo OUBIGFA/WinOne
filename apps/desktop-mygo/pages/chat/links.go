@@ -2,6 +2,7 @@ package chat
 
 import (
 	"strings"
+	"winone/desktopmygo/chat/mathview"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
@@ -137,7 +138,7 @@ func (p *Chat) answerFiles(c *ui.Context, key, text string) {
 				if ref.target.Line > 0 && !strings.Contains(label, ":") {
 					label += ":" + kit.Itoa(ref.target.Line)
 				}
-				chip := fileChip(c, "ref:"+file.Path, label, file.Path, file.Directory, func(m *ui.Menu) { p.fileMenu(m, ref.target, file, surface) })
+				chip := fileChip(c, "ref:"+file.Path, label, file.Path, file.Directory, func(m *ui.Menu) { p.fileMenu(m, ref.target, file, surface) }, func() { p.openTarget(ref.target, file, surface) })
 				if chip.Clicked() {
 					if chip.ClickModifiers()&(ui.Shift|ui.Ctrl) != 0 && !file.Directory {
 						p.openDefault(file.Path, surface)
@@ -293,7 +294,9 @@ func (p *Chat) answerOptions(key string) *markdown.Options {
 	if o := s.markdown[key]; o != nil {
 		return o
 	}
-	o := &markdown.Options{WrapCode: true, OnLink: func(destination string) { p.openLink(destination, "answer:"+key) }}
+	o := &markdown.Options{WrapCode: true, LoadImage: p.markdownImageLoader(key), OnLink: func(destination string) { p.openLink(destination, "answer:"+key) }}
+	p.answerCodeBlocks(o, key)
+	mathview.For(p.env).Apply(o)
 	s.markdown[key] = o
 	return o
 }

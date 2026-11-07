@@ -46,6 +46,65 @@ func TestAutomationOpenRefusesPathsOutsideAutomations(t *testing.T) {
 	}
 }
 
+func TestAutomationChannelReadinessFollowsTheMappedMCPServer(t *testing.T) {
+	profile := t.TempDir()
+	store, err := chat.Open(filepath.Join(profile, "chat"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := newChatAutomations(&chatControl{directory: profile, store: store})
+	prefs := store.Preferences()
+	prefs.MCPServers = []chat.MCPServer{{Name: "messaging", Command: "fixture-connector", Enabled: false}}
+	if _, err = store.SavePreferences(prefs); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := json.Marshal(map[string]any{"settings": automationConnections{Methods: map[string]automationMethod{
+		"notify.feishu": {Server: "messaging", Tool: "notify"}, "notify.wecom": {Server: "messaging", Tool: "notify"},
+		"jira.get": {Server: "messaging", Tool: "get"}, "jira.search_jql": {Server: "messaging", Tool: "search"},
+	}}})
+	if _, err = a.saveConnections(raw); err != nil {
+		t.Fatal(err)
+	}
+	check := func(want bool) {
+		t.Helper()
+		raw, err := a.channels()
+		if err != nil {
+			t.Fatal(err)
+		}
+		var result struct {
+			Feishu     struct{ Status string }
+			WecomGroup struct{ Configured, Enabled bool }
+		}
+		if err = json.Unmarshal(raw, &result); err != nil {
+			t.Fatal(err)
+		}
+		if (result.Feishu.Status == "connected") != want || result.WecomGroup.Enabled != want || !result.WecomGroup.Configured {
+			t.Fatalf("channel readiness %#v", result)
+		}
+	}
+	check(false)
+	capabilities, err := a.capabilityStatus()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(capabilities), `"state":"ghost-asleep"`) {
+		t.Fatalf("disabled connector was not reported: %s", capabilities)
+	}
+	prefs.MCPServers[0].Enabled = true
+	if _, err = store.SavePreferences(prefs); err != nil {
+		t.Fatal(err)
+	}
+	check(true)
+	prefs.MCPServers = nil
+	if _, err = store.SavePreferences(prefs); err != nil {
+		t.Fatal(err)
+	}
+	check(false)
+	if a.runner != nil {
+		t.Fatal("readiness checks unexpectedly started a worker")
+	}
+}
+
 func TestAutomationWorktreeDetection(t *testing.T) {
 	git, err := exec.LookPath("git")
 	if err != nil {

@@ -21,7 +21,6 @@ import {
 } from '../host/onebotTaskFileContext';
 import { MarkdownRenderer } from '../../chat-rich-answer';
 import { SessionQuickSendProvider } from '../rich/SessionQuickSendContext';
-import { Spinner } from '../panel-ui/spinner';
 import { getDataOwnerGeneration, isDataOwnerGenerationCurrent } from '../host/dataOwner';
 import { usePrActions, usePrRefsForSession, usePrStatuses } from '../host/onebotTaskPrs';
 import { PR_STATUS_COLOR, PR_STATUS_ICON } from './gitContextPrVisuals';
@@ -143,16 +142,16 @@ function Chip({
 
 function StatusGlyph({ state }: { state: CardState }) {
   if (state === 'starting' || state === 'running') {
-    return <Spinner size={12} className="shrink-0 text-[var(--status-bar-accent)]" aria-hidden="true" />;
+    return <span className="size-2 shrink-0 rounded-full bg-[var(--warning-accent)] session-status-breathing" aria-hidden="true" />;
   }
   return (
     <span
       aria-hidden="true"
       className={cn(
         'size-[7px] shrink-0 rounded-full',
-        state === 'waiting' && 'bg-[var(--status-info)]',
-        state === 'completed' && 'bg-[var(--status-success)]',
-        state === 'failed' && 'bg-[var(--error-fg)]',
+        state === 'waiting' && 'bg-[var(--card-status-awaiting)]',
+        state === 'completed' && 'bg-[var(--card-status-done)]',
+        state === 'failed' && 'bg-[var(--card-status-error)]',
         (state === 'cancelled' || state === 'unknown') && 'bg-[var(--text-tertiary)]',
       )}
     />
@@ -302,6 +301,16 @@ export function BotTaskCard({
   // differ from the Bot's main task: the frozen receipt records it, the live card reads the
   // child session's. The surrounding chat's directory is only the last resort.
   const workingDir = frozen?.workingDir ?? session?.workingDir ?? fileContext.workingDir;
+  // The result is the child's: a confirmed-local chat does not make a child that runs on another
+  // device (or over SSH, or with a conflicting origin) local, and its directory must not be
+  // searched on this machine. Until the child's row has loaded its ownership is unknown.
+  const childLocalConfirmed =
+    fileContext.localConfirmed === true &&
+    session !== null &&
+    !ref.sourceDeviceId &&
+    !ref.originConflict &&
+    !session?.deviceLinkDeviceId &&
+    !session?.remoteHostId;
   const canOpen = Boolean(childSessionId) && !ref.originConflict;
   const canAddNote = state === 'running' && Boolean(childSessionId) && !ref.sourceDeviceId && !frozen;
   const resultLabel =
@@ -481,7 +490,12 @@ export function BotTaskCard({
         >
           <SessionQuickSendProvider value={null}>
             <ChatSessionFileProvider
-              value={{ ...fileContext, workingDir, sessionId: childSessionId ?? undefined }}
+              value={{
+                ...fileContext,
+                workingDir,
+                sessionId: childSessionId ?? undefined,
+                localConfirmed: childLocalConfirmed,
+              }}
             >
               {resultText ? (
                 <MarkdownRenderer

@@ -14,7 +14,6 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/shell"
 	"winone/desktopmygo/web"
-	"winone/desktopmygo/webui"
 	internalhost "winone/internal/host"
 )
 
@@ -30,6 +29,7 @@ type window struct {
 	shell    *shell.Shell
 	instance *instance
 	place    *placement
+	startup  *startupTrace
 
 	approved bool
 	shown    bool
@@ -53,7 +53,8 @@ func runWindow(o Options, launch plan) error {
 		inst.close()
 		return err
 	}
-	w := &window{options: o, launch: launch, client: client, instance: inst, stop: make(chan struct{})}
+	w := &window{options: o, launch: launch, client: client, instance: inst, stop: make(chan struct{}), startup: newStartupTrace()}
+	w.startup.stage("window-setup")
 	env := &core.Env{Host: client, Dialogs: dialogs{w: w}}
 	env.Post = func(fn func()) {
 		if w.win != nil && !w.win.IsDestroyed() {
@@ -72,12 +73,17 @@ func runWindow(o Options, launch plan) error {
 		inst.close()
 		return err
 	}
-	// Chat's React tools are the window's frontend, and call Go through
-	// the App service it binds; both must exist before the app runs.
-	webui.Register()
+	w.startup.instrument(env)
 	w.shell = shell.New(env, w, shell.Options{
-		Directory:      o.Directory,
-		EnsureHost:     func() (internalhost.Snapshot, error) { return ensureHost(client, o.Pipe, o.Directory, launch) },
+		Directory: o.Directory,
+		EnsureHost: func() (internalhost.Snapshot, error) {
+			snapshot, err := ensureHost(client, o.Pipe, o.Directory, launch)
+			if w.startup != nil && err == nil {
+				w.startup.snapshot.Store(true)
+				w.startup.stage("host-snapshot")
+			}
+			return snapshot, err
+		},
 		StartupWarning: launch.warning,
 		OpenSettings:   o.OpenSettings,
 	})
@@ -109,7 +115,9 @@ func settingsWindowOptions(content mygo.Content) mygo.WindowOptions {
 }
 
 func (w *window) open() {
-	w.win = mygo.NewWindow(settingsWindowOptions(ui.View(w.shell.View)))
+	w.startup.stage("native-window-create")
+	w.win = mygo.NewWindow(settingsWindowOptions(ui.View(w.startup.content(w))))
+	w.startup.stage("native-window-created")
 	// Leave unmatched native drops to MyGo's trusted-page delivery. WebView
 	// pages receive the original paths as `mygo:file-drop`; native DropArea
 	// targets consume their own drops first in SurfaceEvent.
@@ -142,6 +150,7 @@ func (w *window) open() {
 			}
 		}()
 	})
+	w.startup.stage("native-window-shown")
 	w.shell.Start()
 }
 
@@ -225,8 +234,8 @@ var (
 	procCallWindowProcW = user32.NewProc("CallWindowProcW")
 	subclassed          uintptr
 	subclassProc        = windows.NewCallback(func(hwnd, message, wparam, lparam uintptr) uintptr {
-		if name := voicePowerEvent(message, wparam); name != "" {
-			webui.DispatchAll(name)
+		if stopsVoiceInput(message, wparam) {
+			core.PauseVoiceInput()
 		}
 		result, _, _ := procCallWindowProcW.Call(subclassed, hwnd, message, wparam, lparam)
 		return result
@@ -246,19 +255,11 @@ func subclass(hwnd uintptr) {
 
 var procWTSRegisterSessionNotification = windows.NewLazySystemDLL("wtsapi32.dll").NewProc("WTSRegisterSessionNotification")
 
-// voicePowerEvent names the window event that stops OneBot's voice input,
-// as the Rust window raised it: the system suspending
-// (WM_POWERBROADCAST, PBT_APMSUSPEND) and the workstation locking
-// (WM_WTSSESSION_CHANGE, WTS_SESSION_LOCK). Resuming or unlocking never
-// starts a microphone.
-func voicePowerEvent(message, wparam uintptr) string {
-	switch {
-	case message == 0x218 && wparam == 4:
-		return "winone:voice-system-suspend"
-	case message == 0x2b1 && wparam == 7:
-		return "winone:voice-screen-locked"
-	}
-	return ""
+// stopsVoiceInput reports the messages that stop OneBot's voice input: the
+// system suspending (WM_POWERBROADCAST, PBT_APMSUSPEND) and the workstation
+// locking (WM_WTSSESSION_CHANGE, WTS_SESSION_LOCK).
+func stopsVoiceInput(message, wparam uintptr) bool {
+	return message == 0x218 && wparam == 4 || message == 0x2b1 && wparam == 7
 }
 
 var (

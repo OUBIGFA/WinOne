@@ -1,9 +1,16 @@
 {
+ "ipcError": {
+  "MODEL_SELECTION_UNAVAILABLE": "所选模型在该供应商下已不可用。请在设置中检查连接，或重新选择可用模型。",
+  "INVALID_PARAMS": "参数无效，请检查后重试。",
+  "PRECONDITION_FAILED": "当前状态下无法执行此操作，请稍后重试。"
+ },
  "appError": {
   "details": "错误详情"
  },
  "agentIsland": {
   "native": {
+   "updatingTasks": "正在更新任务",
+   "awaitingQuestion": "等待你的回复",
    "permissionPromptTitleWithTool": "允许 {{toolName}}？",
    "allowOnce": "允许一次",
    "alwaysAllowForSession": "本任务总是允许",
@@ -130,6 +137,9 @@
     "updateFailed": "未能更新绑定。请等待微信中的任务结束后重试，并确认伙伴仍可用。"
    }
   },
+  "auxiliaryModels": {
+   "unavailable": "当前不可用"
+  },
   "builtinTools": {
    "plugins": {
     "feishu": {
@@ -191,10 +201,6 @@
     "ssh": {
      "name": "SSH 远程命令",
      "description": "通过本机配置的 SSH 连接在远程电脑上执行命令。"
-    },
-    "contacts": {
-     "name": "智能通讯录",
-     "description": "查询、整理联系人资料与交往记录。"
     }
    }
   },
@@ -216,7 +222,16 @@
   "teammateUnreadCount": "{{count}} 段对话未读"
  },
  "bots": {
+  "avatarStatus": {
+   "awaiting": "待你确认",
+   "error": "需要关注",
+   "running": "正在工作",
+   "done": "已完成",
+   "unread": "未读"
+  },
   "workbench": {
+   "ownedMark": "归属 {{names}}",
+   "createdMark": "由 {{names}} 创建",
    "followingMark": "{{names}}在跟进这个任务"
   },
   "glance": {
@@ -231,21 +246,22 @@
    "todos": "待办",
    "showMore": "显示更多",
    "showLess": "收起",
-   "doneCount_other": "已完成 {{count}}",
    "delete": "删除",
    "deleted": "已删除，同一件事以后不再记",
    "undo": "撤销",
    "undoFailed": "没能撤销，请重试",
    "deleteFailed": "没能删除，请重试",
    "check": "帮我查查",
-   "checkMeta": "在已连接的邮件和消息里找新待办",
    "checkPrompt": "帮我查查已连接的邮箱、消息等来源里，有没有需要我处理的新事项，有就记成待办。",
    "checkFailed": "没能发送，请重试",
    "dailyCheck": "每天帮我查一次",
    "dailyCheckMeta": "工作日 9:00，没有新待办不打扰",
+   "recentTasks": "近期任务",
+   "unread": "未读结果",
+   "stopDailyCheck": "停止每天检查",
+   "loadFailed": "待办加载失败，点击重试",
    "dailyCheckFailed": "没能保存，请重试",
    "outputs": "输出内容",
-   "outputMeta": "{{time}} · {{task}}",
    "openFailed": "没能打开文件",
    "source": {
     "conversation": "你交代的",
@@ -276,6 +292,9 @@
    }
   },
   "remoteSettings": {
+   "saveFailed": "未能确认保存结果，请重新读取设置后再试。",
+   "conflict": "设置已在另一台设备上更改，请重新读取后再保存。",
+   "unsupported": "请更新另一台设备上的 WinOne 以编辑这些设置。",
    "finishOnHost": "请在「{{device}}」上完成。"
   },
   "devicePicker": {
@@ -320,7 +339,6 @@
    "pin": "置顶",
    "unpin": "取消置顶",
    "pinned": "已置顶",
-   "needsAttention": "需要处理",
    "duplicate": "复制伙伴",
    "sectionExpand": "展开伙伴",
    "showLess": "收起",
@@ -334,10 +352,6 @@
   },
   "retry": "重试",
   "backToBot": "返回伙伴",
-  "sessionLoadFailedTitle": "无法加载这个伙伴任务",
-  "sessionLoadFailedDescription": "任务关联仍然存在，但 WinOne 暂时无法读取伙伴状态。你可以重试，或返回伙伴总览。",
-  "sessionUnavailableTitle": "这个伙伴任务已不可用",
-  "sessionUnavailableDescription": "这条任务可能已丢失、被删除，或不再属于这个伙伴。返回后会打开恢复好的主任务。",
   "settings": "设置",
   "settingsTabs": {
    "model": "模型"
@@ -426,6 +440,7 @@
    "continueEditing": "继续编辑"
   },
   "profileSaveFailed": "伙伴设置未能保存，变更没有生效。",
+  "profileSaveOffline": "无法连接伙伴所在的电脑，请恢复连接后重新保存。",
   "modelUnavailable": "{{model}}（当前不可用）",
   "send": "发送消息",
   "roster": {
@@ -491,24 +506,84 @@
    "messageSentWithText": "已告诉后台任务：「{{text}}」"
   },
   "directMessage": {
+   "sentTo": "已发消息给 {{name}}",
+   "receivedFrom": "消息来自 {{name}}",
    "open": "查看伙伴之间的对话",
    "readOnly": "此对话仅供查看",
    "close": "关闭对话",
    "unavailable": "这条伙伴对话已不可用。",
    "empty": "还没有可查看的消息。",
-   "limitReached": "本轮伙伴对话已到上限，双方已回到各自的主任务",
-   "sentHeader": "发给 {{name}}",
-   "receivedHeader": "{{name}} 发来",
-   "expandThread": "展开往来",
-   "exchangeCountShort": "{{count}} 条往来",
-   "exchangeCountShort_one": "{{count}} 条往来",
-   "exchangeCountShort_other": "{{count}} 条往来",
-   "expand": "展开",
-   "collapse": "收起",
-   "fullThread": "完整对话",
-   "threadClosed": "本轮伙伴对话已结束 · 只供查看"
+   "limitReached": "本轮伙伴对话已到上限，双方已回到各自的主任务"
   },
   "groupChat": {
+   "mask": {
+    "toolAccess": "工具权限",
+    "catchup": {
+     "title": "@ 我的消息",
+     "me": "我",
+     "markAll": "全部标为已读",
+     "empty": "没有未读的 @ 消息",
+     "thread": "话题",
+     "main": "群聊",
+     "answered": "已代答"
+    },
+    "title": "AI 代答模式",
+    "settings": "AI 代答设置",
+    "companion": "我的伙伴",
+    "choose": "选择一位伙伴",
+    "enabled": "自动代答",
+    "triggerLabel": "触发方式",
+    "resumeAfter": "离开多久后恢复",
+    "start": "开始时间",
+    "end": "结束时间",
+    "startManual": "现在开启",
+    "stop": "停止代答",
+    "todos": "整理与我有关的待办",
+    "digestLabel": "汇总给我",
+    "saving": "正在保存…",
+    "saveError": "未能保存，仍按原设置代答。请重试。",
+    "retry": "重试",
+    "loading": "正在加载你的设置…",
+    "takeover": "我来回复",
+    "resume": "恢复代答",
+    "status": {
+     "enabled": "已启用",
+     "paused": "已让位",
+     "off": "未开启",
+     "offline": "已离线",
+     "waiting": "待触发",
+     "unbound": "未绑定"
+    },
+    "detail": {
+     "paused": "你已接回这段交流",
+     "off": "自动代答已关闭",
+     "offline": "代答已暂停 · 电脑离线",
+     "waiting": "等待手动开启",
+     "unbound": "尚未选择伙伴",
+     "enabled": "伙伴正在为你待答"
+    },
+    "trigger": {
+     "always": "永久触发",
+     "manual": "手动指定触发",
+     "scheduled": "定时触发"
+    },
+    "digest": {
+     "daily": "每日汇总",
+     "manual": "手动汇总"
+    },
+    "minutes": "{{count}} 分钟",
+    "presence": "你正在参与 · 离开 {{minutes}} 分钟后恢复",
+    "scheduledWait": "等待 {{time}} 开始",
+    "attribution": "{{name}} 为 {{owner}} 回复",
+    "digestNow": "立即整理",
+    "digestWorking": "整理中…",
+    "digestSent": "已发到伙伴私聊",
+    "digestFailed": "整理失败，请重试",
+    "digestEmpty": "暂无新的待整理内容",
+    "joinSetup": "入群后设置 AI 代答模式",
+    "hours": "代答时段",
+    "ownerOnly": "只有你自己能看到和修改这里的设置。"
+   },
    "migrationPending": "部分旧记录尚未上传完成，将自动重试。当前群聊可继续使用。",
    "memberSeparator": "、",
    "ownerOf": "{{name}} 的主人",
@@ -519,10 +594,10 @@
    },
    "progress": {
     "step": "第 {{step}}/{{total}} 步",
-    "speaking": "{{name}} 正在说…",
-    "elapsed": "已做 {{time}}",
     "viewProcess": "看过程",
     "stop": "停止",
+    "stopping": "正在停止…",
+    "queued": "等待开始…",
     "stopMine": "停止我发起的",
     "stopAll": "全部停止",
     "stopAllHint": "包括其他人发起的"
@@ -530,10 +605,11 @@
    "header": {
     "stepRunning": "{{name}} 正在做第 {{step}} 步",
     "speaking": "{{name}} 正在说…",
+    "queued": "{{name}} 排队中",
     "planning": "{{name}} 正在安排…"
    },
-   "memberCount_one": "{{count}} 位伙伴",
-   "memberCount_other": "{{count}} 位伙伴",
+   "memberCount_one": "{{count}} 位成员",
+   "memberCount_other": "{{count}} 位成员",
    "nameLabel": "群名称",
    "waitingConfirm": "{{name}}在等你确认",
    "loadFailedTitle": "无法加载这个群聊",
@@ -576,8 +652,10 @@
    },
    "mention": {
     "all": "所有人",
-    "allHint": "大家都回答",
-    "label": "点名伙伴"
+    "allHint": "仅真人",
+    "label": "点名伙伴",
+    "allBots": "所有伙伴",
+    "allBotsHint": "仅伙伴"
    },
    "composer": {
     "label": "群聊消息",
@@ -652,6 +730,8 @@
     "stepTimeout": "{{name}}太久没做完，这一步先停下",
     "stepUnavailable": "{{name}}现在不可用，这一步没法做",
     "runtimeFailure": {
+     "REMOTE_DEVICE_LIMIT": "{{name}}无法回复：伙伴所在设备保留的远程任务数已达上限。\n请伙伴的主人归档暂时不用的任务，或请远程电脑的主人在“远程与分享”中提高上限。",
+     "REMOTE_TOTAL_LIMIT": "{{name}}无法回复：远程电脑保留的任务总数已达上限。\n请那台电脑的主人释放暂时不用的任务，或在“远程与分享”中提高上限。",
      "IMAGE_INPUT_UNSUPPORTED": "{{name}}无法回复：当前模型不支持图片。\n请切换到支持图片的模型，或在「设置 → 个性化 → 视觉桥」开启并配置视觉模型后重新发送。",
      "MODEL_UNAVAILABLE": "{{name}}无法回复：当前没有可用模型。\n请在伙伴设置中选择已连接的可用模型后重新发送。",
      "AUTH_REQUIRED": "{{name}}无法回复：模型连接需要重新认证。\n请在设置中重新连接对应模型来源后重新发送。",
@@ -661,6 +741,11 @@
      "NETWORK_ERROR": "{{name}}无法回复：网络连接失败。\n请检查网络或 Proxy 后重新发送。",
      "RUNTIME_TIMEOUT": "{{name}}本次回复超时。\n请重新发送消息，或选择其他可用模型。",
      "RUNTIME_ERROR": "{{name}}这次没能回复。\n请重新发送消息；如果仍失败，请查看日志并反馈问题。"
+    },
+    "capability": {
+     "GROUP_AUTHORIZATION_REQUIRED": "{{name}} 的工具调用未执行：群内授权已失效或不允许此操作。请由伙伴主人在当前群重新发起。",
+     "GROUP_AUTHORIZATION_UNAVAILABLE": "暂时无法核验 {{name}} 的群聊授权，这次工具调用未执行。请在连接恢复后重试。",
+     "ATTACHMENTS_UNAVAILABLE": "部分附件未交给 {{name}}（下载失败或数量限制）。请重新发送本次需要的附件。"
     }
    },
    "settings": {
@@ -686,7 +771,7 @@
     "speakingMode": "发言方式",
     "speakingModeAuto": "自动",
     "speakingModeSequential": "始终轮流",
-    "speakingModeAutoNote": "未 @ 人或 @所有人时，首轮同时思考，之后轮流；@ 伙伴按提及顺序轮流。",
+    "speakingModeAutoNote": "未 @ 人或 @所有伙伴时，首轮同时思考，之后轮流；@ 伙伴按提及顺序轮流。",
     "speakingModeSequentialNote": "每次只有一位伙伴发言，后说的能看到前面的回答。",
     "speakingModeSaveFailed": "发言方式没能保存，请再试一次",
     "setOrganizer": "设为负责人",
@@ -700,7 +785,9 @@
     "projectDirClear": "清除",
     "projectDirNote": "分工做事时，伙伴们在这里干活。不选也行，会用这个群自己的文件夹；选了 git 项目，每次分工会新开一个 worktree 和分支，不动你手上的代码。",
     "autoContinueSaveFailed": "分工交接没能保存，请再试一次",
-    "projectDirSaveFailed": "项目文件夹没能保存，确认文件夹还在后再试"
+    "projectDirSaveFailed": "项目文件夹没能保存，确认文件夹还在后再试",
+    "allowMentionAllBots": "允许 @所有伙伴",
+    "allowMentionAllBotsHint": "仅群主可更改。伙伴可能都会回复，大群请谨慎开启。此开关不影响 AI 代答。"
    },
    "errors": {
     "memberLimit": "一个群需要 2–6 位伙伴",
@@ -710,6 +797,9 @@
     "hostNotReady": "WinOne 还在准备中，请稍后重试",
     "planOpen": "正在分工，做完或停止后才能安排新的",
     "planClosed": "这个安排已经结束或更新了",
+    "revisionConflict": "工作状态已变化，未能完成操作",
+    "stopOwnershipUnknown": "部分工作未能停止：无法确认由谁发起",
+    "nothingToStop": "当前没有可停止的工作",
     "invalidAttachment": "附件无法读取，请重新选择后发送。",
     "attachmentUnavailable": "未能从手机取回附件，请检查设备连接后重试。",
     "attachmentTooLarge": "附件超过 100 MB，请选择较小的文件。",
@@ -724,7 +814,9 @@
     "quoteUnavailable": "引用的消息已删除或不可见，已取消引用，请再发送一次",
     "lifecycleUnavailable": "当前服务器或电脑暂不支持此操作。",
     "groupDissolved": "群聊已解散，仍可查看有权访问的历史消息。",
-    "lastOwner": "请先转让群主或解散群聊，再退出。"
+    "lastOwner": "请先转让群主或解散群聊，再退出。",
+    "allBotsMentionDisabled": "群主尚未开启 @所有伙伴。",
+    "turnAlreadyStarted": "这位伙伴已开始执行，不能跳过"
    },
    "organizer": "负责人",
    "plan": {
@@ -751,11 +843,19 @@
     "dismissFailed": "没能结束这个安排，请再试一次",
     "editFailed": "这一步没改成，请再试一次",
     "talkTurn": "说说看法",
-    "stepSpeaking": "正在说",
     "stepSpoken": "说完了",
     "allTurns_one": "共 {{count}} 位",
     "allTurns_other": "共 {{count}} 位",
-    "foldTurns": "收起"
+    "foldTurns": "收起",
+    "stepQueued": "等待开始",
+    "stepExecuting": "运行中",
+    "stepSkipped": "已跳过",
+    "queueWaiting": "等你点继续",
+    "skipTurnLabel": "跳过 {{name}}",
+    "queueEnded": "本轮结束",
+    "talkTitle": "依次说说看法",
+    "talkPending": "待开始",
+    "skipTurn": "跳过"
    },
    "speaking": {
     "planning": "正在安排…"
@@ -845,9 +945,23 @@
     "reactorFormer": "{{name}}（已不在群中）",
     "reactorsUnavailable_one": "另有 {{count}} 位成员的信息暂不可用",
     "reactorsUnavailable_other": "另有 {{count}} 位成员的信息暂不可用",
+    "readStatusSent": "已发送",
+    "readStatusRead": "已读",
+    "readersCount_one": "{{count}} 人已读",
+    "readersCount_other": "{{count}} 人已读",
+    "readersView": "查看已读",
+    "readersTooLarge": "群成员太多，暂不显示已读名单",
+    "readersNone": "无人已读",
+    "readersLoading": "加载中…",
+    "readersFailed": "无法加载已读名单",
+    "readersHeading": "已读",
+    "readersOfTotal": "已读 {{read}}/{{total}}",
+    "readerUnknown": "未知成员",
     "invite": "邀请加入群聊",
+    "groupCreated": "群聊已创建",
+    "inviteFriends": "邀请朋友加入，一起使用伙伴",
+    "generatingLink": "正在生成邀请链接…",
     "join": "加入群聊",
-    "inviteDescription": "对方接受邀请后会成为群成员，可阅读群聊记录。",
     "revokeLink": "撤销此链接",
     "revokeDescription": "此链接将无法再用于加入群聊。其他邀请链接和已加入的成员不受影响。",
     "revokedLink": "此邀请链接已撤销。",
@@ -875,6 +989,17 @@
     "copyFailed": "复制失败，请选中链接手动复制。",
     "createDescription": "伙伴可以选，也可以先建群，再邀请朋友加入。",
     "settings": {
+     "notifications": {
+      "title": "消息通知",
+      "all": "所有消息",
+      "mentions": "仅 @我",
+      "none": "关闭通知",
+      "allHint": "群聊消息和已关注话题的新回复都会提醒",
+      "mentionsHint": "有人 @你或 @所有人时提醒，分工待处理仍会提醒",
+      "noneHint": "关闭本群所有系统提醒，未读消息仍会保留",
+      "saving": "正在保存…",
+      "saveFailed": "未能保存通知设置，请重试"
+     },
      "name": "群名称",
      "topic": "群主题",
      "description": "群简介",
@@ -891,22 +1016,16 @@
      "member": "成员",
      "guest": "访客",
      "companionOf": "{{name}} 的伙伴",
-     "guestAccess": "其他成员使用权限",
      "toolsHint": "本群成员可以使用伙伴已有的工具与私人资料，结果对全群可见。原有操作审批仍有效；撤回会停止进行中的请求，已执行的操作无法撤销。",
-     "chatHint": "默认只使用群内消息，不读取主人记忆、私人资料或调用工具。",
-     "none": "仅主人可使用",
-     "chat": "仅群内交流",
-     "tools": "主人已授权工具与资料",
      "ownerOnly": "只有伙伴的主人可以修改此授权。",
      "authorizeTitle": "授权本群使用 {{name}} 的工具与资料？",
      "makeAdmin": "设为管理员",
      "removeAdmin": "取消管理员",
      "transfer": "转让群主",
      "transferTitle": "将群主转让给 {{name}}？",
-     "transferHint": "对方成为群主，你将成为管理员。伙伴也可以担任群主。",
+     "transferHint": "对方成为群主，你将成为管理员。",
      "removeTitle": "将 {{name}} 移出群？",
      "removeHint": "该成员将无法继续查看或发消息；如果是伙伴的主人，其伙伴也会退出。",
-     "addCompanion": "邀请我的伙伴",
      "leave": "退出群",
      "leaveHint": "你和你的伙伴将退出此群聊，不再接收新消息，也无法查看群历史。",
      "soleOwnerHint": "群里只剩你。可以归档群，保留历史记录，以后再恢复使用。",
@@ -918,10 +1037,78 @@
      "unarchive": "取消归档",
      "unarchiveHint": "取消归档后，本群对所有成员恢复新消息和伙伴执行。",
      "archived": "本群已归档，可继续查看历史记录。",
-     "noneHint": "本群只有伙伴的主人可以让伙伴回应。",
-     "companionPermissions": "伙伴权限",
-     "configureCapabilities": "工具与授权设置",
-     "capabilityScope": "这是 {{name}} 自己的工具与授权，不是仅限本群的设置。"
+     "capabilityScope": "这是 {{name}} 自己的工具与授权，不是仅限本群的设置。",
+     "tabSettings": "群设置",
+     "youAreOwner": "你是群主",
+     "youAreAdmin": "你是管理员",
+     "inviteEntry": "邀请",
+     "inviteFriendsItem": "邀请朋友",
+     "inviteFriendsItemHint": "生成链接，发给朋友",
+     "inviteFriendsLocked": "只有群主和管理员可以邀请朋友",
+     "inviteBotsItem": "邀请伙伴",
+     "inviteBotsItemHint": "点选你的伙伴，直接加入",
+     "searchTeammates": "搜索伙伴",
+     "inviteBotsCount": "共 {{count}} 位可加入",
+     "inviteBotsAllIn": "你的伙伴都已经在群里了",
+     "inviteBotsNoMatch": "没有找到「{{query}}」",
+     "inviteBotsAdded": "已把 {{name}} 加入群聊",
+     "noTeammates": "你还没有伙伴",
+     "createTeammate": "创建伙伴",
+     "back": "返回群设置",
+     "about": "群介绍",
+     "edit": "编辑",
+     "add": "添加",
+     "aboutEmpty": "添加群主题和简介，新成员一进来就知道这里聊什么。",
+     "showMore": "展开",
+     "showLess": "收起",
+     "you": "你",
+     "searchMembers": "搜索成员",
+     "membersNoMatch": "没有找到「{{query}}」",
+     "teammateTag": "伙伴",
+     "paused": "已暂停",
+     "accessNone": "仅主人可用",
+     "accessChat": "仅群内交流",
+     "accessTools": "可用工具与资料",
+     "replies": "伙伴怎么接话",
+     "replyModeMentionedNote": "不 @ 人时，伙伴不会接话。",
+     "work": "分工",
+     "ownFolder": "群自己的文件夹",
+     "projectDirHint": "分工时，伙伴们在这里干活。",
+     "projectDirClearHint": "改用群自己的文件夹",
+     "organizerHint": "安排谁做哪一步；默认是第一位伙伴。",
+     "autoContinueHint": "关闭时，每一步都等你点「继续」。",
+     "workCaption": "选了 git 项目时，每次分工都会新开分支，不动你手上的代码。项目文件夹和自动交接只在这台电脑上生效。",
+     "me": "我在本群",
+     "profileHint": "本群昵称和头像，只在这个群显示",
+     "maskHint": "有人 @ 你时，由你的伙伴代你回复",
+     "myTeammates": "我的伙伴",
+     "myTeammatesCaption": "决定群里其他人能怎样使用你的伙伴。",
+     "manage": "群管理",
+     "manageHintOwner": "接话方式、负责人、分工、归档与解散",
+     "manageHintAdmin": "接话方式、负责人、分工、归档",
+     "manageCaption": "这一页只有群主和管理员能看到。",
+     "hideHint": "不退群，只是不在你的列表里显示",
+     "leaveRowHint": "你的伙伴会和你一起退出",
+     "leaveRowHintAlone": "退出后不再收到新消息，也看不到群历史",
+     "leaveBlocked": "先把群主转让给别人，才能退出",
+     "archiveRowHint": "全群停用，历史保留，以后可以恢复",
+     "unarchiveRowHint": "恢复新消息和伙伴干活",
+     "dissolveRowHint": "不可恢复，所有人都不能再发消息",
+     "editTitle": "编辑群资料",
+     "topicHint": "显示在群介绍的第一行",
+     "descriptionHint": "伙伴每次回复都会参考最新的群简介。",
+     "companionTitle": "{{name}} 在本群",
+     "yourTeammate": "你的伙伴",
+     "accessQuestion": "群里其他人可以怎样使用 {{name}}？",
+     "defaultTag": "默认",
+     "accessNoneTitle": "只有你能用",
+     "accessNoneHint": "群里只有你能让 {{name}} 回应。",
+     "accessChatTitle": "只在群里交流",
+     "accessChatHint": "只根据群里的消息回答，不读你的记忆和私人资料，也不调用工具。",
+     "accessToolsTitle": "可以用工具和资料",
+     "accessToolsHint": "可以使用 {{name}} 已有的工具和你的私人资料，结果全群可见。原有的操作审批照常；撤回后，已经做完的操作不能撤销。",
+     "capabilitiesRow": "{{name}} 的工具与授权",
+     "accessMenu": "在本群的权限"
     }
    },
    "lifecycle": {
@@ -963,22 +1150,112 @@
    "skill": "技能",
    "mcp": "MCP",
    "toolset": "内置工具",
-   "unavailable": "不可用",
    "empty": "没有匹配的能力",
-   "accessHint": "逐项选择伙伴可使用的内置工具、MCP 与技能。更改从下一次请求生效，也适用于已授权的群内请求。",
-   "inheritedHint": "当前跟随本机已开启的工具。关闭任意一项后，此列表只使用你选择的项目。",
-   "selectedHint": "此列表中，伙伴只使用已选中的项目。",
-   "personalHint": "伙伴自己学到的技能，随伙伴自动加载。",
    "unavailableHint": "本机或当前执行环境暂不可用，请先配置连接或系统授权。",
    "notOnThisComputer": "这台电脑不可用",
-   "configure": "前往配置",
    "empty_toolset": "当前执行环境没有可用的内置工具。",
    "empty_mcp": "尚未添加自定义 MCP 服务。",
    "empty_skill": "暂无可选的技能。",
    "inputHandoff": {
     "title": "代输入",
     "description": "遇到需要你本人输入的登录信息、密码或验证码时，允许这位伙伴请你在任意设备上填写。你填写的内容不会交给它。"
-   }
+   },
+   "intro": "选择这位伙伴能用的技能、工具和 MCP，从下一条消息开始生效。",
+   "alwaysOn": "始终开启",
+   "core": {
+    "group": "核心技能",
+    "name": "伙伴核心技能",
+    "hint": "开任务、联系伙伴、换模型、用工具和插件、记忆。随 WinOne 更新。",
+    "meta": "所有伙伴共用 · 始终开启 · 随 WinOne 更新",
+    "note": "每位伙伴都有的编排能力，不能关闭或修改。想让它换种做法，在对话里告诉它，它会记成自己的技能。",
+    "covers": "包括",
+    "raw": "查看原文",
+    "items": {
+     "tasks": {
+      "title": "任务",
+      "body": "了解当前可控制的任务和可用电脑，按你的要求安排、跟进任务，把结果带回；跨电脑操作前查询实际支持范围。"
+     },
+     "teammates": {
+      "title": "联系伙伴",
+      "body": "给其他伙伴发消息，或帮你创建新伙伴。"
+     },
+     "models": {
+      "title": "模型与工具",
+      "body": "按你的要求切换模型，按需找到并使用工具和插件。"
+     },
+     "memory": {
+      "title": "记忆",
+      "body": "记住你的偏好和背景，用前先查、有变化就更新。"
+     },
+     "self": {
+      "title": "了解与设置 WinOne",
+      "body": "了解 WinOne 的功能和用法，按你的要求查询、调整设置；需要你填写或确认时，在任务里交给你完成。"
+     }
+    }
+   },
+   "system": {
+    "group": "系统技能",
+    "meta": "已开 {{on}} / 共 {{total}}",
+    "pageMeta": "系统技能 · 随 WinOne 更新",
+    "use": "为这位伙伴开启",
+    "whenOff": "关闭后",
+    "items": {
+     "todo": {
+      "name": "待办",
+      "hint": "记下你交代的事和它发现的事，到期提醒你。",
+      "off": "不再记录、整理和提醒待办；已有待办保留，重新开启后继续。"
+     },
+     "routine": {
+      "name": "例行任务",
+      "hint": "帮你建立和维护定期执行的例行任务。",
+      "off": "不再新建或修改例行任务；已有例行任务照常运行，你仍可在「例行任务」页管理。"
+     },
+     "follow": {
+      "name": "工作台与跟进",
+      "hint": "关注你所有任务的近况，跟进你交给它的任务。",
+      "off": "不再主动查看和跟进你的任务；你仍可以在对话里直接问它。"
+     }
+    }
+   },
+   "learned": {
+    "group": "学会的技能",
+    "empty": "还没有学会的技能。夜间学习会把反复用到的做法整理成技能，你也可以在对话里让它记下来。",
+    "meta": "自己学会的 · 更新于 {{date}}",
+    "metaUndated": "自己学会的",
+    "missing": "这个技能已不存在。",
+    "use": "使用这个技能",
+    "useHint": "关闭后保留内容，伙伴暂时不用它。",
+    "edit": "修改",
+    "delete": "删除",
+    "cancel": "取消",
+    "save": "保存",
+    "saveFailed": "没能保存，请稍后再试。",
+    "deleteFailed": "没能删除，请稍后再试。",
+    "deleteTitle": "删除「{{name}}」？",
+    "deleteBody": "删除后伙伴不再使用这个技能，内容无法恢复。以后需要时，可以在对话里让它重新记下。",
+    "unsavedTitle": "尚有未保存的修改",
+    "unsavedDescription": "离开后会丢弃这次对技能的修改。",
+    "discard": "放弃修改",
+    "continueEditing": "继续编辑",
+    "descriptionLabel": "什么时候用",
+    "bodyLabel": "做法"
+   },
+   "local": {
+    "group": "本机技能"
+   },
+   "followMeta": "跟随本机 · {{count}} 项",
+   "selectedMeta": "已选 {{count}} / 共 {{total}}",
+   "showRest": "显示其余 {{count}} 项",
+   "showLess": "收起",
+   "manage": "管理",
+   "toolSettings": "工具设置",
+   "notTurnedOn": "这台电脑还没开启",
+   "turnOn": "去开启",
+   "permissions": "权限"
+  },
+  "systemSkills": {
+   "followOffHint": "{{name}} 的系统技能「工作台与跟进」已关闭，在能力页重新开启后才能使用。",
+   "offHint": "系统技能「{{skill}}」已关闭，在能力页重新开启后才会运行。"
   },
   "guided": {
    "title": "创建伙伴",
@@ -1193,7 +1470,16 @@
      "appIdLabel": "App ID",
      "appIdPlaceholder": "cli_xxxxxxxxxxxxxxxx",
      "appSecretLabel": "App Secret",
-     "appSecretPlaceholder": "粘贴 App Secret"
+     "appSecretPlaceholder": "粘贴 App Secret",
+     "description": "连接后，可以在{{service}}中给 {{name}} 发消息。",
+     "createPrompt": "还没有{{service}}机器人？",
+     "createLink": "前往{{service}}开放平台创建",
+     "credentialsHint": "创建后，从「凭证与基础信息」复制 App ID 和 App Secret，回到这里填写。",
+     "stepsLabel": "查看配置步骤",
+     "stepCreate": "在开放平台创建企业自建应用并添加机器人能力。在「权限管理」确认已开通读取单聊消息（im:message.p2p_msg:readonly）和以应用身份发消息（im:message:send_as_bot）权限；接收群聊 @ 消息还需 im:message.group_at_msg:readonly。",
+     "stepCredentials": "打开应用的「凭证与基础信息」，复制 App ID 和 App Secret。",
+     "stepConnect": "将凭证填入下方，点击「连接{{service}}」建立连接。回到开放平台「事件与回调」，将订阅方式设为「使用长连接接收事件」，并添加「接收消息」（im.message.receive_v1）事件。在「回调配置」中选择使用长连接接收回调，并添加「卡片回传交互」（card.action.trigger），让卡片按钮可用。完成版本发布，需审核时等待通过，再给机器人发消息并点击卡片按钮验证。",
+     "confirm": "连接{{service}}"
     },
     "wecom": {
      "botIdLabel": "Bot ID",
@@ -1249,6 +1535,8 @@
    }
   },
   "voiceMode": {
+   "openConversation": "打开对话",
+   "inCallWith": "正在与 {{name}} 通话",
    "showDetails": "展开通话记录",
    "hideDetails": "收起通话记录",
    "transcriptTitle": "当前识别文字",
@@ -1317,6 +1605,7 @@
    "unsent": "尚未发送 · 可选中文字复制",
    "hint": "停顿后自动发送，回复由 AI 语音朗读。随时开口即可插话。",
    "status": {
+    "questionElsewhere": "任务里有问题等你回答 · 仍在通话",
     "idle": "准备好就开始",
     "connecting": "正在连接语音识别…",
     "listening": "正在听",
@@ -1332,6 +1621,7 @@
     "muted": "麦克风已关闭 · 可以继续收听"
    },
    "errors": {
+    "busy": "语音正被其他通话、朗读、试听或听写占用，请结束后重试。",
     "connection": "语音连接中断，未发送的文字已保留。",
     "microphone": "麦克风已停止，请检查权限和设备连接后继续。",
     "send": "这条消息未被接收，文字已保留。",
@@ -1399,6 +1689,11 @@
    "cancel": "取消"
   }
  },
+ "diffPanel": {
+  "shell": {
+   "resizeHandleAria": "调整面板宽度"
+  }
+ },
  "newChat": {
   "sendButton": {
    "send": "发送消息",
@@ -1447,11 +1742,19 @@
   },
   "asrServiceUnavailable": "语音识别服务连接失败，请检查网络或稍后重试。",
   "emptyTranscript": "检测到了语音，但没有识别出文字，请重试。",
+  "speakerFiltered": "已忽略其他人的声音",
   "connectionInterrupted": "语音连接中断了，请检查网络后重试。",
   "recognitionStalled": "语音识别没有继续返回结果，请重试。",
   "transcriptKept": "{{message}}（识别出的文字已经保留，可以直接编辑）"
  },
  "chat": {
+  "teammateProcess": {
+   "elapsed": "已处理 {{duration}}",
+   "took": "用时 {{duration}}",
+   "processing": "正在处理",
+   "worked": "处理记录",
+   "thinking": "正在思考"
+  },
   "jumpToBottom": "跳到底部",
   "askUserQuestion": {
    "voice": {
@@ -1474,10 +1777,22 @@
    "customAnswer": "输入其他回答…",
    "answerPlaceholder": "请输入回答…"
   },
+  "thinking": {
+   "completed": "思考 {{duration}}",
+   "aborted": "思考 {{duration}}（已终止）"
+  },
   "workGroup": {
    "working": "正在工作…",
    "worked": "已工作 {{duration}}",
-   "workDetails": "工作过程"
+   "workDetails": "工作过程",
+   "exploration": {
+    "read_one": "读取 {{count}} 个文件",
+    "read_other": "读取 {{count}} 个文件",
+    "search_one": "搜索 {{count}} 次",
+    "search_other": "搜索 {{count}} 次",
+    "list_one": "列出目录 {{count}} 次",
+    "list_other": "列出目录 {{count}} 次"
+   }
   },
   "imageMissing": {
    "title": "图片已丢失",
@@ -1511,6 +1826,9 @@
    "notMounted": "有些已选消息暂未显示，请滚动回去让它们显示后重试",
    "tooLarge": "所选内容过长或过宽，请减少选择后重试",
    "failed": "图片生成失败，请重试"
+  },
+  "errorBanner": {
+   "retry": "重试"
   },
   "media": {
    "modelPreviewAlt": "3D 模型预览",
@@ -1548,7 +1866,25 @@
    "openModelFailed": "打开模型失败",
    "modelLoading": "正在加载 3D 模型…",
    "modelLoadFailed": "加载 3D 模型失败",
+   "videoCopied": "视频已复制",
+   "copyVideo": "复制视频",
+   "revealVideo": "打开视频所在目录",
+   "videoUnavailable": "视频不可用",
    "imageMissing": "图片已丢失"
+  },
+  "mermaid": {
+   "clickToZoom": "点击放大",
+   "zoom": "放大",
+   "viewDiagram": "查看图表",
+   "viewSource": "查看源码",
+   "copy": "复制",
+   "copied": "已复制",
+   "annotate": "标注",
+   "renderFailed": "mermaid 渲染失败 — 显示源码"
+  },
+  "mermaidLightbox": {
+   "zoomOut": "缩小",
+   "zoomIn": "放大"
   },
   "lightbox": {
    "pathCopied": "路径已复制",
@@ -1565,8 +1901,7 @@
    "loading": "正在加载文件…",
    "oversizeTitle": "文件过大，无法预览",
    "oversizeBody": "该文件大小为 {{size}}，超过 {{limit}}MB 预览上限。请使用系统默认应用打开。",
-   "openInSystem": "用系统应用打开",
-   "closeHint": "或点击背景关闭"
+   "openInSystem": "用系统应用打开"
   },
   "remoteFile": {
    "previewFailed": "无法准备网页预览，请检查目录和连接后重试",
@@ -1601,6 +1936,114 @@
    "downloadSkipped": "已下载到「下载」文件夹，但有部分文件未能下载",
    "cancelTransfer": "取消",
    "downloadsInProgress": "正在下载 {{count}} 个文件"
+  },
+  "agentActionRow": {
+   "fileChange": {
+    "deleted": "删除",
+    "renamed": "重命名",
+    "files": "{{count}} 个文件"
+   },
+   "verb": {
+    "edited": "编辑",
+    "created": "创建",
+    "ran": "运行",
+    "read": "读取",
+    "updated": "更新",
+    "searched": "搜索",
+    "fetched": "访问",
+    "used": "调用",
+    "listed": "列出",
+    "inspect": "查阅内容",
+    "inspectRepository": "检查仓库",
+    "inspectEnvironment": "检查开发环境",
+    "modifyRepository": "修改仓库",
+    "verify": "运行验证",
+    "installedDeps": "安装依赖",
+    "ranTests": "运行测试",
+    "built": "构建",
+    "linted": "代码检查",
+    "typechecked": "类型检查",
+    "runScript": "运行脚本",
+    "runNodeScript": "运行 Node.js 脚本",
+    "runPythonScript": "运行 Python 脚本",
+    "runPerlScript": "运行 Perl 脚本",
+    "runSwiftScript": "运行 Swift 脚本",
+    "checkSyntax": "检查语法",
+    "showVersion": "查看版本",
+    "checkFormatting": "检查格式",
+    "parseJson": "解析 JSON",
+    "count": "统计",
+    "showCurrentDirectory": "查看当前目录",
+    "showDateTime": "查看日期时间",
+    "locateCommand": "查找命令",
+    "inspectProcesses": "查看进程",
+    "inspectPorts": "查看端口",
+    "queryDatabase": "查询数据库",
+    "ranCommand": "运行命令",
+    "gitStatus": "查看工作区状态",
+    "gitDiff": "查看代码变更",
+    "gitLog": "查看提交记录",
+    "gitShow": "查看提交内容",
+    "gitAdd": "暂存代码变更",
+    "gitCommit": "提交代码变更",
+    "gitFetch": "获取远端更新",
+    "gitPull": "拉取远端更新",
+    "gitPush": "推送代码变更",
+    "gitRebase": "变基分支",
+    "gitMerge": "合并分支",
+    "gitCherryPick": "拣选提交",
+    "gitStash": "管理暂存工作",
+    "gitRestore": "恢复文件",
+    "gitSubmodule": "管理子模块",
+    "gitRemote": "查看远端仓库",
+    "gitRevParse": "解析 Git 引用",
+    "gitBranch": "查看分支",
+    "gitGrep": "搜索仓库内容",
+    "gitMergeBase": "查找共同祖先",
+    "gitLsFiles": "查看已跟踪文件",
+    "gitRevList": "查看提交范围",
+    "gitLsRemote": "查看远端引用",
+    "gitWorktreeList": "查看 worktree",
+    "gitWorktreeAdd": "创建 worktree",
+    "gitWorktreeRemove": "删除 worktree",
+    "gitWorktreeMove": "移动 worktree",
+    "gitWorktreePrune": "清理 worktree",
+    "ghPrList": "查看 PR 列表",
+    "ghPrView": "查看 PR",
+    "ghPrChecks": "查看 PR 检查",
+    "ghPrStatus": "查看 PR 状态",
+    "ghPrDiff": "查看 PR 变更",
+    "ghPrCreate": "创建 PR",
+    "ghPrEdit": "编辑 PR",
+    "ghPrComment": "评论 PR",
+    "ghPrReview": "评审 PR",
+    "ghPrMerge": "合并 PR",
+    "ghPrClose": "关闭 PR",
+    "ghPrReopen": "重新打开 PR",
+    "ghPrCheckout": "检出 PR",
+    "ghIssueList": "查看 Issue 列表",
+    "ghIssueView": "查看 Issue",
+    "ghIssueStatus": "查看 Issue 状态",
+    "ghIssueCreate": "创建 Issue",
+    "ghIssueEdit": "编辑 Issue",
+    "ghIssueComment": "评论 Issue",
+    "ghIssueClose": "关闭 Issue",
+    "ghIssueReopen": "重新打开 Issue",
+    "ghAuthStatus": "查看 GitHub 登录状态",
+    "ghAuthLogin": "登录 GitHub",
+    "ghAuthLogout": "退出 GitHub",
+    "ghAuthRefresh": "刷新 GitHub 授权",
+    "ghAuthSwitch": "切换 GitHub 账号",
+    "ghRunList": "查看工作流运行",
+    "ghRunView": "查看工作流运行",
+    "ghRunWatch": "监视工作流运行",
+    "ghSearch": "搜索 GitHub",
+    "ghRepoList": "查看仓库列表",
+    "ghRepoView": "查看仓库",
+    "ghApiQuery": "查询 GitHub API",
+    "ghApiMutation": "修改 GitHub 数据",
+    "ghApiCall": "调用 GitHub API"
+   }
   },
   "markdownRenderer": {
    "copyFile": "复制",
@@ -1650,6 +2093,13 @@
   }
  },
  "ccAgent": {
+  "sessionEntry": {
+   "missing": "找不到这条任务，它可能已被删除。",
+   "denied": "当前账号或电脑无法访问这条任务。",
+   "failed": "未能加载这条任务。",
+   "back": "返回任务列表",
+   "retry": "重新加载任务"
+  },
   "agentStatus": {
    "readingMemory": "正在读取记忆…",
    "savingMemory": "正在保存记忆…",
@@ -1710,6 +2160,26 @@
     "notFound": "PR 不存在，或当前账号无权限查看",
     "statusUnknown": "状态获取失败"
    }
+  },
+  "workdirBrowse": {
+   "docSearch": {
+    "ariaLabel": "文档内查找",
+    "placeholder": "查找…",
+    "prev": "上一个",
+    "next": "下一个",
+    "close": "关闭",
+    "truncatedTitle": "命中过多，仅显示前若干项；请精确化 query"
+   }
+  }
+ },
+ "scheduler": {
+  "editor": {
+   "preRunPlugin": {
+    "source": {
+     "script": "脚本",
+     "plugin": "插件"
+    }
+   }
   }
  },
  "logic": {
@@ -1732,6 +2202,18 @@
   "addFiles": "添加文件、图片或视频…"
  },
  "routines": {
+  "deliveryLabel": "最终送达",
+  "deliveryDirect": "直接显示在伙伴对话里",
+  "deliveryProcess": "交给伙伴处理后回复",
+  "deliveryIm": "发送到消息机器人",
+  "deliveryNone": "只保留在执行任务里",
+  "deliveryHint": "默认直接显示结果，不额外调用模型。开启静默检查后，无事时不送达。",
+  "deliveryRecipient": "接收位置",
+  "deliveryUnavailable": "当前接收位置不可用",
+  "deliveryNoRecipients": "请先连接消息机器人，并与它聊过一次，再重新打开此设置。",
+  "deliveryFailed": "已完成，送达失败",
+  "deliveryFailedHint": "执行结果已保留。请检查送达设置；不要为了补发而重新执行任务。",
+  "deliveryDelivered": "结果已送达",
   "onEvent": "事件：{{source}} · {{event}}",
   "triggerDetails": "查看触发条件（{{count}} 项，满足任一项即运行）",
   "noTriggers": "尚未设置触发条件",
@@ -1767,8 +2249,10 @@
   "timezone": "时区",
   "delete": "删除例行任务",
   "save": "保存例行任务",
+  "saved": "例行任务已保存",
   "deleteConfirm": "删除这条例行任务，并取消等待中的运行？",
   "keep": "保留例行任务",
+  "openTask": "查看任务",
   "history": "运行历史",
   "noRuns": "这条例行任务还未运行",
   "field": "字段",
@@ -1800,7 +2284,12 @@
    "not-equals": "不等于"
   },
   "quiet": "检查没事不说话",
+  "sessionMode": "运行方式",
+  "sessionModePersistent": "沿用同一任务（保留上下文）",
+  "sessionModeFresh": "每次新建任务（隔离上下文）",
+  "sessionModeHint": "沿用同一任务会在同一条例行任务的对话里继续；每次新建会为每次触发创建一条独立任务，运行结束后关闭。",
   "quietHint": "仅报告变化或问题。提醒和定时发送可关闭此项。",
+  "checkSource": "检查方式",
   "checkCommand": "前置检查命令",
   "checkHint": "可选。在电脑上先检查：退出码 2 跳过本轮，0 继续执行，异常仍会报告。清空可移除。",
   "timeoutMs": "检查超时（毫秒，留空不限时）",
@@ -1809,9 +2298,8 @@
    "name": "跟进已接手的任务（内置）",
    "hint": "任务卡住、等你、出错、达到用量上限或完成时跟进。只处理已交给我的任务。"
   },
-  "builtinTodoCheck": {
-   "name": "每天查待办（内置）",
-   "hint": "工作日 9:00 在已连接的来源里找新待办，没有就不打扰；在近况里开关，只能暂停或恢复。"
+  "todoCheck": {
+   "name": "每天查待办"
   },
   "builtinNightlyLearning": {
    "name": "夜间学习（内置）",
@@ -1867,6 +2355,14 @@
     "skillDisabled": "停用了技能「{{title}}」",
     "skillMerged": "把技能「{{title}}」并入「{{into}}」并停用"
    }
+  },
+  "remote": {
+   "pause": "暂停例行任务",
+   "resume": "恢复例行任务",
+   "addSchedule": "添加定时条件",
+   "addInterval": "添加间隔条件",
+   "addEvent": "添加事件触发器",
+   "filterField": "筛选字段"
   }
  },
  "richAnswer": {
@@ -1876,5 +2372,24 @@
   "sendFailed": "消息未提交，已保留填写内容",
   "calculationUnavailable": "此项暂时无法计算。",
   "incomplete": "部分内容未能显示。"
+ },
+ "attachmentPreview": {
+  "more": "更多操作",
+  "retry": "重试",
+  "image": "图片",
+  "video": "视频",
+  "reset": "重置视角",
+  "open": "打开预览",
+  "zoomIn": "放大",
+  "zoomOut": "缩小",
+  "fit": "适配窗口",
+  "actualSize": "原始尺寸（1:1）",
+  "previous": "上一个附件",
+  "next": "下一个附件",
+  "find": "在文档中查找",
+  "source": "查看源码",
+  "rendered": "查看文稿",
+  "wrap": "自动换行",
+  "lineNumbers": "行号"
  }
 }

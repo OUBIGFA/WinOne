@@ -46,7 +46,11 @@ function visit(key){
 }
 for(const name of catalog.rootDependencies){
  const key=dependency(name);
- if(manifest.dependencies[name]!==lock.packages[key].version)throw Error('OneBot direct dependency is not pinned: '+name);
+ const locked=lock.packages[key];
+ // npm aliases keep SSRF's newer parser independent of legacy IM dependencies;
+ // accept only the exact locked original name/version, never an alias range.
+ const expected=locked.name&&locked.name!==name?`npm:${locked.name}@${locked.version}`:locked.version;
+ if(manifest.dependencies[name]!==expected)throw Error('OneBot direct dependency is not pinned: '+name);
  visit(key);
 }
 for(const component of catalog.components){

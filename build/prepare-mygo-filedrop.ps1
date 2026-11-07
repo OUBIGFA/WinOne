@@ -11,6 +11,15 @@ if($LASTEXITCODE -ne 0 -or $module.Sum -ne $spec.moduleSum){throw 'MyGo source v
 if((Get-FileHash -LiteralPath (Join-Path $root ('third_party/'+$spec.notice))).Hash.ToLowerInvariant() -ne $spec.licenseSHA256){throw 'MyGo license mismatch'}
 $output=Join-Path $root ('dist/resources/sources/mygo-winone-'+$spec.version)
 & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $output -ReusableCache
+# Independent build/test callers share this source cache. Serialize preparation
+# before reading its stamp, so one cannot hash/copy a partially updated module.
+$lock=$null;$lockDeadline=[DateTime]::UtcNow.AddMinutes(5)
+New-Item -ItemType Directory -Force (Split-Path -Parent $output)|Out-Null
+while(-not $lock){
+    try{$lock=[IO.File]::Open($output+'.prepare.lock',[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)}
+    catch [IO.IOException]{if([DateTime]::UtcNow-ge $lockDeadline){throw 'MyGo source preparation is busy; no cache files were changed'};Start-Sleep -Milliseconds 100}
+}
+try {
 $inputs=@((Get-FileHash -LiteralPath $specPath).Hash)
 foreach($addition in $spec.additions){$inputs+=(Get-FileHash -LiteralPath (Join-Path $source $addition.source)).Hash}
 $stamp=Join-Path $output 'winone-source-cache.json'
@@ -38,3 +47,4 @@ foreach($patch in $spec.patches){
 foreach($addition in $spec.additions){Copy-Item -LiteralPath (Join-Path $source $addition.source) -Destination (Join-Path $output $addition.path) -Force}
 $inventory=@(Get-ChildItem -LiteralPath $output -Recurse -File | Where-Object {$_.FullName -ne $stamp} | ForEach-Object {@{path=$_.FullName.Substring($output.Length+1);sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
 [IO.File]::WriteAllText($stamp,(@{inputs=$inputs;files=$inventory}|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
+} finally {$lock.Dispose()}

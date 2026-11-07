@@ -1,5 +1,12 @@
 {
  "ai.avatarFiles": "Images",
  "ai.avatarInvalidReply": "The picture service returned no valid picture",
- "ai.avatarIncomplete": "The picture did not transfer completely. Choose it again."
+ "ai.avatarIncomplete": "The picture did not transfer completely. Choose it again.",
+ "ai.mediaKindModel": "Specify a media model type",
+ "ai.mediaKind": "Model type",
+ "ai.mediaKindDefault": "Follow the provider catalog",
+ "ai.mediaKindImage": "Image generation",
+ "ai.mediaKindVideo": "Video generation",
+ "ai.mediaKindHint": "Specify a type only if the provider catalog omits it. This does not add a capability to the model.",
+ "ai.mediaKindChoose": "Choose a model"
 }

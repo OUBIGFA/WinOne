@@ -22,7 +22,7 @@ import {todoActionText} from '../cindy/bots/shared/teammate-todo.ts';
 import {collectTaskResponsibilityScopes, readTaskResponsibilities, responsibleSessionIds} from '../cindy/bots/botTaskResponsibility.ts';
 import {createOneBotRoutines} from './routines.mjs';
 import {createOneBotAutonomy} from './autonomy.mjs';
-import {getBotAutonomyGlance, getBotAutonomySettingsView, resetBotAutonomySchedulerSettings, setBotAutonomySchedulerBotId} from '../cindy/autonomy/hub.ts';
+import {getBotAutonomyGlance, getBotAutonomySettingsView, resetBotAutonomySchedulerSettings, setBotAutonomySchedulerBotId, reportTaskDelivery} from '../cindy/autonomy/hub.ts';
 import {signalBotAutonomyBotsChanged} from '../cindy/autonomy/botsChangedSignal.ts';
 import {createOneBotLearningScan} from './learning-scan.mjs';
 import {createOneBotTeammateTools} from './teammate-tools.mjs';
@@ -37,7 +37,7 @@ import {createOneBotImportedConnections} from './import-connections.mjs';
 export const ONEBOT_CONTENT_METHODS = new Set([
   'profile.content.read', 'profile.content.write',
   'memory.list', 'memory.read', 'memory.update', 'memory.delete', 'memory.importDocument', 'memory.index', 'memory.search', 'memory.write', 'memory.consolidate',
-  'skills.list', 'skills.query', 'skills.read', 'skills.readSource', 'skills.save', 'skills.saveSource', 'skills.delete', 'skills.mounts',
+  'skills.list', 'skills.query', 'skills.read', 'skills.readSource', 'skills.save', 'skills.saveSource', 'skills.delete', 'skills.setEnabled', 'skills.mounts',
   'todos.read', 'todos.patch', 'todos.ingest', 'todos.prepareAction', 'todos.settleAction',
 ]);
 const PROFILE_METHODS = new Set(['profiles.list', 'profiles.get', 'profiles.create', 'profiles.update', 'profiles.versions','lifecycle.action']);
@@ -310,7 +310,7 @@ export function createOneBotRuntime({directory, event = () => {},lifecycle = {},
       const environmentFile=path.join(home,'environment.json');
       const importedEnvironment=fs.existsSync(environmentFile)?createHash('sha256').update(fs.readFileSync(environmentFile)).digest('hex'):'';
       return {botId: profile.id, profileVersion: profile.currentVersion, canonicalSessionId: profile.canonicalSessionId, name: profile.name,
-        homeDir: home, workspace, role:owner.role, capabilities: profile.capabilities, systemPrompt: prompt.full, skillDirectories: mounts.skills.map(skill => skill.path), memoryEnabled, importedEnvironment};
+        homeDir: home, workspace, role:owner.role, routeKey:owner.routeKey, capabilities: profile.capabilities, systemPrompt: prompt.full, skillDirectories: mounts.skills.map(skill => skill.path), memoryEnabled, importedEnvironment};
     }
     if (method === 'profiles.create') {
       // Cindy createBotProfile: validated portrait bytes become a managed image
@@ -411,7 +411,7 @@ export function createOneBotRuntime({directory, event = () => {},lifecycle = {},
       if (params.expectedVersion !== profile.currentVersion) throw oneBotError('PRECONDITION_FAILED', 'OneBot 配置已更新，请重新读取后重试');
     }
     const result = await content.call(method, {...params, botId: id});
-    if(['skills.save','skills.saveSource','skills.delete'].includes(method))event({type:'capabilities-changed',botId:id});
+    if(['skills.save','skills.saveSource','skills.delete','skills.setEnabled'].includes(method))event({type:'capabilities-changed',botId:id});
     if (method === 'profile.content.write') await reconcile(id);
     return result;
   }
@@ -533,6 +533,14 @@ export function createOneBotRuntime({directory, event = () => {},lifecycle = {},
       if(!tasks)return Promise.reject(oneBotError('NOT_READY','OneBot 任务执行接口尚未就绪'));
       if(method==='tasks.recover'&&!taskService&&!fs.existsSync(path.join(paths.root,'tasks.db')))return Promise.resolve({tracked:0});
       return tail.then(()=>{taskService??=createOneBotTaskService(owner,tasks);return taskService.call(method,params);});
+    }
+    if (method === 'autonomy.reportDelivery') {
+      // Private Host path: its authenticated conversation and live input own
+      // the supplied snapshot/identity; no model can select another session.
+      return withIMScope(owner, async () => {
+        await autonomy.activity({snapshots: [{...params.snapshot, execution: params.execution}]});
+        return reportTaskDelivery(params.snapshot.sessionId, params.finalDelivery, params.execution.instanceId);
+      });
     }
     if (method === 'autonomy.activity') {
       // Host activity pushes bypass the profile queue: they only update the watch.

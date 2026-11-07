@@ -73,12 +73,14 @@ test('task profile route wins over the live fallback; following inherits its exa
  }finally{await runtime.close();}
 });
 
-test('unavailable task selection and non-owner callers never create or dispatch work',async()=>{
- const {runtime,parent,sent}=await taskFixture();
+test('unavailable task selection and Host-revoked callers never create or dispatch work',async()=>{
+ const {runtime,host,parent,sent}=await taskFixture();
  try{
   const invalid=await runtime.call('tasks.start',{callerSessionId:parent,objective:'Unavailable choice',modelSelection:{id:'missing'},ownerAuthorized:true});
   assert.equal(invalid.errorCode,'TASK_MODEL_UNAVAILABLE');
-  await assert.rejects(runtime.call('tasks.start',{callerSessionId:parent,objective:'Unapproved work',ownerAuthorized:false}),error=>error.code==='OWNER_ONLY');
+  host.assertTaskAuthority=async()=>false;
+  const revoked=await runtime.call('tasks.start',{callerSessionId:parent,objective:'Revoked work',ownerAuthorized:false,principal:'autonomous'});
+  assert.equal(revoked.errorCode,'TASK_ACTION_AUTHORIZATION_EXPIRED');
   const rows=await runtime.call('tasks.list',{callerSessionId:parent});
   assert.deepEqual(rows.delegations,[]);assert.equal(sent.length,0);
  }finally{await runtime.close();}
@@ -133,25 +135,30 @@ test('only the accepted native execution can finish a task, and duplicate comple
  }finally{await runtime.close();}
 });
 
-test('on its own initiative a teammate may advance or stop only its own task, never approve or start one',async()=>{
- const {runtime,parent,sent}=await taskFixture();
+test('autonomous task work uses normal permissions but permission decisions and resume require confirmation',async()=>{
+ const {runtime,host,parent,sent}=await taskFixture();
  try{
   const started=await runtime.call('tasks.start',{callerSessionId:parent,objective:'Owner started work',ownerAuthorized:true});
   assert.equal(started.ok,true,JSON.stringify(started));
   const autonomous={callerSessionId:parent,ownerAuthorized:false,principal:'autonomous'};
-  // Cindy NEEDS_OWNER_REQUEST: a new task, a permission decision or resuming a pause.
-  for(const request of [['tasks.start',{objective:'Self-started work'}],['tasks.message',{delegationId:started.delegationId,input:{kind:'approve'}}],
-   ['tasks.message',{delegationId:started.delegationId,input:{kind:'deny',reason:'no'}}],['tasks.message',{delegationId:started.delegationId,input:{kind:'resume'}}],
-   ['tasks.stop',{delegationId:'someone-elses-task'}]]){
-   const result=await runtime.call(request[0],{...autonomous,...request[1]});
-   assert.equal(result.errorCode,'NEEDS_OWNER_REQUEST',JSON.stringify(result));
+  // Cindy 2d8d3c3: ordinary work is not blocked just because the turn is autonomous.
+  const independent=await runtime.call('tasks.start',{...autonomous,objective:'Self-started work'});
+  assert.equal(independent.ok,true,JSON.stringify(independent));
+  // Explicit permission decisions and resuming a pause need one visible decision.
+  for(const input of [{kind:'approve'},{kind:'deny',reason:'no'},{kind:'resume'}]){
+   const result=await runtime.call('tasks.message',{...autonomous,delegationId:started.delegationId,input});
+   assert.equal(result.errorCode,'CONFIRMATION_REQUIRED',JSON.stringify(result));
   }
+  const missing=await runtime.call('tasks.stop',{...autonomous,delegationId:'someone-elses-task'});
+  assert.equal(missing.ok,false,JSON.stringify(missing));
   const queued=await runtime.call('tasks.message',{...autonomous,delegationId:started.delegationId,input:{kind:'message',text:'Continue toward the original goal'}});
   assert.equal(queued.ok,true,JSON.stringify(queued));
   const stopped=await runtime.call('tasks.stop',{...autonomous,delegationId:started.delegationId});
   assert.equal(stopped.ok,true,JSON.stringify(stopped));
-  // Without a Host principal a non-owner turn is still refused outright.
-  await assert.rejects(runtime.call('tasks.message',{callerSessionId:parent,ownerAuthorized:false,delegationId:started.delegationId,input:{kind:'message',text:'x'}}),error=>error.code==='OWNER_ONLY');
-  assert.equal(sent.filter(input=>input.message?.includes?.('Self-started')).length,0);
+  // Revoked Host authority still blocks ordinary work, regardless of principal.
+  host.assertTaskAuthority=async()=>false;
+  const revoked=await runtime.call('tasks.message',{...autonomous,delegationId:started.delegationId,input:{kind:'message',text:'x'}});
+  assert.equal(revoked.errorCode,'TASK_ACTION_AUTHORIZATION_EXPIRED');
+  assert.ok(sent.some(input=>input.targetSessionId===independent.childSessionId));
  }finally{await runtime.close();}
 });

@@ -16,7 +16,7 @@ import {NodeExecutionEnv} from '@earendil-works/pi-durable/env/node';
 import {estimateContextTokens} from '@earendil-works/pi-ai/utils/estimate';
 import {isRetryableAssistantError} from '@earendil-works/pi-ai/utils/retry';
 import {isContextOverflow} from '@earendil-works/pi-ai/utils/overflow';
-import {createWinOneSession,requestEffort} from './session.mjs';
+import {createWinOneSession,requestEffort,piThinkingLevels} from './session.mjs';
 import {cindyRetrySettings} from './cindy/runtime-settings.mjs';
 import {buildSystemPrompt} from './node_modules/@earendil-works/pi-coding-agent/dist/core/system-prompt.js';
 import {limitChatPayload} from './attachments.mjs';
@@ -25,9 +25,11 @@ import {createWorkflow,WorkflowDoc} from './durable-workflow.mjs';
 import {createToolSearchExtension} from '@earendil-works/pi-durable/tool-search';
 import {createCodemodeExtension} from '@earendil-works/pi-durable/codemode';
 import {CodemodeSandbox,loadQuickJSWasm} from '@earendil-works/pi-codemode';
-import {captureOneBotInputReceipt,oneBotToolInputReceipt,oneBotToolInputSource} from './onebot/input-receipt.mjs';
+import {captureOneBotInputReceipt,oneBotToolInputReceipt,oneBotToolInputSource as durableToolInputSource} from './onebot/input-receipt.mjs';
 import {readOneBotRuntime,acknowledgeOneBotRuntime,acknowledgeOneBotModel} from './onebot/tools.mjs';
 import {nextBotModelRoute} from './cindy/bots/shared/botModelChain.ts';
+import {authorizationIntent} from './authorization.mjs';
+import {isLegacyPlanReadTool} from './permissions.mjs';
 import {inspectResources} from './resources.mjs';
 
 // Explicit delta policy preserves pause/steering state across the 1.4 upgrade.
@@ -44,20 +46,35 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  let projectedTail,contextStats,usage={models:{},tools:{}},queue=[],settleTask,retrying=false;
  let extra={subagents:[],workflow:{items:[]},backgroundRunning:false,paused:false,taskGraph:{scheduling:'paused',tasks:[],total:0}};
  const calls=new AsyncLocalStorage(),listeners=new Set(),pending=new Set();
+ const oneBotToolInputSource=async(api,ctx)=>{const source=await durableToolInputSource(api,ctx);return source&&config.nativeExecutionForInput?{...source,execution:config.nativeExecutionForInput(source.id,source.execution)}:source;};
  // Submissions whose settlement is already awaited (see watchSubmissions).
  const watchedSubmissions=new Set(),unsettled=new Set();let checking=Promise.resolve(),recheck=false;
  const send=value=>{event(value);for(const listener of listeners)listener(value);};
  const report=error=>send({type:'notice',message:String(error?.message??error)});
  const track=promise=>{pending.add(promise);promise.then(()=>pending.delete(promise),error=>{pending.delete(promise);report(error);});return promise;};
  const createNative=(settings,sessionManager)=>createWinOneSession({...settings,durableHost:true,intentMessages:()=>currentMessages,
+  resolveAutoReview:async(request,signal)=>{
+   const call=calls.getStore();if(!config.ghostBridge||!call)return undefined;
+   const source=await oneBotToolInputSource(call.api,call.context);
+   if(!source?.id?.startsWith('plugin-target:'))return undefined;
+   const response=await fetch(config.ghostBridge.baseUrl+'/ghost-review',{method:'POST',headers:{Authorization:'Bearer '+config.ghostBridge.key,'Content-Type':'application/json'},body:JSON.stringify({requestId:source.id,execution:source.execution,request:{...request,userIntent:authorizationIntent(native.session.sessionManager)}}),signal});
+   const resolved=await response.json();
+   if(!response.ok)throw Error(resolved.error??'插件委派授权已变化');
+   return resolved;
+  },
   reviewUserIntent:async()=>{
    const call=calls.getStore();if(!call)return undefined;
    const source=await oneBotToolInputSource(call.api,call.context);
    const delegated=source?.presentation?.reviewRequest;
-   // Native task instructions and completion signals are not new owner words.
-   // The immutable originating receipt, not a model-written wrapper, is authority.
-   if(delegated)return typeof delegated.request?.userText==='string'?delegated.request.userText:'';
+   // A continuation is not new owner text, but it must not erase the owner's
+   // existing restrictions either. The upstream projection authenticates any
+   // cross-session receipt and excludes unverified App/plugin prose.
+   if(delegated)return authorizationIntent(native.session.sessionManager);
    return config.onebotTask?(source?.text??''):undefined;
+  },
+  taskInputReceipt:async()=>{
+   const call=calls.getStore();
+   return call?oneBotToolInputReceipt(call.api,call.context):null;
   },
   onebotInputReceipt:async()=>{
    const call=calls.getStore();if(!config.onebot||!call)return null;
@@ -106,7 +123,33 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  // A steer must reach a model even when this tool round cannot finish. Keep
  // cancellation intent in the same durable store: sequential calls not started
  // yet must not execute stale instructions after an active call is interrupted.
+ async function assertInputAdmitted(api,ctx){
+  const source=await oneBotToolInputSource(api,ctx);
+  if(config.taskBridge&&!await api.memo('winone.task-admitted',ctx)){
+   if(!source?.id||!source.execution)throw Error('独立任务输入缺少持久执行身份');
+   const response=await fetch(config.taskBridge.baseUrl+'/admit',{method:'POST',headers:{Authorization:'Bearer '+config.taskBridge.key,'Content-Type':'application/json'},body:JSON.stringify({requestId:source.id,execution:source.execution}),signal:ctx.abortSignal});
+   const result=await response.json();
+   if(!response.ok||result.accepted!==true)throw Error(result.error??'独立任务输入未获执行许可');
+   await api.memo('winone.task-admitted',true,ctx);
+  }
+  if(config.ghostBridge&&source?.id?.startsWith('mcp-app-message:')){
+   const bridge=config.ghostBridge;
+   const response=await fetch(bridge.baseUrl+'/mcp-app-message-admit',{method:'POST',headers:{Authorization:'Bearer '+bridge.key,'Content-Type':'application/json'},body:JSON.stringify({requestId:source.id}),signal:ctx.abortSignal});
+   if(!response.ok||(await response.json()).accepted!==true)throw Error('插件页已失效，不能继续执行该页提交的输入');
+  }
+  if(config.ghostBridge&&!config.taskBridge&&source?.id?.startsWith('plugin-target:')&&!await api.memo('winone.target-admitted',ctx)){
+   const bridge=config.ghostBridge;
+   const response=await fetch(bridge.baseUrl+'/ghost-input-admit',{method:'POST',headers:{Authorization:'Bearer '+bridge.key,'Content-Type':'application/json'},body:JSON.stringify({requestId:source.id,execution:source.execution}),signal:ctx.abortSignal});
+   const result=await response.json();
+   if(!response.ok||result.accepted!==true)throw Error(result.error??'插件目标输入已失去执行许可');
+   await api.memo('winone.target-admitted',true,ctx);
+  }
+ }
  registry.install(defineExtension({name:'winone.steering',hooks:[hook(ToolTask,{beforeTool:async(call,api,ctx)=>{
+  // Pi records extension callback errors and continues. A permission denial
+  // must use beforeTool's explicit block result rather than throwing here.
+  try{await assertInputAdmitted(api,ctx);}catch(error){return {block:String(error.message??error)};}
+  if(config.legacyPlan&&!isLegacyPlanReadTool(call.name))return {block:'Read-only Plan Mode: change permissions in the native window before executing'};
   const state=await api.snapshot(AdapterDoc,api.conversationId,ctx);
   if(!state?.interruptedCalls?.includes(call.id))return;
   const live=await api.snapshot(LiveDoc,api.conversationId,ctx);
@@ -129,12 +172,32 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  if(!inMemory&&(!file||!path.isAbsolute(file)))throw Error('A durable session needs an absolute history file');
  const storageFile=inMemory?undefined:file+'.durable.sqlite';
  const projected=new Map(),projectionWaiters=new Map();
+ const previousProjections=new Map();
  for(const entry of manager.getEntries()){
   const id=entry.type==='message'?entry.message.durableEntryId:entry.customType==='winone.context-reset'?entry.data?.durableEntryId:entry.details?.durableEntryId;
-  if(id){projected.set(id,entry.id);projectedTail=entry.id;}
+  if(id){const rows=previousProjections.get(id)??[];rows.push(entry);previousProjections.set(id,rows);}
+ }
+ // A branch imports messages from another SQLite namespace. Numeric IDs alone
+ // are not evidence that this database already projected them: compare against
+ // its own non-imported committed entry before reusing a JSONL projection.
+ function restoreOwnProjection(entry){
+  if(entry.data?.legacy)return;
+  const message=entry.model?.[0];
+  const prior=previousProjections.get(entry.id)?.findLast(row=>{
+   if(entry.kind==='pi.reset')return row.type==='custom'&&row.customType==='winone.context-reset';
+   if(entry.kind==='pi.compaction')return row.type==='compaction'&&row.summary===textOf(message);
+   return row.type==='message'&&message&&row.message.role===message.role&&row.message.timestamp===message.timestamp&&JSON.stringify(row.message.content)===JSON.stringify(message.content);
+  });
+  if(prior)rememberProjection(entry.id,prior.id);
  }
  let workflow,collaboration;
  const toolRegistrations=new Map();
+ function toolsFor(model=config.model){
+  const preset=config.runtimeSettings?.toolPreset;
+  if(model.tools===false||preset==='chat-only')return [];
+  if(config.legacyPlan||preset==='read-only')return [...toolRegistrations.values()].filter(tool=>readTools.has(tool.name)).concat(workflow.extension.tools??[]);
+  return null;
+ }
  function makeTool(definition){
   const toolNative=native,toolSDK=sdk;
   return defineTool({name:definition.name,description:definition.description,parameters:definition.parameters,
@@ -171,16 +234,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   }
   registry.install(defineExtension({name:'winone.resources',tools:[...toolRegistrations.values()],sections:[section('winone',()=>runtimePrompt,{tag:false})],hooks:[hook(GenerationTask,{beforeRequest:async(request,api,ctx)=>{
    if(runtimeRefreshError)throw runtimeRefreshError;
-   if(config.onebot||config.onebotTask)await captureOneBotInputReceipt(harness,api,ctx);
-    if(config.taskBridge&&!await api.memo('winone.task-admitted',ctx)){
-     const source=await oneBotToolInputSource(api,ctx);
-     if(!source?.id||!source.execution)throw Error('独立任务输入缺少持久执行身份');
-     const response=await fetch(config.taskBridge.baseUrl+'/admit',{method:'POST',headers:{Authorization:'Bearer '+config.taskBridge.key,'Content-Type':'application/json'},body:JSON.stringify({requestId:source.id,execution:source.execution}),signal:ctx.abortSignal});
-     const result=await response.json();
-     if(!response.ok||result.accepted!==true)throw Error(result.error??'独立任务输入未获执行许可');
-     await api.memo('winone.task-admitted',true,ctx);
-    }
-    if(config.onebot)await captureRequestAxes(api,ctx);
+   await captureRequestAxes(api,ctx);
    currentMessages=[...request.messages];return {messages:await sdk.extensionRunner.emitContext(currentMessages)};
   },afterResponse:applyOneBotModelFallback,onYield:async(_answer,api,ctx)=>{
    if(api.conversationId===root.id)await applyPendingRuntime(true,ctx.abortSignal).catch(report);
@@ -188,16 +242,23 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  }
  refreshRegistry();
  const changed=()=>{if(!closed)track(updateExtras());};
- workflow=createWorkflow({question:async(request,signal,call)=>question({...request,...(config.onebot||config.onebotTask?{requestId:await oneBotToolInputReceipt(call.api,call.context)}:{})},signal),settings:config.runtimeSettings??{},onChange:changed});registry.install(workflow.extension);
+ workflow=createWorkflow({question:async(request,signal,call)=>question({...request,...(config.onebot||config.onebotTask?{requestId:await oneBotToolInputReceipt(call.api,call.context)}:{})},signal),settings:config.legacyPlan?{...config.runtimeSettings,toolPreset:'read-only'}:config.runtimeSettings??{},onChange:changed});registry.install(workflow.extension);
  collaboration=createCollaboration({config,toolRegistrations,onChange:changed});registry.install(collaboration.extension);
  const models=new Proxy({}, {get(_target,key){
   const target=native.modelRuntime;
   if(key==='streamSimple'||key==='completeSimple')return (model,modelContext,options={})=>{
    if(runtimeRefreshError)throw runtimeRefreshError;
    const axes=requestAxes.get(options.sessionId)??{effort:config.thinkingLevel||config.runtimeSettings?.thinkingLevel,fast:!!config.fastMode};
+   // One physical request consumes this host binding. Compaction/utility
+   // requests must not inherit a finished generation's permission context.
+   requestAxes.delete(options.sessionId);
    return target[key](model,modelContext,{...options,onPayload:async(payload,selectedModel)=>{
+   // Provider payload construction is the mandatory boundary: unlike Pi's
+   // best-effort extension hooks, rejection here stops the actual HTTP call.
+   await axes.admit?.();
    let value=(await options.onPayload?.(payload,selectedModel))??payload;
    value=(await sdk.extensionRunner.emitBeforeProviderRequest(value))??value;
+   value=await native.localPayload(value,options.signal);
    requestEffort(value,model,options.reasoning,axes.effort);
    if(axes.fast)value.service_tier='priority';
    // A host-authored tool-free turn (OneBot's invitation welcome) offers the
@@ -214,15 +275,18 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
    const conversation=await harness.conversation(api.conversationId,ctx);
    await conversation.commit(async tx=>{provider={sessionId:(await tx.doc(ProviderDoc,api.conversationId)).sessionId};},ctx);
   }
-  let axes={effort:thinkingLevel(),fast:!!config.fastMode};
+  let axes={effort:config.thinkingLevel||config.runtimeSettings?.thinkingLevel,fast:!!config.fastMode,admit:async()=>{
+   if(config.onebot||config.onebotTask||config.taskDelivery||config.ghostBridge||config.taskBridge)await captureOneBotInputReceipt(harness,api,ctx);
+   await assertInputAdmitted(api,ctx);
+   if(api.conversationId===root.id&&(await api.memo('winone.onebot.input-source',ctx))?.presentation?.toolsDisabled===true)axes.toolsDisabled=true;
+  }};
   if(api.conversationId!==root.id){
    const roster=await harness.snapshot(CollaborationDoc,root.id,ctx);
    const child=Object.values(roster?.agents??{}).find(agent=>agent.conversationId===api.conversationId);
-   if(child)axes={effort:child.thinkingLevel??config.runtimeSettings?.subagentThinkingLevel??'medium',fast:child.fastMode??!!config.fastMode};
+   if(child)axes={...axes,effort:child.thinkingLevel??config.runtimeSettings?.subagentThinkingLevel??'medium',fast:child.fastMode??!!config.fastMode};
   }
-  // The originating input decides a tool-free turn; the captured source is
-  // fixed at this generation's committed boundary.
-  if(api.conversationId===root.id&&(await api.memo('winone.onebot.input-source',ctx))?.presentation?.toolsDisabled===true)axes={...axes,toolsDisabled:true};
+  // The originating input's tool-free flag is applied by the mandatory
+  // payload binding above, after its committed source has been captured.
   // Pi's persisted provider identity distinguishes overlapping requests even
   // when a child and the main conversation use the same model.
   requestAxes.set(provider.sessionId,axes);
@@ -244,7 +308,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
    await native.setModel(model,config.models);
    const preset=config.runtimeSettings?.toolPreset;
    await root.configure({model:{provider:'winone',modelId:model.id},thinkingLevel:route.effort||'off',
-    tools:model.tools===false||preset==='chat-only'?[]:preset==='read-only'?[...toolRegistrations.values()].filter(tool=>readTools.has(tool.name)).concat(workflow.extension.tools??[]):null},ctx);
+    tools:toolsFor(model)},ctx);
    Object.assign(config,{model,thinkingLevel:route.effort,fastMode:route.fastMode===true});
    sdk.setThinkingLevel(route.effort||'off');
    await acknowledgeOneBotModel(config,previousModelId,ctx.abortSignal);
@@ -272,9 +336,9 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   collaboration.setHarness(harness);
   // Current Host choices always win over last run's model. No credential is
   // stored in the agent document; only an enabled WinOne route is persisted.
-  await root.configure({model:{provider:'winone',modelId:config.model.id},thinkingLevel:thinkingLevel(),cwd:config.cwd,...(config.model.tools===false||config.runtimeSettings?.toolPreset==='chat-only'?{tools:[]}:config.runtimeSettings?.toolPreset==='read-only'?{tools:[...toolRegistrations.values()].filter(t=>readTools.has(t.name)).concat(workflow.extension.tools??[])}:{})},context);
+  await root.configure({model:{provider:'winone',modelId:config.model.id},thinkingLevel:thinkingLevel(),cwd:config.cwd,tools:toolsFor()},context);
   const state=await harness.snapshot(AdapterDoc,root.id,context);
-  extra.paused=!!state?.paused;extra.queuePaused=!!state?.queuePaused;
+  extra.paused=!!state?.paused;extra.queuePaused=!!state?.queuePaused;extra.modelHeld=!!state?.modelHeld;
   if(!state?.imported){
    const messages=manager.buildSessionProjection().messages.filter(message=>['user','assistant','toolResult'].includes(message.role));
    await root.commit(async tx=>{for(const message of messages)await tx.appendEntry(root.id,{kind:'winone.import',model:[plain(message)],data:{legacy:true}});(await tx.doc(AdapterDoc,root.id)).imported=true;},context);
@@ -282,7 +346,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   // Do not schedule while opening history. Attach the snapshot before resume,
   // and never project imported legacy messages a second time.
   let cursor;
-  do{const page=await root.entries({order:'ascending'},500,cursor,context);for(const entry of page.items){project(entry,false);lastEntry=Math.max(lastEntry,entry.id);}cursor=page.cursor;}while(cursor);
+  do{const page=await root.entries({order:'ascending'},500,cursor,context);for(const entry of page.items){restoreOwnProjection(entry);project(entry,false);lastEntry=Math.max(lastEntry,entry.id);}cursor=page.cursor;}while(cursor);
   // One view watch feeds the worker's events and the durable extras. Its
   // first value is what watchEvents' snapshot was; later calls translate.
   watch=await root.watch(context);currentView=watch.value;
@@ -407,7 +471,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
     // Use Durable's exact answer entry, not the last assistant in a newer run.
     const answer=receipt.status==='done'?await root.commit(tx=>tx.entry(receipt.answer),context):null;
     if(answer)project(answer);
-    send({type:'input_settled',requestId:receipt.requestId,status:receipt.status==='done'?'completed':'failed',resultText:textOf(answer?.model?.[0]),error:receipt.status==='unanswered'?receipt.reason:''});
+    send({type:'input_settled',requestId:receipt.requestId,status:receipt.status==='done'?'completed':receipt.reason==='aborted'?'stopped':'failed',resultText:textOf(answer?.model?.[0]),error:receipt.status==='unanswered'?receipt.reason:''});
     break;
    }
    case 'run_start':streaming=true;notifiedIdle=false;send({type:'agent_start'});break;
@@ -565,9 +629,9 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  }
  // The inbox and these held items share one transaction. An edit locks its
  // FIFO tail; earlier items may drain. No editor operation aborts the live run.
- async function changeQueue(action,{id,locked,text,images,receipt,targetIndex}={}){
+ async function changeQueue(action,{id,ids,expectedOriginSessionId,expectedTextHash,expectedMergedHashes,locked,text,images,receipt,targetIndex}={}){
   const interrupted=action==='steer'?(await harness.snapshot(LiveDoc,root.id,context))?.tools??[]:[];
-  let result,ids=[];
+  let result,submissionIds=[];
   await root.commit(async tx=>{
    const inbox=await tx.doc(InboxDoc,root.id),adapter=await tx.doc(AdapterDoc,root.id);
    const held=adapter.heldInputs??[],order=adapter.queueOrder??[];
@@ -580,9 +644,15 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
    if(['update','cancel','steer','reorder'].includes(action)||action==='lock'&&locked){
     if(!item)throw Error('这条消息已开始处理，无法再修改排队内容');
    }
+   if(expectedOriginSessionId&&['update','cancel','steer','reorder','merge'].includes(action)){
+    const selected=action==='merge'?(ids??[]).map(value=>all.find(input=>key(input)===value)):[item];
+    if(!selected.length||selected.some(input=>!input||input.entry?.data?.receipt?.presentation?.originSessionId!==expectedOriginSessionId))throw Error('Only the originating Lead may change this queued input');
+   }
+   if(expectedTextHash&&item?.entry?.data?.receipt?.textHash!==expectedTextHash)throw Error('Queued input changed while preparing its replacement');
    const locks=new Set(adapter.queueLocks??[]);
    if(action==='lock'){if(locked)locks.add(id);else locks.delete(id);}
    else if(action==='interaction')adapter.queueInteractionLocked=locked===true;
+   else if(action==='modelHold')adapter.modelHeld=locked===true;
    else if(action==='taskHold')adapter.taskHeld=locked===true;
    else if(action==='pause')adapter.queuePaused=true;
    else if(action==='resume')adapter.queuePaused=false;
@@ -599,12 +669,20 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
    }else if(action==='steer'){
     item.mode='steer';item.entry.data.receipt={...item.entry.data.receipt,...receipt,queued:false,deliveryMode:'steer'};
     locks.delete(id);
+   }else if(action==='merge'){
+    if(!Array.isArray(ids)||ids.length<2||new Set(ids).size!==ids.length)throw Error('Invalid queued input merge');
+    const positions=ids.map(id=>all.findIndex(input=>key(input)===id));
+    if(positions.some((at,i)=>at<0||i>0&&at!==positions[i-1]+1))throw Error('Only consecutive queued inputs can be merged');
+    const selected=positions.map(at=>all[at]);
+    if(expectedMergedHashes&&selected.some((input,i)=>input.entry?.data?.receipt?.textHash!==expectedMergedHashes[i]))throw Error('Queued inputs changed during merge');
+    const first=selected[0];first.content=images?.length?[{type:'text',text},...images]:text;first.entry.data.receipt=plain(receipt);
+    for(let i=positions.length-1;i>0;i--){const removed=all.splice(positions[i],1)[0];tx.settleSubmission(removed.id,{status:'unanswered',reason:'merged'});locks.delete(key(removed));}
    }else if(action==='reorder'){
     if(!Number.isInteger(targetIndex)||targetIndex<0||targetIndex>all.length)throw Error('无效的排队位置');
     all.splice(index,1);all.splice(targetIndex>index?targetIndex-1:targetIndex,0,item);
    }else throw Error('不支持的排队操作');
    adapter.queueLocks=[...locks];adapter.queueOrder=all.map(item=>item.id);
-   let blocked=adapter.queuePaused===true||adapter.queueInteractionLocked===true||adapter.taskHeld===true;
+   let blocked=adapter.queuePaused===true||adapter.queueInteractionLocked===true||adapter.taskHeld===true||adapter.modelHeld===true;
    const active=[],waiting=[];
    for(const input of all){
     if(locks.has(key(input)))blocked=true;
@@ -613,12 +691,12 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
     (blocked&&input.mode!=='steer'?waiting:active).push(input);
    }
    inbox.items=active;adapter.heldInputs=waiting;
-   ids=all.map(input=>input.id);
-   result={receipts:all.flatMap(input=>input.entry?.data?.receipt?[input.entry.data.receipt]:[]),paused:adapter.queuePaused===true};
+   submissionIds=all.map(input=>input.id);
+   result={receipts:all.flatMap(input=>input.entry?.data?.receipt?[input.entry.data.receipt]:[]),paused:adapter.queuePaused===true,modelHeld:adapter.modelHeld===true};
   },context);
-  await watchSubmissions(ids);
+  await watchSubmissions(submissionIds);
   interruptToolRound(interrupted);
-  extra.queuePaused=result.paused;
+  extra.queuePaused=result.paused;extra.modelHeld=result.modelHeld;
   if(!['lock','interaction','pause','update','reconcile'].includes(action)||locked===false){
    // An empty context write runs the official final boundary when idle. It
    // introduces no model message; busy sessions keep their existing run.
@@ -658,6 +736,17 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
   prompt,compact,changeQueue,enqueueHeld,setThinkingLevel,setFastMode:value=>{config.fastMode=!!value;},
   inputStatus:id=>root.commit(async tx=>(await tx.submissionByRequest(root.id,id))?.status,context),
   async abort(){await root.abort(context,{background:true});await settleIfIdle();},
+  async abortInput(requestId){
+   // Conversation.abort() withdraws every queued input too. A plugin/Orca
+   // cancellation may stop only its matching run and must preserve the inbox.
+   const taskId=await root.commit(async tx=>{
+    const live=await tx.doc(LiveDoc,root.id),input=await tx.submissionByRequest(root.id,requestId);
+    if(!live.run||!input||live.run.inputs.length!==1||live.run.inputs[0]!==input.id)throw Error('This input no longer exclusively owns the active run');
+    return live.run.taskId;
+   },context);
+   await harness.abortTask(taskId,context);await harness.waitForTask(taskId,context);
+   await checkSubmissions();await changeQueue('reconcile');
+  },
   async resetContext(){
    if(streaming||extra.backgroundRunning||queue.length)throw Error('请先停止当前任务并处理排队消息');
    await waitForProjection();
@@ -745,7 +834,7 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
     runtimePrompt=sdk.systemPrompt;bindNativeExtensions();refreshRegistry();
     const preset=config.runtimeSettings?.toolPreset;
     await root.configure({model:{provider:'winone',modelId:config.model.id},thinkingLevel:thinkingLevel(),
-     tools:config.model.tools===false||preset==='chat-only'?[]:preset==='read-only'?[...toolRegistrations.values()].filter(tool=>readTools.has(tool.name)).concat(workflow.extension.tools??[]):null},context);
+     tools:toolsFor()},context);
     if(closed)return;
     await acknowledgeOneBotRuntime(config,recipe.revision,native.state().resources,refreshSignal);
     appliedRuntimeSequence=sequence;runtimeRefreshError=null;
@@ -782,9 +871,20 @@ export async function createDurableSession(config,{event=()=>{},authorize=async(
  }
  return {
   session:facade,durable:true,harness,root,storageFile,
-  state:()=>({...native.state(),messages:facade.messages,streaming:!extra.paused&&streaming,thinkingLevel:thinkingLevel(),fastMode:!!config.fastMode,runtime:'pi-durable',usage:usageSummary(),contextUsage:contextStats,...extra}),
+  state:()=>({...native.state(),planModeEnabled:!!config.legacyPlan,messages:facade.messages,streaming:!extra.paused&&streaming,thinkingLevel:thinkingLevel(),fastMode:!!config.fastMode,runtime:'pi-durable',usage:usageSummary(),contextUsage:contextStats,...extra}),
   liveMessages:()=>partial?[{...partial,...messageIdentity(partial)}]:[],
-  modelIdentity:()=>native.modelIdentity(),supportsImages:()=>native.supportsImages(),setPermission:value=>native.setPermission(value),
+  reviewFileAction:(action,scope)=>native.reviewFileAction(action,scope),
+  authorizeHandoff:(...args)=>native.authorizeHandoff(...args),
+  authorizeExternal:(request,intent,signal)=>native.authorizeExternal(request,intent,signal),
+  modelIdentity:()=>native.modelIdentity(),supportsImages:()=>native.supportsImages(),
+  async setPermission(value){native.setPermission(value);config.legacyPlan=false;await root.configure({tools:toolsFor()},context);},
+  async configureModel({model,models,thinkingLevel,fastMode}){
+   await native.setModel(model,models);Object.assign(config,{model,models,thinkingLevel,fastMode:!!fastMode});rememberModelIdentities(config);refreshRegistry();
+   const level=piThinkingLevels.includes(thinkingLevel)?thinkingLevel:'off';sdk.setThinkingLevel(level);
+   const preset=config.runtimeSettings?.toolPreset;
+   await root.configure({model:{provider:'winone',modelId:model.id},thinkingLevel:level,tools:toolsFor(model)},context);
+   await refreshMetrics();
+  },
   async setModel(model,models){await native.setModel(model,models);config.model=model;await root.configure({model:{provider:'winone',modelId:model.id}},context);await refreshMetrics();},
   async control(action,params={}){if(action==='tasks')return taskGraph();if(action==='list')return collaboration.list(harness,root.id);if(action==='workflow')return (await harness.snapshot(WorkflowDoc,root.id,context))??{items:[]};return collaboration.control(harness,root.id,action,params);},
   requestRuntimeRefresh,pause,resume,close,

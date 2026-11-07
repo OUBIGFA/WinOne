@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/markdown"
 
 	"winone/desktopmygo/chat/model"
 	"winone/desktopmygo/i18n"
@@ -40,13 +41,30 @@ func (p *Chat) inputArea(c *ui.Context) {
 		if conversation != nil {
 			projectID = conversation.ProjectID
 		}
-		p.projectContext(c, projectID, func(id string) {
-			if id == "" || conversation == nil || conversation.ProjectID == id {
-				return
+		// A teammate's chat has no project of its own to switch (Cindy keeps it on
+		// the teammate's settings).
+		if p.bot == nil {
+			p.projectContext(c, projectID, func(id string) {
+				if id == "" || conversation == nil || conversation.ProjectID == id {
+					return
+				}
+				target := conversation.ID
+				p.run(func(done func(error)) { p.moveConversation(target, id, done) })
+			})
+		}
+		p.botQuotePreview(c)
+		if p.bot != nil {
+			if p.bot.VoiceBlocked != nil {
+				blocked := p.opening
+				for _, approval := range p.view.Approvals {
+					blocked = blocked || approval.Kind != "question"
+				}
+				p.bot.VoiceBlocked(blocked)
 			}
-			target := conversation.ID
-			p.run(func(done func(error)) { p.moveConversation(target, id, done) })
-		})
+			if p.bot.VoicePanel != nil {
+				p.bot.VoicePanel(c)
+			}
+		}
 		switch {
 		case len(p.view.Approvals) > 0 && p.view.Approvals[0].Kind == "question":
 			p.questionCard(c, p.view.Approvals[0])
@@ -64,6 +82,9 @@ func (p *Chat) inputArea(c *ui.Context) {
 // project's when it has one.
 func (p *Chat) permission() model.Permission {
 	conversation := p.conversation()
+	if conversation != nil && conversation.OrcaRole == "worker" {
+		return conversation.Permission
+	}
 	projectID := p.newProjectID
 	if conversation != nil {
 		projectID = conversation.ProjectID
@@ -111,6 +132,9 @@ func (p *Chat) composer(c *ui.Context) {
 	locked := busy || paused || inputLocked
 	p.releasePasted()
 
+	caret := p.botMode.mentionCaret
+	mentionQuery, mentionRows := p.botMentionRows(caret)
+	p.botMentionPanel(c, mentionQuery, caret, mentionRows)
 	box := ui.Column(c.Key("composer")).FillWidth().Padding(10, 12, 8, 12).Gap(8).Radius(14).Border(1, t.Border).Background(pal.Panel).Bind(&p.ui.composerBox)
 	// In a narrow composer the pills show their icons only, their names
 	// as tooltips, so the tools keep one line.
@@ -128,16 +152,34 @@ func (p *Chat) composer(c *ui.Context) {
 				}
 			})
 		}
-		input := ui.TextArea(c.Key("message"), &p.text).Placeholder(i18n.T("chat.placeholder")).Label(i18n.T("chat.message")).
+		placeholder := i18n.T("chat.placeholder")
+		if p.bot != nil {
+			placeholder = botComposerPlaceholder(p.bot.Name)
+		}
+		input := ui.TextArea(c.Key("message"), &p.text).Placeholder(placeholder).Label(i18n.T("chat.message")).
 			LineHeight(1.5).FillWidth().MinHeight(48).MaxHeight(320).Padding(0).Border(0, ui.Transparent).Background(ui.Transparent).
 			Disabled(inputLocked)
 		if input.Changed() {
 			p.updateText(p.text, p.files, p.activeID)
 		}
+		if p.bot != nil {
+			if p.botMode.mentionMoved {
+				input.SetTextSelection(p.botMode.mentionCaret, p.botMode.mentionCaret)
+				p.botMode.mentionMoved = false
+			} else if _, at := input.TextSelection(); at != p.botMode.mentionCaret {
+				p.botMode.mentionCaret = at
+				if query := activeBotMention(p.text, at); query == nil || query.query != p.botMode.mentionHidden {
+					p.botMode.mentionHidden = ""
+				}
+			}
+		}
 		// Files and pictures pasted attach, as dropped ones do (paste.go).
 		p.onPaste(input, locked)
 		composing := input.Composing()
 		input.OnTextKey(func(k ui.TextKey) bool {
+			if !composing && p.botMentionKey(k.Key, mentionQuery, caret, mentionRows) {
+				return true
+			}
 			// Enter sends, Shift+Enter (and Alt+Enter) break the line,
 			// Ctrl+Enter steers into a running turn (Cindy's
 			// resolveComposerEnterIntent). Keys an input method composes
@@ -158,14 +200,17 @@ func (p *Chat) composer(c *ui.Context) {
 			}
 			return true
 		})
-		// Files and folders dropped from File Explorer attach.
-		widgets.DropArea(c, p.env, box, widgets.DropAny, true, locked, func(paths []string, err error) {
-			if err != nil {
-				p.err = err.Error()
-				return
-			}
-			p.run(func(done func(error)) { p.addPaths(paths, done) })
-		})
+		// A native URI/custom transfer is resolved by the plugin ledger; an
+		// ordinary Explorer transfer still goes through the same addPaths path.
+		if !p.pluginMediaDrop(c, box, locked) {
+			widgets.DropArea(c, p.env, box, widgets.DropAny, true, locked, func(paths []string, err error) {
+				if err != nil {
+					p.err = err.Error()
+					return
+				}
+				p.run(func(done func(error)) { p.addPaths(paths, done) })
+			})
+		}
 		// Tools wrap within their side; the model and send keep theirs.
 		ui.Row(c).FillWidth().AlignItems(ui.End).Gap(4).Children(func() {
 			ui.Row(c).Gap(2).AlignItems(ui.Center).Grow(1).Basis(0).MinWidth(0).Wrap().Children(func() {
@@ -188,6 +233,9 @@ func (p *Chat) composer(c *ui.Context) {
 					p.run(func(done func(error)) { p.simple("resume", map[string]any{"id": p.activeID}, done) })
 				}
 				p.subagents(c)
+				if p.bot != nil && p.bot.StartVoice != nil && kit.IconButton(c, icons.AudioLines, botT("bots.voiceMode.startConversation")).Disabled(busy || paused).Clicked() {
+					p.bot.StartVoice()
+				}
 			})
 			ui.Row(c).Gap(4).AlignItems(ui.Center).Shrink(0).Children(func() {
 				p.usageButton(c, busy)
@@ -255,12 +303,20 @@ func stopButton(c *ui.Context) ui.Element {
 // permissionPill chooses how tools are approved; full access asks first.
 func (p *Chat) permissionPill(c *ui.Context, disabled bool) {
 	current := p.permission()
-	labels := map[model.Permission]string{model.PermissionAsk: "chat.ask", model.PermissionAuto: "chat.auto", model.PermissionBypass: "chat.full"}
+	labels := map[model.Permission]string{model.PermissionAsk: "chat.ask", model.PermissionAuto: "chat.auto", model.PermissionBypass: "chat.full", model.Permission("acceptEdits"): "chat.acceptEdits"}
 	// The former React PermissionSelector used a distinct Lucide icon for
 	// each mode; keep the same meaning in the native pill.
-	modeIcons := map[model.Permission]*ui.SVG{model.PermissionAsk: icons.ShieldUser, model.PermissionAuto: icons.Sparkles, model.PermissionBypass: icons.TriangleAlert}
-	pill := p.pill(c, i18n.T(labels[current]), modeIcons[current], i18n.T("chat.permissions")+" · "+i18n.T(labels[current])).Disabled(disabled)
+	modeIcons := map[model.Permission]*ui.SVG{model.PermissionAsk: icons.ShieldUser, model.PermissionAuto: icons.Sparkles, model.PermissionBypass: icons.TriangleAlert, model.Permission("acceptEdits"): icons.Pencil}
+	label, icon := string(current), icons.ShieldUser
+	if key := labels[current]; key != "" {
+		label, icon = i18n.T(key), modeIcons[current]
+	}
+	pill := p.pill(c, label, icon, i18n.T("chat.permissions")+" · "+label).Disabled(disabled)
 	pill.Menu(func(m *ui.Menu) {
+		if current != model.PermissionAsk && current != model.PermissionAuto && current != model.PermissionBypass {
+			m.Item(label).Checked(true).Disabled(true)
+			m.Separator()
+		}
 		for _, mode := range []model.Permission{model.PermissionAsk, model.PermissionAuto, model.PermissionBypass} {
 			if m.Item(i18n.T(labels[mode])).Checked(mode == current).Chosen() && mode != current {
 				if mode == model.PermissionBypass {
@@ -269,6 +325,28 @@ func (p *Chat) permissionPill(c *ui.Context, disabled bool) {
 				}
 				chosen := mode
 				p.run(func(done func(error)) { p.configure(nil, chosen, done) })
+			}
+		}
+		if conversation := p.conversation(); conversation != nil && conversation.PluginID != "" {
+			m.Separator()
+			if m.Item(i18n.T("chat.retryPluginWriteAccess")).Chosen() {
+				id := conversation.ID
+				p.run(func(done func(error)) {
+					chatCall(p, "ghosts.write-access-retry", map[string]string{"taskId": id}, func(value struct {
+						Granted bool `json:"granted"`
+					}, err error) {
+						if err != nil || !value.Granted {
+							done(err)
+							return
+						}
+						p.refresh(func(err error) {
+							if err == nil && p.activeID == id {
+								p.reconnect()
+							}
+							done(err)
+						})
+					})
+				})
 			}
 		}
 	})
@@ -312,6 +390,9 @@ func (p *Chat) sessionTools(c *ui.Context, busy, running, paused, queueEditing b
 	}
 	tools := kit.IconButton(c, icons.Ellipsis, i18n.T("chat.sessionTools"))
 	tools.Menu(func(m *ui.Menu) {
+		if p.activeID != "" && m.Item(i18n.T("chat.workdirPlugins")).Disabled(busy).Chosen() {
+			p.openWorkdirPlugins()
+		}
 		if canCompact && m.Item(i18n.T("chat.compact")).Disabled(busy || running || paused || queueEditing).Chosen() {
 			p.run(func(done func(error)) { p.simple("compact", map[string]any{"id": p.activeID}, done) })
 		}
@@ -440,7 +521,7 @@ func (p *Chat) approvalCard(c *ui.Context, a model.Approval) {
 			}
 		})
 		if a.AutoReviewUnavailable {
-			kit.Help(c, i18n.T("chat.unavailable"))
+			kit.Notice(c, kit.Caution, "", i18n.T("chat.unavailable"), nil)
 		}
 		if a.Reason != "" {
 			ui.Text(c, a.Reason).LineHeight(1.45)
@@ -497,7 +578,7 @@ func (p *Chat) questionCard(c *ui.Context, a model.Approval) {
 		for i, q := range a.Questions {
 			i := i
 			ui.Column(c.Key(fmt.Sprint("q", i))).FillWidth().Gap(6).Children(func() {
-				ui.Text(c, q.Question).LineHeight(1.45).Selectable()
+				markdown.View(c, q.Question, p.answerOptions("question:"+a.ID+":"+fmt.Sprint(i))).FillWidth()
 				if len(q.Options) > 0 {
 					ui.Row(c).Wrap().Gap(6).Children(func() {
 						for _, option := range q.Options {
@@ -531,6 +612,53 @@ func (p *Chat) questionCard(c *ui.Context, a model.Approval) {
 	})
 }
 
+// VoiceQuestionPending reports whether the agent's question waits for an answer.
+func (p *Chat) VoiceQuestionPending() bool {
+	return len(p.view.Approvals) > 0 && p.view.Approvals[0].Kind == "question"
+}
+
+// ReceiveVoiceAnswer applies a spoken utterance to the first unanswered question,
+// by Cindy's whole-utterance grammar (parseVoiceQuestionSelection). "Confirm"
+// submits a complete card and "cancel" clears the choices; anything else stays
+// with the caller as a draft, so speech never guesses an answer.
+func (p *Chat) ReceiveVoiceAnswer(text string) bool {
+	if !p.VoiceQuestionPending() {
+		return false
+	}
+	a := p.view.Approvals[0]
+	if p.ui.answers == nil || p.ui.answersFor != a.ID {
+		p.ui.answers, p.ui.answersFor = make([]string, len(a.Questions)), a.ID
+	}
+	index := 0
+	for index < len(p.ui.answers)-1 && strings.TrimSpace(p.ui.answers[index]) != "" {
+		index++
+	}
+	if len(a.Questions) == 0 {
+		return false
+	}
+	selection := parseVoiceQuestionSelection(text, a.Questions[index].Options)
+	switch selection.kind {
+	case "confirm":
+		for _, answer := range p.ui.answers {
+			if strings.TrimSpace(answer) == "" {
+				return false
+			}
+		}
+		p.respondQuestion(append([]string(nil), p.ui.answers...))
+	case "cancel":
+		clear(p.ui.answers)
+	case "select":
+		var labels []string
+		for _, i := range selection.indices {
+			labels = append(labels, a.Questions[index].Options[i])
+		}
+		p.ui.answers[index] = strings.Join(labels, ", ")
+	default:
+		return false
+	}
+	return true
+}
+
 // queuePanel lists the messages waiting for the running turn: edit,
 // steer, cancel, reorder; resume when the queue is paused.
 func (p *Chat) queuePanel(c *ui.Context) {
@@ -549,40 +677,60 @@ func (p *Chat) queuePanel(c *ui.Context) {
 		shown = queue[:3]
 	}
 	paused := p.view.QueuePaused != nil && *p.view.QueuePaused
+	if p.ui.queue.rows == nil {
+		p.ui.queue.rows = map[string]ui.Rect{}
+	}
+	p.ui.queue.order = nil
+	for _, message := range queue {
+		p.ui.queue.order = append(p.ui.queue.order, first(message.RequestID, message.ID))
+	}
 	ui.Column(c).FillWidth().Padding(8).Gap(4).Radius(10).Border(1, pal.Hairline).Background(pal.Panel).Label(i18n.T("chat.queue_regionAria")).Children(func() {
-		for i, m := range shown {
-			i, m := i, m
-			entry := first(m.RequestID, m.ID)
-			ui.Row(c.Key("queue-" + entry)).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-				text := strings.TrimSpace(m.Text())
-				if text == "" {
-					text = i18n.T("chat.queue_noTextContent")
+		ui.Scroll(c).FillWidth().MaxHeight(196).TrackScroll(&p.ui.queue.scroll).Children(func() {
+			for i, m := range shown {
+				i, m := i, m
+				entry := first(m.RequestID, m.ID)
+				editing := p.queueEdit != nil && p.queueEdit.id == entry
+				row := ui.Row(c.Key("queue-" + entry)).FillWidth().Gap(6).AlignItems(ui.Center).Focusable().Role(ui.RoleListItem)
+				p.ui.queue.rows[entry] = row.Bounds()
+				if drag := p.ui.queue.drag; drag != nil && drag.target == i {
+					row.BorderWidth(1, 0, 0, 0).BorderColor(t.Focus)
 				}
-				label := ui.Text(c, text).Grow(1).SingleLine().Ellipsis("…").MinWidth(0)
-				if p.queueEdit != nil && p.queueEdit.id == entry {
-					label.FontWeight(600)
-				}
-				if n := len(m.Attachments); n > 0 {
-					ui.Text(c, i18n.T("chat.queue_attachments", "count", n)).FontSize(kit.CaptionSize(c)).TextColor(t.TextMuted)
-				}
-				if i > 0 && kit.IconButton(c, icons.ArrowUp, i18n.T("chat.queue_dragAria", "index", i+1)).Disabled(p.busy).Clicked() {
-					p.queueAction("reorder", entry, map[string]any{"targetIndex": i - 1}, p.showError)
-				}
-				if kit.IconButton(c, icons.Pencil, i18n.T("chat.queue_editAria", "index", i+1)).Disabled(p.busy || p.queueEdit != nil).Clicked() {
-					p.run(func(done func(error)) { p.beginQueueEdit(entry, done) })
-				}
-				steerLabel := i18n.T("chat.queue_steerAria", "index", i+1)
-				if p.queueWorking[entry] {
-					steerLabel = i18n.T("chat.queue_steeringAria", "index", i+1)
-				}
-				if kit.IconButton(c, icons.CornerDownRight, steerLabel).Disabled(p.busy || p.queueWorking[entry] || !p.view.Running).Clicked() {
+				row.Children(func() {
+					handle := kit.IconButton(c, icons.GripVertical, i18n.T("chat.queue_dragAria", "index", i+1)).Disabled(p.busy || editing || p.queueWorking[entry]).HandleInput(p.queueDragInput(entry, i))
+					p.queueReorderKey(handle, entry, i, len(queue))
+					text := strings.TrimSpace(m.Text())
+					if text == "" {
+						text = i18n.T("chat.queue_noTextContent")
+					}
+					label := ui.Text(c, text).Grow(1).SingleLine().Ellipsis("…").MinWidth(0).Tooltip(text)
+					if editing {
+						label.FontWeight(600)
+					}
+					if n := len(m.Attachments); n > 0 {
+						ui.Text(c, i18n.T("chat.queue_attachments", "count", n)).FontSize(kit.CaptionSize(c)).TextColor(t.TextMuted)
+					}
+					if editing {
+						return
+					} // The locked row's only edit actions belong to the composer.
+					if kit.IconButton(c, icons.Pencil, i18n.T("chat.queue_editAria", "index", i+1)).Disabled(p.busy || p.queueEdit != nil || p.queueWorking[entry]).Clicked() {
+						p.run(func(done func(error)) { p.beginQueueEdit(entry, done) })
+					}
+					steerLabel := i18n.T("chat.queue_steerAria", "index", i+1)
+					if p.queueWorking[entry] {
+						steerLabel = i18n.T("chat.queue_steeringAria", "index", i+1)
+					}
+					if kit.IconButton(c, icons.CornerDownRight, steerLabel).Disabled(p.busy || p.queueWorking[entry] || !p.view.Running).Clicked() {
+						p.steerQueued(entry)
+					}
+					if kit.IconButton(c, icons.X, i18n.T("chat.queue_removeAria", "index", i+1)).Disabled(p.busy || p.queueWorking[entry]).Clicked() {
+						p.queueAction("cancel", entry, nil, p.showError)
+					}
+				})
+				if row.Shortcut(ui.Ctrl, ui.KeyEnter) && !editing && !p.busy && !p.queueWorking[entry] {
 					p.steerQueued(entry)
 				}
-				if kit.IconButton(c, icons.X, i18n.T("chat.queue_removeAria", "index", i+1)).Disabled(p.busy).Clicked() {
-					p.queueAction("cancel", entry, nil, p.showError)
-				}
-			})
-		}
+			}
+		})
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			if len(queue) > 3 {
 				label := i18n.T("chat.queue_showMore", "count", len(queue)-3)
@@ -625,14 +773,14 @@ func (p *Chat) retryStatus(c *ui.Context) {
 	if op == nil {
 		return
 	}
-	t := c.Theme()
-	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+	text := i18n.T("chat.retryConnecting")
+	if op.Attempt != nil && op.MaxAttempts != nil {
+		text += fmt.Sprintf(" · %v / %v", *op.Attempt, *op.MaxAttempts)
+	}
+	// Dismissing transport feedback only hides this notice. The generation
+	// and its ordinary composer Stop control keep their original lifecycle.
+	kit.Notice(c, kit.Info, "", text, func() {
 		ui.Spinner(c).Size(14, 14)
-		text := i18n.T("chat.retryConnecting")
-		if op.Attempt != nil && op.MaxAttempts != nil {
-			text += fmt.Sprintf(" · %v / %v", *op.Attempt, *op.MaxAttempts)
-		}
-		ui.Text(c, text).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted).Grow(1)
 		if kit.Button(c, i18n.T("chat.stop"), nil, false).Disabled(p.stopping).Clicked() {
 			p.stopCurrent()
 		}

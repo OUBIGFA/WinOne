@@ -26,13 +26,14 @@ func (p *Chat) sidebarView(c *ui.Context) {
 			}
 		})
 		if kit.GhostButton(c, i18n.T("chat.newChat"), icons.Plus, false).FillWidth().Justify(ui.Start).Disabled(p.busy).Clicked() {
-			p.ui.automations = false
-			p.run(func(done func(error)) {
-				p.choose("", nil, func(err error) {
-					if err == nil {
-						p.newProjectID, p.newThinking, p.newFastMode = "", "", false
-					}
-					done(err)
+			p.leaveAutomation(func() {
+				p.run(func(done func(error)) {
+					p.choose("", nil, func(err error) {
+						if err == nil {
+							p.newProjectID, p.newThinking, p.newFastMode = "", "", false
+						}
+						done(err)
+					})
 				})
 			})
 		}
@@ -58,7 +59,7 @@ func (p *Chat) sidebarView(c *ui.Context) {
 					automations.Background(pal.Selected)
 				}
 				if automations.Clicked() {
-					p.ui.details, p.ui.automations = false, true
+					p.env.RequestChange(func() { p.ui.details, p.ui.automations = false, true })
 				}
 				if kit.GhostButton(c, i18n.T("chat.openOrCreateProject"), icons.FolderPlus, false).FillWidth().Justify(ui.Start).Disabled(p.busy).Clicked() {
 					p.openProjectDialog()
@@ -210,14 +211,15 @@ func (p *Chat) projectRow(c *ui.Context, pr Project, visible []Conversation) {
 				p.prefs.save()
 			}
 			if sidebarButton(c, icons.Plus, i18n.T("chat.newChat")+" · "+pr.Name, 26, 25, 0.4, hovered).Disabled(p.busy).Clicked() {
-				p.ui.automations = false
-				id := pr.ID
-				p.run(func(done func(error)) {
-					p.choose("", nil, func(err error) {
-						if err == nil {
-							p.newProjectID, p.newThinking, p.newFastMode = id, "", false
-						}
-						done(err)
+				p.leaveAutomation(func() {
+					id := pr.ID
+					p.run(func(done func(error)) {
+						p.choose("", nil, func(err error) {
+							if err == nil {
+								p.newProjectID, p.newThinking, p.newFastMode = id, "", false
+							}
+							done(err)
+						})
 					})
 				})
 			}
@@ -294,9 +296,10 @@ func (p *Chat) rows(c *ui.Context, list []Conversation) {
 					}
 				})
 				if row.Clicked() {
-					p.ui.automations = false
-					id := conv.ID
-					p.run(func(done func(error)) { p.choose(id, nil, done) })
+					p.leaveAutomation(func() {
+						id := conv.ID
+						p.run(func(done func(error)) { p.choose(id, nil, done) })
+					})
 				}
 				p.conversationMenu(c, conv, false, hovered)
 			})

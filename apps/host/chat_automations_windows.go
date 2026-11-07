@@ -41,6 +41,9 @@ type chatAutomations struct {
 }
 
 func newChatAutomations(c *chatControl) *chatAutomations {
+	if c != nil && c.ghosts == nil {
+		c.ghosts = newChatGhosts(c)
+	}
 	return &chatAutomations{control: c, changed: make(chan struct{})}
 }
 func (a *chatAutomations) event(raw json.RawMessage) {
@@ -146,6 +149,9 @@ func (a *chatAutomations) eventError(err error) {
 	a.event(raw)
 }
 func (a *chatAutomations) call(ctx context.Context, method string, params json.RawMessage) (json.RawMessage, error) {
+	if method == "plugins" {
+		return a.control.ghosts.call(ctx, "candidates", params)
+	}
 	if method == "connections.get" {
 		value, err := a.connections()
 		if err != nil {
@@ -174,7 +180,7 @@ func (a *chatAutomations) call(ctx context.Context, method string, params json.R
 	}
 	switch method {
 	case "list", "get", "create", "update", "pause", "resume", "delete", "deleted", "restore", "run", "runs", "deleteRun", "markRead", "runtime", "preview", "silence", "notify", "events", "templates", "template.save", "template.delete", "template.apply", "project.read", "project.write", "project.reconcile", "project.promote", "project.clone", "project.demote",
-		"hook.generate", "sidebarIndexRuns", "inflightCount", "markAllRead", "project.upsertSchedule", "project.removeSchedule":
+		"hook.generate", "sidebarIndexRuns", "inflightCount", "markAllRead", "project.upsertSchedule", "project.removeSchedule", "project.pendingImports":
 	default:
 		return nil, errors.New("不支持的自动化操作")
 	}
@@ -408,6 +414,9 @@ func (a *chatAutomations) prepare(ctx context.Context, schedule scheduledChat) (
 func (a *chatAutomations) serve(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "POST required", 405)
+		return
+	}
+	if a.servePluginControl(w, r) {
 		return
 	}
 	var input struct {

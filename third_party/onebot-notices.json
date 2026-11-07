@@ -13,7 +13,12 @@
     "@modelcontextprotocol/sdk",
     "json5",
     "dotenv",
-    "silk-wasm"
+    "silk-wasm",
+    "parse5",
+    "winone-ssrf-ipaddr",
+    "undici",
+    "tar",
+    "@modelcontextprotocol/ext-apps"
   ],
   "sourceSpec": "third_party/cindy/onebot.sync.json",
   "components": [
@@ -21,7 +26,7 @@
       "kind": "source",
       "name": "Cindy OneBot local foundation",
       "repository": "https://github.com/makecindy/cindy",
-      "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+      "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
       "license": "Apache-2.0",
       "notices": [
         {
@@ -940,7 +945,7 @@
         "kind": "cindy-package-metadata",
         "licenseTextMissing": true,
         "repository": "https://github.com/makecindy/cindy",
-        "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+        "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
         "path": "docs/legal/notices/desktop-win.txt",
         "sourceSHA256": "49f7d3c4e2212b17ed500ab1b1444e6c6fb5d1a883fdce460624b9af2bca4fa4",
         "declaration": "- npm:@wecom/aibot-node-sdk@1.0.7 (MIT)"
@@ -1179,7 +1184,7 @@
         "kind": "cindy-package-metadata",
         "licenseTextMissing": true,
         "repository": "https://github.com/makecindy/cindy",
-        "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+        "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
         "path": "docs/legal/notices/desktop-win.txt",
         "sourceSHA256": "49f7d3c4e2212b17ed500ab1b1444e6c6fb5d1a883fdce460624b9af2bca4fa4",
         "declaration": "- npm:@sapphire/async-queue@1.5.5 (MIT)"
@@ -1207,7 +1212,7 @@
         "kind": "cindy-package-metadata",
         "licenseTextMissing": true,
         "repository": "https://github.com/makecindy/cindy",
-        "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+        "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
         "path": "docs/legal/notices/desktop-win.txt",
         "sourceSHA256": "49f7d3c4e2212b17ed500ab1b1444e6c6fb5d1a883fdce460624b9af2bca4fa4",
         "declaration": "- npm:@sapphire/snowflake@3.5.5 (MIT)"
@@ -1347,7 +1352,7 @@
         "kind": "cindy-package-metadata",
         "licenseTextMissing": true,
         "repository": "https://github.com/makecindy/cindy",
-        "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+        "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
         "path": "docs/legal/notices/desktop-win.txt",
         "sourceSHA256": "49f7d3c4e2212b17ed500ab1b1444e6c6fb5d1a883fdce460624b9af2bca4fa4",
         "declaration": "- npm:drizzle-orm@0.45.2 (Apache-2.0)"
@@ -2580,6 +2585,174 @@
           "sourceFile": "LICENSE",
           "file": "licenses/npm-onebot-ws-8.21.0-LICENSE.txt",
           "sha256": "2b29dcfe0d6471f7e8c92c5fb38c9f93edee10330937055440192f1832b1ecef"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "parse5",
+      "version": "8.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/parse5",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-parse5-8.1.0-LICENSE.txt",
+          "sha256": "8c535800331e1e4439835555b3f9edc7fe9dee2fab0d8bbbd5a982e8b8343d4d"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "entities",
+      "version": "9.0.0",
+      "license": "BSD-2-Clause",
+      "sourceDirectory": "node_modules/entities",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-entities-9.0.0-LICENSE.txt",
+          "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "ipaddr.js",
+      "version": "2.4.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/winone-ssrf-ipaddr",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-ipaddr.js-2.4.0-LICENSE.txt",
+          "sha256": "62568a2d1337b77171ecca9db10579163446de1ba6151678e81f06cdc199971b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "undici",
+      "version": "8.12.3",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/undici",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-undici-8.12.3-LICENSE.txt",
+          "sha256": "a6db8096b2707bc0102d256917d4d33f298ba36d8c3f25de067a2b5bb379db27"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "tar",
+      "version": "7.5.21",
+      "license": "BlueOak-1.0.0",
+      "sourceDirectory": "node_modules/tar",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-onebot-tar-7.5.21-LICENSE.md.txt",
+          "sha256": "8a1af140fdfbf5afd3df27f7e662f989c5b963a300020dfafce42033cae9e004"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@isaacs/fs-minipass",
+      "version": "4.0.1",
+      "license": "ISC",
+      "sourceDirectory": "node_modules/@isaacs/fs-minipass",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-isaacs-fs-minipass-4.0.1-LICENSE.txt",
+          "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "minipass",
+      "version": "7.1.3",
+      "license": "BlueOak-1.0.0",
+      "sourceDirectory": "node_modules/minipass",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-onebot-minipass-7.1.3-LICENSE.md.txt",
+          "sha256": "8a1af140fdfbf5afd3df27f7e662f989c5b963a300020dfafce42033cae9e004"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "chownr",
+      "version": "3.0.0",
+      "license": "BlueOak-1.0.0",
+      "sourceDirectory": "node_modules/chownr",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-onebot-chownr-3.0.0-LICENSE.md.txt",
+          "sha256": "a49c9ba464796f65b59fca3f1e6ca40912df1e859f575383223f7ec6c5baae09"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "minizlib",
+      "version": "3.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/minizlib",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-minizlib-3.1.0-LICENSE.txt",
+          "sha256": "df05697a04b8997c79d423930534e59cc18828f6e22d0c8c2d62fcbea1c4f50b"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "yallist",
+      "version": "5.0.0",
+      "license": "BlueOak-1.0.0",
+      "sourceDirectory": "node_modules/yallist",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.md",
+          "file": "licenses/npm-onebot-yallist-5.0.0-LICENSE.md.txt",
+          "sha256": "a49c9ba464796f65b59fca3f1e6ca40912df1e859f575383223f7ec6c5baae09"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@modelcontextprotocol/ext-apps",
+      "version": "1.7.5",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@modelcontextprotocol/ext-apps",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-modelcontextprotocol-ext-apps-1.7.5-LICENSE.txt",
+          "sha256": "0382b0057770ca05e9c350a50aa3b1c1fea84da0bc81d723bf00b9aa841be58a"
+        }
+      ]
+    },
+    {
+      "kind": "npm",
+      "name": "@standard-schema/spec",
+      "version": "1.1.0",
+      "license": "MIT",
+      "sourceDirectory": "node_modules/@standard-schema/spec",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/npm-onebot-standard-schema-spec-1.1.0-LICENSE.txt",
+          "sha256": "653b779005a3a4d64a7288c940f7b9a0e8f0b1e0375f6aa6af9473caf131e564"
         }
       ]
     }

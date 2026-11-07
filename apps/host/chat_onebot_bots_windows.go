@@ -458,6 +458,10 @@ func (b *chatOneBot) serveOneBotBridge(w http.ResponseWriter, r *http.Request, r
 	switch route {
 	case "authorize-routine":
 		value, err = b.authorizeRoutine(ctx, raw)
+	case "routine-lane":
+		value, err = b.routineLane(ctx, raw)
+	case "routine-lane-discard":
+		value, err = b.discardRoutineLane(raw)
 	case "skills-catalog":
 		runner, readyErr := b.ensure(ctx)
 		if readyErr != nil {
@@ -497,14 +501,14 @@ func (b *chatOneBot) serveOneBotBridge(w http.ResponseWriter, r *http.Request, r
 		value, err = b.auxiliaryText(ctx, raw)
 	case "voice-resources":
 		value, err = b.voiceResources()
-    case "creation-resources":
-        value, err = b.creationResources()
-    case "portrait-catalog":
-        value, err = b.portraitCatalog()
-    case "portrait-request":
-        value, err = b.portraitRequest(ctx,raw)
-    case "wechat-authorization":
-        value, err = openWechatAuthorization(raw)
+	case "creation-resources":
+		value, err = b.creationResources()
+	case "portrait-catalog":
+		value, err = b.portraitCatalog()
+	case "portrait-request":
+		value, err = b.portraitRequest(ctx, raw)
+	case "wechat-authorization":
+		value, err = openWechatAuthorization(raw)
 	case "voice-record":
 		value, err = b.voiceRecord(ctx, raw)
 	case "voice-system-audio":

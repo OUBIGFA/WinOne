@@ -1,0 +1,62 @@
+%PDF-1.7
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R /Annots [6 0 R 8 0 R 9 0 R] >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 40 >>
+stream
+BT /F1 18 Tf 40 250 Td (Hello PDF) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Annot /Subtype /Link /Rect [40 200 200 220] /A << /S /URI /URI (https://example.invalid/pdf-link) >> >>
+endobj
+7 0 obj
+<< /Fields [8 0 R 9 0 R] /DR << /Font << /F1 4 0 R >> >> /DA (/F1 12 Tf 0 g) /NeedAppearances true >>
+endobj
+8 0 obj
+<< /Type /Annot /Subtype /Widget /FT /Tx /T (name) /V (Initial value) /Rect [40 140 200 165] /P 3 0 R /DA (/F1 12 Tf 0 g) >>
+endobj
+9 0 obj
+<< /Type /Annot /Subtype /Widget /FT /Btn /T (checkbox) /V /Off /AS /Off /Rect [40 100 60 120] /P 3 0 R /AP << /N << /Off 10 0 R /Yes 11 0 R >> >> >>
+endobj
+10 0 obj
+<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << >> /Length 47 >>
+stream
+1 1 1 rg 0 0 20 20 re f 0 0 0 RG 1 1 18 18 re S
+endstream
+endobj
+11 0 obj
+<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << >> /Length 68 >>
+stream
+1 1 1 rg 0 0 20 20 re f 0 0 0 RG 2 w 2 2 m 18 18 l S 2 18 m 18 2 l S
+endstream
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000009 00000 n 
+0000000074 00000 n 
+0000000131 00000 n 
+0000000285 00000 n 
+0000000355 00000 n 
+0000000445 00000 n 
+0000000574 00000 n 
+0000000691 00000 n 
+0000000831 00000 n 
+0000000996 00000 n 
+0000001159 00000 n 
+trailer
+<< /Size 12 /Root 1 0 R >>
+startxref
+1343
+%%EOF

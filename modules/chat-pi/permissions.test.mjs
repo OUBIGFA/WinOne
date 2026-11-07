@@ -4,6 +4,15 @@ import {createPermissionGate} from "./permissions.mjs";
 
 const cwd="C:\\work\\project";
 const write=(target="C:\\work\\project\\proof.txt")=>({id:"write",tool:"write",args:{path:target,content:"proof"},cwd,outside:!target.startsWith(cwd),protectedFile:false});
+test('Host legacy Plan Mode never borrows a cached or Full-access write grant',async()=>{
+ let plan=true,asked=0;
+ const gate=createPermissionGate({mode:'bypassPermissions',cwd,readOnly:()=>plan,authorize:async()=>{asked++;return true;}});
+ await gate.check({tool:'read',args:{path:cwd+'\\proof.txt'},cwd,outside:false});
+ for(const request of [write(),{tool:'powershell',args:{command:'Write-Output hi'},cwd},{tool:'ghost_call',args:{},external:true,cwd}])await assert.rejects(gate.check(request),/Read-only Plan Mode/);
+ assert.equal(asked,0,'there is no per-tool escape from the Host plan marker');
+ plan=false;await gate.check(write());assert.equal(asked,0);
+});
+
 test("Ask retains explicit tool review and session grants cover only the displayed file",async()=>{
  const requests=[];
  const gate=createPermissionGate({mode:"ask",cwd,authorize:async request=>{requests.push(request);return {allow:true,scope:"session"};}});

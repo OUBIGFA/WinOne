@@ -20,7 +20,7 @@ const (
 	PermissionBypass Permission = "bypassPermissions"
 )
 
-// Part is one piece of a message: text, thinking, or a tool call.
+// Part is one piece of a message: text, thinking, a tool call or image metadata.
 type Part struct {
 	Type      string         `json:"type"`
 	Text      string         `json:"text,omitempty"`
@@ -28,6 +28,11 @@ type Part struct {
 	ID        string         `json:"id,omitempty"`
 	Name      string         `json:"name,omitempty"`
 	Arguments map[string]any `json:"arguments,omitempty"`
+	// Tool images use the Host-owned, read-only attachment path. Data is kept
+	// only when present in a compatible wire payload, never synthesized here.
+	MimeType string `json:"mimeType,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Data     string `json:"data,omitempty"`
 	// ThinkingStartedAt and ThinkingDurationMs time a thinking part, in
 	// milliseconds since the epoch and milliseconds.
 	ThinkingStartedAt  *float64 `json:"thinkingStartedAt,omitempty"`
@@ -293,14 +298,15 @@ type Snapshot struct {
 
 // Tool is a tool running or run in the live turn.
 type Tool struct {
-	ID      string         `json:"id"`
-	Name    string         `json:"name"`
-	Args    map[string]any `json:"args"`
-	Running bool           `json:"running"`
-	Result  any            `json:"result,omitempty"`
-	IsError bool           `json:"isError,omitempty"`
-	TurnID  string         `json:"turnId,omitempty"`
-	Files   []ChangedFile  `json:"files,omitempty"`
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	Args        map[string]any `json:"args"`
+	Running     bool           `json:"running"`
+	ResultParts []Part         `json:"resultParts,omitempty"`
+	Result      any            `json:"result,omitempty"`
+	IsError     bool           `json:"isError,omitempty"`
+	TurnID      string         `json:"turnId,omitempty"`
+	Files       []ChangedFile  `json:"files,omitempty"`
 }
 
 // State is what the page draws for the open conversation.
@@ -644,6 +650,24 @@ func delta(state State, event Event) State {
 	return state
 }
 
+// The SDK's live result has the same content-parts contract as a stored
+// toolResult message. Preserve that list before the text-only row projection.
+func resultParts(result any) []Part {
+	object, ok := result.(map[string]any)
+	if !ok {
+		return nil
+	}
+	encoded, err := json.Marshal(object["content"])
+	if err != nil {
+		return nil
+	}
+	var content Content
+	if json.Unmarshal(encoded, &content) != nil {
+		return nil
+	}
+	return content.List()
+}
+
 func toolEvent(state State, event Event) State {
 	tools := append([]Tool(nil), state.Tools...)
 	at := -1
@@ -670,6 +694,7 @@ func toolEvent(state State, event Event) State {
 	}
 	tool.Running = event.EventType != "tool_execution_end"
 	tool.Result, tool.IsError = event.Result, event.IsError
+	tool.ResultParts = resultParts(event.Result)
 	if at < 0 {
 		tools = append(tools, tool)
 	} else {

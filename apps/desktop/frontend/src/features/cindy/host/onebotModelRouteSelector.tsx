@@ -44,3 +44,10 @@ export function ModelRouteSelector(props:Props){
   </PopoverContent>
  </Popover>;
 }
+
+// Cindy ModelRouteSelectorContent (2d8d3c3) adds the device route around the
+// selector content. WinOne routes stay on this computer: the route props are
+// dropped and the local selector content is shown.
+export function ModelRouteSelectorContent({agentDeviceId:_agentDeviceId,sshRemote:_sshRemote,deviceId:_deviceId,...props}:ContentProps&{agentDeviceId?:string|null;sshRemote?:boolean;deviceId?:string}){
+ return <ModelSelectorContent {...props}/>;
+}

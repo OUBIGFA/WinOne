@@ -71,6 +71,29 @@ func mergeFiles(lists ...[]model.Attachment) []model.Attachment {
 // acknowledges; newer draft saves wait behind the receipt so they cannot
 // overwrite what was typed meanwhile. On failure the text comes back.
 func (p *Chat) send(override *queuedSend, mode model.DeliveryMode, done func(error)) {
+	id := p.activeID
+	if override == nil {
+		// Preserve the explicit send snapshot while browser mail events are
+		// crossing their barrier; newer Chat typing is not implicitly sent.
+		override = &queuedSend{text: p.text, files: append([]model.Attachment(nil), p.files...)}
+	}
+	p.flushMailEdits(id, func(err error) {
+		if err != nil {
+			done(err)
+			return
+		}
+		if p.closed() || p.activeID != id {
+			done(core.Errorf(i18n.T("chat.sendCancelled")))
+			return
+		}
+		p.sendAfterMail(override, mode, done)
+	})
+}
+
+func (p *Chat) sendAfterMail(override *queuedSend, mode model.DeliveryMode, done func(error)) {
+	if mode == "" {
+		mode = model.DeliveryQueue
+	} // Declarative answer buttons use the same queue semantics as the composer.
 	selection := p.currentModel()
 	if p.ai != nil && selection.Model == "" {
 		done(core.Errorf(i18n.T("chat.modelUnavailable")))
@@ -95,6 +118,19 @@ func (p *Chat) send(override *queuedSend, mode model.DeliveryMode, done func(err
 	}
 	originalFiles := files
 	content := model.AnnotatedPrompt(original, files)
+	// A teammate's @mentions leave as Cindy's wire links; its pending quote leaves
+	// with this message and is cleared once accepted.
+	var references []botAgentReference
+	var replyQuote *botReplyQuote
+	shownText := original
+	if p.bot != nil {
+		if p.bot.Mentions != nil {
+			mentions := p.bot.Mentions()
+			content, references = serializeBotMentions(content, mentions)
+			shownText, _ = serializeBotMentions(original, mentions)
+		}
+		replyQuote = p.botMode.quote
+	}
 	if p.view.Paused != nil && *p.view.Paused || isBlank(content) && len(files) == 0 {
 		done(nil)
 		return
@@ -132,8 +168,12 @@ func (p *Chat) send(override *queuedSend, mode model.DeliveryMode, done func(err
 		clearSubmitted()
 	}
 	optimistic := func() model.Message {
-		return model.Message{ID: r.id, RequestID: r.id, TurnID: r.id, Pending: true, Queued: queued, DeliveryMode: mode,
-			Role: "user", Content: model.TextContent(original), Attachments: files, Timestamp: now()}
+		m := model.Message{ID: r.id, RequestID: r.id, TurnID: r.id, Pending: true, Queued: queued, DeliveryMode: mode,
+			Role: "user", Content: model.TextContent(shownText), Attachments: files, Timestamp: now()}
+		if replyQuote != nil {
+			m.ReplyQuote, _ = json.Marshal(replyQuote)
+		}
+		return m
 	}
 	shown := optimistic()
 	p.submitting = &shown
@@ -175,6 +215,12 @@ func (p *Chat) send(override *queuedSend, mode model.DeliveryMode, done func(err
 		if len(files) > 0 {
 			params["attachments"] = paths(files)
 		}
+		if replyQuote != nil {
+			params["replyQuote"] = replyQuote
+		}
+		if len(references) > 0 {
+			params["agentReferences"] = references
+		}
 		chatCall(p, "prompt", params, func(result struct {
 			Accepted *bool  `json:"accepted"`
 			Error    string `json:"error"`
@@ -193,6 +239,9 @@ func (p *Chat) send(override *queuedSend, mode model.DeliveryMode, done func(err
 			}
 			if p.pendingInput != nil && p.pendingInput.id == r.id {
 				p.pendingInput = nil
+			}
+			if replyQuote != nil && p.botMode.quote == replyQuote {
+				p.botMode.quote = nil
 			}
 			if p.activeID == target.ID {
 				known := false
@@ -581,6 +630,21 @@ func (p *Chat) dropApproval(id string) {
 // (edit). The ordered event stream alone carries the replacement branch:
 // a second snapshot here could arrive behind its deltas.
 func (p *Chat) dispatchRetry(entry string, text *string, restoreRevision string, done func(error)) {
+	id := p.activeID
+	p.flushMailEdits(id, func(err error) {
+		if err != nil {
+			done(err)
+			return
+		}
+		if p.closed() || p.activeID != id {
+			done(core.Errorf(i18n.T("chat.sendCancelled")))
+			return
+		}
+		p.dispatchRetryAfterMail(entry, text, restoreRevision, done)
+	})
+}
+
+func (p *Chat) dispatchRetryAfterMail(entry string, text *string, restoreRevision string, done func(error)) {
 	key, _ := json.Marshal([]any{p.activeID, entry, text, restoreRevision})
 	r := p.retryReceipt
 	if r == nil || r.key != string(key) {

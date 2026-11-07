@@ -59,14 +59,12 @@ func textField(c *ui.Context, value *string, label string, disabled bool) ui.Ele
 
 func (p *page) lobby(c *ui.Context) {
 	t := c.Theme()
-	// The welcome is centered as a whole, and scrolls when the window is
-	// too low for it.
-	// A scroll view does not stretch its content: the column takes the
-	// frame's height from the last layout, less the padding.
-	height := max(p.area.Bounds(c).H-64, 0)
-	ui.Scroll(c).Fill().Padding(32, 24).Children(func() {
-		ui.Column(c).FillWidth().MinHeight(height).Justify(ui.Center).AlignItems(ui.Center).Children(func() {
-			ui.Column(c).FillWidth().MaxWidth(lobbyWidth).Gap(24).Children(func() {
+	// Center the scroll view itself in the current layout's finite viewport.
+	// Its natural height shrinks to the viewport only when content overflows;
+	// reading last frame's bounds here caused the welcome's first-frame jump.
+	ui.Column(c).Fill().Justify(ui.Center).Children(func() {
+		ui.Scroll(c).FillWidth().MaxHeightPercent(100).Shrink(1).Padding(32, 24).Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(lobbyWidth).Margin(0, ui.Auto).Gap(24).Children(func() {
 				ui.Column(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
 					ui.Row(c).Gap(12).AlignItems(ui.Center).Children(func() {
 						ui.Icon(c, icons.MessagesCircle).FontSize(28).Shrink(0)

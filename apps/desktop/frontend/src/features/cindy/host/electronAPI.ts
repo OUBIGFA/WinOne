@@ -31,13 +31,23 @@ export type ProjectAutomationReconciledEvent = {
   isFirstTime: boolean;
   hashChanged: boolean;
 };
+/** Cindy 2d8d3c3: repository changes wait for the user to confirm this exact snapshot. */
+export interface ProjectAutomationImport {
+  workingDir: string;
+  configHash: string;
+  schedules: Array<Record<string, unknown>>;
+  removedNames: string[];
+}
+export type ProjectAutomationImportEvent = {type: 'import-required'; pendingImport: ProjectAutomationImport};
+export type ProjectAutomationEvent = ProjectAutomationReconciledEvent | ProjectAutomationImportEvent;
+export interface ProjectAutomationReconcileResult {workingDir: string; inserted: number; updated: number; deleted: number; skipped: 'no-file' | 'parse-error' | null; pendingImport?: ProjectAutomationImport}
 type HookTestResult = Omit<PreRunHookRunResult, 'checkSucceeded'>;
 /** The fields of Cindy's AuthStateChangePayload that vendored stores read. */
 interface AuthStateChangePayload {isAuthenticated: boolean; dataOwnerId: string | null; ownerGeneration: number; ownerBoundaryPending?: boolean}
 type Unsubscribe = () => void;
 type OwnerStamp = unknown;
 type ScheduleListener = (event: SchedulerEvent, ownerStamp?: OwnerStamp) => void;
-type ProjectListener = (event: ProjectAutomationReconciledEvent, ownerStamp?: OwnerStamp) => void;
+type ProjectListener = (event: ProjectAutomationEvent, ownerStamp?: OwnerStamp) => void;
 
 const call = <T>(method: string, params: unknown = {}) => chatCall<T>('automations.' + method, params);
 const SCHEDULER_EVENTS = new Set(['fired', 'completed', 'failed', 'silenced', 'notified', 'deferred', 'skipped', 'session-bound', 'changed', 'runtime-state', 'read', 'all-read', 'ready']);
@@ -53,8 +63,8 @@ function hasListeners() { return scheduleListeners.size + projectListeners.size 
 function deliver(raw: unknown) {
   if (!raw || typeof raw !== 'object') return;
   const event = raw as {type?: unknown};
-  if (event.type === 'reconciled') {
-    for (const listener of [...projectListeners]) listener(raw as ProjectAutomationReconciledEvent);
+  if (event.type === 'reconciled' || event.type === 'import-required') {
+    for (const listener of [...projectListeners]) listener(raw as ProjectAutomationEvent);
   } else if (typeof event.type === 'string' && SCHEDULER_EVENTS.has(event.type)) {
     for (const listener of [...scheduleListeners]) listener(raw as SchedulerEvent);
   }
@@ -140,7 +150,7 @@ const automationsAPI = {
       runNow: (id: string) => call<{runId: string}>('run', {id}),
       testPreRunHook: (params: {command: string; timeoutMs?: number; workingDir?: string; targetSessionId?: string; scheduleName?: string}) =>
         call<HookTestResult>('hook.test', params),
-      generatePreRunHook: (params: {description: string; scheduleName?: string; workingDir?: string; providerId?: string; agentKind?: AgentKind; model?: string; targetSessionId?: string; resolveBoundSessionRoute?: boolean; currentCommand?: string}) =>
+      generatePreRunHook: (params: {description: string; scheduleName?: string; workingDir?: string; providerId?: string; agentKind?: AgentKind; model?: string; modelAgentDeviceId?: string | null; targetSessionId?: string; resolveBoundSessionRoute?: boolean; currentCommand?: string}) =>
         call<{ok: true; command: string; filePath: string; content: string; test: HookTestResult} | UtilityTextFailure>('hook.generate', params),
       listRuns: (id: string, limit?: number) => call<ScheduleRun[]>('runs', {id, limit: limit ?? 50}),
       listSidebarIndexRuns: () => call<unknown>('sidebarIndexRuns'),
@@ -154,7 +164,8 @@ const automationsAPI = {
       onEvent: (listener: ScheduleListener) => subscribe(scheduleListeners, listener),
     },
     projectAutomation: {
-      reconcile: (params: {workingDir: string}) => call<unknown>('project.reconcile', params),
+      reconcile: (params: {workingDir: string; approvedHash?: string}) => call<ProjectAutomationReconcileResult>('project.reconcile', params),
+      listPendingImports: () => call<ProjectAutomationImport[]>('project.pendingImports'),
       upsertSchedule: (params: {workingDir: string; config: unknown}) => call<unknown>('project.upsertSchedule', params),
       removeSchedule: (params: {workingDir: string; id: string}) => call<unknown>('project.removeSchedule', params),
       onEvent: (listener: ProjectListener) => subscribe(projectListeners, listener),

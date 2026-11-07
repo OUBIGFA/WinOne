@@ -16,7 +16,7 @@ import (
 func (c *chatControl) configureProjectPermission(ctx context.Context, id, permission string) (chat.Catalog, error) {
 	snapshot := c.store.Snapshot()
 	for _, conversation := range snapshot.Conversations {
-		if conversation.ProjectID != id {
+		if conversation.ProjectID != id || conversation.OrcaRole == "worker" {
 			continue
 		}
 		page, err := c.engine.Poll(conversation.ID, 0)
@@ -25,7 +25,7 @@ func (c *chatControl) configureProjectPermission(ctx context.Context, id, permis
 		}
 	}
 	for _, conversation := range snapshot.Conversations {
-		if conversation.ProjectID != id {
+		if conversation.ProjectID != id || conversation.OrcaRole == "worker" {
 			continue
 		}
 		if _, err := c.engine.ConfigureConversation(ctx, conversation.ID, func(*chat.Conversation) error { return nil }); err != nil {

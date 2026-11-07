@@ -200,7 +200,7 @@ func (c *Controller) copy(text string) {
 		c.Panel.Error = c.Panel.T("复制失败，请重试。", "Copy failed. Please retry.")
 		return
 	}
-	c.Panel.Notice = c.Panel.T("已复制", "Copied")
+	c.Panel.setNotice(c.Panel.T("已复制", "Copied"))
 }
 func (c *Controller) begin(kind string) (context.Context, uint64) {
 	c.stopSpeech()
@@ -214,7 +214,8 @@ func (c *Controller) begin(kind string) (context.Context, uint64) {
 	c.Panel.Recognizing = kind == "recognize"
 	c.Panel.Busy = true
 	c.Panel.Error = ""
-	c.Panel.Notice = ""
+	c.Panel.setNotice("")
+	c.Panel.errorVisibility = feedbackVisibility{}
 	c.Panel.Pending = nil
 	c.Panel.ResultPending = nil
 	return ctx, c.sequence
@@ -250,7 +251,7 @@ func (c *Controller) cancel() {
 	c.sequence++
 	c.Panel.Busy = false
 	c.markDraft("stopped")
-	c.Panel.Notice = c.Panel.T("已停止", "Stopped")
+	c.Panel.setNotice(c.Panel.T("已停止", "Stopped"))
 }
 
 func (c *Controller) markDraft(state string) {
@@ -445,7 +446,7 @@ func (c *Controller) acceptReply(value Outcome, replacing bool) {
 	if follow {
 		c.Panel.FollowEnd()
 	} else {
-		c.Panel.Notice = c.Panel.T("收到新回复", "New reply")
+		c.Panel.setNotice(c.Panel.T("收到新回复", "New reply"))
 	}
 }
 func (c *Controller) retryHistory() []ai.Message {

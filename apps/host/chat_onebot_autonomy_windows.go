@@ -32,6 +32,9 @@ const maximumAutonomySessionIDs = 1000
 // state changed. Only a running OneBot Worker hears it: activity never starts
 // the Worker, so an owner without teammates pays for nothing.
 func (b *chatOneBot) noteActivity(id string) {
+	if b.control.ghosts != nil {
+		b.control.ghosts.notifyTaskChange()
+	}
 	b.activityMu.Lock()
 	defer b.activityMu.Unlock()
 	if b.activityPending == nil {

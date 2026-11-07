@@ -13,6 +13,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"winone/desktopmygo/chat/pluginhost/globalpages"
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
@@ -117,6 +118,7 @@ func (p *page) View(c *ui.Context) {
 			return
 		}
 		p.tools(c)
+		globalpages.For(p.env).Dashboard(c)
 		p.runtimes(c)
 	})
 	p.install.dialog(c)

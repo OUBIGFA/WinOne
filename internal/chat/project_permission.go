@@ -20,8 +20,11 @@ func (s *Store) UpdateProjectPermission(id, permission string) (Project, error) 
 		value.Projects[index].Permission = permission
 		result = value.Projects[index]
 		for i := range value.Conversations {
-			if value.Conversations[i].ProjectID == id {
+			// Workers share project presentation, not its permission preference;
+			// their admitted Orca mode remains independent and explicitly editable.
+			if value.Conversations[i].ProjectID == id && value.Conversations[i].OrcaRole != "worker" {
 				value.Conversations[i].Permission = permission
+				value.Conversations[i].LegacyPlan = false
 			}
 		}
 		return nil

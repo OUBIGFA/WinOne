@@ -6,6 +6,7 @@ import { isModelEnabled, getModelVisibilityVersion } from '../host/onebotData';
 import { botInvitationProgress, type BotInvitationProgress } from '../shared/botInvitation';
 import { useSyncExternalStore } from 'react';
 import { getDataOwnerGeneration, isDataOwnerGenerationCurrent } from '../host/dataOwner';
+import { extractIpcError } from '../host/ipcError';
 import { getModel } from '../host/modelProviders';
 import { getDefaultModelForVendor } from '../host/onebotData';
 import { pickConnectedModelForAgent } from '../host/drafts';
@@ -19,9 +20,12 @@ import {
 import { getBotLastReadAtMap, pruneBotReadState, seedMissingBotReadState } from './botReadState';
 import type { BotAutonomySettingsView } from '../shared/botAutonomy';
 import { registerLoadedBotProfilesReader } from './botSessionOwners';
+import { canonicalBotSession } from './botSessionOwners';
+export { canonicalBotSession } from './botSessionOwners';
 import type { BotGender } from '../shared/botGender';
 import { BOT_FAILURE_REASONS, type BotFailureReason } from '../shared/botFailureReason';
 import type { BotCapabilityBaseline } from '../shared/botCapabilitySelection';
+import type { BotSystemSkillId } from '../shared/botSystemSkills';
 import { NEW_BOT_DEFAULT_PERMISSIONS, normalizeBotPermissions } from './botCapabilityDefaults';
 import {
   BOT_MODEL_CHAIN_MAX,
@@ -36,6 +40,8 @@ export interface BotCapabilities {
   /** Only present when the user explicitly chose a model for this Bot. */
   modelOverride?: BotModelOverride | null;
   providerId?: string | null;
+  /** Mirror of the primary route; null/absence means the teammate's computer. */
+  agentDeviceId?: string | null;
   effort: string;
   fastMode: boolean | 'ultrafast';
   harness: 'claude' | 'codex' | 'pi';
@@ -66,6 +72,8 @@ export interface BotCapabilities {
    * 缺省 = false：别的伙伴开的任务，负责所有任务的伙伴默认只看不跟（shared/botAutonomy.ts）。
    */
   allowSchedulerFollow?: boolean;
+  /** System Skills this teammate has turned off (shared/botSystemSkills.ts). Missing = all on. */
+  systemSkillsOff?: BotSystemSkillId[];
 }
 
 export interface BotModelOverride {
@@ -155,10 +163,10 @@ export interface BotSessionProjection {
    * Telegram / Feishu group handed to the Bot); see botGroupLane.ts before
    * counting sessions.
    */
-  kind: 'chat' | 'worker' | 'history' | 'group' | 'channel' | 'thread';
+  kind: 'chat' | 'worker' | 'history' | 'group' | 'channel' | 'thread' | 'routine';
   updatedAt: number;
   status?: 'active' | 'archived' | 'deleted';
-  role?: 'canonical' | 'delegation' | 'history' | 'group' | 'channel' | 'thread';
+  role?: 'canonical' | 'delegation' | 'history' | 'group' | 'channel' | 'thread' | 'routine';
   /** Group-lane only: the group whose chat owns this hidden Session. */
   groupId?: string;
   /** Private-chat topic only: the main-chat message the topic was opened on. */
@@ -225,11 +233,6 @@ export interface BotProfile {
  * Resolve canonical ownership from the projected bot_session_links registry.
  * The top-level canonicalSessionId remains a migration/output mirror only.
  */
-export function canonicalBotSession(bot: BotProfile): BotSessionProjection | undefined {
-  const matches = bot.sessions.filter((session) => session.role === 'canonical');
-  return matches.length === 1 ? matches[0] : undefined;
-}
-
 export function canonicalBotSessionId(bot: BotProfile): string | undefined {
   return canonicalBotSession(bot)?.id;
 }
@@ -1018,6 +1021,8 @@ export type BotProfileUpdatePatch = Partial<
   >
 > & {
   avatarUploadToken?: string;
+  /** Explicit picker action, including accepting an unchanged configured route. Never persisted. */
+  acceptModelSelection?: boolean;
   capabilities?: Partial<BotCapabilities>;
   capabilityBaseline?: BotCapabilityBaseline;
 };
@@ -1026,7 +1031,8 @@ export function updateBotProfile(id: string, patch: BotProfileUpdatePatch): Prom
   ensureProfileOwner();
   const before = profiles.find((bot) => bot.id === id);
   if (!before) return Promise.reject(new Error('Bot not found'));
-  const { avatarUploadToken, capabilityBaseline, ...profilePatch } = patch;
+  const { avatarUploadToken, capabilityBaseline, acceptModelSelection, ...profilePatch } = patch;
+  if (acceptModelSelection && !before.currentVersion) return Promise.reject(new Error('Bot profile version is unavailable'));
   // 这一行的写入代际。回填与回滚都要求「我仍然是这一行最新的那次写」——
   // 落后的响应一律丢弃,不许覆盖更新的状态(见下面两处 isLatestWrite)。
   const generation = (profileWriteGenerations.get(id) ?? 0) + 1;
@@ -1047,6 +1053,7 @@ export function updateBotProfile(id: string, patch: BotProfileUpdatePatch): Prom
     .update({
       id,
       ...profilePatch,
+      ...(acceptModelSelection ? { acceptSavedModelSelectionVersion: before.currentVersion } : {}),
       ...(capabilityBaseline ? { capabilityBaseline } : {}),
       ...(avatarUploadToken ? { avatarUploadToken } : {}),
       ...(profilePatch.avatar !== undefined || avatarUploadToken
@@ -1065,7 +1072,7 @@ export function updateBotProfile(id: string, patch: BotProfileUpdatePatch): Prom
       emit();
       return next;
     })
-    .catch((error) => {
+    .catch(async (error) => {
       /*
         只回滚**这一行**,而且只在自己仍是最新那次写的时候回滚。
 
@@ -1079,8 +1086,16 @@ export function updateBotProfile(id: string, patch: BotProfileUpdatePatch): Prom
         有 hydrated 闸),所以数据库里是对的,界面上却一直显示被还原的旧值。
       */
       if (isLatestWrite()) {
-        profiles = profiles.map((bot) => (bot.id === id ? before : bot));
-        emit();
+        let rollback = before;
+        if (acceptModelSelection && extractIpcError(error)?.code === 'PRECONDITION_FAILED') {
+          const latest = normalizeDbProfile(await api.get(id).catch(() => null));
+          if (latest) rollback = latest;
+        }
+        // Reading can cross another write or an account switch.
+        if (isLatestWrite()) {
+          profiles = profiles.map((bot) => (bot.id === id ? rollback : bot));
+          emit();
+        }
       }
       throw error;
     });

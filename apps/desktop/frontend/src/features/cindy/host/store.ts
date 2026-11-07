@@ -19,6 +19,8 @@ export interface CindyHostNavigation {
   openConversation(id: string): void;
   openAIServices(): void;
   openIMSettings(): void;
+  /** Opens a new Chat conversation with text added to its unsent draft (Cindy's New Maker prefill). */
+  openNewChat(text: string): void;
 }
 
 let snapshot: CindyHostSnapshot = {catalog: null, providers: null, defaultModel: null};
@@ -27,6 +29,7 @@ const defaultNavigation: CindyHostNavigation = {
   openConversation: (id) => window.dispatchEvent(new CustomEvent('winone-open-chat', {detail: {id}})),
   openAIServices: () => window.dispatchEvent(new CustomEvent('winone-open-page', {detail: {id: 'ai-services'}})),
   openIMSettings: () => window.dispatchEvent(new CustomEvent('winone-open-page', {detail: {id: 'onebot', section: 'im'}})),
+  openNewChat: (text) => window.dispatchEvent(new CustomEvent('winone-new-chat', {detail: {text}})),
 };
 let navigation: CindyHostNavigation = defaultNavigation;
 

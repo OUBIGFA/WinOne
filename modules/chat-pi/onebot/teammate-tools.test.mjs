@@ -65,11 +65,15 @@ test('teammate routines, creation and Todo follow the caller and the turn princi
     const listed = await f.tool('teammate.routines.list');
     assert.ok(listed.result.some(row => row.id === saved.result.id));
     assert.ok(Array.isArray((await f.tool('teammate.routines.sources')).result));
-    // Standing grants are the owner's decision (Cindy TEAMMATE_STANDING_GRANT_TOOLS).
-    for (const [method, args] of [['teammate.routines.save', input], ['teammate.routines.delete', {id: saved.result.id}], ['teammate.routines.runNow', {id: saved.result.id}], ['teammate.routines.preRunHook', {script: 'process.exit(2)'}]]) {
+    // Only explicit effects need confirmation, not every routine operation.
+    for (const [method, args] of [['teammate.routines.save', input], ['teammate.routines.delete', {id: saved.result.id}], ['teammate.routines.preRunHook', {script: 'process.exit(2)'}]]) {
       const refused = await f.tool(method, args, 'autonomous');
-      assert.equal(refused.errorCode, 'NEEDS_OWNER_REQUEST', method);
+      assert.equal(refused.errorCode, 'CONFIRMATION_REQUIRED', method);
     }
+    const draft = await f.tool('teammate.routines.save', {...input, enabled: false}, 'autonomous');
+    assert.equal(draft.ok, true, JSON.stringify(draft));
+    assert.equal((await f.tool('teammate.routines.runNow', {id: draft.result.id}, 'autonomous')).errorCode, 'CONFIRMATION_REQUIRED');
+    assert.equal((await f.tool('teammate.routines.runNow', {id: saved.result.id}, 'autonomous')).ok, true);
     assert.ok(Array.isArray((await f.tool('teammate.routines.history', {id: saved.result.id}, 'autonomous')).result));
     assert.equal((await f.tool('teammate.routines.delete', {id: saved.result.id})).ok, true);
     // A non-teammate conversation never owns a routine.
@@ -140,8 +144,8 @@ test('the workbench and task digest read owner tasks through the Host and contin
     // A teammate's own chat is never a workbench target.
     assert.equal((await f.tool('teammate.workbench.continue', {task_id: CANONICAL, message: 'x'})).errorCode, 'TASK_NOT_ACCESSIBLE');
 
-    // Taking responsibility needs the owner's request; releasing does not.
-    assert.equal((await f.tool('teammate.workbench.responsibility', {task_id: TASK, responsible: true}, 'autonomous')).errorCode, 'NEEDS_OWNER_REQUEST');
+    // Taking and releasing responsibility are ordinary work under task permissions.
+    assert.equal((await f.tool('teammate.workbench.responsibility', {task_id: TASK, responsible: true}, 'autonomous')).responsible, true);
     assert.equal((await f.tool('teammate.workbench.responsibility', {task_id: TASK, responsible: true})).responsible, true);
     assert.equal((await f.tool('teammate.workbench.responsibility', {task_id: TASK, responsible: false}, 'autonomous')).responsible, false);
 

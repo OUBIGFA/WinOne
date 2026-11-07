@@ -9,7 +9,9 @@ import type {BotProfile} from '../bots/botStore';
 import type {WorkingPhase} from '../../../../../../../third_party/cindy/maker-shared/workingStatus';
 
 export interface CompanionCloudActor {
+  id: string;
   externalId: string;
+  name: string;
   homeDeviceId: string | null;
   homeDevice?: {name?: string} | null;
 }
@@ -46,6 +48,11 @@ export interface RemoteBot {
   generation?: {phase: WorkingPhase; startedAt: number | null};
   lastReplyAt?: number;
   readAt?: number;
+  templateId?: string;
+  teammateActivity?: {phase: string};
+  needsAttention?: boolean;
+  followingSessionIds?: string[];
+  delegatedSessionIds?: string[];
 }
 export function parseRemoteBots(_value: unknown, _deviceId: string, _deviceName: string): RemoteBot[] { return []; }
 export function remoteBotKey(bot: Pick<RemoteBot, 'deviceId' | 'id'>): string { return `${bot.deviceId}:${bot.id}`; }
@@ -152,3 +159,27 @@ export function getGhostMediaHandoverFromDataTransfer(_data: DataTransfer): null
 export async function attachGhostMediaToSession(..._args: unknown[]): Promise<never> { throw new Error('Cindy plugin media is unavailable in WinOne'); }
 export async function readMailPreview(..._args: unknown[]) { return {supported: false, message: null}; }
 export async function openMailPreview(..._args: unknown[]): Promise<never> { throw new Error('No Cindy mail reader is installed'); }
+
+// Cindy 2d8d3c3 roster keys (remoteBotRoster.ts, cindyDeviceRoster.ts) and
+// useRemoteBots.useRemoteCindyIds. WinOne has no Cindy cloud or other device:
+// keys are upstream's, there is no device teammate and no remote Cindy id.
+export function taskBotKey(bot: {id: string; deviceId?: string}): string {
+  return JSON.stringify([bot.deviceId ?? null, bot.id]);
+}
+export function taskCreatorFilterKey(bot: {id: string; deviceId?: string; templateId?: string; filterKey?: string}, _cloud?: unknown): string {
+  if (bot.filterKey) return bot.filterKey;
+  return taskBotKey(bot);
+}
+const NO_REMOTE_CINDY_IDS: ReadonlySet<string> = new Set();
+export function useRemoteCindyIds(): ReadonlySet<string> {
+  return NO_REMOTE_CINDY_IDS;
+}
+// Cindy ChatGroupSettings.tsx: these pages exist only for server-backed
+// groups. WinOne groups are local, so no page resolves.
+export type ChatGroupSettingsPage = {kind: 'manage' | 'edit' | 'profile'} | {kind: 'companion'; member: {name: string}};
+export function resolveChatGroupSettingsPage(_group: unknown, _value: string | null): ChatGroupSettingsPage | null {
+  return null;
+}
+export function chatGroupSettingsPageTitle(_page: ChatGroupSettingsPage, _t: unknown): string {
+  return '';
+}

@@ -20,24 +20,26 @@ import (
 // The OneBot process is lazy and owned by Chat's Windows Job lifecycle. Merely
 // starting WinOne does not create a Bot Home, open IM accounts or start polling.
 type chatOneBot struct {
-	control           *chatControl
-	startMu           sync.Mutex
-	runner            *chat.Runner
-	stopped           bool
-	sessionMu         sync.Mutex
-	sessions          *chatControl
-	refreshMu         sync.Mutex
-	refresh           map[string]uint64
-	restartContexts   map[string]oneBotContext
-	deletionContext   *oneBotDeletionContext
-	recoveryCancel    context.CancelFunc
-	recoveryWG        sync.WaitGroup
-	learningChanged   chan struct{}
-	imBridge          *chat.PrivateBridge
-	imDriver          *chatAutomations
-	grantMu           sync.Mutex
-	grants            map[string]oneBotInputGrant
-	grantsLoaded      bool
+	control         *chatControl
+	startMu         sync.Mutex
+	runner          *chat.Runner
+	stopped         bool
+	sessionMu       sync.Mutex
+	sessions        *chatControl
+	refreshMu       sync.Mutex
+	refresh         map[string]uint64
+	restartContexts map[string]oneBotContext
+	deletionContext *oneBotDeletionContext
+	recoveryCancel  context.CancelFunc
+	recoveryWG      sync.WaitGroup
+	learningChanged chan struct{}
+	imBridge        *chat.PrivateBridge
+	imDriver        *chatAutomations
+	grantMu         sync.Mutex
+	grants          map[string]oneBotInputGrant
+	grantsLoaded    bool
+	// risk holds owner confirmations of explicit risks (chat_onebot_risk_windows.go).
+	risk              oneBotRiskBook
 	eventMu           sync.Mutex
 	eventSequence     uint64
 	events            []oneBotEvent
@@ -54,6 +56,9 @@ type chatOneBot struct {
 }
 
 func newChatOneBot(control *chatControl) *chatOneBot {
+	if control.ghosts == nil {
+		control.ghosts = newChatGhosts(control)
+	}
 	bot := &chatOneBot{control: control, refresh: map[string]uint64{}, grants: map[string]oneBotInputGrant{}, eventsChanged: make(chan struct{}), learningChanged: make(chan struct{}, 1), runtimeCandidates: map[string]oneBotRuntimeCandidate{}}
 	control.onebot = bot
 	return bot
@@ -73,7 +78,7 @@ func oneBotMethod(method string) (allowed, readOnly bool) {
 	}
 	if strings.HasPrefix(method, "chat.") {
 		switch strings.TrimPrefix(method, "chat.") {
-		case "catalog", "activity", "poll", "state", "open", "release", "detach", "draft.get", "resources", "files", "usage", "file.resolve", "file.stat", "file.preview", "files.list", "files.index", "files.search", "files.cancel", "media.source", "review.turn", "review.snapshot", "review.diff", "review.diff.preview", "review.file.preview", "review.metadata", "review.branches", "review.commits", "terminal.poll", "terminal.resize":
+		case "catalog", "activity", "poll", "state", "open", "release", "detach", "draft.get", "resources", "files", "usage", "file.resolve", "file.stat", "file.preview", "image.preview", "files.list", "files.index", "files.search", "files.cancel", "media.source", "review.turn", "review.snapshot", "review.diff", "review.diff.preview", "review.file.preview", "review.metadata", "review.branches", "review.commits", "terminal.poll", "terminal.resize":
 			return true, true
 		default:
 			return true, false
@@ -88,16 +93,16 @@ func oneBotMethod(method string) (allowed, readOnly bool) {
 		return true, true
 	case "market.invite", "import.start", "bots.generateDraft", "bots.generateAvatar":
 		return true, false
-	case "groups.list", "groups.get", "groups.files.describe", "groups.files.read", "groups.files.classify", "groups.files.resolvePath", "groups.files.resolvePathBatch":
+	case "groups.list", "groups.get", "groups.files.describe", "groups.files.read", "groups.files.classify", "groups.files.resolvePath", "groups.files.resolvePathBatch", "groups.files.preview":
 		return true, true
 	case "groups.create", "groups.update", "groups.setMembers", "groups.delete", "groups.send", "groups.continue", "groups.stop",
 		"groups.plan.start", "groups.plan.dismiss", "groups.plan.continue", "groups.plan.retry", "groups.plan.edit", "groups.attachments.stage", "groups.attachments.image", "groups.files.begin", "groups.files.chunk", "groups.files.finish", "groups.files.image", "groups.files.discard", "groups.files.open", "groups.files.reveal", "groups.files.remoteImage", "groups.files.draftUrls":
 		return true, false
-	case "routines.list", "routines.history", "routines.sources", "routines.nightly.get":
+	case "routines.list", "routines.history", "routines.sources", "routines.deliveryTargets", "routines.nightly.get":
 		return true, true
 	case "routines.save", "routines.remove", "routines.runNow", "routines.nightly.setEnabled", "routines.nightly.setFrequency", "routines.nightly.runNow", "routines.nightly.revert", "routines.nightly.candidate":
 		return true, false
-	case "tasks.pr.refs", "tasks.pr.statuses", "tasks.list", "tasks.get", "capabilities.get", "events", "projects.list", "history.search", "im.list", "profiles.list", "profiles.get", "profiles.versions", "profile.content.read",
+	case "tasks.pr.refs", "tasks.pr.statuses", "tasks.list", "tasks.get", "capabilities.get", "events", "events.barrier", "projects.list", "history.search", "im.list", "profiles.list", "profiles.get", "profiles.versions", "profile.content.read",
 		"imConnection.list", "imConnection.listGroups", "imConnection.listLanes", "imConnection.listAdoptable",
 		"bots.list", "bots.history", "avatar.source", "media.read", "modelChain.get", "dmThread.list", "workbench.get", "workbench.followScopes", "workbench.readTask", "directMessage.get",
 		"memory.list", "memory.read", "memory.index", "memory.search", "messages.learning",
@@ -107,7 +112,7 @@ func oneBotMethod(method string) (allowed, readOnly bool) {
 	case "tasks.stop", "tasks.message", "tasks.trace", "projects.set", "lifecycle.action", "im.add", "im.remove", "im.reconnect", "im.online", "im.offline", "im.groups.setMode", "session.open", "profiles.create", "profiles.update", "profile.content.write", "memory.update", "memory.delete",
 		"imConnection.add", "imConnection.remove", "imConnection.setGroupActivation", "imConnection.resetLane", "imConnection.archiveLane", "imConnection.adopt",
 		"bots.createCanonicalSession", "bots.chooseAvatar", "modelChain.set", "modelChain.reset", "dmThread.ensure", "todos.act",
-		"memory.write", "memory.consolidate", "memory.importDocument", "skills.save", "skills.saveSource", "skills.delete", "todos.patch",
+		"memory.write", "memory.consolidate", "memory.importDocument", "skills.save", "skills.saveSource", "skills.delete", "skills.setEnabled", "profiles.openHome", "todos.patch",
 		"autonomy.setSettings", "autonomy.resetSettings", "todos.dailyCheck":
 		return true, false
 	default:
@@ -138,6 +143,12 @@ func (b *chatOneBot) event(raw json.RawMessage) {
 		return
 	}
 	if message.Event.Type != "diagnostic" {
+		switch message.Event.Type {
+		case "task-changed", "profile-changed", "lifecycle-changed", "capabilities-changed", "group-changed", "direct-message-changed", "message-created", "message-meta-changed":
+			if b.control.ghosts != nil {
+				b.control.ghosts.notifyTaskChange()
+			}
+		}
 		switch message.Event.Type {
 		case "task-changed", "profile-changed", "lifecycle-changed", "workbench-changed", "capabilities-changed":
 			if message.Event.BotID != "" {
@@ -192,6 +203,7 @@ func (b *chatOneBot) ensure(ctx context.Context) (*chat.Runner, error) {
 		}
 		inner := &chatControl{ctx: b.control.ctx, directory: directory, desktop: b.control.desktop, language: b.control.language, ai: b.control.ai, store: store, owners: map[uint32]*processidentity.Process{}}
 		inner.guard = b.control.guard
+		inner.ghosts = b.control.ghosts // One Host/profile owns plugin installs and decisions.
 		inner.prepareInput = b.prepareOwnerInput
 		inner.terminals = chat.NewTerminalManager(b.control.ctx)
 		inner.engine = chat.NewService(b.control.ctx, store, chat.ServiceOptions{Bun: filepath.Join(base, "shared", "ai", "runtime", "bun.exe"), Worker: filepath.Join(base, "shared", "chat", "worker.js"), Configure: b.configureSession, ResourceConfig: b.inspectSessionResources, OnTurnSettled: func(string) {
@@ -318,6 +330,15 @@ func (b *chatOneBot) call(ctx context.Context, method string, params json.RawMes
 	if method == "tasks.list" || method == "tasks.get" || method == "tasks.stop" || method == "tasks.message" || method == "tasks.trace" {
 		return b.taskUICall(ctx, runner, method, params)
 	}
+	if method == "events.barrier" {
+		// Worker stdout events are handled before the RPC reply. This read-only
+		// fence lets native dictation wait for its final/refined text rather
+		// than guessing a delay or copying an older draft.
+		b.eventMu.Lock()
+		cursor := b.eventSequence
+		b.eventMu.Unlock()
+		return json.Marshal(map[string]uint64{"cursor": cursor})
+	}
 	if method == "events" {
 		return b.waitEvents(ctx, runner, params)
 	}
@@ -338,6 +359,10 @@ func (b *chatOneBot) call(ctx context.Context, method string, params json.RawMes
 		return marshalOneBot(openOneBotMicrophoneSettings())
 	case "groups.files.open", "groups.files.reveal":
 		return marshalOneBot(b.groupFileAction(ctx, method, params))
+	case "groups.files.preview":
+		return marshalOneBot(b.groupFilePreview(ctx, runner, params))
+	case "profiles.openHome":
+		return marshalOneBot(b.openBotHome(ctx, runner, params))
 	case "bots.list":
 		return b.listBots(ctx, runner, params)
 	case "bots.createCanonicalSession":

@@ -56,6 +56,15 @@ foreach ($failure in @('incomplete','minimized','hidden','missing-window','missi
 }
 Assert-That (-not (Test-OpenWindowResourceReport ([pscustomobject]@{Samples=@()}) 10 20)) 'Empty window report accepted'
 Assert-That (-not (Test-OpenWindowResourceReport ([pscustomobject]@{}) 10 20)) 'Missing sample collection accepted'
+$native=[pscustomobject]@{Samples=@((Open-Sample),(Open-Sample))}
+foreach($sample in $native.Samples){$sample.Processes=@($sample.Processes|Where-Object Name -ne 'msedgewebview2.exe')}
+Assert-That (Test-OpenWindowResourceReport $native 10 20 'MyGo') 'A real native window group incorrectly required a browser renderer'
+Assert-That (-not (Test-OpenWindowResourceReport $native 10 20)) 'The legacy default silently accepted a missing WebView'
+$native.Samples[1].Window.Visible=$false
+Assert-That (-not (Test-OpenWindowResourceReport $native 10 20 'MyGo')) 'Native measurements accepted a hidden window'
+$native.Samples[1].Window.Visible=$true
+$native.Samples[1].Processes=@($native.Samples[1].Processes|Where-Object ProcessId -ne 20)
+Assert-That (-not (Test-OpenWindowResourceReport $native 10 20 'MyGo')) 'Native measurements lost the real desktop root'
 Write-Output 'PASS: process ownership, live counters, window identity, and open/closed-window scenario validation'
 
 # Budget evidence must come from complete samples, not an optimistic summary.

@@ -380,6 +380,10 @@ export const oneBotPreload = {
     // there is no focus signal to report.
     noteSessionFocused: (_sessionId: string | null): void => {},
     listSync: (): {ghosts: unknown[]} => ({ghosts: []}),
+    // Pre-run plugin checks (Cindy 2d8d3c3) list plugins declaring a control
+    // point; without Cindy plugins the list is empty and never changes.
+    listControlPointCandidates: async (_point: string): Promise<import('./ghostControlPoints').GhostControlPointCandidate[]> => [],
+    onChanged: (_listener: () => void): Unsubscribe => () => {},
   },
   // Without a plugin market the teammate market shows each package's own tool descriptions.
   pluginMarket: undefined as undefined | {snapshot: () => Promise<{items: Array<{ghostId: string; namespace: string | null; name?: string; installState?: string}>}>},

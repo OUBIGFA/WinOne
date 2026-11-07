@@ -80,7 +80,7 @@ const payloadBytes = (digest: TaskDigestWire) =>
   encoder.encode(JSON.stringify({ ok: true, ...digest })).length;
 
 
-/** 输出合同:文字逐段 ≤300 字,整份(含 ok 外壳)≤2KB。 */
+/** 尽力收缩文字与可选字段;handler 负责拒绝仍超过 2KB 的必填元数据。 */
 export function boundTaskDigest(raw: TaskDigestWire): TaskDigestWire {
   const digest: TaskDigestWire = {
     ...raw,
@@ -91,11 +91,13 @@ export function boundTaskDigest(raw: TaskDigestWire): TaskDigestWire {
     error: clip(raw.error, TASK_DIGEST_TEXT_MAX),
     pr_status: clip(raw.pr_status, TASK_DIGEST_TEXT_MAX),
   };
+  // 先分配摘要内容的预算,避免可选链接导致正文或建议路线被清空。
+  delete digest.sessionUrl;
   for (let max = TASK_DIGEST_TEXT_MAX; payloadBytes(digest) > TASK_DIGEST_MAX_BYTES && max >= 20; max = Math.floor(max / 2)) {
     for (const key of SHRINKABLE) digest[key] = clip(digest[key], max, key === 'last_assistant_line');
     digest.title = clip(digest.title, Math.min(TITLE_MAX, max)) ?? '';
   }
-  // 极端情况(超长 id / 模型名):去掉可选文字,保证合同成立。
+  // 极端情况(超长 id / 模型名):继续去掉可选文字,不破坏任务身份。
   for (const key of SHRINKABLE) {
     if (payloadBytes(digest) <= TASK_DIGEST_MAX_BYTES) break;
     digest[key] = null;
@@ -103,6 +105,10 @@ export function boundTaskDigest(raw: TaskDigestWire): TaskDigestWire {
   if (payloadBytes(digest) > TASK_DIGEST_MAX_BYTES) {
     digest.suggested_route = null;
     digest.title = clip(digest.title, 20) ?? '';
+  }
+  if (raw.sessionUrl !== undefined) {
+    digest.sessionUrl = raw.sessionUrl;
+    if (payloadBytes(digest) > TASK_DIGEST_MAX_BYTES) delete digest.sessionUrl;
   }
   return digest;
 }

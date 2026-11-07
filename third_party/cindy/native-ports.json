@@ -6,6 +6,56 @@
   "purpose": "Cindy files that the native MyGo Chat, automations and OneBot follow by hand. Each upstream entry is the Cindy revision the Go code is aligned with. Check with build/check-cindy-ports.mjs; see docs/MyGo前端迁移.md section 8.",
   "ports": [
     {
+      "id": "chat-local-plugin-host",
+      "purpose": "Locally applicable Cindy SDK and native plugin cards/pages/permissions/connection/mail surfaces; real Host, Pi and isolated Windows acceptance documented in docs/mygo-parity/local-plugins.md",
+      "native": [
+        "apps/desktop-mygo/chat/pluginchecks/pluginchecks.go",
+        "apps/desktop-mygo/chat/pluginhost/pluginhost.go",
+        "apps/desktop-mygo/chat/pluginhost/cards.go",
+        "apps/desktop-mygo/chat/pluginhost/globalpages/controller.go",
+        "apps/desktop-mygo/chat/pluginhost/globalpages/body.go",
+        "apps/desktop-mygo/chat/pluginhost/globalpages/window.go",
+        "apps/desktop-mygo/chat/pluginhost/globalpages/media.go",
+        "apps/desktop-mygo/chat/pluginhost/pluginpage/page.go",
+        "apps/desktop-mygo/chat/pluginhost/mcpapp/page.go",
+        "apps/desktop-mygo/chat/pluginhost/mcpapp/setup.go",
+        "apps/desktop-mygo/chat/pluginhost/mcpapp/security_windows.go",
+        "apps/desktop-mygo/chat/pluginhost/mail.go",
+        "apps/desktop-mygo/chat/pluginhost/mail_html.go",
+        "apps/desktop-mygo/chat/pluginhost/mail_reader.go",
+        "apps/desktop-mygo/cmd/ghostworker/main.go",
+        "apps/host/chat_ghosts_windows.go",
+        "apps/host/chat_ghost_mcp_windows.go",
+        "apps/host/chat_ghost_mail_ui_windows.go",
+        "apps/host/chat_ghost_legacy_windows.go"
+      ],
+      "mirrors": [],
+      "upstream": [
+        {"path":"apps/desktop/src/main/cindy-brain/GhostManager.ts","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"1f9cd06afc08c01ce4dfe0dfbe5803afc9810f0ece9c4ca69c1d4e403882ef37"},
+        {"path":"apps/desktop/src/main/cindy-brain/ghostModelPicker.ts","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"175f422bb42776a5d32baa80f6e4d1468cbc7135148b37e8ae16ceab0bcf137a"},
+        {"path":"apps/desktop/src/main/cindy-brain/cardActionDispatch.ts","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"c4b0962165fcfb558782786af40cb8736c1eaad3924d4dc0e4fcd4836fd528c9"},
+        {"path":"apps/desktop/src/main/cindy-brain/cardService.ts","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"4112278d861644536faecd2a435d7d10abf3363b28a53076df4c524ea4562232"},
+        {"path":"apps/desktop/src/renderer/cindy-brain/ghostPanels.tsx","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"4c3eaea40ea9d3d7aa08a6b64405df5e618fae45e44610e85a5c226445c0b619"},
+        {"path":"apps/desktop/src/renderer/cindy-brain/ghostPanelBody.tsx","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"1c7a7543dbff40f8417f043f8035d29d493af0ac274c9294b77e311e6e1c8a4b"},
+        {"path":"apps/desktop/src/renderer/cindy-brain/GhostSettingsWebview.tsx","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"e7a200b2e7631ab3047a93e41b86b1945cea98f7f7b889bd77744bd090b4f0a0"},
+        {"path":"apps/desktop/src/renderer/cindy-brain/ghostSettingsHeight.ts","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"90a3bc6107e1d50e2dfea420e13a599da2ba6ab1606675707cac4483b94e9d3e"},
+        {"path":"apps/desktop/src/renderer/cindy-brain/ghostMediaHandover.ts","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"c031c7be3833817d3b68f3168a4523a4c680d5559451995f6eeb25ba62977ab1"},
+        {"path":"apps/desktop/src/renderer/cindy-brain/GhostMediaLightboxHost.tsx","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"a1f92af76a6a3ab308cc4e58acf7fc383bcdd045fd3c2a72419208379cc6aaab"},
+        {"path":"apps/desktop/src/renderer/features/plugin/GhostMainViewHost.tsx","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"cd9d0955cb072397d70b05c7acb72e488bc38ac694923070fefe39e6290e602f"},
+        {"path":"apps/desktop/src/renderer/features/plugin/GhostMainViewFeatureLayout.tsx","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"e17bbccff48fcda65178cfbe5f38d1b9f6c249174481ec30b2589aeb4c8c78cb"},
+        {"path":"apps/desktop/src/renderer/components/chat/McpAppCard.tsx","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"439205d114f422c7d9ca13213fa430c750b7c2cf27656f807c94793e9ac679b4"},
+        {"path":"apps/desktop/src/renderer/components/chat/McpAppPermissionPrompt.tsx","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"7047e740c9ea5868ef242acee85f647ff9fb7441152e4240317fa23074319bca"},
+        {"path":"apps/desktop/src/renderer/components/chat/MailHtmlPreview.tsx","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"b4d8a95cd5c8e9fe6c43e13eedb6f49dd00d95a22e244ac1dd35532016db4535"},
+        {"path":"apps/desktop/src/renderer/components/chat/GhostMailHistory.tsx","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"a59d08175a2fe6e15c1bfa14ef0f85af093a674be0eecd6ea9fa312d58e1333d"},
+        {"path":"apps/desktop/src/renderer/components/chat/mailBodyEditing.ts","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"8aed64cc212aef8ec6dea7f509cc36c3fbff85f90dbdb590d354fe729a05d7d2"},
+        {"path":"apps/desktop/src/renderer/components/chat/mailPreviewAppearance.ts","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"80fa9cdabc12c9952555d2a84db1d81c48313ebf5de64cadd7293ef08cf182c3"},
+        {"path":"packages/maker-shared/src/mailReadingColors.ts","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"df99f7453f32a40c7d57c99b48e18325c90b2fa3fe770768b6644a10129c20b1"},
+        {"path":"packages/maker-shared/src/mailTextEdit.ts","revision":"2d8d3c3605ee9073613dcd4069bc59f799be61ae","sha256":"e7247f4f40f21b089d7c295e4d455c61a33746227ea8aa3d1e49b1f6d92d0773"}
+      ],
+      "watch": ["apps/desktop/src/main/cindy-brain", "apps/desktop/src/renderer/features/plugin"],
+      "watchRevision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae"
+    },
+    {
       "id": "chat-model",
       "purpose": "Event merge, turn projection and work-process grouping",
       "native": [
@@ -19,13 +69,13 @@
       "upstream": [
         {
           "path": "packages/maker-shared/src/workRunGrouping.ts",
-          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
-          "sha256": "0f0e60b97a6ace4fed1ac3d6394a7b981cc0551de5a6db5645f87aeabed38846"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "6482a115fc0bdbdd5bcd77a210b65e119e379f33aabc13a731f8f58f80fd8f1f"
         },
         {
           "path": "packages/maker-shared/src/workActivityProjection.ts",
-          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
-          "sha256": "6a8fd9d157223ab0e3eb673c9ff2cc14df8df0b07db7815d617acd4517710b28"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "a5fa7495f0d7f9d62f4eda33742124cb1720ecb69f7ca6da1685ddc50141e8ca"
         }
       ],
       "ignore": [
@@ -72,22 +122,22 @@
       "upstream": [
         {
           "path": "apps/desktop/src/renderer/components/chat/ErrorBanner.tsx",
-          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
-          "sha256": "f4582de3d66183640eb5ac06f1187fd80a894f1f81848fd9dfae03e1a57d97e4"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "f940336d6d892d17403585969b92dd824f3aec1e0095fee1d7652ca1aa5075d4"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/linkInteraction.ts",
-          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "8771ae9f62c12fc32ce19cea451ec0f59bde69789e44b4db54c310d6543d2aac"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/MarkdownRenderer.tsx",
-          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
-          "sha256": "d6011bf4ab1f7f4f037c46e530e3246f32ccd9c591d8c468c4846ff9fb38269c"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "dcad33fe3722e2521a6fcac968a7a53c3a9657a6e71bb81820dfe942e2c2f2f6"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/useFileChipContextMenu.tsx",
-          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "8aeee52d847680f2a5a4ba6f4bb9b8d87bc73729489f297fbdc161e47d991609"
         }
       ]
@@ -121,18 +171,18 @@
       "upstream": [
         {
           "path": "apps/desktop/src/renderer/features/cc-agent/sidebar/SectionCollapse.tsx",
-          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "290200be95022f170c19733b011b1eba986a79abb462604953f73f861db5229e"
         },
         {
           "path": "apps/desktop/src/renderer/features/cc-agent/sidebar/SidebarRightStatusIndicator.tsx",
-          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "8871482c9f3419bed98ed1b047556c2a5ad370c7c0126bab06bca2914a5e908f"
         },
         {
           "path": "packages/maker-shared/src/sessionActivity.ts",
-          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
-          "sha256": "747a97da6fadaf56973acd6017bd10cc9acbe71f41d0d7c728b9a1aa2f07b9e8"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "cb05d2c1b1d66f540619ec0bac9d52a8eeec3697d524bcf84373fbeb7f76cde4"
         }
       ]
     },
@@ -153,27 +203,27 @@
       "upstream": [
         {
           "path": "apps/desktop/src/renderer/components/new-chat/ListComposerTextarea.tsx",
-          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "791d9545109049369c8a5962b423aba3de39acab571742d820980a9d1f305446"
         },
         {
           "path": "apps/desktop/src/renderer/components/new-chat/PermissionSelector.tsx",
-          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "06c95567464113ce149ae0234ab6db9dacb1a266f13b706163f3652eafa4b528"
         },
         {
           "path": "apps/desktop/src/renderer/components/new-chat/SendButton.tsx",
-          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
-          "sha256": "d8b187da454f5de3e2e8d9f04deec59ed87e48623b8932ded7ab402969959358"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "6d00ee27b0dcb0ca206b3b6721f3488e595cd0f066fc5f57c1790251d32b2f58"
         },
         {
           "path": "apps/desktop/src/renderer/hooks/useComposerSendShortcutPreference.ts",
-          "revision": "77e2c32d0b028920116bfac744a04c6b6876257a",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "7f5f04c9f728e86c9a4281e24db6ca66a6d78f4f9a549a1d545628c9645e6375"
         },
         {
           "path": "apps/desktop/src/renderer/lib/fileTypes.ts",
-          "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "ccc7f9954c37f45b34c83e6f650d55c08180f189b3b3cdaec8dfe39cdabe5efc"
         }
       ]
@@ -202,73 +252,73 @@
       "upstream": [
         {
           "path": "apps/desktop/src/main/git-review/diffParser.ts",
-          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "9a23ef1422c4f7043a17d085a8caef68643781fe25ce9b09f9c5329f8c7427f7"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/AgentActionRow.tsx",
-          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
-          "sha256": "d9d1ea693f7e8991979eabf2f3cc2bbb76c7eace659da694e939230a0248f309"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "0f6aea0ee8d331a54b8950f6cde993c0d39a5328625c18375bb65728943e5458"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/ErrorBanner.tsx",
-          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
-          "sha256": "f4582de3d66183640eb5ac06f1187fd80a894f1f81848fd9dfae03e1a57d97e4"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "f940336d6d892d17403585969b92dd824f3aec1e0095fee1d7652ca1aa5075d4"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/GeneratedFilesCard.tsx",
-          "revision": "69661422beeb85d692fa3704df6d2b42884f4c4b",
-          "sha256": "f966f3e2051646625a845997a9cd02b2707be7ea0f8810057341adc20fdc6708"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "67598e394c8e9738794fe98f3bb57b89d92a477b4b5b82129875eaa157c61be5"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/linkInteraction.ts",
-          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "8771ae9f62c12fc32ce19cea451ec0f59bde69789e44b4db54c310d6543d2aac"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/MarkdownDiffBlock.tsx",
-          "revision": "779b5237917a173fd32d2a6a381c5fe61b21695b",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "687b2eed5a0f91d3f9c76f4064b37533c823993dca5b97a2531368f4a452597b"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/MarkdownRenderer.tsx",
-          "revision": "69661422beeb85d692fa3704df6d2b42884f4c4b",
-          "sha256": "d97a9b6ce95c4d49a4251d6182f01a0422449249cac1656a97351704dfad0344"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "dcad33fe3722e2521a6fcac968a7a53c3a9657a6e71bb81820dfe942e2c2f2f6"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/TodoListCard.tsx",
-          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "1d04abde5bfcbb92a1d7ea814e8cffb5b7d5ffb63919ddec483453acea2b29cc"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/TurnChangesCard.tsx",
-          "revision": "69661422beeb85d692fa3704df6d2b42884f4c4b",
-          "sha256": "a26abd25a12e5301adc4ac45a58c172176113fe51358ccc379a02edef492cb83"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "91f2127ec0f95c2c008b94275fc2e5258c3dea161c65e1646d93a983eb4ad09c"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/UserMessage.tsx",
-          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
-          "sha256": "733be7d751f1ac22f22835643530f14f78eafbaa3c1221b174bc60135469272f"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "4633e9c7419b31dc2c3277ceb5c80fb2ccc310e49ad45c1978ce23d650659c59"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/WorkGroupBlock.tsx",
-          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
-          "sha256": "90a4e13f91c5fa490f6c2aec82c43d21c551b3727e864f30156849d65c29efa9"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "d60ba5b929709ff11f3542a2692a18e8bc49c9096cab13daeca8fb2374acd2ba"
         },
         {
           "path": "apps/desktop/src/renderer/components/new-chat/SendButton.tsx",
-          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
-          "sha256": "d8b187da454f5de3e2e8d9f04deec59ed87e48623b8932ded7ab402969959358"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "6d00ee27b0dcb0ca206b3b6721f3488e595cd0f066fc5f57c1790251d32b2f58"
         },
         {
           "path": "apps/desktop/src/renderer/components/ui/dropdown-menu.tsx",
-          "revision": "779b5237917a173fd32d2a6a381c5fe61b21695b",
-          "sha256": "a034b63338c42f37803fdceb2deae82c16e83a9c4e99e71bb8a7f4566d88a0cc"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "e921b424d5972174fe42e0c96c6bc6f9e4756608951dd40c2ac81a8d063cc58a"
         },
         {
           "path": "packages/maker-shared/src/richAnswer.ts",
-          "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
-          "sha256": "488d0ba85a7ac148add3b9ada5f9c1e2632672bdc22b1c1db32a4e5f22592e70"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "af1083faffc2ffba7cf03994996b1f5d9a6be802eb5c7772c5d7461cc65e40ef"
         }
       ],
       "ignore": [
@@ -310,17 +360,17 @@
       "upstream": [
         {
           "path": "apps/desktop/src/renderer/components/chat/TurnChangesCard.tsx",
-          "revision": "69661422beeb85d692fa3704df6d2b42884f4c4b",
-          "sha256": "a26abd25a12e5301adc4ac45a58c172176113fe51358ccc379a02edef492cb83"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "91f2127ec0f95c2c008b94275fc2e5258c3dea161c65e1646d93a983eb4ad09c"
         },
         {
           "path": "apps/desktop/src/renderer/components/new-chat/ListComposerTextarea.tsx",
-          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "791d9545109049369c8a5962b423aba3de39acab571742d820980a9d1f305446"
         },
         {
           "path": "apps/desktop/src/renderer/components/new-chat/PermissionSelector.tsx",
-          "revision": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "06c95567464113ce149ae0234ab6db9dacb1a266f13b706163f3652eafa4b528"
         }
       ]
@@ -342,32 +392,32 @@
       "upstream": [
         {
           "path": "apps/desktop/src/renderer/components/chat/autoFollowIntent.ts",
-          "revision": "77e2c32d0b028920116bfac744a04c6b6876257a",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "eaf7ee84a377497fc96b536a486930fef4615e9cd41147381b82ea9148a856cf"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/ErrorBanner.tsx",
-          "revision": "a44ac274d1689699ea00de89ae2920d74a087d51",
-          "sha256": "f4582de3d66183640eb5ac06f1187fd80a894f1f81848fd9dfae03e1a57d97e4"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "f940336d6d892d17403585969b92dd824f3aec1e0095fee1d7652ca1aa5075d4"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/GeneratedFilesCard.tsx",
-          "revision": "69661422beeb85d692fa3704df6d2b42884f4c4b",
-          "sha256": "f966f3e2051646625a845997a9cd02b2707be7ea0f8810057341adc20fdc6708"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "67598e394c8e9738794fe98f3bb57b89d92a477b4b5b82129875eaa157c61be5"
         },
         {
           "path": "apps/desktop/src/renderer/components/chat/TurnChangesCard.tsx",
-          "revision": "69661422beeb85d692fa3704df6d2b42884f4c4b",
-          "sha256": "a26abd25a12e5301adc4ac45a58c172176113fe51358ccc379a02edef492cb83"
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "91f2127ec0f95c2c008b94275fc2e5258c3dea161c65e1646d93a983eb4ad09c"
         },
         {
           "path": "apps/desktop/src/renderer/components/new-chat/composerSendSnapshot.ts",
-          "revision": "77e2c32d0b028920116bfac744a04c6b6876257a",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "48fb90a6d3d8a63ebbbf373745a681ce2b260e2714f61f72b107ec5ad4ff2b54"
         },
         {
           "path": "apps/desktop/src/renderer/components/new-chat/PendingQueuePanel.tsx",
-          "revision": "b1d73b1f79ae812d0950c632db4785b1f06d48e7",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
           "sha256": "cd70ebc0386a5e1afd9f36c551602b557570e92eecba3004675a5e2648917ef9"
         }
       ],
@@ -381,6 +431,88 @@
         "apps/desktop/src/renderer/components/chat/ChatReplyIcon.tsx",
         "apps/desktop/src/shared/chatReplyQuote.ts"
       ]
+    },
+    {
+      "id": "chat-automations",
+      "purpose": "Native scheduler list, history, forms, templates and project approvals; reuse the Cindy scheduler backend",
+      "native": [
+        "apps/desktop-mygo/chat/automations/model.go",
+        "apps/desktop-mygo/chat/automations/page.go",
+        "apps/desktop-mygo/chat/automations/form.go",
+        "apps/desktop-mygo/chat/automations/cron.go",
+        "apps/desktop-mygo/chat/automations/list.go",
+        "apps/desktop-mygo/chat/automations/history.go",
+        "apps/desktop-mygo/chat/automations/events.go",
+        "apps/desktop-mygo/chat/automations/templates.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/cindy/scheduler/SchedulerPage.tsx",
+        "apps/desktop/frontend/src/features/cindy/scheduler/components/ScheduleFormDialog.tsx",
+        "apps/desktop/frontend/src/features/cindy/scheduler/components/TaskListPane.tsx",
+        "apps/desktop/frontend/src/features/cindy/scheduler/components/RunHistoryPane.tsx",
+        "apps/desktop/frontend/src/features/cindy/scheduler/components/RunHistoryCard.tsx",
+        "apps/desktop/frontend/src/features/cindy/scheduler/components/TemplateGallery.tsx",
+        "apps/desktop/frontend/src/features/cindy/scheduler/hooks/useDeleteScheduleWithSessions.tsx",
+        "apps/desktop/frontend/src/features/cindy/scheduler/lib/cronCodexPreset.ts",
+        "apps/desktop/frontend/src/features/cindy/scheduler/lib/scheduleFormLogic.ts",
+        "third_party/cindy/scheduler/types.ts"
+      ],
+      "upstream": [
+        {
+          "path": "apps/desktop/src/renderer/features/scheduler/components/RunHistoryCard.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "34a00dcf3149e2d5bafc0e65ec9b0603fe92481cd978948b3d2a0aa7b1548e6e"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/scheduler/components/RunHistoryPane.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "6191dc5facadf51f3efa7a0b7dbb1049d2416307e715f75b57a3ff8a898539ad"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/scheduler/components/ScheduleFormDialog.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "9e809f26ba967a1e13fff2acf9e738951d1d40d2562c2ce12f7c8685c0ef23ab"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/scheduler/components/TaskListPane.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "5d7ce76948c26c05eda15ab53aa8aeeb75beeb84c5a3e86dc033d1fbd29e02cc"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/scheduler/components/TemplateGallery.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "8a640103df3965ac17e9edaee170cc19158caefc53f29977a29c29daa50c0381"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/scheduler/hooks/useDeleteScheduleWithSessions.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "3655a3505186126ea406b480626f54ea56d795fff1f9484c21d9d20d122b3cae"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/scheduler/lib/cronCodexPreset.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "9718aa1c9fc3c3c897403b6573bc2238f69906e83ea5922962a2a7d0c42feed9"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/scheduler/lib/scheduleFormLogic.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "23e49a97d5ca999ede691dbd3a6c86a42bfc2b6794c25da1c5189d0eae6ca0b1"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/scheduler/SchedulerPage.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "16ca837a731c048978cbdf854594704800d8c5be7d9017c4e3c0f0d145418846"
+        },
+        {
+          "path": "packages/maker-scheduler/src/types.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "ecb3802a6fa98158560651e2fefa9b93c3a709d588ba42c2721210eb1e809843"
+        }
+      ],
+      "watch": [
+        "apps/desktop/src/renderer/features/scheduler"
+      ],
+      "watchRevision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae"
     },
     {
       "id": "chat-settings",
@@ -398,6 +530,275 @@
         "apps/desktop/src/renderer/components/**"
       ],
       "note": "Mirrors WinOne-authored settings pages; generic Cindy UI primitives are replaced by kit."
+    },
+    {
+      "id": "chat-bot-mode",
+      "purpose": "A teammate's conversation inside native Chat: time groups, unread line, reply quotes, @mentions, learning receipts, starter choices, spoken question answers",
+      "native": [
+        "apps/desktop-mygo/pages/chat/bot_mode.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat-bot-mode.tsx",
+        "apps/desktop/frontend/src/features/chat-bot-mentions.tsx",
+        "apps/desktop/frontend/src/features/chat-bot-voice.tsx"
+      ],
+      "upstream": [
+        {
+          "path": "packages/maker-shared/src/botTimeline.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "e4152f4ef96dfbbc8a0ea7595491096115c590e2c873059ed8bce9e38317ee05"
+        },
+        {
+          "path": "packages/maker-shared/src/chatReplyQuote.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "76a2d0e2cfc1bcd3ce87131901d706923bcea806c206f31db5fe755e0bc19d31"
+        },
+        {
+          "path": "packages/maker-shared/src/botLearning.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "024734db4db53e687676196b957b5d446f87173fee1e6ac2816c78261e062d50"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/botDmQuote.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "ee82a921ae5dc8adc1af5c728ebc8dfb10c8f761480d632897e30642e61ab208"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotChatQuoteViews.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "f7fcab867d8fad7319db0617cb1e7862516be4d23ebbaa72e9ec257582a31eb2"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotLearningFooter.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "ab7faa5c41fae7e8a4ef17b74ec409fe1d07aceeb8cba54b68438afd5898d633"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotStarterOptions.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "697f520c06bebea57572b65146a785b486d1d69a93c55a5e1147576932afab16"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/botChatPresentation.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "204c8c7af4c50de6bd4f1c4f91e6724727700de28a8ad0afe80069b2a38ed7ff"
+        }
+      ]
+    },
+    {
+      "id": "chat-bot-cards",
+      "purpose": "Background task cards, receipts and traces, teammate-to-teammate traces and saved voice calls in the transcript",
+      "native": [
+        "apps/desktop-mygo/pages/chat/bot_cards.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/cindy/host/onebotTaskView.tsx",
+        "apps/desktop/frontend/src/features/cindy/host/onebotTaskPrs.ts"
+      ],
+      "upstream": [
+        {
+          "path": "packages/maker-shared/src/botDirectMessage.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "b12dc91d77d71d05700c3a19142f7747cd4dbe1d2fdd0fd360980cbcc573570f"
+        },
+        {
+          "path": "packages/maker-shared/src/sessionPrRefs.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "3854b33f2e60d7eb39e28bc5a69b5389f053363240e551112dc47ef774b93585"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotCollaborationCard.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "44dc04b6b2b25a6fe88269e475417fb49e758b5890fe08e714af3ad2f6279bfd"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotSessionTaskResultCard.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "935c8c3c7f1b83635dbec24df66b3ccd332abe4f3138cf0483af172885fe3875"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotDirectMessageCard.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "57facad929ee12e067859cdafc0e49e4757a3993bd1ad5a718ac754ece205d1a"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/voice/VoiceCallTranscript.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "d2a2c3d300fbfb864ab49d8eb8fd0d40d5647db24df128346e10cce625110120"
+        }
+      ]
+    },
+    {
+      "id": "chat-rich-answer",
+      "purpose": "Declarative cindy-ui answer components: parser, whitelisted arithmetic and native view",
+      "native": [
+        "apps/desktop-mygo/chat/richanswer/richanswer.go",
+        "apps/desktop-mygo/chat/mathview/mathview.go",
+        "apps/desktop-mygo/pages/chat/rich_answer.go"
+      ],
+      "mirrors": [
+        "apps/desktop/frontend/src/features/chat-rich-answer.tsx"
+      ],
+      "upstream": [
+        {
+          "path": "packages/maker-shared/src/richAnswer.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "af1083faffc2ffba7cf03994996b1f5d9a6be802eb5c7772c5d7461cc65e40ef"
+        },
+        {
+          "path": "packages/maker-shared/src/richAnswerVisual.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "b3bacc4719d2681bc4a24354280ea24bef52757724bd7c4f728a3cfd004e1cfc"
+        },
+        {
+          "path": "apps/desktop/src/renderer/components/chat/RichAnswer.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "ac1ef571da0b268700a9542c58e1a62248b7741cefabd8b58ccbf3c360d3cce1"
+        }
+      ]
+    },
+    {
+      "id": "chat-workspace",
+      "purpose": "Right-side work panel: file library, editor, resources, review, terminal, PDF, media and browser chrome",
+      "native": [
+        "apps/desktop-mygo/chat/workspace/panel.go",
+        "apps/desktop-mygo/chat/workspace/file_library.go",
+        "apps/desktop-mygo/chat/workspace/document.go",
+        "apps/desktop-mygo/chat/workspace/review.go",
+        "apps/desktop-mygo/chat/workspace/resources.go",
+        "apps/desktop-mygo/chat/workspace/terminal.go",
+        "apps/desktop-mygo/chat/workspace/pdf_pane.go",
+        "apps/desktop-mygo/chat/workspace/media.go",
+        "apps/desktop-mygo/webui/native_browser_pane.go",
+        "apps/desktop-mygo/webui/html_preview.go"
+      ],
+      "mirrors": [],
+      "upstream": [
+        {
+          "path": "apps/desktop/src/renderer/features/cc-agent/workdir-browse/PdfPreview.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "5e2783c61b888f6726d62c4d6a6d983ba65e604b1ecc6bfe675f2c413fde34b2"
+        }
+      ],
+      "watch": [
+        "apps/desktop/src/renderer/features/right-sidebar",
+        "apps/desktop/src/renderer/features/cc-agent/workdir-browse"
+      ],
+      "watchRevision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae"
+    },
+    {
+      "id": "onebot-pages",
+      "purpose": "OneBot home, roster, market, import, creation, settings, routines, memory, skills, channels, group and direct chats, topics, voice",
+      "native": [
+        "apps/desktop-mygo/pages/onebot/onebot.go",
+        "apps/desktop-mygo/pages/onebot/view.go",
+        "apps/desktop-mygo/pages/onebot/bot_binding.go",
+        "apps/desktop-mygo/pages/onebot/group.go",
+        "apps/desktop-mygo/pages/onebot/direct.go",
+        "apps/desktop-mygo/pages/onebot/settings.go",
+        "apps/desktop-mygo/pages/onebot/creation.go",
+        "apps/desktop-mygo/pages/onebot/market_import.go",
+        "apps/desktop-mygo/pages/onebot/capabilities.go",
+        "apps/desktop-mygo/pages/onebot/channels.go",
+        "apps/desktop-mygo/pages/onebot/memory.go",
+        "apps/desktop-mygo/pages/onebot/routines.go",
+        "apps/desktop-mygo/pages/onebot/nightly.go",
+        "apps/desktop-mygo/pages/onebot/todos.go",
+        "apps/desktop-mygo/pages/onebot/projects_history.go",
+        "apps/desktop-mygo/pages/onebot/voice_session.go",
+        "apps/desktop-mygo/pages/onebot/voice_settings.go",
+        "apps/desktop-mygo/pages/onebot/dictation.go"
+      ],
+      "mirrors": [],
+      "upstream": [
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotsHomeView.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "070787e2d3d88ce33ded47564ad71f95f3ae2aa0f7d5288e04c996b81ec8771e"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotRosterView.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "e7fc988314e4fe019f44a65d70e2437e74b78221bed7b50e2e9553769cb0b38e"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotMarketDialog.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "d7aabfd7086dc98cb8e5729a525225e04aecf8abcb12e34d4f30a52dceb9a3b8"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotImportForm.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "926e51785b5273f647de9b925b2798bedbfff020b54eb1e20e54c0aa47bbc523"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotSettingsDrawer.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "8979c7bd1ad0c88b7de42c383948cd60b930fc0b1cad30d1dc72721aef82c2d7"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotRoutines.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "0a0cd78a7186d3cb37b897d96ac2970320f5c4682c8060d2a0dd156735a01960"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotNightlyLearning.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "93d18a32b4baaa2a1b1e3cf08ea4853fc381feabf824a956330484013eb38679"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotMemorySettings.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "b0640cdc162601ed72a33aa9c82716842f24e191cbca80186d5a3bc54d153f2b"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotCapabilitySettings.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "266878e086b6cbecf80436ca519b802282a56f5ab3b411fd2a0fae714401562c"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotChannelsPage.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "a4523ebe647bdb0aad9b3dfc1ae74048acc736273f78ba388a78806c7312bf10"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotGroupChatView.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "83c80edc4ae70191b6d4b2a183e4c7be342c5489007eb10344fcd68d8ee90861"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotDirectMessageView.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "8f74f8568f3c353b2d1c512e09fb290bf8423ffed6cfb0c7f372d9699a1f4dd9"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/BotDmThreadHost.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "a194a177b8153bc56c67cdcf0101dba249bcd5cbb2f9eeca0645935109a38b08"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/voice/CompanionVoicePanel.tsx",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "85ade5713705cdc0f36717c2a00269c3af1d6cb39821a6c0f53f4eb7d85abb3f"
+        },
+        {
+          "path": "apps/desktop/src/renderer/features/bots/voice/VoiceConversationController.ts",
+          "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+          "sha256": "fe8b94e78e37a6e375cab3895dcee259f6adddb6808e3abc671b3484f8efd75f"
+        }
+      ],
+      "watch": [
+        "apps/desktop/src/renderer/features/bots"
+      ],
+      "watchRevision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
+      "ignore": [
+        "apps/desktop/src/renderer/features/bots/RemoteBotSettings.tsx",
+        "apps/desktop/src/renderer/features/bots/RemoteTeammateSettings.tsx",
+        "apps/desktop/src/renderer/features/bots/BotHomeComputerSetting.tsx",
+        "apps/desktop/src/renderer/features/bots/ChatGroup*",
+        "apps/desktop/src/renderer/features/bots/GroupMask*",
+        "**/__tests__/**"
+      ]
     }
   ]
 }

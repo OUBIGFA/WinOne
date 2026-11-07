@@ -3,6 +3,7 @@ package kit
 import (
 	"github.com/egoist/mygo/ui"
 
+	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit/icons"
 )
 
@@ -21,7 +22,32 @@ const (
 // Notice is a message in the flow of a page, above what it concerns.
 // Actions follow the message on their own line, so long translations
 // never overlap them. The message can be selected and copied.
+type noticeDismissal struct{ closed bool }
+
+type noticeContent struct {
+	kind           string
+	tone           Tone
+	title, message string
+}
+
+// Keep dismissal on the window's UI root, not an implicit row index. A sibling
+// disappearing must not revive the same content. This state ends with this
+// window and never clears a page's validation, permission or operation state.
+func noticeState(c *ui.Context, content noticeContent) *noticeDismissal {
+	return ui.Local(c.Root(), content, func() noticeDismissal { return noticeDismissal{} })
+}
+func closeNotice(c *ui.Context, state *noticeDismissal) {
+	if IconButton(c, icons.X, i18n.T("notices.dismiss")).Size(24, 24).Clicked() {
+		state.closed = true
+	}
+}
+
 func Notice(c *ui.Context, tone Tone, title, message string, actions func()) ui.Element {
+	n := ui.Row(c)
+	state := noticeState(c, noticeContent{kind: "notice", tone: tone, title: title, message: message})
+	if state.closed {
+		return n.Hidden(true)
+	}
 	t, p := c.Theme(), Colors(c)
 	background, border, icon, iconColor := p.InfoSoft, p.Hairline, icons.Info, t.TextMuted
 	switch tone {
@@ -30,11 +56,12 @@ func Notice(c *ui.Context, tone Tone, title, message string, actions func()) ui.
 	case Caution:
 		background, border, icon, iconColor = p.WarningSoft, t.Warning.Alpha(0.35), icons.TriangleAlert, t.Warning
 	}
-	n := ui.Row(c).FillWidth().Padding(12, 14).Gap(10).AlignItems(ui.Start).Background(background).
+	n.FillWidth().Padding(12, 14).Gap(10).AlignItems(ui.Start).Background(background).
 		Border(1, border).Radius(PanelRadius)
-	// Screen readers hear a status as it appears; MyGo has no separate
-	// alert role.
 	n.Role(ui.RoleStatus)
+	if tone == Failure {
+		n.Role(ui.RoleAlert)
+	}
 	return n.Children(func() {
 		ui.Icon(c, icon).FontSize(16).TextColor(iconColor).Shrink(0).Margin(2, 0, 0, 0)
 		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(4).Selectable().Children(func() {
@@ -48,6 +75,7 @@ func Notice(c *ui.Context, tone Tone, title, message string, actions func()) ui.
 				ui.Row(c).Gap(8).Wrap().Margin(6, 0, 0, 0).Unselectable().Children(actions)
 			}
 		})
+		closeNotice(c, state)
 	})
 }
 
@@ -57,10 +85,16 @@ func InlineError(c *ui.Context, message string) ui.Element {
 	if message == "" {
 		return ui.Element{}
 	}
+	n := ui.Row(c)
+	state := noticeState(c, noticeContent{kind: "error", message: message})
+	if state.closed {
+		return n.Hidden(true)
+	}
 	t := c.Theme()
-	return ui.Row(c).Gap(6).AlignItems(ui.Start).Role(ui.RoleStatus).Children(func() {
+	return n.Gap(6).AlignItems(ui.Start).Role(ui.RoleAlert).Children(func() {
 		ui.Icon(c, icons.CircleAlert).FontSize(HelpSize(c)).TextColor(t.Danger).Shrink(0).Margin(2, 0, 0, 0)
 		ui.Text(c, message).FontSize(HelpSize(c)).LineHeight(1.45).TextColor(t.Danger).Selectable().Shrink(1).MinWidth(0)
+		closeNotice(c, state)
 	})
 }
 
@@ -69,7 +103,15 @@ func Status(c *ui.Context, message string) ui.Element {
 	if message == "" {
 		return ui.Element{}
 	}
-	return Help(c, message).Role(ui.RoleStatus)
+	n := ui.Row(c)
+	state := noticeState(c, noticeContent{kind: "status", message: message})
+	if state.closed {
+		return n.Hidden(true)
+	}
+	return n.Gap(6).MinWidth(0).AlignItems(ui.Center).Role(ui.RoleStatus).Children(func() {
+		Help(c, message).Shrink(1).MinWidth(0)
+		closeNotice(c, state)
+	})
 }
 
 // Empty is the state of a view with nothing to show yet: an icon, what

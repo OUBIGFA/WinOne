@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strconv"
 	"time"
+	"winone/desktopmygo/chat/pluginhost"
+	"winone/desktopmygo/chat/workspace"
 
 	"winone/desktopmygo/chat/model"
 	"winone/desktopmygo/core"
@@ -14,13 +16,27 @@ import (
 // Chat is the conversation page: the Host's Pi sessions shown natively.
 // It follows the React window's ChatPage (features/chat.tsx) request by
 // request: the same Host methods in the same order, the same draft and
-// queue serialization, the same receipt identities. Heavy tools (editor,
-// review, terminal, browser) are the React components in web views.
+// queue serialization and receipt identities. Heavy tools use the native
+// workspace components; only actual browser/HTML content uses WebViews.
 type Chat struct {
 	env *core.Env
 	// scope is "onebot.chat." for a OneBot teammate's conversation, whose
 	// Host methods live under onebot.chat.
-	scope string
+	embedded bool
+	// richMedia are players a rich answer started in place.
+	richMedia map[string]*workspace.MediaPane
+	// toolMedia retains the immutable tool-result image viewers only for the
+	// active conversation; leaving it releases decoders and pending reads.
+	toolMedia   map[string]*workspace.DocumentPane
+	richOpening map[string]bool
+	mediaShown  map[string]bool
+	bot         *BotBinding
+	botMode     botModeState
+	botTasks    botTaskStore
+	richMemory  richMemory
+	diagrams    map[string]*chatDiagram
+	intentPage  string
+	scope       string
 
 	catalog       Catalog
 	catalogLoaded bool
@@ -28,11 +44,14 @@ type Chat struct {
 	// providersRaw are the AI services' providers as the Host returned
 	// them, for the React tools, which read fields ai does not keep.
 	providersRaw json.RawMessage
-	// tools are the React tools' web views (panel_host.go).
+	// tools are the native work-panel and automation controllers.
 	tools tools
 	// requested is a conversation another page asked to open, until the
 	// catalog is read and the page idle (takeIntents).
 	requested *core.Intent
+	// newChat is a pending request for a prefilled new conversation.
+	newChat         *core.Intent
+	automationDraft json.RawMessage
 	// modelsRevision drops a slow AI configuration read that a newer
 	// one replaced.
 	modelsRevision int
@@ -46,6 +65,8 @@ type Chat struct {
 	// submitting is the user's message while its send is acknowledged.
 	submitting *model.Message
 
+	// closing retains the mounted editor until its mail barrier has succeeded.
+	closing                     bool
 	busy, opening, draftLoading bool
 	reconnecting, transferBusy  bool
 	err, notice                 string
@@ -109,6 +130,7 @@ type Chat struct {
 	settings settingsDialog
 
 	historyLoading bool
+	messageJump    *messageJump
 	historyRequest *struct{}
 
 	prefs prefs
@@ -165,8 +187,21 @@ type session struct {
 // New makes the Chat page.
 func New(env *core.Env) *Chat { return newChat(env, "") }
 
+// NewOneBotConversation reuses the actual native Chat controller, draft,
+// approvals and transport under the existing OneBot conversation scope.
+// The owning OneBot page supplies its navigation and never steals Chat intents.
+func NewOneBotConversation(env *core.Env, sessionID string, bot BotBinding) *Chat {
+	p := newChat(env, "onebot.chat.")
+	p.embedded = true
+	p.bot = &bot
+	p.intentPage = "onebot-chat"
+	p.ui.sidebar = false
+	p.requested = &core.Intent{Requested: true, Conversation: sessionID}
+	return p
+}
+
 func newChat(env *core.Env, scope string) *Chat {
-	p := &Chat{env: env, scope: scope, view: model.Empty(),
+	p := &Chat{env: env, scope: scope, intentPage: "chat", view: model.Empty(),
 		activities: map[string]Activity{}, titleJobs: map[string]titleJob{}, titleRequests: map[string]bool{},
 		titleEdits: map[string]int{}, queueWorking: map[string]bool{}, openings: map[string]*opening{},
 		newPermission: model.PermissionAsk, projectPermission: model.PermissionAsk}
@@ -176,6 +211,7 @@ func newChat(env *core.Env, scope string) *Chat {
 		return func() { t.Stop() }
 	}
 	p.ui.sidebar = true
+	p.bindMailBrowser()
 	p.loadCatalog()
 	return p
 }
@@ -394,8 +430,22 @@ func (p *Chat) choose(id string, stillRequested func() bool, done func(error)) {
 		done(nil)
 		return
 	}
+	if p.closing {
+		done(core.Errorf(i18n.T("notices.mailSyncFailed")))
+		return
+	}
 	if p.queueEdit != nil {
 		done(core.Errorf(i18n.T("chat.queue_finishEdit")))
+		return
+	}
+	if p.tools.panel != nil && (p.tools.panel.Dirty() || p.tools.panel.HasTerminal()) {
+		panel := p.tools.panel
+		panel.RequestLeave(func() {
+			panel.Close()
+			p.tools.panel = nil
+			p.ui.filesDirty = false
+			p.choose(id, stillRequested, done)
+		}, func() { done(nil) })
 		return
 	}
 	if p.ui.filesDirty {
@@ -404,23 +454,42 @@ func (p *Chat) choose(id string, stillRequested func() bool, done func(error)) {
 	}
 	p.selectionRevision++
 	revision := p.selectionRevision
-	p.draftWrites.after(func() {
-		if revision != p.selectionRevision || (stillRequested != nil && !stillRequested()) {
+	from := p.activeID
+	p.flushMailEdits(from, func(err error) {
+		if err != nil {
+			done(err)
+			return
+		}
+		p.draftWrites.after(func() {
+			if revision != p.selectionRevision || p.activeID != from || (stillRequested != nil && !stillRequested()) {
+				done(nil)
+				return
+			}
+			if p.ui.filesDirty {
+				done(core.Errorf(i18n.T("chat.saveFileBeforeNavigate")))
+				return
+			}
+			p.show(id)
 			done(nil)
-			return
-		}
-		if p.ui.filesDirty {
-			done(core.Errorf(i18n.T("chat.saveFileBeforeNavigate")))
-			return
-		}
-		p.show(id)
-		done(nil)
+		})
 	})
 }
 
 // show makes id the open conversation, with fresh runtime state.
 func (p *Chat) show(id string) {
 	previous := p.activeID
+	if previous != id {
+		for _, pane := range p.richMedia {
+			pane.Close()
+		}
+		p.richMedia, p.richOpening, p.mediaShown = nil, nil, nil
+		p.closeToolMedia()
+	}
+	if previous != id && p.tools.panel != nil {
+		p.tools.panel.Close()
+		p.tools.panel = nil
+		p.ui.filesDirty = false
+	}
 	p.ui.details = false
 	p.historyRequest, p.historyLoading = nil, false
 	p.configuring, p.silentReload, p.reconnecting = "", "", false
@@ -711,10 +780,33 @@ func (p *Chat) loadEarlier() {
 // Close leaves the page: the open conversation is released and the
 // queue's locks reset, as the React page did when it unmounted.
 func (p *Chat) Close() {
+	if p.ui.closed || p.closing {
+		return
+	}
+	p.closing = true
+	p.flushMailEdits(p.activeID, func(err error) {
+		p.closing = false
+		if p.ui.closed {
+			return
+		}
+		if err != nil {
+			p.err = err.Error()
+			return
+		}
+		p.closeAfterMail()
+	})
+}
+
+func (p *Chat) closeAfterMail() {
 	if p.ui.closed {
 		return
 	}
 	p.ui.closed = true
+	pluginhost.For(p.env).BlurSession(p.activeID)
+	p.closeToolMedia()
+	for _, pane := range p.richMedia {
+		pane.Close()
+	}
 	if id := p.selection; id != "" {
 		p.queueWrites.after(func() {
 			spawn(p.env, func() { _, _ = p.env.Host.Call(p.method("queue"), map[string]any{"id": id, "action": "resetLocks"}) })
@@ -722,5 +814,6 @@ func (p *Chat) Close() {
 	}
 	p.release(p.activeID)
 	p.closeTools()
+	p.botTasks.close()
 	p.ui.close()
 }

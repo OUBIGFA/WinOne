@@ -50,8 +50,11 @@ func (p *Panel) speechButton(c *ui.Context, key, text, label string, markdown, w
 }
 
 func (p *Panel) speechFeedback(c *ui.Context, t *ui.Theme, key string) {
-	if p.SpeechErrorKey == key && p.SpeechError != "" {
-		ui.Text(c, p.SpeechError).FillWidth().FontSize(em(t, sizeLabel)).LineHeight(1.5).TextColor(t.Danger)
+	if p.SpeechErrorKey == key && p.SpeechError != "" && !p.speechVisibility.dismissed {
+		ui.Row(c.Key("speech-error-" + key)).FillWidth().Gap(6).AlignItems(ui.Start).Role(ui.RoleStatus).Children(func() {
+			ui.Text(c, p.SpeechError).Grow(1).MinWidth(0).FontSize(em(t, sizeLabel)).LineHeight(1.5).TextColor(t.Danger)
+			p.closeFeedback(c.Key("speech-error-close"), &p.speechVisibility, p.T("关闭朗读提示", "Dismiss speech error"))
+		})
 	}
 }
 
@@ -80,6 +83,7 @@ func (c *Controller) stopSpeech() {
 	}
 	c.Panel.SpeechKey, c.Panel.SpeechLoading = "", false
 	c.Panel.SpeechError, c.Panel.SpeechErrorKey = "", ""
+	c.Panel.speechVisibility = feedbackVisibility{}
 	if speakingController == c {
 		speakingController = nil
 	}
@@ -99,6 +103,10 @@ func (c *Controller) completeSpeech(epoch uint64, err error) {
 		}
 	}
 }
+
+// SpeechText is the shared Markdown-to-spoken-text projection; callers supply
+// their own synthesis route and never inherit the result window's provider.
+func SpeechText(raw string, markdown bool) string { return speechText(raw, markdown) }
 
 func (c *Controller) toggleSpeech(key, raw string, markdown bool) {
 	if c.Panel.SpeechKey == key {

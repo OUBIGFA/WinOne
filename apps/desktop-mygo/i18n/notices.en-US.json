@@ -1,0 +1,5 @@
+{
+  "notices.dismiss": "Dismiss this message",
+  "notices.closeToast": "Dismiss notification",
+  "notices.mailSyncFailed": "Mail draft edits were not synchronized. Retry before sending or leaving."
+}

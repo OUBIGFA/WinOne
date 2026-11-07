@@ -247,6 +247,7 @@ type magpieSettings struct {
 	PluginCheckins        map[string]bool                         `json:"pluginCheckins,omitempty"`
 	Vision                string                                  `json:"vision,omitempty"`
 	ImageGen              string                                  `json:"imageGen,omitempty"`
+	ModelKinds            map[string]string                       `json:"modelKinds,omitempty"`
 	ImageTimeout          *float64                                `json:"imageTimeout,omitempty"`
 	Searcher              string                                  `json:"searcher,omitempty"`
 	SearchFirst           string                                  `json:"searchFirst,omitempty"`

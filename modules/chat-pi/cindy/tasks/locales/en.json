@@ -1,6 +1,10 @@
 {
  "bots": {
+  "glance": {
+   "checkPrompt": "Check my connected sources, like mail and messages, for anything new I need to handle, and add it to my todos."
+  },
   "collab": {
+   "deliveryFailed": "The result could not be delivered to the original chat. It is saved in this session.",
    "backgroundTask": "Background task"
   },
   "groupChat": {
@@ -15,6 +19,47 @@
      "timed-out": "Timed out"
     }
    }
+  }
+ },
+ "chat": {
+  "workGroup": {
+   "working": "Working…",
+   "worked": "Worked for {{duration}}",
+   "workDetails": "Work details"
+  },
+  "remoteError": {
+   "REMOTE_AGENT_BUSY": "Too many sessions are running on the other computer. End some of them and try again.",
+   "REMOTE_AGENT_DEVICE_LIMIT": "This device has reached its remote session limit. Archive unused sessions or ask the provider owner to raise the limit in Remote & sharing.",
+   "REMOTE_AGENT_TOTAL_LIMIT": "The provider computer has reached its total remote session limit. Ask the owner to release unused sessions or raise the limit in Remote & sharing."
+  },
+  "agentActions": {
+   "part": {
+    "edited_one": "edited a file",
+    "edited_other": "edited {{count}} files",
+    "created_one": "created a file",
+    "created_other": "created {{count}} files",
+    "ran_one": "ran a command",
+    "ran_other": "ran {{count}} commands",
+    "read_one": "read a file",
+    "read_other": "read {{count}} files",
+    "updated_one": "updated todos",
+    "updated_other": "updated todos",
+    "searched_one": "searched",
+    "searched_other": "searched",
+    "fetched_one": "fetched the web",
+    "fetched_other": "fetched the web",
+    "used_one": "used a tool",
+    "used_other": "used {{count}} tools"
+   },
+   "more_one": "{{count}} more",
+   "more_other": "{{count}} more",
+   "separator": ", ",
+   "lastSeparator": " and "
+  }
+ },
+ "routines": {
+  "todoCheck": {
+   "name": "Daily todo check"
   }
  },
  "groupTools": {

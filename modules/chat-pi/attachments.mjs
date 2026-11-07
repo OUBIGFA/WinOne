@@ -1,5 +1,7 @@
 import fs from 'node:fs/promises';
+import fileSystem from 'node:fs';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import {resizeImage,formatDimensionNote} from '@earendil-works/pi-coding-agent';
 
 const maximumFile=20*1024*1024;
@@ -73,8 +75,36 @@ export async function limitChatPayload(payload){
  return copy;
 }
 
-// Browser history receives attachment metadata, never megabytes of base64.
-export function displayMessage(message){
+// History receives immutable attachment paths, never megabytes of base64.
+// Tool images keep the original Pi bytes in this conversation's existing
+// read-only attachment boundary. Reopening regenerates a missing cache from
+// the append-only session, without changing its model-visible image content.
+const displayedToolImages=new WeakMap();
+export function displayMessage(message,sessionDirectory){
  if(!Array.isArray(message.content))return message;
- return {...message,content:message.content.map(part=>part.type==='image'?{type:'image',mimeType:part.mimeType}:part)};
+ return {...message,content:message.content.map(part=>{
+  if(part.type!=='image')return part;
+  const visible={type:'image',mimeType:part.mimeType};
+  if(message.role!=='toolResult'||!part.data||!sessionDirectory)return visible;
+  const cached=displayedToolImages.get(part);
+  if(cached?.sessionDirectory===sessionDirectory&&fileSystem.existsSync(cached.path))return {...visible,path:cached.path};
+  const extension={'image/png':'.png','image/jpeg':'.jpg','image/webp':'.webp','image/gif':'.gif'}[part.mimeType];
+  if(!extension)throw Error('Unsupported tool image MIME type');
+  const bytes=Buffer.from(part.data,'base64');
+  if(!bytes.length||bytes.length>maximumFile)throw Error('Tool image exceeds the attachment limit');
+  const root=fileSystem.realpathSync.native(sessionDirectory),directory=path.join(root,'attachments','tool-media');
+  for(const target of [path.join(root,'attachments'),directory]){
+   try{fileSystem.mkdirSync(target);}catch(error){if(error.code!=='EEXIST')throw error;}
+   const stat=fileSystem.lstatSync(target);if(!stat.isDirectory()||stat.isSymbolicLink())throw Error('Tool image attachment directory is redirected');
+  }
+  const hash=createHash('sha256').update(bytes).digest('hex'),file=path.join(directory,hash+extension);
+  try{fileSystem.writeFileSync(file,bytes,{flag:'wx',mode:0o600});}
+  catch(error){
+   if(error.code!=='EEXIST')throw error;
+   const stat=fileSystem.lstatSync(file);
+   if(!stat.isFile()||stat.isSymbolicLink()||stat.nlink!==1||createHash('sha256').update(fileSystem.readFileSync(file)).digest('hex')!==hash)throw Error('Tool image cache identity changed');
+  }
+  displayedToolImages.set(part,{sessionDirectory,path:file});
+  return {...visible,path:file};
+ })};
 }

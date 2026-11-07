@@ -1,30 +1,38 @@
 # OneBot 页功能对照
 
-更新：2026-11-03。React 来源：`apps/desktop/frontend/src/features/onebot.tsx` 及其引用的 `features/cindy/bots/**`、`features/cindy/host/onebot*`（Cindy b7e46bc，Apache-2.0）。MyGo 实现：`apps/desktop-mygo/pages/onebot`（原生页框架）+ `apps/desktop-mygo/webui`（网页视图与桥）。
+更新：2026-11-05。React 来源：`apps/desktop/frontend/src/features/onebot.tsx` 及 `features/cindy/bots/**`（Cindy 2d8d3c3，Apache-2.0）。MyGo 实现：`apps/desktop-mygo/pages/onebot` 与 `pages/chat` 的 Bot 模式。OneBot 不再创建 React 视图，生产包也不含 React；只有 HTML 文件预览使用隔离的网页视图。
 
-用户 2026-11-01 选择混合方案：OneBot 管理页在 MyGo 网页视图中运行现有 React/Cindy 组件。本页因此整体运行 `chat-embed.html?view=onebot`，React 页面与 Rust 窗口中的完全相同。
+状态：**已测** = 有 `ui.Tester` 或单元测试；**Host 已测** = 真实 Host→OneBot→Pi 回路（模拟模型）；**实窗** = 隔离实窗证据，结果见 [完成度核查](chat-onebot-audit.md)。
 
-状态：**已验证** = 有单元测试或实窗探针；**待验证** = 已实现、还缺证据。
+| 编号 | 能力 | MyGo 实现 | 证据 |
+| --- | --- | --- | --- |
+| O1 | 侧栏入口、伙伴列表、名册、搜索、置顶、生命周期菜单 | `view.go`、`onebot.go` | 已测、实窗 |
+| O2 | 首屏读取、失败重试、未配置模型提示 | `onebot.go` | 已测、实窗 |
+| O3 | 创建（草稿、头像、肖像）、市场、导入 Hermes/OpenClaw | `creation.go`、`portrait.go`、`market_import.go` | Host 已测；真实账号未测 |
+| O4 | 设置：资料、模型链、能力、技能、记忆、项目、历史、例行、夜间学习、待办、渠道、语音、麦克风、生命周期 | `settings.go` 及同目录各页 | Host 已测 |
+| O5 | 伙伴对话复用原生 Chat 控制器 | `chat.NewOneBotConversation`、`bot_binding.go` | 已测 |
+| O6 | 时间组、未读线、已读推进（只由渲染尾部推进） | `pages/chat/bot_mode.go` | 已测 |
+| O7 | 引用回复、回复对应的消息（全局开关在默认模型设置） | `bot_mode.go`、`settings.go` | 已测 |
+| O8 | @ 提及面板与线上引用（UTF-16 范围） | `bot_mode.go` | 已测 |
+| O9 | 学习回执、开场选项、邀请等待提示、占位文字 | `bot_mode.go`、`view.go` | 已测 |
+| O10 | 后台任务卡、回执、补充说明、停止、PR 状态、互发消息留痕、通话记录 | `pages/chat/bot_cards.go` | 已测 |
+| O11 | 私聊话题：列表、创建、面板、未读 | `bot_binding.go` | 已测 |
+| O12 | 消息朗读 | `bot_binding.go` | 分块已测；真实音频未测 |
+| O13 | 语音通话：内联面板、手动发送、审批时暂停、口述回答问题 | `voice_session.go` | 语法与暂停已测；真实麦克风未测 |
+| O14 | 语音输入 | `dictation.go` | Host 已测；真实麦克风未测 |
+| O15 | 系统挂起或锁屏停止听写、朗读，通话暂停并保留草稿 | `core/voice_pause.go`、`onebot.go` | 已测；真实挂起未测 |
+| O16 | 群聊：消息、发送、附件、分工计划、继续/停止、文件预览、成员与设置、删除 | `group.go` | Host 已测 |
+| O17 | 伙伴互发消息线程（只读） | `direct.go` | 已测（链接） |
+| O18 | 导出 `.cshare`、打开普通 Chat 任务、跳转设置 | `webui.ExportTask`、`Env.Open` | 已测 |
 
-## 与用户决定的差异（待确认）
+## 与 React 的差异
 
-队友对话（`CCAgentSessionView`）在 React 中是 Chat 页加 Bot 模式（时间线、引用、语音朗读、@提及、已读边界）。混合方案原计划让它复用原生 Chat；目前它随 OneBot 页一起在网页视图中运行 React Chat。功能不缺，但这部分不是原生界面。改为原生需要先把 Bot 模式移植到原生 Chat（见 [Chat 对照](chat.md) M7），再把原生 Chat 叠放到 OneBot 页面指定位置。
+逐项原因见 [上游审阅](upstream-review-2d8d3c3.md)。
 
-## 对照
-
-| 编号 | React 行为 | MyGo 实现 | 验证 | 状态 |
-| --- | --- | --- | --- | --- |
-| O1 | 侧栏 OneBot 入口（Panda 图标，位于 Chat 之后） | `shell/pages.go` 的 `onebot`、`pages/onebot` | 代码审查 | 已实现 |
-| O2 | 首次打开读取 AI 服务、Chat 设置、Chat 目录与语音数据；失败可重试 | React `OneBotPage` 原样运行 | 实窗探针：无 AI 服务时显示“先连接一个 AI 服务” | 已验证 |
-| O3 | 伙伴列表、主页、名册、市场、私聊、群聊、会话、历史、IM、语音、记忆、例行任务 | React 路由树原样运行；Host 方法按 Rust 白名单（`webui/allow.go`，147 个 onebot 方法） | `TestTheBridgeAllowsWhatTheRustWindowAllowed` | 部分验证（真实 Host 未联调） |
-| O4 | 队友对话（React Chat，OneBot 传输范围 `onebot.chat.*`），含侧面板与内置浏览器 | React `ChatPage` 在同一网页视图中；网页标签由 Go 网页视图叠放（`webui.Browser`） | 代码审查 | 待验证 |
-| O5 | 打开普通 Chat 会话（`winone-open-chat`）、Chat 设置、AI 服务（`winone-open-page`）经未保存保护跳转 | `webui.Navigate`、`Env.Open`、Chat 的 `takeIntents` | `TestLinksOfPagesGoThroughTheShell`、`TestLinksFromOtherPagesOpenTheirConversationAndFile` | 已验证 |
-| O6 | 修改型请求进行中时阻止关闭窗口或离开页面（Rust `Request.mutates`） | `Surface.Busy`、`chatMutates`（只读表由 `component_bridge.rs` 生成） | 代码审查 | 待验证（实窗关闭） |
-| O7 | 系统挂起、锁屏时停止语音输入 | 窗口子类处理 `WM_POWERBROADCAST`/`WM_WTSSESSION_CHANGE`，向所有网页视图发出 `winone:voice-system-suspend`/`winone:voice-screen-locked` | `TestSuspendAndLockStopVoiceInput` | 部分验证（真实挂起未测） |
-| O8 | 麦克风权限 | MyGo 默认允许自有页面；面板中外部网页默认不允许 | 代码审查 | 待验证（真实麦克风） |
-| O9 | 队友对话导出 `.cshare` | `webui.ExportTask`（与原生 Chat 共用；只认窗口保存对话框选择的路径与匹配回执） | `TestExportsSaveOnlyWhereTheWindowChose` | 已验证 |
+- 群聊中的权限与问题在说话伙伴的任务里回答，群聊显示等待提示和打开任务按钮。
+- Chat Server 群、邀请、面具、多设备属于 Cindy 云端，不在 WinOne 范围。
 
 ## 未验证范围
 
-- 真实 Host 与真实账号下的伙伴创建、IM 连接、语音、群聊、例行任务未联调。
-- 实窗只验证了首屏（私有桌面探针 `tests/desktop-mygo-webui/run-private.ps1`）。
+- 真实账号：市场安装、IM 渠道、个人微信。
+- 真实设备：麦克风、声音输出、真实系统挂起。

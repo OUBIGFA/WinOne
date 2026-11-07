@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/bblanchon/pdfium-binaries",
+  "tag": "chromium/8111",
+  "buildRevision": "2de99cdab0cd84493538ce141342515b95ebb15c",
+  "publishedAt": "2026-10-19T18:30:12Z",
+  "version": "158.0.8111.0",
+  "archive": {
+    "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8111/pdfium-win-x64.tgz",
+    "sha256": "3452d11031050ec65e57f180215b57b9e6d465e3fbedafa8a77ad90885c7d23e",
+    "size": 3905343
+  },
+  "library": {
+    "name": "pdfium.dll",
+    "sha256": "a318c39c137482dc4687c2973b7ec1c27fc1c20253cf2dc31928f922eab89e8f"
+  },
+  "headers": [
+    {
+      "file": "fpdfview.h",
+      "sha256": "21fb11834607c74cbc1e3a9ac14a85a5dba95d7669ec86c21c05a4890a38648d"
+    },
+    {
+      "file": "fpdf_annot.h",
+      "sha256": "40add618da4d09ee1f8eaa2c1ff301dab90ec8315d94af673feabdb67abfce3b"
+    },
+    {
+      "file": "fpdf_attachment.h",
+      "sha256": "4f007ea052eaed19c9b1c888ca63a2abde96f0252ac8f37805a1a50ef3b9a260"
+    },
+    {
+      "file": "fpdf_catalog.h",
+      "sha256": "7e6a79391f6153deb45bafe49ef4d6eb10f6382eed20fa92c2ee9941342e6668"
+    },
+    {
+      "file": "fpdf_dataavail.h",
+      "sha256": "23a4c77273cdc11b77f4d7ff40e9290429854cd45708f89c93c424b9ecfdab77"
+    },
+    {
+      "file": "fpdf_doc.h",
+      "sha256": "f91bba762f04b2fcda6c10c614ec41742e9d47f7a9813f6c3acc2aa0f6e195b0"
+    },
+    {
+      "file": "fpdf_edit.h",
+      "sha256": "b6050bc6a5505785c28490509b399cbb5c4d3a34dd580004d43f30c52c6e035d"
+    },
+    {
+      "file": "fpdf_ext.h",
+      "sha256": "ef813297753feeecd685ef60a6a6f1ad00f43156615d5570f827c9283e435461"
+    },
+    {
+      "file": "fpdf_flatten.h",
+      "sha256": "b2cf5ed9a7ead79c6d6685a7369573f0a55b16cc9972537d1405f19847504ca3"
+    },
+    {
+      "file": "fpdf_formfill.h",
+      "sha256": "8792ed53df3f5852f1a8b98d2b6e140898ab595888df8a2f70bc8c165d188c12"
+    },
+    {
+      "file": "fpdf_fwlevent.h",
+      "sha256": "60585b9c92227790d7dcce482b2b8f8ebabc810c24aebc83cf6564fc140f06db"
+    },
+    {
+      "file": "fpdf_javascript.h",
+      "sha256": "e1655b56183d1c7dcf68b1bcd73ebb67ee13ea44f506d03d46ed44e9bd0e974c"
+    },
+    {
+      "file": "fpdf_ppo.h",
+      "sha256": "931cccda62d725280b86020c4663df7a4f16bb6cc4fac55f9db26cc657e74556"
+    },
+    {
+      "file": "fpdf_progressive.h",
+      "sha256": "0e99f7e7d2a818ed56ff8529f7a90a121cc86cdecda6b1682eadd60259021b16"
+    },
+    {
+      "file": "fpdf_save.h",
+      "sha256": "96a78a3e3eb8a387dc4a35c1e87b430618e9ee8e7ceae9fea424baf1de6b497a"
+    },
+    {
+      "file": "fpdf_searchex.h",
+      "sha256": "30cee4b25aa8015687a55fd628f84188aed8289e4bd5a3469b8813bbf3de8991"
+    },
+    {
+      "file": "fpdf_signature.h",
+      "sha256": "eadfabc91722d1247321d31dab6a94f8284e36717c0019cc38f54b7c51ec826b"
+    },
+    {
+      "file": "fpdf_structtree.h",
+      "sha256": "a4f8523370b05ef519858d0eea9b4786bc08f3e1a34cdcd941f8b60f8d4ae3f4"
+    },
+    {
+      "file": "fpdf_sysfontinfo.h",
+      "sha256": "ca596613053f4f168acafe0c9469c83a7ef94eb6cb5e59fe5e959308d428d90e"
+    },
+    {
+      "file": "fpdf_text.h",
+      "sha256": "4682f8553dc1d29bbee95cdcddefebbd96522c5be654807906240f8571593726"
+    },
+    {
+      "file": "fpdf_thumbnail.h",
+      "sha256": "b223e622889bca40e4ce709e934bc11a8696a054c97a605486eb7c214e4db197"
+    },
+    {
+      "file": "fpdf_transformpage.h",
+      "sha256": "15321dc2311ea60e04c28deb75a5decb560d29a3bc4b007588a9dbec6430f867"
+    }
+  ],
+  "notices": [
+    {
+      "sourceFile": "LICENSE",
+      "file": "licenses/native-pdfium-8111-LICENSE.txt",
+      "sha256": "8854f4388f1ca13b3ad9baa42e95f5546b4c0b17109c159256d3eca7be39b09b"
+    },
+    {
+      "sourceFile": "licenses/abseil.txt",
+      "file": "licenses/native-pdfium-8111-abseil.txt.txt",
+      "sha256": "f54fff0b905df5b3464527c652a30e903b172d6dcab4d89b5e6f105d5e4a4603"
+    },
+    {
+      "sourceFile": "licenses/agg23.txt",
+      "file": "licenses/native-pdfium-8111-agg23.txt.txt",
+      "sha256": "c110d3ea2ad77467ce0dcff7d3337e6c8be8049a5103f4b9bd5fd911a77972e5"
+    },
+    {
+      "sourceFile": "licenses/dragonbox-Apache2-LLVM.txt",
+      "file": "licenses/native-pdfium-8111-dragonbox-Apache2-LLVM.txt.txt",
+      "sha256": "4964a7aaf2801a42d2342d2f5bbccd2126be7a5d8d46150e1338a43ea70da5de"
+    },
+    {
+      "sourceFile": "licenses/dragonbox-Boost.txt",
+      "file": "licenses/native-pdfium-8111-dragonbox-Boost.txt.txt",
+      "sha256": "beb8e42e9d6b4284e03304d05a81a0755200a965fc8d0a5e0aea1e84cf805d6e"
+    },
+    {
+      "sourceFile": "licenses/fast_float.txt",
+      "file": "licenses/native-pdfium-8111-fast-float.txt.txt",
+      "sha256": "bf1b57355feca8fce77ee95f48002f8d4789fb71b30ec7599c06cda4901fbb2b"
+    },
+    {
+      "sourceFile": "licenses/freetype.txt",
+      "file": "licenses/native-pdfium-8111-freetype.txt.txt",
+      "sha256": "f4b133e25df1f86ad3ffea453aa0e613f0474f34778dbbb3e437e7b2724937d8"
+    },
+    {
+      "sourceFile": "licenses/harfbuzz.txt",
+      "file": "licenses/native-pdfium-8111-harfbuzz.txt.txt",
+      "sha256": "bd836c0ddca8ea0bab54a03cd32b6ff7256cbb3840fca2edc1249a4ed92c5b02"
+    },
+    {
+      "sourceFile": "licenses/highway.txt",
+      "file": "licenses/native-pdfium-8111-highway.txt.txt",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "sourceFile": "licenses/icu.txt",
+      "file": "licenses/native-pdfium-8111-icu.txt.txt",
+      "sha256": "93679f4389d53b6835d89843f251844fb9bc455b35bab036d3c8e7abe497a47a"
+    },
+    {
+      "sourceFile": "licenses/lcms.txt",
+      "file": "licenses/native-pdfium-8111-lcms.txt.txt",
+      "sha256": "7312b68c5b25e9bf2b828706fb4e29588f22705112f411fd42e1f7d84c3d139a"
+    },
+    {
+      "sourceFile": "licenses/libjpeg_turbo.ijg",
+      "file": "licenses/native-pdfium-8111-libjpeg-turbo.ijg.txt",
+      "sha256": "db16a04128171879c60708d171b88d97345a2dd20f9bfc173680a4497c73f704"
+    },
+    {
+      "sourceFile": "licenses/libjpeg_turbo.md",
+      "file": "licenses/native-pdfium-8111-libjpeg-turbo.md.txt",
+      "sha256": "be2b2b5ab168bce87bc3e31f2a5c5adba4b7f6e9e51d618e958d1d46972ebd95"
+    },
+    {
+      "sourceFile": "licenses/libopenjpeg.txt",
+      "file": "licenses/native-pdfium-8111-libopenjpeg.txt.txt",
+      "sha256": "c5ab0890a737c2dfa7ba675036554f6d17741d98629b0c2a145354d00617e6b2"
+    },
+    {
+      "sourceFile": "licenses/libpng.txt",
+      "file": "licenses/native-pdfium-8111-libpng.txt.txt",
+      "sha256": "452390433ba0f88aa3e2b122c647741b72a0c117cd6ed7a329b49785aecb5511"
+    },
+    {
+      "sourceFile": "licenses/llvm-libc.txt",
+      "file": "licenses/native-pdfium-8111-llvm-libc.txt.txt",
+      "sha256": "3b6226c32e168c83b891d8d6f0d3c29c2116dc3ef93dc93c307b54f279ecf383"
+    },
+    {
+      "sourceFile": "licenses/pdfium.txt",
+      "file": "licenses/native-pdfium-8111-pdfium.txt.txt",
+      "sha256": "961eacd9633fff6d051db7208b755e9210e30efac7adec3e6a6d52798f0ccf0e"
+    },
+    {
+      "sourceFile": "licenses/simdutf.txt",
+      "file": "licenses/native-pdfium-8111-simdutf.txt.txt",
+      "sha256": "c172a0ba936ff31230febb5dad869e25cb7c1a07480c7a381be8cf011bb52719"
+    },
+    {
+      "sourceFile": "licenses/zlib.txt",
+      "file": "licenses/native-pdfium-8111-zlib.txt.txt",
+      "sha256": "33fd641c9f3b0e0be64bc78fea9e94807674cdd70c48477599226cb8956565fe"
+    }
+  ],
+  "adaptation": "Original PDFium binary, without V8/XFA. Native controls and process boundary in WinOne; unsafe document actions are never executed.",
+  "buildArgs": "is_component_build = false\nis_debug = false\npdf_enable_v8 = false\npdf_enable_xfa = false\npdf_is_standalone = true\npdf_use_partition_alloc = false\ntarget_cpu = \"x64\"\ntarget_os = \"win\"\ntreat_warnings_as_errors = false\n"
+}

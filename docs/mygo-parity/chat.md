@@ -1,8 +1,8 @@
 # Chat 页功能对照
 
-更新：2026-11-04。React 来源：`apps/desktop/frontend/src/features/chat*.ts(x)` 及其引用的 `features/cindy/**`（功能清单见下文分区）。MyGo 实现：`apps/desktop-mygo/pages/chat`（视图与操作）、`apps/desktop-mygo/chat/model`（`chat-state.ts`、`chat-process.ts` 与浏览器批注格式的 Go 移植）。
+更新：2026-11-05。**原生工作面板、Bot 模式与 OneBot 已接入，旧矩阵中“仍承载 React / 原生未开始”记录已过时，不能按它重复改写。完整实窗与功能对照尚未收尾，最新实现、验证与剩余缺口见 [续接核查](chat-onebot-audit.md)。** 以下细目保留用于逐项核验，不作为全部完成声明。React 来源：`apps/desktop/frontend/src/features/chat*.ts(x)` 及其引用的 `features/cindy/**`（功能清单见下文分区）。MyGo 实现：`apps/desktop-mygo/pages/chat`（视图与操作）、`apps/desktop-mygo/chat/model`（`chat-state.ts`、`chat-process.ts` 与浏览器批注格式的 Go 移植）。
 
-用户 2026-11-04 改为**全部原生**（取代 11-01 的混合方案）：P2、P3 与 M7 仍在网页视图中运行 React，按 [迁移计划](../MyGo前端迁移.md#9-全部原生改写计划2026-11-04) 改写；只有浏览器标签与 HTML 预览继续用网页视图。各原生模块跟随的 Cindy 文件登记在 `third_party/cindy/native-ports.json`。
+用户 2026-11-04 改为**全部原生**（取代 11-01 的混合方案）。P2、P3、P4 与 M7 已有原生实现，验收及本地差异按 [续接核查](chat-onebot-audit.md) 收尾。按 [迁移计划](../MyGo前端迁移.md#9-全部原生改写计划2026-11-04) 改写；只有浏览器标签与 HTML 预览继续用网页视图。各原生模块跟随的 Cindy 文件登记在 `third_party/cindy/native-ports.json`。
 
 状态：**已验证** = 有单元测试、`ui.Tester` 渲染或实窗探针；**待验证** = 已实现、还缺证据；**未开始** = 尚未实现。单元测试在 `pages/chat/chat_test.go` 与 `chat/model/state_test.go`；渲染图在本地 `_temp/mygo-chat/shots/`（不入库，深浅色 × 中英 × 1100/640 宽）。
 
@@ -67,7 +67,7 @@
 | --- | --- | --- | --- | --- |
 | M1 | 用户气泡、复制/编辑/重试/分支 | `userMessage` | 渲染图 | 部分验证 |
 | M2 | 工作过程折叠块（思考、旁白、工具、操作）、显示推理开关；工具行按 Cindy 动词命名，可打开本次读写的文件快照 | `workProcess`、`entryView`、`tools.go`、`chat/model/tools.go` | `TestToolRowsNameTheirWorkAndOpenFileSnapshots`、`TestToolsAreDescribedAsCindyNamesThem`、`TestFileSnapshotsKeepWhatTheToolSaw`；渲染图 items-dialog | 已验证 |
-| M3 | 回答 Markdown（流式）、模型来源 | `answerView` | 渲染图 | 部分验证（Mermaid、公式、表格适配待与结果窗共用渲染器） |
+| M3 | 回答 Markdown（流式）、模型来源、公式 | `answerView`、`chat/mathview`、`modules/chat-pi/math` | 渲染图；公式 6 项回归与中浅/英深窄窗实查；字体许可和源包/运行清单已核验，见 `chat-onebot-audit.md` | 部分验证（公式缺字修复已验证；完整 Markdown/表格/图表组合矩阵未结束） |
 | M4 | 计划卡；运行中计划卡滚出视野时在输入框上方显示当前步骤，可展开、可关闭 | `planCard`、`plan_reminder.go` | `TestOnlyAFinishedPlanCallPublishesAPlan`、`TestThePlanFloatsAboveTheInputWhileItsCardIsOutOfView`；渲染图 items-plan | 已验证 |
 | M5 | 自动跟随到底部，上滚取消，靠近底部 80 DIP 恢复；滚动导航（顶部、上一轮、下一轮、底部） | `transcriptView`、`scrollnav.go` | `TestScrollControlsStepThroughRoundsAndFollowTheEnd` | 已验证（实窗滚动待测） |
 | M6 | 生成文件 chip、本轮改动卡（撤销本轮、查看改动）、回答中的文件链接 chip | `files.go`、`links.go`、`chat/model/paths.go` | `TestTheTranscriptEndsWithTheConversationsFilesAndChanges`、`TestAnswersOfferTheFilesTheyName`、`TestLinksResolveToTheFilesTheyName`；渲染图 items-end | 已验证 |
@@ -78,12 +78,14 @@
 | 编号 | 内容 | 状态 |
 | --- | --- | --- |
 | P1 | Chat 设置（常规、资源、MCP、自动化连接）：原生 `kit.Dialog`（`pages/chat/settings.go`） | 已验证（`TestSettingsDialogIsNativeAndSavesTheDraft`） |
-| P2 | 右侧工作面板：React `ChatSidePanel` 整体在网页视图中运行（文件库、资源、文件预览/编辑、PDF、Review、终端、浏览器与批注），可停靠右侧或下方、拖动调整大小；网页标签由 Go 网页视图叠放在面板指定位置 | 已实现；实窗探针：文件库经 Host 列出目录，网页标签加载页面并把标题回传面板 |
-| P3 | 自动化整页：React `SchedulerHost` 在网页视图中运行 | 已实现；实窗探针渲染通过 |
-| P4 | OneBot：整页在网页视图中运行，队友对话暂为 React Chat（[OneBot 对照](onebot.md)） | 已实现；实窗探针渲染首屏 |
+| P2 | 右侧工作面板：仍由 React `ChatSidePanel` 在网页视图中运行；真正的网页标签由 Go WebView 显示 | **原生未完成**；旧实窗探针只能证明网页面板可用 |
+| P3 | 自动化整页：MyGo `chat/automations.Page` 已替换 React `SchedulerHost` | 原生主体已接入；插件检查执行、渠道可用性及实窗验收仍待完成（[对照](automations.md)） |
+| P4 | OneBot：整页和队友对话仍在网页视图中（[OneBot 对照](onebot.md)） | **原生未完成** |
 | P5 | 其他页面打开某个会话（可带文件或文件夹）或 Chat 设置（`takeIntents`） | 已验证（`TestLinksFromOtherPagesOpenTheirConversationAndFile`） |
 
-## 网页视图承载（P1–P3）
+## 待移除的 React 承载（P2、P4）
+
+2026-11-04 核查见 [完成度核查](chat-onebot-audit.md)。保留以下旧路径是为了准确定位迁移范围，不再视为用户允许的最终架构。
 
 - **页面**：`apps/desktop/frontend/chat-embed.html`（`src/chat-embed-entry.tsx`）。`npm run build:mygo` 用 `vite.mygo.config.ts` 只构建这一页，输出到 `apps/desktop-mygo/webui/dist`（被忽略）；`build/build-desktop-mygo.ps1` 先构建它，再以 `webui` 构建标签嵌入 WinOne.exe。
 - **桥**：包 `apps/desktop-mygo/webui` 绑定 MyGo 服务 `App`，注入脚本把 `window.go.main.App` 与 `window.runtime.EventsOn` 映射到它，React 代码沿用原桥。可调用的 Host 方法与 Rust 桥白名单一致（`webui/allow.go` 由 `component_bridge.rs` 生成）；导出仍只由原生页处理。

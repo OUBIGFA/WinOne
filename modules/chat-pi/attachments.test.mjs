@@ -6,6 +6,22 @@ import os from 'node:os';
 import {prepareAttachments} from './attachments.mjs';
 import * as attachmentsModule from './attachments.mjs';
 
+test('tool images project to the same private read-only attachment file without bloating history',async()=>{
+ const base=process.env.WINONE_CHAT_TEST_DIRECTORY??os.tmpdir(),root=await fs.mkdtemp(path.join(base,'chat-tool-image-'));
+ const pixel=await fs.readFile(new URL('../../internal/branding/chat-welcome.png',import.meta.url));
+ const bytes=Buffer.concat([pixel,Buffer.alloc(1024*1024)]),part={type:'image',mimeType:'image/png',data:bytes.toString('base64')};
+ const source={role:'toolResult',content:[{type:'text',text:'Image result'},part]};
+ const projected=attachmentsModule.displayMessage(source,root);
+ assert.equal(projected.content[0].text,'Image result');assert.equal(projected.content[1].data,undefined);
+ assert.ok(projected.content[1].path.startsWith(path.join(root,'attachments','tool-media')));
+ assert.deepEqual(await fs.readFile(projected.content[1].path),bytes);assert.equal(source.content[1].data,part.data);
+ assert.ok(Buffer.byteLength(JSON.stringify(projected))<8192);
+ assert.equal(attachmentsModule.displayMessage(source,root).content[1].path,projected.content[1].path);
+ await fs.unlink(projected.content[1].path);
+ const reopened=attachmentsModule.displayMessage(JSON.parse(JSON.stringify(source)),root);
+ assert.equal(reopened.content[1].path,projected.content[1].path);assert.deepEqual(await fs.readFile(reopened.content[1].path),bytes);
+});
+
 test('an omitted Go attachment slice is an empty attachment list',async()=>{
  assert.deepEqual(await prepareAttachments('C:\\fixture',null),{attachments:[],images:[],context:''});
 });

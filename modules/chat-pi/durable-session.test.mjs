@@ -29,6 +29,38 @@ async function fixture(t,respond){
 }
 async function until(check){for(let n=0;n<500;n++){if(await check())return;await new Promise(resolve=>setTimeout(resolve,10));}throw Error('condition timed out');}
 
+test('Host legacy Plan keeps a real durable read-only task until an explicit native permission change',async t=>{
+ const replies=[{tool:'write',args:{path:'blocked.txt',content:'must not be written'}},{text:'Read-only proposal'},{tool:'write',args:{path:'allowed.txt',content:'explicit change'}},{text:'Executed after native permission change'}];
+ const f=await fixture(t,()=>replies.shift());
+ const agent=await createDurableSession({...f.config,legacyPlan:true,permission:'bypassPermissions'},{authorize:async()=>{assert.fail('read-only Plan must not offer a per-tool approval escape');}});t.after(()=>agent.close());
+ await agent.session.prompt('Propose a plan only.',{requestId:'plan-proposal'});
+ await assert.rejects(fs.stat(path.join(f.cwd,'blocked.txt')),{code:'ENOENT'});
+ assert.equal(agent.state().planModeEnabled,true);
+ const tools=f.requests[0].tools?.map(row=>row.function.name)??[];
+ assert.ok(tools.includes('read')&&tools.includes('update_plan'));assert.ok(!tools.includes('write')&&!tools.includes('powershell')&&!tools.includes('codemode'));
+ await agent.setPermission('bypassPermissions');assert.equal(agent.state().planModeEnabled,false);
+ await agent.session.prompt('Execute the explicitly approved change.',{requestId:'plan-execute'});
+ assert.equal(await fs.readFile(path.join(f.cwd,'allowed.txt'),'utf8'),'explicit change');
+});
+
+test('a copied branch cannot consume new reply projections with inherited durable entry numbers',async t=>{
+ const replies=[{text:'ORIGINAL_ONE'},{text:'ORIGINAL_TWO'},{text:'BRANCH_THREE'},{text:'BRANCH_FOUR'}];
+ const f=await fixture(t,()=>replies.shift());let agent=await createDurableSession(f.config);
+ await agent.session.prompt('First original input.',{requestId:'original-1'});await agent.session.prompt('Second original input.',{requestId:'original-2'});
+ const source=agent.state().file;await agent.close();
+ const directory=path.join(f.directory,'branch');await fs.mkdir(directory);
+ const file=path.join(directory,path.basename(source));await fs.copyFile(source,file);
+ const config={...f.config,sessionDirectory:directory,sessionFile:file};
+ agent=await createDurableSession(config);
+ await agent.session.prompt('Only this branch.',{requestId:'branch-1'});
+ assert.ok(JSON.stringify(agent.state().messages).includes('BRANCH_THREE'),'the fresh SQLite namespace must project its own successful reply');
+ await agent.close();agent=await createDurableSession(config);t.after(()=>agent.close());
+ await agent.session.prompt('After reopening the branch.',{requestId:'branch-2'});
+ const texts=agent.state().messages.filter(message=>message.role==='assistant').map(message=>message.content.filter(part=>part.type==='text').map(part=>part.text).join(''));
+ assert.deepEqual(texts,['ORIGINAL_ONE','ORIGINAL_TWO','BRANCH_THREE','BRANCH_FOUR']);
+ assert.ok(!(await fs.readFile(source,'utf8')).includes('BRANCH_THREE'),'the original history is unchanged');
+});
+
 test('official durable harness executes real tools, persists history and deduplicates submissions',async t=>{
  const replies=[{tool:'write',args:{path:'proof.txt',content:'DURABLE_FILE'}},{text:'The file is saved.'},{text:'I remember the file.'}];
  const f=await fixture(t,()=>replies.shift()),approvals=[];

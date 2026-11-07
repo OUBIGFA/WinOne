@@ -7,6 +7,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createOneBotRuntime} from './runtime.mjs';
 import {islandSnapshot, pendingInteractions} from './autonomy.mjs';
+import {todoCheckRoutineId} from '../cindy/autonomy/todoCheckRoutine.ts';
 
 const base = process.env.WINONE_ONEBOT_TEST_OUTPUT;
 if (!base || !path.isAbsolute(base)) throw Error('Use build/test-onebot.mjs with an isolated output');
@@ -57,7 +58,7 @@ test('Host activity becomes Cindy island snapshots with summarized interactions'
   assert.deepEqual(pendingInteractions(permission), [{kind: 'permission', requestId: 'p1', toolName: 'bash'}]);
 });
 
-test('the scheduler teammate follows a finished owner task and the daily todo check toggles its builtin', async () => {
+test('the scheduler follows a reported delivery and the daily todo check preserves its editable rule', async () => {
   const f = await fixture();
   try {
     assert.deepEqual(await f.runtime.call('autonomy.settings'), {schedulerBotId: null, isCustomized: false, defaults: {schedulerBotId: null}});
@@ -75,6 +76,9 @@ test('the scheduler teammate follows a finished owner task and the daily todo ch
     f.activity.set(TASK, running);
     await f.runtime.call('autonomy.activity', {snapshots: [running]});
     await until(() => f.runtime.call('autonomy.glance', {botId: 'lead'}), glance => JSON.stringify(glance).includes(TASK), 'running task never reached the glance');
+    // Native input generations and activity generations are separate counters.
+    const execution = {instanceId: 'native-task-instance', generation: 7};
+    assert.deepEqual(await f.runtime.call('autonomy.reportDelivery', {snapshot: running, execution, finalDelivery: true}), {ok: true});
     const completed = {...running, phase: 'completed', lastActivityAtMs: now + 1};
     f.activity.set(TASK, completed);
     await f.runtime.call('autonomy.activity', {snapshots: [completed]});
@@ -86,13 +90,25 @@ test('the scheduler teammate follows a finished owner task and the daily todo ch
 
     assert.equal(await f.runtime.call('todos.dailyCheck', {botId: 'lead'}), false);
     assert.equal(await f.runtime.call('todos.dailyCheck', {botId: 'lead', enabled: true}), true);
-    const rule = (await f.runtime.call('routines.list', {botId: 'lead'})).find(row => row.builtin === 'todo-check');
+    const rule = (await f.runtime.call('routines.list', {botId: 'lead'})).find(row => row.id === todoCheckRoutineId('lead'));
+    assert.equal(rule.builtin, undefined);
     assert.equal(rule.enabled, true);
     assert.equal(rule.triggers[0].expression, '0 9 * * 1-5');
     assert.equal(await f.runtime.call('todos.dailyCheck', {botId: 'lead', enabled: false}), false);
     assert.equal(await f.runtime.call('todos.dailyCheck', {botId: 'lead'}), false);
-    assert.equal((await f.runtime.call('routines.list', {botId: 'lead'})).find(row => row.builtin === 'todo-check').id, rule.id, 'turning it off only pauses the same rule');
+    assert.equal((await f.runtime.call('routines.list', {botId: 'lead'})).find(row => row.id === todoCheckRoutineId('lead')).id, rule.id, 'turning it off only pauses the same rule');
     await assert.rejects(f.runtime.call('todos.dailyCheck', {botId: 'lead', enabled: 'yes'}), /enabled/i);
+
+    // A later completed turn does not inherit a previous final delivery report.
+    const next = {...running, startedAtMs: now + 10, lastActivityAtMs: now + 10, turnGeneration: 2};
+    f.activity.set(TASK, next);
+    await f.runtime.call('autonomy.activity', {snapshots: [next]});
+    await until(() => f.runtime.call('autonomy.glance', {botId: 'lead'}), glance => JSON.stringify(glance).includes(TASK), 'next turn never reached the glance');
+    const intermediate = {...next, phase: 'completed'};
+    f.activity.set(TASK, intermediate);
+    await f.runtime.call('autonomy.activity', {snapshots: [intermediate]});
+    await new Promise(resolve => setTimeout(resolve, 200));
+    assert.equal(f.dispatched.length, 1, 'a completed turn without a new delivery must not wake the teammate');
 
     assert.deepEqual(await f.runtime.call('autonomy.resetSettings'), {schedulerBotId: null, isCustomized: false, defaults: {schedulerBotId: null}});
   } finally { await f.runtime.close(); }

@@ -164,14 +164,16 @@ func (a *chatAutomations) channels() (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
+	states := a.connectorStates(connections)
 	feishu := "disconnected"
-	if _, ok := connections.Methods["notify.feishu"]; ok {
+	if states["notify.feishu"] == "ok" {
 		feishu = "connected"
 	}
-	_, wecom := connections.Methods["notify.wecom"]
+	_, wecomConfigured := connections.Methods["notify.wecom"]
+	wecomReady := states["notify.wecom"] == "ok"
 	return json.Marshal(map[string]any{
 		"feishu":     map[string]string{"status": feishu},
-		"wecomGroup": map[string]bool{"configured": wecom, "enabled": wecom},
+		"wecomGroup": map[string]bool{"configured": wecomConfigured, "enabled": wecomReady},
 	})
 }
 
@@ -181,14 +183,20 @@ func (a *chatAutomations) capabilityStatus() (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
+	methodStates := a.connectorStates(connections)
 	required := map[string][]string{"jira.read": {"jira.get", "jira.search_jql"}, "jira.comment": {"jira.add_comment"}, "feishu.read": {"feishu.recent_chats", "feishu.recent_messages"}}
 	names := map[string]string{"jira.read": "Jira", "jira.comment": "Jira", "feishu.read": "飞书"}
 	statuses := []map[string]string{{"capability": "sessions.dispatch", "state": "ok"}}
 	for _, capability := range []string{"jira.read", "jira.comment", "feishu.read"} {
 		state := "ok"
 		for _, method := range required[capability] {
-			if _, ok := connections.Methods[method]; !ok {
+			current := methodStates[method]
+			if current == "" || current == "ghost-missing" {
 				state = "ghost-missing"
+				break
+			}
+			if current != "ok" {
+				state = current
 			}
 		}
 		entry := map[string]string{"capability": capability, "state": state}
@@ -204,7 +212,7 @@ func (a *chatAutomations) capabilityStatus() (json.RawMessage, error) {
 // check generation). It uses the requested AI service model or Chat's default
 // with the same key/account admission as conversation titles, and reports
 // failures in Cindy's UtilityTextFailure shape.
-func (a *chatAutomations) utilityText(ctx context.Context, prompt, providerID, model string, timeout time.Duration) map[string]any {
+func (a *chatAutomations) utilityText(ctx context.Context, prompt, providerID, model string, timeout time.Duration, maxTokens ...int) map[string]any {
 	failure := func(reason, attempt string, selection ai.Selection) map[string]any {
 		attempts := []map[string]any{}
 		if attempt != "" {
@@ -237,9 +245,13 @@ func (a *chatAutomations) utilityText(ctx context.Context, prompt, providerID, m
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	var text string
+	budget := 0
+	if len(maxTokens) > 0 {
+		budget = maxTokens[0]
+	}
 	run := func(callCtx context.Context, key string) (bool, error) {
 		var output strings.Builder
-		_, err := runtime.ForProvider(preferences.ProviderID).GenerateStream(callCtx, preferences, key, ai.Generation{Text: prompt}, func(delta ai.Delta) error {
+		_, err := runtime.ForProvider(preferences.ProviderID).GenerateStream(callCtx, preferences, key, ai.Generation{Text: prompt, MaxTokens: budget}, func(delta ai.Delta) error {
 			output.WriteString(delta.Text)
 			return nil
 		})

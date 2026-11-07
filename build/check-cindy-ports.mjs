@@ -188,8 +188,11 @@ for (const port of manifest.ports) {
 }
 
 // 2. Accept: move ports to the target revision after porting.
+// A copied baseline is not parity evidence. Pending migration/verification
+// items stay explicit until their implementation and checks are completed.
 const accept = argument('--accept');
 if (accept) {
+  for(const port of manifest.ports.filter(p=>accept==='all'||p.id===accept))if(port.pending?.length)problems.push(`${port.id}: finish pending work before accepting: ${port.pending.join('; ')}`);
   if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
   for (const port of manifest.ports.filter((p) => accept === 'all' || p.id === accept)) {
     for (const entry of port.upstream) {
@@ -209,6 +212,7 @@ if (accept) {
 let behind = 0;
 console.log(`Cindy ${ref} = ${short(target)}\n`);
 for (const port of manifest.ports) {
+  if(port.pending?.length){behind++;console.log(`pending ${port.id}: ${port.pending.join('; ')}`);}
   const files = port.upstream.flatMap((e) => changed(e.revision, target, [e.path]));
   const added = [];
   const since = port.watchRevision ?? port.upstream[0]?.revision ?? target;
@@ -216,7 +220,7 @@ for (const port of manifest.ports) {
     const before = new Set(tree(since, dir));
     for (const file of tree(target, dir)) if (!before.has(file) && !/\.test\.|__tests__/.test(file)) added.push(file);
   }
-  if (!files.length && !added.length) { console.log(`ok      ${port.id}`); continue; }
+  if (!files.length && !added.length) { if(!port.pending?.length)console.log(`ok      ${port.id}`); continue; }
   behind++;
   console.log(`behind  ${port.id} → ${short(target)}; port into ${port.native.join(', ')}`);
   for (const f of files) console.log(`          ${f.file}  +${f.add} -${f.del}`);

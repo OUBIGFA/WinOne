@@ -6,7 +6,7 @@
 // so a remote media origin never applies.
 import {chatCall} from '../../../bridge';
 import {isManagedBotAvatarUrl} from '../shared/botAvatarValue';
-export {isRemoteMediaUrl, parseRemoteMediaUrl, type RemoteMediaOrigin} from '../media/shared/remoteMediaUrl';
+export {isRemoteMediaUrl, parseRemoteMediaUrl, REMOTE_MEDIA_SCHEME, type RemoteMediaOrigin} from '../media/shared/remoteMediaUrl';
 
 const dataUrls = new Map<string, string>();
 const pending = new Map<string, Promise<void>>();

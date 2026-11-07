@@ -55,8 +55,13 @@ foreach ($caseEntry in @([pscustomobject]@{Name='host-disabled';Enabled=$false},
         & (Join-Path $PSScriptRoot 'measure-resources.ps1') -RootProcessIds @($target.Id) -OutputPath (Join-Path $outputRoot ($caseEntry.Name+'.json')) -Scenario $caseEntry.Name -DurationSeconds $DurationSeconds -BinaryPaths @($hostExecutable,$workerExecutable)
         $report=Get-Content -LiteralPath (Join-Path $outputRoot ($caseEntry.Name+'.json')) -Raw -Encoding UTF8 | ConvertFrom-Json
         if(-not $caseEntry.Enabled){if (-not (Test-HostOnlyResourceReport -Report $report -HostProcessId $target.Id)) { throw 'Incomplete samples or unexpected disabled workers; profile retained for diagnosis' }}else{
-            foreach($sample in $report.Samples){if(-not $sample.Complete -or @($sample.Processes|Where-Object {$_.ProcessId-eq$target.Id -and $_.Name-eq'WinOne.Host.exe'}).Count-ne 1 -or @($sample.Processes|Where-Object {$_.Name-notin @('WinOne.Host.exe','WinOne.Stroke.exe','WinOne.WinTray.exe','WinOne.WinTray.Recovery.exe')}).Count){throw 'Enabled idle measurement has incomplete or unexpected processes'}}
+            # The real module-health probe has verified the complete enabled
+            # catalog. Measure the whole owned process family, including OCR
+            # runtimes and newly enabled workers, rather than admitting only
+            # names from an obsolete four-process list.
+            foreach($sample in $report.Samples){if(-not $sample.Complete -or @($sample.Processes|Where-Object {$_.ProcessId-eq$target.Id -and $_.Name-eq'WinOne.Host.exe'}).Count-ne 1){throw 'Enabled idle measurement has incomplete data or lost its owned Host'}}
         }
+        if($report.Summary.CpuSamples -lt 1){throw 'The selected measurement duration produced no CPU interval; choose a longer duration, retaining this report'}
         if ($caseEntry.Name -eq 'host-disabled' -and -not (Test-HostIdleBudgetReport -Report $report -HostProcessId $target.Id)) { throw 'Host idle reference check failed: require complete CPU intervals, average CPU <0.2%, and private working set <=43 MiB; assess small memory fluctuations with growth and cleanup evidence; profile retained' }
         $completed=$true
     } finally {

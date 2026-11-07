@@ -17,6 +17,11 @@ type Project struct {
 type Conversation struct {
 	ID               string              `json:"id"`
 	ProjectID        string              `json:"projectId,omitempty"`
+	PluginID         string              `json:"pluginId,omitempty"`
+	OrcaRole         string              `json:"orcaRole,omitempty"`
+	OrcaTeamID       string              `json:"orcaTeamId,omitempty"`
+	OrcaLeadID       string              `json:"orcaLeadId,omitempty"`
+	OrcaWorkerID     string              `json:"orcaWorkerId,omitempty"`
 	Title            string              `json:"title"`
 	Directory        string              `json:"directory"`
 	SessionDirectory string              `json:"sessionDirectory"`

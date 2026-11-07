@@ -12,6 +12,22 @@ import {ScheduleStore} from './scheduler-store.mjs';
 const definition = {name: 'Check project', prompt: 'Inspect current files', kind: 'cron', cronExpr: '0 9 * * *', timezone: 'Asia/Shanghai', recurring: true, manual: true, agentKind: 'pi', modelAgentKind: 'pi', model: 'fixture', providerId: 'service', workspaceKind: 'dialogue', useWorktree: false, notify: {desktop: false, feishu: false}};
 const directory = () => fs.mkdtemp(path.join(process.env.WINONE_CHAT_TEST_DIRECTORY ?? os.tmpdir(), 'automation-cindy-'));
 
+test('native forms receive the real timezone and provider effort words survive save and dispatch', async () => {
+  const dispatched=[];
+  const runtime=await createAutomationRuntime({directory:await directory(),passive:true,dispatch:async schedule=>{dispatched.push(schedule);return {sessionId:'fixture'};}});
+  try {
+    const view=await runtime.call('runtime');
+    assert.equal(view.timezone,Intl.DateTimeFormat().resolvedOptions().timeZone);
+    assert.ok(view.scriptCapabilities.includes('sessions.dispatch'));
+    const schedule=await runtime.call('create',{input:{...definition,effort:'balanced'}});
+    assert.equal(schedule.effort,'balanced');
+    await runtime.call('update',{id:schedule.id,patch:{name:'Renamed'}});
+    await runtime.call('run',{id:schedule.id});await runtime.settled();
+    assert.equal(dispatched[0].effort,'balanced');
+    await assert.rejects(runtime.call('update',{id:schedule.id,patch:{effort:7}}),/reasoning effort/);
+  } finally {await runtime.close();}
+});
+
 test('existing fresh tasks keep ask while new tasks and bound tasks store no permission', async () => {
   const root = await directory();
   const seed = new ScheduleStore(path.join(root, 'automations.db'));
@@ -74,9 +90,46 @@ test('project entries upsert and remove by id and report reconcile changes', asy
     await runtime.call('project.upsertSchedule', {workingDir: project, config: {...config, name: 'Renamed'}});
     [schedule] = await runtime.call('list');
     assert.equal(schedule.name, 'Renamed');
-    await runtime.call('project.removeSchedule', {workingDir: project, id: 'auto-fixture'});
+    // Cindy 2d8d3c3: removing one entry deletes only that schedule and reports it.
+    assert.equal((await runtime.call('project.removeSchedule', {workingDir: project, id: 'auto-fixture'})).deleted, 1);
     assert.equal((await runtime.call('list')).length, 0);
-    assert.equal(events.findLast((event) => event.type === 'reconciled').deleted, 1);
+  } finally { await runtime.close(); }
+});
+
+test('repository changes wait for confirmation of that exact snapshot', async () => {
+  const events = [];
+  const project = await directory();
+  const runtime = await createAutomationRuntime({directory: await directory(), passive: true, event: (event) => events.push(event), dispatch: async () => ({sessionId: 'fixture'})});
+  const file = path.join(project, '.cindy', 'automations', 'schedules.json');
+  const entry = {id: 'nightly', name: 'Nightly', prompt: 'Review', cronExpr: '0 9 * * *', timezone: 'UTC'};
+  const put = async (schedules) => { await fs.mkdir(path.dirname(file), {recursive: true}); await fs.writeFile(file, JSON.stringify({version: 1, schedules})); };
+  try {
+    await put([entry]);
+    let result = await runtime.call('project.reconcile', {workingDir: project});
+    assert.equal(result.inserted, 0);
+    assert.equal((await runtime.call('list')).length, 0, 'nothing is imported before confirmation');
+    assert.deepEqual(result.pendingImport.schedules, [entry]);
+    assert.equal(events.at(-1).type, 'import-required');
+    assert.deepEqual((await runtime.call('project.pendingImports')).map((pending) => pending.configHash), [result.pendingImport.configHash]);
+
+    const approved = result.pendingImport.configHash;
+    await put([{...entry, name: 'Edited after the preview'}]);
+    result = await runtime.call('project.reconcile', {workingDir: project, approvedHash: approved});
+    assert.ok(result.pendingImport, 'an approval of an older snapshot imports nothing');
+    assert.equal((await runtime.call('list')).length, 0);
+
+    result = await runtime.call('project.reconcile', {workingDir: project, approvedHash: result.pendingImport.configHash});
+    assert.equal(result.inserted, 1);
+    assert.equal((await runtime.call('list'))[0].name, 'Edited after the preview');
+
+    await put([]);
+    result = await runtime.call('project.reconcile', {workingDir: project});
+    assert.deepEqual(result.pendingImport.removedNames, ['Edited after the preview']);
+    assert.equal((await runtime.call('list')).length, 1, 'removals also wait for confirmation');
+    await fs.rm(file);
+    result = await runtime.call('project.reconcile', {workingDir: project});
+    assert.equal(result.skipped, 'no-file');
+    assert.equal((await runtime.call('list')).length, 1, 'a missing file leaves saved schedules alone');
   } finally { await runtime.close(); }
 });
 
@@ -123,4 +176,28 @@ test('automations run on this computer, templates use Pi and bot routines stay o
   try {
     assert.ok((await reopened.call('list')).every((schedule) => schedule.source !== 'bot'));
   } finally { await reopened.close(); }
+});
+
+test('a saved plugin check is never silently passed: it follows its failure setting', async () => {
+  const root = await directory();
+  const seed = new ScheduleStore(path.join(root, 'automations.db'));
+  const now = Date.now();
+  const saved = (id, onFailure) => seed.insert({...definition, id, preRunPlugin: {pluginId: 'gate', onFailure}, status: 'active', createdAt: now, updatedAt: now});
+  await saved('allowed', 'allow');
+  await saved('skipped', 'skip');
+  await saved('blocked', 'block');
+  seed.close();
+  const dispatched = [];
+  const runtime = await createAutomationRuntime({directory: root, passive: true, dispatch: async (schedule) => { dispatched.push(schedule.id); return {sessionId: 'fixture'}; }});
+  try {
+    await assert.rejects(runtime.call('create', {input: {...definition, preRunPlugin: {pluginId: 'gate', onFailure: 'block'}}}), /not available/);
+    for (const id of ['allowed', 'skipped', 'blocked']) await runtime.call('run', {id}).catch(() => {});
+    await runtime.settled();
+    assert.deepEqual(dispatched, ['allowed']);
+    const last = async (id) => (await runtime.call('runs', {id, limit: 1}))[0];
+    assert.equal((await last('skipped')).status, 'skipped');
+    const blocked = await last('blocked');
+    assert.equal(blocked.status, 'failed');
+    assert.match(blocked.errorMsg ?? '', /was unavailable or did not answer/);
+  } finally { await runtime.close(); }
 });

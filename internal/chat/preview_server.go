@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"mime"
 	"net"
 	"net/http"
 	"net/url"
@@ -64,6 +65,28 @@ func (s *PreviewServer) Open(id, path string) (FilePreview, error) {
 		}
 	}
 	s.grants[key] = previewGrant{id: id, path: p.Path, target: target, until: time.Now().Add(time.Hour)}
+	p.URL = s.base + "/" + key + "/" + url.PathEscape(p.Name)
+	return p, nil
+}
+
+// OpenVerified previews a file its caller has already checked, without a
+// conversation: a read-only grant of that one file, re-read at each request.
+func (s *PreviewServer) OpenVerified(path string) (FilePreview, error) {
+	p, err := previewOf(path, path)
+	if err != nil {
+		return p, err
+	}
+	contentType := mime.TypeByExtension(strings.ToLower(filepath.Ext(path)))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	p.ReadOnly = true
+	key := rand.Text()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.grants[key] = previewGrant{path: p.Name, until: time.Now().Add(time.Hour), contentType: contentType, read: func(context.Context) ([]byte, error) {
+		return os.ReadFile(path)
+	}}
 	p.URL = s.base + "/" + key + "/" + url.PathEscape(p.Name)
 	return p, nil
 }
@@ -181,9 +204,12 @@ func (s *PreviewServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-		if _, err := s.store.Conversation(grant.id); err != nil {
-			http.Error(w, "Conversation unavailable", http.StatusForbidden)
-			return
+		// A verified file (OpenVerified) belongs to no conversation.
+		if grant.id != "" {
+			if _, err := s.store.Conversation(grant.id); err != nil {
+				http.Error(w, "Conversation unavailable", http.StatusForbidden)
+				return
+			}
 		}
 		data, err := grant.read(r.Context())
 		if err != nil {

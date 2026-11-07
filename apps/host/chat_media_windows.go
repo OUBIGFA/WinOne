@@ -54,6 +54,15 @@ func (c *chatControl) mediaAction(ctx context.Context, method string, raw json.R
 			return finish(file)
 		})
 		return map[string]string{"url": address}, err
+	case "image.preview":
+		// The native Markdown/rich renderer reads remote images through the
+		// same bounded downloader and immutable session files as media.source.
+		// It does not append to the composer's draft or submit a model input.
+		file, err := c.store.ImportRemoteMedia(ctx, input.ID, input.URL)
+		if err != nil {
+			return nil, err
+		}
+		return server.Open(input.ID, file.Path)
 	case "media.source":
 		file, err := c.store.ImportRemoteMedia(ctx, input.ID, input.URL)
 		if err != nil {

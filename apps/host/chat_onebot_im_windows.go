@@ -119,6 +119,9 @@ func (b *chatOneBot) serveIM(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "POST required", 405)
 		return
 	}
+	if b.imDriver != nil && b.imDriver.servePluginControl(w, r) {
+		return
+	}
 	route := strings.TrimPrefix(r.URL.Path, "/v1/")
 	raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
 	if err != nil {

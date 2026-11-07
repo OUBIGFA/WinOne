@@ -20,7 +20,7 @@ import {glanceForModel} from '../cindy/helper/botWorkbenchTools.ts';
 import {boundTaskDigest} from '../cindy/helper/taskDigestTool.ts';
 import {preflightTodoEvents, queryTodoItems, TodoError} from '../cindy/bots/shared/teammate-todo.ts';
 import {readTaskResponsibilities, responsibleSessionIds, setTaskResponsibility} from '../cindy/bots/botTaskResponsibility.ts';
-import {NEEDS_OWNER_REQUEST} from '../cindy/tasks/taskActionAuthorization.ts';
+import {createOneBotTaskRisk, teammateCallOf} from './task-risk.mjs';
 import {buildHookCommand, generateHookScript, hookScriptSlug, resolveHookScriptPath} from '../cindy/scheduler-host/hook-script-generator.ts';
 import {visibleRows} from './bots-service.mjs';
 import {readBranch} from './history.mjs';
@@ -29,7 +29,8 @@ import {oneBotError} from './content-service.mjs';
 const okPayload = data => ({ok: true, ...data});
 const errorPayload = (errorCode, hint, data = {}) => ({ok: false, errorCode, data: {...data, hint}});
 /** Cindy taskActionHost TEAMMATE_STANDING_GRANT_TOOLS: owner decisions, never the teammate's own initiative. */
-const STANDING_GRANT_ROUTINE_TOOLS = new Set(['save', 'delete', 'runNow', 'preRunHook']);
+// Cindy 2d8d3c3 teammate-authority: an unconfirmed explicit risk on an autonomous turn.
+const CONFIRMATION_REQUIRED = {errorCode: 'CONFIRMATION_REQUIRED', message: 'This action needs the owner’s confirmation in this chat. It was not executed; call it again so the owner sees the confirmation card.'};
 /** Cindy readSessionTranscript reads the latest 60 rows before bounding them. */
 const TRANSCRIPT_ROWS = 60;
 /** Cindy readSessionLastExchange looks back 20 rows for the last ask and answer. */
@@ -38,6 +39,7 @@ const LAST_EXCHANGE_ROWS = 20;
 const HOOK_CONTENT_PREVIEW_CAP = 4000;
 
 export function createOneBotTeammateTools({owner, paths, profiles, routines, call, host, startBackground, prStatuses, event}) {
+  const classify = createOneBotTaskRisk({routines});
   /** Cindy resolveWorkbenchCaller: only an active teammate's main chat or private topic. */
   function resolveCaller(callerSessionId) {
     const link = typeof callerSessionId === 'string' ? profiles.sessionOwnerOrNull(callerSessionId) : null;
@@ -221,10 +223,13 @@ export function createOneBotTeammateTools({owner, paths, profiles, routines, cal
   async function routineTool(operation, params) {
     const caller = resolveCaller(params.callerSessionId);
     if (!caller.ok) return {ok: false, message: '当前调用未绑定伙伴主任务'};
-    if (STANDING_GRANT_ROUTINE_TOOLS.has(operation) && params.principal === 'autonomous') {
-      return errorPayload(NEEDS_OWNER_REQUEST.errorCode, NEEDS_OWNER_REQUEST.message);
-    }
     const args = params.args ?? {};
+    // Ordinary saves follow the task's permissions; only explicit risks need the
+    // owner's confirmation, which the Host binds to this call (riskConfirmed).
+    if (params.principal === 'autonomous' && params.riskConfirmed !== true) {
+      const call = teammateCallOf('teammate.routines.' + operation, args);
+      if (call && (await classify({botId: caller.botId, ...call})).risk) return errorPayload(CONFIRMATION_REQUIRED.errorCode, CONFIRMATION_REQUIRED.message);
+    }
     try {
       if (operation === 'preRunHook') return await installPreRunHook(params.callerSessionId, caller.botId, args);
       if (operation === 'list') return {ok: true, result: await routines.call('list', {botId: caller.botId})};
@@ -261,6 +266,12 @@ export function createOneBotTeammateTools({owner, paths, profiles, routines, cal
     async call(method, params) {
       const args = params.args ?? {};
       if (method.startsWith('teammate.routines.')) return routineTool(method.slice('teammate.routines.'.length), params);
+      if (method === 'teammate.risk') {
+        // Private Host call before a tool runs on an autonomous turn (/policy).
+        const caller = resolveCaller(params.callerSessionId);
+        if (!caller.ok) return {};
+        return classify({botId: caller.botId, tool: String(params.tool ?? ''), args: params.args});
+      }
       if (method === 'teammate.create') return create(params);
       if (method.startsWith('teammate.todos.')) {
         const caller = resolveCaller(params.callerSessionId);
@@ -292,9 +303,7 @@ export function createOneBotTeammateTools({owner, paths, profiles, routines, cal
             return result.ok ? okPayload({task_id: result.taskId, delivery: result.delivery, ...(result.queuedMessageId ? {queued_message_id: result.queuedMessageId} : {})})
               : errorPayload(result.errorCode, result.message);
           case 'teammate.workbench.responsibility':
-            // Cindy autonomousActionAllowed: a teammate may release on its own;
-            // taking responsibility needs the owner's request in this turn.
-            if (args.responsible === true && params.principal === 'autonomous') return errorPayload(NEEDS_OWNER_REQUEST.errorCode, NEEDS_OWNER_REQUEST.message);
+            // Cindy 2d8d3c3: responsibility is ordinary work under the task's permissions.
             result = await access.setResponsibility({callerSessionId: params.callerSessionId, taskId: args.task_id, responsible: args.responsible});
             return result.ok ? okPayload({task_id: result.taskId, responsible: result.responsible}) : errorPayload(result.errorCode, result.message);
           default:

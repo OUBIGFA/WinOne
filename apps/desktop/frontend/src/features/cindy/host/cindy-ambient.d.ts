@@ -1,5 +1,6 @@
 // Ambient names that Cindy's renderer declares in vite-env.d.ts (b7e46bc).
-type ProjectAutomationEvent = import('./electronAPI').ProjectAutomationReconciledEvent;
+type ProjectAutomationEvent = import('./electronAPI').ProjectAutomationEvent;
+type ProjectAutomationImport = import('./electronAPI').ProjectAutomationImport;
 
 // Group composers use Tiptap's JSON document shape for saved plain text, but
 // never instantiate a Tiptap editor in WinOne. Keep its structural wire type.

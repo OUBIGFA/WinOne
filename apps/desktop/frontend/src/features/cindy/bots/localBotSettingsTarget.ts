@@ -84,7 +84,7 @@ async function loadCatalog(
   }
   if (personalResult.status === 'fulfilled')
     next.skill = [
-      ...personalResult.value.map((item) => ({ id: `personal:${item.slug}`, name: item.name, available: item.enabled !== false, personal: true })),
+      ...personalResult.value.map((item) => ({ id: `personal:${item.slug}`, name: item.name, description: item.description || undefined, available: item.enabled !== false, personal: true })),
       ...(next.skill ?? []),
     ];
   next.mcp = mcpResult.servers.map((item) => ({ id: item.id, name: item.name, available: item.available === true }));
@@ -132,6 +132,13 @@ export const localBotSettingsTarget: BotSettingsTarget = {
     update: (...args) => api().memory.update(...args),
     delete: (...args) => api().memory.delete(...args),
   },
+  skills: {
+    core: () => api().skills.core(),
+    read: (...args) => api().skills.read(...args),
+    save: (...args) => api().skills.save(...args),
+    setEnabled: (...args) => api().skills.setEnabled(...args),
+    delete: (...args) => api().skills.delete(...args),
+  },
   history: { search: (body) => api().searchHistory(body) as Promise<ConversationSearchResponse> },
   capabilities: {
     load: (bot, modelChain, isCurrent) => loadCatalog(bot, modelChain, isCurrent),
@@ -178,6 +185,7 @@ export const localBotSettingsTarget: BotSettingsTarget = {
     runNow: (...args) => electronAPI.routines.runNow(...args),
     history: (...args) => electronAPI.routines.history(...args),
     sources: () => electronAPI.routines.sources(),
+    deliveryTargets: (botId) => electronAPI.routines.deliveryTargets?.(botId) ?? Promise.resolve([]),
     onChanged: (listener) => electronAPI.routines.onChanged(listener),
   },
   autonomy: {

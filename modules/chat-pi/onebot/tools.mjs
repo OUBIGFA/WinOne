@@ -24,13 +24,28 @@ export const readOneBotRuntime=(config,signal)=>request(config,'/runtime',{},sig
 export const acknowledgeOneBotRuntime=(config,revision,resources,signal)=>request(config,'/runtime.applied',{revision,resources},signal);
 export const acknowledgeOneBotModel=(config,previousModelId,signal)=>request(config,'/runtime.model',{previousModelId,modelId:config.model.id,modelKey:config.onebot.modelChainKey},signal);
 
+// Teammate tools taskActionRisk classifies; only these send their arguments to /policy.
+const RISK_TOOLS=new Set(['message_session_task','routine_save','routine_delete','routine_run_now','schedule_set_pre_run_hook']);
+// Cindy taskActionRisk categories, as the owner's confirmation card states them.
+const RISK_REASONS={
+ command:'伙伴在自主运行时要执行命令或新建完全访问任务，需要你确认这一次。',
+ remove:'伙伴在自主运行时要删除一项自动化，需要你确认这一次。',
+ permission:'伙伴在自主运行时要替你回答一个任务的权限请求，需要你确认这一次。',
+ resume:'伙伴在自主运行时要恢复已暂停或停用的执行，需要你确认这一次。',
+ authority:'伙伴在自主运行时要保存一条启用的常驻指令，确认后它会按这条指令定期运行。',
+};
+
 // Per-tool caller scope comes from the immutable Durable input entry, not from
 // stdout event timing or a mutable "last received message" variable.
 export async function checkOneBotToolScope(config, action, signal) {
  if(!config.onebot?.receiptScoped&&!config.onebot?.channelScoped)return {};
- const policy=await request(config,'/policy',{tool:action.tool,path:action.args?.path,external:action.external===true},signal);
- if(!policy.channel)return {requestId:policy.requestId};
- return {requestId:policy.requestId,forceConfirm:policy.group?channelForceConfirmMutatingToolCall(action.tool,action.args):channelForceConfirmToolCall(action.tool,action.args)};
+ const policy=await request(config,'/policy',{tool:action.tool,path:action.args?.path,external:action.external===true,...(action.external===true&&RISK_TOOLS.has(action.tool)?{args:action.args,preparedArgs:action.preparedArgs}:{})},signal);
+ // Cindy teammate-authority: the Host marks an explicit risk on an autonomous
+ // turn; the owner's card is shown in every permission mode and its approval
+ // travels with this one call.
+ const risk=policy.confirmation?{confirmation:policy.confirmation,confirmationDetails:policy.details,reason:RISK_REASONS[policy.risk]??RISK_REASONS.command}:{};
+ if(!policy.channel)return {requestId:policy.requestId,...risk,...(policy.forceConfirm?{forceConfirm:true}:{})};
+ return {requestId:policy.requestId,...risk,forceConfirm:policy.forceConfirm===true||(policy.group?channelForceConfirmMutatingToolCall(action.tool,action.args):channelForceConfirmToolCall(action.tool,action.args))};
 }
 
 // Import-specific tools come directly from Cindy's companion-connections MCP.
@@ -149,7 +164,7 @@ export function oneBotTools(config, check) {
   ['get_workbench','teammate.workbench.get','Your workbench at a glance: tasks waiting for the owner and tasks in progress, with the last sweep time.',object({})],
   ['read_workbench_task','teammate.workbench.read','Read the recent bounded transcript of a task you follow (all tasks if you follow every task).',object({task_id:taskId},['task_id'])],
   ['continue_workbench_task','teammate.workbench.continue','Send one message into a task you follow so it continues. Use get_task_digest first; never resend after DELIVERY_UNKNOWN without checking.',object({task_id:taskId,message:{type:'string',minLength:1,maxLength:4000}},['task_id','message'])],
-  ['set_workbench_task_responsibility','teammate.workbench.responsibility',"Explicitly take or release responsibility for one Cindy task on this computer. Taking needs the owner's request in this turn; you may release on your own. Tasks you start yourself are recorded by the host. Release only changes your responsibility; it does not stop, move, archive or delete the task, and does not affect Todo. Taking responsibility alone does not start execution; the host then wakes you when the task gets stuck, waits, errors or finishes.",
+  ['set_workbench_task_responsibility','teammate.workbench.responsibility',"Explicitly take or release responsibility for one Cindy task on this computer under the task's normal permissions. Tasks you start yourself are recorded by the host. Release only changes your responsibility; it does not stop, move, archive or delete the task, and does not affect Todo. Taking responsibility alone does not start execution; the host then wakes you when the task gets stuck, waits, errors or finishes.",
    object({task_id:{type:'string',minLength:1,maxLength:256},responsible:{type:'boolean'}},['task_id','responsible'])],
   // Cindy bot_workbench Todo tools.
   ['list_teammate_todos','teammate.todos.list','按id/key读取同一事务（含完成/忽略记录），或分页搜索自己的清单，每页25条并返回总数。独立于项目/任务。维护优先精确读；无变化不扫描信息源。',
@@ -177,11 +192,11 @@ export function oneBotTools(config, check) {
   execute:async(id,args,signal)=>{
    // Teammate tools are Host operations: the Host checks the turn's principal
    // and the Worker admits each action under Cindy's rules.
-   const scope=await checkOneBotToolScope(config,{tool:name,args,external:true},signal);
-   await check({id,tool:name,args,cwd:config.cwd,external:true,...scope},signal);
    const prepared=prepare?prepare(args):['skills.save','memory.write','memory.consolidate'].includes(method)?{input:args}:args;
    if(prepared?.ok===false)throw Error(JSON.stringify(prepared));
-   const value=await request(config,'/tool',{method,args:prepared},signal);
+   const {confirmation,confirmationDetails,...scope}=await checkOneBotToolScope(config,{tool:name,args,preparedArgs:prepared,external:true},signal);
+   await check({id,tool:name,args:confirmationDetails??args,cwd:config.cwd,external:true,...scope},signal);
+   const value=await request(config,'/tool',{method,args:prepared,...(confirmation?{tool:name,toolArgs:args,confirmation}:{})},signal);
    const payload=present?present(value,args):value;
    // Cindy reports a refused teammate action as a tool error with its code and hint.
    if(payload?.ok===false&&(present||method.startsWith('tasks.agents.')||method.startsWith('teammate.')))throw Error(JSON.stringify(payload));

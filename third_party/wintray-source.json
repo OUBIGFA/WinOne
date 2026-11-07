@@ -2,6 +2,11 @@
   "repository": "https://github.com/OUBIGFA/WinTray",
   "revision": "03a809f94b7eec97ae123636b86879357a0052e4",
   "localChanges": "2026-11-03 reviewed upstream 03a809f plus its current uncommitted AutoHotkey association/runtime, DC-backed startup rendering, delayed tray readiness and native program-state changes; retains the earlier 76512a8 terminal-exit and 5ef48d7 WeChat login fixes",
+  "wechatAutoLogin": {
+    "revision": "db9c545b4a7c0326c9f3978991ece72e3c55fe7d",
+    "scope": "2026-11-06: directly synchronize the complete Qt login click and rendered-main recognition from the clean local WinTray checkout; retain the earlier snapshot for unrelated capabilities.",
+    "verification": "docs/wintray-wechat-login.md"
+  },
   "license": "MIT",
   "licenseFile": "modules/wintray/LICENSE",
   "licenseSHA256": "0eb3eb100d2f43201dc92197547561de0478614ea9a3b54b2e25bddc3d343ac7",
@@ -60,7 +65,10 @@
     },
     {
       "path": "internal/orchestrator/wechat_uia_windows.go",
-      "sourceSHA256": "63e6347bd212449f598a7d90d1cfbf803c15f5359beb535eff008bfbf04d61de"
+      "sourceSHA256": "63e6347bd212449f598a7d90d1cfbf803c15f5359beb535eff008bfbf04d61de",
+      "targetPath": "modules/wintray/internal/orchestrator/wechat_uia_windows.go",
+      "targetSHA256": "63e6347bd212449f598a7d90d1cfbf803c15f5359beb535eff008bfbf04d61de",
+      "adaptation": "None: byte-identical upstream production implementation, including HWND-local click, physical-pixel DPI conversion and same-process visible rendered-main recognition."
     },
     {
       "path": "internal/orchestrator/wechat_login_windows_test.go",
@@ -68,7 +76,10 @@
     },
     {
       "path": "internal/orchestrator/wechat_uia_windows_test.go",
-      "sourceSHA256": "7e7a4a1304660a4498a66a075ca960c22a8c30b900885dab614cc0a657fe7e6b"
+      "sourceSHA256": "7e7a4a1304660a4498a66a075ca960c22a8c30b900885dab614cc0a657fe7e6b",
+      "targetPath": "modules/wintray/internal/orchestrator/wechat_uia_windows_test.go",
+      "targetSHA256": "77df44a916d79f4baf5fdc698ab60b650676606ef378552b159fbaa4fc694aba",
+      "adaptation": "WinOne module import paths and Go import grouping only; preserve all upstream native Qt, task-launch, incomplete-login and rendered-main identity cases."
     },
     {
       "path": "internal/config/wechat_login_test.go",

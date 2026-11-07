@@ -25,17 +25,25 @@ func copyEnabled(source map[string]bool) map[string]bool {
 // CommitDocument is the whole-profile boundary; callers must retain its current
 // revision and validate any source-file digest before entering this transaction.
 func (s *HostStore) CommitDocument(next Document) (Document, error) {
+	previous := s.store.Snapshot()
 	if err := s.RecoveryError(); err != nil {
-		return s.store.Snapshot(), errors.Join(ErrRecoveryRequired, err)
+		return previous, errors.Join(ErrRecoveryRequired, err)
 	}
-	if err := s.checkUnavailableUnchanged(s.store.Snapshot(), next); err != nil {
-		return s.store.Snapshot(), err
+	if err := s.checkUnavailableUnchanged(previous, next); err != nil {
+		return previous, err
 	}
 	prepared, _, err := s.prepareDocument(next)
 	if err != nil {
-		return s.store.Snapshot(), err
+		return previous, err
 	}
-	return s.store.Commit(prepared, s.applyDocument)
+	forward := true
+	return s.store.Commit(prepared, func(document Document) error {
+		if !forward {
+			return s.applyDocument(document)
+		}
+		forward = false
+		return s.applyProjection(document, &previous)
+	})
 }
 
 func (s *HostStore) RecoveryError() error {

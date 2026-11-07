@@ -3,7 +3,9 @@ package chat
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
+	"winone/desktopmygo/chat/pluginhost"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
@@ -25,6 +27,14 @@ func (p *Chat) turns(c *ui.Context) {
 		}
 	}
 	items := model.Project(messages, p.view.Tools, p.view.Running, p.view.Operations)
+	if p.bot != nil {
+		if p.botMode.learningAsked != p.activeID {
+			p.botMode.learningAsked = p.activeID
+			p.loadBotLearning()
+		}
+		p.botMode.timeline = buildBotTimeline(botTimelineRows(items), p.bot.UnreadBoundaryAt)
+		p.botAcknowledge()
+	}
 	lastUser := ""
 	for i := len(p.view.Messages) - 1; i >= 0; i-- {
 		if p.view.Messages[i].Role == "user" {
@@ -66,6 +76,9 @@ func (p *Chat) turns(c *ui.Context) {
 			s.turnOrder = append(s.turnOrder, item.Key)
 		}
 		row.Children(func() {
+			if p.bot != nil && item.Kind != "response" {
+				p.botTimelineMarkers(c, item.Kind+":"+item.Key)
+			}
 			switch item.Kind {
 			case "presentation":
 				p.answerView(c, *item.Message, false, "")
@@ -80,18 +93,40 @@ func (p *Chat) turns(c *ui.Context) {
 		p.planCard(c, *p.view.Workflow, nil)
 	}
 	p.conversationFiles(c, items)
+	p.advanceMessageJump()
 }
 
 // userMessage is the user's bubble: its text, attachments, and actions
 // to copy, edit (the latest), retry and fork.
 func (p *Chat) userMessage(c *ui.Context, m model.Message, latest bool) {
 	t, pal := c.Theme(), kit.Colors(c)
-	ui.Column(c).AlignSelf(ui.End).MaxWidthPercent(85).Gap(6).AlignItems(ui.End).Children(func() {
+	if p.botCardFor(c, m) {
+		return
+	}
+	if e := p.ui.edit; e != nil && e.entry == m.ID {
+		ui.Column(c).FillWidth().Children(func() { p.editInPlace(c) })
+		return
+	}
+	root := ui.Column(c).AlignSelf(ui.End).MaxWidthPercent(85).Gap(6).AlignItems(ui.End).Children(func() {
 		bubble := ui.Column(c).Padding(10, 14).Radius(14).Background(pal.Selected).Gap(6)
+		if m.ID != "" {
+			if p.ui.userWidths == nil {
+				p.ui.userWidths = map[string]float32{}
+			}
+			// Measure the bubble itself, never its wider action row. The inline
+			// editor keeps this width until the owner's text changes.
+			p.ui.userWidths[m.ID] = bubble.Bounds().W
+		}
 		if m.Pending {
 			bubble.Opacity(0.7)
 		}
 		bubble.Children(func() {
+			if p.bot != nil && len(m.ReplyQuote) > 0 {
+				var quote botReplyQuote
+				if json.Unmarshal(m.ReplyQuote, &quote) == nil && quote.ClientID != "" {
+					p.botQuoteBlock(c, quote, true)
+				}
+			}
 			text := m.Text()
 			if text != "" {
 				ui.Text(c, text).LineHeight(1.5).Selectable().MinWidth(0)
@@ -118,13 +153,21 @@ func (p *Chat) userMessage(c *ui.Context, m model.Message, latest bool) {
 				id := m.ID
 				p.run(func(done func(error)) { p.retryMessage(id, done) })
 			}
-			if m.ID != "" && kit.IconButton(c, icons.GitBranch, i18n.T("chat.fork")).Disabled(p.busy || p.view.Running).Clicked() {
+			if p.bot == nil && m.ID != "" && kit.IconButton(c, icons.GitBranch, i18n.T("chat.fork")).Disabled(p.busy || p.view.Running).Clicked() {
 				id := m.ID
 				p.run(func(done func(error)) { p.fork(id, done) })
 			}
+			if p.bot != nil {
+				p.botReplyButton(c, m)
+				p.botThreadButton(c, m)
+			}
 		})
+		if p.bot != nil {
+			p.botThreadPreview(c, m)
+		}
 		_ = t
 	})
+	p.revealMessage(root, m)
 }
 
 func isPaused(s model.State) bool { return s.Paused != nil && *s.Paused }
@@ -146,50 +189,62 @@ func attachmentChip(c *ui.Context, f model.Attachment, remove func()) {
 	})
 }
 
-// responseView is a turn's reply: its work process, folded once the
-// turn ends, its plan, and its answer with actions and the files it names.
+// responseView preserves public prose between independent activity disclosures.
+// Only the trailing activity run may be live; retries cannot alter its identity.
 func (p *Chat) responseView(c *ui.Context, r *model.Response, last bool) {
-	// Plan calls are not action rows: the turn's plan shows once, as a
-	// card at its first call, updated from the newest (Cindy's
-	// workGroupsForResponse).
-	var entries []model.Entry
-	for _, e := range r.Entries {
-		if e.Kind == "thinking" && !p.ai.reasoning() || e.Kind == "tool" && model.WorkflowFromTool(e.Tool) != nil {
-			continue
-		}
-		entries = append(entries, e)
-	}
-	if len(entries) > 0 || r.Running && r.Answer == nil {
-		p.workProcess(c, r, entries)
-	}
-	if plan := model.PlanOf(r); plan != nil {
-		var card *ui.Handle
-		if latest := p.ui.items.plan; latest != nil && latest.Anchor == plan.Anchor {
-			p.ui.items.planAnchor = p.activeID + ":" + r.Key + ":" + plan.Anchor
-			card = &p.ui.items.planCard
-		}
-		p.planCard(c, plan.Workflow, card)
+	for _, segment := range workSegments(r, p.ai.reasoning()) {
+		ui.Column(c.Key(segment.key)).FillWidth().Gap(8).Children(func() {
+			switch {
+			case segment.prose != nil:
+				p.replyView(c, *segment.prose, false, r.Key+":"+segment.key, false)
+			case segment.plan != nil:
+				plan := segment.plan
+				var card *ui.Handle
+				if latest := p.ui.items.plan; latest != nil && latest.Anchor == plan.Anchor {
+					p.ui.items.planAnchor = p.activeID + ":" + r.Key + ":" + plan.Anchor
+					card = &p.ui.items.planCard
+				}
+				p.planCard(c, plan.Workflow, card)
+			default:
+				if p.bot != nil {
+					p.botReply(c, false, func() { p.workProcess(c, segment.response, segment.entries) })
+				} else {
+					p.workProcess(c, segment.response, segment.entries)
+				}
+			}
+		})
 	}
 	if r.Answer != nil {
-		p.answerView(c, *r.Answer, r.Running, r.Key)
-		if !r.Running {
-			ui.Row(c).Gap(2).Children(func() {
-				if kit.IconButton(c, icons.Copy, i18n.T("chat.copy")).Clicked() {
-					p.copy(r.Answer.Text())
-				}
-				if last && kit.IconButton(c, icons.RotateCcw, i18n.T("chat.retry")).Disabled(p.busy || p.view.Running || isPaused(p.view)).Clicked() {
-					p.run(func(done func(error)) { p.retryMessage("", done) })
-				}
-				if r.Answer.ID != "" && kit.IconButton(c, icons.GitBranch, i18n.T("chat.fork")).Disabled(p.busy || p.view.Running).Clicked() {
-					id := r.Answer.ID
-					p.run(func(done func(error)) { p.fork(id, done) })
-				}
-				if label := modelSource(*r.Answer); label != "" {
-					ui.Text(c, label).FontSize(kit.CaptionSize(c)).TextColor(c.Theme().TextMuted).Padding(0, 6).SingleLine().Ellipsis("…").MinWidth(0)
-				}
-			})
-		}
+		p.replyView(c, *r.Answer, r.Running, r.Key, last)
 	}
+}
+
+// A delivered intermediate reply uses exactly the final reply's Markdown,
+// source, copy and fork controls, outside the work rail and folding state.
+func (p *Chat) replyView(c *ui.Context, message model.Message, running bool, key string, retry bool) {
+	if p.bot != nil {
+		p.botAnswer(c, message, running, key, retry)
+		return
+	}
+	p.answerView(c, message, running, key)
+	if running {
+		return
+	}
+	ui.Row(c).Gap(2).Children(func() {
+		if kit.IconButton(c, icons.Copy, i18n.T("chat.copy")).Clicked() {
+			p.copy(message.Text())
+		}
+		if retry && kit.IconButton(c, icons.RotateCcw, i18n.T("chat.retry")).Disabled(p.busy || p.view.Running || isPaused(p.view)).Clicked() {
+			p.run(func(done func(error)) { p.retryMessage("", done) })
+		}
+		if message.ID != "" && kit.IconButton(c, icons.GitBranch, i18n.T("chat.fork")).Disabled(p.busy || p.view.Running).Clicked() {
+			id := message.ID
+			p.run(func(done func(error)) { p.fork(id, done) })
+		}
+		if label := modelSource(message); label != "" {
+			ui.Text(c, label).FontSize(kit.CaptionSize(c)).TextColor(c.Theme().TextMuted).Padding(0, 6).SingleLine().Ellipsis("…").MinWidth(0)
+		}
+	})
 }
 
 // modelSource names the provider and model that wrote a reply.
@@ -207,7 +262,43 @@ func modelSource(m model.Message) string {
 // answerView is a reply's text as Markdown, streamed while its turn runs,
 // then, once written, the files it names.
 func (p *Chat) answerView(c *ui.Context, m model.Message, streaming bool, key string) {
+	if p.botCardFor(c, m) {
+		return
+	}
+	if p.bot != nil && key == "" {
+		p.botAnswer(c, m, streaming, "", false)
+		return
+	}
 	text := m.Text()
+	plugins := pluginhost.For(p.env)
+	if !streaming {
+		if plugins.RenderOverride(c, p.activeID, m.ID, text) {
+			return
+		}
+		if value := plugins.Reply(p.activeID, m.ID, text); value != nil && value.Action == "rewrite" {
+			text = value.Text
+		}
+	}
+	p.answerBody(c, m, text, streaming, key)
+}
+
+// lastAnswer says m is the conversation's latest assistant message.
+func (p *Chat) lastAnswer(m model.Message) bool {
+	for index := len(p.view.Messages) - 1; index >= 0; index-- {
+		if p.view.Messages[index].Role == "assistant" {
+			return p.view.Messages[index].ID == m.ID
+		}
+	}
+	return false
+}
+
+// answerBody is a reply's text; a teammate's has its starter list taken out.
+func (p *Chat) answerBody(c *ui.Context, m model.Message, text string, streaming bool, key string) {
+	// A retrying transport attempt is not a terminal reply. Keep its error in
+	// state, but show it only after the real run settles (as Cindy does).
+	if streaming {
+		m.ErrorMessage = ""
+	}
 	if m.ErrorMessage != "" && strings.TrimSpace(text) == "" {
 		kit.Notice(c, kit.Failure, "", m.ErrorMessage, nil)
 		return
@@ -218,8 +309,17 @@ func (p *Chat) answerView(c *ui.Context, m model.Message, streaming bool, key st
 			key += number(*m.Timestamp)
 		}
 	}
-	ui.Column(c.Key("answer:" + key)).FillWidth().Children(func() {
-		o := p.answerOptions(key)
+	bodyKey := key
+	if m.Timestamp != nil {
+		bodyKey = "message:" + number(*m.Timestamp)
+	} else if m.ID != "" {
+		bodyKey = "message:" + m.ID
+	}
+	text = quoteSpacedImagePaths(text)
+	root := ui.Column(c.Key("answer:" + bodyKey)).FillWidth().Children(func() {
+		// A reply becoming delivered prose in a later tool step keeps the same
+		// Markdown/rich-form identity and the owner's local values.
+		o := p.answerOptions(bodyKey)
 		var root ui.Element
 		if streaming {
 			root = markdown.Stream(c, text, o)
@@ -227,7 +327,9 @@ func (p *Chat) answerView(c *ui.Context, m model.Message, streaming bool, key st
 			root = markdown.View(c, text, o)
 		}
 		root.FillWidth()
+		kit.InlineError(c, p.ui.items.errors["image:"+bodyKey])
 	})
+	p.revealMessage(root, m)
 	if m.ErrorMessage != "" {
 		kit.InlineError(c, m.ErrorMessage)
 	}
@@ -236,38 +338,52 @@ func (p *Chat) answerView(c *ui.Context, m model.Message, streaming bool, key st
 	}
 }
 
-// workProcess is the turn's work: thinking, commentary, tools and
-// operations, folded under a summary with its time, open while running.
+// workProcess follows Cindy's latest-five preview: a live group never hides
+// its real activities completely, and a completed group defaults to folded.
 func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Entry) {
+	if len(entries) == 0 {
+		return
+	}
 	t, pal := c.Theme(), kit.Colors(c)
 	if p.ui.expanded == nil {
 		p.ui.expanded = map[string]bool{}
 	}
-	open, known := p.ui.expanded["process:"+r.Key]
-	if !known {
-		open = r.Running
+	open := p.ui.expanded["process:"+r.Key]
+	canToggle := !r.Running || len(entries) > 5
+	shown := entries
+	if r.Running && !open && len(shown) > 5 {
+		shown = shown[len(shown)-5:]
 	}
 	summary := i18n.T("chat.processWorking")
 	if !r.Running {
 		summary = i18n.T("chat.processWorked", "duration", duration(r.DurationMs))
 	}
-	ui.Column(c).FillWidth().Gap(4).Children(func() {
-		head := ui.ButtonBase(c).AlignSelf(ui.Start).Gap(6).AlignItems(ui.Center).Padding(4, 6).Radius(t.Radius).Label(summary).Expanded(open)
+	if p.bot != nil {
+		if label := teammateWorkLabel(entries); label != "" {
+			summary = label
+		}
+	}
+	ui.Column(c.Key("process:" + r.Key)).FillWidth().Gap(4).Children(func() {
+		head := ui.ButtonBase(c).AlignSelf(ui.Start).Gap(6).AlignItems(ui.Center).Padding(4, 6).Radius(t.Radius).Label(summary).Expanded(open || r.Running).Disabled(!canToggle)
 		head.Children(func() {
 			if r.Running {
 				ui.Spinner(c).Size(14, 14)
+			} else {
+				ui.Icon(c, icons.Layers).FontSize(14).TextColor(t.TextMuted)
 			}
 			ui.Text(c, summary).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted)
-			chevron := icons.ChevronRight
-			if open {
-				chevron = icons.ChevronDown
+			if canToggle {
+				chevron := icons.ChevronRight
+				if open {
+					chevron = icons.ChevronDown
+				}
+				ui.Icon(c, chevron).FontSize(14).TextColor(t.TextMuted)
 			}
-			ui.Icon(c, chevron).FontSize(14).TextColor(t.TextMuted)
 		})
 		if head.Clicked() {
 			p.ui.expanded["process:"+r.Key] = !open
 		}
-		if !open {
+		if !open && !r.Running {
 			return
 		}
 		if p.ui.processBodies == nil {
@@ -278,11 +394,12 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 			body = &ui.Handle{}
 			p.ui.processBodies[r.Key] = body
 		}
-		p.ui.openProcesses = append(p.ui.openProcesses, r.Key)
+		if open {
+			p.ui.openProcesses = append(p.ui.openProcesses, r.Key)
+		}
 		ui.Column(c).FillWidth().Gap(6).Padding(4, 40, 4, 12).BorderWidth(0, 0, 0, 2).BorderColor(pal.Hairline).Bind(body).Children(func() {
-			for _, e := range entries {
-				e := e
-				ui.Column(c.Key("entry:" + e.Key)).FillWidth().Children(func() { p.entryView(c, e, r.Running) })
+			for _, entry := range shown {
+				ui.Column(c.Key("entry:" + entry.Key)).FillWidth().Children(func() { p.entryView(c, entry, r.Running) })
 			}
 		})
 	})
@@ -308,9 +425,28 @@ func (p *Chat) entryView(c *ui.Context, e model.Entry, running bool) {
 	t := c.Theme()
 	switch e.Kind {
 	case "thinking":
-		p.disclosure(c, "thinking:"+e.Key, icons.Brain, i18n.T("chat.thinking"), "", func() {
-			ui.Text(c, e.Part.Thinking).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted).LineHeight(1.5).Selectable()
+		key := "thinking:" + e.Key
+		open := p.ui.expanded[key]
+		row := ui.ButtonBase(c).FillWidth().Gap(6).AlignItems(ui.Start).Padding(3, 6).Label(i18n.T("chat.thinking")).Expanded(open)
+		row.Children(func() {
+			ui.Icon(c, icons.Sparkles).FontSize(14).TextColor(t.TextMuted).Shrink(0)
+			text := e.Part.Thinking
+			if !open {
+				text = strings.Join(strings.Fields(text), " ")
+			}
+			content := ui.Text(c, text).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted).Italic().LineHeight(1.5).MinWidth(0).Grow(1)
+			if !open {
+				content.SingleLine().Ellipsis("…").Tooltip(text)
+			}
+			chevron := icons.ChevronRight
+			if open {
+				chevron = icons.ChevronDown
+			}
+			ui.Icon(c, chevron).FontSize(13).TextColor(t.TextMuted).Shrink(0)
 		})
+		if row.Clicked() {
+			p.ui.expanded[key] = !open
+		}
 	case "commentary":
 		key := "commentary:" + e.Key
 		markdown.View(c, e.Text, p.answerOptions(key)).FillWidth()
@@ -333,9 +469,6 @@ func (p *Chat) disclosure(c *ui.Context, key string, icon *ui.SVG, label, detail
 	t := c.Theme()
 	open := p.ui.expanded[key]
 	head := ui.ButtonBase(c).FillWidth().Justify(ui.Start).Gap(6).AlignItems(ui.Center).Padding(3, 6).Radius(t.Radius).Label(label).Expanded(open)
-	if head.Hovered() {
-		head.Background(t.SurfaceHover)
-	}
 	head.Children(func() {
 		if len(running) > 0 && running[0] {
 			ui.Spinner(c).Size(14, 14)
@@ -398,4 +531,23 @@ func (p *Chat) planCard(c *ui.Context, w model.Workflow, bind *ui.Handle) {
 		}
 		planSteps(c, w.Items, p.view.Running && !isPaused(p.view))
 	})
+}
+
+var spacedImagePath = regexp.MustCompile("!\\[([^\\]\\n]*)\\]\\(((?:[A-Za-z]:[\\\\/]|\\.{0,2}[\\\\/]|[^\\s()<>:]+[\\\\/])[^()<>\\n]* [^()<>\\n]*\\.(?:png|jpe?g|gif|webp|bmp|svg))\\)")
+var windowsImagePath = regexp.MustCompile("(!\\[[^\\]\\n]*\\]\\()<?([A-Za-z]:[\\\\/][^()<>\\n]+)>?(\\))")
+
+// quoteSpacedImagePaths brackets a local picture path holding spaces, as models
+// often write one: CommonMark reads such a link only in its bracketed form.
+func quoteSpacedImagePaths(text string) string {
+	if !strings.Contains(text, "![") {
+		return text
+	}
+	text = windowsImagePath.ReplaceAllStringFunc(text, func(image string) string {
+		parts := windowsImagePath.FindStringSubmatch(image)
+		// Backslashes are Markdown escapes even inside <dest>. Use the
+		// equivalent Windows slash form before parsing, not a guessed path
+		// after CommonMark has already consumed a separator such as \\_.
+		return parts[1] + "<" + strings.ReplaceAll(parts[2], `\`, "/") + ">" + parts[3]
+	})
+	return spacedImagePath.ReplaceAllString(text, "![$1](<$2>)")
 }

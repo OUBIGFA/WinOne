@@ -9,7 +9,7 @@ import {botProfileDir, botProfileMemoryDir, readBotProfileFolder, writeBotProfil
   BOT_PROFILE_TEXT_MAX_BYTES} from '../cindy/bots/botProfileFolder.ts';
 import {withBotProfileLocks} from '../cindy/bots/botProfileLock.ts';
 import {listBotSkills, readBotSkill, saveBotSkill, deleteBotSkill, readBotSkillSource,
-  saveBotSkillSource, normalizeBotSkillSlug} from '../cindy/bots/botSkillStore.ts';
+  saveBotSkillSource, normalizeBotSkillSlug, setBotSkillEnabled} from '../cindy/bots/botSkillStore.ts';
 import {queryBotSkillIndex} from '../cindy/bots/botSkillQueryIndex.ts';
 import {projectBotSkillMounts} from '../cindy/bots/botSkillRuntimeProjection.ts';
 import {iterateBotSkillRuntimeSummaries} from '../cindy/bots/botSkillRuntimeSource.ts';
@@ -257,6 +257,7 @@ export function createOneBotContentService({directory, readBot, requestRefresh =
         case 'skills.save': { const result = await saveBotSkill(paths.root, id, params.input); await refresh(owner); return result; }
         case 'skills.saveSource': await saveBotSkillSource(paths.root, id, params.slug, params.source, params.options); await refresh(owner); return {ok: true};
         case 'skills.delete': { const deleted = await deleteBotSkill(paths.root, id, params.slug); await refresh(owner); return {deleted}; }
+        case 'skills.setEnabled': { if (typeof params.enabled !== 'boolean') throw oneBotError('INVALID_PARAMS', 'enabled 必须是布尔值'); await setBotSkillEnabled(paths.root, id, params.slug, params.enabled); await refresh(owner); return {ok: true}; }
         case 'skills.mounts': return projectBotSkillMounts(home, iterateBotSkillRuntimeSummaries(paths.root, id));
         default: throw oneBotError('UNKNOWN_METHOD', '不支持的 OneBot Skill 操作');
       }

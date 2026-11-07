@@ -122,3 +122,4 @@ export function subscribeProvidersSnapshot(listener: (snapshot: ProvidersSnapsho
   return subscribeCindyHost(() => listener(getCachedProvidersSnapshot()));
 }
 export type {AgentKind};
+export {GHOST_CONTROL_POINTS, type GhostControlPointCandidate, type GhostControlPointFailureAction} from './ghostControlPoints';

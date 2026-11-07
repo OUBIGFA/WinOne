@@ -30,6 +30,7 @@ type oneBotContext struct {
 	MemoryEnabled       bool               `json:"memoryEnabled"`
 	ImportedEnvironment string             `json:"importedEnvironment"`
 	Role                string             `json:"role"`
+	RouteKey            string             `json:"routeKey"`
 	Capabilities        struct {
 		Model              string             `json:"model"`
 		ProviderID         string             `json:"providerId"`
@@ -207,6 +208,10 @@ func (b *chatOneBot) configureSession(conversation chat.Conversation) (map[strin
 			ModelID         string          `json:"modelId"`
 			PreviousModelID string          `json:"previousModelId"`
 			ModelKey        string          `json:"modelKey"`
+			// Confirmation is the owner's approval of an explicit risk, issued by /policy.
+			Confirmation string          `json:"confirmation"`
+			PreparedArgs json.RawMessage `json:"preparedArgs"`
+			ToolArgs     json.RawMessage `json:"toolArgs"`
 		}
 		limit := int64(256 * 1024)
 		if route == "/runtime.applied" {
@@ -288,7 +293,7 @@ func (b *chatOneBot) configureSession(conversation chat.Conversation) (map[strin
 					// Host wake-ups in the teammate's own chat (follow-up, routines,
 					// task results, teammate messages) act on its own behalf: typed
 					// teammate tools pass here and the Worker gates each action
-					// (Cindy NEEDS_OWNER_REQUEST). Raw files and commands stay limited.
+					// under Cindy's current task permissions. Raw files and commands stay limited.
 					ownChat := input.External && value.Role != "channel" && grant.principal() == "autonomous"
 					if !taskReply && !teammateMessage && !ownChat {
 						http.Error(w, "非主人触发的渠道轮次只能读取本专线工作区和已挂载技能", http.StatusForbidden)
@@ -296,9 +301,69 @@ func (b *chatOneBot) configureSession(conversation chat.Conversation) (map[strin
 					}
 				}
 			}
+			result := map[string]any{"allowed": true, "requestId": input.RequestID, "channel": grant.Channel, "group": grant.Group}
+			// Cindy teammate-authority: an explicit risk on an autonomous turn
+			// shows the owner one card for this exact call, in every permission mode.
+			if input.External && grant.principal() == "autonomous" && oneBotRiskTools[input.Tool] {
+				runner, err := b.ensure(r.Context())
+				var raw json.RawMessage
+				if err == nil {
+					raw, err = runner.Call(r.Context(), "teammate.risk", map[string]any{"callerSessionId": conversation.ID, "tool": input.Tool, "args": input.Args})
+				}
+				var classified struct {
+					Risk    string         `json:"risk"`
+					Details map[string]any `json:"details"`
+				}
+				if err == nil {
+					err = json.Unmarshal(raw, &classified)
+				}
+				if err != nil {
+					http.Error(w, "无法判定这次操作的风险："+err.Error(), http.StatusBadRequest)
+					return
+				}
+				if classified.Risk != "" {
+					fingerprint, err := oneBotRiskFingerprint(input.Args, input.PreparedArgs, raw)
+					if err != nil {
+						http.Error(w, "确认参数无效", http.StatusBadRequest)
+						return
+					}
+					confirmation, err := b.risk.issue(conversation.ID, input.RequestID, input.Tool, fingerprint)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					result["forceConfirm"], result["risk"], result["details"], result["confirmation"] = true, classified.Risk, classified.Details, confirmation
+				}
+			}
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{"allowed": true, "requestId": input.RequestID, "channel": grant.Channel, "group": grant.Group})
+			_ = json.NewEncoder(w).Encode(result)
 			return
+		}
+		riskConfirmed := false
+		if input.Confirmation != "" {
+			// Re-read the saved rule before admitting the call; a changed prompt,
+			// hook or revision invalidates the decision the owner saw.
+			runner, err := b.ensure(r.Context())
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			classified, err := runner.Call(r.Context(), "teammate.risk", map[string]any{"callerSessionId": conversation.ID, "tool": input.Tool, "args": input.ToolArgs})
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			fingerprint, err := oneBotRiskFingerprint(input.ToolArgs, input.Args, classified)
+			if err != nil {
+				http.Error(w, "确认参数无效", http.StatusBadRequest)
+				return
+			}
+			if err := b.risk.consume(input.Confirmation, conversation.ID, input.RequestID, input.Tool, input.Method, fingerprint); err != nil {
+				http.Error(w, err.Error(), http.StatusForbidden)
+				return
+			}
+			riskConfirmed = true
+			defer b.risk.finish(input.Confirmation)
 		}
 		runner, err := b.ensure(r.Context())
 		var raw json.RawMessage
@@ -308,7 +373,7 @@ func (b *chatOneBot) configureSession(conversation chat.Conversation) (map[strin
 			if strings.HasPrefix(input.Method, "teammate.") {
 				// Cindy's teammate tools (routines, workbench, todos, digest,
 				// creation). The caller is this conversation, never a tool argument.
-				raw, err = runner.Call(r.Context(), input.Method, map[string]any{"callerSessionId": conversation.ID, "args": input.Args, "requestId": input.RequestID, "ownerAuthorized": ownerAuthorized, "principal": principal})
+				raw, err = runner.Call(r.Context(), input.Method, map[string]any{"callerSessionId": conversation.ID, "args": input.Args, "requestId": input.RequestID, "ownerAuthorized": ownerAuthorized, "principal": principal, "riskConfirmed": riskConfirmed})
 			} else if input.Method == "tasks.start" || input.Method == "tasks.get" || input.Method == "tasks.list" || input.Method == "tasks.message" || input.Method == "tasks.stop" || input.Method == "tasks.agents.list" || input.Method == "tasks.agents.send" {
 				var taskParams map[string]any
 				err = json.Unmarshal(input.Args, &taskParams)
@@ -317,6 +382,8 @@ func (b *chatOneBot) configureSession(conversation chat.Conversation) (map[strin
 					taskParams["requestId"] = input.RequestID
 					taskParams["ownerAuthorized"] = ownerAuthorized
 					taskParams["principal"] = principal
+					taskParams["riskConfirmed"] = riskConfirmed
+					taskParams["riskConfirmation"] = input.Confirmation
 					raw, err = runner.Call(r.Context(), input.Method, taskParams)
 				}
 			} else {

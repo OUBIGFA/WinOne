@@ -2,6 +2,10 @@
   "schemaVersion": 1,
   "components": [
     {
+      "kind":"go", "name":"github.com/go-text/typesetting-utils", "version":"v0.0.0-20260419141703-4ffe8874dabc", "testOnly":true,
+      "notices":[{"file":"licenses/go-test-typesetting-utils-4ffe887-LICENSE.txt","sha256":"a1e5b69b12756927cfe3b3a373df05a55c1aaa69c6b259e06d8746257cb17d06"}]
+    },
+    {
       "kind": "go",
       "name": "github.com/Microsoft/go-winio",
       "version": "v0.6.2",
@@ -26,11 +30,11 @@
     {
       "kind": "go",
       "name": "github.com/egoist/mygo",
-      "version": "v0.7.4",
+      "version": "v0.8.1",
       "notices": [
         {
           "sha256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
-          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.7.4-LICENSE.txt"
+          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.8.1-LICENSE.txt"
         }
       ]
     },

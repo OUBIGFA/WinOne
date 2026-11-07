@@ -1,3 +1,5 @@
+import {createControlPointClient} from './ghost/control-client.mjs';
+
 /** The scheduler uses a private loopback bridge owned by this Host. It never
  * stores model credentials or owns a second set of Chat session files. */
 export function createScheduleDispatcher({baseUrl,key,authorize}){
@@ -59,6 +61,7 @@ export function createScheduleDispatcher({baseUrl,key,authorize}){
    throw error;
   }
  };
+ dispatch.plugins=createControlPointClient({baseUrl,key});
  dispatch.notify=async(schedule,run)=>{await post('notify',{schedule,run},AbortSignal.timeout(30000));};
  // One-shot model text for vendored Cindy helpers, served by Host AI services.
  dispatch.text=async request=>(await post('text',{call:request},AbortSignal.timeout(Math.min(130000,(request.timeoutMs??90000)+10000)))).json();

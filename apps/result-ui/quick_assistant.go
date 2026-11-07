@@ -86,9 +86,10 @@ func (c *Controller) resetConversation(clearVisible bool) {
 	c.Panel.ResultPending = nil
 	c.Panel.Prompt = ""
 	c.Panel.Error = ""
-	c.Panel.Notice = ""
+	c.Panel.setNotice("")
+	c.Panel.errorVisibility = feedbackVisibility{}
 	if !clearVisible {
-		c.Panel.Notice = c.Panel.T("已重新开始，旧结果仅供参考", "Restarted; earlier results are reference only")
+		c.Panel.setNotice(c.Panel.T("已重新开始，旧结果仅供参考", "Restarted; earlier results are reference only"))
 	}
 	c.Panel.ActionSelection = ai.Selection{}
 	c.Panel.ResultSelection = ai.Selection{}

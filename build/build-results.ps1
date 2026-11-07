@@ -1,5 +1,5 @@
 param([Parameter(Mandatory)][string]$OutputDirectory,[string]$GoExe='go',[switch]$SkipTests,[switch]$RunWindowChecks)
-# MyGo v0.7.4 with the scoped Windows Shell file-drop adaptation. Selection,
+# MyGo v0.8.1 with the scoped Windows Shell file-drop adaptation. Selection,
 # pointer release and tool-window behavior still use its public APIs.
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot

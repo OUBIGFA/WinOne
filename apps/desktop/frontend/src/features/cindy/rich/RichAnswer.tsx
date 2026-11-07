@@ -27,6 +27,7 @@ import {
   type CSSProperties,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { InlineNotice } from '../../../ui/notice';
 import {
   richVisualStyle,
   richColor,
@@ -109,7 +110,7 @@ function RichSendAction({ node, text, receiptKey, ready, style }: {
       onClick={() => { if (!disabled) void submissions.submit(receiptKey, text, value => sender.send(value, { literalText: true, independent: true, requestId: receiptKey })); }}>
       {status === 'sending' ? t('richAnswer.sending') : status === 'sent' ? t('richAnswer.sent') : richString(node, 'label', richString(node, 'text')) || t('richAnswer.send')}
     </Button>
-    {status === 'failed' && <p className="rich-answer-caption" role="alert">{t('richAnswer.sendFailed')}</p>}
+    {status === 'failed' && <InlineNotice className="rich-answer-caption" role="alert">{t('richAnswer.sendFailed')}</InlineNotice>}
   </div>;
 }
 /** Component identities and user input survive content patches; no generated HTML executes. */
@@ -205,9 +206,9 @@ function RichAnswerDocument({
     if (!node) return null;
     if (richCalculationUnavailable(node, values))
       return (
-        <p className="rich-answer-caption" role="status">
+        <InlineNotice className="rich-answer-caption">
           {complete ? t('richAnswer.calculationUnavailable') : '…'}
-        </p>
+        </InlineNotice>
       );
     const bind = richString(node, 'bind', id),
       label = richString(node, 'label');
@@ -495,9 +496,9 @@ function RichAnswerDocument({
         <Fragment key={id}>{render(id)}</Fragment>
       ))}
       {doc.issues > 0 && (
-        <p className="rich-answer-caption" role="status">
+        <InlineNotice className="rich-answer-caption">
           {t('richAnswer.incomplete')}
-        </p>
+        </InlineNotice>
       )}
     </div>
   );

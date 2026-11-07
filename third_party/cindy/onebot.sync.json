@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/makecindy/cindy",
-  "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+  "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
   "license": "Apache-2.0",
   "scope": "OneBot local profiles and content services, with a Bun/Host process adapter; not a claim that the UI, Pi dispatcher or IM channels are connected. Cloud and remote hosts are deliberately excluded.",
   "groups": [
@@ -58,7 +58,8 @@
         "botWorkbenchTranscripts.ts",
         "botWorkingMemory.ts",
         "chatReplyQuoteNote.ts",
-        "title-prompt.ts"
+        "title-prompt.ts",
+        "botSkillFiles.ts"
       ]
     },
     {
@@ -98,7 +99,10 @@
         "providerShareCredentialConsent.ts",
         "sessionSource.ts",
         "untrustedPrompt.ts",
-        "workingDir.ts"
+        "workingDir.ts",
+        "botSystemSkills.ts",
+        "pluginContributionContract.ts",
+        "writableDirectoryGrantError.ts"
       ]
     },
     {
@@ -236,7 +240,9 @@
         "forwardedRequestDisplay.ts",
         "internalCitation.ts",
         "syntheticTrigger.ts",
-        "errorRedaction.ts"
+        "errorRedaction.ts",
+        "botDmThread.ts",
+        "botTemplatePreset.ts"
       ]
     },
     {
@@ -351,7 +357,9 @@
     "apps/desktop/src/shared/agentInputQueue.ts": "modules/chat-pi/cindy/tasks/shared/agentInputQueue.ts",
     "apps/desktop/src/shared/locale.ts": "modules/chat-pi/cindy/tasks/shared/locale.ts",
     "apps/desktop/src/shared/providerGroup.ts": "modules/chat-pi/onebot/provider-failure-types.ts",
-    "packages/maker-scheduler/src/index.ts": "third_party/cindy/scheduler/index.ts"
+    "packages/maker-scheduler/src/index.ts": "third_party/cindy/scheduler/index.ts",
+    "packages/maker-shared/src/index.ts": "modules/chat-pi/cindy/bots/search-shared/botDmThread.ts",
+    "apps/desktop/src/main/i18n.ts": "modules/chat-pi/onebot/task-host.mjs"
   },
   "modules": {
     "@cindy/maker-shared/worktree-paths": "modules/chat-pi/cindy/bots/shared/worktreePaths.ts",
@@ -367,6 +375,18 @@
     "@cindy/maker-shared/bot-learning": "third_party/cindy/maker-shared/botLearning.ts"
   },
   "patches": [
+    {
+      "file": "apps/desktop/src/main/maker-ipc/__tests__/botSkillStore.test.ts",
+      "find": "await fs.symlink('/etc/hosts', path.join(skillDir(), 'link'));",
+      "replace": "// Windows junctions exercise the same no-follow boundary without elevation.\n    const outsideLink = await fs.mkdtemp(path.join(userDataDir, 'outside-link-'));\n    await fs.writeFile(path.join(outsideLink, 'private.txt'), 'private');\n    await fs.symlink(outsideLink, path.join(skillDir(), 'link'), process.platform === 'win32' ? 'junction' : 'dir');",
+      "reason": "Isolated cross-platform no-follow fixture; Windows junction requires no administrator symlink privilege"
+    },
+    {
+      "file": "apps/desktop/src/main/maker-ipc/__tests__/botSkillStore.test.ts",
+      "find": "await fs.symlink(outside, path.join(skillDir(), 'linked'));",
+      "replace": "await fs.symlink(outside, path.join(skillDir(), 'linked'), process.platform === 'win32' ? 'junction' : 'dir');",
+      "reason": "Exercise real outside-folder write rejection on Windows with an unprivileged junction"
+    },
     {
       "file": "apps/desktop/src/main/maker-ipc/botNightlyLearningState.ts",
       "find": "import fs from 'node:fs/promises';",
@@ -458,9 +478,10 @@
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/__tests__/botSkillStore.test.ts",
-      "sourceSHA256": "7c4bb1367dfc0a380ffcfdc359f7b82ed082a1ad634902f5928d6e4a6a9cd388",
+      "sourceSHA256": "297ba42b4d24739b1f369bad31d46ddeb7d448f0fa26a4bdc6fa0c5c4e4d17c4",
       "target": "modules/chat-pi/cindy/bots/__tests__/botSkillStore.test.ts",
-      "sha256": "7c4bb1367dfc0a380ffcfdc359f7b82ed082a1ad634902f5928d6e4a6a9cd388"
+      "sha256": "453a3eca204c19f2be8a3b0120ced1f6650271a6a8702cbb89f7dccff2c3ad3e",
+      "adaptation": "import-paths; Isolated cross-platform no-follow fixture; Windows junction requires no administrator symlink privilege; Exercise real outside-folder write rejection on Windows with an unprivileged junction"
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/__tests__/botTodoStore.test.ts",
@@ -575,6 +596,12 @@
       "sha256": "dcfbe9ec2e7448be75a12292fbfd0b16fc7346e6b068b5bab619959b51dc178b"
     },
     {
+      "source": "apps/desktop/src/main/maker-ipc/botSkillFiles.ts",
+      "sourceSHA256": "51f9c5a140ad2158787038dc6f308d96019aea28ac94e8cbac20c4caef81a731",
+      "target": "modules/chat-pi/cindy/bots/botSkillFiles.ts",
+      "sha256": "51f9c5a140ad2158787038dc6f308d96019aea28ac94e8cbac20c4caef81a731"
+    },
+    {
       "source": "apps/desktop/src/main/maker-ipc/botSkillFrontmatter.ts",
       "sourceSHA256": "8a43e640bb82ed58ccbed2056031a015e984fb7e5efa3323a88380b6fd677bee",
       "target": "modules/chat-pi/cindy/bots/botSkillFrontmatter.ts",
@@ -606,15 +633,15 @@
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/botSkillStore.ts",
-      "sourceSHA256": "eca2e2b2661e76ce1ab5bd163059e5676cda544801e22ffca64ba779d39ac1c4",
+      "sourceSHA256": "1d3e10ae3b9f6010cc1df21b65bee105c126291e9d0a0095767cf9797f21256a",
       "target": "modules/chat-pi/cindy/bots/botSkillStore.ts",
-      "sha256": "eca2e2b2661e76ce1ab5bd163059e5676cda544801e22ffca64ba779d39ac1c4"
+      "sha256": "1d3e10ae3b9f6010cc1df21b65bee105c126291e9d0a0095767cf9797f21256a"
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/botSystemPrompt.ts",
-      "sourceSHA256": "4028130efa755269a9a4cab216abba52920700f390e88f5df8715e543ee2b2c4",
+      "sourceSHA256": "826cd307c975dc8491f97ee00cdd8b3e334cabd55db06aee681a5952f86f5227",
       "target": "modules/chat-pi/cindy/bots/botSystemPrompt.ts",
-      "sha256": "4028130efa755269a9a4cab216abba52920700f390e88f5df8715e543ee2b2c4"
+      "sha256": "826cd307c975dc8491f97ee00cdd8b3e334cabd55db06aee681a5952f86f5227"
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/botTaskResponsibility.ts",
@@ -680,9 +707,9 @@
     },
     {
       "source": "apps/desktop/src/main/maker-ipc/title-prompt.ts",
-      "sourceSHA256": "988f671ba6fba2ceec66623054f21e4d78073ccd50f4b94b328b5e4a384f18d1",
+      "sourceSHA256": "ea913593514ca01ab4ffe2df726772b0dccd3e04928bbeac97b53320450ba3e2",
       "target": "modules/chat-pi/cindy/bots/title-prompt.ts",
-      "sha256": "922b4961febdab12780109b08b5b9ebd9d3071579bba9773c050167fbc355472",
+      "sha256": "ea0cdeb5c82e904997287c4bacad38e556714d444d3f3556954306b636d842c7",
       "adaptation": "import-paths"
     },
     {
@@ -693,9 +720,9 @@
     },
     {
       "source": "apps/desktop/src/shared/botAutonomy.ts",
-      "sourceSHA256": "3b3f2692a0f84cc2c089277ec3c28f4ddf56c35da157cfb2c9fb175f40833b10",
+      "sourceSHA256": "ec9a2abccdfbeb4f9d1539f10d440e8a90f8cd40b2b3279d2bf5373b3a793265",
       "target": "modules/chat-pi/cindy/bots/shared/botAutonomy.ts",
-      "sha256": "b790fb35e1d590f0ce7d7ad5bf58f04d6853d5f31b7df69599b623ed653b204e",
+      "sha256": "0a30a41d76b68d7992e692353da823ac175718a41bedcf3588047755f32c819d",
       "adaptation": "import-paths"
     },
     {
@@ -718,15 +745,16 @@
     },
     {
       "source": "apps/desktop/src/shared/botDmThread.ts",
-      "sourceSHA256": "7f281fa948970c97d76c567666816afbb65da321b5cacab540451fe9c216ebc6",
+      "sourceSHA256": "cbd9372b3655a2a377330ecab2465972a60ea5c41e9cd68a623c20712bac5d5d",
       "target": "modules/chat-pi/cindy/bots/shared/botDmThread.ts",
-      "sha256": "7f281fa948970c97d76c567666816afbb65da321b5cacab540451fe9c216ebc6"
+      "sha256": "8ec39525c3df4013fcf217c485aaef3363c5fe65595829dfb795e513f240d517",
+      "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/shared/botFailureReason.ts",
-      "sourceSHA256": "4eda9416062d52608ee841aff8b4a46071a0f149225ac79191b28a1f063183b0",
+      "sourceSHA256": "3c4c24721a48eb3eda05db21c5307e476c7af9b447e5998af9a5e8dd533d8cb4",
       "target": "modules/chat-pi/cindy/bots/shared/botFailureReason.ts",
-      "sha256": "4eda9416062d52608ee841aff8b4a46071a0f149225ac79191b28a1f063183b0"
+      "sha256": "3c4c24721a48eb3eda05db21c5307e476c7af9b447e5998af9a5e8dd533d8cb4"
     },
     {
       "source": "apps/desktop/src/shared/botImConnection.ts",
@@ -748,9 +776,9 @@
     },
     {
       "source": "apps/desktop/src/shared/botMarket.ts",
-      "sourceSHA256": "105fb5ba02006a77691d557bcf9f07104c20b72f1ac61309b31857ad7c1200da",
+      "sourceSHA256": "3f67e20ce63520a1605df462848c5a614f9de8e441c16f90fd31f0a4ae416808",
       "target": "modules/chat-pi/cindy/bots/shared/botMarket.ts",
-      "sha256": "44e7c7283f46ae5ee4332c951957b4d25bf1b4ace4ddae36b963368f361f7fe8",
+      "sha256": "35555284cdf825f99f73ce4ae09873a6b03f41c965714828724dad42d6e1a8b5",
       "adaptation": "import-paths"
     },
     {
@@ -761,9 +789,9 @@
     },
     {
       "source": "apps/desktop/src/shared/botModelChain.ts",
-      "sourceSHA256": "30d9e9e95b5c8e43536817bb177837a27d1dc5a6b0b65655aa6a2ba12cf64835",
+      "sourceSHA256": "f9e074ff6eaa2598554b1e96a6ec6b98a70923ebb996db6bbb371c3b7051141e",
       "target": "modules/chat-pi/cindy/bots/shared/botModelChain.ts",
-      "sha256": "e870e23897c3cf6880ee6786af8993367cd70fa0def4f27eb0a7cb5f4a9c2113",
+      "sha256": "0f6d72282945aba20a57fab27b895b3d8a3e3fbd5fab71e042a39ae586c85d21",
       "adaptation": "import-paths"
     },
     {
@@ -781,9 +809,9 @@
     },
     {
       "source": "apps/desktop/src/shared/botSkill.ts",
-      "sourceSHA256": "ca8542c0e5ef00339c5d1bda049b9013169da854554274eb48f13d620e557a2b",
+      "sourceSHA256": "b6709015e788974817cfb2635e21721a89da4ead998d1bb9035b0372dae8732f",
       "target": "modules/chat-pi/cindy/bots/shared/botSkill.ts",
-      "sha256": "ca8542c0e5ef00339c5d1bda049b9013169da854554274eb48f13d620e557a2b"
+      "sha256": "b6709015e788974817cfb2635e21721a89da4ead998d1bb9035b0372dae8732f"
     },
     {
       "source": "apps/desktop/src/shared/botStarterOptions.ts",
@@ -792,10 +820,17 @@
       "sha256": "dd767551e7d1fe2098ada123c39434051fa6218fe1d36fe9841daed2e396847e"
     },
     {
+      "source": "apps/desktop/src/shared/botSystemSkills.ts",
+      "sourceSHA256": "19ef0daed67c9939cdb05295e5024c3f2cab34fbf81e7685c52b995dddd8e524",
+      "target": "modules/chat-pi/cindy/bots/shared/botSystemSkills.ts",
+      "sha256": "19ef0daed67c9939cdb05295e5024c3f2cab34fbf81e7685c52b995dddd8e524"
+    },
+    {
       "source": "apps/desktop/src/shared/botTemplatePreset.ts",
-      "sourceSHA256": "46a44c3feb91c15b799a25e8e9383d92dd348187102f9978b865441e341801ad",
+      "sourceSHA256": "b16c749ebd19a91aa82386380aad88735326238b8569439e7a78c95418f013e8",
       "target": "modules/chat-pi/cindy/bots/shared/botTemplatePreset.ts",
-      "sha256": "46a44c3feb91c15b799a25e8e9383d92dd348187102f9978b865441e341801ad"
+      "sha256": "2624ce7fb83bcc669c1facdb0431a257af2b1b9e9bfe93c02dcc47bdaf893d38",
+      "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/shared/botWelcomeContext.ts",
@@ -811,9 +846,9 @@
     },
     {
       "source": "apps/desktop/src/shared/browserBackend.ts",
-      "sourceSHA256": "d40b8ad839deb57ca1ebc67cb1725e91852b63e5bf492cd88e8d78cbb4fb648f",
+      "sourceSHA256": "575c394da5e6cd3bd007b10c5565cb93326b7468abf467cda41db5f5df5d0bd6",
       "target": "modules/chat-pi/cindy/bots/shared/browserBackend.ts",
-      "sha256": "d40b8ad839deb57ca1ebc67cb1725e91852b63e5bf492cd88e8d78cbb4fb648f"
+      "sha256": "575c394da5e6cd3bd007b10c5565cb93326b7468abf467cda41db5f5df5d0bd6"
     },
     {
       "source": "apps/desktop/src/shared/chatReplyQuote.ts",
@@ -824,16 +859,16 @@
     },
     {
       "source": "apps/desktop/src/shared/conversationSearch.ts",
-      "sourceSHA256": "cd875d4216e2d17c3246fc9c1d81a89964755d0477a56be4d3bd886fd4ca1954",
+      "sourceSHA256": "9c74441bfbce2248a0033d6166bbd28cbd907a9bf8225d9b4c3e8f942e12b387",
       "target": "modules/chat-pi/cindy/bots/shared/conversationSearch.ts",
-      "sha256": "78beb515ad868ac743c9cb5d52ecc8de3354ae48ac75c1114a88140a5d3e32bf",
+      "sha256": "44f022559dbecd9c14002840447c1f79da86fa183b688b4b3c784971cb069450",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/shared/featureRetirements.ts",
-      "sourceSHA256": "0ea26b4394ae11ce1d302882ee622082f0b17d9cf082fb04cedd1569a7d019f5",
+      "sourceSHA256": "85c5be46e67b59fb8f93502ba5722a0a85399f6718ca220921c4f50140f80762",
       "target": "modules/chat-pi/cindy/bots/shared/featureRetirements.ts",
-      "sha256": "0ea26b4394ae11ce1d302882ee622082f0b17d9cf082fb04cedd1569a7d019f5"
+      "sha256": "85c5be46e67b59fb8f93502ba5722a0a85399f6718ca220921c4f50140f80762"
     },
     {
       "source": "apps/desktop/src/shared/interruptedTurn.ts",
@@ -844,9 +879,9 @@
     },
     {
       "source": "apps/desktop/src/shared/ipc-errors.ts",
-      "sourceSHA256": "3455802a3ae881125ae678c46bcafb7a263cdfd70bb379f05aad44a42db90ddd",
+      "sourceSHA256": "4f1cab2348b9a815b89494408d22e374e269d83af176b9784435413c92e2adf5",
       "target": "modules/chat-pi/cindy/bots/shared/ipc-errors.ts",
-      "sha256": "3455802a3ae881125ae678c46bcafb7a263cdfd70bb379f05aad44a42db90ddd"
+      "sha256": "4f1cab2348b9a815b89494408d22e374e269d83af176b9784435413c92e2adf5"
     },
     {
       "source": "apps/desktop/src/shared/managedWorktreePaths.ts",
@@ -860,6 +895,12 @@
       "sourceSHA256": "1564c36f6796fa1167393e3b31dfecd607512fdf2d25aa65fa2288c3ed43e020",
       "target": "modules/chat-pi/cindy/bots/shared/modelSwitchAssessment.ts",
       "sha256": "1564c36f6796fa1167393e3b31dfecd607512fdf2d25aa65fa2288c3ed43e020"
+    },
+    {
+      "source": "apps/desktop/src/shared/pluginContributionContract.ts",
+      "sourceSHA256": "d9f3d791be2f39be2b0403e2872a555795d8436474bee7079557c406eee923cb",
+      "target": "modules/chat-pi/cindy/bots/shared/pluginContributionContract.ts",
+      "sha256": "d9f3d791be2f39be2b0403e2872a555795d8436474bee7079557c406eee923cb"
     },
     {
       "source": "apps/desktop/src/shared/projectDisplayName.ts",
@@ -881,9 +922,9 @@
     },
     {
       "source": "apps/desktop/src/shared/sessionSource.ts",
-      "sourceSHA256": "358c7963b2f9bf5b031aa4bdd20283d722d3c8701a899c40f4a712e537b4b6f8",
+      "sourceSHA256": "5f8c2f0ceeadb0637eb69dbbfef8b30cefc1de6cd1497fe87de0905999dbbc24",
       "target": "modules/chat-pi/cindy/bots/shared/sessionSource.ts",
-      "sha256": "ac1e4fddbd4d1becbf0d14bce77c2b2c70939f421e3129e5a2a2fca474fe3e16",
+      "sha256": "a8d17678c2f2ebc072a9a32b7d0066a6f8bbdccaae50fa78b0f370521f8a03aa",
       "adaptation": "import-paths"
     },
     {
@@ -894,16 +935,22 @@
     },
     {
       "source": "apps/desktop/src/shared/workingDir.ts",
-      "sourceSHA256": "5455b53480c3f472b1e3b0d05b88eeaafd9eede8d6f1f5d101078da55b37c1c3",
+      "sourceSHA256": "b81a28e5fb6426ee50781f4733698f75e01172102e4fb507b3706d65075b444e",
       "target": "modules/chat-pi/cindy/bots/shared/workingDir.ts",
-      "sha256": "cdb2de374eeda23199452129b6f0192ff17147fc9a4090a4d6d6f58e87da9423",
+      "sha256": "0755e226c5417d3e392f8ee3b575266e455dcc856581e6c3d1d479b37fabc43a",
       "adaptation": "import-paths"
     },
     {
+      "source": "apps/desktop/src/shared/writableDirectoryGrantError.ts",
+      "sourceSHA256": "de74754544777a35e1084f640a5d0a6c3b15b79c5ef36ef0952c3bf9d65741cb",
+      "target": "modules/chat-pi/cindy/bots/shared/writableDirectoryGrantError.ts",
+      "sha256": "de74754544777a35e1084f640a5d0a6c3b15b79c5ef36ef0952c3bf9d65741cb"
+    },
+    {
       "source": "packages/maker-shared/src/worktreePaths.ts",
-      "sourceSHA256": "16326ff18791a36abd1d28d52ba41b4c2b759aa70f5a183b487899b1dca41eb7",
+      "sourceSHA256": "1354df2c008218af3c8ef7c1727a969c78dad3ab64ba1cbec603f26eca3df61c",
       "target": "modules/chat-pi/cindy/bots/shared/worktreePaths.ts",
-      "sha256": "16326ff18791a36abd1d28d52ba41b4c2b759aa70f5a183b487899b1dca41eb7"
+      "sha256": "1354df2c008218af3c8ef7c1727a969c78dad3ab64ba1cbec603f26eca3df61c"
     },
     {
       "source": "packages/maker-shared/src/sessionTitle.ts",
@@ -1026,6 +1073,12 @@
       "sha256": "910ea779dc3b390f9309c9b690da965cb58781d7b745ef24b4655f6b311a888b"
     },
     {
+      "source": "packages/lizi-im/src/connectionRetry.ts",
+      "sourceSHA256": "059aa00f2018ea45163e6bcbdacc2ba38b19c9a4c829705ee4e5a8e6c71fcc84",
+      "target": "modules/chat-pi/cindy/im/connectionRetry.ts",
+      "sha256": "059aa00f2018ea45163e6bcbdacc2ba38b19c9a4c829705ee4e5a8e6c71fcc84"
+    },
+    {
       "source": "packages/lizi-im/src/createIM.ts",
       "sourceSHA256": "098f637de7a663b2133c14a7d889df4bd5dd86a896973d58999a0e21534462fd",
       "target": "modules/chat-pi/cindy/im/createIM.ts",
@@ -1045,9 +1098,9 @@
     },
     {
       "source": "packages/lizi-im/src/dingtalk/__tests__/dingtalkIM.test.ts",
-      "sourceSHA256": "3eeb4dfd3497597b03b735dbca73059d2c81d44fea5fd82c1909bba7cada0e84",
+      "sourceSHA256": "7cf5ae44bc76ee3f3f62c9e8b4cb91dc819d31bac020eaf37c043551056c36a9",
       "target": "modules/chat-pi/cindy/im/dingtalk/__tests__/dingtalkIM.test.ts",
-      "sha256": "3eeb4dfd3497597b03b735dbca73059d2c81d44fea5fd82c1909bba7cada0e84"
+      "sha256": "7cf5ae44bc76ee3f3f62c9e8b4cb91dc819d31bac020eaf37c043551056c36a9"
     },
     {
       "source": "packages/lizi-im/src/dingtalk/__tests__/inbound.test.ts",
@@ -1081,9 +1134,9 @@
     },
     {
       "source": "packages/lizi-im/src/dingtalk/index.ts",
-      "sourceSHA256": "37741c5a7364cef005e406c8c0ad4e9df0e12e06f7a9d1b94248b7de61e1eed6",
+      "sourceSHA256": "afb95edd444a194f5fdb7c7f7ce91778256874110cbacc5b5746ea592095581d",
       "target": "modules/chat-pi/cindy/im/dingtalk/index.ts",
-      "sha256": "37741c5a7364cef005e406c8c0ad4e9df0e12e06f7a9d1b94248b7de61e1eed6"
+      "sha256": "afb95edd444a194f5fdb7c7f7ce91778256874110cbacc5b5746ea592095581d"
     },
     {
       "source": "packages/lizi-im/src/dingtalk/outbound.ts",
@@ -1093,9 +1146,9 @@
     },
     {
       "source": "packages/lizi-im/src/discord/__tests__/chunk.test.ts",
-      "sourceSHA256": "5548eeeb0f47eda0a0759c2e46a76e3d627b647e9943869897dd04fcf6e72378",
+      "sourceSHA256": "3b75de02a7253acef9c0839807d24bd340b2cd5d5c86ddf36b2b1df2159e064e",
       "target": "modules/chat-pi/cindy/im/discord/__tests__/chunk.test.ts",
-      "sha256": "5548eeeb0f47eda0a0759c2e46a76e3d627b647e9943869897dd04fcf6e72378"
+      "sha256": "3b75de02a7253acef9c0839807d24bd340b2cd5d5c86ddf36b2b1df2159e064e"
     },
     {
       "source": "packages/lizi-im/src/discord/__tests__/codec.test.ts",
@@ -1111,15 +1164,15 @@
     },
     {
       "source": "packages/lizi-im/src/discord/__tests__/discordIM.test.ts",
-      "sourceSHA256": "b364939175ac3c5ad8de17b69560a398f23575e419a68ff2fc0094fb49a3ea12",
+      "sourceSHA256": "7d583e854574cfe2f9c6454ac49e8d82b0fd518de43a549a363238c61163b263",
       "target": "modules/chat-pi/cindy/im/discord/__tests__/discordIM.test.ts",
-      "sha256": "b364939175ac3c5ad8de17b69560a398f23575e419a68ff2fc0094fb49a3ea12"
+      "sha256": "7d583e854574cfe2f9c6454ac49e8d82b0fd518de43a549a363238c61163b263"
     },
     {
       "source": "packages/lizi-im/src/discord/__tests__/gateway.test.ts",
-      "sourceSHA256": "47c948dbc38dfbb8960372800b76f097c1d8e9da3d744300019340839ee8b4a0",
+      "sourceSHA256": "6fb935bfde3e0c190fc3e1cd154b9316ac07791e1ea22083d99b9b49924e390c",
       "target": "modules/chat-pi/cindy/im/discord/__tests__/gateway.test.ts",
-      "sha256": "47c948dbc38dfbb8960372800b76f097c1d8e9da3d744300019340839ee8b4a0"
+      "sha256": "6fb935bfde3e0c190fc3e1cd154b9316ac07791e1ea22083d99b9b49924e390c"
     },
     {
       "source": "packages/lizi-im/src/discord/__tests__/inbound.test.ts",
@@ -1129,9 +1182,9 @@
     },
     {
       "source": "packages/lizi-im/src/discord/__tests__/markdown.test.ts",
-      "sourceSHA256": "ff4b16de3ac14097efb325964a4d7f8fb79155ed6e7da49276f0216a53ea9e49",
+      "sourceSHA256": "88d0ccc5b27156197d6cc68bffab19ba3bda8cf91d11191c49509b4cea3b2c61",
       "target": "modules/chat-pi/cindy/im/discord/__tests__/markdown.test.ts",
-      "sha256": "ff4b16de3ac14097efb325964a4d7f8fb79155ed6e7da49276f0216a53ea9e49"
+      "sha256": "88d0ccc5b27156197d6cc68bffab19ba3bda8cf91d11191c49509b4cea3b2c61"
     },
     {
       "source": "packages/lizi-im/src/discord/__tests__/outbound.test.ts",
@@ -1153,9 +1206,9 @@
     },
     {
       "source": "packages/lizi-im/src/discord/chunk.ts",
-      "sourceSHA256": "bf6941e726880580fbb58309605b053ba2944bd3a4dc50046c8ea42334e3e0a6",
+      "sourceSHA256": "907bddf2b65b4c9d0b3e9394ba513833d39345066a4711780521a94d31802edc",
       "target": "modules/chat-pi/cindy/im/discord/chunk.ts",
-      "sha256": "bf6941e726880580fbb58309605b053ba2944bd3a4dc50046c8ea42334e3e0a6"
+      "sha256": "907bddf2b65b4c9d0b3e9394ba513833d39345066a4711780521a94d31802edc"
     },
     {
       "source": "packages/lizi-im/src/discord/codec.ts",
@@ -1171,9 +1224,9 @@
     },
     {
       "source": "packages/lizi-im/src/discord/gateway.ts",
-      "sourceSHA256": "6ff2c7ebca5c26684d4ef3d855daf9bb60daec2a3b1005e0c63abd0b2e2ba2c1",
+      "sourceSHA256": "41e4a7cabbf242759d15e5701b2e1d84b81da1a6765e68251affa74b7a21e6ef",
       "target": "modules/chat-pi/cindy/im/discord/gateway.ts",
-      "sha256": "6ff2c7ebca5c26684d4ef3d855daf9bb60daec2a3b1005e0c63abd0b2e2ba2c1"
+      "sha256": "41e4a7cabbf242759d15e5701b2e1d84b81da1a6765e68251affa74b7a21e6ef"
     },
     {
       "source": "packages/lizi-im/src/discord/inbound.ts",
@@ -1183,15 +1236,15 @@
     },
     {
       "source": "packages/lizi-im/src/discord/index.ts",
-      "sourceSHA256": "61fe180949c15a389434c570f6122b2460522f0e18612855e8324588b1045764",
+      "sourceSHA256": "6000a3605ae0987b506dd3eb33835da73b1e8629275aa627509311003f19746e",
       "target": "modules/chat-pi/cindy/im/discord/index.ts",
-      "sha256": "61fe180949c15a389434c570f6122b2460522f0e18612855e8324588b1045764"
+      "sha256": "6000a3605ae0987b506dd3eb33835da73b1e8629275aa627509311003f19746e"
     },
     {
       "source": "packages/lizi-im/src/discord/markdown.ts",
-      "sourceSHA256": "e07fbca19b3002b2c6ccbc689aea1e30fcad3fd22845ae5f8fc6cbcbd53029be",
+      "sourceSHA256": "cc22c47f3c164e7f24476ed869bc8561301d5eae7305c7f2a69e7cb19356b181",
       "target": "modules/chat-pi/cindy/im/discord/markdown.ts",
-      "sha256": "e07fbca19b3002b2c6ccbc689aea1e30fcad3fd22845ae5f8fc6cbcbd53029be"
+      "sha256": "cc22c47f3c164e7f24476ed869bc8561301d5eae7305c7f2a69e7cb19356b181"
     },
     {
       "source": "packages/lizi-im/src/discord/outbound.ts",
@@ -1213,9 +1266,9 @@
     },
     {
       "source": "packages/lizi-im/src/feishu/__tests__/attachmentDownloader.test.ts",
-      "sourceSHA256": "1a46aa60f180e9ae1fe72fee6a04dfb6bedd0decbae518bb8337c414ecb47a5c",
+      "sourceSHA256": "1c6bd2a7ed4183dbad99dbb2922176702df17d3b641fa55a7d502fe29f127854",
       "target": "modules/chat-pi/cindy/im/feishu/__tests__/attachmentDownloader.test.ts",
-      "sha256": "1a46aa60f180e9ae1fe72fee6a04dfb6bedd0decbae518bb8337c414ecb47a5c"
+      "sha256": "1c6bd2a7ed4183dbad99dbb2922176702df17d3b641fa55a7d502fe29f127854"
     },
     {
       "source": "packages/lizi-im/src/feishu/__tests__/cards.test.ts",
@@ -1242,16 +1295,28 @@
       "sha256": "edd62774dd0b7f53fa8fe78ff5cf338754aaa1e33b40227591b40910896a3701"
     },
     {
+      "source": "packages/lizi-im/src/feishu/__tests__/historyImages.test.ts",
+      "sourceSHA256": "81f67c77ca899346d16d7fd6bf500ca126943361f91bf157390baa4559a25e31",
+      "target": "modules/chat-pi/cindy/im/feishu/__tests__/historyImages.test.ts",
+      "sha256": "81f67c77ca899346d16d7fd6bf500ca126943361f91bf157390baa4559a25e31"
+    },
+    {
       "source": "packages/lizi-im/src/feishu/__tests__/incomingContent.test.ts",
-      "sourceSHA256": "f4b73f0ba9c34997e9fe8f9ff62a89a809051c207eba5b05f40d2ca031f219c0",
+      "sourceSHA256": "99810c7e4120c021202897d7d90d4c74d25284e327d48cf0c54a2695cd490d93",
       "target": "modules/chat-pi/cindy/im/feishu/__tests__/incomingContent.test.ts",
-      "sha256": "f4b73f0ba9c34997e9fe8f9ff62a89a809051c207eba5b05f40d2ca031f219c0"
+      "sha256": "99810c7e4120c021202897d7d90d4c74d25284e327d48cf0c54a2695cd490d93"
     },
     {
       "source": "packages/lizi-im/src/feishu/__tests__/ipcAccountScope.test.ts",
-      "sourceSHA256": "5ce2296abb0dcf943892688f1af2abbb35695ba503078200f32df2ff8b03411b",
+      "sourceSHA256": "98dd9ae8bde1fa51e0f07c5b28937c08644fc9663b615533e7c48a9cbb20cfc5",
       "target": "modules/chat-pi/cindy/im/feishu/__tests__/ipcAccountScope.test.ts",
-      "sha256": "5ce2296abb0dcf943892688f1af2abbb35695ba503078200f32df2ff8b03411b"
+      "sha256": "98dd9ae8bde1fa51e0f07c5b28937c08644fc9663b615533e7c48a9cbb20cfc5"
+    },
+    {
+      "source": "packages/lizi-im/src/feishu/__tests__/lifecycleAnnouncements.test.ts",
+      "sourceSHA256": "35a1fdd07630d913dd714d607fa582715401bd738d47ed0ca35034afb69296d2",
+      "target": "modules/chat-pi/cindy/im/feishu/__tests__/lifecycleAnnouncements.test.ts",
+      "sha256": "35a1fdd07630d913dd714d607fa582715401bd738d47ed0ca35034afb69296d2"
     },
     {
       "source": "packages/lizi-im/src/feishu/__tests__/outboundApi.test.ts",
@@ -1267,9 +1332,9 @@
     },
     {
       "source": "packages/lizi-im/src/feishu/__tests__/outboundLane.test.ts",
-      "sourceSHA256": "f5bce0d0c676499c90a1b7a37f0c46cb326a987759464f7598041d71ef5c95d1",
+      "sourceSHA256": "d54e1e2fa1ca46b3eead355706ce3f5cee2474f0c8347db30f496335a2b3ee85",
       "target": "modules/chat-pi/cindy/im/feishu/__tests__/outboundLane.test.ts",
-      "sha256": "f5bce0d0c676499c90a1b7a37f0c46cb326a987759464f7598041d71ef5c95d1"
+      "sha256": "d54e1e2fa1ca46b3eead355706ce3f5cee2474f0c8347db30f496335a2b3ee85"
     },
     {
       "source": "packages/lizi-im/src/feishu/__tests__/serviceRouting.test.ts",
@@ -1285,9 +1350,9 @@
     },
     {
       "source": "packages/lizi-im/src/feishu/__tests__/streamingText.test.ts",
-      "sourceSHA256": "a4174892ee5a409a48a1653e8f474b19e88862e4cbe8d72cdb1a4d34e712dc77",
+      "sourceSHA256": "5db8646757f4ef8b32a6abb88ca2e1ffa1d689f19a70536d9e04aa91b06f9815",
       "target": "modules/chat-pi/cindy/im/feishu/__tests__/streamingText.test.ts",
-      "sha256": "a4174892ee5a409a48a1653e8f474b19e88862e4cbe8d72cdb1a4d34e712dc77"
+      "sha256": "5db8646757f4ef8b32a6abb88ca2e1ffa1d689f19a70536d9e04aa91b06f9815"
     },
     {
       "source": "packages/lizi-im/src/feishu/__tests__/wsClientCardAction.test.ts",
@@ -1297,15 +1362,15 @@
     },
     {
       "source": "packages/lizi-im/src/feishu/__tests__/wsClientConflict.test.ts",
-      "sourceSHA256": "88c229917e2fda3652715c064ba59e20bf177f6ba865672ba3df89ed753681f1",
+      "sourceSHA256": "f0172a69d4896c45b2a52beffac385c88af82ecc864cbb3c757e0878ad3cfbb2",
       "target": "modules/chat-pi/cindy/im/feishu/__tests__/wsClientConflict.test.ts",
-      "sha256": "88c229917e2fda3652715c064ba59e20bf177f6ba865672ba3df89ed753681f1"
+      "sha256": "f0172a69d4896c45b2a52beffac385c88af82ecc864cbb3c757e0878ad3cfbb2"
     },
     {
       "source": "packages/lizi-im/src/feishu/__tests__/wsClientGroup.test.ts",
-      "sourceSHA256": "5ddaf5c440c622fc2c669880d910fb03c3073b4d0e2830ea978eb9d91f4b727b",
+      "sourceSHA256": "43e57ec103a494c65123163fed993bd7cd6d4781d9eb1d26d2258408b9401d5d",
       "target": "modules/chat-pi/cindy/im/feishu/__tests__/wsClientGroup.test.ts",
-      "sha256": "5ddaf5c440c622fc2c669880d910fb03c3073b4d0e2830ea978eb9d91f4b727b"
+      "sha256": "43e57ec103a494c65123163fed993bd7cd6d4781d9eb1d26d2258408b9401d5d"
     },
     {
       "source": "packages/lizi-im/src/feishu/__tests__/wsClientGroupThreadRouting.test.ts",
@@ -1327,9 +1392,9 @@
     },
     {
       "source": "packages/lizi-im/src/feishu/attachmentDownloader.ts",
-      "sourceSHA256": "46de1e75b964f75b4065b311ded1284b2e7fb99442ad5f5563b7ae17334e44fc",
+      "sourceSHA256": "db3729230a7af6d4d1861fca8f838b41d7b12bce4b11e5ef749644c9320be6d8",
       "target": "modules/chat-pi/cindy/im/feishu/attachmentDownloader.ts",
-      "sha256": "46de1e75b964f75b4065b311ded1284b2e7fb99442ad5f5563b7ae17334e44fc"
+      "sha256": "db3729230a7af6d4d1861fca8f838b41d7b12bce4b11e5ef749644c9320be6d8"
     },
     {
       "source": "packages/lizi-im/src/feishu/cardActionParser.ts",
@@ -1369,15 +1434,15 @@
     },
     {
       "source": "packages/lizi-im/src/feishu/incomingContent.ts",
-      "sourceSHA256": "61311d7ac0b0aa49bbe03c6bfa034e5659ac6164b542f502abc0b3633f64b5f2",
+      "sourceSHA256": "0b48cc4a0135e42f7038bf179fcecae9e859931bdec2822af2f35aaa353af143",
       "target": "modules/chat-pi/cindy/im/feishu/incomingContent.ts",
-      "sha256": "61311d7ac0b0aa49bbe03c6bfa034e5659ac6164b542f502abc0b3633f64b5f2"
+      "sha256": "0b48cc4a0135e42f7038bf179fcecae9e859931bdec2822af2f35aaa353af143"
     },
     {
       "source": "packages/lizi-im/src/feishu/index.ts",
-      "sourceSHA256": "115be8a9ddd4bddf5ee6780dcbf15b7fb7c7cd328c3d0f346c19a37fd002e2f8",
+      "sourceSHA256": "99668b88a895f75469ac88b30b8ae00e5d9a9cf9458b3d68382a0c6929e4fe80",
       "target": "modules/chat-pi/cindy/im/feishu/index.ts",
-      "sha256": "115be8a9ddd4bddf5ee6780dcbf15b7fb7c7cd328c3d0f346c19a37fd002e2f8"
+      "sha256": "99668b88a895f75469ac88b30b8ae00e5d9a9cf9458b3d68382a0c6929e4fe80"
     },
     {
       "source": "packages/lizi-im/src/feishu/internal-types.ts",
@@ -1387,9 +1452,9 @@
     },
     {
       "source": "packages/lizi-im/src/feishu/ipc.ts",
-      "sourceSHA256": "b37a571a30ea3f40fdaaf48c01395cfbb33441a33078f51078669622ab0c180e",
+      "sourceSHA256": "bf638f29f944bf39647aa93ec3794143b6c980b4257f5984eb2a3a29e671fe0b",
       "target": "modules/chat-pi/cindy/im/feishu/ipc.ts",
-      "sha256": "b37a571a30ea3f40fdaaf48c01395cfbb33441a33078f51078669622ab0c180e"
+      "sha256": "bf638f29f944bf39647aa93ec3794143b6c980b4257f5984eb2a3a29e671fe0b"
     },
     {
       "source": "packages/lizi-im/src/feishu/mediaCache.ts",
@@ -1411,15 +1476,15 @@
     },
     {
       "source": "packages/lizi-im/src/feishu/moduleScope.ts",
-      "sourceSHA256": "721a0ee1c2baee91744f23c962bfd3d4ca35e3268fc80b130ef2ae4d9837adbc",
+      "sourceSHA256": "82abeec2d6b5c30c9b2a0cd2a58a2522ec3f81a7e9da8f223678cbbe9101fef8",
       "target": "modules/chat-pi/cindy/im/feishu/moduleScope.ts",
-      "sha256": "721a0ee1c2baee91744f23c962bfd3d4ca35e3268fc80b130ef2ae4d9837adbc"
+      "sha256": "82abeec2d6b5c30c9b2a0cd2a58a2522ec3f81a7e9da8f223678cbbe9101fef8"
     },
     {
       "source": "packages/lizi-im/src/feishu/outbound.ts",
-      "sourceSHA256": "6cf2f48a9bfaf1b3351f4ec435a7538c638bacd39ad75b2a2b54876d7886cb7a",
+      "sourceSHA256": "7f3eece0a1c92470c065e3d4a26bc356f7c14f3558a01af8a2de11192c5cf5de",
       "target": "modules/chat-pi/cindy/im/feishu/outbound.ts",
-      "sha256": "6cf2f48a9bfaf1b3351f4ec435a7538c638bacd39ad75b2a2b54876d7886cb7a"
+      "sha256": "7f3eece0a1c92470c065e3d4a26bc356f7c14f3558a01af8a2de11192c5cf5de"
     },
     {
       "source": "packages/lizi-im/src/feishu/ownerGuard.ts",
@@ -1435,15 +1500,15 @@
     },
     {
       "source": "packages/lizi-im/src/feishu/streamingText.ts",
-      "sourceSHA256": "e385cf5da0412265f0b20714537bb01eaeb667f5860c1be3acb9b30ec383816c",
+      "sourceSHA256": "fb930429f2799d81182f94feda57800af7a1715ba6666a164bf4698054c86233",
       "target": "modules/chat-pi/cindy/im/feishu/streamingText.ts",
-      "sha256": "e385cf5da0412265f0b20714537bb01eaeb667f5860c1be3acb9b30ec383816c"
+      "sha256": "fb930429f2799d81182f94feda57800af7a1715ba6666a164bf4698054c86233"
     },
     {
       "source": "packages/lizi-im/src/feishu/wsClient.ts",
-      "sourceSHA256": "0dd2d93daf836dd4c7db00a3b9339419d948e804babd31d999da2591c7c049dc",
+      "sourceSHA256": "74d86833e46afdd5162da0fed61692f9a11d2b3b3804dc282b136b358e0867f6",
       "target": "modules/chat-pi/cindy/im/feishu/wsClient.ts",
-      "sha256": "0dd2d93daf836dd4c7db00a3b9339419d948e804babd31d999da2591c7c049dc"
+      "sha256": "74d86833e46afdd5162da0fed61692f9a11d2b3b3804dc282b136b358e0867f6"
     },
     {
       "source": "packages/lizi-im/src/inboundFacts.ts",
@@ -1459,9 +1524,9 @@
     },
     {
       "source": "packages/lizi-im/src/index.ts",
-      "sourceSHA256": "93d26b8b1af0e11ff6a682cd2ca0fc1dd3924daea5671e87da7daa20a5b67b2a",
+      "sourceSHA256": "4f6be87d93ab5527f0f1d0d5141ad62d2a57e43d8f09d67e8f72ffb46f1fbf2a",
       "target": "modules/chat-pi/cindy/im/index.ts",
-      "sha256": "93d26b8b1af0e11ff6a682cd2ca0fc1dd3924daea5671e87da7daa20a5b67b2a"
+      "sha256": "4f6be87d93ab5527f0f1d0d5141ad62d2a57e43d8f09d67e8f72ffb46f1fbf2a"
     },
     {
       "source": "packages/lizi-im/src/logger.ts",
@@ -1495,21 +1560,21 @@
     },
     {
       "source": "packages/lizi-im/src/telegram/__tests__/htmlCap.test.ts",
-      "sourceSHA256": "db827e901716d884a48bef544a237af50754ccdec6d23c19229adc97bdd68e26",
+      "sourceSHA256": "2a1a26f10df30bfc53bf1689630642c9e05ee51a1d2995e3d55c6c07a4efb595",
       "target": "modules/chat-pi/cindy/im/telegram/__tests__/htmlCap.test.ts",
-      "sha256": "db827e901716d884a48bef544a237af50754ccdec6d23c19229adc97bdd68e26"
+      "sha256": "2a1a26f10df30bfc53bf1689630642c9e05ee51a1d2995e3d55c6c07a4efb595"
     },
     {
       "source": "packages/lizi-im/src/telegram/__tests__/inbound.test.ts",
-      "sourceSHA256": "032cce39390a3a3535d4100db901321354def89bc6bfb816379f59c02e37e53b",
+      "sourceSHA256": "a01b03df85b04f86b866c38a2f6908ff4d504cdb8bb5b26efe0d210337df3e7d",
       "target": "modules/chat-pi/cindy/im/telegram/__tests__/inbound.test.ts",
-      "sha256": "032cce39390a3a3535d4100db901321354def89bc6bfb816379f59c02e37e53b"
+      "sha256": "a01b03df85b04f86b866c38a2f6908ff4d504cdb8bb5b26efe0d210337df3e7d"
     },
     {
       "source": "packages/lizi-im/src/telegram/__tests__/markdown.test.ts",
-      "sourceSHA256": "2ce45c16fae646169fac9cd5d95d2736a466574f11669454fb6fc9a87e2ec7b7",
+      "sourceSHA256": "dc8236f9a5f305b54e0922cccb7c8c50d72489f8ff167b8873de4d1e85a2c723",
       "target": "modules/chat-pi/cindy/im/telegram/__tests__/markdown.test.ts",
-      "sha256": "2ce45c16fae646169fac9cd5d95d2736a466574f11669454fb6fc9a87e2ec7b7"
+      "sha256": "dc8236f9a5f305b54e0922cccb7c8c50d72489f8ff167b8873de4d1e85a2c723"
     },
     {
       "source": "packages/lizi-im/src/telegram/__tests__/messageLifecycle.test.ts",
@@ -1519,9 +1584,9 @@
     },
     {
       "source": "packages/lizi-im/src/telegram/__tests__/outboundPolicy.test.ts",
-      "sourceSHA256": "18a1766328b7129165e09a22a6df838c0c5407bd19f20b5cf579bdd6fe01d626",
+      "sourceSHA256": "bd56cb6517e52f793e145a95486eebd664a11d809b0c2c5979177416628ed8b7",
       "target": "modules/chat-pi/cindy/im/telegram/__tests__/outboundPolicy.test.ts",
-      "sha256": "18a1766328b7129165e09a22a6df838c0c5407bd19f20b5cf579bdd6fe01d626"
+      "sha256": "bd56cb6517e52f793e145a95486eebd664a11d809b0c2c5979177416628ed8b7"
     },
     {
       "source": "packages/lizi-im/src/telegram/__tests__/presentationCapabilities.test.ts",
@@ -1543,15 +1608,15 @@
     },
     {
       "source": "packages/lizi-im/src/telegram/__tests__/telegramIM.test.ts",
-      "sourceSHA256": "f8bf7c2e8e270c4ccf3c66dcbab094408a3e6e1ea08989eb79f344925450f517",
+      "sourceSHA256": "674ff8eb8da71c22b73c5f73c391cf369344b899a127758e759f854253c9cf04",
       "target": "modules/chat-pi/cindy/im/telegram/__tests__/telegramIM.test.ts",
-      "sha256": "f8bf7c2e8e270c4ccf3c66dcbab094408a3e6e1ea08989eb79f344925450f517"
+      "sha256": "674ff8eb8da71c22b73c5f73c391cf369344b899a127758e759f854253c9cf04"
     },
     {
       "source": "packages/lizi-im/src/telegram/api.ts",
-      "sourceSHA256": "2d88337548164ff9706e8275fd30e24739bf4fdea012a3185a94fa706d9fdb5e",
+      "sourceSHA256": "a68ab0d28e6e557737fe89c3fa26e5f33702fbeca5666e6bc335713172e78b69",
       "target": "modules/chat-pi/cindy/im/telegram/api.ts",
-      "sha256": "2d88337548164ff9706e8275fd30e24739bf4fdea012a3185a94fa706d9fdb5e"
+      "sha256": "a68ab0d28e6e557737fe89c3fa26e5f33702fbeca5666e6bc335713172e78b69"
     },
     {
       "source": "packages/lizi-im/src/telegram/cardLayout.ts",
@@ -1579,33 +1644,39 @@
     },
     {
       "source": "packages/lizi-im/src/telegram/htmlCap.ts",
-      "sourceSHA256": "48563d3cb3b4f2a96d7296551aa2225041cae34638140e00748034311f11aef9",
+      "sourceSHA256": "a40a45bd108f54e6f39089df6f3edfd466586506bf7786c1353c4d9da0a61c82",
       "target": "modules/chat-pi/cindy/im/telegram/htmlCap.ts",
-      "sha256": "48563d3cb3b4f2a96d7296551aa2225041cae34638140e00748034311f11aef9"
+      "sha256": "a40a45bd108f54e6f39089df6f3edfd466586506bf7786c1353c4d9da0a61c82"
     },
     {
       "source": "packages/lizi-im/src/telegram/inbound.ts",
-      "sourceSHA256": "a2498ad089b89730a7edd28d91b0e3240b34711a01d79edbc94229923812a8a1",
+      "sourceSHA256": "14c9a4fa03145080425ea215911e44614ce92010aeca0cc4ca05e1f4541e7c0f",
       "target": "modules/chat-pi/cindy/im/telegram/inbound.ts",
-      "sha256": "a2498ad089b89730a7edd28d91b0e3240b34711a01d79edbc94229923812a8a1"
+      "sha256": "14c9a4fa03145080425ea215911e44614ce92010aeca0cc4ca05e1f4541e7c0f"
     },
     {
       "source": "packages/lizi-im/src/telegram/index.ts",
-      "sourceSHA256": "493d00110a04479f0eaa070575bdd086abecd8e51b767e1a3a6d6f5dc7e0b844",
+      "sourceSHA256": "6a5bb950025e357d96fa4135659c793d7c8027a2bb5efb2d592ed4eb2f9198c1",
       "target": "modules/chat-pi/cindy/im/telegram/index.ts",
-      "sha256": "493d00110a04479f0eaa070575bdd086abecd8e51b767e1a3a6d6f5dc7e0b844"
+      "sha256": "6a5bb950025e357d96fa4135659c793d7c8027a2bb5efb2d592ed4eb2f9198c1"
     },
     {
       "source": "packages/lizi-im/src/telegram/markdown.ts",
-      "sourceSHA256": "bcc130d1a5ad4db172aef06426ae63c8eca1647e7739e0c159e3caebba3e0814",
+      "sourceSHA256": "897354cb2f714208c104c95bf4009ee589a7b6dc409b6c94ca54d7b6c43a1934",
       "target": "modules/chat-pi/cindy/im/telegram/markdown.ts",
-      "sha256": "bcc130d1a5ad4db172aef06426ae63c8eca1647e7739e0c159e3caebba3e0814"
+      "sha256": "897354cb2f714208c104c95bf4009ee589a7b6dc409b6c94ca54d7b6c43a1934"
     },
     {
       "source": "packages/lizi-im/src/telegram/messageLifecycle.ts",
       "sourceSHA256": "a9a74148ae06ecf6795678a59d716ecabd7def42e1f5f46a61a891c68d31975f",
       "target": "modules/chat-pi/cindy/im/telegram/messageLifecycle.ts",
       "sha256": "a9a74148ae06ecf6795678a59d716ecabd7def42e1f5f46a61a891c68d31975f"
+    },
+    {
+      "source": "packages/lizi-im/src/telegram/messageText.ts",
+      "sourceSHA256": "2134577fa54a89b2038bdb4e37e876b7d855251bbebc5e885ec334cf7c3d8c33",
+      "target": "modules/chat-pi/cindy/im/telegram/messageText.ts",
+      "sha256": "2134577fa54a89b2038bdb4e37e876b7d855251bbebc5e885ec334cf7c3d8c33"
     },
     {
       "source": "packages/lizi-im/src/telegram/outboundPolicy.ts",
@@ -1639,9 +1710,9 @@
     },
     {
       "source": "packages/lizi-im/src/types.ts",
-      "sourceSHA256": "841a4b9926e0554c55f14b27ff378cd429f4a5c32ec87bb5e9c547fc63ec1ba2",
+      "sourceSHA256": "a2286aa31b337d01460131a4740c7c565c5562abf019f251f2d70d31adeba587",
       "target": "modules/chat-pi/cindy/im/types.ts",
-      "sha256": "841a4b9926e0554c55f14b27ff378cd429f4a5c32ec87bb5e9c547fc63ec1ba2"
+      "sha256": "a2286aa31b337d01460131a4740c7c565c5562abf019f251f2d70d31adeba587"
     },
     {
       "source": "packages/lizi-im/src/wecom/__tests__/codec.test.ts",
@@ -1651,9 +1722,9 @@
     },
     {
       "source": "packages/lizi-im/src/wecom/__tests__/index.test.ts",
-      "sourceSHA256": "f2d71451ca3b91c40f98fc21ac46d6d8867bb006ca65ccd077e72c14b8c86c41",
+      "sourceSHA256": "02871e0e65560a7fd38a88039824d4250de8c27d9fe6936bb1c566f0907e2fac",
       "target": "modules/chat-pi/cindy/im/wecom/__tests__/index.test.ts",
-      "sha256": "f2d71451ca3b91c40f98fc21ac46d6d8867bb006ca65ccd077e72c14b8c86c41"
+      "sha256": "02871e0e65560a7fd38a88039824d4250de8c27d9fe6936bb1c566f0907e2fac"
     },
     {
       "source": "packages/lizi-im/src/wecom/__tests__/media.test.ts",
@@ -1669,9 +1740,9 @@
     },
     {
       "source": "packages/lizi-im/src/wecom/index.ts",
-      "sourceSHA256": "95003f948db0fd41a373095cd3f307522b68af19f274c44da4cd3da45a0f3646",
+      "sourceSHA256": "c7c009ab4167ae39eba266117f0fb291e065c03aaf0d4e5cfe118e005b1aa6a4",
       "target": "modules/chat-pi/cindy/im/wecom/index.ts",
-      "sha256": "95003f948db0fd41a373095cd3f307522b68af19f274c44da4cd3da45a0f3646"
+      "sha256": "c7c009ab4167ae39eba266117f0fb291e065c03aaf0d4e5cfe118e005b1aa6a4"
     },
     {
       "source": "packages/lizi-im/src/wecom/media.ts",
@@ -1829,21 +1900,21 @@
     },
     {
       "source": "packages/maker-shared/src/teammateTodo.ts",
-      "sourceSHA256": "ed6d09d2c4b2363d0ac1c971d4188c4a75b58104b0f046a24736e4e7130ecf22",
+      "sourceSHA256": "593ed3195a5efc279063c119da002c5be715caf87c05063023ac5f004f7bf3b8",
       "target": "modules/chat-pi/cindy/bots/shared/teammate-todo.ts",
-      "sha256": "ed6d09d2c4b2363d0ac1c971d4188c4a75b58104b0f046a24736e4e7130ecf22"
+      "sha256": "593ed3195a5efc279063c119da002c5be715caf87c05063023ac5f004f7bf3b8"
     },
     {
       "source": "apps/desktop/src/main/utils/readBoundedFile.ts",
-      "sourceSHA256": "febd17811c01c6403fc9e7b71b14b1ebd85d800e4e08c26ab0eaf1d66b4b57d3",
+      "sourceSHA256": "89881902620d3f11f784b8f2fa71ad3b4d9d8e4b1b571978e580a5c49ac078cb",
       "target": "modules/chat-pi/cindy/bots/readBoundedFile.ts",
-      "sha256": "febd17811c01c6403fc9e7b71b14b1ebd85d800e4e08c26ab0eaf1d66b4b57d3"
+      "sha256": "89881902620d3f11f784b8f2fa71ad3b4d9d8e4b1b571978e580a5c49ac078cb"
     },
     {
       "source": "apps/desktop/src/main/device-link/crossProcessLock.ts",
-      "sourceSHA256": "c0615b411459c547444d272d25c102c9443d14632453c34ae3dad0a73540286c",
+      "sourceSHA256": "101902137561359fcc07e9f7d0404033d2440dd888f47ebbb2a96317e75bcbf8",
       "target": "modules/chat-pi/cindy/bots/crossProcessLock.ts",
-      "sha256": "3f8655d75445802c1502ea24b4d6d3cc32987ba4976685921e194cad5d8d9a48",
+      "sha256": "1136d7d2ed49cafa4992459af1db01a320b871a3c41d65c34912bae44546fb05",
       "adaptation": "import-paths"
     },
     {
@@ -1861,9 +1932,9 @@
     },
     {
       "source": "apps/desktop/src/main/localDb/cjkSeg.ts",
-      "sourceSHA256": "8cc53ec7d4e706b62430472c0590e1ec930c429fb76dee704dfbbd1672afad02",
+      "sourceSHA256": "236d066875488c855016d07ffec869b8a43e689bb79282b07241bd6e79c6b878",
       "target": "modules/chat-pi/cindy/bots/search/cjkSeg.ts",
-      "sha256": "8cc53ec7d4e706b62430472c0590e1ec930c429fb76dee704dfbbd1672afad02"
+      "sha256": "236d066875488c855016d07ffec869b8a43e689bb79282b07241bd6e79c6b878"
     },
     {
       "source": "apps/desktop/src/main/localDb/conversationSearch.pure.ts",
@@ -1873,16 +1944,28 @@
       "adaptation": "import-paths"
     },
     {
+      "source": "packages/maker-shared/src/botDmThread.ts",
+      "sourceSHA256": "241733fc2b130ec886e6091e206da2073dfecaca3906a5e3f407fb1c96fbd6c9",
+      "target": "modules/chat-pi/cindy/bots/search-shared/botDmThread.ts",
+      "sha256": "241733fc2b130ec886e6091e206da2073dfecaca3906a5e3f407fb1c96fbd6c9"
+    },
+    {
+      "source": "packages/maker-shared/src/botTemplatePreset.ts",
+      "sourceSHA256": "46a44c3feb91c15b799a25e8e9383d92dd348187102f9978b865441e341801ad",
+      "target": "modules/chat-pi/cindy/bots/search-shared/botTemplatePreset.ts",
+      "sha256": "46a44c3feb91c15b799a25e8e9383d92dd348187102f9978b865441e341801ad"
+    },
+    {
       "source": "packages/maker-shared/src/errorRedaction.ts",
-      "sourceSHA256": "d2e65395ab615fac89a918ddc4e0e1af6a7defb824dcc7cbc91f23a5075da2a5",
+      "sourceSHA256": "23330edce09e85cc0af37ce9ca009707c324d14e7c040998a7a80871dcd581eb",
       "target": "modules/chat-pi/cindy/bots/search-shared/errorRedaction.ts",
-      "sha256": "d2e65395ab615fac89a918ddc4e0e1af6a7defb824dcc7cbc91f23a5075da2a5"
+      "sha256": "23330edce09e85cc0af37ce9ca009707c324d14e7c040998a7a80871dcd581eb"
     },
     {
       "source": "packages/maker-shared/src/forwardedRequestDisplay.ts",
-      "sourceSHA256": "12a43d2c42eba5e627efb06586b011d7937f66ad7ccaf55a226eb3014337c8f2",
+      "sourceSHA256": "bbba4dea8830b66a4daf5fdff0e4162bf3cb857a32b634be1c185e42ceb6a2c6",
       "target": "modules/chat-pi/cindy/bots/search-shared/forwardedRequestDisplay.ts",
-      "sha256": "12a43d2c42eba5e627efb06586b011d7937f66ad7ccaf55a226eb3014337c8f2"
+      "sha256": "bbba4dea8830b66a4daf5fdff0e4162bf3cb857a32b634be1c185e42ceb6a2c6"
     },
     {
       "source": "packages/maker-shared/src/internalCitation.ts",
@@ -1892,9 +1975,9 @@
     },
     {
       "source": "packages/maker-shared/src/messageSource.ts",
-      "sourceSHA256": "562c05de23cf6c4aa1fb46d78a0efbf227819492e6be7ab7e6f9e346b6dac522",
+      "sourceSHA256": "6bbe0a2ac543886322ae3ca98df89af0c26968c35e1d235b3e4aea46daf43be8",
       "target": "modules/chat-pi/cindy/bots/search-shared/messageSource.ts",
-      "sha256": "562c05de23cf6c4aa1fb46d78a0efbf227819492e6be7ab7e6f9e346b6dac522"
+      "sha256": "6bbe0a2ac543886322ae3ca98df89af0c26968c35e1d235b3e4aea46daf43be8"
     },
     {
       "source": "packages/maker-shared/src/syntheticTrigger.ts",
@@ -1910,9 +1993,9 @@
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/__tests__/autonomyRules.test.ts",
-      "sourceSHA256": "dfbc3c8e1f020499694303f00aba156b84b141aff62dad5c5094baa4912101db",
+      "sourceSHA256": "ae7dbc595ae32651037f804cda3c373cdeed371c365812e602776c870f3fd090",
       "target": "modules/chat-pi/cindy/autonomy/__tests__/autonomyRules.test.ts",
-      "sha256": "5e564a491d6b24d74e895fdd57e5a6373aae2f9077d108eab8643cdc70813970",
+      "sha256": "567ba779cfbe17d9b6b75af2bc46dbf1e29eecdf9c98233abe7e8979a85b1788",
       "adaptation": "import-paths"
     },
     {
@@ -1929,30 +2012,30 @@
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/__tests__/hub.test.ts",
-      "sourceSHA256": "9ee1af6400c822db30d9a792cd0e1aa71b0941d14d25f8d853d44b326b1ee96c",
+      "sourceSHA256": "455bcb7381231d7711885b0d2f3fb3a4a1709ecc41b92bc43c48b5fcf2b2c87b",
       "target": "modules/chat-pi/cindy/autonomy/__tests__/hub.test.ts",
-      "sha256": "30f4d88d6159f50843d6917718556220b3f00b7f941b45fa44a8e4fc3901210b",
+      "sha256": "989903c781ac7cb1b6b9872bf5c92ce12000454cca8949a6b758fc84ce8827cf",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/__tests__/runtime.test.ts",
-      "sourceSHA256": "e7c5355382af87c7436a63e9415cd9a2625364337a8245fc3a9abfb8588e747e",
+      "sourceSHA256": "fa1f9034a3958242c9a89fce305daa6c057a4d119ce5eaff2c6f69be04643505",
       "target": "modules/chat-pi/cindy/autonomy/__tests__/runtime.test.ts",
-      "sha256": "49c7a3d029c973f38f53d484cf37abfe46016375552592b7abc6d944fce2fd6a",
+      "sha256": "f26fa52035f6eb993e73005172af8837b4da69e8b8a613d209af3e0c18487be5",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/__tests__/taskWatch.test.ts",
-      "sourceSHA256": "1673a2db27a5b2f5b5c2902a4ae16db8154dc9dc4fb79a600394395ba6c12175",
+      "sourceSHA256": "c38382722f58bd185000b0e49956799a195be443aed6e2ab9ad35883b7d6a8d3",
       "target": "modules/chat-pi/cindy/autonomy/__tests__/taskWatch.test.ts",
-      "sha256": "f83610fce38bfbd0bc44596e89c08086d4e85ddbda6b8ec81c31a692a1856d6e",
+      "sha256": "e4e00f5ba0c9f4a39a2929fe72aaf7466f4736d9d3a5ca63f57a48f5375a6a05",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/botsChangedSignal.ts",
-      "sourceSHA256": "abc98596ed21bd25e60ba3035e95b3e36ea2a000079458384ea3c95d951443d7",
+      "sourceSHA256": "2eabce14aa6d22f0a7b95ef560859e5fa4776ad2d36b0de6bb212b0eb1d20760",
       "target": "modules/chat-pi/cindy/autonomy/botsChangedSignal.ts",
-      "sha256": "abc98596ed21bd25e60ba3035e95b3e36ea2a000079458384ea3c95d951443d7"
+      "sha256": "2eabce14aa6d22f0a7b95ef560859e5fa4776ad2d36b0de6bb212b0eb1d20760"
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/builtinRoutine.ts",
@@ -1963,16 +2046,16 @@
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/events.ts",
-      "sourceSHA256": "1ca25388847fac2664c5119ce2fc1457084dd30cbcef86adb7ffae3a2fe3be1e",
+      "sourceSHA256": "6d88eda70e43d24b8575325e627e8cb8b0bb70c00a13dca2d0c6c350c4660e60",
       "target": "modules/chat-pi/cindy/autonomy/events.ts",
-      "sha256": "290d156b11394c6ae1466960cd9ee3c643b4ac63340d12de8ff4643e0e5b4973",
+      "sha256": "547816ff7c513c86132defb5819e4294740222d44c54e379dfb83f867d161fe3",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/followUpPrompt.ts",
-      "sourceSHA256": "a24e80e39d2363ba97749fee5776728ddffd07f3232a2b0fd0daa652892ecbff",
+      "sourceSHA256": "5b67bd915a442c562dfdf655c220e273fa96ba902d8a874da7aebbe7fbb92af0",
       "target": "modules/chat-pi/cindy/autonomy/followUpPrompt.ts",
-      "sha256": "a24e80e39d2363ba97749fee5776728ddffd07f3232a2b0fd0daa652892ecbff"
+      "sha256": "5b67bd915a442c562dfdf655c220e273fa96ba902d8a874da7aebbe7fbb92af0"
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/followUpRoute.ts",
@@ -1983,9 +2066,9 @@
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/follower.ts",
-      "sourceSHA256": "b0af1f64c36084a3479ed92f75883f07f9df1bac2a769de271d155cb3badc39e",
+      "sourceSHA256": "bf6d668eef215c4d19f9a7e2f76f38873294b2f1dc579635557f4a598e149a16",
       "target": "modules/chat-pi/cindy/autonomy/follower.ts",
-      "sha256": "92ed3454b07552c3584aee3a7a4660bffd4520ca2843b78e25023d993c205ef8",
+      "sha256": "0bbb2599774e1c3b0dfd2bad1e2f8fe4e0783f3df77ee4a5721cec8e215cf98b",
       "adaptation": "import-paths"
     },
     {
@@ -1997,9 +2080,9 @@
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/hub.ts",
-      "sourceSHA256": "3d5d3ab142398ffd4ba059003bfd6b9a3b846ba2bf0f7ab915fac6ab7ed331d2",
+      "sourceSHA256": "f920c115f7e6407329b3cee0c6bbfed529c9094354f5a9a2cbcce73b84c13d33",
       "target": "modules/chat-pi/cindy/autonomy/hub.ts",
-      "sha256": "ff31b27fe7e348834f661fa53fe962d763290a53b8cd6400ade5607484724899",
+      "sha256": "ce68029c1c3d2b06149db3cc0a1904b40908ed509eb0b97f76b6f92a57c8c419",
       "adaptation": "import-paths"
     },
     {
@@ -2011,23 +2094,23 @@
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/runtime.ts",
-      "sourceSHA256": "af49e53c80262847a3c8f24089bb930a0e965d375ae06851ba606f3135f342cd",
+      "sourceSHA256": "8ee9364c689f7140fbd53b9019b88baecde1e6d44ce43f53f95f3387bbea33c2",
       "target": "modules/chat-pi/cindy/autonomy/runtime.ts",
-      "sha256": "4ddd1e4f052ee0bb195a1be0287a0b7979aa42007c4d3bfe6211bab28508ce5d",
+      "sha256": "21b05445c190d293912d4d388d69dd0f1e92a1cca142cece31aabb3aebabfe50",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/taskWatch.ts",
-      "sourceSHA256": "d5902f976147cfe1d35715730a246fcf434b1a5ce81c6dd0a3d55c68ae094095",
+      "sourceSHA256": "3d3b0463b7bcf98e27fa02ee9ffd49a06320bd17754a67e21451e3e46af8264a",
       "target": "modules/chat-pi/cindy/autonomy/taskWatch.ts",
-      "sha256": "1181ce566e6be26899db71edd9a7d50e74bc43c92fc831ebea5e9f3b4b452bd6",
+      "sha256": "c396efb35836c348f702fc2ffc8f10dc2c993ab750a89e15847c0e1cb8440a16",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/main/bot-autonomy/todoCheckRoutine.ts",
-      "sourceSHA256": "76c60d2e66e45542c8b454d050cebd97f9fc9fb036cfdd5a1f4bc6c5863bc61a",
+      "sourceSHA256": "13332135b8e4f0beddac20bf7bff8ec4649b03fd911fc6c3daa5e1fddfbbab5b",
       "target": "modules/chat-pi/cindy/autonomy/todoCheckRoutine.ts",
-      "sha256": "cde62ce4a68dc617677d42fa5825d1eddedd02fbcb7d9fb258a2409241b5c2c3",
+      "sha256": "2cf9932b0e630601c46c214998a8776469f3d9669646ba85767e2c38da882766",
       "adaptation": "import-paths"
     },
     {
@@ -2039,37 +2122,37 @@
     },
     {
       "source": "apps/desktop/src/main/mcp-integrations/__tests__/taskDigest.test.ts",
-      "sourceSHA256": "57edffdc557285d683af93c2a3f2bd8206c9a6f32352f57428e5009da32aec90",
+      "sourceSHA256": "b48538622f8362348ad4f4c19dddc75926c8eb05353e05561193feb5531253f0",
       "target": "modules/chat-pi/cindy/bots/__tests__/taskDigest.test.ts",
-      "sha256": "6d32e56cd37e9284baa0882d7e9e8e90b8c86918eb29d0aa50ed395e6eaae85d",
+      "sha256": "98a3221471b6d84f96360c65e9548bc03fd336d8a07bd570d5f569e01233f3e3",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/main/mcp-integrations/taskDigest.ts",
-      "sourceSHA256": "95790107a01218c10cca6fb941418d18704a1eec2af8d840d9e38f3c39eea295",
+      "sourceSHA256": "ca4b96fe300465f5373b259f59b8bfa0559b766a23a41ded8f0b65cc7b162e7d",
       "target": "modules/chat-pi/cindy/bots/taskDigest.ts",
-      "sha256": "a919bf5cc2ec8acf74a1db5e1e014405f533cd4011325dce8706e3691ae5b119",
+      "sha256": "784aaed367b483fc890c8cf3295428c9f4db4613255834bd8fbcf52065ff9fea",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/main/provider-group/failurePolicy.ts",
-      "sourceSHA256": "1d0717548f064c45bbb55917cb7bf0319e4d5410a0e4e554aade5258a3f9fb47",
+      "sourceSHA256": "bbce40b8dc9bb14289ab2e63b1de9b239b04e29043485350e936f3f063df257f",
       "target": "modules/chat-pi/cindy/bots/failurePolicy.ts",
-      "sha256": "8778828378fc961e543906be4c5cb202a4d3438a42635dff91fece2bd35baf2b",
+      "sha256": "7226388f81433d494eede66a3805fedb1f89409caf3c89cb3337945e5613de01",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/main/goal-host/usageLimit.ts",
-      "sourceSHA256": "5344f05cae1ed42d2af12febf4bd6a0b2067e29fd103dec6e6e3f96ea09f976d",
+      "sourceSHA256": "916f452221a628290fb6ce4362c77417da881e5c5810a65916bf686cd119ab34",
       "target": "modules/chat-pi/cindy/bots/usageLimit.ts",
-      "sha256": "047300b264030907e1eb106b46aab67917a637a9ce370050017368c48f2e13f2",
+      "sha256": "32e0d85a81c0c5c381ed3493d3ff3c4079cbc59dea11927df540173e379bc372",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/shared/usageLimitRecovery.ts",
-      "sourceSHA256": "9c8f074601c2e989910cfb80c23ff79bb8d119245839f3b3a54d7eebe9f00813",
+      "sourceSHA256": "ce14a979c097e4f94875b66210500ce1d7c7a8e1596beabe9f4e4bfd618744b1",
       "target": "modules/chat-pi/cindy/bots/shared/usageLimitRecovery.ts",
-      "sha256": "9c8f074601c2e989910cfb80c23ff79bb8d119245839f3b3a54d7eebe9f00813"
+      "sha256": "ce14a979c097e4f94875b66210500ce1d7c7a8e1596beabe9f4e4bfd618744b1"
     },
     {
       "source": "packages/maker-core/src/agents/shared/context-overflow-error.ts",
@@ -2079,28 +2162,29 @@
     },
     {
       "source": "packages/maker-core/src/agents/shared/overload-error.ts",
-      "sourceSHA256": "f48905f579b9427017a8f6e6d4c064998cf21664718279803abd97631e69d60c",
+      "sourceSHA256": "6a9b72ef4125906b1485a35b5c71c2445fb005c6564c0d912640f5f7a759c08c",
       "target": "modules/chat-pi/cindy/bots/maker-core/overload-error.ts",
-      "sha256": "f48905f579b9427017a8f6e6d4c064998cf21664718279803abd97631e69d60c"
+      "sha256": "6a9b72ef4125906b1485a35b5c71c2445fb005c6564c0d912640f5f7a759c08c"
     },
     {
       "source": "packages/maker-core/src/agents/shared/remote-compact-encrypted-error.ts",
-      "sourceSHA256": "860892ff572fb72b0041d3add35f9cbcecac9ce5d7e479a25a967d599a9bb152",
+      "sourceSHA256": "591a9f29d67848a9eb2a6bee86808f93178eed6982d26d2ab6fe73b5d641d0e6",
       "target": "modules/chat-pi/cindy/bots/maker-core/remote-compact-encrypted-error.ts",
-      "sha256": "860892ff572fb72b0041d3add35f9cbcecac9ce5d7e479a25a967d599a9bb152"
+      "sha256": "12a58829f3ab9a0c42a518b20a6e94b114bac69c0f7984a9d465a5150883be37",
+      "adaptation": "import-paths"
     },
     {
       "source": "packages/lizi-mcps/src/xdt-helper/bot_workbench.ts",
-      "sourceSHA256": "cd48414d5304b60ec1f63cf4c18ab654d799546eb88a2468b54d26c52b6eeb92",
+      "sourceSHA256": "4eb98acbc26e0884671ff315effe60f34183cfc6a88841f5fb8d8af4b0e79c6f",
       "target": "modules/chat-pi/cindy/helper/botWorkbenchTools.ts",
       "sha256": "a7010df3f29d4b551e3ebb95fb167c28b3b3463a42568ee4cf59dcc90ded7d54",
       "adaptation": "import-paths; intact declarations: GlanceKindWire, GlanceRowWire, BotGlanceWire, iso, glanceForModel, WORKBENCH_MESSAGE_MAX_CHARS, deadline, todoPatch"
     },
     {
       "source": "packages/lizi-mcps/src/xdt-helper/get_task_digest.ts",
-      "sourceSHA256": "66aeed4215be930c3bd10f4a6b77d6d99ceb46e559c5688055aa37111f2e5238",
+      "sourceSHA256": "b5870a3111ba41e9574ca4e0e160c05938e392a5d79c2e69ffb180b3f97b9ede",
       "target": "modules/chat-pi/cindy/helper/taskDigestTool.ts",
-      "sha256": "bed95e73ef1146be18f5ed13cfe037afd7d61c7872abd6c3ed5ed7dc5672333a",
+      "sha256": "36bb3ed8af55bb54c1aece9e42ab5734cea587aab341c7424a3ce191cb76b1aa",
       "adaptation": "import-paths; intact declarations: TaskDigestPhase, TaskDigestRoute, TaskDigestWire, TASK_DIGEST_MAX_BYTES, TASK_DIGEST_TEXT_MAX, TITLE_MAX, SHRINKABLE, clip, encoder, payloadBytes, boundTaskDigest, DESCRIPTION"
     }
   ],

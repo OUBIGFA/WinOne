@@ -55,3 +55,9 @@ export interface AutomationScheduleSessionInfo {
 // Cindy's task sidebar groups automation sessions; WinOne's Chat sidebar keeps
 // its own grouping, so the index owner has nothing to maintain here.
 export function useAutomationScheduleSessionIndex(_sessionId?: string): void {}
+
+// Cindy lib/sessionAttentionStore.useSessionAttentionKind (2d8d3c3). WinOne
+// keeps no separate attention store (see clearSessionAttentionMany).
+export function useSessionAttentionKind(_sessionId: string): AttentionKind | undefined {
+  return undefined;
+}

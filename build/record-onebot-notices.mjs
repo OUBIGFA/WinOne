@@ -23,7 +23,7 @@ function visit(key){
  if(locked.os&&!locked.os.includes(process.platform)||locked.cpu&&!locked.cpu.includes(process.arch)){visited.delete(key);return;}
  const home=path.join(moduleRoot,key),pkg=JSON.parse(fs.readFileSync(path.join(home,'package.json'),'utf8'));
  if(!catalog.components.some(item=>item.sourceDirectory===key)){
-  if(!['MIT','ISC','Apache-2.0','BSD-2-Clause','BSD-3-Clause','Python-2.0','0BSD','Apache-2.0 AND LGPL-3.0-or-later'].includes(pkg.license))throw Error('License needs review: '+pkg.name+' '+pkg.license);
+  if(!['MIT','ISC','Apache-2.0','BSD-2-Clause','BSD-3-Clause','Python-2.0','0BSD','BlueOak-1.0.0','Apache-2.0 AND LGPL-3.0-or-later'].includes(pkg.license))throw Error('License needs review: '+pkg.name+' '+pkg.license);
   const names=fs.readdirSync(home).filter(name=>/^(licen[cs]e|notice|copying)(?:[.-].*)?$/i.test(name)&&fs.statSync(path.join(home,name)).isFile());
   // Some locked packages (e.g. https-proxy-agent 5.0.1) publish the complete
   // MIT license inside README instead of a separate LICENSE file. Preserve the
@@ -60,6 +60,28 @@ function visit(key){
  for(const name of Object.keys({...lock.packages[key].dependencies,...lock.packages[key].optionalDependencies}))visit(resolve(name,key));
 }
 for(const name of roots)visit(resolve(name));
+// A source upgrade must also revalidate the original license texts and every
+// metadata-only disclosure at the new pinned revision, not just change an id.
+const spec=JSON.parse(fs.readFileSync(path.join(root,catalog.sourceSpec),'utf8'));
+const cindy=path.join(root,'dist/resources/sources/cindy');
+const upstream=file=>execFileSync('git',['-C',cindy,'show',spec.revision+':'+file],{maxBuffer:16*1024*1024});
+let disclosure;
+for(const component of catalog.components){
+ if(component.kind==='source'){
+  if(component.repository!==spec.repository||component.license!==spec.license)throw Error('Source license requires review: '+component.name);
+  for(const notice of component.notices){
+   const bytes=upstream(path.posix.basename(notice.file));
+   if(hash(bytes)!==notice.sha256||hash(fs.readFileSync(path.join(root,'third_party',notice.file)))!==notice.sha256)throw Error('Source license text requires review: '+notice.file);
+  }
+  component.revision=spec.revision;
+ }
+ if(component.noticePolicy){
+  disclosure??=upstream('docs/legal/notices/desktop-win.txt');
+  const policy=component.noticePolicy;
+  if(!disclosure.toString('utf8').split('Packages without a standalone license file (license per package.json):')[1]?.split(/\r?\n/).includes(policy.declaration))throw Error('Pinned disclosure no longer covers '+component.name);
+  policy.revision=spec.revision;policy.sourceSHA256=hash(disclosure);
+ }
+}
 // Collect and validate the entire closure before changing the catalog.
 for(const component of additions){
  for(const notice of component.notices){fs.writeFileSync(path.join(root,'third_party',notice.file),notice.bytes);delete notice.bytes;}

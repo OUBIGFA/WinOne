@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/makecindy/cindy",
-  "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+  "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
   "license": "third_party/cindy/LICENSE",
   "notice": "third_party/cindy/NOTICE",
   "purpose": "Chat automations reuse Cindy's scheduler engine and the complete renderer feature (SchedulerPage, task list, run history, form, chips, templates). WinOne seams supply the Host transport, Pi-only harness, local-only runtime location, AI service catalog, i18n merge and conversation navigation.",
@@ -64,7 +64,8 @@
         "components/ui/toast/Toast.tsx",
         "components/ui/toast/ToastContainer.tsx",
         "components/ui/toast/DownloadToast.tsx",
-        "components/ui/toast/index.ts"
+        "components/ui/toast/index.ts",
+        "lib/deepLink.ts"
       ]
     },
     {
@@ -79,7 +80,8 @@
         "sessionSource.ts",
         "regionalMoney.ts",
         "brandRegion.ts",
-        "usageModelLabel.ts"
+        "usageModelLabel.ts",
+        "deepLinkSchemes.ts"
       ]
     },
     {
@@ -154,7 +156,13 @@
     "apps/desktop/src/main/utility-model/oneShotCandidates.ts": "modules/chat-pi/cindy/host/unavailable.ts",
     "apps/desktop/src/main/scheduler-host/hook-runtimes.ts": "modules/chat-pi/cindy/host/unavailable.ts",
     "apps/desktop/src/main/scheduler-host/pre-run-hook.ts": "modules/chat-pi/cindy/host/unavailable.ts",
-    "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json": "apps/desktop/frontend/src/features/cindy/locales/scheduler.zh-CN.json"
+    "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json": "apps/desktop/frontend/src/features/cindy/locales/scheduler.zh-CN.json",
+    "apps/desktop/src/shared/ghost.ts": "apps/desktop/frontend/src/features/cindy/host/ghostControlPoints.ts",
+    "apps/desktop/src/renderer/lib/secondaryWindow.ts": "apps/desktop/frontend/src/features/cindy/host/windows.ts",
+    "apps/desktop/src/renderer/lib/sidebarWindow.ts": "apps/desktop/frontend/src/features/cindy/host/windows.ts",
+    "apps/desktop/src/renderer/lib/errorDiagnosisPrompt.ts": "apps/desktop/frontend/src/features/cindy/host/errorDiagnosis.ts",
+    "apps/desktop/src/renderer/components/new-chat/ModelRouteSelector.tsx": "apps/desktop/frontend/src/features/cindy/host/onebotModelRouteSelector.tsx",
+    "apps/desktop/src/renderer/lib/deviceName.ts": "apps/desktop/frontend/src/features/cindy/host/remote.ts"
   },
   "modules": {
     "react-router-dom": "apps/desktop/frontend/src/features/cindy/host/router.tsx"
@@ -194,9 +202,9 @@
     },
     {
       "source": "packages/maker-scheduler/src/engine/scheduler.ts",
-      "sourceSHA256": "5e97025ad5df2363a93561e597bd1a0028828a15fc84acb5702633c2ce18634d",
+      "sourceSHA256": "1b3489055b725784727fba7ebe81be77ca626496fcf85a578beda44f067bd154",
       "target": "third_party/cindy/scheduler/engine/scheduler.ts",
-      "sha256": "5e97025ad5df2363a93561e597bd1a0028828a15fc84acb5702633c2ce18634d"
+      "sha256": "1b3489055b725784727fba7ebe81be77ca626496fcf85a578beda44f067bd154"
     },
     {
       "source": "packages/maker-scheduler/src/engine/template.ts",
@@ -230,15 +238,15 @@
     },
     {
       "source": "packages/maker-scheduler/src/interfaces/schedule-runner.ts",
-      "sourceSHA256": "da8021a5a02ce1bb7a3378d484dda0df59a7bd1be7300446e868196e81f83a6d",
+      "sourceSHA256": "19f2bb45d53c9b0c94b4c5296d7af9099da4d715498e77695838e16223269c90",
       "target": "third_party/cindy/scheduler/interfaces/schedule-runner.ts",
-      "sha256": "da8021a5a02ce1bb7a3378d484dda0df59a7bd1be7300446e868196e81f83a6d"
+      "sha256": "19f2bb45d53c9b0c94b4c5296d7af9099da4d715498e77695838e16223269c90"
     },
     {
       "source": "packages/maker-scheduler/src/interfaces/schedule-storage.ts",
-      "sourceSHA256": "b4fd6cff4738b252c95424892a71bd7c3535d54434b9b8e81d218cf24e1e662d",
+      "sourceSHA256": "534d71bb58d2d9cf54f0f0d1244e3825201832ff102bb8d501d17c7ec0f9a007",
       "target": "third_party/cindy/scheduler/interfaces/schedule-storage.ts",
-      "sha256": "b4fd6cff4738b252c95424892a71bd7c3535d54434b9b8e81d218cf24e1e662d"
+      "sha256": "534d71bb58d2d9cf54f0f0d1244e3825201832ff102bb8d501d17c7ec0f9a007"
     },
     {
       "source": "packages/maker-scheduler/src/pre-run-hook-update.ts",
@@ -248,9 +256,9 @@
     },
     {
       "source": "packages/maker-scheduler/src/routine-engine.ts",
-      "sourceSHA256": "4eb2f05667eec9c4b8f66395ddf078c9bb8965af0434749eb9768ccb2457edc5",
+      "sourceSHA256": "7589f175b5713ab121acdc741933d3b6b4741752bfec9c226a5b40c09c3c73d0",
       "target": "third_party/cindy/scheduler/routine-engine.ts",
-      "sha256": "4eb2f05667eec9c4b8f66395ddf078c9bb8965af0434749eb9768ccb2457edc5"
+      "sha256": "7589f175b5713ab121acdc741933d3b6b4741752bfec9c226a5b40c09c3c73d0"
     },
     {
       "source": "packages/maker-scheduler/src/routine-event-admission.ts",
@@ -260,15 +268,15 @@
     },
     {
       "source": "packages/maker-scheduler/src/routines.ts",
-      "sourceSHA256": "5fa84e1b56cae3cca6b41faaeec692f65a4c5a8a73fb354e9fd8ff6c71ab5c77",
+      "sourceSHA256": "1cfa2fcbef549d5bc49765c61b0498b40f3bddabf4beef255883dca16a509fe4",
       "target": "third_party/cindy/scheduler/routines.ts",
-      "sha256": "5fa84e1b56cae3cca6b41faaeec692f65a4c5a8a73fb354e9fd8ff6c71ab5c77"
+      "sha256": "1cfa2fcbef549d5bc49765c61b0498b40f3bddabf4beef255883dca16a509fe4"
     },
     {
       "source": "packages/maker-scheduler/src/types.ts",
-      "sourceSHA256": "fea4bf56be040fb523044453ae7ca38ddc561a43e30dafef7ceb105739967c5d",
+      "sourceSHA256": "ecb3802a6fa98158560651e2fefa9b93c3a709d588ba42c2721210eb1e809843",
       "target": "third_party/cindy/scheduler/types.ts",
-      "sha256": "fea4bf56be040fb523044453ae7ca38ddc561a43e30dafef7ceb105739967c5d"
+      "sha256": "ecb3802a6fa98158560651e2fefa9b93c3a709d588ba42c2721210eb1e809843"
     },
     {
       "source": "packages/maker-shared/src/brandIdentity.ts",
@@ -290,9 +298,9 @@
     },
     {
       "source": "packages/maker-shared/src/errorRedaction.ts",
-      "sourceSHA256": "d2e65395ab615fac89a918ddc4e0e1af6a7defb824dcc7cbc91f23a5075da2a5",
+      "sourceSHA256": "23330edce09e85cc0af37ce9ca009707c324d14e7c040998a7a80871dcd581eb",
       "target": "third_party/cindy/maker-shared/errorRedaction.ts",
-      "sha256": "d2e65395ab615fac89a918ddc4e0e1af6a7defb824dcc7cbc91f23a5075da2a5"
+      "sha256": "23330edce09e85cc0af37ce9ca009707c324d14e7c040998a7a80871dcd581eb"
     },
     {
       "source": "packages/maker-shared/src/presentationLocalization.ts",
@@ -308,21 +316,21 @@
     },
     {
       "source": "packages/maker-shared/src/scheduleForm.ts",
-      "sourceSHA256": "e59f1b71c5164c1ec785aae245bfa8098ae36ce292a8bc7e10bbe92fcad7892d",
+      "sourceSHA256": "7988f97a317355782dd8e5e26b0ba542bbc8357c292b89211030a94f7f21e778",
       "target": "third_party/cindy/maker-shared/scheduleForm.ts",
-      "sha256": "e59f1b71c5164c1ec785aae245bfa8098ae36ce292a8bc7e10bbe92fcad7892d"
+      "sha256": "7988f97a317355782dd8e5e26b0ba542bbc8357c292b89211030a94f7f21e778"
     },
     {
       "source": "packages/maker-shared/src/scheduleModel.ts",
-      "sourceSHA256": "b193d251c510aa158d0a9dabc81c984ca87b17114a9995780e39d408fe552ed9",
+      "sourceSHA256": "145ca4c39b644f501208bb91b7868f38ff83afdfc0fbac78a5a1d1e1a942a8b0",
       "target": "third_party/cindy/maker-shared/scheduleModel.ts",
-      "sha256": "b193d251c510aa158d0a9dabc81c984ca87b17114a9995780e39d408fe552ed9"
+      "sha256": "145ca4c39b644f501208bb91b7868f38ff83afdfc0fbac78a5a1d1e1a942a8b0"
     },
     {
       "source": "packages/maker-shared/src/scheduleTypes.ts",
-      "sourceSHA256": "74392b40ece4b5121b4dc6a92d38cd1ddd22f84a9791e9aae2ead586d9816527",
+      "sourceSHA256": "777ae716ed46307c16f28514c13a5d53f1b05a6a2183c9a3c94c5dc0b75166fa",
       "target": "third_party/cindy/maker-shared/scheduleTypes.ts",
-      "sha256": "74392b40ece4b5121b4dc6a92d38cd1ddd22f84a9791e9aae2ead586d9816527"
+      "sha256": "777ae716ed46307c16f28514c13a5d53f1b05a6a2183c9a3c94c5dc0b75166fa"
     },
     {
       "source": "packages/maker-shared/src/usageFormat.ts",
@@ -352,17 +360,24 @@
       "adaptation": "import-paths"
     },
     {
+      "source": "apps/desktop/src/renderer/features/scheduler/components/PreRunPluginFields.tsx",
+      "sourceSHA256": "3b61ec18559e5a541be18d0a455a0b86692dae6d05cb9aaa2b75f054100b26c5",
+      "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/PreRunPluginFields.tsx",
+      "sha256": "360713aa36e86bca7627001cb8035f735cc128cc5429a8f4e466cef62a86b423",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/renderer/features/scheduler/components/ProjectAutomationNotifyBridge.tsx",
-      "sourceSHA256": "ad9643980708ae091d20d17ebaf99c4a6a213c525fea9aead7cdfa65a47dc19b",
+      "sourceSHA256": "2fc15f1b2e7baaeddbc6fdc3e1215b4007a0918b7d92d2b4018d439634a09af4",
       "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/ProjectAutomationNotifyBridge.tsx",
-      "sha256": "0130d4c0149950fb12bafebd56809486114650fbcddefe5147044ee25cd29c43",
+      "sha256": "d00e904142c3f8889cd0f50f21c2dac7e8f02b6073d9810c431c392433e99e4e",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/scheduler/components/RunHistoryCard.tsx",
-      "sourceSHA256": "0c7f5210b6ad7c12729eaf622eddcfe84640cd9a5764adb5eac5133fce8ff276",
+      "sourceSHA256": "34a00dcf3149e2d5bafc0e65ec9b0603fe92481cd978948b3d2a0aa7b1548e6e",
       "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/RunHistoryCard.tsx",
-      "sha256": "8e5653c14e102e2bd03d5d8aab4b157171b714ffa44d24546b97bbb5fd0ac4b8",
+      "sha256": "f8f74115cef5846a2ec47113e2f3a08647ba3d6456184f5d6ed3fdfd67e5fa09",
       "adaptation": "import-paths"
     },
     {
@@ -374,16 +389,16 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/scheduler/components/ScheduleChips.tsx",
-      "sourceSHA256": "1d3ae2f7bb8a3f36c377c4286f236db4f02826dc7fae62dd945860e7fd16d450",
+      "sourceSHA256": "f4fad0b893ba6c8b7a1cd723d4b471138aaab22c69ee966885a99f4ce422d214",
       "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/ScheduleChips.tsx",
-      "sha256": "0a40a0ec161c295dd09955438d3b6147c9c09cd408da41785f9a03c551fc18a9",
+      "sha256": "fefb658f4aab97054cf2f7933d8843d340fa34444beb73935dc694ecd06711b2",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/scheduler/components/ScheduleFormDialog.tsx",
-      "sourceSHA256": "73f676a252de0cf5a5e0e58b61d8e37b0cdb7c95fe3155b590cdde4eb5498dc3",
+      "sourceSHA256": "9e809f26ba967a1e13fff2acf9e738951d1d40d2562c2ce12f7c8685c0ef23ab",
       "target": "apps/desktop/frontend/src/features/cindy/scheduler/components/ScheduleFormDialog.tsx",
-      "sha256": "542b80203113a5e4fceed2607965b0f95468c0ec28640f54d4ac84492a50dba0",
+      "sha256": "aa8a3923c84fea3e6aeaa081e1ee6c760b28f685100caf3264b2ff46abdc0c71",
       "adaptation": "import-paths; Radix portals render outside the Cindy theme scope; WinOne popups carry cindy-panel-popup like the vendored primitives; WinOne forbids horizontal overflow: the form never exceeds the window; Radix portals render outside the Cindy theme scope; WinOne popups carry cindy-panel-popup like the vendored primitives"
     },
     {
@@ -479,9 +494,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/scheduler/hooks/useScheduleForm.ts",
-      "sourceSHA256": "040adde511b545550b7fa94c6326dc15b5a477c247d064aa728fda583dbe30e7",
+      "sourceSHA256": "aadf36b96538f2bb88b12e14c80958dcc92f7b01cd8c80516d6207be8219dbe9",
       "target": "apps/desktop/frontend/src/features/cindy/scheduler/hooks/useScheduleForm.ts",
-      "sha256": "7c2f77944bdbeb6c0bb379163aeade31a57508ac57392498225a42c5e0eb66ba",
+      "sha256": "6f636273a93db47828d078a6e54200ca44751ec0c77c7c9a9a9cb71c632b7414",
       "adaptation": "import-paths; WinOne runs only the Pi harness: new automations default to pi"
     },
     {
@@ -561,16 +576,16 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/scheduler/lib/projectAutomationConfig.ts",
-      "sourceSHA256": "89e6b5af9119a49b3f172100e35c8d6c094da94747d554b83a523ef00bc97d19",
+      "sourceSHA256": "8539d620577c3b2c4c21ffa4a0caae8107d099d7b315614810f2ea0d28303e66",
       "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/projectAutomationConfig.ts",
-      "sha256": "c4ec9b01e91012dca2c5092cac861df2aae485e25113bb1f27d056ea34b305af",
+      "sha256": "5ea25afa53a22fbcf1f2b7910c6b02fcf70f5aa75dfebc84d4e3aa6ce95b0304",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/features/scheduler/lib/projectScheduleSidebarIndex.ts",
-      "sourceSHA256": "bdb3b7012c692f6ee28f0c237a2c0a0e95f8ea3eb66148c90a1d8551d0356ee0",
+      "sourceSHA256": "91d6c1afc2b4f8f8315e343c6ca2e961a1551f355bada9df2dc74510bb47156f",
       "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/projectScheduleSidebarIndex.ts",
-      "sha256": "e4948aca8f3014216dde1073bb6fce207bf85bde36f0db4de0162eec9f055983",
+      "sha256": "a29a9c7b773034f7f9e8c8e549125b3e78703801b2d1ee018fe9dfe4b3d90254",
       "adaptation": "import-paths"
     },
     {
@@ -596,9 +611,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/scheduler/lib/scheduleFormLogic.ts",
-      "sourceSHA256": "5ee5b49d7c37c8cf2f5962e3fdf9050ecd35c7e7a4c5e2f2cba97cda330bc3ca",
+      "sourceSHA256": "23e49a97d5ca999ede691dbd3a6c86a42bfc2b6794c25da1c5189d0eae6ca0b1",
       "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/scheduleFormLogic.ts",
-      "sha256": "710985ef86dc5a01abb3ad1577ddbb924d5d78e2acebe379e2dfff71e2e86421",
+      "sha256": "1f393ad694e206072420ab41e1324f1b7ee8405f97bce31d82429b8fbc4afe73",
       "adaptation": "import-paths"
     },
     {
@@ -617,9 +632,9 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/scheduler/lib/scheduleSidebarIndexRuns.ts",
-      "sourceSHA256": "1c75657bfacbb7e103592169664abddbe62c96e7821df71bb851bbffa0baa57d",
+      "sourceSHA256": "abd46f104233cee12c13aa6d15518660ef87f2305c38d6067b33916c02c0c435",
       "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/scheduleSidebarIndexRuns.ts",
-      "sha256": "15835bae90e6bed5e0add0f1151277381f1269723c7584cb26232bdd97e2e6c1",
+      "sha256": "e340a51a99f5fc0e9045d1362eb9c189f7226582102fb562fc17a5b4355e92ea",
       "adaptation": "import-paths"
     },
     {
@@ -742,6 +757,13 @@
       "sha256": "d342c30b485faec14985305fb09f03d6e7254871dc43717a73d3f699a9bcf76a"
     },
     {
+      "source": "apps/desktop/src/renderer/lib/deepLink.ts",
+      "sourceSHA256": "261613b73defffa5a786e93dc27f2d2752726df7ba22372eb0ba9aa73715ae23",
+      "target": "apps/desktop/frontend/src/features/cindy/lib/deepLink.ts",
+      "sha256": "5147137e8cc013627e0c6bcc1113803a00aca309633d90c98c2eb2d24eb8d519",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/renderer/lib/fileTransferToasts.ts",
       "sourceSHA256": "ce0704d6a872d056f56dd3ce92da2f0541d879f7674c2d20273181af26ae9b63",
       "target": "apps/desktop/frontend/src/features/cindy/lib/fileTransferToasts.ts",
@@ -768,6 +790,13 @@
       "adaptation": "import-paths"
     },
     {
+      "source": "apps/desktop/src/shared/deepLinkSchemes.ts",
+      "sourceSHA256": "a6159fc6a6591ed958bceeb40cd0257a940ab56c634fb33a3735e135176e5e66",
+      "target": "apps/desktop/frontend/src/features/cindy/shared/deepLinkSchemes.ts",
+      "sha256": "f54b695b8617b01b98bfc0e03d88813700e8ca3b6430a5527f06018544dae6b6",
+      "adaptation": "import-paths"
+    },
+    {
       "source": "apps/desktop/src/shared/openPathResult.ts",
       "sourceSHA256": "c25432c60ee49b481ddd95f89395231816aabfb1d4577a09511235e4ca8c98f1",
       "target": "apps/desktop/frontend/src/features/cindy/shared/openPathResult.ts",
@@ -781,9 +810,9 @@
     },
     {
       "source": "apps/desktop/src/shared/regionalMoney.ts",
-      "sourceSHA256": "0f765c6640a1616f8b5cfb60f746890296aa7d2bf1b6d3b9b8984bd30a7d43b0",
+      "sourceSHA256": "e83bee934964c5c05c06a22f15c355757f67411b1f4c74b5256ffb7335f59ca9",
       "target": "apps/desktop/frontend/src/features/cindy/shared/regionalMoney.ts",
-      "sha256": "53507a3b199678b4dff37b590b04c009970e1389c7ed12a24ad7b868a86a2004",
+      "sha256": "ebcea0b104aeacfe11613ebe45c689043248fb4ea4c99e65c55297aa58fc38a6",
       "adaptation": "import-paths"
     },
     {
@@ -794,9 +823,9 @@
     },
     {
       "source": "apps/desktop/src/shared/sessionSource.ts",
-      "sourceSHA256": "358c7963b2f9bf5b031aa4bdd20283d722d3c8701a899c40f4a712e537b4b6f8",
+      "sourceSHA256": "5f8c2f0ceeadb0637eb69dbbfef8b30cefc1de6cd1497fe87de0905999dbbc24",
       "target": "apps/desktop/frontend/src/features/cindy/shared/sessionSource.ts",
-      "sha256": "0fef850ae98526c992729f80bf48aa49bb6dcbabdcd33914ff8827d503081d61",
+      "sha256": "c0d9a36536b70b99c4c55a43dee9364edbdf644e3c71133cba82d3b0ffe3376f",
       "adaptation": "import-paths"
     },
     {
@@ -820,9 +849,9 @@
     },
     {
       "source": "apps/desktop/src/main/scheduler-host/hook-script-generator.ts",
-      "sourceSHA256": "7d4ad71904c7ff0967ffacd5e8bbdbdc798e4a7eda890e0e8f8241f6fb086ccc",
+      "sourceSHA256": "74229bd2cd926e09ad70a1113ef6e1fe18d6fafa7cab0126c4590970d94aebb5",
       "target": "modules/chat-pi/cindy/scheduler-host/hook-script-generator.ts",
-      "sha256": "2606e82055365f70889ae7ade4d5a8e80aed9f2046b2b61e03bde708606ba295",
+      "sha256": "faa2f7d7bb8830b2a376a8a26809d2e044cdbdd7a61900df701ffeaeb3497104",
       "adaptation": "import-paths"
     },
     {
@@ -860,24 +889,24 @@
     },
     {
       "source": "apps/desktop/src/renderer/features/scheduler/lib/__tests__/scheduleFormLogic.test.ts",
-      "sourceSHA256": "50baf8d9872353141541c5ef1eeea0515dba0b613ca1257db922b8c949ab8184",
+      "sourceSHA256": "78f5a66083ed2170fb7aa71bcd4a5b458664c403d04ef0f0c4f37a62f3ddcf1e",
       "target": "apps/desktop/frontend/src/features/cindy/scheduler/lib/__tests__/scheduleFormLogic.test.ts",
-      "sha256": "597fb5a68c9cee3bd4717ee1fe52307bba637977f44e0c5daa69cdf327a1a18c",
+      "sha256": "8adfceba6b0c872a694864fde1c728c9f7fdec88113ebe71ac9145bf5483b4f9",
       "adaptation": "import-paths"
     },
     {
       "source": "apps/desktop/src/renderer/i18n/locales/zh-CN/common.json",
-      "sourceSHA256": "e016b4695208b0ddf0f579f192760224337b8c3a9b0c017b5b7c38a74366ac60",
+      "sourceSHA256": "09fd9b1f6d9eb2e270f3d41c3a8e66fd90e74a03a0b112531f933dae470e4e13",
       "target": "apps/desktop/frontend/src/features/cindy/locales/scheduler.zh-CN.json",
-      "sha256": "a633d8d669629d5583171193919700a73bf2c116f510fe12fc1d8019a19df914",
-      "adaptation": "locale subset; excluded chat.remoteError; WinOne wording for scheduler.editor.preRunHook.aiFailure.no_candidate, scheduler.editor.preRunHook.aiFailure.attemptReason.apiKeyMissing, scheduler.editor.preRunHook.aiFailure.attemptReason.endpointMissing, scheduler.editor.preRunHook.aiFailure.openProviders, scheduler.editor.promptDialog.subtitle, scheduler.editor.preRunHook.aiFailure.attemptReason.agentUnavailable, scheduler.editor.preRunHook.aiFailure.attemptReason.notAuthenticated, scheduler.editor.preRunHook.aiFailure.attemptReason.authProbeFailed; {{appName}} substituted"
+      "sha256": "28b9fb0edb7fbc4601b90b270e2a92ee3dadd3fdf55cc8a903ccbfb01176fd5f",
+      "adaptation": "locale subset; excluded chat.remoteError; WinOne wording for scheduler.editor.preRunHook.aiFailure.no_candidate, scheduler.editor.preRunHook.aiFailure.attemptReason.apiKeyMissing, scheduler.editor.preRunHook.aiFailure.attemptReason.endpointMissing, scheduler.editor.preRunHook.aiFailure.openProviders, scheduler.editor.promptDialog.subtitle, scheduler.editor.preRunHook.aiFailure.attemptReason.agentUnavailable, scheduler.editor.preRunHook.aiFailure.attemptReason.notAuthenticated, scheduler.editor.preRunHook.aiFailure.attemptReason.authProbeFailed, chat.errorBanner.diagnosePrompt, chat.errorBanner.diagnosePromptWithoutSession; {{appName}} substituted"
     },
     {
       "source": "apps/desktop/src/renderer/i18n/locales/en/common.json",
-      "sourceSHA256": "270852ddcf1980a2422a99e8d71cf1b683c18109dfb60685f1068a367d06ccf3",
+      "sourceSHA256": "bfc848af3fc107b643c9ad8dd6ad7e04060a90ea3c63e61268c08411d5f692e4",
       "target": "apps/desktop/frontend/src/features/cindy/locales/scheduler.en.json",
-      "sha256": "d64e678d0e728c5bfaadd9a29486a5647e5596226f5a4acca47af6a509744621",
-      "adaptation": "locale subset; excluded chat.remoteError; WinOne wording for scheduler.editor.preRunHook.aiFailure.no_candidate, scheduler.editor.preRunHook.aiFailure.attemptReason.apiKeyMissing, scheduler.editor.preRunHook.aiFailure.attemptReason.endpointMissing, scheduler.editor.preRunHook.aiFailure.openProviders, scheduler.editor.promptDialog.subtitle, scheduler.editor.preRunHook.aiFailure.attemptReason.agentUnavailable, scheduler.editor.preRunHook.aiFailure.attemptReason.notAuthenticated, scheduler.editor.preRunHook.aiFailure.attemptReason.authProbeFailed; {{appName}} substituted"
+      "sha256": "b40ff36866605789afdbbabc21611a646b223c900f85ee83c787c6ec51ecb5cb",
+      "adaptation": "locale subset; excluded chat.remoteError; WinOne wording for scheduler.editor.preRunHook.aiFailure.no_candidate, scheduler.editor.preRunHook.aiFailure.attemptReason.apiKeyMissing, scheduler.editor.preRunHook.aiFailure.attemptReason.endpointMissing, scheduler.editor.preRunHook.aiFailure.openProviders, scheduler.editor.promptDialog.subtitle, scheduler.editor.preRunHook.aiFailure.attemptReason.agentUnavailable, scheduler.editor.preRunHook.aiFailure.attemptReason.notAuthenticated, scheduler.editor.preRunHook.aiFailure.attemptReason.authProbeFailed, scheduler.editor.preRunPlugin.tooltip, chat.errorBanner.diagnosePrompt, chat.errorBanner.diagnosePromptWithoutSession; {{appName}} substituted"
     }
   ],
   "patches": [
@@ -959,7 +988,9 @@
         "scheduler.editor.promptDialog.subtitle": "用 Pi 按计划运行 Prompt。",
         "scheduler.editor.preRunHook.aiFailure.attemptReason.agentUnavailable": "执行引擎不可用",
         "scheduler.editor.preRunHook.aiFailure.attemptReason.notAuthenticated": "需要登录 AI 服务账号",
-        "scheduler.editor.preRunHook.aiFailure.attemptReason.authProbeFailed": "无法确认 AI 服务账号登录状态"
+        "scheduler.editor.preRunHook.aiFailure.attemptReason.authProbeFailed": "无法确认 AI 服务账号登录状态",
+        "chat.errorBanner.diagnosePrompt": "请帮我诊断这个错误：找出原因，并告诉我怎么解决。\n\n出错任务：{{sessionUrl}}\n错误提示：{{message}}\n错误详情：\n{{details}}\n\n如果确认是 WinOne 本身的问题，请告诉我。",
+        "chat.errorBanner.diagnosePromptWithoutSession": "请帮我诊断这个错误：找出原因，并告诉我怎么解决。\n\n错误提示：{{message}}\n错误详情：\n{{details}}\n\n如果确认是 WinOne 本身的问题，请告诉我。"
       },
       "en": {
         "scheduler.editor.preRunHook.aiFailure.no_candidate": "No model is currently available. Enable a model in AI services, then try again.",
@@ -969,8 +1000,15 @@
         "scheduler.editor.promptDialog.subtitle": "Run a prompt on a schedule with Pi.",
         "scheduler.editor.preRunHook.aiFailure.attemptReason.agentUnavailable": "the agent is unavailable",
         "scheduler.editor.preRunHook.aiFailure.attemptReason.notAuthenticated": "AI service account sign-in required",
-        "scheduler.editor.preRunHook.aiFailure.attemptReason.authProbeFailed": "could not verify the AI service account sign-in"
+        "scheduler.editor.preRunHook.aiFailure.attemptReason.authProbeFailed": "could not verify the AI service account sign-in",
+        "scheduler.editor.preRunPlugin.tooltip": "Before each run, WinOne asks the plugin you choose. It can let the run go ahead, skip this run, or stop it. It can never approve anything that needs your confirmation.",
+        "chat.errorBanner.diagnosePrompt": "Please diagnose this error: find the cause and tell me how to fix it.\n\nSession: {{sessionUrl}}\nError: {{message}}\nDetails:\n{{details}}\n\nIf you find it is a problem with WinOne itself, let me know.",
+        "chat.errorBanner.diagnosePromptWithoutSession": "Please diagnose this error: find the cause and tell me how to fix it.\n\nError: {{message}}\nDetails:\n{{details}}\n\nIf you find it is a problem with WinOne itself, let me know."
       }
-    }
+    },
+    "extraKeys": [
+      "chat.errorBanner.diagnosePrompt",
+      "chat.errorBanner.diagnosePromptWithoutSession"
+    ]
   }
 }

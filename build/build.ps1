@@ -41,18 +41,12 @@ if (-not $SkipInstall) { & npm.cmd ci --prefix apps/desktop/frontend --no-audit 
 & node --test (Join-Path $root 'tests/notices/cindy-binary.test.mjs'); CheckExit
 & node --test (Join-Path $root 'tests/cindy-ports/check.test.mjs'); CheckExit
 & (Join-Path $PSScriptRoot 'build-provider-icons.ps1') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $DiagramTargetDirectory -WorkDirectory (Join-Path (Split-Path -Parent $output) 'provider-icons'); CheckExit
-# The UI suite runs within vitest.config.ts's worker budget, alone at this
-# point of the build. MyGo ships only the Chat tools page from React, so its
-# build runs the tests related to that page's sources; the Rust and legacy
-# desktops ship the whole settings window and run every test.
-if($DesktopImplementation -eq 'MyGo'){
-    Invoke-NativeCommand 'npm.cmd' @('run','test:mygo','--prefix','apps/desktop/frontend') 'Frontend tests failed'
-}else{
-    Invoke-NativeCommand 'npm.cmd' @('test','--prefix','apps/desktop/frontend','--','--pool=threads') 'Frontend tests failed'
-}
-# The settings window bundle and the native browser's comment overlay serve
-# only the Rust and legacy desktops; MyGo builds its Chat tools page itself.
+# The React frontend serves only the Rust and legacy desktops: MyGo ships none
+# of it, so its build neither tests nor bundles it.
 if($DesktopImplementation -ne 'MyGo'){
+    # The UI suite runs within vitest.config.ts's worker budget, alone at this
+    # point of the build.
+    Invoke-NativeCommand 'npm.cmd' @('test','--prefix','apps/desktop/frontend','--','--pool=threads') 'Frontend tests failed'
     Invoke-NativeCommand 'npm.cmd' @('run','build','--prefix','apps/desktop/frontend') 'Frontend build failed'
     # Bundle the same Cindy selection overlay consumed by the native browser. Keep
     # this in the unified build so a preload edit cannot leave a stale guest asset.
@@ -139,8 +133,7 @@ if($DesktopImplementation -eq 'Rust'){
     & (Join-Path $PSScriptRoot 'build-desktop-rust.ps1') -CargoExe $CargoExe -GoExe $GoExe -OutputDirectory $output -TargetDirectory $RustTargetDirectory -ComponentUI -FrontendAlreadyBuilt -UpdateRepository $UpdateRepository
     CheckExit
 }elseif($DesktopImplementation -eq 'MyGo'){
-    # Native settings, Chat and Flash chat; approved WebViews retain OneBot
-    # and the heavy Chat tools without changing their existing functionality.
+    # Every page is native; web views show only browser tabs and HTML previews.
     & (Join-Path $PSScriptRoot 'build-desktop-mygo.ps1') -GoExe $ResultGoExe -OutputDirectory $output -Version $buildVersion -UpdateRepository $UpdateRepository
     CheckExit
 }else{

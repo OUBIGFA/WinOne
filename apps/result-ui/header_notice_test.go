@@ -34,6 +34,7 @@ func TestShortHeaderNoticesHaveTheirMeasuredWidth(t *testing.T) {
 							status, ok := tt.Find(notice)
 							pin, _ := tt.Find(p.T("固定结果窗", "Pin result window"))
 							close, _ := tt.Find(p.T("关闭", "Close"))
+							dismiss, dismissFound := tt.Find(p.T("关闭提示", "Dismiss notice"))
 							grip, _ := tt.Find(p.T("拖动结果窗", "Drag result window"))
 							if directory := os.Getenv("WINONE_HEADER_LAYOUT_DIR"); directory != "" && source == "capture" && scale == 1 && notice == p.T("已复制", "Copied") {
 								if err := os.MkdirAll(directory, 0700); err != nil {
@@ -48,11 +49,12 @@ func TestShortHeaderNoticesHaveTheirMeasuredWidth(t *testing.T) {
 									t.Fatal(encodeErr, closeErr)
 								}
 							}
-							// A long notice at 150% text scale can exceed half a 320-DIP
-							// window. Require full text when pin/drag/gutters leave room;
-							// always require actionable buttons and no overlap.
-							hasRoom := naturalWidth+pin.W+grip.W+24 <= float32(width)/2
-							if !ok || (hasRoom && status.W+0.5 < naturalWidth) || status.X < pin.X+pin.W || status.X+status.W > close.X || close.X+close.W > float32(width) {
+							// The new feedback close control also occupies this half of
+							// the title bar. Count its actual measured width and preserve
+							// full text whenever that real control budget leaves room.
+							available := close.X + close.W - (grip.X + grip.W + 8) - dismiss.W - close.W - 12
+							hasRoom := naturalWidth <= available
+							if !ok || !dismissFound || (hasRoom && status.W+0.5 < naturalWidth) || status.X < pin.X+pin.W || status.X+status.W > dismiss.X || dismiss.X+dismiss.W > close.X || close.X+close.W > float32(width) {
 								t.Fatalf("%s %s %s width=%d scale=%g: short notice %q clipped: natural=%g status=%+v pin=%+v close=%+v", source, language, theme, width, scale, notice, naturalWidth, status, pin, close)
 							}
 							if math.Abs(float64(grip.Y+grip.H/2-resultHeaderHeight/2)) > 0.5 {

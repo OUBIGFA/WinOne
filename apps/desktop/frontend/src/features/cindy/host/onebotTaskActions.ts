@@ -29,6 +29,13 @@ export interface ChatMessage {
   hookSource?: string;
   isSyntheticTrigger?: boolean;
   blockedByGhost?: {ghostId: string; ghostName: string; reason: string};
+  // Cindy 2d8d3c3 ChatMessage fields read by the group live preview and work block.
+  toolUseId?: string;
+  toolName?: string;
+  toolInput?: unknown;
+  failedSamplingAttempt?: boolean;
+  /** Server-redacted thinking: no plaintext available. */
+  thinkingRedacted?: boolean;
 }
 export interface SessionChatSnapshot {readonly messages: readonly ChatMessage[]; streamingText?: string}
 /** Fields consumed by Cindy's terminal-failure projection for voice handoffs. */
@@ -54,6 +61,8 @@ export interface SessionChatLightState {
   pendingGhostGrantConfirm: unknown;
   pendingRemoteDesktopConfirmation: unknown;
   queuePaused: boolean;
+  /** Cindy device-link input handoff from another computer; WinOne has none. */
+  pendingInputHandoff: {requestId: string} | null;
 }
 export const EMPTY_LIGHT_STATE: SessionChatLightState = Object.freeze({
   pendingPermission: null,
@@ -67,6 +76,7 @@ export const EMPTY_LIGHT_STATE: SessionChatLightState = Object.freeze({
   pendingGhostGrantConfirm: null,
   pendingRemoteDesktopConfirmation: null,
   queuePaused: false,
+  pendingInputHandoff: null,
 });
 const EMPTY_SNAPSHOT: SessionChatSnapshot = Object.freeze({messages: Object.freeze([]) as readonly ChatMessage[]});
 

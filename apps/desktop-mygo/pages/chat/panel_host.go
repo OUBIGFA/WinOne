@@ -5,232 +5,122 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"winone/desktopmygo/chat/automations"
 	"winone/desktopmygo/chat/model"
+	"winone/desktopmygo/chat/pluginhost"
+	"winone/desktopmygo/chat/pluginhost/globalpages"
+	"winone/desktopmygo/chat/workspace"
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/webui"
-	"winone/desktopmygo/widgets"
 )
 
-// The side panel and the automations page stay React (the
-// user's hybrid plan): package webui shows chat-embed.html in web views
-// and this file is their native side, as chat.tsx was their parent: the
-// props it gave them, the callbacks they called, the panel's dock.
-
-// tools are the page's web views, made the first time each shows.
+// Native tools own their buffers and terminal lifetimes. Only browser pages
+// and HTML document content use untrusted WebViews; no React shell is created.
 type tools struct {
-	panel, automations *webui.Surface
-	browser            *webui.Browser
-	// settingsOpen shows the native Chat settings dialog (settings.go).
+	panel        *workspace.Panel
+	panelKey     string
+	panelRequest int
+	automations  *automations.Page
 	settingsOpen bool
-	// panelURLHandled drops a page address the panel already opened.
-	panelURLHandled int
 }
 
-// embedHost is what Cindy's hooks read in the page (publishCindyHost): the
-// catalog, the AI services as the Host returned them, and the model of a
-// new conversation.
-type embedHost struct {
-	Catalog              *Catalog             `json:"catalog"`
-	Providers            json.RawMessage      `json:"providers"`
-	DefaultModel         *widgets.AISelection `json:"defaultModel"`
-	DefaultThinkingLevel string               `json:"defaultThinkingLevel,omitempty"`
+func (p *Chat) appendReference(text, separator string) error {
+	if p.busy || p.opening || p.draftLoading {
+		return core.Errorf(i18n.T("chat.browserDraftBusy"))
+	}
+	p.updateText(joinNonEmpty(separator, p.text, text), p.files, p.activeID)
+	return nil
 }
 
-// embedState is what a view of the page is told (chat-embed-entry.tsx).
-type embedState struct {
-	Language string      `json:"language"`
-	Theme    string      `json:"theme"`
-	Host     embedHost   `json:"host"`
-	Panel    *panelProps `json:"panel,omitempty"`
-}
-
-// panelProps are ChatSidePanel's props, as chat.tsx gave them.
-type panelProps struct {
-	Key                  string       `json:"key"`
-	ID                   string       `json:"id"`
-	Cwd                  string       `json:"cwd"`
-	InitialTab           string       `json:"initialTab"`
-	InitialTabRequest    int          `json:"initialTabRequest"`
-	InitialDirectory     string       `json:"initialDirectory,omitempty"`
-	InitialURL           string       `json:"initialURL,omitempty"`
-	InitialFile          string       `json:"initialFile,omitempty"`
-	InitialLine          int          `json:"initialLine,omitempty"`
-	InitialReview        *reviewProps `json:"initialReview,omitempty"`
-	Dock                 string       `json:"dock"`
-	Visible              bool         `json:"visible"`
-	Running              bool         `json:"running"`
-	LastTurnPaths        []string     `json:"lastTurnPaths"`
-	CommentMarkerNumbers []float64    `json:"commentMarkerNumbers"`
-	ComposerLocked       bool         `json:"composerLocked"`
-}
-
-type reviewProps struct {
-	TurnID string `json:"turnId"`
-	Path   string `json:"path,omitempty"`
-}
-
-func (p *Chat) embedCommon(c *ui.Context) embedState {
-	theme := "light"
-	if c.Theme().Dark {
-		theme = "dark"
-	}
-	host := embedHost{Providers: p.providersJSON(), DefaultThinkingLevel: p.newThinking}
-	if p.catalogLoaded {
-		host.Catalog = &p.catalog
-	}
-	if p.newModel.Model != "" {
-		model := p.newModel
-		host.DefaultModel = &model
-	}
-	return embedState{Language: i18n.Locale(), Theme: theme, Host: host}
-}
-
-// providersJSON is the AI services' providers as the Host returned them:
-// Cindy reads fields this window does not decode.
-func (p *Chat) providersJSON() json.RawMessage {
-	if len(p.providersRaw) == 0 {
-		return json.RawMessage("null")
-	}
-	return p.providersRaw
-}
-
-// panelProps are the panel's props now.
-func (p *Chat) panelProps() *panelProps {
-	conversation := p.conversation()
-	cwd := ""
-	if conversation != nil {
-		cwd = conversation.Directory
-	}
-	props := &panelProps{
-		Key: p.activeID + ":" + cwd, ID: p.activeID, Cwd: cwd,
-		InitialTab: first(p.ui.detailsTab, "home"), InitialTabRequest: p.ui.panelRequests,
-		Dock: p.prefs.Dock, Visible: p.ui.details, Running: p.view.Running,
-		LastTurnPaths:  p.lastTurnPaths(),
-		ComposerLocked: p.busy || p.opening || p.draftLoading,
-	}
-	if r := p.ui.panelRequest; r != nil {
-		props.InitialDirectory, props.InitialFile, props.InitialLine = r.Directory, r.File, r.Line
-		if p.tools.panelURLHandled != p.ui.panelRequests {
-			props.InitialURL = r.URL
-		}
-		if r.Review != nil {
-			props.InitialReview = &reviewProps{TurnID: r.Review.TurnID, Path: r.Review.Path}
-		}
-	}
-	props.CommentMarkerNumbers = []float64{}
-	for _, f := range p.files {
-		var a struct {
+func (p *Chat) commentMarkers() []float64 {
+	markers := []float64{}
+	for _, file := range p.files {
+		var annotation struct {
 			MarkerNumber float64 `json:"markerNumber"`
 		}
-		if len(f.Annotation) > 0 && json.Unmarshal(f.Annotation, &a) == nil {
-			props.CommentMarkerNumbers = append(props.CommentMarkerNumbers, a.MarkerNumber)
+		if len(file.Annotation) > 0 && json.Unmarshal(file.Annotation, &annotation) == nil {
+			markers = append(markers, annotation.MarkerNumber)
 		}
 	}
-	return props
+	return markers
 }
 
-// lastTurnPaths are the files the latest answer's finished, successful
-// tools wrote, which the review compares (chat.tsx latestReviewPaths).
-func (p *Chat) lastTurnPaths() []string {
-	paths := []string{}
-	items := model.Project(p.view.Messages, p.view.Tools, p.view.Running, p.view.Operations)
-	for i := len(items) - 1; i >= 0; i-- {
-		item := items[i]
-		if item.Kind == "user" {
-			break
-		}
-		if item.Kind != "response" || item.Response == nil {
-			continue
-		}
-		for _, entry := range item.Response.Entries {
-			tool := entry.Tool
-			if entry.Kind != "tool" || tool.Running || tool.IsError {
-				continue
-			}
-			if tool.Files != nil {
-				for _, f := range tool.Files {
-					paths = append(paths, f.Path)
-				}
-			} else if path, ok := tool.Args["path"].(string); ok && (tool.Name == "write" || tool.Name == "edit") {
-				paths = append(paths, path)
-			}
-		}
-		break
+func (p *Chat) nativePanel() *workspace.Panel {
+	cwd := ""
+	if conversation := p.conversation(); conversation != nil {
+		cwd = conversation.Directory
 	}
-	return paths
+	key := p.activeID + ":" + cwd
+	if p.tools.panel != nil && p.tools.panelKey == key {
+		return p.tools.panel
+	}
+	if p.tools.panel != nil {
+		p.tools.panel.Close()
+	}
+	options := workspace.PanelOptions{
+		Prefix: p.method(""), SessionID: p.activeID, Directory: cwd,
+		Running:         func() bool { return p.view.Running },
+		OnReference:     func(path string) error { return p.appendReference("@"+path, "\n") },
+		OnReviewComment: func(text string) error { return p.appendReference(text, "\n\n") },
+		OnClose:         func() { p.ui.details = false },
+		OnDock: func() {
+			if p.prefs.Dock == "bottom" {
+				p.prefs.Dock = "right"
+			} else {
+				p.prefs.Dock = "bottom"
+			}
+			p.prefs.save()
+		},
+		Plugin: func(tab workspace.PanelTab) workspace.DocumentBody {
+			return pluginhost.NewTaskPane(p.env, tab.Path, p.activeID)
+		},
+		PluginAvailable: func(tab workspace.PanelTab) bool { return globalpages.For(p.env).Available(tab.Path, "task") },
+		HTML: func(preview workspace.FilePreview) (workspace.DocumentBody, error) {
+			return webui.NewHTMLPreview(p.env, preview.URL, preview.Name)
+		},
+	}
+	options.Browser = func(tab workspace.PanelTab, onTitle func(string, string), onClose func()) workspace.DocumentBody {
+		return webui.NewNativeBrowserPane(p.env, webui.NativeBrowserOptions{
+			SessionID: first(p.activeID, "new-chat"), TabID: tab.ID, URL: tab.URL,
+			OnTitle: onTitle, OnClose: onClose, OnNewTab: p.tools.panel.OpenBrowser,
+			MarkerNumbers: p.commentMarkers,
+			OnComment: func(annotation json.RawMessage, done func(error)) {
+				p.addBrowserComment(annotation, func(_ any, err error) { done(err) })
+			},
+		})
+	}
+	p.tools.panel = workspace.NewPanel(p.env, options)
+	p.tools.panelKey, p.tools.panelRequest = key, 0
+	return p.tools.panel
 }
 
-// panelView is the side panel, with the browser's pages over it.
 func (p *Chat) panelView(c *ui.Context) ui.Element {
-	if p.tools.panel == nil {
-		p.tools.browser = webui.NewBrowser(p.env)
-		p.tools.panel = webui.New(p.env, webui.Options{View: "panel", Label: i18n.T("chat.details"),
-			Receive: p.receivePanel, Browser: p.tools.browser})
+	panel := p.nativePanel()
+	if p.tools.panelRequest != p.ui.panelRequests {
+		p.tools.panelRequest = p.ui.panelRequests
+		if request := p.ui.panelRequest; request != nil {
+			switch {
+			case request.File != "":
+				panel.OpenFile(request.File, request.Line)
+			case request.URL != "":
+				panel.OpenBrowser(request.URL)
+			case request.Review != nil:
+				panel.OpenReview(request.Review.TurnID, request.Review.Path)
+			case request.Tab == "files" || request.Tab == "resources":
+				panel.OpenLibrary(request.Tab, request.Directory)
+			case request.Tab != "home":
+				panel.OpenTool(request.Tab)
+			}
+		}
 	}
-	state := p.embedCommon(c)
-	state.Panel = p.panelProps()
-	return p.tools.panel.View(c, state).Children(func() { p.tools.browser.Overlay(c) })
+	return ui.Column(c).Fill().MinWidth(0).MinHeight(0).Children(func() { panel.View(c) })
 }
 
-// receivePanel answers the panel's callbacks, as chat.tsx's handlers did.
-func (p *Chat) receivePanel(kind string, payload json.RawMessage, reply func(any, error)) {
-	switch kind {
-	case "close":
-		p.ui.details = false
-	case "dirty":
-		var dirty bool
-		_ = json.Unmarshal(payload, &dirty)
-		p.ui.filesDirty = dirty
-	case "dock":
-		if p.prefs.Dock == "bottom" {
-			p.prefs.Dock = "right"
-		} else {
-			p.prefs.Dock = "bottom"
-		}
-		p.prefs.save()
-	case "urlHandled":
-		p.tools.panelURLHandled = p.ui.panelRequests
-	case "reference":
-		var path string
-		if json.Unmarshal(payload, &path) == nil && path != "" && !p.busy && !p.opening && !p.draftLoading {
-			p.updateText(joinNonEmpty("\n", p.text, "@"+path), p.files, p.activeID)
-		}
-	case "reviewComment":
-		var text string
-		if json.Unmarshal(payload, &text) != nil || text == "" {
-			break
-		}
-		if p.busy || p.opening || p.draftLoading {
-			reply(nil, core.Errorf(i18n.T("chat.browserDraftBusy")))
-			return
-		}
-		p.updateText(joinNonEmpty("\n\n", p.text, text), p.files, p.activeID)
-	case "comment":
-		p.addBrowserComment(payload, reply)
-		return
-	case "drop":
-		var paths []string
-		if json.Unmarshal(payload, &paths) == nil && len(paths) > 0 && !p.busy {
-			p.addPaths(paths, func(err error) {
-				if err != nil {
-					p.err = err.Error()
-				}
-			})
-		}
-	case "navigate":
-		webui.Navigate(p.env, payload)
-	default:
-		reply(nil, core.Errorf(i18n.T("chat.unsupportedOperation")))
-		return
-	}
-	reply(nil, nil)
-}
-
-// addBrowserComment attaches a browser comment's screenshot with the
-// comment, as chat.tsx did: through the Host for a conversation, as is
-// for the chat not yet created.
+// Browser comments keep the original Host attachment import receipt. The
+// browser commits its marker only after the screenshot actually joined this
+// conversation's draft; navigation cannot turn a late import into success.
 func (p *Chat) addBrowserComment(payload json.RawMessage, reply func(any, error)) {
 	if p.busy || p.opening || p.draftLoading {
 		reply(nil, core.Errorf(i18n.T("chat.browserDraftBusy")))
@@ -263,7 +153,7 @@ func (p *Chat) addBrowserComment(payload json.RawMessage, reply func(any, error)
 			reply(nil, err)
 		case len(added) == 0:
 			reply(nil, core.Errorf(i18n.T("chat.browserCommentFailed")))
-		case p.selection != id:
+		case p.ui.closed || p.selection != id:
 			reply(nil, core.Errorf(i18n.T("chat.browserDraftBusy")))
 		default:
 			add(added[0])
@@ -271,53 +161,72 @@ func (p *Chat) addBrowserComment(payload json.RawMessage, reply func(any, error)
 	})
 }
 
-func formatMarker(n float64) string {
-	data, _ := json.Marshal(n)
-	return string(data)
-}
+func formatMarker(n float64) string { data, _ := json.Marshal(n); return string(data) }
 
-// automationsView is the automations page.
 func (p *Chat) automationsView(c *ui.Context) {
 	if p.tools.automations == nil {
-		p.tools.automations = webui.New(p.env, webui.Options{View: "automations", Label: i18n.T("chat.automations"),
-			Receive: p.receiveTools})
+		p.tools.automations = automations.New(p.env, automations.Options{
+			ConfigureConnections: func() { p.settings.tab = 2; p.openSettings() },
+			Back:                 func() { p.ui.automations = false },
+			OpenSession:          func(id string) { p.env.Open("chat", core.Intent{Requested: true, Conversation: id}) },
+		})
 	}
-	p.tools.automations.View(c, p.embedCommon(c)).Grow(1).AlignSelf(ui.Stretch)
+	if len(p.automationDraft) > 0 {
+		p.tools.automations.OpenPluginDraft(p.automationDraft)
+		p.automationDraft = nil
+	}
+	p.tools.automations.View(c)
 }
 
-// receiveTools answers the automations page.
-func (p *Chat) receiveTools(kind string, payload json.RawMessage, reply func(any, error)) {
-	switch kind {
-	case "navigate":
-		webui.Navigate(p.env, payload)
-	default:
-		reply(nil, core.Errorf(i18n.T("chat.unsupportedOperation")))
-		return
+func (p *Chat) leaveAutomation(action func()) {
+	leave := func() { p.ui.automations = false; action() }
+	if p.ui.automations && p.tools.automations != nil && (p.tools.automations.Dirty() || p.tools.automations.Busy()) {
+		p.env.RequestChange(leave)
+	} else {
+		leave()
 	}
-	reply(nil, nil)
 }
 
-// closeTools destroys the page's web views.
 func (p *Chat) closeTools() {
-	for _, s := range []*webui.Surface{p.tools.panel, p.tools.automations} {
-		if s != nil {
-			s.Close()
-		}
+	if p.tools.automations != nil {
+		p.tools.automations.Close()
 	}
-	if p.tools.browser != nil {
-		p.tools.browser.Close()
+	if p.tools.panel != nil {
+		p.tools.panel.Close()
 	}
 	p.tools = tools{}
 }
 
-// dockedView lays out the conversation and the side panel docked right
-// or below, the panel as large as the user last left it.
+const (
+	minimumConversationWidth  = 340
+	minimumConversationHeight = 280
+	minimumWorkspaceWidth     = 340
+	minimumWorkspaceHeight    = 120
+	detailsDividerSize        = 5
+)
+
+// dockedView keeps the resizable layout and preferred dimensions. When the
+// actual content width cannot hold both panes, the workspace docks below the
+// conversation temporarily; widening restores the saved dock without closing
+// documents, terminals or browser tabs.
 func (p *Chat) dockedView(c *ui.Context, main func()) {
 	if !p.ui.details {
 		main()
 		return
 	}
-	bottom := p.prefs.Dock == "bottom"
+	bounds := p.ui.workspaceBox.Bounds(c)
+	bottom := p.prefs.Dock == "bottom" || bounds.W > 0 && bounds.W < minimumConversationWidth+minimumWorkspaceWidth+detailsDividerSize
+	size := &p.prefs.Right
+	minimum, maximum := float32(minimumWorkspaceWidth), float32(2000)
+	if bottom {
+		size, minimum = &p.prefs.Bottom, minimumWorkspaceHeight
+		if bounds.H > 0 {
+			maximum = max(minimum, bounds.H-minimumConversationHeight-detailsDividerSize)
+		}
+	} else if bounds.W > 0 {
+		maximum = max(minimum, bounds.W-minimumConversationWidth-detailsDividerSize)
+	}
+	displayedSize := min(max(*size, minimum), maximum)
 	t, pal := c.Theme(), kit.Colors(c)
 	container := ui.Row(c)
 	if bottom {
@@ -325,15 +234,11 @@ func (p *Chat) dockedView(c *ui.Context, main func()) {
 	}
 	container.Grow(1).Basis(0).MinWidth(0).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c).Grow(1).Basis(0).MinWidth(0).MinHeight(0).Children(main)
-		size := &p.prefs.Right
-		if bottom {
-			size = &p.prefs.Bottom
-		}
 		handle := ui.Box(c).Shrink(0).Focusable().Role(ui.RoleSplitter).Label(i18n.T("chat.resizeDetails")).Tooltip(i18n.T("chat.resizeDetails"))
 		if bottom {
-			handle.FillWidth().Height(5).Cursor(ui.CursorResizeNS)
+			handle.FillWidth().Height(detailsDividerSize).Cursor(ui.CursorResizeNS)
 		} else {
-			handle.FillHeight().Width(5).Cursor(ui.CursorResizeEW)
+			handle.FillHeight().Width(detailsDividerSize).Cursor(ui.CursorResizeEW)
 		}
 		line := pal.Hairline
 		if handle.Hovered() || handle.Pressed() {
@@ -350,9 +255,11 @@ func (p *Chat) dockedView(c *ui.Context, main func()) {
 				painter.FocusRing(r, [4]float32{})
 			}
 		})
-		// The panel grows as the divider moves toward the conversation.
 		move := func(delta float32) {
-			*size = min(max(*size-delta, 240), 2000)
+			// Start at the displayed edge even if an older saved size exceeded
+			// the current bounds, so the first drag/arrow press responds.
+			*size = min(max(displayedSize-delta, minimum), maximum)
+			displayedSize = *size
 		}
 		if dx, dy, ok := handle.Dragged(); ok {
 			if bottom {
@@ -376,21 +283,23 @@ func (p *Chat) dockedView(c *ui.Context, main func()) {
 			move(16)
 			p.prefs.save()
 		}
-		panel := ui.Column(c).Shrink(1).MinWidth(0).MinHeight(0)
+		panel := ui.Column(c).Shrink(0).MinWidth(0).MinHeight(0)
 		if bottom {
-			panel.Height(*size).FillWidth()
+			panel.Height(displayedSize).FillWidth()
 		} else {
-			panel.Width(*size).FillHeight()
+			panel.Width(displayedSize).FillHeight()
 		}
 		panel.Children(func() { p.panelView(c).Fill() })
 	})
 }
 
-// takeIntents follows links of other pages into Chat (env.Open): Chat
-// settings open at once; a conversation opens once the catalog is read
-// and the page is idle, as chat.tsx's requestedConversationId did.
+// takeIntents opens links only after catalog reads and draft saves complete.
 func (p *Chat) takeIntents() {
-	for _, intent := range p.env.TakeIntents("chat") {
+	for _, intent := range p.env.TakeIntents(p.intentPage) {
+		if len(intent.AutomationDraft) > 0 && p.automationDraft == nil {
+			p.automationDraft = append(json.RawMessage(nil), intent.AutomationDraft...)
+			p.ui.automations = true
+		}
 		if intent.ChatSettings {
 			p.tools.settingsOpen = true
 		}
@@ -398,6 +307,13 @@ func (p *Chat) takeIntents() {
 			request := intent
 			p.requested = &request
 		}
+		if intent.NewChat {
+			request := intent
+			p.newChat = &request
+		}
+	}
+	if p.newChat != nil && p.catalogLoaded && !p.busy {
+		p.openNewChat()
 	}
 	if p.requested == nil || !p.catalogLoaded || p.busy {
 		return
@@ -442,13 +358,23 @@ func (p *Chat) takeIntents() {
 	})
 }
 
-// busy reports a change the React tools asked of the Host and that is not
-// answered yet: an editor's save, a review's commit.
+func (p *Chat) openNewChat() {
+	request := p.newChat
+	p.newChat = nil
+	p.run(func(done func(error)) {
+		p.choose("", nil, func(err error) {
+			if err == nil {
+				p.ui.archived, p.ui.automations, p.tools.settingsOpen = false, false, false
+				p.ui.dialog = dialogState{}
+				if request.Prefill != "" {
+					p.updateText(joinNonEmpty("\n\n", p.newDraft, request.Prefill), p.newFiles, "")
+				}
+			}
+			done(err)
+		})
+	})
+}
+
 func (t *tools) busy() bool {
-	for _, s := range []*webui.Surface{t.panel, t.automations} {
-		if s != nil && s.Busy() {
-			return true
-		}
-	}
-	return false
+	return t.automations != nil && t.automations.Busy() || t.panel != nil && t.panel.Busy()
 }

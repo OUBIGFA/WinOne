@@ -9,3 +9,4 @@ export {hasPcmSound} from '../../../../../../../third_party/cindy/voice-core/pcm
 export {DEFAULT_SPEAKER_GATE_STRICTNESS, isSpeakerGateStrictness, type SpeakerGateStrictness} from '../../../../../../../third_party/cindy/voice-core/SpeakerGate';
 export type {ConversationInputEvent} from '../../../../../../../third_party/cindy/voice-core/VoiceConversationInput';
 export type {DictationDictionaryAdviceInput, DictationDictionaryLearningAction, DictationDictionaryLearningCandidateState, DictationDictionaryLearningEntryState} from '../../../../../../../third_party/cindy/voice-core/DictationDictionaryAdvisor';
+export {SPEAKER_FILTER_NOTICE_MS} from '../../../../../../../third_party/cindy/voice-core/SpeakerGate';

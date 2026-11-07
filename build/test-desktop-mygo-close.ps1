@@ -28,7 +28,7 @@ try{
     $test=Join-Path $output 'close-check.exe'
     Push-Location (Join-Path $root 'apps/desktop-mygo')
     try{
-        & $go test -c -tags 'mygo_noinspector,webui' -o $test ./app
+        & $go test -c -tags 'mygo_noinspector' -o $test ./app
         if($LASTEXITCODE -ne 0){throw 'Close lifecycle tests did not compile'}
     }finally{Pop-Location}
     $log=Join-Path $output 'tests.log'

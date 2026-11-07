@@ -1,0 +1,93 @@
+{
+ "bots": {
+  "glance": {
+   "checkPrompt": "Vérifie mes sources connectées, comme les e-mails et les messages, pour repérer tout nouvel élément que je dois traiter, et ajoute-le à ma liste de tâches à faire."
+  },
+  "collab": {
+   "deliveryFailed": "Le résultat n’a pas pu être envoyé dans la conversation d’origine. Il est enregistré dans cette session.",
+   "backgroundTask": "Tâche en arrière-plan"
+  },
+  "groupChat": {
+   "task": {
+    "label": "Tâche",
+    "state": {
+     "started": "En cours",
+     "waiting": "En attente de votre confirmation",
+     "completed": "Terminée",
+     "failed": "Échec",
+     "cancelled": "Annulée",
+     "timed-out": "Délai dépassé"
+    }
+   }
+  }
+ },
+ "chat": {
+  "workGroup": {
+   "working": "Travail en cours…",
+   "worked": "A travaillé pendant {{duration}}",
+   "workDetails": "Détails du travail"
+  },
+  "remoteError": {
+   "REMOTE_AGENT_BUSY": "Trop de sessions sont en cours d'exécution sur l'autre ordinateur. Terminez-en quelques-unes et réessayez.",
+   "REMOTE_AGENT_DEVICE_LIMIT": "Cet appareil a atteint sa limite de sessions distantes. Archivez les sessions inutilisées ou demandez au propriétaire du fournisseur de relever la limite dans Accès distant et partage.",
+   "REMOTE_AGENT_TOTAL_LIMIT": "L'ordinateur du fournisseur a atteint sa limite totale de sessions distantes. Demandez au propriétaire de libérer les sessions inutilisées ou de relever la limite dans Accès distant et partage."
+  },
+  "agentActions": {
+   "part": {
+    "edited_one": "a modifié un fichier",
+    "edited_other": "a modifié {{count}} fichiers",
+    "created_one": "a créé un fichier",
+    "created_other": "a créé {{count}} fichiers",
+    "ran_one": "a exécuté une commande",
+    "ran_other": "a exécuté {{count}} commandes",
+    "read_one": "a lu un fichier",
+    "read_other": "a lu {{count}} fichiers",
+    "updated_one": "a mis à jour les tâches",
+    "updated_other": "a mis à jour les tâches",
+    "searched_one": "a effectué une recherche",
+    "searched_other": "a effectué des recherches",
+    "fetched_one": "a consulté le web",
+    "fetched_other": "a consulté le web",
+    "used_one": "a utilisé un outil",
+    "used_other": "a utilisé {{count}} outils",
+    "edited_many": "a modifié {{count}} fichiers",
+    "created_many": "a créé {{count}} fichiers",
+    "ran_many": "a exécuté {{count}} commandes",
+    "read_many": "a lu {{count}} fichiers",
+    "updated_many": "a mis à jour les tâches",
+    "searched_many": "a effectué des recherches",
+    "fetched_many": "a consulté le web",
+    "used_many": "a utilisé {{count}} outils"
+   },
+   "more_one": "{{count}} de plus",
+   "more_other": "{{count}} de plus",
+   "separator": ", ",
+   "lastSeparator": " et ",
+   "more_many": "{{count}} de plus"
+  }
+ },
+ "routines": {
+  "todoCheck": {
+   "name": "Vérification quotidienne des tâches à faire"
+  }
+ },
+ "groupTools": {
+  "authorizationRequired": "L'autorisation du groupe a expiré ou ne permet pas cette action. Demandez au propriétaire du coéquipier de faire une nouvelle demande dans ce groupe.",
+  "localPeersOnly": "Les messages de groupe ne peuvent cibler que des coéquipiers sur cet appareil et ce compte.",
+  "ownerChanged": "Le compte a changé. Veuillez réessayer.",
+  "invalidMessage": "Le message ou l'identifiant de nouvelle tentative n'est pas valide.",
+  "privateUnavailable": "La conversation privée de ce coéquipier est indisponible. Veuillez réessayer plus tard.",
+  "idempotencyConflict": "Cet identifiant de nouvelle tentative a déjà été utilisé pour un autre message.",
+  "privateUnconfirmed": "La remise du message privé n'est pas confirmée. Réessayez avec le même identifiant.",
+  "verificationUnavailable": "Impossible de vérifier l'autorisation du groupe. Réessayez une fois la connexion rétablie."
+ },
+ "forwardedRequest": {
+  "sourcePresent": "[Source] L'hôte a conservé les mots d'origine de l'utilisateur, sans modification, comme contexte de la demande. La demande actuelle figure dans le complément de l'Agent.",
+  "sourceMissing": "[Source] Aucun texte d'origine vérifiable de l'utilisateur n'a été trouvé.",
+  "userPrefix": "Mots d'origine de l'utilisateur :",
+  "agentPrefix": "Complément de l'Agent :",
+  "taskSource": "[Source de la tâche] Un compagnon a lancé cette tâche.",
+  "taskId": "ID de la tâche :",
+  "contextReferences": "Références de contexte :"
+ }
+}

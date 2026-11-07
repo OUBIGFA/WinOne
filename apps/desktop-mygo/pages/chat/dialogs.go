@@ -97,6 +97,7 @@ func (p *Chat) dropFolder(c *ui.Context, zone ui.Element, disabled bool, use fun
 
 // dialogs draws the page's open dialog.
 func (p *Chat) dialogs(c *ui.Context) {
+	p.workdirPluginsDialog(c)
 	d := &p.ui.dialog
 	if d.kind != dialogNone {
 		d.open = true
@@ -143,9 +144,6 @@ func (p *Chat) dialogs(c *ui.Context) {
 			p.ui.confirmFull = false
 			p.run(func(done func(error)) { p.configure(nil, model.PermissionBypass, done) })
 		}
-	}
-	if p.ui.edit != nil {
-		p.editDialog(c)
 	}
 }
 
@@ -339,7 +337,6 @@ func (p *Chat) moveDialog(c *ui.Context) {
 // password, and without media after the Host found it too large.
 func (p *Chat) exportDialog(c *ui.Context) {
 	target, e := p.ui.exportOf, &p.ui.exportState
-	t := c.Theme()
 	valid := !e.working && (!e.encrypt || len([]rune(e.password)) >= 4 && e.password == e.confirmation)
 	confirm := i18n.T("chat.exportConfirm")
 	if e.excludeMedia {
@@ -350,7 +347,7 @@ func (p *Chat) exportDialog(c *ui.Context) {
 		Cancel: i18n.T("chat.cancel"), Confirm: confirm, Busy: e.working, Error: e.err, ConfirmDisabled: !valid, Width: 480,
 		Body: func() {
 			if o := e.oversize; o != nil {
-				kit.Help(c, i18n.T("chat.exportExcludeHint", "limit", math.Round(o.LimitBytes/1048576), "media", math.Round(o.MediaBytes/1048576)))
+				kit.Notice(c, kit.Caution, "", i18n.T("chat.exportExcludeHint", "limit", math.Round(o.LimitBytes/1048576), "media", math.Round(o.MediaBytes/1048576)), nil)
 			}
 			ui.Checkbox(c, &e.encrypt, i18n.T("chat.exportEncrypt")).Disabled(e.working)
 			if !e.encrypt {
@@ -375,7 +372,7 @@ func (p *Chat) exportDialog(c *ui.Context) {
 				if short {
 					key = "chat.exportShortPassword"
 				}
-				ui.Text(c, i18n.T(key)).FontSize(kit.HelpSize(c)).TextColor(t.Danger)
+				kit.InlineError(c, i18n.T(key))
 			}
 		}}) && valid {
 		e.working, e.err = true, ""
@@ -425,6 +422,8 @@ func archiveNotice(o exportOutcome) string {
 // editState is the latest user message being edited and resent.
 type editState struct {
 	entry, text    string
+	original       string
+	width          float32
 	stopping, busy bool
 	reversible     bool
 	restore        bool
@@ -435,7 +434,7 @@ type editState struct {
 // beginEdit edits the latest user message: the running turn stops first,
 // and the turn's file changes say whether they can be restored.
 func (p *Chat) beginEdit(m model.Message) {
-	e := &editState{entry: m.ID, text: m.Text(), stopping: p.view.Running, files: len(m.Attachments) > 0}
+	e := &editState{entry: m.ID, text: m.Text(), original: m.Text(), width: p.ui.userWidths[m.ID], stopping: p.view.Running, files: len(m.Attachments) > 0}
 	p.ui.edit = e
 	id := p.activeID
 	review := func() {
@@ -469,37 +468,77 @@ func (p *Chat) beginEdit(m model.Message) {
 	})
 }
 
-// editDialog edits the latest user message and resends it, optionally
-// restoring the files its turn changed.
-func (p *Chat) editDialog(c *ui.Context) {
+// editInPlace preserves the bubble's intrinsic width, not the message/action
+// row. Support controls live outside it and cannot stretch a short input.
+func (p *Chat) editInPlace(c *ui.Context) {
 	e := p.ui.edit
-	open := true
-	canSend := !e.busy && !e.stopping && (!isBlank(e.text) || e.files)
-	if kit.Dialog(c, &open, kit.DialogOptions{Title: i18n.T("chat.editMessage"), Cancel: i18n.T("chat.cancel"), Confirm: i18n.T("chat.editResend"),
-		Busy: e.busy || e.stopping, Error: e.err, ConfirmDisabled: !canSend, Width: 560,
-		Body: func() {
-			ui.TextArea(c, &e.text).FillWidth().MinHeight(88).MaxHeight(320).Label(i18n.T("chat.editMessage")).AutoFocus().Disabled(e.busy)
+	pal := kit.Colors(c)
+	width, _ := c.MeasureText(0, ui.Span{Text: e.text})
+	width += 28
+	if e.text == e.original && e.width > 0 {
+		width = e.width
+	}
+	ui.Column(c.Key("edit:" + e.entry)).FillWidth().AlignItems(ui.End).Gap(8).Children(func() {
+		ui.Column(c.Key("bubble")).Width(width).MaxWidthPercent(85).MinWidth(28).Padding(10, 14).Radius(14).Background(pal.Selected).Children(func() {
+			input := ui.TextArea(c, &e.text).FillWidth().MinWidth(0).Lines(1, 12).MinHeight(24).MaxHeight(320).Padding(0).Border(0, ui.Transparent).Background(ui.Transparent).LineHeight(1.5).
+				Label(i18n.T("chat.editMessage")).AutoFocus().Disabled(e.busy)
+			composing := input.Composing()
+			input.OnTextKey(func(key ui.TextKey) bool {
+				if composing {
+					return key.Key == ui.KeyEnter || key.Key == ui.KeyEscape
+				}
+				if key.Key == ui.KeyEscape && !e.busy {
+					p.ui.edit = nil
+					return true
+				}
+				if key.Key == ui.KeyEnter && key.Mods&ui.Shift == 0 {
+					e.text = key.Text()
+					p.commitEdit(e)
+					return true
+				}
+				return false
+			})
+		})
+		ui.Column(c.Key("support")).MaxWidthPercent(85).MinWidth(0).Gap(8).AlignItems(ui.End).Children(func() {
 			if e.reversible {
 				ui.Checkbox(c, &e.restore, i18n.T("chat.editRestoreFiles")).Disabled(e.busy)
 			} else {
 				kit.Help(c, i18n.T("chat.editKeepFiles"))
 			}
-		}}) && canSend {
-		e.busy, e.err = true, ""
-		revision := ""
-		if e.restore {
-			revision = e.revision
-		}
-		p.editMessage(e.entry, e.text, revision, func(err error) {
-			e.busy = false
-			if err != nil {
-				e.err = err.Error()
-				return
+			if e.err != "" {
+				kit.InlineError(c, e.err)
 			}
-			p.ui.edit = nil
+			ui.Row(c).Gap(8).Justify(ui.End).Wrap().Children(func() {
+				if kit.GhostButton(c, i18n.T("chat.cancel"), nil, false).Disabled(e.busy).Clicked() {
+					p.ui.edit = nil
+				}
+				if kit.PrimaryButton(c, i18n.T("chat.editResend"), nil, e.busy || e.stopping).Disabled(e.busy || e.stopping || isBlank(e.text) && !e.files).Clicked() {
+					p.commitEdit(e)
+				}
+			})
 		})
+	})
+}
+
+// Both the native button and Enter use the same synchronous submission guard.
+// A failed edit keeps the text and restore choice available for a retry.
+func (p *Chat) commitEdit(e *editState) {
+	if p.ui.edit != e || e.busy || e.stopping || isBlank(e.text) && !e.files {
+		return
 	}
-	if !open && !e.busy {
-		p.ui.edit = nil
+	e.busy, e.err = true, ""
+	revision := ""
+	if e.restore {
+		revision = e.revision
 	}
+	p.editMessage(e.entry, e.text, revision, func(err error) {
+		e.busy = false
+		if err != nil {
+			e.err = err.Error()
+			return
+		}
+		if p.ui.edit == e {
+			p.ui.edit = nil
+		}
+	})
 }

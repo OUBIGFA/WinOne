@@ -39,7 +39,7 @@ func (p *Chat) addPaths(chosen []string, done func(error)) {
 		return
 	}
 	attach := func(added []model.Attachment) {
-		if p.selection != id {
+		if p.closed() || p.selection != id {
 			done(core.Errorf(i18n.T("chat.browserDraftBusy")))
 			return
 		}
@@ -68,6 +68,10 @@ func (p *Chat) addPaths(chosen []string, done func(error)) {
 	}, err error) {
 		if err != nil {
 			done(err)
+			return
+		}
+		if len(r.Attachments) == 0 {
+			done(core.Errorf(i18n.T("chat.attachmentImportFailed")))
 			return
 		}
 		attach(r.Attachments)
@@ -100,6 +104,9 @@ func (p *Chat) configure(selection *widgets.AISelection, permission model.Permis
 	projectID := p.newProjectID
 	if conversation != nil {
 		projectID = conversation.ProjectID
+		if conversation.OrcaRole == "worker" {
+			projectID = ""
+		}
 	}
 	if permission != "" && projectID != "" {
 		p.afterWrites(func() {

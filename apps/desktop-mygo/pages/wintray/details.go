@@ -242,16 +242,16 @@ func (p *page) timing(c *ui.Context, app *program) {
 		if current == "tray" {
 			kit.Indented(c, func() {
 				p.numberRow(c, programKey(id, "closeDelay"), i18n.T("wintray.closeDelay"), &app.TrayBehavior.Value.CloseDelaySeconds, 0, 600, p.blocked())
-				if weChatProgram(app.ExePath) {
-					// The login window stays visible while the program signs in,
-					// so a background launch cannot use this option. The saved
-					// choice is kept when the mode changes.
-					auto := app.WeChatAutoLogin
-					if kit.Toggle(c, &auto, i18n.T("wintray.wechatAutoLogin"), i18n.T("wintray.wechatAutoLoginHint")).Disabled(p.blocked()).Changed() {
-						p.update(id, func(a *program) { a.WeChatAutoLogin = auto })
-					}
-				}
 			})
+		}
+		if weChatProgram(app.ExePath) {
+			// Match WinTray: login is independent of window dismissal and also
+			// applies to normal/task launches. Hidden mode keeps the saved choice
+			// but cannot expose the login UI needed to act on it.
+			auto := app.WeChatAutoLogin
+			if kit.Toggle(c, &auto, i18n.T("wintray.wechatAutoLogin"), i18n.T("wintray.wechatAutoLoginHint")).Disabled(p.blocked() || current == "hidden").Changed() {
+				p.update(id, func(a *program) { a.WeChatAutoLogin = auto })
+			}
 		}
 	})
 	plan := &app.Schedule.Value

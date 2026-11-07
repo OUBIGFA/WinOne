@@ -1,9 +1,16 @@
 {
+ "ipcError": {
+  "MODEL_SELECTION_UNAVAILABLE": "The selected model is no longer available from its provider. Check the connection in Settings or choose another available model.",
+  "INVALID_PARAMS": "Invalid input. Please check and try again.",
+  "PRECONDITION_FAILED": "This action is unavailable in the current state. Please try again."
+ },
  "appError": {
   "details": "Error details"
  },
  "agentIsland": {
   "native": {
+   "updatingTasks": "Updating tasks",
+   "awaitingQuestion": "Awaiting your reply",
    "permissionPromptTitleWithTool": "Allow {{toolName}}?",
    "allowOnce": "Allow once",
    "alwaysAllowForSession": "Always allow for this session",
@@ -130,6 +137,9 @@
     "updateFailed": "Could not update the link. Wait for WeChat tasks to finish, then retry and check that the teammate is available."
    }
   },
+  "auxiliaryModels": {
+   "unavailable": "Currently unavailable"
+  },
   "builtinTools": {
    "plugins": {
     "feishu": {
@@ -191,10 +201,6 @@
     "ssh": {
      "name": "SSH commands",
      "description": "Run commands on remote computers through configured SSH connections."
-    },
-    "contacts": {
-     "name": "Smart Contacts",
-     "description": "Find and manage contact profiles and interaction history."
     }
    }
   },
@@ -216,7 +222,16 @@
   "teammateUnreadCount": "Unread chats: {{count}}"
  },
  "bots": {
+  "avatarStatus": {
+   "awaiting": "Needs your confirmation",
+   "error": "Needs attention",
+   "running": "Working",
+   "done": "Completed",
+   "unread": "Unread"
+  },
   "workbench": {
+   "ownedMark": "Belongs to {{names}}",
+   "createdMark": "Created by {{names}}",
    "followingMark": "This task is looked after by {{names}}"
   },
   "glance": {
@@ -232,22 +247,22 @@
    "todos": "Todos",
    "showMore": "Show more",
    "showLess": "Show less",
-   "doneCount_one": "{{count}} done",
-   "doneCount_other": "{{count}} done",
    "delete": "Delete",
    "deleted": "Deleted. It won't be added again.",
    "undo": "Undo",
    "undoFailed": "Couldn't undo. Try again.",
    "deleteFailed": "Couldn't delete. Try again.",
    "check": "Check for me",
-   "checkMeta": "Look for new todos in connected mail and chats",
    "checkPrompt": "Check my connected sources, like mail and messages, for anything new I need to handle, and add it to my todos.",
    "checkFailed": "Couldn't send. Try again.",
    "dailyCheck": "Check every day",
    "dailyCheckMeta": "Weekdays at 9:00, quiet when nothing is new",
+   "recentTasks": "Recent tasks",
+   "unread": "Unread result",
+   "stopDailyCheck": "Stop daily checking",
+   "loadFailed": "Couldn’t load to-dos. Try again.",
    "dailyCheckFailed": "Couldn't save. Try again.",
    "outputs": "Outputs",
-   "outputMeta": "{{time}} · {{task}}",
    "openFailed": "Couldn't open the file",
    "source": {
     "conversation": "You asked",
@@ -278,6 +293,9 @@
    }
   },
   "remoteSettings": {
+   "saveFailed": "Could not confirm the save. Reload settings before retrying.",
+   "conflict": "Settings changed on the other device. Reload before saving.",
+   "unsupported": "Update WinOne on the other device to edit these settings.",
    "finishOnHost": "Finish this on {{device}}."
   },
   "devicePicker": {
@@ -322,7 +340,6 @@
    "pin": "Pin to top",
    "unpin": "Unpin",
    "pinned": "Pinned",
-   "needsAttention": "Needs attention",
    "duplicate": "Duplicate teammate",
    "sectionExpand": "Expand teammates",
    "showLess": "Show less",
@@ -336,10 +353,6 @@
   },
   "retry": "Retry",
   "backToBot": "Back to teammate",
-  "sessionLoadFailedTitle": "This teammate task could not be loaded",
-  "sessionLoadFailedDescription": "The task link is valid, but WinOne could not read the teammate state. Retry or return to the teammate overview.",
-  "sessionUnavailableTitle": "This teammate task is no longer available",
-  "sessionUnavailableDescription": "This task may be missing, deleted, or no longer belong to this teammate. Go back to open the recovered main task.",
   "settings": "Settings",
   "settingsTabs": {
    "model": "Model"
@@ -428,6 +441,7 @@
    "continueEditing": "Keep Editing"
   },
   "profileSaveFailed": "Teammate settings could not be saved. No changes were applied.",
+  "profileSaveOffline": "Cannot connect to the teammate’s computer. Reconnect, then save again.",
   "modelUnavailable": "{{model}} (currently unavailable)",
   "send": "Send message",
   "roster": {
@@ -493,24 +507,84 @@
    "messageSentWithText": "Told the background task: “{{text}}”"
   },
   "directMessage": {
+   "sentTo": "Sent a message to {{name}}",
+   "receivedFrom": "Message from {{name}}",
    "open": "View the conversation between teammates",
    "readOnly": "This conversation is view-only",
    "close": "Close conversation",
    "unavailable": "This teammate conversation is no longer available.",
    "empty": "There are no messages to view yet.",
-   "limitReached": "This teammate conversation reached its limit; both teammates returned to their main tasks",
-   "sentHeader": "To {{name}}",
-   "receivedHeader": "From {{name}}",
-   "expandThread": "Show exchange",
-   "exchangeCountShort": "{{count}} messages",
-   "exchangeCountShort_one": "{{count}} message",
-   "exchangeCountShort_other": "{{count}} messages",
-   "expand": "Show",
-   "collapse": "Hide",
-   "fullThread": "Full conversation",
-   "threadClosed": "This teammate conversation has ended · view only"
+   "limitReached": "This teammate conversation reached its limit; both teammates returned to their main tasks"
   },
   "groupChat": {
+   "mask": {
+    "toolAccess": "Tool access",
+    "catchup": {
+     "title": "Mentions of me",
+     "me": "Me",
+     "markAll": "Mark all as read",
+     "empty": "No unread mentions",
+     "thread": "Thread",
+     "main": "Group chat",
+     "answered": "Replied for you"
+    },
+    "title": "AI reply mode",
+    "settings": "AI reply settings",
+    "companion": "My teammate",
+    "choose": "Choose a teammate",
+    "enabled": "Automatic replies",
+    "triggerLabel": "Trigger",
+    "resumeAfter": "Resume after being away",
+    "start": "Start time",
+    "end": "End time",
+    "startManual": "Start now",
+    "stop": "Stop replies",
+    "todos": "Collect my to-dos",
+    "digestLabel": "Send me a digest",
+    "saving": "Saving…",
+    "saveError": "Couldn't save. Your previous settings still apply. Retry.",
+    "retry": "Retry",
+    "loading": "Loading your settings…",
+    "takeover": "I'll reply",
+    "resume": "Resume AI replies",
+    "status": {
+     "enabled": "Enabled",
+     "paused": "Paused",
+     "off": "Off",
+     "offline": "Offline",
+     "waiting": "Waiting",
+     "unbound": "Not set"
+    },
+    "detail": {
+     "paused": "You've taken over this exchange",
+     "off": "Automatic replies are off",
+     "offline": "Replies paused · Computer offline",
+     "waiting": "Waiting for you to start",
+     "unbound": "No teammate selected",
+     "enabled": "Your teammate is ready to reply for you."
+    },
+    "trigger": {
+     "always": "Always enabled",
+     "manual": "Manual",
+     "scheduled": "Scheduled"
+    },
+    "digest": {
+     "daily": "Daily",
+     "manual": "Manually"
+    },
+    "minutes": "{{count}} minutes",
+    "presence": "You're here · Resumes after {{minutes}} min away",
+    "scheduledWait": "Starts at {{time}}",
+    "attribution": "{{name}} replied for {{owner}}",
+    "digestNow": "Summarize now",
+    "digestWorking": "Summarizing…",
+    "digestSent": "Sent to your teammate chat",
+    "digestFailed": "Could not summarize. Try again.",
+    "digestEmpty": "Nothing new to summarize",
+    "joinSetup": "Set up AI replies after joining",
+    "hours": "Reply hours",
+    "ownerOnly": "Only you can see and change these settings."
+   },
    "migrationPending": "Some earlier history is still uploading. It will retry automatically; this chat remains available.",
    "memberSeparator": ", ",
    "ownerOf": "{{name}}’s owner",
@@ -521,10 +595,10 @@
    },
    "progress": {
     "step": "Step {{step}}/{{total}}",
-    "speaking": "{{name}} is replying…",
-    "elapsed": "{{time}} so far",
     "viewProcess": "Show work",
     "stop": "Stop",
+    "stopping": "Stopping…",
+    "queued": "Waiting to start…",
     "stopMine": "Stop Mine",
     "stopAll": "Stop All",
     "stopAllHint": "Includes other people’s requests"
@@ -532,10 +606,11 @@
    "header": {
     "stepRunning": "{{name}} is on step {{step}}",
     "speaking": "{{name}} is replying…",
+    "queued": "{{name}} is queued",
     "planning": "{{name}} is splitting the work…"
    },
-   "memberCount_one": "{{count}} teammate",
-   "memberCount_other": "{{count}} teammates",
+   "memberCount_one": "{{count}} member",
+   "memberCount_other": "{{count}} members",
    "nameLabel": "Group Name",
    "waitingConfirm": "{{name}} is waiting for your go-ahead",
    "loadFailedTitle": "Couldn’t Load This Group Chat",
@@ -578,8 +653,10 @@
    },
    "mention": {
     "all": "Everyone",
-    "allHint": "Everyone replies",
-    "label": "Mention a teammate"
+    "allHint": "People only",
+    "label": "Mention a teammate",
+    "allBots": "All teammates",
+    "allBotsHint": "Teammates only"
    },
    "composer": {
     "label": "Group chat message",
@@ -654,6 +731,8 @@
     "stepTimeout": "{{name}} took too long, so this step was stopped",
     "stepUnavailable": "{{name}} is unavailable and can’t do this step",
     "runtimeFailure": {
+     "REMOTE_DEVICE_LIMIT": "{{name}} can’t reply: the teammate’s device has reached its remote session limit.\nAsk the teammate’s owner to archive unused sessions, or ask the remote computer’s owner to raise the limit in Remote & sharing.",
+     "REMOTE_TOTAL_LIMIT": "{{name}} can’t reply: the remote computer has reached its total remote session limit.\nAsk that computer’s owner to release unused sessions or raise the limit in Remote & sharing.",
      "IMAGE_INPUT_UNSUPPORTED": "{{name}} could not reply: the current model does not support images.\nChoose an image-capable model, or enable and configure Vision Bridge in Settings → Personalization, then send your message again.",
      "MODEL_UNAVAILABLE": "{{name}} could not reply: no model is available.\nChoose a connected, available model in the teammate settings, then send your message again.",
      "AUTH_REQUIRED": "{{name}} could not reply: the model connection needs authentication.\nReconnect the model provider in Settings, then send your message again.",
@@ -663,6 +742,11 @@
      "NETWORK_ERROR": "{{name}} could not reply: the network connection failed.\nCheck your network or proxy, then send your message again.",
      "RUNTIME_TIMEOUT": "{{name}} did not reply before the timeout.\nSend your message again, or choose another available model.",
      "RUNTIME_ERROR": "{{name}} could not reply this time.\nSend your message again. If it still fails, check the logs and report the issue."
+    },
+    "capability": {
+     "GROUP_AUTHORIZATION_REQUIRED": "{{name}} could not run this tool: group authorization has expired or does not allow this action. The teammate’s owner can make the request again in this group.",
+     "GROUP_AUTHORIZATION_UNAVAILABLE": "Group authorization for {{name}} could not be verified, so this tool did not run. Try again after the connection recovers.",
+     "ATTACHMENTS_UNAVAILABLE": "Some attachments were not delivered to {{name}} because of a download failure or attachment limit. Resend the attachments needed for this request."
     }
    },
    "settings": {
@@ -688,7 +772,7 @@
     "speakingMode": "Speaking order",
     "speakingModeAuto": "Automatic",
     "speakingModeSequential": "One at a time",
-    "speakingModeAutoNote": "No mentions or @Everyone: think simultaneously on the first pass, then reply one by one. Mentioned teammates reply in mention order.",
+    "speakingModeAutoNote": "No mentions or @All teammates: think simultaneously on the first pass, then reply one by one. Mentioned teammates reply in mention order.",
     "speakingModeSequentialNote": "One teammate speaks at a time, and each one sees the replies before it.",
     "speakingModeSaveFailed": "Couldn't save the speaking order. Try again.",
     "setOrganizer": "Make Organizer",
@@ -702,7 +786,9 @@
     "projectDirClear": "Clear Folder",
     "projectDirNote": "Teammates work here when they split the work. You can leave it empty and they’ll use this group chat’s own folder. If you choose a git project, each work split gets a new worktree and branch, so your own code stays untouched.",
     "autoContinueSaveFailed": "Couldn’t save step handoffs. Try again.",
-    "projectDirSaveFailed": "Couldn’t save the project folder. Make sure the folder still exists, then try again."
+    "projectDirSaveFailed": "Couldn’t save the project folder. Make sure the folder still exists, then try again.",
+    "allowMentionAllBots": "Allow @all teammates",
+    "allowMentionAllBotsHint": "Only the group owner can change this. Teammates may all reply; use with care in large groups. AI replies on your behalf are independent."
    },
    "errors": {
     "memberLimit": "A group chat needs 2–6 teammates",
@@ -712,6 +798,9 @@
     "hostNotReady": "WinOne is still getting ready. Try again in a moment.",
     "planOpen": "A work split is underway. Finish or stop it before starting another.",
     "planClosed": "This plan has already ended or been updated.",
+    "revisionConflict": "The work changed before this action could be completed.",
+    "stopOwnershipUnknown": "Could not stop some work because its requester could not be verified.",
+    "nothingToStop": "There is no active work to stop.",
     "invalidAttachment": "This attachment cannot be read. Select it again and send.",
     "attachmentUnavailable": "Could not retrieve the attachment from your phone. Check the device connection and retry.",
     "attachmentTooLarge": "The attachment exceeds 100 MB. Choose a smaller file.",
@@ -726,7 +815,9 @@
     "quoteUnavailable": "The quoted message was deleted or is no longer visible. The quote was removed. Send again.",
     "lifecycleUnavailable": "The current server or computer does not support this action yet.",
     "groupDissolved": "This group has been dissolved. You can still read the available history.",
-    "lastOwner": "Transfer ownership or dissolve this group before leaving."
+    "lastOwner": "Transfer ownership or dissolve this group before leaving.",
+    "allBotsMentionDisabled": "The group owner has not enabled @all teammates.",
+    "turnAlreadyStarted": "This teammate has already started and cannot be skipped"
    },
    "organizer": "Organizer",
    "plan": {
@@ -753,11 +844,19 @@
     "dismissFailed": "Couldn’t end this plan. Try again.",
     "editFailed": "Couldn’t change this step. Try again.",
     "talkTurn": "Share a view",
-    "stepSpeaking": "Speaking",
     "stepSpoken": "Done",
     "allTurns_one": "All {{count}} teammate",
     "allTurns_other": "All {{count}} teammates",
-    "foldTurns": "Show fewer"
+    "foldTurns": "Show fewer",
+    "stepQueued": "Waiting to Start",
+    "stepExecuting": "Running",
+    "stepSkipped": "Skipped",
+    "queueWaiting": "Waiting for you to continue",
+    "skipTurnLabel": "Skip {{name}}",
+    "queueEnded": "Round ended",
+    "talkTitle": "Hear from everyone in turn",
+    "talkPending": "Not started",
+    "skipTurn": "Skip"
    },
    "speaking": {
     "planning": "Splitting the work…"
@@ -847,9 +946,23 @@
     "reactorFormer": "{{name}} (no longer in group)",
     "reactorsUnavailable_one": "Name unavailable for {{count}} more member",
     "reactorsUnavailable_other": "Names unavailable for {{count}} more members",
+    "readStatusSent": "Sent",
+    "readStatusRead": "Read",
+    "readersCount_one": "Read by {{count}}",
+    "readersCount_other": "Read by {{count}}",
+    "readersView": "See who has read",
+    "readersTooLarge": "This group is too large to list who has read",
+    "readersNone": "Nobody has read this",
+    "readersLoading": "Loading…",
+    "readersFailed": "Couldn't load who has read this",
+    "readersHeading": "Read",
+    "readersOfTotal": "Read {{read}}/{{total}}",
+    "readerUnknown": "Unknown member",
     "invite": "Invite to group",
+    "groupCreated": "Group Chat Created",
+    "inviteFriends": "Invite friends to join and work with your teammate.",
+    "generatingLink": "Generating invitation link…",
     "join": "Join group",
-    "inviteDescription": "People who accept the invitation join the group and can read its chat history.",
     "revokeLink": "Revoke this link",
     "revokeDescription": "This link will stop accepting new members. Other invitation links and existing members are unaffected.",
     "revokedLink": "This invitation link has been revoked.",
@@ -877,6 +990,17 @@
     "copyFailed": "Could not copy. Select the link and copy it manually.",
     "createDescription": "Choose companions, or create the group first and invite people to join.",
     "settings": {
+     "notifications": {
+      "title": "Message notifications",
+      "all": "All messages",
+      "mentions": "Mentions only",
+      "none": "Off",
+      "allHint": "Get notified about group messages and new replies in followed threads.",
+      "mentionsHint": "Get notified when you are mentioned, including @everyone. Work split updates still notify you.",
+      "noneHint": "Turn off all system alerts for this group. Unread messages are kept.",
+      "saving": "Saving…",
+      "saveFailed": "Could not save notification settings. Try again."
+     },
      "name": "Group name",
      "topic": "Topic",
      "description": "Description",
@@ -893,22 +1017,16 @@
      "member": "Member",
      "guest": "Guest",
      "companionOf": "{{name}}’s companion",
-     "guestAccess": "Access for other members",
      "toolsHint": "Members may use this companion’s existing tools and private information. Results are visible to everyone. Existing approval rules still apply. Revoking stops active requests, but cannot undo completed actions.",
-     "chatHint": "Uses group messages only. No owner memory, private information or tools.",
-     "none": "Owner only",
-     "chat": "Group conversation only",
-     "tools": "Owner authorized tools and information",
      "ownerOnly": "Only this companion’s owner can change this grant.",
      "authorizeTitle": "Allow this group to use {{name}}’s tools and information?",
      "makeAdmin": "Make admin",
      "removeAdmin": "Remove admin role",
      "transfer": "Transfer ownership",
      "transferTitle": "Transfer ownership to {{name}}?",
-     "transferHint": "They will become the owner and you will become an admin. Companions can also own groups.",
+     "transferHint": "They will become the owner and you will become an admin.",
      "removeTitle": "Remove {{name}} from this group?",
      "removeHint": "They will lose access to messages. Their companions will also leave.",
-     "addCompanion": "Invite my companion",
      "leave": "Leave group",
      "leaveHint": "You and your companions will leave this group. You will no longer receive new messages or have access to its history.",
      "soleOwnerHint": "You’re the only member left. Archive this group to keep its history and restore it later.",
@@ -920,10 +1038,78 @@
      "unarchive": "Unarchive group",
      "unarchiveHint": "Resume messages and companion activity.",
      "archived": "This group is archived. History is still available.",
-     "noneHint": "Only the companion’s owner can ask it to respond in this group.",
-     "companionPermissions": "Companion permissions",
-     "configureCapabilities": "Tools and access settings",
-     "capabilityScope": "These are {{name}}’s own tools and access, not settings for this group only."
+     "capabilityScope": "These are {{name}}’s own tools and access, not settings for this group only.",
+     "tabSettings": "Settings",
+     "youAreOwner": "You're the owner",
+     "youAreAdmin": "You're an admin",
+     "inviteEntry": "Invite",
+     "inviteFriendsItem": "Invite people",
+     "inviteFriendsItemHint": "Get a link to share",
+     "inviteFriendsLocked": "Only the owner and admins can invite people",
+     "inviteBotsItem": "Add teammates",
+     "inviteBotsItemHint": "Pick from your teammates",
+     "searchTeammates": "Search teammates",
+     "inviteBotsCount": "{{count}} can be added",
+     "inviteBotsAllIn": "All your teammates are already here",
+     "inviteBotsNoMatch": "No teammates match “{{query}}”",
+     "inviteBotsAdded": "Added {{name}} to the group",
+     "noTeammates": "You don't have a teammate yet",
+     "createTeammate": "Create teammate",
+     "back": "Back to Group Settings",
+     "about": "About",
+     "edit": "Edit",
+     "add": "Add",
+     "aboutEmpty": "Add a topic and description so new members know what this group is for.",
+     "showMore": "Show more",
+     "showLess": "Show less",
+     "you": "You",
+     "searchMembers": "Search members",
+     "membersNoMatch": "No members match “{{query}}”",
+     "teammateTag": "Teammate",
+     "paused": "Paused",
+     "accessNone": "Owner only",
+     "accessChat": "Group chat only",
+     "accessTools": "Can use tools and info",
+     "replies": "How teammates reply",
+     "replyModeMentionedNote": "Teammates stay quiet unless someone @mentions them.",
+     "work": "Work splits",
+     "ownFolder": "Group's own folder",
+     "projectDirHint": "Where teammates work during a work split.",
+     "projectDirClearHint": "Use the group's own folder instead",
+     "organizerHint": "Decides who does each step. Defaults to the first teammate.",
+     "autoContinueHint": "When off, each step waits for you to continue.",
+     "workCaption": "With a git project, each work split gets its own branch, so your code stays untouched. The project folder and automatic handoffs apply on this computer only.",
+     "me": "You in this group",
+     "profileHint": "Group nickname and photo, shown only here",
+     "maskHint": "Your teammate replies when someone @mentions you",
+     "myTeammates": "Your teammates",
+     "myTeammatesCaption": "Choose how other members can use your teammates.",
+     "manage": "Group management",
+     "manageHintOwner": "Replies, organizer, work splits, archive and dissolve",
+     "manageHintAdmin": "Replies, organizer, work splits and archive",
+     "manageCaption": "Only the owner and admins can see this page.",
+     "hideHint": "Stay in the group, just hide it from your list",
+     "leaveRowHint": "Your teammates leave with you",
+     "leaveRowHintAlone": "You'll stop getting messages and lose access to the history",
+     "leaveBlocked": "Transfer ownership before you leave",
+     "archiveRowHint": "Pauses the group for everyone; history is kept",
+     "unarchiveRowHint": "Resume messages and teammate work",
+     "dissolveRowHint": "Can't be undone; no one can send messages",
+     "editTitle": "Edit Group Info",
+     "topicHint": "Shown first in the About section",
+     "descriptionHint": "Teammates read the latest description every time they reply.",
+     "companionTitle": "{{name}} in this group",
+     "yourTeammate": "Your teammate",
+     "accessQuestion": "How can other members use {{name}}?",
+     "defaultTag": "Default",
+     "accessNoneTitle": "Only you",
+     "accessNoneHint": "Only you can ask {{name}} to respond here.",
+     "accessChatTitle": "Group conversation only",
+     "accessChatHint": "Answers from group messages only. No access to your memory or private info, and no tools.",
+     "accessToolsTitle": "Tools and information",
+     "accessToolsHint": "Can use {{name}}'s existing tools and your private info. Results are visible to everyone. Approvals still apply; finished actions can't be undone after you revoke access.",
+     "capabilitiesRow": "{{name}}'s tools and access",
+     "accessMenu": "Permissions here"
     }
    },
    "lifecycle": {
@@ -965,22 +1151,112 @@
    "skill": "Skills",
    "mcp": "MCP",
    "toolset": "Built-in tools",
-   "unavailable": "Unavailable",
    "empty": "No matching capabilities",
-   "accessHint": "Choose the built-in tools, MCP servers and skills this companion may use. Changes apply to its next request, including authorized group requests.",
-   "inheritedHint": "Currently follows tools enabled on this computer. Turning off an item switches this list to an explicit selection.",
-   "selectedHint": "Only selected items in this list are allowed for this companion.",
-   "personalHint": "A skill learned by this companion, loaded with its profile.",
    "unavailableHint": "Unavailable on this computer or execution target. Configure its connection or system access first.",
    "notOnThisComputer": "Not available on this computer",
-   "configure": "Open configuration",
    "empty_toolset": "No built-in tools are available on this execution target.",
    "empty_mcp": "No custom MCP servers have been added.",
    "empty_skill": "No skills are available to select.",
    "inputHandoff": {
     "title": "Input Handoff",
     "description": "When this teammate reaches a sign-in, password or code it can't type itself, it may ask you to type it on any of your devices. Your values are never shared with it."
-   }
+   },
+   "intro": "Choose which skills, tools and MCP servers this teammate can use. Changes apply from the next message.",
+   "alwaysOn": "Always on",
+   "core": {
+    "group": "Core skill",
+    "name": "Teammate core",
+    "hint": "Tasks, other teammates, models, tools and plugins, memory. Updated with WinOne.",
+    "meta": "Shared by all teammates · Always on · Updated with WinOne",
+    "note": "The orchestration every teammate has. It can’t be turned off or edited. To change how this teammate works, tell it in chat and it will keep that as its own skill.",
+    "covers": "Covers",
+    "raw": "View source",
+    "items": {
+     "tasks": {
+      "title": "Tasks",
+      "body": "Knows which tasks it can control and which computers are available. Arranges and follows up on tasks as you request, brings results back, and checks supported operations before working across computers."
+     },
+     "teammates": {
+      "title": "Other teammates",
+      "body": "Messages other teammates or creates a new one for you."
+     },
+     "models": {
+      "title": "Models and tools",
+      "body": "Switches models when you ask; finds and uses tools and plugins as needed."
+     },
+     "memory": {
+      "title": "Memory",
+      "body": "Remembers your preferences and background, checking before use and updating when things change."
+     },
+     "self": {
+      "title": "Knowing and configuring WinOne",
+      "body": "Understands WinOne’s features and usage, and checks or changes settings as you request. Asks you in the task when your input or confirmation is needed."
+     }
+    }
+   },
+   "system": {
+    "group": "System skills",
+    "meta": "{{on}} of {{total}} on",
+    "pageMeta": "System skill · Updated with WinOne",
+    "use": "Enable for this teammate",
+    "whenOff": "When off",
+    "items": {
+     "todo": {
+      "name": "Todos",
+      "hint": "Keeps what you ask for and what it notices, and reminds you when due.",
+      "off": "It stops recording, tidying and reminding you of todos. Existing todos are kept and resume when you switch this back on."
+     },
+     "routine": {
+      "name": "Routines",
+      "hint": "Sets up and maintains routines that run on a schedule.",
+      "off": "It stops creating or changing routines. Existing routines keep running and stay manageable on the Routines page."
+     },
+     "follow": {
+      "name": "Workbench and follow-up",
+      "hint": "Watches how all your tasks are going and follows up on the ones you hand to it.",
+      "off": "It stops checking and following up on your tasks on its own. You can still ask it in chat."
+     }
+    }
+   },
+   "learned": {
+    "group": "Learned skills",
+    "empty": "No learned skills yet. Nightly learning saves approaches that keep coming up as skills, or you can ask it to remember one in chat.",
+    "meta": "Learned · Updated {{date}}",
+    "metaUndated": "Learned",
+    "missing": "This skill no longer exists.",
+    "use": "Use this skill",
+    "useHint": "Turned off, the skill is kept but not used.",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saveFailed": "Couldn’t save. Try again later.",
+    "deleteFailed": "Couldn’t delete. Try again later.",
+    "deleteTitle": "Delete “{{name}}”?",
+    "deleteBody": "The teammate will stop using this skill and its content can’t be restored. If you need it later, ask it to remember the method again.",
+    "unsavedTitle": "Unsaved Changes",
+    "unsavedDescription": "Leaving will discard these changes to the skill.",
+    "discard": "Discard Changes",
+    "continueEditing": "Keep Editing",
+    "descriptionLabel": "When to use it",
+    "bodyLabel": "How to do it"
+   },
+   "local": {
+    "group": "Skills on this computer"
+   },
+   "followMeta": "Following this computer · {{count}}",
+   "selectedMeta": "{{count}} of {{total}} selected",
+   "showRest": "Show {{count}} more",
+   "showLess": "Show less",
+   "manage": "Manage",
+   "toolSettings": "Tool settings",
+   "notTurnedOn": "Not turned on for this computer",
+   "turnOn": "Enable",
+   "permissions": "Permissions"
+  },
+  "systemSkills": {
+   "followOffHint": "{{name}}’s Workbench and follow-up system skill is off. Switch it back on in Capabilities to use this.",
+   "offHint": "The {{skill}} system skill is off. It runs again once you switch it back on in Capabilities."
   },
   "guided": {
    "title": "Create a teammate",
@@ -1196,7 +1472,16 @@
      "appIdLabel": "App ID",
      "appIdPlaceholder": "cli_xxxxxxxxxxxxxxxx",
      "appSecretLabel": "App Secret",
-     "appSecretPlaceholder": "Paste the app secret"
+     "appSecretPlaceholder": "Paste the app secret",
+     "description": "Once connected, you can message {{name}} in {{service}}.",
+     "createPrompt": "Need a {{service}} bot?",
+     "createLink": "Create one on {{service}} Open Platform",
+     "credentialsHint": "After creating the app, copy its App ID and App Secret from Credentials & Basic Info and enter them here.",
+     "stepsLabel": "View setup steps",
+     "stepCreate": "Create a custom app on the Open Platform and add the bot capability. In Permissions, confirm that reading direct messages (im:message.p2p_msg:readonly) and sending messages as the app (im:message:send_as_bot) are enabled. Receiving group @mentions also requires im:message.group_at_msg:readonly.",
+     "stepCredentials": "Open Credentials & Basic Info in your app and copy the App ID and App Secret.",
+     "stepConnect": "Enter the credentials below and click “Connect {{service}}” to establish a connection. In Events & Callbacks on the Open Platform, select the long connection subscription mode and add the Receive message event (im.message.receive_v1). In Callback Configuration, select long connection mode and add the Card action callback (card.action.trigger) so card buttons work. Publish the app version, wait for approval if required, then send the bot a message and click a card button to verify both work.",
+     "confirm": "Connect {{service}}"
     },
     "wecom": {
      "botIdLabel": "Bot ID",
@@ -1252,6 +1537,8 @@
    }
   },
   "voiceMode": {
+   "openConversation": "Open conversation",
+   "inCallWith": "In a call with {{name}}",
    "showDetails": "Show call transcript",
    "hideDetails": "Hide call transcript",
    "transcriptTitle": "Current transcription",
@@ -1320,6 +1607,7 @@
    "unsent": "Not sent · select the text to copy it",
    "hint": "Pause to send. Replies are read aloud with an AI voice. Speak at any time to interrupt.",
    "status": {
+    "questionElsewhere": "A question is waiting in the task · call continues",
     "idle": "Ready when you are",
     "connecting": "Connecting to speech recognition…",
     "listening": "Listening",
@@ -1335,6 +1623,7 @@
     "muted": "Microphone off · You can still listen"
    },
    "errors": {
+    "busy": "Voice is in use by another call, read-aloud, preview or dictation. End it and try again.",
     "connection": "Voice connection interrupted. Your unsent text is kept below.",
     "microphone": "Microphone stopped. Check its permission and connection, then resume.",
     "send": "This message was not accepted. Your text is kept below.",
@@ -1402,6 +1691,11 @@
    "cancel": "Cancel"
   }
  },
+ "diffPanel": {
+  "shell": {
+   "resizeHandleAria": "Resize panel width"
+  }
+ },
  "newChat": {
   "sendButton": {
    "send": "Send message",
@@ -1450,11 +1744,19 @@
   },
   "asrServiceUnavailable": "Voice recognition service failed to connect. Check your network and try again.",
   "emptyTranscript": "Speech was detected, but no text was recognized. Please try again.",
+  "speakerFiltered": "Ignored someone else's voice",
   "connectionInterrupted": "The voice connection was interrupted. Check your network and try again.",
   "recognitionStalled": "Voice recognition stopped returning results. Try again.",
   "transcriptKept": "{{message}} The text recognized so far was kept — you can edit it directly."
  },
  "chat": {
+  "teammateProcess": {
+   "elapsed": "Working for {{duration}}",
+   "took": "Took {{duration}}",
+   "processing": "Working",
+   "worked": "Activity",
+   "thinking": "Thinking"
+  },
   "jumpToBottom": "Jump to bottom",
   "askUserQuestion": {
    "voice": {
@@ -1477,10 +1779,22 @@
    "customAnswer": "Type something else…",
    "answerPlaceholder": "Type your answer…"
   },
+  "thinking": {
+   "completed": "Thought for {{duration}}",
+   "aborted": "Thought for {{duration}} (aborted)"
+  },
   "workGroup": {
    "working": "Working…",
    "worked": "Worked for {{duration}}",
-   "workDetails": "Work details"
+   "workDetails": "Work details",
+   "exploration": {
+    "read_one": "Read 1 file",
+    "read_other": "Read {{count}} files",
+    "search_one": "Searched once",
+    "search_other": "Searched {{count}} times",
+    "list_one": "Listed files once",
+    "list_other": "Listed files {{count}} times"
+   }
   },
   "imageMissing": {
    "title": "Image missing",
@@ -1519,6 +1833,9 @@
    "tooLarge": "The selection is too long or wide. Select less content and try again",
    "failed": "Couldn't generate the image — try again"
   },
+  "errorBanner": {
+   "retry": "Retry"
+  },
   "media": {
    "modelPreviewAlt": "3D model preview",
    "imageCopied": "Image copied",
@@ -1555,7 +1872,25 @@
    "openModelFailed": "Failed to open model",
    "modelLoading": "Loading 3D model…",
    "modelLoadFailed": "Failed to load 3D model",
+   "videoCopied": "Video copied",
+   "copyVideo": "Copy video",
+   "revealVideo": "Reveal video in folder",
+   "videoUnavailable": "Video unavailable",
    "imageMissing": "Image missing"
+  },
+  "mermaid": {
+   "clickToZoom": "Click to zoom",
+   "zoom": "Zoom",
+   "viewDiagram": "View diagram",
+   "viewSource": "View source",
+   "copy": "Copy",
+   "copied": "Copied",
+   "annotate": "Annotate",
+   "renderFailed": "mermaid render failed — showing source"
+  },
+  "mermaidLightbox": {
+   "zoomOut": "Zoom out",
+   "zoomIn": "Zoom in"
   },
   "lightbox": {
    "pathCopied": "Path copied",
@@ -1572,8 +1907,7 @@
    "loading": "Loading file…",
    "oversizeTitle": "File too large to preview",
    "oversizeBody": "This file is {{size}}, exceeding the {{limit}}MB preview limit. Please open it with the system default application.",
-   "openInSystem": "Open in system",
-   "closeHint": "or click backdrop to close"
+   "openInSystem": "Open in system"
   },
   "remoteFile": {
    "previewFailed": "Could not prepare the web preview. Check the directory and connection, then try again.",
@@ -1608,6 +1942,114 @@
    "downloadSkipped": "Saved to Downloads, but some files could not be downloaded",
    "cancelTransfer": "Cancel",
    "downloadsInProgress": "Downloads in progress ({{count}})"
+  },
+  "agentActionRow": {
+   "fileChange": {
+    "deleted": "Deleted",
+    "renamed": "Renamed",
+    "files": "{{count}} files"
+   },
+   "verb": {
+    "edited": "Edited",
+    "created": "Created",
+    "ran": "Ran",
+    "read": "Read",
+    "updated": "Updated",
+    "searched": "Searched",
+    "fetched": "Fetched",
+    "used": "Used",
+    "listed": "Listed",
+    "inspect": "Inspect content",
+    "inspectRepository": "Inspect repository",
+    "inspectEnvironment": "Check development environment",
+    "modifyRepository": "Modify repository",
+    "verify": "Run checks",
+    "installedDeps": "Installed deps",
+    "ranTests": "Ran tests",
+    "built": "Built",
+    "linted": "Linted",
+    "typechecked": "Type-checked",
+    "runScript": "Run script",
+    "runNodeScript": "Run Node.js script",
+    "runPythonScript": "Run Python script",
+    "runPerlScript": "Run Perl script",
+    "runSwiftScript": "Run Swift script",
+    "checkSyntax": "Check syntax",
+    "showVersion": "Check version",
+    "checkFormatting": "Check formatting",
+    "parseJson": "Parse JSON",
+    "count": "Count",
+    "showCurrentDirectory": "Show current directory",
+    "showDateTime": "Show date and time",
+    "locateCommand": "Locate command",
+    "inspectProcesses": "Inspect processes",
+    "inspectPorts": "Inspect ports",
+    "queryDatabase": "Query database",
+    "ranCommand": "Run command",
+    "gitStatus": "Check working tree status",
+    "gitDiff": "View code changes",
+    "gitLog": "View commit history",
+    "gitShow": "View commit",
+    "gitAdd": "Stage code changes",
+    "gitCommit": "Commit code changes",
+    "gitFetch": "Fetch remote updates",
+    "gitPull": "Pull remote updates",
+    "gitPush": "Push code changes",
+    "gitRebase": "Rebase branch",
+    "gitMerge": "Merge branch",
+    "gitCherryPick": "Cherry-pick commit",
+    "gitStash": "Manage stashed changes",
+    "gitRestore": "Restore files",
+    "gitSubmodule": "Manage submodules",
+    "gitRemote": "View Git remotes",
+    "gitRevParse": "Resolve Git reference",
+    "gitBranch": "View branches",
+    "gitGrep": "Search repository content",
+    "gitMergeBase": "Find common ancestor",
+    "gitLsFiles": "View tracked files",
+    "gitRevList": "View commit range",
+    "gitLsRemote": "View remote references",
+    "gitWorktreeList": "List worktrees",
+    "gitWorktreeAdd": "Create worktree",
+    "gitWorktreeRemove": "Remove worktree",
+    "gitWorktreeMove": "Move worktree",
+    "gitWorktreePrune": "Prune worktrees",
+    "ghPrList": "List pull requests",
+    "ghPrView": "View pull request",
+    "ghPrChecks": "Check pull request checks",
+    "ghPrStatus": "Check pull request status",
+    "ghPrDiff": "View pull request changes",
+    "ghPrCreate": "Create pull request",
+    "ghPrEdit": "Edit pull request",
+    "ghPrComment": "Comment on pull request",
+    "ghPrReview": "Review pull request",
+    "ghPrMerge": "Merge pull request",
+    "ghPrClose": "Close pull request",
+    "ghPrReopen": "Reopen pull request",
+    "ghPrCheckout": "Check out pull request",
+    "ghIssueList": "List issues",
+    "ghIssueView": "View issue",
+    "ghIssueStatus": "Check issue status",
+    "ghIssueCreate": "Create issue",
+    "ghIssueEdit": "Edit issue",
+    "ghIssueComment": "Comment on issue",
+    "ghIssueClose": "Close issue",
+    "ghIssueReopen": "Reopen issue",
+    "ghAuthStatus": "Check GitHub authentication",
+    "ghAuthLogin": "Log in to GitHub",
+    "ghAuthLogout": "Log out of GitHub",
+    "ghAuthRefresh": "Refresh GitHub authorization",
+    "ghAuthSwitch": "Switch GitHub account",
+    "ghRunList": "List workflow runs",
+    "ghRunView": "View workflow run",
+    "ghRunWatch": "Watch workflow run",
+    "ghSearch": "Search GitHub",
+    "ghRepoList": "List repositories",
+    "ghRepoView": "View repository",
+    "ghApiQuery": "Query GitHub API",
+    "ghApiMutation": "Modify GitHub data",
+    "ghApiCall": "Call GitHub API"
+   }
   },
   "markdownRenderer": {
    "copyFile": "Copy",
@@ -1666,6 +2108,13 @@
   }
  },
  "ccAgent": {
+  "sessionEntry": {
+   "missing": "This session could not be found. It may have been deleted.",
+   "denied": "This account or computer cannot access this session.",
+   "failed": "Could not load this session.",
+   "back": "Back to Sessions",
+   "retry": "Reload Session"
+  },
   "agentStatus": {
    "readingMemory": "Reading memory…",
    "savingMemory": "Saving memory…",
@@ -1726,6 +2175,26 @@
     "notFound": "PR not found, or the current account cannot view it",
     "statusUnknown": "Failed to fetch status"
    }
+  },
+  "workdirBrowse": {
+   "docSearch": {
+    "ariaLabel": "Find in document",
+    "placeholder": "Find…",
+    "prev": "Previous",
+    "next": "Next",
+    "close": "Close",
+    "truncatedTitle": "Too many matches; only the first set is shown. Refine your query."
+   }
+  }
+ },
+ "scheduler": {
+  "editor": {
+   "preRunPlugin": {
+    "source": {
+     "script": "Script",
+     "plugin": "Plugin"
+    }
+   }
   }
  },
  "logic": {
@@ -1748,6 +2217,18 @@
   "addFiles": "Add files, images, or videos…"
  },
  "routines": {
+  "deliveryLabel": "Final delivery",
+  "deliveryDirect": "Show directly in companion chat",
+  "deliveryProcess": "Ask companion to process and reply",
+  "deliveryIm": "Send through a messaging bot",
+  "deliveryNone": "Keep in the execution task only",
+  "deliveryHint": "Direct delivery uses no extra model call. Quiet checks still suppress idle results.",
+  "deliveryRecipient": "Recipient",
+  "deliveryUnavailable": "Destination unavailable",
+  "deliveryNoRecipients": "Connect a messaging bot and chat with it, then reopen these settings.",
+  "deliveryFailed": "Completed, delivery failed",
+  "deliveryFailedHint": "The result is saved. Check the delivery settings; do not rerun the work just to resend it.",
+  "deliveryDelivered": "Result delivered",
   "onEvent": "Event: {{source}} · {{event}}",
   "triggerDetails": "View triggers ({{count}}; any can start a run)",
   "noTriggers": "No triggers set",
@@ -1783,8 +2264,10 @@
   "timezone": "Time Zone",
   "delete": "Delete Routine",
   "save": "Save Routine",
+  "saved": "Routine saved",
   "deleteConfirm": "Delete this routine and cancel its pending runs?",
   "keep": "Keep Routine",
+  "openTask": "Open Session",
   "history": "Run History",
   "noRuns": "This routine has not run yet.",
   "field": "Field",
@@ -1816,7 +2299,12 @@
    "not-equals": "Does Not Equal"
   },
   "quiet": "Stay quiet when checks find nothing",
+  "sessionMode": "Run session",
+  "sessionModePersistent": "Persistent session (keep context)",
+  "sessionModeFresh": "New session each trigger (isolate context)",
+  "sessionModeHint": "Persistent keeps one routine conversation. New session creates and closes an isolated conversation for each trigger.",
   "quietHint": "Report changes or problems only. Turn off for reminders and scheduled messages.",
+  "checkSource": "Check with",
   "checkCommand": "Pre-run check command",
   "checkHint": "Optional. Checks on the computer before each run: exit 2 skips the run, exit 0 continues, errors stay visible. Clear to remove.",
   "timeoutMs": "Check timeout (ms, blank for no limit)",
@@ -1825,9 +2313,8 @@
    "name": "Follow assigned sessions (built-in)",
    "hint": "Follow assigned sessions when they stall, need you, fail, reach a usage limit or finish."
   },
-  "builtinTodoCheck": {
-   "name": "Daily todo check (built-in)",
-   "hint": "Looks for new todos in connected sources on weekdays at 9:00 and stays quiet when there is nothing new. Turned on or off from the glance; it can only be paused or resumed."
+  "todoCheck": {
+   "name": "Daily todo check"
   },
   "builtinNightlyLearning": {
    "name": "Nightly learning (built-in)",
@@ -1883,6 +2370,14 @@
     "skillDisabled": "Disabled skill “{{title}}”",
     "skillMerged": "Merged skill “{{title}}” into “{{into}}” and disabled it"
    }
+  },
+  "remote": {
+   "pause": "Pause Routine",
+   "resume": "Resume Routine",
+   "addSchedule": "Add Schedule",
+   "addInterval": "Add Interval",
+   "addEvent": "Add Event Trigger",
+   "filterField": "Filter Field"
   }
  },
  "richAnswer": {
@@ -1892,5 +2387,24 @@
   "sendFailed": "The message was not submitted. Your entries are still here.",
   "calculationUnavailable": "Unable to calculate this value.",
   "incomplete": "Some content could not be displayed."
+ },
+ "attachmentPreview": {
+  "more": "More actions",
+  "retry": "Retry",
+  "image": "Image",
+  "video": "Video",
+  "reset": "Reset view",
+  "open": "Open preview",
+  "zoomIn": "Zoom in",
+  "zoomOut": "Zoom out",
+  "fit": "Fit to window",
+  "actualSize": "Actual size (1:1)",
+  "previous": "Previous attachment",
+  "next": "Next attachment",
+  "find": "Find in document",
+  "source": "View source",
+  "rendered": "View document",
+  "wrap": "Wrap lines",
+  "lineNumbers": "Line numbers"
  }
 }

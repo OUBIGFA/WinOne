@@ -35,10 +35,11 @@ import (
 // page until Go collects them, while the tab shows or a comment is under
 // way, and are taken as untrusted data.
 type Browser struct {
-	env     *core.Env
-	surface *Surface
-	tabs    map[string]*browserTab
-	order   int
+	// NativeReceive takes the browser events on the UI thread.
+	NativeReceive func(kind string, state BrowserState, value any)
+	env           *core.Env
+	tabs          map[string]*browserTab
+	order         int
 }
 
 // BrowserState is a tab's state as the panel reads it (ChatBrowserState).
@@ -152,8 +153,7 @@ var commentChannels = map[string]bool{
 }
 
 // request runs a ChatBrowser call of the panel, on the UI thread.
-func (b *Browser) request(s *Surface, method string, raw json.RawMessage) (any, error) {
-	b.surface = s
+func (b *Browser) request(method string, raw json.RawMessage) (any, error) {
 	var p browserPayload
 	if err := json.Unmarshal(raw, &p); err != nil {
 		return nil, err
@@ -441,16 +441,9 @@ func (b *Browser) refresh(tab *browserTab) {
 
 // tell sends the panel an event of tab: its state, or kind with value.
 func (b *Browser) tell(tab *browserTab, kind string, value any) {
-	if b.surface == nil {
-		return
+	if b.NativeReceive != nil {
+		b.NativeReceive(kind, tab.state, value)
 	}
-	if kind == "state" {
-		b.surface.Dispatch("winone:chat-browser", map[string]any{"kind": "state", "state": tab.state})
-		return
-	}
-	b.surface.Dispatch("winone:chat-browser", map[string]any{
-		"kind": kind, "sessionId": tab.state.SessionID, "tabId": tab.state.TabID, "value": value,
-	})
 }
 
 // capture takes a screenshot of the page: saved for a comment, else

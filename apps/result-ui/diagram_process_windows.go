@@ -106,19 +106,30 @@ func renderLocalDiagram(ctx context.Context, executable, cache, source string, d
 	}
 	return ui.DecodeBitmap(result.PNG)
 }
+// RenderDiagram draws Mermaid source with the renderer installed beside this
+// program; it blocks. Chat and the result window share it and its cache.
+func RenderDiagram(ctx context.Context, source string, dark bool) (*ui.Bitmap, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	cache, _ := os.UserCacheDir()
+	cache = filepath.Join(cache, "WinOne", "cache", "diagrams")
+	if configured := os.Getenv("WINONE_DIAGRAM_CACHE"); configured != "" {
+		cache = configured
+	}
+	// The result window sits beside the renderer in shared/ui; the main window
+	// is two levels above it.
+	renderer := filepath.Join(filepath.Dir(exe), "WinOne.Diagrams.exe")
+	if _, err = os.Stat(renderer); err != nil {
+		renderer = filepath.Join(filepath.Dir(exe), "shared", "ui", "WinOne.Diagrams.exe")
+	}
+	return renderLocalDiagram(ctx, renderer, cache, source, dark)
+}
+
 func (c *Controller) renderDiagram(source string, dark bool, done func(*ui.Bitmap, error)) {
 	go func() {
-		exe, err := os.Executable()
-		if err != nil {
-			c.update(func() { done(nil, err) })
-			return
-		}
-		cache, _ := os.UserCacheDir()
-		cache = filepath.Join(cache, "WinOne", "cache", "diagrams")
-		if configured := os.Getenv("WINONE_DIAGRAM_CACHE"); configured != "" {
-			cache = configured
-		}
-		bitmap, err := renderLocalDiagram(c.ctx, filepath.Join(filepath.Dir(exe), "WinOne.Diagrams.exe"), cache, source, dark)
+		bitmap, err := RenderDiagram(c.ctx, source, dark)
 		c.update(func() {
 			follow := c.Panel.AtEnd()
 			done(bitmap, err)

@@ -197,6 +197,57 @@ func (b *chatOneBot) groupFileAction(ctx context.Context, method string, raw jso
 	return map[string]bool{"success": err == nil}, err
 }
 
+// groupFilePreview gives the native document pane a read-only view of a file the
+// group service has verified; nothing here takes a caller-supplied directory.
+func (b *chatOneBot) groupFilePreview(ctx context.Context, runner *chat.Runner, raw json.RawMessage) (chat.FilePreview, error) {
+	value, err := runner.Call(ctx, "groups.files.describe", raw)
+	if err != nil {
+		return chat.FilePreview{}, err
+	}
+	var file struct {
+		Path         string
+		DownloadOnly bool
+	}
+	if err = json.Unmarshal(value, &file); err != nil {
+		return chat.FilePreview{}, err
+	}
+	if file.DownloadOnly {
+		return chat.FilePreview{}, errors.New("此类附件只能另存为，不能直接打开或定位")
+	}
+	server, err := b.control.previewServer()
+	if err != nil {
+		return chat.FilePreview{}, err
+	}
+	return server.OpenVerified(file.Path)
+}
+
+// openBotHome opens the teammate's own folder, as read from its saved context.
+func (b *chatOneBot) openBotHome(ctx context.Context, runner *chat.Runner, raw json.RawMessage) (map[string]bool, error) {
+	var input struct {
+		BotID string `json:"botId"`
+	}
+	if err := json.Unmarshal(raw, &input); err != nil {
+		return nil, err
+	}
+	profile, err := runner.Call(ctx, "profiles.get", map[string]string{"botId": input.BotID})
+	if err != nil {
+		return nil, err
+	}
+	var value struct {
+		HomeDir string `json:"homeDir"`
+	}
+	if err = json.Unmarshal(profile, &value); err != nil {
+		return nil, err
+	}
+	if value.HomeDir == "" {
+		return nil, errors.New("伙伴的文件夹不可用")
+	}
+	if err = openVerifiedChatPath(value.HomeDir, false); err != nil {
+		return nil, err
+	}
+	return map[string]bool{"success": true}, nil
+}
+
 func (b *chatOneBot) recycleStagedGroupFolder(ctx context.Context, raw json.RawMessage) (any, error) {
 	var input struct{ Directory string }
 	if err := json.Unmarshal(raw, &input); err != nil {

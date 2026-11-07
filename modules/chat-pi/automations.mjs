@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
+import {SCRIPT_CAPABILITIES} from '../../third_party/cindy/scheduler/types.ts';
 import {Scheduler} from '../../third_party/cindy/scheduler/engine/scheduler.ts';
 import {nextCronOrMonthlyFire} from '../../third_party/cindy/scheduler/engine/monthlyClamp.ts';
 import {cronToHuman} from '../../third_party/cindy/scheduler/engine/cron.ts';
@@ -9,6 +10,8 @@ import {BUILTIN_TEMPLATES,TEMPLATE_CATEGORIES} from '../../third_party/cindy/sch
 import {applyTemplateParams} from '../../third_party/cindy/scheduler/engine/template.ts';
 import enTemplates from '../../third_party/cindy/scheduler/en-templates.json' with {type:'json'};
 import {createProjectAutomations} from './scheduler-projects.mjs';
+import {screenScheduleRun} from './cindy/ghost/apps/desktop/src/main/cindy-brain/scheduleControlPointGate.ts';
+import {unavailableControlPoint} from './ghost/control-client.mjs';
 import {generateHookScript} from './cindy/scheduler-host/hook-script-generator.ts';
 
 function localizedTemplate(template,language){
@@ -24,7 +27,7 @@ function normalized(input,now,current){
  const value={...current,...patch};
  if(typeof value.name!=='string'||!value.name.trim()||value.name.length>160)throw Error('Enter an automation name within 160 characters.');
  if(value.agentKind!=='pi'||value.modelAgentKind&&value.modelAgentKind!=='pi')throw Error('WinOne automations use the configured Pi agent.');
- if(value.effort!==undefined&&!['off','minimal','low','medium','high','xhigh','max','ultra'].includes(value.effort))throw Error('Invalid reasoning effort.');
+ if(value.effort!==undefined&&(typeof value.effort!=='string'||value.effort.length>64||/[\x00-\x1f]/.test(value.effort)))throw Error('Invalid reasoning effort.');
  if(value.fastMode!==undefined&&typeof value.fastMode!=='boolean')throw Error('Invalid priority service choice.');
  if(!['ask','auto','bypassPermissions'].includes(value.permissionMode??'ask'))throw Error('Invalid automation permission mode.');
  if(value.prompt?.length>100000||value.workingDir&&(!path.isAbsolute(value.workingDir)||value.workingDir.includes('\0')))throw Error('Invalid prompt or working directory.');
@@ -40,7 +43,7 @@ function normalized(input,now,current){
  return patch;
 }
 
-export async function createAutomationRuntime({directory,projectDirectories=[],dispatch,notify=async()=>{},event=()=>{},clock={now:()=>Date.now()},passive=false,validateTarget=async()=>{},text=async()=>({ok:false,reason:'no_candidate',attempts:[]}),hookSelfTest=async()=>{throw Error('Pre-run check test is unavailable.');}}){
+export async function createAutomationRuntime({directory,projectDirectories=[],dispatch,plugins,notify=async()=>{},event=()=>{},clock={now:()=>Date.now()},passive=false,validateTarget=async()=>{},text=async()=>({ok:false,reason:'no_candidate',attempts:[]}),hookSelfTest=async()=>{throw Error('Pre-run check test is unavailable.');}}){
  if(!path.isAbsolute(directory))throw Error('Absolute automation storage directory is required.');
  await fs.mkdir(directory,{recursive:true});
  const storage=new ScheduleStore(path.join(directory,'automations.db'));
@@ -60,11 +63,25 @@ export async function createAutomationRuntime({directory,projectDirectories=[],d
    throw error;
   }
  };
- const scheduler=new Scheduler({storage,clock,passive,generateId:randomUUID,maxConcurrentRuns:2,processId:process.pid,logger,validateTargetSession:validateTarget,runner:{fire:(schedule,context)=>track(dispatchRun(schedule,context))}});
+ // Cindy's genuine control point runs before commands, session creation and
+ // model dispatch. A successful early stop notice is not sent a second time
+ // by the ordinary failed-run subscriber.
+ const pluginNotified=new Set();
+ await plugins?.refresh('will-schedule-run');
+ const scheduler=new Scheduler({storage,clock,passive,generateId:randomUUID,maxConcurrentRuns:2,processId:process.pid,logger,validateTargetSession:validateTarget,
+  resolvePreRunPlugin:plugins?(id=>plugins.resolve('will-schedule-run',id)):undefined,
+  runner:{fire:(schedule,context)=>track((async()=>{
+   const stopped=await screenScheduleRun((point,data,target)=>plugins?plugins.screen(point,data,target,context.signal):Promise.resolve(unavailableControlPoint(target)),schedule,context,async reason=>{
+    try{await notify(schedule,{id:context.runId,scheduleId:schedule.id,status:'failed',errorMsg:reason,finishedAt:clock.now()});pluginNotified.add(context.runId);}
+    catch(error){logger.warn('Plugin stop notification failed',String(error.message??error));}
+   });
+   return stopped??dispatchRun(schedule,context);
+  })())}});
  for(const type of ['fired','completed','failed','silenced','notified','deferred','skipped','session-bound','changed','runtime-state'])scheduler.on(type,entry=>{
   event(entry);
   if(entry.type==='completed'&&!entry.silenced||entry.type==='failed')void track((async()=>{
    const schedule=await storage.get(entry.scheduleId),run=await storage.getRun(entry.runId);if(!schedule||!run)return;
+   if(pluginNotified.delete(entry.runId))return;
    try{await notify(schedule,run);}catch(error){await storage.updateRun(run.id,{notificationError:String(error.message??error)});event({type:'diagnostic',message:'Notification delivery failed: '+String(error.message??error)});event({type:'changed',scheduleId:schedule.id});}
   })()).catch(error=>logger.error('Notification result could not be saved',String(error)));
  });
@@ -77,7 +94,8 @@ export async function createAutomationRuntime({directory,projectDirectories=[],d
   for(const schedule of await storage.list())if(schedule.permissionMode===undefined&&!schedule.targetSessionId&&schedule.source!=='bot')await storage.update(schedule.id,{permissionMode:'ask'});
   storage.completeMigration('legacy-permission-ask');
  }
- for(const workingDir of new Set([...projectDirectories,...(await storage.list()).filter(value=>value.source==='project'&&value.workingDir).map(value=>value.workingDir)])){try{await projects.reconcile(workingDir);}catch(error){logger.warn('Project automation configuration needs attention',String(error));}}
+ const knownProjects=async()=>[...new Set([...projectDirectories,...(await storage.list()).filter(value=>value.source==='project'&&value.workingDir).map(value=>value.workingDir)])];
+ for(const workingDir of await knownProjects()){try{await projects.reconcile(workingDir);}catch(error){logger.warn('Project automation configuration needs attention',String(error));}}
  await storage.recoverAbandonedClaims(clock.now());
  // One-time calendar choices must not turn into a fresh full interval after
  // a restart. Missed dates expire instead of running at a different date.
@@ -103,10 +121,12 @@ export async function createAutomationRuntime({directory,projectDirectories=[],d
  const withCounts=async schedule=>schedule?{...schedule,...await storage.unreadCounts(schedule.id)}:null;
  const call=async(method,params={})=>{
   if(closed)throw Error('Automation scheduler is closing.');
+  if(['create','update','restore','project.reconcile','project.write','project.upsertSchedule'].includes(method))await plugins?.refresh('will-schedule-run');
   switch(method){
    case 'project.read':return projects.read(params.workingDir);
    case 'project.write':return projects.write(params.workingDir,params.config);
-   case 'project.reconcile':return projects.reconcile(params.workingDir);
+   case 'project.reconcile':return projects.reconcile(params.workingDir,typeof params.approvedHash==='string'?params.approvedHash:undefined);
+   case 'project.pendingImports':return projects.pendingImports(await knownProjects());
    case 'project.promote':case 'project.clone':case 'project.demote':{
     const schedule=await scheduler.get(params.id);if(!schedule)throw Error('Automation no longer exists.');
     if(method==='project.promote')return projects.promote(schedule);
@@ -174,7 +194,7 @@ export async function createAutomationRuntime({directory,projectDirectories=[],d
     catch(error){if(error?.failure)return error.failure;throw error;}
     return {ok:true,...written,test:await hookSelfTest({command:written.command,workingDir:params.workingDir,targetSessionId:params.targetSessionId,scheduleName:params.scheduleName})};
    }
-   case 'runtime':return scheduler.getRuntimeSnapshot();
+   case 'runtime':return {...scheduler.getRuntimeSnapshot(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,scriptCapabilities:SCRIPT_CAPABILITIES};
    case 'preview':return {nextFireAt:nextCronOrMonthlyFire(params.cronExpr,params.from??clock.now(),params.timezone),description:cronToHuman(params.cronExpr)};
    case 'silence':return {silenced:scheduler.silenceRun(params.runId)};
    case 'notify':return {notified:scheduler.notifyRun(params.runId)};

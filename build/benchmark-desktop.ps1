@@ -4,11 +4,13 @@ param(
     [Parameter(Mandatory=$true)][string]$OutputDirectory,
     [string]$GoExe = 'go',
     [ValidateRange(2,300)][int]$DurationSeconds = 30,
-    [ValidateRange(2,30)][int]$WarmupSeconds = 8
+    [ValidateRange(2,30)][int]$WarmupSeconds = 8,
+    [ValidateSet('WebView2','MyGo')][string]$Frontend = 'WebView2'
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot 'resource-metrics.psm1') -Force
+. (Join-Path $PSScriptRoot 'private-test-desktop.ps1')
 $workspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $outputRoot = [IO.Path]::GetFullPath($OutputDirectory)
 & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $outputRoot
@@ -28,32 +30,44 @@ $profile = [IO.Path]::GetFullPath((Join-Path $outputRoot ('profile-'+[guid]::New
 if (-not $profile.StartsWith($outputRoot.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase) -or (Test-Path -LiteralPath $profile)) { throw 'Invalid temporary profile' }
 [IO.Directory]::CreateDirectory($profile) | Out-Null
 # Empty, independent settings: no user programs, logon tasks or global hotkeys.
-[IO.File]::WriteAllText((Join-Path $profile 'settings.json'),'{"schemaVersion":1,"theme":"light","language":"zh-CN","captureShortcut":"","pinShortcut":""}',[Text.UTF8Encoding]::new($false))
+[IO.File]::WriteAllText((Join-Path $profile 'settings.json'),'{"schemaVersion":1,"theme":"light","language":"zh-CN","captureShortcut":"","pinShortcut":"","ocrShortcut":"","translateShortcut":"","selectionShortcut":"","quickAssistantShortcut":"","openShortcut":"","startup":{"runAtLogon":false,"startMinimized":true}}',[Text.UTF8Encoding]::new($false))
+if($Frontend -eq 'MyGo'){
+    # Native settings-only cost: no worker prewarm or configured programs.
+    # Enabled-module cost is measured separately by benchmark-idle.ps1.
+    $records=@{}
+    $catalog=Get-Content -LiteralPath (Join-Path $workspace 'internal/catalog/builtin.json') -Raw -Encoding UTF8|ConvertFrom-Json
+    foreach($id in $catalog.id){$records[$id]=@{enabled=$false;pendingStop=$false}}
+    [IO.File]::WriteAllText((Join-Path $profile 'module-state.json'),(@{schemaVersion=4;revision=0;modules=$records}|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
+}
 $pipeName = '\\.\pipe\WinOne-desktop-resource-'+[guid]::NewGuid().ToString('N')
 $arguments = @('--pipe',$pipeName,'--data-dir',('"'+$profile+'"'))
 $hostProcess = $null
 $desktopProcess = $null
 $uiKnown = @{}
 $completed = $false
+$desktop = [WinOnePrivateTestDesktop]::new()
+$windowHandle = [IntPtr]::Zero
 try {
-    $hostProcess = Start-Process -FilePath $hostExe -ArgumentList $arguments -WindowStyle Hidden -PassThru
+    $quoted='--standard-session --pipe "'+$pipeName+'" --data-dir "'+$profile+'"'
+    $hostProcess = $desktop.Start($hostExe,$quoted,$workspace)
     $null=$hostProcess.Handle
-    # This scenario requires a visible interactive window; Hidden measures a
-    # different WebView lifecycle and cannot establish open-window resource use.
-    $desktopProcess = Start-Process -FilePath $desktopExe -ArgumentList ($arguments + @('--open-settings')) -WindowStyle Normal -PassThru
+    # A visible native window on the owned desktop, never a hidden window or
+    # a foreground switch. Every sample verifies its HWND/PID and dimensions.
+    $desktopProcess = $desktop.Start($desktopExe,($quoted+' --open-settings'),$workspace)
     $null=$desktopProcess.Handle
     $deadline = [datetime]::UtcNow.AddSeconds(20)
     do {
         if ($desktopProcess.HasExited -or $hostProcess.HasExited) { throw 'A test root exited during initialization' }
-        $desktopProcess.Refresh()
-        if ($desktopProcess.MainWindowHandle -ne [IntPtr]::Zero) { break }
+        $windowHandle=$desktop.WindowHandle([uint32]$desktopProcess.Id)
+        if ($windowHandle -ne [IntPtr]::Zero) { break }
         Start-Sleep -Milliseconds 100
     } while ([datetime]::UtcNow -lt $deadline)
-    if ($desktopProcess.MainWindowHandle -eq [IntPtr]::Zero) { throw 'Settings window did not become visible' }
+    if ($windowHandle -eq [IntPtr]::Zero) { throw 'Settings window did not become visible' }
     Start-Sleep -Seconds $WarmupSeconds
     Push-Location $workspace
     try {
-        $health = & $GoExe run ./tests/resource-metrics/probe --pipe $pipeName
+        $expected=($Frontend -ne 'MyGo').ToString().ToLowerInvariant()
+        $health = & $GoExe run ./tests/resource-metrics/probe --pipe $pipeName "--expect-enabled=$expected"
         if ($LASTEXITCODE -ne 0) { throw 'Module health check failed; this is not a valid idle baseline' }
         [IO.File]::WriteAllText((Join-Path $outputRoot 'module-health.json'),($health -join [Environment]::NewLine),[Text.UTF8Encoding]::new($false))
     } finally { Pop-Location }
@@ -62,15 +76,15 @@ try {
     if ($root.Count -ne 1 -or $null -eq $root[0].CreationDate) { throw 'Desktop identity unavailable' }
     $uiKnown[[string]$desktopProcess.Id] = [string]$root[0].CreationDate.ToUniversalTime().Ticks
     $family = Get-TrackedProcessFamily -Inventory $inventory -Known $uiKnown
-    if (@($family.Members | Where-Object Name -eq 'msedgewebview2.exe').Count -eq 0) { throw 'No WebView2 process was observed' }
-    & (Join-Path $PSScriptRoot 'measure-resources.ps1') -RootProcessIds @($hostProcess.Id,$desktopProcess.Id) -OutputPath (Join-Path $outputRoot 'desktop-open.json') -Scenario 'settings-open-empty-profile' -DurationSeconds $DurationSeconds -BinaryPaths @($hostExe,$desktopExe) -WindowHandle ($desktopProcess.MainWindowHandle.ToInt64()) -WindowProcessId $desktopProcess.Id
+    if ($Frontend -eq 'WebView2' -and @($family.Members | Where-Object Name -eq 'msedgewebview2.exe').Count -eq 0) { throw 'No WebView2 process was observed' }
+    & (Join-Path $PSScriptRoot 'measure-resources.ps1') -RootProcessIds @($hostProcess.Id,$desktopProcess.Id) -OutputPath (Join-Path $outputRoot 'desktop-open.json') -Scenario ('settings-open-empty-profile-'+$Frontend) -DurationSeconds $DurationSeconds -BinaryPaths @($hostExe,$desktopExe) -WindowHandle ($windowHandle.ToInt64()) -WindowProcessId $desktopProcess.Id
     $openReport=Get-Content -LiteralPath (Join-Path $outputRoot 'desktop-open.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-    if (-not (Test-OpenWindowResourceReport -Report $openReport -HostProcessId $hostProcess.Id -DesktopProcessId $desktopProcess.Id)) { throw 'Open-window sampling is incomplete or the expected visible process group is missing; profile retained' }
+    if (-not (Test-OpenWindowResourceReport -Report $openReport -HostProcessId $hostProcess.Id -DesktopProcessId $desktopProcess.Id -Frontend $Frontend)) { throw 'Open-window sampling is incomplete or the expected visible process group is missing; profile retained' }
     $inventory = @(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,Name,CreationDate)
     $family = Get-TrackedProcessFamily -Inventory $inventory -Known $uiKnown
     # Send the normal close request only to the process this script created.
     $closeTimer = [Diagnostics.Stopwatch]::StartNew()
-    if (-not $desktopProcess.CloseMainWindow()) { throw 'Settings window rejected the close request' }
+    $desktop.CloseWindow([uint32]$desktopProcess.Id)
     if (-not $desktopProcess.WaitForExit(10000)) { throw 'Desktop did not exit after closing its window' }
     $deadline = [datetime]::UtcNow.AddSeconds(10)
     do {
@@ -100,6 +114,7 @@ try {
         }
         $target.Dispose()
     }
+    $desktop.Dispose()
     # Failure profiles are kept for diagnosis, never deleted beneath survivors.
     if ($completed) {
         Add-Type -AssemblyName Microsoft.VisualBasic

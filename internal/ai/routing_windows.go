@@ -184,6 +184,16 @@ func (r *RoutingProcess) AllowsModel(ctx context.Context, model string, allow fu
 	return filter(model), nil
 }
 func (r *RoutingProcess) Models(ctx context.Context, allow func(Selection) bool) (json.RawMessage, error) {
+	return r.models(ctx, allow, "/v1/models")
+}
+
+// Media providers are deliberately absent from Magpie's default chat list.
+// Use its actual kind=all catalog, not guesses based on a model's name.
+func (r *RoutingProcess) MediaModels(ctx context.Context, allow func(Selection) bool) (json.RawMessage, error) {
+	return r.models(ctx, allow, "/v1/models?kind=all")
+}
+
+func (r *RoutingProcess) models(ctx context.Context, allow func(Selection) bool, address string) (json.RawMessage, error) {
 	filter, err := r.modelFilter(ctx, allow)
 	if err != nil {
 		return nil, err
@@ -191,7 +201,7 @@ func (r *RoutingProcess) Models(ctx context.Context, allow func(Selection) bool)
 	var list struct {
 		Data []json.RawMessage `json:"data"`
 	}
-	if err = r.readAPI(ctx, "/v1/models", &list); err != nil {
+	if err = r.readAPI(ctx, address, &list); err != nil {
 		return nil, err
 	}
 	models := []json.RawMessage{}

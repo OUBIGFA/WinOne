@@ -206,7 +206,7 @@ function Test-HostIdleBudgetReport {
 }
 
 function Test-OpenWindowResourceReport {
-    param([object]$Report,[uint32]$HostProcessId,[uint32]$DesktopProcessId)
+    param([object]$Report,[uint32]$HostProcessId,[uint32]$DesktopProcessId,[ValidateSet('WebView2','MyGo')][string]$Frontend='WebView2')
     if ($HostProcessId -eq 0 -or $DesktopProcessId -eq 0 -or $HostProcessId -eq $DesktopProcessId) { return $false }
     if ($null -eq $Report -or $null -eq $Report.PSObject.Properties['Samples'] -or $null -eq $Report.Samples -or @($Report.Samples).Count -eq 0) { return $false }
     foreach ($sample in $Report.Samples) {
@@ -226,7 +226,10 @@ function Test-OpenWindowResourceReport {
         }
         if (@($processes | Where-Object { $_.ProcessId -eq $HostProcessId -and $_.Name -eq 'WinOne.Host.exe' }).Count -ne 1) { return $false }
         if (@($processes | Where-Object { $_.ProcessId -eq $DesktopProcessId -and $_.Name -eq 'WinOne.exe' }).Count -ne 1) { return $false }
-        if (@($processes | Where-Object Name -eq 'msedgewebview2.exe').Count -eq 0) { return $false }
+        # Native MyGo Home has no browser renderer. A legacy WebView scenario
+        # still requires its real descendant in every sample, never just a
+        # window handle; all observed workers remain included in both reports.
+        if ($Frontend -eq 'WebView2' -and @($processes | Where-Object Name -eq 'msedgewebview2.exe').Count -eq 0) { return $false }
     }
     return $true
 }

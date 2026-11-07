@@ -70,6 +70,13 @@ func (s *HostStore) prepareDocument(document Document) (Document, bool, error) {
 }
 
 func (s *HostStore) applyDocument(document Document) error {
+	return s.applyProjection(document, nil)
+}
+
+// Ordinary commits project only changed worker preferences. Startup, explicit
+// recovery and every compensation pass nil and reconcile the full old target;
+// no in-memory cache can turn partial native failure into a successful save.
+func (s *HostStore) applyProjection(document Document, previous *Document) error {
 	if document.ModuleEnabled != nil {
 		if s.lifecycle == nil {
 			return errors.New("模块生命周期接口未就绪")
@@ -84,6 +91,9 @@ func (s *HostStore) applyDocument(document Document) error {
 			continue
 		}
 		if raw, exists := document.Values[adapter.ID]; exists {
+			if previous != nil && bytes.Equal(previous.Values[adapter.ID], raw) && previous.ModuleEnabled[adapter.ID] == document.ModuleEnabled[adapter.ID] {
+				continue
+			}
 			if err := adapter.Apply(append(json.RawMessage(nil), raw...), document.Revision); err != nil {
 				return fmt.Errorf("%s: %w", adapter.ID, err)
 			}

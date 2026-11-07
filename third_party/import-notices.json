@@ -4,11 +4,12 @@
     {
       "name": "mygo-winone-shell-file-drop",
       "repository": "https://github.com/egoist/mygo",
-      "commit": "9bd34e1eb9525d9a1fe698aadc964c49c8ff8e7e",
+      "commit": "8f07b6f282873fd526a4f8153d727063b00dcdeb",
       "license": "MIT",
-      "scope": "MyGo v0.7.4, complete verified upstream in a repository source cache; only Windows cross-integrity Shell file-drop hooks added, adapting WinOne's existing component_file_drop.rs. OLE, native hit testing, data/file dispatch, UI and all upstream features remain unchanged.",
+      "scope": "MyGo v0.7.4, complete verified upstream in a repository source cache; Windows cross-integrity Shell file-drop hooks adapt WinOne's existing component_file_drop.rs. The async inline-math revision hook invalidates paragraph shaping without replacing document/selection identity. OLE, native hit testing and file dispatch stay unchanged.",
       "sourceFiles": [
-        "internal/windows/surface_drop.go"
+        "internal/windows/surface_drop.go",
+        "ui/markdown/view.go"
       ],
       "notices": [
         {
@@ -19,7 +20,11 @@
       "files": [
         {
           "path": "third_party/mygo-winone/source.json",
-          "sha256": "173f30511ab11fc437ddc1fe37f87dcddbea8225b4ba3ff693ff74aeeb7263b3"
+          "sha256": "77da86a479f7ec8b7e1ba62fc37a9e44fed03fe783772aa824fe61ff4abe4ee4"
+        },
+        {
+          "path": "third_party/mygo-winone/inline_math_test.go",
+          "sha256": "50443474b433d696508799bc1502728f77959d74b533c2a24ae4f326e150fdd2"
         },
         {
           "path": "third_party/mygo-winone/surface_file_drop_windows.go",
@@ -27,7 +32,7 @@
         },
         {
           "path": "build/prepare-mygo-filedrop.ps1",
-          "sha256": "79e41c65f5873a1726aef6aa15b67fd391708f494366c27c68b3fe4492efd60e"
+          "sha256": "bdcc8696fdfd1386eb3f30c6c5c0cecef604286d68d98283d3b7db6de4aea5a5"
         }
       ]
     },

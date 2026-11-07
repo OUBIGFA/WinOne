@@ -18,12 +18,17 @@ func CallCompleting(ctx context.Context, pipe string, request host.Request, time
 		return response, err
 	}
 	var ticket struct {
-		ID string `json:"configurationJob"`
+		ID     string `json:"configurationJob"`
+		WaitMs int    `json:"configurationJobWaitMs"`
 	}
 	if json.Unmarshal(response.Result, &ticket) != nil || ticket.ID == "" {
 		return response, nil
 	}
-	params, _ := json.Marshal(map[string]string{"id": ticket.ID})
+	waitMs := min(max(ticket.WaitMs, 0), 1000)
+	if timeout > 0 {
+		waitMs = min(waitMs, max(1, int(timeout/time.Millisecond/2)))
+	}
+	params, _ := json.Marshal(map[string]any{"id": ticket.ID, "waitMs": waitMs})
 	poll := host.Request{Version: 1, ID: request.ID + "-configuration", Method: "configuration.jobs.get", Params: params}
 	for {
 		response, err = CallWithTimeout(ctx, pipe, poll, timeout)
@@ -52,6 +57,11 @@ func CallCompleting(ctx context.Context, pipe string, request host.Request, time
 		case "running":
 		default:
 			return host.Response{}, errors.New("无法确认配置任务状态")
+		}
+		// New Hosts wake the read at actual completion. Older Hosts do not
+		// advertise wait support and keep the original bounded polling cadence.
+		if waitMs > 0 {
+			continue
 		}
 		timer := time.NewTimer(150 * time.Millisecond)
 		select {

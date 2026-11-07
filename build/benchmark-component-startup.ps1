@@ -3,14 +3,19 @@ param(
     [Parameter(Mandatory)][string]$BundleDirectory,
     [Parameter(Mandatory)][string]$OutputDirectory,
     [ValidateRange(2,100)][int]$Runs=21,
-    [switch]$EnforceWarmBudget
+    [switch]$EnforceWarmBudget,
+    [ValidateSet('WebView2','MyGo')][string]$Frontend='WebView2'
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot 'resource-metrics.psm1') -Force
+. (Join-Path $PSScriptRoot 'private-test-desktop.ps1')
+if($Frontend -eq 'MyGo' -and ([string]::IsNullOrEmpty($env:WINONE_TEST_DESKTOP_NAME) -or [WinOnePrivateTestDesktop]::CurrentName() -ne $env:WINONE_TEST_DESKTOP_NAME)){
+    throw 'Native startup measurements must use build/benchmark-native-startup.ps1 on its owned private desktop'
+}
 $workspace=Split-Path -Parent $PSScriptRoot
 $bundle=(Resolve-Path -LiteralPath $BundleDirectory).Path
-$output=[IO.Path]::GetFullPath((Join-Path $workspace $OutputDirectory))
+$output=if([IO.Path]::IsPathRooted($OutputDirectory)){[IO.Path]::GetFullPath($OutputDirectory)}else{[IO.Path]::GetFullPath((Join-Path $workspace $OutputDirectory))}
 & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $output
 $desktopExe=Join-Path $bundle 'WinOne.exe'
 $hostExe=Join-Path $bundle 'WinOne.Host.exe'
@@ -37,6 +42,7 @@ $process=$null
 $failure=$null
 $result=[ordered]@{
     Scope='Visible UI; isolated profile; no debugger or resident WebView. First launch uses a fresh profile, not a verified cold OS cache. Readiness means committed Home data and controls, not physical input-to-photon latency.'
+    Frontend=$Frontend
     StartedUtc=[DateTime]::UtcNow.ToString('o')
     OSVersion=[Environment]::OSVersion.VersionString
     Processor=@(Get-CimInstance Win32_Processor | ForEach-Object {$_.Name})
@@ -77,7 +83,8 @@ try{
         # the last partial trace if readiness or cleanup fails.
         [IO.File]::WriteAllLines($traceFile,$trace.ToArray(),[Text.UTF8Encoding]::new($false))
         $process.Refresh()
-        if($process.MainWindowHandle -eq [IntPtr]::Zero){throw 'No visible settings window at readiness'}
+        $ownedWindow=if($Frontend -eq 'MyGo'){[WinOnePrivateTestDesktop]::CurrentWindowHandle([uint32]$process.Id)}else{$process.MainWindowHandle}
+        if($ownedWindow -eq [IntPtr]::Zero){throw 'No visible settings window at readiness'}
         # Inventory work stays outside the timed startup. Record creation times
         # so a recycled PID cannot be counted as a surviving WebView process.
         $inventory=@(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,Name,CreationDate)
@@ -90,12 +97,16 @@ try{
         $family=Get-TrackedProcessFamily -Inventory $inventory -Known $known
         if($family.Errors.Count){throw ($family.Errors -join '; ')}
         $webviews=@($family.Members | Where-Object Name -eq 'msedgewebview2.exe')
-        if($webviews.Count -eq 0){throw 'No WebView2 descendants were observed'}
+        if($Frontend -eq 'WebView2' -and $webviews.Count -eq 0){throw 'No WebView2 descendants were observed'}
         $identities=@($webviews | Select-Object ProcessId,ParentProcessId,@{Name='CreatedUtc';Expression={$_.CreationDate.ToUniversalTime().ToString('o')}})
-        $sample=[pscustomobject]@{Run=$run;NativeReadyMs=$internalReady;ProcessStartToReadyMs=$externalReady;CloseMs=$null;DesktopProcessId=$process.Id;DesktopCreatedUtc=$root[0].CreationDate.ToUniversalTime().ToString('o');ObservedWebViews=$webviews.Count;WebViewIdentities=$identities;RemainingWebViewIdentities=@();ExitCode=$null;ObservedWebViewsExited=$false;Trace=$trace.ToArray()}
+        # Native Home need not own a WebView. All non-Host UI descendants are
+        # checked as well; the paired Host deliberately outlives UI close.
+        $uiDescendants=@($family.Members | Where-Object {$_.ProcessId -ne $process.Id -and $_.Name -ne 'WinOne.Host.exe'})
+        $uiIdentities=@($uiDescendants | Select-Object ProcessId,ParentProcessId,Name,@{Name='CreatedUtc';Expression={$_.CreationDate.ToUniversalTime().ToString('o')}})
+        $sample=[pscustomobject]@{Run=$run;NativeReadyMs=$internalReady;ProcessStartToReadyMs=$externalReady;CloseMs=$null;DesktopProcessId=$process.Id;DesktopCreatedUtc=$root[0].CreationDate.ToUniversalTime().ToString('o');ObservedWebViews=$webviews.Count;WebViewIdentities=$identities;UIIdentities=$uiIdentities;RemainingUIIdentities=@();ObservedUIProcessesExited=$false;RemainingWebViewIdentities=@();ExitCode=$null;ObservedWebViewsExited=$false;Trace=$trace.ToArray()}
         $reports.Add($sample)
         $close=[Diagnostics.Stopwatch]::StartNew()
-        if(-not $process.CloseMainWindow()){throw 'Owned settings window refused normal close'}
+        if($Frontend -eq 'MyGo'){[WinOnePrivateTestDesktop]::CloseCurrentWindow([uint32]$process.Id)}elseif(-not $process.CloseMainWindow()){throw 'Owned settings window refused normal close'}
         if(-not $process.WaitForExit(10000)){throw 'Owned UI did not close normally'}
         # The sibling Host can inherit stderr; do not wait for stream EOF.
         $sample.ExitCode=$process.ExitCode
@@ -106,12 +117,15 @@ try{
             $remaining=@($webviews | Where-Object {$observed=$_;$current | Where-Object {$_.ProcessId -eq $observed.ProcessId -and $_.CreationDate -eq $observed.CreationDate}})
             $remainingIds=@($remaining | ForEach-Object {$_.ProcessId})
             $sample.RemainingWebViewIdentities=@($identities | Where-Object ProcessId -in $remainingIds)
-            if($remaining.Count -eq 0){break}
-            if([DateTime]::UtcNow -gt $deadline){throw 'WebView2 survived normal UI close'}
+            $remainingUI=@($uiDescendants | Where-Object {$observed=$_;$current | Where-Object {$_.ProcessId -eq $observed.ProcessId -and $_.CreationDate -eq $observed.CreationDate}})
+            $sample.RemainingUIIdentities=@($uiIdentities | Where-Object ProcessId -in @($remainingUI | ForEach-Object {$_.ProcessId}))
+            if($remaining.Count -eq 0 -and $remainingUI.Count -eq 0){break}
+            if([DateTime]::UtcNow -gt $deadline){throw 'An owned UI descendant survived normal close'}
             Start-Sleep -Milliseconds 50
         }while($true)
         $sample.CloseMs=$close.Elapsed.TotalMilliseconds
         $sample.ObservedWebViewsExited=$true
+        $sample.ObservedUIProcessesExited=$true
         if($sample.CloseMs -gt 15000){throw 'UI process cleanup exceeded the 15-second budget'}
         $process.Dispose();$process=$null
         $result.Runs=$reports.ToArray()

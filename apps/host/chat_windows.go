@@ -33,6 +33,7 @@ type chatControl struct {
 	guard              func() (func(), bool)
 	automations        *chatAutomations
 	onebot             *chatOneBot
+	ghosts             *chatGhosts
 	// prepareInput turns an owner's companion-chat message with a reply quote or
 	// @teammate references into model text and its display presentation; only
 	// the OneBot conversation store sets it.
@@ -49,6 +50,7 @@ func registerChat(service *host.Service, ctx context.Context, directory, executa
 		c.terminals = chat.NewTerminalManager(ctx)
 		// Teammate follow-up also watches ordinary Chat conversations.
 		c.engine = chat.NewService(ctx, c.store, chat.ServiceOptions{Bun: filepath.Join(filepath.Dir(executable), "shared", "ai", "runtime", "bun.exe"), Worker: filepath.Join(filepath.Dir(executable), "shared", "chat", "worker.js"), Configure: c.configure, OnActivity: func(id string) { c.onebot.noteActivity(id) }})
+		c.ghosts = newChatGhosts(c)
 		c.automations = newChatAutomations(c)
 		c.onebot = newChatOneBot(c)
 		go c.automations.startSaved()
@@ -79,6 +81,11 @@ func chatModel(config ai.Configuration, selection ai.Selection) (map[string]any,
 	return nil, errors.New("请在 AI 服务中启用模型，再为对话选择模型")
 }
 func (c *chatControl) configure(conversation chat.Conversation) (map[string]any, func(), error) {
+	if c.ghosts != nil {
+		if err := c.ghosts.restoreWorkerWorktree(c.ctx, conversation); err != nil {
+			return nil, nil, err
+		}
+	}
 	config, err := c.aiConfiguration()
 	if err != nil {
 		return nil, nil, err
@@ -88,7 +95,7 @@ func (c *chatControl) configure(conversation chat.Conversation) (map[string]any,
 		return nil, nil, err
 	}
 	bridge, err := chat.NewPrivateBridge(c.ctx, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if c.automationPolicy(w, r, conversation.ID) {
+		if c.automationPolicy(w, r, conversation.ID) || c.taskDelivery(w, r, conversation.ID) || (c.ghosts != nil && c.ghosts.toolCall(w, r, conversation)) {
 			return
 		}
 		// This identity comes from WinOne's registered conversation, never the
@@ -138,8 +145,26 @@ func (c *chatControl) configure(conversation chat.Conversation) (map[string]any,
 		}
 		taskBridge = map[string]string{"baseUrl": admission.BaseURL, "key": admission.Key}
 		release = func() { admission.Close(); bridge.Close() }
+	} else if conversation.PluginID != "" {
+		admission, err := c.ghosts.taskAdmissionBridge(conversation)
+		if err != nil {
+			bridge.Close()
+			return nil, nil, err
+		}
+		taskBridge = map[string]string{"baseUrl": admission.BaseURL, "key": admission.Key}
+		release = func() { admission.Close(); bridge.Close() }
 	}
-	return map[string]any{"taskBridge": taskBridge, "onebotTask": conversation.OneBotTaskID != "", "baseUrl": bridge.BaseURL, "key": bridge.Key, "model": model, "thinkingLevel": conversation.ThinkingLevel, "fastMode": conversation.FastMode, "runtimeSettings": runtimeSettings, "models": models, "language": c.language(), "agentDir": filepath.Join(c.directory, "chat", "agents", conversation.ID), "mcpAuthDirectory": filepath.Join(c.directory, "chat", "mcp"), "skillDirectories": prefs.SkillDirectories, "pluginDirectories": prefs.PluginDirectories, "mcpServers": prefs.MCPServers, "logPath": filepath.Join(c.directory, "logs", "host.log"), "protectedPaths": []string{filepath.Join(c.directory, "ai-settings.json"), filepath.Join(c.directory, "ai-runtime"), filepath.Join(c.directory, "chat", "agents"), filepath.Join(c.directory, "chat", "index.json"), filepath.Join(c.directory, "chat", "settings.json"), filepath.Join(c.directory, "chat", "mcp"), conversation.SessionDirectory, filepath.Dir(c.desktop)}}, release, nil
+	return map[string]any{"orca": map[string]any{"agentKind": "pi", "workingDir": conversation.Directory, "sessionId": conversation.ID, "vendorOptions": map[string]string{"orcaRole": conversation.OrcaRole, "orcaWorkflowId": conversation.OrcaTeamID, "orcaLeadSessionId": conversation.OrcaLeadID, "orcaWorkerId": conversation.OrcaWorkerID}}, "ghostBridge": map[string]string{"baseUrl": bridge.BaseURL, "key": bridge.Key}, "taskDelivery": true, "taskBridge": taskBridge, "onebotTask": conversation.OneBotTaskID != "", "baseUrl": bridge.BaseURL, "key": bridge.Key, "model": model, "thinkingLevel": conversation.ThinkingLevel, "fastMode": conversation.FastMode, "runtimeSettings": runtimeSettings, "models": models, "language": c.language(), "agentDir": filepath.Join(c.directory, "chat", "agents", conversation.ID), "mcpAuthDirectory": filepath.Join(c.directory, "chat", "mcp"), "skillDirectories": append(append([]string{}, prefs.SkillDirectories...), c.ghostSkillDirectories()...), "pluginDirectories": prefs.PluginDirectories, "mcpServers": prefs.MCPServers, "logPath": filepath.Join(c.directory, "logs", "host.log"), "protectedPaths": []string{filepath.Join(c.directory, "ai-settings.json"), filepath.Join(c.directory, "ai-runtime"), filepath.Join(c.directory, "chat", "agents"), filepath.Join(c.directory, "chat", "index.json"), filepath.Join(c.directory, "chat", "settings.json"), filepath.Join(c.directory, "chat", "mcp"), conversation.SessionDirectory, filepath.Dir(c.desktop)}}, release, nil
+}
+
+// ghostSkillDirectories are enabled plugins' bundled skills, for a worker starting now.
+func (c *chatControl) ghostSkillDirectories() []string {
+	if c.ghosts == nil {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(c.ctx, 10*time.Second)
+	defer cancel()
+	return c.ghosts.skillDirectories(ctx)
 }
 
 // Verify the actual pipe peer, never a PID supplied by browser content. Keeping
@@ -161,6 +186,9 @@ func (c *chatControl) attach(pid uint32) error {
 	go func() {
 		_ = process.Wait(c.ctx)
 		c.engine.Detach(pid)
+		if c.ghosts != nil {
+			c.ghosts.releaseUIOwner(c.ctx, pid)
+		}
 		if c.terminals != nil {
 			c.terminals.Detach(pid)
 		}
@@ -197,7 +225,7 @@ func (c *chatControl) handle(r host.Request) host.Response {
 	_, oneBotRead := oneBotMethod(strings.TrimPrefix(r.Method, "onebot."))
 	oneBotRead = strings.HasPrefix(r.Method, "onebot.") && oneBotRead
 	switch r.Method {
-	case "usage", "project.git", "catalog", "activity", "settings.get", "resources", "files", "draft.get", "poll", "state", "stop", "release", "detach", "automations.deleted", "automations.project.read", "automations.connections.get", "automations.templates", "automations.template.apply", "automations.list", "automations.get", "automations.runs", "automations.events", "automations.runtime", "automations.preview", "automations.sidebarIndexRuns", "automations.inflightCount", "automations.detectCwd", "automations.channels", "automations.capabilityStatus":
+	case "usage", "project.git", "catalog", "activity", "settings.get", "resources", "files", "draft.get", "poll", "state", "stop", "release", "detach", "automations.deleted", "automations.project.read", "automations.connections.get", "automations.templates", "automations.template.apply", "automations.list", "automations.get", "automations.runs", "automations.events", "automations.runtime", "automations.preview", "automations.sidebarIndexRuns", "automations.inflightCount", "automations.detectCwd", "automations.channels", "automations.capabilityStatus", "automations.plugins", "ghosts.list", "ghosts.candidates", "ghosts.configuration", "ghosts.background-tasks":
 	default:
 		if c.guard != nil && !oneBotRead {
 			release, ok := c.guard()
@@ -262,6 +290,13 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		}
 		return result(value)
 	}
+	if strings.HasPrefix(r.Method, "ghosts.") {
+		value, err := c.ghosts.callUI(ctx, strings.TrimPrefix(r.Method, "ghosts."), r.Params, r.PeerPID)
+		if err != nil {
+			return fail(err)
+		}
+		return result(value)
+	}
 	if strings.HasPrefix(r.Method, "automations.") {
 		value, err := c.automations.call(ctx, strings.TrimPrefix(r.Method, "automations."), r.Params)
 		if err != nil {
@@ -289,7 +324,7 @@ func (c *chatControl) handle(r host.Request) host.Response {
 		}
 		return result(value)
 	}
-	if strings.HasPrefix(r.Method, "media.") || r.Method == "attachments.upload" {
+	if strings.HasPrefix(r.Method, "media.") || r.Method == "attachments.upload" || r.Method == "image.preview" {
 		value, err := c.mediaAction(ctx, r.Method, r.Params)
 		if err != nil {
 			return fail(err)
@@ -363,7 +398,7 @@ func (c *chatControl) handle(r host.Request) host.Response {
 	case "activity":
 		value = c.engine.Activity()
 	case "catalog":
-		value = c.store.Snapshot()
+		value = c.store.VisibleSnapshot()
 	case "settings.get":
 		value = c.store.Preferences()
 	case "settings.save":
@@ -470,6 +505,7 @@ func (c *chatControl) handle(r host.Request) host.Response {
 				}
 				if input.Permission != "" {
 					conversation.Permission = input.Permission
+					conversation.LegacyPlan = false
 				}
 				return nil
 			})
@@ -488,6 +524,11 @@ func (c *chatControl) handle(r host.Request) host.Response {
 	case "poll":
 		value, err = c.engine.Poll(input.ID, input.Cursor)
 	case "prompt":
+		if c.ghosts != nil && input.Text != "" {
+			if input.Text, err = c.ghosts.screenInput(ctx, input.ID, input.Text); err != nil {
+				break
+			}
+		}
 		if input.PreserveDraft {
 			if len(input.Attachments) > 0 || len(input.ReplyQuote) > 0 || len(input.AgentReferences) > 0 {
 				err = errors.New("此补充入口仅接受文字")
@@ -681,9 +722,16 @@ func (c *chatControl) stop() error {
 	if c.onebot != nil {
 		oneBotError = c.onebot.close(ctx)
 	}
-	return errors.Join(schedulerError, oneBotError, c.engine.Stop(ctx))
+	var ghostError error
+	if c.ghosts != nil && c.ghosts.control == c {
+		ghostError = c.ghosts.close(ctx)
+	}
+	return errors.Join(schedulerError, oneBotError, ghostError, c.engine.Stop(ctx))
 }
 func (c *chatControl) resume() {
+	if c.ghosts != nil && c.ghosts.control == c {
+		c.ghosts.resume()
+	}
 	if c.engine != nil {
 		c.engine.Resume()
 	}

@@ -27,3 +27,24 @@ func TestShots(t *testing.T) {
 		})
 	}
 }
+
+// Auto-login remains available beside the startup modes in both languages,
+// including a disabled-but-preserved choice for hidden launches.
+func TestWeChatAutoLoginShots(t *testing.T) {
+	if os.Getenv("WINONE_SHOTS") == "" {
+		t.Skip("WINONE_SHOTS is not set")
+	}
+	t.Cleanup(func() { i18n.SetLocale(i18n.Chinese) })
+	for _, locale := range []string{i18n.Chinese, i18n.English} {
+		for _, startupMode := range []string{"tray", "normal", "task", "hidden"} {
+			document := programDocument("a", "WeChat", `C:\Apps\Weixin.exe`)
+			document["wechatAutoLogin"] = true
+			document["launchViaLogonTask"] = startupMode == "task"
+			document["launchHiddenInBackground"] = startupMode == "hidden"
+			document["trayBehavior"].(map[string]any)["autoMinimizeAndHideOnLaunch"] = startupMode == "tray"
+			f := setup(t, "running", document)
+			i18n.SetLocale(locale)
+			f.h.Shots(t, "wechat-"+locale+"-"+startupMode, f.page.View, 1000, nil)
+		}
+	}
+}

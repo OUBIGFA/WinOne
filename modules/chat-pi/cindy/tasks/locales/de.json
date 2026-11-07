@@ -1,0 +1,84 @@
+{
+ "bots": {
+  "glance": {
+   "checkPrompt": "Prüfe meine verbundenen Quellen wie E-Mails und Nachrichten auf Neues, um das ich mich kümmern muss, und füge es meinen To-dos hinzu."
+  },
+  "collab": {
+   "deliveryFailed": "Das Ergebnis konnte nicht an den ursprünglichen Chat übermittelt werden. Es ist in dieser Sitzung gespeichert.",
+   "backgroundTask": "Hintergrundaufgabe"
+  },
+  "groupChat": {
+   "task": {
+    "label": "Aufgabe",
+    "state": {
+     "started": "In Bearbeitung",
+     "waiting": "Warten auf deine Bestätigung",
+     "completed": "Fertig",
+     "failed": "Fehlgeschlagen",
+     "cancelled": "Abgebrochen",
+     "timed-out": "Zeitüberschreitung"
+    }
+   }
+  }
+ },
+ "chat": {
+  "workGroup": {
+   "working": "Wird verarbeitet…",
+   "worked": "{{duration}} gearbeitet",
+   "workDetails": "Arbeitsdetails"
+  },
+  "remoteError": {
+   "REMOTE_AGENT_BUSY": "Auf dem anderen Computer laufen zu viele Sitzungen. Beende einige davon und versuch es erneut.",
+   "REMOTE_AGENT_DEVICE_LIMIT": "Dieses Gerät hat sein Limit für Remote-Sitzungen erreicht. Archiviere ungenutzte Sitzungen oder bitte den Eigentümer des Anbieters, das Limit unter „Remote & Freigabe“ zu erhöhen.",
+   "REMOTE_AGENT_TOTAL_LIMIT": "Der Anbietercomputer hat sein Gesamtlimit für Remote-Sitzungen erreicht. Bitte den Eigentümer, ungenutzte Sitzungen freizugeben oder das Limit unter „Remote & Freigabe“ zu erhöhen."
+  },
+  "agentActions": {
+   "part": {
+    "edited_one": "hat eine Datei bearbeitet",
+    "edited_other": "hat {{count}} Dateien bearbeitet",
+    "created_one": "hat eine Datei erstellt",
+    "created_other": "hat {{count}} Dateien erstellt",
+    "ran_one": "hat einen Befehl ausgeführt",
+    "ran_other": "hat {{count}} Befehle ausgeführt",
+    "read_one": "hat eine Datei gelesen",
+    "read_other": "hat {{count}} Dateien gelesen",
+    "updated_one": "hat die To-dos aktualisiert",
+    "updated_other": "hat die To-dos aktualisiert",
+    "searched_one": "gesucht",
+    "searched_other": "gesucht",
+    "fetched_one": "das Web abgerufen",
+    "fetched_other": "das Web abgerufen",
+    "used_one": "ein Tool verwendet",
+    "used_other": "{{count}} Tools verwendet"
+   },
+   "more_one": "{{count}} weitere",
+   "more_other": "{{count}} weitere",
+   "separator": ", ",
+   "lastSeparator": " und "
+  }
+ },
+ "routines": {
+  "todoCheck": {
+   "name": "Tägliche To-do-Prüfung"
+  }
+ },
+ "groupTools": {
+  "authorizationRequired": "Die Gruppenautorisierung ist abgelaufen oder erlaubt diese Aktion nicht. Bitte den Besitzer des Teammitglieds, eine neue Anfrage in dieser Gruppe zu stellen.",
+  "localPeersOnly": "Gruppennachrichten können nur an Teammitglieder auf diesem Gerät und in diesem Konto gerichtet werden.",
+  "ownerChanged": "Das Konto hat sich geändert. Versuch es erneut.",
+  "invalidMessage": "Die Nachrichten- oder Wiederholungskennung ist ungültig.",
+  "privateUnavailable": "Der private Chat dieses Teammitglieds ist nicht verfügbar. Versuch es später erneut.",
+  "idempotencyConflict": "Diese Wiederholungskennung wurde bereits für eine andere Nachricht verwendet.",
+  "privateUnconfirmed": "Die Zustellung der privaten Nachricht ist nicht bestätigt. Versuch es mit derselben Kennung erneut.",
+  "verificationUnavailable": "Die Gruppenautorisierung konnte nicht überprüft werden. Versuch es erneut, sobald die Verbindung wiederhergestellt ist."
+ },
+ "forwardedRequest": {
+  "sourcePresent": "[Quelle] Der Host hat den ursprünglichen Wortlaut des Nutzers unverändert als Hintergrund der Anfrage beibehalten. Die aktuelle Anfrage steht in der Agent-Ergänzung.",
+  "sourceMissing": "[Quelle] Es wurde kein überprüfbarer ursprünglicher Nutzertext gefunden.",
+  "userPrefix": "Ursprünglicher Wortlaut des Nutzers:",
+  "agentPrefix": "Agent-Ergänzung:",
+  "taskSource": "[Aufgabenquelle] Ein Teammitglied hat diese Aufgabe gestartet.",
+  "taskId": "Aufgaben-ID:",
+  "contextReferences": "Kontextverweise:"
+ }
+}

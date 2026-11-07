@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/makecindy/cindy",
-  "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+  "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
   "license": "Apache-2.0",
   "scope": "Local OneBot voice conversation, dictation, playback and preferences. WinOne supplies its AI service credentials, canonical task queue, owner-scoped storage and desktop transport; Cindy accounts and remote control are excluded.",
   "groups": [
@@ -494,6 +494,26 @@
       "source": "packages/voice-input-core/src/dictionary-sync/reconcile.ts",
       "target": "third_party/cindy/voice-core/dictionary-sync/reconcile.ts",
       "file": true
+    },
+    {
+      "source": "apps/desktop/src/main/maker-host/provider-app-attribution.ts",
+      "target": "modules/chat-pi/cindy/voice/main/maker-host/provider-app-attribution.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/modelSource.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelSource.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/cindyMark.ts",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/cindyMark.ts",
+      "file": true
+    },
+    {
+      "source": "packages/model-providers/src/localModelDescriptions.json",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/localModelDescriptions.json",
+      "file": true
     }
   ],
   "seams": {
@@ -542,9 +562,9 @@
   "files": [
     {
       "source": "apps/desktop/src/main/voice-conversation/service.ts",
-      "sourceSHA256": "19485471c3a64fa79707b5402962a897a196f32caaf3c66eb17b749848c4f9c5",
+      "sourceSHA256": "65e3370e5c15ca5acaa304ffd0b21037b0a4f427220b654b1250432914aa54d0",
       "target": "modules/chat-pi/cindy/voice/main/voice-conversation/service.ts",
-      "sha256": "25746dc88eeee3105dbed5d0757895084087590d435d82c4657ff66b702746e3",
+      "sha256": "6eea690b85cb5c1a19eda986939ed0f884b502e6ed417502ba676f22f0779385",
       "adaptation": "import-paths"
     },
     {
@@ -673,22 +693,22 @@
     },
     {
       "source": "apps/desktop/src/main/voice-conversation/models.ts",
-      "sourceSHA256": "19a5d6e33d960813a418db23f44e85c4a40245e4926d6310ce7762243dfc21c7",
+      "sourceSHA256": "901ea1295a10b4c25869ca62c5b5d2ed7f88c05080798c2e886e3da873767dce",
       "target": "modules/chat-pi/cindy/voice/main/voice-conversation/models.ts",
-      "sha256": "6f280d65f235e5d48bdeff1892bc8a60bc0f3f61e90b1512dbfe3fe6e770f5d1",
+      "sha256": "3a15344011cb0586abf91b122d6bda249666091ec7c59a2960de81c97c55133e",
       "adaptation": "import-paths"
     },
     {
       "source": "packages/model-providers/src/index.ts",
-      "sourceSHA256": "74d704738d8062a85b75c4ae3b44db5c73412e1678d7431f93c80ce18069e6da",
+      "sourceSHA256": "4360e4acfae7bfc518d6154060c09c54c2900580362946835f1a6a8b4e932f0c",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/index.ts",
-      "sha256": "74d704738d8062a85b75c4ae3b44db5c73412e1678d7431f93c80ce18069e6da"
+      "sha256": "4360e4acfae7bfc518d6154060c09c54c2900580362946835f1a6a8b4e932f0c"
     },
     {
       "source": "packages/model-providers/src/modelDisplayPricing.ts",
-      "sourceSHA256": "4a523d1040ffca2dc429b7a7cbf684f93a9fd3cd881f2064af3c9b44ccb075ed",
+      "sourceSHA256": "3b5f11c87b59d0aee63f82285a8de2b39bd8e89340ca90327ff8fd47373a4b46",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelDisplayPricing.ts",
-      "sha256": "4a523d1040ffca2dc429b7a7cbf684f93a9fd3cd881f2064af3c9b44ccb075ed"
+      "sha256": "3b5f11c87b59d0aee63f82285a8de2b39bd8e89340ca90327ff8fd47373a4b46"
     },
     {
       "source": "packages/model-providers/src/providerProtocolProbe.ts",
@@ -698,15 +718,15 @@
     },
     {
       "source": "packages/model-providers/src/types.ts",
-      "sourceSHA256": "904eca29aca410af462b2fc184a217e27c6e1e79ec70662baf1af841da54bee9",
+      "sourceSHA256": "42eefd4735e537ed789c6448ff6e3dcd7ec53fe76f1b016a6fbf4e5974a0f321",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/types.ts",
-      "sha256": "904eca29aca410af462b2fc184a217e27c6e1e79ec70662baf1af841da54bee9"
+      "sha256": "42eefd4735e537ed789c6448ff6e3dcd7ec53fe76f1b016a6fbf4e5974a0f321"
     },
     {
       "source": "packages/model-providers/src/modelMetadataLayers.ts",
-      "sourceSHA256": "719c6a542850669175d33f6306874429e805f260bfa602c76049a1c37270641f",
+      "sourceSHA256": "fca3d1c78e31840744c10ced7d0e8a107114fcd7b73ee191a2f324504644e892",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelMetadataLayers.ts",
-      "sha256": "719c6a542850669175d33f6306874429e805f260bfa602c76049a1c37270641f"
+      "sha256": "fca3d1c78e31840744c10ced7d0e8a107114fcd7b73ee191a2f324504644e892"
     },
     {
       "source": "packages/model-providers/src/modelGeneration.ts",
@@ -716,15 +736,15 @@
     },
     {
       "source": "packages/model-providers/src/modelAccessBean.ts",
-      "sourceSHA256": "c34208524ef3341e1cc6b96ba2791f6e7888a07acb81875c662e64c2afe0aab2",
+      "sourceSHA256": "adc617712ecf3b3d074a005431addc1c7188be902dcfff630dbec046cd68b375",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelAccessBean.ts",
-      "sha256": "c34208524ef3341e1cc6b96ba2791f6e7888a07acb81875c662e64c2afe0aab2"
+      "sha256": "adc617712ecf3b3d074a005431addc1c7188be902dcfff630dbec046cd68b375"
     },
     {
       "source": "packages/model-providers/src/localModelCatalog.ts",
-      "sourceSHA256": "3f3fd15938bb659c215880d5b9c8ef0c650735c0d1342c7440543d7461fb6747",
+      "sourceSHA256": "92e8bb10fa294c53d0a107ccfe981f2b3ba733ee94bee769e422acb7c043838e",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/localModelCatalog.ts",
-      "sha256": "3f3fd15938bb659c215880d5b9c8ef0c650735c0d1342c7440543d7461fb6747"
+      "sha256": "92e8bb10fa294c53d0a107ccfe981f2b3ba733ee94bee769e422acb7c043838e"
     },
     {
       "source": "packages/model-providers/src/remoteModels.ts",
@@ -752,9 +772,9 @@
     },
     {
       "source": "packages/model-providers/src/providerBranding.ts",
-      "sourceSHA256": "f611e3e89c39cdfd29d478fd43422ac227e96785123d4fcee160e3398c85f8bc",
+      "sourceSHA256": "6184a0f3cbebb9a51e33eb264d04419c4928465562c0db372aa17300ae8278d8",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerBranding.ts",
-      "sha256": "f611e3e89c39cdfd29d478fd43422ac227e96785123d4fcee160e3398c85f8bc"
+      "sha256": "6184a0f3cbebb9a51e33eb264d04419c4928465562c0db372aa17300ae8278d8"
     },
     {
       "source": "packages/model-providers/src/provider-identity.ts",
@@ -782,15 +802,15 @@
     },
     {
       "source": "packages/model-providers/src/modelAccessValidator.ts",
-      "sourceSHA256": "b634ccecc41bea12032f6b06e9fe8b6b5682eef788b9d7169ec5b558f40c4503",
+      "sourceSHA256": "ffad722a815251ff0f9073761b1e13e8707c13856ce203bff5d4da9da444270e",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelAccessValidator.ts",
-      "sha256": "b634ccecc41bea12032f6b06e9fe8b6b5682eef788b9d7169ec5b558f40c4503"
+      "sha256": "ffad722a815251ff0f9073761b1e13e8707c13856ce203bff5d4da9da444270e"
     },
     {
       "source": "packages/model-providers/src/modelInterfaceContract.ts",
-      "sourceSHA256": "92040820dc7a085e11fed91b536e4d01a5080d876102ae3a26c991c041c078fb",
+      "sourceSHA256": "35e4468f961427a7591d37330ae6878ae4ca54047b8a7f7f57ed6993cfa85785",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelInterfaceContract.ts",
-      "sha256": "92040820dc7a085e11fed91b536e4d01a5080d876102ae3a26c991c041c078fb"
+      "sha256": "35e4468f961427a7591d37330ae6878ae4ca54047b8a7f7f57ed6993cfa85785"
     },
     {
       "source": "packages/model-providers/src/providerPresetIdentity.ts",
@@ -818,9 +838,9 @@
     },
     {
       "source": "packages/model-providers/src/modelProtocol.ts",
-      "sourceSHA256": "d4097715ed6096818434952ed67aa96ba8515ce14401e3ca5da3f201dcdaf7eb",
+      "sourceSHA256": "550f0d624c70d06188ae6c3e5ecc52145c5aba1bfaa584c1dd18eb3f8e613ad1",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelProtocol.ts",
-      "sha256": "36f30eee1d23df109f24b6544da2ed843c8193021f63c692fc56d07289cb2d1f",
+      "sha256": "1fe007f12035ee1a7bedab000c50b22a8c06c947e18ec3554357259780430d3c",
       "adaptation": "import-paths"
     },
     {
@@ -863,9 +883,9 @@
     },
     {
       "source": "packages/model-providers/catalog/model-registry.json",
-      "sourceSHA256": "64ad41f017ad62f991e5fd41f5a172b1bb5f0ddc34477b0c304d58206cf47fa4",
+      "sourceSHA256": "759b27a1565b3f87cae8483335fc8cc7fa2146b92b6e12681b3213b78cbf8a81",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/catalog/model-registry.json",
-      "sha256": "64ad41f017ad62f991e5fd41f5a172b1bb5f0ddc34477b0c304d58206cf47fa4"
+      "sha256": "759b27a1565b3f87cae8483335fc8cc7fa2146b92b6e12681b3213b78cbf8a81"
     },
     {
       "source": "packages/model-providers/src/providerModelCatalog.ts",
@@ -881,15 +901,15 @@
     },
     {
       "source": "packages/model-providers/catalog/provider-models.json",
-      "sourceSHA256": "9d320f58b2972e8cd87e6365630c4310e77584e6068801b6cfa7adb3cfde6bad",
+      "sourceSHA256": "67d736bd0507732d3bd6936eb07942b90ff4d00d4f6c8def6c2f07be7c73292b",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/catalog/provider-models.json",
-      "sha256": "9d320f58b2972e8cd87e6365630c4310e77584e6068801b6cfa7adb3cfde6bad"
+      "sha256": "67d736bd0507732d3bd6936eb07942b90ff4d00d4f6c8def6c2f07be7c73292b"
     },
     {
       "source": "packages/model-providers/catalog/providers.json",
-      "sourceSHA256": "43cad9ea5c431c67d753f9d4f5358c034917965aa7f9edd486d94e42cc3fb354",
+      "sourceSHA256": "0e01a80a5f42d3a918e016de0a5ca37c3b08efd05e3c86bed075fd4d1d52fae7",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/catalog/providers.json",
-      "sha256": "43cad9ea5c431c67d753f9d4f5358c034917965aa7f9edd486d94e42cc3fb354"
+      "sha256": "0e01a80a5f42d3a918e016de0a5ca37c3b08efd05e3c86bed075fd4d1d52fae7"
     },
     {
       "source": "packages/model-providers/src/piNativeCatalog.ts",
@@ -923,15 +943,15 @@
     },
     {
       "source": "packages/model-providers/src/user-provider.ts",
-      "sourceSHA256": "66ce5e54870b6f6a6490a2168953837e4768f8e201ab6fe19252125041f8431e",
+      "sourceSHA256": "e6ec703d11a44029508a71737c198aac698d44419d3583b8b0200845eb18fc9f",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/user-provider.ts",
-      "sha256": "66ce5e54870b6f6a6490a2168953837e4768f8e201ab6fe19252125041f8431e"
+      "sha256": "e6ec703d11a44029508a71737c198aac698d44419d3583b8b0200845eb18fc9f"
     },
     {
       "source": "packages/model-providers/src/modelRegistry.ts",
-      "sourceSHA256": "bdb0d4172ca1f1c08463248c3334c34e8f70986c797abb1fb85554e85221b439",
+      "sourceSHA256": "bca5def5c7c4006c8fb38d73efce86ee4a0d9aa4c323846b8a6c07b5fc253829",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelRegistry.ts",
-      "sha256": "bdb0d4172ca1f1c08463248c3334c34e8f70986c797abb1fb85554e85221b439"
+      "sha256": "bca5def5c7c4006c8fb38d73efce86ee4a0d9aa4c323846b8a6c07b5fc253829"
     },
     {
       "source": "packages/model-providers/src/modelRegistryCanonical.ts",
@@ -941,21 +961,21 @@
     },
     {
       "source": "packages/model-providers/src/source.ts",
-      "sourceSHA256": "584e9fad7dacebaa904a4e56b9a7a9f37925d34426bd14f657c873aeab79bad3",
+      "sourceSHA256": "72d16b8f0d28ca7479b4415bb86d3aeefd2c2091635bd701766c419b8e4b6b75",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/source.ts",
-      "sha256": "584e9fad7dacebaa904a4e56b9a7a9f37925d34426bd14f657c873aeab79bad3"
+      "sha256": "72d16b8f0d28ca7479b4415bb86d3aeefd2c2091635bd701766c419b8e4b6b75"
     },
     {
       "source": "packages/model-providers/src/sections.ts",
-      "sourceSHA256": "317569354b426e9120bee8655a931760b5ca378eb65280d4cc4f4e57e305ceeb",
+      "sourceSHA256": "b0489b703e1ead7e04dfa1082b9d1ececf8240da4a751ba29e435667faf2d95f",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/sections.ts",
-      "sha256": "317569354b426e9120bee8655a931760b5ca378eb65280d4cc4f4e57e305ceeb"
+      "sha256": "b0489b703e1ead7e04dfa1082b9d1ececf8240da4a751ba29e435667faf2d95f"
     },
     {
       "source": "packages/model-providers/src/unifiedSelection.ts",
-      "sourceSHA256": "56ab7f1032c40dba934e159f685ade222b9744b9e58a9c6d2183e49399248fa9",
+      "sourceSHA256": "7c8a2f26ee1153abcd3c3af9848cc5abf79472507ae2bfa855c351b398dbb5ab",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/unifiedSelection.ts",
-      "sha256": "56ab7f1032c40dba934e159f685ade222b9744b9e58a9c6d2183e49399248fa9"
+      "sha256": "7c8a2f26ee1153abcd3c3af9848cc5abf79472507ae2bfa855c351b398dbb5ab"
     },
     {
       "source": "packages/model-providers/src/invocation.ts",
@@ -971,15 +991,15 @@
     },
     {
       "source": "packages/model-providers/src/modelDiscovery.ts",
-      "sourceSHA256": "6ccfccbf840fd13478d7358f7c5b55e594b30fa44d6aac196b475738b699a5d7",
+      "sourceSHA256": "25923df17cbca163f60231b75b20d57f45eefdc1593d4415a9848b4d8d4f4a4d",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelDiscovery.ts",
-      "sha256": "6ccfccbf840fd13478d7358f7c5b55e594b30fa44d6aac196b475738b699a5d7"
+      "sha256": "25923df17cbca163f60231b75b20d57f45eefdc1593d4415a9848b4d8d4f4a4d"
     },
     {
       "source": "packages/model-providers/src/providerSetupLinks.ts",
-      "sourceSHA256": "bdc0501606f4622e2ddc1f9804d0546149ee692fa88c4a243ce0f562a4b70498",
+      "sourceSHA256": "09df42f1c8c7a7029c928803dd3f12a66c31e656cd390c11892d77aae449f892",
       "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/providerSetupLinks.ts",
-      "sha256": "bdc0501606f4622e2ddc1f9804d0546149ee692fa88c4a243ce0f562a4b70498"
+      "sha256": "09df42f1c8c7a7029c928803dd3f12a66c31e656cd390c11892d77aae449f892"
     },
     {
       "source": "packages/model-providers/src/providerPresetOAuth.ts",
@@ -1149,6 +1169,30 @@
       "sourceSHA256": "0e19a892f2802344287a9f232e324eba030c20484777c2dab6cf180337bc475b",
       "target": "third_party/cindy/voice-core/dictionary-sync/reconcile.ts",
       "sha256": "0e19a892f2802344287a9f232e324eba030c20484777c2dab6cf180337bc475b"
+    },
+    {
+      "source": "apps/desktop/src/main/maker-host/provider-app-attribution.ts",
+      "sourceSHA256": "66a763bc1fb98c7226bee4151f73e1d5fe58a3b058cce24a3ebc2cab9b0d0098",
+      "target": "modules/chat-pi/cindy/voice/main/maker-host/provider-app-attribution.ts",
+      "sha256": "66a763bc1fb98c7226bee4151f73e1d5fe58a3b058cce24a3ebc2cab9b0d0098"
+    },
+    {
+      "source": "packages/model-providers/src/modelSource.ts",
+      "sourceSHA256": "9ddc14356c53e0fd24f2259366a8de9caa196b7d52f469cff47ecb95dcc9afeb",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/modelSource.ts",
+      "sha256": "9ddc14356c53e0fd24f2259366a8de9caa196b7d52f469cff47ecb95dcc9afeb"
+    },
+    {
+      "source": "packages/model-providers/src/cindyMark.ts",
+      "sourceSHA256": "f3562477859b810d40263cd01f321e1be68fd5b72f83dbf7a665aefc41a029eb",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/cindyMark.ts",
+      "sha256": "f3562477859b810d40263cd01f321e1be68fd5b72f83dbf7a665aefc41a029eb"
+    },
+    {
+      "source": "packages/model-providers/src/localModelDescriptions.json",
+      "sourceSHA256": "cbc8cfe3ebf951b3ab1a47462f2b64c4215c5d97321894c00023384423766146",
+      "target": "modules/chat-pi/cindy/voice/packages/model-providers/src/localModelDescriptions.json",
+      "sha256": "cbc8cfe3ebf951b3ab1a47462f2b64c4215c5d97321894c00023384423766146"
     }
   ]
 }

@@ -76,7 +76,8 @@
 | `sources/ShareX-21.0.0`、`sources/ShareX-v21.0.0.zip` | ShareX 准备脚本的固定源码和归档 |
 | `sources/ShareX-native` | 现用原生截图引擎的独立源码；需要测试改写时再复制到 `_temp/<任务>/` |
 | `sources/magpie-42ec270`、`sources/ai-plugins-e513644` | AI 适配器来源与当前 `third_party/ai-plugins.json` 对应的账号插件源码；Magpie 构建读取所选来源的 HEAD，不固定阻塞版本；测试输出仍回到根 `_temp/` |
-| `sources/mygo-v0.7.4` | 设置窗口和结果窗的源码参考（升级后旧版本目录可移除）；正式构建直接使用 Go 锁定的原版模块。旧 `sources/mygo-3ad015a` 仅留作历史参考 |
+| `sources/mathjax-newcm-font-4.1.3.tgz` | 原始 npm 字体源包；`build/prepare-chat-math.ps1` 仅在缺失时下载，按 `third_party/chat-math-notices.json` 的 SHA-256 与 npm lock SHA-512 核验，并随公式运行时分发，供复核 GUST/LPPL 字体来源；不安装系统字体 |
+| `sources/mygo-winone-v0.8.1` | MyGo正式v0.8.1的仓库管理源码副本，按 `third_party/mygo-winone/source.json` 与 `build/prepare-mygo-filedrop.ps1` 校验原模块和窄适配；设置窗口、结果窗及nativeui使用该副本，不修改用户Go module cache。旧版本留作历史/回退参考 |
 | `runtimes/ocr` | OCR Python、离线依赖与模型，供反复打包；以 OCR 清单校验 |
 | `cache/cargo`、`cache/go`、`cache/npm` | 分别通过 `CARGO_HOME`、`GOCACHE`、`npm_config_cache` 复用 Cargo 依赖、Go 编译和 npm 下载缓存；不放测试报告 |
 | `cache/nuget-notices/microsoft.web.webview2.1.0.3800.47.nupkg` | Microsoft WebView2 SDK 原包，供 `build/verify-rust-notices.ps1 -Update -WebView2Package <路径>` 核对 Loader 与原始许可证；来源为 NuGet 官方包，SHA-256 `56c9f26bdd07916a2d1949fb58a5c7e434dfa1173577dca879206050c4e718db` |
@@ -90,6 +91,8 @@
 ```
 
 需要构建时，再执行 `./build/build.ps1 @WinOneBuildParameters -OutputDirectory _temp/<任务>/build`。安装器调用传入 `-NsisExe $WinOneNsisExe`。脚本只设置当前 PowerShell 会话，不修改系统环境变量；核心构建资源缺失时明确报错。Playwright 是可选测试工具，存在时检查固定版本并设置其模块路径。
+
+普通新进程原生设置窗口资源/启动分别使用 `build/benchmark-desktop.ps1 -Frontend MyGo` 和 `build/benchmark-native-startup.ps1`。默认只在仓库私有桌面测量真实生产EXE，不切换前台；完整进程及正常退出被记录。旧WebView测量默认仍要求实际renderer，不把无WebView的MyGo误判缺进程。可选 `WINONE_DESKTOP_STARTUP_TRACE=1` 只产生实际Host/UI回调/绘制后的就绪标记，不预热常驻、不改窗口保护。2026-11-07当前启动300ms目标未达标且获准不阻断本次交付，具体数据见 [本次验收](2026-11-07-native-local-delivery.md)。
 
 ### 供应商图标
 

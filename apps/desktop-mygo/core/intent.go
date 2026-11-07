@@ -20,6 +20,13 @@ type Intent struct {
 	Conversation string      `json:"conversation,omitempty"`
 	File         *IntentFile `json:"file,omitempty"`
 	ChatSettings bool        `json:"chatSettings,omitempty"`
+	// NewChat opens a new conversation with Prefill added to its unsent
+	// draft, as Cindy's error diagnosis prefills a new task (nothing is sent).
+	NewChat bool   `json:"newChat,omitempty"`
+	Prefill string `json:"prefill,omitempty"`
+	// AutomationDraft opens the existing create form only. Its values never
+	// become a saved schedule until the user presses that form's Save button.
+	AutomationDraft json.RawMessage `json:"automationDraft,omitempty"`
 }
 
 // IntentFile is a file a link shows: at a line, or a folder in the file

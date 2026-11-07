@@ -277,12 +277,14 @@ func Project(messages []Message, liveTools []Tool, running bool, operations []Op
 					entry := Entry{Kind: "tool", Key: part.ID, At: message.Timestamp}
 					if hasResult {
 						tool.Result, tool.IsError = result.Text(), result.IsError
+						tool.ResultParts = result.Content.List()
 						if result.Details != nil {
 							tool.Files = result.Details.Files
 						}
 						entry.EndedAt = result.Timestamp
 					} else if hasLive {
 						tool.Result, tool.IsError = current.Result, current.IsError
+						tool.ResultParts = current.ResultParts
 					}
 					if tool.Files == nil && hasLive {
 						tool.Files = filesOf(current.Result)
@@ -301,7 +303,7 @@ func Project(messages []Message, liveTools []Tool, running bool, operations []Op
 			accounted[id] = true
 			group.HasTools = true
 			group.Entries = append(group.Entries, Entry{Kind: "tool", Key: id, Tool: Tool{ID: id, Name: first(result.ToolName, "tool"),
-				Args: map[string]any{}, Result: result.Text(), IsError: result.IsError}})
+				Args: map[string]any{}, Result: result.Text(), ResultParts: result.Content.List(), IsError: result.IsError}})
 		}
 		if !group.Running && group.StartedAt != nil && last >= 0 {
 			m := group.Messages[last]

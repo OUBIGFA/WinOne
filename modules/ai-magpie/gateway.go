@@ -10,6 +10,8 @@ import (
 	"github.com/yetone/magpie/internal/gateway"
 	"github.com/yetone/magpie/internal/provider"
 	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -81,6 +83,11 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 	if err := configureUsage(in); err != nil {
 		return err
 	}
+	if gateway.WinOneTransportOnly {
+		if handled, err := serveMediaTransport(ctx, in, output); handled {
+			return err
+		}
+	}
 	global := in.Operation == "magpie.gateway"
 	var payload map[string]json.RawMessage
 	if global {
@@ -90,7 +97,9 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 		}
 		return serveGatewayBody(ctx, in, in.GatewayBody, output)
 	}
-	if json.Unmarshal(in.GatewayBody, &payload) != nil || payload == nil {
+	readVideo := in.GatewayMethod == http.MethodGet && strings.HasPrefix(in.GatewayPath, "/v1/videos/")
+	multipart := len(in.GatewayBinaryBody) > 0 && strings.HasPrefix(in.GatewayContentType, "multipart/form-data")
+	if !readVideo && !multipart && (json.Unmarshal(in.GatewayBody, &payload) != nil || payload == nil) {
 		return errors.New("invalid gateway body")
 	}
 	model := "winone/" + in.Model
@@ -101,7 +110,9 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 		}
 		model = p.ID + "/" + in.Model
 		p.LimitRestOff = in.LimitRestOff
-		if err := applyProviderPreferences(p, in); err != nil { return err }
+		if err := applyProviderPreferences(p, in); err != nil {
+			return err
+		}
 		provider.WinOneProviders = []provider.Provider{*p}
 	} else {
 		p, err := configuredProvider(in)
@@ -109,6 +120,17 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 			return err
 		}
 		provider.WinOneProviders = []provider.Provider{p}
+	}
+	if multipart {
+		body, contentType, err := rewriteMultipartModel(in.GatewayBinaryBody, in.GatewayContentType, model)
+		if err != nil {
+			return err
+		}
+		in.GatewayContentType = contentType
+		return serveGatewayBody(ctx, in, body, output)
+	}
+	if readVideo {
+		return serveGatewayBody(ctx, in, nil, output)
 	}
 	payload["model"], _ = json.Marshal(model)
 	if err := installModelPreferences(strings.TrimSuffix(model, "/"+in.Model), in.Model, in.ModelMetadata); err != nil {
@@ -133,10 +155,60 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 	return serveGatewayBody(ctx, in, body, output)
 }
 
+// Multipart model parts must be rebound exactly like JSON's model property.
+// Otherwise the video API may treat a bare model as a different/default route.
+func rewriteMultipartModel(body []byte, contentType, model string) ([]byte, string, error) {
+	_, parameters, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return nil, "", err
+	}
+	reader := multipart.NewReader(bytes.NewReader(body), parameters["boundary"])
+	var output bytes.Buffer
+	writer := multipart.NewWriter(&output)
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, "", err
+		}
+		header := part.Header
+		to, err := writer.CreatePart(header)
+		if err != nil {
+			return nil, "", err
+		}
+		if part.FormName() == "model" {
+			_, err = io.WriteString(to, model)
+		} else {
+			_, err = io.Copy(to, part)
+		}
+		part.Close()
+		if err != nil {
+			return nil, "", err
+		}
+	}
+	if err = writer.Close(); err != nil {
+		return nil, "", err
+	}
+	return output.Bytes(), writer.FormDataContentType(), nil
+}
+
 func serveGatewayBody(ctx context.Context, in request, body []byte, output io.Writer) error {
-	req := httptest.NewRequest(http.MethodPost, "http://127.0.0.1"+in.GatewayPath, bytes.NewReader(body)).WithContext(ctx)
+	method := in.GatewayMethod
+	if method == "" {
+		method = http.MethodPost
+	}
+	if method != http.MethodPost && (method != http.MethodGet || !strings.HasPrefix(in.GatewayPath, "/v1/videos/")) {
+		return errors.New("unsupported gateway method")
+	}
+	req := httptest.NewRequest(method, "http://127.0.0.1"+in.GatewayPath, bytes.NewReader(body)).WithContext(ctx)
 	req.RemoteAddr = "127.0.0.1:1"
-	req.Header.Set("Content-Type", "application/json")
+	contentType := in.GatewayContentType
+	if contentType == "" {
+		contentType = "application/json"
+	}
+	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Authorization", "Bearer "+gateway.Token)
 	for _, name := range []string{"Anthropic-Version", "Anthropic-Beta", "Openai-Beta", "MCP-Protocol-Version", "Accept", "User-Agent", "Originator", "X-OpenAI-Subagent"} {
 		if value := in.GatewayHeaders.Get(name); value != "" {

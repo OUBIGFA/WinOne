@@ -12,9 +12,11 @@
 | 截图画布与工具栏 | [截图单界面重构](截图单界面重构.md)、[原生截图草稿](原生截图草稿.md) |
 | 结果窗、OCR、翻译与划词 | [结果与 AI 对话](结果与AI对话重构.md)、[OCR 与翻译](OCR与翻译.md)、[划词助手](划词助手.md) |
 | Chat、自动化与 OneBot 伙伴 | [Chat](Chat.md)、[自动化能力对照](../modules/chat-pi/AUTOMATIONS.md)、[OneBot 接入与剩余范围](OneBot.md) |
+| Cindy 本地插件、MCP Apps、邮件与 browser bridge | [全量原生能力对照](mygo-parity/local-plugins.md)、[当前续接验收](mygo-parity/chat-onebot-audit.md)、[2026-11-07最终验收](2026-11-07-native-local-delivery.md) |
 | 快捷助手、AI 对话与快捷功能 | [快捷助手](快捷助手.md)、[助手默认提示词](助手默认提示词.md) |
 | 互联助手、文件互传与端口穿透 | [调研与设计](互联助手调研与设计.md)、[实施计划](互联助手实施计划.md) |
 | AI 供应商、账号、流式输出与网关 | [多供应商与任务分配](AI服务多供应商与任务分配.md)、[账号登录](AI账号登录完整性.md)、[流式输出](AI服务流式输出.md)、[本地网关](本地网关与结果划词.md) |
+| 程序管理、微信自动登录与 WinTray 复用 | [微信自动登录直接同步](wintray-wechat-login.md)、[WinTray 能力对照](WinTray功能接入对照.md) |
 | 模块、配置、共享依赖 | [模块与配置契约](模块与配置契约.md)、[共享依赖](共享依赖设计.md) |
 | 安装、更新与卸载 | [打包与安装](打包与安装.md)、[安装与覆盖更新](安装与覆盖更新.md) |
 | 性能测量 | [性能基线](performance-baseline.md) |

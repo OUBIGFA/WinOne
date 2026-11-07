@@ -81,7 +81,12 @@ func (p *Panel) composer(c *ui.Context, t *ui.Theme) {
 				}
 			}
 			if p.ShowComposerHint {
-				ui.Text(c, p.T("Enter 发送，Shift+Enter 换行", "Enter to send, Shift+Enter for a new line")).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted)
+				ui.Row(c.Key("composer-hint")).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+					ui.Text(c, p.T("Enter 发送，Shift+Enter 换行", "Enter to send, Shift+Enter for a new line")).Grow(1).MinWidth(0).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted)
+					if contentIconButton(c, p.T("关闭发送提示", "Dismiss composer hint"), false, func() { ui.Icon(c, svg("close")).Size(14, 14) }).Size(22, 22).Clicked() {
+						p.ShowComposerHint = false
+					}
+				})
 			}
 			ui.Row(c).Key("composer-actions").FillWidth().Height(iconButtonSize).AlignItems(ui.Center).Gap(4).Children(func() {
 				p.modelPicker(c, t)

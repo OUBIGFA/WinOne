@@ -26,18 +26,37 @@ type Project struct {
 	Permission string `json:"permission,omitempty"`
 }
 type Conversation struct {
-	ID               string       `json:"id"`
-	ProjectID        string       `json:"projectId,omitempty"`
-	Title            string       `json:"title"`
-	TitleManual      bool         `json:"titleManual,omitempty"`
-	Directory        string       `json:"directory"`
-	SessionDirectory string       `json:"sessionDirectory"`
-	SessionFile      string       `json:"sessionFile,omitempty"`
-	HasMessages      bool         `json:"hasMessages,omitempty"`
-	Model            ai.Selection `json:"model"`
-	Permission       string       `json:"permission"`
-	ThinkingLevel    string       `json:"thinkingLevel,omitempty"`
-	FastMode         bool         `json:"fastMode,omitempty"`
+	ID               string `json:"id"`
+	ProjectID        string `json:"projectId,omitempty"`
+	Title            string `json:"title"`
+	TitleManual      bool   `json:"titleManual,omitempty"`
+	Directory        string `json:"directory"`
+	SessionDirectory string `json:"sessionDirectory"`
+	SessionFile      string `json:"sessionFile,omitempty"`
+	Revision         uint64 `json:"revision,omitempty"`
+	ModelDeferred    bool   `json:"modelDeferred,omitempty"`
+	// Legacy plugin plan tasks retain a Host-owned read-only gate independently
+	// of Pi's Ask/Auto vocabulary. Only explicit native permission changes clear it.
+	LegacyPlan bool `json:"legacyPlan,omitempty"`
+	// App cards stay in this task's current UI/history generation, never an
+	// earlier cleared context or a different fork's imported tool metadata.
+	McpAppEpoch uint64 `json:"mcpAppEpoch,omitempty"`
+	// Plugin task identity and visibility are Host-owned. Hidden tasks remain
+	// readable through the plugin detail page, never silently deleted.
+	PluginID string `json:"pluginId,omitempty"`
+	// Orca workers remain ordinary Chat conversations. The team link is
+	// immutable Host metadata; plugin ownership never leaks onto a Worker.
+	OrcaRole             string       `json:"orcaRole,omitempty"`
+	OrcaTeamID           string       `json:"orcaTeamId,omitempty"`
+	OrcaLeadID           string       `json:"orcaLeadId,omitempty"`
+	OrcaWorkerID         string       `json:"orcaWorkerId,omitempty"`
+	OrcaWorkerPermission string       `json:"orcaWorkerPermission,omitempty"`
+	Hidden               bool         `json:"hidden,omitempty"`
+	HasMessages          bool         `json:"hasMessages,omitempty"`
+	Model                ai.Selection `json:"model"`
+	Permission           string       `json:"permission"`
+	ThinkingLevel        string       `json:"thinkingLevel,omitempty"`
+	FastMode             bool         `json:"fastMode,omitempty"`
 	// Companion-only binding: unchanged profile chains retain an accepted
 	// runtime fallback or manual choice; ordinary Chat leaves this empty.
 	OneBotModelKey string `json:"oneBotModelKey,omitempty"`
@@ -132,8 +151,16 @@ func clone(value Catalog) Catalog {
 	return value
 }
 func (s *Store) Snapshot() Catalog { s.mu.Lock(); defer s.mu.Unlock(); return clone(s.data) }
+
+// VisibleSnapshot is the user-facing task list; hidden plugin tasks remain in
+// durable storage and can be revealed from their plugin's detail page.
+func (s *Store) VisibleSnapshot() Catalog {
+	value := s.Snapshot()
+	value.Conversations = slices.DeleteFunc(value.Conversations, func(c Conversation) bool { return c.Hidden })
+	return value
+}
 func permissionValid(value string) bool {
-	return value == "ask" || value == "auto" || value == "bypassPermissions"
+	return value == "ask" || value == "acceptEdits" || value == "auto" || value == "bypassPermissions"
 }
 func validateCatalog(value Catalog) error {
 	if value.Version != 1 || len(value.Projects) > 256 || len(value.Conversations) > 2000 {
@@ -273,7 +300,7 @@ func (s *Store) RenameProject(id, name string) (Project, error) {
 	return project, err
 }
 func (s *Store) NewConversation(projectID, directory, title string, model ai.Selection, saveDirectory ...string) (Conversation, error) {
-	return s.newConversation(rand.Text(), projectID, directory, title, model, saveDirectory...)
+	return s.newConversation(rand.Text(), projectID, directory, title, model, nil, saveDirectory...)
 }
 
 // NewRegisteredConversation keeps the identity preallocated by a native
@@ -283,10 +310,40 @@ func (s *Store) NewRegisteredConversation(id, directory, title string, model ai.
 	if !identifier.MatchString(id) {
 		return Conversation{}, errors.New("预登记会话标识无效")
 	}
-	return s.newConversation(id, "", directory, title, model, saveDirectory)
+	return s.newConversation(id, "", directory, title, model, nil, saveDirectory)
 }
 
-func (s *Store) newConversation(id, projectID, directory, title string, model ai.Selection, saveDirectory ...string) (Conversation, error) {
+// NewPluginConversation applies ownership, visibility and the admitted route
+// in the initial write, so background tasks never flash into ordinary lists.
+func (s *Store) NewPluginConversation(prepared Conversation) (Conversation, error) {
+	if !identifier.MatchString(prepared.ID) || prepared.PluginID == "" || len(prepared.PluginID) > 256 || strings.ContainsRune(prepared.PluginID, 0) || !permissionValid(prepared.Permission) {
+		return Conversation{}, errors.New("插件任务身份或权限无效")
+	}
+	return s.newConversation(prepared.ID, prepared.ProjectID, prepared.Directory, prepared.Title, prepared.Model, func(c *Conversation) {
+		c.PluginID, c.Hidden = prepared.PluginID, prepared.Hidden
+		c.Permission, c.ThinkingLevel, c.FastMode = prepared.Permission, prepared.ThinkingLevel, prepared.FastMode
+	})
+}
+
+// NewWorkerConversation commits the real worker route, permission and team
+// identity together. Merely allocating it does not submit a model input.
+func (s *Store) NewWorkerConversation(prepared, lead Conversation) (Conversation, error) {
+	if !identifier.MatchString(prepared.ID) || !identifier.MatchString(prepared.OrcaLeadID) || prepared.OrcaTeamID == "" || prepared.OrcaWorkerID == "" || !permissionValid(prepared.Permission) {
+		return Conversation{}, errors.New("协作任务身份或权限无效")
+	}
+	// Lead may be a companion in WinOne's separate OneBot conversation store;
+	// the private Host supplies that captured row, never a model's snapshot.
+	if lead.ID != prepared.OrcaLeadID || lead.Archived || lead.OrcaRole != "lead" || lead.OrcaTeamID != prepared.OrcaTeamID {
+		return Conversation{}, errors.New("主任务已不属于当前协作团队")
+	}
+	return s.newConversation(prepared.ID, "", prepared.Directory, prepared.Title, prepared.Model, func(c *Conversation) {
+		c.ProjectID = lead.ProjectID
+		c.OrcaRole, c.OrcaTeamID, c.OrcaLeadID, c.OrcaWorkerID = "worker", prepared.OrcaTeamID, prepared.OrcaLeadID, prepared.OrcaWorkerID
+		c.Permission, c.ThinkingLevel, c.FastMode = prepared.Permission, prepared.ThinkingLevel, prepared.FastMode
+	})
+}
+
+func (s *Store) newConversation(id, projectID, directory, title string, model ai.Selection, initialize func(*Conversation), saveDirectory ...string) (Conversation, error) {
 	if len(saveDirectory) > 1 {
 		return Conversation{}, errors.New("只能选择一个会话保存位置")
 	}
@@ -342,6 +399,10 @@ func (s *Store) newConversation(id, projectID, directory, title string, model ai
 		if s.preferences.DefaultThinkingLevel != "" {
 			c.ThinkingLevel = s.preferences.DefaultThinkingLevel
 		}
+		if initialize != nil {
+			initialize(&c)
+		}
+		c.Revision = 1
 		value.Conversations = append(value.Conversations, c)
 		return nil
 	})
@@ -364,8 +425,18 @@ func (s *Store) UpdateConversation(id string, apply func(*Conversation) error) (
 		if index < 0 {
 			return errors.New("对话不存在")
 		}
+		previous := value.Conversations[index]
 		if err := apply(&value.Conversations[index]); err != nil {
 			return err
+		}
+		// Transcript binding/activity writes do not change the public task
+		// configuration revision. Exact model/permission/title edits do.
+		previous.HasMessages = value.Conversations[index].HasMessages
+		previous.SessionFile = value.Conversations[index].SessionFile
+		previous.ModelDeferred = value.Conversations[index].ModelDeferred
+		previous.UpdatedAt = value.Conversations[index].UpdatedAt
+		if previous != value.Conversations[index] {
+			value.Conversations[index].Revision++
 		}
 		value.Conversations[index].UpdatedAt = time.Now().UTC().Format(time.RFC3339Nano)
 		result = value.Conversations[index]

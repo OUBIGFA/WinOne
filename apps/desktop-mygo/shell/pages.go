@@ -3,6 +3,7 @@ package shell
 import (
 	"github.com/egoist/mygo/ui"
 
+	"winone/desktopmygo/chat/pluginhost/globalpages"
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
@@ -60,6 +61,14 @@ func init() {
 func pages() []pageSpec { return registry }
 
 func spec(id string) pageSpec {
+	// Plugin main/exclusive panel routes are real pages but not extra static
+	// sidebar/default-page entries. Their approved navigation is dynamic.
+	switch id {
+	case globalpages.MainRoute:
+		return pageSpec{id: id, title: "pluginViews.panel", icon: icons.Puzzle, layout: core.Conversation, make: globalpages.NewMainPage}
+	case globalpages.PanelRoute:
+		return pageSpec{id: id, title: "pluginViews.panel", icon: icons.Puzzle, layout: core.Conversation, make: globalpages.NewPanelPage}
+	}
 	for _, p := range registry {
 		if p.id == id {
 			return p

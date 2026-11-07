@@ -3,7 +3,7 @@
 // their delegated tasks in the task store and every conversation in WinOne
 // Chat; the Host bridge supplies conversation facts, never transcripts.
 import {oneBotOwnerScope} from './im-scope.mjs';
-import {readAllowSchedulerFollow} from '../cindy/autonomy/follower.ts';
+import {readAllowSchedulerFollow, readSystemSkillsOff} from '../cindy/autonomy/follower.ts';
 import {readTaskResponsibilities, responsibleSessionIds} from '../cindy/bots/botTaskResponsibility.ts';
 
 /** Teammate directory: status, the `allowSchedulerFollow` capability and canonical chat. */
@@ -17,9 +17,17 @@ export async function readBotDirectory() {
       // WinOne has no cloud companions running on another computer.
       shadowed: false,
       canonicalSessionId: profile.canonicalSessionId ?? null,
+      // Cindy 2d8d3c3: the owner turned off the "follow" system Skill.
+      ...(readSystemSkillsOff(JSON.stringify(profile.capabilities ?? {})).includes('follow') ? {followOff: true} : {}),
     });
   }
   return out;
+}
+
+/** Cindy hostData.readBotSystemSkillsOffFor: the system Skills one teammate turned off. */
+export async function readBotSystemSkillsOffFor(botId) {
+  const profile = oneBotOwnerScope().profiles.list().find(item => item.id === botId);
+  return readSystemSkillsOff(profile ? JSON.stringify(profile.capabilities ?? {}) : null);
 }
 
 /**

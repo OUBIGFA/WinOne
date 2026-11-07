@@ -1,5 +1,12 @@
 {
  "ai.avatarFiles": "图片",
  "ai.avatarInvalidReply": "头像服务未返回有效图片",
- "ai.avatarIncomplete": "图片传输不完整，请重新选择"
+ "ai.avatarIncomplete": "图片传输不完整，请重新选择",
+ "ai.mediaKindModel": "指定媒体模型类型",
+ "ai.mediaKind": "模型类型",
+ "ai.mediaKindDefault": "跟随供应商目录",
+ "ai.mediaKindImage": "图像生成",
+ "ai.mediaKindVideo": "视频生成",
+ "ai.mediaKindHint": "仅当供应商目录没有标明图像或视频能力时指定；不改变模型本身的能力。",
+ "ai.mediaKindChoose": "选择模型"
 }

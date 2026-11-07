@@ -47,8 +47,11 @@ func TestWheelCanLeaveFollowedTranscript(t *testing.T) {
 
 func TestLongProcessHasVisibleCollapseControl(t *testing.T) {
 	f := workedTurn(t)
-	f.snapshot.Messages[1].Content.Parts = []model.Part{{Type: "text", Text: strings.Repeat("Working commentary.\n\n", 70)}, {Type: "toolCall", ID: "t1", Name: "read", Arguments: map[string]any{"path": "build.log"}}}
+	f.snapshot.Messages[1].Content.Parts = []model.Part{{Type: "thinking", Thinking: strings.Repeat("Working thought.\n\n", 70)}, {Type: "toolCall", ID: "t1", Name: "read", Arguments: map[string]any{"path": "build.log"}}}
 	h, p, tt := setupItems(t, f)
+	// Public commentary is a reply, not long work. Expand a real thought to
+	// exercise the process-owned collapse control rather than hiding prose.
+	p.ui.expanded["thinking:a1:0"] = true
 	p.ui.follow, p.ui.pinNext = false, false
 	p.ui.transcript.Y = 240
 	settle(h, tt)

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/png"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"sync"
@@ -38,12 +40,15 @@ type fakeChat struct {
 	created int
 	export  map[string]any
 	// settings is what chat.settings.save received last.
-	settings    map[string]any
-	connections map[string]any
+	settings     map[string]any
+	connections  map[string]any
+	previewURL   string
+	fileText     string
+	fileRevision int
 }
 
 func newFakeChat(t *testing.T) *fakeChat {
-	return &fakeChat{t: t, catalog: Catalog{
+	f := &fakeChat{t: t, fileText: "Native document body", fileRevision: 1, catalog: Catalog{
 		Projects: []Project{{ID: "p1", Name: "WinOne", Path: `E:\WinOne`, Permission: model.PermissionAsk}},
 		Conversations: []Conversation{
 			{ID: "c1", ProjectID: "p1", Title: "Fix the build", Directory: `E:\WinOne`, Model: aiSelection("one", "gpt-a"), Permission: model.PermissionAsk, HasMessages: true, UpdatedAt: "2026-11-01T10:00:00Z"},
@@ -59,6 +64,14 @@ func newFakeChat(t *testing.T) *fakeChat {
 		}},
 		pages: []map[string]any{{"events": []any{}, "cursor": 0, "running": false, "status": "idle", "approvals": []any{}}},
 	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		fmt.Fprint(w, f.fileText)
+	}))
+	f.previewURL = server.URL
+	t.Cleanup(server.Close)
+	return f
 }
 
 func aiSelection(provider, model string) widgets.AISelection {
@@ -72,6 +85,12 @@ func (f *fakeChat) handle(method string, params json.RawMessage) (any, error) {
 	_ = json.Unmarshal(params, &p)
 	f.calls = append(f.calls, method)
 	switch method {
+	case "chat.ghosts.reply-overrides":
+		return []any{}, nil
+	case "chat.ghosts.session-focus":
+		return true, nil
+	case "chat.ghosts.candidates":
+		return []any{}, nil
 	case "chat.catalog":
 		return f.catalog, nil
 	case "capture.ai.configuration.get":
@@ -90,6 +109,8 @@ func (f *fakeChat) handle(method string, params json.RawMessage) (any, error) {
 		page := f.pages[min(f.polls, len(f.pages)-1)]
 		f.polls++
 		return page, nil
+	case "chat.ghosts.recommendations":
+		return json.RawMessage("[]"), nil
 	case "chat.prompt":
 		f.prompts = append(f.prompts, p)
 		return map[string]any{"accepted": true}, nil
@@ -107,6 +128,24 @@ func (f *fakeChat) handle(method string, params json.RawMessage) (any, error) {
 		f.catalog.Conversations = append(f.catalog.Conversations, c)
 		f.snapshot = model.Snapshot{}
 		return c, nil
+	case "chat.file.preview", "chat.file.save":
+		if method == "chat.file.save" {
+			if p["revision"] != fmt.Sprint(f.fileRevision) {
+				return nil, fmt.Errorf("document changed")
+			}
+			f.fileText, _ = p["text"].(string)
+			f.fileRevision++
+		}
+		path, _ := p["path"].(string)
+		return map[string]any{"path": path, "name": filepath.Base(path), "kind": "text", "mimeType": "text/plain", "url": f.previewURL, "revision": fmt.Sprint(f.fileRevision), "size": len(f.fileText)}, nil
+	case "chat.review.snapshot":
+		return map[string]any{"root": `E:\WinOne`, "scope": "working", "revision": "review-one", "files": []any{}}, nil
+	case "chat.review.metadata":
+		return map[string]any{"repository": false}, nil
+	case "chat.files.list":
+		return map[string]any{"entries": []any{}}, nil
+	case "chat.resources":
+		return map[string]any{"agents": []any{}, "skills": []any{}, "plugins": []any{}, "mcpServers": []any{}}, nil
 	case "chat.settings.get":
 		if f.settings != nil {
 			return f.settings, nil
@@ -418,6 +457,20 @@ func TestLinksFromOtherPagesOpenTheirConversationAndFile(t *testing.T) {
 	}
 }
 
+// An automation's error diagnosis opens a new conversation with its prompt
+// after the unsent draft there, as Cindy prefills a new task; nothing is sent.
+func TestADiagnosisPrefillsANewConversation(t *testing.T) {
+	_, h, p, tt, _ := setup(t)
+	h.Env.Open("chat", core.Intent{Conversation: "c1"})
+	settle(h, tt)
+	p.newDraft = "My own note"
+	h.Env.Open("chat", core.Intent{NewChat: true, Prefill: "Diagnose this failure"})
+	settle(h, tt)
+	if p.activeID != "" || p.text != "My own note\n\nDiagnose this failure" || p.newDraft != p.text || !p.draftDirty {
+		t.Fatalf("active %q text %q new %q dirty %v err %q", p.activeID, p.text, p.newDraft, p.draftDirty, p.err)
+	}
+}
+
 // A subagent's own messages open from the agents menu: its conversation,
 // an older page above it, and a follow-up that reads it again.
 func TestSubagentMessagesReadPagesAndFollowUp(t *testing.T) {
@@ -470,6 +523,62 @@ func TestSubagentMessagesReadPagesAndFollowUp(t *testing.T) {
 // Chat settings open as a native dialog over Chat: the conversation list
 // stays, the tabs switch, a change is saved with the automations the
 // dialog does not edit, and malformed MCP JSON keeps it from saving.
+// The scheduler is now a native view reached from Chat, even with no WebView
+// service in the test window. Its actual Host list/history are rendered there.
+func TestAutomationsOpenNativelyFromTheChatSidebar(t *testing.T) {
+	f := newFakeChat(t)
+	h, p, tt := setupWith(t, f, func(method string, params json.RawMessage) (any, error) {
+		switch method {
+		case "chat.automations.list":
+			return []any{map[string]any{"id": "schedule-one", "name": "Native automation", "prompt": "Inspect", "agentKind": "pi", "kind": "cron", "cronExpr": "0 9 * * *", "timezone": "UTC", "status": "active"}}, nil
+		case "chat.automations.runtime":
+			return map[string]any{"slotsInUse": 0, "maxConcurrentRuns": 2, "timezone": "UTC"}, nil
+		case "chat.automations.runs":
+			return []any{map[string]any{"id": "run-one", "scheduleId": "schedule-one", "status": "success", "resultText": "Native run result"}}, nil
+		case "chat.automations.channels":
+			return map[string]any{"feishu": map[string]string{"status": "disconnected"}, "wecomGroup": map[string]bool{"configured": false, "enabled": false}}, nil
+		case "chat.automations.capabilityStatus":
+			return map[string]any{"statuses": []any{}}, nil
+		case "chat.automations.project.pendingImports":
+			return []any{}, nil
+		case "chat.automations.events":
+			return map[string]any{"cursor": 0, "events": []any{}}, nil
+		}
+		return f.handle(method, params)
+	})
+	if err := tt.Click(i18n.T("chat.automations")); err != nil {
+		t.Fatal(err)
+	}
+	settle(h, tt)
+	if p.tools.automations == nil || !tt.HasText("Native automation") || !tt.HasText("Native run result") {
+		t.Fatalf("automation did not render natively: %q", tt.Texts())
+	}
+	if err := tt.Click(i18n.T("nativeAutomation.create")); err != nil {
+		t.Fatal(err)
+	}
+	settle(h, tt)
+	if err := tt.Click(i18n.T("nativeAutomation.name")); err != nil {
+		t.Fatal(err)
+	}
+	tt.Type("Unsaved automation")
+	settle(h, tt)
+	if !p.tools.automations.Dirty() {
+		t.Fatal("typing into native form did not create a protected draft")
+	}
+	var pending func()
+	h.Env.RequestChange = func(action func()) { pending = action }
+	p.leaveAutomation(func() {})
+	if pending == nil || !p.ui.automations {
+		t.Fatal("leaving bypassed the native unsaved guard")
+	}
+	p.tools.automations.Discard()
+	pending()
+	tt.Frame()
+	if p.ui.automations {
+		t.Fatal("confirmed navigation did not leave automations")
+	}
+}
+
 func TestSettingsDialogIsNativeAndSavesTheDraft(t *testing.T) {
 	f, h, p, tt, _ := setup(t)
 	if err := tt.Click("Chat 设置"); err != nil {

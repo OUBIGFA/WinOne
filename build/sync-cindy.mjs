@@ -122,8 +122,25 @@ function extractLocales(config, outputs, read) {
   return results;
 }
 
+// A type-only reference disappears when the runtime strips TypeScript, so with
+// spec.typeImportsMayDangle it may keep naming a module that is not vendored:
+// following types would otherwise pull in the whole upstream application.
+function typeOnlySpecifier(input, offset, lead) {
+  if (/import\s*\($/.test(lead.trimEnd())) return /(?::|<|\||&|,|=|\(|typeof)\s*$/.test(input.slice(Math.max(0, offset - 24), offset));
+  const before = input.slice(Math.max(0, offset - 4000), offset);
+  const starts = [...before.matchAll(/(?:^|\n)\s*(import|export)\b/g)];
+  if (!starts.length) return false;
+  const statement = before.slice(starts[starts.length - 1].index).trim();
+  return /^(import|export)\s+type\b/.test(statement) || /^(import|export)\s*\{\s*(?:type\s+[\w$]+(?:\s+as\s+[\w$]+)?\s*,?\s*)+\}\s*$/.test(statement);
+}
+
 export function syncCindy({spec, cindy, mode}) {
   if (spec.schemaVersion !== 1 || !/^[a-f0-9]{40}$/.test(spec.revision)) throw Error('Invalid sync spec');
+  // A missing replacement used to join with commas and record the corrupted
+  // source as verified output. Reject bad literal-patch input before any write.
+  for(const patch of spec.patches??[]){
+    if(typeof patch.file!=='string'||typeof patch.find!=='string'||!patch.find||typeof patch.replace!=='string'||typeof patch.reason!=='string'||!patch.reason)throw Error('Invalid Cindy literal patch: file/find/replace/reason are required');
+  }
   const revision = spec.revision;
   const resolved = git(cindy, ['rev-parse', revision + '^{commit}']).trim();
   if (resolved !== revision) throw Error('Cindy revision is not available: ' + revision);
@@ -254,10 +271,10 @@ export function syncCindy({spec, cindy, mode}) {
       text = selected.join('\n') + '\nexport { ' + (extraction.exports ?? []).join(', ') + ' };\n';
     }
     for (const pattern of specifierPatterns) {
-      text = text.replace(pattern, (whole, lead, quote, specifier) => {
+      text = text.replace(pattern, (whole, lead, quote, specifier, offset, input) => {
         // Vite's plain JavaScript AudioWorklet is a file asset when imported
         // with ?url, unlike ordinary .js imports that resolve to TS sources.
-        if ((/\.(css|json|svg|png|webp|jpg|jpeg|gif|wasm|woff2?)(\?.*)?$/.test(specifier) || /\.js\?.+$/.test(specifier)) && specifier.startsWith('.')) {
+        if ((/\.(css|json|svg|png|webp|jpg|jpeg|gif|wasm|woff2?|md|html)(\?.*)?$/.test(specifier) || /\.js\?.+$/.test(specifier)) && specifier.startsWith('.')) {
           const upstream = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier.replace(/\?.*$/, '')));
           const mapped = vendored.get(upstream) ?? seams[upstream];
           if (!mapped) { problems.push(`${file}: asset ${specifier} (${upstream}) is not vendored`); return whole; }
@@ -268,10 +285,10 @@ export function syncCindy({spec, cindy, mode}) {
         }
         const upstream = resolveUpstream(file, specifier);
         if (upstream === undefined) return whole; // external package
-        if (upstream === null) { problems.push(`${file}: cannot resolve ${specifier}`); return whole; }
-        if (typeof upstream === 'object') return lead + quote + relativeSpecifier(target, modules[upstream.module], specifier) + quote;
+        if (upstream === null) { if (spec.typeImportsMayDangle && typeOnlySpecifier(input, offset, lead)) return whole; problems.push(`${file}: cannot resolve ${specifier}`); return whole; }
+        if (typeof upstream === 'object') return lead + quote + relativeSpecifier(target, (spec.moduleOverrides ?? []).find(entry => entry.module === upstream.module && file.startsWith(entry.importers))?.target ?? modules[upstream.module], specifier) + quote;
         const mapped = vendored.get(upstream) ?? seams[upstream];
-        if (!mapped) { problems.push(`${file}: no vendored copy or seam for ${upstream} (imported as ${specifier})`); return whole; }
+        if (!mapped) { if (spec.typeImportsMayDangle && typeOnlySpecifier(input, offset, lead)) return whole; problems.push(`${file}: no vendored copy or seam for ${upstream} (imported as ${specifier})`); return whole; }
         return lead + quote + relativeSpecifier(target, mapped, specifier) + quote;
       });
     }

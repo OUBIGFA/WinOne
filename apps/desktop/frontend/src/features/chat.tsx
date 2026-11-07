@@ -87,9 +87,11 @@ const minimumSidebarWidth=224;
 function readExpandedPanels(){const defaults={sidebar:240,right:420,bottom:300};try{const saved=JSON.parse(localStorage.getItem(expandedPanelsKey)||'{}');for(const key of ['sidebar','right','bottom'] as const)if(Number.isFinite(saved[key])&&saved[key]>=40&&saved[key]<=2000)defaults[key]=key==='sidebar'?Math.max(minimumSidebarWidth,saved[key]):saved[key];}catch{}return defaults;}
 
 export interface ChatFileRequest {path:string;line?:number;directory?:boolean}
-export function ChatPage({onActivity,onOpenAI,requestedConversationId,requestedFile,onRequestedConversationHandled,transportScope,embeddedConversation=false,bot,settingsRequest}:{onActivity?:PageActivityChanged;onOpenAI?:()=>void;requestedConversationId?:string;requestedFile?:ChatFileRequest;onRequestedConversationHandled?:()=>void;transportScope?:'onebot';embeddedConversation?:boolean;
+export function ChatPage({onActivity,onOpenAI,requestedConversationId,requestedFile,onRequestedConversationHandled,transportScope,embeddedConversation=false,bot,settingsRequest,newChatRequest}:{onActivity?:PageActivityChanged;onOpenAI?:()=>void;requestedConversationId?:string;requestedFile?:ChatFileRequest;onRequestedConversationHandled?:()=>void;transportScope?:'onebot';embeddedConversation?:boolean;
  /** Increments when another page asks to open Chat settings (Skills, plugins, MCP servers). */
  settingsRequest?:number;
+ /** Another page asks for a new conversation with this text added to its unsent draft (Cindy's error diagnosis prefill). */
+ newChatRequest?:{text:string;key:number};
  /** A OneBot teammate's conversation: identity, mentions and read state of Cindy's companion chat. */
  bot?:OneBotChatBinding}){
  const chatCall=useCallback(<T,>(method:string,params:unknown={})=>baseChatCall<T>(transportScope?`onebot.chat.${method}`:method,params),[transportScope]);
@@ -302,6 +304,17 @@ export function ChatPage({onActivity,onOpenAI,requestedConversationId,requestedF
   configuring.current="";silentReload.current="";setReconnecting(false);
   selection.current=id;openDraftRevision.current=++draftRevision.current;pendingInput.current=undefined;awaitingInput.current=undefined;retryReceipt.current=undefined;setQueuedSend(null);setDetailsURL(undefined);setDetailsFile(undefined);setDetailsDirectory(undefined);setDetailsReview(undefined);setDetailsLine(undefined);setDetailsTab('home');setDetailsActivation(0);setError("");setActiveId(id);setOpening(!!id);setDraftLoading(!!id);setDraftDirty(!id&&(newDraft.current.length>0||newAttachments.current.length>0));setText(id?"":newDraft.current);setAttachments(id?[]:newAttachments.current);setView(emptyChatState());setNotice("");
  }
+ // Cindy keeps an unsent new-task draft and appends the prefill after it; nothing is sent.
+ const handledNewChat=useRef(0);
+ useEffect(()=>{
+  if(!newChatRequest||handledNewChat.current===newChatRequest.key||busy)return;
+  handledNewChat.current=newChatRequest.key;const request=newChatRequest;
+  void run(async()=>{
+   await choose("");setArchived(false);setAutomationsOpen(false);setSettingsOpen(false);setDialog(null);
+   const base=newDraft.current;
+   if(request.text)updateText(base.trim()?base+"\n\n"+request.text:request.text,newAttachments.current,"");
+  });
+ },[newChatRequest,busy]);
  useEffect(()=>{
   if(!requestedConversationId){handledNavigation.current=undefined;return;}
   const requestKey=JSON.stringify([requestedConversationId,requestedFile]);

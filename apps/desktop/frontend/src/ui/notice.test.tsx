@@ -2,7 +2,7 @@
 import {afterEach,expect,it,vi} from "vitest";
 import {cleanup,render,screen,within} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import {Notice} from "./notice";
+import {Notice,InlineError} from "./notice";
 import {Button} from "./button";
 
 afterEach(cleanup);
@@ -19,4 +19,25 @@ it("announces nonblocking information politely",()=>{
  render(<Notice tone="info">启动记录未能写入</Notice>);
  expect(screen.getByRole("status").textContent).toContain("启动记录未能写入");
  expect(screen.queryByRole("alert")).toBeNull();
+});
+it("dismisses only current content and keeps underlying validation disabled",async()=>{
+ const forbidden=vi.fn();
+ const view=(message:string)=><><Notice>{<span>{message}</span>}</Notice><Button disabled onClick={forbidden}>Protected action</Button></>;
+ const {rerender}=render(view("Current warning"));
+ const user=userEvent.setup();
+ await user.click(screen.getByRole("button",{name:"关闭提示"}));
+ rerender(view("Current warning"));
+ expect(screen.queryByText("Current warning")).toBeNull();
+ await user.click(screen.getByRole("button",{name:"Protected action"}));
+ expect(forbidden).not.toHaveBeenCalled();
+ rerender(view("A new warning"));
+ expect(screen.getByRole("alert").textContent).toContain("A new warning");
+});
+it("provides keyboard-close for the original inline field-error primitive",async()=>{
+ const {rerender}=render(<InlineError errors={[{message:"Invalid field"}]}/>);
+ const user=userEvent.setup();
+ await user.tab();await user.keyboard("{Enter}");
+ expect(screen.queryByRole("alert")).toBeNull();
+ rerender(<InlineError errors={[{message:"A new field error"}]}/>);
+ expect(screen.getByRole("alert").textContent).toContain("A new field error");
 });

@@ -6,11 +6,13 @@ package shell
 
 import (
 	"slices"
+	"winone/desktopmygo/chat/pluginhost"
 
 	"github.com/egoist/mygo/ui"
 
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
+	"winone/desktopmygo/kit"
 	internalhost "winone/internal/host"
 )
 
@@ -75,10 +77,11 @@ type Shell struct {
 	toasts []string
 	// intents are prefills arrived at their page, until it takes them;
 	// reading tells a read of the Host's queues in progress.
-	intents   map[string][]core.Intent
-	reading   bool
-	intentErr string
-	focuses   int
+	intents      map[string][]core.Intent
+	reading      bool
+	intentErr    string
+	focuses      int
+	mailRevision int
 }
 
 type pendingKind int
@@ -272,6 +275,18 @@ func (s *Shell) requestPage(target string, arrive func()) {
 		}
 		return
 	}
+	if s.mailBefore(func() { s.requestPageReady(target, arrive) }) {
+		s.requestPageReady(target, arrive)
+	}
+}
+
+func (s *Shell) requestPageReady(target string, arrive func()) {
+	if target == s.page && s.instance != nil {
+		if arrive != nil {
+			arrive()
+		}
+		return
+	}
 	if dirty, busy := s.env.Activity.State(); dirty || busy {
 		s.pending = &pending{kind: pendingPage, page: target, arrive: arrive}
 		return
@@ -281,6 +296,7 @@ func (s *Shell) requestPage(target string, arrive func()) {
 
 func (s *Shell) navigate(target string, arrive func()) {
 	s.env.Activity.Reset()
+	pluginhost.For(s.env).LeaveMain()
 	s.closePage()
 	s.page = target
 	s.scroll = ui.ScrollState{}
@@ -291,6 +307,12 @@ func (s *Shell) navigate(target string, arrive func()) {
 
 // requestChange applies a tab switch through the same decision.
 func (s *Shell) requestChange(apply func()) {
+	if s.mailBefore(func() { s.requestChangeReady(apply) }) {
+		s.requestChangeReady(apply)
+	}
+}
+
+func (s *Shell) requestChangeReady(apply func()) {
 	if dirty, busy := s.env.Activity.State(); !dirty && !busy {
 		apply()
 		return
@@ -301,6 +323,17 @@ func (s *Shell) requestChange(apply func()) {
 // RequestClose is the window's close of a page with activity: it asks the
 // user, and reports whether the window may close at once.
 func (s *Shell) RequestClose() bool {
+	if !s.mailBefore(func() {
+		if s.requestCloseReady() {
+			s.window.ApproveClose()
+		}
+	}) {
+		return false
+	}
+	return s.requestCloseReady()
+}
+
+func (s *Shell) requestCloseReady() bool {
 	dirty, busy := s.env.Activity.State()
 	if !dirty && !busy {
 		return true
@@ -315,6 +348,7 @@ func (s *Shell) Activity() (dirty, busy bool) { return s.env.Activity.State() }
 // Discarded releases the current page and its UI-local drafts, either on
 // final window close or after an approved page transition.
 func (s *Shell) Discarded() {
+	s.mailRevision++
 	s.env.Activity.Reset()
 	if closer, ok := s.instance.(core.Closer); ok {
 		closer.Close()
@@ -326,6 +360,7 @@ func (s *Shell) Discarded() {
 		}
 		delete(s.kept, id)
 	}
+	pluginhost.For(s.env).Close()
 }
 
 // closePage ends the current page's instance; the next visit makes a new
@@ -350,7 +385,7 @@ func (s *Shell) closePage() {
 // settle finishes a pending decision once the work it waited for ended,
 // as a save that completed while the dialog was open.
 func (s *Shell) settle() {
-	if s.pending == nil {
+	if s.pending == nil || s.pending.err != "" {
 		return
 	}
 	if dirty, busy := s.env.Activity.State(); !dirty && !busy {
@@ -359,6 +394,20 @@ func (s *Shell) settle() {
 }
 
 func (s *Shell) finish() {
+	pending := s.pending
+	if pending == nil {
+		return
+	}
+	if s.mailBefore(func() {
+		if s.pending == pending {
+			s.finishReady()
+		}
+	}) {
+		s.finishReady()
+	}
+}
+
+func (s *Shell) finishReady() {
 	p := s.pending
 	s.pending = nil
 	switch p.kind {
@@ -403,10 +452,44 @@ func (s *Shell) leaveNow() {
 }
 
 func (s *Shell) cancel() {
+	s.mailRevision++
+	s.env.Activity.Report("shell-mail-sync", false, false, nil)
 	if s.pending != nil && s.pending.kind == pendingClose {
 		s.window.CancelClose()
 	}
 	s.pending = nil
+}
+
+// mailBefore keeps native mail contexts mounted until their real delivery
+// barrier completes. A closed error notice does not clear the underlying mail
+// failure; another leave/close must run this same barrier again.
+func (s *Shell) mailBefore(after func()) bool {
+	s.mailRevision++
+	revision, page := s.mailRevision, s.page
+	inline, ready := true, false
+	s.env.Activity.Report("shell-mail-sync", false, true, nil)
+	pluginhost.For(s.env).FlushAllMailEdits(func(ok bool) {
+		if revision != s.mailRevision || page != s.page {
+			return
+		}
+		s.env.Activity.Report("shell-mail-sync", false, false, nil)
+		if !ok {
+			message := i18n.T("notices.mailSyncFailed")
+			if s.pending != nil {
+				s.pending.err = message
+			}
+			s.env.Toast(message)
+			s.window.CancelClose()
+			return
+		}
+		if inline {
+			ready = true
+		} else {
+			after()
+		}
+	})
+	inline = false
+	return ready
 }
 
 // View builds the window.
@@ -423,15 +506,19 @@ func (s *Shell) View(c *ui.Context) {
 		s.titleBar(c)
 		ui.Row(c).Grow(1).AlignItems(ui.Stretch).MinHeight(0).Children(func() {
 			s.sidebar(c)
-			s.content(c)
+			ui.Column(c).Grow(1).Basis(0).FillHeight().MinWidth(0).MinHeight(0).Children(func() {
+				pluginhost.For(s.env).Layout(c, s.page == "chat" || s.page == "onebot", func() { s.content(c) })
+			})
 		})
 	})
 	s.settle()
 	s.guard(c)
+	pluginhost.For(s.env).View(c)
 	for _, message := range s.toasts {
 		c.Toast(message)
 	}
 	s.toasts = nil
+	kit.Toasts(c)
 	// Ctrl+S saves the page's current transaction, as its Save button.
 	if c.Shortcut(ui.Cmd, ui.KeyS) {
 		if save := s.env.Rail.Save; s.env.Rail.Active() && !save.Disabled && !save.Busy && save.Run != nil {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/makecindy/cindy",
-  "revision": "b7e46bcbbe41eeee2f16381fef00df61a31a3b8b",
+  "revision": "2d8d3c3605ee9073613dcd4069bc59f799be61ae",
   "license": "Apache-2.0",
   "scope": "Original personal WeChat iLink authorization, encrypted durable inbox/outbox, attachments and owner turn confirmation. WinOne provides the native Pi runner and database.",
   "groups": [
@@ -128,7 +128,8 @@
     "apps/desktop/src/main/cindy-media/ingest.ts": "modules/chat-pi/onebot/wechat-host.mjs",
     "apps/desktop/src/main/im/ownerScopedStorage.ts": "modules/chat-pi/onebot/im-scope.mjs",
     "apps/desktop/src/shared/workingDir.ts": "modules/chat-pi/cindy/bots/shared/workingDir.ts",
-    "apps/desktop/src/main/logger.ts": "modules/chat-pi/onebot/wechat-host.mjs"
+    "apps/desktop/src/main/logger.ts": "modules/chat-pi/onebot/wechat-host.mjs",
+    "apps/desktop/src/main/im/shared/receivedImageHistory.ts": "modules/chat-pi/onebot/wechat-host.mjs"
   },
   "modules": {
     "@cindy/im": "modules/chat-pi/cindy/im/index.ts",
@@ -189,9 +190,9 @@
   "files": [
     {
       "source": "apps/desktop/src/main/im/wechat/WechatIM.ts",
-      "sourceSHA256": "8607f10c902abf3c7f8597f645f73dd85ae2b81b8ac3fd298b573ac81d3ea252",
+      "sourceSHA256": "e0ae737c8ef816cfc59d1aef4b4fefe0be7bf302a26dfdcbf3020065e2927be9",
       "target": "modules/chat-pi/cindy/wechat/main/im/wechat/WechatIM.ts",
-      "sha256": "5bb2415453880a9b652784fe8e98e266d94decf9c8d4db6d1b9c5ea718d43036",
+      "sha256": "9424607c70fcf02870cfe4ecc1002369ff9841f7644fd4789722331672b46cc9",
       "adaptation": "import-paths"
     },
     {
@@ -311,7 +312,7 @@
     },
     {
       "source": "apps/desktop/src/main/im/shared/groupWindowCore.ts",
-      "sourceSHA256": "0d4c6109714d1c42e39e5f0a4f5da44936dae4277d53e3a70e2b885453c45a71",
+      "sourceSHA256": "2c587430cba06d086194372deae5554ec3e0806061dd800dd0aababced577471",
       "target": "modules/chat-pi/cindy/wechat/shared/groupWindowCore.ts",
       "sha256": "21bc5a893054378d1625a7b99b23a0bf2d73db8cb61418691978f06d38410699",
       "adaptation": "import-paths; intact declarations: createFenceNeutralizer, GROUP_WINDOW_ENTRY_TEXT_MAX_CHARS"

@@ -10,8 +10,9 @@ import (
 // the winone-open-chat and winone-open-page events: a Chat conversation
 // (at a file of it), Chat settings, or another page.
 type navigation struct {
-	To      string           `json:"to"` // "conversation" or "page"
+	To      string           `json:"to"` // "conversation", "new-chat" or "page"
 	ID      string           `json:"id"`
+	Text    string           `json:"text"` // a new chat's prefill
 	Section string           `json:"section"`
 	File    *core.IntentFile `json:"file"`
 }
@@ -35,6 +36,8 @@ func Navigate(env *core.Env, payload json.RawMessage) {
 			intent.File = f
 		}
 		env.Open("chat", intent)
+	case n.To == "new-chat":
+		env.Open("chat", core.Intent{NewChat: true, Prefill: n.Text})
 	case n.To == "page" && n.ID == "chat" && n.Section == "settings":
 		env.Open("chat", core.Intent{ChatSettings: true})
 	case n.To == "page" && linkedPages[n.ID]:

@@ -41,18 +41,21 @@ export function islandSnapshot(row) {
   return {sessionId: row.sessionId, phase, currentTurnActive: phase === 'running' || phase === 'needs-interaction',
     startedAtMs: row.startedAtMs || null, lastActivityAtMs: row.lastActivityAtMs || null, currentActionSummary: null,
     ...(phase === 'needs-interaction' ? {interactionKind: first?.kind ?? 'ask_user_question'} : {}),
-    attention: phase !== 'running', workflow: null, turnGeneration: Number.isSafeInteger(row.turnGeneration) ? row.turnGeneration : null,
+    attention: phase !== 'running', workflow: null, turnGeneration: row.execution?.generation ?? (Number.isSafeInteger(row.turnGeneration) ? row.turnGeneration : null),
     gracefulStopState: 'none', source: 'live'};
 }
 
 export function createOneBotAutonomy({owner, host, readSessionExecution, isCompletionHandledByTeammate, ensureOwnBuiltins}) {
   const rows = new Map();
+  // Ordinary Chat executions are not in the delegation client's cache. A
+  // delivery report supplies the Host-verified identity for this activity turn.
+  const executionFor = id => rows.get(id)?.execution ?? readSessionExecution?.(id) ?? null;
   // The runtime this owner started. The hub holds one per process; a second
   // owner (tests reopen a data directory) replaces it, as upstream startRuntime does.
   let current = null;
   let refreshTimer = null, refreshing = null, botsChangedTimer = null;
   configureBotAutonomyHost({
-    readSessionExecution: id => readSessionExecution?.(id) ?? null,
+    readSessionExecution: executionFor,
     isCompletionHandledByTeammate: (sessionId, botId, execution) => isCompletionHandledByTeammate(sessionId, botId, execution),
     getPendingInteractions: id => pendingInteractions(rows.get(id)),
   });
@@ -74,8 +77,10 @@ export function createOneBotAutonomy({owner, host, readSessionExecution, isCompl
       if (typeof row?.sessionId !== 'string' || !row.sessionId) continue;
       seen.add(row.sessionId);
       const previous = rows.get(row.sessionId);
-      rows.set(row.sessionId, row);
-      if (watch && JSON.stringify(previous) !== JSON.stringify(row)) watch.applyActivity(row.sessionId, islandSnapshot(row));
+      const sameTurn = previous?.turnGeneration === row.turnGeneration && previous?.startedAtMs === row.startedAtMs;
+      const nextRow = {...row, execution: row.execution ?? (sameTurn ? previous?.execution : undefined)};
+      rows.set(row.sessionId, nextRow);
+      if (watch && JSON.stringify(previous) !== JSON.stringify(nextRow)) watch.applyActivity(row.sessionId, islandSnapshot(nextRow));
     }
     // A full read also reports conversations that left the projection.
     if (complete) for (const id of [...rows.keys()]) {
@@ -141,7 +146,7 @@ export function createOneBotAutonomy({owner, host, readSessionExecution, isCompl
         log,
         onChange: () => { onChange(); syncRefreshTimer(); },
         getActivitySnapshots: () => [...rows.values()].map(islandSnapshot).filter(Boolean),
-        readSessionExecution: id => readSessionExecution?.(id) ?? null,
+        readSessionExecution: executionFor,
         isToolCallInFlight: id => rows.get(id)?.toolInFlight === true,
         getPendingInteractions: id => pendingInteractions(rows.get(id)),
         readLocalSessions: async ids => { assertScope(); const result = await readLocalSessionMetas(ids); assertScope(); return result; },
@@ -186,9 +191,15 @@ export function createOneBotAutonomy({owner, host, readSessionExecution, isCompl
     start,
     stop,
     /** Host push: changed conversation activity (never a full list). */
-    activity(params) {
+    async activity(params) {
       if (!Array.isArray(params?.snapshots)) throw Object.assign(new Error('Invalid activity'), {code: 'INVALID_PARAMS'});
+      // Host pushes are serialized. Drain the previous projection before
+      // accepting another phase so report -> completion cannot land between
+      // TaskWatch's flush loop and its promise cleanup.
+      const watch = getActiveBotAutonomy()?.runtime.watch;
+      await watch?.settled();
       apply(params.snapshots, false);
+      await watch?.settled();
       syncRefreshTimer();
       return {applied: params.snapshots.length};
     },

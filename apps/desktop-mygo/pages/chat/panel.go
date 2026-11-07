@@ -1,10 +1,11 @@
 package chat
 
+import "winone/desktopmygo/chat/pluginhost"
+
 // panelRequest is what the side panel opens, as React's openDetails family
 // in chat.tsx set it: a tab of the panel (home, the file library, the
 // resources, a review), a file at a line, a web page, or a turn's changes.
-// The panel itself runs the React side panel in a web view; native views
-// only ask it to open something.
+// The native workspace controller receives each numbered request once.
 type panelRequest struct {
 	// Tab is "home", "files", "resources" or "review".
 	Tab       string
@@ -48,5 +49,18 @@ func (p *Chat) openReview(turnID, path string) {
 	p.openPanel(panelRequest{Tab: "review", Review: &reviewTarget{TurnID: turnID, Path: path}})
 }
 
-// openURL shows a web page in the side panel's browser.
-func (p *Chat) openURL(url string) { p.openPanel(panelRequest{Tab: "home", URL: url}) }
+// openURL gives ordinary links the original read:false mail probe, after the
+// current editor's real delivery barrier. Reader links use openBrowserURL below
+// and cannot recursively probe the same mail address.
+func (p *Chat) openURL(address string) {
+	p.mailNavigation(func() {
+		id, revision := p.activeID, p.selectionRevision
+		pluginhost.For(p.env).OpenMailIfSupported(id, address, func(handled bool) {
+			if !handled && !p.closed() && p.activeID == id && p.selectionRevision == revision {
+				p.openBrowserURL(address)
+			}
+		})
+	})
+}
+
+func (p *Chat) openBrowserURL(address string) { p.openPanel(panelRequest{Tab: "home", URL: address}) }

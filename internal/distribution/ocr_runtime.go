@@ -21,6 +21,13 @@ var accountPluginInventory string
 //go:embed chat_share_runtime_paths.txt
 var chatShareInventory string
 
+// Math font data and its original licenses/source archive form one delivery.
+// Keep this separate from share notices so old rollback bundles remain valid.
+//
+//go:embed chat_math_runtime_paths.txt
+var chatMathInventory string
+var chatMathFiles = strings.Fields(chatMathInventory)
+
 // Code Mode adds the VM worker, its WASM runtime and the reviewed notices.
 // Keep this list in step with build-chat.ps1 and
 // third_party/chat-codemode-notices.json.
@@ -64,6 +71,9 @@ var textRuntimeAllowed = func() map[string]bool {
 	for _, name := range chatSearchFiles {
 		result[name] = true
 	}
+	for _, name := range chatMathFiles {
+		result[name] = true
+	}
 	for _, name := range chatShareFiles {
 		result[name] = true
 	}
@@ -89,11 +99,20 @@ var textRuntimeAllowed = func() map[string]bool {
 func requiredForPayload(seen map[string]bool) []string {
 	result := append([]string{}, requiredFiles...)
 	text, plugins, chat, share, codeMode, stroke, search, recording, interconnect := false, false, false, false, false, false, false, false, false
-	onebot := false
+	onebot, math, library := false, false, false
 	for name := range seen {
 		lower := strings.ToLower(name)
+		if lower == "shared/chat/librarydbworker.js" || lower == "shared/chat/library-sqlite.js" {
+			library = true
+		}
 		if lower == "capture/winone.recording.dll" || lower == "capture/recording-runtime.json" {
 			recording = true
+		}
+		for _, resource := range chatMathFiles {
+			if lower == strings.ToLower(resource) {
+				math = true
+				break
+			}
 		}
 		for _, resource := range chatOneBotFiles {
 			if lower == strings.ToLower(resource) {
@@ -146,11 +165,19 @@ func requiredForPayload(seen map[string]bool) []string {
 	if chat {
 		result = append(result, chatRuntimeFiles...)
 	}
+	// These helpers are one protocol pair in new bundles. Historical packages
+	// without either remain valid for rollback; a partial new pair is rejected.
+	if library {
+		result = append(result, "shared/chat/libraryDbWorker.js", "shared/chat/library-sqlite.js")
+	}
 	// Any share notice identifies the new delivery: require every notice and
 	// resource so an incomplete copy cannot silently remove licenses or tools.
 	if share {
 		result = append(result, chatShareFiles...)
 		result = append(result, chatOptionalRuntimeFiles...)
+	}
+	if math {
+		result = append(result, chatMathFiles...)
 	}
 	if onebot {
 		result = append(result, chatOneBotFiles...)

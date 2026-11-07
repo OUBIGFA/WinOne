@@ -2,12 +2,18 @@
 // WinOne pages are not URL routes: Cindy's task and settings paths become
 // WinOne navigation, and the automation page keeps a fixed location.
 import {cindyNavigation} from './store';
+import {takeNewChatPrefill} from './errorDiagnosis';
 
 export interface Location {pathname: string; search: string; hash: string; state: unknown; key: string}
 const location: Location = {pathname: '/cc-agent/scheduled', search: '', hash: '', state: null, key: 'winone'};
 
 function go(path: string) {
   const url = new URL(path, 'winone://app');
+  // Cindy's new-task page: a prefill (error diagnosis) goes into a new conversation.
+  if (url.pathname === '/cc-agent/new') {
+    cindyNavigation().openNewChat(takeNewChatPrefill());
+    return;
+  }
   const session = /^\/cc-agent\/(?:orca\/|files\/)?([^/]+)$/.exec(url.pathname);
   if (session && session[1] !== 'scheduled') {
     cindyNavigation().openConversation(decodeURIComponent(session[1]!));

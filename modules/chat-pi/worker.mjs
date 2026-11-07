@@ -2,6 +2,7 @@
 // execution and session files; stdout contains protocol records only.
 import {once} from "node:events";
 import {createHash,randomUUID} from "node:crypto";
+import {createGhostEventPublisher} from './ghost/event-publisher.mjs';
 import {readInputExecution,recordInputExecution} from './input-execution.mjs';
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -12,12 +13,20 @@ import {prepareAttachments,displayMessage} from './attachments.mjs';
 import packageInfo from "./package.json" with {type:"json"};
 import {exportConversationArchive} from './archive.mjs';
 import {inspectResources} from './resources.mjs';
+import {authorizationProjection} from './authorization.mjs';
 import {extractPrRefs,messageContentToText} from './cindy/tasks/git/prRefExtractor.ts';
 
 const maximumLine=1024*1024,maximumQueued=4*1024*1024;
 let live,initializing=false,closing=false,writes=Promise.resolve(),queued=0,running=false,abortWanted=false,epoch=0,settledEpoch=0,startedEpoch=0,completion;
 let pendingInput,activeTurn,pendingPrompt,sessionDirectory,preflightGeneration=0;
 let sessionConfig,transition,pausing=false,suspended=false,taskHeld=false;
+let ghostEvents,ghostThinking;
+const ghostEvent=value=>ghostEvents?.send({...value,model:live?.modelIdentity?.().model??sessionConfig?.model?.id});
+function ghostSettled(requestId,status){
+ const message=state().messages.findLast(message=>message.role==='assistant'&&message.turnId===requestId);
+ ghostEvent({kind:'settled',requestId,status,message:message?{id:message.id,text:typeof message.content==='string'?message.content:(message.content??[]).filter(part=>part.type==='text').map(part=>part.text).join('')}:undefined});
+ ghostThinking=undefined;
+}
 const submittedInputs=[];
 const executionInstance=randomUUID();let executionGeneration=0;
 let prWrites=Promise.resolve();const publishedPrs=new Set(),pendingPrs=new Set();
@@ -34,12 +43,22 @@ function recordTaskPrs(message){
   }).catch(()=>{void emit({type:'notice',text:'任务 PR 引用暂未保存，原消息已保留，重开任务会重试。'}).catch(stopOnOutputError);}).finally(()=>{for(const url of batch)pendingPrs.delete(url);});
  }
 }
+function nativeExecutionForInput(id,previous){
+ if(!previous||previous.instanceId===executionInstance)return previous;
+ const current=readInputExecution(live.session.sessionManager,id);
+ if(current?.execution?.instanceId===executionInstance)return current.execution;
+ // A restored queued input starts in this native instance. Preserve its
+ // input ID and let the original task service record this execution alias.
+ const execution={instanceId:executionInstance,generation:++executionGeneration};
+ live.session.sessionManager.appendCustomEntry('winone.execution',{requestId:id,execution});return execution;
+}
 function executionState(){
  const receipt=activeTurn?readInputExecution(live.session.sessionManager,activeTurn):null;
- return {requestId:activeTurn??null,execution:receipt?.execution??null,running,paused:live.state().paused,queuePaused:live.state().queuePaused,held:taskHeld,pending:pendingReceipts().map(input=>({id:input.id,text:input.presentation?.text??input.text,originSessionId:input.presentation?.originSessionId??null})),approvals:[...approvals.entries()].map(([id,finish])=>({...finish.request,id,requestId:finish.requestId})),questions:[...questions.values()].map(value=>value.request)};
+ return {instanceId:executionInstance,permission:live.state().permission,planModeEnabled:!!sessionConfig?.legacyPlan,requestId:activeTurn??null,execution:receipt?.execution??null,running,paused:live.state().paused,queuePaused:live.state().queuePaused,held:taskHeld,pending:pendingReceipts().map(input=>({id:input.id,text:input.presentation?.text??input.text,textHash:input.textHash,originSessionId:input.presentation?.originSessionId??null})),approvals:[...approvals.entries()].map(([id,finish])=>({...finish.request,id,requestId:finish.requestId})),questions:[...questions.values()].map(value=>value.request)};
 }
 function settled(status,error=''){
  const terminal=recordInputExecution(live.session.sessionManager,activeTurn,status,error);
+ ghostSettled(activeTurn,status);
  return emit({type:'settled',requestId:activeTurn,status,error,...(terminal?{execution:terminal.execution}:{}),state:state()});
 }
 let archiveTask,archiveAbort;
@@ -86,10 +105,10 @@ function messagePage(manager,{before,limit=30}={}){
    all.push({...entry,message:{...entry.data,...(voiceCall?{agentMeta:{...entry.data.agentMeta,voiceCall}}:{}),id:entry.id,timestamp:entry.data.createdAt,turnId:'timeline:'+entry.data.clientId,presentationOnly:true}});
   }
   if(entry.type==="message"){
-   const message=displayMessage({...entry.message});
+   const message=displayMessage({...entry.message},sessionDirectory);
    if(message.role==="user")turn=input??entry.id;
    if(turn)message.turnId=turn;
-   if(message.role==="user"&&input){message.requestId=input;if(typeof receipt?.text==='string'){message.content=receipt.presentation?.text??receipt.text;message.hiddenInput=receipt.presentation?.hidden===true;message.attachments=receipt.attachments;if(receipt.presentation?.replyQuote)message.replyQuote=receipt.presentation.replyQuote;if(receipt.presentation?.agentReferences)message.agentReferences=receipt.presentation.agentReferences;}savedInputs.push(input);input=undefined;}
+   if(message.role==="user"&&input){message.requestId=input;if(typeof receipt?.text==='string'){message.content=receipt.presentation?.text??receipt.text;message.hiddenInput=receipt.presentation?.hidden===true;message.attachments=receipt.attachments;if(receipt.presentation?.replyQuote)message.replyQuote=receipt.presentation.replyQuote;if(receipt.presentation?.agentReferences)message.agentReferences=receipt.presentation.agentReferences;if(receipt.presentation?.sourcePlugin)message.agentMeta={sourcePlugin:receipt.presentation.sourcePlugin};}savedInputs.push(input);input=undefined;}
    all.push({...entry,message});
   }
  }
@@ -157,7 +176,7 @@ function state(options){
  // targets. Acknowledged receipts must not rehydrate as an unsent draft.
  if(!options?.before){
   const pending=pendingReceipts(),saved=new Set(page.messages.map(message=>message.requestId));
-  page.messages.push(...pending.filter(receipt=>!saved.has(receipt.id)).map(receipt=>({id:receipt.id,requestId:receipt.id,turnId:receipt.id,role:'user',content:receipt.presentation?.text??receipt.text,hiddenInput:receipt.presentation?.hidden===true,attachments:receipt.attachments,...(receipt.presentation?.replyQuote?{replyQuote:receipt.presentation.replyQuote}:{}),...(receipt.presentation?.agentReferences?{agentReferences:receipt.presentation.agentReferences}:{}),pending:true,queued:receipt.queued===true,deliveryMode:receipt.deliveryMode??'queue',timestamp:receipt.timestamp})));
+  page.messages.push(...pending.filter(receipt=>!saved.has(receipt.id)).map(receipt=>({id:receipt.id,requestId:receipt.id,turnId:receipt.id,role:'user',content:receipt.presentation?.text??receipt.text,hiddenInput:receipt.presentation?.hidden===true,attachments:receipt.attachments,...(receipt.presentation?.replyQuote?{replyQuote:receipt.presentation.replyQuote}:{}),...(receipt.presentation?.agentReferences?{agentReferences:receipt.presentation.agentReferences}:{}),...(receipt.presentation?.sourcePlugin?{agentMeta:{sourcePlugin:receipt.presentation.sourcePlugin}}:{}),pending:true,queued:receipt.queued===true,deliveryMode:receipt.deliveryMode??'queue',timestamp:receipt.timestamp})));
   page.savedInputs=[...new Set([...page.savedInputs,...pending.map(receipt=>receipt.id)])].slice(-128);
  }
  return {...summary,...page,streaming:!value.paused&&(running||value.streaming)};
@@ -165,6 +184,7 @@ function state(options){
 function event(value){
  if(value.type==='message_end')recordTaskPrs(value.message);
  if(value.type==='input_settled'){
+  ghostSettled(value.requestId,value.status);
   const terminal=recordInputExecution(live.session.sessionManager,value.requestId,value.status,value.error,value.resultText);
   void emit({...value,...(terminal?{execution:terminal.execution}:{})}).catch(stopOnOutputError);
   return;
@@ -180,7 +200,8 @@ function event(value){
  if(value.type==='usage'){void emit({type:'usage',usage:value.usage,contextUsage:value.contextUsage}).catch(stopOnOutputError);return;}
  if(value.type==='durable_state'){void emit({type:'durable_state',subagents:value.subagents,workflow:value.workflow,backgroundRunning:!!value.backgroundRunning,paused:!!value.paused,taskGraph:value.taskGraph}).catch(stopOnOutputError);return;}
  if(value.type==='durable_snapshot')return;
- if(value.message){value={...value,message:displayMessage(value.message)};if(value.message.role==='assistant')value.message={...value.message,...live?.modelIdentity()};}
+ if(value.result?.content)value={...value,result:{...value.result,content:displayMessage({role:'toolResult',content:value.result.content},sessionDirectory).content}};
+ if(value.message){value={...value,message:displayMessage(value.message,sessionDirectory)};if(value.message.role==='assistant')value.message={...value.message,...live?.modelIdentity()};}
  // The request receipt is the stable identity shared with the immediate user
  // row and messagePage(). Pi's timestamp/history ID alone cannot reconcile it.
  if(value.message?.role==='user'&&pendingPrompt)value={...value,message:{...value.message,requestId:pendingPrompt.id,content:pendingPrompt.presentation?.text??pendingPrompt.text,hiddenInput:pendingPrompt.presentation?.hidden===true,attachments:pendingPrompt.attachments,...(pendingPrompt.presentation?.replyQuote?{replyQuote:pendingPrompt.presentation.replyQuote}:{}),...(pendingPrompt.presentation?.agentReferences?{agentReferences:pendingPrompt.presentation.agentReferences}:{})}};
@@ -222,7 +243,7 @@ function event(value){
   const id=pendingInput;pendingInput=undefined;void emit({type:"input_saved",id}).catch(stopOnOutputError);
  }
  if(value.type==='message_end'&&value.message?.role==='assistant')live.session.sessionManager.appendCustomEntry('winone.model',{timestamp:value.message.timestamp,identity:live.modelIdentity()});
- if(value.type==="agent_start"){startedEpoch=epoch;running=true;void emit({type:'execution_started'}).catch(stopOnOutputError);}
+ if(value.type==="agent_start"){ghostEvent({kind:'start'});startedEpoch=epoch;running=true;void emit({type:'execution_started'}).catch(stopOnOutputError);}
  if(value.type==="agent_settled"){
   if(pausing)return;
   running=false;settledEpoch=epoch;
@@ -236,6 +257,10 @@ function event(value){
  // assistant message for every token or create an unbounded stdout backlog.
  if(value.type==="message_update"){
   const update=value.assistantMessageEvent;
+  if(update.type==='thinking_start'||update.type==='thinking_delta'){
+   const blockId=String(thinkingMessage)+':'+String(update.contentIndex??0);
+   if(ghostThinking!==blockId){ghostThinking=blockId;ghostEvent({kind:'thinking',stage:'start',blockId});}
+  }else if(update.type==='thinking_end'&&ghostThinking){ghostEvent({kind:'thinking',stage:'final',blockId:ghostThinking});ghostThinking=undefined;}
   if(["text_delta","thinking_delta"].includes(update?.type))void emit({type:"delta",kind:update.type,text:update.delta,index:update.contentIndex,turnId:activeTurn,timestamp:thinkingMessage}).catch(stopOnOutputError);
   return;
  }
@@ -251,10 +276,12 @@ function question(request,signal){
   if(signal?.aborted){reject(Error("Question was cancelled"));return;}
   const finish=(answers,error)=>{
    questions.delete(request.id);signal?.removeEventListener("abort",abort);
+   ghostEvent({kind:'interaction-end',id:request.id,question:true});
    void emit({type:"approval_cancelled",id:request.id}).catch(stopOnOutputError);
    if(error||answers===undefined)reject(error??Error("The user cancelled the question without answering"));else resolve(answers);
   };
   const abort=()=>finish();questions.set(request.id,{request,finish});signal?.addEventListener("abort",abort,{once:true});
+  ghostEvent({kind:'interaction-start',id:request.id,question:true});
   void emit({type:"approval",request:{...request,kind:"question",tool:"ask_user_question",args:{}}}).catch(error=>finish(undefined,error));
  });
 }
@@ -262,17 +289,18 @@ function authorize(request,signal){
  return new Promise((resolve,reject)=>{
   if(signal?.aborted){resolve(false);return;}
   operations.begin(`approval:${request.id}`,"approval",activeTurn);
-  const finish=value=>{approvals.delete(request.id);signal?.removeEventListener("abort",abort);operations.end(`approval:${request.id}`,abortWanted||signal?.aborted?"stopped":(typeof value==="object"?value.allow:value)?"allowed":"denied");resolve(value);};
+  const finish=value=>{ghostEvent({kind:'interaction-end',id:request.id,question:false});approvals.delete(request.id);signal?.removeEventListener("abort",abort);operations.end(`approval:${request.id}`,abortWanted||signal?.aborted?"stopped":(typeof value==="object"?value.allow:value)?"allowed":"denied");resolve(value);};
   const abort=()=>{finish(false);void emit({type:"approval_cancelled",id:request.id}).catch(stopOnOutputError);};
   finish.requestId=request.requestId;finish.request=request;
   approvals.set(request.id,finish);signal?.addEventListener("abort",abort,{once:true});
+  ghostEvent({kind:'interaction-start',id:request.id,question:false});
   try{void emit({type:"approval",request}).catch(reject);}catch(error){finish(false);reject(error);}
  });
 }
 async function shutdown(code=0){
  if(closing)return;closing=true;preflightGeneration++;
  for(const resolve of approvals.values())resolve(false);for(const pending of questions.values())pending.finish();
- try{abortWanted=true;archiveAbort?.abort();if(archiveTask)await archiveTask.catch(()=>{});await transition;if(live)await live.close();await completion;await prWrites;await writes;}catch(error){console.error("Pi shutdown:",error.message);code=1;}
+ try{abortWanted=true;archiveAbort?.abort();if(archiveTask)await archiveTask.catch(()=>{});await transition;if(live)await live.close();await completion;await ghostEvents?.close();await prWrites;await writes;}catch(error){console.error("Pi shutdown:",error.message);code=1;}
  process.exit(code);
 }
 async function handle(request){
@@ -316,11 +344,13 @@ async function handle(request){
  }
  if(request.method==="init"){
   if(live||initializing)throw Error("Session is already initialized or starting");
-  initializing=true;try{sessionDirectory=params.sessionDirectory;sessionConfig={...params};live=await createDurableSession(sessionConfig,{event,authorize,question});
+  initializing=true;try{sessionDirectory=params.sessionDirectory;sessionConfig={...params,nativeExecutionForInput};ghostEvents=createGhostEventPublisher(sessionConfig.ghostBridge);live=await createDurableSession(sessionConfig,{event,authorize,question});
    // The durable harness owns crash recovery. Resume interrupted work before
    // replaying unconsumed receipts; request IDs keep every path idempotent.
    taskHeld=live.session.sessionManager.getBranch().findLast(entry=>entry.type==='custom'&&entry.customType==='winone.task-hold')?.data?.held===true;
-   activeTurn=messagePage(live.session.sessionManager).messages.findLast(message=>message.role==='user')?.turnId;await live.resume();
+   activeTurn=messagePage(live.session.sessionManager).messages.findLast(message=>message.role==='user')?.turnId;
+    if(sessionConfig.releaseModelHold)await live.session.changeQueue('modelHold',{locked:false});
+    await live.resume();
    for(const entry of live.session.sessionManager.getBranch())if(entry.type==='message')recordTaskPrs(entry.message);
    // Accepted but unconsumed inputs survive worker shutdown and navigation.
    // Re-enter Pi's normal submission path using their original request IDs.
@@ -330,9 +360,29 @@ async function handle(request){
  }
  if(!live)throw Error("Session is not initialized");
  const pausedRead=request.method==="control"&&["tasks","list","workflow"].includes(params.action);
- if(live.state().paused&&!pausedRead&&!["state","resources","input_status","input.result","resume","pause","close","runtime.refresh","timeline.append","timeline.voice","execution.inspect","task.hold"].includes(request.method))throw Error("Resume the paused session before changing it");
+ if(live.state().paused&&!pausedRead&&!["state","resources","input_status","input.result","resume","pause","close","runtime.refresh","timeline.append","timeline.voice","execution.inspect","authorization.inspect","task.hold"].includes(request.method))throw Error("Resume the paused session before changing it");
  switch(request.method){
+  case 'files.handoff.authorize':return reply(request.id,await live.authorizeHandoff(params,authorizationProjection(live.session.sessionManager).reviewIntent));
   case 'execution.inspect':return reply(request.id,executionState());
+   case 'tool.authorize':{
+    if(typeof params.request?.tool!=='string'||!params.request.args||typeof params.request.args!=='object'||Buffer.byteLength(JSON.stringify(params.request))>128*1024)throw Error('Invalid native tool permission request');
+    await live.authorizeExternal({...params.request,id:request.id},authorizationProjection(live.session.sessionManager).reviewIntent);
+    return reply(request.id,{authorized:true});
+   }
+   case 'file.review':{
+    const captured=executionState();
+    const current=()=>{const value=executionState();return value.instanceId===params.instanceId&&value.requestId===params.requestId&&JSON.stringify(value.execution)===JSON.stringify(params.execution);};
+    if(!current())return reply(request.id,{verdict:'block',reason:'The file action no longer belongs to the active input'});
+    let scope={userIntent:authorizationProjection(live.session.sessionManager).reviewIntent};
+    if(captured.requestId?.startsWith('plugin-target:')&&sessionConfig.ghostBridge){
+      const bridge=sessionConfig.ghostBridge,response=await fetch(bridge.baseUrl+'/ghost-review',{method:'POST',headers:{Authorization:'Bearer '+bridge.key,'Content-Type':'application/json'},body:JSON.stringify({requestId:captured.requestId,execution:captured.execution,request:{tool:'write',args:{path:params.action?.path},workspaceRoots:[sessionConfig.cwd],userIntent:scope.userIntent}})});
+      if(!response.ok)return reply(request.id,{verdict:'block',reason:'Plugin delegated authority changed'});
+      scope=await response.json();
+    }
+    const decision=await live.reviewFileAction(params.action,scope);
+    return reply(request.id,current()?decision:{verdict:'block',reason:'The task changed during automatic file review'});
+   }
+   case 'authorization.inspect':return reply(request.id,{...executionState(),projection:authorizationProjection(live.session.sessionManager)});
    case 'task.hold':{
     const active=executionState();
     if(active.running&&params.execution&&(active.execution?.instanceId!==params.execution.instanceId||active.execution?.generation!==params.execution.generation))throw Error('The task no longer owns this execution');
@@ -411,10 +461,14 @@ async function handle(request){
    if(params.cancel===true){pending.finish();return reply(request.id,{resolved:true});}
    const answers=params.answers;
    if(!Array.isArray(answers)||answers.length!==pending.request.questions.length||answers.some(value=>typeof value!=="string"||!value.trim()||value.length>4000))throw Error("Provide an answer for every question");
+   live.session.sessionManager.appendCustomEntry('winone.authorization-answer',{id:params.id,text:answers.join('\n'),acceptedAt:Date.now()});
    pending.finish(answers);return reply(request.id,{resolved:true});
   }
-  case "set_permission":live.setPermission(params.value);sessionConfig.permission=params.value;return reply(request.id,{permission:params.value});
+  case "set_permission":await live.setPermission(params.value);sessionConfig.permission=params.value;sessionConfig.legacyPlan=false;return reply(request.id,{permission:params.value});
   case "rename":if(running)throw Error("Wait for the current run before renaming");live.session.setSessionName(params.name);return reply(request.id,state());
+  case 'configure_model':
+   if(running)throw Error('Wait for the current run before applying the model');
+   await live.configureModel(params);Object.assign(sessionConfig,{model:params.model,models:params.models,thinkingLevel:params.thinkingLevel,fastMode:params.fastMode});return reply(request.id,state());
   case "set_model":if(running)throw Error("Stop the current run before changing models");await live.setModel(params.model,params.models);sessionConfig.model=params.model;if(params.models)sessionConfig.models=params.models;return reply(request.id,state());
   case "thinking":await live.session.setThinkingLevel(params.value);sessionConfig.thinkingLevel=params.value;return reply(request.id,state());
   case "fast":live.session.setFastMode(params.value);sessionConfig.fastMode=params.value;return reply(request.id,state());
@@ -433,7 +487,7 @@ async function handle(request){
     const receipt={id:request.id,hostDispatched,presentation:presentation??undefined,textHash:inputHash(params.text,[],deliveryMode),text:params.text,attachments:[],deliveryMode,queued:true,timestamp:Date.now(),execution:{instanceId:executionInstance,generation:++executionGeneration}};
     live.session.sessionManager.appendCustomEntry('winone.queued',receipt);
     await live.session.enqueueHeld(params.text,receipt);submittedInputs.push(receipt);
-    return reply(request.id,{accepted:true,queued:true,execution:receipt.execution});
+    return reply(request.id,{accepted:true,queued:true,delivery:'queue',execution:receipt.execution});
    }
    const wasRunning=running,generation=wasRunning?preflightGeneration:++preflightGeneration;running=true;if(!wasRunning)abortWanted=false;let attached;
    try{attached=await prepareAttachments(sessionDirectory,params.attachments,live.supportsImages());}
@@ -456,8 +510,8 @@ async function handle(request){
     if(disposition!=="queued"&&disposition!=="steered"&&startedEpoch!==turn&&settledEpoch!==turn){running=false;settledEpoch=turn;operations.end("turn");await settled('completed');}
    },async error=>{if(pausing)return;discard();if(!wasRunning&&settledEpoch!==turn){running=false;settledEpoch=turn;operations.endAll("failed");await settled('failed',String(error.message??error));}throw error;});
    if(wasRunning)await task;else completion=task.catch(()=>{});
-   if(live.state().queuePaused)await live.session.changeQueue('reconcile');
-   return reply(request.id,{accepted:true,queued:receipt.queued,...(receipt.execution?{execution:receipt.execution}:{})});
+   if(live.state().queuePaused||live.state().modelHeld)await live.session.changeQueue('reconcile');
+   return reply(request.id,{accepted:true,queued:receipt.queued,delivery:wasRunning&&deliveryMode==='steer'?'steer':'queue',...(receipt.execution?{execution:receipt.execution}:{})});
   }
   case "retry":{
    if(running)throw Error("Stop the agent before retrying");
@@ -487,7 +541,7 @@ async function handle(request){
   case 'abort.input':{
     const receipt=readInputExecution(live.session.sessionManager,params.id);
     if(activeTurn!==params.id||!receipt?.execution||receipt.status||receipt.execution.instanceId!==params.execution?.instanceId||receipt.execution.generation!==params.execution?.generation)throw Error('The input no longer owns the active execution');
-    return handle({...request,method:'abort'});
+    await live.session.abortInput(params.id);return reply(request.id,state());
    }
    case 'input.source':{
     if(typeof params.id!=='string'||!params.id||params.id.length>128)throw Error('Invalid input source query');
@@ -501,14 +555,26 @@ async function handle(request){
    if(typeof params.id!=="string"||typeof params.text!=="string"||params.text.length>100000)throw Error("Invalid input receipt query");
    return reply(request.id,inputStatus(params.id,params.text,params.attachments,params.deliveryMode??'queue'));
   case 'queue':{
-   let receipt=pendingReceipts().find(value=>value.id===params.id),prepared;
-   if(params.action==='update'){
+   let receipt=pendingReceipts().find(value=>value.id===params.id),prepared,originalHash=receipt?.textHash,merged;
+   if(params.expectedOriginSessionId&&['update','cancel','steer','reorder'].includes(params.action)&&receipt?.presentation?.originSessionId!==params.expectedOriginSessionId)throw Error('Only the originating Lead may change this queued input');
+   if(params.action==='merge'){
+    if(!Array.isArray(params.ids)||params.ids.length<2||params.ids.length>64||new Set(params.ids).size!==params.ids.length||typeof params.text!=='string'||!params.text.trim()||params.text.length>100000)throw Error('Invalid queued input merge');
+    const pending=pendingReceipts();merged=params.ids.map(id=>pending.find(input=>input.id===id));
+    if(merged.some(input=>!input||input.presentation?.originSessionId!==params.expectedOriginSessionId))throw Error('Only consecutive inputs from the same Lead may be merged');
+    receipt=merged[0];params.id=receipt.id;originalHash=receipt.textHash;
+    const paths=[...new Set(merged.flatMap(input=>input.attachments?.map(file=>file.path)??[]))];
+    prepared=await prepareAttachments(sessionDirectory,paths,live.supportsImages());
+    receipt={...receipt,text:params.text,presentation:{...receipt.presentation,text:params.text},attachments:prepared.attachments,textHash:inputHash(params.text,paths,receipt.deliveryMode)};
+   }else if(params.action==='update'){
     if(!receipt)throw Error('这条消息已开始处理，无法再修改排队内容');
     if(typeof params.text!=='string'||(!params.text.trim()&&!params.attachments?.length)||params.text.length>100000)throw Error('消息为空或过长');
     prepared=await prepareAttachments(sessionDirectory,params.attachments,live.supportsImages());
-    receipt={...receipt,text:params.text,presentation:receipt.presentation?{...receipt.presentation,text:params.text}:undefined,attachments:prepared.attachments,textHash:inputHash(params.text,params.attachments,receipt.deliveryMode)};
+    const presentation=receipt.presentation?{...receipt.presentation,text:params.text}:undefined;
+    if(!params.expectedOriginSessionId&&presentation){delete presentation.originSessionId;delete presentation.reviewRequest;}
+    receipt={...receipt,text:params.text,hostDispatched:params.expectedOriginSessionId?receipt.hostDispatched:false,presentation,attachments:prepared.attachments,textHash:inputHash(params.text,params.attachments,receipt.deliveryMode)};
    }else if(params.action==='steer'&&receipt)receipt={...receipt,queued:false,deliveryMode:'steer',textHash:inputHash(receipt.text,receipt.attachments?.map(file=>file.path),'steer')};
-   const changed=await live.session.changeQueue(params.action,{...params,receipt,text:prepared?(params.text||'Please inspect the attached files.')+prepared.context:undefined,images:prepared?.images});
+   const changed=await live.session.changeQueue(params.action,{...params,receipt,expectedTextHash:originalHash,expectedMergedHashes:merged?.map(input=>input.textHash),text:prepared?(params.text||'Please inspect the attached files.')+prepared.context:undefined,images:prepared?.images});
+   if(merged)for(const input of merged.slice(1)){live.session.sessionManager.appendCustomEntry('winone.cancelled',{id:input.id});const index=submittedInputs.findIndex(value=>value.id===input.id);if(index>=0)submittedInputs.splice(index,1);}
    if(params.action==='cancel'){live.session.sessionManager.appendCustomEntry('winone.cancelled',{id:params.id});const index=submittedInputs.findIndex(input=>input.id===params.id);if(index>=0)submittedInputs.splice(index,1);}
    for(const value of changed.receipts){
     live.session.sessionManager.appendCustomEntry('winone.queued',value);

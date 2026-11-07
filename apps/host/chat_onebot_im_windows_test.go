@@ -337,7 +337,49 @@ func TestOneBotIMHostRoundTripWithRealPi(t *testing.T) {
 					beforeApproval = nil
 					run()
 				}
-				post("im/interaction", input, 200)
+				if approval.Kind == "question" && receipt == ownerReceipt {
+					// The plugin companion bridge must settle this exact real Pi
+					// question, not whichever task/interaction happens to be latest.
+					func() {
+						prior := bot.control.onebot
+						bot.control.onebot = bot
+						defer func() { bot.control.onebot = prior }()
+						ghost := newChatGhosts(bot.control)
+						rows, err := ghost.companionSnapshots(ctx)
+						if err != nil {
+							t.Fatal(err)
+						}
+						fingerprint := ""
+						for _, row := range rows {
+							if row.ID != "im-fixture" {
+								continue
+							}
+							for _, pending := range row.Pending {
+								var request struct{ ID string }
+								_ = json.Unmarshal(pending.Request, &request)
+								if pending.SessionID == sessionID && request.ID == approval.ID {
+									fingerprint = pending.Fingerprint
+								}
+							}
+						}
+						if fingerprint == "" {
+							t.Fatal("plugin companion snapshot lost the live question")
+						}
+						answer := map[string]any{"companionId": "im-fixture", "sessionId": sessionID, "nativeId": approval.ID, "requestId": receipt, "fingerprint": "stale", "kind": "question", "answers": []string{"文本"}}
+						raw, _ := json.Marshal(answer)
+						if _, err := ghost.companionNative(ctx, "companion-answer", raw); err == nil {
+							t.Fatal("stale plugin permission fingerprint was accepted")
+						}
+						answer["fingerprint"] = fingerprint
+						raw, _ = json.Marshal(answer)
+						result, err := ghost.companionNative(ctx, "companion-answer", raw)
+						if err != nil {
+							t.Fatalf("native companion answer: %v %v", result, err)
+						}
+					}()
+				} else {
+					post("im/interaction", input, 200)
+				}
 			}
 			for _, event := range page.Events {
 				if (event.Data.Type == "settled" || event.Data.Type == "input_settled") && event.Data.RequestID == receipt {

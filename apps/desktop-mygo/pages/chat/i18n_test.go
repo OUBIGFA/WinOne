@@ -20,7 +20,8 @@ func TestEveryKeyIsInBothLanguages(t *testing.T) {
 	// Keys written out, and chat keys in tables of labels; Host method
 	// names and composed prefixes are not keys.
 	literal := regexp.MustCompile(`i18n\.T\("([a-zA-Z0-9_.-]+)"\s*[,)]|"(chat\.[a-zA-Z0-9_.]+[a-zA-Z0-9])"`)
-	methods := map[string]bool{"chat.export": true}
+	// chat.messageActionBar.reply is a Cindy key read through botT, not a Chat key.
+	methods := map[string]bool{"chat.export": true, "chat.messageActionBar.reply": true}
 	keys := map[string]bool{}
 	for _, file := range files {
 		if strings.HasSuffix(file, "_test.go") {

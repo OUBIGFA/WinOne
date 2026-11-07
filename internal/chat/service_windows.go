@@ -66,6 +66,7 @@ type liveSession struct {
 	status, failure   string
 	initialized       bool
 	modelError        string
+	modelChange       *deferredModelChange
 	approvals         map[string]json.RawMessage
 	changed           chan struct{}
 	activeRequest     string
@@ -293,8 +294,13 @@ func (s *Service) Open(ctx context.Context, id string, owner uint32) (json.RawMe
 		var raw json.RawMessage
 		if modelErr == nil {
 			config["cwd"], config["sessionDirectory"], config["sessionFile"], config["title"], config["permission"] = c.Directory, c.SessionDirectory, c.SessionFile, c.Title, c.Permission
+			config["legacyPlan"] = c.LegacyPlan
+			config["releaseModelHold"] = c.ModelDeferred
 			raw, err = runner.Call(ctx, "init", config)
 			p.initialized = err == nil
+			if err == nil && c.ModelDeferred {
+				_, err = s.store.UpdateConversation(id, func(value *Conversation) error { value.ModelDeferred = false; return nil })
+			}
 			if err != nil {
 				// Resource/extension failures must not hide saved messages. Inspect
 				// Pi's native history and return the failure as a visible modelError;
@@ -374,6 +380,7 @@ func (s *Service) readLocked(ctx context.Context, c Conversation, p *liveSession
 	}
 	value["modelError"] = p.modelError
 	value["permission"] = c.Permission
+	value["planModeEnabled"] = c.LegacyPlan
 	return json.Marshal(value)
 }
 func (s *Service) remember(id string, raw json.RawMessage) error {
@@ -503,11 +510,14 @@ func (s *Service) event(id string, p *liveSession, raw json.RawMessage) {
 		p.bytes -= len(p.events[0].Data)
 		p.events = p.events[1:]
 	}
-	idle := !p.running && !p.backgroundRunning && len(p.owners) == 0 && p.executionOwners == 0
+	idle := !p.running && !p.backgroundRunning && len(p.owners) == 0 && p.executionOwners == 0 && p.modelChange == nil
 	p.notifyLocked()
 	p.mu.Unlock()
 	if (value.Type == "settled" || value.Type == "input_settled") && s.options.OnTurnSettled != nil {
 		s.options.OnTurnSettled(id)
+	}
+	if value.Type == "settled" || value.Type == "resumed" {
+		go s.applyDeferredModel(id, p)
 	}
 	if idle {
 		go s.closeIdle(id, p)
@@ -575,7 +585,9 @@ type NativeInputPresentation struct {
 	ReplyQuote json.RawMessage `json:"replyQuote,omitempty"`
 	// AgentReferences are the owner's @teammate references in that text (Cindy
 	// agentReferences), kept without host snapshots for display.
-	AgentReferences json.RawMessage `json:"agentReferences,omitempty"`
+	AgentReferences     json.RawMessage `json:"agentReferences,omitempty"`
+	SourcePlugin        json.RawMessage `json:"sourcePlugin,omitempty"`
+	ExpectedMcpAppEpoch *uint64         `json:"expectedMcpAppEpoch,omitempty"`
 }
 
 func (s *Service) DispatchPresentedInput(ctx context.Context, id, requestID, text, mode string, presentation NativeInputPresentation, attachmentPaths ...[]string) (json.RawMessage, error) {
@@ -623,6 +635,12 @@ func (s *Service) submitInput(ctx context.Context, id, requestID, text, delivery
 	}
 	if !p.initialized {
 		return nil, errors.New(p.modelError)
+	}
+	if presentation != nil && presentation.ExpectedMcpAppEpoch != nil {
+		row, err := s.store.Conversation(id)
+		if err != nil || row.McpAppEpoch != *presentation.ExpectedMcpAppEpoch {
+			return nil, errors.New("MCP_APP_CARD_UNAVAILABLE")
+		}
 	}
 	// A retry after a desktop/worker restart must consult Pi's persisted input
 	// receipt before sending. Timeouts cannot silently execute a prompt twice.
@@ -739,7 +757,7 @@ func (s *Service) Command(ctx context.Context, id, method string, params any) (j
 // captured turn before replacing its input without admitting a concurrent prompt.
 func (s *Service) CommandPrepared(ctx context.Context, id, method string, params any, prepare func() error) (json.RawMessage, error) {
 	switch method {
-	case "state", "resources", "permission", "question", "abort", "context.reset", "pause", "resume", "set_model", "set_permission", "rename", "compact", "retry", "thinking", "fast", "control", "queue", "timeline.append", "timeline.voice", "input.result", "input.source", "abort.input", "execution.inspect", "task.hold":
+	case "state", "resources", "permission", "question", "abort", "context.reset", "pause", "resume", "set_model", "set_permission", "rename", "compact", "retry", "thinking", "fast", "control", "queue", "timeline.append", "timeline.voice", "input.result", "input.source", "abort.input", "execution.inspect", "authorization.inspect", "file.review", "tool.authorize", "task.hold":
 	default:
 		return nil, errors.New("不支持的 Chat 操作")
 	}
@@ -856,6 +874,9 @@ func (s *Service) CommandPrepared(ctx context.Context, id, method string, params
 		if method == "state" || method == "abort" || method == "context.reset" {
 			err = s.remember(id, raw)
 		}
+		if err == nil && method == "context.reset" {
+			_, err = s.store.UpdateConversation(id, func(row *Conversation) error { row.McpAppEpoch++; return nil })
+		}
 		if method == "abort" || method == "context.reset" {
 			p.mu.Lock()
 			p.running = false
@@ -885,7 +906,14 @@ func (s *Service) ConfigureConversation(ctx context.Context, id string, apply fu
 	return s.configureConversation(ctx, id, func() (Conversation, error) { return s.store.UpdateConversation(id, apply) })
 }
 
-func (s *Service) configureConversation(ctx context.Context, id string, commit func() (Conversation, error)) (Conversation, error) {
+// ConfigureConversationWithCheck fences a caller's exact native input/queue
+// evidence with ordinary model/permission changes. The check runs under the
+// same session gate as sends, before releasing the idle runtime.
+func (s *Service) ConfigureConversationWithCheck(ctx context.Context, id string, check func(json.RawMessage) error, apply func(*Conversation) error) (Conversation, error) {
+	return s.configureConversation(ctx, id, func() (Conversation, error) { return s.store.UpdateConversation(id, apply) }, check)
+}
+
+func (s *Service) configureConversation(ctx context.Context, id string, commit func() (Conversation, error), checks ...func(json.RawMessage) error) (Conversation, error) {
 	if _, err := s.store.Conversation(id); err != nil {
 		return Conversation{}, err
 	}
@@ -908,6 +936,18 @@ func (s *Service) configureConversation(ctx context.Context, id string, commit f
 	p.mu.Unlock()
 	if busy {
 		return Conversation{}, errors.New("请先停止当前任务")
+	}
+	for _, check := range checks {
+		if p.runner == nil {
+			return Conversation{}, errors.New("对话未就绪")
+		}
+		snapshot, err := p.runner.Call(ctx, "execution.inspect", nil)
+		if err != nil {
+			return Conversation{}, err
+		}
+		if err = check(snapshot); err != nil {
+			return Conversation{}, err
+		}
 	}
 	p.mu.Lock()
 	p.closed = true
@@ -954,7 +994,11 @@ func (s *Service) Fork(ctx context.Context, id, entry, title string) (Conversati
 	if title == "" {
 		title = source.Title + " · Fork"
 	}
-	branch, err := s.store.NewConversation(source.ProjectID, source.Directory, title, source.Model)
+	permission := source.Permission
+	if source.LegacyPlan {
+		permission = "plan"
+	}
+	branch, err := s.store.NewConfiguredConversation(source.ProjectID, source.Directory, title, source.Model, permission, source.ThinkingLevel, source.FastMode)
 	if err != nil {
 		return Conversation{}, err
 	}
@@ -966,7 +1010,7 @@ func (s *Service) Fork(ctx context.Context, id, entry, title string) (Conversati
 		_, _ = s.store.UpdateConversation(branch.ID, func(c *Conversation) error { c.Archived = true; return nil })
 		return Conversation{}, err
 	}
-	return s.store.UpdateConversation(branch.ID, func(c *Conversation) error { c.Permission = source.Permission; return nil })
+	return s.store.Conversation(branch.ID)
 }
 
 // Detach preserves running work, then releases its process when it settles.
@@ -1008,7 +1052,7 @@ func (s *Service) closeIdle(id string, p *liveSession) {
 	}
 	defer p.unlock()
 	p.mu.Lock()
-	idle := !p.running && !p.backgroundRunning && len(p.owners) == 0 && p.executionOwners == 0 && !p.closed
+	idle := !p.running && !p.backgroundRunning && len(p.owners) == 0 && p.executionOwners == 0 && !p.closed && p.modelChange == nil
 	if idle {
 		// Done may fire before retire. Mark an expected close first so it
 		// cannot overwrite a stopped/completed outcome with a pipe failure.

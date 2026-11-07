@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"winone/internal/chat"
 )
@@ -79,11 +78,12 @@ func (b *chatOneBot) taskNative(ctx context.Context, method string, raw json.Raw
 		return b.createCanonicalSession(ctx, runner, raw)
 	}
 	var input struct {
-		SessionID      string           `json:"sessionId"`
-		RequestID      string           `json:"requestId"`
-		PermissionMode string           `json:"permissionMode"`
-		Route          oneBotModelRoute `json:"route"`
-		Selection      struct {
+		SessionID        string           `json:"sessionId"`
+		RequestID        string           `json:"requestId"`
+		RiskConfirmation string           `json:"riskConfirmation"`
+		PermissionMode   string           `json:"permissionMode"`
+		Route            oneBotModelRoute `json:"route"`
+		Selection        struct {
 			ID       string          `json:"id"`
 			Effort   string          `json:"effort"`
 			FastMode json.RawMessage `json:"fastMode"`
@@ -148,10 +148,12 @@ func (b *chatOneBot) taskNative(ctx context.Context, method string, raw json.Raw
 		if err != nil {
 			return false, nil
 		}
-		// Cindy autonomousActionAllowed: on its own initiative a teammate may
-		// advance or stop the background tasks it started (the Worker checks
-		// ownership); permission decisions and resuming a pause stay with the owner.
-		autonomous := grant.principal() == "autonomous" && (input.Action == "tasks.stop" || input.Action == "tasks.message" && input.ReplyKind != "approve" && input.ReplyKind != "deny" && input.ReplyKind != "resume")
+		// Cindy 2d8d3c3 teammate-authority: task control follows the task's
+		// permissions for every principal; on an autonomous turn answering a
+		// permission request or resuming a pause needs the owner's confirmation
+		// of this call (chat_onebot_risk_windows.go).
+		risky := input.Action == "tasks.message" && (input.ReplyKind == "approve" || input.ReplyKind == "deny" || input.ReplyKind == "resume")
+		autonomous := grant.principal() == "autonomous" && (!risky || b.risk.confirmedFor(input.RiskConfirmation, input.SessionID, input.RequestID, input.Action))
 		if !grant.Owner && !autonomous {
 			return false, nil
 		}
@@ -370,32 +372,7 @@ func (b *chatOneBot) taskNative(ctx context.Context, method string, raw json.Raw
 			result, err := control.engine.Command(ctx, row.ID, "abort.input", map[string]any{"id": input.RequestID, "execution": input.Execution})
 			return json.RawMessage(result), err
 		}
-		// Event-driven wait with a durable per-input query: another user turn ending
-		// later cannot replace this task's result. Reopening never resubmits a prompt.
-		result, err := control.engine.Command(ctx, row.ID, "input.result", map[string]string{"id": input.RequestID})
-		if err != nil {
-			return nil, err
-		}
-		var terminal struct {
-			Status string `json:"status"`
-		}
-		if err = json.Unmarshal(result, &terminal); err != nil {
-			return nil, err
-		}
-		snapshot, err := control.engine.Command(ctx, row.ID, "execution.inspect", nil)
-		if err != nil {
-			return nil, err
-		}
-		if terminal.Status != "" {
-			return map[string]any{"terminal": json.RawMessage(result), "cursor": input.Cursor, "state": json.RawMessage(snapshot)}, nil
-		}
-		wait, cancel := context.WithTimeout(ctx, 20*time.Second)
-		defer cancel()
-		page, err := control.engine.WaitEvents(wait, row.ID, input.Cursor)
-		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
-			return nil, err
-		}
-		return map[string]any{"cursor": page.Cursor, "state": json.RawMessage(snapshot)}, nil
+		return control.waitInputResult(ctx, row.ID, input.RequestID, input.Cursor)
 	default:
 		return nil, errors.New("不支持的 OneBot 原生任务操作")
 	}

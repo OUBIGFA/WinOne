@@ -24,42 +24,45 @@ import (
 )
 
 type request struct {
-	ProviderPreferences *ProviderPreferences `json:"providerPreferences,omitempty"`
-	Archive            string                   `json:"archive,omitempty"`
-	LimitRestOff       bool                     `json:"limitRestOff,omitempty"`
-	BalanceKeys        []provider.KeyAccount    `json:"balanceKeys,omitempty"` // Private saved-key snapshot; never a UI response.
-	MagpieSettings     json.RawMessage          `json:"magpieSettings,omitempty"`
-	AuxiliaryProviders []auxiliaryProvider      `json:"auxiliaryProviders,omitempty"`
-	TestModels         []string                 `json:"testModels,omitempty"`
-	TestClient         string                   `json:"testClient,omitempty"`
-	ModelPreferences   map[string]modelMetadata `json:"modelPreferences,omitempty"`
-	ModelMetadata      modelMetadata            `json:"modelMetadata,omitempty"`
-	Icon               *iconRequest             `json:"icon,omitempty"`
-	AdditionalTools    bool                     `json:"additionalTools,omitempty"`
-	Headers            map[string]string        `json:"headers,omitempty"`
-	ProviderID         string                   `json:"providerId,omitempty"`
-	Usage              *usageQuery              `json:"usage,omitempty"`
-	UsageAliases       map[string]string        `json:"usageAliases,omitempty"`
-	UsageAlias         *usageAliasEdit          `json:"usageAlias,omitempty"`
-	UsageSource        string                   `json:"usageSource,omitempty"`
-	GatewayPath        string                   `json:"gatewayPath,omitempty"`
-	GatewayBody        json.RawMessage          `json:"gatewayBody,omitempty"`
-	GatewayHeaders     http.Header              `json:"gatewayHeaders,omitempty"`
-	Stream             bool                     `json:"stream,omitempty"`
-	Operation          string                   `json:"operation,omitempty"`
-	Agent              string                   `json:"agent,omitempty"`
-	AgentBackend       string                   `json:"agentBackend,omitempty"`
-	Preset             string                   `json:"preset,omitempty"`
-	PresetRegion       string                   `json:"presetRegion,omitempty"`
-	Method             *int                     `json:"method,omitempty"`
-	Protocol           string                   `json:"protocol"`
-	BaseURL            string                   `json:"baseUrl"`
-	Key                string                   `json:"key"`
-	Model              string                   `json:"model"`
-	System             string                   `json:"system"`
-	Text               string                   `json:"text"`
-	ImagePNG           []byte                   `json:"imagePng,omitempty"`
-	Messages           []conversationMessage    `json:"messages,omitempty"`
+	ProviderPreferences *ProviderPreferences     `json:"providerPreferences,omitempty"`
+	Archive             string                   `json:"archive,omitempty"`
+	LimitRestOff        bool                     `json:"limitRestOff,omitempty"`
+	BalanceKeys         []provider.KeyAccount    `json:"balanceKeys,omitempty"` // Private saved-key snapshot; never a UI response.
+	MagpieSettings      json.RawMessage          `json:"magpieSettings,omitempty"`
+	AuxiliaryProviders  []auxiliaryProvider      `json:"auxiliaryProviders,omitempty"`
+	TestModels          []string                 `json:"testModels,omitempty"`
+	TestClient          string                   `json:"testClient,omitempty"`
+	ModelPreferences    map[string]modelMetadata `json:"modelPreferences,omitempty"`
+	ModelMetadata       modelMetadata            `json:"modelMetadata,omitempty"`
+	Icon                *iconRequest             `json:"icon,omitempty"`
+	AdditionalTools     bool                     `json:"additionalTools,omitempty"`
+	Headers             map[string]string        `json:"headers,omitempty"`
+	ProviderID          string                   `json:"providerId,omitempty"`
+	Usage               *usageQuery              `json:"usage,omitempty"`
+	UsageAliases        map[string]string        `json:"usageAliases,omitempty"`
+	UsageAlias          *usageAliasEdit          `json:"usageAlias,omitempty"`
+	UsageSource         string                   `json:"usageSource,omitempty"`
+	GatewayPath         string                   `json:"gatewayPath,omitempty"`
+	GatewayMethod       string                   `json:"gatewayMethod,omitempty"`
+	GatewayContentType  string                   `json:"gatewayContentType,omitempty"`
+	GatewayBinaryBody   []byte                   `json:"gatewayBinaryBody,omitempty"`
+	GatewayBody         json.RawMessage          `json:"gatewayBody,omitempty"`
+	GatewayHeaders      http.Header              `json:"gatewayHeaders,omitempty"`
+	Stream              bool                     `json:"stream,omitempty"`
+	Operation           string                   `json:"operation,omitempty"`
+	Agent               string                   `json:"agent,omitempty"`
+	AgentBackend        string                   `json:"agentBackend,omitempty"`
+	Preset              string                   `json:"preset,omitempty"`
+	PresetRegion        string                   `json:"presetRegion,omitempty"`
+	Method              *int                     `json:"method,omitempty"`
+	Protocol            string                   `json:"protocol"`
+	BaseURL             string                   `json:"baseUrl"`
+	Key                 string                   `json:"key"`
+	Model               string                   `json:"model"`
+	System              string                   `json:"system"`
+	Text                string                   `json:"text"`
+	ImagePNG            []byte                   `json:"imagePng,omitempty"`
+	Messages            []conversationMessage    `json:"messages,omitempty"`
 }
 
 type conversationMessage struct {
@@ -123,7 +126,9 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 		}
 		model = account.ID + "/" + in.Model
 		account.LimitRestOff = in.LimitRestOff
-		if err := applyProviderPreferences(account, in); err != nil { return "", err }
+		if err := applyProviderPreferences(account, in); err != nil {
+			return "", err
+		}
 		provider.WinOneProviders = []provider.Provider{*account}
 	} else {
 		p, err := configuredProvider(in)

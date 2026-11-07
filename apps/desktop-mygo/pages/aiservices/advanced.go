@@ -142,6 +142,7 @@ type advancedPanel struct {
 	builtinTab  int
 	opens       map[string]bool
 	listFields  map[string]*listField
+	mediaKindModel string
 }
 
 func newAdvancedPanel(p *page) *advancedPanel {
@@ -730,6 +731,7 @@ func (a *advancedPanel) modelOptions(c *ui.Context, catalog *magpieCatalog, lock
 			}
 		})
 		kit.Stack(c, "", i18n.T("ai.imageTimeoutHint"), func() {})
+		a.mediaKindFields(c, locked)
 		if catalog.Gateway != "" {
 			mcpAddress(c, i18n.T("ai.visionMCP"), i18n.T("ai.copyVisionMCP"), i18n.T("ai.visionMCPHint"), catalog.Gateway+"/mcp/magpie/vision")
 			mcpAddress(c, i18n.T("ai.imageMCP"), i18n.T("ai.copyImageMCP"), i18n.T("ai.imageMCPHint"), catalog.Gateway+"/mcp/magpie/image")

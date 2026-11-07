@@ -44,7 +44,7 @@ foreach($relative in @('provider_preferences.go','magpie_proxy.go')) {
  [IO.File]::WriteAllText((Join-Path $entry ('host_'+$relative)),$dto,$encoding)
 }
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/icons.go') -Destination $entry
-Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/gateway.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/gateway.go'),(Join-Path $root 'modules/ai-magpie/gateway_media_test.go'),(Join-Path $root 'modules/ai-magpie/media_transport.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/signin_state_test.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/signin_state.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/failures.go') -Destination $entry
