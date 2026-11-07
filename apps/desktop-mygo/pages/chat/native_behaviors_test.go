@@ -34,7 +34,7 @@ func TestNativePublicProseStaysBetweenIndependentWorkGroups(t *testing.T) {
 	}
 }
 
-func TestNativeWorkPreviewShowsLatestFiveAndKeepsItsExpansionAcrossRetry(t *testing.T) {
+func TestNativeWorkPreviewShowsLatestFourAndKeepsItsExpansionAcrossRetry(t *testing.T) {
 	f := newFakeChat(t)
 	f.snapshot.Messages = []model.Message{{ID: "u", Role: "user", TurnID: "u", Content: model.TextContent("Inspect")}}
 	for i := range 8 {
@@ -45,8 +45,8 @@ func TestNativeWorkPreviewShowsLatestFiveAndKeepsItsExpansionAcrossRetry(t *test
 	open(t, h, p, tt, "c1")
 	p.view.Running = true
 	settle(h, tt)
-	if tt.HasText("step-0") || !tt.HasText("step-3") || !tt.HasText("step-7") {
-		t.Fatalf("the live preview is not the latest five: %q", tt.Texts())
+	if tt.HasText("step-3") || !tt.HasText("step-4") || !tt.HasText("step-7") {
+		t.Fatalf("the live preview is not the latest four: %q", tt.Texts())
 	}
 	if err := tt.Click(i18n.T("chat.processWorking")); err != nil {
 		t.Fatal(err)
@@ -65,7 +65,12 @@ func TestNativeWorkPreviewShowsLatestFiveAndKeepsItsExpansionAcrossRetry(t *test
 	}
 	settle(h, tt)
 	if tt.HasText("step-0") || !tt.HasText("step-7") {
-		t.Fatal("folding a live group must retain its latest-five preview")
+		t.Fatal("folding a live group must retain its latest-four preview")
+	}
+	p.view.Running = false
+	settle(h, tt)
+	if tt.HasText("step-3") || !tt.HasText("step-4") || !tt.HasText("step-7") {
+		t.Fatalf("completion hid or changed the latest-four preview: %q", tt.Texts())
 	}
 }
 

@@ -1,6 +1,6 @@
 # AI 服务页（ai-services）功能对照
 
-更新：2026-10-31。React 来源：`apps/desktop/frontend/src/features/ai-settings.tsx` 及其挂载的 `ai-*` 组件（账号、供应商、密钥、请求头、头像、模型、模型设置、预设、智能体选择、网关、路由、隐私记录、第三方插件、插件扩展、Magpie 高级设置、代理、隐私模型与规则、内置插件），以及 `magpie-curl.js`、`magpie-proxy-fields.ts`、`magpie-headers.ts`、`magpie-model-tells.js`。MyGo 实现：`apps/desktop-mygo/pages/aiservices`；用量统计在 `pages/aiservices/usage`（单独对照：`ai-usage.md`）；Host 提供的网页由 `apps/desktop-mygo/web` 嵌入。
+更新：2026-11-07。原生路由、第三方插件管理和脱敏记录已迁入 MyGo；对应 Magpie 最新功能、来源与具体证据见 [本轮对照](../magpie-update-20261107.md)。React 来源：`apps/desktop/frontend/src/features/ai-settings.tsx` 及其挂载的 `ai-*` 组件（账号、供应商、密钥、请求头、头像、模型、模型设置、预设、智能体选择、网关、路由、隐私记录、第三方插件、插件扩展、Magpie 高级设置、代理、隐私模型与规则、内置插件），以及 `magpie-curl.js`、`magpie-proxy-fields.ts`、`magpie-headers.ts`、`magpie-model-tells.js`。MyGo 实现：`apps/desktop-mygo/pages/aiservices`；用量统计在 `pages/aiservices/usage`（单独对照：`ai-usage.md`）；Host 提供的网页由 `apps/desktop-mygo/web` 嵌入。
 
 状态：**已验证** = 有单元测试或渲染截图；**待验证** = 已实现，还缺证据。渲染截图保存在本地 `_temp/mygo-frontend-20261030/ai-shots/`（不入库）。
 
@@ -13,7 +13,7 @@
 | “移除此服务”放在供应商设置底部 | React 的保存栏只把保存/撤销移到右侧栏，删除按钮留在页面内；MyGo 同样留在页面内，位置固定在当前供应商下方。 |
 | 路由页的“开启路由组”在页面锁定时回复错误 | React 不回复，网页里的请求会一直等待。 |
 | 页面使用宽版布局（最大 1200） | 8 个一级标签在常规宽度下完整显示；模型列表、用量表格需要宽度。窄窗口下标签按约定省略。 |
-| Host 网页（路由、插件管理、脱敏记录、插件面板）在 MyGo WebView 中显示 | 用户决定（2026-10-31）。网页原有 postMessage 协议不变，由注入脚本经 `winone-web` 协议转给 Go；网页内链接在浏览器打开，不能跳到其他来源。 |
+| 路由、插件管理、脱敏记录使用原生控件，只有作者自带网页/面板保留 WebView | 2026-11-07 用户要求 AI 服务全部前端原生；作者自带内容继续保留原 SDK、权限与脚本沙箱。原生 UI 调用同一实际后台，不把整个 Magpie 应用嵌入。 |
 | 已移除供应商在概览中显示为不可点 | 与 React 相同；保存后消失。 |
 
 ## 页面级
@@ -51,8 +51,8 @@
 | --- | --- | --- | --- | --- |
 | D1 | 默认服务（供应商与模型）；切换翻译模型后立即翻译；显示思考过程 | `page.defaultsView` | 代码审查 | 待验证 |
 | G1 | 网关：启用、端口（1024–65535）、状态与刷新、地址、访问密钥显示/复制/重置、模型（按供应商分组，可搜索、全选）、支持的接口；单独保存与撤销 | `gatewayPanel` | 测试 `TestGatewayValidatesItsPortAndSavesApart`；截图 ai-gateway | 已验证 |
-| R1 | 路由：启用开关（草稿）；Magpie 路由页（WebView），主题同步、高度、查看脱敏记录、开启路由组；保存后重开；插件页可替换 | `routingPanel` | 测试 `TestRoutingEnablesGroupsWithoutSavingOtherDrafts` | 部分验证（WebView 未在真实窗口验证） |
-| L1 | 第三方插件管理（WebView）：选择文件夹、打开账号类型（可直接登录）、变化后刷新账号目录；锁定时回复错误；操作菜单打开指定页面 | `pluginsPanel` | 测试 `TestPluginManagerOpensItsAccountType` | 部分验证 |
+| R1 | 总路由开关、动态完整模板、发现/排除、组/成员/规则/账号/策略/亲和、排序/导入/分享/批量操作、实际匹配预览、实时记录/原请求/上下文/脱敏跳转；插件可替换 | `routing*.go`，实际 upstream groups/trace/context/recent-call handlers；独立草稿及统一保存/撤销 | `TestNativeRoutingRealCreateReadSaveAndNoWebView`、`TestPatternPreviewUsesRealUpstreamMatcherWithoutSaving`、账号 ID/权重/规则/草稿保护回归与真实窗口 | 已验证；详见本轮对照 |
+| L1 | 原生第三方发现/来源/包信息/安装/更新/启停/卸载/选项/冲突/账号/权限/页面与动作；作者网页保持原协议 | `plugins_native.go`、`plugins_details.go`、`plugins_guest.go`，同一实际 plugin runtime | 本地真实安装→选项保存→启停→回读→README→卸载；实际作者 SDK action/read/options、原生宽窄窗口；导航草稿保护 | 已验证；真实外部账号除外 |
 
 ## 高级设置
 
@@ -60,11 +60,11 @@
 | --- | --- | --- | --- | --- |
 | V1 | 额度：显示方式、读取、币种、单位；使用与余额提醒、重置前提醒；托盘额度与刷新间隔；预热（重置后、每日多时段、Codex 各账号独立时间/自动重置/积分）、每日签到（含插件） | `advancedPanel.quota` / `warmup` | 测试 `TestAdvancedEditsAreDraftsOfTheConfiguration`；截图 ai-advanced | 部分验证 |
 | V2 | 模型：代理（自动/直连/自定义，拆分登录，应用到草稿，未应用时离开会询问）、识图与生图模型、生图超时、MCP 地址复制、网页搜索（搜索模型、搜索 API 增改排序启停取 Key、优先顺序）、回复设置、客户端模型 | `advancedPanel.modelOptions` / `proxyView` / `searchAPIs` | 测试 `TestProxyLoginRoundTrips` | 部分验证 |
-| V3 | 隐私：脱敏记录（WebView，暂存动作并跳到表单）、脱敏密钥/格式/个人信息及类型、本地隐私模型（下载、进度、删除确认、GPU 回退）、隐藏账号、自定义词、规则（前缀/正则，编辑删除）、按类型处理、始终原样发送、统计上报、请求存档、内网下载、账号读取 | `advancedPanel.privacy` / `privacyModel` / `rules` / `actions` | 测试 `TestMaskingRecordsStageTheirKinds`、`TestRuleKindsNormalizeAsMagpie` | 部分验证 |
+| V3 | 原生脱敏记录/类型筛选/分页/汇总/真实预览/已发送正文/显式原值查看/清除；现有规则、隐私模型、动作与存档保持 | `advancedPanel.privacy`、`masking_records.go`、原 masking/maskrec API | 真正敏感词替换与非空命中、清除/详情原值生命周期、类型草稿、窄窗/真实窗口；原隐私模型和规则回归保留 | 已验证；不代表实际下载模型或真实账号联测 |
 | V4 | 内置功能：预设、恢复为预设、每个内置插件（启用、正在使用、按 schema 的选项、详情）；内置扩展（启用、类型与账号、包名、JSON 选项，无效时禁止保存） | `advancedPanel.features` | 代码审查 | 待验证 |
 | V5 | 插件面板（settings 插槽） | `extensions.Slot` | 代码审查 | 待验证 |
 
 ## 未验证范围
 
-- WebView 嵌入（路由、插件管理、脱敏记录、插件面板）只做了桥接单元测试（`web/web_test.go`）；真实窗口中的主题同步、高度和原生请求尚待在用户不使用电脑时验证。
+- 内置路由、第三方插件管理和脱敏记录已通过当前原生单元/真后台/真实窗口验证；作者网页另经实际 WebView2 和原 SDK 验证，未创建普通管理页 WebView。第三方作者可能提供任意页面，不把一个夹具冒称所有外部插件逐个联测。
 - 账号登录与模型测试只用假 Host 验证；真实供应商未测。

@@ -338,8 +338,10 @@ func (p *Chat) answerBody(c *ui.Context, m model.Message, text string, streaming
 	}
 }
 
-// workProcess follows Cindy's latest-five preview: a live group never hides
-// its real activities completely, and a completed group defaults to folded.
+// workProcess keeps the latest four activities visible, live or completed.
+// Expanding reveals history; collecting it never hides the entire process.
+const processPreviewCount = 4
+
 func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Entry) {
 	if len(entries) == 0 {
 		return
@@ -349,10 +351,14 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 		p.ui.expanded = map[string]bool{}
 	}
 	open := p.ui.expanded["process:"+r.Key]
-	canToggle := !r.Running || len(entries) > 5
+	expandedStep := false
+	for _, entry := range entries {
+		expandedStep = expandedStep || p.ui.expanded[entry.Kind+":"+entry.Key]
+	}
+	canToggle := len(entries) > processPreviewCount || open || expandedStep
 	shown := entries
-	if r.Running && !open && len(shown) > 5 {
-		shown = shown[len(shown)-5:]
+	if !open && len(shown) > processPreviewCount {
+		shown = shown[len(shown)-processPreviewCount:]
 	}
 	summary := i18n.T("chat.processWorking")
 	if !r.Running {
@@ -364,7 +370,7 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 		}
 	}
 	ui.Column(c.Key("process:" + r.Key)).FillWidth().Gap(4).Children(func() {
-		head := ui.ButtonBase(c).AlignSelf(ui.Start).Gap(6).AlignItems(ui.Center).Padding(4, 6).Radius(t.Radius).Label(summary).Expanded(open || r.Running).Disabled(!canToggle)
+		head := ui.ButtonBase(c).AlignSelf(ui.Start).Gap(6).AlignItems(ui.Center).Padding(4, 6).Radius(t.Radius).Label(summary).Expanded(open || expandedStep).Disabled(!canToggle)
 		head.Children(func() {
 			if r.Running {
 				ui.Spinner(c).Size(14, 14)
@@ -381,11 +387,16 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 			}
 		})
 		if head.Clicked() {
-			p.ui.expanded["process:"+r.Key] = !open
+			if open || expandedStep {
+				p.collapseProcess(r.Key)
+			} else {
+				p.ui.expanded["process:"+r.Key] = true
+			}
 		}
-		if !open && !r.Running {
-			return
+		if p.ui.processEntries == nil {
+			p.ui.processEntries = map[string][]model.Entry{}
 		}
+		p.ui.processEntries[r.Key] = entries
 		if p.ui.processBodies == nil {
 			p.ui.processBodies = map[string]*ui.Handle{}
 		}
@@ -394,7 +405,7 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 			body = &ui.Handle{}
 			p.ui.processBodies[r.Key] = body
 		}
-		if open {
+		if open || expandedStep {
 			p.ui.openProcesses = append(p.ui.openProcesses, r.Key)
 		}
 		ui.Column(c).FillWidth().Gap(6).Padding(4, 40, 4, 12).BorderWidth(0, 0, 0, 2).BorderColor(pal.Hairline).Bind(body).Children(func() {
@@ -429,7 +440,11 @@ func (p *Chat) entryView(c *ui.Context, e model.Entry, running bool) {
 		open := p.ui.expanded[key]
 		row := ui.ButtonBase(c).FillWidth().Gap(6).AlignItems(ui.Start).Padding(3, 6).Label(i18n.T("chat.thinking")).Expanded(open)
 		row.Children(func() {
-			ui.Icon(c, icons.Sparkles).FontSize(14).TextColor(t.TextMuted).Shrink(0)
+			icon := icons.Sparkles
+			if !running {
+				icon = icons.Layers
+			}
+			ui.Icon(c, icon).FontSize(14).TextColor(t.TextMuted).Shrink(0)
 			text := e.Part.Thinking
 			if !open {
 				text = strings.Join(strings.Fields(text), " ")

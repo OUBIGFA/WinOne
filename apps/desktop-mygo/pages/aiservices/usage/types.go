@@ -12,6 +12,10 @@ package usage
 // totals are Magpie's usage.Totals.
 type totals struct {
 	Calls             float64 `json:"calls"`
+	Canceled          float64 `json:"canceled,omitempty"`
+	UpBytes           float64 `json:"up_bytes,omitempty"`
+	DownBytes         float64 `json:"down_bytes,omitempty"`
+	ImageFilesSaved   float64 `json:"image_files_saved,omitempty"`
 	Errors            float64 `json:"errors"`
 	Loops             float64 `json:"loops,omitempty"`
 	Input             float64 `json:"input"`
@@ -40,6 +44,10 @@ type totals struct {
 // "Other".
 func (t *totals) add(o totals) {
 	t.Calls += o.Calls
+	t.Canceled += o.Canceled
+	t.UpBytes += o.UpBytes
+	t.DownBytes += o.DownBytes
+	t.ImageFilesSaved += o.ImageFilesSaved
 	t.Errors += o.Errors
 	t.Loops += o.Loops
 	t.Input += o.Input
@@ -91,38 +99,44 @@ type point struct {
 
 // row is one request of the ledger.
 type row struct {
-	Archive       string   `json:"archive,omitempty"`
-	CallerKeyID   string   `json:"callerKeyId,omitempty"`
-	CallerKeyName string   `json:"callerKeyName,omitempty"`
-	Credits       *float64 `json:"credits,omitempty"`
-	Time          string   `json:"t"`
-	Provider      string   `json:"provider"`
-	Agent         string   `json:"agent"`
-	Model         string   `json:"model"`
-	In            float64  `json:"in"`
-	Out           float64  `json:"out"`
-	CacheRead     *float64 `json:"cache_read,omitempty"`
-	CacheWrite    *float64 `json:"cache_write,omitempty"`
-	CacheWrite1h  *float64 `json:"cache_write_1h,omitempty"`
-	Reasoning     *float64 `json:"reasoning,omitempty"`
-	Ms            float64  `json:"ms"`
-	TTFT          float64  `json:"ttft_ms,omitempty"`
-	FirstText     float64  `json:"first_text_ms,omitempty"`
-	Flow          float64  `json:"flow_ms,omitempty"`
-	Status        float64  `json:"status"`
-	Speed         float64  `json:"speed,omitempty"`
-	Err           string   `json:"err,omitempty"`
-	Priced        bool     `json:"priced"`
-	Cost          float64  `json:"cost"`
-	Requested     string   `json:"req,omitempty"`
-	Served        string   `json:"served,omitempty"`
-	Endpoint      string   `json:"ep,omitempty"`
-	Effort        string   `json:"effort,omitempty"`
-	Stop          string   `json:"stop,omitempty"`
-	Rejected      bool     `json:"rejected,omitempty"`
+	Archive         string   `json:"archive,omitempty"`
+	CallerKeyID     string   `json:"callerKeyId,omitempty"`
+	CallerKeyName   string   `json:"callerKeyName,omitempty"`
+	Credits         *float64 `json:"credits,omitempty"`
+	Time            string   `json:"t"`
+	Provider        string   `json:"provider"`
+	Agent           string   `json:"agent"`
+	Model           string   `json:"model"`
+	In              float64  `json:"in"`
+	Out             float64  `json:"out"`
+	CacheRead       *float64 `json:"cache_read,omitempty"`
+	CacheWrite      *float64 `json:"cache_write,omitempty"`
+	CacheWrite1h    *float64 `json:"cache_write_1h,omitempty"`
+	Reasoning       *float64 `json:"reasoning,omitempty"`
+	Ms              float64  `json:"ms"`
+	TTFT            float64  `json:"ttft_ms,omitempty"`
+	FirstText       float64  `json:"first_text_ms,omitempty"`
+	Flow            float64  `json:"flow_ms,omitempty"`
+	Status          float64  `json:"status"`
+	Speed           float64  `json:"speed,omitempty"`
+	Err             string   `json:"err,omitempty"`
+	Priced          bool     `json:"priced"`
+	Cost            float64  `json:"cost"`
+	Requested       string   `json:"req,omitempty"`
+	Served          string   `json:"served,omitempty"`
+	Endpoint        string   `json:"ep,omitempty"`
+	Effort          string   `json:"effort,omitempty"`
+	Stop            string   `json:"stop,omitempty"`
+	Rejected        bool     `json:"rejected,omitempty"`
+	Canceled        bool     `json:"canceled,omitempty"`
+	CacheUnknown    bool     `json:"cache_unknown,omitempty"`
+	UpBytes         float64  `json:"up_bytes,omitempty"`
+	DownBytes       float64  `json:"down_bytes,omitempty"`
+	ImageFilesSaved float64  `json:"image_files_saved,omitempty"`
+	ImageFiles      float64  `json:"image_files,omitempty"`
 }
 
-func (r row) failed() bool { return r.Status >= 400 || r.Err != "" }
+func (r row) failed() bool { return !r.Canceled && (r.Status >= 400 || r.Err != "") }
 
 func valueOf(p *float64) float64 {
 	if p == nil {

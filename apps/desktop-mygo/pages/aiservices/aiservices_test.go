@@ -13,7 +13,6 @@ import (
 
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/testhost"
-	"winone/desktopmygo/web"
 )
 
 // fakeAI is the Host's AI service as the page sees it: a configuration
@@ -430,7 +429,11 @@ func TestModelSettingsKeepTheRoutingID(t *testing.T) {
 func TestRoutingEnablesGroupsWithoutSavingOtherDrafts(t *testing.T) {
 	f, h, p, tt := setup(t)
 	p.change("one", func(pr *provider) { pr.Name = "Draft name" })
-	p.routing.receive(web.Message{"type": "winone-routing-native", "id": "1", "method": "enable-groups"})
+	p.enableRoutingGroups(func(err error) {
+		if err != nil {
+			t.Error(err)
+		}
+	})
 	settle(h, tt)
 	saved := f.lastSave()["configuration"].(map[string]any)
 	groups := saved["magpieSettings"].(map[string]any)["builtinPlugins"].(map[string]any)["groups"].(map[string]any)
@@ -449,7 +452,9 @@ func TestRoutingEnablesGroupsWithoutSavingOtherDrafts(t *testing.T) {
 // and an explicit sign-in waits there for the connection's methods.
 func TestPluginManagerOpensItsAccountType(t *testing.T) {
 	_, h, p, tt := setup(t)
-	p.plugins.receive(web.Message{"type": "winone-plugin-native", "id": "2", "method": "provider", "provider": "acme", "name": "Acme", "signIn": true})
+	if err := p.openPluginProvider(agent{ID: "acme", Name: "Acme", Backend: "plugin"}, true); err != nil {
+		t.Fatal(err)
+	}
 	settle(h, tt)
 	pr := p.current()
 	if p.tab != tabAccounts || pr == nil || pr.Agent != "acme" || pr.AgentBackend != "plugin" {
@@ -460,7 +465,9 @@ func TestPluginManagerOpensItsAccountType(t *testing.T) {
 		t.Fatalf("the explicit sign-in was not continued: %+v", f)
 	}
 	// Opening it again reuses the connection.
-	p.plugins.receive(web.Message{"type": "winone-plugin-native", "id": "3", "method": "provider", "provider": "acme", "name": "Acme"})
+	if err := p.openPluginProvider(agent{ID: "acme", Name: "Acme", Backend: "plugin"}, false); err != nil {
+		t.Fatal(err)
+	}
 	count := 0
 	for _, d := range p.draft.Value.Providers {
 		if d.Value.Agent == "acme" {
@@ -479,12 +486,12 @@ func TestMaskingRecordsStageTheirKinds(t *testing.T) {
 	p.draft.Value.settings().RedactActions = map[string]string{"EMAIL": "warn", "PHONE": "block"}
 	p.switchTab(tabAdvanced)
 	settle(h, tt)
-	p.advanced.receiveRecords(web.Message{"type": "winone-masking-actions", "kinds": []any{"EMAIL"}})
+	p.advanced.stageMaskKinds([]string{"EMAIL"})
 	if actions := p.draft.Value.magpie().RedactActions; actions["EMAIL"] != "" || actions["PHONE"] != "block" || !p.advanced.focusPrivacy {
 		t.Fatalf("actions %v", actions)
 	}
 	// Kinds not named as Magpie names them are refused.
-	p.advanced.receiveRecords(web.Message{"type": "winone-masking-actions", "kinds": []any{"phone"}})
+	p.advanced.stageMaskKinds([]string{"phone"})
 	if p.draft.Value.magpie().RedactActions["PHONE"] != "block" {
 		t.Fatal("an invalid kind changed the draft")
 	}
@@ -497,9 +504,8 @@ func TestPluginPageStatusUsesTheNativeToast(t *testing.T) {
 	_, h, p, _ := setup(t)
 	var shown []string
 	h.Env.Toast = func(message string) { shown = append(shown, message) }
-	p.plugins.receive(web.Message{"type": "winone-plugin-status", "message": "已移除 示例插件", "kind": "ok"})
-	p.plugins.receive(web.Message{"type": "winone-plugin-status", "message": ""})
-	if len(shown) != 1 || shown[0] != "已移除 示例插件" {
+	p.plugins.changed()
+	if len(shown) != 1 || shown[0] != nativeT("pluginApplied") {
 		t.Fatalf("toasts %q", shown)
 	}
 }

@@ -206,7 +206,7 @@ func (p *Chat) openPreview(path, surface string, system bool) {
 func fileChip(c *ui.Context, key, name, path string, directory bool, menu func(m *ui.Menu), activate func()) ui.Element {
 	t, pal := c.Theme(), kit.Colors(c)
 	chip := ui.ButtonBase(c.Key(key)).Height(28).MaxWidth(280).Gap(6).AlignItems(ui.Center).Padding(0, 10).Radius(99).
-		Background(pal.Panel).Border(1, pal.Hairline).Label(name).Tooltip(path).ContextMenu(menu)
+		Background(pal.Panel).Border(1, pal.Hairline).Label(i18n.T("chat.reviewOpenFile") + ": " + path).Tooltip(path).ContextMenu(menu)
 	if chip.Hovered() {
 		chip.Background(t.SurfaceHover)
 	}

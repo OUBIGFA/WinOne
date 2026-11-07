@@ -103,6 +103,7 @@ func (p *page) View(c *ui.Context) {
 	busy := p.Busy != "" || p.install.busy || p.install.choosing || p.removal.busy
 	p.env.Activity.Report("module-availability", false, busy, nil)
 	kit.Page(c, func() {
+		p.FollowFocus()
 		p.Notices(c)
 		if p.Snapshot == nil {
 			if p.Loading {
@@ -128,15 +129,16 @@ func (p *page) View(c *ui.Context) {
 func (p *page) tools(c *ui.Context) {
 	s := p.Snapshot
 	rows := p.rows()
-	active, attention := 0, 0
+	active := 0
+	var problems []string
 	for _, row := range rows {
 		if row.entry == nil || row.entry.Enabled && !row.entry.PendingStop {
 			active++
 		}
 	}
 	for _, entry := range s.Modules {
-		if entry.PendingStop || entry.Runtime.State == "faulted" || entry.Runtime.State == "unavailable" {
-			attention++
+		if problem := widgets.ModuleProblem(entry); problem != "" {
+			problems = append(problems, entry.Manifest.Name.String()+"："+problem)
 		}
 	}
 	ui.Column(c).FillWidth().Gap(16).Children(func() {
@@ -147,8 +149,8 @@ func (p *page) tools(c *ui.Context) {
 				p.install.button(c, p.Busy != "" || s.ConfigurationError != "")
 			})
 		})
-		if attention > 0 {
-			kit.Notice(c, kit.Info, "", i18n.T("dashboard.attention", "count", attention), nil)
+		if len(problems) > 0 {
+			kit.Notice(c, kit.Info, "", strings.Join(problems, "\n"), nil)
 		}
 		if s.Cleanup != nil && s.Cleanup.Pending {
 			message := s.Cleanup.Error
@@ -218,6 +220,9 @@ func (p *page) toolRow(c *ui.Context, entry widgets.ModuleEntry, icon *ui.SVG, t
 				kit.Help(c, i18n.T("overview.groupedFeature", "name", i18n.T("nav.always-on-top"), "description", i18n.T(key)))
 			} else if i18n.Has(key) {
 				kit.Help(c, i18n.T(key))
+			}
+			if problem := widgets.ModuleProblem(entry); problem != "" && !entry.Blocked {
+				kit.Help(c, problem).Selectable()
 			}
 			p.toolExtras(c, entry)
 		})

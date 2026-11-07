@@ -1,4 +1,4 @@
-param([string]$GoExe='go',[Parameter(Mandatory)][string]$OutputDirectory,[string]$Version,[string]$UpdateRepository='',[string]$ModulePublishers='',[string]$TestOnboardingDirectory='')
+param([string]$GoExe='go',[Parameter(Mandatory)][string]$OutputDirectory,[string]$Version,[string]$UpdateRepository='',[string]$ModulePublishers='',[string]$TestOnboardingDirectory='', [switch]$Test, [string]$TestRun='.')
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $output=[IO.Path]::GetFullPath($OutputDirectory)
@@ -20,6 +20,10 @@ if($TestOnboardingDirectory){
 }
 Push-Location $root
 try {
+    if($Test) {
+        & $GoExe test ./apps/host ./internal/selection -run $TestRun -count=1
+        if($LASTEXITCODE -ne 0){throw 'Host/selection regression tests failed'}
+    }
     & $GoExe build -trimpath -ldflags $hostFlags -o (Join-Path $output 'WinOne.Host.exe') ./apps/host
     if($LASTEXITCODE -ne 0){throw 'Host build failed'}
 } finally { Pop-Location }

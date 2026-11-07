@@ -112,6 +112,15 @@ func usageTotals(c *ui.Context, sum totals) {
 		{label: tr("usage.output"), value: num(sum.Output)},
 		{label: tr("usage.cost"), value: usd(sum.Cost, 6)},
 	}
+	if sum.Canceled != 0 {
+		items = append(items, tile{label: tr("usage.canceled"), value: num(sum.Canceled)})
+	}
+	if sum.UpBytes != 0 || sum.DownBytes != 0 {
+		items = append(items, tile{label: tr("usage.uploadBytes"), value: num(sum.UpBytes)}, tile{label: tr("usage.downloadBytes"), value: num(sum.DownBytes)})
+	}
+	if sum.ImageFilesSaved != 0 {
+		items = append(items, tile{label: tr("usage.imageFilesSaved"), value: num(sum.ImageFilesSaved)})
+	}
 	if sum.Credited != 0 {
 		items = append(items, tile{label: tr("usage.credits"), value: num(sum.Credits)})
 	}

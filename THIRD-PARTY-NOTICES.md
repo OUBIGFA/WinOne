@@ -2,6 +2,7 @@
 
 | 组件 | 用途 | 许可证 |
 | --- | --- | --- |
+| Fluent UI motion（19e2d5c） | WinOne 功能性位移动效标准：`durationNormal=200ms`、`curveDecelerateMin=cubic-bezier(0.33,0,0.1,1)`；MyGo 执行可中断过渡与减少动效，首帧直接就位，不引入弹跳或装饰动画 | MIT，Microsoft Corporation；原始令牌与完整许可见 `third_party/fluent-motion/`、`third_party/licenses/fluent-ui-19e2d5c-LICENSE.txt`，摘要见 `third_party/import-notices.json` |
 | Wails v2 | 设置窗口与 WebView2 桥接 | MIT |
 | go-webview2 | Windows WebView2 绑定 | MIT |
 | go-winio | Windows 命名管道 | MIT |
@@ -15,9 +16,9 @@
 | MyGo v0.8.3 | 原生设置窗口（`apps/desktop-mygo`，迁移进行中）与共享结果窗（`apps/result-ui`）：窗口、组件、Markdown 与绘制；直接使用完整上游，添加 Windows 管理员窗口的 Shell 文件拖入兼容钩子（旧版 Rust 路径的原生适配），以及异步行内公式完成后的段落重排版本回调（保留文档身份和复制选区）；来源/摘要见 `third_party/mygo-winone/source.json`，不修改 Go 模块缓存；选区、鼠标与 UI 原版能力不变 | MIT（MyGo）；依赖许可原文与 SHA-256 见 `third_party/desktop-mygo-notices.json` 和 `third_party/result-ui-notices.json`，对应构建校验实际链接模块；结果窗另在源码阶段校验 |
 | Lucide React 1.27.0 | 官方 AppWindow / LogOut 托盘菜单图标及既有界面图标；由锁定 npm 包生成透明模板，不自绘替代 | ISC，Feather 派生 LogOut 同时保留 MIT；原文 `internal/branding/menu-icons/LICENSE.txt`，生成器与 SHA-256 见 `third_party/sources.json` |
 | ChatGPT-Desktop-UI / chatgpt-desktop-kit 0.6.0 | Chat 阅读内容、右栏工作区与项目栏 | MIT；包含发行包自带的第三方许可全文 |
-| Magpie | 共享 AI 适配器；本次来源提交 42ec2700bd2a4cf8d4ceb76a95767ac221e283e5；社区插件 e513644（41 包） | MIT；构建复制上游 LICENSE，依赖许可见 third_party/ocr-ai-notices.json 与 third_party/ai-plugins.json |
-| Magpie 用量图表 | 同一 `42ec2700` 的柱状／平滑堆叠折线、速度分段曲线、排名与统计口径；`build/sync-magpie-usage.mjs` 可复现，React 仅适配生命周期／导航／主题 | MIT；原始许可与源码、生成文件 SHA-256 见 `third_party/magpie-usage-source.json`；其他旧版用量组件继续使用各自来源清单 |
-| Magpie 代理字段 | 同一 `42ec2700` 的代理地址／登录信息拆分、转义和地址校验；`build/sync-magpie-proxy.mjs` 直接抽取原函数 | MIT；原始许可和逐文件 SHA-256 见 `third_party/magpie-proxy-source.json` |
+| Magpie | 共享 AI 适配器；本次来源 `c39d36644742a10a4730f0ffc5a03d877f185541`；社区插件 `4200fed`（79 个随包插件，14 个通过上游安装）；MyGo 路由/插件管理/脱敏记录直接调用同一运行时 | MIT；原生适配归属见 `third_party/import-notices.json`，依赖许可见 `third_party/ocr-ai-notices.json` 与 `third_party/ai-plugins.json` |
+| Magpie 用量图表 | 同一 `c39d3664` 的柱状／平滑堆叠折线、速度分段曲线、排名与统计口径；`build/sync-magpie-usage.mjs` 可复现，React 仅适配生命周期／导航／主题 | MIT；原始许可与源码、生成文件 SHA-256 见 `third_party/magpie-usage-source.json`；其他旧版用量组件继续使用各自来源清单 |
+| Magpie 代理字段 | 同一 `c39d3664` 的代理地址／登录信息拆分、转义和地址校验；`build/sync-magpie-proxy.mjs` 直接抽取原函数 | MIT；原始许可和逐文件 SHA-256 见 `third_party/magpie-proxy-source.json` |
 | OpenAI Privacy Filter / LocalAI q8 GGUF / pf-serve | 高级隐私设置的本地模型；用户开启时按固定 SHA-256 下载，不包含在安装器中；来源、版本与完整原文见 `third_party/privacy-model.json` | 模型 Apache-2.0；privacy-filter.cpp、ggml 为 MIT；保留模型卡的 OpenAI/LocalAI 归属与原生下载包许可 |
 | Cindy | Chat 标题提示词、完整阅读/右栏组件，以及发送、插话、重试、草稿快照和滚动意图适配（排队列表与编辑控制核对 b1d73b1f；交互核对提交 77e2c32d；资源发现、同轮输入与恢复、计划卡、侧栏活动、独立气泡/动作布局、输入区重试提示、文件链接菜单、文件拖放／粘贴与错误分类核对 a44ac274；自动化完整页面、排期引擎与例行任务、前置检查生成器、中英文案按 2d8d3c36 原样同步，build/sync-cindy.mjs 可复现） | Apache-2.0；保留 third_party/cindy/LICENSE、NOTICE，来源与原文 SHA-256 见 scheduler.sync.json、title-source.json、sidebar-source.json、chat-interaction-source.json、chat-runtime-source.json、chat-resilience-source.json、chat-links-source.json、chat-queue-source.json 及各功能来源清单 |
 | Cindy 插件前置检查 | `2d8d3c36` 的 Ghost 清单/安装回执、控制节点网关、运行前检查、沙箱生命周期、公开 SDK、网络与 KV 边界；宿主接线仍在实施中，不能据源码导入标为已完成 | Apache-2.0；保留 Cindy LICENSE/NOTICE；来源、完整声明抽取与宿主适配见 `third_party/cindy/ghost-control.sync.json` |

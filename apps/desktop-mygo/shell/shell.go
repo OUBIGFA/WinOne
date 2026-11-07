@@ -185,6 +185,9 @@ var intentPages = []struct{ method, page string }{
 // and pages see the new focus count.
 func (s *Shell) Focused() {
 	s.focuses++
+	// Only the shell snapshot is refreshed, never a page's editing draft or
+	// Chat's Git state. Returning after retrying a tool clears stale warnings.
+	s.refresh()
 	s.ReadIntents()
 }
 

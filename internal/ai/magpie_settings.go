@@ -14,24 +14,31 @@ import (
 // each worker receives one immutable snapshot, never another app's settings.
 type MagpieSettings struct {
 	// Current Magpie options, persisted with the existing WinOne transaction.
-	ReplyModel        string              `json:"replyModel,omitempty"`
-	BusyLoad          int                 `json:"busyLoad,omitempty"`
-	SearcherThen      []string            `json:"searcherThen,omitempty"`
-	SearchAll         bool                `json:"searchAll,omitempty"`
-	ClaudePrintMode   bool                `json:"claudePrintMode,omitempty"`
-	SignInLinkOnly    bool                `json:"signInLinkOnly,omitempty"`
-	RedactWordsWhole  bool                `json:"redactWordsWhole,omitempty"`
-	RedactRouteTo     string              `json:"redactRouteTo,omitempty"`
-	MaskAlert         bool                `json:"maskAlert,omitempty"`
-	NPMRegistry       string              `json:"npmRegistry,omitempty"`
-	RouterNote        string              `json:"routerNote,omitempty"`
-	CodexResetLead    int                 `json:"codexResetLead,omitempty"`
-	CodexCreditsLast  []string            `json:"codexCreditsLast,omitempty"`
-	CodexCreditsFirst []string            `json:"codexCreditsFirst,omitempty"`
-	TrayWindows       map[string][]string `json:"trayWindows,omitempty"`
-	TrayNoNumber      bool                `json:"trayNoNumber,omitempty"`
-	UsageCardsHidden  []string            `json:"usageCardsHidden,omitempty"`
-	UsageCleared      []UsageClear        `json:"usageCleared,omitempty"`
+	ReplyModel         string                  `json:"replyModel,omitempty"`
+	BusyLoad           int                     `json:"busyLoad,omitempty"`
+	SearcherThen       []string                `json:"searcherThen,omitempty"`
+	SearchAll          bool                    `json:"searchAll,omitempty"`
+	SearchCount        int                     `json:"searchCount,omitempty"`
+	RetryAfterCap      *int                    `json:"retryAfterCap,omitempty"`
+	RefusalRetries     *int                    `json:"refusalRetries,omitempty"`
+	CodexSubagentModel string                  `json:"codexSubagentModel,omitempty"`
+	ClaudePrintMode    bool                    `json:"claudePrintMode,omitempty"`
+	SignInLinkOnly     bool                    `json:"signInLinkOnly,omitempty"`
+	RedactWordsWhole   bool                    `json:"redactWordsWhole,omitempty"`
+	RedactRouteTo      string                  `json:"redactRouteTo,omitempty"`
+	MaskAlert          bool                    `json:"maskAlert,omitempty"`
+	NPMRegistry        string                  `json:"npmRegistry,omitempty"`
+	ChinaMirror        bool                    `json:"chinaMirror,omitempty"`
+	RouterNote         string                  `json:"routerNote,omitempty"`
+	RouterAllTools     bool                    `json:"routerAllTools,omitempty"`
+	AgentCompacts      map[string]AgentCompact `json:"agentCompacts,omitempty"`
+	CodexResetLead     int                     `json:"codexResetLead,omitempty"`
+	CodexCreditsLast   []string                `json:"codexCreditsLast,omitempty"`
+	CodexCreditsFirst  []string                `json:"codexCreditsFirst,omitempty"`
+	TrayWindows        map[string][]string     `json:"trayWindows,omitempty"`
+	TrayNoNumber       bool                    `json:"trayNoNumber,omitempty"`
+	UsageCardsHidden   []string                `json:"usageCardsHidden,omitempty"`
+	UsageCleared       []UsageClear            `json:"usageCleared,omitempty"`
 	// These are populated only from the private local-model profile.
 	RedactModelName       string             `json:"redactModelName,omitempty"`
 	RedactModelScore      map[string]float64 `json:"redactModelScore,omitempty"`
@@ -112,6 +119,13 @@ type MagpieSettings struct {
 	NoAccountDiscovery bool              `json:"noAccountDiscovery,omitempty"`
 }
 
+// AgentCompact keeps the upstream units and fallback semantics; absent entries
+// inherit the global window. These settings never authorize external writes.
+type AgentCompact struct {
+	At   int  `json:"at,omitempty"`
+	Full bool `json:"full,omitempty"`
+}
+
 type UsageClear struct {
 	Provider string `json:"provider,omitempty"`
 	Model    string `json:"model,omitempty"`
@@ -137,6 +151,7 @@ type SearchAPI struct {
 	HasKey bool   `json:"hasKey,omitempty"`
 	Pick   string `json:"pick,omitempty"` // Empty rotates keys; order tries them in declared order.
 	Off    bool   `json:"off,omitempty"`  // Disabled APIs keep their credentials and position.
+	Mix    bool   `json:"mix,omitempty"`  // Ask marked APIs together and merge their results.
 }
 type RedactRule struct {
 	Kind   string `json:"kind"`
@@ -160,8 +175,25 @@ func (s *MagpieSettings) validate() error {
 	if s == nil {
 		return nil
 	}
-	if s.BusyLoad < 0 || s.BusyLoad > 9999 || s.CodexResetLead < 0 || s.CodexResetLead > 1440 || (s.CodexResetLead > 0 && s.CodexResetLead < 15) {
+	if s.BusyLoad < 0 || s.BusyLoad > 9999 || s.CodexResetLead < 0 || s.CodexResetLead > 1440 || (s.CodexResetLead > 0 && s.CodexResetLead < 3) {
 		return errors.New("繁忙模型阈值或提前重置时间无效")
+	}
+	if len(s.AgentCompacts) > 3 {
+		return errors.New("客户端上下文设置过多")
+	}
+	for agent, compact := range s.AgentCompacts {
+		if !slices.Contains([]string{"codex", "claude", "grok"}, agent) || compact.At < 0 || compact.At > 100000000 {
+			return errors.New("客户端上下文设置无效")
+		}
+	}
+	if s.SearchCount < 0 || s.SearchCount > 20 {
+		return errors.New("搜索结果数须为 1–20，0 使用默认 6")
+	}
+	if s.RetryAfterCap != nil && (*s.RetryAfterCap < 0 || *s.RetryAfterCap > 604800) {
+		return errors.New("最长重试等待须为 0–604800 秒")
+	}
+	if ref := s.CodexSubagentModel; len(ref) > 1024 || strings.ContainsRune(ref, '\x00') || ref != "" && ref != "lead" && !strings.Contains(ref, "/") {
+		return errors.New("Codex 子代理模型须为 lead 或供应商/模型标识")
 	}
 	if !slices.Contains([]string{"", "asked", "member", "vendor"}, s.ReplyModel) {
 		return errors.New("回复模型名称模式无效")

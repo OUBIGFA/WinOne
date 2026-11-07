@@ -50,6 +50,8 @@ type pluginAction struct {
 // tab.
 type pluginPage struct {
 	titled
+	Spec     string         `json:"spec"`
+	Reads    []string       `json:"reads,omitempty"`
 	Key      string         `json:"key"`
 	Replaces string         `json:"replaces,omitempty"`
 	Actions  []pluginAction `json:"actions,omitempty"`

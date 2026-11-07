@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "upstream": "22f5cf69e583dab7723523be514cbafc9c870ebd",
+  "upstream": "c39d36644742a10a4730f0ffc5a03d877f185541",
   "scope": "Opt-in download only; model and pf-serve are not bundled in WinOne. Uses upstream verified downloads, native lifecycle, GPU-to-CPU fallback and idle release in the private WinOne runtime cache.",
   "model": {
     "repository": "https://huggingface.co/LocalAI-io/privacy-filter-GGUF",

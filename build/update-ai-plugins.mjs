@@ -20,7 +20,15 @@ for(const folder of await fs.readdir(path.join(source,'packages'))){
  catch(error){if(error.code!=='ENOENT')throw error;}
 }
 async function filesIn(directory,relative){
- if(path.isAbsolute(relative)||relative.split(/[\\/]/).includes('..')||/[\x00*?\[\]]/.test(relative))throw Error('Review the package file pattern: '+relative);
+ if(path.isAbsolute(relative)||relative.split(/[\\/]/).includes('..')||/[\x00]/.test(relative))throw Error('Review the package file pattern: '+relative);
+ // npm's files list may use globs (the new plugin pages do). Expand with
+ // Node's filesystem glob, then run the same regular-file/symlink checks on
+ // every result; a missing pattern never silently creates an incomplete pack.
+ if(/[*?\[\]]/.test(relative)){
+  const matches=await Array.fromAsync(fs.glob(relative,{cwd:directory}));
+  if(!matches.length)throw Error('Package file pattern matched nothing: '+relative);
+  return (await Promise.all(matches.sort().map(name=>filesIn(directory,name)))).flat();
+ }
  const name=path.join(directory,relative),stat=await fs.lstat(name);
  if(stat.isSymbolicLink())throw Error('A bundled plugin must not contain symbolic links: '+name);
  if(stat.isDirectory()){const entries=await fs.readdir(name);return (await Promise.all(entries.sort().map(entry=>filesIn(directory,path.posix.join(relative,entry))))).flat();}

@@ -64,15 +64,14 @@ type uiState struct {
 	// recommendations are enabled plugins' suggested tasks for a new conversation.
 	recommendations      []pluginhost.Recommendation
 	recommendationsAsked bool
-	// welcomeArea is the new chat's frame, whose height centers it.
-	welcomeArea ui.Handle
-	compact     bool
+	compact              bool
 	// expanded remembers which work processes and steps are open.
 	expanded map[string]bool
 	// processBodies are committed bounds used by the viewport's sticky
 	// collapse controls; the controls never scroll out with the body.
-	processBodies map[string]*ui.Handle
-	openProcesses []string
+	processBodies  map[string]*ui.Handle
+	processEntries map[string][]model.Entry
+	openProcesses  []string
 	// answers are the question card's answers, for the question asked.
 	answers    []string
 	answersFor string
@@ -298,14 +297,17 @@ func (p *Chat) welcome(c *ui.Context) {
 	// A scroll view does not stretch its content: the column takes the
 	// frame's height from the last layout, so the mark and the composer
 	// are centered as a whole and scroll when the window is too low.
-	height := p.ui.welcomeArea.Bounds(c).H
-	ui.Scroll(c).Fill().Bind(&p.ui.welcomeArea).Children(func() {
-		ui.Column(c).FillWidth().MinHeight(height).Justify(ui.Center).AlignItems(ui.Center).Padding(32, 24).Gap(24).Children(func() {
-			ui.Image(c, welcomeLogo()).Size(160, 160).Fit(ui.Contain).Label("")
-			ui.Column(c).FillWidth().MaxWidth(readingWidth).AlignSelf(ui.Center).Gap(8).Children(func() {
-				p.projectContext(c, p.newProjectID, func(id string) { p.newProjectID = id })
-				p.composer(c)
-				p.pluginRecommendations(c)
+	// Center the natural-height scroll view in this layout, as Flash Chat does.
+	// No previous-frame measurement: the first visible frame is final too.
+	ui.Column(c).Fill().Justify(ui.Center).Children(func() {
+		ui.Scroll(c).FillWidth().MaxHeightPercent(100).Shrink(1).Padding(32, 24).Children(func() {
+			ui.Column(c).FillWidth().AlignItems(ui.Center).Gap(24).Children(func() {
+				ui.Image(c, welcomeLogo()).Size(160, 160).Fit(ui.Contain).Label("")
+				ui.Column(c).FillWidth().MaxWidth(readingWidth).AlignSelf(ui.Center).Gap(8).Children(func() {
+					p.projectContext(c, p.newProjectID, func(id string) { p.newProjectID = id })
+					p.composer(c)
+					p.pluginRecommendations(c)
+				})
 			})
 		})
 	})

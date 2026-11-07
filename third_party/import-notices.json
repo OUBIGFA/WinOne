@@ -2,25 +2,140 @@
   "schemaVersion": 1,
   "imports": [
     {
+      "name": "magpie-native-ai-pages",
+      "repository": "https://github.com/yetone/magpie",
+      "commit": "c39d36644742a10a4730f0ffc5a03d877f185541",
+      "license": "MIT",
+      "scope": "Native MyGo presentation of the complete routing-group, request trace, third-party plugin management and masking-record contracts. Upstream algorithms and API handlers remain in the single private Magpie runtime. Native form fields, labels, stable identities and actions adapt upstream client.js/plugins.js; authored plugin HTML alone retains its original WebView surface. Unrecognized fields roundtrip through core.Preserved; complete read-only diagnostics remain inspectable.",
+      "sourceFiles": [
+        "internal/provider/group.go",
+        "internal/provider/grouprule.go",
+        "internal/provider/grouptemplate.go",
+        "internal/gui/groups.go",
+        "internal/gui/trace.go",
+        "internal/gui/plugins.go",
+        "internal/gui/masking.go",
+        "internal/gui/providers.go",
+        "internal/gui/assets/plugins/routing/client.js",
+        "internal/gui/assets/plugins.js",
+        "internal/gui/assets/plugins/redact/client.js"
+      ],
+      "notices": [
+        {
+          "file": "licenses/upstream-magpie-c39d36644742a10a4730f0ffc5a03d877f185541-0-LICENSE.txt",
+          "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+        }
+      ],
+      "files": [
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/advanced_latest.go",
+          "sha256": "6f7c19128ed7f2d8301a93b5a665890e6657ba84a614c3785dc6206182802c4a"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/plugins_details.go",
+          "sha256": "3d96f083eb3d7c8d2dbf1d6d209a35d7984d90aa3b57188aa3dff539371f9677"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/plugins_guest.go",
+          "sha256": "bf7b8ab5dfbd5d110bd95d80b17984309d77028e891ae19452704a992a600c71"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_pools.go",
+          "sha256": "1ede8020595ba4fa53398ef0dc0d59e42e27f696921747ea0082ffd4482cfdf2"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_patterns.go",
+          "sha256": "c2c3b6f3ebc0b8f096b413be5cb122c521b6c07814566fb0beb6aeeac2c7ff95"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing.go",
+          "sha256": "0f30d06a38b18a10c1f640eb9d0a0da1cf54c83cd289ff22ad643621ff9fea72"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_groups.go",
+          "sha256": "b718b3e80ba71dafb7202e5a3b1e42de772ca8b4420aad3336a1272b70cd8e90"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_members.go",
+          "sha256": "0ceb50a77240d2537d30b36a2946830a2bc2bd86c3683bef2ebba5b48db644b3"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_trace.go",
+          "sha256": "6c545c21970ec5410a1f31f7be048cc25e12d6ac9845b24ededc79530ba03f85"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_evidence.go",
+          "sha256": "b22d3bcbac1a38a525c2571aaa84ee7ace59a1c994bbaf4d3358a1168992a79a"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/plugins_native.go",
+          "sha256": "f59e9ac8a8d8b6b8981448eeed6d4821e0e5d50948e7deb4058f808c9332d937"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/masking_records.go",
+          "sha256": "bcf44202f19cd61c427453efb845c1d60b8562aa91b4395609ee3782d746333b"
+        },
+        {
+          "path": "modules/ai-magpie/patches/routing_gui.go.txt",
+          "sha256": "c678e78073d00a223689d3182bdd689637aded059fecee919bef06a909813b1f"
+        },
+        {
+          "path": "build/prepare-ai-routing.ps1",
+          "sha256": "ed0c6105b5ae1a42838f5ba280b299c024b3c812b10719eebcece1d5de05339d"
+        }
+      ]
+    },
+    {
+      "name": "fluent-ui-motion",
+      "repository": "https://github.com/microsoft/fluentui",
+      "commit": "19e2d5cd2bf81a2406327709b8856242ec38a966",
+      "license": "MIT",
+      "scope": "Fluent UI durationNormal (200ms) and curveDecelerateMin (0.33,0,0.1,1) are WinOne's standard restrained functional motion. Original token sources are retained; MyGo performs interruption and ReduceMotion. No Fluent fonts, icons, assets or runtime dependencies imported.",
+      "sourceFiles": [
+        "packages/tokens/src/global/curves.ts",
+        "packages/tokens/src/global/durations.ts"
+      ],
+      "notices": [
+        {
+          "file": "licenses/fluent-ui-19e2d5c-LICENSE.txt",
+          "sha256": "1434c6b2a8417d41e4db20ff3b772888e66a0069e20d928f83fa1390f44758c7"
+        }
+      ],
+      "files": [
+        {
+          "path": "third_party/fluent-motion/curves.ts",
+          "sha256": "e1681eb819b86380e9ef6d52b9821b5fce2382d8d0070a33eef6429c4e0e2a6c"
+        },
+        {
+          "path": "third_party/fluent-motion/durations.ts",
+          "sha256": "34ef2eb5444fa422632f5ec1c2033f947d953f96c569e23e0ad8f78a6921f6bf"
+        },
+        {
+          "path": "apps/desktop-mygo/kit/motion.go",
+          "sha256": "8043db48275036e877b31cd88d0ced363c09b85447030fa5e8b6b321c46233ad"
+        }
+      ]
+    },
+    {
       "name": "mygo-winone-shell-file-drop",
       "repository": "https://github.com/egoist/mygo",
-      "commit": "8f07b6f282873fd526a4f8153d727063b00dcdeb",
+      "commit": "5add3817c74bb7505d0b473bc5fb28abe2201b99",
       "license": "MIT",
-      "scope": "MyGo v0.7.4, complete verified upstream in a repository source cache; Windows cross-integrity Shell file-drop hooks adapt WinOne's existing component_file_drop.rs. The async inline-math revision hook invalidates paragraph shaping without replacing document/selection identity. OLE, native hit testing and file dispatch stay unchanged.",
+      "scope": "MyGo v0.8.3, complete verified upstream in a repository source cache; Windows cross-integrity Shell file-drop hooks and async inline-math revision adapt WinOne's existing integration. Source.json records the committed narrow native adaptations. Original OLE, hit testing and file dispatch remain unchanged.",
       "sourceFiles": [
         "internal/windows/surface_drop.go",
         "ui/markdown/view.go"
       ],
       "notices": [
         {
-          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.7.4-LICENSE.txt",
+          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.8.3-LICENSE.txt",
           "sha256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4"
         }
       ],
       "files": [
         {
           "path": "third_party/mygo-winone/source.json",
-          "sha256": "77da86a479f7ec8b7e1ba62fc37a9e44fed03fe783772aa824fe61ff4abe4ee4"
+          "sha256": "efb4882556465981cc2d8467ef261a961a43cd2f4e497047ee37f4778616ae46"
         },
         {
           "path": "third_party/mygo-winone/inline_math_test.go",

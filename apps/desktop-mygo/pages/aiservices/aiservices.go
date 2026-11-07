@@ -88,7 +88,7 @@ type page struct {
 	providerTab int
 	advancedTab int
 	// pluginInvalid holds Save while a plugin's options are not JSON.
-	pluginInvalid bool
+	pluginInvalid    bool
 	preferenceFields map[string]*preferenceField
 	// maskRecord opens the privacy records at one record.
 	maskRecord string
@@ -585,7 +585,7 @@ func (p *page) View(c *ui.Context) {
 	if p.saved != nil {
 		p.extensions.Follow(p.saved.Value.Revision)
 	}
-	if (p.tab == tabCustom || p.tab == tabAccounts || p.anyPreset()) && !p.catalog.loaded && !p.catalog.busy && p.catalog.err == "" {
+	if (p.tab == tabCustom || p.tab == tabAccounts || p.tab == tabPlugins || p.anyPreset()) && !p.catalog.loaded && !p.catalog.busy && p.catalog.err == "" {
 		p.loadCatalog()
 	}
 	p.rail()

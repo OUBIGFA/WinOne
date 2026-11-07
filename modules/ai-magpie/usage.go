@@ -288,7 +288,8 @@ func readUsage(in request, output io.Writer) error {
 	page.By["account"] = []usage.Share{}
 	type rowView struct {
 		usage.Row
-		Speed float64 `json:"speed"`
+		Speed    float64 `json:"speed"`
+		Canceled bool    `json:"canceled,omitempty"`
 	}
 	rows := make([]rowView, 0, len(page.Rows))
 	for _, r := range page.Rows {
@@ -297,7 +298,7 @@ func readUsage(in request, output io.Writer) error {
 		if ms > 0 {
 			speed = float64(n) * 1000 / float64(ms)
 		}
-		rows = append(rows, rowView{Row: r, Speed: speed})
+		rows = append(rows, rowView{Row: r, Speed: speed, Canceled: r.Canceled()})
 	}
 	result := map[string]any{"rows": page.Rows, "sum": page.Sum, "total": page.Total, "offset": q.Offset, "limit": 15, "by": page.By, "chartBy": page.ChartBy, "series": page.Series, "bucket": page.Bucket, "day": q.Day, "providers": page.Providers, "agents": page.Agents, "accounts": page.Accounts, "purposes": page.Purposes, "callerKeys": page.CallerKeys, "through": page.Through, "priceWarning": priceWarning}
 	contexts := []gateway.Route{}

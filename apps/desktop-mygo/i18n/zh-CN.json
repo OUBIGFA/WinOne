@@ -1954,7 +1954,7 @@
  "moduleDescription.wintray": "管理程序启动和托盘图标",
  "moduleStatus.disabled": "已关闭",
  "moduleStatus.enabled": "已开启",
- "moduleStatus.faulted": "需要处理",
+ "moduleStatus.faulted": "运行异常",
  "moduleStatus.incomplete": "关闭未完成",
  "moduleStatus.unavailable": "组件不可用",
  "moduleStatus.working": "正在处理",

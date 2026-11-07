@@ -203,7 +203,10 @@ func (u *Usage) requestRows(c *ui.Context, rows []row) {
 						if r.Rejected {
 							status = tr("usage.rejected")
 						}
-						if r.Status != 0 {
+						if r.Canceled {
+							status = tr("usage.canceled")
+						}
+						if r.Status != 0 && !r.Canceled {
 							status += " " + toString(r.Status)
 						}
 						text := ui.Text(c, status).NoWrap().Shrink(0)
@@ -246,6 +249,9 @@ func (u *Usage) requestRows(c *ui.Context, rows []row) {
 						cell(tr("usage.tokenTotal"), 130, func() {
 							ui.Text(c, num(r.In)+" / "+num(r.Out)).FontFeatures("tnum")
 							kit.Help(c, tr("usage.cache")+" "+num(valueOf(r.CacheRead)+valueOf(r.CacheWrite)))
+							if hit, ok := cacheHitOf(totals{Input: r.In, CacheRead: valueOf(r.CacheRead), CacheWrite: valueOf(r.CacheWrite)}); !r.CacheUnknown && ok {
+								kit.Help(c, tr("usage.cacheHitRate")+" "+toFixed(100*hit, 1)+"%")
+							}
 						})
 						cell(tr("usage.cost"), 120, func() {
 							cost := tr("usage.unknownPrice")
@@ -314,6 +320,8 @@ func (u *Usage) requestDetails(c *ui.Context, id string, r row) {
 		caller = tr("usage.noCallerKey")
 	}
 	facts := []tile{
+		{label: tr("usage.uploadBytes"), value: num(r.UpBytes)}, {label: tr("usage.downloadBytes"), value: num(r.DownBytes)},
+		{label: tr("usage.imageFilesSaved"), value: num(r.ImageFilesSaved)}, {label: tr("usage.imageFiles"), value: num(r.ImageFiles)},
 		{label: tr("usage.callerKey"), value: caller}, {label: tr("usage.requested"), value: r.Requested},
 		{label: tr("usage.served"), value: r.Served}, {label: tr("usage.endpoint"), value: r.Endpoint},
 		{label: tr("usage.reasoning"), value: optional(r.Reasoning)}, {label: tr("usage.effort"), value: r.Effort},

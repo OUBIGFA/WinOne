@@ -13,7 +13,6 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
-	"winone/desktopmygo/web"
 	"winone/desktopmygo/widgets"
 )
 
@@ -46,13 +45,13 @@ type searchVendor struct {
 
 // schemaProperty is one field of a built-in plugin's settings.
 type schemaProperty struct {
-	Type        string  `json:"type"`
-	Title       string  `json:"title"`
-	Description string  `json:"description,omitempty"`
-	Enum        []any   `json:"enum,omitempty"`
+	Type        string   `json:"type"`
+	Title       string   `json:"title"`
+	Description string   `json:"description,omitempty"`
+	Enum        []any    `json:"enum,omitempty"`
 	Minimum     *float64 `json:"minimum,omitempty"`
 	Maximum     *float64 `json:"maximum,omitempty"`
-	Default     any     `json:"default"`
+	Default     any      `json:"default"`
 }
 
 type builtinPlugin struct {
@@ -86,30 +85,30 @@ type bundledPlugin struct {
 // magpieCatalog is what Magpie offers for the advanced settings: helper
 // models, search services, accounts, and the plugins.
 type magpieCatalog struct {
-	SearchVendors   []searchVendor  `json:"searchVendors,omitempty"`
-	VisionModels    []modelChoice   `json:"visionModels,omitempty"`
-	ImageGenModels  []modelChoice   `json:"imageGenModels,omitempty"`
-	SearchChoices   []searchChoice  `json:"searchChoices,omitempty"`
-	TitleModels     []modelChoice   `json:"titleModels,omitempty"`
-	VisionAuto      string          `json:"visionAuto,omitempty"`
-	VisionMissing   string          `json:"visionMissing,omitempty"`
-	ImageGenAuto    string          `json:"imageGenAuto,omitempty"`
-	ImageGenMissing string          `json:"imageGenMissing,omitempty"`
-	SearchAuto      string          `json:"searchAuto,omitempty"`
-	SearchUnused    string          `json:"searchUnused,omitempty"`
-	SearchRelays    []string        `json:"searchRelays,omitempty"`
-	SearchLeftOut   []string        `json:"searchLeftOut,omitempty"`
-	PluginCheckins  []named         `json:"pluginCheckins,omitempty"`
-	CodexUsers      []string        `json:"codexUsers,omitempty"`
+	SearchVendors   []searchVendor `json:"searchVendors,omitempty"`
+	VisionModels    []modelChoice  `json:"visionModels,omitempty"`
+	ImageGenModels  []modelChoice  `json:"imageGenModels,omitempty"`
+	SearchChoices   []searchChoice `json:"searchChoices,omitempty"`
+	TitleModels     []modelChoice  `json:"titleModels,omitempty"`
+	VisionAuto      string         `json:"visionAuto,omitempty"`
+	VisionMissing   string         `json:"visionMissing,omitempty"`
+	ImageGenAuto    string         `json:"imageGenAuto,omitempty"`
+	ImageGenMissing string         `json:"imageGenMissing,omitempty"`
+	SearchAuto      string         `json:"searchAuto,omitempty"`
+	SearchUnused    string         `json:"searchUnused,omitempty"`
+	SearchRelays    []string       `json:"searchRelays,omitempty"`
+	SearchLeftOut   []string       `json:"searchLeftOut,omitempty"`
+	PluginCheckins  []named        `json:"pluginCheckins,omitempty"`
+	CodexUsers      []string       `json:"codexUsers,omitempty"`
 	Quotas          *[]struct {
 		ID   string `json:"id"`
 		Name string `json:"name"`
 		User string `json:"user,omitempty"`
 	} `json:"quotas,omitempty"`
-	Gateway         string          `json:"gateway,omitempty"`
-	NoAccountsEnv   bool            `json:"noAccountsEnv,omitempty"`
-	BuiltinPlugins  []builtinPlugin `json:"builtinPlugins,omitempty"`
-	BundledPlugins  []bundledPlugin `json:"bundledPlugins,omitempty"`
+	Gateway        string          `json:"gateway,omitempty"`
+	NoAccountsEnv  bool            `json:"noAccountsEnv,omitempty"`
+	BuiltinPlugins []builtinPlugin `json:"builtinPlugins,omitempty"`
+	BundledPlugins []bundledPlugin `json:"bundledPlugins,omitempty"`
 }
 
 // advancedPanel is Magpie's advanced settings: quotas, helper models and
@@ -124,24 +123,23 @@ type advancedPanel struct {
 	loadedAt bool
 	read     int
 
-	fields  fields
-	times   map[string]*timeField
-	proxy   proxyDraft
-	proxyOf string // the saved proxy the draft was read from
-	proxyErr string
-	search  searchForm
-	revealed map[string]string
+	fields    fields
+	times     map[string]*timeField
+	proxy     proxyDraft
+	proxyOf   string // the saved proxy the draft was read from
+	proxyErr  string
+	search    searchForm
+	revealed  map[string]string
 	searchErr string
-	rule    ruleForm
-	model   *privacyModel
-	records *web.Surface
-	recordsFor string
+	rule      ruleForm
+	model     *privacyModel
+	records   *maskingRecords
 	// focusPrivacy moves to the privacy form when the records ask.
-	focusPrivacy bool
-	options     map[string]*pluginOptions
-	builtinTab  int
-	opens       map[string]bool
-	listFields  map[string]*listField
+	focusPrivacy   bool
+	options        map[string]*pluginOptions
+	builtinTab     int
+	opens          map[string]bool
+	listFields     map[string]*listField
 	mediaKindModel string
 }
 
@@ -261,7 +259,7 @@ func (a *advancedPanel) leavePrivacy() {
 	}
 	if a.records != nil {
 		a.records.Close()
-		a.records, a.recordsFor = nil, ""
+		a.records = nil
 	}
 }
 
@@ -436,6 +434,7 @@ func (a *advancedPanel) quota(c *ui.Context, catalog *magpieCatalog, locked bool
 	ui.Collapsible(c, i18n.T("settingsDesign.accountAutomation"), &open, func() {
 		ui.Column(c).FillWidth().Gap(kit.GroupGap).Padding(12, 0).Children(func() {
 			a.warmup(c, catalog, "codex", locked)
+			numberRow(c, nativeT("codexResetLead"), s.CodexResetLead, 3, 1440, true, "30", locked, func(v *float64) { s.CodexResetLead = v })
 			a.warmup(c, catalog, "claude", locked)
 			kit.Group(c, icons.CalendarCheck, i18n.T("ai.dailyCheckins"), i18n.T("ai.dailyCheckinsHint"), func() {
 				for _, item := range []struct {
@@ -627,6 +626,7 @@ func (a *advancedPanel) warmup(c *ui.Context, catalog *magpieCatalog, agentID st
 						s.CodexAutoReset = slices.DeleteFunc(append([]string{}, s.CodexAutoReset...), func(v string) bool { return v == key })
 					}
 				}
+				a.creditPriority(c, key, locked)
 				credits := !slices.Contains(s.CodexNoCredits, key)
 				if ui.Checkbox(c, &credits, i18n.T("ai.codexUseCredits")).Disabled(locked).Changed() {
 					if credits {
@@ -701,6 +701,16 @@ func mcpAddress(c *ui.Context, title, copyLabel, hint, address string) {
 func (a *advancedPanel) modelOptions(c *ui.Context, catalog *magpieCatalog, locked bool) {
 	s := a.settings()
 	a.proxyView(c, locked)
+	numberRow(c, nativeT("retryAfterCap"), s.RetryAfterCap, 0, 604800, true, "", locked, func(v *float64) { s.RetryAfterCap = v })
+	kit.Help(c, nativeT("retryAfterCapHint"))
+	var subModels []routeModel
+	for _, doc := range a.p.draft.Value.Providers {
+		pr := doc.Value
+		for _, id := range pr.Models {
+			subModels = append(subModels, routeModel{ID: pr.ID + "/" + id, Name: id, Provider: pr.ID, ProviderName: pr.Name})
+		}
+	}
+	nativeModelField(c, a.p, nativeT("codexSubagentModel"), &s.CodexSubagentModel, subModels, []widgets.ModelChoice{{Value: "", Label: nativeT("followCaller")}, {Value: "lead", Label: nativeT("followLead")}}, locked)
 	kit.Group(c, icons.Image, i18n.T("ai.images"), "", func() {
 		a.helperModel(c, i18n.T("ai.visionModel"), s.Vision, catalog.VisionModels, catalog.VisionAuto, catalog.VisionMissing, locked,
 			func(v string) { s.Vision = v })
@@ -778,7 +788,9 @@ func (a *advancedPanel) modelOptions(c *ui.Context, catalog *magpieCatalog, lock
 			}
 		})
 		if catalog.SearchUnused != "" {
-			kit.Stack(c, "", "", func() { kit.Notice(c, kit.Caution, "", i18n.T("ai.searchUnavailable", "reason", catalog.SearchUnused), nil) })
+			kit.Stack(c, "", "", func() {
+				kit.Notice(c, kit.Caution, "", i18n.T("ai.searchUnavailable", "reason", catalog.SearchUnused), nil)
+			})
 		}
 		if len(catalog.SearchRelays) > 0 {
 			kit.Stack(c, "", i18n.T("ai.searchRelays", "names", strings.Join(catalog.SearchRelays, "、")), func() {})
@@ -786,6 +798,7 @@ func (a *advancedPanel) modelOptions(c *ui.Context, catalog *magpieCatalog, lock
 		if len(catalog.SearchLeftOut) > 0 {
 			kit.Stack(c, "", i18n.T("ai.searchLeftOut", "names", strings.Join(catalog.SearchLeftOut, "、")), func() {})
 		}
+		a.latestSearchOptions(c, locked)
 		a.searchAPIs(c, catalog, locked)
 		first := s.SearchFirst
 		if first == "" {
@@ -802,6 +815,7 @@ func (a *advancedPanel) modelOptions(c *ui.Context, catalog *magpieCatalog, lock
 		}
 	})
 	kit.Group(c, icons.MessagesSquare, i18n.T("ai.replies"), "", func() {
+		a.latestReplyOptions(c, locked)
 		classify := value(s.ClassifyTimeout)
 		numberRow(c, i18n.T("ai.classifyTimeout"), &classify, 0, 60, true, "", locked, func(v *float64) { s.ClassifyTimeout = ptr(value(v)) })
 		kit.Stack(c, "", i18n.T("ai.classifyTimeoutHint"), func() {})
@@ -809,7 +823,6 @@ func (a *advancedPanel) modelOptions(c *ui.Context, catalog *magpieCatalog, lock
 		numberRow(c, i18n.T("ai.claudeRunsMost"), &runs, 0, 256, true, "", locked, func(v *float64) { s.ClaudeRunsMost = ptr(value(v)) })
 		kit.Stack(c, "", i18n.T("ai.claudeRunsMostHint"), func() {})
 		kit.Toggle(c, &s.ClaudeLeanPrompt, i18n.T("ai.claudeLeanPrompt"), i18n.T("ai.claudeLeanPromptHint")).Disabled(locked)
-		kit.Toggle(c, &s.MemberModel, i18n.T("ai.memberModel"), i18n.T("ai.memberModelHint")).Disabled(locked)
 		guard := !s.NoLoopGuard
 		if kit.Toggle(c, &guard, i18n.T("ai.loopGuard"), i18n.T("ai.loopGuardHint")).Disabled(locked).Changed() {
 			s.NoLoopGuard = !guard
@@ -835,9 +848,11 @@ func (a *advancedPanel) modelOptions(c *ui.Context, catalog *magpieCatalog, lock
 			}
 			numberRow(c, i18n.T("ai.compactionThreshold"), &compact, 0, 1e12, true, "", locked, func(v *float64) { s.CompactAt = ptr(value(v)) })
 		}
+		a.clientCompacts(c, locked)
 		a.helperModel(c, i18n.T("ai.codexTitles"), s.CodexTitles, catalog.TitleModels, "", "", locked, func(v string) { s.CodexTitles = v })
 		a.helperModel(c, i18n.T("ai.codexAutoReview"), s.CodexAutoReview, catalog.TitleModels, "", "", locked, func(v string) { s.CodexAutoReview = v })
 	})
+	a.mcpRouterOptions(c, locked)
 }
 
 // searchForm is the form adding a search service's key or address.
@@ -867,6 +882,8 @@ func (a *advancedPanel) searchAPIs(c *ui.Context, catalog *magpieCatalog, locked
 	apis := s.SearchAPIs
 	services := c.Services()
 	kit.Stack(c, i18n.T("ai.searchAPI"), "", func() {
+		numberRow(c, nativeT("searchCount"), s.SearchCount, 0, 20, true, "6", locked, func(v *float64) { s.SearchCount = v })
+		kit.Help(c, nativeT("searchCountHint"))
 		var items []kit.SelectOption
 		for _, v := range vendors {
 			items = append(items, kit.SelectOption{Value: v.ID, Label: v.Name})
@@ -980,6 +997,12 @@ func (a *advancedPanel) searchAPIs(c *ui.Context, catalog *magpieCatalog, locked
 			on := !api.Off
 			if ui.Checkbox(c, &on, i18n.T("ai.searchAPIEnabled", "name", name)).Disabled(locked).Changed() {
 				a.editSearchAPI(api.Vendor, func(v *searchAPI) { v.Off = !on })
+			}
+			if on {
+				mix := api.Mix
+				if kit.Toggle(c, &mix, nativeT("mixSearch"), nativeT("mixSearchHint")).Disabled(locked).Changed() {
+					a.editSearchAPI(api.Vendor, func(v *searchAPI) { v.Mix = mix })
+				}
 			}
 			pick := api.Pick
 			ui.Field(c, i18n.T("ai.searchKeyPick", "name", name), func() {

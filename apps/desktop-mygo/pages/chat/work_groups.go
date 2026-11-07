@@ -47,7 +47,7 @@ func workSegments(r *model.Response, reasoning bool) []workSegment {
 		visible = append(visible, entry)
 	}
 	// A failed attempt is not a delivery boundary; its retry must not close or
-	// remount the active latest-five preview.
+	// remount the active latest-four preview.
 	if r.Answer != nil && r.Answer.ErrorMessage == "" && r.Answer.StopReason != "error" && r.Answer.StopReason != "aborted" {
 		lastBoundary = len(visible)
 	}

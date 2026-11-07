@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/yetone/magpie",
-  "revision": "22f5cf69e583dab7723523be514cbafc9c870ebd",
+  "revision": "c39d36644742a10a4730f0ffc5a03d877f185541",
   "license": "MIT",
-  "notice": "licenses/upstream-magpie-22f5cf69e583dab7723523be514cbafc9c870ebd-0-LICENSE.txt",
+  "notice": "licenses/upstream-magpie-c39d36644742a10a4730f0ffc5a03d877f185541-0-LICENSE.txt",
   "sourceFiles": {
     "LICENSE": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572",
-    "internal/gui/assets/app.js": "5ab5b3207eb01a770d467e412d436a257f240db97dda8e23c557e72756582a5d",
-    "internal/gui/assets/plugins/usage/page.js": "1d08faf584f7a19237d92dcb36ba9b97c5bc7d93010aa2240e2634b4dd013762",
-    "internal/gui/assets/app.css": "488aeb4e63ea9f398327f2e6b79c69dd8ff979571295809ec0f5b88232421062",
-    "internal/gui/assets/i18n.js": "79a042e3406c77c7bd4d6d0de996f5fe6b4787f6fc2bdc259b017288876c5019",
-    "internal/gui/assets/plugins/usage/i18n.js": "b7c3e9745d41b1c4a0a40efe5f21a686fbb1a5dc5daeb41d2d94a65015f5e9f8"
+    "internal/gui/assets/app.js": "f710f792aa5b6948452ee13612fae550a9aca7bd07dd683eca1d337dccddd591",
+    "internal/gui/assets/plugins/usage/page.js": "71c877b83a2fe0dcf6e0d601b7bd2b91eb79a3f7ae33764ca296fd0189b2d1a6",
+    "internal/gui/assets/app.css": "b703be776e5e94a03a27b7756696192abf29c31779c8c3fcff7b1eca9d06a2d2",
+    "internal/gui/assets/i18n.js": "09f068bd65c781e56363d79bd3e793a055df0815f03b88309fdeb3e0e0d19a1a",
+    "internal/gui/assets/plugins/usage/i18n.js": "83f922fbe9d771ed810d465e47e6dbd1c00cd8bb348707407e266b65202f2d58"
   },
   "files": {
-    "apps/desktop/frontend/src/features/magpie-ledger-charts.ts": "d48c06b392824f4cce8eaf1f037e267a3a3e374569e29f4dc1b0f0c774953093",
+    "apps/desktop/frontend/src/features/magpie-ledger-charts.ts": "1b68e5ac0d77154f847978c06f30e0ebae5b1b2f8658755a38ffb1a80f70d92b",
     "apps/desktop/frontend/src/features/magpie-ledger-messages.ts": "b70fbcb1342ef82a115de0bf7d8f23b5d31fe91e5492201bcac4016a61c0a1dd",
     "apps/desktop/frontend/src/features/magpie-ledger-lines.css": "5c94d5c350a56bef91ea633d02e0896de7ad34174680045ed581a5f57f8700c2"
   },

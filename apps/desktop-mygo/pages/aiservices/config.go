@@ -58,26 +58,26 @@ type modelPrice struct {
 // Pointers keep "absent" apart from zero and empty lists, as the React
 // document kept undefined apart from 0 and [].
 type modelMetadata struct {
-	Searches            *bool                        `json:"searches,omitempty"`
-	ContextWindow       *float64                     `json:"contextWindow,omitempty"`
-	MaxTokens           *float64                     `json:"maxTokens,omitempty"`
-	CompactionThreshold *float64                     `json:"compactionThreshold,omitempty"`
-	CompactionPercent   *float64                     `json:"compactionPercent,omitempty"`
-	ListedContextWindow *float64                     `json:"listedContextWindow,omitempty"`
-	MaxContextWindow    *float64                     `json:"maxContextWindow,omitempty"`
-	Rate                *float64                     `json:"rate,omitempty"`
-	RateWas             *float64                     `json:"rateWas,omitempty"`
-	Reasoning           *bool                        `json:"reasoning,omitempty"`
-	Vision              *bool                        `json:"vision,omitempty"`
-	Tools               *bool                        `json:"tools,omitempty"`
-	ReasoningEffort     *string                      `json:"reasoningEffort,omitempty"`
-	Tier                *string                      `json:"tier,omitempty"`
-	Same                *string                      `json:"same,omitempty"`
-	UpstreamName        *string                      `json:"upstreamName,omitempty"`
-	API                 *string                      `json:"api,omitempty"`
-	Levels              *[]string                    `json:"levels,omitempty"`
-	Efforts             *[]string                    `json:"efforts,omitempty"`
-	Tiers               *[]string                    `json:"tiers,omitempty"`
+	Searches            *bool                       `json:"searches,omitempty"`
+	ContextWindow       *float64                    `json:"contextWindow,omitempty"`
+	MaxTokens           *float64                    `json:"maxTokens,omitempty"`
+	CompactionThreshold *float64                    `json:"compactionThreshold,omitempty"`
+	CompactionPercent   *float64                    `json:"compactionPercent,omitempty"`
+	ListedContextWindow *float64                    `json:"listedContextWindow,omitempty"`
+	MaxContextWindow    *float64                    `json:"maxContextWindow,omitempty"`
+	Rate                *float64                    `json:"rate,omitempty"`
+	RateWas             *float64                    `json:"rateWas,omitempty"`
+	Reasoning           *bool                       `json:"reasoning,omitempty"`
+	Vision              *bool                       `json:"vision,omitempty"`
+	Tools               *bool                       `json:"tools,omitempty"`
+	ReasoningEffort     *string                     `json:"reasoningEffort,omitempty"`
+	Tier                *string                     `json:"tier,omitempty"`
+	Same                *string                     `json:"same,omitempty"`
+	UpstreamName        *string                     `json:"upstreamName,omitempty"`
+	API                 *string                     `json:"api,omitempty"`
+	Levels              *[]string                   `json:"levels,omitempty"`
+	Efforts             *[]string                   `json:"efforts,omitempty"`
+	Tiers               *[]string                   `json:"tiers,omitempty"`
 	Price               *core.Preserved[modelPrice] `json:"price,omitempty"`
 }
 
@@ -111,12 +111,12 @@ type provider struct {
 	// Avatar is nil when the document has no choice (older clients),
 	// "" when the user reset the picture to the brand's: the Host keeps
 	// the old picture for nil only.
-	Avatar          *string             `json:"avatar,omitempty"`
-	Keys            *[]keySlot          `json:"keys,omitempty"`
-	KeyPolicy       *keyPolicy          `json:"keyPolicy,omitempty"`
-	Headers         map[string]string   `json:"headers,omitempty"`
-	AdditionalTools bool                `json:"additionalTools,omitempty"`
-	LimitRestOff    bool                `json:"limitRestOff,omitempty"`
+	Avatar          *string           `json:"avatar,omitempty"`
+	Keys            *[]keySlot        `json:"keys,omitempty"`
+	KeyPolicy       *keyPolicy        `json:"keyPolicy,omitempty"`
+	Headers         map[string]string `json:"headers,omitempty"`
+	AdditionalTools bool              `json:"additionalTools,omitempty"`
+	LimitRestOff    bool              `json:"limitRestOff,omitempty"`
 }
 
 type providerDoc = core.Preserved[provider]
@@ -173,6 +173,7 @@ type searchAPI struct {
 	HasKey bool   `json:"hasKey,omitempty"`
 	Off    bool   `json:"off,omitempty"`
 	Pick   string `json:"pick,omitempty"`
+	Mix    bool   `json:"mix,omitempty"`
 }
 
 // builtinChoice overrides a built-in plugin's preset.
@@ -191,89 +192,96 @@ type bundledChoice struct {
 // in Magpie's Settings JSON. Numbers are pointers: a missing number takes
 // a default that zero does not mean.
 type magpieSettings struct {
-	ReplyModel       string `json:"replyModel,omitempty"`
-	BusyLoad         *float64 `json:"busyLoad,omitempty"`
-	SearcherThen     []string `json:"searcherThen,omitempty"`
-	SearchAll        bool `json:"searchAll,omitempty"`
-	ClaudePrintMode  bool `json:"claudePrintMode,omitempty"`
-	SignInLinkOnly   bool `json:"signInLinkOnly,omitempty"`
-	RedactWordsWhole bool `json:"redactWordsWhole,omitempty"`
-	RedactRouteTo    string `json:"redactRouteTo,omitempty"`
-	MaskAlert        bool `json:"maskAlert,omitempty"`
-	NPMRegistry      string `json:"npmRegistry,omitempty"`
-	RouterNote       string `json:"routerNote,omitempty"`
-	CodexResetLead   *float64 `json:"codexResetLead,omitempty"`
-	CodexCreditsLast []string `json:"codexCreditsLast,omitempty"`
-	CodexCreditsFirst []string `json:"codexCreditsFirst,omitempty"`
-	TrayWindows      map[string][]string `json:"trayWindows,omitempty"`
-	TrayNoNumber     bool `json:"trayNoNumber,omitempty"`
-	UsageCardsHidden []string `json:"usageCardsHidden,omitempty"`
-	UsageCleared     []ai.UsageClear `json:"usageCleared,omitempty"`
-	RequestArchiveLocal   bool                                    `json:"requestArchiveLocal,omitempty"`
-	RequestArchiveLocalMB *float64                                `json:"requestArchiveLocalMB,omitempty"`
-	RequestArchiveMaxMB   *float64                                `json:"requestArchiveMaxMB,omitempty"`
-	Proxy                 string                                  `json:"proxy,omitempty"`
-	ProxyCustom           string                                  `json:"proxyCustom,omitempty"`
-	UsageAliases          map[string]string                       `json:"usageAliases,omitempty"`
-	ClassifyTimeout       *float64                                `json:"classifyTimeout,omitempty"`
-	ClaudeRunsMost        *float64                                `json:"claudeRunsMost,omitempty"`
-	ClaudeLeanPrompt      bool                                    `json:"claudeLeanPrompt,omitempty"`
-	FetchPrivate          []string                                `json:"fetchPrivate,omitempty"`
-	BuiltinPreset         string                                  `json:"builtinPreset,omitempty"`
+	ReplyModel            string                                   `json:"replyModel,omitempty"`
+	BusyLoad              *float64                                 `json:"busyLoad,omitempty"`
+	SearcherThen          []string                                 `json:"searcherThen,omitempty"`
+	SearchAll             bool                                     `json:"searchAll,omitempty"`
+	SearchCount           *float64                                 `json:"searchCount,omitempty"`
+	RetryAfterCap         *float64                                 `json:"retryAfterCap,omitempty"`
+	CodexSubagentModel    string                                   `json:"codexSubagentModel,omitempty"`
+	ClaudePrintMode       bool                                     `json:"claudePrintMode,omitempty"`
+	SignInLinkOnly        bool                                     `json:"signInLinkOnly,omitempty"`
+	RedactWordsWhole      bool                                     `json:"redactWordsWhole,omitempty"`
+	RedactRouteTo         string                                   `json:"redactRouteTo,omitempty"`
+	MaskAlert             bool                                     `json:"maskAlert,omitempty"`
+	NPMRegistry           string                                   `json:"npmRegistry,omitempty"`
+	ChinaMirror           bool                                     `json:"chinaMirror,omitempty"`
+	RouterNote            string                                   `json:"routerNote,omitempty"`
+	RouterAllTools        bool                                     `json:"routerAllTools,omitempty"`
+	AgentCompacts         map[string]ai.AgentCompact               `json:"agentCompacts,omitempty"`
+	RefusalRetries        *float64                                 `json:"refusalRetries,omitempty"`
+	CodexResetLead        *float64                                 `json:"codexResetLead,omitempty"`
+	CodexCreditsLast      []string                                 `json:"codexCreditsLast,omitempty"`
+	CodexCreditsFirst     []string                                 `json:"codexCreditsFirst,omitempty"`
+	TrayWindows           map[string][]string                      `json:"trayWindows,omitempty"`
+	TrayNoNumber          bool                                     `json:"trayNoNumber,omitempty"`
+	UsageCardsHidden      []string                                 `json:"usageCardsHidden,omitempty"`
+	UsageCleared          []ai.UsageClear                          `json:"usageCleared,omitempty"`
+	RequestArchiveLocal   bool                                     `json:"requestArchiveLocal,omitempty"`
+	RequestArchiveLocalMB *float64                                 `json:"requestArchiveLocalMB,omitempty"`
+	RequestArchiveMaxMB   *float64                                 `json:"requestArchiveMaxMB,omitempty"`
+	Proxy                 string                                   `json:"proxy,omitempty"`
+	ProxyCustom           string                                   `json:"proxyCustom,omitempty"`
+	UsageAliases          map[string]string                        `json:"usageAliases,omitempty"`
+	ClassifyTimeout       *float64                                 `json:"classifyTimeout,omitempty"`
+	ClaudeRunsMost        *float64                                 `json:"claudeRunsMost,omitempty"`
+	ClaudeLeanPrompt      bool                                     `json:"claudeLeanPrompt,omitempty"`
+	FetchPrivate          []string                                 `json:"fetchPrivate,omitempty"`
+	BuiltinPreset         string                                   `json:"builtinPreset,omitempty"`
 	BuiltinPlugins        map[string]core.Preserved[builtinChoice] `json:"builtinPlugins,omitempty"`
 	BundledPlugins        map[string]core.Preserved[bundledChoice] `json:"bundledPlugins,omitempty"`
-	QuotaLeft             bool                                    `json:"quotaLeft,omitempty"`
-	QuotaReads            string                                  `json:"quotaReads,omitempty"`
-	Currency              string                                  `json:"currency,omitempty"`
-	ChineseUnits          bool                                    `json:"chineseUnits,omitempty"`
-	UsageAlert            *float64                                `json:"usageAlert,omitempty"`
-	BalanceAlert          *float64                                `json:"balanceAlert,omitempty"`
-	ResetReminder         *float64                                `json:"resetReminder,omitempty"`
-	TrayUsages            []string                                `json:"trayUsages,omitempty"`
-	TrayUsageEvery        *float64                                `json:"trayUsageEvery,omitempty"`
-	CodexWarmup           string                                  `json:"codexWarmup,omitempty"`
-	ClaudeWarmup          string                                  `json:"claudeWarmup,omitempty"`
-	CodexWarmAt           string                                  `json:"codexWarmAt,omitempty"`
-	ClaudeWarmAt          string                                  `json:"claudeWarmAt,omitempty"`
-	CodexWarmAts          *[]string                               `json:"codexWarmAts,omitempty"`
-	ClaudeWarmAts         *[]string                               `json:"claudeWarmAts,omitempty"`
-	CodexWarmAtOf         map[string]string                       `json:"codexWarmAtOf,omitempty"`
-	CodexAutoReset        []string                                `json:"codexAutoReset,omitempty"`
-	CodexNoCredits        []string                                `json:"codexNoCredits,omitempty"`
-	WorkbuddyCheckin      bool                                    `json:"workbuddyCheckin,omitempty"`
-	TraeCheckin           bool                                    `json:"traeCheckin,omitempty"`
-	MinimaxCheckin        bool                                    `json:"minimaxCheckin,omitempty"`
-	QoderCheckin          bool                                    `json:"qoderCheckin,omitempty"`
-	PluginCheckins        map[string]bool                         `json:"pluginCheckins,omitempty"`
-	Vision                string                                  `json:"vision,omitempty"`
-	ImageGen              string                                  `json:"imageGen,omitempty"`
-	ModelKinds            map[string]string                       `json:"modelKinds,omitempty"`
-	ImageTimeout          *float64                                `json:"imageTimeout,omitempty"`
-	Searcher              string                                  `json:"searcher,omitempty"`
-	SearchFirst           string                                  `json:"searchFirst,omitempty"`
-	SearchAPIs            []core.Preserved[searchAPI]             `json:"searchAPIs,omitempty"`
-	MemberModel           bool                                    `json:"memberModel,omitempty"`
-	NoLoopGuard           bool                                    `json:"noLoopGuard,omitempty"`
-	PlainNames            bool                                    `json:"plainNames,omitempty"`
-	PlainOwnNames         bool                                    `json:"plainOwnNames,omitempty"`
-	CodexAgentsV1         bool                                    `json:"codexAgentsV1,omitempty"`
-	FullContext           bool                                    `json:"fullContext,omitempty"`
-	CompactAt             *float64                                `json:"compactAt,omitempty"`
-	CodexTitles           string                                  `json:"codexTitles,omitempty"`
-	CodexAutoReview       string                                  `json:"codexAutoReview,omitempty"`
-	Redact                bool                                    `json:"redact,omitempty"`
-	RedactShape           bool                                    `json:"redactShape,omitempty"`
-	RedactPersonal        bool                                    `json:"redactPersonal,omitempty"`
-	RedactKinds           map[string]bool                         `json:"redactKinds,omitempty"`
-	RedactWords           []string                                `json:"redactWords,omitempty"`
-	RedactWordsAnyCase    bool                                    `json:"redactWordsAnyCase,omitempty"`
-	RedactRules           []core.Preserved[redactRule]            `json:"redactRules,omitempty"`
-	RedactActions         map[string]string                       `json:"redactActions,omitempty"`
-	RedactAllow           []string                                `json:"redactAllow,omitempty"`
-	HideAccounts          bool                                    `json:"hideAccounts,omitempty"`
-	NoStats               bool                                    `json:"noStats,omitempty"`
-	NoUsageStats          bool                                    `json:"noUsageStats,omitempty"`
-	NoAccountDiscovery    bool                                    `json:"noAccountDiscovery,omitempty"`
+	QuotaLeft             bool                                     `json:"quotaLeft,omitempty"`
+	QuotaReads            string                                   `json:"quotaReads,omitempty"`
+	Currency              string                                   `json:"currency,omitempty"`
+	ChineseUnits          bool                                     `json:"chineseUnits,omitempty"`
+	UsageAlert            *float64                                 `json:"usageAlert,omitempty"`
+	BalanceAlert          *float64                                 `json:"balanceAlert,omitempty"`
+	ResetReminder         *float64                                 `json:"resetReminder,omitempty"`
+	TrayUsages            []string                                 `json:"trayUsages,omitempty"`
+	TrayUsageEvery        *float64                                 `json:"trayUsageEvery,omitempty"`
+	CodexWarmup           string                                   `json:"codexWarmup,omitempty"`
+	ClaudeWarmup          string                                   `json:"claudeWarmup,omitempty"`
+	CodexWarmAt           string                                   `json:"codexWarmAt,omitempty"`
+	ClaudeWarmAt          string                                   `json:"claudeWarmAt,omitempty"`
+	CodexWarmAts          *[]string                                `json:"codexWarmAts,omitempty"`
+	ClaudeWarmAts         *[]string                                `json:"claudeWarmAts,omitempty"`
+	CodexWarmAtOf         map[string]string                        `json:"codexWarmAtOf,omitempty"`
+	CodexAutoReset        []string                                 `json:"codexAutoReset,omitempty"`
+	CodexNoCredits        []string                                 `json:"codexNoCredits,omitempty"`
+	WorkbuddyCheckin      bool                                     `json:"workbuddyCheckin,omitempty"`
+	TraeCheckin           bool                                     `json:"traeCheckin,omitempty"`
+	MinimaxCheckin        bool                                     `json:"minimaxCheckin,omitempty"`
+	QoderCheckin          bool                                     `json:"qoderCheckin,omitempty"`
+	PluginCheckins        map[string]bool                          `json:"pluginCheckins,omitempty"`
+	Vision                string                                   `json:"vision,omitempty"`
+	ImageGen              string                                   `json:"imageGen,omitempty"`
+	ModelKinds            map[string]string                        `json:"modelKinds,omitempty"`
+	ImageTimeout          *float64                                 `json:"imageTimeout,omitempty"`
+	Searcher              string                                   `json:"searcher,omitempty"`
+	SearchFirst           string                                   `json:"searchFirst,omitempty"`
+	SearchAPIs            []core.Preserved[searchAPI]              `json:"searchAPIs,omitempty"`
+	MemberModel           bool                                     `json:"memberModel,omitempty"`
+	NoLoopGuard           bool                                     `json:"noLoopGuard,omitempty"`
+	PlainNames            bool                                     `json:"plainNames,omitempty"`
+	PlainOwnNames         bool                                     `json:"plainOwnNames,omitempty"`
+	CodexAgentsV1         bool                                     `json:"codexAgentsV1,omitempty"`
+	FullContext           bool                                     `json:"fullContext,omitempty"`
+	CompactAt             *float64                                 `json:"compactAt,omitempty"`
+	CodexTitles           string                                   `json:"codexTitles,omitempty"`
+	CodexAutoReview       string                                   `json:"codexAutoReview,omitempty"`
+	Redact                bool                                     `json:"redact,omitempty"`
+	RedactShape           bool                                     `json:"redactShape,omitempty"`
+	RedactPersonal        bool                                     `json:"redactPersonal,omitempty"`
+	RedactKinds           map[string]bool                          `json:"redactKinds,omitempty"`
+	RedactWords           []string                                 `json:"redactWords,omitempty"`
+	RedactWordsAnyCase    bool                                     `json:"redactWordsAnyCase,omitempty"`
+	RedactRules           []core.Preserved[redactRule]             `json:"redactRules,omitempty"`
+	RedactActions         map[string]string                        `json:"redactActions,omitempty"`
+	RedactAllow           []string                                 `json:"redactAllow,omitempty"`
+	HideAccounts          bool                                     `json:"hideAccounts,omitempty"`
+	NoStats               bool                                     `json:"noStats,omitempty"`
+	NoUsageStats          bool                                     `json:"noUsageStats,omitempty"`
+	NoAccountDiscovery    bool                                     `json:"noAccountDiscovery,omitempty"`
 }
 
 type magpieDoc = core.Preserved[magpieSettings]
@@ -281,13 +289,13 @@ type magpieDoc = core.Preserved[magpieSettings]
 // configuration is the whole document. The capture engines, target
 // language and prompt belong to the Capture page and stay as read.
 type configuration struct {
-	RoutingEnabled  bool                             `json:"routingEnabled,omitempty"`
-	Revision        float64                          `json:"revision"`
-	Providers       []providerDoc                    `json:"providers"`
-	Tasks           map[string]widgets.AISelection   `json:"tasks"`
-	ShowReasoning   *bool                            `json:"showReasoning,omitempty"`
-	AutoRetranslate *bool                            `json:"autoRetranslate,omitempty"`
-	MagpieSettings  *magpieDoc                       `json:"magpieSettings,omitempty"`
+	RoutingEnabled  bool                           `json:"routingEnabled,omitempty"`
+	Revision        float64                        `json:"revision"`
+	Providers       []providerDoc                  `json:"providers"`
+	Tasks           map[string]widgets.AISelection `json:"tasks"`
+	ShowReasoning   *bool                          `json:"showReasoning,omitempty"`
+	AutoRetranslate *bool                          `json:"autoRetranslate,omitempty"`
+	MagpieSettings  *magpieDoc                     `json:"magpieSettings,omitempty"`
 }
 
 type document = core.Preserved[configuration]

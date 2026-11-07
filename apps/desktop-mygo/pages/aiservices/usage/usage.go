@@ -231,7 +231,7 @@ func (u *Usage) sync(c *ui.Context) {
 		u.timer = timer{}
 		return
 	}
-	seconds := map[string]time.Duration{"15": 15, "30": 30, "60": 60}[u.every] * time.Second
+	seconds := map[string]time.Duration{"15": 15, "30": 30, "60": 60, "300": 300, "900": 900, "1800": 1800}[u.every] * time.Second
 	now := c.Now()
 	key := u.every + "/" + strconv.Itoa(u.view)
 	if u.timer.key != key || u.timer.next.IsZero() {
@@ -377,8 +377,12 @@ func (u *Usage) controls(c *ui.Context) {
 			})
 			field(c, i18n.T("usage.autoRefresh"), func() {
 				options := []kit.SelectOption{{Value: "0", Label: i18n.T("usage.manual")}}
-				for _, s := range []string{"15", "30", "60"} {
-					options = append(options, kit.SelectOption{Value: s, Label: i18n.T("usage.everySeconds", "seconds", s)})
+				for _, s := range []string{"15", "30", "60", "300", "900", "1800"} {
+					label := i18n.T("usage.everySeconds", "seconds", s)
+					if seconds, _ := strconv.Atoi(s); seconds >= 300 {
+						label = i18n.T("usage.everyMinutes", "minutes", seconds/60)
+					}
+					options = append(options, kit.SelectOption{Value: s, Label: label})
 				}
 				choose(c, &u.every, options)
 			})

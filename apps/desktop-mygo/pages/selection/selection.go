@@ -265,6 +265,20 @@ func (p *page) View(c *ui.Context) {
 	}
 	kit.Page(c, func() {
 		p.tabBar(c)
+		// Show the same runtime reason as Home, without refreshing the draft.
+		for _, module := range p.env.Snapshot().Modules {
+			if module.ID != p.module {
+				continue
+			}
+			entry := widgets.ModuleEntry{Runtime: widgets.ModuleRuntime{State: module.State, Detail: module.Detail, Warning: module.Warning}}
+			if problem := widgets.ModuleProblem(entry); problem != "" {
+				kind := kit.Info
+				if module.State == "faulted" || module.State == "unavailable" {
+					kind = kit.Failure
+				}
+				kit.Notice(c, kind, "", problem, nil)
+			}
+		}
 		if p.tab == tabToolbar && p.shown != tabToolbar {
 			p.loadAI()
 		}

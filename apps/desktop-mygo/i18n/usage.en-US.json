@@ -1,4 +1,6 @@
 {
+ "usage.canceled":"Canceled",
+ "usage.uploadBytes":"Uploaded bytes","usage.downloadBytes":"Downloaded bytes","usage.imageFilesSaved":"Bytes saved by image files","usage.imageFiles":"Images sent by file","usage.cacheHitRate":"Cache hit rate","usage.everyMinutes":"Every {{minutes}} minutes",
  "usage.exportDialog": "Export usage CSV",
  "usage.exportCsvFilter": "CSV spreadsheet",
  "usage.exportUnconfirmed": "Unable to confirm that the CSV was saved",

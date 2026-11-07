@@ -30,9 +30,11 @@ foreach($relative in @('internal/gui/masking.go','internal/gateway/masked.go')) 
  if($LASTEXITCODE -ne 0 -or $original -notmatch 'json:"key(?:,omitempty)?,string"'){throw "Upstream masking record identity changed: $relative"}
  [IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$original+"`n",$utf8)
 }
-Set-Hook 'internal/gateway/claude_room.go' @{
- 'if dir == "/" {'='if filepath.Dir(dir) == dir {'
-}
+# Upstream now walks cgroups with path.Clean/path.Dir and terminates at "/".
+# The former WinOne filepath.Dir patch would reintroduce an endless Windows walk.
+$room=(& git -C $SourceDirectory show ($Revision+':internal/gateway/claude_room.go')) -join "`n"
+if($LASTEXITCODE -ne 0 -or -not $room.Contains('dir = path.Dir(dir)')){throw 'Review upstream cgroup traversal'}
+[IO.File]::WriteAllText((Join-Path $SourceDirectory 'internal/gateway/claude_room.go'),$room+"`n",$utf8)
 Set-Hook 'internal/pluginrt/config.go' @{
  'func Load() (File, bool, error) {'='func Load() (File, bool, error) { if f,ok:=WinOneLoad();ok{return f,true,nil};'
 }

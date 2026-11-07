@@ -1,0 +1,87 @@
+package chat
+
+import (
+	"math"
+	"testing"
+	"time"
+
+	"github.com/egoist/mygo/ui"
+	"winone/desktopmygo/i18n"
+)
+
+// Use the production welcome itself, measuring its first committed layout.
+// A settled-only screenshot cannot catch previous-frame centering regressions.
+func TestWelcomeComposerHasItsFinalPositionOnFirstFrame(t *testing.T) {
+	_, h, p, _, _ := setup(t)
+	for _, size := range [][2]int{{1000, 900}, {560, 900}, {560, 420}} {
+		for _, reduced := range []bool{false, true} {
+			var first, settled ui.Rect
+			captured := false
+			tt := ui.NewTesterWith(func(c *ui.Context) {
+				p.welcome(c)
+				// Tester settles pending frames internally. Record during the
+				// first paint, not after NewTester/Frame has hidden the jump.
+				c.Resolve(p.ui.composerBox).Draw(func(_ *ui.Painter, box ui.Rect) {
+					settled = box
+					if !captured {
+						first, captured = box, true
+					}
+				})
+			}, size[0], size[1], ui.TesterOptions{Preferences: ui.Preferences{ReduceMotion: reduced}})
+			if !captured || first.H == 0 {
+				t.Fatal("first paint has no composer")
+			}
+			h.Settle(tt)
+			if math.Abs(float64(first.Y-settled.Y)) > 0.5 || math.Abs(float64(first.X-settled.X)) > 0.5 {
+				t.Fatalf("welcome jumped at %v: %+v -> %+v", size, first, settled)
+			}
+			if size[1] == 900 && first.Y < 300 {
+				t.Fatalf("welcome composer remained at the top: %+v", first)
+			}
+		}
+	}
+}
+
+// The real control retargets without overshoot and never leaves its process.
+func TestProcessCollapseUsesBoundedMotionAndReducedMotion(t *testing.T) {
+	for _, reduced := range []bool{false, true} {
+		p := &Chat{}
+		p.ui.openProcesses = []string{"group"}
+		body := &ui.Handle{}
+		p.ui.processBodies = map[string]*ui.Handle{"group": body}
+		height := float32(300)
+		tt := ui.NewTester(func(c *ui.Context) {
+			ui.Column(c).Fill().Children(func() {
+				ui.Scroll(c).Fill().TrackScroll(&p.ui.transcript).Children(func() {
+					ui.Box(c).Width(400).Height(height).Bind(body)
+				})
+				p.processCollapseControls(c)
+			})
+		}, 500, 600)
+		tt.SetPreferences(ui.Preferences{ReduceMotion: reduced})
+		tt.Frame()
+		tt.Frame()
+		start, ok := tt.Find(i18n.T("chat.collapseProcess"))
+		if !ok {
+			t.Fatal("missing collapse control")
+		}
+		height = 400
+		tt.Frame()
+		tt.Frame()
+		tt.Advance(80 * time.Millisecond)
+		middle, _ := tt.Find(i18n.T("chat.collapseProcess"))
+		if !reduced && (middle.Y <= start.Y || middle.Y >= 364) {
+			t.Fatalf("not gliding: %+v -> %+v", start, middle)
+		}
+		if reduced && middle.Y != 364 {
+			t.Fatalf("ReduceMotion did not settle immediately: %+v", middle)
+		}
+		height = 260
+		tt.Frame()
+		tt.Frame()
+		reversed, _ := tt.Find(i18n.T("chat.collapseProcess"))
+		if reversed.Y < 8 || reversed.Y+reversed.H > height {
+			t.Fatalf("motion escaped process: %+v", reversed)
+		}
+	}
+}

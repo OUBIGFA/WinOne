@@ -6,12 +6,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"golang.org/x/sys/windows"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+	"winone/internal/diagnostics"
 	"winone/internal/host"
 	"winone/internal/selection"
 )
@@ -26,7 +28,9 @@ type selectionRuntime struct {
 	cancel            context.CancelFunc
 	moduleContext     context.Context
 	done              chan struct{}
-	lastError         string
+	lastError         string // startup / hook failure, not a one-shot read
+	operationError    string
+	operation         uint64 // only the newest admitted operation may publish
 	actionGuard       func() (func(), bool)
 	suspended         func() bool
 }
@@ -46,7 +50,7 @@ func (r *selectionRuntime) status() host.Module {
 	if r.lastError != "" {
 		state, detail = "faulted", r.lastError
 	}
-	return host.Module{ID: "selection", Name: "划词助手", State: state, Detail: detail}
+	return host.Module{ID: "selection", Name: "划词助手", State: state, Detail: detail, Warning: r.operationError}
 }
 func (r *selectionRuntime) start() error {
 	r.mu.Lock()
@@ -66,7 +70,8 @@ func (r *selectionRuntime) start() error {
 	ctx, cancel := context.WithCancel(r.ctx)
 	r.watcher, r.cancel, r.done = watcher, cancel, make(chan struct{})
 	r.moduleContext = ctx
-	r.lastError = ""
+	r.lastError, r.operationError = "", ""
+	r.operation++
 	r.results.allowSelection(true)
 	go r.run(ctx, watcher, r.done)
 	return nil
@@ -94,15 +99,45 @@ func (r *selectionRuntime) stop() error {
 	}
 	r.mu.Lock()
 	r.watcher, r.cancel, r.done = nil, nil, nil
+	r.operation++
+	r.operationError = ""
 	r.mu.Unlock()
 	return nil
 }
-func (r *selectionRuntime) record(err error) {
+
+// beginOperation / finishOperation separate a transient request result from
+// lifecycle health. Cancelled/obsolete reads cannot overwrite a newer success;
+// a successful automatic read clears the same warning as a manual one.
+func (r *selectionRuntime) beginOperation() uint64 {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.lastError = ""
-	if err != nil && !errors.Is(err, context.Canceled) {
-		r.lastError = err.Error()
+	r.operation++
+	return r.operation
+}
+func (r *selectionRuntime) finishOperation(ticket uint64, current func() bool, err error) {
+	r.mu.Lock()
+	if ticket != r.operation || !current() || errors.Is(err, context.Canceled) {
+		r.mu.Unlock()
+		return
+	}
+	previous := r.operationError
+	r.operationError = ""
+	if err != nil {
+		r.operationError = "上次划词操作未完成，功能仍可重试：" + err.Error()
+	}
+	changed := previous != r.operationError
+	results := r.results
+	r.mu.Unlock()
+	// Record only a changed diagnostic, never selection text, credentials or
+	// request arguments. A cancelled gesture is not a fault/recovery event.
+	if changed && results != nil && results.logDirectory != "" {
+		event := diagnostics.Event{Source: "selection", Event: "operation-recovered"}
+		if err != nil {
+			event.Event, event.Error = "operation-failed", err.Error()
+		}
+		if logErr := diagnostics.Record(results.logDirectory, event); logErr != nil {
+			fmt.Fprintln(os.Stderr, "Selection diagnostics:", logErr)
+		}
 	}
 }
 func (r *selectionRuntime) admitted(event selection.Event) bool {
@@ -148,16 +183,21 @@ func selectionSourceAllowed(directory, executable string) bool {
 	}
 	return strings.EqualFold(relative, "WinOne.exe") || strings.EqualFold(relative, filepath.Join("shared", "ui", "WinOne.Results.exe"))
 }
-func (r *selectionRuntime) read(ctx context.Context, event selection.Event, current func() bool) error {
+func (r *selectionRuntime) read(ctx context.Context, event selection.Event, current func() bool) (failure error) {
 	if !r.admitted(event) {
 		return nil
 	}
+	ticket := r.beginOperation()
+	defer func() { r.finishOperation(ticket, current, failure) }()
 	value, handled, err := r.results.readSelection(ctx, event)
 	if !handled {
 		value, err = selection.ReadSelection(ctx, r.reader, event)
 	}
 	if err != nil {
-		return err
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("读取选中文字超时，请在目标程序响应后重新选择（%w）", err)
+		}
+		return fmt.Errorf("读取选中文字失败：%w", err)
 	}
 	if !current() || ctx.Err() != nil {
 		return context.Canceled
@@ -185,12 +225,15 @@ func (r *selectionRuntime) read(ctx context.Context, event selection.Event, curr
 		defer release()
 	}
 	if err := r.results.dismissSelection([2]int32{}, true, 0); err != nil {
-		return err
+		return fmt.Errorf("关闭上次划词工具栏失败：%w", err)
 	}
 	r.mu.Lock()
 	actions := r.preferences.EffectiveActions()
 	r.mu.Unlock()
-	return r.results.openSelection(value.Text, anchor, actions)
+	if err := r.results.openSelection(value.Text, anchor, actions); err != nil {
+		return fmt.Errorf("显示划词工具栏失败：%w", err)
+	}
+	return nil
 }
 func (r *selectionRuntime) run(ctx context.Context, watcher *selection.Watcher, done chan struct{}) {
 	defer close(done)
@@ -210,8 +253,9 @@ func (r *selectionRuntime) run(ctx context.Context, watcher *selection.Watcher, 
 			if cancel != nil {
 				cancel()
 			}
+			ticket := r.beginOperation()
 			if err := r.results.dismissSelection(event.Point, event.Keyboard || event.Kind == "focus", event.Window); err != nil {
-				r.record(err)
+				r.finishOperation(ticket, func() bool { return watcher.Current(event.Sequence) }, fmt.Errorf("收起划词工具栏失败：%w", err))
 			}
 			r.mu.Lock()
 			prefs := r.preferences
@@ -225,10 +269,7 @@ func (r *selectionRuntime) run(ctx context.Context, watcher *selection.Watcher, 
 			go func() {
 				defer reads.Done()
 				defer requestCancel()
-				err := r.read(request, event, func() bool { return watcher.Current(event.Sequence) })
-				if err != nil && request.Err() == nil {
-					r.record(err)
-				}
+				_ = r.read(request, event, func() bool { return watcher.Current(event.Sequence) })
 			}()
 		}
 	}
@@ -251,7 +292,6 @@ func (r *selectionRuntime) handle(request host.Request) host.Response {
 	ctx, cancel := context.WithTimeout(parent, 3*time.Second)
 	defer cancel()
 	err := r.read(ctx, selection.Event{Kind: "manual", Window: window, ProcessID: pid, Keyboard: true}, func() bool { return true })
-	r.record(err)
 	if err != nil {
 		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "selection", Message: err.Error()}}
 	}

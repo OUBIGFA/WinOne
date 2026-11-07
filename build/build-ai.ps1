@@ -60,13 +60,12 @@ Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/account_snaps
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_snapshot_test.go') -Destination (Join-Path $source 'internal/plugin/winone_snapshot_test.go') -Force
 # Explicit embedding hooks: no discovery of another product's signed-in accounts.
 $provider=Join-Path $source 'internal/provider/provider.go'
-$text=[IO.File]::ReadAllText($provider)
-if(-not $text.Contains('WinOneProviders != nil')){
- $text=$text.Replace('func All() []Provider {',"func All() []Provider {`n if WinOneProviders != nil { return winOneConfiguredProviders() }")
- [IO.File]::WriteAllText($provider,$text,$encoding)
-}
-$text=[IO.File]::ReadAllText($provider).Replace('return append([]Provider(nil), WinOneProviders...)','return winOneConfiguredProviders()')
-[IO.File]::WriteAllText($provider,$text,$encoding)
+$text=(& git -C $source show "${revision}:internal/provider/provider.go") -join "`n"
+# All, Find and model pricing now read sharedAll. Hook that single source of
+# truth so internal lookups cannot bypass WinOne's private provider snapshot.
+if(-not $text.Contains('func sharedAll() []Provider {')){throw 'Upstream shared provider boundary changed'}
+$text=$text.Replace('func sharedAll() []Provider {',"func sharedAll() []Provider {`n if WinOneProviders != nil { return winOneConfiguredProviders() }")
+[IO.File]::WriteAllText($provider,$text+"`n",$encoding)
 [IO.File]::WriteAllText((Join-Path $source 'internal/provider/winone_embedded.go'),"package provider`n// Set once before serving a WinOne request; never persisted.`nvar WinOneProviders []Provider`nvar WinOneSearchModels map[string]bool`nfunc WinOneAccountIDs() []string { return append([]string(nil), accountIDs...) }`nfunc winOneConfiguredProviders() []Provider { result := make([]Provider, len(WinOneProviders)); for i, p := range WinOneProviders { result[i] = normalize(p) }; return result }`n",$encoding)
 $models=Join-Path $source 'internal/provider/models.go'
 $text=(& git -C $source show "${revision}:internal/provider/models.go") -join "`n"

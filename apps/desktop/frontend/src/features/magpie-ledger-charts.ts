@@ -1,5 +1,5 @@
 // @ts-nocheck
-// Generated from yetone/magpie 22f5cf69e583dab7723523be514cbafc9c870ebd. MIT.
+// Generated from yetone/magpie c39d36644742a10a4730f0ffc5a03d877f185541. MIT.
 // Run node build/sync-magpie-usage.mjs --write; provenance: third_party/magpie-usage-source.json.
 export function magpieLedgerCharts(translate, language, options = {}) {
  const t=(key,values={})=>translate(key,values);
@@ -70,7 +70,7 @@ const ledRankValue = (m, x) => m === "speed" ? ledGroupSpeed(x)?.v || 0 : ledVal
 // of a point's part, which has its calls, tokens, cost and speed
 const ledPart = (m, x) => m === "speed" ? ledSpeed(x) : m === "cost" ? +x.cost || 0 : m === "calls" ? +x.calls || 0 : +x.tokens || 0;
 // a metric as its axis and its values say it
-const ledFormat = (m, v) => m === "cost" ? ledMoney(v) : m === "calls" || m === "speed" ? ledNum(Math.round(v)) : fmtN(Math.round(v));
+const ledFormat = (m, v) => m === "cost" ? ledMoney(v) : (m === "speed" ? ledNum : fmtN)(Math.round(v));
 const ledFormatLong = (m, v) => m === "speed" ? (v > 0 ? t("{n} tok/s", { n: ledNum(Math.round(v)) }) : "—") : m === "cost" ? (fmtCost({ cost: v, unpriced: 0 }) || "—") : ledNum(Math.round(v));
 
 // an axis's top with four steps under it: round numbers, the top at least the largest value
@@ -82,12 +82,17 @@ function ledAxis(max) {
 }
 
 // what a chart tells apart, most first, and the colour of each: those of the
-// ranking's top, and the rest together as "Other"
-function ledCategories(l, split, metric) {
-  const list = (l.by?.[split] || []).slice().sort((a, b) => ledRankValue(metric, b) - ledRankValue(metric, a) || allTokens(b) - allTokens(a));
+// ranking's top, the rest as "Other"; a speed chart's, the most timed
+// (zzzkl3994 on Discord)
+function ledCategories(l, split, metric, chart) {
+  const v = chart && metric === "speed" ? (x) => ledSpeed(x) > 0 ? x.decode_n || x.timed || 1 : 0 : (x) => ledRankValue(metric, x);
+  const list = (l.by?.[split] || []).slice().sort((a, b) => v(b) - v(a) || allTokens(b) - allTokens(a));
   const top = list.slice(0, LED_SHOWN).map((x, i) => ({ ...x, color: `var(--usage-c${i % 7 + 1})` }));
   return { top, rest: list.slice(LED_SHOWN), list };
 }
+// a speed point's timed ones past the colours, faint
+const ledOthers = (by, top, list) => Object.keys(by).filter((k) => ledSpeed(by[k]) > 0 && !top.some((c) => c.id === k))
+  .map((id) => ({ id, name: list.find((x) => x.id === id)?.name, color: "var(--usage-faint)" }));
 
 // when a point is: the hour, the day or the week it stands for
 function ledWhen(p, bucket) {
@@ -121,12 +126,12 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
   box.append(plot);
   const W = plot.clientWidth, H = plot.clientHeight, pts = l.series || [], n = pts.length;
   if (W < 100 || !n) return;
-  const { top } = ledCategories(l.chartBy ? { by: l.chartBy } : l, split, metric);
+  const { top, list } = ledCategories(l.chartBy ? { by: l.chartBy } : l, split, metric, true);
   const totals = pts.map((p) => ledValue(metric, p));
   // speeds don't add up: a point's column is how fast all its replies
   // wrote, and each one told apart is a mark at its own speed on it (#860)
   const speed = metric === "speed";
-  const max = Math.max(0, ...totals, ...(speed ? pts.flatMap((p) => top.map((c) => ledSpeed(p.by?.[split]?.[c.id]))) : []));
+  const max = Math.max(0, ...totals, ...(speed ? pts.flatMap((p) => Object.values(p.by?.[split] || {}).map(ledSpeed)) : []));
   if (!(max > 0)) {
     plot.append(el("div", "none", t(metric === "cost" ? "No known price for these requests" : speed ? "No streamed replies timed in this period" : "Nothing in this period")));
     return;
@@ -134,9 +139,7 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
   const topV = ledAxis(max);
   const selectable = l.bucket === "day" && !!box.chooseDay;
   const g = sv("svg", { viewBox: `0 0 ${W} ${H}`, role: selectable ? "group" : "img", "aria-label": t("Usage trend") });
-  // the side's labels, measured as drawn: the plot starts where the widest
-  // ends ("8000 万", "¥1250" are wider than "80M"), so none reaches past the
-  // card's padding
+  // the side's labels, measured: the plot starts where the widest ends
   plot.append(g);
   const labs = [0, 1, 2, 3, 4].map((i) => {
     const lab = sv("text", { "text-anchor": "end", class: "axis" });
@@ -178,19 +181,13 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
     };
     const by = p.by?.[split] || {};
     if (speed) {
-      // the point's own speed, as a track the models' marks sit on: not a
-      // share of anything, and not the grey "Other" of the stacked charts
+      // the point's own speed, a track the models' marks sit on
       if (totals[i] > 0) { draw("\0all", "var(--usage-pill)", totals[i]); segs.at(-1).classList.add("all"); }
-      for (const c of top) {
+      for (const c of [...top, ...ledOthers(by, top, list)]) {
         const v = ledSpeed(by[c.id]);
         if (!(v > 0)) continue;
-        // a model faster than the point's own leaves its mark above the
-        // column, in nothing: a leader line ties the two, so the mark reads
-        // as this column's rather than as a stray dash (huoranxuanyuan, #860).
-        // The colour goes through style, not the attribute: var() substitutes
-        // in a style and not in a presentation attribute. The line stops at
-        // the column's top when the mark is within a pixel of it, or it would
-        // be drawn back down into the column
+        // a mark above the column gets a leader line to it (#860); colour
+        // through style, where var() works
         if (v > totals[i]) {
           const top = Y(totals[i]);
           segs.push(g.appendChild(sv("line", {
@@ -221,6 +218,8 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
   tip.hidden = true;
   plot.append(g, tip);
   const name = (c) => t(c.name || c.id || "—");
+  // counts short, as the axis says them (skyhuang1994)
+  const val = (v) => speed || metric === "cost" ? ledFormatLong(metric, v) : ledFormat(metric, v);
   const at = (e) => {
     const r = g.getBoundingClientRect();
     const i = Math.max(0, Math.min(n - 1, Math.floor(((e.clientX - r.left) / r.width * W - M.l) / slot)));
@@ -232,23 +231,23 @@ function drawLedColumns(box, l, split, metric, compact, chooseDay, focusDay) {
     // first token each in a column of their own (#2343)
     tip.classList.toggle("speed", speed);
     const by = p.by?.[split] || {};
-    const rows = top.map((c) => [name(c), c.color, ledPart(metric, by[c.id] || {}), by[c.id]]);
+    const rows = [...top, ...(speed ? ledOthers(by, top, list) : [])].map((c) => [name(c), c.color, ledPart(metric, by[c.id] || {}), by[c.id]]);
     if (!speed) rows.push([t("Other"), "var(--usage-faint)", Math.max(0, totals[i] - rows.reduce((a, x) => a + x[2], 0))]);
     for (const [nm, color, v, part] of rows.filter((x) => x[2] > 0).sort((a, b) => b[2] - a[2])) {
       const row = el("div");
       const sw = el("i");
       sw.style.background = color;
-      row.append(sw, el("span", "", nm), el("em", "", ledFormatLong(metric, v)));
+      row.append(sw, el("span", "", nm), el("em", "", val(v)));
       if (speed) row.append(el("em", "ttft", ledTTFT(part) ? t("TTFT {ms}", { ms: ledTook(ledTTFT(part)) }) : ""));
       tip.append(row);
     }
     const sum = el("div", "sum");
-    const calls = metric !== "calls" && p.calls ? t(p.calls === 1 ? "{n} request" : "{n} requests", { n: ledNum(p.calls) }) : "";
+    const calls = metric !== "calls" && p.calls ? t(p.calls === 1 ? "{n} request" : "{n} requests", { n: fmtN(p.calls) }) : "";
     if (speed) {
-      sum.append(el("span", "", t("All") + (calls ? " · " + calls : "")), el("em", "", ledFormatLong(metric, totals[i])),
+      sum.append(el("span", "", t("All") + (calls ? " · " + calls : "")), el("em", "", val(totals[i])),
         el("em", "ttft", ledTTFT(p) ? t("TTFT {ms}", { ms: ledTook(ledTTFT(p)) }) : ""));
     } else {
-      sum.append(el("span", "", t("Total")), el("em", "", ledFormatLong(metric, totals[i]) + (calls ? " · " + calls : "")));
+      sum.append(el("span", "", t("Total")), el("em", "", val(totals[i]) + (calls ? " · " + calls : "")));
     }
     tip.append(sum);
     tip.hidden = false;
@@ -282,8 +281,8 @@ function drawLedRank(box, l, split, metric, picked, choose, compact) {
   const kept = box.scrollTop;
   box.replaceChildren();
   const { top, rest, list } = ledCategories(l, split, metric);
-  if (l.chartBy) {
-    const colors = ledCategories({ by: l.chartBy }, split, metric).top;
+  if (l.chartBy || metric === "speed") {
+    const colors = ledCategories(l.chartBy ? { by: l.chartBy } : l, split, metric, true).top;
     for (const x of top) x.color = colors.find((c) => c.id === x.id)?.color || "var(--usage-faint)";
   }
   if (!list.length) return;
@@ -300,15 +299,15 @@ function drawLedRank(box, l, split, metric, picked, choose, compact) {
     if (x.icon && split !== "model") l1.append(icon(x.icon));
     const nm = el("span", "rk-nm", t(x.name || x.id || "—"));
     nm.title = t(x.name || x.id || "");
-    const val = el("span", "rk-val", metric === "speed" ? gs?.text || "—" : ledFormatLong(metric, v));
-    if (metric === "speed" && gs?.title) val.title = gs.title;
+    const long = ledFormatLong(metric, v), val = el("span", "rk-val", metric == "speed" ? gs?.text || "—" : metric == "cost" ? long : ledFormat(metric, v));
+    val.title = metric == "speed" ? gs?.title || "" : long;
     l1.append(nm, val);
     const bar = el("div", "rk-bar"), fill = el("i");
     fill.style.width = Math.max(1.5, (100 * v) / leader).toFixed(1) + "%";
     fill.style.background = color;
     bar.append(fill);
     const more = [];
-    if (metric !== "calls") more.push(t(x.calls === 1 ? "{n} request" : "{n} requests", { n: ledNum(x.calls) }));
+    if (metric !== "calls") more.push(t(x.calls === 1 ? "{n} request" : "{n} requests", { n: fmtN(x.calls) }));
     if (metric !== "tokens") more.push(t("{n} tokens", { n: fmtN(allTokens(x)) }));
     if (metric !== "cost" && x.cost) more.push("≈" + fmtCost(x));
     if (x.credited) more.push(ledCredits(x));
@@ -435,7 +434,7 @@ function ledLines(l, split, metric, g, Y, x0, slot, segs) {
   segs.length = 0;
   if (!l) return;
   const speed = metric === "speed";
-  const { top } = ledCategories(l.chartBy ? { by: l.chartBy } : l, split, metric);
+  const { top, list } = ledCategories(l.chartBy ? { by: l.chartBy } : l, split, metric, true);
   const X = (i) => x0 + slot * i, dot = slot >= 12 ? 4.5 : 3;
   const at = (i, v) => [X(i), Y(v)];
   // stacked, each one goes under those before it, so a band never covers
@@ -468,7 +467,8 @@ function ledLines(l, split, metric, g, Y, x0, slot, segs) {
   };
   if (speed) {
     series("\0all", "var(--usage-muted)", totals.map((v) => (v > 0 ? v : null)), null, true);
-    for (const c of top) series(c.id, c.color, pts.map((p) => ledSpeed(p.by?.[split]?.[c.id]) || null));
+    const rest = new Map(pts.flatMap((p) => ledOthers(p.by?.[split] || {}, top, list)).map((c) => [c.id, c]));
+    for (const c of [...top, ...rest.values()]) series(c.id, c.color, pts.map((p) => ledSpeed(p.by?.[split]?.[c.id]) || null));
     return;
   }
   // from the bottom up: each one's part on what is under it, "Other" last

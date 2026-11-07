@@ -4,6 +4,9 @@ param(
     [Parameter(Mandatory)][string]$OutputDirectory,
     [string]$GoExe='go',
     [string]$BunExe,
+    [string]$Run='.',
+    [string[]]$ExcludeTests=@(),
+    [ValidateRange(1,30)][int]$TestTimeoutMinutes=5,
     [string[]]$Packages=@('provider','gateway','gui','plugin','pluginrt','middleware','redact','masking','pii','settings','usage','catalog','filememo','netproxy','sessions','maskrec','routes','ghtoken','proc','access','filelock')
 )
 $ErrorActionPreference='Stop'
@@ -42,6 +45,9 @@ try {
             $names=@(foreach($file in $files){if($file -match ('^internal/'+[regex]::Escape($package)+'/[^/]+_test\.go$')){
                 [regex]::Matches([IO.File]::ReadAllText((Join-Path $source $file)),'(?m)^func (Test[A-Za-z0-9_]+)\(')|ForEach-Object{$_.Groups[1].Value}
             }})|Sort-Object -Unique
+            $names=@($names|Where-Object {$_ -match $Run})
+            $separate=@($names|Where-Object {$_ -in $ExcludeTests})
+            $names=@($names|Where-Object {$_ -notin $ExcludeTests})
             if(-not $names){continue}
             # Two upstream cases expect auto-installing a missing vendor CLI.
             # That conflicts with WinOne's explicit-install boundary. Verify
@@ -55,10 +61,12 @@ try {
             }
             $pattern='^('+($names -join '|')+')$'
             $ErrorActionPreference='Continue'
-            & $GoExe test ('./internal/'+$package) -run $pattern -count=1 -parallel=2 -timeout=5m -v 2>&1 | Out-File (Join-Path $output ($package+'.log')) -Encoding utf8
+            # This bounds the test process, not a production request. Large
+            # increments may need more wall time; assertions remain unchanged.
+            & $GoExe test ('./internal/'+$package) -run $pattern -count=1 -parallel=2 ("-timeout="+$TestTimeoutMinutes+"m") -v 2>&1 | Out-File (Join-Path $output ($package+'.log')) -Encoding utf8
             $code=$LASTEXITCODE
             $ErrorActionPreference='Stop'
-            $results += [ordered]@{package=$package;tests=$names;adaptedCases=$adapted;exitCode=$code}
+            $results += [ordered]@{package=$package;tests=$names;separateChecks=$separate;adaptedCases=$adapted;exitCode=$code}
             Write-Output ($package+': '+$names.Count+' selected tests; exit '+$code)
         }
     } finally {Pop-Location}

@@ -2,7 +2,6 @@ package aiservices
 
 import (
 	"errors"
-	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
-	"winone/desktopmygo/web"
 )
 
 // The kinds personal masking finds; the first six are on by default.
@@ -302,97 +300,37 @@ func (a *advancedPanel) actions(c *ui.Context, locked bool) {
 	a.opens["actions"] = open
 }
 
-// recordsView is Magpie's privacy records page, served beside the plugin
-// pages: its "turn on" and "see the rules" open the form below, which the
-// page saves, so unsaved-change protection applies.
+// recordsView is the native view of Magpie's real masking records and preview.
 func (a *advancedPanel) recordsView(c *ui.Context, locked bool) {
-	p := a.p
-	x := p.extensions.state
-	if x == nil {
-		return
-	}
-	base, err := url.Parse(x.URL)
-	if err != nil {
-		return
-	}
-	page := base.ResolveReference(&url.URL{Path: "masking.html"})
-	if p.maskRecord != "" {
-		q := page.Query()
-		q.Set("record", p.maskRecord)
-		page.RawQuery = q.Encode()
-	}
-	address := page.String()
-	if a.records != nil && a.recordsFor != address {
-		a.records.Close()
-		a.records = nil
-	}
 	if a.records == nil {
-		title := "Masking records"
-		if strings.HasPrefix(i18n.Locale(), "zh") {
-			title = "脱敏记录"
-		}
-		a.recordsFor = address
-		a.records = web.New(p.env, web.Options{URL: address, Label: title, Theme: "winone-plugin-theme", Height: 320,
-			Accept:     []string{"winone-plugin-height", "winone-masking-actions", "winone-masking-settings"},
-			HeightType: "winone-plugin-height", Receive: a.receiveRecords})
+		a.records = &maskingRecords{owner: a, days: 7}
 	}
 	a.records.View(c, locked)
 }
 
-func (a *advancedPanel) receiveRecords(m web.Message) {
-	switch m.String("type") {
-	case "winone-masking-actions":
-		kinds, _ := m["kinds"].([]any)
-		if a.p.locked() {
-			return
-		}
-		var names []string
-		for _, k := range kinds {
-			name, ok := k.(string)
-			if !ok || !maskKinds.MatchString(name) {
-				return
-			}
-			names = append(names, name)
-		}
-		// Turning masking on for these kinds removes their warn or block
-		// action, staged in the draft.
-		s := a.settings()
-		next := map[string]string{}
-		for k, v := range s.RedactActions {
-			if !slices.Contains(names, k) {
-				next[k] = v
-			}
-		}
-		s.RedactActions = next
-		a.focusPrivacy = true
-	case "winone-masking-settings":
-		a.focusPrivacy = true
-	}
-}
-
 // privacyStatus is the local privacy model's state.
 type privacyStatus struct {
-	Model string `json:"model"`
-	MinScore float64 `json:"minScore"`
-	DefaultScore float64 `json:"defaultScore"`
-	Models []privacyStatus `json:"models,omitempty"`
-	Via string `json:"via,omitempty"`
-	Loading bool `json:"loading,omitempty"`
-	Waiting float64 `json:"waiting,omitempty"`
-	On          *bool   `json:"on"`
-	Supported   *bool   `json:"supported"`
-	Installed   bool    `json:"installed"`
-	Size        float64 `json:"size"`
-	Downloading bool    `json:"downloading,omitempty"`
-	Done        float64 `json:"done,omitempty"`
-	Total       float64 `json:"total,omitempty"`
-	Error       string  `json:"error,omitempty"`
-	Running     bool    `json:"running,omitempty"`
-	Device      string  `json:"device,omitempty"`
-	GPU         bool    `json:"gpu,omitempty"`
-	LoadMS      float64 `json:"loadMs,omitempty"`
-	GPUError    string  `json:"gpuError,omitempty"`
-	Failed      string  `json:"failed,omitempty"`
+	Model        string          `json:"model"`
+	MinScore     float64         `json:"minScore"`
+	DefaultScore float64         `json:"defaultScore"`
+	Models       []privacyStatus `json:"models,omitempty"`
+	Via          string          `json:"via,omitempty"`
+	Loading      bool            `json:"loading,omitempty"`
+	Waiting      float64         `json:"waiting,omitempty"`
+	On           *bool           `json:"on"`
+	Supported    *bool           `json:"supported"`
+	Installed    bool            `json:"installed"`
+	Size         float64         `json:"size"`
+	Downloading  bool            `json:"downloading,omitempty"`
+	Done         float64         `json:"done,omitempty"`
+	Total        float64         `json:"total,omitempty"`
+	Error        string          `json:"error,omitempty"`
+	Running      bool            `json:"running,omitempty"`
+	Device       string          `json:"device,omitempty"`
+	GPU          bool            `json:"gpu,omitempty"`
+	LoadMS       float64         `json:"loadMs,omitempty"`
+	GPUError     string          `json:"gpuError,omitempty"`
+	Failed       string          `json:"failed,omitempty"`
 }
 
 // privacyModel is Magpie's local model for masking, with its own
@@ -432,7 +370,7 @@ func (m *privacyModel) loadChoice(method, action, model string, score float64) {
 	if m.state == nil {
 		m.busy = true
 	}
-	params := map[string]any{"viewer": m.viewer, "model": model, "score":score}
+	params := map[string]any{"viewer": m.viewer, "model": model, "score": score}
 	if action != "" {
 		params["action"] = action
 	}
@@ -494,13 +432,23 @@ func (m *privacyModel) View(c *ui.Context, disabled bool) {
 		size = s.Size
 	}
 	sizeText := strconv.FormatFloat(size/1e9, 'f', 1, 64) + " GB"
-	if size < 1e9 { sizeText = strconv.FormatFloat(size/1e6, 'f', 1, 64) + " MB" }
-	if s != nil && len(s.Models)>0 {
-		model:=s.Model
-		if choiceRow(c,i18n.T("ai.privacyModelChoice"),"",&model,options("astrlink-guard","AstrLink Guard","privacy-filter","Privacy Filter"),disabled||m.busy) {m.loadChoice("action","pick",model,0)}
-		score:=s.MinScore
-		numberRow(c,i18n.T("ai.privacyModelScore"),&score,0.5,0.999,false,"",disabled||m.busy,func(v *float64){if v!=nil{m.loadChoice("action","score",s.Model,*v)}})
-		if kit.GhostButton(c,i18n.T("ai.privacyDefaultScore"),icons.RotateCcw,false).Disabled(disabled||m.busy).Clicked(){m.loadChoice("action","score",s.Model,0)}
+	if size < 1e9 {
+		sizeText = strconv.FormatFloat(size/1e6, 'f', 1, 64) + " MB"
+	}
+	if s != nil && len(s.Models) > 0 {
+		model := s.Model
+		if choiceRow(c, i18n.T("ai.privacyModelChoice"), "", &model, options("astrlink-guard", "AstrLink Guard", "privacy-filter", "Privacy Filter"), disabled || m.busy) {
+			m.loadChoice("action", "pick", model, 0)
+		}
+		score := s.MinScore
+		numberRow(c, i18n.T("ai.privacyModelScore"), &score, 0.5, 0.999, false, "", disabled || m.busy, func(v *float64) {
+			if v != nil {
+				m.loadChoice("action", "score", s.Model, *v)
+			}
+		})
+		if kit.GhostButton(c, i18n.T("ai.privacyDefaultScore"), icons.RotateCcw, false).Disabled(disabled || m.busy).Clicked() {
+			m.loadChoice("action", "score", s.Model, 0)
+		}
 	}
 	description := i18n.T("ai.privacyModelHint", "size", sizeText)
 	if s != nil {

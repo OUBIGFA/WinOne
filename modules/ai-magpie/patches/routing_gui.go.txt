@@ -6,9 +6,9 @@ import (
  "io/fs"
  "net/http"
  "strings"
- "strconv"
  "sync"
  "github.com/yetone/magpie/internal/gateway"
+ "github.com/yetone/magpie/internal/middleware"
  "github.com/yetone/magpie/internal/provider"
  "github.com/yetone/magpie/internal/settings"
 )
@@ -34,6 +34,12 @@ func WinOneRoutingHandler(gw *gateway.Server, bundled []string) http.Handler {
  served.Store(gw)
  mux:=http.NewServeMux()
  groupRoutes(mux);traceRoutes(mux);contextRoutesAPI(mux);maskingRoutes(mux)
+ // Preview uses the actual upstream pattern parser/matcher, never writes a group.
+ mux.HandleFunc("POST /api/groups/preview",func(w http.ResponseWriter,r *http.Request){
+  var in provider.Group;if json.NewDecoder(http.MaxBytesReader(w,r.Body,256<<10)).Decode(&in)!=nil{http.Error(w,"Invalid group preview",400);return}
+  patterns,err:=provider.CleanPatterns(in.Match);if err!=nil{fail(w,err);return};in.Match=patterns
+  writeJSON(w,map[string]any{"patterns":provider.PatternHits(in)})
+ })
  pluginRoutes(mux,nil);pluginPageRoutes(mux,true)
  // Routing's body/HTTP-header panels may fetch an explicitly kept archive.
  // Export still goes through the native Host and its destination protection.
@@ -48,8 +54,8 @@ func WinOneRoutingHandler(gw *gateway.Server, bundled []string) http.Handler {
  // form its translation table understands instead of a regional tag.
  // The standalone page needs the same feature state as the upstream shell,
  // including the off-state explanation and its one-click enable action.
- type routingSettings struct {settings.Settings;Builtins []builtinJSON `json:"builtins"`}
- winOneSettings:=func()routingSettings{s:=settings.Load();if strings.HasPrefix(s.Lang,"zh"){s.Lang="zh"}else if s.Lang!="system"&&!strings.HasPrefix(s.Lang,"en"){s.Lang="en"};return routingSettings{s,builtinsState()}}
+ type routingSettings struct {settings.Settings;Builtins []builtinJSON `json:"builtins"`;JSRoutings []middleware.Routing `json:"jsRoutings"`}
+ winOneSettings:=func()routingSettings{s:=settings.Load();if strings.HasPrefix(s.Lang,"zh"){s.Lang="zh"}else if s.Lang!="system"&&!strings.HasPrefix(s.Lang,"en"){s.Lang="en"};return routingSettings{Settings:s,Builtins:builtinsState(),JSRoutings:middleware.Routings()}}
  mux.HandleFunc("GET /api/state",func(w http.ResponseWriter,r *http.Request){writeJSON(w,map[string]any{"agents":[]any{map[string]any{"id":"winone","name":"WinOne","fields":[]any{}}},"profiles":[]any{},"settings":winOneSettings()})})
  mux.HandleFunc("GET /api/settings",func(w http.ResponseWriter,r *http.Request){writeJSON(w,winOneSettings())})
  var preferenceMu sync.Mutex
@@ -68,7 +74,7 @@ func WinOneRoutingHandler(gw *gateway.Server, bundled []string) http.Handler {
   switch r.PathValue("action"){case "route":err=provider.SetRouting(body.ID,body.Routing);case "affinity":err=provider.SetAffinity(body.ID,body.Affinity);case "sink":err=provider.SetSink(body.ID,body.Sink);default:http.NotFound(w,r);return}
   if err!=nil {fail(w,err);return};writeJSON(w,providersState())
  })
- mux.HandleFunc("GET /api/gateway/call",func(w http.ResponseWriter,r *http.Request){id,err:=strconv.ParseUint(r.URL.Query().Get("id"),10,64);if err!=nil {http.Error(w,"Invalid call id",400);return};call,ok:=gw.RecentCall(id);if !ok {http.NotFound(w,r);return};writeJSON(w,map[string]any{"requestBody":call.RequestBody,"responseBody":call.ResponseBody,"requestTruncated":call.RequestTruncated,"responseTruncated":call.ResponseTruncated})})
+ winOneCallRoutes(mux)
  mux.HandleFunc("GET /boot.js",func(w http.ResponseWriter,r *http.Request){w.Header().Set("Content-Type","text/javascript; charset=utf-8");lang:=settings.Load().Lang;if strings.HasPrefix(lang,"zh"){lang="zh"}else{lang="en"};b,_:=json.Marshal(map[string]any{"lang":lang,"theme":settings.Load().Theme,"web":true,"bundledPackages":bundled});w.Write(append(append([]byte("window.bootPrefs="),b...),';'))})
  files,_:=fs.Sub(assets,"assets")
  static:=http.FileServer(http.FS(files))

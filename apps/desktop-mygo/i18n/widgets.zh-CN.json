@@ -1,4 +1,8 @@
 {
+ "moduleStatus.warning": "上次操作未完成",
+ "module.problemTimeout": "操作超时（{{error}}）。可先重试该功能；若反复出现，请在设置中查看 WinOne 日志。",
+ "module.problemPendingStop": "上次关闭尚未完成，可点击重试关闭。",
+ "module.problemUnknown": "组件状态为 {{state}}，但未返回具体原因。请刷新状态或在设置中查看 WinOne 日志。",
  "fileDrop.absolute": "请拖入完整的本地路径",
  "common.cancel": "取消"
 }

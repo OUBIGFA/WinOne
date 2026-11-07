@@ -1,217 +1,302 @@
 package aiservices
 
 import (
+	"encoding/json"
 	"errors"
 	"net/url"
 	"regexp"
+	"slices"
+	"strings"
 
 	"github.com/egoist/mygo/ui"
-
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
-	"winone/desktopmygo/kit/icons"
-	"winone/desktopmygo/web"
+	"winone/desktopmygo/widgets"
 )
 
-// hostPage is a page the Host serves for one tab: opened when the tab
-// shows, closed when it leaves, opened again after a save replaced the
-// configuration the page was made for.
-type hostPage struct {
-	p          *page
-	open       string // capture.ai.<open> / .<close>
-	close      string
-	options    web.Options
-	surface    *web.Surface
-	url        string
-	revision   float64
-	opened     bool
-	busy       bool
-	err        string
-	read       int
+// Native routing is a presentation of Magpie's groups/trace APIs, not a
+// replacement router. Its form retains unknown upstream fields on roundtrip.
+type routeGroup struct {
+	ID         string                      `json:"id"`
+	Name       string                      `json:"name"`
+	Members    []string                    `json:"members"`
+	Match      []string                    `json:"match,omitempty"`
+	Matched    []string                    `json:"matched,omitempty"`
+	Placed     []string                    `json:"placed,omitempty"`
+	Routing    string                      `json:"routing,omitempty"`
+	Affinity   string                      `json:"affinity,omitempty"`
+	Sink       bool                        `json:"sink,omitempty"`
+	FirstToken int                         `json:"firstToken,omitempty"`
+	Patience   int                         `json:"patience,omitempty"`
+	Off        []string                    `json:"off,omitempty"`
+	Pick       string                      `json:"pick,omitempty"`
+	Rules      []core.Preserved[routeRule] `json:"rules,omitempty"`
+	Classifier string                      `json:"classifier,omitempty"`
+	IntentSure *float64                    `json:"intentSure,omitempty"`
+	Effort     string                      `json:"effort,omitempty"`
+	Context    int                         `json:"context,omitempty"`
+	Levels     []string                    `json:"levels,omitempty"`
+	Fast       []string                    `json:"fast,omitempty"`
+	Weights    map[string]int              `json:"weights,omitempty"`
+	Family     string                      `json:"family,omitempty"`
+	Unlists    bool                        `json:"unlists,omitempty"`
+	Accounts   []string                    `json:"accounts,omitempty"`
+	Auto       bool                        `json:"auto,omitempty"`
+	Hidden     bool                        `json:"hidden,omitempty"`
+	Seen       []string                    `json:"seen,omitempty"`
+	Disabled   bool                        `json:"disabled,omitempty"`
+	Ready      bool                        `json:"ready"`
+	Ref        string                      `json:"ref"`
+	Patterns   []patternMatch              `json:"patterns"`
+	MemberInfo []routeModel                `json:"memberInfo"`
+	Offers     []string                    `json:"offers"`
+	Shared     []string                    `json:"shared"`
+}
+type routeRule struct {
+	Use           string     `json:"use"`
+	More          []string   `json:"more,omitempty"`
+	UseEffort     string     `json:"useEffort,omitempty"`
+	Tokens        int        `json:"tokens,omitempty"`
+	Images        bool       `json:"images,omitempty"`
+	Effort        string     `json:"effort,omitempty"`
+	Agents        []string   `json:"agents,omitempty"`
+	Intent        string     `json:"intent,omitempty"`
+	Compact       bool       `json:"compact,omitempty"`
+	Time          *routeTime `json:"time,omitempty"`
+	Folders       []string   `json:"folders,omitempty"`
+	ExceptFolders []string   `json:"exceptFolders,omitempty"`
+	Pause         bool       `json:"pause,omitempty"`
+}
+type routeTime struct {
+	Days []string `json:"days,omitempty"`
+	From string   `json:"from"`
+	To   string   `json:"to"`
+	Zone string   `json:"zone,omitempty"`
+}
+type routeModel struct {
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	Provider     string   `json:"provider"`
+	ProviderName string   `json:"providerName"`
+	Efforts      []string `json:"efforts"`
+	CanFast      bool     `json:"canFast"`
+	Context      int      `json:"context"`
+	Images       bool     `json:"images"`
+	Free         bool     `json:"free"`
+	Zero         bool     `json:"zero"`
+}
+type routePool struct {
+	Provider string   `json:"provider"`
+	Name     string   `json:"name"`
+	Kind     string   `json:"kind"`
+	Who      []string `json:"who"`
+	Routing  string   `json:"routing"`
+	Affinity string   `json:"affinity"`
+	Sink     bool     `json:"sink"`
+	Protocol string   `json:"protocol"`
 }
 
-// show opens the page for the saved revision.
-func (h *hostPage) show(revision float64) {
-	if h.busy || (h.opened && h.revision == revision) || h.err != "" {
-		return
-	}
-	h.release()
-	h.read++
-	owner := h.read
-	h.busy, h.revision = true, revision
-	p := h.p
-	core.Go(p.env, func() (string, error) {
-		var result struct {
-			URL string `json:"url"`
-		}
-		err := p.env.Host.CallCompletingInto(h.open, nil, &result)
-		return result.URL, err
-	}, func(address string, err error) {
-		h.busy = false
-		if owner != h.read {
-			// The tab left while it opened: close what opened.
-			if err == nil {
-				spawn(p.env, func() { _ = p.env.Host.CallCompletingInto(h.close, nil, nil) })
-			}
-			return
-		}
-		if err != nil {
-			h.err = err.Error()
-			return
-		}
-		h.opened, h.url = true, address
-		options := h.options
-		options.URL = address
-		h.surface = web.New(p.env, options)
-	})
+type routeCapabilities struct {
+	Builtins   []builtinPlugin `json:"builtins"`
+	JSRoutings []struct {
+		ID     string `json:"id"`
+		Name   string `json:"name"`
+		Plugin string `json:"plugin"`
+	} `json:"jsRoutings"`
 }
 
-// release closes the page and the Host's process for it.
-func (h *hostPage) release() {
-	h.read++
-	if h.surface != nil {
-		h.surface.Close()
-		h.surface = nil
-	}
-	if h.opened {
-		h.opened = false
-		p := h.p
-		spawn(p.env, func() { _ = p.env.Host.CallCompletingInto(h.close, nil, nil) })
-	}
-	h.busy = false
+type routeGroups struct {
+	Groups    []core.Preserved[routeGroup] `json:"groups"`
+	Models    []routeModel                 `json:"models"`
+	Deciders  []routeModel                 `json:"deciders"`
+	Drawers   []routeModel                 `json:"drawers"`
+	Pools     []routePool                  `json:"pools"`
+	Found     bool                         `json:"found"`
+	Skip      []string                     `json:"skip"`
+	Skippable []named                      `json:"skippable"`
+	Templates []struct {
+		Kind  string                     `json:"kind"`
+		Group core.Preserved[routeGroup] `json:"group"`
+		Why   string                     `json:"why"`
+		Need  string                     `json:"need"`
+		Of    string                     `json:"of"`
+	} `json:"templates"`
+	Accounts map[string][]struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"accounts"`
+	Clock    json.RawMessage `json:"clock"`
+	Shared   string          `json:"shared"`
+	Imported json.RawMessage `json:"imported"`
 }
 
-// retry opens the page again after an error.
-func (h *hostPage) retry() { h.err = "" }
-
-// routingPanel is Magpie's complete routing page, its editor, rules and
-// live trace, below WinOne's switch for routing.
 type routingPanel struct {
-	hostPage
+	p                                *page
+	api, capabilitiesAPI, patternAPI nativeAPI
+	previewPatterns                  []patternMatch
+	previewFor                       []string
+	capabilities                     *routeCapabilities
+	state                            *routeGroups
+	source                           string
+	tab                              int
+	search                           string
+	selected                         map[string]bool
+	edit, saved                      *core.Preserved[routeGroup]
+	fields                           fields
+	memberSearch                     string
+	newMember                        string
+	dialog, text, name               string
+	replaceImport                    bool
+	trace                            nativeTrace
 }
 
 func newRoutingPanel(p *page) *routingPanel {
-	r := &routingPanel{hostPage{p: p, open: "capture.ai.routing.open", close: "capture.ai.routing.close"}}
-	r.options = web.Options{Label: i18n.T("routing.title"), Theme: "winone-routing-theme", Height: 600,
-		Accept:     []string{"winone-routing-height", "winone-routing-masking", "winone-routing-native"},
-		HeightType: "winone-routing-height", Receive: r.receive}
-	return r
+	return &routingPanel{p: p, selected: map[string]bool{}, fields: fields{}}
 }
-
-func (r *routingPanel) receive(m web.Message) {
-	p := r.p
-	switch m.String("type") {
-	case "winone-routing-masking":
-		// "See the record" opens the privacy records at it, in the same
-		// draft.
-		if p.locked() {
-			return
-		}
-		p.maskRecord = m.String("key")
-		p.advancedTab = advancedPrivacy
-		p.switchTab(tabAdvanced)
-	case "winone-routing-native":
-		id := m.String("id")
-		if id == "" {
-			return
-		}
-		reply := func(err error) {
-			result := map[string]any{"type": "winone-routing-native-result", "id": id}
-			if err != nil {
-				result["error"] = err.Error()
-			}
-			if r.surface != nil {
-				r.surface.Post(result)
-			}
-		}
-		// The routing page may only turn routing groups on.
-		if m.String("method") != "enable-groups" {
-			reply(errors.New(i18n.T("aiPlugins.unsupportedAction")))
-			return
-		}
-		if p.locked() {
-			reply(errors.New(i18n.T("aiPlugins.busyAction")))
-			return
-		}
-		p.enableRoutingGroups(reply)
-	}
-}
-
-func (r *routingPanel) Close() { r.release() }
-
-// Leave closes the page when the routing tab no longer shows.
+func (r *routingPanel) Close() { r.Leave() }
 func (r *routingPanel) Leave() {
-	if r.opened || r.busy || r.surface != nil {
-		r.release()
-	}
+	r.api.close()
+	r.capabilitiesAPI.close()
+	r.patternAPI.close()
+	r.trace.api.close()
+	r.trace.detailAPI.close()
+	r.trace.titleAPI.close()
+	r.source = ""
+	r.p.env.Activity.Report("ai-routing", false, false, nil)
 }
-
-func (r *routingPanel) View(c *ui.Context) {
-	p := r.p
-	if page := p.extensions.replacement("routing"); page != nil {
-		r.Leave()
-		p.extensions.Page(c, *page, nil, p.locked())
-		return
-	}
-	if p.saved != nil {
-		r.show(p.saved.Value.Revision)
-	}
-	kit.Panel(c, func() {
-		enabled := p.draft != nil && p.draft.Value.RoutingEnabled
-		if kit.Toggle(c, &enabled, i18n.T("routing.enabled"), i18n.T("routing.hint")).Disabled(r.busy || p.locked() || p.draft == nil).Changed() {
-			p.draft.Value.RoutingEnabled = enabled
-		}
-	})
-	if r.err != "" {
-		kit.Notice(c, kit.Failure, "", r.err, func() {
-			if kit.Button(c, i18n.T("common.retry"), icons.RefreshCw, false).Clicked() {
-				r.retry()
+func (r *routingPanel) dirty() bool { return r.edit != nil && !equal(r.edit, r.saved) }
+func (r *routingPanel) discard()    { r.edit, r.saved = nil, nil; r.fields = fields{} }
+func (r *routingPanel) load() {
+	if r.capabilities == nil && !r.capabilitiesAPI.busy && r.capabilitiesAPI.err == "" {
+		r.capabilitiesAPI.request(r.p, "GET", "/api/settings", nil, func(raw json.RawMessage) {
+			var value routeCapabilities
+			if nativeDecode(&r.capabilitiesAPI, raw, &value) {
+				r.capabilities = &value
 			}
 		})
 	}
-	if r.busy && r.surface == nil {
-		kit.Status(c, i18n.T("capture.loading"))
+	r.api.request(r.p, "GET", "/api/groups", nil, func(raw json.RawMessage) {
+		var value routeGroups
+		if decodeRouteGroups(&r.api, raw, &value) {
+			r.state = &value
+		}
+	})
+}
+func (r *routingPanel) act(action string, body any, done func()) {
+	r.api.request(r.p, "POST", "/api/groups/"+action, body, func(raw json.RawMessage) {
+		var value routeGroups
+		if !decodeRouteGroups(&r.api, raw, &value) {
+			return
+		}
+		r.state = &value
+		if done != nil {
+			done()
+		}
+	})
+}
+func (r *routingPanel) begin(group core.Preserved[routeGroup]) {
+	change := func() {
+		data, _ := json.Marshal(group)
+		var a, b core.Preserved[routeGroup]
+		_ = json.Unmarshal(data, &a)
+		_ = json.Unmarshal(data, &b)
+		r.patternAPI.close()
+		r.previewPatterns, r.previewFor = nil, nil
+		r.edit, r.saved = &a, &b
+		r.fields = fields{}
 	}
-	if r.surface != nil {
-		r.surface.View(c, p.locked())
+	if r.dirty() && r.p.env.RequestChange != nil {
+		r.p.env.RequestChange(change)
+	} else {
+		change()
 	}
 }
-
-// pluginsPanel is the third-party plugin manager: installation and the
-// plugins' own operations, which apply at once. Only its own page may ask
-// WinOne to choose a folder or open an account connection.
-type pluginsPanel struct {
-	hostPage
-	request *pageRequest
-	shown   string // the nonce of the request the page was loaded for
-}
-
-func newPluginsPanel(p *page) *pluginsPanel {
-	x := &pluginsPanel{hostPage: hostPage{p: p, open: "capture.ai.routing.plugins.open", close: "capture.ai.routing.plugins.close"}}
-	x.options = web.Options{Label: i18n.T("aiPlugins.title"), Theme: "winone-plugin-theme", Height: 600,
-		Accept:     []string{"winone-plugin-height", "winone-plugin-changed", "winone-plugin-native", "winone-plugin-status"},
-		HeightType: "winone-plugin-height", Receive: x.receive}
-	return x
-}
-
-func (x *pluginsPanel) Close() { x.release() }
-
-func (x *pluginsPanel) Leave() {
-	if x.opened || x.busy || x.surface != nil {
-		x.release()
-		x.shown = ""
+func (r *routingPanel) saveGroup() {
+	if r.edit == nil {
+		return
 	}
+	data, _ := json.Marshal(r.edit)
+	var body map[string]json.RawMessage
+	_ = json.Unmarshal(data, &body)
+	body["from"], _ = json.Marshal(r.saved.Value.ID)
+	r.act("save", body, r.discard)
+}
+func (r *routingPanel) View(c *ui.Context) {
+	p := r.p
+	p.env.Activity.Report("ai-routing", r.dirty(), r.api.busy, r.discard)
+	if replacement := p.extensions.replacement("routing"); replacement != nil {
+		p.extensions.Page(c, *replacement, nil, p.locked())
+		return
+	}
+	if p.extensions.state != nil && r.source != p.extensions.state.URL {
+		r.api.close()
+		r.capabilitiesAPI.close()
+		r.capabilitiesAPI.err = ""
+		r.patternAPI.close()
+		r.patternAPI.err = ""
+		r.previewPatterns, r.previewFor = nil, nil
+		r.capabilities = nil
+		r.trace.api.close()
+		r.trace.detailAPI.close()
+		r.trace.titleAPI.close()
+		r.trace.loaded, r.trace.selected = false, nil
+		r.source = p.extensions.state.URL
+		r.load()
+	}
+	if r.edit != nil {
+		p.env.Rail.Set(
+			core.Action{Label: nativeT("saveGroup"), Disabled: !r.dirty() || r.api.busy || p.locked(), Busy: r.api.busy, Run: r.saveGroup},
+			core.Action{Disabled: !r.dirty() || r.api.busy, Run: r.discard},
+		)
+	}
+	if p.draft != nil {
+		kit.Toggle(c, &p.draft.Value.RoutingEnabled, i18n.T("routing.enabled"), i18n.T("routing.hint")).Disabled(p.locked() || r.api.busy)
+	}
+	kit.SubTabs(c, &r.tab, []string{i18n.T("aiNative.groups"), i18n.T("aiNative.requests")}, p.env.RequestChange)
+	r.api.notice(c, r.load)
+	r.capabilitiesAPI.notice(c, func() { r.capabilitiesAPI.err = ""; r.capabilities = nil; r.load() })
+	if r.capabilities != nil {
+		for _, feature := range r.capabilities.Builtins {
+			if feature.ID == "groups" && !feature.On {
+				kit.Notice(c, kit.Info, "", nativeT("groupsDisabled"), func() {
+					if kit.Button(c, nativeT("enableGroups"), nil, false).Disabled(p.locked()).Clicked() {
+						p.enableRoutingGroups(func(err error) {
+							if err != nil {
+								r.api.err = err.Error()
+							}
+						})
+					}
+				})
+			}
+		}
+	}
+	if r.tab == 1 {
+		r.trace.View(c, p)
+		return
+	}
+	if r.state == nil {
+		if r.api.busy || p.extensions.state == nil {
+			kit.Status(c, i18n.T("capture.loading"))
+		}
+		return
+	}
+	if r.edit != nil {
+		r.editor(c)
+		return
+	}
+	r.groupsView(c)
+	r.dialogView(c)
 }
 
-// pageURL adds a page request to the manager's address. Context is
-// rebuilt from public identity, never a provider object or credential.
+// pageURL carries only public identity to an author's own plugin surface.
 func pageURL(base string, r *pageRequest) string {
 	u, err := url.Parse(base)
 	if err != nil || r == nil {
 		return base
 	}
 	q := u.Query()
+	q.Set("surface", "1")
 	q.Set("page", r.key)
 	q.Set("request", r.nonce)
 	if r.action != "" && r.menu != "" && r.item != nil {
@@ -224,67 +309,6 @@ func pageURL(base string, r *pageRequest) string {
 	return u.String()
 }
 
-func (x *pluginsPanel) receive(m web.Message) {
-	p := x.p
-	switch m.String("type") {
-	case "winone-plugin-changed":
-		// Only a successful registry change refreshes account discovery.
-		p.extensions.Reload()
-		p.reader.InvalidateCatalog()
-		p.reader.Invalidate()
-		p.catalog.loaded = false
-	case "winone-plugin-status":
-		// The page's results, as "plugin removed", use WinOne's own toast.
-		if message := m.String("message"); message != "" && p.env.Toast != nil {
-			p.env.Toast(message)
-		}
-	case "winone-plugin-native":
-		id := m.String("id")
-		if id == "" {
-			return
-		}
-		reply := func(result any, err error) {
-			message := map[string]any{"type": "winone-plugin-native-result", "id": id}
-			if err != nil {
-				message["error"] = err.Error()
-			} else {
-				message["result"] = result
-			}
-			if x.surface != nil {
-				x.surface.Post(message)
-			}
-		}
-		// A request posted before the page was locked still gets an
-		// answer, so the page's promise never waits forever.
-		if p.locked() {
-			reply(nil, errors.New(i18n.T("aiPlugins.busyAction")))
-			return
-		}
-		switch m.String("method") {
-		case "choose":
-			core.Go(p.env, func() (string, error) { return p.env.Dialogs.PickFolder(i18n.T("aiPlugins.title")) },
-				func(dir string, err error) { reply(dir, err) })
-		case "provider":
-			agentID := m.String("provider")
-			if agentID == "" {
-				reply(nil, errors.New(i18n.T("aiPlugins.unsupportedAction")))
-				return
-			}
-			name := m.String("name")
-			if name == "" {
-				name = agentID
-			}
-			signIn, _ := m["signIn"].(bool)
-			reply(nil, p.openPluginProvider(agent{ID: agentID, Name: name, Backend: "plugin", Plugin: m.String("plugin")}, signIn))
-		default:
-			reply(nil, errors.New(i18n.T("aiPlugins.unsupportedAction")))
-		}
-	}
-}
-
-// openPluginProvider shows a plugin's account type on the accounts tab:
-// its existing connection, or a new one; signIn starts its sign-in once
-// the connection's methods are known.
 func (p *page) openPluginProvider(a agent, signIn bool) error {
 	if p.draft == nil {
 		return errors.New(i18n.T("capture.loading"))
@@ -315,36 +339,100 @@ func (p *page) openPluginProvider(a agent, signIn bool) error {
 	return nil
 }
 
-func (x *pluginsPanel) View(c *ui.Context) {
-	p := x.p
-	if p.saved != nil {
-		x.show(p.saved.Value.Revision)
-	}
-	if x.err != "" {
-		kit.Notice(c, kit.Failure, "", x.err, func() {
-			if kit.Button(c, i18n.T("common.retry"), icons.RefreshCw, false).Clicked() {
-				x.retry()
-			}
-		})
-	}
-	if x.busy && x.surface == nil {
-		kit.Status(c, i18n.T("aiPlugins.loading"))
-	}
-	if x.surface == nil {
-		return
-	}
-	// Each request loads the manager at its page anew, as React's iframe
-	// keyed by the request did.
-	nonce := ""
-	if x.request != nil {
-		nonce = x.request.nonce
-	}
-	if nonce != x.shown {
-		x.shown = nonce
-		x.surface.Load(pageURL(x.url, x.request))
-	}
-	x.surface.View(c, p.locked())
+var maskKinds = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
+
+func nativeSelect(c *ui.Context, label string, current *string, choices []kit.SelectOption, disabled bool) bool {
+	changed := false
+	ui.Field(c, label, func() {
+		var trigger ui.Element
+		changed, trigger = kit.Select(c, current, choices)
+		trigger.FillWidth().MinWidth(0).Label(label).Disabled(disabled)
+	})
+	return changed
 }
 
-// maskKinds are masking kinds, as Magpie names them.
-var maskKinds = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
+func nativeText(c *ui.Context, label string, value *string, disabled bool) {
+	ui.Field(c, label, func() { ui.TextInput(c, value).FillWidth().Label(label).Disabled(disabled) })
+}
+func nativeInt(c *ui.Context, label string, value *int, low, high int, disabled bool) bool {
+	changed := false
+	n := float64(*value)
+	numberRow(c, label, &n, float64(low), float64(high), true, "", disabled, func(v *float64) { *value = intNumber(v); changed = true })
+	return changed
+}
+func intNumber(v *float64) int {
+	if v == nil {
+		return 0
+	}
+	return int(*v)
+}
+func nativeList(c *ui.Context, f fields, key, label string, values *[]string, disabled bool) {
+	s := f.get(key)
+	if value, changed := s.sync(strings.Join(*values, "\n")); changed {
+		var out []string
+		for _, line := range strings.Split(value, "\n") {
+			if line = strings.TrimSpace(line); line != "" && !slices.Contains(out, line) {
+				out = append(out, line)
+			}
+		}
+		*values = out
+	}
+	ui.Field(c, label, func() { ui.TextArea(c, &s.text).FillWidth().MinHeight(64).Label(label).Disabled(disabled) })
+}
+
+// nativeModelField is only a data adapter to the same model menu Chat uses.
+func nativeModelField(c *ui.Context, p *page, label string, current *string, models []routeModel, choices []widgets.ModelChoice, locked bool) {
+	var groups []widgets.ModelGroup
+	indices := map[string]int{}
+	for _, model := range models {
+		provider := model.Provider
+		if provider == "" {
+			provider, _, _ = strings.Cut(model.ID, "/")
+		}
+		index, ok := indices[provider]
+		if !ok {
+			index = len(groups)
+			indices[provider] = index
+			name := model.ProviderName
+			if name == "" {
+				name = provider
+			}
+			groups = append(groups, widgets.ModelGroup{ID: provider, Name: name})
+		}
+		name := model.Name
+		if name == "" {
+			name = model.ID
+		}
+		groups[index].Models = append(groups[index].Models, widgets.ModelEntry{Value: model.ID, ID: model.ID, Name: name, Label: name})
+	}
+	ui.Field(c, label, func() {
+		if v, picked := widgets.ModelField(c, widgets.ModelFieldOptions{ModelMenuOptions: widgets.ModelMenuOptions{Env: p.env, Groups: groups, Choices: choices, Selected: *current, Label: label}, Disabled: locked}); picked {
+			*current = v
+		}
+	})
+}
+
+func toggleString(values []string, value string, on bool) []string {
+	out := slices.Clone(values)
+	if on && !slices.Contains(out, value) {
+		return append(out, value)
+	}
+	if !on {
+		return slices.DeleteFunc(out, func(v string) bool { return v == value })
+	}
+	return out
+}
+
+// Upstream strategy words are sent unchanged; plugin-defined strategies remain
+// editable as their own identifiers instead of being dropped by a whitelist.
+func routingChoices() []kit.SelectOption {
+	var out []kit.SelectOption
+	for _, id := range []string{"", "order", "rotate", "usage", "pace", "weight", "free", "fast", "cheap", "drain", "expiring", "manual"} {
+		key := id
+		if key == "" {
+			key = "smart"
+		}
+		out = append(out, kit.SelectOption{Value: id, Label: i18n.T("aiNative.strategy." + key)})
+	}
+	return out
+}

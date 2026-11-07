@@ -1,4 +1,8 @@
 {
+ "moduleStatus.warning": "Last operation did not finish",
+ "module.problemTimeout": "The operation timed out ({{error}}). Retry the feature; if it happens again, check the WinOne log in Settings.",
+ "module.problemPendingStop": "The last close did not finish. Choose Retry close.",
+ "module.problemUnknown": "The component reported {{state}} without a reason. Refresh its status or check the WinOne log in Settings.",
  "fileDrop.absolute": "Drop an absolute local path",
  "common.cancel": "Cancel"
 }

@@ -1957,7 +1957,7 @@
  "moduleDescription.wintray": "Manage startup programs and tray icons",
  "moduleStatus.disabled": "Disabled",
  "moduleStatus.enabled": "Enabled",
- "moduleStatus.faulted": "Needs attention",
+ "moduleStatus.faulted": "Runtime error",
  "moduleStatus.incomplete": "Closing needs recovery",
  "moduleStatus.unavailable": "Unavailable",
  "moduleStatus.working": "Working",

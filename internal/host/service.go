@@ -32,6 +32,9 @@ type Module struct {
 	Name   string `json:"name"`
 	State  string `json:"state"`
 	Detail string `json:"detail"`
+	// Warning is the latest failed operation while the module remains usable.
+	// It is not a lifecycle fault and is cleared after a successful operation.
+	Warning string `json:"warning,omitempty"`
 }
 type Snapshot struct {
 	Settings       settings.Settings `json:"settings"`

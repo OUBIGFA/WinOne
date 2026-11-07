@@ -1,4 +1,6 @@
 {
+ "usage.canceled":"已取消",
+ "usage.uploadBytes":"上传字节","usage.downloadBytes":"下载字节","usage.imageFilesSaved":"图片文件传输节省字节","usage.imageFiles":"通过文件发送的图片数","usage.cacheHitRate":"缓存命中率","usage.everyMinutes":"每 {{minutes}} 分钟",
  "usage.exportDialog": "导出用量 CSV",
  "usage.exportCsvFilter": "CSV 表格",
  "usage.exportUnconfirmed": "无法确认 CSV 已保存",

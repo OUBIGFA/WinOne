@@ -163,7 +163,7 @@ func TestToolRowsNameTheirWorkAndOpenFileSnapshots(t *testing.T) {
 func TestTheTranscriptEndsWithTheConversationsFilesAndChanges(t *testing.T) {
 	f := workedTurn(t)
 	h, p, tt := setupItems(t, f)
-	// Folded, the work process names no file.
+	// Collect to the latest-four preview; tool rows may still name this file.
 	p.ui.expanded["process:u1"] = false
 	settle(h, tt)
 	changed := i18n.T("chat.turnFilesChanged", "count", 1)
@@ -174,7 +174,7 @@ func TestTheTranscriptEndsWithTheConversationsFilesAndChanges(t *testing.T) {
 	}
 	shot(t, tt, "chat-files")
 	// The generated file's chip opens it; its row opens the turn's review.
-	if err := tt.Click("notes.md"); err != nil {
+	if err := tt.Click(i18n.T("chat.reviewOpenFile") + ": " + `E:\WinOne\notes.md`); err != nil {
 		t.Fatal(err)
 	}
 	if r := p.ui.panelRequest; r == nil || r.File != `E:\WinOne\notes.md` {
@@ -194,7 +194,7 @@ func TestTheTranscriptEndsWithTheConversationsFilesAndChanges(t *testing.T) {
 		t.Fatalf("applied %v texts %q", f.applied, tt.Texts())
 	}
 	// Each file's context menu has its actions.
-	if err := tt.RightClick("notes.md"); err != nil {
+	if err := tt.RightClick(i18n.T("chat.reviewOpenFile") + ": " + `E:\WinOne\notes.md`); err != nil {
 		t.Fatal(err)
 	}
 	if err := tt.ChooseMenuItem(i18n.T("chat.revealFile")); err != nil {

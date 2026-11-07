@@ -1,6 +1,8 @@
 package widgets
 
 import (
+	"strings"
+
 	"github.com/egoist/mygo/ui"
 
 	"winone/desktopmygo/core"
@@ -17,10 +19,11 @@ type ModuleManifest struct {
 
 // ModuleRuntime is the state of a module's process.
 type ModuleRuntime struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	State  string `json:"state"`
-	Detail string `json:"detail"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	State   string `json:"state"`
+	Detail  string `json:"detail"`
+	Warning string `json:"warning,omitempty"`
 }
 
 // ModuleEntry is a module of the catalog.
@@ -79,15 +82,31 @@ type Modules struct {
 	LoadErr  string
 	// Busy names the operation running: a module ID, "recovery" or
 	// "cleanup"; one at a time, as the switches would race otherwise.
-	Busy string
-	Err  string
+	Busy    string
+	Err     string
+	focuses int
 }
 
 // NewModules reads the catalog.
 func NewModules(env *core.Env) *Modules {
 	m := &Modules{env: env}
+	if env.Focuses != nil {
+		m.focuses = env.Focuses()
+	}
 	m.Reload(nil)
 	return m
+}
+
+// FollowFocus refreshes health after the owner retries a tool elsewhere.
+// It never reads or replaces a settings editor's unsaved form.
+func (m *Modules) FollowFocus() {
+	if m.env.Focuses == nil || m.Loading || m.Busy != "" {
+		return
+	}
+	if focus := m.env.Focuses(); focus != m.focuses {
+		m.focuses = focus
+		m.Reload(nil)
+	}
 }
 
 // Reload reads the catalog; done runs after, either way.
@@ -202,12 +221,37 @@ func ModuleStatus(entry ModuleEntry) string {
 		return "moduleStatus.faulted"
 	case entry.Runtime.State == "unavailable":
 		return "moduleStatus.unavailable"
+	case entry.Runtime.Warning != "":
+		return "moduleStatus.warning"
 	case entry.Runtime.State == "starting" || entry.Runtime.State == "stopping":
 		return "moduleStatus.working"
 	case entry.Enabled:
 		return "moduleStatus.enabled"
 	}
 	return "moduleStatus.disabled"
+}
+
+// ModuleProblem explains an actual runtime problem, never a bare attention label.
+// Keep unknown diagnostics intact; an empty detail is explicitly unknown rather
+// than inventing a cause or recommending destructive repair.
+func ModuleProblem(entry ModuleEntry) string {
+	if entry.Runtime.Warning != "" && entry.Runtime.State != "faulted" && entry.Runtime.State != "unavailable" && !entry.PendingStop && !entry.Blocked {
+		return entry.Runtime.Warning
+	}
+	if !entry.PendingStop && !entry.Blocked && entry.Runtime.State != "faulted" && entry.Runtime.State != "unavailable" {
+		return ""
+	}
+	detail := strings.TrimSpace(entry.Runtime.Detail)
+	if detail == "context deadline exceeded" {
+		return i18n.T("module.problemTimeout", "error", detail)
+	}
+	if detail != "" {
+		return detail
+	}
+	if entry.PendingStop {
+		return i18n.T("module.problemPendingStop")
+	}
+	return i18n.T("module.problemUnknown", "state", entry.Runtime.State)
 }
 
 // Notices shows a failed read, operation or configuration, the last with
@@ -237,7 +281,7 @@ func (m *Modules) Notices(c *ui.Context) {
 // while the tab has unsaved changes or an operation running.
 func (m *Modules) Switch(c *ui.Context, id string, controlsDisabled bool) {
 	m.env.Activity.Report("module-availability:"+id, false, m.Busy != "", nil)
-	ui.Column(c.Key("module:"+id)).FillWidth().Gap(12).Children(func() {
+	ui.Column(c.Key("module:" + id)).FillWidth().Gap(12).Children(func() {
 		m.Notices(c)
 		s := m.Snapshot
 		if s == nil {
@@ -268,8 +312,12 @@ func (m *Modules) Switch(c *ui.Context, id string, controlsDisabled bool) {
 					}
 				})
 			})
-			if (entry.Runtime.State == "faulted" || entry.Blocked) && entry.Runtime.Detail != "" {
-				kit.Notice(c, kit.Failure, "", entry.Runtime.Detail, nil)
+			if problem := ModuleProblem(entry); problem != "" {
+				severity := kit.Info
+				if entry.Runtime.State == "faulted" || entry.Runtime.State == "unavailable" || entry.Blocked {
+					severity = kit.Failure
+				}
+				kit.Notice(c, severity, "", problem, nil)
 			}
 			if entry.PendingStop && s.ConfigurationError == "" || entry.Blocked {
 				ui.Row(c).Gap(8).Wrap().Children(func() {

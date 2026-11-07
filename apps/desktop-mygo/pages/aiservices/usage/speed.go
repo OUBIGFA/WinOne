@@ -21,6 +21,9 @@ type speed struct {
 
 func requestSpeed(r row) speed {
 	none := func(reason string) speed { return speed{reason: reason} }
+	if r.Canceled {
+		return none("canceled")
+	}
 	if r.failed() {
 		return none("speedFailed")
 	}
