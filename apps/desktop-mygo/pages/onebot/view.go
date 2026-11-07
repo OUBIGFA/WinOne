@@ -29,7 +29,10 @@ func (p *page) view(c *ui.Context) {
 		p.sidebar(c)
 		ui.Column(c).FillHeight().Grow(1).Basis(0).MinWidth(0).Bind(&p.contentBox).Children(func() {
 			if p.loading {
-				kit.Loader(c)
+				ui.Column(c).Fill().Center().Gap(12).Children(func() {
+					kit.Loader(c)
+					kit.Help(c, i18n.T("onebot.loading"))
+				})
 				return
 			}
 			if !p.loaded {

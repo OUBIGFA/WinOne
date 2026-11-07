@@ -30,19 +30,24 @@ func (p *Chat) modelPicker(c *ui.Context, provider *widgets.AIProvider, selectio
 	}
 	trigger := ui.ButtonBase(c.Key("model")).Height(32).Padding(0, 8).Gap(6).Radius(t.Radius).AlignItems(ui.Center).MaxWidth(320).MinWidth(0).
 		Label(i18n.T("chat.model")).Tooltip(title).Disabled(disabled)
+	if p.ui.compact {
+		trigger.MaxWidth(120)
+	}
 	if trigger.Hovered() || p.ui.models.Open {
 		trigger.Background(t.SurfaceHover)
 	}
 	trigger.Children(func() {
 		if provider != nil {
 			widgets.ProviderIcon(c, p.env, first(provider.Avatar, provider.Icon), 16).Shrink(0)
-			ui.Text(c, provider.Name).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted).SingleLine().Ellipsis("…").MinWidth(0).Shrink(2)
-			ui.Text(c, "·").FontSize(kit.HelpSize(c)).TextColor(t.TextMuted)
+			if !p.ui.compact {
+				ui.Text(c, provider.Name).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted).SingleLine().Ellipsis("…").MinWidth(0).Shrink(2)
+				ui.Text(c, "·").FontSize(kit.HelpSize(c)).TextColor(t.TextMuted)
+			}
 		} else {
 			ui.Icon(c, icons.Bot).FontSize(15).Shrink(0)
 		}
 		ui.Text(c, name).FontSize(kit.HelpSize(c)).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
-		if provider != nil && selection.Model != "" {
+		if provider != nil && selection.Model != "" && !p.ui.compact {
 			badges(c, provider, selection.Model)
 		}
 		ui.Icon(c, icons.ChevronDown).FontSize(14).TextColor(t.TextMuted).Shrink(0)

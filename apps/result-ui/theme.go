@@ -1,64 +1,19 @@
 package resultui
 
-import "github.com/egoist/mygo/ui"
-
-// The result window's design tokens. Values follow the settings window's
-// neutral palette (apps/desktop-mygo/kit/theme.go and
-// docs/WinOne设置设计语言.md §4.3): the interface layer is gray only;
-// Danger, Success and the provider artwork keep their colors because they
-// carry meaning. desktop-mygo imports this module, so the values are kept
-// here rather than imported; change both together.
-var (
-	lightResultTheme = ui.Theme{
-		Background:     ui.Hex("#fcfcfc"),
-		Surface:        ui.Hex("#f3f3f3"),
-		SurfaceHover:   ui.Hex("#ebebeb"),
-		SurfacePressed: ui.Hex("#e2e2e2"),
-		Border:         ui.Hex("#d6d6d6"),
-		Text:           ui.Hex("#262626"),
-		TextMuted:      ui.Hex("#5e5e5e"),
-		Accent:         ui.Hex("#2e2e2e"),
-		AccentHover:    ui.Hex("#454545"),
-		AccentPressed:  ui.Hex("#1c1c1c"),
-		AccentText:     ui.Hex("#ffffff"),
-		Danger:         ui.Hex("#c42b1c"),
-		Warning:        ui.Hex("#9d5d00"),
-		Success:        ui.Hex("#0f7b0f"),
-		Selection:      ui.RGBA(46, 46, 46, 0.18),
-		Focus:          ui.RGBA(46, 46, 46, 0.6),
-		Inverse:        ui.Hex("#2b2b2b"),
-		InverseText:    ui.Hex("#fafafa"),
-		Scrollbar:      ui.RGBA(0, 0, 0, 0.3),
-	}
-	darkResultTheme = ui.Theme{
-		Dark:           true,
-		Background:     ui.Hex("#191919"),
-		Surface:        ui.Hex("#2b2b2b"),
-		SurfaceHover:   ui.Hex("#333333"),
-		SurfacePressed: ui.Hex("#3b3b3b"),
-		Border:         ui.Hex("#3d3d3d"),
-		Text:           ui.Hex("#e9e9e9"),
-		TextMuted:      ui.Hex("#adadad"),
-		Accent:         ui.Hex("#e6e6e6"),
-		AccentHover:    ui.Hex("#ffffff"),
-		AccentPressed:  ui.Hex("#cccccc"),
-		AccentText:     ui.Hex("#1a1a1a"),
-		Danger:         ui.Hex("#ff99a4"),
-		Warning:        ui.Hex("#fce100"),
-		Success:        ui.Hex("#6ccb5f"),
-		Selection:      ui.RGBA(233, 233, 233, 0.22),
-		Focus:          ui.RGBA(233, 233, 233, 0.65),
-		Inverse:        ui.Hex("#e9e9e9"),
-		InverseText:    ui.Hex("#1a1a1a"),
-		Scrollbar:      ui.RGBA(255, 255, 255, 0.3),
-	}
+import (
+	"github.com/egoist/mygo/ui"
+	"winone/modules/nativeui/design"
 )
 
-// systemFont is Windows' interface face with the Chinese face DirectWrite
-// would pick anyway named, so both languages keep one weight scale.
+// Independently hosted windows use the same theme as the main workspace.
+var (
+	lightResultTheme = design.Base(false)
+	darkResultTheme  = design.Base(true)
+)
+
 const (
-	systemFont = "Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI"
-	monoFont   = "Cascadia Mono, Consolas, Microsoft YaHei UI"
+	systemFont = design.SystemFont
+	monoFont   = design.MonoFont
 )
 
 // tones are the colors ui.Theme has no slot for.
@@ -79,9 +34,9 @@ func toneFor(t *ui.Theme, highContrast bool) tones {
 	case highContrast:
 		return tones{region: t.Surface, bubble: t.Surface, hover: t.SurfaceHover, pressed: t.SurfacePressed, free: t.Text, freeBackground: t.SurfaceHover}
 	case t.Dark:
-		return tones{region: ui.Hex("#232323"), bubble: ui.Hex("#2b2b2b"), hover: t.Text.Alpha(0.09), pressed: t.Text.Alpha(0.14), free: ui.Hex("#86efac"), freeBackground: ui.Hex("#143322")}
+		return tones{region: design.Colors(true).Panel, bubble: t.Surface, hover: t.Text.Alpha(0.09), pressed: t.Text.Alpha(0.14), free: ui.Hex("#86efac"), freeBackground: ui.Hex("#143322")}
 	}
-	return tones{region: ui.Hex("#efefef"), bubble: ui.Hex("#ebebeb"), hover: t.Text.Alpha(0.08), pressed: t.Text.Alpha(0.13), free: ui.Hex("#166534"), freeBackground: ui.Hex("#dcfce7")}
+	return tones{region: t.Surface, bubble: t.SurfaceHover, hover: t.Text.Alpha(0.08), pressed: t.Text.Alpha(0.13), free: ui.Hex("#166534"), freeBackground: ui.Hex("#dcfce7")}
 }
 
 // Type roles in DIPs at 100% text size; em scales them with the system

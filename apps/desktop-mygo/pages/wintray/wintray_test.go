@@ -508,6 +508,22 @@ func TestNarrowWindowStacksTheListAboveTheDetails(t *testing.T) {
 	}
 }
 
+func TestEmptyProgramListCentersItsMessageBelowHeaders(t *testing.T) {
+	f := setup(t, "running")
+	for _, height := range []int{640, 1000} {
+		tt := ui.NewTester(func(c *ui.Context) { f.page.programList(c) }, 600, height)
+		message, ok := tt.Find(i18n.T("wintray.empty"))
+		header, headerOK := tt.Find(i18n.T("settingsDesign.programColumn"))
+		if !ok || !headerOK {
+			t.Fatal("empty list lost its header or message")
+		}
+		middle := (header.Y + header.H + float32(height)) / 2
+		if delta := message.Y + message.H/2 - middle; delta < -20 || delta > 20 {
+			t.Fatalf("empty message not centered at height %d: message=%+v header=%+v", height, message, header)
+		}
+	}
+}
+
 func TestStartupChoicesWrapInsideANarrowPanel(t *testing.T) {
 	f := setup(t, "running", programDocument("a", "Player", `C:\Apps\player.exe`))
 	i18n.SetLocale(i18n.English)

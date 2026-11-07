@@ -6,10 +6,10 @@ import "github.com/egoist/mygo/ui"
 // relative to the theme's FontSize (14 DIPs times Windows' text size).
 // Roles, not sizes, are what pages choose.
 const (
-	captionSize = 12.0 / 14
-	helpSize    = 13.0 / 14
-	headingSize = 16.0 / 14
-	titleSize   = 20.0 / 14
+	captionSize = 13.0 / 14
+	helpSize    = 14.0 / 14
+	headingSize = 18.0 / 14
+	titleSize   = 24.0 / 14
 )
 
 // Caption is metadata: counts, timestamps, badges' companions.
@@ -32,16 +32,18 @@ func Strong(c *ui.Context, s string) ui.Element { return ui.Text(c, s).FontWeigh
 
 // Label names a setting row; it is ordinary weight so a page of rows does
 // not shout, with the group heading carrying the emphasis.
-func Label(c *ui.Context, s string) ui.Element { return ui.Text(c, s).LineHeight(1.4) }
+func Label(c *ui.Context, s string) ui.Element {
+	return ui.Text(c, s).FontSize(c.Theme().Rem(15.0 / 14)).LineHeight(1.4)
+}
 
 // Heading titles a group of settings.
 func Heading(c *ui.Context, s string) ui.Element {
-	return ui.Text(c, s).FontSize(c.Theme().Rem(headingSize)).FontWeight(600).LineHeight(1.35)
+	return ui.Text(c, s).FontSize(c.Theme().Rem(headingSize)).FontWeight(500).LineHeight(1.35)
 }
 
 // Title is the largest role: a dialog's or an empty state's title.
 func Title(c *ui.Context, s string) ui.Element {
-	return ui.Text(c, s).FontSize(c.Theme().Rem(titleSize)).FontWeight(600).LineHeight(1.3)
+	return ui.Text(c, s).FontSize(c.Theme().Rem(titleSize)).FontWeight(500).LineHeight(1.3)
 }
 
 // Mono shows code, a path or an identifier.

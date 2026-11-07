@@ -219,7 +219,8 @@ func (p *Panel) palette(c *ui.Context) *ui.Theme {
 	}
 	t.Font = systemFont
 	t.FontSize = 14
-	t.Radius = 6
+	// Keep controls consistent with the shared native theme.
+	t.Radius = 8
 	t.Spacing = 4
 	if scale := c.Preferences().TextScale; scale > 0 {
 		t.FontSize *= scale

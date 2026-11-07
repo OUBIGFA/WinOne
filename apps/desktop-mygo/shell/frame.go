@@ -15,7 +15,7 @@ import (
 
 var logo, _ = ui.DecodeBitmap(branding.Logo)
 
-const titleBarHeight = 40
+const titleBarHeight = 44
 
 func kitTheme(c *ui.Context, dark bool) *ui.Theme { return kit.Theme(c.Preferences(), dark) }
 
@@ -23,8 +23,8 @@ func kitDialog(c *ui.Context, open *bool, title, message, err, confirm, cancel s
 	return kit.Dialog(c, open, kit.DialogOptions{Title: title, Message: message, Error: err, Confirm: confirm, Cancel: cancel, Danger: true})
 }
 
-// titleBar draws the window's caption: the logo and name, the page shown,
-// the page's refresh, and the window's own buttons. Windows still draws
+// titleBar draws the window's caption: the logo and name, the page's
+// refresh, and the window's own buttons. Windows still draws
 // the frame, its corners, shadow and resizing edges.
 func (s *Shell) titleBar(c *ui.Context) {
 	t, p := c.Theme(), kit.Colors(c)
@@ -37,10 +37,6 @@ func (s *Shell) titleBar(c *ui.Context) {
 				ui.Image(c, logo).Size(22, 22).Fit(ui.Contain).Shrink(0)
 			}
 			ui.Text(c, "WinOne").FontWeight(600).SingleLine().Shrink(0)
-			if !conversation {
-				ui.Box(c).Width(1).Height(16).Background(p.Hairline).Shrink(0)
-				kit.Help(c, i18n.T(current.title)).SingleLine().MinWidth(0)
-			}
 		})
 		if !conversation {
 			ui.Row(c).Padding(0, 4).AlignItems(ui.Center).Shrink(0).Children(func() {
@@ -109,7 +105,7 @@ func (s *Shell) sidebar(c *ui.Context) {
 			if compact {
 				label = i18n.T("navigation.expandSidebar")
 			}
-			b := ui.ButtonBase(c).Size(48, 40).Justify(ui.Center).AlignItems(ui.Center).Radius(t.Radius).
+			b := ui.ButtonBase(c).Size(48, 36).Justify(ui.Center).AlignItems(ui.Center).Radius(t.Radius).
 				Label(label).Tooltip(label)
 			if b.Hovered() {
 				b.Background(t.SurfaceHover)
@@ -150,7 +146,7 @@ func (s *Shell) navItem(c *ui.Context, item pageSpec, compact bool) {
 	t, p := c.Theme(), kit.Colors(c)
 	title := i18n.T(item.title)
 	selected := item.id == s.page
-	row := ui.ButtonBase(c.Key(item.id)).FillWidth().Height(44).Gap(12).AlignItems(ui.Center).
+	row := ui.ButtonBase(c.Key(item.id)).FillWidth().Height(36).Gap(8).AlignItems(ui.Center).
 		Radius(t.Radius).Label(title).Selected(selected)
 	if compact {
 		// The icon alone, in the middle of the narrow sidebar.
@@ -174,21 +170,16 @@ func (s *Shell) navItem(c *ui.Context, item pageSpec, compact bool) {
 		}
 		// A fixed slot centers each icon, whatever its glyph's width.
 		ui.Row(c).Size(24, 24).Shrink(0).Justify(ui.Center).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, item.icon).FontSize(19).TextColor(color)
+			ui.Icon(c, item.icon).FontSize(18).TextColor(color)
 		})
 		if !compact {
 			// Selected gives the row the accent's text color, meant for an
 			// accent fill; the row's fill is neutral, so the label keeps
 			// the text color.
-			text := ui.Text(c, title).SingleLine().Grow(1).MinWidth(0).Shrink(1).TextAlign(ui.Start).TextColor(t.Text)
+			text := ui.Text(c, title).SingleLine().Grow(1).MinWidth(0).Shrink(1).TextAlign(ui.Start).TextColor(color)
 			if selected {
-				text.FontWeight(600)
+				text.FontWeight(500)
 			}
-		}
-		if selected {
-			// Windows' navigation marks the chosen page with a short bar at
-			// its leading edge, drawn over the row: it takes no room.
-			ui.Box(c).Absolute().Left(0).Top(14).Bottom(14).Width(3).Radius(2).Background(t.Accent)
 		}
 	})
 	if row.Clicked() {
@@ -282,8 +273,17 @@ func (s *Shell) content(c *ui.Context) {
 		// The rail floats over the content's right margin; keep text
 		// clear of it without reserving a column.
 		railRoom := float32(56)
-		scroller := ui.Scroll(c.Key(s.page)).Fill().TrackScroll(&s.scroll).Padding(24, margin+railRoom, 40, margin).
+		scroller := ui.Scroll(c.Key(s.page)).Fill().TrackScroll(&s.scroll).Padding(32, margin+railRoom, 40, margin).
 			Children(func() {
+				// The task title belongs to the content, not the window caption.
+				// Use the same measure as its page so title, tabs and rows align.
+				pageWidth := float32(kit.PageWidth)
+				if s.page == "ai-services" || s.page == "wintray" {
+					pageWidth = kit.WidePageWidth
+				}
+				ui.Column(c).FillWidth().MaxWidth(pageWidth).Margin(0, ui.Auto, 24, ui.Auto).Children(func() {
+					kit.Title(c, i18n.T(current.title)).Role(ui.RoleHeading).Level(1)
+				})
 				if s.snapshot.RuntimeWarning != "" || s.opts.StartupWarning != "" {
 					ui.Column(c).FillWidth().MaxWidth(kit.WidePageWidth).Margin(0, ui.Auto, 16, ui.Auto).Children(func() {
 						warning := s.snapshot.RuntimeWarning

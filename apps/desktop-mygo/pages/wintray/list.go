@@ -31,26 +31,28 @@ const (
 // Enter or Space, and moved by dragging or by choosing its position.
 func (p *page) programList(c *ui.Context) {
 	apps := p.apps()
-	ui.Scroll(c).Fill().Padding(12, 12, 12, 0).Children(func() {
-		ui.Column(c).FillWidth().Gap(2).Role(ui.RoleList).Label(i18n.T("wintray.list")).FocusGroup(ui.Vertical).Children(func() {
-			// Column headings, which assistive technology skips: each row
-			// names its own controls.
-			ui.Row(c).FillWidth().Padding(0, 8, 6, 8).Gap(8).Role(ui.RoleNone).Children(func() {
-				ui.Box(c).Width(32).Shrink(0)
-				kit.Caption(c, i18n.T("settingsDesign.programColumn")).Grow(1).MinWidth(0).SingleLine()
-				ui.Row(c).Gap(controlGap).Shrink(0).Children(func() {
-					for _, column := range []struct {
-						key   string
-						width float32
-					}{{"settingsDesign.trayColumn", collectWidth}, {"settingsDesign.replaceColumn", replaceWidth}, {"settingsDesign.orderColumn", orderWidth}} {
-						kit.Caption(c, i18n.T(column.key)).Width(column.width).SingleLine().TextAlign(ui.Center)
-					}
-				})
+	ui.Column(c).Fill().Padding(12, 12, 12, 0).Gap(2).Children(func() {
+		// Column headings, which assistive technology skips: each row
+		// names its own controls.
+		ui.Row(c).FillWidth().Shrink(0).Padding(0, 8, 6, 8).Gap(8).Role(ui.RoleNone).Children(func() {
+			ui.Box(c).Width(32).Shrink(0)
+			kit.Caption(c, i18n.T("settingsDesign.programColumn")).Grow(1).MinWidth(0).SingleLine()
+			ui.Row(c).Gap(controlGap).Shrink(0).Children(func() {
+				for _, column := range []struct {
+					key   string
+					width float32
+				}{{"settingsDesign.trayColumn", collectWidth}, {"settingsDesign.replaceColumn", replaceWidth}, {"settingsDesign.orderColumn", orderWidth}} {
+					kit.Caption(c, i18n.T(column.key)).Width(column.width).SingleLine().TextAlign(ui.Center)
+				}
 			})
-			if len(apps) == 0 {
-				kit.Help(c, i18n.T("wintray.empty")).TextAlign(ui.Center).FillWidth().Padding(48, 16)
-				return
-			}
+		})
+		if len(apps) == 0 {
+			ui.Column(c).FillWidth().Grow(1).MinHeight(80).Center().Padding(16).Children(func() {
+				kit.Help(c, i18n.T("wintray.empty")).TextAlign(ui.Center).FillWidth()
+			})
+			return
+		}
+		ui.Scroll(c).FillWidth().Grow(1).MinHeight(0).Gap(2).Role(ui.RoleList).Label(i18n.T("wintray.list")).FocusGroup(ui.Vertical).Children(func() {
 			for i, app := range apps {
 				p.programRow(c, i, app.Value)
 			}
@@ -149,13 +151,19 @@ func (p *page) orderSelect(c *ui.Context, index int, app program, name string, d
 func (p *page) programs(c *ui.Context) {
 	palette := kit.Colors(c)
 	_, height := c.Size()
-	// The shell's frame takes the title bar (40), its padding above (24)
-	// and below (40) the page, and this column's gap (16).
-	available := height - 40 - 24 - 40 - 16 - p.header.Bounds(c).H
-	available = max(available, 360)
-	width := p.workspace.Bounds(c).W
+	// Use the actual page position: the shell's title and wrapped tabs vary
+	// with language and width. A fixed subtraction would push the list below
+	// the viewport after either changed.
+	bounds := p.workspace.Bounds(c)
+	available := max(height-bounds.Y-40, 360)
+	width := bounds.W
+	if width == 0 {
+		// A newly opened page has no previous geometry. Start stacked and
+		// schedule the measurement pass even when no further input arrives.
+		c.After(0)
+	}
 	area := ui.Column(c).FillWidth().Height(available).BorderWidth(1, 0, 0, 0).BorderColor(palette.Hairline).Bind(&p.workspace)
-	if width > 0 && width < 860 {
+	if width < 860 {
 		// A list as high as a third of the area, at least 140, at most half.
 		listHeight := min(available/2, max(140, available*0.34))
 		area.Children(func() {

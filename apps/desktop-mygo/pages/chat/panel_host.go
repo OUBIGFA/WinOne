@@ -198,8 +198,10 @@ func (p *Chat) closeTools() {
 }
 
 const (
-	minimumConversationWidth  = 340
-	minimumConversationHeight = 280
+	minimumConversationWidth = 340
+	// Reserve room for the header, a wrapped composer toolbar and readable
+	// messages when the workspace moves below the conversation.
+	minimumConversationHeight = 360
 	minimumWorkspaceWidth     = 340
 	minimumWorkspaceHeight    = 120
 	detailsDividerSize        = 5

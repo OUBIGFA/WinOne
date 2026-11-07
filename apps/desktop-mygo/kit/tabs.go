@@ -9,9 +9,8 @@ type Tab struct {
 }
 
 // Tabs is the first level of a page's tasks: icon and title on one line,
-// the chosen one marked by an underline whose place never moves (only its
-// color changes), a hairline across the row. Titles keep one line and
-// shorten with an ellipsis when the window is too narrow for them all.
+// the chosen one on a neutral surface above a hairline. Each title keeps
+// one line; the group wraps when the window cannot fit all tasks in one row.
 //
 // A new choice goes through request, which applies it at once or after
 // the user decides about unsaved changes; request nil applies it directly.
@@ -20,18 +19,19 @@ func Tabs(c *ui.Context, selected *int, tabs []Tab, request func(apply func())) 
 	t, p := c.Theme(), Colors(c)
 	next := *selected
 	parts := ui.TabsBase(c, &next, len(tabs))
-	parts.List.FillWidth().Gap(4).BorderWidth(0, 0, 1, 0).BorderColor(p.Hairline).Children(func() {
+	parts.List.FillWidth().Wrap().Gap(4).Padding(0, 0, 12, 0).BorderWidth(0, 0, 1, 0).BorderColor(p.Hairline).Children(func() {
 		for i, tab := range tabs {
 			chosen := i == *selected
-			item := parts.Tab(i).Padding(8, 12, 10, 12).Gap(8).AlignItems(ui.Center).Shrink(1).MinWidth(0).
+			item := parts.Tab(i).Padding(8, 12).Radius(t.Radius).Gap(8).AlignItems(ui.Center).Shrink(0).MinWidth(0).
 				Label(tab.Label).Tooltip(tab.Label)
 			color := t.TextMuted
 			if chosen || item.Hovered() {
 				color = t.Text
 			}
-			indicator := ui.Transparent
 			if chosen {
-				indicator = t.Accent
+				item.Background(p.Selected)
+			} else if item.Hovered() {
+				item.Background(t.SurfaceHover)
 			}
 			item.TextColor(color).Children(func() {
 				if tab.Icon != nil {
@@ -39,11 +39,9 @@ func Tabs(c *ui.Context, selected *int, tabs []Tab, request func(apply func())) 
 				}
 				label := ui.Text(c, tab.Label).SingleLine().MinWidth(0)
 				if chosen {
-					label.FontWeight(600)
+					label.FontWeight(500)
 				}
-				// The underline sits on the row's hairline at the same
-				// place for every tab; choosing one only colors it.
-				ui.Box(c).Absolute().Left(8).Right(8).Bottom(-1).Height(2).Radius(1).Background(indicator)
+
 			})
 		}
 	})

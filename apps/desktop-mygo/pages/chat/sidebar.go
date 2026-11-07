@@ -18,7 +18,7 @@ import (
 // the archive at the bottom.
 func (p *Chat) sidebarView(c *ui.Context) {
 	t, pal := c.Theme(), kit.Colors(c)
-	ui.Column(c).Fill().Padding(12, 10).Gap(8).Children(func() {
+	ui.Column(c).Fill().Padding(12).Gap(8).Children(func() {
 		ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(0, 0, 0, 8).Children(func() {
 			ui.Text(c, i18n.T("chat.title")).FontWeight(500).Grow(1)
 			if kit.IconButton(c, icons.PanelLeftClose, i18n.T("chat.hideSidebar")).Clicked() {
@@ -37,7 +37,7 @@ func (p *Chat) sidebarView(c *ui.Context) {
 				})
 			})
 		}
-		ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Padding(0, 8).Height(32).Radius(t.Radius).Border(1, pal.Hairline).Children(func() {
+		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Padding(0, 12).Height(36).Radius(t.Radius).Background(t.Surface).Children(func() {
 			ui.Icon(c, icons.Search).FontSize(15).TextColor(t.TextMuted).Shrink(0)
 			ui.TextInputBase(c, &p.ui.search).Grow(1).MinWidth(0).Placeholder(i18n.T("chat.search")).Label(i18n.T("chat.search"))
 		})
@@ -137,7 +137,7 @@ func (p *Chat) visibleConversations() []Conversation {
 func (p *Chat) groupHeading(c *ui.Context, label, section string) {
 	t := c.Theme()
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Margin(10, 0, 0).Children(func() {
-		ui.Text(c, label).FontSize(12).FontWeight(500).TextColor(t.TextMuted).Padding(7, 8).Grow(1)
+		ui.Text(c, label).FontSize(kit.CaptionSize(c)).FontWeight(500).TextColor(t.TextMuted).Padding(8).Grow(1)
 		if section == "" || section == "conversations" && p.archived() {
 			return
 		}

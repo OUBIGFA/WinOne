@@ -14,15 +14,15 @@ const (
 	// WidePageWidth bounds work areas such as lists beside details.
 	WidePageWidth = 1200
 	// GroupGap separates groups on a page.
-	GroupGap = 32
+	GroupGap = 36
 	// HeadingGap separates a group's heading from its rows.
-	HeadingGap = 10
+	HeadingGap = 12
 	// RowMinHeight is the height of a one-line setting row.
-	RowMinHeight = 48
+	RowMinHeight = 56
 	// ControlHeight is the height of buttons, inputs and selects.
-	ControlHeight = 32
+	ControlHeight = 36
 	// PanelRadius rounds groups, popovers and notices.
-	PanelRadius = 8
+	PanelRadius = 10
 )
 
 // Page lays out the column of a settings page; the shell supplies the
@@ -36,8 +36,8 @@ func WidePage(c *ui.Context, fn func()) ui.Element {
 	return ui.Column(c).FillWidth().MaxWidth(WidePageWidth).Margin(0, ui.Auto).Gap(GroupGap).Children(fn)
 }
 
-// Section is a group heading over any content: an optional icon in the
-// text's muted color, the title, and an optional sentence of purpose.
+// Section is a group heading over any content: the title and an optional
+// sentence of purpose. The icon argument remains compatible with callers.
 func Section(c *ui.Context, icon *ui.SVG, title, description string, fn func()) ui.Element {
 	return ui.Column(c).FillWidth().Gap(HeadingGap).Children(func() {
 		SectionHeading(c, icon, title, description)
@@ -47,12 +47,10 @@ func Section(c *ui.Context, icon *ui.SVG, title, description string, fn func()) 
 
 // SectionHeading is a Section's heading alone, for groups laid out by hand.
 func SectionHeading(c *ui.Context, icon *ui.SVG, title, description string) ui.Element {
-	t := c.Theme()
 	return ui.Column(c).Gap(2).Children(func() {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-			if icon != nil {
-				ui.Icon(c, icon).FontSize(t.Rem(headingSize)).TextColor(t.TextMuted)
-			}
+			// Task names carry the hierarchy; repeated heading icons
+			// compete with the actual actions and navigation.
 			Heading(c, title).Role(ui.RoleHeading).Level(2)
 		})
 		if description != "" {
@@ -61,23 +59,23 @@ func SectionHeading(c *ui.Context, icon *ui.SVG, title, description string) ui.E
 	})
 }
 
-// Group is a Section whose content is setting rows on a panel, one
-// hairline between each two.
+// Group is a flat settings section. Rules separate rows; the heading and
+// whitespace establish grouping without another box around the controls.
 func Group(c *ui.Context, icon *ui.SVG, title, description string, rows func()) ui.Element {
-	return Section(c, icon, title, description, func() { Panel(c, rows) })
+	return Section(c, nil, title, description, func() {
+		ui.Column(c).FillWidth().Dividers(1, Colors(c).Hairline).Children(rows)
+	})
 }
 
-// Panel is the face grouped rows sit on.
+// Panel groups flat rows with separators, without an extra outer box.
 func Panel(c *ui.Context, rows func()) ui.Element {
-	p := Colors(c)
-	return ui.Column(c).FillWidth().Background(p.Panel).Border(1, p.Hairline).Radius(PanelRadius).
-		Gap(1).Dividers(1, p.Hairline).Children(rows)
+	return ui.Column(c).FillWidth().Dividers(1, Colors(c).Hairline).Children(rows)
 }
 
 // Row is a setting: its label and optional help on the left, its control
 // on the right. In a narrow window the control moves below the text.
 func Row(c *ui.Context, label, help string, control func()) ui.Element {
-	return ui.Row(c).FillWidth().MinHeight(RowMinHeight).Padding(10, 16).GapX(16).GapY(8).
+	return ui.Row(c).FillWidth().MinHeight(RowMinHeight).Padding(12, 0).GapX(24).GapY(8).
 		AlignItems(ui.Center).Wrap().Children(func() {
 		ui.Column(c).Basis(220).Grow(1).Shrink(1).Gap(2).Children(func() {
 			Label(c, label)
@@ -94,7 +92,7 @@ func Row(c *ui.Context, label, help string, control func()) ui.Element {
 // Stack is a setting whose control needs the row's width: a path, a long
 // text, a list. The label and help sit above it.
 func Stack(c *ui.Context, label, help string, control func()) ui.Element {
-	return ui.Column(c).FillWidth().Padding(12, 16).Gap(8).Children(func() {
+	return ui.Column(c).FillWidth().Padding(12, 0).Gap(8).Children(func() {
 		if label != "" || help != "" {
 			ui.Column(c).Gap(2).Children(func() {
 				if label != "" {
@@ -121,7 +119,7 @@ func Indented(c *ui.Context, fn func()) ui.Element {
 // dims with its label.
 func Toggle(c *ui.Context, value *bool, label, help string) ui.Element {
 	t := c.Theme()
-	sw := ui.SwitchBase(c, value).FillWidth().Shrink(1).MinHeight(RowMinHeight).Padding(10, 16).GapX(16).GapY(8).
+	sw := ui.SwitchBase(c, value).FillWidth().Shrink(1).MinHeight(RowMinHeight).Padding(12, 0).GapX(24).GapY(8).
 		AlignItems(ui.Center).Wrap().Label(label).Cursor(ui.CursorPointer)
 	if help != "" {
 		sw.Description(help)

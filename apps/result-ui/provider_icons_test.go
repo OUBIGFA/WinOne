@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"github.com/egoist/mygo/ui"
 	"image/png"
+	"math"
 	"os"
 	"strings"
 	"testing"
+	"winone/modules/nativeui/design"
 )
 
 func TestBundledProviderArtworkRenders(t *testing.T) {
@@ -76,15 +78,33 @@ func TestProviderArtworkUsesColorOnlyInLightTheme(t *testing.T) {
 			c.SetTheme(palette)
 			ui.Column(c).Fill().Background(palette.Background).Center().Children(func() { providerImage(c, palette, "deepseek-color", 40) })
 		}, 80, 80)
-		colored := 0
+		colored, visible := 0, 0
 		pixels := tt.Image()
+		palette := design.Base(theme == "dark")
+		// A single ink on a tinted neutral canvas is still monochrome.
+		// Every antialiased channel must follow the same blend fraction.
+		bg, ink := palette.Background, palette.TextMuted
 		for y := 0; y < 80; y++ {
 			for x := 0; x < 80; x++ {
 				r, g, b, _ := pixels.At(x, y).RGBA()
-				if r != g || g != b {
+				// Exclude the small tint of the neutral canvas from brand color.
+				isColored := max(r, g, b)-min(r, g, b) > 16*257
+				if math.Abs(float64(r)/257-float64(bg.R))+math.Abs(float64(g)/257-float64(bg.G))+math.Abs(float64(b)/257-float64(bg.B)) > 60 {
+					visible++
+				}
+				if theme == "dark" {
+					alpha := (float64(r)/257 - float64(bg.R)) / float64(int(ink.R)-int(bg.R))
+					green := float64(bg.G) + alpha*float64(int(ink.G)-int(bg.G))
+					blue := float64(bg.B) + alpha*float64(int(ink.B)-int(bg.B))
+					isColored = math.Abs(float64(g)/257-green) > 2 || math.Abs(float64(b)/257-blue) > 2
+				}
+				if isColored {
 					colored++
 				}
 			}
+		}
+		if visible < 100 {
+			t.Fatalf("provider theme %s has no visible artwork", theme)
 		}
 		if theme == "light" && colored == 0 || theme == "dark" && colored != 0 {
 			t.Fatalf("provider theme %s has %d colored pixels", theme, colored)

@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"strings"
 	"testing"
+	"winone/modules/nativeui/design"
 )
 
 func TestResultSurfaceDoesNotPaintASecondOuterFrame(t *testing.T) {
@@ -20,10 +21,8 @@ func TestResultSurfaceDoesNotPaintASecondOuterFrame(t *testing.T) {
 				p.Mode = "ocr"
 			}
 			tt := ui.NewTester(controller.View, width, height)
-			background := color.RGBA{252, 252, 252, 255}
-			if theme == "dark" {
-				background = color.RGBA{25, 25, 25, 255}
-			}
+			canvas := design.Base(theme == "dark").Background
+			background := color.RGBA{canvas.R, canvas.G, canvas.B, canvas.A}
 			for _, point := range [][2]int{{width / 2, 0}, {0, height / 2}, {width - 1, height / 2}, {width / 2, height - 1}, {0, 0}, {width - 1, 0}, {0, height - 1}, {width - 1, height - 1}} {
 				if got := color.RGBAModel.Convert(tt.Image().At(point[0], point[1])); got != background {
 					t.Fatalf("%s %s paints an inner frame at %v: %v", theme, scene, point, got)

@@ -214,7 +214,7 @@ func (p *Chat) View(c *ui.Context) {
 func (p *Chat) mainView(c *ui.Context) {
 	t, pal := c.Theme(), kit.Colors(c)
 	conversation := p.conversation()
-	ui.Row(c).FillWidth().Padding(10, 16).Gap(8).AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Shrink(0).Children(func() {
+	ui.Row(c).FillWidth().MinHeight(56).Padding(8, 20).Gap(8).AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Shrink(0).Children(func() {
 		if !p.ui.sidebar && !p.embedded {
 			if kit.IconButton(c, icons.PanelLeftOpen, i18n.T("chat.showSidebar")).Clicked() {
 				p.setSidebar(true)
@@ -228,7 +228,7 @@ func (p *Chat) mainView(c *ui.Context) {
 			} else if pr := p.catalog.project(p.newProjectID); pr != nil {
 				place = pr.Name
 			}
-			ui.Text(c, title).FontWeight(600).SingleLine().Ellipsis("…").MinWidth(0)
+			ui.Text(c, title).FontWeight(500).SingleLine().Ellipsis("…").MinWidth(0)
 			ui.Text(c, place).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted).SingleLine().Ellipsis("…").MinWidth(0).Tooltip(place)
 		})
 		if conversation != nil {
@@ -303,7 +303,7 @@ func (p *Chat) welcome(c *ui.Context) {
 	ui.Column(c).Fill().Justify(ui.Center).Children(func() {
 		ui.Scroll(c).FillWidth().MaxHeightPercent(100).Shrink(1).Padding(32, 24).Children(func() {
 			ui.Column(c).FillWidth().AlignItems(ui.Center).Gap(24).Children(func() {
-				ui.Image(c, welcomeLogo()).Size(160, 160).Fit(ui.Contain).Label("")
+				ui.Image(c, welcomeLogo()).Size(104, 104).Fit(ui.Contain).Label("")
 				ui.Column(c).FillWidth().MaxWidth(readingWidth).AlignSelf(ui.Center).Gap(8).Children(func() {
 					p.projectContext(c, p.newProjectID, func(id string) { p.newProjectID = id })
 					p.composer(c)

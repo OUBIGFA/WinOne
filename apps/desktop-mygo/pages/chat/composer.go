@@ -135,10 +135,12 @@ func (p *Chat) composer(c *ui.Context) {
 	caret := p.botMode.mentionCaret
 	mentionQuery, mentionRows := p.botMentionRows(caret)
 	p.botMentionPanel(c, mentionQuery, caret, mentionRows)
-	box := ui.Column(c.Key("composer")).FillWidth().Padding(10, 12, 8, 12).Gap(8).Radius(14).Border(1, t.Border).Background(pal.Panel).Bind(&p.ui.composerBox)
+	box := ui.Column(c.Key("composer")).FillWidth().Padding(16, 16, 12, 16).Gap(12).Radius(16).Border(1, t.Border).Background(pal.Panel).Bind(&p.ui.composerBox)
 	// In a narrow composer the pills show their icons only, their names
 	// as tooltips, so the tools keep one line.
-	p.ui.compact = p.ui.composerBox.Bounds(c).W > 0 && p.ui.composerBox.Bounds(c).W < 600
+	// Before the first layout use the compact form. All actions remain
+	// present, and a narrow first frame cannot wrap then jump on repaint.
+	p.ui.compact = p.ui.composerBox.Bounds(c).W < 600
 	box.Children(func() {
 		if len(p.files) > 0 {
 			ui.Row(c).FillWidth().Wrap().Gap(6).Children(func() {
@@ -214,7 +216,7 @@ func (p *Chat) composer(c *ui.Context) {
 		// Tools wrap within their side; the model and send keep theirs.
 		ui.Row(c).FillWidth().AlignItems(ui.End).Gap(4).Children(func() {
 			ui.Row(c).Gap(2).AlignItems(ui.Center).Grow(1).Basis(0).MinWidth(0).Wrap().Children(func() {
-				plus := kit.IconButton(c, icons.Plus, i18n.T("chat.attachments")).Disabled(busy || paused)
+				plus := kit.IconButton(c, icons.Plus, i18n.T("chat.attachments")).Size(32, 32).Disabled(busy || paused)
 				plus.Menu(func(m *ui.Menu) {
 					if m.Item(i18n.T("chat.uploadAttachment")).Chosen() {
 						p.run(p.pickFiles)

@@ -92,7 +92,7 @@ func decorate(c *ui.Context, b ui.Element, label string, icon *ui.SVG, busy bool
 	if busy {
 		b.Disabled(true)
 	}
-	return b.Children(func() {
+	return b.MinHeight(ControlHeight).Children(func() {
 		switch {
 		case busy:
 			Loader(c)

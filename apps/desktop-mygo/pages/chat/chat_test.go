@@ -589,6 +589,10 @@ func TestSettingsDialogIsNativeAndSavesTheDraft(t *testing.T) {
 	if !p.tools.settingsOpen || p.settings.value == nil || !tt.HasText("默认工作目录") || !tt.HasText("Fix the build") {
 		t.Fatalf("settings did not open over Chat: %+v err %q", p.settings, p.settings.err)
 	}
+	// The larger type keeps this long form scrollable. Exercise the actual
+	// scroll path before changing a field below the first viewport.
+	tt.Scroll(700, 400, 0, 260)
+	settle(h, tt)
 	if err := tt.Click("自动重试"); err != nil {
 		t.Fatal(err)
 	}

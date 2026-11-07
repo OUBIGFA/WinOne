@@ -5,20 +5,20 @@ using System.Runtime.InteropServices;
 
 namespace WinOne.Capture.NativeUI;
 
-// The desktop window's design tokens (apps/desktop-mygo/kit/theme.go). The
+// The desktop window's design tokens (modules/nativeui/design/theme.go). The
 // capture toolbar and its menus take the same neutral palette, radii and
 // font as the MyGo settings window, so capturing reads as the same product.
 // Change both places together.
 internal sealed class NativeStyle
 {
-    public static readonly NativeStyle Light = new(panel: 0xffffff, surface: 0xf3f3f3, border: 0xd6d6d6, text: 0x262626, muted: 0x5e5e5e,
-        hover: 0xebebeb, pressed: 0xe2e2e2, selected: 0xe6e6e6, accent: 0x2e2e2e);
-    public static readonly NativeStyle Dark = new(panel: 0x222222, surface: 0x2b2b2b, border: 0x3d3d3d, text: 0xe9e9e9, muted: 0xadadad,
-        hover: 0x333333, pressed: 0x3b3b3b, selected: 0x323232, accent: 0xe6e6e6);
+    public static readonly NativeStyle Light = new(panel: 0xffffff, surface: 0xf0f0ee, border: 0xcececa, text: 0x292927, muted: 0x60605c,
+        hover: 0xe8e8e5, pressed: 0xdededa, selected: 0xe4e4e0, accent: 0x30302e);
+    public static readonly NativeStyle Dark = new(panel: 0x242423, surface: 0x292928, border: 0x454541, text: 0xe7e7e2, muted: 0xaaa9a3,
+        hover: 0x333331, pressed: 0x3b3b38, selected: 0x343432, accent: 0xe4e4e0);
     public static NativeStyle For(bool dark) => dark ? Dark : Light;
 
     // kit's Radius (controls, menu items) and PanelRadius (panels, popups), in DIP.
-    public const int Radius = 6, PanelRadius = 8;
+    public const int Radius = 8, PanelRadius = 10;
 
     // Panel is the face of the toolbar and its menus (kit Palette.Panel).
     public Color Panel { get; }
@@ -31,8 +31,7 @@ internal sealed class NativeStyle
     public Color Pressed { get; }
     // Selected fills the chosen tool, as kit fills the chosen page.
     public Color Selected { get; }
-    // Accent marks the chosen tool with the sidebar's selection bar, and the
-    // focused field's border.
+    // Accent marks the chosen tool and the focused field's border.
     public Color Accent { get; }
 
     private NativeStyle(int panel, int surface, int border, int text, int muted, int hover, int pressed, int selected, int accent)
@@ -46,13 +45,12 @@ internal sealed class NativeStyle
     // is the color halfway to the panel.
     public Color Faded(Color color) => Color.FromArgb((color.R + Panel.R) / 2, (color.G + Panel.G) / 2, (color.B + Panel.B) / 2);
 
-    // kit's systemFont at its 14 px size. GDI+ silently substitutes another
-    // family for a missing one, so the name is checked: Windows 10 has no
-    // Segoe UI Variable. Both link Chinese text to Microsoft YaHei UI.
+    // Match the shared UI font at 14 px with explicit Chinese coverage.
+    // GDI+ silently substitutes a missing family, so check the selected name.
     public static Font CreateFont()
     {
-        var font = new Font("Segoe UI Variable Text", 10.5f, FontStyle.Regular, GraphicsUnit.Point);
-        if (font.Name == "Segoe UI Variable Text") return font;
+        var font = new Font("Microsoft YaHei UI", 10.5f, FontStyle.Regular, GraphicsUnit.Point);
+        if (font.Name == "Microsoft YaHei UI") return font;
         font.Dispose();
         return new Font("Segoe UI", 10.5f, FontStyle.Regular, GraphicsUnit.Point);
     }
