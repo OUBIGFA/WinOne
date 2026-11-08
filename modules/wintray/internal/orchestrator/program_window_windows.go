@@ -63,6 +63,24 @@ func (s *Service) ProgramState(entry config.ManagedAppEntry) ProgramState {
 	return ProgramState{Running: len(pids) > 0, HasWindow: window.valid(), Visible: window.IsVisible()}
 }
 
+// A running native tray application may already have hidden its UI. Distinguish
+// that observable state from a process whose first window has not appeared;
+// never let a hidden primary window conceal a visible secondary window.
+func hasOnlyHiddenProgramWindows(expectedPath, expectedName string) bool {
+	hidden := false
+	for _, window := range enumerateTopLevelWindows(true) {
+		if window.IsToolWindow || isUnmanageableWindow(window) || window.Title == "" ||
+			!matchesExecutable(window, expectedPath, expectedName) {
+			continue
+		}
+		if window.IsVisible {
+			return false
+		}
+		hidden = true
+	}
+	return hidden
+}
+
 // IsProgramRunning performs a live identity check for the UI action label.
 // Process identity takes precedence over window visibility because collected
 // and background programs can be running without a visible window.

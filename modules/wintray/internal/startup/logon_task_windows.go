@@ -10,13 +10,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"unicode/utf16"
 
 	"golang.org/x/sys/windows"
+	"winone/internal/logintask"
 )
 
 // LogonTask starts WinTray through a per-user Task Scheduler logon trigger.
@@ -159,19 +158,10 @@ func utf16LEWithBOM(s string) []byte {
 	return append([]byte{0xFF, 0xFE}, utf16LE(s)...)
 }
 
+// Share the command lock with the Host, which owns WinOne's login task in
+// another process. A worker-only mutex cannot protect that inventory race.
 func runSchtasks(args ...string) ([]byte, error) {
-	cmd := exec.Command(filepath.Join(systemDir(), "schtasks.exe"), args...)
-	// WinTray is a GUI program; without this every call flashes a console.
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: windows.CREATE_NO_WINDOW}
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		msg := strings.TrimSpace(oemText(out))
-		if msg == "" {
-			return out, fmt.Errorf("schtasks %s: %w", args[0], err)
-		}
-		return out, fmt.Errorf("schtasks %s: %w: %s", args[0], err, msg)
-	}
-	return out, nil
+	return logintask.RunSchtasks(args...)
 }
 
 func systemDir() string {

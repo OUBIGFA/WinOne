@@ -107,7 +107,9 @@ func waitNativeReport(t *testing.T, path string) nativeConsoleReport {
 }
 
 func TestNativeConsolePreservesOutputInputAndSameWindow(t *testing.T) {
-	if os.Getenv("WINONE_WINTRAY_WINDOW_TEST") != "1" { t.Skip("explicit native console/window check") }
+	if os.Getenv("WINTRAY_CONSOLE_LIVE_TEST") != "1" {
+		t.Skip("set WINTRAY_CONSOLE_LIVE_TEST for owned console-window checks")
+	}
 	self, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
@@ -117,6 +119,11 @@ func TestNativeConsolePreservesOutputInputAndSameWindow(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("WINTRAY_NATIVE_PROBE", "inherited environment")
+	// Normalize redirected/8.3 paths before comparing the real shell cwd.
+	fixtureRoot, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, kind := range []string{"exe", "cmd", "bat", "ps1", "py"} {
 		t.Run(kind, func(t *testing.T) {
 			if kind == "py" {
@@ -124,8 +131,8 @@ func TestNativeConsolePreservesOutputInputAndSameWindow(t *testing.T) {
 					t.Skip("python.exe is not installed")
 				}
 			}
-			dir := filepath.Join(t.TempDir(), "native scripts with spaces")
-			if err := os.Mkdir(dir, 0700); err != nil {
+			dir := filepath.Join(fixtureRoot, kind, "native scripts with spaces")
+			if err := os.MkdirAll(dir, 0700); err != nil {
 				t.Fatal(err)
 			}
 			output := filepath.Join(dir, "probe")

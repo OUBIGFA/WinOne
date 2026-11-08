@@ -155,7 +155,7 @@
     }
   },
   "wintray": {
-    "latestReviewedCommit": "03a809f94b7eec97ae123636b86879357a0052e4",
+    "latestReviewedCommit": "db9c545b4a7c0326c9f3978991ece72e3c55fe7d",
     "wechatAutoLoginReviewedCommit": "db9c545b4a7c0326c9f3978991ece72e3c55fe7d",
     "latestSourceSnapshot": "third_party/wintray-source.json",
     "baseCommit": "57789d13c9c2b451a71f51adfcf21d7b4e285690",
@@ -168,7 +168,7 @@
       "internal/traybox/testdata/taskbar_drag.ps1": "3966edae8eeee8c1d30f8c68e4818520dedbef107c153274ea2df62d58312c79"
     },
     "previousBaseCommit": "dea17c108357109d6c2c04e80c9df45279bfdc51",
-    "adaptation": "WinOne hosted menus and unified logs; private data directory, bounded recovery pipes and final process exit; latest tray registration combined with process/window identity checks; upstream 76512a8 exit and tray restoration fixes plus 5ef48d7 WeChat auto login adapted to the MyGo settings page. 2026-11-03 also reviews the upstream working tree's AutoHotkey association/runtime, DC-backed rendering and delayed tray-readiness changes; details and source hashes remain in latestSourceSnapshot. 2026-11-06 directly synchronizes the complete WeChat UIA implementation and native tests from db9c545: Qt login HWND click, physical-pixel DPI conversion and rendered-main identity; expose the preference in normal/task modes and retain it disabled in hidden mode. Source/target digests and verification: third_party/wintray-source.json and docs/wintray-wechat-login.md."
+    "adaptation": "WinOne hosted menus and unified logs; private data directory, bounded recovery pipes and final process exit; latest tray registration combined with process/window identity checks; upstream 76512a8 exit and tray restoration fixes plus 5ef48d7 WeChat auto login adapted to the MyGo settings page. 2026-11-03 also reviews the upstream working tree's AutoHotkey association/runtime, DC-backed rendering and delayed tray-readiness changes; details and source hashes remain in latestSourceSnapshot. 2026-11-06 directly synchronizes the complete WeChat UIA implementation and native tests from db9c545: Qt login HWND click, physical-pixel DPI conversion and rendered-main identity; expose the preference in normal/task modes and retain it disabled in hidden mode. Source/target digests and verification: third_party/wintray-source.json and docs/wintray-wechat-login.md. 2026-11-08 reviewed db9c545 and the working-tree task-enumeration serialization, adapted to the shared Host/Worker cross-process command lock and isolated startup/native console fixtures; see docs/wintray-sync-20261108.md."
   },
   "sharex": {
     "repository": "https://github.com/ShareX/ShareX",

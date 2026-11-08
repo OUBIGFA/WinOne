@@ -1,7 +1,7 @@
 {
   "repository": "https://github.com/OUBIGFA/WinTray",
-  "revision": "03a809f94b7eec97ae123636b86879357a0052e4",
-  "localChanges": "2026-11-03 reviewed upstream 03a809f plus its current uncommitted AutoHotkey association/runtime, DC-backed startup rendering, delayed tray readiness and native program-state changes; retains the earlier 76512a8 terminal-exit and 5ef48d7 WeChat login fixes",
+  "revision": "db9c545b4a7c0326c9f3978991ece72e3c55fe7d",
+  "localChanges": "2026-11-08 reviewed local and remote db9c545 plus the current working tree: retain the prior AutoHotkey, DC-backed rendering and tray readiness fixes; synchronize schtasks serialization, isolated startup report fixtures and native-console path normalization. Standalone UI now reuses WinOne layouts; standalone installer/uninstaller remain outside the hosted module.",
   "wechatAutoLogin": {
     "revision": "db9c545b4a7c0326c9f3978991ece72e3c55fe7d",
     "scope": "2026-11-06: directly synchronize the complete Qt login click and rendered-main recognition from the clean local WinTray checkout; retain the earlier snapshot for unrelated capabilities.",
@@ -49,7 +49,10 @@
     },
     {
       "path": "internal/orchestrator/escape_close_windows_test.go",
-      "sourceSHA256": "aedf99c00f551d4b683c09fe5fe5849f880fe8788ed143b8d3dc9fef6b8c8c22"
+      "sourceSHA256": "44e77e269e7bf8d486b03fa32ffb87557b0e890fdaf13588fbfb14cbf5d1c7c0",
+      "targetPath": "modules/wintray/internal/orchestrator/escape_close_windows_test.go",
+      "adaptation": "Existing equivalent WinOne fix pins each subtest to the window owner OS thread; retains scoped foreground protection.",
+      "targetSHA256": "dd9a56afa0087e9b2383f2e1e7023d1e1ef13a65c4681f61d4eace5c8fa59888"
     },
     {
       "path": "internal/orchestrator/program_window_windows_test.go",
@@ -57,7 +60,10 @@
     },
     {
       "path": "internal/orchestrator/native_console_windows_test.go",
-      "sourceSHA256": "58f6f17df8f268ebe9b80c24bdb717da05b8786d7e88aee8b2251b5275f6aaec"
+      "sourceSHA256": "37b73ec23ae859fc22206e77863abe66c748fe8d08c3f180cec520f1a7559f35",
+      "targetPath": "modules/wintray/internal/orchestrator/native_console_windows_test.go",
+      "adaptation": "Use common explicit console opt-in, normalize a parent t.TempDir, retain WinOne native-console helper name and automatic test cleanup.",
+      "targetSHA256": "fed873fb30d96239a271200fd4190b36f42c1ee3460e44d7e2bd36cd29d5a7d2"
     },
     {
       "path": "internal/orchestrator/wechat_login_windows.go",
@@ -91,7 +97,9 @@
     },
     {
       "path": "internal/i18n/messages.go",
-      "sourceSHA256": "6a800723cc6699ce5735cce2ea0bc272b4804e1cccbb815dffe0faec34a1a1c2"
+      "sourceSHA256": "41285cfe7f9d7dcf1e429a36281fb977f4a0ddcf7790f35eb5e864f26f6e0ca7",
+      "previousSourceSHA256": "6a800723cc6699ce5735cce2ea0bc272b4804e1cccbb815dffe0faec34a1a1c2",
+      "adaptation": "Latest standalone product/UI changes reviewed; WinOne retains its own unified UI, startup and uninstall entry points. See the capability map."
     },
     {
       "path": "internal/orchestrator/startup_visibility_windows_test.go",
@@ -167,7 +175,9 @@
     },
     {
       "path": "internal/app/bootstrap_windows.go",
-      "sourceSHA256": "fb6e505c21c4f3946ec73ef7230b962c0fb310d508f16e881f5bba50bba91a1e"
+      "sourceSHA256": "117910bf8fa84f85fef01f4e6373eaf8fb8c8e549afa33ecaa1d62de9cc8a7e4",
+      "previousSourceSHA256": "fb6e505c21c4f3946ec73ef7230b962c0fb310d508f16e881f5bba50bba91a1e",
+      "adaptation": "Latest standalone product/UI changes reviewed; WinOne retains its own unified UI, startup and uninstall entry points. See the capability map."
     },
     {
       "path": "internal/app/tray_startup_windows.go",
@@ -180,7 +190,98 @@
     {
       "path": "internal/ui/program_status_windows.go",
       "sourceSHA256": "f32b334a87507cf758d6e50c69827fc99e5ea9e16a4cad39d9e62312680967c0"
+    },
+    {
+      "path": "internal/startup/logon_task_windows.go",
+      "sourceSHA256": "b5a50cabba8ed861f2a27573be2cc739f97bfaf4670428108c0fb05722445169",
+      "targetPath": "modules/wintray/internal/startup/logon_task_windows.go",
+      "adaptation": "Delegate commands to internal/logintask.RunSchtasks shared with Host, using a same-user/session Windows mutex; retain task existence lookup and error semantics.",
+      "targetSHA256": "362e45d323af392bb0c151bd6c3c9ead4be28e2b602cf925a6cc9410bda2834e"
+    },
+    {
+      "path": "internal/startup/startup_live_windows_test.go",
+      "sourceSHA256": "f4602e4931eb876c830d48b8e4ce23030b8116e8f742f0247f5a3cefa8f7861f",
+      "targetPath": "modules/wintray/internal/startup/startup_live_windows_test.go",
+      "adaptation": "WinOne import namespace; inert launch report executable and private Run fixture; preserve helper failures locally and resolve reporter source independently from native runner cwd.",
+      "targetSHA256": "afd0d3dff60daf8d3b44b379c53b4d3561cec0a6a8f2e20681e9a2c7e1d68597"
+    },
+    {
+      "path": "internal/startup/direct_task_live_windows_test.go",
+      "sourceSHA256": "0a04677a5a1035fc9f840428ac222b70f8c650b485fc49303dc9b002eb1816ec",
+      "targetPath": "modules/wintray/internal/startup/direct_task_live_windows_test.go",
+      "adaptation": "WinOne import namespace; inert launch report executable and private Run fixture; preserve helper failures locally and resolve reporter source independently from native runner cwd.",
+      "targetSHA256": "b6905b1f0e64cbb1306033300c66d3f98249c831c7a9ca3834e09a72fee0f76d"
+    },
+    {
+      "path": "internal/startup/frequency_live_windows_test.go",
+      "sourceSHA256": "fcfa91f2bdf476cc7fe53b9aa9a66301f882f3ca98a71b99bfa53ed911b1895d",
+      "targetPath": "modules/wintray/internal/startup/frequency_live_windows_test.go",
+      "adaptation": "WinOne import namespace; inert launch report executable and private Run fixture; preserve helper failures locally and resolve reporter source independently from native runner cwd.",
+      "targetSHA256": "09ef7d5d67b1dd5d738abfc7227566b5fe15ec8f099f44269fa1c089096a1e5a"
+    },
+    {
+      "path": "internal/startup/original_launch_compat_windows_test.go",
+      "sourceSHA256": "0a3d4dce6aaffb2f9efc142800ea1f6fce72877a1fb8c3e6783fa7df3135d3ab",
+      "targetPath": "modules/wintray/internal/startup/original_launch_compat_windows_test.go",
+      "adaptation": "WinOne import namespace; inert launch report executable and private Run fixture; preserve helper failures locally and resolve reporter source independently from native runner cwd.",
+      "targetSHA256": "0a3d4dce6aaffb2f9efc142800ea1f6fce72877a1fb8c3e6783fa7df3135d3ab"
+    },
+    {
+      "path": "internal/startup/task_toggle_live_windows_test.go",
+      "sourceSHA256": "588a0709d29d48c8211bb010da7d95487a5e9bcd39645b8e2663359d02e75fd2",
+      "targetPath": "modules/wintray/internal/startup/task_toggle_live_windows_test.go",
+      "adaptation": "WinOne import namespace; inert launch report executable and private Run fixture; preserve helper failures locally and resolve reporter source independently from native runner cwd.",
+      "targetSHA256": "9d7dd1d476c55ca77f09a010921891166976f5cd264215687735df9567533ec7"
+    },
+    {
+      "path": "internal/startup/testdata/launch-report/main_windows.go",
+      "sourceSHA256": "28f87c9d3749258b3a1a15eb172a2f0998663edbf161320e50ed9a319de3a1b9",
+      "targetPath": "modules/wintray/internal/startup/testdata/launch-report/main_windows.go",
+      "adaptation": "WinOne import namespace; inert launch report executable and private Run fixture; preserve helper failures locally and resolve reporter source independently from native runner cwd.",
+      "targetSHA256": "28f87c9d3749258b3a1a15eb172a2f0998663edbf161320e50ed9a319de3a1b9"
     }
   ],
-  "adaptation": "Retain WinOne module namespace, unified configuration/logs/tray, recovery errors and PID-reuse protection. Reuse scoped Esc/native-close handling, script identity, original-window visibility and queued tray gestures. Existing WinOne native console creation retains its explicit environment/ownership handling. UI uses existing WinOne controls; program exit requires confirmation. Manual launch settings stay independent from the startup switch; collected-icon single click still automatically adds a double click. No new dependency or standalone WinTray UI. Tray collection uses the same local WinTray receiving-end bridge; WinOne permits EPOCH/RESUME through its per-window UIPI filter for elevated operation and preserves native handshake errors instead of reporting every delivery failure as a timeout. The 2026-11-03 review keeps WinOne's explicit os.Process wait/exit-status callback for ShellExecuteEx scripts, preserves the fixture's no-foreground-activation constraint, and reuses transactional deselection for retryable maintenance before terminal collector shutdown. Portable WeChat opt-in settings round-trip without account data or credentials. Capability mapping and verification boundaries: docs/wintray-sync-20261103.md."
+  "adaptation": "Retain WinOne module namespace, unified configuration/logs/tray, recovery errors and PID-reuse protection. Reuse scoped Esc/native-close handling, script identity, original-window visibility and queued tray gestures. Existing WinOne native console creation retains its explicit environment/ownership handling. UI uses existing WinOne controls; program exit requires confirmation. Manual launch settings stay independent from the startup switch; collected-icon single click still automatically adds a double click. No new dependency or standalone WinTray UI. Tray collection uses the same local WinTray receiving-end bridge; WinOne permits EPOCH/RESUME through its per-window UIPI filter for elevated operation and preserves native handshake errors instead of reporting every delivery failure as a timeout. The 2026-11-03 review keeps WinOne's explicit os.Process wait/exit-status callback for ShellExecuteEx scripts, preserves the fixture's no-foreground-activation constraint, and reuses transactional deselection for retryable maintenance before terminal collector shutdown. Portable WeChat opt-in settings round-trip without account data or credentials. Capability mapping and verification boundaries: docs/wintray-sync-20261103.md.",
+  "latestReview": {
+    "date": "2026-11-08",
+    "verification": "docs/wintray-sync-20261108.md",
+    "workingTree": "uncommitted changes reviewed; source hashes below lock the imported files",
+    "localFix": "Automatic close-to-tray timeout is reported instead of false success; already-hidden UI remains successful, visible secondary windows cannot be masked. Host and Worker share a same-user/session Windows mutex around scheduled-task commands; the upstream process-only mutex failed the cross-process regression.",
+    "sharedCommandTarget": {
+      "path": "internal/logintask/logon_task_windows.go",
+      "sha256": "10457b399c16c339056c9d388c52a3742b4d0efc26b2b21f3afb255672ba0b9b"
+    },
+    "uncommittedFiles": [
+      ".github/workflows/release.yml",
+      "README.en.md",
+      "README.md",
+      "build/package.ps1",
+      "go.mod",
+      "go.sum",
+      "internal/app/bootstrap_windows.go",
+      "internal/i18n/messages.go",
+      "internal/i18n/messages_test.go",
+      "internal/orchestrator/escape_close_windows_test.go",
+      "internal/startup/direct_task_live_windows_test.go",
+      "internal/startup/frequency_live_windows_test.go",
+      "internal/startup/logon_task_windows.go",
+      "internal/startup/original_launch_compat_windows_test.go",
+      "internal/startup/startup_live_windows_test.go",
+      "internal/ui/background_window_windows_test.go",
+      "internal/ui/design_windows.go",
+      "internal/ui/design_windows_test.go",
+      "internal/ui/main_window_windows.go",
+      "internal/ui/native_delete_windows_test.go",
+      "internal/ui/native_drop_integration_windows_test.go",
+      "internal/ui/native_drop_windows_test.go",
+      "internal/ui/native_view_windows.go",
+      "internal/ui/native_view_windows_test.go",
+      "internal/ui/program_editor_windows.go",
+      "internal/ui/program_list_windows.go",
+      "internal/ui/program_list_windows_test.go",
+      "internal/ui/settings_view_windows.go",
+      "internal/ui/shutdown_windows_test.go",
+      "internal/ui/toolbar_windows_test.go"
+    ]
+  }
 }

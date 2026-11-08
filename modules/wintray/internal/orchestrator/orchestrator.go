@@ -373,6 +373,14 @@ func (s *Service) manageRunning(ctx context.Context, entry config.ManagedAppEntr
 		if !s.hasExistingManagedProcess(expectedPath, expectedName) && !s.hasExistingManagedWindow(expectedPath, expectedName) {
 			return Result{AppName: entry.Name, Code: ResultNoWindowManaged, Message: "program exited while dismissing its window"}
 		}
+		if hasOnlyHiddenProgramWindows(expectedPath, expectedName) {
+			return Result{AppName: entry.Name, Managed: true, Code: ResultAlreadyRunningSkipped, Message: "already running skipped"}
+		}
+		// Task/external launches reach this path as soon as a process exists,
+		// often before its GUI does. An expired window wait is not evidence
+		// that close-to-tray succeeded. Keep manual launch's best-effort rule.
+		s.logger.Warn(fmt.Sprintf("window was not dismissed within the configured wait: %s retrySeconds=%d; check the window wait or close delay", entry.Name, retrySeconds))
+		return windowNotManagedResult(entry, opts)
 	}
 	return Result{AppName: entry.Name, Managed: true, Code: ResultAlreadyRunningSkipped, Message: "already running skipped"}
 }

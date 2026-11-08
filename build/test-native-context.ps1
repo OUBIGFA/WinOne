@@ -22,7 +22,7 @@ function CompileTest([string]$directory, [string]$package, [string]$name) {
 }
 if ($Suite -in @('startup','all')) {
     $exe = CompileTest (Join-Path $root 'modules/wintray') './internal/startup' 'startup'
-    $checks += @{ exe=$exe; name='startup'; args=@('-test.run=Test(OriginalStartupLiveRoundTrip|ConfiguredStartupLiveRoundTrip|FrequencyLiveRoundTrip|LogonTaskRegistersWithSchtasks|ScheduledTaskLookupConfirmsMissingName)$','-test.v','-test.timeout=90s') }
+    $checks += @{ exe=$exe; name='startup'; args=@('-test.run=Test(OriginalStartupLiveRoundTrip|ConfiguredStartupLiveRoundTrip|FrequencyLiveRoundTrip|TaskInventoryDuring(CrossProcess)?LogonToggle|RunHelperPreservesInheritedDirectoryAndOriginalArguments|LogonTaskRegistersWithSchtasks|ScheduledTaskLookupConfirmsMissingName)$','-test.v','-test.timeout=180s') }
 }
 if ($Suite -eq 'wintray') {
     $exe = CompileTest (Join-Path $root 'modules/wintray') './internal/tray' 'wintray-menu'
@@ -42,7 +42,14 @@ if ($Suite -in @('always-on-top','administrator','all')) {
     $checks += @{ exe=$exe; name='privilege'; args=@('-test.run=^TestPrivilegeCancellationRestoresRealOwnedWindow$','-test.v','-test.timeout=30s') }
     }
 }
-$config = @{ root=$root; aotExe=$AlwaysOnTopExe; liveElevation=($Suite -eq 'administrator'); trayUI=($Suite -eq 'wintray'); checks=@($checks) } | ConvertTo-Json -Depth 5
+# A task does not inherit this shell's selected local compiler/cache. The
+# inert launch-report fixture is compiled during the native tests as well.
+$compilerEnvironment=@{}
+foreach($key in @('GOROOT','GOCACHE','GOMODCACHE','GOPATH')){
+    $value=[Environment]::GetEnvironmentVariable($key,'Process')
+    if($value){$compilerEnvironment[$key]=$value}
+}
+$config = @{ root=$root; aotExe=$AlwaysOnTopExe; liveElevation=($Suite -eq 'administrator'); trayUI=($Suite -eq 'wintray'); checks=@($checks); compilerEnvironment=$compilerEnvironment } | ConvertTo-Json -Depth 5
 [IO.File]::WriteAllText((Join-Path $runDir 'checks.json'), $config, [Text.UTF8Encoding]::new($false))
 # A current-user interactive task avoids inherited tool-process registry/window differences.
 $runner = @'
@@ -54,6 +61,7 @@ New-Item -ItemType Directory -Path $env:TEMP -Force | Out-Null
 $failed = $false
 try {
     $config = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'checks.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    foreach($item in $config.compilerEnvironment.PSObject.Properties){[Environment]::SetEnvironmentVariable($item.Name,[string]$item.Value,'Process')}
     $env:WINTRAY_STARTUP_LIVE_TEST = '1'
     $env:WINTRAY_UI_TEST = if ($config.trayUI) { '1' } else { '' }
     if ($config.liveElevation) { $env:WINONE_LIVE_ELEVATION_TEST = '1' } else { $env:WINONE_LIVE_ELEVATION_TEST = '' }
@@ -79,7 +87,7 @@ try {
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $arguments = [Security.SecurityElement]::Escape('-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + (Join-Path $runDir 'run.ps1') + '"')
 $xml = @"
-<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task"><Triggers/><Principals><Principal id="User"><UserId>$sid</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals><Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><ExecutionTimeLimit>PT3M</ExecutionTimeLimit></Settings><Actions Context="User"><Exec><Command>powershell.exe</Command><Arguments>$arguments</Arguments></Exec></Actions></Task>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task"><Triggers/><Principals><Principal id="User"><UserId>$sid</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals><Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><ExecutionTimeLimit>PT4M</ExecutionTimeLimit></Settings><Actions Context="User"><Exec><Command>powershell.exe</Command><Arguments>$arguments</Arguments></Exec></Actions></Task>
 "@
 [IO.File]::WriteAllText((Join-Path $runDir 'task.xml'), $xml, [Text.UTF8Encoding]::new($false))
 $taskName = 'WinOne-NativeCheck-' + [Guid]::NewGuid().ToString('N')
@@ -88,7 +96,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Could not register temporary verification task
 try {
     & schtasks.exe /Run /TN $taskName | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Could not start verification task' }
-    $deadline = [DateTime]::UtcNow.AddSeconds(150)
+    # Startup now includes two 20-cycle concurrency cases. This is the test
+    # runner watchdog, not a product startup performance target.
+    $deadline = [DateTime]::UtcNow.AddSeconds(210)
     while (-not (Test-Path -LiteralPath (Join-Path $runDir 'exit.txt'))) {
         if ([DateTime]::UtcNow -gt $deadline) { throw "Verification timed out; logs: $runDir" }
         Start-Sleep -Milliseconds 500

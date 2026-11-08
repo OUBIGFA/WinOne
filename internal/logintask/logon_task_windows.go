@@ -12,9 +12,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"unicode/utf16"
+	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
@@ -41,7 +43,7 @@ func NewLogonTask() (*LogonTask, error) {
 	}
 	sid := user.User.Sid.String()
 	// Task names are machine wide; the SID keeps each user's task separate.
-	return &LogonTask{name: "WinOne-" + sid, userSID: sid, run: runSchtasks, lookup: scheduledTaskExists}, nil
+	return &LogonTask{name: "WinOne-" + sid, userSID: sid, run: RunSchtasks, lookup: scheduledTaskExists}, nil
 }
 
 // Sync registers the task for exePath/args unless an enabled task with the
@@ -210,7 +212,43 @@ func utf16LEWithBOM(s string) []byte {
 	return append([]byte{0xFF, 0xFE}, utf16LE(s)...)
 }
 
-func runSchtasks(args ...string) ([]byte, error) {
+// RunSchtasks serializes task commands across the Host and program worker.
+// schtasks inventory reads are not snapshots: deleting a task concurrently
+// can return partial XML and ERROR_FILE_NOT_FOUND. WinTray's process-local
+// mutex is insufficient once its responsibilities live in separate processes.
+func RunSchtasks(args ...string) (output []byte, failure error) {
+	user, err := windows.GetCurrentProcessToken().GetTokenUser()
+	if err != nil {
+		return nil, err
+	}
+	sid := user.User.Sid.String()
+	// Both ordinary and elevated WinOne processes must open the same object,
+	// whichever creates it first. Its access remains limited to this user.
+	sd, err := windows.SecurityDescriptorFromString("D:P(A;;GA;;;" + sid + ")S:(ML;;NW;;;ME)")
+	if err != nil {
+		return nil, err
+	}
+	security := windows.SecurityAttributes{Length: uint32(unsafe.Sizeof(windows.SecurityAttributes{})), SecurityDescriptor: sd}
+	name, err := windows.UTF16PtrFromString(`Local\WinOne_ScheduledTasks_` + sid)
+	if err != nil {
+		return nil, err
+	}
+	mutex, err := windows.CreateMutex(&security, false, name)
+	if err != nil && !errors.Is(err, windows.ERROR_ALREADY_EXISTS) {
+		return nil, err
+	}
+	defer windows.CloseHandle(mutex)
+	// Windows mutex ownership belongs to the OS thread, not the goroutine.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	status, err := windows.WaitForSingleObject(mutex, 30000)
+	if err != nil {
+		return nil, err
+	}
+	if status != windows.WAIT_OBJECT_0 && status != windows.WAIT_ABANDONED {
+		return nil, fmt.Errorf("scheduled task command lock unavailable: %d", status)
+	}
+	defer func() { failure = errors.Join(failure, windows.ReleaseMutex(mutex)) }()
 	cmd := exec.Command(filepath.Join(systemDir(), "schtasks.exe"), args...)
 	// WinOne is a GUI program; without this every call flashes a console.
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: windows.CREATE_NO_WINDOW}

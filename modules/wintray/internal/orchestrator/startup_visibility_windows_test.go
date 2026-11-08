@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -115,6 +116,15 @@ func TestStartupVisibilityProcess(t *testing.T) {
 		return
 	}
 	runtime.LockOSThread()
+	// Model a GUI whose process is observable before its renderer creates UI.
+	// No user application or persistent startup registration is involved.
+	if strings.HasPrefix(os.Args[4], "late-") {
+		milliseconds, err := strconv.Atoi(strings.TrimPrefix(os.Args[4], "late-"))
+		if err != nil {
+			os.Exit(4)
+		}
+		time.Sleep(time.Duration(milliseconds) * time.Millisecond)
+	}
 	fixtureRefusesClose = os.Args[4] == "refuse" || os.Args[4] == "taskbar-refuse"
 	fixturePartiallyRefusesClose = os.Args[4] == "partial"
 	if strings.HasPrefix(os.Args[4], "escape-") {
