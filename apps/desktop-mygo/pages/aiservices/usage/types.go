@@ -451,19 +451,26 @@ type quotaLine struct {
 
 // allowance is one account's or key's reading.
 type allowance struct {
-	Provider     string        `json:"provider"`
-	Name         string        `json:"name"`
-	User         string        `json:"user,omitempty"`
-	Plan         string        `json:"plan,omitempty"`
-	Windows      []quotaWindow `json:"windows"`
-	Balance      string        `json:"balance,omitempty"`
-	BalanceSplit []balancePart `json:"balanceSplit,omitempty"`
-	BalanceParts []balancePart `json:"balanceParts,omitempty"`
-	Error        string        `json:"error,omitempty"`
-	SeeAt        string        `json:"seeAt,omitempty"`
-	ReadAt       string        `json:"readAt,omitempty"`
-	AsOf         string        `json:"asOf,omitempty"`
-	History      []quotaLine   `json:"history,omitempty"`
+	Provider     string           `json:"provider"`
+	Name         string           `json:"name"`
+	User         string           `json:"user,omitempty"`
+	Plan         string           `json:"plan,omitempty"`
+	Windows      []quotaWindow    `json:"windows"`
+	Balance      string           `json:"balance,omitempty"`
+	Estimate     *balanceEstimate `json:"estimate,omitempty"`
+	BalanceSplit []balancePart    `json:"balanceSplit,omitempty"`
+	BalanceParts []balancePart    `json:"balanceParts,omitempty"`
+	Error        string           `json:"error,omitempty"`
+	SeeAt        string           `json:"seeAt,omitempty"`
+	ReadAt       string           `json:"readAt,omitempty"`
+	AsOf         string           `json:"asOf,omitempty"`
+	History      []quotaLine      `json:"history,omitempty"`
+}
+
+type balanceEstimate struct {
+	Set   float64 `json:"set"`
+	At    string  `json:"at"`
+	Spent float64 `json:"spent"`
 }
 
 // archivePart is the request or the reply of an archived request.

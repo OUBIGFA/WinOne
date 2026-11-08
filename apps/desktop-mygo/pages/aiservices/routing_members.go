@@ -33,6 +33,14 @@ func replaceMemberReference(g *routeGroup, from, to string) {
 		delete(g.Weights, from)
 		g.Weights[to] = weight
 	}
+	if levels, ok := g.EffortMaps[from]; ok {
+		delete(g.EffortMaps, from)
+		// Fixed/subset members already specify what is sent; upstream drops
+		// their map too, rather than presenting a map that cannot run.
+		if !strings.Contains(to, ":") {
+			g.EffortMaps[to] = levels
+		}
+	}
 	for i := range g.Rules {
 		rule := &g.Rules[i].Value
 		if rule.Use == from {
@@ -50,6 +58,7 @@ func removeRouteMember(g *routeGroup, id string) {
 	g.Fast = toggleString(g.Fast, id, false)
 	g.Placed = toggleString(g.Placed, id, false)
 	delete(g.Weights, id)
+	delete(g.EffortMaps, id)
 	if g.Pick == id {
 		g.Pick = ""
 	}
@@ -101,6 +110,35 @@ func (r *routingPanel) memberEffort(c *ui.Context, g *routeGroup, id string, loc
 			next += ":" + selected
 		}
 		replaceMemberReference(g, id, next)
+	}
+	if selected == "" && !strings.HasPrefix(id, "group/") {
+		mapping := ui.Local(ui.Column(c), "effort-map", func() bool { return len(g.EffortMaps[id]) > 0 })
+		ui.Collapsible(c, nativeT("effortMapping"), mapping, func() {
+			kit.Help(c, nativeT("effortMappingHint"))
+			// provider.MemberEfforts is the map's contract; unrestricted model
+			// effort words elsewhere continue to use the vendor's own options.
+			levels := []string{"none", "minimal", "low", "medium", "high", "xhigh", "max"}
+			for _, from := range levels {
+				to := g.EffortMaps[id][from]
+				choices := append([]kit.SelectOption{{Value: "", Label: nativeT("asRequested")}}, stringChoices(levels)...)
+				if nativeSelect(c, from, &to, choices, locked) {
+					if to == "" || to == from {
+						delete(g.EffortMaps[id], from)
+					} else {
+						if g.EffortMaps == nil {
+							g.EffortMaps = map[string]map[string]string{}
+						}
+						if g.EffortMaps[id] == nil {
+							g.EffortMaps[id] = map[string]string{}
+						}
+						g.EffortMaps[id][from] = to
+					}
+					if len(g.EffortMaps[id]) == 0 {
+						delete(g.EffortMaps, id)
+					}
+				}
+			}
+		})
 	}
 	open := ui.Local(ui.Column(c), "subset", func() bool { return strings.Contains(selected, "+") })
 	ui.Collapsible(c, nativeT("memberEffortSubset"), open, func() {
@@ -162,5 +200,36 @@ func nativeWeekdays(c *ui.Context, days *[]string, locked bool) {
 				}
 			}
 		})
+	})
+}
+
+// Ordered selections retain their upstream references, while the user works
+// with the same model names as in the group. A removed model stays removable.
+func (r *routingPanel) memberOrderView(c *ui.Context, label string, values *[]string, available []string, locked bool) {
+	ui.Field(c, label, func() {
+		for i, id := range slices.Clone(*values) {
+			ui.Row(c.Key(id)).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+				kit.Label(c, r.memberLabel(id)).Grow(1).MinWidth(0)
+				if kit.IconButton(c, icons.ArrowUp, nativeT("moveUp")+" "+r.memberLabel(id)).Disabled(locked || i == 0).Clicked() {
+					(*values)[i], (*values)[i-1] = (*values)[i-1], (*values)[i]
+				}
+				if kit.IconButton(c, icons.ArrowDown, nativeT("moveDown")+" "+r.memberLabel(id)).Disabled(locked || i == len(*values)-1).Clicked() {
+					(*values)[i], (*values)[i+1] = (*values)[i+1], (*values)[i]
+				}
+				if kit.IconButton(c, icons.X, nativeT("remove")+" "+r.memberLabel(id)).Disabled(locked).Clicked() {
+					*values = toggleString(*values, id, false)
+				}
+			})
+		}
+		choices := []kit.SelectOption{{Value: "", Label: nativeT("addMember")}}
+		for _, id := range available {
+			if !slices.Contains(*values, id) {
+				choices = append(choices, kit.SelectOption{Value: id, Label: r.memberLabel(id)})
+			}
+		}
+		selected := ""
+		if nativeSelect(c, nativeT("addMember"), &selected, choices, locked || len(choices) == 1) && selected != "" {
+			*values = append(*values, selected)
+		}
 	})
 }

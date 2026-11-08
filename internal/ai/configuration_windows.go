@@ -41,6 +41,15 @@ func (s *Store) configurationLocked() Configuration {
 		api := &c.MagpieSettings.SearchAPIs[i]
 		api.Key = ""
 		api.HasKey = s.searchKeys[api.Vendor] != ""
+		if api.KeyList != nil {
+			api.HasKey = false
+			for j := range *api.KeyList {
+				key := &(*api.KeyList)[j]
+				key.Key = ""
+				key.HasKey = s.searchKeys[api.Vendor+"/"+key.ID] != ""
+				api.HasKey = api.HasKey || key.HasKey
+			}
+		}
 	}
 	return c
 }

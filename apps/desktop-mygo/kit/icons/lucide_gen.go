@@ -99,6 +99,7 @@ var (
 	ImagePlus             = lucide("image-plus")
 	Import                = lucide("import")
 	Info                  = lucide("info")
+	KeyRound              = lucide("key-round")
 	Keyboard              = lucide("keyboard")
 	Languages             = lucide("languages")
 	LaptopMinimal         = lucide("laptop-minimal")

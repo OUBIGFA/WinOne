@@ -92,8 +92,14 @@ func applyRuntimeSettings(in request) error {
 	// account-specific preference file. The shared router keeps native Find.
 	if address != "" {
 		s.RedactModel = true
-		if model := os.Getenv("WINONE_AI_PRIVACY_MODEL"); model != "" { s.RedactModelName = model }
-		if score := os.Getenv("WINONE_AI_PRIVACY_SCORE"); score != "" { if err := json.Unmarshal([]byte(score), &s.RedactModelScore); err != nil { return err } }
+		if model := os.Getenv("WINONE_AI_PRIVACY_MODEL"); model != "" {
+			s.RedactModelName = model
+		}
+		if score := os.Getenv("WINONE_AI_PRIVACY_SCORE"); score != "" {
+			if err := json.Unmarshal([]byte(score), &s.RedactModelScore); err != nil {
+				return err
+			}
+		}
 	}
 	// WinOne keeps its established explicit-download boundary, including for
 	// a new upstream whose local model is automatically downloaded by default.
@@ -337,7 +343,9 @@ func testModels(ctx context.Context, in request, output io.Writer) error {
 		}
 		p = *a
 		p.LimitRestOff = in.LimitRestOff
-		if err := applyProviderPreferences(&p, in); err != nil { return err }
+		if err := applyProviderPreferences(&p, in); err != nil {
+			return err
+		}
 	} else {
 		var err error
 		p, err = configuredProvider(in)
@@ -485,8 +493,9 @@ func trayCards(cards []provider.SubscriptionQuota, ids []string, hostID string, 
 // letting an unknown JSON setting become a provider's endpoint or credential.
 type auxiliaryProvider struct {
 	provider.Provider
-	AccountKind string                   `json:"accountKind,omitempty"`
-	Metadata    map[string]modelMetadata `json:"metadata,omitempty"`
+	AccountKind    string                   `json:"accountKind,omitempty"`
+	Metadata       map[string]modelMetadata `json:"metadata,omitempty"`
+	DecisionSource *request                 `json:"decisionSource,omitempty"`
 }
 
 func installAuxiliaryProviders(in request) error {
@@ -509,6 +518,18 @@ func installAuxiliaryProviders(in request) error {
 			}
 		}
 		provider.WinOneProviders = append(provider.WinOneProviders, p.Provider)
+		if p.DecisionSource != nil {
+			source := *p.DecisionSource
+			source.Key = "winone-capability-check"
+			actual, err := configuredProvider(source)
+			if err != nil {
+				return err
+			}
+			if gateway.WinOneDecisionProviders == nil {
+				gateway.WinOneDecisionProviders = map[string]bool{}
+			}
+			gateway.WinOneDecisionProviders[p.ID] = gateway.WinOneCanDecide(actual)
+		}
 		// A bridge remains an HTTP provider: attaching an Account would bypass
 		// its private transport. Only the onProvider context needs its kind.
 		if p.AccountKind != "" {

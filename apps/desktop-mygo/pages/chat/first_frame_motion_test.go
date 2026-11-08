@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -12,6 +13,11 @@ import (
 // A settled-only screenshot cannot catch previous-frame centering regressions.
 func TestWelcomeComposerHasItsFinalPositionOnFirstFrame(t *testing.T) {
 	_, h, p, _, _ := setup(t)
+	for _, locale := range []string{i18n.Chinese, i18n.English} {
+		i18n.SetLocale(locale)
+		h.Shots(t, fmt.Sprintf("chat-welcome-%s", locale), p.welcome, 900, nil)
+	}
+	i18n.SetLocale(i18n.Chinese)
 	for _, size := range [][2]int{{1000, 900}, {560, 900}, {560, 420}} {
 		for _, reduced := range []bool{false, true} {
 			var first, settled ui.Rect
@@ -31,6 +37,16 @@ func TestWelcomeComposerHasItsFinalPositionOnFirstFrame(t *testing.T) {
 				t.Fatal("first paint has no composer")
 			}
 			h.Settle(tt)
+			logo, ok := tt.Find("WinOne")
+			if !ok || logo.W != 160 || logo.H != 160 {
+				t.Fatalf("welcome logo lost its original size: %+v", logo)
+			}
+			if size[1] == 900 {
+				center := (logo.Y + settled.Y + settled.H) / 2
+				if math.Abs(float64(center)-float64(size[1])/2) > 2 || math.Abs(float64(logo.X+logo.W/2-settled.X-settled.W/2)) > 1 {
+					t.Fatalf("logo and composer are not centered together: logo=%+v composer=%+v", logo, settled)
+				}
+			}
 			if math.Abs(float64(first.Y-settled.Y)) > 0.5 || math.Abs(float64(first.X-settled.X)) > 0.5 {
 				t.Fatalf("welcome jumped at %v: %+v -> %+v", size, first, settled)
 			}

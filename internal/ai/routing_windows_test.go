@@ -57,7 +57,10 @@ func TestMagpieRoutingFailsOverKeysAndRetainsCooldown(t *testing.T) {
 		request.Header.Set("Content-Type", "application/json")
 		response, err := http.DefaultClient.Do(request)
 		if err != nil {
-			t.Fatal(err)
+			mu.Lock()
+			counts := map[string]int{"exhausted": attempts["Bearer exhausted-key"], "usable": attempts["Bearer usable-key"]}
+			mu.Unlock()
+			t.Fatalf("call %d failed after attempts %v: %v", i, counts, err)
 		}
 		raw, _ := io.ReadAll(response.Body)
 		response.Body.Close()

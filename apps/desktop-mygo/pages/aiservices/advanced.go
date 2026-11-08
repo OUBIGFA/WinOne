@@ -151,6 +151,7 @@ func newAdvancedPanel(p *page) *advancedPanel {
 
 func (a *advancedPanel) Close() {
 	a.read++
+	clear(a.revealed)
 	if a.model != nil {
 		a.model.Close()
 	}
@@ -928,7 +929,12 @@ func (a *advancedPanel) searchAPIs(c *ui.Context, catalog *magpieCatalog, locked
 				}
 				entry.Value.Vendor = selected.ID
 				if key := strings.TrimSpace(f.key); key != "" {
-					entry.Value.Key = key
+					if entry.Value.KeyList != nil {
+						keys := append(slices.Clone(*entry.Value.KeyList), searchKeySlots(key)...)
+						entry.Value.KeyList = &keys
+					} else {
+						entry.Value.Key = key
+					}
 				}
 				entry.Value.URL = strings.TrimSpace(f.url)
 				next := append([]core.Preserved[searchAPI]{}, apis...)
@@ -971,7 +977,7 @@ func (a *advancedPanel) searchAPIs(c *ui.Context, catalog *magpieCatalog, locked
 					if kit.IconButton(c, icons.ChevronDown, i18n.T("ai.searchMoveDown", "name", name)).Disabled(locked || index == len(apis)-1).Clicked() {
 						move(1)
 					}
-					if api.HasKey || api.Key != "" {
+					if api.KeyList == nil && (api.HasKey || api.Key != "") {
 						shown := a.revealed[api.Vendor] != ""
 						label, icon := "ai.showSearchKey", icons.Eye
 						if shown {
@@ -1013,6 +1019,7 @@ func (a *advancedPanel) searchAPIs(c *ui.Context, catalog *magpieCatalog, locked
 					}
 				})
 			})
+			a.searchKeys(c, api, locked)
 			var parts []string
 			if api.URL != "" {
 				parts = append(parts, api.URL)
@@ -1046,6 +1053,8 @@ func (a *advancedPanel) readSearchKey(api searchAPI, done func(string)) {
 		done(api.Key)
 		return
 	}
+	// Ignore answers for a replaced draft or a panel that has closed.
+	owner, draft := a.read, a.p.draft
 	core.Go(a.p.env, func() (string, error) {
 		var result struct {
 			Key string `json:"key"`
@@ -1053,6 +1062,9 @@ func (a *advancedPanel) readSearchKey(api searchAPI, done func(string)) {
 		err := a.p.env.Host.CallCompletingInto("capture.ai.magpie.search-key", map[string]string{"vendor": api.Vendor}, &result)
 		return result.Key, err
 	}, func(key string, err error) {
+		if owner != a.read || draft != a.p.draft {
+			return
+		}
 		if err != nil {
 			a.searchErr = err.Error()
 			return

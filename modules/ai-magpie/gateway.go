@@ -121,6 +121,12 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 		}
 		provider.WinOneProviders = []provider.Provider{p}
 	}
+	if gateway.WinOneTransportOnly {
+		// This worker performs one selected attempt. Upstream now also waits
+		// on plain providers; leave that budget with the outer router so a
+		// refusal can reach its next account or group member immediately.
+		provider.WinOneProviders[0].Patience = provider.PatienceOff
+	}
 	if multipart {
 		body, contentType, err := rewriteMultipartModel(in.GatewayBinaryBody, in.GatewayContentType, model)
 		if err != nil {

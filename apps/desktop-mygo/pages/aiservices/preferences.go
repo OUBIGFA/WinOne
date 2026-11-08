@@ -152,6 +152,10 @@ func (e *editor) compatibilityPreferences(c *ui.Context, pr *provider, locked bo
 			kit.Toggle(c, &s.HTTP1, nativeT("http1"), nativeT("http1Hint")).Disabled(locked)
 			kit.Toggle(c, &s.ImageFilesOff, nativeT("inlineImages"), nativeT("inlineImagesHint")).Disabled(locked)
 			kit.Toggle(c, &s.PassErrors, nativeT("passErrors"), nativeT("passErrorsHint")).Disabled(locked)
+			ownAgent := !s.MagpieUserAgent
+			if kit.Toggle(c, &ownAgent, nativeT("passUserAgent"), nativeT("passUserAgentHint")).Disabled(locked).Changed() {
+				s.MagpieUserAgent = !ownAgent
+			}
 			kit.Toggle(c, &s.KeepSelf, nativeT("keepSelf"), nativeT("keepSelfHint")).Disabled(locked)
 		}
 		kit.Toggle(c, &s.UseFirst, nativeT("useFirst"), nativeT("useFirstHint")).Disabled(locked)

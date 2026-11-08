@@ -38,6 +38,9 @@ if($LASTEXITCODE -ne 0 -or -not $room.Contains('dir = path.Dir(dir)')){throw 'Re
 Set-Hook 'internal/pluginrt/config.go' @{
  'func Load() (File, bool, error) {'='func Load() (File, bool, error) { if f,ok:=WinOneLoad();ok{return f,true,nil};'
 }
+Set-Hook 'internal/gateway/decisions.go' @{
+ 'func canDecide(p provider.Provider) bool {'='func canDecide(p provider.Provider) bool { if supported,ok:=WinOneDecisionProviders[p.ID];ok{return supported};'
+}
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/plugins_embed.go.txt') -Destination (Join-Path $SourceDirectory 'internal/pluginrt/winone_embed.go')
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/builtin_plugins.go'),(Join-Path $root 'modules/ai-magpie/bundle_selection.go'),(Join-Path $root 'modules/ai-magpie/builtin_plugins_test.go') -Destination (Join-Path $SourceDirectory 'cmd/winone-ai')
 Set-Hook 'internal/provider/search_api.go' @{

@@ -24,6 +24,8 @@ type ProviderPreferences struct {
 	AccountWindowCaps  map[string]map[string]int `json:"accountWindowCaps,omitempty"`
 	AccountNames       map[string]string         `json:"accountNames,omitempty"`
 	KeySpendCaps       map[string]SpendCap       `json:"keySpendCaps,omitempty"`
+	KeyOwnBalances     map[string]OwnBalance     `json:"keyOwnBalances,omitempty"`
+	MagpieUserAgent    bool                      `json:"magpieUserAgent,omitempty"`
 	PriceRate          float64                   `json:"priceRate,omitempty"`
 	CountFree          bool                      `json:"countFree,omitempty"`
 	RateWindows        []RateWindow              `json:"rateWindows,omitempty"`
@@ -63,6 +65,12 @@ type SpendCap struct {
 	USD    float64   `json:"usd"`
 	Period string    `json:"period"`
 	Since  time.Time `json:"since,omitzero"`
+}
+
+// Magpie subtracts its recorded spending after At from this USD balance.
+type OwnBalance struct {
+	USD float64   `json:"usd"`
+	At  time.Time `json:"at"`
 }
 
 func (p ProviderPreferences) clone() ProviderPreferences {
@@ -127,6 +135,11 @@ func (p ProviderPreferences) validate() error {
 	for _, cap := range p.KeySpendCaps {
 		if math.IsNaN(cap.USD) || math.IsInf(cap.USD, 0) || cap.USD <= 0 || cap.USD > 1000000 || cap.Period != "day" && cap.Period != "month" && cap.Period != "total" {
 			return errors.New("密钥消费上限无效")
+		}
+	}
+	for _, balance := range p.KeyOwnBalances {
+		if math.IsNaN(balance.USD) || math.IsInf(balance.USD, 0) || balance.USD < 0 || balance.USD > 1000000 || balance.At.IsZero() {
+			return errors.New("手动余额需要有效金额及记录时间")
 		}
 	}
 	clock := func(s string, end bool) (time.Time, bool) {

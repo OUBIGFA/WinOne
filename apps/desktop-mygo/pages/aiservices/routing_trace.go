@@ -306,9 +306,9 @@ func (t *nativeTrace) View(c *ui.Context, p *page) {
 				}
 			}
 			for _, r := range groups[key] {
-				label := r.Model
+				label := p.routing.memberLabel(r.Model)
 				if r.Served != "" && r.Served != r.Model {
-					label += " → " + r.Served
+					label += " → " + p.routing.memberLabel(r.Served)
 				}
 				button := ui.ButtonBase(c.Key(r.ID)).FillWidth().Padding(10, 8).BorderWidth(0, 0, 1, 0).BorderColor(kit.Colors(c).Hairline).Label(nativeT("request") + " " + strconv.FormatInt(r.ID, 10))
 				button.Children(func() {

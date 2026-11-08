@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -18,6 +19,47 @@ func (s *Store) prepareSearchKeys(c *Configuration) (map[string]string, error) {
 	next := map[string]string{}
 	for i := range c.MagpieSettings.SearchAPIs {
 		api := &c.MagpieSettings.SearchAPIs[i]
+		if api.KeyList != nil {
+			api.Key, api.HasKey = "", false
+			seen := map[string]bool{}
+			kept := []SearchKey{}
+			for j := range *api.KeyList {
+				slot := &(*api.KeyList)[j]
+				ref := api.Vendor + "/" + slot.ID
+				sealed := s.searchKeys[ref]
+				plain := slot.Key
+				if plain == "" && sealed != "" {
+					var err error
+					plain, err = unsealKey(sealed)
+					if err != nil {
+						return nil, err
+					}
+				}
+				// Upstream AddSearchKeys keeps an existing key's position and
+				// switch. Compare at this encrypted-storage boundary so the UI
+				// does not have to reveal saved keys just to add another one.
+				if plain != "" && seen[plain] {
+					continue
+				}
+				if slot.Key != "" {
+					data, err := protect([]byte(slot.Key), false)
+					if err != nil {
+						return nil, err
+					}
+					sealed = base64.StdEncoding.EncodeToString(data)
+				}
+				if sealed == "" {
+					return nil, errors.New("搜索 API 密钥已不存在，请重新输入")
+				}
+				next[ref] = sealed
+				slot.Key, slot.HasKey = "", true
+				seen[plain] = true
+				kept = append(kept, *slot)
+				api.HasKey = true
+			}
+			api.KeyList = &kept
+			continue
+		}
 		sealed := s.searchKeys[api.Vendor]
 		if api.Key != "" {
 			if len(api.Key) > 16384 {
@@ -53,6 +95,22 @@ func (s *Store) runtimeMagpieSettingsLocked(c Configuration) (*MagpieSettings, e
 		}
 	}
 	for i := range out.SearchAPIs {
+		if out.SearchAPIs[i].KeyList != nil {
+			var enabled []string
+			for j := range *out.SearchAPIs[i].KeyList {
+				slot := &(*out.SearchAPIs[i].KeyList)[j]
+				key, err := unsealKey(s.searchKeys[out.SearchAPIs[i].Vendor+"/"+slot.ID])
+				if err != nil {
+					return nil, err
+				}
+				slot.Key = key
+				if !slot.Off {
+					enabled = append(enabled, key)
+				}
+			}
+			out.SearchAPIs[i].Key = strings.Join(enabled, ",")
+			continue
+		}
 		key, err := unsealKey(s.searchKeys[out.SearchAPIs[i].Vendor])
 		if err != nil {
 			return nil, err

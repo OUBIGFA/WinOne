@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/yetone/magpie",
-  "revision": "c39d36644742a10a4730f0ffc5a03d877f185541",
+  "revision": "778b8e0753928533fd7afb8d76b57a2b5e22336a",
   "license": "MIT",
-  "notice": "licenses/upstream-magpie-c39d36644742a10a4730f0ffc5a03d877f185541-0-LICENSE.txt",
+  "notice": "licenses/upstream-magpie-778b8e0753928533fd7afb8d76b57a2b5e22336a-0-LICENSE.txt",
   "sourceFiles": {
     "LICENSE": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572",
-    "internal/gui/assets/app.js": "f710f792aa5b6948452ee13612fae550a9aca7bd07dd683eca1d337dccddd591",
-    "internal/gui/assets/plugins/usage/page.js": "71c877b83a2fe0dcf6e0d601b7bd2b91eb79a3f7ae33764ca296fd0189b2d1a6",
-    "internal/gui/assets/app.css": "b703be776e5e94a03a27b7756696192abf29c31779c8c3fcff7b1eca9d06a2d2",
-    "internal/gui/assets/i18n.js": "09f068bd65c781e56363d79bd3e793a055df0815f03b88309fdeb3e0e0d19a1a",
+    "internal/gui/assets/app.js": "27f43ddba8d72e09724fcb8e6c711eb7c686b878a26e450fc0e30bdc2684cfe7",
+    "internal/gui/assets/plugins/usage/page.js": "8315e8f9309fffc28601e55fa32afed4fa739b128bfe011e47624cd46c5de832",
+    "internal/gui/assets/app.css": "98a17c493e8f1f5a2bb579b21030822b60809a1078f7b88db8a7259db43720b2",
+    "internal/gui/assets/i18n.js": "00fce719b06958e3d39b6314ca0241bacd3bb27461f74ba78d9e60151d0b39f5",
     "internal/gui/assets/plugins/usage/i18n.js": "83f922fbe9d771ed810d465e47e6dbd1c00cd8bb348707407e266b65202f2d58"
   },
   "files": {
-    "apps/desktop/frontend/src/features/magpie-ledger-charts.ts": "1b68e5ac0d77154f847978c06f30e0ebae5b1b2f8658755a38ffb1a80f70d92b",
+    "apps/desktop/frontend/src/features/magpie-ledger-charts.ts": "0e7bfffaf98e04969bf5589805af7adaee2e827d9f1db723e9a2d7036ed64b1a",
     "apps/desktop/frontend/src/features/magpie-ledger-messages.ts": "b70fbcb1342ef82a115de0bf7d8f23b5d31fe91e5492201bcac4016a61c0a1dd",
     "apps/desktop/frontend/src/features/magpie-ledger-lines.css": "5c94d5c350a56bef91ea633d02e0896de7ad34174680045ed581a5f57f8700c2"
   },

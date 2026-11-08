@@ -238,6 +238,34 @@ func (m *maskingRecords) detailView(c *ui.Context, locked bool) {
 					kit.Mono(c, text).Selectable()
 				}
 				ui.Row(c).Gap(8).Wrap().Children(func() {
+					read := func(done func(string)) {
+						if text, ok := m.values[value.Placeholder]; ok {
+							done(text)
+							return
+						}
+						m.detailAPI.request(p, "GET", "/api/masking/value?p="+url.QueryEscape(value.Placeholder), nil, func(raw json.RawMessage) {
+							var v struct {
+								Value string `json:"value"`
+							}
+							if nativeDecode(&m.detailAPI, raw, &v) {
+								done(v.Value)
+							}
+						})
+					}
+					if kit.Button(c, nativeT("copy"), icons.Copy, false).Disabled(locked || m.detailAPI.busy || !value.Known).Clicked() {
+						services := c.Services()
+						read(func(text string) { services.WriteClipboard(text) })
+					}
+					if kit.Button(c, nativeT("neverMaskValue"), icons.ShieldCheck, false).Disabled(locked || m.detailAPI.busy || !value.Known).Clicked() {
+						read(func(text string) {
+							if text != "" {
+								s := m.owner.settings()
+								s.RedactAllow = unique(append(s.RedactAllow, text))
+								m.owner.focusPrivacy = true
+								m.selected, m.values, m.sent = nil, nil, ""
+							}
+						})
+					}
 					if kit.Button(c, nativeT("revealValue"), icons.Eye, false).Disabled(locked || m.detailAPI.busy || !value.Known).Clicked() {
 						m.detailAPI.request(p, "GET", "/api/masking/value?p="+url.QueryEscape(value.Placeholder), nil, func(raw json.RawMessage) {
 							var v struct {

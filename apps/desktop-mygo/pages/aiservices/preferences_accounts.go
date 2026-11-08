@@ -3,6 +3,7 @@ package aiservices
 import (
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"winone/desktopmygo/i18n"
@@ -26,7 +27,7 @@ func (e *editor) preferenceAccounts(pr *provider) []string {
 		}
 	}
 	s := &pr.ProviderPreferences
-	for _, keys := range [][]string{sortedKeys(s.AccountNames), sortedKeys(s.AccountWeights), sortedKeys(s.AccountConcurrency), sortedKeys(s.AccountModels), sortedKeys(s.AccountModelsAll), sortedKeys(s.AccountProxies), sortedKeys(s.AccountCaps), sortedKeys(s.AccountWindowCaps), sortedKeys(s.KeySpendCaps)} {
+	for _, keys := range [][]string{sortedKeys(s.AccountNames), sortedKeys(s.AccountWeights), sortedKeys(s.AccountConcurrency), sortedKeys(s.AccountModels), sortedKeys(s.AccountModelsAll), sortedKeys(s.AccountProxies), sortedKeys(s.AccountCaps), sortedKeys(s.AccountWindowCaps), sortedKeys(s.KeySpendCaps), sortedKeys(s.KeyOwnBalances)} {
 		ids = append(ids, keys...)
 	}
 	if e.preferenceAccount != "" {
@@ -138,6 +139,7 @@ func (e *editor) accountPreferences(c *ui.Context, pr *provider, locked bool) {
 			delete(s.AccountModelsAll, id)
 			delete(s.AccountWindowCaps, id)
 			delete(s.KeySpendCaps, id)
+			delete(s.KeyOwnBalances, id)
 			for key := range e.fields {
 				if strings.Contains(key, id) {
 					delete(e.fields, key)
@@ -200,6 +202,27 @@ func (e *editor) accountWindowCaps(c *ui.Context, pr *provider, id string, locke
 
 func (e *editor) keySpending(c *ui.Context, pr *provider, id string, locked bool) {
 	s := &pr.ProviderPreferences
+	kit.Group(c, nil, nativeT("ownBalance"), nativeT("ownBalanceHint"), func() {
+		balance, has := s.KeyOwnBalances[id]
+		var amount *float64
+		if has {
+			amount = &balance.USD
+		}
+		numberRow(c, nativeT("ownBalanceUSD"), amount, 0, 1000000, false, i18n.T("aiOptions.default"), locked, func(v *float64) {
+			if v == nil {
+				delete(s.KeyOwnBalances, id)
+				return
+			}
+			if s.KeyOwnBalances == nil {
+				s.KeyOwnBalances = map[string]ai.OwnBalance{}
+			}
+			s.KeyOwnBalances[id] = ai.OwnBalance{USD: *v, At: time.Now().UTC()}
+		})
+		if has && kit.Button(c, nativeT("resetBalanceTime"), icons.RefreshCw, false).Disabled(locked).Clicked() {
+			balance.At = time.Now().UTC()
+			s.KeyOwnBalances[id] = balance
+		}
+	})
 	kit.Group(c, nil, i18n.T("ai.keySpendCaps"), i18n.T("ai.keySpendCapsHint"), func() {
 		cap := s.KeySpendCaps[id]
 		var amount *float64

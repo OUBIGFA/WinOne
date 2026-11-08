@@ -61,6 +61,60 @@ func TestPackagedRoutingRuleEffortSurvivesProviderDefaults(t *testing.T) {
 	}
 }
 
+func TestPackagedRoutingMapsEffortAndInheritsDefaults(t *testing.T) {
+	got := make(chan string, 1)
+	vendor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Effort string `json:"reasoning_effort"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		got <- body.Effort
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"choices":[{"message":{"role":"assistant","content":"mapped"},"finish_reason":"stop"}]}`)
+	}))
+	defer vendor.Close()
+	providers := []RuntimeProvider{{Provider: Provider{ID: "fixture", Name: "Fixture", AuthMode: "api-key", Protocol: "chat", BaseURL: vendor.URL, Models: []string{"model"}, ModelMetadata: map[string]ModelMetadata{"model": {Efforts: []string{"low", "medium", "high"}}}}, Key: "fixture-key"}}
+	router, ctx := startUpdateRouter(t, providers, &MagpieSettings{NoStats: true, NoUsageStats: true, GroupSink: true, GroupFirstToken: 12, GroupPatience: 20})
+	updateRouterCall(t, ctx, router, "POST", "/api/groups/save", map[string]any{"id": "mapped", "name": "Mapped", "members": []string{"fixture/model"}, "effortMaps": map[string]any{"fixture/model": map[string]string{"high": "low"}}, "noSink": true})
+	state := updateRouterCall(t, ctx, router, "GET", "/api/groups", nil)
+	if !bytes.Contains(state, []byte(`"effortMaps"`)) || !bytes.Contains(state, []byte(`"noSink":true`)) {
+		t.Fatalf("new routing settings were lost: %s", state)
+	}
+	settings := updateRouterCall(t, ctx, router, "GET", "/api/settings", nil)
+	for _, field := range []string{`"groupSink":true`, `"groupFirstToken":12`, `"groupPatience":20`} {
+		if !bytes.Contains(settings, []byte(field)) {
+			t.Fatalf("default missing: %s", field)
+		}
+	}
+	updateRouterCall(t, ctx, router, "POST", "/v1/chat/completions", map[string]any{"model": "group/mapped", "reasoning_effort": "high", "messages": []map[string]string{{"role": "user", "content": "hello"}}})
+	if effort := <-got; effort != "low" {
+		t.Fatalf("sent %q, want mapped low", effort)
+	}
+	trace := updateRouterCall(t, ctx, router, "GET", "/api/gateway/trace", nil)
+	if !bytes.Contains(trace, []byte(`"mappedFrom":"high"`)) {
+		t.Fatalf("effort decision not traced: %s", trace)
+	}
+}
+
+func TestPackagedDecisionsUsesEligibleProviderBridge(t *testing.T) {
+	vendor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/decisions" || r.Header.Get("Authorization") != "Bearer fixture-key" {
+			t.Errorf("incorrect Decisions transport: %s", r.URL.Path)
+			w.WriteHeader(400)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"answers":[{"type":"predicate","name":"ready","probability":0.9}],"model":"model","usage":{"input_tokens":10,"output_tokens":1}}`)
+	}))
+	defer vendor.Close()
+	providers := []RuntimeProvider{{Provider: Provider{ID: "fixture", Name: "Fixture", AuthMode: "api-key", Protocol: "chat", BaseURL: vendor.URL + "/v1", Preset: "remote-magpie", Models: []string{"model"}}, Key: "fixture-key"}}
+	router, ctx := startUpdateRouter(t, providers, nil)
+	raw := updateRouterCall(t, ctx, router, "POST", "/v1/decisions", map[string]any{"model": "fixture/model", "input": "hello", "questions": []map[string]string{{"type": "predicate", "name": "ready", "instructions": "Is it ready?"}}})
+	if !bytes.Contains(raw, []byte(`"probability":0.9`)) {
+		t.Fatalf("decision answer lost: %s", raw)
+	}
+}
+
 // Inner patience wins even when the outer budget is shorter. Count attempts
 // instead of asserting elapsed seconds, which is unreliable on loaded hosts.
 func TestPackagedNestedRoutingPatience(t *testing.T) {

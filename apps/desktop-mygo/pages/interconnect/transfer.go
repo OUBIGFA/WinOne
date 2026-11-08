@@ -3,6 +3,7 @@ package interconnect
 import (
 	"encoding/json"
 	"maps"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -439,44 +440,81 @@ func (p *transferPanel) sendInput(c *ui.Context, active bool, target *taskRecord
 		return
 	}
 	theme, pal := c.Theme(), kit.Colors(c)
-	zone := ui.Column(c).FillWidth().Padding(20).Gap(12).AlignItems(ui.Center).Radius(kit.PanelRadius).
-		Border(1, pal.Hairline).Background(theme.Surface)
-	zone.Children(func() {
-		ui.Icon(c, icons.Upload).FontSize(24).TextColor(theme.TextMuted)
-		kit.Help(c, tr("drop"))
-		ui.Row(c).Gap(8).Wrap().Justify(ui.Center).Children(func() {
-			if kit.Button(c, tr("chooseFiles"), icons.FilePlus, false).Clicked() {
-				var paths []string
-				p.action(func() (err error) { paths, err = p.env.Dialogs.PickFiles(tr("chooseFiles"), core.Filter{}); return err }, func() { p.add(paths) })
-			}
-			if kit.Button(c, tr("chooseFolder"), icons.FolderPlus, false).Clicked() {
-				folder := ""
-				p.action(func() (err error) { folder, err = p.env.Dialogs.PickFolder(tr("chooseFolder")); return err }, func() {
-					if folder != "" {
-						p.add([]string{folder})
-					}
-				})
-			}
-			if kit.Button(c, tr("paste"), icons.ClipboardPaste, false).Clicked() {
-				files, err := c.Services().ReadClipboardData(transfer.FileList).Files()
-				if err != nil || len(files) == 0 {
-					p.err = i18n.T("fileDrop.localOnly")
-				} else {
-					p.add(files)
-				}
+	// The empty invitation gives its space to the files once there is content.
+	// Keep the same drop target so more files can still be dropped anywhere.
+	hasFiles := len(f.Paths) > 0
+	pickFiles := func() {
+		var paths []string
+		p.action(func() (err error) { paths, err = p.env.Dialogs.PickFiles(tr("chooseFiles"), core.Filter{}); return err }, func() { p.add(paths) })
+	}
+	pickFolder := func() {
+		folder := ""
+		p.action(func() (err error) { folder, err = p.env.Dialogs.PickFolder(tr("chooseFolder")); return err }, func() {
+			if folder != "" {
+				p.add([]string{folder})
 			}
 		})
-		if len(f.Paths) > 0 {
-			ui.Column(c).FillWidth().Gap(6).Children(func() {
-				ui.Row(c).FillWidth().Justify(ui.SpaceBetween).AlignItems(ui.Center).Children(func() {
-					kit.Label(c, tr("selectedFiles", "count", len(f.Paths)))
-					if kit.GhostButton(c, tr("clear"), nil, false).Clicked() {
+	}
+	paste := func() {
+		files, err := c.Services().ReadClipboardData(transfer.FileList).Files()
+		if err != nil || len(files) == 0 {
+			p.err = i18n.T("fileDrop.localOnly")
+		} else {
+			p.add(files)
+		}
+	}
+	zone := ui.Column(c).FillWidth().Gap(12)
+	if !hasFiles {
+		zone.Padding(20).AlignItems(ui.Center).Radius(kit.PanelRadius).Border(1, pal.Hairline).Background(theme.Surface)
+	}
+	zone.Children(func() {
+		if !hasFiles {
+			ui.Icon(c, icons.Upload).FontSize(24).TextColor(theme.TextMuted)
+			kit.Help(c, tr("drop"))
+		}
+		ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
+			if hasFiles {
+				kit.Heading(c, tr("selectedFiles", "count", len(f.Paths))).Grow(1).Shrink(0)
+			} else {
+				ui.Spacer(c).Grow(1)
+			}
+			if kit.Button(c, tr("chooseFiles"), icons.FilePlus, false).Clicked() {
+				pickFiles()
+			}
+			if hasFiles {
+				kit.IconButton(c, icons.Ellipsis, tr("fileActions")).Menu(func(m *ui.Menu) {
+					if m.Item(tr("chooseFolder")).Chosen() {
+						pickFolder()
+					}
+					if m.Item(tr("paste")).Chosen() {
+						paste()
+					}
+					m.Separator()
+					if m.Item(tr("clear")).Chosen() {
 						f.Paths = []string{}
 					}
 				})
+			} else {
+				if kit.Button(c, tr("chooseFolder"), icons.FolderPlus, false).Clicked() {
+					pickFolder()
+				}
+				if kit.Button(c, tr("paste"), icons.ClipboardPaste, false).Clicked() {
+					paste()
+				}
+				ui.Spacer(c).Grow(1)
+			}
+		})
+		if hasFiles {
+			// Keep sending within reach when selecting a folder-sized batch.
+			ui.Scroll(c).FillWidth().MaxHeight(320).Children(func() {
 				for _, path := range slices.Clone(f.Paths) {
-					ui.Row(c.Key(path)).FillWidth().Gap(8).AlignItems(ui.Start).Children(func() {
-						ui.Text(c, path).Grow(1).MinWidth(0).Tooltip(path)
+					ui.Row(c.Key(path)).FillWidth().Gap(16).Padding(16, 4).AlignItems(ui.Center).
+						BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Children(func() {
+						ui.Icon(c, icons.File).FontSize(28).TextColor(theme.TextMuted).Shrink(0)
+						ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
+							kit.Label(c, filepath.Base(path)).FontWeight(500).SingleLine().Ellipsis("…").Tooltip(filepath.Base(path))
+							kit.Help(c, path).SingleLine().Ellipsis("…").Tooltip(path)
+						})
 						if kit.IconButton(c, icons.Trash2, tr("remove")+" "+path).Clicked() {
 							f.Paths = slices.DeleteFunc(slices.Clone(f.Paths), func(v string) bool { return v == path })
 						}
@@ -536,11 +574,12 @@ func (p *transferPanel) submit(c *ui.Context, gofile bool, target *taskRecord, s
 		}
 	}
 	updating := !p.stored && p.direction == "send" && target != nil && target.State.Updating
-	// The action sits under the centered choices and drop zone it acts on.
-	ui.Column(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+	action := func() {
 		if kit.PrimaryButton(c, tr(label), icon, p.busy).Disabled(settingsPending || updating || empty).Clicked() {
 			p.start(mode, nil)
 		}
+	}
+	hints := func(center bool) {
 		hint := "sendOnlineHint"
 		switch {
 		case p.stored && gofile:
@@ -552,11 +591,25 @@ func (p *transferPanel) submit(c *ui.Context, gofile bool, target *taskRecord, s
 		case target != nil:
 			hint = "appendShareHint"
 		}
-		kit.Help(c, tr(hint)).TextAlign(ui.Center)
-		if gofile {
-			kit.Help(c, tr("gofileRetention")).TextAlign(ui.Center)
+		text := kit.Help(c, tr(hint))
+		if center {
+			text.TextAlign(ui.Center)
 		}
-	})
+		if gofile {
+			text = kit.Help(c, tr("gofileRetention"))
+			if center {
+				text.TextAlign(ui.Center)
+			}
+		}
+	}
+	if p.direction == "send" && p.payload == "files" && len(f.Paths) > 0 {
+		ui.Row(c).FillWidth().Gap(16).Wrap().AlignItems(ui.Center).Children(func() {
+			ui.Column(c).Grow(1).Basis(300).MinWidth(0).Gap(4).Children(func() { hints(false) })
+			action()
+		})
+	} else {
+		ui.Column(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() { action(); hints(true) })
+	}
 }
 
 // optionText is the text of an option field, kept while the form is.

@@ -39,18 +39,19 @@ type traceEvidence struct {
 }
 
 type traceAttempt struct {
-	ID     string     `json:"id"`
-	Model  string     `json:"model"`
-	Start  string     `json:"start"`
-	Done   bool       `json:"done"`
-	Status int        `json:"status"`
-	Error  string     `json:"error"`
-	Fail   string     `json:"fail"`
-	Millis int64      `json:"ms"`
-	TTFT   int64      `json:"ttft"`
-	Effort string     `json:"effort"`
-	Served string     `json:"served"`
-	Rest   *traceRest `json:"rest"`
+	ID         string     `json:"id"`
+	Model      string     `json:"model"`
+	Start      string     `json:"start"`
+	Done       bool       `json:"done"`
+	Status     int        `json:"status"`
+	Error      string     `json:"error"`
+	Fail       string     `json:"fail"`
+	Millis     int64      `json:"ms"`
+	TTFT       int64      `json:"ttft"`
+	Effort     string     `json:"effort"`
+	MappedFrom string     `json:"mappedFrom"`
+	Served     string     `json:"served"`
+	Rest       *traceRest `json:"rest"`
 }
 type traceRest struct {
 	Why    string `json:"why"`
@@ -60,22 +61,25 @@ type traceRest struct {
 	Link   string `json:"link"`
 }
 type traceCandidate struct {
-	ID       string     `json:"id"`
-	Name     string     `json:"name"`
-	Who      string     `json:"who"`
-	Provider string     `json:"provider"`
-	Model    string     `json:"model"`
-	Plan     string     `json:"plan"`
-	Known    bool       `json:"known"`
-	Used     float64    `json:"used"`
-	Rest     *traceRest `json:"rest"`
-	UseFirst bool       `json:"useFirst"`
-	Barred   bool       `json:"barred"`
-	Held     bool       `json:"held"`
-	Capped   int        `json:"capped"`
-	Busy     float64    `json:"busy"`
-	Window   int        `json:"window"`
-	Free     bool       `json:"free"`
+	ID        string     `json:"id"`
+	Name      string     `json:"name"`
+	Who       string     `json:"who"`
+	Provider  string     `json:"provider"`
+	Model     string     `json:"model"`
+	Plan      string     `json:"plan"`
+	Known     bool       `json:"known"`
+	Used      float64    `json:"used"`
+	Rest      *traceRest `json:"rest"`
+	UseFirst  bool       `json:"useFirst"`
+	Barred    bool       `json:"barred"`
+	Held      bool       `json:"held"`
+	Capped    int        `json:"capped"`
+	Busy      float64    `json:"busy"`
+	Window    int        `json:"window"`
+	Free      bool       `json:"free"`
+	Soon      []string   `json:"soon"`
+	Lapse     string     `json:"lapse"`
+	Unreached int        `json:"unreached"`
 }
 
 func (t *nativeTrace) evidenceView(c *ui.Context, p *page, r *traceRoute) {
@@ -105,7 +109,7 @@ func (t *nativeTrace) evidenceView(c *ui.Context, p *page, r *traceRoute) {
 		kit.Strong(c, nativeT(section.label))
 		for index, row := range section.rows {
 			ui.Column(c.Key(section.label+row.ID)).FillWidth().Gap(5).Padding(8, 0).Children(func() {
-				kit.Strong(c, mask(fmt.Sprintf("%d. %s · %s · %s", index+1, row.Name, row.Who, row.Model))).Selectable()
+				kit.Strong(c, mask(fmt.Sprintf("%d. %s · %s · %s", index+1, row.Name, row.Who, p.routing.memberLabel(row.Provider+"/"+row.Model)))).Selectable()
 				var facts []string
 				if row.Known {
 					facts = append(facts, nativeT("quotaUsed")+fmt.Sprintf(" %.1f%%", row.Used))
@@ -131,6 +135,15 @@ func (t *nativeTrace) evidenceView(c *ui.Context, p *page, r *traceRoute) {
 				if row.Window > 0 {
 					facts = append(facts, fmt.Sprintf("%s %d", nativeT("context"), row.Window))
 				}
+				if len(row.Soon) > 0 {
+					facts = append(facts, nativeT("quotaResets")+" "+strings.Join(row.Soon, ", "))
+				}
+				if row.Lapse != "" {
+					facts = append(facts, nativeT("quotaExpires")+" "+row.Lapse)
+				}
+				if row.Unreached > 0 {
+					facts = append(facts, i18n.T("aiNative.unreachedWindows", "count", row.Unreached))
+				}
 				if len(facts) > 0 {
 					kit.Help(c, strings.Join(facts, " · "))
 				}
@@ -152,8 +165,18 @@ func (t *nativeTrace) evidenceView(c *ui.Context, p *page, r *traceRoute) {
 		kit.Strong(c, nativeT("attempts"))
 		for i, attempt := range evidence.Tries {
 			ui.Column(c.Key(i)).FillWidth().Gap(4).Padding(8, 0).Children(func() {
-				kit.Strong(c, mask(fmt.Sprintf("%d. %s · %s", i+1, attempt.ID, attempt.Model)))
+				name := p.routing.memberLabel(attempt.Model)
+				for _, candidate := range append(evidence.Order, evidence.Left...) {
+					if candidate.ID == attempt.ID {
+						name = p.routing.memberLabel(candidate.Provider + "/" + attempt.Model)
+						break
+					}
+				}
+				kit.Strong(c, mask(fmt.Sprintf("%d. %s", i+1, name)))
 				kit.Help(c, fmt.Sprintf("HTTP %d · %d ms · %s", attempt.Status, attempt.Millis, attempt.Effort))
+				if attempt.MappedFrom != "" {
+					kit.Help(c, nativeT("effortMapping")+" · "+attempt.MappedFrom+" → "+attempt.Effort)
+				}
 				if attempt.Error != "" {
 					kit.Help(c, mask(attempt.Error)).Selectable()
 				}

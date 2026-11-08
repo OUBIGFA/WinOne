@@ -1,5 +1,5 @@
 // @ts-nocheck
-// Generated from yetone/magpie c39d36644742a10a4730f0ffc5a03d877f185541. MIT.
+// Generated from yetone/magpie 778b8e0753928533fd7afb8d76b57a2b5e22336a. MIT.
 // Run node build/sync-magpie-usage.mjs --write; provenance: third_party/magpie-usage-source.json.
 export function magpieLedgerCharts(translate, language, options = {}) {
  const t=(key,values={})=>translate(key,values);

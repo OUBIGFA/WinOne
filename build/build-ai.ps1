@@ -37,6 +37,8 @@ if($LASTEXITCODE -ne 0){throw 'Bundled account plugin preparation failed'}
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/main.go'),(Join-Path $root 'modules/ai-magpie/main_test.go'),(Join-Path $root 'modules/ai-magpie/accounts.go'),(Join-Path $root 'modules/ai-magpie/stream_test.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/stream.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/provider_preferences.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/own_balance_test.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/transport_failure_test.go') -Destination $entry
 # One typed provider-options contract is shared with the Host. Only its
 # package name changes; the proxy validator is already a reviewed extract.
 foreach($relative in @('provider_preferences.go','magpie_proxy.go')) {

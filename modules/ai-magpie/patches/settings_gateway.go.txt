@@ -49,5 +49,9 @@ func WinOneWaitArchive(){archivePending.Wait()}
 // ordinary HTTP bridges. This cannot select credentials or a native backend.
 var WinOneMiddlewareAccounts map[string]string
 
+// Only Host-owned bridges can inherit the source provider's Decisions support.
+var WinOneDecisionProviders map[string]bool
+func WinOneCanDecide(p provider.Provider) bool { return canDecide(p) }
+
 // Keep Claude's own minimal warm-up request and command-line isolation.
 func WinOneWarmClaude(ctx context.Context, directory string) error { return warmClaude(ctx, directory) }

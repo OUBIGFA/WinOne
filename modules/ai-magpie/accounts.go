@@ -166,6 +166,9 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 // Read the upstream vendor balance using only the selected saved provider.
 // IDs replace masked key fragments, and vendor error bodies never reach IPC.
 func readKeyBalances(ctx context.Context, in request, out io.Writer) error {
+	if err := configureUsage(in); err != nil {
+		return err
+	}
 	p, err := configuredProvider(in)
 	if err != nil {
 		return err
@@ -179,6 +182,15 @@ func readKeyBalances(ctx context.Context, in request, out io.Writer) error {
 	}
 	p.Key, p.KeyName = in.BalanceKeys[0].Key, in.BalanceKeys[0].Name
 	p.Keys = in.BalanceKeys[1:]
+	// Host preferences use stable saved slot IDs. Upstream accounts for the
+	// actual credential fingerprint, shared with the request ledger.
+	balances := p.KeyOwnBalances
+	p.KeyOwnBalances = map[string]provider.OwnBalance{}
+	for _, key := range in.BalanceKeys {
+		if balance, ok := balances[key.Name]; ok {
+			p.KeyOwnBalances[provider.KeyID(key.Key)] = balance
+		}
+	}
 	provider.WinOneProviders = []provider.Provider{p}
 	quotas := provider.KeyBalances(provider.Asked(ctx))
 	for i := range quotas {

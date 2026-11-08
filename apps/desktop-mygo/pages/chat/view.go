@@ -303,7 +303,7 @@ func (p *Chat) welcome(c *ui.Context) {
 	ui.Column(c).Fill().Justify(ui.Center).Children(func() {
 		ui.Scroll(c).FillWidth().MaxHeightPercent(100).Shrink(1).Padding(32, 24).Children(func() {
 			ui.Column(c).FillWidth().AlignItems(ui.Center).Gap(24).Children(func() {
-				ui.Image(c, welcomeLogo()).Size(104, 104).Fit(ui.Contain).Label("")
+				ui.Image(c, welcomeLogo()).Size(160, 160).Fit(ui.Contain).Label("WinOne")
 				ui.Column(c).FillWidth().MaxWidth(readingWidth).AlignSelf(ui.Center).Gap(8).Children(func() {
 					p.projectContext(c, p.newProjectID, func(id string) { p.newProjectID = id })
 					p.composer(c)

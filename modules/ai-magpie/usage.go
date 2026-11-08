@@ -161,6 +161,7 @@ func configureUsage(in request) error {
 			Requested: r.Requested, Served: r.Served, Effort: r.Effort, Endpoint: r.Endpoint, Stop: r.Stop,
 			ProviderAccount: accountID, Kind: r.Kind,
 			CallerKeyID: r.CallerKeyID, CallerKeyName: r.CallerKeyName,
+			ProviderKeyID: r.ProviderKeyID, ProviderKeyName: r.ProviderKeyName,
 			Credits: r.Credits, TierAsked: r.TierAsked, TierSent: r.TierSent, TierServed: r.TierServed,
 			FirstReasoning: r.FirstReasoning, ReasoningHidden: r.ReasoningHidden, Own: r.Own, Retried: r.Retried, Queued: r.Queued,
 			Input: r.Input, Output: r.Output, CacheRead: r.CacheRead, CacheWrite: r.CacheWrite,

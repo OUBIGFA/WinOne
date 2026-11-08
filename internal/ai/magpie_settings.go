@@ -13,6 +13,9 @@ import (
 // MagpieSettings preserves upstream setting names. WinOne owns persistence;
 // each worker receives one immutable snapshot, never another app's settings.
 type MagpieSettings struct {
+	GroupSink       bool `json:"groupSink,omitempty"`
+	GroupFirstToken int  `json:"groupFirstToken,omitempty"`
+	GroupPatience   int  `json:"groupPatience,omitempty"`
 	// Current Magpie options, persisted with the existing WinOne transaction.
 	ReplyModel         string                  `json:"replyModel,omitempty"`
 	BusyLoad           int                     `json:"busyLoad,omitempty"`
@@ -145,13 +148,23 @@ type BundledPluginChoice struct {
 // Key is accepted only on save or in a private runtime snapshot. Public reads
 // carry HasKey, and explicit reveal is a separate, user-triggered operation.
 type SearchAPI struct {
-	Vendor string `json:"vendor"`
-	URL    string `json:"url,omitempty"`
+	Vendor  string       `json:"vendor"`
+	URL     string       `json:"url,omitempty"`
+	Key     string       `json:"key,omitempty"`
+	HasKey  bool         `json:"hasKey,omitempty"`
+	Pick    string       `json:"pick,omitempty"` // Empty rotates keys; order tries them in declared order.
+	Off     bool         `json:"off,omitempty"`  // Disabled APIs keep their credentials and position.
+	Mix     bool         `json:"mix,omitempty"`  // Ask marked APIs together and merge their results.
+	KeyList *[]SearchKey `json:"keyList,omitempty"`
+}
+
+// Public slots identify separately encrypted keys; runtime snapshots alone
+// contain Key. A nil list preserves the legacy comma-separated credential.
+type SearchKey struct {
+	ID     string `json:"id,omitempty"`
 	Key    string `json:"key,omitempty"`
+	Off    bool   `json:"off,omitempty"`
 	HasKey bool   `json:"hasKey,omitempty"`
-	Pick   string `json:"pick,omitempty"` // Empty rotates keys; order tries them in declared order.
-	Off    bool   `json:"off,omitempty"`  // Disabled APIs keep their credentials and position.
-	Mix    bool   `json:"mix,omitempty"`  // Ask marked APIs together and merge their results.
 }
 type RedactRule struct {
 	Kind   string `json:"kind"`
@@ -174,6 +187,9 @@ var warmTimePattern = regexp.MustCompile(`^(?:[01][0-9]|2[0-3]):[0-5][0-9]$`)
 func (s *MagpieSettings) validate() error {
 	if s == nil {
 		return nil
+	}
+	if s.GroupFirstToken < 0 || s.GroupPatience < -1 || s.GroupPatience > 240 {
+		return errors.New("路由默认等待时间无效")
 	}
 	if s.BusyLoad < 0 || s.BusyLoad > 9999 || s.CodexResetLead < 0 || s.CodexResetLead > 1440 || (s.CodexResetLead > 0 && s.CodexResetLead < 3) {
 		return errors.New("繁忙模型阈值或提前重置时间无效")
@@ -309,6 +325,18 @@ func (s *MagpieSettings) validate() error {
 			return errors.New("搜索 API 无效或重复")
 		}
 		seen[api.Vendor] = true
+		if api.KeyList != nil {
+			ids := map[string]bool{}
+			if len(*api.KeyList) > 256 {
+				return errors.New("搜索 API 密钥数量过多")
+			}
+			for _, key := range *api.KeyList {
+				if key.ID == "" || len(key.ID) > 128 || strings.ContainsAny(key.ID, "/\\\x00") || ids[key.ID] || len(key.Key) > 16384 || key.Key == "" && !key.HasKey {
+					return errors.New("搜索 API 密钥条目无效或重复")
+				}
+				ids[key.ID] = true
+			}
+		}
 		if api.Pick != "" && api.Pick != "order" {
 			return errors.New("搜索 API 密钥选择策略无效")
 		}
@@ -321,7 +349,7 @@ func (s *MagpieSettings) validate() error {
 		if api.Vendor == "searxng" && api.URL == "" {
 			return errors.New("SearXNG 需要服务地址")
 		}
-		if api.Vendor != "searxng" && api.Vendor != "you" && api.Key == "" && !api.HasKey {
+		if api.Vendor != "searxng" && api.Vendor != "you" && api.Key == "" && !api.HasKey && api.KeyList == nil && !api.Off {
 			return errors.New("搜索 API 需要密钥")
 		}
 	}

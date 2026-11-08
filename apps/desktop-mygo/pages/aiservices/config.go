@@ -167,13 +167,14 @@ type redactRule struct {
 // searchAPI is a web search service. key is a new key, write-only; the
 // Host answers hasKey once it protected the saved one.
 type searchAPI struct {
-	Vendor string `json:"vendor"`
-	URL    string `json:"url,omitempty"`
-	Key    string `json:"key,omitempty"`
-	HasKey bool   `json:"hasKey,omitempty"`
-	Off    bool   `json:"off,omitempty"`
-	Pick   string `json:"pick,omitempty"`
-	Mix    bool   `json:"mix,omitempty"`
+	KeyList *[]ai.SearchKey `json:"keyList,omitempty"`
+	Vendor  string          `json:"vendor"`
+	URL     string          `json:"url,omitempty"`
+	Key     string          `json:"key,omitempty"`
+	HasKey  bool            `json:"hasKey,omitempty"`
+	Off     bool            `json:"off,omitempty"`
+	Pick    string          `json:"pick,omitempty"`
+	Mix     bool            `json:"mix,omitempty"`
 }
 
 // builtinChoice overrides a built-in plugin's preset.
@@ -192,6 +193,9 @@ type bundledChoice struct {
 // in Magpie's Settings JSON. Numbers are pointers: a missing number takes
 // a default that zero does not mean.
 type magpieSettings struct {
+	GroupSink             bool                                     `json:"groupSink,omitempty"`
+	GroupFirstToken       int                                      `json:"groupFirstToken,omitempty"`
+	GroupPatience         int                                      `json:"groupPatience,omitempty"`
 	ReplyModel            string                                   `json:"replyModel,omitempty"`
 	BusyLoad              *float64                                 `json:"busyLoad,omitempty"`
 	SearcherThen          []string                                 `json:"searcherThen,omitempty"`

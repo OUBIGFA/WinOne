@@ -83,6 +83,9 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 		// Transport choices apply once, to the vendor, in the inner worker.
 		helper.Proxy, helper.AuthHeader, helper.ExtraBody = "direct", "", nil
 		helper.InsecureTLS = false
+		if p.Provider.AuthMode == "api-key" {
+			helper.DecisionSource = &decisionSource{Protocol: p.Provider.Protocol, BaseURL: p.Provider.BaseURL, Preset: p.Provider.Preset, PresetRegion: p.Provider.PresetRegion}
+		}
 		if p.Provider.AuthMode == "account" {
 			helper.AccountKind = p.Provider.Agent
 		}

@@ -98,6 +98,17 @@ shared/ai/plugins/agnes/index.mjs
 shared/ai/plugins/agnes/opencode.mjs
 shared/ai/plugins/agnes/opencode2.mjs
 shared/ai/plugins/agnes/package.json
+shared/ai/plugins/agy-cli/LICENSE
+shared/ai/plugins/agy-cli/NOTICE.md
+shared/ai/plugins/agy-cli/README.en.md
+shared/ai/plugins/agy-cli/README.md
+shared/ai/plugins/agy-cli/index.mjs
+shared/ai/plugins/agy-cli/mcp-server.mjs
+shared/ai/plugins/agy-cli/opencode.mjs
+shared/ai/plugins/agy-cli/opencode2.mjs
+shared/ai/plugins/agy-cli/package.json
+shared/ai/plugins/agy-cli/platform.mjs
+shared/ai/plugins/agy-cli/usage.mjs
 shared/ai/plugins/aider/README.md
 shared/ai/plugins/aider/aider.agent.js
 shared/ai/plugins/aider/package.json
@@ -141,6 +152,7 @@ shared/ai/plugins/atomcode/request-body.mjs
 shared/ai/plugins/atomcode/sign.mjs
 shared/ai/plugins/atomcode/state.mjs
 shared/ai/plugins/atomcode/version.mjs
+shared/ai/plugins/autoclaw/README.en.md
 shared/ai/plugins/autoclaw/README.md
 shared/ai/plugins/autoclaw/index.mjs
 shared/ai/plugins/autoclaw/opencode.mjs
@@ -280,6 +292,11 @@ shared/ai/plugins/cursor/package.json
 shared/ai/plugins/devin/README.md
 shared/ai/plugins/devin/index.mjs
 shared/ai/plugins/devin/package.json
+shared/ai/plugins/eta/LICENSE
+shared/ai/plugins/eta/README.md
+shared/ai/plugins/eta/eta.agent.js
+shared/ai/plugins/eta/icon.svg
+shared/ai/plugins/eta/package.json
 shared/ai/plugins/factory/README.md
 shared/ai/plugins/factory/anthropic-tools.mjs
 shared/ai/plugins/factory/client-phrases.json
@@ -362,6 +379,7 @@ shared/ai/plugins/inkstone/index.mjs
 shared/ai/plugins/inkstone/lib/browser.mjs
 shared/ai/plugins/inkstone/lib/keys.mjs
 shared/ai/plugins/inkstone/lib/models.mjs
+shared/ai/plugins/inkstone/lib/preflight.mjs
 shared/ai/plugins/inkstone/lib/protocol.mjs
 shared/ai/plugins/inkstone/lib/quota.mjs
 shared/ai/plugins/inkstone/opencode.mjs
@@ -442,6 +460,10 @@ shared/ai/plugins/mimo/index.mjs
 shared/ai/plugins/mimo/opencode.mjs
 shared/ai/plugins/mimo/opencode2.mjs
 shared/ai/plugins/mimo/package.json
+shared/ai/plugins/minimax-design/COMPATIBILITY.md
+shared/ai/plugins/minimax-design/README.md
+shared/ai/plugins/minimax-design/minimax-design.agent.js
+shared/ai/plugins/minimax-design/package.json
 shared/ai/plugins/minimax/README.md
 shared/ai/plugins/minimax/connector-tools.mjs
 shared/ai/plugins/minimax/index.mjs

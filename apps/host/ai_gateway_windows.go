@@ -190,7 +190,7 @@ func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guar
 		path = "/v1" + path
 	}
 	supported := false
-	for _, route := range []string{"/api/chat", "/api/generate", "/v1/chat/completions", "/v1/responses", "/v1/messages", "/v1/messages/count_tokens", "/v1/images/generations", "/v1/embeddings", "/v1/rerank", "/mcp/magpie/web-search"} {
+	for _, route := range []string{"/api/chat", "/api/generate", "/v1/chat/completions", "/v1/responses", "/v1/decisions", "/v1/messages", "/v1/messages/count_tokens", "/v1/images/generations", "/v1/embeddings", "/v1/rerank", "/mcp/magpie/web-search"} {
 		supported = supported || path == route
 	}
 	if r.Method != http.MethodPost || !supported {

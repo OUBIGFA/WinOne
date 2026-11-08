@@ -69,7 +69,10 @@ func (t *nativeTrace) accountsView(c *ui.Context, p *page, rows []traceRoute) {
 			ui.Column(c.Key(key)).FillWidth().Gap(5).Padding(10, 0).Children(func() {
 				label := strings.TrimSpace(row.Name + " · " + row.Who)
 				if label == "·" || label == "" {
-					label = row.ID
+					label = p.routing.providerLabel(row.Provider)
+					if label == "" {
+						label = nativeT("accounts")
+					}
 				}
 				kit.Strong(c, mask(label))
 				kit.Help(c, i18n.T("aiRouting.accountCounts", "tried", row.Tried, "answered", row.OK))

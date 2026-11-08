@@ -13,7 +13,7 @@ func (r *routingPanel) routingChoices(saved string) []kit.SelectOption {
 	choices := routingChoices()
 	if r.capabilities != nil {
 		for _, strategy := range r.capabilities.JSRoutings {
-			choices = append(choices, kit.SelectOption{Value: strategy.ID, Label: strategy.ID + " · " + strategy.Plugin})
+			choices = append(choices, kit.SelectOption{Value: strategy.ID, Label: strategy.Name + " · " + strategy.Plugin})
 		}
 	}
 	for _, choice := range choices {

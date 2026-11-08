@@ -2,6 +2,7 @@ package usage
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"winone/desktopmygo/core"
+	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/widgets"
@@ -228,6 +230,9 @@ func (a *allowances) quotaView(c *ui.Context, provider Provider, index int, q al
 		}
 		if q.Balance != "" {
 			ui.Text(c, tr("usage.balance")+" · "+q.Balance).Selectable()
+		}
+		if q.Estimate != nil {
+			kit.Help(c, i18n.T("usage.balanceEstimate", "set", fmt.Sprintf("$%.2f", q.Estimate.Set), "spent", fmt.Sprintf("$%.2f", q.Estimate.Spent), "at", q.Estimate.At)).Selectable()
 		}
 		for _, parts := range [][]balancePart{q.BalanceParts, q.BalanceSplit} {
 			if len(parts) > 0 {

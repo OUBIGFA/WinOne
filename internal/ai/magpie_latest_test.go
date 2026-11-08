@@ -2,8 +2,28 @@ package ai
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
+
+func TestRoutingDefaultsAndOwnBalancesSurvivePublicRoundTrip(t *testing.T) {
+	var settings MagpieSettings
+	json.Unmarshal([]byte(`{"groupSink":true,"groupFirstToken":12,"groupPatience":-1}`), &settings)
+	data, _ := json.Marshal(settings)
+	for _, field := range []string{`"groupSink":true`, `"groupFirstToken":12`, `"groupPatience":-1`} {
+		if !strings.Contains(string(data), field) {
+			t.Errorf("lost %s", field)
+		}
+	}
+	var prefs ProviderPreferences
+	json.Unmarshal([]byte(`{"magpieUserAgent":true,"keyOwnBalances":{"primary":{"usd":25,"at":"2026-11-08T00:00:00Z"}}}`), &prefs)
+	data, _ = json.Marshal(prefs)
+	for _, field := range []string{`"magpieUserAgent":true`, `"keyOwnBalances"`, `"usd":25`} {
+		if !strings.Contains(string(data), field) {
+			t.Errorf("lost %s", field)
+		}
+	}
+}
 
 func TestLatestMagpieOptionsRetainExactSemantics(t *testing.T) {
 	var s MagpieSettings

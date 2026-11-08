@@ -19,40 +19,42 @@ import (
 // Native routing is a presentation of Magpie's groups/trace APIs, not a
 // replacement router. Its form retains unknown upstream fields on roundtrip.
 type routeGroup struct {
-	ID         string                      `json:"id"`
-	Name       string                      `json:"name"`
-	Members    []string                    `json:"members"`
-	Match      []string                    `json:"match,omitempty"`
-	Matched    []string                    `json:"matched,omitempty"`
-	Placed     []string                    `json:"placed,omitempty"`
-	Routing    string                      `json:"routing,omitempty"`
-	Affinity   string                      `json:"affinity,omitempty"`
-	Sink       bool                        `json:"sink,omitempty"`
-	FirstToken int                         `json:"firstToken,omitempty"`
-	Patience   int                         `json:"patience,omitempty"`
-	Off        []string                    `json:"off,omitempty"`
-	Pick       string                      `json:"pick,omitempty"`
-	Rules      []core.Preserved[routeRule] `json:"rules,omitempty"`
-	Classifier string                      `json:"classifier,omitempty"`
-	IntentSure *float64                    `json:"intentSure,omitempty"`
-	Effort     string                      `json:"effort,omitempty"`
-	Context    int                         `json:"context,omitempty"`
-	Levels     []string                    `json:"levels,omitempty"`
-	Fast       []string                    `json:"fast,omitempty"`
-	Weights    map[string]int              `json:"weights,omitempty"`
-	Family     string                      `json:"family,omitempty"`
-	Unlists    bool                        `json:"unlists,omitempty"`
-	Accounts   []string                    `json:"accounts,omitempty"`
-	Auto       bool                        `json:"auto,omitempty"`
-	Hidden     bool                        `json:"hidden,omitempty"`
-	Seen       []string                    `json:"seen,omitempty"`
-	Disabled   bool                        `json:"disabled,omitempty"`
-	Ready      bool                        `json:"ready"`
-	Ref        string                      `json:"ref"`
-	Patterns   []patternMatch              `json:"patterns"`
-	MemberInfo []routeModel                `json:"memberInfo"`
-	Offers     []string                    `json:"offers"`
-	Shared     []string                    `json:"shared"`
+	ID         string                       `json:"id"`
+	Name       string                       `json:"name"`
+	Members    []string                     `json:"members"`
+	Match      []string                     `json:"match,omitempty"`
+	Matched    []string                     `json:"matched,omitempty"`
+	Placed     []string                     `json:"placed,omitempty"`
+	Routing    string                       `json:"routing,omitempty"`
+	Affinity   string                       `json:"affinity,omitempty"`
+	Sink       bool                         `json:"sink,omitempty"`
+	NoSink     bool                         `json:"noSink,omitempty"`
+	FirstToken int                          `json:"firstToken,omitempty"`
+	Patience   int                          `json:"patience,omitempty"`
+	Off        []string                     `json:"off,omitempty"`
+	Pick       string                       `json:"pick,omitempty"`
+	Rules      []core.Preserved[routeRule]  `json:"rules,omitempty"`
+	Classifier string                       `json:"classifier,omitempty"`
+	IntentSure *float64                     `json:"intentSure,omitempty"`
+	Effort     string                       `json:"effort,omitempty"`
+	Context    int                          `json:"context,omitempty"`
+	Levels     []string                     `json:"levels,omitempty"`
+	Fast       []string                     `json:"fast,omitempty"`
+	Weights    map[string]int               `json:"weights,omitempty"`
+	EffortMaps map[string]map[string]string `json:"effortMaps,omitempty"`
+	Family     string                       `json:"family,omitempty"`
+	Unlists    bool                         `json:"unlists,omitempty"`
+	Accounts   []string                     `json:"accounts,omitempty"`
+	Auto       bool                         `json:"auto,omitempty"`
+	Hidden     bool                         `json:"hidden,omitempty"`
+	Seen       []string                     `json:"seen,omitempty"`
+	Disabled   bool                         `json:"disabled,omitempty"`
+	Ready      bool                         `json:"ready"`
+	Ref        string                       `json:"ref"`
+	Patterns   []patternMatch               `json:"patterns"`
+	MemberInfo []routeModel                 `json:"memberInfo"`
+	Offers     []string                     `json:"offers"`
+	Shared     []string                     `json:"shared"`
 }
 type routeRule struct {
 	Use           string     `json:"use"`
@@ -449,6 +451,9 @@ func nativeList(c *ui.Context, f fields, key, label string, values *[]string, di
 
 // nativeModelField is only a data adapter to the same model menu Chat uses.
 func nativeModelField(c *ui.Context, p *page, label string, current *string, models []routeModel, choices []widgets.ModelChoice, locked bool) {
+	if *current != "" && !slices.ContainsFunc(models, func(m routeModel) bool { return m.ID == *current }) && !slices.ContainsFunc(choices, func(v widgets.ModelChoice) bool { return v.Value == *current }) {
+		choices = append(slices.Clone(choices), widgets.ModelChoice{Value: *current, Label: p.routing.memberLabel(*current)})
+	}
 	var groups []widgets.ModelGroup
 	indices := map[string]int{}
 	for _, model := range models {
@@ -462,13 +467,13 @@ func nativeModelField(c *ui.Context, p *page, label string, current *string, mod
 			indices[provider] = index
 			name := model.ProviderName
 			if name == "" {
-				name = provider
+				name = p.routing.providerLabel(provider)
 			}
 			groups = append(groups, widgets.ModelGroup{ID: provider, Name: name})
 		}
 		name := model.Name
 		if name == "" {
-			name = model.ID
+			name = p.routing.memberLabel(model.ID)
 		}
 		groups[index].Models = append(groups[index].Models, widgets.ModelEntry{Value: model.ID, ID: model.ID, Name: name, Label: name})
 	}
