@@ -23,13 +23,13 @@ func (p *page) handle(key string) *ui.Handle {
 // field lays out an input with its label, which focuses the input when
 // clicked, as an HTML label did for its field: the label left and the
 // input right, or, stacked, the input below for one that needs the row's
-// width.
+// width. Match kit.Row/Stack's inset inside the shared settings panel.
 func field(c *ui.Context, key, label string, input *ui.Handle, stacked bool, control func()) {
 	var container ui.Element
 	if stacked {
-		container = ui.Column(c.Key(key)).FillWidth().Padding(12, 0).Gap(8)
+		container = ui.Column(c.Key(key)).FillWidth().Padding(12, 16).Gap(8)
 	} else {
-		container = ui.Row(c.Key(key)).FillWidth().MinHeight(kit.RowMinHeight).Padding(12, 0).GapX(24).GapY(8).AlignItems(ui.Center).Wrap()
+		container = ui.Row(c.Key(key)).FillWidth().MinHeight(kit.RowMinHeight).Padding(12, 16).GapX(24).GapY(8).AlignItems(ui.Center).Wrap()
 	}
 	container.Children(func() {
 		text := kit.Label(c, label)

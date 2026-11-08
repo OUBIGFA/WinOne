@@ -186,7 +186,7 @@ func (r *routingPanel) routingSummary(c *ui.Context, locked bool) {
 		}
 	}
 	kit.Group(c, icons.Waypoints, nativeT("overview"), "", func() {
-		ui.Row(c).FillWidth().Gap(12).Wrap().AlignItems(ui.Center).Children(func() {
+		ui.Row(c).FillWidth().Padding(12, 16).Gap(12).Wrap().AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(220).Children(func() {
 				kit.Strong(c, i18n.T("aiRouting.groupSummary", "count", len(r.state.Groups), "ready", ready))
 				if len(r.state.Pools) > 0 {
@@ -428,8 +428,8 @@ func (r *routingPanel) membersView(c *ui.Context, g *routeGroup, locked bool) {
 				g.Members = toggleString(g.Members, strings.TrimSpace(r.newMember), true)
 				r.newMember = ""
 			}
-		})
-		r.memberOrderView(c, nativeT("memberOrder"), &g.Placed, g.Matched, locked)
+		}).Padding(12, 16)
+		kit.Stack(c, "", "", func() { r.memberOrderView(c, nativeT("memberOrder"), &g.Placed, g.Matched, locked) })
 	})
 }
 

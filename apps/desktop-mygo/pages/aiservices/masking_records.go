@@ -129,7 +129,7 @@ func (m *maskingRecords) View(c *ui.Context, locked bool) {
 		m.selectRecord(p.maskRecord)
 	}
 	kit.Group(c, icons.ShieldCheck, nativeT("maskingRecords"), nativeT("maskingRecordsHint"), func() {
-		ui.Row(c).FillWidth().Gap(12).Wrap().Children(func() {
+		ui.Row(c).FillWidth().Padding(12, 16).Gap(12).Wrap().Children(func() {
 			for _, f := range []struct {
 				key   string
 				value *string
@@ -139,7 +139,7 @@ func (m *maskingRecords) View(c *ui.Context, locked bool) {
 		})
 		kit.Toggle(c, &m.blocked, nativeT("blockedOnly"), "").Disabled(locked)
 		nativeInt(c, nativeT("summaryDays"), &m.days, 1, 30, locked)
-		ui.Row(c).Gap(8).Wrap().Children(func() {
+		ui.Row(c).Padding(12, 16).Gap(8).Wrap().Children(func() {
 			if kit.Button(c, i18n.T("common.refresh"), icons.RefreshCw, false).Disabled(locked || m.api.busy || m.summaryAPI.busy).Clicked() {
 				m.load(false)
 				m.loadSummary()
@@ -161,26 +161,26 @@ func (m *maskingRecords) View(c *ui.Context, locked bool) {
 				Blocked  int `json:"blocked"`
 			}
 			_ = json.Unmarshal(m.summary, &sum)
-			kit.Help(c, nativeT("requests")+": "+kit.Itoa(sum.Requests)+" · "+nativeT("maskedValues")+": "+kit.Itoa(sum.N)+" · "+nativeT("distinctValues")+": "+kit.Itoa(sum.Distinct)+" · "+nativeT("blocked")+": "+kit.Itoa(sum.Blocked))
+			kit.Help(c, nativeT("requests")+": "+kit.Itoa(sum.Requests)+" · "+nativeT("maskedValues")+": "+kit.Itoa(sum.N)+" · "+nativeT("distinctValues")+": "+kit.Itoa(sum.Distinct)+" · "+nativeT("blocked")+": "+kit.Itoa(sum.Blocked)).Padding(12, 16)
 			open := ui.Local(ui.Column(c), "mask-summary", func() bool { return false })
-			ui.Collapsible(c, nativeT("summaryDetails"), open, func() { nativeJSON(c, m.summary) })
+			ui.Collapsible(c, nativeT("summaryDetails"), open, func() { nativeJSON(c, m.summary) }).Padding(12, 16)
 		}
 		for _, record := range m.records {
 			label := record.Time + " · " + record.Provider + " · " + record.Model + " · " + kit.Itoa(record.Count)
 			if record.Blocked {
 				label += " · " + nativeT("blocked")
 			}
-			if kit.GhostButton(c.Key(record.Key), label, icons.FileText, false).FillWidth().Disabled(m.detailAPI.busy).Clicked() {
+			if kit.GhostButton(c.Key(record.Key), label, icons.FileText, false).FillWidth().Padding(12, 16).Disabled(m.detailAPI.busy).Clicked() {
 				m.selectRecord(record.Key)
 			}
 		}
 		if m.loaded && len(m.records) == 0 {
-			kit.Help(c, nativeT("noMaskingRecords"))
+			kit.Help(c, nativeT("noMaskingRecords")).Padding(12, 16)
 		}
 		if m.more && kit.Button(c, nativeT("loadMore"), icons.ChevronDown, false).Disabled(m.api.busy).Clicked() {
 			m.load(true)
 		}
-		m.previewView(c, locked)
+		kit.Stack(c, "", "", func() { m.previewView(c, locked) })
 	})
 	if kit.Dialog(c, &m.confirmClear, kit.DialogOptions{Title: nativeT("clearRecords"), Message: nativeT("clearRecordsHint"), Confirm: nativeT("clear"), Cancel: i18n.T("common.cancel"), Danger: true, Busy: m.api.busy}) {
 		m.detailAPI.close()
