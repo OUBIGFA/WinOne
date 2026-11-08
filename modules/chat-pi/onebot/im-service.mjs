@@ -3,7 +3,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
-import {createFeishuIM,createTelegramIM,createDiscordIM,createWecomIM,createDingTalkIM,TELEGRAM_DEFAULT_BEHAVIOR} from '../cindy/im/index.ts';
 import {addBotImConnectionRecord,removeBotImConnectionRecord,listBotImConnections,readBotImConnection,secretKeyPrefixFor,setBotImConnectionGroupActivation,updateBotImConnectionRecord} from '../cindy/bots/botImConnectionStore.ts';
 import {verifiedInboundMediaMime} from '../cindy/bots/inboundMediaVerify.ts';
 import {createOneBotPaths,requireBotId,oneBotError} from './content-service.mjs';
@@ -27,12 +26,18 @@ function publicIdentity(im,channel){
 }
 function factories(host,record){
  const options={secretKeyPrefix:secretKeyPrefixFor(record.id),ipc:false};
+ // Bun bundles these literal requires but evaluates only the selected channel.
+ // Keep construction synchronous: pause/close must still own every live client
+ // immediately, including while saved connections are being restored.
  switch(record.channel){
-  case 'telegram':return createTelegramIM(host,{...options,guests:true,resolveImageUrl:host.media.resolveMediaUrl,behavior:()=>({...TELEGRAM_DEFAULT_BEHAVIOR,groupActivation:readBotImConnection(record.id)?.groupActivation})});
-  case 'feishu':return createFeishuIM(host,{...options,guests:true});
-  case 'discord':return createDiscordIM(host,{...options,resolveImageUrl:host.media.resolveMediaUrl});
-  case 'wecom':return createWecomIM(host,options);
-  case 'dingtalk':return createDingTalkIM(host,{...options,fetcher:fetch});
+  case 'telegram':{
+   const {createTelegramIM,TELEGRAM_DEFAULT_BEHAVIOR}=require('../cindy/im/telegram/index.ts');
+   return createTelegramIM(host,{...options,guests:true,resolveImageUrl:host.media.resolveMediaUrl,behavior:()=>({...TELEGRAM_DEFAULT_BEHAVIOR,groupActivation:readBotImConnection(record.id)?.groupActivation})});
+  }
+  case 'feishu':return require('../cindy/im/feishu/index.ts').createFeishuIM(host,{...options,guests:true});
+  case 'discord':return require('../cindy/im/discord/index.ts').createDiscordIM(host,{...options,resolveImageUrl:host.media.resolveMediaUrl});
+  case 'wecom':return require('../cindy/im/wecom/index.ts').createWecomIM(host,options);
+  case 'dingtalk':return require('../cindy/im/dingtalk/index.ts').createDingTalkIM(host,{...options,fetcher:fetch});
   default:throw oneBotError('INVALID_PARAMS','未知 IM 渠道');
  }
 }

@@ -111,7 +111,12 @@ def main():
                     raise
                 return None
         wait_for(ready_windows)
+        # Measure the first actual navigation until home actions are available,
+        # including Host/worker startup and native layout. Do not time a loader.
+        onebot_start = time.perf_counter()
         rpc("act", {"key": "onebot", "action": "press"})
+        wait_for(lambda: find(tr("nativeOneBot.create")))
+        onebot_first_open_ms = (time.perf_counter() - onebot_start) * 1000
         act(tr("nativeOneBot.defaultModels"))
         act(tr("onebotCindy.bots.globalSettings.showReplyTarget"))
         wait_for(lambda: json.loads((profile / "desktop-onebot-view.json").read_text()), lambda x: x.get("showReplyTarget") is True)
@@ -171,7 +176,7 @@ def main():
         act(tr("nativeAutomation.close"))
         receipts.append("native automation run/pause/resume/templates/delete/restore against real Cindy scheduler")
         shot("automation-restored")
-        (output / "result.json").write_text(json.dumps({"passed": receipts, "unverified": ["private-desktop Windows profile/context menus", "real accounts/market network", "physical microphone/speaker/IME/suspend", "full browser annotation window flow"]}, indent=2), encoding="utf-8")
+        (output / "result.json").write_text(json.dumps({"passed": receipts, "onebotFirstOpenMs": onebot_first_open_ms, "unverified": ["private-desktop Windows profile/context menus", "real accounts/market network", "physical microphone/speaker/IME/suspend", "full browser annotation window flow"]}, indent=2), encoding="utf-8")
         # Normal WM_CLOSE for this exact child window only; Host tray shutdown
         # is requested by the private desktop wrapper after the client exits.
         window = rpc("windows")["windows"][0]

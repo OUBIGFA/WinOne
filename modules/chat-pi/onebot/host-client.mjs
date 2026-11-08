@@ -3,7 +3,6 @@
 // only Host-owned session ids and model-route facts, never renderer paths.
 import {readBranch} from './history.mjs';
 import {messageRow} from './bots-service.mjs';
-import {inspectResources} from '../resources.mjs';
 
 export function createOneBotHostClient({baseUrl, key}) {
   async function post(route, body, {timeout = 30000, signal} = {}) {
@@ -18,6 +17,8 @@ export function createOneBotHostClient({baseUrl, key}) {
     portraitCatalog:()=>post('portrait-catalog',{}),
     portraitRequest:input=>post('portrait-request',input,{timeout:180000}),
     async creationCapabilities(botId){
+      // Resource discovery is part of creation, not private-bridge startup.
+      const {inspectResources}=await import('../resources.mjs');
       const resources=await post('creation-resources',{botId}),found=await inspectResources(resources);
       return {skill:found.skills.map(item=>({name:item.name,description:item.description??''})),mcp:(resources.mcpServers??[]).map(item=>({id:item.name,name:item.name})),toolset:found.plugins.map(item=>({id:item.id,name:item.name}))};
     },

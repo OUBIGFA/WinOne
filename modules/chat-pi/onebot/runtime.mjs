@@ -12,7 +12,6 @@ import {withIMScope} from './im-scope.mjs';
 import {retryDeletedBotCleanup} from './lifecycle-host.mjs';
 import {searchOneBotHistory} from './history.mjs';
 import {botLinkedProjectAccess} from '../cindy/bots/botLinkedProjects.ts';
-import {inspectResources} from '../resources.mjs';
 import {callOneBotIMLanes} from './im-lanes.mjs';
 import {createOneBotTaskService} from './task-host.mjs';
 import {chatPreview, creationInput, presentProfile, storeAvatarImage, decodeAvatarImage, transcriptStats} from './bots-service.mjs';
@@ -342,6 +341,8 @@ export function createOneBotRuntime({directory, event = () => {},lifecycle = {},
       const workspace=path.join(paths.home(id),'workspace');paths.assertPath(workspace);fs.mkdirSync(workspace,{recursive:true});
       // Inspect the whole registered catalog without a model, extension loading
       // or MCP startup. Selection is applied only by the execution loader.
+      // Its Pi resource loader is only needed here, not to open the home page.
+      const {inspectResources}=await import('../resources.mjs');
       const resources=await inspectResources({...params.resources,cwd:workspace,onebot:undefined});
       const personal=await content.call('skills.list',{botId:id});
       return {entries:{

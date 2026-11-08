@@ -3,7 +3,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {Database} from 'bun:sqlite';
-import {SessionManager} from '@earendil-works/pi-coding-agent';
 import {oneBotError} from './content-service.mjs';
 import {cjkSeg} from '../cindy/bots/search/cjkSeg.ts';
 import {buildMessagesFtsMatch,fuseRRF} from '../cindy/bots/search/chatHistorySearch.pure.ts';
@@ -33,6 +32,9 @@ export async function readBranch(session){
    if(typeof entry.id!=='string'||seen.has(entry.id)||entry.parentId&&!seen.has(entry.parentId))throw oneBotError('HISTORY_UNAVAILABLE','历史分支标识无效');
    seen.add(entry.id);
   }
+  // Load the branch reader only for a real transcript. Pi's public barrel also
+  // initializes execution/UI libraries that an empty teammate list never uses.
+  const {SessionManager}=await import('../node_modules/@earendil-works/pi-coding-agent/dist/core/session-manager.js');
   return SessionManager.inMemory(session.directory,undefined,entries).getBranch();
  }finally{await handle.close();}
 }
