@@ -2,6 +2,55 @@ package learning
 
 import "strings"
 
+// Hide only rows of recognized vocabulary tables, leaving source sentences,
+// translations, examples and code intact. The model may ignore prompt guidance.
+func FilterIgnoredVocabulary(markdown string, states TermStates) string {
+	if len(states) == 0 {
+		return markdown
+	}
+	lines := strings.Split(markdown, "\n")
+	var out []string
+	var fence markdownFence
+	for i := 0; i < len(lines); {
+		line := lines[i]
+		if fence.consume(strings.TrimSpace(line)) || len(tableCells(strings.TrimSpace(line))) == 0 {
+			out = append(out, line)
+			i++
+			continue
+		}
+		end := i + 1
+		for end < len(lines) && len(tableCells(strings.TrimSpace(lines[end]))) > 0 {
+			end++
+		}
+		block := strings.Join(lines[i:end], "\n")
+		notes := VocabularyNotes(block)
+		ignored := map[string]bool{}
+		for _, note := range notes {
+			if states.State(note.Word) == Ignored {
+				ignored[TermKey(note.Word)] = true
+			}
+		}
+		column := -1
+		if len(ignored) > 0 {
+			for n, cell := range tableCells(strings.TrimSpace(line)) {
+				switch strings.ToLower(strings.Trim(cell, "*`")) {
+				case "word", "word / phrase", "词汇", "单词", "词条", "生词与短语":
+					column = n
+				}
+			}
+		}
+		for n := i; n < end; n++ {
+			cells := tableCells(strings.TrimSpace(lines[n]))
+			if n >= i+2 && column >= 0 && column < len(cells) && ignored[TermKey(strings.Trim(cells[column], "*`"))] {
+				continue
+			}
+			out = append(out, lines[n])
+		}
+		i = end
+	}
+	return strings.Join(out, "\n")
+}
+
 // VocabularyNotes reads only explicitly labelled learning table columns. It
 // does not infer notes from arbitrary prose, numeric tables or code blocks.
 func VocabularyNotes(markdown string) []Note {

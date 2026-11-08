@@ -93,6 +93,7 @@ func editUsageAliases(in request, out io.Writer) error {
 // Magpie remains responsible for token accounting, prices, aggregation and
 // pagination. Only installation-owned metadata enters the shared WinOne log.
 func configureUsage(in request) error {
+	usage.WinOneSkipAppend = gateway.WinOneTransportOnly
 	gateway.WinOneArchiveDirectory = ""
 	path := os.Getenv("WINONE_AI_USAGE_PATH")
 	if path == "" {
@@ -107,7 +108,7 @@ func configureUsage(in request) error {
 	// Upstream never writes original values or surrounding text to these files.
 	maskrec.Dir = func() string { return filepath.Join(filepath.Dir(path), "masking") }
 	source := "winone"
-	if in.Operation == "gateway" && in.UsageSource != "winone" {
+	if (in.Operation == "gateway" || in.Operation == "routing.serve" || in.Operation == "magpie.gateway") && in.UsageSource != "winone" {
 		source = "gateway"
 	}
 	usage.WinOneRecord = func(r usage.Record) usage.Record {
@@ -116,6 +117,9 @@ func configureUsage(in request) error {
 			failure = "Request failed"
 		}
 		provider := in.ProviderID
+		if in.Operation == "routing.serve" || in.Operation == "magpie.gateway" {
+			provider = r.Provider
+		}
 		if provider == "" {
 			provider = "legacy"
 		}
@@ -154,22 +158,26 @@ func configureUsage(in request) error {
 		if in.Agent != "" {
 			accountID = provider
 		}
-		// Keep routing/timing metadata, never prompt bodies, credentials or raw
-		// upstream errors. WinOne's connection ID is the account filter identity.
-		return usage.Record{Time: r.Time, Agent: source, Provider: provider, Model: r.Model, Archive: r.Archive,
-			WinOnePrompt: prompt, Session: session,
-			Requested: r.Requested, Served: r.Served, Effort: r.Effort, Endpoint: r.Endpoint, Stop: r.Stop,
-			ProviderAccount: accountID, Kind: r.Kind,
-			CallerKeyID: r.CallerKeyID, CallerKeyName: r.CallerKeyName,
-			ProviderKeyID: r.ProviderKeyID, ProviderKeyName: r.ProviderKeyName,
-			Credits: r.Credits, TierAsked: r.TierAsked, TierSent: r.TierSent, TierServed: r.TierServed,
-			FirstReasoning: r.FirstReasoning, ReasoningHidden: r.ReasoningHidden, Own: r.Own, Retried: r.Retried, Queued: r.Queued,
-			Input: r.Input, Output: r.Output, CacheRead: r.CacheRead, CacheWrite: r.CacheWrite,
-			// The WinOne provider ID differs from the upstream vendor ID, so the
-			// explicit flag must survive rather than rely on legacy ID inference.
-			CacheUnknown: r.CacheUnknown,
-			CacheWrite1h: r.CacheWrite1h, Reasoning: r.Reasoning, Millis: r.Millis,
-			TTFT: r.TTFT, FirstText: r.FirstText, Sent: r.Sent, Flow: r.Flow, Status: r.Status, Error: failure, Rejected: r.Rejected}
+		if in.Operation == "routing.serve" {
+			for _, p := range in.AuxiliaryProviders {
+				if p.ID == provider && p.AccountKind != "" {
+					accountID = provider
+					break
+				}
+			}
+		}
+		agent := source
+		if source == "gateway" && r.Agent != "" {
+			agent = r.Agent
+		}
+		// Preserve upstream timing, retry, session and observer fields. Bodies
+		// are non-serialized upstream fields, needed by opt-in OTel observers.
+		// Redact raw failures and replace installation-owned identity only.
+		r.Agent, r.Provider, r.ProviderAccount, r.Error = agent, provider, accountID, failure
+		if in.Operation != "routing.serve" {
+			r.WinOnePrompt, r.Session = prompt, session
+		}
+		return r
 	}
 	return nil
 }
@@ -221,7 +229,7 @@ func readUsage(in request, output io.Writer) error {
 	if !usage.Period(q.Period).Known() {
 		return errors.New("invalid usage period")
 	}
-	if q.Offset < 0 || q.Offset > 1000000 || len(q.Provider) > 256 || (q.Source != "" && q.Source != "winone" && q.Source != "gateway") {
+	if q.Offset < 0 || q.Offset > 1000000 || len(q.Provider) > 256 || len(q.Source) > 256 || strings.ContainsRune(q.Source, '\x00') {
 		return errors.New("invalid usage filter")
 	}
 	if len(q.Zone) > 128 || strings.ContainsRune(q.Zone, '\x00') || len(q.Model) > 512 || len(q.Account) > 256 || len(q.Purpose) > 128 || len(q.CallerKey) > 128 || len(q.Query) > 512 || strings.ContainsRune(q.Query, '\x00') {

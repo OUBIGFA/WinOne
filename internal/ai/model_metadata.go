@@ -2,6 +2,7 @@ package ai
 
 import (
 	"errors"
+	"maps"
 	"math"
 	"slices"
 )
@@ -10,17 +11,19 @@ import (
 // Token sizes retain their original units. CompactionPercent is a separate
 // user override, so legacy token thresholds cannot be misread as percentages.
 type ModelMetadata struct {
-	Searches bool `json:"searches,omitempty"`
-	Same         string      `json:"same,omitempty"`
-	UpstreamName string      `json:"upstreamName,omitempty"`
-	API          string      `json:"api,omitempty"`
+	Alias        string            `json:"alias,omitempty"`
+	Searches     bool              `json:"searches,omitempty"`
+	Same         string            `json:"same,omitempty"`
+	UpstreamName string            `json:"upstreamName,omitempty"`
+	API          string            `json:"api,omitempty"`
+	Headers      map[string]string `json:"headers,omitempty"`
 	// Levels are the reasoning levels the vendor reports for the model, kept
 	// apart from Efforts (the ones the user offers) so narrowing the offer
 	// never loses a level from the choices. Both use the vendor's own words.
-	Levels       []string    `json:"levels,omitempty"`
-	Efforts      []string    `json:"efforts,omitempty"`
-	Tiers        []string    `json:"tiers,omitempty"`
-	Price        *ModelPrice `json:"price,omitempty"`
+	Levels  []string    `json:"levels,omitempty"`
+	Efforts []string    `json:"efforts,omitempty"`
+	Tiers   []string    `json:"tiers,omitempty"`
+	Price   *ModelPrice `json:"price,omitempty"`
 	// Rates are vendor-listed credit multipliers, not USD token prices.
 	Rate                float64 `json:"rate,omitempty"`
 	RateWas             float64 `json:"rateWas,omitempty"`
@@ -38,6 +41,7 @@ type ModelMetadata struct {
 }
 
 func (m ModelMetadata) clone() ModelMetadata {
+	m.Headers = maps.Clone(m.Headers)
 	m.Levels = slices.Clone(m.Levels)
 	m.Efforts = slices.Clone(m.Efforts)
 	m.Tiers = slices.Clone(m.Tiers)
@@ -68,6 +72,12 @@ func (p Provider) ModelMetadataFor(id string) ModelMetadata { return p.ModelMeta
 func ValidateModelMetadata(m ModelMetadata) error { return validateModelMetadata(m) }
 
 func validateModelMetadata(m ModelMetadata) error {
+	if len(m.Headers) > 32 {
+		return errors.New("每个模型最多设置 32 个请求头")
+	}
+	if err := validateProviderHeaders(m.Headers); err != nil {
+		return err
+	}
 	if err := m.validateExtended(); err != nil {
 		return err
 	}

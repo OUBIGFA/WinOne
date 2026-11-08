@@ -200,6 +200,7 @@ func (t Translator) generate(ctx context.Context, p Preferences, key string, inp
 	}
 	request := map[string]any{"providerId": p.ProviderID, "agent": agent, "protocol": p.Protocol, "baseUrl": p.BaseURL, "model": p.Model, "key": key, "system": input.System, "text": input.Text, "imagePng": input.ImagePNG, "messages": input.Messages}
 	request["providerPreferences"] = p.ProviderPreferences
+	request["keyID"], request["keyOptions"] = credentialRequestOptions(ctx)
 	request["additionalTools"] = p.AdditionalTools
 	request["limitRestOff"] = p.LimitRestOff
 	request["headers"] = p.Headers

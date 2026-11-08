@@ -11,6 +11,7 @@ import (
 // enabled model or global task assignment is not required to query a service.
 type ModelConnectionDraft struct {
 	ProviderPreferences
+	Models          []string          `json:"models,omitempty"`
 	LimitRestOff    bool              `json:"limitRestOff,omitempty"`
 	AdditionalTools bool              `json:"additionalTools,omitempty"`
 	Headers         map[string]string `json:"headers,omitempty"`
@@ -25,6 +26,7 @@ type ModelConnectionDraft struct {
 func (draft ModelConnectionDraft) Provider(id string) (Provider, error) {
 	p := Provider{ID: id, Name: "模型连接", AuthMode: "api-key", Protocol: draft.Protocol, BaseURL: draft.BaseURL, Preset: draft.Preset, PresetRegion: draft.PresetRegion, Keys: draft.Keys, KeyPolicy: draft.KeyPolicy, Models: []string{}}
 	p.AdditionalTools = draft.AdditionalTools
+	p.Models = draft.Models
 	p.ProviderPreferences = draft.ProviderPreferences.clone()
 	p.LimitRestOff = draft.LimitRestOff
 	p.Headers = draft.Headers
@@ -72,5 +74,8 @@ func (s *Store) modelDraftLocked(id string, draft ModelConnectionDraft, edits ma
 	}
 	c = cloneConfiguration(c)
 	keys, _, err := s.updatedCredentialsLocked(&c, nil, CredentialUpdates{id: edits})
+	if err == nil {
+		err = s.hydrateProviderSecrets(&c.Providers[0])
+	}
 	return c.Providers[0], keys, err
 }

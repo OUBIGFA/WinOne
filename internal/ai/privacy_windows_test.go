@@ -74,7 +74,9 @@ func TestPackagedPrivacyRemoteMasksAndFailsClosed(t *testing.T) {
 		spans := make([][]map[string]any, len(body.Texts))
 		for i, text := range body.Texts {
 			if at := strings.Index(text, name); at >= 0 {
-				spans[i] = []map[string]any{{"Start": at, "End": at + len(name), "Label": "private_person"}}
+				// Current upstream applies the selected model's confidence
+				// threshold. Match its actual Find response, including Score.
+				spans[i] = []map[string]any{{"Start": at, "End": at + len(name), "Label": "private_person", "Score": 0.99}}
 			}
 		}
 		_ = json.NewEncoder(w).Encode(spans)

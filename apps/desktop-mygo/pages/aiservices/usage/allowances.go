@@ -1,9 +1,11 @@
 package usage
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -37,6 +39,7 @@ type allowances struct {
 	seen         *[2]bool
 	trend        string
 	zoomed       map[string]*bool
+	arranging    bool
 }
 
 // quotaResult is one provider's readings, or why there are none.
@@ -186,13 +189,51 @@ func (a *allowances) view(c *ui.Context, providers []Provider, prefs *Preference
 		if len(list) == 0 {
 			kit.Help(c, tr("usage.noAccounts"))
 		}
+		if prefs != nil && change != nil {
+			kit.Toggle(c, &a.arranging, tr("aiComplete.arrangeAllowances"), tr("aiComplete.arrangeAllowancesHint"))
+		}
+		// Ordering and hidden cards affect presentation only, never quota reads,
+		// request permissions or the totals shown in the ledger.
+		rows := slices.Clone(a.data)
+		if prefs != nil {
+			slices.SortStableFunc(rows, func(a, b quotaResult) int {
+				rank := func(id string) int {
+					i := slices.Index(prefs.Order, id)
+					if i < 0 {
+						return len(prefs.Order)
+					}
+					return i
+				}
+				return cmp.Compare(rank(a.provider.ID), rank(b.provider.ID))
+			})
+		}
 		ui.Row(c).FillWidth().GapX(24).GapY(24).Wrap().AlignItems(ui.Start).Children(func() {
-			for _, r := range a.data {
+			for index, r := range rows {
+				if !a.arranging && len(r.quotas) > 0 && prefs != nil && allCardsHidden(r.quotas, prefs.HiddenCards) {
+					continue
+				}
 				ui.Column(c.Key(r.provider.ID)).Basis(280).Grow(1).Shrink(1).MinWidth(0).Gap(12).Padding(16, 0, 0, 0).
 					BorderWidth(1, 0, 0, 0).BorderColor(pal.Hairline).Role(ui.RoleGroup).Label(r.provider.Name).Children(func() {
 					ui.Row(c).Gap(8).AlignItems(ui.Center).MinWidth(0).Children(func() {
 						widgets.ProviderIcon(c, a.env, providerMark(&r.provider), 16)
 						kit.Strong(c, r.provider.Name).Role(ui.RoleHeading).Level(4).MinWidth(0)
+						if a.arranging && prefs != nil && change != nil {
+							move := func(to int) {
+								next := *prefs
+								next.Order = make([]string, len(rows))
+								for i, row := range rows {
+									next.Order[i] = row.provider.ID
+								}
+								next.Order[index], next.Order[to] = next.Order[to], next.Order[index]
+								change(next)
+							}
+							if kit.IconButton(c, icons.ArrowUp, tr("aiComplete.moveAllowanceUp")).Disabled(index == 0).Clicked() {
+								move(index - 1)
+							}
+							if kit.IconButton(c, icons.ArrowDown, tr("aiComplete.moveAllowanceDown")).Disabled(index+1 == len(rows)).Clicked() {
+								move(index + 1)
+							}
+						}
 					})
 					if r.err != "" {
 						kit.Notice(c, kit.Failure, "", r.err, nil)
@@ -201,12 +242,54 @@ func (a *allowances) view(c *ui.Context, providers []Provider, prefs *Preference
 						kit.Help(c, tr("usage.quotaUnavailable"))
 					}
 					for i, q := range r.quotas {
+						key := allowanceHideKey(q)
+						hidden := prefs != nil && slices.Contains(prefs.HiddenCards, key)
+						if a.arranging && prefs != nil && change != nil {
+							show := !hidden
+							if kit.Toggle(c.Key(key+"-visible"), &show, tr("aiComplete.showAllowance"), q.User).Changed() {
+								next := *prefs
+								next.HiddenCards = changeHidden(prefs.HiddenCards, key, !show)
+								change(next)
+							}
+						}
+						if hidden && !a.arranging {
+							continue
+						}
 						a.quotaView(c, r.provider, i, q, t)
 					}
 				})
 			}
 		})
 	})
+}
+
+// Keep upstream's trayCardID + kind identity, so imported preferences and
+// native edits refer to the same account even when the provider is renamed.
+func allowanceHideKey(q allowance) string {
+	id := q.Provider
+	if q.User != "" {
+		id += "|" + q.User
+	}
+	kind := "plan"
+	if q.Balance != "" && len(q.Windows) == 0 && q.Plan == "" {
+		kind = "balance"
+	}
+	return id + "|" + kind
+}
+func allCardsHidden(rows []allowance, hidden []string) bool {
+	for _, q := range rows {
+		if !slices.Contains(hidden, allowanceHideKey(q)) {
+			return false
+		}
+	}
+	return true
+}
+func changeHidden(current []string, id string, hidden bool) []string {
+	out := slices.DeleteFunc(slices.Clone(current), func(v string) bool { return v == id })
+	if hidden {
+		out = append(out, id)
+	}
+	return out
 }
 
 // quotaView is one account's reading: who, its plan, its windows and
@@ -232,7 +315,29 @@ func (a *allowances) quotaView(c *ui.Context, provider Provider, index int, q al
 			ui.Text(c, tr("usage.balance")+" · "+q.Balance).Selectable()
 		}
 		if q.Estimate != nil {
-			kit.Help(c, i18n.T("usage.balanceEstimate", "set", fmt.Sprintf("$%.2f", q.Estimate.Set), "spent", fmt.Sprintf("$%.2f", q.Estimate.Spent), "at", q.Estimate.At)).Selectable()
+			e := q.Estimate
+			currency := "$"
+			if e.Currency == "cny" {
+				currency = "¥"
+			}
+			from := e.From
+			if from == "" {
+				from = e.At
+			}
+			kit.Help(c, i18n.T("usage.balanceEstimate", "set", fmt.Sprintf("%s%.2f", currency, e.Set), "spent", fmt.Sprintf("$%.2f", e.Spent), "at", from)).Selectable()
+			if e.Currency == "cny" && e.Rate > 0 {
+				kit.Help(c, i18n.T("aiComplete.balanceRate", "rate", fmt.Sprintf("%.4f", e.Rate)))
+			}
+			if e.Left == nil {
+				kit.Help(c, i18n.T("aiComplete.balanceUnknown"))
+			}
+			if e.Refill != nil {
+				every := i18n.T("aiComplete.monthly")
+				if e.Refill.Every == "week" {
+					every = i18n.T("aiComplete.weekly")
+				}
+				kit.Help(c, i18n.T("aiComplete.balanceNext", "every", every, "day", e.Refill.Day, "next", e.Next))
+			}
 		}
 		for _, parts := range [][]balancePart{q.BalanceParts, q.BalanceSplit} {
 			if len(parts) > 0 {

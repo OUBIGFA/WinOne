@@ -13,6 +13,7 @@ import (
 // MagpieSettings preserves upstream setting names. WinOne owns persistence;
 // each worker receives one immutable snapshot, never another app's settings.
 type MagpieSettings struct {
+	MagpieClientSettings
 	GroupSink       bool `json:"groupSink,omitempty"`
 	GroupFirstToken int  `json:"groupFirstToken,omitempty"`
 	GroupPatience   int  `json:"groupPatience,omitempty"`
@@ -187,6 +188,9 @@ var warmTimePattern = regexp.MustCompile(`^(?:[01][0-9]|2[0-3]):[0-5][0-9]$`)
 func (s *MagpieSettings) validate() error {
 	if s == nil {
 		return nil
+	}
+	if err := s.MagpieClientSettings.validate(); err != nil {
+		return err
 	}
 	if s.GroupFirstToken < 0 || s.GroupPatience < -1 || s.GroupPatience > 240 {
 		return errors.New("路由默认等待时间无效")

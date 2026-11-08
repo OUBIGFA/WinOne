@@ -9,19 +9,13 @@ import (
 	"time"
 )
 
-type ModelOption struct {
-	Metadata ModelMetadata `json:"metadata,omitempty"`
-	ID       string        `json:"id"`
-	Name     string        `json:"name"`
-	Icon     string        `json:"icon,omitempty"`
-	Free     bool          `json:"free,omitempty"`
-}
-
 func (t Translator) Models(ctx context.Context, p Provider, key string) ([]ModelOption, error) {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	input := map[string]any{"operation": "models.fetch", "protocol": p.Protocol, "baseUrl": p.BaseURL, "key": key}
 	input["providerPreferences"] = p.ProviderPreferences
+	input["models"] = p.Models
+	input["keyID"], input["keyOptions"] = credentialRequestOptions(ctx)
 	input["headers"] = p.Headers
 	input["limitRestOff"] = p.LimitRestOff
 	if p.Preset != "" {

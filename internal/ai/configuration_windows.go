@@ -8,6 +8,7 @@ import (
 	"errors"
 	"maps"
 	"path/filepath"
+	"slices"
 	"winone/internal/settings"
 )
 
@@ -22,6 +23,10 @@ func (s *Store) configurationLocked() Configuration {
 	}
 	for i := range c.Providers {
 		p := &c.Providers[i]
+		p.AccessKeyID, p.SecretAccessKey, p.BalanceToken = nil, nil, nil
+		p.HasAccessKeyID = s.providerSecrets[p.ID]["accessKeyID"] != ""
+		p.HasSecretAccessKey = s.providerSecrets[p.ID]["secretAccessKey"] != ""
+		p.HasBalanceToken = s.providerSecrets[p.ID]["balanceToken"] != ""
 		if p.AuthMode != "api-key" {
 			p.Keys = nil
 			p.KeyPolicy = nil
@@ -37,6 +42,8 @@ func (s *Store) configurationLocked() Configuration {
 			p.HasKey = p.HasKey || p.Keys[j].HasKey
 		}
 	}
+	c.MagpieSettings.GitHubToken = nil
+	c.MagpieSettings.HasGitHubToken = s.githubToken != ""
 	for i := range c.MagpieSettings.SearchAPIs {
 		api := &c.MagpieSettings.SearchAPIs[i]
 		api.Key = ""
@@ -80,6 +87,9 @@ func (s *Store) ProviderKeysForModels(id string) (Provider, KeyPlan, error) {
 	if p.AuthMode == "account" {
 		return p, KeyPlan{}, nil
 	}
+	if err := s.hydrateProviderSecrets(&p); err != nil {
+		return p, KeyPlan{}, err
+	}
 	return p, s.keyPlanLocked(p), nil
 }
 func (s *Store) SaveConfiguration(c Configuration, updates map[string]*string) (Configuration, error) {
@@ -103,13 +113,51 @@ func (s *Store) SaveConfigurationWithKeys(c Configuration, updates map[string]*s
 	if c.MagpieSettings == nil {
 		c.MagpieSettings = old.MagpieSettings
 	}
+	c = cloneConfiguration(c)
+	// Validate submitted header values before replacing them with write-only
+	// placeholders; otherwise invalid wire values could be durably accepted.
+	if err := validateProviderHeaders(c.MagpieSettings.OTel.Headers); err != nil {
+		return fail(err)
+	}
+	githubToken := s.githubToken
+	if edit := c.MagpieSettings.GitHubToken; edit != nil {
+		var err error
+		githubToken, err = sealCredential(*edit)
+		if err != nil {
+			return fail(err)
+		}
+	}
+	c.MagpieSettings.GitHubToken = nil
+	c.MagpieSettings.HasGitHubToken = githubToken != ""
+	otelHeaders := map[string]string{}
+	for name, value := range c.MagpieSettings.OTel.Headers {
+		sealed := s.otelHeaders[name]
+		if value != "" {
+			var err error
+			sealed, err = sealCredential(value)
+			if err != nil {
+				return fail(err)
+			}
+		}
+		if sealed != "" {
+			otelHeaders[name] = sealed
+		}
+		c.MagpieSettings.OTel.Headers[name] = ""
+	}
 	searchKeys, err := s.prepareSearchKeys(&c)
+	if err != nil {
+		return fail(err)
+	}
+	providerSecrets, err := s.prepareProviderSecrets(&c)
 	if err != nil {
 		return fail(err)
 	}
 	for i := range c.Providers {
 		p := &c.Providers[i]
 		if previous, ok := old.Provider(p.ID); ok {
+			if !slices.Equal(previous.AutoInclude, p.AutoInclude) {
+				p.Models = IncludeDiscovered(p.Models, nil, p.AllModels(), p.AutoInclude)
+			}
 			if p.ModelMetadata == nil {
 				p.ModelMetadata = previous.ModelMetadata
 			}
@@ -128,6 +176,8 @@ func (s *Store) SaveConfigurationWithKeys(c Configuration, updates map[string]*s
 			if p.KeyPolicy == nil {
 				p.KeyPolicy = previous.KeyPolicy
 			}
+		} else {
+			p.Models = IncludeDiscovered(p.Models, nil, p.AllModels(), p.AutoInclude)
 		}
 		if key := updates[p.ID]; p.AuthMode == "api-key" && len(p.Keys) == 0 && key != nil && *key != "" {
 			p.Keys = []KeySlot{{ID: "primary", Enabled: true}}
@@ -154,7 +204,7 @@ func (s *Store) SaveConfigurationWithKeys(c Configuration, updates map[string]*s
 	// always use the versioned collection and its per-provider credentials.
 	projected := projectConfiguration(c)
 	selected := Selection{Provider: projected.ProviderID}
-	encoded, err := json.Marshal(stored{SchemaVersion: 2, Preferences: projected, ProtectedKey: keys[selected.Provider], Configuration: &c, ProtectedKeys: keys, ProtectedCredentialKeys: sets, ProtectedSearchKeys: searchKeys})
+	encoded, err := json.Marshal(stored{SchemaVersion: 2, Preferences: projected, ProtectedKey: keys[selected.Provider], Configuration: &c, ProtectedKeys: keys, ProtectedCredentialKeys: sets, ProtectedSearchKeys: searchKeys, ProtectedProviderSecrets: providerSecrets, ProtectedGitHubToken: githubToken, ProtectedOTelHeaders: otelHeaders})
 	if err != nil {
 		return fail(err)
 	}
@@ -168,6 +218,9 @@ func (s *Store) SaveConfigurationWithKeys(c Configuration, updates map[string]*s
 	s.keys = keys
 	s.credentialKeys = sets
 	s.searchKeys = searchKeys
+	s.githubToken = githubToken
+	s.otelHeaders = otelHeaders
+	s.providerSecrets = providerSecrets
 	s.pruneKeyRoundsLocked(sets)
 	s.value = projected
 	s.protected = keys[selected.Provider]
@@ -236,6 +289,9 @@ func (s *Store) ForTaskKeys(task string, override *Selection) (Preferences, KeyP
 		return p, KeyPlan{}, err
 	}
 	provider, _ := c.Provider(selection.Provider)
+	if err := s.hydrateProviderSecrets(&provider); err != nil {
+		return p, KeyPlan{}, err
+	}
 	p.Engine = "llm"
 	p.OCREngine = "ai"
 	p.AuthMode = provider.AuthMode

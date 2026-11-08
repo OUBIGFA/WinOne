@@ -67,6 +67,9 @@ func ProviderGroups(providers []AIProvider) []ModelGroup {
 	groups := make([]ModelGroup, 0, len(providers))
 	for i := range providers {
 		p := &providers[i]
+		if p.Off {
+			continue
+		}
 		mark := p.Avatar
 		if mark == "" {
 			mark = p.Icon

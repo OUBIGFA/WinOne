@@ -31,10 +31,11 @@ func (p *page) usageView(c *ui.Context) {
 	}
 	if p.draft != nil {
 		s := p.draft.Value.magpie()
-		o.Preferences = &usage.Preferences{HideAccounts: s.HideAccounts, QuotaLeft: s.QuotaLeft, Aliases: s.UsageAliases}
+		o.Preferences = &usage.Preferences{HideAccounts: s.HideAccounts, QuotaLeft: s.QuotaLeft, Aliases: s.UsageAliases, Order: s.UsageOrder, HiddenCards: s.UsageCardsHidden, HiddenAgents: s.UsageAgentsHidden}
 		o.Change = func(prefs usage.Preferences) {
 			s := p.draft.Value.settings()
 			s.HideAccounts, s.QuotaLeft, s.UsageAliases = prefs.HideAccounts, prefs.QuotaLeft, prefs.Aliases
+			s.UsageOrder, s.UsageCardsHidden, s.UsageAgentsHidden = prefs.Order, prefs.HiddenCards, prefs.HiddenAgents
 		}
 	}
 	p.usage.View(c, o)

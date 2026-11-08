@@ -23,8 +23,35 @@ func (s *aiService) initGateway() {
 	// handler can capture its model policy or configuration guard.
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.gateway = ai.NewGateway(s.ctx, filepath.Join(filepath.Dir(s.storePath), "ai-gateway.json"), http.HandlerFunc(s.serveGateway))
+	s.gateway = ai.NewGateway(s.ctx, filepath.Join(filepath.Dir(s.storePath), "ai-gateway.json"), http.HandlerFunc(s.serveGateway), http.HandlerFunc(s.serveNamedGateway))
 }
+
+// Named gateway keys keep Magpie's model, account, MCP, budget and expiration
+// checks in the single runtime that owns their durable state and ledger.
+func (s *aiService) serveNamedGateway(w http.ResponseWriter, r *http.Request) {
+	if !ai.IsGatewayServicePath(r.URL.Path) {
+		ai.GatewayError(w, 404, "不支持的本地网关接口")
+		return
+	}
+	s.mu.Lock()
+	guard, gateway := s.gatewayGuard, s.gateway
+	s.mu.Unlock()
+	if guard != nil {
+		release, ok := guard()
+		if !ok {
+			ai.GatewayError(w, 503, "WinOne 正在维护，请稍后重试")
+			return
+		}
+		defer release()
+	}
+	store, err := s.magpieStore()
+	if err != nil {
+		ai.GatewayError(w, 503, "AI 服务配置无法读取")
+		return
+	}
+	s.serveMediaMCP(w, r, store, gateway.ModelFilter())
+}
+
 func (s *aiService) handleGateway(r host.Request) host.Response {
 	fail := func(err error) host.Response {
 		return host.Response{ID: r.ID, Error: &host.RPCError{Code: "ai_gateway", Message: err.Error()}}
@@ -81,6 +108,9 @@ func (s *aiService) serveChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guard func() (func(), bool), allowModel func(ai.Selection) bool, inProduct bool) {
+	if inProduct {
+		r = r.WithContext(ai.WithProductSession(r.Context(), r.Header.Get("X-WinOne-Session")))
+	}
 	if guard != nil {
 		release, ok := guard()
 		if !ok {
@@ -105,13 +135,14 @@ func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guar
 		return
 	}
 	if r.Method == http.MethodGet && (r.URL.Path == "/v1/models" || r.URL.Path == "/models") {
-		if store.Configuration().RoutingEnabled {
+		configuration := store.Configuration()
+		if configuration.UsesSharedRouter() {
 			process, err := s.startRouting()
 			if err != nil {
 				ai.GatewayError(w, 503, "路由服务未能启动")
 				return
 			}
-			models, err := process.Models(r.Context(), allowModel)
+			models, err := process.ModelsForClient(r.Context(), allowModel, r.Header, configuration.RoutingEnabled)
 			if err != nil {
 				ai.GatewayError(w, 503, "路由模型读取失败")
 				return
@@ -121,10 +152,9 @@ func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guar
 			return
 		}
 		models := []map[string]any{}
-		configuration := store.Configuration()
 		settings := configuration.MagpieSettings
 		for _, p := range configuration.Providers {
-			if p.AuthMode == "account" && settings.NoAccountDiscovery {
+			if p.Off || p.AuthMode == "account" && settings.NoAccountDiscovery {
 				continue
 			}
 			for _, model := range p.Models {
@@ -182,7 +212,19 @@ func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guar
 		return
 	}
 	path := r.URL.Path
-	if path == "/mcp/magpie/image" || path == "/mcp/magpie/vision" || strings.HasPrefix(path, "/mcp/magpie/image/files/") || strings.HasPrefix(path, "/v1/videos/") {
+	if path == "/me" {
+		s.serveMediaMCP(w, r, store, allowModel)
+		return
+	}
+	// All public diagnostics and ancillary APIs use the same authenticated
+	// upstream service as named keys. Keep desktop administration private.
+	if ai.IsGatewayServicePath(path) && (strings.HasPrefix(path, "/v1/magpie/") || strings.HasPrefix(path, "/v1/models/") || strings.HasPrefix(path, "/mcp/") || strings.HasPrefix(path, "/backend-api/codex/") || path == "/v1/codex/models" || path == "/v1/alpha/search" || path == "/api/hello" || path == "/muse-code/models" || path == "/v1" || path == "/v1/") {
+		s.serveMediaMCP(w, r, store, allowModel)
+		return
+	}
+	// Media and stateful protocols need the same long-lived upstream handler.
+	// Keep their request shapes intact (including multipart and WebSockets).
+	if path == "/mcp/magpie/image" || path == "/mcp/magpie/vision" || path == "/mcp/magpie/tools" || strings.HasPrefix(path, "/mcp/magpie/tools/") || strings.HasPrefix(path, "/mcp/magpie/image/files/") || path == "/v1/videos" || strings.HasPrefix(path, "/v1/videos/") || strings.HasPrefix(path, "/v1/audio/") || path == "/v1/images/edits" || strings.HasPrefix(path, "/v1beta/models") || path == "/v1/systemone" || path == "/v1/responses" && r.Method == http.MethodGet {
 		s.serveMediaMCP(w, r, store, allowModel)
 		return
 	}
@@ -217,7 +259,7 @@ func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guar
 		s.serveMagpieProtocol(w, r, store, path, body, allowModel)
 		return
 	}
-	if store.Configuration().RoutingEnabled {
+	if configuration := store.Configuration(); configuration.UsesSharedRouter() {
 		s.serveRoutedModel(w, r, path, body, request.Model, allowModel)
 		return
 	}

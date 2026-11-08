@@ -2,6 +2,7 @@ package aiservices
 
 import (
 	"encoding/json"
+	"time"
 
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/widgets"
@@ -17,6 +18,7 @@ import (
 // hasKey tells whether one is saved, and new keys travel separately as
 // keyUpdates when the configuration is saved.
 type keySlot struct {
+	ai.KeyOptions
 	ID      string `json:"id"`
 	Enabled bool   `json:"enabled"`
 	HasKey  bool   `json:"hasKey"`
@@ -58,6 +60,7 @@ type modelPrice struct {
 // Pointers keep "absent" apart from zero and empty lists, as the React
 // document kept undefined apart from 0 and [].
 type modelMetadata struct {
+	Alias               *string                     `json:"alias,omitempty"`
 	Searches            *bool                       `json:"searches,omitempty"`
 	ContextWindow       *float64                    `json:"contextWindow,omitempty"`
 	MaxTokens           *float64                    `json:"maxTokens,omitempty"`
@@ -75,6 +78,7 @@ type modelMetadata struct {
 	Same                *string                     `json:"same,omitempty"`
 	UpstreamName        *string                     `json:"upstreamName,omitempty"`
 	API                 *string                     `json:"api,omitempty"`
+	Headers             map[string]string           `json:"headers,omitempty"`
 	Levels              *[]string                   `json:"levels,omitempty"`
 	Efforts             *[]string                   `json:"efforts,omitempty"`
 	Tiers               *[]string                   `json:"tiers,omitempty"`
@@ -86,6 +90,12 @@ type metadata = core.Preserved[modelMetadata]
 // provider is one AI service: a custom API connection ("api-key") or an
 // agent account ("account").
 type provider struct {
+	CatalogModels     []string                    `json:"catalogModels"`
+	CatalogNames      map[string]string           `json:"catalogNames,omitempty"`
+	ManualModels      []string                    `json:"manualModels,omitempty"`
+	CatalogMetadata   map[string]ai.ModelMetadata `json:"catalogMetadata,omitempty"`
+	ModelRefreshAt    time.Time                   `json:"modelRefreshAt,omitempty"`
+	ModelRefreshError string                      `json:"modelRefreshError,omitempty"`
 	ai.ProviderPreferences
 	ID              string              `json:"id"`
 	Name            string              `json:"name"`
@@ -133,7 +143,7 @@ func (p *provider) mark() string {
 // included, without repeats.
 func (p *provider) available() []string {
 	var all []string
-	if p.AvailableModels != nil {
+	if p.AvailableModels != nil && !p.ListOff {
 		all = append(all, *p.AvailableModels...)
 	}
 	all = append(all, p.Models...)
@@ -193,6 +203,7 @@ type bundledChoice struct {
 // in Magpie's Settings JSON. Numbers are pointers: a missing number takes
 // a default that zero does not mean.
 type magpieSettings struct {
+	ai.MagpieClientSettings
 	GroupSink             bool                                     `json:"groupSink,omitempty"`
 	GroupFirstToken       int                                      `json:"groupFirstToken,omitempty"`
 	GroupPatience         int                                      `json:"groupPatience,omitempty"`
@@ -370,7 +381,7 @@ func (c *configuration) find(id string) *provider {
 
 // picker is a provider as the model pickers and icons show it.
 func (p *provider) picker() widgets.AIProvider {
-	out := widgets.AIProvider{ID: p.ID, Name: p.Name, Icon: p.Icon, Avatar: value(p.Avatar), Models: p.Models,
+	out := widgets.AIProvider{ID: p.ID, Name: p.Name, Icon: p.Icon, Avatar: value(p.Avatar), Models: p.Models, Off: p.Off,
 		ModelNames: p.ModelNames, ModelFree: p.ModelFree}
 	if p.AvailableModels != nil {
 		out.AvailableModels = *p.AvailableModels

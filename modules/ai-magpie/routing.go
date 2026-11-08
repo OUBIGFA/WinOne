@@ -52,11 +52,18 @@ func serveRouting(ctx context.Context, in request, input io.Reader, output io.Wr
 			s.RedactModelOff = !s.RedactModel
 			s.RedactModelName, s.RedactModelScore = savedNames.RedactModelName, savedNames.RedactModelScore
 			// Existing opt-ins selected Privacy Filter before models were named.
-			if s.RedactModel && s.RedactModelName == "" { s.RedactModelName = pii.PrivacyFilter }
+			if s.RedactModel && s.RedactModelName == "" {
+				s.RedactModelName = pii.PrivacyFilter
+			}
 		}
 		settings.WinOneUse(s)
 	}
-	defer func(){ for _, m := range pii.Models() { m.Cancel(); m.Stop() } }()
+	defer func() {
+		for _, m := range pii.Models() {
+			m.Cancel()
+			m.Stop()
+		}
+	}()
 	provider.WinOneProviders = []provider.Provider{}
 	var page, protocol http.Handler
 	if in.Operation == "privacy.serve" {
@@ -119,6 +126,48 @@ func serveRouting(ctx context.Context, in request, input io.Reader, output io.Wr
 		}
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Cache-Control", "no-store")
+		if in.Operation == "routing.serve" && r.URL.Path == "/api/winone/catalog" {
+			if r.Method != http.MethodPost || r.Header.Get("Authorization") != "Bearer "+in.Key || r.Header.Get("Origin") != "" {
+				http.Error(w, "Unauthorized", 401)
+				return
+			}
+			var update struct {
+				ID         string                   `json:"id"`
+				Models     []string                 `json:"models"`
+				Metadata   map[string]modelMetadata `json:"metadata"`
+				Contexts   map[string]int           `json:"contexts"`
+				ModelNames map[string]string        `json:"modelNames"`
+			}
+			decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<20))
+			decoder.DisallowUnknownFields()
+			if decoder.Decode(&update) != nil || decoder.Decode(new(any)) != io.EOF || update.ID == "" {
+				http.Error(w, "Invalid catalog", 400)
+				return
+			}
+			contexts := update.Contexts
+			if contexts == nil {
+				contexts = map[string]int{}
+			}
+			for id, metadata := range update.Metadata {
+				if err := installModelPreferences(update.ID, id, metadata); err != nil {
+					http.Error(w, "Invalid model settings", 400)
+					return
+				}
+				if metadata.ContextWindow > 0 {
+					contexts[id] = metadata.ContextWindow
+				}
+				if metadata.Alias != "" && contexts[id] > 0 {
+					contexts[metadata.Alias] = contexts[id]
+				}
+			}
+			if err := installModelNames(update.ID, update.ModelNames, update.Metadata); err != nil {
+				http.Error(w, "Invalid model names", 400)
+				return
+			}
+			provider.WinOneUpdateCatalog(update.ID, update.Models, contexts)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		if in.Operation == "routing.serve" && r.URL.Path == "/api/winone/privacy" {
 			// Hot binding is Host-only: page cookies/capability paths and browser
 			// origins cannot select an inference endpoint or change its opt-in.
@@ -141,9 +190,19 @@ func serveRouting(ctx context.Context, in request, input io.Reader, output io.Wr
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		if in.Operation != "privacy.serve" && (strings.HasPrefix(r.URL.Path, "/v1/") || r.URL.Path == "/api/version" || r.URL.Path == "/api/tags" || r.URL.Path == "/api/show" || r.URL.Path == "/api/chat" || r.URL.Path == "/api/generate" || r.URL.Path == "/mcp/magpie/web-search" || r.URL.Path == "/mcp/magpie/tools" || r.URL.Path == gateway.ImageMCPPath || r.URL.Path == gateway.VisionMCPPath || strings.HasPrefix(r.URL.Path, gateway.ImageMCPFiles)) {
+		if in.Operation != "privacy.serve" && (r.URL.Path == "/me" || r.URL.Path == "/v1" || strings.HasPrefix(r.URL.Path, "/v1/") || strings.HasPrefix(r.URL.Path, "/v1beta/models") || strings.HasPrefix(r.URL.Path, "/backend-api/codex/") || r.URL.Path == "/api/hello" || r.URL.Path == "/muse-code/models" || r.URL.Path == "/api/version" || r.URL.Path == "/api/tags" || r.URL.Path == "/api/show" || r.URL.Path == "/api/chat" || r.URL.Path == "/api/generate" || strings.HasPrefix(r.URL.Path, "/mcp/")) {
 			r.Header.Set("Authorization", "Bearer "+gateway.Token)
 			r = winOneCallerRequest(r)
+			var authenticated bool
+			r, authenticated = gateway.WinOneNamedRequest(w, r)
+			if !authenticated {
+				return
+			}
+			if r.Header.Get("X-WinOne-Product") == "1" {
+				r = gateway.WinOneProductRequest(r, r.Header.Get("X-WinOne-Session"))
+			}
+			r.Header.Del("X-WinOne-Product")
+			r.Header.Del("X-WinOne-Session")
 			if raw := r.Header.Get("X-WinOne-Media-Models"); raw != "" {
 				r.Header.Del("X-WinOne-Media-Models")
 				var models []string

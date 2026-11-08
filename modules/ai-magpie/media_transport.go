@@ -24,7 +24,7 @@ func serveMediaTransport(ctx context.Context, in request, output io.Writer) (boo
 	if method == "" {
 		method = http.MethodPost
 	}
-	allowed := method == http.MethodPost && (path == "/v1/images/generations" || path == "/v1/images/edits" || path == "/v1/videos" || path == "/v1/embeddings")
+	allowed := method == http.MethodPost && (path == "/v1/images/generations" || path == "/v1/images/edits" || path == "/v1/videos" || path == "/v1/embeddings" || path == "/v1/rerank" || path == "/v1/audio/transcriptions" || path == "/v1/audio/translations" || path == "/v1/audio/speech")
 	allowed = allowed || method == http.MethodGet && strings.HasPrefix(path, "/v1/videos/") && !strings.ContainsAny(strings.TrimPrefix(path, "/v1/videos/"), "?\\\x00")
 	if !allowed {
 		return false, nil

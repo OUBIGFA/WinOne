@@ -1,0 +1,33 @@
+package gateway
+
+import (
+ "encoding/json"
+ "errors"
+ "log"
+ "os"
+ "github.com/yetone/magpie/internal/steady"
+)
+
+// One-shot workers record the actual upstream launch decision. The shared
+// router reads that fact rather than reporting its own never-used launcher.
+// This file contains only mode/reason/time, never account or request content.
+func winOneRememberClaudeRun(run ClaudeLastRun) {
+ path := os.Getenv("WINONE_AI_CLAUDE_RUN_FILE")
+ if path == "" { return }
+ data, err := json.Marshal(run)
+ if err == nil { err = steady.WriteFile(path,data,0600) }
+ if err != nil { log.Print("WinOne: Claude run status could not be saved") }
+}
+
+func WinOneClaudeMode() (ClaudeMode,error) {
+ mode := ClaudeModeNow()
+ path := os.Getenv("WINONE_AI_CLAUDE_RUN_FILE")
+ if path == "" { return mode,nil }
+ data,err := steady.ReadFile(path)
+ if errors.Is(err,os.ErrNotExist) { return mode,nil }
+ if err != nil { return mode,errors.New("Claude run status could not be read") }
+ var last ClaudeLastRun
+ if json.Unmarshal(data,&last)!=nil || last.At.IsZero() { return mode,errors.New("Claude run status is invalid") }
+ if mode.Last == nil || mode.Last.At.Before(last.At) { mode.Last=&last }
+ return mode,nil
+}

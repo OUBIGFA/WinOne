@@ -4,16 +4,50 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"net/url"
 	"strings"
 	"time"
 )
 
 // ProviderPreferences mirrors the writable Magpie provider options used by
 // WinOne. The same DTO is copied into its AI worker by build/build-ai.ps1;
-// secrets, endpoints, discovered accounts and model lists are not part of it.
+// secrets and discovered accounts are not part of it.
 // Zero/absent values keep upstream defaults; original identifiers and units
 // stay intact rather than introducing a second routing or pricing policy.
 type ProviderPreferences struct {
+	Contexts map[string]int `json:"contexts,omitempty"`
+	Website  string         `json:"website,omitempty"`
+	KeysURL  string         `json:"keysUrl,omitempty"`
+	Off      bool           `json:"off,omitempty"`
+	// Write-only edits on the public configuration. The Store seals them
+	// separately and hydrates only private execution snapshots.
+	AccessKeyID        *string                   `json:"accessKeyID,omitempty"`
+	SecretAccessKey    *string                   `json:"secretAccessKey,omitempty"`
+	BalanceToken       *string                   `json:"balanceToken,omitempty"`
+	HasAccessKeyID     bool                      `json:"hasAccessKeyID,omitempty"`
+	HasSecretAccessKey bool                      `json:"hasSecretAccessKey,omitempty"`
+	HasBalanceToken    bool                      `json:"hasBalanceToken,omitempty"`
+	Endpoints          *ProviderEndpoints        `json:"endpoints,omitempty"`
+	Fallback           []string                  `json:"fallback,omitempty"`
+	QuotaRest          int                       `json:"quotaRest,omitempty"`
+	QuotaResetAt       string                    `json:"quotaResetAt,omitempty"`
+	RestCap            int                       `json:"restCap,omitempty"`
+	NativeCompaction   bool                      `json:"nativeCompaction,omitempty"`
+	PinUpstream        bool                      `json:"pinUpstream,omitempty"`
+	ModelsURL          string                    `json:"modelsURL,omitempty"`
+	ListOff            bool                      `json:"listOff,omitempty"`
+	RefreshEvery       string                    `json:"refreshEvery,omitempty"`
+	AutoInclude        []string                  `json:"autoInclude,omitempty"`
+	Unlisted           bool                      `json:"unlisted,omitempty"`
+	HiddenDrawers      []string                  `json:"hiddenDrawers,omitempty"`
+	HiddenVideomakers  []string                  `json:"hiddenVideomakers,omitempty"`
+	BalanceURL         string                    `json:"balanceURL,omitempty"`
+	BalancePath        string                    `json:"balancePath,omitempty"`
+	BalanceMethod      string                    `json:"balanceMethod,omitempty"`
+	ZhipuTeam          *ZhipuTeam                `json:"zhipuTeam,omitempty"`
+	Vertex             *Vertex                   `json:"vertex,omitempty"`
+	Family             string                    `json:"family,omitempty"`
+	Catalog            string                    `json:"catalog,omitempty"`
 	KeyPlan            string                    `json:"keyPlan,omitempty"`
 	MaxAccounts        *int                      `json:"maxAccounts,omitempty"`
 	AccountConcurrency map[string]int            `json:"accountConcurrency,omitempty"`
@@ -52,6 +86,38 @@ type ProviderPreferences struct {
 	AccountModelsAll   map[string]bool           `json:"accountModelsAll,omitempty"`
 }
 
+// Nil keeps the preset's native endpoints. An explicit set replaces them;
+// Protocol/BaseURL still identify and edit the primary endpoint for older clients.
+type ProviderEndpoints struct {
+	Chat      string `json:"chat,omitempty"`
+	Responses string `json:"responses,omitempty"`
+	Anthropic string `json:"anthropic,omitempty"`
+	Gemini    string `json:"gemini,omitempty"`
+	Decide    string `json:"decide,omitempty"`
+}
+
+// These options travel with a particular credential through each retry and
+// route. They never change the credential's stable Host ID.
+type KeyOptions struct {
+	Name     string `json:"name,omitempty"`
+	Protocol string `json:"protocol,omitempty"`
+	Weight   int    `json:"weight,omitempty"`
+	Plan     string `json:"plan,omitempty"`
+}
+
+type ZhipuTeam struct {
+	Org     string `json:"org,omitempty"`
+	Project string `json:"project,omitempty"`
+}
+
+// Credentials is a user-selected file path, never credential file contents.
+type Vertex struct {
+	Project     string `json:"project,omitempty"`
+	Location    string `json:"location,omitempty"`
+	Credentials string `json:"credentials,omitempty"`
+	Impersonate string `json:"impersonate,omitempty"`
+}
+
 // RateWindow is upstream's local-clock window (Sunday=0). The first match
 // scales the provider's rate; an end of 24:00 and overnight windows are valid.
 type RateWindow struct {
@@ -67,10 +133,17 @@ type SpendCap struct {
 	Since  time.Time `json:"since,omitzero"`
 }
 
-// Magpie subtracts its recorded spending after At from this USD balance.
+// Magpie subtracts spending after At, converting its USD ledger for CNY.
 type OwnBalance struct {
-	USD float64   `json:"usd"`
-	At  time.Time `json:"at"`
+	USD    float64        `json:"usd,omitempty"`
+	CNY    *float64       `json:"cny,omitempty"`
+	At     time.Time      `json:"at"`
+	Refill *BalanceRefill `json:"refill,omitempty"`
+}
+
+type BalanceRefill struct {
+	Every string `json:"every"`
+	Day   int    `json:"day"`
 }
 
 func (p ProviderPreferences) clone() ProviderPreferences {
@@ -83,6 +156,50 @@ func (p ProviderPreferences) clone() ProviderPreferences {
 // Host validation bounds the saved document. Provider-specific normalization
 // and execution remain Magpie's; model reasoning words are never checked here.
 func (p ProviderPreferences) validate() error {
+	if len(p.Contexts) > 4096 {
+		return errors.New("上下文规则过多")
+	}
+	for id, size := range p.Contexts {
+		if id == "" || len(id) > 256 || size < 0 || size > 100000000 {
+			return errors.New("上下文规则无效")
+		}
+	}
+	for _, address := range []string{p.Website, p.KeysURL} {
+		if address != "" {
+			u, err := url.Parse(address)
+			if err != nil || u.Hostname() == "" || u.User != nil || (u.Scheme != "http" && u.Scheme != "https") {
+				return errors.New("供应商网站地址无效")
+			}
+		}
+	}
+	if _, err := ParseRefreshEvery(p.RefreshEvery); err != nil {
+		return err
+	}
+	if _, err := ParseResetAt(p.QuotaResetAt); err != nil {
+		return err
+	}
+	if _, err := CleanAutoInclude(p.AutoInclude); err != nil {
+		return err
+	}
+	addresses := []string{p.ModelsURL, p.BalanceURL}
+	if e := p.Endpoints; e != nil {
+		addresses = append(addresses, e.Chat, e.Responses, e.Anthropic, e.Gemini, e.Decide)
+	}
+	for _, address := range addresses {
+		if address == "" {
+			continue
+		}
+		u, err := url.Parse(address)
+		if err != nil || len(address) > 2048 || u.Hostname() == "" || u.User != nil || u.Fragment != "" || u.Scheme != "https" && u.Scheme != "http" {
+			return errors.New("供应商地址需要有效的 HTTP 或 HTTPS URL")
+		}
+	}
+	if p.QuotaRest < 0 || p.RestCap < -1 {
+		return errors.New("供应商休息时间无效")
+	}
+	if p.BalanceMethod != "" && p.BalanceMethod != "GET" && p.BalanceMethod != "POST" {
+		return errors.New("余额请求方式须为 GET 或 POST")
+	}
 	if p.MaxAccounts != nil && (*p.MaxAccounts < 0 || *p.MaxAccounts > 1024) || p.Patience < -1 || p.Patience > 240 {
 		return errors.New("账号数量或请求耐心时间无效")
 	}
@@ -138,8 +255,17 @@ func (p ProviderPreferences) validate() error {
 		}
 	}
 	for _, balance := range p.KeyOwnBalances {
-		if math.IsNaN(balance.USD) || math.IsInf(balance.USD, 0) || balance.USD < 0 || balance.USD > 1000000 || balance.At.IsZero() {
+		amount := balance.USD
+		if balance.CNY != nil {
+			amount = *balance.CNY
+		}
+		if math.IsNaN(amount) || math.IsInf(amount, 0) || amount < 0 || amount > 1000000 || balance.At.IsZero() {
 			return errors.New("手动余额需要有效金额及记录时间")
+		}
+		if r := balance.Refill; r != nil {
+			if r.Every != "week" && r.Every != "month" || r.Day < 1 || r.Every == "week" && r.Day > 7 || r.Every == "month" && r.Day > 31 {
+				return errors.New("余额重置需要有效的周期及日期")
+			}
 		}
 	}
 	clock := func(s string, end bool) (time.Time, bool) {

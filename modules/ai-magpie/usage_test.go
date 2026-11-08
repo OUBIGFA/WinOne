@@ -419,7 +419,7 @@ func TestUsageViewerZoneKeepsDayFilterHeatmapAndSessionCostTogether(t *testing.T
 func TestChatProtocolCallsKeepWinOneUsageOrigin(t *testing.T) {
 	t.Setenv("WINONE_AI_USAGE_PATH", filepath.Join(t.TempDir(), "usage.jsonl"))
 	defer func() { usage.WinOnePath = ""; usage.WinOneRecord = nil }()
-	for _, tc := range []struct{ source, want string }{{"winone", "winone"}, {"", "gateway"}, {"gateway", "gateway"}} {
+	for _, tc := range []struct{ source, want string }{{"winone", "winone"}, {"", "upstream-account"}, {"gateway", "upstream-account"}} {
 		if err := configureUsage(request{Operation: "gateway", UsageSource: tc.source, ProviderID: "test"}); err != nil {
 			t.Fatal(err)
 		}
@@ -586,7 +586,7 @@ func TestUsageCollectsRealGatewayCallsAcrossProviders(t *testing.T) {
 func TestUsageReportsEmptyAndRejectsInvalidFilters(t *testing.T) {
 	t.Setenv("WINONE_AI_USAGE_PATH", filepath.Join(t.TempDir(), "empty.jsonl"))
 	defer func() { usage.WinOnePath = ""; usage.WinOneRecord = nil }()
-	for _, query := range []usageQuery{{Period: "invalid"}, {Period: "all", Offset: -1}, {Period: "all", Source: "invalid"}} {
+	for _, query := range []usageQuery{{Period: "invalid"}, {Period: "all", Offset: -1}, {Period: "all", Source: "bad\x00client"}} {
 		if err := readUsage(request{Usage: &query}, io.Discard); err == nil {
 			t.Fatal("invalid filter accepted", query)
 		}

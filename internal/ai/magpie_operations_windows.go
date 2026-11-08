@@ -56,6 +56,7 @@ func (t Translator) TestModels(ctx context.Context, p Provider, key string, mode
 	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
 	input := map[string]any{"operation": "models.test", "protocol": p.Protocol, "baseUrl": p.BaseURL, "key": key, "headers": p.Headers, "preset": p.Preset, "presetRegion": p.PresetRegion, "testModels": models, "testClient": client, "limitRestOff": p.LimitRestOff, "additionalTools": p.AdditionalTools, "providerPreferences": p.ProviderPreferences, "modelPreferences": p.ModelMetadata, "magpieSettings": prefs}
+	input["keyID"], input["keyOptions"] = credentialRequestOptions(ctx)
 	if p.AuthMode == "account" {
 		t.AccountBackend = p.AgentBackend
 		input["agent"] = p.Agent
@@ -78,6 +79,9 @@ func (t Translator) TestModels(ctx context.Context, p Provider, key string, mode
 // KeyBalances reads a saved immutable key snapshot. It deliberately avoids
 // WithKeys, whose inference rotation and backoff must not change on a UI read.
 func (t Translator) KeyBalances(ctx context.Context, p Provider, plan KeyPlan) (json.RawMessage, error) {
+	if p.Off {
+		return json.RawMessage(`{"quotas":[]}`), nil
+	}
 	if p.AuthMode != "api-key" || plan.provider != p.ID {
 		return nil, errors.New("余额供应商无效")
 	}
@@ -87,7 +91,9 @@ func (t Translator) KeyBalances(ctx context.Context, p Provider, plan KeyPlan) (
 		if err != nil {
 			return nil, errors.New("余额读取失败，请检查已保存的密钥")
 		}
-		keys = append(keys, auxiliaryKey{Name: credential.id, Key: key})
+		// Balance results retain the slot ID used by the UI while the vendor
+		// request uses the same protocol/plan as inference for this credential.
+		keys = append(keys, auxiliaryKey{Name: credential.id, Key: key, KeyOptions: credential.options})
 	}
 	if len(keys) == 0 {
 		return json.RawMessage(`{"quotas":[]}`), nil
@@ -134,7 +140,7 @@ func (t Translator) Maintain(ctx context.Context, p Provider, prefs *MagpieSetti
 	}
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	raw, err := t.ForProvider(p.ID).invoke(ctx, map[string]any{"operation": "magpie.maintain", "providerId": p.ID, "agent": p.Agent, "agentBackend": p.AgentBackend, "magpieSettings": prefs})
+	raw, err := t.ForProvider(p.ID).invoke(ctx, map[string]any{"operation": "magpie.maintain", "providerId": p.ID, "agent": p.Agent, "agentBackend": p.AgentBackend, "magpieSettings": prefs, "providerPreferences": p.ProviderPreferences, "models": p.Models, "headers": p.Headers})
 	if err != nil {
 		return nil, errors.New("账号额度维护失败")
 	}

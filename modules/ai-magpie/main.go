@@ -24,6 +24,9 @@ import (
 )
 
 type request struct {
+	Models              []string                 `json:"models,omitempty"`
+	KeyID               string                   `json:"keyID,omitempty"`
+	KeyOptions          *KeyOptions              `json:"keyOptions,omitempty"`
 	ProviderPreferences *ProviderPreferences     `json:"providerPreferences,omitempty"`
 	Archive             string                   `json:"archive,omitempty"`
 	LimitRestOff        bool                     `json:"limitRestOff,omitempty"`
@@ -119,7 +122,7 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 			return "", errors.New("conversation too long")
 		}
 	}
-	model := "winone/" + in.Model
+	model := requestProviderID(in) + "/" + in.Model
 	if in.Agent != "" {
 		account, err := findAccount(ctx, in.Agent)
 		if err != nil {

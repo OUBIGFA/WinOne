@@ -12,13 +12,34 @@ import (
 
 func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 	ui.Column(c.Key("learning")).FillWidth().Gap(12).Children(func() {
-		ui.Row(c).FillWidth().Wrap().Gap(8).AlignItems(ui.Center).Children(func() {
-			title := p.T("英语学习", "English learning")
-			ui.Text(c, title).FontWeight(600).Grow(1)
-			if ui.Button(c, p.T("朗读原文", "Read source")).Disabled(s.Loading).Clicked() && p.Actions.StudySpeak != nil {
-				p.Actions.StudySpeak(s, s.Text, s.Options.Accent)
+		// Source and its speech action share one quiet strip. The visual preview
+		// is collapsed; speech always receives the complete original selection.
+		ui.Column(c).FillWidth().Gap(8).Children(func() {
+			ui.Row(c).FillWidth().Gap(4).AlignItems(ui.Center).Children(func() {
+				preview := strings.Join(strings.Fields(s.Text), " ")
+				if s.SourceOpen {
+					preview = p.T("原文", "Source")
+				}
+				ui.Text(c, preview).Grow(1).MinWidth(0).FontSize(em(t, sizeLabel)).TextColor(t.TextMuted).MaxLines(1).Ellipsis("…")
+				label := p.T("展开原文", "Expand source")
+				angle := float32(0)
+				if s.SourceOpen {
+					label = p.T("收起原文", "Collapse source")
+					angle = 180
+				}
+				if rotatedIconButton(c, "chevron", label, angle).Clicked() {
+					s.SourceOpen = !s.SourceOpen
+				}
+				if iconButton(c, "speak", p.T("朗读原文", "Read source"), strings.TrimSpace(s.Text) == "").Clicked() && p.Actions.StudySpeak != nil {
+					p.Actions.StudySpeak(s, s.Text, s.Options.Accent)
+				}
+			})
+			if s.SourceOpen {
+				p.selectable(c, ui.Column(c).FillWidth(), func() { ui.Text(c, s.Text).FillWidth().FontSize(em(t, sizeBody)).LineHeight(1.6) })
 			}
+			p.speechFeedback(c, t, "learning-"+s.Text+"-"+s.Options.Accent)
 		})
+		ui.Divider(c)
 		if s.Loading {
 			ui.Spinner(c).Size(16, 16).Label(p.T("查询离线词典", "Looking up local dictionary"))
 		}
@@ -45,10 +66,15 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 		}
 		for index := start; index < end; index++ {
 			row := &s.Rows[index]
-			detail := !compact || s.Expanded == index
+			detail := s.Expanded == index
 			ui.Column(c.Key(fmt.Sprintf("word-%d", index))).FillWidth().Gap(6).Children(func() {
 				ui.Row(c).FillWidth().Wrap().AlignItems(ui.Center).Gap(8).Children(func() {
-					ui.Text(c, row.Note.Word).FontSize(em(t, sizeBody)).FontWeight(600)
+					ui.Text(c, row.Note.Word).FontSize(em(t, 22)).FontWeight(600).Grow(1).MinWidth(0)
+					if s.States.State(row.Note.Word) == learning.Focused {
+						ui.Text(c, p.T("重点", "Focus")).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted)
+					}
+				})
+				ui.Row(c).FillWidth().Wrap().AlignItems(ui.Center).Gap(8).Children(func() {
 					if row.Note.Phonetic != "" {
 						ui.Text(c, "/"+strings.Trim(row.Note.Phonetic, "/")+"/").TextColor(t.TextMuted)
 					}
@@ -57,16 +83,11 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 						if accent == "us" {
 							label = p.T("美音", "US")
 						}
-						if ui.Button(c, label).Tooltip(p.T("获取发音：有道，失败时使用微软语音。", "Get pronunciation from Youdao, with Microsoft speech fallback.")).Clicked() && p.Actions.StudySpeak != nil {
+						if studyTextAction(c, label, p.T("获取发音：有道，失败时使用微软语音。", "Get pronunciation from Youdao, with Microsoft speech fallback."), false).Clicked() && p.Actions.StudySpeak != nil {
 							p.Actions.StudySpeak(s, row.Note.Word, accent)
 						}
 					}
 				})
-				source := p.T("ECDICT 离线词典", "ECDICT · Offline")
-				if row.Entry.Word == "" {
-					source = p.T("AI 分析或手动填写 · 建卡前请核对", "AI or manual entry · Check before saving")
-				}
-				ui.Text(c, source).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted)
 				if row.Note.Meaning != "" {
 					meaning := row.Note.Meaning
 					if !detail {
@@ -75,9 +96,14 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 							meaning = string([]rune(meaning)[:100]) + "…"
 						}
 					}
-					p.selectable(c, ui.Column(c).FillWidth(), func() { ui.Text(c, meaning).FillWidth().LineHeight(1.5) })
+					p.selectable(c, ui.Column(c).FillWidth(), func() { ui.Text(c, meaning).FillWidth().FontSize(em(t, sizeBody)).LineHeight(1.6) })
 				}
 				if detail {
+					source := p.T("ECDICT 离线词典", "ECDICT · Offline")
+					if row.Entry.Word == "" {
+						source = p.T("AI 分析或手动填写 · 建卡前请核对", "AI or manual entry · Check before saving")
+					}
+					ui.Text(c, source).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted)
 					if row.Entry.Definition != "" {
 						ui.Text(c, row.Entry.Definition).FillWidth().TextColor(t.TextMuted).LineHeight(1.5)
 					}
@@ -119,13 +145,13 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 						ui.Text(c, strings.Join(parts, " · ")).FillWidth().TextColor(t.TextMuted).LineHeight(1.5)
 					}
 				}
-				ui.Row(c).FillWidth().Wrap().Gap(6).Children(func() {
-					if compact {
+				ui.Row(c).FillWidth().Wrap().Gap(12).Children(func() {
+					{
 						label := p.T("展开详情", "Show details")
 						if detail {
 							label = p.T("收起详情", "Hide details")
 						}
-						if ui.Button(c, label).Clicked() {
+						if studyTextAction(c, label, label, false).Clicked() {
 							if detail {
 								s.Expanded = -1
 							} else {
@@ -133,11 +159,29 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 							}
 						}
 					}
+					focusLabel := p.T("加强学习", "Focus")
+					focusState := learning.Focused
+					if s.States.State(row.Note.Word) == learning.Focused {
+						focusLabel = p.T("取消加强", "Unfocus")
+						focusState = ""
+					}
+					if studyTextAction(c, focusLabel, p.T("以后在原文中出现时优先学习", "Prioritize this term in future reading"), s.StateWorking).Clicked() && p.Actions.StudyState != nil {
+						p.Actions.StudyState(s, row.Note.Word, focusState)
+					}
+					ignoreLabel := p.T("忽略", "Ignore")
+					ignoreState := learning.Ignored
+					if s.States.State(row.Note.Word) == learning.Ignored {
+						ignoreLabel = p.T("恢复学习", "Restore")
+						ignoreState = ""
+					}
+					if studyTextAction(c, ignoreLabel, p.T("以后不在句子词条中展示，可随时恢复", "Hide from future sentence vocabulary; you can restore it"), s.StateWorking).Clicked() && p.Actions.StudyState != nil {
+						p.Actions.StudyState(s, row.Note.Word, ignoreState)
+					}
 					if row.Added {
-						if ui.Button(c, p.T("已加入 · 查看", "Added · View")).Disabled(s.Working).Clicked() && p.Actions.StudyNavigate != nil {
+						if studyTextAction(c, p.T("已加入 · 查看", "Added · View"), "", s.Working).Clicked() && p.Actions.StudyNavigate != nil {
 							p.Actions.StudyNavigate(s, false, row.Note.Word)
 						}
-					} else if ui.Button(c, p.T("加入生词本", "Add to vocabulary")).Disabled(!s.Connected || s.Working || p.Busy).Tooltip(s.AnkiError).Clicked() {
+					} else if iconButton(c, "book", p.T("加入生词本", "Add to vocabulary"), !s.Connected || s.Working || p.Busy).Tooltip(s.AnkiError).Clicked() {
 						s.edit(index)
 					}
 				})
@@ -174,33 +218,39 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 				ui.Text(c, entry.License.Name+" "+entry.License.URL).FillWidth().FontSize(em(t, sizeMeta)).TextColor(t.TextMuted)
 			})
 		}
-		ui.Row(c).FillWidth().Wrap().Gap(6).Children(func() {
-			if ui.Button(c, p.T("检测 Anki", "Check Anki")).Disabled(s.Checking || s.Working).Clicked() && p.Actions.StudyCheck != nil {
-				p.Actions.StudyCheck(s)
-			}
-			if ui.Button(c, p.T("打开生词本", "Open vocabulary")).Disabled(!s.Connected || s.Working).Clicked() && p.Actions.StudyNavigate != nil {
-				p.Actions.StudyNavigate(s, false, "")
-			}
-			if ui.Button(c, p.T("开始复习", "Review")).Disabled(!s.Connected || s.Working).Clicked() && p.Actions.StudyNavigate != nil {
-				p.Actions.StudyNavigate(s, true, "")
-			}
-			if len(s.Rows) > 1 && ui.Button(c, p.T("全部加入", "Add all")).Disabled(!s.Connected || s.Working || p.Busy).Clicked() && p.Actions.StudyAdd != nil {
-				indices := []int{}
-				for i, row := range s.Rows {
-					if !row.Added {
-						indices = append(indices, i)
-					}
+		ui.Collapsible(c, p.T("管理学习词条", "Manage learning terms"), &s.StatesOpen, func() { p.studyStatesView(c, t, s) })
+		ui.Collapsible(c, p.T("生词本与学习工具", "Vocabulary and study tools"), &s.ToolsOpen, func() {
+			ui.Row(c).FillWidth().Wrap().Gap(6).Children(func() {
+				if ui.Button(c, p.T("检测 Anki", "Check Anki")).Disabled(s.Checking || s.Working).Clicked() && p.Actions.StudyCheck != nil {
+					p.Actions.StudyCheck(s)
 				}
-				p.Actions.StudyAdd(s, indices)
-			}
-			if s.Working && s.cancel != nil && ui.Button(c, p.T("停止建卡", "Stop adding")).Clicked() {
-				s.cancel()
+				if ui.Button(c, p.T("打开生词本", "Open vocabulary")).Disabled(!s.Connected || s.Working).Clicked() && p.Actions.StudyNavigate != nil {
+					p.Actions.StudyNavigate(s, false, "")
+				}
+				if ui.Button(c, p.T("开始复习", "Review")).Disabled(!s.Connected || s.Working).Clicked() && p.Actions.StudyNavigate != nil {
+					p.Actions.StudyNavigate(s, true, "")
+				}
+				if len(s.Rows) > 1 && ui.Button(c, p.T("全部加入", "Add all")).Disabled(!s.Connected || s.Working || p.Busy).Clicked() && p.Actions.StudyAdd != nil {
+					indices := []int{}
+					for i, row := range s.Rows {
+						if !row.Added {
+							indices = append(indices, i)
+						}
+					}
+					p.Actions.StudyAdd(s, indices)
+				}
+				if s.Working && s.cancel != nil && ui.Button(c, p.T("停止建卡", "Stop adding")).Clicked() {
+					s.cancel()
+				}
+			})
+			if s.AnkiError != "" {
+				ui.Text(c, s.AnkiError).FillWidth().TextColor(t.TextMuted).LineHeight(1.5)
 			}
 		})
 		if s.Working {
 			ui.Text(c, fmt.Sprintf(p.T("正在处理 %d/%d", "Processing %d/%d"), s.Progress, s.Total)).TextColor(t.TextMuted)
 		}
-		feedback := strings.TrimSpace(strings.Join([]string{s.Error, s.AnkiError, s.Notice}, "\n"))
+		feedback := strings.TrimSpace(strings.Join([]string{s.Error, s.Notice}, "\n"))
 		s.visibility.observe(feedback)
 		if feedback != "" && !s.visibility.dismissed {
 			ui.Row(c).FillWidth().Gap(6).Children(func() {
@@ -210,6 +260,18 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 		}
 		ui.Divider(c)
 	})
+}
+
+// Secondary commands stay readable and keyboard accessible, but have no
+// permanent filled face competing with vocabulary and definitions.
+func studyTextAction(c *ui.Context, label, hint string, disabled bool) ui.Element {
+	t := c.Theme()
+	b := ui.ButtonBase(c).Label(label).Tooltip(hint).Padding(4, 0).MinHeight(28).TextColor(t.TextMuted).Disabled(disabled).Cursor(ui.CursorPointer).Radius(4)
+	if b.Hovered() {
+		b.Background(t.SurfaceHover)
+	}
+	b.Children(func() { ui.Text(c, label).FontSize(em(t, sizeMeta)) })
+	return b
 }
 func (p *Panel) studyEditor(c *ui.Context, t *ui.Theme, s *study) {
 	ui.Column(c.Key("note-editor")).FillWidth().Gap(8).Children(func() {

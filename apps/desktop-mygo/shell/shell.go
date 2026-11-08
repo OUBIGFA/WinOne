@@ -512,6 +512,7 @@ func (s *Shell) View(c *ui.Context) {
 			ui.Column(c).Grow(1).Basis(0).FillHeight().MinWidth(0).MinHeight(0).Children(func() {
 				pluginhost.For(s.env).Layout(c, s.page == "chat" || s.page == "onebot", func() { s.content(c) })
 			})
+			s.sidebarHandle(c)
 		})
 	})
 	s.settle()

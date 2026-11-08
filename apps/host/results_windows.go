@@ -26,6 +26,7 @@ import (
 	"winone/internal/configjson"
 	"winone/internal/diagnostics"
 	"winone/internal/host"
+	"winone/internal/learning"
 	"winone/internal/protocol"
 	"winone/internal/resultwindow"
 	"winone/internal/transport"
@@ -89,6 +90,7 @@ type resultSession struct {
 }
 type resultWindows struct {
 	mu                    sync.Mutex
+	learningMu            sync.Mutex
 	ctx                   context.Context
 	executable, pipe      string
 	logDirectory          string
@@ -126,17 +128,32 @@ func (s *resultWindows) handle(request host.Request) host.Response {
 		return host.Response{ID: request.ID, Result: data}
 	}
 	var input struct {
-		State  json.RawMessage    `json:"state,omitempty"`
-		ID     string             `json:"id"`
-		Token  string             `json:"token,omitempty"`
-		Mode   string             `json:"mode,omitempty"`
-		Image  *ai.ImageReference `json:"image,omitempty"`
-		Window string             `json:"window,omitempty"`
+		State         json.RawMessage    `json:"state,omitempty"`
+		ID            string             `json:"id"`
+		Token         string             `json:"token,omitempty"`
+		Mode          string             `json:"mode,omitempty"`
+		Image         *ai.ImageReference `json:"image,omitempty"`
+		Window        string             `json:"window,omitempty"`
+		Term          string             `json:"term,omitempty"`
+		LearningState learning.TermState `json:"learningState,omitempty"`
 	}
 	if err := configjson.DecodeObject(request.Params, &input); err != nil {
 		return respond(nil, err)
 	}
 	switch request.Method {
+	case "learning.get", "learning.set":
+		if err := s.authorize(input.ID, request.PeerPID); err != nil {
+			return respond(nil, err)
+		}
+		s.learningMu.Lock()
+		defer s.learningMu.Unlock()
+		path := filepath.Join(s.logDirectory, "learning-terms.json")
+		if request.Method == "learning.set" {
+			value, err := learning.SetTermState(path, input.Term, input.LearningState)
+			return respond(value, err)
+		}
+		value, err := learning.LoadTermStates(path)
+		return respond(value, err)
 	case "composerHint.claim":
 		if err := s.authorize(input.ID, request.PeerPID); err != nil {
 			return respond(nil, err)

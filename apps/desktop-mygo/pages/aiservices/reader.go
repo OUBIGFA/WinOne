@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"winone/desktopmygo/core"
+	"winone/internal/ai"
 )
 
 // agent is an account type the Host can sign in to: a built-in agent or a
@@ -23,6 +24,8 @@ type endpoints struct {
 	Chat      string `json:"chat,omitempty"`
 	Responses string `json:"responses,omitempty"`
 	Anthropic string `json:"anthropic,omitempty"`
+	Gemini    string `json:"gemini,omitempty"`
+	Decide    string `json:"decide,omitempty"`
 }
 
 func (e endpoints) of(protocol string) string {
@@ -33,6 +36,10 @@ func (e endpoints) of(protocol string) string {
 		return e.Responses
 	case "anthropic":
 		return e.Anthropic
+	case "gemini":
+		return e.Gemini
+	case "decide":
+		return e.Decide
 	}
 	return ""
 }
@@ -45,6 +52,7 @@ type presetRegion struct {
 
 // servicePreset is a known service: its endpoints, models and notes.
 type servicePreset struct {
+	KeyPlans bool `json:"keyPlans,omitempty"`
 	endpoints
 	ID        string            `json:"id"`
 	Name      string            `json:"name"`
@@ -74,13 +82,13 @@ func presetConnection(p servicePreset, region, preferred string) (protocol, base
 		}
 	}
 	protocol = ""
-	for _, choice := range []string{"chat", "responses", "anthropic"} {
+	for _, choice := range []string{"chat", "responses", "anthropic", "gemini", "decide"} {
 		if choice == preferred && e.of(choice) != "" {
 			protocol = choice
 		}
 	}
 	if protocol == "" {
-		for _, choice := range []string{"chat", "responses", "anthropic"} {
+		for _, choice := range []string{"chat", "responses", "anthropic", "gemini", "decide"} {
 			if e.of(choice) != "" {
 				protocol = choice
 				break
@@ -129,14 +137,19 @@ type accountState struct {
 // accountRequest names the accounts to list: those of a saved provider,
 // or of an account type a draft connection has not saved yet.
 type accountRequest struct {
-	Agent    string       `json:"agent"`
-	Provider string       `json:"provider,omitempty"`
-	Draft    *draftAgent  `json:"draft,omitempty"`
+	Agent    string      `json:"agent"`
+	Provider string      `json:"provider,omitempty"`
+	Draft    *draftAgent `json:"draft,omitempty"`
 }
 
 type draftAgent struct {
-	Agent        string `json:"agent"`
-	AgentBackend string `json:"agentBackend,omitempty"`
+	Preferences     *ai.ProviderPreferences `json:"providerPreferences,omitempty"`
+	Models          []string                `json:"models,omitempty"`
+	Headers         map[string]string       `json:"headers,omitempty"`
+	LimitRestOff    bool                    `json:"limitRestOff,omitempty"`
+	AdditionalTools bool                    `json:"additionalTools,omitempty"`
+	Agent           string                  `json:"agent"`
+	AgentBackend    string                  `json:"agentBackend,omitempty"`
 }
 
 // accountReader shares the Host's account reads across tabs and visits of

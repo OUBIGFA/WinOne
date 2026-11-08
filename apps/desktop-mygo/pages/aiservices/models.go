@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
+	"winone/internal/ai"
 
 	"github.com/egoist/mygo/ui"
 
@@ -54,10 +56,13 @@ type modelsPanel struct {
 	notice   string
 	// clients are the agent clients a model can be tested as, with why
 	// one cannot; nil until a test reported them.
-	clients map[string]string
-	editing string
-	rows    ui.ListState
-	height  float32
+	clients      map[string]string
+	editing      string
+	settingsTab  int
+	modelHeaders []*headerRow
+	headersFor   string
+	rows         ui.ListState
+	height       float32
 	// limitsOpen shows the request limits, open at first when one is set.
 	limitsOpen bool
 	// fields are the model settings' typed texts; tierOpen shows the
@@ -86,7 +91,7 @@ func (p *page) connectionSaved(pr *provider) bool {
 	old := p.saved.Value.find(pr.ID)
 	return old != nil && pr.AuthMode == old.AuthMode && pr.Agent == old.Agent && pr.AgentBackend == old.AgentBackend &&
 		pr.Preset == old.Preset && pr.PresetRegion == old.PresetRegion && pr.BaseURL == old.BaseURL && pr.Protocol == old.Protocol &&
-		p.keys[pr.ID] == nil && equal(pr.Keys, old.Keys) && equal(pr.KeyPolicy, old.KeyPolicy) && equal(pr.Headers, old.Headers)
+		p.keys[pr.ID] == nil && equal(pr.Keys, old.Keys) && equal(pr.KeyPolicy, old.KeyPolicy) && equal(pr.Headers, old.Headers) && equal(pr.ProviderPreferences, old.ProviderPreferences)
 }
 
 // connectionPayload names the provider for discovery and tests: a saved
@@ -98,14 +103,20 @@ func (p *page) connectionPayload(pr *provider) map[string]any {
 		return payload
 	}
 	if pr.AuthMode == "account" {
-		payload["draft"] = draftAgent{Agent: pr.Agent, AgentBackend: pr.AgentBackend}
+		payload["draft"] = draftAgent{Agent: pr.Agent, AgentBackend: pr.AgentBackend, Preferences: &pr.ProviderPreferences, Models: pr.Models, Headers: pr.Headers, LimitRestOff: pr.LimitRestOff, AdditionalTools: pr.AdditionalTools}
 		return payload
 	}
 	protocol := pr.Protocol
 	if protocol == "" {
 		protocol = "chat"
 	}
-	connection := map[string]any{"protocol": protocol, "baseUrl": pr.BaseURL, "keys": pr.slots()}
+	// Embed every typed provider option in the draft, as the saved Host DTO
+	// does. A discovery/test must execute what the user currently sees.
+	encoded, _ := json.Marshal(pr.ProviderPreferences)
+	connection := map[string]any{}
+	_ = json.Unmarshal(encoded, &connection)
+	connection["protocol"], connection["baseUrl"], connection["keys"] = protocol, pr.BaseURL, pr.slots()
+	connection["models"] = pr.Models
 	if pr.Headers != nil {
 		connection["headers"] = pr.Headers
 	}
@@ -134,6 +145,11 @@ func (p *page) connectionPayload(pr *provider) map[string]any {
 // canFetch reports whether the provider can list models: an account, or a
 // connection with an address.
 func canFetch(pr *provider) bool {
+	return !pr.ListOff && canTest(pr)
+}
+
+// Turning off discovery does not turn off requests to manually entered models.
+func canTest(pr *provider) bool {
 	return pr.AuthMode == "account" || strings.TrimSpace(pr.BaseURL) != ""
 }
 
@@ -225,42 +241,39 @@ func (m *modelsPanel) fetch(pr *provider) {
 			m.err = err.Error()
 			return
 		}
-		names, free, meta := map[string]string{}, map[string]bool{}, map[string]metadata{}
-		var ids []string
-		for _, model := range found {
-			if strings.TrimSpace(model.Name) != "" {
-				names[model.ID] = model.Name
-			}
-			free[model.ID] = model.Free
-			if len(model.Metadata) > 0 && string(model.Metadata) != "null" {
-				var d metadata
-				if json.Unmarshal(model.Metadata, &d) == nil {
-					meta[model.ID] = d
-				}
-			}
-			ids = append(ids, model.ID)
-		}
-		available := unique(ids)
-		listed := map[string]bool{}
-		for _, id := range available {
-			listed[id] = true
+		if len(found) == 0 {
+			return
 		}
 		p.change(m.id, func(t *provider) {
-			restored := t.Models
-			if t.AuthMode == "account" {
-				restored = append(append([]string{}, value(t.Delisted)...), t.Models...)
+			// Share the catalog merge with background discovery so manual IDs
+			// and edited fields have the same lifetime in both paths.
+			raw, _ := json.Marshal(t)
+			var snapshot ai.Provider
+			if err := json.Unmarshal(raw, &snapshot); err != nil {
+				m.err = err.Error()
+				return
 			}
-			restored = unique(restored)
-			models, delisted := []string{}, []string{}
-			for _, id := range restored {
-				if listed[id] {
-					models = append(models, id)
-				} else if t.AuthMode == "account" {
-					delisted = append(delisted, id)
+			models := make([]ai.ModelOption, 0, len(found))
+			for _, model := range found {
+				var metadata ai.ModelMetadata
+				if len(model.Metadata) > 0 && string(model.Metadata) != "null" {
+					if err := json.Unmarshal(model.Metadata, &metadata); err != nil {
+						m.err = err.Error()
+						return
+					}
 				}
+				models = append(models, ai.ModelOption{ID: model.ID, Name: model.Name, Free: model.Free, Metadata: metadata})
 			}
-			t.AvailableModels, t.Models, t.Delisted = &available, models, &delisted
-			t.ModelNames, t.ModelFree, t.ModelMetadata = names, free, meta
+			snapshot.RefreshModels(models)
+			t.ModelRefreshAt, t.ModelRefreshError = time.Now(), ""
+			t.AvailableModels, t.Models, t.Delisted = &snapshot.AvailableModels, snapshot.Models, &snapshot.Delisted
+			t.ModelNames, t.ModelFree = snapshot.ModelNames, snapshot.ModelFree
+			t.CatalogModels, t.ManualModels, t.CatalogMetadata = snapshot.CatalogModels, snapshot.ManualModels, snapshot.CatalogMetadata
+			t.CatalogNames = snapshot.CatalogNames
+			raw, _ = json.Marshal(snapshot.ModelMetadata)
+			if err := json.Unmarshal(raw, &t.ModelMetadata); err != nil {
+				m.err = err.Error()
+			}
 		})
 		// Tests describe the previous list: test again after discovery.
 		m.tested, m.notice, m.clients, m.editing = map[string]modelTest{}, "", nil, ""
@@ -277,7 +290,7 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 	id := pr.ID
 	kit.Section(c, icons.ListChecks, i18n.T("ai.models"), i18n.T("ai.modelSelectionHint"), func() {
 		ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-			if kit.Button(c, i18n.T("ai.testModels"), icons.PlugZap, m.testing).Disabled(disabled || working || !fetchable || len(pr.Models) == 0).Clicked() {
+			if kit.Button(c, i18n.T("ai.testModels"), icons.PlugZap, m.testing).Disabled(disabled || working || !canTest(pr) || len(pr.Models) == 0).Clicked() {
 				m.test(pr, append([]string{}, pr.Models...), "")
 			}
 			if kit.Button(c, i18n.T("ai.fetchModels"), icons.RefreshCw, m.fetching).Disabled(disabled || working || !fetchable).Clicked() {
@@ -291,7 +304,7 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 				m.add(all)
 			}
 		})
-		if !fetchable && len(all) > 0 {
+		if !canTest(pr) && len(all) > 0 {
 			kit.Help(c, i18n.T("ai.connectionForModels"))
 		}
 		if m.err != "" {
@@ -355,6 +368,7 @@ func (m *modelsPanel) add(all []string) {
 	m.p.change(m.id, func(t *provider) {
 		available := unique(append(append([]string{}, all...), model))
 		t.AvailableModels, t.Models = &available, unique(append(append([]string{}, t.Models...), model))
+		t.ManualModels = unique(append(t.ManualModels, model))
 	})
 	m.query, m.err = "", ""
 }
@@ -423,7 +437,7 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 							badges(c)
 						}
 					})
-					if kit.IconButton(c, icons.SlidersHorizontal, i18n.T("ai.editModelSettings", "name", name)).Tooltip(i18n.T("ai.modelSettings")).
+					if kit.IconButton(c, icons.SlidersHorizontal, i18n.T("ai.editModelSettings", "name", name)).
 						Disabled(disabled || working).Clicked() {
 						m.editing = model
 					}
@@ -441,7 +455,7 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 				}
 			})
 		}).FillWidth().Height(m.height).Padding(8).Border(1, palette.Hairline).Radius(kit.PanelRadius).
-			Label(i18n.T("ai.models")).Tooltip(i18n.T("ai.resizeModelList"))
+			Label(i18n.T("ai.models"))
 		list.Children(func() {
 			if len(visible) == 0 {
 				key := "ai.connectionForModels"

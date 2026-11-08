@@ -134,6 +134,7 @@ func (t Translator) startMode(ctx context.Context, signingIn bool) (*aiProcess, 
 		return nil, err
 	}
 	cmd.Env = append(cmd.Env, "WINONE_AI_PLUGINS_HOME="+filepath.Join(pluginRoot, "third-party"))
+	cmd.Env = append(cmd.Env, "WINONE_AI_CLAUDE_RUN_FILE="+filepath.Join(pluginRoot, "claude-last-run.json"))
 	if t.TransportOnly {
 		cmd.Env = append(cmd.Env, "WINONE_AI_TRANSPORT_ONLY=1")
 	}
@@ -235,10 +236,15 @@ func (t Translator) invokeBounded(ctx context.Context, input any, maximum int64)
 	return json.RawMessage(output), err
 }
 
-func (t Translator) Accounts(ctx context.Context, operation, agent string) (json.RawMessage, error) {
+func (t Translator) Accounts(ctx context.Context, operation, agent string, providers ...Provider) (json.RawMessage, error) {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
-	output, err := t.invoke(ctx, map[string]string{"operation": operation, "agent": agent, "agentBackend": t.AccountBackend})
+	input := map[string]any{"operation": operation, "agent": agent, "agentBackend": t.AccountBackend}
+	if len(providers) > 0 {
+		p := providers[0]
+		input["providerId"], input["providerPreferences"], input["models"], input["headers"] = p.ID, p.ProviderPreferences, p.Models, p.Headers
+	}
+	output, err := t.invoke(ctx, input)
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		return nil, errors.New("账号读取超时，请检查网络后重试")
 	}

@@ -627,6 +627,28 @@ func TestAllowancesUseTheSavedChoicesAndNeverInventAReading(t *testing.T) {
 	}
 }
 
+func TestAllowanceVisibilityCanBeRestoredWithoutChangingTotals(t *testing.T) {
+	f := newFixture(t, 1100, 3000)
+	f.opts.Providers = providers()
+	f.opts.Preferences = &Preferences{HiddenCards: []string{"codex|fixture@example.invalid|plan"}}
+	f.quota = func(map[string]any) (any, error) {
+		return map[string]any{"quotas": []any{map[string]any{"provider": "codex", "user": "fixture@example.invalid", "windows": []any{map[string]any{"name": "Five hours", "used": 25}}}}}, nil
+	}
+	f.u.revision++
+	f.settle()
+	if f.has("25.0% 已用") {
+		t.Fatal("hidden allowance still shown")
+	}
+	f.click(tr("aiComplete.arrangeAllowances"))
+	f.want("25.0% 已用")
+	f.click(tr("aiComplete.showAllowance"))
+	if len(f.opts.Preferences.HiddenCards) != 0 {
+		t.Fatal("restore did not clear saved display choice")
+	}
+	f.click(tr("aiComplete.arrangeAllowances"))
+	f.want("25.0% 已用")
+}
+
 func TestAStaleAllowanceIsAFailedRefreshAndConsolesAreWebOnly(t *testing.T) {
 	f := newFixture(t, 1100, 3000)
 	f.opts.Providers = []Provider{{AIProvider: widgets.AIProvider{ID: "zen", Name: "OpenCode Zen"}, AuthMode: "api-key", HasKey: true}}

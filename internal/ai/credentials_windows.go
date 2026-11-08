@@ -23,7 +23,10 @@ func (e *AttemptFailure) retryable() bool {
 	return e.Status == 401 || e.Status == 403 || e.Status == 408 || e.Status == 429 || e.Status >= 500 && e.Status <= 599
 }
 
-type credential struct{ id, sealed string }
+type credential struct {
+	id, sealed string
+	options    KeyOptions
+}
 
 // KeyPlan is an immutable request snapshot. It cannot be serialized as secrets.
 type KeyPlan struct {
@@ -52,7 +55,7 @@ func (s *Store) keyPlanLocked(p Provider) KeyPlan {
 		}
 		plan.configured = true
 		if slot.Enabled {
-			plan.keys = append(plan.keys, credential{id: slot.ID, sealed: sealed})
+			plan.keys = append(plan.keys, credential{id: slot.ID, sealed: sealed, options: slot.KeyOptions})
 		}
 	}
 	return plan
@@ -150,7 +153,7 @@ func (s *Store) WithKeys(ctx context.Context, plan KeyPlan, run func(context.Con
 		if err != nil {
 			return err
 		}
-		_, err = run(ctx, secret)
+		_, err = run(contextWithRuntimeKey(ctx, RuntimeKey{ID: plan.keys[0].id, KeyOptions: plan.keys[0].options}), secret)
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
@@ -195,7 +198,7 @@ func (s *Store) WithKeys(ctx context.Context, plan KeyPlan, run func(context.Con
 			s.mu.Unlock()
 		}
 		attempts++
-		partial, failure := run(ctx, secret)
+		partial, failure := run(contextWithRuntimeKey(ctx, RuntimeKey{ID: key.id, KeyOptions: key.options}), secret)
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}

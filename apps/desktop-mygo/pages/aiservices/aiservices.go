@@ -38,6 +38,8 @@ const (
 	tabUsage
 	tabPlugins
 	tabAdvanced
+	tabHome
+	tabMore
 )
 
 // The provider editor's tabs, for connections of the custom kind.
@@ -124,7 +126,7 @@ type curlNotice struct {
 }
 
 func newPage(env *core.Env) *page {
-	p := &page{env: env, selectedBy: map[int]string{}, keys: keyEdits{}, reader: readerFor(env)}
+	p := &page{env: env, tab: tabHome, selectedBy: map[int]string{}, keys: keyEdits{}, reader: readerFor(env)}
 	p.gateway = newGatewayPanel(env)
 	p.extensions = newExtensions(env)
 	p.plugins = newPluginsPanel(p)
@@ -590,33 +592,17 @@ func (p *page) View(c *ui.Context) {
 	}
 	p.rail()
 	kit.WidePage(c, func() {
-		kit.Help(c, i18n.T("ai.shared"))
 		p.overview(c)
 		ui.Column(c).FillWidth().Gap(kit.GroupGap).Disabled(p.saving).Children(func() {
 			ui.Column(c).FillWidth().Disabled(p.navigationLocked()).Children(func() {
-				next := p.tab
-				kit.Tabs(c, &next, []kit.Tab{
-					{Label: i18n.T("ai.customProviders"), Icon: icons.LayersPlus},
-					{Label: i18n.T("ai.addProvidersTab"), Icon: icons.UserPlus},
-					{Label: i18n.T("ai.defaultService"), Icon: icons.LayoutGrid},
-					{Label: i18n.T("gateway.title"), Icon: icons.Share2},
-					{Label: i18n.T("routing.title"), Icon: icons.Waypoints},
-					{Label: i18n.T("usage.title"), Icon: icons.ChartNoAxesCombined},
-					{Label: i18n.T("aiPlugins.title"), Icon: icons.Blocks},
-					{Label: i18n.T("ai.advanced"), Icon: icons.SlidersHorizontal},
-				}, func(apply func()) {
-					// The guard may apply after this frame. Both the local
-					// tab choice and the page transition must live in it.
-					change := func() { apply(); p.switchTab(next) }
-					if p.env.RequestChange == nil {
-						change()
-					} else {
-						p.env.RequestChange(change)
-					}
-				})
+				p.navigationView(c)
 			})
 			p.notices(c)
 			switch p.tab {
+			case tabHome:
+				p.homeView(c)
+			case tabMore:
+				p.moreView(c)
 			case tabCustom, tabAccounts:
 				p.providersView(c)
 			case tabDefaults:
@@ -626,7 +612,7 @@ func (p *page) View(c *ui.Context) {
 				if p.saved != nil {
 					providers = pickers(p.saved.Value.Providers)
 				}
-				p.gateway.View(c, providers)
+				p.gateway.View(c, providers, p)
 			case tabRouting:
 				p.routing.View(c)
 			case tabUsage:
@@ -754,7 +740,7 @@ func (p *page) overview(c *ui.Context) {
 	var enabled []*provider
 	models := 0
 	for _, pr := range all {
-		if len(pr.Models) > 0 {
+		if len(pr.Models) > 0 && !pr.Off {
 			enabled = append(enabled, pr)
 			models += len(pr.Models)
 		}
@@ -762,7 +748,6 @@ func (p *page) overview(c *ui.Context) {
 	t, palette := c.Theme(), kit.Colors(c)
 	ui.Column(c).FillWidth().Gap(10).Role(ui.RoleGroup).Label(i18n.T("ai.providerOverview")).Children(func() {
 		ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Baseline).Children(func() {
-			kit.Heading(c, i18n.T("ai.providerOverview"))
 			kit.Caption(c, i18n.T("ai.providerTotal", "count", len(enabled), "models", models))
 		})
 		if len(enabled) == 0 {
@@ -799,6 +784,25 @@ func (p *page) overview(c *ui.Context) {
 
 // defaultsView is the default service and how results behave.
 func (p *page) defaultsView(c *ui.Context) {
+	p.defaultModelView(c)
+	if p.draft == nil {
+		return
+	}
+	d := &p.draft.Value
+	locked := p.locked()
+	kit.Group(c, icons.MessagesSquare, i18n.T("settingsDesign.responseBehavior"), "", func() {
+		retranslate := d.AutoRetranslate == nil || *d.AutoRetranslate
+		if kit.Toggle(c, &retranslate, i18n.T("ai.autoRetranslate"), "").Disabled(locked).Changed() {
+			d.AutoRetranslate = ptr(retranslate)
+		}
+		reasoning := d.ShowReasoning == nil || *d.ShowReasoning
+		if kit.Toggle(c, &reasoning, i18n.T("ai.showReasoning"), "").Disabled(locked).Changed() {
+			d.ShowReasoning = ptr(reasoning)
+		}
+	})
+}
+
+func (p *page) defaultModelView(c *ui.Context) {
 	if p.draft == nil {
 		return
 	}
@@ -833,15 +837,5 @@ func (p *page) defaultsView(c *ui.Context) {
 				}
 			})
 		})
-	})
-	kit.Group(c, icons.MessagesSquare, i18n.T("settingsDesign.responseBehavior"), "", func() {
-		retranslate := d.AutoRetranslate == nil || *d.AutoRetranslate
-		if kit.Toggle(c, &retranslate, i18n.T("ai.autoRetranslate"), "").Disabled(locked).Changed() {
-			d.AutoRetranslate = ptr(retranslate)
-		}
-		reasoning := d.ShowReasoning == nil || *d.ShowReasoning
-		if kit.Toggle(c, &reasoning, i18n.T("ai.showReasoning"), "").Disabled(locked).Changed() {
-			d.ShowReasoning = ptr(reasoning)
-		}
 	})
 }

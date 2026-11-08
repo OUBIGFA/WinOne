@@ -10,7 +10,7 @@ $pathHook='func Path() string {'
 $appendHook='func Append(r Record) {'
 if(-not $text.Contains($pathHook) -or -not $text.Contains($appendHook)){throw 'Magpie usage embedding points changed'}
 $text=$text.Replace($pathHook,$pathHook+' if WinOnePath != "" { return WinOnePath }; ')
-$text=$text.Replace($appendHook,$appendHook+' if WinOneRecord != nil { r = WinOneRecord(r) }; ')
+$text=$text.Replace($appendHook,$appendHook+' if WinOneSkipAppend { return }; if WinOneRecord != nil { r = WinOneRecord(r) }; ')
 $text=$text.Replace('type Record struct {','type Record struct { WinOnePrompt json.RawMessage `json:"winone_prompt,omitempty"`; ')
 [IO.File]::WriteAllText((Join-Path $SourceDirectory 'internal/usage/usage.go'),$text+[Environment]::NewLine,$encoding)
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/usage_embed.go.txt') -Destination (Join-Path $SourceDirectory 'internal/usage/winone_embed.go')

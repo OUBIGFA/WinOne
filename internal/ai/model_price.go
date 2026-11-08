@@ -54,10 +54,13 @@ func validVendorLevels(values []string) bool {
 }
 
 func (m ModelMetadata) validateExtended() error {
+	if len(m.Alias) > 256 || strings.ContainsRune(m.Alias, '*') || strings.IndexFunc(m.Alias, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }) >= 0 || strings.HasPrefix(m.Alias, "-") || strings.HasPrefix(m.Alias, "group/") {
+		return errors.New("模型别名无效")
+	}
 	if len(m.Same) > 256 || len(m.UpstreamName) > 256 || strings.ContainsAny(m.Same+m.UpstreamName, "\x00\r\n") {
 		return errors.New("模型映射名称无效")
 	}
-	if !slices.Contains([]string{"", "chat", "responses", "anthropic", "gemini"}, m.API) {
+	if !slices.Contains([]string{"", "chat", "responses", "anthropic", "gemini", "decide"}, m.API) {
 		return errors.New("模型协议无效")
 	}
 	if !validVendorLevels(m.Efforts) || !validVendorLevels(m.Levels) {

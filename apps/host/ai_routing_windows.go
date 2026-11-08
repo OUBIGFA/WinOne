@@ -15,10 +15,11 @@ import (
 )
 
 type routingControl struct {
-	mu      sync.Mutex
-	process *ai.RoutingProcess
-	cancel  context.CancelFunc
-	viewers map[string]bool
+	pendingCatalog map[string]ai.Provider
+	mu             sync.Mutex
+	process        *ai.RoutingProcess
+	cancel         context.CancelFunc
+	viewers        map[string]bool
 }
 
 func (s *aiService) routingEnabled() bool {
@@ -31,6 +32,14 @@ func (s *aiService) startRouting() (*ai.RoutingProcess, error) {
 	defer s.routing.mu.Unlock()
 	if s.routing.process != nil {
 		if s.routing.process.Alive() {
+			ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
+			defer cancel()
+			for id, p := range s.routing.pendingCatalog {
+				if err := s.routing.process.SyncCatalog(ctx, p); err != nil {
+					return nil, err
+				}
+				delete(s.routing.pendingCatalog, id)
+			}
 			return s.syncRoutingPrivacy(s.routing.process)
 		}
 		s.routing.cancel()
@@ -56,6 +65,7 @@ func (s *aiService) startRouting() (*ai.RoutingProcess, error) {
 		return nil, err
 	}
 	s.routing.process = process
+	s.routing.pendingCatalog = nil
 	s.routing.cancel = cancel
 	return s.syncRoutingPrivacy(process)
 }
@@ -149,6 +159,9 @@ func (s *aiService) handleRouting(r host.Request) host.Response {
 // All embedded surfaces share the runtime, not each other's view/lifetime.
 func (s *aiService) releaseRoutingViewer(viewer string) {
 	enabled := s.routingEnabled()
+	if store, err := s.magpieStore(); err == nil {
+		enabled = enabled || store.Configuration().UsesSharedRouter()
+	}
 	s.routing.mu.Lock()
 	defer s.routing.mu.Unlock()
 	delete(s.routing.viewers, viewer)
@@ -165,7 +178,7 @@ func (s *aiService) serveRoutedModel(w http.ResponseWriter, r *http.Request, pat
 		ai.GatewayError(w, 503, "路由服务未能启动")
 		return
 	}
-	permitted, err := process.AllowsModel(r.Context(), model, allow)
+	permitted, err := process.AllowsModel(r.Context(), model, allow, s.routingEnabled())
 	if err != nil {
 		ai.GatewayError(w, 503, "路由模型状态读取失败")
 		return
@@ -174,6 +187,24 @@ func (s *aiService) serveRoutedModel(w http.ResponseWriter, r *http.Request, pat
 		ai.GatewayError(w, 403, "路由模型或分组成员未在本地网关中启用")
 		return
 	}
+	// Upstream applies this same identity to fallback candidates and helpers.
+	// Checking only the original model would let a fallback bypass the gateway.
+	store, err := s.magpieStore()
+	if err != nil {
+		ai.GatewayError(w, 503, "AI 服务配置无法读取")
+		return
+	}
+	models := []string{model}
+	for _, p := range store.Configuration().Providers {
+		if p.Off {
+			continue
+		}
+		for _, m := range p.Models {
+			if allow(ai.Selection{Provider: p.ID, Model: m}) {
+				models = append(models, p.ID+"/"+m)
+			}
+		}
+	}
 	select {
 	case s.gatewaySlots <- struct{}{}:
 		defer func() { <-s.gatewaySlots }()
@@ -181,5 +212,5 @@ func (s *aiService) serveRoutedModel(w http.ResponseWriter, r *http.Request, pat
 		ai.GatewayError(w, 429, "本地网关请求较多，请稍后重试")
 		return
 	}
-	process.ServeBody(w, r, path, body)
+	process.ServeAllowedBody(w, r, path, body, models)
 }

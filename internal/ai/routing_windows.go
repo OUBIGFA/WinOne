@@ -11,7 +11,9 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +22,11 @@ import (
 // RoutingProcess shares one upstream router while it is enabled or visible.
 // Its Job Object and pipes preserve the normal WinOne process ownership.
 type RoutingProcess struct {
+	aliases       map[string]Selection
+	catalogMu     sync.RWMutex
+	updateCatalog func(Provider)
+	bareModels    map[string][]Selection
+	bareIDs       bool
 	URL, Key      string
 	process       *aiProcess
 	stopAuxiliary func()
@@ -88,12 +95,19 @@ type routingGroup struct {
 	Ready      bool     `json:"ready"`
 }
 
-func (r *RoutingProcess) readAPI(ctx context.Context, path string, out any) error {
+func (r *RoutingProcess) readAPI(ctx context.Context, path string, out any, headers ...http.Header) error {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, r.URL+path, nil)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Authorization", "Bearer "+r.Key)
+	if len(headers) > 0 {
+		for _, name := range []string{"User-Agent", "Originator", "OpenAI-Beta", "Anthropic-Version", "Anthropic-Beta"} {
+			if value := headers[0].Get(name); value != "" {
+				request.Header.Set(name, value)
+			}
+		}
+	}
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return err
@@ -104,7 +118,7 @@ func (r *RoutingProcess) readAPI(ctx context.Context, path string, out any) erro
 	}
 	return json.NewDecoder(io.LimitReader(response.Body, 2<<20)).Decode(out)
 }
-func (r *RoutingProcess) modelFilter(ctx context.Context, allow func(Selection) bool) (func(string) bool, error) {
+func (r *RoutingProcess) modelFilter(ctx context.Context, allow func(Selection) bool, groupMode ...bool) (func(string) bool, error) {
 	var state struct {
 		Groups []routingGroup `json:"groups"`
 	}
@@ -121,13 +135,22 @@ func (r *RoutingProcess) modelFilter(ctx context.Context, allow func(Selection) 
 	}
 	var permitted func(string, map[string]bool) bool
 	permitted = func(ref string, seen map[string]bool) bool {
+		r.catalogMu.RLock()
+		aliased, isAlias := r.aliases[ref]
+		r.catalogMu.RUnlock()
+		if isAlias {
+			return allow(aliased)
+		}
 		// Use the upstream's exact public ref, not a locally guessed slug.
 		if canonical, ok := aliases[ref]; ok {
 			ref = canonical
 		}
 		provider, model, ok := strings.Cut(ref, "/")
 		if !ok {
-			return false
+			r.catalogMu.RLock()
+			matches := r.bareModels[ref]
+			r.catalogMu.RUnlock()
+			return len(matches) > 0 && !slices.ContainsFunc(matches, func(s Selection) bool { return !allow(s) })
 		}
 		if provider != "group" {
 			if allow(Selection{Provider: provider, Model: model}) {
@@ -147,6 +170,9 @@ func (r *RoutingProcess) modelFilter(ctx context.Context, allow func(Selection) 
 			default:
 				return false
 			}
+		}
+		if len(groupMode) > 0 && !groupMode[0] {
+			return false
 		}
 		group, found := groups[model]
 		if !found || group.Disabled || !group.Ready || seen[model] {
@@ -176,8 +202,8 @@ func (r *RoutingProcess) modelFilter(ctx context.Context, allow func(Selection) 
 
 // A public gateway's per-model selection remains authoritative for groups too.
 // A group cannot bypass a disabled member or classifier through the router.
-func (r *RoutingProcess) AllowsModel(ctx context.Context, model string, allow func(Selection) bool) (bool, error) {
-	filter, err := r.modelFilter(ctx, allow)
+func (r *RoutingProcess) AllowsModel(ctx context.Context, model string, allow func(Selection) bool, groups ...bool) (bool, error) {
+	filter, err := r.modelFilter(ctx, allow, groups...)
 	if err != nil {
 		return false, err
 	}
@@ -187,6 +213,39 @@ func (r *RoutingProcess) Models(ctx context.Context, allow func(Selection) bool)
 	return r.models(ctx, allow, "/v1/models")
 }
 
+// Include only groups whose entire enabled execution path is permitted by the
+// public gateway. Named keys then further narrow this set inside Magpie.
+func (r *RoutingProcess) GatewayGroups(ctx context.Context, allow func(Selection) bool, enabled bool) ([]string, error) {
+	if !enabled {
+		return nil, nil
+	}
+	filter, err := r.modelFilter(ctx, allow, true)
+	if err != nil {
+		return nil, err
+	}
+	var state struct {
+		Groups []routingGroup `json:"groups"`
+	}
+	if err = r.readAPI(ctx, "/api/groups", &state); err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, group := range state.Groups {
+		id := "group/" + group.ID
+		if filter(id) {
+			out = append(out, id)
+			if group.Ref != "" {
+				out = append(out, group.Ref)
+			}
+		}
+	}
+	return out, nil
+}
+
+func (r *RoutingProcess) ModelsForClient(ctx context.Context, allow func(Selection) bool, headers http.Header, groups bool) (json.RawMessage, error) {
+	return r.modelsForClient(ctx, allow, "/v1/models", headers, groups)
+}
+
 // Media providers are deliberately absent from Magpie's default chat list.
 // Use its actual kind=all catalog, not guesses based on a model's name.
 func (r *RoutingProcess) MediaModels(ctx context.Context, allow func(Selection) bool) (json.RawMessage, error) {
@@ -194,14 +253,17 @@ func (r *RoutingProcess) MediaModels(ctx context.Context, allow func(Selection) 
 }
 
 func (r *RoutingProcess) models(ctx context.Context, allow func(Selection) bool, address string) (json.RawMessage, error) {
-	filter, err := r.modelFilter(ctx, allow)
+	return r.modelsForClient(ctx, allow, address, nil, true)
+}
+func (r *RoutingProcess) modelsForClient(ctx context.Context, allow func(Selection) bool, address string, headers http.Header, groups bool) (json.RawMessage, error) {
+	filter, err := r.modelFilter(ctx, allow, groups)
 	if err != nil {
 		return nil, err
 	}
 	var list struct {
 		Data []json.RawMessage `json:"data"`
 	}
-	if err = r.readAPI(ctx, address, &list); err != nil {
+	if err = r.readAPI(ctx, address, &list, headers); err != nil {
 		return nil, err
 	}
 	models := []json.RawMessage{}
@@ -268,6 +330,57 @@ func (r *RoutingProcess) SyncPrivacy(ctx context.Context, address, key string) e
 	return nil
 }
 
+// SyncCatalog preserves the live route trace, cooldown and affinity state.
+// Only a provider's model list/metadata change; credentials stay in its bridge.
+func (r *RoutingProcess) SyncCatalog(ctx context.Context, p Provider) error {
+	// Install transport support before publishing IDs to the outer gateway.
+	// Its private bridge retains old models for calls already in flight.
+	if r.updateCatalog != nil {
+		r.updateCatalog(p)
+	}
+	raw, _ := json.Marshal(map[string]any{"id": p.ID, "models": p.Models, "metadata": p.ModelMetadata, "contexts": p.Contexts, "modelNames": p.ModelNames})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.URL+"/api/winone/catalog", bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+r.Key)
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusNoContent {
+		return errors.New("模型目录未能同步到路由服务")
+	}
+	r.catalogMu.Lock()
+	defer r.catalogMu.Unlock()
+	if r.aliases == nil {
+		r.aliases = map[string]Selection{}
+	}
+	for alias, selection := range r.aliases {
+		if selection.Provider == p.ID {
+			delete(r.aliases, alias)
+		}
+	}
+	for model, m := range p.ModelMetadata {
+		if m.Alias != "" {
+			r.aliases[p.ID+"/"+m.Alias] = Selection{Provider: p.ID, Model: model}
+		}
+	}
+	if r.bareIDs {
+		for model, matches := range r.bareModels {
+			r.bareModels[model] = slices.DeleteFunc(slices.Clone(matches), func(s Selection) bool { return s.Provider == p.ID })
+		}
+		for _, model := range p.Models {
+			r.bareModels[model] = append(r.bareModels[model], Selection{Provider: p.ID, Model: model})
+			if alias := p.ModelMetadata[model].Alias; alias != "" && alias != model {
+				r.bareModels[alias] = append(r.bareModels[alias], Selection{Provider: p.ID, Model: model})
+			}
+		}
+	}
+	return nil
+}
+
 func (r *RoutingProcess) ServeBody(w http.ResponseWriter, request *http.Request, path string, body []byte) {
 	cloned := request.Clone(request.Context())
 	target := *request.URL
@@ -279,7 +392,20 @@ func (r *RoutingProcess) ServeBody(w http.ResponseWriter, request *http.Request,
 	r.ServeHTTP(w, cloned)
 }
 
+// The model policy travels in Host-owned context, never a client header.
+func (r *RoutingProcess) ServeAllowedBody(w http.ResponseWriter, request *http.Request, path string, body []byte, models []string) {
+	r.ServeBody(w, request.WithContext(context.WithValue(request.Context(), mediaModelsKey{}, models)), path, body)
+}
+
 type mediaModelsKey struct{}
+
+type productSessionKey struct{}
+
+// WithProductSession is called only after the private Chat bridge authenticates.
+// The public listener must never derive this identity from a client header.
+func WithProductSession(ctx context.Context, session string) context.Context {
+	return context.WithValue(ctx, productSessionKey{}, session)
+}
 
 // Carry the Host's current model policy and public listener address into
 // Magpie. These values never come from a client's lookalike headers.
@@ -298,6 +424,12 @@ func (r *RoutingProcess) ServeHTTP(w http.ResponseWriter, request *http.Request)
 	cloned.RequestURI = ""
 	cloned.Host = target.Host
 	cloned.Header = cloned.Header.Clone()
+	cloned.Header.Del("X-WinOne-Product")
+	cloned.Header.Del("X-WinOne-Session")
+	if session, ok := request.Context().Value(productSessionKey{}).(string); ok {
+		cloned.Header.Set("X-WinOne-Product", "1")
+		cloned.Header.Set("X-WinOne-Session", session)
+	}
 	cloned.Header.Del("X-WinOne-Media-Models")
 	if models, ok := request.Context().Value(mediaModelsKey{}).([]string); ok {
 		raw, _ := json.Marshal(models)
@@ -310,6 +442,23 @@ func (r *RoutingProcess) ServeHTTP(w http.ResponseWriter, request *http.Request)
 		cloned.Header.Set("X-WinOne-Caller-Key", id)
 	}
 	cloned.Header.Set("Authorization", "Bearer "+r.Key)
+	cloned.Header.Del("X-WinOne-Gateway-Credential")
+	cloned.Header.Del("X-WinOne-Remote-Addr")
+	if key := GatewayCredential(request.Context()); key != "" {
+		cloned.Header.Set("X-WinOne-Gateway-Credential", key)
+		cloned.Header.Set("X-WinOne-Remote-Addr", request.RemoteAddr)
+	}
+	if strings.EqualFold(request.Header.Get("Upgrade"), "websocket") {
+		// The standard proxy preserves the duplex upgrade and cancellation.
+		// The Host model policy and private credential were attached above.
+		proxy := httputil.ReverseProxy{Director: func(out *http.Request) {
+			out.URL = cloned.URL
+			out.Host = cloned.Host
+			out.Header = cloned.Header.Clone()
+		}, ErrorHandler: func(w http.ResponseWriter, _ *http.Request, _ error) { GatewayError(w, 502, "路由连接失败") }}
+		proxy.ServeHTTP(w, request)
+		return
+	}
 	response, err := http.DefaultClient.Do(cloned)
 	if err != nil {
 		GatewayError(w, 502, "路由服务不可用")
@@ -344,7 +493,8 @@ func (t Translator) StartRouting(ctx context.Context, prefs *MagpieSettings, pro
 
 // Both long-lived AI services share pipe authentication and Job ownership.
 func (t Translator) startService(ctx context.Context, prefs *MagpieSettings, providers []RuntimeProvider, operation string) (*RoutingProcess, error) {
-	auxiliary, stop, err := t.auxiliaryBridge(ctx, providers, prefs)
+	var updateCatalog func(Provider)
+	auxiliary, stop, err := t.auxiliaryBridgeCatalog(ctx, providers, prefs, &updateCatalog)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +504,25 @@ func (t Translator) startService(ctx context.Context, prefs *MagpieSettings, pro
 		return nil, err
 	}
 	key := rand.Text() + rand.Text()
-	router := &RoutingProcess{process: process, stopAuxiliary: stop, Key: key}
+	router := &RoutingProcess{process: process, stopAuxiliary: stop, Key: key, bareModels: map[string][]Selection{}, updateCatalog: updateCatalog, aliases: map[string]Selection{}}
+	for _, p := range providers {
+		for model, m := range p.Provider.ModelMetadata {
+			if m.Alias != "" {
+				router.aliases[p.Provider.ID+"/"+m.Alias] = Selection{Provider: p.Provider.ID, Model: model}
+			}
+		}
+	}
+	if prefs != nil && prefs.BareModelIDs {
+		router.bareIDs = true
+		for _, p := range providers {
+			for _, model := range p.Provider.Models {
+				if alias := p.Provider.ModelMetadata[model].Alias; alias != "" && alias != model {
+					router.bareModels[alias] = append(router.bareModels[alias], Selection{Provider: p.Provider.ID, Model: model})
+				}
+				router.bareModels[model] = append(router.bareModels[model], Selection{Provider: p.Provider.ID, Model: model})
+			}
+		}
+	}
 	started := make(chan []byte, 1)
 	// One reader owns stdout and reaps the process even after an unexpected
 	// exit. Closing its job releases a blocked scan during startup cancellation.

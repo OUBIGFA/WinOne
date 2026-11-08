@@ -4,6 +4,7 @@ package startup
 
 import (
 	"errors"
+	"golang.org/x/sys/windows"
 	"os"
 	"path/filepath"
 	"testing"
@@ -39,6 +40,20 @@ func commandOutcome(err error) string {
 func shadowedApp(t *testing.T, shadow string) string {
 	t.Helper()
 	dir := t.TempDir()
+	// Only this fixture's My Apps prefix may affect the test. A checkout
+	// containing spaces can itself be shadowed by an unrelated existing file.
+	long, err := windows.UTF16PtrFromString(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	short := make([]uint16, 32768)
+	n, err := windows.GetShortPathName(long, &short[0], uint32(len(short)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n > 0 && n < uint32(len(short)) {
+		dir = windows.UTF16ToString(short[:n])
+	}
 	exe := filepath.Join(dir, "My Apps", "app.exe")
 	if err := os.MkdirAll(filepath.Dir(exe), 0o755); err != nil {
 		t.Fatal(err)

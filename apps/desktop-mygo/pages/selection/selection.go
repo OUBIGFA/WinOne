@@ -75,15 +75,17 @@ type preferences struct {
 type document = core.Preserved[preferences]
 
 type page struct {
-	learningBusy   bool
-	learningRead   int
-	learningCancel context.CancelFunc
-	learningStatus *learning.AnkiStatus
-	learningError  string
-	env            *core.Env
-	module         string // "selection" or "quick-assistant"
-	quick          bool
-	tab            int
+	learningBusy     bool
+	learningRead     int
+	learningCancel   context.CancelFunc
+	learningStatus   *learning.AnkiStatus
+	learningError    string
+	learningSection  int
+	learningTemplate int
+	env              *core.Env
+	module           string // "selection" or "quick-assistant"
+	quick            bool
+	tab              int
 	// shown is the tab of the last frame, to read the AI services again
 	// each time the toolbar shows, as React did.
 	shown int

@@ -33,6 +33,45 @@ func multiKeyStore(t *testing.T) (*Store, string) {
 	return s, path
 }
 
+func TestKeyOptionsStayWithTheSelectedRetryCredential(t *testing.T) {
+	s, path := multiKeyStore(t)
+	c := s.Configuration()
+	c.Providers[0].Keys[0].KeyOptions = KeyOptions{Name: "First", Protocol: "anthropic", Weight: 3, Plan: "team"}
+	c.Providers[0].Keys[1].KeyOptions = KeyOptions{Name: "Second", Protocol: "responses", Weight: 1, Plan: "personal"}
+	if _, err := s.SaveConfiguration(c, nil); err != nil {
+		t.Fatal(err)
+	}
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, plan, err := s.ForTaskKeys("chat", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	err = s.WithKeys(context.Background(), plan, func(ctx context.Context, key string) (bool, error) {
+		id, options := credentialRequestOptions(ctx)
+		if options == nil {
+			t.Fatal("missing per-key options")
+		}
+		names = append(names, options.Name)
+		if key == "fixture-first-secret" {
+			if id != "first" || options.Protocol != "anthropic" || options.Weight != 3 || options.Plan != "team" {
+				t.Fatal("first key options changed")
+			}
+			return false, &AttemptFailure{Status: 503}
+		}
+		if id != "second" || options.Protocol != "responses" || options.Plan != "personal" {
+			t.Fatal("fallback inherited first key options")
+		}
+		return false, nil
+	})
+	if err != nil || !reflect.DeepEqual(names, []string{"First", "Second"}) {
+		t.Fatal(names, err)
+	}
+}
+
 func TestBalanceReadKeepsInferenceKeyRotationAndDisabledKeys(t *testing.T) {
 	s, _ := multiKeyStore(t)
 	p, plan, err := s.ProviderKeysForModels("one")

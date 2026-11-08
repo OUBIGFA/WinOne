@@ -1,8 +1,34 @@
 package provider
 
+import "sync"
+
+// The Host provides the original public key fingerprint for its ephemeral
+// authenticated bridge credentials. Concurrent requests keep a stable ledger
+// identity without exposing a vendor credential to this routing process.
+var winOneKeyIdentities sync.Map
+
+// Catalog refreshes can change search support while requests list models.
+var winOneSearchModels sync.Map
+func WinOneResetSearchModels() { winOneSearchModels.Clear() }
+func WinOneSetSearchModel(id string, on bool) { if on {winOneSearchModels.Store(id,true)} else {winOneSearchModels.Delete(id)} }
+func winOneSearchModel(id string) bool { _,ok:=winOneSearchModels.Load(id);return ok }
+
+// Readers receive independent values. Background catalog replacement never
+// mutates a provider map/slice retained by an in-flight upstream request.
+var winOneCatalogMu sync.RWMutex
+var winOneCatalogs = map[string]Provider{}
+func WinOneUpdateCatalog(id string, models []string, contexts map[string]int) {
+ winOneCatalogMu.Lock(); defer winOneCatalogMu.Unlock()
+ winOneCatalogs[id]=Provider{Models:models,Contexts:contexts}
+}
+func WinOneKeyIdentity(key, id string) { winOneKeyIdentities.Store(key, id) }
+func winOneKeyIdentity(key string) (string, bool) { id, ok := winOneKeyIdentities.Load(key); if !ok { return "", false }; return id.(string), true }
+
 // Routing policy is saved in WinOne's isolated Magpie routing profile. The
 // runtime endpoints and secrets always come from the current Host snapshot.
 func winOneRoutingProvider(p Provider) Provider {
+ winOneCatalogMu.RLock(); catalog,ok:=winOneCatalogs[p.ID];winOneCatalogMu.RUnlock()
+ if ok {p.Models=catalog.Models;p.Contexts=catalog.Contexts}
  for _,saved:=range load().Providers {if saved.ID==p.ID {p.Routing=saved.Routing;p.Affinity=saved.Affinity;p.Sink=saved.Sink;break}}
  return p
 }

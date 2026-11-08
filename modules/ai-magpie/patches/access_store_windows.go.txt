@@ -1,0 +1,70 @@
+package access
+
+import (
+ "bytes"
+ "encoding/base64"
+ "encoding/json"
+ "errors"
+ "fmt"
+ "strings"
+ "unicode/utf8"
+ "unsafe"
+ "golang.org/x/sys/windows"
+ "github.com/yetone/magpie/internal/settings"
+)
+
+const winOneProtectedKeys = "WinOne-DPAPI:"
+
+// A native editor saves one complete key policy atomically. Use the original
+// validators and cycle-start rules; credentials and issuer ancestry are kept
+// from the stored key and cannot be replaced by an editor payload.
+func WinOneConfigure(in Key)error{
+ mu.Lock();defer mu.Unlock()
+ keys,err:=load();if err!=nil{return err}
+ i:=-1;for n,k:=range keys{if k.ID==in.ID{i=n;break}};if i<0{return errors.New("Key not found")}
+ next:=keys[i];name:=strings.TrimSpace(in.Name)
+ if name==""||utf8.RuneCountInString(name)>120{return errors.New("Use a name between 1 and 120 characters")}
+ if next.Browser&&(in.Issues||!in.ReadOnly){return errors.New("A browser extension key cannot use models or issue keys")}
+ if in.ReadOnly&&(next.LAN||next.ID==settings.Load().LANKeyID){return errors.New("The default sharing key cannot be read-only")}
+ if in.Issues&&(next.Issuer!=""||!next.Expires.IsZero()){return errors.New("An issued key cannot issue keys")}
+ models,err:=CleanModels(in.Models);if err!=nil{return err}
+ accounts,err:=CleanAccounts(in.Accounts);if err!=nil{return err}
+ mcp,err:=CleanMCP(in.MCP);if err!=nil{return err}
+ requested:=in.Limits();if len(requested)>MaxLimits{return fmt.Errorf("A key can have at most %d limits",MaxLimits)}
+ prior:=next.Limits();limits:=make([]Limit,0,len(requested));now:=Now().Round(0)
+ for n,w:=range requested {
+  lim,err:=w.Valid();if err!=nil{return err};if lim==nil{continue}
+  var before *Limit;if n<len(prior){before=prior[n]};lim.Since=sinceOf(before,lim,now)
+  for _,existing:=range limits{if lim.sameLimit(&existing){return errors.New("This key already has that limit")}}
+  limits=append(limits,*lim)
+ }
+ next.Name,next.Models,next.Accounts,next.MCP=name,models,accounts,mcp
+ next.Quotas,next.ReadOnly,next.Issues=in.Quotas,in.ReadOnly,in.Issues
+ next.setLimits(limits);keys[i]=next;return save(keys)
+}
+
+// Keep the original access store/atomic writer and protect its credential
+// payload under this Windows user. Existing isolated plaintext stores migrate
+// on the next explicit change; no real client profile is read or modified.
+func winOneEncodeKeys(keys []Key)([]byte,error){
+ raw,err:=json.MarshalIndent(keys,"","  ");if err!=nil{return nil,err}
+ if _,owned:=settings.WinOneLoad();!owned{return raw,nil}
+ sealed,err:=winOneProtectKeys(raw,false);clear(raw);if err!=nil{return nil,err}
+ return []byte(winOneProtectedKeys+base64.StdEncoding.EncodeToString(sealed)),nil
+}
+func winOneDecodeKeys(raw []byte,keys *[]Key)error{
+ if bytes.HasPrefix(raw,[]byte(winOneProtectedKeys)) {
+  sealed,err:=base64.StdEncoding.DecodeString(string(bytes.TrimSpace(raw[len(winOneProtectedKeys):])));if err!=nil{return errors.New("invalid protected gateway keys")}
+  plain,err:=winOneProtectKeys(sealed,true);if err!=nil{return errors.New("gateway keys cannot be opened for this Windows user")};defer clear(plain)
+  return json.Unmarshal(plain,keys)
+ }
+ return json.Unmarshal(raw,keys)
+}
+func winOneProtectKeys(raw []byte,decrypt bool)([]byte,error){
+ if len(raw)==0{return nil,errors.New("empty gateway key payload")}
+ in:=windows.DataBlob{Size:uint32(len(raw)),Data:&raw[0]};var out windows.DataBlob;var err error
+ if decrypt{err=windows.CryptUnprotectData(&in,nil,nil,0,nil,1,&out)}else{err=windows.CryptProtectData(&in,nil,nil,0,nil,1,&out)}
+ if err!=nil{return nil,err}
+ defer windows.LocalFree(windows.Handle(uintptr(unsafe.Pointer(out.Data))))
+ value:=unsafe.Slice(out.Data,int(out.Size));copied:=append([]byte(nil),value...);clear(value);return copied,nil
+}

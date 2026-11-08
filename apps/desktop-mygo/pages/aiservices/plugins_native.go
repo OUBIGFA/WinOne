@@ -96,6 +96,7 @@ func (p *marketPlugin) UnmarshalJSON(data []byte) error {
 // Only an author's own web page remains a WebView. The registry, discovery,
 // install/update controls, permissions and options editor are native MyGo.
 type pluginsPanel struct {
+	githubField                                            syncedText
 	p                                                      *page
 	api, marketAPI, readmeAPI, npmAPI                      nativeAPI
 	state                                                  *managedPlugins
@@ -522,6 +523,27 @@ func (x *pluginsPanel) sourcesView(c *ui.Context, locked bool) {
 	s := x.p.draft.Value.settings()
 	kit.Toggle(c, &s.ChinaMirror, nativeT("mirror"), nativeT("mirrorHint")).Disabled(locked)
 	nativeText(c, nativeT("npmRegistry"), &s.NPMRegistry, locked)
+	kit.Stack(c, completeT("githubToken"), completeT("githubTokenHint"), func() {
+		f := &x.githubField
+		current := ""
+		if s.GitHubToken != nil {
+			current = *s.GitHubToken
+		}
+		if text, changed := f.sync(current); changed {
+			s.GitHubToken = &text
+		}
+		placeholder := i18n.T("ai.keyPlaceholder")
+		if s.HasGitHubToken {
+			placeholder = i18n.T("ai.keySaved")
+		}
+		ui.Row(c).FillWidth().Gap(8).Children(func() {
+			ui.TextInput(c, &f.text).Grow(1).MinWidth(0).Password().Label(completeT("githubToken")).Placeholder(placeholder).Disabled(locked)
+			if kit.IconButton(c, icons.Trash2, completeT("clearGitHubToken")).Disabled(locked).Clicked() {
+				s.GitHubToken = new("")
+				f.text, f.shown = "", ""
+			}
+		})
+	})
 	kit.Help(c, x.state.Registry.URL+" · "+x.state.Registry.From+" · "+x.state.Registry.Path)
 	if kit.Button(c, nativeT("saveRegistry"), icons.Save, false).Disabled(locked || !x.p.dirty()).Clicked() {
 		x.p.save()

@@ -18,25 +18,31 @@ import (
 )
 
 type Store struct {
-	mu             sync.Mutex
-	path           string
-	value          Preferences
-	protected      string
-	configuration  *Configuration
-	keys           map[string]string
-	credentialKeys map[string]map[string]string
-	searchKeys     map[string]string
-	keyRounds      map[string]*keyRound
-	now            func() time.Time
+	mu              sync.Mutex
+	path            string
+	value           Preferences
+	protected       string
+	configuration   *Configuration
+	keys            map[string]string
+	credentialKeys  map[string]map[string]string
+	searchKeys      map[string]string
+	githubToken     string
+	otelHeaders     map[string]string
+	providerSecrets map[string]map[string]string
+	keyRounds       map[string]*keyRound
+	now             func() time.Time
 }
 type stored struct {
-	SchemaVersion           int                          `json:"schemaVersion,omitempty"`
-	Preferences             Preferences                  `json:"preferences"`
-	ProtectedKey            string                       `json:"protectedKey,omitempty"`
-	Configuration           *Configuration               `json:"configuration,omitempty"`
-	ProtectedKeys           map[string]string            `json:"protectedKeys,omitempty"`
-	ProtectedCredentialKeys map[string]map[string]string `json:"protectedCredentialKeys,omitempty"`
-	ProtectedSearchKeys     map[string]string            `json:"protectedSearchKeys,omitempty"`
+	SchemaVersion            int                          `json:"schemaVersion,omitempty"`
+	Preferences              Preferences                  `json:"preferences"`
+	ProtectedKey             string                       `json:"protectedKey,omitempty"`
+	Configuration            *Configuration               `json:"configuration,omitempty"`
+	ProtectedKeys            map[string]string            `json:"protectedKeys,omitempty"`
+	ProtectedCredentialKeys  map[string]map[string]string `json:"protectedCredentialKeys,omitempty"`
+	ProtectedSearchKeys      map[string]string            `json:"protectedSearchKeys,omitempty"`
+	ProtectedGitHubToken     string                       `json:"protectedGitHubToken,omitempty"`
+	ProtectedOTelHeaders     map[string]string            `json:"protectedOTelHeaders,omitempty"`
+	ProtectedProviderSecrets map[string]map[string]string `json:"protectedProviderSecrets,omitempty"`
 }
 
 const maximumSettingsBytes = 1024 * 1024
@@ -73,6 +79,26 @@ func Open(path string) (*Store, error) {
 		s.keys = document.ProtectedKeys
 		s.credentialKeys = document.ProtectedCredentialKeys
 		s.searchKeys = document.ProtectedSearchKeys
+		s.githubToken = document.ProtectedGitHubToken
+		s.otelHeaders = document.ProtectedOTelHeaders
+		// Migrate older plaintext headers in memory. The next normal save
+		// writes only the sealed values without changing the user's settings.
+		if s.configuration.MagpieSettings != nil {
+			if s.otelHeaders == nil {
+				s.otelHeaders = map[string]string{}
+			}
+			for name, value := range s.configuration.MagpieSettings.OTel.Headers {
+				if value != "" {
+					sealed, err := sealCredential(value)
+					if err != nil {
+						return nil, err
+					}
+					s.otelHeaders[name] = sealed
+				}
+				s.configuration.MagpieSettings.OTel.Headers[name] = ""
+			}
+		}
+		s.providerSecrets = document.ProtectedProviderSecrets
 		for i := range s.configuration.Providers {
 			s.configuration.Providers[i].HasKey = s.keys[s.configuration.Providers[i].ID] != ""
 		}
@@ -104,7 +130,7 @@ func validate(p Preferences) error {
 		return errors.New("请选择有效的目标语言")
 	}
 	switch p.Protocol {
-	case "chat", "responses", "anthropic":
+	case "chat", "responses", "anthropic", "gemini", "decide":
 	default:
 		return errors.New("请选择有效的 AI 协议")
 	}

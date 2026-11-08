@@ -4,10 +4,31 @@
     {
       "kind": "upstream",
       "name": "magpie",
+      "version": "691a10446ec2b66142cee2203edf72d73b12d76d",
+      "notices": [
+        {
+          "file": "licenses/upstream-magpie-691a10446ec2b66142cee2203edf72d73b12d76d-0-LICENSE.txt",
+          "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+        },
+        {
+          "file": "licenses/upstream-magpie-691a10446ec2b66142cee2203edf72d73b12d76d-1-THIRD_PARTY_NOTICES.txt",
+          "sha256": "7367c36421134228559c2d1dd8305da757dd08bacc5d620cd36b65b355dcb7e3"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "magpie",
       "version": "778b8e0753928533fd7afb8d76b57a2b5e22336a",
       "notices": [
-        {"file": "licenses/upstream-magpie-778b8e0753928533fd7afb8d76b57a2b5e22336a-0-LICENSE.txt", "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"},
-        {"file": "licenses/upstream-magpie-778b8e0753928533fd7afb8d76b57a2b5e22336a-1-THIRD_PARTY_NOTICES.txt", "sha256": "7367c36421134228559c2d1dd8305da757dd08bacc5d620cd36b65b355dcb7e3"}
+        {
+          "file": "licenses/upstream-magpie-778b8e0753928533fd7afb8d76b57a2b5e22336a-0-LICENSE.txt",
+          "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+        },
+        {
+          "file": "licenses/upstream-magpie-778b8e0753928533fd7afb8d76b57a2b5e22336a-1-THIRD_PARTY_NOTICES.txt",
+          "sha256": "7367c36421134228559c2d1dd8305da757dd08bacc5d620cd36b65b355dcb7e3"
+        }
       ]
     },
     {

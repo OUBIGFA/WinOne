@@ -65,6 +65,11 @@ func (e *editor) accountPreferences(c *ui.Context, pr *provider, locked bool) {
 	}
 	// Key the form by identity so a control's text cannot leak to another account.
 	ui.Column(c.Key(id)).FillWidth().Gap(kit.GroupGap).Children(func() {
+		if pr.AuthMode == "api-key" {
+			e.keyOptions(c, pr, id, locked)
+			e.keySpending(c, pr, id, locked)
+			return
+		}
 		kit.Group(c, nil, id, "", func() {
 			kit.Stack(c, i18n.T("ai.accountNames"), "", func() {
 				f := e.fields.get(id + ":name")
@@ -204,23 +209,83 @@ func (e *editor) keySpending(c *ui.Context, pr *provider, id string, locked bool
 	s := &pr.ProviderPreferences
 	kit.Group(c, nil, nativeT("ownBalance"), nativeT("ownBalanceHint"), func() {
 		balance, has := s.KeyOwnBalances[id]
+		currency := "usd"
+		if balance.CNY != nil {
+			currency = "cny"
+		}
+		changed := choiceRow(c, i18n.T("aiComplete.balanceCurrency"), i18n.T("aiComplete.balanceCurrencyHint"), &currency, options("usd", "USD", "cny", "CNY"), locked)
+		if changed {
+			amount := balance.USD
+			if balance.CNY != nil {
+				amount = *balance.CNY
+			}
+			balance.USD, balance.CNY = amount, nil
+			if currency == "cny" {
+				balance.USD, balance.CNY = 0, &amount
+			}
+			if !has {
+				balance.At = time.Now().UTC()
+				has = true
+			}
+		}
 		var amount *float64
 		if has {
 			amount = &balance.USD
+			if balance.CNY != nil {
+				amount = balance.CNY
+			}
 		}
-		numberRow(c, nativeT("ownBalanceUSD"), amount, 0, 1000000, false, i18n.T("aiOptions.default"), locked, func(v *float64) {
+		numberRow(c, i18n.T("aiComplete.balanceAmount"), amount, 0, 1000000, false, i18n.T("aiOptions.default"), locked, func(v *float64) {
+			changed = true
 			if v == nil {
-				delete(s.KeyOwnBalances, id)
+				has = false
 				return
 			}
-			if s.KeyOwnBalances == nil {
-				s.KeyOwnBalances = map[string]ai.OwnBalance{}
+			balance.USD, balance.CNY = *v, nil
+			if currency == "cny" {
+				balance.USD, balance.CNY = 0, new(*v)
 			}
-			s.KeyOwnBalances[id] = ai.OwnBalance{USD: *v, At: time.Now().UTC()}
+			balance.At, has = time.Now().UTC(), true
 		})
+		if has {
+			every := ""
+			if balance.Refill != nil {
+				every = balance.Refill.Every
+			}
+			if choiceRow(c, i18n.T("aiComplete.balanceRefill"), "", &every, options("", i18n.T("aiComplete.noRefill"), "week", i18n.T("aiComplete.weekly"), "month", i18n.T("aiComplete.monthly")), locked) {
+				changed = true
+				balance.Refill = nil
+				if every != "" {
+					balance.Refill = &ai.BalanceRefill{Every: every, Day: 1}
+				}
+			}
+			if balance.Refill != nil {
+				day, max := float64(balance.Refill.Day), 31.0
+				label := i18n.T("aiComplete.monthDay")
+				if every == "week" {
+					max, label = 7, i18n.T("aiComplete.weekDay")
+				}
+				numberRow(c, label, &day, 1, max, true, "1", locked, func(v *float64) {
+					if v != nil {
+						balance.Refill.Day = int(*v)
+						changed = true
+					}
+				})
+			}
+		}
 		if has && kit.Button(c, nativeT("resetBalanceTime"), icons.RefreshCw, false).Disabled(locked).Clicked() {
 			balance.At = time.Now().UTC()
-			s.KeyOwnBalances[id] = balance
+			changed = true
+		}
+		if changed {
+			if has {
+				if s.KeyOwnBalances == nil {
+					s.KeyOwnBalances = map[string]ai.OwnBalance{}
+				}
+				s.KeyOwnBalances[id] = balance
+			} else {
+				delete(s.KeyOwnBalances, id)
+			}
 		}
 	})
 	kit.Group(c, nil, i18n.T("ai.keySpendCaps"), i18n.T("ai.keySpendCapsHint"), func() {

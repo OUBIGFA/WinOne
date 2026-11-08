@@ -103,6 +103,7 @@ shared/ai/plugins/agy-cli/NOTICE.md
 shared/ai/plugins/agy-cli/README.en.md
 shared/ai/plugins/agy-cli/README.md
 shared/ai/plugins/agy-cli/index.mjs
+shared/ai/plugins/agy-cli/login.mjs
 shared/ai/plugins/agy-cli/mcp-server.mjs
 shared/ai/plugins/agy-cli/opencode.mjs
 shared/ai/plugins/agy-cli/opencode2.mjs

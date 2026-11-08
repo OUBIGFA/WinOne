@@ -4,7 +4,7 @@
     {
       "name": "magpie-native-ai-pages",
       "repository": "https://github.com/yetone/magpie",
-      "commit": "778b8e0753928533fd7afb8d76b57a2b5e22336a",
+      "commit": "691a10446ec2b66142cee2203edf72d73b12d76d",
       "license": "MIT",
       "scope": "Native MyGo presentation of the complete routing-group, request trace, third-party plugin management and masking-record contracts. Upstream algorithms and API handlers remain in the single private Magpie runtime. Native form fields, labels, stable identities and actions adapt upstream client.js/plugins.js; authored plugin HTML alone retains its original WebView surface. Unrecognized fields roundtrip through core.Preserved; complete read-only diagnostics remain inspectable.",
       "sourceFiles": [
@@ -24,18 +24,22 @@
         "internal/gateway/affinity.go",
         "internal/gateway/history.go",
         "internal/gateway/prompt_text.go",
-        "internal/usage/purpose.go"
+        "internal/usage/purpose.go",
+        "internal/gui/caller_keys.go",
+        "internal/access/access.go",
+        "internal/sessions/gateway.go",
+        "internal/gui/assets/plugins/usage/page.js"
       ],
       "notices": [
         {
-          "file": "licenses/upstream-magpie-778b8e0753928533fd7afb8d76b57a2b5e22336a-0-LICENSE.txt",
+          "file": "licenses/upstream-magpie-691a10446ec2b66142cee2203edf72d73b12d76d-0-LICENSE.txt",
           "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
         }
       ],
       "files": [
         {
           "path": "apps/desktop-mygo/pages/aiservices/advanced_latest.go",
-          "sha256": "6f7c19128ed7f2d8301a93b5a665890e6657ba84a614c3785dc6206182802c4a"
+          "sha256": "0f8c5865f85c4011c88e93fc7771a05ab1b1115949e9ef5564bf3c3b4e803b1c"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/plugins_details.go",
@@ -59,7 +63,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_groups.go",
-          "sha256": "2c8ca57401a3dc519f870dffb0581153097b4c5ac3c63993549c0b18a6e7ffe0"
+          "sha256": "afcad7e7f941c4db3192bf414eead63d6164f11880fb6713e4429f7fa31f561f"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_members.go",
@@ -75,19 +79,19 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/plugins_native.go",
-          "sha256": "f59e9ac8a8d8b6b8981448eeed6d4821e0e5d50948e7deb4058f808c9332d937"
+          "sha256": "df95f8121709e5ace9381fd7aacbe43ed36e05990a7307e3648b7b0f7e0927a0"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/masking_records.go",
-          "sha256": "0738579e5a97fe9a97d2e9a793c8e20aeeb05c3efbb53a87ba50aab964e7b6f6"
+          "sha256": "8aa02a9f64243e7493c5f09dddfda0578e840b680d974105478a9796602560bf"
         },
         {
           "path": "modules/ai-magpie/patches/routing_gui.go.txt",
-          "sha256": "c678e78073d00a223689d3182bdd689637aded059fecee919bef06a909813b1f"
+          "sha256": "2f4eefadae39731c94dadca95bc1a76d4a1902203359e264b1c40cb70969deea"
         },
         {
           "path": "build/prepare-ai-routing.ps1",
-          "sha256": "ed0c6105b5ae1a42838f5ba280b299c024b3c812b10719eebcece1d5de05339d"
+          "sha256": "074c953a70301e0aa47071dcc87c874f039dfff479f0dfcfb91a2fc29f8a4d97"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_replay.go",
@@ -111,11 +115,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences_accounts.go",
-          "sha256": "18ae6dacfc8e627fa2cd33aa9eb5886270f800fd44902fc8fa9b5b1843d71dce"
+          "sha256": "76ab465a14e89a6e44958f136cb0ecbc1e0aaea81af6a3741f1200cf53b67757"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences_billing.go",
-          "sha256": "fd3e906ae98ea03baaf544e45e8fe46956f2500285e022c8b300eb58fee3b25d"
+          "sha256": "ae057897bb0e377496dfd1e941d43da05a16227b3d3a7f3307fa865505abbd4c"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_purposes.go",
@@ -132,6 +136,14 @@
         {
           "path": "apps/desktop-mygo/pages/aiservices/search_keys.go",
           "sha256": "fac48ca46e81e06b2a527054e8e67901246fe0a636f219ea8fd81330d2faf430"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/gateway_access.go",
+          "sha256": "6e99547498b2c3a942c201b3f406fe36eef6c52ef377c86e0a20fbe8a6778be8"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/gateway_history.go",
+          "sha256": "2baaa7b1baaa3ecb82a32397a3e06498dae636eae7334bde2cbe8b7e9564b64e"
         }
       ]
     },

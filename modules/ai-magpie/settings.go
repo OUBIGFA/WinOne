@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/yetone/magpie/internal/agent"
 	"github.com/yetone/magpie/internal/catalog"
 	"github.com/yetone/magpie/internal/fx"
 	"github.com/yetone/magpie/internal/gateway"
@@ -24,7 +25,7 @@ import (
 // The public configuration and the upstream runtime share field names. Extra
 // WinOne UI properties are intentionally not written into Magpie's profile.
 func applyRuntimeSettings(in request) error {
-	provider.WinOneSearchModels = nil
+	provider.WinOneResetSearchModels()
 	gateway.WinOneTransportOnly = os.Getenv("WINONE_AI_TRANSPORT_ONLY") == "1"
 	if err := applyBuiltinPlugins(in.MagpieSettings); err != nil {
 		return err
@@ -66,15 +67,26 @@ func applyRuntimeSettings(in request) error {
 		return err
 	}
 	s.RedactRules = rules
+	s.GatewayConversations = settings.WinOneGatewayRecording()
 	// The outer router owns the logical request and its archive. Auxiliary
 	// transport workers must not archive the same content a second time.
 	if gateway.WinOneTransportOnly {
+		s.GatewayConversations = false
 		s.RequestArchiveLocal = false
 		s.RequestArchive = false
+		s.OTel.Enabled = false
+	}
+	if err := s.OTel.Check(); err != nil {
+		return err
 	}
 	// WinOne owns a private profile; upstream discovery must not reach real
 	// WSL agent accounts, even when an imported preference requests discovery.
 	s.NoWSLAgents = true
+	// This integration owns only its AI service data. External client history
+	// and migrations are outside the enabled feature scope; never infer consent
+	// from an old cache or from upstream's test defaults.
+	s.SessionReads = &settings.SessionReads{Asked: true}
+	s.OTel.Sessions = false
 	var extra struct {
 		SearchAPIs []provider.SearchAPI `json:"searchAPIs"`
 	}
@@ -131,76 +143,127 @@ func workerRequestWait(in request) time.Duration {
 // gateway takes a settings snapshot. SameAs groups pricing/metadata; Wires is
 // separately the name sent to the vendor and never rewrites the picker ID.
 func installModelPreferences(pid, model string, m modelMetadata) error {
-	s := settings.Load()
-	id := pid + "/" + model
-	if m.Searches {
-		if provider.WinOneSearchModels == nil {
-			provider.WinOneSearchModels = map[string]bool{}
-		}
-		provider.WinOneSearchModels[id] = true
+	if _, initialized := settings.WinOneLoad(); !initialized {
+		settings.WinOneUse(settings.Load())
 	}
-	if m.Same != "" {
-		if s.ModelSameAs == nil {
-			s.ModelSameAs = map[string]string{}
-		}
-		s.ModelSameAs[id] = m.Same
-	}
-	if m.UpstreamName != "" {
-		if s.ModelWires == nil {
-			s.ModelWires = map[string]string{}
-		}
-		s.ModelWires[id] = m.UpstreamName
-	}
-	if m.API != "" {
-		if s.ModelAPIs == nil {
-			s.ModelAPIs = map[string]string{}
-		}
-		s.ModelAPIs[id] = m.API
-	}
-	if m.Efforts != nil {
-		if kept := keptReasoningLevels(m.Levels, m.Efforts); kept != nil {
-			if s.ModelEfforts == nil {
-				s.ModelEfforts = map[string][]string{}
+	return settings.WinOneEdit(func(s *settings.Settings) error {
+		id := pid + "/" + model
+		// Upstream maps the listed ID to the vendor ID, not the reverse. Remove
+		// the previous alias too so a catalog refresh can clear or rename it.
+		for listed, own := range s.ModelIDs {
+			if strings.HasPrefix(listed, pid+"/") && own == model {
+				clearModelPreferences(s, listed)
+				provider.WinOneSetSearchModel(listed, false)
 			}
-			s.ModelEfforts[id] = kept
+		}
+		if m.Alias != "" {
+			id = pid + "/" + m.Alias
+		}
+		// Replace this model's complete override, including cleared fields during
+		// catalog hot updates; unrelated models retain their settings.
+		clearModelPreferences(s, id)
+		if m.Alias != "" {
+			if s.ModelIDs == nil {
+				s.ModelIDs = map[string]string{}
+			}
+			s.ModelIDs[id] = model
+		}
+		// Keep the upstream merge/signing semantics: these apply only to this model,
+		// never to a model-list request or to another provider's auxiliary call.
+		if len(m.Headers) > 0 {
+			if s.ModelHeaders == nil {
+				s.ModelHeaders = map[string]map[string]string{}
+			}
+			s.ModelHeaders[id] = m.Headers
+		}
+		provider.WinOneSetSearchModel(id, m.Searches)
+		if m.Same != "" {
+			if s.ModelSameAs == nil {
+				s.ModelSameAs = map[string]string{}
+			}
+			s.ModelSameAs[id] = m.Same
+		}
+		if m.UpstreamName != "" {
+			if s.ModelWires == nil {
+				s.ModelWires = map[string]string{}
+			}
+			s.ModelWires[id] = m.UpstreamName
+		}
+		if m.API != "" {
+			if s.ModelAPIs == nil {
+				s.ModelAPIs = map[string]string{}
+			}
+			s.ModelAPIs[id] = m.API
+		}
+		if m.Efforts != nil {
+			if kept := keptReasoningLevels(m.Levels, m.Efforts); kept != nil {
+				if s.ModelEfforts == nil {
+					s.ModelEfforts = map[string][]string{}
+				}
+				s.ModelEfforts[id] = kept
+			} else {
+				delete(s.ModelEfforts, id)
+			}
+		}
+		// "No reasoning" is upstream's reasonless model (SetModelReasonless):
+		// it offers no levels and the gateway sends no reasoning field.
+		if m.Reasoning != nil && !*m.Reasoning {
+			if s.ModelReasonless == nil {
+				s.ModelReasonless = map[string]bool{}
+			}
+			s.ModelReasonless[id] = true
 		} else {
-			delete(s.ModelEfforts, id)
+			delete(s.ModelReasonless, id)
 		}
-	}
-	// "No reasoning" is upstream's reasonless model (SetModelReasonless):
-	// it offers no levels and the gateway sends no reasoning field.
-	if m.Reasoning != nil && !*m.Reasoning {
-		if s.ModelReasonless == nil {
-			s.ModelReasonless = map[string]bool{}
+		if m.Vision != nil {
+			if s.ModelImages == nil {
+				s.ModelImages = map[string]bool{}
+			}
+			s.ModelImages[id] = *m.Vision
 		}
-		s.ModelReasonless[id] = true
-	} else {
-		delete(s.ModelReasonless, id)
-	}
-	if m.Vision != nil {
-		if s.ModelImages == nil {
-			s.ModelImages = map[string]bool{}
+		if m.MaxTokens > 0 {
+			if s.ModelOutputs == nil {
+				s.ModelOutputs = map[string]int{}
+			}
+			s.ModelOutputs[id] = m.MaxTokens
 		}
-		s.ModelImages[id] = *m.Vision
-	}
-	if m.MaxTokens > 0 {
-		if s.ModelOutputs == nil {
-			s.ModelOutputs = map[string]int{}
+		// Share the token conversion already used by model discovery and Chat.
+		limits := modelLimitSnapshot(provider.Provider{ID: pid}, strings.TrimPrefix(id, pid+"/"), m, cmp.Or(m.ContextWindow, m.ListedContextWindow))
+		if threshold := limits.ModelCompacts[id]; threshold > 0 {
+			if s.ModelCompacts == nil {
+				s.ModelCompacts = map[string]int{}
+			}
+			s.ModelCompacts[id] = threshold
 		}
-		s.ModelOutputs[id] = m.MaxTokens
-	}
-	if m.Price != nil {
-		price := settings.StatedPrice(*m.Price)
-		if err := settings.CheckModelPrice(id, price); err != nil {
-			return err
+		if m.Price != nil {
+			price := settings.StatedPrice(*m.Price)
+			if err := settings.CheckModelPrice(id, price); err != nil {
+				return err
+			}
+			if s.ModelPrices == nil {
+				s.ModelPrices = map[string]settings.ModelPrice{}
+			}
+			s.ModelPrices[id] = price
 		}
-		if s.ModelPrices == nil {
-			s.ModelPrices = map[string]settings.ModelPrice{}
-		}
-		s.ModelPrices[id] = price
-	}
-	settings.WinOneUse(s)
-	return nil
+		return nil
+	})
+}
+
+// Renaming or clearing an alias retires all of its overrides. Otherwise a
+// later model using that name inherits the previous model's request headers.
+func clearModelPreferences(s *settings.Settings, id string) {
+	delete(s.ModelNames, id)
+	delete(s.ModelHeaders, id)
+	delete(s.ModelSameAs, id)
+	delete(s.ModelWires, id)
+	delete(s.ModelAPIs, id)
+	delete(s.ModelOutputs, id)
+	delete(s.ModelCompacts, id)
+	delete(s.ModelPrices, id)
+	delete(s.ModelIDs, id)
+	delete(s.ModelEfforts, id)
+	delete(s.ModelImages, id)
+	delete(s.ModelReasonless, id)
 }
 
 // keptReasoningLevels is upstream's setModelEfforts/effortsKept without its
@@ -331,7 +394,11 @@ func magpieCatalog(ctx context.Context, in request, output io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return json.NewEncoder(output).Encode(map[string]any{"builtinPlugins": plugins, "bundledPlugins": accountPlugins(), "searchVendors": searchVendors, "redactionCategories": categories, "redactCategories": categories, "visionModels": visionModels, "titleModels": titleModels, "visionAuto": gateway.AutoVision(), "visionMissing": gateway.VisionMissing(), "imageGenModels": imageModels, "imageGenAuto": gateway.AutoDrawer(), "imageGenMissing": gateway.DrawerMissing(), "searchChoices": choices, "searchAuto": gateway.AutoSearcher(), "searchProvider": gateway.Searcher(), "searchUnused": gateway.SearcherUnused(), "searchRelays": relays, "searchLeftOut": leftOut, "pluginCheckins": checkins, "checkinPlugins": checkins, "codexUsers": users, "noAccountsEnv": false, "fx": map[string]any{"rate": rate.CNYPerUSD, "at": rate.At, "stale": rate.Stale()}})
+	clients := []map[string]string{}
+	for _, a := range agent.Clients() {
+		clients = append(clients, map[string]string{"id": a.ID, "name": a.Name})
+	}
+	return json.NewEncoder(output).Encode(map[string]any{"clients": clients, "builtinPlugins": plugins, "bundledPlugins": accountPlugins(), "searchVendors": searchVendors, "redactionCategories": categories, "redactCategories": categories, "visionModels": visionModels, "titleModels": titleModels, "visionAuto": gateway.AutoVision(), "visionMissing": gateway.VisionMissing(), "imageGenModels": imageModels, "imageGenAuto": gateway.AutoDrawer(), "imageGenMissing": gateway.DrawerMissing(), "searchChoices": choices, "searchAuto": gateway.AutoSearcher(), "searchProvider": gateway.Searcher(), "searchUnused": gateway.SearcherUnused(), "searchRelays": relays, "searchLeftOut": leftOut, "pluginCheckins": checkins, "checkinPlugins": checkins, "codexUsers": users, "noAccountsEnv": false, "fx": map[string]any{"rate": rate.CNYPerUSD, "at": rate.At, "stale": rate.Stale()}})
 }
 
 func testModels(ctx context.Context, in request, output io.Writer) error {
@@ -385,6 +452,9 @@ func testModels(ctx context.Context, in request, output io.Writer) error {
 func maintainMagpie(ctx context.Context, in request, output io.Writer) error {
 	if in.Agent == "" {
 		return errors.New("an account is required for quota maintenance")
+	}
+	if err := prepareAccountPreferences(ctx, in); err != nil {
+		return err
 	}
 	if _, err := findAccount(ctx, in.Agent); err != nil {
 		return err
@@ -493,13 +563,20 @@ func trayCards(cards []provider.SubscriptionQuota, ids []string, hostID string, 
 // letting an unknown JSON setting become a provider's endpoint or credential.
 type auxiliaryProvider struct {
 	provider.Provider
+	KeyIDs         map[string]string        `json:"keyIDs,omitempty"`
 	AccountKind    string                   `json:"accountKind,omitempty"`
 	Metadata       map[string]modelMetadata `json:"metadata,omitempty"`
+	ModelNames     map[string]string        `json:"modelNames,omitempty"`
 	DecisionSource *request                 `json:"decisionSource,omitempty"`
+	NativeSource   *request                 `json:"nativeSource,omitempty"`
+	NativeKeys     []provider.KeyAccount    `json:"nativeKeys,omitempty"`
 }
 
 func installAuxiliaryProviders(in request) error {
 	for _, p := range in.AuxiliaryProviders {
+		for key, id := range p.KeyIDs {
+			provider.WinOneKeyIdentity(key, id)
+		}
 		if strings.ContainsAny(p.ID, "/\\\x00") || p.ID == "" {
 			return errors.New("invalid auxiliary provider")
 		}
@@ -516,8 +593,24 @@ func installAuxiliaryProviders(in request) error {
 				}
 				p.Contexts[id] = metadata.ContextWindow
 			}
+			if metadata.Alias != "" && p.Contexts[id] > 0 {
+				p.Contexts[metadata.Alias] = p.Contexts[id]
+			}
 		}
 		provider.WinOneProviders = append(provider.WinOneProviders, p.Provider)
+		if p.NativeSource != nil {
+			actual, err := configuredProvider(*p.NativeSource)
+			if err != nil {
+				return err
+			}
+			actual.Name, actual.Models, actual.Keys = p.Name, p.Models, p.NativeKeys
+			// The bridge already mapped every saved slot to its vendor fingerprint.
+			actual.KeySpendCaps, actual.KeyOwnBalances = p.KeySpendCaps, p.KeyOwnBalances
+			if gateway.WinOneNativeProviders == nil {
+				gateway.WinOneNativeProviders = map[string]provider.Provider{}
+			}
+			gateway.WinOneNativeProviders[p.ID] = actual
+		}
 		if p.DecisionSource != nil {
 			source := *p.DecisionSource
 			source.Key = "winone-capability-check"
@@ -543,6 +636,33 @@ func installAuxiliaryProviders(in request) error {
 				return err
 			}
 		}
+		if err := installModelNames(p.ID, p.ModelNames, p.Metadata); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+// Names are display preferences, separate from both public IDs and vendor IDs.
+// Replace the provider's names so clearing a name also updates a live catalog.
+func installModelNames(pid string, names map[string]string, metadata map[string]modelMetadata) error {
+	return settings.WinOneEdit(func(s *settings.Settings) error {
+		for id := range s.ModelNames {
+			if strings.HasPrefix(id, pid+"/") {
+				delete(s.ModelNames, id)
+			}
+		}
+		if s.ModelNames == nil {
+			s.ModelNames = map[string]string{}
+		}
+		for model, name := range names {
+			if alias := metadata[model].Alias; alias != "" {
+				model = alias
+			}
+			if name != "" {
+				s.ModelNames[pid+"/"+model] = name
+			}
+		}
+		return nil
+	})
 }

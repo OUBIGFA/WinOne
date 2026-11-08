@@ -20,12 +20,12 @@ import (
 
 func TestConfiguredProviderAcceptsHTTPHostsAcrossProtocols(t *testing.T) {
 	for _, endpoint := range []string{"http://relay.example:3000/v1", "http://203.0.113.7:3000/v1", "http://192.168.50.10:3000/v1", "http://[2001:db8::7]:3000/v1", "https://relay.example/v1"} {
-		for _, protocol := range []string{"chat", "responses", "anthropic"} {
+		for _, protocol := range []string{"chat", "responses", "anthropic", "gemini", "decide"} {
 			p, err := configuredProvider(request{BaseURL: endpoint, Protocol: protocol, Key: "fixture-key"})
 			if err != nil {
 				t.Fatalf("%s %s: %v", protocol, endpoint, err)
 			}
-			actual := map[string]string{"chat": p.Chat, "responses": p.Responses, "anthropic": p.Anthropic}[protocol]
+			actual := map[string]string{"chat": p.Chat, "responses": p.Responses, "anthropic": p.Anthropic, "gemini": p.Gemini, "decide": p.Decide}[protocol]
 			if actual != endpoint {
 				t.Fatal("explicit endpoint was changed")
 			}
@@ -35,6 +35,55 @@ func TestConfiguredProviderAcceptsHTTPHostsAcrossProtocols(t *testing.T) {
 		if _, err := configuredProvider(request{BaseURL: endpoint, Protocol: "chat"}); err == nil {
 			t.Fatal("invalid endpoint accepted")
 		}
+	}
+}
+
+func TestCompleteEndpointsAndKeyOptionsReachUpstreamProvider(t *testing.T) {
+	p, err := configuredProvider(request{Protocol: "chat", BaseURL: "https://primary.invalid/v1", Key: "fixture",
+		KeyID: "saved-slot", KeyOptions: &KeyOptions{Name: "Team", Protocol: "anthropic", Weight: 4},
+		ProviderPreferences: &ProviderPreferences{Endpoints: &ProviderEndpoints{Responses: "https://response.invalid/v1", Anthropic: "https://messages.invalid", Gemini: "https://gemini.invalid/v1beta", Decide: "https://decision.invalid"}, ListOff: true, NativeCompaction: true, PinUpstream: true, KeySpendCaps: map[string]SpendCap{"saved-slot": {USD: 2, Period: "day"}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Chat != "https://primary.invalid/v1" || p.Gemini != "https://gemini.invalid/v1beta" || p.Decide != "https://decision.invalid" || p.Responses != "https://response.invalid/v1" || !p.ListOff || !p.NativeCompaction || !p.PinUpstream {
+		t.Fatal("provider options not applied", p)
+	}
+	if p.KeyName != "Team" || p.KeyProtocol != provider.Anthropic || p.KeyWeight != 4 || p.KeySpendCaps[provider.KeyID("fixture")].USD != 2 {
+		t.Fatal("key options or cap identity lost")
+	}
+}
+
+func TestModelHeadersReachGenerationButNotDiscovery(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Cleanup(func() { provider.WinOneProviders = nil; settings.WinOneSettings.Store(nil) })
+	var paths []string
+	vendor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/v1/models" {
+			if r.Header.Get("X-Route") != "provider" || r.Header.Get("X-Model") != "" {
+				t.Error("model header leaked into discovery")
+			}
+			io.WriteString(w, `{"data":[{"id":"header-model"}]}`)
+			return
+		}
+		if r.Header.Get("X-Route") != "model" || r.Header.Get("X-Model") != "header-model" {
+			t.Error("generation lost model header precedence")
+		}
+		io.WriteString(w, `{"choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}`)
+	}))
+	defer vendor.Close()
+	in := request{Protocol: "chat", BaseURL: vendor.URL + "/v1", Model: "header-model", Text: "hello", Headers: map[string]string{"X-Route": "provider"}, ModelMetadata: modelMetadata{Headers: map[string]string{"X-Route": "model", "X-Model": "header-model"}}}
+	if _, err := fetchModels(context.Background(), in); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := json.Marshal(in)
+	if result, err := run(context.Background(), bytes.NewReader(data)); err != nil || result != "ok" {
+		t.Fatal(result, err)
+	}
+	if len(paths) < 2 {
+		t.Fatal("discovery and generation did not reach the server")
 	}
 }
 

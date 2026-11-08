@@ -56,96 +56,134 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 		})
 	}
 	defaultLabel := i18n.T("ai.modelDefault")
-	kit.Dialog(c, &open, kit.DialogOptions{Title: i18n.T("ai.modelSettings"), Message: model, Cancel: i18n.T("common.close"), Width: 640,
+	name := pr.ModelNames[model]
+	if name == "" {
+		name = model
+	}
+	// These tabs are views of the same unsaved model. They never commit or
+	// discard its draft; the page's Save/Undo transaction owns that decision.
+	kit.Dialog(c, &open, kit.DialogOptions{Title: name, Message: pr.Name + " · " + model,
+		Cancel: i18n.T("common.close"), Width: 760, Note: i18n.T("aiComplete.modelDraft"),
+		Header: func() {
+			kit.SubTabs(c, &m.settingsTab, []string{i18n.T("aiComplete.modelBasics"), i18n.T("aiComplete.modelCapabilities"), i18n.T("aiComplete.modelRequest"), i18n.T("aiComplete.modelPricing")}, nil)
+		},
+		Actions: func() {
+			if kit.GhostButton(c, i18n.T("ai.modelRestoreDefaults"), icons.RotateCcw, false).Disabled(disabled).Clicked() {
+				change(func(d *modelMetadata) {
+					// Catalog facts remain available when the user's overrides are cleared.
+					*d = modelMetadata{Levels: d.Levels, Tiers: d.Tiers, Rate: d.Rate, RateWas: d.RateWas, ListedContextWindow: d.ListedContextWindow, MaxContextWindow: d.MaxContextWindow}
+				})
+				p.change(id, func(t *provider) { delete(t.ModelNames, model) })
+				m.fields = fields{}
+				m.modelHeaders = nil
+				m.headersFor = ""
+			}
+		},
 		Body: func() {
-			ui.Column(c).FillWidth().Gap(16).Disabled(disabled).Children(func() {
-				ui.Field(c, i18n.T("ai.modelDisplayName"), func() {
-					field := m.fields.get("name")
-					if name, edited := field.sync(pr.ModelNames[model]); edited {
-						// Names show in lists; 80 characters, as React's field
-						// allowed.
-						if r := []rune(name); len(r) > 80 {
-							name = string(r[:80])
-							field.text, field.shown = name, name
-						}
-						p.change(id, func(t *provider) {
-							names := map[string]string{}
-							for k, v := range t.ModelNames {
-								names[k] = v
+			ui.Column(c.Key(m.settingsTab)).FillWidth().Gap(20).Disabled(disabled).Children(func() {
+				switch m.settingsTab {
+				case 0:
+					ui.Field(c, i18n.T("ai.modelDisplayName"), func() {
+						field := m.fields.get("name")
+						if name, edited := field.sync(pr.ModelNames[model]); edited {
+							// Names show in lists; 80 characters, as React's field
+							// allowed.
+							if r := []rune(name); len(r) > 80 {
+								name = string(r[:80])
+								field.text, field.shown = name, name
 							}
-							if name == "" {
-								delete(names, model)
-							} else {
-								names[model] = name
-							}
-							t.ModelNames = names
-						})
-					}
-					ui.TextInput(c, &field.text).FillWidth().Placeholder(model).Label(i18n.T("ai.modelDisplayName"))
-				})
-				ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().AlignItems(ui.Start).Children(func() {
-					for _, key := range []string{"upstreamName", "same"} {
-						key := key
-						field := &meta.UpstreamName
-						if key == "same" {
-							field = &meta.Same
-						}
-						synced := m.fields.get(key)
-						if text, edited := synced.sync(value(*field)); edited {
-							change(func(d *modelMetadata) {
-								if key == "same" {
-									d.Same = ptr(text)
-								} else {
-									d.UpstreamName = ptr(text)
-								}
-							})
-						}
-						ui.Column(c.Key(key)).Basis(240).Grow(1).MinWidth(0).Gap(4).Children(func() {
-							ui.Field(c, i18n.T("ai.model"+key), func() {
-								ui.TextInput(c, &synced.text).FillWidth().Placeholder(model).Label(i18n.T("ai.model" + key))
-							})
-							kit.Help(c, i18n.T("ai.model"+key+"Hint"))
-						})
-					}
-				})
-				ui.Field(c, i18n.T("ai.modelAPI"), func() {
-					api := value(meta.API)
-					changed, trigger := kit.Select(c, &api, []kit.SelectOption{{Value: "", Label: defaultLabel},
-						{Value: "chat", Label: "OpenAI Chat Completions"}, {Value: "responses", Label: "OpenAI Responses"},
-						{Value: "anthropic", Label: "Anthropic Messages"}})
-					trigger.Label(i18n.T("ai.modelAPI"))
-					if changed {
-						change(func(d *modelMetadata) { d.API = ptr(api) })
-					}
-				})
-				m.efforts(c, meta, change)
-				m.pricing(c, meta, change)
-				ui.Row(c).Children(func() {
-					if kit.Button(c, i18n.T("ai.modelRestoreDefaults"), icons.RotateCcw, false).Clicked() {
-						p.change(id, func(t *provider) {
-							d := t.ModelMetadata[model]
-							d.Value.Same, d.Value.UpstreamName, d.Value.API, d.Value.Efforts, d.Value.Price, d.Value.Vision = nil, nil, nil, nil, nil, nil
-							if t.ModelMetadata == nil {
-								t.ModelMetadata = map[string]metadata{}
-							}
-							t.ModelMetadata[model] = d
-							names := map[string]string{}
-							for k, v := range t.ModelNames {
-								if k != model {
+							p.change(id, func(t *provider) {
+								names := map[string]string{}
+								for k, v := range t.ModelNames {
 									names[k] = v
 								}
-							}
-							t.ModelNames = names
-						})
+								if name == "" {
+									delete(names, model)
+								} else {
+									names[model] = name
+								}
+								t.ModelNames = names
+							})
+						}
+						ui.TextInput(c, &field.text).FillWidth().Placeholder(model).Label(i18n.T("ai.modelDisplayName"))
+					})
+
+					m.limitsOf(c, meta, change, defaultLabel)
+				case 1:
+					m.reasoning(c, meta, change, defaultLabel)
+					m.efforts(c, meta, change)
+				case 2:
+					alias := m.fields.get("alias")
+					if text, edited := alias.sync(value(meta.Alias)); edited {
+						change(func(d *modelMetadata) { d.Alias = ptr(text) })
 					}
-				})
-				m.limitsOf(c, meta, change, defaultLabel)
-				kit.Help(c, i18n.T("ai.modelMetadataHint"))
+					nativeText(c, completeT("modelAlias"), &alias.text, disabled)
+					kit.Help(c, completeT("modelAliasHint"))
+					ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().AlignItems(ui.Start).Children(func() {
+						for _, key := range []string{"upstreamName", "same"} {
+							key := key
+							field := &meta.UpstreamName
+							if key == "same" {
+								field = &meta.Same
+							}
+							synced := m.fields.get(key)
+							if text, edited := synced.sync(value(*field)); edited {
+								change(func(d *modelMetadata) {
+									if key == "same" {
+										d.Same = ptr(text)
+									} else {
+										d.UpstreamName = ptr(text)
+									}
+								})
+							}
+							ui.Column(c.Key(key)).Basis(240).Grow(1).MinWidth(0).Gap(4).Children(func() {
+								ui.Field(c, i18n.T("ai.model"+key), func() {
+									ui.TextInput(c, &synced.text).FillWidth().Placeholder(model).Label(i18n.T("ai.model" + key))
+								})
+								kit.Help(c, i18n.T("ai.model"+key+"Hint"))
+							})
+						}
+					})
+					ui.Field(c, i18n.T("ai.modelAPI"), func() {
+						api := value(meta.API)
+						changed, trigger := kit.Select(c, &api, []kit.SelectOption{{Value: "", Label: defaultLabel},
+							{Value: "chat", Label: "OpenAI Chat Completions"}, {Value: "responses", Label: "OpenAI Responses"},
+							{Value: "anthropic", Label: "Anthropic Messages"}, {Value: "gemini", Label: "Gemini generateContent"}, {Value: "decide", Label: "System One"}})
+						trigger.Label(i18n.T("ai.modelAPI"))
+						if changed {
+							change(func(d *modelMetadata) { d.API = ptr(api) })
+						}
+					})
+
+					if pr.AuthMode == "api-key" {
+						if m.headersFor != model {
+							m.headersFor = model
+							m.modelHeaders = nil
+							for _, row := range headerRows(meta.Headers) {
+								row := row
+								m.modelHeaders = append(m.modelHeaders, &row)
+							}
+						}
+						if requestHeaderRows(c, &m.modelHeaders, 32, disabled) {
+							rows := make([]headerRow, len(m.modelHeaders))
+							for i, row := range m.modelHeaders {
+								rows[i] = *row
+							}
+							change(func(d *modelMetadata) { d.Headers = headersOf(rows) })
+						}
+						kit.Help(c, i18n.T("aiComplete.modelHeadersHint"))
+					}
+				case 3:
+					m.pricing(c, meta, change)
+				}
 			})
 		}})
 	if !open {
 		m.editing = ""
 		m.fields = fields{}
+		m.modelHeaders = nil
+		m.headersFor = ""
+		m.settingsTab = 0
 	}
 }
 
@@ -249,7 +287,7 @@ func (m *modelsPanel) pricing(c *ui.Context, meta modelMetadata, change func(fun
 		})
 	}
 	listPrice := i18n.T("ai.modelListPrice")
-	ui.Column(c).FillWidth().Gap(12).Padding(16, 0, 0, 0).BorderWidth(1, 0, 0, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
+	ui.Column(c).FillWidth().Gap(16).Children(func() {
 		kit.Label(c, i18n.T("ai.modelPrice")).FontWeight(600)
 		ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().Children(func() {
 			for _, key := range priceParts5 {
@@ -259,57 +297,53 @@ func (m *modelsPanel) pricing(c *ui.Context, meta modelMetadata, change func(fun
 					if v, changed := numberText(c, *price.field(key), 0, math.MaxFloat64, false, listPrice, label); changed {
 						setPrice(func(d *core.Preserved[modelPrice]) { *d.Value.field(key) = v })
 					}
-				}).Basis(240).Grow(1)
+				}).Basis(210).Grow(1).MinWidth(0)
 			}
 		})
-		var tier priceTier
-		if len(price.Tiers) > 0 {
-			tier = price.Tiers[0].Value
-		}
-		if m.tierFor != m.editing {
-			// Open at first when the model has a long-context price.
-			m.tierFor, m.tierOpen = m.editing, len(price.Tiers) > 0
-		}
-		ui.Collapsible(c, i18n.T("ai.modelLongContextPrice"), &m.tierOpen, func() {
-			ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().Padding(8, 0).Children(func() {
-				var above *float64
-				if tier.Above != 0 {
-					above = &tier.Above
-				}
-				ui.Field(c, i18n.T("ai.modelPriceAbove"), func() {
-					if v, changed := numberText(c, above, 1, math.MaxFloat64, true, "", i18n.T("ai.modelPriceAbove")); changed {
-						setPrice(func(d *core.Preserved[modelPrice]) {
-							if v == nil {
-								d.Value.Tiers = nil
-								return
-							}
-							first := core.Preserved[priceTier]{}
-							if len(d.Value.Tiers) > 0 {
-								first = d.Value.Tiers[0]
-							}
-							first.Value.Above = *v
-							d.Value.Tiers = append([]core.Preserved[priceTier]{first}, rest(d.Value.Tiers)...)
-						})
+		// Every upstream tier remains independently editable, including 1-hour cache
+		// writes. The provider validates ascending boundaries on Save.
+		remove := -1
+		for index, doc := range price.Tiers {
+			tier := doc.Value
+			ui.Column(c.Key(index)).FillWidth().Gap(10).Padding(16, 0, 0, 0).BorderWidth(1, 0, 0, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
+				ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
+					kit.Label(c, i18n.T("aiComplete.priceTier", "number", index+1)).FontWeight(500).Grow(1)
+					if kit.IconButton(c, icons.X, i18n.T("aiComplete.removePriceTier", "number", index+1)).Clicked() {
+						remove = index
 					}
-				}).Basis(240).Grow(1)
-				for _, key := range priceParts5[:4] {
-					key := key
-					label := i18n.T("ai.modelLongContextPrice") + " · " + i18n.T("ai.modelPrice"+key)
-					ui.Field(c.Key("tier-"+key), label, func() {
-						if v, changed := numberText(c, *tier.field(key), 0, math.MaxFloat64, false, listPrice, label); changed {
-							setPrice(func(d *core.Preserved[modelPrice]) {
-								first := core.Preserved[priceTier]{}
-								if len(d.Value.Tiers) > 0 {
-									first = d.Value.Tiers[0]
-								}
-								*first.Value.field(key) = v
-								d.Value.Tiers = append([]core.Preserved[priceTier]{first}, rest(d.Value.Tiers)...)
-							})
-						}
-					}).Basis(240).Grow(1)
-				}
+				})
+				ui.Field(c, i18n.T("ai.modelPriceAbove"), func() {
+					if v, changed := numberText(c, ptr(tier.Above), 1, 100000000, true, "", i18n.T("ai.modelPriceAbove")+" "+kit.Itoa(index+1)); changed {
+						setPrice(func(d *core.Preserved[modelPrice]) { d.Value.Tiers[index].Value.Above = value(v) })
+					}
+				})
+				ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().Children(func() {
+					for _, key := range priceParts5 {
+						label := i18n.T("aiComplete.priceTier", "number", index+1) + " · " + i18n.T("ai.modelPrice"+key)
+						ui.Field(c.Key(key), i18n.T("ai.modelPrice"+key), func() {
+							if v, changed := numberText(c, *tier.field(key), 0, math.MaxFloat64, false, listPrice, label); changed {
+								setPrice(func(d *core.Preserved[modelPrice]) { *d.Value.Tiers[index].Value.field(key) = v })
+							}
+						}).Basis(210).Grow(1).MinWidth(0)
+					}
+				})
 			})
-		})
+		}
+		if remove >= 0 {
+			setPrice(func(d *core.Preserved[modelPrice]) {
+				d.Value.Tiers = slices.Delete(slices.Clone(d.Value.Tiers), remove, remove+1)
+			})
+		}
+		if kit.GhostButton(c, i18n.T("aiComplete.addPriceTier"), icons.Plus, false).Clicked() {
+			above := 200000.0
+			if len(price.Tiers) > 0 {
+				above = price.Tiers[len(price.Tiers)-1].Value.Above + 200000
+			}
+			setPrice(func(d *core.Preserved[modelPrice]) {
+				d.Value.Tiers = append(slices.Clone(d.Value.Tiers), core.Preserved[priceTier]{Value: priceTier{Above: above}})
+			})
+		}
+
 		kit.Help(c, i18n.T("ai.modelPriceHint"))
 	})
 }
@@ -356,7 +390,6 @@ func (m *modelsPanel) limitsOf(c *ui.Context, meta modelMetadata, change func(fu
 			})
 		})
 		m.compaction(c, meta, change, defaultLabel)
-		m.reasoning(c, meta, change, defaultLabel)
 	})
 }
 
@@ -484,7 +517,7 @@ func (m *modelsPanel) reasoning(c *ui.Context, meta modelMetadata, change func(f
 			if changed {
 				change(func(d *modelMetadata) { d.Tier = ptr(tier) })
 			}
-		}).Basis(240).Grow(1)
+		}).Basis(210).Grow(1).MinWidth(0)
 	})
 	for _, key := range []string{"reasoning", "vision", "tools"} {
 		key := key

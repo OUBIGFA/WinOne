@@ -41,6 +41,9 @@ type editor struct {
 	preferenceAccount    string
 	newPreferenceAccount string
 	newCapWindow         string
+	claudeMode           claudeModePanel
+	claudeModeDetails    bool
+	endpointsOpen        bool
 }
 
 func newEditor(p *page, pr *provider, key string) *editor {
@@ -75,6 +78,7 @@ func (e *editor) reset(pr *provider) {
 }
 
 func (e *editor) Close() {
+	e.claudeMode.api.close()
 	for _, row := range e.keyRows {
 		row.read++
 	}
@@ -244,6 +248,13 @@ var httpAddress = regexp.MustCompile(`(?i)^http://`)
 func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 	p := e.p
 	locked := p.locked()
+	enabled := !pr.Off
+	if kit.Toggle(c, &enabled, completeT("providerEnabled"), completeT("providerEnabledHint")).Disabled(locked).Changed() {
+		pr.Off = !enabled
+	}
+	if pr.AuthMode == "account" && pr.Agent == "claude" {
+		e.claudeModeView(c, locked)
+	}
 	if pr.AuthMode == "account" {
 		label := "aiOptions.open"
 		if e.optionsOpen {
@@ -319,6 +330,8 @@ func (e *editor) connection(c *ui.Context, pr *provider, locked bool) {
 				{Value: "chat", Label: "OpenAI Chat Completions"},
 				{Value: "responses", Label: "OpenAI Responses"},
 				{Value: "anthropic", Label: "Anthropic Messages"},
+				{Value: "gemini", Label: "Google Gemini"},
+				{Value: "decide", Label: "System One Decide"},
 			})
 			trigger.Label(i18n.T("ai.protocol")).Disabled(locked)
 			if changed {
@@ -366,6 +379,7 @@ func (e *editor) connection(c *ui.Context, pr *provider, locked bool) {
 			}
 		})
 		e.keys(c, pr, locked)
+		e.endpointPreferences(c, pr, locked)
 		if p.curl != nil && p.curl.provider == id {
 			kit.Stack(c, "", "", func() {
 				for _, message := range p.curl.messages {
@@ -623,13 +637,22 @@ func (e *editor) policy(c *ui.Context, pr *provider, locked bool) {
 // headersView edits the request headers as rows, Magpie's ordered
 // name/value/JSON editor; the draft keeps only their serialization.
 func (e *editor) headersView(c *ui.Context, pr *provider, locked bool) {
-	p := e.p
-	id := pr.ID
+	if requestHeaderRows(c, &e.headers, 64, locked) {
+		rows := make([]headerRow, len(e.headers))
+		for i, row := range e.headers {
+			rows[i] = *row
+		}
+		e.p.change(pr.ID, func(t *provider) { t.Headers = headersOf(rows) })
+	}
+}
+
+// Provider and model request headers use the same name/value/JSON controls.
+func requestHeaderRows(c *ui.Context, rows *[]*headerRow, limit int, locked bool) bool {
 	changed := false
 	kit.Group(c, icons.Braces, i18n.T("ai.headers"), i18n.T("ai.headersHint"), func() {
 		kit.Stack(c, "", "", func() {
 			remove := -1
-			for i, row := range e.headers {
+			for i, row := range *rows {
 				row := row
 				ui.Column(c.Key(i)).FillWidth().Gap(8).Children(func() {
 					ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
@@ -670,25 +693,18 @@ func (e *editor) headersView(c *ui.Context, pr *provider, locked bool) {
 				})
 			}
 			if remove >= 0 {
-				e.headers = append(e.headers[:remove], e.headers[remove+1:]...)
+				(*rows) = append((*rows)[:remove], (*rows)[remove+1:]...)
 				changed = true
 			}
 			ui.Row(c).Children(func() {
-				if kit.GhostButton(c, i18n.T("ai.addHeader"), icons.Plus, false).Disabled(locked || len(e.headers) >= 64).Clicked() {
-					e.headers = append(e.headers, &headerRow{})
+				if kit.GhostButton(c, i18n.T("ai.addHeader"), icons.Plus, false).Disabled(locked || len((*rows)) >= limit).Clicked() {
+					(*rows) = append((*rows), &headerRow{})
 					changed = true
 				}
 			})
 		})
 	})
-	if changed {
-		rows := make([]headerRow, len(e.headers))
-		for i, row := range e.headers {
-			rows[i] = *row
-		}
-		headers := headersOf(rows)
-		p.change(id, func(t *provider) { t.Headers = headers })
-	}
+	return changed
 }
 
 // named is a provider's or account type's public identity, all a plugin

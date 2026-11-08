@@ -6,17 +6,17 @@
 
 本次验证的完整上游依赖快照保存在 `upstream.go.mod` 和 `upstream.go.sum`；最低 Go 版本为 1.26.8。本次更新没有改变上游 Go 依赖版本。构建测试使用私有账号目录，并复用已配置的 Go 依赖缓存；测试目录位于任务临时目录，不能进入候选包的 `shared/ai`。
 
-构建还需传入 `PluginSourceDirectory` 和 `BunExe`：社区源码锁定 `bcc94e593339539fbe4c074ea666846455b6c167`，Bun 锁定 Windows x64 baseline 1.4.2。来源与逐文件摘要在 `third_party/ai-plugins.json`；脚本核对目录、资源和许可，不运行 npm 安装脚本。产品使用打包的插件和共享 Bun，按供应商的私有目录按需启动；不在打开设置时下载组件。
+构建还需传入 `PluginSourceDirectory` 和 `BunExe`：社区源码锁定 `03ab6d66f41303dc5df79fb9925602a35de418c0`，本轮包含 82 个插件，Bun 锁定 Windows x64 baseline 1.4.2。来源与逐文件摘要在 `third_party/ai-plugins.json`；脚本核对目录、资源和许可，不运行 npm 安装脚本。产品使用打包的插件和共享 Bun，按供应商的私有目录按需启动；不在打开设置时下载组件。
 
-账号目录包含 19 个内置类型及社区插件支持的供应商，合并为 25 个唯一选项。新选择的连接使用目录推荐的后端；旧配置缺省仍走原内置后端。插件登录支持方法选择、前置问题、设备码显示与复制、API 密钥、浏览器回调及授权码；模型获取与生成调用同一插件。跨安装目录只重新绑定已验证的插件路径，账号与选项保留。
+账号目录合并当前上游内置类型和社区插件上报的供应商，不在界面硬编码数量。新选择的连接使用目录推荐的后端；旧配置缺省仍走原内置后端。插件登录支持方法选择、前置问题、设备码显示与复制、API 密钥、浏览器回调及授权码；模型获取与生成调用同一插件。跨安装目录只重新绑定已验证的插件路径，账号与选项保留。
 
 普通账号页按 magpie 的 `pluginSubs` / `plugin.Cached` 流程读取：复用已验证的插件名称和登录方式，每次从当前 `plugin-auth.json` 读取账号，再复用上游账号名称、隐藏状态和过期状态处理。公开资料保存在供应商私有目录的 `winone-account-provider.json`，不保存凭据或账号快照；缓存绑定安装路径、账号类型、插件选项及插件/Bun 的锁定摘要。首次初始化、安装路径或依赖版本变化时重新枚举插件。登录、模型获取及生成仍完整校验资源并启动插件。WinOne 的短命读取进程不启动 magpie 常驻界面的后台刷新。
 
 对应上游依据为本次验证提交 `0bb0781ea065b5236a9a0014bceb84cb84324895` 中的 `internal/gui/plugins.go`、`internal/plugin/providers.go` 和 `internal/provider/plugin_accounts.go`。`plugin_snapshot_test.go` 对比两条路径在登录、换账号、退出后的结果；完整包测试验证移开测试 Bun 后仍能读取账号，而登录仍拒绝缺失的运行时。
 
-服务预设直接读取 magpie 的预设目录并使用 `FromPreset`，保留多协议与模型范围；界面展示 48 个生成服务，纯决策路由器不作为 OCR、翻译或对话供应商。用户修改地址时，其他预设地址不会成为隐式备用目标。
+服务预设直接读取 Magpie 的完整目录并使用 `FromPreset`，保留五种协议、地区、模型范围和纯决策服务。各用途根据真实能力筛选；用户修改地址时，其他预设地址不会成为隐式备用目标。
 
-上游：[yetone/magpie](https://github.com/yetone/magpie)，本次验证提交 [`0bb0781ea065b5236a9a0014bceb84cb84324895`](https://github.com/yetone/magpie/commit/0bb0781ea065b5236a9a0014bceb84cb84324895)，MIT。构建读取所选来源的 HEAD，不用固定提交阻塞更新。最新适配及验证见 [Chat 后端与 Magpie 验收](../../docs/2026-10-13-Chat后端与Magpie验收.md)。
+上游：[yetone/magpie](https://github.com/yetone/magpie)，本轮锁定 [`691a10446ec2b66142cee2203edf72d73b12d76d`](https://github.com/yetone/magpie/commit/691a10446ec2b66142cee2203edf72d73b12d76d)，MIT。升级时同步来源、接口与许可锁，构建校验所选源码。最新适配及验证见 [完整接入记录](../../docs/ai-full-integration-20261108.md) 和 [逐字段核对](../../docs/ai-upstream-settings-20261108.md)。
 
 每次文本或图像请求使用短命进程；图像为最多 32 MiB 的 PNG，沿用 magpie 的 Chat、Responses、Anthropic 适配。账号目录属于 WinOne；不导入或切换其他客户端账号，不自动安装缺失的官方客户端。
 

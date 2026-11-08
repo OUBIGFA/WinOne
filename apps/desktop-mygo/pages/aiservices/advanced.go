@@ -85,6 +85,7 @@ type bundledPlugin struct {
 // magpieCatalog is what Magpie offers for the advanced settings: helper
 // models, search services, accounts, and the plugins.
 type magpieCatalog struct {
+	Clients         []named        `json:"clients,omitempty"`
 	SearchVendors   []searchVendor `json:"searchVendors,omitempty"`
 	VisionModels    []modelChoice  `json:"visionModels,omitempty"`
 	ImageGenModels  []modelChoice  `json:"imageGenModels,omitempty"`
@@ -115,6 +116,7 @@ type magpieCatalog struct {
 // search, privacy, built-in features and the plugins' settings panels.
 // Its edits are part of the page's draft and save with it.
 type advancedPanel struct {
+	clientID string
 	p        *page
 	catalog  *magpieCatalog
 	loading  bool
@@ -439,6 +441,8 @@ func (a *advancedPanel) quota(c *ui.Context, catalog *magpieCatalog, locked bool
 			numberRow(c, nativeT("codexResetLead"), s.CodexResetLead, 3, 1440, true, "30", locked, func(v *float64) { s.CodexResetLead = v })
 			a.warmup(c, catalog, "claude", locked)
 			kit.Group(c, icons.CalendarCheck, i18n.T("ai.dailyCheckins"), i18n.T("ai.dailyCheckinsHint"), func() {
+				nativeList(c, a.fields, "checkinOff", completeT("checkinOff"), &s.CheckinOff, locked)
+				kit.Help(c, completeT("checkinOffHint"))
 				for _, item := range []struct {
 					name  string
 					value *bool
@@ -629,6 +633,9 @@ func (a *advancedPanel) warmup(c *ui.Context, catalog *magpieCatalog, agentID st
 					}
 				}
 				a.creditPriority(c, key, locked)
+				if autoReset {
+					a.autoResetWhen(c, key, locked)
+				}
 				credits := !slices.Contains(s.CodexNoCredits, key)
 				if ui.Checkbox(c, &credits, i18n.T("ai.codexUseCredits")).Disabled(locked).Changed() {
 					if credits {
@@ -716,6 +723,7 @@ func (a *advancedPanel) modelOptions(c *ui.Context, catalog *magpieCatalog, lock
 	kit.Group(c, icons.Image, i18n.T("ai.images"), "", func() {
 		a.helperModel(c, i18n.T("ai.visionModel"), s.Vision, catalog.VisionModels, catalog.VisionAuto, catalog.VisionMissing, locked,
 			func(v string) { s.Vision = v })
+		a.effortField(c, "visionEffort", &s.VisionEffort, locked)
 		kit.Stack(c, "", i18n.T("ai.visionModelHint"), func() {})
 		a.helperModel(c, i18n.T("ai.imageGenModel"), s.ImageGen, catalog.ImageGenModels, catalog.ImageGenAuto, catalog.ImageGenMissing, locked,
 			func(v string) { s.ImageGen = v })
@@ -855,6 +863,7 @@ func (a *advancedPanel) modelOptions(c *ui.Context, catalog *magpieCatalog, lock
 		a.helperModel(c, i18n.T("ai.codexAutoReview"), s.CodexAutoReview, catalog.TitleModels, "", "", locked, func(v string) { s.CodexAutoReview = v })
 	})
 	a.mcpRouterOptions(c, locked)
+	a.completeClientOptions(c, catalog, locked)
 }
 
 // searchForm is the form adding a search service's key or address.

@@ -5,6 +5,7 @@ package ai
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
@@ -15,14 +16,21 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 func (s *Store) runtimeProvidersLocked(c Configuration) ([]RuntimeProvider, error) {
 	result := []RuntimeProvider{}
 	for _, p := range c.Providers {
-		if len(p.Models) == 0 || p.AuthMode == "account" && c.MagpieSettings.NoAccountDiscovery {
+		p.Models = slices.DeleteFunc(slices.Clone(p.Models), func(model string) bool {
+			return c.MagpieSettings.ModelDisabled(p.ID, model, p.ModelMetadata[model].Alias)
+		})
+		if p.Off || len(p.Models) == 0 || p.AuthMode == "account" && c.MagpieSettings.NoAccountDiscovery {
 			continue
+		}
+		if err := s.hydrateProviderSecrets(&p); err != nil {
+			return nil, err
 		}
 		var key string
 		var keys []RuntimeKey
@@ -38,7 +46,7 @@ func (s *Store) runtimeProvidersLocked(c Configuration) ([]RuntimeProvider, erro
 				if err != nil {
 					return nil, err
 				}
-				keys = append(keys, RuntimeKey{ID: credential.id, Key: secret})
+				keys = append(keys, RuntimeKey{ID: credential.id, Key: secret, KeyOptions: credential.options})
 			}
 		}
 		result = append(result, RuntimeProvider{Provider: p, Key: key, Keys: keys})
@@ -58,6 +66,12 @@ func (s *Store) MagpieProviders() ([]RuntimeProvider, error) {
 // provider for image understanding, generation or search. Account homes stay
 // separate: a helper reuses the normal short-lived Translator for its profile.
 func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProvider, prefs *MagpieSettings) ([]auxiliaryProvider, func(), error) {
+	return t.auxiliaryBridgeCatalog(ctx, providers, prefs, nil)
+}
+
+// A running router can replace model catalogs without replacing its credentials
+// or canceling requests. Each attempt takes one immutable provider snapshot.
+func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []RuntimeProvider, prefs *MagpieSettings, update *func(Provider)) ([]auxiliaryProvider, func(), error) {
 	stop := func() {}
 	if len(providers) == 0 {
 		return nil, stop, nil
@@ -74,17 +88,63 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 	token := hex.EncodeToString(tokenBytes[:])
 	base := "http://" + listener.Addr().String()
 	byID := map[string]RuntimeProvider{}
+	var catalogMu sync.RWMutex
+	if update != nil {
+		*update = func(p Provider) {
+			catalogMu.Lock()
+			defer catalogMu.Unlock()
+			if current, ok := byID[p.ID]; ok {
+				// A call selected before the refresh may reach this bridge later.
+				// Retain its transport until this process exits; only the outer
+				// gateway publishes/selects the newly enabled catalog.
+				models := slices.Clone(p.Models)
+				for _, id := range current.Provider.Models {
+					if !slices.Contains(models, id) {
+						models = append(models, id)
+					}
+				}
+				metadata := make(map[string]ModelMetadata, len(current.Provider.ModelMetadata)+len(p.ModelMetadata))
+				for id, m := range current.Provider.ModelMetadata {
+					metadata[id] = m
+				}
+				for id, m := range p.ModelMetadata {
+					metadata[id] = m
+				}
+				current.Provider.Models = models
+				current.Provider.ModelMetadata = metadata
+				current.Provider.Contexts = p.Contexts
+				byID[p.ID] = current
+			}
+		}
+	}
 	out := []auxiliaryProvider{}
 	for _, p := range providers {
 		byID[p.Provider.ID] = p
 		url := base + "/" + p.Provider.ID
 		helper := auxiliaryProvider{ProviderPreferences: p.Provider.ProviderPreferences, ID: p.Provider.ID, Name: p.Provider.Name, Icon: p.Provider.DisplayIcon(), Chat: url + "/v1", Responses: url + "/v1", Anthropic: url, Key: token, Models: slices.Clone(p.Provider.Models), Metadata: p.Provider.ModelMetadata, Searches: p.Provider.Searches, LimitRestOff: p.Provider.LimitRestOff}
+		helper.ModelNames = p.Provider.ModelNames
 		// The outer router talks only to its authenticated local bridge.
 		// Transport choices apply once, to the vendor, in the inner worker.
 		helper.Proxy, helper.AuthHeader, helper.ExtraBody = "direct", "", nil
+		// Supplemental credentials and vendor discovery URLs belong solely to
+		// the inner worker, never the outer router's loopback provider.
+		helper.AccessKeyID, helper.SecretAccessKey, helper.BalanceToken = nil, nil, nil
+		helper.ModelsURL, helper.BalanceURL = "", ""
+		helper.Vertex, helper.ZhipuTeam, helper.Endpoints = nil, nil, nil
+		helper.KeySpendCaps, helper.KeyOwnBalances = nil, nil
 		helper.InsecureTLS = false
 		if p.Provider.AuthMode == "api-key" {
-			helper.DecisionSource = &decisionSource{Protocol: p.Provider.Protocol, BaseURL: p.Provider.BaseURL, Preset: p.Provider.Preset, PresetRegion: p.Provider.PresetRegion}
+			helper.DecisionSource = &decisionSource{Protocol: p.Provider.Protocol, BaseURL: p.Provider.BaseURL, Preset: p.Provider.Preset, PresetRegion: p.Provider.PresetRegion, ProviderPreferences: &ProviderPreferences{Endpoints: p.Provider.Endpoints}}
+			// Native APIs execute inside the same upstream gateway so its unknown-
+			// path, privacy and key-scope guards remain authoritative. This private
+			// process payload never enters settings responses or the model catalog.
+			helper.NativeSource = map[string]any{"providerId": p.Provider.ID, "protocol": p.Provider.Protocol, "baseUrl": p.Provider.BaseURL, "preset": p.Provider.Preset, "presetRegion": p.Provider.PresetRegion, "providerPreferences": p.Provider.ProviderPreferences, "headers": p.Provider.Headers, "key": p.Key}
+			if len(p.Keys) > 0 {
+				helper.NativeSource["key"], helper.NativeSource["keyID"], helper.NativeSource["keyOptions"] = p.Keys[0].Key, p.Keys[0].ID, p.Keys[0].KeyOptions
+				for _, key := range p.Keys[1:] {
+					helper.NativeKeys = append(helper.NativeKeys, auxiliaryKey{Name: key.Name, Key: key.Key, KeyOptions: key.KeyOptions})
+				}
+			}
 		}
 		if p.Provider.AuthMode == "account" {
 			helper.AccountKind = p.Provider.Agent
@@ -92,11 +152,41 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 		// Give Magpie a distinct private bridge key for each enabled credential.
 		// It can then retain its original key ordering, rotation and cooldowns.
 		for index, key := range p.Keys {
+			// Match Magpie's public KeyID fingerprint so restarting a private
+			// bridge does not reset a key's spending or its recorded balance.
+			digest := sha256.Sum256([]byte(key.Key))
+			fingerprint := hex.EncodeToString(digest[:5])
+			bridgeKey := token + ":" + key.ID
+			if helper.KeyIDs == nil {
+				helper.KeyIDs = map[string]string{}
+			}
+			helper.KeyIDs[bridgeKey] = fingerprint
+			if cap, ok := p.Provider.KeySpendCaps[key.ID]; ok {
+				if helper.KeySpendCaps == nil {
+					helper.KeySpendCaps = map[string]SpendCap{}
+				}
+				helper.KeySpendCaps[fingerprint] = cap
+			}
+			if balance, ok := p.Provider.KeyOwnBalances[key.ID]; ok {
+				if helper.KeyOwnBalances == nil {
+					helper.KeyOwnBalances = map[string]OwnBalance{}
+				}
+				helper.KeyOwnBalances[fingerprint] = balance
+			}
+			name := key.Name
+			if name == "" {
+				name = key.ID
+			}
 			if index == 0 {
-				helper.Key = token + ":" + key.ID
-				helper.KeyName = key.ID
+				helper.Key = bridgeKey
+				helper.KeyName = name
+				helper.KeyProtocol, helper.KeyWeight = key.Protocol, key.Weight
+				helper.KeyPlan = p.Provider.KeyPlan
+				if key.Plan != "" {
+					helper.KeyPlan = key.Plan
+				}
 			} else {
-				helper.Keys = append(helper.Keys, auxiliaryKey{Name: key.ID, Key: token + ":" + key.ID})
+				helper.Keys = append(helper.Keys, auxiliaryKey{Name: name, Key: bridgeKey, KeyOptions: key.KeyOptions})
 			}
 		}
 		out = append(out, helper)
@@ -113,7 +203,9 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 			return
 		}
 		id, path, ok := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
+		catalogMu.RLock()
 		target, known := byID[id]
+		catalogMu.RUnlock()
 		videoRead := r.Method == http.MethodGet && strings.HasPrefix(path, "v1/videos/")
 		if !ok || !known || r.Method != http.MethodPost && !videoRead {
 			GatewayError(w, 404, "辅助模型不存在")
@@ -156,11 +248,13 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 		}
 		p := target.Provider
 		key := target.Key
+		requestContext := r.Context()
 		if slot != "" {
 			found := false
 			for _, credential := range target.Keys {
 				if credential.ID == slot {
 					key = credential.Key
+					requestContext = contextWithRuntimeKey(requestContext, credential)
 					found = true
 					break
 				}
@@ -183,7 +277,7 @@ func (t Translator) auxiliaryBridge(ctx context.Context, providers []RuntimeProv
 		if root.RootDataDirectory != "" {
 			root.DataDirectory = root.RootDataDirectory
 		}
-		partial, err := root.ForProvider(p.ID).ChatRequest(r.Context(), inner, key, "/"+path, body, r.Header, w, r.Method)
+		partial, err := root.ForProvider(p.ID).ChatRequest(requestContext, inner, key, "/"+path, body, r.Header, w, r.Method)
 		if err != nil && !partial {
 			status := 502
 			var failed *AttemptFailure

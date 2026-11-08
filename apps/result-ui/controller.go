@@ -76,6 +76,7 @@ func NewController(client *Client, initial resultwindow.Initial) *Controller {
 	c.Panel.Actions.StudySpeak = c.speakStudy
 	c.Panel.Actions.StudyNavigate = c.studyNavigate
 	c.Panel.Actions.StudyAdd = c.addStudyNotes
+	c.Panel.Actions.StudyState = c.setStudyState
 	return c
 }
 func (c *Controller) Ready() {

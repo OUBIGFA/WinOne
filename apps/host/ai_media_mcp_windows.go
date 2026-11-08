@@ -4,6 +4,7 @@ package main
 
 import (
 	"net/http"
+	"strings"
 	"winone/internal/ai"
 	"winone/internal/chat"
 )
@@ -14,18 +15,17 @@ func (s *aiService) serveMediaMCP(w http.ResponseWriter, r *http.Request, store 
 	models := []string{}
 	config := store.Configuration()
 	for _, provider := range config.Providers {
-		if provider.AuthMode == "account" && config.MagpieSettings.NoAccountDiscovery {
+		if provider.Off || provider.AuthMode == "account" && config.MagpieSettings.NoAccountDiscovery {
 			continue
 		}
 		for _, model := range provider.Models {
 			if allow(ai.Selection{Provider: provider.ID, Model: model}) {
 				models = append(models, provider.ID+"/"+model)
+				if alias := provider.ModelMetadata[model].Alias; alias != "" {
+					models = append(models, provider.ID+"/"+alias)
+				}
 			}
 		}
-	}
-	if len(models) == 0 {
-		ai.GatewayError(w, 403, "本地网关没有启用可用模型")
-		return
 	}
 	select {
 	case s.gatewaySlots <- struct{}{}:
@@ -47,5 +47,25 @@ func (s *aiService) serveMediaMCP(w http.ResponseWriter, r *http.Request, store 
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, chat.MaximumChatRequestBytes)
+	if strings.HasPrefix(r.URL.Path, "/v1/magpie/native/") {
+		// A vendor's arbitrary API cannot be checked against a model list.
+		// Require its own opt-in; upstream still refuses scoped/budgeted keys,
+		// account providers and unsafe paths and applies privacy protection.
+		if !s.gateway.Status().Native {
+			ai.GatewayError(w, 403, "请先在本地网关的高级选项中开启供应商原生 API")
+			return
+		}
+		process.ServeHTTP(w, r)
+		return
+	}
+	groups, err := process.GatewayGroups(r.Context(), allow, config.RoutingEnabled)
+	if err != nil {
+		ai.GatewayError(w, 503, "路由模型状态读取失败")
+		return
+	}
+	models = append(models, groups...)
+	if len(models) == 0 {
+		models = []string{"/"}
+	}
 	process.ServeMedia(w, r, models)
 }

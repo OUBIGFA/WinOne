@@ -73,6 +73,11 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 	} else if !knownAgent(in.Agent) {
 		return errors.New("unsupported agent account")
 	}
+	if in.Operation != "accounts.signin" && in.Operation != "accounts.list" {
+		if err := prepareAccountPreferences(ctx, in); err != nil {
+			return err
+		}
+	}
 	switch in.Operation {
 	case "accounts.checkin":
 		if !pluginAccount(in) {
@@ -181,6 +186,10 @@ func readKeyBalances(ctx context.Context, in request, out io.Writer) error {
 		return json.NewEncoder(out).Encode(map[string]any{"quotas": []provider.SubscriptionQuota{}})
 	}
 	p.Key, p.KeyName = in.BalanceKeys[0].Key, in.BalanceKeys[0].Name
+	p.KeyProtocol, p.KeyWeight = in.BalanceKeys[0].Protocol, in.BalanceKeys[0].Weight
+	if in.BalanceKeys[0].Plan != "" {
+		p.KeyPlan = in.BalanceKeys[0].Plan
+	}
 	p.Keys = in.BalanceKeys[1:]
 	// Host preferences use stable saved slot IDs. Upstream accounts for the
 	// actual credential fingerprint, shared with the request ledger.

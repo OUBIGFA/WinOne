@@ -42,6 +42,8 @@ func (h *nativeResultHost) Handle(r host.Request) host.Response {
 		value = map[string]bool{"show": false}
 	case "quick-assistant.settings.get":
 		value = map[string]any{"alwaysOnTop": true}
+	case "results.learning.get":
+		value = map[string]string{"sustainable": "focused", "coordination": "ignored"}
 	default:
 		return host.Response{ID: r.ID, Error: &host.RPCError{Code: "probe", Message: "unexpected method: " + r.Method}}
 	}
@@ -202,11 +204,18 @@ func TestNativeResultProcess(t *testing.T) {
 						if err := json.Unmarshal(request.Params, &params); err != nil {
 							t.Fatal(err)
 						}
-						if request.Method != "ai.generate.start" || params.Session != id || !strings.Contains(params.System, "English learning tutor") || len(params.Messages) != 1 {
+						wantMessages := 1
+						if i >= 2 {
+							wantMessages = 2
+						}
+						if request.Method != "ai.generate.start" || params.Session != id || !strings.Contains(params.System, "English learning tutor") || len(params.Messages) != wantMessages {
 							t.Fatalf("learning route: %s %+v", request.Method, params)
 						}
 						if i == 0 && !strings.Contains(params.Messages[0].Content, `"word":"go"`) {
 							t.Fatal("bundled inflection lookup missing")
+						}
+						if i >= 2 && (strings.Contains(params.Messages[0].Content, `"word":"coordination"`) || !strings.Contains(params.Messages[0].Content, `"word":"sustainable"`) || !strings.Contains(params.Messages[1].Content, `"focus":["sustainable"]`) || !strings.Contains(params.Messages[1].Content, `"ignore":["coordination"]`)) {
+							t.Fatal("production learning route did not apply saved term states")
 						}
 					case <-ctx.Done():
 						t.Fatal("learning route timed out")

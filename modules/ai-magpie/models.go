@@ -16,6 +16,15 @@ import (
 // Match the Host bound without discarding upstream catalog entries.
 const maximumCatalogModels = 4096
 
+// Keep the saved provider ID through protocol adaptation, model preferences,
+// fallbacks and disabled-model rules. Legacy callers retain their old ID.
+func requestProviderID(in request) string {
+	if in.ProviderID != "" {
+		return in.ProviderID
+	}
+	return "winone"
+}
+
 type modelOption struct {
 	ID       string        `json:"id"`
 	Name     string        `json:"name"`
@@ -26,10 +35,12 @@ type modelOption struct {
 // The host owns persistence. Worker options mirror Magpie's model window,
 // output and effort semantics without writing agents' configuration files.
 type modelMetadata struct {
-	Searches     bool   `json:"searches,omitempty"`
-	Same         string `json:"same,omitempty"`
-	UpstreamName string `json:"upstreamName,omitempty"`
-	API          string `json:"api,omitempty"`
+	Alias        string            `json:"alias,omitempty"`
+	Searches     bool              `json:"searches,omitempty"`
+	Same         string            `json:"same,omitempty"`
+	UpstreamName string            `json:"upstreamName,omitempty"`
+	API          string            `json:"api,omitempty"`
+	Headers      map[string]string `json:"headers,omitempty"`
 	// Levels are the vendor's reported reasoning levels; Efforts the offered
 	// (kept) ones. Both are the vendor's own words, never a fixed ladder.
 	Levels  []string       `json:"levels,omitempty"`
@@ -190,7 +201,7 @@ func configuredProvider(in request) (provider.Provider, error) {
 	if err != nil || base.Hostname() == "" || base.User != nil || base.RawQuery != "" || base.Fragment != "" || (base.Scheme != "https" && base.Scheme != "http") {
 		return provider.Provider{}, errors.New("AI endpoint must be an HTTP or HTTPS base URL without credentials, query or fragment")
 	}
-	p := provider.Provider{ID: "winone", Name: "WinOne", Key: in.Key}
+	p := provider.Provider{ID: requestProviderID(in), Name: "WinOne", Key: in.Key}
 	if in.Preset != "" {
 		p, err = provider.FromPreset(in.Preset)
 		if err != nil {
@@ -218,13 +229,17 @@ func configuredProvider(in request) (provider.Provider, error) {
 			expected = p.Responses
 		} else if in.Protocol == "anthropic" {
 			expected = p.Anthropic
+		} else if in.Protocol == "gemini" {
+			expected = p.Gemini
+		} else if in.Protocol == "decide" {
+			expected = p.Decide
 		}
 		// An edited endpoint is explicit: do not retain other vendor URLs as
 		// invisible fallbacks. An unchanged preset keeps its native protocols.
 		if strings.TrimRight(expected, "/") != strings.TrimRight(in.BaseURL, "/") {
-			p.Chat, p.Responses, p.Anthropic, p.Decide = "", "", "", ""
+			p.Chat, p.Responses, p.Anthropic, p.Gemini, p.Decide = "", "", "", "", ""
 		}
-		p.ID, p.Key = "winone", in.Key
+		p.ID, p.Key = requestProviderID(in), in.Key
 		p.BaseAPI = in.Protocol
 	}
 	if in.Model != "" {
@@ -235,7 +250,31 @@ func configuredProvider(in request) (provider.Provider, error) {
 	}
 	p.AdditionalTools = in.AdditionalTools
 	p.LimitRestOff = in.LimitRestOff
-	if err := applyProviderPreferences(&p, in); err != nil { return p, err }
+	if err := applyProviderPreferences(&p, in); err != nil {
+		return p, err
+	}
+	if in.ProviderPreferences != nil && in.ProviderPreferences.Endpoints != nil {
+		e := in.ProviderPreferences.Endpoints
+		p.Chat, p.Responses, p.Anthropic, p.Gemini, p.Decide = e.Chat, e.Responses, e.Anthropic, e.Gemini, e.Decide
+		// An explicitly cleared Gemini URL must stay clear in upstream normalize.
+		p.GeminiFilled = true
+	}
+	p.BaseAPI = in.Protocol
+	if k := in.KeyOptions; k != nil {
+		p.KeyName, p.KeyProtocol, p.KeyWeight = k.Name, provider.Protocol(k.Protocol), k.Weight
+		if k.Plan != "" {
+			p.KeyPlan = k.Plan
+		}
+	}
+	if in.KeyID != "" && p.Key != "" {
+		fingerprint := provider.KeyID(p.Key)
+		if cap, ok := p.KeySpendCaps[in.KeyID]; ok {
+			p.KeySpendCaps = map[string]provider.SpendCap{fingerprint: cap}
+		}
+		if balance, ok := p.KeyOwnBalances[in.KeyID]; ok {
+			p.KeyOwnBalances = map[string]provider.OwnBalance{fingerprint: balance}
+		}
+	}
 	// Magpie applies these after protocol authentication, preserving names and
 	// merging list-valued headers through the same path as its provider editor.
 	for name, value := range in.Headers {
@@ -251,6 +290,10 @@ func configuredProvider(in request) (provider.Provider, error) {
 		p.Responses = strings.TrimRight(in.BaseURL, "/")
 	case "anthropic":
 		p.Anthropic = strings.TrimRight(in.BaseURL, "/")
+	case "gemini":
+		p.Gemini = strings.TrimRight(in.BaseURL, "/")
+	case "decide":
+		p.Decide = strings.TrimRight(in.BaseURL, "/")
 	default:
 		return p, errors.New("unsupported AI protocol")
 	}
@@ -266,7 +309,9 @@ func fetchModels(ctx context.Context, in request) ([]modelOption, error) {
 		}
 		p = *account
 		p.LimitRestOff = in.LimitRestOff
-		if err := applyProviderPreferences(&p, in); err != nil { return nil, err }
+		if err := applyProviderPreferences(&p, in); err != nil {
+			return nil, err
+		}
 	} else {
 		p, err = configuredProvider(in)
 		if err != nil {
@@ -276,6 +321,8 @@ func fetchModels(ctx context.Context, in request) ([]modelOption, error) {
 		p = provider.All()[0]
 	}
 	ctx, observed := observeFailures(ctx)
+	// ListOff uses the user's explicit models and makes no discovery request.
+	p.Models = slices.Clone(in.Models)
 	models, err := p.Fetch(ctx)
 	if err != nil {
 		if failure := observed.result(); failure != nil && in.Agent == "" {

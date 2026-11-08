@@ -82,6 +82,23 @@ func (s *Store) prepareSearchKeys(c *Configuration) (map[string]string, error) {
 
 func (s *Store) runtimeMagpieSettingsLocked(c Configuration) (*MagpieSettings, error) {
 	out := c.MagpieSettings.clone()
+	for name, sealed := range s.otelHeaders {
+		plain, err := unsealKey(sealed)
+		if err != nil {
+			return nil, err
+		}
+		if out.OTel.Headers == nil {
+			out.OTel.Headers = map[string]string{}
+		}
+		out.OTel.Headers[name] = plain
+	}
+	if s.githubToken != "" {
+		plain, err := unsealKey(s.githubToken)
+		if err != nil {
+			return nil, err
+		}
+		out.GitHubToken = &plain
+	}
 	out.ModelPrices = map[string]ModelPrice{}
 	out.ModelSameAs = map[string]string{}
 	for _, p := range c.Providers {

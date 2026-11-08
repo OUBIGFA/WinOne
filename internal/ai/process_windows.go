@@ -84,7 +84,7 @@ func isolatedEnvironment(directory string) []string {
 		for _, prefix := range []string{"CODEX_", "CLAUDE_", "ANTHROPIC_", "OPENAI_", "GEMINI_", "CLOUDSDK_", "COPILOT_", "CURSOR_", "GROK_", "KIRO_", "DEVIN_", "WORKBUDDY_", "QODER_", "ZED_", "FACTORY_", "DROID_", "MIMO_", "ZCODE_", "AWS_", "AZURE_"} {
 			privateAgent = privateAgent || strings.HasPrefix(name, prefix)
 		}
-		if privateAgent || name == "WINONE_AI_OS_USERPROFILE" || name == "WINONE_AI_BACKGROUND_DESKTOP" {
+		if privateAgent || name == "WINONE_AI_CLAUDE_RUN_FILE" || name == "WINONE_AI_OS_USERPROFILE" || name == "WINONE_AI_BACKGROUND_DESKTOP" {
 			continue
 		}
 		if strings.HasPrefix(name, "XDG_") || strings.HasPrefix(name, "MAGPIE_") || name == "USERPROFILE" || name == "APPDATA" || name == "LOCALAPPDATA" || name == "CLAUDE_CONFIG_DIR" || name == "CLAUDE_SECURESTORAGE_CONFIG_DIR" || name == "ANTHROPIC_API_KEY" || name == "OPENAI_API_KEY" {
@@ -94,5 +94,7 @@ func isolatedEnvironment(directory string) []string {
 	}
 	// Only the child sees this private agent home. Login never switches the
 	// user's separately installed coding agents to another account.
-	return append(env, "XDG_CONFIG_HOME="+filepath.Join(directory, "config"), "XDG_CACHE_HOME="+filepath.Join(directory, "cache"), "USERPROFILE="+filepath.Join(directory, "home"), "APPDATA="+filepath.Join(directory, "home/AppData/Roaming"), "LOCALAPPDATA="+filepath.Join(directory, "home/AppData/Local"), "MAGPIE_OTEL_ENABLED=false")
+	// Inherited MAGPIE_* overrides were removed above. Export follows the
+	// installation's saved opt-in; a forced false here made its switch inert.
+	return append(env, "XDG_CONFIG_HOME="+filepath.Join(directory, "config"), "XDG_CACHE_HOME="+filepath.Join(directory, "cache"), "USERPROFILE="+filepath.Join(directory, "home"), "APPDATA="+filepath.Join(directory, "home/AppData/Roaming"), "LOCALAPPDATA="+filepath.Join(directory, "home/AppData/Local"))
 }

@@ -128,6 +128,7 @@ func (p *Panel) result(c *ui.Context, t *ui.Theme) {
 			}
 		}
 		// The result's own actions share the right edge of every copy button.
+		text = p.Study.displayAnalysis(text)
 		ui.Row(c).Key("result-actions").FillWidth().MinHeight(iconButtonSize).AlignItems(ui.Center).Gap(4).Children(func() {
 			switch {
 			case p.Source == "selection" && p.Mode == "translate":
@@ -162,7 +163,7 @@ func (p *Panel) result(c *ui.Context, t *ui.Theme) {
 			})
 		}
 		if p.Result != "" {
-			p.markdownView(c, "result-body", p.Result, markdownResult, false)
+			p.markdownView(c, "result-body", p.Study.displayAnalysis(p.Result), markdownResult, false)
 		}
 		if p.ResultPending != nil {
 			if p.Result != "" {
@@ -175,7 +176,7 @@ func (p *Panel) result(c *ui.Context, t *ui.Theme) {
 						ui.Text(c, strings.Join(strings.Fields(p.ResultPending.Text), " ")).FillWidth().FontSize(em(t, sizeLabel)).TextColor(t.TextMuted).LineHeight(1.5).MaxLines(2).Ellipsis("…")
 					})
 				} else {
-					p.markdownView(c, "result-draft", p.ResultPending.Text, markdownResult, p.Busy)
+					p.markdownView(c, "result-draft", p.Study.displayAnalysis(p.ResultPending.Text), markdownResult, p.Busy)
 				}
 			}
 			p.draftStatus(c, t, p.ResultPending)
@@ -301,7 +302,7 @@ func (p *Panel) replyContent(c *ui.Context, t *ui.Theme, message *Message, key s
 		}
 		p.reasoning(c, t, message)
 		if message.Text != "" {
-			p.markdownView(c, key, message.Text, markdownReply, working)
+			p.markdownView(c, key, message.Study.displayAnalysis(message.Text), markdownReply, working)
 		}
 	})
 }
@@ -322,6 +323,8 @@ func (p *Panel) draftStatus(c *ui.Context, t *ui.Theme, message *Message) {
 }
 
 func (p *Panel) replyActions(c *ui.Context, t *ui.Theme, message *Message, key string, retry bool) {
+	// Copy and speech must use the same learning content the reader sees.
+	text := message.Study.displayAnalysis(message.Text)
 	// Keep actions after their answer and on a shared right edge. They remain
 	// visible for keyboard users and each callback owns this exact message.
 	ui.Row(c).Key("actions").FillWidth().Gap(4).Children(func() {
@@ -331,9 +334,9 @@ func (p *Panel) replyActions(c *ui.Context, t *ui.Theme, message *Message, key s
 				p.Actions.Retry()
 			}
 		}
-		p.speechButton(c, key, message.Text, p.T("朗读回复", "Read reply aloud"), true, message.State == "running" || key == "pending-reply" && p.Busy)
-		if iconButton(c, "copy", p.T("复制回复", "Copy reply"), message.Text == "").Clicked() && p.Actions.Copy != nil {
-			p.Actions.Copy(message.Text)
+		p.speechButton(c, key, text, p.T("朗读回复", "Read reply aloud"), true, message.State == "running" || key == "pending-reply" && p.Busy)
+		if iconButton(c, "copy", p.T("复制回复", "Copy reply"), text == "").Clicked() && p.Actions.Copy != nil {
+			p.Actions.Copy(text)
 		}
 	})
 	p.speechFeedback(c, t, key)

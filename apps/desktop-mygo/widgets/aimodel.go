@@ -20,6 +20,7 @@ import (
 // Pages read it for display only; they save configurations they received
 // as they were (core.Preserved), so fields not declared here are kept.
 type AIProvider struct {
+	Off    bool   `json:"off,omitempty"`
 	ID     string `json:"id"`
 	Name   string `json:"name"`
 	Icon   string `json:"icon,omitempty"`
@@ -95,7 +96,7 @@ func AIModelSelect(c *ui.Context, o AIModelSelectOptions) (*AISelection, bool) {
 	if value != nil {
 		provider = aiPickFind(o.Providers, value.Provider)
 	}
-	invalid := value != nil && value.Provider != "" && (provider == nil || !slices.Contains(provider.Models, value.Model))
+	invalid := value != nil && value.Provider != "" && (provider == nil || provider.Off || !slices.Contains(provider.Models, value.Model))
 
 	var choices []ModelChoice
 	switch {

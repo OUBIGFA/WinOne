@@ -27,6 +27,7 @@ type aiMagpieMaintenance struct {
 	ctx        context.Context
 	snapshot   func() ([]ai.Provider, *ai.MagpieSettings, error)
 	runAccount func(context.Context, ai.Provider, *ai.MagpieSettings) (json.RawMessage, error)
+	runModels  func(context.Context, string) error
 	locale     func() string
 	tooltip    func(string)
 	notify     func(string, string) error
@@ -38,7 +39,7 @@ type aiMagpieMaintenance struct {
 
 func (s *aiService) startMagpieMaintenance(locale func() string) {
 	m := &aiMagpieMaintenance{ctx: s.ctx, locale: locale, tooltip: systray.SetTooltip, notify: systray.ShowWarning,
-		runAccount: s.maintainMagpieAccount, snapshot: func() ([]ai.Provider, *ai.MagpieSettings, error) {
+		runAccount: s.maintainMagpieAccount, runModels: s.refreshProviderModels, snapshot: func() ([]ai.Provider, *ai.MagpieSettings, error) {
 			store, err := s.magpieStore()
 			if err != nil {
 				return nil, nil, err
@@ -109,12 +110,19 @@ func (m *aiMagpieMaintenance) Update() {
 		return
 	}
 	accounts := []ai.Provider{}
+	refreshers := []ai.Provider{}
 	for _, p := range providers {
-		if p.AuthMode == "account" {
+		if p.AuthMode == "account" && !p.Off {
 			accounts = append(accounts, p)
 		}
+		if p.ModelRefreshInterval() > 0 && (p.AuthMode != "account" || !prefs.NoAccountDiscovery) {
+			refreshers = append(refreshers, p)
+		}
 	}
-	if !prefs.MaintenanceNeeded() || len(accounts) == 0 {
+	if !prefs.MaintenanceNeeded() {
+		accounts = nil
+	}
+	if len(accounts) == 0 && len(refreshers) == 0 {
 		if wasRunning && m.tooltip != nil {
 			m.tooltip("WinOne")
 		}
@@ -123,7 +131,7 @@ func (m *aiMagpieMaintenance) Update() {
 	ctx, cancel := context.WithCancel(m.ctx)
 	m.cancel = cancel
 	m.done = make(chan struct{})
-	go m.loop(ctx, m.done, accounts, prefs)
+	go m.loop(ctx, m.done, accounts, prefs, refreshers...)
 }
 
 func (m *aiMagpieMaintenance) Close() { m.mu.Lock(); defer m.mu.Unlock(); m.stopLocked() }
@@ -173,7 +181,7 @@ func magpieMaintenanceInterval(p *ai.MagpieSettings) time.Duration {
 	return magpieTrayInterval(p)
 }
 
-func (m *aiMagpieMaintenance) loop(ctx context.Context, done chan struct{}, accounts []ai.Provider, prefs *ai.MagpieSettings) {
+func (m *aiMagpieMaintenance) loop(ctx context.Context, done chan struct{}, accounts []ai.Provider, prefs *ai.MagpieSettings, refreshers ...ai.Provider) {
 	defer close(done)
 	wait := m.wait
 	if wait == nil {
@@ -183,7 +191,43 @@ func (m *aiMagpieMaintenance) loop(ctx context.Context, done chan struct{}, acco
 	readAt := map[string]time.Time{}
 	failures := map[string]string{}
 	var lastTip time.Time
+	nextModels := map[string]time.Time{}
+	for _, p := range refreshers {
+		nextModels[p.ID] = p.ModelRefreshAt.Add(p.ModelRefreshInterval())
+		if p.AuthMode == "account" && time.Now().After(nextModels[p.ID]) {
+			nextModels[p.ID] = time.Now().Add(time.Minute)
+		}
+	}
 	for {
+		for _, p := range refreshers {
+			if ctx.Err() != nil {
+				return
+			}
+			if m.runModels != nil && !time.Now().Before(nextModels[p.ID]) {
+				err := m.runModels(ctx, p.ID)
+				if ctx.Err() != nil {
+					return
+				}
+				if err != nil {
+					if !errors.Is(err, errMagpieAccountBusy) {
+						m.log(errors.New(p.Name + ": 模型自动刷新未完成"))
+					}
+					nextModels[p.ID] = time.Now().Add(time.Minute)
+					continue
+				}
+				nextModels[p.ID] = time.Now().Add(p.ModelRefreshInterval())
+				if m.snapshot != nil {
+					if latest, _, err := m.snapshot(); err == nil {
+						for _, current := range latest {
+							if current.ID == p.ID {
+								nextModels[p.ID] = time.Now().Add(current.ModelRefreshInterval())
+								break
+							}
+						}
+					}
+				}
+			}
+		}
 		staleChanged := false
 		for _, p := range accounts {
 			if ctx.Err() != nil {
@@ -248,7 +292,11 @@ func (m *aiMagpieMaintenance) loop(ctx context.Context, done chan struct{}, acco
 			m.tooltip(magpieTooltip(cards, prefs, m.language()))
 			lastTip = time.Now()
 		}
-		if !wait(ctx, magpieMaintenanceInterval(prefs)) {
+		interval := magpieMaintenanceInterval(prefs)
+		if len(refreshers) > 0 && interval > time.Minute {
+			interval = time.Minute
+		}
+		if !wait(ctx, interval) {
 			return
 		}
 	}

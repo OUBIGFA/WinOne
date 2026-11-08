@@ -16,7 +16,7 @@ func TestCustomHTTPProviderSupportsDraftSaveReopenAndTasks(t *testing.T) {
 		"http://localhost:3000/v1", "http://127.0.0.1:3000/v1", "http://[::1]:3000/v1",
 		"https://relay.example:3443/api/v1",
 	} {
-		for _, protocol := range []string{"chat", "responses", "anthropic"} {
+		for _, protocol := range []string{"chat", "responses", "anthropic", "gemini", "decide"} {
 			t.Run(protocol+"/"+endpoint, func(t *testing.T) {
 				path := filepath.Join(t.TempDir(), "ai.json")
 				store, err := Open(path)

@@ -77,7 +77,7 @@
 | `sources/PowerToys` | 锁定提交的置顶引擎及其恢复的编译依赖；由准备脚本维护 |
 | `sources/ShareX-21.0.0`、`sources/ShareX-v21.0.0.zip` | ShareX 准备脚本的固定源码和归档 |
 | `sources/ShareX-native` | 现用原生截图引擎的独立源码；需要测试改写时再复制到 `_temp/<任务>/` |
-| `sources/magpie-778b8e0`、`sources/ai-plugins-d7adec8` | AI 适配器来源与当前 `third_party/ai-plugins.json` 对应的账号插件源码；Magpie 构建读取所选来源的 HEAD，不固定阻塞版本；测试输出仍回到根 `_temp/` |
+| `sources/magpie-691a104`、`sources/ai-plugins-03ab6d6` | AI 适配器来源与当前 `third_party/ai-plugins.json` 对应的账号插件源码；Magpie 构建读取所选来源的 HEAD，不固定阻塞版本；测试输出仍回到根 `_temp/` |
 | `sources/mathjax-newcm-font-4.1.3.tgz` | 原始 npm 字体源包；`build/prepare-chat-math.ps1` 仅在缺失时下载，按 `third_party/chat-math-notices.json` 的 SHA-256 与 npm lock SHA-512 核验，并随公式运行时分发，供复核 GUST/LPPL 字体来源；不安装系统字体 |
 | `sources/mygo-winone-v0.8.3` | MyGo正式v0.8.3的仓库管理源码副本，按 `third_party/mygo-winone/source.json` 与 `build/prepare-mygo-filedrop.ps1` 校验原模块和窄适配；设置窗口、结果窗及nativeui使用该副本，不修改用户Go module cache。旧版本留作历史/回退参考 |
 | `runtimes/ocr` | OCR Python、离线依赖与模型，供反复打包；以 OCR 清单校验 |

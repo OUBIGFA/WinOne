@@ -35,6 +35,21 @@ if($LASTEXITCODE -ne 0){throw 'Cannot isolate the upstream privacy records'}
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/routing.go') -Destination (Join-Path $SourceDirectory 'cmd/winone-ai/routing.go')
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/routing_gui.go.txt') -Destination (Join-Path $SourceDirectory 'internal/gui/winone_routing.go')
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/routing_provider.go.txt') -Destination (Join-Path $SourceDirectory 'internal/provider/winone_routing.go')
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/claude_mode_test.go') -Destination (Join-Path $SourceDirectory 'internal/gateway/winone_claude_mode_test.go')
 $file=Join-Path $SourceDirectory 'internal/provider/winone_embedded.go'
 $content=[IO.File]::ReadAllText($file).Replace('normalize(p)','normalize(winOneRoutingProvider(p))')
 [IO.File]::WriteAllText($file,$content,$encoding)
+# Keep the upstream fingerprint algorithm for real keys. The outer router's
+# private transport keys use the Host-provided fingerprint of the selected key.
+$revision=(& git -C $SourceDirectory rev-parse HEAD).Trim()
+$keySource=(& git -C $SourceDirectory show ($revision+':internal/provider/keys.go')) -join "`n"
+$hook='func keyID(key string) string {'
+if(-not $keySource.Contains($hook)){throw 'Upstream key identity boundary changed'}
+$keySource=$keySource.Replace($hook,$hook+' if id,ok:=winOneKeyIdentity(key);ok{return id}; ')
+[IO.File]::WriteAllText((Join-Path $SourceDirectory 'internal/provider/keys.go'),$keySource+"`n",$encoding)
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/claude_mode.go.txt') -Destination (Join-Path $SourceDirectory 'internal/gateway/winone_claude_mode.go')
+$claudeSource=(& git -C $SourceDirectory show ($revision+':internal/gateway/claude_subscription.go')) -join "`n"
+$hook='claudeLast.run = ClaudeLastRun{TUI: why == "", Why: why, At: time.Now()}'
+if(-not $claudeSource.Contains($hook)){throw 'Upstream Claude run observation boundary changed'}
+$claudeSource=$claudeSource.Replace($hook,$hook+"`n`twinOneRememberClaudeRun(claudeLast.run)")
+[IO.File]::WriteAllText((Join-Path $SourceDirectory 'internal/gateway/claude_subscription.go'),$claudeSource+"`n",$encoding)

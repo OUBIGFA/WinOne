@@ -1,4 +1,5 @@
 {
+ "learning.intro":"Select text and choose Learn for local dictionary results and explanations in context. Ignore familiar terms or focus on terms you want to study more.",
  "learning.title":"English learning",
  "learning.missing":"Learn is missing from this toolbar. If it already contains 24 actions, remove one action first.",
  "learning.restore":"Add Learn action",

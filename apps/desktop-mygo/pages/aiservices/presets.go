@@ -20,9 +20,8 @@ func language() string {
 	return "en"
 }
 
-// offeredPresets are the inference services of the catalog in the user's
-// language that match search. Magpie also catalogs routers that only
-// choose another provider; they generate nothing, so they are left out.
+// Include decision services too: they are selected by routing groups even
+// though they do not generate chat responses of their own.
 func offeredPresets(presets []servicePreset, search string) []servicePreset {
 	lang := language()
 	query := strings.ToLower(strings.TrimSpace(search))
@@ -32,7 +31,7 @@ func offeredPresets(presets []servicePreset, search string) []servicePreset {
 		for _, l := range preset.Langs {
 			inLanguage = inLanguage || l == lang || l == i18n.Locale()
 		}
-		inference := preset.Chat != "" || preset.Responses != "" || preset.Anthropic != "" || preset.Endpoint != ""
+		inference := preset.Chat != "" || preset.Responses != "" || preset.Anthropic != "" || preset.Gemini != "" || preset.Decide != "" || preset.Endpoint != ""
 		if inLanguage && inference && strings.Contains(strings.ToLower(preset.Name+" "+preset.ID), query) {
 			out = append(out, preset)
 		}

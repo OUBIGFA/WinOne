@@ -28,6 +28,22 @@ func TestLearningLayoutAndNoteEditor(t *testing.T) {
 				}
 				s.Rows[indices[0]].Added = true
 			}
+			if folder := os.Getenv("WINONE_LEARNING_SHOTS"); folder != "" {
+				for _, width := range []int{320, 420, 800} {
+					tt := ui.NewTester(p.View, width, 900)
+					if err := os.MkdirAll(folder, 0700); err != nil {
+						t.Fatal(err)
+					}
+					file, err := os.Create(filepath.Join(folder, fmt.Sprintf("reading-%s-%s-%d.png", lang, theme, width)))
+					if err != nil {
+						t.Fatal(err)
+					}
+					if err = png.Encode(file, tt.Image()); err != nil {
+						t.Fatal(err)
+					}
+					file.Close()
+				}
+			}
 			tt := ui.NewTester(p.View, 420, 900)
 			tt.SetPreferences(ui.Preferences{ReduceMotion: true, TextScale: 1})
 			if err := tt.Click(p.T("加入生词本", "Add to vocabulary")); err != nil {
@@ -99,7 +115,56 @@ func TestPassagePagingKeepsAllCardsAvailable(t *testing.T) {
 	if !tt.HasText("The full dictionary definition") {
 		t.Fatal("details not expanded")
 	}
+	if err := tt.Click("Vocabulary and study tools"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Advance(300000000)
 	if err := tt.Click("Add all"); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestSentenceLearningScreensAndStateActions(t *testing.T) {
+	for _, lang := range []string{"zh-CN", "en-US"} {
+		for _, theme := range []string{"light", "dark"} {
+			p := NewPanel("translate", lang, theme)
+			p.Source = "selection"
+			p.Action = "learn"
+			s := newStudy(resultwindow.LearningAction(), "We look up sustainable solutions and put them into practice every day.")
+			s.States = learning.TermStates{"look up": learning.Focused, "every day": learning.Ignored}
+			s.acceptEntries([]learning.Entry{{Word: "sustainable", Translation: "a. 可持续的；能维持的", Phonetic: "səˈsteɪnəbl"}, {Word: "look up", Translation: "查阅；查找"}, {Word: "put into practice", Translation: "付诸实践"}})
+			s.Connected = true
+			p.Study = s
+			p.Actions.StudyState = func(s *study, word string, state learning.TermState) {
+				if state == "" {
+					delete(s.States, learning.TermKey(word))
+				} else {
+					s.States[learning.TermKey(word)] = state
+				}
+			}
+			for _, width := range []int{320, 420, 800} {
+				for _, manage := range []bool{false, true} {
+					s.StatesOpen = manage
+					tt := ui.NewTester(p.View, width, 1000)
+					tt.Advance(300000000)
+					for _, text := range tt.Texts() {
+						if r, ok := tt.Find(text); ok && (r.X < -.5 || r.X+r.W > float32(width)+.5) {
+							t.Fatalf("learning text overflow %d %q: %+v", width, text, r)
+						}
+					}
+					if folder := os.Getenv("WINONE_LEARNING_SHOTS"); folder != "" {
+						file, err := os.Create(filepath.Join(folder, fmt.Sprintf("sentence-%s-%s-%d-%t.png", lang, theme, width, manage)))
+						if err != nil {
+							t.Fatal(err)
+						}
+						err = png.Encode(file, tt.Image())
+						file.Close()
+						if err != nil {
+							t.Fatal(err)
+						}
+					}
+				}
+			}
+		}
 	}
 }

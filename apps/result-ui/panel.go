@@ -12,6 +12,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"winone/internal/ai"
+	"winone/internal/learning"
 	"winone/internal/resultwindow"
 	"winone/modules/nativeui/modelmenu"
 )
@@ -38,6 +39,7 @@ type Actions struct {
 	StudySpeak                        func(*study, string, string)
 	StudyNavigate                     func(*study, bool, string)
 	StudyAdd                          func(*study, []int)
+	StudyState                        func(*study, string, learning.TermState)
 	loadAvatar                        func(string, func(*providerAvatar, error))
 	OpenQuick                         func(string)
 	Quick                             func(resultwindow.SelectionAction)

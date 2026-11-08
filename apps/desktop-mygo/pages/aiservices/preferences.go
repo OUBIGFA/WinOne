@@ -56,7 +56,7 @@ func preferenceJSON[T any](c *ui.Context, p *page, key, label, hint string, valu
 // These are views of one provider draft. Every option keeps its original
 // Magpie field; ordinary structured values use controls rather than JSON.
 func (e *editor) preferences(c *ui.Context, pr *provider, locked bool) {
-	kit.SubTabs(c, &e.preferenceTab, []string{i18n.T("aiOptions.requests"), i18n.T("aiOptions.accounts"), i18n.T("aiOptions.billing"), i18n.T("aiOptions.compatibility")}, e.p.env.RequestChange)
+	kit.SubTabs(c, &e.preferenceTab, []string{i18n.T("aiOptions.requests"), i18n.T("aiOptions.accounts"), i18n.T("aiOptions.billing"), i18n.T("aiOptions.compatibility"), i18n.T("aiComplete.discovery"), i18n.T("aiComplete.service")}, e.p.env.RequestChange)
 	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
 		switch e.preferenceTab {
 		case 0:
@@ -67,6 +67,10 @@ func (e *editor) preferences(c *ui.Context, pr *provider, locked bool) {
 			e.billingPreferences(c, pr, locked)
 		case 3:
 			e.compatibilityPreferences(c, pr, locked)
+		case 4:
+			e.modelDiscoveryPreferences(c, pr, locked)
+		case 5:
+			e.servicePreferences(c, pr, locked)
 		}
 	})
 }
@@ -83,6 +87,9 @@ func (e *editor) requestPreferences(c *ui.Context, pr *provider, locked bool) {
 	kit.Group(c, nil, i18n.T("aiOptions.response"), "", func() {
 		kit.Stack(c, i18n.T("ai.passHeaders"), i18n.T("ai.passHeadersHint"), func() { e.preferenceList(c, "passHeaders", i18n.T("ai.passHeaders"), &s.PassHeaders, locked) })
 		kit.Stack(c, i18n.T("ai.replyHeaders"), i18n.T("ai.passHeadersHint"), func() { e.preferenceList(c, "replyHeaders", i18n.T("ai.replyHeaders"), &s.ReplyHeaders, locked) })
+	})
+	kit.Group(c, nil, i18n.T("aiComplete.fallback"), i18n.T("aiComplete.fallbackHint"), func() {
+		kit.Stack(c, "", "", func() { e.preferenceList(c, "fallback", i18n.T("aiComplete.fallback"), &s.Fallback, locked) })
 	})
 }
 
@@ -144,6 +151,8 @@ func (e *editor) compatibilityPreferences(c *ui.Context, pr *provider, locked bo
 	s := &pr.ProviderPreferences
 	kit.Panel(c, func() {
 		kit.Toggle(c, &s.AdditionalToolsOff, i18n.T("ai.additionalToolsOff"), "").Disabled(locked)
+		kit.Toggle(c, &s.NativeCompaction, i18n.T("aiComplete.nativeCompaction"), i18n.T("aiComplete.nativeCompactionHint")).Disabled(locked)
+		kit.Toggle(c, &s.PinUpstream, i18n.T("aiComplete.pinUpstream"), i18n.T("aiComplete.pinUpstreamHint")).Disabled(locked)
 		if pr.Agent == "antigravity" {
 			kit.Toggle(c, &s.PromptAsWritten, i18n.T("ai.promptAsWritten"), "").Disabled(locked)
 		}

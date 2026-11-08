@@ -7,8 +7,12 @@ type RuntimeProvider struct {
 	Key      string
 	Keys     []RuntimeKey
 }
-type RuntimeKey struct{ ID, Key string }
+type RuntimeKey struct {
+	ID, Key string
+	KeyOptions
+}
 type auxiliaryKey struct {
+	KeyOptions
 	Name string `json:"name"`
 	Key  string `json:"key"`
 }
@@ -25,17 +29,25 @@ type auxiliaryProvider struct {
 	Anthropic      string                   `json:"anthropic,omitempty"`
 	Key            string                   `json:"key"`
 	KeyName        string                   `json:"keyName,omitempty"`
+	KeyProtocol    string                   `json:"keyProtocol,omitempty"`
+	KeyWeight      int                      `json:"keyWeight,omitempty"`
+	KeyPlan        string                   `json:"keyPlan,omitempty"`
 	Keys           []auxiliaryKey           `json:"keys,omitempty"`
 	Models         []string                 `json:"models"`
 	Searches       bool                     `json:"searches,omitempty"`
 	Metadata       map[string]ModelMetadata `json:"metadata,omitempty"`
+	ModelNames     map[string]string        `json:"modelNames,omitempty"`
 	DecisionSource *decisionSource          `json:"decisionSource,omitempty"`
+	NativeSource   map[string]any           `json:"nativeSource,omitempty"`
+	NativeKeys     []auxiliaryKey           `json:"nativeKeys,omitempty"`
+	KeyIDs         map[string]string        `json:"keyIDs,omitempty"`
 }
 
 // Credential-free descriptor lets the upstream runtime decide API support.
 type decisionSource struct {
-	Protocol     string `json:"protocol"`
-	BaseURL      string `json:"baseUrl"`
-	Preset       string `json:"preset,omitempty"`
-	PresetRegion string `json:"presetRegion,omitempty"`
+	ProviderPreferences *ProviderPreferences `json:"providerPreferences,omitempty"`
+	Protocol            string               `json:"protocol"`
+	BaseURL             string               `json:"baseUrl"`
+	Preset              string               `json:"preset,omitempty"`
+	PresetRegion        string               `json:"presetRegion,omitempty"`
 }

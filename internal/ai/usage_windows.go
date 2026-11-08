@@ -33,7 +33,7 @@ func (t Translator) Usage(ctx context.Context, query UsageQuery) (json.RawMessag
 	if _, _, err := UsagePeriodRange(query.Period, time.Now()); err != nil {
 		return nil, err
 	}
-	if query.Offset < 0 || query.Offset > 1000000 || len(query.Provider) > 256 || (query.Source != "" && query.Source != "winone" && query.Source != "gateway") {
+	if query.Offset < 0 || query.Offset > 1000000 || len(query.Provider) > 256 || len(query.Source) > 256 || strings.ContainsRune(query.Source, '\x00') {
 		return nil, errors.New("用量筛选条件无效")
 	}
 	if len(query.Zone) > 128 || strings.ContainsRune(query.Zone, '\x00') || len(query.Model) > 512 || len(query.Account) > 256 || len(query.Purpose) > 128 || len(query.CallerKey) > 128 || len(query.Query) > 512 || strings.ContainsRune(query.Query, '\x00') {

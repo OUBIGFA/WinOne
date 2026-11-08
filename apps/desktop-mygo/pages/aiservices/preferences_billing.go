@@ -36,6 +36,12 @@ func (e *editor) billingPreferences(c *ui.Context, pr *provider, locked bool) {
 		kit.Toggle(c, &s.CapCareful, i18n.T("ai.capCareful"), "").Disabled(locked)
 		kit.Toggle(c, &s.CountFree, i18n.T("ai.countFree"), i18n.T("ai.countFreeHint")).Disabled(locked)
 	})
+	kit.Group(c, nil, i18n.T("aiComplete.rest"), i18n.T("aiComplete.restHint"), func() {
+		quota, cap := float64(s.QuotaRest), float64(s.RestCap)
+		numberRow(c, i18n.T("aiComplete.quotaRest"), &quota, 0, 525600, true, "0", locked, func(v *float64) { s.QuotaRest = int(value(v)) })
+		numberRow(c, i18n.T("aiComplete.restCap"), &cap, -1, 525600, true, "0", locked, func(v *float64) { s.RestCap = int(value(v)) })
+		kit.Stack(c, "", i18n.T("aiComplete.quotaResetAtHint"), func() { nativeText(c, i18n.T("aiComplete.quotaResetAt"), &s.QuotaResetAt, locked) })
+	})
 	kit.Group(c, nil, i18n.T("aiOptions.price"), "", func() {
 		var rate *float64
 		if s.PriceRate != 0 {

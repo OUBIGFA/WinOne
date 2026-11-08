@@ -1,5 +1,5 @@
 // @ts-nocheck
-// Generated from yetone/magpie 778b8e0753928533fd7afb8d76b57a2b5e22336a; MIT.
+// Generated from yetone/magpie 691a10446ec2b66142cee2203edf72d73b12d76d; MIT.
 // Only module exports are added. See third_party/magpie-proxy-source.json.
 export function proxyFields(value) {
   const [, scheme = "", auth, rest] = /^([a-z][\w+.-]*:\/\/)?([^/?#]*)(.*)$/is.exec((value || "").trim());

@@ -102,7 +102,7 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 	if !readVideo && !multipart && (json.Unmarshal(in.GatewayBody, &payload) != nil || payload == nil) {
 		return errors.New("invalid gateway body")
 	}
-	model := "winone/" + in.Model
+	model := requestProviderID(in) + "/" + in.Model
 	if in.Agent != "" {
 		p, err := findAccount(ctx, in.Agent)
 		if err != nil {

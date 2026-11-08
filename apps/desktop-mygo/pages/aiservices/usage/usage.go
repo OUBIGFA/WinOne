@@ -43,9 +43,10 @@ type Provider struct {
 // Preferences are the parts of the AI draft's magpieSettings the
 // statistics read and write.
 type Preferences struct {
-	HideAccounts bool
-	QuotaLeft    bool
-	Aliases      map[string]string
+	Order, HiddenCards, HiddenAgents []string
+	HideAccounts                     bool
+	QuotaLeft                        bool
+	Aliases                          map[string]string
 }
 
 // Options are what the page gives the tab each frame.
@@ -94,18 +95,19 @@ type Usage struct {
 	every    string
 	timer    timer
 
-	ledger   ledgerRead
-	export   exportState
-	period   periodPicker
-	chart    *chartView
-	folded   map[string]bool // the breakdowns folded to their top seven
-	rows     requestList
-	heat     heatView
-	quota    *allowances
-	sessions *sessionsView
-	context  *contextView
-	aliases  aliasEditor
-	prefs    *viewPrefs
+	ledger           ledgerRead
+	export           exportState
+	period           periodPicker
+	chart            *chartView
+	folded           map[string]bool // the breakdowns folded to their top seven
+	agentDisplayOpen bool
+	rows             requestList
+	heat             heatView
+	quota            *allowances
+	sessions         *sessionsView
+	context          *contextView
+	aliases          aliasEditor
+	prefs            *viewPrefs
 }
 
 // New makes the statistics tab of a page.
@@ -414,8 +416,15 @@ func (u *Usage) ledgerView(c *ui.Context) {
 			}
 		})
 		field(c, i18n.T("usage.source"), func() {
-			if choose(c, &f.Source, []kit.SelectOption{{Value: "", Label: i18n.T("usage.allSources")},
-				{Value: "winone", Label: i18n.T("usage.winone")}, {Value: "gateway", Label: i18n.T("usage.gateway")}}) {
+			choices := []kit.SelectOption{{Value: "", Label: i18n.T("usage.allSources")}, {Value: "winone", Label: i18n.T("usage.winone")}, {Value: "gateway", Label: i18n.T("usage.gateway")}}
+			if u.ledger.page != nil {
+				for _, client := range u.ledger.page.Agents {
+					if client != "winone" && client != "gateway" {
+						choices = append(choices, kit.SelectOption{Value: client, Label: client})
+					}
+				}
+			}
+			if choose(c, &f.Source, choices) {
 				u.change(func(*filter) {})
 			}
 		})

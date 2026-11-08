@@ -139,6 +139,7 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 	}
 	gate := s.accountGate
 	var balanceProvider *ai.Provider
+	var accountProviders []ai.Provider
 	var balanceKeys ai.KeyPlan
 	if params.Draft != nil && params.Provider == "" {
 		return fail(errors.New("账号连接标识无效"))
@@ -166,6 +167,7 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 			}
 			runtime = runtime.ForProvider(p.ID)
 			runtime.AccountBackend = p.AgentBackend
+			accountProviders = []ai.Provider{p}
 			gate = s.accountGateFor(p.ID)
 		} else {
 			gate = s.accountGateFor(balanceProvider.ID)
@@ -194,7 +196,7 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 		if balanceProvider != nil {
 			output, err = runtime.KeyBalances(readCtx, *balanceProvider, balanceKeys)
 		} else {
-			output, err = runtime.Accounts(readCtx, r.Method, params.Agent)
+			output, err = runtime.Accounts(readCtx, r.Method, params.Agent, accountProviders...)
 		}
 		if err != nil {
 			return fail(err)

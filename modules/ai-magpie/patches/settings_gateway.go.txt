@@ -10,13 +10,53 @@ import (
 )
 
 type winOneMediaModelsKey struct{}
+type winOneProductKey struct{}
+
+// Only the authenticated Host transport can label a request as native Chat.
+// Reuse upstream caller/session handling for trace, usage and observers alike.
+func WinOneProductRequest(r *http.Request, session string) *http.Request {
+ if len(session)==26 {r.Header.Set("X-Magpie-Session",session)}
+ return r.WithContext(context.WithValue(r.Context(),winOneProductKey{},true))
+}
+func winOneProductCaller(r *http.Request) (caller,bool) {on,_:=r.Context().Value(winOneProductKey{}).(bool);return caller{agent:"winone",session:boundedSession(r.Header.Get(SessionHeader)),ua:r.Header.Get("User-Agent")},on}
 
 // WinOne's gateway model list also limits its configured helper models.
 // Ordinary upstream callers retain their original helper-model policy.
 func WinOneMediaRequest(r *http.Request,models []string)*http.Request{
- who:=access.Caller(r.Context());who.Models=models
+ who:=access.Caller(r.Context())
+ // Public model selection and a named key's restrictions are both binding.
+ // Resolve aliases and groups with the same rules as the actual request.
+ if who.Restricted() {
+  kept:=make([]string,0,len(models))
+  for _,id:=range models {
+   if g,ms,ok:=provider.FindGroup(id);ok {if groupAllowed(who,g,ms){kept=append(kept,id)};continue}
+   if p,m,ok:=provider.Resolve(id);ok&&modelAllowed(who,p,m){kept=append(kept,id)}
+  }
+  models=kept
+ }
+ if len(models)==0 {models=[]string{"/"}}
+ who.Models=models
  ctx:=context.WithValue(access.WithIdentity(r.Context(),who),winOneMediaModelsKey{},true)
  return r.WithContext(ctx)
+}
+
+// This entry is called only after authentication of the private Host bridge.
+// Unknown/expired/off keys never fall back to upstream's loopback privileges.
+func WinOneNamedRequest(w http.ResponseWriter,r *http.Request)(*http.Request,bool){
+ secret:=r.Header.Get("X-WinOne-Gateway-Credential")
+ remote:=r.Header.Get("X-WinOne-Remote-Addr")
+ r.Header.Del("X-WinOne-Gateway-Credential");r.Header.Del("X-WinOne-Remote-Addr")
+ if secret=="" {return r,true}
+ r.RemoteAddr=remote
+ if r.Method==http.MethodPost&&r.URL.Path==OIDCKeysPath {
+  r.Header.Set("Authorization","Bearer "+secret);return r,true
+ }
+ who,err:=access.Check(secret)
+ if err!=nil {writeError(w,provider.Chat,http.StatusUnauthorized,"gateway key is invalid, disabled or expired");return r,false}
+ r=r.WithContext(access.WithIdentity(r.Context(),who))
+ for _,name:=range []string{"X-API-Key","X-Goog-API-Key"}{r.Header.Del(name)}
+ q:=r.URL.Query();q.Del("key");r.URL.RawQuery=q.Encode()
+ return r,true
 }
 func winOneMediaRestricted(r *http.Request)bool{held,_:=r.Context().Value(winOneMediaModelsKey{}).(bool);return held}
 
@@ -52,6 +92,15 @@ var WinOneMiddlewareAccounts map[string]string
 // Only Host-owned bridges can inherit the source provider's Decisions support.
 var WinOneDecisionProviders map[string]bool
 func WinOneCanDecide(p provider.Provider) bool { return canDecide(p) }
+
+// Only explicit API-key providers have a native transport. Account bridges
+// must never be mistaken for API keys just because their local hop uses one.
+var WinOneNativeProviders map[string]provider.Provider
+func winOneNativeProvider(p provider.Provider) (provider.Provider,bool) {
+ if actual,ok:=WinOneNativeProviders[p.ID];ok{return actual,true}
+ if WinOneMiddlewareAccounts[p.ID]!="" {return p,false}
+ return p,true
+}
 
 // Keep Claude's own minimal warm-up request and command-line isolation.
 func WinOneWarmClaude(ctx context.Context, directory string) error { return warmClaude(ctx, directory) }

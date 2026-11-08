@@ -7,15 +7,42 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 )
 
 // MaxProviderModels accommodates upstream catalogs above 2500 entries while
 // retaining a bounded configuration and worker response.
 const MaxProviderModels = 4096
 
+// Client catalogs and aliases must be resolved by the same upstream runtime
+// that executes them, independently of the routing-groups switch.
+func (c Configuration) UsesSharedRouter() bool {
+	if c.RoutingEnabled || c.MagpieSettings != nil && c.MagpieSettings.UsesClientRules() {
+		return true
+	}
+	for _, p := range c.Providers {
+		if p.Off {
+			continue
+		}
+		for _, m := range p.ModelMetadata {
+			if m.Alias != "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Provider identifies a configured service or an isolated signed-in account.
 // API keys are write-only. User-defined request headers remain editable here.
 type Provider struct {
+	// Catalog snapshots distinguish vendor updates from user overrides and manual IDs.
+	CatalogModels     []string                 `json:"catalogModels"`
+	CatalogNames      map[string]string        `json:"catalogNames,omitempty"`
+	ManualModels      []string                 `json:"manualModels,omitempty"`
+	CatalogMetadata   map[string]ModelMetadata `json:"catalogMetadata,omitempty"`
+	ModelRefreshAt    time.Time                `json:"modelRefreshAt,omitempty"`
+	ModelRefreshError string                   `json:"modelRefreshError,omitempty"`
 	ProviderPreferences
 	LimitRestOff bool `json:"limitRestOff,omitempty"`
 	Searches     bool `json:"searches,omitempty"`
@@ -46,6 +73,7 @@ type Provider struct {
 
 // KeySlot exposes identity and availability, never the secret or a secret suffix.
 type KeySlot struct {
+	KeyOptions
 	ID      string `json:"id"`
 	Enabled bool   `json:"enabled"`
 	HasKey  bool   `json:"hasKey"`
@@ -116,6 +144,13 @@ func cloneConfiguration(c Configuration) Configuration {
 			c.Providers[i].Avatar = &avatar
 		}
 		c.Providers[i].Models = slices.Clone(c.Providers[i].Models)
+		c.Providers[i].CatalogModels = slices.Clone(c.Providers[i].CatalogModels)
+		c.Providers[i].CatalogNames = maps.Clone(c.Providers[i].CatalogNames)
+		c.Providers[i].ManualModels = slices.Clone(c.Providers[i].ManualModels)
+		c.Providers[i].CatalogMetadata = maps.Clone(c.Providers[i].CatalogMetadata)
+		for id, metadata := range c.Providers[i].CatalogMetadata {
+			c.Providers[i].CatalogMetadata[id] = metadata.clone()
+		}
 		c.Providers[i].Delisted = slices.Clone(c.Providers[i].Delisted)
 		c.Providers[i].ModelNames = maps.Clone(c.Providers[i].ModelNames)
 		c.Providers[i].Headers = maps.Clone(c.Providers[i].Headers)
@@ -217,6 +252,12 @@ func (c Configuration) ValidateSelection(selection Selection) error {
 	if !ok {
 		return errors.New("请选择已配置的供应商或账号")
 	}
+	if p.Off {
+		return errors.New("此供应商已停用，请先在 AI 服务中启用")
+	}
+	if c.MagpieSettings != nil && c.MagpieSettings.ModelDisabled(p.ID, selection.Model, p.ModelMetadata[selection.Model].Alias) {
+		return errors.New("此模型已被全局规则禁用")
+	}
 	if !slices.Contains(p.Models, selection.Model) || selection.Model == "" {
 		return errors.New("请选择该供应商中已勾选启用的模型")
 	}
@@ -235,7 +276,9 @@ func validateConfiguration(c Configuration) error {
 	ids := map[string]bool{}
 	names := map[string]bool{}
 	for _, p := range c.Providers {
-		if err := p.ProviderPreferences.validate(); err != nil { return err }
+		if err := p.ProviderPreferences.validate(); err != nil {
+			return err
+		}
 		if err := p.RequestLimits.validate(); err != nil {
 			return err
 		}
@@ -256,6 +299,14 @@ func validateConfiguration(c Configuration) error {
 		}
 		keyIDs := map[string]bool{}
 		for _, slot := range p.Keys {
+			if len(slot.Name) > 256 || slot.Weight < 0 || slot.Weight > 1000 || slot.Plan != "" && !providerIDPattern.MatchString(slot.Plan) {
+				return errors.New("密钥名称、权重或订阅方案无效")
+			}
+			switch slot.Protocol {
+			case "", "chat", "responses", "anthropic", "gemini":
+			default:
+				return errors.New("密钥协议无效")
+			}
 			if !providerIDPattern.MatchString(slot.ID) || keyIDs[slot.ID] {
 				return errors.New("密钥标识无效或重复")
 			}
@@ -304,6 +355,40 @@ func validateConfiguration(c Configuration) error {
 			return errors.New("供应商模型列表过大")
 		}
 		known := map[string]bool{}
+		for _, model := range p.Delisted {
+			known[model] = true
+		}
+		for _, list := range [][]string{p.CatalogModels, p.ManualModels} {
+			if len(list) > MaxProviderModels {
+				return errors.New("模型来源列表过大")
+			}
+			seen := map[string]bool{}
+			for _, id := range list {
+				if id == "" || strings.TrimSpace(id) != id || len(id) > 256 || seen[id] {
+					return errors.New("模型来源列表无效")
+				}
+				seen[id] = true
+			}
+		}
+		if len(p.CatalogNames) > MaxProviderModels {
+			return errors.New("供应商目录名称过多")
+		}
+		for id, name := range p.CatalogNames {
+			if !slices.Contains(p.CatalogModels, id) || len(name) > 1024 || strings.ContainsRune(name, '\x00') {
+				return errors.New("供应商目录名称无效")
+			}
+		}
+		if len(p.CatalogMetadata) > MaxProviderModels {
+			return errors.New("模型来源元数据过大")
+		}
+		for id, m := range p.CatalogMetadata {
+			if !slices.Contains(p.CatalogModels, id) {
+				return errors.New("模型来源元数据无效")
+			}
+			if err := validateModelMetadata(m); err != nil {
+				return err
+			}
+		}
 		for _, model := range p.Models {
 			known[model] = true
 		}
@@ -334,7 +419,14 @@ func validateConfiguration(c Configuration) error {
 		if len(p.ModelMetadata) > MaxProviderModels {
 			return errors.New("供应商模型设置过多")
 		}
+		aliases := map[string]bool{}
 		for id, metadata := range p.ModelMetadata {
+			if metadata.Alias != "" {
+				if aliases[metadata.Alias] {
+					return errors.New("同一供应商的模型别名不能重复")
+				}
+				aliases[metadata.Alias] = true
+			}
 			if !known[id] {
 				return errors.New("模型设置引用了未知模型")
 			}

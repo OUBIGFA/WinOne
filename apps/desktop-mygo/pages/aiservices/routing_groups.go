@@ -64,85 +64,89 @@ func (r *routingPanel) groupsView(c *ui.Context) {
 		ui.Spacer(c).Grow(1)
 		ui.Checkbox(c, &r.showHidden, i18n.T("aiRouting.showHidden"))
 	})
-	for index, doc := range r.state.Groups {
-		g := doc.Value
-		if !r.groupVisible(g) {
-			continue
+	// A single list surface gives peer groups one rhythm. Keeping each row
+	// inside it avoids inheriting the page's large gap between settings groups.
+	kit.Panel(c, func() {
+		for index, doc := range r.state.Groups {
+			g := doc.Value
+			if !r.groupVisible(g) {
+				continue
+			}
+			ui.Column(c.Key(g.ID)).FillWidth().Gap(8).Padding(14, 16).BorderWidth(0, 0, 1, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
+				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+					selected := r.selected[g.ID]
+					if ui.Checkbox(c, &selected, "").Label(nativeT("select") + " " + g.Name).Changed() {
+						if selected {
+							r.selected[g.ID] = true
+						} else {
+							delete(r.selected, g.ID)
+						}
+					}
+					ui.Row(c).Grow(1).MinWidth(0).GapX(12).GapY(4).Wrap().AlignItems(ui.Center).Children(func() {
+						kit.Label(c, g.Name).FontSize(16).FontWeight(500).MinWidth(0).Selectable()
+						kit.Help(c, r.strategyLabel(g.Routing))
+					})
+					status := "routeReady"
+					if g.Disabled || g.Hidden {
+						status = "routeDisabled"
+					} else if !g.Ready {
+						status = "routeUnavailable"
+					}
+					kit.Help(c, nativeT(status)).Shrink(0)
+					on := !g.Disabled && !g.Hidden
+					if ui.Switch(c, &on).Label(nativeT("enabled") + " " + g.Name).Disabled(locked).Changed() {
+						if g.Hidden && on {
+							r.act("show", map[string]string{"id": g.ID}, nil)
+						} else {
+							r.act("switch", map[string]any{"id": g.ID, "on": on}, nil)
+						}
+					}
+					if kit.Button(c, nativeT("edit"), icons.Pencil, false).Disabled(locked).Clicked() {
+						r.begin(doc)
+					}
+					kit.IconButton(c, icons.Ellipsis, nativeT("groupActions")+" "+g.Name).Disabled(locked).Menu(func(m *ui.Menu) {
+						if m.Item(nativeT("copy")).Chosen() {
+							r.dialog = "copy"
+							r.text = g.ID
+							r.name = g.Name + " copy"
+						}
+						if m.Item(nativeT("share")).Chosen() {
+							r.act("share", map[string]string{"id": g.ID}, func() { r.dialog = "share"; r.text = r.state.Shared })
+						}
+						m.Separator()
+						if m.Item(nativeT("moveUp")).Disabled(index == 0).Chosen() {
+							r.moveGroup(index, -1)
+						}
+						if m.Item(nativeT("moveDown")).Disabled(index == len(r.state.Groups)-1).Chosen() {
+							r.moveGroup(index, 1)
+						}
+						m.Separator()
+						if m.Item(nativeT("delete")).Chosen() {
+							r.dialog = "delete"
+							r.text = g.ID
+						}
+					})
+				})
+				ui.Row(c).FillWidth().GapX(20).GapY(6).Wrap().Padding(0, 0, 0, 28).Children(func() {
+					for _, member := range g.Members {
+						kit.Label(c, r.memberLabel(member)).FontSize(14).TextColor(c.Theme().TextMuted).MinWidth(0).Selectable()
+					}
+				})
+				if len(g.Match) > 0 {
+					kit.Help(c, nativeT("patterns")+": "+strings.Join(g.Match, " · ")).Selectable()
+				}
+				for _, pattern := range g.Patterns {
+					kit.Help(c, i18n.T("aiNative.patternMatches", "pattern", pattern.Pattern, "count", pattern.Models)).Selectable()
+				}
+				if g.Routing == "manual" {
+					pick := g.Pick
+					if nativeSelect(c, nativeT("manualPick"), &pick, r.memberChoices(g.Members), locked) {
+						r.act("pick", map[string]string{"id": g.ID, "pick": pick}, nil)
+					}
+				}
+			})
 		}
-		ui.Column(c.Key(g.ID)).FillWidth().Gap(8).Padding(12, 0).BorderWidth(0, 0, 1, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
-			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				selected := r.selected[g.ID]
-				if ui.Checkbox(c, &selected, "").Label(nativeT("select") + " " + g.Name).Changed() {
-					if selected {
-						r.selected[g.ID] = true
-					} else {
-						delete(r.selected, g.ID)
-					}
-				}
-				ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
-					kit.Heading(c, g.Name).Selectable()
-					kit.Help(c, r.strategyLabel(g.Routing))
-				})
-				status := "routeReady"
-				if g.Disabled || g.Hidden {
-					status = "routeDisabled"
-				} else if !g.Ready {
-					status = "routeUnavailable"
-				}
-				kit.Help(c, nativeT(status)).Shrink(0)
-				on := !g.Disabled && !g.Hidden
-				if ui.Switch(c, &on).Label(nativeT("enabled") + " " + g.Name).Disabled(locked).Changed() {
-					if g.Hidden && on {
-						r.act("show", map[string]string{"id": g.ID}, nil)
-					} else {
-						r.act("switch", map[string]any{"id": g.ID, "on": on}, nil)
-					}
-				}
-				if kit.Button(c, nativeT("edit"), icons.Pencil, false).Disabled(locked).Clicked() {
-					r.begin(doc)
-				}
-				kit.IconButton(c, icons.Ellipsis, nativeT("groupActions")+" "+g.Name).Disabled(locked).Menu(func(m *ui.Menu) {
-					if m.Item(nativeT("copy")).Chosen() {
-						r.dialog = "copy"
-						r.text = g.ID
-						r.name = g.Name + " copy"
-					}
-					if m.Item(nativeT("share")).Chosen() {
-						r.act("share", map[string]string{"id": g.ID}, func() { r.dialog = "share"; r.text = r.state.Shared })
-					}
-					m.Separator()
-					if m.Item(nativeT("moveUp")).Disabled(index == 0).Chosen() {
-						r.moveGroup(index, -1)
-					}
-					if m.Item(nativeT("moveDown")).Disabled(index == len(r.state.Groups)-1).Chosen() {
-						r.moveGroup(index, 1)
-					}
-					m.Separator()
-					if m.Item(nativeT("delete")).Chosen() {
-						r.dialog = "delete"
-						r.text = g.ID
-					}
-				})
-			})
-			ui.Column(c).FillWidth().Gap(4).Padding(4, 0, 4, 24).Children(func() {
-				for _, member := range g.Members {
-					kit.Label(c, r.memberLabel(member)).Selectable()
-				}
-			})
-			if len(g.Match) > 0 {
-				kit.Help(c, nativeT("patterns")+": "+strings.Join(g.Match, " · ")).Selectable()
-			}
-			for _, pattern := range g.Patterns {
-				kit.Help(c, i18n.T("aiNative.patternMatches", "pattern", pattern.Pattern, "count", pattern.Models)).Selectable()
-			}
-			if g.Routing == "manual" {
-				pick := g.Pick
-				if nativeSelect(c, nativeT("manualPick"), &pick, r.memberChoices(g.Members), locked) {
-					r.act("pick", map[string]string{"id": g.ID, "pick": pick}, nil)
-				}
-			}
-		})
-	}
+	})
 	if len(r.state.Groups) == 0 {
 		kit.Empty(c, icons.Waypoints, nativeT("noGroups"), nativeT("templatesHint"), nil)
 	}
@@ -151,7 +155,7 @@ func (r *routingPanel) groupsView(c *ui.Context) {
 	if r.p.draft != nil {
 		defaultsOpen := ui.Local(ui.Column(c), "routing-defaults", func() bool { return false })
 		ui.Collapsible(c, nativeT("groupDefaults"), defaultsOpen, func() {
-			s := r.p.draft.Value.magpie()
+			s := r.p.draft.Value.settings()
 			kit.Help(c, nativeT("groupDefaultsHint"))
 			kit.Toggle(c, &s.GroupSink, nativeT("sink"), nativeT("sinkHint")).Disabled(locked)
 			nativeInt(c, nativeT("firstToken"), &s.GroupFirstToken, 0, 3600, locked)

@@ -162,6 +162,8 @@ func setup(t *testing.T) (*fakeAI, *testhost.Harness, *page, *ui.Tester) {
 	f := newFakeAI(t)
 	h := testhost.New(t, f.handle)
 	p := newPage(h.Env)
+	// Most editor tests start in their own task area; production opens Home.
+	p.switchTab(tabCustom)
 	tt := ui.NewTester(p.View, 1100, 1600)
 	settle(h, tt)
 	t.Cleanup(p.Close)
@@ -285,6 +287,7 @@ func TestCurlExampleFillsTheDraftWithoutSaving(t *testing.T) {
 
 func TestDiscoveryReplacesTheCatalogAndClearsTasksOfRemovedModels(t *testing.T) {
 	f, h, p, tt := setup(t)
+	p.draft.Value.find("one").CatalogModels = []string{"gpt-a", "gpt-b"}
 	if err := tt.Click(i18n.T("ai.fetchModels")); err != nil {
 		t.Fatal(err)
 	}
@@ -381,7 +384,7 @@ func TestTabsAskTheGuard(t *testing.T) {
 	_, h, p, tt := setup(t)
 	requested := 0
 	h.Env.RequestChange = func(apply func()) { requested++ }
-	if err := tt.Click(i18n.T("gateway.title")); err != nil {
+	if err := tt.Click(homeT("more")); err != nil {
 		t.Fatal(err)
 	}
 	h.Settle(tt)
@@ -391,7 +394,9 @@ func TestTabsAskTheGuard(t *testing.T) {
 }
 
 func TestRemovingAProviderClearsItsTasks(t *testing.T) {
-	_, h, p, tt := setup(t)
+	_, h, p, _ := setup(t)
+	tt := ui.NewTester(p.View, 1100, 2000)
+	settle(h, tt)
 	if err := tt.Click(i18n.T("ai.removeService")); err != nil {
 		t.Fatal(err)
 	}

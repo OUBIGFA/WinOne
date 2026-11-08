@@ -64,6 +64,7 @@ func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, pat
 	}
 	input["usageSource"] = source
 	input["providerPreferences"] = p.ProviderPreferences
+	input["keyID"], input["keyOptions"] = credentialRequestOptions(ctx)
 	input["additionalTools"] = p.AdditionalTools
 	input["limitRestOff"] = p.LimitRestOff
 	input["headers"] = p.Headers

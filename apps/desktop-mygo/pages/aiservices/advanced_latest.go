@@ -13,6 +13,7 @@ import (
 // an automatic runtime refresh may opt into an operation or rewrite a value.
 func (a *advancedPanel) latestSearchOptions(c *ui.Context, locked bool) {
 	s := a.settings()
+	a.effortField(c, "searcherEffort", &s.SearcherEffort, locked)
 	kit.Toggle(c, &s.SearchAll, nativeT("searchAll"), nativeT("searchAllHint")).Disabled(locked)
 	nativeList(c, a.fields, "searcherThen", nativeT("searchFallbacks"), &s.SearcherThen, locked)
 }

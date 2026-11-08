@@ -117,3 +117,81 @@ func TestGatewayBusyPortDoesNotCommit(t *testing.T) {
 		t.Fatal("busy port committed")
 	}
 }
+
+func TestGatewayBrowserAuthenticationAndNetworkRollback(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var calls int
+	g := NewGateway(ctx, filepath.Join(t.TempDir(), "gateway.json"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if r.Header.Get("Origin") != "" {
+			t.Error("public origin leaked to private worker")
+		}
+		if r.Header.Get("Authorization") != "" || r.Header.Get("X-API-Key") != "" || r.Header.Get("X-Goog-API-Key") != "" || r.URL.Query().Has("key") {
+			t.Error("public credential leaked to private worker")
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer g.Close()
+	l, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := l.Addr().(*net.TCPAddr).Port
+	l.Close()
+	status, err := g.Save(GatewaySettings{Enabled: true, Port: port, GatewayNetwork: GatewayNetwork{CORSOrigins: []string{"https://chat.example"}}}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key, err := g.Key()
+	if err != nil {
+		t.Fatal(err)
+	}
+	call := func(method, origin, token string, want int) {
+		t.Helper()
+		r, _ := http.NewRequest(method, status.BaseURL+"/models", nil)
+		r.Header.Set("Origin", origin)
+		if token != "" {
+			r.Header.Set("Authorization", "Bearer "+token)
+		}
+		if method == "OPTIONS" {
+			r.Header.Set("Access-Control-Request-Method", "POST")
+			r.Header.Set("Access-Control-Request-Headers", "authorization,content-type")
+		}
+		response, err := http.DefaultClient.Do(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != want {
+			t.Fatalf("%s: status %d, want %d", method, response.StatusCode, want)
+		}
+		if origin == "https://chat.example" && response.Header.Get("Access-Control-Allow-Origin") != origin {
+			t.Fatal("allowed browser cannot read response")
+		}
+	}
+	call("OPTIONS", "https://chat.example", "", 204)
+	call("GET", "https://chat.example", "", 401)
+	call("GET", "https://chat.example.evil", key, 403)
+	call("GET", "https://chat.example", key, 200)
+	if calls != 1 {
+		t.Fatalf("unauthenticated request reached handler: %d calls", calls)
+	}
+	value := status.GatewaySettings
+	value.LAN = true
+	status, err = g.Save(value, false)
+	if err != nil || !status.Running || !status.LAN {
+		t.Fatalf("network rebind: %v %+v", err, status)
+	}
+	call("GET", "https://chat.example", key, 200)
+	// A directory cannot become the settings file. Force a real persistence
+	// failure after rebinding and verify the last saved listener is restored.
+	g.path = t.TempDir()
+	value = status.GatewaySettings
+	value.LAN = false
+	failed, err := g.Save(value, false)
+	if err == nil || failed.Revision != status.Revision || !failed.Running || !failed.LAN {
+		t.Fatalf("failed save lost active listener: %v %+v", err, failed)
+	}
+	call("GET", "https://chat.example", key, 200)
+}

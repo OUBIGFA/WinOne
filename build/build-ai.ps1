@@ -39,9 +39,12 @@ Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/stream.go') -Destinat
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/provider_preferences.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/own_balance_test.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/transport_failure_test.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/oidc_bridge_test.go') -Destination $entry
 # One typed provider-options contract is shared with the Host. Only its
 # package name changes; the proxy validator is already a reviewed extract.
-foreach($relative in @('provider_preferences.go','magpie_proxy.go')) {
+& node (Join-Path $root 'build/prepare-ai-discovery.mjs') $source
+if($LASTEXITCODE -ne 0){throw 'Cannot extract the pinned model discovery rules'}
+foreach($relative in @('provider_preferences.go','magpie_proxy.go','model_discovery_rules.go')) {
  $dto=[IO.File]::ReadAllText((Join-Path $root ('internal/ai/'+$relative))).Replace('package ai','package main')
  [IO.File]::WriteAllText((Join-Path $entry ('host_'+$relative)),$dto,$encoding)
 }
@@ -68,12 +71,12 @@ $text=(& git -C $source show "${revision}:internal/provider/provider.go") -join 
 if(-not $text.Contains('func sharedAll() []Provider {')){throw 'Upstream shared provider boundary changed'}
 $text=$text.Replace('func sharedAll() []Provider {',"func sharedAll() []Provider {`n if WinOneProviders != nil { return winOneConfiguredProviders() }")
 [IO.File]::WriteAllText($provider,$text+"`n",$encoding)
-[IO.File]::WriteAllText((Join-Path $source 'internal/provider/winone_embedded.go'),"package provider`n// Set once before serving a WinOne request; never persisted.`nvar WinOneProviders []Provider`nvar WinOneSearchModels map[string]bool`nfunc WinOneAccountIDs() []string { return append([]string(nil), accountIDs...) }`nfunc winOneConfiguredProviders() []Provider { result := make([]Provider, len(WinOneProviders)); for i, p := range WinOneProviders { result[i] = normalize(p) }; return result }`n",$encoding)
+[IO.File]::WriteAllText((Join-Path $source 'internal/provider/winone_embedded.go'),"package provider`n// Set once before serving a WinOne request; never persisted.`nvar WinOneProviders []Provider`nfunc WinOneAccountIDs() []string { return append([]string(nil), accountIDs...) }`nfunc winOneConfiguredProviders() []Provider { result := make([]Provider, len(WinOneProviders)); for i, p := range WinOneProviders { result[i] = normalize(p) }; return result }`n",$encoding)
 $models=Join-Path $source 'internal/provider/models.go'
 $text=(& git -C $source show "${revision}:internal/provider/models.go") -join "`n"
 if(-not $text.Contains('ms := p.ids().list(p.available())')){throw 'Upstream provider model metadata boundary changed'}
 # Preserve upstream Listed as model IDs before adding Host-declared native search.
-$text=$text.Replace('ms := p.ids().list(p.available())', 'ms := p.ids().list(p.available()); if len(WinOneSearchModels)>0 { ms=slices.Clone(ms); for _,id:=range p.Models { if WinOneSearchModels[p.ID+"/"+id] && !slices.ContainsFunc(ms,func(m catalog.Model)bool{return m.ID==id}) { ms=append(ms,catalog.Model{ID:id,Name:id}) } }; for i,m:=range ms { if WinOneSearchModels[p.ID+"/"+m.ID] { ms[i].WebSearch="native" } } }')
+$text=$text.Replace('ms := p.ids().list(p.available())', 'ms := p.ids().list(p.available()); { ms=slices.Clone(ms); for _,id:=range p.Models { if winOneSearchModel(p.ID+"/"+id) && !slices.ContainsFunc(ms,func(m catalog.Model)bool{return m.ID==id}) { ms=append(ms,catalog.Model{ID:id,Name:id}) } }; for i,m:=range ms { if winOneSearchModel(p.ID+"/"+m.ID) { ms[i].WebSearch="native" } } }')
 [IO.File]::WriteAllText($models,$text+"`n",$encoding)
 $accounts=Join-Path $source 'internal/provider/account.go'
 $text=[IO.File]::ReadAllText($accounts)
@@ -156,6 +159,10 @@ try {
    & $GoExe test ./cmd/winone-ai -count=1
    $ErrorActionPreference='Stop'
    if($LASTEXITCODE -ne 0){throw 'Magpie adapter tests failed'}
+   $ErrorActionPreference='Continue'
+   & $GoExe test ./internal/gateway -run '^TestWinOneClaudeLaunchStatus' -count=1
+   $ErrorActionPreference='Stop'
+   if($LASTEXITCODE -ne 0){throw 'Claude launch status bridge test failed'}
    $ErrorActionPreference='Continue'
    & $GoExe test ./internal/provider -run '^TestWinOneOAuth' -count=1
    $ErrorActionPreference='Stop'

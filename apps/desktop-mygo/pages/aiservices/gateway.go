@@ -13,17 +13,21 @@ import (
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/widgets"
+	"winone/internal/ai"
 )
 
 // gatewayStatus is the local gateway's settings and state. models nil
 // offers every enabled model; a list offers those, and none when empty.
 type gatewayStatus struct {
+	ai.GatewayNetwork
 	Revision float64                `json:"revision"`
 	Enabled  bool                   `json:"enabled"`
+	Native   bool                   `json:"native"`
 	Port     float64                `json:"port"`
 	Running  bool                   `json:"running"`
 	HasKey   bool                   `json:"hasKey"`
 	BaseURL  string                 `json:"baseUrl"`
+	LANURLs  []string               `json:"lanUrls,omitempty"`
 	Error    string                 `json:"error,omitempty"`
 	Models   *[]widgets.AISelection `json:"models"`
 }
@@ -32,9 +36,15 @@ type gatewayStatus struct {
 // the AI configuration. It stays while the page shows other tabs, so its
 // draft does too.
 type gatewayPanel struct {
+	tab     int
+	history gatewayHistoryPanel
+	access  gatewayAccessPanel
+	network ai.GatewayNetwork
+	fields  fields
 	env     *core.Env
 	saved   *gatewayStatus
 	enabled bool
+	native  bool
 	port    string
 	models  *[]widgets.AISelection
 	working bool
@@ -50,7 +60,7 @@ type gatewayPanel struct {
 }
 
 func newGatewayPanel(env *core.Env) *gatewayPanel {
-	g := &gatewayPanel{env: env, height: 400}
+	g := &gatewayPanel{env: env, height: 400, fields: fields{}}
 	if h := readUIState(env.Directory).GatewayHeight; h >= 160 && h <= 1200 {
 		g.height = h
 	}
@@ -58,8 +68,8 @@ func newGatewayPanel(env *core.Env) *gatewayPanel {
 }
 
 func (g *gatewayPanel) dirty() bool {
-	return g.saved != nil && (g.saved.Enabled != g.enabled || strconv.FormatFloat(g.saved.Port, 'f', -1, 64) != g.port ||
-		!equal(g.models, g.saved.Models))
+	return g.saved != nil && (g.saved.Enabled != g.enabled || g.saved.Native != g.native || strconv.FormatFloat(g.saved.Port, 'f', -1, 64) != g.port ||
+		!equal(g.models, g.saved.Models) || !equal(g.network, g.saved.GatewayNetwork))
 }
 
 func (g *gatewayPanel) Report() {
@@ -71,6 +81,9 @@ func (g *gatewayPanel) Report() {
 }
 
 func (g *gatewayPanel) Close() {
+	g.access.close()
+	g.history.api.close()
+	g.env.Activity.Report("ai-gateway-access", false, false, nil)
 	g.read++
 	g.env.Activity.Report("ai-gateway", false, false, nil)
 }
@@ -78,6 +91,11 @@ func (g *gatewayPanel) Close() {
 func (g *gatewayPanel) accept(status gatewayStatus) {
 	g.saved = &status
 	g.enabled, g.port, g.key = status.Enabled, strconv.FormatFloat(status.Port, 'f', -1, 64), ""
+	g.native = status.Native
+	g.network = status.GatewayNetwork
+	g.network.AllowIPs = append([]string(nil), status.AllowIPs...)
+	g.network.CORSOrigins = append([]string(nil), status.CORSOrigins...)
+	g.fields = fields{}
 	g.models = nil
 	if status.Models != nil {
 		copied := append([]widgets.AISelection{}, *status.Models...)
@@ -119,7 +137,7 @@ func (g *gatewayPanel) save(resetKey bool) {
 		return
 	}
 	g.working, g.err = true, ""
-	params := map[string]any{"settings": map[string]any{"revision": g.saved.Revision, "enabled": g.enabled, "port": port, "models": g.models},
+	params := map[string]any{"settings": map[string]any{"revision": g.saved.Revision, "enabled": g.enabled, "native": g.native, "port": port, "models": g.models, "lan": g.network.LAN, "allowIPs": g.network.AllowIPs, "corsOrigins": g.network.CORSOrigins},
 		"resetKey": resetKey}
 	core.Go(g.env, func() (gatewayStatus, error) {
 		var status gatewayStatus
@@ -167,7 +185,7 @@ func (g *gatewayPanel) accessKey(services ui.Services, copy bool) {
 
 // View is the gateway's settings, connection and models. providers are
 // the saved ones: the gateway offers only saved models.
-func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider) {
+func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owners ...*page) {
 	g.Report()
 	busy := g.working || g.loading
 	if g.saved == nil && !busy && g.err == "" {
@@ -198,10 +216,39 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider) {
 	if s.Error != "" {
 		kit.Notice(c, kit.Failure, "", s.Error, nil)
 	}
+	kit.Tabs(c, &g.tab, []kit.Tab{{Label: accessT("connectionTab")}, {Label: accessT("title")}, {Label: accessT("networkTab")}, {Label: accessT("historyTab")}}, nil)
+	// Specialist controls keep their drafts while the everyday connection
+	// page stays short. This is navigation within the same gateway settings.
+	if g.tab == 1 {
+		if len(owners) > 0 {
+			g.access.View(c, owners[0])
+		}
+		return
+	}
+	if g.tab == 3 {
+		if len(owners) > 0 {
+			g.history.View(c, owners[0])
+		}
+		return
+	}
+	if g.tab == 2 {
+		kit.Group(c, icons.Server, accessT("networkTab"), "", func() {
+			kit.Toggle(c, &g.network.LAN, completeT("gatewayLAN"), completeT("gatewayLANHint")).Disabled(busy)
+			if g.network.LAN {
+				nativeList(c, g.fields, "gatewayIPs", completeT("gatewayIPs"), &g.network.AllowIPs, busy)
+				kit.Help(c, completeT("gatewayIPsHint"))
+			}
+			nativeList(c, g.fields, "gatewayOrigins", completeT("gatewayOrigins"), &g.network.CORSOrigins, busy)
+			kit.Help(c, completeT("gatewayOriginsHint"))
+			kit.Toggle(c, &g.native, accessT("native"), accessT("nativeHint")).Disabled(busy)
+			kit.Help(c, completeT("gatewayProtocols"))
+		})
+		return
+	}
 	ui.Column(c).FillWidth().Gap(kit.GroupGap).Disabled(busy).Children(func() {
 		kit.Group(c, icons.Server, i18n.T("settingsDesign.gatewayRun"), "", func() {
 			kit.Toggle(c, &g.enabled, i18n.T("gateway.enable"), "")
-			kit.Row(c, i18n.T("gateway.port"), i18n.T("gateway.localHint"), func() {
+			kit.Row(c, i18n.T("gateway.port"), completeT("gatewayListenHint"), func() {
 				ui.TextInput(c, &g.port).Width(160).Label(i18n.T("gateway.port"))
 			})
 			state := "gateway.stopped"
@@ -219,6 +266,9 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider) {
 				address := s.BaseURL
 				ui.TextInput(c, &address).FillWidth().ReadOnly(true).Label(i18n.T("gateway.address"))
 			})
+			for _, address := range s.LANURLs {
+				kit.Stack(c, completeT("gatewayLANAddress"), "", func() { ui.TextInput(c, &address).FillWidth().ReadOnly(true).Label(completeT("gatewayLANAddress")) })
+			}
 			kit.Stack(c, i18n.T("gateway.key"), i18n.T("gateway.keyHint"), func() {
 				placeholder := ""
 				if s.HasKey {
@@ -248,9 +298,6 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider) {
 			})
 		})
 		g.modelsView(c, providers, busy)
-		ui.Collapsible(c, i18n.T("settingsDesign.gatewayInterfaces"), &g.interfaces, func() {
-			kit.Help(c, i18n.T("gateway.protocols")).Padding(8, 0)
-		})
 	})
 }
 
@@ -271,6 +318,9 @@ func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider,
 	t, palette := c.Theme(), kit.Colors(c)
 	var all []widgets.AISelection
 	for _, pr := range providers {
+		if pr.Off {
+			continue
+		}
 		for _, model := range pr.Models {
 			all = append(all, widgets.AISelection{Provider: pr.ID, Model: model})
 		}
@@ -312,6 +362,9 @@ func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider,
 	var entries []gatewayEntry
 	for i := range providers {
 		pr := &providers[i]
+		if pr.Off {
+			continue
+		}
 		var matched []string
 		for _, model := range pr.Models {
 			text := pr.Name + " " + widgets.ModelLabel(pr, model)

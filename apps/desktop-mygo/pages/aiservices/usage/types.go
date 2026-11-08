@@ -179,6 +179,7 @@ type account struct {
 
 // ledgerPage is capture.ai.usage.get's answer.
 type ledgerPage struct {
+	Agents       []string           `json:"agents"`
 	CallerKeys   []callerKey        `json:"callerKeys"`
 	Heatmap      *heatmap           `json:"heatmap,omitempty"`
 	Rows         []row              `json:"rows"`
@@ -468,9 +469,18 @@ type allowance struct {
 }
 
 type balanceEstimate struct {
-	Set   float64 `json:"set"`
-	At    string  `json:"at"`
-	Spent float64 `json:"spent"`
+	Set      float64  `json:"set"`
+	At       string   `json:"at"`
+	Spent    float64  `json:"spent"`
+	Currency string   `json:"currency,omitempty"`
+	Rate     float64  `json:"rate,omitempty"`
+	Left     *float64 `json:"left"`
+	From     string   `json:"from"`
+	Refill   *struct {
+		Every string `json:"every"`
+		Day   int    `json:"day"`
+	} `json:"refill,omitempty"`
+	Next string `json:"next,omitempty"`
 }
 
 // archivePart is the request or the reply of an archived request.

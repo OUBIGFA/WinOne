@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/yetone/magpie/internal/provider"
 	"github.com/yetone/magpie/internal/masking"
+	"github.com/yetone/magpie/internal/provider"
 	"github.com/yetone/magpie/internal/settings"
 	"net/http"
 	"net/http/httptest"
@@ -132,43 +132,143 @@ func TestRuntimeRejectsInvalidRedactionRule(t *testing.T) {
 }
 
 func TestPrivacyActionsReachVendorAndPreview(t *testing.T) {
- old:=settings.WinOneSettings.Load();defer settings.WinOneSettings.Store(old)
- defer func(){provider.WinOneProviders=nil}()
- for _,test:=range []struct{name,prefs string;sent,clear bool}{
-  {"mask",`{"redact":true,"redactWords":["private-project"]}`,true,false},
-  {"ignore-case",`{"redact":true,"redactWords":["PRIVATE-PROJECT"],"redactWordsAnyCase":true}`,true,false},
-  {"warn",`{"redact":true,"redactWords":["private-project"],"redactActions":{"TERM":"warn"}}`,true,true},
-  {"block",`{"redact":true,"redactWords":["private-project"],"redactActions":{"TERM":"block"}}`,false,false},
-  {"allow",`{"redact":true,"redactWords":["private-project"],"redactActions":{"TERM":"block"},"redactAllow":["private-project"]}`,true,true},
- } {t.Run(test.name,func(t *testing.T){
-  var received string;called:=false
-  server:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){called=true;var body map[string]any;json.NewDecoder(r.Body).Decode(&body);b,_:=json.Marshal(body);received=string(b);w.Header().Set("Content-Type","application/json");w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}`))}));defer server.Close()
-  in:=request{Protocol:"chat",BaseURL:server.URL+"/v1",Model:"fixture",Text:"private-project",MagpieSettings:json.RawMessage(test.prefs)}
-  data,_:=json.Marshal(in);_,err:=run(t.Context(),bytes.NewReader(data))
-  if test.sent&&err!=nil {t.Fatal(err)}
-  if called!=test.sent||called&&strings.Contains(received,"private-project")!=test.clear {t.Fatalf("wrong privacy action: sent=%v body=%q err=%v",called,received,err)}
-  text,hits,_:=masking.Preview("private-project")
-  if test.name=="allow" {if len(hits)!=0||text!="private-project" {t.Fatalf("allowlist ignored: %q %v",text,hits)}} else if len(hits)==0 {t.Fatal("preview omitted findings")}
- })}
+	old := settings.WinOneSettings.Load()
+	defer settings.WinOneSettings.Store(old)
+	defer func() { provider.WinOneProviders = nil }()
+	for _, test := range []struct {
+		name, prefs string
+		sent, clear bool
+	}{
+		{"mask", `{"redact":true,"redactWords":["private-project"]}`, true, false},
+		{"ignore-case", `{"redact":true,"redactWords":["PRIVATE-PROJECT"],"redactWordsAnyCase":true}`, true, false},
+		{"warn", `{"redact":true,"redactWords":["private-project"],"redactActions":{"TERM":"warn"}}`, true, true},
+		{"block", `{"redact":true,"redactWords":["private-project"],"redactActions":{"TERM":"block"}}`, false, false},
+		{"word-wins-over-allow", `{"redact":true,"redactWords":["private-project"],"redactActions":{"TERM":"block"},"redactAllow":["private-project"]}`, false, false},
+		{"allow", `{"redact":true,"redactRules":[{"kind":"TERM","regex":"private-project"}],"redactActions":{"TERM":"block"},"redactAllow":["private-project"]}`, true, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var received string
+			called := false
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				called = true
+				var body map[string]any
+				json.NewDecoder(r.Body).Decode(&body)
+				b, _ := json.Marshal(body)
+				received = string(b)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}`))
+			}))
+			defer server.Close()
+			in := request{Protocol: "chat", BaseURL: server.URL + "/v1", Model: "fixture", Text: "private-project", MagpieSettings: json.RawMessage(test.prefs)}
+			data, _ := json.Marshal(in)
+			_, err := run(t.Context(), bytes.NewReader(data))
+			if test.sent && err != nil {
+				t.Fatal(err)
+			}
+			if called != test.sent || called && strings.Contains(received, "private-project") != test.clear {
+				t.Fatalf("wrong privacy action: sent=%v body=%q err=%v", called, received, err)
+			}
+			text, hits, _ := masking.Preview("private-project")
+			if test.name == "allow" {
+				if len(hits) != 0 || text != "private-project" {
+					t.Fatalf("allowlist ignored: %q %v", text, hits)
+				}
+			} else if len(hits) == 0 {
+				t.Fatal("preview omitted findings")
+			}
+		})
+	}
 }
 
 func TestAdditionalToolsAndNativeSearchModelMetadata(t *testing.T) {
- old:=settings.WinOneSettings.Load();defer settings.WinOneSettings.Store(old)
- defer func(){provider.WinOneProviders=nil;provider.WinOneSearchModels=nil}()
- p,err:=configuredProvider(request{Protocol:"responses",BaseURL:"https://fixture.invalid/v1",AdditionalTools:true})
- if err!=nil||!p.AdditionalTools {t.Fatal("provider additional_tools not preserved",err)}
- if err:=installAuxiliaryProviders(request{AuxiliaryProviders:[]auxiliaryProvider{{Provider:provider.Provider{ID:"fixture",Name:"Fixture",Chat:"http://127.0.0.1:1/v1",Models:[]string{"search-model","plain-model"}},Metadata:map[string]modelMetadata{"search-model":{Searches:true}}}}});err!=nil {t.Fatal(err)}
- models:=provider.WinOneProviders[0].Available();found:=false
- for _,m:=range models {if m.ID=="search-model" {found=m.WebSearch=="native"};if m.ID=="plain-model"&&m.WebSearch=="native" {t.Fatal("native search leaked to another model")}}
- if !found {t.Fatal("auxiliary model lost native search capability")}
+	old := settings.WinOneSettings.Load()
+	defer settings.WinOneSettings.Store(old)
+	defer func() { provider.WinOneProviders = nil; provider.WinOneResetSearchModels() }()
+	p, err := configuredProvider(request{Protocol: "responses", BaseURL: "https://fixture.invalid/v1", AdditionalTools: true})
+	if err != nil || !p.AdditionalTools {
+		t.Fatal("provider additional_tools not preserved", err)
+	}
+	if err := installAuxiliaryProviders(request{AuxiliaryProviders: []auxiliaryProvider{{Provider: provider.Provider{ID: "fixture", Name: "Fixture", Chat: "http://127.0.0.1:1/v1", Models: []string{"search-model", "plain-model"}}, Metadata: map[string]modelMetadata{"search-model": {Searches: true}}}}}); err != nil {
+		t.Fatal(err)
+	}
+	models := provider.WinOneProviders[0].Available()
+	found := false
+	for _, m := range models {
+		if m.ID == "search-model" {
+			found = m.WebSearch == "native"
+		}
+		if m.ID == "plain-model" && m.WebSearch == "native" {
+			t.Fatal("native search leaked to another model")
+		}
+	}
+	if !found {
+		t.Fatal("auxiliary model lost native search capability")
+	}
 }
 
 func TestClassifyTimeoutReachesUpstream(t *testing.T) {
- old:=settings.WinOneSettings.Load();defer settings.WinOneSettings.Store(old)
- for _,n:=range []int{0,1,23,60} {
-  raw,_:=json.Marshal(map[string]int{"classifyTimeout":n})
-  if err:=applyRuntimeSettings(request{MagpieSettings:raw});err!=nil {t.Fatal(err)}
-  want:=n;if want==0 {want=8}
-  if got:=settings.Load().ClassifyWait();got!=time.Duration(want)*time.Second {t.Fatalf("timeout=%v want=%d",got,want)}
- }
+	old := settings.WinOneSettings.Load()
+	defer settings.WinOneSettings.Store(old)
+	for _, n := range []int{0, 1, 23, 60} {
+		raw, _ := json.Marshal(map[string]int{"classifyTimeout": n})
+		if err := applyRuntimeSettings(request{MagpieSettings: raw}); err != nil {
+			t.Fatal(err)
+		}
+		want := n
+		if want == 0 {
+			want = 8
+		}
+		if got := settings.Load().ClassifyWait(); got != time.Duration(want)*time.Second {
+			t.Fatalf("timeout=%v want=%d", got, want)
+		}
+	}
+}
+
+// Validate the upstream lookup, not merely the JSON field direction.
+func TestModelAliasKeepsWireAndCompaction(t *testing.T) {
+	old := settings.WinOneSettings.Load()
+	defer settings.WinOneSettings.Store(old)
+	settings.WinOneUse(settings.Settings{})
+	p := provider.Provider{ID: "fixture", Models: []string{"vendor-model"}}
+	if err := installModelPreferences(p.ID, "vendor-model", modelMetadata{Alias: "my-model", ContextWindow: 128000, CompactionPercent: 72.5}); err != nil {
+		t.Fatal(err)
+	}
+	if got := p.OwnModelID("my-model"); got != "vendor-model" {
+		t.Fatalf("wire model: %s", got)
+	}
+	if got := settings.Load().ModelCompacts["fixture/my-model"]; got != 92800 {
+		t.Fatalf("compact tokens: %d", got)
+	}
+	if err := installModelPreferences(p.ID, "vendor-model", modelMetadata{}); err != nil {
+		t.Fatal(err)
+	}
+	if got := p.OwnModelID("my-model"); got != "my-model" {
+		t.Fatalf("cleared alias still active: %s", got)
+	}
+	if _, exists := settings.Load().ModelCompacts["fixture/my-model"]; exists {
+		t.Fatal("cleared alias retained its model overrides")
+	}
+}
+
+func TestAuxiliaryModelNamesAndAliasContext(t *testing.T) {
+	old, providers := settings.WinOneSettings.Load(), provider.WinOneProviders
+	defer func() { settings.WinOneSettings.Store(old); provider.WinOneProviders = providers }()
+	settings.WinOneUse(settings.Settings{})
+	provider.WinOneProviders = nil
+	metadata := map[string]modelMetadata{"original": {Alias: "friendly", ContextWindow: 64000}}
+	if err := installAuxiliaryProviders(request{AuxiliaryProviders: []auxiliaryProvider{{Provider: provider.Provider{ID: "fixture", Models: []string{"original"}}, Metadata: metadata, ModelNames: map[string]string{"original": "My model"}}}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := provider.WinOneProviders[0].ContextOf("friendly"); got != 64000 {
+		t.Fatalf("alias context = %d", got)
+	}
+	if got := settings.Load().ModelNames["fixture/friendly"]; got != "My model" {
+		t.Fatalf("alias name = %q", got)
+	}
+	if err := installModelNames("fixture", nil, metadata); err != nil {
+		t.Fatal(err)
+	}
+	if len(settings.Load().ModelNames) != 0 {
+		t.Fatal("cleared names remained active")
+	}
 }

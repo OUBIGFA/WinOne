@@ -139,7 +139,6 @@ func (s *Shell) sidebar(c *ui.Context) {
 			}
 		})
 	})
-	s.sidebarHandle(c)
 }
 
 func (s *Shell) navItem(c *ui.Context, item pageSpec, compact bool) {
@@ -190,7 +189,8 @@ func (s *Shell) navItem(c *ui.Context, item pageSpec, compact bool) {
 // sidebarHandle is the sidebar's right edge, which drags its width.
 func (s *Shell) sidebarHandle(c *ui.Context) {
 	p := kit.Colors(c)
-	handle := ui.Box(c).Width(5).Shrink(0).FillHeight().Margin(0, 0, 0, -3).Cursor(ui.CursorResizeEW).
+	// The hit area straddles the common edge without reserving a white strip.
+	handle := ui.Box(c).Absolute().Left(s.sidebarWidth - 3).Top(0).Bottom(0).Width(5).Cursor(ui.CursorResizeEW).
 		Focusable().Label(i18n.T("navigation.resizeSidebar")).Role(ui.RoleSplitter)
 	line := p.Hairline
 	if handle.Hovered() || handle.Dragging() {
