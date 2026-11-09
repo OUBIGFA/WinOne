@@ -5,10 +5,12 @@ import (
  "encoding/json"
  "io/fs"
  "net/http"
+ "os"
  "strings"
  "sync"
  "time"
  "github.com/yetone/magpie/internal/access"
+ "github.com/yetone/magpie/internal/agent"
  "github.com/yetone/magpie/internal/oidc"
  "github.com/yetone/magpie/internal/gateway"
  "github.com/yetone/magpie/internal/middleware"
@@ -104,6 +106,15 @@ func WinOneRoutingHandler(gw *gateway.Server, bundled []string) http.Handler {
  quotaMux:=http.NewServeMux();usageRoutes(quotaMux,nil)
  mux.Handle("GET /api/usage/quotas",quotaMux)
  mux.Handle("GET /api/usage/quotas/history",quotaMux)
+ mux.HandleFunc("GET /api/winone/routing/clients",coldTurn(func(w http.ResponseWriter,r *http.Request){
+  clients:=[]map[string]string{};for _,client:=range agent.Clients(){clients=append(clients,map[string]string{"id":client.ID,"name":client.Name})}
+  state:=usageState(periodOf("30d"),time.Local);writeJSON(w,map[string]any{"agents":state.Agents,"clients":clients})
+ }))
+ // The native window opens this fixed report directory only after a click.
+ // The worker has no desktop shell, and never accepts a caller-selected path.
+ mux.HandleFunc("POST /api/gateway/held/reveal",func(w http.ResponseWriter,r *http.Request){
+  dir:=gateway.HeldDir();if err:=os.MkdirAll(dir,0700);err!=nil{fail(w,err);return};writeJSON(w,map[string]string{"directory":dir})
+ })
  mux.HandleFunc("GET /api/providers",func(w http.ResponseWriter,r *http.Request){writeJSON(w,providersState())})
  // Provider editor status belongs to the live gateway, not a one-shot worker.
  mux.HandleFunc("GET /api/claude/mode",func(w http.ResponseWriter,r *http.Request){mode,err:=gateway.WinOneClaudeMode();if err!=nil{fail(w,err);return};writeJSON(w,mode)})

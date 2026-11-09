@@ -14,6 +14,8 @@ import (
 	"time"
 	"unsafe"
 
+	"winone/internal/adminstartup"
+
 	"golang.org/x/sys/windows"
 )
 
@@ -307,7 +309,9 @@ func activateRedirected(pipe string) error {
 	_, className, titleName, _ := names(pipe)
 	class, _ := windows.UTF16PtrFromString(className)
 	title, _ := windows.UTF16PtrFromString(titleName)
-	deadline := time.Now().Add(8 * time.Second)
+	// The authorized helper may still be handing off the old Host or waiting
+	// for a cold start. Do not fail before its own startup contract expires.
+	deadline := time.Now().Add(adminstartup.ReadinessTimeout)
 	for {
 		window, _, _ := procFindWindowExW.Call(hwndMessage, 0, uintptr(unsafe.Pointer(class)), uintptr(unsafe.Pointer(title)))
 		if window != 0 {
@@ -318,16 +322,18 @@ func activateRedirected(pipe string) error {
 			windows.CloseHandle(process)
 			var pid, targetPID uint32
 			procGetWindowThreadPID.Call(window, uintptr(unsafe.Pointer(&pid)))
-			procAllowSetForeground.Call(uintptr(pid))
 			target, _, _ := procGetWindowLongPtrW.Call(window, gwlpUserData)
 			procGetWindowThreadPID.Call(target, uintptr(unsafe.Pointer(&targetPID)))
 			if visible, _, _ := procIsWindowVisible.Call(target); targetPID == pid && visible != 0 {
+				procAllowSetForeground.Call(uintptr(pid))
 				if iconic, _, _ := procIsIconic.Call(target); iconic != 0 {
 					procShowWindow.Call(target, swRestore)
 				}
 				procSetForegroundWindow.Call(target)
+				return nil
 			}
-			return nil
+			// attach precedes Show in the UI process. Finding its message-only
+			// endpoint alone must not report that the settings window is ready.
 		}
 		if time.Now().After(deadline) {
 			return errors.New("管理员窗口尚未就绪，请再次打开 WinOne。")

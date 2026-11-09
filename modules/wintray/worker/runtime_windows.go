@@ -12,6 +12,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -307,8 +308,20 @@ func (r *Runtime) onUI(action func() error) error {
 // Independent WinTray owns its own profile and lifetime; its presence never
 // blocks this Host-owned module or the installer's recovery-only worker.
 func (r *Runtime) Reconcile(settings config.Settings, allowElevated bool) error {
-	if err := r.syncTasks(settings, allowElevated); err != nil {
-		return err
+	return r.reconcile(settings, allowElevated, true, true)
+}
+
+// Editing window behavior or launch intervals must not enumerate all
+// Windows tasks or reattach the tray bridge. Recovery uses Reconcile instead.
+func (r *Runtime) ReconcileChanges(before, next config.Settings, allowElevated bool) error {
+	return r.reconcile(next, allowElevated, !sameStartupEffects(before, next), !reflect.DeepEqual(config.CollectedTrayIconPaths(before), config.CollectedTrayIconPaths(next)))
+}
+
+func (r *Runtime) reconcile(settings config.Settings, allowElevated, tasks, trayIcons bool) error {
+	if tasks {
+		if err := r.syncTasks(settings, allowElevated); err != nil {
+			return err
+		}
 	}
 	if err := r.onUI(func() error { r.hosted.SetLanguage(settings.Language); return nil }); err != nil {
 		return err
@@ -316,8 +329,10 @@ func (r *Runtime) Reconcile(settings config.Settings, allowElevated bool) error 
 	// Not inside onUI: each attempt goes to the UI thread itself, and the
 	// wait for a taskbar that is not ready yet must not hold that thread.
 	// walk's Synchronize only queues, so a nested onUI would never run.
-	if err := r.collectTrayIcons(settings); err != nil {
-		return err
+	if trayIcons {
+		if err := r.collectTrayIcons(settings); err != nil {
+			return err
+		}
 	}
 	return r.onUI(func() error {
 		if r.readyRelease == nil {
@@ -358,11 +373,15 @@ func (r *Runtime) adopt(a config.ManagedAppEntry, result orchestrator.Result) {
 	w := tray.HostedWindow{Name: a.Name, ExePath: a.ExePath, Handle: result.Hidden.Handle, ProcessID: result.Hidden.ProcessID}
 	for attempt := 0; attempt < 30; attempt++ {
 		err := r.onUI(func() error { return r.hosted.TryAdd(w) })
-		if err == nil { return }
+		if err == nil {
+			return
+		}
 		// Short scripts can finish before console ownership reaches the UI.
 		// An invalid PID is not a transient icon failure; there is no window
 		// left to recover. Permission/creation failures still retain retries.
-		if errors.Is(err, tray.ErrHostedProcessUnavailable) && errors.Is(err, windows.ERROR_INVALID_PARAMETER) { return }
+		if errors.Is(err, tray.ErrHostedProcessUnavailable) && errors.Is(err, windows.ERROR_INVALID_PARAMETER) {
+			return
+		}
 		select {
 		case <-r.ctx.Done():
 			tray.RestoreWindow(w, orchestrator.FindConsoleWindow, r.logger)

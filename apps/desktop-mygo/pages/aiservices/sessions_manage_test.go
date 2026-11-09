@@ -75,8 +75,9 @@ func TestExternalSessionScreens(t *testing.T) {
 	for _, locale := range []string{i18n.Chinese, i18n.English} {
 		i18n.SetLocale(locale)
 		p.external = x
-		p.tab = tabSessions
-		h.Shots(t, "external-sessions-"+locale, p.View, 1100, nil)
+		// Legacy data compatibility remains tested independently of the removed
+		// product destination; no AI services tab can mount this view.
+		h.Shots(t, "external-sessions-"+locale, func(c *ui.Context) { x.view(c, "sessions") }, 1100, nil)
 	}
 	i18n.SetLocale(i18n.Chinese)
 }

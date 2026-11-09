@@ -174,6 +174,10 @@ func TestWindowCloseLifecycle(t *testing.T) {
 // MyGo's native loop must run on the main goroutine, not testing's test
 // goroutine. Only explicitly selected private-desktop children take this path.
 func TestMain(m *testing.M) {
+	if os.Getenv("WINONE_MYGO_CLOSE_CHECK_DIR") != "" && len(os.Args) == 5 && os.Args[1] == "--redirect-window-helper" {
+		if err := runRedirectWindowHelper(); err != nil { fmt.Fprintln(os.Stderr, err); os.Exit(1) }
+		os.Exit(0)
+	}
 	if os.Getenv("WINONE_MYGO_CLOSE_CHECK_DIR") != "" && len(os.Args) == 5 && os.Args[1] == "--close-window-helper" {
 		if err := runWindowCloseHelper(); err != nil {
 			fmt.Fprintln(os.Stderr, err)

@@ -66,11 +66,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing.go",
-          "sha256": "d5b3458ba716d8f39ce7d9ef6767c8dac3dd76305aab28f73c81fd9e22147038"
+          "sha256": "cf56455d99e086636e54443db3b567aa21f11d13630af31373f8497c6356b9fe"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_groups.go",
-          "sha256": "64548ddab40f4816edf38e1b6c082d09d7b5bde5d61ff3068ece1f5ef189e066"
+          "sha256": "9f83b9940448b4e3301ca110dd0eb64b0bfc521b69bc8908c8de4ffe4ec13875"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_members.go",
@@ -78,7 +78,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_trace.go",
-          "sha256": "c1b4f055c47cecb5dfaf50c32f4cd17516d487cb36cfc4a2ff0482d8fde36b0a"
+          "sha256": "e1b22539b972d33b71192f5a5321cd6f82d300cdf085d67639be9c4ac972e89a"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_evidence.go",
@@ -94,7 +94,7 @@
         },
         {
           "path": "modules/ai-magpie/patches/routing_gui.go.txt",
-          "sha256": "7835958135c44c5060af40d18190ce04e3b2dc96993b3833665f213fe3d89e71"
+          "sha256": "f403f35cb40667bb75b88164ba0d2f09d2b76e3553b729e62e30a1968b217260"
         },
         {
           "path": "build/prepare-ai-routing.ps1",
@@ -154,7 +154,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/plugins_upstream.go",
-          "sha256": "ba822c428e646706b2344b7ed48fc4385d797fdd5666c54671e21340ed9890a4"
+          "sha256": "d7dfb0aca7977ed484bcf4bbd1cdea941ee04c59b75a8ff6c3efd76876320e71"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/plugins_bundled.go",
@@ -202,7 +202,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/navigation_upstream.go",
-          "sha256": "678c2158f3c14a23ac910c211b6d6d3ccdb1aa2e66a0307a9a46ec2468259542"
+          "sha256": "e310f26398437b08aa6ce8e1cc62c6880da3fe0170f848dbeb21d6130bcca36e"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-upstream.en-US.json",
@@ -223,6 +223,10 @@
         {
           "path": "apps/desktop-mygo/pages/aiservices/library_server.go",
           "sha256": "c595cd3d3e47c11b8f99cf499925dc58633e95093953b7dc9de344c4a038ab8a"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/routing_clients.go",
+          "sha256": "8b08e86eea498a9a2ca8cc504c5bb1089838ad899c2f698092368f06a509c25e"
         }
       ]
     },

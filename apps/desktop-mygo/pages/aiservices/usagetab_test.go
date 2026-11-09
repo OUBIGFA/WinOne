@@ -11,7 +11,11 @@ import (
 // can pass every unit test while a build tag still hides it from the product.
 func TestUsageIsMountedAndAliasesSaveThroughThePage(t *testing.T) {
 	f, h, p, tt := setup(t)
-	if err := tt.Click(upstreamT("Usage")); err != nil {
+	if err := tt.Click(homeT("more")); err != nil {
+		t.Fatal(err)
+	}
+	settle(h, tt)
+	if err := tt.Click(i18n.T("usage.title")); err != nil {
 		t.Fatal(err)
 	}
 	settle(h, tt)
@@ -69,7 +73,7 @@ func TestTopLevelTabAppliesAfterTheUnsavedGuardAnswers(t *testing.T) {
 	p.change("one", func(pr *provider) { pr.Name = "Draft name" })
 	var apply func()
 	h.Env.RequestChange = func(fn func()) { apply = fn }
-	if err := tt.Click(upstreamT("Usage")); err != nil {
+	if err := tt.Click(homeT("more")); err != nil {
 		t.Fatal(err)
 	}
 	settle(h, tt)
@@ -81,7 +85,7 @@ func TestTopLevelTabAppliesAfterTheUnsavedGuardAnswers(t *testing.T) {
 	settle(h, tt)
 	apply()
 	settle(h, tt)
-	if p.tab != tabUsage || p.dirty() {
+	if p.tab != tabMore || p.dirty() {
 		t.Fatal("confirmed tab change was discarded after the frame")
 	}
 }

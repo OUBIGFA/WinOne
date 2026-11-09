@@ -53,7 +53,6 @@ func (p *Panel) speechFeedback(c *ui.Context, t *ui.Theme, key string) {
 	if p.SpeechErrorKey == key && p.SpeechError != "" && !p.speechVisibility.dismissed {
 		ui.Row(c.Key("speech-error-" + key)).FillWidth().Gap(6).AlignItems(ui.Start).Role(ui.RoleStatus).Children(func() {
 			ui.Text(c, p.SpeechError).Grow(1).MinWidth(0).FontSize(em(t, sizeLabel)).LineHeight(1.5).TextColor(t.Danger)
-			p.closeFeedback(c.Key("speech-error-close"), &p.speechVisibility, p.T("关闭朗读提示", "Dismiss speech error"))
 		})
 	}
 }

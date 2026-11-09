@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -69,6 +70,7 @@ func TestNativeRoutingRealCreateReadSaveAndNoWebView(t *testing.T) {
 	i18n.SetLocale(i18n.Chinese)
 	p, h, tt, router := nativeAIWithRuntime(t)
 	p.switchTab(tabRouting)
+	p.routing.tab = 0
 	settle(h, tt)
 	if p.routing.state == nil {
 		t.Fatal("real group read:", p.routing.api.err)
@@ -81,10 +83,6 @@ func TestNativeRoutingRealCreateReadSaveAndNoWebView(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Type("Native group")
-	if err := tt.Click(nativeT("groupID")); err != nil {
-		t.Fatal(err)
-	}
-	tt.Type("native-group")
 	p.routing.edit.Value.Members = []string{"fixture/model"}
 	settle(h, tt)
 	if err := tt.Click(nativeT("saveGroup")); err != nil {
@@ -140,6 +138,84 @@ func TestNativeRoutingRealCreateReadSaveAndNoWebView(t *testing.T) {
 	shot(t, tt, "native-routing-real-trace")
 }
 func kitID(v int64) string { b, _ := json.Marshal(v); return string(b) }
+
+// Exercise the newly exposed operations against the pinned worker, while the
+// shell launch is replaced only to keep Explorer off the user's desktop.
+func TestNativeRoutingDuplicateRenameClientsAndHeldDirectory(t *testing.T) {
+	p, h, tt, _ := nativeAIWithRuntime(t)
+	p.switchTab(tabRouting)
+	p.routing.tab = 0
+	settle(h, tt)
+	r := p.routing
+	r.beginNew(core.Preserved[routeGroup]{Value: routeGroup{Name: "Dynamic", Match: []string{"fixture/*"}}})
+	r.saveGroup()
+	settle(h, tt)
+	var dynamic core.Preserved[routeGroup]
+	for _, g := range r.state.Groups {
+		if g.Value.ID == "dynamic" {
+			dynamic = g
+		}
+	}
+	if len(dynamic.Value.Matched) == 0 {
+		t.Fatal("pattern did not discover fixture model")
+	}
+	r.begin(dynamic)
+	r.edit.Value.Match = []string{"fixture/no-match-*"}
+	r.saveGroup()
+	settle(h, tt)
+	for _, g := range r.state.Groups {
+		if g.Value.ID == "dynamic" && len(g.Value.Members) > 0 {
+			t.Fatal("saving pinned a pattern-matched model")
+		}
+	}
+	for _, want := range []string{"same-name", "same-name-2"} {
+		r.beginNew(core.Preserved[routeGroup]{Value: routeGroup{Name: "Same name", Members: []string{"fixture/model"}}})
+		r.saveGroup()
+		settle(h, tt)
+		found := false
+		for _, g := range r.state.Groups {
+			if g.Value.ID == want {
+				found = true
+			}
+		}
+		if !found || r.api.err != "" {
+			t.Fatalf("new group %s: %s", want, r.api.err)
+		}
+	}
+	for _, g := range r.state.Groups {
+		if g.Value.ID == "same-name-2" {
+			r.begin(g)
+		}
+	}
+	r.edit.Value.ID = "Renamed 2.0"
+	r.saveGroup()
+	settle(h, tt)
+	ids := []string{}
+	for _, g := range r.state.Groups {
+		ids = append(ids, g.Value.ID)
+	}
+	if !slices.Contains(ids, "same-name") || !slices.Contains(ids, "renamed-2.0") || slices.Contains(ids, "same-name-2") {
+		t.Fatalf("rename lost groups: %v; %s", ids, r.api.err)
+	}
+	r.clientsAPI.request(p, "GET", "/api/winone/routing/clients", nil, func(raw json.RawMessage) {
+		if !json.Valid(raw) {
+			t.Error("invalid recent clients response")
+		}
+	})
+	settle(h, tt)
+	if r.clientsAPI.err != "" {
+		t.Fatal(r.clientsAPI.err)
+	}
+	previous := openHeldDirectory
+	defer func() { openHeldDirectory = previous }()
+	opened := ""
+	openHeldDirectory = func(path string) error { opened = path; return nil }
+	r.trace.revealHeld(p)
+	settle(h, tt)
+	if opened == "" || !strings.HasSuffix(filepath.ToSlash(opened), "/held") || r.trace.detailAPI.err != "" {
+		t.Fatalf("held directory did not open: %q %s", opened, r.trace.detailAPI.err)
+	}
+}
 
 func TestNativeMaskingRealPreviewAndClear(t *testing.T) {
 	p, h, tt, _ := nativeAIWithRuntime(t)

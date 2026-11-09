@@ -154,6 +154,9 @@ func (x *pluginsPanel) builtinView(c *ui.Context, locked bool) {
 	}
 	s := a.settings()
 	for _, plugin := range a.catalog.BuiltinPlugins {
+		if plugin.ID == "sessions" || plugin.ID == "library" {
+			continue
+		}
 		choice := s.BuiltinPlugins[plugin.ID].Value
 		on := plugin.On
 		if choice.Enabled != nil {

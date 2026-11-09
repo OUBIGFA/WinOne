@@ -252,10 +252,10 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 		}
 		feedback := strings.TrimSpace(strings.Join([]string{s.Error, s.Notice}, "\n"))
 		s.visibility.observe(feedback)
+		s.visibility.update(c)
 		if feedback != "" && !s.visibility.dismissed {
 			ui.Row(c).FillWidth().Gap(6).Children(func() {
 				ui.Text(c, feedback).Grow(1).MinWidth(0).LineHeight(1.5).TextColor(t.TextMuted)
-				p.closeFeedback(c, &s.visibility, p.T("关闭学习提示", "Dismiss learning notice"))
 			})
 		}
 		ui.Divider(c)

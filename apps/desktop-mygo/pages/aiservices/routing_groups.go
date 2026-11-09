@@ -14,8 +14,18 @@ import (
 
 func nativeT(key string) string { return i18n.T("aiNative." + key) }
 
+type draggedRouteGroup struct{ id string }
+type draggedRouteMember struct{ id string }
+type draggedRouteRule struct{ index int }
+
 func (r *routingPanel) groupsView(c *ui.Context) {
 	locked := r.api.busy || r.p.locked()
+	// A focused editor shares the page width and draft, without nesting a
+	// settings form inside a list card or pushing the other groups far down.
+	if r.edit != nil {
+		r.editor(c)
+		return
+	}
 	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
 		ui.TextInput(c, &r.search).Grow(1).MinWidth(180).Placeholder(nativeT("searchGroups")).Label(nativeT("searchGroups"))
 		if kit.PrimaryButton(c, nativeT("newGroup"), icons.Plus, false).Disabled(locked).Clicked() {
@@ -65,21 +75,31 @@ func (r *routingPanel) groupsView(c *ui.Context) {
 	})
 	// A single list surface gives peer groups one rhythm. Keeping each row
 	// inside it avoids inheriting the page's large gap between settings groups.
-	if r.edit != nil && r.newGroup {
-		r.editor(c)
-	}
 	kit.Panel(c, func() {
 		for index, doc := range r.state.Groups {
 			g := doc.Value
 			if !r.groupVisible(g) {
 				continue
 			}
-			if r.edit != nil && !r.newGroup && r.edit.Value.ID == g.ID {
-				r.editor(c)
-				continue
+			row := ui.Column(c.Key(g.ID)).FillWidth().Gap(8).Padding(14, 16).BorderWidth(0, 0, 1, 0).BorderColor(kit.Colors(c).Hairline)
+			if item, ok := ui.Drop[draggedRouteGroup](row); ok && !locked {
+				from := slices.IndexFunc(r.state.Groups, func(v core.Preserved[routeGroup]) bool { return v.Value.ID == item.id })
+				if from >= 0 && from != index {
+					r.moveGroup(from, index-from)
+				}
 			}
-			ui.Column(c.Key(g.ID)).FillWidth().Gap(8).Padding(14, 16).BorderWidth(0, 0, 1, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
+			row.Children(func() {
 				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+					handle := kit.IconButton(c, icons.GripVertical, upstreamT("Move {name}", "name", g.Name)).Disabled(locked)
+					if !locked {
+						handle.Drag(draggedRouteGroup{g.ID})
+						if handle.Shortcut(ui.Alt, ui.KeyUp) && index > 0 {
+							r.moveGroup(index, -1)
+						}
+						if handle.Shortcut(ui.Alt, ui.KeyDown) && index+1 < len(r.state.Groups) {
+							r.moveGroup(index, 1)
+						}
+					}
 					selected := r.selected[g.ID]
 					if ui.Checkbox(c, &selected, "").Label(nativeT("select") + " " + g.Name).Changed() {
 						if selected {
@@ -162,6 +182,7 @@ func (r *routingPanel) groupsView(c *ui.Context) {
 		defaultsOpen := ui.Local(ui.Column(c), "routing-defaults", func() bool { return false })
 		ui.Collapsible(c, nativeT("groupDefaults"), defaultsOpen, func() {
 			s := r.p.draft.Value.settings()
+			modelNameSuffix(c, s, locked)
 			kit.Help(c, nativeT("groupDefaultsHint"))
 			kit.Toggle(c, &s.GroupSink, nativeT("sink"), nativeT("sinkHint")).Disabled(locked)
 			nativeInt(c, nativeT("firstToken"), &s.GroupFirstToken, 0, 3600, locked)
@@ -216,8 +237,18 @@ func (r *routingPanel) moveGroup(index, delta int) {
 	for _, g := range r.state.Groups {
 		order = append(order, g.Value.ID)
 	}
-	order[index], order[index+delta] = order[index+delta], order[index]
+	order = moveRouteItem(order, index, index+delta)
 	r.act("arrange", map[string]any{"order": order}, nil)
+}
+
+// Insertion, rather than swapping, preserves the intervening fallback order.
+func moveRouteItem(items []string, from, to int) []string {
+	if from < 0 || to < 0 || from >= len(items) || to >= len(items) || from == to {
+		return items
+	}
+	item := items[from]
+	items = slices.Delete(items, from, from+1)
+	return slices.Insert(items, to, item)
 }
 func stringChoices(values []string) []kit.SelectOption {
 	out := make([]kit.SelectOption, 0, len(values))
@@ -275,6 +306,9 @@ func (r *routingPanel) dialogView(c *ui.Context) {
 }
 
 func (r *routingPanel) editor(c *ui.Context) {
+	if r.edit == nil {
+		return
+	}
 	g := &r.edit.Value
 	mask := r.accountMasker()
 	locked := r.api.busy || r.p.locked()
@@ -292,86 +326,118 @@ func (r *routingPanel) editor(c *ui.Context) {
 		}
 	})
 
-	// Upstream is one continuous editor: identity, members, accounts, policy and rules.
+	// Each section edits the same draft; switching sections never saves or
+	// discards it. All upstream options remain reachable without a long form.
+	if r.edit == nil {
+		return
+	} // Cancel can discard the draft in this frame.
+	kit.SubTabs(c, &r.editorTab, []string{i18n.T("aiRouting.basics"), nativeT("members"), nativeT("rules"), i18n.T("aiRouting.advanced"), nativeT("accounts")}, nil)
 	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
-		for _, section := range []int{0, 1, 4, 3, 2} {
-			switch section {
-			case 0:
-				kit.Section(c, nil, i18n.T("aiRouting.basics"), "", func() {
-					ui.Column(c).FillWidth().Gap(16).Children(func() {
-						nativeText(c, nativeT("groupName"), &g.Name, locked)
-						nativeText(c, nativeT("groupID"), &g.ID, locked || g.Auto)
-						nativeSelect(c, nativeT("strategy"), &g.Routing, r.routingChoices(g.Routing), locked)
-						kit.Help(c, nativeT("strategyHint"))
-						if strings.Contains(g.Routing, "/") {
-							nativeText(c, nativeT("pluginStrategy"), &g.Routing, locked)
+		switch r.editorTab {
+		case 0:
+			kit.Section(c, nil, i18n.T("aiRouting.basics"), "", func() {
+				ui.Column(c).FillWidth().Gap(16).Children(func() {
+					nativeText(c, nativeT("groupName"), &g.Name, locked)
+					if r.newGroup {
+						kit.Help(c, upstreamT("Agents pick it as {id}", "id", "group/"+r.groupID())).Selectable()
+					} else {
+						nativeText(c, nativeT("groupID"), &g.ID, locked)
+						if r.groupID() != r.saved.Value.ID {
+							kit.Help(c, upstreamT("an agent set to {id} needs setting again", "id", r.saved.Value.Ref))
 						}
-					})
-				})
-			case 1:
-				r.membersView(c, g, locked)
-				ui.Column(c).FillWidth().Gap(8).Children(func() {
-					nativeList(c, r.fields, "match", nativeT("patterns"), &g.Match, locked)
-					r.patternsView(c, g, locked)
-				})
-			case 2:
-				r.rulesView(c, g, locked)
-			case 3:
-				kit.Group(c, nil, i18n.T("aiRouting.advanced"), "", func() {
-					kit.Stack(c, "", "", func() {
-						nativeSelect(c, nativeT("affinity"), &g.Affinity, options("", nativeT("auto"), "session", nativeT("affinitySession"), "turn", nativeT("affinityTurn"), "off", nativeT("off"), "strict", nativeT("affinityStrict")), locked)
-					})
-					kit.Stack(c, "", nativeT("sinkHint"), func() {
-						mode := "default"
-						if g.Sink {
-							mode = "sink"
-						} else if g.NoSink {
-							mode = "keep"
-						}
-						if nativeSelect(c, nativeT("sink"), &mode, options("default", nativeT("followDefaults"), "sink", nativeT("sink"), "keep", nativeT("keepPlace")), locked) {
-							g.Sink, g.NoSink = mode == "sink", mode == "keep"
-						}
-					})
-					kit.Stack(c, "", nativeT("firstTokenDefaultHint"), func() { nativeInt(c, nativeT("firstToken"), &g.FirstToken, -1, 3600, locked) })
-					kit.Stack(c, "", nativeT("patienceDefaultHint"), func() { nativeInt(c, nativeT("patience"), &g.Patience, -1, 240, locked) })
-					kit.Stack(c, "", nativeT("contextHint"), func() { nativeInt(c, nativeT("context"), &g.Context, -1, 10000000, locked) })
-					kit.Stack(c, "", "", func() { nativeText(c, nativeT("family"), &g.Family, locked) })
-					kit.Toggle(c, &g.Unlists, nativeT("unlistMembers"), "").Disabled(locked)
-					kit.Stack(c, "", "", func() { nativeList(c, r.fields, "levels", nativeT("offeredLevels"), &g.Levels, locked) })
-				})
-			case 4:
-				kit.Section(c, icons.Users, nativeT("accounts"), nativeT("accountsHint"), func() {
-					for _, provider := range sortedKeys(r.state.Accounts) {
-						kit.Section(c, nil, r.providerLabel(provider), "", func() {
-							for _, account := range r.state.Accounts[provider] {
-								id := account.ID
-								on := slices.Contains(g.Accounts, id)
-								if ui.Checkbox(c.Key(id), &on, mask(account.Name)).Disabled(locked).Changed() {
-									g.Accounts = toggleString(g.Accounts, id, on)
-								}
-							}
-						})
+					}
+					nativeSelect(c, nativeT("strategy"), &g.Routing, r.routingChoices(g.Routing), locked)
+					kit.Help(c, nativeT("strategyHint"))
+					if strings.Contains(g.Routing, "/") {
+						nativeText(c, nativeT("pluginStrategy"), &g.Routing, locked)
 					}
 				})
-			}
+			})
+			r.memberSummary(c, g)
+		case 1:
+			r.membersView(c, g, locked)
+			ui.Column(c).FillWidth().Gap(8).Children(func() {
+				nativeList(c, r.fields, "match", nativeT("patterns"), &g.Match, locked)
+				r.patternsView(c, g, locked)
+			})
+		case 2:
+			r.rulesView(c, g, locked)
+		case 3:
+			kit.Group(c, nil, i18n.T("aiRouting.advanced"), "", func() {
+				kit.Stack(c, "", "", func() {
+					nativeSelect(c, nativeT("affinity"), &g.Affinity, options("", nativeT("auto"), "session", nativeT("affinitySession"), "turn", nativeT("affinityTurn"), "off", nativeT("off"), "strict", nativeT("affinityStrict")), locked)
+				})
+				kit.Stack(c, "", nativeT("sinkHint"), func() {
+					mode := "default"
+					if g.Sink {
+						mode = "sink"
+					} else if g.NoSink {
+						mode = "keep"
+					}
+					if nativeSelect(c, nativeT("sink"), &mode, options("default", nativeT("followDefaults"), "sink", nativeT("sink"), "keep", nativeT("keepPlace")), locked) {
+						g.Sink, g.NoSink = mode == "sink", mode == "keep"
+					}
+				})
+				kit.Stack(c, "", nativeT("firstTokenDefaultHint"), func() { nativeInt(c, nativeT("firstToken"), &g.FirstToken, -1, 3600, locked) })
+				kit.Stack(c, "", nativeT("patienceDefaultHint"), func() { nativeInt(c, nativeT("patience"), &g.Patience, -1, 240, locked) })
+				kit.Stack(c, "", nativeT("contextHint"), func() { nativeInt(c, nativeT("context"), &g.Context, -1, 10000000, locked) })
+				kit.Stack(c, "", "", func() { nativeText(c, nativeT("family"), &g.Family, locked) })
+				kit.Toggle(c, &g.Unlists, nativeT("unlistMembers"), "").Disabled(locked)
+				kit.Stack(c, "", "", func() { nativeList(c, r.fields, "levels", nativeT("offeredLevels"), &g.Levels, locked) })
+			})
+		case 4:
+			kit.Section(c, icons.Users, nativeT("accounts"), nativeT("accountsHint"), func() {
+				for _, provider := range sortedKeys(r.state.Accounts) {
+					kit.Section(c, nil, r.providerLabel(provider), "", func() {
+						for _, account := range r.state.Accounts[provider] {
+							id := account.ID
+							on := slices.Contains(g.Accounts, id)
+							if ui.Checkbox(c.Key(id), &on, mask(account.Name)).Disabled(locked).Changed() {
+								g.Accounts = toggleString(g.Accounts, id, on)
+							}
+						}
+					})
+				}
+			})
 		}
 	})
 }
 
 func (r *routingPanel) membersView(c *ui.Context, g *routeGroup, locked bool) {
 	kit.Group(c, icons.Layers, nativeT("members"), nativeT("membersHint"), func() {
+		moveFrom, moveTo := -1, -1
+		if g.Routing == "weight" {
+			if kit.GhostButton(c, upstreamT("Sort by weight"), icons.ArrowDown, false).Disabled(locked).Clicked() {
+				slices.SortStableFunc(g.Members, func(a, b string) int { return max(1, g.Weights[b]) - max(1, g.Weights[a]) })
+				g.Placed = slices.Clone(g.Members)
+			}
+		}
 		for i, id := range g.Members {
-			ui.Column(c.Key(id)).FillWidth().Gap(6).Padding(12, 16).Children(func() {
+			row := ui.Column(c.Key(id)).FillWidth().Gap(6).Padding(12, 16)
+			if item, ok := ui.Drop[draggedRouteMember](row); ok && !locked {
+				moveFrom, moveTo = slices.Index(g.Members, item.id), i
+			}
+			row.Children(func() {
 				ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+					handle := kit.IconButton(c, icons.GripVertical, upstreamT("Move {name}", "name", r.memberLabel(id))).Disabled(locked)
+					if !locked {
+						handle.Drag(draggedRouteMember{id})
+						if handle.Shortcut(ui.Alt, ui.KeyUp) {
+							moveFrom, moveTo = i, i-1
+						}
+						if handle.Shortcut(ui.Alt, ui.KeyDown) {
+							moveFrom, moveTo = i, i+1
+						}
+					}
 					on := !slices.Contains(g.Off, id)
 					if ui.Checkbox(c, &on, r.memberLabel(id)).Grow(1).MinWidth(0).Disabled(locked).Changed() {
 						g.Off = toggleString(g.Off, id, !on)
 					}
 					if kit.IconButton(c, icons.ArrowUp, nativeT("moveUp")+" "+r.memberLabel(id)).Disabled(locked || i == 0).Clicked() {
-						g.Members[i], g.Members[i-1] = g.Members[i-1], g.Members[i]
+						moveFrom, moveTo = i, i-1
 					}
 					if kit.IconButton(c, icons.ArrowDown, nativeT("moveDown")+" "+r.memberLabel(id)).Disabled(locked || i == len(g.Members)-1).Clicked() {
-						g.Members[i], g.Members[i+1] = g.Members[i+1], g.Members[i]
+						moveFrom, moveTo = i, i+1
 					}
 					if kit.IconButton(c, icons.X, nativeT("remove")+" "+r.memberLabel(id)).Disabled(locked).Clicked() {
 						removeRouteMember(g, id)
@@ -402,6 +468,10 @@ func (r *routingPanel) membersView(c *ui.Context, g *routeGroup, locked bool) {
 		}
 		if g.Routing == "manual" {
 			kit.Stack(c, "", "", func() { nativeSelect(c, nativeT("manualPick"), &g.Pick, r.memberChoices(g.Members), locked) })
+		}
+		g.Members = moveRouteItem(g.Members, moveFrom, moveTo)
+		if moveFrom >= 0 && moveTo >= 0 && moveTo < len(g.Members) {
+			g.Placed = slices.Clone(g.Members)
 		}
 		kit.Stack(c, "", "", func() {
 			ui.TextInput(c, &r.memberSearch).FillWidth().Placeholder(nativeT("searchModels")).Label(nativeT("searchModels"))
@@ -464,12 +534,27 @@ func (r *routingPanel) rulesView(c *ui.Context, g *routeGroup, locked bool) {
 			choiceRow(c, nativeT("automaticEffort"), "", &g.Effort, options("", nativeT("off"), "auto", nativeT("auto")), locked)
 		})
 		remove := -1
+		moveFrom, moveTo := -1, -1
 		for i := range g.Rules {
 			rule := &g.Rules[i].Value
-			ui.Column(c.Key(i)).FillWidth().Gap(8).Padding(12, 0).BorderWidth(1, 0, 0, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
+			row := ui.Column(c.Key(i)).FillWidth().Gap(8).Padding(12, 0).BorderWidth(1, 0, 0, 0).BorderColor(kit.Colors(c).Hairline)
+			if item, ok := ui.Drop[draggedRouteRule](row); ok && !locked {
+				moveFrom, moveTo = item.index, i
+			}
+			row.Children(func() {
 				open := ui.Local(ui.Column(c), "editing", func() bool { return len(g.Rules) == 1 })
 				section := ui.Local(ui.Column(c), "section", func() int { return 0 })
 				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+					handle := kit.IconButton(c, icons.GripVertical, upstreamT("Move {name}", "name", nativeT("rule")+" "+kit.Itoa(i+1))).Disabled(locked)
+					if !locked {
+						handle.Drag(draggedRouteRule{i})
+						if handle.Shortcut(ui.Alt, ui.KeyUp) {
+							moveFrom, moveTo = i, i-1
+						}
+						if handle.Shortcut(ui.Alt, ui.KeyDown) {
+							moveFrom, moveTo = i, i+1
+						}
+					}
 					ui.Column(c).Grow(1).MinWidth(0).Children(func() {
 						kit.Strong(c, nativeT("rule")+" "+kit.Itoa(i+1))
 						kit.Help(c, strings.TrimSpace(r.memberLabel(rule.Use)+" "+rule.Intent))
@@ -478,12 +563,10 @@ func (r *routingPanel) rulesView(c *ui.Context, g *routeGroup, locked bool) {
 						*open = !*open
 					}
 					if kit.IconButton(c, icons.ArrowUp, nativeT("moveUp")).Disabled(locked || i == 0).Clicked() {
-						g.Rules[i], g.Rules[i-1] = g.Rules[i-1], g.Rules[i]
-						r.fields = fields{}
+						moveFrom, moveTo = i, i-1
 					}
 					if kit.IconButton(c, icons.ArrowDown, nativeT("moveDown")).Disabled(locked || i == len(g.Rules)-1).Clicked() {
-						g.Rules[i], g.Rules[i+1] = g.Rules[i+1], g.Rules[i]
-						r.fields = fields{}
+						moveFrom, moveTo = i, i+1
 					}
 					if kit.IconButton(c, icons.Trash2, nativeT("deleteRule")).Disabled(locked).Clicked() {
 						remove = i
@@ -502,7 +585,13 @@ func (r *routingPanel) rulesView(c *ui.Context, g *routeGroup, locked bool) {
 						kit.Stack(c, "", "", func() {
 							nativeSelect(c, nativeT("useMember"), &rule.Use, r.memberChoices(g.Members), locked)
 						})
-						kit.Toggle(c, &rule.Pause, nativeT("pauseMember"), "").Disabled(locked)
+						if kit.Toggle(c, &rule.Pause, nativeT("pauseMember"), "").Disabled(locked).Changed() && rule.Pause {
+							// Pauses have no outgoing request. Hidden routing-only
+							// conditions must not make this otherwise valid rule unsaveable.
+							rule.More, rule.UseEffort = nil, ""
+							rule.Tokens, rule.Images, rule.Compact = 0, false, false
+							rule.Effort, rule.Intent = "", ""
+						}
 						if !rule.Pause {
 							kit.Stack(c, "", "", func() {
 								r.memberOrderView(c, nativeT("thenMembers"), &rule.More, g.Members, locked)
@@ -521,6 +610,7 @@ func (r *routingPanel) rulesView(c *ui.Context, g *routeGroup, locked bool) {
 						}
 						kit.Stack(c, "", "", func() {
 							nativeList(c, r.fields, prefix+"agents", nativeT("clients"), &rule.Agents, locked)
+							r.clientChoices(c, rule, locked)
 						})
 					case 2:
 						kit.Stack(c, "", "", func() {
@@ -550,9 +640,17 @@ func (r *routingPanel) rulesView(c *ui.Context, g *routeGroup, locked bool) {
 		if remove >= 0 {
 			g.Rules = slices.Delete(g.Rules, remove, remove+1)
 			r.fields = fields{}
+		} else if moveFrom >= 0 && moveTo >= 0 && moveFrom < len(g.Rules) && moveTo < len(g.Rules) && moveFrom != moveTo {
+			item := g.Rules[moveFrom]
+			g.Rules = slices.Insert(slices.Delete(g.Rules, moveFrom, moveFrom+1), moveTo, item)
+			r.fields = fields{}
 		}
 		if kit.Button(c, nativeT("addRule"), icons.Plus, false).Disabled(locked).Clicked() {
-			g.Rules = append(g.Rules, core.Preserved[routeRule]{})
+			rule := routeRule{}
+			if len(g.Members) > 0 {
+				rule.Use = g.Members[len(g.Members)-1]
+			}
+			g.Rules = append(g.Rules, core.Preserved[routeRule]{Value: rule})
 		}
 	})
 }

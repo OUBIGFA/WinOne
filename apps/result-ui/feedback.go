@@ -1,6 +1,9 @@
 package resultui
 
-import "github.com/egoist/mygo/ui"
+import (
+	"github.com/egoist/mygo/ui"
+	"time"
+)
 
 // Feedback is owned by the panel, not by a transient row index. Dismissal must
 // survive moving an error between result/reply areas and must never clear the
@@ -8,16 +11,13 @@ import "github.com/egoist/mygo/ui"
 type feedbackVisibility struct {
 	content   string
 	dismissed bool
+	until     time.Time
 }
 
 func (f *feedbackVisibility) observe(content string) {
 	if f.content != content {
 		f.content, f.dismissed = content, false
-	}
-}
-func (p *Panel) closeFeedback(c *ui.Context, f *feedbackVisibility, label string) {
-	if contentIconButton(c, label, false, func() { ui.Icon(c, svg("close")).Size(14, 14) }).Size(22, 22).Clicked() {
-		f.dismissed = true
+		f.until = time.Time{}
 	}
 }
 
@@ -26,4 +26,20 @@ func (p *Panel) closeFeedback(c *ui.Context, f *feedbackVisibility, label string
 func (p *Panel) setNotice(value string) {
 	p.Notice = value
 	p.noticeVisibility = feedbackVisibility{content: value}
+}
+
+// The UI clock schedules one wake-up; repeated actions restart the interval
+// without a background timer that could expire a newer notice.
+func (f *feedbackVisibility) update(c *ui.Context) {
+	if f.content == "" || f.dismissed {
+		return
+	}
+	if f.until.IsZero() {
+		f.until = c.Now().Add(5 * time.Second)
+	}
+	if remaining := f.until.Sub(c.Now()); remaining > 0 {
+		c.After(remaining)
+	} else {
+		f.dismissed = true
+	}
 }

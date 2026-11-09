@@ -3,12 +3,13 @@ package interconnect
 import (
 	"encoding/base64"
 	"math"
-	"strconv"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/egoist/mygo/ui"
+	qrcode "github.com/skip2/go-qrcode"
 
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
@@ -17,6 +18,16 @@ import (
 // qrCache keeps decoded QR codes by their source text: the services send
 // the same picture on every poll.
 var qrCache sync.Map
+
+// Use exactly the address copied by this page. A worker's separate cached SVG
+// can belong to an older address/key; it must never choose the scan destination.
+func linkQRCode(link string) string {
+	data, err := qrcode.Encode(link, qrcode.Medium, 256)
+	if err != nil {
+		return ""
+	}
+	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(data)
+}
 
 // qrSource decodes a QR code the transfer services give: a data URL of a
 // picture, or SVG text. It returns nil for anything else.

@@ -22,8 +22,8 @@ func TestAIHomeKeepsCommonTasksAndAllSecondaryPagesReachable(t *testing.T) {
 	for _, entry := range []struct {
 		label string
 		tab   int
-	}{{upstreamT("Usage"), tabUsage}, {upstreamT("Plugins"), tabPlugins}, {upstreamT("Library"), tabLibrary}, {upstreamT("Sessions"), tabSessions}, {upstreamT("Gateway"), tabGateway}, {i18n.T("ai.advanced"), tabAdvanced}} {
-		p.switchTab(tabHome)
+	}{{i18n.T("usage.title"), tabUsage}, {i18n.T("aiPlugins.title"), tabPlugins}, {i18n.T("gateway.title"), tabGateway}, {i18n.T("routing.title"), tabRouting}, {upstreamT("Masking"), tabMasking}, {i18n.T("ai.advanced"), tabAdvanced}} {
+		p.switchTab(tabMore)
 		settle(h, tt)
 		if err := tt.Click(entry.label); err != nil {
 			t.Fatal(err)

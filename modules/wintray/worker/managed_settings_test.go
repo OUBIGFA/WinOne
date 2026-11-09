@@ -15,6 +15,55 @@ type activationEffects struct {
 	calls int
 }
 
+type changedEffects struct {
+	activationEffects
+	changes       int
+	before, after config.Settings
+	failChange    bool
+}
+
+func (e *changedEffects) ReconcileChanges(before, after config.Settings, allow bool) error {
+	e.changes++
+	e.before, e.after = before, after
+	if e.failChange {
+		return errors.New("native change failed")
+	}
+	return nil
+}
+
+func TestManagedEditUsesChangesAndFailureStillFullyRestores(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "managed-settings.json")
+	initial := config.DefaultSettings()
+	writeManaged(t, path, 1, initial)
+	e := &changedEffects{}
+	m, err := newManagedManager(config.NewStore(filepath.Join(dir, "settings.json")), path, e)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = m.Activate(false); err != nil {
+		t.Fatal(err)
+	}
+	next := initial
+	next.CloseWindowRetrySeconds++
+	writeManaged(t, path, 2, next)
+	if _, err = m.ReloadManaged(true); err != nil {
+		t.Fatal(err)
+	}
+	if e.calls != 1 || e.changes != 1 || e.before.CloseWindowRetrySeconds != initial.CloseWindowRetrySeconds || e.after.CloseWindowRetrySeconds != next.CloseWindowRetrySeconds {
+		t.Fatal("edit repeated full native reconciliation")
+	}
+	e.failChange = true
+	next.CloseWindowRetrySeconds++
+	writeManaged(t, path, 3, next)
+	if _, err = m.ReloadManaged(true); err == nil {
+		t.Fatal("native failure hidden")
+	}
+	if e.calls != 2 || m.Snapshot().Revision != "2" {
+		t.Fatal("failure did not fully restore committed settings")
+	}
+}
+
 func (e *activationEffects) Reconcile(_ config.Settings, allow bool) error {
 	e.calls++
 	e.allow = allow

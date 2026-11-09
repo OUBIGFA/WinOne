@@ -2,13 +2,18 @@ package aiservices
 
 import (
 	"encoding/json"
+	"errors"
 	"net/url"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
+	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
@@ -466,6 +471,9 @@ func (t *nativeTrace) detailView(c *ui.Context, p *page) {
 			if r.Held != "" && kit.Button(c, nativeT("heldReport"), icons.FileText, false).Disabled(t.detailAPI.busy).Clicked() {
 				t.detailRead(p, "held", "/api/gateway/held/"+url.PathEscape(r.Held))
 			}
+			if r.Held != "" && kit.Button(c, i18n.T("diagnostics.openFolder"), icons.FolderOpen, false).Disabled(t.detailAPI.busy).Clicked() {
+				t.revealHeld(p)
+			}
 			if r.Masked != nil && kit.Button(c, nativeT("maskingRecords"), icons.ShieldCheck, false).Clicked() {
 				change := func() {
 					p.maskRecord = r.Masked.Key
@@ -505,4 +513,37 @@ func (t *nativeTrace) detailView(c *ui.Context, p *page) {
 		t.detailAPI.close()
 		t.routeAPI.close()
 	}
+}
+
+var openHeldDirectory = mygo.Shell.OpenPath
+
+func (t *nativeTrace) revealHeld(p *page) {
+	t.detailAPI.request(p, "POST", "/api/gateway/held/reveal", nil, func(raw json.RawMessage) {
+		var result struct {
+			Directory string `json:"directory"`
+		}
+		if !nativeDecode(&t.detailAPI, raw, &result) {
+			return
+		}
+		t.detailAPI.busy = true
+		ticket := t.detailAPI.generation
+		core.Do(p.env, func() error {
+			info, err := os.Stat(result.Directory)
+			if err != nil {
+				return err
+			}
+			if !filepath.IsAbs(result.Directory) || !info.IsDir() {
+				return errors.New(nativeT("invalidResponse"))
+			}
+			return openHeldDirectory(result.Directory)
+		}, func(err error) {
+			if ticket != t.detailAPI.generation {
+				return
+			}
+			t.detailAPI.busy = false
+			if err != nil {
+				t.detailAPI.err = err.Error()
+			}
+		})
+	})
 }

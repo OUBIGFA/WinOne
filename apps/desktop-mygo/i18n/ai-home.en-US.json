@@ -18,6 +18,7 @@
  "aiHome.preferencesHint":"Default model, automatic translation and reasoning display",
  "aiHome.gatewayHint":"Let other apps use your models; manage access keys and permissions",
  "aiHome.routingHint":"Combine models with selection strategies and fallback options",
+ "aiHome.maskingHint":"Review privacy records and manage sensitive information protection",
  "aiHome.pluginsHint":"Install, update and configure extensions",
  "aiHome.advancedHint":"Quotas, model rules, privacy, helper features and client settings",
  "aiHome.moreHint":"Configure these features when needed. Start with Home for everyday use."

@@ -217,17 +217,18 @@ func (p *peerPanel) View(c *ui.Context, active bool) {
 // content, and its controls. Route and dialog choices stay with the task,
 // so polling never resets them.
 type peerTask struct {
-	env       *core.Env
-	route     string
-	address   string
-	qrOn      bool
-	text      string
-	save      *shareSave
-	saveOpen  bool
-	nativeOn  bool
-	manageOn  bool
-	detailsOn bool
-	answer    string
+	env                *core.Env
+	route              string
+	address            string
+	qrOn               bool
+	phoneLink, phoneQR string
+	text               string
+	save               *shareSave
+	saveOpen           bool
+	nativeOn           bool
+	manageOn           bool
+	detailsOn          bool
+	answer             string
 	// browse shows the share's page below its actions, as React's iframe
 	// did; browseURL is the address it was made for.
 	browse    *web.Surface
@@ -254,10 +255,10 @@ func (t *peerTask) View(c *ui.Context, item taskRecord, kind string, busy bool, 
 	server := strings.HasSuffix(item.Spec.Mode, "server")
 	published := kind == "share" && server
 	var addresses []shareAddress
-	phoneURL, phoneQR := "", ""
+	phoneURL := ""
 	if s.Share != nil && s.Share.Info != nil {
 		addresses = s.Share.Info.Addresses
-		phoneURL, phoneQR = s.Share.Info.URL, s.Share.Info.QR
+		phoneURL = s.Share.Info.URL
 	}
 	var selected *shareAddress
 	for i := range addresses {
@@ -271,9 +272,6 @@ func (t *peerTask) View(c *ui.Context, item taskRecord, kind string, busy bool, 
 	if selected != nil {
 		if selected.URL != "" {
 			phoneURL = selected.URL
-		}
-		if selected.QR != "" {
-			phoneQR = selected.QR
 		}
 	}
 	call := func(method string, params map[string]any) {
@@ -320,7 +318,7 @@ func (t *peerTask) View(c *ui.Context, item taskRecord, kind string, busy bool, 
 			kit.Caption(c, tr(state))
 		})
 		if published && s.Ready {
-			t.routes(c, id, s, addresses, selected, phoneURL, phoneQR, busy, action, copy)
+			t.routes(c, id, s, addresses, selected, phoneURL, busy, action, copy)
 		}
 		if published {
 			ui.Collapsible(c, tr("winoneLiveShare"), &t.nativeOn, func() {
@@ -433,7 +431,7 @@ func (t *peerTask) View(c *ui.Context, item taskRecord, kind string, busy bool, 
 
 // routes are the ways to receive a published share: across networks by
 // its code sender, or directly on the LAN.
-func (t *peerTask) routes(c *ui.Context, id string, s taskState, addresses []shareAddress, selected *shareAddress, phoneURL, phoneQR string, busy bool, action func(func() error, func()), copy func(string)) {
+func (t *peerTask) routes(c *ui.Context, id string, s taskState, addresses []shareAddress, selected *shareAddress, phoneURL string, busy bool, action func(func() error, func()), copy func(string)) {
 	if t.route == "" {
 		t.route = "lan"
 		if s.Transfer != nil {
@@ -455,11 +453,12 @@ func (t *peerTask) routes(c *ui.Context, id string, s taskState, addresses []sha
 	ui.Column(c).FillWidth().Gap(8).Role(ui.RoleGroup).Label(tr("lanReceive")).Children(func() {
 		kit.Strong(c, tr("lanReceive"))
 		kit.Help(c, tr("lanReceiveHint"))
-		if phoneQR != "" || phoneURL != "" {
+		if phoneURL != "" {
+			if t.phoneLink != phoneURL {
+				t.phoneLink, t.phoneQR = phoneURL, linkQRCode(phoneURL)
+			}
 			ui.Column(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				if phoneQR != "" {
-					qrImage(c, "data:image/svg+xml;charset=utf-8,"+url.PathEscape(phoneQR), tr("lanQR"))
-				}
+				qrImage(c, t.phoneQR, tr("lanQR"))
 				if phoneURL != "" && kit.Button(c, tr("copyPhoneLink"), icons.Copy, false).Clicked() {
 					copy(phoneURL)
 				}

@@ -87,7 +87,16 @@ func (m *Manager) ReloadManaged(allowElevated bool) (Snapshot, error) {
 		return m.snapshotLocked(), nil
 	}
 	before := clone(m.current)
-	if err = m.effects.Reconcile(value.Settings, allowElevated); err != nil {
+	// Only a successfully reconciled state may use a change-only apply.
+	// Startup, failed recovery and compensation still reconcile every effect.
+	if changes, ok := m.effects.(interface {
+		ReconcileChanges(config.Settings, config.Settings, bool) error
+	}); ok && m.reconciled && m.recoveryError == "" {
+		err = changes.ReconcileChanges(before, value.Settings, allowElevated)
+	} else {
+		err = m.effects.Reconcile(value.Settings, allowElevated)
+	}
+	if err != nil {
 		rollbackErr := m.effects.Reconcile(before, allowElevated)
 		m.reconciled = rollbackErr == nil
 		if rollbackErr != nil {

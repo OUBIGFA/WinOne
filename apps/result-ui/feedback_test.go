@@ -3,6 +3,7 @@ package resultui
 import (
 	"github.com/egoist/mygo/ui"
 	"testing"
+	"time"
 )
 
 func TestResultFeedbackClosesOnlyTheNoticeAndKeepsDraftFailureAndWindow(t *testing.T) {
@@ -17,12 +18,10 @@ func TestResultFeedbackClosesOnlyTheNoticeAndKeepsDraftFailureAndWindow(t *testi
 			p.Actions.Close = func() { closed++ }
 			p.Actions.Retry = func() { retried++ }
 			tt := ui.NewTester(p.View, 420, 700)
-			if err := tt.Click(p.T("关闭错误提示", "Dismiss error")); err != nil {
-				t.Fatal(err)
+			if _, found := tt.Find(p.T("关闭错误提示", "Dismiss error")); found {
+				t.Fatal("error hint has a close button")
 			}
-			for range 4 {
-				tt.Frame()
-			}
+			tt.Advance(5 * time.Second)
 			if tt.HasText(p.Error) || p.Error != "Request failed" || p.Prompt != "Unsent owner draft" || !p.Busy || closed != 0 || retried != 0 {
 				t.Fatal("dismissal changed a request, draft, or window instead of feedback")
 			}
@@ -33,40 +32,44 @@ func TestResultFeedbackClosesOnlyTheNoticeAndKeepsDraftFailureAndWindow(t *testi
 			}
 			p.setNotice(p.T("已复制", "Copied"))
 			tt.Frame()
-			if err := tt.Click(p.T("关闭提示", "Dismiss notice")); err != nil {
-				t.Fatal(err)
+			if _, found := tt.Find(p.T("关闭提示", "Dismiss notice")); found {
+				t.Fatal("transient notices must not have a close button")
 			}
-			tt.Frame()
-			if tt.HasText(p.Notice) || closed != 0 {
-				t.Fatal("notice did not close independently of window")
+			tt.Advance(4 * time.Second)
+			if !tt.HasText(p.T("已复制", "Copied")) {
+				t.Fatal("notice disappeared before five seconds")
 			}
 			p.setNotice(p.T("已复制", "Copied"))
 			tt.Frame()
+			tt.Advance(4 * time.Second)
 			if !tt.HasText(p.Notice) {
-				t.Fatal("new repeated action inherited the old notice dismissal")
+				t.Fatal("repeated action inherited the old notice deadline")
+			}
+			tt.Advance(time.Second)
+			if tt.HasText(p.T("已复制", "Copied")) || closed != 0 || p.Prompt != "Unsent owner draft" || !p.Busy || p.Error != "A different failure" {
+				t.Fatal("notice expiry failed or changed the window, draft or request")
 			}
 		}
 	}
 }
 
-func TestResultComposerAndSpeechHintsHaveIndependentCloseControls(t *testing.T) {
+func TestResultComposerAndSpeechHintsExpireWithoutChangingDraftOrFailure(t *testing.T) {
 	p := NewPanel("ocr", "en-US", "light")
 	p.Prompt = "Keep the owner text"
 	p.ShowComposerHint = true
 	p.SpeechErrorKey, p.SpeechError = "result", "Speech failed"
 	tt := ui.NewTester(p.View, 520, 700)
-	if err := tt.Click("Dismiss composer hint"); err != nil {
-		t.Fatal(err)
+	for _, label := range []string{"Dismiss composer hint", "Dismiss speech error"} {
+		if _, found := tt.Find(label); found {
+			t.Fatal("hint has a close button")
+		}
 	}
-	tt.Frame()
-	if p.ShowComposerHint || p.Prompt != "Keep the owner text" || !tt.HasText("Speech failed") {
-		t.Fatal("closing a composer hint changed its draft or unrelated speech feedback")
+	tt.Advance(4 * time.Second)
+	if !p.ShowComposerHint || !tt.HasText("Speech failed") {
+		t.Fatal("hint expired early")
 	}
-	if err := tt.Click("Dismiss speech error"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if tt.HasText("Speech failed") || p.SpeechError != "Speech failed" || p.SpeechErrorKey != "result" {
-		t.Fatal("closing speech feedback changed the underlying failed operation")
+	tt.Advance(time.Second)
+	if p.ShowComposerHint || p.Prompt != "Keep the owner text" || tt.HasText("Speech failed") || p.SpeechError != "Speech failed" || p.SpeechErrorKey != "result" {
+		t.Fatal("expiry changed draft or failed operation")
 	}
 }

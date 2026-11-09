@@ -10,6 +10,11 @@ import (
 // Use the runtime catalog (including in-use dependencies), not unsaved switches,
 // to match upstream's feature visibility. Until it arrives, keep saved choices.
 func (p *page) builtinEnabled(id string) bool {
+	// These optional product surfaces were explicitly removed. Their shared
+	// upstream libraries may still be used by plugin tools, never by navigation.
+	if id == "sessions" || id == "library" {
+		return false
+	}
 	if p.advanced != nil && p.advanced.catalog != nil {
 		for _, plugin := range p.advanced.catalog.BuiltinPlugins {
 			if plugin.ID == id {
@@ -30,39 +35,34 @@ func (p *page) builtinEnabled(id string) bool {
 }
 
 func (p *page) destinationEnabled(tab int) bool {
-	id := map[int]string{tabSessions: "sessions", tabLibrary: "library", tabRouting: "routing", tabGateway: "gateway", tabUsage: "usage", tabMasking: "redact"}[tab]
+	id := map[int]string{tabRouting: "routing", tabGateway: "gateway", tabUsage: "usage", tabMasking: "redact"}[tab]
 	return id == "" || p.builtinEnabled(id)
 }
 
-// Keep every upstream destination, with the user's requested top navigation.
-// Routing and its groups share a service but remain separate destinations.
+// Four everyday tasks stay first. Secondary capabilities share one destination
+// so widening the feature catalog never widens the primary navigation.
 func (p *page) upstreamNavigation(c *ui.Context) {
 	type destination struct {
 		label string
 		tab   int
-		route int
 	}
 	entries := []destination{
-		{homeT("home"), tabHome, -1},
-		{i18n.T("ai.customProviders"), tabCustom, -1}, {i18n.T("ai.addProvidersTab"), tabAccounts, -1},
-		{upstreamT("Sessions"), tabSessions, -1}, {upstreamT("Library"), tabLibrary, -1},
-		{upstreamT("Routing"), tabRouting, 1}, {upstreamT("Routing groups"), tabRouting, 0},
-		{upstreamT("Gateway"), tabGateway, -1}, {upstreamT("Usage"), tabUsage, -1}, {upstreamT("Masking"), tabMasking, -1},
-		{upstreamT("Plugins"), tabPlugins, -1}, {homeT("preferences"), tabDefaults, -1}, {i18n.T("ai.advanced"), tabAdvanced, -1},
+		{homeT("home"), tabHome},
+		{i18n.T("ai.customProviders"), tabCustom}, {i18n.T("ai.addProvidersTab"), tabAccounts},
+		{homeT("preferences"), tabDefaults}, {homeT("more"), tabMore},
 	}
-	entries = slices.DeleteFunc(entries, func(e destination) bool { return !p.destinationEnabled(e.tab) })
 	if !p.destinationEnabled(p.tab) {
 		p.switchTab(tabHome)
 	}
-	current := 0
+	current := len(entries) - 1
 	tabs := make([]kit.Tab, len(entries))
 	for i, e := range entries {
 		tabs[i] = kit.Tab{Label: e.label}
-		if p.tab == e.tab && (e.route < 0 || p.routing.tab == e.route) {
+		if p.tab == e.tab {
 			current = i
 		}
 	}
-	ui.Column(c).FillWidth().Padding(12, 20, 0, 20).Gap(10).Disabled(p.navigationLocked()).Children(func() {
+	ui.Column(c).FillWidth().Gap(kit.HeadingGap).Disabled(p.navigationLocked()).Children(func() {
 		kit.Tabs(c, &current, tabs, func(apply func()) {
 			change := func() {
 				apply()
@@ -70,10 +70,6 @@ func (p *page) upstreamNavigation(c *ui.Context) {
 				if p.tab != e.tab {
 					p.switchTab(e.tab)
 				}
-				if e.route >= 0 {
-					p.routing.tab = e.route
-				}
-				p.scroll.ScrollTo(0, 0, ui.Animation{})
 			}
 			if p.env.RequestChange != nil {
 				p.env.RequestChange(change)
@@ -81,6 +77,9 @@ func (p *page) upstreamNavigation(c *ui.Context) {
 				change()
 			}
 		})
+		if current == len(entries)-1 && p.tab != tabMore {
+			p.moreHeading(c)
+		}
 		if p.tab == tabPlugins {
 			kit.SubTabs(c, &p.plugins.tab, []string{upstreamT("Built-in"), upstreamT("Discover"), upstreamT("Installed")}, p.env.RequestChange)
 		}

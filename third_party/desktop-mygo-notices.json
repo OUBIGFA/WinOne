@@ -469,6 +469,18 @@
           "file": "licenses/npm-fun-animal-names-0.1.1-LICENSE.txt"
         }
       ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/skip2/go-qrcode",
+      "version": "v0.0.0-20200617195104-da1b6568686e",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-skip2-go-qrcode-v0.0.0-20200617195104-da1b6568686e-LICENSE.txt",
+          "sha256": "4cdab772de606bdf53e174b2f5d6a2c398156380ca1f763122198cece531d02c"
+        }
+      ]
     }
   ]
 }

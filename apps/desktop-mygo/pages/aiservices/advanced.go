@@ -860,16 +860,7 @@ func (a *advancedPanel) modelOptions(c *ui.Context, catalog *magpieCatalog, lock
 		}
 	})
 	kit.Group(c, icons.LayoutGrid, i18n.T("ai.clientModels"), "", func() {
-		names := "on"
-		switch {
-		case s.PlainNames:
-			names = "off"
-		case s.PlainOwnNames:
-			names = "own"
-		}
-		if choiceRow(c, i18n.T("ai.providerInModelNames"), "", &names, options("on", i18n.T("ai.always"), "own", i18n.T("ai.exceptOwnNames"), "off", i18n.T("ai.off")), locked) {
-			s.PlainNames, s.PlainOwnNames = names == "off", names == "own"
-		}
+		modelNameSuffix(c, s, locked)
 		kit.Toggle(c, &s.CodexAgentsV1, i18n.T("ai.codexAgentsV1"), "").Disabled(locked)
 		kit.Toggle(c, &s.FullContext, i18n.T("ai.fullContext"), "").Disabled(locked)
 		if !s.FullContext {
@@ -885,6 +876,19 @@ func (a *advancedPanel) modelOptions(c *ui.Context, catalog *magpieCatalog, lock
 	})
 	a.mcpRouterOptions(c, locked)
 	a.completeClientOptions(c, catalog, locked)
+}
+
+// The routing page and client settings edit one shared name policy.
+func modelNameSuffix(c *ui.Context, s *magpieSettings, locked bool) {
+	names := "on"
+	if s.PlainNames {
+		names = "off"
+	} else if s.PlainOwnNames {
+		names = "own"
+	}
+	if choiceRow(c, i18n.T("ai.providerInModelNames"), "", &names, options("on", i18n.T("ai.always"), "own", i18n.T("ai.exceptOwnNames"), "off", i18n.T("ai.off")), locked) {
+		s.PlainNames, s.PlainOwnNames = names == "off", names == "own"
+	}
 }
 
 // searchForm is the form adding a search service's key or address.

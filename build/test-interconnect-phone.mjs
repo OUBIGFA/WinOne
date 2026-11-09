@@ -14,6 +14,22 @@ execFileSync('git',['check-ignore','--quiet','--no-index',join(output,'probe')])
 await mkdir(output,{recursive:true});
 const {chromium}=createRequire(import.meta.url)(process.env.WINONE_PLAYWRIGHT_MODULE||resolve('dist/resources/tools/playwright-1.58.2/node_modules/playwright'));
 const browser=await chromium.launch({headless:true,channel:'msedge'});
+const decoder=await browser.newPage();
+await decoder.addScriptTag({path:resolve('dist/resources/tools/playwright-1.58.2/node_modules/jsqr/dist/jsQR.js')});
+async function decodeQR(source){
+ return decoder.evaluate(async source=>{
+  const image=new Image();image.src=source;await image.decode();
+  const canvas=document.createElement('canvas');canvas.width=image.naturalWidth*2;canvas.height=image.naturalHeight*2;
+  const context=canvas.getContext('2d');context.drawImage(image,0,0,canvas.width,canvas.height);
+  const pixels=context.getImageData(0,0,canvas.width,canvas.height);
+  const code=jsQR(pixels.data,canvas.width,canvas.height);if(!code)throw Error('Cannot decode rendered QR');return code.data;
+ },source);
+}
+async function nativeQR(info,directory){
+ const input=join(directory,'qr-info.json');await mkdir(directory,{recursive:true});await writeFile(input,JSON.stringify(info));
+ execFileSync(process.env.WINONE_QR_RENDER_TEST_EXE,['-test.run=^TestPhoneQRRendering$','-test.timeout=30s'],{env:{...process.env,WINONE_PHONE_QR_INPUT:input},windowsHide:true});
+ return decodeQR('data:image/png;base64,'+(await readFile(join(directory,'qr-native.png'))).toString('base64'));
+}
 const relay=createServer((req,res)=>{res.writeHead(503);res.end('isolated relay outage');});
 await new Promise(resolve=>relay.listen(0,'127.0.0.1',resolve));
 const occupied=createTCPServer(socket=>socket.end());
@@ -35,7 +51,16 @@ try{
   let state;const deadline=Date.now()+15000;
   while(Date.now()<deadline){state=await call('snapshot');if(state.ready&&state.relayError)break;if(state.status!=='running')throw Error(state.error);await new Promise(resolve=>setTimeout(resolve,100));}
   assert.equal(state.ready,true);assert.ok(state.relayError);assert.equal(state.relayReady,false);
-  const link=state.share.info.url;
+  const info=state.share.info;
+  let link=await decodeQR('data:image/svg+xml,'+encodeURIComponent(info.qr));
+  assert.equal(link,info.url,'Worker QR differs from the LAN link');
+  if(process.env.WINONE_QR_RENDER_TEST_EXE){
+   link=await nativeQR(info,join(output,allowWrites?'native-writable':'native-readonly'));
+   assert.equal(link,info.url,'Native QR differs from the copied LAN link');
+   // Characterize stale worker images: the selected URL must be authoritative.
+   const changed={...info,url:info.url.replace(/key=[^&]+/,'key=qr-regression')};
+   assert.equal(await nativeQR(changed,join(output,allowWrites?'native-stale-writable':'native-stale-readonly')),changed.url);
+  }
   assert.notEqual(Number(new URL(link).port),occupied.address().port,'Busy port was not avoided');
   assert.ok(occupied.listening,'An existing listener was stopped');
   await call('add_text','text after sending a file');
@@ -67,9 +92,27 @@ try{
   await download.saveAs(destination);assert.equal(await readFile(destination,'utf8'),contents);
   const status=await page.evaluate(async()=>{const response=await fetch('/api/text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:'phone upload'})});return response.status;});
   assert.equal(status,allowWrites?200:403);
+  // Exercise the phone's file picker and read the stored bytes back, not just
+  // the text endpoint: a valid QR must authorize the actual transfer flow.
+  if(allowWrites){
+   await page.locator('[data-open=fileDialog]').click();
+   const uploaded=page.waitForResponse(response=>response.url().endsWith('/api/upload')&&response.request().method()==='POST');
+   await page.locator('#fileInput').setInputFiles({name:'from-phone.txt',mimeType:'text/plain',buffer:Buffer.from('手机上传后的完整文件')});
+   const response=await uploaded;assert.equal(response.status(),200);
+   const items=await response.json();assert.ok(items[0]?.id);
+   await page.locator('#uploadTasks [data-state=completed]').waitFor();
+   await page.locator('#uploadTasks [data-action=view]').click();
+   const received=page.waitForEvent('download');
+   await page.locator(`[data-action=download][data-id="${items[0].id}"]`).click();
+   const file=await received;const saved=join(output,'phone-upload-roundtrip.txt');
+   await file.saveAs(saved);assert.equal(await readFile(saved,'utf8'),'手机上传后的完整文件');
+  }else{
+   const uploadStatus=await page.evaluate(async()=>{const data=new FormData();data.append('file',new Blob(['read-only check']),'denied.txt');return (await fetch('/api/upload',{method:'POST',body:data})).status;});
+   assert.equal(uploadStatus,403);
+  }
   await call('stop');
   await page.locator('#shareEndedNotice').getByText('分享已停止',{exact:true}).waitFor();
-  results.push({allowWrites,download:true,credentialRedirect:true,relayFailureSurvived:true,stoppedNotice:true,autoPort:true,fileThenText:true,sameLink:true});
+  results.push({allowWrites,download:true,uploadRoundtrip:allowWrites,readOnlyUploadRejected:!allowWrites,qrDecoded:true,nativeQRDecoded:!!process.env.WINONE_QR_RENDER_TEST_EXE,credentialRedirect:true,relayFailureSurvived:true,stoppedNotice:true,autoPort:true,fileThenText:true,sameLink:true});
   await context.close();
  }
  assert.deepEqual(errors,[]);await writeFile(join(output,'results.json'),JSON.stringify({results,errors},null,2));

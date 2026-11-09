@@ -37,7 +37,7 @@ try{
     $runner=Join-Path $output 'run-tests.ps1'
     # Quote each complete Go flag: Windows PowerShell otherwise parses the
     # dotted -test.run= form as the unrelated -test argument.
-    $pattern=if($UseGPU){'^TestWindow(CloseLifecycle|StartupInputAndGPUHandoff)$'}else{'^TestWindowCloseLifecycle$'}
+    $pattern=if($UseGPU){'^TestWindow(CloseLifecycle|StartupInputAndGPUHandoff|RedirectedStartup)$'}else{'^TestWindow(CloseLifecycle|RedirectedStartup)$'}
     $run="& '"+$test.Replace("'","''")+"' '-test.run="+$pattern+"' '-test.v' '-test.timeout=60s' *> '"+$log.Replace("'","''")+"'`nexit `$LASTEXITCODE`n"
     [IO.File]::WriteAllText($runner,$run,[Text.UTF8Encoding]::new($false))
     $desktop=New-Object WinOnePrivateTestDesktop

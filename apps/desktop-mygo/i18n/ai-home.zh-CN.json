@@ -18,6 +18,7 @@
  "aiHome.preferencesHint":"默认模型、自动重新翻译和思考过程",
  "aiHome.gatewayHint":"让其他应用通过 WinOne 使用模型，管理访问密钥与权限",
  "aiHome.routingHint":"组合多个模型，设置选择策略和备用方案",
+ "aiHome.maskingHint":"查看隐私处理记录并管理敏感信息保护",
  "aiHome.pluginsHint":"安装、更新和配置扩展能力",
  "aiHome.advancedHint":"额度、模型规则、隐私、辅助能力与客户端设置",
  "aiHome.moreHint":"按需要配置这些功能。日常使用可从“常用”开始。"

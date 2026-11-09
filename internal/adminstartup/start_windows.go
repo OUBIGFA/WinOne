@@ -25,6 +25,11 @@ type Launcher interface {
 	Run(logintask.LaunchMode) (string, error)
 }
 
+// ReadinessTimeout covers the scheduler, authorized handoff and cold process
+// startup. Scheduler acceptance is not readiness; every participant must allow
+// this same bounded interval, returning immediately when its target is ready.
+const ReadinessTimeout = 60 * time.Second
+
 func StartAuthorized(mode logintask.LaunchMode, launcher Launcher) error {
 	ready, err := launcher.Configured()
 	if err != nil {
@@ -56,7 +61,7 @@ func Try(ctx context.Context, directory, pipe, executable string, mode logintask
 		}
 		prefer = preferences.Startup != nil && preferences.Startup.PreferAdministrator
 	}
-	waitContext, cancel := context.WithTimeout(ctx, 45*time.Second)
+	waitContext, cancel := context.WithTimeout(ctx, ReadinessTimeout)
 	defer cancel()
 	waited := false
 	rechecked := false

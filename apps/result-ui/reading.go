@@ -206,7 +206,6 @@ func (p *Panel) errorFeedback(c *ui.Context, t *ui.Theme, area string) ui.Elemen
 		p.selectable(c, ui.Column(c).Grow(1).MinWidth(0), func() {
 			ui.Text(c, p.Error).FillWidth().FontSize(em(t, sizeLabel)).LineHeight(1.5).TextColor(t.Danger)
 		})
-		p.closeFeedback(c.Key("error-close"), &p.errorVisibility, p.T("关闭错误提示", "Dismiss error"))
 	})
 }
 

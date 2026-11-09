@@ -9,50 +9,6 @@ import (
 
 func homeT(key string) string { return i18n.T("aiHome." + key) }
 
-// Three task areas replace eight competing top-level settings tabs. The
-// original editors and their shared drafts remain the only editing paths.
-func (p *page) navigationView(c *ui.Context) {
-	area := 2
-	if p.tab == tabHome {
-		area = 0
-	} else if p.tab == tabCustom || p.tab == tabAccounts {
-		area = 1
-	}
-	kit.Tabs(c, &area, []kit.Tab{{Label: homeT("home")}, {Label: homeT("connections")}, {Label: homeT("more")}}, func(apply func()) {
-		change := func() { apply(); p.switchTab([]int{tabHome, tabCustom, tabMore}[area]) }
-		if p.env.RequestChange != nil {
-			p.env.RequestChange(change)
-		} else {
-			change()
-		}
-	})
-	if area == 1 {
-		sub := 0
-		if p.tab == tabAccounts {
-			sub = 1
-		}
-		kit.SubTabs(c, &sub, []string{i18n.T("ai.customProviders"), i18n.T("ai.addProvidersTab")}, func(apply func()) {
-			change := func() { apply(); p.switchTab([]int{tabCustom, tabAccounts}[sub]) }
-			if p.env.RequestChange != nil {
-				p.env.RequestChange(change)
-			} else {
-				change()
-			}
-		})
-	} else if area == 2 && p.tab != tabMore {
-		ui.Row(c).FillWidth().Gap(12).AlignItems(ui.Center).Children(func() {
-			if kit.GhostButton(c, homeT("back"), icons.ChevronLeft, false).Clicked() {
-				p.navigateTo(tabMore)
-			}
-			for _, entry := range moreDestinations() {
-				if entry.tab == p.tab {
-					kit.Heading(c, entry.label)
-					break
-				}
-			}
-		})
-	}
-}
 func (p *page) navigateTo(tab int) {
 	change := func() { p.switchTab(tab) }
 	if p.env.RequestChange != nil {
@@ -101,13 +57,26 @@ type moreDestination struct {
 
 func moreDestinations() []moreDestination {
 	return []moreDestination{
-		{tabDefaults, homeT("preferences"), homeT("preferencesHint")},
 		{tabGateway, i18n.T("gateway.title"), homeT("gatewayHint")},
 		{tabRouting, i18n.T("routing.title"), homeT("routingHint")},
 		{tabUsage, i18n.T("usage.title"), homeT("usageHint")},
+		{tabMasking, upstreamT("Masking"), homeT("maskingHint")},
 		{tabPlugins, i18n.T("aiPlugins.title"), homeT("pluginsHint")},
 		{tabAdvanced, i18n.T("ai.advanced"), homeT("advancedHint")},
 	}
+}
+func (p *page) moreHeading(c *ui.Context) {
+	ui.Row(c).FillWidth().Gap(12).Wrap().AlignItems(ui.Center).Children(func() {
+		if kit.GhostButton(c, homeT("back"), icons.ChevronLeft, false).Clicked() {
+			p.navigateTo(tabMore)
+		}
+		for _, entry := range moreDestinations() {
+			if entry.tab == p.tab {
+				kit.Heading(c, entry.label)
+				break
+			}
+		}
+	})
 }
 func (p *page) moreView(c *ui.Context) {
 	kit.Help(c, homeT("moreHint"))
@@ -116,7 +85,7 @@ func (p *page) moreView(c *ui.Context) {
 			if !p.destinationEnabled(entry.tab) {
 				continue
 			}
-			b := ui.ButtonBase(c.Key(entry.tab)).FillWidth().Padding(12, 8).Gap(12).Radius(6).Label(entry.label).Cursor(ui.CursorPointer)
+			b := ui.ButtonBase(c.Key(entry.tab)).FillWidth().Padding(14, 16).Gap(12).Radius(6).Label(entry.label).Cursor(ui.CursorPointer)
 			if b.Hovered() {
 				b.Background(c.Theme().SurfaceHover)
 			}

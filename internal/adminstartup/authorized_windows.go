@@ -131,7 +131,7 @@ func RunAuthorizedStartHelper(args []string, executable string) (bool, error) {
 		return true, err
 	}
 	defer releasePresence()
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), ReadinessTimeout)
 	defer cancel()
 	handoff := &administratorHandoff{pid: uint32(os.Getpid())}
 	expectedHost := filepath.Join(filepath.Dir(executable), "WinOne.Host.exe")

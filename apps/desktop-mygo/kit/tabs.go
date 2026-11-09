@@ -63,7 +63,7 @@ func SubTabs(c *ui.Context, selected *int, labels []string, request func(apply f
 	t := c.Theme()
 	next := *selected
 	parts := ui.TabsBase(c, &next, len(labels))
-	parts.List.Gap(2).Children(func() {
+	parts.List.Gap(2).Wrap().Children(func() {
 		for i, label := range labels {
 			chosen := i == *selected
 			item := parts.Tab(i).Padding(6, 10).Shrink(1).MinWidth(0).Label(label)

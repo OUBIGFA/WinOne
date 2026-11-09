@@ -62,6 +62,7 @@ func TestOpeningAWeightedGroupDoesNotDirtyItsDefaultWeights(t *testing.T) {
 	r := p.routing
 	r.state = &routeGroups{}
 	r.begin(core.Preserved[routeGroup]{Value: routeGroup{ID: "weighted", Name: "Weighted", Routing: "weight", Members: []string{"fixture/model"}}})
+	r.editorTab = 1
 	tt := ui.NewTester(r.editor, 900, 4000)
 	settle(h, tt)
 	if r.dirty() || r.edit.Value.Weights != nil {

@@ -38,8 +38,6 @@ const (
 	tabAdvanced
 	tabHome
 	tabMore
-	tabLibrary
-	tabSessions
 	tabMasking
 )
 
@@ -66,9 +64,8 @@ const maxProviders = 32
 type keyEdits map[string]map[string]string
 
 type page struct {
-	env    *core.Env
-	tab    int
-	scroll ui.ScrollState
+	env *core.Env
+	tab int
 
 	// saved is the configuration as last read or saved; draft is the
 	// page's edit of it. savedGen counts the times saved was replaced, as
@@ -588,8 +585,6 @@ func (p *page) Close() {
 	p.env.Activity.Report("ai-settings", false, false, nil)
 }
 
-func (p *page) WorkspaceScroll() *ui.ScrollState { return &p.scroll }
-
 func (p *page) View(c *ui.Context) {
 	p.env.Activity.Report("ai-settings", p.dirty() || p.pluginInvalid, p.navigationLocked(), p.load)
 	// Built-in state is shared by navigation and settings; refresh once per saved
@@ -611,53 +606,44 @@ func (p *page) View(c *ui.Context) {
 		p.loadCatalog()
 	}
 	p.rail()
-	ui.Column(c).Fill().MinHeight(0).Children(func() {
+	// Use the same column and shell scroller as other settings pages. An
+	// independent workspace scroller would bypass their shared width and title.
+	kit.Page(c, func() {
 		p.upstreamNavigation(c)
-		ui.Scroll(c.Key(p.tab)).Grow(1).FillWidth().MinHeight(0).MinWidth(0).TrackScroll(&p.scroll).Padding(20, 20, 40, 20).Children(func() {
-			ui.Column(c).FillWidth().Gap(18).Disabled(p.saving).Children(func() {
-				if p.tab == tabHome || p.tab == tabCustom || p.tab == tabAccounts || p.tab == tabDefaults {
-					p.overview(c)
+		ui.Column(c).FillWidth().Gap(18).Disabled(p.saving).Children(func() {
+			if p.tab == tabHome || p.tab == tabCustom || p.tab == tabAccounts || p.tab == tabDefaults {
+				p.overview(c)
+			}
+			p.notices(c)
+			switch p.tab {
+			case tabHome:
+				p.homeView(c)
+			case tabMore:
+				p.moreView(c)
+			case tabCustom, tabAccounts:
+				p.providersView(c)
+			case tabDefaults:
+				p.defaultsView(c)
+			case tabGateway:
+				var providers []widgets.AIProvider
+				if p.saved != nil {
+					providers = pickers(p.saved.Value.Providers)
 				}
-				p.notices(c)
-				switch p.tab {
-				case tabHome:
-					p.homeView(c)
-				case tabMore:
-					p.moreView(c)
-				case tabCustom, tabAccounts:
-					p.providersView(c)
-				case tabDefaults:
-					p.defaultsView(c)
-				case tabGateway:
-					var providers []widgets.AIProvider
-					if p.saved != nil {
-						providers = pickers(p.saved.Value.Providers)
-					}
-					p.gateway.View(c, providers, p)
-				case tabRouting:
-					p.routing.View(c)
-				case tabUsage:
-					p.usageView(c)
-				case tabPlugins:
-					p.plugins.View(c)
-				case tabAdvanced:
-					p.advancedView(c)
-				case tabMasking:
-					if p.advanced == nil {
-						p.advanced = newAdvancedPanel(p)
-					}
-					p.advanced.recordsView(c, p.locked())
-				case tabLibrary, tabSessions:
-					if p.external == nil {
-						p.external = newExternalPanel(p)
-					}
-					kind := "library"
-					if p.tab == tabSessions {
-						kind = "sessions"
-					}
-					p.external.view(c, kind)
+				p.gateway.View(c, providers, p)
+			case tabRouting:
+				p.routing.View(c)
+			case tabUsage:
+				p.usageView(c)
+			case tabPlugins:
+				p.plugins.View(c)
+			case tabAdvanced:
+				p.advancedView(c)
+			case tabMasking:
+				if p.advanced == nil {
+					p.advanced = newAdvancedPanel(p)
 				}
-			})
+				p.advanced.recordsView(c, p.locked())
+			}
 		})
 	})
 	if p.tab != tabGateway {
@@ -673,7 +659,7 @@ func (p *page) View(c *ui.Context) {
 	if p.tab != tabPlugins {
 		p.plugins.Leave()
 	}
-	if p.external != nil && p.tab != tabPlugins && p.tab != tabLibrary && p.tab != tabSessions && !p.external.busy() && !p.external.dirty() && (p.external.url != "" || p.external.viewer != "") {
+	if p.external != nil && p.tab != tabPlugins && !p.external.busy() && !p.external.dirty() && (p.external.url != "" || p.external.viewer != "") {
 		// Drop the page lease after protected work is finished. The Host retains
 		// explicitly enabled services independently of the settings window.
 		p.external.close()

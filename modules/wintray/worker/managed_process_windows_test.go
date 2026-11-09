@@ -97,6 +97,26 @@ func TestManagedWorkerReloadDoesNotLaunchPrograms(t *testing.T) {
 	if current.Revision != "8" || current.Settings.StartupIntervalSeconds != 11 {
 		t.Fatal(current)
 	}
+	// Exercise real IPC and committed readback repeatedly. This profile cannot
+	// touch system startup; unit tests separately verify unchanged task inputs.
+	for revision := uint64(9); revision < 14; revision++ {
+		value.CloseWindowRetrySeconds++
+		writeManaged(t, projection, revision, value)
+		started := time.Now()
+		if err := call("settings.reload", nil, &operation); err != nil {
+			t.Fatal(err)
+		}
+		if result := awaitJob(operation); result.State != "completed" {
+			t.Fatal(result)
+		}
+		if err := call("snapshot", nil, &current); err != nil {
+			t.Fatal(err)
+		}
+		if current.Revision != fmt.Sprint(revision) || current.Settings.CloseWindowRetrySeconds != value.CloseWindowRetrySeconds {
+			t.Fatal("save readback differs")
+		}
+		t.Logf("committed edit %d: %s", revision, time.Since(started))
+	}
 	if _, err := os.Stat(filepath.Join(directory, "settings.json")); !os.IsNotExist(err) {
 		t.Fatal("legacy settings written")
 	}

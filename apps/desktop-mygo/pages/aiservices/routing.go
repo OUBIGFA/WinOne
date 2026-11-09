@@ -146,6 +146,10 @@ type routeImport struct {
 type routingPanel struct {
 	p                                *page
 	api, capabilitiesAPI, patternAPI nativeAPI
+	clientsAPI                       nativeAPI
+	recentClients                    []string
+	clientNames                      map[string]string
+	clientsLoaded                    bool
 	previewPatterns                  []patternMatch
 	previewFor                       []string
 	capabilities                     *routeCapabilities
@@ -178,6 +182,7 @@ func (r *routingPanel) Leave() {
 	r.api.close()
 	r.capabilitiesAPI.close()
 	r.patternAPI.close()
+	r.clientsAPI.close()
 	r.trace.api.close()
 	r.trace.detailAPI.close()
 	r.trace.titleAPI.close()
@@ -238,12 +243,15 @@ func (r *routingPanel) beginEdit(group core.Preserved[routeGroup], fresh bool) {
 		_ = json.Unmarshal(data, &a)
 		_ = json.Unmarshal(data, &b)
 		r.patternAPI.close()
+		r.clientsAPI.close()
 		r.previewPatterns, r.previewFor = nil, nil
 		r.edit, r.saved = &a, &b
 		r.tab = 0
 		r.newGroup = fresh
 		r.editorTab = 0
 		r.fields = fields{}
+		r.clientsLoaded = false
+		r.recentClients = nil
 	}
 	if r.dirty() && r.p.env.RequestChange != nil {
 		r.p.env.RequestChange(change)
@@ -255,9 +263,29 @@ func (r *routingPanel) saveGroup() {
 	if r.edit == nil {
 		return
 	}
+	// New names must never silently overwrite another group. Use the same
+	// slug and numbered collision handling as the pinned upstream editor.
+	r.edit.Value.ID = r.groupID()
 	data, _ := json.Marshal(r.edit)
 	var body map[string]json.RawMessage
 	_ = json.Unmarshal(data, &body)
+	// Matched models are recomputed by upstream. Persisting them as named
+	// members would pin models that should disappear when a pattern changes.
+	named := slices.DeleteFunc(slices.Clone(r.edit.Value.Members), func(id string) bool { return slices.Contains(r.edit.Value.Matched, id) })
+	body["members"], _ = json.Marshal(named)
+	rules := slices.Clone(r.edit.Value.Rules)
+	for i := range rules {
+		if window := rules[i].Value.Time; window != nil && strings.TrimSpace(window.From) == "" && strings.TrimSpace(window.To) == "" {
+			if len(window.Days) == 0 {
+				rules[i].Value.Time = nil
+			} else {
+				copy := *window
+				copy.From, copy.To = "00:00", "00:00"
+				rules[i].Value.Time = &copy
+			}
+		}
+	}
+	body["rules"], _ = json.Marshal(rules)
 	if !r.newGroup {
 		body["from"], _ = json.Marshal(r.saved.Value.ID)
 	}
@@ -275,6 +303,7 @@ func (r *routingPanel) View(c *ui.Context) {
 		r.capabilitiesAPI.close()
 		r.capabilitiesAPI.err = ""
 		r.patternAPI.close()
+		r.clientsAPI.close()
 		r.patternAPI.err = ""
 		r.previewPatterns, r.previewFor = nil, nil
 		r.capabilities = nil
@@ -308,23 +337,10 @@ func (r *routingPanel) View(c *ui.Context) {
 		kit.Toggle(c, &p.draft.Value.RoutingEnabled, i18n.T("routing.enabled"), i18n.T("routing.hint")).Disabled(p.locked() || r.api.busy)
 	}
 	ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
-		label := upstreamT("Routing groups")
-		target := 0
-		if r.tab == 0 {
-			label = upstreamT("Routing")
-			target = 1
-		}
-		if kit.GhostButton(c, label, nil, false).Clicked() {
-			change := func() { r.tab = target }
-			if p.env.RequestChange != nil {
-				p.env.RequestChange(change)
-			} else {
-				change()
-			}
-		}
+		kit.SubTabs(c, &r.tab, []string{upstreamT("Routing groups"), nativeT("requests"), nativeT("accountPools")}, p.env.RequestChange)
 		ui.Spacer(c).Grow(1)
 		if p.draft != nil {
-			kit.Toggle(c, &p.draft.Value.settings().HideAccounts, upstreamT("Hide accounts"), "").Disabled(p.locked())
+			ui.Checkbox(c, &p.draft.Value.settings().HideAccounts, upstreamT("Hide accounts")).Disabled(p.locked())
 		}
 	})
 	r.api.notice(c, r.load)
@@ -372,6 +388,48 @@ func (r *routingPanel) View(c *ui.Context) {
 		r.groupsView(c)
 	}
 	r.dialogView(c)
+}
+
+func routeGroupSlug(value string) string {
+	var b strings.Builder
+	separator := false
+	for _, ch := range strings.ToLower(value) {
+		if ch >= 'a' && ch <= 'z' || ch >= '0' && ch <= '9' || ch == '.' {
+			if separator && b.Len() > 0 {
+				b.WriteByte('-')
+			}
+			separator = false
+			b.WriteRune(ch)
+		} else {
+			separator = true
+		}
+	}
+	id := strings.Trim(b.String(), "-.")
+	for strings.Contains(id, "..") {
+		id = strings.ReplaceAll(id, "..", ".")
+	}
+	return id
+}
+
+func (r *routingPanel) groupID() string {
+	if !r.newGroup {
+		if id := routeGroupSlug(r.edit.Value.ID); id != "" {
+			return id
+		}
+		return r.saved.Value.ID
+	}
+	id := routeGroupSlug(r.edit.Value.Name)
+	if id == "" {
+		id = routeGroupSlug(r.saved.Value.ID)
+	}
+	if id == "" {
+		id = "group"
+	}
+	base := id
+	for n := 2; r.state != nil && slices.ContainsFunc(r.state.Groups, func(g core.Preserved[routeGroup]) bool { return g.Value.ID == id }); n++ {
+		id = base + "-" + kit.Itoa(n)
+	}
+	return id
 }
 
 // pageURL carries only public identity to an author's own plugin surface.

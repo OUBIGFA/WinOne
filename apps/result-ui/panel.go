@@ -71,6 +71,7 @@ type Panel struct {
 	ActionLabel                                         string
 	Original, Result, Prompt, Error, Notice             string
 	errorVisibility, noticeVisibility, speechVisibility feedbackVisibility
+	composerHintVisibility                              feedbackVisibility
 	Target                                              string
 	Busy, Pinned                                        bool
 	Recognizing                                         bool
@@ -235,8 +236,11 @@ func (p *Panel) View(c *ui.Context) {
 	c.SetTheme(t)
 	p.services = c.Services()
 	p.errorVisibility.observe(p.Error)
+	p.errorVisibility.update(c)
 	p.noticeVisibility.observe(p.Notice)
+	p.noticeVisibility.update(c)
 	p.speechVisibility.observe(p.SpeechErrorKey + "\x00" + p.SpeechError)
+	p.speechVisibility.update(c)
 	p.selected = ""
 	_, height := c.Size()
 	// The framework splitter owns dragging, keyboard resizing and capture. Keep
@@ -318,7 +322,6 @@ func (p *Panel) header(c *ui.Context, t *ui.Theme) {
 		ui.Row(c).Grow(1).Basis(0).MinWidth(0).AlignItems(ui.Center).Justify(ui.End).Gap(6).DragWindow().Children(func() {
 			if p.Notice != "" && !p.noticeVisibility.dismissed {
 				ui.Text(c, p.Notice).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Tooltip(p.Notice).MinWidth(0).Shrink(1).DragWindow()
-				p.closeFeedback(c.Key("notice-close"), &p.noticeVisibility, p.T("关闭提示", "Dismiss notice"))
 			}
 			if iconButton(c, "close", p.T("关闭", "Close"), false).Clicked() && p.Actions.Close != nil {
 				p.Actions.Close()

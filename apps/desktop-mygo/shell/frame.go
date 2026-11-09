@@ -294,7 +294,7 @@ func (s *Shell) content(c *ui.Context) {
 				// The task title belongs to the content, not the window caption.
 				// Use the same measure as its page so title, tabs and rows align.
 				pageWidth := float32(kit.PageWidth)
-				if s.page == "ai-services" || s.page == "wintray" {
+				if s.page == "wintray" {
 					pageWidth = kit.WidePageWidth
 				}
 				ui.Column(c).FillWidth().MaxWidth(pageWidth).Margin(0, ui.Auto, 24, ui.Auto).Children(func() {
