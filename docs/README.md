@@ -16,6 +16,7 @@
 | Cindy 本地插件、MCP Apps、邮件与 browser bridge | [全量原生能力对照](mygo-parity/local-plugins.md)、[当前续接验收](mygo-parity/chat-onebot-audit.md)、[2026-11-07最终验收](2026-11-07-native-local-delivery.md) |
 | 快捷助手、AI 对话与快捷功能 | [快捷助手](快捷助手.md)、[助手默认提示词](助手默认提示词.md) |
 | 互联助手、文件互传与端口穿透 | [调研与设计](互联助手调研与设计.md)、[实施计划](互联助手实施计划.md) |
+| 闪聊外网连接、无账号开源替代 | [替代可行性方案（2026-11-09）](闪聊开源替代可行性方案.md) |
 | AI 供应商、账号、流式输出与网关 | [多供应商与任务分配](AI服务多供应商与任务分配.md)、[账号登录](AI账号登录完整性.md)、[流式输出](AI服务流式输出.md)、[本地网关](本地网关与结果划词.md) |
 | AI 完整接入与英语学习界面（2026-11-08） | [能力与三轮审核](ai-full-integration-20261108.md)、[上游逐字段对照](ai-upstream-settings-20261108.md)、[调研、设计与 UI 审核](ai-learning-ui-design-20261108.md) |
 | 内置 Anki、AnkiConnect 与英语生词本（2026-11-09） | [实现、离线检查与三轮审核](english-learning-native-20261109.md) |
