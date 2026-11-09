@@ -1,4 +1,4 @@
-param([string]$GoExe = 'go', [string]$CargoExe = 'cargo', [string]$Downloader, [switch]$SkipInstall, [string]$OutputDirectory = '_temp/build/current', [switch]$RunStartupProbes, [string]$UpdateRepository = '', [string]$ShareXSourceDirectory, [string]$RustTargetDirectory='dist/resources/cache/rust-desktop', [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='MyGo', [string]$OcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY, [string]$MagpieSourceDirectory=$env:WINONE_MAGPIE_SOURCE_DIRECTORY, [string]$PluginSourceDirectory=$env:WINONE_AI_PLUGIN_SOURCE_DIRECTORY, [string]$BunExe=$env:WINONE_AI_BUN_EXE, [string]$ResultGoExe=$env:WINONE_RESULT_GO_EXE, [string]$DiagramTargetDirectory='dist/resources/cache/rust-diagrams', [string]$SelectionTargetDirectory='dist/resources/cache/rust-selection', [string]$ModuleTrustFile='', [switch]$CompileOnly)
+param([string]$GoExe = 'go', [string]$CargoExe = 'cargo', [string]$Downloader, [switch]$SkipInstall, [string]$OutputDirectory = '_temp/build/current', [switch]$RunStartupProbes, [string]$UpdateRepository = '', [string]$ShareXSourceDirectory, [string]$RustTargetDirectory='dist/resources/cache/rust-desktop', [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='MyGo', [string]$OcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY, [string]$MagpieSourceDirectory=$env:WINONE_MAGPIE_SOURCE_DIRECTORY, [string]$PluginSourceDirectory=$env:WINONE_AI_PLUGIN_SOURCE_DIRECTORY, [string]$BunExe=$env:WINONE_AI_BUN_EXE, [string]$ResultGoExe=$env:WINONE_RESULT_GO_EXE, [string]$DiagramTargetDirectory='dist/resources/cache/rust-diagrams', [string]$SelectionTargetDirectory='dist/resources/cache/rust-selection', [string]$ModuleTrustFile='', [switch]$CompileOnly, [string]$NodeExe = 'node')
 $ErrorActionPreference = 'Stop'
 # Explicit unattended build mode. Runtime/behavior tests are selected separately;
 # source, license, compiler, static and payload verification still run here.
@@ -38,11 +38,11 @@ function Invoke-NativeCommand([string]$Executable,[string[]]$Arguments,[string]$
 if (-not $SkipInstall) { & npm.cmd ci --prefix apps/desktop/frontend --no-audit --no-fund; CheckExit }
 # Intake checks run before compilers. Packaging repeats them against binaries;
 # it must never be the first time a missing external license is discovered.
-& node (Join-Path $PSScriptRoot 'verify-frontend-notices.mjs'); CheckExit
-& node (Join-Path $PSScriptRoot 'verify-import-notices.mjs'); CheckExit
-& node (Join-Path $PSScriptRoot 'sync-cindy.mjs') --spec (Join-Path $root 'third_party/cindy/onebot-renderer.sync.json') --check; CheckExit
-& node --test (Join-Path $root 'tests/notices/cindy-binary.test.mjs'); CheckExit
-& node --test (Join-Path $root 'tests/cindy-ports/check.test.mjs'); CheckExit
+& $NodeExe (Join-Path $PSScriptRoot 'verify-frontend-notices.mjs'); CheckExit
+& $NodeExe (Join-Path $PSScriptRoot 'verify-import-notices.mjs'); CheckExit
+& $NodeExe (Join-Path $PSScriptRoot 'sync-cindy.mjs') --spec (Join-Path $root 'third_party/cindy/onebot-renderer.sync.json') --check; CheckExit
+& $NodeExe --test (Join-Path $root 'tests/notices/cindy-binary.test.mjs'); CheckExit
+& $NodeExe --test (Join-Path $root 'tests/cindy-ports/check.test.mjs'); CheckExit
 & (Join-Path $PSScriptRoot 'build-provider-icons.ps1') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $DiagramTargetDirectory -WorkDirectory (Join-Path (Split-Path -Parent $output) 'provider-icons'); CheckExit
 # The React frontend serves only the Rust and legacy desktops: MyGo ships none
 # of it, so its build neither tests nor bundles it.
@@ -129,7 +129,10 @@ if ($RunStartupProbes) {
 & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o apps/desktop/resource_windows.syso; CheckExit
 & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o apps/host/resource_windows.syso; CheckExit
 # Keep Go package discovery within the maintained source directories.
-$goSourcePackages=@('./apps/...','./build/...','./internal/...','./modules/...','./tests/...')
+# The complete Flash Chat tree is a Node project; some npm dependencies ship
+# Go examples which are not part of WinOne's Go module.
+$goModulePackages=@('./modules/always-on-top/...','./modules/stroke/...')
+$goSourcePackages=@('./apps/...','./build/...','./internal/...','./tests/...')+$goModulePackages
 # build-chat.ps1 -Test above already ran internal/chat completely, with the
 # bundled Pi worker; the sweep does not repeat it without that worker.
 $goTestPackages=@(& $GoExe list @goSourcePackages | Where-Object { $_ -ne 'winone/internal/chat' }); CheckExit
@@ -143,8 +146,8 @@ if($DesktopImplementation -eq 'Rust'){
     & (Join-Path $PSScriptRoot 'build-desktop-rust.ps1') -CargoExe $CargoExe -GoExe $GoExe -OutputDirectory $output -TargetDirectory $RustTargetDirectory -ComponentUI -FrontendAlreadyBuilt -UpdateRepository $UpdateRepository
     CheckExit
 }elseif($DesktopImplementation -eq 'MyGo'){
-    # Every page is native; web views show only browser tabs and HTML previews.
-    & (Join-Path $PSScriptRoot 'build-desktop-mygo.ps1') -GoExe $ResultGoExe -OutputDirectory $output -Version $buildVersion -UpdateRepository $UpdateRepository -SkipTests:$CompileOnly
+    # The native shell embeds the complete local Flash Chat application.
+    & (Join-Path $PSScriptRoot 'build-desktop-mygo.ps1') -GoExe $ResultGoExe -OutputDirectory $output -Version $buildVersion -UpdateRepository $UpdateRepository -SkipTests:$CompileOnly -NodeExe $NodeExe -InstallFlashChatDependencies:(-not $SkipInstall)
     CheckExit
 }else{
     & $GoExe build -trimpath -tags desktop,production -ldflags "-H windowsgui -X main.updateRepository=$UpdateRepository -X main.updateVersion=$buildVersion" -o (Join-Path $output 'WinOne.exe') ./apps/desktop; CheckExit

@@ -2,6 +2,7 @@
 # Paths are repository-relative; nothing is installed and no build is started.
 $resourceRepository = Split-Path -Parent $PSScriptRoot
 $resourcePaths = @{
+    NodeExe = 'dist/resources/tools/node-24.16.0/node.exe'
     GoExe = 'dist/resources/tools/go-1.26.2/bin/go.exe'
     ResultGoExe = 'dist/resources/tools/go-1.27.3/bin/go.exe'
     CargoExe = 'dist/resources/tools/rust-1.99.0/bin/cargo.exe'

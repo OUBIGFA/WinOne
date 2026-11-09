@@ -1,4 +1,5 @@
 {
+ "flashChat.loading": "正在读取闪聊设置…",
  "flashChat.roomClosed": "房间已关闭",
  "flashChat.localFilesOnly": "请选择本机文件",
  "flashChat.shareMissing": "共享任务不存在",

@@ -4,11 +4,17 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
+const noticeName=/^(LICENSE|LICENCE|COPYING|COPYRIGHT|NOTICE)([._-][A-Za-z0-9._-]+)?$/i;
+const embeddedLicense=text=>/Permission is hereby granted|Redistribution and use in source and binary|SIL OPEN FONT LICENSE/.test(text);
+// A few pinned npm packages carry the complete legal text in their README or
+// a named font-license file. Preserve that original file, with its full hash.
+const packagedNotice=name=>noticeName.test(name)||/^readme\.(md|markdown|txt)$/i.test(name)||name==='SIL Open Font License.txt';
+const repositoryURL=value=>value.replace(/^git\+/, '').replace(/^git\+ssh:\/\/git@github.com\//,'https://github.com/').replace(/^ssh:\/\/git@github.com\//,'https://github.com/').replace(/^git@github.com:/,'https://github.com/').replace(/^git:\/\//,'https://').replace(/^http:\/\//,'https://').replace(/#.*$/,'').replace(/\.git$/,'').replace(/\/tree\/[^/]+\/.*$/,'').replace(/^([\w.-]+\/[\w.-]+)$/,'https://github.com/$1');
 
 // Use the locked production tree, including its peer/type dependencies. This
 // is deliberately conservative; the list is not a claim that every file ships.
-export function verifyFrontendNotices(root,catalog){
- const frontend=path.join(root,'apps/desktop/frontend');
+export function verifyFrontendNotices(root,catalog,frontendDirectory='apps/desktop/frontend'){
+ const frontend=path.join(root,frontendDirectory);
  const lock=JSON.parse(fs.readFileSync(path.join(frontend,'package-lock.json'),'utf8'));
  if(lock.lockfileVersion!==3||catalog.schemaVersion!==1)throw Error('Unsupported notice or lockfile version');
  const records=new Map();
@@ -30,7 +36,8 @@ export function verifyFrontendNotices(root,catalog){
   const key=installed.name+'|'+installed.version,record=records.get(key);actual.add(key);
   if(!record||!Array.isArray(record.notices)||!record.notices.length)throw Error('Missing npm notice: '+key);
   for(const notice of record.notices){
-   if(!/^(LICENSE|LICENCE|COPYING|COPYRIGHT|NOTICE)([._-][A-Za-z0-9._-]+)?$/i.test(notice.sourceFile)||!/^licenses\/[A-Za-z0-9][A-Za-z0-9._-]*\.txt$/.test(notice.file)||!/^[a-f0-9]{64}$/.test(notice.sha256))throw Error('Invalid notice record: '+key);
+   const declaration=notice.sourceFile==='package.json'&&record.licenseDeclarationOnly===true;
+   if((!packagedNotice(notice.sourceFile)&&!declaration)||!/^licenses\/[A-Za-z0-9][A-Za-z0-9._-]*\.txt$/.test(notice.file)||!/^[a-f0-9]{64}$/.test(notice.sha256))throw Error('Invalid notice record: '+key);
    const copied=fs.readFileSync(path.join(root,'third_party',notice.file));
    if(notice.sourceURL){
     // Some monorepos omit the root license from their npm tarballs. Preserve
@@ -41,10 +48,25 @@ export function verifyFrontendNotices(root,catalog){
     // npm metadata points at the same repository through several forms: a git
     // prefix, a commit fragment, or a monorepo subdirectory path. Normalize
     // them all before comparing against the pinned raw URL.
-    const repo=(typeof installed.repository==='string'?installed.repository:installed.repository?.url??'').replace(/^git\+/,'').replace(/#.*$/,'').replace(/\.git$/,'').replace(/\/tree\/[^/]+\/.*$/,'');
+    const repo=repositoryURL(typeof installed.repository==='string'?installed.repository:installed.repository?.url??'');
     if(repo!=='https://github.com/'+source[1])throw Error('Upstream notice repository mismatch: '+key);
    }else{
     const original=fs.readFileSync(path.join(directory,notice.sourceFile));
+    if(declaration){
+     // Preserve the publisher's actual SPDX declaration and authorship when
+     // its npm tarball supplies no legal text; do not invent a copyright.
+     let license=installed.license;
+     if(record.licenseEvidence){
+      const evidence=record.licenseEvidence;
+      if(!/^readme\.(md|markdown|txt)$/i.test(evidence.sourceFile)||evidence.spdx!=='MIT'||!['(MIT Licence)','[MIT license](http://sjs.mit-license.org)'].includes(evidence.declaration))throw Error('Invalid license evidence: '+key);
+      const original=fs.readFileSync(path.join(directory,evidence.sourceFile));
+      if(hash(original)!==evidence.sha256||!original.toString('utf8').includes(evidence.declaration)||hash(fs.readFileSync(path.join(root,'third_party',evidence.file)))!==evidence.sha256)throw Error('License evidence mismatch: '+key);
+      license=evidence.spdx;
+     }
+     const terms=catalog.licenseTerms?.[license];
+     if(installed.license!==record.license||!terms||!/^licenses\/[A-Za-z0-9._-]+\.txt$/.test(terms.file)||!/^https:\/\/raw\.githubusercontent\.com\/spdx\/license-list-data\/[a-f0-9]{40}\/text\/[A-Za-z0-9.-]+\.txt$/.test(terms.sourceURL))throw Error('Missing pinned SPDX terms: '+key);
+     if(hash(fs.readFileSync(path.join(root,'third_party',terms.file)))!==terms.sha256)throw Error('SPDX terms mismatch: '+key);
+    }else if(!noticeName.test(notice.sourceFile)&&!embeddedLicense(original.toString('utf8')))throw Error('Incomplete embedded license: '+key);
     if(hash(original)!==notice.sha256)throw Error('Notice content mismatch: '+key);
    }
    if(hash(copied)!==notice.sha256)throw Error('Notice content mismatch: '+key);
@@ -57,8 +79,8 @@ export function verifyFrontendNotices(root,catalog){
 // Refresh at dependency introduction, not at packaging. Resolve the entire
 // locked production tree before touching the catalog; a missing license aborts
 // the update instead of producing a partially complete success report.
-export function updateFrontendNotices(root,catalog){
- const frontend=path.join(root,'apps/desktop/frontend');
+export function updateFrontendNotices(root,catalog,frontendDirectory='apps/desktop/frontend'){
+ const frontend=path.join(root,frontendDirectory);
  const lock=JSON.parse(fs.readFileSync(path.join(frontend,'package-lock.json'),'utf8'));
  if(lock.lockfileVersion!==3||catalog.schemaVersion!==1)throw Error('Unsupported notice or lockfile version');
  const previous=new Map(catalog.components.filter(item=>item.kind==='npm').map(item=>[item.name+'|'+item.version,item]));
@@ -72,7 +94,8 @@ export function updateFrontendNotices(root,catalog){
   const key=installed.name+'|'+installed.version;if(records.has(key))continue;
   // License-update scripts are code, not license texts. Never sweep arbitrary
   // files merely because their name begins with "license".
-  const names=fs.readdirSync(directory,{withFileTypes:true}).filter(entry=>entry.isFile()&&/^(?:LICENSE|LICENCE|COPYING|COPYRIGHT|NOTICE)(?:[._-](?:MIT|APACHE(?:-2\.0)?|BSD|MPL|OFL|ISC))?(?:\.(?:txt|md|mkd))?$/i.test(entry.name)).map(entry=>entry.name).sort();
+  let names=fs.readdirSync(directory,{withFileTypes:true}).filter(entry=>entry.isFile()&&/^(?:LICENSE|LICENCE|COPYING|COPYRIGHT|NOTICE)(?:[._-](?:MIT|APACHE(?:-2\.0)?|BSD|MPL|OFL|ISC))?(?:\.(?:txt|md|mkd))?$/i.test(entry.name)).map(entry=>entry.name).sort();
+  if(!names.length)names=fs.readdirSync(directory,{withFileTypes:true}).filter(entry=>entry.isFile()&&packagedNotice(entry.name)&&embeddedLicense(fs.readFileSync(path.join(directory,entry.name),'utf8'))).map(entry=>entry.name).sort();
   let notices=names.map(sourceFile=>{
    const bytes=fs.readFileSync(path.join(directory,sourceFile));
    const prior=previous.get(key)?.notices.find(notice=>notice.sourceFile===sourceFile&&!notice.sourceURL);
@@ -81,7 +104,7 @@ export function updateFrontendNotices(root,catalog){
    copies.push({file,bytes});return {sourceFile,file,sha256:hash(bytes)};
   });
   if(!notices.length){
-   notices=previous.get(key)?.notices.filter(notice=>notice.sourceURL)||[];
+   notices=previous.get(key)?.notices.filter(notice=>notice.sourceURL||(previous.get(key)?.licenseDeclarationOnly===true&&notice.sourceFile==='package.json'))||[];
    if(!notices.length)throw Error('Missing npm license source: '+key+'; inspect the exact upstream revision before updating');
   }
   records.set(key,{...previous.get(key),kind:'npm',name:installed.name,version:installed.version,license:installed.license||previous.get(key)?.license,notices});
@@ -90,7 +113,7 @@ export function updateFrontendNotices(root,catalog){
  // All source discovery succeeded. Preserve unrelated notices and old files;
  // only copy the explicitly resolved license texts for this dependency tree.
  for(const {file,bytes} of copies){const target=path.join(root,'third_party',file);fs.mkdirSync(path.dirname(target),{recursive:true});if(!fs.existsSync(target)||hash(fs.readFileSync(target))!==hash(bytes))fs.writeFileSync(target,bytes);}
- verifyFrontendNotices(root,next);
+ verifyFrontendNotices(root,next,frontendDirectory);
  return next;
 }
 

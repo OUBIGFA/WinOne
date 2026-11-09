@@ -48,4 +48,6 @@ modules/**/*.exe
 /third_party/croc/src/webassets/dist/*
 !/third_party/croc/src/webassets/dist/.gitkeep
 # Keep this final: ignore _temp at every depth, after all negation rules.
+/apps/desktop-mygo/pages/flashchat/assets/*
+!/apps/desktop-mygo/pages/flashchat/assets/README.txt
 _temp/

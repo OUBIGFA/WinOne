@@ -3,12 +3,14 @@ param(
     [string]$GoExe = 'dist/resources/tools/go-1.27.3/bin/go.exe',
     [string]$UpdateRepository = '',
     [string]$Version = '',
-    [switch]$SkipTests
+    [switch]$SkipTests,
+    [string]$NodeExe = 'node',
+    [switch]$InstallFlashChatDependencies
 )
 # Builds the MyGo window (apps/desktop-mygo) as WinOne.exe: icon check, tests,
 # vet, Windows resources, then a production binary without MyGo's inspector.
-# Every page is native; only pages of the browser tab and HTML previews use a
-# web view, and nothing of the React frontend is built into it. Go 1.27.3 is
+# The native shell hosts the complete local Flash Chat app, browser tabs and
+# HTML previews in WebView2. Go 1.27.3 is
 # MyGo v0.8.3's minimum; the Host and modules keep their own toolchain.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -26,8 +28,20 @@ if ($UpdateRepository -and $UpdateRepository -notmatch '^[A-Za-z0-9](?:[A-Za-z0-
 # Provider marks come from the result window's inventory, sampled by
 # build-provider-icons.ps1 (Git-ignored output).
 if (-not (Test-Path -LiteralPath (Join-Path $root 'apps/result-ui/assets/provider-bitmaps/manifest.json'))) { throw 'Run build/build-provider-icons.ps1 before building the MyGo window' }
-& node (Join-Path $PSScriptRoot 'generate-mygo-icons.mjs') --check
+& $NodeExe (Join-Path $PSScriptRoot 'generate-mygo-icons.mjs') --check
 if ($LASTEXITCODE -ne 0) { throw 'MyGo icons are stale' }
+$flashArgs=@((Join-Path $PSScriptRoot 'build-flashchat.mjs'))
+if($InstallFlashChatDependencies){$flashArgs+='--install'}
+if(-not $SkipTests){$flashArgs+='--test'}
+# Vite/Vitest write diagnostics to stderr even on success. Windows PowerShell
+# must preserve that output without treating the stream itself as a failure.
+$nativePreference=$ErrorActionPreference
+try {
+    $ErrorActionPreference='Continue'
+    & $NodeExe @flashArgs
+    $flashExit=$LASTEXITCODE
+} finally { $ErrorActionPreference=$nativePreference }
+if ($flashExit -ne 0) { throw 'Flash Chat frontend build failed' }
 $saved = @{ GOROOT = $env:GOROOT; CGO_ENABLED = $env:CGO_ENABLED; GOTOOLCHAIN = $env:GOTOOLCHAIN; GOCACHE = $env:GOCACHE; WINONE_TERMINAL_LIBRARY = $env:WINONE_TERMINAL_LIBRARY; WINONE_PDF_WORKER = $env:WINONE_PDF_WORKER }
 try {
     $env:GOROOT = Split-Path -Parent (Split-Path -Parent $go)

@@ -1,74 +1,53 @@
-# 闪聊功能对照
+# 闪聊完整功能对照
 
-更新：2026-11-01。React 来源：`apps/desktop/frontend/src/interconnect-chat-entry.tsx`（页面）、`features/interconnect-chat-frame.tsx`（Host 调用、拖放、离开确认）、`features/interconnect-chat-preferences.ts`（昵称）及 `vendor/chitchatter/core`（房间协议）。MyGo 实现：`apps/desktop-mygo/pages/flashchat`（页面）、`apps/desktop-mygo/flashchat`（Chitchatter 核心的 Go 移植）、`apps/desktop-mygo/flashchat/trystero`（Trystero 0.26.0 线协议的 Go 实现，WebRTC 用 Pion）。
+更新：2026-11-10。当前入口为 MyGo 主窗口内的本地完整 Chitchatter 页面。用户已接受此路线，覆盖此前全原生移植方案。上游固定提交 `708fefdcc3ac0f5fc2ef2ca9ce1cc1b6a9f46c74`；源码、原始测试及 SDK 在 `modules/flashchat/`，宿主在 `apps/desktop-mygo/pages/flashchat/`。
 
-用户 2026-10-31 决定：闪聊原生重写，并与现有 Chitchatter/Trystero 房间互通。来源与许可见 `THIRD-PARTY-NOTICES.md` 闪聊段落、`third_party/import-notices.json`（`chitchatter-flashchat-go`、`trystero-flashchat-go`、`fun-animal-names-flashchat`）和 `third_party/desktop-mygo-notices.json`（Pion、gorilla/websocket 等 Go 模块）。
+## 能力与验收
 
-状态：**已验证** = 有单元测试、互通测试或 `ui.Tester` 渲染；**待验证** = 已实现、还缺证据。
+“源码保留”表示完整入口及实现仍存在，不等于已完成实测。以下只列本轮证据，不将旧 Go 移植的本机测试算作当前跨网证据。
 
-## 验证方法
-
-| 检查 | 命令 | 结果（2026-11-01） |
+| 上游能力 | WinOne 入口与实现 | 本轮验证 |
 | --- | --- | --- |
-| 单元测试 | `go test ./flashchat/... ./pages/flashchat/...`（在 `apps/desktop-mygo`） | 全部通过 |
-| 与 React 页面互通 | `node tests/flash-chat-interop/run.mjs`：无头 Edge 运行已构建的 `interconnect-chat.html`，Go 对端运行同一协议，本机 WebTorrent tracker 代替公共 tracker，两个方向各建一次房间 | 21/21 通过 |
-| 渲染 | `WINONE_SHOTS=<目录> go test ./pages/flashchat -run TestShots`：中英 × 深浅 × 1000/520 宽，大厅、网络设置、独自在房间、群聊、成员列表（窄窗）、私聊、房间详情 | 52 张，本地 `_temp/mygo-flashchat/shots/`，不入库 |
-| Go 模块许可 | `build/verify-desktop-mygo-notices.ps1 -Executable <WinOne.exe>` | 37 项记录通过 |
-| 移植源码来源 | `node build/verify-import-notices.mjs` | 12 项导入、323 个文件通过 |
+| 随机房间号、随机词组、公开/私密房间、邀请链接 | `pages/Home`、`config/invitation.ts` | 公开/私密房间与邀请链接已实测；密码不同不能收消息 |
+| 群聊、输入状态、Markdown、代码块及复制、消息/媒体显示 | `components/Room`、`core/chat` | 双向群聊及上游单元测试通过；修复组合输入确认回车误发送，含 WebKit 229 标记与多行输入回归。物理输入法未人工实测 |
+| 成员私聊、关闭后保留私聊记录、身份校验和公钥 | `components/Shell/PeerListItem`、`core/chat/ChatRoomRegistry` | 三端浏览器私聊隔离、键盘进入、关闭重开保留记录通过；核心单元测试通过 |
+| 公开房间历史补发；私密房间不补发 | 原版 ChatRoom 与历史动作 | 第三端晚加入收到公开历史；私密隔离已实测 |
+| 摄像头、设备选择、视频布局 | `useRoomVideo`、`useLocalMedia` | 独立浏览器收到视频、停止后消失；失败换设备保留原采集，单元测试通过 |
+| 麦克风、设备选择、按键通话、对端音量/静音 | `useRoomAudio`、`RoomAudioControls`、成员列表 | 接收端音频字节增长；停止、拒绝权限、迟到采集回收单元测试通过；物理设备待验 |
+| 屏幕共享及共享声音 | `useRoomScreenShare` | 独立浏览器收到画面、停止后消失；原生 WebView2 采集及停止通过。使用合成画面，不代表物理屏幕选择与系统声音已验 |
+| 多文件分享、加密传输、撤销、接收进度 | `services/FileTransfer`、`core/chat/fileOffers` | 独立浏览器下载内容逐字节一致；撤销后入口消失；原生 StreamSaver 下载通过 |
+| 行内图片/视频、文件拖放 | 原版 Room 文件事件及 `RoomFileUploadControls` | 源码保留；真实资源管理器拖放待验 |
+| 昵称、声音/通知、输入状态偏好 | `pages/Settings` 与原版 SettingsManager | 原始测试通过，页面保留全部设置；真实系统通知待验 |
+| 资料导入/导出、密钥、设置迁移 | 原版 Bootstrap、序列化与存储适配器 | 真实文件导出→新浏览器上下文导入→刷新→再导出，逐字段一致。修复导入昵称被旧值覆盖；取消删除保留身份 |
+| 社区房间、二维码、复制、全屏、关于与免责声明 | 原版 Home/Shell 页面 | 二维码开关、全屏进入退出、复制及中英、深浅、560/1000 宽检查通过 |
+| 嵌入代码与 SDK | `pages/Home/EmbedCodeDialog`、`sdk/sdk.ts` | SDK 编译打包；邀请和嵌入使用公开站点地址，不泄露本机地址 |
+| 公共发现、STUN/TURN、增强连接、连接状态 | 原版 Trystero、`config/network.ts`、`publicRelay.ts` | 电脑当前代理/TUN保持不变，iPhone Safari 使用移动数据和同版页面，双方真实收到文字。官网页面同条件未通过；用户明确本次交付客户端互通、不发布网页 |
+| 自定义 tracker / RTC 配置 | `pages/Settings/NetworkSettings` | 保留旧 WinOne 能力；聊天与文件共用配置；无效配置和保存测试通过 |
+| WinOne 中英文、主题、窗口缩放 | `config/host.ts`、`config/i18n.ts`、`useShellTheme` | 浏览器四组组合与真实 WebView2 主题语言同步、窄窗无横溢通过 |
+| 切页保持，关闭释放 | `completePage.SetAside/Close`、`server.go` | 真实 WebView2 保持同一个 Session；关闭释放 WebView 和本地端口 |
+| 本地资源、权限、下载和外链 | `complete.go`、`server.go` | 精确 origin 权限、DNS 重绑定 Host 检查、下载路径及内容验证通过 |
 
-## 有意改变的地方
+## 可复现入口
 
-| 改变 | 原因 |
-| --- | --- |
-| 房间协议由 Go 实现，不再在 WebView 中运行 Trystero | 原生窗口没有浏览器 WebRTC。线协议、加密、动作名与分片大小保持上游值，互通测试覆盖。 |
-| “离开房间”在房间详情对话框中放在底部操作区 | 与其他对话框的按钮位置一致；行为不变。 |
-| 拖放文件由 MyGo 的放置区直接接收 | React 由外层框架接收后转发给 iframe；Host 调用（`interconnect.transfer_files`）不变。 |
-| 文件共享页面在对话框中用 MyGo WebView 显示，下载保存到“下载”文件夹 | 与 React iframe 的 `allow-downloads` 行为一致。 |
+- 前端：使用本地 Node 运行 `build/build-flashchat.mjs --test`，包括许可、类型、单元测试、页面及 SDK 构建。
+- 浏览器：`tests/flashchat-complete/run.cjs <根目录 _temp 内输出>`。默认本机 tracker；`--public-trackers` 使用真实公开服务。`WINONE_TEST_RTC_CONFIG` 可显式要求 relay，仅用于选定的联网验收。
+- 原生宿主：`build/test-flashchat-native-windows.ps1 -OutputDirectory <根目录 _temp 内输出>`。仅在私有桌面运行，不操作真实安装与配置。
+- 原生客户端互通：同一脚本加 `-PublicRelay`，启动两个独立资料目录的原生窗口，强制公共中转并核对双向消息、选中路径及收发字节。
+- 手机跨网：同一脚本加 `-LiveRoom <随机测试房间>`，记录收到手机消息、实际选中候选和收发字节。必须双方确认后才算成功。
 
-## 大厅
+## 2026-11-10 跨网与构建证据
 
-| 编号 | React 行为 | MyGo 实现 | 验证 | 状态 |
-| --- | --- | --- | --- | --- |
-| L1 | 标题、说明、房间名称（≤80 字）、昵称（≤80 字，失焦保存，读取前禁用） | `lobby`、`nicknameField`、`textField` | `TestNicknameMustLoadFirst`；渲染图 lobby | 已验证 |
-| L2 | 昵称读取失败时提示并可重试 | `loadNickname`、`lobby` 中的重试按钮 | `TestNicknameMustLoadFirst` | 已验证 |
-| L3 | 创建房间（随机房间号与密码）；加入房间（房间号、密码必填，回车提交，可返回） | `enter`、`joinOptions` | `TestLobbyValidatesBeforeJoining`、`TestTwoPagesTalkShareAndLeave` | 已验证 |
-| L4 | 网络设置：自定义 tracker（仅 `wss://` 或本机 `ws://127.0.0.1`）、WebRTC 配置（JSON 对象） | `dialogs`、`joinOptions`、`trystero.ValidRelayURL`、`trystero.ParseRTCConfig` | `TestLobbyValidatesBeforeJoining`；渲染图 network | 已验证 |
-| L5 | 只保存个人昵称，房间名称和密码不进入默认值 | `saveNickname` | 代码审查 | 已验证 |
+- `complete-browser-local-11/result.json`：22 项完整浏览器行为通过，无页面错误。使用真实本机 WebTorrent 配对服务，媒体为合成设备。
+- `complete-browser-final-2/result.json`：23 项通过，新增实际粘贴邀请加入与公开房间刷新重连。`relay-browser-final/result.json`：公开发现 + 强制公共中转 24 项全部通过；消息选中路径两端均为 relay 且收发字节增长，包含媒体、文件和私密房间。
+- `native-final/tests.log`：真实 WebView2 权限、双轨采集、屏幕采集、下载、主题语言、切页保持与关闭释放通过。
+- `native-pair/tests.log`、`native-pair/profile/native-pair-paths.json`：两个独立资料目录的原生窗口经公共中转双向收发消息，14.50 秒通过；两端路径均为 relay，收发字节均大于零。这是同机双客户端验证，不冒充两台实体 Windows 异网测试。
+- `live-native-8/profile/mobile-reply-observed.txt`：电脑收到手机发送的“手机已经连接”。用户另行确认手机看到电脑消息。`mobile-safari-connected.json` 与电脑追踪均显示连接成立并打开数据通道。
+- 手机使用临时 HTTPS 地址访问同一份本地构建，未注册账号或改变网络。公开页面经单独授权开放，完成后已关闭。此证据不证明原官网邀请已修好，也不证明公共服务在所有网络永久可用。
+- 该次在线夹具原本只匹配“手机已连接”，因此没有自动结束；按实际消息记录人工判定双向成功，随后关闭隔离进程。保留未自动通过的原始日志，没有伪造自动成功；夹具已接受两种表达。
+- `build-compile-final.log`、`bundle-runtime-verification.log`：统一完整包编译、来源许可、运行时与包清单检查通过。`installer-ui-probe.log`：隔离桌面安装启动握手通过，维护标记与用户输入桌面保持不变。
+- 根 Go 全测首次出现日志锁、端口复用和短超时失败；失败的 Host、AI、启动探针与进程输入包逐组复验通过，`root-go-vet.log` 静态检查通过。保留初次失败记录，不降低断言。
+- `live-native-8/resources.json`：包含 WebView2 的诊断进程组在已连接时采样 15 秒，私有工作集峰值约 212.7 MiB，平均 CPU 约 0.60%。诊断保留了连接追踪对象，此值不是无诊断正式程序的性能结论。
 
-## 房间
+用户确认本次不发布配套网页。另一台 WinOne 可粘贴房间链接或输入同一房间标识，使用本地同版通信实现；原官网是否能直接加入仍取决于其自身配置，不将该结果列为已验收。原版二维码、链接与 SDK 能力保留。
 
-| 编号 | React 行为 | MyGo 实现 | 验证 | 状态 |
-| --- | --- | --- | --- | --- |
-| R1 | 侧栏：群聊入口（人数）、成员列表（随机动物昵称、校验状态）、自己与离开按钮；窄窗（<600）成员列表可开关 | `sidebar`、`workspace` | 渲染图 group、members | 已验证 |
-| R2 | 群聊与私聊；私聊房间在成员加入时就开始收消息 | `selectPeer`、`flashchat.Session` | 互通测试 private message 两个方向 | 已验证 |
-| R3 | 消息：作者、时间、Markdown（代码块换行、复制），自己的消息靠右 | `transcript`、`codeBlock` | 渲染图 group | 已验证 |
-| R4 | 新消息只在读者位于底部时跟随；切换会话从最新消息开始 | `ui.ListState{FollowEnd}`，每个会话一个列表状态 | 代码审查 | 待验证（实窗滚动） |
-| R5 | 发送：Enter 发送、Shift+Enter 换行、输入法组字时 Enter 不发送；草稿按会话保存；未送达时保留草稿并提示；私聊对方离开后不能发送 | `composer`、`send`、`canSend` | `TestEnterSendsAndShiftEnterBreaksTheLine`、`TestTwoPagesTalkShareAndLeave` | 部分验证（物理输入法待测） |
-| R6 | “正在输入”提示；独自在房间时提示 | `composer` | 互通测试 typing 两个方向；渲染图 | 已验证 |
-| R7 | 空会话：邀请提示与复制房间信息（2 秒内显示“已复制”） | `transcript`、`copyButton`、`copyRoom` | 渲染图 alone | 已验证 |
-| R8 | 晚加入的成员收到最近 150 条群聊历史（大于 16 KiB 时分片） | `flashchat.ChatRoom` | 互通测试 history 两个方向 | 已验证 |
-| R9 | 昵称修改同步到房间内所有会话 | `updateNickname`、`Session.SetNickname` | 互通测试 nickname 两个方向 | 已验证 |
-| R10 | 房间详情：房间名称、昵称、房间号与密码（只读）、复制、历史与加密说明、离开 | `dialogs` | 渲染图 room | 已验证 |
-| R11 | 出错提示可关闭；送达失败、停止分享失败、成员通信失败分别说明 | `roomError`、`conversation` | 代码审查 | 待验证 |
-
-## 文件
-
-| 编号 | React 行为 | MyGo 实现 | 验证 | 状态 |
-| --- | --- | --- | --- | --- |
-| F1 | 选择文件分享到当前会话：Host 启动 `share_server`，等待就绪与中继就绪后把 Tailcat 地址作为 offer | `shareFiles`、`shares.Offer`、`tasks.ready` | 互通测试 file offer 两个方向；`TestTwoPagesTalkShareAndLeave` | 已验证 |
-| F2 | 拖放文件到会话即分享（忙碌或不在房间时不接收） | `widgets.DropArea`、`offerDropped` | 代码审查 | 待验证（真实拖放） |
-| F3 | 停止分享；离开房间时停止全部分享 | `stopSharing`、`shares.RescindAll` | 互通测试 page stops its offer；`TestTwoPagesTalkShareAndLeave` | 已验证 |
-| F4 | 浏览并接收：Host 启动 `share_client`（`127.0.0.1:0`），打开其网页；同一地址复用任务 | `receive`、`openBrowse` | 互通测试 page receives through its Host | 部分验证（WebView 实窗待测） |
-| F5 | 页面只停止自己启动的任务；关闭窗口时离开房间并停止全部任务（最多等待 3 秒） | `tasks`、`Close`、`app/window_windows.go` 调用 `shell.Discarded` | `TestTwoPagesTalkShareAndLeave` | 部分验证（实窗退出待测） |
-
-## 外壳
-
-| 编号 | React 行为 | MyGo 实现 | 验证 | 状态 |
-| --- | --- | --- | --- | --- |
-| A1 | 侧栏底部“闪聊”入口 | `shell/pages.go` 的 `flash-chat` | 代码审查 | 待验证（实窗导航） |
-| A2 | 在房间中或有草稿时离开页面先确认；忙碌时报告忙碌 | `View` 中的 `Activity.Report` | 代码审查 | 待验证 |
-
-## 未验证范围
-
-- 与手机浏览器和另一台电脑跨网络互通（公共 tracker、TURN）未测；互通测试只在本机。
-- 物理中文输入法、真实拖放、WebView 文件页面与窗口退出流程需要实窗验证。
+隔离首装、覆盖、两处失败回退、卸载和配置/额外文件保留已通过。包内文件、安装辅助程序和最终安装/卸载器的安全扫描通过，产物与包清单的摘要关联校验通过。交付证据在 `dist/reports/flashchat-complete-20261110/`，不入库；正式安装器为 `dist/release/WinOne-setup.exe`。详见 [三轮核查](../flashchat-full-integration-20261110.md)。

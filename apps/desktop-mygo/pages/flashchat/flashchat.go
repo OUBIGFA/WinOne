@@ -1,10 +1,6 @@
-// Package flashchat is the Flash Chat page: rooms of peers who talk over
-// encrypted WebRTC, compatible with the Chitchatter rooms of the React
-// window and its browser peers (package winone/desktopmygo/flashchat).
-//
-// React source: interconnect-chat-entry.tsx (the page),
-// features/interconnect-chat-frame.tsx (its Host side: nickname, files,
-// shares, drops, activity) and interconnect-chat-preferences.ts.
+// Package flashchat hosts the complete locally bundled Chitchatter app in the
+// native WinOne window. The former Go page remains below for provenance and
+// its regression tests; completePage is the registered product entry point.
 package flashchat
 
 import (
@@ -29,7 +25,7 @@ import (
 )
 
 func init() {
-	shell.Register("flash-chat", core.Conversation, func(env *core.Env) core.Page { return newPage(env) })
+	shell.Register("flash-chat", core.Conversation, func(env *core.Env) core.Page { return newCompletePage(env) })
 }
 
 func tr(key string, args ...any) string { return i18n.T("interconnect."+key, args...) }

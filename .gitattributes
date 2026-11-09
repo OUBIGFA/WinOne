@@ -8,6 +8,10 @@
 *.dll binary
 # Upstream license hashes require the original bytes, including whitespace.
 third_party/licenses/** -text -whitespace
+# These original README license records contain seven-character Markdown
+# underlines. Keep their bytes and avoid mistaking the headings for conflicts.
+third_party/licenses/npm-format-0.2.2-Readme.md.txt conflict-marker-size=32
+third_party/licenses/npm-netmask-2.0.2-README.md.txt conflict-marker-size=32
 **/LICENSE* -text -whitespace
 # Provider artwork is verified against upstream byte digests as well.
 /apps/result-ui/assets/providers/** -text -whitespace

@@ -1,0 +1,117 @@
+import { t, useLanguage } from 'config/i18n'
+import { ChangeEventHandler, useContext, useRef } from 'react'
+import Box from '@mui/material/Box'
+import Folder from '@mui/icons-material/Folder'
+import FolderOff from '@mui/icons-material/FolderOff'
+import Tooltip from '@mui/material/Tooltip'
+import CircularProgress from '@mui/material/CircularProgress'
+
+import { RoomContext } from 'contexts/RoomContext'
+import { ChatRoom } from 'core/chat/ChatRoom'
+
+import { Input } from 'components/Elements'
+
+import { useRoomFileShare } from './useRoomFileShare'
+import { MediaButton } from './MediaButton'
+
+export interface RoomFileUploadControlsProps {
+  onInlineMediaUpload: (files: File[]) => void
+  chatRoom: ChatRoom
+}
+
+export function RoomFileUploadControls({
+  chatRoom,
+  onInlineMediaUpload,
+}: RoomFileUploadControlsProps) {
+  useLanguage()
+
+  const roomContext = useContext(RoomContext)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const { isMessageSending } = roomContext
+
+  const {
+    isFileSharingEnabled,
+    isSharingFile,
+    handleFileShareStart,
+    handleFileShareStop,
+    sharedFiles,
+  } = useRoomFileShare({
+    chatRoom,
+    onInlineMediaUpload,
+  })
+
+  const handleToggleScreenShareButtonClick = () => {
+    const { current: fileInput } = fileInputRef
+
+    if (isSharingFile) {
+      handleFileShareStop()
+    } else {
+      if (!fileInput) return
+
+      fileInput.click()
+    }
+  }
+
+  const handleFileSelect: ChangeEventHandler<HTMLInputElement> = e => {
+    const { files } = e.target
+
+    if (!files || files.length < 1) return
+
+    handleFileShareStart(files)
+
+    // Reset the input so picking the same file again fires `change`;
+    // browsers skip the event while the value matches the previous pick.
+    // Safe to clear after the call: `handleFileShareStart` has already
+    // stored its own copy of the selection.
+    e.target.value = ''
+  }
+
+  const shareFileLabel =
+    (sharedFiles && sharedFiles.length === 1 && sharedFiles[0].name) || 'files'
+
+  const disableFileUpload = !isFileSharingEnabled || isMessageSending
+
+  const buttonIcon = isSharingFile ? <Folder /> : <FolderOff />
+
+  return (
+    <Box
+      sx={{
+        alignItems: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        px: 1,
+      }}
+    >
+      <Input
+        multiple
+        ref={fileInputRef}
+        type="file"
+        id="file-upload"
+        sx={{ display: 'none' }}
+        onChange={handleFileSelect}
+      />
+      <Tooltip
+        title={
+          isSharingFile
+            ? `${t('Stop sharing')} ${shareFileLabel}`
+            : t('Share files with the room')
+        }
+      >
+        <MediaButton
+          isActive={isSharingFile}
+          aria-label={t('Share files')}
+          onClick={handleToggleScreenShareButtonClick}
+          disabled={disableFileUpload}
+        >
+          {isFileSharingEnabled ? (
+            buttonIcon
+          ) : (
+            <CircularProgress variant="indeterminate" color="inherit" />
+          )}
+        </MediaButton>
+      </Tooltip>
+    </Box>
+  )
+}

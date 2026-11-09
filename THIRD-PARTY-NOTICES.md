@@ -82,6 +82,12 @@ Interconnect directly reuses [croc v11.5.5](https://github.com/schollz/croc/tree
 
 # Chitchatter · 点对点聊天
 
+当前 MyGo 闪聊入口完整打包 [Chitchatter](https://github.com/jeremyckahn/chitchatter/tree/708fefdcc3ac0f5fc2ef2ca9ce1cc1b6a9f46c74) 的页面、通信、媒体、文件、设置与 SDK，提交 `708fefdcc3ac0f5fc2ef2ca9ce1cc1b6a9f46c74`，许可证 GPL-2.0-or-later。源码与原始测试在 `modules/flashchat/`，原始许可在 `third_party/licenses/chitchatter-708fefdc-LICENSE.txt`，适配说明在 `modules/flashchat/WINONE.md`；来源摘要由 `third_party/import-notices.json` 的 `chitchatter-complete` 条目记录。548 项锁定依赖及许可全文由 `third_party/flashchat-runtime-notices.json` 与 `build/verify-flashchat-notices.mjs` 校验。WinOne 的 GPLv3 组合分发保留上述归属、修改说明及对应源码义务。
+
+本地宿主使用 MyGo 的 WebView2，适配窗口生命周期、配置目录、媒体权限、下载、中文与主题。房间与文件协议直接运行上游实现。公共中转配置来自 [Jami 官方文档](https://docs.jami.net/en_US/developer/going-further/setting-up-your-own-turn-server.html)，使用其公开共享配置，无用户账号；这是外部服务配置，不表示 Jami 为 WinOne 提供可用性保证。可在网络设置中关闭增强连接或提供自定义配置。
+
+下述旧 React 适配和 Go 移植仍保留在仓库，其许可继续适用；它们不再是当前 MyGo 闪聊入口。
+
 完整无 UI 核心来自 [Chitchatter](https://github.com/jeremyckahn/chitchatter/tree/4093c21dad24af133c3c5c12042d3eb6112eece1)，提交 `4093c21dad24af133c3c5c12042d3eb6112eece1`，按上游 package.json 的 GPL-2.0-or-later 声明接入。原始许可见 `third_party/licenses/chitchatter-4093c21-LICENSE.txt`，源码、原始测试及适配说明保存在 `apps/desktop/frontend/src/vendor/chitchatter/`，来源摘要见 `third_party/import-notices.json`。Trystero 等前端依赖许可由 `third_party/runtime-notices.json` 记录。
 
 房间、身份、群聊、私聊、消息及 file offer 协议直接复用核心。文件适配器使用 FileShare + 官方 Tailcat 地址，双方需使用 WinOne；不宣称与原 Chitchatter WebTorrent 文件客户端互通。WinOne 以 GPLv3 与该 GPL-2.0-or-later 核心组合，分发时保留归属、原始许可、修改说明及对应源码提供义务。

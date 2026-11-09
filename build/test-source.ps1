@@ -28,7 +28,10 @@ try {
     Invoke-SourceTool 'node' @('--test','tests/notices/cindy-binary.test.mjs','tests/cindy-ports/check.test.mjs')
     # The legacy Wails app embeds a separately built web frontend. Its tests,
     # and nested MyGo/Pi/native modules, run in their complete build entry points.
-    $packages=@('./apps/host','./build/...','./internal/...','./modules/...','./tests/...')
+    # Match the complete build: Flash Chat's npm dependencies include foreign
+    # Go examples; its own checks run through build-flashchat.mjs.
+    $modulePackages=@('./modules/always-on-top/...','./modules/stroke/...')
+    $packages=@('./apps/host','./build/...','./internal/...','./tests/...')+$modulePackages
     # Several packages launch real short-lived fixtures. Bound package
     # concurrency so those startup checks do not compete with dozens of peers.
     Invoke-SourceTool $go (@('test','-p','2','-count=1')+$packages)
