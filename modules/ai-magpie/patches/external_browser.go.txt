@@ -1,0 +1,9 @@
+package browserext
+
+// The dedicated WinOne client service uses a random local capability for the
+// installed extension too. Empty retains upstream behavior in ordinary workers.
+var WinOneExternalKey string
+
+// An external page's read action must not rewrite an installed extension.
+// Setup, drag and download remain explicit upstream write actions.
+var WinOneExternal bool

@@ -602,6 +602,7 @@ func run() (runErr error) {
 			return err
 		}
 		resultWindows.ai.closeRouting()
+		resultWindows.ai.closeExternal()
 		resultWindows.ai.gateway.Close()
 		_, err := prepareModuleShutdown(configurationJobs, control.Busy, capture, alwaysOnTop, wintray, packages, strokeWorker)
 		if err != nil {
@@ -653,6 +654,7 @@ func run() (runErr error) {
 			return nil, err
 		}
 		resultWindows.ai.closeRouting()
+		resultWindows.ai.closeExternal()
 		resultWindows.ai.gateway.Close()
 		rollback, err := prepareModuleShutdown(configurationJobs, control.Busy, capture, alwaysOnTop, wintray, packages, strokeWorker)
 		if err != nil {

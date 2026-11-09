@@ -33,7 +33,8 @@ func nativeAIWithRuntime(t *testing.T) (*page, *testhost.Harness, *ui.Tester, *a
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	settings := &ai.MagpieSettings{NoStats: true, NoUsageStats: true, NoAccountDiscovery: true, Redact: true, RedactWords: []string{"fixture-private-password"}}
-	router, err := (ai.Translator{Executable: exe, DataDirectory: filepath.Join(t.TempDir(), "runtime")}).StartRouting(ctx, settings, []ai.RuntimeProvider{{Provider: ai.Provider{ID: "fixture", Name: "Fixture", AuthMode: "api-key", Protocol: "chat", BaseURL: upstream.URL, Models: []string{"model"}}, Key: "fixture-key"}})
+	translator := ai.Translator{Executable: exe, DataDirectory: filepath.Join(t.TempDir(), "runtime")}
+	router, err := translator.StartRouting(ctx, settings, []ai.RuntimeProvider{{Provider: ai.Provider{ID: "fixture", Name: "Fixture", AuthMode: "api-key", Protocol: "chat", BaseURL: upstream.URL, Models: []string{"model"}}, Key: "fixture-key"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,6 +43,18 @@ func nativeAIWithRuntime(t *testing.T) (*page, *testhost.Harness, *ui.Tester, *a
 	h := testhost.New(t, func(method string, params json.RawMessage) (any, error) {
 		if method == "capture.ai.routing.extensions.open" {
 			return router.PluginWindowState(ctx)
+		}
+		// Marketplace icons are stored by the real worker in its own profile;
+		// keep the native UI's normal chunked Host read on that same profile.
+		if method == "capture.ai.icons.read" {
+			var input struct {
+				Icon   string
+				Offset int
+			}
+			if err := json.Unmarshal(params, &input); err != nil {
+				return nil, err
+			}
+			return translator.ReadAvatar(input.Icon, input.Offset)
 		}
 		return f.handle(method, params)
 	})
@@ -118,10 +131,10 @@ func TestNativeRoutingRealCreateReadSaveAndNoWebView(t *testing.T) {
 	if p.routing.trace.detailAPI.err != "" || p.routing.trace.detail == nil {
 		t.Fatal("route call body:", p.routing.trace.detailAPI.err)
 	}
-	p.routing.trace.startReplay(p,[]traceRoute{route})
-	settle(h,tt)
-	if p.routing.trace.replayAPI.err!="" || p.routing.trace.replay==nil || len(p.routing.trace.replay.routes)!=1 {
-		t.Fatal("real route replay:",p.routing.trace.replayAPI.err)
+	p.routing.trace.startReplay(p, []traceRoute{route})
+	settle(h, tt)
+	if p.routing.trace.replayAPI.err != "" || p.routing.trace.replay == nil || len(p.routing.trace.replay.routes) != 1 {
+		t.Fatal("real route replay:", p.routing.trace.replayAPI.err)
 	}
 	p.routing.trace.stopReplay()
 	shot(t, tt, "native-routing-real-trace")
@@ -133,7 +146,9 @@ func TestNativeMaskingRealPreviewAndClear(t *testing.T) {
 	p.switchTab(tabAdvanced)
 	p.advancedTab = advancedPrivacy
 	settle(h, tt)
-	if err := tt.Click(i18n.T("aiPrivacy.records")); err != nil { t.Fatal(err) }
+	if err := tt.Click(i18n.T("aiPrivacy.records")); err != nil {
+		t.Fatal(err)
+	}
 	settle(h, tt)
 	m := p.advanced.records
 	if m == nil || !m.loaded || m.api.err != "" {

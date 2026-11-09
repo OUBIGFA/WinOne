@@ -36,25 +36,29 @@ type gatewayStatus struct {
 // the AI configuration. It stays while the page shows other tabs, so its
 // draft does too.
 type gatewayPanel struct {
-	tab     int
-	history gatewayHistoryPanel
-	access  gatewayAccessPanel
-	network ai.GatewayNetwork
-	fields  fields
-	env     *core.Env
-	saved   *gatewayStatus
-	enabled bool
-	native  bool
-	port    string
-	models  *[]widgets.AISelection
-	working bool
-	loading bool
-	err     string
-	key     string
-	query   string
-	list    ui.ListState
-	height  float32
-	read    int
+	connectOpen, networkOpen, historyOpen            bool
+	calls                                            nativeTrace
+	callsShown                                       int
+	flavor, snippetLanguage, snippetOS, exampleModel string
+	tab                                              int
+	history                                          gatewayHistoryPanel
+	access                                           gatewayAccessPanel
+	network                                          ai.GatewayNetwork
+	fields                                           fields
+	env                                              *core.Env
+	saved                                            *gatewayStatus
+	enabled                                          bool
+	native                                           bool
+	port                                             string
+	models                                           *[]widgets.AISelection
+	working                                          bool
+	loading                                          bool
+	err                                              string
+	key                                              string
+	query                                            string
+	list                                             ui.ListState
+	height                                           float32
+	read                                             int
 	// interfaces shows the supported interfaces.
 	interfaces bool
 }
@@ -81,6 +85,10 @@ func (g *gatewayPanel) Report() {
 }
 
 func (g *gatewayPanel) Close() {
+	g.calls.api.close()
+	g.calls.detailAPI.close()
+	g.calls.routeAPI.close()
+	g.calls.titleAPI.close()
 	g.access.close()
 	g.history.api.close()
 	g.env.Activity.Report("ai-gateway-access", false, false, nil)
@@ -191,7 +199,6 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owner
 	if g.saved == nil && !busy && g.err == "" {
 		g.load()
 	}
-	services := c.Services()
 	kit.Help(c, i18n.T("gateway.hint"))
 	if g.err != "" {
 		kit.Notice(c, kit.Failure, "", g.err, func() {
@@ -216,35 +223,7 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owner
 	if s.Error != "" {
 		kit.Notice(c, kit.Failure, "", s.Error, nil)
 	}
-	kit.Tabs(c, &g.tab, []kit.Tab{{Label: accessT("connectionTab")}, {Label: accessT("title")}, {Label: accessT("networkTab")}, {Label: accessT("historyTab")}}, nil)
-	// Specialist controls keep their drafts while the everyday connection
-	// page stays short. This is navigation within the same gateway settings.
-	if g.tab == 1 {
-		if len(owners) > 0 {
-			g.access.View(c, owners[0])
-		}
-		return
-	}
-	if g.tab == 3 {
-		if len(owners) > 0 {
-			g.history.View(c, owners[0])
-		}
-		return
-	}
-	if g.tab == 2 {
-		kit.Group(c, icons.Server, accessT("networkTab"), "", func() {
-			kit.Toggle(c, &g.network.LAN, completeT("gatewayLAN"), completeT("gatewayLANHint")).Disabled(busy)
-			if g.network.LAN {
-				nativeList(c, g.fields, "gatewayIPs", completeT("gatewayIPs"), &g.network.AllowIPs, busy)
-				kit.Help(c, completeT("gatewayIPsHint"))
-			}
-			nativeList(c, g.fields, "gatewayOrigins", completeT("gatewayOrigins"), &g.network.CORSOrigins, busy)
-			kit.Help(c, completeT("gatewayOriginsHint"))
-			kit.Toggle(c, &g.native, accessT("native"), accessT("nativeHint")).Disabled(busy)
-			kit.Help(c, completeT("gatewayProtocols"))
-		})
-		return
-	}
+
 	ui.Column(c).FillWidth().Gap(kit.GroupGap).Disabled(busy).Children(func() {
 		kit.Group(c, icons.Server, i18n.T("settingsDesign.gatewayRun"), "", func() {
 			kit.Toggle(c, &g.enabled, i18n.T("gateway.enable"), "")
@@ -261,43 +240,26 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owner
 				}
 			})
 		})
-		kit.Group(c, icons.Plug, i18n.T("settingsDesign.gatewayConnect"), "", func() {
-			kit.Stack(c, i18n.T("gateway.address"), "", func() {
-				address := s.BaseURL
-				ui.TextInput(c, &address).FillWidth().ReadOnly(true).Label(i18n.T("gateway.address"))
-			})
-			for _, address := range s.LANURLs {
-				kit.Stack(c, completeT("gatewayLANAddress"), "", func() { ui.TextInput(c, &address).FillWidth().ReadOnly(true).Label(completeT("gatewayLANAddress")) })
+		if len(owners) > 0 {
+			kit.Heading(c, upstreamT("Gateway keys"))
+			g.access.View(c, owners[0])
+		}
+		g.connectView(c, providers, busy)
+		ui.Collapsible(c, accessT("networkTab"), &g.networkOpen, func() {
+			kit.Toggle(c, &g.network.LAN, completeT("gatewayLAN"), completeT("gatewayLANHint")).Disabled(busy)
+			if g.network.LAN {
+				nativeList(c, g.fields, "gatewayIPs", completeT("gatewayIPs"), &g.network.AllowIPs, busy)
+				kit.Help(c, completeT("gatewayIPsHint"))
 			}
-			kit.Stack(c, i18n.T("gateway.key"), i18n.T("gateway.keyHint"), func() {
-				placeholder := ""
-				if s.HasKey {
-					placeholder = "••••••••"
-				}
-				key := g.key
-				ui.TextInput(c, &key).FillWidth().ReadOnly(true).Placeholder(placeholder).Label(i18n.T("gateway.key"))
-				ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-					label, icon := "gateway.showKey", icons.Eye
-					if g.key != "" {
-						label, icon = "gateway.hideKey", icons.EyeOff
-					}
-					if kit.Button(c, i18n.T(label), icon, false).Disabled(!s.HasKey).Clicked() {
-						if g.key != "" {
-							g.key = ""
-						} else {
-							g.accessKey(services, false)
-						}
-					}
-					if kit.Button(c, i18n.T("gateway.copyKey"), icons.Copy, false).Disabled(!s.HasKey).Clicked() {
-						g.accessKey(services, true)
-					}
-					if kit.Button(c, i18n.T("gateway.resetKey"), icons.RotateCcw, false).Disabled(dirty).Clicked() {
-						g.save(true)
-					}
-				})
-			})
+			nativeList(c, g.fields, "gatewayOrigins", completeT("gatewayOrigins"), &g.network.CORSOrigins, busy)
+			kit.Help(c, completeT("gatewayOriginsHint"))
+			kit.Toggle(c, &g.native, accessT("native"), accessT("nativeHint")).Disabled(busy)
 		})
 		g.modelsView(c, providers, busy)
+		if len(owners) > 0 {
+			g.recentCallsView(c, owners[0])
+			ui.Collapsible(c, accessT("historyTab"), &g.historyOpen, func() { g.history.View(c, owners[0]) })
+		}
 	})
 }
 
@@ -477,4 +439,45 @@ func providerMark(p *widgets.AIProvider) string {
 		return p.Avatar
 	}
 	return p.Icon
+}
+
+// Credentials stay inside Connect and use the original native key actions.
+func (g *gatewayPanel) credentialsView(c *ui.Context, busy bool) {
+	s := g.saved
+	dirty := g.dirty()
+	services := c.Services()
+	kit.Stack(c, i18n.T("gateway.address"), "", func() {
+		address := s.BaseURL
+		ui.TextInput(c, &address).FillWidth().ReadOnly(true).Label(i18n.T("gateway.address"))
+	})
+	for _, address := range s.LANURLs {
+		kit.Stack(c, completeT("gatewayLANAddress"), "", func() { ui.TextInput(c, &address).FillWidth().ReadOnly(true).Label(completeT("gatewayLANAddress")) })
+	}
+	kit.Stack(c, i18n.T("gateway.key"), i18n.T("gateway.keyHint"), func() {
+		placeholder := ""
+		if s.HasKey {
+			placeholder = "••••••••"
+		}
+		key := g.key
+		ui.TextInput(c, &key).FillWidth().ReadOnly(true).Placeholder(placeholder).Label(i18n.T("gateway.key"))
+		ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
+			label, icon := "gateway.showKey", icons.Eye
+			if g.key != "" {
+				label, icon = "gateway.hideKey", icons.EyeOff
+			}
+			if kit.Button(c, i18n.T(label), icon, false).Disabled(!s.HasKey).Clicked() {
+				if g.key != "" {
+					g.key = ""
+				} else {
+					g.accessKey(services, false)
+				}
+			}
+			if kit.Button(c, i18n.T("gateway.copyKey"), icons.Copy, false).Disabled(!s.HasKey).Clicked() {
+				g.accessKey(services, true)
+			}
+			if kit.Button(c, i18n.T("gateway.resetKey"), icons.RotateCcw, false).Disabled(dirty).Clicked() {
+				g.save(true)
+			}
+		})
+	})
 }

@@ -6,7 +6,7 @@
  "aiComplete.showAllowance":"显示此账号额度",
  "aiComplete.shownClients":"选择显示的客户端",
  "aiComplete.savedHeader":"留空保留已存值；删除此行可清除",
- "aiComplete.otelSessionsUnavailable":"本次不启用读取外部客户端会话。请求指标与请求正文导出仍可独立设置。",
+ "aiComplete.otelSessionsUnavailable":"保存收集器设置后，在“会话”的读取设置中点击“开始导出”。读取与导出仅由你主动开启。",
   "aiComplete.modelBasics": "基本设置",
   "aiComplete.modelCapabilities": "思考与能力",
   "aiComplete.modelRequest": "请求",

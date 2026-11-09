@@ -271,9 +271,14 @@ func (m *modelsPanel) fetch(pr *provider) {
 			t.CatalogModels, t.ManualModels, t.CatalogMetadata = snapshot.CatalogModels, snapshot.ManualModels, snapshot.CatalogMetadata
 			t.CatalogNames = snapshot.CatalogNames
 			raw, _ = json.Marshal(snapshot.ModelMetadata)
-			if err := json.Unmarshal(raw, &t.ModelMetadata); err != nil {
+			// JSON decoding merges into a non-nil map. Decode a fresh snapshot
+			// so a retired model cannot survive as an unknown metadata key.
+			var refreshed map[string]metadata
+			if err := json.Unmarshal(raw, &refreshed); err != nil {
 				m.err = err.Error()
+				return
 			}
+			t.ModelMetadata = refreshed
 		})
 		// Tests describe the previous list: test again after discovery.
 		m.tested, m.notice, m.clients, m.editing = map[string]modelTest{}, "", nil, ""

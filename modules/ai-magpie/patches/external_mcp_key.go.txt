@@ -1,0 +1,13 @@
+package browsermcp
+
+import (
+ "os"
+ "github.com/yetone/magpie/internal/gateway"
+)
+
+// A Library command carries only the credential for its selected endpoint.
+// An ordinary Magpie CLI keeps its original loopback token.
+func winOneMCPKey() string {
+ if key:=os.Getenv("WINONE_AI_MCP_KEY");key!=""{return key}
+ return gateway.Token
+}

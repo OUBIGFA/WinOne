@@ -384,7 +384,7 @@ func TestTabsAskTheGuard(t *testing.T) {
 	_, h, p, tt := setup(t)
 	requested := 0
 	h.Env.RequestChange = func(apply func()) { requested++ }
-	if err := tt.Click(homeT("more")); err != nil {
+	if err := tt.Click(upstreamT("Usage")); err != nil {
 		t.Fatal(err)
 	}
 	h.Settle(tt)

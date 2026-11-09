@@ -79,6 +79,7 @@ func (s *aiService) handleGateway(r host.Request) host.Response {
 			return fail(err)
 		}
 		result = value
+		s.syncExternalGateway()
 		if !value.Enabled {
 			s.releaseRoutingViewer("gateway-media")
 		}

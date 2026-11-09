@@ -22,6 +22,16 @@ func TestRealNativeAIThirdPartyPageKeepsSDKActionAndPermissionRead(t *testing.T)
 		t.Skip("explicit repository-private desktop")
 	}
 	p, h, tt, _ := nativeAIWithRuntime(t)
+	t.Cleanup(func() {
+		if t.Failed() {
+			calls := map[string]int{}
+			for _, call := range h.Calls() {
+				calls[call.Method]++
+			}
+			x := p.plugins
+			t.Logf("requests=%v marketLoaded=%v githubLoaded=%v errors=[%s | %s | %s]", calls, x.marketLoaded, x.githubLoaded, x.api.err, x.marketAPI.err, x.githubAPI.err)
+		}
+	})
 	folder := t.TempDir()
 	for file, body := range map[string]string{
 		"package.json":    `{"name":"native-page-fixture","version":"1.0.0","magpie":{"page":{"title":"Native SDK fixture","file":"page/index.html"},"permissions":["usage:summary"],"actions":[{"id":"inspect","menu":"provider","title":"Inspect fixture"}]}}`,
@@ -37,7 +47,9 @@ func TestRealNativeAIThirdPartyPageKeepsSDKActionAndPermissionRead(t *testing.T)
 		}
 	}
 	p.switchTab(tabPlugins)
+	t.Log("opening plugin manager")
 	settle(h, tt)
+	t.Log("adding local author fixture")
 	p.plugins.act("add", map[string]string{"spec": folder})
 	settle(h, tt)
 	if p.plugins.api.err != "" || len(p.extensions.state.Pages) != 1 {

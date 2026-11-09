@@ -46,7 +46,7 @@ func preparePluginAt(ctx context.Context, root, agent string) (plugin.Provider, 
 	if !found {
 		return plugin.Provider{}, errors.New("unsupported account plugin")
 	}
-	if choice, exists := selectedBundles[descriptor.Directory]; exists && !choice.Enabled {
+	if choice, exists := selectedBundles[descriptor.Directory]; exists && (!choice.Enabled || choice.Removed) {
 		return plugin.Provider{}, errors.New("account plugin is disabled; enable it in AI services > Plugins")
 	}
 	directory := filepath.Join(root, "plugins", descriptor.Directory)

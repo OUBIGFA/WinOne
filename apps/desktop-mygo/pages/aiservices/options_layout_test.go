@@ -131,13 +131,16 @@ func TestPrivacyStartsWithProtectionAndKeepsRecordsSeparate(t *testing.T) {
 	a.Close()
 }
 
-func TestRoutingStartsWithOperationalSummary(t *testing.T) {
+func TestRoutingGroupsStartsWithUpstreamToolbar(t *testing.T) {
 	_, h, p, _ := setup(t)
 	p.routing.state = &routeGroups{Groups: []core.Preserved[routeGroup]{{Value: routeGroup{ID: "one", Name: "Primary", Members: []string{"fixture/model"}, Ready: true}}}}
 	tt := ui.NewTester(func(c *ui.Context) { p.routing.groupsView(c) }, 800, 900)
 	settle(h, tt)
-	if _, ok := tt.Find(i18n.T("aiRouting.groupSummary", "count", 1, "ready", 1)); !ok {
-		t.Fatal("routing page has no operational summary")
+	if tt.HasText(nativeT("overview")) {
+		t.Fatal("custom summary displaced the upstream group toolbar")
+	}
+	if !tt.HasText(nativeT("newGroup")) || !tt.HasText("Primary") {
+		t.Fatal("group toolbar or existing group missing")
 	}
 }
 

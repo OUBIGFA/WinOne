@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "upstream": "691a10446ec2b66142cee2203edf72d73b12d76d",
+  "upstream": "c9d253e4a2e7add1e31578244eda52bfdce11258",
   "scope": "Opt-in download only; model and pf-serve are not bundled in WinOne. Uses upstream verified downloads, native lifecycle, GPU-to-CPU fallback and idle release in the private WinOne runtime cache.",
   "model": {
     "repository": "https://huggingface.co/LocalAI-io/privacy-filter-GGUF",
@@ -25,9 +25,9 @@
     ]
   },
   "runtime": {
-    "tag": "pf-v3",
-    "url": "https://github.com/yetone/magpie/releases/download/pf-v3/pf-serve-windows-amd64.zip",
-    "sha256": "8fd8f7295743197311d13ed34aa9fb7be891f4e2586dfda6c4a3335e6cef52f3",
+    "tag": "pf-v4",
+    "url": "https://github.com/yetone/magpie/releases/download/pf-v4/pf-serve-windows-amd64.zip",
+    "sha256": "4457116e76d5861b28f26fa15613a943a434d35174f30aa3b8488e76bccc6545",
     "source": "native/privacy-filter/build.sh",
     "dependencies": [
       {
@@ -50,7 +50,10 @@
       }
     ],
     "patches": [
-      "native/privacy-filter/patches/weights-once.patch"
+      "native/privacy-filter/patches/ggml-mingw-throttling.patch",
+      "native/privacy-filter/patches/ner-cstdint.patch",
+      "native/privacy-filter/patches/weights-once.patch",
+      "native/privacy-filter/patches/weights-paged.patch"
     ],
     "targets": [
       "pf-serve",

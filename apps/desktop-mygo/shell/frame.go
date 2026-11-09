@@ -265,6 +265,22 @@ func (s *Shell) content(c *ui.Context) {
 			ui.Column(c.Key(s.page)).Fill().Children(func() { s.pageView(c) })
 			return
 		}
+		if owner, ok := s.instance.(core.WorkspaceScroller); ok {
+			ui.Column(c.Key(s.page)).Fill().Children(func() {
+				if s.snapshot.RuntimeWarning != "" {
+					kit.Notice(c, kit.Info, "", s.snapshot.RuntimeWarning, nil)
+				}
+				if s.opts.StartupWarning != "" && !s.snapshot.Administrator && s.snapshot.Settings.Startup != nil && s.snapshot.Settings.Startup.PreferAdministrator {
+					kit.Notice(c, kit.Info, "", s.opts.StartupWarning, nil)
+				}
+				if s.intentErr != "" {
+					kit.Notice(c, kit.Failure, "", s.intentErr, nil)
+				}
+				s.pageView(c)
+			})
+			s.rail(c, owner.WorkspaceScroll())
+			return
+		}
 		width, _ := c.Size()
 		margin := float32(32)
 		if width-s.sidebarWidth < 640 {
@@ -307,7 +323,7 @@ func (s *Shell) content(c *ui.Context) {
 				s.pageView(c)
 			})
 		_ = scroller
-		s.rail(c)
+		s.rail(c, &s.scroll)
 	})
 }
 
@@ -333,7 +349,7 @@ func (s *Shell) pageView(c *ui.Context) {
 // a gap, then back to top and to bottom when the page scrolls. Save and
 // Undo show on every settings page at the same place, disabled when the
 // page has no manual save, so they never move.
-func (s *Shell) rail(c *ui.Context) {
+func (s *Shell) rail(c *ui.Context, scroll *ui.ScrollState) {
 	rail := s.env.Rail
 	ui.Column(c).Absolute().Right(16).Bottom(16).Gap(8).AlignItems(ui.Center).Children(func() {
 		save, undo := rail.Save, rail.Undo
@@ -359,16 +375,16 @@ func (s *Shell) rail(c *ui.Context) {
 		if u.Clicked() && undo.Run != nil {
 			undo.Run()
 		}
-		if s.scroll.MaxY > 1 {
+		if scroll.MaxY > 1 {
 			ui.Box(c).Height(kit.ControlHeight)
-			top := kit.OutlineIconButton(c, icons.ArrowUpToLine, i18n.T("navigation.scrollToTop"), false).Disabled(s.scroll.Y <= 1)
+			top := kit.OutlineIconButton(c, icons.ArrowUpToLine, i18n.T("navigation.scrollToTop"), false).Disabled(scroll.Y <= 1)
 			if top.Clicked() {
-				s.scroll.ScrollTo(0, 0, ui.Smooth)
+				scroll.ScrollTo(0, 0, ui.Smooth)
 			}
 			bottom := kit.OutlineIconButton(c, icons.ArrowDownToLine, i18n.T("navigation.scrollToBottom"), false).
-				Disabled(s.scroll.Y >= s.scroll.MaxY-1)
+				Disabled(scroll.Y >= scroll.MaxY-1)
 			if bottom.Clicked() {
-				s.scroll.ScrollTo(0, s.scroll.MaxY, ui.Smooth)
+				scroll.ScrollTo(0, scroll.MaxY, ui.Smooth)
 			}
 		}
 	})

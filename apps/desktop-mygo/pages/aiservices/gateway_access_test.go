@@ -1,12 +1,45 @@
 package aiservices
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/egoist/mygo/ui"
 	"os"
 	"testing"
 	"winone/desktopmygo/i18n"
 )
+
+func TestNativeGatewayConcurrencyPolicyRoundTrip(t *testing.T) {
+	p, h, tt, router := nativeAIWithRuntime(t)
+	p.switchTab(tabGateway)
+	p.gateway.tab = 1
+	settle(h, tt)
+	a := &p.gateway.access
+	a.api.request(p, "POST", "/api/caller-keys/add-key", map[string]string{"name": "Concurrency fixture"}, func(raw json.RawMessage) { a.accept(raw) })
+	settle(h, tt)
+	if a.state == nil || len(a.state.Keys) != 1 {
+		t.Fatal("create", a.api.err)
+	}
+	id := a.state.Keys[0].ID
+	policy := map[string]any{"id": id, "name": "Concurrency fixture", "maxConcurrency": 2}
+	a.api.request(p, "POST", "/api/winone/gateway/configure", policy, func(raw json.RawMessage) {
+		var data struct {
+			Keys []struct {
+				MaxConcurrency int `json:"maxConcurrency"`
+			}
+		}
+		if err := json.Unmarshal(raw, &data); err != nil {
+			t.Fatal(err)
+		}
+		if len(data.Keys) != 1 || data.Keys[0].MaxConcurrency != 2 {
+			t.Errorf("concurrency was not saved: %s", raw)
+		}
+	})
+	settle(h, tt)
+	if a.api.err != "" {
+		t.Fatal(a.api.err, router.URL)
+	}
+}
 
 func TestNativeAccessKeysCreateEditScopesAndRecording(t *testing.T) {
 	p, h, tt, _ := nativeAIWithRuntime(t)

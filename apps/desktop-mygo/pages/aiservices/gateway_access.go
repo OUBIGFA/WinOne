@@ -21,22 +21,23 @@ type callerLimit struct {
 	Models     []string `json:"models,omitempty"`
 }
 type callerKey struct {
-	ID       string        `json:"id"`
-	Name     string        `json:"name"`
-	Masked   string        `json:"masked"`
-	Off      bool          `json:"off"`
-	Browser  bool          `json:"browser"`
-	ReadOnly bool          `json:"readOnly"`
-	Quotas   bool          `json:"quotas"`
-	Issues   bool          `json:"issues"`
-	Models   []string      `json:"models,omitempty"`
-	Accounts []string      `json:"accounts,omitempty"`
-	MCP      []string      `json:"mcp,omitempty"`
-	Expires  string        `json:"expires,omitempty"`
-	Issuer   string        `json:"issuer,omitempty"`
-	Limit    *callerLimit  `json:"limit,omitempty"`
-	More     []callerLimit `json:"moreLimits,omitempty"`
-	UsedAll  []struct {
+	MaxConcurrency int           `json:"maxConcurrency,omitempty"`
+	ID             string        `json:"id"`
+	Name           string        `json:"name"`
+	Masked         string        `json:"masked"`
+	Off            bool          `json:"off"`
+	Browser        bool          `json:"browser"`
+	ReadOnly       bool          `json:"readOnly"`
+	Quotas         bool          `json:"quotas"`
+	Issues         bool          `json:"issues"`
+	Models         []string      `json:"models,omitempty"`
+	Accounts       []string      `json:"accounts,omitempty"`
+	MCP            []string      `json:"mcp,omitempty"`
+	Expires        string        `json:"expires,omitempty"`
+	Issuer         string        `json:"issuer,omitempty"`
+	Limit          *callerLimit  `json:"limit,omitempty"`
+	More           []callerLimit `json:"moreLimits,omitempty"`
+	UsedAll        []struct {
 		Tokens int64   `json:"tokens"`
 		Cost   float64 `json:"cost"`
 		Reset  string  `json:"reset"`
@@ -337,6 +338,8 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 		switch a.tab {
 		case 0:
 			nativeText(c, accessT("name"), &k.Name, locked)
+			nativeInt(c, upstreamT("Concurrency"), &k.MaxConcurrency, 0, 1000, locked)
+			kit.Help(c, upstreamT("How many requests this key may have in flight at once. Beyond it they wait in order; 0 for no limit."))
 			kit.Toggle(c, &k.ReadOnly, accessT("readOnly"), accessT("readOnlyHint")).Disabled(locked || k.Browser)
 			kit.Toggle(c, &k.Quotas, accessT("quotas"), accessT("quotasHint")).Disabled(locked)
 			kit.Toggle(c, &k.Issues, accessT("issuer"), accessT("issuerHint")).Disabled(locked || k.Browser || k.Issuer != "" || k.Expires != "")

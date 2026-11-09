@@ -16,11 +16,14 @@ func TestAIHomeKeepsCommonTasksAndAllSecondaryPagesReachable(t *testing.T) {
 	t.Cleanup(p.Close)
 	tt := ui.NewTester(p.View, 560, 1000)
 	settle(h, tt)
-	if p.tab != tabHome || !tt.HasText(homeT("connect")) || tt.HasText(i18n.T("gateway.title")) {
-		t.Fatal("home exposes specialist configuration or omits connection task")
+	if p.tab != tabHome || !tt.HasText(homeT("connect")) {
+		t.Fatal("home omits connection task")
 	}
-	for _, entry := range moreDestinations() {
-		p.switchTab(tabMore)
+	for _, entry := range []struct {
+		label string
+		tab   int
+	}{{upstreamT("Usage"), tabUsage}, {upstreamT("Plugins"), tabPlugins}, {upstreamT("Library"), tabLibrary}, {upstreamT("Sessions"), tabSessions}, {upstreamT("Gateway"), tabGateway}, {i18n.T("ai.advanced"), tabAdvanced}} {
+		p.switchTab(tabHome)
 		settle(h, tt)
 		if err := tt.Click(entry.label); err != nil {
 			t.Fatal(err)

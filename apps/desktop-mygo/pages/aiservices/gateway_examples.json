@@ -1,0 +1,105 @@
+[
+  {
+    "id": "openai",
+    "name": "OpenAI",
+    "note": "Chat Completions, the API most tools speak. Anything with an OpenAI base-URL setting works.",
+    "baseSuffix": "/v1",
+    "decide": false,
+    "examples": {
+      "windows": {
+        "curl": "@'\n{\"model\": \"WINONE_MODEL\",\n \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}]}\n'@ | curl.exe WINONE_ROOT/v1/chat/completions `\n  -H \"Authorization: Bearer WINONE_KEY\" `\n  -H \"Content-Type: application/json\" `\n  --data-binary \"@-\"",
+        "python": "from openai import OpenAI\n\nclient = OpenAI(base_url=\"WINONE_ROOT/v1\", api_key=\"WINONE_KEY\")\nr = client.chat.completions.create(\n    model=\"WINONE_MODEL\",\n    messages=[{\"role\": \"user\", \"content\": \"hi\"}],\n)\nprint(r.choices[0].message.content)",
+        "node": "import OpenAI from \"openai\";\n\nconst client = new OpenAI({ baseURL: \"WINONE_ROOT/v1\", apiKey: \"WINONE_KEY\" });\nconst r = await client.chat.completions.create({\n  model: \"WINONE_MODEL\",\n  messages: [{ role: \"user\", content: \"hi\" }],\n});\nconsole.log(r.choices[0].message.content);",
+        "shell": "$env:OPENAI_BASE_URL=\"WINONE_ROOT/v1\"\n$env:OPENAI_API_KEY=\"WINONE_KEY\""
+      },
+      "unix": {
+        "curl": "curl WINONE_ROOT/v1/chat/completions \\\n  -H \"Authorization: Bearer WINONE_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\": \"WINONE_MODEL\",\n       \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}]}'",
+        "python": "from openai import OpenAI\n\nclient = OpenAI(base_url=\"WINONE_ROOT/v1\", api_key=\"WINONE_KEY\")\nr = client.chat.completions.create(\n    model=\"WINONE_MODEL\",\n    messages=[{\"role\": \"user\", \"content\": \"hi\"}],\n)\nprint(r.choices[0].message.content)",
+        "node": "import OpenAI from \"openai\";\n\nconst client = new OpenAI({ baseURL: \"WINONE_ROOT/v1\", apiKey: \"WINONE_KEY\" });\nconst r = await client.chat.completions.create({\n  model: \"WINONE_MODEL\",\n  messages: [{ role: \"user\", content: \"hi\" }],\n});\nconsole.log(r.choices[0].message.content);",
+        "shell": "export OPENAI_BASE_URL=WINONE_ROOT/v1\nexport OPENAI_API_KEY=WINONE_KEY"
+      }
+    }
+  },
+  {
+    "id": "responses",
+    "name": "Responses",
+    "note": "OpenAI's newer API: reasoning, built-in tool items, encrypted reasoning. Codex speaks this.",
+    "baseSuffix": "/v1",
+    "decide": false,
+    "examples": {
+      "windows": {
+        "curl": "@'\n{\"model\": \"WINONE_MODEL\", \"input\": \"hi\"}\n'@ | curl.exe WINONE_ROOT/v1/responses `\n  -H \"Authorization: Bearer WINONE_KEY\" `\n  -H \"Content-Type: application/json\" `\n  --data-binary \"@-\"",
+        "python": "from openai import OpenAI\n\nclient = OpenAI(base_url=\"WINONE_ROOT/v1\", api_key=\"WINONE_KEY\")\nr = client.responses.create(model=\"WINONE_MODEL\", input=\"hi\")\nprint(r.output_text)",
+        "node": "import OpenAI from \"openai\";\n\nconst client = new OpenAI({ baseURL: \"WINONE_ROOT/v1\", apiKey: \"WINONE_KEY\" });\nconst r = await client.responses.create({ model: \"WINONE_MODEL\", input: \"hi\" });\nconsole.log(r.output_text);",
+        "shell": "$env:OPENAI_BASE_URL=\"WINONE_ROOT/v1\"\n$env:OPENAI_API_KEY=\"WINONE_KEY\""
+      },
+      "unix": {
+        "curl": "curl WINONE_ROOT/v1/responses \\\n  -H \"Authorization: Bearer WINONE_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\": \"WINONE_MODEL\", \"input\": \"hi\"}'",
+        "python": "from openai import OpenAI\n\nclient = OpenAI(base_url=\"WINONE_ROOT/v1\", api_key=\"WINONE_KEY\")\nr = client.responses.create(model=\"WINONE_MODEL\", input=\"hi\")\nprint(r.output_text)",
+        "node": "import OpenAI from \"openai\";\n\nconst client = new OpenAI({ baseURL: \"WINONE_ROOT/v1\", apiKey: \"WINONE_KEY\" });\nconst r = await client.responses.create({ model: \"WINONE_MODEL\", input: \"hi\" });\nconsole.log(r.output_text);",
+        "shell": "export OPENAI_BASE_URL=WINONE_ROOT/v1\nexport OPENAI_API_KEY=WINONE_KEY"
+      }
+    }
+  },
+  {
+    "id": "anthropic",
+    "name": "Anthropic",
+    "note": "Messages API. Claude Code reads ANTHROPIC_AUTH_TOKEN instead of the key; the Agents tab sets that for you.",
+    "baseSuffix": "",
+    "decide": false,
+    "examples": {
+      "windows": {
+        "curl": "@'\n{\"model\": \"WINONE_MODEL\", \"max_tokens\": 1024,\n \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}]}\n'@ | curl.exe WINONE_ROOT/v1/messages `\n  -H \"x-api-key: WINONE_KEY\" `\n  -H \"anthropic-version: 2023-06-01\" `\n  -H \"Content-Type: application/json\" `\n  --data-binary \"@-\"",
+        "python": "import anthropic\n\nclient = anthropic.Anthropic(\n    base_url=\"WINONE_ROOT\", api_key=\"WINONE_KEY\",\n)\nm = client.messages.create(\n    model=\"WINONE_MODEL\",\n    max_tokens=1024,\n    messages=[{\"role\": \"user\", \"content\": \"hi\"}],\n)\nprint(m.content[0].text)",
+        "node": "import Anthropic from \"@anthropic-ai/sdk\";\n\nconst client = new Anthropic({ baseURL: \"WINONE_ROOT\", apiKey: \"WINONE_KEY\" });\nconst m = await client.messages.create({\n  model: \"WINONE_MODEL\",\n  max_tokens: 1024,\n  messages: [{ role: \"user\", content: \"hi\" }],\n});\nconsole.log(m.content[0].text);",
+        "shell": "$env:ANTHROPIC_BASE_URL=\"WINONE_ROOT\"\n$env:ANTHROPIC_API_KEY=\"WINONE_KEY\""
+      },
+      "unix": {
+        "curl": "curl WINONE_ROOT/v1/messages \\\n  -H \"x-api-key: WINONE_KEY\" \\\n  -H \"anthropic-version: 2023-06-01\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\": \"WINONE_MODEL\", \"max_tokens\": 1024,\n       \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}]}'",
+        "python": "import anthropic\n\nclient = anthropic.Anthropic(\n    base_url=\"WINONE_ROOT\", api_key=\"WINONE_KEY\",\n)\nm = client.messages.create(\n    model=\"WINONE_MODEL\",\n    max_tokens=1024,\n    messages=[{\"role\": \"user\", \"content\": \"hi\"}],\n)\nprint(m.content[0].text)",
+        "node": "import Anthropic from \"@anthropic-ai/sdk\";\n\nconst client = new Anthropic({ baseURL: \"WINONE_ROOT\", apiKey: \"WINONE_KEY\" });\nconst m = await client.messages.create({\n  model: \"WINONE_MODEL\",\n  max_tokens: 1024,\n  messages: [{ role: \"user\", content: \"hi\" }],\n});\nconsole.log(m.content[0].text);",
+        "shell": "export ANTHROPIC_BASE_URL=WINONE_ROOT\nexport ANTHROPIC_API_KEY=WINONE_KEY"
+      }
+    }
+  },
+  {
+    "id": "gemini",
+    "name": "Gemini",
+    "note": "Google's generateContent API, v1beta. Gemini CLI and the google-genai SDKs speak this.",
+    "baseSuffix": "",
+    "decide": false,
+    "examples": {
+      "windows": {
+        "curl": "@'\n{\"contents\": [{\"parts\": [{\"text\": \"hi\"}]}]}\n'@ | curl.exe WINONE_ROOT/v1beta/models/WINONE_MODEL:generateContent `\n  -H \"x-goog-api-key: WINONE_KEY\" `\n  -H \"Content-Type: application/json\" `\n  --data-binary \"@-\"",
+        "python": "from google import genai\n\nclient = genai.Client(api_key=\"WINONE_KEY\", http_options={\"base_url\": \"WINONE_ROOT\"})\nr = client.models.generate_content(model=\"WINONE_MODEL\", contents=\"hi\")\nprint(r.text)",
+        "node": "import { GoogleGenAI } from \"@google/genai\";\n\nconst ai = new GoogleGenAI({\n  apiKey: \"WINONE_KEY\",\n  httpOptions: { baseUrl: \"WINONE_ROOT\" },\n});\nconst r = await ai.models.generateContent({ model: \"WINONE_MODEL\", contents: \"hi\" });\nconsole.log(r.text);",
+        "shell": "$env:GOOGLE_GEMINI_BASE_URL=\"WINONE_ROOT\"\n$env:GEMINI_API_KEY=\"WINONE_KEY\""
+      },
+      "unix": {
+        "curl": "curl WINONE_ROOT/v1beta/models/WINONE_MODEL:generateContent \\\n  -H \"x-goog-api-key: WINONE_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"contents\": [{\"parts\": [{\"text\": \"hi\"}]}]}'",
+        "python": "from google import genai\n\nclient = genai.Client(api_key=\"WINONE_KEY\", http_options={\"base_url\": \"WINONE_ROOT\"})\nr = client.models.generate_content(model=\"WINONE_MODEL\", contents=\"hi\")\nprint(r.text)",
+        "node": "import { GoogleGenAI } from \"@google/genai\";\n\nconst ai = new GoogleGenAI({\n  apiKey: \"WINONE_KEY\",\n  httpOptions: { baseUrl: \"WINONE_ROOT\" },\n});\nconst r = await ai.models.generateContent({ model: \"WINONE_MODEL\", contents: \"hi\" });\nconsole.log(r.text);",
+        "shell": "export GOOGLE_GEMINI_BASE_URL=WINONE_ROOT\nexport GEMINI_API_KEY=WINONE_KEY"
+      }
+    }
+  },
+  {
+    "id": "systemone",
+    "name": "System One",
+    "note": "TypeSafe's decision API: a Jev or Clef model answers typed questions (choice, noul, score) about a state, with how sure it is. Clef also reads images: add \"images\": [\"data:image/png;base64,…\"].",
+    "baseSuffix": "/v1",
+    "decide": true,
+    "examples": {
+      "windows": {
+        "curl": "@'\n{\"model\": \"WINONE_MODEL\",\n \"state\": {\"message\": \"My order never arrived, refund it\"},\n \"questions\": {\"team\": {\"type\": \"choice\",\n   \"instructions\": \"Which team should answer the message?\",\n   \"criteria\": {\"billing\": \"Payments and refunds\", \"shipping\": \"Deliveries\", \"other\": \"Anything else\"}}}}\n'@ | curl.exe WINONE_ROOT/v1/systemone `\n  -H \"Authorization: Bearer WINONE_KEY\" `\n  -H \"Content-Type: application/json\" `\n  --data-binary \"@-\"",
+        "python": "import requests\n\nr = requests.post(\"WINONE_ROOT/v1/systemone\",\n    headers={\"Authorization\": \"Bearer WINONE_KEY\"},\n    json={\n        \"model\": \"WINONE_MODEL\",\n        \"state\": {\"message\": \"My order never arrived, refund it\"},\n        \"questions\": {\"team\": {\n            \"type\": \"choice\",\n            \"instructions\": \"Which team should answer the message?\",\n            \"criteria\": {\"billing\": \"Payments and refunds\", \"shipping\": \"Deliveries\", \"other\": \"Anything else\"},\n        }},\n    })\na = r.json()[\"answers\"][\"team\"]\nprint(a[\"choice\"], a[\"confidence\"])",
+        "node": "const r = await fetch(\"WINONE_ROOT/v1/systemone\", {\n  method: \"POST\",\n  headers: { Authorization: \"Bearer WINONE_KEY\", \"Content-Type\": \"application/json\" },\n  body: JSON.stringify({\n    model: \"WINONE_MODEL\",\n    state: { message: \"My order never arrived, refund it\" },\n    questions: { team: {\n      type: \"choice\",\n      instructions: \"Which team should answer the message?\",\n      criteria: { billing: \"Payments and refunds\", shipping: \"Deliveries\", other: \"Anything else\" },\n    } },\n  }),\n});\nconst a = (await r.json()).answers.team;\nconsole.log(a.choice, a.confidence);"
+      },
+      "unix": {
+        "curl": "curl WINONE_ROOT/v1/systemone \\\n  -H \"Authorization: Bearer WINONE_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\": \"WINONE_MODEL\",\n       \"state\": {\"message\": \"My order never arrived, refund it\"},\n       \"questions\": {\"team\": {\"type\": \"choice\",\n         \"instructions\": \"Which team should answer the message?\",\n         \"criteria\": {\"billing\": \"Payments and refunds\", \"shipping\": \"Deliveries\", \"other\": \"Anything else\"}}}}'",
+        "python": "import requests\n\nr = requests.post(\"WINONE_ROOT/v1/systemone\",\n    headers={\"Authorization\": \"Bearer WINONE_KEY\"},\n    json={\n        \"model\": \"WINONE_MODEL\",\n        \"state\": {\"message\": \"My order never arrived, refund it\"},\n        \"questions\": {\"team\": {\n            \"type\": \"choice\",\n            \"instructions\": \"Which team should answer the message?\",\n            \"criteria\": {\"billing\": \"Payments and refunds\", \"shipping\": \"Deliveries\", \"other\": \"Anything else\"},\n        }},\n    })\na = r.json()[\"answers\"][\"team\"]\nprint(a[\"choice\"], a[\"confidence\"])",
+        "node": "const r = await fetch(\"WINONE_ROOT/v1/systemone\", {\n  method: \"POST\",\n  headers: { Authorization: \"Bearer WINONE_KEY\", \"Content-Type\": \"application/json\" },\n  body: JSON.stringify({\n    model: \"WINONE_MODEL\",\n    state: { message: \"My order never arrived, refund it\" },\n    questions: { team: {\n      type: \"choice\",\n      instructions: \"Which team should answer the message?\",\n      criteria: { billing: \"Payments and refunds\", shipping: \"Deliveries\", other: \"Anything else\" },\n    } },\n  }),\n});\nconst a = (await r.json()).answers.team;\nconsole.log(a.choice, a.confidence);"
+      }
+    }
+  }
+]

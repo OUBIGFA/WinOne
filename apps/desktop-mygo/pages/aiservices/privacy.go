@@ -373,6 +373,8 @@ type privacyStatus struct {
 	GPU          bool            `json:"gpu,omitempty"`
 	LoadMS       float64         `json:"loadMs,omitempty"`
 	GPUError     string          `json:"gpuError,omitempty"`
+	GPUReset     bool            `json:"gpuReset,omitempty"`
+	GPUAgain     int64           `json:"gpuAgain,omitempty"`
 	Failed       string          `json:"failed,omitempty"`
 }
 
@@ -546,6 +548,9 @@ func (m *privacyModel) View(c *ui.Context, disabled bool) {
 		}
 		if s != nil && s.GPUError != "" {
 			kit.Notice(c, kit.Info, "", i18n.T("ai.privacyGPUFallback", "error", s.GPUError), nil)
+			if s.GPUAgain > time.Now().UnixMilli() {
+				kit.Help(c, upstreamT("GPU")+" · "+i18n.T("common.retry")+" "+time.UnixMilli(s.GPUAgain).Format("15:04:05"))
+			}
 		}
 		failed := s != nil && *s.On && s.Failed != ""
 		if m.err != "" || (s != nil && s.Error != "") || failed {

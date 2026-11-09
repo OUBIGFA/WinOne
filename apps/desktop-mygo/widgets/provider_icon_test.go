@@ -2,7 +2,10 @@ package widgets
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
@@ -10,7 +13,37 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"winone/desktopmygo/testhost"
 )
+
+func TestVisibleProviderIconsSurviveSharedCacheEviction(t *testing.T) {
+	avatars = avatarStore{}
+	t.Cleanup(func() { avatars = avatarStore{} })
+	var data bytes.Buffer
+	if err := png.Encode(&data, image.NewNRGBA(image.Rect(0, 0, 1, 1))); err != nil {
+		t.Fatal(err)
+	}
+	h := testhost.New(t, func(method string, params json.RawMessage) (any, error) {
+		if method != "capture.ai.icons.read" {
+			return nil, fmt.Errorf("unexpected %s", method)
+		}
+		return map[string]any{"data": base64.StdEncoding.EncodeToString(data.Bytes()), "size": data.Len(), "mimeType": "image/png"}, nil
+	})
+	count := avatarEntries + 4
+	tt := ui.NewTester(func(c *ui.Context) {
+		ui.Row(c).Wrap().Children(func() {
+			for i := range count {
+				ProviderIcon(c.Key(i), h.Env, fmt.Sprintf("file:%016x.png", i), 18)
+			}
+		})
+	}, 600, 300)
+	for range 3 {
+		h.Settle(tt)
+	}
+	if got := len(h.Called("capture.ai.icons.read")); got != count {
+		t.Fatalf("visible icons reloaded after eviction: got %d, want %d", got, count)
+	}
+}
 
 // icoFile wraps payloads as the entries of an icon file.
 func icoFile(t *testing.T, sizes []int, payloads ...[]byte) []byte {

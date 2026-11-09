@@ -199,11 +199,11 @@ func (t *nativeTrace) View(c *ui.Context, p *page) {
 		t.loadDays(p)
 	}
 	now := c.Now()
-	if !t.api.busy && p.extensions.state != nil && (!t.loaded || !t.paused && t.day == "" && now.After(t.next)) {
+	if !t.api.busy && t.api.err == "" && p.extensions.state != nil && (!t.loaded || !t.paused && t.day == "" && now.After(t.next)) {
 		t.next = now.Add(2 * time.Second)
 		t.load(p)
 	}
-	if !t.paused && t.day == "" && !t.api.busy {
+	if !t.paused && t.day == "" && !t.api.busy && t.api.err == "" {
 		c.After(max(time.Millisecond, t.next.Sub(now)))
 	}
 	rows := t.replayView(c, p)

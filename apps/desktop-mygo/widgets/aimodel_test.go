@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 
@@ -25,6 +26,15 @@ func aiPickTestProviders(t *testing.T) []AIProvider {
 		t.Fatal(err)
 	}
 	return providers
+}
+
+func TestModelMenuProviderSpacingScreens(t *testing.T) {
+	if os.Getenv("WINONE_SHOTS") == "" {
+		t.Skip("explicit model menu snapshots")
+	}
+	v, _ := aiPickTestSetup(t, nil, false)
+	v.providers = []AIProvider{{ID: "one", Name: "OpenAI", Icon: "openai", Models: []string{"gpt-5", "gpt-5-mini"}}, {ID: "two", Name: "Anthropic", Icon: "claude-color", Models: []string{"claude-sonnet", "claude-opus"}}, {ID: "three", Name: "DeepSeek", Icon: "deepseek-color", Models: []string{"deepseek-chat"}}}
+	v.h.Shots(t, "shared-model-menu", v.view, 720, func(tt *ui.Tester) { aiPickTestClick(t, tt, "任务 · 模型") })
 }
 
 func TestAIModelLabelsTellSharedNamesApartAndDropFreeSuffixes(t *testing.T) {

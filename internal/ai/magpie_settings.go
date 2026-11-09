@@ -143,6 +143,7 @@ type BuiltinPluginChoice struct {
 }
 type BundledPluginChoice struct {
 	Enabled bool           `json:"enabled"`
+	Removed bool           `json:"removed,omitempty"`
 	Options map[string]any `json:"options,omitempty"`
 }
 

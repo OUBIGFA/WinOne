@@ -185,7 +185,7 @@
   },
   "magpie": {
     "repository": "https://github.com/yetone/magpie",
-    "commit": "691a10446ec2b66142cee2203edf72d73b12d76d",
+    "commit": "c9d253e4a2e7add1e31578244eda52bfdce11258",
     "license": "MIT",
     "dependencyLocks": [
       "modules/ai-magpie/upstream.go.mod",
@@ -193,8 +193,8 @@
     ],
     "adapter": "modules/ai-magpie",
     "build": "build/build-ai.ps1",
-    "verification": "docs/ai-full-integration-20261108.md",
-    "previousCommit": "778b8e0753928533fd7afb8d76b57a2b5e22336a",
+    "verification": "docs/plans/2026-11-09-ai-upstream-ui.md",
+    "previousCommit": "691a10446ec2b66142cee2203edf72d73b12d76d",
     "privacyModel": "third_party/privacy-model.json",
     "routingExtraction": "build/prepare-ai-routing.mjs"
   },

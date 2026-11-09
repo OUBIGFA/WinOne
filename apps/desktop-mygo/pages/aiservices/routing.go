@@ -167,7 +167,7 @@ type routingPanel struct {
 }
 
 func newRoutingPanel(p *page) *routingPanel {
-	r := &routingPanel{p: p, selected: map[string]bool{}, fields: fields{}}
+	r := &routingPanel{p: p, tab: 1, selected: map[string]bool{}, fields: fields{}}
 	if p != nil {
 		r.trace.loadViewPrefs(p.env.Directory)
 	}
@@ -240,6 +240,7 @@ func (r *routingPanel) beginEdit(group core.Preserved[routeGroup], fresh bool) {
 		r.patternAPI.close()
 		r.previewPatterns, r.previewFor = nil, nil
 		r.edit, r.saved = &a, &b
+		r.tab = 0
 		r.newGroup = fresh
 		r.editorTab = 0
 		r.fields = fields{}
@@ -306,7 +307,26 @@ func (r *routingPanel) View(c *ui.Context) {
 	if p.draft != nil {
 		kit.Toggle(c, &p.draft.Value.RoutingEnabled, i18n.T("routing.enabled"), i18n.T("routing.hint")).Disabled(p.locked() || r.api.busy)
 	}
-	kit.SubTabs(c, &r.tab, []string{i18n.T("aiRouting.groups"), i18n.T("aiNative.requests"), i18n.T("aiRouting.pools")}, p.env.RequestChange)
+	ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
+		label := upstreamT("Routing groups")
+		target := 0
+		if r.tab == 0 {
+			label = upstreamT("Routing")
+			target = 1
+		}
+		if kit.GhostButton(c, label, nil, false).Clicked() {
+			change := func() { r.tab = target }
+			if p.env.RequestChange != nil {
+				p.env.RequestChange(change)
+			} else {
+				change()
+			}
+		}
+		ui.Spacer(c).Grow(1)
+		if p.draft != nil {
+			kit.Toggle(c, &p.draft.Value.settings().HideAccounts, upstreamT("Hide accounts"), "").Disabled(p.locked())
+		}
+	})
 	r.api.notice(c, r.load)
 	r.capabilitiesAPI.notice(c, func() { r.capabilitiesAPI.err = ""; r.capabilities = nil; r.load() })
 	if r.capabilities != nil {
@@ -344,10 +364,6 @@ func (r *routingPanel) View(c *ui.Context) {
 		if r.api.busy || p.extensions.state == nil {
 			kit.Status(c, i18n.T("capture.loading"))
 		}
-		return
-	}
-	if r.edit != nil {
-		r.editor(c)
 		return
 	}
 	if r.tab == 2 {

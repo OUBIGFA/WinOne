@@ -2,6 +2,8 @@ package aiservices
 
 import (
 	"encoding/json"
+	"slices"
+	"strings"
 	"time"
 
 	"winone/desktopmygo/core"
@@ -139,15 +141,22 @@ func (p *provider) mark() string {
 	return p.Icon
 }
 
-// available lists the models the provider offers, enabled first ones
-// included, without repeats.
+// available uses a stable model-ID order for both discovery drafts and saved
+// configurations. Vendor response order and enabled picks cannot reorder it.
 func (p *provider) available() []string {
 	var all []string
 	if p.AvailableModels != nil && !p.ListOff {
 		all = append(all, *p.AvailableModels...)
 	}
 	all = append(all, p.Models...)
-	return unique(all)
+	all = unique(all)
+	slices.SortFunc(all, func(a, b string) int {
+		if order := strings.Compare(strings.ToLower(a), strings.ToLower(b)); order != 0 {
+			return order
+		}
+		return strings.Compare(a, b)
+	})
+	return all
 }
 
 // slots returns the provider's keys. A configuration from before several
@@ -196,6 +205,7 @@ type builtinChoice struct {
 // bundledChoice turns a bundled plugin on or off, with its options.
 type bundledChoice struct {
 	Enabled bool           `json:"enabled"`
+	Removed bool           `json:"removed,omitempty"`
 	Options map[string]any `json:"options,omitempty"`
 }
 

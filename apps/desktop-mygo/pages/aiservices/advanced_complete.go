@@ -3,6 +3,7 @@ package aiservices
 import (
 	"github.com/egoist/mygo/ui"
 	"slices"
+	"strings"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
@@ -151,10 +152,24 @@ func (a *advancedPanel) completeClientOptions(c *ui.Context, catalog *magpieCata
 }
 
 func (a *advancedPanel) observability(c *ui.Context, locked bool) {
+	if !a.p.builtinEnabled("otel") {
+		return
+	}
 	s := &a.settings().OTel
 	kit.Group(c, icons.Activity, completeT("observability"), completeT("observabilityHint"), func() {
 		kit.Toggle(c, &s.Enabled, completeT("otelEnabled"), "").Disabled(locked)
-		nativeText(c, completeT("otelEndpoint"), &s.Endpoint, locked)
+		if a.otelKind == "" {
+			a.otelKind = "otlp"
+			if strings.HasSuffix(s.Endpoint, langfusePath) {
+				a.otelKind = "langfuse"
+			}
+		}
+		choiceRow(c, upstreamT("Collector"), "", &a.otelKind, options("otlp", "OTLP", "langfuse", "Langfuse"), locked)
+		if a.otelKind == "langfuse" {
+			a.langfuseView(c, locked)
+		} else {
+			nativeText(c, completeT("otelEndpoint"), &s.Endpoint, locked)
+		}
 		for _, row := range []struct {
 			key   string
 			value *bool

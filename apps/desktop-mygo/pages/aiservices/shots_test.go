@@ -17,11 +17,19 @@ func TestShots(t *testing.T) {
 		t.Skip("WINONE_SHOTS is not set")
 	}
 	_, h, p, _ := setup(t)
-	for i, key := range []string{"ai.customProviders", "ai.addProvidersTab", "ai.defaultService", "gateway.title", "routing.title", "usage.title", "aiPlugins.title", "ai.advanced"} {
-		label := i18n.T(key)
+	t.Cleanup(func() {
+		if t.Failed() {
+			calls := map[string]int{}
+			for _, call := range h.Calls() {
+				calls[call.Method]++
+			}
+			t.Logf("last tab=%d requests=%v", p.tab, calls)
+		}
+	})
+	for i, label := range []string{i18n.T("ai.customProviders"), i18n.T("ai.addProvidersTab"), homeT("preferences"), upstreamT("Gateway"), upstreamT("Routing"), upstreamT("Usage"), upstreamT("Plugins"), i18n.T("ai.advanced")} {
 		h.Shots(t, fmt.Sprintf("aiservices-%d", i), p.View, 1600, func(tt *ui.Tester) {
 			if err := tt.Click(label); err != nil {
-				t.Logf("tab %q: %v", label, err)
+				t.Fatalf("tab %q: %v", label, err)
 			}
 		})
 	}

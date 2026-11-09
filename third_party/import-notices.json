@@ -4,9 +4,9 @@
     {
       "name": "magpie-native-ai-pages",
       "repository": "https://github.com/yetone/magpie",
-      "commit": "691a10446ec2b66142cee2203edf72d73b12d76d",
+      "commit": "c9d253e4a2e7add1e31578244eda52bfdce11258",
       "license": "MIT",
-      "scope": "Native MyGo presentation of the complete routing-group, request trace, third-party plugin management and masking-record contracts. Upstream algorithms and API handlers remain in the single private Magpie runtime. Native form fields, labels, stable identities and actions adapt upstream client.js/plugins.js; authored plugin HTML alone retains its original WebView surface. Unrecognized fields roundtrip through core.Preserved; complete read-only diagnostics remain inspectable.",
+      "scope": "Native MyGo presentation of the pinned upstream built-in pages, plugin manager, Library and external client Sessions, with WinOne top subnavigation. Upstream algorithms and handlers remain in the Magpie runtime; external client reads and writes require explicit user actions. Third-party authored HTML retains its original WebView. Native fields, labels, saved receipts, diagnostics, stable identities and actions adapt the upstream contracts; unknown saved fields roundtrip.",
       "sourceFiles": [
         "internal/provider/group.go",
         "internal/provider/grouprule.go",
@@ -28,11 +28,18 @@
         "internal/gui/caller_keys.go",
         "internal/access/access.go",
         "internal/sessions/gateway.go",
-        "internal/gui/assets/plugins/usage/page.js"
+        "internal/gui/assets/plugins/usage/page.js",
+        "internal/gui/assets/plugins/library/client.js",
+        "internal/gui/assets/plugins/sessions/client.js",
+        "internal/gui/assets/plugins/otel/page.js",
+        "internal/gui/assets/plugins/gateway/client.js",
+        "internal/gui/library.go",
+        "internal/gui/sessions.go",
+        "internal/gui/assets/i18n.js"
       ],
       "notices": [
         {
-          "file": "licenses/upstream-magpie-691a10446ec2b66142cee2203edf72d73b12d76d-0-LICENSE.txt",
+          "file": "licenses/upstream-magpie-c9d253e4a2e7add1e31578244eda52bfdce11258-0-LICENSE.txt",
           "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
         }
       ],
@@ -43,7 +50,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/plugins_details.go",
-          "sha256": "3d96f083eb3d7c8d2dbf1d6d209a35d7984d90aa3b57188aa3dff539371f9677"
+          "sha256": "2a5724addb4cc5c41b47f5e22ae3cc439a2cf84e0e5d94466f074feffc186a00"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/plugins_guest.go",
@@ -59,11 +66,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing.go",
-          "sha256": "47474187ea541393a924adcae096408ea608bb8f9d30d140df7bc479097f00e3"
+          "sha256": "d5b3458ba716d8f39ce7d9ef6767c8dac3dd76305aab28f73c81fd9e22147038"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_groups.go",
-          "sha256": "afcad7e7f941c4db3192bf414eead63d6164f11880fb6713e4429f7fa31f561f"
+          "sha256": "64548ddab40f4816edf38e1b6c082d09d7b5bde5d61ff3068ece1f5ef189e066"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_members.go",
@@ -71,7 +78,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_trace.go",
-          "sha256": "93148ba04e2d98fe32a69d1063d0df2651689d423e2897ce11abcae8cef97f12"
+          "sha256": "c1b4f055c47cecb5dfaf50c32f4cd17516d487cb36cfc4a2ff0482d8fde36b0a"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_evidence.go",
@@ -79,15 +86,15 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/plugins_native.go",
-          "sha256": "df95f8121709e5ace9381fd7aacbe43ed36e05990a7307e3648b7b0f7e0927a0"
+          "sha256": "dc006a7cf9c956ad6d8614b93d31ecbdeded2ba03f3136b8d821d96df6197253"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/masking_records.go",
-          "sha256": "8aa02a9f64243e7493c5f09dddfda0578e840b680d974105478a9796602560bf"
+          "sha256": "01e1dcb2aa97dbb1fbd1763be5cdc73d3f9f4a6652a85cb69a10ca489611d357"
         },
         {
           "path": "modules/ai-magpie/patches/routing_gui.go.txt",
-          "sha256": "2f4eefadae39731c94dadca95bc1a76d4a1902203359e264b1c40cb70969deea"
+          "sha256": "7835958135c44c5060af40d18190ce04e3b2dc96993b3833665f213fe3d89e71"
         },
         {
           "path": "build/prepare-ai-routing.ps1",
@@ -99,7 +106,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_metrics.go",
-          "sha256": "941fc5bbf1f1e20bfc06adc08b6e1e94fd90e3a8c0d0c5c9d774d25c022f9d74"
+          "sha256": "1afed7b4f1b84aea0e3f6f879a7694650d6c5d55854edef4e407d64e865a7262"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_details.go",
@@ -139,11 +146,83 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_access.go",
-          "sha256": "6e99547498b2c3a942c201b3f406fe36eef6c52ef377c86e0a20fbe8a6778be8"
+          "sha256": "07b1c0d6ced0fdbf96c40f0fe8063afcd012cf96ef5f178a6842591409e42041"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_history.go",
           "sha256": "2baaa7b1baaa3ecb82a32397a3e06498dae636eae7334bde2cbe8b7e9564b64e"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/plugins_upstream.go",
+          "sha256": "ba822c428e646706b2344b7ed48fc4385d797fdd5666c54671e21340ed9890a4"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/plugins_bundled.go",
+          "sha256": "bffea64bec0c5ebb20cf1ea4d8836b5cbbf272a974521d77b4464c69d7058991"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/library.go",
+          "sha256": "259b18a95a1e51c429758771339d8fdad8b929036041d81d214500c131421eb7"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/library_content.go",
+          "sha256": "e80682c47fc01d1d1c33b7dce1ec5951f7a73e2337486abd05dddd0342dc567b"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/library_i18n.go",
+          "sha256": "c9a9b8dc6c4fc9f640292194ac201c2e0497e859259c6fb51be3f2a5bf797b08"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/sessions.go",
+          "sha256": "51637f27e0bf567edb2b94587568be4263eaf97df0a28b6d90ec9dbbbad9d3b3"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/sessions_manage.go",
+          "sha256": "19880ecbc13fbcdd66f3059f87322e418f12493b8a133142683cf775ad93f3b8"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/observability_upstream.go",
+          "sha256": "7b168fc0097b6ac462be15031f712e4d35b7703a7de2208699fae4aec22089c2"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/masking_summary.go",
+          "sha256": "ec1943c2ea76d2917b5c48235b39099ee8499222c9fc00385456eab6546f3716"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/gateway_calls.go",
+          "sha256": "a637ba4a5290e19609da953bd51d19ad51d3dbaa996e5c3c8a227be18f32205c"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/gateway_connect.go",
+          "sha256": "fcc586085c075e14639dde68f950a953799424a356ab59bad395fdb26d0cb215"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/gateway_examples.json",
+          "sha256": "4b5be2afee201d26fe5b2cdcf4f8f64cf5317787f58a1594496ee2a7625ef15c"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/navigation_upstream.go",
+          "sha256": "678c2158f3c14a23ac910c211b6d6d3ccdb1aa2e66a0307a9a46ec2468259542"
+        },
+        {
+          "path": "apps/desktop-mygo/i18n/ai-upstream.en-US.json",
+          "sha256": "00014b5b4e5a0620f23ad5cfe6a9e65825222905ecb6a9cf7b87dbd023b5fd1b"
+        },
+        {
+          "path": "apps/desktop-mygo/i18n/ai-upstream.zh-CN.json",
+          "sha256": "57dcccbe63d20e52e6cb32ecdbd414ffea310368de21aea9411af73d398dfce5"
+        },
+        {
+          "path": "build/generate-native-magpie-connect.mjs",
+          "sha256": "162951d17f99bf278756ac67585559f59a3e40f9b5cd5c0770e2657381be77bf"
+        },
+        {
+          "path": "build/generate-native-magpie-locales.mjs",
+          "sha256": "f0837708d0187112a5685ff6b9f12b7eda8b9bb4e40092ca699134815fca7013"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/library_server.go",
+          "sha256": "c595cd3d3e47c11b8f99cf499925dc58633e95093953b7dc9de344c4a038ab8a"
         }
       ]
     },

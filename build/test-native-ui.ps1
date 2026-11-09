@@ -37,8 +37,15 @@ try {
     foreach($module in $Modules) {
         Push-Location (Join-Path $root ('apps/'+$module))
         try {
-            & $go test $Packages -run $Run -count=1 -timeout 180s
-            if($LASTEXITCODE -ne 0){throw "$module tests failed"}
+            # PowerShell 5 turns redirected compiler stderr into errors. Keep
+            # the real diagnostics, then fail on Go's exit code as other gates do.
+            $previousErrorPreference=$ErrorActionPreference
+            try {
+                $ErrorActionPreference='Continue'
+                & $go test $Packages -run $Run -count=1 -timeout 180s 2>&1 | ForEach-Object { $_.ToString() }
+                $testExitCode=$LASTEXITCODE
+            } finally { $ErrorActionPreference=$previousErrorPreference }
+            if($testExitCode -ne 0){throw "$module tests failed"}
         } finally { Pop-Location }
     }
 } finally { $env:GOROOT=$priorRoot; $env:GOCACHE=$priorCache; $env:WINONE_TERMINAL_LIBRARY=$priorTerminal; $env:WINONE_PDF_WORKER=$priorPDF }

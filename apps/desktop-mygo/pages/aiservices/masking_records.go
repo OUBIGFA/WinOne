@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"winone/desktopmygo/i18n"
@@ -43,6 +44,8 @@ type maskingRecords struct {
 	kind, by, agent, provider              string
 	blocked                                bool
 	days                                   int
+	mode, facet                            string
+	nextRead                               time.Time
 	records                                []maskingRecord
 	more                                   bool
 	summary                                json.RawMessage
@@ -128,7 +131,21 @@ func (m *maskingRecords) View(c *ui.Context, locked bool) {
 		m.shown = p.maskRecord
 		m.selectRecord(p.maskRecord)
 	}
+	if m.selected != nil {
+		m.detailView(c, locked)
+		return
+	}
+	if m.loaded && c.Now().After(m.nextRead) && !m.api.busy {
+		m.nextRead = c.Now().Add(15 * time.Second)
+		m.load(false)
+		m.loadSummary()
+	}
+	if !m.api.busy {
+		c.After(max(time.Millisecond, m.nextRead.Sub(c.Now())))
+	}
+	m.upstreamSummary(c, locked)
 	kit.Group(c, icons.ShieldCheck, nativeT("maskingRecords"), nativeT("maskingRecordsHint"), func() {
+		choiceRow(c, "", "", &m.mode, options("", upstreamT("By request"), "value", upstreamT("By value")), locked)
 		ui.Row(c).FillWidth().Padding(12, 16).Gap(12).Wrap().Children(func() {
 			for _, f := range []struct {
 				key   string
@@ -138,7 +155,6 @@ func (m *maskingRecords) View(c *ui.Context, locked bool) {
 			}
 		})
 		kit.Toggle(c, &m.blocked, nativeT("blockedOnly"), "").Disabled(locked)
-		nativeInt(c, nativeT("summaryDays"), &m.days, 1, 30, locked)
 		ui.Row(c).Padding(12, 16).Gap(8).Wrap().Children(func() {
 			if kit.Button(c, i18n.T("common.refresh"), icons.RefreshCw, false).Disabled(locked || m.api.busy || m.summaryAPI.busy).Clicked() {
 				m.load(false)
@@ -153,17 +169,9 @@ func (m *maskingRecords) View(c *ui.Context, locked bool) {
 		})
 		m.api.notice(c, func() { m.load(false) })
 		m.summaryAPI.notice(c, m.loadSummary)
-		if m.summary != nil {
-			var sum struct {
-				Requests int `json:"requests"`
-				N        int `json:"n"`
-				Distinct int `json:"distinct"`
-				Blocked  int `json:"blocked"`
-			}
-			_ = json.Unmarshal(m.summary, &sum)
-			kit.Help(c, nativeT("requests")+": "+kit.Itoa(sum.Requests)+" · "+nativeT("maskedValues")+": "+kit.Itoa(sum.N)+" · "+nativeT("distinctValues")+": "+kit.Itoa(sum.Distinct)+" · "+nativeT("blocked")+": "+kit.Itoa(sum.Blocked)).Padding(12, 16)
-			open := ui.Local(ui.Column(c), "mask-summary", func() bool { return false })
-			ui.Collapsible(c, nativeT("summaryDetails"), open, func() { nativeJSON(c, m.summary) }).Padding(12, 16)
+		if m.mode == "value" {
+			m.valuesList(c)
+			return
 		}
 		for _, record := range m.records {
 			label := record.Time + " · " + record.Provider + " · " + record.Model + " · " + kit.Itoa(record.Count)
@@ -182,6 +190,7 @@ func (m *maskingRecords) View(c *ui.Context, locked bool) {
 		}
 		kit.Stack(c, "", "", func() { m.previewView(c, locked) })
 	})
+	kit.Toggle(c, &m.owner.settings().MaskAlert, upstreamT("Masking alert"), upstreamT("A notification when masking swaps a value for the first time: its kind and how many, never the value itself")).Disabled(locked)
 	if kit.Dialog(c, &m.confirmClear, kit.DialogOptions{Title: nativeT("clearRecords"), Message: nativeT("clearRecordsHint"), Confirm: nativeT("clear"), Cancel: i18n.T("common.cancel"), Danger: true, Busy: m.api.busy}) {
 		m.detailAPI.close()
 		m.api.request(p, "POST", "/api/masking/clear", nil, func(raw json.RawMessage) {
@@ -214,7 +223,21 @@ func (m *maskingRecords) previewView(c *ui.Context, locked bool) {
 		}
 		m.previewAPI.notice(c, nil)
 		if m.previewResult != nil {
-			nativeJSON(c, m.previewResult)
+			var result struct {
+				Text string
+				Off  bool
+				Hits []struct {
+					Kind, By, Action, Placeholder, Head string
+					Len                                 int
+				}
+			}
+			if json.Unmarshal(m.previewResult, &result) == nil {
+				kit.Mono(c, result.Text).FillWidth().MinWidth(0).Selectable()
+				for _, hit := range result.Hits {
+					kit.Help(c, hit.Kind+" · "+hit.By+" · "+hit.Action+" · "+hit.Head)
+					kit.Mono(c, hit.Placeholder).Selectable()
+				}
+			}
 		}
 	})
 }
@@ -226,7 +249,26 @@ func (m *maskingRecords) detailView(c *ui.Context, locked bool) {
 	p := m.owner.p
 	record := m.selected
 	open := true
-	kit.Dialog(c, &open, kit.DialogOptions{Title: nativeT("maskingRecord"), Cancel: i18n.T("common.close"), Width: 840, Body: func() {
+	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
+		if kit.GhostButton(c, upstreamT("Back"), icons.ArrowLeft, false).Clicked() {
+			open = false
+		}
+		kit.Strong(c, nativeT("maskingRecord"))
+		ui.Spacer(c).Grow(1)
+		for index, row := range m.records {
+			if row.Key != record.Key {
+				continue
+			}
+			if kit.IconButton(c, icons.ChevronLeft, upstreamT("Previous")).Disabled(index == 0 || m.detailAPI.busy).Clicked() {
+				m.selectRecord(m.records[index-1].Key)
+			}
+			if kit.IconButton(c, icons.ChevronRight, upstreamT("Next")).Disabled(index == len(m.records)-1 || m.detailAPI.busy).Clicked() {
+				m.selectRecord(m.records[index+1].Key)
+			}
+			break
+		}
+	})
+	ui.Column(c).FillWidth().Gap(12).Children(func() {
 		kit.Help(c, record.Time+" · "+record.Agent+" · "+record.Provider+" · "+record.Model)
 		m.detailAPI.notice(c, nil)
 		for _, value := range record.Values {
@@ -328,7 +370,7 @@ func (m *maskingRecords) detailView(c *ui.Context, locked bool) {
 			}
 			kit.Mono(c, text).FillWidth().MinWidth(0).Selectable()
 		}
-	}})
+	})
 	if !open {
 		m.selected = nil
 		m.values = nil

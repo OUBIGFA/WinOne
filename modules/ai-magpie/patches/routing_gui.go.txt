@@ -92,6 +92,10 @@ func WinOneRoutingHandler(gw *gateway.Server, bundled []string) http.Handler {
   writeJSON(w,map[string]any{"patterns":provider.PatternHits(in)})
  })
  pluginRoutes(mux,nil);pluginPageRoutes(mux,true)
+ // Plugin tools visibility is its upstream Library operation; expose only
+ // this action here. Full client library management owns a separate worker.
+ libraryMux:=http.NewServeMux();libraryRoutes(libraryMux,nil)
+ mux.Handle("POST /api/library/servers/plugin-on",libraryMux)
  // Routing's body/HTTP-header panels may fetch an explicitly kept archive.
  // Export still goes through the native Host and its destination protection.
  archiveRead:=WinOneArchiveHandler();mux.Handle("GET /api/archive",archiveRead)

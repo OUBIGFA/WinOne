@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/yetone/magpie",
-  "revision": "691a10446ec2b66142cee2203edf72d73b12d76d",
+  "revision": "c9d253e4a2e7add1e31578244eda52bfdce11258",
   "license": "MIT",
-  "notice": "licenses/upstream-magpie-691a10446ec2b66142cee2203edf72d73b12d76d-0-LICENSE.txt",
+  "notice": "licenses/upstream-magpie-c9d253e4a2e7add1e31578244eda52bfdce11258-0-LICENSE.txt",
   "sourceFiles": {
-    "internal/gui/assets/app.js": "68b4b5cc8c34fb1a4a82200accb5261ada524edb567823cc36e0ba7967ef9bb4",
+    "internal/gui/assets/app.js": "a501c5791a5b086ef5ecbde26cc23e7e99728cf6f0665301cdf115f2055ec919",
     "internal/settings/settings.go": "9a9fe2de8620e569a2c5951012324fc61cc0f74bd51f1130667e381a02c07ce6",
     "LICENSE": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
   },
   "files": {
-    "apps/desktop/frontend/src/features/magpie-proxy-fields.ts": "8b900799922a440efdcbb6fbb056c86ae968adb58c9780e46a82607cdca0d6c5",
-    "internal/ai/magpie_proxy.go": "8c52f90424907b7dda71bd8391328a9d16c2860b443ddb63d07c36f98c75f9d9"
+    "apps/desktop/frontend/src/features/magpie-proxy-fields.ts": "680bf613d6a772b9534a3cc5043348ca0fad845055960165cc194179f6428000",
+    "internal/ai/magpie_proxy.go": "68b19bb884a0fa34d095b3eb336e0caca3726fd68ffb1dc7e05d93cbe1eb0a1c"
   },
   "adaptations": [
     "Export proxyFields, proxyAddress and proxyDisplay for WinOne form components; original parsing and escaping unchanged",

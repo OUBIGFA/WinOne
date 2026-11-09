@@ -1,6 +1,7 @@
 package aiservices
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -180,64 +181,106 @@ func traceTotals(rows []traceRoute) string {
 	return i18n.T("aiRouting.totals", "count", len(rows), "running", running, "retried", retried, "failed", failed, "tokens", tokens, "cost", fmt.Sprintf("%.6f", cost))
 }
 
-// Present simultaneous routes as source → routing group → actual attempts.
-// The order and state come from the trace; the UI never calculates a winner.
+// The upstream stage is client → WinOne → candidate accounts. Every candidate
+// and attempt comes from the trace snapshot; it never predicts a route.
 func (t *nativeTrace) overviewView(c *ui.Context, p *page, rows []traceRoute) {
 	mask := p.routing.accountMasker()
-	kit.Group(c, icons.Waypoints, i18n.T("aiRouting.livePath"), "", func() {
-		ui.Column(c).FillWidth().Gap(12).Padding(12, 16).Children(func() {
-			kit.Help(c, traceTotals(rows))
-			ui.Row(c).Gap(8).Wrap().Children(func() {
-				if p.draft != nil {
-					kit.Toggle(c, &p.draft.Value.settings().HideAccounts, i18n.T("ai.hideAccounts"), "").Disabled(p.locked())
-				}
-				if kit.GhostButton(c, i18n.T("aiRouting.latestFailure"), nil, false).Clicked() {
-					for i := len(rows) - 1; i >= 0; i-- {
-						if traceStatus(rows[i]) == "failed" {
-							t.selectRoute(p, rows[i])
-							break
-						}
-					}
-				}
-				if t.focused != nil && kit.GhostButton(c, i18n.T("aiRouting.followLatest"), nil, false).Clicked() {
-					t.focused = nil
-				}
-			})
-			var active []traceRoute
-			for _, r := range rows {
-				if !r.Done {
-					active = append(active, r)
+	var active []traceRoute
+	for _, r := range rows {
+		if !r.Done {
+			active = append(active, r)
+		}
+	}
+	if len(active) == 0 && len(rows) > 0 {
+		active = rows[len(rows)-1:]
+	}
+	if t.focused != nil && t.replay == nil {
+		active = []traceRoute{*t.focused}
+	}
+	ui.Row(c).FillWidth().Gap(10).Wrap().AlignItems(ui.Center).Children(func() {
+		kit.Help(c, traceTotals(rows))
+		ui.Spacer(c).Grow(1)
+		if kit.GhostButton(c, i18n.T("aiRouting.latestFailure"), nil, false).Clicked() {
+			for i := len(rows) - 1; i >= 0; i-- {
+				if traceStatus(rows[i]) == "failed" {
+					t.selectRoute(p, rows[i])
+					break
 				}
 			}
-			if len(active) == 0 && len(rows) > 0 {
-				active = rows[len(rows)-1:]
-			}
-			if t.focused != nil && t.replay == nil {
-				for _, row := range rows {
-					if row.ID == t.focused.ID {
-						copy := row
-						t.focused = &copy
-						break
-					}
-				}
-				active = []traceRoute{*t.focused}
+		}
+		if t.focused != nil && kit.GhostButton(c, i18n.T("aiRouting.followLatest"), nil, false).Clicked() {
+			t.focused = nil
+		}
+	})
+	width, _ := c.Size()
+	nodeWidth, gap := float32(124), float32(22)
+	if width < 760 {
+		nodeWidth, gap = 86, 8
+	}
+	ui.Row(c).FillWidth().Gap(gap).Padding(22, 2).AlignItems(ui.Center).Children(func() {
+		ui.Column(c).Width(nodeWidth).Shrink(0).Gap(10).Children(func() {
+			if len(active) == 0 {
+				kit.Help(c, upstreamT("No request yet"))
 			}
 			for _, r := range active {
-				ui.Column(c.Key(r.ID)).FillWidth().Gap(6).Padding(8, 0).Children(func() {
-					if kit.GhostButton(c, r.Agent+" → "+r.Model, nil, false).FillWidth().Clicked() {
+				ui.Column(c.Key(r.ID)).FillWidth().Gap(3).Padding(12, 8).Radius(12).Border(1, c.Theme().Border).Background(kit.Colors(c).Panel).Children(func() {
+					ui.Icon(c, icons.Terminal).Size(26, 26).AlignSelf(ui.Center)
+					if kit.GhostButton(c, mask(r.Agent), nil, false).Clicked() {
 						t.selectRoute(p, r)
 					}
-					if len(r.Tries) == 0 {
-						kit.Help(c, nativeT(traceStatus(r)))
-					}
-					for i, tr := range r.Tries {
-						state := nativeT("running")
-						if tr.Done {
-							state = fmt.Sprintf("HTTP %d", tr.Status)
-						}
-						kit.Help(c, mask(fmt.Sprintf("%d → %s · %s · %s", i+1, tr.ID, tr.Model, state)))
-					}
+					kit.Help(c, p.routing.memberLabel(r.Model)).MinWidth(0)
 				})
+			}
+		})
+		ui.Text(c, "→").TextColor(c.Theme().TextMuted)
+		ui.Column(c).Width(nodeWidth).Shrink(0).Gap(4).Padding(12, 8).Radius(12).Border(1, c.Theme().Border).Background(kit.Colors(c).Panel).AlignItems(ui.Center).Children(func() {
+			ui.Icon(c, icons.Sparkles).Size(26, 26)
+			kit.Strong(c, "WinOne")
+			kit.Help(c, upstreamT("Routing"))
+		})
+		ui.Text(c, "→").TextColor(c.Theme().TextMuted)
+		ui.Column(c).Grow(1).MinWidth(0).Gap(7).Children(func() {
+			for _, r := range active {
+				var evidence traceEvidence
+				_ = json.Unmarshal(r.Raw, &evidence)
+				candidates := append(evidence.Order, evidence.Left...)
+				if len(candidates) == 0 {
+					for _, attempt := range r.Tries {
+						candidates = append(candidates, traceCandidate{ID: attempt.ID, Model: attempt.Model})
+					}
+				}
+				if len(candidates) == 0 {
+					kit.Help(c, nativeT(traceStatus(r)))
+				}
+				for _, candidate := range candidates {
+					label := strings.TrimSpace(candidate.Name + " · " + candidate.Who)
+					if label == "·" || label == "" {
+						label = p.routing.memberLabel(candidate.Model)
+					}
+					state := upstreamT("Waiting for a request")
+					for _, attempt := range r.Tries {
+						if attempt.ID == candidate.ID {
+							state = nativeT("running")
+							if attempt.Done {
+								state = fmt.Sprintf("HTTP %d", attempt.Status)
+							}
+							if attempt.Error != "" {
+								state = mask(attempt.Error)
+							}
+						}
+					}
+					row := ui.ButtonBase(c.Key(fmt.Sprint(r.ID)+candidate.ID)).FillWidth().Padding(9, 12).Radius(10).Border(1, c.Theme().Border).Background(kit.Colors(c).Panel).Label(mask(label))
+					row.Children(func() {
+						ui.Column(c).FillWidth().MinWidth(0).Gap(4).Children(func() {
+							kit.Strong(c, mask(label))
+							kit.Help(c, p.routing.memberLabel(candidate.Model))
+							kit.Help(c, state)
+						})
+					})
+					if row.Clicked() {
+						t.selectRoute(p, r)
+					}
+				}
 			}
 		})
 	})

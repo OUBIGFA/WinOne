@@ -1055,6 +1055,36 @@
       ],
       "sourceSum": "h1:+39JvV/HWMcYslAwRxHb8067w+2zowvFOUrOWIy9PjY=",
       "goModSum": "h1:CzbrU2lSB1DKUusvwGz7rqEKIq+NUd8GWuBBZDs9/nA="
+    },
+    {
+      "kind": "upstream",
+      "name": "magpie",
+      "version": "8935abcf5482868a58212a1b416b8088aef2b2d5",
+      "notices": [
+        {
+          "file": "licenses/upstream-magpie-8935abcf5482868a58212a1b416b8088aef2b2d5-0-LICENSE.txt",
+          "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+        },
+        {
+          "file": "licenses/upstream-magpie-8935abcf5482868a58212a1b416b8088aef2b2d5-1-THIRD_PARTY_NOTICES.txt",
+          "sha256": "7367c36421134228559c2d1dd8305da757dd08bacc5d620cd36b65b355dcb7e3"
+        }
+      ]
+    },
+    {
+      "kind": "upstream",
+      "name": "magpie",
+      "version": "c9d253e4a2e7add1e31578244eda52bfdce11258",
+      "notices": [
+        {
+          "file": "licenses/upstream-magpie-c9d253e4a2e7add1e31578244eda52bfdce11258-0-LICENSE.txt",
+          "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
+        },
+        {
+          "file": "licenses/upstream-magpie-c9d253e4a2e7add1e31578244eda52bfdce11258-1-THIRD_PARTY_NOTICES.txt",
+          "sha256": "7367c36421134228559c2d1dd8305da757dd08bacc5d620cd36b65b355dcb7e3"
+        }
+      ]
     }
   ]
 }

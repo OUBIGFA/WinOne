@@ -43,6 +43,7 @@ type aiJob struct {
 	settled         <-chan struct{} // Closed after completion or cancellation; no polling delay for native OCR.
 }
 type aiService struct {
+	external          routingControl
 	routing           routingControl
 	privacy           routingControl // Same process ownership; independent model/download lifetime.
 	maintenance       *aiMagpieMaintenance
@@ -83,6 +84,7 @@ func newAIService(ctx context.Context, directory, executable string) *aiService 
 func bindAIService(service *host.Service, engine *aiService) {
 	engine.gatewaySlots = make(chan struct{}, 4)
 	engine.initGateway()
+	go engine.restoreExternal()
 	status := func() host.Module { return host.Module{ID: "ai", State: "ready"} }
 	service.RegisterModule("ai", status, engine.handle)
 	// The existing settings bridge can edit shared AI preferences without a
@@ -90,6 +92,9 @@ func bindAIService(service *host.Service, engine *aiService) {
 	service.RegisterModule("capture.ai", status, engine.handle)
 }
 func (s *aiService) handle(r host.Request) host.Response {
+	if strings.HasPrefix(r.Method, "external.") {
+		return s.handleExternal(r)
+	}
 	if strings.HasPrefix(r.Method, "routing.") {
 		return s.handleRouting(r)
 	}

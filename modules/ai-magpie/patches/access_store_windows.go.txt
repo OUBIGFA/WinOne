@@ -27,6 +27,7 @@ func WinOneConfigure(in Key)error{
  if next.Browser&&(in.Issues||!in.ReadOnly){return errors.New("A browser extension key cannot use models or issue keys")}
  if in.ReadOnly&&(next.LAN||next.ID==settings.Load().LANKeyID){return errors.New("The default sharing key cannot be read-only")}
  if in.Issues&&(next.Issuer!=""||!next.Expires.IsZero()){return errors.New("An issued key cannot issue keys")}
+ if in.MaxConcurrency<0||in.MaxConcurrency>MaxKeyConcurrency{return fmt.Errorf("Concurrency: a whole number from 0 to %d",MaxKeyConcurrency)}
  models,err:=CleanModels(in.Models);if err!=nil{return err}
  accounts,err:=CleanAccounts(in.Accounts);if err!=nil{return err}
  mcp,err:=CleanMCP(in.MCP);if err!=nil{return err}
@@ -40,6 +41,7 @@ func WinOneConfigure(in Key)error{
  }
  next.Name,next.Models,next.Accounts,next.MCP=name,models,accounts,mcp
  next.Quotas,next.ReadOnly,next.Issues=in.Quotas,in.ReadOnly,in.Issues
+ next.MaxConcurrency=in.MaxConcurrency
  next.setLimits(limits);keys[i]=next;return save(keys)
 }
 

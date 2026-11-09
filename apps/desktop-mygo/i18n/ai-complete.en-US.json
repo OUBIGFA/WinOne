@@ -6,7 +6,7 @@
  "aiComplete.showAllowance":"Show this account's allowance",
  "aiComplete.shownClients":"Choose visible clients",
  "aiComplete.savedHeader":"Blank keeps the saved value; remove this row to clear",
- "aiComplete.otelSessionsUnavailable":"External client session reads are not enabled. Request metrics and request body export remain independently available.",
+ "aiComplete.otelSessionsUnavailable":"Save the collector settings, then choose Start export in Sessions > Read settings. Reading and export start only when you request them.",
   "aiComplete.modelBasics": "Basics",
   "aiComplete.modelCapabilities": "Reasoning",
   "aiComplete.modelRequest": "Request",

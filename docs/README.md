@@ -18,6 +18,7 @@
 | 互联助手、文件互传与端口穿透 | [调研与设计](互联助手调研与设计.md)、[实施计划](互联助手实施计划.md) |
 | 闪聊外网连接、无账号开源替代 | [替代可行性方案（2026-11-09）](闪聊开源替代可行性方案.md) |
 | AI 供应商、账号、流式输出与网关 | [多供应商与任务分配](AI服务多供应商与任务分配.md)、[账号登录](AI账号登录完整性.md)、[流式输出](AI服务流式输出.md)、[本地网关](本地网关与结果划词.md) |
+| 固定 AI 版本、上游插件界面、资料库与外部会话（2026-11-09） | [功能对照与验证](ai-upstream-ui-20261109.md)、[实施清单](plans/2026-11-09-ai-upstream-ui.md) |
 | AI 完整接入与英语学习界面（2026-11-08） | [能力与三轮审核](ai-full-integration-20261108.md)、[上游逐字段对照](ai-upstream-settings-20261108.md)、[调研、设计与 UI 审核](ai-learning-ui-design-20261108.md) |
 | 内置 Anki、AnkiConnect 与英语生词本（2026-11-09） | [实现、离线检查与三轮审核](english-learning-native-20261109.md) |
 | 程序管理、微信自动登录与 WinTray 复用 | [BuddySwitch 核查与最新修复](wintray-sync-20261108.md)、[微信自动登录直接同步](wintray-wechat-login.md)、[WinTray 能力对照](WinTray功能接入对照.md) |

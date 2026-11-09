@@ -7,8 +7,9 @@
 .ai-model-menu [role=option]>[data-model-badge]{flex:none}
 .chat-model-menu{width:420px!important;max-width:calc(100vw - 36px);padding:10px!important}
 .chat-model-menu>input{width:100%;min-width:0;padding:5px 3px 10px;border:0;border-bottom:1px solid var(--border);background:transparent;font:inherit;outline:none}
-.chat-model-menu h4{margin:10px 0 4px;padding:0;font-weight:400;background:transparent}
-.chat-model-menu .chat-model-group{width:100%;display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid var(--border);border-radius:999px;background:transparent;text-align:left;color:var(--muted-foreground);font-size:13px}
+.chat-model-menu section+section{margin-top:16px}
+.chat-model-menu h4{margin:6px 0 6px;padding:0;font-weight:400;background:transparent;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,var(--background))}
+.chat-model-menu .chat-model-group{width:100%;display:flex;align-items:center;gap:8px;padding:7px 8px;border:0;border-radius:6px;background:transparent;text-align:left;color:var(--muted-foreground);font-size:13px}
 .chat-model-menu .chat-model-group:hover{background:var(--model-menu-hover)}
 .chat-model-group>svg{width:14px;height:14px;flex:none}.chat-model-group small{font-size:12px;font-weight:400}
 .chat-model-menu [role=option]{display:flex;align-items:center;gap:6px;padding:7px 8px 7px 28px;text-align:left;width:100%;font-size:14px}

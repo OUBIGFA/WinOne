@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
@@ -13,29 +14,36 @@ import (
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/web"
-	"winone/desktopmygo/widgets"
 )
 
 type managedPlugin struct {
-	Spec           string          `json:"spec"`
-	Off            bool            `json:"off"`
-	Options        map[string]any  `json:"options"`
-	OptionsExample map[string]any  `json:"optionsExample"`
-	Error          string          `json:"error"`
-	Providers      []string        `json:"providers"`
-	Version        string          `json:"version"`
-	Latest         string          `json:"latest"`
-	OwnName        string          `json:"ownName"`
-	Package        string          `json:"package"`
-	Commit         string          `json:"commit"`
-	Head           string          `json:"head"`
-	Moved          []string        `json:"moved"`
-	Serves         []string        `json:"serves"`
-	Page           json.RawMessage `json:"page"`
-	Panels         json.RawMessage `json:"panels"`
-	PanelReads     []string        `json:"panelReads"`
-	Actions        json.RawMessage `json:"actions"`
-	Tools          []struct {
+	BundleDirectory string         `json:"-"`
+	Spec            string         `json:"spec"`
+	Off             bool           `json:"off"`
+	Options         map[string]any `json:"options"`
+	OptionsExample  map[string]any `json:"optionsExample"`
+	IsGateway       bool           `json:"isGateway"`
+	IsMiddleware    bool           `json:"isMiddleware"`
+	Error           string         `json:"error"`
+	Providers       []string       `json:"providers"`
+	Version         string         `json:"version"`
+	Latest          string         `json:"latest"`
+	OwnName         string         `json:"ownName"`
+	Package         string         `json:"package"`
+	Commit          string         `json:"commit"`
+	Icon            string         `json:"icon"`
+	ToolsServer     *struct {
+		On     bool   `json:"on"`
+		Plugin string `json:"plugin"`
+	} `json:"toolsServer"`
+	Head       string          `json:"head"`
+	Moved      []string        `json:"moved"`
+	Serves     []string        `json:"serves"`
+	Page       json.RawMessage `json:"page"`
+	Panels     json.RawMessage `json:"panels"`
+	PanelReads []string        `json:"panelReads"`
+	Actions    json.RawMessage `json:"actions"`
+	Tools      []struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
 		MCP         string `json:"mcp"`
@@ -72,6 +80,9 @@ type managedPlugins struct {
 	} `json:"registry"`
 }
 type marketPlugin struct {
+	Kind        string            `json:"kind"`
+	Icon        string            `json:"icon"`
+	Community   bool              `json:"community"`
 	Package     string            `json:"package"`
 	Spec        string            `json:"spec"`
 	Name        string            `json:"name"`
@@ -79,6 +90,9 @@ type marketPlugin struct {
 	Description string            `json:"description"`
 	Version     string            `json:"version"`
 	Repo        string            `json:"repo"`
+	Owner       string            `json:"owner"`
+	License     string            `json:"license"`
+	Stars       int               `json:"stars"`
 	URL         string            `json:"url"`
 	NPM         *pluginNPM        `json:"npm,omitempty"`
 	Raw         json.RawMessage   `json:"-"`
@@ -110,17 +124,34 @@ type pluginsPanel struct {
 	shown                                                  string
 	optionsSpec, optionsText, optionsSaved, optionsExample string
 	remove                                                 string
+	switchOff                                              string
 	readme, readmeTitle                                    string
+	readmeSpec                                             string
+	readmeMeta                                             *marketPlugin
 	details                                                map[string]bool
+	registryOpen, descending                               bool
+	queryShown                                             string
+	searchDue                                              time.Time
+	clearOptions                                           bool
+	searchAPI, githubAPI                                   nativeAPI
+	hits, github                                           []marketPlugin
+	githubLoaded                                           bool
+	githubKind, githubHave, githubQuery                    string
+	githubMissing                                          int
+	checks                                                 map[string]pluginVersionCheck
 }
 
-func newPluginsPanel(p *page) *pluginsPanel { return &pluginsPanel{p: p, details: map[string]bool{}} }
-func (x *pluginsPanel) Close()              { x.Leave() }
+func newPluginsPanel(p *page) *pluginsPanel {
+	return &pluginsPanel{p: p, tab: 1, details: map[string]bool{}}
+}
+func (x *pluginsPanel) Close() { x.Leave() }
 func (x *pluginsPanel) Leave() {
 	x.api.close()
 	x.marketAPI.close()
 	x.readmeAPI.close()
 	x.npmAPI.close()
+	x.searchAPI.close()
+	x.githubAPI.close()
 	x.source = ""
 	if x.guest != nil {
 		x.guest.Close()
@@ -154,6 +185,9 @@ func (x *pluginsPanel) act(action string, body any) {
 		x.p.env.RequestChange(func() { x.discard(); x.act(action, body) })
 		return
 	}
+	if x.bundleAction(action, body) {
+		return
+	}
 	x.api.request(x.p, "POST", "/api/plugins/"+action, body, func(raw json.RawMessage) {
 		var state managedPlugins
 		if decodeManagedPlugins(&x.api, raw, &state) {
@@ -166,6 +200,12 @@ func (x *pluginsPanel) act(action string, body any) {
 }
 func (x *pluginsPanel) View(c *ui.Context) {
 	p := x.p
+	if p.advanced == nil {
+		p.advanced = newAdvancedPanel(p)
+	}
+	if p.advanced.catalog == nil && !p.advanced.loading && p.advanced.err == "" {
+		p.advanced.load()
+	}
 	p.env.Activity.Report("ai-plugins", x.dirty(), x.api.busy, x.discard)
 	if p.extensions.state == nil {
 		kit.Status(c, i18n.T("capture.loading"))
@@ -199,24 +239,33 @@ func (x *pluginsPanel) View(c *ui.Context) {
 		x.load()
 	}
 	x.api.notice(c, x.load)
-	kit.SubTabs(c, &x.tab, []string{nativeT("installed"), nativeT("discover"), nativeT("pluginSources")}, p.env.RequestChange)
+	if p.external != nil {
+		p.env.Activity.Report("ai-external", p.external.dirty(), p.external.busy(), p.external.discard)
+		if p.external.err != "" {
+			kit.Notice(c, kit.Failure, "", p.external.err, nil)
+		}
+		if p.external.library != nil {
+			externalDetails(c, p.external.library["problems"])
+		}
+	}
+	x.headerView(c)
 	if x.state == nil {
 		if x.api.busy {
 			kit.Status(c, i18n.T("aiPlugins.loading"))
 		}
 		return
 	}
-	locked := p.locked() || x.api.busy
+	locked := p.locked() || x.api.busy || p.external != nil && p.external.busy()
 	if x.state.Error != "" {
 		kit.Notice(c, kit.Failure, "", x.state.Error, nil)
 	}
 	switch x.tab {
 	case 0:
-		x.installedView(c, locked)
+		x.builtinView(c, locked)
 	case 1:
 		x.marketView(c, locked)
 	case 2:
-		x.sourcesView(c, locked)
+		x.installedView(c, locked)
 	}
 	if x.remove != "" {
 		open := true
@@ -227,14 +276,25 @@ func (x *pluginsPanel) View(c *ui.Context) {
 			x.remove = ""
 		}
 	}
+	if kit.Dialog(c, &x.clearOptions, kit.DialogOptions{Title: upstreamT("Clear"), Message: upstreamT("Saved options will be removed. The plugin will run with no options."), Confirm: upstreamT("Clear"), Cancel: i18n.T("common.cancel"), Danger: true, Busy: x.api.busy}) {
+		x.act("options", map[string]any{"spec": x.optionsSpec, "options": nil})
+		x.clearOptions = false
+	}
 	if x.readmeTitle != "" {
 		open := true
 		kit.Dialog(c, &open, kit.DialogOptions{Title: x.readmeTitle, Cancel: i18n.T("common.close"), Width: 820, Body: func() {
+			if x.readmeMeta != nil {
+				x.marketInfoView(c, *x.readmeMeta)
+			}
 			x.readmeAPI.notice(c, nil)
 			if x.readmeAPI.busy {
 				kit.Status(c, i18n.T("capture.loading"))
 			} else {
 				markdown.View(c, x.readme, &markdown.Options{}).FillWidth()
+			}
+		}, Actions: func() {
+			if x.readmeSpec != "" && kit.PrimaryButton(c, nativeT("install"), icons.Download, false).Disabled(x.api.busy || x.installed(x.readmeSpec)).Clicked() {
+				x.act("add", map[string]string{"spec": x.readmeSpec})
 			}
 		}})
 		if !open {
@@ -244,134 +304,72 @@ func (x *pluginsPanel) View(c *ui.Context) {
 	}
 }
 func (x *pluginsPanel) installedView(c *ui.Context, locked bool) {
-	ui.Row(c).Gap(8).Wrap().Children(func() {
-		if kit.Button(c, nativeT("checkUpdates"), icons.RefreshCw, false).Disabled(locked).Clicked() {
-			x.checkUpdates()
-		}
-		if kit.Button(c, nativeT("updateAll"), icons.Download, false).Disabled(locked).Clicked() {
-			x.act("update", nil)
-		}
-		if kit.GhostButton(c, i18n.T("common.refresh"), icons.RefreshCw, false).Disabled(locked).Clicked() {
-			x.load()
-		}
-	})
-	if len(x.state.Plugins) == 0 {
-		kit.Empty(c, icons.Blocks, nativeT("noInstalledPlugins"), nativeT("pluginInstallHint"), nil)
+	plugins := x.effectivePlugins()
+	if len(plugins) == 0 {
+		kit.Empty(c, icons.Blocks, upstreamT("No plugins yet"), upstreamT("Install a subscription or a middleware from Discover; a subscription signs in from here."), func() {
+			if kit.Button(c, upstreamT("Discover plugins"), icons.Search, false).Clicked() {
+				x.tab = 1
+			}
+		})
+		return
 	}
-	for _, plugin := range x.state.Plugins {
-		name := plugin.OwnName
-		if name == "" {
-			name = plugin.Spec
+	rows := slices.Clone(plugins)
+	slices.SortFunc(rows, func(a, b managedPlugin) int {
+		n := strings.Compare(strings.ToLower(pluginDisplayName(a)), strings.ToLower(pluginDisplayName(b)))
+		if x.descending {
+			return -n
 		}
-		ui.Column(c.Key(plugin.Spec)).FillWidth().Gap(8).Padding(12, 0).BorderWidth(0, 0, 1, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
-			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.Column(c).Grow(1).MinWidth(0).Children(func() { kit.Strong(c, name); kit.Help(c, plugin.Spec+" · "+plugin.Version).Selectable() })
-				on := !plugin.Off
-				if ui.Switch(c, &on).Label(nativeT("enabled") + " " + name).Disabled(locked).Changed() {
-					x.act("off", map[string]any{"spec": plugin.Spec, "off": !on})
-				}
-			})
-			if plugin.Error != "" {
-				kit.Notice(c, kit.Failure, "", plugin.Error, nil)
-			}
-			if plugin.Latest != "" && plugin.Latest != plugin.Version {
-				kit.Help(c, nativeT("latestVersion")+": "+plugin.Latest)
-			}
-			if plugin.Commit != "" {
-				kit.Mono(c, plugin.Commit+" → "+plugin.Head).Selectable()
-			}
-			ui.Row(c).Gap(8).Wrap().Children(func() {
-				if kit.Button(c, nativeT("update"), icons.Download, false).Disabled(locked).Clicked() {
-					x.act("upgrade", map[string]string{"spec": plugin.Spec})
-				}
-				if kit.Button(c, nativeT("pluginOptions"), icons.Settings2, false).Disabled(locked).Clicked() {
-					change := func() {
-						x.optionsSpec = plugin.Spec
-						value := plugin.Options
-						if value == nil {
-							value = map[string]any{}
-						}
-						b, _ := json.MarshalIndent(value, "", "  ")
-						x.optionsText = string(b)
-						x.optionsSaved = x.optionsText
-						example, _ := json.MarshalIndent(plugin.OptionsExample, "", "  ")
-						x.optionsExample = string(example)
-					}
-					if x.dirty() && x.p.env.RequestChange != nil {
-						x.p.env.RequestChange(change)
-					} else {
-						change()
-					}
-				}
-				if kit.Button(c, "README", icons.FileText, false).Disabled(x.readmeAPI.busy).Clicked() {
-					x.showReadme(plugin.Spec)
-				}
-				if kit.GhostButton(c, nativeT("remove"), icons.Trash2, false).Disabled(locked).Clicked() {
-					x.remove = plugin.Spec
-				}
-			})
-			// Account actions retain WinOne's private provider and sign-in flow.
-			for _, a := range x.p.catalog.agents {
-				if a.Plugin != plugin.Spec {
-					continue
-				}
-				if kit.Button(c, nativeT("connect")+" "+a.Name, icons.LogIn, false).Disabled(locked).Clicked() {
-					if err := x.p.openPluginProvider(a, true); err != nil {
-						x.api.err = err.Error()
-					}
-				}
-			}
-			for _, clash := range plugin.Clashes {
-				id := clash.Provider
-				if id == "" {
-					id = clash.ID
-				}
-				if kit.Button(c, nativeT("preferPlugin")+" "+clash.Name, icons.Check, false).Disabled(locked).Clicked() {
-					x.act("prefer", map[string]string{"spec": plugin.Spec, "provider": id})
-				}
-			}
-			if x.p.extensions.state != nil {
-				for _, page := range x.p.extensions.state.Pages {
-					if page.Spec == plugin.Spec {
-						page := page
-						if kit.Button(c, page.title(), icons.PanelRightOpen, false).Disabled(locked).Clicked() {
-							x.request = &pageRequest{key: page.Key, nonce: nonce()}
-						}
-					}
-				}
-			}
-			open := x.details[plugin.Spec]
-			ui.Collapsible(c, nativeT("capabilitiesPermissions"), &open, func() {
-				for _, tool := range plugin.Tools {
-					kit.Strong(c, tool.Name+" · "+tool.MCP)
-					kit.Help(c, tool.Description)
-				}
-				// Keep every declared permission, middleware/gateway/agent state,
-				// option example and automatic-update receipt from the real runtime.
-				x.pluginDetailsView(c, plugin)
-				nativeJSON(c, plugin.Raw)
-			})
-			x.details[plugin.Spec] = open
-			if x.optionsSpec == plugin.Spec {
-				x.optionsView(c, locked)
+		return n
+	})
+	updates := 0
+	for _, p := range rows {
+		if pluginHasUpdate(p) {
+			updates++
+		}
+	}
+	if updates > 0 {
+		ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
+			kit.Help(c, upstreamT("Newer versions of {n} plugins are out: {names}", "n", updates, "names", x.updateNames()))
+			if kit.Button(c, upstreamT("Update all ({n})", "n", updates), icons.Download, false).Disabled(locked).Clicked() {
+				x.act("update", nil)
 			}
 		})
 	}
-	// A page key need not derive from its npm spec; list all declared pages
-	// explicitly as well rather than guessing ownership and losing an entry.
+	ui.Row(c).FillWidth().Children(func() {
+		ui.Spacer(c).Grow(1)
+		if kit.GhostButton(c, upstreamT("Name")+" ↑↓", nil, false).Clicked() {
+			x.descending = !x.descending
+		}
+	})
+	for _, plugin := range rows {
+		if x.query != "" && !strings.Contains(strings.ToLower(pluginDisplayName(plugin)+" "+plugin.Spec), strings.ToLower(x.query)) {
+			continue
+		}
+		x.installedRow(c.Key(plugin.Spec), plugin, locked)
+	}
+	ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
+		kit.Help(c, upstreamT("Plugins run on Bun {v}", "v", x.state.BunVersion))
+		ui.Spacer(c).Grow(1)
+		if kit.GhostButton(c, nativeT("checkUpdates"), icons.RefreshCw, x.api.busy).Disabled(locked).Clicked() {
+			x.checkUpdates()
+		}
+	})
+	// Author pages without an npm owner still retain an entry, as before.
 	if x.p.extensions.state != nil {
 		for _, page := range x.p.extensions.state.Pages {
-			if slices.ContainsFunc(x.state.Plugins, func(plugin managedPlugin) bool { return plugin.Spec == page.Spec }) {
-				continue
-			}
-			page := page
-			if kit.Button(c, page.title(), icons.PanelRightOpen, false).Disabled(locked).Clicked() {
-				x.request = &pageRequest{key: page.Key, nonce: nonce()}
+			if !slices.ContainsFunc(rows, func(p managedPlugin) bool { return p.Spec == page.Spec }) {
+				if kit.Button(c, page.title(), icons.PanelRightOpen, false).Disabled(locked).Clicked() {
+					x.request = &pageRequest{key: page.Key, nonce: nonce()}
+				}
 			}
 		}
 	}
 }
 func (x *pluginsPanel) optionsView(c *ui.Context, locked bool) {
+	ui.Column(c).FillWidth().Gap(12).Padding(12, 0).Children(func() { x.optionsContent(c, locked) })
+}
+
+func (x *pluginsPanel) optionsContent(c *ui.Context, locked bool) {
 	ui.TextArea(c, &x.optionsText).FillWidth().MinHeight(180).Font(kit.MonoFont).Label(nativeT("pluginOptions")).Disabled(locked)
 	var options map[string]any
 	valid := json.Unmarshal([]byte(x.optionsText), &options) == nil && options != nil
@@ -383,6 +381,9 @@ func (x *pluginsPanel) optionsView(c *ui.Context, locked bool) {
 		kit.InlineError(c, nativeT("optionsObject"))
 	}
 	ui.Row(c).Gap(8).Children(func() {
+		if kit.GhostButton(c, upstreamT("Clear"), nil, false).Disabled(locked).Clicked() {
+			x.clearOptions = true
+		}
 		if x.optionsExample != "" && x.optionsExample != "null" && kit.Button(c, nativeT("useOptionsExample"), icons.FileText, false).Disabled(locked).Clicked() {
 			x.optionsText = x.optionsExample
 		}
@@ -400,13 +401,29 @@ func (x *pluginsPanel) optionsView(c *ui.Context, locked bool) {
 }
 func (x *pluginsPanel) showReadme(spec string) {
 	x.readmeTitle = spec
+	x.readmeSpec = spec
+	x.readmeMeta = nil
+	for _, entry := range append(append(slices.Clone(x.market), x.github...), x.hits...) {
+		if pluginSpec(entry) == spec {
+			copy := entry
+			x.readmeMeta = &copy
+			break
+		}
+	}
 	x.readme = ""
 	x.readmeAPI.request(x.p, "GET", "/api/plugins/page?name="+url.QueryEscape(spec), nil, func(raw json.RawMessage) {
 		var page struct {
-			Readme string `json:"readme"`
+			Readme string     `json:"readme"`
+			NPM    *pluginNPM `json:"npm"`
 		}
 		if nativeDecode(&x.readmeAPI, raw, &page) {
 			x.readme = page.Readme
+			if page.NPM != nil {
+				if x.readmeMeta == nil {
+					x.readmeMeta = &marketPlugin{Spec: spec}
+				}
+				x.readmeMeta.NPM = page.NPM
+			}
 		}
 	})
 }
@@ -439,87 +456,61 @@ func (x *pluginsPanel) marketView(c *ui.Context, locked bool) {
 	if !x.marketLoaded && !x.marketAPI.busy && x.marketAPI.err == "" {
 		x.marketLoad("listings")
 	}
-	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-		ui.TextInput(c, &x.query).Grow(1).MinWidth(160).Label(nativeT("searchPlugins")).Placeholder(nativeT("searchPlugins"))
-		if kit.Button(c, nativeT("search"), icons.Search, false).Disabled(x.marketAPI.busy || x.query == "").Clicked() {
-			x.marketLoad("search")
-		}
-		if kit.Button(c, nativeT("recommended"), icons.Sparkles, false).Disabled(x.marketAPI.busy).Clicked() {
-			x.marketLoad("listings")
-		}
-		if kit.Button(c, "GitHub", icons.GitBranch, false).Disabled(x.marketAPI.busy).Clicked() {
-			x.marketLoad("github")
-		}
-	})
-	kit.Notice(c, kit.Info, "", nativeT("pluginTrustHint"), nil)
 	x.marketAPI.notice(c, func() { x.marketLoad("listings") })
 	x.npmAPI.notice(c, x.loadNPMInfo)
-	for _, entry := range x.market {
-		spec := entry.Spec
-		if spec == "" {
-			spec = entry.Package
-		}
-		if spec == "" && entry.Repo != "" {
-			spec = "github:" + entry.Repo
-		}
-		if spec == "" {
-			spec = entry.URL
-		}
-		name := entry.Name
-		if name == "" {
-			name = spec
-		}
-		ui.Column(c.Key(spec)).FillWidth().Gap(6).Padding(12, 0).Children(func() {
-			kit.Strong(c, name)
-			lang := "en"
-			if strings.HasPrefix(i18n.Locale(), "zh") {
-				lang = "zh"
-			}
-			description := entry.Summary[lang]
-			if description == "" {
-				description = entry.Description
-			}
-			kit.Help(c, description)
-			x.marketInfoView(c, entry)
-			ui.Row(c).Gap(8).Children(func() {
-				if kit.Button(c, nativeT("install"), icons.Download, false).Disabled(locked || spec == "").Clicked() {
-					x.spec = spec
-					x.tab = 2
-				}
-				if kit.Button(c, "README", icons.FileText, false).Disabled(x.readmeAPI.busy || spec == "").Clicked() {
-					x.showReadme(spec)
-				}
+	if x.query == "" {
+		kit.Panel(c, func() {
+			ui.Column(c).FillWidth().Gap(6).Padding(16, 18).Children(func() {
+				kit.Strong(c, upstreamT("Plugins extend magpie"))
+				kit.Help(c, upstreamT("Plugins sign in to coding plans and make their requests; the models then work in every agent, like any provider's. They're OpenCode's provider plugins or pi's packages, run on Bun."))
+				kit.Help(c, upstreamT("A plugin is someone else's code with your sign-in or your requests: install the ones you trust."))
+				ui.Link(c, upstreamT("Write a plugin"), "https://usemagpie.ai/docs/plugins")
 			})
 		})
 	}
+	groups := []struct{ kind, title string }{{"provider", "Subscriptions"}, {"middleware", "Gateway middleware"}, {"agent", "Agents"}, {"tools", "Tools for agents"}, {"page", "Pages"}}
+	for _, group := range groups {
+		var rows []marketPlugin
+		for _, entry := range x.market {
+			kind := entry.Kind
+			if kind == "" {
+				kind = "provider"
+			}
+			if kind == "hooks" {
+				kind = "middleware"
+			}
+			if kind == group.kind && pluginMatches(entry, x.query) {
+				rows = append(rows, entry)
+			}
+		}
+		x.marketSection(c, upstreamT(group.title), rows, locked)
+	}
+	if x.query != "" {
+		x.searchAPI.notice(c, nil)
+		x.marketSection(c, upstreamT("On npm"), x.hits, locked)
+	}
+	x.githubView(c, locked)
+	if x.query == "" {
+		x.manualView(c, locked)
+		ui.Collapsible(c, upstreamT("npm registry"), &x.registryOpen, func() { x.registryView(c, locked) })
+	}
 }
+
+// Kept as a callable view for existing layout probes; production shows these
+// controls at the end of Discover, as upstream does.
 func (x *pluginsPanel) sourcesView(c *ui.Context, locked bool) {
-	if x.p.draft == nil {
+	x.manualView(c, locked)
+	x.registryView(c, locked)
+}
+func (x *pluginsPanel) registryView(c *ui.Context, locked bool) {
+	ui.Column(c).FillWidth().Gap(16).Padding(12, 0).Children(func() { x.registryContent(c, locked) })
+}
+
+func (x *pluginsPanel) registryContent(c *ui.Context, locked bool) {
+	if x.p.draft == nil || x.state == nil {
 		return
 	}
-	kit.Help(c, nativeT("pluginInstallHint"))
-	field := ui.TextInput(c, &x.spec).FillWidth().Label(nativeT("pluginSource")).Placeholder("@scope/package · https://… · C:\\plugins\\example").Disabled(locked)
-	widgets.DropArea(c, x.p.env, field, widgets.DropFolders, false, locked, func(paths []string, err error) {
-		if err != nil {
-			x.api.err = err.Error()
-		} else if len(paths) > 0 {
-			x.spec = paths[0]
-		}
-	})
-	ui.Row(c).Gap(8).Wrap().Children(func() {
-		if kit.PrimaryButton(c, nativeT("install"), icons.Download, x.api.busy).Disabled(locked || strings.TrimSpace(x.spec) == "").Clicked() {
-			x.act("add", map[string]string{"spec": strings.TrimSpace(x.spec)})
-		}
-		if kit.Button(c, nativeT("chooseFolder"), icons.FolderOpen, false).Disabled(locked).Clicked() {
-			core.Go(x.p.env, func() (string, error) { return x.p.env.Dialogs.PickFolder(nativeT("pluginSource")) }, func(path string, err error) {
-				if err != nil {
-					x.api.err = err.Error()
-				} else if path != "" {
-					x.spec = path
-				}
-			})
-		}
-	})
+
 	s := x.p.draft.Value.settings()
 	kit.Toggle(c, &s.ChinaMirror, nativeT("mirror"), nativeT("mirrorHint")).Disabled(locked)
 	nativeText(c, nativeT("npmRegistry"), &s.NPMRegistry, locked)

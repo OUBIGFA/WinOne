@@ -13,9 +13,9 @@ $root=Split-Path -Parent $PSScriptRoot
 $source=(Resolve-Path -LiteralPath $MagpieSourceDirectory).Path
 $output=if([IO.Path]::IsPathRooted($OutputDirectory)){[IO.Path]::GetFullPath($OutputDirectory)}else{[IO.Path]::GetFullPath((Join-Path $root $OutputDirectory))}
 & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $output
-# The Magpie source is prepared locally and trusted as-is. WinOne no longer
-# pins a fixed upstream revision or a fixed dependency graph for it. The
-# source's own HEAD is read for per-file extraction, never a hardcoded value.
+# Read the prepared source's HEAD for extraction. The source/license gate
+# below requires it and its dependency locks to match the reviewed manifest;
+# building never advances the selected upstream version.
 $revision=(& git -C $source rev-parse HEAD).Trim()
 & git -C $root check-ignore -q --no-index -- (Join-Path $output 'build-output.probe')
 if($LASTEXITCODE -ne 0){throw 'AI output must be Git-ignored'}
@@ -23,6 +23,10 @@ $encoding=New-Object Text.UTF8Encoding($false)
 $entry=Join-Path $source 'cmd/winone-ai'
 & node (Join-Path $root 'build/verify-ai-source.mjs') $source
 if($LASTEXITCODE -ne 0){throw 'AI source/license verification failed'}
+& node (Join-Path $root 'build/generate-native-magpie-locales.mjs') $source --check
+if($LASTEXITCODE -ne 0){throw 'Native Magpie labels differ from the selected upstream'}
+& node (Join-Path $root 'build/generate-native-magpie-connect.mjs') $source --check
+if($LASTEXITCODE -ne 0){throw 'Native gateway examples differ from the selected upstream'}
 $previousGofmt=$env:WINONE_GOFMT
 try {
  $env:WINONE_GOFMT=Join-Path (Split-Path -Parent (Get-Command $GoExe -ErrorAction Stop).Source) 'gofmt.exe'
@@ -55,6 +59,13 @@ Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/signin_state.go') -De
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/failures.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/catalog.go'),(Join-Path $root 'modules/ai-magpie/catalog_test.go'),(Join-Path $root 'modules/ai-magpie/plugin-catalog.json') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugins.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/external.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/external_service.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/external_test.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/external_mcp.go'),(Join-Path $root 'modules/ai-magpie/external_mcp_test.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/external_gui.go.txt') -Destination (Join-Path $source 'internal/gui/winone_external.go') -Force
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/external_appdir.go.txt') -Destination (Join-Path $source 'internal/appdir/winone_external.go') -Force
+& (Join-Path $PSScriptRoot 'prepare-ai-external.ps1') -SourceDirectory $source -Revision $revision
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/account_snapshot.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_signin.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_desktop_windows.go') -Destination $entry

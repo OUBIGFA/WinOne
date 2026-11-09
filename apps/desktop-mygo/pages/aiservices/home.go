@@ -65,14 +65,14 @@ func (p *page) homeView(c *ui.Context) {
 	if p.draft == nil {
 		return
 	}
-	// Wrap against the content width, so the connection actions use the
-	// space beside the model picker and stack when either panel gets narrow.
-	ui.Row(c).FillWidth().Wrap().Gap(kit.GroupGap).AlignItems(ui.Start).Children(func() {
-		ui.Column(c).Basis(360).Grow(1).MinWidth(0).Gap(12).Children(func() {
+	// Keep the everyday choice above connection setup at every window size.
+	// Both sections use the same content width and symmetric field insets.
+	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
+		ui.Column(c).FillWidth().MinWidth(0).Gap(12).Children(func() {
 			kit.Heading(c, homeT("default"))
 			p.defaultModelView(c)
 		})
-		ui.Column(c).Basis(320).Grow(1).MinWidth(0).Children(func() {
+		ui.Column(c).FillWidth().MinWidth(0).Children(func() {
 			kit.Group(c, nil, homeT("connect"), homeT("connectHint"), func() {
 				ui.Row(c).FillWidth().Wrap().Gap(8).Padding(12, 16).Children(func() {
 					if kit.Button(c, homeT("api"), icons.Plus, false).Clicked() {
@@ -85,11 +85,13 @@ func (p *page) homeView(c *ui.Context) {
 			})
 		})
 	})
-	kit.Row(c, i18n.T("usage.title"), homeT("usageHint"), func() {
-		if kit.GhostButton(c, homeT("viewUsage"), icons.ChevronRight, false).Clicked() {
-			p.navigateTo(tabUsage)
-		}
-	})
+	if p.builtinEnabled("usage") {
+		kit.Row(c, i18n.T("usage.title"), homeT("usageHint"), func() {
+			if kit.GhostButton(c, homeT("viewUsage"), icons.ChevronRight, false).Clicked() {
+				p.navigateTo(tabUsage)
+			}
+		})
+	}
 }
 
 type moreDestination struct {
@@ -111,6 +113,9 @@ func (p *page) moreView(c *ui.Context) {
 	kit.Help(c, homeT("moreHint"))
 	kit.Panel(c, func() {
 		for _, entry := range moreDestinations() {
+			if !p.destinationEnabled(entry.tab) {
+				continue
+			}
 			b := ui.ButtonBase(c.Key(entry.tab)).FillWidth().Padding(12, 8).Gap(12).Radius(6).Label(entry.label).Cursor(ui.CursorPointer)
 			if b.Hovered() {
 				b.Background(c.Theme().SurfaceHover)

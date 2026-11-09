@@ -36,3 +36,7 @@ type Closer interface{ Close() }
 // was. SetAside runs as the user leaves it, to put away what only shows
 // on screen; the shell closes it (Closer) only with the window.
 type Keeper interface{ SetAside() }
+
+// WorkspaceScroller lets a workspace keep its own navigation fixed while its
+// content scrolls. The shell's existing save and scroll actions use that view.
+type WorkspaceScroller interface{ WorkspaceScroll() *ui.ScrollState }

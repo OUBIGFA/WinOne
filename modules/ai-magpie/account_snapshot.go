@@ -23,7 +23,7 @@ func pluginAccountSnapshot(ctx context.Context, agent string) (plugin.Provider, 
 	if !ok {
 		return preparePlugin(ctx, agent)
 	}
-	if choice, chosen := selectedBundles[descriptor.Directory]; chosen && !choice.Enabled {
+	if choice, chosen := selectedBundles[descriptor.Directory]; chosen && (!choice.Enabled || choice.Removed) {
 		return plugin.Provider{}, errors.New("account plugin is disabled; enable it in AI services > Advanced settings")
 	}
 	executable, err := os.Executable()

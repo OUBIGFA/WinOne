@@ -17,6 +17,7 @@ import (
 
 func TestAgentEnvironmentIsPrivateAndDoesNotChangeParent(t *testing.T) {
 	t.Setenv("OPENAI_API_KEY", "parent-test-key")
+	t.Setenv("WINONE_AI_EXTERNAL_LIBRARY", "parent-library")
 	original := os.Getenv("USERPROFILE")
 	root := t.TempDir()
 	env := map[string]string{}
@@ -24,7 +25,7 @@ func TestAgentEnvironmentIsPrivateAndDoesNotChangeParent(t *testing.T) {
 		key, value, _ := strings.Cut(entry, "=")
 		env[strings.ToUpper(key)] = value
 	}
-	if env["OPENAI_API_KEY"] != "" || env["USERPROFILE"] != filepath.Join(root, "home") || env["APPDATA"] != filepath.Join(root, "home/AppData/Roaming") {
+	if env["OPENAI_API_KEY"] != "" || env["WINONE_AI_EXTERNAL_LIBRARY"] != "" || env["USERPROFILE"] != filepath.Join(root, "home") || env["APPDATA"] != filepath.Join(root, "home/AppData/Roaming") {
 		t.Fatal("child inherited another client's account environment")
 	}
 	if os.Getenv("USERPROFILE") != original || os.Getenv("OPENAI_API_KEY") != "parent-test-key" {

@@ -41,16 +41,29 @@ func ProviderIcon(c *ui.Context, env *core.Env, icon string, size float32) ui.El
 		return ui.Icon(c, svg).Size(size, size).Shrink(0).TextColor(t.TextMuted).Role(ui.RoleNone)
 	}
 	if ai.IsStoredAvatar(icon) {
-		entry := avatars.get(env, icon)
-		switch {
-		case entry.svg != nil:
-			return ui.Image(c, entry.svg).Size(size, size).Fit(ui.Contain).Shrink(0).Role(ui.RoleNone)
-		case entry.bitmap != nil:
-			return ui.Image(c, entry.bitmap).Size(size, size).Fit(ui.Contain).Shrink(0).Role(ui.RoleNone)
-		case entry.failed:
-			return generic(icons.Layers).Tooltip(i18n.T("ai.avatarReadError"))
+		holder := ui.Box(c).Size(size, size).Shrink(0).Role(ui.RoleNone)
+		// A live control retains its image even if a large catalog exceeds the
+		// shared recent-image cache. Evicting a visible entry must not reload it
+		// on every frame and evict the next visible entry in turn.
+		visible := ui.Local(holder, "avatar", func() visibleAvatar { return visibleAvatar{} })
+		if visible.entry == nil || visible.icon != icon || visible.entry.failed && visible.retry != avatars.revision {
+			visible.entry, visible.icon, visible.retry = avatars.get(env, icon), icon, avatars.revision
 		}
-		return generic(icons.Layers)
+		entry := visible.entry
+		holder.Children(func() {
+			switch {
+			case entry.svg != nil:
+				ui.Image(c, entry.svg).Fill().Fit(ui.Contain).Role(ui.RoleNone)
+			case entry.bitmap != nil:
+				ui.Image(c, entry.bitmap).Fill().Fit(ui.Contain).Role(ui.RoleNone)
+			default:
+				generic(icons.Layers)
+			}
+		})
+		if entry.failed {
+			holder.Tooltip(i18n.T("ai.avatarReadError"))
+		}
+		return holder
 	}
 	if icon == "model" {
 		return generic(icons.Sparkle)
@@ -173,8 +186,9 @@ func grayscale(source image.Image) image.Image {
 // and menu, as React's provider-avatar-cache did. It is used on the UI
 // thread only.
 type avatarStore struct {
-	entries map[string]*avatarEntry
-	order   []string
+	entries  map[string]*avatarEntry
+	order    []string
+	revision uint64
 }
 
 type avatarEntry struct {
@@ -182,6 +196,12 @@ type avatarEntry struct {
 	svg     *ui.SVG
 	failed  bool
 	loading bool
+}
+
+type visibleAvatar struct {
+	entry *avatarEntry
+	icon  string
+	retry uint64
 }
 
 var avatars avatarStore
@@ -226,6 +246,7 @@ func (s *avatarStore) get(env *core.Env, icon string) *avatarEntry {
 }
 
 func (s *avatarStore) retry() {
+	s.revision++
 	for name, entry := range s.entries {
 		if entry.failed {
 			delete(s.entries, name)

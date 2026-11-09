@@ -16,7 +16,6 @@ func nativeT(key string) string { return i18n.T("aiNative." + key) }
 
 func (r *routingPanel) groupsView(c *ui.Context) {
 	locked := r.api.busy || r.p.locked()
-	r.routingSummary(c, locked)
 	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
 		ui.TextInput(c, &r.search).Grow(1).MinWidth(180).Placeholder(nativeT("searchGroups")).Label(nativeT("searchGroups"))
 		if kit.PrimaryButton(c, nativeT("newGroup"), icons.Plus, false).Disabled(locked).Clicked() {
@@ -66,10 +65,17 @@ func (r *routingPanel) groupsView(c *ui.Context) {
 	})
 	// A single list surface gives peer groups one rhythm. Keeping each row
 	// inside it avoids inheriting the page's large gap between settings groups.
+	if r.edit != nil && r.newGroup {
+		r.editor(c)
+	}
 	kit.Panel(c, func() {
 		for index, doc := range r.state.Groups {
 			g := doc.Value
 			if !r.groupVisible(g) {
+				continue
+			}
+			if r.edit != nil && !r.newGroup && r.edit.Value.ID == g.ID {
+				r.editor(c)
 				continue
 			}
 			ui.Column(c.Key(g.ID)).FillWidth().Gap(8).Padding(14, 16).BorderWidth(0, 0, 1, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
@@ -272,7 +278,7 @@ func (r *routingPanel) editor(c *ui.Context) {
 	g := &r.edit.Value
 	mask := r.accountMasker()
 	locked := r.api.busy || r.p.locked()
-	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
+	ui.Row(c).FillWidth().Gap(8).Wrap().Margin(0, 0, 16, 0).Children(func() {
 		kit.Strong(c, nativeT("editGroup")).Grow(1)
 		if kit.PrimaryButton(c, nativeT("saveGroup"), icons.Save, r.api.busy).Disabled(locked || !r.dirty()).Clicked() {
 			r.saveGroup()
@@ -286,69 +292,68 @@ func (r *routingPanel) editor(c *ui.Context) {
 		}
 	})
 
-	// These tabs are views of the same group form, not navigation away from it.
-	// A draft spans all sections and is saved or discarded only as a whole.
-	kit.SubTabs(c, &r.editorTab, []string{i18n.T("aiRouting.basics"), nativeT("members"), nativeT("rules"), nativeT("policyTab"), nativeT("accountsTab")}, nil)
+	// Upstream is one continuous editor: identity, members, accounts, policy and rules.
 	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
-		switch r.editorTab {
-		case 0:
-			kit.Section(c, nil, i18n.T("aiRouting.basics"), "", func() {
-				ui.Column(c).FillWidth().Gap(16).Children(func() {
-					nativeText(c, nativeT("groupName"), &g.Name, locked)
-					nativeText(c, nativeT("groupID"), &g.ID, locked || g.Auto)
-					nativeSelect(c, nativeT("strategy"), &g.Routing, r.routingChoices(g.Routing), locked)
-					kit.Help(c, nativeT("strategyHint"))
-					if strings.Contains(g.Routing, "/") {
-						nativeText(c, nativeT("pluginStrategy"), &g.Routing, locked)
-					}
-				})
-			})
-			r.memberSummary(c, g)
-		case 1:
-			r.membersView(c, g, locked)
-			ui.Column(c).FillWidth().Gap(8).Children(func() {
-				nativeList(c, r.fields, "match", nativeT("patterns"), &g.Match, locked)
-				r.patternsView(c, g, locked)
-			})
-		case 2:
-			r.rulesView(c, g, locked)
-		case 3:
-			kit.Group(c, nil, i18n.T("aiRouting.advanced"), "", func() {
-				kit.Stack(c, "", "", func() {
-					nativeSelect(c, nativeT("affinity"), &g.Affinity, options("", nativeT("auto"), "session", nativeT("affinitySession"), "turn", nativeT("affinityTurn"), "off", nativeT("off"), "strict", nativeT("affinityStrict")), locked)
-				})
-				kit.Stack(c, "", nativeT("sinkHint"), func() {
-					mode := "default"
-					if g.Sink {
-						mode = "sink"
-					} else if g.NoSink {
-						mode = "keep"
-					}
-					if nativeSelect(c, nativeT("sink"), &mode, options("default", nativeT("followDefaults"), "sink", nativeT("sink"), "keep", nativeT("keepPlace")), locked) {
-						g.Sink, g.NoSink = mode == "sink", mode == "keep"
-					}
-				})
-				kit.Stack(c, "", nativeT("firstTokenDefaultHint"), func() { nativeInt(c, nativeT("firstToken"), &g.FirstToken, -1, 3600, locked) })
-				kit.Stack(c, "", nativeT("patienceDefaultHint"), func() { nativeInt(c, nativeT("patience"), &g.Patience, -1, 240, locked) })
-				kit.Stack(c, "", nativeT("contextHint"), func() { nativeInt(c, nativeT("context"), &g.Context, -1, 10000000, locked) })
-				kit.Stack(c, "", "", func() { nativeText(c, nativeT("family"), &g.Family, locked) })
-				kit.Toggle(c, &g.Unlists, nativeT("unlistMembers"), "").Disabled(locked)
-				kit.Stack(c, "", "", func() { nativeList(c, r.fields, "levels", nativeT("offeredLevels"), &g.Levels, locked) })
-			})
-		case 4:
-			kit.Section(c, icons.Users, nativeT("accounts"), nativeT("accountsHint"), func() {
-				for _, provider := range sortedKeys(r.state.Accounts) {
-					kit.Section(c, nil, r.providerLabel(provider), "", func() {
-						for _, account := range r.state.Accounts[provider] {
-							id := account.ID
-							on := slices.Contains(g.Accounts, id)
-							if ui.Checkbox(c.Key(id), &on, mask(account.Name)).Disabled(locked).Changed() {
-								g.Accounts = toggleString(g.Accounts, id, on)
-							}
+		for _, section := range []int{0, 1, 4, 3, 2} {
+			switch section {
+			case 0:
+				kit.Section(c, nil, i18n.T("aiRouting.basics"), "", func() {
+					ui.Column(c).FillWidth().Gap(16).Children(func() {
+						nativeText(c, nativeT("groupName"), &g.Name, locked)
+						nativeText(c, nativeT("groupID"), &g.ID, locked || g.Auto)
+						nativeSelect(c, nativeT("strategy"), &g.Routing, r.routingChoices(g.Routing), locked)
+						kit.Help(c, nativeT("strategyHint"))
+						if strings.Contains(g.Routing, "/") {
+							nativeText(c, nativeT("pluginStrategy"), &g.Routing, locked)
 						}
 					})
-				}
-			})
+				})
+			case 1:
+				r.membersView(c, g, locked)
+				ui.Column(c).FillWidth().Gap(8).Children(func() {
+					nativeList(c, r.fields, "match", nativeT("patterns"), &g.Match, locked)
+					r.patternsView(c, g, locked)
+				})
+			case 2:
+				r.rulesView(c, g, locked)
+			case 3:
+				kit.Group(c, nil, i18n.T("aiRouting.advanced"), "", func() {
+					kit.Stack(c, "", "", func() {
+						nativeSelect(c, nativeT("affinity"), &g.Affinity, options("", nativeT("auto"), "session", nativeT("affinitySession"), "turn", nativeT("affinityTurn"), "off", nativeT("off"), "strict", nativeT("affinityStrict")), locked)
+					})
+					kit.Stack(c, "", nativeT("sinkHint"), func() {
+						mode := "default"
+						if g.Sink {
+							mode = "sink"
+						} else if g.NoSink {
+							mode = "keep"
+						}
+						if nativeSelect(c, nativeT("sink"), &mode, options("default", nativeT("followDefaults"), "sink", nativeT("sink"), "keep", nativeT("keepPlace")), locked) {
+							g.Sink, g.NoSink = mode == "sink", mode == "keep"
+						}
+					})
+					kit.Stack(c, "", nativeT("firstTokenDefaultHint"), func() { nativeInt(c, nativeT("firstToken"), &g.FirstToken, -1, 3600, locked) })
+					kit.Stack(c, "", nativeT("patienceDefaultHint"), func() { nativeInt(c, nativeT("patience"), &g.Patience, -1, 240, locked) })
+					kit.Stack(c, "", nativeT("contextHint"), func() { nativeInt(c, nativeT("context"), &g.Context, -1, 10000000, locked) })
+					kit.Stack(c, "", "", func() { nativeText(c, nativeT("family"), &g.Family, locked) })
+					kit.Toggle(c, &g.Unlists, nativeT("unlistMembers"), "").Disabled(locked)
+					kit.Stack(c, "", "", func() { nativeList(c, r.fields, "levels", nativeT("offeredLevels"), &g.Levels, locked) })
+				})
+			case 4:
+				kit.Section(c, icons.Users, nativeT("accounts"), nativeT("accountsHint"), func() {
+					for _, provider := range sortedKeys(r.state.Accounts) {
+						kit.Section(c, nil, r.providerLabel(provider), "", func() {
+							for _, account := range r.state.Accounts[provider] {
+								id := account.ID
+								on := slices.Contains(g.Accounts, id)
+								if ui.Checkbox(c.Key(id), &on, mask(account.Name)).Disabled(locked).Changed() {
+									g.Accounts = toggleString(g.Accounts, id, on)
+								}
+							}
+						})
+					}
+				})
+			}
 		}
 	})
 }

@@ -53,6 +53,7 @@ type request struct {
 	GatewayHeaders      http.Header              `json:"gatewayHeaders,omitempty"`
 	Stream              bool                     `json:"stream,omitempty"`
 	Operation           string                   `json:"operation,omitempty"`
+	ExternalGateway     *externalGateway         `json:"externalGateway,omitempty"`
 	Agent               string                   `json:"agent,omitempty"`
 	AgentBackend        string                   `json:"agentBackend,omitempty"`
 	Preset              string                   `json:"preset,omitempty"`
@@ -216,6 +217,13 @@ func main() {
 	// The embedding host supplies an isolated XDG profile. Magpie's automatic
 	// portable detection must not redirect it into a neighbouring data folder.
 	appdir.UseExecutable("")
+	if handled, err := runExternalMCPCommand(os.Args[1:]); handled {
+		if err != nil {
+			os.Stderr.WriteString(err.Error() + "\n")
+			os.Exit(1)
+		}
+		return
+	}
 	if provider.TookOpenedURL(os.Args[1:]) {
 		return
 	}
@@ -236,6 +244,13 @@ func main() {
 	}
 	if in.Operation == "usage.aliases" {
 		if err := editUsageAliases(in, os.Stdout); err != nil {
+			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
+			os.Exit(1)
+		}
+		return
+	}
+	if in.Operation == "external.serve" {
+		if err := serveExternal(context.Background(), in, reader, os.Stdout); err != nil {
 			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
 			os.Exit(1)
 		}

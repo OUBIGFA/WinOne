@@ -12,6 +12,7 @@ import (
 
 type bundledPluginChoice struct {
 	Enabled bool           `json:"enabled"`
+	Removed bool           `json:"removed,omitempty"`
 	Options map[string]any `json:"options,omitempty"`
 }
 
@@ -74,7 +75,7 @@ func prepareBundledExtensions(ctx context.Context) error {
 				break
 			}
 		}
-		if !chosen || !choice.Enabled {
+		if !chosen || !choice.Enabled || choice.Removed {
 			if existing != nil && chosen && !existing.Off {
 				if err := plugin.SetOff(spec, true); err != nil {
 					return err

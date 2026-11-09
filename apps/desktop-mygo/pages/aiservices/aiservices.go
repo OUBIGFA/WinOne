@@ -2,11 +2,9 @@
 // accounts that provide models, the default service, the local gateway,
 // routing, usage statistics, plugins and Magpie's advanced settings.
 //
-// React source: features/ai-settings.tsx and the ai-* parts it mounts;
-// main.tsx mounts the page with a shared account reader. Feature parity:
-// docs/mygo-parity/ai-services.md. Pages the Host serves (the routing
-// editor, the plugin manager, privacy records and plugins' panels) show in
-// web views (package web), as React's iframes did.
+// WinOne settings and the pinned Magpie built-in pages are rendered with MyGo.
+// Only third-party authored plugin pages retain their isolated web surface.
+// The Host owns runtime configuration and external-client access.
 package aiservices
 
 import (
@@ -40,6 +38,9 @@ const (
 	tabAdvanced
 	tabHome
 	tabMore
+	tabLibrary
+	tabSessions
+	tabMasking
 )
 
 // The provider editor's tabs, for connections of the custom kind.
@@ -65,8 +66,9 @@ const maxProviders = 32
 type keyEdits map[string]map[string]string
 
 type page struct {
-	env *core.Env
-	tab int
+	env    *core.Env
+	tab    int
+	scroll ui.ScrollState
 
 	// saved is the configuration as last read or saved; draft is the
 	// page's edit of it. savedGen counts the times saved was replaced, as
@@ -116,6 +118,7 @@ type page struct {
 	extensions *extensions
 	routing    *routingPanel
 	plugins    *pluginsPanel
+	external   *externalPanel
 	usage      *usageTab
 }
 
@@ -561,6 +564,9 @@ func (p *page) switchTab(next int) {
 // Close implements core.Closer: leaving the page ends a sign-in, closes
 // the Host's pages and drops answers on their way.
 func (p *page) Close() {
+	if p.external != nil {
+		p.external.close()
+	}
 	p.read++
 	if p.editor != nil {
 		p.editor.Close()
@@ -582,8 +588,22 @@ func (p *page) Close() {
 	p.env.Activity.Report("ai-settings", false, false, nil)
 }
 
+func (p *page) WorkspaceScroll() *ui.ScrollState { return &p.scroll }
+
 func (p *page) View(c *ui.Context) {
 	p.env.Activity.Report("ai-settings", p.dirty() || p.pluginInvalid, p.navigationLocked(), p.load)
+	// Built-in state is shared by navigation and settings; refresh once per saved
+	// revision so closing a plugin actually removes its pages on every entry path.
+	if p.saved != nil {
+		if p.advanced == nil {
+			p.advanced = newAdvancedPanel(p)
+		}
+		a := p.advanced
+		if (!a.loadedAt || a.revision != p.saved.Value.Revision) && !a.loading && a.err == "" {
+			a.loadedAt, a.revision = true, p.saved.Value.Revision
+			a.load()
+		}
+	}
 	if p.saved != nil {
 		p.extensions.Follow(p.saved.Value.Revision)
 	}
@@ -591,40 +611,59 @@ func (p *page) View(c *ui.Context) {
 		p.loadCatalog()
 	}
 	p.rail()
-	kit.WidePage(c, func() {
-		p.overview(c)
-		ui.Column(c).FillWidth().Gap(kit.GroupGap).Disabled(p.saving).Children(func() {
-			ui.Column(c).FillWidth().Disabled(p.navigationLocked()).Children(func() {
-				p.navigationView(c)
-			})
-			p.notices(c)
-			switch p.tab {
-			case tabHome:
-				p.homeView(c)
-			case tabMore:
-				p.moreView(c)
-			case tabCustom, tabAccounts:
-				p.providersView(c)
-			case tabDefaults:
-				p.defaultsView(c)
-			case tabGateway:
-				var providers []widgets.AIProvider
-				if p.saved != nil {
-					providers = pickers(p.saved.Value.Providers)
+	ui.Column(c).Fill().MinHeight(0).Children(func() {
+		p.upstreamNavigation(c)
+		ui.Scroll(c.Key(p.tab)).Grow(1).FillWidth().MinHeight(0).MinWidth(0).TrackScroll(&p.scroll).Padding(20, 20, 40, 20).Children(func() {
+			ui.Column(c).FillWidth().Gap(18).Disabled(p.saving).Children(func() {
+				if p.tab == tabHome || p.tab == tabCustom || p.tab == tabAccounts || p.tab == tabDefaults {
+					p.overview(c)
 				}
-				p.gateway.View(c, providers, p)
-			case tabRouting:
-				p.routing.View(c)
-			case tabUsage:
-				p.usageView(c)
-			case tabPlugins:
-				p.plugins.View(c)
-			case tabAdvanced:
-				p.advancedView(c)
-			}
+				p.notices(c)
+				switch p.tab {
+				case tabHome:
+					p.homeView(c)
+				case tabMore:
+					p.moreView(c)
+				case tabCustom, tabAccounts:
+					p.providersView(c)
+				case tabDefaults:
+					p.defaultsView(c)
+				case tabGateway:
+					var providers []widgets.AIProvider
+					if p.saved != nil {
+						providers = pickers(p.saved.Value.Providers)
+					}
+					p.gateway.View(c, providers, p)
+				case tabRouting:
+					p.routing.View(c)
+				case tabUsage:
+					p.usageView(c)
+				case tabPlugins:
+					p.plugins.View(c)
+				case tabAdvanced:
+					p.advancedView(c)
+				case tabMasking:
+					if p.advanced == nil {
+						p.advanced = newAdvancedPanel(p)
+					}
+					p.advanced.recordsView(c, p.locked())
+				case tabLibrary, tabSessions:
+					if p.external == nil {
+						p.external = newExternalPanel(p)
+					}
+					kind := "library"
+					if p.tab == tabSessions {
+						kind = "sessions"
+					}
+					p.external.view(c, kind)
+				}
+			})
 		})
 	})
 	if p.tab != tabGateway {
+		p.gateway.calls.api.close()
+		p.gateway.calls.titleAPI.close()
+		p.gateway.calls.detailAPI.close()
 		p.gateway.Report()
 	}
 	// The Host's pages close with their tabs, as React's iframes did.
@@ -634,7 +673,12 @@ func (p *page) View(c *ui.Context) {
 	if p.tab != tabPlugins {
 		p.plugins.Leave()
 	}
-	if p.tab != tabAdvanced && p.advanced != nil {
+	if p.external != nil && p.tab != tabPlugins && p.tab != tabLibrary && p.tab != tabSessions && !p.external.busy() && !p.external.dirty() && (p.external.url != "" || p.external.viewer != "") {
+		// Drop the page lease after protected work is finished. The Host retains
+		// explicitly enabled services independently of the settings window.
+		p.external.close()
+	}
+	if p.tab != tabAdvanced && p.tab != tabMasking && p.advanced != nil {
 		p.advanced.leavePrivacy()
 	}
 	p.agentPicker(c)

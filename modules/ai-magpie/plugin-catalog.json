@@ -703,6 +703,69 @@
       ]
     },
     {
+      "package": "@magpie-community/opencode-doubao-work-auth",
+      "name": "豆包工作",
+      "icon": "doubao-color",
+      "providers": [
+        "doubao-work"
+      ],
+      "community": true,
+      "summary": {
+        "en": "Doubao Work, which runs its agent in the cloud and has no API, used through the Doubao desktop app the way a person does: one new task per request, the client's tools asked for as text. macOS; unofficial.",
+        "zh": "豆包工作的智能体跑在云端、没有 API，本插件像人一样操作豆包桌面版来用它：每个请求开一个新任务，客户端的工具以文本方式调用。仅 macOS；非官方。"
+      },
+      "version": "0.1.2",
+      "directory": "doubao-work",
+      "entry": "opencode.mjs",
+      "files": [
+        {
+          "path": "README.md",
+          "size": 2946,
+          "sha256": "d5bdbce749d8d4dee7e667cd651fbaa91e04649130f6447aa08535358d2eced5"
+        },
+        {
+          "path": "cdp.mjs",
+          "size": 8411,
+          "sha256": "d2b36fc30d909fd253198776956ff3953a15d13a31e9e7ec3529a6d1c2b07c2d"
+        },
+        {
+          "path": "doubao.mjs",
+          "size": 11562,
+          "sha256": "31273d9356af54c5ae4210703cff3ba25592e66e19ee7f63855e5731ae87fe1b"
+        },
+        {
+          "path": "index.mjs",
+          "size": 5566,
+          "sha256": "e99636dc099d3ca586cc528fe709f8055662391b5cb5dddf02fc72b7a3666adf"
+        },
+        {
+          "path": "openai.mjs",
+          "size": 5415,
+          "sha256": "92af774e3bdcced61786472a0416536d6364c9e7dc553c372275e7216391cf13"
+        },
+        {
+          "path": "opencode.mjs",
+          "size": 294,
+          "sha256": "27df82e508ee9057f06a8ab90475815695e9fa002a9d60298189320538a4c8b5"
+        },
+        {
+          "path": "opencode2.mjs",
+          "size": 25264,
+          "sha256": "5c8e87fa36e36fff1c27f84dcadced491e193880c3fa49c2d3a0e3c6bf64cb77"
+        },
+        {
+          "path": "package.json",
+          "size": 771,
+          "sha256": "d8199cb3f822cd5c48920df51bcddcf090a47b2b929474decd9bf113e4444678"
+        },
+        {
+          "path": "prompt.mjs",
+          "size": 6809,
+          "sha256": "8d3d6cbe4ba6699ff8070061d5c66fd41eb8fb9cb6a78a2a1b2d1d1e1891d4fc"
+        }
+      ]
+    },
+    {
       "package": "@magpie-community/opencode-kimi-work-auth",
       "name": "Kimi Work",
       "icon": "kimi",
@@ -725,8 +788,8 @@
         },
         {
           "path": "README.md",
-          "size": 16146,
-          "sha256": "e95be56212c2675b3786c18cb982ed27feb51b342ed1727c5799ac1a94cfb31d"
+          "size": 17255,
+          "sha256": "b7accc2e5a747302896ef3e691691b67953f9a84fb2828f44b3b819912753560"
         },
         {
           "path": "index.mjs",
@@ -831,7 +894,7 @@
         "en": "Z.ai and BigModel GLM Coding Plan, team seats and ZCode's free Start Plan, with a daily claim of its gift plans.",
         "zh": "Z.ai 与智谱 GLM Coding Plan，支持团队席位和 ZCode 免费 Start Plan，可每日领取 ZCode 活动包。"
       },
-      "version": "0.1.56",
+      "version": "0.1.57",
       "directory": "zcode",
       "entry": "opencode.mjs",
       "files": [
@@ -842,8 +905,8 @@
         },
         {
           "path": "index.mjs",
-          "size": 160404,
-          "sha256": "ff317ddf90538e346c4895026b32ef058d26a62c539cb5f50f0d62a8c1af3362"
+          "size": 161368,
+          "sha256": "0fa86eee7d7199072305cf4a67a8c8617ee6edc2a20873c452dc727310f45942"
         },
         {
           "path": "opencode.mjs",
@@ -858,7 +921,7 @@
         {
           "path": "package.json",
           "size": 803,
-          "sha256": "649f9f8308fc2cdd8e2cd3733a3cafa46dd8ed52e9b628f54ffae764ab721a80"
+          "sha256": "2da3f83ced7a60718f096ca288fa2f446dd4e619497f29f4cd14c02b1a1c3efa"
         },
         {
           "path": "prompt.mjs",
@@ -883,7 +946,7 @@
         "en": "Your Qoder subscription: international (qoder.com) or Qoder CN, the China site (qoder.cn, Alibaba Cloud or phone sign-in), each its own provider. Also QwenWork (千问办公): the public cloud or the enterprise flagship with its own domain. Unofficial for QwenWork.",
         "zh": "用 Qoder 自己的设备登录使用 Qoder 订阅：国际版（qoder.com）与 Qoder 中国版（Qoder CN，qoder.cn，阿里云账号 / 手机号登录）各是一个订阅；也接入千问办公：公有云与企业旗舰版（输入企业自己的域名）。千问办公部分非官方。"
       },
-      "version": "0.2.63",
+      "version": "0.2.64",
       "directory": "qoder",
       "entry": "opencode.mjs",
       "files": [
@@ -894,13 +957,13 @@
         },
         {
           "path": "README.md",
-          "size": 37239,
-          "sha256": "68b5216ee882b531890c3ebf94f8423fdb0743540b03dc90c51281366920ebdf"
+          "size": 37638,
+          "sha256": "d527e015eaa7c4a14c1e12a0c86054c8c1ae0a49659be8f4b2fb32b526a6b262"
         },
         {
           "path": "index.mjs",
-          "size": 195958,
-          "sha256": "dae3458151dd1b007e7b4ab3287285b62e7826700c5c629bdc4f580549ceb942"
+          "size": 199893,
+          "sha256": "17eef950b35196f561b8b415708e18d9ea44fa14ef95d347071e7c8ddb2cf252"
         },
         {
           "path": "opencode.mjs",
@@ -915,7 +978,7 @@
         {
           "path": "package.json",
           "size": 803,
-          "sha256": "80028312fcf05e361603340da0ac695cddf378f57b8d2be85b133073e8d25cc2"
+          "sha256": "8261072bfb8f35b33b41a4b4e97cb195cb0097b5d5780333303654cf374407ef"
         }
       ]
     },
@@ -1250,7 +1313,7 @@
         "en": "Kiro Free, Pro, Pro+ and Power — Kiro's sign-in, kiro-cli's, or an API key.",
         "zh": "Kiro Free、Pro、Pro+ 与 Power：Kiro 登录、沿用 kiro-cli 的登录，或 API key。"
       },
-      "version": "0.1.32",
+      "version": "0.1.33",
       "directory": "kiro",
       "entry": "opencode.mjs",
       "files": [
@@ -1261,8 +1324,8 @@
         },
         {
           "path": "index.mjs",
-          "size": 136564,
-          "sha256": "71d1fc599a27be092bae77c4e9e993a0efb02e21c910137359bb002f29c6b75d"
+          "size": 153333,
+          "sha256": "2cadb65e5267b4918ac368603dcdfb3541a5410c299de2ceccb235b702ca7c0b"
         },
         {
           "path": "opencode.mjs",
@@ -1277,7 +1340,7 @@
         {
           "path": "package.json",
           "size": 548,
-          "sha256": "9e7cf16564fb0f12203057b3bcdc8c69134992b6b33c062b4ad2d0b94c022fc8"
+          "sha256": "bb96a46646861b1edf12510cbaec789d374966be1cf5f6e6c3f32a495679c55e"
         }
       ]
     },
@@ -1402,19 +1465,19 @@
         "en": "WorkBuddy's China build (CodeBuddy plan) and its international build.",
         "zh": "WorkBuddy 国内版（CodeBuddy 套餐）与国际版。"
       },
-      "version": "0.2.25",
+      "version": "0.2.26",
       "directory": "workbuddy",
       "entry": "opencode.mjs",
       "files": [
         {
           "path": "README.md",
-          "size": 32844,
-          "sha256": "ae927b56709edd084d8b4c6f079989a3a6510893c99a37b60e6e272c941cc1d7"
+          "size": 33211,
+          "sha256": "f793ff400b73140ea95fb36555e217fb83d4abae353896b7b93ef551f6d27453"
         },
         {
           "path": "index.mjs",
-          "size": 207601,
-          "sha256": "9371e3d25c87bf92aa6714804012b641c0aa1d4a47c759e6157456e8c04be172"
+          "size": 208118,
+          "sha256": "d9c95dddfd7a8e3b512baa9691688d835295718b4ec9b361adf5540d036fff00"
         },
         {
           "path": "opencode.mjs",
@@ -1429,7 +1492,7 @@
         {
           "path": "package.json",
           "size": 695,
-          "sha256": "751bec5386a18a24078daa9e831496fc2c401fc2690a7ec089d54f52969b4f7f"
+          "sha256": "b6b9e5a85367fdc00406b44c61a9e5e19c34646a98c26866b15662b171ff4577"
         }
       ]
     },
@@ -1531,7 +1594,7 @@
         "en": "Open Design Cloud's Design Plan (open-design.ai): the account's device sign-in, the models the plan entitles it to, and the plan's 5-hour and 7-day allowance and wallet balance.",
         "zh": "Open Design Cloud 的 Design Plan（open-design.ai）：账号设备登录、套餐可用的模型，以及 5 小时与 7 天额度、钱包余额。"
       },
-      "version": "0.1.10",
+      "version": "0.1.11",
       "directory": "opendesign",
       "entry": "opencode.mjs",
       "files": [
@@ -1542,8 +1605,8 @@
         },
         {
           "path": "index.mjs",
-          "size": 23940,
-          "sha256": "aadac9535275a109ce9cd405e9f765e56d1aa8ce2468650648a9c3a3291758b6"
+          "size": 25131,
+          "sha256": "5c327af3ed3c5966900ed17839de788c44496b4c0b51601ed336638168d68d8d"
         },
         {
           "path": "models.mjs",
@@ -1563,7 +1626,7 @@
         {
           "path": "package.json",
           "size": 842,
-          "sha256": "db6034ee6abafeaea3842df801ade4fa9757136036cd050207c6c32e834d96fe"
+          "sha256": "04158b43c80fbc7466596995f13ef6ef29024f281f8d177802cf09511f5063dd"
         },
         {
           "path": "rates.mjs",
@@ -1588,19 +1651,19 @@
         "en": "Meituan's 妙手 CatPaw (ai.catpaw.meituan.com): a browser web sign-in or the desktop client's saved credentials, chat through its round/event/turn conversation protocol, models and credit balance.",
         "zh": "美团妙手 CatPaw（ai.catpaw.meituan.com）：浏览器网页登录或妙手桌面端已保存的登录态，经其 round/event/turn 会话协议对话，含模型与积分余额。"
       },
-      "version": "0.2.0",
+      "version": "0.2.1",
       "directory": "catpaw",
       "entry": "opencode.mjs",
       "files": [
         {
           "path": "README.md",
-          "size": 5046,
-          "sha256": "a11c63284b4e9f74b6f41818d00f875559c0473178b239dbc866793a64a2735e"
+          "size": 5420,
+          "sha256": "5b5128b8da48ad50b20c50f48ef6945a29fec7f8f75186115d0d45be4e76e2b1"
         },
         {
           "path": "index.mjs",
-          "size": 56334,
-          "sha256": "fff0b7e0cd8b80d8ba84681efb397c0abc09fe883a56c39a93c78e6d3b1071c9"
+          "size": 57509,
+          "sha256": "23dc260db6da5cc9eb0683350528000613a405be5af1d74bf0f83d0f6dc6e12e"
         },
         {
           "path": "opencode.mjs",
@@ -1615,7 +1678,7 @@
         {
           "path": "package.json",
           "size": 797,
-          "sha256": "42e912bcf3ebcb74854f5b4b55477042bba5ee795402c9e3445e3f4f2c0249d7"
+          "sha256": "3956a09dab69e905d0b49e003b69f3d7eba80c7fe7b9548803e50583996adf38"
         }
       ]
     },
@@ -1847,7 +1910,7 @@
         "en": "Unofficial: Intern InkStone(书生·端砚) Token Plan: a browser sign-in reads the ink-credit balance, the 5-hour and 7-day windows and the credit packs, and creates an ink-* API key (or reuses a pasted one) to serve the plan's models for chat.",
         "zh": "非官方：书生·端砚（Intern InkStone）墨点计划：浏览器登录读取墨点余额、5 小时 / 7 天窗口与墨点包，并创建 ink-* API Key（或复用现有 Key）直接调用计划内模型对话。"
       },
-      "version": "0.1.3",
+      "version": "0.1.4",
       "directory": "inkstone",
       "entry": "opencode.mjs",
       "files": [
@@ -1878,8 +1941,8 @@
         },
         {
           "path": "lib/keys.mjs",
-          "size": 9267,
-          "sha256": "51223bdfc9326b4bfdb981ea969a3a1b8ce825142327c76e4338a8fa56c275d0"
+          "size": 9285,
+          "sha256": "55623751554264bafe41363a1a9b6244d6f4ece8b47adeea79a3153d591dbc1e"
         },
         {
           "path": "lib/models.mjs",
@@ -1914,7 +1977,7 @@
         {
           "path": "package.json",
           "size": 15105,
-          "sha256": "6515b6d335ff7c894c422cff6f9f2f41df0317244e6de39457f95e143b83e2ff"
+          "sha256": "dc116484e87b91fc39c4a12bf638639eccfb861780deee6c638189fbc120664e"
         }
       ]
     },
@@ -1930,7 +1993,7 @@
         "en": "AutoClaw (Zhipu OpenClaw) cloud accounts: oversea web sign-in (Google/z.ai) or CN phone SMS, credit balance and daily check-in.",
         "zh": "AutoClaw（智谱澳龙/OpenClaw）云端账号：国际版网页登录（Google/z.ai）或国内手机验证码，积分余额与每日签到。"
       },
-      "version": "0.2.18",
+      "version": "0.2.19",
       "directory": "autoclaw",
       "entry": "opencode.mjs",
       "files": [
@@ -1946,8 +2009,8 @@
         },
         {
           "path": "index.mjs",
-          "size": 105490,
-          "sha256": "7e213f801240015c5876f04f837064828a271f77fb6fe92570ef5e31d90d2676"
+          "size": 106100,
+          "sha256": "487797c7d1ee48a372c2aa3f5259490222dee1d4af1b799b50244c0be0dafbff"
         },
         {
           "path": "opencode.mjs",
@@ -1962,7 +2025,7 @@
         {
           "path": "package.json",
           "size": 1177,
-          "sha256": "961a47d8a7cef6507f9fca1dfc3889c8018ab0e393682a10124ca2065d94b611"
+          "sha256": "cd338e07eb22c40db6d6f5f0a5a96cfd63efb2f8184b9d47ce8c3ecd32e84fc0"
         }
       ]
     },
@@ -3321,7 +3384,7 @@
         "zh": "在 Magpie 内检测响应指纹，为疑似模型替换提供核查线索。基于 lm-detector，支持跨渠道共享挑战、保留本地证据与 JSON 导出；采样会消耗模型额度。参考库按需从 lm.ikale.io 下载，备用源为 cdn.jsdmirror.com。"
       },
       "providers": [],
-      "version": "0.2.2",
+      "version": "0.2.3",
       "directory": "fingerprint",
       "entry": "dist/plugin.js",
       "files": [
@@ -3356,14 +3419,14 @@
           "sha256": "6664c15618909d4eda8f2961bbafa4b192a606081827a109a7211798da00d0fc"
         },
         {
-          "path": "dist/ui/assets/index-BzHYFND5.js",
-          "size": 291063,
-          "sha256": "a18169ec260ad2fde639ab3cc5d48e046d4c68cd2c4df5a63e2e5cf7d4ed3e26"
+          "path": "dist/ui/assets/index-1yjBrEfd.js",
+          "size": 303133,
+          "sha256": "6986b3de83d6f030552fcbdd545dcb5fed45c417c3a15bb54d042cf9ea6a4a3f"
         },
         {
-          "path": "dist/ui/assets/index-C9z1QhHD.css",
-          "size": 21541,
-          "sha256": "13d4399a22ed082a277a6fd57442cc553698790085f905d9e05dd66ecaf59e17"
+          "path": "dist/ui/assets/index-DeacCGXr.css",
+          "size": 23113,
+          "sha256": "e75cb27450306216547b849c304683a0e3ef51cac33fe2f6649471c1cc5d9109"
         },
         {
           "path": "dist/ui/assets/magpie-bridge-CFX0m8VY.js",
@@ -3373,27 +3436,27 @@
         {
           "path": "dist/ui/index.html",
           "size": 476,
-          "sha256": "2ac44abf349d6afe750b4c218d22b33df2fb68a3fd82b209614a6e1a109befc5"
+          "sha256": "fd4e9ff6e36fecd84d922a9e1361bd448927e08775ef626d4862bf479ac06bfa"
         },
         {
           "path": "integration.md",
-          "size": 7342,
-          "sha256": "b983d07cbc21645a5d6feea54b1942050eebd0940abb6abf0ec72e87da2f70fa"
+          "size": 7900,
+          "sha256": "24897f3fc0c575f556a64ee63de697e44e8b5bb922fd2a3d45a2d300ce207d58"
         },
         {
           "path": "package.json",
           "size": 2513,
-          "sha256": "7a6229bf22a6753201c8781165957ce8395463170b7919ee7974767765f8e1b6"
+          "sha256": "8d91af1ae01568e1d0252a6d02d7421cf510402d677338326592ac7fa660d1f5"
         },
         {
           "path": "page/boot.js",
-          "size": 4415,
-          "sha256": "9c5444e43124b1c22ab58cb344acf22174497e4b287e8adc78b08c89ed2f5eae"
+          "size": 5362,
+          "sha256": "8f2b8ea2704b21cfb25faca07a7ec961eb95f1b206b18e99bc89bee4d0b91521"
         },
         {
           "path": "page/index.html",
-          "size": 1007,
-          "sha256": "dc0e9c7553459d25a67742bf4a1df43d8dc8db46b06d22d6eb272a6d470451eb"
+          "size": 1239,
+          "sha256": "2fe10f748c0c59718be3172db1dabd1878c503e275d52e37871525c837a565ea"
         }
       ]
     },
@@ -4251,38 +4314,53 @@
       "kind": "agent",
       "community": true,
       "summary": {
-        "en": "Kimi desktop Work on Magpie's Agents page: select a model from Magpie, then disconnect to restore the original service. Not Kimi Code CLI.",
-        "zh": "把普通 Kimi 桌面版 Work 接入 Magpie Agent 页，使用已配置的模型；断开恢复原连接。不是 Kimi Code CLI。"
+        "en": "Kimi desktop Work with Magpie models: configure primary and secondary models on its embedded page, select native subagent roles, and disconnect to restore the original service. Not Kimi Code CLI.",
+        "zh": "普通 Kimi 桌面版 Work 使用 Magpie 模型：在内嵌页面配置主、副模型，为原生子代理选择角色，断开时恢复原服务。不是 Kimi Code CLI。"
       },
       "providers": [],
-      "version": "0.1.5",
+      "version": "0.1.6",
       "directory": "kimi-desktop",
       "entry": "index.mjs",
       "files": [
         {
           "path": "COMPATIBILITY.md",
-          "size": 12470,
-          "sha256": "44b45f2181dbe986b47f8fe5eb69c6123aad236ead73b53d25f7a7b0ef3ae8b4"
+          "size": 76815,
+          "sha256": "27513511da762842f402710cf2cca6baeb4873a691a5a369a71dbf24b1b4ff06"
         },
         {
           "path": "README.md",
-          "size": 11035,
-          "sha256": "d047f22e304dc4dc7d8880484a0b43e1e4134367acb75701f370859c3a646115"
+          "size": 33652,
+          "sha256": "aa3fd06f1cb57e619a49b9e37edd7f74801284d60d10b7103c4afcaafdd358e7"
         },
         {
           "path": "adapter.mjs",
-          "size": 24068,
-          "sha256": "636d15cc92ef4a8247026ce2df5ab364d10f23ade9da008182100f8ea23f78e6"
+          "size": 87697,
+          "sha256": "f12081c4a9fb5ecfbc61d8ff52b67ae954b98d04c4b4ff478c487da7ad404ad0"
+        },
+        {
+          "path": "agent-profiles.mjs",
+          "size": 3629,
+          "sha256": "a36d4cd1bcdf8f4561d07f5b81149a0cf07f309f503528078093223993d7dc88"
+        },
+        {
+          "path": "agent-routing.mjs",
+          "size": 27110,
+          "sha256": "07017c5d42607b7ca723fea10fb58189e97a2747f58c3c84f688a66ea66ee34d"
         },
         {
           "path": "catalog.mjs",
-          "size": 3261,
-          "sha256": "76fbc2ab412be5842918e502e089bc629a0a1c002023e34b73e8b543dca9639a"
+          "size": 5818,
+          "sha256": "d57aa609e45dde1f5574a6aa013ce21606a7ef9c573b3040cd7cfab9e5dc4510"
+        },
+        {
+          "path": "context-budget.mjs",
+          "size": 9571,
+          "sha256": "bdb13f704a4d6214f875bd97d135063b9145a2d48d3da6b27a61f60db5addafd"
         },
         {
           "path": "index.mjs",
-          "size": 794,
-          "sha256": "2476f630f1ec3105f333a2267cb3747916a1a502dd7faab9d4dbda923dbcfa64"
+          "size": 2622,
+          "sha256": "941ba49e12adc822c1934853690ed76b6e0587a49c47dafcf594fa89b85923d8"
         },
         {
           "path": "kimi-desktop.agent.js",
@@ -4291,18 +4369,68 @@
         },
         {
           "path": "library.mjs",
-          "size": 2569,
-          "sha256": "98d5ddb0b6fc163f6463018e98d33f0d05030845bc96ed2caf28f881e653f8ea"
+          "size": 2616,
+          "sha256": "cd61c4f4ee2555b49add2a33d7d01eee90b235e9f12d27102a8feefb21cea74c"
+        },
+        {
+          "path": "model-options.mjs",
+          "size": 2167,
+          "sha256": "d9b1acb7f91e495333e7bc7071a47812cf0525dfa0002dfe08f401eb802c29c1"
+        },
+        {
+          "path": "model-pool-config.mjs",
+          "size": 4477,
+          "sha256": "229bee5c9007ac4cccb8341b9a982e066e592fdd262e4182a4cd8c179a05f6e8"
         },
         {
           "path": "package.json",
-          "size": 10712,
-          "sha256": "1421e3e02345da80d86d28e8a29df2ef95a42a2ba23ceeb17dfd3cd3e3605d2a"
+          "size": 11277,
+          "sha256": "bfbc2378f72413b79d6ab64865423fc06fbe972d44d0998ad4f3494a53b3c3f6"
+        },
+        {
+          "path": "page/boot.js",
+          "size": 3695,
+          "sha256": "5b1b03c598620f5a6775e47e9bc3b28d1260561304f0c0f7aee13c89448ef54d"
+        },
+        {
+          "path": "page/index.html",
+          "size": 1085,
+          "sha256": "40c5ba405161060f81dfb8b40f1a8c1a9666a199f3ab497114d7b9fb7e09af73"
+        },
+        {
+          "path": "primary-model.mjs",
+          "size": 3340,
+          "sha256": "3f7867acb0c0c07e08beee51e45634dec1004ac14fac7eb6d6741429427f6708"
+        },
+        {
+          "path": "role-plugin-state.mjs",
+          "size": 6078,
+          "sha256": "e20795c411791535b447dbd8269e6bb661616e0b87e549a65d3f90d3876ea2b9"
         },
         {
           "path": "rpc.mjs",
-          "size": 2126,
-          "sha256": "5382974c886158222d3b0aba744ba8e2e8cc3e7f328ab5601afcc94c346ccbe8"
+          "size": 2568,
+          "sha256": "f13652cb24ed782db108424eb1e01264f8fbf3adb7156fb3744bf64c2a9ee265"
+        },
+        {
+          "path": "runtime-family.mjs",
+          "size": 871,
+          "sha256": "2ff9bfae31b2d6167d024328ecd74fd892e37f52fbee20cfe09c7ee56d4d3a33"
+        },
+        {
+          "path": "secondary-config.mjs",
+          "size": 4473,
+          "sha256": "1ceed76794b07175f52de6c60e8f4dba9801863a2d3c0d2453a9fe46da0c43c8"
+        },
+        {
+          "path": "settings.html",
+          "size": 37005,
+          "sha256": "9b1e227631daea3e452ce59949a0772eae9c139922dd03f0b01c23b948259fb2"
+        },
+        {
+          "path": "settings.mjs",
+          "size": 10671,
+          "sha256": "3a1b0bbfe54a3ec6f6b73e0b7f8110b279b325c537b5d9d4a572790cd1e55dfe"
         }
       ]
     },
@@ -4565,7 +4693,7 @@
         "en": "Existing SAP AI Core deployments with client-secret credential-file sign-in, per-resource-group GPT Responses and Claude Messages discovery, streaming and agent tools. No deployment provisioning or quota reporting; Magpie only.",
         "zh": "用本机 client-secret 凭据文件连接已有 SAP AI Core 部署：按资源组发现 GPT Responses 与 Claude Messages 模型，支持流式回复和 agent 工具。不创建部署，不报告额度；仅验证 Magpie。"
       },
-      "version": "0.3.1",
+      "version": "0.3.2",
       "directory": "sap-aicore",
       "entry": "opencode.mjs",
       "files": [
@@ -4581,8 +4709,8 @@
         },
         {
           "path": "docs/api-reference.md",
-          "size": 13570,
-          "sha256": "6d189b97cc9e04aa113344b7bea793da5c7580b4e3bbc1bba348a82e3f6102a1"
+          "size": 15330,
+          "sha256": "eadcc83b15832139c9057705e24b92ec6b1e09c8cb6022f44bb49d301c238f89"
         },
         {
           "path": "docs/credentials.md",
@@ -4607,7 +4735,7 @@
         {
           "path": "package.json",
           "size": 1049,
-          "sha256": "46dba513416a5d38edbcbcd6723eaceb5bceda600e3ed5dd1ba275cb0e38030b"
+          "sha256": "289a6f02159a297b621190acebf3bb73f7ec187ef16329c8c2b0f3e0522d808e"
         },
         {
           "path": "src/discovery.js",
@@ -4626,8 +4754,8 @@
         },
         {
           "path": "src/messages.js",
-          "size": 29024,
-          "sha256": "d64fe0c24ac1f4e73bddc5ce6edab2c4786f8e5c1238bbde32bc2abd5a408a23"
+          "size": 29325,
+          "sha256": "e0f98fb04b71d15b7f76d934add7820edbbefea5d49a87c950e47c39fd516f2d"
         },
         {
           "path": "src/responses.js",
@@ -4812,7 +4940,7 @@
         "zh": "窗口预热（原「定时消息」）：提前开启订阅的 5 小时或每周额度窗口，给额度保活。给指定的供应商、账号和模型发一条固定短消息（\"hi\"，max_tokens 16），可在窗口重置后、每天定时或每隔几小时发送。每次发送都会消耗该供应商的额度（配额）。在本机 127.0.0.1 跑一个本地服务，只调用 magpie 自己的网关；令牌只交给自己的页面。"
       },
       "providers": [],
-      "version": "0.1.3",
+      "version": "0.1.4",
       "directory": "window-warmup",
       "entry": "dist/plugin.js",
       "files": [
@@ -4823,18 +4951,18 @@
         },
         {
           "path": "README.md",
-          "size": 24952,
-          "sha256": "99ff5df5d3e3a572f9d64d927c2d6f21620fdb7471f3ed073ed2a9f9e73e5c6d"
+          "size": 27934,
+          "sha256": "ece15a4517e919c15519a7bf5466621bfe46a7aebbd2b727984ac74a6af73683"
         },
         {
           "path": "dist/plugin.js",
-          "size": 88673,
-          "sha256": "5e4624595309e0bc1181b0b326047d3c048c8ea000273094be221d4f35a80c5b"
+          "size": 91757,
+          "sha256": "af49168bc4aafe2ae6694d510df825d964865aff6eb710f69fadd56dd34bf361"
         },
         {
           "path": "dist/ui/app.js",
-          "size": 83995,
-          "sha256": "2daca6422398a3e9e76e63cf4371c3b12bd12a4cbd8f8faf177d2b5cdf507370"
+          "size": 85017,
+          "sha256": "4884498da324a8633c7061cefe9d2c9d0b8f5379287556e7528a2c235d4d341e"
         },
         {
           "path": "dist/ui/index.html",
@@ -4849,7 +4977,7 @@
         {
           "path": "package.json",
           "size": 2699,
-          "sha256": "da38113de8d0b508c535e94c9bd5f0a7fb6dae46e1bc058bf643690f927818b0"
+          "sha256": "7bc30d87b04e7b75fdddcf09d6576fb1a9cfee89fcdc81547eeb43220fd0ec68"
         },
         {
           "path": "page/boot.js",

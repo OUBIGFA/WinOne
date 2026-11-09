@@ -182,7 +182,7 @@ func Menu(c *ui.Context, trigger ui.Element, state *State, o Options) (string, b
 			state.highlight, state.lit = "", false
 		}
 		width, height := c.Size()
-		ui.Column(c).Width(min(340, max(200, width-24))).Gap(6).Children(func() {
+		ui.Column(c).FillWidth().MinWidth(min(340, max(200, width-24))).Gap(6).Children(func() {
 			search := ui.TextInput(c, &state.Search).FillWidth().Placeholder(o.Strings.Search).Label(o.Strings.Search).AutoFocus()
 			moved := false
 			move := func(step int) {
@@ -255,10 +255,17 @@ func Menu(c *ui.Context, trigger ui.Element, state *State, o Options) (string, b
 							ui.Icon(c, glyph).FontSize(15).TextColor(t.TextMuted).Shrink(0)
 						}, nil, 8)
 					}
-					for _, group := range groups {
-						ui.Column(c.Key("models-" + group.ID)).FillWidth().Gap(2).Children(func() {
+					for index, group := range groups {
+						// Provider groups need a larger break than adjacent model rows.
+						// The header rule keeps the parent label distinct in both themes.
+						space := float32(6)
+						if index > 0 || len(choices) > 0 {
+							space = 16
+						}
+						ui.Column(c.Key("models-"+group.ID)).FillWidth().Gap(4).Margin(space, 0, 0, 0).Children(func() {
 							head := ui.ButtonBase(c).FillWidth().Padding(6, 8).Gap(8).Radius(t.Radius).Justify(ui.Start).AlignItems(ui.Center).
 								Label(o.Strings.Group + group.Name).Tooltip(group.Name).Expanded(group.expanded)
+							head.BorderWidth(0, 0, 1, 0).BorderColor(t.Border.Mix(t.Background, 0.4))
 							if head.Hovered() {
 								head.Background(t.SurfaceHover)
 							}

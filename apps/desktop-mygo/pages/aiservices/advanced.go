@@ -116,6 +116,7 @@ type magpieCatalog struct {
 // search, privacy, built-in features and the plugins' settings panels.
 // Its edits are part of the page's draft and save with it.
 type advancedPanel struct {
+	otelKind string
 	clientID string
 	p        *page
 	catalog  *magpieCatalog
@@ -201,7 +202,14 @@ func (p *page) advancedView(c *ui.Context) {
 		a.loadedAt, a.revision = true, p.saved.Value.Revision
 		a.load()
 	}
-	labels := []string{i18n.T("ai.quotaSettings"), i18n.T("ai.modelSettings"), i18n.T("ai.privacySettings"), i18n.T("aiPlugins.featureSettings")}
+	labels := []string{i18n.T("ai.quotaSettings"), i18n.T("ai.modelSettings")}
+	panels := []int{advancedQuota, advancedModels}
+	if p.builtinEnabled("redact") {
+		labels = append(labels, i18n.T("ai.privacySettings"))
+		panels = append(panels, advancedPrivacy)
+	}
+	labels = append(labels, i18n.T("aiPlugins.featureSettings"))
+	panels = append(panels, advancedFeatures)
 	settingsPanels := false
 	if p.extensions.state != nil {
 		for _, panel := range p.extensions.state.Panels {
@@ -210,12 +218,22 @@ func (p *page) advancedView(c *ui.Context) {
 	}
 	if settingsPanels {
 		labels = append(labels, i18n.T("aiPlugins.panels"))
+		panels = append(panels, advancedExtensions)
 	}
-	if p.advancedTab >= len(labels) {
+	current := slices.Index(panels, p.advancedTab)
+	if current < 0 {
 		p.advancedTab = advancedQuota
+		current = 0
 	}
 	ui.Column(c).Disabled(p.navigationLocked()).Children(func() {
-		kit.SubTabs(c, &p.advancedTab, labels, p.env.RequestChange)
+		kit.SubTabs(c, &current, labels, func(apply func()) {
+			change := func() { apply(); p.advancedTab = panels[current] }
+			if p.env.RequestChange != nil {
+				p.env.RequestChange(change)
+			} else {
+				change()
+			}
+		})
 	})
 	if a.loading {
 		kit.Status(c, i18n.T("capture.loading"))
@@ -425,6 +443,9 @@ func (a *advancedPanel) quota(c *ui.Context, catalog *magpieCatalog, locked bool
 			s.TrayUsageEvery = ptr(v)
 		}
 	})
+	if !a.p.builtinEnabled("warmups") {
+		return
+	}
 	automation := s.CodexWarmup != "" || s.ClaudeWarmup != "" || s.CodexWarmAt != "" || s.ClaudeWarmAt != "" ||
 		len(value(s.CodexWarmAts)) > 0 || len(value(s.ClaudeWarmAts)) > 0 || len(s.CodexWarmAtOf) > 0 || len(s.CodexAutoReset) > 0 ||
 		len(s.CodexNoCredits) > 0 || s.WorkbuddyCheckin || s.TraeCheckin || s.MinimaxCheckin || s.QoderCheckin

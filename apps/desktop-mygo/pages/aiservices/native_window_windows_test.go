@@ -48,6 +48,7 @@ func TestRealNativeAIWindowsNeedNoWebViewForBuiltInPages(t *testing.T) {
 		t.Skip("explicit repository-private desktop")
 	}
 	p, h, _, _ := nativeAIWithRuntime(t)
+	library := libraryScreenFixture(t, p)
 	var window *mygo.Window
 	dark := false
 	webviews, frames := 0, 0
@@ -96,7 +97,7 @@ func TestRealNativeAIWindowsNeedNoWebViewForBuiltInPages(t *testing.T) {
 			for _, width := range []int{1000, 560} {
 				// Use actual Windows rendering for every rebuilt section, not
 				// only each page's default tab. Policy APIs keep the private runtime.
-				for scene := 0; scene < 23; scene++ {
+				for scene := 0; scene < 32; scene++ {
 					before := 0
 					mygo.RunOnMain(func() {
 						i18n.SetLocale(locale)
@@ -137,9 +138,27 @@ func TestRealNativeAIWindowsNeedNoWebViewForBuiltInPages(t *testing.T) {
 						if scene == 18 {
 							p.switchTab(tabMore)
 						}
-						if scene >= 19 {
+						if scene >= 19 && scene < 23 {
 							p.switchTab(tabGateway)
 							p.gateway.tab = scene - 19
+						}
+						if scene >= 23 {
+							library.edit = nil
+							if scene < 29 {
+								library.tab = scene - 23
+								section = func(c *ui.Context) { ui.Column(c).FillWidth().Gap(18).Children(func() { library.libraryView(c) }) }
+							} else {
+								library.begin("servers", rowsOf(library.library, "servers")[0])
+								if scene >= 30 {
+									library.edit.values["transport"] = "http"
+									library.edit.values["url"] = "https://example.invalid/mcp"
+								}
+								if scene == 31 {
+									library.edit.serverView = 1
+									library.edit.serverJSON = serverConfigJSON(library.edit)
+								}
+								section = func(c *ui.Context) { ui.Column(c).FillWidth().Gap(18).Children(func() { library.editorView(c) }) }
+							}
 						}
 						before = frames
 						window.Invalidate()

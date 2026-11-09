@@ -134,6 +134,9 @@ func (t Translator) startMode(ctx context.Context, signingIn bool) (*aiProcess, 
 		return nil, err
 	}
 	cmd.Env = append(cmd.Env, "WINONE_AI_PLUGINS_HOME="+filepath.Join(pluginRoot, "third-party"))
+	// Plugin manager status reads only WinOne's external library; client files
+	// remain visible exclusively to the explicitly opened external worker.
+	cmd.Env = append(cmd.Env, "WINONE_AI_EXTERNAL_LIBRARY="+filepath.Join(pluginRoot, "external-clients", "config", "magpie", "library.json"))
 	cmd.Env = append(cmd.Env, "WINONE_AI_CLAUDE_RUN_FILE="+filepath.Join(pluginRoot, "claude-last-run.json"))
 	if t.TransportOnly {
 		cmd.Env = append(cmd.Env, "WINONE_AI_TRANSPORT_ONLY=1")
