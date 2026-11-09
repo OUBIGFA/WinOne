@@ -49,6 +49,10 @@ var chatSearchFiles = strings.Fields(chatSearchInventory)
 var recordingRuntimeFiles = []string{"capture/WinOne.Recording.dll", "capture/recording-runtime.json"}
 var learningRuntimeFiles = []string{"shared/ui/learning/ecdict.db", "shared/ui/learning/manifest.json", "shared/ui/learning/ECDICT-LICENSE.txt"}
 
+//go:embed anki-runtime-files.txt
+var ankiRuntimeInventory string
+var ankiRuntimeFiles = strings.Fields(ankiRuntimeInventory)
+
 var accountPluginFiles = strings.Fields(accountPluginInventory)
 var chatRuntimeFiles = []string{"shared/chat/worker.js", "shared/chat/runtime.json"}
 var chatShareFiles = strings.Fields(chatShareInventory)
@@ -92,12 +96,22 @@ var textRuntimeAllowed = func() map[string]bool {
 	for _, name := range interconnectRuntimeFiles {
 		result[name] = true
 	}
+	for _, name := range ankiRuntimeFiles {
+		result[name] = true
+	}
 	return result
 }()
 
 // Older verified packages stay readable for rollback. Presence of any text
 // feature file requires the complete new runtime, not a partial OCR upgrade.
 func requiredForPayload(seen map[string]bool) []string {
+	var ankiFiles []string
+	for name := range seen {
+		if strings.HasPrefix(strings.ToLower(name), "shared/anki/") {
+			ankiFiles = ankiRuntimeFiles
+			break
+		}
+	}
 	var learningFiles []string
 	for _, name := range learningRuntimeFiles {
 		if seen[name] {
@@ -106,7 +120,11 @@ func requiredForPayload(seen map[string]bool) []string {
 		}
 	}
 	result := append([]string{}, requiredFiles...)
+	result = append(result, ankiFiles...)
 	text, plugins, chat, share, codeMode, stroke, search, recording, interconnect := false, false, false, false, false, false, false, false, false
+	if len(ankiFiles) > 0 {
+		text = true
+	}
 	onebot, math, library := false, false, false
 	for name := range seen {
 		lower := strings.ToLower(name)

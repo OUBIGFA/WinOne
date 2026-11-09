@@ -1,0 +1,26 @@
+{
+  "repository": "https://git.sr.ht/~foosoft/anki-connect",
+  "revision": "c577b44aaadbd72dbc22c823f874a126213fe5c5",
+  "archiveSHA256": "52295e76ac25a353cb0bc4d1959c6b806fe44fbade498723af8e08a6885bcf36",
+  "license": "GPL-3.0-or-later",
+  "files": {
+    "LICENSE": "baa05f872aefb52b8859c42e8679c3aed3a4cf9f0fa237e63d53cbbd3b1ca429",
+    "plugin/config.json": "696e9c384e062e60e4a9cab2e58da6616a16d4955bb3d6404c75347022303cb5",
+    "plugin/config.md": "883430d46b5df7d127518047d5522d9e92dcbd86332747bd10ec85064ba8db59",
+    "plugin/contract.py": "38ee4b3d9b856dd1f181c2cbf0be5577d917089a95097d1a7bc086d5ba76dbe4",
+    "plugin/edit.py": "e5e7fa94ba29e89ed5a494022f91fe2cc81470ce84afbb9202c3e56d5a1e8e4a",
+    "plugin/gui.py": "f95ce34bd2f8ca0645ef96c3dcdb56ac4d570578318b661d1be33c3f2812e057",
+    "plugin/legacy.py": "8d632db28eafc7e4720bff40d3d71a0851bb5c4b723c9b35fc2df1effc079148",
+    "plugin/manifest.json": "84f2533595d0f544cbb3579166d63c0b53883c736b057da64fb4a1bd110a70c5",
+    "plugin/media.py": "6cc1a71d3472acac2584e2f1b67fc1bdd977131dd06624452b898d65d0997a00",
+    "plugin/protocol.py": "1497a4243e6b083cb1f96ad3221b4e05da12788fe81455b9de38b5b6e9544ae3",
+    "plugin/runtime.py": "09f96f56820b5f0e97177ff16c33bafd098451758f5d812daff551a04b19be54",
+    "plugin/services.py": "aced18bc07a6e5260abb9a58ab50e501d672289dbe145765aa164e00265eb46f",
+    "plugin/util.py": "831d5c7199bc2b159b6a226dcf5664c805b27e51c25692ae5f1bf226015e57eb",
+    "plugin/web.py": "1b7bae32dd1c3d49764ac5b65fecbd18a1bd11ce9172b62790f90337f440feb5",
+    "plugin/__init__.py": "4502471052b0f9017d6364c3684a2c4529ffb71544d1672d06ada982efbb0b1e"
+  },
+  "adaptations": [
+    "Original plugin retained unchanged. WinOne loads data services, protocol and legacy translation without executing the Qt plugin entry point. Native window/lifecycle adapters live in modules/anki."
+  ]
+}

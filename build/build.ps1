@@ -1,5 +1,8 @@
-param([string]$GoExe = 'go', [string]$CargoExe = 'cargo', [string]$Downloader, [switch]$SkipInstall, [string]$OutputDirectory = '_temp/build/current', [switch]$RunStartupProbes, [string]$UpdateRepository = '', [string]$ShareXSourceDirectory, [string]$RustTargetDirectory='dist/resources/cache/rust-desktop', [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='MyGo', [string]$OcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY, [string]$MagpieSourceDirectory=$env:WINONE_MAGPIE_SOURCE_DIRECTORY, [string]$PluginSourceDirectory=$env:WINONE_AI_PLUGIN_SOURCE_DIRECTORY, [string]$BunExe=$env:WINONE_AI_BUN_EXE, [string]$ResultGoExe=$env:WINONE_RESULT_GO_EXE, [string]$DiagramTargetDirectory='dist/resources/cache/rust-diagrams', [string]$SelectionTargetDirectory='dist/resources/cache/rust-selection', [string]$ModuleTrustFile='')
+param([string]$GoExe = 'go', [string]$CargoExe = 'cargo', [string]$Downloader, [switch]$SkipInstall, [string]$OutputDirectory = '_temp/build/current', [switch]$RunStartupProbes, [string]$UpdateRepository = '', [string]$ShareXSourceDirectory, [string]$RustTargetDirectory='dist/resources/cache/rust-desktop', [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='MyGo', [string]$OcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY, [string]$MagpieSourceDirectory=$env:WINONE_MAGPIE_SOURCE_DIRECTORY, [string]$PluginSourceDirectory=$env:WINONE_AI_PLUGIN_SOURCE_DIRECTORY, [string]$BunExe=$env:WINONE_AI_BUN_EXE, [string]$ResultGoExe=$env:WINONE_RESULT_GO_EXE, [string]$DiagramTargetDirectory='dist/resources/cache/rust-diagrams', [string]$SelectionTargetDirectory='dist/resources/cache/rust-selection', [string]$ModuleTrustFile='', [switch]$CompileOnly)
 $ErrorActionPreference = 'Stop'
+# Explicit unattended build mode. Runtime/behavior tests are selected separately;
+# source, license, compiler, static and payload verification still run here.
+if($CompileOnly -and $RunStartupProbes){throw 'CompileOnly cannot run startup probes'}
 $root = Split-Path -Parent $PSScriptRoot
 if(-not $OcrRuntimeDirectory -or -not $MagpieSourceDirectory){throw 'Pass OcrRuntimeDirectory (build/prepare-ocr.ps1 output) and the pinned MagpieSourceDirectory'}
 $buildVersion = (Get-Content -LiteralPath (Join-Path $root 'apps/desktop/frontend/package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
@@ -46,7 +49,7 @@ if (-not $SkipInstall) { & npm.cmd ci --prefix apps/desktop/frontend --no-audit 
 if($DesktopImplementation -ne 'MyGo'){
     # The UI suite runs within vitest.config.ts's worker budget, alone at this
     # point of the build.
-    Invoke-NativeCommand 'npm.cmd' @('test','--prefix','apps/desktop/frontend','--','--pool=threads') 'Frontend tests failed'
+    if(-not $CompileOnly){Invoke-NativeCommand 'npm.cmd' @('test','--prefix','apps/desktop/frontend','--','--pool=threads') 'Frontend tests failed'}
     Invoke-NativeCommand 'npm.cmd' @('run','build','--prefix','apps/desktop/frontend') 'Frontend build failed'
     # Bundle the same Cindy selection overlay consumed by the native browser. Keep
     # this in the unified build so a preload edit cannot leave a stale guest asset.
@@ -54,7 +57,7 @@ if($DesktopImplementation -ne 'MyGo'){
     Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $output) 'browser-comment/browser_comment_guest.js') -Destination (Join-Path $root 'apps/desktop-rust/src/browser_comment_guest.js') -Force
 }
 Push-Location third_party/systray
-try { & $GoExe test ./...; CheckExit } finally { Pop-Location }
+try { if(-not $CompileOnly){& $GoExe test ./...; CheckExit} } finally { Pop-Location }
 & $GoExe run ./build/icon -out internal/branding/icon.ico -native-png internal/branding/logo-native.png; CheckExit
 & (Join-Path $PSScriptRoot 'build-always-on-top.ps1') -OutputDirectory (Join-Path $output 'always-on-top')
 & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o modules/always-on-top/cmd/worker/resource_windows.syso; CheckExit
@@ -65,14 +68,16 @@ if($ShareXSourceDirectory){
     . (Join-Path $PSScriptRoot 'sharex-native-host.ps1')
     Initialize-ShareXNativeHost -SourceDirectory $sharex
 }
-& dotnet build tests/capture-unit/CaptureTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" --nologo; CheckExit
+if(-not $CompileOnly){& dotnet build tests/capture-unit/CaptureTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" --nologo; CheckExit}
 # The scrolling checks drive real windows; only build/test-native-context.ps1
 # runs them, so they are compiled with the other system probes.
 if ($RunStartupProbes) { & dotnet build tests/capture-scroll/ScrollTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" --nologo; CheckExit }
-Invoke-NativeCommand 'dotnet' @('tests/capture-unit/bin/Release/net10.0-windows/WinOne.Capture.Tests.dll',(Join-Path $root '_temp/capture-tests')) 'Capture unit tests failed'
+if(-not $CompileOnly){Invoke-NativeCommand 'dotnet' @('tests/capture-unit/bin/Release/net10.0-windows/WinOne.Capture.Tests.dll',(Join-Path $root '_temp/capture-tests')) 'Capture unit tests failed'}
 & dotnet publish modules/capture/WinOne.Capture.csproj -c Release -r win-x64 --self-contained true "-p:ShareXSourceDirectory=$sharex" -o (Join-Path $output 'capture') --nologo; CheckExit
 & (Join-Path $PSScriptRoot 'build-recording.ps1') -CargoExe $CargoExe -OutputDirectory (Join-Path $output 'capture')
 & (Join-Path $PSScriptRoot 'copy-ocr.ps1') -RuntimeDirectory $OcrRuntimeDirectory -CaptureDirectory (Join-Path $output 'capture')
+& (Join-Path $OcrRuntimeDirectory 'python/python.exe') (Join-Path $PSScriptRoot 'verify-anki.py') --runtime (Join-Path $root 'dist/resources/runtimes/anki-26.09.4'); CheckExit
+& (Join-Path $PSScriptRoot 'copy-anki.ps1') -BundleDirectory $output
 & (Join-Path $PSScriptRoot 'update-ocr-inventory.ps1') -RuntimeDirectory (Join-Path $output 'capture/Ocr') -Check
 # Current Magpie requires Go 1.26.8 or newer. Reuse the already-selected result
 # toolchain and restore the Host compiler's environment after this build.
@@ -83,35 +88,37 @@ try {
     # An inherited GOROOT can point at the Host compiler; the selected binary
     # resolves its own standard library when that override is cleared.
     $env:GOROOT=''
-    & (Join-Path $PSScriptRoot 'build-ai.ps1') -MagpieSourceDirectory $MagpieSourceDirectory -PluginSourceDirectory $PluginSourceDirectory -BunExe $BunExe -OutputDirectory (Join-Path $output 'shared/ai') -GoExe $aiGo -Test
+    & (Join-Path $PSScriptRoot 'build-ai.ps1') -MagpieSourceDirectory $MagpieSourceDirectory -PluginSourceDirectory $PluginSourceDirectory -BunExe $BunExe -OutputDirectory (Join-Path $output 'shared/ai') -GoExe $aiGo -Test:(-not $CompileOnly)
 } finally { $env:GOROOT=$aiPriorRoot }
 # Keep compiler/test intermediates outside the shipped payload. Photon resolves
 # its WASM beside Bun in the bundled runtime, rather than beside worker.js.
 $chatBuild = Join-Path (Split-Path -Parent $output) 'chat-build'
-& (Join-Path $PSScriptRoot 'build-chat.ps1') -BunExe $BunExe -OutputDirectory $chatBuild -GoExe $GoExe -CargoExe $CargoExe -SkipInstall:$SkipInstall -Test
+& (Join-Path $PSScriptRoot 'build-chat.ps1') -BunExe $BunExe -OutputDirectory $chatBuild -GoExe $GoExe -CargoExe $CargoExe -SkipInstall:$SkipInstall -Test:(-not $CompileOnly)
 New-Item -ItemType Directory -Path (Join-Path $output 'shared/chat'), (Join-Path $output 'shared/ai/runtime') -Force | Out-Null
 # The Chat build directory contains deliverables only. Carry its complete
 # license/resource tree; the one WASM asset lives beside the shared Bun runtime.
 Get-ChildItem -LiteralPath $chatBuild | Where-Object Name -NE 'photon_rs_bg.wasm' | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $output 'shared/chat') -Recurse -Force }
 Copy-Item -LiteralPath (Join-Path $chatBuild 'photon_rs_bg.wasm') -Destination (Join-Path $output 'shared/ai/runtime/photon_rs_bg.wasm') -Force
 $strokeBuild = Join-Path (Split-Path -Parent $output) 'stroke-build'
-& (Join-Path $PSScriptRoot 'build-stroke.ps1') -OutputDirectory $strokeBuild -Test
+& (Join-Path $PSScriptRoot 'build-stroke.ps1') -OutputDirectory $strokeBuild -Test:(-not $CompileOnly)
 New-Item -ItemType Directory -Path (Join-Path $output 'stroke') -Force | Out-Null
 foreach ($file in @('WinOne.Stroke.exe','Stroke.Base.dll','Base.dll','Stroke.dll','Stroke-LICENSE.txt','schema.json','defaults.json','migrations.json')) { Copy-Item -LiteralPath (Join-Path $strokeBuild $file) -Destination (Join-Path $output 'stroke') -Force }
 if(-not $ResultGoExe){$ResultGoExe=$GoExe}
 $learningPrepare=@{PythonExe=(Join-Path $OcrRuntimeDirectory 'python/python.exe')}
 if($Downloader){$learningPrepare.Downloader=$Downloader}
 & (Join-Path $PSScriptRoot 'prepare-learning.ps1') @learningPrepare
-& (Join-Path $PSScriptRoot 'build-results.ps1') -OutputDirectory (Join-Path $output 'shared/ui') -GoExe $ResultGoExe
-& (Join-Path $PSScriptRoot 'build-diagrams.ps1') -OutputDirectory (Join-Path $output 'shared/ui') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $DiagramTargetDirectory
-& (Join-Path $PSScriptRoot 'build-selection.ps1') -OutputDirectory (Join-Path $output 'selection') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $SelectionTargetDirectory
-& (Join-Path $PSScriptRoot 'build-interconnect-lan.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -CargoExe $CargoExe -Test
-& (Join-Path $PSScriptRoot 'build-interconnect-transfer.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -GoExe $ResultGoExe -Test -TestDirectory (Join-Path (Split-Path -Parent $output) 'interconnect-transfer-tests')
-& (Join-Path $PSScriptRoot 'build-interconnect-peer.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -GoExe $ResultGoExe -Test -TestDirectory (Join-Path (Split-Path -Parent $output) 'interconnect-peer-tests')
+& (Join-Path $PSScriptRoot 'build-results.ps1') -OutputDirectory (Join-Path $output 'shared/ui') -GoExe $ResultGoExe -SkipTests:$CompileOnly
+& (Join-Path $PSScriptRoot 'build-diagrams.ps1') -OutputDirectory (Join-Path $output 'shared/ui') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $DiagramTargetDirectory -SkipTests:$CompileOnly
+& (Join-Path $PSScriptRoot 'build-selection.ps1') -OutputDirectory (Join-Path $output 'selection') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $SelectionTargetDirectory -SkipTests:$CompileOnly
+& (Join-Path $PSScriptRoot 'build-interconnect-lan.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -CargoExe $CargoExe -Test:(-not $CompileOnly)
+& (Join-Path $PSScriptRoot 'build-interconnect-transfer.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -GoExe $ResultGoExe -Test:(-not $CompileOnly) -TestDirectory (Join-Path (Split-Path -Parent $output) 'interconnect-transfer-tests')
+& (Join-Path $PSScriptRoot 'build-interconnect-peer.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -GoExe $ResultGoExe -Test:(-not $CompileOnly) -TestDirectory (Join-Path (Split-Path -Parent $output) 'interconnect-peer-tests')
 & (Join-Path $PSScriptRoot 'build-capture-regions.ps1') -OutputDirectory (Join-Path $output 'capture')
+if(-not $CompileOnly){
 $regionLifetimeProbe = Join-Path $root '_temp/build/capture-regions-lifetime-probe'
 & (Join-Path $PSScriptRoot 'build-capture-regions.ps1') -TestLifetime -OutputDirectory $regionLifetimeProbe
 Invoke-NativeCommand 'dotnet' @('tests/capture-unit/bin/Release/net10.0-windows/WinOne.Capture.Tests.dll','--region-helper-lifetime',(Join-Path $regionLifetimeProbe 'WinOne.Capture.Regions.LifetimeProbe.exe')) 'Capture region lifetime test failed'
+}
 if ($RunStartupProbes) {
     $previousRegionHelper = $env:WINONE_REGION_HELPER
     try {
@@ -126,9 +133,9 @@ $goSourcePackages=@('./apps/...','./build/...','./internal/...','./modules/...',
 # build-chat.ps1 -Test above already ran internal/chat completely, with the
 # bundled Pi worker; the sweep does not repeat it without that worker.
 $goTestPackages=@(& $GoExe list @goSourcePackages | Where-Object { $_ -ne 'winone/internal/chat' }); CheckExit
-& $GoExe test @goTestPackages; CheckExit
+if(-not $CompileOnly){& $GoExe test @goTestPackages; CheckExit}
 & $GoExe vet @goSourcePackages; CheckExit
-& (Join-Path $PSScriptRoot 'build-wintray.ps1') -GoExe $GoExe -OutputDirectory $output -RunConsoleChecks:$RunStartupProbes
+& (Join-Path $PSScriptRoot 'build-wintray.ps1') -GoExe $GoExe -OutputDirectory $output -RunConsoleChecks:$RunStartupProbes -SkipTests:$CompileOnly
 CheckExit
 # Host is a background application even when Task Scheduler launches it directly.
 & (Join-Path $PSScriptRoot 'build-host.ps1') -GoExe $GoExe -OutputDirectory $output -Version $buildVersion -UpdateRepository $UpdateRepository -ModulePublishers $moduleKeys; CheckExit
@@ -137,11 +144,11 @@ if($DesktopImplementation -eq 'Rust'){
     CheckExit
 }elseif($DesktopImplementation -eq 'MyGo'){
     # Every page is native; web views show only browser tabs and HTML previews.
-    & (Join-Path $PSScriptRoot 'build-desktop-mygo.ps1') -GoExe $ResultGoExe -OutputDirectory $output -Version $buildVersion -UpdateRepository $UpdateRepository
+    & (Join-Path $PSScriptRoot 'build-desktop-mygo.ps1') -GoExe $ResultGoExe -OutputDirectory $output -Version $buildVersion -UpdateRepository $UpdateRepository -SkipTests:$CompileOnly
     CheckExit
 }else{
     & $GoExe build -trimpath -tags desktop,production -ldflags "-H windowsgui -X main.updateRepository=$UpdateRepository -X main.updateVersion=$buildVersion" -o (Join-Path $output 'WinOne.exe') ./apps/desktop; CheckExit
 }
 # Keep these gates reusable after an interrupted native verification; do not
 # rebuild already-verified compilers/modules merely to rerun the final checks.
-& (Join-Path $PSScriptRoot 'verify-built-bundle.ps1') -BundleDirectory $output -Version $buildVersion -GoExe $GoExe -ResultGoExe $ResultGoExe -CargoExe $CargoExe -DesktopImplementation $DesktopImplementation -RunStartupProbes:$RunStartupProbes
+& (Join-Path $PSScriptRoot 'verify-built-bundle.ps1') -BundleDirectory $output -Version $buildVersion -GoExe $GoExe -ResultGoExe $ResultGoExe -CargoExe $CargoExe -DesktopImplementation $DesktopImplementation -RunStartupProbes:$RunStartupProbes -SkipRuntimeChecks:$CompileOnly

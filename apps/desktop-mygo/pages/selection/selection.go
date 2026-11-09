@@ -14,7 +14,6 @@
 package selection
 
 import (
-	"context"
 	"path/filepath"
 	"reflect"
 	"slices"
@@ -27,6 +26,7 @@ import (
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/shell"
+	"winone/desktopmygo/studybook"
 	"winone/desktopmygo/widgets"
 	"winone/internal/learning"
 )
@@ -40,8 +40,8 @@ func init() {
 const (
 	tabToolbar = iota
 	tabGeneral
-	tabShortcuts
 	tabLearning
+	tabShortcuts
 )
 
 // action is a toolbar action as the Host stores it
@@ -75,11 +75,7 @@ type preferences struct {
 type document = core.Preserved[preferences]
 
 type page struct {
-	learningBusy     bool
-	learningRead     int
-	learningCancel   context.CancelFunc
-	learningStatus   *learning.AnkiStatus
-	learningError    string
+	learningBook     *studybook.Book
 	learningSection  int
 	learningTemplate int
 	env              *core.Env
@@ -285,7 +281,29 @@ func (p *page) loadAI() {
 }
 
 func (p *page) View(c *ui.Context) {
-	p.env.Activity.Report(p.module, p.dirty(), p.working, p.load)
+	bookDirty, bookBusy := false, false
+	if p.learningBook != nil {
+		p.learningBook.SetVisible(p.tab == tabLearning && p.learningSection == 1)
+		bookDirty, bookBusy = p.learningBook.Dirty(), p.learningBook.Busy()
+	}
+	p.env.Activity.Report(p.module, p.dirty() || bookDirty, p.working || bookBusy, func() {
+		p.load()
+		if p.learningBook != nil {
+			p.learningBook.Discard()
+		}
+	})
+	if p.env.TakeIntents != nil {
+		for _, intent := range p.env.TakeIntents(p.module) {
+			if !intent.Requested {
+				continue
+			}
+			p.tab, p.learningSection = tabLearning, 1
+			if p.learningBook == nil {
+				p.learningBook = studybook.New(p.env)
+			}
+			p.learningBook.Navigate(intent.Options)
+		}
+	}
 	if p.shortcuts != nil && p.tab != tabShortcuts {
 		// Its draft lives on while another tab shows.
 		p.shortcuts.Report()
@@ -361,8 +379,8 @@ func (p *page) tabBar(c *ui.Context) {
 	tabs := []kit.Tab{
 		{Label: i18n.T("selection.toolbar"), Icon: icons.SlidersHorizontal},
 		{Label: i18n.T("selection.general"), Icon: icons.Settings},
-		{Label: i18n.T("shortcuts.title"), Icon: icons.SendHorizontal},
 		{Label: i18n.T("learning.title"), Icon: icons.BookOpen},
+		{Label: i18n.T("shortcuts.title"), Icon: icons.SendHorizontal},
 	}
 	if !p.quick {
 		kit.Tabs(c, &p.tab, tabs, p.env.RequestChange)
@@ -456,9 +474,8 @@ func appendPrograms(text string, paths []string) string {
 // Close implements core.Closer: leaving the page ends a shortcut
 // recording and drops answers still on their way.
 func (p *page) Close() {
-	p.learningRead++
-	if p.learningCancel != nil {
-		p.learningCancel()
+	if p.learningBook != nil {
+		p.learningBook.Close()
 	}
 	p.read++
 	p.aiRead++

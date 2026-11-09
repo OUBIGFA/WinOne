@@ -1,7 +1,8 @@
 param(
     [string]$GoExe='go',
     [string]$OutputDirectory='_temp/build/current',
-    [switch]$RunConsoleChecks
+    [switch]$RunConsoleChecks,
+    [switch]$SkipTests
 )
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
@@ -16,7 +17,7 @@ New-Item -ItemType Directory -Path $output -Force | Out-Null
 if($LASTEXITCODE -ne 0){throw 'WinTray WeChat source/license verification failed'}
 # The new tray collector needs both target-process architectures. ABI probes
 # load only the private test DLL; they do not hook the user's Explorer.
-& (Join-Path $PSScriptRoot 'build-wintray-native.ps1') -OutputDir (Join-Path $output 'native') -Test
+& (Join-Path $PSScriptRoot 'build-wintray-native.ps1') -OutputDir (Join-Path $output 'native') -Test:(-not $SkipTests)
 Push-Location $root
 try {
     & $GoExe run ./build/icon -out internal/branding/icon.ico -native-png internal/branding/logo-native.png
@@ -31,8 +32,8 @@ try {
     $testOptions=@();if($RunConsoleChecks){$testOptions=@('-count=1')}
     # WinTray is a nested Go module, so the root's ./modules/... sweep does
     # not discover its UI/startup packages. Verify the complete module here.
-    & $GoExe test ./... @testOptions
-    if($LASTEXITCODE -ne 0){throw 'WinTray regression checks failed'}
+    if(-not $SkipTests){& $GoExe test ./... @testOptions
+    if($LASTEXITCODE -ne 0){throw 'WinTray regression checks failed'}}
     & $GoExe vet ./...
     if($LASTEXITCODE -ne 0){throw 'WinTray vet failed'}
     $worker=Join-Path $output 'WinOne.WinTray.exe'
@@ -42,7 +43,7 @@ try {
     & $GoExe build -trimpath -ldflags '-H windowsgui' -o $recovery ./cmd/tray-recovery
     if($LASTEXITCODE -ne 0){throw 'WinTray recovery companion build failed'}
     $env:WINONE_WINTRAY_EXE=$worker
-    & $GoExe test ./worker -run '^TestWorker(PersistsAndRunsScript|CoexistsWithIndependentWinTray)$' -count=1 -timeout 35s
-    if($LASTEXITCODE -ne 0){throw 'Built WinTray worker integration failed'}
+    if(-not $SkipTests){& $GoExe test ./worker -run '^TestWorker(PersistsAndRunsScript|CoexistsWithIndependentWinTray)$' -count=1 -timeout 35s
+    if($LASTEXITCODE -ne 0){throw 'Built WinTray worker integration failed'}}
     Get-FileHash -LiteralPath $worker,$recovery -Algorithm SHA256
 } finally {Pop-Location;$env:WINTRAY_CONSOLE_LIVE_TEST=$oldConsole;$env:WINONE_WINTRAY_EXE=$oldWorker}

@@ -62,6 +62,12 @@
 
 ## 可重复使用的本地资源
 
+内置 Anki 26.09.4 的固定资源为 `dist/resources/sources/anki-26.09.4/`（锁定的 Python 包、官方源码、卡片渲染包与对应第三方源码归档）和 `dist/resources/runtimes/anki-26.09.4/`（校验后的库、渲染资源与源码）。版本、下载来源与摘要见 `third_party/anki/source.json`。用 `python build/prepare-anki.py --archives dist/resources/sources/anki-26.09.4 --output dist/resources/runtimes/anki-26.09.4` 准备；用 `python build/verify-anki.py --runtime dist/resources/runtimes/anki-26.09.4` 只读核对。对应第三方源码 ZIP 可由 `build/prepare-anki-sources.py` 根据锁定输入重现。
+
+统一构建经 `build/copy-anki.ps1` 将这些文件和 WinOne 适配代码放入 `shared/anki/`。Python 解释器复用包内 `capture/Ocr/python/`，不安装系统 Python，不调用外部 Anki。新增运行文件后用 `build/update-anki-inventory.py` 更新完整载荷清单；整个集合服务在首次使用时启动，空闲释放，数据在 WinOne 的学习档案中持久化。
+
+用户要求无人值守且不允许系统/联网测试时，可显式使用统一构建的 `-CompileOnly`。该选项保留编译、静态、来源、许可和包清单检查，关闭自动运行的交互和服务测试；不能把编译通过记为运行测试通过。学习功能另用 `build/test-learning-offline.ps1` 检查隔离真实引擎与原生组件。实际安装、真实账号同步、麦克风/扬声器与外部网络验证按用户授权单独进行。
+
 英语学习词库固定放在 `dist/resources/assets/learning/`，包括 `ecdict.db`、`manifest.json` 和 `ECDICT-LICENSE.txt`。锁定原始 CSV 保存在 `dist/resources/sources/ecdict-39cfb96/`，来源与摘要见 `third_party/learning-data.json`。`build/prepare-learning.ps1 -PythonExe <已有 Python> -Downloader <aria2-next>` 可校验或重建；统一构建自动调用，`build/copy-learning.ps1` 将验证过的三件套放入 `shared/ui/learning/`。数据与工具不入库，生成器、测试、许可和来源记录入库。缓存不一致时脚本报错，先在任务临时目录重建并验证，再更新固定资源。
 
 目前整理的复用资源位于 `dist/resources/`，不入库。这是现有调用位置，不是允许目录白名单。版本以源码锁、运行时清单和工具自报版本核对；更新这些资源时同步这里及 `build/use-local-resources.ps1`。

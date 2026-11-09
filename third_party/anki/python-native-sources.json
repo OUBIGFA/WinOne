@@ -1,0 +1,16 @@
+[
+  {
+    "name": "orjson",
+    "version": "3.13.0",
+    "file": "orjson-3.13.0.tar.gz",
+    "url": "https://files.pythonhosted.org/packages/f2/72/380b97dc45bd162d23afe5194721ef678d9eac7cfaa549fe2873f7f0a518/orjson-3.13.0.tar.gz",
+    "sha256": "d1de5eb04485110c5da4c657e49168995d55e076b1ce60f1a042e254f4186c4f"
+  },
+  {
+    "name": "rpds-py",
+    "version": "2026.9.1",
+    "file": "rpds_py-2026.9.1.tar.gz",
+    "url": "https://files.pythonhosted.org/packages/42/68/3bd46b8a5e01d3c2ebdf9c5e9497912e3fe0cde02bac21a7130ca866e403/rpds_py-2026.9.1.tar.gz",
+    "sha256": "4793ef7f78268b124b73fa933440f01d258bbae01de9fa53e9080c9ab0425a12"
+  }
+]

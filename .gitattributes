@@ -14,3 +14,6 @@ third_party/licenses/** -text -whitespace
 # Pinned Cindy imports keep upstream EOF blank lines for source digest checks.
 /apps/desktop/frontend/src/features/cindy/** -whitespace
 /modules/chat-pi/cindy/** -whitespace
+# Anki source and original notices are checked byte for byte.
+/third_party/anki/** -text -whitespace
+/third_party/anki-connect/** -text -whitespace

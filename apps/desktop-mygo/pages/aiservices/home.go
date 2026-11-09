@@ -65,15 +65,24 @@ func (p *page) homeView(c *ui.Context) {
 	if p.draft == nil {
 		return
 	}
-	ui.Column(c).FillWidth().Gap(12).Children(func() { kit.Heading(c, homeT("default")); p.defaultModelView(c) })
-	kit.Group(c, nil, homeT("connect"), homeT("connectHint"), func() {
-		ui.Row(c).FillWidth().Wrap().Gap(8).Padding(12, 16).Children(func() {
-			if kit.Button(c, homeT("api"), icons.Plus, false).Clicked() {
-				p.navigateTo(tabCustom)
-			}
-			if kit.GhostButton(c, homeT("account"), icons.UserPlus, false).Clicked() {
-				p.navigateTo(tabAccounts)
-			}
+	// Wrap against the content width, so the connection actions use the
+	// space beside the model picker and stack when either panel gets narrow.
+	ui.Row(c).FillWidth().Wrap().Gap(kit.GroupGap).AlignItems(ui.Start).Children(func() {
+		ui.Column(c).Basis(360).Grow(1).MinWidth(0).Gap(12).Children(func() {
+			kit.Heading(c, homeT("default"))
+			p.defaultModelView(c)
+		})
+		ui.Column(c).Basis(320).Grow(1).MinWidth(0).Children(func() {
+			kit.Group(c, nil, homeT("connect"), homeT("connectHint"), func() {
+				ui.Row(c).FillWidth().Wrap().Gap(8).Padding(12, 16).Children(func() {
+					if kit.Button(c, homeT("api"), icons.Plus, false).Clicked() {
+						p.navigateTo(tabCustom)
+					}
+					if kit.GhostButton(c, homeT("account"), icons.UserPlus, false).Clicked() {
+						p.navigateTo(tabAccounts)
+					}
+				})
+			})
 		})
 	})
 	kit.Row(c, i18n.T("usage.title"), homeT("usageHint"), func() {

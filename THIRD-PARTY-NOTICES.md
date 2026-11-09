@@ -54,6 +54,16 @@
 ShareX 的截图库与贴图代码用于独立 Capture Worker，相关许可保留在 `modules/capture/Licenses/`。录像选区线框复用其 `ScrollingCaptureRegionForm`，适配灰阶描边、不抢焦点和捕获排除；滚动截图继续使用其选区验证与拼接引擎。源码版本固定，下载缓存和编译产物不进入 Git；分发时提供对应源码与接入修改。
 
 OCR 生命周期仅调研参考 SnapFind（MIT，提交 `39416254c48aa7633254ecb79f890802fea2b401`），未引入其代码、模型或运行依赖。低内存说明与本机冷/热调用对照见 `docs/capture-experience-repair.md`；未采用会增加首次识别等待的闲置卸载策略。
+# Anki 与 AnkiConnect · 内置英语学习
+
+WinOne 使用官方 Anki 26.09.4，提交 `c06370ff4d87cb48d825f90cc83e02b9a4e84ecd`。原版 Python/Rust 引擎提供集合、笔记、卡片、FSRS/SM-2、导入导出、媒体、统计与同步。原版卡片渲染资源仅用于用户卡片的 HTML/CSS、图像遮挡和公式；外围操作界面由 MyGo 呈现。来源、下载摘要和依赖见 `third_party/anki/source.json`，原始许可与作者记录见该目录下 `LICENSE`、`CONTRIBUTORS`、`AGPL-3.0.txt` 及 Python、Rust、渲染资源许可清单。
+
+AnkiConnect 固定为 `c577b44aaadbd72dbc22c823f874a126213fe5c5`，GPL-3.0-or-later，版权 Alex Yatskov。原始插件完整保存在 `third_party/anki-connect/plugin/`，逐文件校验记录见 `source.json`。WinOne 复用数据服务、请求校验、兼容动作和媒体事务，用 `modules/anki/` 适配进程、档案与原生窗口，不自动执行原版 Qt 插件入口。第三方 Anki 插件需要逐项适配，不承诺任意 Qt 插件直接运行。
+
+组合分发继续遵守 WinOne 根 GPLv3，以及 GPLv3/AGPLv3 第 13 条和对应源码提供义务；不修改根许可证。安装包的 `shared/anki/source/` 提供锁定的 Anki 源码及第三方源码，`shared/anki/licenses/` 保留原始声明。WinOne 适配源码与统一构建入口随本仓库提供。部分上游归档漏带独立许可证全文时，保留精确提交的原始声明和标准许可全文，并在补充清单注明来源与选择，不编造版权文本。
+
+Anki 复用 WinOne 已分发的 CPython 3.13.12 和已核验 OCR 运行时中的公共 Python 包，其原始许可仍由 `third_party/ocr-ai-notices.json` 管理。Anki 额外依赖独立锁定，不修改系统 Python 或用户的 Anki 安装。
+
 # FileShare · 互联助手局域网服务
 
 FileShare 1.0.13, commit `7228df100f687cd33332331e9c590606623408e4`,

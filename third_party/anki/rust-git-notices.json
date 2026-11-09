@@ -1,0 +1,31 @@
+[
+  {
+    "name": "percent-encoding-iri",
+    "version": "2.2.0",
+    "repository": "https://github.com/ankitects/rust-url",
+    "revision": "bb930b8d089f4d30d7d19c12e54e66191de47b88",
+    "archiveSHA256": "023bfe9a593704e14a218ad86d90aa6f7e65b76b56c313ed684b8906e3e4e3c5",
+    "files": [
+      {
+        "path": "rust-notices/percent-encoding-iri-2.2.0--git--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "rust-url-bb930b8d089f4d30d7d19c12e54e66191de47b88/LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/percent-encoding-iri-2.2.0--git--LICENSE-MIT",
+        "sha256": "76e972ac0f4ddb116e86e10100132a783931a596e7b9872eaa31be15cd4d751d",
+        "sourcePath": "rust-url-bb930b8d089f4d30d7d19c12e54e66191de47b88/LICENSE-MIT"
+      },
+      {
+        "path": "rust-notices/percent-encoding-iri-2.2.0--git--form_urlencoded--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "rust-url-bb930b8d089f4d30d7d19c12e54e66191de47b88/form_urlencoded/LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/percent-encoding-iri-2.2.0--git--form_urlencoded--LICENSE-MIT",
+        "sha256": "20c7855c364d57ea4c97889a5e8d98470a9952dade37bd9248b9a54431670e5e",
+        "sourcePath": "rust-url-bb930b8d089f4d30d7d19c12e54e66191de47b88/form_urlencoded/LICENSE-MIT"
+      }
+    ]
+  }
+]

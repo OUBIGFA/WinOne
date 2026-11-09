@@ -40,7 +40,7 @@ func ValidOptionalID(value string) bool {
 		return false
 	}
 	switch publisher {
-	case "timed-power", "capture", "always-on-top", "wintray", "selection", "quick-assistant", "stroke", "directory-links", "chat", "results", "settings", "modules", "shortcuts", "residency", "profiles", "application", "updates", "packages", "ai":
+	case "timed-power", "capture", "always-on-top", "wintray", "selection", "quick-assistant", "stroke", "directory-links", "chat", "results", "settings", "modules", "shortcuts", "residency", "profiles", "application", "updates", "packages", "ai", "learning":
 		return false
 	}
 	return true

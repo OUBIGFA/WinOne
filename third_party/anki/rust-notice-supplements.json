@@ -1,0 +1,547 @@
+[
+  {
+    "name": "async-compression",
+    "version": "0.4.30",
+    "repository": "https://github.com/Nullus157/async-compression",
+    "revision": "74f5eb11ace53716be9298b19a59e2d4c5953eeb",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "52e5d5cb5136a77437ea22581c9b60792366c06418597a9b310fb3de8ff12c34",
+    "files": [
+      {
+        "path": "rust-notices/async-compression-0.4.30--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/async-compression-0.4.30--upstream--LICENSE-MIT",
+        "sha256": "88d1e3160df48926ad3310a8ec5699b502889565908f1be7e77cd21282c7a709",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "compression-codecs",
+    "version": "0.4.30",
+    "repository": "https://github.com/Nullus157/async-compression",
+    "revision": "74f5eb11ace53716be9298b19a59e2d4c5953eeb",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "52e5d5cb5136a77437ea22581c9b60792366c06418597a9b310fb3de8ff12c34",
+    "files": [
+      {
+        "path": "rust-notices/compression-codecs-0.4.30--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/compression-codecs-0.4.30--upstream--LICENSE-MIT",
+        "sha256": "88d1e3160df48926ad3310a8ec5699b502889565908f1be7e77cd21282c7a709",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "compression-core",
+    "version": "0.4.29",
+    "repository": "https://github.com/Nullus157/async-compression",
+    "revision": "44383cee94fec7276c0dc08dd73f8eb4a93b80ba",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "109a9243c8f49a09831e2296fe391d5a42d87e6f39d5be54da574bc441f8600f",
+    "files": [
+      {
+        "path": "rust-notices/compression-core-0.4.29--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/compression-core-0.4.29--upstream--LICENSE-MIT",
+        "sha256": "88d1e3160df48926ad3310a8ec5699b502889565908f1be7e77cd21282c7a709",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "difflib",
+    "version": "0.4.0",
+    "repository": "https://github.com/DimaKudosh/difflib",
+    "revision": "f035fb8e656f27119e23eca9d5b996df14f3885e",
+    "evidence": "Pinned upstream source; historical archive contains no VCS metadata. Original package source compared separately. All src/ files match the published crate byte for byte.",
+    "archiveSHA256": "44b22338d07873669a21f9738a085f2edbdda63892fd1c4bd9025d26af8ff6d3",
+    "files": [
+      {
+        "path": "rust-notices/difflib-0.4.0--upstream--LICENSE",
+        "sha256": "6725d1437fc6c77301f2ff0e7d52914cf4f9509213e1078dc77d9356dbe6eac5",
+        "sourcePath": "LICENSE"
+      }
+    ]
+  },
+  {
+    "name": "fluent-langneg",
+    "version": "0.13.0",
+    "repository": "https://github.com/projectfluent/fluent-langneg-rs",
+    "revision": "29007f8d453b931b79544566b1037865bfa7fb12",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "0b5d1541edf0256c0b3cc48aa91e7c26a1a54d7f45092dca6c859cabbe860746",
+    "files": [
+      {
+        "path": "rust-notices/fluent-langneg-0.13.0--upstream--LICENSE",
+        "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+        "sourcePath": "LICENSE"
+      }
+    ]
+  },
+  {
+    "name": "htmlescape",
+    "version": "0.3.1",
+    "repository": "https://github.com/veddan/rust-htmlescape",
+    "revision": "1699b539179798e705ad8464128492a0a0092876",
+    "evidence": "Pinned upstream source; historical archive contains no VCS metadata. Original package source compared separately. Original Cargo.toml explicitly offers Apache-2.0 / MIT / MPL-2.0; Apache-2.0 selected. Upstream ships no license text; unmodified standard text obtained from SPDX, not fabricated. All src/ files match the published crate byte for byte.",
+    "archiveSHA256": "cca77176dc9af4e0bd6abdf8e3f97c3c0076cb92a679b00ce564d08189492131",
+    "files": [
+      {
+        "path": "rust-notices/htmlescape-0.3.1--upstream--Cargo.toml",
+        "sha256": "daad7e32ff2b04d0a74c3c9364a7c209f9b5a71f60193ca3c393f8fa6cc0dd7f",
+        "sourcePath": "Cargo.toml"
+      },
+      {
+        "path": "rust-notices/htmlescape-0.3.1--upstream--Apache-2.0.txt",
+        "sha256": "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff",
+        "sourcePath": "Apache-2.0.txt"
+      }
+    ]
+  },
+  {
+    "name": "intl_pluralrules",
+    "version": "7.0.2",
+    "repository": "https://github.com/zbraniecki/pluralrules",
+    "revision": "d0715d5b7cca72e228d6e6c4de154bd30dfdd06a",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "3bae6f33b807841191383261b7615323a3969e713118d09a5525b368503186c1",
+    "files": [
+      {
+        "path": "rust-notices/intl_pluralrules-7.0.2--upstream--intl_pluralrules--LICENSE-APACHE",
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+        "sourcePath": "intl_pluralrules\\LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/intl_pluralrules-7.0.2--upstream--intl_pluralrules--LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "sourcePath": "intl_pluralrules\\LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "phf",
+    "version": "0.10.1",
+    "repository": "https://github.com/sfackler/rust-phf",
+    "revision": "bed01538ae576876f11189d541875d228acef9e8",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "399a04382f939b6c4792443fe71360bbe9f2f576fa1c5c2a65676271bc0d7561",
+    "files": [
+      {
+        "path": "rust-notices/phf-0.10.1--upstream--LICENSE",
+        "sha256": "d8870d5e2ab20fc50915b711c5aa7588131c9abcc1bcb980da1efd7486522a46",
+        "sourcePath": "LICENSE"
+      }
+    ]
+  },
+  {
+    "name": "phf_codegen",
+    "version": "0.10.0",
+    "repository": "https://github.com/sfackler/rust-phf",
+    "revision": "3ea14b2166553ad6e7b9afe7244144f5d661b6c6",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "17bb222b81ed77faffe1dbcfe7803c22ea0f98631d62b4b0bb5e62f452b1fcb8",
+    "files": [
+      {
+        "path": "rust-notices/phf_codegen-0.10.0--upstream--LICENSE",
+        "sha256": "d8870d5e2ab20fc50915b711c5aa7588131c9abcc1bcb980da1efd7486522a46",
+        "sourcePath": "LICENSE"
+      }
+    ]
+  },
+  {
+    "name": "phf_generator",
+    "version": "0.10.0",
+    "repository": "https://github.com/sfackler/rust-phf",
+    "revision": "3ea14b2166553ad6e7b9afe7244144f5d661b6c6",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "17bb222b81ed77faffe1dbcfe7803c22ea0f98631d62b4b0bb5e62f452b1fcb8",
+    "files": [
+      {
+        "path": "rust-notices/phf_generator-0.10.0--upstream--LICENSE",
+        "sha256": "d8870d5e2ab20fc50915b711c5aa7588131c9abcc1bcb980da1efd7486522a46",
+        "sourcePath": "LICENSE"
+      }
+    ]
+  },
+  {
+    "name": "phf_shared",
+    "version": "0.10.0",
+    "repository": "https://github.com/sfackler/rust-phf",
+    "revision": "3ea14b2166553ad6e7b9afe7244144f5d661b6c6",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "17bb222b81ed77faffe1dbcfe7803c22ea0f98631d62b4b0bb5e62f452b1fcb8",
+    "files": [
+      {
+        "path": "rust-notices/phf_shared-0.10.0--upstream--LICENSE",
+        "sha256": "d8870d5e2ab20fc50915b711c5aa7588131c9abcc1bcb980da1efd7486522a46",
+        "sourcePath": "LICENSE"
+      }
+    ]
+  },
+  {
+    "name": "priority-queue",
+    "version": "2.7.0",
+    "repository": "https://github.com/garro95/priority-queue",
+    "revision": "0c76fb8fe75e4457f16f8e6c8e86508d1a89ba1d",
+    "evidence": "crate .cargo_vcs_info.json Original Cargo.toml explicitly offers LGPL-3.0-or-later OR MPL-2.0; MPL-2.0 selected. Upstream ships no license text; unmodified standard text obtained from SPDX. Corresponding source archive accompanies the distribution.",
+    "archiveSHA256": "5a409fccadb748f5ccc6f08960d85bf0ec824c718bbf0f6bae5751cd63807058",
+    "files": [
+      {
+        "path": "rust-notices/priority-queue-2.7.0--upstream--Cargo.toml",
+        "sha256": "f6d4f554e43a2c7e7f6eb4e799db81864a9a62d45d9b67a325dca944c160efbc",
+        "sourcePath": "Cargo.toml"
+      },
+      {
+        "path": "rust-notices/priority-queue-2.7.0--upstream--MPL-2.0.txt",
+        "sha256": "66a3107d5ad6a058aab753eaac2047ccb2ed0e39465dd0fe5844da3e300d5172",
+        "sourcePath": "MPL-2.0.txt"
+      }
+    ]
+  },
+  {
+    "name": "prost-reflect",
+    "version": "0.14.7",
+    "repository": "https://github.com/andrewhickman/prost-reflect",
+    "revision": "71c4c98d7565dfc30f76ebc7daaa139a443419e6",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "d24539ee43aff3d579f9840fef7399cc6a5c27d419bb2e333a0343c5cb63b5ce",
+    "files": [
+      {
+        "path": "rust-notices/prost-reflect-0.14.7--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/prost-reflect-0.14.7--upstream--LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "r-efi",
+    "version": "5.3.0",
+    "repository": "https://github.com/r-efi/r-efi",
+    "revision": "97b55bed1c2c91dcbf787674849f05337ff80b33",
+    "evidence": "crate .cargo_vcs_info.json Original Cargo.toml and AUTHORS preserved; Apache-2.0 selected from the offered alternatives. Standard unmodified Apache text from SPDX.",
+    "archiveSHA256": "e509e16b12d3ce3d5cb74167c3f72d25406e282795af8942818c70bb8cd36bec",
+    "files": [
+      {
+        "path": "rust-notices/r-efi-5.3.0--upstream--Cargo.toml",
+        "sha256": "57b6d9b9a1b6524f6b4dcc1dd24970ac03e6959786a6cfedaec9ba52878b4d3e",
+        "sourcePath": "Cargo.toml"
+      },
+      {
+        "path": "rust-notices/r-efi-5.3.0--upstream--Apache-2.0.txt",
+        "sha256": "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff",
+        "sourcePath": "Apache-2.0.txt"
+      },
+      {
+        "path": "rust-notices/r-efi-5.3.0--upstream--AUTHORS",
+        "sha256": "ff92bed461f50338dd703a9ba9aee496a425957873df1d91192776e4bdf5dda7",
+        "sourcePath": "AUTHORS"
+      }
+    ]
+  },
+  {
+    "name": "r-efi",
+    "version": "6.0.0",
+    "repository": "https://github.com/r-efi/r-efi",
+    "revision": "7e1b0322d31d625f81a5656096330934f9cd835d",
+    "evidence": "crate .cargo_vcs_info.json Original Cargo.toml and AUTHORS preserved; Apache-2.0 selected from the offered alternatives. Standard unmodified Apache text from SPDX.",
+    "archiveSHA256": "c4c0ce4a68412706de70ba2b5711e0f521aee82f6e72fdc1a6e0a7a89dc017cf",
+    "files": [
+      {
+        "path": "rust-notices/r-efi-6.0.0--upstream--Cargo.toml",
+        "sha256": "b8e89c393831c2161b6d390bd40422910ac34f02903ad39edd85ec38d4513fef",
+        "sourcePath": "Cargo.toml"
+      },
+      {
+        "path": "rust-notices/r-efi-6.0.0--upstream--Apache-2.0.txt",
+        "sha256": "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff",
+        "sourcePath": "Apache-2.0.txt"
+      },
+      {
+        "path": "rust-notices/r-efi-6.0.0--upstream--AUTHORS",
+        "sha256": "d027e91dbc9cdbb2f1190068e498bd6b61cff022b6a032b191021ba658d96111",
+        "sourcePath": "AUTHORS"
+      }
+    ]
+  },
+  {
+    "name": "unic-char-property",
+    "version": "0.9.0",
+    "repository": "https://github.com/open-i18n/rust-unic",
+    "revision": "5878605364af97a3358368a6eaef02104af2e016",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "cbe169039dc0fb4098341e90af98e1f58919e96186e185a3e56492e6c794d497",
+    "files": [
+      {
+        "path": "rust-notices/unic-char-property-0.9.0--upstream--COPYRIGHT.md",
+        "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+        "sourcePath": "COPYRIGHT.md"
+      },
+      {
+        "path": "rust-notices/unic-char-property-0.9.0--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/unic-char-property-0.9.0--upstream--LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "unic-char-range",
+    "version": "0.9.0",
+    "repository": "https://github.com/open-i18n/rust-unic",
+    "revision": "5878605364af97a3358368a6eaef02104af2e016",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "cbe169039dc0fb4098341e90af98e1f58919e96186e185a3e56492e6c794d497",
+    "files": [
+      {
+        "path": "rust-notices/unic-char-range-0.9.0--upstream--COPYRIGHT.md",
+        "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+        "sourcePath": "COPYRIGHT.md"
+      },
+      {
+        "path": "rust-notices/unic-char-range-0.9.0--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/unic-char-range-0.9.0--upstream--LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "unic-common",
+    "version": "0.9.0",
+    "repository": "https://github.com/open-i18n/rust-unic",
+    "revision": "5878605364af97a3358368a6eaef02104af2e016",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "cbe169039dc0fb4098341e90af98e1f58919e96186e185a3e56492e6c794d497",
+    "files": [
+      {
+        "path": "rust-notices/unic-common-0.9.0--upstream--COPYRIGHT.md",
+        "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+        "sourcePath": "COPYRIGHT.md"
+      },
+      {
+        "path": "rust-notices/unic-common-0.9.0--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/unic-common-0.9.0--upstream--LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "unic-ucd-category",
+    "version": "0.9.0",
+    "repository": "https://github.com/open-i18n/rust-unic",
+    "revision": "8a6ce83063d90b91ae2ce59eddb803edd393fca9",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "e37498a6f04f743b2f0f0f5a447e662bb651c39bc25c120df3cbc21baacf9268",
+    "files": [
+      {
+        "path": "rust-notices/unic-ucd-category-0.9.0--upstream--COPYRIGHT.md",
+        "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+        "sourcePath": "COPYRIGHT.md"
+      },
+      {
+        "path": "rust-notices/unic-ucd-category-0.9.0--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/unic-ucd-category-0.9.0--upstream--LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "unic-ucd-version",
+    "version": "0.9.0",
+    "repository": "https://github.com/open-i18n/rust-unic",
+    "revision": "5878605364af97a3358368a6eaef02104af2e016",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "cbe169039dc0fb4098341e90af98e1f58919e96186e185a3e56492e6c794d497",
+    "files": [
+      {
+        "path": "rust-notices/unic-ucd-version-0.9.0--upstream--COPYRIGHT.md",
+        "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+        "sourcePath": "COPYRIGHT.md"
+      },
+      {
+        "path": "rust-notices/unic-ucd-version-0.9.0--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/unic-ucd-version-0.9.0--upstream--LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "valuable",
+    "version": "0.1.1",
+    "repository": "https://github.com/tokio-rs/valuable",
+    "revision": "9efc29b6e58cef28f6566a47aa7e142a55fead77",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "3414d7860b88c946b1ac6136bb2b9cc3055a16a2bd243d1caac2b23723e937e0",
+    "files": [
+      {
+        "path": "rust-notices/valuable-0.1.1--upstream--LICENSE",
+        "sha256": "ed60d479b8fd1f64e9cbc3de449a16a53ac1b3d1b6aeb9bf9d190a8e93061b44",
+        "sourcePath": "LICENSE"
+      }
+    ]
+  },
+  {
+    "name": "wasip3",
+    "version": "0.4.0+wasi-0.3.0-rc-2026-01-06",
+    "repository": "https://github.com/bytecodealliance/wasi-rs",
+    "revision": "06ce201370fcde0d1b0d47cac8ecb1b0b312c9f9",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "42a0104ccf907a01e841e79e54f99a8e3d09205a5bd3f0bcebccde5ff1da53ff",
+    "files": [
+      {
+        "path": "rust-notices/wasip3-0.4.0+wasi-0.3.0-rc-2026-01-06--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/wasip3-0.4.0+wasi-0.3.0-rc-2026-01-06--upstream--LICENSE-Apache-2.0_WITH_LLVM-exception",
+        "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
+        "sourcePath": "LICENSE-Apache-2.0_WITH_LLVM-exception"
+      },
+      {
+        "path": "rust-notices/wasip3-0.4.0+wasi-0.3.0-rc-2026-01-06--upstream--LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "wasm-encoder",
+    "version": "0.244.0",
+    "repository": "https://github.com/bytecodealliance/wasm-tools",
+    "revision": "d4e317f22c3bace76cb3205003bcc34b4929037d",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "efe9f9afb0393754ffbbb5c047f8c394781509e37ac46f2a88e6b11066ed9cf2",
+    "files": [
+      {
+        "path": "rust-notices/wasm-encoder-0.244.0--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/wasm-encoder-0.244.0--upstream--LICENSE-Apache-2.0_WITH_LLVM-exception",
+        "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
+        "sourcePath": "LICENSE-Apache-2.0_WITH_LLVM-exception"
+      },
+      {
+        "path": "rust-notices/wasm-encoder-0.244.0--upstream--LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "wasmparser",
+    "version": "0.244.0",
+    "repository": "https://github.com/bytecodealliance/wasm-tools",
+    "revision": "d4e317f22c3bace76cb3205003bcc34b4929037d",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "efe9f9afb0393754ffbbb5c047f8c394781509e37ac46f2a88e6b11066ed9cf2",
+    "files": [
+      {
+        "path": "rust-notices/wasmparser-0.244.0--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/wasmparser-0.244.0--upstream--LICENSE-Apache-2.0_WITH_LLVM-exception",
+        "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
+        "sourcePath": "LICENSE-Apache-2.0_WITH_LLVM-exception"
+      },
+      {
+        "path": "rust-notices/wasmparser-0.244.0--upstream--LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "wit-component",
+    "version": "0.244.0",
+    "repository": "https://github.com/bytecodealliance/wasm-tools",
+    "revision": "d4e317f22c3bace76cb3205003bcc34b4929037d",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "efe9f9afb0393754ffbbb5c047f8c394781509e37ac46f2a88e6b11066ed9cf2",
+    "files": [
+      {
+        "path": "rust-notices/wit-component-0.244.0--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/wit-component-0.244.0--upstream--LICENSE-Apache-2.0_WITH_LLVM-exception",
+        "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
+        "sourcePath": "LICENSE-Apache-2.0_WITH_LLVM-exception"
+      },
+      {
+        "path": "rust-notices/wit-component-0.244.0--upstream--LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  },
+  {
+    "name": "wit-parser",
+    "version": "0.244.0",
+    "repository": "https://github.com/bytecodealliance/wasm-tools",
+    "revision": "d4e317f22c3bace76cb3205003bcc34b4929037d",
+    "evidence": "crate .cargo_vcs_info.json",
+    "archiveSHA256": "efe9f9afb0393754ffbbb5c047f8c394781509e37ac46f2a88e6b11066ed9cf2",
+    "files": [
+      {
+        "path": "rust-notices/wit-parser-0.244.0--upstream--LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "sourcePath": "LICENSE-APACHE"
+      },
+      {
+        "path": "rust-notices/wit-parser-0.244.0--upstream--LICENSE-Apache-2.0_WITH_LLVM-exception",
+        "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
+        "sourcePath": "LICENSE-Apache-2.0_WITH_LLVM-exception"
+      },
+      {
+        "path": "rust-notices/wit-parser-0.244.0--upstream--LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "sourcePath": "LICENSE-MIT"
+      }
+    ]
+  }
+]

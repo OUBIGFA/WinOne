@@ -55,6 +55,10 @@ func (f *fakeHost) handle(method string, params json.RawMessage) (any, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	switch method {
+	case "learning.events":
+		return map[string]any{"sequence": 0, "events": []any{}}, nil
+	case "learning.call":
+		return map[string]any{"decks": []any{}, "noteTypes": []any{}, "fsrs": true, "undo": "", "redo": ""}, nil
 	case f.module + ".settings.get":
 		if f.failGet != nil {
 			return nil, f.failGet

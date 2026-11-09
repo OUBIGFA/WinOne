@@ -1,13 +1,12 @@
 package selection
 
 import (
-	"context"
-
 	"github.com/egoist/mygo/ui"
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
+	"winone/desktopmygo/studybook"
 	"winone/internal/learning"
 )
 
@@ -19,58 +18,17 @@ func (p *page) learningAction() *action {
 	}
 	return nil
 }
-func (p *page) checkLearningAnki() {
-	if p.learningBusy {
-		return
-	}
-	p.learningRead++
-	owner := p.learningRead
-	p.learningBusy = true
-	p.learningError = ""
-	ctx, cancel := context.WithCancel(context.Background())
-	p.learningCancel = cancel
-	core.Go(p.env, func() (learning.AnkiStatus, error) { defer cancel(); return (learning.Anki{}).Status(ctx) }, func(status learning.AnkiStatus, err error) {
-		if owner != p.learningRead {
-			return
-		}
-		p.learningBusy = false
-		p.learningCancel = nil
-		if err != nil {
-			p.learningStatus = nil
-			p.learningError = err.Error()
-			return
-		}
-		p.learningStatus = &status
-	})
-}
-func (p *page) navigateLearning(deck string, review bool) {
-	if p.learningBusy {
-		return
-	}
-	p.learningBusy = true
-	p.learningRead++
-	owner := p.learningRead
-	ctx, cancel := context.WithCancel(context.Background())
-	p.learningCancel = cancel
-	core.Do(p.env, func() error {
-		defer cancel()
-		if review {
-			return (learning.Anki{}).Review(ctx, deck)
-		}
-		return (learning.Anki{}).Browse(ctx, deck, "")
-	}, func(err error) {
-		if owner != p.learningRead {
-			return
-		}
-		p.learningBusy = false
-		p.learningCancel = nil
-		if err != nil {
-			p.learningError = err.Error()
-		}
-	})
-}
 func (p *page) learningPage(c *ui.Context) {
+	kit.Help(c, i18n.T("learning.intro"))
+	kit.SubTabs(c, &p.learningSection, []string{i18n.T("learning.explanation"), i18n.T("learning.anki"), i18n.T("learning.templates")}, p.env.RequestChange)
 	a := p.learningAction()
+	if a == nil && p.learningSection == 1 {
+		if p.learningBook == nil {
+			p.learningBook = studybook.New(p.env)
+		}
+		p.learningBook.View(c)
+		return
+	}
 	if a == nil {
 		kit.Help(c, i18n.T("learning.missing"))
 		if kit.Button(c, i18n.T("learning.restore"), icons.BookOpen, false).Disabled(len(p.actions()) >= maxActions).Clicked() {
@@ -84,8 +42,6 @@ func (p *page) learningPage(c *ui.Context) {
 		return
 	}
 	o := a.Learning
-	kit.Help(c, i18n.T("learning.intro"))
-	kit.SubTabs(c, &p.learningSection, []string{i18n.T("learning.explanation"), i18n.T("learning.anki"), i18n.T("learning.templates")}, nil)
 	if p.learningSection == 0 {
 		kit.Group(c, icons.BookOpen, i18n.T("learning.explanation"), "", func() {
 			ui.Column(c).FillWidth().Padding(16).Gap(16).Children(func() {
@@ -104,53 +60,25 @@ func (p *page) learningPage(c *ui.Context) {
 	if p.learningSection == 1 {
 		kit.Group(c, icons.BookOpen, i18n.T("learning.anki"), "", func() {
 			ui.Column(c).FillWidth().Padding(16).Gap(16).Children(func() {
-				ui.Row(c).FillWidth().Wrap().Gap(8).AlignItems(ui.Center).Children(func() {
-					if kit.Button(c, i18n.T("learning.check"), icons.RefreshCw, p.learningBusy).Disabled(p.learningBusy).Clicked() {
-						p.checkLearningAnki()
-					}
-					if p.learningStatus != nil {
-						kit.Help(c, i18n.T("learning.connected"))
-					}
-				})
-				if p.learningError != "" {
-					kit.Notice(c, kit.Failure, "", p.learningError, nil)
-				}
 				ui.Field(c, i18n.T("learning.deck"), func() { ui.TextInput(c, &o.Deck).FillWidth() }).FillWidth()
-				if p.learningStatus != nil && len(p.learningStatus.Decks) > 0 {
-					ui.Field(c, i18n.T("learning.existingDeck"), func() {
-						var options []kit.SelectOption
-						for _, deck := range p.learningStatus.Decks {
-							options = append(options, kit.SelectOption{Value: deck, Label: deck})
-						}
-						kit.Select(c, &o.Deck, options)
-					}).FillWidth()
+				if p.learningBook != nil {
+					var decks []kit.SelectOption
+					for _, name := range p.learningBook.DeckNames() {
+						decks = append(decks, kit.SelectOption{Value: name, Label: name})
+					}
+					if len(decks) > 0 {
+						ui.Field(c, i18n.T("learning.existingDeck"), func() { kit.Select(c, &o.Deck, decks) }).FillWidth()
+					}
 				}
 				ui.Field(c, i18n.T("learning.cardMode"), func() {
 					kit.Select(c, &o.CardMode, []kit.SelectOption{{Value: "recall", Label: i18n.T("learning.recall")}, {Value: "typing", Label: i18n.T("learning.typing")}})
 				}).FillWidth()
-				ui.Row(c).FillWidth().Wrap().Gap(8).Children(func() {
-					if kit.Button(c, i18n.T("learning.browse"), icons.BookOpen, false).Disabled(p.learningStatus == nil || p.learningBusy).Clicked() {
-						p.navigateLearning(o.Deck, false)
-					}
-					if kit.Button(c, i18n.T("learning.review"), icons.Play, false).Disabled(p.learningStatus == nil || p.learningBusy).Clicked() {
-						p.navigateLearning(o.Deck, true)
-					}
-				})
-				kit.Help(c, i18n.T("learning.install"))
-				ui.Row(c).FillWidth().Wrap().Gap(8).Children(func() {
-					if ui.Button(c, i18n.T("learning.downloadAnki")).Clicked() {
-						c.Services().OpenURL(learning.AnkiDownloadURL)
-					}
-					if ui.Button(c, i18n.T("learning.installAddon")).Clicked() {
-						c.Services().OpenURL(learning.AnkiInstallURL)
-					}
-					if ui.Button(c, i18n.T("learning.fsrs")).Clicked() {
-						c.Services().OpenURL(learning.FSRSURL)
-					}
-				})
-				kit.Help(c, i18n.T("learning.fsrsHint"))
 			})
 		})
+		if p.learningBook == nil {
+			p.learningBook = studybook.New(p.env)
+		}
+		p.learningBook.View(c)
 	}
 	if p.learningSection == 2 {
 		kit.Group(c, icons.FileText, i18n.T("learning.templates"), i18n.T("learning.templatesHint"), func() {

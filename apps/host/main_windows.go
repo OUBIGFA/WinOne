@@ -421,6 +421,8 @@ func run() (runErr error) {
 		return value.Theme, applicationLanguage(value.Language)
 	})
 	resultWindows.ai.captureEnabled = func() bool { return store.RecoveryError() == nil && gates["capture"].Enabled() }
+	closeLearning := registerLearning(service, ctx, *data, executable, *pipe, resultWindows)
+	defer func() { runErr = errors.Join(runErr, closeLearning()) }()
 	refreshCaptureReadiness = resultWindows.ai.refreshLocalOCRStandby
 	// Start local models as soon as configuration is available, alongside the
 	// rest of Host startup rather than behind WinTray/first capture startup.

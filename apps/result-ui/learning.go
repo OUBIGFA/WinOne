@@ -275,19 +275,25 @@ func (c *Controller) startStudy(action resultwindow.SelectionAction, text string
 		})
 	}()
 }
+func (c *Controller) learningAnki() learning.Anki {
+	return learning.Anki{Call: func(ctx context.Context, action string, params, out any) error {
+		return c.Client.Call(ctx, "learning.call", map[string]any{"id": c.Initial.ID, "action": action, "params": params}, out)
+	}}
+}
+
 func (c *Controller) checkStudyAnki(s *study) {
 	if s.Checking {
 		return
 	}
 	s.Checking = true
 	go func() {
-		_, err := (learning.Anki{}).Status(c.ctx)
+		err := c.Client.Call(c.ctx, "learning.ready", map[string]string{"id": c.Initial.ID}, nil)
 		c.update(func() {
 			s.Checking = false
 			s.Connected = err == nil
 			s.AnkiError = ""
 			if err != nil {
-				s.AnkiError = c.Panel.T("请打开 Anki 并安装 AnkiConnect（2055492159），然后重新检测。", "Open Anki with AnkiConnect (2055492159), then check again.")
+				s.AnkiError = err.Error()
 			}
 		})
 	}()
@@ -373,9 +379,9 @@ func (c *Controller) studyNavigate(s *study, review bool, word string) {
 	go func() {
 		var err error
 		if review {
-			err = (learning.Anki{}).Review(c.ctx, s.Options.Deck)
+			err = c.learningAnki().Review(c.ctx, s.Options.Deck)
 		} else {
-			err = (learning.Anki{}).Browse(c.ctx, s.Options.Deck, word)
+			err = c.learningAnki().Browse(c.ctx, s.Options.Deck, word)
 		}
 		c.update(func() {
 			s.Working = false
@@ -412,7 +418,7 @@ func (c *Controller) addStudyNotes(s *study, indices []int) {
 			if kind := learning.Classify(note.Word); kind == learning.Word || kind == learning.Phrase {
 				audio, audioErr = c.studyAudio(ctx, s, note.Word, s.Options.Accent)
 			}
-			added, err := (learning.Anki{}).Add(ctx, s.Options, note, audio)
+			added, err := c.learningAnki().Add(ctx, s.Options, note, audio)
 			if err != nil {
 				failed++
 			} else if audioErr != nil && !added.Existing {

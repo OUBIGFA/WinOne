@@ -7,7 +7,8 @@ param(
  [string]$ResultGoExe='go',
  [string]$CargoExe='cargo',
  [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='MyGo',
- [switch]$RunStartupProbes
+ [switch]$RunStartupProbes,
+ [switch]$SkipRuntimeChecks
 )
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
@@ -26,9 +27,11 @@ try{
  $env:WINONE_HOST_EXE=Join-Path $output 'WinOne.Host.exe'
  $env:WINONE_CAPTURE_EXE=Join-Path $output 'capture/WinOne.Capture.exe'
  if($RunStartupProbes){$env:WINONE_PROBE_BUNDLE=$output;$env:WINONE_DESKTOP_PROBE_EXE=Join-Path $output 'WinOne.exe';$env:WINONE_NATIVE_HOTKEY_TEST='1'}
+ if(-not $SkipRuntimeChecks){
  & $GoExe test ./internal/startupprobe -count=1; CheckExit
  & $GoExe test ./apps/host -run '^TestNativeConfigurationProbe$|^TestNativeRecordingReleasesAndRestoresRegistration$' -count=1; CheckExit
  & $GoExe test ./tests/integration -count=1; CheckExit
+ }
  $currentVersion=(Get-Content -LiteralPath (Join-Path $root 'apps/desktop/frontend/package.json') -Raw -Encoding UTF8|ConvertFrom-Json).version
  if($currentVersion -ne $Version){throw 'Version changed during build; rebuild before packaging'}
  & node (Join-Path $root 'tests/notices/frontend.test.mjs'); CheckExit
@@ -36,6 +39,7 @@ try{
  & (Join-Path $PSScriptRoot 'verify-ocr-ai-notices.ps1') -GoExe $GoExe -BundleDirectory $output
  & (Join-Path $PSScriptRoot 'verify-result-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output
  & (Join-Path $PSScriptRoot 'copy-learning.ps1') -OutputDirectory (Join-Path $output 'shared/ui/learning') -ResourceDirectory (Join-Path $output 'shared/ui/learning') -VerifyOnly
+ & (Join-Path $output 'capture/Ocr/python/python.exe') (Join-Path $PSScriptRoot 'verify-anki.py') --runtime (Join-Path $output 'shared/anki'); CheckExit
  & (Join-Path $PSScriptRoot 'verify-interconnect-transfer-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output
  & (Join-Path $PSScriptRoot 'verify-interconnect-transfer-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output -Runtime peer
  foreach($runtime in @('diagram','selection','recording','search')){& (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime $runtime}
@@ -45,7 +49,8 @@ try{
  & node (Join-Path $PSScriptRoot 'verify-chat-math-notices.mjs') (Join-Path $output 'shared/chat'); CheckExit
  & node --test (Join-Path $root 'tests/notices/chat-math.test.mjs'); CheckExit
  & $GoExe run ./build/package --record-build --bundle $output --license (Join-Path $root 'LICENSE') --version $Version; CheckExit
- Write-Output "Build verified: $output/WinOne.exe"
+ if($SkipRuntimeChecks){Write-Output "Compiled bundle and source/license inventories verified; runtime checks were explicitly not run: $output/WinOne.exe"}
+ else {Write-Output "Build verified: $output/WinOne.exe"}
 }finally{
  foreach($key in $keys){[Environment]::SetEnvironmentVariable($key,$previous[$key],'Process')}
  Pop-Location

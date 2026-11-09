@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 	"winone/internal/host"
+	"winone/internal/learning"
 	"winone/internal/transport"
 )
 
@@ -20,6 +21,24 @@ type Client struct {
 }
 
 func (c *Client) Call(ctx context.Context, method string, params any, out any) error {
+	if method == "learning.call" {
+		raw, err := learning.CallRPC(ctx, params, func(method string, params any) (json.RawMessage, error) {
+			var raw json.RawMessage
+			err := c.callDirect(ctx, method, params, &raw)
+			return raw, err
+		})
+		if err != nil {
+			return err
+		}
+		if out != nil {
+			return json.Unmarshal(raw, out)
+		}
+		return nil
+	}
+	return c.callDirect(ctx, method, params, out)
+}
+
+func (c *Client) callDirect(ctx context.Context, method string, params any, out any) error {
 	if state, err := windows.WaitForSingleObject(c.Parent, 0); err != nil || state != uint32(windows.WAIT_TIMEOUT) {
 		return errors.New("WinOne 已退出")
 	}
@@ -27,7 +46,11 @@ func (c *Client) Call(ctx context.Context, method string, params any, out any) e
 	if err != nil {
 		return err
 	}
-	r, err := transport.CallWithVerifiedServer(ctx, c.Pipe, host.Request{Version: 1, ID: strconv.FormatInt(time.Now().UnixNano(), 10), Method: method, Params: data}, 5*time.Second, func(pid uint32) error {
+	budget := 5 * time.Second
+	if method == "learning.call" || method == "learning.upload" {
+		budget = 150 * time.Second
+	}
+	r, err := transport.CallWithVerifiedServer(ctx, c.Pipe, host.Request{Version: 1, ID: strconv.FormatInt(time.Now().UnixNano(), 10), Method: method, Params: data}, budget, func(pid uint32) error {
 		if pid != c.HostPID {
 			return errors.New("WinOne 服务身份不匹配")
 		}

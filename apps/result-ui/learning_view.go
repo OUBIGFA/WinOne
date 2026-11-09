@@ -221,7 +221,7 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 		ui.Collapsible(c, p.T("管理学习词条", "Manage learning terms"), &s.StatesOpen, func() { p.studyStatesView(c, t, s) })
 		ui.Collapsible(c, p.T("生词本与学习工具", "Vocabulary and study tools"), &s.ToolsOpen, func() {
 			ui.Row(c).FillWidth().Wrap().Gap(6).Children(func() {
-				if ui.Button(c, p.T("检测 Anki", "Check Anki")).Disabled(s.Checking || s.Working).Clicked() && p.Actions.StudyCheck != nil {
+				if ui.Button(c, p.T("检查生词本", "Check vocabulary")).Disabled(s.Checking || s.Working).Clicked() && p.Actions.StudyCheck != nil {
 					p.Actions.StudyCheck(s)
 				}
 				if ui.Button(c, p.T("打开生词本", "Open vocabulary")).Disabled(!s.Connected || s.Working).Clicked() && p.Actions.StudyNavigate != nil {

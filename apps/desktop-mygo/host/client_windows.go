@@ -17,6 +17,7 @@ import (
 
 	"golang.org/x/sys/windows"
 	internalhost "winone/internal/host"
+	"winone/internal/learning"
 	"winone/internal/transport"
 )
 
@@ -92,7 +93,7 @@ func (c *Client) nextID() string {
 // callBudget is the Rust client's Client::call budget, by method.
 func callBudget(method string) time.Duration {
 	switch {
-	case method == "chat.export" || method == "capture.ai.archive.export.save" || method == "capture.ai.archive.read":
+	case method == "chat.export" || method == "capture.ai.archive.export.save" || method == "capture.ai.archive.read" || method == "learning.call":
 		return 150 * time.Second
 	case strings.HasPrefix(method, "chat.") || method == "capture.ai.usage.export.save":
 		return 30 * time.Second
@@ -135,7 +136,7 @@ func (c *Client) CallCompleting(method string, params any) (json.RawMessage, err
 	id := c.nextID()
 	budget, firstWait := 30*time.Second, 15*time.Second
 	switch method {
-	case "capture.ai.archive.export.save", "capture.ai.archive.read":
+	case "capture.ai.archive.export.save", "capture.ai.archive.read", "learning.call":
 		budget, firstWait = 150*time.Second, 150*time.Second
 	case "capture.ai.models.test":
 		budget, firstWait = 100*time.Second, 100*time.Second
@@ -295,6 +296,15 @@ func minTime(a, b time.Time) time.Time {
 }
 
 func (c *Client) request(id, method string, params any, deadline time.Time) (json.RawMessage, error) {
+	if method == "learning.call" {
+		return learning.CallRPC(c.ctx, params, func(method string, params any) (json.RawMessage, error) {
+			return c.requestDirect(id, method, params, deadline)
+		})
+	}
+	return c.requestDirect(id, method, params, deadline)
+}
+
+func (c *Client) requestDirect(id, method string, params any, deadline time.Time) (json.RawMessage, error) {
 	if err := c.check(deadline); err != nil {
 		return nil, err
 	}

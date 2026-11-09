@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$OutputDirectory,[string]$CargoExe='cargo',[string]$GoExe='go',[string]$TargetDirectory='dist/resources/cache/rust-selection')
+param([Parameter(Mandatory)][string]$OutputDirectory,[string]$CargoExe='cargo',[string]$GoExe='go',[string]$TargetDirectory='dist/resources/cache/rust-selection',[switch]$SkipTests)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 function Absolute([string]$path){if([IO.Path]::IsPathRooted($path)){[IO.Path]::GetFullPath($path)}else{[IO.Path]::GetFullPath((Join-Path $root $path))}}
@@ -27,8 +27,8 @@ try{
  & $go run github.com/akavel/rsrc@v0.10.2 -manifest (Join-Path $root 'build/windows/app.manifest') -ico (Join-Path $root 'internal/branding/icon.ico') -o $resource
  if($LASTEXITCODE -ne 0){throw 'Selection Windows resources failed'}
  $env:WINONE_SELECTION_RESOURCE=$resource
- & $cargo test --locked --manifest-path (Join-Path $root 'modules/selection/native/Cargo.toml') --target-dir $target
- if($LASTEXITCODE -ne 0){throw 'Selection renderer tests failed'}
+ if(-not $SkipTests){& $cargo test --locked --manifest-path (Join-Path $root 'modules/selection/native/Cargo.toml') --target-dir $target
+ if($LASTEXITCODE -ne 0){throw 'Selection renderer tests failed'}}
  & $cargo build --release --locked --manifest-path (Join-Path $root 'modules/selection/native/Cargo.toml') --target-dir $target
  if($LASTEXITCODE -ne 0){throw 'Selection renderer build failed'}
  $ErrorActionPreference='Stop'

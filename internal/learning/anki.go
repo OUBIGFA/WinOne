@@ -25,9 +25,17 @@ const FSRSURL = "https://docs.ankiweb.net/deck-options.html#fsrs"
 
 // Endpoint exists for isolated profiles and contract tests. Only literal local
 // addresses are accepted, and the transport neither uses proxies nor redirects.
-type Anki struct{ Endpoint string }
+type Anki struct {
+	Endpoint string
+	// Call routes bundled Anki through the verified WinOne Host. Endpoint is
+	// retained for explicitly selected external compatibility and contract tests.
+	Call func(context.Context, string, any, any) error
+}
 
 func (a Anki) invoke(ctx context.Context, action string, params any, out any) error {
+	if a.Call != nil {
+		return a.Call(ctx, action, params, out)
+	}
 	endpoint := a.Endpoint
 	if endpoint == "" {
 		endpoint = AnkiURL
