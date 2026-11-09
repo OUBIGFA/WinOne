@@ -206,8 +206,15 @@ async function main() {
    throw error;
  } finally {
    fs.writeFileSync(path.join(output,'result.json'),JSON.stringify(report,null,2));
-   await bounded(browser.close(),'browser shutdown');await new Promise(resolve=>server.close(resolve));
-   if(tracker)await new Promise(resolve=>tracker.close(resolve));
+   // Try every cleanup even when browser shutdown stalls. Preserve the
+   // original check failure and report cleanup failures separately.
+   const cleanup=await Promise.allSettled([
+     bounded(browser.close(),'browser shutdown'),
+     bounded(new Promise(resolve=>{server.close(resolve);server.closeAllConnections()}),'server shutdown'),
+     tracker?bounded(new Promise((resolve,reject)=>tracker.close(error=>error?reject(error):resolve())),'tracker shutdown'):Promise.resolve(),
+   ]);
+   const failures=cleanup.filter(result=>result.status==='rejected');
+   if(failures.length){report.cleanupErrors=failures.map(result=>String(result.reason));fs.writeFileSync(path.join(output,'result.json'),JSON.stringify(report,null,2));if(!report.failure)throw failures[0].reason}
  }
 }
-main().catch(error=>{report.failure=error.stack;fs.writeFileSync(path.join(output,'result.json'),JSON.stringify(report,null,2));console.error(error);process.exitCode=1});
+main().catch(error=>{report.failure=report.failure||error.stack;fs.writeFileSync(path.join(output,'result.json'),JSON.stringify(report,null,2));console.error(error);process.exit(1)});
