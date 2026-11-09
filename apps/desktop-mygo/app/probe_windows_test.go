@@ -12,6 +12,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"winone/desktopmygo/core"
 	"winone/internal/catalog"
 	internalhost "winone/internal/host"
 )
@@ -74,6 +75,33 @@ func TestNativeProbeHostOnlyReadsTheBuiltinCatalog(t *testing.T) {
 	case <-h.failure:
 	default:
 		t.Fatal("unexpected operations were not reported to the native probe")
+	}
+}
+
+// Installation paints the production shell, which reads every pending intent
+// queue on startup. Learning must be an empty inbox here, never a real worker.
+func TestNativeProbeLearningInboxIsEmptyAndActionsRemainBlocked(t *testing.T) {
+	h := newNativeProbeHost()
+	r := h.Handle(internalhost.Request{ID: "learning-inbox", Method: "learning.pending"})
+	if r.Error != nil {
+		t.Fatalf("learning startup inbox rejected: %+v", r.Error)
+	}
+	var intent core.Intent
+	if err := json.Unmarshal(r.Result, &intent); err != nil {
+		t.Fatal(err)
+	}
+	if r.ID != "learning-inbox" || intent.Requested || len(intent.Paths) != 0 || len(intent.Options) != 0 {
+		t.Fatalf("probe returned a live learning intent: %+v", intent)
+	}
+	select {
+	case err := <-h.failure:
+		t.Fatalf("read-only inbox failed the probe: %v", err)
+	default:
+	}
+	for _, method := range []string{"learning.call", "learning.connect.save", "learning.upload", "learning.unknown"} {
+		if reply := h.Handle(internalhost.Request{ID: "blocked", Method: method}); reply.Error == nil || reply.Error.Code != "probe" {
+			t.Fatalf("probe allowed learning side effect %s: %+v", method, reply)
+		}
 	}
 }
 

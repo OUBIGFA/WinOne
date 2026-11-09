@@ -99,7 +99,9 @@ func (h *nativeProbeHost) Handle(r internalhost.Request) internalhost.Response {
 		// The production shell listens for plugin prompts globally. Startup
 		// inspection returns an empty inbox and never starts a plugin worker.
 		value = map[string]any{"cursor": 0, "events": []any{}, "prompts": []any{}}
-	case "interconnect.pending", "directory-links.pending":
+	case "interconnect.pending", "directory-links.pending", "learning.pending":
+		// The production shell reads all navigation inboxes at startup. Keep
+		// them empty in the isolated installer probe; no learning worker runs.
 		value = core.Intent{}
 	default:
 		err := fmt.Errorf("启动检查不允许调用 %s", r.Method)
