@@ -177,6 +177,7 @@ var (
 	Settings              = lucide("settings")
 	Settings2             = lucide("settings-2")
 	Shapes                = lucide("shapes")
+	Share2                = lucide("share-2")
 	ShieldCheck           = lucide("shield-check")
 	ShieldOff             = lucide("shield-off")
 	ShieldQuestion        = lucide("shield-question-mark")

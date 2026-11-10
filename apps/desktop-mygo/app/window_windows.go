@@ -65,6 +65,10 @@ func runWindow(o Options, launch plan) error {
 		if w.win == nil || w.win.IsDestroyed() {
 			return nil, errors.New(i18n.T("web.unavailable"))
 		}
+		// WebView2 fixes browser-wide scheduling and autoplay at its first
+		// page. Flash Chat may open later and runs an invisible media engine.
+		o.Page.BackgroundThrottling = mygo.ThrottlingOff
+		o.Page.Autoplay = mygo.AutoplayAllow
 		return w.win.NewWebView(o)
 	}
 	// The pages of web views reach Go through this scheme, which the

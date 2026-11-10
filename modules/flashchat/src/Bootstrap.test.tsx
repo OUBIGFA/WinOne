@@ -53,6 +53,28 @@ test('renders', async () => {
   await renderBootstrap()
 })
 
+test('back-to-back native settings commands preserve the previous completed save', async () => {
+  window.__winoneNative = { token: 'isolated-native-test' }
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 200 })))
+  try {
+    await renderBootstrap()
+    await waitFor(() => expect(window.__flashNativeInvoke).toBeTypeOf('function'))
+    await act(async () => {
+      const invoke = window.__flashNativeInvoke!
+      expect(await invoke({ scope: 'shell', action: 'settings', value: { trackerUrls: ['wss://tracker.example'], rtcConfig: { iceServers: [] } } })).not.toHaveProperty('error')
+      expect(await invoke({ scope: 'shell', action: 'settings', value: { customUsername: 'Native tester' } })).not.toHaveProperty('error')
+    })
+    expect(persistedStorage.setItem).toHaveBeenLastCalledWith(userSettingsStorageKey, expect.objectContaining({
+      customUsername: 'Native tester', trackerUrls: ['wss://tracker.example'], rtcConfig: { iceServers: [] },
+    }))
+  } finally {
+    cleanup()
+    delete window.__winoneNative
+    delete window.__flashNativeInvoke
+    vi.unstubAllGlobals()
+  }
+})
+
 test('checks persistedStorage for user settings', async () => {
   await renderBootstrap()
   expect(persistedStorage.getItem).toHaveBeenCalledWith(userSettingsStorageKey)

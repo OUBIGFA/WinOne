@@ -26,6 +26,8 @@ import { RoomVideoControls } from './RoomVideoControls'
 import { RoomVideoDisplay } from './RoomVideoDisplay'
 import { TypingStatusBar } from './TypingStatusBar'
 import { useRoom } from './useRoom'
+import { nativeMode } from '../../native/channel'
+import { NativeRoomBridge } from '../../native/NativeBridge'
 
 export interface RoomProps {
   appId?: string
@@ -121,6 +123,10 @@ const RoomCore = ({
 
   // NOTE: If rtcConfig fails to load, the useRtcConfig hook provides a
   // fallback so the room will continue to work with default settings
+
+  if (nativeMode()) return <RoomContext.Provider value={roomContextValue}>
+    <NativeRoomBridge room={chatRoom} transport={peerRoom} />
+  </RoomContext.Provider>
 
   return (
     <RoomContext.Provider value={roomContextValue}>

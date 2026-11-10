@@ -1,6 +1,6 @@
-// Package flashchat hosts the complete locally bundled Chitchatter app in the
-// native WinOne window. The former Go page remains below for provenance and
-// its regression tests; completePage is the registered product entry point.
+// Package flashchat presents native MyGo controls over the locally bundled
+// communication engine. The earlier Go transport remains below for its
+// regression tests; completePage is the registered product entry point.
 package flashchat
 
 import (

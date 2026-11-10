@@ -5,21 +5,23 @@ import (
 	"io/fs"
 	"net/url"
 	"strings"
+	"sync/atomic"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
-	"winone/desktopmygo/kit"
 )
 
-// completePage hosts the entire upstream app. It has no native command bridge;
-// permissions are scoped to its exact loopback origin, and links leave in the
-// browser only following a user action.
+// completePage presents MyGo controls over the existing communication engine.
+// The engine surface is covered by the opaque native view and cannot receive
+// pointer/keyboard input. Its document is inert and contains no accessible UI.
 type completePage struct {
+	nativePageState
 	env                *core.Env
 	app                *localApp
 	view               *mygo.WebView
+	engine             atomic.Pointer[mygo.Page]
 	err                string
 	state              string
 	outbox             chan string
@@ -31,13 +33,32 @@ type completePage struct {
 	nickname           string
 }
 
-func newCompletePage(env *core.Env) *completePage { return &completePage{env: env} }
+func newCompletePage(env *core.Env) *completePage {
+	p := &completePage{env: env}
+	p.initNative()
+	return p
+}
 
 func (p *completePage) View(c *ui.Context) {
 	if p.closed {
 		return
 	}
 	p.services = c.Services()
+	p.prepare(c)
+	p.presentNative(!c.WindowHidden(), c.WindowActive())
+	ui.Column(c).Fill().Children(func() {
+		// Chromium defers file media loading in a never-visible document,
+		// even with autoplay and background timers enabled. Keep a 1-DIP
+		// engine surface under the opaque native page, excluded from input.
+		// The inert document exposes no controls. All visible UI remains MyGo.
+		if p.view != nil {
+			ui.WebView(c, p.view).Absolute().Left(0).Top(0).Size(1, 1).IgnoreInput(true).AccessHidden(true)
+		}
+		ui.Column(c).Fill().Background(c.Theme().Background).Children(func() { p.nativeView(c) })
+	})
+}
+
+func (p *completePage) prepare(c *ui.Context) {
 	if !p.preferencesReady && p.err == "" {
 		if p.env.Host == nil {
 			p.preferencesReady = true
@@ -60,7 +81,6 @@ func (p *completePage) View(c *ui.Context) {
 			})
 		}
 		if !p.preferencesReady {
-			ui.Text(c, own("loading"))
 			return
 		}
 	}
@@ -73,13 +93,6 @@ func (p *completePage) View(c *ui.Context) {
 		p.open(string(state))
 	}
 	if p.err != "" {
-		kit.Notice(c, kit.Failure, "", p.err, nil)
-		if ui.Button(c, i18n.T("common.retry")).Clicked() {
-			p.err = ""
-			if p.view != nil {
-				p.view.Page().Reload()
-			}
-		}
 		return
 	}
 	if p.state != string(state) {
@@ -90,7 +103,6 @@ func (p *completePage) View(c *ui.Context) {
 			// Retry on the next frame; a slow web view must not block native UI.
 		}
 	}
-	ui.WebView(c, p.view).Fill().MinWidth(0).MinHeight(0).Label(tr("peerChat"))
 }
 
 func (p *completePage) open(state string) {
@@ -105,11 +117,15 @@ func (p *completePage) open(state string) {
 		return
 	}
 	p.app = app
+	p.attachNative(app)
 	nickname, _ := json.Marshal(p.nickname)
+	native, _ := json.Marshal(map[string]string{"token": p.bridge.token})
 	view, err := p.env.WebViews(mygo.WebViewOptions{
 		URL: app.origin + "/", BackgroundColor: "light-dark(#fcfcfc, #191919)",
-		Page: mygo.PageOptions{Untrusted: true, Session: mygo.NewSession("winone-flashchat-" + p.env.Directory),
-			PreloadScript: "if(window===window.top){window.__winoneState=" + state + ";window.__winoneLegacyNickname=" + string(nickname) + "}"},
+		// The engine is always hidden. React and peer discovery must keep
+		// scheduling work; media frame encoding separately pauses when aside.
+		Page: mygo.PageOptions{Untrusted: true, BackgroundThrottling: mygo.ThrottlingOff, Autoplay: mygo.AutoplayAllow, Session: mygo.NewSession("winone-flashchat-" + p.env.Directory),
+			PreloadScript: "if(window===window.top){window.__winoneState=" + state + ";window.__winoneLegacyNickname=" + string(nickname) + ";window.__winoneNative=" + string(native) + ";document.addEventListener('DOMContentLoaded',()=>{document.body.inert=true;document.body.setAttribute('aria-hidden','true');document.title=''},{once:true})}"},
 	})
 	if err != nil {
 		app.close()
@@ -118,6 +134,7 @@ func (p *completePage) open(state string) {
 		return
 	}
 	p.view, p.state = view, state
+	p.engine.Store(view.Page())
 	p.outbox = make(chan string, 8)
 	go func() {
 		for script := range p.outbox {
@@ -137,6 +154,8 @@ func (p *completePage) open(state string) {
 			p.env.Post(func() {
 				if !p.closed {
 					p.err = reason
+					p.snapshot = nativeSnapshot{}
+					p.presentation = ""
 				}
 			})
 		}),
@@ -144,6 +163,7 @@ func (p *completePage) open(state string) {
 			p.env.Post(func() {
 				if !p.closed {
 					p.state = ""
+					p.presentation = ""
 				}
 			})
 		}),
@@ -202,12 +222,19 @@ func appPermission(origin string, req mygo.PermissionRequest) bool {
 }
 
 // Hidden web views keep their page and WebRTC session; only Close tears down.
-func (p *completePage) SetAside() {}
+func (p *completePage) SetAside() {
+	p.presentNative(false, false)
+	if p.pushTalking {
+		p.pushTalking = false
+		p.backgroundCommand("media", "microphone", map[string]any{"enabled": false})
+	}
+}
 func (p *completePage) Close() {
 	if p.closed {
 		return
 	}
 	p.closed = true
+	p.engine.Store(nil)
 	for _, off := range p.offs {
 		off()
 	}

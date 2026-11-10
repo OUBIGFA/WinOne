@@ -1,4 +1,6 @@
 import { t, useLanguage } from 'config/i18n'
+import { nativeMode } from '../../native/channel'
+import { NativeShellBridge } from '../../native/NativeBridge'
 import { AlertColor } from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import CssBaseline from '@mui/material/CssBaseline'
@@ -368,6 +370,11 @@ export const Shell = ({ appNeedsUpdate, children, userPeerId }: ShellProps) => {
   const handleRoomShareDialogClose = () => {
     setIsRoomShareDialogOpen(false)
   }
+
+  if (nativeMode()) return <ShellContext.Provider value={shellContextValue}>
+    <NativeShellBridge userId={userPeerId} alert={isAlertShowing ? t(alertText) : ''} />
+    {children}
+  </ShellContext.Provider>
 
   return (
     <ShellContext.Provider value={shellContextValue}>

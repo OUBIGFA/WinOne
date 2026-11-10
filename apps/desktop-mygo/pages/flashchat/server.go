@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -25,6 +26,7 @@ var bundled embed.FS
 type localApp struct {
 	server *http.Server
 	origin string
+	native atomic.Pointer[nativeBridge]
 }
 
 // A stable loopback origin keeps IndexedDB identity/settings across launches.
@@ -61,7 +63,18 @@ func startLocalApp(directory string, assets fs.FS) (*localApp, error) {
 		}
 	}
 	app := &localApp{origin: "http://" + listener.Addr().String()}
-	app.server = &http.Server{Handler: assetHandler(assets, listener.Addr().String()), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 30 * time.Second}
+	resources := assetHandler(assets, listener.Addr().String())
+	app.server = &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/native/") {
+			if bridge := app.native.Load(); bridge != nil {
+				bridge.serve(w, r)
+				return
+			}
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		resources.ServeHTTP(w, r)
+	}), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 30 * time.Second}
 	go app.server.Serve(listener)
 	return app, nil
 }

@@ -68,6 +68,10 @@ func (c *Controller) detach(id string) {
 		if w.win == nil || w.win.IsDestroyed() {
 			return nil, core.Errorf(tr("nativeHostUnavailable"))
 		}
+		// Match the main window's first-page policy for the shared WebView2
+		// environment, including a Flash Chat engine opened later.
+		o.Page.BackgroundThrottling = mygo.ThrottlingOff
+		o.Page.Autoplay = mygo.AutoplayAllow
 		return w.win.NewWebView(o)
 	}
 	w.env = &env

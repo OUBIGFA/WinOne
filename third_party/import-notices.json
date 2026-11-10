@@ -1997,11 +1997,11 @@
       ],
       "files": [
         {
-          "sha256": "d7c58b93f0cc64107d5e34d3fb2e3e0f3b32d1279506dd3f08650ea78e097b4b",
+          "sha256": "935c560bee98cf6f2d0af2a0092816ac527160dda0e58f5a2e66c48a796c9702",
           "path": "modules/flashchat/src/Bootstrap.test.tsx"
         },
         {
-          "sha256": "457cf9cfa91a39b6064a72300de0214febaf5d055da4f0f0ab719581f18003ac",
+          "sha256": "d17c6fe12c96f5ae12d46ffe7dc44fde2c5264c391e51e3856d33fd42f563c09",
           "path": "modules/flashchat/src/Bootstrap.tsx"
         },
         {
@@ -2173,7 +2173,7 @@
           "path": "modules/flashchat/src/components/Room/Room.test.tsx"
         },
         {
-          "sha256": "93c4fadf93b0774d3f10ffcbf9120c29952b66ab4a4a0f43e36e25c928f0f0ba",
+          "sha256": "598d14b95b9a1b593966dbc06f98319468bfc3526c0823297a6bf09333cb00ba",
           "path": "modules/flashchat/src/components/Room/Room.tsx"
         },
         {
@@ -2221,7 +2221,7 @@
           "path": "modules/flashchat/src/components/Room/useChatRoomNotifications.test.tsx"
         },
         {
-          "sha256": "7bc9bc1509da33ea1e3f69ab3a734f9a874aee2215eab5229041437843812ac2",
+          "sha256": "131b3a8bf615779abaa02b8ea7f76e534231f859c49da6cd9f64feb383e07ca7",
           "path": "modules/flashchat/src/components/Room/useChatRoomNotifications.ts"
         },
         {
@@ -2313,7 +2313,7 @@
           "path": "modules/flashchat/src/components/Shell/Shell.test.tsx"
         },
         {
-          "sha256": "777ab6e9c684e2d370534c00f290bc45551ed48d43c200de22fa9296373a7e3b",
+          "sha256": "7678c26d5e16bbe2479111b88277d3e243852b20bcc0332445922f2d7f17de0a",
           "path": "modules/flashchat/src/components/Shell/Shell.tsx"
         },
         {

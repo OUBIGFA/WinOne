@@ -9,6 +9,7 @@ import { SettingsContext } from 'contexts/SettingsContext'
 import { ShellContext } from 'contexts/ShellContext'
 import { getSharedAudio } from 'lib/Audio'
 import { notification } from 'services/Notification'
+import { nativeMode } from '../../native/channel'
 
 /**
  * What to tell the user when a ChatRoom operation fails, keyed by the failing
@@ -84,6 +85,16 @@ export const useChatRoomNotifications = (
   }, [isShowingMessages])
 
   useEffect(() => {
+    if (!nativeMode()) return
+    const clear = () => {
+      const presentation = window.__winoneNative
+      if (presentation?.visible && presentation.focused && presentation.selected === (chatRoom?.targetPeerId ?? '')) setUnreadMessages(0)
+    }
+    window.addEventListener('native-presentation', clear)
+    return () => window.removeEventListener('native-presentation', clear)
+  }, [chatRoom])
+
+  useEffect(() => {
     if (!chatRoom) return
 
     const unsubscribers = [
@@ -97,10 +108,12 @@ export const useChatRoomNotifications = (
         } = latest.current
         const userSettings = readSettings()
 
-        if (!showing) setUnreadMessages(count => count + 1)
+        const native = window.__winoneNative
+        const visible = nativeMode() ? Boolean(native?.visible && native.focused && native.selected === (chatRoom.targetPeerId ?? '')) : hasFocus && showing
+        if (!visible) setUnreadMessages(count => count + 1)
 
         // Stay quiet when the user is already looking at the conversation.
-        if (hasFocus && showing) return
+        if (visible) return
 
         if (userSettings.playSoundOnNewMessage) audio.play()
 

@@ -37,6 +37,7 @@ import { serialization } from 'core/settings/serialization'
 import { SettingsManager } from 'core/settings/SettingsManager'
 import { createWebStorage } from 'adapters/web'
 import { routerType } from 'config/router'
+import { nativeMode } from './native/channel'
 
 export interface BootstrapProps {
   persistedStorage?: typeof localforage
@@ -123,8 +124,15 @@ const Bootstrap = ({
   const [persistedStorage] = useState(persistedStorageProp)
   const networkDraft = useRef<ContextType<typeof NetworkDraftContext>['current']>(null)
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false)
-  const [userSettings, setUserSettings] =
+  const [userSettings, renderUserSettings] =
     useState<UserSettings>(initialUserSettings)
+  // Native commands can finish back-to-back before React commits a render.
+  // Merge from the last completed save, not a render's stale settings closure.
+  const committedSettings = useRef(userSettings)
+  const setUserSettings = useCallback((value: UserSettings) => {
+    committedSettings.current = value
+    renderUserSettings(value)
+  }, [])
   const { userId } = userSettings
 
   const isEmbedded = queryParams.has(QueryParamKeys.IS_EMBEDDED)
@@ -242,7 +250,7 @@ const Bootstrap = ({
   const settingsContextValue = {
     updateUserSettings: async (changedSettings: Partial<UserSettings>) => {
       const newSettings = {
-        ...userSettings,
+        ...committedSettings.current,
         ...changedSettings,
       }
 
@@ -252,10 +260,10 @@ const Bootstrap = ({
     },
     getUserSettings: () => {
       return {
-        ...userSettings,
+        ...committedSettings.current,
         // If enhanced connectivity is not available, always return false
         isEnhancedConnectivityEnabled: isEnhancedConnectivityAvailable
-          ? userSettings.isEnhancedConnectivityEnabled
+          ? committedSettings.current.isEnhancedConnectivityEnabled
           : false,
       }
     },
@@ -281,7 +289,7 @@ const Bootstrap = ({
                     <Route
                       key={path}
                       path={path}
-                      element={<Home userId={userId} />}
+                      element={nativeMode() ? null : <Home userId={userId} />}
                     />
                   ))}
                   <Route path={routes.ABOUT} element={<About />} />
