@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -56,6 +57,14 @@ func TestHostModuleDisablePersistsAndReleasesWorkers(t *testing.T) {
 	call := func(method string, params any, out any) error {
 		data, _ := json.Marshal(params)
 		response, err := transport.CallCompleting(context.Background(), pipe, host.Request{Version: 1, ID: "module-test", Method: method, Params: data}, 5*time.Second)
+		// Startup status reads may briefly hold an action lease. This explicit
+		// refusal issues no ticket or mutation, so retry admission only; never
+		// replay an accepted change or a transport failure.
+		deadline := time.Now().Add(5 * time.Second)
+		for method == "modules.setEnabled" && err == nil && response.Error != nil && response.Error.Code == "configuration_busy" && time.Now().Before(deadline) {
+			time.Sleep(50 * time.Millisecond)
+			response, err = transport.CallCompleting(context.Background(), pipe, host.Request{Version: 1, ID: "module-test", Method: method, Params: data}, 5*time.Second)
+		}
 		if err != nil {
 			return err
 		}
@@ -121,19 +130,33 @@ func TestHostModuleDisablePersistsAndReleasesWorkers(t *testing.T) {
 			}
 		}
 	}
-	for _, id := range []string{"capture", "always-on-top", "wintray", "selection", "quick-assistant", "stroke"} {
+	disabledModules := []string{"capture", "always-on-top", "wintray", "selection", "quick-assistant", "stroke"}
+	for _, id := range disabledModules {
 		// A read-only snapshot starts the worker without capturing or pinning a
 		// user window. Retain its OS handle so PID reuse cannot fake an exit.
-		var initial any
+		var initial struct {
+			ProcessID uint32 `json:"processId"`
+		}
 		if err := call(id+".snapshot", nil, &initial); err != nil {
 			t.Fatalf("start %s: %v", id, err)
 		}
-		workerNames := map[string]string{"capture": "WinOne.Capture.exe", "always-on-top": "WinOne.AlwaysOnTop.exe", "wintray": "WinOne.WinTray.exe", "stroke": "WinOne.Stroke.exe"}
 		// Selection owns hooks in Host and a one-shot reader, not a resident worker.
 		var worker windows.Handle
 		if id != "selection" && id != "quick-assistant" {
-			worker = moduleChildHandle(t, uint32(cmd.Process.Pid), workerNames[id])
-			defer windows.CloseHandle(worker)
+			if initial.ProcessID == 0 {
+				t.Fatalf("%s snapshot omitted its worker identity", id)
+			}
+			var err error
+			worker, err = windows.OpenProcess(windows.SYNCHRONIZE, false, initial.ProcessID)
+			// An empty managed WinTray normally exits after three idle seconds.
+			// It may already be gone; disabling must still persist and release
+			// bindings, without requiring the idle worker to remain resident.
+			if err != nil && !(id == "wintray" && err == windows.ERROR_INVALID_PARAMETER) {
+				t.Fatalf("open %s worker: %v", id, err)
+			}
+			if worker != 0 {
+				defer windows.CloseHandle(worker)
+			}
 		}
 		var job modules.ControlJob
 		if err := call("modules.setEnabled", map[string]any{"id": id, "enabled": false, "revision": snapshot.Revision}, &job); err != nil {
@@ -153,7 +176,7 @@ func TestHostModuleDisablePersistsAndReleasesWorkers(t *testing.T) {
 			if result, err := windows.WaitForSingleObject(worker, 5000); err != nil || result != windows.WAIT_OBJECT_0 {
 				t.Fatalf("disabled %s process did not exit: wait=%d error=%v", id, result, err)
 			}
-		} else {
+		} else if id == "selection" || id == "quick-assistant" {
 			assertAvailable([]hotkeys.Binding{expectedBindings[4]})
 		}
 		if err := call("modules.snapshot", nil, &snapshot); err != nil {
@@ -187,6 +210,14 @@ func TestHostModuleDisablePersistsAndReleasesWorkers(t *testing.T) {
 			t.Fatal("base module count changed")
 		}
 		for _, module := range snapshot.Modules {
+			// New Host-only tools are outside this worker/shortcut lifecycle
+			// scenario and must keep their enabled setting.
+			if !slices.Contains(disabledModules, module.Manifest.ID) {
+				if !module.Enabled {
+					t.Fatalf("unrelated module was disabled: %+v", module)
+				}
+				continue
+			}
 			if module.Enabled || module.PendingStop || module.Runtime.State != "disabled" {
 				t.Fatalf("incomplete stop: %+v", module)
 			}

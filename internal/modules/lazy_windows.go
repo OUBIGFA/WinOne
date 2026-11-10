@@ -62,11 +62,19 @@ func (l *Lazy) Handle(request host.Request) host.Response {
 	}
 	l.mu.Lock()
 	// A launch in progress serves this request too, once it ends.
+	waitedForStart := false
 	for l.starting != nil {
+		waitedForStart = true
 		wait := l.starting
 		l.mu.Unlock()
 		<-wait
 		l.mu.Lock()
+	}
+	if waitedForStart && l.process != nil {
+		if status := l.process.Status(); status.State != "ready" {
+			l.mu.Unlock()
+			return host.Response{ID: request.ID, Error: &host.RPCError{Code: "module_unavailable", Message: status.Detail}}
+		}
 	}
 	if l.closing || l.privilege.State == "running" {
 		l.mu.Unlock()
@@ -108,6 +116,12 @@ func (l *Lazy) Handle(request host.Request) host.Response {
 		// later launch fails; absence of a current process is not cleanup proof.
 		if started.pid != 0 {
 			l.everStarted = true
+		}
+		// A failed launch must fail this command. Retrying identity immediately
+		// used to execute the original shortcut after its startup had timed out.
+		if status := started.Status(); status.State != "ready" {
+			l.mu.Unlock()
+			return host.Response{ID: request.ID, Error: &host.RPCError{Code: "module_unavailable", Message: status.Detail}}
 		}
 	}
 	p := l.process

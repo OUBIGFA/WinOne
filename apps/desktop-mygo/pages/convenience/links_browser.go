@@ -146,8 +146,8 @@ type folderPane struct {
 	actions   func()
 	// extra shows what is planned or chosen beside the listing, and
 	// reports whether it showed anything.
-	extra func() bool
-	pasting   bool
+	extra   func() bool
+	pasting bool
 }
 
 func (p *folderPane) navigate(path string) {
@@ -157,10 +157,31 @@ func (p *folderPane) navigate(path string) {
 	p.browser.load(path, false, nil)
 }
 
+// linkKindBackground keeps source, destination and preview rows paired by type.
+// These hues match the original links workspace; unresolved types stay neutral.
+func linkKindBackground(theme *ui.Theme, kind string) ui.Color {
+	var tint ui.Color
+	switch kind {
+	case "hardlink":
+		tint = ui.Hex("#527ba8")
+	case "junction":
+		tint = ui.Hex("#8a70a7")
+	case "symlink":
+		tint = ui.Hex("#398b91")
+	default:
+		return theme.SurfaceHover
+	}
+	amount := float32(0.18)
+	if theme.Dark {
+		amount = 0.3
+	}
+	return theme.Background.Mix(tint, amount)
+}
+
 // kindLabel is a link type's badge.
 func kindLabel(c *ui.Context, kind string) {
 	theme, pal := c.Theme(), kit.Colors(c)
-	ui.Box(c).Padding(1, 7).Radius(6).Border(1, pal.Hairline).Background(theme.SurfaceHover).Shrink(0).Children(func() {
+	ui.Box(c).Padding(1, 7).Radius(6).Border(1, pal.Hairline).Background(linkKindBackground(theme, kind)).Shrink(0).Children(func() {
 		ui.Text(c, i18n.T("links."+kind)).FontSize(kit.CaptionSize(c)).FontWeight(500).TextColor(theme.TextMuted).NoWrap()
 	})
 }
@@ -330,10 +351,10 @@ func (p *folderPane) entryRow(c *ui.Context, entry directorylinks.BrowseEntry, t
 	if tint := p.kinds[key]; tint != "" {
 		kind = tint
 	}
-	row := ui.Row(c.Key(entry.Path)).FillWidth().Padding(10, 12).Gap(8).AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).
+	row := ui.Row(c.Key(entry.Path)).FillWidth().Padding(10, 12).Gap(8).Wrap().AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).
 		BorderColor(pal.Hairline).Role(ui.RoleListItem)
 	if selected || kind != "" {
-		row.Background(theme.SurfaceHover)
+		row.Background(linkKindBackground(theme, kind))
 	}
 	canRename := p.onRename != nil && !p.disabled && entry.Identity.File != ""
 	if p.onRename != nil {
@@ -354,15 +375,16 @@ func (p *folderPane) entryRow(c *ui.Context, entry directorylinks.BrowseEntry, t
 			icon = icons.Folder
 		}
 		ui.Icon(c, icon).FontSize(16).TextColor(theme.TextMuted).Shrink(0)
-		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(2).Children(func() {
+		// Reserve readable name width; metadata wraps below in a narrow pane.
+		ui.Column(c).Basis(160).Grow(1).Shrink(1).MinWidth(0).Gap(2).TextAlign(ui.Start).Children(func() {
 			if folder {
 				open := kit.GhostButton(c, entry.Name, nil, false).Label(i18n.T("links.openFolder", "name", entry.Name)).
-					Tooltip(entry.Path).Disabled(p.disabled)
+					Tooltip(entry.Path).Disabled(p.disabled).Justify(ui.Start).TextAlign(ui.Start).Padding(0)
 				if open.Clicked() {
 					p.navigate(entry.Path)
 				}
 			} else {
-				ui.Text(c, entry.Name).Tooltip(entry.Path).MinWidth(0)
+				ui.Text(c, entry.Name).Tooltip(entry.Path).MinWidth(0).TextAlign(ui.Start)
 			}
 			if entry.TargetPath != "" {
 				kit.Help(c, "→ "+entry.TargetPath).Tooltip(entry.TargetPath)

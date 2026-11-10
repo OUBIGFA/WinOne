@@ -85,6 +85,11 @@ func start(ctx context.Context, id, name, exe, pipe, dataDir string, autorun, el
 		p.pid = uint32(cmd.Process.Pid)
 		wait = cmd.Wait
 	}
+	// Connection retries and the one readiness response share the existing
+	// startup budget. Cancelling a 200ms snapshot did not cancel the worker's
+	// enumeration; repeated probes queued behind it and delayed the real action.
+	readyCtx, cancelReady := context.WithTimeout(ctx, 8*time.Second)
+	defer cancelReady()
 	go func() {
 		err := wait()
 		exitError := err
@@ -108,13 +113,10 @@ func start(ctx context.Context, id, name, exe, pipe, dataDir string, autorun, el
 			p.state.Detail = err.Error()
 		}
 		close(p.exited)
+		cancelReady()
 	}()
-	deadline := time.NewTimer(8 * time.Second)
-	defer deadline.Stop()
 	for {
-		probeCtx, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
-		response, probeErr := transport.Call(probeCtx, pipe, host.Request{Version: 1, ID: "ready", Method: "snapshot"})
-		cancel()
+		response, probeErr := transport.CallWithTimeout(readyCtx, pipe, host.Request{Version: 1, ID: "ready", Method: "snapshot"}, 8*time.Second)
 		if probeErr == nil && response.Error == nil {
 			if err := p.acceptIdentity(response); err != nil {
 				p.mu.Lock()
@@ -134,18 +136,28 @@ func start(ctx context.Context, id, name, exe, pipe, dataDir string, autorun, el
 		select {
 		case <-p.exited:
 			return p
-		case <-ctx.Done():
+		default:
+		}
+		// Only an absent listener means the worker is still starting. Once a
+		// request reaches it, retain its failure instead of repeating work.
+		if readyCtx.Err() != nil || response.Error != nil || !errors.Is(probeErr, windows.ERROR_FILE_NOT_FOUND) {
 			p.mu.Lock()
 			p.state.State = "faulted"
-			p.state.Detail = ctx.Err().Error()
+			switch {
+			case ctx.Err() != nil:
+				p.state.Detail = ctx.Err().Error()
+			case readyCtx.Err() != nil:
+				p.state.Detail = "模块启动超时"
+			case response.Error != nil:
+				p.state.Detail = response.Error.Message
+			default:
+				p.state.Detail = probeErr.Error()
+			}
 			p.mu.Unlock()
 			return p
-		case <-deadline.C:
-			p.mu.Lock()
-			p.state.State = "faulted"
-			p.state.Detail = "模块启动超时"
-			p.mu.Unlock()
-			return p
+		}
+		select {
+		case <-readyCtx.Done():
 		case <-time.After(50 * time.Millisecond):
 		}
 	}

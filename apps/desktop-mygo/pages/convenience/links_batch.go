@@ -509,13 +509,13 @@ func (b *linkBatch) View(c *ui.Context, disabled bool, changed func([]directoryl
 							ui.Row(c).Padding(10, 12, 4).Children(func() { kit.Caption(c, i18n.T("links.selectedOutside")) })
 							for _, path := range outside {
 								ui.Row(c.Key(pathKey(path))).FillWidth().Padding(10, 12).Gap(8).AlignItems(ui.Center).
-									Background(theme.SurfaceHover).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Children(func() {
+									Background(linkKindBackground(theme, kinds[pathKey(path)])).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Children(func() {
 									on := true
 									if ui.Checkbox(c, &on, "").Label(i18n.T("links.selectSource", "name", pathName(path))).Disabled(locked).Changed() {
 										b.selectPaths([]string{path}, on)
 									}
 									ui.Icon(c, icons.Link).FontSize(16).TextColor(theme.TextMuted).Shrink(0)
-									ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
+									ui.Column(c).Grow(1).MinWidth(0).Gap(2).TextAlign(ui.Start).Children(func() {
 										ui.Text(c, pathName(path)).MinWidth(0)
 										kit.Help(c, path)
 									})
@@ -535,15 +535,15 @@ func (b *linkBatch) View(c *ui.Context, disabled bool, changed func([]directoryl
 						}
 						ui.Column(c).FillWidth().Role(ui.RoleList).Label(i18n.T("links.plannedContents")).Children(func() {
 							for _, row := range rows {
-								ui.Row(c.Key(pathKey(row.path))).FillWidth().Padding(10, 12).Gap(8).AlignItems(ui.Start).
-									Background(theme.SurfaceHover).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Role(ui.RoleListItem).
+								ui.Row(c.Key(pathKey(row.path))).FillWidth().Padding(10, 12).Gap(8).Wrap().AlignItems(ui.Start).
+									Background(linkKindBackground(theme, kinds[pathKey(row.path)])).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Role(ui.RoleListItem).
 									Children(func() {
 										if row.collision {
 											// A conflicting name is marked at its edge, as before.
 											ui.Box(c).Width(3).FillHeight().Background(theme.Danger).Shrink(0)
 										}
 										ui.Icon(c, icons.Link).FontSize(16).TextColor(theme.TextMuted).Shrink(0)
-										ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
+										ui.Column(c).Basis(160).Grow(1).Shrink(1).MinWidth(0).Gap(2).TextAlign(ui.Start).Children(func() {
 											linkPath := destinationPath(b.target.address, row.name)
 											if row.item != nil {
 												linkPath = row.item.LinkPath
@@ -618,12 +618,18 @@ func (b *linkBatch) addMenu(c *ui.Context, locked bool) {
 	button.Menu(func(m *ui.Menu) {
 		if m.Item(i18n.T("links.pickSourceFiles")).Chosen() {
 			var paths []string
-			b.work(func() (err error) { paths, err = b.env.Dialogs.PickFiles(i18n.T("links.pickSourceFiles"), core.Filter{}); return err },
+			b.work(func() (err error) {
+				paths, err = b.env.Dialogs.PickFiles(i18n.T("links.pickSourceFiles"), core.Filter{})
+				return err
+			},
 				func() { b.add(paths) })
 		}
 		if m.Item(i18n.T("links.pickSourceFolders")).Chosen() {
 			var paths []string
-			b.work(func() (err error) { paths, err = b.env.Dialogs.PickFolders(i18n.T("links.pickSourceFolders")); return err },
+			b.work(func() (err error) {
+				paths, err = b.env.Dialogs.PickFolders(i18n.T("links.pickSourceFolders"))
+				return err
+			},
 				func() { b.add(paths) })
 		}
 		if m.Item(i18n.T("links.pasteSources")).Chosen() {

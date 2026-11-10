@@ -68,11 +68,14 @@ if($ShareXSourceDirectory){
     . (Join-Path $PSScriptRoot 'sharex-native-host.ps1')
     Initialize-ShareXNativeHost -SourceDirectory $sharex
 }
-if(-not $CompileOnly){& dotnet build tests/capture-unit/CaptureTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" --nologo; CheckExit}
+# Keep each build's test executable separate from other/failed test processes.
+# A lingering fixture can otherwise lock the shared bin output on Windows.
+$captureTests = Join-Path (Split-Path -Parent $output) 'capture-unit-tests'
+if(-not $CompileOnly){& dotnet build tests/capture-unit/CaptureTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" -o $captureTests --nologo; CheckExit}
 # The scrolling checks drive real windows; only build/test-native-context.ps1
 # runs them, so they are compiled with the other system probes.
 if ($RunStartupProbes) { & dotnet build tests/capture-scroll/ScrollTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" --nologo; CheckExit }
-if(-not $CompileOnly){Invoke-NativeCommand 'dotnet' @('tests/capture-unit/bin/Release/net10.0-windows/WinOne.Capture.Tests.dll',(Join-Path $root '_temp/capture-tests')) 'Capture unit tests failed'}
+if(-not $CompileOnly){Invoke-NativeCommand 'dotnet' @((Join-Path $captureTests 'WinOne.Capture.Tests.dll'),(Join-Path (Split-Path -Parent $output) 'capture-test-data')) 'Capture unit tests failed'}
 & dotnet publish modules/capture/WinOne.Capture.csproj -c Release -r win-x64 --self-contained true "-p:ShareXSourceDirectory=$sharex" -o (Join-Path $output 'capture') --nologo; CheckExit
 & (Join-Path $PSScriptRoot 'build-recording.ps1') -CargoExe $CargoExe -OutputDirectory (Join-Path $output 'capture')
 & (Join-Path $PSScriptRoot 'copy-ocr.ps1') -RuntimeDirectory $OcrRuntimeDirectory -CaptureDirectory (Join-Path $output 'capture')
@@ -117,13 +120,13 @@ if($Downloader){$learningPrepare.Downloader=$Downloader}
 if(-not $CompileOnly){
 $regionLifetimeProbe = Join-Path $root '_temp/build/capture-regions-lifetime-probe'
 & (Join-Path $PSScriptRoot 'build-capture-regions.ps1') -TestLifetime -OutputDirectory $regionLifetimeProbe
-Invoke-NativeCommand 'dotnet' @('tests/capture-unit/bin/Release/net10.0-windows/WinOne.Capture.Tests.dll','--region-helper-lifetime',(Join-Path $regionLifetimeProbe 'WinOne.Capture.Regions.LifetimeProbe.exe')) 'Capture region lifetime test failed'
+Invoke-NativeCommand 'dotnet' @((Join-Path $captureTests 'WinOne.Capture.Tests.dll'),'--region-helper-lifetime',(Join-Path $regionLifetimeProbe 'WinOne.Capture.Regions.LifetimeProbe.exe')) 'Capture region lifetime test failed'
 }
 if ($RunStartupProbes) {
     $previousRegionHelper = $env:WINONE_REGION_HELPER
     try {
         $env:WINONE_REGION_HELPER = Join-Path $output 'capture/WinOne.Capture.Regions.exe'
-        & dotnet tests/capture-unit/bin/Release/net10.0-windows/WinOne.Capture.Tests.dll --native-window-regions; CheckExit
+        & dotnet (Join-Path $captureTests 'WinOne.Capture.Tests.dll') --native-window-regions; CheckExit
     } finally { $env:WINONE_REGION_HELPER = $previousRegionHelper }
 }
 & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o apps/desktop/resource_windows.syso; CheckExit
