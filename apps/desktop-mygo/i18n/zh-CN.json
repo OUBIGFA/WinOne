@@ -2842,5 +2842,13 @@
  "wintray.wechatAutoLoginHint": "自动点击登录按钮；扫码或手机确认仍需手动完成",
  "wintray.windowChanged": "窗口状态已更新",
  "wintray.windowWait": "最长等待程序窗口（秒）",
- "wintray.working": "正在处理"
+ "wintray.working": "正在处理",
+ "wintray.qqWaitForLogin": "QQ 登录后收起",
+ "wintray.qqWaitForLoginHint": "等待你登录 QQ，确认主窗口后收进托盘",
+ "wintray.workingDirectory": "工作目录",
+ "wintray.workingDirectoryHint": "留空使用程序所在目录；相对路径以程序所在目录为起点",
+ "wintray.browseDirectory": "浏览",
+ "wintray.taskDirectoryHint": "接管程序原有自启时，保留原自启的工作目录",
+ "profileFields.qqWaitForLogin": "QQ 登录后收起",
+ "profileFields.workingDirectoryRef": "工作目录"
 }

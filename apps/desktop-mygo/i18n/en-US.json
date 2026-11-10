@@ -2847,5 +2847,13 @@
  "wintray.wechatAutoLoginHint": "Click the login button automatically; scan the QR code or confirm on your phone when required",
  "wintray.windowChanged": "Window state updated",
  "wintray.windowWait": "Maximum wait for a window (seconds)",
- "wintray.working": "Working"
+ "wintray.working": "Working",
+ "wintray.qqWaitForLogin": "Hide QQ after login",
+ "wintray.qqWaitForLoginHint": "Wait for you to log in, then close the confirmed main window to the tray",
+ "wintray.workingDirectory": "Working directory",
+ "wintray.workingDirectoryHint": "Leave blank to use the program folder; relative paths start from that folder",
+ "wintray.browseDirectory": "Browse",
+ "wintray.taskDirectoryHint": "Taking over existing startup keeps its original working directory",
+ "profileFields.qqWaitForLogin": "Hide QQ after login",
+ "profileFields.workingDirectoryRef": "Working directory"
 }

@@ -1,11 +1,11 @@
 {
   "repository": "https://github.com/OUBIGFA/WinTray",
-  "revision": "db9c545b4a7c0326c9f3978991ece72e3c55fe7d",
-  "localChanges": "2026-11-08 reviewed local and remote db9c545 plus the current working tree: retain the prior AutoHotkey, DC-backed rendering and tray readiness fixes; synchronize schtasks serialization, isolated startup report fixtures and native-console path normalization. Standalone UI now reuses WinOne layouts; standalone installer/uninstaller remain outside the hosted module.",
+  "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+  "localChanges": "2026-11-10 reviewed clean upstream 0353a53: custom working directory across launch modes, QQ login-aware tray startup, continued WeChat tray-login observation, and directory-junction tray matching. Preserve WinOne hosted UI, console lifetime, per-process launch gates and cross-process task serialization. Capability map: docs/wintray-sync-20261110.md.",
   "wechatAutoLogin": {
-    "revision": "db9c545b4a7c0326c9f3978991ece72e3c55fe7d",
-    "scope": "2026-11-06: directly synchronize the complete Qt login click and rendered-main recognition from the clean local WinTray checkout; retain the earlier snapshot for unrelated capabilities.",
-    "verification": "docs/wintray-wechat-login.md"
+    "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+    "scope": "Complete upstream UIA, login observation, QQ main recognition and native regressions, adapted only at WinOne integration boundaries.",
+    "verification": "docs/wintray-sync-20261110.md"
   },
   "license": "MIT",
   "licenseFile": "modules/wintray/LICENSE",
@@ -13,11 +13,19 @@
   "files": [
     {
       "path": "internal/orchestrator/orchestrator.go",
-      "sourceSHA256": "e9900f237a10f5908c685fec66e1f62e4e26b3e9da353927fde303e95d75308d"
+      "sourceSHA256": "53ebfdc9e9785f74f94f2a7eb23c700af7fd8864394df9a2e9d974b6d9daf4f3",
+      "targetPath": "modules/wintray/internal/orchestrator/orchestrator.go",
+      "targetSHA256": "552e9f675d5d59e3eef82da54fc1ba68d636a24bae0c48fb1ee16eb9443c57a1",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
     },
     {
       "path": "internal/orchestrator/types.go",
-      "sourceSHA256": "46468fc73433f14fd5a37a6b33171618f625fdd55ba7d5bf54d7a83adee4d393"
+      "sourceSHA256": "093b4d4a31db0b84113035b7c37322d9003c909ae91a4dd8572de1c2edf55922",
+      "targetPath": "modules/wintray/internal/orchestrator/types.go",
+      "targetSHA256": "9a3ecba967adc2150677c28654f7f07a8da89ff8a30d8b0026ffea5e035f378f",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
     },
     {
       "path": "internal/orchestrator/window_manager_windows.go",
@@ -67,7 +75,11 @@
     },
     {
       "path": "internal/orchestrator/wechat_login_windows.go",
-      "sourceSHA256": "4228757e10100892540c3598978710789a975df5dd68a889139b53f9c0c7cb72"
+      "sourceSHA256": "fd264e15e4621827bb9707f996359ca38420176b8753a8c5c530cc86b416db2f",
+      "targetPath": "modules/wintray/internal/orchestrator/wechat_login_windows.go",
+      "targetSHA256": "66924d533d73a260b2c66feb2fb397a04ccec614719909b130b75b89a6a29a97",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
     },
     {
       "path": "internal/orchestrator/wechat_uia_windows.go",
@@ -78,14 +90,19 @@
     },
     {
       "path": "internal/orchestrator/wechat_login_windows_test.go",
-      "sourceSHA256": "fa586fda712bde06d1db183dd41b80e1fc21b754e5bc859678ab4989b442c600"
+      "sourceSHA256": "f78b0f49af649bad7bf2159044c25948da7f0be13dff1a3dee2f3c79878cb1ed",
+      "targetPath": "modules/wintray/internal/orchestrator/wechat_login_windows_test.go",
+      "targetSHA256": "f62fdc1e6d6999feecf2cfaab9e6826d9c0e9d541ba8e2e11a57a6b7d1debe65",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
     },
     {
       "path": "internal/orchestrator/wechat_uia_windows_test.go",
-      "sourceSHA256": "7e7a4a1304660a4498a66a075ca960c22a8c30b900885dab614cc0a657fe7e6b",
+      "sourceSHA256": "e88916b077990a291466d89d30f2f14a37be5c0a384f371dd3da34fa4599ef06",
       "targetPath": "modules/wintray/internal/orchestrator/wechat_uia_windows_test.go",
-      "targetSHA256": "77df44a916d79f4baf5fdc698ab60b650676606ef378552b159fbaa4fc694aba",
-      "adaptation": "WinOne module import paths and Go import grouping only; preserve all upstream native Qt, task-launch, incomplete-login and rendered-main identity cases."
+      "targetSHA256": "9653a98a2b6a3c2f82a4689bcbf4a877c4b49e79d51b21e4ab1aa8bc3fe889eb",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination.",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7"
     },
     {
       "path": "internal/config/wechat_login_test.go",
@@ -93,7 +110,11 @@
     },
     {
       "path": "internal/config/schema.go",
-      "sourceSHA256": "e16da4be6826bb6a2c655bda4b3a72a2008df74579720d3348480d3baaa73f37"
+      "sourceSHA256": "a87903802ea2269e721a4b650a5e73da9a23c35edeee126838c84083edf6d8ef",
+      "targetPath": "modules/wintray/internal/config/schema.go",
+      "targetSHA256": "4258977929b3c97a108b6c2d2fe868535e7a63e92c39aa77bed853630f5906b8",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
     },
     {
       "path": "internal/i18n/messages.go",
@@ -151,15 +172,27 @@
     },
     {
       "path": "internal/orchestrator/runner.go",
-      "sourceSHA256": "211b9c47c285674086bc123242d479ee63cbd8eccabbef2dba0f649eaa0b3fd3"
+      "sourceSHA256": "34019b533ccd2619cdf22815c8006a4da04d1b40ff977441dfbaef710bff0b4e",
+      "targetPath": "modules/wintray/internal/orchestrator/runner.go",
+      "targetSHA256": "f74357745bd144b22bdf7a09309a6adadb2b6f43704558ecb6818b5f93535fc6",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
     },
     {
       "path": "internal/orchestrator/runner_association_windows.go",
-      "sourceSHA256": "fdd3f24becdcff3de9940059217c560a05812eb33f2030ce6c06a1fed8cd9c7e"
+      "sourceSHA256": "a219e0fb5579e334677ed3c6e1c6dac8a2c3ccd417740e395f3adff9096af6cb",
+      "targetPath": "modules/wintray/internal/orchestrator/runner_association_windows.go",
+      "targetSHA256": "0c043338388516bdeeda99543d7e7633a0c0505ae708c5f524e81feaee6ec2f6",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
     },
     {
       "path": "internal/orchestrator/runner_association_windows_test.go",
-      "sourceSHA256": "ba2063353c15c6cb65b3993e3bd5e3283190267be41de92518493ce45499ebed"
+      "sourceSHA256": "fd110462e287302ad97b0dbf39d459f8260e6efa4c614757e97393f92984b3c4",
+      "targetPath": "modules/wintray/internal/orchestrator/runner_association_windows_test.go",
+      "targetSHA256": "6d4fb119270f5eb5d49c1cf9c1ccdd26c3d054bd1d186ff295e02b88299b7b96",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
     },
     {
       "path": "internal/orchestrator/ahk_runtime_windows_test.go",
@@ -239,6 +272,110 @@
       "targetPath": "modules/wintray/internal/startup/testdata/launch-report/main_windows.go",
       "adaptation": "WinOne import namespace; inert launch report executable and private Run fixture; preserve helper failures locally and resolve reporter source independently from native runner cwd.",
       "targetSHA256": "28f87c9d3749258b3a1a15eb172a2f0998663edbf161320e50ed9a319de3a1b9"
+    },
+    {
+      "path": "internal/orchestrator/runner_windows_test.go",
+      "sourceSHA256": "aedcc719a910ea0990edfb54e25761c8378905f8020edd7879e45da282b45e34",
+      "targetPath": "modules/wintray/internal/orchestrator/runner_windows_test.go",
+      "targetSHA256": "c06ad4abe0c9d26d627d1e78c8c04a79ca5141014ed7b61c476f1d977b35059b",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
+    },
+    {
+      "path": "internal/startup/app_task_windows.go",
+      "sourceSHA256": "e72249c7b96e55877650280b01a33c74a591410be7fc0531419553029071de50",
+      "targetPath": "modules/wintray/internal/startup/app_task_windows.go",
+      "targetSHA256": "57419682fa44d5a6fb09ee7b575a8c6f2054b0f180663b39071d5fbd51e55a3e",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
+    },
+    {
+      "path": "internal/startup/direct_task_windows_test.go",
+      "sourceSHA256": "dc265b4e6578e7d62b19cc372c4923deedc00362f4c7fa8adcf18cc40f0434be",
+      "targetPath": "modules/wintray/internal/startup/direct_task_windows_test.go",
+      "targetSHA256": "9dd6927af998b7f88b89169b0a4970e4be6d59fd69fb52ae2462824cd68f189f",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
+    },
+    {
+      "path": "internal/startup/original_launch_windows.go",
+      "sourceSHA256": "a9c0e2457bbf4b6c389eb2e286fd36038319ee5986f019266602175e726ef70b",
+      "targetPath": "modules/wintray/internal/startup/original_launch_windows.go",
+      "targetSHA256": "92f103ac2cb0c95b5349e1f402c46862bef4ab6b3ef9db536a914ec0afcad594",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
+    },
+    {
+      "path": "internal/traybox/process_windows.go",
+      "sourceSHA256": "c202d966493f1b67315d2a72964d9f68ce143ec945af46cc5f50a22145bf4c9d",
+      "targetPath": "modules/wintray/internal/traybox/process_windows.go",
+      "targetSHA256": "c202d966493f1b67315d2a72964d9f68ce143ec945af46cc5f50a22145bf4c9d",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "None: byte-identical upstream implementation."
+    },
+    {
+      "path": "internal/config/qq_login_test.go",
+      "sourceSHA256": "f9c0a7454664e7de78bb3fe71bf54e82f7d16fc9b7d7e717c03d0d1a39c78772",
+      "targetPath": "modules/wintray/internal/config/qq_login_test.go",
+      "targetSHA256": "f9c0a7454664e7de78bb3fe71bf54e82f7d16fc9b7d7e717c03d0d1a39c78772",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "None: byte-identical upstream implementation."
+    },
+    {
+      "path": "internal/config/working_directory_test.go",
+      "sourceSHA256": "029e817e1143a144ae6f16518e9c026147975ec3309a14780f480f25ef9fd737",
+      "targetPath": "modules/wintray/internal/config/working_directory_test.go",
+      "targetSHA256": "029e817e1143a144ae6f16518e9c026147975ec3309a14780f480f25ef9fd737",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "None: byte-identical upstream implementation."
+    },
+    {
+      "path": "internal/orchestrator/login_tray_windows.go",
+      "sourceSHA256": "fd2f1a028b1e09934dc88622bb392d02cf36779bd11ed98b2eb6169f4a1b9723",
+      "targetPath": "modules/wintray/internal/orchestrator/login_tray_windows.go",
+      "targetSHA256": "c90a68c38f7945c8d30bddc3a0a2023f2e574e12334529ec0458680a50fae5c2",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
+    },
+    {
+      "path": "internal/orchestrator/qq_login_windows.go",
+      "sourceSHA256": "404f456765c64f2725a360a227deb81161273eec49f3aaa1d4fbf2286d39ac10",
+      "targetPath": "modules/wintray/internal/orchestrator/qq_login_windows.go",
+      "targetSHA256": "06b20436fc88ce931d374c8379b4f369bbe7ebd40d3a7b953af1447b1a76050c",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
+    },
+    {
+      "path": "internal/orchestrator/qq_login_windows_test.go",
+      "sourceSHA256": "176e8ff61cb785ad0725036dd4da46766b6cda2bc0213bad6b218f8c6fb6559b",
+      "targetPath": "modules/wintray/internal/orchestrator/qq_login_windows_test.go",
+      "targetSHA256": "d623646cfa9a6a222039d2d045b022de478705a141cde6a30d856b365d087e5a",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
+    },
+    {
+      "path": "internal/orchestrator/working_directory_windows_test.go",
+      "sourceSHA256": "ba226bc354f4f8ec5473b2f887b3739324f357f25febff3ba61b003a1cb80aaa",
+      "targetPath": "modules/wintray/internal/orchestrator/working_directory_windows_test.go",
+      "targetSHA256": "395dadc465cb3b086af5bbb80c601d9b6a3f90c8bae52ee0857423b14b20cfca",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
+    },
+    {
+      "path": "internal/startup/working_directory_windows_test.go",
+      "sourceSHA256": "05df52a160cdefec0d3ccb38d543433d4dcf649283a2108d10effb9446c1730d",
+      "targetPath": "modules/wintray/internal/startup/working_directory_windows_test.go",
+      "targetSHA256": "05df52a160cdefec0d3ccb38d543433d4dcf649283a2108d10effb9446c1730d",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "None: byte-identical upstream implementation."
+    },
+    {
+      "path": "internal/traybox/process_path_windows_test.go",
+      "sourceSHA256": "942ced8b5245d32ecaad2f90fcc0480363ea04d3e3d776405b36338894be4b10",
+      "targetPath": "modules/wintray/internal/traybox/process_path_windows_test.go",
+      "targetSHA256": "942ced8b5245d32ecaad2f90fcc0480363ea04d3e3d776405b36338894be4b10",
+      "revision": "0353a53246e1b549ede8a61e26e55fa9daa4bdd7",
+      "adaptation": "None: byte-identical upstream implementation."
     }
   ],
   "adaptation": "Retain WinOne module namespace, unified configuration/logs/tray, recovery errors and PID-reuse protection. Reuse scoped Esc/native-close handling, script identity, original-window visibility and queued tray gestures. Existing WinOne native console creation retains its explicit environment/ownership handling. UI uses existing WinOne controls; program exit requires confirmation. Manual launch settings stay independent from the startup switch; collected-icon single click still automatically adds a double click. No new dependency or standalone WinTray UI. Tray collection uses the same local WinTray receiving-end bridge; WinOne permits EPOCH/RESUME through its per-window UIPI filter for elevated operation and preserves native handshake errors instead of reporting every delivery failure as a timeout. The 2026-11-03 review keeps WinOne's explicit os.Process wait/exit-status callback for ShellExecuteEx scripts, preserves the fixture's no-foreground-activation constraint, and reuses transactional deselection for retryable maintenance before terminal collector shutdown. Portable WeChat opt-in settings round-trip without account data or credentials. Capability mapping and verification boundaries: docs/wintray-sync-20261103.md.",

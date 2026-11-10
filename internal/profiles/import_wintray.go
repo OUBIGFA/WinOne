@@ -49,6 +49,12 @@ func importTrayApp(entry map[string]json.RawMessage, resolve pathResolver) (map[
 	if _, exists := entry["wechatAutoLogin"]; exists {
 		fields += " wechatAutoLogin:b"
 	}
+	if _, exists := entry["qqWaitForLogin"]; exists {
+		fields += " qqWaitForLogin:b"
+	}
+	if _, exists := entry["workingDirectoryRef"]; exists {
+		fields += " workingDirectoryRef:s"
+	}
 	app, err := exactFields(entry, fields, "trayBehavior", "schedule")
 	if err != nil {
 		return nil, err
@@ -108,6 +114,14 @@ func importTrayApp(entry map[string]json.RawMessage, resolve pathResolver) (map[
 		return nil, errors.New("启动参数包含无效字符")
 	}
 	app["exePath"] = path
+	if ref, exists := app["workingDirectoryRef"]; exists {
+		directory, err := resolve(ref.(string), "directory")
+		if err != nil {
+			return nil, err
+		}
+		app["workingDirectory"] = directory
+		delete(app, "workingDirectoryRef")
+	}
 	delete(app, "programRef")
 	app["trayBehavior"], app["schedule"] = tray, schedule
 	return app, nil

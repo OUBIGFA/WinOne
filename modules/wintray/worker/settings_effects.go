@@ -19,6 +19,7 @@ func sameStartupEffects(before, next config.Settings) bool {
 			}
 			entry.CollectTrayIcon = false
 			entry.WeChatAutoLogin = false
+			entry.QQWaitForLogin = false
 			entry.TrayBehavior = config.TrayBehavior{}
 			entry.Schedule.AutoExitMinutes = 0
 			result.ManagedApps = append(result.ManagedApps, entry)

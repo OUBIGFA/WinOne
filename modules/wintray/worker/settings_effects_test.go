@@ -15,6 +15,7 @@ func TestStartupEffectsIgnoreUnrelatedEditsAndKeepEveryTaskInput(t *testing.T) {
 		"window":   func(v *config.Settings) { v.ManagedApps[0].TrayBehavior.CloseDelaySeconds++ },
 		"tray":     func(v *config.Settings) { v.ManagedApps[0].CollectTrayIcon = true },
 		"autoexit": func(v *config.Settings) { v.ManagedApps[0].Schedule.AutoExitMinutes++ },
+		"qq":       func(v *config.Settings) { v.ManagedApps[0].QQWaitForLogin = true },
 	} {
 		t.Run(name, func(t *testing.T) {
 			next := clone(base)
@@ -29,6 +30,7 @@ func TestStartupEffectsIgnoreUnrelatedEditsAndKeepEveryTaskInput(t *testing.T) {
 		"remove":    func(v *config.Settings) { v.ManagedApps = nil },
 		"path":      func(v *config.Settings) { v.ManagedApps[0].ExePath = `C:\other.exe` },
 		"arguments": func(v *config.Settings) { v.ManagedApps[0].Args = "--new" },
+		"directory": func(v *config.Settings) { v.ManagedApps[0].WorkingDirectory = `D:\Data` },
 		"id":        func(v *config.Settings) { v.ManagedApps[0].ID = "two" },
 		"task":      func(v *config.Settings) { v.ManagedApps[0].LaunchViaLogonTask = false },
 		"hidden":    func(v *config.Settings) { v.ManagedApps[0].LaunchHiddenInBackground = true },

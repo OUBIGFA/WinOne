@@ -13,7 +13,13 @@ import (
 	"testing"
 	"time"
 	"unsafe"
+	"winone/modules/wintray/internal/config"
 )
+
+// Process fixtures retain the default directory unless explicitly configured.
+func startProcess(exePath, args string, mode launchMode) (*startedProcess, error) {
+	return startConfiguredProcess(config.ManagedAppEntry{ExePath: exePath, Args: args}, mode)
+}
 
 func TestStartProcess_PreservesWindowsArguments(t *testing.T) {
 	self, err := os.Executable()
@@ -119,6 +125,15 @@ func TestRunnerHelperProcess(t *testing.T) {
 		return
 	}
 	switch os.Args[4] {
+	case "directory":
+		directory, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(os.Args[5], []byte(directory), 0600); err != nil {
+			t.Fatal(err)
+		}
+
 	case "native-console":
 		runNativeConsoleProbe(t, os.Args[5])
 	case "console":

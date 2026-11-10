@@ -10,6 +10,7 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
+	"winone/desktopmygo/widgets"
 )
 
 // programState is whether the selected program runs and shows a window,
@@ -239,7 +240,9 @@ func (p *page) timing(c *ui.Context, app *program) {
 				})
 			})
 		})
-		if current == "tray" {
+		// Login observation replaces the delay without clearing its saved value.
+		loginWait := (weChatProgram(app.ExePath) && app.WeChatAutoLogin) || (strings.EqualFold(baseName(app.ExePath), "QQ.exe") && app.QQWaitForLogin)
+		if current == "tray" && !loginWait {
 			kit.Indented(c, func() {
 				p.numberRow(c, programKey(id, "closeDelay"), i18n.T("wintray.closeDelay"), &app.TrayBehavior.Value.CloseDelaySeconds, 0, 600, p.blocked())
 			})
@@ -251,6 +254,12 @@ func (p *page) timing(c *ui.Context, app *program) {
 			auto := app.WeChatAutoLogin
 			if kit.Toggle(c, &auto, i18n.T("wintray.wechatAutoLogin"), i18n.T("wintray.wechatAutoLoginHint")).Disabled(p.blocked() || current == "hidden").Changed() {
 				p.update(id, func(a *program) { a.WeChatAutoLogin = auto })
+			}
+		}
+		if strings.EqualFold(baseName(app.ExePath), "QQ.exe") {
+			wait := app.QQWaitForLogin
+			if kit.Toggle(c, &wait, i18n.T("wintray.qqWaitForLogin"), i18n.T("wintray.qqWaitForLoginHint")).Disabled(p.blocked() || current != "tray").Changed() {
+				p.update(id, func(a *program) { a.QQWaitForLogin = wait })
 			}
 		}
 	})
@@ -308,6 +317,38 @@ func (p *page) information(c *ui.Context, app *program) {
 				p.update(id, func(a *program) { a.Args = args })
 			}
 			kit.Help(c, i18n.T("wintray.argsHint"))
+		})
+		directoryInput := p.handle(programKey(id, "workingDirectory"))
+		field(c, "workingDirectory:"+id, i18n.T("wintray.workingDirectory"), directoryInput, true, func() {
+			row := ui.Row(c).FillWidth().Gap(8).Children(func() {
+				directory := app.WorkingDirectory
+				ui.TextInput(c, &directory).Grow(1).Shrink(1).MinWidth(0).Label(i18n.T("wintray.workingDirectory")).Bind(directoryInput)
+				if directory != app.WorkingDirectory {
+					p.update(id, func(a *program) { a.WorkingDirectory = directory })
+				}
+				if kit.Button(c, i18n.T("wintray.browseDirectory"), icons.FolderOpen, false).Shrink(0).Clicked() {
+					p.busy = true
+					core.Go(p.env, func() (string, error) { return p.env.Dialogs.PickFolder(i18n.T("wintray.workingDirectory")) }, func(path string, err error) {
+						p.busy = false
+						if err != nil {
+							p.err = err.Error()
+						} else if path != "" {
+							p.update(id, func(a *program) { a.WorkingDirectory = path })
+						}
+					})
+				}
+			})
+			widgets.DropArea(c, p.env, row, widgets.DropFolders, false, p.blocked(), func(paths []string, err error) {
+				if err != nil {
+					p.err = err.Error()
+					return
+				}
+				p.update(id, func(a *program) { a.WorkingDirectory = paths[0] })
+			})
+			kit.Help(c, i18n.T("wintray.workingDirectoryHint"))
+			if mode(*app) == "task" {
+				kit.Help(c, i18n.T("wintray.taskDirectoryHint"))
+			}
 		})
 	})
 }

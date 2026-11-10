@@ -37,6 +37,8 @@ type program struct {
 	RunOnStartup             bool                         `json:"runOnStartup"`
 	CollectTrayIcon          bool                         `json:"collectTrayIcon"`
 	WeChatAutoLogin          bool                         `json:"wechatAutoLogin"`
+	QQWaitForLogin           bool                         `json:"qqWaitForLogin"`
+	WorkingDirectory         string                       `json:"workingDirectory,omitempty"`
 	LaunchViaLogonTask       bool                         `json:"launchViaLogonTask"`
 	LaunchHiddenInBackground bool                         `json:"launchHiddenInBackground"`
 	TrayBehavior             core.Preserved[trayBehavior] `json:"trayBehavior"`

@@ -2,6 +2,8 @@
 
 基于 WinTray `dea17c108357109d6c2c04e80c9df45279bfdc51`，保留原 MIT 许可及已有测试。
 
+最近核对上游提交为 `0353a53246e1b549ede8a61e26e55fa9daa4bdd7`；2026-11-10 增量包含工作目录、QQ 登录后收起、微信持续等待和目录联接托盘修复。逐项对照与验证见 `docs/wintray-sync-20261110.md`，源码与改编摘要见 `third_party/wintray-source.json`。
+
 已同步 2026-09-29 托盘图标拖动修复及回归测试。来源为原项目尚未提交的改动，文件校验记录在 `third_party/sources.json`。桌面拖动测试需显式启用，默认测试不移动鼠标。
 
 `internal/` 为既有实现；`worker/` 为 WinOne 接入层。原设置界面仅随上游代码保留，不由 Worker 创建。系统任务、命名对象及数据目录使用 WinOne 独立命名。

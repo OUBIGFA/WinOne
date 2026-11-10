@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"winone/modules/wintray/internal/config"
 )
 
 // launchMode selects how the new process gets (or does not get) a window.
@@ -35,16 +36,24 @@ type startedProcess struct {
 
 func (p *startedProcess) Wait() error { return p.wait() }
 
-func startProcess(exePath, args string, mode launchMode) (*startedProcess, error) {
+func startConfiguredProcess(entry config.ManagedAppEntry, mode launchMode) (*startedProcess, error) {
+	exePath, args := entry.ExePath, entry.Args
+	dir := entry.LaunchDirectory()
+	// Every launch route must reject an unavailable working folder instead of
+	// silently reading relative files from a different directory.
+	info, err := os.Stat(dir)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("working directory is not a folder: %s", dir)
+	}
 	if isAutoHotkeyScript(exePath) {
-		return startAssociatedScript(exePath, args, mode != launchVisible)
+		return startAssociatedScript(exePath, args, dir, mode != launchVisible)
 	}
 	hidden := mode == launchNoWindow
-	dir := filepath.Dir(exePath)
 	cmd := buildLaunchCommand(exePath, args, hidden)
-	if _, err := os.Stat(dir); err == nil {
-		cmd.Dir = dir
-	}
+	cmd.Dir = dir
 	if cmd.Err != nil {
 		return nil, cmd.Err
 	}

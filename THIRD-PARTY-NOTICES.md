@@ -10,7 +10,7 @@
 | go-winio | Windows 命名管道 | MIT |
 | fyne systray | 主托盘入口 | Apache-2.0（含原项目归属） |
 | Go x/sys | Windows 系统调用 | BSD-3-Clause |
-| WinTray | 程序启动、窗口与托盘管理；核对 db9c545 及 2026-11-08 上游工作树，接入计划任务并发修复、隔离启动夹具与控制台路径修复，并适配 Host/Worker 跨进程协调；保留此前退出/还原、AutoHotkey、DC 渲染、收纳就绪及微信 Qt 登录修复。来源与摘要见 third_party/wintray-source.json，能力对照见 docs/wintray-sync-20261108.md、docs/wintray-wechat-login.md | MIT，全文见 modules/wintray/LICENSE |
+| WinTray | 程序启动、窗口与托盘管理；跟进 0353a53 的自定义工作目录、QQ 登录后收起、微信持续等待登录和目录联接托盘修复；保留 WinOne Host/Worker 协调、统一页面与托盘适配。来源及摘要见 third_party/wintray-source.json，完整能力对照见 docs/wintray-sync-20261110.md | MIT，全文见 modules/wintray/LICENSE |
 | React / React DOM | 设置界面 | MIT |
 | Lucide messages-circle（7faf876） | 闪聊入口及页面图标，直接复用官方 SVG 路径；来源与摘要见 `third_party/import-notices.json` | ISC；全文见 `third_party/licenses/lucide.txt` |
 | PDFium 原生预览 | 锁定 `chromium/8111`（158.0.8111.0）的原版 Windows x64 PDFium；渲染、文字几何、链接和 AcroForm 由引擎处理，WinOne 的 MyGo 控件经按需独立 PDF 辅助进程使用，不启用文档脚本/外部提交 | 原包及全部 19 项依赖许可全文、发布摘要与 C ABI 头摘要见 `third_party/native-pdfium.json`、`third_party/desktop-mygo-notices.json`；保留 BSD、MIT、Apache、FTL 等各原文条件；构建验证 `build/verify-native-pdfium.mjs` |

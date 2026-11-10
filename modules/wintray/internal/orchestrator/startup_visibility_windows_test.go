@@ -234,7 +234,8 @@ func awaitStartupFixture(t *testing.T, file string) startupFixture {
 func TestStartupVisibilityClosesBehindShieldThenRestoresNativeInteraction(t *testing.T) {
 	entry, file := startupFixtureEntry(t, "normal")
 	entry.TrayBehavior.CloseDelaySeconds = 3
-	svc := NewService(NewWin32WindowEnumerator(), NewWin32WindowManager(), &testLogger{})
+	// Keep the native action trace when desktop readiness or a close fails.
+	svc := NewService(NewWin32WindowEnumerator(), NewWin32WindowManager(), &liveEscapeLogger{t})
 	ctx, cancel := context.WithCancel(context.Background())
 	result := make(chan Result, 1)
 	done := make(chan struct{})

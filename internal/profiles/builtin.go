@@ -133,6 +133,9 @@ func ExportBuiltinSettings(id string, raw json.RawMessage, options ExportOptions
 			if _, exists := entry["wechatAutoLogin"]; exists {
 				fields += " wechatAutoLogin:b"
 			}
+			if _, exists := entry["qqWaitForLogin"]; exists {
+				fields += " qqWaitForLogin:b"
+			}
 			app, err = projectFields(entry, fields)
 			if err != nil {
 				break
@@ -165,6 +168,20 @@ func ExportBuiltinSettings(id string, raw json.RawMessage, options ExportOptions
 			key := fmt.Sprintf("wintray.program.%d", index)
 			app["programRef"] = key
 			result.Paths[key] = PathReference{Kind: "program", Label: app["name"].(string)}
+			// Working folders are device bindings, including relative paths.
+			// Export a mapping slot, never the source machine's directory.
+			if _, exists := entry["workingDirectory"]; exists {
+				var directory string
+				directory, err = sourceString(entry, "workingDirectory")
+				if err != nil {
+					break
+				}
+				if strings.TrimSpace(directory) != "" {
+					key := fmt.Sprintf("wintray.directory.%d", index)
+					app["workingDirectoryRef"] = key
+					result.Paths[key] = PathReference{Kind: "directory", Label: app["name"].(string) + " 工作目录"}
+				}
+			}
 			for _, nested := range []struct{ name, fields string }{
 				{"trayBehavior", "autoMinimizeAndHideOnLaunch:b closeDelaySeconds:n"},
 				{"schedule", "enabled:b startDelayMinutes:n autoExitMinutes:n frequencyEnabled:b frequencyDays:n frequencyRuns:n"},

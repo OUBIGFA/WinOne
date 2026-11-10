@@ -26,3 +26,19 @@ test('WinTray WeChat native regression suite and MIT license match their records
   assert.equal(digest(await read(suite.targetPath)), suite.targetSHA256);
   assert.equal(digest(await read(source.licenseFile)), source.licenseSHA256);
 });
+
+test('WinTray login, working directory and junction imports match reviewed target bytes', async () => {
+  const paths = [
+    'internal/config/schema.go', 'internal/orchestrator/login_tray_windows.go',
+    'internal/orchestrator/qq_login_windows.go', 'internal/orchestrator/wechat_login_windows.go',
+    'internal/orchestrator/runner.go', 'internal/orchestrator/runner_association_windows.go',
+    'internal/startup/app_task_windows.go', 'internal/startup/original_launch_windows.go',
+    'internal/traybox/process_windows.go',
+  ];
+  for (const path of paths) {
+    const file = source.files.find(file => file.path === path);
+    assert.ok(file?.targetPath, `missing target attribution: ${path}`);
+    assert.equal(file.revision, source.revision);
+    assert.equal(digest(await read(file.targetPath)), file.targetSHA256, path);
+  }
+});
