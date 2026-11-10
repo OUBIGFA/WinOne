@@ -46,6 +46,7 @@ internal static partial class SelectionPipelineProbe
 
     internal static int Run(string output) {
         var quickOnly=Environment.GetEnvironmentVariable("WINONE_SELECTION_QUICK_HANDOFF")=="1";
+        var automaticOnly=Environment.GetEnvironmentVariable("WINONE_SELECTION_AUTOMATIC_FIXTURE") is not null;
         var bundle=Environment.GetEnvironmentVariable("WINONE_SELECTION_PIPELINE_BUNDLE")??throw new Exception("Set the explicit bundle path");
         var url=Environment.GetEnvironmentVariable("WINONE_SELECTION_PIPELINE_URL")??throw new Exception("Set a loopback fixture URL");
         if(!Uri.TryCreate(url,UriKind.Absolute,out var address)||!address.IsLoopback||address.Scheme!="http")throw new Exception("Only loopback fixture calls are allowed");
@@ -53,7 +54,7 @@ internal static partial class SelectionPipelineProbe
         var data=Path.Combine(output,"data");Directory.CreateDirectory(data);
         var theme=Environment.GetEnvironmentVariable("WINONE_SELECTION_PIPELINE_THEME")=="dark"?"dark":"light";
         File.WriteAllText(Path.Combine(data,"settings.json"),JsonSerializer.Serialize(new{schemaVersion=1,theme,language="zh-CN",captureShortcut="",pinShortcut="",ocrShortcut="",translateShortcut="",selectionShortcut=""}));
-        if(quickOnly) File.WriteAllText(Path.Combine(data,"module-state.json"),JsonSerializer.Serialize(new{schemaVersion=3,revision=0,modules=new Dictionary<string,object>{{"capture",new{enabled=false,pendingStop=false}},{"always-on-top",new{enabled=false,pendingStop=false}},{"wintray",new{enabled=false,pendingStop=false}},{"selection",new{enabled=true,pendingStop=false}},{"quick-assistant",new{enabled=true,pendingStop=false}}}}));
+        if(quickOnly||automaticOnly) File.WriteAllText(Path.Combine(data,"module-state.json"),JsonSerializer.Serialize(new{schemaVersion=3,revision=0,modules=new Dictionary<string,object>{{"capture",new{enabled=false,pendingStop=false}},{"always-on-top",new{enabled=false,pendingStop=false}},{"wintray",new{enabled=false,pendingStop=false}},{"selection",new{enabled=true,pendingStop=false}},{"quick-assistant",new{enabled=true,pendingStop=false}}}}));
         var pipe="WinOne-selection-test-"+Guid.NewGuid().ToString("N");
         var info=new ProcessStartInfo(Path.Combine(bundle,"WinOne.Host.exe")){UseShellExecute=false,CreateNoWindow=true,RedirectStandardError=true};
         if(Environment.GetEnvironmentVariable("WINONE_SELECTION_PIPELINE_DIAGNOSTICS")=="1")info.Environment["WINONE_SELECTION_DIAGNOSTICS"]="1";
@@ -68,6 +69,7 @@ internal static partial class SelectionPipelineProbe
         form.Shown+=async(_,_)=>{
             try {
                 _=await Call(pipe,"snapshot",new{});
+                if(automaticOnly){await CheckAutomaticSelection(host.Id,pipe,form,output);return;}
                 if(quickOnly){await CheckQuickHandoff(host.Id,pipe,source,form,output);return;}
                 var configuration=await Call(pipe,"ai.configuration.get",new{});
                 await Call(pipe,"ai.configuration.save",new{configuration=new{revision=configuration.GetProperty("revision").GetUInt64(),engine="google",ocrEngine="local",target="zh-CN",prompt="",showReasoning=true,providers=new[]{new{id="fixture",name="测试服务",authMode="api-key",protocol="chat",baseUrl=url,models=new[]{"fixture-translate","fixture-chat"}},new{id="custom-provider",name="自定义服务",authMode="api-key",protocol="chat",baseUrl=url+"/custom",models=new[]{"custom-model"}}},tasks=new Dictionary<string,object>{{"default",new{provider="fixture",model="fixture-translate"}},{"chat",new{provider="fixture",model="fixture-chat"}}}},keys=new Dictionary<string,string>{{"fixture","fixture-key"},{"custom-provider","custom-key"}}});
@@ -221,6 +223,7 @@ internal static partial class SelectionPipelineProbe
                 File.WriteAllText(Path.Combine(output,"result.json"),JsonSerializer.Serialize(new{passed=true,pointerSelection=true,keyboardSelection=true,toolbarInactive=true,customAction=true,customOrder=true,selectionNotRepeated=true,conversationTurns=2,resultCopied=true,codeCopy=true,moduleDisabled=true,resultExited=true,hostExited=true}));
             }catch(Exception error){
                 failure=error;
+                File.WriteAllText(Path.Combine(output,"failure.txt"),error.ToString());
                 // Capture only our synthetic fixture before teardown so input,
                 // window-lifetime and request failures can be distinguished.
                 var ownedResult=FindWindow(resultPid);GetCursorPos(out var cursor);
@@ -231,16 +234,17 @@ internal static partial class SelectionPipelineProbe
         };
         try{Application.Run(form);}
         finally{try{if(!quickOnly){if(clipboard==null)Clipboard.Clear();else Clipboard.SetDataObject(clipboard,true,30,50);}}finally{if(settingsWindow is not null&&!settingsWindow.HasExited)settingsWindow.Kill(true);settingsWindow?.Dispose();if(!host.HasExited){RequestExit(host.Id);if(!host.WaitForExit(5000))host.Kill(true);}}}
+        File.WriteAllText(Path.Combine(output,"cleanup.json"),JsonSerializer.Serialize(new{clipboardRestored=true,hostExited=host.HasExited}));
         if(failure!=null){File.WriteAllText(Path.Combine(output,"failure.txt"),failure.ToString());Console.Error.WriteLine(failure);return 1;}
         Console.WriteLine(quickOnly ? "PASS: selection handoff, draft preservation, shared window, unchanged clipboard and module shutdown" : "PASS: global selection, toolbar, translation/custom action, shared conversation, copy, disable and exit");return 0;
     }
-    static IDataObject? SnapshotClipboard(){
+    internal static IDataObject? SnapshotClipboard(){
         var original=Clipboard.GetDataObject();if(original==null)return null;
         // Materialize formats before the test changes clipboard ownership.
         // A live IDataObject proxy may no longer render its original data later.
         var snapshot=new DataObject();
         foreach(var format in original.GetFormats(false)){
-            var data=original.GetData(format,false);if(data==null)throw new Exception("Cannot preserve clipboard format: "+format);
+            var data=original.GetData(format,false)??SelectionTestGuard.ReadOpaqueFormat(format);
             if(data is Image image)data=image.Clone();else if(data is MemoryStream stream)data=new MemoryStream(stream.ToArray());else if(data is byte[] bytes)data=bytes.ToArray();
             snapshot.SetData(format,false,data);
         }

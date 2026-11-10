@@ -30,7 +30,9 @@ func (g *Gesture) Pointer(down bool, x, y int32, stamp uint32, window uintptr, s
 	}
 	drag := distance(x, g.x) > int64(g.DragX) || distance(y, g.y) > int64(g.DragY)
 	double := g.previousClick && g.clickWindow == window && stamp-g.clickTime <= g.DoubleClickMilliseconds && distance(x, g.clickX) <= int64(g.DragX) && distance(y, g.clickY) <= int64(g.DragY)
-	g.previousClick, g.clickX, g.clickY, g.clickWindow, g.clickTime = !drag && !double, x, y, window, stamp
+	// Keep the click chain: the third click commonly expands a word to a
+	// paragraph. Dropping it after a double click also dismisses its toolbar.
+	g.previousClick, g.clickX, g.clickY, g.clickWindow, g.clickTime = !drag, x, y, window, stamp
 	return drag || double || shift
 }
 
@@ -42,4 +44,21 @@ func SelectionKey(key uint32, shift, control, alt bool) bool {
 		return true
 	}
 	return shift && key >= 0x21 && key <= 0x28
+}
+
+// Remember the chord at key-down. Users can release Shift/Ctrl before the
+// selection key; sampling modifiers only at key-up loses that completed edit.
+type KeyboardGesture struct{ selected [256]bool }
+
+func (g *KeyboardGesture) Key(down bool, key uint32, shift, control, alt bool) bool {
+	if key >= uint32(len(g.selected)) {
+		return false
+	}
+	if down {
+		g.selected[key] = SelectionKey(key, shift, control, alt)
+		return false
+	}
+	selected := g.selected[key]
+	g.selected[key] = false
+	return selected
 }

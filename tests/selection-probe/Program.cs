@@ -9,8 +9,19 @@ internal static class Program
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr window);
     [DllImport("user32.dll")] static extern uint GetClipboardSequenceNumber();
+    [DllImport("kernel32.dll")] static extern bool TerminateProcess(IntPtr process,uint exitCode);
     [STAThread] static int Main(string[] args)
     {
+        if(args.Length>1 && args[0]=="--guard") return SelectionTestGuard.Run(args[1..]);
+        if(args.Length>1 && args[0]=="--guard-child") {
+            int result=Main(args[1..]);
+            // Run returned only after clipboard/owned-process cleanup. UIA's
+            // COM shutdown can hang after its fixture disappears; terminate
+            // this disposable client with the actual test result, not a timeout.
+            TerminateProcess(new IntPtr(-1),unchecked((uint)result));
+            return result;
+        }
+        if(args is ["--compatibility",var driver,var compatReader,var mygo,var compatOutput]) return SelectionCompatibilityProbe.Run(driver,compatReader,mygo,compatOutput);
         if(args is ["--pipeline",var pipelineOutput]) return SelectionPipelineProbe.Run(pipelineOutput);
         if (args is not ["--reader", var reader, "--output", var output]) return 2;
         if (Directory.Exists(output)) throw new IOException("Choose a new output directory");
@@ -92,6 +103,13 @@ internal static class Program
                 var browserAgain = await Read("browser-text-again");
                 if (browserText.GetProperty("status").GetString() != "selected" || browserText.GetProperty("text").GetString() != "selected") throw new Exception("Browser selection failed: " + browserText);
                 if (browserAgain.GetProperty("status").GetString() != "selected" || browserAgain.GetProperty("text").GetString() != "selected") throw new Exception("Repeated browser selection changed");
+                foreach(var scenario in new[]{"textarea","contenteditable","shadow","iframe"}) {
+                    var setup=await browser.CoreWebView2.ExecuteScriptAsync("(()=>{const old=document.querySelector('#extra');if(old)old.remove();getSelection().removeAllRanges();const host=document.createElement('div');host.id='extra';document.body.prepend(host);const mode="+JsonSerializer.Serialize(scenario)+";let target,doc=document;if(mode==='textarea'){target=document.createElement('textarea');target.value='Before selected after';host.append(target);target.focus();target.setSelectionRange(7,15);return 'selected';}if(mode==='iframe'){const frame=document.createElement('iframe');host.append(frame);doc=frame.contentDocument;target=doc.createElement('p');doc.body.append(target);}else if(mode==='shadow'){target=document.createElement('p');host.attachShadow({mode:'open'}).append(target);}else{target=document.createElement('div');target.contentEditable='true';host.append(target);}target.tabIndex=0;target.textContent='Before selected after';target.focus();const r=doc.createRange();r.setStart(target.firstChild,7);r.setEnd(target.firstChild,15);const s=doc.getSelection();s.removeAllRanges();s.addRange(r);return s.toString();})()");
+                    if(setup!="\"selected\"")throw new Exception("Browser setup failed: "+scenario+" "+setup);
+                    var sample=await Read("browser-"+scenario);
+                    if(sample.GetProperty("status").GetString()!="selected"||sample.GetProperty("text").GetString()!="selected")throw new Exception("Browser "+scenario+" selection failed: "+sample);
+                }
+                await browser.CoreWebView2.ExecuteScriptAsync("document.querySelector('#extra').remove()");
                 // Real Chromium UIA: a focused inline hyperlink must not hide
                 // or truncate a document range that crosses the link boundary.
                 foreach (var scenario in new[] { "across-link", "inside-link", "pointer-other-focus" }) {

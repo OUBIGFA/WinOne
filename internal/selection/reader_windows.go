@@ -132,7 +132,7 @@ func readSelection(ctx context.Context, executable string, event Event, timeout 
 		if result.Text == "" {
 			return Selection{}, errors.New("划词读取返回空内容")
 		}
-	case "empty", "sensitive", "stale", "unsupported", "unrelated", "too_large", "unavailable":
+	case "empty", "sensitive", "stale", "unsupported", "unrelated", "too_large", "unavailable", "copyable":
 		if result.Text != "" {
 			return Selection{}, errors.New("划词读取响应无效")
 		}
@@ -142,6 +142,13 @@ func readSelection(ctx context.Context, executable string, event Event, timeout 
 	// Opt-in diagnostics expose the outcome only, never the selected text.
 	if os.Getenv("WINONE_SELECTION_DIAGNOSTICS") == "1" {
 		fmt.Fprintf(os.Stderr, "selection response: status=%s\n", result.Status)
+	}
+	if result.Status == "copyable" {
+		result, err = copySelection(ctx, event)
+		if os.Getenv("WINONE_SELECTION_DIAGNOSTICS") == "1" {
+			fmt.Fprintf(os.Stderr, "selection compatibility: status=%s cancelled=%v error=%v\n", result.Status, ctx.Err() != nil, err)
+		}
+		return result, err
 	}
 	return result, nil
 }

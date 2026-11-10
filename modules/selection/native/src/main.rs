@@ -7,7 +7,7 @@ use std::sync::mpsc::{sync_channel, SyncSender};
 use std::time::{Duration, Instant};
 use windows::Win32::{
     Foundation::{HWND, POINT},
-    System::{Com::*, Ole::*, Variant::VT_R8},
+    System::{Com::*, Ole::*, Variant::{VT_R8, VT_BSTR}},
     UI::{Accessibility::*, WindowsAndMessaging::*},
 };
 
@@ -113,7 +113,7 @@ fn point_in_selection(element: &IUIAutomationElement, pattern: &IUIAutomationTex
         (0..count).any(|index| {
             let Ok(range) = ranges.GetElement(index) else { return false };
             matches!(hit.CompareEndpoints(TextPatternRangeEndpoint_Start, &range, TextPatternRangeEndpoint_Start), Ok(value) if value >= 0)
-                && matches!(hit.CompareEndpoints(TextPatternRangeEndpoint_Start, &range, TextPatternRangeEndpoint_End), Ok(value) if value < 0)
+                && matches!(hit.CompareEndpoints(TextPatternRangeEndpoint_Start, &range, TextPatternRangeEndpoint_End), Ok(value) if value <= 0)
         })
     }
 }
@@ -125,9 +125,20 @@ fn retrieve(request: &Request) -> Result<Reply, &'static str> {
         let _apartment = Apartment;
         let automation: IUIAutomation = CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER).map_err(|_| "unavailable")?;
         let root = automation.ElementFromHandle(HWND(request.window as *mut _)).map_err(|_| "stale")?;
+        // Most providers are already ready. Registering a subtree subscription
+        // before every read adds cross-process work even to the successful path.
+        let first = read_selection(request, &automation, &root);
+        if first.as_ref().err() != Some(&"unsupported") { return first }
+        // A known text control without TextPattern can use its compatibility
+        // path now. Unknown Pane/Window providers may be an embedded WebView;
+        // do not classify them by the outer window's class name.
+        let fallback = compatibility(request, &automation, &root);
+        if fallback.is_ok() { return fallback }
         let (sender, changes) = sync_channel(1);
         let handler: IUIAutomationStructureChangedEventHandler = StructureChanged(sender).into();
-        automation.AddStructureChangedEventHandler(&root, TreeScope_Subtree, None, &handler).map_err(|_| "unavailable")?;
+        if automation.AddStructureChangedEventHandler(&root, TreeScope_Subtree, None, &handler).is_err() {
+            return compatibility(request, &automation, &root);
+        }
         let _subscription = Subscription { automation: automation.clone(), root: root.clone(), handler };
         // Chromium creates the accessible document asynchronously on first use.
         // Re-query only after its structural event, never after an arbitrary
@@ -137,9 +148,55 @@ fn retrieve(request: &Request) -> Result<Reply, &'static str> {
         loop {
             let result = read_selection(request, &automation, &root);
             if result.as_ref().err() != Some(&"unsupported") { return result }
-            if changes.recv_timeout(deadline.saturating_duration_since(Instant::now())).is_err() { return result }
+            if changes.recv_timeout(deadline.saturating_duration_since(Instant::now())).is_err() { return compatibility(request, &automation, &root) }
             if !source_current(request) { return Err("stale") }
         }
+    }
+}
+
+// Legacy providers can report an explicit selected string. A Value/Name is
+// never a selection. Object selections are refused rather than copied.
+fn compatibility(request: &Request, automation: &IUIAutomation, root: &IUIAutomationElement) -> Result<Reply, &'static str> {
+    unsafe {
+        if !source_current(request) { return Err("stale") }
+        let focus = automation.GetFocusedElement().map_err(|_| "unavailable")?;
+        let path = selection_path(request, automation, root, focus.clone())?;
+        for element in &path {
+            let class = element.CurrentClassName().unwrap_or_default().to_string().to_lowercase();
+            if class.contains("console") || class.contains("terminal") || class.contains("cascadia") { return Err("unsupported") }
+            if let Ok(legacy) = element.GetCurrentPatternAs::<IUIAutomationLegacyIAccessiblePattern>(UIA_LegacyIAccessiblePatternId) {
+                if let Ok(accessible) = legacy.GetIAccessible() {
+                    if let Ok(mut value) = accessible.accSelection() {
+                        if value.Anonymous.Anonymous.vt == VT_BSTR {
+                            let text = value.Anonymous.Anonymous.Anonymous.bstrVal.to_string();
+                            let _ = windows::Win32::System::Variant::VariantClear(&mut value);
+                            if text.len() > 65536 { return Err("too_large") }
+                            if !text.trim().is_empty() && source_current(request) {
+                                return Ok(Reply { status: "selected", text: Some(text), rectangles: vec![] });
+                            }
+                        } else { let _ = windows::Win32::System::Variant::VariantClear(&mut value); }
+                    }
+                }
+            }
+        }
+        let kind = focus.CurrentControlType().map_err(|_| "unavailable")?;
+        let class = focus.CurrentClassName().unwrap_or_default().to_string().to_lowercase();
+        // Ctrl+C is an interrupt in terminals; a text-looking cursor is not
+        // enough to authorize it. Object/list/tree/button selections also stop.
+        if class.contains("console") || class.contains("terminal") || class.contains("cascadia") {
+            return Err("unsupported");
+        }
+        let text_control = kind == UIA_EditControlTypeId || kind == UIA_DocumentControlTypeId || kind == UIA_TextControlTypeId;
+        let mut cursor = CURSORINFO { cbSize: std::mem::size_of::<CURSORINFO>() as u32, ..Default::default() };
+        let ibeam = GetCursorInfo(&mut cursor).is_ok() && LoadCursorW(None, IDC_IBEAM).is_ok_and(|value| value == cursor.hCursor);
+        // MyGo selectable paragraphs expose a Group focus, not TextPattern.
+        // Cursor + verified ancestry restricts the fallback to a text gesture.
+        let container = kind == UIA_GroupControlTypeId || kind == UIA_PaneControlTypeId || kind == UIA_WindowControlTypeId;
+        if text_control || (request.point.is_some() && ibeam && container) {
+            if !source_current(request) { return Err("stale") }
+            return Ok(Reply::status("copyable"));
+        }
+        Err("unsupported")
     }
 }
 
@@ -174,10 +231,15 @@ fn read_selection(request: &Request, automation: &IUIAutomation, root: &IUIAutom
         // clipboard, ValuePattern or whole DocumentRange fallback is used.
         let focus_path = selection_path(request, automation, root, focus.clone())?;
         let mut paths = vec![];
+        let mut visited = vec![focus.clone()];
         if request.point.is_some() {
             for [x, y] in request.origin.iter().chain(request.point.iter()).copied() {
                 if !x.is_finite() || !y.is_finite() { continue }
                 let Ok(element) = automation.ElementFromPoint(POINT { x: x as i32, y: y as i32 }) else { continue };
+                // Mouse down/up and keyboard focus often identify the same
+                // input. Walk its ancestry once, not three cross-process times.
+                if visited.iter().any(|seen| automation.CompareElements(seen, &element).is_ok_and(|same| same.as_bool())) { continue }
+                visited.push(element.clone());
                 match selection_path(request, automation, root, element) {
                     Ok(path) => paths.push(path),
                     Err("sensitive") => return Err("sensitive"),
@@ -231,7 +293,14 @@ fn read_path_selection(request: &Request, automation: &IUIAutomation, focus: &IU
                     if !text.is_empty() { text.push('\n') }
                     text.push_str(&part);
                     if text.len() > 65536 { return Err("too_large") }
-                    boxes.extend(rectangles(&range)?);
+                    // Geometry is optional metadata, not the selection itself.
+                    // Some PDF/WebView providers return text but no rectangles;
+                    // the bounded hit-test below still verifies a pointer read.
+                    match rectangles(&range) {
+                        Ok(rects) => boxes.extend(rects),
+                        Err("too_large") => return Err("too_large"),
+                        Err(_) => {},
+                    }
                     if boxes.len() > 4096 { return Err("too_large") }
                 }
                 if text.trim().is_empty() {

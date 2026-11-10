@@ -39,3 +39,14 @@ func TestKeyboardSelectionDoesNotTreatOrdinaryTypingAsSelection(t *testing.T) {
 		t.Fatal("nonselection input accepted")
 	}
 }
+
+func TestTripleClickKeepsParagraphSelection(t *testing.T) {
+	g := Gesture{DragX: 4, DragY: 4, DoubleClickMilliseconds: 500}
+	for i := uint32(0); i < 3; i++ {
+		g.Pointer(true, 30, 30, 100+i*100, 1, false)
+		got := g.Pointer(false, 30, 30, 110+i*100, 1, false)
+		if got != (i > 0) {
+			t.Fatalf("click %d: selection=%v", i+1, got)
+		}
+	}
+}

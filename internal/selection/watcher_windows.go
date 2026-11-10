@@ -57,6 +57,7 @@ type Watcher struct {
 	sequence   atomic.Uint64
 	foreground atomic.Uintptr
 	gesture    Gesture
+	keys       KeyboardGesture
 	mu         sync.Mutex
 }
 
@@ -139,6 +140,20 @@ func Foreground() (uintptr, uint32) {
 	user32.NewProc("GetWindowThreadProcessId").Call(window, uintptr(unsafe.Pointer(&pid)))
 	return window, pid
 }
+
+func pointerSource(foreground, hit uintptr, down bool) uintptr {
+	if down && hit != 0 {
+		return hit
+	}
+	return foreground
+}
+
+func pointerWindow(input *mouseInput) uintptr {
+	point := uint64(uint32(input.X)) | uint64(uint32(input.Y))<<32
+	hit, _, _ := user32.NewProc("WindowFromPoint").Call(uintptr(point))
+	root, _, _ := user32.NewProc("GetAncestor").Call(hit, 2)
+	return root
+}
 func modifier(key uintptr) bool {
 	value, _, _ := user32.NewProc("GetAsyncKeyState").Call(key)
 	return value&0x8000 != 0
@@ -168,13 +183,16 @@ func mouseHook(code int32, message uintptr, data unsafe.Pointer) uintptr {
 	if code >= 0 && w != nil {
 		input := (*mouseInput)(data)
 		// Same-integrity accessibility and macro input is still a selection.
-		// WinOne never synthesizes copy keys, so this cannot create a copy loop.
-		if input.Flags&2 == 0 {
+		// Our compatibility copy is tagged and ignored by both hooks.
+		if input.Flags&2 == 0 && input.Extra != copyInputMarker {
 			window, pid := Foreground()
 			event := Event{Kind: "dismiss", Window: window, ProcessID: pid, Point: [2]int32{input.X, input.Y}}
 			switch message {
 			case 0x201:
-				w.gesture.Pointer(true, input.X, input.Y, input.Time, window, modifier(0x10))
+				// The hook precedes foreground activation. Bind the gesture to
+				// the clicked top-level window, then verify it again on release.
+				source := pointerSource(window, pointerWindow(input), true)
+				w.gesture.Pointer(true, input.X, input.Y, input.Time, source, modifier(0x10))
 				w.emit(event)
 			case 0x202:
 				if w.gesture.Pointer(false, input.X, input.Y, input.Time, window, modifier(0x10)) {
@@ -195,13 +213,17 @@ func keyboardHook(code int32, message uintptr, data unsafe.Pointer) uintptr {
 	w := activeWatcher.Load()
 	if code >= 0 && w != nil {
 		input := (*keyInput)(data)
-		if input.Flags&2 == 0 {
+		if input.Flags&2 == 0 && input.Extra != copyInputMarker {
 			window, pid := Foreground()
 			event := Event{Kind: "dismiss", Window: window, ProcessID: pid, Keyboard: true}
 			if message == 0x100 || message == 0x104 {
+				if (input.Key == 'C' || input.Key == 'X') && modifier(0x11) {
+					physicalCopyRevision.Add(1)
+				}
+				w.keys.Key(true, input.Key, modifier(0x10), modifier(0x11), modifier(0x12))
 				w.emit(event)
 			}
-			if (message == 0x101 || message == 0x105) && SelectionKey(input.Key, modifier(0x10), modifier(0x11), modifier(0x12)) {
+			if (message == 0x101 || message == 0x105) && w.keys.Key(false, input.Key, modifier(0x10), modifier(0x11), modifier(0x12)) {
 				event.Kind = "selection"
 				w.emit(event)
 			}
