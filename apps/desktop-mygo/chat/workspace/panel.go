@@ -486,10 +486,13 @@ func (p *Panel) View(c *ui.Context) {
 		return
 	}
 	p.syncVisibility()
-	ui.Column(c).Fill().MinWidth(0).Gap(6).Bind(&p.handle).Children(func() {
-		section := p.section
-		ui.Row(c).FillWidth().Gap(4).Padding(6).Children(func() {
-			kit.Segmented(c, &section, []kit.SelectOption{{Value: "library", Label: i18n.T("chat.panelLibrary")}, {Value: "tabs", Label: i18n.T("chat.panelDocuments")}}, i18n.T("chat.panelSections"))
+	pal := kit.Colors(c)
+	ui.Column(c).Fill().MinWidth(0).Bind(&p.handle).Children(func() {
+		// As tall as the conversation's header beside it, on the same hairline.
+		ui.Row(c).FillWidth().MinHeight(panelHeaderHeight).Shrink(0).Padding(8, 8, 8, 12).Gap(4).AlignItems(ui.Center).
+			BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Children(func() {
+			section := p.section
+			fillSwitch(c, &section, []kit.SelectOption{{Value: "library", Label: i18n.T("chat.panelLibrary")}, {Value: "tabs", Label: i18n.T("chat.panelDocuments")}}, i18n.T("chat.panelSections"), false)
 			if section != p.section {
 				p.section = section
 				p.syncVisibility()
@@ -514,7 +517,9 @@ func (p *Panel) View(c *ui.Context) {
 				p.options.OnClose()
 			}
 		})
-		kit.InlineError(c, p.err)
+		if p.err != "" {
+			ui.Column(c).FillWidth().Padding(8, 12, 0, 12).Children(func() { kit.InlineError(c, p.err) })
+		}
 		if p.section == "library" {
 			p.libraryView(c)
 		} else {
@@ -524,12 +529,60 @@ func (p *Panel) View(c *ui.Context) {
 	p.guardView(c)
 	p.createFileView(c)
 }
-func (p *Panel) libraryView(c *ui.Context) {
-	ui.Column(c).Fill().MinWidth(0).Gap(6).Children(func() {
-		if kit.Segmented(c, &p.library, []kit.SelectOption{{Value: "files", Label: i18n.T("chat.files")}, {Value: "resources", Label: i18n.T("chat.resources")}}, i18n.T("chat.panelLibraryViews")) {
-			p.syncVisibility()
-			p.savePreferences()
+
+// panelHeaderHeight matches the Chat page's header.
+const panelHeaderHeight = 56
+
+// fillSwitch chooses one of a few views with segments of equal width across
+// the panel, their names centered (docs/working-rules/ui.md): the panel's
+// two sections in a squared frame, a section's views in a pill.
+func fillSwitch(c *ui.Context, selected *string, options []kit.SelectOption, label string, pill bool) bool {
+	t, pal := c.Theme(), kit.Colors(c)
+	index := 0
+	for i, option := range options {
+		if option.Value == *selected {
+			index = i
 		}
+	}
+	before := index
+	outer, inner := t.Radius, t.Radius-2
+	if pill {
+		outer, inner = 999, 999
+	}
+	seg := ui.SegmentedBase(c, &index, len(options))
+	seg.Track.Grow(1).Basis(0).MinWidth(0).Padding(3).Gap(2).Radius(outer).Border(1, pal.Hairline).Label(label).Children(func() {
+		for i, option := range options {
+			item := seg.Segment(i).Grow(1).Basis(0).MinWidth(0).MinHeight(28).Padding(0, 8).Radius(inner).Justify(ui.Center).AlignItems(ui.Center).Label(option.Label)
+			if i == index {
+				item.Background(pal.Selected)
+			} else if item.Hovered() {
+				item.Background(t.SurfaceHover)
+			}
+			item.Children(func() {
+				text := ui.Text(c, option.Label).SingleLine().Ellipsis("…").MinWidth(0)
+				if i == index {
+					text.FontWeight(500)
+				} else {
+					text.TextColor(t.TextMuted)
+				}
+			})
+		}
+	})
+	if index != before && index < len(options) {
+		*selected = options[index].Value
+		return true
+	}
+	return false
+}
+
+func (p *Panel) libraryView(c *ui.Context) {
+	ui.Column(c).Fill().MinWidth(0).Children(func() {
+		ui.Row(c).FillWidth().Shrink(0).Padding(8, 12).Children(func() {
+			if fillSwitch(c, &p.library, []kit.SelectOption{{Value: "files", Label: i18n.T("chat.files")}, {Value: "resources", Label: i18n.T("chat.resources")}}, i18n.T("chat.panelLibraryViews"), true) {
+				p.syncVisibility()
+				p.savePreferences()
+			}
+		})
 		if p.library == "resources" {
 			if p.resources == nil {
 				p.resources = NewResourcePane(p.env, ResourceOptions{Prefix: p.options.Prefix, SessionID: p.options.SessionID, OnOpenFile: func(path string) { p.OpenFile(path, 0) }, OnReference: func(path string) {
@@ -557,18 +610,55 @@ func (p *Panel) libraryView(c *ui.Context) {
 			if p.libraryDocument != nil {
 				p.libraryDocument.View(c)
 			} else {
-				kit.Help(c, wt("chooseDocument"))
+				emptyHint(c, icons.FileText, wt("chooseDocument"))
 			}
 		}).Grow(1).MinHeight(0)
 	})
 }
+
+// emptyHint fills a pane that shows nothing yet: a quiet icon over a
+// sentence, centered.
+func emptyHint(c *ui.Context, icon *ui.SVG, text string) ui.Element {
+	t := c.Theme()
+	return ui.Column(c).Fill().MinWidth(0).Padding(24).Gap(10).AlignItems(ui.Center).Justify(ui.Center).Children(func() {
+		ui.Icon(c, icon).FontSize(24).TextColor(t.TextMuted.Alpha(0.6))
+		kit.Help(c, text).TextAlign(ui.Center)
+	})
+}
+
+// tabIcons picture a tab's kind before its title.
+var tabIcons = map[string]*ui.SVG{"file": icons.FileText, "browser": icons.Globe, "terminal": icons.SquareTerminal, "review": icons.FileDiff, "plugin": icons.Puzzle}
+
 func (p *Panel) tabsView(c *ui.Context) {
+	t, pal := c.Theme(), kit.Colors(c)
 	tabs := p.visibleTabs()
 	selected := p.visibleSelection(tabs)
-	ui.Column(c).Fill().MinWidth(0).Gap(6).Children(func() {
-		ui.Row(c).FillWidth().Gap(4).Wrap().Children(func() {
+	ui.Column(c).Fill().MinWidth(0).Children(func() {
+		if len(tabs) == 0 {
+			ui.Column(c).Fill().MinWidth(0).Padding(24).Gap(16).AlignItems(ui.Center).Justify(ui.Center).Children(func() {
+				kit.Help(c, wt("emptyTabs")).TextAlign(ui.Center)
+				ui.Row(c).MaxWidth(320).Gap(8).Wrap().Justify(ui.Center).Children(func() {
+					for _, kind := range []string{"file", "browser", "terminal", "review"} {
+						if kit.Button(c, i18n.T("chat."+kind), tabIcons[kind], false).Clicked() {
+							p.newTab(kind)
+						}
+					}
+				})
+			})
+			return
+		}
+		// The strip wraps instead of scrolling sideways; a tab is as wide
+		// as its share of a line, within limits.
+		ui.Row(c).FillWidth().Shrink(0).Gap(2).Wrap().AlignItems(ui.Center).Padding(6, 8).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Children(func() {
 			for _, tab := range tabs {
-				row := ui.Row(c.Key(tab.ID)).MinWidth(0).Grow(1).Basis(120).MaxWidth(280).Gap(0).Border(1, kit.Colors(c).Hairline).Drag(panelDrag{p, tab.ID})
+				row := ui.Row(c.Key(tab.ID)).MinWidth(0).Grow(1).Basis(110).MaxWidth(220).Height(32).Radius(t.Radius).AlignItems(ui.Center).Drag(panelDrag{p, tab.ID})
+				chosen := tab.ID == selected
+				hovered := row.Hovered()
+				if chosen {
+					row.Background(pal.Selected)
+				} else if hovered {
+					row.Background(t.SurfaceHover)
+				}
 				row.Children(func() {
 					title := tab.Title
 					if title == "" {
@@ -577,16 +667,30 @@ func (p *Panel) tabsView(c *ui.Context) {
 					if document, ok := p.bodies[tab.ID].(*DocumentPane); ok && document.Dirty() {
 						title += " ·"
 					}
-					button := ui.ButtonBase(c).Grow(1).MinWidth(0).Padding(6).Label(title).Children(func() { ui.Text(c, title).SingleLine().Ellipsis("…").MinWidth(0).Tooltip(title) })
-					if tab.ID == selected {
-						button.Background(c.Theme().SurfaceHover)
-					}
+					button := ui.ButtonBase(c).Grow(1).MinWidth(0).FillHeight().Padding(0, 2, 0, 10).Gap(6).Justify(ui.Start).AlignItems(ui.Center).Label(title).Tooltip(title)
+					button.Children(func() {
+						icon := tabIcons[tab.Kind]
+						if icon == nil {
+							icon = icons.FileText
+						}
+						ui.Icon(c, icon).FontSize(14).TextColor(t.TextMuted).Shrink(0)
+						text := ui.Text(c, title).SingleLine().Ellipsis("…").MinWidth(0)
+						if !chosen {
+							text.TextColor(t.TextMuted)
+						}
+					})
 					if button.Clicked() {
 						p.selected = tab.ID
 						p.syncVisibility()
 						p.savePreferences()
 					}
-					if kit.IconButton(c, icons.X, i18n.T("chat.closeTab", "name", title)).Clicked() {
+					// Closing keeps its place and keyboard focus on every tab,
+					// and shows on the chosen one and under the pointer.
+					closing := kit.IconButton(c, icons.X, i18n.T("chat.closeTab", "name", title)).Size(24, 24).Margin(0, 4, 0, 0)
+					if !chosen && !hovered && !closing.FocusVisible() {
+						closing.Opacity(0)
+					}
+					if closing.Clicked() {
 						p.requestClose(tab.ID)
 					}
 				})
@@ -629,20 +733,10 @@ func (p *Panel) tabsView(c *ui.Context) {
 					}
 				})
 			}
-			if kit.IconButton(c, icons.Plus, i18n.T("chat.paneNewTab")).Clicked() {
+			if kit.IconButton(c, icons.Plus, i18n.T("chat.paneNewTab")).Size(32, 32).Clicked() {
 				p.newTab("browser")
 			}
 		})
-		if len(tabs) == 0 {
-			ui.Column(c).Fill().Gap(8).Justify(ui.Center).Children(func() {
-				for _, kind := range []string{"file", "browser", "terminal", "review"} {
-					if kit.Button(c, i18n.T("chat."+kind), nil, false).Clicked() {
-						p.newTab(kind)
-					}
-				}
-			})
-			return
-		}
 		for _, tab := range tabs {
 			if tab.ID == selected {
 				if body := p.body(tab); body != nil {

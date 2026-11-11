@@ -69,5 +69,6 @@
   "nativeWorkspace.openTab": "在新标签页打开",
   "nativeWorkspace.caseSensitive": "区分大小写",
   "nativeWorkspace.matches": "{{files}} 个文件中找到 {{count}} 处匹配",
-  "nativeWorkspace.truncated": "结果较多，请缩小筛选或搜索范围。"
+  "nativeWorkspace.truncated": "结果较多，请缩小筛选或搜索范围。",
+  "nativeWorkspace.emptyTabs": "打开文件、网页、终端或审查。"
 }

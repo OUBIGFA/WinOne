@@ -80,6 +80,8 @@ type TextDocumentOptions struct {
 // It keeps undo, selections, viewport and a snapshot per accepted save. A late
 // save or external refresh never marks newer typing saved or replaces it.
 type TextDocument struct {
+	// hosted: a DocumentPane shows Tools in its header.
+	hosted                  bool
 	env                     *core.Env
 	options                 TextDocumentOptions
 	ctx                     context.Context
@@ -332,55 +334,73 @@ func (d *TextDocument) View(c *ui.Context) {
 		return
 	}
 	d.Observe()
-	root := ui.Column(c).Fill().MinWidth(0).Gap(6)
+	root := ui.Column(c).Fill().MinWidth(0)
 	root.Children(func() {
-		ui.Row(c).FillWidth().Gap(6).Padding(8).Wrap().Children(func() {
-			if markdownFile(d.options.Path) {
-				label := i18n.T("chat.fileRendered")
-				if d.rendered {
-					label = i18n.T("chat.fileSource")
-				}
-				if kit.Button(c, label, icons.Code, false).Clicked() {
-					d.rendered = !d.rendered
-				}
-			}
-			if kit.Button(c, i18n.T("chat.saveFile"), icons.Save, d.saving).Disabled(!d.loaded || d.file.ReadOnly || !d.Dirty()).Clicked() {
-				d.Save(nil)
-			}
-			if kit.IconButton(c, icons.RefreshCw, i18n.T("chat.refresh")).Disabled(d.loading || d.Dirty()).Clicked() {
-				d.Reload()
-			}
-			if kit.IconButton(c, icons.Copy, i18n.T("chat.copy")).Disabled(!d.loaded).Clicked() {
-				c.Services().WriteClipboard(d.state.Buffer.String())
-			}
-			if kit.IconButton(c, icons.FolderOpen, i18n.T("chat.revealFile")).Clicked() {
-				core.Do(d.env, func() error {
-					if d.options.FileAction != nil {
-						return d.options.FileAction("file.reveal")
-					}
-					return d.env.Host.CallInto(d.options.Prefix+"file.reveal", map[string]string{"id": d.options.SessionID, "path": d.options.Path}, nil)
-				}, func(err error) {
-					if !d.closed && err != nil {
-						d.err = err.Error()
-					}
-				})
-			}
-		})
-		kit.InlineError(c, d.err)
+		if !d.hosted {
+			ui.Row(c).FillWidth().Shrink(0).Gap(2).Padding(4, 8).AlignItems(ui.Center).Children(func() { d.Tools(c) })
+		}
+		if d.err != "" {
+			ui.Column(c).FillWidth().Padding(0, 12, 8, 12).Children(func() { kit.InlineError(c, d.err) })
+		}
 		if d.loading && !d.loaded {
-			kit.Loader(c)
+			ui.Row(c).Padding(8, 12).Children(func() { kit.Loader(c) })
 		}
 		if !d.loaded {
 			return
 		}
 		if d.rendered && markdownFile(d.options.Path) {
-			ui.Scroll(c).Grow(1).MinHeight(0).FillWidth().Padding(12).Children(func() { markdown.View(c, d.state.Buffer.String(), mathview.For(d.env).Apply(&d.markdown)).FillWidth() })
+			ui.Scroll(c).Grow(1).MinHeight(0).FillWidth().Padding(4, 16, 16, 16).Children(func() {
+				// The preview reads as a reply in the conversation beside it.
+				d.markdown.Theme, d.markdown.CodeBlock, d.markdown.WrapCode = kit.ReadingTheme(c), kit.CodeBlock, true
+				markdown.View(c, d.state.Buffer.String(), mathview.For(d.env).Apply(&d.markdown)).FillWidth()
+			})
 		} else {
 			editor.View(c, &d.state).Grow(1).FillWidth().MinHeight(0)
 		}
 	})
 	if root.Shortcut(ui.Ctrl, ui.KeyS) {
 		d.Save(nil)
+	}
+}
+
+// Tools are the document's actions as icons: rendered or source for
+// Markdown, save, reload, copy and show in the folder. A DocumentPane shows
+// them in its header; alone, the document shows them above its text.
+func (d *TextDocument) Tools(c *ui.Context) {
+	if markdownFile(d.options.Path) {
+		label, icon := i18n.T("chat.fileRendered"), icons.Eye
+		if d.rendered {
+			label, icon = i18n.T("chat.fileSource"), icons.Code
+		}
+		if toolButton(c, icon, label).Clicked() {
+			d.rendered = !d.rendered
+		}
+	}
+	save := toolButton(c, icons.Save, i18n.T("chat.saveFile")).Disabled(!d.loaded || d.file.ReadOnly || !d.Dirty() || d.saving)
+	if d.Dirty() && !d.saving {
+		// Unsaved text shows on the one control that keeps it.
+		save.Background(kit.Colors(c).Selected)
+	}
+	if save.Clicked() {
+		d.Save(nil)
+	}
+	if toolButton(c, icons.RefreshCw, i18n.T("chat.refresh")).Disabled(d.loading || d.Dirty()).Clicked() {
+		d.Reload()
+	}
+	if toolButton(c, icons.Copy, i18n.T("chat.copy")).Disabled(!d.loaded).Clicked() {
+		c.Services().WriteClipboard(d.state.Buffer.String())
+	}
+	if toolButton(c, icons.FolderOpen, i18n.T("chat.revealFile")).Clicked() {
+		core.Do(d.env, func() error {
+			if d.options.FileAction != nil {
+				return d.options.FileAction("file.reveal")
+			}
+			return d.env.Host.CallInto(d.options.Prefix+"file.reveal", map[string]string{"id": d.options.SessionID, "path": d.options.Path}, nil)
+		}, func(err error) {
+			if !d.closed && err != nil {
+				d.err = err.Error()
+			}
+		})
 	}
 }
 

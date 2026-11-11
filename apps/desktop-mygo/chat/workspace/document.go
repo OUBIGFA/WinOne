@@ -64,6 +64,8 @@ func NewDocumentPane(env *core.Env, options DocumentOptions) *DocumentPane {
 		case "text":
 			p.text = NewTextDocument(env, TextDocumentOptions{Prefix: options.Prefix, SessionID: options.SessionID, Path: options.Path, Line: options.Line, OnLink: options.OnLink, InitialPreview: &preview, Preview: options.Preview, FileAction: options.FileAction})
 			p.body = p.text
+			// This pane's header shows the text's tools beside the name.
+			p.text.hosted = true
 			extension := strings.ToLower(filepath.Ext(options.Path))
 			p.htmlMode = options.Line == 0 && (extension == ".htm" || extension == ".html")
 		case "image":
@@ -128,20 +130,24 @@ func (p *DocumentPane) View(c *ui.Context) {
 	if p.closed {
 		return
 	}
-	ui.Column(c).Fill().MinWidth(0).Gap(6).Children(func() {
-		ui.Row(c).FillWidth().Padding(6).Gap(4).Wrap().Children(func() {
+	ui.Column(c).Fill().MinWidth(0).Children(func() {
+		// One line: the file's name, then its tools as icons.
+		ui.Row(c).FillWidth().Shrink(0).MinHeight(44).Padding(4, 8, 4, 12).Gap(2).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, firstText(p.preview.Name, filepath.Base(p.options.Path))).SingleLine().Ellipsis("…").MinWidth(0).Grow(1).Tooltip(p.options.Path)
 			html := strings.EqualFold(filepath.Ext(p.options.Path), ".html") || strings.EqualFold(filepath.Ext(p.options.Path), ".htm")
 			if html && p.options.HTML != nil {
-				label := i18n.T("chat.fileRendered")
+				label, icon := i18n.T("chat.fileRendered"), icons.Eye
 				if p.htmlMode {
-					label = i18n.T("chat.fileSource")
+					label, icon = i18n.T("chat.fileSource"), icons.Code
 				}
-				if kit.Button(c, label, icons.Code, false).Clicked() {
+				if toolButton(c, icon, label).Clicked() {
 					p.htmlMode = !p.htmlMode
 				}
 			}
-			kit.IconButton(c, icons.Ellipsis, i18n.T("chat.more")).Menu(func(m *ui.Menu) {
+			if p.text != nil {
+				p.text.Tools(c)
+			}
+			toolButton(c, icons.Ellipsis, i18n.T("chat.more")).Menu(func(m *ui.Menu) {
 				if m.Item(i18n.T("chat.copyPath")).Chosen() {
 					c.Services().WriteClipboard(p.options.Path)
 				}
@@ -153,9 +159,11 @@ func (p *DocumentPane) View(c *ui.Context) {
 				}
 			})
 		})
-		kit.InlineError(c, p.err)
+		if p.err != "" {
+			ui.Column(c).FillWidth().Padding(0, 12, 8, 12).Children(func() { kit.InlineError(c, p.err) })
+		}
 		if p.loading {
-			kit.Loader(c)
+			ui.Row(c).Padding(8, 12).Children(func() { kit.Loader(c) })
 		}
 		if !p.loading && p.preview.Kind == "text" && p.htmlMode && p.options.HTML != nil {
 			if p.html == nil {
@@ -175,12 +183,20 @@ func (p *DocumentPane) View(c *ui.Context) {
 			if p.preview.Kind == "oversize" {
 				message = i18n.T("chat.previewOversize")
 			}
-			kit.Help(c, message)
-			if kit.Button(c, i18n.T("chat.openSystem"), icons.ExternalLink, false).Clicked() {
-				p.fileAction("file.open")
-			}
+			ui.Column(c).Fill().MinWidth(0).Padding(24).Gap(12).AlignItems(ui.Center).Justify(ui.Center).Children(func() {
+				kit.Help(c, message).TextAlign(ui.Center)
+				if kit.Button(c, i18n.T("chat.openSystem"), icons.ExternalLink, false).Clicked() {
+					p.fileAction("file.open")
+				}
+			})
 		}
 	})
+}
+
+// toolButton is a pane's tool: an icon of 30 DIPs, named by its tooltip, so
+// a narrow pane keeps its tools on one line.
+func toolButton(c *ui.Context, icon *ui.SVG, label string) ui.Element {
+	return kit.IconButton(c, icon, label).Size(30, 30)
 }
 func firstText(values ...string) string {
 	for _, value := range values {

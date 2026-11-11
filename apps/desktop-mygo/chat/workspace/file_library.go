@@ -325,11 +325,22 @@ func (p *FileLibrary) View(c *ui.Context) {
 			}
 		}
 	}
-	root := ui.Column(c).Fill().MinWidth(0).Gap(6)
+	root := ui.Column(c).Fill().MinWidth(0)
 	root.Children(func() {
-		ui.Row(c).FillWidth().Padding(8).Gap(4).Children(func() {
-			ui.Text(c, p.root).SingleLine().Ellipsis("…").MinWidth(0).Grow(1).Tooltip(p.root)
-			if kit.IconButton(c, icons.Search, wt("search")).Clicked() {
+		// As the document's header beside it: a name, then tools as icons.
+		ui.Row(c).FillWidth().Shrink(0).MinHeight(44).Padding(4, 4, 4, 12).Gap(2).AlignItems(ui.Center).Children(func() {
+			// The folder's own name reads in a narrow column; a full path
+			// would show as its drive letter and an ellipsis.
+			name := filepath.Base(p.root)
+			if p.root == "" || name == "." || name == string(filepath.Separator) {
+				name = p.root
+			}
+			ui.Text(c, name).SingleLine().Ellipsis("…").MinWidth(0).Grow(1).Tooltip(p.root)
+			search := toolButton(c, icons.Search, wt("search"))
+			if p.mode != "tree" {
+				search.Background(kit.Colors(c).Selected)
+			}
+			if search.Clicked() {
 				if p.mode == "tree" {
 					p.mode = "search"
 					p.scheduleSearch()
@@ -338,22 +349,24 @@ func (p *FileLibrary) View(c *ui.Context) {
 					p.cancelSearch()
 				}
 			}
-			if kit.IconButton(c, icons.ChevronsDownUp, wt("collapseAll")).Clicked() {
+			if toolButton(c, icons.ChevronsDownUp, wt("collapseAll")).Clicked() {
 				p.outline.Open.Clear()
 			}
-			if kit.IconButton(c, icons.RefreshCw, i18n.T("chat.refresh")).Clicked() {
+			if toolButton(c, icons.RefreshCw, i18n.T("chat.refresh")).Clicked() {
 				p.Refresh()
 			}
 		})
-		if p.mode == "tree" {
-			p.treeView(c)
-		} else {
-			p.searchView(c)
-		}
-		kit.InlineError(c, p.err)
-		if p.selected != "" && p.options.OnReference != nil && kit.Button(c, i18n.T("chat.fileReference"), icons.AtSign, false).Clicked() {
-			p.options.OnReference(p.selected)
-		}
+		ui.Column(c).FillWidth().Grow(1).MinHeight(0).MinWidth(0).Padding(0, 8, 8, 8).Gap(6).Children(func() {
+			if p.mode == "tree" {
+				p.treeView(c)
+			} else {
+				p.searchView(c)
+			}
+			kit.InlineError(c, p.err)
+			if p.selected != "" && p.options.OnReference != nil && kit.Button(c, i18n.T("chat.fileReference"), icons.AtSign, false).FillWidth().Justify(ui.Center).Clicked() {
+				p.options.OnReference(p.selected)
+			}
+		})
 	})
 	p.Drop(c, root)
 }
@@ -408,7 +421,7 @@ func (p *FileLibrary) treeView(c *ui.Context) {
 			if entry.Directory {
 				icon = icons.Folder
 			}
-			ui.Icon(c, icon).FontSize(14).Shrink(0)
+			ui.Icon(c, icon).FontSize(14).TextColor(c.Theme().TextMuted).Shrink(0)
 			ui.Text(c, entry.Name).SingleLine().Ellipsis("…").Grow(1).MinWidth(0).Tooltip(entry.Path)
 			if p.loading[path] {
 				kit.Loader(c)
@@ -445,7 +458,8 @@ func (p *FileLibrary) searchView(c *ui.Context) {
 	if kit.TextInput(c, &p.query).Label(wt("search")).Placeholder(wt("search")).FillWidth().Changed() {
 		p.scheduleSearch()
 	}
-	if kit.Toggle(c, &p.sensitive, wt("caseSensitive"), "").Changed() {
+	// A check box: a setting row's height would crowd a narrow column.
+	if ui.Checkbox(c, &p.sensitive, wt("caseSensitive")).Changed() {
 		p.scheduleSearch()
 	}
 	if p.searchLoading {
@@ -465,10 +479,14 @@ func (p *FileLibrary) searchView(c *ui.Context) {
 	}
 	ui.List(c, nil, len(rows), func(i int) {
 		row := rows[i]
-		b := ui.ButtonBase(c).FillWidth().MinWidth(0).Padding(8).Label(row.path).Children(func() {
+		b := ui.ButtonBase(c).FillWidth().MinWidth(0).Padding(6, 8).Radius(c.Theme().Radius).Label(row.path)
+		if b.Hovered() {
+			b.Background(c.Theme().SurfaceHover)
+		}
+		b.Children(func() {
 			ui.Column(c).FillWidth().MinWidth(0).Gap(2).Children(func() {
-				kit.Help(c, row.path).SingleLine().Ellipsis("…").Tooltip(row.path)
-				ui.Text(c, row.line.LineText).SingleLine().Ellipsis("…").MinWidth(0).Tooltip(row.line.LineText)
+				kit.Caption(c, row.path).SingleLine().Ellipsis("…").Tooltip(row.path)
+				kit.Mono(c, strings.TrimSpace(row.line.LineText)).SingleLine().Ellipsis("…").MinWidth(0).Tooltip(row.line.LineText)
 			})
 		})
 		if b.Clicked() {

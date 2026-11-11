@@ -69,5 +69,6 @@
   "nativeWorkspace.openTab": "Open in a new tab",
   "nativeWorkspace.caseSensitive": "Case sensitive",
   "nativeWorkspace.matches": "{{count}} matches in {{files}} files",
-  "nativeWorkspace.truncated": "More results are available. Narrow the filter or search scope."
+  "nativeWorkspace.truncated": "More results are available. Narrow the filter or search scope.",
+  "nativeWorkspace.emptyTabs": "Open a file, a web page, a terminal or a review."
 }

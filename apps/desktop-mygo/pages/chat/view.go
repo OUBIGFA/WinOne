@@ -17,9 +17,8 @@ import (
 
 // uiState is what the page's views keep between frames.
 type uiState struct {
-	// reading is this frame's Markdown look of replies; see reading.go.
+	// reading is this frame's Markdown look of replies: kit.ReadingTheme.
 	reading        *markdown.Theme
-	readingKey     readingKey
 	closed         bool
 	workdirPlugins *workdirPluginDialog
 	teamRevision   uint64
@@ -118,7 +117,7 @@ func (u *uiState) close() {}
 // View draws the page.
 func (p *Chat) View(c *ui.Context) {
 	p.ui.services = c.Services()
-	p.useReadingTheme(c)
+	p.ui.reading = kit.ReadingTheme(c)
 	if p.mediaShown == nil {
 		p.mediaShown = map[string]bool{}
 	} else {

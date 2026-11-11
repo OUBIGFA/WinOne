@@ -377,18 +377,20 @@ func (p *ReviewPane) View(c *ui.Context) {
 	if p.closed {
 		return
 	}
-	ui.Column(c).Fill().MinWidth(0).Gap(6).Children(func() {
+	ui.Column(c).Fill().MinWidth(0).Children(func() {
 		p.toolbar(c)
-		kit.InlineError(c, p.err)
+		if p.err != "" {
+			ui.Column(c).FillWidth().Padding(0, 12, 8, 12).Children(func() { kit.InlineError(c, p.err) })
+		}
 		if p.loading {
-			kit.Loader(c)
+			ui.Row(c).Padding(0, 12, 8, 12).Children(func() { kit.Loader(c) })
 		}
 		kit.Split(c, &p.split, kit.SplitOptions{Label: wt("resizeReview"), MinFirst: 20, MinSecond: 40}, func() { p.filesView(c) }, func() { p.diffView(c) }).Grow(1).MinHeight(0)
 	})
 	p.dialogs(c)
 }
 func (p *ReviewPane) toolbar(c *ui.Context) {
-	ui.Column(c).FillWidth().Gap(6).Padding(8).Children(func() {
+	ui.Column(c).FillWidth().Shrink(0).Gap(6).Padding(4, 8, 4, 12).Children(func() {
 		if p.options.TurnID == "" && p.snapshot.Source != "session" {
 			scope := p.scope
 			if changed, _ := kit.Select(c, &scope, []kit.SelectOption{{Value: "working", Label: wt("working")}, {Value: "staged", Label: wt("staged")}, {Value: "branch", Label: wt("branch")}, {Value: "commit", Label: wt("history")}}); changed {
@@ -418,9 +420,14 @@ func (p *ReviewPane) toolbar(c *ui.Context) {
 				}
 			}
 		}
-		ui.Row(c).FillWidth().Gap(6).Wrap().Children(func() {
-			kit.Help(c, p.snapshot.Branch).Grow(1)
-			if kit.IconButton(c, icons.RefreshCw, i18n.T("chat.refresh")).Disabled(p.loading || p.busy).Clicked() {
+		ui.Row(c).FillWidth().MinHeight(36).Gap(6).Wrap().AlignItems(ui.Center).Children(func() {
+			ui.Row(c).Grow(1).MinWidth(0).Gap(6).AlignItems(ui.Center).Children(func() {
+				if p.snapshot.Branch != "" {
+					ui.Icon(c, icons.GitBranch).FontSize(14).TextColor(c.Theme().TextMuted).Shrink(0)
+				}
+				ui.Text(c, p.snapshot.Branch).SingleLine().Ellipsis("…").MinWidth(0).Tooltip(p.snapshot.Root)
+			})
+			if toolButton(c, icons.RefreshCw, i18n.T("chat.refresh")).Disabled(p.loading || p.busy).Clicked() {
 				p.Refresh()
 			}
 			if p.metadata.Repository && p.options.TurnID == "" {
@@ -450,7 +457,7 @@ func (p *ReviewPane) toolbar(c *ui.Context) {
 	})
 }
 func (p *ReviewPane) filesView(c *ui.Context) {
-	ui.Column(c).Fill().MinWidth(0).Padding(8).Gap(6).Children(func() {
+	ui.Column(c).Fill().MinWidth(0).Padding(0, 8, 8, 8).Gap(6).Children(func() {
 		kit.TextInput(c, &p.filter).Label(wt("filter")).Placeholder(wt("filter")).FillWidth()
 		if p.metadata.Repository && (p.scope == "working" || p.scope == "staged") && p.options.TurnID == "" {
 			action := "stage"
@@ -470,14 +477,22 @@ func (p *ReviewPane) filesView(c *ui.Context) {
 		}
 		ui.List(c, nil, len(files), func(i int) {
 			file := files[i]
-			b := ui.ButtonBase(c).FillWidth().MinWidth(0).Padding(8).Label(file.Path)
-			if p.selected == file.Path || b.Hovered() {
+			b := ui.ButtonBase(c).FillWidth().MinWidth(0).Padding(6, 10).Radius(c.Theme().Radius).Label(file.Path)
+			if p.selected == file.Path {
+				b.Background(kit.Colors(c).Selected)
+			} else if b.Hovered() {
 				b.Background(c.Theme().SurfaceHover)
 			}
 			b.Children(func() {
 				ui.Column(c).FillWidth().MinWidth(0).Gap(2).Children(func() {
-					ui.Text(c, file.Path).SingleLine().Ellipsis("…").Tooltip(file.Path)
-					kit.Help(c, fmt.Sprintf("+%d −%d", file.Additions, file.Deletions))
+					// The file's name leads; its folder and counts follow.
+					ui.Text(c, filepath.Base(file.Path)).SingleLine().Ellipsis("…").MinWidth(0).Tooltip(file.Path)
+					ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+						if dir := filepath.ToSlash(filepath.Dir(file.Path)); dir != "." {
+							kit.Caption(c, dir).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+						}
+						kit.Mono(c, fmt.Sprintf("+%d −%d", file.Additions, file.Deletions)).FontSize(kit.CaptionSize(c)).TextColor(c.Theme().TextMuted).SingleLine().Shrink(0)
+					})
 				})
 			})
 			if b.Clicked() {
@@ -488,35 +503,38 @@ func (p *ReviewPane) filesView(c *ui.Context) {
 	})
 }
 func (p *ReviewPane) diffView(c *ui.Context) {
-	ui.Column(c).Fill().MinWidth(0).Padding(8).Gap(6).Children(func() {
+	ui.Column(c).Fill().MinWidth(0).Padding(0, 8, 8, 8).Gap(6).Children(func() {
 		file := p.file()
 		if file == nil {
-			kit.Help(c, wt("chooseReviewFile"))
+			emptyHint(c, icons.FileDiff, wt("chooseReviewFile"))
 			return
 		}
-		ui.Row(c).FillWidth().Gap(6).Wrap().Children(func() {
-			if kit.Button(c, wt("openFile"), icons.FileText, false).Clicked() && p.options.OnOpenFile != nil {
-				path := file.Path
-				if !filepath.IsAbs(path) {
-					path = filepath.Join(p.snapshot.Root, path)
+		// One line of view options: the file's actions as icons, how the
+		// difference is laid out, and whether blank changes count.
+		ui.Row(c).FillWidth().MinHeight(36).Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
+			ui.Row(c).Gap(2).AlignItems(ui.Center).Children(func() {
+				if toolButton(c, icons.FileText, wt("openFile")).Clicked() && p.options.OnOpenFile != nil {
+					path := file.Path
+					if !filepath.IsAbs(path) {
+						path = filepath.Join(p.snapshot.Root, path)
+					}
+					p.options.OnOpenFile(path, 0)
 				}
-				p.options.OnOpenFile(path, 0)
-			}
-			if kit.IconButton(c, icons.Copy, wt("copyPatch")).Disabled(p.rawPatch == "").Clicked() {
-				c.Services().WriteClipboard(p.rawPatch)
-			}
-			changed, _ := kit.Select(c, &p.layout, []kit.SelectOption{{Value: "unified", Label: wt("unified")}, {Value: "split", Label: wt("split")}})
-			if changed && p.diff != nil {
+				if toolButton(c, icons.Copy, wt("copyPatch")).Disabled(p.rawPatch == "").Clicked() {
+					c.Services().WriteClipboard(p.rawPatch)
+				}
+			})
+			if kit.Segmented(c, &p.layout, []kit.SelectOption{{Value: "unified", Label: wt("unified")}, {Value: "split", Label: wt("split")}}, wt("unified")+" / "+wt("split")) && p.diff != nil {
 				if p.layout == "split" {
 					p.diff.Layout = editor.DiffSplit
 				} else {
 					p.diff.Layout = editor.DiffUnified
 				}
 			}
+			if ui.Checkbox(c, &p.ignoreWhitespace, wt("ignoreWhitespace")).Changed() {
+				p.loadDiff()
+			}
 		})
-		if kit.Toggle(c, &p.ignoreWhitespace, wt("ignoreWhitespace"), "").Changed() {
-			p.loadDiff()
-		}
 		if p.metadata.Repository && (p.scope == "working" || p.scope == "staged") && p.options.TurnID == "" {
 			options := []kit.SelectOption{{Value: "all", Label: wt("wholeFile")}}
 			if p.patch != nil && !p.ignoreWhitespace {

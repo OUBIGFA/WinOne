@@ -189,6 +189,7 @@ var (
 	Square                = lucide("square")
 	SquareArrowOutUpRight = lucide("square-arrow-out-up-right")
 	SquarePen             = lucide("square-pen")
+	SquareTerminal        = lucide("square-terminal")
 	Star                  = lucide("star")
 	Store                 = lucide("store")
 	Terminal              = lucide("terminal")
