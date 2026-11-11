@@ -53,18 +53,33 @@ func (p *completePage) nativeDialogs(c *ui.Context) {
 		}
 	case "settings":
 		o.Header = func() {
-			kit.Segmented(c, &p.settingsTab, []kit.SelectOption{{Value: "preferences", Label: nt("preferences")}, {Value: "network", Label: nt("network")}, {Value: "profile", Label: nt("profile")}}, nt("settings"))
+			// Second-level tabs, as the settings pages switch their panels.
+			keys := []string{"preferences", "network", "profile"}
+			index := 0
+			for i, key := range keys {
+				if key == p.settingsTab {
+					index = i
+				}
+			}
+			if kit.SubTabs(c, &index, []string{nt("preferences"), nt("network"), nt("profile")}, nil) {
+				p.settingsTab = keys[index]
+			}
 		}
 		o.Body = func() { p.settingsBody(c) }
 	case "invite":
 		o.Message = nt("inviteHint")
 		o.Body = func() {
 			link := p.invitation()
-			ui.Text(c, link).Selectable().FillWidth().MinWidth(0)
-			if kit.Button(c, nt("copyInvite"), icons.Copy, false).Clicked() {
-				c.Services().WriteClipboard(link)
-				c.Toast(tr("copied"))
-			}
+			codeBox(c, link)
+			ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
+				if kit.Button(c, nt("copyInvite"), icons.Copy, false).Clicked() {
+					c.Services().WriteClipboard(link)
+					c.Toast(tr("copied"))
+				}
+				if kit.GhostButton(c, nt("embed"), icons.Code, false).Clicked() {
+					p.panel = "embed"
+				}
+			})
 			// QR generation encodes the same portable invitation the copy action uses.
 			if p.qrLink != link {
 				if data, err := qrcode.Encode(link, qrcode.Medium, 256); err == nil {
@@ -73,69 +88,64 @@ func (p *completePage) nativeDialogs(c *ui.Context) {
 				}
 			}
 			if p.qr != nil {
-				ui.Image(c, p.qr).Size(220, 220).AlignSelf(ui.Center)
-			}
-			if kit.GhostButton(c, nt("embed"), icons.Code, false).Clicked() {
-				p.panel = "embed"
-			}
-		}
-	case "community":
-		o.Message = nt("communityHint")
-		o.Body = func() {
-			for _, room := range p.snapshot.Community {
-				if kit.Button(c, room, icons.MessagesCircle, false).FillWidth().Disabled(p.busy || !p.snapshot.Ready).Clicked() {
-					p.formRoom, p.roomKind, p.panel = room, "public", ""
-				}
+				// A QR code is scanned on white in both themes.
+				ui.Box(c).AlignSelf(ui.Center).Margin(8, 0, 0, 0).Padding(8).Radius(kit.PanelRadius).Background(ui.RGB(255, 255, 255)).
+					Border(1, kit.Colors(c).Hairline).Children(func() { ui.Image(c, p.qr).Size(200, 200) })
 			}
 		}
 	case "identity":
 		o.Message = p.identityName
 		o.Body = func() {
 			kit.Help(c, nt("identityHint"))
-			ui.Text(c, p.keyText).Selectable().FillWidth().MinWidth(0)
+			codeBox(c, p.keyText)
 			if kit.Button(c, nt("copyKey"), icons.Copy, false).Clicked() {
 				c.Services().WriteClipboard(p.keyText)
 			}
 		}
 	case "devices":
 		o.Body = func() {
-			for _, deviceKind := range []struct {
-				label, action string
-				devices       []nativeDevice
-			}{{"microphone", "audioDevice", p.snapshot.Media.AudioDevices}, {"camera", "videoDevice", p.snapshot.Media.VideoDevices}} {
-				kit.Label(c, nt(deviceKind.label))
-				if len(deviceKind.devices) == 0 {
-					kit.Help(c, nt("enableDeviceHint"))
+			kit.Panel(c, func() {
+				for _, deviceKind := range []struct {
+					label, action string
+					devices       []nativeDevice
+				}{{"microphone", "audioDevice", p.snapshot.Media.AudioDevices}, {"camera", "videoDevice", p.snapshot.Media.VideoDevices}} {
+					help := ""
+					if len(deviceKind.devices) == 0 {
+						help = nt("enableDeviceHint")
+					}
+					kit.Stack(c, nt(deviceKind.label), help, func() {
+						for _, device := range deviceKind.devices {
+							label := device.Label
+							if label == "" {
+								label = nt("defaultDevice")
+							}
+							if kit.Button(c, label, nil, false).FillWidth().Disabled(p.busy).Clicked() {
+								p.command("media", deviceKind.action, map[string]any{"id": device.ID}, nil)
+							}
+						}
+					})
 				}
-				for _, device := range deviceKind.devices {
-					label := device.Label
-					if label == "" {
-						label = nt("defaultDevice")
+				kit.Stack(c, nt("volume"), "", func() {
+					for _, peer := range p.snapshot.Peers {
+						for _, channel := range []struct{ id, label string }{{"microphone", "microphone"}, {"screen-share", "screen"}} {
+							if peer.AudioChannels[channel.id] != "PLAYING" {
+								continue
+							}
+							key := peer.PeerID + ":" + channel.id
+							value, exists := p.volumes[key]
+							if !exists {
+								value = 1
+							}
+							label := peer.Name + " · " + nt(channel.label)
+							kit.Help(c, label)
+							if ui.Slider(c.Key(key), &value, 0, 1).FillWidth().Label(nt("volume") + " · " + label).Changed() {
+								p.volumes[key] = value
+								p.backgroundCommand("shell", "volume", map[string]any{"peer": peer.PeerID, "channel": channel.id, "value": value})
+							}
+						}
 					}
-					if kit.Button(c, label, nil, false).FillWidth().Disabled(p.busy).Clicked() {
-						p.command("media", deviceKind.action, map[string]any{"id": device.ID}, nil)
-					}
-				}
-			}
-			kit.Label(c, nt("volume"))
-			for _, peer := range p.snapshot.Peers {
-				for _, channel := range []struct{ id, label string }{{"microphone", "microphone"}, {"screen-share", "screen"}} {
-					if peer.AudioChannels[channel.id] != "PLAYING" {
-						continue
-					}
-					key := peer.PeerID + ":" + channel.id
-					value, exists := p.volumes[key]
-					if !exists {
-						value = 1
-					}
-					label := peer.Name + " · " + nt(channel.label)
-					kit.Help(c, label)
-					if ui.Slider(c.Key(key), &value, 0, 1).FillWidth().Label(nt("volume") + " · " + label).Changed() {
-						p.volumes[key] = value
-						p.backgroundCommand("shell", "volume", map[string]any{"peer": peer.PeerID, "channel": channel.id, "value": value})
-					}
-				}
-			}
+				})
+			})
 		}
 	case "embed":
 		o.Message = nt("embedHint")
@@ -159,7 +169,7 @@ func (p *completePage) nativeDialogs(c *ui.Context) {
 				if p.snapshot.Secret == "" {
 					code += fmt.Sprintf("\n\n<script src=\"%ssdk/sdk.js\"></script>\n<chat-room room=\"%s\" root-url=\"%s\" width=\"800\" height=\"800\"></chat-room>", html.EscapeString(base), html.EscapeString(room), html.EscapeString(base))
 				}
-				ui.Text(c, code).Selectable().FillWidth().MinWidth(0)
+				codeBox(c, code)
 				if kit.Button(c, nt("copyCode"), icons.Copy, false).Clicked() {
 					c.Services().WriteClipboard(code)
 				}
@@ -171,7 +181,7 @@ func (p *completePage) nativeDialogs(c *ui.Context) {
 	case "help":
 		o.Body = func() {
 			for _, key := range []string{"helpRooms", "helpPrivacy", "helpMedia", "helpFiles", "helpNetwork"} {
-				kit.Help(c, nt(key))
+				kit.Body(c, nt(key)).Selectable()
 			}
 			if kit.Button(c, nt("embed"), icons.Code, false).Clicked() {
 				p.panel = "embed"
@@ -192,8 +202,8 @@ func (p *completePage) settingsBody(c *ui.Context) {
 		ui.Column(c).FillWidth().Gap(24).Children(func() {
 			kit.Group(c, nil, nt("identitySettings"), "", func() {
 				kit.Stack(c, tr("nickname"), "", func() {
-					ui.Row(c).FillWidth().Gap(8).Children(func() {
-						kit.TextInput(c, &p.formNickname).FillWidth().Label(tr("nickname"))
+					ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+						kit.TextInput(c, &p.formNickname).Grow(1).MinWidth(0).Label(tr("nickname"))
 						if kit.Button(c, nt("applyNickname"), nil, false).Disabled(p.busy || p.formNickname == p.snapshot.Settings.Nickname).Clicked() {
 							p.setting("customUsername", p.formNickname)
 						}
@@ -205,77 +215,94 @@ func (p *completePage) settingsBody(c *ui.Context) {
 					key, label string
 					value      bool
 				}{{"playSoundOnNewMessage", "sound", p.snapshot.Settings.Sound}, {"showNotificationOnNewMessage", "notification", p.snapshot.Settings.Notification}, {"showActiveTypingStatus", "typingSetting", p.snapshot.Settings.Typing}} {
-					kit.Row(c, nt(setting.label), "", func() {
-						value := setting.value
-						if ui.Switch(c, &value).Label(nt(setting.label)).Disabled(p.busy || !p.snapshot.Ready).Changed() {
-							p.setting(setting.key, value)
-						}
-					})
+					value := setting.value
+					if kit.Toggle(c.Key(setting.key), &value, nt(setting.label), "").Disabled(p.busy || !p.snapshot.Ready).Changed() {
+						p.setting(setting.key, value)
+					}
 				}
-				kit.Stack(c, nt("soundChoice"), "", func() {
+				kit.Row(c, nt("soundChoice"), "", func() {
 					options := []kit.SelectOption{}
 					for i, sound := range p.snapshot.Sounds {
 						options = append(options, kit.SelectOption{Value: sound.Value, Label: nt(fmt.Sprintf("sound%d", i))})
 					}
 					selected := p.snapshot.Settings.SelectedSound
-					ui.Row(c).FillWidth().Gap(8).Children(func() {
-						if changed, _ := kit.Select(c, &selected, options); changed {
-							p.setting("selectedSound", selected)
-						}
-						if kit.IconButton(c, icons.Volume2, nt("previewSound")).Disabled(p.busy).Clicked() {
-							p.command("shell", "sound", map[string]any{"value": selected}, nil)
-						}
-					})
+					changed, trigger := kit.Select(c, &selected, options)
+					trigger.Label(nt("soundChoice")).Disabled(p.busy || len(options) == 0)
+					if changed {
+						p.setting("selectedSound", selected)
+					}
+					if kit.IconButton(c, icons.Volume2, nt("previewSound")).Disabled(p.busy).Clicked() {
+						p.command("shell", "sound", map[string]any{"value": selected}, nil)
+					}
 				})
 			})
 		})
 	case "network":
-		kit.Help(c, nt("networkHint"))
-		if p.snapshot.EnhancedAvailable {
-			value := p.snapshot.Settings.Enhanced
-			if ui.Checkbox(c, &value, nt("enhanced")).Disabled(p.busy).Changed() {
-				p.setting("isEnhancedConnectivityEnabled", value)
-			}
-		}
-		kit.Label(c, nt("trackers"))
-		ui.TextArea(c, &p.trackers).FillWidth().Lines(2, 5).Label(nt("trackers"))
-		kit.Label(c, nt("rtc"))
-		ui.TextArea(c, &p.rtc).FillWidth().Lines(3, 8).Label(nt("rtc"))
-		if kit.PrimaryButton(c, nt("applyNetwork"), nil, p.busy).Disabled(p.busy || !p.snapshot.Ready).Clicked() {
-			trackers := []string{}
-			for _, line := range strings.Split(p.trackers, "\n") {
-				if line = strings.TrimSpace(line); line != "" {
-					trackers = append(trackers, line)
+		ui.Column(c).FillWidth().Gap(kit.HeadingGap).Children(func() {
+			kit.Help(c, nt("networkHint"))
+			kit.Panel(c, func() {
+				if p.snapshot.EnhancedAvailable {
+					value := p.snapshot.Settings.Enhanced
+					if kit.Toggle(c, &value, nt("enhanced"), "").Disabled(p.busy).Changed() {
+						p.setting("isEnhancedConnectivityEnabled", value)
+					}
 				}
-			}
-			rtc := json.RawMessage("{}")
-			if strings.TrimSpace(p.rtc) != "" {
-				rtc = json.RawMessage(p.rtc)
-			}
-			if !json.Valid(rtc) {
-				p.actionError = nt("invalidJSON")
-			} else {
-				p.command("shell", "settings", map[string]any{"value": map[string]any{"trackerUrls": trackers, "rtcConfig": rtc}}, nil)
-			}
-		}
-		kit.Help(c, nt("connectionStatus", "status", p.snapshot.Connections.TrackerConnection))
-	case "profile":
-		kit.Help(c, nt("profileHint"))
-		ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-			if kit.Button(c, nt("export"), icons.Download, false).Disabled(p.busy || p.env.Dialogs == nil).Clicked() {
-				p.profileFile(false)
-			}
-			if kit.Button(c, nt("import"), icons.Upload, false).Disabled(p.busy || p.env.Dialogs == nil).Clicked() {
-				p.profileFile(true)
-			}
+				kit.Stack(c, nt("trackers"), "", func() {
+					ui.TextArea(c, &p.trackers).FillWidth().Lines(2, 5).Font(kit.MonoFont).FontSize(kit.HelpSize(c)).Label(nt("trackers"))
+				})
+				kit.Stack(c, nt("rtc"), "", func() {
+					ui.TextArea(c, &p.rtc).FillWidth().Lines(3, 8).Font(kit.MonoFont).FontSize(kit.HelpSize(c)).Label(nt("rtc"))
+				})
+				kit.Row(c, nt("connectionStatus", "status", p.snapshot.Connections.TrackerConnection), "", func() {
+					if kit.PrimaryButton(c, nt("applyNetwork"), nil, p.busy).Disabled(p.busy || !p.snapshot.Ready).Clicked() {
+						p.applyNetwork()
+					}
+				})
+			})
 		})
-		if kit.Button(c, nt("myIdentity"), icons.ShieldCheck, false).Disabled(p.busy).Clicked() {
-			p.openIdentity(nativePeer{Name: p.snapshot.Settings.Nickname})
-		}
-		if kit.DangerButton(c, nt("reset"), nil, false).Disabled(p.busy).Clicked() {
-			p.panel = "reset"
+	case "profile":
+		kit.Panel(c, func() {
+			kit.Stack(c, nt("transferProfile"), nt("profileHint"), func() {
+				ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
+					if kit.Button(c, nt("export"), icons.Download, false).Disabled(p.busy || p.env.Dialogs == nil).Clicked() {
+						p.profileFile(false)
+					}
+					if kit.Button(c, nt("import"), icons.Upload, false).Disabled(p.busy || p.env.Dialogs == nil).Clicked() {
+						p.profileFile(true)
+					}
+				})
+			})
+			kit.Row(c, nt("identity"), nt("identityHint"), func() {
+				if kit.Button(c, nt("myIdentity"), icons.ShieldCheck, false).Disabled(p.busy).Clicked() {
+					p.openIdentity(nativePeer{Name: p.snapshot.Settings.Nickname})
+				}
+			})
+			kit.Row(c, nt("reset"), "", func() {
+				if kit.DangerButton(c, nt("reset"), nil, false).Disabled(p.busy).Clicked() {
+					p.panel = "reset"
+				}
+			})
+		})
+	}
+}
+
+// applyNetwork saves the pairing servers and WebRTC configuration as typed.
+func (p *completePage) applyNetwork() {
+	trackers := []string{}
+	for _, line := range strings.Split(p.trackers, "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			trackers = append(trackers, line)
 		}
 	}
+	rtc := json.RawMessage("{}")
+	if strings.TrimSpace(p.rtc) != "" {
+		rtc = json.RawMessage(p.rtc)
+	}
+	if !json.Valid(rtc) {
+		p.actionError = nt("invalidJSON")
+		return
+	}
+	p.command("shell", "settings", map[string]any{"value": map[string]any{"trackerUrls": trackers, "rtcConfig": rtc}}, nil)
 }
 
 // The native file picker grants exactly one profile file; no directory scan or

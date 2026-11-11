@@ -133,6 +133,13 @@ func TestNativeFlashChatLayouts(t *testing.T) {
 				capture("invite")
 				p.panel = "help"
 				capture("help")
+				p.panel = "devices"
+				capture("devices")
+				p.panel = ""
+				p.selected = "lin"
+				capture("private")
+				p.showPeers = true
+				capture("members")
 			}
 		}
 	}

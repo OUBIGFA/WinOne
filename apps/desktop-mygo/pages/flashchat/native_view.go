@@ -157,25 +157,32 @@ func (p *completePage) feedback(c *ui.Context) {
 func nativeField(c *ui.Context, label string, value *string, password bool) {
 	ui.Column(c).FillWidth().Gap(6).Children(func() {
 		kit.Label(c, label)
-		in := kit.TextInput(c, value).Label(label).FillWidth().Height(40)
+		in := kit.TextInput(c, value).Label(label).FillWidth()
 		if password {
 			in.Password()
 		}
 	})
 }
 
+// codeBox shows text that is copied as a whole — an invitation, a key,
+// embed code — in the monospace face on a field's surface.
+func codeBox(c *ui.Context, text string) ui.Element {
+	return ui.Text(c, text).Font(kit.MonoFont).FontSize(kit.HelpSize(c)).LineHeight(1.5).Selectable().FillWidth().MinWidth(0).
+		Padding(10, 12).Radius(c.Theme().Radius).Background(c.Theme().Surface).Border(1, kit.Colors(c).Hairline)
+}
+
 func (p *completePage) nativeConversation(c *ui.Context) {
 	room := p.snapshot.Rooms[p.selected]
 	ui.Column(c).Grow(1).MinHeight(0).MinWidth(0).Children(func() {
-		ui.Column(c).FillWidth().Padding(12, 20, 0, 20).Gap(8).Children(func() { p.feedback(c) })
+		ui.Column(c).FillWidth().MaxWidth(readingWidth+48).Margin(0, ui.Auto).Padding(12, 24, 0, 24).Gap(8).Children(func() { p.feedback(c) })
 		p.nativeMedia(c)
 		if !p.hideMessages || len(p.snapshot.Media.Streams) == 0 {
 			if len(room.Messages) == 0 {
-				ui.Column(c).FillWidth().Grow(1).MinHeight(0).Padding(24).Gap(10).AlignItems(ui.Center).Justify(ui.Center).Children(func() {
-					ui.Icon(c, icons.MessagesCircle).FontSize(30).TextColor(c.Theme().TextMuted)
+				ui.Column(c).FillWidth().Grow(1).MinHeight(0).Padding(24).Gap(8).AlignItems(ui.Center).Justify(ui.Center).Children(func() {
+					ui.Icon(c, icons.MessagesCircle).FontSize(28).TextColor(c.Theme().TextMuted)
 					kit.Heading(c, nt("startTalking"))
-					kit.Help(c, nt("inviteHint")).TextAlign(ui.Center)
-					if kit.Button(c, nt("invite"), icons.Share2, false).Clicked() {
+					kit.Help(c, nt("inviteHint")).TextAlign(ui.Center).MaxWidth(420)
+					if kit.Button(c, nt("invite"), icons.Share2, false).Margin(8, 0, 0, 0).Clicked() {
 						p.panel = "invite"
 					}
 				})
@@ -186,7 +193,7 @@ func (p *completePage) nativeConversation(c *ui.Context) {
 					p.lists[p.selected] = list
 				}
 				list.Key = func(i int) any { return room.Messages[i].AuthorID + room.Messages[i].ID }
-				ui.List(c, list, len(room.Messages), func(i int) { p.nativeMessage(c, room.Messages[i]) }).FillWidth().Grow(1).MinHeight(0).Gap(24).Padding(24).Label(nt("messages"))
+				ui.List(c, list, len(room.Messages), func(i int) { p.nativeMessage(c, room.Messages[i]) }).FillWidth().Grow(1).MinHeight(0).Gap(20).Padding(20, 24).Label(nt("messages"))
 			}
 		}
 		p.nativeComposer(c, room)
@@ -194,8 +201,8 @@ func (p *completePage) nativeConversation(c *ui.Context) {
 }
 
 func (p *completePage) nativeCode(c *ui.Context, block *markdown.CodeBlockView) {
-	ui.Column(c).FillWidth().MinWidth(0).Background(c.Theme().Surface).Border(1, kit.Colors(c).Hairline).Radius(8).Children(func() {
-		ui.Row(c).FillWidth().Padding(4, 10).AlignItems(ui.Center).Children(func() {
+	ui.Column(c).FillWidth().MinWidth(0).Background(c.Theme().Surface).Border(1, kit.Colors(c).Hairline).Radius(c.Theme().Radius).Children(func() {
+		ui.Row(c).FillWidth().Padding(2, 4, 2, 12).AlignItems(ui.Center).Children(func() {
 			kit.Caption(c, block.Language).Grow(1)
 			if kit.IconButton(c, icons.Copy, nt("copyCode")).Clicked() {
 				c.Services().WriteClipboard(block.Code())
@@ -205,25 +212,28 @@ func (p *completePage) nativeCode(c *ui.Context, block *markdown.CodeBlockView) 
 	})
 }
 
+// nativeComposer is the Chat page's composer: a white panel holding the
+// draft, with the tools below it and the send button at the right.
 func (p *completePage) nativeComposer(c *ui.Context, room nativeRoom) {
-	ui.Column(c).FillWidth().Shrink(0).Padding(0, 24, 20, 24).Gap(8).Children(func() {
+	t, pal := c.Theme(), kit.Colors(c)
+	ui.Column(c).FillWidth().MaxWidth(readingWidth+48).Margin(0, ui.Auto).Shrink(0).Padding(0, 24, 12, 24).Gap(6).Children(func() {
 		var typing []string
 		for _, peer := range p.snapshot.Peers {
 			if p.snapshot.Settings.Typing && ((p.selected == "" && peer.Typing) || (p.selected == peer.PeerID && peer.DirectTyping)) {
 				typing = append(typing, peer.Name)
 			}
 		}
-		label := ""
+		// Status lines stand outside the draft, so the box keeps its height.
 		if len(typing) > 0 {
-			label = nt("typing", "names", strings.Join(typing, ", "))
+			kit.Caption(c, nt("typing", "names", strings.Join(typing, ", "))).Role(ui.RoleStatus)
 		}
-		if label != "" {
-			kit.Caption(c, label)
+		if p.snapshot.Transfer.Busy {
+			kit.Caption(c, nt("receiving", "percent", fmt.Sprintf("%.0f", p.snapshot.Transfer.Progress*100))).Role(ui.RoleStatus)
 		}
 		selected := p.selected
 		draft := p.drafts[selected]
-		ui.Column(c).FillWidth().Border(1, c.Theme().Border).Radius(12).Background(c.Theme().Surface).Padding(8).Gap(4).Children(func() {
-			area := ui.TextArea(c.Key(selected), &draft).FillWidth().Lines(2, 7).BorderWidth(0).Background(ui.RGBA(0, 0, 0, 0)).Label(tr("chatDraft")).Placeholder(tr("chatDraft")).OnTextKey(func(key ui.TextKey) bool {
+		ui.Column(c).FillWidth().Padding(12, 12, 10, 12).Gap(8).Radius(16).Border(1, t.Border).Background(pal.Panel).Children(func() {
+			area := ui.TextArea(c.Key(selected), &draft).FillWidth().Lines(2, 7).Padding(4).BorderWidth(0).Background(ui.Transparent).Label(tr("chatDraft")).Placeholder(tr("chatDraft")).OnTextKey(func(key ui.TextKey) bool {
 				if key.Key != ui.KeyEnter || key.Mods != 0 {
 					return false
 				}
@@ -244,29 +254,36 @@ func (p *completePage) nativeComposer(c *ui.Context, room nativeRoom) {
 					p.backgroundCommand("room:"+selected, "typing", nil)
 				}
 			}
-			ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
-				if kit.IconButton(c, icons.FilePlus, tr("shareInChat")).Disabled(p.busy || p.env.Dialogs == nil).Clicked() {
+			ui.Row(c).FillWidth().Gap(4).AlignItems(ui.Center).Children(func() {
+				if kit.IconButton(c, icons.Plus, tr("shareInChat")).Size(32, 32).Disabled(p.busy || p.env.Dialogs == nil).Clicked() {
 					p.shareNative(nil)
 				}
 				if room.Offer != "" && kit.GhostButton(c, tr("stopChatShare"), nil, false).Disabled(p.busy).Clicked() {
 					p.command("room:"+selected, "rescind", nil, nil)
 				}
 				ui.Box(c).Grow(1)
-				ptt := kit.IconButton(c, icons.Mic, nt("pushToTalk")).Disabled(p.busy)
+				ptt := kit.IconButton(c, icons.Mic, nt("pushToTalk")).Size(32, 32).Disabled(p.busy)
 				pressed := ptt.Pressed() || (c.Modifiers()&ui.Ctrl != 0 && c.KeyDown(ui.KeyBackquote))
 				if pressed != p.pushTalking {
 					p.pushTalking = pressed
 					p.backgroundCommand("media", "microphone", map[string]any{"enabled": pressed})
 				}
-				if kit.PrimaryButton(c, tr("sendMessage"), icons.Send, room.Sending).Disabled(p.busy || room.Sending || strings.TrimSpace(draft) == "").Clicked() {
+				label := tr("sendMessage")
+				send := ui.PrimaryButton(c, "").Label(label).Tooltip(label).Size(32, 32).Padding(0).Radius(99).Margin(0, 0, 0, 4).Justify(ui.Center).AlignItems(ui.Center).
+					Disabled(p.busy || room.Sending || strings.TrimSpace(draft) == "")
+				send.Children(func() {
+					if room.Sending {
+						kit.Loader(c)
+					} else {
+						ui.Icon(c, icons.ArrowUp).FontSize(16)
+					}
+				})
+				if send.Clicked() {
 					p.sendNative()
 				}
 			})
 		})
-		kit.Caption(c, nt("keyboard")).AlignSelf(ui.End)
-		if p.snapshot.Transfer.Busy {
-			kit.Caption(c, nt("receiving", "percent", fmt.Sprintf("%.0f", p.snapshot.Transfer.Progress*100)))
-		}
+		kit.Caption(c, nt("keyboard")).AlignSelf(ui.Center)
 	})
 }
 
@@ -294,7 +311,7 @@ func (p *completePage) nativeMedia(c *ui.Context) {
 		mediaArea.Height(240).MaxHeightPercent(40).Shrink(1)
 	}
 	mediaArea.Children(func() {
-		ui.Row(c).FillWidth().Gap(10).Wrap().Padding(0, 20, 10, 20).Children(func() {
+		ui.Row(c).FillWidth().Gap(12).Wrap().Padding(12, 24, 8, 24).Children(func() {
 			for _, stream := range media.Streams {
 				ui.Column(c.Key(stream.ID)).Grow(1).Basis(240).MinWidth(0).MaxWidthPercent(100).Gap(4).Children(func() {
 					name := nt("you")

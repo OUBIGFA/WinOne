@@ -14,89 +14,113 @@ import (
 	"winone/desktopmygo/kit/icons"
 )
 
-// Layout reference: Slack Design's conversation/list split, quiet toolbar and
-// contiguous composer (2023-10). This is composition of MyGo controls, not a
-// copied stylesheet or web surface; colours and type remain WinOne's shared kit.
+// The page follows WinOne's own two surfaces instead of a look of its own:
+// the lobby is a settings page (a centered column of kit groups on panels),
+// and a room is laid out as the Chat page is (sidebar, quiet header, own
+// messages in a bubble on the right, a white composer). Sizes, colors and
+// controls all come from the shared kit.
+const (
+	// roomFormWidth bounds the lobby's column, as a form reads best narrow.
+	roomFormWidth = 560
+	// readingWidth bounds the transcript and composer, as Chat's column.
+	readingWidth = 880
+	// peersWidth is the room's list of conversations.
+	peersWidth = 248
+	// headerHeight matches the Chat page's header.
+	headerHeight = 56
+)
+
 func (p *completePage) nativeLobby(c *ui.Context) {
+	t := c.Theme()
+	ready := p.snapshot.Ready
 	ui.Column(c).Fill().MinWidth(0).Children(func() {
-		ui.Row(c).FillWidth().Padding(24, 28).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, icons.MessagesCircle).FontSize(22)
-			kit.Heading(c, tr("peerChat")).Grow(1)
-			if kit.IconButton(c, icons.Settings2, nt("settings")).Clicked() {
-				p.openSettings()
-			}
-			if kit.IconButton(c, icons.Info, nt("help")).Clicked() {
-				p.panel = "help"
-			}
-		})
-		ui.Scroll(c).FillWidth().Grow(1).MinHeight(0).Children(func() {
-			ui.Row(c).FillWidth().MaxWidth(880).Margin(36, ui.Auto, 24, ui.Auto).Padding(0, 28).Gap(56).AlignItems(ui.Start).Children(func() {
-				ui.Column(c).Grow(1).Basis(420).MinWidth(0).Gap(28).Children(func() {
-					ui.Column(c).Gap(8).Children(func() { kit.Title(c, nt("startTitle")); kit.Help(c, nt("startHint")) })
+		// Center the scroll view itself in the finite viewport: its height
+		// shrinks to the viewport only when the content overflows, so the
+		// first frame is already centered and nothing jumps afterwards.
+		ui.Column(c).Fill().Justify(ui.Center).Children(func() {
+			ui.Scroll(c).FillWidth().MaxHeightPercent(100).Shrink(1).Padding(32, 24).Children(func() {
+				ui.Column(c).FillWidth().MaxWidth(roomFormWidth).Margin(0, ui.Auto).Gap(kit.GroupGap).Children(func() {
+					ui.Column(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+						ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
+							ui.Icon(c, icons.MessagesCircle).FontSize(24).Shrink(0)
+							kit.Title(c, tr("peerChat")).Role(ui.RoleHeading).Level(1)
+						})
+						kit.Help(c, nt("startHint")).TextAlign(ui.Center)
+					})
 					p.feedback(c)
-					ui.Column(c).FillWidth().Gap(20).Children(func() {
-						nativeField(c, tr("nickname"), &p.formNickname, false)
-						ui.Column(c).FillWidth().Gap(8).Children(func() {
-							kit.Label(c, nt("room"))
-							ui.Row(c).FillWidth().Gap(6).Children(func() {
-								kit.TextInput(c, &p.formRoom).Label(nt("room")).Placeholder(nt("roomPlaceholder")).FillWidth().MinWidth(0).Height(42)
-								if kit.IconButton(c, icons.RefreshCw, nt("regenerate")).Size(42, 42).Disabled(!p.snapshot.Ready || p.busy).Clicked() {
-									p.generateNative()
-								}
+					ui.Column(c).FillWidth().Gap(16).Children(func() {
+						kit.Panel(c, func() {
+							kit.Stack(c, tr("nickname"), "", func() {
+								kit.TextInput(c, &p.formNickname).Label(tr("nickname")).FillWidth()
 							})
-							ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
-								kit.Caption(c, nt("nameType"))
+							kit.Stack(c, nt("room"), "", func() {
+								ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+									kit.TextInput(c, &p.formRoom).Label(nt("room")).Grow(1).MinWidth(0)
+									if kit.IconButton(c, icons.RefreshCw, nt("regenerate")).Disabled(!ready || p.busy).Clicked() {
+										p.generateNative()
+									}
+								})
+							})
+							kit.Row(c, nt("nameType"), "", func() {
 								if kit.Segmented(c, &p.nameKind, []kit.SelectOption{{Value: "id", Label: nt("randomID")}, {Value: "words", Label: nt("randomWords")}}, nt("nameType")) {
 									p.generateNative()
 								}
 							})
-						})
-						ui.Column(c).FillWidth().Gap(10).Children(func() {
-							kit.Segmented(c, &p.roomKind, []kit.SelectOption{{Value: "public", Label: nt("public")}, {Value: "private", Label: nt("private")}}, nt("roomType"))
+							kit.Row(c, nt("roomType"), "", func() {
+								kit.Segmented(c, &p.roomKind, []kit.SelectOption{{Value: "public", Label: nt("public")}, {Value: "private", Label: nt("private")}}, nt("roomType"))
+							})
 							if p.roomKind == "private" {
-								nativeField(c, tr("roomPassword"), &p.formPassword, true)
+								kit.Stack(c, tr("roomPassword"), "", func() {
+									kit.TextInput(c, &p.formPassword).Label(tr("roomPassword")).FillWidth().Password()
+								})
 							}
 						})
-						if kit.PrimaryButton(c, nt("enter"), icons.ArrowRight, p.busy).FillWidth().Height(42).Justify(ui.Center).Disabled(!p.snapshot.Ready || p.busy || strings.TrimSpace(p.formRoom) == "").Clicked() {
-							p.command("shell", "join", map[string]any{"room": p.formRoom, "private": p.roomKind == "private", "password": p.formPassword, "nickname": p.formNickname}, nil)
-						}
-						if !p.snapshot.Ready && p.err == "" {
-							kit.Caption(c, nt("starting"))
-						}
+						ui.Column(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
+							if kit.PrimaryButton(c, nt("enter"), icons.ArrowRight, p.busy).MinWidth(200).Justify(ui.Center).
+								Disabled(!ready || p.busy || strings.TrimSpace(p.formRoom) == "").Clicked() {
+								p.command("shell", "join", map[string]any{"room": p.formRoom, "private": p.roomKind == "private", "password": p.formPassword, "nickname": p.formNickname}, nil)
+							}
+							if !ready && p.err == "" {
+								kit.Caption(c, nt("starting")).Role(ui.RoleStatus)
+							}
+							ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
+								ui.Icon(c, icons.ShieldCheck).FontSize(15).TextColor(t.TextMuted).Shrink(0)
+								kit.Caption(c, tr("chatEncryption")).Shrink(1)
+							})
+						})
 					})
-					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.Icon(c, icons.ShieldCheck).FontSize(15).TextColor(c.Theme().TextMuted)
-						kit.Caption(c, tr("chatEncryption")).Shrink(1)
-					})
-					if p.area.Bounds(c).W < 800 {
-						if kit.GhostButton(c, nt("community"), icons.Users, false).Clicked() {
-							p.panel = "community"
-						}
-					}
-				})
-				if p.area.Bounds(c).W >= 800 {
-					ui.Column(c).Width(240).Shrink(0).Gap(18).Padding(4, 0).Children(func() {
-						kit.Heading(c, nt("community"))
-						kit.Help(c, nt("communityHint"))
-						ui.Column(c).FillWidth().Gap(2).Children(func() {
+					if len(p.snapshot.Community) > 0 {
+						kit.Group(c, nil, nt("community"), nt("communityHint"), func() {
 							for _, room := range p.snapshot.Community {
-								b := ui.ButtonBase(c).FillWidth().Padding(12, 10).Radius(8).Label(room).Gap(10).AlignItems(ui.Center)
-								if b.Hovered() {
-									b.Background(c.Theme().SurfaceHover)
+								b := ui.ButtonBase(c.Key("community:"+room)).FillWidth().Padding(12, 16).Gap(12).AlignItems(ui.Center).
+									Label(room).Disabled(p.busy)
+								if p.formRoom == room && p.roomKind == "public" {
+									b.Background(kit.Colors(c).Selected)
+								} else if b.Hovered() {
+									b.Background(t.SurfaceHover)
 								}
 								b.Children(func() {
-									ui.Icon(c, icons.MessagesCircle).FontSize(16).TextColor(c.Theme().TextMuted)
-									kit.Body(c, room).Grow(1).MinWidth(0)
-									ui.Icon(c, icons.ArrowRight).FontSize(14).TextColor(c.Theme().TextMuted)
+									ui.Icon(c, icons.MessagesCircle).FontSize(16).TextColor(t.TextMuted).Shrink(0)
+									kit.Label(c, room).Grow(1).MinWidth(0).SingleLine().Ellipsis("…")
+									ui.Icon(c, icons.ChevronRight).FontSize(14).TextColor(t.TextMuted).Shrink(0)
 								})
 								if b.Clicked() {
 									p.formRoom, p.roomKind = room, "public"
 								}
 							}
 						})
-					})
-				}
+					}
+				})
 			})
+		})
+		// Out of the flow, so the two tools do not push the form off center.
+		ui.Row(c).Absolute().Top(12).Right(16).Gap(4).Children(func() {
+			if kit.IconButton(c, icons.Settings2, nt("settings")).Clicked() {
+				p.openSettings()
+			}
+			if kit.IconButton(c, icons.Info, nt("help")).Clicked() {
+				p.panel = "help"
+			}
 		})
 	})
 }
@@ -125,11 +149,15 @@ func (p *completePage) nativeHeader(c *ui.Context, narrow bool) {
 			description = tr("chatPrivate")
 		}
 	}
-	ui.Row(c).FillWidth().MinHeight(76).Padding(14, 24).Gap(12).AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
+	ui.Row(c).FillWidth().MinHeight(headerHeight).Shrink(0).Padding(8, 16, 8, 20).Gap(4).AlignItems(ui.Center).
+		BorderWidth(0, 0, 1, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
 		if narrow && kit.IconButton(c, icons.Users, tr("chatPeers")).Clicked() {
 			p.showPeers = true
 		}
-		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(3).Children(func() { kit.Heading(c, name).SingleLine().Ellipsis("…").Tooltip(name); kit.Caption(c, description) })
+		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Padding(0, 8, 0, 0).Children(func() {
+			kit.Label(c, name).SingleLine().Ellipsis("…").Tooltip(name).Role(ui.RoleHeading).Level(1)
+			kit.Caption(c, description).SingleLine()
+		})
 		for _, control := range []struct {
 			key    string
 			active bool
@@ -192,49 +220,52 @@ func nativeAvatar(c *ui.Context, name string, size float32) {
 	if letter == utf8.RuneError || letter == 0 {
 		letter = '?'
 	}
-	ui.Box(c).Size(size, size).Shrink(0).Radius(size / 2).Background(kit.Colors(c).Selected).AlignItems(ui.Center).Justify(ui.Center).Children(func() { ui.Text(c, strings.ToUpper(string(letter))).FontWeight(500).FontSize(size * .4) })
+	ui.Box(c).Size(size, size).Shrink(0).Radius(size / 2).Background(kit.Colors(c).Selected).AlignItems(ui.Center).Justify(ui.Center).Children(func() { ui.Text(c, strings.ToUpper(string(letter))).FontWeight(500).FontSize(size * .42) })
 }
 
 func (p *completePage) nativeSidebar(c *ui.Context, narrow bool) {
-	side := ui.Column(c).FillHeight().MinWidth(0).Background(kit.Colors(c).Sidebar).BorderWidth(0, 1, 0, 0).BorderColor(kit.Colors(c).Hairline)
+	pal := kit.Colors(c)
+	side := ui.Column(c).FillHeight().MinWidth(0).Background(pal.Sidebar).BorderWidth(0, 1, 0, 0).BorderColor(pal.Hairline)
 	if narrow {
 		side.Grow(1)
 	} else {
-		side.Width(264).Shrink(0)
+		side.Width(peersWidth).Shrink(0)
 	}
 	side.Children(func() {
-		ui.Row(c).FillWidth().MinHeight(76).Padding(18, 20).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, icons.MessagesCircle).FontSize(21)
-			kit.Heading(c, tr("peerChat")).Grow(1)
-			if kit.IconButton(c, icons.Share2, nt("invite")).Clicked() {
-				p.panel = "invite"
-			}
-		})
-		ui.Column(c).FillWidth().Padding(4, 20, 22, 20).Gap(6).Children(func() {
+		// The room this window is in, where the Chat page names itself.
+		ui.Row(c).FillWidth().MinHeight(headerHeight).Shrink(0).Padding(8, 8, 8, 20).Gap(8).AlignItems(ui.Center).Children(func() {
 			kind := "public"
 			if p.snapshot.Secret != "" {
 				kind = "private"
 			}
-			kit.Caption(c, nt(kind))
-			kit.Body(c, p.snapshot.RoomID).SingleLine().Ellipsis("…").Tooltip(p.snapshot.RoomID).Selectable()
+			ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
+				kit.Label(c, p.snapshot.RoomID).SingleLine().Ellipsis("…").Tooltip(p.snapshot.RoomID).Selectable()
+				kit.Caption(c, nt(kind)).SingleLine()
+			})
+			if kit.IconButton(c, icons.Share2, nt("invite")).Clicked() {
+				p.panel = "invite"
+			}
 		})
-		ui.Scroll(c).FillWidth().Grow(1).MinHeight(0).Padding(0, 10).Gap(4).Children(func() {
+		ui.Scroll(c).FillWidth().Grow(1).MinHeight(0).Padding(4, 8).Gap(2).Children(func() {
 			p.conversationRow(c, "", tr("groupRoom"), icons.MessagesCircle)
-			kit.Caption(c, nt("directMessages")).Padding(18, 12, 8, 12)
+			kit.Caption(c, nt("directMessages")).Padding(16, 12, 6, 12)
 			for _, peer := range p.snapshot.Peers {
 				p.conversationRow(c, peer.PeerID, peer.Name, nil)
 			}
 			if len(p.snapshot.Peers) == 0 {
-				kit.Help(c, nt("waiting")).Padding(8, 12)
+				kit.Help(c, nt("waiting")).Padding(4, 12)
 			}
 		})
-		ui.Row(c).FillWidth().Padding(16).Gap(10).AlignItems(ui.Center).BorderWidth(1, 0, 0, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
+		ui.Row(c).FillWidth().Shrink(0).Padding(8, 8, 8, 12).Gap(10).AlignItems(ui.Center).BorderWidth(1, 0, 0, 0).BorderColor(pal.Hairline).Children(func() {
 			name := p.snapshot.Settings.Nickname
 			if name == "" {
 				name = nt("you")
 			}
-			nativeAvatar(c, name, 32)
-			ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(2).Children(func() { kit.Body(c, name).SingleLine().Ellipsis("…"); kit.Caption(c, nt("you")) })
+			nativeAvatar(c, name, 28)
+			ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
+				ui.Text(c, name).SingleLine().Ellipsis("…").Tooltip(name)
+				kit.Caption(c, nt("you"))
+			})
 			if kit.IconButton(c, icons.Settings2, nt("settings")).Clicked() {
 				p.openSettings()
 			}
@@ -243,12 +274,15 @@ func (p *completePage) nativeSidebar(c *ui.Context, narrow bool) {
 }
 
 func (p *completePage) conversationRow(c *ui.Context, id, name string, icon *ui.SVG) {
+	t, pal := c.Theme(), kit.Colors(c)
 	room := p.snapshot.Rooms[id]
 	preview := nt("newConversation")
 	stamp := ""
+	offered := ""
 	if id != "" {
 		for _, peer := range p.snapshot.Peers {
 			if peer.PeerID == id {
+				offered = peer.OfferedFileID
 				preview = nt("verifying")
 				if peer.Verified == 2 {
 					preview = tr("verified")
@@ -266,28 +300,28 @@ func (p *completePage) conversationRow(c *ui.Context, id, name string, icon *ui.
 		}
 		stamp = time.UnixMilli(message.TimeSent).Format("15:04")
 	}
-	b := ui.ButtonBase(c.Key("conversation:"+id)).FillWidth().Padding(12, 10).Gap(10).Radius(9).AlignItems(ui.Center).Label(tr("chatPrivate") + " · " + name).Tooltip(name).Disabled(p.busy)
+	b := ui.ButtonBase(c.Key("conversation:"+id)).FillWidth().Padding(8, 12).Gap(10).Radius(t.Radius).AlignItems(ui.Center).Label(tr("chatPrivate") + " · " + name).Tooltip(name).Disabled(p.busy)
 	if id == "" {
 		b.Label(tr("groupRoom"))
 	}
 	if p.selected == id {
-		b.Background(kit.Colors(c).Selected)
+		b.Background(pal.Selected)
 	} else if b.Hovered() {
-		b.Background(c.Theme().SurfaceHover)
+		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() {
 		if icon != nil {
-			ui.Box(c).Size(36, 36).Shrink(0).AlignItems(ui.Center).Justify(ui.Center).Children(func() { ui.Icon(c, icon).FontSize(21) })
+			ui.Box(c).Size(28, 28).Shrink(0).AlignItems(ui.Center).Justify(ui.Center).Children(func() { ui.Icon(c, icon).FontSize(18) })
 		} else {
-			nativeAvatar(c, name, 36)
+			nativeAvatar(c, name, 28)
 		}
-		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(4).Children(func() {
+		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
 			ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-				kit.Strong(c, name).Grow(1).Shrink(1).MinWidth(0).SingleLine().Ellipsis("…")
+				ui.Text(c, name).Grow(1).Shrink(1).MinWidth(0).SingleLine().Ellipsis("…")
 				if room.Unread > 0 {
-					kit.Strong(c, nt("unreadCount", "count", room.Unread)).FontSize(12)
+					kit.Badge(c, nt("unreadCount", "count", room.Unread), kit.Info).Shrink(0)
 				} else if stamp != "" {
-					kit.Caption(c, stamp).FontSize(12).Shrink(0)
+					kit.Caption(c, stamp).Shrink(0)
 				}
 			})
 			kit.Caption(c, strings.ReplaceAll(preview, "\n", " ")).FillWidth().SingleLine().Ellipsis("…")
@@ -308,20 +342,30 @@ func (p *completePage) conversationRow(c *ui.Context, id, name string, icon *ui.
 			}
 		}
 	})
-	// A received file is a task, so expose its action next to this member rather
-	// than requiring the context menu to discover it.
-	for _, peer := range p.snapshot.Peers {
-		if peer.PeerID == id && peer.OfferedFileID != "" {
-			if kit.GhostButton(c, nt("download"), icons.Download, false).Margin(0, 10, 6, 56).Disabled(p.busy || p.downloading).Clicked() {
-				p.command("room:", "download", map[string]any{"magnet": peer.OfferedFileID}, nil)
-			}
+	// A received file is a task, so its action shows under this member
+	// instead of only in the context menu.
+	if offered != "" {
+		if kit.GhostButton(c, nt("download"), icons.Download, false).Margin(0, 8, 4, 42).Disabled(p.busy || p.downloading).Clicked() {
+			p.command("room:", "download", map[string]any{"magnet": offered}, nil)
 		}
 	}
 }
 
+// bubbleColor is the fill of this side's own messages, as the Chat page's.
+func bubbleColor(c *ui.Context) ui.Color {
+	pal, t := kit.Colors(c), c.Theme()
+	if t.Dark {
+		return pal.Selected.Mix(t.Text, 0.06)
+	}
+	return pal.Selected.Mix(t.Background, 0.55)
+}
+
+// nativeMessage shows one message: this side's in a bubble on the right,
+// a member's on the left under their name, as Chat tells the two apart.
 func (p *completePage) nativeMessage(c *ui.Context, message nativeMessage) {
+	mine := message.AuthorID == p.snapshot.UserID
 	name := message.AuthorID
-	if message.AuthorID == p.snapshot.UserID {
+	if mine {
 		name = p.snapshot.Settings.Nickname
 		if name == "" {
 			name = nt("you")
@@ -333,26 +377,40 @@ func (p *completePage) nativeMessage(c *ui.Context, message nativeMessage) {
 			}
 		}
 	}
-	ui.Row(c).FillWidth().MinWidth(0).Gap(12).AlignItems(ui.Start).Children(func() {
-		nativeAvatar(c, name, 32)
-		ui.Column(c).Grow(1).MinWidth(0).Gap(6).Children(func() {
-			ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
-				kit.Strong(c, name).Shrink(1).MinWidth(0).SingleLine().Ellipsis("…").Tooltip(name)
-				kit.Caption(c, time.UnixMilli(message.TimeSent).Format("15:04")).Shrink(0)
-			})
-			if message.Magnet != "" {
-				p.nativePreview(c, message)
-				if kit.GhostButton(c, nt("downloadMedia"), icons.Download, false).Disabled(p.busy || p.downloading).Clicked() {
-					p.command("room:"+p.selected, "download", map[string]any{"magnet": message.Magnet}, nil)
-				}
-			} else {
-				markdown.View(c, message.Text, &p.md)
-				if isVideoLink(message.Text) {
-					if kit.Button(c, nt("openVideo"), icons.Play, false).Clicked() {
-						c.Services().OpenURL(strings.TrimSpace(message.Text))
-					}
-				}
+	stamp := time.UnixMilli(message.TimeSent).Format("15:04")
+	body := func() {
+		if message.Magnet != "" {
+			p.nativePreview(c, message)
+			if kit.GhostButton(c, nt("downloadMedia"), icons.Download, false).Disabled(p.busy || p.downloading).Clicked() {
+				p.command("room:"+p.selected, "download", map[string]any{"magnet": message.Magnet}, nil)
 			}
+			return
+		}
+		markdown.View(c, message.Text, &p.md)
+		if isVideoLink(message.Text) {
+			if kit.Button(c, nt("openVideo"), icons.Play, false).Clicked() {
+				c.Services().OpenURL(strings.TrimSpace(message.Text))
+			}
+		}
+	}
+	ui.Column(c).FillWidth().MinWidth(0).MaxWidth(readingWidth).Margin(0, ui.Auto).Children(func() {
+		if mine {
+			ui.Column(c).AlignSelf(ui.End).MaxWidthPercent(85).MinWidth(0).Gap(4).AlignItems(ui.End).Children(func() {
+				ui.Column(c).MaxWidthPercent(100).MinWidth(0).Padding(10, 14).Radius(14).Background(bubbleColor(c)).Gap(6).Children(body)
+				// The name stays readable for assistive technology and tests.
+				kit.Caption(c, name+" · "+stamp)
+			})
+			return
+		}
+		ui.Row(c).FillWidth().MinWidth(0).Gap(10).AlignItems(ui.Start).Children(func() {
+			nativeAvatar(c, name, 28)
+			ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
+				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Baseline).Children(func() {
+					ui.Text(c, name).FontWeight(500).Shrink(1).MinWidth(0).SingleLine().Ellipsis("…").Tooltip(name)
+					kit.Caption(c, stamp).Shrink(0)
+				})
+				body()
+			})
 		})
 	})
 }
