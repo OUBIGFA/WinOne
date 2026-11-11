@@ -124,7 +124,7 @@ func (x *externalPanel) sessionsContent(c *ui.Context) {
 		return
 	}
 	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-		ui.TextInput(c, &s.query).Grow(1).MinWidth(180).Label(upstreamT("Search sessions")).Placeholder(upstreamT("Search sessions"))
+		kit.TextInput(c, &s.query).Grow(1).MinWidth(180).Label(upstreamT("Search sessions")).Placeholder(upstreamT("Search sessions"))
 		label := "Select"
 		if s.selecting {
 			label = "Done"
@@ -438,7 +438,7 @@ func (x *externalPanel) sessionRelocationView(c *ui.Context) {
 	kit.Dialog(c, &open, kit.DialogOptions{Title: upstreamT("Move project"), Cancel: i18n.T("common.cancel"), Width: 700, Busy: x.working, Error: x.err, Body: func() {
 		kit.Help(c, r.From)
 		previous := r.To
-		field := ui.TextInput(c, &r.To).FillWidth().Label(upstreamT("New folder")).Disabled(x.working)
+		field := kit.TextInput(c, &r.To).FillWidth().Label(upstreamT("New folder")).Disabled(x.working)
 		if r.To != previous {
 			r.Token = ""
 		}

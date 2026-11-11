@@ -83,7 +83,7 @@ func (s *linkScan) View(c *ui.Context, disabled bool, changed func([]directoryli
 		kit.Label(c, i18n.T("links.scanDirectory"))
 		field := ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center)
 		field.Children(func() {
-			ui.TextInput(c, &s.directory).Grow(1).MinWidth(0).Label(i18n.T("links.scanDirectory")).Disabled(locked)
+			kit.TextInput(c, &s.directory).Grow(1).MinWidth(0).Label(i18n.T("links.scanDirectory")).Disabled(locked)
 			if kit.Button(c, i18n.T("links.folder"), icons.FolderOpen, false).Disabled(locked).Clicked() {
 				core.Go(s.env, func() (string, error) { return s.env.Dialogs.PickFolder(i18n.T("links.scanDirectory")) }, func(path string, err error) {
 					if err != nil {

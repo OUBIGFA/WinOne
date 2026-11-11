@@ -315,50 +315,56 @@ func (l *logs) open() {
 
 func (l *logs) view(c *ui.Context) {
 	kit.Section(c, icons.FileText, i18n.T("diagnostics.title"), "", func() {
-		ui.Row(c).Gap(8).Wrap().Children(func() {
-			if kit.Button(c, i18n.T("diagnostics.refresh"), icons.RefreshCw, false).Disabled(l.loading).Clicked() {
-				l.read()
-			}
-			available := l.data != nil && l.data.FolderAvailable
-			if kit.Button(c, i18n.T("diagnostics.openFolder"), icons.FolderOpen, false).Disabled(l.opening || !available).Clicked() {
-				l.open()
-			}
-		})
-		if l.loading {
-			ui.Row(c).Gap(8).AlignItems(ui.Center).Role(ui.RoleStatus).Children(func() {
-				kit.Loader(c)
-				kit.Help(c, i18n.T("diagnostics.loading"))
-			})
-		}
 		if l.err != "" {
 			kit.Notice(c, kit.Failure, "", l.err, nil)
 		}
 		if l.openErr != "" {
 			kit.Notice(c, kit.Failure, "", l.openErr, nil)
 		}
-		if l.data == nil || l.loading {
-			return
-		}
-		if len(l.data.Entries) == 0 {
-			kit.Help(c, i18n.T("diagnostics.empty"))
-		}
-		t := c.Theme()
-		for _, entry := range l.data.Entries {
-			title := i18n.T("diagnostics." + entry.Name)
-			ui.Column(c.Key(entry.Name)).FillWidth().Gap(6).Children(func() {
-				kit.Strong(c, title).Role(ui.RoleHeading).Level(3)
-				if entry.Truncated {
-					kit.Help(c, i18n.T("diagnostics.truncated"))
-				}
-				if !entry.Available || entry.Text == "" {
-					kit.Help(c, i18n.T("diagnostics.empty"))
-					return
-				}
-				// A read-only text area lays out only the lines in view and
-				// lets the log be selected and copied with the keyboard.
-				ui.TextArea(c, l.texts[entry.Name]).ReadOnly(true).Label(title).Height(260).FillWidth().
-					Font(kit.MonoFont).FontSize(kit.HelpSize(c)).Background(t.Surface)
+		// One panel: the actions, then a row for each log, as the groups
+		// above it are laid out.
+		kit.Panel(c, func() {
+			kit.Stack(c, "", "", func() {
+				ui.Row(c).Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
+					if kit.Button(c, i18n.T("diagnostics.refresh"), icons.RefreshCw, false).Disabled(l.loading).Clicked() {
+						l.read()
+					}
+					available := l.data != nil && l.data.FolderAvailable
+					if kit.Button(c, i18n.T("diagnostics.openFolder"), icons.FolderOpen, false).Disabled(l.opening || !available).Clicked() {
+						l.open()
+					}
+					if l.loading {
+						ui.Row(c).Gap(8).AlignItems(ui.Center).Role(ui.RoleStatus).Children(func() {
+							kit.Loader(c)
+							kit.Help(c, i18n.T("diagnostics.loading"))
+						})
+					}
+				})
 			})
-		}
+			if l.data == nil || l.loading {
+				return
+			}
+			if len(l.data.Entries) == 0 {
+				kit.Stack(c, "", i18n.T("diagnostics.empty"), func() {})
+			}
+			t := c.Theme()
+			for _, entry := range l.data.Entries {
+				title := i18n.T("diagnostics." + entry.Name)
+				ui.Column(c.Key(entry.Name)).FillWidth().Padding(12, 16).Gap(6).Children(func() {
+					kit.Label(c, title).Role(ui.RoleHeading).Level(3)
+					if entry.Truncated {
+						kit.Help(c, i18n.T("diagnostics.truncated"))
+					}
+					if !entry.Available || entry.Text == "" {
+						kit.Help(c, i18n.T("diagnostics.empty"))
+						return
+					}
+					// A read-only text area lays out only the lines in view and
+					// lets the log be selected and copied with the keyboard.
+					ui.TextArea(c, l.texts[entry.Name]).ReadOnly(true).Label(title).Height(260).FillWidth().
+						Font(kit.MonoFont).FontSize(kit.HelpSize(c)).Background(t.Surface)
+				})
+			}
+		})
 	})
 }

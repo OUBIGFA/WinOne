@@ -69,7 +69,7 @@ func (p *page) scrollDelayRow(c *ui.Context) {
 			kit.InlineError(c, message)
 		})
 		ui.Row(c).Shrink(0).Gap(4).AlignItems(ui.Center).Children(func() {
-			in := ui.TextInput(c, &p.scrollText).Width(96).Label(label).Bind(&p.scrollField).
+			in := kit.TextInput(c, &p.scrollText).Width(96).Label(label).Bind(&p.scrollField).
 				OnTextKey(func(k ui.TextKey) bool {
 					if k.Mods != 0 || k.Key != ui.KeyUp && k.Key != ui.KeyDown {
 						return false

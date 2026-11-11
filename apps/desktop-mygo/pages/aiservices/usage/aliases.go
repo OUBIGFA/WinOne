@@ -105,11 +105,11 @@ func (u *Usage) aliasesView(c *ui.Context) {
 		submitted := false
 		ui.Row(c).FillWidth().GapX(12).GapY(12).Wrap().AlignItems(ui.End).Children(func() {
 			field(c, tr("usage.aliasFrom"), func() {
-				in := ui.TextInput(c.Key("from"), &a.from).FillWidth().Placeholder("deepseek-v4.1-flash").Label(tr("usage.aliasFrom")).Disabled(locked)
+				in := kit.TextInput(c.Key("from"), &a.from).FillWidth().Placeholder("deepseek-v4.1-flash").Label(tr("usage.aliasFrom")).Disabled(locked)
 				submitted = submitted || in.Submitted()
 			})
 			field(c, tr("usage.aliasTo"), func() {
-				in := ui.TextInput(c.Key("to"), &a.to).FillWidth().Placeholder("deepseek-flash").Label(tr("usage.aliasTo")).Disabled(locked)
+				in := kit.TextInput(c.Key("to"), &a.to).FillWidth().Placeholder("deepseek-flash").Label(tr("usage.aliasTo")).Disabled(locked)
 				submitted = submitted || in.Submitted()
 			})
 			if kit.Button(c, tr("usage.aliasApply"), icons.Plus, a.busy).Disabled(locked || !valid).Shrink(0).Clicked() {

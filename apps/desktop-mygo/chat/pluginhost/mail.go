@@ -249,7 +249,7 @@ func (h *Host) mailFields(c *ui.Context, item *card, expanded bool) {
 					}
 				} else {
 					label := ui.Text(c, field.Label).TextColor(c.Theme().TextMuted)
-					input := ui.TextInput(c.Key(field.Name), &value).FillWidth().MaxLength(16000).LabelledBy(label).Label(field.Label).Disabled(item.busy)
+					input := kit.TextInput(c.Key(field.Name), &value).FillWidth().MaxLength(16000).LabelledBy(label).Label(field.Label).Disabled(item.busy)
 					if input.Changed() {
 						h.mailChange(item, field.Name, value)
 					}

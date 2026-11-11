@@ -59,7 +59,7 @@ func (b *Book) connectTools(c *ui.Context) {
 		return
 	}
 	ui.Checkbox(c, &b.connect.Enabled, text("connectEnable"))
-	ui.Field(c, text("port"), func() { ui.TextInput(c, &b.connectPort).FillWidth() }).FillWidth()
+	ui.Field(c, text("port"), func() { kit.TextInput(c, &b.connectPort).FillWidth() }).FillWidth()
 	ui.Field(c, text("origins"), func() { ui.TextArea(c, &b.connectOrigins).Lines(2, 5).FillWidth() }).FillWidth()
 	if b.connect.Key != "" {
 		ui.Field(c, text("apiKey"), func() { ui.Text(c, b.connect.Key).Selectable() }).FillWidth()

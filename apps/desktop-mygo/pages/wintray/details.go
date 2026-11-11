@@ -304,7 +304,7 @@ func (p *page) information(c *ui.Context, app *program) {
 			if strings.TrimSpace(name) == "" {
 				message = i18n.T("wintray.nameRequired", "programs", p.displayName(*app))
 			}
-			ui.TextInput(c, &name).FillWidth().Label(i18n.T("wintray.name")).Error(message).Bind(nameInput)
+			kit.TextInput(c, &name).FillWidth().Label(i18n.T("wintray.name")).Error(message).Bind(nameInput)
 			if name != app.Name {
 				p.update(id, func(a *program) { a.Name = name })
 			}
@@ -312,7 +312,7 @@ func (p *page) information(c *ui.Context, app *program) {
 		argsInput := p.handle(programKey(id, "args"))
 		field(c, "args:"+id, i18n.T("wintray.args"), argsInput, true, func() {
 			args := app.Args
-			ui.TextInput(c, &args).FillWidth().Label(i18n.T("wintray.args")).Bind(argsInput)
+			kit.TextInput(c, &args).FillWidth().Label(i18n.T("wintray.args")).Bind(argsInput)
 			if args != app.Args {
 				p.update(id, func(a *program) { a.Args = args })
 			}
@@ -322,7 +322,7 @@ func (p *page) information(c *ui.Context, app *program) {
 		field(c, "workingDirectory:"+id, i18n.T("wintray.workingDirectory"), directoryInput, true, func() {
 			row := ui.Row(c).FillWidth().Gap(8).Children(func() {
 				directory := app.WorkingDirectory
-				ui.TextInput(c, &directory).Grow(1).Shrink(1).MinWidth(0).Label(i18n.T("wintray.workingDirectory")).Bind(directoryInput)
+				kit.TextInput(c, &directory).Grow(1).Shrink(1).MinWidth(0).Label(i18n.T("wintray.workingDirectory")).Bind(directoryInput)
 				if directory != app.WorkingDirectory {
 					p.update(id, func(a *program) { a.WorkingDirectory = directory })
 				}

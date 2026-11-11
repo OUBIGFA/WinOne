@@ -390,7 +390,7 @@ func (p *page) importView(c *ui.Context) {
 			}
 			return
 		}
-		ui.Field(c, nt("name"), func() { ui.TextInput(c, &s.name).FillWidth().Label(nt("name")) })
+		ui.Field(c, nt("name"), func() { kit.TextInput(c, &s.name).FillWidth().Label(nt("name")) })
 		kit.Help(c, s.preview.Source.Name)
 		for _, category := range []string{"personality", "memory", "skills", "bots", "connections", "automations"} {
 			entries := []ImportEntry{}

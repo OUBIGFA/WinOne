@@ -45,7 +45,7 @@ func (a *advancedPanel) langfuseView(c *ui.Context, locked bool) {
 		nativeText(c, upstreamT("Langfuse host"), &host.text, locked)
 	}
 	nativeText(c, upstreamT("Public key"), &public.text, locked)
-	ui.Field(c, upstreamT("Secret key"), func() { ui.TextInput(c, &secret.text).FillWidth().Password().Disabled(locked) })
+	ui.Field(c, upstreamT("Secret key"), func() { kit.TextInput(c, &secret.text).FillWidth().Password().Disabled(locked) })
 	if kit.Button(c, upstreamT("Save"), nil, false).Disabled(locked || public.text == "" || secret.text == "").Clicked() {
 		address := langfuseAddress(host.text)
 		if address == "" {

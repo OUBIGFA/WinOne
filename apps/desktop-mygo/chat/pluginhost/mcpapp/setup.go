@@ -117,7 +117,7 @@ func (p *SetupPrompt) View(c *ui.Context) (map[string]any, bool) {
 					}
 					field := action.Form.Fields[0]
 					value := p.values[action.ID]
-					if ui.TextInput(c.Key("secret:"+action.ID), &value).Password().FillWidth().Label(field.Label).Placeholder(field.Placeholder).Changed() {
+					if kit.TextInput(c.Key("secret:"+action.ID), &value).Password().FillWidth().Label(field.Label).Placeholder(field.Placeholder).Changed() {
 						p.values[action.ID] = value
 					}
 					disabled = strings.TrimSpace(value) == "" || field.MaxLength < 1 || len(utf16.Encode([]rune(strings.TrimSpace(value)))) > field.MaxLength

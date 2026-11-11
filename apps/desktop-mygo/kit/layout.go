@@ -76,8 +76,10 @@ func Panel(c *ui.Context, rows func()) ui.Element {
 // Row is a setting: its label and optional help on the left, its control
 // on the right. In a narrow window the control moves below the text.
 func Row(c *ui.Context, label, help string, control func()) ui.Element {
+	// AlignContent centers the wrapped line: without it a row shorter than
+	// RowMinHeight keeps its label against the top padding.
 	return ui.Row(c).FillWidth().MinHeight(RowMinHeight).Padding(12, 16).GapX(24).GapY(8).
-		AlignItems(ui.Center).Wrap().Children(func() {
+		AlignItems(ui.Center).AlignContent(ui.Center).Wrap().Children(func() {
 		ui.Column(c).Basis(220).Grow(1).Shrink(1).Gap(2).Children(func() {
 			Label(c, label)
 			if help != "" {
@@ -121,7 +123,7 @@ func Indented(c *ui.Context, fn func()) ui.Element {
 func Toggle(c *ui.Context, value *bool, label, help string) ui.Element {
 	t := c.Theme()
 	sw := ui.SwitchBase(c, value).FillWidth().Shrink(1).MinHeight(RowMinHeight).Padding(12, 16).GapX(24).GapY(8).
-		AlignItems(ui.Center).Wrap().Label(label).Cursor(ui.CursorPointer)
+		AlignItems(ui.Center).AlignContent(ui.Center).Wrap().Label(label).Cursor(ui.CursorPointer)
 	if help != "" {
 		sw.Description(help)
 	}

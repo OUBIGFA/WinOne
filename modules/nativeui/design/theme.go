@@ -24,7 +24,9 @@ type Palette struct {
 
 var (
 	lightTheme = ui.Theme{
-		Background:     ui.Hex("#fafaf9"),
+		// One step below the white Panel, so grouped settings read as
+		// blocks on the canvas without a heavier border.
+		Background:     ui.Hex("#f6f6f4"),
 		Surface:        ui.Hex("#f0f0ee"),
 		SurfaceHover:   ui.Hex("#e8e8e5"),
 		SurfacePressed: ui.Hex("#dededa"),

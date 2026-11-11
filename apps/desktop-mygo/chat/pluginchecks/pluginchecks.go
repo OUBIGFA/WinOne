@@ -600,7 +600,7 @@ func (m *Manager) configurationView(c *ui.Context) {
 			if item.Saved {
 				placeholder = text("secretSaved")
 			}
-			if ui.TextInput(c, &value).Password().FillWidth().Label(item.Label).Placeholder(placeholder).Changed() {
+			if kit.TextInput(c, &value).Password().FillWidth().Label(item.Label).Placeholder(placeholder).Changed() {
 				m.secretText[item.Key] = value
 			}
 		})

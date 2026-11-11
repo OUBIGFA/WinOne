@@ -60,7 +60,7 @@ func (b *Book) bulkActions(c *ui.Context) {
 func (b *Book) fileTools(c *ui.Context) {
 	kit.Heading(c, text("files"))
 	ui.Row(c).FillWidth().Wrap().Gap(8).Children(func() {
-		ui.TextInput(c, &b.filePath).Grow(1).Basis(220).MinWidth(0).Label(text("filePath")).Placeholder(text("filePath"))
+		kit.TextInput(c, &b.filePath).Grow(1).Basis(220).MinWidth(0).Label(text("filePath")).Placeholder(text("filePath"))
 		if kit.Button(c, text("chooseFile"), icons.FolderOpen, false).Clicked() {
 			core.Go(b.env, func() (string, error) {
 				return b.env.Dialogs.PickFile(text("import"), core.Filter{Name: text("ankiFiles"), Extensions: []string{"apkg", "colpkg", "csv", "tsv", "txt", "json", "db"}})
@@ -168,7 +168,7 @@ func (b *Book) profileTools(c *ui.Context) {
 		if changed, _ := kit.Select(c, &current, options); changed {
 			b.act("profiles.switch", map[string]string{"name": current}, func(json.RawMessage) { b.deckID = ""; b.modelID = ""; b.notes = nil; b.review = nil; b.load() })
 		}
-		ui.TextInput(c, &b.newProfile).Grow(1).Basis(180).MinWidth(0).Label(text("profileName")).Placeholder(text("profileName"))
+		kit.TextInput(c, &b.newProfile).Grow(1).Basis(180).MinWidth(0).Label(text("profileName")).Placeholder(text("profileName"))
 		if kit.Button(c, text("createProfile"), icons.Plus, false).Disabled(strings.TrimSpace(b.newProfile) == "").Clicked() {
 			b.act("winone.profiles.create", map[string]string{"name": b.newProfile}, func(json.RawMessage) { b.newProfile = ""; b.load() })
 		}
@@ -192,9 +192,9 @@ func (b *Book) syncTools(c *ui.Context) {
 		}
 	}
 	kit.Help(c, text("syncHint"))
-	ui.Field(c, text("username"), func() { ui.TextInput(c, &b.username).FillWidth() }).FillWidth()
-	ui.Field(c, text("password"), func() { ui.TextInput(c, &b.password).Password().FillWidth() }).FillWidth()
-	ui.Field(c, text("endpoint"), func() { ui.TextInput(c, &b.endpoint).FillWidth() }).FillWidth()
+	ui.Field(c, text("username"), func() { kit.TextInput(c, &b.username).FillWidth() }).FillWidth()
+	ui.Field(c, text("password"), func() { kit.TextInput(c, &b.password).Password().FillWidth() }).FillWidth()
+	ui.Field(c, text("endpoint"), func() { kit.TextInput(c, &b.endpoint).FillWidth() }).FillWidth()
 	ui.Row(c).FillWidth().Wrap().Gap(8).Children(func() {
 		if kit.Button(c, text("signIn"), icons.UserPlus, false).Disabled(b.username == "" || b.password == "").Clicked() {
 			b.act("winone.sync.login", map[string]string{"username": b.username, "password": b.password, "endpoint": b.endpoint}, func(json.RawMessage) { b.password = ""; b.notice = text("signedIn") })

@@ -396,7 +396,7 @@ func (b *Book) View(c *ui.Context) {
 }
 func (b *Book) decks(c *ui.Context) {
 	ui.Row(c).FillWidth().Wrap().Gap(8).Children(func() {
-		ui.TextInput(c, &b.newDeck).Placeholder(text("deckName")).Label(text("deckName")).Grow(1).Basis(240).MinWidth(0)
+		kit.TextInput(c, &b.newDeck).Placeholder(text("deckName")).Label(text("deckName")).Grow(1).Basis(240).MinWidth(0)
 		if kit.Button(c, text("createDeck"), icons.Plus, false).Disabled(strings.TrimSpace(b.newDeck) == "").Clicked() {
 			b.act("decks.create", map[string]any{"name": b.newDeck}, func(json.RawMessage) { b.newDeck = ""; b.load() })
 		}
@@ -475,7 +475,7 @@ func (b *Book) search(appendRows bool) {
 }
 func (b *Book) browser(c *ui.Context) {
 	ui.Row(c).FillWidth().Wrap().Gap(8).Children(func() {
-		ui.TextInput(c, &b.query).Grow(1).Basis(240).MinWidth(0).Placeholder(text("searchHint")).Label(text("search"))
+		kit.TextInput(c, &b.query).Grow(1).Basis(240).MinWidth(0).Placeholder(text("searchHint")).Label(text("search"))
 		if kit.Button(c, text("search"), icons.Search, false).Clicked() {
 			b.search(false)
 		}
@@ -629,7 +629,7 @@ func (b *Book) editor(c *ui.Context) {
 			b.fieldTools(c, input, f.Name)
 		}).FillWidth()
 	}
-	ui.Field(c, text("tags"), func() { ui.TextInput(c, &b.tags).FillWidth() }).FillWidth()
+	ui.Field(c, text("tags"), func() { kit.TextInput(c, &b.tags).FillWidth() }).FillWidth()
 	b.recordControls(c)
 	if kit.Button(c, text("saveNote"), icons.Save, false).Clicked() {
 		b.saveNote()
@@ -754,7 +754,7 @@ func (b *Book) reviewer(c *ui.Context) {
 	}
 	if b.review.Typing && b.review.Side != "answer" {
 		ui.Field(c, text("typeAnswer"), func() {
-			input := ui.TextInput(c, &b.typed).FillWidth()
+			input := kit.TextInput(c, &b.typed).FillWidth()
 			if input.Shortcut(0, ui.KeyEnter) {
 				b.reviewCommand("ans")
 			}

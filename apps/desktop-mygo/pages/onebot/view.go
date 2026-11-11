@@ -153,7 +153,7 @@ func (p *page) sidebar(c *ui.Context) {
 			}
 		}
 		if !collapsed {
-			ui.TextInput(c, &p.search).FillWidth().MinWidth(0).Placeholder(nt("search")).Label(nt("search"))
+			kit.TextInput(c, &p.search).FillWidth().MinWidth(0).Placeholder(nt("search")).Label(nt("search"))
 		}
 		ui.Scroll(c).FillWidth().Grow(1).MinHeight(0).Gap(4).Children(func() {
 			for _, bot := range p.sortedProfiles(false) {
@@ -273,7 +273,7 @@ func (p *page) lifecycleView(c *ui.Context) {
 	deleting := d.action == "delete"
 	if kit.Dialog(c, &open, kit.DialogOptions{Title: nt(d.action), Message: nt("lifecycleHint", "name", d.bot.Name), Confirm: nt(d.action), Cancel: nt("cancel"), Danger: deleting, Busy: d.busy, ConfirmDisabled: deleting && d.confirmName != d.bot.Name, Error: d.error, Body: func() {
 		if deleting {
-			ui.Field(c, nt("confirmName", "name", d.bot.Name), func() { ui.TextInput(c, &d.confirmName).FillWidth().Label(nt("confirmName", "name", d.bot.Name)) })
+			ui.Field(c, nt("confirmName", "name", d.bot.Name), func() { kit.TextInput(c, &d.confirmName).FillWidth().Label(nt("confirmName", "name", d.bot.Name)) })
 			kit.Toggle(c, &d.keepHistory, nt("keepTaskHistory"), nt("keepTaskHistoryHint"))
 			kit.Toggle(c, &d.retainWorktree, nt("retainWorktrees"), nt("retainWorktreesHint"))
 		}

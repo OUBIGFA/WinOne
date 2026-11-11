@@ -193,7 +193,7 @@ func (p *completePage) settingsBody(c *ui.Context) {
 			kit.Group(c, nil, nt("identitySettings"), "", func() {
 				kit.Stack(c, tr("nickname"), "", func() {
 					ui.Row(c).FillWidth().Gap(8).Children(func() {
-						ui.TextInput(c, &p.formNickname).FillWidth().Label(tr("nickname"))
+						kit.TextInput(c, &p.formNickname).FillWidth().Label(tr("nickname"))
 						if kit.Button(c, nt("applyNickname"), nil, false).Disabled(p.busy || p.formNickname == p.snapshot.Settings.Nickname).Clicked() {
 							p.setting("customUsername", p.formNickname)
 						}

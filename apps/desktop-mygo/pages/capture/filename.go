@@ -48,7 +48,7 @@ func (f *fileName) view(c *ui.Context) {
 	label := i18n.T("capture.fileNameTemplate")
 	kit.Group(c, icons.FileText, label, "", func() {
 		kit.Stack(c, "", "", func() {
-			in := ui.TextInput(c, &d.FileNameTemplate).Placeholder("WinOne-{timestamp}-OK").Label(label).Bind(&f.input)
+			in := kit.TextInput(c, &d.FileNameTemplate).Placeholder("WinOne-{timestamp}-OK").Label(label).Bind(&f.input)
 			if in.Changed() || in.Focused() {
 				f.requested = true
 			}

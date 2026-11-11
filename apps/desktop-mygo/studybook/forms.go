@@ -314,7 +314,7 @@ func (f *toolForm) field(c *ui.Context, label, path string, schema map[string]an
 			}
 			key := f.inputs[path+"/newKey"]
 			ui.Row(c).FillWidth().Wrap().Gap(8).Children(func() {
-				if ui.TextInput(c, &key).Label(text("fieldName")).Grow(1).MinWidth(0).Changed() {
+				if kit.TextInput(c, &key).Label(text("fieldName")).Grow(1).MinWidth(0).Changed() {
 					f.inputs[path+"/newKey"] = key
 				}
 				if kit.Button(c, text("addField"), icons.Plus, false).Disabled(strings.TrimSpace(key) == "").Clicked() {
@@ -404,7 +404,7 @@ func (b *Book) advancedTools(c *ui.Context) {
 		}
 	}
 	kit.Select(c, &f.group, groups)
-	ui.TextInput(c, &f.query).FillWidth().Placeholder(text("findTool")).Label(text("findTool"))
+	kit.TextInput(c, &f.query).FillWidth().Placeholder(text("findTool")).Label(text("findTool"))
 	var options []kit.SelectOption
 	for _, action := range f.catalog.Actions {
 		label := human(action.ID)

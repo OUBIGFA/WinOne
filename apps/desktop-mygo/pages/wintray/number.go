@@ -63,7 +63,7 @@ func (p *page) numberRow(c *ui.Context, key, label string, value *int, minimum, 
 	field(c, key, label, handle, false, func() {
 		ui.Column(c).Gap(4).AlignItems(ui.End).Children(func() {
 			before := text
-			in := ui.TextInput(c, &text).Width(120).Label(label).Error(message).Disabled(disabled).Bind(handle)
+			in := kit.TextInput(c, &text).Width(120).Label(label).Error(message).Disabled(disabled).Bind(handle)
 			if text != before {
 				p.texts[key] = text
 				if n, ok := parseWhole(text, minimum, maximum); ok {

@@ -814,10 +814,16 @@ func (p *page) overview(c *ui.Context) {
 
 // defaultsView is the default service and how results behave.
 func (p *page) defaultsView(c *ui.Context) {
-	p.defaultModelView(c)
 	if p.draft == nil {
 		return
 	}
+	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
+		p.defaultModelView(c)
+		p.responseBehaviorView(c)
+	})
+}
+
+func (p *page) responseBehaviorView(c *ui.Context) {
 	d := &p.draft.Value
 	locked := p.locked()
 	kit.Group(c, icons.MessagesSquare, i18n.T("settingsDesign.responseBehavior"), "", func() {

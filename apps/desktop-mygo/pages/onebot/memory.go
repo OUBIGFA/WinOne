@@ -194,7 +194,7 @@ func (p *memoryPane) View(c *ui.Context) {
 		}
 		if p.editing {
 			ui.Field(c, bt("bots.memory.titleLabel"), func() {
-				if ui.TextInput(c, &p.detail.Title).FillWidth().Label(bt("bots.memory.titleLabel")).Changed() {
+				if kit.TextInput(c, &p.detail.Title).FillWidth().Label(bt("bots.memory.titleLabel")).Changed() {
 					p.changed()
 				}
 			})
@@ -220,7 +220,7 @@ func (p *memoryPane) View(c *ui.Context) {
 		}
 		p.settings.textField(c, bt("bots.memory.aboutMe"), &p.settings.draft.UserContextSource, 120)
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
-			if ui.TextInput(c, &p.query).Grow(1).MinWidth(0).Placeholder(bt("bots.memory.search")).Label(bt("bots.memory.search")).Changed() {
+			if kit.TextInput(c, &p.query).Grow(1).MinWidth(0).Placeholder(bt("bots.memory.search")).Label(bt("bots.memory.search")).Changed() {
 				p.Refresh()
 			}
 			if kit.IconButton(c, icons.RefreshCw, nt("refresh")).Clicked() {

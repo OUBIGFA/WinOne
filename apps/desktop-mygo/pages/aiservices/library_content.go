@@ -44,7 +44,7 @@ func (x *externalPanel) libraryView(c *ui.Context) {
 		return
 	}
 	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-		ui.TextInput(c, &x.query).Width(260).Label(upstreamT("Search"))
+		kit.TextInput(c, &x.query).Width(260).Label(upstreamT("Search"))
 		if kit.Button(c, upstreamT("Sync"), icons.RefreshCw, false).Disabled(x.working).Clicked() {
 			x.ask(upstreamT("Sync"), "/api/library/all/sync", map[string]any{}, x.acceptLibrary)
 		}
@@ -469,7 +469,7 @@ func (x *externalPanel) field(c *ui.Context, e *libraryEditor, key, label string
 		kit.Help(c, upstreamT(label))
 		ui.TextArea(c, &value).FillWidth().MinHeight(100).Disabled(x.working).Label(upstreamT(label))
 	} else if key == "clientSecret" {
-		ui.Field(c, upstreamT(label), func() { ui.TextInput(c, &value).FillWidth().Password().Disabled(x.working).Label(upstreamT(label)) })
+		ui.Field(c, upstreamT(label), func() { kit.TextInput(c, &value).FillWidth().Password().Disabled(x.working).Label(upstreamT(label)) })
 	} else {
 		nativeText(c, upstreamT(label), &value, x.working)
 	}
@@ -487,7 +487,7 @@ func (x *externalPanel) toggle(c *ui.Context, e *libraryEditor, key, label strin
 }
 func (x *externalPanel) folder(c *ui.Context, e *libraryEditor, key string) {
 	value := e.values[key]
-	target := ui.TextInput(c, &value).FillWidth().Label(upstreamT("Folder")).Disabled(x.working)
+	target := kit.TextInput(c, &value).FillWidth().Label(upstreamT("Folder")).Disabled(x.working)
 	e.values[key] = value
 	widgets.DropArea(c, x.p.env, target, widgets.DropFolders, false, x.working, func(paths []string, err error) {
 		if err != nil {
@@ -920,7 +920,7 @@ func (x *externalPanel) skillView(c *ui.Context) {
 }
 
 func (x *externalPanel) marketView(c *ui.Context) {
-	ui.TextInput(c, &x.marketQuery).FillWidth().Label(upstreamT("Search"))
+	kit.TextInput(c, &x.marketQuery).FillWidth().Label(upstreamT("Search"))
 	if kit.PrimaryButton(c, externalT("market"), icons.Search, x.working).Disabled(x.working).Clicked() {
 		x.request("GET", "/api/library/market/"+x.marketKind+"?q="+url.QueryEscape(x.marketQuery), nil, func(raw json.RawMessage) {
 			var state map[string]any

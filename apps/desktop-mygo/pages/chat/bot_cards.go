@@ -511,7 +511,7 @@ func (p *Chat) botTaskCard(c *ui.Context, data botCollaboration) {
 			kit.Notice(c, kit.Caution, "", botT("bots.collab.stale"), nil)
 		}
 		if state.noteOpen {
-			note := ui.TextInput(c.Key("note"), &state.note).FillWidth().Placeholder(botT("bots.collab.addNotePlaceholder")).Label(botT("bots.collab.addNote")).Disabled(state.pending)
+			note := kit.TextInput(c.Key("note"), &state.note).FillWidth().Placeholder(botT("bots.collab.addNotePlaceholder")).Label(botT("bots.collab.addNote")).Disabled(state.pending)
 			note.OnTextKey(func(k ui.TextKey) bool {
 				switch k.Key {
 				case ui.KeyEscape:

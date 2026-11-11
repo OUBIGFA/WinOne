@@ -476,7 +476,7 @@ func (p *PDFPane) View(c *ui.Context) {
 			}
 		})
 		ui.Row(c).FillWidth().Gap(4).Padding(0, 8).Children(func() {
-			input := ui.TextInput(c, &p.query).Grow(1).MinWidth(0).Placeholder(i18n.T("chat.pdfFind")).Label(i18n.T("chat.pdfFind"))
+			input := kit.TextInput(c, &p.query).Grow(1).MinWidth(0).Placeholder(i18n.T("chat.pdfFind")).Label(i18n.T("chat.pdfFind"))
 			if kit.Button(c, i18n.T("chat.pdfFind"), icons.Search, p.searchLoading).Disabled(p.client == nil).Clicked() || input.Shortcut(0, ui.KeyEnter) {
 				p.find()
 			}
@@ -561,7 +561,7 @@ func (p *PDFPane) View(c *ui.Context) {
 		c.Services().WriteClipboard(p.SelectedText())
 	}
 	if p.passwordOpen {
-		if kit.Dialog(c, &p.passwordOpen, kit.DialogOptions{Title: wt("pdfPassword"), Confirm: wt("pdfOpen"), Cancel: i18n.T("chat.cancel"), Busy: p.loading, Error: p.err, Body: func() { ui.TextInput(c, &p.password).Label(wt("pdfPassword")).Password().FillWidth() }}) {
+		if kit.Dialog(c, &p.passwordOpen, kit.DialogOptions{Title: wt("pdfPassword"), Confirm: wt("pdfOpen"), Cancel: i18n.T("chat.cancel"), Busy: p.loading, Error: p.err, Body: func() { kit.TextInput(c, &p.password).Label(wt("pdfPassword")).Password().FillWidth() }}) {
 			p.open()
 		}
 	}
@@ -588,7 +588,7 @@ func (p *PDFPane) View(c *ui.Context) {
 						_, trigger := kit.Select(c, &draft.option, options)
 						trigger.Disabled(field.ReadOnly || p.formBusy)
 					case pdfium.FieldText:
-						ui.TextInput(c, &draft.value).FillWidth().Disabled(field.ReadOnly || p.formBusy)
+						kit.TextInput(c, &draft.value).FillWidth().Disabled(field.ReadOnly || p.formBusy)
 					default:
 						kit.Help(c, field.Value)
 					}

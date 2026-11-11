@@ -188,7 +188,7 @@ func (e *editor) nameField(c *ui.Context, pr *provider, locked bool) {
 				if name, edited := field.sync(pr.Name); edited {
 					p.change(id, func(t *provider) { t.Name = name })
 				}
-				input := ui.TextInput(c, &field.text).Grow(1).MinWidth(0).Label(i18n.T(nameLabel)).Disabled(locked).
+				input := kit.TextInput(c, &field.text).Grow(1).MinWidth(0).Label(i18n.T(nameLabel)).Disabled(locked).
 					OnTextKey(func(k ui.TextKey) bool {
 						switch k.Key {
 						case ui.KeyEnter:
@@ -249,9 +249,11 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 	p := e.p
 	locked := p.locked()
 	enabled := !pr.Off
-	if kit.Toggle(c, &enabled, completeT("providerEnabled"), completeT("providerEnabledHint")).Disabled(locked).Changed() {
-		pr.Off = !enabled
-	}
+	kit.Panel(c, func() {
+		if kit.Toggle(c, &enabled, completeT("providerEnabled"), completeT("providerEnabledHint")).Disabled(locked).Changed() {
+			pr.Off = !enabled
+		}
+	})
 	if pr.AuthMode == "account" && pr.Agent == "claude" {
 		e.claudeModeView(c, locked)
 	}
@@ -369,7 +371,7 @@ func (e *editor) connection(c *ui.Context, pr *provider, locked bool) {
 			if address, edited := field.sync(pr.BaseURL); edited {
 				p.change(id, func(t *provider) { t.BaseURL = address })
 			}
-			ui.TextInput(c, &field.text).FillWidth().Placeholder(placeholder).Label(i18n.T("ai.address")).Disabled(locked).
+			kit.TextInput(c, &field.text).FillWidth().Placeholder(placeholder).Label(i18n.T("ai.address")).Disabled(locked).
 				OnPaste(func(text string) bool {
 					target := p.draft.Value.find(id)
 					return target != nil && p.importCurl(text, target, "")
@@ -495,7 +497,7 @@ func (e *editor) keyRow(c *ui.Context, pr *provider, slot keySlot, index, count 
 			if slot.HasKey {
 				placeholder = "ai.keySaved"
 			}
-			input := ui.TextInput(c, &row.text).Grow(1).MinWidth(0).Label(label).Placeholder(i18n.T(placeholder)).
+			input := kit.TextInput(c, &row.text).Grow(1).MinWidth(0).Label(label).Placeholder(i18n.T(placeholder)).
 				Disabled(locked || row.reading).OnPaste(func(text string) bool {
 				target := p.draft.Value.find(id)
 				return target != nil && p.importCurl(text, target, slotID)
@@ -656,7 +658,7 @@ func requestHeaderRows(c *ui.Context, rows *[]*headerRow, limit int, locked bool
 				row := row
 				ui.Column(c.Key(i)).FillWidth().Gap(8).Children(func() {
 					ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-						name := ui.TextInput(c, &row.Name).Placeholder("Header-Name").Label(i18n.T("ai.headerName") + " " + kit.Itoa(i+1)).Disabled(locked)
+						name := kit.TextInput(c, &row.Name).Placeholder("Header-Name").Label(i18n.T("ai.headerName") + " " + kit.Itoa(i+1)).Disabled(locked)
 						if row.JSON {
 							name.Grow(1).MinWidth(0)
 						} else {
@@ -664,7 +666,7 @@ func requestHeaderRows(c *ui.Context, rows *[]*headerRow, limit int, locked bool
 						}
 						changed = changed || name.Changed()
 						if !row.JSON {
-							value := ui.TextInput(c, &row.Value).Grow(2).Basis(0).MinWidth(0).Placeholder(i18n.T("ai.headerValue")).
+							value := kit.TextInput(c, &row.Value).Grow(2).Basis(0).MinWidth(0).Placeholder(i18n.T("ai.headerValue")).
 								Label(i18n.T("ai.headerValue") + " " + kit.Itoa(i+1)).Disabled(locked)
 							changed = changed || value.Changed()
 						}

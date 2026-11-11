@@ -376,7 +376,7 @@ func (v *richView) content(c *ui.Context, node *richanswer.Node) ui.Element {
 			if label != "" {
 				ui.Text(c, label).MinWidth(0)
 			}
-			input := ui.TextInput(c.Key("input"), &text).FillWidth().Label(label).Placeholder(richanswer.String(node, "placeholder", ""))
+			input := kit.TextInput(c.Key("input"), &text).FillWidth().Label(label).Placeholder(richanswer.String(node, "placeholder", ""))
 			if input.Changed() {
 				v.change(bind, text)
 			}

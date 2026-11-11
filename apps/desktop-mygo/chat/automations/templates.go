@@ -43,7 +43,7 @@ func (p *Page) templatesView(c *ui.Context) {
 	}
 	open := true
 	kit.Dialog(c, &open, kit.DialogOptions{Title: tr("templates"), Cancel: tr("close"), Error: p.templateErr, Width: 760, Busy: p.busy["template.apply"], Body: func() {
-		ui.TextInput(c, &p.templateSearch).Label(tr("search")).Placeholder(tr("search")).FillWidth()
+		kit.TextInput(c, &p.templateSearch).Label(tr("search")).Placeholder(tr("search")).FillWidth()
 		for _, t := range p.templates {
 			if p.templateSearch != "" && !strings.Contains(strings.ToLower(t.Name+" "+t.Description+" "+t.Category), strings.ToLower(p.templateSearch)) {
 				continue

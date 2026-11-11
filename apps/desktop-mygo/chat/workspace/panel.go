@@ -719,7 +719,7 @@ func (p *Panel) createFileView(c *ui.Context) {
 	if !p.newFileOpen {
 		return
 	}
-	if kit.Dialog(c, &p.newFileOpen, kit.DialogOptions{Title: i18n.T("chat.paneNewPage"), Confirm: i18n.T("chat.create"), Cancel: i18n.T("chat.cancel"), Busy: p.creating, Error: p.err, ConfirmDisabled: p.options.SessionID == "", Body: func() { ui.TextInput(c, &p.newFileName).FillWidth().Label(i18n.T("chat.panePageName")) }}) {
+	if kit.Dialog(c, &p.newFileOpen, kit.DialogOptions{Title: i18n.T("chat.paneNewPage"), Confirm: i18n.T("chat.create"), Cancel: i18n.T("chat.cancel"), Busy: p.creating, Error: p.err, ConfirmDisabled: p.options.SessionID == "", Body: func() { kit.TextInput(c, &p.newFileName).FillWidth().Label(i18n.T("chat.panePageName")) }}) {
 		if p.creating {
 			return
 		}

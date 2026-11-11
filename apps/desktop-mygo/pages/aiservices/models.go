@@ -303,7 +303,7 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 			}
 		})
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.TextInput(c, &m.query).Grow(1).MinWidth(144).Placeholder(i18n.T("ai.findOrAddModel")).Label(i18n.T("ai.findOrAddModel")).
+			kit.TextInput(c, &m.query).Grow(1).MinWidth(144).Placeholder(i18n.T("ai.findOrAddModel")).Label(i18n.T("ai.findOrAddModel")).
 				Disabled(disabled || working)
 			if kit.Button(c, i18n.T("ai.addModel"), icons.Plus, false).Disabled(disabled || working || strings.TrimSpace(m.query) == "").Clicked() {
 				m.add(all)

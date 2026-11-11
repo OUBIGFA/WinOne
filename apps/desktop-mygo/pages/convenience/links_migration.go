@@ -331,7 +331,7 @@ func (m *linkMigration) folderField(c *ui.Context, label string, value *string, 
 		*value, m.plan = paths[0], nil
 	})
 	row.Children(func() {
-		if ui.TextInput(c, value).Grow(1).MinWidth(0).Label(label).Disabled(locked).Changed() {
+		if kit.TextInput(c, value).Grow(1).MinWidth(0).Label(label).Disabled(locked).Changed() {
 			m.plan = nil
 		}
 		if kit.Button(c, i18n.T("links.folder"), icons.FolderOpen, false).Disabled(locked).Clicked() {
@@ -350,7 +350,7 @@ func (m *linkMigration) View(c *ui.Context, disabled bool, changed func([]direct
 			m.folderField(c, i18n.T("links.migrationSource"), &m.source, locked)
 			m.folderField(c, i18n.T("links.migrationDirectory"), &m.directory, locked)
 			kit.Label(c, i18n.T("links.migrationName"))
-			if ui.TextInput(c, &m.name).FillWidth().Placeholder(i18n.T("links.migrationNameHint")).Label(i18n.T("links.migrationName")).
+			if kit.TextInput(c, &m.name).FillWidth().Placeholder(i18n.T("links.migrationNameHint")).Label(i18n.T("links.migrationName")).
 				Disabled(locked).Changed() {
 				m.plan = nil
 			}

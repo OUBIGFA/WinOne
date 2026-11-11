@@ -161,7 +161,7 @@ func (e *editor) avatarView(c *ui.Context, pr *provider, locked bool) {
 				kit.Help(c, i18n.T(hint))
 				if a.mode == "url" {
 					ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.TextInput(c, &a.url).Grow(1).MinWidth(0).Placeholder("https://example.com/avatar.png").
+						kit.TextInput(c, &a.url).Grow(1).MinWidth(0).Placeholder("https://example.com/avatar.png").
 							Label(i18n.T("ai.avatarURL")).Disabled(disabled)
 						address := strings.TrimSpace(a.url)
 						if kit.Button(c, i18n.T("ai.avatarUseURL"), nil, false).Disabled(disabled || address == "").Clicked() {
@@ -176,7 +176,7 @@ func (e *editor) avatarView(c *ui.Context, pr *provider, locked bool) {
 					})
 				}
 				if a.mode == "builtin" {
-					ui.TextInput(c, &a.search).FillWidth().Placeholder(i18n.T("ai.avatarSearch")).Label(i18n.T("ai.avatarSearch"))
+					kit.TextInput(c, &a.search).FillWidth().Placeholder(i18n.T("ai.avatarSearch")).Label(i18n.T("ai.avatarSearch"))
 					query := strings.ToLower(strings.TrimSpace(a.search))
 					ui.Scroll(c).FillWidth().MaxHeight(192).Children(func() {
 						ui.Row(c).FillWidth().Gap(4).Wrap().Role(ui.RoleGroup).Label(i18n.T("ai.avatarBuiltin")).Children(func() {

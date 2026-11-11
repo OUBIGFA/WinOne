@@ -656,7 +656,7 @@ func (b *linkBatch) createBar(c *ui.Context, locked bool, single string, sources
 					name := pathName(single)
 					b.custom = &name
 				}
-				if ui.TextInput(c, b.custom).FillWidth().Label(i18n.T("links.linkName")).Disabled(locked).Changed() {
+				if kit.TextInput(c, b.custom).FillWidth().Label(i18n.T("links.linkName")).Disabled(locked).Changed() {
 					b.resetPlan()
 				}
 			})
@@ -744,7 +744,7 @@ func (b *linkBatch) renameDialog(c *ui.Context, disabled bool, changed func([]di
 		Body: func() {
 			kit.Help(c, b.rename.entry.Path).Selectable()
 			kit.Label(c, i18n.T("links.newName"))
-			in := ui.TextInput(c, &b.renameName).FillWidth().Label(i18n.T("links.newName")).Disabled(b.busy).AutoFocus()
+			in := kit.TextInput(c, &b.renameName).FillWidth().Label(i18n.T("links.newName")).Disabled(b.busy).AutoFocus()
 			if in.Changed() {
 				b.renameErr = ""
 			}

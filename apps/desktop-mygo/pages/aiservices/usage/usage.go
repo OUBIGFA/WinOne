@@ -429,7 +429,7 @@ func (u *Usage) ledgerView(c *ui.Context) {
 			}
 		})
 		field(c, i18n.T("usage.search"), func() {
-			if ui.TextInput(c.Key("query"), &f.Query).FillWidth().Changed() {
+			if kit.TextInput(c.Key("query"), &f.Query).FillWidth().Changed() {
 				u.change(func(*filter) {})
 			}
 		})

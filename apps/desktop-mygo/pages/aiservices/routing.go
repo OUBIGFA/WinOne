@@ -495,7 +495,7 @@ func nativeSelect(c *ui.Context, label string, current *string, choices []kit.Se
 }
 
 func nativeText(c *ui.Context, label string, value *string, disabled bool) {
-	ui.Field(c, label, func() { ui.TextInput(c, value).FillWidth().Label(label).Disabled(disabled) })
+	ui.Field(c, label, func() { kit.TextInput(c, value).FillWidth().Label(label).Disabled(disabled) })
 }
 func nativeInt(c *ui.Context, label string, value *int, low, high int, disabled bool) bool {
 	changed := false

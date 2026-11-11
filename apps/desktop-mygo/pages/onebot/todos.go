@@ -239,7 +239,7 @@ func (p *todosPane) View(c *ui.Context) {
 			p.daily = on
 		})
 	}
-	ui.TextInput(c, &p.query).FillWidth().Label(nt("search")).Placeholder(nt("search"))
+	kit.TextInput(c, &p.query).FillWidth().Label(nt("search")).Placeholder(nt("search"))
 	kit.Segmented(c, &p.filter, []kit.SelectOption{{Value: "open", Label: nt("todoOpen")}, {Value: "done", Label: nt("todoDone")}, {Value: "all", Label: nt("all")}}, nt("todoFilter"))
 	if p.loading {
 		kit.Loader(c)
@@ -304,7 +304,7 @@ func (p *todosPane) View(c *ui.Context) {
 }
 func (p *todosPane) editorView(c *ui.Context) {
 	e := p.editor
-	ui.Field(c, nt("todoTitle"), func() { ui.TextInput(c, &e.item.Title).FillWidth().Label(nt("todoTitle")) })
+	ui.Field(c, nt("todoTitle"), func() { kit.TextInput(c, &e.item.Title).FillWidth().Label(nt("todoTitle")) })
 	for _, field := range []struct {
 		label string
 		value *string
@@ -313,9 +313,9 @@ func (p *todosPane) editorView(c *ui.Context) {
 	}
 	kit.Select(c, &e.nextKind, []kit.SelectOption{{Value: "advance", Label: nt("advance")}, {Value: "view", Label: nt("view")}, {Value: "decide", Label: nt("decide")}})
 	ui.Field(c, nt("deadlineDate"), func() {
-		ui.TextInput(c, &e.deadlineDate).FillWidth().Placeholder("YYYY-MM-DD").Label(nt("deadlineDate"))
+		kit.TextInput(c, &e.deadlineDate).FillWidth().Placeholder("YYYY-MM-DD").Label(nt("deadlineDate"))
 	})
-	ui.Field(c, nt("timezone"), func() { ui.TextInput(c, &e.deadlineZone).FillWidth().Label(nt("timezone")) })
+	ui.Field(c, nt("timezone"), func() { kit.TextInput(c, &e.deadlineZone).FillWidth().Label(nt("timezone")) })
 	ui.Row(c).FillWidth().Gap(8).Children(func() {
 		if kit.Button(c, nt("cancel"), nil, false).Disabled(p.busy).Clicked() {
 			p.settings.parent.env.RequestChange(func() { p.editor = nil })
@@ -336,7 +336,7 @@ func (p *todosPane) decisionView(c *ui.Context) {
 			ui.TextArea(c, &d.summary).FillWidth().Height(100).Label(nt("completionSummary"))
 		}
 		if d.operation == "later" {
-			ui.TextInput(c, &d.until).FillWidth().Label(nt("until"))
+			kit.TextInput(c, &d.until).FillWidth().Label(nt("until"))
 		}
 	}}) {
 		changes := map[string]any{"operation": d.operation}

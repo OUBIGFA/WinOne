@@ -193,7 +193,7 @@ func (a *advancedPanel) schemaField(c *ui.Context, key string, property schemaPr
 			set(typed)
 		}
 		kit.Stack(c.Key(key), property.Title, property.Description, func() {
-			ui.TextInput(c, &field.text).FillWidth().Label(property.Title).Disabled(locked)
+			kit.TextInput(c, &field.text).FillWidth().Label(property.Title).Disabled(locked)
 		})
 	default:
 		low, high := -1e15, 1e15

@@ -228,7 +228,7 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owner
 		kit.Group(c, icons.Server, i18n.T("settingsDesign.gatewayRun"), "", func() {
 			kit.Toggle(c, &g.enabled, i18n.T("gateway.enable"), "")
 			kit.Row(c, i18n.T("gateway.port"), completeT("gatewayListenHint"), func() {
-				ui.TextInput(c, &g.port).Width(160).Label(i18n.T("gateway.port"))
+				kit.TextInput(c, &g.port).Width(160).Label(i18n.T("gateway.port"))
 			})
 			state := "gateway.stopped"
 			if s.Running {
@@ -357,7 +357,7 @@ func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider,
 			return
 		}
 		ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
-			ui.TextInput(c, &g.query).Grow(1).Basis(192).MinWidth(0).Placeholder(i18n.T("gateway.searchModels")).Label(i18n.T("gateway.searchModels"))
+			kit.TextInput(c, &g.query).Grow(1).Basis(192).MinWidth(0).Placeholder(i18n.T("gateway.searchModels")).Label(i18n.T("gateway.searchModels"))
 			ui.Row(c).Gap(4).Role(ui.RoleGroup).Label(i18n.T("ai.modelBulkActions")).Children(func() {
 				if kit.GhostButton(c, i18n.T("ai.selectAll"), nil, false).Tooltip(i18n.T("ai.modelBulkScope")).
 					Disabled(disabled || count == len(all)).Clicked() {
@@ -448,10 +448,10 @@ func (g *gatewayPanel) credentialsView(c *ui.Context, busy bool) {
 	services := c.Services()
 	kit.Stack(c, i18n.T("gateway.address"), "", func() {
 		address := s.BaseURL
-		ui.TextInput(c, &address).FillWidth().ReadOnly(true).Label(i18n.T("gateway.address"))
+		kit.TextInput(c, &address).FillWidth().ReadOnly(true).Label(i18n.T("gateway.address"))
 	})
 	for _, address := range s.LANURLs {
-		kit.Stack(c, completeT("gatewayLANAddress"), "", func() { ui.TextInput(c, &address).FillWidth().ReadOnly(true).Label(completeT("gatewayLANAddress")) })
+		kit.Stack(c, completeT("gatewayLANAddress"), "", func() { kit.TextInput(c, &address).FillWidth().ReadOnly(true).Label(completeT("gatewayLANAddress")) })
 	}
 	kit.Stack(c, i18n.T("gateway.key"), i18n.T("gateway.keyHint"), func() {
 		placeholder := ""
@@ -459,7 +459,7 @@ func (g *gatewayPanel) credentialsView(c *ui.Context, busy bool) {
 			placeholder = "••••••••"
 		}
 		key := g.key
-		ui.TextInput(c, &key).FillWidth().ReadOnly(true).Placeholder(placeholder).Label(i18n.T("gateway.key"))
+		kit.TextInput(c, &key).FillWidth().ReadOnly(true).Placeholder(placeholder).Label(i18n.T("gateway.key"))
 		ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
 			label, icon := "gateway.showKey", icons.Eye
 			if g.key != "" {

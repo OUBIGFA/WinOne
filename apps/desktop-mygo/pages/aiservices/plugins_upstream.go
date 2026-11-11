@@ -111,7 +111,7 @@ func (x *pluginsPanel) headerView(c *ui.Context) {
 				x.p.save()
 			}
 		}
-		ui.TextInput(c, &x.query).Width(260).MaxWidthPercent(100).Label(nativeT("searchPlugins")).Placeholder(upstreamT("Search plugins and npm…"))
+		kit.TextInput(c, &x.query).Width(260).MaxWidthPercent(100).Label(nativeT("searchPlugins")).Placeholder(upstreamT("Search plugins and npm…"))
 	})
 	if x.queryShown != x.query {
 		x.queryShown = x.query
@@ -380,7 +380,7 @@ func (x *pluginsPanel) githubView(c *ui.Context, locked bool) {
 		kit.Help(c, upstreamT("{n} more on GitHub couldn't be read: {error}", "n", x.githubMissing, "error", x.githubAPI.err))
 	}
 	if len(x.github) > 6 {
-		ui.TextInput(c, &x.githubQuery).FillWidth().Label(upstreamT("Search GitHub plugins"))
+		kit.TextInput(c, &x.githubQuery).FillWidth().Label(upstreamT("Search GitHub plugins"))
 		kinds := []kit.SelectOption{{Value: "", Label: upstreamT("All")}}
 		for _, kind := range []struct{ id, title string }{{"provider", "Provider"}, {"middleware", "Middleware"}, {"agent", "Agent"}, {"tools", "Tools"}, {"page", "Page"}} {
 			count := 0
@@ -448,7 +448,7 @@ func (x *pluginsPanel) loadGithub() {
 func (x *pluginsPanel) manualView(c *ui.Context, locked bool) {
 	ui.Row(c).FillWidth().Wrap().Gap(8).AlignItems(ui.Center).Children(func() {
 		kit.Help(c, upstreamT("Have one in mind?"))
-		field := ui.TextInput(c, &x.spec).Grow(1).MinWidth(180).Label(nativeT("pluginSource")).Placeholder(upstreamT("npm package, GitHub repo (github:owner/repo) or a folder")).Disabled(locked)
+		field := kit.TextInput(c, &x.spec).Grow(1).MinWidth(180).Label(nativeT("pluginSource")).Placeholder(upstreamT("npm package, GitHub repo (github:owner/repo) or a folder")).Disabled(locked)
 		widgets.DropArea(c, x.p.env, field, widgets.DropFolders, false, locked, func(paths []string, err error) {
 			if err != nil {
 				x.api.err = err.Error()

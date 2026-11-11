@@ -103,6 +103,7 @@ var (
 	Languages             = lucide("languages")
 	LaptopMinimal         = lucide("laptop-minimal")
 	Layers                = lucide("layers")
+	LayersPlus            = lucide("layers-plus")
 	LayoutGrid            = lucide("layout-grid")
 	LayoutTemplate        = lucide("layout-template")
 	Lightbulb             = lucide("lightbulb")

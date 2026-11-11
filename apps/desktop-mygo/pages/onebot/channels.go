@@ -268,14 +268,14 @@ func (p *channelsPane) addView(c *ui.Context) {
 		ui.Field(c, nt("platform"), func() { kit.Select(c, &p.channel, options) })
 		secret := func(label string, value *string) {
 			ui.Field(c, label, func() {
-				field := ui.TextInput(c, value).FillWidth().Label(label)
+				field := kit.TextInput(c, value).FillWidth().Label(label)
 				if !p.showSecret {
 					field.Password()
 				}
 			})
 		}
 		plain := func(label string, value *string) {
-			ui.Field(c, label, func() { ui.TextInput(c, value).FillWidth().Label(label) })
+			ui.Field(c, label, func() { kit.TextInput(c, value).FillWidth().Label(label) })
 		}
 		switch p.channel {
 		case "telegram", "discord":

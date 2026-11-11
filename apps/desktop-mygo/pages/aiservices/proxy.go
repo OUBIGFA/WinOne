@@ -95,7 +95,7 @@ func (a *advancedPanel) proxyView(c *ui.Context, locked bool) {
 			"custom", i18n.T("ai.proxyCustom")), locked)
 		if d.mode == "custom" {
 			kit.Stack(c, i18n.T("ai.proxyAddress"), "", func() {
-				if ui.TextInput(c, &d.address).FillWidth().Placeholder("http://127.0.0.1:7890").Label(i18n.T("ai.proxyAddress")).
+				if kit.TextInput(c, &d.address).FillWidth().Placeholder("http://127.0.0.1:7890").Label(i18n.T("ai.proxyAddress")).
 					Disabled(locked).Changed() {
 					if f := proxyFields(d.address); f.Username != "" || f.Password != "" {
 						d.fields, d.address, d.username, d.password = f, f.Address, f.Username, f.Password
@@ -103,10 +103,10 @@ func (a *advancedPanel) proxyView(c *ui.Context, locked bool) {
 				}
 				ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().Children(func() {
 					ui.Field(c, i18n.T("ai.proxyUsername"), func() {
-						ui.TextInput(c, &d.username).FillWidth().Label(i18n.T("ai.proxyUsername")).Disabled(locked)
+						kit.TextInput(c, &d.username).FillWidth().Label(i18n.T("ai.proxyUsername")).Disabled(locked)
 					}).Basis(200).Grow(1)
 					ui.Field(c, i18n.T("ai.proxyPassword"), func() {
-						ui.TextInput(c, &d.password).FillWidth().Password().Label(i18n.T("ai.proxyPassword")).Disabled(locked)
+						kit.TextInput(c, &d.password).FillWidth().Password().Label(i18n.T("ai.proxyPassword")).Disabled(locked)
 					}).Basis(200).Grow(1)
 				})
 			})

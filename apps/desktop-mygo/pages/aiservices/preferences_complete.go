@@ -12,43 +12,46 @@ import (
 // Keep the primary address compatible with existing saved configurations.
 // Additional endpoints become an explicit set only after the user's edit.
 func (e *editor) endpointPreferences(c *ui.Context, pr *provider, locked bool) {
-	ui.Collapsible(c, i18n.T("aiComplete.endpoints"), &e.endpointsOpen, func() {
-		kit.Help(c, i18n.T("aiComplete.endpointsHint"))
-		current := ai.ProviderEndpoints{}
-		if pr.Endpoints != nil {
-			current = *pr.Endpoints
-		} else if preset := e.p.catalog.preset(pr.Preset); preset != nil {
-			v := preset.endpoints
-			for _, region := range preset.Regions {
-				if region.ID == pr.PresetRegion {
-					v = region.endpoints
+	// Padding keeps the disclosure clear of the panel's edge, as its rows are.
+	ui.Column(c).FillWidth().Padding(8, 8).Children(func() {
+		ui.Collapsible(c, i18n.T("aiComplete.endpoints"), &e.endpointsOpen, func() {
+			kit.Help(c, i18n.T("aiComplete.endpointsHint"))
+			current := ai.ProviderEndpoints{}
+			if pr.Endpoints != nil {
+				current = *pr.Endpoints
+			} else if preset := e.p.catalog.preset(pr.Preset); preset != nil {
+				v := preset.endpoints
+				for _, region := range preset.Regions {
+					if region.ID == pr.PresetRegion {
+						v = region.endpoints
+					}
+				}
+				current = ai.ProviderEndpoints{Chat: v.Chat, Responses: v.Responses, Anthropic: v.Anthropic, Gemini: v.Gemini, Decide: v.Decide}
+				// An edited primary URL intentionally stops inheriting preset URLs.
+				if v.of(pr.Protocol) != pr.BaseURL {
+					current = ai.ProviderEndpoints{}
 				}
 			}
-			current = ai.ProviderEndpoints{Chat: v.Chat, Responses: v.Responses, Anthropic: v.Anthropic, Gemini: v.Gemini, Decide: v.Decide}
-			// An edited primary URL intentionally stops inheriting preset URLs.
-			if v.of(pr.Protocol) != pr.BaseURL {
-				current = ai.ProviderEndpoints{}
+			for _, row := range []struct {
+				key, label string
+				value      *string
+			}{
+				{"chat", "OpenAI Chat Completions", &current.Chat}, {"responses", "OpenAI Responses", &current.Responses},
+				{"anthropic", "Anthropic Messages", &current.Anthropic}, {"gemini", "Google Gemini", &current.Gemini}, {"decide", "System One Decide", &current.Decide},
+			} {
+				if row.key == pr.Protocol {
+					*row.value = pr.BaseURL
+					continue
+				}
+				f := e.fields.get("endpoint:" + row.key)
+				if text, changed := f.sync(*row.value); changed {
+					*row.value = text
+					copy := current
+					pr.Endpoints = &copy
+				}
+				kit.Stack(c, row.label, "", func() { kit.TextInput(c, &f.text).FillWidth().Label(row.label + " URL").Disabled(locked) })
 			}
-		}
-		for _, row := range []struct {
-			key, label string
-			value      *string
-		}{
-			{"chat", "OpenAI Chat Completions", &current.Chat}, {"responses", "OpenAI Responses", &current.Responses},
-			{"anthropic", "Anthropic Messages", &current.Anthropic}, {"gemini", "Google Gemini", &current.Gemini}, {"decide", "System One Decide", &current.Decide},
-		} {
-			if row.key == pr.Protocol {
-				*row.value = pr.BaseURL
-				continue
-			}
-			f := e.fields.get("endpoint:" + row.key)
-			if text, changed := f.sync(*row.value); changed {
-				*row.value = text
-				copy := current
-				pr.Endpoints = &copy
-			}
-			kit.Stack(c, row.label, "", func() { ui.TextInput(c, &f.text).FillWidth().Label(row.label + " URL").Disabled(locked) })
-		}
+		})
 	})
 }
 
@@ -101,7 +104,7 @@ func (e *editor) modelDiscoveryPreferences(c *ui.Context, pr *provider, locked b
 		}
 		newRule := e.fields.get("newContextRule")
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
-			ui.TextInput(c, &newRule.text).Grow(1).MinWidth(0).Label(completeT("contextRule")).Placeholder("*").Disabled(locked)
+			kit.TextInput(c, &newRule.text).Grow(1).MinWidth(0).Label(completeT("contextRule")).Placeholder("*").Disabled(locked)
 			if kit.Button(c, completeT("addContextRule"), icons.Plus, false).Disabled(locked || newRule.text == "").Clicked() {
 				if s.Contexts == nil {
 					s.Contexts = map[string]int{}
@@ -151,7 +154,7 @@ func (e *editor) servicePreferences(c *ui.Context, pr *provider, locked bool) {
 						placeholder = "ai.keySaved"
 					}
 					ui.Row(c).FillWidth().Gap(8).Children(func() {
-						ui.TextInput(c, &f.text).Grow(1).MinWidth(0).Label(label).Password().Placeholder(i18n.T(placeholder)).Disabled(locked)
+						kit.TextInput(c, &f.text).Grow(1).MinWidth(0).Label(label).Password().Placeholder(i18n.T(placeholder)).Disabled(locked)
 						if kit.IconButton(c, icons.Trash2, i18n.T("aiComplete.clearCredential", "name", label)).Disabled(locked).Clicked() {
 							*field.value = new("")
 							f.text, f.shown = "", ""

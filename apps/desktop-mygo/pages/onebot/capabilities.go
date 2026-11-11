@@ -196,7 +196,7 @@ func (p *capabilitiesPane) View(c *ui.Context) {
 	} else {
 		kit.Help(c, bt("bots.capabilities.intro"))
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
-			ui.TextInput(c, &p.query).Grow(1).MinWidth(0).Label(bt("bots.capabilities.search")).Placeholder(bt("bots.capabilities.search"))
+			kit.TextInput(c, &p.query).Grow(1).MinWidth(0).Label(bt("bots.capabilities.search")).Placeholder(bt("bots.capabilities.search"))
 			if kit.IconButton(c, icons.RefreshCw, nt("refresh")).Clicked() {
 				p.Refresh()
 			}
@@ -324,8 +324,8 @@ func (p *capabilitiesPane) learnedPage(c *ui.Context) {
 		})
 	}
 	if p.editing {
-		ui.Field(c, nt("name"), func() { ui.TextInput(c, &d.Name).FillWidth().Label(nt("name")) })
-		ui.Field(c, nt("description"), func() { ui.TextInput(c, &d.Description).FillWidth().Label(nt("description")) })
+		ui.Field(c, nt("name"), func() { kit.TextInput(c, &d.Name).FillWidth().Label(nt("name")) })
+		ui.Field(c, nt("description"), func() { kit.TextInput(c, &d.Description).FillWidth().Label(nt("description")) })
 		ui.TextArea(c, &d.Body).FillWidth().Height(280).Label(nt("skillBody"))
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
 			if kit.Button(c, nt("cancel"), nil, false).Disabled(p.saving).Clicked() {

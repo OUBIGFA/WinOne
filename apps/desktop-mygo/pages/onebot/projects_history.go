@@ -166,7 +166,7 @@ func (p *historyPane) View(c *ui.Context) {
 		p.Refresh()
 	}
 	ui.Row(c).FillWidth().Gap(8).Children(func() {
-		if ui.TextInput(c, &p.query).Grow(1).MinWidth(0).Label(bt("bots.historySearch.title")).Placeholder(bt("bots.historySearch.title")).Changed() {
+		if kit.TextInput(c, &p.query).Grow(1).MinWidth(0).Label(bt("bots.historySearch.title")).Placeholder(bt("bots.historySearch.title")).Changed() {
 			p.Refresh()
 		}
 		if kit.IconButton(c, icons.RefreshCw, nt("refresh")).Clicked() {

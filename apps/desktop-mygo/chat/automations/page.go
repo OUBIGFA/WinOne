@@ -562,7 +562,7 @@ func (p *Page) View(c *ui.Context) {
 func (p *Page) listView(c *ui.Context) {
 	ui.Column(c).Fill().Padding(12).Gap(8).Children(func() {
 		previousSearch, previousFilter := p.search, p.filter
-		ui.TextInput(c, &p.search).Placeholder(tr("search")).FillWidth().Label(tr("search"))
+		kit.TextInput(c, &p.search).Placeholder(tr("search")).FillWidth().Label(tr("search"))
 		kit.Segmented(c, &p.filter, []kit.SelectOption{{Value: "all", Label: tr("all")}, {Value: "active", Label: tr("active")}, {Value: "paused", Label: tr("paused")}}, tr("filter"))
 		if previousSearch != p.search || previousFilter != p.filter {
 			if previousFilter != p.filter {

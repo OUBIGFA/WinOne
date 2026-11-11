@@ -157,7 +157,7 @@ func (p *completePage) feedback(c *ui.Context) {
 func nativeField(c *ui.Context, label string, value *string, password bool) {
 	ui.Column(c).FillWidth().Gap(6).Children(func() {
 		kit.Label(c, label)
-		in := ui.TextInput(c, value).Label(label).FillWidth().Height(40)
+		in := kit.TextInput(c, value).Label(label).FillWidth().Height(40)
 		if password {
 			in.Password()
 		}

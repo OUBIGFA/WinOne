@@ -48,7 +48,7 @@ func (e *editor) accountPreferences(c *ui.Context, pr *provider, locked bool) {
 			nativeSelect(c, i18n.T("aiOptions.account"), &e.preferenceAccount, stringChoices(ids), locked)
 		}
 		ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-			ui.TextInput(c, &e.newPreferenceAccount).Grow(1).MinWidth(160).Placeholder(i18n.T("aiOptions.accountID")).Label(i18n.T("aiOptions.accountID")).Disabled(locked)
+			kit.TextInput(c, &e.newPreferenceAccount).Grow(1).MinWidth(160).Placeholder(i18n.T("aiOptions.accountID")).Label(i18n.T("aiOptions.accountID")).Disabled(locked)
 			if kit.Button(c, i18n.T("aiOptions.addAccount"), icons.Plus, false).Disabled(locked || strings.TrimSpace(e.newPreferenceAccount) == "").Clicked() {
 				e.preferenceAccount = strings.TrimSpace(e.newPreferenceAccount)
 				if pr.AuthMode == "account" {
@@ -83,7 +83,7 @@ func (e *editor) accountPreferences(c *ui.Context, pr *provider, locked bool) {
 						s.AccountNames[id] = text
 					}
 				}
-				ui.TextInput(c, &f.text).FillWidth().Label(i18n.T("ai.accountNames")).Disabled(locked)
+				kit.TextInput(c, &f.text).FillWidth().Label(i18n.T("ai.accountNames")).Disabled(locked)
 			})
 			accountNumber(c, i18n.T("ai.accountWeights"), &s.AccountWeights, id, 1, 1000, locked)
 			accountNumber(c, i18n.T("ai.accountConcurrency"), &s.AccountConcurrency, id, 0, 1024, locked)
@@ -184,7 +184,7 @@ func (e *editor) accountWindowCaps(c *ui.Context, pr *provider, id string, locke
 		}
 		kit.Stack(c, "", "", func() {
 			ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-				ui.TextInput(c, &e.newCapWindow).Grow(1).MinWidth(140).Label(i18n.T("aiOptions.windowName")).Placeholder(i18n.T("aiOptions.windowName")).Disabled(locked)
+				kit.TextInput(c, &e.newCapWindow).Grow(1).MinWidth(140).Label(i18n.T("aiOptions.windowName")).Placeholder(i18n.T("aiOptions.windowName")).Disabled(locked)
 				if kit.Button(c, i18n.T("aiOptions.addCap"), icons.Plus, false).Disabled(locked || strings.TrimSpace(e.newCapWindow) == "").Clicked() {
 					if caps == nil {
 						caps = map[string]int{}

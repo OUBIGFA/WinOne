@@ -907,7 +907,7 @@ func (p *page) groupEditorView(c *ui.Context, d *groupEditor, close func()) {
 			p.group.deleteOpen = true
 		}
 	}, Body: func() {
-		ui.Field(c, nt("groupName"), func() { ui.TextInput(c, &d.name).FillWidth().Label(nt("groupName")) })
+		ui.Field(c, nt("groupName"), func() { kit.TextInput(c, &d.name).FillWidth().Label(nt("groupName")) })
 		for _, bot := range p.profiles {
 			checked := slices.Contains(d.members, bot.ID)
 			if kit.Toggle(c, &checked, bot.Name, bot.Description).Disabled(bot.Status != "active" && !checked).Changed() {
@@ -930,7 +930,7 @@ func (p *page) groupEditorView(c *ui.Context, d *groupEditor, close func()) {
 				options = append(options, kit.SelectOption{Value: id, Label: label})
 			}
 			kit.Select(c, &d.organizer, options)
-			field := ui.TextInput(c, &d.directory).FillWidth().Label(nt("groupDirectory"))
+			field := kit.TextInput(c, &d.directory).FillWidth().Label(nt("groupDirectory"))
 			widgets.DropArea(c, p.env, field, widgets.DropFolders, false, d.busy, func(paths []string, err error) {
 				if err != nil {
 					d.error = err.Error()

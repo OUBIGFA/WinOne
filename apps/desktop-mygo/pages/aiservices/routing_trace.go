@@ -215,7 +215,7 @@ func (t *nativeTrace) View(c *ui.Context, p *page) {
 	filtered := t.filterRoutes(rows)
 	t.overviewView(c, p, filtered)
 	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-		ui.TextInput(c, &t.query).Grow(1).MinWidth(180).Label(nativeT("searchRequests")).Placeholder(nativeT("searchRequests"))
+		kit.TextInput(c, &t.query).Grow(1).MinWidth(180).Label(nativeT("searchRequests")).Placeholder(nativeT("searchRequests"))
 		label := nativeT("pauseRefresh")
 		if t.paused {
 			label = nativeT("resumeRefresh")

@@ -5,6 +5,7 @@ import (
 	"slices"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
+	"winone/desktopmygo/kit/icons"
 )
 
 // Use the runtime catalog (including in-use dependencies), not unsaved switches,
@@ -45,11 +46,13 @@ func (p *page) upstreamNavigation(c *ui.Context) {
 	type destination struct {
 		label string
 		tab   int
+		icon  *ui.SVG
 	}
+	// Icons as on every other page's tabs; the custom tab keeps LayersPlus.
 	entries := []destination{
-		{homeT("home"), tabHome},
-		{i18n.T("ai.customProviders"), tabCustom}, {i18n.T("ai.addProvidersTab"), tabAccounts},
-		{homeT("preferences"), tabDefaults}, {homeT("more"), tabMore},
+		{homeT("home"), tabHome, icons.Star},
+		{i18n.T("ai.customProviders"), tabCustom, icons.LayersPlus}, {i18n.T("ai.addProvidersTab"), tabAccounts, icons.UserRound},
+		{homeT("preferences"), tabDefaults, icons.SlidersHorizontal}, {homeT("more"), tabMore, icons.LayoutGrid},
 	}
 	if !p.destinationEnabled(p.tab) {
 		p.switchTab(tabHome)
@@ -57,7 +60,7 @@ func (p *page) upstreamNavigation(c *ui.Context) {
 	current := len(entries) - 1
 	tabs := make([]kit.Tab, len(entries))
 	for i, e := range entries {
-		tabs[i] = kit.Tab{Label: e.label}
+		tabs[i] = kit.Tab{Label: e.label, Icon: e.icon}
 		if p.tab == e.tab {
 			current = i
 		}

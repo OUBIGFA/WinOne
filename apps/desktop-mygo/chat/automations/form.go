@@ -20,7 +20,7 @@ func field(c *ui.Context, label string, value *string, multiline bool) {
 		if multiline {
 			ui.TextArea(c, value).FillWidth().MinHeight(100).Label(label)
 		} else {
-			ui.TextInput(c, value).FillWidth().Label(label)
+			kit.TextInput(c, value).FillWidth().Label(label)
 		}
 	})
 }
@@ -128,7 +128,7 @@ func (p *Page) timingFields(c *ui.Context, d *Draft) {
 			kit.Toggle(c, &d.Value.Recurring, tr("recurring"), tr("onceHint"))
 		case "interval":
 			ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-				input := ui.TextInput(c, &d.interval).Label(tr("intervalValue")).Grow(1).Basis(120)
+				input := kit.TextInput(c, &d.interval).Label(tr("intervalValue")).Grow(1).Basis(120)
 				changed, _ := kit.Select(c, &d.intervalUnit, []kit.SelectOption{option("seconds", "seconds"), option("minutes", "minutes"), option("hours", "hours"), option("days", "days")})
 				if input.Changed() || changed {
 					value, err := strconv.ParseFloat(d.interval, 64)
@@ -332,7 +332,7 @@ func (p *Page) scriptFields(c *ui.Context, d *Draft) {
 func timeoutField(c *ui.Context, label string, text *string, value **int64, message *string) {
 	ui.Column(c).FillWidth().Gap(5).Children(func() {
 		kit.Label(c, label)
-		if ui.TextInput(c, text).FillWidth().Placeholder(tr("unlimited")).Label(label).Changed() {
+		if kit.TextInput(c, text).FillWidth().Placeholder(tr("unlimited")).Label(label).Changed() {
 			if strings.TrimSpace(*text) == "" {
 				*value = nil
 				*message = ""

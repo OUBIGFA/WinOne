@@ -119,7 +119,7 @@ func (m *Manager) taskFields(c *ui.Context) {
 	ui.Field(c, text("taskPermission"), func() { kit.Select(c, &value.PermissionMode, permissions) })
 	ui.Field(c, text("taskDirectory"), func() {
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
-			field := ui.TextInput(c, &value.WorkingDir).Grow(1).MinWidth(0).Label(text("taskDirectory")).Placeholder(text("taskDirectoryHint"))
+			field := kit.TextInput(c, &value.WorkingDir).Grow(1).MinWidth(0).Label(text("taskDirectory")).Placeholder(text("taskDirectoryHint"))
 			widgets.DropArea(c, m.env, field, widgets.DropFolders, false, m.busy, func(paths []string, err error) {
 				if err != nil {
 					m.error = err.Error()

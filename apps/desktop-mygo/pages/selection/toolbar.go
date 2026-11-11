@@ -276,7 +276,7 @@ func (p *page) editor(c *ui.Context, a *action, name string) {
 	ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().AlignItems(ui.Start).Children(func() {
 		field(c, i18n.T("selection.actionName"), func() {
 			value := name
-			in := ui.TextInput(c, &value)
+			in := kit.TextInput(c, &value)
 			if p.focus == a.ID {
 				in.AutoFocus().SetTextSelection(0, len([]rune(value)))
 			}

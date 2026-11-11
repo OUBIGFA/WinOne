@@ -253,7 +253,7 @@ func (p *voiceSettingsPane) View(c *ui.Context) {
 				}
 			})
 			ui.Field(c, nt("manualVoiceID"), func() {
-				if ui.TextInput(c, &p.selection.Voice).FillWidth().Label(nt("manualVoiceID")).Changed() {
+				if kit.TextInput(c, &p.selection.Voice).FillWidth().Label(nt("manualVoiceID")).Changed() {
 					p.edited = true
 				}
 			})
@@ -287,7 +287,7 @@ func (p *voiceSettingsPane) View(c *ui.Context) {
 	if kit.Toggle(c, &p.sentence, nt("sentencePlayback"), nt("sentencePlaybackHint")).Changed() {
 		p.edited = true
 	}
-	ui.TextInput(c, &p.previewText).FillWidth().Label(nt("previewText"))
+	kit.TextInput(c, &p.previewText).FillWidth().Label(nt("previewText"))
 	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
 		if kit.PrimaryButton(c, nt("save"), icons.Save, p.busy).Disabled(!p.edited || p.busy).Clicked() {
 			p.Save()

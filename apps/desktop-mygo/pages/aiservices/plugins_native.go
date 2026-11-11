@@ -528,7 +528,7 @@ func (x *pluginsPanel) registryContent(c *ui.Context, locked bool) {
 			placeholder = i18n.T("ai.keySaved")
 		}
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
-			ui.TextInput(c, &f.text).Grow(1).MinWidth(0).Password().Label(completeT("githubToken")).Placeholder(placeholder).Disabled(locked)
+			kit.TextInput(c, &f.text).Grow(1).MinWidth(0).Password().Label(completeT("githubToken")).Placeholder(placeholder).Disabled(locked)
 			if kit.IconButton(c, icons.Trash2, completeT("clearGitHubToken")).Disabled(locked).Clicked() {
 				s.GitHubToken = new("")
 				f.text, f.shown = "", ""

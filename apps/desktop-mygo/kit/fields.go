@@ -57,7 +57,7 @@ func Select(c *ui.Context, selected *string, options []SelectOption) (changed bo
 				}
 				label := ui.Text(c, option.Label).SingleLine().Grow(1).MinWidth(0)
 				if chosen {
-					label.FontWeight(600)
+					label.FontWeight(500)
 					ui.Icon(c, icons.Check).FontSize(14).Shrink(0)
 				}
 			})
@@ -93,7 +93,7 @@ func Segmented(c *ui.Context, selected *string, options []SelectOption, label st
 					}
 					text := ui.Text(c, option.Label).SingleLine()
 					if i == index {
-						text.FontWeight(600)
+						text.FontWeight(500)
 					} else {
 						text.TextColor(t.TextMuted)
 					}
@@ -126,6 +126,14 @@ func PathField(c *ui.Context, path, empty, action string, disabled bool) (choose
 		choose = Button(c, action, icons.FolderOpen, false).Disabled(disabled)
 	})
 	return choose
+}
+
+// TextInput is MyGo's single-line input at ControlHeight, so a field lines
+// up with the button or select beside it. A caller's own Height or Padding
+// still applies after it.
+func TextInput(c *ui.Context, value *string) ui.Element {
+	t := c.Theme()
+	return ui.TextInput(c, value).Padding(t.Space(2.25), t.Space(2.5))
 }
 
 // Itoa formats a count for text.

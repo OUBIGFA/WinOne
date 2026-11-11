@@ -727,7 +727,7 @@ func (h *Host) secretDialog(c *ui.Context, p *prompt) {
 	if kit.Dialog(c.Key(p.ID), &open, kit.DialogOptions{Title: first(p.parsed.GhostName, text("title")), Width: 460, Confirm: text("save"), Cancel: text("cancel"), ConfirmDisabled: p.value == "",
 		Body: func() {
 			ui.Text(c, text("secret", "label", first(p.parsed.Label, p.parsed.Key))).MinWidth(0)
-			ui.TextInput(c, &p.value).Password().FillWidth().Label(first(p.parsed.Label, p.parsed.Key))
+			kit.TextInput(c, &p.value).Password().FillWidth().Label(first(p.parsed.Label, p.parsed.Key))
 		}}) {
 		h.answer(p, map[string]any{"value": p.value})
 	} else if !open {

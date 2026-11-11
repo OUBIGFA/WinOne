@@ -635,7 +635,7 @@ func (a *accountPanel) jobView(c *ui.Context) {
 				}
 				ui.Field(c, i18n.T(label), func() {
 					ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-						input := ui.TextInput(c, &a.callback).Grow(1).MinWidth(0).Label(i18n.T(label)).Disabled(busy)
+						input := kit.TextInput(c, &a.callback).Grow(1).MinWidth(0).Label(i18n.T(label)).Disabled(busy)
 						if s.PasteKey {
 							input.Password()
 						}
@@ -710,7 +710,7 @@ func (a *accountPanel) promptView(c *ui.Context, prompt *signInPrompt, busy bool
 					kit.Help(c, hint)
 				}
 			} else {
-				input := ui.TextInput(c, &a.callback).FillWidth().Label(prompt.Message).Placeholder(prompt.Placeholder).Disabled(busy)
+				input := kit.TextInput(c, &a.callback).FillWidth().Label(prompt.Message).Placeholder(prompt.Placeholder).Disabled(busy)
 				if prompt.Type == "password" {
 					input.Password()
 				}
@@ -733,7 +733,7 @@ func readonlyCopy(c *ui.Context, label, text, copyLabel string, copied, mono boo
 	ui.Field(c, label, func() {
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			value := text
-			input := ui.TextInput(c, &value).Grow(1).MinWidth(0).ReadOnly(true).Label(label)
+			input := kit.TextInput(c, &value).Grow(1).MinWidth(0).ReadOnly(true).Label(label)
 			if mono {
 				input.Font(kit.MonoFont)
 			}

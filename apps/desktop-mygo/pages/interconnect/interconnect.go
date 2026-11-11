@@ -330,7 +330,7 @@ func (p *page) generalView(c *ui.Context) {
 		})
 		zone := kit.Stack(c, tr("directory"), tr("directoryHint"), func() {
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.TextInput(c, &d.DownloadDir).Grow(1).MinWidth(0).Label(tr("directory")).Disabled(p.busy)
+				kit.TextInput(c, &d.DownloadDir).Grow(1).MinWidth(0).Label(tr("directory")).Disabled(p.busy)
 				if kit.Button(c, tr("choose"), icons.FolderOpen, false).Disabled(p.busy).Clicked() {
 					p.pickFolder(func(path string) { p.draft.DownloadDir = path })
 				}
@@ -443,7 +443,7 @@ func (g *generalPanel) View(c *ui.Context, draft *general, disabled bool, pick f
 			zone := kit.Stack(c, tr("defaultDownload"), tr("defaultDownloadHint"), func() {
 				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 					value := draft.DownloadDir
-					ui.TextInput(c, &value).Grow(1).MinWidth(0).ReadOnly(true).Label(tr("defaultDownload"))
+					kit.TextInput(c, &value).Grow(1).MinWidth(0).ReadOnly(true).Label(tr("defaultDownload"))
 					if kit.Button(c, tr("choose"), icons.FolderOpen, false).Disabled(g.busy || disabled).Clicked() {
 						pick(func(path string) { draft.DownloadDir = path })
 					}

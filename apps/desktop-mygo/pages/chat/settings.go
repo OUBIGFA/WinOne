@@ -326,7 +326,7 @@ func (p *Chat) settingsGeneral(c *ui.Context, busy bool) {
 	kit.Group(c, nil, i18n.T("chat.workspaceDirectory"), i18n.T("chat.workspaceHint"), func() {
 		zone := ui.Row(c).FillWidth().Padding(12, 16).Gap(8).AlignItems(ui.Center)
 		zone.Children(func() {
-			ui.TextInput(c, &v.WorkspaceDirectory).Grow(1).MinWidth(0).Font(kit.MonoFont).FontSize(kit.HelpSize(c)).
+			kit.TextInput(c, &v.WorkspaceDirectory).Grow(1).MinWidth(0).Font(kit.MonoFont).FontSize(kit.HelpSize(c)).
 				Label(i18n.T("chat.workspaceDirectory")).Disabled(busy)
 			if kit.Button(c, i18n.T("chat.chooseLocation"), icons.FolderOpen, false).Disabled(busy).Clicked() {
 				p.pickFolder(func(path string) { v.WorkspaceDirectory = path })
@@ -460,7 +460,7 @@ func (p *Chat) mcpServerView(c *ui.Context, index int, busy bool) {
 		kit.Panel(c, func() {
 			ui.Row(c).FillWidth().Padding(12, 8, 12, 16).Gap(12).AlignItems(ui.End).Children(func() {
 				ui.Field(c, i18n.T("chat.serverName"), func() {
-					ui.TextInput(c, &server.Name).FillWidth().Disabled(busy)
+					kit.TextInput(c, &server.Name).FillWidth().Disabled(busy)
 				}).Grow(1).MinWidth(0)
 				ui.Checkbox(c, &server.Enabled, i18n.T("chat.enabled")).Disabled(busy).Margin(0, 0, 8, 0)
 				if kit.IconButton(c, icons.Trash2, i18n.T("chat.remove")+" · "+server.Name).Disabled(busy).Clicked() {
@@ -495,18 +495,18 @@ func (p *Chat) mcpServerView(c *ui.Context, index int, busy bool) {
 				server.Exposure = exposure
 			}
 			kit.Stack(c, i18n.T("chat.mcpDescription"), "", func() {
-				ui.TextInput(c, &server.Description).FillWidth().Label(i18n.T("chat.mcpDescription")).Disabled(busy)
+				kit.TextInput(c, &server.Description).FillWidth().Label(i18n.T("chat.mcpDescription")).Disabled(busy)
 				if runes := []rune(server.Description); len(runes) > 4096 {
 					server.Description = string(runes[:4096])
 				}
 			})
 			if server.URL != nil {
 				kit.Stack(c, i18n.T("chat.serverUrl"), "", func() {
-					ui.TextInput(c, server.URL).FillWidth().Font(kit.MonoFont).Label(i18n.T("chat.serverUrl")).Disabled(busy)
+					kit.TextInput(c, server.URL).FillWidth().Font(kit.MonoFont).Label(i18n.T("chat.serverUrl")).Disabled(busy)
 				})
 			} else {
 				kit.Stack(c, i18n.T("chat.command"), "", func() {
-					input := ui.TextInput(c, &server.Command).FillWidth().Font(kit.MonoFont).Label(i18n.T("chat.command")).Disabled(busy)
+					input := kit.TextInput(c, &server.Command).FillWidth().Font(kit.MonoFont).Label(i18n.T("chat.command")).Disabled(busy)
 					p.dropPath(c, input, widgets.DropFiles, busy, func(path string) { server.Command = path })
 				})
 				kit.Stack(c, i18n.T("chat.arguments"), "", func() {
@@ -530,7 +530,7 @@ func (p *Chat) mcpServerView(c *ui.Context, index int, busy bool) {
 						p.mcpMapField(c, index, "headers", i18n.T("chat.headers"), busy)
 						p.mcpMapField(c, index, "toolExposure", i18n.T("chat.mcpToolExposure"), busy)
 						ui.Field(c, i18n.T("chat.sourcePath"), func() {
-							input := ui.TextInput(c, &server.Cwd).FillWidth().Font(kit.MonoFont).Disabled(busy)
+							input := kit.TextInput(c, &server.Cwd).FillWidth().Font(kit.MonoFont).Disabled(busy)
 							p.dropPath(c, input, widgets.DropFolders, busy, func(path string) { server.Cwd = path })
 						}).FillWidth()
 						shown := server.Timeout

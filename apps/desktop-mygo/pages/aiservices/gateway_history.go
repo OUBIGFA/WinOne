@@ -85,7 +85,7 @@ func (g *gatewayHistoryPanel) View(c *ui.Context, p *page) {
 			}
 		})
 	}
-	ui.TextInput(c, &g.query).FillWidth().Label(accessT("findSession"))
+	kit.TextInput(c, &g.query).FillWidth().Label(accessT("findSession"))
 	count := 0
 	for _, session := range g.state.Sessions {
 		if !strings.Contains(strings.ToLower(session.Agent+" "+session.ID), strings.ToLower(g.query)) {

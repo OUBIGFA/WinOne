@@ -156,7 +156,7 @@ func (s *sessionsView) view(c *ui.Context, period string, revision int, provider
 			}
 		})
 		field(c, tr("usage.searchSessions"), func() {
-			if ui.TextInput(c.Key("query"), &q.Query).FillWidth().Changed() {
+			if kit.TextInput(c.Key("query"), &q.Query).FillWidth().Changed() {
 				s.change(func(*sessionQuery) {})
 			}
 		})

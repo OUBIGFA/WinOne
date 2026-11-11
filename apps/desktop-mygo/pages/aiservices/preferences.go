@@ -142,7 +142,7 @@ func (e *editor) proxyPreference(c *ui.Context, key string, value *string, locke
 		if text, changed := f.sync(current); changed {
 			*value = text
 		}
-		ui.TextInput(c, &f.text).FillWidth().Placeholder("http://127.0.0.1:7890").Label(i18n.T("aiOptions.proxyAddress")).Disabled(locked)
+		kit.TextInput(c, &f.text).FillWidth().Placeholder("http://127.0.0.1:7890").Label(i18n.T("aiOptions.proxyAddress")).Disabled(locked)
 	}
 	state.shown = *value
 }

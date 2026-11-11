@@ -934,7 +934,7 @@ func (a *advancedPanel) searchAPIs(c *ui.Context, catalog *magpieCatalog, locked
 			f.vendor = vendor
 		}
 		ui.Field(c, i18n.T("ai.searchAPIKey"), func() {
-			ui.TextInput(c, &f.key).FillWidth().Password().Placeholder(i18n.T("ai.searchAPIKeyHint")).Label(i18n.T("ai.searchAPIKey")).Disabled(locked)
+			kit.TextInput(c, &f.key).FillWidth().Password().Placeholder(i18n.T("ai.searchAPIKeyHint")).Label(i18n.T("ai.searchAPIKey")).Disabled(locked)
 		})
 		kit.Help(c, i18n.T("ai.searchMultipleKeysHint"))
 		placeholder := "https://api.example.com"
@@ -942,7 +942,7 @@ func (a *advancedPanel) searchAPIs(c *ui.Context, catalog *magpieCatalog, locked
 			placeholder = "https://searx.example.com"
 		}
 		ui.Field(c, i18n.T("ai.searchAPIURL"), func() {
-			ui.TextInput(c, &f.url).FillWidth().Placeholder(placeholder).Label(i18n.T("ai.searchAPIURL")).Disabled(locked)
+			kit.TextInput(c, &f.url).FillWidth().Placeholder(placeholder).Label(i18n.T("ai.searchAPIURL")).Disabled(locked)
 		})
 		kit.Help(c, i18n.T("ai.searchAPIURLHint"))
 		ui.Row(c).FillWidth().Gap(12).Wrap().AlignItems(ui.Center).Children(func() {

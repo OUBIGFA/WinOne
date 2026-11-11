@@ -50,7 +50,7 @@ func (e *editor) billingPreferences(c *ui.Context, pr *provider, locked bool) {
 		// Zero means the regular price, not free requests.
 		numberRow(c, i18n.T("ai.priceRate"), rate, 0, 1000, false, "1", locked, func(v *float64) { s.PriceRate = value(v) })
 		if pr.AuthMode == "api-key" {
-			kit.Stack(c, i18n.T("ai.keyPlan"), "", func() { ui.TextInput(c, &s.KeyPlan).FillWidth().Label(i18n.T("ai.keyPlan")).Disabled(locked) })
+			kit.Stack(c, i18n.T("ai.keyPlan"), "", func() { kit.TextInput(c, &s.KeyPlan).FillWidth().Label(i18n.T("ai.keyPlan")).Disabled(locked) })
 		}
 	})
 	kit.Section(c, nil, i18n.T("ai.rateWindows"), i18n.T("ai.rateWindowsHint"), func() {

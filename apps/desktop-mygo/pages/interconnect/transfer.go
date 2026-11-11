@@ -331,14 +331,18 @@ func (p *transferPanel) View(c *ui.Context, active, settingsPending bool) {
 			p.form.StoreOrigin = p.croc
 		}
 	}
-	ui.Column(c).FillWidth().Gap(16).Children(func() {
-		if p.err != "" {
-			kit.Notice(c, kit.Failure, "", p.err, nil)
-		}
-		if p.message != "" {
-			kit.Status(c, p.message)
-		}
-		p.composer(c, active, settingsPending)
+	// The task list is a headed group of its own, so it stands GroupGap
+	// from the composer; notices stay close to the composer they report on.
+	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
+		ui.Column(c).FillWidth().Gap(16).Children(func() {
+			if p.err != "" {
+				kit.Notice(c, kit.Failure, "", p.err, nil)
+			}
+			if p.message != "" {
+				kit.Status(c, p.message)
+			}
+			p.composer(c, active, settingsPending)
+		})
 		p.tasksView(c)
 	})
 }
@@ -542,7 +546,7 @@ func (p *transferPanel) receiveInput(c *ui.Context, gofile bool) {
 			heading, placeholder = "enterCloudLink", "cloudLinkPlaceholder"
 		}
 		kit.Strong(c, tr(heading))
-		ui.TextInput(c, &f.Code).FillWidth().Placeholder(tr(placeholder)).Label(tr("code"))
+		kit.TextInput(c, &f.Code).FillWidth().Placeholder(tr(placeholder)).Label(tr("code"))
 		if kit.Button(c, tr("clipboardCode"), icons.ClipboardPaste, false).Clicked() {
 			f.Code = c.Services().ReadClipboard()
 		}
@@ -656,13 +660,13 @@ func (p *transferPanel) disclosure(c *ui.Context, key, title string, fn func()) 
 }
 
 func (p *transferPanel) textField(c *ui.Context, label string, value *string) {
-	kit.Stack(c, label, "", func() { ui.TextInput(c, value).FillWidth().Label(label) })
+	kit.Stack(c, label, "", func() { kit.TextInput(c, value).FillWidth().Label(label) })
 }
 
 func (p *transferPanel) optionField(c *ui.Context, key, label, placeholder string, list bool) {
 	text := p.optionText(key)
 	kit.Stack(c, label, "", func() {
-		in := ui.TextInput(c, text).FillWidth().Label(label)
+		in := kit.TextInput(c, text).FillWidth().Label(label)
 		if placeholder != "" {
 			in.Placeholder(placeholder)
 		}
@@ -729,7 +733,7 @@ func (p *transferPanel) advanced(c *ui.Context, gofile bool, target *taskRecord)
 			if !send && !gofile {
 				zone := kit.Stack(c, tr("output"), "", func() {
 					ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.TextInput(c, &f.OutputDir).Grow(1).MinWidth(0).Label(tr("output"))
+						kit.TextInput(c, &f.OutputDir).Grow(1).MinWidth(0).Label(tr("output"))
 						if kit.Button(c, tr("choose"), icons.FolderPlus, false).Clicked() {
 							folder := ""
 							p.action(func() (err error) { folder, err = p.env.Dialogs.PickFolder(tr("output")); return err }, func() {
@@ -1133,7 +1137,7 @@ func (p *transferPanel) promptView(c *ui.Context, id string, question *prompt, o
 				text = new(string)
 				p.answers[id] = text
 			}
-			ui.TextInput(c, text).Grow(1).MinWidth(120).Label(tr("answer"))
+			kit.TextInput(c, text).Grow(1).MinWidth(120).Label(tr("answer"))
 			if kit.Button(c, tr("reply"), nil, false).Disabled(p.busy || *text == "").Clicked() {
 				answer(*text)
 			}

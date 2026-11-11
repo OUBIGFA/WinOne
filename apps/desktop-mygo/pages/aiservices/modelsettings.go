@@ -105,7 +105,7 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 								t.ModelNames = names
 							})
 						}
-						ui.TextInput(c, &field.text).FillWidth().Placeholder(model).Label(i18n.T("ai.modelDisplayName"))
+						kit.TextInput(c, &field.text).FillWidth().Placeholder(model).Label(i18n.T("ai.modelDisplayName"))
 					})
 
 					m.limitsOf(c, meta, change, defaultLabel)
@@ -138,7 +138,7 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 							}
 							ui.Column(c.Key(key)).Basis(240).Grow(1).MinWidth(0).Gap(4).Children(func() {
 								ui.Field(c, i18n.T("ai.model"+key), func() {
-									ui.TextInput(c, &synced.text).FillWidth().Placeholder(model).Label(i18n.T("ai.model" + key))
+									kit.TextInput(c, &synced.text).FillWidth().Placeholder(model).Label(i18n.T("ai.model" + key))
 								})
 								kit.Help(c, i18n.T("ai.model"+key+"Hint"))
 							})

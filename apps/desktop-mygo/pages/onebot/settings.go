@@ -347,7 +347,7 @@ func (d *profileSettings) textField(c *ui.Context, label string, value *string, 
 }
 func (d *profileSettings) profileFields(c *ui.Context) {
 	ui.Field(c, nt("name"), func() {
-		if ui.TextInput(c, &d.draft.Name).FillWidth().Label(nt("name")).Changed() {
+		if kit.TextInput(c, &d.draft.Name).FillWidth().Label(nt("name")).Changed() {
 			d.changed()
 		}
 	})

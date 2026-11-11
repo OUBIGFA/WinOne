@@ -39,7 +39,7 @@ func (p *completePage) nativeLobby(c *ui.Context) {
 						ui.Column(c).FillWidth().Gap(8).Children(func() {
 							kit.Label(c, nt("room"))
 							ui.Row(c).FillWidth().Gap(6).Children(func() {
-								ui.TextInput(c, &p.formRoom).Label(nt("room")).Placeholder(nt("roomPlaceholder")).FillWidth().MinWidth(0).Height(42)
+								kit.TextInput(c, &p.formRoom).Label(nt("room")).Placeholder(nt("roomPlaceholder")).FillWidth().MinWidth(0).Height(42)
 								if kit.IconButton(c, icons.RefreshCw, nt("regenerate")).Size(42, 42).Disabled(!p.snapshot.Ready || p.busy).Clicked() {
 									p.generateNative()
 								}

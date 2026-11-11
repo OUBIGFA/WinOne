@@ -47,7 +47,7 @@ func (p *page) presetPicker(c *ui.Context) {
 	t := c.Theme()
 	kit.Dialog(c, &p.choosingPreset, kit.DialogOptions{Title: i18n.T("ai.choosePreset"), Cancel: i18n.T("common.cancel"), Width: 520,
 		Body: func() {
-			ui.TextInput(c, &p.presetSearch).FillWidth().Placeholder(i18n.T("ai.searchProviders")).Label(i18n.T("ai.searchProviders")).AutoFocus()
+			kit.TextInput(c, &p.presetSearch).FillWidth().Placeholder(i18n.T("ai.searchProviders")).Label(i18n.T("ai.searchProviders")).AutoFocus()
 			if p.catalog.err != "" {
 				kit.Notice(c, kit.Failure, "", p.catalog.err, func() {
 					if kit.Button(c, i18n.T("common.retry"), icons.RefreshCw, false).Clicked() {
@@ -127,7 +127,7 @@ func (p *page) agentPicker(c *ui.Context) {
 	t := c.Theme()
 	kit.Dialog(c, &p.choosingAgent, kit.DialogOptions{Title: i18n.T("ai.chooseAgent"), Message: i18n.T("ai.chooseAgentHint"),
 		Cancel: i18n.T("common.cancel"), Width: 480, Body: func() {
-			ui.TextInput(c, &p.agentSearch).FillWidth().Placeholder(i18n.T("ai.searchAgents")).Label(i18n.T("ai.searchAgents")).AutoFocus()
+			kit.TextInput(c, &p.agentSearch).FillWidth().Placeholder(i18n.T("ai.searchAgents")).Label(i18n.T("ai.searchAgents")).AutoFocus()
 			query := strings.ToLower(strings.TrimSpace(p.agentSearch))
 			shown := 0
 			ui.Column(c).FillWidth().Gap(2).Children(func() {

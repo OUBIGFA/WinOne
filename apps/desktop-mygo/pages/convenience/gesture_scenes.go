@@ -335,7 +335,7 @@ func (s *scenes) settingsDialog(c *ui.Context, index int, disabled bool) {
 		Confirm: i18n.T("stroke.doneEditing"),
 		Body: func() {
 			kit.Stack(c, i18n.T("stroke.scopeName"), "", func() {
-				ui.TextInput(c, &scope.Name).FillWidth().Label(i18n.T("stroke.scopeName")).Disabled(disabled)
+				kit.TextInput(c, &scope.Name).FillWidth().Label(i18n.T("stroke.scopeName")).Disabled(disabled)
 			})
 			kit.Row(c, i18n.T("stroke.scopeKind"), "", func() {
 				kit.Segmented(c, &scope.Kind, []kit.SelectOption{
@@ -346,7 +346,7 @@ func (s *scenes) settingsDialog(c *ui.Context, index int, disabled bool) {
 			})
 			if scope.Kind == "application" {
 				kit.Stack(c, i18n.T("stroke.scopePath"), "", func() {
-					in := ui.TextInput(c, &scope.ProcessPath).FillWidth().Font(kit.MonoFont).Label(i18n.T("stroke.scopePath")).Disabled(disabled)
+					in := kit.TextInput(c, &scope.ProcessPath).FillWidth().Font(kit.MonoFont).Label(i18n.T("stroke.scopePath")).Disabled(disabled)
 					widgets.DropArea(c, t.env, in, widgets.DropFiles, false, disabled, func(paths []string, err error) {
 						if err != nil {
 							s.err = err.Error()
@@ -473,7 +473,7 @@ func (s *scenes) editorDialog(c *ui.Context, scope stroke.Scope, disabled bool) 
 		Confirm: i18n.T("stroke.doneEditing"),
 		Body: func() {
 			kit.Stack(c, i18n.T("stroke.actionName"), "", func() {
-				if ui.TextInput(c, &s.editName).FillWidth().Label(i18n.T("stroke.actionName")).Disabled(disabled).Changed() {
+				if kit.TextInput(c, &s.editName).FillWidth().Label(i18n.T("stroke.actionName")).Disabled(disabled).Changed() {
 					name := s.editName
 					s.updateAction(editor.packageID, editor.actionID, func(a *stroke.Action) { a.Name = name })
 				}
@@ -559,7 +559,7 @@ func (s *scenes) assignDialog(c *ui.Context, scope stroke.Scope, disabled bool) 
 				}
 			})
 			kit.Stack(c, i18n.T("stroke.actionName"), "", func() {
-				ui.TextInput(c, &a.name).FillWidth().Label(i18n.T("stroke.actionName")).Disabled(disabled)
+				kit.TextInput(c, &a.name).FillWidth().Label(i18n.T("stroke.actionName")).Disabled(disabled)
 			})
 			kit.Stack(c, i18n.T("stroke.actionGesture"), "", func() {
 				_, trigger := kit.Select(c, &a.gesture, gestureOptions(*d))

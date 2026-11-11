@@ -60,7 +60,7 @@ func (p *page) learningPage(c *ui.Context) {
 	if p.learningSection == 1 {
 		kit.Group(c, icons.BookOpen, i18n.T("learning.anki"), "", func() {
 			ui.Column(c).FillWidth().Padding(16).Gap(16).Children(func() {
-				ui.Field(c, i18n.T("learning.deck"), func() { ui.TextInput(c, &o.Deck).FillWidth() }).FillWidth()
+				ui.Field(c, i18n.T("learning.deck"), func() { kit.TextInput(c, &o.Deck).FillWidth() }).FillWidth()
 				if p.learningBook != nil {
 					var decks []kit.SelectOption
 					for _, name := range p.learningBook.DeckNames() {

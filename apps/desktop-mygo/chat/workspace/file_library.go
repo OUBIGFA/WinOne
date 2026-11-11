@@ -358,7 +358,7 @@ func (p *FileLibrary) View(c *ui.Context) {
 	p.Drop(c, root)
 }
 func (p *FileLibrary) treeView(c *ui.Context) {
-	if ui.TextInput(c, &p.filter).Label(wt("filter")).Placeholder(wt("filter")).FillWidth().Changed() {
+	if kit.TextInput(c, &p.filter).Label(wt("filter")).Placeholder(wt("filter")).FillWidth().Changed() {
 		if p.filter != "" {
 			p.loadIndex()
 		}
@@ -442,7 +442,7 @@ func (p *FileLibrary) treeView(c *ui.Context) {
 	}
 }
 func (p *FileLibrary) searchView(c *ui.Context) {
-	if ui.TextInput(c, &p.query).Label(wt("search")).Placeholder(wt("search")).FillWidth().Changed() {
+	if kit.TextInput(c, &p.query).Label(wt("search")).Placeholder(wt("search")).FillWidth().Changed() {
 		p.scheduleSearch()
 	}
 	if kit.Toggle(c, &p.sensitive, wt("caseSensitive"), "").Changed() {

@@ -134,7 +134,7 @@ func (p *page) createView(c *ui.Context) {
 		if kit.Button(c, nt("generateDraft"), icons.Sparkles, d.busy).Disabled(d.busy || strings.TrimSpace(d.prompt) == "").Clicked() {
 			p.generateCreation(d)
 		}
-		ui.Field(c, nt("name"), func() { ui.TextInput(c, &d.name).FillWidth().Label(nt("name")).Disabled(d.busy) })
+		ui.Field(c, nt("name"), func() { kit.TextInput(c, &d.name).FillWidth().Label(nt("name")).Disabled(d.busy) })
 		ui.Field(c, nt("description"), func() {
 			ui.TextArea(c, &d.description).FillWidth().Height(100).Label(nt("description")).Disabled(d.busy)
 		})
@@ -144,7 +144,7 @@ func (p *page) createView(c *ui.Context) {
 		ui.Field(c, bt("bots.memory.aboutMe"), func() {
 			ui.TextArea(c, &d.userContext).FillWidth().Height(100).Label(bt("bots.memory.aboutMe")).Disabled(d.busy)
 		})
-		ui.Field(c, nt("avatarEmoji"), func() { ui.TextInput(c, &d.avatar).FillWidth().Label(nt("avatarEmoji")).Disabled(d.busy) })
+		ui.Field(c, nt("avatarEmoji"), func() { kit.TextInput(c, &d.avatar).FillWidth().Label(nt("avatarEmoji")).Disabled(d.busy) })
 		button := kit.Button(c, bt("bots.profile.changeAvatar"), icons.Camera, false).Disabled(d.busy)
 		pick := func(path string) { p.creationPortrait(d, path) }
 		if button.Clicked() {

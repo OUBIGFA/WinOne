@@ -157,14 +157,14 @@ func (p *Chat) mainDialog(c *ui.Context, d *dialogState) {
 		o.Title, o.Confirm = i18n.T("chat.rename"), i18n.T("chat.rename")
 		o.ConfirmDisabled = strings.TrimSpace(d.name) == ""
 		o.Body = func() {
-			ui.TextInput(c, &d.name).FillWidth().Label(i18n.T("chat.newName")).AutoFocus()
+			kit.TextInput(c, &d.name).FillWidth().Label(i18n.T("chat.newName")).AutoFocus()
 		}
 		target := d.conversation
 		confirm = func(done func(error)) { p.updateConversation(target, map[string]any{"title": d.name}, done) }
 	case dialogRenameProject:
 		o.Title, o.Confirm = i18n.T("chat.renameProject"), i18n.T("chat.rename")
 		o.ConfirmDisabled = strings.TrimSpace(d.name) == ""
-		o.Body = func() { ui.TextInput(c, &d.name).FillWidth().Label(i18n.T("chat.newName")).AutoFocus() }
+		o.Body = func() { kit.TextInput(c, &d.name).FillWidth().Label(i18n.T("chat.newName")).AutoFocus() }
 		id, name := d.project.ID, d.name
 		confirm = func(done func(error)) { p.changeProject(id, &name, done) }
 	case dialogDelete:
@@ -210,7 +210,7 @@ func (p *Chat) mainDialog(c *ui.Context, d *dialogState) {
 func (p *Chat) projectFields(c *ui.Context, d *dialogState) {
 	t := c.Theme()
 	ui.Checkbox(c, &d.create, i18n.T("chat.createProjectFolder")).Disabled(p.busy)
-	ui.TextInput(c, &d.name).FillWidth().Label(i18n.T("chat.projectName")).Placeholder(i18n.T("chat.projectName")).AutoFocus().Disabled(p.busy)
+	kit.TextInput(c, &d.name).FillWidth().Label(i18n.T("chat.projectName")).Placeholder(i18n.T("chat.projectName")).AutoFocus().Disabled(p.busy)
 	label := i18n.T("chat.location")
 	if d.create {
 		label = i18n.T("chat.projectParent")
@@ -353,8 +353,8 @@ func (p *Chat) exportDialog(c *ui.Context) {
 			if !e.encrypt {
 				return
 			}
-			password := ui.TextInput(c, &e.password).FillWidth().Label(i18n.T("chat.exportPassword")).Placeholder(i18n.T("chat.exportPassword")).Disabled(e.working)
-			again := ui.TextInput(c, &e.confirmation).FillWidth().Label(i18n.T("chat.exportPasswordAgain")).Placeholder(i18n.T("chat.exportPasswordAgain")).Disabled(e.working)
+			password := kit.TextInput(c, &e.password).FillWidth().Label(i18n.T("chat.exportPassword")).Placeholder(i18n.T("chat.exportPassword")).Disabled(e.working)
+			again := kit.TextInput(c, &e.confirmation).FillWidth().Label(i18n.T("chat.exportPasswordAgain")).Placeholder(i18n.T("chat.exportPasswordAgain")).Disabled(e.working)
 			if !e.show {
 				password.Password()
 				again.Password()

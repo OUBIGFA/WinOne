@@ -239,7 +239,7 @@ func (b *Book) imageEditor(c *ui.Context) {
 		d.add(maskShape{Shape: "polygon", Properties: []maskProperty{{Name: "left", Value: "0"}, {Name: "top", Value: "0"}, {Name: "points", Value: strings.Join(points, " ")}}})
 		d.points = nil
 	}
-	ui.Field(c, text("maskGroup"), func() { ui.TextInput(c, &d.group).Placeholder(text("autoGroup")).FillWidth() }).FillWidth()
+	ui.Field(c, text("maskGroup"), func() { kit.TextInput(c, &d.group).Placeholder(text("autoGroup")).FillWidth() }).FillWidth()
 	if ui.Checkbox(c, &d.OccludeInactive, text("hideOtherMasks")).Changed() {
 		d.dirty = true
 	}
@@ -265,7 +265,7 @@ func (b *Book) imageEditor(c *ui.Context) {
 					for propertyIndex := range shape.Properties {
 						p := &shape.Properties[propertyIndex]
 						ui.Field(c.Key(p.Name), human(p.Name), func() {
-							if ui.TextInput(c, &p.Value).Width(150).Changed() {
+							if kit.TextInput(c, &p.Value).Width(150).Changed() {
 								d.dirty = true
 							}
 						}).Basis(160).Grow(1)
@@ -289,7 +289,7 @@ func (b *Book) imageEditor(c *ui.Context) {
 		}
 	}).FillWidth()
 	ui.Field(c, text("tags"), func() {
-		if ui.TextInput(c, &d.tagText).FillWidth().Changed() {
+		if kit.TextInput(c, &d.tagText).FillWidth().Changed() {
 			d.dirty = true
 		}
 	}).FillWidth()

@@ -126,7 +126,8 @@ func (p *peerPanel) View(c *ui.Context, active bool) {
 		c.After(time.Second)
 	}
 	f := &p.form
-	ui.Column(c).FillWidth().Gap(16).Children(func() {
+	// The form and the services list are two headed groups.
+	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
 		if p.err != "" {
 			kit.Notice(c, kit.Failure, "", p.err, nil)
 		}
@@ -146,18 +147,18 @@ func (p *peerPanel) View(c *ui.Context, active bool) {
 			kit.Stack(c, "", "", func() {
 				if p.direction == "server" {
 					kit.Label(c, tr("targetPort"))
-					ui.TextInput(c, &f.Target).FillWidth().Label(tr("targetPort")).Disabled(p.busy)
+					kit.TextInput(c, &f.Target).FillWidth().Label(tr("targetPort")).Disabled(p.busy)
 				} else {
 					kit.Label(c, tr("tailcatCode"))
-					ui.TextInput(c, &f.Code).FillWidth().Label(tr("tailcatCode")).Disabled(p.busy)
+					kit.TextInput(c, &f.Code).FillWidth().Label(tr("tailcatCode")).Disabled(p.busy)
 				}
 				ui.Collapsible(c, tr("networkOptions"), &p.networkOn, func() {
 					ui.Column(c).FillWidth().Gap(10).Padding(8, 0).Children(func() {
 						kit.Label(c, tr("derpMap"))
-						ui.TextInput(c, &f.DerpMapURL).FillWidth().Label(tr("derpMap")).Disabled(p.busy)
+						kit.TextInput(c, &f.DerpMapURL).FillWidth().Label(tr("derpMap")).Disabled(p.busy)
 						if p.direction == "client" {
 							kit.Label(c, tr("listenPort"))
-							ui.TextInput(c, &f.Listen).FillWidth().Label(tr("listenPort")).Disabled(p.busy)
+							kit.TextInput(c, &f.Listen).FillWidth().Label(tr("listenPort")).Disabled(p.busy)
 						}
 						if p.kind == "tunnel" {
 							kit.Label(c, tr("remotePort"))
@@ -540,7 +541,7 @@ func (t *peerTask) codeTransfer(c *ui.Context, id string, state codeTransfer, bu
 						call("share_code_answer", map[string]any{"id": id, "promptId": promptID, "answer": value})
 					}
 				}
-				ui.TextInput(c, &t.answer).Grow(1).MinWidth(120).Label(tr("answer"))
+				kit.TextInput(c, &t.answer).Grow(1).MinWidth(120).Label(tr("answer"))
 				if kit.Button(c, tr("reply"), nil, false).Disabled(busy || t.answer == "").Clicked() {
 					call("share_code_answer", map[string]any{"id": id, "promptId": promptID, "answer": t.answer})
 				}
@@ -686,7 +687,7 @@ func (t *peerTask) saveDialog(c *ui.Context, id string, busy bool, action func(f
 				save.path = folder + `\` + name
 			}, func(err error) { action(func() error { return err }, nil) })
 			field.Children(func() {
-				ui.TextInput(c, &save.path).FillWidth().Label(tr("savePath")).Disabled(busy)
+				kit.TextInput(c, &save.path).FillWidth().Label(tr("savePath")).Disabled(busy)
 			})
 			ui.Row(c).Children(func() {
 				if kit.Button(c, tr("choose"), icons.FolderOpen, false).Disabled(busy).Clicked() {

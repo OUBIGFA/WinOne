@@ -42,13 +42,18 @@ func (e *exporter) report() { e.page.env.Activity.Report("profile-export", false
 
 func (e *exporter) view(c *ui.Context) {
 	kit.Section(c, icons.Download, i18n.T("profiles.export"), i18n.T("profiles.exportHint"), func() {
-		ui.Row(c).FillWidth().GapX(16).GapY(8).Wrap().AlignItems(ui.Center).Children(func() {
-			if kit.Button(c, i18n.T("profiles.exportFile"), icons.Download, e.busy).Clicked() {
-				e.run()
-			}
-			if e.written != "" {
-				kit.Status(c, i18n.T("profiles.exported", "path", e.written)).Selectable().Shrink(1).MinWidth(0)
-			}
+		// On a panel, as the groups of the other tabs are.
+		kit.Panel(c, func() {
+			kit.Stack(c, "", "", func() {
+				ui.Row(c).FillWidth().GapX(16).GapY(8).Wrap().AlignItems(ui.Center).Children(func() {
+					if kit.Button(c, i18n.T("profiles.exportFile"), icons.Download, e.busy).Clicked() {
+						e.run()
+					}
+					if e.written != "" {
+						kit.Status(c, i18n.T("profiles.exported", "path", e.written)).Selectable().Shrink(1).MinWidth(0)
+					}
+				})
+			})
 		})
 		if e.err != "" {
 			kit.Notice(c, kit.Failure, "", e.err, nil)
@@ -559,10 +564,15 @@ func (im *importer) blocked(issues []string) bool {
 func (im *importer) view(c *ui.Context) {
 	section := ui.Column(c).FillWidth().Gap(kit.HeadingGap).Children(func() {
 		kit.SectionHeading(c, icons.Upload, i18n.T("profiles.import"), i18n.T("profiles.importHint"))
-		ui.Row(c).Children(func() {
-			if kit.Button(c, i18n.T("profiles.chooseFile"), icons.Upload, im.busy && im.preview == nil).Disabled(im.busy).Clicked() {
-				im.choose("")
-			}
+		// The review below has panels of its own, so only the action sits here.
+		kit.Panel(c, func() {
+			kit.Stack(c, "", "", func() {
+				ui.Row(c).Children(func() {
+					if kit.Button(c, i18n.T("profiles.chooseFile"), icons.Upload, im.busy && im.preview == nil).Disabled(im.busy).Clicked() {
+						im.choose("")
+					}
+				})
+			})
 		})
 		if im.preview != nil {
 			im.reviewView(c)

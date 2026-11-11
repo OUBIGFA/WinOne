@@ -309,7 +309,7 @@ func (t *gesturesTab) trails(c *ui.Context, busy, disabled bool) {
 			g := &d.Gestures[index]
 			ui.Column(c).Basis(320).Grow(1).Shrink(1).MinWidth(0).Gap(16).Children(func() {
 				kit.Stack(c, i18n.T("stroke.gestureName"), "", func() {
-					if ui.TextInput(c, &g.Name).FillWidth().Label(i18n.T("stroke.gestureName")).Disabled(busy).Changed() {
+					if kit.TextInput(c, &g.Name).FillWidth().Label(i18n.T("stroke.gestureName")).Disabled(busy).Changed() {
 						// "#" starts Stroke's built-in gesture IDs.
 						g.Name = strings.TrimLeft(g.Name, "#")
 					}
@@ -599,7 +599,7 @@ func (t *gesturesTab) actionEditor(c *ui.Context, packIndex, actionIndex int, bu
 	pack := &d.ActionPackages[packIndex]
 	action := &pack.Actions[actionIndex]
 	kit.Stack(c, i18n.T("stroke.actionName"), "", func() {
-		ui.TextInput(c, &action.Name).FillWidth().Label(i18n.T("stroke.actionName")).Disabled(busy)
+		kit.TextInput(c, &action.Name).FillWidth().Label(i18n.T("stroke.actionName")).Disabled(busy)
 	})
 	kit.Toggle(c, &action.Enabled, i18n.T("stroke.actionEnabled"), "").Disabled(busy)
 	kit.Stack(c, i18n.T("stroke.actionGesture"), "", func() {
@@ -627,7 +627,7 @@ func (t *gesturesTab) packageEditor(c *ui.Context, packIndex int, busy bool) {
 	pack := &d.ActionPackages[packIndex]
 	id := pack.ID
 	kit.Stack(c, i18n.T("stroke.packageName"), i18n.T("stroke.packageOrder"), func() {
-		ui.TextInput(c, &pack.Name).FillWidth().Label(i18n.T("stroke.packageName")).Disabled(busy)
+		kit.TextInput(c, &pack.Name).FillWidth().Label(i18n.T("stroke.packageName")).Disabled(busy)
 	})
 	ui.Row(c).Gap(8).Wrap().Children(func() {
 		if kit.Button(c, i18n.T("stroke.moveUp"), icons.ArrowUp, false).Disabled(busy || packIndex == 0).Clicked() {

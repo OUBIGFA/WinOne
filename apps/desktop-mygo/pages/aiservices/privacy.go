@@ -39,7 +39,7 @@ func (a *advancedPanel) listInput(c *ui.Context, key, label string, values []str
 	if !f.focused && joined != f.of {
 		f.text, f.of = joined, joined
 	}
-	input := ui.TextInput(c, &f.text).FillWidth().Label(label).Disabled(locked)
+	input := kit.TextInput(c, &f.text).FillWidth().Label(label).Disabled(locked)
 	focused := input.Focused()
 	if f.focused && !focused {
 		next := splitList(f.text)
@@ -208,7 +208,7 @@ func (a *advancedPanel) rules(c *ui.Context, locked bool) {
 	reset := func() { f.editing, f.kind, f.by, f.match = -1, "", "prefix", "" }
 	ui.Column(c).FillWidth().Gap(12).Children(func() {
 		ui.Field(c, i18n.T("ai.redactRuleKind"), func() {
-			ui.TextInput(c, &f.kind).FillWidth().Placeholder("API_KEY").Label(i18n.T("ai.redactRuleKind")).Disabled(locked)
+			kit.TextInput(c, &f.kind).FillWidth().Placeholder("API_KEY").Label(i18n.T("ai.redactRuleKind")).Disabled(locked)
 		})
 		ui.Field(c, i18n.T("ai.redactRuleMatch"), func() {
 			ui.Column(c).Disabled(locked).Children(func() {
@@ -216,7 +216,7 @@ func (a *advancedPanel) rules(c *ui.Context, locked bool) {
 			})
 		})
 		ui.Field(c, i18n.T("ai.redactRuleContent"), func() {
-			ui.TextInput(c, &f.match).FillWidth().Label(i18n.T("ai.redactRuleContent")).Disabled(locked)
+			kit.TextInput(c, &f.match).FillWidth().Label(i18n.T("ai.redactRuleContent")).Disabled(locked)
 		})
 		ui.Row(c).Gap(8).Wrap().Children(func() {
 			label, icon := "ai.addRedactRule", icons.Plus

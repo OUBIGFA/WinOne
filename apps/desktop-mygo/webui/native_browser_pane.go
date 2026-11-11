@@ -378,7 +378,7 @@ func (p *NativeBrowserPane) View(c *ui.Context) {
 			if kit.IconButton(c, icons.RefreshCw, i18n.T("chat.refresh")).Clicked() {
 				p.run("reload", nil)
 			}
-			address = ui.TextInput(c, &p.addressText).Grow(1).MinWidth(0).Bind(&p.address).Label(i18n.T("chat.browser.address"))
+			address = kit.TextInput(c, &p.addressText).Grow(1).MinWidth(0).Bind(&p.address).Label(i18n.T("chat.browser.address"))
 			if kit.IconButton(c, icons.ArrowUpRight, i18n.T("chat.browser.go")).Clicked() {
 				p.run("navigate", map[string]any{"url": p.addressText})
 			}
@@ -434,7 +434,7 @@ func (p *NativeBrowserPane) View(c *ui.Context) {
 				for _, name := range []string{"color", "background-color", "font-size", "font-weight", "padding", "border-radius"} {
 					value := p.styles[name]
 					ui.Field(c, name, func() {
-						if ui.TextInput(c, &value).FillWidth().Changed() {
+						if kit.TextInput(c, &value).FillWidth().Changed() {
 							p.styles[name] = value
 							p.previewDesign(false)
 						}

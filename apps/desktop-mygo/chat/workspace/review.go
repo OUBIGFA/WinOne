@@ -451,7 +451,7 @@ func (p *ReviewPane) toolbar(c *ui.Context) {
 }
 func (p *ReviewPane) filesView(c *ui.Context) {
 	ui.Column(c).Fill().MinWidth(0).Padding(8).Gap(6).Children(func() {
-		ui.TextInput(c, &p.filter).Label(wt("filter")).Placeholder(wt("filter")).FillWidth()
+		kit.TextInput(c, &p.filter).Label(wt("filter")).Placeholder(wt("filter")).FillWidth()
 		if p.metadata.Repository && (p.scope == "working" || p.scope == "staged") && p.options.TurnID == "" {
 			action := "stage"
 			if p.scope == "staged" {

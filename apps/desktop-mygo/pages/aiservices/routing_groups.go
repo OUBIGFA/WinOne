@@ -27,7 +27,7 @@ func (r *routingPanel) groupsView(c *ui.Context) {
 		return
 	}
 	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-		ui.TextInput(c, &r.search).Grow(1).MinWidth(180).Placeholder(nativeT("searchGroups")).Label(nativeT("searchGroups"))
+		kit.TextInput(c, &r.search).Grow(1).MinWidth(180).Placeholder(nativeT("searchGroups")).Label(nativeT("searchGroups"))
 		if kit.PrimaryButton(c, nativeT("newGroup"), icons.Plus, false).Disabled(locked).Clicked() {
 			r.beginNew(core.Preserved[routeGroup]{Value: routeGroup{Members: []string{}}})
 		}
@@ -474,7 +474,7 @@ func (r *routingPanel) membersView(c *ui.Context, g *routeGroup, locked bool) {
 			g.Placed = slices.Clone(g.Members)
 		}
 		kit.Stack(c, "", "", func() {
-			ui.TextInput(c, &r.memberSearch).FillWidth().Placeholder(nativeT("searchModels")).Label(nativeT("searchModels"))
+			kit.TextInput(c, &r.memberSearch).FillWidth().Placeholder(nativeT("searchModels")).Label(nativeT("searchModels"))
 		})
 		all := append(append([]routeModel{}, r.state.Models...), r.state.Drawers...)
 		for _, other := range r.state.Groups {

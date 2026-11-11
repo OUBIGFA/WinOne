@@ -50,7 +50,7 @@ func i18nClose() string { return i18n.T("common.close") }
 // textField is an input with a placeholder that names it, as the React
 // page's fields, bounded to maxNameLength characters.
 func textField(c *ui.Context, value *string, label string, disabled bool) ui.Element {
-	in := ui.TextInput(c, value).FillWidth().Placeholder(label).Label(label).Disabled(disabled)
+	in := kit.TextInput(c, value).FillWidth().Placeholder(label).Label(label).Disabled(disabled)
 	if utf8.RuneCountInString(*value) > maxNameLength {
 		*value = string([]rune(*value)[:maxNameLength])
 	}
@@ -100,8 +100,8 @@ func (p *page) lobby(c *ui.Context) {
 					})
 				} else {
 					ui.Column(c).FillWidth().Gap(12).Children(func() {
-						id := ui.TextInput(c, &p.roomID).FillWidth().Placeholder(tr("roomCode")).Label(tr("roomCode")).AutoFocus().Disabled(p.busy)
-						pw := ui.TextInput(c, &p.password).FillWidth().Placeholder(tr("roomPassword")).Label(tr("roomPassword")).Disabled(p.busy)
+						id := kit.TextInput(c, &p.roomID).FillWidth().Placeholder(tr("roomCode")).Label(tr("roomCode")).AutoFocus().Disabled(p.busy)
+						pw := kit.TextInput(c, &p.password).FillWidth().Placeholder(tr("roomPassword")).Label(tr("roomPassword")).Disabled(p.busy)
 						ready := p.nickReady && strings.TrimSpace(p.roomID) != "" && p.password != ""
 						submit := id.Submitted() || pw.Submitted()
 						if kit.PrimaryButton(c, tr("joinRoom"), nil, p.busy).FillWidth().Justify(ui.Center).Disabled(p.busy || !ready).Clicked() || (submit && ready && !p.busy) {
@@ -656,7 +656,7 @@ func (p *page) dialogs(c *ui.Context) {
 					ui.Column(c).FillWidth().Gap(8).Children(func() {
 						kit.Label(c, label)
 						shown := value
-						ui.TextInput(c, &shown).FillWidth().ReadOnly(true).Label(label).Font(kit.MonoFont)
+						kit.TextInput(c, &shown).FillWidth().ReadOnly(true).Label(label).Font(kit.MonoFont)
 					})
 				}
 				readOnly(p.session.RoomID, tr("roomCode"))

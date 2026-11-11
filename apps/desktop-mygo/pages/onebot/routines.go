@@ -312,7 +312,7 @@ func (p *routinesPane) editorView(c *ui.Context) {
 	e := p.editor
 	r := &e.value
 	fixed := r.Builtin != ""
-	ui.Field(c, nt("name"), func() { ui.TextInput(c, &r.Name).FillWidth().Label(nt("name")).Disabled(fixed) })
+	ui.Field(c, nt("name"), func() { kit.TextInput(c, &r.Name).FillWidth().Label(nt("name")).Disabled(fixed) })
 	ui.Field(c, nt("instruction"), func() { ui.TextArea(c, &r.Prompt).FillWidth().Height(160).Label(nt("instruction")).Disabled(fixed) })
 	kit.Toggle(c, &r.Enabled, nt("enabled"), "")
 	if fixed {
@@ -432,7 +432,7 @@ func (p *routinesPane) triggerView(c *ui.Context, e *routineEditor, index int) {
 				e.cron[t.ID] = automations.NewCronEditor(t.Expression)
 			}
 			e.cron[t.ID].View(c, &t.Expression)
-			ui.Field(c, nt("timezone"), func() { ui.TextInput(c, &t.Timezone).FillWidth().Label(nt("timezone")) })
+			ui.Field(c, nt("timezone"), func() { kit.TextInput(c, &t.Timezone).FillWidth().Label(nt("timezone")) })
 		case "interval":
 			minutes := float64(t.IntervalMs) / 60000
 			if ui.NumberInput(c, &minutes, 1, 1e10, 1).Label(nt("intervalMinutes")).Changed() {
@@ -468,9 +468,9 @@ func (p *routinesPane) triggerView(c *ui.Context, e *routineEditor, index int) {
 				}
 				filter := &t.Filters[i]
 				ui.Column(c.Key(i)).FillWidth().Gap(4).Children(func() {
-					ui.TextInput(c, &filter.Field).FillWidth().Label(nt("eventField"))
+					kit.TextInput(c, &filter.Field).FillWidth().Label(nt("eventField"))
 					kit.Select(c, &filter.Operator, []kit.SelectOption{{Value: "equals", Label: nt("equals")}, {Value: "contains", Label: nt("contains")}, {Value: "not-equals", Label: nt("notEquals")}})
-					ui.TextInput(c, &filter.Value).FillWidth().Label(nt("eventValue"))
+					kit.TextInput(c, &filter.Value).FillWidth().Label(nt("eventValue"))
 					if kit.Button(c, nt("removeFilter"), icons.X, false).Clicked() {
 						t.Filters = slices.Delete(t.Filters, i, i+1)
 					}
@@ -529,7 +529,7 @@ func (p *routinesPane) checkFields(c *ui.Context, e *routineEditor) {
 			value := int64(timeout * 1000)
 			r.PreRunHook.TimeoutMs = &value
 		}
-		ui.TextInput(c, &e.hookDescription).FillWidth().Label(nt("hookDescription"))
+		kit.TextInput(c, &e.hookDescription).FillWidth().Label(nt("hookDescription"))
 		ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
 			if kit.Button(c, nt("testHook"), icons.Play, p.busy).Clicked() {
 				p.hookRequest(e, false)

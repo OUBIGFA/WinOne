@@ -75,7 +75,7 @@ func (h *Host) cardFields(c *ui.Context, item *card) {
 			if field.Multiline || field.Kind == "mail-html" {
 				changed = ui.TextArea(c, &value).FillWidth().Height(120).Label(field.Label).Disabled(item.busy).Changed()
 			} else {
-				changed = ui.TextInput(c, &value).FillWidth().Label(field.Label).Disabled(item.busy).Changed()
+				changed = kit.TextInput(c, &value).FillWidth().Label(field.Label).Disabled(item.busy).Changed()
 			}
 			if changed {
 				item.values[field.Name] = value

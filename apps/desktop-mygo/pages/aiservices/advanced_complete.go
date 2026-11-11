@@ -185,7 +185,7 @@ func (a *advancedPanel) observability(c *ui.Context, locked bool) {
 				value := s.Headers[name]
 				ui.Column(c).Grow(1).Children(func() {
 					ui.Field(c, name, func() {
-						ui.TextInput(c, &value).FillWidth().Password().Placeholder(completeT("savedHeader")).Disabled(locked)
+						kit.TextInput(c, &value).FillWidth().Password().Placeholder(completeT("savedHeader")).Disabled(locked)
 					})
 				})
 				s.Headers[name] = value
@@ -196,7 +196,7 @@ func (a *advancedPanel) observability(c *ui.Context, locked bool) {
 		}
 		field := a.fields.get("otelHeader")
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
-			ui.TextInput(c, &field.text).Grow(1).MinWidth(0).Label(completeT("otelHeader")).Disabled(locked)
+			kit.TextInput(c, &field.text).Grow(1).MinWidth(0).Label(completeT("otelHeader")).Disabled(locked)
 			if kit.Button(c, completeT("addHeader"), icons.Plus, false).Disabled(locked || field.text == "").Clicked() {
 				if s.Headers == nil {
 					s.Headers = map[string]string{}

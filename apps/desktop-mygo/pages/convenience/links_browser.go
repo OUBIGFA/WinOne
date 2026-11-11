@@ -200,7 +200,7 @@ func (p *folderPane) View(c *ui.Context, env *core.Env, height float32) ui.Eleme
 			kit.Strong(c, i18n.T(title))
 			address := ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center)
 			address.Children(func() {
-				in := ui.TextInput(c, &b.address).Grow(1).MinWidth(0).Placeholder(i18n.T("links.enterFolder")).
+				in := kit.TextInput(c, &b.address).Grow(1).MinWidth(0).Placeholder(i18n.T("links.enterFolder")).
 					Label(i18n.T(addressLabel)).Disabled(p.disabled)
 				if in.Changed() {
 					b.edit(b.address)

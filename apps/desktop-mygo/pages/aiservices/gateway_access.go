@@ -263,7 +263,7 @@ func (a *gatewayAccessPanel) View(c *ui.Context, p *page) {
 		}
 		if a.revealed != "" {
 			kit.Stack(c, accessT("newSecret"), accessT("newSecretHint"), func() {
-				ui.TextInput(c, &a.revealed).FillWidth().ReadOnly(true)
+				kit.TextInput(c, &a.revealed).FillWidth().ReadOnly(true)
 				ui.Row(c).Gap(8).Children(func() {
 					if kit.Button(c, accessT("copy"), icons.Copy, false).Clicked() {
 						c.Services().WriteClipboard(a.revealed)
@@ -296,7 +296,7 @@ func (a *gatewayAccessPanel) createView(c *ui.Context, p *page) {
 			numberRow(c, accessT("cost"), &a.issueCost, 0, 1e15, false, "0", a.api.busy, func(v *float64) { a.issueCost = value(v) })
 			kit.Toggle(c, &a.issueReadOnly, accessT("readOnly"), accessT("readOnlyHint")).Disabled(a.api.busy)
 		} else {
-			ui.Field(c, accessT("ownSecret"), func() { ui.TextInput(c, &a.secret).FillWidth().Password().Disabled(a.api.busy) })
+			ui.Field(c, accessT("ownSecret"), func() { kit.TextInput(c, &a.secret).FillWidth().Password().Disabled(a.api.busy) })
 			kit.Help(c, accessT("ownSecretHint"))
 			kit.Toggle(c, &a.browser, accessT("browser"), accessT("browserHint")).Disabled(a.api.busy)
 		}
@@ -431,7 +431,7 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 		})
 		if a.confirm != "" {
 			if a.confirm == "rotate-key" {
-				ui.Field(c, accessT("ownSecret"), func() { ui.TextInput(c, &a.secret).FillWidth().Password().Disabled(locked) })
+				ui.Field(c, accessT("ownSecret"), func() { kit.TextInput(c, &a.secret).FillWidth().Password().Disabled(locked) })
 			}
 			kit.Notice(c, kit.Caution, "", accessT("revokeHint"), func() {
 				if kit.Button(c, accessT("confirm"), icons.Check, false).Disabled(locked).Clicked() {
@@ -521,7 +521,7 @@ func (a *gatewayAccessPanel) oidcView(c *ui.Context, p *page) {
 			})
 		}
 		ui.Row(c).FillWidth().Gap(8).Children(func() {
-			ui.TextInput(c, &a.claimName).Grow(1).Label(accessT("claim"))
+			kit.TextInput(c, &a.claimName).Grow(1).Label(accessT("claim"))
 			if kit.Button(c, accessT("addClaim"), icons.Plus, false).Disabled(a.api.busy || a.claimName == "").Clicked() {
 				if a.rule.Claims == nil {
 					a.rule.Claims = map[string]string{}
