@@ -511,14 +511,22 @@ func (s *Shell) View(c *ui.Context) {
 		ui.Row(c).Grow(1).AlignItems(ui.Stretch).MinHeight(0).Children(func() {
 			s.sidebar(c)
 			ui.Column(c).Grow(1).Basis(0).FillHeight().MinWidth(0).MinHeight(0).Children(func() {
-				pluginhost.For(s.env).Layout(c, s.page == "chat" || s.page == "onebot", func() { s.content(c) })
+				// Plugin chrome reads the Host too. Share ordinary pages' first
+				// snapshot boundary so startup cannot emit premature pipe errors.
+				if s.loaded {
+					pluginhost.For(s.env).Layout(c, s.page == "chat" || s.page == "onebot", func() { s.content(c) })
+				} else {
+					s.content(c)
+				}
 			})
 			s.sidebarHandle(c)
 		})
 	})
 	s.settle()
 	s.guard(c)
-	pluginhost.For(s.env).View(c)
+	if s.loaded {
+		pluginhost.For(s.env).View(c)
+	}
 	for _, message := range s.toasts {
 		c.Toast(message)
 	}

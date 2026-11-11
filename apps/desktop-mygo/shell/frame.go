@@ -125,7 +125,9 @@ func (s *Shell) sidebar(c *ui.Context) {
 					s.navItem(c, item, compact)
 				}
 			}
-			pluginhost.For(s.env).Navigation(c, compact)
+			if s.loaded {
+				pluginhost.For(s.env).Navigation(c, compact)
+			}
 		})
 		ui.Column(c).Padding(4, 8, 12).Gap(2).FocusGroup(ui.Vertical).Children(func() {
 			for _, item := range pages() {

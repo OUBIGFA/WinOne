@@ -66,11 +66,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing.go",
-          "sha256": "cf56455d99e086636e54443db3b567aa21f11d13630af31373f8497c6356b9fe"
+          "sha256": "6ac4fe123aef34e83f6cc1768fb36d6d889a480fc297f0f1940c126de4b4c828"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_groups.go",
-          "sha256": "9f83b9940448b4e3301ca110dd0eb64b0bfc521b69bc8908c8de4ffe4ec13875"
+          "sha256": "439140736996e8a6969ddfb2e11bd05934117f8a5c503c16db8fdc7081456a07"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_members.go",
@@ -78,7 +78,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_trace.go",
-          "sha256": "e1b22539b972d33b71192f5a5321cd6f82d300cdf085d67639be9c4ac972e89a"
+          "sha256": "821946cec316e7cfdbd60218f341c9542adb185a92699bf9873156ee4336612b"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_evidence.go",
@@ -86,7 +86,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/plugins_native.go",
-          "sha256": "dc006a7cf9c956ad6d8614b93d31ecbdeded2ba03f3136b8d821d96df6197253"
+          "sha256": "e4462b0bd88efa8d7cc642d538c568fbd8b68e134f1d241480438ffcd2140944"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/masking_records.go",
@@ -122,11 +122,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences_accounts.go",
-          "sha256": "76ab465a14e89a6e44958f136cb0ecbc1e0aaea81af6a3741f1200cf53b67757"
+          "sha256": "a5b704d556555edbaccd1b61aa6b9672866462dbcf594c21a2a8d706d6ec6d0a"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences_billing.go",
-          "sha256": "ae057897bb0e377496dfd1e941d43da05a16227b3d3a7f3307fa865505abbd4c"
+          "sha256": "493e007b165ab93f009b626eeaa391872c82f2dc968880f8f657cc1945753449"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/routing_purposes.go",
@@ -146,15 +146,15 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_access.go",
-          "sha256": "07b1c0d6ced0fdbf96c40f0fe8063afcd012cf96ef5f178a6842591409e42041"
+          "sha256": "8c52795b5013d994f890ecce7b9ff6d9232d304040604d03f4a5d77447b7cc99"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_history.go",
-          "sha256": "2baaa7b1baaa3ecb82a32397a3e06498dae636eae7334bde2cbe8b7e9564b64e"
+          "sha256": "a161267490bdd80d641b4756a1563375ac5f2e6aa6de6b8750787dad0e3906bf"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/plugins_upstream.go",
-          "sha256": "d7dfb0aca7977ed484bcf4bbd1cdea941ee04c59b75a8ff6c3efd76876320e71"
+          "sha256": "27cb173d491d77cad79a00267f90fbbbc090788882e9c8c63e36afe2008204fe"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/plugins_bundled.go",
@@ -166,7 +166,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/library_content.go",
-          "sha256": "e80682c47fc01d1d1c33b7dce1ec5951f7a73e2337486abd05dddd0342dc567b"
+          "sha256": "b03db46fed98a6407a61f0075223134b9ba0da41a8f750bcb7d1554be4977ee9"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/library_i18n.go",
@@ -178,11 +178,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/sessions_manage.go",
-          "sha256": "19880ecbc13fbcdd66f3059f87322e418f12493b8a133142683cf775ad93f3b8"
+          "sha256": "ed78b4a1227ef664de72182e3d78f3fb939f68037dcda688119dd6ebd4ecac4d"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/observability_upstream.go",
-          "sha256": "7b168fc0097b6ac462be15031f712e4d35b7703a7de2208699fae4aec22089c2"
+          "sha256": "dbb9c869538f7ecae29e7a652bf8fbc23c8bae347f2e43cf408a01bfbb3852b2"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/masking_summary.go",
@@ -202,7 +202,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/navigation_upstream.go",
-          "sha256": "e310f26398437b08aa6ce8e1cc62c6880da3fe0170f848dbeb21d6130bcca36e"
+          "sha256": "eab718782fe3289d807179bae8d8a8c3bf108ea08a056298a87c8fa935e80d58"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-upstream.en-US.json",

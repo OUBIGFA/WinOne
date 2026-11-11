@@ -181,8 +181,23 @@ func ensureHost(client *host.Client, pipe, directory string, launch plan) (inter
 			if err == nil || client.Cancelled() || time.Now().After(deadline) {
 				return snapshot, err
 			}
+			// A maintenance/previous-start reservation can disappear while we
+			// wait. Re-enter startup instead of retrying a missing pipe until
+			// timeout, but never resurrect a Host the user exited normally.
+			if errors.Is(waitNamedPipe(name, 100), windows.ERROR_FILE_NOT_FOUND) {
+				if may, startErr := client.MayStartServer(); startErr != nil || !may {
+					if startErr != nil {
+						return snapshot, startErr
+					}
+					return snapshot, err
+				}
+				break
+			}
 			time.Sleep(200 * time.Millisecond)
 		}
+	}
+	if client.Cancelled() {
+		return snapshot, initial
 	}
 	executable, err := os.Executable()
 	if err != nil {
