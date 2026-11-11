@@ -64,7 +64,12 @@ func (p *Chat) turns(c *ui.Context) {
 	}
 	for index, item := range items {
 		item := item
-		row := ui.Column(c.Key(item.Kind + ":" + item.Key)).FillWidth().Gap(8)
+		row := ui.Column(c.Key(item.Kind + ":" + item.Key)).FillWidth().Gap(stepGap)
+		if item.Kind == "user" && index > 0 {
+			// A user message opens a round: more room above it than between
+			// the parts of the round it belongs to.
+			row.Margin(turnGap-stepGap, 0, 0, 0)
+		}
 		if item.Kind == "user" {
 			// Each user message starts a round the scroll controls stop at.
 			h := s.turnRows[item.Key]
@@ -106,9 +111,9 @@ func (p *Chat) userMessage(c *ui.Context, m model.Message, latest bool) {
 		ui.Column(c).FillWidth().Children(func() { p.editInPlace(c) })
 		return
 	}
-	root := ui.Column(c).AlignSelf(ui.End).MaxWidthPercent(85).Gap(6).AlignItems(ui.End)
+	root := ui.Column(c).AlignSelf(ui.End).MaxWidthPercent(85).Gap(2).AlignItems(ui.End)
 	root.Children(func() {
-		bubble := ui.Column(c).Padding(10, 14).Radius(14).Background(messageBackground(c)).Gap(6)
+		bubble := ui.Column(c).Padding(10, 16).Radius(16).Background(messageBackground(c)).Gap(6)
 		if m.ID != "" {
 			if p.ui.userWidths == nil {
 				p.ui.userWidths = map[string]float32{}
@@ -129,7 +134,7 @@ func (p *Chat) userMessage(c *ui.Context, m model.Message, latest bool) {
 			}
 			text := m.Text()
 			if text != "" {
-				ui.Text(c, text).LineHeight(1.5).Selectable().MinWidth(0)
+				ui.Text(c, text).FontSize(c.Theme().Rem(readingSize)).LineHeight(1.6).Selectable().MinWidth(0)
 			}
 			if len(m.Attachments) > 0 {
 				ui.Row(c).Wrap().Gap(6).Children(func() {
@@ -198,10 +203,10 @@ func attachmentChip(c *ui.Context, f model.Attachment, remove func()) {
 // Only the trailing activity run may be live; retries cannot alter its identity.
 func (p *Chat) responseView(c *ui.Context, r *model.Response, last bool) {
 	for _, segment := range workSegments(r, p.ai.reasoning()) {
-		ui.Column(c.Key(segment.key)).FillWidth().Gap(8).Children(func() {
+		ui.Column(c.Key(segment.key)).FillWidth().Gap(4).Children(func() {
 			switch {
 			case segment.prose != nil:
-				p.replyView(c, *segment.prose, false, r.Key+":"+segment.key, false)
+				p.replyView(c, *segment.prose, false, r.Key+":"+segment.key, false, true)
 			case segment.plan != nil:
 				plan := segment.plan
 				var card *ui.Handle
@@ -220,22 +225,48 @@ func (p *Chat) responseView(c *ui.Context, r *model.Response, last bool) {
 		})
 	}
 	if r.Answer != nil {
-		p.replyView(c, *r.Answer, r.Running, r.Key, last)
+		ui.Column(c.Key("final")).FillWidth().Gap(4).Children(func() { p.replyView(c, *r.Answer, r.Running, r.Key, last, false) })
 	}
 }
 
 // A delivered intermediate reply uses exactly the final reply's Markdown,
 // source, copy and fork controls, outside the work rail and folding state.
-func (p *Chat) replyView(c *ui.Context, message model.Message, running bool, key string, retry bool) {
+// quiet is a reply between two work processes: its controls keep their
+// place and keyboard focus but show only while the pointer or the focus is
+// on the reply, so a long round is not broken up by rows of icons.
+func (p *Chat) replyView(c *ui.Context, message model.Message, running bool, key string, retry, quiet bool) {
 	if p.bot != nil {
 		p.botAnswer(c, message, running, key, retry)
 		return
 	}
-	p.answerView(c, message, running, key)
-	if running {
+	if !quiet {
+		p.answerView(c, message, running, key)
+		if !running {
+			p.replyActions(c, ui.Row(c).Gap(2).AlignItems(ui.Center), message, retry)
+		}
 		return
 	}
-	ui.Row(c).Gap(2).Children(func() {
+	// The controls hang below the reply's right end, out of the flow: the
+	// next work process follows the text directly, and its summary, at the
+	// left, stays clear of them.
+	body := ui.Column(c.Key("reply-body")).FillWidth()
+	body.Children(func() {
+		p.answerView(c, message, running, key)
+		if running {
+			return
+		}
+		actions := ui.Row(c).Absolute().Right(0).Bottom(-24).Gap(2).AlignItems(ui.Center)
+		if !body.Hovered() && !actions.Hovered() && !actions.FocusWithin() {
+			actions.Opacity(0)
+		}
+		p.replyActions(c, actions, message, retry)
+	})
+}
+
+// replyActions fills a reply's row of controls: copy, retry (the latest),
+// fork, and the model that wrote it.
+func (p *Chat) replyActions(c *ui.Context, actions ui.Element, message model.Message, retry bool) {
+	actions.Children(func() {
 		if messageAction(c, icons.Copy, i18n.T("chat.copy")).Clicked() {
 			p.copy(message.Text())
 		}
@@ -351,7 +382,7 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 	if len(entries) == 0 {
 		return
 	}
-	t, pal := c.Theme(), kit.Colors(c)
+	t := c.Theme()
 	if p.ui.expanded == nil {
 		p.ui.expanded = map[string]bool{}
 	}
@@ -376,7 +407,12 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 	}
 	process := ui.Column(c.Key("process:" + r.Key)).FillWidth().Gap(4)
 	process.Children(func() {
-		head := ui.ButtonBase(c).AlignSelf(ui.Start).Gap(6).AlignItems(ui.Center).Padding(4, 6).Radius(t.Radius).Label(summary).Expanded(open || expandedStep).Disabled(!canToggle)
+		head := ui.ButtonBase(c).AlignSelf(ui.Start).Gap(6).AlignItems(ui.Center).Padding(4, 6).Radius(t.Radius).Label(summary)
+		if canToggle {
+			// Without more to show it is a caption: no state and no pointer.
+			// The work process has no hover effects (docs/working-rules/ui.md).
+			head.Expanded(open || expandedStep).Cursor(ui.CursorPointer)
+		}
 		head.Children(func() {
 			if r.Running {
 				ui.Spinner(c).Size(14, 14)
@@ -392,7 +428,7 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 				ui.Icon(c, chevron).FontSize(14).TextColor(t.TextMuted)
 			}
 		})
-		if head.Clicked() {
+		if canToggle && head.Clicked() {
 			if open || expandedStep {
 				p.collapseProcess(r.Key)
 			} else {
@@ -415,10 +451,16 @@ func (p *Chat) workProcess(c *ui.Context, r *model.Response, entries []model.Ent
 		if open || expandedStep {
 			p.ui.openProcesses = append(p.ui.openProcesses, r.Key)
 		}
-		ui.Column(c).FillWidth().Gap(6).Padding(4, 40, 4, 12).BorderWidth(0, 0, 0, 2).BorderColor(pal.Hairline).Children(func() {
-			for _, entry := range shown {
-				ui.Column(c.Key("entry:" + entry.Key)).FillWidth().Children(func() { p.entryView(c, entry, r.Running) })
-			}
+		// The right gutter is the floating collapse control's: it never
+		// covers a step (process_collapse.go).
+		// The indent is the wrapper's padding: a margin on a full-width
+		// column would push its right edge into that gutter.
+		ui.Column(c).FillWidth().Padding(0, 0, 0, 12).Children(func() {
+			ui.Column(c).FillWidth().Gap(2).Padding(2, 40, 2, 8).BorderWidth(0, 0, 0, 1).BorderColor(t.Border).Children(func() {
+				for _, entry := range shown {
+					ui.Column(c.Key("entry:" + entry.Key)).FillWidth().Children(func() { p.entryView(c, entry, r.Running) })
+				}
+			})
 		})
 	})
 }
@@ -445,18 +487,20 @@ func (p *Chat) entryView(c *ui.Context, e model.Entry, running bool) {
 	case "thinking":
 		key := "thinking:" + e.Key
 		open := p.ui.expanded[key]
-		row := ui.ButtonBase(c).FillWidth().Gap(6).AlignItems(ui.Start).Padding(3, 6).Label(i18n.T("chat.thinking")).Expanded(open)
+		row := ui.ButtonBase(c).FillWidth().Gap(6).AlignItems(ui.Start).Padding(4, 8).Radius(t.Radius).Label(i18n.T("chat.thinking")).Expanded(open)
 		row.Children(func() {
 			icon := icons.Sparkles
 			if !running {
-				icon = icons.Layers
+				icon = icons.Brain
 			}
-			ui.Icon(c, icon).FontSize(14).TextColor(t.TextMuted).Shrink(0)
+			ui.Row(c).Size(16, 21).Shrink(0).Justify(ui.Center).AlignItems(ui.Center).Children(func() {
+				ui.Icon(c, icon).FontSize(13).TextColor(t.TextMuted)
+			})
 			text := e.Part.Thinking
 			if !open {
 				text = strings.Join(strings.Fields(text), " ")
 			}
-			content := ui.Text(c, text).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted).Italic().LineHeight(1.5).MinWidth(0).Grow(1)
+			content := ui.Text(c, text).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted).LineHeight(1.5).MinWidth(0).Grow(1)
 			if !open {
 				content.SingleLine().Ellipsis("…").Tooltip(text)
 			}
@@ -464,7 +508,9 @@ func (p *Chat) entryView(c *ui.Context, e model.Entry, running bool) {
 			if open {
 				chevron = icons.ChevronDown
 			}
-			ui.Icon(c, chevron).FontSize(13).TextColor(t.TextMuted).Shrink(0)
+			ui.Row(c).Size(13, 21).Shrink(0).AlignItems(ui.Center).Children(func() {
+				ui.Icon(c, chevron).FontSize(13).TextColor(t.TextMuted)
+			})
 		})
 		if row.Clicked() {
 			p.ui.expanded[key] = !open
@@ -545,7 +591,7 @@ func (p *Chat) planCard(c *ui.Context, w model.Workflow, bind *ui.Handle) {
 	card.Children(func() {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Icon(c, icons.ListTodo).FontSize(15)
-			ui.Text(c, i18n.T("chat.planTitle")).FontWeight(600).Grow(1)
+			ui.Text(c, i18n.T("chat.planTitle")).FontWeight(500).Grow(1)
 			ui.Text(c, i18n.T("chat.planProgress", "completed", done, "total", len(w.Items))).FontSize(kit.HelpSize(c)).TextColor(t.TextMuted)
 		})
 		if w.Explanation != "" {

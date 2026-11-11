@@ -20,7 +20,7 @@ func TestMessageActionsRevealWithoutMovingContent(t *testing.T) {
 				c.SetTheme(kit.Theme(c.Preferences(), dark))
 				ui.Column(c).Fill().Padding(24).Gap(20).Background(c.Theme().Background).Children(func() {
 					p.userMessage(c, model.Message{ID: "u", Role: "user", Content: model.TextContent("A short saved question")}, true)
-					p.replyView(c, model.Message{Role: "assistant", Content: model.TextContent("A readable saved answer.")}, false, "answer", false)
+					p.replyView(c, model.Message{Role: "assistant", Content: model.TextContent("A readable saved answer.")}, false, "answer", false, false)
 				})
 			}, width, 350)
 			h.Settle(tt)

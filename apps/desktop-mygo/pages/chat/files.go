@@ -487,19 +487,23 @@ func (p *Chat) turnCard(c *ui.Context, turn model.ChangedTurn) {
 					counts(additions, deletions)
 				}
 			})
-			if r.loaded && r.Snapshot.IsReversible {
-				label, icon := i18n.T("chat.turnUndo"), icons.Undo2
-				if r.Snapshot.WorkspaceState == "undone" {
-					label, icon = i18n.T("chat.turnReapply"), icons.Redo2
+			// The two actions wrap together and are sized for a card's header,
+			// below the page's own buttons.
+			ui.Row(c).Shrink(0).Gap(6).AlignItems(ui.Center).Children(func() {
+				if r.loaded && r.Snapshot.IsReversible {
+					label, icon := i18n.T("chat.turnUndo"), icons.Undo2
+					if r.Snapshot.WorkspaceState == "undone" {
+						label, icon = i18n.T("chat.turnReapply"), icons.Redo2
+					}
+					disabled := p.view.Running || p.busy || r.applying || r.Snapshot.WorkspaceState == "conflict"
+					if kit.GhostButton(c, label, icon, r.applying).MinHeight(30).Disabled(disabled).Clicked() {
+						p.applyTurn(turn.TurnID, r)
+					}
 				}
-				disabled := p.view.Running || p.busy || r.applying || r.Snapshot.WorkspaceState == "conflict"
-				if kit.Button(c, label, icon, r.applying).Disabled(disabled).Clicked() {
-					p.applyTurn(turn.TurnID, r)
+				if kit.Button(c, i18n.T("chat.reviewViewChanges"), nil, false).MinHeight(30).Padding(4, 12).Clicked() {
+					p.openReview(turn.TurnID, "")
 				}
-			}
-			if kit.Button(c, i18n.T("chat.reviewViewChanges"), nil, false).Clicked() {
-				p.openReview(turn.TurnID, "")
-			}
+			})
 		})
 		if len(rows) > 0 {
 			ui.Column(c).FillWidth().Padding(4).BorderWidth(1, 0, 0, 0).BorderColor(pal.Hairline).Children(func() {

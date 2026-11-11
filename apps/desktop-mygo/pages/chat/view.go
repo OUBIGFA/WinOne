@@ -17,6 +17,9 @@ import (
 
 // uiState is what the page's views keep between frames.
 type uiState struct {
+	// reading is this frame's Markdown look of replies; see reading.go.
+	reading        *markdown.Theme
+	readingKey     readingKey
 	closed         bool
 	workdirPlugins *workdirPluginDialog
 	teamRevision   uint64
@@ -115,6 +118,7 @@ func (u *uiState) close() {}
 // View draws the page.
 func (p *Chat) View(c *ui.Context) {
 	p.ui.services = c.Services()
+	p.useReadingTheme(c)
 	if p.mediaShown == nil {
 		p.mediaShown = map[string]bool{}
 	} else {
@@ -425,7 +429,7 @@ func (p *Chat) transcriptView(c *ui.Context) {
 			}
 			return false // Observe intent; MyGo still owns scrolling and smoothing.
 		}).Children(func() {
-			ui.Column(c).FillWidth().MaxWidth(readingWidth+48).AlignSelf(ui.Center).Padding(16, padding, 24, 24).Gap(16).Bind(&items.content).Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(readingWidth+48).AlignSelf(ui.Center).Padding(20, padding, 24, 24).Gap(stepGap).Bind(&items.content).Children(func() {
 				if p.opening && p.submitting == nil {
 					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 						kit.Loader(c)

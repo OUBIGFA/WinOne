@@ -292,9 +292,11 @@ func (p *Chat) answerOptions(key string) *markdown.Options {
 		s.markdown = map[string]*markdown.Options{}
 	}
 	if o := s.markdown[key]; o != nil {
+		// The look follows the window's theme and text size as they change.
+		o.Theme = p.ui.reading
 		return o
 	}
-	o := &markdown.Options{WrapCode: true, LoadImage: p.markdownImageLoader(key), OnLink: func(destination string) { p.openLink(destination, "answer:"+key) }}
+	o := &markdown.Options{Theme: p.ui.reading, WrapCode: true, CodeBlock: p.codeBlock, LoadImage: p.markdownImageLoader(key), OnLink: func(destination string) { p.openLink(destination, "answer:"+key) }}
 	p.answerCodeBlocks(o, key)
 	mathview.For(p.env).Apply(o)
 	s.markdown[key] = o
