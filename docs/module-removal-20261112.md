@@ -31,7 +31,7 @@
 - [x] 完成第一轮审核。
 - [x] 完成第二轮审核。
 - [x] 完成第三轮审核。
-- [ ] 提交推送 main，更新正式安装器及校验文件。
+- [x] 提交推送 main，更新正式安装器及校验文件。
 
 审核结论只在相应流程实际通过后填写；构建成功不代替行为与安装验证。
 
@@ -58,4 +58,6 @@
 - `build/test-installer.ps1` 使用 `-TestRollback -TestRepair -TestOverwrite -TestHistoricalJournal -TestSelfContainedRepair -TestUninstallRecovery` 通过；覆盖首装、故障回退、中断修复、覆盖安装、历史日志、自包含修复、卸载恢复和完整卸载。
 - 测试安装使用隔离目录、隔离注册表键和隔离配置；未操作真实 WinOne 安装。当前仓库版本和历史测试包均为 `0.0.1`，因此未伪造不同版本号执行升级计划；覆盖安装和修复路径已实际核验。
 
-三轮审核的证据均来自本次工作区和 `_temp/remove-modules-20261112/`；正式安装器仍需在提交后的干净源码上重新生成并校验。
+三轮审核的证据均来自本次工作区和 `_temp/remove-modules-20261112/`。提交 `4eb51e3ca36fcf0dc51210cad2325b97416fb55a` 已推送到 `origin/main`。正式安装器已从最终候选包生成并写入 `dist/release/`：`WinOne-setup.exe` 为 335,957,242 字节，SHA-256 为 `793e4a0829385e210e3c55fb642ad769ea0cbe575c1105c47597439f520febf4`；卸载程序为 2,893,392 字节，SHA-256 为 `8587c2ffd5804229eada76928a0ce879aac865d92ce5cee90cbc0964ef0b43e7`。`build/verify-repository.ps1` 已核对正式安装器哈希、大小、提交和远端 `main` 指向。
+
+正式安装器未签名、未发布，真实用户安装和当前安装器的 Defender 全量复扫仍按 `release-info.json` 标注为未执行；隔离安装、覆盖、回退、修复、卸载恢复和载荷哈希已在测试安装器上完成。
