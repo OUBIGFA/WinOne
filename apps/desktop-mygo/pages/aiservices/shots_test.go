@@ -26,7 +26,7 @@ func TestShots(t *testing.T) {
 			t.Logf("last tab=%d requests=%v", p.tab, calls)
 		}
 	})
-	for i, label := range []string{homeT("home"), i18n.T("ai.customProviders"), i18n.T("ai.addProvidersTab"), homeT("preferences"), homeT("more")} {
+	for i, label := range []string{homeT("home"), i18n.T("ai.customProviders"), i18n.T("ai.addProvidersTab"), homeT("preferences"), i18n.T("gateway.title")} {
 		h.Shots(t, fmt.Sprintf("aiservices-%d", i), p.View, 1600, func(tt *ui.Tester) {
 			if err := tt.Click(label); err != nil {
 				t.Fatalf("tab %q: %v", label, err)

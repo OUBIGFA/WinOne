@@ -1,92 +1,62 @@
 package plugin
 
 import (
+	"github.com/yetone/magpie/internal/settings"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/yetone/magpie/internal/settings"
 )
 
-// Sharing plugin code must never share two providers' login credentials.
-func TestWinOneExtensionStoreKeepsPrivateAuth(t *testing.T) {
+func clearAccountRegistry(t *testing.T) {
+	t.Helper()
+	winOneAccount.Lock()
+	winOneAccount.entry = nil
+	winOneAccount.Unlock()
+	t.Cleanup(func() { winOneAccount.Lock(); winOneAccount.entry = nil; winOneAccount.Unlock(); UseCached(nil) })
+}
+
+func TestWinOneAccountRegistryIgnoresDiskExtensionsAndKeepsPrivateAuth(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	privateAuth := filepath.Join(settings.Dir(), "plugin-auth.json")
-	shared := t.TempDir()
-	t.Setenv("WINONE_AI_PLUGINS_HOME", shared)
-	if got := Dir(); got != filepath.Join(shared, "plugins") {
-		t.Fatalf("plugin directory %q is not shared", got)
-	}
-	if got := ListPath(); got != filepath.Join(shared, "plugins.json") {
-		t.Fatalf("plugin registry %q is not shared", got)
-	}
-	if got := AuthPath(); got != privateAuth {
-		t.Fatalf("private auth escaped to %q", got)
-	}
-	if err := os.WriteFile(ListPath(), []byte("{\"plugins\":[{\"spec\":\"third-party-example\"}]}"), 0600); err != nil {
+	clearAccountRegistry(t)
+	if err := os.MkdirAll(settings.Dir(), 0700); err != nil {
 		t.Fatal(err)
 	}
-	l := Load()
-	if len(l.Plugins) != 1 || l.Plugins[0].Spec != "third-party-example" {
-		t.Fatalf("shared plugin not loaded: %#v", l)
-	}
-	if err := SetOff("third-party-example", true); err != nil {
+	old := []byte(`{"plugins":[{"spec":"unreviewed-package"}]}`)
+	if err := os.WriteFile(ListPath(), old, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if !Load().Plugins[0].Off {
-		t.Fatal("switch was not persisted")
+	if len(Load().Plugins) != 0 {
+		t.Fatal("old extensions became executable")
 	}
-	if _, err := os.Stat(privateAuth); !os.IsNotExist(err) {
-		t.Fatalf("plugin management touched private auth: %v", err)
+	WinOneUseBundle(Entry{Spec: "verified-account", Options: map[string]any{"site": "one"}})
+	got := Load()
+	if len(got.Plugins) != 1 || got.Plugins[0].Spec != "verified-account" {
+		t.Fatal("verified account absent")
+	}
+	got.Plugins[0].Options["site"] = "mutated"
+	if Load().Plugins[0].Options["site"] != "one" {
+		t.Fatal("reader mutated account snapshot")
+	}
+	WinOneUseBundle(Entry{Spec: "replacement-account"})
+	if list := Load(); len(list.Plugins) != 1 || list.Plugins[0].Spec != "replacement-account" {
+		t.Fatal("account snapshot accumulated adapters")
+	}
+	data, err := os.ReadFile(ListPath())
+	if err != nil || string(data) != string(old) {
+		t.Fatal("loading changed the legacy registry", err)
+	}
+	if AuthPath() != filepath.Join(settings.Dir(), "plugin-auth.json") {
+		t.Fatal("account authentication escaped its private profile")
 	}
 }
 
-func TestWinOneExtensionBundleIsEphemeralAndOptionsAreIndependent(t *testing.T) {
-	t.Setenv("WINONE_AI_PLUGINS_HOME", t.TempDir())
-	if err := os.WriteFile(ListPath(), []byte("{\"plugins\":[{\"spec\":\"third-party-example\",\"options\":{\"value\":1}}]}"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	winOneBundles.Lock()
-	winOneBundles.entries = nil
-	winOneBundles.Unlock()
-	t.Cleanup(func() { winOneBundles.Lock(); winOneBundles.entries = nil; winOneBundles.Unlock() })
-	WinOneUseBundle(Entry{Spec: "verified-bundled-account", Options: map[string]any{"token": "private-option"}})
-	effective := Load()
-	if len(effective.Plugins) != 2 {
-		t.Fatalf("request lost its account backend: %#v", effective)
-	}
-	effective.Plugins[1].Options["token"] = "mutated"
-	if Load().Plugins[1].Options["token"] != "private-option" {
-		t.Fatal("request mutated shared account options")
-	}
-	if err := SetOff("third-party-example", true); err != nil {
-		t.Fatal(err)
-	}
-	managed := WinOneManaged(Load())
-	if len(managed.Plugins) != 1 || !managed.Plugins[0].Off {
-		t.Fatalf("manager exposes integrated backend: %#v", managed)
-	}
-	winOneBundles.Lock()
-	winOneBundles.entries = nil
-	winOneBundles.Unlock()
-	if len(Load().Plugins) != 1 {
-		t.Fatal("integrated account backend was persisted in third-party registry")
-	}
-}
-
-// A verified account backend is not in plugins.json; its cached providers
-// still count, so its signed-in account becomes a provider.
 func TestWinOneCachedProvidersIncludeTheBundle(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	t.Setenv("WINONE_AI_PLUGINS_HOME", t.TempDir())
-	winOneBundles.Lock()
-	winOneBundles.entries = nil
-	winOneBundles.Unlock()
-	t.Cleanup(func() { winOneBundles.Lock(); winOneBundles.entries = nil; winOneBundles.Unlock(); UseCached(nil) })
-	WinOneUseBundle(Entry{Spec: "verified-bundled-account"})
-	UseCached([]Provider{{ID: "bundled", Spec: "verified-bundled-account"}})
-	cached := Cached()
-	if len(cached) != 1 || cached[0].ID != "bundled" {
-		t.Fatalf("the bundle's providers are left out: %#v", cached)
+	clearAccountRegistry(t)
+	WinOneUseBundle(Entry{Spec: "verified-account"})
+	UseCached([]Provider{{ID: "bundled", Spec: "verified-account"}})
+	got := Cached()
+	if len(got) != 1 || got[0].ID != "bundled" {
+		t.Fatalf("verified account missing: %+v", got)
 	}
 }

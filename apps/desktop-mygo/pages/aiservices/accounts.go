@@ -99,8 +99,6 @@ type accountPanel struct {
 	checkins   []checkin
 	checkedIn  bool
 	checkingIn bool
-	// signInNonce is the plugin request this panel last continued.
-	signInNonce string
 }
 
 func newAccountPanel(p *page, pr *provider) *accountPanel {
@@ -422,15 +420,7 @@ func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
 	a.report()
 	disabled := p.saving || p.loading || p.modelBusy
 	active := a.job.running()
-	if request := p.extensions.signIn; request != nil && request.provider == pr.ID && request.nonce != a.signInNonce &&
-		a.method != "" && !a.loading && !disabled && !active && !a.starting {
-		// The plugin manager's explicit sign-in continues here once the
-		// methods are known, once: navigating never signs in.
-		a.signInNonce = request.nonce
-		p.extensions.signIn = nil
-		a.startFor(r, request.user)
-	}
-	hidden := p.draft != nil && p.draft.Value.magpie().HideAccounts
+	hidden := false
 	accountType := p.catalog.agent(r.Agent)
 	name, icon := r.Agent, ""
 	if accountType != nil {
@@ -470,7 +460,7 @@ func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
 							ui.Column(c.Key(acct.Agent + acct.User)).Gap(2).MinWidth(0).Children(func() {
 								user := acct.User
 								if hidden {
-									user = i18n.T("usage.maskedAccount", "number", i+1)
+									user = i18n.T("aiShared.maskedAccount", "number", i+1)
 								}
 								ui.Text(c, user).MinWidth(0)
 								if acct.Plan != "" {
@@ -539,7 +529,7 @@ func (a *accountPanel) checkinView(c *ui.Context, hidden bool) {
 		for i, item := range a.checkins {
 			user := item.User
 			if hidden {
-				user = i18n.T("usage.maskedAccount", "number", i+1)
+				user = i18n.T("aiShared.maskedAccount", "number", i+1)
 			}
 			key := checkinOutcomes[item.Outcome]
 			switch {

@@ -4,8 +4,6 @@ package icons
 // export yet (ISC; sources in third_party/import-notices.json, as for the
 // React window).
 var (
-	// MessagesCircle marks Flash chat.
-	MessagesCircle = custom("messages-circle")
 	// LayoutGridCircles marks grouped actions.
 	LayoutGridCircles = custom("layout-grid-circles")
 )

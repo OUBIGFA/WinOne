@@ -30,7 +30,7 @@ func TestSavedOwnBalanceUsesActualKeyAndSharedLedger(t *testing.T) {
 		"*/own-balance-fixture": {Input: new(2.0), Output: new(0.0), CacheRead: new(0.0), CacheWrite: new(0.0)},
 	}})
 	at := time.Now().Add(-time.Minute)
-	if err := configureUsage(request{ProviderID: "saved-provider"}); err != nil {
+	if err := configureAccounting(request{ProviderID: "saved-provider"}); err != nil {
 		t.Fatal(err)
 	}
 	usage.Append(usage.Record{Time: time.Now(), ProviderKeyID: provider.KeyID("fixture-secret"), ProviderKeyName: "primary", Model: "own-balance-fixture", Input: 1000000, Status: 200})

@@ -20,7 +20,7 @@ export function droppedTextPaths(transfer:DataTransfer):string[]{
 }
 
 /** Native paths are hit-tested at the actual drop point. Each zone consumes its
- * own event (including disabled zones), so it cannot leak into Chat attachments
+ * own event (including disabled zones), so it cannot leak into another page
  * or the directory-link source list. The receiving page keeps its save flow. */
 export function usePathDrop(options:PathDropOptions){
  const current=useRef(options);current.current=options;

@@ -1,0 +1,37 @@
+package provider
+
+import "sync"
+
+// The Host provides the original public key fingerprint for its ephemeral
+// authenticated bridge credentials. Concurrent requests keep a stable ledger
+// identity without exposing a vendor credential to this routing process.
+var winOneKeyIdentities sync.Map
+
+// Catalog refreshes can change search support while requests list models.
+var winOneSearchModels sync.Map
+func WinOneResetSearchModels() { winOneSearchModels.Clear() }
+func WinOneSetSearchModel(id string, on bool) { if on {winOneSearchModels.Store(id,true)} else {winOneSearchModels.Delete(id)} }
+func winOneSearchModel(id string) bool { _,ok:=winOneSearchModels.Load(id);return ok }
+
+// Readers receive independent values. Background catalog replacement never
+// mutates a provider map/slice retained by an in-flight upstream request.
+var winOneCatalogMu sync.RWMutex
+var winOneCatalogs = map[string]Provider{}
+func WinOneUpdateCatalog(id string, models []string, contexts map[string]int) {
+ winOneCatalogMu.Lock()
+ winOneCatalogs[id]=Provider{Models:models,Contexts:contexts}
+ winOneCatalogMu.Unlock()
+ // Saved catalog changes must be visible to the next request, including a
+ // request made inside upstream's one-second in-memory catalog reuse window.
+ Changed()
+}
+func WinOneKeyIdentity(key, id string) { winOneKeyIdentities.Store(key, id) }
+func winOneKeyIdentity(key string) (string, bool) { id, ok := winOneKeyIdentities.Load(key); if !ok { return "", false }; return id.(string), true }
+
+// Catalog updates replace only model metadata. Old route-group and affinity
+// preferences are never loaded from a second settings store.
+func winOneGatewayProvider(p Provider) Provider {
+ winOneCatalogMu.RLock(); catalog,ok:=winOneCatalogs[p.ID];winOneCatalogMu.RUnlock()
+ if ok {p.Models=catalog.Models;p.Contexts=catalog.Contexts}
+ return p
+}

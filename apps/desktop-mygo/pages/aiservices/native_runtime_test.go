@@ -7,22 +7,18 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"slices"
-	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-	"winone/desktopmygo/core"
-	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/testhost"
 	"winone/internal/ai"
 )
 
 // This test owns the real Magpie process, profile and vendor fixture. Native
 // controls issue production HTTP requests, not a copied routing implementation.
-func nativeAIWithRuntime(t *testing.T) (*page, *testhost.Harness, *ui.Tester, *ai.RoutingProcess) {
+func nativeAIWithRuntime(t *testing.T) (*page, *testhost.Harness, *ui.Tester, *ai.GatewayProcess) {
 	t.Helper()
-	exe := os.Getenv("WINONE_ROUTING_TEST_EXE")
+	exe := os.Getenv("WINONE_GATEWAY_TEST_EXE")
 	if exe == "" {
 		t.Skip("explicit isolated Magpie runtime")
 	}
@@ -33,17 +29,17 @@ func nativeAIWithRuntime(t *testing.T) (*page, *testhost.Harness, *ui.Tester, *a
 	t.Cleanup(upstream.Close)
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	settings := &ai.MagpieSettings{NoStats: true, NoUsageStats: true, NoAccountDiscovery: true, Redact: true, RedactWords: []string{"fixture-private-password"}}
+	settings := &ai.MagpieSettings{NoStats: true, NoUsageStats: true}
 	translator := ai.Translator{Executable: exe, DataDirectory: filepath.Join(t.TempDir(), "runtime")}
-	router, err := translator.StartRouting(ctx, settings, []ai.RuntimeProvider{{Provider: ai.Provider{ID: "fixture", Name: "Fixture", AuthMode: "api-key", Protocol: "chat", BaseURL: upstream.URL, Models: []string{"model"}}, Key: "fixture-key"}})
+	router, err := translator.StartGateway(ctx, settings, []ai.RuntimeProvider{{Provider: ai.Provider{ID: "fixture", Name: "Fixture", AuthMode: "api-key", Protocol: "chat", BaseURL: upstream.URL, Models: []string{"model"}}, Key: "fixture-key"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(router.Close)
 	f := newFakeAI(t)
 	h := testhost.New(t, func(method string, params json.RawMessage) (any, error) {
-		if method == "capture.ai.routing.extensions.open" {
-			return router.PluginWindowState(ctx)
+		if method == "capture.ai.gateway.open" {
+			return map[string]string{"url": router.AdminURL()}, nil
 		}
 		// Marketplace icons are stored by the real worker in its own profile;
 		// keep the native UI's normal chunked Host read on that same profile.
@@ -66,189 +62,7 @@ func nativeAIWithRuntime(t *testing.T) (*page, *testhost.Harness, *ui.Tester, *a
 	return p, h, tt, router
 }
 
-func TestNativeRoutingRealCreateReadSaveAndNoWebView(t *testing.T) {
-	i18n.SetLocale(i18n.Chinese)
-	p, h, tt, router := nativeAIWithRuntime(t)
-	p.switchTab(tabRouting)
-	p.routing.tab = 0
-	settle(h, tt)
-	if p.routing.state == nil {
-		t.Fatal("real group read:", p.routing.api.err)
-	}
-	if err := tt.Click(nativeT("newGroup")); err != nil {
-		t.Fatal(err)
-	}
-	settle(h, tt)
-	if err := tt.Click(nativeT("groupName")); err != nil {
-		t.Fatal(err)
-	}
-	tt.Type("Native group")
-	p.routing.edit.Value.Members = []string{"fixture/model"}
-	settle(h, tt)
-	if err := tt.Click(nativeT("saveGroup")); err != nil {
-		t.Fatal(err)
-	}
-	settle(h, tt)
-	if p.routing.api.err != "" || p.routing.edit != nil {
-		t.Fatal("real group save:", p.routing.api.err)
-	}
-	var saved *routeGroup
-	for _, doc := range p.routing.state.Groups {
-		if doc.Value.ID == "native-group" {
-			copy := doc.Value
-			saved = &copy
-		}
-	}
-	if saved == nil || len(saved.Members) != 1 {
-		t.Fatalf("group missing: %+v", p.routing.state)
-	}
-	request, err := http.NewRequest("POST", router.URL+"/v1/chat/completions", strings.NewReader(`{"model":"group/native-group","messages":[{"role":"user","content":"check native group"}]}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	request.Header.Set("Authorization", "Bearer "+router.Key)
-	request.Header.Set("Content-Type", "application/json")
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer response.Body.Close()
-	if response.StatusCode != 200 {
-		var v any
-		json.NewDecoder(response.Body).Decode(&v)
-		t.Fatalf("group did not execute: %d %+v", response.StatusCode, v)
-	}
-	p.routing.tab = 1
-	settle(h, tt)
-	if len(p.routing.trace.routes) == 0 {
-		t.Fatal("real trace missing:", p.routing.trace.api.err)
-	}
-	route := p.routing.trace.routes[len(p.routing.trace.routes)-1]
-	p.routing.trace.detailRead(p, "body", "/api/gateway/call?route="+kitID(route.ID))
-	settle(h, tt)
-	if p.routing.trace.detailAPI.err != "" || p.routing.trace.detail == nil {
-		t.Fatal("route call body:", p.routing.trace.detailAPI.err)
-	}
-	p.routing.trace.startReplay(p, []traceRoute{route})
-	settle(h, tt)
-	if p.routing.trace.replayAPI.err != "" || p.routing.trace.replay == nil || len(p.routing.trace.replay.routes) != 1 {
-		t.Fatal("real route replay:", p.routing.trace.replayAPI.err)
-	}
-	p.routing.trace.stopReplay()
-	shot(t, tt, "native-routing-real-trace")
-}
 func kitID(v int64) string { b, _ := json.Marshal(v); return string(b) }
-
-// Exercise the newly exposed operations against the pinned worker, while the
-// shell launch is replaced only to keep Explorer off the user's desktop.
-func TestNativeRoutingDuplicateRenameClientsAndHeldDirectory(t *testing.T) {
-	p, h, tt, _ := nativeAIWithRuntime(t)
-	p.switchTab(tabRouting)
-	p.routing.tab = 0
-	settle(h, tt)
-	r := p.routing
-	r.beginNew(core.Preserved[routeGroup]{Value: routeGroup{Name: "Dynamic", Match: []string{"fixture/*"}}})
-	r.saveGroup()
-	settle(h, tt)
-	var dynamic core.Preserved[routeGroup]
-	for _, g := range r.state.Groups {
-		if g.Value.ID == "dynamic" {
-			dynamic = g
-		}
-	}
-	if len(dynamic.Value.Matched) == 0 {
-		t.Fatal("pattern did not discover fixture model")
-	}
-	r.begin(dynamic)
-	r.edit.Value.Match = []string{"fixture/no-match-*"}
-	r.saveGroup()
-	settle(h, tt)
-	for _, g := range r.state.Groups {
-		if g.Value.ID == "dynamic" && len(g.Value.Members) > 0 {
-			t.Fatal("saving pinned a pattern-matched model")
-		}
-	}
-	for _, want := range []string{"same-name", "same-name-2"} {
-		r.beginNew(core.Preserved[routeGroup]{Value: routeGroup{Name: "Same name", Members: []string{"fixture/model"}}})
-		r.saveGroup()
-		settle(h, tt)
-		found := false
-		for _, g := range r.state.Groups {
-			if g.Value.ID == want {
-				found = true
-			}
-		}
-		if !found || r.api.err != "" {
-			t.Fatalf("new group %s: %s", want, r.api.err)
-		}
-	}
-	for _, g := range r.state.Groups {
-		if g.Value.ID == "same-name-2" {
-			r.begin(g)
-		}
-	}
-	r.edit.Value.ID = "Renamed 2.0"
-	r.saveGroup()
-	settle(h, tt)
-	ids := []string{}
-	for _, g := range r.state.Groups {
-		ids = append(ids, g.Value.ID)
-	}
-	if !slices.Contains(ids, "same-name") || !slices.Contains(ids, "renamed-2.0") || slices.Contains(ids, "same-name-2") {
-		t.Fatalf("rename lost groups: %v; %s", ids, r.api.err)
-	}
-	r.clientsAPI.request(p, "GET", "/api/winone/routing/clients", nil, func(raw json.RawMessage) {
-		if !json.Valid(raw) {
-			t.Error("invalid recent clients response")
-		}
-	})
-	settle(h, tt)
-	if r.clientsAPI.err != "" {
-		t.Fatal(r.clientsAPI.err)
-	}
-	previous := openHeldDirectory
-	defer func() { openHeldDirectory = previous }()
-	opened := ""
-	openHeldDirectory = func(path string) error { opened = path; return nil }
-	r.trace.revealHeld(p)
-	settle(h, tt)
-	if opened == "" || !strings.HasSuffix(filepath.ToSlash(opened), "/held") || r.trace.detailAPI.err != "" {
-		t.Fatalf("held directory did not open: %q %s", opened, r.trace.detailAPI.err)
-	}
-}
-
-func TestNativeMaskingRealPreviewAndClear(t *testing.T) {
-	p, h, tt, _ := nativeAIWithRuntime(t)
-	p.switchTab(tabAdvanced)
-	p.advancedTab = advancedPrivacy
-	settle(h, tt)
-	if err := tt.Click(i18n.T("aiPrivacy.records")); err != nil {
-		t.Fatal(err)
-	}
-	settle(h, tt)
-	m := p.advanced.records
-	if m == nil || !m.loaded || m.api.err != "" {
-		t.Fatalf("records read failed: %+v", m)
-	}
-	m.previewAPI.request(p, "POST", "/api/masking/preview", map[string]string{"text": "password=fixture-private-password"}, func(raw json.RawMessage) { m.previewResult = raw })
-	settle(h, tt)
-	if m.previewResult == nil || m.previewAPI.err != "" {
-		t.Fatal("masking preview failed:", m.previewAPI.err)
-	}
-	var preview struct {
-		Text string            `json:"text"`
-		Hits []json.RawMessage `json:"hits"`
-	}
-	if err := json.Unmarshal(m.previewResult, &preview); err != nil || len(preview.Hits) == 0 || strings.Contains(preview.Text, "fixture-private-password") {
-		t.Fatalf("preview did not use actual masking: %s", m.previewResult)
-	}
-	m.api.request(p, "POST", "/api/masking/clear", nil, func(json.RawMessage) { m.loaded = false })
-	settle(h, tt)
-	if m.api.err != "" {
-		t.Fatal("clear failed:", m.api.err)
-	}
-	shot(t, tt, "native-masking-real")
-}
 
 func TestNativeAPIRefusesRedirectAndRetainsMutationFailure(t *testing.T) {
 	var leaked bool
@@ -257,28 +71,12 @@ func TestNativeAPIRefusesRedirectAndRetainsMutationFailure(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, target.URL, 307) }))
 	defer server.Close()
 	_, h, p, tt := setup(t)
-	p.extensions.state.URL = server.URL + "/session/private/plugins.html"
+	p.gateway.runtimeURL = server.URL + "/session/private/"
 	var api nativeAPI
 	called := false
-	api.request(p, "POST", "/api/groups/save", map[string]string{"id": "private"}, func(json.RawMessage) { called = true })
+	api.request(p, "POST", "/api/caller-keys/add-key", map[string]string{"id": "private"}, func(json.RawMessage) { called = true })
 	settle(h, tt)
 	if leaked || called || api.err == "" {
 		t.Fatalf("redirect or failed mutation treated as success: leaked=%v called=%v err=%s", leaked, called, api.err)
-	}
-}
-
-func TestRoutingDraftPreservesUpstreamUnknownFieldsAndRuleTime(t *testing.T) {
-	var doc core.Preserved[routeGroup]
-	if err := json.Unmarshal([]byte(`{"id":"g","name":"G","members":["p/m"],"futureOption":{"keep":true},"rules":[{"use":"p/m","time":{"from":"09:00","to":"18:00","days":["mon"],"zone":"Asia/Shanghai"},"futureRule":7}]}`), &doc); err != nil {
-		t.Fatal(err)
-	}
-	r := newRoutingPanel(nil)
-	r.begin(doc)
-	r.edit.Value.Name = "Changed"
-	data, _ := json.Marshal(r.edit)
-	for _, piece := range []string{`"futureOption"`, `"futureRule":7`, `"from":"09:00"`, `"days":["mon"]`} {
-		if !strings.Contains(string(data), piece) {
-			t.Fatalf("native form lost %s: %s", piece, data)
-		}
 	}
 }

@@ -38,12 +38,13 @@ func (g *gatewayHistoryPanel) load(p *page) {
 // This page lists only calls recorded by WinOne's gateway. Recording consent
 // is an explicit local operation, independent of external-client history.
 func (g *gatewayHistoryPanel) View(c *ui.Context, p *page) {
-	if p.extensions.state == nil {
+	if p.gateway.runtimeURL == "" {
 		return
 	}
-	if g.source != p.extensions.state.URL {
+	if g.source != p.gateway.runtimeURL {
 		g.api.close()
-		g.source = p.extensions.state.URL
+		g.api.err = ""
+		g.source = p.gateway.runtimeURL
 		g.state = nil
 		g.text = ""
 	}

@@ -1,0 +1,8 @@
+{
+  "aiShared.searchModels": "Search models",
+  "aiShared.modelUnavailable": "Enable a model in AI services.",
+  "aiShared.model": "Model",
+  "aiShared.chooseModel": "Choose model",
+  "aiShared.copy": "Copy",
+  "aiShared.maskedAccount": "Account {{number}}"
+}

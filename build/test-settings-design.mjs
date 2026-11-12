@@ -325,14 +325,6 @@ try {
       await open(page, id, {...config, width: 520}, {long: '1'}); await page.setViewportSize({width: 520, height: 940}); await settle(page);
       results.push({page: id + '-long', ...(await geometry(page))});
     }
-    // The untouched Chat fixture uses the same shell; settings tokens must not
-    // reach its content, including after navigating back from a settings page.
-    await page.goto('http://127.0.0.1:5198/tests/shell-preview.html');
-    await page.getByRole('button', {name: 'Chat', exact: true}).click();
-    assert.equal(await page.locator('[data-slot="page-content"].settings-surface').count(), 0);
-    assert.equal(await page.locator('html[data-settings-ui]').count(), 0);
-    assert.equal(await page.locator('[data-slot="page-content"]').getAttribute('data-settings-page'), null);
-    interactions.push('Chat scope isolation');
     await page.close();
   }
 } catch (error) {

@@ -1,18 +1,17 @@
 package aiservices
 
 // Magpie's form helpers (github.com/yetone/magpie, MIT; notice in
-// third_party/licenses/upstream-magpie-42ec2700bd2a4cf8d4ceb76a95767ac221e283e5-0-LICENSE.txt),
-// translated from the React window's extracts: curlOf and respellURL
-// (features/magpie-curl.js, Magpie 7660399), proxyFields and proxyAddress
-// (features/magpie-proxy-fields.ts, Magpie 42ec270), and the header rows
-// (features/magpie-headers.ts, Magpie a8ca790). They keep the upstream
-// parsing and escaping, so values pasted and saved here match Magpie's.
+// third_party/licenses/upstream-magpie-42ec2700bd2a4cf8d4ceb76a95767ac221e283e5-0-LICENSE.txt)
+// keep the upstream cURL parsing, URL escaping and header-row behavior used
+// by the retained provider and gateway forms. Values pasted and saved here
+// therefore follow Magpie's request semantics without importing its removed
+// service pages.
 
 import (
 	"bytes"
 	"encoding/json"
-	"net/url"
 	"fmt"
+	"net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -28,18 +27,18 @@ type curlImport struct {
 }
 
 var (
-	curlHead       = regexp.MustCompile(`(?i)^curl(\.exe)?`)
-	curlCmdBreak   = regexp.MustCompile(`\^[ \t]*\r?\n`)
-	curlPSBreak    = regexp.MustCompile("`[ \\t]*\\r?\\n")
-	curlPSExe      = regexp.MustCompile(`(?i)^curl\.exe`)
-	curlBreaks     = regexp.MustCompile("(?:\\\\|\\^|`)[ \\t]*\\r?\\n")
-	curlValued     = regexp.MustCompile(`^(-[HdXuoAeFbcmT]|--(header|data|data-raw|data-binary|data-ascii|data-urlencode|json|request|url|user|output|user-agent|referer|form|cookie|max-time|connect-timeout|proxy|upload-file|retry|cert|key|cacert))$`)
-	curlInline     = regexp.MustCompile(`^-[Hd].`)
-	curlData       = regexp.MustCompile(`^(-d|--data(-raw|-binary|-ascii)?|--json)$`)
-	curlEndpoint   = regexp.MustCompile(`(?i)^(https?://[^?#]*?)/*(/chat/completions|/messages|/responses)/*(?:[?#].*)?$`)
-	curlHole       = regexp.MustCompile(`\{[^}]*\}|<[^>]*>|\$\{?\w+\}?|%\w+%`)
-	curlKeyHeader  = regexp.MustCompile(`(?i)^\s*(authorization|x-api-key|api-key)\s*:\s*(.*?)\s*$`)
-	curlBearer     = regexp.MustCompile(`(?i)^bearer\s+`)
+	curlHead        = regexp.MustCompile(`(?i)^curl(\.exe)?`)
+	curlCmdBreak    = regexp.MustCompile(`\^[ \t]*\r?\n`)
+	curlPSBreak     = regexp.MustCompile("`[ \\t]*\\r?\\n")
+	curlPSExe       = regexp.MustCompile(`(?i)^curl\.exe`)
+	curlBreaks      = regexp.MustCompile("(?:\\\\|\\^|`)[ \\t]*\\r?\\n")
+	curlValued      = regexp.MustCompile(`^(-[HdXuoAeFbcmT]|--(header|data|data-raw|data-binary|data-ascii|data-urlencode|json|request|url|user|output|user-agent|referer|form|cookie|max-time|connect-timeout|proxy|upload-file|retry|cert|key|cacert))$`)
+	curlInline      = regexp.MustCompile(`^-[Hd].`)
+	curlData        = regexp.MustCompile(`^(-d|--data(-raw|-binary|-ascii)?|--json)$`)
+	curlEndpoint    = regexp.MustCompile(`(?i)^(https?://[^?#]*?)/*(/chat/completions|/messages|/responses)/*(?:[?#].*)?$`)
+	curlHole        = regexp.MustCompile(`\{[^}]*\}|<[^>]*>|\$\{?\w+\}?|%\w+%`)
+	curlKeyHeader   = regexp.MustCompile(`(?i)^\s*(authorization|x-api-key|api-key)\s*:\s*(.*?)\s*$`)
+	curlBearer      = regexp.MustCompile(`(?i)^bearer\s+`)
 	curlPlaceholder = regexp.MustCompile(`(?i)^\$|^%\w+%$|^<.*>$|^\{\{.*\}\}$|^\[.*\]$|your[_-]?|api[_-]?key|x{6,}|\.\.\.|…`)
 )
 
@@ -397,24 +396,6 @@ func headersOf(rows []headerRow) map[string]string {
 		result[name] = text
 	}
 	return result
-}
-
-var (
-	ruleSeparators = regexp.MustCompile(`[ .-]`)
-	ruleOther      = regexp.MustCompile(`[^A-Z0-9_]`)
-	ruleEdges      = regexp.MustCompile(`^_+|_+$`)
-)
-
-// ruleKind normalizes a masking rule's kind as Magpie's redact.RuleKind.
-func ruleKind(kind string) string {
-	k := strings.ToUpper(strings.TrimSpace(kind))
-	k = ruleSeparators.ReplaceAllString(k, "_")
-	k = ruleOther.ReplaceAllString(k, "")
-	k = ruleEdges.ReplaceAllString(k, "")
-	if k == "" {
-		return "CUSTOM"
-	}
-	return k
 }
 
 // splitList reads a comma, Chinese comma or line separated list, trimmed,

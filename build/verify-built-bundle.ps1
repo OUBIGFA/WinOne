@@ -42,12 +42,9 @@ try{
  & (Join-Path $output 'capture/Ocr/python/python.exe') (Join-Path $PSScriptRoot 'verify-anki.py') --runtime (Join-Path $output 'shared/anki'); CheckExit
  & (Join-Path $PSScriptRoot 'verify-interconnect-transfer-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output
  & (Join-Path $PSScriptRoot 'verify-interconnect-transfer-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output -Runtime peer
- foreach($runtime in @('diagram','selection','recording','search')){& (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime $runtime}
+ foreach($runtime in @('diagram','selection','recording')){& (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime $runtime}
  if($DesktopImplementation -eq 'Rust'){& (Join-Path $PSScriptRoot 'verify-rust-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output}
  if($DesktopImplementation -eq 'MyGo'){& (Join-Path $PSScriptRoot 'verify-desktop-mygo-notices.ps1') -GoExe $ResultGoExe -Executable (Join-Path $output 'WinOne.exe') -BundleDirectory $output}
- & node (Join-Path $PSScriptRoot 'verify-native-chat-runtime.mjs') (Join-Path $output 'shared/chat'); CheckExit
- & node (Join-Path $PSScriptRoot 'verify-chat-math-notices.mjs') (Join-Path $output 'shared/chat'); CheckExit
- & node --test (Join-Path $root 'tests/notices/chat-math.test.mjs'); CheckExit
  & $GoExe run ./build/package --record-build --bundle $output --license (Join-Path $root 'LICENSE') --version $Version; CheckExit
  if($SkipRuntimeChecks){Write-Output "Compiled bundle and source/license inventories verified; runtime checks were explicitly not run: $output/WinOne.exe"}
  else {Write-Output "Build verified: $output/WinOne.exe"}

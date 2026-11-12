@@ -25,9 +25,6 @@ type Store struct {
 	configuration   *Configuration
 	keys            map[string]string
 	credentialKeys  map[string]map[string]string
-	searchKeys      map[string]string
-	githubToken     string
-	otelHeaders     map[string]string
 	providerSecrets map[string]map[string]string
 	keyRounds       map[string]*keyRound
 	now             func() time.Time
@@ -39,9 +36,6 @@ type stored struct {
 	Configuration            *Configuration               `json:"configuration,omitempty"`
 	ProtectedKeys            map[string]string            `json:"protectedKeys,omitempty"`
 	ProtectedCredentialKeys  map[string]map[string]string `json:"protectedCredentialKeys,omitempty"`
-	ProtectedSearchKeys      map[string]string            `json:"protectedSearchKeys,omitempty"`
-	ProtectedGitHubToken     string                       `json:"protectedGitHubToken,omitempty"`
-	ProtectedOTelHeaders     map[string]string            `json:"protectedOTelHeaders,omitempty"`
 	ProtectedProviderSecrets map[string]map[string]string `json:"protectedProviderSecrets,omitempty"`
 }
 
@@ -78,26 +72,6 @@ func Open(path string) (*Store, error) {
 		s.configuration = document.Configuration
 		s.keys = document.ProtectedKeys
 		s.credentialKeys = document.ProtectedCredentialKeys
-		s.searchKeys = document.ProtectedSearchKeys
-		s.githubToken = document.ProtectedGitHubToken
-		s.otelHeaders = document.ProtectedOTelHeaders
-		// Migrate older plaintext headers in memory. The next normal save
-		// writes only the sealed values without changing the user's settings.
-		if s.configuration.MagpieSettings != nil {
-			if s.otelHeaders == nil {
-				s.otelHeaders = map[string]string{}
-			}
-			for name, value := range s.configuration.MagpieSettings.OTel.Headers {
-				if value != "" {
-					sealed, err := sealCredential(value)
-					if err != nil {
-						return nil, err
-					}
-					s.otelHeaders[name] = sealed
-				}
-				s.configuration.MagpieSettings.OTel.Headers[name] = ""
-			}
-		}
 		s.providerSecrets = document.ProtectedProviderSecrets
 		for i := range s.configuration.Providers {
 			s.configuration.Providers[i].HasKey = s.keys[s.configuration.Providers[i].ID] != ""

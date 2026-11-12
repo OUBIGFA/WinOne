@@ -23,7 +23,6 @@ const googleCommunityKey = "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520"
 type Preferences struct {
 	ProviderPreferences
 	LimitRestOff    bool              `json:"-"`
-	GlobalGateway   bool              `json:"-"`
 	Auxiliaries     []RuntimeProvider `json:"-"`
 	MagpieSettings  *MagpieSettings   `json:"-"`
 	ModelMetadata   ModelMetadata     `json:"-"`
@@ -116,9 +115,6 @@ type Translator struct {
 	RootDataDirectory                                    string
 	TransportOnly                                        bool
 	RuntimeSettings                                      *MagpieSettings
-	// Host-owned local masking service, resolved before a request worker starts.
-	// Nil in the shared router and transport-only workers prevents recursion.
-	PrivacyService func(context.Context) (string, string, error)
 	// Plugin-owned windows can outlive a request, but not the owning Host.
 	// Nil preserves the one-shot worker policy for command-line callers/tests.
 	PluginLifetime context.Context
@@ -180,7 +176,7 @@ func (t Translator) generate(ctx context.Context, p Preferences, key string, inp
 	if err := ValidateGeneration(input); err != nil {
 		return "", err
 	}
-	if len(input.ImagePNG) > 0 && p.ModelMetadata.Vision != nil && !*p.ModelMetadata.Vision && (p.MagpieSettings == nil || p.MagpieSettings.Vision == "off") {
+	if len(input.ImagePNG) > 0 && p.ModelMetadata.Vision != nil && !*p.ModelMetadata.Vision {
 		return "", errors.New("此模型已关闭图像输入，请在 AI 服务中启用或选择其他模型")
 	}
 	timeout := input.Timeout

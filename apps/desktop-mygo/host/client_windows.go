@@ -93,10 +93,8 @@ func (c *Client) nextID() string {
 // callBudget is the Rust client's Client::call budget, by method.
 func callBudget(method string) time.Duration {
 	switch {
-	case method == "chat.export" || method == "capture.ai.archive.export.save" || method == "capture.ai.archive.read" || method == "learning.call":
+	case method == "learning.call":
 		return 150 * time.Second
-	case strings.HasPrefix(method, "chat.") || method == "capture.ai.usage.export.save":
-		return 30 * time.Second
 	case strings.HasPrefix(method, "capture.") || strings.HasPrefix(method, "always-on-top."):
 		return 15 * time.Second
 	}
@@ -136,11 +134,11 @@ func (c *Client) CallCompleting(method string, params any) (json.RawMessage, err
 	id := c.nextID()
 	budget, firstWait := 30*time.Second, 15*time.Second
 	switch method {
-	case "capture.ai.archive.export.save", "capture.ai.archive.read", "learning.call":
+	case "learning.call":
 		budget, firstWait = 150*time.Second, 150*time.Second
 	case "capture.ai.models.test":
 		budget, firstWait = 100*time.Second, 100*time.Second
-	case "capture.ai.usage.export.save", "capture.ai.magpie.catalog", "capture.ai.accounts.catalog",
+	case "capture.ai.magpie.catalog", "capture.ai.accounts.catalog",
 		"capture.ai.accounts.list", "capture.ai.accounts.models", "capture.ai.accounts.quota", "capture.ai.accounts.checkin":
 		firstWait = 30 * time.Second
 	}

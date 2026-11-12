@@ -57,7 +57,7 @@ func TestInvalidProbeArgumentsReturnWithoutAWindow(t *testing.T) {
 
 func TestNativeProbeHostOnlyReadsTheBuiltinCatalog(t *testing.T) {
 	h := newNativeProbeHost()
-	for _, method := range []string{"snapshot", "modules.snapshot", "interconnect.pending", "directory-links.pending", "chat.ghosts.pending", "chat.ghosts.pages"} {
+	for _, method := range []string{"snapshot", "modules.snapshot", "interconnect.pending", "directory-links.pending"} {
 		r := h.Handle(internalhost.Request{ID: "read", Method: method})
 		if r.Error != nil || r.ID != "read" || !json.Valid(r.Result) {
 			t.Fatalf("%s: %+v", method, r)
@@ -66,7 +66,7 @@ func TestNativeProbeHostOnlyReadsTheBuiltinCatalog(t *testing.T) {
 	if !h.seenSnapshot.Load() || !h.seenModules.Load() || len(h.snapshot.Modules) != len(catalog.Builtins()) {
 		t.Fatal("read-only startup did not see the complete builtin catalog")
 	}
-	for _, method := range []string{"module.enable", "settings.save", "capture.ai.accounts.quota", "chat.ghosts.install", "chat.ghosts.answer", "chat.ghosts.screen", "chat.ghosts.page-session", "chat.ghosts.page-focus", "chat.ghosts.page-gesture", "chat.ghosts.connection-submit"} {
+	for _, method := range []string{"module.enable", "settings.save", "capture.ai.accounts.quota", "chat.ghosts.pages", "chat.ghosts.pending"} {
 		if r := h.Handle(internalhost.Request{ID: "write", Method: method}); r.Error == nil || r.Error.Code != "probe" {
 			t.Fatalf("probe allowed %s: %+v", method, r)
 		}

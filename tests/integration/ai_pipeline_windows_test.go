@@ -215,7 +215,9 @@ func runResultPipeline(t *testing.T, probe, bundle, output, mode string, hideRea
 			// The composer collapse action exists only for overflowing reasoning.
 			// Keep the first paragraph distinct for the exact UIA text assertion.
 			reasoning := "模型返回的测试思考"
-			if chatGate { reasoning += "\n\n" + strings.Repeat("用于检查长思考展开和固定收起入口。\n\n", 24) }
+			if chatGate {
+				reasoning += "\n\n" + strings.Repeat("用于检查长思考展开和固定收起入口。\n\n", 24)
+			}
 			chunk(map[string]string{"reasoning_content": reasoning, "content": prefix}, nil)
 			marker := "stream-visible.json"
 			if chatGate {

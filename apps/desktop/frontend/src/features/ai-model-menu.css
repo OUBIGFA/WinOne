@@ -1,4 +1,4 @@
-/* Shared by Chat and every feature's model selector. Provider headers are
+/* Shared by every feature's model selector. Provider headers are
    outlined capsules; model choices use only hover/selection fill. */
 .ai-model-menu{--model-menu-hover:color-mix(in srgb,var(--foreground) 5%,var(--background))}
 .ai-model-menu [role=option]{border:0;box-shadow:none;border-radius:6px;background:transparent}
@@ -17,7 +17,7 @@
 .chat-model-viewport{max-height:350px;overflow-x:hidden!important}
 .chat-model-menu [role=listbox]{max-height:none;overflow:visible}
 
-/* A form's model field, opening the same menu as the Chat composer. */
+/* A form's model field opens the shared provider and model menu. */
 .ai-model-field-label{display:block;font-size:13px;font-weight:500}
 .ai-model-field{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-width:0;min-height:32px;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-md,6px);background:var(--background);color:var(--foreground);font:inherit;font-size:14px;text-align:left}
 .ai-model-field:hover:not(:disabled),.ai-model-field[data-popup-open]{background:color-mix(in srgb,var(--foreground) 5%,var(--background))}

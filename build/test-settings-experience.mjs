@@ -11,18 +11,16 @@ try{
  for(const language of ['zh-CN','en-US'])for(const theme of ['light','dark'])for(const width of [520,1280]){
   const zh=language==='zh-CN';await page.setViewportSize({width,height:900});
   await page.goto(`${base}/tests/ai-settings-preview.html?manyProviders=1&language=${language}&theme=${theme}`);
+  await page.getByRole('tab',{name:zh?'常用':'Common',exact:true}).click();
   const overview=page.getByRole('region',{name:zh?'已启用供应商':'Enabled providers'});await overview.locator('button').first().waitFor();await page.evaluate(()=>document.fonts.ready);
   const result=await overview.evaluate(root=>({buttons:root.querySelectorAll('button').length,width:root.clientWidth,overflow:root.scrollWidth-root.clientWidth,clipped:[...root.querySelectorAll('button')].filter(e=>{const r=e.getBoundingClientRect();return r.left<0||r.right>innerWidth;}).length}));
   const tabs=page.getByRole('tablist',{name:zh?'AI 服务':'AI services'});
   const sizes=await tabs.getByRole('tab').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().height));
-  check(result.buttons===11&&!result.overflow&&!result.clipped,'Provider overview lost or clipped providers: '+JSON.stringify(result));check(sizes.every(height=>height>=40),'Primary tabs are below the restored readable size');
-  await page.locator('[data-slot=page-scroll]').evaluate(node=>node.scrollTop=0);const before=await tabs.boundingBox();await page.getByRole('tab',{name:zh?'默认 AI 服务':'Default AI service',exact:true}).click();
-  await page.locator('[data-slot=page-scroll]').evaluate(node=>node.scrollTop=0);const after=await tabs.boundingBox();check(Math.abs(before.y-after.y)<1,'Overview moved when changing service tabs');
+  check(sizes.length===5,'AI services must have exactly five tabs');check(result.buttons===11&&!result.overflow&&!result.clipped,'Provider overview lost or clipped providers: '+JSON.stringify(result));check(sizes.every(height=>height>=40),'Primary tabs are below the restored readable size');
+  await page.locator('[data-slot=page-scroll]').evaluate(node=>node.scrollTop=0);const before=await tabs.boundingBox();await page.getByRole('tab',{name:zh?'使用偏好':'Preferences',exact:true}).click();
+  await page.locator('[data-slot=page-scroll]').evaluate(node=>node.scrollTop=0);const after=await tabs.boundingBox();check(Math.abs(before.y-after.y)<1,'Service tabs moved when changing the active page');
   await page.screenshot({path:resolve(output,`providers-${language}-${theme}-${width}.png`)});
-  await page.getByRole('tab',{name:zh?'路由':'Routing',exact:true}).click();
-  const label=page.locator('.ai-routing-toggle-label');const aligned=await label.evaluate(root=>{const icon=root.querySelector('svg').getBoundingClientRect(),text=root.querySelector('span').getBoundingClientRect();return {offset:Math.abs(icon.top+icon.height/2-text.top-text.height/2),sameLine:icon.right<=text.left};});
-  check(aligned.offset<1&&aligned.sameLine,'Routing icon and label are not on one line');
-  report.push({language,theme,width,overview:result,tabHeights:sizes,routingLabel:aligned});
+  report.push({language,theme,width,overview:result,tabHeights:sizes});
  }
  await page.setViewportSize({width:1280,height:900});await page.goto(`${base}/tests/directory-links-preview.html`);
  const source=page.getByRole('region',{name:'源文件夹',exact:true}),target=page.getByRole('region',{name:'目标文件夹',exact:true});
@@ -41,5 +39,5 @@ try{
  check(await integration.getByRole('switch').count()===1&&await integration.getByRole('checkbox').count()===0,'Explorer integration has extra controls');
  check(await integration.evaluate(node=>getComputedStyle(node).borderBottomWidth)==='0px','Explorer integration adds a duplicate separator');
  await page.screenshot({path:resolve(output,'links-history-and-integration.png')});
- check(!errors.length,errors.join('\n'));await writeFile(resolve(output,'report.json'),JSON.stringify({report,linkTypeTint:sourceTint,paneMaximum:4000,errors},null,2));console.log('PASS: 8 provider layouts, large primary tabs, inline routing label, paired link tints, 4000px remembered height, expanded integration');
+ check(!errors.length,errors.join('\n'));await writeFile(resolve(output,'report.json'),JSON.stringify({report,linkTypeTint:sourceTint,paneMaximum:4000,errors},null,2));console.log('PASS: 8 provider layouts, five readable service tabs, paired link tints, 4000px remembered height, expanded integration');
 }finally{await browser.close();}

@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
 
@@ -23,9 +22,6 @@ func pluginAccountSnapshot(ctx context.Context, agent string) (plugin.Provider, 
 	if !ok {
 		return preparePlugin(ctx, agent)
 	}
-	if choice, chosen := selectedBundles[descriptor.Directory]; chosen && (!choice.Enabled || choice.Removed) {
-		return plugin.Provider{}, errors.New("account plugin is disabled; enable it in AI services > Advanced settings")
-	}
 	executable, err := os.Executable()
 	if err != nil {
 		return plugin.Provider{}, err
@@ -41,13 +37,7 @@ func pluginAccountSnapshot(ctx context.Context, agent string) (plugin.Provider, 
 	digest := sha256.Sum256(data)
 	fingerprint := hex.EncodeToString(digest[:])
 	spec := filepath.Join(root, "plugins", descriptor.Directory)
-	if plugin.WinOneDirectory() != "" {
-		entry := plugin.Entry{Spec: spec}
-		if choice, ok := selectedBundles[descriptor.Directory]; ok {
-			entry.Options = choice.Options
-		}
-		plugin.WinOneUseBundle(entry)
-	}
+	plugin.WinOneUseBundle(plugin.Entry{Spec: spec})
 	if snapshot, found, err := plugin.WinOneReadProvider(spec, agent, fingerprint); err != nil || found {
 		return snapshot, err
 	}

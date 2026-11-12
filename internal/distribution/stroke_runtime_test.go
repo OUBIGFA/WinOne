@@ -23,13 +23,3 @@ func TestStrokeRuntimeIsCompleteAndOldPackagesRemainValid(t *testing.T) {
 		}
 	}
 }
-
-func TestImageRuntimeKeepsLegacyChatRollbackReadable(t *testing.T) {
-	if !allowed("shared/ai/runtime/photon_rs_bg.wasm") {
-		t.Fatal("Chat image runtime not packaged")
-	}
-	old := requiredForPayload(map[string]bool{"shared/chat/worker.js": true})
-	if slices.Contains(old, "shared/ai/runtime/photon_rs_bg.wasm") {
-		t.Fatal("legacy Chat rollback requires a new runtime")
-	}
-}

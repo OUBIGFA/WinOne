@@ -1,6 +1,6 @@
 /* Reuse the bundled Lucide chevron; native <details> semantics, keyboard
    handling and open state stay untouched. This scope deliberately includes
-   Chat and future summaries: a browser's filled disclosure marker is never UI. */
+   Disclosure summaries use the same outline marker throughout the settings. */
 details > summary { list-style: none; }
 details > summary::marker { content: ""; }
 details > summary::-webkit-details-marker { display: none; }

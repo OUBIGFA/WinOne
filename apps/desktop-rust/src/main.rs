@@ -1,8 +1,7 @@
 #![cfg_attr(windows, windows_subsystem = "windows")]
 #[cfg(all(windows,feature="component-ui"))] mod component_file_drop;
 #[cfg(all(windows,feature="component-ui"))] mod component_ui;
-#[cfg(all(windows,feature="component-ui"))] mod component_browser;
-#[cfg(all(windows,feature="component-ui"))] mod browser_capture;
+#[cfg(all(windows,feature="component-ui"))] mod clipboard_files;
 #[cfg(all(windows,feature="component-ui"))] mod component_bridge;
 #[cfg(all(windows,feature="component-ui"))] mod component_assets;
 #[cfg(all(windows,feature="component-ui"))] mod component_frame;
@@ -10,8 +9,6 @@
 #[cfg(all(windows,feature="component-ui"))] mod component_probe;
 #[cfg(all(windows,feature="component-ui"))] mod component_program_info;
 #[cfg(all(windows,feature="component-ui"))] mod component_capture;
-#[cfg(all(windows,feature="component-ui"))] mod usage_export;
-#[cfg(all(windows,feature="component-ui"))] mod chat_export;
 #[cfg(all(windows,feature="component-ui"))] mod component_capture_assets;
 #[cfg(all(windows,any(not(feature="component-ui"),test)))] mod native;
 #[cfg(all(windows,any(not(feature="component-ui"),test)))] mod widgets;

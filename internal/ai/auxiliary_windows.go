@@ -23,10 +23,7 @@ import (
 func (s *Store) runtimeProvidersLocked(c Configuration) ([]RuntimeProvider, error) {
 	result := []RuntimeProvider{}
 	for _, p := range c.Providers {
-		p.Models = slices.DeleteFunc(slices.Clone(p.Models), func(model string) bool {
-			return c.MagpieSettings.ModelDisabled(p.ID, model, p.ModelMetadata[model].Alias)
-		})
-		if p.Off || len(p.Models) == 0 || p.AuthMode == "account" && c.MagpieSettings.NoAccountDiscovery {
+		if p.Off || len(p.Models) == 0 {
 			continue
 		}
 		if err := s.hydrateProviderSecrets(&p); err != nil {
@@ -267,9 +264,6 @@ func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []Runt
 		inner := Preferences{ProviderPreferences: p.ProviderPreferences, ProviderID: p.ID, ProviderName: p.Name, Protocol: p.Protocol, BaseURL: p.BaseURL, Model: envelope.Model, Agent: p.Agent, AgentBackend: p.AgentBackend, AuthMode: p.AuthMode, Preset: p.Preset, PresetRegion: p.PresetRegion, LimitRestOff: p.LimitRestOff, AdditionalTools: p.AdditionalTools, Headers: p.Headers, ModelMetadata: p.ModelMetadataFor(envelope.Model), RequestLimits: p.RequestLimits, MagpieSettings: prefs.clone()}
 		// The outer gateway already chose a helper; a helper cannot recursively
 		// add more helpers, and its quota belongs to the original held request.
-		inner.MagpieSettings.Vision = "off"
-		inner.MagpieSettings.ImageGen = "off"
-		inner.MagpieSettings.Searcher = "off"
 		root := t
 		// The authenticated outer gateway has already applied user hooks and
 		// middleware. This worker only transports its chosen provider request.
@@ -277,7 +271,7 @@ func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []Runt
 		if root.RootDataDirectory != "" {
 			root.DataDirectory = root.RootDataDirectory
 		}
-		partial, err := root.ForProvider(p.ID).ChatRequest(requestContext, inner, key, "/"+path, body, r.Header, w, r.Method)
+		partial, err := root.ForProvider(p.ID).BridgeRequest(requestContext, inner, key, "/"+path, body, r.Header, w, r.Method)
 		if err != nil && !partial {
 			status := 502
 			var failed *AttemptFailure

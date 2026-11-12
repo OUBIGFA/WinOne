@@ -169,12 +169,5 @@ func (e *editor) compatibilityPreferences(c *ui.Context, pr *provider, locked bo
 		}
 		kit.Toggle(c, &s.UseFirst, nativeT("useFirst"), nativeT("useFirstHint")).Disabled(locked)
 	})
-	kit.Group(c, nil, i18n.T("aiOptions.privacy"), "", func() {
-		kit.Toggle(c, &s.Unredacted, i18n.T("ai.unredacted"), i18n.T("ai.unredactedHint")).Disabled(locked)
-		if s.Unredacted && (pr.AuthMode == "account" || !strings.Contains(pr.BaseURL, "127.0.0.1") && !strings.Contains(pr.BaseURL, "localhost")) {
-			kit.Stack(c, "", i18n.T("ai.unredactedWarning"), func() {})
-		}
-	})
 	kit.Section(c, nil, i18n.T("ai.extraBody"), i18n.T("ai.extraBodyHint"), func() { preferenceJSON(c, e.p, pr.ID+":extraBody", "", "", &s.ExtraBody, locked) })
-	kit.Section(c, nil, i18n.T("ai.autoGroupSkip"), "", func() { e.preferenceList(c, "autoGroupSkip", i18n.T("ai.autoGroupSkip"), &s.AutoGroupSkip, locked) })
 }

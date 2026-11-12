@@ -31,7 +31,7 @@ const status:Record<string,string>={ready:"profiles.ready",needs_mapping:"profil
 export function ProfileImport({onApplied,onActivity}:{onApplied:()=>void;onActivity?:PageActivityChanged}) {
   const {t}=useTranslation();
   const moduleName=(id:string)=>id==="stroke"?t("stroke.title"):knownModules.has(id)?t(`nav.${id}`):id;
-  const pageName=(id:string)=>t(id==="chat"?"chat.title":id==="ai-services"?"ai.serviceTitle":`nav.${id||"overview"}`);
+  const pageName=(id:string)=>t(id==="ai-services"?"ai.serviceTitle":`nav.${id||"overview"}`);
   const pathName=(path:ProfilePath)=>path.id==="capture.output"?t("profiles.captureFolder"):(path.label||t("profiles.programLocation"));
   const [source,setSource]=useState("");
   const [view,setView]=useState("overview"),[detailModule,setDetailModule]=useState("");

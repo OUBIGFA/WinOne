@@ -5,40 +5,19 @@
 | Edge TTS GEC v2（leopold7/edge-tts-go ac5ef46） | 修复微软朗读接口 403；只移植公开协议的令牌计算，沿用 WinOne 语音请求、取消与播放。改编源码为 `apps/result-ui/edge_gec.go`，来源和摘要见 `third_party/import-notices.json` | LGPL-3.0-only；保留 Go 移植与 rany2/edge-tts 7.3.1 完整许可。WinOne 继续使用 GPL-3.0，构建入口可重建改编源码，不分发 Python 语音运行时 |
 | ECDICT 39cfb96 | 英语学习离线词典，保留核心词及关联词形；来源、数据摘要和加工说明见 `third_party/learning-data.json` | MIT，Copyright (c) 2025 Linwei；全文 `third_party/licenses/ecdict-39cfb96-LICENSE.txt`。AnkiConnect 与在线词典仅调用 HTTP API，不复制或分发服务端代码；Windows 系统 SQLite 由系统提供 |
 | Fluent UI motion（19e2d5c） | WinOne 功能性位移动效标准：`durationNormal=200ms`、`curveDecelerateMin=cubic-bezier(0.33,0,0.1,1)`；MyGo 执行可中断过渡与减少动效，首帧直接就位，不引入弹跳或装饰动画 | MIT，Microsoft Corporation；原始令牌与完整许可见 `third_party/fluent-motion/`、`third_party/licenses/fluent-ui-19e2d5c-LICENSE.txt`，摘要见 `third_party/import-notices.json` |
-| Wails v2 | 设置窗口与 WebView2 桥接 | MIT |
+| Wails v2 | 保留的旧网页设置宿主与 WebView2 桥接；正式设置窗口使用 MyGo | MIT |
 | go-webview2 | Windows WebView2 绑定 | MIT |
 | go-winio | Windows 命名管道 | MIT |
 | fyne systray | 主托盘入口 | Apache-2.0（含原项目归属） |
 | Go x/sys | Windows 系统调用 | BSD-3-Clause |
 | WinTray | 程序启动、窗口与托盘管理；跟进 0353a53 的自定义工作目录、QQ 登录后收起、微信持续等待登录和目录联接托盘修复；保留 WinOne Host/Worker 协调、统一页面与托盘适配。来源及摘要见 third_party/wintray-source.json，完整能力对照见 docs/wintray-sync-20261110.md | MIT，全文见 modules/wintray/LICENSE |
 | React / React DOM | 设置界面 | MIT |
-| Lucide messages-circle（7faf876） | 闪聊入口及页面图标，直接复用官方 SVG 路径；来源与摘要见 `third_party/import-notices.json` | ISC；全文见 `third_party/licenses/lucide.txt` |
-| PDFium 原生预览 | 锁定 `chromium/8111`（158.0.8111.0）的原版 Windows x64 PDFium；渲染、文字几何、链接和 AcroForm 由引擎处理，WinOne 的 MyGo 控件经按需独立 PDF 辅助进程使用，不启用文档脚本/外部提交 | 原包及全部 19 项依赖许可全文、发布摘要与 C ABI 头摘要见 `third_party/native-pdfium.json`、`third_party/desktop-mygo-notices.json`；保留 BSD、MIT、Apache、FTL 等各原文条件；构建验证 `build/verify-native-pdfium.mjs` |
-| MyGo 原生终端 / libghostty-vt | 使用 MyGo v0.8.3 的官方 terminal 组件及原版 Windows x64 VT 库（Ghostty `befcdfd2c3a1`，不分发上游终端应用）；本仓库内准备与校验运行资源，禁止回退到用户缓存自动下载 | Ghostty / uucode / Wuffs / simdutf / Highway / Unicode 及 SDK、主题的原始许可全文与 SHA-256 见 `third_party/native-terminal.json`、`third_party/desktop-mygo-notices.json`；MIT、Apache-2.0、BSD、Unicode-3.0 等条件按各原文保留，校验入口 `build/verify-native-terminal.mjs` |
-| MyGo v0.8.3 | 原生设置窗口（`apps/desktop-mygo`，迁移进行中）与共享结果窗（`apps/result-ui`）：窗口、组件、Markdown 与绘制；直接使用完整上游，添加 Windows 管理员窗口的 Shell 文件拖入兼容钩子（旧版 Rust 路径的原生适配），以及异步行内公式完成后的段落重排版本回调（保留文档身份和复制选区）；来源/摘要见 `third_party/mygo-winone/source.json`，不修改 Go 模块缓存；选区、鼠标与 UI 原版能力不变 | MIT（MyGo）；依赖许可原文与 SHA-256 见 `third_party/desktop-mygo-notices.json` 和 `third_party/result-ui-notices.json`，对应构建校验实际链接模块；结果窗另在源码阶段校验 |
+| MyGo v0.9.0 | 原生设置窗口与共享结果窗；保留窗口、组件、Markdown、表格换行、Windows 文件拖入和异步 GPU 初始化适配。来源与摘要见 `third_party/mygo-winone/source.json`，不修改用户的 Go 模块缓存 | MIT；依赖许可原文与 SHA-256 见 `third_party/desktop-mygo-notices.json` 和 `third_party/result-ui-notices.json`，构建核对实际链接模块 |
 | Lucide React 1.27.0 | 官方 AppWindow / LogOut 托盘菜单图标及既有界面图标；由锁定 npm 包生成透明模板，不自绘替代 | ISC，Feather 派生 LogOut 同时保留 MIT；原文 `internal/branding/menu-icons/LICENSE.txt`，生成器与 SHA-256 见 `third_party/sources.json` |
-| ChatGPT-Desktop-UI / chatgpt-desktop-kit 0.6.0 | Chat 阅读内容、右栏工作区与项目栏 | MIT；包含发行包自带的第三方许可全文 |
-| Magpie | 共享 AI 适配器；本次来源 `c9d253e4a2e7add1e31578244eda52bfdce11258`；社区插件 `d54df27`（82 个随包插件，14 个通过上游安装）；MyGo 路由/插件管理/脱敏记录直接调用同一运行时 | MIT；原生适配归属见 `third_party/import-notices.json`，依赖许可见 `third_party/ocr-ai-notices.json` 与 `third_party/ai-plugins.json` |
-| Magpie 用量图表 | 同一 `c9d253e4` 的柱状／平滑堆叠折线、速度分段曲线、排名与统计口径；`build/sync-magpie-usage.mjs` 可复现，React 仅适配生命周期／导航／主题 | MIT；原始许可与源码、生成文件 SHA-256 见 `third_party/magpie-usage-source.json`；其他旧版用量组件继续使用各自来源清单 |
+| Magpie | 共享 AI 适配器与独立本地网关；锁定 `c9d253e4a2e7add1e31578244eda52bfdce11258`。账号认证适配器锁定 `d54df279c0ce9ca35a79e72cb2d81ba368b37358`，随包保留 41 个固定账号适配器；不链接上游完整桌面界面 | MIT；适配归属见 `third_party/import-notices.json`，依赖和账号资源清单见 `third_party/ocr-ai-notices.json`、`third_party/ai-plugins.json` |
 | Magpie 代理字段 | 同一 `c9d253e4` 的代理地址／登录信息拆分、转义和地址校验；`build/sync-magpie-proxy.mjs` 直接抽取原函数 | MIT；原始许可和逐文件 SHA-256 见 `third_party/magpie-proxy-source.json` |
-| OpenAI Privacy Filter / LocalAI q8 GGUF / pf-serve | 高级隐私设置的本地模型；用户开启时按固定 SHA-256 下载，不包含在安装器中；来源、版本与完整原文见 `third_party/privacy-model.json` | 模型 Apache-2.0；privacy-filter.cpp、ggml 为 MIT；保留模型卡的 OpenAI/LocalAI 归属与原生下载包许可 |
-| Cindy | Chat 标题提示词、完整阅读/右栏组件，以及发送、插话、重试、草稿快照和滚动意图适配（排队列表与编辑控制核对 b1d73b1f；交互核对提交 77e2c32d；资源发现、同轮输入与恢复、计划卡、侧栏活动、独立气泡/动作布局、输入区重试提示、文件链接菜单、文件拖放／粘贴与错误分类核对 a44ac274；自动化完整页面、排期引擎与例行任务、前置检查生成器、中英文案按 2d8d3c36 原样同步，build/sync-cindy.mjs 可复现） | Apache-2.0；保留 third_party/cindy/LICENSE、NOTICE，来源与原文 SHA-256 见 scheduler.sync.json、title-source.json、sidebar-source.json、chat-interaction-source.json、chat-runtime-source.json、chat-resilience-source.json、chat-links-source.json、chat-queue-source.json 及各功能来源清单 |
-| Cindy 插件前置检查 | `2d8d3c36` 的 Ghost 清单/安装回执、控制节点网关、运行前检查、沙箱生命周期、公开 SDK、网络与 KV 边界；宿主接线仍在实施中，不能据源码导入标为已完成 | Apache-2.0；保留 Cindy LICENSE/NOTICE；来源、完整声明抽取与宿主适配见 `third_party/cindy/ghost-control.sync.json` |
-| MathJax 4.1.3（@mathjax/src、@mathjax/mathjax-newcm-font）/ mhchemparser 4.2.1 | Chat 与 OneBot 公式：TeX 排成离线矢量图形；不修改包源码，随包提供完整 NewCM 源归档及打包说明 | 包代码 Apache-2.0；底层 New Computer Modern 字体为 GUST / LPPL-1.3c-or-later，原始字体版权与全文不可省略。105 份原包字体元数据、许可证与 SHA-256 见 `third_party/chat-math-font-evidence.json`、`third_party/chat-math-notices.json` |
-| Cindy/OpenClaw 网络安全子集 | 直接复用 Cindy `2d8d3c36` 从 OpenClaw `b972feb3` 引入的 SSRF/DNS 地址固定实现，避免请求再次解析域名和重定向越权 | Cindy Apache-2.0；OpenClaw MIT；来源与原始 LICENSE/第三方声明 SHA-256 见 `third_party/ghost-notices.json`，依赖 undici 8.12.3 与独立别名 ipaddr.js 2.4.0 见 `onebot-notices.json` |
-| MCP Apps 官方 SDK 1.7.5（@modelcontextprotocol/ext-apps） | 完整复用 App / AppBridge、资源与协议，不以普通 HTML 卡片代替；只作为本机插件自有内容宿主 | 保存原包完整 LICENSE（上游过渡声明、Apache-2.0 与 MIT 原文；README 等文档说明 CC-BY-4.0），适用许可以原贡献为准；版本/摘要及传递依赖见 `third_party/onebot-notices.json` |
-| parse5 8.1.0 / entities 9.0.0 | Cindy Ghost 清单与 HTML 表单解析的运行依赖；不修改包源码 | MIT（parse5）/ BSD-2-Clause（entities）；原始许可与 SHA-256 见 `third_party/onebot-notices.json` |
+| Cindy 共享字体与折叠动效 | 保留设置界面仍使用的字体准备、减少动效判断和折叠控件；源码已独立，不引用已移除模块 | Apache-2.0；独立保存原始 LICENSE 与 NOTICE，具体来源与文件摘要见 `third_party/import-notices.json` 的 `cindy-shared-fonts`、`cindy-shared-motion` |
 | Vite / Vitest / TypeScript | 构建与测试 | 各项目许可证 |
-| Cindy OneBot 本地基础服务 | `2d8d3c36` 的伙伴 Home、档案版本/能力选择/模型路线语义、Maker Memory/FTS 与编辑服务、技能存储/按需检索与挂载投影、待办、夜间学习状态与计划校验；按 `third_party/cindy/onebot.sync.json` 机械同步，SQLite/日志/进程宿主由 WinOne 适配。此批源码尚不表示 OneBot 界面或 IM 已接通 | Apache-2.0；复用 `third_party/cindy/LICENSE`、`NOTICE`；全部来源与改编摘要见同步清单，直接/传递运行依赖见 `third_party/onebot-notices.json` |
-| Cindy IM / WeChat iLink | 直接同步锁定 Cindy `2d8d3c36` 的 lizi-im、wechat-ilink、连接记录与媒体核验；不另写 Telegram/飞书/企业微信/钉钉/Discord/iLink 协议。宿主派发仍在接入中 | Apache-2.0；来源与 SHA-256 见 `onebot.sync.json`，保留 Cindy LICENSE/NOTICE |
-| Cindy OneBot 设置组件 | `2d8d3c36` 的记忆编辑、生命周期/删除/历史、关联项目与能力选择页面、档案自动保存与能力列表合并逻辑；宿主档案版本、资源选择及草稿接线由 WinOne 适配。关联项目服务复用 `botLinkedProjects`、`botWorkbenchService`；完整产品入口仍在接入中 | Apache-2.0；保留 `third_party/cindy/LICENSE`、`NOTICE`；原文/生成摘要及定点适配见 `third_party/cindy/onebot-renderer.sync.json` 与 `onebot.sync.json`，用 `build/sync-cindy.mjs` 复现和校验 |
-| IM SDK 依赖 | `@larksuiteoapi/node-sdk` 1.71.1、`@wecom/aibot-node-sdk` 1.0.7、`dingtalk-stream` 2.1.5（包内版本写作 v2.1.5）、`discord.js` 14.27.0 及传递依赖 | MIT / Apache-2.0 等按 `onebot-notices.json` 的 91 项闭包逐项声明。按用户 2026-10-26 要求沿用 Cindy：WeCom SDK 和两个 Sapphire 包缺独立许可全文，原样保留 package.json/README 的许可声明及 Cindy metadata-only 附录证据，不将其称为独立 LICENSE，也不伪造全文 |
-| Cindy OneBot / Orca 分工工作树 | 直接复用 `2d8d3c36` 的 WorktreeManager 创建、完整检出、归档/取消守卫、Git 内容快照与恢复、新鲜基底、目录登记与运行租约；存储、真实任务引用和进程目录由 WinOne 适配 | Apache-2.0；保留 Cindy LICENSE/NOTICE，原文和产物摘要见 `third_party/cindy/onebot-worktree.sync.json` |
-| node-tar 7.5.21 及其传递依赖 | 原版工作树物理归档辅助进程，用于本机恢复证据的校验与读取；不执行包脚本、不修改包源码 | BlueOak-1.0.0（node-tar）及各包原始许可；全文与 SHA-256 见 `third_party/onebot-notices.json`，源码级与运行副本同时校验 |
-| Cindy OneBot 语音 | 复用 `2d8d3c36` 的通话、试听、朗读队列、语音输入核心、语音设置/本地词典及模型目录。系统音频静音沿用原版所有权保护，Windows Core Audio 调用由 WinOne Host 承接，不分发 loudness 的原生辅助程序 | Apache-2.0；保留 Cindy LICENSE/NOTICE，原文和产物摘要见 `third_party/cindy/onebot-voice.sync.json` 与 `onebot-renderer.sync.json` |
-| js-yaml 4.3.0、zod 4.3.6、argparse 2.0.1 | OneBot 技能 YAML 与学习计划 schema；版本与 Cindy 锁文件一致，未修改包源码 | MIT（js-yaml/zod）、Python-2.0（argparse）；完整原始许可与 SHA-256 见 `third_party/onebot-notices.json`，通过 `node build/verify-onebot-notices.mjs` 校验 |
-| gray-matter 4.0.3 及其传递依赖 | OneBot 记忆 frontmatter 与原文导入；不另写 YAML 解析器 | MIT/BSD/Python-2.0 等按锁定包逐项核实；原始许可、全部 OneBot npm 依赖与摘要见 `third_party/onebot-notices.json` |
-| Pi / Pi Durable / Pi Code Mode 1.5.0、quickjs-wasi 3.6.2 | Chat 持久执行及独立 QuickJS VM；模型与工具仍经过 WinOne 服务与权限控制 | MIT；原始 Pi、QuickJS-NG、WASI libc 与编译器运行时许可见 `third_party/chat-codemode-notices.json`，构建核对源码与随包副本 |
 
 精确版本见各模块依赖锁文件。引入或升级时同步原始版权、许可全文、传递依赖与来源摘要，并立即做源码级验证；分发前再对实际产物复核，而不是到构建结束才补许可证。
 
@@ -79,17 +58,3 @@ Interconnect directly reuses [croc v11.5.5](https://github.com/schollz/croc/tree
 # Tailcat · 持续分享与 TCP 通道
 
 直接使用官方 Tailcat v0.7.0，提交 `15ab9e68bfc6534a61797d7af28cedd42b54a3a5`，BSD-3-Clause。TCP 转发生命周期参考其 `cmd/tailcat/forward.go`，WinOne 适配进程监督与 FileShare 的标准 HTTP 网关。原始许可、Go 工具链及传递依赖记录见 `third_party/interconnect-peer-notices.json`，改编文件与摘要见 `third_party/import-notices.json`。Tailcat-Box 仅用于调研，未复制其 PolyForm Noncommercial 实现。
-
-# Chitchatter · 点对点聊天
-
-当前 MyGo 闪聊入口完整打包 [Chitchatter](https://github.com/jeremyckahn/chitchatter/tree/708fefdcc3ac0f5fc2ef2ca9ce1cc1b6a9f46c74) 的页面、通信、媒体、文件、设置与 SDK，提交 `708fefdcc3ac0f5fc2ef2ca9ce1cc1b6a9f46c74`，许可证 GPL-2.0-or-later。源码与原始测试在 `modules/flashchat/`，原始许可在 `third_party/licenses/chitchatter-708fefdc-LICENSE.txt`，适配说明在 `modules/flashchat/WINONE.md`；来源摘要由 `third_party/import-notices.json` 的 `chitchatter-complete` 条目记录。548 项锁定依赖及许可全文由 `third_party/flashchat-runtime-notices.json` 与 `build/verify-flashchat-notices.mjs` 校验。WinOne 的 GPLv3 组合分发保留上述归属、修改说明及对应源码义务。
-
-本地宿主使用 MyGo 的 WebView2，适配窗口生命周期、配置目录、媒体权限、下载、中文与主题。房间与文件协议直接运行上游实现。公共中转配置来自 [Jami 官方文档](https://docs.jami.net/en_US/developer/going-further/setting-up-your-own-turn-server.html)，使用其公开共享配置，无用户账号；这是外部服务配置，不表示 Jami 为 WinOne 提供可用性保证。可在网络设置中关闭增强连接或提供自定义配置。
-
-下述旧 React 适配和 Go 移植仍保留在仓库，其许可继续适用；它们不再是当前 MyGo 闪聊入口。
-
-完整无 UI 核心来自 [Chitchatter](https://github.com/jeremyckahn/chitchatter/tree/4093c21dad24af133c3c5c12042d3eb6112eece1)，提交 `4093c21dad24af133c3c5c12042d3eb6112eece1`，按上游 package.json 的 GPL-2.0-or-later 声明接入。原始许可见 `third_party/licenses/chitchatter-4093c21-LICENSE.txt`，源码、原始测试及适配说明保存在 `apps/desktop/frontend/src/vendor/chitchatter/`，来源摘要见 `third_party/import-notices.json`。Trystero 等前端依赖许可由 `third_party/runtime-notices.json` 记录。
-
-房间、身份、群聊、私聊、消息及 file offer 协议直接复用核心。文件适配器使用 FileShare + 官方 Tailcat 地址，双方需使用 WinOne；不宣称与原 Chitchatter WebTorrent 文件客户端互通。WinOne 以 GPLv3 与该 GPL-2.0-or-later 核心组合，分发时保留归属、原始许可、修改说明及对应源码提供义务。
-
-MyGo 原生窗口的闪聊（`apps/desktop-mygo/flashchat`）把同一核心的房间、身份、群聊、私聊、输入状态、历史与 file offer 逻辑逐文件移植为 Go，并按 Trystero 0.26.0（`@trystero-p2p/core`、`@trystero-p2p/torrent`，MIT）的线协议（WebTorrent 信令、房间密码加密、握手、房间帧与分片）用 Go 重写，以便与浏览器中的 Chitchatter 房间互通；随机昵称词表逐字复制自 fun-animal-names 0.1.1（MIT）。WebRTC 使用 Pion（`github.com/pion/webrtc/v4` 等，MIT；`pion/stun` 与 `pion/transport` 内含 Go Authors 的 BSD-3-Clause 代码），信令连接使用 gorilla/websocket（BSD-2-Clause）。各模块版本、许可原文与 SHA-256 记录在 `third_party/desktop-mygo-notices.json`，构建时按实际链接的模块校验。

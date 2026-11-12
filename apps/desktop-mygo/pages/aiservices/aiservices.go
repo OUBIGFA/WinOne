@@ -1,10 +1,4 @@
-// Package aiservices is the AI services page: the connections and
-// accounts that provide models, the default service, the local gateway,
-// routing, usage statistics, plugins and Magpie's advanced settings.
-//
-// WinOne settings and the pinned Magpie built-in pages are rendered with MyGo.
-// Only third-party authored plugin pages retain their isolated web surface.
-// The Host owns runtime configuration and external-client access.
+// Package aiservices manages provider connections, result preferences and the local gateway.
 package aiservices
 
 import (
@@ -32,28 +26,13 @@ const (
 	tabAccounts
 	tabDefaults
 	tabGateway
-	tabRouting
-	tabUsage
-	tabPlugins
-	tabAdvanced
 	tabHome
-	tabMore
-	tabMasking
 )
 
 // The provider editor's tabs, for connections of the custom kind.
 const (
 	providerConnection = iota
 	providerAdvanced
-)
-
-// The advanced tab's own tabs.
-const (
-	advancedQuota = iota
-	advancedModels
-	advancedPrivacy
-	advancedFeatures
-	advancedExtensions
 )
 
 // maxProviders is the Host's limit of configured services.
@@ -86,13 +65,8 @@ type page struct {
 	read            int
 	err             string
 
-	providerTab int
-	advancedTab int
-	// pluginInvalid holds Save while a plugin's options are not JSON.
-	pluginInvalid    bool
+	providerTab      int
 	preferenceFields map[string]*preferenceField
-	// maskRecord opens the privacy records at one record.
-	maskRecord string
 	// focusModels moves to the model list after the overview opens a
 	// provider.
 	focusModels bool
@@ -109,14 +83,8 @@ type page struct {
 	agentSearch    string
 	curl           *curlNotice
 
-	editor     *editor
-	gateway    *gatewayPanel
-	advanced   *advancedPanel
-	extensions *extensions
-	routing    *routingPanel
-	plugins    *pluginsPanel
-	external   *externalPanel
-	usage      *usageTab
+	editor  *editor
+	gateway *gatewayPanel
 }
 
 // curlNotice reports what a pasted cURL example filled in.
@@ -128,14 +96,6 @@ type curlNotice struct {
 func newPage(env *core.Env) *page {
 	p := &page{env: env, tab: tabHome, selectedBy: map[int]string{}, keys: keyEdits{}, reader: readerFor(env)}
 	p.gateway = newGatewayPanel(env)
-	p.extensions = newExtensions(env)
-	p.plugins = newPluginsPanel(p)
-	p.routing = newRoutingPanel(p)
-	p.extensions.open = func(r *pageRequest) {
-		p.plugins.request = r
-		p.switchTab(tabPlugins)
-		p.plugins.request = r
-	}
 	p.load()
 	return p
 }
@@ -191,10 +151,11 @@ func (p *page) accept(value document) {
 	p.keys = keyEdits{}
 	p.preferenceFields = nil
 	p.savedGen++
+	p.gateway.releaseRuntime()
 }
 
 func (p *page) save() {
-	if p.draft == nil || p.locked() || p.pluginInvalid || p.preferencesInvalid() {
+	if p.draft == nil || p.locked() || p.preferencesInvalid() {
 		return
 	}
 	p.saving, p.err = true, ""
@@ -217,55 +178,6 @@ func (p *page) save() {
 		widgets.RefreshProviderAvatars()
 		p.accept(value)
 		p.env.Toast(i18n.T("common.saved"))
-	})
-}
-
-// enableRoutingGroups saves the routing page's one-click choice alone:
-// provider, key and advanced drafts are not part of it, and stay drafts.
-func (p *page) enableRoutingGroups(done func(error)) {
-	p.saving, p.err = true, ""
-	core.Go(p.env, func() (document, error) {
-		var current document
-		if err := p.env.Host.CallCompletingInto("capture.ai.configuration.get", nil, &current); err != nil {
-			return current, err
-		}
-		normalize(&current)
-		s := current.Value.settings()
-		if s.BuiltinPlugins == nil {
-			s.BuiltinPlugins = map[string]core.Preserved[builtinChoice]{}
-		}
-		groups := s.BuiltinPlugins["groups"]
-		groups.Value.Enabled = ptr(true)
-		s.BuiltinPlugins["groups"] = groups
-		var value document
-		err := p.env.Host.CallCompletingInto("capture.ai.configuration.save", map[string]any{"configuration": current}, &value)
-		return value, err
-	}, func(value document, err error) {
-		p.saving = false
-		if err != nil {
-			p.err = err.Error()
-			done(err)
-			return
-		}
-		normalize(&value)
-		saved := clone(value)
-		p.saved = &saved
-		if p.draft == nil {
-			draft := clone(value)
-			p.draft = &draft
-		} else {
-			// The draft takes the new revision and the choice, and keeps
-			// its other edits.
-			p.draft.Value.Revision = value.Value.Revision
-			s := p.draft.Value.settings()
-			if s.BuiltinPlugins == nil {
-				s.BuiltinPlugins = map[string]core.Preserved[builtinChoice]{}
-			}
-			groups := s.BuiltinPlugins["groups"]
-			groups.Value.Enabled = ptr(true)
-			s.BuiltinPlugins["groups"] = groups
-		}
-		done(nil)
 	})
 }
 
@@ -551,9 +463,6 @@ func (p *page) switchTab(next int) {
 	if pr := p.current(); pr != nil {
 		p.selectedBy[p.tab] = pr.ID
 	}
-	if next == tabPlugins {
-		p.plugins.request = nil
-	}
 	p.tab = next
 	p.selected = p.selectedBy[next]
 }
@@ -561,48 +470,17 @@ func (p *page) switchTab(next int) {
 // Close implements core.Closer: leaving the page ends a sign-in, closes
 // the Host's pages and drops answers on their way.
 func (p *page) Close() {
-	if p.external != nil {
-		p.external.close()
-	}
 	p.read++
 	if p.editor != nil {
 		p.editor.Close()
 	}
 	p.gateway.Close()
-	p.extensions.Close()
-	if p.routing != nil {
-		p.routing.Close()
-	}
-	if p.plugins != nil {
-		p.plugins.Close()
-	}
-	if p.advanced != nil {
-		p.advanced.Close()
-	}
-	if p.usage != nil {
-		p.usage.Close()
-	}
 	p.env.Activity.Report("ai-settings", false, false, nil)
 }
 
 func (p *page) View(c *ui.Context) {
-	p.env.Activity.Report("ai-settings", p.dirty() || p.pluginInvalid, p.navigationLocked(), p.load)
-	// Built-in state is shared by navigation and settings; refresh once per saved
-	// revision so closing a plugin actually removes its pages on every entry path.
-	if p.saved != nil {
-		if p.advanced == nil {
-			p.advanced = newAdvancedPanel(p)
-		}
-		a := p.advanced
-		if (!a.loadedAt || a.revision != p.saved.Value.Revision) && !a.loading && a.err == "" {
-			a.loadedAt, a.revision = true, p.saved.Value.Revision
-			a.load()
-		}
-	}
-	if p.saved != nil {
-		p.extensions.Follow(p.saved.Value.Revision)
-	}
-	if (p.tab == tabCustom || p.tab == tabAccounts || p.tab == tabPlugins || p.anyPreset()) && !p.catalog.loaded && !p.catalog.busy && p.catalog.err == "" {
+	p.env.Activity.Report("ai-settings", p.dirty(), p.navigationLocked(), p.load)
+	if (p.tab == tabCustom || p.tab == tabAccounts || p.anyPreset()) && !p.catalog.loaded && !p.catalog.busy && p.catalog.err == "" {
 		p.loadCatalog()
 	}
 	p.rail()
@@ -618,8 +496,6 @@ func (p *page) View(c *ui.Context) {
 			switch p.tab {
 			case tabHome:
 				p.homeView(c)
-			case tabMore:
-				p.moreView(c)
 			case tabCustom, tabAccounts:
 				p.providersView(c)
 			case tabDefaults:
@@ -630,42 +506,12 @@ func (p *page) View(c *ui.Context) {
 					providers = pickers(p.saved.Value.Providers)
 				}
 				p.gateway.View(c, providers, p)
-			case tabRouting:
-				p.routing.View(c)
-			case tabUsage:
-				p.usageView(c)
-			case tabPlugins:
-				p.plugins.View(c)
-			case tabAdvanced:
-				p.advancedView(c)
-			case tabMasking:
-				if p.advanced == nil {
-					p.advanced = newAdvancedPanel(p)
-				}
-				p.advanced.recordsView(c, p.locked())
+
 			}
 		})
 	})
 	if p.tab != tabGateway {
-		p.gateway.calls.api.close()
-		p.gateway.calls.titleAPI.close()
-		p.gateway.calls.detailAPI.close()
 		p.gateway.Report()
-	}
-	// The Host's pages close with their tabs, as React's iframes did.
-	if p.tab != tabRouting {
-		p.routing.Leave()
-	}
-	if p.tab != tabPlugins {
-		p.plugins.Leave()
-	}
-	if p.external != nil && p.tab != tabPlugins && !p.external.busy() && !p.external.dirty() && (p.external.url != "" || p.external.viewer != "") {
-		// Drop the page lease after protected work is finished. The Host retains
-		// explicitly enabled services independently of the settings window.
-		p.external.close()
-	}
-	if p.tab != tabAdvanced && p.tab != tabMasking && p.advanced != nil {
-		p.advanced.leavePrivacy()
 	}
 	p.agentPicker(c)
 	p.presetPicker(c)
@@ -680,13 +526,6 @@ func (p *page) notices(c *ui.Context) {
 			}
 		})
 	}
-	if err := p.extensions.err; err != "" {
-		kit.Notice(c, kit.Failure, "", err, func() {
-			if kit.Button(c, i18n.T("common.retry"), icons.RefreshCw, false).Clicked() {
-				p.extensions.Reload()
-			}
-		})
-	}
 	if p.tab == tabAccounts && p.catalog.err != "" {
 		kit.Notice(c, kit.Failure, "", p.catalog.err, func() {
 			if kit.Button(c, i18n.T("common.retry"), icons.RefreshCw, false).Clicked() {
@@ -698,7 +537,7 @@ func (p *page) notices(c *ui.Context) {
 	if p.tab == tabAccounts && p.catalog.busy {
 		kit.Status(c, i18n.T("capture.loading"))
 	}
-	if p.draft == nil && p.err == "" && p.tab != tabGateway && p.tab != tabUsage {
+	if p.draft == nil && p.err == "" && p.tab != tabGateway {
 		ui.Column(c).FillWidth().Gap(16).Children(func() {
 			kit.Status(c, i18n.T("capture.loading"))
 			kit.Skeleton(c, 4)
@@ -707,15 +546,14 @@ func (p *page) notices(c *ui.Context) {
 }
 
 // rail shows Save and Undo for the configuration. The gateway saves its
-// own settings; usage statistics and plugins show them only once
-// something changed there.
+// own settings and has its own save action.
 func (p *page) rail() {
-	if p.draft == nil || p.tab == tabGateway || ((p.tab == tabUsage || p.tab == tabPlugins) && !p.dirty()) {
+	if p.draft == nil || p.tab == tabGateway {
 		return
 	}
 	dirty := p.dirty()
 	p.env.Rail.Set(
-		core.Action{Label: i18n.T("ai.save"), Disabled: !dirty || p.locked() || p.pluginInvalid || p.preferencesInvalid(), Busy: p.saving, Run: p.save},
+		core.Action{Label: i18n.T("ai.save"), Disabled: !dirty || p.locked() || p.preferencesInvalid(), Busy: p.saving, Run: p.save},
 		core.Action{Disabled: !dirty || p.locked(), Run: p.load},
 	)
 }

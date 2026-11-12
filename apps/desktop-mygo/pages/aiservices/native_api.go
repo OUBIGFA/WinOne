@@ -19,10 +19,8 @@ import (
 	"winone/desktopmygo/kit/icons"
 )
 
-// nativeAPI talks to the same Host-owned, capability-authenticated Magpie
-// process used by plugin pages. The native window never chooses another host,
-// forwards its token across redirects, or invents a second routing registry.
-// Long plugin installs keep their upstream five-minute budget, not IPC's 15s.
+// nativeAPI talks only to the Host-owned gateway's private administration.
+// The native window never forwards its capability across a redirect.
 type nativeAPI struct {
 	busy       bool
 	err        string
@@ -40,10 +38,10 @@ func (a *nativeAPI) close() {
 }
 
 func (a *nativeAPI) request(p *page, method, endpoint string, body any, done func(json.RawMessage)) {
-	if a.busy || p.extensions.state == nil {
+	if a.busy || p.gateway.runtimeURL == "" {
 		return
 	}
-	base, err := url.Parse(p.extensions.state.URL)
+	base, err := url.Parse(p.gateway.runtimeURL)
 	if err != nil || base.Hostname() != "127.0.0.1" || base.Scheme != "http" || base.User != nil {
 		a.err = i18n.T("aiNative.invalidRuntime")
 		return
@@ -140,29 +138,6 @@ func nativeJSON(c *ui.Context, value any) {
 func nativeDecode[T any](a *nativeAPI, raw json.RawMessage, value *T) bool {
 	if err := json.Unmarshal(raw, value); err != nil {
 		a.err = err.Error()
-		return false
-	}
-	return true
-}
-
-// Empty arrays are meaningful; a missing/null required collection is not a
-// successful mutation receipt. Keep drafts when an upstream contract changes.
-func decodeRouteGroups(a *nativeAPI, raw json.RawMessage, value *routeGroups) bool {
-	if !nativeDecode(a, raw, value) {
-		return false
-	}
-	if value.Groups == nil {
-		a.err = nativeT("invalidResponse")
-		return false
-	}
-	return true
-}
-func decodeManagedPlugins(a *nativeAPI, raw json.RawMessage, value *managedPlugins) bool {
-	if !nativeDecode(a, raw, value) {
-		return false
-	}
-	if value.Plugins == nil {
-		a.err = nativeT("invalidResponse")
 		return false
 	}
 	return true

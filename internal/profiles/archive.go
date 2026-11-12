@@ -263,6 +263,10 @@ func Decode(data []byte) (Archive, error) {
 			result.Modules[id] = settings
 		}
 	}
+	if result.Preferences.DefaultPage != nil {
+		page := settings.MigrateDefaultPage(*result.Preferences.DefaultPage)
+		result.Preferences.DefaultPage = &page
+	}
 	if err = validate(result); err != nil {
 		return empty, err
 	}

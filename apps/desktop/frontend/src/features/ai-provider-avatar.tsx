@@ -6,13 +6,13 @@ import {useTranslation} from "../i18n";
 import {Button} from "../ui/button";
 import {Input} from "../components/ui/input";
 import {Notice} from "../ui/notice";
-import {Collapse} from "./cindy/collapse";
+import {Collapse} from "../ui/collapse";
 import {AIProviderIcon,builtInProviderIcons} from "./ai-provider-icon";
 import {maximumAvatarBytes,storeProviderAvatar,refreshProviderAvatars} from "./provider-avatar-cache";
 import type {AIProvider} from "./ai-configuration";
 
 // Adapted from Magpie's iconPicker: current picture, file/site/built-in choices,
-// searchable marks and reset. WinOne supplies controls; Cindy supplies collapse.
+// searchable marks and reset. WinOne supplies controls and the shared collapse helper.
 export function AIProviderAvatar({provider,disabled,onChange,onBusy}:{provider:AIProvider;disabled:boolean;onChange:(avatar:string)=>void;onBusy:(busy:boolean)=>void}){
  const {t}=useTranslation();const file=useRef<HTMLInputElement>(null);
  const [mode,setMode]=useState<""|"builtin"|"url">(""),[seek,setSeek]=useState(""),[url,setURL]=useState(""),[busy,setBusy]=useState(false),[error,setError]=useState("");

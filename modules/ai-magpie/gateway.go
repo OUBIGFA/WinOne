@@ -78,9 +78,9 @@ func (w *gatewayResponse) Flush() {
 // Keep the entire client's protocol payload, including tools and images.
 // Magpie, rather than a second translator, owns all cross-protocol conversion.
 func serveGateway(ctx context.Context, in request, output io.Writer) error {
-	stopPlugins := serveBuiltinPlugins()
+	stopPlugins := serveGatewayLimits()
 	defer stopPlugins()
-	if err := configureUsage(in); err != nil {
+	if err := configureAccounting(in); err != nil {
 		return err
 	}
 	if gateway.WinOneTransportOnly {
@@ -88,15 +88,7 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 			return err
 		}
 	}
-	global := in.Operation == "magpie.gateway"
 	var payload map[string]json.RawMessage
-	if global {
-		provider.WinOneProviders = []provider.Provider{}
-		if err := installAuxiliaryProviders(in); err != nil {
-			return err
-		}
-		return serveGatewayBody(ctx, in, in.GatewayBody, output)
-	}
 	readVideo := in.GatewayMethod == http.MethodGet && strings.HasPrefix(in.GatewayPath, "/v1/videos/")
 	multipart := len(in.GatewayBinaryBody) > 0 && strings.HasPrefix(in.GatewayContentType, "multipart/form-data")
 	if !readVideo && !multipart && (json.Unmarshal(in.GatewayBody, &payload) != nil || payload == nil) {
@@ -227,7 +219,6 @@ func serveGatewayBody(ctx context.Context, in request, body []byte, output io.Wr
 		req.Header.Set("X-WinOne-Caller-Key", id)
 	}
 	gateway.New().Handler().ServeHTTP(response, winOneCallerRequest(req))
-	gateway.WinOneWaitArchive()
 	if response.status == 0 {
 		response.WriteHeader(200)
 	}

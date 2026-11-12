@@ -1,4 +1,3 @@
-import {scheduleChatCall} from './features/chat-read-queue';
 import type {CaptureLaunchPort,CaptureLaunchRequest} from "./features/capture-launch";
 
 export interface Settings {
@@ -74,12 +73,9 @@ interface NativeApp {
   AlwaysOnTop(method: string, payload: string): Promise<string>;
   Selection(method: string, payload: string): Promise<string>;
   QuickAssistant(method: string, payload: string): Promise<string>;
-  Chat(method: string, payload: string): Promise<string>;
-  ChatBrowser(method: string, payload: string): Promise<string>;
-  ChatMedia(method: string, payload: string): Promise<string>;
   PickDirectory(): Promise<string>;
   ReadClipboardFiles():Promise<string[]>;
-  PickChatFiles(): Promise<string[]>;
+  PickFiles(): Promise<string[]>;
   PickFile(): Promise<string>;
   PickDirectories():Promise<string[]>;
   DirectoryLinks(method:string,payload:string):Promise<string>;
@@ -227,15 +223,14 @@ export async function captureCall<T>(
 export async function pickDirectory(): Promise<string> {
   return native().PickDirectory();
 }
-export async function pickChatFiles():Promise<string[]>{return await native().PickChatFiles()??[];}
 export async function pickFile():Promise<string>{return native().PickFile();}
-export async function pickFiles():Promise<string[]>{return native().PickChatFiles();}
+export async function pickFiles():Promise<string[]>{return native().PickFiles();}
 export async function pickDirectories():Promise<string[]>{return native().PickDirectories();}
 export async function directoryLinksCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().DirectoryLinks(method,JSON.stringify(params))) as T;}
 export async function interconnectCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().Interconnect(method,JSON.stringify(params))) as T;}
 export async function timedPowerCall<T>(method:string,params:unknown={}):Promise<T>{return JSON.parse(await native().TimedPower(method,JSON.stringify(params))) as T;}
 export async function strokeCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().Stroke(method,JSON.stringify(params))) as T;}
-// Multiple path fields may coexist with Chat or the link workspace. Keep the
+// Multiple path fields may coexist with the link workspace. Keep the
 // native registration until the last consumer has unmounted.
 let fileDropTargets=0;
 export async function setFileDropTarget(enabled:boolean):Promise<void>{fileDropTargets=Math.max(0,fileDropTargets+(enabled?1:-1));await native().SetFileDropTarget?.(fileDropTargets>0);}
@@ -249,16 +244,6 @@ export async function alwaysOnTopCall<T>(method: string, params: unknown = null)
   return JSON.parse(await native().AlwaysOnTop(method, JSON.stringify(params))) as T;
 }
 export async function quickAssistantCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().QuickAssistant(method,JSON.stringify(params))) as T;}
-export async function chatCall<T>(method:string,params:unknown={}):Promise<T>{const payload=JSON.stringify(params);return scheduleChatCall(method,payload,async()=>JSON.parse(await native().Chat(method,payload)) as T);}
-export async function chatBrowserCall<T>(method:string,params:unknown={}):Promise<T>{return JSON.parse(await native().ChatBrowser(method,JSON.stringify(params))) as T;}
-export type ChatExportOptions={password?:string;excludeMedia?:boolean};
-export type ChatExportOutcome=
- |{status:"canceled"}
- |{status:"oversize";totalBytes:number;mediaBytes:number;limitBytes:number;messagesBytes?:number;transcriptBytes?:number}
- |{status:"ok";filePath:string;fidelity:"full"|"partial"|"db-only";unpackedBytes:number;totalBytes:number;mediaBytes:number;fileBytes:number;mediaMissing:number;mediaDropped:number;mediaExcluded:number;missingTranscripts:string[];orcaWorkers:number;messageCount:number};
-// Only the native save dialog supplies the destination. Session data and file
-// bytes stay between the Host and its isolated exporter, never in this bridge.
-export async function exportChat(id:string,options:ChatExportOptions={}):Promise<ChatExportOutcome>{return chatCall<ChatExportOutcome>("export",{id,...options});}
 export async function selectionCall<T>(method:string,params:unknown=null):Promise<T>{return JSON.parse(await native().Selection(method,JSON.stringify(params))) as T;}
 export interface ShortcutStatus {
   actionErrors?:Record<string,string>;
@@ -276,6 +261,3 @@ export async function getResidency(): Promise<{requested:boolean;reasons:string[
 export async function moduleCall<T>(method: string, params: unknown = null): Promise<T> {
   return JSON.parse(await native().Modules(method, JSON.stringify(params))) as T;
 }
-
-/** Native pixel clipboard and save dialog; bytes come from a scoped Host file. */
-export async function chatMediaCall<T>(method:string,payload:unknown):Promise<T>{return JSON.parse(await native().ChatMedia(method,JSON.stringify(payload)));}

@@ -13,7 +13,7 @@ const inherit="__inherit";
 
 // Feature settings store references only. Disabled historical choices remain
 // visible as a warning, never silently switch to another provider. The field
-// opens the shared model menu (AIModelMenuContent), the Chat composer's.
+// opens the shared model menu (AIModelMenuContent), used throughout WinOne.
 export function AIModelSelect({providers,value,onChange,disabled=false,label,inheritLabel}:{providers:AIProvider[];value?:AISelection;onChange:(value:AISelection|undefined)=>void;disabled?:boolean;label:string;inheritLabel?:string}) {
  const {t}=useTranslation();
  const [open,setOpen]=useState(false);
@@ -23,10 +23,10 @@ export function AIModelSelect({providers,value,onChange,disabled=false,label,inh
  const choice=value===undefined&&inheritLabel?inherit:value&&!value.provider?"":undefined;
  const shownChoice=choices.find(item=>item.value===choice);
  const name=provider&&value?.model?modelLabel(provider,value.model):value?.model??"";
- const text=shownChoice?shownChoice.label:value?.provider?`${provider?.name??value.provider}${name?" · "+name:""}`:t("chat.chooseModel");
- const accessible=`${label} · ${t("chat.model")}`;
+ const text=shownChoice?shownChoice.label:value?.provider?`${provider?.name??value.provider}${name?" · "+name:""}`:t("aiShared.chooseModel");
+ const accessible=`${label} · ${t("aiShared.model")}`;
  return <div className="space-y-2">
-  <label className="ai-model-field-label">{t("chat.model")}</label>
+  <label className="ai-model-field-label">{t("aiShared.model")}</label>
   <Popover open={open} onOpenChange={next=>{if(!disabled)setOpen(next);}}>
    <PopoverTrigger render={<button type="button" className="ai-model-field" disabled={disabled} aria-label={accessible} title={text}/>}>
     <span className="ai-model-field-value">

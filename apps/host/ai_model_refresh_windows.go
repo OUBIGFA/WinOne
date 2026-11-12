@@ -22,9 +22,6 @@ func (s *aiService) refreshProviderModels(ctx context.Context, id string) error 
 		return nil
 	}
 	if c.Providers[at].AuthMode == "account" {
-		if c.MagpieSettings.NoAccountDiscovery {
-			return nil
-		}
 		gate := s.accountGateFor(id)
 		select {
 		case gate <- struct{}{}:
@@ -67,17 +64,17 @@ func (s *aiService) refreshProviderModels(ctx context.Context, id string) error 
 		return err
 	}
 	// Keep streams, trace and account affinity alive across background refreshes.
-	s.routing.mu.Lock()
-	defer s.routing.mu.Unlock()
-	if s.routing.process != nil && s.routing.process.Alive() {
-		if s.routing.pendingCatalog == nil {
-			s.routing.pendingCatalog = map[string]ai.Provider{}
+	s.backend.mu.Lock()
+	defer s.backend.mu.Unlock()
+	if s.backend.process != nil && s.backend.process.Alive() {
+		if s.backend.pendingCatalog == nil {
+			s.backend.pendingCatalog = map[string]ai.Provider{}
 		}
-		s.routing.pendingCatalog[dst.ID] = *dst
-		if err := s.routing.process.SyncCatalog(ctx, *dst); err != nil {
+		s.backend.pendingCatalog[dst.ID] = *dst
+		if err := s.backend.process.SyncCatalog(ctx, *dst); err != nil {
 			return err
 		}
-		delete(s.routing.pendingCatalog, dst.ID)
+		delete(s.backend.pendingCatalog, dst.ID)
 	}
 	return nil
 }

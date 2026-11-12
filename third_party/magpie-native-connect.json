@@ -7,6 +7,6 @@
   "sourceSHA256": "f473cc4de7ecfd797af146d8a022e672974cab53baac4d4c53466dc19c83a656",
   "output": "apps/desktop-mygo/pages/aiservices/gateway_examples.json",
   "adaptations": [
-    "Replace root/model/key placeholders at render time; WinOne requires its own gateway key"
+    "Replace root/model/key placeholders at render time; WinOne requires its own gateway key; remove the unavailable Agents-page direction"
   ]
 }

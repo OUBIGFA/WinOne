@@ -42,22 +42,7 @@ func (s *Store) configurationLocked() Configuration {
 			p.HasKey = p.HasKey || p.Keys[j].HasKey
 		}
 	}
-	c.MagpieSettings.GitHubToken = nil
-	c.MagpieSettings.HasGitHubToken = s.githubToken != ""
-	for i := range c.MagpieSettings.SearchAPIs {
-		api := &c.MagpieSettings.SearchAPIs[i]
-		api.Key = ""
-		api.HasKey = s.searchKeys[api.Vendor] != ""
-		if api.KeyList != nil {
-			api.HasKey = false
-			for j := range *api.KeyList {
-				key := &(*api.KeyList)[j]
-				key.Key = ""
-				key.HasKey = s.searchKeys[api.Vendor+"/"+key.ID] != ""
-				api.HasKey = api.HasKey || key.HasKey
-			}
-		}
-	}
+
 	return c
 }
 func (s *Store) Configuration() Configuration {
@@ -116,38 +101,6 @@ func (s *Store) SaveConfigurationWithKeys(c Configuration, updates map[string]*s
 	c = cloneConfiguration(c)
 	// Validate submitted header values before replacing them with write-only
 	// placeholders; otherwise invalid wire values could be durably accepted.
-	if err := validateProviderHeaders(c.MagpieSettings.OTel.Headers); err != nil {
-		return fail(err)
-	}
-	githubToken := s.githubToken
-	if edit := c.MagpieSettings.GitHubToken; edit != nil {
-		var err error
-		githubToken, err = sealCredential(*edit)
-		if err != nil {
-			return fail(err)
-		}
-	}
-	c.MagpieSettings.GitHubToken = nil
-	c.MagpieSettings.HasGitHubToken = githubToken != ""
-	otelHeaders := map[string]string{}
-	for name, value := range c.MagpieSettings.OTel.Headers {
-		sealed := s.otelHeaders[name]
-		if value != "" {
-			var err error
-			sealed, err = sealCredential(value)
-			if err != nil {
-				return fail(err)
-			}
-		}
-		if sealed != "" {
-			otelHeaders[name] = sealed
-		}
-		c.MagpieSettings.OTel.Headers[name] = ""
-	}
-	searchKeys, err := s.prepareSearchKeys(&c)
-	if err != nil {
-		return fail(err)
-	}
 	providerSecrets, err := s.prepareProviderSecrets(&c)
 	if err != nil {
 		return fail(err)
@@ -204,7 +157,7 @@ func (s *Store) SaveConfigurationWithKeys(c Configuration, updates map[string]*s
 	// always use the versioned collection and its per-provider credentials.
 	projected := projectConfiguration(c)
 	selected := Selection{Provider: projected.ProviderID}
-	encoded, err := json.Marshal(stored{SchemaVersion: 2, Preferences: projected, ProtectedKey: keys[selected.Provider], Configuration: &c, ProtectedKeys: keys, ProtectedCredentialKeys: sets, ProtectedSearchKeys: searchKeys, ProtectedProviderSecrets: providerSecrets, ProtectedGitHubToken: githubToken, ProtectedOTelHeaders: otelHeaders})
+	encoded, err := json.Marshal(stored{SchemaVersion: 2, Preferences: projected, ProtectedKey: keys[selected.Provider], Configuration: &c, ProtectedKeys: keys, ProtectedCredentialKeys: sets, ProtectedProviderSecrets: providerSecrets})
 	if err != nil {
 		return fail(err)
 	}
@@ -217,9 +170,6 @@ func (s *Store) SaveConfigurationWithKeys(c Configuration, updates map[string]*s
 	s.configuration = &c
 	s.keys = keys
 	s.credentialKeys = sets
-	s.searchKeys = searchKeys
-	s.githubToken = githubToken
-	s.otelHeaders = otelHeaders
 	s.providerSecrets = providerSecrets
 	s.pruneKeyRoundsLocked(sets)
 	s.value = projected

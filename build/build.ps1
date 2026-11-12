@@ -40,9 +40,6 @@ if (-not $SkipInstall) { & npm.cmd ci --prefix apps/desktop/frontend --no-audit 
 # it must never be the first time a missing external license is discovered.
 & $NodeExe (Join-Path $PSScriptRoot 'verify-frontend-notices.mjs'); CheckExit
 & $NodeExe (Join-Path $PSScriptRoot 'verify-import-notices.mjs'); CheckExit
-& $NodeExe (Join-Path $PSScriptRoot 'sync-cindy.mjs') --spec (Join-Path $root 'third_party/cindy/onebot-renderer.sync.json') --check; CheckExit
-& $NodeExe --test (Join-Path $root 'tests/notices/cindy-binary.test.mjs'); CheckExit
-& $NodeExe --test (Join-Path $root 'tests/cindy-ports/check.test.mjs'); CheckExit
 & (Join-Path $PSScriptRoot 'build-provider-icons.ps1') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $DiagramTargetDirectory -WorkDirectory (Join-Path (Split-Path -Parent $output) 'provider-icons'); CheckExit
 # The React frontend serves only the Rust and legacy desktops: MyGo ships none
 # of it, so its build neither tests nor bundles it.
@@ -51,10 +48,7 @@ if($DesktopImplementation -ne 'MyGo'){
     # point of the build.
     if(-not $CompileOnly){Invoke-NativeCommand 'npm.cmd' @('test','--prefix','apps/desktop/frontend','--','--pool=threads') 'Frontend tests failed'}
     Invoke-NativeCommand 'npm.cmd' @('run','build','--prefix','apps/desktop/frontend') 'Frontend build failed'
-    # Bundle the same Cindy selection overlay consumed by the native browser. Keep
-    # this in the unified build so a preload edit cannot leave a stale guest asset.
-    & (Join-Path $PSScriptRoot 'build-browser-comment.ps1') -OutputDirectory (Join-Path (Split-Path -Parent $output) 'browser-comment') -BunExe $BunExe
-    Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $output) 'browser-comment/browser_comment_guest.js') -Destination (Join-Path $root 'apps/desktop-rust/src/browser_comment_guest.js') -Force
+
 }
 Push-Location third_party/systray
 try { if(-not $CompileOnly){& $GoExe test ./...; CheckExit} } finally { Pop-Location }
@@ -93,15 +87,6 @@ try {
     $env:GOROOT=''
     & (Join-Path $PSScriptRoot 'build-ai.ps1') -MagpieSourceDirectory $MagpieSourceDirectory -PluginSourceDirectory $PluginSourceDirectory -BunExe $BunExe -OutputDirectory (Join-Path $output 'shared/ai') -GoExe $aiGo -Test:(-not $CompileOnly)
 } finally { $env:GOROOT=$aiPriorRoot }
-# Keep compiler/test intermediates outside the shipped payload. Photon resolves
-# its WASM beside Bun in the bundled runtime, rather than beside worker.js.
-$chatBuild = Join-Path (Split-Path -Parent $output) 'chat-build'
-& (Join-Path $PSScriptRoot 'build-chat.ps1') -BunExe $BunExe -OutputDirectory $chatBuild -GoExe $GoExe -CargoExe $CargoExe -SkipInstall:$SkipInstall -Test:(-not $CompileOnly)
-New-Item -ItemType Directory -Path (Join-Path $output 'shared/chat'), (Join-Path $output 'shared/ai/runtime') -Force | Out-Null
-# The Chat build directory contains deliverables only. Carry its complete
-# license/resource tree; the one WASM asset lives beside the shared Bun runtime.
-Get-ChildItem -LiteralPath $chatBuild | Where-Object Name -NE 'photon_rs_bg.wasm' | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $output 'shared/chat') -Recurse -Force }
-Copy-Item -LiteralPath (Join-Path $chatBuild 'photon_rs_bg.wasm') -Destination (Join-Path $output 'shared/ai/runtime/photon_rs_bg.wasm') -Force
 $strokeBuild = Join-Path (Split-Path -Parent $output) 'stroke-build'
 & (Join-Path $PSScriptRoot 'build-stroke.ps1') -OutputDirectory $strokeBuild -Test:(-not $CompileOnly)
 New-Item -ItemType Directory -Path (Join-Path $output 'stroke') -Force | Out-Null
@@ -131,14 +116,10 @@ if ($RunStartupProbes) {
 }
 & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o apps/desktop/resource_windows.syso; CheckExit
 & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o apps/host/resource_windows.syso; CheckExit
-# Keep Go package discovery within the maintained source directories.
-# The complete Flash Chat tree is a Node project; some npm dependencies ship
-# Go examples which are not part of WinOne's Go module.
+# Enumerate only maintained Go module sources.
 $goModulePackages=@('./modules/always-on-top/...','./modules/stroke/...')
 $goSourcePackages=@('./apps/...','./build/...','./internal/...','./tests/...')+$goModulePackages
-# build-chat.ps1 -Test above already ran internal/chat completely, with the
-# bundled Pi worker; the sweep does not repeat it without that worker.
-$goTestPackages=@(& $GoExe list @goSourcePackages | Where-Object { $_ -ne 'winone/internal/chat' }); CheckExit
+$goTestPackages=@(& $GoExe list @goSourcePackages); CheckExit
 if(-not $CompileOnly){& $GoExe test @goTestPackages; CheckExit}
 & $GoExe vet @goSourcePackages; CheckExit
 & (Join-Path $PSScriptRoot 'build-wintray.ps1') -GoExe $GoExe -OutputDirectory $output -RunConsoleChecks:$RunStartupProbes -SkipTests:$CompileOnly
@@ -149,8 +130,7 @@ if($DesktopImplementation -eq 'Rust'){
     & (Join-Path $PSScriptRoot 'build-desktop-rust.ps1') -CargoExe $CargoExe -GoExe $GoExe -OutputDirectory $output -TargetDirectory $RustTargetDirectory -ComponentUI -FrontendAlreadyBuilt -UpdateRepository $UpdateRepository
     CheckExit
 }elseif($DesktopImplementation -eq 'MyGo'){
-    # The native shell embeds the complete local Flash Chat application.
-    & (Join-Path $PSScriptRoot 'build-desktop-mygo.ps1') -GoExe $ResultGoExe -OutputDirectory $output -Version $buildVersion -UpdateRepository $UpdateRepository -SkipTests:$CompileOnly -NodeExe $NodeExe -InstallFlashChatDependencies:(-not $SkipInstall)
+    & (Join-Path $PSScriptRoot 'build-desktop-mygo.ps1') -GoExe $ResultGoExe -OutputDirectory $output -Version $buildVersion -UpdateRepository $UpdateRepository -SkipTests:$CompileOnly -NodeExe $NodeExe
     CheckExit
 }else{
     & $GoExe build -trimpath -tags desktop,production -ldflags "-H windowsgui -X main.updateRepository=$UpdateRepository -X main.updateVersion=$buildVersion" -o (Join-Path $output 'WinOne.exe') ./apps/desktop; CheckExit

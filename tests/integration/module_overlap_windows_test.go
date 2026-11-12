@@ -34,6 +34,10 @@ func TestHostOverlappingModuleLifetimes(t *testing.T) {
 		t.Skip("use build/test-module-lifecycle.ps1 -RunSystemChecks")
 	}
 	bundle, fixture, consoleFixture := os.Getenv("WINONE_OVERLAP_BUNDLE"), os.Getenv("WINONE_WINDOW_FIXTURE"), os.Getenv("WINONE_CONSOLE_FIXTURE")
+	// DWM suppresses the border on a non-input desktop. Its HWND/topmost
+	// lifecycle remains testable there; the explicit foreground mode retains
+	// the border assertions and records that stronger scope in the receipt.
+	verifyBorder := os.Getenv("WINONE_OVERLAP_PRIVATE_DESKTOP") != "1"
 	if bundle == "" || fixture == "" || consoleFixture == "" {
 		t.Fatal("a complete bundle and owned-window fixture are required")
 	}
@@ -56,7 +60,16 @@ func TestHostOverlappingModuleLifetimes(t *testing.T) {
 		}
 		requestCtx, stop := context.WithTimeout(ctx, 15*time.Second)
 		defer stop()
-		r, err := transport.CallCompleting(requestCtx, pipe, host.Request{Version: 1, ID: strconv.FormatInt(time.Now().UnixNano(), 10), Method: method, Params: data}, 5*time.Second)
+		request := host.Request{Version: 1, ID: strconv.FormatInt(time.Now().UnixNano(), 10), Method: method, Params: data}
+		r, err := transport.CallCompleting(requestCtx, pipe, request, 5*time.Second)
+		// Startup status reads can briefly hold the shared action lease. As in
+		// the module-disable test, retry only an explicit admission refusal;
+		// accepted mutations and transport failures are never replayed.
+		deadline := time.Now().Add(5 * time.Second)
+		for (strings.HasSuffix(method, ".settings.save") || method == "modules.setEnabled") && err == nil && r.Error != nil && r.Error.Code == "configuration_busy" && time.Now().Before(deadline) {
+			time.Sleep(50 * time.Millisecond)
+			r, err = transport.CallCompleting(requestCtx, pipe, request, 5*time.Second)
+		}
 		if err != nil {
 			return err
 		}
@@ -137,8 +150,8 @@ func TestHostOverlappingModuleLifetimes(t *testing.T) {
 	aotProcess := moduleChildHandle(t, uint32(cmd.Process.Pid), "WinOne.AlwaysOnTop.exe")
 	defer windows.CloseHandle(aotProcess)
 	aotPID := overlapProcessID(t, aotProcess)
-	waitOverlap(t, "real pin border", func() bool {
-		return overlapTopmost(pinned) && findOverlapWindow(aotPID, "AlwaysOnTop_Border", false) != 0
+	waitOverlap(t, "pinned window", func() bool {
+		return overlapTopmost(pinned) && (!verifyBorder || findOverlapWindow(aotPID, "AlwaysOnTop_Border", false) != 0)
 	})
 
 	var programs struct {
@@ -232,7 +245,7 @@ func TestHostOverlappingModuleLifetimes(t *testing.T) {
 	})
 	t.Cleanup(func() {
 		if captureWindow != 0 {
-			overlapUser32.NewProc("PostMessageW").Call(captureWindow, 0x0205, 0, 0)
+			overlapUser32.NewProc("PostMessageW").Call(captureWindow, 0x0010, 0, 0)
 		}
 	})
 	assertActive := func() {
@@ -246,7 +259,7 @@ func TestHostOverlappingModuleLifetimes(t *testing.T) {
 		if err = call("capture.jobs.get", map[string]string{"id": captureJob}, &job); err != nil || job.State != "running" {
 			t.Fatal("capture stopped during overlap", job, err)
 		}
-		if findOverlapWindow(aotPID, "AlwaysOnTop_Border", false) == 0 {
+		if verifyBorder && findOverlapWindow(aotPID, "AlwaysOnTop_Border", false) == 0 {
 			t.Fatal("pin border disappeared during overlap")
 		}
 	}
@@ -259,21 +272,11 @@ func TestHostOverlappingModuleLifetimes(t *testing.T) {
 	}
 	assertActive()
 
-	// End capture normally, then disable each module through Host. Observe the
-	// OS handles and window state, rather than trusting a completed job alone.
-	if ok, _, err := overlapUser32.NewProc("PostMessageW").Call(captureWindow, 0x0205, 0, 0); ok == 0 {
-		t.Fatal(err)
-	}
-	waitOverlap(t, "capture cancellation", func() bool {
-		if err = call("capture.jobs.get", map[string]string{"id": captureJob}, &job); err != nil {
-			t.Fatal(err)
-		}
-		return job.State != "running"
-	})
-	if job.State != "cancelled" {
-		t.Fatal("capture was not cancelled", job)
-	}
-	captureWindow = 0
+	// The module stop path owns cancellation of the active native job. Disable
+	// capture through Host so the worker closes its editor, releases the draft
+	// reservation and exits under the same lifecycle gate used in production.
+	// A direct WM_CLOSE can be intercepted by draft persistence and does not
+	// prove worker shutdown.
 	disables := make(map[string]float64)
 	for _, item := range []struct {
 		id      string
@@ -297,6 +300,9 @@ func TestHostOverlappingModuleLifetimes(t *testing.T) {
 		})
 		if stop.State != "completed" {
 			t.Fatalf("module disable failed: %+v", stop)
+		}
+		if item.id == "capture" {
+			captureWindow = 0
 		}
 		if item.process != 0 {
 			if state, err := windows.WaitForSingleObject(item.process, 5000); err != nil || state != windows.WAIT_OBJECT_0 {
@@ -368,7 +374,7 @@ func TestHostOverlappingModuleLifetimes(t *testing.T) {
 	if !overlapVisible(pinned) || overlapTopmost(pinned) {
 		t.Fatal("Host exit changed the restored pin fixture")
 	}
-	writeOverlapJSON(t, filepath.Join(output, "result.json"), map[string]any{"sixModulesEnabled": true, "selectionListenerStopped": true, "nativeCaptureCancelled": true, "pinnedWindowRestored": true, "hostedWindowRestored": true, "managedProgramPreserved": true, "hostExited": true, "disableMilliseconds": disables, "productProcesses": productPIDs, "scope": "Generated capture draft, one real pinned fixture with border, one real managed fixture, and enabled in-Host selection listener with automatic reading off; no settings UI, OCR/AI task, user windows or clipboard input"})
+	writeOverlapJSON(t, filepath.Join(output, "result.json"), map[string]any{"sixModulesEnabled": true, "selectionListenerStopped": true, "nativeCaptureCancelled": true, "pinnedWindowRestored": true, "hostedWindowRestored": true, "managedProgramPreserved": true, "hostExited": true, "nativeBorderVerified": verifyBorder, "disableMilliseconds": disables, "productProcesses": productPIDs, "scope": "Generated capture draft, one real pinned fixture, one real managed fixture, and enabled in-Host selection listener with automatic reading off; DWM border only verified in explicit foreground mode; no settings UI, OCR/AI task, user windows or clipboard input"})
 }
 
 var overlapUser32 = windows.NewLazySystemDLL("user32.dll")

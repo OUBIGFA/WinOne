@@ -91,6 +91,9 @@ func TestWindowStartupInputAndGPUHandoff(t *testing.T) {
 		t.Fatal(err)
 	}
 	cmd := exec.CommandContext(ctx, self, "--close-window-helper", pipe, directory, "startup-input")
+	// A child can inherit the diagnostic pipe. Bound its drain after this
+	// helper exits or is cancelled so a failed check still reports its cause.
+	cmd.WaitDelay = 3 * time.Second
 	cmd.Env = append(os.Environ(), "APPDATA="+directory, "LOCALAPPDATA="+directory, "MYGO_GPU=1", "MYGO_FRAME_STATS=all")
 	var output bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &output, &output
@@ -174,6 +177,12 @@ func TestWindowStartupInputAndGPUHandoff(t *testing.T) {
 			t.Fatal(exitErr)
 		}
 	case <-time.After(2 * time.Second):
+		process, err := windows.OpenProcess(windows.SYNCHRONIZE, false, uint32(cmd.Process.Pid))
+		if err == nil {
+			state, waitErr := windows.WaitForSingleObject(process, 0)
+			windows.CloseHandle(process)
+			t.Logf("helper process exit observation: wait=%d err=%v", state, waitErr)
+		}
 		t.Fatal("input helper stayed resident")
 	}
 	if !bytes.Contains(output.Bytes(), []byte("drawn on the GPU")) {

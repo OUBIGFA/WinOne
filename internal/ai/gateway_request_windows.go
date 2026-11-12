@@ -17,16 +17,16 @@ import (
 // GatewayRequest keeps the raw protocol while reusing owned processes and the
 // same credentials as in-product requests. Once output starts, never retry it.
 func (t Translator) GatewayRequest(ctx context.Context, p Preferences, key, path string, body json.RawMessage, headers http.Header, w http.ResponseWriter) (partial bool, err error) {
-	return t.protocolRequest(ctx, p, key, path, body, headers, w, "gateway")
+	return t.protocolRequest(ctx, p, key, path, body, headers, w)
 }
 
-// ChatRequest preserves Pi tool payloads through Magpie while attributing usage
-// to WinOne. The caller, never the incoming HTTP body, chooses the usage source.
-func (t Translator) ChatRequest(ctx context.Context, p Preferences, key, path string, body json.RawMessage, headers http.Header, w http.ResponseWriter, method ...string) (partial bool, err error) {
-	return t.protocolRequest(ctx, p, key, path, body, headers, w, "winone", method...)
+// BridgeRequest carries a selected gateway attempt through the provider
+// protocol adapter. The Host owns credentials and the worker lifetime.
+func (t Translator) BridgeRequest(ctx context.Context, p Preferences, key, path string, body json.RawMessage, headers http.Header, w http.ResponseWriter, method ...string) (partial bool, err error) {
+	return t.protocolRequest(ctx, p, key, path, body, headers, w, method...)
 }
 
-func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, path string, body json.RawMessage, headers http.Header, w http.ResponseWriter, source string, methods ...string) (partial bool, err error) {
+func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, path string, body json.RawMessage, headers http.Header, w http.ResponseWriter, methods ...string) (partial bool, err error) {
 	method := http.MethodPost
 	if len(methods) > 0 {
 		method = methods[0]
@@ -59,10 +59,6 @@ func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, pat
 		input["gatewayBody"] = json.RawMessage(`{}`)
 		input["gatewayContentType"] = headers.Get("Content-Type")
 	}
-	if p.GlobalGateway {
-		input["operation"] = "magpie.gateway"
-	}
-	input["usageSource"] = source
 	input["providerPreferences"] = p.ProviderPreferences
 	input["keyID"], input["keyOptions"] = credentialRequestOptions(ctx)
 	input["additionalTools"] = p.AdditionalTools

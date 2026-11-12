@@ -4,15 +4,9 @@
   "license": "MIT",
   "notice": "licenses/upstream-magpie-c9d253e4a2e7add1e31578244eda52bfdce11258-0-LICENSE.txt",
   "inputs": {
-    "internal/gui/assets/i18n.js": "c99154b3bdb44d21c10b4f586eb97c24446933122ac7c4f29e6351e03517cbe9",
-    "internal/gui/assets/plugins/routing/i18n.js": "4946944ff99b2e10b73077ca30f82f074df7fc3c83523fedf8d6217471e793da",
-    "internal/gui/assets/plugins/redact/i18n.js": "4e696b3c9d4d951499afc9cea26a2a37aae111b976f6346ef1319b0862305b5c",
-    "internal/gui/assets/plugins/usage/i18n.js": "702388fb73bcb14fce1669acca218cab4a3124d7d0e7c7a15698fed949d01972",
-    "internal/gui/assets/plugins/sessions/i18n.js": "aaa72a3a3469100915bd21039111d0670331cc3b01da5a7feb4c6de5337d4a50",
-    "internal/gui/assets/plugins/library/i18n.js": "df6d2071677af57bde51f6e46802c7597d2478e07359f67077c12402f657a0c9",
-    "internal/gui/assets/plugins/otel/i18n.js": "3351d53ce34a251099a2f3e2099a523d26b36a381a2b8868e4b4cfa41347a255"
+    "internal/gui/assets/i18n.js": "c99154b3bdb44d21c10b4f586eb97c24446933122ac7c4f29e6351e03517cbe9"
   },
   "adaptations": [
-    "Use WinOne product name and native named interpolation; original upstream labels and Chinese translations"
+    "Retain only native gateway labels and connection notes; use WinOne product name and named interpolation; remove the unavailable Agents-page direction"
   ]
 }

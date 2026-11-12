@@ -22,7 +22,7 @@ import (
 // Exercise the public listener, real runtime, original access/budget store and
 // vendor HTTP boundary together. No cloud account or installed client is used.
 func TestGatewayNamedKeysScopesBudgetRestartAndRevocation(t *testing.T) {
-	exe := os.Getenv("WINONE_ROUTING_TEST_EXE")
+	exe := os.Getenv("WINONE_GATEWAY_TEST_EXE")
 	if exe == "" {
 		t.Skip("explicit isolated AI bundle")
 	}
@@ -41,8 +41,8 @@ func TestGatewayNamedKeysScopesBudgetRestartAndRevocation(t *testing.T) {
 	providers := []RuntimeProvider{{Provider: Provider{ID: "fixture", Name: "Fixture", AuthMode: "api-key", Protocol: "chat", BaseURL: vendor.URL, Models: []string{"one", "two"}}, Key: "vendor-fixture"}}
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
-	start := func() *RoutingProcess {
-		r, err := tr.StartRouting(ctx, &MagpieSettings{NoStats: true, NoUsageStats: true}, providers)
+	start := func() *GatewayProcess {
+		r, err := tr.StartGateway(ctx, &MagpieSettings{NoStats: true, NoUsageStats: true}, providers)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -65,10 +65,6 @@ func runWindow(o Options, launch plan) error {
 		if w.win == nil || w.win.IsDestroyed() {
 			return nil, errors.New(i18n.T("web.unavailable"))
 		}
-		// WebView2 fixes browser-wide scheduling and autoplay at its first
-		// page. Flash Chat may open later and runs an invisible media engine.
-		o.Page.BackgroundThrottling = mygo.ThrottlingOff
-		o.Page.Autoplay = mygo.AutoplayAllow
 		return w.win.NewWebView(o)
 	}
 	// The pages of web views reach Go through this scheme, which the
@@ -127,7 +123,6 @@ func (w *window) open() {
 	// targets consume their own drops first in SurfaceEvent.
 	w.win.OnFileDrop(func(*mygo.FileDropEvent) {})
 	w.hwnd = w.win.NativeHandle()
-	subclass(w.hwnd)
 	if err := w.instance.attach(w.hwnd, w.wake); err != nil {
 		reportError(err)
 	}
@@ -188,14 +183,12 @@ func (w *window) onClose(e *mygo.CloseEvent) {
 		return
 	}
 	// The guard has accepted closing. Hide before placement I/O or page
-	// teardown so slower WebView/room disposal cannot leave a frozen UI
+	// teardown so slower WebView disposal cannot leave a frozen UI
 	// onscreen. Do not prevent this close: resources and the process still
 	// end below, even if a legacy profile has keepUIRunning=true.
 	w.win.Hide()
 	w.place.save(w.hwnd)
-	// The page ends with the window: it releases what it holds in the
-	// Host (the flash chat leaves its room and stops its shares) while
-	// the Host can still be reached.
+	// The page releases its Host resources while the Host is still reachable.
 	w.shell.Discarded()
 	w.client.Cancel()
 }
@@ -232,38 +225,6 @@ func (w *window) ApplySettings(theme string) {
 	default:
 		mygo.Theme.SetSource(mygo.ThemeSystem)
 	}
-}
-
-var (
-	procCallWindowProcW = user32.NewProc("CallWindowProcW")
-	subclassed          uintptr
-	subclassProc        = windows.NewCallback(func(hwnd, message, wparam, lparam uintptr) uintptr {
-		if stopsVoiceInput(message, wparam) {
-			core.PauseVoiceInput()
-		}
-		result, _, _ := procCallWindowProcW.Call(subclassed, hwnd, message, wparam, lparam)
-		return result
-	})
-)
-
-const gwlpWndProc = ^uintptr(3) // GWLP_WNDPROC (-4)
-
-func subclass(hwnd uintptr) {
-	subclassed, _, _ = procSetWindowLongPtrW.Call(hwnd, gwlpWndProc, subclassProc)
-	// Locking the workstation reaches the window only once it asks; a
-	// failure leaves suspend as the only stop of a microphone.
-	if ok, _, err := procWTSRegisterSessionNotification.Call(hwnd, 0); ok == 0 {
-		reportError(err)
-	}
-}
-
-var procWTSRegisterSessionNotification = windows.NewLazySystemDLL("wtsapi32.dll").NewProc("WTSRegisterSessionNotification")
-
-// stopsVoiceInput reports the messages that stop OneBot's voice input: the
-// system suspending (WM_POWERBROADCAST, PBT_APMSUSPEND) and the workstation
-// locking (WM_WTSSESSION_CHANGE, WTS_SESSION_LOCK).
-func stopsVoiceInput(message, wparam uintptr) bool {
-	return message == 0x218 && wparam == 4 || message == 0x2b1 && wparam == 7
 }
 
 var (

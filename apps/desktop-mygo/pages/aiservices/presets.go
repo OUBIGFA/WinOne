@@ -20,8 +20,8 @@ func language() string {
 	return "en"
 }
 
-// Include decision services too: they are selected by routing groups even
-// though they do not generate chat responses of their own.
+// Include decision services too: they are valid provider endpoints even
+// though they use a protocol other than the usual response APIs.
 func offeredPresets(presets []servicePreset, search string) []servicePreset {
 	lang := language()
 	query := strings.ToLower(strings.TrimSpace(search))

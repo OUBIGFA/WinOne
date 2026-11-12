@@ -47,7 +47,7 @@ func TestNativeAccessKeysCreateEditScopesAndRecording(t *testing.T) {
 	p.gateway.tab = 1
 	settle(h, tt)
 	a := &p.gateway.access
-	if a.state == nil || a.catalog == nil || a.mcpChoices == nil {
+	if a.state == nil || a.catalog == nil {
 		t.Fatalf("access choices unavailable: %s", a.api.err)
 	}
 	if err := tt.Click(accessT("add")); err != nil {
@@ -77,7 +77,7 @@ func TestNativeAccessKeysCreateEditScopesAndRecording(t *testing.T) {
 	}
 	a.discard()
 	a.revealed = ""
-	p.gateway.tab = 3
+	p.gateway.historyOpen = true
 	settle(h, tt)
 	if err := tt.Click(accessT("startRecording")); err != nil {
 		t.Fatal(err)

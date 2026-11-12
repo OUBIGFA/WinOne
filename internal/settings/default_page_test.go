@@ -12,7 +12,7 @@ func TestDefaultPagePersistsAndRejectsUnknownNavigationTargets(t *testing.T) {
 		t.Fatal(err)
 	}
 	value := store.Snapshot()
-	value.DefaultPage = "chat"
+	value.DefaultPage = "ai-services"
 	if _, err = store.Save(value); err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +20,7 @@ func TestDefaultPagePersistsAndRejectsUnknownNavigationTargets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reopened.Snapshot().DefaultPage != "chat" {
+	if reopened.Snapshot().DefaultPage != "ai-services" {
 		t.Fatal("default page was not persisted")
 	}
 	value = reopened.Snapshot()

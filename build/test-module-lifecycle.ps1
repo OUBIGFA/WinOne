@@ -46,6 +46,7 @@ $start.UseShellExecute=$false;$start.CreateNoWindow=$true;$start.RedirectStandar
 $start.EnvironmentVariables['WINONE_MODULE_HOST_EXE']=Join-Path $bundle 'WinOne.Host.exe'
 $start.EnvironmentVariables['WINONE_OVERLAP_BUNDLE']=$bundle
 $start.EnvironmentVariables['WINONE_OVERLAP_OUTPUT']=Join-Path $output 'overlap'
+$start.EnvironmentVariables['WINONE_OVERLAP_PRIVATE_DESKTOP']=if($CurrentDesktop){'0'}else{'1'}
 $start.EnvironmentVariables['WINONE_WINDOW_FIXTURE']=Join-Path $root 'tests/window-fixture/bin/Release/net10.0-windows/WinOne.WindowFixture.exe'
 $start.EnvironmentVariables['WINONE_CONSOLE_FIXTURE']=Join-Path $root 'tests/console-fixture/bin/Release/net10.0-windows/WinOne.ConsoleFixture.exe'
 $start.EnvironmentVariables['WINONE_OVERLAP_MEASURE_SCRIPT']=Join-Path $root 'tests/resource-metrics/measure-module-overlap.ps1'

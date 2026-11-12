@@ -6,13 +6,12 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/egoist/mygo/internal/gpu/d3d11/device"
+	"github.com/egoist/mygo/internal/pacing"
 )
 
 type deviceResult struct {
-	device, context uintptr
-	software        bool
-	err             error
+	device *sharedDevice
+	err    error
 }
 
 // prepareDevice hands the result to either the renderer or cancellation,
@@ -31,24 +30,30 @@ func prepareDevice(create func() deviceResult, release func(deviceResult)) (<-ch
 		}
 }
 
-// PrepareDevice creates only the free-threaded device and context off the UI
-// thread. Once ready, the caller constructs the renderer on the UI thread with
-// the surface's current HWND; composition, swap chains and painting stay there.
+// PrepareDevice acquires MyGo's shared device, shaders and DXGI factory off the
+// UI thread. Since v0.9.0, a raw device/context pair no longer initializes a
+// renderer. The UI thread still owns the surface, swap chain and painting.
 func PrepareDevice() (<-chan struct{}, func(uintptr, bool) (*Renderer, error), func()) {
 	ready, take, cancel := prepareDevice(func() deviceResult {
-		d, c, software, err := device.New()
-		return deviceResult{d, c, software, err}
+		d, err := acquireDevice()
+		return deviceResult{device: d, err: err}
 	}, func(result deviceResult) {
-		free(&result.context)
-		free(&result.device)
+		if result.device != nil {
+			releaseDevice(result.device)
+		}
 	})
 	return ready, func(hwnd uintptr, composed bool) (*Renderer, error) {
 		result := take()
 		if result.err != nil {
 			return nil, result.err
 		}
-		return initializeRenderer(&Renderer{hwnd: hwnd, composed: composed, images: map[uint64]*texture{},
-			device: result.device, ctx: result.context, warp: result.software})
+		if hwnd == 0 {
+			releaseDevice(result.device)
+			return nil, errors.New("d3d11: no window")
+		}
+		r := &Renderer{hwnd: hwnd, composed: composed, uncapped: pacing.Uncapped, images: map[uint64]*texture{}}
+		r.useDevice(result.device)
+		return initializeRenderer(r)
 	}, cancel
 }
 

@@ -2,7 +2,6 @@ package settings
 
 import (
  "errors"
- "maps"
  "sync/atomic"
 )
 
@@ -24,7 +23,7 @@ func winOneSetGatewayConversations(on bool) error {
 // contract for Host snapshots so preference editors cannot mutate a reader.
 func WinOneUse(s Settings) { normalized := s.normal(); WinOneSettings.Store(&normalized) }
 
-// Catalog refresh and privacy completion can arrive together. Apply a field
+// Catalog refresh and gateway recording changes can arrive together. Apply a field
 // edit to the latest clone instead of replacing an unrelated concurrent edit.
 func WinOneEdit(edit func(*Settings) error) error {
  for {
@@ -34,67 +33,11 @@ func WinOneEdit(edit func(*Settings) error) error {
  }
 }
 
-// Reuse provider.SetUsageAlias's actual validation and normalization without
-// writing a separate Magpie profile. The Host later saves the accepted draft.
-func winOneEditUsageAliases(edit func(map[string]string) (map[string]string,error)) error {
- for {
-  prior:=WinOneSettings.Load();if prior==nil{return errors.New("missing WinOne settings snapshot")}
-  aliases,err:=edit(maps.Clone(prior.UsageAliases));if err!=nil{return err}
-  if len(aliases)==0{aliases=nil};next:=*prior;next.UsageAliases=aliases
-  if WinOneSettings.CompareAndSwap(prior,&next){return nil}
- }
-}
-
-// Routing can update its naming preference while requests read the snapshot.
+// Gateway readers receive the current immutable settings snapshot.
 func WinOneLoad() (Settings, bool) {
 	s := WinOneSettings.Load()
 	if s == nil {
 		return Settings{}, false
 	}
 	return *s, true
-}
-
-// Change only this process's local model flag, preserving concurrent routing
-// name updates and the rest of the Host snapshot. This does not save drafts.
-func WinOneUseRedactModel(on bool) {
-	for {
-		prior := WinOneSettings.Load()
-		if prior == nil {
-			return
-		}
-		next := *prior
-		next.RedactModel, next.RedactModelOff = on, !on
-		if WinOneSettings.CompareAndSwap(prior, &next) {
-			return
-		}
-	}
-}
-
-// A model download completes asynchronously. Save just the local opt-in via
-// upstream's locked durable writer, then publish it to this process snapshot.
-// Other settings still belong to the Host and must not be copied back.
-func winOneSetRedactModel(on bool) error {
- return winOneEditPrivacy(func(s *Settings){s.RedactModel,s.RedactModelOff=on,!on})
-}
-
-// Save only machine-local model choices, then atomically publish those fields.
-// A download or score change must not save the Host's unrelated live draft.
-func winOneEditPrivacy(edit func(*Settings)) error {
- fileMu.Lock()
- defer fileMu.Unlock()
- s:=load();edit(&s)
- if err:=save(s,false);err!=nil{return err}
- for {
-  prior:=WinOneSettings.Load();if prior==nil{return errors.New("missing WinOne settings snapshot")}
-  next:=*prior
-  next.RedactModel,next.RedactModelOff=s.RedactModel,s.RedactModelOff
-  next.RedactModelName,next.RedactModelScore=s.RedactModelName,maps.Clone(s.RedactModelScore)
-  if WinOneSettings.CompareAndSwap(prior,&next){return nil}
- }
-}
-func winOneSetPrivacyScore(id string,score float64)error {
- return winOneEditPrivacy(func(s *Settings){
-  m:=maps.Clone(s.RedactModelScore);if m==nil{m=map[string]float64{}}
-  if score==0{delete(m,id)}else{m[id]=score};s.RedactModelScore=m
- })
 }

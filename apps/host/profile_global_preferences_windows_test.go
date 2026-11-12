@@ -13,7 +13,7 @@ func TestProfileGlobalPreferencesExportAndImport(t *testing.T) {
 	_, store, states, request := importFixture(t)
 	local := store.Snapshot()
 	keep, open := false, "Ctrl+Alt+F9"
-	local.DefaultPage, local.OpenShortcut = "chat", &open
+	local.DefaultPage, local.OpenShortcut = "ai-services", &open
 	local.Startup.KeepUIRunning, local.Startup.PreferAdministrator = &keep, true
 	if _, err := store.Save(local); err != nil {
 		t.Fatal(err)
@@ -25,7 +25,7 @@ func TestProfileGlobalPreferencesExportAndImport(t *testing.T) {
 	raw, _ := json.Marshal(archive.Preferences)
 	var exported map[string]any
 	_ = json.Unmarshal(raw, &exported)
-	if exported["defaultPage"] != "chat" || exported["keepUIRunning"] != false || exported["openShortcut"] != open {
+	if exported["defaultPage"] != "ai-services" || exported["keepUIRunning"] != false || exported["openShortcut"] != open {
 		t.Fatalf("portable preferences omitted: %s", raw)
 	}
 	// Clear/false are values, not missing-field markers.
@@ -86,7 +86,7 @@ func TestOldProfilePreservesNewLocalGlobalPreferences(t *testing.T) {
 	}
 	local := store.Snapshot()
 	keep, open := false, "Ctrl+Alt+F9"
-	local.DefaultPage, local.OpenShortcut, local.Startup.KeepUIRunning, local.Startup.PreferAdministrator = "chat", &open, &keep, true
+	local.DefaultPage, local.OpenShortcut, local.Startup.KeepUIRunning, local.Startup.PreferAdministrator = "ai-services", &open, &keep, true
 	if _, err := store.Save(local); err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestOldProfilePreservesNewLocalGlobalPreferences(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := store.Snapshot()
-	if got.DefaultPage != "chat" || got.OpenBinding() != open || got.Startup.KeepUIRunning == nil || *got.Startup.KeepUIRunning || !got.Startup.PreferAdministrator {
+	if got.DefaultPage != "ai-services" || got.OpenBinding() != open || got.Startup.KeepUIRunning == nil || *got.Startup.KeepUIRunning || !got.Startup.PreferAdministrator {
 		t.Fatalf("old profile reset local preferences: %+v / %+v", got, got.Startup)
 	}
 }

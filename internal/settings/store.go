@@ -30,6 +30,30 @@ type Settings struct {
 	Startup                *StartupPreferences `json:"startup,omitempty"`
 }
 
+// Old editions could start on pages that are no longer part of WinOne. Decode
+// their preference without rewriting the file or rejecting unrelated settings.
+// New edits still pass through validate and cannot select removed pages.
+func (s *Settings) UnmarshalJSON(data []byte) error {
+	type savedSettings Settings
+	value := savedSettings(*s)
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	value.DefaultPage = MigrateDefaultPage(value.DefaultPage)
+	*s = Settings(value)
+	return nil
+}
+
+// MigrateDefaultPage restores only the known retired pages. Unknown values
+// remain invalid, and reading old preferences never rewrites their source.
+func MigrateDefaultPage(page string) string {
+	switch page {
+	case "chat", "onebot", "flash-chat":
+		return "overview"
+	}
+	return page
+}
+
 // Startup belongs to WinOne, not to a module. Nil is a legacy document which
 // the configuration store migrates from the old WinTray compatibility fields.
 type StartupPreferences struct {
@@ -175,7 +199,7 @@ func Open(path string) (*Store, error) {
 
 func validate(s Settings) error {
 	switch s.DefaultPage {
-	case "", "overview", "capture", "selection", "quick-assistant", "interconnect", "wintray", "convenience", "chat", "flash-chat", "ai-services", "settings":
+	case "", "overview", "capture", "selection", "quick-assistant", "interconnect", "wintray", "convenience", "ai-services", "settings":
 	default:
 		return errors.New("unsupported default page")
 	}

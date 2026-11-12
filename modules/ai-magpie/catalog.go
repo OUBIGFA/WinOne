@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
 	_ "embed"
 	"encoding/json"
-	"github.com/yetone/magpie/internal/plugin"
 )
 
 // The build checks this registry and every plugin file against the pinned
@@ -81,38 +79,6 @@ func accountCatalog() []agentOption {
 		}
 	}
 	return options
-}
-
-// Explicitly installed providers use the existing sign-in UI and private
-// account profiles. This never discovers another application's accounts.
-func accountCatalogWithExtensions(ctx context.Context) ([]agentOption, error) {
-	options := accountCatalog()
-	if plugin.WinOneDirectory() == "" || len(plugin.Load().Plugins) == 0 {
-		return options, nil
-	}
-	providers, err := plugin.Providers(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, p := range providers {
-		if len(p.Methods) == 0 {
-			continue
-		}
-		option := agentOption{ID: p.ID, Name: p.Name, Backend: "plugin", Plugin: p.Spec}
-		at := -1
-		for i, existing := range options {
-			if existing.ID == p.ID {
-				at = i
-				break
-			}
-		}
-		if at < 0 {
-			options = append(options, option)
-		} else {
-			options[at] = option
-		}
-	}
-	return options, nil
 }
 
 func pluginForAgent(agent string) (accountPlugin, bool) {

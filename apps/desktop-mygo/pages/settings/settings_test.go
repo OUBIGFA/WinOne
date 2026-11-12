@@ -277,7 +277,7 @@ func TestSidebarStartupFollowsTheShellAndReportsAFailedWrite(t *testing.T) {
 func TestStartPageListsTheSidebarAndSavesTheChoice(t *testing.T) {
 	f := setup(t)
 	f.click(t, "首页")
-	for _, page := range []string{"截图助手", "程序管理", "Chat", "AI 服务", "设置"} {
+	for _, page := range []string{"截图助手", "划词助手", "程序管理", "AI 服务", "设置"} {
 		if !f.tt.HasText(page) {
 			t.Fatalf("start page choices miss %q: %q", page, f.tt.Texts())
 		}

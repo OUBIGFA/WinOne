@@ -24,9 +24,6 @@ func TestClosingShellFeedbackDoesNotRemoveUnsavedCloseProtection(t *testing.T) {
 	defer i18n.SetLocale(i18n.Chinese)
 	i18n.SetLocale(i18n.English)
 	h := testhost.New(t, func(method string, _ json.RawMessage) (any, error) {
-		if method == "chat.ghosts.pages" {
-			return []any{}, nil
-		}
 		return map[string]any{}, nil
 	})
 	window := &feedbackWindow{}

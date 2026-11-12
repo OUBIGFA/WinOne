@@ -18,7 +18,7 @@ import (
 )
 
 func TestGatewayRecordingConsentPersistsWithoutExternalHistory(t *testing.T) {
-	exe := os.Getenv("WINONE_ROUTING_TEST_EXE")
+	exe := os.Getenv("WINONE_GATEWAY_TEST_EXE")
 	if exe == "" {
 		t.Skip("explicit isolated AI bundle")
 	}
@@ -30,10 +30,10 @@ func TestGatewayRecordingConsentPersistsWithoutExternalHistory(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	tr := Translator{Executable: exe, DataDirectory: filepath.Join(t.TempDir(), "private")}
-	prefs := &MagpieSettings{NoStats: true, NoUsageStats: true, MagpieClientSettings: MagpieClientSettings{GitHubToken: new("fixture-github-secret"), OTel: Observability{Headers: map[string]string{"Authorization": "fixture-collector-secret"}}}}
+	prefs := &MagpieSettings{NoStats: true, NoUsageStats: true}
 	providers := []RuntimeProvider{{Provider: Provider{ID: "fixture", Name: "Fixture", AuthMode: "api-key", Protocol: "chat", BaseURL: vendor.URL, Models: []string{"one"}}, Key: "fixture-vendor-key"}}
-	start := func() *RoutingProcess {
-		r, err := tr.StartRouting(ctx, prefs, providers)
+	start := func() *GatewayProcess {
+		r, err := tr.StartGateway(ctx, prefs, providers)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -41,7 +41,7 @@ func TestGatewayRecordingConsentPersistsWithoutExternalHistory(t *testing.T) {
 	}
 	router := start()
 	defer func() { router.Close() }()
-	call := func(method, path string, body any) []byte {
+	call := func(method, path string, body any, expected ...int) []byte {
 		t.Helper()
 		raw, _ := json.Marshal(body)
 		r, _ := http.NewRequestWithContext(ctx, method, router.URL+path, bytes.NewReader(raw))
@@ -55,7 +55,11 @@ func TestGatewayRecordingConsentPersistsWithoutExternalHistory(t *testing.T) {
 		}
 		defer res.Body.Close()
 		data, _ := io.ReadAll(res.Body)
-		if res.StatusCode != 200 {
+		want := 200
+		if len(expected) > 0 {
+			want = expected[0]
+		}
+		if res.StatusCode != want {
 			t.Fatalf("%s %d: %s", path, res.StatusCode, data)
 		}
 		return data
@@ -70,11 +74,14 @@ func TestGatewayRecordingConsentPersistsWithoutExternalHistory(t *testing.T) {
 	if string(state()["recording"]) != "false" {
 		t.Fatal("recording enabled without consent")
 	}
-	public := call("GET", "/api/settings", nil)
-	if bytes.Contains(public, []byte("fixture-github-secret")) || bytes.Contains(public, []byte("fixture-collector-secret")) {
-		t.Fatal("private settings API exposed runtime credentials")
+	public := call("GET", "/api/caller-keys", nil)
+	if bytes.Contains(public, []byte("fixture-vendor-key")) {
+		t.Fatal("gateway administration exposed vendor credentials")
 	}
-	call("POST", "/api/settings/plain-names", map[string]string{"mode": "off"})
+	for _, path := range []string{"/api/settings", "/api/groups", "/api/plugins", "/plugins.html", "/api/usage", "/api/masking", "/api/external"} {
+		call("GET", path, nil, 404)
+	}
+	call("POST", "/api/settings/plain-names", map[string]string{"mode": "off"}, 404)
 	if err := filepath.WalkDir(tr.DataDirectory, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -84,7 +91,7 @@ func TestGatewayRecordingConsentPersistsWithoutExternalHistory(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			if bytes.Contains(data, []byte("fixture-github-secret")) || bytes.Contains(data, []byte("fixture-collector-secret")) {
+			if bytes.Contains(data, []byte("fixture-vendor-key")) {
 				t.Error("runtime credentials persisted by a native preference save")
 			}
 		}

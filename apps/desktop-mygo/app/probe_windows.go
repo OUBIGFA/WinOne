@@ -90,15 +90,6 @@ func (h *nativeProbeHost) Handle(r internalhost.Request) internalhost.Response {
 	case "modules.snapshot":
 		h.seenModules.Store(true)
 		value = h.modules
-	case "chat.ghosts.pages":
-		// Native global plugin navigation reads only declarations at startup.
-		// An installer probe has no installed plugins: never wake a sandbox,
-		// mint a page URL or accept an interactive action during this read.
-		value = []any{}
-	case "chat.ghosts.pending":
-		// The production shell listens for plugin prompts globally. Startup
-		// inspection returns an empty inbox and never starts a plugin worker.
-		value = map[string]any{"cursor": 0, "events": []any{}, "prompts": []any{}}
 	case "interconnect.pending", "directory-links.pending", "learning.pending":
 		// The production shell reads all navigation inboxes at startup. Keep
 		// them empty in the isolated installer probe; no learning worker runs.

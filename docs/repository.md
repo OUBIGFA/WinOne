@@ -77,16 +77,15 @@
 | 固定子目录 | 用途与维护方式 |
 | --- | --- |
 | `tools/go-1.26.2`、`tools/go-1.27.3` | 分别用于 Host/模块和 MyGo 设置/结果窗；AI 与 Go 互传复用后者；旧 `go-1.27.1` 保留用于回退 |
-| `tools/rust-1.99.0`、`tools/nsis-3.13`、`tools/bun-1.4.2` | Rust 编译、安装器编译、AI 插件运行时；Bun SHA-256 按 `third_party/ai-plugins.json` 校验 |
+| `tools/rust-1.99.0`、`tools/nsis-3.13`、`tools/bun-1.4.2` | Rust 编译、安装器编译、AI 账号适配器运行时；Bun SHA-256 按 `third_party/ai-plugins.json` 校验 |
 | `tools/playwright-1.58.2` | 可复用的浏览器测试依赖；版本及完整性由 `build/browser-tools/package.json`、`package-lock.json` 锁定。入口设置 `WINONE_PLAYWRIGHT_MODULE`，现有布局检查直接使用；不包含浏览器安装包 |
-| `tools/node-24.16.0` | 完整闪聊锁定 Node 24.16.0 / npm 11.13.0；`build/use-local-resources.ps1` 经 `NodeExe` 传入统一构建。官方 win-x64 ZIP SHA-256：`edaca9bd58ec8e92037dac4e877d52f6b8f430b81c18b57e264b4e2fb111cd56`；不修改系统 Node |
+| `tools/node-24.16.0` | 构建脚本与保留网页前端使用 Node 24.16.0 / npm 11.13.0；`build/use-local-resources.ps1` 经 `NodeExe` 传入统一构建。官方 win-x64 ZIP SHA-256：`edaca9bd58ec8e92037dac4e877d52f6b8f430b81c18b57e264b4e2fb111cd56`；不修改系统 Node |
 | `assets/provider-icons` | 供应商图标的 128×128 PNG、`manifest.json` 和 `inputs.sha256`；由 `build/build-provider-icons.ps1` 校验并复用，源图或生成器变化后重建 |
 | `sources/PowerToys` | 锁定提交的置顶引擎及其恢复的编译依赖；由准备脚本维护 |
 | `sources/ShareX-21.0.0`、`sources/ShareX-v21.0.0.zip` | ShareX 准备脚本的固定源码和归档 |
 | `sources/ShareX-native` | 现用原生截图引擎的独立源码；需要测试改写时再复制到 `_temp/<任务>/` |
 | `sources/magpie-c9d253e`、`sources/ai-plugins-d54df27` | 本次冻结的 AI 适配器与社区插件来源；构建核对来源 HEAD 与对应清单，后续版本调整另按明确任务执行；测试输出仍回到根 `_temp/` |
-| `sources/mathjax-newcm-font-4.1.3.tgz` | 原始 npm 字体源包；`build/prepare-chat-math.ps1` 仅在缺失时下载，按 `third_party/chat-math-notices.json` 的 SHA-256 与 npm lock SHA-512 核验，并随公式运行时分发，供复核 GUST/LPPL 字体来源；不安装系统字体 |
-| `sources/mygo-winone-v0.8.3` | MyGo正式v0.8.3的仓库管理源码副本，按 `third_party/mygo-winone/source.json` 与 `build/prepare-mygo-filedrop.ps1` 校验原模块和窄适配；设置窗口、结果窗及nativeui使用该副本，不修改用户Go module cache。旧版本留作历史/回退参考 |
+| `sources/mygo-winone-v0.9.0` | MyGo 正式 v0.9.0的仓库管理源码副本，按 `third_party/mygo-winone/source.json` 与 `build/prepare-mygo-filedrop.ps1` 校验原模块和窄适配；设置窗口、结果窗及nativeui使用该副本，不修改用户Go module cache。旧版本留作历史/回退参考 |
 | `runtimes/ocr` | OCR Python、离线依赖与模型，供反复打包；以 OCR 清单校验 |
 | `cache/cargo`、`cache/go`、`cache/npm` | 分别通过 `CARGO_HOME`、`GOCACHE`、`npm_config_cache` 复用 Cargo 依赖、Go 编译和 npm 下载缓存；不放测试报告 |
 | `cache/nuget-notices/microsoft.web.webview2.1.0.3800.47.nupkg` | Microsoft WebView2 SDK 原包，供 `build/verify-rust-notices.ps1 -Update -WebView2Package <路径>` 核对 Loader 与原始许可证；来源为 NuGet 官方包，SHA-256 `56c9f26bdd07916a2d1949fb58a5c7e434dfa1173577dca879206050c4e718db` |

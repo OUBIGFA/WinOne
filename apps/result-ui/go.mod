@@ -3,7 +3,7 @@ module winone/resultui
 go 1.27.3
 
 require (
-	github.com/egoist/mygo v0.8.3
+	github.com/egoist/mygo v0.9.0
 	github.com/gorilla/websocket v1.5.3
 	golang.org/x/sys v0.48.0
 	winone v0.0.0-00010101000000-000000000000
@@ -28,4 +28,4 @@ replace fyne.io/systray => ../../third_party/systray
 replace winone/modules/nativeui => ../../modules/nativeui
 
 // Prepared from verified upstream by build/prepare-mygo-filedrop.ps1.
-replace github.com/egoist/mygo => ../../dist/resources/sources/mygo-winone-v0.8.3
+replace github.com/egoist/mygo => ../../dist/resources/sources/mygo-winone-v0.9.0

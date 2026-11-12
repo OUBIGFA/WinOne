@@ -34,7 +34,7 @@ export function AIModelMenuContent({providers,selected,choice,choices=[],open,la
  const shownChoices=choices.filter(item=>!query||item.label.toLowerCase().includes(query));
  const any=shownChoices.length>0||providers.some(p=>p.models.some(id=>(p.name+" "+id+" "+(p.modelNames?.[id]??"")+" "+modelLabel(p,id)).toLowerCase().includes(query)));
  return <>
-  <input autoFocus aria-label={t("chat.searchModels")} placeholder={t("chat.searchModels")} value={search} onChange={event=>setSearch(event.target.value)}/>
+  <input autoFocus aria-label={t("aiShared.searchModels")} placeholder={t("aiShared.searchModels")} value={search} onChange={event=>setSearch(event.target.value)}/>
   <ScrollArea disableContentFit viewportProps={{className:"chat-model-viewport"}}><div role="listbox" aria-label={label}>
    {shownChoices.map(item=><button key={"choice:"+item.value} ref={choice===item.value?chosen:undefined} type="button" role="option" aria-selected={choice===item.value} className="ai-model-choice" onClick={()=>onChoice?.(item.value)}>{item.icon??<Bot size={15}/>}<span className="chat-model-label">{item.label}</span><span className="chat-model-check" aria-hidden="true">{choice===item.value&&<Check size={14}/>}</span></button>)}
    {providers.map(p=>{
@@ -45,6 +45,6 @@ export function AIModelMenuContent({providers,selected,choice,choices=[],open,la
     </section>;
    })}
   </div></ScrollArea>
-  {!any&&<p>{t("chat.modelUnavailable")}</p>}
+  {!any&&<p>{t("aiShared.modelUnavailable")}</p>}
  </>;
 }

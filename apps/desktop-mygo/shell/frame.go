@@ -5,7 +5,6 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"winone/desktopmygo/chat/pluginhost"
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
@@ -28,8 +27,6 @@ func kitDialog(c *ui.Context, open *bool, title, message, err, confirm, cancel s
 // the frame, its corners, shadow and resizing edges.
 func (s *Shell) titleBar(c *ui.Context) {
 	t, p := c.Theme(), kit.Colors(c)
-	current := spec(s.page)
-	conversation := current.layout == core.Conversation
 	ui.Row(c).FillWidth().Height(titleBarHeight).AlignItems(ui.Stretch).Background(t.Background).
 		BorderWidth(0, 0, 1, 0).BorderColor(p.Hairline).Children(func() {
 		ui.Row(c).Grow(1).MinWidth(0).Padding(0, 12, 0, 16).Gap(10).AlignItems(ui.Center).DragWindow().Children(func() {
@@ -38,25 +35,23 @@ func (s *Shell) titleBar(c *ui.Context) {
 			}
 			ui.Text(c, "WinOne").FontWeight(600).SingleLine().Shrink(0)
 		})
-		if !conversation {
-			ui.Row(c).Padding(0, 4).AlignItems(ui.Center).Shrink(0).Children(func() {
-				dirty, busy := s.env.Activity.State()
-				label := i18n.T("common.refresh")
-				if dirty || busy {
-					label = i18n.T("settingsDesign.refreshAfterEditing")
-				}
-				var b ui.Element
-				if s.loading {
-					b = ui.ButtonBase(c).Size(kit.ControlHeight, kit.ControlHeight).Justify(ui.Center).AlignItems(ui.Center).
-						Disabled(true).Label(label).Children(func() { kit.Loader(c) })
-				} else {
-					b = kit.IconButton(c, icons.RefreshCw, label).Disabled(dirty || busy)
-				}
-				if b.Clicked() {
-					s.refresh()
-				}
-			})
-		}
+		ui.Row(c).Padding(0, 4).AlignItems(ui.Center).Shrink(0).Children(func() {
+			dirty, busy := s.env.Activity.State()
+			label := i18n.T("common.refresh")
+			if dirty || busy {
+				label = i18n.T("settingsDesign.refreshAfterEditing")
+			}
+			var b ui.Element
+			if s.loading {
+				b = ui.ButtonBase(c).Size(kit.ControlHeight, kit.ControlHeight).Justify(ui.Center).AlignItems(ui.Center).
+					Disabled(true).Label(label).Children(func() { kit.Loader(c) })
+			} else {
+				b = kit.IconButton(c, icons.RefreshCw, label).Disabled(dirty || busy)
+			}
+			if b.Clicked() {
+				s.refresh()
+			}
+		})
 		ui.Row(c).AlignItems(ui.Stretch).Shrink(0).Children(func() {
 			s.windowButton(c, icons.Minus, i18n.T("window.minimize"), false, s.window.Minimize)
 			if s.window.IsMaximized() {
@@ -67,7 +62,7 @@ func (s *Shell) titleBar(c *ui.Context) {
 			s.windowButton(c, icons.X, i18n.T("window.close"), true, s.window.Close)
 		})
 	})
-	if s.loadErr != "" && s.loaded && !conversation {
+	if s.loadErr != "" && s.loaded {
 		ui.Row(c).FillWidth().Padding(8, 16).Children(func() { kit.InlineError(c, s.loadErr) })
 	}
 }
@@ -124,9 +119,6 @@ func (s *Shell) sidebar(c *ui.Context) {
 				if !item.footer {
 					s.navItem(c, item, compact)
 				}
-			}
-			if s.loaded {
-				pluginhost.For(s.env).Navigation(c, compact)
 			}
 		})
 		ui.Column(c).Padding(4, 8, 12).Gap(2).FocusGroup(ui.Vertical).Children(func() {
@@ -244,16 +236,12 @@ func (s *Shell) rememberSidebar() {
 }
 
 // content frames the page: settings pages scroll in a centered column
-// with the save rail floating at the right; conversations fill it.
+// with the save rail floating at the right.
 func (s *Shell) content(c *ui.Context) {
 	current := spec(s.page)
 	// Pages talk to the Host from their first frame: wait for the first
 	// snapshot, which starts the Host when needed, as every request of
 	// the previous window waited for that start.
-	if kept, ok := s.kept[s.page]; ok && s.instance == nil {
-		s.instance = kept
-		delete(s.kept, s.page)
-	}
 	if s.instance == nil && s.loaded {
 		if current.make != nil {
 			s.instance = current.make(s.env)
@@ -263,26 +251,6 @@ func (s *Shell) content(c *ui.Context) {
 	}
 	s.env.Rail.Clear()
 	ui.Box(c).Grow(1).MinWidth(0).FillHeight().Children(func() {
-		if current.layout == core.Conversation {
-			ui.Column(c.Key(s.page)).Fill().Children(func() { s.pageView(c) })
-			return
-		}
-		if owner, ok := s.instance.(core.WorkspaceScroller); ok {
-			ui.Column(c.Key(s.page)).Fill().Children(func() {
-				if s.snapshot.RuntimeWarning != "" {
-					kit.Notice(c, kit.Info, "", s.snapshot.RuntimeWarning, nil)
-				}
-				if s.opts.StartupWarning != "" && !s.snapshot.Administrator && s.snapshot.Settings.Startup != nil && s.snapshot.Settings.Startup.PreferAdministrator {
-					kit.Notice(c, kit.Info, "", s.opts.StartupWarning, nil)
-				}
-				if s.intentErr != "" {
-					kit.Notice(c, kit.Failure, "", s.intentErr, nil)
-				}
-				s.pageView(c)
-			})
-			s.rail(c, owner.WorkspaceScroll())
-			return
-		}
 		width, _ := c.Size()
 		margin := float32(32)
 		if width-s.sidebarWidth < 640 {

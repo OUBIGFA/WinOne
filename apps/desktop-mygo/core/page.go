@@ -2,7 +2,7 @@ package core
 
 import "github.com/egoist/mygo/ui"
 
-// Page is one page of the window: a module's settings, a tool, Chat.
+// Page is one page of the window: a module's settings or a tool.
 type Page interface {
 	// View builds the page inside the shell's content frame.
 	View(c *ui.Context)
@@ -22,21 +22,8 @@ const (
 	Settings Layout = iota
 	// Workspace pages scroll in a wider column, with the save rail.
 	Workspace
-	// Conversation pages fill the frame and manage their own scrolling;
-	// they show no save rail.
-	Conversation
 )
 
 // Closer is a page that releases something when the shell leaves it, as a
 // check the Host runs for it.
 type Closer interface{ Close() }
-
-// Keeper is a page the shell keeps while the user visits other pages, as
-// the flash chat keeps its room: leaving it and coming back shows it as it
-// was. SetAside runs as the user leaves it, to put away what only shows
-// on screen; the shell closes it (Closer) only with the window.
-type Keeper interface{ SetAside() }
-
-// WorkspaceScroller lets a workspace keep its own navigation fixed while its
-// content scrolls. The shell's existing save and scroll actions use that view.
-type WorkspaceScroller interface{ WorkspaceScroll() *ui.ScrollState }

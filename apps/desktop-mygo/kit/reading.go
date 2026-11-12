@@ -10,7 +10,7 @@ import (
 	"winone/desktopmygo/kit/icons"
 )
 
-// Reading sizes of long text: a reply in Chat, a Markdown file beside it.
+// Reading sizes of long text: AI output and Markdown documents.
 // Such text is what its view is for, so it is one step above the interface's
 // 14 and has room between lines.
 const (
@@ -83,7 +83,7 @@ func CodeBlock(c *ui.Context, b *markdown.CodeBlockView) {
 				icon = icons.Check
 				c.After(time.Second)
 			}
-			label := i18n.T("chat.copy")
+			label := i18n.T("aiShared.copy")
 			// A block still being written is copied once it closes.
 			button := ui.ButtonBase(c).Size(24, 24).Radius(t.Radius).Justify(ui.Center).AlignItems(ui.Center).Label(label).Tooltip(label).Disabled(b.Open)
 			color := t.TextMuted

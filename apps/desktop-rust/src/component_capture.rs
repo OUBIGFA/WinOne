@@ -10,8 +10,6 @@ pub fn call(request:&Request,client:&winone_desktop::transport::Client,owner:HWN
     let method=request.text(0)?;let mut params:Value=serde_json::from_str(request.text(1)?)?;
     if !params.is_null()&&!params.is_object(){return Err(failure("截图参数无效"));}
     let endpoint=crate::component_bridge::module_method("capture",method)?;
-    if method=="ai.usage.export" { return crate::usage_export::export(client,params,owner,locale); }
-    if method=="ai.archive.export" { return crate::usage_export::export_archive(client,params,owner,locale); }
     if matches!(method,"save.last"|"edit.apply"|"draft.complete"){
         let mut choose=true;
         if method=="draft.complete"{

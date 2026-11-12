@@ -8,34 +8,29 @@ import { profileMessages, profileFieldMessages } from "./locales/profiles";
 import {diagnosticsMessages} from "./locales/diagnostics";
 import {updateMessages} from "./locales/updates";
 import {aiMessages} from "./locales/ai";
-import {aiPluginMessages} from "./locales/ai-plugins";
-import {aiRoutingMessages} from "./locales/ai-routing";
-import {usageMessages} from "./locales/usage";
 import {gatewayMessages} from "./locales/gateway";
 import {selectionMessages} from "./locales/selection";
 import {sharedPackageMessages} from "./locales/shared-packages";
-import {chatMessages} from "./locales/chat";
 import {directoryLinksMessages} from './locales/directory-links';
 import {mouseGesturesMessages} from './locales/mouse-gestures';
 import {settingsDesignMessages} from './locales/settings-design';
 import {timedPowerMessages} from './locales/timed-power';
 import {interconnectMessages} from './locales/interconnect';
-import {onebotMessages} from './locales/onebot';
 export { useTranslation } from "react-i18next";
 
-const zh={timedPower:timedPowerMessages.zh,interconnect:interconnectMessages.zh,onebot:onebotMessages.zh,
+const zh={aiShared:{"searchModels":"搜索模型","modelUnavailable":"请在 AI 服务中启用模型。","model":"模型","chooseModel":"选择模型","copy":"复制","maskedAccount":"账号 {{number}}"},aiHome:{home:"常用",preferences:"使用偏好"},timedPower:timedPowerMessages.zh,interconnect:interconnectMessages.zh,
   fileDrop:{single:"每次请拖入一个项目。",folderOnly:"此处只接收文件夹，原路径已保留。",fileOnly:"此处只接收文件，原内容已保留。",localOnly:"请从资源管理器拖入本地文件或文件夹。"},
   settingsDesign:settingsDesignMessages.zh,
-  ...aiRoutingMessages.zh,
+
   stroke:mouseGesturesMessages.zh,
   links:directoryLinksMessages.zh,
-  chat:chatMessages.zh,
+
   quickAssistant:{alwaysOnTop:"默认置顶快捷助手",showReasoning:"显示快捷助手的思考过程",loading:"正在读取快捷助手设置",open:"打开快捷助手",toolbarHint:"在 AI 对话框中使用这些功能。默认功能与划词助手共用，排序、显示状态和自定义功能在这里单独保存。"},
   sharedPackages:sharedPackageMessages.zh,
   gateway:gatewayMessages.zh,
-  usage:usageMessages.zh,
+
   selection:selectionMessages.zh,
-  aiPlugins:aiPluginMessages.zh,
+
   ai:aiMessages.zh,
   updates:updateMessages.zh,
   permission:{title:"运行权限",loading:"正在读取权限",administrator:"当前以管理员身份运行",standard:"当前以普通权限运行",remember:"始终以管理员身份运行",consent:"首次启用需要管理员授权。",nextStart:"重新启动 WinOne 后生效。",untilExit:"从托盘退出后，下次启动将使用普通权限。",restart:"以管理员身份重新启动",restarting:"正在重新启动"},
@@ -56,14 +51,14 @@ const zh={timedPower:timedPowerMessages.zh,interconnect:interconnectMessages.zh,
   moduleDescription:{"quick-assistant":"AI 对话与快捷指令",capture:"截图、标注与截图置顶",selection:"选中文字后翻译、解释或继续对话","always-on-top":"让选定窗口保持在前面",wintray:"管理程序启动和托盘图标"},
   moduleStatus:{incomplete:"关闭未完成",faulted:"需要处理",unavailable:"组件不可用",working:"正在处理",enabled:"已开启",disabled:"已关闭"},
 };
-const en={timedPower:timedPowerMessages.en,interconnect:interconnectMessages.en,onebot:onebotMessages.en,fileDrop:{single:"Drop one entry at a time.",folderOnly:"This field accepts folders only. The previous path is retained.",fileOnly:"This field accepts files only. The previous value is retained.",localOnly:"Drop local files or folders from File Explorer."},...aiRoutingMessages.en,settingsDesign:settingsDesignMessages.en,stroke:mouseGesturesMessages.en,links:directoryLinksMessages.en,
-  chat:chatMessages.en,
+const en={aiShared:{"searchModels":"Search models","modelUnavailable":"Enable a model in AI services.","model":"Model","chooseModel":"Choose model","copy":"Copy","maskedAccount":"Account {{number}}"},aiHome:{home:"Common",preferences:"Preferences"},timedPower:timedPowerMessages.en,interconnect:interconnectMessages.en,fileDrop:{single:"Drop one entry at a time.",folderOnly:"This field accepts folders only. The previous path is retained.",fileOnly:"This field accepts files only. The previous value is retained.",localOnly:"Drop local files or folders from File Explorer."},settingsDesign:settingsDesignMessages.en,stroke:mouseGesturesMessages.en,links:directoryLinksMessages.en,
+
   quickAssistant:{alwaysOnTop:"Keep Quick assistant on top by default",showReasoning:"Show reasoning in Quick assistant",loading:"Loading quick assistant settings",open:"Open quick assistant",toolbarHint:"Use these actions in the AI chat. Defaults are shared with the selection assistant; order, visibility, and custom actions are saved separately here."},
   sharedPackages:sharedPackageMessages.en,
   gateway:gatewayMessages.en,
-  usage:usageMessages.en,
+
   selection:selectionMessages.en,
-  aiPlugins:aiPluginMessages.en,
+
   ai:aiMessages.en,
   updates:updateMessages.en,
   permission:{title:"Permissions",loading:"Checking permissions",administrator:"Currently running as administrator",standard:"Currently running with standard permissions",remember:"Always run as administrator",consent:"Administrator approval is required the first time.",nextStart:"Restart WinOne to apply.",untilExit:"This session stays elevated. Exit WinOne from the tray to use standard permissions on the next launch.",restart:"Restart as administrator",restarting:"Restarting"},

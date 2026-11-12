@@ -2,7 +2,6 @@
 export function interconnectFixture(){
  const tasks:any[]=[];
  let general={notify:true,clipboard:false,downloadDir:'C:/isolated/received'},menu={enabled:false},entry={visible:false};
- let chat={nickname:''};
  let running=false;
  let settings={bind:'127.0.0.1',port:5421,downloadDir:'C:\\isolated\\received'};
  let items:{id:string;kind:string;title:string;content?:string;size:number;exists:boolean}[]=[];
@@ -10,8 +9,6 @@ export function interconnectFixture(){
   const params=JSON.parse(payload);
   if(method==='pending')return JSON.stringify({requested:false,paths:[]});
   if(method==='preferences.save'){settings=params;return JSON.stringify(settings);}
-  if(method==='chat.preferences.get')return JSON.stringify(chat);
-  if(method==='chat.preferences.save'){chat=params;return JSON.stringify(chat);}
   if(method==='transfer_open_cloud')return 'null';
   if(method==='general.get')return JSON.stringify(general);
   if(method==='general.save'){general=params;return JSON.stringify(general);}

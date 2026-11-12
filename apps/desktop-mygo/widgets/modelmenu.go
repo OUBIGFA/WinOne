@@ -109,7 +109,7 @@ func ModelMenu(c *ui.Context, trigger ui.Element, state *ModelMenuState, o Model
 		groups = append(groups, group)
 	}
 	return modelmenu.Menu(c, trigger, state, modelmenu.Options{Choices: choices, Groups: groups, Selected: o.Selected,
-		Strings: modelmenu.Strings{Search: i18n.T("chat.searchModels"), List: o.Label, Empty: o.Empty, NoMatch: i18n.T("chat.modelUnavailable")}})
+		Strings: modelmenu.Strings{Search: i18n.T("aiShared.searchModels"), List: o.Label, Empty: o.Empty, NoMatch: i18n.T("aiShared.modelUnavailable")}})
 }
 
 // ModelFieldOptions configure ModelField.

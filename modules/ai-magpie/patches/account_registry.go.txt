@@ -1,0 +1,33 @@
+package plugin
+
+import (
+ "os"
+ "path/filepath"
+ "strings"
+ "sync"
+)
+
+// Native sign-in helpers keep the registered OS identity. All saved auth,
+// browser state and account metadata still use the Host's private profile.
+func winOnePluginEnvironment(env []string) []string {
+ profile:=os.Getenv("WINONE_AI_OS_USERPROFILE")
+ if !filepath.IsAbs(profile) {return env}
+ out:=make([]string,0,len(env)+1)
+ for _,entry:=range env {name,_,_:=strings.Cut(entry,"=");if !strings.EqualFold(name,"USERPROFILE"){out=append(out,entry)}}
+ return append(out,"USERPROFILE="+profile)
+}
+
+var winOneAccount struct { sync.RWMutex; entry *Entry }
+
+// A provider worker selects one verified adapter in memory. Neither an old
+// plugins.json nor a runtime environment variable can add another package.
+func WinOneUseBundle(entry Entry) {
+ winOneAccount.Lock();defer winOneAccount.Unlock()
+ copied:=clonePlugins([]Entry{entry})[0]
+ winOneAccount.entry=&copied
+}
+func winOneAccountList() List {
+ winOneAccount.RLock();defer winOneAccount.RUnlock()
+ if winOneAccount.entry==nil{return List{Plugins:[]Entry{}}}
+ return List{Plugins:clonePlugins([]Entry{*winOneAccount.entry})}
+}

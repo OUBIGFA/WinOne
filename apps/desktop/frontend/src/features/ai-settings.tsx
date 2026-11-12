@@ -11,8 +11,6 @@ import {CaptureOptionSelect} from "../ui/capture-option-select";
 import {usePageActivity,type PageActivityChanged} from "../ui/page-navigation";
 import {AIAccounts} from "./ai-accounts";
 import {createAccountReader,type AccountReader} from "./ai-account-reader";
-import {AIUsage} from "./ai-usage";
-import {AIRouting} from "./ai-routing";
 import {AIGateway} from "./ai-gateway";
 import {AIAgentPicker} from "./ai-agent-picker";
 import {AIProviderOverview} from "./ai-provider-overview";
@@ -23,14 +21,9 @@ import {AIProviderHeaders} from "./ai-provider-headers";
 import {AIProviderAvatar} from "./ai-provider-avatar";
 import {refreshProviderAvatars} from "./provider-avatar-cache";
 import {AIModelSelect} from "./ai-model-select";
-import {AIPlugins} from "./ai-plugins";
-import {AIPrivacyRecords} from "./ai-privacy-records";
-import {AIThirdPartyPlugins} from "./ai-third-party-plugins";
-import {useAIPluginExtensions,AIPluginActions,AIPluginSurface,type PluginPageRequest} from "./ai-plugin-extensions";
-import {AIMagpieSettings} from "./ai-magpie-settings";
 import {AIProviderKeys} from "./ai-provider-keys";
 import {AIProviderPresets,presetConnection,type AIServicePreset} from "./ai-provider-presets";
-import {LayersPlus,UserPlus,Plus,Save,Trash2,Brain,Share2,ChartNoAxesCombined,SlidersHorizontal,Waypoints,Blocks,LayoutGrid,MessagesSquare} from "lucide-react";
+import {LayersPlus,UserPlus,Plus,Save,Trash2,Brain,Share2,LayoutGrid,MessagesSquare} from "lucide-react";
 import {LayoutGridCircles} from "../components/layout-grid-circles-icon";
 import {IconLabel} from "../ui/icon-label";
 import {Tabs,TabsList,TabsTrigger,TabsContent} from "../components/ui/tabs";
@@ -48,19 +41,6 @@ export function AISettings({onActivity,accountReader:sharedReader}:{onActivity?:
  const [avatarBusy,setAvatarBusy]=useState(false);
  const [section,setSection]=useState("custom");
  const [providerTab,setProviderTab]=useState("connection");
- const [pluginInvalid,setPluginInvalid]=useState(false);
- const [maskRecord,setMaskRecord]=useState<string>();
- const [advancedTab,setAdvancedTab]=useState("quota");
- const [pluginGeneration,setPluginGeneration]=useState(0),[pluginPageRequest,setPluginPageRequest]=useState<PluginPageRequest>();
- const [pluginSignInRequest,setPluginSignInRequest]=useState<{provider:string;nonce:string}>();
- const [pluginMenuRequest,setPluginMenuRequest]=useState(0);
- const {state:pluginExtensions,error:pluginError}=useAIPluginExtensions(!!saved,saved?.revision,pluginGeneration);
- const routingReplacement=pluginExtensions?.pages.find(page=>page.replaces==="routing"),usageReplacement=pluginExtensions?.pages.find(page=>page.replaces==="usage");
- // Keep advanced drafts once visited without loading hidden catalogs when
- // the user only needs to edit a connection.
- const advancedVisited=useRef(false);
- const advancedDraft=useRef<AIConfiguration|undefined>(undefined);
- if(section==="advanced")advancedVisited.current=true;
  const modelSection=useRef<HTMLElement>(null);
  const [modelNavigation,setModelNavigation]=useState(0);
  // Run after the destination tab mounts. Explicit requests also focus a model
@@ -87,22 +67,10 @@ export function AISettings({onActivity,accountReader:sharedReader}:{onActivity?:
  const navigationLocked=busy||accountBusy||modelBusy||avatarBusy;
  const locked=navigationLocked||loading;
  // Reads do not own unsaved work. Keep navigation usable while they settle.
- usePageActivity(onActivity,dirty||pluginInvalid,navigationLocked,"ai-settings",()=>void load());
- async function load(){setLoading(true);setError("");setNotice("");try{const value=await captureCall<AIConfiguration>("ai.configuration.get");refreshProviderAvatars();setDraft(value);advancedDraft.current=value;setSaved(value);setKeyUpdates({});setSelected(current=>value.providers.some(p=>p.id===current)?current:value.providers[0]?.id??"");}catch(error){setError(String(error));}finally{setLoading(false);}}
+ usePageActivity(onActivity,dirty,navigationLocked,"ai-settings",()=>void load());
+ async function load(){setLoading(true);setError("");setNotice("");try{const value=await captureCall<AIConfiguration>("ai.configuration.get");refreshProviderAvatars();setDraft(value);setSaved(value);setKeyUpdates({});setSelected(current=>value.providers.some(p=>p.id===current)?current:value.providers[0]?.id??"");}catch(error){setError(String(error));}finally{setLoading(false);}}
  useEffect(()=>{void load();},[]);
- async function save(){if(!draft)return;setBusy(true);setError("");setNotice("");try{const value=await captureCall<AIConfiguration>("ai.configuration.save",{configuration:draft,...(Object.keys(keyUpdates).length?{keyUpdates}:{})});refreshProviderAvatars();setDraft(value);advancedDraft.current=value;setSaved(value);setKeyUpdates({});setNotice(t("common.saved"));}catch(error){setError(String(error));}finally{setBusy(false);}}
- async function enableRoutingGroups(){
-  setBusy(true);setError("");
-  try{
-   // Save only this explicit action. Provider/key and advanced drafts are not
-   // an implicit part of the routing page's one-click enable operation.
-   const current=await captureCall<AIConfiguration>("ai.configuration.get");
-   const settings=current.magpieSettings??{};
-   const value=await captureCall<AIConfiguration>("ai.configuration.save",{configuration:{...current,magpieSettings:{...settings,builtinPlugins:{...settings.builtinPlugins,groups:{...settings.builtinPlugins?.groups,enabled:true}}}}});
-   setSaved(value);
-   setDraft(previous=>previous?{...previous,revision:value.revision,magpieSettings:{...previous.magpieSettings,builtinPlugins:{...previous.magpieSettings?.builtinPlugins,groups:{...previous.magpieSettings?.builtinPlugins?.groups,enabled:true}}}}:value);
-  }catch(error){setError(String(error));throw error;}finally{setBusy(false);}
- }
+ async function save(){if(!draft)return;setBusy(true);setError("");setNotice("");try{const value=await captureCall<AIConfiguration>("ai.configuration.save",{configuration:draft,...(Object.keys(keyUpdates).length?{keyUpdates}:{})});refreshProviderAvatars();setDraft(value);setSaved(value);setKeyUpdates({});setNotice(t("common.saved"));}catch(error){setError(String(error));}finally{setBusy(false);}}
  function change(p:AIProvider,patch:Partial<AIProvider>){
   setDraft(value=>{
    if(!value)return value;
@@ -171,26 +139,30 @@ export function AISettings({onActivity,accountReader:sharedReader}:{onActivity?:
   const overviewProviders=draft?[...draft.providers,...removedOverviewProviders]:saved?.providers??[];
   return <section className="settings-stack">
   <p className="muted">{t("ai.shared")}</p>
-   <AIProviderOverview providers={overviewProviders} disabled={locked} unavailableProviders={removedOverviewProviders.map(item=>item.id)} onOpenProvider={openProviderModels}/>
   <fieldset disabled={busy} className="plain-fieldset settings-stack">
 
-   <Tabs value={section} onValueChange={value=>{if(provider)selectedBySection.current[section]=provider.id;const next=String(value);if(next==="plugins")setPluginPageRequest(undefined);setSection(next);setSelected(selectedBySection.current[next]??"");}}>
-    <TabsList variant="default" className="max-w-full flex-wrap group-data-horizontal/tabs:h-auto" aria-label={t("ai.serviceTitle")}><TabsTrigger title={t("ai.customProviders")} value="custom" disabled={navigationLocked}><IconLabel icon={LayersPlus}>{t("ai.customProviders")}</IconLabel></TabsTrigger><TabsTrigger title={t("ai.addProvidersTab")} value="accounts" disabled={navigationLocked}><IconLabel icon={UserPlus}>{t("ai.addProvidersTab")}</IconLabel></TabsTrigger><TabsTrigger title={t("ai.defaultService")} value="defaults" disabled={navigationLocked}><IconLabel icon={LayoutGridCircles}>{t("ai.defaultService")}</IconLabel></TabsTrigger><TabsTrigger title={t("gateway.title")} value="gateway" disabled={navigationLocked}><IconLabel icon={Share2}>{t("gateway.title")}</IconLabel></TabsTrigger><TabsTrigger title={t("routing.title")} value="routing" disabled={navigationLocked}><IconLabel icon={Waypoints}>{t("routing.title")}</IconLabel></TabsTrigger><TabsTrigger title={t("usage.title")} value="usage" disabled={navigationLocked}><IconLabel icon={ChartNoAxesCombined}>{t("usage.title")}</IconLabel></TabsTrigger><TabsTrigger title={t("aiPlugins.title")} value="plugins" disabled={navigationLocked}><IconLabel icon={Blocks}>{t("aiPlugins.title")}</IconLabel></TabsTrigger><TabsTrigger title={t("ai.advanced")} value="advanced" disabled={navigationLocked}><IconLabel icon={SlidersHorizontal}>{t("ai.advanced")}</IconLabel></TabsTrigger></TabsList>
+   <Tabs value={section} onValueChange={value=>{if(provider)selectedBySection.current[section]=provider.id;const next=String(value);setSection(next);setSelected(selectedBySection.current[next]??"");}}>
+    <TabsList variant="default" className="max-w-full flex-wrap group-data-horizontal/tabs:h-auto" aria-label={t("ai.serviceTitle")}>
+     <TabsTrigger value="home" disabled={navigationLocked}>{t("aiHome.home")}</TabsTrigger>
+     <TabsTrigger value="custom" disabled={navigationLocked}><IconLabel icon={LayersPlus}>{t("ai.customProviders")}</IconLabel></TabsTrigger>
+     <TabsTrigger value="accounts" disabled={navigationLocked}><IconLabel icon={UserPlus}>{t("ai.addProvidersTab")}</IconLabel></TabsTrigger>
+     <TabsTrigger value="defaults" disabled={navigationLocked}><IconLabel icon={LayoutGridCircles}>{t("aiHome.preferences")}</IconLabel></TabsTrigger>
+     <TabsTrigger value="gateway" disabled={navigationLocked}><IconLabel icon={Share2}>{t("gateway.title")}</IconLabel></TabsTrigger>
+    </TabsList>
+    <TabsContent value="home"><AIProviderOverview providers={overviewProviders} disabled={locked} unavailableProviders={removedOverviewProviders.map(item=>item.id)} onOpenProvider={openProviderModels}/></TabsContent>
     {error&&<Notice actions={!draft&&<Button disabled={busy} onClick={()=>void load()}>{t("common.retry")}</Button>}>{error}</Notice>}
-    {pluginError&&<Notice actions={<Button onClick={()=>setPluginGeneration(value=>value+1)}>{t("common.retry")}</Button>}>{pluginError}</Notice>}
     {section==="accounts"&&catalogError&&<Notice actions={<Button onClick={()=>void loadCatalog()}>{t("common.retry")}</Button>}>{catalogError}</Notice>}
     {section==="accounts"&&catalogBusy&&<p role="status">{t("capture.loading")}</p>}
-    {!draft&&!error&&section!=="gateway"&&section!=="usage"&&<TabsContent value={section}><p role="status">{t("capture.loading")}</p></TabsContent>}
+    {!draft&&!error&&section!=="gateway"&&<TabsContent value={section}><p role="status">{t("capture.loading")}</p></TabsContent>}
     {draft&&(section==="custom"||section==="accounts")&&<TabsContent value={section} className="settings-stack">
-     <div className="settings-provider-toolbar" onContextMenu={event=>{if(old&&!locked&&pluginExtensions?.pages.some(page=>page.actions?.some(action=>action.menu==="provider"||old.authMode==="account"&&action.menu==="agent"))){event.preventDefault();setPluginMenuRequest(value=>value+1);}}}>
+     <div className="settings-provider-toolbar">
       {provider&&<div className="min-w-0 flex-1 basis-48"><AIProviderSelect key={provider.id} provider={provider} items={serviceItems} disabled={locked} onSelect={setSelected} onNameChange={name=>change(provider,{name})}/></div>}
-      {old&&<AIPluginActions extensions={pluginExtensions} openRequest={pluginMenuRequest} provider={{id:old.id,name:old.name}} agent={old.authMode==="account"?{id:old.agent??"",name:agents.find(agent=>agent.id===old.agent)?.name??old.agent??""}:undefined} disabled={locked} onOpen={request=>{setPluginPageRequest(request);setSection("plugins");}}/>}
       <Button icon={Plus} disabled={locked||draft.providers.length>=32||section==="accounts"&&!agents.length} onClick={()=>section==="accounts"?setChoosingAgent(true):add()}>{t(section==="custom"?"ai.addCustomProvider":"ai.addAccountProvider")}</Button>
       {section==="custom"&&<AIProviderPresets presets={presets} busy={catalogBusy} error={catalogError} disabled={locked||draft.providers.length>=32} load={loadCatalog} onAdd={addPreset}/>}
      </div>
      {!providers.length&&!(section==="accounts"&&catalogBusy)&&<p className="muted">{t(section==="accounts"?"ai.noAccounts":"ai.noServices")}</p>}
      {provider&&<div className="settings-provider" key={provider.id}>
-      {provider.authMode==="account"&&<AIAccounts hideAccounts={draft.magpieSettings?.hideAccounts} key={`${provider.id}:${provider.agent}:${provider.agentBackend??"builtin"}`} reader={accountReader} provider={provider.id} agent={provider.agent||"codex"} draft={!connectionSaved?{agent:provider.agent||"codex",agentBackend:provider.agentBackend}:undefined} disabled={busy||loading||modelBusy} catalog={agents} onBusy={setAccountBusy} onLoading={setAccountLoading} signInRequest={pluginSignInRequest?.provider===provider.id?pluginSignInRequest.nonce:undefined} onSignInRequestHandled={()=>setPluginSignInRequest(undefined)}/>}
+      {provider.authMode==="account"&&<AIAccounts key={`${provider.id}:${provider.agent}:${provider.agentBackend??"builtin"}`} reader={accountReader} provider={provider.id} agent={provider.agent||"codex"} draft={!connectionSaved?{agent:provider.agent||"codex",agentBackend:provider.agentBackend}:undefined} disabled={busy||loading||modelBusy} catalog={agents} onBusy={setAccountBusy} onLoading={setAccountLoading}/>}
       {provider.authMode==="api-key"&&<Tabs value={providerTab} onValueChange={value=>setProviderTab(String(value))}>
        <TabsList variant="line" aria-label={t("ai.providerSettings")}><TabsTrigger value="connection" disabled={navigationLocked}>{t("ai.connection")}</TabsTrigger><TabsTrigger value="advanced" disabled={navigationLocked}>{t("ai.advanced")}</TabsTrigger></TabsList>
        <TabsContent value="connection" keepMounted className="settings-group" aria-label={t("ai.connection")}>
@@ -211,9 +183,7 @@ export function AISettings({onActivity,accountReader:sharedReader}:{onActivity?:
        <SettingsToggle label={t("ai.limitRest")} description={t("ai.limitRestHint")} checked={!provider.limitRestOff} disabled={locked} onChange={rest=>change(provider,{limitRestOff:!rest})}/>
        <AIProviderModels key={`models-${provider.id}:${provider.agent}`} provider={provider} canFetch={provider.authMode==="account"||!!provider.baseUrl?.trim()} draftAccount={provider.authMode==="account"&&!connectionSaved} draftConnection={provider.authMode==="api-key"&&!connectionSaved} keyUpdates={keyUpdates[provider.id]} disabled={busy||loading||accountBusy||provider.authMode==="account"&&accountLoading} onChange={patch=>change(provider,patch)} onBusy={setModelBusy}/>
       </section>
-      {old&&<AIPluginSurface extensions={pluginExtensions} slot="provider" item={{id:old.id,name:old.name}} active disabled={locked}/>}
      </div>}
-     {section==="accounts"&&<AIPluginSurface extensions={pluginExtensions} slot="agents" active disabled={locked}/>}
     </TabsContent>}
     <TabsContent value="defaults" className="settings-section-stack">{draft&&<>
    <SettingsSection icon={LayoutGrid} title={t("ai.defaultService")} description={t("ai.defaultServiceHint")}>
@@ -224,13 +194,9 @@ export function AISettings({onActivity,accountReader:sharedReader}:{onActivity?:
     <SettingsToggle id="ai-show-reasoning" label={<IconLabel icon={Brain}>{t("ai.showReasoning")}</IconLabel>} checked={draft.showReasoning!==false} disabled={locked} onChange={showReasoning=>setDraft({...draft,showReasoning})}/>
    </SettingsSection>
     </>}</TabsContent>
-    {draft&&advancedVisited.current&&<TabsContent value="advanced" keepMounted className="settings-stack"><Tabs value={advancedTab} onValueChange={value=>setAdvancedTab(String(value))}><TabsList variant="line" className="max-w-full flex-wrap group-data-horizontal/tabs:h-auto" aria-label={t("ai.advanced")}><TabsTrigger value="quota" disabled={navigationLocked}>{t("ai.quotaSettings")}</TabsTrigger><TabsTrigger value="model-options" disabled={navigationLocked}>{t("ai.modelSettings")}</TabsTrigger><TabsTrigger value="privacy" disabled={navigationLocked}>{t("ai.privacySettings")}</TabsTrigger><TabsTrigger value="features" disabled={navigationLocked}>{t("aiPlugins.featureSettings")}</TabsTrigger>{pluginExtensions?.panels.some(panel=>panel.slot==="settings")&&<TabsTrigger value="extensions" disabled={navigationLocked}>{t("aiPlugins.panels")}</TabsTrigger>}</TabsList><TabsContent value="quota"><AIMagpieSettings section="quota" settings={advancedDraft.current?.magpieSettings??draft.magpieSettings??{}} providers={draft.providers} disabled={locked} onChange={patch=>{const base=advancedDraft.current??draft;const pending={...base,magpieSettings:{...base.magpieSettings,...patch}};setDraft(pending);advancedDraft.current=pending;setNotice("");}}/></TabsContent><TabsContent value="model-options"><AIMagpieSettings onActivity={onActivity} section="model-options" settings={advancedDraft.current?.magpieSettings??draft.magpieSettings??{}} providers={draft.providers} disabled={locked} onChange={patch=>{const base=advancedDraft.current??draft;const pending={...base,magpieSettings:{...base.magpieSettings,...patch}};setDraft(pending);advancedDraft.current=pending;setNotice("");}}/></TabsContent><TabsContent value="privacy"><AIPrivacyRecords extensions={pluginExtensions} active={section==="advanced"&&advancedTab==="privacy"} record={maskRecord} disabled={locked} onMaskKinds={kinds=>{const base=advancedDraft.current??draft;const actions={...base.magpieSettings?.redactActions};for(const kind of kinds)delete actions[kind];const pending={...base,magpieSettings:{...base.magpieSettings,redactActions:actions}};setDraft(pending);advancedDraft.current=pending;setNotice("");}}/><AIMagpieSettings section="privacy" active={section==="advanced"&&advancedTab==="privacy"} settings={advancedDraft.current?.magpieSettings??draft.magpieSettings??{}} providers={draft.providers} disabled={locked} onChange={patch=>{const base=advancedDraft.current??draft;const pending={...base,magpieSettings:{...base.magpieSettings,...patch}};setDraft(pending);advancedDraft.current=pending;setNotice("");}}/></TabsContent><TabsContent value="features"><AIPlugins active={section==="advanced"&&advancedTab==="features"} revision={saved?.revision} settings={advancedDraft.current?.magpieSettings??draft.magpieSettings??{}} disabled={locked} onValidityChange={setPluginInvalid} onChange={patch=>{const base=advancedDraft.current??draft;const pending={...base,magpieSettings:{...base.magpieSettings,...patch}};setDraft(pending);advancedDraft.current=pending;setNotice("");}}/></TabsContent><TabsContent value="extensions"><AIPluginSurface extensions={pluginExtensions} slot="settings" active={section==="advanced"&&advancedTab==="extensions"} disabled={locked}/></TabsContent></Tabs></TabsContent>}
-    {draft&&<TabsContent value="plugins" keepMounted><AIThirdPartyPlugins active={section==="plugins"} pageRequest={pluginPageRequest} revision={saved?.revision} disabled={locked} onChanged={()=>{setPluginGeneration(value=>value+1);accountReader.invalidateCatalog();accountReader.invalidate();setCatalogLoaded(false);}} onProvider={(agent,signIn)=>{const existing=draft.providers.find(p=>p.authMode==="account"&&p.agent===agent.id&&p.agentBackend==="plugin");if(!existing&&draft.providers.length>=32)throw Error(t("aiPlugins.providerLimit"));setSection("accounts");setProviderTab("connection");const id=existing?.id??add(agent);setSelected(id);if(signIn)setPluginSignInRequest({provider:id,nonce:crypto.randomUUID()});}}/></TabsContent>}
     <TabsContent value="gateway" keepMounted><AIGateway active={section==="gateway"} providers={saved?.providers??[]} onActivity={onActivity}/></TabsContent>
-    <TabsContent value="routing" keepMounted>{routingReplacement?<AIPluginSurface extensions={pluginExtensions} page={routingReplacement} active={section==="routing"} disabled={locked}/>:<AIRouting active={section==="routing"} enabled={!!draft?.routingEnabled} revision={saved?.revision} disabled={locked} onOpenMasking={key=>{setMaskRecord(key);setAdvancedTab("privacy");setSection("advanced");}} onEnableGroups={enableRoutingGroups} onEnabled={routingEnabled=>{if(draft)setDraft({...draft,routingEnabled});}}/>}</TabsContent>
-    <TabsContent value="usage" keepMounted>{usageReplacement?<AIPluginSurface extensions={pluginExtensions} page={usageReplacement} active={section==="usage"} disabled={locked}/>:<><AIUsage active={section==="usage"} providers={saved?.providers??[]} preferences={draft?.magpieSettings} settingsRevision={saved?.revision} disabled={locked} onActivity={onActivity} onPreferencesChange={patch=>setDraft(value=>{if(!value)return value;const next={...value,magpieSettings:{...value.magpieSettings,...patch}};advancedDraft.current=next;return next;})}/><AIPluginSurface extensions={pluginExtensions} slot="usage" active={section==="usage"} disabled={locked}/></>}</TabsContent>
    </Tabs>
-   {draft&&section!=="gateway"&&((section!=="usage"&&section!=="plugins")||dirty)&&<SettingsSaveBar undo={{disabled:!dirty||locked,onClick:()=>void load()}}><Button icon={Save} variant="primary" disabled={!dirty||locked||pluginInvalid} onClick={()=>void save()}>{t("ai.save")}</Button>{provider&&<Button className="settings-remove-action" icon={Trash2} disabled={locked} onClick={()=>remove(provider)}>{t("ai.removeService")}</Button>}</SettingsSaveBar>}
+   {draft&&section!=="gateway"&&<SettingsSaveBar undo={{disabled:!dirty||locked,onClick:()=>void load()}}><Button icon={Save} variant="primary" disabled={!dirty||locked} onClick={()=>void save()}>{t("ai.save")}</Button>{provider&&<Button className="settings-remove-action" icon={Trash2} disabled={locked} onClick={()=>remove(provider)}>{t("ai.removeService")}</Button>}</SettingsSaveBar>}
   </fieldset>
   {notice&&!dirty&&<p role="status">{notice}</p>}
   <AIAgentPicker open={choosingAgent} onOpenChange={setChoosingAgent} agents={agents} onChoose={add}/>

@@ -106,38 +106,11 @@ func (t Translator) startMode(ctx context.Context, signingIn bool) (*aiProcess, 
 	// Plugins may create native Windows AppContainers. Their OS identity must
 	// match the logged-in user; only the plugin child receives this profile.
 	cmd.Env = append(cmd.Env, "WINONE_AI_OS_USERPROFILE="+os.Getenv("USERPROFILE"))
-	if t.PrivacyService != nil && !t.TransportOnly {
-		address, key, err := t.PrivacyService(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if address != "" {
-			choice, err := t.privacyPreferences()
-			if err != nil {
-				return nil, err
-			}
-			model := choice.Model
-			if model == "" {
-				model = "privacy-filter"
-			}
-			scores, _ := json.Marshal(choice.Scores)
-			cmd.Env = append(cmd.Env, "WINONE_AI_PRIVACY_URL="+address, "WINONE_AI_PRIVACY_KEY="+key, "WINONE_AI_PRIVACY_MODEL="+model, "WINONE_AI_PRIVACY_SCORE="+string(scores))
-		}
+	profileRoot := t.RootDataDirectory
+	if profileRoot == "" {
+		profileRoot = t.DataDirectory
 	}
-	// Share user-installed plugin code, while isolatedEnvironment keeps auth
-	// and other account files private to the selected provider profile.
-	pluginRoot := t.RootDataDirectory
-	if pluginRoot == "" {
-		pluginRoot = t.DataDirectory
-	}
-	if err := preparePluginCodeDirectory(filepath.Join(pluginRoot, "third-party", "plugins")); err != nil {
-		return nil, err
-	}
-	cmd.Env = append(cmd.Env, "WINONE_AI_PLUGINS_HOME="+filepath.Join(pluginRoot, "third-party"))
-	// Plugin manager status reads only WinOne's external library; client files
-	// remain visible exclusively to the explicitly opened external worker.
-	cmd.Env = append(cmd.Env, "WINONE_AI_EXTERNAL_LIBRARY="+filepath.Join(pluginRoot, "external-clients", "config", "magpie", "library.json"))
-	cmd.Env = append(cmd.Env, "WINONE_AI_CLAUDE_RUN_FILE="+filepath.Join(pluginRoot, "claude-last-run.json"))
+	cmd.Env = append(cmd.Env, "WINONE_AI_CLAUDE_RUN_FILE="+filepath.Join(profileRoot, "claude-last-run.json"))
 	if t.TransportOnly {
 		cmd.Env = append(cmd.Env, "WINONE_AI_TRANSPORT_ONLY=1")
 	}

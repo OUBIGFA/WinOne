@@ -7,19 +7,17 @@
 | 用户如何使用 WinOne | [使用说明](使用说明.md) |
 | 目录、临时产物、Git 跟踪 | [仓库目录与发布约定](repository.md) |
 | 当前进度、已验证范围 | [开发状态](development.md)，按主题搜索章节 |
+| 当前 main 的模块边界与移除记录 | [main 模块精简与验收](module-removal-20261112.md) |
 | 源码检查、CI 和本次质量审核 | [2026-11-08 项目审核](audit-2026-11-08.md) |
 | 服务边界与产品路线 | [架构与开发计划](WinOne架构与开发计划.md) |
 | 布局、导航与交互 | [统一体验与设计依据](统一体验与设计依据.md)、[体验重构计划](体验重构计划.md) |
 | 截图画布与工具栏 | [截图单界面重构](截图单界面重构.md)、[原生截图草稿](原生截图草稿.md) |
 | 结果窗、OCR、翻译与划词 | [结果与 AI 对话](结果与AI对话重构.md)、[OCR 与翻译](OCR与翻译.md)、[划词助手](划词助手.md) |
-| Chat、自动化与 OneBot 伙伴 | [Chat](Chat.md)、[自动化能力对照](../modules/chat-pi/AUTOMATIONS.md)、[OneBot 接入与剩余范围](OneBot.md) |
-| Cindy 本地插件、MCP Apps、邮件与 browser bridge | [全量原生能力对照](mygo-parity/local-plugins.md)、[当前续接验收](mygo-parity/chat-onebot-audit.md)、[2026-11-07最终验收](2026-11-07-native-local-delivery.md) |
+| 已移除的 Chat、OneBot、闪聊及旧 AI 完整接入资料 | 请先看[移除记录](module-removal-20261112.md)；旧版实现和资料保存在 `codex/archive-full-20261112`，不属于当前 main 入口 |
 | 快捷助手、AI 对话与快捷功能 | [快捷助手](快捷助手.md)、[助手默认提示词](助手默认提示词.md) |
 | 互联助手、文件互传与端口穿透 | [调研与设计](互联助手调研与设计.md)、[实施计划](互联助手实施计划.md) |
-| 闪聊外网连接、无账号开源替代 | [替代可行性方案（2026-11-09）](闪聊开源替代可行性方案.md) |
 | AI 供应商、账号、流式输出与网关 | [多供应商与任务分配](AI服务多供应商与任务分配.md)、[账号登录](AI账号登录完整性.md)、[流式输出](AI服务流式输出.md)、[本地网关](本地网关与结果划词.md) |
-| 固定 AI 版本、上游插件界面、资料库与外部会话（2026-11-09） | [功能对照与验证](ai-upstream-ui-20261109.md)、[实施清单](plans/2026-11-09-ai-upstream-ui.md) |
-| AI 完整接入与英语学习界面（2026-11-08） | [能力与三轮审核](ai-full-integration-20261108.md)、[上游逐字段对照](ai-upstream-settings-20261108.md)、[调研、设计与 UI 审核](ai-learning-ui-design-20261108.md) |
+| 历史 AI 完整接入、上游插件界面、资料库与外部会话资料 | 仅用于回溯：见 `codex/archive-full-20261112` 中的同名文档 |
 | 内置 Anki、AnkiConnect 与英语生词本（2026-11-09） | [实现、离线检查与三轮审核](english-learning-native-20261109.md) |
 | 程序管理、微信自动登录与 WinTray 复用 | [BuddySwitch 核查与最新修复](wintray-sync-20261108.md)、[微信自动登录直接同步](wintray-wechat-login.md)、[WinTray 能力对照](WinTray功能接入对照.md) |
 | 模块、配置、共享依赖 | [模块与配置契约](模块与配置契约.md)、[共享依赖](共享依赖设计.md) |

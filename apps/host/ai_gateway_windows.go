@@ -3,53 +3,25 @@
 package main
 
 import (
-	"context"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"time"
 	"winone/internal/ai"
-	"winone/internal/chat"
 	"winone/internal/configjson"
 	"winone/internal/host"
 )
 
+// The request limit belongs to the gateway, independently of any product UI.
+const maximumGatewayRequestBytes = 16 << 20
+
 func (s *aiService) initGateway() {
-	// A saved gateway may start serving immediately. Publish it before the
-	// handler can capture its model policy or configuration guard.
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.gateway = ai.NewGateway(s.ctx, filepath.Join(filepath.Dir(s.storePath), "ai-gateway.json"), http.HandlerFunc(s.serveGateway), http.HandlerFunc(s.serveNamedGateway))
-}
-
-// Named gateway keys keep Magpie's model, account, MCP, budget and expiration
-// checks in the single runtime that owns their durable state and ledger.
-func (s *aiService) serveNamedGateway(w http.ResponseWriter, r *http.Request) {
-	if !ai.IsGatewayServicePath(r.URL.Path) {
-		ai.GatewayError(w, 404, "不支持的本地网关接口")
-		return
-	}
-	s.mu.Lock()
-	guard, gateway := s.gatewayGuard, s.gateway
-	s.mu.Unlock()
-	if guard != nil {
-		release, ok := guard()
-		if !ok {
-			ai.GatewayError(w, 503, "WinOne 正在维护，请稍后重试")
-			return
-		}
-		defer release()
-	}
-	store, err := s.magpieStore()
-	if err != nil {
-		ai.GatewayError(w, 503, "AI 服务配置无法读取")
-		return
-	}
-	s.serveMediaMCP(w, r, store, gateway.ModelFilter())
 }
 
 func (s *aiService) handleGateway(r host.Request) host.Response {
@@ -58,6 +30,26 @@ func (s *aiService) handleGateway(r host.Request) host.Response {
 	}
 	var result any
 	switch r.Method {
+	case "gateway.open", "gateway.close":
+		var input struct {
+			Viewer string `json:"viewer"`
+		}
+		if err := configjson.DecodeObject(r.Params, &input); err != nil {
+			return fail(err)
+		}
+		if len(input.Viewer) < 16 || len(input.Viewer) > 128 || strings.ContainsAny(input.Viewer, "/\\\x00") {
+			return fail(errors.New("网关窗口标识无效"))
+		}
+		if r.Method == "gateway.close" {
+			s.releaseGatewayBackend(input.Viewer)
+			result = map[string]bool{"closed": true}
+			break
+		}
+		process, err := s.openGatewayBackend(input.Viewer, r.PeerPID)
+		if err != nil {
+			return fail(err)
+		}
+		result = map[string]string{"url": process.AdminURL()}
 	case "gateway.get":
 		result = s.gateway.Status()
 	case "gateway.key":
@@ -79,9 +71,8 @@ func (s *aiService) handleGateway(r host.Request) host.Response {
 			return fail(err)
 		}
 		result = value
-		s.syncExternalGateway()
 		if !value.Enabled {
-			s.releaseRoutingViewer("gateway-media")
+			s.releaseGatewayBackend("")
 		}
 	default:
 		return fail(errors.New("不支持的本地网关操作"))
@@ -90,28 +81,39 @@ func (s *aiService) handleGateway(r host.Request) host.Response {
 	return host.Response{ID: r.ID, Result: data}
 }
 
+// Both credentials use one gateway backend, with the Host's enabled-model
+// boundary and upstream named-key limits. No Chat or route-group service runs.
 func (s *aiService) serveGateway(w http.ResponseWriter, r *http.Request) {
-	s.mu.Lock()
-	guard := s.gatewayGuard
-	gateway := s.gateway
-	s.mu.Unlock()
-	allowModel := gateway.ModelFilter()
-	s.serveAIProtocol(w, r, guard, allowModel, false)
+	s.serveConfiguredGateway(w, r, false)
+}
+func (s *aiService) serveNamedGateway(w http.ResponseWriter, r *http.Request) {
+	s.serveConfiguredGateway(w, r, true)
 }
 
-// Chat uses the enabled AI service catalog, independently of the public gateway.
-// The per-worker private listener performs authentication before reaching here.
-func (s *aiService) serveChat(w http.ResponseWriter, r *http.Request) {
-	s.mu.Lock()
-	guard := s.gatewayGuard
-	s.mu.Unlock()
-	s.serveAIProtocol(w, r, guard, func(ai.Selection) bool { return true }, true)
-}
-
-func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guard func() (func(), bool), allowModel func(ai.Selection) bool, inProduct bool) {
-	if inProduct {
-		r = r.WithContext(ai.WithProductSession(r.Context(), r.Header.Get("X-WinOne-Session")))
+func (s *aiService) serveConfiguredGateway(w http.ResponseWriter, r *http.Request, named bool) {
+	if !ai.IsGatewayServicePath(r.URL.Path) {
+		ai.GatewayError(w, 404, "不支持的本地网关接口")
+		return
 	}
+	// Preserve Ollama's discovery contract before the generic protocol mux's
+	// catch-all route. These paths have exactly one supported HTTP method.
+	switch r.URL.Path {
+	case "/api/version", "/api/tags":
+		if r.Method != http.MethodGet {
+			w.Header().Set("Allow", http.MethodGet)
+			ai.GatewayError(w, 405, "此接口只支持 GET")
+			return
+		}
+	case "/api/show":
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", http.MethodPost)
+			ai.GatewayError(w, 405, "此接口只支持 POST")
+			return
+		}
+	}
+	s.mu.Lock()
+	guard, gateway := s.gatewayGuard, s.gateway
+	s.mu.Unlock()
 	if guard != nil {
 		release, ok := guard()
 		if !ok {
@@ -120,81 +122,43 @@ func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guar
 		}
 		defer release()
 	}
-	s.mu.Lock()
-	var err error
-	if s.store == nil {
-		s.store, err = ai.Open(s.storePath)
-	}
-	store := s.store
-	s.mu.Unlock()
+	store, err := s.magpieStore()
 	if err != nil {
 		ai.GatewayError(w, 503, "AI 服务配置无法读取")
 		return
 	}
-	if r.URL.Path == "/api/version" || r.URL.Path == "/api/tags" || r.URL.Path == "/api/show" {
-		s.serveOllama(w, r, store.Configuration(), allowModel)
+	config := store.Configuration()
+	allow := gateway.ModelFilter()
+	if strings.HasPrefix(r.URL.Path, "/v1/magpie/native/") && !gateway.Status().Native {
+		ai.GatewayError(w, 403, "请先开启供应商原生 API")
 		return
 	}
-	if r.Method == http.MethodGet && (r.URL.Path == "/v1/models" || r.URL.Path == "/models") {
-		configuration := store.Configuration()
-		if configuration.UsesSharedRouter() {
-			process, err := s.startRouting()
-			if err != nil {
-				ai.GatewayError(w, 503, "路由服务未能启动")
-				return
-			}
-			models, err := process.ModelsForClient(r.Context(), allowModel, r.Header, configuration.RoutingEnabled)
-			if err != nil {
-				ai.GatewayError(w, 503, "路由模型读取失败")
-				return
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(models)
-			return
-		}
-		models := []map[string]any{}
-		settings := configuration.MagpieSettings
-		for _, p := range configuration.Providers {
-			if p.Off || p.AuthMode == "account" && settings.NoAccountDiscovery {
+	if !named && r.Method == http.MethodGet && r.URL.Path == "/v1/models" {
+		// Saved discovery requires neither a worker nor live vendor credentials.
+		entries := []map[string]any{}
+		for _, p := range config.Providers {
+			if p.Off {
 				continue
 			}
 			for _, model := range p.Models {
-				if !allowModel(ai.Selection{Provider: p.ID, Model: model}) {
+				if !allow(ai.Selection{Provider: p.ID, Model: model}) {
 					continue
 				}
 				metadata := p.ModelMetadataFor(model)
-				entry := map[string]any{"id": p.ID + "/" + model, "object": "model", "created": 0, "owned_by": p.Name, "name": p.ModelName(model), "metadata": metadata}
+				id := p.ID + "/" + model
+				if metadata.Alias != "" {
+					id = p.ID + "/" + metadata.Alias
+				}
 				name := p.ModelName(model)
-				if !settings.PlainNames && !(settings.PlainOwnNames && p.ModelNames[model] != "") && !strings.Contains(strings.ToLower(name), strings.ToLower(p.Name)) {
+				if !strings.Contains(strings.ToLower(name), strings.ToLower(p.Name)) {
 					name += " · " + p.Name
 				}
-				entry["name"], entry["display_name"], entry["slug"] = name, name, p.ID+"/"+model
-				if settings.CodexAgentsV1 && p.Agent == "codex" {
-					entry["multi_agent_version"] = "v1"
-				}
-				if settings.CodexAutoReview != "" {
-					entry["auto_review_model_override"] = settings.CodexAutoReview
-				}
-				if len(metadata.Efforts) > 0 {
-					levels := []map[string]string{}
-					for _, effort := range metadata.Efforts {
-						levels = append(levels, map[string]string{"effort": effort})
-					}
-					entry["supported_reasoning_levels"] = levels
-				}
-				// Unknown limits stay absent, rather than advertising a zero-sized
-				// context. Preserve explicit false capabilities inside metadata.
+				entry := map[string]any{"id": id, "slug": id, "object": "model", "created": 0, "owned_by": p.Name, "name": name, "display_name": name, "metadata": metadata}
 				if metadata.ContextWindow > 0 {
 					window := metadata.ContextWindow
 					threshold := metadata.CompactionThreshold
 					if metadata.CompactionPercent > 0 {
 						threshold = int(float64(window) * metadata.CompactionPercent / 100)
-					}
-					if threshold == 0 && !settings.FullContext {
-						threshold = settings.CompactAt
-						if threshold == 0 {
-							threshold = 272000
-						}
 					}
 					if threshold > 0 && threshold < window {
 						entry["max_context_window"] = window
@@ -205,159 +169,70 @@ func (s *aiService) serveAIProtocol(w http.ResponseWriter, r *http.Request, guar
 				if metadata.MaxTokens > 0 {
 					entry["max_tokens"] = metadata.MaxTokens
 				}
-				models = append(models, entry)
+				if len(metadata.Efforts) > 0 {
+					levels := []map[string]string{}
+					for _, effort := range metadata.Efforts {
+						levels = append(levels, map[string]string{"effort": effort})
+					}
+					entry["supported_reasoning_levels"] = levels
+				}
+				entries = append(entries, entry)
 			}
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{"object": "list", "data": models})
+		_ = json.NewEncoder(w).Encode(map[string]any{"object": "list", "data": entries})
 		return
 	}
-	path := r.URL.Path
-	if path == "/me" {
-		s.serveMediaMCP(w, r, store, allowModel)
-		return
+	models := []string{}
+	for _, provider := range config.Providers {
+		if provider.Off {
+			continue
+		}
+		for _, model := range provider.Models {
+			if !allow(ai.Selection{Provider: provider.ID, Model: model}) {
+				continue
+			}
+			models = append(models, provider.ID+"/"+model)
+			if alias := provider.ModelMetadata[model].Alias; alias != "" {
+				models = append(models, provider.ID+"/"+alias)
+			}
+		}
 	}
-	// All public diagnostics and ancillary APIs use the same authenticated
-	// upstream service as named keys. Keep desktop administration private.
-	if ai.IsGatewayServicePath(path) && (strings.HasPrefix(path, "/v1/magpie/") || strings.HasPrefix(path, "/v1/models/") || strings.HasPrefix(path, "/mcp/") || strings.HasPrefix(path, "/backend-api/codex/") || path == "/v1/codex/models" || path == "/v1/alpha/search" || path == "/api/hello" || path == "/muse-code/models" || path == "/v1" || path == "/v1/") {
-		s.serveMediaMCP(w, r, store, allowModel)
-		return
+	// An empty explicit list must deny every model, never mean unrestricted.
+	if len(models) == 0 {
+		models = []string{"/"}
 	}
-	// Media and stateful protocols need the same long-lived upstream handler.
-	// Keep their request shapes intact (including multipart and WebSockets).
-	if path == "/mcp/magpie/image" || path == "/mcp/magpie/vision" || path == "/mcp/magpie/tools" || strings.HasPrefix(path, "/mcp/magpie/tools/") || strings.HasPrefix(path, "/mcp/magpie/image/files/") || path == "/v1/videos" || strings.HasPrefix(path, "/v1/videos/") || strings.HasPrefix(path, "/v1/audio/") || path == "/v1/images/edits" || strings.HasPrefix(path, "/v1beta/models") || path == "/v1/systemone" || path == "/v1/responses" && r.Method == http.MethodGet {
-		s.serveMediaMCP(w, r, store, allowModel)
-		return
+	limit := int64(maximumGatewayRequestBytes)
+	if r.URL.Path == "/api/show" {
+		limit = 1 << 20
 	}
-	if !strings.HasPrefix(path, "/v1/") && path != "/mcp/magpie/web-search" && path != "/api/chat" && path != "/api/generate" {
-		path = "/v1" + path
-	}
-	supported := false
-	for _, route := range []string{"/api/chat", "/api/generate", "/v1/chat/completions", "/v1/responses", "/v1/decisions", "/v1/messages", "/v1/messages/count_tokens", "/v1/images/generations", "/v1/embeddings", "/v1/rerank", "/mcp/magpie/web-search"} {
-		supported = supported || path == route
-	}
-	if r.Method != http.MethodPost || !supported {
-		ai.GatewayError(w, 404, "不支持的本地网关接口")
-		return
-	}
-	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, chat.MaximumChatRequestBytes))
-	if err != nil {
-		ai.GatewayError(w, 413, "请求内容过大")
-		return
-	}
-	if path == "/mcp/magpie/web-search" {
-		s.serveMagpieProtocol(w, r, store, path, body, allowModel)
-		return
-	}
-	var request struct {
-		Model string `json:"model"`
-	}
-	if json.Unmarshal(body, &request) != nil {
-		ai.GatewayError(w, 400, "请求必须为 JSON 并包含模型 ID")
-		return
-	}
-	if path == "/v1/images/generations" && request.Model == "" {
-		s.serveMagpieProtocol(w, r, store, path, body, allowModel)
-		return
-	}
-	if configuration := store.Configuration(); configuration.UsesSharedRouter() {
-		s.serveRoutedModel(w, r, path, body, request.Model, allowModel)
-		return
-	}
-	provider, model, found := strings.Cut(request.Model, "/")
-	if !found {
-		ai.GatewayError(w, 400, "请使用模型列表中的完整模型 ID")
-		return
-	}
-	prefs, keys, err := store.ForTaskKeys("chat", &ai.Selection{Provider: provider, Model: model})
-	if err != nil {
-		ai.GatewayError(w, 400, "模型未启用或已移除，请刷新模型列表")
-		return
-	}
-	if !allowModel(ai.Selection{Provider: provider, Model: model}) {
-		ai.GatewayError(w, 403, "模型未在本地网关中启用")
-		return
-	}
-	// Limit workers and isolate each account exactly like in-product requests.
-	select {
-	case s.gatewaySlots <- struct{}{}:
-		defer func() { <-s.gatewaySlots }()
-	default:
-		ai.GatewayError(w, 429, "本地网关请求较多，请稍后重试")
-		return
-	}
-	runtime := s.translator
-	if prefs.AuthMode == "account" {
-		gate := s.accountGateFor(prefs.ProviderID)
-		select {
-		case gate <- struct{}{}:
-			defer func() { <-gate }()
-		default:
-			ai.GatewayError(w, 409, "账号正在登录或使用，请稍后重试")
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
+	// Reject disabled JSON model calls before loading any account runtime. Named
+	// keys still authenticate inside their owner before their policy is applied.
+	if !named && r.Method == http.MethodPost && (strings.Contains(r.Header.Get("Content-Type"), "json") || r.URL.Path == "/v1/chat/completions" || r.URL.Path == "/v1/responses" || r.URL.Path == "/v1/messages") {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			ai.GatewayError(w, 413, "请求内容过大")
 			return
 		}
-		runtime = runtime.ForProvider(prefs.ProviderID)
-	}
-	ctx, cancel := context.WithTimeout(r.Context(), prefs.MagpieSettings.GatewayWait(path))
-	defer cancel()
-	headers := make(http.Header)
-	for _, name := range []string{"Anthropic-Version", "Anthropic-Beta", "Openai-Beta", "User-Agent", "Originator", "X-OpenAI-Subagent"} {
-		if value := r.Header.Get(name); value != "" {
-			headers.Set(name, value)
+		var input struct {
+			Model string `json:"model"`
 		}
-	}
-	if inProduct {
-		headers.Set("X-WinOne-Session", r.Header.Get("X-WinOne-Session"))
-	} else {
-		headers.Set("X-WinOne-Caller-Key", ai.GatewayCallerKeyID(r.Context()))
-	}
-	partial := false
-	err = store.WithKeys(ctx, keys, func(ctx context.Context, key string) (bool, error) {
-		var failure error
-		if inProduct {
-			partial, failure = runtime.ChatRequest(ctx, prefs, key, path, body, headers, w)
-		} else {
-			partial, failure = runtime.GatewayRequest(ctx, prefs, key, path, body, headers, w)
+		if json.Unmarshal(body, &input) != nil {
+			ai.GatewayError(w, 400, "请求必须为 JSON")
+			return
 		}
-		return partial, failure
-	})
-	if err != nil {
-		if partial {
-			panic(http.ErrAbortHandler)
-		} // Terminate a truncated stream, never send a false completion.
-		status := 502
-		var rejected *ai.AttemptFailure
-		if errors.As(err, &rejected) {
-			status = rejected.Status
-			if rejected.RetryAfter > 0 {
-				w.Header().Set("Retry-After", strconv.Itoa(int((rejected.RetryAfter+time.Second-1)/time.Second)))
+		if input.Model != "" && r.URL.Path != "/api/show" {
+			permitted := false
+			for _, model := range models {
+				permitted = permitted || model == input.Model
+			}
+			if !permitted {
+				ai.GatewayError(w, 403, "模型未在本地网关中启用")
+				return
 			}
 		}
-		ai.GatewayError(w, status, "AI 服务调用失败，请检查供应商状态后重试")
-	}
-}
-
-// Global Magpie routes select their own helper provider. Limit that catalog to
-// models the authenticated gateway caller can use, just like a normal request.
-func (s *aiService) serveMagpieProtocol(w http.ResponseWriter, r *http.Request, store *ai.Store, path string, body []byte, allowModel func(ai.Selection) bool) {
-	prefs, err := store.MagpieRuntime()
-	if err != nil {
-		ai.GatewayError(w, 503, "AI 设置无法读取")
-		return
-	}
-	providers, err := store.MagpieProviders()
-	if err != nil {
-		ai.GatewayError(w, 503, "辅助模型配置无法读取")
-		return
-	}
-	for i := range providers {
-		enabled := []string{}
-		for _, model := range providers[i].Provider.Models {
-			if allowModel(ai.Selection{Provider: providers[i].Provider.ID, Model: model}) {
-				enabled = append(enabled, model)
-			}
-		}
-		providers[i].Provider.Models = enabled
+		r.Body = io.NopCloser(bytes.NewReader(body))
 	}
 	select {
 	case s.gatewaySlots <- struct{}{}:
@@ -366,19 +241,10 @@ func (s *aiService) serveMagpieProtocol(w http.ResponseWriter, r *http.Request, 
 		ai.GatewayError(w, 429, "本地网关请求较多，请稍后重试")
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), prefs.GatewayWait(path))
-	defer cancel()
-	headers := make(http.Header)
-	for _, name := range []string{"MCP-Protocol-Version", "Accept", "User-Agent", "Originator"} {
-		if value := r.Header.Get(name); value != "" {
-			headers.Set(name, value)
-		}
-	}
-	partial, err := s.translator.MagpieGateway(ctx, prefs, providers, path, body, headers, w)
+	process, err := s.startGatewayBackend()
 	if err != nil {
-		if partial {
-			panic(http.ErrAbortHandler)
-		}
-		ai.GatewayError(w, 502, "Magpie 辅助服务调用失败，请检查模型或搜索 API 设置")
+		ai.GatewayError(w, 503, "本地网关服务无法启动")
+		return
 	}
+	process.ServeMedia(w, r, models)
 }

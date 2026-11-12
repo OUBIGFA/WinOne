@@ -119,19 +119,9 @@ func (p *page) providersView(c *ui.Context) {
 		if pr != nil && p.saved != nil {
 			old = p.saved.Value.find(pr.ID)
 		}
-		menu := p.extensions.providerMenu(old, p.catalog)
-		if menu != nil && !locked {
-			// Right-clicking the toolbar opens the plugins' actions, as
-			// React's context menu shortcut did.
-			toolbar.ContextMenu(func(m *ui.Menu) { menu(m) })
-		}
 		toolbar.Children(func() {
 			if pr != nil {
 				ui.Column(c).Basis(240).Grow(1).MinWidth(0).Children(func() { e.nameField(c, pr, locked) })
-			}
-			if menu != nil {
-				b := kit.IconButton(c, icons.Blocks, i18n.T("aiPlugins.actions")).Disabled(locked)
-				b.Menu(func(m *ui.Menu) { menu(m) })
 			}
 			label := "ai.addCustomProvider"
 			if accounts {
@@ -159,9 +149,6 @@ func (p *page) providersView(c *ui.Context) {
 		}
 		if pr != nil {
 			e.View(c, pr, old)
-		}
-		if accounts {
-			p.extensions.Slot(c, "agents", nil, locked)
 		}
 	})
 }
@@ -306,7 +293,6 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 	}
 	section.Children(func() { e.models.View(c, pr) })
 	if old != nil {
-		p.extensions.Slot(c, "provider", &named{ID: old.ID, Name: old.Name}, locked)
 	}
 	ui.Row(c).Children(func() {
 		if kit.GhostButton(c, i18n.T("ai.removeService"), icons.Trash2, false).Disabled(locked).Clicked() {

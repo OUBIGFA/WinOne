@@ -69,10 +69,8 @@ type ProviderPreferences struct {
 	PromptAsWritten    bool                      `json:"promptAsWritten,omitempty"`
 	AdditionalToolsOff bool                      `json:"additionalToolsOff,omitempty"`
 	Patience           int                       `json:"patience,omitempty"`
-	Unredacted         bool                      `json:"unredacted,omitempty"`
 	CapStop            bool                      `json:"capStop,omitempty"`
 	CapCareful         bool                      `json:"capCareful,omitempty"`
-	AutoGroupSkip      []string                  `json:"autoGroupSkip,omitempty"`
 	BestInFamily       bool                      `json:"bestInFamily,omitempty"`
 	Proxy              string                    `json:"proxy,omitempty"`
 	AuthHeader         string                    `json:"authHeader,omitempty"`

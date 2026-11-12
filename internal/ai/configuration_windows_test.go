@@ -11,6 +11,67 @@ import (
 	"testing"
 )
 
+// Old provider and service fields must neither block startup nor reach a new
+// worker. The same saved provider must still resolve its original credential.
+func TestRetiredAISettingsDoNotReviveServicesOrLoseProviderKeys(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "ai.json")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configuration := store.Configuration()
+	configuration.Engine = "llm"
+	configuration.Providers = []Provider{{ID: "saved", Name: "Saved", AuthMode: "api-key", Protocol: "chat", BaseURL: "https://example.invalid/v1", Models: []string{"model"}}}
+	configuration.Tasks["default"] = Selection{Provider: "saved", Model: "model"}
+	key := "isolated-fixture-key"
+	if _, err := store.SaveConfiguration(configuration, map[string]*string{"saved": &key}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var old map[string]any
+	if err := json.Unmarshal(data, &old); err != nil {
+		t.Fatal(err)
+	}
+	prior := old["configuration"].(map[string]any)
+	prior["magpieSettings"] = map[string]any{"redact": true, "builtinPreset": "all", "builtinPlugins": map[string]any{"routing": map[string]any{"enabled": true}}, "requestArchiveLocal": true, "noStats": false}
+	provider := prior["providers"].([]any)[0].(map[string]any)
+	provider["unredacted"], provider["autoGroupSkip"] = true, []any{"all"}
+	data, err = json.Marshal(old)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal("legacy configuration blocked startup", err)
+	}
+	unchanged, err := os.ReadFile(path)
+	if err != nil || string(unchanged) != string(data) {
+		t.Fatal("opening legacy settings rewrote user data", err)
+	}
+	preferences, savedKey, err := reopened.ForTask("chat", nil)
+	if err != nil || savedKey != key || preferences.ProviderID != "saved" || preferences.Model != "model" {
+		t.Fatalf("retained provider no longer resolves: %+v, %v", preferences, err)
+	}
+	snapshot, err := json.Marshal(reopened.Configuration())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, removed := range []string{"builtinPlugins", "builtinPreset", "requestArchiveLocal", "unredacted", "autoGroupSkip", "\"redact\""} {
+		if strings.Contains(string(snapshot), removed) {
+			t.Fatalf("retired setting remained in the executable configuration: %s", removed)
+		}
+	}
+	if preferences.MagpieSettings == nil || !preferences.MagpieSettings.NoStats || !preferences.MagpieSettings.NoUsageStats {
+		t.Fatal("retired collection switches reached the worker")
+	}
+}
+
 func TestLargeModelCatalogPersistsAll2500ModelsAndMetadata(t *testing.T) {
 	s, err := Open(filepath.Join(t.TempDir(), "ai.json"))
 	if err != nil {

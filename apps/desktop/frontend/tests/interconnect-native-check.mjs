@@ -1,14 +1,13 @@
 // Real Rust window and Host, launched only by build/test-desktop-components.ps1
-// in its private desktop/profile. Signaling is local; no real settings change.
+// in its private desktop/profile. No real settings change.
 import {createRequire} from 'node:module';
 import {writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
-import {pathToFileURL} from 'node:url';
 import {createServer} from 'node:http';
 import assert from 'node:assert/strict';
 const {chromium}=createRequire(import.meta.url)(process.env.WINONE_PLAYWRIGHT_MODULE);
 const [endpoint,output]=process.argv.slice(2);
-let browser,page,tracker,relay;
+let browser,page,relay;
 try{
  const deadline=Date.now()+30000;
  while(Date.now()<deadline){try{browser=await chromium.connectOverCDP(endpoint,{timeout:1000});break;}catch{await new Promise(resolve=>setTimeout(resolve,100));}}
@@ -93,39 +92,8 @@ try{
  await page.screenshot({path:resolve(output,'persistent-share-phone.png')});
  await page.getByRole('button',{name:'停止服务',exact:true}).click();
  await page.evaluate(async id=>window.go.main.App.Interconnect('transfer_remove',JSON.stringify({id})),task.id);
- await page.locator('[data-page-id=flash-chat]').click();
- assert.equal(await page.locator('[data-page-id=flash-chat] .lucide-messages-circle').count(),1);
- assert.equal(await page.locator('[data-slot=settings-actions]').count(),0);
- const frame=page.frameLocator('iframe[title="闪聊"]');
- await frame.locator('.flash-chat-welcome .lucide-messages-circle').waitFor();
- const welcome=await frame.locator('.flash-chat-entry').evaluate(node=>{
-  const center=element=>{const rect=element.getBoundingClientRect();return rect.x+rect.width/2;};
-  return {entry:center(node),brand:center(node.querySelector('.flash-chat-brand')),description:center(node.querySelector('.flash-chat-welcome > p'))};
- });
- assert.ok(Math.abs(welcome.entry-welcome.brand)<2&&Math.abs(welcome.entry-welcome.description)<2,'Native Flash Chat welcome is not centered');
- await page.screenshot({path:resolve(output,'flash-chat-lobby.png')});
- const {default:Server}=await import(pathToFileURL(resolve(process.env.WINONE_TRACKER_MODULE,'server.js')));
- tracker=new Server({udp:false,http:false,ws:{clientTracking:true},stats:false});
- await new Promise(resolve=>tracker.listen(0,'127.0.0.1',resolve));
- await frame.getByRole('button',{name:'网络设置',exact:true}).click();
- await frame.getByRole('textbox',{name:'信令服务（每行一个 WebSocket 地址）',exact:true}).fill('ws://127.0.0.1:'+tracker.ws.address().port);
- await frame.getByRole('textbox',{name:'WebRTC 配置（JSON，可设置 STUN / TURN）',exact:true}).fill(JSON.stringify({iceServers:[]}));
- await frame.getByRole('dialog').getByRole('button',{name:'关闭',exact:true}).last().click();
- await frame.getByRole('button',{name:'创建房间',exact:true}).click();
- await frame.getByRole('button',{name:'房间信息',exact:true}).waitFor();
- await frame.getByRole('textbox',{name:'输入消息，支持 Markdown 和代码块',exact:true}).fill('房主可以独自发送');
- await frame.getByRole('button',{name:'发送消息',exact:true}).click();
- await frame.getByRole('log').getByText('房主可以独自发送',{exact:true}).waitFor();
- assert.equal(await frame.locator('html').evaluate(node=>node.scrollWidth>innerWidth||node.scrollHeight>innerHeight),false);
- const composer=await frame.locator('.flash-chat-composer').boundingBox();
- const frameBounds=await page.locator('iframe[title="闪聊"]').boundingBox();
- assert.ok(composer.y+composer.height<=frameBounds.y+frameBounds.height);
- await page.screenshot({path:resolve(output,'flash-chat-room.png')});
- await frame.getByRole('button',{name:'房间信息',exact:true}).click();
- await frame.getByRole('dialog').getByRole('button',{name:'离开房间',exact:true}).click();
- await frame.getByRole('button',{name:'加入房间',exact:true}).waitFor();
  assert.deepEqual(errors,[]);
- await writeFile(resolve(output,'result.json'),JSON.stringify({passed:true,realHostSave:true,reopenPreservesSettings:true,saveDoesNotStartShare:true,fixedFooter:true,officialIcon:true,roomLifecycle:true,soloSend:true,fileThenTextSameShare:true,errors},null,2));
+ await writeFile(resolve(output,'result.json'),JSON.stringify({passed:true,realHostSave:true,reopenPreservesSettings:true,saveDoesNotStartShare:true,fixedFooter:true,fileThenTextSameShare:true,errors},null,2));
  // Only the isolated fixture opts out of background retention. Wait for the
  // host's configuration transaction instead of racing its busy protection.
  await page.waitForFunction(async()=>{
@@ -143,9 +111,6 @@ try{
 }finally{
  // CDP disconnect does not own the native browser. Explicitly close the test
  // servers' keep-alive sockets so their shutdown cannot outlive the driver.
- await writeFile(resolve(output,'cleanup-stage.txt'),'closing tracker');
- for(const socket of tracker?.ws?.clients??[])socket.terminate();
- if(tracker)await new Promise(resolve=>tracker.close(resolve));
  await writeFile(resolve(output,'cleanup-stage.txt'),'closing relay');
  if(relay){relay.closeAllConnections();await new Promise(resolve=>relay.close(resolve));}
  await writeFile(resolve(output,'cleanup-stage.txt'),'disconnecting CDP');

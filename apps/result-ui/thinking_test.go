@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-func TestThinkingInlineMatchesCindySharedFixtures(t *testing.T) {
-	raw, err := os.ReadFile("../../tests/chat/thinking-text.json")
+func TestThinkingInlineHandlesFormattingAndUnclosedMarkup(t *testing.T) {
+	raw, err := os.ReadFile("testdata/thinking-text.json")
 	if err != nil {
 		t.Fatal(err)
 	}

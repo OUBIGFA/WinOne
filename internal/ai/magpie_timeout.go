@@ -11,8 +11,5 @@ func (s *MagpieSettings) GatewayWait(path string) time.Duration {
 		return 10 * time.Minute
 	}
 	minutes := 5
-	if s != nil && s.ImageTimeout > 0 {
-		minutes = min(60, s.ImageTimeout)
-	}
 	return 2*time.Duration(minutes)*time.Minute + time.Minute
 }

@@ -143,13 +143,17 @@ func TestDiscoveryPreserves2500Models(t *testing.T) {
 	}
 }
 
+type modelBalanceTransport func(*http.Request) (*http.Response, error)
+
+func (f modelBalanceTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
 func TestSavedKeyBalancesKeepVendorSplitAndRedactFailures(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	provider.ForgetBalances()
 	previousClient, previousProviders := http.DefaultClient, provider.WinOneProviders
 	t.Cleanup(func() { http.DefaultClient = previousClient; provider.WinOneProviders = previousProviders })
-	http.DefaultClient = &http.Client{Transport: usagePriceTransport(func(r *http.Request) (*http.Response, error) {
+	http.DefaultClient = &http.Client{Transport: modelBalanceTransport(func(r *http.Request) (*http.Response, error) {
 		if r.URL.Host != "api.deepseek.com" || r.URL.Path != "/user/balance" {
 			t.Errorf("unexpected balance endpoint: %s", r.URL.Host)
 		}

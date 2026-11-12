@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 )
 
@@ -36,27 +35,6 @@ func TestModelSettingsHoverShowsOneSpecificTooltip(t *testing.T) {
 	// Texts also includes the button's accessible label: one label and one tip.
 	if count != 2 {
 		t.Fatalf("expected one specific tooltip, got %d: %q", count, tt.Texts())
-	}
-}
-
-func TestRoutingListKeepsAllMembersWithoutOversizedRows(t *testing.T) {
-	_, h, p, _ := setup(t)
-	r := p.routing
-	r.state = &routeGroups{}
-	for i := range 4 {
-		r.state.Groups = append(r.state.Groups, core.Preserved[routeGroup]{Value: routeGroup{ID: fmt.Sprint(i), Name: fmt.Sprintf("Group %d", i), Ready: true, Members: []string{"primary/model-a", "backup/model-b"}}})
-	}
-	tt := ui.NewTester(func(c *ui.Context) { ui.Column(c).FillWidth().Gap(24).Children(func() { r.groupsView(c) }) }, 1100, 1800)
-	settle(h, tt)
-	a, _ := tt.Find("Group 0")
-	b, _ := tt.Find("Group 1")
-	if b.Y-a.Y > 112 {
-		t.Fatalf("two-member route rows waste vertical space: %.1f DIP", b.Y-a.Y)
-	}
-	for _, member := range []string{"model-a", "model-b"} {
-		if !tt.HasText(member) {
-			t.Fatalf("missing member %s", member)
-		}
 	}
 }
 
@@ -118,26 +96,6 @@ func TestModelListEmptySpaceDoesNotClaimToResize(t *testing.T) {
 	}
 	if count != 1 {
 		t.Fatal("list body shows the resize handle's tooltip")
-	}
-}
-
-func TestRoutingDefaultControlsUpdateTheSharedDraft(t *testing.T) {
-	_, h, p, _ := setup(t)
-	r := p.routing
-	r.state = &routeGroups{Groups: []core.Preserved[routeGroup]{{Value: routeGroup{ID: "fixture", Name: "Fixture", Ready: true}}}}
-	tt := ui.NewTester(func(c *ui.Context) { ui.Column(c).FillWidth().Gap(16).Children(func() { r.groupsView(c) }) }, 1100, 2000)
-	settle(h, tt)
-	if err := tt.Click(nativeT("groupDefaults")); err != nil {
-		t.Fatal(err)
-	}
-	tt.Advance(time.Second)
-	settle(h, tt)
-	if err := tt.Click(nativeT("sink")); err != nil {
-		t.Fatal(err)
-	}
-	settle(h, tt)
-	if !p.draft.Value.settings().GroupSink {
-		t.Fatal("routing default edited a copy instead of the saved draft")
 	}
 }
 

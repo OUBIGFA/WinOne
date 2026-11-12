@@ -52,13 +52,15 @@ namespace WinOne.StrokeRuntime
                 var onlyHorizontal=Configuration.Parse(File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"defaults.json")));
                 foreach(var package in onlyHorizontal.actionPackages)foreach(var a in package.actions)a.enabled=a.gesture=="left"||a.gesture=="right";
                 var replayed=new List<MouseHook.MouseActionArgs>();
-                var horizontal=new GestureEngine(onlyHorizontal,p=>folder,(a,b)=>{},()=>{},(a,m,t)=>{},events=>replayed.AddRange(events),new ScopePolicy(onlyHorizontal,@"C:\Windows"));
+                // These synthetic samples have no modifier and no elapsed
+                // hold time. User keyboard state must not change their meaning.
+                var horizontal=new GestureEngine(onlyHorizontal,p=>folder,(a,b)=>{},()=>{},(a,m,t)=>{},events=>replayed.AddRange(events),new ScopePolicy(onlyHorizontal,@"C:\Windows"),()=>0,()=>false);
                 horizontal.Process(new MouseHook.MouseActionArgs(new Point(100,100),MouseButtons.Right,MouseHook.MouseButtonStates.Down));
                 horizontal.Process(new MouseHook.MouseActionArgs(new Point(100,100),MouseButtons.None,MouseHook.MouseButtonStates.Wheel,120));
                 Check(replayed.Count==2&&replayed[1].WheelDelta==120&&!horizontal.Tracking,"Disabled wheel action swallowed native wheel");
                 horizontal.Cancel();
                 int lookups=0,clicks=0;var actions=new List<string>();var marks=new List<int>();
-                var engine=new GestureEngine(config,p=>{lookups++;return folder;},(a,b)=>{},()=>{},(a,m,t)=>{actions.Add(a);marks.Add(m);},events=>clicks++,policy);
+                var engine=new GestureEngine(config,p=>{lookups++;return folder;},(a,b)=>{},()=>{},(a,m,t)=>{actions.Add(a);marks.Add(m);},events=>clicks++,policy,()=>0,()=>false);
                 var down=new MouseHook.MouseActionArgs(new Point(100,100),MouseButtons.Right,MouseHook.MouseButtonStates.Down);
                 var up=new MouseHook.MouseActionArgs(new Point(100,100),MouseButtons.Right,MouseHook.MouseButtonStates.Up);
                 folder.windowClass="Progman";Check(!engine.Process(down)&&!engine.Process(up)&&!engine.Tracking,"Excluded input was swallowed");

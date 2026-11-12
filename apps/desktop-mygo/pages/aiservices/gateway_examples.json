@@ -44,7 +44,7 @@
   {
     "id": "anthropic",
     "name": "Anthropic",
-    "note": "Messages API. Claude Code reads ANTHROPIC_AUTH_TOKEN instead of the key; the Agents tab sets that for you.",
+    "note": "Messages API. Claude Code reads ANTHROPIC_AUTH_TOKEN instead of the key.",
     "baseSuffix": "",
     "decide": false,
     "examples": {

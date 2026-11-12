@@ -14,10 +14,9 @@ import (
 func TestWinOneAccountSnapshotMatchesCachedAndInvalidatesChangedBundle(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	clearAccountRegistry(t)
 	spec := filepath.Join(t.TempDir(), "cline")
-	if err := save(List{Plugins: []Entry{{Spec: spec}}}); err != nil {
-		t.Fatal(err)
-	}
+	WinOneUseBundle(Entry{Spec: spec})
 	p := Provider{ID: "cline", Spec: spec, Name: "Cline", Methods: []Method{{Type: "api", Label: "API key"}}}
 	if err := WinOneRememberProvider(p, "bundle-v1"); err != nil {
 		t.Fatal(err)
@@ -48,15 +47,11 @@ func TestWinOneAccountSnapshotMatchesCachedAndInvalidatesChangedBundle(t *testin
 	if err != nil || strings.Contains(string(data), "not-a-real-secret") || strings.Contains(string(data), "example.invalid") || !json.Valid(data) {
 		t.Fatal("discovery snapshot contains account state", err)
 	}
-	if err = save(List{Plugins: []Entry{{Spec: spec, Options: map[string]any{"site": "changed"}}}}); err != nil {
-		t.Fatal(err)
-	}
+	WinOneUseBundle(Entry{Spec: spec, Options: map[string]any{"site": "changed"}})
 	if _, found, err := WinOneReadProvider(spec, "cline", "bundle-v1"); err != nil || found {
 		t.Fatal("changed plugin options reused old methods", err)
 	}
-	if err = save(List{Plugins: []Entry{{Spec: spec, Off: true}}}); err != nil {
-		t.Fatal(err)
-	}
+	WinOneUseBundle(Entry{Spec: spec, Off: true})
 	if _, found, err := WinOneReadProvider(spec, "cline", "bundle-v1"); err != nil || found {
 		t.Fatal("disabled plugin returned as available", err)
 	}

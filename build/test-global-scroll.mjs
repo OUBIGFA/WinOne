@@ -26,7 +26,7 @@ async function check(root,label){
    const detail={tag:el.tagName,class:el.className,width:el.clientWidth,scroll:el.scrollWidth};
    if(s.overflowX==='scroll'||s.overflowX==='auto'&&el.scrollWidth>el.clientWidth+1)bars.push(detail);
    if(s.scrollbarGutter.includes('stable')&&el.scrollHeight<=el.clientHeight+1)gutter.push(detail);
-   if(el.matches('.chat-dialog-field,.chat-project-permissions,.chat-dialog-location,.settings-group,.wintray-list-heading')&&el.scrollWidth>el.clientWidth+1)clipped.push(detail);
+   if(el.matches('.settings-group,.wintray-list-heading')&&el.scrollWidth>el.clientWidth+1)clipped.push(detail);
   }
   return {bars,gutter,clipped};
  });
@@ -54,21 +54,7 @@ try{
   }
   await page.screenshot({path:join(output,`empty-${width}-${language}-${theme}.png`)});
   assert.deepEqual(await page.evaluate(()=>window.layoutErrors),[]);await page.close();
-  page=await browser.newPage({viewport:{width,height:800},reducedMotion:'reduce'});
-  await page.goto(base+`tests/chat-experience-preview.html?welcome&language=${language}&theme=${theme}`);
-  const labels=await page.evaluate(async language=>(await import('/src/locales/chat.ts')).chatMessages[language==='zh-CN'?'zh':'en'],language);
-  await page.getByRole('button',{name:labels.openOrCreateProject,exact:true}).click();
-  const dialog=page.getByRole('dialog');await dialog.waitFor();
-  await page.evaluate(()=>{window.go.main.App.PickDirectory=async()=> 'C:/fixture/'+ 'LongFolderWithChinese中文/'.repeat(12);});
-  await dialog.getByRole('button',{name:labels.chooseLocation,exact:true}).click();await settle();
-  for(const create of [false,true]){
-   await dialog.getByRole('checkbox').setChecked(create);
-   await dialog.getByRole('textbox').first().fill('Project 项目 '.repeat(15));
-   const layout=await check(dialog,'long project dialog');
-   results.push({page:'project-dialog',width,language,theme,create,...layout});
-  }
-  await page.screenshot({path:join(output,`project-${width}-${language}-${theme}.png`)});
-  await page.close();
+
  }
  await writeFile(join(output,'report.json'),JSON.stringify({results},null,2),'utf8');
  console.log(`Global scroll: ${results.length} cases passed.`);

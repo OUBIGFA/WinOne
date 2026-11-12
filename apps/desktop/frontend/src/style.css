@@ -474,6 +474,4 @@ select:not([data-slot]):not(:where(.desktop-ui-root *, .desktop-ui-portal *)) {
 .ai-provider-overview-link[data-slot=button] { display:grid; grid-template-columns:24px minmax(0,1fr) auto 16px; gap:10px; width:100%; height:auto; min-height:48px; padding:10px 6px; border:0; border-radius:4px; font-weight:400; text-align:left; white-space:normal; }
 .ai-provider-overview-name { min-width:0; overflow-wrap:anywhere; }
 .ai-provider-overview-models { color:var(--color-muted-foreground); font-size:14px; white-space:nowrap; }
-.ai-routing-toggle-label { display:inline-flex; align-items:center; gap:8px; min-width:0; }
-.ai-routing-toggle-label svg { flex-shrink:0; }
 @media(max-width:800px) { .ai-provider-overview { grid-template-columns:minmax(0,1fr); gap:12px; }.ai-provider-overview-summary{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;padding-top:0;} }

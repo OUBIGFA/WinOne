@@ -1,4 +1,4 @@
-﻿param(
+param(
  [Parameter(Mandatory)][string]$OutputDirectory,
  [Parameter(Mandatory)][string]$AIExecutable,
  [string]$GoExe='dist/resources/tools/go-1.27.3/bin/go.exe'
@@ -25,7 +25,7 @@ try {
  . (Join-Path $PSScriptRoot 'private-test-desktop.ps1')
  $desktop=New-Object WinOnePrivateTestDesktop
  $runner=Join-Path $output 'run.ps1';$log=Join-Path $output 'tests.log'
- $run="`$env:WINONE_AI_NATIVE_WINDOW='1'`n`$env:WINONE_AI_NATIVE_PROFILE='"+(Join-Path $output 'profile').Replace("'","''")+"'`n`$env:WINONE_ROUTING_TEST_EXE='"+$ai.Replace("'","''")+"'`n& '"+$binary.Replace("'","''")+"' '-test.run=^TestRealNativeAI' '-test.v' '-test.timeout=120s' 2>&1 | Out-File '"+$log.Replace("'","''")+"' -Encoding utf8`nexit `$LASTEXITCODE`n"
+ $run="`$env:WINONE_AI_NATIVE_WINDOW='1'`n`$env:WINONE_AI_NATIVE_PROFILE='"+(Join-Path $output 'profile').Replace("'","''")+"'`n`$env:WINONE_GATEWAY_TEST_EXE='"+$ai.Replace("'","''")+"'`n& '"+$binary.Replace("'","''")+"' '-test.run=^TestRealNativeAI' '-test.v' '-test.timeout=120s' 2>&1 | Out-File '"+$log.Replace("'","''")+"' -Encoding utf8`nexit `$LASTEXITCODE`n"
  [IO.File]::WriteAllText($runner,$run,[Text.UTF8Encoding]::new($false))
  $process=$desktop.Start((Get-Command powershell.exe).Source,('-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$runner+'"'),$root)
  if(-not $process.WaitForExit(150000)){throw '原生 AI 实窗验证超时，请查看保留的日志'}

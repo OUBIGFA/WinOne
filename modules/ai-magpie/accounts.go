@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/yetone/magpie/internal/provider"
-	"github.com/yetone/magpie/internal/settings"
 	"io"
 	"os"
 	"strings"
@@ -60,17 +59,10 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 				presets[i].Icon += "-color"
 			}
 		}
-		agents, err := accountCatalogWithExtensions(ctx)
-		if err != nil {
-			return err
-		}
+		agents := accountCatalog()
 		return encode(map[string]any{"agents": agents, "presets": presets, "partners": partners})
 	}
-	if pluginAccount(in) {
-		if settings.Load().NoAccountDiscovery {
-			return errors.New("WinOne subscription accounts are disabled in privacy settings")
-		}
-	} else if !knownAgent(in.Agent) {
+	if !pluginAccount(in) && !knownAgent(in.Agent) {
 		return errors.New("unsupported agent account")
 	}
 	if in.Operation != "accounts.signin" && in.Operation != "accounts.list" {
@@ -171,7 +163,7 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 // Read the upstream vendor balance using only the selected saved provider.
 // IDs replace masked key fragments, and vendor error bodies never reach IPC.
 func readKeyBalances(ctx context.Context, in request, out io.Writer) error {
-	if err := configureUsage(in); err != nil {
+	if err := configureAccounting(in); err != nil {
 		return err
 	}
 	p, err := configuredProvider(in)

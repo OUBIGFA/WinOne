@@ -69,7 +69,24 @@ if($Test){
  $testSources=@((Join-Path $module 'NativeWindow.cs'),(Join-Path $module 'NativeGestureInput.cs'),(Join-Path $module 'MouseHookLoop.cs'),(Join-Path $module 'InputLedger.cs'),(Join-Path $module 'GestureInputTests.cs'),(Join-Path $module 'TrailPresentationTests.cs'),(Join-Path $module 'Tests.cs'))
  & $DotnetExe $CompilerPath @common ('/reference:'+(Join-Path $output 'Stroke.Base.dll')) ('/win32manifest:'+(Join-Path $module 'app.manifest')) /target:exe /main:WinOne.StrokeRuntime.StrokeTests ('/out:'+(Join-Path $output 'WinOne.Stroke.Tests.exe')) @testSources
  if($LASTEXITCODE-ne 0){throw 'Stroke tests did not compile'}
- & (Join-Path $output 'WinOne.Stroke.Tests.exe')
- if($LASTEXITCODE-ne 0){throw 'Stroke behavior tests failed'}
+ # The suite draws owned windows and reads modifier state. Run it on the
+ # same private desktop boundary as the other native checks, never the user's.
+ . (Join-Path $PSScriptRoot 'private-test-desktop.ps1')
+ $desktop=[WinOnePrivateTestDesktop]::new();$testProcess=$null
+ $testExecutable=Join-Path $output 'WinOne.Stroke.Tests.exe'
+ $testRunner=Join-Path $output 'tests/run.ps1';$testLog=Join-Path $output 'tests/behavior.log'
+ $run="& '"+$testExecutable.Replace("'","''")+"' 2>&1 | Out-File -LiteralPath '"+$testLog.Replace("'","''")+"' -Encoding utf8`nexit `$LASTEXITCODE`n"
+ [IO.File]::WriteAllText($testRunner,$run,$encoding)
+ try {
+  $testProcess=$desktop.Start((Get-Command powershell.exe).Source,('-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$testRunner+'"'),$root)
+  if(-not $testProcess.WaitForExit(60000)){throw 'Stroke behavior tests timed out'}
+  $testProcess.Refresh()
+  Get-Content -LiteralPath $testLog -Encoding UTF8
+  if($testProcess.ExitCode-ne 0){throw 'Stroke behavior tests failed'}
+ } finally {
+  if($testProcess -and -not $testProcess.HasExited){$testProcess.Kill()}
+  Get-Process -Name 'WinOne.Stroke.Tests' -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $testExecutable } | Stop-Process -Force
+  $desktop.Dispose()
+ }
 }
 foreach($file in @('schema.json','migrations.json','README.md')){if(Test-Path -LiteralPath (Join-Path $module $file)){Copy-Item -LiteralPath (Join-Path $module $file) -Destination $output}}

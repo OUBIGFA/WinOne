@@ -31,8 +31,9 @@ type claudeRunMode struct {
 
 func (e *editor) claudeModeView(c *ui.Context, locked bool) {
 	p, m := e.p, &e.claudeMode
-	if p.extensions.state != nil {
-		address := p.extensions.state.URL
+	p.gateway.ensureRuntime()
+	if p.gateway.runtimeURL != "" {
+		address := p.gateway.runtimeURL
 		if address != m.url {
 			m.api.close()
 			m.url = address

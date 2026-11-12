@@ -3,7 +3,7 @@
 /* WinOne settings language. Semantic surfaces/border tiers and motion are
    adapted from open-claude-ui 02d021f (MIT; third_party/import-notices.json).
    Interaction primitives remain the bundled shadcn/Base UI components.
-   The root scope also reaches portals and is removed before Chat renders. */
+   The root scope also reaches settings portals. */
 :root[data-settings-ui] {
   --settings-canvas: #fcfcfc;
   --settings-surface: #ffffff;

@@ -14,25 +14,6 @@ import (
 // retaining a bounded configuration and worker response.
 const MaxProviderModels = 4096
 
-// Client catalogs and aliases must be resolved by the same upstream runtime
-// that executes them, independently of the routing-groups switch.
-func (c Configuration) UsesSharedRouter() bool {
-	if c.RoutingEnabled || c.MagpieSettings != nil && c.MagpieSettings.UsesClientRules() {
-		return true
-	}
-	for _, p := range c.Providers {
-		if p.Off {
-			continue
-		}
-		for _, m := range p.ModelMetadata {
-			if m.Alias != "" {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // Provider identifies a configured service or an isolated signed-in account.
 // API keys are write-only. User-defined request headers remain editable here.
 type Provider struct {
@@ -98,7 +79,6 @@ type Selection struct {
 	Model    string `json:"model"`
 }
 type Configuration struct {
-	RoutingEnabled  bool                 `json:"routingEnabled,omitempty"`
 	MagpieSettings  *MagpieSettings      `json:"magpieSettings,omitempty"`
 	Revision        uint64               `json:"revision"`
 	Providers       []Provider           `json:"providers"`
@@ -255,9 +235,7 @@ func (c Configuration) ValidateSelection(selection Selection) error {
 	if p.Off {
 		return errors.New("此供应商已停用，请先在 AI 服务中启用")
 	}
-	if c.MagpieSettings != nil && c.MagpieSettings.ModelDisabled(p.ID, selection.Model, p.ModelMetadata[selection.Model].Alias) {
-		return errors.New("此模型已被全局规则禁用")
-	}
+
 	if !slices.Contains(p.Models, selection.Model) || selection.Model == "" {
 		return errors.New("请选择该供应商中已勾选启用的模型")
 	}

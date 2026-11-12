@@ -1,11 +1,11 @@
 # WinOne MyGo 窗口开发说明
 
-`apps/desktop-mygo` 是用 [MyGo](https://github.com/egoist/mygo) v0.7.3 原生 UI 改写的 WinOne.exe。迁移决策、阶段和验收方法见 [MyGo 前端迁移](../../docs/MyGo前端迁移.md)。本文说明怎样在这里写页面。
+`apps/desktop-mygo` 使用 [MyGo](https://github.com/egoist/mygo) v0.9.0 呈现 WinOne.exe 原生设置窗口。本文说明怎样在这里写页面；当前功能边界见 [模块精简验收](../../docs/module-removal-20261112.md)。
 
 ## 工具链
 
 - Go 1.27.3：`dist/resources/tools/go-1.27.3/bin/go.exe`。命令前设置 `GOROOT` 为该目录，`GOTOOLCHAIN=local`，`CGO_ENABLED=0`，`GOCACHE=dist/resources/cache/go`。
-- MyGo 文档与源码：`dist/resources/sources/mygo-v0.7.3/github.com/egoist/mygo@v0.7.3/docs/ui/`（组件说明）和 `ui/`（实现）。先查文档，再写代码，不要猜 API。
+- MyGo 文档与源码：`dist/resources/sources/mygo-winone-v0.9.0/docs/ui/`（组件说明）和 `ui/`（实现）。先查文档，再写代码，不要猜 API。
 - 正式构建：`build/build-desktop-mygo.ps1 -OutputDirectory _temp/<任务>/build`（图标检查、测试、vet、生产构建）。
 
 ## 包结构
@@ -31,7 +31,7 @@
 2. **状态**：页面是一个结构体，保存草稿、读取结果和进行中的操作。离开页面时实例被丢弃（下次进入重新读取）；需要释放 Host 资源时实现 `core.Closer`。
 3. **读取与保存**：Host 调用会阻塞，必须放在 `core.Go`/`core.Do` 中，结果回到 UI 线程后再改状态。方法名、参数与旧窗口完全一致：
    - 旧 `bridge.ts` 的 `WinTray/Modules/AlwaysOnTop/Selection/QuickAssistant/TimedPower/Interconnect/DirectoryLinks/Stroke(method, payload)` 对应 `env.Host.CallCompleting("<namespace>.<method>", params)`。命名空间：`wintray`、`modules`、`always-on-top`、`selection`、`quick-assistant`、`timed-power`、`interconnect`、`directory-links`、`stroke`。
-   - `Capture(method)` 对应 `capture.<method>`（AI 服务也在 `capture.ai.*`）；`Chat(method)` 对应 `env.Host.Call("chat.<method>")`；`SaveSettings` 对应 `CallCompleting("settings.save", settings)`；`Snapshot` 用 `env.Snapshot()` 与 `env.Refresh()`。
+   - `Capture(method)` 对应 `capture.<method>`（AI 服务也在 `capture.ai.*`）；`SaveSettings` 对应 `CallCompleting("settings.save", settings)`；`Snapshot` 用 `env.Snapshot()` 与 `env.Refresh()`。
    - 返回 `{state:"running", id}` 的任务用 `core.FollowJob(env, namespace, job)` 跟进。
 4. **未知字段**：编辑 Host 文档（模块设置等）时用 `core.Preserved[T]` 解码和保存，避免丢失本窗口没有声明的字段。
 5. **未保存保护**：每次 `View` 开头调用 `env.Activity.Report("<来源>", dirty, busy, revert)`。切换一级/二级标签用 `kit.Tabs(c, &tab, tabs, env.RequestChange)`，离开页面和关闭窗口由外壳处理。

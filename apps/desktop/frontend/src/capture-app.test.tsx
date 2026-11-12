@@ -35,6 +35,6 @@ it("shows a closeable capture error instead of falling back to settings",async()
  render(<CaptureApp/>);
  await screen.findByText(/Preferences unavailable/);
  expect(screen.queryByRole("navigation")).toBeNull();expect(api.read).not.toHaveBeenCalled();
- fireEvent.click(screen.getByRole("button"));
+ fireEvent.click(screen.getByRole("button",{name:/^(Close window|关闭窗口)$/}));
  await waitFor(()=>expect(api.close).toHaveBeenCalledWith("close"));
 });

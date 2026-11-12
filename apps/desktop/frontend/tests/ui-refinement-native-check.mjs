@@ -89,19 +89,9 @@ try{
  await open('ai-services');
  const tabs=page.getByRole('tablist',{name:'AI 服务',exact:true});
  for(const width of [800,1280]){
-  await size(width);await tabs.getByRole('tab',{name:'路由',exact:true}).click();
-  const routing=page.frameLocator('iframe[title="路由"]');
-  await routing.locator('#rtNewGroup').waitFor();await routing.locator('.rt-gtpl-card').first().waitFor();
-  await snapshot('routing-native-'+width);
-  await tabs.getByRole('tab',{name:'插件',exact:true}).click();
-  const plugins=page.frameLocator('iframe[title="插件"]');
-  await plugins.getByRole('textbox',{name:'插件',exact:true}).waitFor();
-  await plugins.getByRole('textbox',{name:'插件',exact:true}).fill('draft-plugin-path');
-  await plugins.getByRole('button',{name:/^已安装/}).click();
-  assert.equal(await plugins.getByRole('textbox',{name:'插件',exact:true}).inputValue(),'draft-plugin-path');
-  await plugins.getByRole('button',{name:'发现',exact:true}).click();
-  assert.equal(await plugins.getByRole('textbox',{name:'插件',exact:true}).inputValue(),'draft-plugin-path');
-  await snapshot('plugins-native-'+width);
+  await size(width);await tabs.getByRole('tab',{name:'常用',exact:true}).click();
+  assert.deepEqual(await tabs.getByRole('tab').allTextContents(),['常用','自定义供应商','账号供应商','使用偏好','本地网关']);
+  await snapshot('ai-common-native-'+width);
  }
  for(const frame of page.frames().filter(f=>f!==page.mainFrame())){
   const overflow=await frame.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert.ok(overflow<=1,'Embedded page overflow');

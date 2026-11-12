@@ -7,8 +7,3 @@ import _ "embed"
 //
 //go:embed logo.png
 var Logo []byte
-
-// ChatWelcome is the mark on Chat's new conversation.
-//
-//go:embed chat-welcome.png
-var ChatWelcome []byte

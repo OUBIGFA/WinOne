@@ -1,0 +1,8 @@
+{
+  "aiShared.searchModels": "搜索模型",
+  "aiShared.modelUnavailable": "请在 AI 服务中启用模型。",
+  "aiShared.model": "模型",
+  "aiShared.chooseModel": "选择模型",
+  "aiShared.copy": "复制",
+  "aiShared.maskedAccount": "账号 {{number}}"
+}

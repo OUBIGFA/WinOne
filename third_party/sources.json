@@ -59,7 +59,7 @@
       "commit": "02d021fceaf2a907f9e63a8125621bdda1b85d60",
       "license": "MIT",
       "attribution": "third_party/import-notices.json",
-      "scope": "Settings and native menu geometry / motion; existing Cindy Chat is unchanged"
+      "scope": "Settings and native menu geometry and motion."
     },
     "baseUI": "1.8.0",
     "lucideReact": "1.27.0",
@@ -193,10 +193,8 @@
     ],
     "adapter": "modules/ai-magpie",
     "build": "build/build-ai.ps1",
-    "verification": "docs/plans/2026-11-09-ai-upstream-ui.md",
-    "previousCommit": "691a10446ec2b66142cee2203edf72d73b12d76d",
-    "privacyModel": "third_party/privacy-model.json",
-    "routingExtraction": "build/prepare-ai-routing.mjs"
+    "verification": "docs/module-removal-20261112.md",
+    "previousCommit": "691a10446ec2b66142cee2203edf72d73b12d76d"
   },
   "providerAvatars": {
     "repository": "https://github.com/yetone/magpie",
@@ -206,7 +204,7 @@
       "internal/provider/favicon.go",
       "internal/gui/assets/app.js (iconPicker, headerEditor)"
     ],
-    "adaptation": "Direct calls to Magpie picture storage, HTTPS fetching and favicon discovery. React adapts its picker and headers with existing WinOne controls and Cindy collapse; picture URL is an additional source.",
+    "adaptation": "Direct calls to Magpie picture storage, HTTPS fetching and favicon discovery. React adapts its picker and headers with existing WinOne controls and the independent collapse helper; picture URL is an additional source.",
     "nativeAdaptation": "apps/result-ui/ico.go decodes PNG and DIB icon entries with the same algorithm as apps/desktop-mygo/widgets/provider_icon.go, including ICO zero dimensions (256 pixels) and alpha masks. Fyne image and its build-time patch are no longer used."
   },
   "interconnect": {
@@ -220,12 +218,6 @@
       "commit": "8a806c36956533f9c003c55f16e31fcf14133f8e",
       "source": "third_party/croc",
       "notices": "third_party/interconnect-transfer-notices.json"
-    },
-    "chat": {
-      "repository": "https://github.com/jeremyckahn/chitchatter",
-      "commit": "4093c21dad24af133c3c5c12042d3eb6112eece1",
-      "license": "GPL-2.0-or-later",
-      "source": "apps/desktop/frontend/src/vendor/chitchatter"
     },
     "peer": {
       "repository": "https://github.com/tailscale/tailcat",

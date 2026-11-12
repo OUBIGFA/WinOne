@@ -37,7 +37,7 @@ type gatewayStatus struct {
 // draft does too.
 type gatewayPanel struct {
 	connectOpen, networkOpen, historyOpen            bool
-	calls                                            nativeTrace
+	calls                                            gatewayCalls
 	callsShown                                       int
 	flavor, snippetLanguage, snippetOS, exampleModel string
 	tab                                              int
@@ -59,6 +59,8 @@ type gatewayPanel struct {
 	list                                             ui.ListState
 	height                                           float32
 	read                                             int
+	viewer, runtimeURL, runtimeError                 string
+	runtimeLoading                                   bool
 	// interfaces shows the supported interfaces.
 	interfaces bool
 }
@@ -85,12 +87,7 @@ func (g *gatewayPanel) Report() {
 }
 
 func (g *gatewayPanel) Close() {
-	g.calls.api.close()
-	g.calls.detailAPI.close()
-	g.calls.routeAPI.close()
-	g.calls.titleAPI.close()
-	g.access.close()
-	g.history.api.close()
+	g.releaseRuntime()
 	g.env.Activity.Report("ai-gateway-access", false, false, nil)
 	g.read++
 	g.env.Activity.Report("ai-gateway", false, false, nil)
@@ -195,6 +192,15 @@ func (g *gatewayPanel) accessKey(services ui.Services, copy bool) {
 // the saved ones: the gateway offers only saved models.
 func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owners ...*page) {
 	g.Report()
+	g.ensureRuntime()
+	if g.runtimeError != "" {
+		kit.Notice(c, kit.Failure, "", g.runtimeError, func() {
+			if kit.Button(c, i18n.T("common.retry"), icons.RefreshCw, false).Clicked() {
+				g.releaseRuntime()
+				g.ensureRuntime()
+			}
+		})
+	}
 	busy := g.working || g.loading
 	if g.saved == nil && !busy && g.err == "" {
 		g.load()

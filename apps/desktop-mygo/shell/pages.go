@@ -3,7 +3,6 @@ package shell
 import (
 	"github.com/egoist/mygo/ui"
 
-	"winone/desktopmygo/chat/pluginhost/globalpages"
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
@@ -24,9 +23,7 @@ type pageSpec struct {
 
 // registry lists every page in the sidebar's order: Home and the features
 // above (Home lists the same features in the same order, which its test
-// checks), then Chat, OneBot, Flash chat, AI services and Settings at the
-// bottom. Pages without make show the unavailable state until they are
-// built.
+// checks), then AI services and Settings at the bottom.
 var registry []pageSpec
 
 // Register adds or replaces the constructor of a page; page packages call
@@ -50,9 +47,6 @@ func init() {
 		{id: "interconnect", title: "interconnect.title", icon: icons.FolderUp},
 		{id: "wintray", title: "nav.wintray", icon: icons.LaptopMinimal},
 		{id: "convenience", title: "nav.convenience", icon: icons.Rocket},
-		{id: "chat", title: "chat.title", icon: icons.Bot, layout: core.Conversation, footer: true},
-		{id: "onebot", title: "onebot.title", icon: icons.Panda, layout: core.Conversation, footer: true},
-		{id: "flash-chat", title: "interconnect.peerChat", icon: icons.MessagesCircle, layout: core.Conversation, footer: true},
 		{id: "ai-services", title: "ai.serviceTitle", icon: icons.Sparkles, footer: true, separated: true},
 		{id: "settings", title: "nav.settings", icon: icons.Settings, footer: true},
 	}
@@ -61,14 +55,6 @@ func init() {
 func pages() []pageSpec { return registry }
 
 func spec(id string) pageSpec {
-	// Plugin main/exclusive panel routes are real pages but not extra static
-	// sidebar/default-page entries. Their approved navigation is dynamic.
-	switch id {
-	case globalpages.MainRoute:
-		return pageSpec{id: id, title: "pluginViews.panel", icon: icons.Puzzle, layout: core.Conversation, make: globalpages.NewMainPage}
-	case globalpages.PanelRoute:
-		return pageSpec{id: id, title: "pluginViews.panel", icon: icons.Puzzle, layout: core.Conversation, make: globalpages.NewPanelPage}
-	}
 	for _, p := range registry {
 		if p.id == id {
 			return p

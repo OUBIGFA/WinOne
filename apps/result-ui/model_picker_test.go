@@ -185,7 +185,7 @@ func TestProviderGroupsCollapseIndependentlyAndSearchRestoresThem(t *testing.T) 
 	if err := tt.Click("切换供应商和模型"); err != nil {
 		t.Fatal(err)
 	}
-	// As every model list of WinOne (the Chat composer's), opening unfolds
+	// Like every WinOne model list, opening unfolds
 	// the chosen model's group so its check is in view.
 	if !tt.HasText("claude-sonnet-4") || !tt.HasText("deepseek-chat") {
 		t.Fatal("reopening did not show the chosen model's group")

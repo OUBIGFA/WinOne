@@ -6,36 +6,19 @@
       "repository": "https://github.com/yetone/magpie",
       "commit": "c9d253e4a2e7add1e31578244eda52bfdce11258",
       "license": "MIT",
-      "scope": "Native MyGo presentation of the pinned upstream built-in pages, plugin manager, Library and external client Sessions, with WinOne top subnavigation. Upstream algorithms and handlers remain in the Magpie runtime; external client reads and writes require explicit user actions. Third-party authored HTML retains its original WebView. Native fields, labels, saved receipts, diagnostics, stable identities and actions adapt the upstream contracts; unknown saved fields roundtrip.",
+      "scope": "Native MyGo provider preferences, account settings and local gateway administration. Only the five retained AI service pages are available. Gateway keys, recording and call details remain owned by the local gateway. Gateway administration is compiled independently of the upstream desktop GUI and exposes no retired application routes.",
       "sourceFiles": [
-        "internal/provider/group.go",
-        "internal/provider/grouprule.go",
-        "internal/provider/grouptemplate.go",
-        "internal/gui/groups.go",
         "internal/gui/trace.go",
-        "internal/gui/plugins.go",
-        "internal/gui/masking.go",
         "internal/gui/providers.go",
-        "internal/gui/assets/plugins/routing/client.js",
-        "internal/gui/assets/plugins.js",
-        "internal/gui/assets/plugins/redact/client.js",
         "internal/gateway/trace.go",
         "internal/gateway/rules.go",
-        "internal/gateway/affinity.go",
         "internal/gateway/history.go",
-        "internal/gateway/prompt_text.go",
-        "internal/usage/purpose.go",
         "internal/gui/caller_keys.go",
         "internal/access/access.go",
         "internal/sessions/gateway.go",
-        "internal/gui/assets/plugins/usage/page.js",
-        "internal/gui/assets/plugins/library/client.js",
-        "internal/gui/assets/plugins/sessions/client.js",
-        "internal/gui/assets/plugins/otel/page.js",
-        "internal/gui/assets/plugins/gateway/client.js",
-        "internal/gui/library.go",
         "internal/gui/sessions.go",
-        "internal/gui/assets/i18n.js"
+        "internal/gui/assets/i18n.js",
+        "internal/gui/sessions_manage.go"
       ],
       "notices": [
         {
@@ -45,82 +28,6 @@
       ],
       "files": [
         {
-          "path": "apps/desktop-mygo/pages/aiservices/advanced_latest.go",
-          "sha256": "0f8c5865f85c4011c88e93fc7771a05ab1b1115949e9ef5564bf3c3b4e803b1c"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/plugins_details.go",
-          "sha256": "2a5724addb4cc5c41b47f5e22ae3cc439a2cf84e0e5d94466f074feffc186a00"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/plugins_guest.go",
-          "sha256": "bf7b8ab5dfbd5d110bd95d80b17984309d77028e891ae19452704a992a600c71"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_pools.go",
-          "sha256": "8876dd73730d0ebe128fc6e1a49100ace8ce5d6eda038656dcd502f11a2f4ae2"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_patterns.go",
-          "sha256": "c2c3b6f3ebc0b8f096b413be5cb122c521b6c07814566fb0beb6aeeac2c7ff95"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing.go",
-          "sha256": "6ac4fe123aef34e83f6cc1768fb36d6d889a480fc297f0f1940c126de4b4c828"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_groups.go",
-          "sha256": "439140736996e8a6969ddfb2e11bd05934117f8a5c503c16db8fdc7081456a07"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_members.go",
-          "sha256": "b6f3dfc026296bac150d4a254041f30e1b165db752bebaeeda05118dbab26e79"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_trace.go",
-          "sha256": "821946cec316e7cfdbd60218f341c9542adb185a92699bf9873156ee4336612b"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_evidence.go",
-          "sha256": "f8a30deae23a0063cf3d80e57385c6a0e9e97255aeed9211a7746aca9b99acfe"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/plugins_native.go",
-          "sha256": "e4462b0bd88efa8d7cc642d538c568fbd8b68e134f1d241480438ffcd2140944"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/masking_records.go",
-          "sha256": "01e1dcb2aa97dbb1fbd1763be5cdc73d3f9f4a6652a85cb69a10ca489611d357"
-        },
-        {
-          "path": "modules/ai-magpie/patches/routing_gui.go.txt",
-          "sha256": "f403f35cb40667bb75b88164ba0d2f09d2b76e3553b729e62e30a1968b217260"
-        },
-        {
-          "path": "build/prepare-ai-routing.ps1",
-          "sha256": "074c953a70301e0aa47071dcc87c874f039dfff479f0dfcfb91a2fc29f8a4d97"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_replay.go",
-          "sha256": "8d958572a3bd703560041876ad1fa14e28ef3ad2b5ad9de9920ff2e00274f667"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_metrics.go",
-          "sha256": "1afed7b4f1b84aea0e3f6f879a7694650d6c5d55854edef4e407d64e865a7262"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_details.go",
-          "sha256": "c8f4fd1d3517c3b41002ef5d5d92b3603a4e47b14027db45c405fdb7798bf369"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_accounts.go",
-          "sha256": "d1d10efbc500bd0fd5f3cb36305192bada53764dfa70e3ffa990ebd9f9824312"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_privacy.go",
-          "sha256": "4cd8d1f97f7a8e2ec9717afd582ed7df1ac8c734557a4ddc87f295eae6b4db6a"
-        },
-        {
           "path": "apps/desktop-mygo/pages/aiservices/preferences_accounts.go",
           "sha256": "a5b704d556555edbaccd1b61aa6b9672866462dbcf594c21a2a8d706d6ec6d0a"
         },
@@ -129,68 +36,16 @@
           "sha256": "493e007b165ab93f009b626eeaa391872c82f2dc968880f8f657cc1945753449"
         },
         {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_purposes.go",
-          "sha256": "d28ea9e68470ac8c85d80a8f6b388cccbdacb0ceb7ac7aa2322af79d5e5a62af"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_titles.go",
-          "sha256": "ad45956ad843a3b40b206a1babdbbce219b4c95a4c830b1b8c350a27d7900662"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_labels.go",
-          "sha256": "22be8725d6d7b917e900cfbe1105cfd08e1dd1637a3792ec9b5c8e6eddf6613a"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/search_keys.go",
-          "sha256": "fac48ca46e81e06b2a527054e8e67901246fe0a636f219ea8fd81330d2faf430"
-        },
-        {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_access.go",
-          "sha256": "8c52795b5013d994f890ecce7b9ff6d9232d304040604d03f4a5d77447b7cc99"
+          "sha256": "8cad87d91e42ea0d5818491f40bb248cb94b23801e2b2fb5d7ea939bbe9384ad"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_history.go",
-          "sha256": "a161267490bdd80d641b4756a1563375ac5f2e6aa6de6b8750787dad0e3906bf"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/plugins_upstream.go",
-          "sha256": "27cb173d491d77cad79a00267f90fbbbc090788882e9c8c63e36afe2008204fe"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/plugins_bundled.go",
-          "sha256": "bffea64bec0c5ebb20cf1ea4d8836b5cbbf272a974521d77b4464c69d7058991"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/library.go",
-          "sha256": "259b18a95a1e51c429758771339d8fdad8b929036041d81d214500c131421eb7"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/library_content.go",
-          "sha256": "b03db46fed98a6407a61f0075223134b9ba0da41a8f750bcb7d1554be4977ee9"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/library_i18n.go",
-          "sha256": "c9a9b8dc6c4fc9f640292194ac201c2e0497e859259c6fb51be3f2a5bf797b08"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/sessions.go",
-          "sha256": "51637f27e0bf567edb2b94587568be4263eaf97df0a28b6d90ec9dbbbad9d3b3"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/sessions_manage.go",
-          "sha256": "ed78b4a1227ef664de72182e3d78f3fb939f68037dcda688119dd6ebd4ecac4d"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/observability_upstream.go",
-          "sha256": "dbb9c869538f7ecae29e7a652bf8fbc23c8bae347f2e43cf408a01bfbb3852b2"
-        },
-        {
-          "path": "apps/desktop-mygo/pages/aiservices/masking_summary.go",
-          "sha256": "ec1943c2ea76d2917b5c48235b39099ee8499222c9fc00385456eab6546f3716"
+          "sha256": "26ce21934991003eaddef5e6e3a76218da3810f9ab06240b79dfd2737cdd177a"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_calls.go",
-          "sha256": "a637ba4a5290e19609da953bd51d19ad51d3dbaa996e5c3c8a227be18f32205c"
+          "sha256": "074dc47e69f0dcfd53b885d306e9018836ef26c28d7b8fc60913dc96c134a016"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_connect.go",
@@ -198,35 +53,35 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_examples.json",
-          "sha256": "4b5be2afee201d26fe5b2cdcf4f8f64cf5317787f58a1594496ee2a7625ef15c"
+          "sha256": "5de894fca6e5f706379f57e994a83e4f927496d41f891da3a49de52908c27249"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/navigation_upstream.go",
-          "sha256": "eab718782fe3289d807179bae8d8a8c3bf108ea08a056298a87c8fa935e80d58"
+          "sha256": "e1dfa40cc2d39028230d9d952028894bbeb9948812c9139994a0acaa43196397"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-upstream.en-US.json",
-          "sha256": "00014b5b4e5a0620f23ad5cfe6a9e65825222905ecb6a9cf7b87dbd023b5fd1b"
+          "sha256": "02e5aa068bac7ecd56aa5bf3675c8494ebccb8a09e7718942a24f1482a0659b8"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-upstream.zh-CN.json",
-          "sha256": "57dcccbe63d20e52e6cb32ecdbd414ffea310368de21aea9411af73d398dfce5"
+          "sha256": "f3a135da0585442d36c0f20fa8c0eef5c065b7abeca8572950520e3d050cea01"
         },
         {
           "path": "build/generate-native-magpie-connect.mjs",
-          "sha256": "162951d17f99bf278756ac67585559f59a3e40f9b5cd5c0770e2657381be77bf"
+          "sha256": "c70bcd821f2711ca98ec23d0ffc964f91130d8165380fabb1f8dc030bb33d6e6"
         },
         {
           "path": "build/generate-native-magpie-locales.mjs",
-          "sha256": "f0837708d0187112a5685ff6b9f12b7eda8b9bb4e40092ca699134815fca7013"
+          "sha256": "dda88bd02234bf5b14269e86c649601cb292a1aed197af0ab9b17bf1e19f28c4"
         },
         {
-          "path": "apps/desktop-mygo/pages/aiservices/library_server.go",
-          "sha256": "c595cd3d3e47c11b8f99cf499925dc58633e95093953b7dc9de344c4a038ab8a"
+          "path": "modules/ai-magpie/gateway_admin.go",
+          "sha256": "f72048875291237547e7e6c95e9b4576d7b57631b2551736a6ac6f0364366ec4"
         },
         {
-          "path": "apps/desktop-mygo/pages/aiservices/routing_clients.go",
-          "sha256": "8b08e86eea498a9a2ca8cc504c5bb1089838ad899c2f698092368f06a509c25e"
+          "path": "build/prepare-ai-gateway.ps1",
+          "sha256": "cfee7e5a76baad915a64034d1e23f4ba403f96f5e89a3036544272b01d9a4f17"
         }
       ]
     },
@@ -264,30 +119,25 @@
     {
       "name": "mygo-winone-shell-file-drop",
       "repository": "https://github.com/egoist/mygo",
-      "commit": "5add3817c74bb7505d0b473bc5fb28abe2201b99",
+      "commit": "4811a2869b5a66d2b7e21a9eb5993fcff544460b",
       "license": "MIT",
-      "scope": "MyGo v0.8.3, complete verified upstream in a repository source cache; Windows cross-integrity Shell file-drop hooks and async inline-math revision adapt WinOne's existing integration. Source.json records the committed narrow native adaptations. Original OLE, hit testing and file dispatch remain unchanged. Opaque Windows native surfaces draw the full interactive scene through the upstream CPU renderer while the D3D11 device initializes off-thread, then transfer to the GPU without replacing control state; device cancellation releases late results.",
+      "scope": "Windows Shell cross-integrity file-drop receiver adapted from WinOne's component_file_drop.rs. Native UI, OLE, hit testing and file dispatch stay upstream. Markdown tables wrap within the reading column. Opaque Windows native surfaces paint the complete interactive scene with the existing CPU renderer while D3D11 initializes asynchronously, preserving input and UI state on GPU handoff. Prepared from the verified pinned module into a repository source cache; never modifies the Go module cache.",
       "sourceFiles": [
         "internal/windows/surface_drop.go",
-        "ui/markdown/view.go",
-        "ui/window.go",
+        "ui/markdown/table.go",
         "internal/gpu/d3d11/d3d11.go",
-        "internal/gpu/d3d11/device/device.go"
+        "ui/window.go"
       ],
       "notices": [
         {
-          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.8.3-LICENSE.txt",
+          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.9.0-LICENSE.txt",
           "sha256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4"
         }
       ],
       "files": [
         {
           "path": "third_party/mygo-winone/source.json",
-          "sha256": "0762c8e35ad319e7cd4a337daea929dba90bc9e17180d77ce29ddfe3ada05488"
-        },
-        {
-          "path": "third_party/mygo-winone/inline_math_test.go",
-          "sha256": "50443474b433d696508799bc1502728f77959d74b533c2a24ae4f326e150fdd2"
+          "sha256": "7b807603b7ab3dba5ec3b8cd659d67f5171540faed5b28e7e0e7416f9ae60af1"
         },
         {
           "path": "third_party/mygo-winone/surface_file_drop_windows.go",
@@ -299,11 +149,11 @@
         },
         {
           "path": "third_party/mygo-winone/async_device_windows.go",
-          "sha256": "c6b5ddee07b5990f48b75ac2f2144fb8a583776545f313dc85a835688da59d04"
+          "sha256": "cf3ba3f59844c01afd49bd740ccf9011c378d6747d359dd9cbc0df4c8a05f857"
         },
         {
           "path": "third_party/mygo-winone/async_device_test.go",
-          "sha256": "9556f14e03310fbb33cd56171a807a7f596c5ab1a27b967cf32849dd5e9bbb91"
+          "sha256": "9731c499fdec6368c00e0355af673fa17184ddd3334298890b7d49bcabaee75f"
         },
         {
           "path": "third_party/mygo-winone/async_gpu.go",
@@ -316,28 +166,6 @@
         {
           "path": "third_party/mygo-winone/async_gpu_test.go",
           "sha256": "584e589bb1f374e87dfa56c68c91b17160af8f9e733e5b2b1252856acb9602f3"
-        }
-      ]
-    },
-    {
-      "name": "lucide-messages-circle",
-      "repository": "https://github.com/lucide-icons/lucide",
-      "commit": "7faf87628a1ad6175975bc595344337ce14a7db4",
-      "license": "ISC",
-      "scope": "Official messages-circle SVG paths reused without geometry changes for Flash Chat navigation and headings. Wrapped by the existing lucide-react createLucideIcon because version 1.27.0 does not yet export this icon.",
-      "sourceFiles": [
-        "icons/messages-circle.svg"
-      ],
-      "notices": [
-        {
-          "file": "licenses/lucide.txt",
-          "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
-        }
-      ],
-      "files": [
-        {
-          "path": "apps/desktop/frontend/src/components/icons/messages-circle.ts",
-          "sha256": "ce85aab8d0f6b5f15b91a2992f9c2482f4522f0fcda6a67145a3f11dbf3e04a4"
         }
       ]
     },
@@ -365,7 +193,7 @@
         },
         {
           "path": "apps/desktop/frontend/src/styles/settings.css",
-          "sha256": "314635c39b51b77fbf1b72f49970eb5cc6c0eff24b3623f4e622f28b7ba82c8d"
+          "sha256": "760beac0b5aed7f3e0c2062bc7d6c4e5909a0ac801897570357e9189eae5ce86"
         },
         {
           "path": "third_party/systray/menu_style_windows.go",
@@ -1426,264 +1254,6 @@
       ]
     },
     {
-      "name": "chitchatter-interconnect",
-      "repository": "https://github.com/jeremyckahn/chitchatter",
-      "commit": "4093c21dad24af133c3c5c12042d3eb6112eece1",
-      "license": "GPL-2.0-or-later",
-      "scope": "Complete headless chat core and original tests from production main. Only import paths are adapted; WinOne supplies presentation and platform adapters.",
-      "sourceFiles": [
-        "src/core/"
-      ],
-      "notices": [
-        {
-          "file": "licenses/chitchatter-4093c21-LICENSE.txt",
-          "sha256": "189b1af95d661151e054cea10c91b3d754e4de4d3fecfb074c1fb29476f7167b"
-        }
-      ],
-      "files": [
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/index.ts",
-          "sha256": "30e84016294f1138bd8540b7f2206399d09b0376f42fc5be266dc644a72b44a1",
-          "upstreamPath": "src/core/index.ts",
-          "upstreamSha256": "4aa0dc853d96c3774d9bd7703db2aa2ad486583ddd9af4b74c0c77505bb2fd20"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/README.md",
-          "sha256": "4a620743618a1805afbb7777302df06bc3964a1c22f12300a04c5d28f57d5488",
-          "upstreamPath": "src/core/README.md",
-          "upstreamSha256": "27fb8e72d9b58f4c05a2f3f68bfcf2f88562acda3ce436f99ca428c78fb5d247"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/adapters/noop.ts",
-          "sha256": "893c94e395e53146831cfe7e3250661dbdd7154475498f3f8ff2fbf761c710ad",
-          "upstreamPath": "src/core/adapters/noop.ts",
-          "upstreamSha256": "bd6e0dbf53d99d3520f3b5431c00b1204f4d57e2571a7111e3767c97fed7e26a"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/adapters/types.ts",
-          "sha256": "33423a3c91f9c8f67af17afa77604f59804a8bbfb973f40a23d38f9e84262536",
-          "upstreamPath": "src/core/adapters/types.ts",
-          "upstreamSha256": "2398e6f8b56e76546785213aae211dbe0aa016734658e903346f71f8a9d4b2cf"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/ChatRoom.test.ts",
-          "sha256": "81efab1e8a4e25345d939d5c9d78c3ec4402a1c0c190cc073c5473a460ee70dd",
-          "upstreamPath": "src/core/chat/ChatRoom.test.ts",
-          "upstreamSha256": "5fd7aafd0b08986ff7153927c82fee9ba783cdca5fba877f06c3bee99f26b772"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/ChatRoom.ts",
-          "sha256": "0726f083fc04e13c73770a49457b729acf68289a82ea56b75a907f1b1841848c",
-          "upstreamPath": "src/core/chat/ChatRoom.ts",
-          "upstreamSha256": "f366b4eec45ce00ce92e5ca0a79828b9d32968e06989dc82270f29f552b09258"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/ChatRoomRegistry.ts",
-          "sha256": "26dd1da8ded31bbed5a3914bec667d8e35d3d5ece66a8f15e10576dd40663d92",
-          "upstreamPath": "src/core/chat/ChatRoomRegistry.ts",
-          "upstreamSha256": "29156d9aa670315aa3337e63cfd2595caae770d332c4cc62c6a610559d0f104f"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/events.ts",
-          "sha256": "5e3c8b0f7c4a9af944259f2b294a1af0ed021595d20adbd5937f1f26271cb0a6",
-          "upstreamPath": "src/core/chat/events.ts",
-          "upstreamSha256": "92aa93da458cad6c6a6d1e20f14610166140433d2ce3aba7e1c22d3f3f66a995"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/fileOffers.test.ts",
-          "sha256": "e0efde948fc670dbbf082a80f16020bfbbdbfbdcad5131b2590c018cfd93452b",
-          "upstreamPath": "src/core/chat/fileOffers.test.ts",
-          "upstreamSha256": "3ab1997bfdef8ce4fef82b6d7edfccfbb5f079d8b3022bf632388fa11bf8ac8e"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/fileOffers.ts",
-          "sha256": "eb2c3003b3f7539a5de47b24e036e86e76dc05f5f5a1fbd53900b3c78a9aabdc",
-          "upstreamPath": "src/core/chat/fileOffers.ts",
-          "upstreamSha256": "7ee52bcfddef4824a00523645e1f4905674d8a5ebf703e33dd277bbd588f26da"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/identity.test.ts",
-          "sha256": "e2c14bc5d29ecd2756ce8e36cb377425a0e73a8ac53b3e1fe720352fa875b461",
-          "upstreamPath": "src/core/chat/identity.test.ts",
-          "upstreamSha256": "b7891bf4835d6d3a2746fe6a378506f6f653ecd7835c93cc81343a03dc517dce"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/identity.ts",
-          "sha256": "002672280212920b6a1f4862c3047c129a60b5821410fe759e94edb9fe3550f3",
-          "upstreamPath": "src/core/chat/identity.ts",
-          "upstreamSha256": "f3086e149c5e73a78e43bee1fca1e322a928aaf0b696acbb865ba2a3db25263a"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/peers.test.ts",
-          "sha256": "933cc11ae52b8f50fd68d27d0a4c5844dbdb233f03a2dff34396b2efc17d3e29",
-          "upstreamPath": "src/core/chat/peers.test.ts",
-          "upstreamSha256": "628d669b848d509c0e8d22e99d6fe6ba37d197db23ad168f914f06bee37c881e"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/peers.ts",
-          "sha256": "44f1d85d0eb7c0a72e4d2dc5b926f1e010d9495e06e20d2911ebde817ef577d1",
-          "upstreamPath": "src/core/chat/peers.ts",
-          "upstreamSha256": "f81c4a5567fd68d436b92864f3b0d96ba0545a7e2cbae805f00e034228e290fb"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/protocol.ts",
-          "sha256": "e4903de96331cd2a4de76b60e706860ba82b41bd3d8a0540b704bccc7a4f3c8f",
-          "upstreamPath": "src/core/chat/protocol.ts",
-          "upstreamSha256": "fbbf548e0e4449f78b9922d3b84100b935186fdb4ec568578a05fb706c7bf389"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/transcript.test.ts",
-          "sha256": "05f8961749cb9fbb6b413ef0c21a5a7183805897edcc044b41a48e53eac939b2",
-          "upstreamPath": "src/core/chat/transcript.test.ts",
-          "upstreamSha256": "1b129a0de96233c4af347ed78605681f1cab6473f84ce51947554edce5902164"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/chat/transcript.ts",
-          "sha256": "1c894baae1b6b5175d8f78a1aa5e95406d021523297a92a666f23ea203eec9a8",
-          "upstreamPath": "src/core/chat/transcript.ts",
-          "upstreamSha256": "e3fe1f9db9e60d984c5186cf70309b23137d41788bf00445bc0bbc4a5a435e1b"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/config/messaging.ts",
-          "sha256": "b3e1175304f73118f87e2e2f9b26d0df77aef1e5a0be25dcd123c436a5b4ba8e",
-          "upstreamPath": "src/core/config/messaging.ts",
-          "upstreamSha256": "415a409a99afbd39ee6168fdedcd8c176ca7e9749a49f1813f3e2e6cf2d11a21"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/config/roomNames.ts",
-          "sha256": "c766465afb6415fa5360403416d1d8d859979d70049549ec854f385e437eb06f",
-          "upstreamPath": "src/core/config/roomNames.ts",
-          "upstreamSha256": "b14fb67b152d4538edb93a54850d8a656c535fceb2f70d23ee0ef4915e0685cb"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/config/turnConfig.test.ts",
-          "sha256": "ed78034fa67ab5a2a3fbfa5abb8cec60a8eee8b5a125d0f9e81e2a596efe4612",
-          "upstreamPath": "src/core/config/turnConfig.test.ts",
-          "upstreamSha256": "d30936dd521cd8df34066cfd93c7e78c2cd99c625191a1e402a8bbb7998fa4bb"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/config/turnConfig.ts",
-          "sha256": "025941b5789c970402242fd56e58e53be7001f9c12ccc38e47df9a6df56cf5e9",
-          "upstreamPath": "src/core/config/turnConfig.ts",
-          "upstreamSha256": "0dbf065ddc9b2b485f700d90090943685da377c9bb2c42ee2ec955028b2dfd71"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/crypto/Encryption.test.ts",
-          "sha256": "57e35e8be34ebce5b9134536f9d4c1d099a224e8216062be877f24d3e969e1e0",
-          "upstreamPath": "src/core/crypto/Encryption.test.ts",
-          "upstreamSha256": "d328bc6943ecca79c274e4e542b5cd13036b729de7320e1aca370fdd12ab044a"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/crypto/Encryption.ts",
-          "sha256": "6aa591865a8a94346be9dbb0659bfbb569711d7061f53a08ac4926e462f4147f",
-          "upstreamPath": "src/core/crypto/Encryption.ts",
-          "upstreamSha256": "daa2dd3f1b87309955c0371cfa0192e77ff749ff40137777112ef8c98ff626d5"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/lib/sleep.ts",
-          "sha256": "43f53839db6cb13157923d0194278006930459d4a4e66fbbc7b1203dd2f52cb3",
-          "upstreamPath": "src/core/lib/sleep.ts",
-          "upstreamSha256": "be69817831045851d3395d0a0de6fc18a4556853284fc579602840c92ab94de3"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/lib/Time.ts",
-          "sha256": "d4bdcd4f1e56beb18ed08d0ee9bbff8a35ee7e4c00dab4fae992be88742f052b",
-          "upstreamPath": "src/core/lib/Time.ts",
-          "upstreamSha256": "10abcb21daa32bd6240ab761095b723638f14ae7353e7f9bfd16d84d37275f96"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/lib/type-guards.ts",
-          "sha256": "e28a64584913be72b27b0b347733e8bac66fa626aff31ac912f2f7d64d7e24d8",
-          "upstreamPath": "src/core/lib/type-guards.ts",
-          "upstreamSha256": "cafa5d6b28fa45ac206df183085a0f802b8507bccc1a2b81d64244aafe88ce25"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/models/chat.test.ts",
-          "sha256": "c3f3762bc15c70821153026766cc82db4abc5e7d2202a5e953dac5b2eb7513c1",
-          "upstreamPath": "src/core/models/chat.test.ts",
-          "upstreamSha256": "0d5373887ac4525c55821a7844b0b1c8014d01f20ce363e31b72dfca1369d77f"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/models/chat.ts",
-          "sha256": "11961dc8fc60e67b1234ccab1f50b19057d0a8f213a5702155360ffb3486e277",
-          "upstreamPath": "src/core/models/chat.ts",
-          "upstreamSha256": "df59d22118f87bbe465baae32feb968689cc0865da67a8c6a9abb9ccfa4a8c97"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/models/network.ts",
-          "sha256": "2b67e390ccd455335de2cc3d957f36ad86575aeae7c9ba45faea4f618164a1b2",
-          "upstreamPath": "src/core/models/network.ts",
-          "upstreamSha256": "1ba6e1978faa6277bca9b7e2375b96732f8d11a1d1c82fe80380e3b67cd6eba0"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/models/settings.ts",
-          "sha256": "bad19faace30225cf4674e9c388bba8a9fb81549b578a1cb8c89fd12dbc83688",
-          "upstreamPath": "src/core/models/settings.ts",
-          "upstreamSha256": "b6c24fe936e266c74183a6d3a6d7f33e98d026964ccccf2e3ac70daeb2bd02d3"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/names/peerNames.test.ts",
-          "sha256": "a5d8b2fd483b5f7631e397afe9fd342632fbabdf44e7c5f93f948fd65c33bf78",
-          "upstreamPath": "src/core/names/peerNames.test.ts",
-          "upstreamSha256": "d57b820265b7fd8c4472924659e44fed9094798175dbbe3e8c7256aee23a1665"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/names/peerNames.ts",
-          "sha256": "bddcf1e6638ea6f04f6ebbc540623a59cbf8c55a601223caef86903c887d1b0f",
-          "upstreamPath": "src/core/names/peerNames.ts",
-          "upstreamSha256": "adb48255d0b45c3fbdce59dedfdbd716607cf884c053453c026ba8d5129b70dd"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/settings/serialization.ts",
-          "sha256": "8b583dc5e5988b0731980da289c21e857123d4e7a91ffe3618dcdae7bb08ba52",
-          "upstreamPath": "src/core/settings/serialization.ts",
-          "upstreamSha256": "f9ded9abded9cf344d08ec9e083a93e5da23b1e193d62379297eb92b3df5e81d"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/settings/SettingsManager.test.ts",
-          "sha256": "b2cbda431418a3c7ef949eefa41cd962ad677398df405ade76477e86e06840c3",
-          "upstreamPath": "src/core/settings/SettingsManager.test.ts",
-          "upstreamSha256": "e17125ca5a9a3b6968fc009e6fc33f3bcaf5b5836d2bfa635fbf2ab343030980"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/settings/SettingsManager.ts",
-          "sha256": "c220c6797d648cbb28c4f017882f92f703fe354a27583aef50404504defeb434",
-          "upstreamPath": "src/core/settings/SettingsManager.ts",
-          "upstreamSha256": "7607940a400c773b38fb1427636b6fccdfc8bcbb29848ec0b6259cc591c8cae0"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/transport/InMemoryTransport.test.ts",
-          "sha256": "414e8261c6f9c84ffea4a411a02c33350baaf681f6a1cb2e74a949ef58299b9e",
-          "upstreamPath": "src/core/transport/InMemoryTransport.test.ts",
-          "upstreamSha256": "9c63cd765fadcd2b57e3c4d68339c4f92bcc1e20a71b6e84e7158591eef21771"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/transport/InMemoryTransport.ts",
-          "sha256": "ff0bdbfec1683344eeb03f197e9610c2da71874b571e0b3bee7944fef0eed6d2",
-          "upstreamPath": "src/core/transport/InMemoryTransport.ts",
-          "upstreamSha256": "5a5982f4f1c30f2f0eb056744e42938f1240cd25917cb771026eb3562754b30b"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/transport/TrysteroTransport.test.ts",
-          "sha256": "ea176f72f27e7f7208182a72cc51fcef5f8b248be4b627249efe834bb09f14e6",
-          "upstreamPath": "src/core/transport/TrysteroTransport.test.ts",
-          "upstreamSha256": "fb59255413faa5d595bc113e98ab1ad9e176338e2856eb0e556a11a938957cf3"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/transport/TrysteroTransport.ts",
-          "sha256": "523e43dc6b1266d346745453e5dcd14da2d1581fd10ac9cf59be18a357c5f95e",
-          "upstreamPath": "src/core/transport/TrysteroTransport.ts",
-          "upstreamSha256": "f809d3e41529ab277f31f45d0790e1f33c5df594bc212789f5a96f26d241f407"
-        },
-        {
-          "path": "apps/desktop/frontend/src/vendor/chitchatter/core/transport/types.ts",
-          "sha256": "9863c37b0f351074bf6d54aefd500db2a95428c209c0293771fd09965a61556c",
-          "upstreamPath": "src/core/transport/types.ts",
-          "upstreamSha256": "5fc308abb42d51222b11a27b455fbb20395c833303d0ff443b62efc399c6e518"
-        }
-      ]
-    },
-    {
       "name": "fileshare-interconnect",
       "repository": "https://github.com/tri5m/file-share",
       "commit": "7228df100f687cd33332331e9c590606623408e4",
@@ -1818,145 +1388,6 @@
       ]
     },
     {
-      "name": "chitchatter-flashchat-go",
-      "repository": "https://github.com/jeremyckahn/chitchatter",
-      "commit": "4093c21dad24af133c3c5c12042d3eb6112eece1",
-      "license": "GPL-2.0-or-later",
-      "scope": "Go port of the same vendored headless chat core for the MyGo window: rooms, identity and verification, group and direct messages, typing, history on join and file offers, with the wire shapes and action names unchanged so native and browser peers share rooms. ChatRoom.test.ts is ported as chatroom_test.go.",
-      "sourceFiles": [
-        "src/core/"
-      ],
-      "notices": [
-        {
-          "file": "licenses/chitchatter-4093c21-LICENSE.txt",
-          "sha256": "189b1af95d661151e054cea10c91b3d754e4de4d3fecfb074c1fb29476f7167b"
-        }
-      ],
-      "files": [
-        {
-          "path": "apps/desktop-mygo/flashchat/models.go",
-          "sha256": "88c0c92276aaf6d82cc2f9144735c6ec11607cff62774e1786076272ae4bcee2"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/identity.go",
-          "sha256": "a44f854eb7782791496d09a4647ddf35bd0272fa252400b4326e9f984d08f584"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/chatroom.go",
-          "sha256": "0bfba21dee09c274b0b83854a0d34704dbe094c959475f13854fc7d78dec9005"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/chatroom_test.go",
-          "sha256": "54c45111a6ffd2bba13d058530612ed8dbbb650f68a5962f6c922bd03bd347fa"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/registry.go",
-          "sha256": "b8bef631bb6966050ba0a41d0ae4ab7cf3bba97dd090d840ec2ec40a41440d21"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/transport.go",
-          "sha256": "324c231c57b7c79d8173412eeb2981d98258659eda1d96fc7d1b1b880bb6e379"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/memory.go",
-          "sha256": "eaad8d4a6bd0caf3930a15d424f3ac85655ae294de08f3717d0822c522736bd8"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/session.go",
-          "sha256": "33ec9bdb3b6390734030195f1888b8001615a39dff743d80158882da2702393e"
-        }
-      ]
-    },
-    {
-      "name": "trystero-flashchat-go",
-      "repository": "https://github.com/dmotz/trystero",
-      "commit": "44b5073effd1b664e3a1fad19a73f1164c3ead0e",
-      "license": "MIT",
-      "scope": "Go rewrite of the Trystero 0.26.0 torrent-strategy wire protocol on Pion WebRTC: room topics and info hashes, password-encrypted offers and answers over WebTorrent trackers, the handshake, shared-peer room frames and the chunked action wire. Timings and limits keep upstream values. A local test tracker serves the same announce shape.",
-      "sourceFiles": [
-        "packages/core/src/",
-        "packages/torrent/src/"
-      ],
-      "notices": [
-        {
-          "file": "licenses/npm--trystero-p2p-core-0.26.0-LICENSE.txt",
-          "sha256": "bbf91fd979faac0def9551c570e2e9f92b4e02d22f38ca5d98860b6284e1ea25"
-        },
-        {
-          "file": "licenses/npm--trystero-p2p-torrent-0.26.0-LICENSE.txt",
-          "sha256": "bbf91fd979faac0def9551c570e2e9f92b4e02d22f38ca5d98860b6284e1ea25"
-        }
-      ],
-      "files": [
-        {
-          "path": "apps/desktop-mygo/flashchat/trystero/doc.go",
-          "sha256": "57c1007ea17e535a92b3ae6f952446db76b0bde515d758535ffe4d509af2da4c"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/trystero/config.go",
-          "sha256": "c2cc477c6e750941ec2dfac79c0bddacde60e7c9d381df5d6e0f0b46cb45efce"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/trystero/crypto.go",
-          "sha256": "f665c32aab05feffe10dd6c68cff07c12ef0c75dfbd541e7a07a8d464d97c9d5"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/trystero/peer.go",
-          "sha256": "742db96a14095a08322159785154ab4f351a9033569a6b9799a9bbbc149d656e"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/trystero/queue.go",
-          "sha256": "e1489d4de8b42240d7a808917f49103a090093bd6d8ab95b0432ae0f9a269cbb"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/trystero/relay.go",
-          "sha256": "5f85af9be0f5a0990e7b81c1a342c4d1970c09f61e1b3effafc0cee7dd4855ea"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/trystero/room.go",
-          "sha256": "1ffd666fa838d8a96c02462214dee42c928e156d03c7a42166d1818cc7e82f1c"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/trystero/wire.go",
-          "sha256": "1f6d2767049862a2dc485e051e647a541339f8c90a10c409e4a41a0bdd1638e8"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/trystero/wire_test.go",
-          "sha256": "71222b0bcd6e3463ae1672e01c947bed5c905ddc7248cde7dea933c7f410a66b"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/trystero/room_test.go",
-          "sha256": "1c9c0823e195ff2dfc5da5550b2e7593a8817e706bce417bd52de03994e6dc56"
-        },
-        {
-          "path": "apps/desktop-mygo/flashchat/trystero/trackertest/tracker.go",
-          "sha256": "38e4462bd0e20ac9f5dec35c62f7d54ee51998673a0268fe3b9ff38f28a76868"
-        }
-      ]
-    },
-    {
-      "name": "fun-animal-names-flashchat",
-      "repository": "https://github.com/jeremyckahn/fun-animal-names",
-      "commit": "2cebf3eb736f9b6b86656021f04d262b7ba77b03",
-      "license": "MIT",
-      "scope": "Adjective and animal word lists of fun-animal-names 0.1.1 copied verbatim, so the native window derives the same peer names as Chitchatter.",
-      "sourceFiles": [
-        "src/"
-      ],
-      "notices": [
-        {
-          "file": "licenses/npm-fun-animal-names-0.1.1-LICENSE.txt",
-          "sha256": "5e6cabe7e89135aed50b9451d7b9fb934580f09b0bb413d4dbaacade01bbb801"
-        }
-      ],
-      "files": [
-        {
-          "path": "apps/desktop-mygo/flashchat/names_data.go",
-          "sha256": "34b057e0c5d71067c8b712f46d54b327146c56647fe178fddbf0eb2348ea1716"
-        }
-      ]
-    },
-    {
       "name": "edge-speech-gec-v2",
       "repository": "https://github.com/leopold7/edge-tts-go",
       "commit": "ac5ef46a82ea20fe3be7601b3219c436538308d8",
@@ -1984,861 +1415,60 @@
       ]
     },
     {
-      "name": "chitchatter-complete",
-      "repository": "https://github.com/jeremyckahn/chitchatter",
-      "commit": "708fefdcc3ac0f5fc2ef2ca9ce1cc1b6a9f46c74",
-      "license": "GPL-2.0-or-later",
-      "scope": "Complete upstream application, media, file transfer, settings and SDK; adapted to the WinOne local WebView, profile storage, bilingual theme and lifetime.",
+      "name": "cindy-shared-motion",
+      "repository": "https://github.com/makecindy/cindy",
+      "commit": "a152497ac24d155dd46142b73dda4fa10ad08ad0",
+      "license": "Apache-2.0",
+      "scope": "Standalone collapse animation and reduced-motion preference used by the retained provider avatar picker. No Chat adapter or registry is loaded.",
       "notices": [
         {
-          "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
-          "file": "licenses/chitchatter-708fefdc-LICENSE.txt"
+          "file": "licenses/cindy-shared-LICENSE.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "file": "licenses/cindy-shared-NOTICE.txt",
+          "sha256": "77ad73b2535cd4011ed8b509aa51d7c745ae5a6f411370d8f94337562c03cd97"
+        }
+      ],
+      "sourceFiles": [
+        "apps/desktop/src/renderer/components/ui/collapse.tsx",
+        "apps/desktop/src/renderer/hooks/useReducedMotion.ts"
+      ],
+      "files": [
+        {
+          "path": "apps/desktop/frontend/src/ui/collapse.tsx",
+          "sha256": "1838c5caa570a41b76ce1cbe749975a335676e291ae397418cd7ea762c198de7"
+        },
+        {
+          "path": "apps/desktop/frontend/src/ui/use-reduced-motion.ts",
+          "sha256": "f3e5676dc5c361ccca968c99ea301d7a6efdbe4c45ce37ee87b6b5d96774e842"
+        }
+      ]
+    },
+    {
+      "name": "cindy-shared-fonts",
+      "repository": "https://github.com/makecindy/cindy",
+      "commit": "779b5237917a173fd32d2a6a381c5fe61b21695b",
+      "license": "Apache-2.0",
+      "scope": "Shared font loading, fallbacks and HarmonyOS language-selector patch. The retained desktop settings use these fonts independently of Chat. Font package licenses remain in the frontend dependency inventory.",
+      "notices": [
+        {
+          "file": "licenses/cindy-shared-LICENSE.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "file": "licenses/cindy-shared-NOTICE.txt",
+          "sha256": "77ad73b2535cd4011ed8b509aa51d7c745ae5a6f411370d8f94337562c03cd97"
         }
       ],
       "files": [
         {
-          "sha256": "935c560bee98cf6f2d0af2a0092816ac527160dda0e58f5a2e66c48a796c9702",
-          "path": "modules/flashchat/src/Bootstrap.test.tsx"
+          "path": "apps/desktop/frontend/src/styles/cindy-fonts.css",
+          "sha256": "9ec60454554626875df8038d380c8a023931ebbf4d6ee98a689326e62c6ed869"
         },
         {
-          "sha256": "d17c6fe12c96f5ae12d46ffe7dc44fde2c5264c391e51e3856d33fd42f563c09",
-          "path": "modules/flashchat/src/Bootstrap.tsx"
-        },
-        {
-          "sha256": "26756aafe57a5e332c827a396867e33a3fb4c4d9eed4f9c842dc521bdc7ff493",
-          "path": "modules/flashchat/src/index.css"
-        },
-        {
-          "sha256": "7ddae66b621af71832d1438a110faadd24210086b1b9b1cc6a9d483018050f6a",
-          "path": "modules/flashchat/src/index.tsx"
-        },
-        {
-          "sha256": "41992c3ad17f90b5f434a8c112afe7835b29e845826cfa2e0088df59214fb32d",
-          "path": "modules/flashchat/src/Init.tsx"
-        },
-        {
-          "sha256": "e27051409faf6d91e009bcd37aa535b614647a58778a2728f81f693a06cb60b8",
-          "path": "modules/flashchat/src/polyfills.ts"
-        },
-        {
-          "sha256": "533a7b4b404a9e4079cf83aecf52bd8917821f0b442b0eebc37c1606a6f2436a",
-          "path": "modules/flashchat/src/react-app-env.d.ts"
-        },
-        {
-          "sha256": "78cee02ad5a1331654d25c487fdeec28e1aebcaf460d66c3c2116113f94462fb",
-          "path": "modules/flashchat/src/reportWebVitals.ts"
-        },
-        {
-          "sha256": "8b19a0e52a4b8b1e342187f45ce7a208c7259c52351ef6b2cea9598ad715ca5b",
-          "path": "modules/flashchat/src/setupTests.ts"
-        },
-        {
-          "sha256": "89e8f9f561e45d0acff20e7c4769f1157d76611490ea472c61990f0049878b38",
-          "path": "modules/flashchat/src/adapters/web/index.ts"
-        },
-        {
-          "sha256": "6d53bea651d14f7a52887845aa259ac87b57f3e6288ed4f730c3bcd9fbb8842d",
-          "path": "modules/flashchat/src/components/AudioVolume/AudioVolume.tsx"
-        },
-        {
-          "sha256": "f76fb3ba1a460a10ed7affc21ab4df384648b247abf9d04f98cd1f8a976103d1",
-          "path": "modules/flashchat/src/components/AudioVolume/index.ts"
-        },
-        {
-          "sha256": "6b1e9eea78c7ea1ca427ab90a455c07d65363d322a3c0052efe031ce4576c97c",
-          "path": "modules/flashchat/src/components/ChatTranscript/ChatTranscript.tsx"
-        },
-        {
-          "sha256": "ead039bfa904eda7cc09783f1d552c2f693d732061a5bba8baa703ea66102266",
-          "path": "modules/flashchat/src/components/ChatTranscript/index.ts"
-        },
-        {
-          "sha256": "0735de0f6f22d851e5f5545572cd7250094f21e0185b0b45cbb33a126b06a0f0",
-          "path": "modules/flashchat/src/components/ConfirmDialog/ConfirmDialog.tsx"
-        },
-        {
-          "sha256": "0093f518a32d387facd55ea93400dde17a24a9e7dafff1edffa6d94bab3330d4",
-          "path": "modules/flashchat/src/components/ConfirmDialog/index.ts"
-        },
-        {
-          "sha256": "b1abe8fa343311c71fe5f3e14e872646339bbfe27fdc31ffc82958dcdb7ed9d1",
-          "path": "modules/flashchat/src/components/CopyableBlock/CopyableBlock.tsx"
-        },
-        {
-          "sha256": "fc6f55ae25a2f21ae391c56ed08d8b09f4ca5b0ee89cbcf299c98fe5e6792b06",
-          "path": "modules/flashchat/src/components/CopyableBlock/index.ts"
-        },
-        {
-          "sha256": "d3ca2d87ef5a019adaa8a7615eeda0792c5cf4901c799bb891d46f622ad77d7b",
-          "path": "modules/flashchat/src/components/Elements/index.tsx"
-        },
-        {
-          "sha256": "4fa398714c6297f84a5950f0292f224ca7d2c21756b1fe5e4b3a593b0ef36539",
-          "path": "modules/flashchat/src/components/EnhancedConnectivityControl/EnhancedConnectivityControl.tsx"
-        },
-        {
-          "sha256": "74e9a1a3d9cf697b2f227b18e7fd29c29cbe7c2d52c37a14d4ba866bd3aefaf2",
-          "path": "modules/flashchat/src/components/EnhancedConnectivityControl/index.ts"
-        },
-        {
-          "sha256": "f719eecea5c58d92f45421543da9d621d15290ad11cd1c02dd8d1597d0e1b7de",
-          "path": "modules/flashchat/src/components/ErrorBoundary/ErrorBoundary.tsx"
-        },
-        {
-          "sha256": "4bc94c1661c515e3e10bad3910e35000ef055dcafc2fd1b58b43e0498b110da9",
-          "path": "modules/flashchat/src/components/ErrorBoundary/index.ts"
-        },
-        {
-          "sha256": "6282fd1a6e2b19e024e6af589f625604afe4443a3d6dbd0eb32bbf37491c50a0",
-          "path": "modules/flashchat/src/components/Loading/index.ts"
-        },
-        {
-          "sha256": "5f809e56e224b3d75fb16e0a0dbbe17609d424361283e8b964023a0b158786a3",
-          "path": "modules/flashchat/src/components/Loading/Loading.tsx"
-        },
-        {
-          "sha256": "dd0ed430def76922213f70193aaee3840571773fc13bd0dc29f6da810bfa1c98",
-          "path": "modules/flashchat/src/components/Message/index.ts"
-        },
-        {
-          "sha256": "170d272ef0dbcc49f52d23478709b83363107a082e1327efc120203780126822",
-          "path": "modules/flashchat/src/components/Message/InlineMedia.test.tsx"
-        },
-        {
-          "sha256": "acf22138c270c174888d83446e7ac2343236c7ddb50b8aca203c6ac9b0334be6",
-          "path": "modules/flashchat/src/components/Message/InlineMedia.tsx"
-        },
-        {
-          "sha256": "01d6a545c18944562457dac024ff7f75edae64d46a66f633cc4629e31662f25a",
-          "path": "modules/flashchat/src/components/Message/Message.test.tsx"
-        },
-        {
-          "sha256": "575ed6c56dab7e0efe738ee40334a56e2a89e683dde153a3bf8406f678cc3596",
-          "path": "modules/flashchat/src/components/Message/Message.tsx"
-        },
-        {
-          "sha256": "7a08d58790cbae014c7b3353ae9c08234babb0a6ee1faaea0d8b4901aca8c67d",
-          "path": "modules/flashchat/src/components/MessageForm/index.ts"
-        },
-        {
-          "sha256": "404a096e6153a027dac9de49ca319b9783eac98d424831f347a191f3f0ffce61",
-          "path": "modules/flashchat/src/components/MessageForm/MessageForm.tsx"
-        },
-        {
-          "sha256": "5a7da1bc02f5f79123ae5d48e17fd3b58f0187e6bf1f0b9f34e04bbdf278450f",
-          "path": "modules/flashchat/src/components/PasswordPrompt/index.tsx"
-        },
-        {
-          "sha256": "43c1793e03e0c8feed79f7e54301f8f6fbf7fe40d28ba512fbc66bf41eee9d0e",
-          "path": "modules/flashchat/src/components/PasswordPrompt/PasswordPrompt.tsx"
-        },
-        {
-          "sha256": "655726eb2dec85a87ee90c7df2619dc14317cfd9849ec2520ce62b2f9f888ddb",
-          "path": "modules/flashchat/src/components/PeerNameDisplay/getPeerName.ts"
-        },
-        {
-          "sha256": "669619e460641b3c536c6045aab194ab5e7fdcd39d7f92a4c03cb108d03d6d30",
-          "path": "modules/flashchat/src/components/PeerNameDisplay/index.ts"
-        },
-        {
-          "sha256": "868876d3c89c7d414c2fd5ac4d87a4f15680e918647bdc70d49b5fbc5f2115fe",
-          "path": "modules/flashchat/src/components/PeerNameDisplay/PeerNameDisplay.tsx"
-        },
-        {
-          "sha256": "0ddf0566e6ebd201ad273c308d93b73689b0e991c6979c4dc2379f8f586dc352",
-          "path": "modules/flashchat/src/components/PeerNameDisplay/usePeerNameDisplay.ts"
-        },
-        {
-          "sha256": "a6a0c1e5c816ddad320909ccddfbabcd072f580f27c0123a0363198375e6ee63",
-          "path": "modules/flashchat/src/components/PublicKey/index.ts"
-        },
-        {
-          "sha256": "91aac9af124666d740395de98182219dd3063028e2bdc6318d0ac228a182a48c",
-          "path": "modules/flashchat/src/components/PublicKey/PublicKey.tsx"
-        },
-        {
-          "sha256": "593313894ed1784fe1bcf6a53842ea8aaf91e019025b37204a71176b0421a9f7",
-          "path": "modules/flashchat/src/components/Room/index.ts"
-        },
-        {
-          "sha256": "e4dc33d0c5f9d774b66e925bbdea59a26e680531ab4bf49a9dddc4d6915b3fd2",
-          "path": "modules/flashchat/src/components/Room/MediaButton.tsx"
-        },
-        {
-          "sha256": "286e7c49167b01c6e6d3351c9a3eceb19ce261fa4607dfcdd08bb1ea6cca8baa",
-          "path": "modules/flashchat/src/components/Room/PeerVideo.tsx"
-        },
-        {
-          "sha256": "a430710b7c9d68c8de21c2d715519da90be88153bfc8561a57be7b56a15e58ae",
-          "path": "modules/flashchat/src/components/Room/Room.test.tsx"
-        },
-        {
-          "sha256": "598d14b95b9a1b593966dbc06f98319468bfc3526c0823297a6bf09333cb00ba",
-          "path": "modules/flashchat/src/components/Room/Room.tsx"
-        },
-        {
-          "sha256": "1496a704ab193c016b988b6ddfae5701597cd5fc81c125da8b54eacd801d6b9a",
-          "path": "modules/flashchat/src/components/Room/RoomAudioControls.tsx"
-        },
-        {
-          "sha256": "c0dc61bd53fdad37d6ccf760990ac42d27de02a1648ec725c3a6b59db59f9e77",
-          "path": "modules/flashchat/src/components/Room/RoomFileUploadControls.test.tsx"
-        },
-        {
-          "sha256": "673ec2d19a84e30464613c35ae73c9f495b88c8ffa4f134d38971ce42392e15b",
-          "path": "modules/flashchat/src/components/Room/RoomFileUploadControls.tsx"
-        },
-        {
-          "sha256": "920e3dbc40b00f92994332cc0866737c362bc9ffa0a172cb38ba9f687fc3422f",
-          "path": "modules/flashchat/src/components/Room/RoomHideRoomControls.tsx"
-        },
-        {
-          "sha256": "7f8d2bb67f4e2a7af5e1172ff7f57b597309eec527e7fd33996f051f62b8b575",
-          "path": "modules/flashchat/src/components/Room/RoomScreenShareControls.tsx"
-        },
-        {
-          "sha256": "2f5ef343fcd98482fd9356ed3bc84e6b122bedfa5b1f98ec782d73e95cc12a25",
-          "path": "modules/flashchat/src/components/Room/RoomShowMessagesControls.tsx"
-        },
-        {
-          "sha256": "3e3f9d7c3dd2d35424d0ed23393e6e3f30d5c581d3ba2b7c3f6ce309a3ec3407",
-          "path": "modules/flashchat/src/components/Room/RoomVideoControls.tsx"
-        },
-        {
-          "sha256": "f2cea9eed7aed45ebdd977989b0ae395c4389779c96c5859f41199b4ff14d99c",
-          "path": "modules/flashchat/src/components/Room/RoomVideoDisplay.tsx"
-        },
-        {
-          "sha256": "537a87178d504a48d7fddd97e2800d3e372fe53180214db799791b345ed334d1",
-          "path": "modules/flashchat/src/components/Room/TypingStatusBar.test.tsx"
-        },
-        {
-          "sha256": "14a0d54cb2a36a7c8c87d150e4e3783dbed75079542d9ce12280baf33acbdb58",
-          "path": "modules/flashchat/src/components/Room/TypingStatusBar.tsx"
-        },
-        {
-          "sha256": "7d19b19818dccaed26c07899ec90d71798d49a4a77e5c50ca3d4d3c0c451eba0",
-          "path": "modules/flashchat/src/components/Room/useChatRoomNotifications.test.tsx"
-        },
-        {
-          "sha256": "131b3a8bf615779abaa02b8ea7f76e534231f859c49da6cd9f64feb383e07ca7",
-          "path": "modules/flashchat/src/components/Room/useChatRoomNotifications.ts"
-        },
-        {
-          "sha256": "ef179736b4c285fa6e90b872a453a98d6c2f35a4de07b28d5d5614f562d23d00",
-          "path": "modules/flashchat/src/components/Room/useRoom.test.tsx"
-        },
-        {
-          "sha256": "075d296d56e9be6d981438207e74dd85a1131103b292250e42c8c184e2992424",
-          "path": "modules/flashchat/src/components/Room/useRoom.ts"
-        },
-        {
-          "sha256": "7aa27f73bf55db7053cd0a3fa163a29f1baf8b066088809c9726ff3da40ba232",
-          "path": "modules/flashchat/src/components/Room/useRoomAudio.ts"
-        },
-        {
-          "sha256": "32bd3fb06b87619613052fae4c2521b0b5296140a7876da47c72b8a9ee6ea0ae",
-          "path": "modules/flashchat/src/components/Room/useRoomFileShare.test.tsx"
-        },
-        {
-          "sha256": "e8e377cdc53ac18e87473c53bfe5231e93d3e774dcc2741b53a6316fc4a8405d",
-          "path": "modules/flashchat/src/components/Room/useRoomFileShare.ts"
-        },
-        {
-          "sha256": "c5c0ba9de8dd3c51f1251f081e2f44c3c6e77ae817fa18ee6e7650e4280c3d4c",
-          "path": "modules/flashchat/src/components/Room/useRoomScreenShare.ts"
-        },
-        {
-          "sha256": "696386d955cc55d311cc0e612a363f36410eb08b14c5f3969729d3b211d41b68",
-          "path": "modules/flashchat/src/components/Room/useRoomVideo.ts"
-        },
-        {
-          "sha256": "b7f74bf190d0d33ab72c91faa0b82a0371105c6ddbd36413002123fc99a78335",
-          "path": "modules/flashchat/src/components/Shell/ConnectionTestResults.tsx"
-        },
-        {
-          "sha256": "e1c3314eceb9ae4cc338a961e77d0770206141663a3a5ac97fb325bb6f91b717",
-          "path": "modules/flashchat/src/components/Shell/constants.ts"
-        },
-        {
-          "sha256": "1ec93bfae296f1e46b5453bebd134471e16915d12ea3754326689de8d387bf8a",
-          "path": "modules/flashchat/src/components/Shell/Drawer.tsx"
-        },
-        {
-          "sha256": "8b4c8bef8c11456599ca10f41bf4c35745531f077b185301707c81ab86e38f93",
-          "path": "modules/flashchat/src/components/Shell/EnvironmentUnsupportedDialog.tsx"
-        },
-        {
-          "sha256": "39c720b2c1f5e7b86d3e87ef82d67fbdadff72569a96e862bce71e594c46ebbb",
-          "path": "modules/flashchat/src/components/Shell/index.ts"
-        },
-        {
-          "sha256": "c9e05039120f523a84b5e7595589604fdb08939ae8db895d51d136394eb14a80",
-          "path": "modules/flashchat/src/components/Shell/NotificationArea.tsx"
-        },
-        {
-          "sha256": "47d26c1650e825569d3d5ce473a491b2721ce4b552f794937bdc4822173d3058",
-          "path": "modules/flashchat/src/components/Shell/PeerDownloadFileButton.tsx"
-        },
-        {
-          "sha256": "c0eb9e3bfb075cbf219551a24b1f6b0116f08381367c759662dbe036e8d9dba4",
-          "path": "modules/flashchat/src/components/Shell/PeerList.tsx"
-        },
-        {
-          "sha256": "a78a7fe5ecdc98bc2f6093aaf327b17de8161d4b5a1d952393419a2ef133d5c0",
-          "path": "modules/flashchat/src/components/Shell/PeerListHeader.tsx"
-        },
-        {
-          "sha256": "bc920cfa3dec4070ebdb66df0c1fa53145145b021c81de28fb1b88fe8d0d8177",
-          "path": "modules/flashchat/src/components/Shell/PeerListItem.tsx"
-        },
-        {
-          "sha256": "36dfe9ddd145c83d7194170e42a942a93e7cfab6e1025a4847472003fa86f353",
-          "path": "modules/flashchat/src/components/Shell/QRCodeDialog.tsx"
-        },
-        {
-          "sha256": "b53d94e1d4fe9a0e5d385e5fcfec3fefda3729e9d441dbb1d8c3036f0dbe2645",
-          "path": "modules/flashchat/src/components/Shell/RoomShareDialog.tsx"
-        },
-        {
-          "sha256": "86802db0a2bc4d11770a8f1c0381c45bdf9476faf9001d62e29a7071dccdd8ff",
-          "path": "modules/flashchat/src/components/Shell/RouteContent.tsx"
-        },
-        {
-          "sha256": "52b45ed384f6488e906e88b46b00c43d831b3339b1dbee88414cbc64e73fdef4",
-          "path": "modules/flashchat/src/components/Shell/ServerConnectionFailureDialog.tsx"
-        },
-        {
-          "sha256": "d788f2f795edd54d9d9999112cc3fbf50bbcff61ecdf7fefeb7e3507d2a68d7c",
-          "path": "modules/flashchat/src/components/Shell/Shell.test.tsx"
-        },
-        {
-          "sha256": "7678c26d5e16bbe2479111b88277d3e243852b20bcc0332445922f2d7f17de0a",
-          "path": "modules/flashchat/src/components/Shell/Shell.tsx"
-        },
-        {
-          "sha256": "890a3b61e58f33a82235d058e9ce53e557478ba6ab1e44baea3102256012fb7d",
-          "path": "modules/flashchat/src/components/Shell/ShellAppBar.tsx"
-        },
-        {
-          "sha256": "1ac3eac71c058fa05920c15e18c0c61a63ae308094d9cb69a3427727c42ab456",
-          "path": "modules/flashchat/src/components/Shell/UpgradeDialog.tsx"
-        },
-        {
-          "sha256": "2e13eb1694623635a41e5744ce66d7723796128f5d06309515d3be9064be1cef",
-          "path": "modules/flashchat/src/components/Shell/useConnectionTest.test.tsx"
-        },
-        {
-          "sha256": "87719979ae93b56f9d637a22409363758653e3e5fc40a9392310d2da65e4034d",
-          "path": "modules/flashchat/src/components/Shell/useConnectionTest.ts"
-        },
-        {
-          "sha256": "3add657c332eb67b37768fe375beddf8590486eebdaf9d3fbd95cf9302b68e44",
-          "path": "modules/flashchat/src/components/Shell/useShellTheme.ts"
-        },
-        {
-          "sha256": "6c5638592040d3a989ecd20b15582b1c2ca8bd99d527ebecde910a423f9f2bae",
-          "path": "modules/flashchat/src/components/SoundSelector/index.ts"
-        },
-        {
-          "sha256": "127c5e479a577b2554a05461889c3ccfe69a75318067a2359b6947d39b1bcf2c",
-          "path": "modules/flashchat/src/components/SoundSelector/SoundSelector.tsx"
-        },
-        {
-          "sha256": "aaa95514f2301f1049709aa8f26552f2fcb96f5005572d9852e7a877e6400693",
-          "path": "modules/flashchat/src/components/UserInfo/index.ts"
-        },
-        {
-          "sha256": "36c4c74766816fb8a9bb22097e1301bf94e509d91426f1da9df19e8a952cb46f",
-          "path": "modules/flashchat/src/components/UserInfo/UserInfo.tsx"
-        },
-        {
-          "sha256": "60ef026f67bba3b4ba2dfc6ca1a98583f915440316e6f6bbb81fe1a62588cad1",
-          "path": "modules/flashchat/src/config/communityRooms.ts"
-        },
-        {
-          "sha256": "a891b586cfdb6a418e61b5f421f2730d2e0a03467dbf94b38664851095f736a5",
-          "path": "modules/flashchat/src/config/enhancedConnectivity.test.ts"
-        },
-        {
-          "sha256": "b8b43e55f2c0d4184865c12aa0be7815da7e402233117536ae466c9da9386eff",
-          "path": "modules/flashchat/src/config/enhancedConnectivity.ts"
-        },
-        {
-          "sha256": "59666cc3700ad9e3013e32a763b656c4b5d3023cdade0421176fc33c0d61eba2",
-          "path": "modules/flashchat/src/config/iframeFeatureAllowList.ts"
-        },
-        {
-          "sha256": "48c3e409befdb558eecc7b2af4b9227bfafdf9044a84d3b7df09bd07f74a0f7a",
-          "path": "modules/flashchat/src/config/router.ts"
-        },
-        {
-          "sha256": "9292b4e41c176f5c13f92b30c7d8574e4c215990edb33b71602850ccb7e79baa",
-          "path": "modules/flashchat/src/config/routes.ts"
-        },
-        {
-          "sha256": "c2c17dbd321c4bbb4a47eb97a737b08cbe329277cecaf4355e5cb456dda6fd41",
-          "path": "modules/flashchat/src/config/rtcConfig.ts"
-        },
-        {
-          "sha256": "95ee6ac5b4efe25e94c540da2d31f2183e1c82c4e1cb6360d7ca92c09e1932e7",
-          "path": "modules/flashchat/src/config/soundNames.ts"
-        },
-        {
-          "sha256": "66ab8462136b95dff70dcbebc3bd8a7cc15228f042b0f80cedfe9b56b072672a",
-          "path": "modules/flashchat/src/config/streamSaverUrl.ts"
-        },
-        {
-          "sha256": "2a80d730858932f58316bb1da75c211db7b70bc0968aebc4eb1a6f409300d09e",
-          "path": "modules/flashchat/src/config/trackerUrls.ts"
-        },
-        {
-          "sha256": "b1afe89070d37fddd42aa40f369fe2d8616c66508b7fc0029e3008f80d4ebd99",
-          "path": "modules/flashchat/src/contexts/RoomContext.ts"
-        },
-        {
-          "sha256": "736aa9f155fe0d615fb876fe8418b697c67a479eb95c51ab3c93a52200bd1c89",
-          "path": "modules/flashchat/src/contexts/SettingsContext.ts"
-        },
-        {
-          "sha256": "8d78b7347df6a26b7ab05c933f3f3a761001c8fafc8a0a5fa2976d10c4bc1d84",
-          "path": "modules/flashchat/src/contexts/ShellContext.ts"
-        },
-        {
-          "sha256": "59de027d3f3c9bf7e4cb65dab624eee4cbfa56469930f081f0f8d9203bbaaca7",
-          "path": "modules/flashchat/src/contexts/StorageContext.ts"
-        },
-        {
-          "sha256": "4a6c3dd4d4a562a50b89643ae4632def0bc4d95052a5913fbbe8d37dc9824c4d",
-          "path": "modules/flashchat/src/core/index.ts"
-        },
-        {
-          "sha256": "4a620743618a1805afbb7777302df06bc3964a1c22f12300a04c5d28f57d5488",
-          "path": "modules/flashchat/src/core/README.md"
-        },
-        {
-          "sha256": "5af0b5bb30bd8a693be33a18aec9f930c523614be44442ca4d1e4f00b1e60978",
-          "path": "modules/flashchat/src/core/adapters/noop.ts"
-        },
-        {
-          "sha256": "7e37f492b083b08289b38ecb406ba0346baad65d879da55e342d515dbcd3619a",
-          "path": "modules/flashchat/src/core/adapters/types.ts"
-        },
-        {
-          "sha256": "6b3811881a91cb143dad494e105973c2dee1214ed219e07a099a7aecebb83aff",
-          "path": "modules/flashchat/src/core/chat/ChatRoom.test.ts"
-        },
-        {
-          "sha256": "9d37c96ce850f455f9042312a69d59b036e033e8833b42b00be0c63efbf73dc2",
-          "path": "modules/flashchat/src/core/chat/ChatRoom.ts"
-        },
-        {
-          "sha256": "8c11dd300232a0a7db00c9300b468089d82370e690f8470f70da38d1bb7ea9ea",
-          "path": "modules/flashchat/src/core/chat/ChatRoomRegistry.ts"
-        },
-        {
-          "sha256": "04b23c1bdcacad860723854c78b8595875509b05ad9cd3ca2277653c560f4a92",
-          "path": "modules/flashchat/src/core/chat/events.ts"
-        },
-        {
-          "sha256": "0e7445d5a0f8df4b86d592f3600fde67cf7bb6242bc14589021ab704fbe211b5",
-          "path": "modules/flashchat/src/core/chat/fileOffers.test.ts"
-        },
-        {
-          "sha256": "47a99cf0e9fb6015f41b7da8727fa9efef9678f7c0cb05d0c3b9237ff1be444d",
-          "path": "modules/flashchat/src/core/chat/fileOffers.ts"
-        },
-        {
-          "sha256": "321a13a885998be2ab0b707dfc18b364db9289c56ae59c60cff71de8b191006a",
-          "path": "modules/flashchat/src/core/chat/identity.test.ts"
-        },
-        {
-          "sha256": "b066d5915d7a114d0a71e44b5685464f4081e1b6e17ed65c9a783b583d576aa5",
-          "path": "modules/flashchat/src/core/chat/identity.ts"
-        },
-        {
-          "sha256": "3803d2330ab47fb93a8c76b7724469e080509d6a797308684ae4274786f0d341",
-          "path": "modules/flashchat/src/core/chat/peers.test.ts"
-        },
-        {
-          "sha256": "e7a5171cc1c4a4c1e3087fa495a0442b06a024150b39394a603335a8cef4a164",
-          "path": "modules/flashchat/src/core/chat/peers.ts"
-        },
-        {
-          "sha256": "e4903de96331cd2a4de76b60e706860ba82b41bd3d8a0540b704bccc7a4f3c8f",
-          "path": "modules/flashchat/src/core/chat/protocol.ts"
-        },
-        {
-          "sha256": "a00236cdec439815fc0f92c3ddf94d7f8e39585f01bef3513976c026dd74593b",
-          "path": "modules/flashchat/src/core/chat/transcript.test.ts"
-        },
-        {
-          "sha256": "4bc94af3e8f54a910c8b095dc82fbcac059ecadc49cbf0331af55841a7c1a308",
-          "path": "modules/flashchat/src/core/chat/transcript.ts"
-        },
-        {
-          "sha256": "b3e1175304f73118f87e2e2f9b26d0df77aef1e5a0be25dcd123c436a5b4ba8e",
-          "path": "modules/flashchat/src/core/config/messaging.ts"
-        },
-        {
-          "sha256": "406ae5454eb4a550f344d93de2bf1a58ce4982011518ce0be153417e6e824f46",
-          "path": "modules/flashchat/src/core/config/roomNames.test.ts"
-        },
-        {
-          "sha256": "84e61491578fcb7055f1ecee942c12863a3047bcc9a9db681a99416c361e51d7",
-          "path": "modules/flashchat/src/core/config/roomNames.ts"
-        },
-        {
-          "sha256": "676a2794714b21137cf973d07314661e5852a0602469112ebb41fff8886ff031",
-          "path": "modules/flashchat/src/core/config/turnConfig.test.ts"
-        },
-        {
-          "sha256": "ae127aca67386ff9a574e26dcbc4ca3fadedcbaabcf0859c545a2da3c7da8c2a",
-          "path": "modules/flashchat/src/core/config/turnConfig.ts"
-        },
-        {
-          "sha256": "57e35e8be34ebce5b9134536f9d4c1d099a224e8216062be877f24d3e969e1e0",
-          "path": "modules/flashchat/src/core/crypto/Encryption.test.ts"
-        },
-        {
-          "sha256": "6aa591865a8a94346be9dbb0659bfbb569711d7061f53a08ac4926e462f4147f",
-          "path": "modules/flashchat/src/core/crypto/Encryption.ts"
-        },
-        {
-          "sha256": "43f53839db6cb13157923d0194278006930459d4a4e66fbbc7b1203dd2f52cb3",
-          "path": "modules/flashchat/src/core/lib/sleep.ts"
-        },
-        {
-          "sha256": "d4bdcd4f1e56beb18ed08d0ee9bbff8a35ee7e4c00dab4fae992be88742f052b",
-          "path": "modules/flashchat/src/core/lib/Time.ts"
-        },
-        {
-          "sha256": "d707c9cdacd9c74abfeb2df21536d4be64ebb9003f2432b9fc6f9a4942822653",
-          "path": "modules/flashchat/src/core/lib/type-guards.test.ts"
-        },
-        {
-          "sha256": "491cab9b9f434f402fb7b7a5b65690d00b1975c7ab49930de27ac6df5e8a1943",
-          "path": "modules/flashchat/src/core/lib/type-guards.ts"
-        },
-        {
-          "sha256": "b3fbfb0e208fdbd55d5063618bc1878a1541bdde4b99937825e23a70a59d7834",
-          "path": "modules/flashchat/src/core/models/chat.test.ts"
-        },
-        {
-          "sha256": "11961dc8fc60e67b1234ccab1f50b19057d0a8f213a5702155360ffb3486e277",
-          "path": "modules/flashchat/src/core/models/chat.ts"
-        },
-        {
-          "sha256": "2b67e390ccd455335de2cc3d957f36ad86575aeae7c9ba45faea4f618164a1b2",
-          "path": "modules/flashchat/src/core/models/network.ts"
-        },
-        {
-          "sha256": "74e020c67ac83d4ee6f2f5d26cf16ee48ee08f00568c3f245528bfae211b984d",
-          "path": "modules/flashchat/src/core/models/settings.ts"
-        },
-        {
-          "sha256": "05127b9d956a99c8b6af5bc9f43b4631c5796cd6c33df8a12c97b88d2a6f37b9",
-          "path": "modules/flashchat/src/core/names/peerNames.test.ts"
-        },
-        {
-          "sha256": "970680b7af237842d8613a974d384411ea07f4b0eb75f9b3db8e5486bd6541a3",
-          "path": "modules/flashchat/src/core/names/peerNames.ts"
-        },
-        {
-          "sha256": "7e3b0c61f33d73b039b3b3ebf71fa45d2b9b93510be5f300d5057a49e7a861bb",
-          "path": "modules/flashchat/src/core/settings/serialization.ts"
-        },
-        {
-          "sha256": "aca3e89720942551de5e1228d8b26d8be4d784c4b8327ae40da7891a7a955900",
-          "path": "modules/flashchat/src/core/settings/SettingsManager.test.ts"
-        },
-        {
-          "sha256": "bbb6bd621cce5067d665a3a5644a3fb84549caa898fe2b96d80bedbfcf205575",
-          "path": "modules/flashchat/src/core/settings/SettingsManager.ts"
-        },
-        {
-          "sha256": "2d87d02f8fa90bbb748242f6b02960d3d82eb62e3dfc8bdec2af1eb27629b9a5",
-          "path": "modules/flashchat/src/core/transport/InMemoryTransport.test.ts"
-        },
-        {
-          "sha256": "afd0c4ea62e07d5247924de110dbbabf0eafbea74fe9a21f41bceab6a3c814e3",
-          "path": "modules/flashchat/src/core/transport/InMemoryTransport.ts"
-        },
-        {
-          "sha256": "32de66e772201e68dca525e70c6d70bf7db3a13381e9ebc90c27d3a570cb2801",
-          "path": "modules/flashchat/src/core/transport/TrysteroTransport.test.ts"
-        },
-        {
-          "sha256": "2347bd689dcba61869538c22a32b6621e99ce498d4308044e0c09436a8e554e3",
-          "path": "modules/flashchat/src/core/transport/TrysteroTransport.ts"
-        },
-        {
-          "sha256": "70f2e1d338611bc728a0e0ef34977c5a3487f3e4821c6acb8f2c3050ecf7a78e",
-          "path": "modules/flashchat/src/core/transport/types.ts"
-        },
-        {
-          "sha256": "39e453b394af76178036f8d8fb13217d283a82702f133ff41ec04afb39217f7a",
-          "path": "modules/flashchat/src/hooks/types.ts"
-        },
-        {
-          "sha256": "2523aace41ad3a98b3690d107414b0e1e35f4d4858882566a84206f6fe042dc5",
-          "path": "modules/flashchat/src/hooks/useChatRoomSnapshot.ts"
-        },
-        {
-          "sha256": "ed7cbf4e609676dd0fe33fe95d181feca2ed0cb5ced8dcd748770a33afd2502f",
-          "path": "modules/flashchat/src/hooks/useChatRoomState.ts"
-        },
-        {
-          "sha256": "94709b9b042b7c768c8360996775b07333c964641d1025387354e43fa52c2104",
-          "path": "modules/flashchat/src/hooks/usePeerAction.ts"
-        },
-        {
-          "sha256": "e6b31ec3bd76fd529c0d7a3e71ec424376dbdcadcdcc02cc449b13d163c67958",
-          "path": "modules/flashchat/src/hooks/useThrottledRoomMount.test.tsx"
-        },
-        {
-          "sha256": "8a36504aaddbded33a5de2be6a59af62934145788498256bd75a9e82a86ac7d5",
-          "path": "modules/flashchat/src/hooks/useThrottledRoomMount.ts"
-        },
-        {
-          "sha256": "ad494a874b8336e2acdf4436e0b384bbbc4fa57009510d7d5df0fec1872970d4",
-          "path": "modules/flashchat/src/hooks/useTurnConfig.test.tsx"
-        },
-        {
-          "sha256": "b907dfdbc6c12bebc4a552b9b062db2e7db2a26b620bf3c0ec82f38b0a7d9105",
-          "path": "modules/flashchat/src/hooks/useTurnConfig.ts"
-        },
-        {
-          "sha256": "f4f8059d8f8705b3ee6130a188202f60942ae053f8600e0ad69e765544c3fee1",
-          "path": "modules/flashchat/src/img/logo.svg"
-        },
-        {
-          "sha256": "2ad2b90f66bb58268c9f549c0762fe9b0cb6153a391cd67f05e89598cb225efe",
-          "path": "modules/flashchat/src/lib/Audio/Audio.ts"
-        },
-        {
-          "sha256": "f6641704ebbf581211f38451c3385d5073f56438d4e2b5779a505943c79395b2",
-          "path": "modules/flashchat/src/lib/Audio/index.ts"
-        },
-        {
-          "sha256": "4f28726ec5392f7c2204e73ae9ae41dfa95008f4501fc915623b5eac565907b8",
-          "path": "modules/flashchat/src/lib/Audio/sharedAudio.test.ts"
-        },
-        {
-          "sha256": "9685429b6b153aff566e7ec103d7f054c429e9bd6fc1e9ee36ecf46d57c0dd4b",
-          "path": "modules/flashchat/src/lib/Audio/sharedAudio.ts"
-        },
-        {
-          "sha256": "3659a8a2d30164607d51180847ef35253cdebf742b9f8af6c29e743f9f491289",
-          "path": "modules/flashchat/src/lib/ConnectionTest/ConnectionTest.test.ts"
-        },
-        {
-          "sha256": "5746f3d251ca7d44d354b933b7344407f25aec067c60e85a4139add6a22a90d0",
-          "path": "modules/flashchat/src/lib/ConnectionTest/ConnectionTest.ts"
-        },
-        {
-          "sha256": "7b2bb5ec479086b5bf4bfd50efc3eac4f367026b7802e67a21cde71ea8ec6d15",
-          "path": "modules/flashchat/src/lib/ConnectionTest/index.ts"
-        },
-        {
-          "sha256": "599e1a041a4577d13fed7ad6778920c0f2bf13637b4a9d8dc157f6b31984b4ec",
-          "path": "modules/flashchat/src/models/media.ts"
-        },
-        {
-          "sha256": "7e95fbcdde697ee0c265b40dc8dc572797dfc0556c99c9d1db5e2018f2b0ea67",
-          "path": "modules/flashchat/src/models/router.ts"
-        },
-        {
-          "sha256": "1c229a14f47630720e81797cec6a108cd8146e9ca70927068ba612661d184b77",
-          "path": "modules/flashchat/src/models/sdk.test.ts"
-        },
-        {
-          "sha256": "5b2a668093402b1231b80f33f5dec1f2e40ec1dd51047e3be24ae2862c4a09dd",
-          "path": "modules/flashchat/src/models/sdk.ts"
-        },
-        {
-          "sha256": "9423a17d96182b1f8a310729e67040b352dcc96cd5a4ee237c80fb2d1acd02c9",
-          "path": "modules/flashchat/src/models/shell.ts"
-        },
-        {
-          "sha256": "28828ec59ee41a5ea740c428ca6b6e1a95bafd7f25a7216a300318dada186dcf",
-          "path": "modules/flashchat/src/pages/About/About.tsx"
-        },
-        {
-          "sha256": "2d3effa2497d3004269f1f14fdf017e19ab8183f3fe511fe1e7d3acd06c31c3a",
-          "path": "modules/flashchat/src/pages/About/index.ts"
-        },
-        {
-          "sha256": "fcc9446fba1c543a13d3d86568ba554aba4072e13c970a091716bcb2f2cf3004",
-          "path": "modules/flashchat/src/pages/Disclaimer/Disclaimer.tsx"
-        },
-        {
-          "sha256": "626a3a0832cc380166a80ab8b8def51c39da7181d5bad6e6289e89b100e01922",
-          "path": "modules/flashchat/src/pages/Disclaimer/index.ts"
-        },
-        {
-          "sha256": "60bc85aabe4f22404f5f6df5b23b7a42141ceda66cd56967a0510f3d370de931",
-          "path": "modules/flashchat/src/pages/Home/CommunityRoomSelector.tsx"
-        },
-        {
-          "sha256": "ae9bac2e2c9867e02e73f3d96e2d7c183f833a418d9e71fb2306e1d3e8dfa07c",
-          "path": "modules/flashchat/src/pages/Home/EmbedCodeDialog.tsx"
-        },
-        {
-          "sha256": "34cb62b93215b07abbb8e3136d55fafd0418a21995053b0491daae60e1282d8a",
-          "path": "modules/flashchat/src/pages/Home/Home.tsx"
-        },
-        {
-          "sha256": "72be1b11799030ffe6e74c3b76c090e4af47fca2d9d0ea86d3ed70114d66edec",
-          "path": "modules/flashchat/src/pages/Home/index.ts"
-        },
-        {
-          "sha256": "824351554cfebb1aa29eaf6b9df1f7679a98b9b5c77b9bbbca91c8e1c2d42ae6",
-          "path": "modules/flashchat/src/pages/Home/useHome.test.tsx"
-        },
-        {
-          "sha256": "7540e893ab2d169f6e397d708cdcce39ed973253d71f3032bda8123f3deca968",
-          "path": "modules/flashchat/src/pages/Home/useHome.tsx"
-        },
-        {
-          "sha256": "b076f10fbaf5cd68846a8c9c2adf9108915ff6d1104eec7efe97ccf7d2ee1bf1",
-          "path": "modules/flashchat/src/pages/PrivateRoom/index.ts"
-        },
-        {
-          "sha256": "cd9be32e97cf241400311181caeb400b78a143eddc6b9f65171683106698e129",
-          "path": "modules/flashchat/src/pages/PrivateRoom/PrivateRoom.tsx"
-        },
-        {
-          "sha256": "c2106a0cf10638eed2bb14969a56479dd14530339dcea671b35e1c0e523dc8a0",
-          "path": "modules/flashchat/src/pages/PublicRoom/index.ts"
-        },
-        {
-          "sha256": "3abfc63d2596a2c5e9ea7c4ce050024a3fd27b07aeba442f62507d4800bec2df",
-          "path": "modules/flashchat/src/pages/PublicRoom/PublicRoom.tsx"
-        },
-        {
-          "sha256": "4f0cf301475637dc16cbd5a20cf79edff778593bc5dae10cc53d80a1ad6aed1f",
-          "path": "modules/flashchat/src/pages/Settings/index.ts"
-        },
-        {
-          "sha256": "4148872b2af091c382b3e31d4898b0b46490d3c57d26dfb96573fdc92e339a6f",
-          "path": "modules/flashchat/src/pages/Settings/Settings.tsx"
-        },
-        {
-          "sha256": "ff72f0caa8b12def972b41b346361d448438410f2005fd3626854c45ecdeece4",
-          "path": "modules/flashchat/src/services/FileTransfer/FileTransfer.ts"
-        },
-        {
-          "sha256": "0bc91792cd1f9e399702e83c1f18024d5aac3a67068f96016f595679c92b3665",
-          "path": "modules/flashchat/src/services/FileTransfer/index.ts"
-        },
-        {
-          "sha256": "e02576b6c87028f20002039ac043b9ce99ed38434dfb0171c8aa7d67eeb23d65",
-          "path": "modules/flashchat/src/services/Notification/index.ts"
-        },
-        {
-          "sha256": "52ba148cd854bb6d5752e6c018686863b243f73e09b9e5b8582eb0af31aa960f",
-          "path": "modules/flashchat/src/services/Notification/Notification.tsx"
-        },
-        {
-          "sha256": "4f0cf301475637dc16cbd5a20cf79edff778593bc5dae10cc53d80a1ad6aed1f",
-          "path": "modules/flashchat/src/services/Settings/index.ts"
-        },
-        {
-          "sha256": "1ab10b7429b1dbae508a8ecf8e55f3d82342d33599a994c57910682ed7578fe7",
-          "path": "modules/flashchat/src/services/Settings/Settings.ts"
-        },
-        {
-          "sha256": "941479abcfcc9094af6c384be8dc20593d55b6131c270baf6d4805483064cc8d",
-          "path": "modules/flashchat/src/test-utils/mocks/mockEncryptionService.ts"
-        },
-        {
-          "sha256": "42b80cbbcc3422f628cbbfe21795cd726eb754e38167a097ee28ece6f7d5997a",
-          "path": "modules/flashchat/src/test-utils/mocks/mockSerializationService.ts"
-        },
-        {
-          "sha256": "c0d05ce291380d0f720a0c59ec8cf066a24834656872fcffe15b6483c1c126da",
-          "path": "modules/flashchat/src/test-utils/stubs/settingsContext.ts"
-        },
-        {
-          "sha256": "f4a318e6a5207edac863ab1429b322a850d065e804374a30808d3775564b2c77",
-          "path": "modules/flashchat/src/test-utils/stubs/userSettings.ts"
-        },
-        {
-          "sha256": "d1b3702f835856420cd92274902f192352630941f39ce04956b3ae20a04eb643",
-          "path": "modules/flashchat/public/404.html"
-        },
-        {
-          "sha256": "95450f140978cc13eebd3e3751f4b60b3585c187b2cd7643f19e60b385c84afa",
-          "path": "modules/flashchat/public/CNAME"
-        },
-        {
-          "sha256": "c63315c3edde2c4b395df84c6ad1ee96f0da3ee6a987f5c4b63eaf28b6c0045b",
-          "path": "modules/flashchat/public/favicon.ico"
-        },
-        {
-          "sha256": "b4c8f9ca8da8a201ee2ccc973943378c399793a186797388a161485dd2812301",
-          "path": "modules/flashchat/public/logo192.png"
-        },
-        {
-          "sha256": "c84988c2b6ffc6c0990e6812eb46a13835d9e63c4c17dacc23b6352d93de8586",
-          "path": "modules/flashchat/public/logo512.png"
-        },
-        {
-          "sha256": "90d24bc3bf698ac1e173739502298ccca72adf1f564fab05f484b8c48d1cadd2",
-          "path": "modules/flashchat/public/robots.txt"
-        },
-        {
-          "sha256": "20688cc1d78f74875ebd264f4b0dce7797fae7d9cb02d6dbdf97d4232d5110a5",
-          "path": "modules/flashchat/public/logo/favicon.svg"
-        },
-        {
-          "sha256": "80c520c52983da017408095438127b9a9e454bb5dbe45871fa9ab55771df846e",
-          "path": "modules/flashchat/public/logo/logo.svg"
-        },
-        {
-          "sha256": "60e694280fc0e9dfcd8956b93078a80d30b6e8b7459f4d1be9c8ab75ad084c3e",
-          "path": "modules/flashchat/public/screenshots/home-desktop.png"
-        },
-        {
-          "sha256": "cb2e4b9c7e0563721611d04de0d8abc55a6d765a6a074d6c9c2a2d2caef3bf01",
-          "path": "modules/flashchat/public/screenshots/home-mobile-dark.png"
-        },
-        {
-          "sha256": "4630a1bf21a9fa5b6270affc47e41df83b60ca9597e54554af2f252277525dd3",
-          "path": "modules/flashchat/public/screenshots/home-mobile-light.png"
-        },
-        {
-          "sha256": "b5f459bdc726d61a029880f306ee2f057c28ced0693249e2a54e9be7f4948724",
-          "path": "modules/flashchat/public/screenshots/public-room-desktop-with-video.png"
-        },
-        {
-          "sha256": "8ee0dfed418f480ee1abbf64fa4778eb0e85f71395a8acc28866f4e23058413c",
-          "path": "modules/flashchat/public/screenshots/public-room-desktop.png"
-        },
-        {
-          "sha256": "92735a2cb0b0a5a9e27ff883c7575aaf9e0fbc84f9e03fee0d6e73fdd93e4067",
-          "path": "modules/flashchat/public/screenshots/public-room-mobile.png"
-        },
-        {
-          "sha256": "0ada0918160ab8e3dc730f13a72e4515f7dc2b88e137e2bc6fed05f28935574a",
-          "path": "modules/flashchat/public/sounds/beep.mp3"
-        },
-        {
-          "sha256": "d185e11efe88d7b088cd00ee54e19264093d09f5e4efda9419369dd9ddf467e1",
-          "path": "modules/flashchat/public/sounds/chime.mp3"
-        },
-        {
-          "sha256": "3a6121b7782ef77c6dff241d22fbd4cc9b413a8837bbf2184d068532c2c77fef",
-          "path": "modules/flashchat/public/sounds/new-message.aac"
-        },
-        {
-          "sha256": "0c954dd6524bb9fdaa5b13e2ad311d53f6c8351e743238fc89dee79317202995",
-          "path": "modules/flashchat/sdk/react-app-env.d.ts"
-        },
-        {
-          "sha256": "798401d16c8365caeb3876b108a6e706e273beb3528990bcf17ff01756557de7",
-          "path": "modules/flashchat/sdk/sdk.ts"
+          "path": "build/prepare-cindy-fonts.mjs",
+          "sha256": "1e2356b93662f84401303313416c57a3e59be64e6f4e073c7902a9ac16428d80"
         }
       ]
     }

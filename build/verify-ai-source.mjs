@@ -18,10 +18,4 @@ for(const entry of notices.components)for(const n of entry.notices)assert.equal(
 const upstream=notices.components.find(c=>c.kind==='upstream'&&c.name==='magpie'&&c.version===revision);
 assert.ok(upstream,'Missing current upstream notice');
 assert.equal(sha(readFileSync(join(source,'LICENSE'))),upstream.notices[0].sha256);
-const privacy=JSON.parse(read('third_party/privacy-model.json'));
-assert.equal(privacy.upstream,revision);
-for(const notice of [...privacy.model.notices,...privacy.runtime.dependencies.map(d=>d.notice)])assert.equal(sha(read('third_party/'+notice.file)),notice.sha256,notice.file);
-const pii=readFileSync(join(source,'internal/pii/pii.go'),'utf8');
-for(const pin of [privacy.model.revision,privacy.model.file,privacy.model.size,privacy.model.sha256,privacy.runtime.sha256,privacy.runtime.tag])assert.ok(pii.includes(String(pin)),'Privacy download pin changed: '+pin);
-assert.equal(createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${read('third_party/licenses/openai-privacy-filter-LICENSE.txt').length}\0`),read('third_party/licenses/openai-privacy-filter-LICENSE.txt')])).digest('hex'),privacy.model.licenseGitBlob,'Model license must retain the original Git blob');
-console.log(`AI source/license pins verified: ${revision}; ${notices.components.length} dependency records; opt-in privacy model and native runtime`);
+console.log(`AI source/license pins verified: ${revision}; ${notices.components.length} dependency records`);

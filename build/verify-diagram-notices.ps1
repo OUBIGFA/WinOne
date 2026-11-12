@@ -1,4 +1,4 @@
-param([string]$CargoExe='cargo',[switch]$Update,[string]$BundleDirectory,[ValidateSet('diagram','selection','recording','search','interconnect-lan')][string]$Runtime='diagram',[string]$ManifestPath)
+param([string]$CargoExe='cargo',[switch]$Update,[string]$BundleDirectory,[ValidateSet('diagram','selection','recording','interconnect-lan')][string]$Runtime='diagram',[string]$ManifestPath)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $cargo=(Get-Command $CargoExe -ErrorAction Stop).Source
@@ -6,23 +6,14 @@ $priorRustc=$env:RUSTC
 function Hash([string]$path){(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()}
 try{
  $env:RUSTC=Join-Path (Split-Path $cargo -Parent) 'rustc.exe'
- $manifest=switch($Runtime){'interconnect-lan'{'third_party/file-share/src-tauri/Cargo.toml'} 'selection'{'modules/selection/native/Cargo.toml'} 'recording'{'modules/recording/Cargo.toml'} 'search'{'dist/resources/sources/ripgrep-15.2.0/Cargo.toml'} default{'apps/diagram-renderer/Cargo.toml'}}
+ $manifest=switch($Runtime){'interconnect-lan'{'third_party/file-share/src-tauri/Cargo.toml'} 'selection'{'modules/selection/native/Cargo.toml'} 'recording'{'modules/recording/Cargo.toml'} default{'apps/diagram-renderer/Cargo.toml'}}
  $selected=if($ManifestPath){[IO.Path]::GetFullPath($ManifestPath)}else{Join-Path $root $manifest}
  $json=& $cargo metadata --locked --format-version 1 --filter-platform x86_64-pc-windows-msvc --manifest-path $selected
  if($LASTEXITCODE -ne 0){throw 'Cannot resolve diagram dependencies'}
  $metadata=$json|ConvertFrom-Json;$packages=@()
- $searchPackages=@{}
- if($Runtime -eq 'search'){
-  # Workspace metadata also lists optional PCRE2 and test members. Follow the
-  # actual root dependency graph; WinOne builds the fixed-string/Rust-regex
-  # binary without PCRE2, not those unrelated workspace targets.
-  $nodes=@{};foreach($node in $metadata.resolve.nodes){$nodes[$node.id]=$node}
-  $queue=New-Object 'System.Collections.Generic.Queue[string]';$queue.Enqueue($metadata.resolve.root)
-  while($queue.Count){$id=$queue.Dequeue();if($searchPackages.ContainsKey($id)){continue};$searchPackages[$id]=$true;foreach($dep in $nodes[$id].deps){if(@($dep.dep_kinds|Where-Object {$_.kind -ne 'dev'}).Count){$queue.Enqueue($dep.pkg)}}}
- }
- foreach($package in $metadata.packages|Where-Object { if($Runtime -eq 'search'){$searchPackages.ContainsKey($_.id)}else{$_.source -or ($Runtime -eq 'recording' -and $_.name -eq 'gifski')} }|Sort-Object name,version){
+ foreach($package in $metadata.packages|Where-Object { $_.source -or ($Runtime -eq 'recording' -and $_.name -eq 'gifski') }|Sort-Object name,version){
   $directory=Split-Path $package.manifest_path -Parent
-  $licenses=@(Get-ChildItem -LiteralPath $directory -File|Where-Object { $_.Name -Match '^(LICENSE|LICENCE|COPYING|COPYRIGHT|NOTICE)([._-].*)?$' -or ($Runtime -eq 'search' -and $_.Name -eq 'UNLICENSE') }|Sort-Object Name)
+  $licenses=@(Get-ChildItem -LiteralPath $directory -File|Where-Object { $_.Name -Match '^(LICENSE|LICENCE|COPYING|COPYRIGHT|NOTICE)([._-].*)?$' }|Sort-Object Name)
   $notices=@()
   if(-not $licenses.Count){
    # Some crate tarballs intentionally exclude their workspace LICENSE. An

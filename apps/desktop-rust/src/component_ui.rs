@@ -40,20 +40,6 @@ fn window_icon(module:HMODULE)->HICON{
 
 const DISPATCH:u32=WM_APP+20;
 const HOST_EXITED:u32=WM_APP+21;
-#[link(name="wtsapi32")]
-unsafe extern "system" {
-    fn WTSRegisterSessionNotification(window:HWND,flags:u32)->i32;
-    fn WTSUnRegisterSessionNotification(window:HWND)->i32;
-}
-// Cindy's power release contract: suspend and this workstation's lock release
-// capture. Resuming/unlocking is never an implicit request to restart a mic.
-fn voice_power_event(message:u32,parameter:usize)->Option<&'static str>{
-    match (message,parameter){
-        (0x218,4)=>Some("winone:voice-system-suspend"),
-        (0x2b1,7)=>Some("winone:voice-screen-locked"),
-        _=>None,
-    }
-}
 // Sent WM_SIZE/WM_WINDOWPOSCHANGED callbacks can run inside GetMessage without
 // making it return. Queue one wake so deferred layout cannot wait for a later
 // click, Host reply or screenshot to release the outer message loop.
@@ -115,13 +101,6 @@ impl BrowserLifetime{
 #[cfg(test)]
 mod background_tests {
     use super::*;
-    #[test]
-    fn system_power_and_workstation_lock_release_voice_capture() {
-        assert_eq!(voice_power_event(0x218,4),Some("winone:voice-system-suspend"));
-        assert_eq!(voice_power_event(0x2b1,7),Some("winone:voice-screen-locked"));
-        assert_eq!(voice_power_event(0x218,18),None); // Resume never starts a mic.
-        assert_eq!(voice_power_event(0x2b1,8),None);
-    }
     #[test]
     fn closing_preserves_activity_and_distinguishes_application_exit() {
         assert_eq!(close_action(true,false,false,false),CloseAction::Hide);
@@ -187,7 +166,7 @@ impl Drop for HostWatch {fn drop(&mut self){
     if let Some(task)=self.task.take(){let _=task.join();}
     unsafe{CloseHandle(self.stop);}
 }}
-enum Message{Request(Request),Reply(String,Reply),FilesDropped(Vec<String>,(i32,i32)),Browser(crate::component_browser::BrowserEvent)}
+enum Message{Request(Request),Reply(String,Reply),FilesDropped(Vec<String>,(i32,i32))}
 #[derive(Default)]
 struct HostReady{initialized:bool,error:Option<RpcError>}
 pub(crate) struct Window(pub(crate) HWND);
@@ -211,7 +190,6 @@ struct State{
     frame_initialized:bool,
     initial_show:i32,placement:Option<crate::component_placement::Store>,window_warning:Option<String>,
     probe:Option<Arc<Mutex<crate::component_probe::Probe>>>,
-    browsers:Option<crate::component_browser::BrowserManager>,
 }
 impl State{
     fn sync_view(&mut self){
@@ -251,7 +229,7 @@ impl State{
         // Wry closes its WebView2 controller and detaches the parent subclass
         // in Drop. Do that while the parent HWND still exists, not after its
         // child window has already been destroyed by DestroyWindow(parent).
-        if let Some(browser)=&mut self.browsers{browser.clear();}
+
         self.webview.take();
         unsafe{DestroyWindow(self.window);}
     }
@@ -266,11 +244,6 @@ impl State{
     fn ui_request(&mut self,request:&Request)->Option<Result<Value,RpcError>>{
         if let Some(probe)=&self.probe{match probe.lock(){Ok(mut probe)=>if let Some(result)=probe.request(self.window,request){return Some(result);},Err(_)=>return Some(Err(RpcError::new("probe","启动检查状态无效"))),}}
         let result=(||{match request.method.as_str(){
-            "ChatBrowser"=>{
-                let payload:Value=serde_json::from_str(request.text(1)?)?;
-                let result=self.browsers.as_mut().ok_or_else(||RpcError::new("browser","网页宿主尚未就绪"))?.request(self.window,request.text(0)?,payload)?;
-                Ok(json!(result.to_string()))
-            },
             "InitializeWindow"=>{if !self.frame_initialized{self.frame_initialized=true;unsafe{
                 ShowWindow(self.window,self.initial_show);activate(self.window);
                 // Match the original host's activation, then focus WebView
@@ -313,7 +286,7 @@ impl State{
                 Ok(if request.method=="PickProgram"{json!(paths.first().cloned().unwrap_or_default())}else{json!(paths)})
             },
             "PickDirectory"=>Ok(json!(crate::dialogs::pick_folder(self.window,self.tr("选择文件夹","Choose a folder")).map_err(|e|RpcError::new("dialog",e))?.unwrap_or_default())),
-            "PickChatFiles"=>Ok(json!(crate::dialogs::pick_chat_files(self.window,self.tr("添加附件","Add attachments")).map_err(|e|RpcError::new("dialog",e))?)),
+            "PickFiles"=>Ok(json!(crate::dialogs::pick_files(self.window,self.tr("添加附件","Add attachments")).map_err(|e|RpcError::new("dialog",e))?)),
             "PickFile"=>Ok(json!(crate::dialogs::pick_file(self.window,self.tr("选择文件","Choose a file")).map_err(|e|RpcError::new("dialog",e))?.unwrap_or_default())),
             "PickDirectories"=>Ok(json!(crate::dialogs::pick_directories(self.window,self.tr("选择文件夹","Choose folders")).map_err(|e|RpcError::new("dialog",e))?)),
             "PickProfileLocation"=>match request.text(0)?{
@@ -341,16 +314,11 @@ impl State{
         }}
         self.jobs.retain(|(_,job)|!job.is_finished());
         while let Ok(message)=self.incoming.try_recv(){match message{
-            Message::Browser(event)=>{
-                if let Some(detail)=self.browsers.as_mut().and_then(|browser|browser.event(event)){if let Some(view)=&self.webview{
-                    if let Err(error)=view.evaluate_script(&format!("window.dispatchEvent(new CustomEvent('winone:chat-browser',{{detail:{detail}}}))")){eprintln!("browser event: {error}");}
-                }}
-            },
             Message::FilesDropped(paths,position)=>{
                 if let Some(view)=&self.webview{
                     // Wry supplies physical coordinates relative to the WebView.
                     // DOM hit-testing uses CSS pixels, including per-monitor DPI.
-                    let script=format!("(()=>{{const paths={},point={},scale=window.devicePixelRatio||1,position={{x:point[0]/scale,y:point[1]/scale}},element=document.elementFromPoint(position.x,position.y);if(element&&!element.dispatchEvent(new CustomEvent('winone:paths-drop',{{bubbles:true,cancelable:true,detail:{{paths,position}}}})))return;if(document.querySelector('[role=dialog]'))return;const name=document.querySelector('[data-directory-links-root]')?'winone:directory-links-drop':document.querySelector('.chat-workspace')?'winone:chat-files-drop':null;if(name)window.dispatchEvent(new CustomEvent(name,{{detail:{{paths,position}}}}));}})()",json!(paths),json!(position));
+                    let script=format!("(()=>{{const paths={},point={},scale=window.devicePixelRatio||1,position={{x:point[0]/scale,y:point[1]/scale}},element=document.elementFromPoint(position.x,position.y);if(element&&!element.dispatchEvent(new CustomEvent('winone:paths-drop',{{bubbles:true,cancelable:true,detail:{{paths,position}}}})))return;if(document.querySelector('[role=dialog]'))return;const name=document.querySelector('[data-directory-links-root]')?'winone:directory-links-drop':null;if(name)window.dispatchEvent(new CustomEvent(name,{{detail:{{paths,position}}}}));}})()",json!(paths),json!(position));
                     if let Err(error)=view.evaluate_script(&script){eprintln!("native file drop: {error}");}
                 }
             },
@@ -427,7 +395,7 @@ impl Drop for State{fn drop(&mut self){
         // process exit reclaims them. Admitted writes still finish their guard.
         if mutating||job.is_finished(){let _=job.join();}
     }
-    if let Some(browser)=&mut self.browsers{browser.clear();}
+
     self.webview.take();
     if owns_window{unsafe{DestroyWindow(self.window);}}
 }}
@@ -454,7 +422,7 @@ unsafe extern "system" fn procedure(window:HWND,message:u32,w:WPARAM,l:LPARAM)->
     }
     // DestroyWindow can re-enter while a UI request owns State. Quitting the
     // message loop must not depend on reacquiring that borrow.
-    if message==WM_DESTROY{unsafe{WTSUnRegisterSessionNotification(window);PostQuitMessage(0);}return 0;}
+    if message==WM_DESTROY{unsafe{PostQuitMessage(0);}return 0;}
     // ShowWindow/SetWindowPlacement request these constraints synchronously,
     // including while State is borrowed. They depend only on the HWND.
     if message==WM_GETMINMAXINFO&&l!=0{
@@ -476,7 +444,6 @@ unsafe extern "system" fn procedure(window:HWND,message:u32,w:WPARAM,l:LPARAM)->
         pending.set(Some(pending.get().unwrap_or(false)||message==HOST_EXITED||w==1));
     }
     if !pointer.is_null(){if let Ok(mut state)=unsafe{&*pointer}.try_borrow_mut(){
-      if let Some(event)=voice_power_event(message,w){state.event(event);return 0;}
       match message{
         DISPATCH=>{state.dispatch();return 0;},
         WM_CLOSE|HOST_EXITED=>{if state.webview.is_some(){state.exit_requested|=unsafe{&*pointer}.close_requested.take().unwrap_or(false);state.close();}return 0;},
@@ -562,7 +529,7 @@ fn run_inner(pipe:&str,directory:&str,open_settings:bool,plan:crate::startup::Pl
     let file_drop_enabled=Arc::new(AtomicBool::new(false));
     // An offline startup has no tray or shortcut owner. Adopt the background
     // preference only after a successful Host snapshot confirms this session.
-    let state=Box::new(WindowState{value:RefCell::new(State{host_watch:None,window:null_mut(),webview:None,view_visible:None,client,cancel,incoming,outgoing:outgoing.clone(),jobs,ready,plan,pipe:pipe.into(),directory:directory.into(),dirty:false,busy:false,close_pending:false,keep_ui_running:false,exit_requested:false,navigation:open_settings as u64,update_id:None,mutations:HashSet::new(),file_drop_enabled:file_drop_enabled.clone(),probe:probe.clone(),locale:"zh-CN".into(),theme:"system".into(),frame_initialized:false,initial_show:SW_SHOWNORMAL,placement:None,window_warning:None,browsers:None}),close_requested:Cell::new(None),view_sync_requested:Cell::new(false)});
+    let state=Box::new(WindowState{value:RefCell::new(State{host_watch:None,window:null_mut(),webview:None,view_visible:None,client,cancel,incoming,outgoing:outgoing.clone(),jobs,ready,plan,pipe:pipe.into(),directory:directory.into(),dirty:false,busy:false,close_pending:false,keep_ui_running:false,exit_requested:false,navigation:open_settings as u64,update_id:None,mutations:HashSet::new(),file_drop_enabled:file_drop_enabled.clone(),probe:probe.clone(),locale:"zh-CN".into(),theme:"system".into(),frame_initialized:false,initial_show:SW_SHOWNORMAL,placement:None,window_warning:None}),close_requested:Cell::new(None),view_sync_requested:Cell::new(false)});
     let module=unsafe{GetModuleHandleW(null())};
     // The Host resolves this shared class before normal tray exit. Preserve
     // the existing identity so its close and unsaved-edit guards still apply.
@@ -570,7 +537,6 @@ fn run_inner(pipe:&str,directory:&str,open_settings:bool,plan:crate::startup::Pl
     if unsafe{RegisterClassW(&class)}==0{return Err(std::io::Error::last_os_error().to_string());}
     let window=unsafe{CreateWindowExW(WS_EX_CONTROLPARENT|WS_EX_APPWINDOW,class.lpszClassName,wide("WinOne").as_ptr(),WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN,CW_USEDEFAULT,CW_USEDEFAULT,1280,840,null_mut(),null_mut(),module,(&*state as *const WindowState).cast())};
     if window.is_null(){return Err(std::io::Error::last_os_error().to_string());}
-    if unsafe{WTSRegisterSessionNotification(window,0)}==0{eprintln!("voice workstation notification: {}",std::io::Error::last_os_error());}
     state.borrow_mut().window=window;if let Some(instance)=&mut instance{instance.attach(window)?;}
     crate::component_frame::decorations(window)?;
     crate::component_frame::theme(window,"system")?;
@@ -592,8 +558,6 @@ fn run_inner(pipe:&str,directory:&str,open_settings:bool,plan:crate::startup::Pl
     let wrapper=Window(window);let mut context=WebContext::new(Some(PathBuf::from(directory).join("webview-components")));
     crate::startup::trace("native-window-ready");
     let target=window as usize;
-    let browser_outgoing=outgoing.clone();
-    state.borrow_mut().browsers=Some(crate::component_browser::BrowserManager::new(directory,move|event|{if browser_outgoing.send(Message::Browser(event)).is_ok(){unsafe{PostMessageW(target as HWND,DISPATCH,0,0);}}}));
     let asset_profile=PathBuf::from(directory);
     let drop_outgoing=outgoing.clone();
     let view=WebViewBuilder::new_with_web_context(&mut context)

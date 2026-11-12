@@ -4,13 +4,7 @@ import {act,cleanup,render,screen,waitFor,within} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {AISettings} from "./ai-settings";
 const api=vi.hoisted(()=>({captureCall:vi.fn()}));
-vi.mock("../bridge",()=>({...api,captureCall:(method:string,...args:unknown[])=>{
- // This connection-only fixture has no installed page extensions. Their
- // public owner lease is covered by ai-plugin-extensions.test.tsx.
- if(method==="ai.routing.extensions.open")return Promise.resolve({url:"http://127.0.0.1:4310/session/fixture/plugins.html",pages:[],panels:[]});
- if(method==="ai.routing.extensions.close")return Promise.resolve({});
- return api.captureCall(method,...args);
-}}));
+vi.mock("../bridge",()=>api);
 afterEach(()=>{cleanup();vi.clearAllMocks();});
 const original={revision:2,engine:"google",ocrEngine:"local",target:"auto",prompt:"",providers:[{id:"one",name:"个人服务",authMode:"api-key",protocol:"chat",baseUrl:"https://example.com/v1",models:["test-model"],hasKey:true}],tasks:{default:{provider:"one",model:"test-model"}}};
 it("defaults to resting limited keys and saves the explicit opt-out",async()=>{
@@ -21,33 +15,7 @@ it("defaults to resting limited keys and saves the explicit opt-out",async()=>{
  await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));
  await waitFor(()=>expect(saved().configuration.providers[0].limitRestOff).toBe(true));
 });
-it("enables routing groups without saving or losing another provider draft",async()=>{
- let committed:any=structuredClone(original);
- api.captureCall.mockImplementation(async(method,value)=>{
-  if(method==="ai.configuration.get")return structuredClone(committed);
-  if(method==="ai.configuration.save"){committed={...value.configuration,revision:committed.revision+1};return structuredClone(committed);}
-  if(method==="ai.routing.open")return {url:"http://127.0.0.1:4310/session/fixture/"};
-  if(method==="ai.routing.close")return {};
-  throw Error(method);
- });
- const view=render(<AISettings/>),user=userEvent.setup();
- await user.click(await screen.findByRole("button",{name:"重命名服务"}));
- const name=screen.getByRole("textbox",{name:"服务名称"});await user.clear(name);await user.type(name,"未保存名称");
- await user.click(screen.getByRole("tab",{name:"路由"}));
- const frame=await waitFor(()=>{const node=view.container.querySelector<HTMLIFrameElement>('iframe[title="路由"]');expect(node).toBeTruthy();return node!;});
- const request=(origin:string,source:MessageEventSource|null)=>act(()=>window.dispatchEvent(new MessageEvent("message",{origin,source,data:{type:"winone-routing-native",id:"enable",method:"enable-groups"}})));
- request("http://untrusted.invalid",frame.contentWindow);request("http://127.0.0.1:4310",window);
- expect(committed.magpieSettings).toBeUndefined();
- request("http://127.0.0.1:4310",frame.contentWindow);
- await waitFor(()=>expect(committed.magpieSettings?.builtinPlugins?.groups?.enabled).toBe(true));
- expect(committed.providers[0].name).toBe("个人服务");
- await user.click(screen.getByRole("tab",{name:"自定义供应商"}));
- await user.click(screen.getByRole("button",{name:"重命名服务"}));
- expect((screen.getByRole("textbox",{name:"服务名称"}) as HTMLInputElement).value).toBe("未保存名称");
- await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));
- await waitFor(()=>expect(committed.providers[0].name).toBe("未保存名称"));
- expect(committed.magpieSettings.builtinPlugins.groups.enabled).toBe(true);
-});
+
 function fixture(){let saved:any;api.captureCall.mockImplementation(async(method,value)=>{
  if(method==="ai.configuration.get")return structuredClone(original);
  if(method==="ai.configuration.save"){saved=value;return {...value.configuration,revision:3};}
@@ -96,16 +64,7 @@ it("does not load advanced catalogs before that page is opened",async()=>{
  expect(api.captureCall.mock.calls.filter(([method])=>method==="ai.magpie.catalog")).toHaveLength(0);
 });
 
-it("reopens the visible routing editor after saving its configuration",async()=>{
- fixture();const base=api.captureCall.getMockImplementation()!;let opened=0;
- api.captureCall.mockImplementation(async(method,value)=>method==="ai.routing.open"?{url:`http://127.0.0.1:${4300+(++opened)}/?view=routing`}:method==="ai.routing.close"?{}:base(method,value));
- const view=render(<AISettings/>);const user=userEvent.setup();await screen.findByRole("tab",{name:"路由"});await user.click(screen.getByRole("tab",{name:"路由"}));
- // The tab tooltip and embedded editor intentionally share their full name.
- const frame=()=>view.container.querySelector('iframe[title="路由"]');
- await waitFor(()=>expect(frame()?.getAttribute("src")).toContain(":4301/"));
- await user.click(screen.getByRole("switch",{name:"启用模型路由"}));await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));
- await screen.findByText("已保存");await waitFor(()=>expect(frame()?.getAttribute("src")).toContain(":4302/"));
-});
+
 
 it("keeps connection and advanced edits while switching the provider settings tabs",async()=>{
  // This checks preservation across tabs, so paste complete values instead of
@@ -135,25 +94,20 @@ it("saves custom headers and uses their current form values for model discovery"
  await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));await waitFor(()=>expect(saved()?.configuration.providers[0].headers).toEqual({"X-Team":"development"}));
 });
 
-it("keeps the saved provider summary identical across every service tab",async()=>{
+it("shows saved providers in Common after returning from each retained tab",async()=>{
  fixture();const base=api.captureCall.getMockImplementation()!;
  api.captureCall.mockImplementation(async(method,value)=>method==="ai.gateway.get"?{revision:0,enabled:false,port:3426,running:false,hasKey:false,baseUrl:"http://127.0.0.1:3426/v1"}:base(method,value));
- render(<AISettings/>);const user=userEvent.setup();
- const summary=await screen.findByRole("region",{name:"已启用供应商"});
- expect(within(summary).getByRole("button",{name:"个人服务（1）"})).toBeTruthy();
- for(const tab of ["账号供应商","默认 AI 服务","本地网关","自定义供应商"]){
-  await user.click(screen.getByRole("tab",{name:tab}));
-  expect(screen.getByRole("region",{name:"已启用供应商"})).toBe(summary);
-  expect(within(summary).getByRole("button",{name:"个人服务（1）"})).toBeTruthy();
+ render(<AISettings/>);const user=userEvent.setup();await screen.findByRole("button",{name:"重命名服务"});
+ for(const tab of ["账号供应商","使用偏好","本地网关","自定义供应商"]){
+  await user.click(screen.getByRole("tab",{name:tab}));await user.click(screen.getByRole("tab",{name:"常用"}));
+  expect(within(screen.getByRole("region",{name:"已启用供应商"})).getByRole("button",{name:"个人服务（1）"})).toBeTruthy();
  }
 });
-
-it("updates the provider summary from unsaved model selections",async()=>{
+it("updates Common from unsaved model selections",async()=>{
  fixture();render(<AISettings/>);const user=userEvent.setup();
- const summary=await screen.findByRole("region",{name:"已启用供应商"});
- expect(within(summary).getByRole("button",{name:"个人服务（1）"})).toBeTruthy();
- await user.click(screen.getByRole("button",{name:"全不选"}));
- await waitFor(()=>expect(within(summary).getByText("勾选并保存模型后，供应商会显示在这里。")).toBeTruthy());
+ await user.click(await screen.findByRole("button",{name:"全不选"}));
+ await user.click(screen.getByRole("tab",{name:"常用"}));
+ expect(within(screen.getByRole("region",{name:"已启用供应商"})).getByText("勾选并保存模型后，供应商会显示在这里。")).toBeTruthy();
 });
 
 it("saves refreshed catalogs without obsolete task references and retains unaffected selections",async()=>{
@@ -211,8 +165,8 @@ it("reuses pending and completed account reads across tab switches and refreshes
  const activity=vi.fn();render(<AISettings onActivity={activity}/>);const user=userEvent.setup();
  await user.click(await screen.findByRole("tab",{name:"账号供应商"}));await screen.findByText("正在读取账号");
  expect(screen.getByRole("button",{name:"获取模型列表"}).hasAttribute("disabled")).toBe(true);
- await user.click(screen.getByRole("tab",{name:"默认 AI 服务"}));
- expect(screen.getByRole("tab",{name:"默认 AI 服务"}).getAttribute("aria-selected")).toBe("true");
+ await user.click(screen.getByRole("tab",{name:"使用偏好"}));
+ expect(screen.getByRole("tab",{name:"使用偏好"}).getAttribute("aria-selected")).toBe("true");
  expect(activity.mock.calls.at(-1)?.slice(0,2)).toEqual([false,false]);
  await user.click(screen.getByRole("tab",{name:"账号供应商"}));expect(reads).toBe(1);
  await act(async()=>finish({accounts:[{agent:"codex",user:"original@example.invalid"}]}));await screen.findByText("original@example.invalid");
@@ -305,9 +259,9 @@ it("fetches a local preset before saving without requiring an API key",async()=>
 it("places global defaults after account providers and preserves drafts across tabs",async()=>{
  fixture();render(<AISettings/>);const user=userEvent.setup();await screen.findByRole("button",{name:"重命名服务"});
  await user.type(screen.getByLabelText("API 密钥"),"draft-key");
- expect(within(screen.getByRole("tablist",{name:"AI 服务"})).getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["自定义供应商","账号供应商","默认 AI 服务","本地网关","路由","用量统计","插件","高级设置"]);
+ expect(within(screen.getByRole("tablist",{name:"AI 服务"})).getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["常用","自定义供应商","账号供应商","使用偏好","本地网关"]);
  expect(screen.queryByRole("button",{name:"默认 AI 服务 · 模型"})).toBeNull();
- await user.click(screen.getByRole("tab",{name:"默认 AI 服务"}));expect(screen.getByRole("button",{name:"默认 AI 服务 · 模型"})).toBeTruthy();
+ await user.click(screen.getByRole("tab",{name:"使用偏好"}));expect(screen.getByRole("button",{name:"默认 AI 服务 · 模型"})).toBeTruthy();
  await waitFor(()=>expect(screen.queryByLabelText("API 基础地址")).toBeNull());
  await user.click(screen.getByRole("tab",{name:"自定义供应商"}));expect((screen.getByLabelText("API 密钥") as HTMLInputElement).value).toBe("draft-key");
 });
@@ -327,7 +281,7 @@ it("fills a new blank custom service from a local preset without leaving an inva
 it("sets the global default without replacing feature overrides",async()=>{
  let saved:any;const second={id:"two",name:"第二服务",authMode:"api-key",protocol:"chat",baseUrl:"https://second.example/v1",models:["second-model"],hasKey:false};
  api.captureCall.mockImplementation(async(method,value)=>{if(method==="ai.configuration.get")return {...structuredClone(original),providers:[...original.providers,second],tasks:{...original.tasks,translate:{provider:"one",model:"test-model"}}};if(method==="ai.configuration.save"){saved=value;return {...value.configuration,revision:3}};throw Error(method)});
- render(<AISettings/>);const user=userEvent.setup();await user.click(await screen.findByRole("tab",{name:"默认 AI 服务"}));await user.click(screen.getByRole("button",{name:"默认 AI 服务 · 模型"}));await user.click(await screen.findByRole("option",{name:"second-model"}));
+ render(<AISettings/>);const user=userEvent.setup();await user.click(await screen.findByRole("tab",{name:"使用偏好"}));await user.click(screen.getByRole("button",{name:"默认 AI 服务 · 模型"}));await user.click(await screen.findByRole("option",{name:"second-model"}));
  await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));await screen.findByText("已保存");expect(saved.configuration.tasks.default).toEqual({provider:"two",model:"second-model"});expect(saved.configuration.tasks.translate).toEqual({provider:"one",model:"test-model"});
 });
 
@@ -384,7 +338,7 @@ it("saves rotation controls and key availability without resubmitting saved secr
 });
 it("defaults reasoning display on for old settings and saves an explicit off choice",async()=>{
  const saved=fixture();render(<AISettings/>);const user=userEvent.setup();
- await user.click(await screen.findByRole("tab",{name:"默认 AI 服务"}));const toggle=await screen.findByRole("switch",{name:"显示思考过程"});
+ await user.click(await screen.findByRole("tab",{name:"使用偏好"}));const toggle=await screen.findByRole("switch",{name:"显示思考过程"});
  expect(toggle.getAttribute("aria-checked")).toBe("true");
  await user.click(toggle);await user.click(screen.getByRole("button",{name:"保存 AI 设置"}));await screen.findByText("已保存");
  expect(saved().configuration.showReasoning).toBe(false);expect(saved().keys).toBeUndefined();
@@ -474,5 +428,5 @@ it("retains manual entry when discovery fails and keeps unchecked models out of 
  expect(saved().configuration.providers[0].models).toEqual(["manual-model"]);
  expect(saved().configuration.providers[0].availableModels).toEqual(["test-model","manual-model"]);
  expect(saved().keys).toBeUndefined();
- expect(within(screen.getByRole("tablist",{name:"AI 服务"})).getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["自定义供应商","账号供应商","默认 AI 服务","本地网关","路由","用量统计","插件","高级设置"]);
+ expect(within(screen.getByRole("tablist",{name:"AI 服务"})).getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["常用","自定义供应商","账号供应商","使用偏好","本地网关"]);
 });

@@ -3,21 +3,41 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 	"winone/internal/ai"
 )
+
+func gatewayTestService(t *testing.T) *aiService {
+	t.Helper()
+	exe := os.Getenv("WINONE_AI_TEST_EXE")
+	if exe == "" {
+		t.Skip("explicit isolated AI bundle")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	t.Cleanup(cancel)
+	dir := t.TempDir()
+	s := newAIService(ctx, dir, filepath.Join(dir, "WinOne.Host.exe"))
+	s.translator.Executable = exe
+	s.gatewaySlots = make(chan struct{}, 4)
+	t.Cleanup(s.closeGatewayBackend)
+	return s
+}
 
 // This uses the real authenticated public listener and packaged Magpie, not a
 // replacement discovery handler. No request leaves the local fixture servers.
 func TestOllamaDiscoveryMatchesGatewayModelPolicy(t *testing.T) {
-	s := privacyTestService(t)
+	s := gatewayTestService(t)
 	var vendorCalls atomic.Int32
 	vendor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vendorCalls.Add(1)
@@ -30,7 +50,7 @@ func TestOllamaDiscoveryMatchesGatewayModelPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 	config := store.Configuration()
-	config.MagpieSettings = &ai.MagpieSettings{NoStats: true, NoUsageStats: true, NoAccountDiscovery: true, FullContext: true}
+	config.MagpieSettings = &ai.MagpieSettings{NoStats: true, NoUsageStats: true}
 	vision := true
 	config.Providers = []ai.Provider{
 		{ID: "one", Name: "Allowed", AuthMode: "api-key", Protocol: "chat", BaseURL: vendor.URL, Models: []string{"gpt-4.1", "hidden"}, ModelMetadata: map[string]ai.ModelMetadata{"gpt-4.1": {ContextWindow: 128000, Vision: &vision}}},
@@ -124,7 +144,9 @@ func TestOllamaDiscoveryMatchesGatewayModelPolicy(t *testing.T) {
 		call("POST", endpoint, `{"model":"one/gpt-4.1","prompt":"hello","messages":[{"role":"user","content":"hello"}],"stream":false}`, "invalid", "", 401)
 		call("POST", endpoint, `{"model":"two/private-model","prompt":"hello","stream":false}`, key, "", 403)
 		raw := call("POST", endpoint, `{"model":"one/gpt-4.1","prompt":"hello","messages":[{"role":"user","content":"hello"}],"stream":false}`, key, "", 200)
-		if !strings.Contains(string(raw), "Ollama fixture") || !strings.Contains(string(raw), `"done":true`) { t.Fatalf("Ollama generation lost its response: %s", raw) }
+		if !strings.Contains(string(raw), "Ollama fixture") || !strings.Contains(string(raw), `"done":true`) {
+			t.Fatalf("Ollama generation lost its response: %s", raw)
+		}
 	}
 	if vendorCalls.Load() != 3 {
 		t.Fatalf("discovery/denied requests reached vendor: %d", vendorCalls.Load())

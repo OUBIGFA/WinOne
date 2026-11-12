@@ -1,5 +1,0 @@
-package agent
-
-// Set only by WinOne's external-client process before its first mutation.
-// Other AI workers keep the original upstream key selection.
-var WinOneExternalKey string

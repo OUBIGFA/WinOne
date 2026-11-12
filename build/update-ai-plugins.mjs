@@ -1,4 +1,4 @@
-// Refresh the complete bundled Magpie registry from an explicitly selected
+// Refresh the pinned account adapters from an explicitly selected
 // checkout. This only reads source; it never installs or executes a plugin.
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -35,13 +35,13 @@ async function filesIn(directory,relative){
  if(!stat.isFile())throw Error('Not a regular plugin resource: '+name);
  return [relative.replaceAll('\\','/')];
 }
-const plugins=[], installable=[];
+const plugins=[];
 for(const listed of registry.plugins){
+ if(!listed.providers?.length)continue;
  const found=packages.get(listed.package);
- // Public discovery includes packages maintained in other repositories and
- // packages with native/runtime dependencies. Keep them installable through
- // Magpie's real manager instead of shipping an incomplete copied package.
- if(!found || Object.keys(found.info.dependencies??{}).length || Object.keys(found.info.optionalDependencies??{}).length){installable.push(listed);continue;}
+ // Only self-contained, reviewed account adapters are distributed. WinOne
+ // does not offer arbitrary package installation or extension discovery.
+ if(!found || Object.keys(found.info.dependencies??{}).length || Object.keys(found.info.optionalDependencies??{}).length)continue;
  const {info,folder}=found,directory='packages/'+folder;
  const names=new Set(['package.json',...(await Promise.all((info.files??[]).map(name=>filesIn(path.join(source,directory),name)))).flat()]);
  const files=[];
@@ -54,7 +54,8 @@ for(const listed of registry.plugins){
 const licenseBytes=await fs.readFile(path.join(source,'LICENSE'));
 const previousLicense=await fs.readFile(path.join(root,'third_party',old.license.file));
 if(licenseBytes.toString('utf8').replaceAll('\r\n','\n')!==previousLicense.toString('utf8').replaceAll('\r\n','\n'))throw Error('Community license changed; review it before updating the lock');
-const lock={...old,license:{...old.license,sha256:hash(licenseBytes)},revision,registrySHA256:hash(registryBytes),plugins,installable};
+const lock={...old,license:{...old.license,sha256:hash(licenseBytes)},revision,registrySHA256:hash(registryBytes),plugins};
+delete lock.installable;
 const catalog={bun:old.bun,plugins:plugins.map(p=>({...p,directory:p.directory.slice('packages/'.length),files:p.files.map(f=>({...f,path:f.path.slice(p.directory.length+1)}))}))};
 const inventory=[...plugins.flatMap(p=>p.files.map(f=>'shared/ai/plugins/'+f.path.slice('packages/'.length))),'shared/ai/plugins/LICENSE.txt','shared/ai/plugins/source-lock.json','shared/ai/runtime/bun.exe'].sort();
 // These three generated projections must change together: the build checks
@@ -62,4 +63,4 @@ const inventory=[...plugins.flatMap(p=>p.files.map(f=>'shared/ai/plugins/'+f.pat
 for(const [name,value]of [['third_party/ai-plugins.json',lock],['modules/ai-magpie/plugin-catalog.json',catalog]])await fs.writeFile(path.join(root,name),JSON.stringify(value,null,2)+'\n');
 await fs.writeFile(path.join(root,'third_party',old.license.file),licenseBytes);
 await fs.writeFile(path.join(root,'internal/distribution/ai_plugin_runtime_paths.txt'),inventory.join('\n')+'\n');
-console.log(`Locked ${plugins.length} bundled plugins at ${revision}; ${inventory.length} runtime files; ${installable.length} additional packages use upstream install/discovery`);
+console.log(`Locked ${plugins.length} account adapters at ${revision}; ${inventory.length} runtime files`);

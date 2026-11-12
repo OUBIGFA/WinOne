@@ -122,13 +122,13 @@ func AIModelSelect(c *ui.Context, o AIModelSelectOptions) (*AISelection, bool) {
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		field := o.FieldLabel
 		if field == "" {
-			field = i18n.T("chat.model")
+			field = i18n.T("aiShared.model")
 		}
 		ui.Field(c, field, func() {
 			chosen, picked := ModelField(c, ModelFieldOptions{
 				ModelMenuOptions: ModelMenuOptions{Env: o.Env, Choices: choices, Groups: ProviderGroups(o.Providers), Selected: selected,
-					Label: o.Label + " · " + i18n.T("chat.model"), Empty: i18n.T("chat.modelUnavailable")},
-				Placeholder: i18n.T("chat.chooseModel"), Disabled: o.Disabled,
+					Label: o.Label + " · " + i18n.T("aiShared.model"), Empty: i18n.T("aiShared.modelUnavailable")},
+				Placeholder: i18n.T("aiShared.chooseModel"), Disabled: o.Disabled,
 			})
 			if !picked || chosen == selected {
 				return

@@ -19,12 +19,13 @@ func TestWinOneDevicePreparationOwnership(t *testing.T) {
 		t.Run(map[bool]string{false: "consume", true: "close-before-ready"}[cancel], func(t *testing.T) {
 			started, finish, freed := make(chan struct{}), make(chan struct{}), make(chan struct{}, 2)
 			var releases atomic.Int32
+			device := &sharedDevice{device: 11, ctx: 12}
 			_, take, discard := prepareDevice(func() deviceResult {
 				close(started)
 				<-finish
-				return deviceResult{device: 11, context: 12}
+				return deviceResult{device: device}
 			}, func(result deviceResult) {
-				if result.device != 11 || result.context != 12 {
+				if result.device != device {
 					t.Errorf("wrong device released: %+v", result)
 				}
 				releases.Add(1)
@@ -54,7 +55,7 @@ func TestWinOneDevicePreparationOwnership(t *testing.T) {
 					t.Fatal("device was released more than once")
 				}
 			} else {
-				if result.err != nil || result.device != 11 || result.context != 12 {
+				if result.err != nil || result.device != device {
 					t.Fatalf("device transfer failed: %+v", result)
 				}
 				discard() // Ownership has passed to the renderer.
@@ -90,6 +91,17 @@ func TestWinOnePreparedRendererDrawsOriginalScene(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer r.Release()
+	// Prepared windows must participate in upstream device sharing. A second
+	// window closing must leave this renderer's factory and shaders usable.
+	other, err := New(hiddenWindow(t, s.Width, s.Height))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if other.dev != r.dev {
+		other.Release()
+		t.Fatal("prepared window bypassed the shared graphics device")
+	}
+	other.Release()
 	// Read back real GPU pixels, including a changed frame, using the same
 	// upstream scene and CPU reference as the ordinary renderer regression.
 	for range 2 {

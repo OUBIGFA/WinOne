@@ -90,12 +90,10 @@ func serveOne(conn net.Conn, service Handler) {
 		}
 	}
 	// A deadline covers all future I/O, including the final response write
-	// (net.Conn.SetDeadline). Match the desktop's admitted Chat budgets; keeping
-	// the 5-second idle-client deadline here discarded already-completed titles.
-	if request.Method == "chat.export" || request.Method == "learning.call" || request.Method == "learning.upload" {
+	// (net.Conn.SetDeadline). Learning and capture may start a worker before
+	// replying; retain their admitted budgets after the idle-client check.
+	if request.Method == "learning.call" || request.Method == "learning.upload" {
 		_ = conn.SetDeadline(time.Now().Add(150 * time.Second))
-	} else if strings.HasPrefix(request.Method, "chat.") {
-		_ = conn.SetDeadline(time.Now().Add(30 * time.Second))
 	} else if strings.HasPrefix(request.Method, "capture.") || request.Method == "results.open" {
 		_ = conn.SetDeadline(time.Now().Add(15 * time.Second))
 	}

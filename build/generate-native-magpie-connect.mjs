@@ -16,7 +16,7 @@ vm.runInContext(text.slice(a,b)+'\nthis.examples={FLAVORS,curlSnippet,envSnippet
 const result=[];
 const emit=(name,value)=>{const target=path.join(root,name),text=JSON.stringify(value,null,2)+'\n';if(process.argv.includes('--check')){if(fs.readFileSync(target,'utf8').replaceAll('\r\n','\n')!==text)throw Error('Native connection examples differ: '+name);}else fs.writeFileSync(target,text);};
 for(const [id,f]of Object.entries(context.examples.FLAVORS)){
- const base=f.base('WINONE_ROOT');const row={id,name:f.name,note:f.note,baseSuffix:base.slice('WINONE_ROOT'.length),decide:!!f.decide,examples:{}};
+ const base=f.base('WINONE_ROOT');const row={id,name:f.name,note:f.note.replace('; the Agents tab sets that for you.','.'),baseSuffix:base.slice('WINONE_ROOT'.length),decide:!!f.decide,examples:{}};
  for(const os of ['windows','unix']){
   context.snipOS=os;
   row.examples[os]={curl:context.examples.curlSnippet(f.curl(base,'WINONE_MODEL','WINONE_KEY')),python:f.python(base,'WINONE_MODEL','WINONE_KEY'),node:f.node(base,'WINONE_MODEL','WINONE_KEY')};
@@ -25,5 +25,5 @@ for(const [id,f]of Object.entries(context.examples.FLAVORS)){
  result.push(row);
 }
 const out='apps/desktop-mygo/pages/aiservices/gateway_examples.json';emit(out,result);
-emit('third_party/magpie-native-connect.json',{repository:'https://github.com/yetone/magpie',revision,license:'MIT',notice:'licenses/upstream-magpie-'+revision+'-0-LICENSE.txt',source:filename,sourceSHA256:createHash('sha256').update(bytes).digest('hex'),output:out,adaptations:['Replace root/model/key placeholders at render time; WinOne requires its own gateway key']});
+emit('third_party/magpie-native-connect.json',{repository:'https://github.com/yetone/magpie',revision,license:'MIT',notice:'licenses/upstream-magpie-'+revision+'-0-LICENSE.txt',source:filename,sourceSHA256:createHash('sha256').update(bytes).digest('hex'),output:out,adaptations:['Replace root/model/key placeholders at render time; WinOne requires its own gateway key; remove the unavailable Agents-page direction']});
 console.log('Generated upstream connection examples for',result.length,'APIs');

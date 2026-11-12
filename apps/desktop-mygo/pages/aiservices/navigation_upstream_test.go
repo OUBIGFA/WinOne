@@ -3,35 +3,23 @@ package aiservices
 import (
 	"github.com/egoist/mygo/ui"
 	"testing"
+	"winone/desktopmygo/testhost"
 )
 
-// A disabled built-in must leave navigation, while a plugin kept alive by an
-// active consumer remains reachable, as in upstream's data-feature behavior.
-func TestBuiltinNavigationFollowsSavedState(t *testing.T) {
-	_, _, p, _ := setup(t)
-	p.advanced = newAdvancedPanel(p)
-	p.advanced.catalog = &magpieCatalog{BuiltinPlugins: []builtinPlugin{
-		{ID: "sessions", On: false}, {ID: "library", On: false},
-		{ID: "routing", On: false}, {ID: "redact", On: false},
-		{ID: "usage", On: true, InUse: 1},
-	}}
-	p.tab = tabRouting
-	tt := ui.NewTester(p.upstreamNavigation, 560, 400)
-	tt.Frame()
-	for _, label := range []string{"Sessions", "Library", "Routing", "Routing groups", "Masking"} {
+// An imported full-version configuration cannot add retired navigation or
+// launch its old plugin/routing RPCs. The fake rejects every unhandled call.
+func TestRemovedSettingsDoNotAddNavigation(t *testing.T) {
+	f := newFakeAI(t)
+	f.configuration["routingEnabled"] = true
+	f.configuration["magpieSettings"] = map[string]any{"builtinPreset": "all", "builtinPlugins": map[string]any{"routing": map[string]any{"enabled": true}, "usage": map[string]any{"enabled": true}}, "redactModel": true}
+	h := testhost.New(t, f.handle)
+	p := newPage(h.Env)
+	t.Cleanup(p.Close)
+	tt := ui.NewTester(p.upstreamNavigation, 1000, 400)
+	settle(h, tt)
+	for _, label := range []string{"Sessions", "Library", "Routing", "Routing groups", "Usage", "Plugins", "Masking"} {
 		if tt.HasText(upstreamT(label)) {
-			t.Errorf("disabled feature still shown: %s", label)
+			t.Errorf("retired service returned: %s", label)
 		}
-	}
-	if !p.destinationEnabled(tabUsage) {
-		t.Fatal("in-use feature disappeared from the More group")
-	}
-	if p.tab != tabHome {
-		t.Fatal("disabled destination remained active")
-	}
-	p.advanced.catalog.BuiltinPlugins[1].On = true
-	tt.Frame()
-	if tt.HasText(upstreamT("Library")) || p.builtinEnabled("library") {
-		t.Fatal("removed destination returned through a plugin toggle")
 	}
 }

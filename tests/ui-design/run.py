@@ -33,7 +33,7 @@ def main():
     assert output.is_relative_to(root / "_temp")
     app_dir = output / "app"
     pages = ["overview", "capture", "selection", "quick-assistant", "interconnect",
-             "wintray", "convenience", "chat", "onebot", "flash-chat", "ai-services", "settings"]
+             "wintray", "convenience", "ai-services", "settings"]
     receipts = []
     user32 = ctypes.windll.user32
     user32.FindWindowW.restype = ctypes.c_void_p
@@ -100,11 +100,9 @@ def main():
                         assert candidates, page
                         rpc("act", {"id": candidates[-1]["id"], "action": "press"})
                         time.sleep(0.3)
-                        if page == "onebot":
-                            # Its first entry starts the local companion service.
-                            wait_for(lambda: any(n.get("label") == translations["nativeOneBot.create"]
-                                and "press" in n.get("actions", []) for n in rpc("tree")["nodes"]))
                         tree = rpc("tree")["nodes"]
+                        assert not any(n.get("key") in ("chat", "onebot", "flash-chat")
+                                       and "press" in n.get("actions", []) for n in tree)
                         nav = next(n for n in tree if n.get("key") == page and "press" in n.get("actions", []))
                         assert "checked" in nav.get("states", []), (page, nav)
                         capture = rpc("capture")
@@ -120,7 +118,7 @@ def main():
                     app.wait(timeout=10)
                 # The PowerShell private desktop owner requests Host tray exit.
     (output / "result.json").write_text(json.dumps({"captures": receipts,
-        "scope": "12 production pages; two themes, languages and window sizes; real navigation"}, indent=2), encoding="utf-8")
+        "scope": "9 production pages; two themes, languages and window sizes; real navigation; removed modules absent"}, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":

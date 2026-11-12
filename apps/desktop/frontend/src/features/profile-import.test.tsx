@@ -21,10 +21,10 @@ function ImportNavigation(){
 }
 it("previews optional global values and names all current built-in modules",async()=>{
  const base=preview(true);
- const value={...base,preferences:{...base.preferences,defaultPage:"chat",keepUIRunning:false,openShortcut:""},plan:{...base.plan,modules:[...base.plan.modules,...["selection","quick-assistant","stroke"].map(id=>({id,state:"ready",requiredPaths:[],settings:{enabled:true}}))]}};
+ const value={...base,preferences:{...base.preferences,defaultPage:"capture",keepUIRunning:false,openShortcut:""},plan:{...base.plan,modules:[...base.plan.modules,...["selection","quick-assistant","stroke"].map(id=>({id,state:"ready",requiredPaths:[],settings:{enabled:true}}))]}};
  native.pick.mockResolvedValue("C:\\Home.winone");native.call.mockResolvedValue(value);
  render(<ProfileImport onApplied={()=>{}}/>);await userEvent.setup().click(screen.getByRole("button",{name:"选择配置文件"}));
- await screen.findByText("默认页面：Chat");expect(screen.getByText("保持界面后台运行：关闭")).toBeTruthy();expect(screen.getByText("打开 WinOne：未设置")).toBeTruthy();
+ await screen.findByText("默认页面：截图助手");expect(screen.getByText("保持界面后台运行：关闭")).toBeTruthy();expect(screen.getByText("打开 WinOne：未设置")).toBeTruthy();
  expect(screen.getByRole("checkbox",{name:"划词助手"})).toBeTruthy();expect(screen.getByRole("checkbox",{name:"快捷助手"})).toBeTruthy();expect(screen.getByRole("checkbox",{name:"鼠标手势"})).toBeTruthy();
 });
 it("checks the global open binding only when global preferences are selected",async()=>{

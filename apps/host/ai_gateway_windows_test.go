@@ -64,7 +64,7 @@ func TestGatewayRoutesFullProtocolThroughMagpie(t *testing.T) {
 	}
 	invalid := httptest.NewRecorder()
 	s.serveGateway(invalid, httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(`{"model":"custom/disabled"}`)))
-	if invalid.Code != 400 || called != 2 {
-		t.Fatalf("invalid model reached vendor: %d/%d", invalid.Code, called)
+	if invalid.Code != http.StatusForbidden || called != 2 {
+		t.Fatalf("disabled model policy: status=%d vendorCalls=%d", invalid.Code, called)
 	}
 }

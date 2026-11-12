@@ -20,18 +20,6 @@ Set-Hook 'internal/settings/settings.go' @{
  'func SharedModelIDs() map[string]string {'='func SharedModelIDs() map[string]string { if s,ok:=WinOneLoad();ok{return s.ModelIDs};'
  'func Load() Settings {'='func Load() Settings { if s,ok:=WinOneLoad();ok{return s.clone()};'
  'func LoadChecked() (Settings, error) {'='func LoadChecked() (Settings, error) { if s,ok:=WinOneLoad();ok{return s.clone(),nil};'
- 'func EditUsageAliases(edit func(map[string]string) (map[string]string, error)) error {'='func EditUsageAliases(edit func(map[string]string) (map[string]string, error)) error { if _,ok:=WinOneLoad();ok{return winOneEditUsageAliases(edit)};'
- 'func SetRedactModel(on bool) error {'='func SetRedactModel(on bool) error { if _,ok:=WinOneLoad();ok{return winOneSetRedactModel(on)};'
- 'func SetRedactModelName(name string) error {'='func SetRedactModelName(name string) error { if _,ok:=WinOneLoad();ok{return winOneEditPrivacy(func(s *Settings){s.RedactModelName=name})};'
- 'func SetRedactModelScore(id string, score float64) error {'='func SetRedactModelScore(id string, score float64) error { if _,ok:=WinOneLoad();ok{return winOneSetPrivacyScore(id,score)};'
- 'func UseRedactModel(name string) error {'='func UseRedactModel(name string) error { if _,ok:=WinOneLoad();ok{return winOneEditPrivacy(func(s *Settings){s.RedactModel=true;s.RedactModelOff=false;s.RedactModelName=name})};'
-}
-# Current upstream already stringifies UnixNano record IDs in both public
-# DTOs. Keep the originals instead of stacking a duplicate Key on the record.
-foreach($relative in @('internal/gui/masking.go','internal/gateway/masked.go')) {
- $original=(& git -C $SourceDirectory show ($Revision+':'+$relative)) -join "`n"
- if($LASTEXITCODE -ne 0 -or $original -notmatch 'json:"key(?:,omitempty)?,string"'){throw "Upstream masking record identity changed: $relative"}
- [IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$original+"`n",$utf8)
 }
 # Upstream now walks cgroups with path.Clean/path.Dir and terminates at "/".
 # The former WinOne filepath.Dir patch would reintroduce an endless Windows walk.
@@ -41,18 +29,10 @@ if($LASTEXITCODE -ne 0 -or -not $room.Contains('dir = path.Dir(dir)')){throw 'Re
 Set-Hook 'internal/pluginrt/config.go' @{
  'func Load() (File, bool, error) {'='func Load() (File, bool, error) { if f,ok:=WinOneLoad();ok{return f,true,nil};'
 }
-Set-Hook 'internal/gateway/remote_magpie.go' @{
- 'func callerFrom(r *http.Request) caller {'='func callerFrom(r *http.Request) caller { if c,ok:=winOneProductCaller(r);ok{return c};'
-}
 Set-Hook 'internal/gateway/decisions.go' @{
  'func canDecide(p provider.Provider) bool {'='func canDecide(p provider.Provider) bool { if supported,ok:=WinOneDecisionProviders[p.ID];ok{return supported};'
 }
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/plugins_embed.go.txt') -Destination (Join-Path $SourceDirectory 'internal/pluginrt/winone_embed.go')
-Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/builtin_plugins.go'),(Join-Path $root 'modules/ai-magpie/bundle_selection.go'),(Join-Path $root 'modules/ai-magpie/builtin_plugins_test.go') -Destination (Join-Path $SourceDirectory 'cmd/winone-ai')
-Set-Hook 'internal/provider/search_api.go' @{
- 'func SearchAPIs() []SearchAPI {'='func SearchAPIs() []SearchAPI { if WinOneSearchAPIs != nil { return slices.DeleteFunc(slices.Clone(WinOneSearchAPIs), func(a SearchAPI) bool { return !a.Ready() }) };'
- 'func StoredSearchAPIs() []SearchAPI { return load().Searches }'='func StoredSearchAPIs() []SearchAPI { if WinOneSearchAPIs != nil { return slices.Clone(WinOneSearchAPIs) }; return load().Searches }'
-}
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/settings_embed.go.txt') -Destination (Join-Path $SourceDirectory 'internal/settings/winone_embed.go')
 Set-Hook 'internal/access/access.go' @{
  '"encoding/json"'=''
@@ -60,7 +40,6 @@ Set-Hook 'internal/access/access.go' @{
  'b, err := json.MarshalIndent(keys, "", "  ")'='b, err := winOneEncodeKeys(keys)'
 }
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/access_store_windows.go.txt') -Destination (Join-Path $SourceDirectory 'internal/access/winone_store_windows.go')
-Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/settings_provider.go.txt') -Destination (Join-Path $SourceDirectory 'internal/provider/winone_settings.go')
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/settings_gateway.go.txt') -Destination (Join-Path $SourceDirectory 'internal/gateway/winone_settings.go')
 Set-Hook 'internal/gateway/native.go' @{
  'p := *found'='p, nativeOK := winOneNativeProvider(*found); if !nativeOK {fail(http.StatusForbidden,"Native APIs require an API-key provider");return}'
@@ -78,15 +57,4 @@ foreach($media in @('draw','video')){
   'if keyHeld && named &&'='if keyHeld && (named || winOneMediaRestricted(r)) &&'
  }
 }
-Set-Hook 'internal/gateway/vision_mcp.go' @{
- 'release, err := reserveFor(access.Caller(r.Context()), int64(len(src)+len(prompt)), "", limitClock())'='if err:=winOneMediaAllowed(r,model);err!=nil{return "",err}; release, err := reserveFor(access.Caller(r.Context()), int64(len(src)+len(prompt)), "", limitClock())'
-}
-Set-Hook 'internal/pii/find.go' @{
- 'func Find(texts []string) ([][]redact.Found, error) {'='func Find(texts []string) ([][]redact.Found, error) { if remote := winOneRemoteFind.Load(); remote != nil { return (*remote)(context.Background(),texts) };'
-}
-Set-Hook 'internal/masking/masking.go' @{
- 'return pii.Of(id)'='return pii.WinOneModel(pii.Of(id))'
-}
-Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/privacy_pii.go.txt') -Destination (Join-Path $SourceDirectory 'internal/pii/winone_private.go')
-Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/privacy_gui.go.txt') -Destination (Join-Path $SourceDirectory 'internal/gui/winone_privacy.go')
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/settings.go'),(Join-Path $root 'modules/ai-magpie/settings_test.go') -Destination (Join-Path $SourceDirectory 'cmd/winone-ai')

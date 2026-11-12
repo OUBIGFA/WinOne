@@ -12,15 +12,12 @@ import (
 	"github.com/yetone/magpie/internal/appdir"
 	"github.com/yetone/magpie/internal/gateway"
 	"github.com/yetone/magpie/internal/provider"
-	"github.com/yetone/magpie/internal/settings"
-	"github.com/yetone/magpie/internal/stats"
 	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
-	"time"
 )
 
 type request struct {
@@ -28,7 +25,6 @@ type request struct {
 	KeyID               string                   `json:"keyID,omitempty"`
 	KeyOptions          *KeyOptions              `json:"keyOptions,omitempty"`
 	ProviderPreferences *ProviderPreferences     `json:"providerPreferences,omitempty"`
-	Archive             string                   `json:"archive,omitempty"`
 	LimitRestOff        bool                     `json:"limitRestOff,omitempty"`
 	BalanceKeys         []provider.KeyAccount    `json:"balanceKeys,omitempty"` // Private saved-key snapshot; never a UI response.
 	MagpieSettings      json.RawMessage          `json:"magpieSettings,omitempty"`
@@ -41,10 +37,6 @@ type request struct {
 	AdditionalTools     bool                     `json:"additionalTools,omitempty"`
 	Headers             map[string]string        `json:"headers,omitempty"`
 	ProviderID          string                   `json:"providerId,omitempty"`
-	Usage               *usageQuery              `json:"usage,omitempty"`
-	UsageAliases        map[string]string        `json:"usageAliases,omitempty"`
-	UsageAlias          *usageAliasEdit          `json:"usageAlias,omitempty"`
-	UsageSource         string                   `json:"usageSource,omitempty"`
 	GatewayPath         string                   `json:"gatewayPath,omitempty"`
 	GatewayMethod       string                   `json:"gatewayMethod,omitempty"`
 	GatewayContentType  string                   `json:"gatewayContentType,omitempty"`
@@ -53,7 +45,6 @@ type request struct {
 	GatewayHeaders      http.Header              `json:"gatewayHeaders,omitempty"`
 	Stream              bool                     `json:"stream,omitempty"`
 	Operation           string                   `json:"operation,omitempty"`
-	ExternalGateway     *externalGateway         `json:"externalGateway,omitempty"`
 	Agent               string                   `json:"agent,omitempty"`
 	AgentBackend        string                   `json:"agentBackend,omitempty"`
 	Preset              string                   `json:"preset,omitempty"`
@@ -81,7 +72,7 @@ func run(ctx context.Context, input io.Reader) (string, error) {
 	return runOutput(ctx, input, nil)
 }
 func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) error) (string, error) {
-	stopPlugins := serveBuiltinPlugins()
+	stopPlugins := serveGatewayLimits()
 	defer stopPlugins()
 	var in request
 	decoder := json.NewDecoder(io.LimitReader(input, maximumRequest))
@@ -92,7 +83,7 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 	if err := applyRuntimeSettings(in); err != nil {
 		return "", err
 	}
-	if err := configureUsage(in); err != nil {
+	if err := configureAccounting(in); err != nil {
 		return "", err
 	}
 	if len(in.ImagePNG) > 0 {
@@ -151,7 +142,7 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 	if err := installAuxiliaryProviders(in); err != nil {
 		return "", err
 	}
-	if err := configureUsage(in); err != nil {
+	if err := configureAccounting(in); err != nil {
 		return "", err
 	}
 	if len(in.ImagePNG) > 0 {
@@ -180,7 +171,6 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 		response := newStreamResponse(emit)
 		response.cancel = cancel
 		gateway.New().Handler().ServeHTTP(response, req.WithContext(streamContext))
-		gateway.WinOneWaitArchive()
 		if ctx.Err() != nil {
 			return "", ctx.Err()
 		}
@@ -188,7 +178,6 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 	}
 	response := httptest.NewRecorder()
 	gateway.New().Handler().ServeHTTP(response, req)
-	gateway.WinOneWaitArchive()
 	if response.Code != http.StatusOK {
 		// Vendor bodies can repeat prompts or API keys. Only expose the status.
 		return "", &upstreamFailure{Status: response.Code, RetryAfterSeconds: retryDelay(response.Header().Get("Retry-After")), Limited: gateway.WinOneLimitedResponse(response.Code, response.Body.Bytes())}
@@ -217,13 +206,6 @@ func main() {
 	// The embedding host supplies an isolated XDG profile. Magpie's automatic
 	// portable detection must not redirect it into a neighbouring data folder.
 	appdir.UseExecutable("")
-	if handled, err := runExternalMCPCommand(os.Args[1:]); handled {
-		if err != nil {
-			os.Stderr.WriteString(err.Error() + "\n")
-			os.Exit(1)
-		}
-		return
-	}
 	if provider.TookOpenedURL(os.Args[1:]) {
 		return
 	}
@@ -235,40 +217,8 @@ func main() {
 		_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": "invalid AI request"})
 		os.Exit(1)
 	}
-	if in.Operation == "archive.read" || in.Operation == "archive.file" {
-		if err := readArchive(in, os.Stdout); err != nil {
-			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": "Request archive unavailable"})
-			os.Exit(1)
-		}
-		return
-	}
-	if in.Operation == "usage.aliases" {
-		if err := editUsageAliases(in, os.Stdout); err != nil {
-			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
-			os.Exit(1)
-		}
-		return
-	}
-	if in.Operation == "external.serve" {
-		if err := serveExternal(context.Background(), in, reader, os.Stdout); err != nil {
-			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
-			os.Exit(1)
-		}
-		return
-	}
-	if in.Operation == "routing.serve" || in.Operation == "privacy.serve" {
-		if err := serveRouting(context.Background(), in, reader, os.Stdout); err != nil {
-			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
-			os.Exit(1)
-		}
-		return
-	}
-	if in.Operation == "usage.read" {
-		if err := applyRuntimeSettings(in); err != nil {
-			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
-			os.Exit(1)
-		}
-		if err := readUsage(in, os.Stdout); err != nil {
+	if in.Operation == "gateway.serve" {
+		if err := serveGatewayBackend(context.Background(), in, reader, os.Stdout); err != nil {
 			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
 			os.Exit(1)
 		}
@@ -280,26 +230,8 @@ func main() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), workerRequestWait(in))
 	defer cancel()
-	// Only an explicit opt-in reaches upstream statistics. Send after serving
-	// the request; the daily stamp and NoUsageStats are Magpie's own behavior.
-	if !settings.Load().NoStats {
-		defer func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			_ = stats.Send(ctx, "winone-3964ea6", "embedded", time.Now())
-		}()
-	}
-	if in.Operation == "magpie.catalog" || in.Operation == "models.test" || in.Operation == "magpie.maintain" {
-		var err error
-		switch in.Operation {
-		case "magpie.catalog":
-			err = magpieCatalog(ctx, in, os.Stdout)
-		case "models.test":
-			err = testModels(ctx, in, os.Stdout)
-		case "magpie.maintain":
-			err = maintainMagpie(ctx, in, os.Stdout)
-		}
-		if err != nil {
+	if in.Operation == "models.test" {
+		if err := testModels(ctx, in, os.Stdout); err != nil {
 			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
 			os.Exit(1)
 		}
@@ -314,7 +246,7 @@ func main() {
 		_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"icon": icon})
 		return
 	}
-	if in.Operation == "gateway" || in.Operation == "magpie.gateway" {
+	if in.Operation == "gateway" {
 		if err := serveGateway(ctx, in, os.Stdout); err != nil {
 			_ = json.NewEncoder(os.Stdout).Encode(gatewayEvent{Type: "error"})
 			os.Exit(1)

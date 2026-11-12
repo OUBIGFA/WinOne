@@ -20,6 +20,17 @@ $revision=(& git -C $source rev-parse HEAD).Trim()
 & git -C $root check-ignore -q --no-index -- (Join-Path $output 'build-output.probe')
 if($LASTEXITCODE -ne 0){throw 'AI output must be Git-ignored'}
 $encoding=New-Object Text.UTF8Encoding($false)
+# Prepare a fresh detached source for each build. Removed generated files
+# cannot survive from a previous full-version build, and the resource checkout
+# itself remains an input. Keep this outside the distributable bundle.
+$temporaryRoot=Join-Path $root '_temp'
+$taskName=($output.Substring($temporaryRoot.Length).TrimStart([char[]]@('\','/')).Split([char[]]@('\','/')))[0]
+$prepared=Join-Path (Join-Path $temporaryRoot $taskName) ('ai-source-'+[guid]::NewGuid().ToString('N'))
+& (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $prepared
+if($prepared.StartsWith($output+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'Prepared AI source must stay outside the distributable bundle'}
+& git -c core.longpaths=true -C $source worktree add --detach --quiet $prepared $revision
+if($LASTEXITCODE -ne 0){throw 'Cannot prepare clean pinned AI source'}
+$source=(Resolve-Path -LiteralPath $prepared).Path
 $entry=Join-Path $source 'cmd/winone-ai'
 & node (Join-Path $root 'build/verify-ai-source.mjs') $source
 if($LASTEXITCODE -ne 0){throw 'AI source/license verification failed'}
@@ -30,8 +41,6 @@ if($LASTEXITCODE -ne 0){throw 'Native gateway examples differ from the selected 
 $previousGofmt=$env:WINONE_GOFMT
 try {
  $env:WINONE_GOFMT=Join-Path (Split-Path -Parent (Get-Command $GoExe -ErrorAction Stop).Source) 'gofmt.exe'
- & node (Join-Path $root 'build/sync-magpie-usage.mjs') --source $source
- if($LASTEXITCODE -ne 0){throw 'Magpie usage source verification failed'}
  & node (Join-Path $root 'build/sync-magpie-proxy.mjs') --source $source
  if($LASTEXITCODE -ne 0){throw 'Magpie proxy source verification failed'}
 } finally {$env:WINONE_GOFMT=$previousGofmt}
@@ -59,13 +68,6 @@ Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/signin_state.go') -De
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/failures.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/catalog.go'),(Join-Path $root 'modules/ai-magpie/catalog_test.go'),(Join-Path $root 'modules/ai-magpie/plugin-catalog.json') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugins.go') -Destination $entry
-Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/external.go') -Destination $entry
-Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/external_service.go') -Destination $entry
-Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/external_test.go') -Destination $entry
-Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/external_mcp.go'),(Join-Path $root 'modules/ai-magpie/external_mcp_test.go') -Destination $entry
-Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/external_gui.go.txt') -Destination (Join-Path $source 'internal/gui/winone_external.go') -Force
-Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/external_appdir.go.txt') -Destination (Join-Path $source 'internal/appdir/winone_external.go') -Force
-& (Join-Path $PSScriptRoot 'prepare-ai-external.ps1') -SourceDirectory $source -Revision $revision
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/account_snapshot.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_signin.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_desktop_windows.go') -Destination $entry
@@ -133,12 +135,15 @@ if(-not $text.Contains($begin)){throw 'Upstream plugin authorization context cha
 $text=$text.Replace($begin,$contextBegin).Replace('s.st.State != "waiting" && s.st.State != "installing"','s.st.State != "waiting" && s.st.State != "installing" && s.st.State != "starting"')
 [IO.File]::WriteAllText($pluginSignin,$text+"`n",$encoding)
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/plugin_signin.go.txt') -Destination (Join-Path $source 'internal/provider/winone_plugin_signin.go') -Force
-& (Join-Path $PSScriptRoot 'prepare-ai-usage.ps1') -SourceDirectory $source -Revision $revision
+& (Join-Path $PSScriptRoot 'prepare-ai-accounting.ps1') -SourceDirectory $source -Revision $revision
 & (Join-Path $PSScriptRoot 'prepare-ai-settings.ps1') -SourceDirectory $source -Revision $revision
-& (Join-Path $PSScriptRoot 'prepare-ai-plugin-registry.ps1') -SourceDirectory $source -Revision $revision
-& (Join-Path $PSScriptRoot 'prepare-ai-routing.ps1') -SourceDirectory $source
+& (Join-Path $PSScriptRoot 'prepare-ai-accounts.ps1') -SourceDirectory $source -Revision $revision
+& (Join-Path $PSScriptRoot 'prepare-ai-gateway.ps1') -SourceDirectory $source
 Push-Location $source
 try {
+ $dependencies=@(& $GoExe list -deps ./cmd/winone-ai)
+ if($LASTEXITCODE -ne 0){throw 'Cannot inspect AI runtime dependencies'}
+ if(@($dependencies | Where-Object {$_ -match '^github.com/yetone/magpie/internal/gui(?:/|$)'}).Count){throw 'The local gateway must not link the retired full AI desktop service'}
  if($Test){
   # Both caches and persistent metadata stay inside this test's owned output.
   $priorTestEnvironment=@{}
@@ -179,7 +184,7 @@ try {
    $ErrorActionPreference='Stop'
    if($LASTEXITCODE -ne 0){throw 'Magpie OAuth adapter test failed'}
    $ErrorActionPreference='Continue'
-   & $GoExe test ./internal/plugin -run '^TestWinOne(AccountSnapshot|Extension|PluginCommand|CachedProviders)' -count=1 -v
+   & $GoExe test ./internal/plugin -run '^TestWinOne(AccountSnapshot|AccountRegistry|PluginCommand|CachedProviders)' -count=1 -v
    $ErrorActionPreference='Stop'
    if($LASTEXITCODE -ne 0){throw 'Magpie account snapshot parity test failed'}
   } finally {foreach($name in $priorTestEnvironment.Keys){[Environment]::SetEnvironmentVariable($name,$priorTestEnvironment[$name])}}

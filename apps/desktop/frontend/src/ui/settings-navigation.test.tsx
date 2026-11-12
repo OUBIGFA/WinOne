@@ -28,8 +28,8 @@ it("reports bridge failure instead of pretending navigation succeeded",async()=>
 it("uses the saved default page on the next open without navigating when the preference changes",async()=>{
  let sequence=0,notify=()=>{};const port={read:async()=>sequence,subscribe:(fn:()=>void)=>{notify=fn;return ()=>{};}};
  const navigate=vi.fn(),error=vi.fn();
- const hook=renderHook(({page})=>useSettingsNavigation(port,navigate,error,page),{initialProps:{page:"chat"}});
- sequence=1;await act(async()=>notify());expect(navigate).toHaveBeenLastCalledWith("chat");
+ const hook=renderHook(({page})=>useSettingsNavigation(port,navigate,error,page),{initialProps:{page:"capture"}});
+ sequence=1;await act(async()=>notify());expect(navigate).toHaveBeenLastCalledWith("capture");
  hook.rerender({page:"ai-services"});expect(navigate).toHaveBeenCalledTimes(1);
  sequence=2;await act(async()=>notify());expect(navigate).toHaveBeenLastCalledWith("ai-services");
 });

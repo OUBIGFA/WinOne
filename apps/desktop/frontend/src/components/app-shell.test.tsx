@@ -23,8 +23,7 @@ it("mirrors kept-mounted tabs and parent fieldset locks into the action rail",as
  const button=screen.getByRole<HTMLButtonElement>("button",{name:"保存设置"});expect(button.matches(':disabled')).toBe(true);
  view.rerender(content(true,false));await waitFor(()=>expect(screen.queryByRole("button",{name:"保存设置"})).toBeNull());
  view.rerender(content(false,false));await waitFor(()=>expect(screen.getByRole("button",{name:"保存设置"}).matches(':disabled')).toBe(false));
- view.rerender(<AppShell {...props} page="chat"><p>Chat</p></AppShell>);
- expect(view.container.querySelector('[data-slot="settings-actions"]')).toBeNull();
+
 });
 it("keeps disabled Save and Undo in place on pages without a manual save",async()=>{
  const undo=vi.fn(),props={pages:[],logo:"/logo.png",onNavigate:()=>{},page:"capture"};
@@ -39,17 +38,15 @@ it("keeps disabled Save and Undo in place on pages without a manual save",async(
  await userEvent.setup().click(within(rail).getByRole("button",{name:"撤销修改"}));expect(undo).toHaveBeenCalledOnce();
  view.rerender(<AppShell {...props}><SettingsSaveBar><button>保存设置</button></SettingsSaveBar></AppShell>);
  expect(within(rail).getByRole<HTMLButtonElement>("button",{name:"撤销修改"}).matches(":disabled")).toBe(true);
- view.rerender(<AppShell {...props} page="chat"><p>Chat</p></AppShell>);
- expect(view.container.querySelector('[data-slot="settings-actions"]')).toBeNull();
+
 });
-it("keeps settings actions in the fixed titlebar and leaves Chat unchanged",async()=>{
+it("keeps settings actions in the fixed titlebar",async()=>{
  const refresh=vi.fn(),props={pages:[],logo:"/logo.png",onNavigate:()=>{},toolbar:<button onClick={refresh}>刷新状态</button>};
  const view=render(<AppShell {...props} page="capture"><p>截图设置</p></AppShell>);
  const titlebar=view.container.querySelector<HTMLElement>('[data-slot="window-titlebar"]')!;
  await userEvent.setup().click(within(titlebar).getByRole("button",{name:"刷新状态"}));
  expect(refresh).toHaveBeenCalledOnce();
- view.rerender(<AppShell {...props} page="chat"><p>Chat</p></AppShell>);
- expect(screen.queryByRole("button",{name:"刷新状态"})).toBeNull();
+
 });
 it("shows one navigation entry per page and preserves the active location",async()=>{
  const navigate=vi.fn();
@@ -60,26 +57,13 @@ it("shows one navigation entry per page and preserves the active location",async
  expect(navigate).toHaveBeenCalledWith("settings");expect(screen.getByRole("heading",{name:"首页内容"})).toBeTruthy();
 });
 
-it.each(['chat','onebot'])('keeps %s outside the settings surface and action rail',page=>{
- const view=render(<AppShell page={page} pages={[]} logo="/logo.png" onNavigate={()=>{}}><main>Conversation</main></AppShell>);
- const content=view.container.querySelector('[data-slot="page-content"]')!;
- expect(content.classList.contains('settings-surface')).toBe(false);
- expect(content.classList.contains('h-full')).toBe(true);
- expect(view.container.querySelector('[data-slot="settings-actions"]')).toBeNull();
- expect(document.documentElement.hasAttribute('data-settings-ui')).toBe(false);
-});
-
-it("limits settings styling to non-Chat pages across navigation",()=>{
+it("keeps settings styling and active page across navigation",()=>{
  const props={pages:[],logo:"/logo.png",onNavigate:()=>{}};
  const view=render(<AppShell {...props} page="settings"><p>Settings</p></AppShell>);
  const content=()=>view.container.querySelector('[data-slot="page-content"]')!;
  expect(content().classList.contains("settings-surface")).toBe(true);
  expect(content().getAttribute("data-settings-page")).toBe("settings");
  expect(document.documentElement.dataset.settingsUi).toBe("true");
- view.rerender(<AppShell {...props} page="chat"><p>Chat</p></AppShell>);
- expect(content().classList.contains("settings-surface")).toBe(false);
- expect(content().getAttribute("data-settings-page")).toBeNull();
- expect(document.documentElement.hasAttribute("data-settings-ui")).toBe(false);
  view.rerender(<AppShell {...props} page="capture"><p>Capture</p></AppShell>);
  expect(content().classList.contains("settings-surface")).toBe(true);
  expect(document.documentElement.dataset.settingsUi).toBe("true");

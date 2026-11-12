@@ -46,7 +46,9 @@ func TestDraftAccountShowsPluginLoginStepsWithoutSaving(t *testing.T) {
 	if executable == "" {
 		t.Skip("explicit bundled plugin login test")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	// First contact starts the account-list and sign-in workers separately.
+	// Give each cold operation the same 25-second budget as a Host account read.
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
 	defer cancel()
 	s := newAIService(ctx, t.TempDir(), "unused.exe")
 	s.translator.Executable = executable
@@ -55,7 +57,9 @@ func TestDraftAccountShowsPluginLoginStepsWithoutSaving(t *testing.T) {
 		return s.handle(host.Request{ID: "draft-test", Method: method, PeerPID: uint32(os.Getpid()), Params: raw})
 	}
 	draft := ai.AccountDraft{Agent: "cline", Backend: "plugin"}
+	started := time.Now()
 	response := call("accounts.list", map[string]any{"agent": "cline", "provider": "unsaved-account", "draft": draft})
+	t.Logf("account methods ready after %s", time.Since(started))
 	if response.Error != nil {
 		t.Fatal(response.Error)
 	}
@@ -78,6 +82,7 @@ func TestDraftAccountShowsPluginLoginStepsWithoutSaving(t *testing.T) {
 		t.Fatal("plugin API-key login method missing")
 	}
 	response = call("accounts.signin.start", map[string]any{"agent": "cline", "provider": "unsaved-account", "draft": draft, "method": method})
+	t.Logf("sign-in job accepted after %s", time.Since(started))
 	if response.Error != nil {
 		t.Fatal(response.Error)
 	}
@@ -105,4 +110,5 @@ func TestDraftAccountShowsPluginLoginStepsWithoutSaving(t *testing.T) {
 	if len(s.store.Configuration().Providers) != 0 {
 		t.Fatal("login step committed unsaved configuration")
 	}
+	t.Logf("account prompt ready after %s", time.Since(started))
 }

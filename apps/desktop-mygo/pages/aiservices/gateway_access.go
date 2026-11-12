@@ -32,7 +32,6 @@ type callerKey struct {
 	Issues         bool          `json:"issues"`
 	Models         []string      `json:"models,omitempty"`
 	Accounts       []string      `json:"accounts,omitempty"`
-	MCP            []string      `json:"mcp,omitempty"`
 	Expires        string        `json:"expires,omitempty"`
 	Issuer         string        `json:"issuer,omitempty"`
 	Limit          *callerLimit  `json:"limit,omitempty"`
@@ -86,7 +85,6 @@ type gatewayAccessPanel struct {
 	rule                                 gatewayOIDCRule
 	claimName                            string
 	catalog                              *accessCatalog
-	mcpChoices                           []kit.SelectOption
 }
 
 func accessT(key string) string { return i18n.T("aiAccess." + key) }
@@ -162,14 +160,15 @@ func (a *gatewayAccessPanel) View(c *ui.Context, p *page) {
 	if a.fields == nil {
 		a.fields = fields{}
 	}
-	if p.extensions.state == nil {
+	if p.gateway.runtimeURL == "" {
 		return
 	}
-	if a.source != p.extensions.state.URL {
+	if a.source != p.gateway.runtimeURL {
 		a.api.close()
-		a.source = p.extensions.state.URL
+		a.api.err = ""
+		a.source = p.gateway.runtimeURL
 		a.state = nil
-		a.catalog, a.mcpChoices = nil, nil
+		a.catalog = nil
 	}
 	if a.state == nil && !a.api.busy && a.api.err == "" {
 		a.load(p)
@@ -182,26 +181,7 @@ func (a *gatewayAccessPanel) View(c *ui.Context, p *page) {
 			}
 		})
 	}
-	if a.catalog != nil && a.mcpChoices == nil && !a.api.busy && a.api.err == "" {
-		a.api.request(p, "GET", "/api/caller-keys/mcp", nil, func(raw json.RawMessage) {
-			var out struct {
-				Servers []struct {
-					Name, Title string
-					Tools       []string
-				}
-			}
-			if !nativeDecode(&a.api, raw, &out) {
-				return
-			}
-			a.mcpChoices = options("-", accessT("noMCP"))
-			for _, server := range out.Servers {
-				a.mcpChoices = append(a.mcpChoices, kit.SelectOption{Value: server.Name, Label: cmp.Or(server.Title, server.Name)})
-				for _, tool := range server.Tools {
-					a.mcpChoices = append(a.mcpChoices, kit.SelectOption{Value: server.Name + "/" + tool, Label: server.Name + " / " + tool})
-				}
-			}
-		})
-	}
+
 	a.api.notice(c, func() { a.load(p) })
 	kit.Group(c, icons.ShieldCheck, accessT("title"), accessT("hint"), func() {
 		ui.Row(c).FillWidth().Padding(12, 16).Gap(8).Wrap().Children(func() {
@@ -347,7 +327,6 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 			kit.Help(c, accessT("scopeHint"))
 			a.scopeList(c, "models", accessT("models"), &k.Models, a.modelChoices(false), locked)
 			a.scopeList(c, "accounts", accessT("accounts"), &k.Accounts, a.modelChoices(true), locked)
-			a.scopeList(c, "mcp", accessT("mcp"), &k.MCP, a.mcpChoices, locked)
 		case 2:
 			limits := append([]callerLimit{}, k.More...)
 			if k.Limit != nil {

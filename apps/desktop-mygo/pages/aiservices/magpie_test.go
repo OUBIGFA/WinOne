@@ -82,11 +82,3 @@ func TestProxyLoginRoundTrips(t *testing.T) {
 		t.Fatal(got)
 	}
 }
-
-func TestRuleKindsNormalizeAsMagpie(t *testing.T) {
-	for in, want := range map[string]string{" api-key ": "API_KEY", "my.token": "MY_TOKEN", "__": "CUSTOM", "密钥": "CUSTOM"} {
-		if got := ruleKind(in); got != want {
-			t.Errorf("%q: %q", in, got)
-		}
-	}
-}

@@ -1,11 +1,8 @@
-// Package web shows pages the Host serves inside a page of the window:
-// Magpie's routing editor, the plugin manager, privacy records and the
-// panels plugins add. The React window showed them in iframes and talked
-// to them with postMessage. Here each is a native web view (MyGo's
-// ui.WebView) whose page is the top document, so the page's
-// parent.postMessage reaches the page itself: a script injected before the
-// page's own carries those messages to Go, and Go answers by posting to the
-// page. The pages keep the protocol they had with the React window.
+// Package web shows trusted embedded pages inside a WinOne window, such as
+// an interconnect share browser. Each page is a native web view (MyGo's
+// ui.WebView) whose document is the top document. A short script injected
+// before the page carries accepted messages to Go, and Go answers by posting
+// back to that page.
 package web
 
 import (
@@ -100,9 +97,8 @@ type Options struct {
 	URL string
 	// Label names the page for assistive technology.
 	Label string
-	// Theme is the type of the message that tells the page the window's
-	// language and theme ("winone-plugin-theme" or "winone-routing-theme");
-	// the page takes the origin it answers to from it.
+	// Theme is the type of the message that tells the page its language and
+	// theme; the page takes the origin it answers to from it.
 	Theme string
 	// Accept lists the types of message the page may post to Go.
 	Accept []string

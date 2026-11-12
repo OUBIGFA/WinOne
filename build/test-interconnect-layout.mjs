@@ -25,7 +25,7 @@ try{
   // theme/native bridge without allowing inline development styles.
   await page.route('**/*',async route=>{
    const url=new URL(route.request().url());
-   if(url.pathname==='/interconnect-chat.html'||url.pathname.startsWith('/assets/')){
+   if(url.pathname.startsWith('/assets/')){
     await route.fulfill({response:await route.fetch({url:builtBase+url.pathname+url.search})});
    }else await route.continue();
   });
@@ -176,34 +176,6 @@ try{
   await page.getByText(en?'Default receive folder':'默认接收目录',{exact:true}).waitFor();
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'General overflows');
   await page.screenshot({path:join(output,[language,width,theme,'general'].join('-')+'.png'),fullPage:true});
-  const order=await page.locator('[data-page-id]').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-page-id')));
-  assert.equal(order[order.indexOf('chat')+1],'flash-chat','Flash Chat must immediately follow Chat');
-  assert.equal(await page.getByRole('tab',{name:en?'Flash Chat':'闪聊',exact:true}).count(),0,'Chat remains in transfer tabs');
-  await page.locator('[data-page-id=flash-chat]').click();
-  const flash=page.frameLocator('iframe[title="'+(en?'Flash Chat':'闪聊')+'"]');
-  await flash.getByRole('button',{name:en?'Join room':'加入房间',exact:true}).waitFor();
-  const brand=await flash.locator('.flash-chat-brand').evaluate(node=>{const [icon,title]=node.children;return {icon:icon.getBoundingClientRect().y,title:title.getBoundingClientRect().y};});
-  assert.ok(Math.abs(brand.icon-brand.title)<8,'Flash Chat brand is not horizontal');
-  const checkWelcome=async()=>{
-   const layout=await flash.locator('.flash-chat-entry').evaluate(node=>{
-    const center=element=>{const rect=element.getBoundingClientRect();return rect.x+rect.width/2;};
-    const description=node.querySelector('.flash-chat-welcome > p');
-    return {entry:center(node),brand:center(node.querySelector('.flash-chat-brand')),description:center(description),align:getComputedStyle(description).textAlign};
-   });
-   assert.ok(Math.abs(layout.entry-layout.brand)<2,'Flash Chat icon and title are not centered together');
-   assert.ok(Math.abs(layout.entry-layout.description)<2&&layout.align==='center','Flash Chat welcome description is not centered');
-  };
-  await checkWelcome();
-  await flash.getByRole('button',{name:en?'Join room':'加入房间',exact:true}).click();
-  await checkWelcome();
-  await flash.getByPlaceholder(en?'Room name':'房间名称',{exact:true}).waitFor();
-  await flash.getByPlaceholder(en?'Nickname':'个人昵称',{exact:true}).waitFor();
-  await flash.getByPlaceholder(en?'Room ID':'房间标识',{exact:true}).waitFor();
-  await flash.getByPlaceholder(en?'Room password':'房间密码',{exact:true}).waitFor();
-  assert.equal(await flash.locator('.flash-chat-lobby').evaluate(node=>getComputedStyle(node).display),'grid','Flash Chat stylesheet was not loaded');
-  assert.equal(await page.locator('[data-slot=settings-actions]').count(),0,'Flash Chat must not have a settings action rail');
-  assert.equal(await page.locator('[data-slot=page-scroll]').evaluate(node=>node.scrollHeight>node.clientHeight),false,'Flash Chat outer page scrolls');
-  await page.screenshot({path:join(output,[language,width,theme,'flash-chat'].join('-')+'.png'),fullPage:true});
   await page.close();
  }
  // The second settings write can fail after the LAN write succeeded. Keep

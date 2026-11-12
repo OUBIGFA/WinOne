@@ -146,16 +146,6 @@ pub fn save_png_labeled(owner: HWND,title:&str,suggested:&str,label:&str)->Resul
     save_file(owner,title,&format!("{label}\0*.png\0"),"png",suggested)
 }
 
-/// The native save dialog adds .csv before asking about an existing file.
-pub fn save_csv_labeled(owner:HWND,title:&str,suggested:&str,label:&str)->Result<Option<String>,String>{
-    save_file(owner,title,&format!("{label}\0*.csv\0"),"csv",suggested)
-}
-
-/// Apply .cshare before Windows asks for overwrite confirmation.
-pub fn save_cshare_labeled(owner:HWND,title:&str,suggested:&str,label:&str)->Result<Option<String>,String>{
-    save_file(owner,title,&format!("{label}\0*.cshare\0"),"cshare",suggested)
-}
-
 pub(crate) fn save_file(owner: HWND, title: &str, filter: &str, extension: &str, suggested: &str) -> Result<Option<String>,String> {
     let title = wide(title);
     let filter = wide(filter);
@@ -216,7 +206,7 @@ fn pick_native_paths(owner:HWND,title:&str,folders:bool,multiple:bool)->Result<V
     select().map_err(|e|format!("无法选择文件夹：{e}"))
 }
 
-pub fn pick_chat_files(owner:HWND,title:&str)->Result<Vec<String>,String>{
+pub fn pick_files(owner:HWND,title:&str)->Result<Vec<String>,String>{
     pick_native_paths(owner,title,false,true)
 }
 pub fn pick_file(owner:HWND,title:&str)->Result<Option<String>,String>{

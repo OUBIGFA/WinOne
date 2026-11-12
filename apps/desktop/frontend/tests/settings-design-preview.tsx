@@ -7,7 +7,6 @@ import type {AIConfiguration} from "../src/features/ai-configuration";
 import type {DirectoryEntry} from "../src/features/directory-links-browser";
 import type {DirectoryLinkRecord} from "../src/features/directory-links";
 import strokeDefaults from "../../../../modules/stroke/defaults.json";
-import {usageFixture} from "./ai-usage-fixture";
 
 const query = new URLSearchParams(location.search);
 const language = query.get("language") === "en-US" ? "en-US" : "zh-CN";
@@ -102,7 +101,7 @@ window.go = {main: {App: {
   PickProgram: async () => "C:\\WinOne-test\\replacement.exe",
   PickPrograms: async () => ["C:\\WinOne-test\\new-program.exe"],
   ProgramInfo: async (path: string) => ({name: path.split(/[\\/]/).at(-1)?.replace(/\.[^.]+$/, "") || "Example"}),
-  PickChatFiles: async () => [entries[1].path], PickDirectories: async () => [entries[0].path],
+  PickFiles: async () => [entries[1].path], PickDirectories: async () => [entries[0].path],
   Residency: async () => JSON.stringify({requested: false, reasons: []}),
   Modules: async (method: string, payload: string) => {
     const params = JSON.parse(payload); record("modules." + method, params);
@@ -120,10 +119,8 @@ window.go = {main: {App: {
   QuickAssistant: async (method: string, payload: string) => {record("quick." + method, JSON.parse(payload)); if (method === "settings.save") quick = {...JSON.parse(payload), revision: quick.revision + 1}; return JSON.stringify(method === "show" ? {shown: true} : quick);},
   Stroke: async (method: string, payload: string) => {record("stroke." + method, JSON.parse(payload)); if (method === "settings.save") stroke = JSON.parse(payload); return JSON.stringify(stroke);},
   WinTray: async (method: string, payload: string) => {const params = JSON.parse(payload); record("wintray." + method, params); if (method === "settings.save") {programs = params.settings; return JSON.stringify({state: "completed"});} return JSON.stringify({revision: "1", settings: programs});},
-  Chat: async (method: string, payload: string) => {const value = usageFixture("chat." + method, payload); if (value !== undefined) return JSON.stringify(value); throw Error("Chat is excluded from this fixture");},
   Capture: async (method: string, payload: string) => {
     const params = JSON.parse(payload); record("capture." + method, params);
-    const usage = usageFixture(method, payload); if (usage !== undefined) return JSON.stringify(usage);
     if (method === "snapshot") return JSON.stringify({settings: capture});
     if (method === "settings.get") return JSON.stringify(capture);
     if (method === "settings.save") {capture = {...params, revision: capture.revision + 1}; return JSON.stringify(capture);}
@@ -134,16 +131,11 @@ window.go = {main: {App: {
     if (method === "ai.accounts.list") return JSON.stringify({accounts: [{agent: "codex", user: "preview@example.invalid", plan: "Preview"}]});
     if (method === "ai.models.fetch") return JSON.stringify({models: [{id: "shared-model"}, {id: "vision-model"}, {id: "new-model"}]});
     if (method === "ai.models.test") return JSON.stringify({results: params.models.map((model: string) => ({model, ok: true, ms: 120})), clients: {codex: "", "claude-code": ""}});
-    if (method === "ai.magpie.catalog") return JSON.stringify({visionModels: [{id: "one/vision-model", name: "Vision", provider: "one", providerName: ai.providers[0].name}], imageGenModels: [], titleModels: [], searchVendors: [{id: "tavily", name: "Tavily"}, {id: "searxng", name: "SearXNG", needURL: true}], searchChoices: [], quotas: [{id: "account", name: "ChatGPT / Codex"}], codexUsers: ["preview@example.invalid"], pluginCheckins: [{id: "example", name: "Example check-in"}]});
     // Viewing privacy settings owns a read-only lease; the layout fixture
     // never downloads or starts a model, just like a fresh native profile.
-    if (["ai.magpie.privacy.open", "ai.magpie.privacy.state"].includes(method)) return JSON.stringify({on: false, supported: true, installed: false, size: 1637572192});
-    if (method === "ai.magpie.privacy.close") return JSON.stringify({});
     if (method === "ai.gateway.get") return JSON.stringify(gateway);
     if (method === "ai.gateway.save") {gateway = {...gateway, ...params.settings, revision: gateway.revision + 1, running: params.settings.enabled}; return JSON.stringify(gateway);}
     if (method === "ai.gateway.key") return JSON.stringify({key: "fixture-not-a-real-key"});
-    if (["ai.routing.close", "ai.routing.plugins.close", "ai.routing.extensions.close"].includes(method)) return JSON.stringify({});
-    if (["ai.routing.open", "ai.routing.plugins.open", "ai.routing.extensions.open"].includes(method)) throw Error("Magpie 原版路由与插件页在桌面集成测试中验证；此夹具只检查宿主错误边界。");
     throw Error("Unsupported isolated capture operation: " + method);
   },
   InspectDroppedPaths: async (paths:string[]) => {record("paths.inspect",paths);return paths.map(path=>({path,kind:/\.[a-z0-9]+$/i.test(path)?"file":"directory"}));},

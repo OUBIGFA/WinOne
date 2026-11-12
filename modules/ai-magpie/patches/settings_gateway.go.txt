@@ -10,16 +10,6 @@ import (
 )
 
 type winOneMediaModelsKey struct{}
-type winOneProductKey struct{}
-
-// Only the authenticated Host transport can label a request as native Chat.
-// Reuse upstream caller/session handling for trace, usage and observers alike.
-func WinOneProductRequest(r *http.Request, session string) *http.Request {
- if len(session)==26 {r.Header.Set("X-Magpie-Session",session)}
- return r.WithContext(context.WithValue(r.Context(),winOneProductKey{},true))
-}
-func winOneProductCaller(r *http.Request) (caller,bool) {on,_:=r.Context().Value(winOneProductKey{}).(bool);return caller{agent:"winone",session:boundedSession(r.Header.Get(SessionHeader)),ua:r.Header.Get("User-Agent")},on}
-
 // WinOne's gateway model list also limits its configured helper models.
 // Ordinary upstream callers retain their original helper-model policy.
 func WinOneMediaRequest(r *http.Request,models []string)*http.Request{
@@ -78,13 +68,6 @@ func WinOneLimitedResponse(status int,body []byte) bool {
 // The outer gateway owns the user-request hooks and JS middleware.
 var WinOneTransportOnly bool
 
-// All provider profiles share the installation-owned local request archive.
-var WinOneArchiveDirectory string
-
-// Short-lived workers must finish the upstream archive queue before closing
-// stdout; otherwise a successful reply could exit before its file is written.
-func WinOneWaitArchive(){archivePending.Wait()}
-
 // Fixed before serving: public account kinds carried by WinOne's otherwise
 // ordinary HTTP bridges. This cannot select credentials or a native backend.
 var WinOneMiddlewareAccounts map[string]string
@@ -101,6 +84,3 @@ func winOneNativeProvider(p provider.Provider) (provider.Provider,bool) {
  if WinOneMiddlewareAccounts[p.ID]!="" {return p,false}
  return p,true
 }
-
-// Keep Claude's own minimal warm-up request and command-line isolation.
-func WinOneWarmClaude(ctx context.Context, directory string) error { return warmClaude(ctx, directory) }

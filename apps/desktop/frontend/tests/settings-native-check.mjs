@@ -118,12 +118,6 @@ try{
    const containers=[root,root.parentElement,...root.querySelectorAll('.settings-group,.selection-action-row,.wintray-program-list,.wintray-program-detail')];
    return {width:innerWidth,height:innerHeight,overflow:containers.filter(e=>visible(e)&&e.scrollWidth>e.clientWidth+1).map(e=>({name:e.className,client:e.clientWidth,scroll:e.scrollWidth})),text:root.innerText.slice(0,180)};
   });
-  const privacyModel=page.locator('[aria-label="本地模型辅助脱敏"],[aria-label="Find with a local model"]');
-  if(id==='ai-services'&&await privacyModel.isVisible()){
-   await privacyModel.getByRole('switch').waitFor();
-   await page.waitForFunction(()=>!document.querySelector('[aria-label="本地模型辅助脱敏"] [role="status"],[aria-label="Find with a local model"] [role="status"]'));
-   assert.equal(await privacyModel.getByRole('alert').count(),0,'Native privacy status must reach the real Host');
-  }
   const file=String(views.length+1).padStart(3,'0')+'-'+variant+'-'+id+'-'+(path.join('-')||'default')+'.png';
   if(process.env.WINONE_WINDOW_SHOT_EXE)execFileSync(process.env.WINONE_WINDOW_SHOT_EXE,[process.env.WINONE_COMPONENTS_PID,join(output,file),'-wait','250'],{windowsHide:true});
   else await page.screenshot({path:join(output,file)});

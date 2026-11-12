@@ -24,12 +24,8 @@ try {
     $env:TEMP=$output;$env:TMP=$output
     Invoke-SourceTool $go @('run','./build/icon','-out','internal/branding/icon.ico','-native-png','internal/branding/logo-native.png')
     Invoke-SourceTool 'node' @('build/verify-import-notices.mjs')
-    Invoke-SourceTool 'node' @('build/sync-cindy.mjs','--spec','third_party/cindy/onebot-renderer.sync.json','--check')
-    Invoke-SourceTool 'node' @('--test','tests/notices/cindy-binary.test.mjs','tests/cindy-ports/check.test.mjs')
     # The legacy Wails app embeds a separately built web frontend. Its tests,
-    # and nested MyGo/Pi/native modules, run in their complete build entry points.
-    # Match the complete build: Flash Chat's npm dependencies include foreign
-    # Go examples; its own checks run through build-flashchat.mjs.
+    # and nested MyGo/native modules, run in their complete build entry points.
     $modulePackages=@('./modules/always-on-top/...','./modules/stroke/...')
     $packages=@('./apps/host','./build/...','./internal/...','./tests/...')+$modulePackages
     # Several packages launch real short-lived fixtures. Bound package

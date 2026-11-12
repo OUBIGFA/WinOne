@@ -12,7 +12,6 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/web"
@@ -96,61 +95,27 @@ func TestRealNativeAIWindowsNeedNoWebViewForBuiltInPages(t *testing.T) {
 			for _, width := range []int{1000, 560} {
 				// Use actual Windows rendering for every rebuilt section, not
 				// only each page's default tab. Policy APIs keep the private runtime.
-				for scene := 0; scene < 24; scene++ {
+				for scene := 0; scene < 11; scene++ {
 					before := 0
 					mygo.RunOnMain(func() {
 						i18n.SetLocale(locale)
 						dark = night
 						window.SetContentSize(width, 900)
 						section = nil
-						if scene < 3 {
-							p.switchTab([]int{tabRouting, tabPlugins, tabAdvanced}[scene])
-							p.routing.discard()
-							p.routing.tab = 0
+						if scene < 5 {
+							p.switchTab([]int{tabHome, tabCustom, tabAccounts, tabDefaults, tabGateway}[scene])
 						}
-						if scene == 2 {
-							p.advancedTab = advancedPrivacy
-						}
-						if scene >= 3 && scene < 7 {
+						if scene >= 5 {
 							pr := &p.draft.Value.Providers[0].Value
 							ed := newEditor(p, pr, pr.ID)
-							ed.preferenceTab = scene - 3
+							ed.preferenceTab = scene - 5
 							section = func(c *ui.Context) { ed.preferences(c, pr, false) }
-						}
-						if scene >= 7 && scene < 11 {
-							p.advanced.privacyTab = scene - 7
-							section = func(c *ui.Context) { p.advanced.privacy(c, &magpieCatalog{}, false) }
-						}
-						if scene >= 11 && scene < 16 {
-							p.routing.begin(core.Preserved[routeGroup]{Value: routeGroup{ID: "window-check", Name: "Daily assistant", Members: []string{"fixture/model"}, Rules: []core.Preserved[routeRule]{{Value: routeRule{Use: "fixture/model", Intent: "coding"}}}}})
-							p.routing.editorTab = scene - 11
-							section = p.routing.editor
-						}
-						if scene == 16 {
-							p.routing.discard()
-							p.switchTab(tabRouting)
-							p.routing.tab = 1
-						}
-						if scene == 17 {
-							p.switchTab(tabHome)
-						}
-						if scene == 18 {
-							p.switchTab(tabMore)
-						}
-						if scene >= 19 && scene < 23 {
-							p.switchTab(tabGateway)
-							p.gateway.tab = scene - 19
-						}
-						if scene == 23 {
-							p.routing.discard()
-							p.switchTab(tabRouting)
-							p.routing.tab = 2
 						}
 						before = frames
 						window.Invalidate()
 					})
 					await(func() bool {
-						return frames > before && !p.routing.api.busy && !p.plugins.api.busy && !p.gateway.loading && !p.gateway.access.api.busy && !p.gateway.history.api.busy && (p.advanced == nil || p.advanced.records == nil || !p.advanced.records.api.busy)
+						return frames > before && !p.gateway.runtimeLoading && !p.gateway.loading && !p.gateway.access.api.busy && !p.gateway.history.api.busy
 					})
 					frame, err := window.CapturePage()
 					if err != nil {

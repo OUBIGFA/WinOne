@@ -6,7 +6,6 @@ package shell
 
 import (
 	"slices"
-	"winone/desktopmygo/chat/pluginhost"
 
 	"github.com/egoist/mygo/ui"
 
@@ -61,8 +60,6 @@ type Shell struct {
 
 	page     string
 	instance core.Page
-	// kept are the pages (core.Keeper) left for another, by page ID.
-	kept map[string]core.Page
 	// arrived pages, recreated on each visit: as the React window
 	// unmounted a page, leaving one ends its drafts and reads.
 	initial bool
@@ -77,11 +74,10 @@ type Shell struct {
 	toasts []string
 	// intents are prefills arrived at their page, until it takes them;
 	// reading tells a read of the Host's queues in progress.
-	intents      map[string][]core.Intent
-	reading      bool
-	intentErr    string
-	focuses      int
-	mailRevision int
+	intents   map[string][]core.Intent
+	reading   bool
+	intentErr string
+	focuses   int
 }
 
 type pendingKind int
@@ -186,8 +182,8 @@ var intentPages = []struct{ method, page string }{
 // and pages see the new focus count.
 func (s *Shell) Focused() {
 	s.focuses++
-	// Only the shell snapshot is refreshed, never a page's editing draft or
-	// Chat's Git state. Returning after retrying a tool clears stale warnings.
+	// Refresh the shell snapshot without overwriting the page's editing draft.
+	// Returning after retrying a tool clears stale warnings.
 	s.refresh()
 	s.ReadIntents()
 }
@@ -279,9 +275,7 @@ func (s *Shell) requestPage(target string, arrive func()) {
 		}
 		return
 	}
-	if s.mailBefore(func() { s.requestPageReady(target, arrive) }) {
-		s.requestPageReady(target, arrive)
-	}
+	s.requestPageReady(target, arrive)
 }
 
 func (s *Shell) requestPageReady(target string, arrive func()) {
@@ -300,7 +294,6 @@ func (s *Shell) requestPageReady(target string, arrive func()) {
 
 func (s *Shell) navigate(target string, arrive func()) {
 	s.env.Activity.Reset()
-	pluginhost.For(s.env).LeaveMain()
 	s.closePage()
 	s.page = target
 	s.scroll = ui.ScrollState{}
@@ -311,9 +304,7 @@ func (s *Shell) navigate(target string, arrive func()) {
 
 // requestChange applies a tab switch through the same decision.
 func (s *Shell) requestChange(apply func()) {
-	if s.mailBefore(func() { s.requestChangeReady(apply) }) {
-		s.requestChangeReady(apply)
-	}
+	s.requestChangeReady(apply)
 }
 
 func (s *Shell) requestChangeReady(apply func()) {
@@ -327,13 +318,6 @@ func (s *Shell) requestChangeReady(apply func()) {
 // RequestClose is the window's close of a page with activity: it asks the
 // user, and reports whether the window may close at once.
 func (s *Shell) RequestClose() bool {
-	if !s.mailBefore(func() {
-		if s.requestCloseReady() {
-			s.window.ApproveClose()
-		}
-	}) {
-		return false
-	}
 	return s.requestCloseReady()
 }
 
@@ -352,34 +336,16 @@ func (s *Shell) Activity() (dirty, busy bool) { return s.env.Activity.State() }
 // Discarded releases the current page and its UI-local drafts, either on
 // final window close or after an approved page transition.
 func (s *Shell) Discarded() {
-	s.mailRevision++
 	s.env.Activity.Reset()
 	if closer, ok := s.instance.(core.Closer); ok {
 		closer.Close()
 	}
 	s.instance = nil
-	for id, page := range s.kept {
-		if closer, ok := page.(core.Closer); ok {
-			closer.Close()
-		}
-		delete(s.kept, id)
-	}
-	pluginhost.For(s.env).Close()
 }
 
 // closePage ends the current page's instance; the next visit makes a new
-// one, as the React window remounted a page. A Keeper is put aside for
-// the next visit instead.
+// one. Settings drafts and on-demand viewers share this lifetime.
 func (s *Shell) closePage() {
-	if keeper, ok := s.instance.(core.Keeper); ok {
-		keeper.SetAside()
-		if s.kept == nil {
-			s.kept = map[string]core.Page{}
-		}
-		s.kept[s.page] = s.instance
-		s.instance = nil
-		return
-	}
 	if closer, ok := s.instance.(core.Closer); ok {
 		closer.Close()
 	}
@@ -402,13 +368,7 @@ func (s *Shell) finish() {
 	if pending == nil {
 		return
 	}
-	if s.mailBefore(func() {
-		if s.pending == pending {
-			s.finishReady()
-		}
-	}) {
-		s.finishReady()
-	}
+	s.finishReady()
 }
 
 func (s *Shell) finishReady() {
@@ -456,44 +416,10 @@ func (s *Shell) leaveNow() {
 }
 
 func (s *Shell) cancel() {
-	s.mailRevision++
-	s.env.Activity.Report("shell-mail-sync", false, false, nil)
 	if s.pending != nil && s.pending.kind == pendingClose {
 		s.window.CancelClose()
 	}
 	s.pending = nil
-}
-
-// mailBefore keeps native mail contexts mounted until their real delivery
-// barrier completes. A closed error notice does not clear the underlying mail
-// failure; another leave/close must run this same barrier again.
-func (s *Shell) mailBefore(after func()) bool {
-	s.mailRevision++
-	revision, page := s.mailRevision, s.page
-	inline, ready := true, false
-	s.env.Activity.Report("shell-mail-sync", false, true, nil)
-	pluginhost.For(s.env).FlushAllMailEdits(func(ok bool) {
-		if revision != s.mailRevision || page != s.page {
-			return
-		}
-		s.env.Activity.Report("shell-mail-sync", false, false, nil)
-		if !ok {
-			message := i18n.T("notices.mailSyncFailed")
-			if s.pending != nil {
-				s.pending.err = message
-			}
-			s.env.Toast(message)
-			s.window.CancelClose()
-			return
-		}
-		if inline {
-			ready = true
-		} else {
-			after()
-		}
-	})
-	inline = false
-	return ready
 }
 
 // View builds the window.
@@ -511,22 +437,13 @@ func (s *Shell) View(c *ui.Context) {
 		ui.Row(c).Grow(1).AlignItems(ui.Stretch).MinHeight(0).Children(func() {
 			s.sidebar(c)
 			ui.Column(c).Grow(1).Basis(0).FillHeight().MinWidth(0).MinHeight(0).Children(func() {
-				// Plugin chrome reads the Host too. Share ordinary pages' first
-				// snapshot boundary so startup cannot emit premature pipe errors.
-				if s.loaded {
-					pluginhost.For(s.env).Layout(c, s.page == "chat" || s.page == "onebot", func() { s.content(c) })
-				} else {
-					s.content(c)
-				}
+				s.content(c)
 			})
 			s.sidebarHandle(c)
 		})
 	})
 	s.settle()
 	s.guard(c)
-	if s.loaded {
-		pluginhost.For(s.env).View(c)
-	}
 	for _, message := range s.toasts {
 		c.Toast(message)
 	}

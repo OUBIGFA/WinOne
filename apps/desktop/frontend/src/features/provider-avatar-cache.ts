@@ -44,8 +44,9 @@ async function readAvatar(icon:string){
  return `data:${mimeType};base64,${btoa(binary)}`;
 }
 
-// Immutable hashes share one read across menus, the overview and Chat. Failures
-// are evicted so reopening the view can retry after an interrupted connection.
+// Immutable hashes share one read across menus, the overview and result
+// windows. Failures are evicted so reopening the view can retry after an
+// interrupted connection.
 export function loadProviderAvatar(icon:string):Promise<string>{
  if(!isStoredAvatar(icon))return Promise.reject(Error("头像引用无效"));
  const existing=cache.get(icon);if(existing)return existing;

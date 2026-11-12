@@ -12,18 +12,13 @@ import (
 	internalhost "winone/internal/host"
 )
 
-// The root's plugin layout also sends Host requests. It must share the first
-// snapshot boundary with ordinary pages, rather than report a missing pipe
-// while the shell is still starting the real Host.
-func TestPluginRequestsWaitForInitialHostSnapshot(t *testing.T) {
+// Initial rendering waits for the Host snapshot and never loads retired pages.
+func TestPageRequestsWaitForInitialHostSnapshot(t *testing.T) {
 	var ready atomic.Bool
 	var early atomic.Bool
 	h := testhost.New(t, func(method string, _ json.RawMessage) (any, error) {
 		if !ready.Load() {
 			early.Store(true)
-		}
-		if method == "chat.ghosts.pages" {
-			return []any{}, nil
 		}
 		return map[string]any{}, nil
 	})
@@ -39,8 +34,8 @@ func TestPluginRequestsWaitForInitialHostSnapshot(t *testing.T) {
 	}
 	s.Start()
 	h.Settle(tt)
-	if len(h.Called("chat.ghosts.pages")) == 0 {
-		t.Fatal("plugin declarations were not loaded after Host startup")
+	if !s.loaded || early.Load() {
+		t.Fatal("startup did not complete at the Host snapshot boundary")
 	}
 }
 
@@ -48,9 +43,6 @@ func TestInitialHostFailureStillOffersReconnect(t *testing.T) {
 	defer i18n.SetLocale(i18n.Chinese)
 	i18n.SetLocale(i18n.English)
 	h := testhost.New(t, func(method string, _ json.RawMessage) (any, error) {
-		if method == "chat.ghosts.pages" {
-			return []any{}, nil
-		}
 		return map[string]any{}, nil
 	})
 	s := New(h.Env, &feedbackWindow{}, Options{Directory: h.Env.Directory, EnsureHost: func() (internalhost.Snapshot, error) {

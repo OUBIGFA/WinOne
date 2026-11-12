@@ -428,9 +428,8 @@ func run() (runErr error) {
 	// rest of Host startup rather than behind WinTray/first capture startup.
 	refreshCaptureReadiness()
 	defer func() { runErr = errors.Join(runErr, resultWindows.dispose()) }()
-	defer resultWindows.ai.stopMagpieMaintenance()
+	defer resultWindows.ai.stopModelRefresh()
 	defer selectionModule.stop()
-	chatControl := registerChat(service, ctx, *data, executable, resultWindows.ai, func() string { return applicationLanguage(store.Snapshot().Language) })
 	closeDirectoryLinks, err := registerDirectoryLinks(service, *data, func() (func(), bool) {
 		if configurationJobs == nil {
 			return nil, false
@@ -446,7 +445,6 @@ func run() (runErr error) {
 		return err
 	}
 	defer func() { runErr = errors.Join(runErr, closeInterconnect()) }()
-	defer func() { runErr = errors.Join(runErr, chatControl.stop()) }()
 	selectionModule.results = resultWindows
 	quickModule.results = resultWindows
 	registerDiagnostics(service, *data)
@@ -456,7 +454,6 @@ func run() (runErr error) {
 	closeUpdates := registerUpdates(service, ctx, executable)
 	defer closeUpdates()
 	configurationJobs = host.NewConfigurationQueue(service)
-	chatControl.guard = configurationJobs.AcquireAction
 	selectionModule.actionGuard = configurationJobs.AcquireAction
 	resultWindows.ai.mu.Lock()
 	resultWindows.ai.gatewayGuard = configurationJobs.AcquireAction
@@ -556,9 +553,6 @@ func run() (runErr error) {
 		if resultWindows.active() {
 			state.Reasons = append(state.Reasons, "result-windows")
 		}
-		if chatControl.active() {
-			state.Reasons = append(state.Reasons, "chat")
-		}
 		if resultWindows.ai.gateway.Status().Running {
 			state.Reasons = append(state.Reasons, "ai-gateway")
 		}
@@ -587,11 +581,6 @@ func run() (runErr error) {
 		if err := powerManager.Close(); err != nil {
 			return err
 		}
-		if err := chatControl.stop(); err != nil {
-			chatControl.resume()
-			return err
-		}
-		defer chatControl.resume()
 		if err := selectionModule.stop(); err != nil {
 			return err
 		}
@@ -601,8 +590,7 @@ func run() (runErr error) {
 			}
 			return err
 		}
-		resultWindows.ai.closeRouting()
-		resultWindows.ai.closeExternal()
+		resultWindows.ai.closeGatewayBackend()
 		resultWindows.ai.gateway.Close()
 		_, err := prepareModuleShutdown(configurationJobs, control.Busy, capture, alwaysOnTop, wintray, packages, strokeWorker)
 		if err != nil {
@@ -639,11 +627,6 @@ func run() (runErr error) {
 		if err := powerManager.Close(); err != nil {
 			return nil, err
 		}
-		if err := chatControl.stop(); err != nil {
-			chatControl.resume()
-			return nil, err
-		}
-		defer chatControl.resume()
 		if err := selectionModule.stop(); err != nil {
 			return nil, err
 		}
@@ -653,8 +636,7 @@ func run() (runErr error) {
 			}
 			return nil, err
 		}
-		resultWindows.ai.closeRouting()
-		resultWindows.ai.closeExternal()
+		resultWindows.ai.closeGatewayBackend()
 		resultWindows.ai.gateway.Close()
 		rollback, err := prepareModuleShutdown(configurationJobs, control.Busy, capture, alwaysOnTop, wintray, packages, strokeWorker)
 		if err != nil {
@@ -764,7 +746,7 @@ func run() (runErr error) {
 	systray.Run(func() {
 		systray.SetIcon(branding.Icon)
 		systray.SetTooltip("WinOne")
-		resultWindows.ai.startMagpieMaintenance(func() string { return applicationLanguage(store.Snapshot().Language) })
+		resultWindows.ai.startModelRefresh()
 		// Route both single clicks and the first click of a double click through
 		// the same serialized menu action, without blocking the tray message loop.
 		trayOpen := make(chan struct{}, 1)

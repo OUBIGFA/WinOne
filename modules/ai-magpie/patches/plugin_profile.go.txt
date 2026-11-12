@@ -43,6 +43,9 @@ func WinOneRememberProvider(p Provider, fingerprint string) error {
 	if err != nil {
 		return err
 	}
+	if err := os.MkdirAll(settings.Dir(), 0700); err != nil {
+		return err
+	}
 	return writeWhole(winOneProviderSnapshotPath(), data)
 }
 
@@ -82,23 +85,4 @@ func WinOneReadProvider(spec, id, fingerprint string) (Provider, bool, error) {
 		p.AccountID = p.Accounts[0].AccountID
 	}
 	return p, true, nil
-}
-
-// WinOneRebindPath updates only the already selected plugin's location after
-// WinOne verifies the replacement resources. Account auth and options remain
-// in this provider's private profile; no old plugin code is loaded here.
-func WinOneRebindPath(previous, current string) error {
-	listMu.Lock()
-	list := Load()
-	if len(list.Plugins) != 1 || list.Plugins[0].Spec != previous {
-		listMu.Unlock()
-		return errors.New("account plugin profile changed")
-	}
-	list.Plugins[0].Spec = current
-	err := save(list)
-	listMu.Unlock()
-	if err == nil {
-		Restart()
-	}
-	return err
 }

@@ -93,12 +93,6 @@ func allowed(name string) bool {
 	case "native/x64/WinTray-Bridge.exe", "native/x64/WinTray-ShellBridge.dll", "native/x86/WinTray-Bridge.exe", "native/x86/WinTray-ShellBridge.dll":
 		return true
 	}
-	// Native view runtimes are optional for historical bundles. Current MyGo
-	// builds verify their version/hash and complete notices before packaging.
-	switch name {
-	case "WinOne.PDF.exe", "pdfium.dll", "ghostty-vt.dll", "WinOne.Plugin.exe", "shared/chat/licenses/ghost-openclaw-b972feb-LICENSE.txt", "shared/chat/licenses/ghost-openclaw-b972feb-NOTICES.txt", "shared/chat/ghost.js", "shared/chat/ghost-sdk.js", "shared/chat/ghost-mail-sdk.js", "shared/chat/ghost-mail-ui-sdk.js", "shared/chat/ghost-snapshot.js", "shared/chat/math.js", "shared/chat/nodeRuntimeWorkerProcess.js", "shared/chat/libraryDbWorker.js", "shared/chat/library-sqlite.js", "shared/chat/worktree-recovery-worker.js":
-		return true
-	}
 	if name == "capture/recording-runtime.json" {
 		return true
 	}
@@ -137,6 +131,13 @@ func allowed(name string) bool {
 // Only dependency inventories evolve independently of the package format.
 // Keep root notes/configuration and unknown module roots outside upgrade scope.
 func allowedHistorical(name string) bool {
+	// Retired root helpers are accepted only while reading an existing,
+	// checksummed installation for upgrade/rollback. New payloads reject them.
+	switch name {
+	case "WinOne.PDF.exe", "pdfium.dll", "ghostty-vt.dll", "WinOne.Plugin.exe":
+		return true
+	}
+
 	return allowed(name) || name == "LICENSE.txt" || name == "README.txt" ||
 		strings.HasPrefix(name, "capture/Ocr/") || strings.HasPrefix(name, "shared/ai/") || strings.HasPrefix(name, "shared/chat/")
 }

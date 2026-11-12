@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"golang.org/x/sys/windows"
-	"maps"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -43,10 +42,8 @@ type aiJob struct {
 	settled         <-chan struct{} // Closed after completion or cancellation; no polling delay for native OCR.
 }
 type aiService struct {
-	external          routingControl
-	routing           routingControl
-	privacy           routingControl // Same process ownership; independent model/download lifetime.
-	maintenance       *aiMagpieMaintenance
+	backend           gatewayBackend
+	modelRefresh      *aiModelRefresh
 	avatarMu          sync.Mutex
 	avatarUploads     map[string]*avatarUpload
 	gateway           *ai.Gateway
@@ -77,14 +74,12 @@ func registerAI(service *host.Service, ctx context.Context, directory, executabl
 func newAIService(ctx context.Context, directory, executable string) *aiService {
 	runtime := ai.Translator{Executable: filepath.Join(filepath.Dir(executable), "shared", "ai", "WinOne.AI.exe"), DataDirectory: filepath.Join(directory, "ai-runtime")}
 	engine := &aiService{storePath: filepath.Join(directory, "ai-settings.json"), desktopExecutable: filepath.Join(filepath.Dir(executable), "WinOne.exe"), translator: runtime, localOCR: ai.NewLocalOCR(ctx, runtime), jobs: map[string]*aiJob{}, ctx: ctx, accountGate: make(chan struct{}, 1)}
-	engine.translator.PrivacyService = engine.privacyEndpoint
 	engine.translator.PluginLifetime = ctx
 	return engine
 }
 func bindAIService(service *host.Service, engine *aiService) {
 	engine.gatewaySlots = make(chan struct{}, 4)
 	engine.initGateway()
-	go engine.restoreExternal()
 	status := func() host.Module { return host.Module{ID: "ai", State: "ready"} }
 	service.RegisterModule("ai", status, engine.handle)
 	// The existing settings bridge can edit shared AI preferences without a
@@ -92,20 +87,8 @@ func bindAIService(service *host.Service, engine *aiService) {
 	service.RegisterModule("capture.ai", status, engine.handle)
 }
 func (s *aiService) handle(r host.Request) host.Response {
-	if strings.HasPrefix(r.Method, "external.") {
-		return s.handleExternal(r)
-	}
-	if strings.HasPrefix(r.Method, "routing.") {
-		return s.handleRouting(r)
-	}
 	if r.Method == "models.test" {
 		return s.handleModelTest(r)
-	}
-	if strings.HasPrefix(r.Method, "magpie.privacy.") {
-		return s.handlePrivacyModel(r)
-	}
-	if strings.HasPrefix(r.Method, "magpie.") {
-		return s.handleMagpie(r)
 	}
 	if strings.HasPrefix(r.Method, "icons.") {
 		return s.handleAvatar(r)
@@ -146,39 +129,6 @@ func (s *aiService) handle(r host.Request) host.Response {
 			return fail(err)
 		}
 		return result(map[string]bool{"queued": queued})
-	case "usage.export.save", "archive.export.save":
-		return s.handleUsageExport(r)
-	case "archive.read":
-		var params struct {
-			Archive string `json:"archive"`
-		}
-		if err := configjson.DecodeObject(r.Params, &params); err != nil {
-			return fail(err)
-		}
-		runtime, err := s.magpieTranslator()
-		if err != nil {
-			return fail(err)
-		}
-		raw, err := runtime.RequestArchive(s.ctx, params.Archive)
-		if err != nil {
-			return fail(err)
-		}
-		return host.Response{ID: r.ID, Result: raw}
-	case "usage.get", "usage.export":
-		var query ai.UsageQuery
-		if err := configjson.DecodeObject(r.Params, &query); err != nil {
-			return fail(err)
-		}
-		query.Export = r.Method == "usage.export"
-		runtime, err := s.magpieTranslator()
-		if err != nil {
-			return fail(err)
-		}
-		raw, err := runtime.Usage(s.ctx, query)
-		if err != nil {
-			return fail(err)
-		}
-		return host.Response{ID: r.ID, Result: raw}
 	case "models.fetch":
 		var params struct {
 			Provider   string                   `json:"provider"`
@@ -215,8 +165,8 @@ func (s *aiService) handle(r host.Request) host.Response {
 		ctx, cancel := context.WithTimeout(s.ctx, 20*time.Second)
 		defer cancel()
 		var models []ai.ModelOption
-		// Discovery uses the saved global proxy and other runtime preferences,
-		// just like generation and account requests.
+		// Discovery uses the provider's saved connection preferences, just like
+		// generation and account requests.
 		runtime, err := s.magpieTranslator()
 		if err != nil {
 			return fail(err)
@@ -264,27 +214,13 @@ func (s *aiService) handle(r host.Request) host.Response {
 		if err := configjson.DecodeObject(r.Params, &input); err != nil {
 			return fail(err)
 		}
-		if preferences := input.Configuration.MagpieSettings; preferences != nil {
-			old := s.store.Configuration().MagpieSettings
-			var oldAliases map[string]string
-			if old != nil {
-				oldAliases = old.UsageAliases
-			}
-			if !maps.Equal(preferences.UsageAliases, oldAliases) {
-				aliases, err := s.translator.UsageAliases(s.ctx, preferences.UsageAliases, nil)
-				if err != nil {
-					return fail(err)
-				}
-				preferences.UsageAliases = aliases
-			}
-		}
 		saved, err := s.store.SaveConfigurationWithKeys(input.Configuration, input.Keys, input.KeyUpdates)
 		if err != nil {
 			return fail(err)
 		}
-		s.refreshMagpieMaintenance()
+		s.updateModelRefresh()
 		s.refreshLocalOCRStandby()
-		s.closeRouting()
+		s.closeGatewayBackend()
 		return result(saved)
 	case "settings.get":
 		return result(s.store.Snapshot())
@@ -300,7 +236,7 @@ func (s *aiService) handle(r host.Request) host.Response {
 		if err != nil {
 			return fail(err)
 		}
-		s.refreshMagpieMaintenance()
+		s.updateModelRefresh()
 		s.refreshLocalOCRStandby()
 		return result(saved)
 	case "translate.start", "generate.start", "recognize.start":

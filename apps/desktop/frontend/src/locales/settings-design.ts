@@ -1,5 +1,6 @@
-// Settings-only terminology. Keep task names and explanations out of Chat's
-// dictionaries so a settings redesign cannot silently change conversation UI.
+// Settings-only terminology. Keep task names and explanations out of the
+// result and assistant dictionaries so a settings redesign cannot silently
+// change their conversation UI.
 export const settingsDesignMessages = {
   zh: {
     saving: "正在保存…",

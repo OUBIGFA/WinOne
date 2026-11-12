@@ -117,32 +117,13 @@ func (f *fakeAI) handle(method string, params json.RawMessage) (any, error) {
 		f.gateway["enabled"], f.gateway["port"], f.gateway["models"] = settings["enabled"], settings["port"], settings["models"]
 		f.gateway["running"] = settings["enabled"]
 		return f.gateway, nil
-	case "capture.ai.usage.get":
-		return map[string]any{"rows": []any{}, "sum": map[string]any{"calls": 0}, "by": map[string]any{}, "total": 0, "offset": 0, "limit": 15}, nil
+	case "capture.ai.gateway.open":
+		return map[string]any{"url": "http://127.0.0.1:9/session/fixture/"}, nil
+	case "capture.ai.gateway.close":
+		return map[string]any{"closed": true}, nil
 	case "capture.ai.accounts.quota":
 		return map[string]any{"quotas": []any{}}, nil
-	case "capture.ai.magpie.usage-aliases":
-		aliases, _ := p["aliases"].(map[string]any)
-		if aliases == nil {
-			aliases = map[string]any{}
-		}
-		edit := p["edit"].(map[string]any)
-		if edit["to"] == "" {
-			delete(aliases, edit["from"].(string))
-		} else {
-			aliases[edit["from"].(string)] = edit["to"]
-		}
-		return map[string]any{"usageAliases": aliases}, nil
-	case "capture.ai.magpie.catalog":
-		return f.catalog, nil
-	case "capture.ai.routing.extensions.open":
-		return map[string]any{"url": "http://127.0.0.1:9/session/key/plugins.html", "pages": []any{}, "panels": []any{}}, nil
-	case "capture.ai.routing.extensions.close", "capture.ai.routing.close", "capture.ai.routing.plugins.close", "capture.ai.magpie.privacy.close":
-		return nil, nil
-	case "capture.ai.routing.open", "capture.ai.routing.plugins.open":
-		return map[string]string{"url": "http://127.0.0.1:9/session/key/"}, nil
-	case "capture.ai.magpie.privacy.open", "capture.ai.magpie.privacy.state":
-		return map[string]any{"on": false, "supported": true, "installed": false, "size": 1.6e9}, nil
+
 	}
 	f.t.Errorf("unexpected %s %s", method, params)
 	return nil, nil
@@ -343,13 +324,13 @@ func TestAccountSignInRefreshesTheAccounts(t *testing.T) {
 	shot(t, tt, "ai-accounts")
 }
 
-func TestRoutingReauthenticationRetainsSelectedAccount(t *testing.T) {
+func TestReauthenticationRetainsSelectedAccount(t *testing.T) {
 	f, h, p, tt := setup(t)
 	p.switchTab(tabAccounts)
 	settle(h, tt)
 	p.add(&agent{ID: "codex", Name: "Codex"})
 	settle(h, tt)
-	p.extensions.signIn = &signInRequest{provider: p.selected, user: "selected@example.invalid", nonce: nonce()}
+	p.editor.account.startFor(p.editor.account.request(p.current()), "selected@example.invalid")
 	settle(h, tt)
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -384,7 +365,7 @@ func TestTabsAskTheGuard(t *testing.T) {
 	_, h, p, tt := setup(t)
 	requested := 0
 	h.Env.RequestChange = func(apply func()) { requested++ }
-	if err := tt.Click(homeT("more")); err != nil {
+	if err := tt.Click(i18n.T("gateway.title")); err != nil {
 		t.Fatal(err)
 	}
 	h.Settle(tt)
@@ -410,26 +391,6 @@ func TestRemovingAProviderClearsItsTasks(t *testing.T) {
 	}
 }
 
-func TestAdvancedEditsAreDraftsOfTheConfiguration(t *testing.T) {
-	f, h, p, tt := setup(t)
-	p.switchTab(tabAdvanced)
-	settle(h, tt)
-	shot(t, tt, "ai-advanced")
-	if err := tt.Click(i18n.T("ai.quotaLeft")); err != nil {
-		t.Fatal(err)
-	}
-	h.Settle(tt)
-	if !p.draft.Value.magpie().QuotaLeft || !p.dirty() {
-		t.Fatal("the choice is not in the draft")
-	}
-	h.Env.Rail.Save.Run()
-	h.Settle(tt)
-	settings := f.lastSave()["configuration"].(map[string]any)["magpieSettings"].(map[string]any)
-	if settings["quotaLeft"] != true || settings["futureMagpie"] != 7.0 {
-		t.Fatalf("saved %v", settings)
-	}
-}
-
 func TestModelSettingsKeepTheRoutingID(t *testing.T) {
 	_, h, p, tt := setup(t)
 	p.editor.models.editing = "gpt-a"
@@ -442,92 +403,5 @@ func TestModelSettingsKeepTheRoutingID(t *testing.T) {
 	pr := p.draft.Value.find("one")
 	if value(pr.ModelMetadata["gpt-a"].Value.ContextWindow) != 200000 || pr.Models[0] != "gpt-a" {
 		t.Fatalf("metadata %+v", pr.ModelMetadata)
-	}
-}
-
-// The routing page's one action saves routing groups alone: the page's
-// other drafts stay drafts, and the draft keeps them with the new
-// revision.
-func TestRoutingEnablesGroupsWithoutSavingOtherDrafts(t *testing.T) {
-	f, h, p, tt := setup(t)
-	p.change("one", func(pr *provider) { pr.Name = "Draft name" })
-	p.enableRoutingGroups(func(err error) {
-		if err != nil {
-			t.Error(err)
-		}
-	})
-	settle(h, tt)
-	saved := f.lastSave()["configuration"].(map[string]any)
-	groups := saved["magpieSettings"].(map[string]any)["builtinPlugins"].(map[string]any)["groups"].(map[string]any)
-	if groups["enabled"] != true || saved["providers"].([]any)[0].(map[string]any)["name"] != "Relay" {
-		t.Fatalf("saved %v", saved)
-	}
-	if p.draft.Value.find("one").Name != "Draft name" || p.draft.Value.Revision != 5 || !p.dirty() {
-		t.Fatalf("draft %+v", p.draft.Value)
-	}
-	if !*p.draft.Value.magpie().BuiltinPlugins["groups"].Value.Enabled {
-		t.Fatal("the draft lacks the saved choice")
-	}
-}
-
-// The plugin manager opens a plugin's account type on the accounts tab,
-// and an explicit sign-in waits there for the connection's methods.
-func TestPluginManagerOpensItsAccountType(t *testing.T) {
-	_, h, p, tt := setup(t)
-	if err := p.openPluginProvider(agent{ID: "acme", Name: "Acme", Backend: "plugin"}, true); err != nil {
-		t.Fatal(err)
-	}
-	settle(h, tt)
-	pr := p.current()
-	if p.tab != tabAccounts || pr == nil || pr.Agent != "acme" || pr.AgentBackend != "plugin" {
-		t.Fatalf("tab %d provider %+v", p.tab, pr)
-	}
-	f := p.extensions.signIn
-	if f != nil {
-		t.Fatalf("the explicit sign-in was not continued: %+v", f)
-	}
-	// Opening it again reuses the connection.
-	if err := p.openPluginProvider(agent{ID: "acme", Name: "Acme", Backend: "plugin"}, false); err != nil {
-		t.Fatal(err)
-	}
-	count := 0
-	for _, d := range p.draft.Value.Providers {
-		if d.Value.Agent == "acme" {
-			count++
-		}
-	}
-	if count != 1 {
-		t.Fatalf("%d connections", count)
-	}
-}
-
-// Privacy records turn masking back on for kinds: their warn or block
-// actions leave the draft.
-func TestMaskingRecordsStageTheirKinds(t *testing.T) {
-	_, h, p, tt := setup(t)
-	p.draft.Value.settings().RedactActions = map[string]string{"EMAIL": "warn", "PHONE": "block"}
-	p.switchTab(tabAdvanced)
-	settle(h, tt)
-	p.advanced.stageMaskKinds([]string{"EMAIL"})
-	if actions := p.draft.Value.magpie().RedactActions; actions["EMAIL"] != "" || actions["PHONE"] != "block" || !p.advanced.focusPrivacy {
-		t.Fatalf("actions %v", actions)
-	}
-	// Kinds not named as Magpie names them are refused.
-	p.advanced.stageMaskKinds([]string{"phone"})
-	if p.draft.Value.magpie().RedactActions["PHONE"] != "block" {
-		t.Fatal("an invalid kind changed the draft")
-	}
-}
-
-// The plugin page's results, as a removed plugin, show as WinOne's own
-// toast: the page is embedded at its full height, where its own pill
-// would be out of view.
-func TestPluginPageStatusUsesTheNativeToast(t *testing.T) {
-	_, h, p, _ := setup(t)
-	var shown []string
-	h.Env.Toast = func(message string) { shown = append(shown, message) }
-	p.plugins.changed()
-	if len(shown) != 1 || shown[0] != nativeT("pluginApplied") {
-		t.Fatalf("toasts %q", shown)
 	}
 }

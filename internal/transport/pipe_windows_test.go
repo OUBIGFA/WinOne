@@ -17,10 +17,10 @@ type pipeTestHandler func(host.Request) host.Response
 
 func (handler pipeTestHandler) Handle(request host.Request) host.Response { return handler(request) }
 
-// A title may finish after the idle-client deadline. The real pipe must return
-// its single completed result instead of disconnecting after the title is saved.
-func TestChatTitleResponseSurvivesIdlePipeDeadline(t *testing.T) {
-	name := fmt.Sprintf(`\\.\pipe\WinOne-title-test-%d`, time.Now().UnixNano())
+// A cold capture worker may finish after the idle-client deadline. The real
+// pipe must keep the admitted operation alive until its response is returned.
+func TestCaptureResponseSurvivesIdlePipeDeadline(t *testing.T) {
+	name := fmt.Sprintf(`\\.\pipe\WinOne-capture-test-%d`, time.Now().UnixNano())
 	listener, err := Listen(name)
 	if err != nil {
 		t.Fatal(err)
@@ -30,11 +30,11 @@ func TestChatTitleResponseSurvivesIdlePipeDeadline(t *testing.T) {
 	defer cancel()
 	go Serve(ctx, listener, pipeTestHandler(func(request host.Request) host.Response {
 		time.Sleep(5100 * time.Millisecond)
-		return host.Response{ID: request.ID, Result: json.RawMessage(`{"title":"已生成的中文标题"}`)}
+		return host.Response{ID: request.ID, Result: json.RawMessage(`{"models":["fixture-model"]}`)}
 	}))
-	response, err := CallWithTimeout(ctx, name, host.Request{Version: 1, ID: "title", Method: "chat.title"}, 10*time.Second)
-	if err != nil || string(response.Result) != `{"title":"已生成的中文标题"}` {
-		t.Fatalf("completed title lost on pipe: %+v, %v", response, err)
+	response, err := CallWithTimeout(ctx, name, host.Request{Version: 1, ID: "capture", Method: "capture.ai.models.fetch"}, 10*time.Second)
+	if err != nil || string(response.Result) != `{"models":["fixture-model"]}` {
+		t.Fatalf("completed capture response lost on pipe: %+v, %v", response, err)
 	}
 }
 
