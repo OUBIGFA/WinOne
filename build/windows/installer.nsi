@@ -15,6 +15,9 @@ ManifestLongPathAware true
   SetCompress off
 !else
   SetCompressor /SOLID lzma
+  ; Share repeated runtime/code blocks across the larger native binaries.
+  ; This affects installer memory only, not WinOne's idle footprint.
+  SetCompressorDictSize 32
 !endif
 !include MUI2.nsh
 !include LogicLib.nsh

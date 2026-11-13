@@ -18,7 +18,7 @@ try {
     # UI manifest or carry its tray, account and login entry points into setup.
     & $GoExe run github.com/akavel/rsrc@v0.10.2 -arch amd64 -manifest build/windows/installer-maintenance.manifest -ico internal/branding/icon.ico -o build/installer-maintenance/resource_windows.syso
     if($LASTEXITCODE -ne 0){throw 'Maintenance helper resources failed'}
-    & $GoExe build -trimpath -ldflags '-H windowsgui' -o (Join-Path $output 'WinOne.Maintenance.exe') ./build/installer-maintenance
+    & $GoExe build -trimpath -ldflags '-s -w -H windowsgui' -o (Join-Path $output 'WinOne.Maintenance.exe') ./build/installer-maintenance
     if($LASTEXITCODE -ne 0){throw 'Maintenance helper build failed'}
 } finally {Pop-Location;$env:GOROOT=$priorRoot}
 $helper=Join-Path $output 'WinOne.Maintenance.exe'

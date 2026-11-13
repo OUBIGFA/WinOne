@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,8 +18,9 @@ import (
 )
 
 type ocrWorker struct {
-	process *aiProcess
-	output  *bufio.Scanner
+	process      *aiProcess
+	output       *bufio.Scanner
+	preparedOnce atomic.Bool
 }
 
 // LocalOCR owns one serialized OCR worker for the Host. An enabled local OCR
@@ -26,17 +28,18 @@ type ocrWorker struct {
 // lifetime. No screenshot or recognized text is retained while waiting.
 // A cancelled request kills its worker; a waiting request cannot kill another.
 type LocalOCR struct {
-	lifetime    context.Context
-	runtime     Translator
-	gate        chan struct{}
-	worker      *ocrWorker
-	idle        *time.Timer
-	generation  uint64
-	idleTimeout time.Duration
-	standby     atomic.Bool
-	managed     atomic.Bool // A disabled managed module must not keep an ad-hoc idle lease.
-	ready       atomic.Bool
-	processID   atomic.Int64
+	lifetime     context.Context
+	runtime      Translator
+	gate         chan struct{}
+	worker       *ocrWorker
+	idle         *time.Timer
+	generation   uint64
+	idleTimeout  time.Duration
+	standby      atomic.Bool
+	managed      atomic.Bool // A disabled managed module must not keep an ad-hoc idle lease.
+	ready        atomic.Bool
+	processID    atomic.Int64
+	lastRecovery time.Time // Protected by gate; bounds repeated crash recovery.
 }
 
 func NewLocalOCR(lifetime context.Context, runtime Translator) *LocalOCR {
@@ -93,6 +96,22 @@ func (s *LocalOCR) Prepare(ctx context.Context) error {
 	return err
 }
 
+// Background maintenance must neither wait behind an active recognition nor
+// queue another inference for it to finish. The gate is also the ownership
+// boundary used by disable, cancellation and interpreter replacement.
+func (s *LocalOCR) PrepareIfIdle(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	select {
+	case s.gate <- struct{}{}:
+		defer func() { <-s.gate }()
+		_, err := s.exchangeLocked(ctx, nil, true)
+		return err
+	default:
+		return nil
+	}
+}
+
 // retire is called with gate held. The Job Object also covers abrupt Host exit;
 // waiting here reaps the interpreter before another worker can replace it.
 func (s *LocalOCR) retire() {
@@ -138,7 +157,8 @@ func (s *LocalOCR) start() error {
 	}
 	output := bufio.NewScanner(p.output)
 	output.Buffer(make([]byte, 4096), 1024*1024)
-	s.worker = &ocrWorker{process: p, output: output}
+	worker := &ocrWorker{process: p, output: output}
+	s.worker = worker
 	s.processID.Store(int64(p.cmd.Process.Pid))
 	go func() {
 		_ = p.cmd.Wait()
@@ -146,8 +166,33 @@ func (s *LocalOCR) start() error {
 		s.processID.Store(0)
 		p.closeJob()
 		close(p.finished)
+		if worker.preparedOnce.Load() {
+			s.recoverAfterExit(worker)
+		}
 	}()
 	return nil
+}
+
+// Reuse the existing process-exit watcher, without another polling timer.
+// Intentional disable/Host exit cannot restart it. A prepared worker gets one
+// immediate recovery; repeated failures fall back to the Host's maintenance
+// interval rather than forming a process-start loop.
+func (s *LocalOCR) recoverAfterExit(exited *ocrWorker) {
+	ctx, cancel := context.WithTimeout(s.lifetime, 60*time.Second)
+	defer cancel()
+	select {
+	case s.gate <- struct{}{}:
+		defer func() { <-s.gate }()
+	case <-ctx.Done():
+		return
+	}
+	if !s.standby.Load() || ctx.Err() != nil || s.worker != nil && s.worker != exited || time.Since(s.lastRecovery) < 30*time.Second {
+		return
+	}
+	s.lastRecovery = time.Now()
+	if _, err := s.exchangeLocked(ctx, nil, true); err != nil && s.lifetime.Err() == nil {
+		fmt.Fprintln(os.Stderr, "OCR 后台恢复：", err)
+	}
 }
 
 func (s *LocalOCR) Recognize(ctx context.Context, image []byte) (string, error) {
@@ -157,9 +202,6 @@ func (s *LocalOCR) Recognize(ctx context.Context, image []byte) (string, error) 
 func (s *LocalOCR) exchange(ctx context.Context, image []byte, prepare bool) (string, error) {
 	if !prepare && (len(image) == 0 || len(image) > 32<<20) {
 		return "", errors.New("OCR 图片为空或过大")
-	}
-	if !filepath.IsAbs(s.runtime.Executable) || !filepath.IsAbs(s.runtime.DataDirectory) {
-		return "", errors.New("OCR 运行路径无效")
 	}
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
@@ -171,6 +213,13 @@ func (s *LocalOCR) exchange(ctx context.Context, image []byte, prepare bool) (st
 		return "", s.lifetime.Err()
 	}
 	defer func() { <-s.gate }()
+	return s.exchangeLocked(ctx, image, prepare)
+}
+
+func (s *LocalOCR) exchangeLocked(ctx context.Context, image []byte, prepare bool) (string, error) {
+	if !filepath.IsAbs(s.runtime.Executable) || !filepath.IsAbs(s.runtime.DataDirectory) {
+		return "", errors.New("OCR 运行路径无效")
+	}
 	if err := s.lifetime.Err(); err != nil {
 		return "", err
 	}
@@ -251,6 +300,7 @@ func (s *LocalOCR) exchange(ctx context.Context, image []byte, prepare bool) (st
 		}
 		return "", errors.New("OCR 识别失败，请重试")
 	}
+	worker.preparedOnce.Store(true)
 	s.ready.Store(true)
 	if prepare {
 		return "", nil

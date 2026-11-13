@@ -25,6 +25,15 @@ internal static class TrayExitProbe
         var tray=Find(pid,"SystrayClass");
         return tray!=IntPtr.Zero&&PostMessageW(tray,0x111,new IntPtr(3),IntPtr.Zero);
     }
+    // A private desktop has no Explorer notification area, so Shell_NotifyIcon
+    // cannot create a tray menu. WM_CLOSE on this owned Host's native lifetime
+    // window invokes its normal exit callback; it does not claim a tray click.
+    internal static bool RequestPrivateHostClose(int pid) {
+        if (!HostedToolbar.CurrentDesktopName().StartsWith("WinOne-Resource-", StringComparison.Ordinal))
+            throw new InvalidOperationException("Private Host close requires the isolated desktop");
+        var window=Find(pid,"SystrayClass");
+        return window!=IntPtr.Zero&&PostMessageW(window,0x10,IntPtr.Zero,IntPtr.Zero);
+    }
     public static int Run(string output) {
         if (!HostedToolbar.CurrentDesktopName().StartsWith("WinOne-Resource-", StringComparison.Ordinal)) throw new InvalidOperationException("Use a private desktop");
         var bundle = Environment.GetEnvironmentVariable("WINONE_EXIT_BUNDLE") ?? throw new InvalidOperationException("Set WINONE_EXIT_BUNDLE");

@@ -34,14 +34,14 @@ func ocrWorkerFixture(t *testing.T, idle time.Duration) (*LocalOCR, context.Canc
 		if _, err := os.Stat(source); os.IsNotExist(err) {
 			continue
 		}
-		if err := os.Link(source, destination); err != nil {
-			data, readErr := os.ReadFile(source)
-			if readErr != nil {
-				t.Fatal(readErr)
-			}
-			if err := os.WriteFile(destination, data, 0600); err != nil {
-				t.Fatal(err)
-			}
+		// Own the image file as well as the process. Windows cannot unlink a
+		// hardlink while another build is running the source interpreter.
+		data, err := os.ReadFile(source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(destination, data, 0600); err != nil {
+			t.Fatal(err)
 		}
 	}
 	script := `import json, os, pathlib, struct, sys, time
@@ -153,6 +153,138 @@ func TestLocalOCRStandbyPreparesBeforeUseAndSurvivesIdle(t *testing.T) {
 	if service.worker != nil {
 		t.Fatal("disabled module was restarted by a late resume")
 	}
+}
+
+func TestLocalOCRIdleMaintenanceRecoversBeforeTheNextRecognition(t *testing.T) {
+	service, _ := ocrWorkerFixture(t, time.Minute)
+	if err := <-service.SetStandby(true); err != nil {
+		t.Fatal(err)
+	}
+	_, original := service.Status()
+	service.gate <- struct{}{}
+	process := service.worker.process
+	if err := process.cmd.Process.Kill(); err != nil {
+		t.Fatal(err)
+	}
+	<-process.finished
+	<-service.gate
+	if err := service.PrepareIfIdle(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	replacement := waitOCRReady(t, service, original)
+	if actual := workerReply(t, service, "after background recovery"); actual != replacement {
+		t.Fatal("recognition did not reuse the recovered worker")
+	}
+	if err := <-service.SetStandby(false); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.PrepareIfIdle(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if ready, pid := service.Status(); ready || pid != 0 {
+		t.Fatal("maintenance revived disabled local OCR")
+	}
+}
+
+func waitOCRReady(t *testing.T, service *LocalOCR, previous int) int {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if ready, pid := service.Status(); ready && pid != 0 && pid != previous {
+			return pid
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("background recovery left OCR unprepared")
+	return 0
+}
+
+func TestLocalOCRStandbyRecoversOnExitWithoutWaitingForMaintenance(t *testing.T) {
+	service, _ := ocrWorkerFixture(t, time.Minute)
+	if err := <-service.SetStandby(true); err != nil {
+		t.Fatal(err)
+	}
+	_, original := service.Status()
+	service.gate <- struct{}{}
+	process := service.worker.process
+	if err := process.cmd.Process.Kill(); err != nil {
+		<-service.gate
+		t.Fatal(err)
+	}
+	<-process.finished
+	<-service.gate
+	// There is no Host timer or recognition request in this test.
+	replacement := waitOCRReady(t, service, original)
+	if actual := workerReply(t, service, "after immediate recovery"); actual != replacement {
+		t.Fatal("first recognition did not reuse the automatically prepared worker")
+	}
+	if err := <-service.SetStandby(false); err != nil {
+		t.Fatal(err)
+	}
+	waitOCRExit(t, replacement)
+	if ready, pid := service.Status(); ready || pid != 0 {
+		t.Fatal("intentional shutdown restarted OCR")
+	}
+}
+
+func TestLocalOCRRepeatedCrashesWaitForMaintenance(t *testing.T) {
+	service, _ := ocrWorkerFixture(t, time.Minute)
+	if err := <-service.SetStandby(true); err != nil {
+		t.Fatal(err)
+	}
+	_, original := service.Status()
+	killWorker := func() {
+		service.gate <- struct{}{}
+		defer func() { <-service.gate }()
+		process := service.worker.process
+		if err := process.cmd.Process.Kill(); err != nil {
+			t.Fatal(err)
+		}
+		<-process.finished
+	}
+	killWorker()
+	replacement := waitOCRReady(t, service, original)
+	killWorker()
+	// A second crash shortly after recovery must not create an unbounded
+	// restart loop. The ordinary maintenance path can still repair it.
+	deadline := time.Now().Add(200 * time.Millisecond)
+	for time.Now().Before(deadline) {
+		if ready, pid := service.Status(); ready || pid != 0 {
+			t.Fatal("repeated crashes immediately restarted OCR again")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if err := service.PrepareIfIdle(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	recovered := waitOCRReady(t, service, replacement)
+	if actual := workerReply(t, service, "after repeated crashes"); actual != recovered {
+		t.Fatal("maintenance did not leave a reusable worker")
+	}
+	if err := <-service.SetStandby(false); err != nil {
+		t.Fatal(err)
+	}
+	waitOCRExit(t, recovered)
+}
+
+func TestLocalOCRIdleMaintenanceDoesNotQueueBehindActiveWork(t *testing.T) {
+	service, _ := ocrWorkerFixture(t, time.Minute)
+	if err := <-service.SetStandby(true); err != nil {
+		t.Fatal(err)
+	}
+	service.gate <- struct{}{}
+	done := make(chan error, 1)
+	go func() { done <- service.PrepareIfIdle(context.Background()) }()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		<-service.gate
+		t.Fatal("background preparation waited behind an active request")
+	}
+	<-service.gate
 }
 
 func TestLocalOCRLateResultAfterDisableIsNotRetained(t *testing.T) {

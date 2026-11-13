@@ -123,7 +123,6 @@ internal sealed class NativeToolbarControl : UserControl
         // Completion stays on the right even when less frequent file actions
         // move into the native overflow menu. Labels remain in tooltips/UIA.
         foreach (var command in new[] { "confirm", "cancel" }) buttons[command].Overflow = ToolStripItemOverflow.Never;
-        Add(tools, "select", T("移动", "Move"), T("拖动单个标注", "Move an annotation"));
         Add(tools, "region", T("选区", "Selection"), T("调整截图范围", "Adjust capture area"));
         // Selection and scrolling both change the captured area. Keep them
         // adjacent in the native toolbar rather than among file actions.
@@ -135,6 +134,7 @@ internal sealed class NativeToolbarControl : UserControl
         Add(tools, "gif", T("录制 GIF", "Record GIF"), T("录制当前屏幕选区为 GIF", "Record the selected screen area as GIF"));
         foreach (var command in new[] { "video", "gif" }) { drawingCommands.Remove(command); buttons[command].Enabled = false; }
         Separate(tools);
+        Add(tools, "select", T("移动", "Move"), T("拖动单个标注", "Move an annotation"));
         Add(tools, "rectangle", T("矩形", "Rectangle"), T("矩形", "Rectangle"));
         Add(tools, "ellipse", T("椭圆", "Ellipse"), T("椭圆", "Ellipse"));
         Add(tools, "arrow", T("箭头", "Arrow"), T("箭头", "Arrow"));

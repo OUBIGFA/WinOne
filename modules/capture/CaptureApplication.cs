@@ -96,7 +96,7 @@ internal sealed class CaptureApplication : ApplicationContext
                 var bytes = await PipeProtocol.ReadAsync(pipe, timeout.Token).ConfigureAwait(false);
                 var request = JsonSerializer.Deserialize<Request>(bytes, SettingsStore.Json) ?? throw new InvalidDataException("请求为空");
                 // Status polling is not user activity and must not keep an idle worker alive.
-                if (request.Method is not ("snapshot" or "jobs.get" or "settings.reload")) Interlocked.Exchange(ref activity, Environment.TickCount64);
+                if (request.Method is not ("snapshot" or "jobs.get" or "settings.reload" or "prepare")) Interlocked.Exchange(ref activity, Environment.TickCount64);
                 Response response;
                 try { response = new(request.Id, Handle(request)); }
                 catch (Exception error) { response = new(request.Id, Error: new("capture", error.Message)); }
@@ -117,11 +117,16 @@ internal sealed class CaptureApplication : ApplicationContext
         {
             case "prepare": return dispatcher.Invoke(() => {
                 stopping.Token.ThrowIfCancellationRequested();
-                if(Volatile.Read(ref busy)==0)NativeUI.NativeCaptureStandby.Prepare(operations,store.Snapshot(),language);
+                var refresh = request.Parameters.ValueKind == JsonValueKind.Object
+                    && request.Parameters.TryGetProperty("refresh", out var value) && value.GetBoolean();
+                // The Host sends one low-frequency maintenance request. Recent
+                // user work already touched these pages; never warm over an edit.
+                if (Volatile.Read(ref busy) == 0 && (!refresh || !NativeUI.NativeCaptureStandby.Prepared || Environment.TickCount64 - activity >= 30_000))
+                    NativeUI.NativeCaptureStandby.Prepare(operations,store.Snapshot(),language,refresh);
                 stopping.Token.ThrowIfCancellationRequested();
-                return new {prepared=true};
+                return new {prepared=NativeUI.NativeCaptureStandby.Prepared};
             });
-            case "snapshot": return new { processId = Environment.ProcessId, prepared = NativeUI.NativeCaptureStandby.Prepared, configurationManaged = store.IsManaged, settings = store.Snapshot(), lastCapture = operations.Last, busy = Volatile.Read(ref busy) != 0 || operations.NativeConfiguration?.IsSaving == true, configurationBusy = operations.NativeConfiguration?.IsSaving == true, pins = PinToScreenForm.ActiveCount };
+            case "snapshot": return new { processId = Environment.ProcessId, prepared = NativeUI.NativeCaptureStandby.Prepared, preparations = NativeUI.NativeCaptureStandby.Preparations, configurationManaged = store.IsManaged, settings = store.Snapshot(), lastCapture = operations.Last, busy = Volatile.Read(ref busy) != 0 || operations.NativeConfiguration?.IsSaving == true, configurationBusy = operations.NativeConfiguration?.IsSaving == true, pins = PinToScreenForm.ActiveCount };
             case "settings.reload": return store.ReloadManaged();
             case "capture.activate":
                 lock (lifecycle) { return new { active = ActivateCurrentNative() is not null }; }

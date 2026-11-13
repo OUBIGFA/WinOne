@@ -6,6 +6,59 @@ import (
 	"testing"
 )
 
+func TestSettledObserverRestoresReadinessAfterCommitAndRecovery(t *testing.T) {
+	var store *HostStore
+	enabled := false
+	failure := ""
+	duringApply := false
+	adapter := ModuleAdapter{ID: "capture", Load: func() (json.RawMessage, error) { return json.RawMessage(`{"size":3}`), nil }, Validate: func(json.RawMessage) error { return nil }, Apply: func(json.RawMessage, uint64) error { return nil }}
+	lifecycle := ModuleLifecycle{
+		Initial: map[string]bool{"capture": false},
+		Before:  func(map[string]bool) error { return nil },
+		After: func(target map[string]bool) error {
+			enabled = target["capture"]
+			if store != nil {
+				// This is the Host's original readiness check, invoked during
+				// module intent application while the journal is still pending.
+				duringApply = store.RecoveryError() == nil && enabled
+			}
+			if failure == "recovery" || failure == "rollback" && !enabled {
+				return errors.New("native transition failed")
+			}
+			return nil
+		},
+	}
+	var err error
+	store, err = OpenHostWithLifecycle(t.TempDir(), lifecycle, adapter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var states []bool
+	store.OnSettled(func() { states = append(states, store.RecoveryError() == nil && enabled) })
+	next := store.CommittedDocument()
+	next.ModuleEnabled["capture"] = true
+	if _, err = store.CommitDocument(next); err != nil {
+		t.Fatal(err)
+	}
+	if duringApply || len(states) != 1 || !states[0] {
+		t.Fatalf("readiness was not restored after the pending journal cleared: during=%v, settled=%v", duringApply, states)
+	}
+	failure = "rollback"
+	next = store.CommittedDocument()
+	next.ModuleEnabled["capture"] = false
+	if _, err = store.CommitDocument(next); err == nil || len(states) != 2 || !states[1] {
+		t.Fatalf("clean rollback did not restore readiness: %v %v", err, states)
+	}
+	failure = "recovery"
+	if _, err = store.CommitDocument(next); err == nil || len(states) != 3 || states[2] {
+		t.Fatalf("incomplete recovery retained readiness: %v %v", err, states)
+	}
+	failure = ""
+	if err = store.Recover(); err != nil || len(states) != 4 || !states[3] {
+		t.Fatalf("explicit recovery did not restore readiness: %v %v", err, states)
+	}
+}
+
 func TestLifecycleCommitCompensatesEnabledStateAndPreferencesTogether(t *testing.T) {
 	root := t.TempDir()
 	enabled := true

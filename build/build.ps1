@@ -55,7 +55,7 @@ try { if(-not $CompileOnly){& $GoExe test ./...; CheckExit} } finally { Pop-Loca
 & $GoExe run ./build/icon -out internal/branding/icon.ico -native-png internal/branding/logo-native.png; CheckExit
 & (Join-Path $PSScriptRoot 'build-always-on-top.ps1') -OutputDirectory (Join-Path $output 'always-on-top')
 & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o modules/always-on-top/cmd/worker/resource_windows.syso; CheckExit
-& $GoExe build -trimpath -ldflags '-H windowsgui' -o (Join-Path $output 'always-on-top/WinOne.AlwaysOnTop.exe') ./modules/always-on-top/cmd/worker; CheckExit
+& $GoExe build -trimpath -ldflags '-s -w -H windowsgui' -o (Join-Path $output 'always-on-top/WinOne.AlwaysOnTop.exe') ./modules/always-on-top/cmd/worker; CheckExit
 $sharex = if($ShareXSourceDirectory){(Resolve-Path -LiteralPath $ShareXSourceDirectory).Path}else{& (Join-Path $PSScriptRoot 'prepare-sharex.ps1') -Downloader $Downloader}
 if($ShareXSourceDirectory){
     # Refresh the host import when a prepared source cache has moved directories.
@@ -103,7 +103,7 @@ if($Downloader){$learningPrepare.Downloader=$Downloader}
 & (Join-Path $PSScriptRoot 'build-interconnect-peer.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -GoExe $ResultGoExe -Test:(-not $CompileOnly) -TestDirectory (Join-Path (Split-Path -Parent $output) 'interconnect-peer-tests')
 & (Join-Path $PSScriptRoot 'build-capture-regions.ps1') -OutputDirectory (Join-Path $output 'capture')
 if(-not $CompileOnly){
-$regionLifetimeProbe = Join-Path $root '_temp/build/capture-regions-lifetime-probe'
+$regionLifetimeProbe = Join-Path (Split-Path -Parent $output) 'capture-regions-lifetime-probe'
 & (Join-Path $PSScriptRoot 'build-capture-regions.ps1') -TestLifetime -OutputDirectory $regionLifetimeProbe
 Invoke-NativeCommand 'dotnet' @((Join-Path $captureTests 'WinOne.Capture.Tests.dll'),'--region-helper-lifetime',(Join-Path $regionLifetimeProbe 'WinOne.Capture.Regions.LifetimeProbe.exe')) 'Capture region lifetime test failed'
 }

@@ -7,7 +7,9 @@ namespace WinOne.Capture.NativeUI;
 internal static class NativeCaptureStandby
 {
     private static volatile bool prepared;
+    private static int preparations;
     internal static bool Prepared => prepared;
+    internal static int Preparations => Volatile.Read(ref preparations);
 
     internal static void Prepare(CaptureOperations operations, CaptureSettings settings, string? language = null, bool refresh = false)
     {
@@ -15,5 +17,6 @@ internal static class NativeCaptureStandby
         CaptureOperations.ApplyTheme(settings);
         NativeCaptureWorkflow.Prepare(operations, settings, language);
         prepared = true;
+        Interlocked.Increment(ref preparations);
     }
 }

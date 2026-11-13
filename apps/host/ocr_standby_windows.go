@@ -56,3 +56,14 @@ func (s *aiService) prepareLocalOCRAfterResume() (bool, error) {
 	go func() { s.logOCRPreparation(s.localOCR.Prepare(s.ctx)) }()
 	return true, nil
 }
+
+// The shared capture timer exercises a generated image while idle. Reusing
+// sessions is inexpensive; a cancelled/crashed worker is prepared here before
+// the next user request has to pay for Python and model initialization.
+func (s *aiService) maintainLocalOCRStandby(ctx context.Context) {
+	enabled, err := s.localOCRStandbyEnabled()
+	s.logOCRPreparation(err)
+	if err == nil && enabled && s.localOCR != nil {
+		s.logOCRPreparation(s.localOCR.PrepareIfIdle(ctx))
+	}
+}

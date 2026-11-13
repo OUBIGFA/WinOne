@@ -5,6 +5,17 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        try { return Run(args); }
+        catch (Exception error) {
+            // Fail the private-desktop runner directly instead of waiting on
+            // a Windows crash dialog which the user must never have to close.
+            Console.Error.WriteLine(error);
+            return 1;
+        }
+    }
+
+    private static int Run(string[] args)
+    {
         Console.OutputEncoding = new System.Text.UTF8Encoding(false);
         if (args is ["--ocr-host-latency",var ocrLatencyOutput]) return OcrHostLatencyProbe.Run(ocrLatencyOutput);
         if (args is ["--native-capture-latency",var latencyOutput]) return NativeCaptureLatencyProbe.Run(latencyOutput);

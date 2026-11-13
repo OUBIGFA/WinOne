@@ -8,7 +8,9 @@ if($Version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$'){throw 'Invalid Host
 if($UpdateRepository -and $UpdateRepository -notmatch '^[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9_.-]+$'){throw 'Invalid update repository'}
 if($ModulePublishers -and $ModulePublishers -notmatch '^[A-Za-z0-9+/]+={0,2}$'){throw 'Invalid module trust encoding'}
 New-Item -ItemType Directory -Path $output -Force | Out-Null
-$hostFlags="-H windowsgui -X main.updateRepository=$UpdateRepository -X main.updateVersion=$Version -X main.modulePublishers=$ModulePublishers"
+# Match the other release workers: retain Go panic traces/build identity while
+# omitting linker symbols and DWARF data used only by a development debugger.
+$hostFlags="-s -w -H windowsgui -X main.updateRepository=$UpdateRepository -X main.updateVersion=$Version -X main.modulePublishers=$ModulePublishers"
 if($TestOnboardingDirectory){
     $testOnboarding=[IO.Path]::GetFullPath($TestOnboardingDirectory)
     & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $testOnboarding

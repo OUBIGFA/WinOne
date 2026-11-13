@@ -423,7 +423,24 @@ func run() (runErr error) {
 	resultWindows.ai.captureEnabled = func() bool { return store.RecoveryError() == nil && gates["capture"].Enabled() }
 	closeLearning := registerLearning(service, ctx, *data, executable, *pipe, resultWindows)
 	defer func() { runErr = errors.Join(runErr, closeLearning()) }()
-	refreshCaptureReadiness = resultWindows.ai.refreshLocalOCRStandby
+	readiness := newCaptureReadiness(ctx, 30*time.Second, resultWindows.ai.captureEnabled, func(ctx context.Context) {
+		// Prepare reuses a healthy worker and recovers a stopped one through the
+		// same module gate. The capture side skips an active edit automatically.
+		response := gates["capture"].Handle(host.Request{Version: 1, ID: "capture-idle-prepare", Method: "prepare", Params: json.RawMessage(`{"refresh":true}`)})
+		if response.Error != nil && ctx.Err() == nil {
+			fmt.Fprintln(os.Stderr, "截图待命维护：", response.Error.Message)
+		}
+		resultWindows.ai.maintainLocalOCRStandby(ctx)
+	})
+	refreshCaptureReadiness = func() {
+		resultWindows.ai.refreshLocalOCRStandby()
+		readiness.Refresh()
+	}
+	// IntentChanged runs while the configuration journal is still pending,
+	// so its safety check intentionally disables OCR. Reconcile once the
+	// transaction or recovery has actually finished; enabling capture must
+	// not leave local OCR permanently in one-shot mode.
+	store.OnSettled(refreshCaptureReadiness)
 	// Start local models as soon as configuration is available, alongside the
 	// rest of Host startup rather than behind WinTray/first capture startup.
 	refreshCaptureReadiness()

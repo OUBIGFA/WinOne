@@ -62,7 +62,9 @@
 
 ## 可重复使用的本地资源
 
-内置 Anki 26.09.4 的固定资源为 `dist/resources/sources/anki-26.09.4/`（锁定的 Python 包、官方源码、卡片渲染包与对应第三方源码归档）和 `dist/resources/runtimes/anki-26.09.4/`（校验后的库、渲染资源与源码）。版本、下载来源与摘要见 `third_party/anki/source.json`。用 `python build/prepare-anki.py --archives dist/resources/sources/anki-26.09.4 --output dist/resources/runtimes/anki-26.09.4` 准备；用 `python build/verify-anki.py --runtime dist/resources/runtimes/anki-26.09.4` 只读核对。对应第三方源码 ZIP 可由 `build/prepare-anki-sources.py` 根据锁定输入重现。
+内置 Anki 26.09.4 的固定资源为 `dist/resources/sources/anki-26.09.4/`（锁定的 Python 包、官方源码、卡片渲染包与对应第三方源码归档）和 `dist/resources/runtimes/anki-26.09.4/`（校验后的库、渲染资源与源码）。版本、下载来源与摘要见 `third_party/anki/source.json`。用 `python build/prepare-anki.py --archives dist/resources/sources/anki-26.09.4 --output dist/resources/runtimes/anki-26.09.4` 准备；用 `python build/verify-anki.py --runtime dist/resources/runtimes/anki-26.09.4` 只读核对。
+
+对应第三方源码使用 `anki-third-party-sources.tar.xz`，由 `build/prepare-anki-sources.py --inputs <锁定源码目录或旧源码ZIP> --output <输出目录>/anki-third-party-sources.tar.xz` 重现。先核对全部原始 gzip 归档的 SHA-256，再完整保留解压后的 tar 字节，用一个 XZ 流统一压缩；不删源码、许可或构建资料。归档内 `SOURCES.json` 记录原始归档和 tar 字节摘要，`verify-anki.py` 逐项回读。修改压缩方式时先在 `_temp/<任务>/` 生成并验证，再更新来源摘要、固定资源及运行文件清单；旧资源保留为回退副本。
 
 统一构建经 `build/copy-anki.ps1` 将这些文件和 WinOne 适配代码放入 `shared/anki/`。Python 解释器复用包内 `capture/Ocr/python/`，不安装系统 Python，不调用外部 Anki。新增运行文件后用 `build/update-anki-inventory.py` 更新完整载荷清单；整个集合服务在首次使用时启动，空闲释放，数据在 WinOne 的学习档案中持久化。
 

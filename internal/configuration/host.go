@@ -17,6 +17,7 @@ import (
 type HostStore struct {
 	store        *Store
 	apply        func(settings.Settings) error
+	settled      func()
 	modules      []ModuleAdapter
 	catalogMu    sync.RWMutex
 	registered   map[string]ModuleAdapter
@@ -183,6 +184,18 @@ func (s *HostStore) CommittedDocument() Document { return s.store.Snapshot() }
 // SetApply is installed during startup, before serving requests. The callback
 // reconciles desired preferences both for a change and for its compensation.
 func (s *HostStore) SetApply(apply func(settings.Settings) error) { s.apply = apply }
+
+// OnSettled is installed before serving clients. Unlike native apply hooks,
+// it observes the final committed/rolled-back state after the pending journal
+// has settled. The observer may reconcile background intent, not start another
+// configuration transaction or wait for model/window preparation.
+func (s *HostStore) OnSettled(callback func()) { s.settled = callback }
+
+func (s *HostStore) notifySettled() {
+	if s.settled != nil {
+		s.settled()
+	}
+}
 
 func (s *HostStore) Save(next settings.Settings) (settings.Settings, error) {
 	document := s.store.Snapshot()

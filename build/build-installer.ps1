@@ -14,7 +14,7 @@ $output=[IO.Path]::GetFullPath($OutputDirectory)
 if ($TestDirectory) { & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path ([IO.Path]::GetFullPath($TestDirectory)) }
 & git -C $root check-ignore --quiet --no-index -- (Join-Path $output 'installer.probe')
 if($LASTEXITCODE -ne 0){throw 'Installer output must be Git-ignored'}
-$preparation=Join-Path $root ('_temp/installer-build/'+[Guid]::NewGuid().ToString('N'))
+$preparation=Join-Path $output 'preparation'
 $priorRoot=$env:GOROOT
 $env:GOROOT=''
 $updateHelper=Join-Path $preparation 'WinOne.Update.exe'
@@ -24,7 +24,7 @@ try {
  # selected binary must resolve its own compiler.
  & (Join-Path $PSScriptRoot 'prepare-installer.ps1') -Package $Package -OutputDirectory $preparation -GoExe $GoExe
  Push-Location $root
- & $GoExe build -trimpath -ldflags '-H windowsgui' -o $updateHelper ./build/installer-update
+ & $GoExe build -trimpath -ldflags '-s -w -H windowsgui' -o $updateHelper ./build/installer-update
  if($LASTEXITCODE -ne 0){throw 'Installer update helper build failed'}
 } finally { Pop-Location; $env:GOROOT=$priorRoot }
 & (Join-Path $PSScriptRoot 'build-installer-maintenance.ps1') -GoExe $GoExe -OutputDirectory $preparation
@@ -52,7 +52,7 @@ if($TestDirectory){
 # A compile-time path keeps full installer tests out of real ProgramData while
 # using the exact same initializer and ACL policy as the production helper.
 $onboardingHelper=Join-Path $preparation 'WinOne.Onboarding.exe'
-$onboardingFlags='-H windowsgui'
+$onboardingFlags='-s -w -H windowsgui'
 if($TestDirectory){$onboardingFlags+=" -X 'winone/internal/onboarding.machineDirectoryOverride="+$context.onboarding.Replace('\','/')+"'"}
 $priorRoot=$env:GOROOT
 $env:GOROOT=''

@@ -1453,7 +1453,7 @@ shared/anki/renderer/js/vendor/mathjax/sre/mathmaps/nemeth.json
 shared/anki/renderer/js/vendor/mathjax/tex-chtml-full.js
 shared/anki/rendering.py
 shared/anki/source/anki-c06370f.tar.gz
-shared/anki/source/anki-third-party-sources.zip
+shared/anki/source/anki-third-party-sources.tar.xz
 shared/anki/tools.py
 shared/anki/upstream.py
 shared/anki/worker.py

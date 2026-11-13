@@ -36,7 +36,12 @@ internal static class NativeToolbarTests
         if (dragged.Location != new Point(8, 696)) throw new Exception("User toolbar placement escaped the monitor");
         using (var stable = new NativeToolbarControl(saveToolbar: value => Task.FromResult(value))) {
             var row = (ToolStrip)stable.Controls["capture-tools"]!;
-            if (row.Items.OfType<ToolStripButton>().First().Name != "select") throw new Exception("Move must be the first annotation tool");
+            var move = row.Items.IndexOfKey("select");
+            if (row.Items.OfType<ToolStripButton>().First().Name != "region"
+                || move <= row.Items.IndexOfKey("gif")
+                || row.Items[move - 1] is not ToolStripSeparator
+                || row.Items[move + 1].Name != "rectangle")
+                throw new Exception("Move must start the annotation group after capture actions");
             string? command = null;
             stable.Command += value => command = value;
             row.Items["select"]!.PerformClick();

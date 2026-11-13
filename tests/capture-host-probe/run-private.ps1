@@ -53,7 +53,13 @@ try {
     $mode = switch ($Suite) { ocr-latency { '--ocr-host-latency' } latency { '--native-capture-latency' } facade { '--self-test' } autosave { '--native-autosave' } scroll-workflow { '--native-scrolling-workflow' } settings-dialog { '--settings-dialog' } production-resources { '--production-resource-suite' } tray-exit { '--tray-exit' } workflow { '--native-workflow-probe' } paint { '--native-paint-dispatch' } toolbar { '--native-toolbar-render-probe' } customization { '--native-toolbar-customization' } preferences { '--native-toolbar-preferences' } scroll-progress { '--native-scroll-progress' } pointer { '--native-pointer-dispatch' } }
     $arguments = if ($Suite -eq 'text-pipeline') { '--native-text-pipeline "'+$output+'"' } elseif ($Suite -eq 'text-recognition') { '--native-text-recognition' } elseif ($Suite -eq 'native-tests') { '-test.v -test.timeout=45s -test.run="' + $TestFilter + '"' } elseif ($Suite -in @('pointer','facade')) { $mode } else { $mode + ' "' + $output + '"' }
     $child = [WinOnePrivateProbe]::Start($probe, $arguments, $name, $root)
-    $wait = [WinOnePrivateProbe]::WaitForSingleObject($child.process, $(if($Suite -in @('latency','ocr-latency')){120000}else{60000}))
+    $timeoutSeconds=switch($Suite){
+        'ocr-latency' { $(if($env:WINONE_OCR_HOST_IDLE_SECONDS){[int]$env:WINONE_OCR_HOST_IDLE_SECONDS}else{65})+240 }
+        'latency' { $(if($env:WINONE_CAPTURE_LATENCY_IDLE_SECONDS){[int]$env:WINONE_CAPTURE_LATENCY_IDLE_SECONDS}else{65})+60 }
+        default {60}
+    }
+    if($timeoutSeconds -lt 1 -or $timeoutSeconds -gt 3840){throw 'Invalid private probe timeout'}
+    $wait = [WinOnePrivateProbe]::WaitForSingleObject($child.process, [uint32]($timeoutSeconds*1000))
     if ($wait -ne 0) {
         if (-not [WinOnePrivateProbe]::TerminateProcess($child.process, 1)) { throw 'Timed-out test could not be terminated' }
         [void][WinOnePrivateProbe]::WaitForSingleObject($child.process, 5000)

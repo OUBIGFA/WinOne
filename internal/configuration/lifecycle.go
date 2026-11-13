@@ -25,6 +25,7 @@ func copyEnabled(source map[string]bool) map[string]bool {
 // CommitDocument is the whole-profile boundary; callers must retain its current
 // revision and validate any source-file digest before entering this transaction.
 func (s *HostStore) CommitDocument(next Document) (Document, error) {
+	defer s.notifySettled()
 	previous := s.store.Snapshot()
 	if err := s.RecoveryError(); err != nil {
 		return previous, errors.Join(ErrRecoveryRequired, err)
@@ -62,6 +63,7 @@ func (s *HostStore) RecoveryError() error {
 // Recover is an explicit retry that keeps the Host readable when native recovery
 // cannot finish during startup. Successful recovery does not advance revisions.
 func (s *HostStore) Recover() error {
+	defer s.notifySettled()
 	if err := s.unavailableRecovery(); err != nil {
 		return err
 	}

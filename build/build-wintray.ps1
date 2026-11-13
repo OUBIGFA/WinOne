@@ -37,10 +37,10 @@ try {
     & $GoExe vet ./...
     if($LASTEXITCODE -ne 0){throw 'WinTray vet failed'}
     $worker=Join-Path $output 'WinOne.WinTray.exe'
-    & $GoExe build -trimpath -ldflags '-H windowsgui' -o $worker ./cmd/worker
+    & $GoExe build -trimpath -ldflags '-s -w -H windowsgui' -o $worker ./cmd/worker
     if($LASTEXITCODE -ne 0){throw 'WinTray build failed'}
     $recovery=Join-Path $output 'WinOne.WinTray.Recovery.exe'
-    & $GoExe build -trimpath -ldflags '-H windowsgui' -o $recovery ./cmd/tray-recovery
+    & $GoExe build -trimpath -ldflags '-s -w -H windowsgui' -o $recovery ./cmd/tray-recovery
     if($LASTEXITCODE -ne 0){throw 'WinTray recovery companion build failed'}
     $env:WINONE_WINTRAY_EXE=$worker
     if(-not $SkipTests){& $GoExe test ./worker -run '^TestWorker(PersistsAndRunsScript|CoexistsWithIndependentWinTray)$' -count=1 -timeout 35s

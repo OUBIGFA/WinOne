@@ -178,8 +178,8 @@
     "js/vendor/mathjax/"
   ],
   "correspondingSources": {
-    "file": "anki-third-party-sources.zip",
-    "sha256": "abe7a1daf7a96412ceb73fb5bd3902fb0a62d030235bb745c534106ecdf2e7fb",
+    "file": "anki-third-party-sources.tar.xz",
+    "sha256": "5dc836f1dd0329bd3a53b94b8fe639adb41ad2bfe04e9a189359ba8034086bbf",
     "files": {
       "python/orjson-3.13.0.tar.gz": "d1de5eb04485110c5da4c657e49168995d55e076b1ce60f1a042e254f4186c4f",
       "python/rpds_py-2026.9.1.tar.gz": "4793ef7f78268b124b73fa933440f01d258bbae01de9fa53e9080c9ab0425a12",
@@ -811,6 +811,7 @@
       "upstream/valuable-9efc29b6e58cef28f6566a47aa7e142a55fead77.tar.gz": "3414d7860b88c946b1ac6136bb2b9cc3055a16a2bd243d1caac2b23723e937e0",
       "upstream/wasi-rs-06ce201370fcde0d1b0d47cac8ecb1b0b312c9f9.tar.gz": "42a0104ccf907a01e841e79e54f99a8e3d09205a5bd3f0bcebccde5ff1da53ff",
       "upstream/wasm-tools-d4e317f22c3bace76cb3205003bcc34b4929037d.tar.gz": "efe9f9afb0393754ffbbb5c047f8c394781509e37ac46f2a88e6b11066ed9cf2"
-    }
+    },
+    "format": "tar.xz"
   }
 }

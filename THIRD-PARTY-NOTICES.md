@@ -41,6 +41,8 @@ AnkiConnect 固定为 `c577b44aaadbd72dbc22c823f874a126213fe5c5`，GPL-3.0-or-la
 
 组合分发继续遵守 WinOne 根 GPLv3，以及 GPLv3/AGPLv3 第 13 条和对应源码提供义务；不修改根许可证。安装包的 `shared/anki/source/` 提供锁定的 Anki 源码及第三方源码，`shared/anki/licenses/` 保留原始声明。WinOne 适配源码与统一构建入口随本仓库提供。部分上游归档漏带独立许可证全文时，保留精确提交的原始声明和标准许可全文，并在补充清单注明来源与选择，不编造版权文本。
 
+第三方源码归档为 `anki-third-party-sources.tar.xz`。它保留全部锁定源码归档的完整 tar 内容，仅统一替换外层压缩；内含 `SOURCES.json`，可核对原始归档 SHA-256 和解压后的 tar SHA-256。生成与校验入口为 `build/prepare-anki-sources.py`、`build/verify-anki.py`。
+
 Anki 复用 WinOne 已分发的 CPython 3.13.12 和已核验 OCR 运行时中的公共 Python 包，其原始许可仍由 `third_party/ocr-ai-notices.json` 管理。Anki 额外依赖独立锁定，不修改系统 Python 或用户的 Anki 安装。
 
 # FileShare · 互联助手局域网服务
