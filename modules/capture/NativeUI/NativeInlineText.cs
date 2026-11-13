@@ -130,6 +130,21 @@ internal sealed class NativeInlineText : TextBox
             if (first > 0) SendMessageW(Handle, 0x00b6, IntPtr.Zero, new IntPtr(-first));
         }
     }
+    // A step label hugs its text: the width follows the longest line and
+    // wraps only at the limit. Call before ResizeToContent.
+    public void FitWidth(int minimum, int maximum)
+    {
+        const TextFormatFlags flags = TextFormatFlags.SingleLine | TextFormatFlags.ExpandTabs | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
+        maximum = Math.Max(minimum, maximum);
+        var lines = Text.Split('\n');
+        var widest = lines.Max(line => TextRenderer.MeasureText(line.TrimEnd('\r'), Font, Size.Empty, flags).Width);
+        // Room for the caret after the last glyph.
+        Width = Math.Clamp(widest + SystemInformation.CaretWidth + 2, minimum, maximum);
+        // EDIT's own line breaking decides. Widen until it agrees with the
+        // typed lines, or wrap at the limit.
+        var step = Math.Max(1, Font.Height / 4);
+        while (Width < maximum && SendMessageW(Handle, 0x00ba, IntPtr.Zero, IntPtr.Zero).ToInt32() > lines.Length) Width = Math.Min(maximum, Width + step);
+    }
     public void RequestCommit(Action commit, Action<Exception> failed)
     {
         if (composing) pendingCommit = () => { try { commit(); } catch (Exception error) { failed(error); } };

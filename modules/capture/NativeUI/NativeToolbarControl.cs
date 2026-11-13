@@ -53,7 +53,7 @@ internal sealed class NativeToolbarControl : UserControl
         SetStyle(ControlStyles.ResizeRedraw, true);
         this.saveToolbar = saveToolbar;
         if (toolbarTools is not null) {
-            var allowed = new HashSet<string>(new[] { "select", "crop", "rectangle", "ellipse", "arrow", "pen", "cover", "text", "mosaic", "blur", "ocr", "translate" }, StringComparer.Ordinal);
+            var allowed = new HashSet<string>(new[] { "select", "crop", "rectangle", "ellipse", "arrow", "pen", "cover", "text", "step", "mosaic", "blur", "ocr", "translate" }, StringComparer.Ordinal);
             if (toolbarTools.Any(tool => !allowed.Remove(tool))) throw new ArgumentException("Invalid toolbar preferences", nameof(toolbarTools));
             // Preserve the existing move identifier; crop maps to the native region tool.
             preferredTools = toolbarTools.Select(tool => tool == "crop" ? "region" : tool).ToHashSet(StringComparer.Ordinal);
@@ -134,12 +134,13 @@ internal sealed class NativeToolbarControl : UserControl
         Add(tools, "gif", T("录制 GIF", "Record GIF"), T("录制当前屏幕选区为 GIF", "Record the selected screen area as GIF"));
         foreach (var command in new[] { "video", "gif" }) { drawingCommands.Remove(command); buttons[command].Enabled = false; }
         Separate(tools);
-        Add(tools, "select", T("移动", "Move"), T("拖动单个标注", "Move an annotation"));
+        Add(tools, "select", T("移动", "Move"), T("拖动单个标注 · Delete 删除", "Move an annotation · Delete removes it"));
         Add(tools, "rectangle", T("矩形", "Rectangle"), T("矩形", "Rectangle"));
         Add(tools, "ellipse", T("椭圆", "Ellipse"), T("椭圆", "Ellipse"));
         Add(tools, "arrow", T("箭头", "Arrow"), T("箭头", "Arrow"));
         Add(tools, "pen", T("画笔", "Pen"), T("画笔", "Pen"));
         Add(tools, "text", T("文字", "Text"), T("文字 · T", "Text · T"));
+        Add(tools, "step", T("序号", "Numbered step"), T("序号标注 · N", "Numbered step · N"));
         Separate(tools);
         Add(tools, "cover", T("实色遮盖", "Cover"), T("实色遮盖", "Cover"));
         Add(tools, "mosaic", T("马赛克", "Pixelate"), T("马赛克", "Pixelate"));

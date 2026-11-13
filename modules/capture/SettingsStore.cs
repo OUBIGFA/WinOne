@@ -15,7 +15,7 @@ internal record CaptureSettings
     public int ScrollDelay { get; init; } = 300;
     public bool ScrollFromTop { get; init; }
     public string[]? ToolbarTools { get; init; }
-    public int ToolbarVersion { get; init; } = 2;
+    public int ToolbarVersion { get; init; } = 3;
     public string? FileNameTemplate { get; init; }
 }
 
@@ -83,20 +83,26 @@ internal sealed class SettingsStore
         if (!document.RootElement.EnumerateObject().Any(property => string.Equals(property.Name, "toolbarVersion", StringComparison.OrdinalIgnoreCase))) value = value with { ToolbarVersion = 0 };
         return UpgradeToolbar(value);
     }
-    private static CaptureSettings UpgradeToolbar(CaptureSettings value) => value.ToolbarVersion == 0
-        ? value with { ToolbarVersion = 2, ToolbarTools = value.ToolbarTools is null ? null : value.ToolbarTools.Concat(new[] { "ocr", "translate" }.Where(tool => !value.ToolbarTools.Contains(tool, StringComparer.Ordinal))).ToArray() }
-        : value;
+    // Each new tool joins an existing custom layout once: OCR and translation
+    // in version 2, numbered steps in version 3. Later choices are kept.
+    private static CaptureSettings UpgradeToolbar(CaptureSettings value)
+    {
+        string[]? Adopt(string[]? tools, params string[] added) => tools?.Concat(added.Where(tool => !tools.Contains(tool, StringComparer.Ordinal))).ToArray();
+        if (value.ToolbarVersion == 0) value = value with { ToolbarVersion = 2, ToolbarTools = Adopt(value.ToolbarTools, "ocr", "translate") };
+        if (value.ToolbarVersion == 2) value = value with { ToolbarVersion = 3, ToolbarTools = Adopt(value.ToolbarTools, "step") };
+        return value;
+    }
     internal static void Validate(CaptureSettings settings)
     {
         _ = CaptureFileName.Render(settings.FileNameTemplate, DateTime.Now);
         if (settings.SchemaVersion != 1 || settings.Revision < 0) throw new InvalidDataException("不支持的截图配置版本");
-        if (settings.ToolbarVersion is not (0 or 2)) throw new InvalidDataException("不支持的截图工具栏版本");
+        if (settings.ToolbarVersion is not (0 or 2 or 3)) throw new InvalidDataException("不支持的截图工具栏版本");
         if (!Path.IsPathFullyQualified(settings.OutputDirectory)) throw new InvalidDataException("保存目录必须为绝对路径");
         if (settings.Theme is not ("system" or "light" or "dark")) throw new InvalidDataException("无效的主题");
         if (settings.ScrollDelay is < 100 or > 2000) throw new InvalidDataException("滚动间隔须为 100–2000 毫秒");
         if (settings.ToolbarTools is { } tools)
         {
-            var allowed = new HashSet<string> { "select", "crop", "rectangle", "ellipse", "arrow", "pen", "cover", "text", "mosaic", "blur", "ocr", "translate" };
+            var allowed = new HashSet<string> { "select", "crop", "rectangle", "ellipse", "arrow", "pen", "cover", "text", "step", "mosaic", "blur", "ocr", "translate" };
             if (tools.Any(tool => !allowed.Remove(tool))) throw new InvalidDataException("截图工具栏包含未知或重复工具");
         }
     }

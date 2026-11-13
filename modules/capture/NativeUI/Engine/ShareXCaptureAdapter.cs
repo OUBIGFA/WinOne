@@ -148,7 +148,8 @@ namespace ShareX.ScreenCaptureLib
         public void AddDrawing(string tool, RectangleF bounds, PointF[] points = null) { SelectTool(tool); form.ShapeManager.ProbeAddDrawing(ToWorld(bounds), points?.Select(ToWorld).ToArray(), tool == "cover"); }
         public void BeginCover(Point point) { if (selectedTool == "cover") form.ShapeManager.ProbeBeginCover(ToWorld(point)); }
         public void AddText(string text, Rectangle bounds, float fontSize, WinOneTextLine[] lines = null, Color? color = null) => form.ShapeManager.ProbeAddText(text, ToWorld(bounds), fontSize, lines, color);
-        public void SetTextEditing(bool editing) { form.ShapeManager.NodesVisible = !editing; form.Invalidate(); }
+        // The pointer-position box stays where the click was; hide it so it does not sit on the inline input.
+        public void SetTextEditing(bool editing) { form.ShapeManager.NodesVisible = !editing; form.Options.ShowInfo = !editing; form.Invalidate(); }
         public WinOneToolStyle GetToolStyle() => form.ShapeManager.GetWinOneStyle(selectedTool);
         public void SetToolStyle(WinOneToolStyle style) { FinishGesture(); form.ShapeManager.SetWinOneStyle(selectedTool, style); Changed?.Invoke(); DocumentChanged?.Invoke(); }
         public WinOneCaptureDocument ExportDocument() { FinishGesture(); return form.ShapeManager.ExportWinOneDocument(selectedTool); }
@@ -217,7 +218,7 @@ namespace ShareX.ScreenCaptureLib
         {
             if(WinOneOrderedEffects)return RenderWinOneOrdered(source);
             var offset = Form.CanvasRectangle.Location;
-            if (!DrawingShapes.OfType<WinOneInlineTextShape>().Any(shape => shape.NativeLines != null)) return RenderOutputImage(source, offset);
+            if (!DrawingShapes.Any(WinOneNativeText)) return RenderOutputImage(source, offset);
             using var background = (Bitmap)source.Clone();
             IsRenderingOutput = true; RenderOffset = offset;
             MoveAll(-offset.X, -offset.Y);

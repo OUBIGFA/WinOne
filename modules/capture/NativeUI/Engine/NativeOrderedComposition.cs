@@ -142,6 +142,9 @@ namespace ShareX.ScreenCaptureLib
             try {
                 cancellation.ThrowIfCancellationRequested();
                 foreach (var layer in document.Layers) shapes.Add(ShapeManager.CreateWinOneShape(layer, null));
+                // Detached steps have no manager to order them; number them as the engine does.
+                var number = 1;
+                foreach (var step in shapes.OfType<StepDrawingShape>()) step.Number = number++;
                 for (var index = 0; index < shapes.Count;) {
                     cancellation.ThrowIfCancellationRequested();
                     if (shapes[index] is IWinOneLegacyEffect legacy) { legacy.ApplyLegacy(output); index++; continue; }
@@ -154,7 +157,7 @@ namespace ShareX.ScreenCaptureLib
                         graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
                         foreach (var shape in drawings) { cancellation.ThrowIfCancellationRequested(); shape.OnDraw(graphics); graphics.Flush(); }
                     }
-                    if (drawings.OfType<WinOneInlineTextShape>().Any(shape => shape.NativeLines != null)) {
+                    if (drawings.Any(ShapeManager.WinOneNativeText)) {
                         var previous = output; output = NativeDrawingSurface.Draw(previous, Draw); previous.Dispose();
                     } else { using var graphics = Graphics.FromImage(output); Draw(graphics); }
                 }

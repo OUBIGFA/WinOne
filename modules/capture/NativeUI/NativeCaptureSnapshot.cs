@@ -18,7 +18,7 @@ internal sealed record NativeTextInputState(Guid? Target, string Value, int X, i
             (long)X + Width > selection.Right || (long)Y + MaxHeight > selection.Bottom ||
             !float.IsFinite(FontPixels) || FontPixels < 6 || FontPixels > 256 || Color.FromArgb(ColorArgb).A != 255 ||
             SelectionStart < 0 || SelectionLength < 0 || (long)SelectionStart + SelectionLength > Value.Length ||
-            Target is { } target && !document.Layers.Any(layer => layer.Kind == "text" && layer.TextId == target))
+            Target is { } target && !document.Layers.Any(layer => layer.Kind is "text" or "step" && layer.TextId == target))
             throw new InvalidDataException("截图文字草稿无效");
     }
 }

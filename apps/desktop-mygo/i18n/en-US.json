@@ -340,6 +340,7 @@
   "capture.scrolling": "Scrolling capture in progress. Return to WinOne to stop.",
   "capture.select": "Select",
   "capture.selectHint": "Click an annotation to select it. Drag to move.",
+  "capture.step": "Numbered step",
   "capture.stopScroll": "Stop",
   "capture.strokeWidth": "Line width",
   "capture.surfaceFallback": "In-place view is unavailable. The image is open in the regular editor.",

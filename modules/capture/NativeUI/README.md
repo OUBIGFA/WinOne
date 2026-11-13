@@ -15,6 +15,7 @@
 - `NativeDraftRetirement`：已落盘草稿的持久退役、清理重试和新草稿保护。
 - `NativeWindowRegions`：整窗与内部区域候选，绘制期间暂停查询。
 - `NativeTextPlacement`：文字输入的坐标与选区边界。
+- `Engine/NativeStepShape`：序号标注。编号沿用引擎的步骤排序；说明气泡的尺寸来自说明文字，输入复用 `NativeInlineText`。
 - `Engine/`：原生画布适配，由 `ShareXHost.targets` 编译进截图引擎。
 - `Assets/Icons`：本地图标及许可证，由 `build/generate-capture-icons.mjs` 生成。
 

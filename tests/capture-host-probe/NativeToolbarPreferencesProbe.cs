@@ -12,11 +12,12 @@ internal static class NativeToolbarPreferencesProbe
         // Scrolling, video and GIF are fixed capture actions: they stay in the
         // row whatever the stored annotation tools are.
         var cases = new (string name, string[]? preferences, string[] visible)[] {
-            ("default", null, new[] { "select", "region", "scroll", "video", "gif", "rectangle", "ellipse", "arrow", "pen", "cover", "mosaic", "blur", "text", "ocr", "translate" }),
+            ("default", null, new[] { "select", "region", "scroll", "video", "gif", "rectangle", "ellipse", "arrow", "pen", "cover", "mosaic", "blur", "text", "step", "ocr", "translate" }),
             ("empty", Array.Empty<string>(), new[] { "scroll", "video", "gif", "rectangle" }),
             ("subset", new[] { "mosaic", "crop" }, new[] { "region", "scroll", "video", "gif", "rectangle", "mosaic" }),
             ("legacy-move", new[] { "select" }, new[] { "select", "scroll", "video", "gif", "rectangle" }),
             ("text-actions", new[] { "ocr", "translate" }, new[] { "scroll", "video", "gif", "rectangle", "ocr", "translate" }),
+            ("step", new[] { "step", "text" }, new[] { "scroll", "video", "gif", "rectangle", "text", "step" }),
         };
         var records = new List<object>();
         foreach (var item in cases) {
@@ -35,7 +36,8 @@ internal static class NativeToolbarPreferencesProbe
                 throw new Exception("Scrolling capture is no longer beside selection");
             var actual = row.Items.OfType<ToolStripButton>().Where(button => button.Placement == ToolStripItemPlacement.Main).Select(button => button.Name).ToArray();
             if (!actual.Order().SequenceEqual(item.visible.Order())) throw new Exception(item.name + " ignored stored toolbar preferences");
-            if (row.Items[0].Name != "select") throw new Exception("Move is not the first tool");
+            // Selection and the capture actions come first; Move then starts the annotation tools.
+            if (row.Items[0].Name != "region" || row.Items.IndexOfKey("select") + 1 != row.Items.IndexOfKey("rectangle")) throw new Exception("Move does not start the annotation tools");
             if (item.preferences is not null) {
                 string? selected = null;
                 toolbar.Command += command => { selected = command; toolbar.SetState(false, false, command, false); };

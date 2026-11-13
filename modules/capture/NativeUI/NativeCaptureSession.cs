@@ -14,7 +14,7 @@ internal sealed partial class NativeCaptureSession : IDisposable
     private readonly CaptureCompletion saveCompletion;
     private readonly CaptureCompletion? saveAsCompletion;
     private readonly FirstPaintObserver paint;
-    private bool ready, disposed, applying, textTool, closing;
+    private bool ready, disposed, applying, textTool, stepTool, closing;
     private readonly bool quickSave;
     private readonly NativeRecognitionSession recognition;
     private readonly string? textMode;
@@ -45,7 +45,15 @@ internal sealed partial class NativeCaptureSession : IDisposable
     private string? preferencesStatus;
     private string? captureNotice;
     private WinOneToolStyle textStyle = new(Color.FromArgb(0xe2, 0x3b, 0x30), 24);
-    internal sealed record TextDraft(int Id, Rectangle Bounds, int MaxHeight, Guid? Target = null, string Value = "", float FontPixels = 24, int ColorArgb = unchecked((int)0xffe23b30));
+    // A step label reads the same at every display scale: 16 DIP by default.
+    private WinOneToolStyle? stepStyleValue;
+    private WinOneToolStyle StepStyle => stepStyleValue ??= new(Color.FromArgb(0xe2, 0x3b, 0x30), (int)Math.Round(16d * capture.Window.DeviceDpi / 96));
+    private Point? nextStep;
+    // A step label reuses the text draft. Target is then the step, Bounds its
+    // label text area, and the input also grows sideways up to MaxWidth.
+    // Fresh marks the first label of a step created by this click.
+    internal sealed record TextDraft(int Id, Rectangle Bounds, int MaxHeight, Guid? Target = null, string Value = "", float FontPixels = 24, int ColorArgb = unchecked((int)0xffe23b30),
+        bool Step = false, bool Fresh = false, int MaxWidth = 0);
 
     public event Action? Updated;
     internal event Action<NativeCaptureSnapshot>? SnapshotReady;
@@ -61,6 +69,7 @@ internal sealed partial class NativeCaptureSession : IDisposable
     internal NativeInlineText? TextInput => nativeText;
     internal TextDraft? EditingText => textDraft;
     internal bool TextTool => textTool;
+    internal bool StepTool => stepTool;
     internal bool HintVisible => selectionHint.Visible;
     internal void SetCaptureNotice(string? notice, string? language)
     {
@@ -156,6 +165,11 @@ internal sealed partial class NativeCaptureSession : IDisposable
     private void ChangeStyle(ShareX.ScreenCaptureLib.WinOneToolStyle style)
     {
         if (disposed || Finalized) return;
+        if (stepTool) {
+            // The style applies to the following steps; an open label keeps its own.
+            if (textDraft is null && float.IsFinite(style.EffectiveValue) && style.EffectiveValue >= 6 && style.EffectiveValue <= 256 && style.Color.A == 255) { stepStyleValue = style; Refresh(); }
+            return;
+        }
         if (textTool) {
             if (!float.IsFinite(style.EffectiveValue)||style.EffectiveValue < 6 || style.EffectiveValue > 256 || style.Color.A != 255) return;
             if (nativeText is { } input) {
@@ -207,12 +221,43 @@ internal sealed partial class NativeCaptureSession : IDisposable
         OpenTextInput();
     }
 
+    // One click places the next number and opens its label. Clicking an
+    // existing step edits that step's label instead.
+    private void BeginStepAt(Point point)
+    {
+        point = capture.ViewToImage(point);
+        var selection = capture.Selection ?? throw new InvalidOperationException("请先选择截图区域");
+        if (!selection.Contains(point)) throw new InvalidOperationException("请在截图选区内点击");
+        var step = capture.StepAt(point);
+        var fresh = step is null;
+        if (step is null) {
+            var center = WinOneStepMetrics.For(StepStyle.EffectiveValue).Fit(selection, point) ?? throw new InvalidOperationException("选区太小，无法放置序号");
+            step = capture.AddStep(center, StepStyle.EffectiveValue, StepStyle.Color);
+        } else {
+            // A moved step can overhang the crop; its whole bubble must be editable.
+            var metrics = WinOneStepMetrics.For(step.FontPixels);
+            if (!selection.Contains(Rectangle.Inflate(step.TextBounds, metrics.PadX, metrics.PadY))) throw new InvalidOperationException("序号说明超出截图选区");
+        }
+        textDraft = StepDraft(step, selection, step.TextBounds, step.Text, fresh);
+        OpenTextInput();
+    }
+    private TextDraft StepDraft(WinOneStepValue step, Rectangle selection, Rectangle bounds, string value, bool fresh)
+    {
+        // The bubble's padding must also stay inside the crop.
+        var metrics = WinOneStepMetrics.For(step.FontPixels);
+        return new TextDraft(++textSequence, bounds, selection.Bottom - metrics.PadY - bounds.Top, step.Id, value, step.FontPixels, Color.White.ToArgb(),
+            Step: true, Fresh: fresh, MaxWidth: selection.Right - metrics.PadX - bounds.Left);
+    }
+
     internal void RestoreText(NativeTextInputState state)
     {
         if (nativeText is not null || textDraft is not null) throw new InvalidOperationException("已有正在编辑的文字");
-        state.Validate(capture.SnapshotDocument() ?? throw new InvalidOperationException("请先完成选区调整"));
-        textTool = true; capture.SelectTool("select");
-        textDraft = new TextDraft(++textSequence, state.Bounds, state.MaxHeight, state.Target, state.Value, state.FontPixels, state.ColorArgb);
+        var document = capture.SnapshotDocument() ?? throw new InvalidOperationException("请先完成选区调整");
+        state.Validate(document);
+        var step = state.Target is { } id ? capture.Step(id) : null;
+        stepTool = step is not null; textTool = step is null; capture.SelectTool("select");
+        textDraft = step is null ? new TextDraft(++textSequence, state.Bounds, state.MaxHeight, state.Target, state.Value, state.FontPixels, state.ColorArgb)
+            : StepDraft(step, document.Selection!.Value, state.Bounds, state.Value, false);
         pendingTextRestore = state;
         OpenTextInput(() => nativeText!.Select(state.SelectionStart, state.SelectionLength));
         Refresh();
@@ -221,7 +266,8 @@ internal sealed partial class NativeCaptureSession : IDisposable
     private void OpenTextInput(Action? opened = null)
     {
         if (textDraft is null) throw new InvalidOperationException("没有文字草稿");
-        if (textDraft.Target is { } target) capture.HideEditedText(target, true);
+        if (textDraft.Step) capture.EditStep(textDraft.Target!.Value, textDraft.Bounds.Size);
+        else if (textDraft.Target is { } target) capture.HideEditedText(target, true);
         capture.SetTextEditing(true);
         WithPreparedImage(() => {
             if (textDraft is null) return;
@@ -279,7 +325,8 @@ internal sealed partial class NativeCaptureSession : IDisposable
         var bounds = TextImageBounds(input, textDraft);
         var lines = input.GetVisualLines().Select(line => new WinOneTextLine(line.Text,
             (int)Math.Round(line.X / inputView.Scale), (int)Math.Round(line.Y / inputView.Scale))).ToArray();
-        if (textDraft.Target is Guid target) capture.UpdateText(target, input.Text, bounds, lines, textDraft.FontPixels, input.ForeColor);
+        if (textDraft.Step) capture.UpdateStep(textDraft.Target!.Value, input.Text, bounds.Size, lines, textDraft.Fresh);
+        else if (textDraft.Target is Guid target) capture.UpdateText(target, input.Text, bounds, lines, textDraft.FontPixels, input.ForeColor);
         else if (!string.IsNullOrWhiteSpace(input.Text)) capture.AddText(input.Text, bounds, textDraft.FontPixels, lines, input.ForeColor);
         nativeText = null; textDraft = null; pendingTextRestore = null; input.Dispose(); capture.SetTextEditing(false);
         capture.Window.Focus();
@@ -288,12 +335,18 @@ internal sealed partial class NativeCaptureSession : IDisposable
         else if (after == "pin") Pin();
         else if (after == "confirm") Confirm();
         else if (after == "retake") BeginRetake();
+        else if (after == "step" && nextStep is { } point) {
+            // The click that finished this label also places the next number.
+            nextStep = null;
+            if (capture.Selection is { } selection && selection.Contains(capture.ViewToImage(point))) BeginStepAt(point);
+        }
         Refresh(); QueueSnapshot();
     }
 
     private void CancelNativeText()
     {
-        if (textDraft?.Target is Guid target) capture.HideEditedText(target, false);
+        if (textDraft is { Step: true, Target: Guid step }) capture.EditStep(step, null);
+        else if (textDraft?.Target is Guid target) capture.HideEditedText(target, false);
         var input = nativeText; nativeText = null; textDraft = null; pendingTextRestore = null; input?.Dispose();
         capture.SetTextEditing(false); capture.Window.Focus(); Refresh(); QueueSnapshot();
     }
@@ -321,6 +374,7 @@ internal sealed partial class NativeCaptureSession : IDisposable
             case "undo": OnKeyPressed(Keys.Control | Keys.Z); return;
             case "redo": OnKeyPressed(Keys.Control | Keys.Shift | Keys.Z); return;
             case "text": OnKeyPressed(Keys.T); return;
+            case "step": OnKeyPressed(Keys.N); return;
             case "scroll":
                 if (scrollEnabled) {scrollEnabled=false;nativeToolbar.SetScrollState(retake is not null,false);return;}
                 if (textDraft is not null) RequestTextCommit("retake"); else BeginRetake();
@@ -331,7 +385,7 @@ internal sealed partial class NativeCaptureSession : IDisposable
             case "cancel": capture.Window.Close(); return;
         }
         if (textDraft is not null || Finalized) return;
-        textTool = false; capture.SelectTool(command); capture.Window.Focus(); Refresh(); QueueSnapshot();
+        textTool = stepTool = false; capture.SelectTool(command); capture.Window.Focus(); Refresh(); QueueSnapshot();
     }
     private void Pin()
     {
@@ -361,7 +415,9 @@ internal sealed partial class NativeCaptureSession : IDisposable
                 } else if (textDraft is null) {
                     if (key == (Keys.Control | Keys.Z)) capture.Undo();
                     else if (key is (Keys.Control | Keys.Y) or (Keys.Control | Keys.Shift | Keys.Z)) capture.Redo();
-                    else if (key == Keys.T) { textTool = true; capture.SelectTool("select"); }
+                    else if (key == Keys.T) { textTool = true; stepTool = false; capture.SelectTool("select"); }
+                    else if (key == Keys.N) { stepTool = true; textTool = false; capture.SelectTool("select"); }
+                    else if (key == Keys.Delete) capture.DeleteSelected();
                 }
             }
             applying = false; Refresh();
@@ -406,8 +462,8 @@ internal sealed partial class NativeCaptureSession : IDisposable
             OnKeyPressed((Keys)message.WParam.ToInt32() | Control.ModifierKeys); return true;
         }
         if (Finalized && message.Msg is >= 0x0100 and <= 0x020e) return true;
-        if (textTool && textDraft is null && message.Msg == 0x0201) {
-            try { BeginTextAt(NativeTextPlacement.PointFromMessage(message.LParam)); Refresh(); }
+        if ((textTool || stepTool) && textDraft is null && message.Msg == 0x0201) {
+            try { var point = NativeTextPlacement.PointFromMessage(message.LParam); if (stepTool) BeginStepAt(point); else BeginTextAt(point); Refresh(); }
             catch (Exception error) { Refresh(error.Message); }
             return true;
         }
@@ -416,7 +472,12 @@ internal sealed partial class NativeCaptureSession : IDisposable
             return false;
         }
         if (message.Msg == 0x0201) {
-            try { if (nativeText is not null) RequestTextCommit(); }
+            try {
+                if (nativeText is not null) {
+                    if (textDraft.Step) nextStep = NativeTextPlacement.PointFromMessage(message.LParam);
+                    RequestTextCommit(textDraft.Step ? "step" : null);
+                }
+            }
             catch (Exception error) { Refresh(error.Message); }
             return true;
         }
@@ -456,7 +517,7 @@ internal sealed partial class NativeCaptureSession : IDisposable
     private async Task RunRetake(TaskCompletionSource completed)
     {
         string? error = null;
-        try { await retake!(); textTool = false; scrollEnabled=true;nativeToolbar.SetScrollState(true,true);nativeToolbar.SetRetakeAvailable(true); recording = null; nativeToolbar.SetRecordingAvailable(false); }
+        try { await retake!(); textTool = stepTool = false; scrollEnabled=true;nativeToolbar.SetScrollState(true,true);nativeToolbar.SetRetakeAvailable(true); recording = null; nativeToolbar.SetRecordingAvailable(false); }
         catch (OperationCanceledException) { }
         catch (Exception failure) { error = failure.Message; }
         finally {
@@ -532,9 +593,10 @@ internal sealed partial class NativeCaptureSession : IDisposable
             selectionHint.BringToFront();
         }
         if (!quickSave && selection is { } selected) {
-            var style = textTool ? textDraft is { } draft ? new WinOneToolStyle(Color.FromArgb(draft.ColorArgb), (int)Math.Round(draft.FontPixels)){Precision=draft.FontPixels} : textStyle : capture.GetToolStyle();
-            nativeToolbar.SetToolStyle(textTool ? "text" : capture.SelectedTool, style, Finalized || (!textTool && textDraft is not null));
-            nativeToolbar.SetState(capture.CanUndo, capture.CanRedo, textTool ? "text" : capture.SelectedTool, Finalized, textDraft is not null);
+            var tool = textTool ? "text" : stepTool ? "step" : capture.SelectedTool;
+            var style = textTool ? textDraft is { } draft ? new WinOneToolStyle(Color.FromArgb(draft.ColorArgb), (int)Math.Round(draft.FontPixels)){Precision=draft.FontPixels} : textStyle : stepTool ? StepStyle : capture.GetToolStyle();
+            nativeToolbar.SetToolStyle(tool, style, Finalized || (!textTool && textDraft is not null));
+            nativeToolbar.SetState(capture.CanUndo, capture.CanRedo, tool, Finalized, textDraft is not null);
             var center = toolbarPosition ?? new Point(selected.Left + selected.Width / 2, selected.Top + selected.Height / 2);
             var screen = Screen.FromPoint(capture.Window.PointToScreen(center)).WorkingArea;
             var viewport = new Rectangle(capture.Window.PointToClient(screen.Location), screen.Size);
@@ -556,10 +618,24 @@ internal sealed partial class NativeCaptureSession : IDisposable
         Refresh();
     }
 
-    private Rectangle TextImageBounds(NativeInlineText input, TextDraft draft) => new(draft.Bounds.X, draft.Bounds.Y, draft.Bounds.Width,
+    private Rectangle TextImageBounds(NativeInlineText input, TextDraft draft) => new(draft.Bounds.X, draft.Bounds.Y,
+        draft.Step ? Math.Min(draft.MaxWidth, Math.Max(1, (int)Math.Ceiling(input.Width / inputView.Scale))) : draft.Bounds.Width,
         Math.Min(draft.MaxHeight, Math.Max(1, (int)Math.Ceiling(input.Height / inputView.Scale))));
-    private Bitmap TextBackdrop(TextDraft draft) => capture.RenderTextBackdrop(new Rectangle(draft.Bounds.X, draft.Bounds.Y, draft.Bounds.Width, draft.MaxHeight));
-    private void ResizeText(NativeInlineText input, TextDraft draft) => input.ResizeToContent(Math.Max(1, (int)Math.Floor(draft.MaxHeight * inputView.Scale)));
+    private Bitmap TextBackdrop(TextDraft draft)
+    {
+        if (!draft.Step) return capture.RenderTextBackdrop(new Rectangle(draft.Bounds.X, draft.Bounds.Y, draft.Bounds.Width, draft.MaxHeight));
+        // A step label is typed on its own bubble color, not on the capture.
+        var solid = new Bitmap(8, 8);
+        using (var graphics = Graphics.FromImage(solid)) graphics.Clear(WinOneStepShape.LabelFill);
+        return solid;
+    }
+    private void ResizeText(NativeInlineText input, TextDraft draft)
+    {
+        if (draft.Step) input.FitWidth((int)Math.Round(WinOneStepMetrics.For(draft.FontPixels).MinText * inputView.Scale), Math.Max(1, (int)Math.Floor(draft.MaxWidth * inputView.Scale)));
+        input.ResizeToContent(Math.Max(1, (int)Math.Floor(draft.MaxHeight * inputView.Scale)));
+        // The bubble around the input follows it while typing.
+        if (draft.Step) capture.EditStep(draft.Target!.Value, TextImageBounds(input, draft).Size);
+    }
     private void UpdateInputView()
     {
         if (updatingInputView || nativeText is not { } input || textDraft is null || inputView == (capture.ViewScale, capture.ViewOrigin)) return;

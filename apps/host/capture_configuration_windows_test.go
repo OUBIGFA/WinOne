@@ -15,8 +15,12 @@ import (
 func TestOldToolbarAdoptsTextActionsOnlyOnce(t *testing.T) {
 	old := capturePreferences{ToolbarTools: []string{"arrow"}}
 	upgraded := old.upgradeToolbar()
-	if upgraded.ToolbarVersion != 2 || len(upgraded.ToolbarTools) != 3 || upgraded.ToolbarTools[1] != "ocr" || upgraded.ToolbarTools[2] != "translate" {
+	if upgraded.ToolbarVersion != 3 || len(upgraded.ToolbarTools) != 4 || upgraded.ToolbarTools[1] != "ocr" || upgraded.ToolbarTools[2] != "translate" || upgraded.ToolbarTools[3] != "step" {
 		t.Fatal(upgraded)
+	}
+	// A version 2 layout already made its OCR choice; it gains only the step tool.
+	if second := (capturePreferences{ToolbarVersion: 2, ToolbarTools: []string{"arrow"}}).upgradeToolbar(); second.ToolbarVersion != 3 || len(second.ToolbarTools) != 2 || second.ToolbarTools[1] != "step" {
+		t.Fatal(second)
 	}
 	upgraded.ToolbarTools = []string{"arrow"}
 	if next := upgraded.upgradeToolbar(); len(next.ToolbarTools) != 1 {

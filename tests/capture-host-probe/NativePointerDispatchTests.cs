@@ -110,6 +110,7 @@ internal static class NativePointerDispatchTests
                 throw new Exception("Successful save did not exit after handle recreation");
             if (copied != 0 || session.Copied) throw new Exception("Saving also copied the capture");
         }
+        NativeStepTests.RunInteraction();
         Console.WriteLine("PASS: eight annotation types move individually with undo/redo; selection and other layers preserved; queued drag positions and handle recreation");
         return 0;
     }

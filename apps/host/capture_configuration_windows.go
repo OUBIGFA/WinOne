@@ -36,7 +36,7 @@ type capturePreferences struct {
 }
 
 func (value capturePreferences) validate() error {
-	if value.ToolbarVersion != 0 && value.ToolbarVersion != 2 {
+	if value.ToolbarVersion != 0 && value.ToolbarVersion != 2 && value.ToolbarVersion != 3 {
 		return errors.New("不支持的截图工具栏版本")
 	}
 	if _, err := captureprefs.FileName(value.FileNameTemplate, time.Now(), 1); err != nil {
@@ -57,25 +57,34 @@ func (value capturePreferences) validate() error {
 	return captureprefs.ValidateToolbar(value.ToolbarTools)
 }
 
-// Old custom layouts adopt the two new common actions once. Version 2 then
-// preserves any explicit choice to move them into the overflow menu.
+// Old custom layouts adopt each newly shipped tool once: OCR and translation
+// in version 2, numbered steps in version 3. The stored version then preserves
+// any explicit choice to move them into the overflow menu.
 func (value capturePreferences) upgradeToolbar() capturePreferences {
-	if value.ToolbarVersion == 0 {
-		if value.ToolbarTools != nil {
-			value.ToolbarTools = append([]string{}, value.ToolbarTools...)
-			for _, action := range []string{"ocr", "translate"} {
-				found := false
-				for _, tool := range value.ToolbarTools {
-					if tool == action {
-						found = true
-					}
-				}
-				if !found {
-					value.ToolbarTools = append(value.ToolbarTools, action)
+	adopt := func(actions ...string) {
+		if value.ToolbarTools == nil {
+			return
+		}
+		value.ToolbarTools = append([]string{}, value.ToolbarTools...)
+		for _, action := range actions {
+			found := false
+			for _, tool := range value.ToolbarTools {
+				if tool == action {
+					found = true
 				}
 			}
+			if !found {
+				value.ToolbarTools = append(value.ToolbarTools, action)
+			}
 		}
+	}
+	if value.ToolbarVersion == 0 {
+		adopt("ocr", "translate")
 		value.ToolbarVersion = 2
+	}
+	if value.ToolbarVersion == 2 {
+		adopt("step")
+		value.ToolbarVersion = 3
 	}
 	return value
 }

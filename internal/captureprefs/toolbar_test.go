@@ -3,7 +3,7 @@ package captureprefs
 import "testing"
 
 func TestToolbarChoices(t *testing.T) {
-	for _, tools := range [][]string{nil, {}, {"mosaic", "arrow"}} {
+	for _, tools := range [][]string{nil, {}, {"mosaic", "arrow"}, {"step", "text"}} {
 		if err := ValidateToolbar(tools); err != nil {
 			t.Fatal(err)
 		}

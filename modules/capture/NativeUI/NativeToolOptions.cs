@@ -85,7 +85,7 @@ internal sealed class NativeToolOptions : ToolStripDropDownButton
 
     public void Configure(string tool, WinOneToolStyle current, bool editing)
     {
-        var supported = tool is "rectangle" or "ellipse" or "arrow" or "pen" or "cover" or "mosaic" or "blur" or "text";
+        var supported = tool is "rectangle" or "ellipse" or "arrow" or "pen" or "cover" or "mosaic" or "blur" or "text" or "step";
         // The same button stays in the row for every tool. Switching selection
         // to a drawing tool must not change the toolbar's width or placement.
         Enabled = supported && !editing;
@@ -97,11 +97,11 @@ internal sealed class NativeToolOptions : ToolStripDropDownButton
             var effect = tool is "mosaic" or "blur";
             foreach (var item in colors) item.Enabled = !effect;
             valueLabel.Enabled = valueHost.Enabled = tool != "cover";
-            valueLabel.Text = tool == "text" ? T("字号", "Font size") : tool == "mosaic" ? T("像素大小", "Pixel size") : tool == "blur" ? T("模糊强度", "Blur strength") : T("线宽", "Stroke width");
+            valueLabel.Text = tool is "text" or "step" ? T("字号", "Font size") : tool == "mosaic" ? T("像素大小", "Pixel size") : tool == "blur" ? T("模糊强度", "Blur strength") : T("线宽", "Stroke width");
             value.AccessibleName = valueLabel.Text;
             value.DecimalPlaces = tool=="text"||current.Precision is not null?2:0;
-            value.Minimum = tool == "text" ? 6 : tool == "mosaic" ? 2 : tool == "blur" ? 2 : 1;
-            value.Maximum = tool == "text" ? 256 : tool == "mosaic" ? 10000 : tool == "blur" ? 199 : 64;
+            value.Minimum = tool is "text" or "step" ? 6 : tool == "mosaic" ? 2 : tool == "blur" ? 2 : 1;
+            value.Maximum = tool is "text" or "step" ? 256 : tool == "mosaic" ? 10000 : tool == "blur" ? 199 : 64;
             value.Increment = tool == "blur" ? 2 : 1;
             value.Value = Math.Clamp((decimal)current.EffectiveValue,value.Minimum,value.Maximum);
             foreach (var item in colors) item.Checked = ((Color)item.Tag!).ToArgb() == current.Color.ToArgb();

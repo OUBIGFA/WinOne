@@ -340,6 +340,7 @@
   "capture.scrolling": "正在滚动截图，回到 WinOne 可停止",
   "capture.select": "选择",
   "capture.selectHint": "点击选择标注，拖动调整位置。",
+  "capture.step": "序号",
   "capture.stopScroll": "停止",
   "capture.strokeWidth": "线宽",
   "capture.surfaceFallback": "原位显示不可用，已打开普通编辑器。",

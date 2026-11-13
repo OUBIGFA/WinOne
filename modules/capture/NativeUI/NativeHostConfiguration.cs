@@ -56,7 +56,7 @@ internal sealed class NativeHostConfiguration(string pipeName, Process parent)
 
     private async Task<string[]?> SaveToolbarCoreAsync(string[]? tools, CancellationToken cancellation)
     {
-        var allowed = new HashSet<string>(new[] { "select", "crop", "rectangle", "ellipse", "arrow", "pen", "cover", "text", "mosaic", "blur", "ocr", "translate" }, StringComparer.Ordinal);
+        var allowed = new HashSet<string>(new[] { "select", "crop", "rectangle", "ellipse", "arrow", "pen", "cover", "text", "step", "mosaic", "blur", "ocr", "translate" }, StringComparer.Ordinal);
         if (tools is not null && tools.Any(tool => !allowed.Remove(tool))) throw new ArgumentException("无效的工具栏配置", nameof(tools));
         var requested = tools?.ToArray();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);

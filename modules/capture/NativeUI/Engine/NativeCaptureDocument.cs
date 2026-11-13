@@ -21,7 +21,7 @@ namespace ShareX.ScreenCaptureLib
                 throw new InvalidDataException("原生截图选区无效");
             var points = 0; var ids = new HashSet<Guid>();
             foreach (var layer in Layers) {
-                if (layer == null || layer.Kind is not ("rectangle" or "ellipse" or "arrow" or "pen" or "cover" or "mosaic" or "blur" or "text")) throw new InvalidDataException("原生截图图层无效");
+                if (layer == null || layer.Kind is not ("rectangle" or "ellipse" or "arrow" or "pen" or "cover" or "mosaic" or "blur" or "text" or "step")) throw new InvalidDataException("原生截图图层无效");
                 var bounds = layer.Bounds;
                 // The engine allows layers to move outside the image. Preserve
                 // those edits while bounding coordinates before GDI conversion;
@@ -38,7 +38,9 @@ namespace ShareX.ScreenCaptureLib
                 if(layer.LegacyEffect&&(!OrderedEffects||layer.Kind is not ("mosaic" or "blur")))throw new InvalidDataException("旧版效果样式无效");
                 if (layer.Kind == "mosaic" && (layer.EffectSize < 2 || layer.EffectSize > 10000) || layer.Kind == "blur" && (layer.EffectSize < 2 || layer.EffectSize > 199)) throw new InvalidDataException("原生截图效果无效");
                 if (layer.Kind == "arrow" && !Enum.IsDefined(typeof(ArrowHeadDirection), layer.ArrowHead)) throw new InvalidDataException("箭头方向无效");
-                if (layer.Kind == "text") {
+                if (layer.Kind == "step" && Color.FromArgb(layer.FillColor).A != 255) throw new InvalidDataException("原生截图序号无效");
+                // A step label shares the text fields and their limits.
+                if (layer.Kind is "text" or "step") {
                     if (layer.Text == null || layer.Text.Length > 4096 || layer.TextId == Guid.Empty || !ids.Add(layer.TextId) || !Finite(layer.FontPixels) || layer.FontPixels < 6 || layer.FontPixels > 256 || Color.FromArgb(layer.TextColor).A != 255)
                         throw new InvalidDataException("原生截图文字无效");
                     if (layer.Lines != null && (layer.Lines.Length > 4097 || layer.Lines.Any(line => line == null || line.Text == null || line.Text.Length > 4096 || line.X < 0 || line.Y < 0 || line.X > bounds.Width || line.Y > bounds.Height) || layer.Lines.Sum(line => line.Text.Length) > 4096))
@@ -97,7 +99,7 @@ namespace ShareX.ScreenCaptureLib
             var origin = Form.CanvasRectangle.Location;
             var layers = Shapes.Where(shape => shape.ShapeCategory != ShapeCategory.Region &&
                 (!rendering || shape is not WinOneInlineTextShape { Editing: true })).Select(shape => {
-                var kind = shape switch { WinOneInlineTextShape _ => "text", WinOneCoverShape _ => "cover", RectangleDrawingShape _ => "rectangle", EllipseDrawingShape _ => "ellipse", ArrowDrawingShape _ => "arrow", FreehandDrawingShape _ => "pen", PixelateEffectShape _ => "mosaic", BlurEffectShape _ => "blur", _ => throw new InvalidDataException("无法保存该原生图层") };
+                var kind = shape switch { WinOneStepShape _ => "step", WinOneInlineTextShape _ => "text", WinOneCoverShape _ => "cover", RectangleDrawingShape _ => "rectangle", EllipseDrawingShape _ => "ellipse", ArrowDrawingShape _ => "arrow", FreehandDrawingShape _ => "pen", PixelateEffectShape _ => "mosaic", BlurEffectShape _ => "blur", _ => throw new InvalidDataException("无法保存该原生图层") };
                 var layer = new WinOneCaptureLayer { Kind = kind, Bounds = shape.Rectangle };
                 if (shape is BaseDrawingShape drawing) layer = layer with { StrokeColor = drawing.BorderColor.ToArgb(), FillColor = drawing.FillColor.ToArgb(), StrokeWidth = drawing.BorderSize, Dash = (int)drawing.BorderStyle, Shadow = drawing.Shadow, ShadowColor = drawing.ShadowColor.ToArgb(), ShadowOffset = drawing.ShadowOffset };
                 if (shape is RectangleDrawingShape rectangle) layer = layer with { CornerRadius = rectangle.CornerRadius };
@@ -106,12 +108,19 @@ namespace ShareX.ScreenCaptureLib
                 if (shape is PixelateEffectShape pixel) layer = layer with { EffectSize = pixel.PixelSize };
                 if (shape is BlurEffectShape blur) layer = layer with { EffectSize = blur.BlurRadius };
                 if (shape is WinOneInlineTextShape text) layer = layer with { Text = text.Text, TextId = text.Id, FontPixels = text.FontPixels, TextColor = text.TextColor.ToArgb(), Lines = text.NativeLines?.ToArray() };
+                if (shape is WinOneStepShape step) layer = layer with { Text = step.Text, TextId = step.Id, FontPixels = step.FontPixels, Lines = step.NativeLines?.ToArray() };
                 if(shape is IWinOneLegacyStroke legacy)layer=layer with {LegacyStrokeWidth=legacy.LegacyStrokeWidth};
                 if(shape is IWinOneLegacyEffect)layer=layer with {LegacyEffect=true};
                 var coordinates = WinOneOrderedEffects ? WinOneImageCoordinates(shape, origin, layer.Points)
                     : (Bounds: new RectangleF(layer.Bounds.X-origin.X,layer.Bounds.Y-origin.Y,layer.Bounds.Width,layer.Bounds.Height),
                         Points: layer.Points.Select(point=>new PointF(point.X-origin.X,point.Y-origin.Y)).ToArray());
-                return layer with { Bounds = coordinates.Bounds, Points = coordinates.Points };
+                layer = layer with { Bounds = coordinates.Bounds, Points = coordinates.Points };
+                // The inline editor owns an edited label: preview only its bubble, at the editor's size.
+                if (rendering && shape is WinOneStepShape { EditingSize: not null } edited) {
+                    var live = edited.DrawBounds;
+                    layer = layer with { Text = "", Lines = null, Bounds = new RectangleF(layer.Bounds.X + live.X - shape.Rectangle.X, layer.Bounds.Y + live.Y - shape.Rectangle.Y, live.Width, live.Height) };
+                }
+                return layer;
             }).ToArray();
             var document = new WinOneCaptureDocument(WinOneOrderedEffects?2:1, Form.Canvas.Width, Form.Canvas.Height, ProbeCommittedRegion is { } region
                 ? Rectangle.Round(new RectangleF(region.Rectangle.X - origin.X, region.Rectangle.Y - origin.Y, region.Rectangle.Width, region.Rectangle.Height)) : null, tool, layers){OrderedEffects=WinOneOrderedEffects};
@@ -148,6 +157,7 @@ namespace ShareX.ScreenCaptureLib
         {
             BaseShape shape = layer.Kind switch {
                 "text" => new WinOneInlineTextShape(),
+                "step" => new WinOneStepShape(),
                 "cover" => new WinOneCoverShape(),
                 "rectangle" => layer.LegacyStrokeWidth.HasValue ? new WinOneLegacyRectangleShape() : new RectangleDrawingShape(),
                 "ellipse" => layer.LegacyStrokeWidth.HasValue ? new WinOneLegacyEllipseShape() : new EllipseDrawingShape(),
@@ -178,6 +188,9 @@ namespace ShareX.ScreenCaptureLib
                 if (shape is WinOneInlineTextShape text) {
                     text.Id = layer.TextId; text.Text = layer.Text; text.FontPixels = layer.FontPixels;
                     text.TextColor = Color.FromArgb(layer.TextColor); text.NativeLines = layer.Lines?.ToArray();
+                }
+                if (shape is WinOneStepShape step) {
+                    step.Id = layer.TextId; step.Text = layer.Text; step.FontPixels = layer.FontPixels; step.NativeLines = layer.Lines?.ToArray();
                 }
                 if (shape is IWinOneLegacyStroke legacy) legacy.LegacyStrokeWidth = layer.LegacyStrokeWidth!.Value;
                 return shape;

@@ -66,6 +66,7 @@ internal static class Program
         KeyboardRoutingTests.Run();
         NativeToolbarTests.Run();
         NativeTextHistoryTests.Run();
+        NativeStepTests.Run();
         NativeDrawingTests.Run();
         NativeToolStyleTests.Run();
         NativeDocumentTests.Run();
