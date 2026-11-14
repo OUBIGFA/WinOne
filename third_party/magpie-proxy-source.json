@@ -1,17 +1,19 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/yetone/magpie",
-  "revision": "c9d253e4a2e7add1e31578244eda52bfdce11258",
+  "revision": "ce2ce86ab43a185688556b5887efab6f1670c58b",
   "license": "MIT",
-  "notice": "licenses/upstream-magpie-c9d253e4a2e7add1e31578244eda52bfdce11258-0-LICENSE.txt",
+  "notice": "licenses/upstream-magpie-ce2ce86ab43a185688556b5887efab6f1670c58b-0-LICENSE.txt",
   "sourceFiles": {
-    "internal/settings/settings.go": "9a9fe2de8620e569a2c5951012324fc61cc0f74bd51f1130667e381a02c07ce6",
+    "internal/settings/settings.go": "e1c10969dffc94b7c5cd858c592b8b3b74c5c031a34c60cdf9ee92edf9e34c85",
+    "internal/settings/proxies.go": "0c2c97a29bcc9aa887c4c98a2e888946f1615049b6989a958d4269d39397b75f",
     "LICENSE": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
   },
   "files": {
-    "internal/ai/magpie_proxy.go": "68b19bb884a0fa34d095b3eb336e0caca3726fd68ffb1dc7e05d93cbe1eb0a1c"
+    "internal/ai/magpie_proxy.go": "d8afcbd62c56a947174b9971911c672715907bd66816cf1c0e09b0dc218cfaaf"
   },
   "adaptations": [
-    "Rename the upstream CheckProxy for the Host, preserving its validation and gofmt formatting"
+    "Rename the upstream proxy validator and its pure support for the Host, preserving validation and gofmt formatting",
+    "Check named references against an empty upstream list because WinOne has only inline provider/account proxies"
   ]
 }

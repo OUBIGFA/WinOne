@@ -19,7 +19,7 @@ func (p *page) upstreamNavigation(c *ui.Context) {
 	entries := []destination{
 		{homeT("home"), tabHome, icons.Star},
 		{i18n.T("ai.customProviders"), tabCustom, icons.LayersPlus}, {i18n.T("ai.addProvidersTab"), tabAccounts, icons.UserRound},
-		{homeT("preferences"), tabDefaults, icons.SlidersHorizontal}, {i18n.T("gateway.title"), tabGateway, icons.Server},
+		{i18n.T("gateway.title"), tabGateway, icons.Server},
 	}
 	current := 0
 	tabs := make([]kit.Tab, len(entries))

@@ -41,7 +41,7 @@ func TestConfiguredProviderAcceptsHTTPHostsAcrossProtocols(t *testing.T) {
 func TestCompleteEndpointsAndKeyOptionsReachUpstreamProvider(t *testing.T) {
 	p, err := configuredProvider(request{Protocol: "chat", BaseURL: "https://primary.invalid/v1", Key: "fixture",
 		KeyID: "saved-slot", KeyOptions: &KeyOptions{Name: "Team", Protocol: "anthropic", Weight: 4},
-		ProviderPreferences: &ProviderPreferences{Endpoints: &ProviderEndpoints{Responses: "https://response.invalid/v1", Anthropic: "https://messages.invalid", Gemini: "https://gemini.invalid/v1beta", Decide: "https://decision.invalid"}, ListOff: true, NativeCompaction: true, PinUpstream: true, KeySpendCaps: map[string]SpendCap{"saved-slot": {USD: 2, Period: "day"}}},
+		ProviderPreferences: &ProviderPreferences{Endpoints: &ProviderEndpoints{Responses: "https://response.invalid/v1", Anthropic: "https://messages.invalid", Gemini: "https://gemini.invalid/v1beta", Decide: "https://decision.invalid"}, ListOff: true, NativeCompaction: true, PinUpstream: true, KeySpendCaps: map[string]SpendCap{"saved-slot": {USD: 2, Period: "day"}}, KeyPriceRates: map[string]float64{"saved-slot": .5}},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -49,7 +49,7 @@ func TestCompleteEndpointsAndKeyOptionsReachUpstreamProvider(t *testing.T) {
 	if p.Chat != "https://primary.invalid/v1" || p.Gemini != "https://gemini.invalid/v1beta" || p.Decide != "https://decision.invalid" || p.Responses != "https://response.invalid/v1" || !p.ListOff || !p.NativeCompaction || !p.PinUpstream {
 		t.Fatal("provider options not applied", p)
 	}
-	if p.KeyName != "Team" || p.KeyProtocol != provider.Anthropic || p.KeyWeight != 4 || p.KeySpendCaps[provider.KeyID("fixture")].USD != 2 {
+	if p.KeyName != "Team" || p.KeyProtocol != provider.Anthropic || p.KeyWeight != 4 || p.KeySpendCaps[provider.KeyID("fixture")].USD != 2 || p.KeyPriceRates[provider.KeyID("fixture")] != .5 {
 		t.Fatal("key options or cap identity lost")
 	}
 }
@@ -262,7 +262,7 @@ func TestServicePresetRetainsItsModelProtocolsAndScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if configured.Responses != "https://opencode.ai/zen/go/v1" || configured.Anthropic != "https://opencode.ai/zen/go" || configured.Catalog != "opencode-go" {
+	if configured.Chat != "https://opencode.ai/inference/go/openai/v1" || configured.Responses != "https://opencode.ai/inference/go/openai/v1" || configured.Anthropic != "https://opencode.ai/inference/go/anthropic" || configured.Gemini != "https://opencode.ai/inference/go/google/v1beta" || configured.Catalog != "opencode-go" {
 		t.Fatal("OpenCode lost its model-specific protocols")
 	}
 	if err := json.Unmarshal([]byte(`{"preset":"clinepass","protocol":"chat","baseUrl":"https://api.cline.bot/api/v1","key":"fixture-key"}`), &input); err != nil {

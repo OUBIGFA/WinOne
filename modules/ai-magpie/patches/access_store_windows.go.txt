@@ -31,6 +31,8 @@ func WinOneConfigure(in Key)error{
  models,err:=CleanModels(in.Models);if err!=nil{return err}
  accounts,err:=CleanAccounts(in.Accounts);if err!=nil{return err}
  mcp,err:=CleanMCP(in.MCP);if err!=nil{return err}
+ aliases,err:=CleanAliases(in.Aliases);if err!=nil{return err}
+ tier,err:=CleanTier(in.ServiceTier);if err!=nil{return err}
  requested:=in.Limits();if len(requested)>MaxLimits{return fmt.Errorf("A key can have at most %d limits",MaxLimits)}
  prior:=next.Limits();limits:=make([]Limit,0,len(requested));now:=Now().Round(0)
  for n,w:=range requested {
@@ -42,6 +44,7 @@ func WinOneConfigure(in Key)error{
  next.Name,next.Models,next.Accounts,next.MCP=name,models,accounts,mcp
  next.Quotas,next.ReadOnly,next.Issues=in.Quotas,in.ReadOnly,in.Issues
  next.MaxConcurrency=in.MaxConcurrency
+ next.Aliases,next.ServiceTier=aliases,tier
  next.setLimits(limits);keys[i]=next;return save(keys)
 }
 

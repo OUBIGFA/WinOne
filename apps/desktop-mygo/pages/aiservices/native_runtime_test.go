@@ -57,7 +57,11 @@ func nativeAIWithRuntime(t *testing.T) (*page, *testhost.Harness, *ui.Tester, *a
 	})
 	p := newPage(h.Env)
 	t.Cleanup(p.Close)
-	tt := ui.NewTester(p.View, 1100, 1600)
+	// Production pages use the shell's shared scroller. Keep that boundary
+	// here so policies added above recording never make the bottom unreachable.
+	tt := ui.NewTester(func(c *ui.Context) {
+		ui.Scroll(c).Size(1100, 1600).Children(func() { p.View(c) })
+	}, 1100, 1600)
 	settle(h, tt)
 	return p, h, tt, router
 }

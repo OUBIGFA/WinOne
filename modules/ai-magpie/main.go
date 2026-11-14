@@ -50,6 +50,11 @@ type request struct {
 	Preset              string                   `json:"preset,omitempty"`
 	PresetRegion        string                   `json:"presetRegion,omitempty"`
 	Method              *int                     `json:"method,omitempty"`
+	ImportFiles         []string                 `json:"importFiles,omitempty"`
+	AccessOnly          bool                     `json:"accessOnly,omitempty"`
+	ExportFormat        string                   `json:"exportFormat,omitempty"`
+	ExportUsers         []string                 `json:"exportUsers,omitempty"`
+	ExportPath          string                   `json:"exportPath,omitempty"`
 	User                string                   `json:"user,omitempty"`
 	Protocol            string                   `json:"protocol"`
 	BaseURL             string                   `json:"baseUrl"`
@@ -74,6 +79,10 @@ func run(ctx context.Context, input io.Reader) (string, error) {
 func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) error) (string, error) {
 	stopPlugins := serveGatewayLimits()
 	defer stopPlugins()
+	// A one-shot worker must flush the upstream's delayed affinity/model
+	// observations before it exits, as the upstream gateway does on shutdown.
+	defer gateway.FlushSticks()
+	defer provider.FlushServed()
 	var in request
 	decoder := json.NewDecoder(io.LimitReader(input, maximumRequest))
 	decoder.DisallowUnknownFields()
@@ -230,6 +239,22 @@ func main() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), workerRequestWait(in))
 	defer cancel()
+	if in.Operation == "models.certificate" {
+		// An existing pin must not prevent reading the server's current identity.
+		if in.ProviderPreferences != nil {
+			in.ProviderPreferences.ServerPin = ""
+		}
+		p, err := configuredProvider(in)
+		if err == nil {
+			seen, readErr := p.PeekServerCert(ctx)
+			if readErr == nil {
+				_ = json.NewEncoder(os.Stdout).Encode(map[string]any{"certificate": seen})
+				return
+			}
+		}
+		_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": "server certificate could not be read"})
+		os.Exit(1)
+	}
 	if in.Operation == "models.test" {
 		if err := testModels(ctx, in, os.Stdout); err != nil {
 			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})

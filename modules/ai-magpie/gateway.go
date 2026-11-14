@@ -80,6 +80,8 @@ func (w *gatewayResponse) Flush() {
 func serveGateway(ctx context.Context, in request, output io.Writer) error {
 	stopPlugins := serveGatewayLimits()
 	defer stopPlugins()
+	defer gateway.FlushSticks()
+	defer provider.FlushServed()
 	if err := configureAccounting(in); err != nil {
 		return err
 	}

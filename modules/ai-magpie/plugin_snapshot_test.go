@@ -17,7 +17,7 @@ func TestWinOneAccountSnapshotMatchesCachedAndInvalidatesChangedBundle(t *testin
 	clearAccountRegistry(t)
 	spec := filepath.Join(t.TempDir(), "cline")
 	WinOneUseBundle(Entry{Spec: spec})
-	p := Provider{ID: "cline", Spec: spec, Name: "Cline", Methods: []Method{{Type: "api", Label: "API key"}}}
+	p := Provider{ID: "cline", Spec: spec, Name: "Cline", Methods: []Method{{Type: "api", Label: "API key"}}, Importable: true, ImportFrom: "Fixture account file", ImportFroms: map[string]string{"zh": "测试账号文件"}}
 	if err := WinOneRememberProvider(p, "bundle-v1"); err != nil {
 		t.Fatal(err)
 	}
@@ -35,6 +35,9 @@ func TestWinOneAccountSnapshotMatchesCachedAndInvalidatesChangedBundle(t *testin
 		current, found, err := WinOneReadProvider(spec, "cline", "bundle-v1")
 		if err != nil || !found || len(reference) != 1 || !reflect.DeepEqual(current.Accounts, reference[0].Accounts) || current.SignedIn != reference[0].SignedIn || !reflect.DeepEqual(current.Methods, reference[0].Methods) {
 			t.Fatal("snapshot differs from magpie account page", err)
+		}
+		if !current.Importable || current.ImportFrom != "Fixture account file" || current.ImportFroms["zh"] != "测试账号文件" {
+			t.Fatal("cached provider lost its account import capability")
 		}
 		t.Logf("magpie Cached account metadata: %s", elapsed)
 	}

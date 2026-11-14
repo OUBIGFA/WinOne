@@ -12,10 +12,54 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 )
+
+// Synthetic Claude files use the upstream offline import path. Exported token
+// bytes stay in owned files and never appear in the public worker response.
+func TestPackagedAccountImportAndBothExportFormats(t *testing.T) {
+	executable := os.Getenv("WINONE_AI_TEST_EXE")
+	if executable == "" {
+		t.Skip("set WINONE_AI_TEST_EXE")
+	}
+	directory := t.TempDir()
+	runtime := Translator{Executable: executable, DataDirectory: filepath.Join(directory, "runtime")}
+	provider := Provider{ID: "account-files", Name: "Fixture", AuthMode: "account", Agent: "claude", AgentBackend: "builtin"}
+	const access = "fixture-access-never-a-real-token"
+	const refresh = "fixture-refresh-never-a-real-token"
+	data := `{"type":"claude","email":"account-files@example.invalid","access_token":"` + access + `","refresh_token":"` + refresh + `"}`
+	raw, err := runtime.ImportAccounts(t.Context(), provider, []string{data}, false)
+	var imported struct{ Results []struct{ Status string } }
+	if err != nil || json.Unmarshal(raw, &imported) != nil || len(imported.Results) != 1 || imported.Results[0].Status != "added" {
+		t.Fatal("account import failed", err)
+	}
+	for _, format := range []string{"sub2api", "cliproxyapi"} {
+		path := directory
+		if format == "sub2api" {
+			path = filepath.Join(directory, "accounts.json")
+		}
+		raw, err = runtime.ExportAccounts(t.Context(), provider, format, path, []string{"account-files@example.invalid"})
+		var exported struct{ Files []string }
+		if err != nil || json.Unmarshal(raw, &exported) != nil || len(exported.Files) != 1 {
+			t.Fatal("account export failed", format, err)
+		}
+		if strings.Contains(string(raw), access) || strings.Contains(string(raw), refresh) {
+			t.Fatal("exported credentials crossed the public response")
+		}
+		file, err := os.ReadFile(exported.Files[0])
+		if err != nil || !json.Valid(file) || !strings.Contains(string(file), access) || !strings.Contains(string(file), refresh) {
+			t.Fatal("exported format lost the account's credentials", format, err)
+		}
+	}
+	other, err := runtime.ForProvider("other-profile").Accounts(t.Context(), "accounts.list", "claude")
+	var listing struct{ Accounts []any }
+	if err != nil || json.Unmarshal(other, &listing) != nil || len(listing.Accounts) != 0 {
+		t.Fatal("import crossed the provider profile", err)
+	}
+}
 
 // Synthetic credentials stay in two owned profile homes. This exercises the
 // real magpie account discovery without signing in or contacting a vendor.

@@ -123,12 +123,15 @@ func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []Runt
 		// The outer router talks only to its authenticated local bridge.
 		// Transport choices apply once, to the vendor, in the inner worker.
 		helper.Proxy, helper.AuthHeader, helper.ExtraBody = "direct", "", nil
+		helper.Socket, helper.ClientCert, helper.ClientKey, helper.ServerCA, helper.ServerPin = "", "", "", "", ""
+		helper.Resolve = nil
 		// Supplemental credentials and vendor discovery URLs belong solely to
 		// the inner worker, never the outer router's loopback provider.
 		helper.AccessKeyID, helper.SecretAccessKey, helper.BalanceToken = nil, nil, nil
 		helper.ModelsURL, helper.BalanceURL = "", ""
 		helper.Vertex, helper.ZhipuTeam, helper.Endpoints = nil, nil, nil
 		helper.KeySpendCaps, helper.KeyOwnBalances = nil, nil
+		helper.KeyPriceRates = nil
 		helper.InsecureTLS = false
 		if p.Provider.AuthMode == "api-key" {
 			helper.DecisionSource = &decisionSource{Protocol: p.Provider.Protocol, BaseURL: p.Provider.BaseURL, Preset: p.Provider.Preset, PresetRegion: p.Provider.PresetRegion, ProviderPreferences: &ProviderPreferences{Endpoints: p.Provider.Endpoints}}
@@ -169,6 +172,12 @@ func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []Runt
 					helper.KeyOwnBalances = map[string]OwnBalance{}
 				}
 				helper.KeyOwnBalances[fingerprint] = balance
+			}
+			if rate, ok := p.Provider.KeyPriceRates[key.ID]; ok {
+				if helper.KeyPriceRates == nil {
+					helper.KeyPriceRates = map[string]float64{}
+				}
+				helper.KeyPriceRates[fingerprint] = rate
 			}
 			name := key.Name
 			if name == "" {

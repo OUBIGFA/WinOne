@@ -57,6 +57,9 @@ func workerRequestWait(in request) time.Duration {
 	if in.Operation == "accounts.signin" {
 		return 10 * time.Minute
 	}
+	if in.Operation == "accounts.import" {
+		return 3 * time.Minute
+	}
 	return 90 * time.Second
 }
 
@@ -323,6 +326,7 @@ func installAuxiliaryProviders(in request) error {
 			actual.Name, actual.Models, actual.Keys = p.Name, p.Models, p.NativeKeys
 			// The bridge already mapped every saved slot to its vendor fingerprint.
 			actual.KeySpendCaps, actual.KeyOwnBalances = p.KeySpendCaps, p.KeyOwnBalances
+			actual.KeyPriceRates = p.KeyPriceRates
 			if gateway.WinOneNativeProviders == nil {
 				gateway.WinOneNativeProviders = map[string]provider.Provider{}
 			}

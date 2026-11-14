@@ -84,7 +84,7 @@ $text=(& git -C $source show "${revision}:internal/provider/provider.go") -join 
 if(-not $text.Contains('func sharedAll() []Provider {')){throw 'Upstream shared provider boundary changed'}
 $text=$text.Replace('func sharedAll() []Provider {',"func sharedAll() []Provider {`n if WinOneProviders != nil { return winOneConfiguredProviders() }")
 [IO.File]::WriteAllText($provider,$text+"`n",$encoding)
-[IO.File]::WriteAllText((Join-Path $source 'internal/provider/winone_embedded.go'),"package provider`n// Set once before serving a WinOne request; never persisted.`nvar WinOneProviders []Provider`nfunc WinOneAccountIDs() []string { return append([]string(nil), accountIDs...) }`nfunc winOneConfiguredProviders() []Provider { result := make([]Provider, len(WinOneProviders)); for i, p := range WinOneProviders { result[i] = normalize(p) }; return result }`n",$encoding)
+[IO.File]::WriteAllText((Join-Path $source 'internal/provider/winone_embedded.go'),"package provider`n// Set once before serving a WinOne request; never persisted.`nvar WinOneProviders []Provider`nfunc WinOneAccountIDs() []string { return append([]string(nil), accountIDs...) }`n// Use the original endpoint fill/migration for a private unsaved connection.`nfunc WinOneOpenCodeEndpoints(p Provider) Provider { p.openCodeEndpoints(); return p }`nfunc winOneConfiguredProviders() []Provider { result := make([]Provider, len(WinOneProviders)); for i, p := range WinOneProviders { result[i] = normalize(p) }; return result }`n",$encoding)
 $models=Join-Path $source 'internal/provider/models.go'
 $text=(& git -C $source show "${revision}:internal/provider/models.go") -join "`n"
 if(-not $text.Contains('ms := p.ids().list(p.available())')){throw 'Upstream provider model metadata boundary changed'}
@@ -112,7 +112,8 @@ $pluginSignin=Join-Path $source 'internal/provider/pluginsignin.go'
 $text=(& git -C $source show "${revision}:internal/provider/pluginsignin.go") -join "`n"
 if($LASTEXITCODE -ne 0){throw 'Cannot read pinned plugin sign-in source'}
 if(([regex]::Matches($text,'var installing context.Context')).Count -ne 1){throw 'Upstream plugin sign-in preparation changed'}
-$text=$text.Replace('"errors"',('"errors"'+"`n`t"+'"fmt"')).Replace('var installing context.Context',"if install { return SignInState{}, fmt.Errorf(`"%s is required; install the official client first`", cli.Name) }`n var installing context.Context")
+# The selected upstream already imports fmt for its authorization errors.
+$text=$text.Replace('var installing context.Context',"if install { return SignInState{}, fmt.Errorf(`"%s is required; install the official client first`", cli.Name) }`n var installing context.Context")
 # Preserve the full upstream authorization state machine. The desktop entry
 # registers it asynchronously and gives preparation the login owner's context.
 $begin=@'
@@ -171,9 +172,16 @@ try {
    }
    New-Item -ItemType Directory -Force -Path $testEnvironment.USERPROFILE,$testEnvironment.TEMP | Out-Null
    foreach($name in $testEnvironment.Keys){$priorTestEnvironment[$name]=[Environment]::GetEnvironmentVariable($name);[Environment]::SetEnvironmentVariable($name,$testEnvironment[$name])}
-   $ErrorActionPreference='Continue'
-   & $GoExe test ./cmd/winone-ai -count=1
-   $ErrorActionPreference='Stop'
+   # This embedding package does not use upstream TestMain. Mark only its
+   # test process to disable asynchronous route-history writes; upstream
+   # packages create and validate their own temporary home in TestMain.
+   $priorSandbox=$env:MAGPIE_TEST_SANDBOX
+   try {
+    $env:MAGPIE_TEST_SANDBOX=$testRoot
+    $ErrorActionPreference='Continue'
+    & $GoExe test ./cmd/winone-ai -count=1
+    $ErrorActionPreference='Stop'
+   } finally { $env:MAGPIE_TEST_SANDBOX=$priorSandbox }
    if($LASTEXITCODE -ne 0){throw 'Magpie adapter tests failed'}
    $ErrorActionPreference='Continue'
    & $GoExe test ./internal/gateway -run '^TestWinOneClaudeLaunchStatus' -count=1

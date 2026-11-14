@@ -17,6 +17,8 @@ import (
 // One Host-owned worker serves gateway protocols, keys and its private native
 // administration. No plugin pages, route groups or external-client service.
 func serveGatewayBackend(ctx context.Context, in request, input io.Reader, output io.Writer) error {
+	defer gateway.FlushSticks()
+	defer provider.FlushServed()
 	if len(in.Key) < 32 {
 		return errors.New("missing gateway key")
 	}

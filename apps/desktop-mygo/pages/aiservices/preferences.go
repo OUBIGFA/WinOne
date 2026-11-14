@@ -81,6 +81,9 @@ func (e *editor) requestPreferences(c *ui.Context, pr *provider, locked bool) {
 		kit.Stack(c, "", "", func() { e.proxyPreference(c, "provider", &s.Proxy, locked) })
 		choiceRow(c, i18n.T("ai.authHeader"), "", &s.AuthHeader, options("", i18n.T("ai.automatic"), "x-api-key", "x-api-key", "bearer", "Authorization: Bearer"), locked)
 		kit.Toggle(c, &s.InsecureTLS, i18n.T("ai.insecureTLS"), i18n.T("ai.insecureTLSHint")).Disabled(locked)
+		if pr.AuthMode == "api-key" && (pr.Protocol == "responses" || s.Endpoints != nil && s.Endpoints.Responses != "") {
+			choiceRow(c, nativeT("socket"), nativeT("socketHint"), &s.Socket, options("", nativeT("socketOff"), "auto", i18n.T("ai.automatic"), "on", nativeT("socketOn")), locked)
+		}
 		wait := float64(s.Patience)
 		numberRow(c, i18n.T("ai.providerPatience"), &wait, -1, 240, true, "", locked, func(v *float64) { s.Patience = int(value(v)) })
 	})
@@ -91,6 +94,9 @@ func (e *editor) requestPreferences(c *ui.Context, pr *provider, locked bool) {
 	kit.Group(c, nil, i18n.T("aiComplete.fallback"), i18n.T("aiComplete.fallbackHint"), func() {
 		kit.Stack(c, "", "", func() { e.preferenceList(c, "fallback", i18n.T("aiComplete.fallback"), &s.Fallback, locked) })
 	})
+	if pr.AuthMode == "api-key" {
+		e.connectionOptions(c, pr, locked)
+	}
 }
 
 func (e *editor) preferenceList(c *ui.Context, key, label string, values *[]string, locked bool) {
@@ -168,6 +174,7 @@ func (e *editor) compatibilityPreferences(c *ui.Context, pr *provider, locked bo
 			kit.Toggle(c, &s.KeepSelf, nativeT("keepSelf"), nativeT("keepSelfHint")).Disabled(locked)
 		}
 		kit.Toggle(c, &s.UseFirst, nativeT("useFirst"), nativeT("useFirstHint")).Disabled(locked)
+		kit.Toggle(c, &s.NoStandIn, nativeT("noStandIn"), nativeT("noStandInHint")).Disabled(locked)
 	})
 	kit.Section(c, nil, i18n.T("ai.extraBody"), i18n.T("ai.extraBodyHint"), func() { preferenceJSON(c, e.p, pr.ID+":extraBody", "", "", &s.ExtraBody, locked) })
 }

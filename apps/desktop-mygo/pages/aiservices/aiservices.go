@@ -24,7 +24,6 @@ func init() {
 const (
 	tabCustom = iota
 	tabAccounts
-	tabDefaults
 	tabGateway
 	tabHome
 )
@@ -62,6 +61,7 @@ type page struct {
 	accountLoading  bool
 	modelBusy       bool
 	avatarBusy      bool
+	connectionBusy  bool
 	read            int
 	err             string
 
@@ -103,7 +103,7 @@ func newPage(env *core.Env) *page {
 // navigationLocked holds the tabs while work runs that leaving would lose
 // or interrupt: a save, a sign-in, a model discovery or a picture upload.
 func (p *page) navigationLocked() bool {
-	return p.saving || p.accountBusy || p.modelBusy || p.avatarBusy
+	return p.saving || p.accountBusy || p.modelBusy || p.avatarBusy || p.connectionBusy
 }
 
 // locked also holds the forms while the configuration is read.
@@ -489,7 +489,7 @@ func (p *page) View(c *ui.Context) {
 	kit.Page(c, func() {
 		p.upstreamNavigation(c)
 		ui.Column(c).FillWidth().Gap(18).Disabled(p.saving).Children(func() {
-			if p.tab == tabHome || p.tab == tabCustom || p.tab == tabAccounts || p.tab == tabDefaults {
+			if p.tab == tabHome || p.tab == tabCustom || p.tab == tabAccounts {
 				p.overview(c)
 			}
 			p.notices(c)
@@ -498,8 +498,6 @@ func (p *page) View(c *ui.Context) {
 				p.homeView(c)
 			case tabCustom, tabAccounts:
 				p.providersView(c)
-			case tabDefaults:
-				p.defaultsView(c)
 			case tabGateway:
 				var providers []widgets.AIProvider
 				if p.saved != nil {
@@ -650,17 +648,7 @@ func (p *page) overview(c *ui.Context) {
 	})
 }
 
-// defaultsView is the default service and how results behave.
-func (p *page) defaultsView(c *ui.Context) {
-	if p.draft == nil {
-		return
-	}
-	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
-		p.defaultModelView(c)
-		p.responseBehaviorView(c)
-	})
-}
-
+// Home and provider editors share the same configuration draft and save rail.
 func (p *page) responseBehaviorView(c *ui.Context) {
 	d := &p.draft.Value
 	locked := p.locked()

@@ -69,6 +69,49 @@ func (t Translator) TestModels(ctx context.Context, p Provider, key string, mode
 	return raw, nil
 }
 
+// Read the selected server's certificate through the same upstream transport
+// as discovery, without a vendor key, a save, or automatic certificate trust.
+func (t Translator) ServerCertificate(ctx context.Context, p Provider) (json.RawMessage, error) {
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	raw, err := t.ForProvider(p.ID).invoke(ctx, map[string]any{"operation": "models.certificate", "providerId": p.ID, "protocol": p.Protocol, "baseUrl": p.BaseURL, "preset": p.Preset, "presetRegion": p.PresetRegion, "providerPreferences": p.ProviderPreferences})
+	var out struct {
+		Certificate json.RawMessage `json:"certificate"`
+	}
+	if err != nil || json.Unmarshal(raw, &out) != nil || len(out.Certificate) == 0 {
+		return nil, errors.New("服务器证书读取失败，请检查地址、代理和证书文件后重试")
+	}
+	return raw, nil
+}
+
+// Import runs the original account flow in the selected private provider
+// profile. File contents are request-only and never become configuration.
+func (t Translator) ImportAccounts(ctx context.Context, p Provider, files []string, accessOnly bool) (json.RawMessage, error) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	defer cancel()
+	raw, err := t.ForProvider(p.ID).invoke(ctx, map[string]any{"operation": "accounts.import", "agent": p.Agent, "agentBackend": p.AgentBackend, "importFiles": files, "accessOnly": accessOnly})
+	var out struct {
+		Results json.RawMessage `json:"results"`
+	}
+	if err != nil || json.Unmarshal(raw, &out) != nil || len(out.Results) == 0 {
+		return nil, errors.New("账号文件导入失败，请检查文件格式、网络或登录状态")
+	}
+	return raw, nil
+}
+
+// Export writes the upstream formats directly in the owned worker. Responses
+// contain file paths and account names, never exported credentials.
+func (t Translator) ExportAccounts(ctx context.Context, p Provider, format, path string, users []string) (json.RawMessage, error) {
+	raw, err := t.ForProvider(p.ID).invoke(ctx, map[string]any{"operation": "accounts.export", "agent": p.Agent, "agentBackend": p.AgentBackend, "exportFormat": format, "exportPath": path, "exportUsers": users})
+	var out struct {
+		Files []string `json:"files"`
+	}
+	if err != nil || json.Unmarshal(raw, &out) != nil || len(out.Files) == 0 {
+		return nil, errors.New("账号导出失败，请检查所选账号和输出位置")
+	}
+	return raw, nil
+}
+
 // KeyBalances reads a saved immutable key snapshot. It deliberately avoids
 // WithKeys, whose inference rotation and backoff must not change on a UI read.
 func (t Translator) KeyBalances(ctx context.Context, p Provider, plan KeyPlan) (json.RawMessage, error) {

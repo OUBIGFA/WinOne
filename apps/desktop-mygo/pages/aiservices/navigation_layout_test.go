@@ -8,18 +8,21 @@ import (
 	"winone/desktopmygo/kit"
 )
 
-// All five retained tasks stay on the first level.
-func TestAINavigationKeepsFiveTasks(t *testing.T) {
+// Result preferences share Home; all four destinations stay on the first level.
+func TestAINavigationKeepsFourTasks(t *testing.T) {
 	_, h, p, _ := setup(t)
 	for _, locale := range []string{i18n.Chinese, i18n.English} {
 		i18n.SetLocale(locale)
 		p.switchTab(tabHome)
 		tt := ui.NewTester(p.upstreamNavigation, 880, 420)
 		settle(h, tt)
-		for _, label := range []string{homeT("home"), i18n.T("ai.customProviders"), i18n.T("ai.addProvidersTab"), homeT("preferences"), i18n.T("gateway.title")} {
+		for _, label := range []string{homeT("home"), i18n.T("ai.customProviders"), i18n.T("ai.addProvidersTab"), i18n.T("gateway.title")} {
 			if !tt.HasText(label) {
 				t.Errorf("primary navigation is missing %s", label)
 			}
+		}
+		if tt.HasText(homeT("preferences")) {
+			t.Error("result preferences still have a separate navigation entry")
 		}
 		for _, label := range []string{"Sessions", "Library", "Routing", "Routing groups", "Usage", "Plugins", "Masking"} {
 			if tt.HasText(upstreamT(label)) {

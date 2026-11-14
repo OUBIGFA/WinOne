@@ -28,6 +28,7 @@ func (p *page) homeView(c *ui.Context) {
 			kit.Heading(c, homeT("default"))
 			p.defaultModelView(c)
 		})
+		p.responseBehaviorView(c)
 		ui.Column(c).FillWidth().MinWidth(0).Children(func() {
 			kit.Group(c, nil, homeT("connect"), homeT("connectHint"), func() {
 				ui.Row(c).FillWidth().Wrap().Gap(8).Padding(12, 16).Children(func() {

@@ -129,9 +129,12 @@ type signInMethod struct {
 }
 
 type accountState struct {
-	Accounts         []account      `json:"accounts"`
-	Methods          []signInMethod `json:"methods,omitempty"`
-	CheckinAvailable bool           `json:"checkinAvailable,omitempty"`
+	Accounts         []account         `json:"accounts"`
+	Methods          []signInMethod    `json:"methods,omitempty"`
+	CheckinAvailable bool              `json:"checkinAvailable,omitempty"`
+	Importable       bool              `json:"importable,omitempty"`
+	ImportFrom       string            `json:"importFrom,omitempty"`
+	ImportFroms      map[string]string `json:"importFroms,omitempty"`
 }
 
 // accountRequest names the accounts to list: those of a saved provider,

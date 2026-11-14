@@ -82,6 +82,7 @@ func (e *editor) modelDiscoveryPreferences(c *ui.Context, pr *provider, locked b
 			}
 		})
 		kit.Toggle(c, &s.Unlisted, i18n.T("aiComplete.unlisted"), i18n.T("aiComplete.unlistedHint")).Disabled(locked)
+		kit.Toggle(c, &s.UpstreamProviders, nativeT("upstreamProviders"), nativeT("upstreamProvidersHint")).Disabled(locked || pr.AuthMode != "api-key")
 	})
 	kit.Group(c, nil, i18n.T("aiComplete.modelCatalog"), "", func() {
 		kit.Stack(c, "", "", func() {
@@ -170,6 +171,7 @@ func (e *editor) servicePreferences(c *ui.Context, pr *provider, locked bool) {
 			nativeText(c, i18n.T("aiComplete.balancePath"), &s.BalancePath, locked)
 		})
 		choiceRow(c, i18n.T("aiComplete.balanceMethod"), "", &s.BalanceMethod, options("", "GET", "POST", "POST"), locked)
+		kit.Toggle(c, &s.NoBalanceProbe, nativeT("noBalanceProbe"), nativeT("noBalanceProbeHint")).Disabled(locked)
 	})
 	if pr.Preset == "google-vertex" {
 		kit.Group(c, nil, "Google Vertex AI", "", func() {

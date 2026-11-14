@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/yetone/magpie/internal/catalog"
+	"github.com/yetone/magpie/internal/netproxy"
 	"github.com/yetone/magpie/internal/provider"
 	"github.com/yetone/magpie/internal/settings"
 	"math"
@@ -274,6 +275,9 @@ func configuredProvider(in request) (provider.Provider, error) {
 		if balance, ok := p.KeyOwnBalances[in.KeyID]; ok {
 			p.KeyOwnBalances = map[string]provider.OwnBalance{fingerprint: balance}
 		}
+		if rate, ok := p.KeyPriceRates[in.KeyID]; ok {
+			p.KeyPriceRates = map[string]float64{fingerprint: rate}
+		}
 	}
 	// Magpie applies these after protocol authentication, preserving names and
 	// merging list-valued headers through the same path as its provider editor.
@@ -296,6 +300,42 @@ func configuredProvider(in request) (provider.Provider, error) {
 		p.Decide = strings.TrimRight(in.BaseURL, "/")
 	default:
 		return p, errors.New("unsupported AI protocol")
+	}
+	if in.ProviderPreferences == nil || in.ProviderPreferences.Endpoints == nil {
+		// OpenCode's official endpoint migration also applies to discovery and
+		// unsaved tests; explicit independent endpoints retain their own values.
+		p = provider.WinOneOpenCodeEndpoints(p)
+	}
+	// Validate only after all actual endpoints have been applied. These are
+	// upstream's own checks; never persist a provider while discovering/testing it.
+	if len(p.Resolve) > 0 {
+		if !p.TakesResolve() {
+			return p, errors.New("connection rules require a provider with its own endpoint")
+		}
+		p.Resolve, err = netproxy.CheckResolve(p.Resolve)
+		if err != nil {
+			return p, err
+		}
+	}
+	if p.ServerPin != "" {
+		p.ServerPin = netproxy.NormalPin(p.ServerPin)
+		if p.ServerPin == "" || !p.TakesServerPin() {
+			return p, errors.New("a server certificate requires an HTTPS endpoint and its SHA-256 fingerprint")
+		}
+	}
+	if p.ClientCert != "" || p.ClientKey != "" || p.ServerCA != "" {
+		if !p.TakesClientCert() {
+			return p, errors.New("client certificates require a provider with its own endpoint")
+		}
+		for _, file := range []*string{&p.ClientCert, &p.ClientKey, &p.ServerCA} {
+			*file, err = provider.CertPath(*file)
+			if err != nil {
+				return p, err
+			}
+		}
+		if err = netproxy.CheckClientCert(p.ClientCert, p.ClientKey, p.ServerCA); err != nil {
+			return p, err
+		}
 	}
 	return p, nil
 }

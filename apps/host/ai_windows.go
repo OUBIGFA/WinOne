@@ -129,7 +129,7 @@ func (s *aiService) handle(r host.Request) host.Response {
 			return fail(err)
 		}
 		return result(map[string]bool{"queued": queued})
-	case "models.fetch":
+	case "models.fetch", "models.certificate":
 		var params struct {
 			Provider   string                   `json:"provider"`
 			Draft      *ai.AccountDraft         `json:"draft,omitempty"`
@@ -170,6 +170,16 @@ func (s *aiService) handle(r host.Request) host.Response {
 		runtime, err := s.magpieTranslator()
 		if err != nil {
 			return fail(err)
+		}
+		if r.Method == "models.certificate" {
+			if provider.AuthMode == "account" {
+				return fail(errors.New("账号供应商不使用自定义服务器证书"))
+			}
+			certificate, err := runtime.ServerCertificate(ctx, provider)
+			if err != nil {
+				return fail(err)
+			}
+			return host.Response{ID: r.ID, Result: certificate}
 		}
 		if params.Connection != nil {
 			err = s.store.WithModelDraft(ctx, params.Provider, *params.Connection, params.KeyUpdates, func(ctx context.Context, p ai.Provider, key string) error {

@@ -118,14 +118,19 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 		return host.Response{ID: r.ID, Error: &host.RPCError{Code: "ai_account", Message: err.Error()}}
 	}
 	var params struct {
-		Agent    string           `json:"agent"`
-		ID       string           `json:"id"`
-		Callback string           `json:"callback"`
-		Keys     bool             `json:"keys"`
-		Provider string           `json:"provider,omitempty"`
-		Method   *int             `json:"method,omitempty"`
-		User     string           `json:"user,omitempty"`
-		Draft    *ai.AccountDraft `json:"draft,omitempty"`
+		Agent      string           `json:"agent"`
+		ID         string           `json:"id"`
+		Callback   string           `json:"callback"`
+		Keys       bool             `json:"keys"`
+		Provider   string           `json:"provider,omitempty"`
+		Method     *int             `json:"method,omitempty"`
+		User       string           `json:"user,omitempty"`
+		Draft      *ai.AccountDraft `json:"draft,omitempty"`
+		Files      []string         `json:"files,omitempty"`
+		AccessOnly bool             `json:"accessOnly,omitempty"`
+		Format     string           `json:"format,omitempty"`
+		Path       string           `json:"path,omitempty"`
+		Users      []string         `json:"users,omitempty"`
 	}
 	if err := configjson.DecodeObject(r.Params, &params); err != nil {
 		return fail(err)
@@ -147,7 +152,13 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 	if (r.Method == "accounts.quota" || r.Method == "accounts.checkin") && (params.Provider == "" || params.Draft != nil) {
 		return fail(errors.New("请先保存需要读取额度的账号"))
 	}
-	if params.Provider != "" && (r.Method == "accounts.list" || r.Method == "accounts.models" || r.Method == "accounts.quota" || r.Method == "accounts.checkin" || r.Method == "accounts.signin.start") {
+	if r.Method == "accounts.import" && (params.Provider == "" || len(params.Files) == 0 || len(params.Files) > 64 || params.AccessOnly && params.Agent != "codex") {
+		return fail(errors.New("账号导入参数无效"))
+	}
+	if r.Method == "accounts.export" && (params.Provider == "" || params.Agent != "codex" && params.Agent != "claude" || params.Format != "sub2api" && params.Format != "cliproxyapi" || params.Path == "" || len(params.Users) == 0) {
+		return fail(errors.New("账号导出参数无效"))
+	}
+	if params.Provider != "" && (r.Method == "accounts.list" || r.Method == "accounts.models" || r.Method == "accounts.quota" || r.Method == "accounts.checkin" || r.Method == "accounts.signin.start" || r.Method == "accounts.import" || r.Method == "accounts.export") {
 		if r.Method == "accounts.quota" {
 			p, plan, err := s.store.ProviderKeysForModels(params.Provider)
 			if err != nil {
@@ -174,11 +185,15 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 		}
 	}
 	switch r.Method {
-	case "accounts.catalog", "accounts.list", "accounts.models", "accounts.quota", "accounts.checkin":
+	case "accounts.catalog", "accounts.list", "accounts.models", "accounts.quota", "accounts.checkin", "accounts.import", "accounts.export":
 		// Even a quota read can refresh credentials or write quota history.
 		// Keep one owner per profile, but let a short read wait for another
 		// operation instead of treating ordinary contention as a broken login.
-		readCtx, cancel := context.WithTimeout(s.ctx, 25*time.Second)
+		wait := 25 * time.Second
+		if r.Method == "accounts.import" {
+			wait = 3 * time.Minute
+		}
+		readCtx, cancel := context.WithTimeout(s.ctx, wait)
 		defer cancel()
 		if readCtx.Err() != nil {
 			return fail(errors.New("账号读取已取消"))
@@ -193,7 +208,11 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 			return fail(errors.New("账号读取已取消"))
 		}
 		var output json.RawMessage
-		if balanceProvider != nil {
+		if r.Method == "accounts.import" {
+			output, err = runtime.ImportAccounts(readCtx, accountProviders[0], params.Files, params.AccessOnly)
+		} else if r.Method == "accounts.export" {
+			output, err = runtime.ExportAccounts(readCtx, accountProviders[0], params.Format, params.Path, params.Users)
+		} else if balanceProvider != nil {
 			output, err = runtime.KeyBalances(readCtx, *balanceProvider, balanceKeys)
 		} else {
 			output, err = runtime.Accounts(readCtx, r.Method, params.Agent, accountProviders...)

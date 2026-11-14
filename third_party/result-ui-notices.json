@@ -148,6 +148,18 @@
           "file": "licenses/interconnect-golang.org-x-text-v0.43.0-LICENSE.txt"
         }
       ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/dlclark/regexp2",
+      "version": "v1.11.5",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/result-ui-go-github.com-dlclark-regexp2-v1.11.5-LICENSE.txt",
+          "sha256": "9be5d04bb4d706914d5bf943710da4afeb42048f7c529902fb57c82762a991a9"
+        }
+      ]
     }
   ]
 }

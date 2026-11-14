@@ -4,9 +4,9 @@
     {
       "name": "magpie-native-ai-pages",
       "repository": "https://github.com/yetone/magpie",
-      "commit": "c9d253e4a2e7add1e31578244eda52bfdce11258",
+      "commit": "ce2ce86ab43a185688556b5887efab6f1670c58b",
       "license": "MIT",
-      "scope": "Native MyGo provider preferences, account settings and local gateway administration. Only the five retained AI service pages are available. Gateway keys, recording and call details remain owned by the local gateway. Gateway administration is compiled independently of the upstream desktop GUI and exposes no retired application routes.",
+      "scope": "Native MyGo provider connections, account import/export and preferences, model settings and local gateway administration. The four retained AI service pages own their complete drafts and save guards. Reuse the pinned upstream transport, model matching, account parsers, key aliases/service tiers and gateway execution; retired desktop, management and privacy pages remain unavailable.",
       "sourceFiles": [
         "internal/gui/trace.go",
         "internal/gui/providers.go",
@@ -18,18 +18,25 @@
         "internal/sessions/gateway.go",
         "internal/gui/sessions.go",
         "internal/gui/assets/i18n.js",
-        "internal/gui/sessions_manage.go"
+        "internal/gui/sessions_manage.go",
+        "internal/provider/provider.go",
+        "internal/provider/login_import.go",
+        "internal/provider/login_export.go",
+        "internal/provider/insecure_tls.go",
+        "internal/provider/opencode_endpoints.go",
+        "internal/provider/groupmatch.go",
+        "internal/access/models.go"
       ],
       "notices": [
         {
-          "file": "licenses/upstream-magpie-c9d253e4a2e7add1e31578244eda52bfdce11258-0-LICENSE.txt",
+          "file": "licenses/upstream-magpie-ce2ce86ab43a185688556b5887efab6f1670c58b-0-LICENSE.txt",
           "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
         }
       ],
       "files": [
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences_accounts.go",
-          "sha256": "a5b704d556555edbaccd1b61aa6b9672866462dbcf594c21a2a8d706d6ec6d0a"
+          "sha256": "8dce016c605a580936ff8a8040e374a26cbe7020d894c522257bb272d27f2b7c"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences_billing.go",
@@ -37,7 +44,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_access.go",
-          "sha256": "8cad87d91e42ea0d5818491f40bb248cb94b23801e2b2fb5d7ea939bbe9384ad"
+          "sha256": "9656a7ca4e5efd06ba96d5ac704dfffaa814a78f662b9ef5e80a54a62fc5a536"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_history.go",
@@ -57,7 +64,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/navigation_upstream.go",
-          "sha256": "e1dfa40cc2d39028230d9d952028894bbeb9948812c9139994a0acaa43196397"
+          "sha256": "a401037a4671a02a551e697a3fb3d8c33dbb73fceb54f1261e14b8d8c51826d1"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-upstream.en-US.json",
@@ -82,6 +89,26 @@
         {
           "path": "build/prepare-ai-gateway.ps1",
           "sha256": "cfee7e5a76baad915a64034d1e23f4ba403f96f5e89a3036544272b01d9a4f17"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/connection_options.go",
+          "sha256": "9c6f00da91f6f697a37fc61ae618afa9db4aa512a2e198d884aa5bda5e94d8ed"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/account_files.go",
+          "sha256": "7648ddb98c73e48724099b83d396a340cd0c0d3ada2bba1a21b9cd72e236b082"
+        },
+        {
+          "path": "modules/ai-magpie/patches/access_store_windows.go.txt",
+          "sha256": "2dd39db24a28644f7464f6c6eda180c9e88c1270fcfb743a37ea1afd0406e390"
+        },
+        {
+          "path": "modules/ai-magpie/models.go",
+          "sha256": "930cec7c7d0545f1920d9131bee1344d58e289e3a0a5b15b34630e974a33e77c"
+        },
+        {
+          "path": "build/prepare-ai-discovery.mjs",
+          "sha256": "dd0aea557f9e22b418bd28f5834f128aace600c79c27dd89b304bf22c9c6f87d"
         }
       ]
     },

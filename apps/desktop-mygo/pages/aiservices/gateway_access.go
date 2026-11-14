@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/egoist/mygo/ui"
 	"slices"
+	"strings"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
@@ -21,22 +22,28 @@ type callerLimit struct {
 	Models     []string `json:"models,omitempty"`
 }
 type callerKey struct {
-	MaxConcurrency int           `json:"maxConcurrency,omitempty"`
-	ID             string        `json:"id"`
-	Name           string        `json:"name"`
-	Masked         string        `json:"masked"`
-	Off            bool          `json:"off"`
-	Browser        bool          `json:"browser"`
-	ReadOnly       bool          `json:"readOnly"`
-	Quotas         bool          `json:"quotas"`
-	Issues         bool          `json:"issues"`
-	Models         []string      `json:"models,omitempty"`
-	Accounts       []string      `json:"accounts,omitempty"`
-	Expires        string        `json:"expires,omitempty"`
-	Issuer         string        `json:"issuer,omitempty"`
-	Limit          *callerLimit  `json:"limit,omitempty"`
-	More           []callerLimit `json:"moreLimits,omitempty"`
-	UsedAll        []struct {
+	MaxConcurrency int               `json:"maxConcurrency,omitempty"`
+	ID             string            `json:"id"`
+	Name           string            `json:"name"`
+	Masked         string            `json:"masked"`
+	Off            bool              `json:"off"`
+	Browser        bool              `json:"browser"`
+	ReadOnly       bool              `json:"readOnly"`
+	Quotas         bool              `json:"quotas"`
+	Issues         bool              `json:"issues"`
+	Models         []string          `json:"models,omitempty"`
+	Aliases        map[string]string `json:"aliases,omitempty"`
+	ServiceTier    string            `json:"serviceTier,omitempty"`
+	// Retain inactive full-version policy metadata on unrelated native edits.
+	Admin    string        `json:"admin,omitempty"`
+	Redact   string        `json:"redact,omitempty"`
+	MCP      []string      `json:"mcp,omitempty"`
+	Accounts []string      `json:"accounts,omitempty"`
+	Expires  string        `json:"expires,omitempty"`
+	Issuer   string        `json:"issuer,omitempty"`
+	Limit    *callerLimit  `json:"limit,omitempty"`
+	More     []callerLimit `json:"moreLimits,omitempty"`
+	UsedAll  []struct {
 		Tokens int64   `json:"tokens"`
 		Cost   float64 `json:"cost"`
 		Reset  string  `json:"reset"`
@@ -84,18 +91,20 @@ type gatewayAccessPanel struct {
 	rules                                []gatewayOIDCRule
 	rule                                 gatewayOIDCRule
 	claimName                            string
+	aliasName, aliasModel                string
 	catalog                              *accessCatalog
 }
 
 func accessT(key string) string { return i18n.T("aiAccess." + key) }
 func (a *gatewayAccessPanel) dirty() bool {
-	return a.edit != nil && !equal(a.edit, a.saved) || a.creating && (a.name != "" || a.secret != "" || a.ttl != "" || len(a.issueModels)+len(a.issueAccounts) > 0 || a.issueTokens != 0 || a.issueCost != 0 || a.issueReadOnly || a.browser) || a.rule.Key != "" || a.rule.Issuer != "" || a.rule.Audience != "" || a.rule.TTL != 0 || len(a.rule.Claims) > 0 || a.claimName != ""
+	return a.edit != nil && !equal(a.edit, a.saved) || a.creating && (a.name != "" || a.secret != "" || a.ttl != "" || len(a.issueModels)+len(a.issueAccounts) > 0 || a.issueTokens != 0 || a.issueCost != 0 || a.issueReadOnly || a.browser) || a.rule.Key != "" || a.rule.Issuer != "" || a.rule.Audience != "" || a.rule.TTL != 0 || len(a.rule.Claims) > 0 || a.claimName != "" || a.aliasName != "" || a.aliasModel != ""
 }
 func (a *gatewayAccessPanel) discard() {
 	a.edit, a.saved = nil, nil
 	a.creating = false
 	a.name, a.secret = "", ""
 	a.ttl, a.claimName = "", ""
+	a.aliasName, a.aliasModel = "", ""
 	a.issueModels, a.issueAccounts = nil, nil
 	a.issueTokens, a.issueCost = 0, 0
 	a.issueReadOnly, a.browser = false, false
@@ -133,6 +142,7 @@ func (a *gatewayAccessPanel) begin(p *page, k callerKey) {
 		a.tab = 0
 		a.creating = false
 		a.confirm = ""
+		a.aliasName, a.aliasModel = "", ""
 	}
 	if a.dirty() && p.env.RequestChange != nil {
 		p.env.RequestChange(apply)
@@ -319,6 +329,7 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 		case 0:
 			nativeText(c, accessT("name"), &k.Name, locked)
 			nativeInt(c, upstreamT("Concurrency"), &k.MaxConcurrency, 0, 1000, locked)
+			nativeSelect(c, nativeT("keyServiceTier"), &k.ServiceTier, options("", nativeT("followRequest"), "default", nativeT("standardTier"), "priority", "priority", "ultrafast", "ultrafast"), locked)
 			kit.Help(c, upstreamT("How many requests this key may have in flight at once. Beyond it they wait in order; 0 for no limit."))
 			kit.Toggle(c, &k.ReadOnly, accessT("readOnly"), accessT("readOnlyHint")).Disabled(locked || k.Browser)
 			kit.Toggle(c, &k.Quotas, accessT("quotas"), accessT("quotasHint")).Disabled(locked)
@@ -327,6 +338,26 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 			kit.Help(c, accessT("scopeHint"))
 			a.scopeList(c, "models", accessT("models"), &k.Models, a.modelChoices(false), locked)
 			a.scopeList(c, "accounts", accessT("accounts"), &k.Accounts, a.modelChoices(true), locked)
+			kit.Help(c, nativeT("keyAliasesHint"))
+			for _, name := range sortedKeys(k.Aliases) {
+				ui.Row(c.Key(name)).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+					model := k.Aliases[name]
+					ui.Column(c).Grow(1).MinWidth(0).Children(func() { nativeText(c, name, &model, locked) })
+					k.Aliases[name] = model
+					if kit.IconButton(c, icons.Trash2, i18n.T("common.delete")+" "+name).Disabled(locked).Clicked() {
+						delete(k.Aliases, name)
+					}
+				})
+			}
+			nativeText(c, nativeT("aliasName"), &a.aliasName, locked)
+			nativeSelect(c, nativeT("aliasModel"), &a.aliasModel, a.modelChoices(false), locked)
+			if kit.Button(c, nativeT("addAlias"), icons.Plus, false).Disabled(locked || strings.TrimSpace(a.aliasName) == "" || a.aliasModel == "").Clicked() {
+				if k.Aliases == nil {
+					k.Aliases = map[string]string{}
+				}
+				k.Aliases[strings.TrimSpace(a.aliasName)] = a.aliasModel
+				a.aliasName, a.aliasModel = "", ""
+			}
 		case 2:
 			limits := append([]callerLimit{}, k.More...)
 			if k.Limit != nil {

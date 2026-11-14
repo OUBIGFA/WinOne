@@ -44,6 +44,8 @@ type editor struct {
 	claudeMode           claudeModePanel
 	claudeModeDetails    bool
 	endpointsOpen        bool
+	serverCertificate    *serverCertificate
+	certificateSource    string
 }
 
 func newEditor(p *page, pr *provider, key string) *editor {

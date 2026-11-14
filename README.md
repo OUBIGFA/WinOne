@@ -2,7 +2,7 @@
 
 Windows 工具集，提供截图、OCR、翻译、划词助手、快捷助手、互传、学习、窗口置顶和程序管理。
 
-main 的 AI 服务仅保留常用、自定义供应商、账号供应商、使用偏好、本地网关。Chat、OneBot、闪聊及其他 AI 服务已移除；完整版本保存在 [`codex/archive-full-20261112`](https://github.com/OUBIGFA/WinOne/tree/codex/archive-full-20261112)。实施和审核记录见[模块精简验收](docs/module-removal-20261112.md)。
+main 的 AI 服务仅保留常用、自定义供应商、账号供应商、本地网关；使用偏好的全部功能已并入常用。Chat、OneBot、闪聊及其他 AI 服务已移除；完整版本保存在 [`codex/archive-full-20261112`](https://github.com/OUBIGFA/WinOne/tree/codex/archive-full-20261112)。实施和审核记录见[模块精简验收](docs/module-removal-20261112.md)和[AI 基座与常用设置更新](docs/ai-base-update-20261113.md)。
 
 只维护一套 WinOne 正式版，当前版本为 **0.0.1，正式发布验收仍在进行**。使用方法见[使用说明](docs/使用说明.md)，已验证范围见[开发状态](docs/development.md)。
 

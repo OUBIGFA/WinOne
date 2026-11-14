@@ -1,6 +1,7 @@
 package aiservices
 
 import (
+	"math"
 	"slices"
 	"strings"
 	"time"
@@ -27,7 +28,7 @@ func (e *editor) preferenceAccounts(pr *provider) []string {
 		}
 	}
 	s := &pr.ProviderPreferences
-	for _, keys := range [][]string{sortedKeys(s.AccountNames), sortedKeys(s.AccountWeights), sortedKeys(s.AccountConcurrency), sortedKeys(s.AccountModels), sortedKeys(s.AccountModelsAll), sortedKeys(s.AccountProxies), sortedKeys(s.AccountCaps), sortedKeys(s.AccountWindowCaps), sortedKeys(s.KeySpendCaps), sortedKeys(s.KeyOwnBalances)} {
+	for _, keys := range [][]string{sortedKeys(s.AccountNames), sortedKeys(s.AccountWeights), sortedKeys(s.AccountConcurrency), sortedKeys(s.AccountModels), sortedKeys(s.AccountModelsAll), sortedKeys(s.AccountProxies), sortedKeys(s.AccountCaps), sortedKeys(s.AccountWindowCaps), sortedKeys(s.AccountWindowAmounts), sortedKeys(s.KeySpendCaps), sortedKeys(s.KeyOwnBalances), sortedKeys(s.KeyPriceRates)} {
 		ids = append(ids, keys...)
 	}
 	if e.preferenceAccount != "" {
@@ -143,8 +144,10 @@ func (e *editor) accountPreferences(c *ui.Context, pr *provider, locked bool) {
 			delete(s.AccountModels, id)
 			delete(s.AccountModelsAll, id)
 			delete(s.AccountWindowCaps, id)
+			delete(s.AccountWindowAmounts, id)
 			delete(s.KeySpendCaps, id)
 			delete(s.KeyOwnBalances, id)
+			delete(s.KeyPriceRates, id)
 			for key := range e.fields {
 				if strings.Contains(key, id) {
 					delete(e.fields, key)
@@ -176,11 +179,44 @@ func (e *editor) accountWindowCaps(c *ui.Context, pr *provider, id string, locke
 	s := &pr.ProviderPreferences
 	kit.Group(c, nil, i18n.T("ai.accountWindowCaps"), i18n.T("ai.windowCapsHint"), func() {
 		caps := s.AccountWindowCaps[id]
-		if len(caps) == 0 {
+		amounts := s.AccountWindowAmounts[id]
+		if len(caps)+len(amounts) == 0 {
 			kit.Stack(c, "", i18n.T("aiOptions.noWindowCaps"), func() {})
 		}
-		for _, name := range sortedKeys(caps) {
-			accountNumber(c, name, &caps, name, 1, 100, locked)
+		for _, name := range unique(append(sortedKeys(caps), sortedKeys(amounts)...)) {
+			kit.Stack(c.Key(name), name, nativeT("windowAmountHint"), func() {
+				mode := "share"
+				if _, fixed := amounts[name]; fixed {
+					mode = "amount"
+				}
+				if nativeSelect(c, nativeT("windowCapMode"), &mode, options("share", nativeT("windowShare"), "amount", nativeT("windowAmount")), locked) {
+					if mode == "amount" {
+						if amounts == nil {
+							amounts = map[string]float64{}
+						}
+						amounts[name] = 1
+						delete(caps, name)
+					} else {
+						if caps == nil {
+							caps = map[string]int{}
+						}
+						caps[name] = 100
+						delete(amounts, name)
+					}
+				}
+				if mode == "share" {
+					accountNumber(c.Key(mode), nativeT("windowShare"), &caps, name, 1, 100, locked)
+				} else {
+					current := amounts[name]
+					numberRow(c.Key(mode), nativeT("windowAmount"), &current, .001, math.MaxFloat64, false, "", locked, func(v *float64) {
+						if v == nil {
+							delete(amounts, name)
+						} else {
+							amounts[name] = *v
+						}
+					})
+				}
+			})
 		}
 		kit.Stack(c, "", "", func() {
 			ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
@@ -201,6 +237,14 @@ func (e *editor) accountWindowCaps(c *ui.Context, pr *provider, id string, locke
 			s.AccountWindowCaps[id] = caps
 		} else {
 			delete(s.AccountWindowCaps, id)
+		}
+		if len(amounts) > 0 {
+			if s.AccountWindowAmounts == nil {
+				s.AccountWindowAmounts = map[string]map[string]float64{}
+			}
+			s.AccountWindowAmounts[id] = amounts
+		} else {
+			delete(s.AccountWindowAmounts, id)
 		}
 	})
 }

@@ -14,8 +14,10 @@
 | React / React DOM | 设置界面 | MIT |
 | MyGo v0.9.0 | 原生设置窗口与共享结果窗；保留窗口、组件、Markdown、表格换行、Windows 文件拖入和异步 GPU 初始化适配。来源与摘要见 `third_party/mygo-winone/source.json`，不修改用户的 Go 模块缓存 | MIT；依赖许可原文与 SHA-256 见 `third_party/desktop-mygo-notices.json` 和 `third_party/result-ui-notices.json`，构建核对实际链接模块 |
 | Lucide React 1.27.0 | 官方 AppWindow / LogOut 托盘菜单图标及既有界面图标；由锁定 npm 包生成透明模板，不自绘替代 | ISC，Feather 派生 LogOut 同时保留 MIT；原文 `internal/branding/menu-icons/LICENSE.txt`，生成器与 SHA-256 见 `third_party/sources.json` |
-| Magpie | 共享 AI 适配器与独立本地网关；锁定 `c9d253e4a2e7add1e31578244eda52bfdce11258`。账号认证适配器锁定 `d54df279c0ce9ca35a79e72cb2d81ba368b37358`，随包保留 41 个固定账号适配器；不链接上游完整桌面界面 | MIT；适配归属见 `third_party/import-notices.json`，依赖和账号资源清单见 `third_party/ocr-ai-notices.json`、`third_party/ai-plugins.json` |
-| Magpie 代理字段 | 同一 `c9d253e4` 的代理地址／登录信息拆分、转义和地址校验；`build/sync-magpie-proxy.mjs` 直接抽取原函数 | MIT；原始许可和逐文件 SHA-256 见 `third_party/magpie-proxy-source.json` |
+| Magpie | 共享 AI 适配器与独立本地网关；锁定 `ce2ce86ab43a185688556b5887efab6f1670c58b`。账号认证适配器锁定 `a410afe0d9a128d368711daf83ecf79a5d43b6c8`，随包保留 44 个固定账号适配器。更新对应连接、账号、模型和网关能力 | MIT；适配归属见 `third_party/import-notices.json`，依赖和账号资源清单见 `third_party/ocr-ai-notices.json`、`third_party/ai-plugins.json` |
+| Magpie 代理字段 | 同一 `ce2ce86a` 的地址校验与纯辅助函数；按原算法拒绝未配置的命名代理，沿用 WinOne 的供应商/账号独立代理 | MIT；原始许可和逐文件 SHA-256 见 `third_party/magpie-proxy-source.json` |
+| Magpie 模型规则匹配 | 直接抽取同一版本的计划与模型规则解析，复用 regexp2 v1.11.5 的有时限后行/前行断言匹配 | Magpie MIT；regexp2 MIT，原文与 SHA-256 见 `third_party/runtime-notices.json`，两个原生宿主另有对应清单 |
+| Magpie 内置 JSON Schema | 使用该版本 `third_party/jsonschema` 的实际替代源码及原始许可，依赖锁保留其本地替代关系 | Apache-2.0；实际原文及 SHA-256 见 `third_party/ocr-ai-notices.json` 的 `github.com/santhosh-tekuri/jsonschema/v6` v6.0.3 记录 |
 | Cindy 共享字体与折叠动效 | 保留设置界面仍使用的字体准备、减少动效判断和折叠控件；源码已独立，不引用已移除模块 | Apache-2.0；独立保存原始 LICENSE 与 NOTICE，具体来源与文件摘要见 `third_party/import-notices.json` 的 `cindy-shared-fonts`、`cindy-shared-motion` |
 | Vite / Vitest / TypeScript | 构建与测试 | 各项目许可证 |
 

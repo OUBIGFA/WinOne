@@ -7,9 +7,11 @@ $utf8=[Text.UTF8Encoding]::new($false)
 $relative='internal/plugin/bun.go'
 $source=(& git -C $SourceDirectory show ($Revision+':'+$relative)) -join [Environment]::NewLine
 if($LASTEXITCODE -ne 0){throw 'Cannot read upstream plugin command environment'}
-$from='netproxy.EnvForBun(env())'
+$from='netproxy.EnvForBun(e)'
 if(-not $source.Contains($from)){throw 'Upstream plugin command environment changed'}
-$source=$source.Replace($from,'netproxy.EnvForBun(winOnePluginEnvironment(env()))')
+# Apply the Windows identity after upstream selects the request/download
+# environment, retaining its distinct proxy and verified install cache.
+$source=$source.Replace($from,'netproxy.EnvForBun(winOnePluginEnvironment(e))')
 [IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$source+[Environment]::NewLine,$utf8)
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_environment_test.go') -Destination (Join-Path $SourceDirectory 'internal/plugin/winone_environment_test.go')
 # All provider readers, including Cached, see exactly one verified adapter.
@@ -43,5 +45,17 @@ if($LASTEXITCODE -ne 0){throw 'Cannot read upstream gateway retry policy'}
 $from='func passing(status int, header http.Header, body []byte, again int) (time.Duration, bool) {'
 if(-not $source.Contains($from)){throw 'Upstream gateway retry boundary changed'}
 $source=$source.Replace($from,$from+' if WinOneTransportOnly { return 0,false };')
+$from='func restOf(id string) (Rest, bool) {'
+if(-not $source.Contains($from)){throw 'Upstream persisted rest lookup boundary changed'}
+# The outer router owns rests as well as retries. Ignore prior transport
+# rests so an upgraded worker cannot replay a stale refusal on a new request.
+$source=$source.Replace($from,$from+' if WinOneTransportOnly { return Rest{},false };')
+[IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$source+[Environment]::NewLine,$utf8)
+$relative='internal/gateway/routing.go'
+$source=(& git -C $SourceDirectory show ($Revision+':'+$relative)) -join [Environment]::NewLine
+if($LASTEXITCODE -ne 0){throw 'Cannot read upstream rest writer'}
+$from='func (s *Server) restAfterMarked(c candidate, status int, header http.Header, body []byte, sharedPool bool) Rest {'
+if(-not $source.Contains($from)){throw 'Upstream rest writer boundary changed'}
+$source=$source.Replace($from,$from+' if WinOneTransportOnly { return Rest{Why:failureOf(c,status,body),Status:status,By:"off",Until:time.Now()} };')
 [IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$source+[Environment]::NewLine,$utf8)
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_registry_test.go') -Destination (Join-Path $SourceDirectory 'internal/plugin/winone_registry_test.go')

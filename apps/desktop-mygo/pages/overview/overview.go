@@ -47,7 +47,8 @@ func newPage(env *core.Env) *page {
 var homeModules = map[string]string{"capture": "capture", "selection": "selection", "quick-assistant": "quick-assistant",
 	"wintray": "wintray", "convenience": "always-on-top"}
 
-// builtIn are the features without a module: always available, no switch.
+// builtIn are the features without a module: always available, with a
+// disabled on switch so every Home row uses the same state indicator.
 var builtIn = map[string]bool{"interconnect": true}
 
 // homeRow is one feature of Home: its sidebar page, and its module unless
@@ -196,6 +197,8 @@ func (p *page) builtInRow(c *ui.Context, page shell.PageInfo) {
 		})
 		ui.Row(c).Gap(12).AlignItems(ui.Center).Shrink(0).MinHeight(28).Children(func() {
 			kit.Help(c, i18n.T("overview.alwaysAvailable")).SingleLine()
+			on := true
+			ui.Switch(c, &on).Label(i18n.T("module.enableTool", "name", title)).Disabled(true)
 		})
 	})
 }

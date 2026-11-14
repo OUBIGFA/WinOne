@@ -96,9 +96,19 @@ type accountPanel struct {
 	// owner drops answers that a reset or close overtook.
 	owner int
 
-	checkins   []checkin
-	checkedIn  bool
-	checkingIn bool
+	checkins      []checkin
+	checkedIn     bool
+	checkingIn    bool
+	importable    bool
+	importHint    string
+	importPaths   []string
+	importBusy    bool
+	accessOnly    bool
+	importResults []accountImportResult
+	exportFormat  string
+	exportFiles   []string
+	exportUsers   map[string]bool
+	exportSkipped []accountImportResult
 }
 
 func newAccountPanel(p *page, pr *provider) *accountPanel {
@@ -136,6 +146,9 @@ func (a *accountPanel) reset() {
 	a.checkins, a.checkedIn, a.checkingIn = nil, false, false
 	a.starting, a.loading, a.action, a.copied, a.err = false, false, "", "", ""
 	a.job = nil
+	a.importPaths, a.importResults = nil, nil
+	a.exportUsers, a.exportFiles, a.exportSkipped = nil, nil, nil
+	a.importBusy, a.importable = false, false
 	a.report()
 }
 
@@ -154,11 +167,13 @@ func (a *accountPanel) Close() {
 	a.read++
 	a.job = nil
 	a.p.accountBusy, a.p.accountLoading = false, false
+	a.p.env.Activity.Report("ai-account-import", false, false, nil)
 }
 
 func (a *accountPanel) report() {
-	a.p.accountBusy = a.job.running() || a.starting || a.checkingIn
+	a.p.accountBusy = a.job.running() || a.starting || a.checkingIn || a.importBusy
 	a.p.accountLoading = a.loading
+	a.p.env.Activity.Report("ai-account-import", len(a.importPaths) > 0, a.importBusy, func() { a.importPaths = nil })
 }
 
 // load reads the accounts; refresh reads them again from the Host.
@@ -176,6 +191,14 @@ func (a *accountPanel) load(r accountRequest, refresh bool) {
 			return
 		}
 		a.accounts, a.checkinAvailable, a.methods = state.Accounts, state.CheckinAvailable, state.Methods
+		a.importable, a.importHint = state.Importable, state.ImportFrom
+		lang := "en"
+		if i18n.Locale() == i18n.Chinese {
+			lang = "zh"
+		}
+		if hint := state.ImportFroms[lang]; hint != "" {
+			a.importHint = hint
+		}
 		valid := false
 		for i := range a.methods {
 			valid = valid || kit.Itoa(i) == a.method
@@ -418,7 +441,7 @@ func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
 	}
 	a.lastRequest = r
 	a.report()
-	disabled := p.saving || p.loading || p.modelBusy
+	disabled := p.saving || p.loading || p.modelBusy || p.connectionBusy || a.importBusy
 	active := a.job.running()
 	hidden := false
 	accountType := p.catalog.agent(r.Agent)
@@ -509,6 +532,12 @@ func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
 		})
 		if a.checkedIn {
 			a.checkinView(c, hidden)
+		}
+		if a.importable {
+			a.importView(c, r, disabled || active || a.loading || a.checkingIn)
+		}
+		if (r.Agent == "codex" || r.Agent == "claude") && len(a.accounts) > 0 {
+			a.exportView(c, r, disabled || active || a.loading || a.checkingIn)
 		}
 		if a.job != nil {
 			a.jobView(c)

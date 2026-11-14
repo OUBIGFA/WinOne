@@ -18,6 +18,8 @@ require (
 	golang.org/x/image v0.46.0
 )
 
+require github.com/dlclark/regexp2 v1.11.5 // indirect
+
 require (
 	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 // indirect
 	github.com/bep/debounce v1.2.1 // indirect

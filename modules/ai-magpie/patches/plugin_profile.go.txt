@@ -34,7 +34,7 @@ func winOneProviderSnapshotPath() string {
 // WinOneRememberProvider keeps only verified, public discovery metadata. The
 // fingerprint belongs to the pinned bundle, so an upgrade rediscovers methods.
 func WinOneRememberProvider(p Provider, fingerprint string) error {
-	metadata := Provider{ID: p.ID, Spec: p.Spec, Name: p.Name, Methods: p.Methods}
+	metadata := Provider{ID: p.ID, Spec: p.Spec, Name: p.Name, Methods: p.Methods, Importable: p.Importable, ImportFrom: p.ImportFrom, ImportFroms: p.ImportFroms}
 	configuration, err := winOneConfigurationFingerprint(Load())
 	if err != nil {
 		return err

@@ -37,13 +37,16 @@ func TestRebuiltAISectionLayouts(t *testing.T) {
 				pr.RateWindows = []ai.RateWindow{{Start: "09:00", End: "18:00", Rate: 0.8, Days: []int{1, 2, 3, 4, 5}}}
 				pr.AccountNames = map[string]string{"primary": "Daily service"}
 				pr.AccountWeights = map[string]int{"primary": 2}
+				pr.Resolve = map[string][]string{"api.example.com": {"127.0.0.1", "dns:gateway.example.com"}}
+				pr.AccountWindowAmounts = map[string]map[string]float64{"primary": {"5h": 3.5}}
+				pr.KeyPriceRates = map[string]float64{"primary": 0.8}
 				e := newEditor(p, pr, pr.ID)
 				for _, area := range []struct {
 					name  string
 					count int
 					view  func(*ui.Context, int)
 				}{
-					{"provider", 4, func(c *ui.Context, n int) { e.preferenceTab = n; e.preferences(c, pr, false) }},
+					{"provider", 6, func(c *ui.Context, n int) { e.preferenceTab = n; e.preferences(c, pr, false) }},
 				} {
 					for n := 0; n < area.count; n++ {
 						tt := ui.NewTester(func(c *ui.Context) {
@@ -70,10 +73,15 @@ func TestProviderSectionsKeepPoliciesOnSaveAndReopen(t *testing.T) {
 	e := newEditor(p, pr, pr.ID)
 	pr.AccountWeights = map[string]int{"primary": 3, "offline": 7}
 	pr.AccountWindowCaps = map[string]map[string]int{"primary": {"5h": 80}}
+	pr.AccountWindowAmounts = map[string]map[string]float64{"offline": {"week": 6.5}}
+	pr.KeyPriceRates = map[string]float64{"primary": 0.8}
+	pr.Resolve = map[string][]string{"api.example.com": {"127.0.0.1"}}
+	pr.ServerPin = "fixture-certificate-pin"
+	pr.NoStandIn, pr.UpstreamProviders, pr.NoBalanceProbe = true, true, true
 	pr.RateWindows = []ai.RateWindow{{Start: "22:00", End: "06:00", Rate: .5, Days: []int{1, 5}}}
 	pr.Proxy = "direct"
 	before, _ := json.Marshal(pr.ProviderPreferences)
-	for n := 0; n < 4; n++ {
+	for n := 0; n < 6; n++ {
 		e.preferenceTab = n
 		view := ui.NewTester(func(c *ui.Context) { e.preferences(c, pr, false) }, 1000, 2400)
 		settle(h, view)

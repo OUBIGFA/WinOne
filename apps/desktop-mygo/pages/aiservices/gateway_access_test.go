@@ -6,6 +6,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"os"
 	"testing"
+	"time"
 	"winone/desktopmygo/i18n"
 )
 
@@ -21,17 +22,19 @@ func TestNativeGatewayConcurrencyPolicyRoundTrip(t *testing.T) {
 		t.Fatal("create", a.api.err)
 	}
 	id := a.state.Keys[0].ID
-	policy := map[string]any{"id": id, "name": "Concurrency fixture", "maxConcurrency": 2}
+	policy := map[string]any{"id": id, "name": "Concurrency fixture", "maxConcurrency": 2, "aliases": map[string]string{"daily": "fixture/model"}, "serviceTier": "priority"}
 	a.api.request(p, "POST", "/api/winone/gateway/configure", policy, func(raw json.RawMessage) {
 		var data struct {
 			Keys []struct {
-				MaxConcurrency int `json:"maxConcurrency"`
+				MaxConcurrency int               `json:"maxConcurrency"`
+				Aliases        map[string]string `json:"aliases"`
+				ServiceTier    string            `json:"serviceTier"`
 			}
 		}
 		if err := json.Unmarshal(raw, &data); err != nil {
 			t.Fatal(err)
 		}
-		if len(data.Keys) != 1 || data.Keys[0].MaxConcurrency != 2 {
+		if len(data.Keys) != 1 || data.Keys[0].MaxConcurrency != 2 || data.Keys[0].Aliases["daily"] != "fixture/model" || data.Keys[0].ServiceTier != "priority" {
 			t.Errorf("concurrency was not saved: %s", raw)
 		}
 	})
@@ -79,6 +82,14 @@ func TestNativeAccessKeysCreateEditScopesAndRecording(t *testing.T) {
 	a.revealed = ""
 	p.gateway.historyOpen = true
 	settle(h, tt)
+	// Collapsible opens over 200 ms. Advance its test clock before scrolling:
+	// while the panel is still clipped, the scroller cannot reach its controls.
+	tt.Advance(200 * time.Millisecond)
+	settle(h, tt)
+	if bounds, ok := tt.Find(accessT("startRecording")); ok && bounds.Y+bounds.H > 1600 {
+		tt.Scroll(550, 800, 0, bounds.Y-800)
+		settle(h, tt)
+	}
 	if err := tt.Click(accessT("startRecording")); err != nil {
 		t.Fatal(err)
 	}

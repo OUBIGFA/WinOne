@@ -4,7 +4,9 @@ package ai
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +20,73 @@ import (
 	"testing"
 	"time"
 )
+
+// A saved host rule and trusted certificate must reach the real worker's
+// discovery and generation, while the URL keeps its original host name.
+func TestPackagedConnectionRulesAndServerCertificate(t *testing.T) {
+	executable := os.Getenv("WINONE_AI_TEST_EXE")
+	if executable == "" {
+		t.Skip("set WINONE_AI_TEST_EXE")
+	}
+	var generated atomic.Int32
+	vendor := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.Host, "relay.invalid:") {
+			t.Errorf("connection changed the Host header: %s", r.Host)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/v1/models":
+			if r.Header.Get("Authorization") != "Bearer fixture-key" {
+				t.Error("discovery lost the key")
+			}
+			io.WriteString(w, `{"data":[{"id":"gpt-4o"}]}`)
+		case "/v1/chat/completions":
+			generated.Add(1)
+			io.WriteString(w, `{"choices":[{"message":{"role":"assistant","content":"TLS_RESOLVE_OK"},"finish_reason":"stop"}]}`)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer vendor.Close()
+	digest := sha256.Sum256(vendor.Certificate().Raw)
+	pin := hex.EncodeToString(digest[:])
+	base := strings.Replace(vendor.URL, "127.0.0.1", "relay.invalid", 1) + "/v1"
+	provider := Provider{ID: "connection-fixture", Name: "Fixture", AuthMode: "api-key", Protocol: "chat", BaseURL: base, Models: []string{"gpt-4o"}, ProviderPreferences: ProviderPreferences{Proxy: "direct", ServerPin: pin, Resolve: map[string][]string{"relay.invalid": {"127.0.0.1"}}}}
+	directory := t.TempDir()
+	store, err := Open(filepath.Join(directory, "ai.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	configuration := store.Configuration()
+	configuration.Providers = []Provider{provider}
+	if _, err = store.SaveConfiguration(configuration, nil); err != nil {
+		t.Fatal(err)
+	}
+	store, err = Open(filepath.Join(directory, "ai.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider = store.Configuration().Providers[0]
+	runtime := Translator{Executable: executable, DataDirectory: filepath.Join(directory, "runtime")}
+	models, err := runtime.Models(t.Context(), provider, "fixture-key")
+	if err != nil || len(models) != 1 || models[0].ID != "gpt-4o" {
+		t.Fatal("saved transport options did not reach discovery", err)
+	}
+	preferences, _, err := store.ForTaskKeys("chat", &Selection{Provider: provider.ID, Model: "gpt-4o"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := runtime.Generate(t.Context(), preferences, "fixture-key", Generation{Text: "fixture"})
+	if err != nil || text != "TLS_RESOLVE_OK" || generated.Load() != 1 {
+		t.Fatal("saved transport options did not reach generation", err)
+	}
+	provider.ServerPin = strings.Repeat("0", 64)
+	raw, err := runtime.ServerCertificate(t.Context(), provider)
+	var out struct{ Certificate struct{ SHA256 string } }
+	if err != nil || json.Unmarshal(raw, &out) != nil || out.Certificate.SHA256 != pin {
+		t.Fatal("certificate reread was blocked by an old pin", err)
+	}
+}
 
 // Exercise WinOne's owned worker and Magpie's image guard with real local
 // HTTP requests. Merely accepting the saved setting would miss propagation.

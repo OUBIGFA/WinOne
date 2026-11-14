@@ -54,7 +54,9 @@ Set-Hook 'internal/gateway/gateway.go' @{
 }
 foreach($media in @('draw','video')){
  Set-Hook ("internal/gateway/$media.go") @{
-  'if keyHeld && named &&'='if keyHeld && (named || winOneMediaRestricted(r)) &&'
+  # The upstream guard now also checks a group's own restrictions. Keep the
+  # complete check for implicit WinOne helper models as well as named models.
+  'if named && (isGroup &&'='if (named || winOneMediaRestricted(r)) && (isGroup &&'
  }
 }
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/settings.go'),(Join-Path $root 'modules/ai-magpie/settings_test.go') -Destination (Join-Path $SourceDirectory 'cmd/winone-ai')

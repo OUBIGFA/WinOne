@@ -8,6 +8,8 @@ import (
 	"github.com/yetone/magpie/internal/provider"
 	"io"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -65,12 +67,123 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 	if !pluginAccount(in) && !knownAgent(in.Agent) {
 		return errors.New("unsupported agent account")
 	}
-	if in.Operation != "accounts.signin" && in.Operation != "accounts.list" {
+	if in.Operation != "accounts.signin" && in.Operation != "accounts.list" && in.Operation != "accounts.import" {
 		if err := prepareAccountPreferences(ctx, in); err != nil {
 			return err
 		}
 	}
 	switch in.Operation {
+	case "accounts.export":
+		if pluginAccount(in) || !filepath.IsAbs(in.ExportPath) {
+			return errors.New("select an output path for a supported account")
+		}
+		exported, err := provider.ExportLogins(in.Agent, in.ExportFormat, in.ExportUsers)
+		if err != nil {
+			return err
+		}
+		var paths []string
+		switch in.ExportFormat {
+		case provider.ExportSub2API:
+			if len(exported.Files) != 1 {
+				return errors.New("account export returned an invalid file set")
+			}
+			// The native Save dialog obtains the user's choice, including any
+			// overwrite consent. No credential contents cross the Host response.
+			if err := os.WriteFile(in.ExportPath, exported.Files[0].Data, 0600); err != nil {
+				return err
+			}
+			paths = []string{in.ExportPath}
+		case provider.ExportCLIProxy:
+			base := filepath.Join(in.ExportPath, "WinOne-cliproxyapi-"+in.Agent+"-"+time.Now().Format("2006-01-02"))
+			directory := base
+			for suffix := 2; ; suffix++ {
+				err = os.Mkdir(directory, 0700)
+				if err == nil {
+					break
+				}
+				if !errors.Is(err, os.ErrExist) {
+					return err
+				}
+				directory = base + "-" + strconv.Itoa(suffix)
+			}
+			for _, file := range exported.Files {
+				if filepath.Base(file.Name) != file.Name || file.Name == "." || file.Name == ".." {
+					return errors.New("account export returned an invalid filename")
+				}
+				path := filepath.Join(directory, file.Name)
+				if err := os.WriteFile(path, file.Data, 0600); err != nil {
+					return err
+				}
+				paths = append(paths, path)
+			}
+		default:
+			return errors.New("unsupported account export format")
+		}
+		for i := range exported.Skipped {
+			if exported.Skipped[i].Error != "" {
+				exported.Skipped[i].Error = "Account could not be exported"
+			}
+		}
+		return encode(map[string]any{"files": paths, "accounts": exported.Accounts, "skipped": exported.Skipped})
+	case "accounts.import":
+		// The caller supplies only the files it explicitly selected. Reuse the
+		// upstream parsers and token flows inside this provider's private profile.
+		if len(in.ImportFiles) == 0 || len(in.ImportFiles) > 64 {
+			return errors.New("select account files to import")
+		}
+		total := 0
+		for _, text := range in.ImportFiles {
+			total += len(text)
+		}
+		if total > 8<<20 {
+			return errors.New("account import files are too large")
+		}
+		if pluginAccount(in) {
+			connection, err := preparePlugin(ctx, in.Agent)
+			if err != nil {
+				return err
+			}
+			if !connection.Importable {
+				return errors.New("this account adapter does not import files")
+			}
+			results, err := provider.ImportPluginFiles(ctx, provider.PluginID(in.Agent), in.ImportFiles)
+			if err != nil {
+				return err
+			}
+			for i := range results {
+				if results[i].Error != "" {
+					results[i].Error = "Account import failed"
+				}
+			}
+			return encode(map[string]any{"results": results})
+		}
+		var results []provider.ImportedAccount
+		var err error
+		switch in.Agent {
+		case "codex":
+			if in.AccessOnly {
+				results, err = provider.ImportCodexAccessOnly(ctx, in.ImportFiles)
+			} else {
+				results, err = provider.ImportLogins(ctx, in.Agent, in.ImportFiles)
+			}
+		case "claude":
+			results, err = provider.ImportLogins(ctx, in.Agent, in.ImportFiles)
+		case "factory":
+			results, err = provider.ImportFactoryKeys(ctx, in.ImportFiles)
+		case "gemini", "antigravity":
+			results, err = provider.ImportGoogleAccounts(ctx, in.Agent, in.ImportFiles)
+		default:
+			return errors.New("this account type does not import files")
+		}
+		if err != nil {
+			return err
+		}
+		for i := range results {
+			if results[i].Error != "" {
+				results[i].Error = "Account import failed"
+			}
+		}
+		return encode(map[string]any{"results": results})
 	case "accounts.checkin":
 		if !pluginAccount(in) {
 			return errors.New("this account does not support daily check-in")
@@ -135,9 +248,10 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 					break
 				}
 			}
-			return encode(map[string]any{"accounts": accounts, "methods": connection.Methods, "checkinAvailable": available})
+			return encode(map[string]any{"accounts": accounts, "methods": connection.Methods, "checkinAvailable": available, "importable": connection.Importable, "importFrom": connection.ImportFrom, "importFroms": connection.ImportFroms})
 		}
-		return encode(map[string]any{"accounts": provider.Logins(in.Agent)})
+		importable := in.Agent == "codex" || in.Agent == "claude" || in.Agent == "factory" || in.Agent == "gemini" || in.Agent == "antigravity"
+		return encode(map[string]any{"accounts": provider.Logins(in.Agent), "importable": importable})
 	case "accounts.models":
 		account, err := findAccount(ctx, in.Agent)
 		if err != nil || account.Account == nil {
@@ -187,9 +301,14 @@ func readKeyBalances(ctx context.Context, in request, out io.Writer) error {
 	// actual credential fingerprint, shared with the request ledger.
 	balances := p.KeyOwnBalances
 	p.KeyOwnBalances = map[string]provider.OwnBalance{}
+	rates := p.KeyPriceRates
+	p.KeyPriceRates = map[string]float64{}
 	for _, key := range in.BalanceKeys {
 		if balance, ok := balances[key.Name]; ok {
 			p.KeyOwnBalances[provider.KeyID(key.Key)] = balance
+		}
+		if rate, ok := rates[key.Name]; ok {
+			p.KeyPriceRates[provider.KeyID(key.Key)] = rate
 		}
 	}
 	provider.WinOneProviders = []provider.Provider{p}
