@@ -69,7 +69,7 @@ func TestHomeListsToolsInOrderAndTogglesThroughTheHost(t *testing.T) {
 
 // Home lists exactly the sidebar's features above its footer, in the same
 // order. Adding a feature to the sidebar without telling Home how to show
-// it (its module, or built in) fails here, as does a mapping left behind.
+// its module fails here, as does a mapping left behind.
 func TestHomeMatchesTheSidebar(t *testing.T) {
 	i18n.SetLocale(i18n.Chinese)
 	features := shell.Features()
@@ -77,7 +77,7 @@ func TestHomeMatchesTheSidebar(t *testing.T) {
 	snapshot := widgets.ModuleSnapshot{Revision: 1}
 	for _, feature := range features {
 		id, ok := homeModules[feature.ID]
-		if !ok && !builtIn[feature.ID] {
+		if !ok {
 			t.Fatalf("Home does not know the sidebar feature %q", feature.ID)
 		}
 		if ok {
@@ -115,7 +115,7 @@ func TestHomeMatchesTheSidebar(t *testing.T) {
 		}
 		previous = r.Y
 	}
-	if tt.HasText(i18n.T("onebot.title")) || tt.HasText(i18n.T("chat.title")) {
+	if tt.HasText(i18n.T("onebot.title")) || tt.HasText(i18n.T("chat.title")) || tt.HasText(i18n.T("interconnect.title")) {
 		t.Fatal("Home lists only the features above the sidebar's footer")
 	}
 	h.Shots(t, "overview", page.View, 1000, nil)

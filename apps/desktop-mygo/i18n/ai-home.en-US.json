@@ -4,9 +4,5 @@
   "ai.keyPlaceholder": "Enter API key",
   "aiHome.home": "Home",
   "aiHome.default": "Your everyday model",
-  "aiHome.connect": "Connect an AI service",
-  "aiHome.connectHint": "Use an API key from your provider or sign in with a supported account, then choose your models.",
-  "aiHome.api": "Add or manage services",
-  "aiHome.account": "Sign in or manage accounts",
   "aiHome.preferences": "Preferences"
 }

@@ -47,12 +47,7 @@ func newPage(env *core.Env) *page {
 var homeModules = map[string]string{"capture": "capture", "selection": "selection", "quick-assistant": "quick-assistant",
 	"wintray": "wintray", "convenience": "always-on-top"}
 
-// builtIn are the features without a module: always available, with a
-// disabled on switch so every Home row uses the same state indicator.
-var builtIn = map[string]bool{"interconnect": true}
-
-// homeRow is one feature of Home: its sidebar page, and its module unless
-// it is built in.
+// homeRow is one feature of Home: its sidebar page and its module.
 type homeRow struct {
 	page  shell.PageInfo
 	entry *widgets.ModuleEntry
@@ -74,7 +69,7 @@ func (p *page) rows() []homeRow {
 			if row.entry == nil {
 				continue
 			}
-		} else if !builtIn[feature.ID] {
+		} else {
 			continue
 		}
 		rows = append(rows, row)
@@ -131,7 +126,7 @@ func (p *page) tools(c *ui.Context) {
 	active := 0
 	var problems []string
 	for _, row := range rows {
-		if row.entry == nil || row.entry.Enabled && !row.entry.PendingStop {
+		if row.entry.Enabled && !row.entry.PendingStop {
 			active++
 		}
 	}
@@ -164,11 +159,7 @@ func (p *page) tools(c *ui.Context) {
 		}
 		kit.Panel(c, func() {
 			for _, row := range rows {
-				if row.entry == nil {
-					p.builtInRow(c, row.page)
-				} else {
-					p.toolRow(c, *row.entry, row.page.Icon, i18n.T(row.page.Title))
-				}
+				p.toolRow(c, *row.entry, row.page.Icon, i18n.T(row.page.Title))
 			}
 		}).Role(ui.RoleList)
 		if others := p.others(); len(others) > 0 {
@@ -180,26 +171,6 @@ func (p *page) tools(c *ui.Context) {
 				}).Role(ui.RoleList)
 			})
 		}
-	})
-}
-
-// builtInRow is a feature without a module: always available.
-func (p *page) builtInRow(c *ui.Context, page shell.PageInfo) {
-	t := c.Theme()
-	title := i18n.T(page.Title)
-	ui.Row(c.Key(page.ID)).FillWidth().Padding(14, 16).GapX(14).GapY(10).AlignItems(ui.Start).Wrap().Role(ui.RoleListItem).Children(func() {
-		ui.Icon(c, page.Icon).FontSize(20).TextColor(t.TextMuted).Shrink(0).Margin(1, 0, 0, 0)
-		ui.Column(c).Basis(260).Grow(1).Shrink(1).MinWidth(0).Gap(3).Children(func() {
-			kit.Strong(c, title).Role(ui.RoleHeading).Level(3)
-			if key := "moduleDescription." + page.ID; i18n.Has(key) {
-				kit.Help(c, i18n.T(key))
-			}
-		})
-		ui.Row(c).Gap(12).AlignItems(ui.Center).Shrink(0).MinHeight(28).Children(func() {
-			kit.Help(c, i18n.T("overview.alwaysAvailable")).SingleLine()
-			on := true
-			ui.Switch(c, &on).Label(i18n.T("module.enableTool", "name", title)).Disabled(true)
-		})
 	})
 }
 

@@ -16,8 +16,13 @@ func TestAIHomeKeepsOnlyRetainedTasksReachable(t *testing.T) {
 	t.Cleanup(p.Close)
 	tt := ui.NewTester(p.View, 560, 1000)
 	settle(h, tt)
-	if p.tab != tabHome || !tt.HasText(homeT("connect")) {
-		t.Fatal("home omits connection task")
+	if p.tab != tabHome || !tt.HasText(homeT("default")) {
+		t.Fatal("home omits the everyday model")
+	}
+	for _, removed := range []string{"连接 AI 服务", "添加或管理服务", "登录或管理账号", "Connect an AI service", "Add or manage services", "Sign in or manage accounts"} {
+		if tt.HasText(removed) {
+			t.Fatalf("Home still shows the removed connection shortcut %q", removed)
+		}
 	}
 	// Result preferences belong to Home and must still commit through the
 	// shared draft after the separate preferences tab has been removed.

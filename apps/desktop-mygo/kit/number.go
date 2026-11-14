@@ -25,6 +25,12 @@ func numberBox(c *ui.Context, value *float64, low, high, step float64, unit, lab
 	box := ui.Row(c).MinHeight(ControlHeight).Padding(0, 10).Gap(6).AlignItems(ui.Center).
 		Radius(t.Radius).Background(t.Surface).Border(1, t.Border).MinWidth(0)
 	text := ui.Local(box, "text", func() string { return format(*value) })
+	lastValue := ui.Local(box, "value", func() float64 { return *value })
+	// Presets and restored drafts can change the number after this field was
+	// built. Sync before TextInputBase reads it; keep partial typing otherwise.
+	if *value != *lastValue {
+		*text = format(*value)
+	}
 	set := func(v float64) {
 		*value = math.Max(low, math.Min(high, round(v)))
 		*text = format(*value)
@@ -43,7 +49,11 @@ func numberBox(c *ui.Context, value *float64, low, high, step float64, unit, lab
 			set(*value - step)
 		}
 		if !in.Focused() {
-			*text = format(*value)
+			if normalized := format(*value); *text != normalized {
+				*text = normalized
+				// Blur may follow invalid input without another user event.
+				c.Invalidate()
+			}
 		} else {
 			box.Border(1, t.Accent)
 		}
@@ -51,6 +61,7 @@ func numberBox(c *ui.Context, value *float64, low, high, step float64, unit, lab
 			ui.Text(c, unit).FontSize(HelpSize(c)).TextColor(t.TextMuted).Shrink(0)
 		}
 	})
+	*lastValue = *value
 	return box
 }
 

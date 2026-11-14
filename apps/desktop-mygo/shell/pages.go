@@ -23,7 +23,7 @@ type pageSpec struct {
 
 // registry lists every page in the sidebar's order: Home and the features
 // above (Home lists the same features in the same order, which its test
-// checks), then AI services and Settings at the bottom.
+// checks), then Interconnect, AI services and Settings at the bottom.
 var registry []pageSpec
 
 // Register adds or replaces the constructor of a page; page packages call
@@ -44,9 +44,9 @@ func init() {
 		{id: "capture", title: "nav.capture", icon: icons.ScanLine},
 		{id: "selection", title: "nav.selection", icon: icons.MousePointer2},
 		{id: "quick-assistant", title: "nav.quick-assistant", icon: icons.Astroid},
-		{id: "interconnect", title: "interconnect.title", icon: icons.FolderUp},
 		{id: "wintray", title: "nav.wintray", icon: icons.LaptopMinimal},
 		{id: "convenience", title: "nav.convenience", icon: icons.Rocket},
+		{id: "interconnect", title: "interconnect.title", icon: icons.FolderUp, footer: true},
 		{id: "ai-services", title: "ai.serviceTitle", icon: icons.Sparkles, footer: true, separated: true},
 		{id: "settings", title: "nav.settings", icon: icons.Settings, footer: true},
 	}

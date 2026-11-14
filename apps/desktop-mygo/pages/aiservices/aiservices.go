@@ -611,27 +611,30 @@ func (p *page) overview(c *ui.Context) {
 			models += len(pr.Models)
 		}
 	}
-	t, palette := c.Theme(), kit.Colors(c)
-	ui.Column(c).FillWidth().Gap(10).Role(ui.RoleGroup).Label(i18n.T("ai.providerOverview")).Children(func() {
-		ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Baseline).Children(func() {
-			kit.Caption(c, i18n.T("ai.providerTotal", "count", len(enabled), "models", models))
-		})
-		if len(enabled) == 0 {
-			kit.Help(c, i18n.T("ai.providerOverviewEmpty"))
-			return
-		}
-		ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
+	t := c.Theme()
+	// One shared surface and inline items keep this a compact locator. The
+	// layout follows shadcn/ui Item's media/content/action composition; all
+	// controls, marks and spacing use WinOne's existing native components.
+	kit.Panel(c, func() {
+		ui.Row(c).FillWidth().Padding(6, 12).GapX(12).GapY(4).Wrap().AlignItems(ui.Center).Children(func() {
+			kit.Caption(c, i18n.T("ai.providerTotal", "count", len(enabled), "models", models)).SingleLine().Margin(4, 0)
+			if len(enabled) == 0 {
+				kit.Help(c, i18n.T("ai.providerOverviewEmpty"))
+				return
+			}
 			for _, pr := range enabled {
 				name := pr.Name
 				if name == "" {
 					name = i18n.T("ai.unnamed")
 				}
 				id := pr.ID
-				b := ui.ButtonBase(c.Key(id)).Padding(6, 10).Gap(8).Radius(t.Radius).Border(1, palette.Hairline).
-					Background(palette.Panel).AlignItems(ui.Center).MaxWidth(280).
+				b := ui.ButtonBase(c.Key(id)).MinHeight(28).Padding(4, 6).Gap(6).Radius(t.Radius).
+					AlignItems(ui.Center).MaxWidth(280).
 					Label(i18n.T("ai.providerCount", "name", name, "count", len(pr.Models))).Tooltip(name).
 					Disabled(p.locked() || removed[id])
-				if b.Hovered() {
+				if b.Pressed() {
+					b.Background(t.SurfacePressed)
+				} else if b.Hovered() {
 					b.Background(t.SurfaceHover)
 				}
 				if b.Clicked() {
@@ -645,7 +648,7 @@ func (p *page) overview(c *ui.Context) {
 				})
 			}
 		})
-	})
+	}).Role(ui.RoleGroup).Label(i18n.T("ai.providerOverview"))
 }
 
 // Home and provider editors share the same configuration draft and save rail.

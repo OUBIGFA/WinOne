@@ -4,9 +4,5 @@
   "ai.keyPlaceholder": "输入 API 密钥",
   "aiHome.home": "常用",
   "aiHome.default": "日常使用的模型",
-  "aiHome.connect": "连接 AI 服务",
-  "aiHome.connectHint": "使用已有服务的 API 密钥，或登录支持的账号。连接后选择要使用的模型。",
-  "aiHome.api": "添加或管理服务",
-  "aiHome.account": "登录或管理账号",
   "aiHome.preferences": "使用偏好"
 }
