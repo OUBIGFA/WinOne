@@ -86,11 +86,11 @@ func (p *page) programRow(c *ui.Context, index int, app program) {
 		} else {
 			ui.Icon(c, icons.AppWindow).FontSize(32).TextColor(t.TextMuted).Shrink(0)
 		}
-		ui.Text(c, name).SingleLine().Ellipsis("…").Grow(1).Shrink(1).MinWidth(48).Tooltip(name)
+		ui.Text(c, name).SingleLine().Ellipsis("…").Grow(1).Shrink(1).MinWidth(48).Description(name)
 		ui.Row(c).Gap(controlGap).Shrink(0).AlignItems(ui.Center).Children(func() {
 			ui.Row(c).Width(collectWidth).Justify(ui.Center).Children(func() {
 				on := app.CollectTrayIcon
-				sw := ui.Switch(c, &on).Label(i18n.T("wintray.collect")).Tooltip(i18n.T("wintray.collect")).
+				sw := ui.Switch(c, &on).Label(i18n.T("wintray.collect")).Description(i18n.T("wintray.collect")).
 					Disabled(blocked || !executable(app.ExePath))
 				if sw.Changed() {
 					p.update(app.ID, func(a *program) { a.CollectTrayIcon = on })

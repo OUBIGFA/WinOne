@@ -630,7 +630,7 @@ func (p *page) overview(c *ui.Context) {
 				id := pr.ID
 				b := ui.ButtonBase(c.Key(id)).MinHeight(28).Padding(4, 6).Gap(6).Radius(t.Radius).
 					AlignItems(ui.Center).MaxWidth(280).
-					Label(i18n.T("ai.providerCount", "name", name, "count", len(pr.Models))).Tooltip(name).
+					Label(i18n.T("ai.providerCount", "name", name, "count", len(pr.Models))).Description(name).
 					Disabled(p.locked() || removed[id])
 				if b.Pressed() {
 					b.Background(t.SurfacePressed)

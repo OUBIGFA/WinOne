@@ -490,7 +490,7 @@ func (t *linksTab) history(c *ui.Context, disabled, locked bool) {
 					}
 					t.refresh(all)
 				}
-				if kit.Button(c, i18n.T("links.forgetInvalid"), icons.Trash2, false).Tooltip(i18n.T("links.forgetInvalidHint")).
+				if kit.Button(c, i18n.T("links.forgetInvalid"), icons.Trash2, false).Description(i18n.T("links.forgetInvalidHint")).
 					Disabled(locked || len(t.records) == 0).Clicked() {
 					t.forgetInvalid()
 				}
@@ -532,7 +532,7 @@ func (t *linksTab) history(c *ui.Context, disabled, locked bool) {
 			open := t.open[group.key]
 			ui.Column(c.Key(group.key)).FillWidth().Radius(kit.PanelRadius).Border(1, pal.Hairline).Children(func() {
 				header := ui.ButtonBase(c).FillWidth().Padding(10, 12).Gap(8).Justify(ui.Start).AlignItems(ui.Center).Label(group.target).
-					Tooltip(group.target).Expanded(open)
+					Description(group.target).Expanded(open)
 				if header.Hovered() {
 					header.Background(theme.SurfaceHover)
 				}

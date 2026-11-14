@@ -516,8 +516,8 @@ func (p *transferPanel) sendInput(c *ui.Context, active bool, target *taskRecord
 						BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Children(func() {
 						ui.Icon(c, icons.File).FontSize(28).TextColor(theme.TextMuted).Shrink(0)
 						ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
-							kit.Label(c, filepath.Base(path)).FontWeight(500).SingleLine().Ellipsis("…").Tooltip(filepath.Base(path))
-							kit.Help(c, path).SingleLine().Ellipsis("…").Tooltip(path)
+							kit.Label(c, filepath.Base(path)).FontWeight(500).SingleLine().Ellipsis("…").Description(filepath.Base(path))
+							kit.Help(c, path).SingleLine().Ellipsis("…").Description(path)
 						})
 						if kit.IconButton(c, icons.Trash2, tr("remove")+" "+path).Clicked() {
 							f.Paths = slices.DeleteFunc(slices.Clone(f.Paths), func(v string) bool { return v == path })

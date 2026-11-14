@@ -379,15 +379,15 @@ func (p *folderPane) entryRow(c *ui.Context, entry directorylinks.BrowseEntry, t
 		ui.Column(c).Basis(160).Grow(1).Shrink(1).MinWidth(0).Gap(2).TextAlign(ui.Start).Children(func() {
 			if folder {
 				open := kit.GhostButton(c, entry.Name, nil, false).Label(i18n.T("links.openFolder", "name", entry.Name)).
-					Tooltip(entry.Path).Disabled(p.disabled).Justify(ui.Start).TextAlign(ui.Start).Padding(0)
+					Description(entry.Path).Disabled(p.disabled).Justify(ui.Start).TextAlign(ui.Start).Padding(0)
 				if open.Clicked() {
 					p.navigate(entry.Path)
 				}
 			} else {
-				ui.Text(c, entry.Name).Tooltip(entry.Path).MinWidth(0).TextAlign(ui.Start)
+				ui.Text(c, entry.Name).Description(entry.Path).MinWidth(0).TextAlign(ui.Start)
 			}
 			if entry.TargetPath != "" {
-				kit.Help(c, "→ "+entry.TargetPath).Tooltip(entry.TargetPath)
+				kit.Help(c, "→ "+entry.TargetPath).Description(entry.TargetPath)
 			}
 			if entry.Error != "" {
 				kit.InlineError(c, entry.Error)

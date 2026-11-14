@@ -222,7 +222,7 @@ func Menu(c *ui.Context, trigger ui.Element, state *State, o Options) (string, b
 						chosen := value == o.Selected
 						lit := state.lit && value == state.highlight
 						r := ui.ButtonBase(c.Key(key)).FillWidth().Padding(6, 8, 6, indent).Gap(8).Radius(t.Radius).
-							Justify(ui.Start).AlignItems(ui.Center).Role(ui.RoleListItem).Selected(chosen).Label(label).Tooltip(label)
+							Justify(ui.Start).AlignItems(ui.Center).Role(ui.RoleListItem).Selected(chosen).Label(label).Description(label)
 						switch {
 						case chosen:
 							r.Background(SelectedFill(t)).TextColor(t.Text)
@@ -264,7 +264,7 @@ func Menu(c *ui.Context, trigger ui.Element, state *State, o Options) (string, b
 						}
 						ui.Column(c.Key("models-"+group.ID)).FillWidth().Gap(4).Margin(space, 0, 0, 0).Children(func() {
 							head := ui.ButtonBase(c).FillWidth().Padding(6, 8).Gap(8).Radius(t.Radius).Justify(ui.Start).AlignItems(ui.Center).
-								Label(o.Strings.Group + group.Name).Tooltip(group.Name).Expanded(group.expanded)
+								Label(o.Strings.Group + group.Name).Description(group.Name).Expanded(group.expanded)
 							head.BorderWidth(0, 0, 1, 0).BorderColor(t.Border.Mix(t.Background, 0.4))
 							if head.Hovered() {
 								head.Background(t.SurfaceHover)

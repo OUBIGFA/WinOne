@@ -332,7 +332,7 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 		ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).Children(func() {
 			kit.Caption(c, i18n.T("ai.enabledModels", "count", len(pr.Models)))
 			ui.Row(c).Gap(4).Role(ui.RoleGroup).Label(i18n.T("ai.modelBulkActions")).Children(func() {
-				if kit.GhostButton(c, i18n.T("ai.selectAll"), nil, false).Tooltip(i18n.T("ai.modelBulkScope")).
+				if kit.GhostButton(c, i18n.T("ai.selectAll"), nil, false).Description(i18n.T("ai.modelBulkScope")).
 					Disabled(disabled || working || len(all) == 0 || len(pr.Models) == len(all)).Clicked() {
 					p.change(id, func(t *provider) {
 						everything := append([]string{}, all...)
@@ -340,7 +340,7 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 					})
 				}
 				paused := len(value(pr.Delisted)) > 0
-				if kit.GhostButton(c, i18n.T("ai.selectNone"), nil, false).Tooltip(i18n.T("ai.modelBulkScope")).
+				if kit.GhostButton(c, i18n.T("ai.selectNone"), nil, false).Description(i18n.T("ai.modelBulkScope")).
 					Disabled(disabled || working || (len(pr.Models) == 0 && !paused)).Clicked() {
 					p.change(id, func(t *provider) {
 						everything := append([]string{}, all...)
@@ -403,7 +403,7 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 			on := enabled[model]
 			name := widgets.ModelLabel(&picker, model)
 			result, tested := m.tested[model]
-			row := ui.Column(c).FillWidth().Padding(4, 8).Radius(t.Radius).Tooltip(model)
+			row := ui.Column(c).FillWidth().Padding(4, 8).Radius(t.Radius).Description(model)
 			if row.Hovered() {
 				row.Background(t.SurfaceHover)
 			}

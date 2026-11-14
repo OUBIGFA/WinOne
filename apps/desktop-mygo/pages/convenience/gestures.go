@@ -273,7 +273,7 @@ func (t *gesturesTab) trails(c *ui.Context, busy, disabled bool) {
 				t.addGesture()
 			}
 			if index >= 0 {
-				b := kit.GhostButton(c, i18n.T("stroke.removeGesture"), icons.Trash2, false).Disabled(busy).Tooltip(i18n.T("stroke.deleteReferences"))
+				b := kit.GhostButton(c, i18n.T("stroke.removeGesture"), icons.Trash2, false).Disabled(busy).Description(i18n.T("stroke.deleteReferences"))
 				if b.Clicked() {
 					t.removeGesture(t.gestureID)
 					index = -1
@@ -549,7 +549,7 @@ func (t *gesturesTab) packagesView(c *ui.Context, busy bool) {
 								t.closedPacks[packID] = open
 							}
 							chosen := t.pack == packID && t.action == ""
-							b := ui.ButtonBase(c).Grow(1).MinWidth(0).Padding(6, 4).Justify(ui.Start).Radius(6).Label(pack.Name).Tooltip(pack.Name).Checked(chosen)
+							b := ui.ButtonBase(c).Grow(1).MinWidth(0).Padding(6, 4).Justify(ui.Start).Radius(6).Label(pack.Name).Description(pack.Name).Checked(chosen)
 							if chosen || b.Hovered() {
 								b.Background(theme.SurfaceHover)
 							}
@@ -566,7 +566,7 @@ func (t *gesturesTab) packagesView(c *ui.Context, busy bool) {
 							for _, action := range pack.Actions {
 								actionID := action.ID
 								chosen := t.pack == packID && t.action == actionID
-								b := ui.ButtonBase(c.Key(actionID)).FillWidth().Padding(6, 8).Justify(ui.Start).Radius(6).Label(action.Name).Tooltip(action.Name).Checked(chosen)
+								b := ui.ButtonBase(c.Key(actionID)).FillWidth().Padding(6, 8).Justify(ui.Start).Radius(6).Label(action.Name).Description(action.Name).Checked(chosen)
 								if chosen || b.Hovered() {
 									b.Background(theme.SurfaceHover)
 								}

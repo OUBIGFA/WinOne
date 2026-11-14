@@ -548,8 +548,8 @@ func (b *linkBatch) View(c *ui.Context, disabled bool, changed func([]directoryl
 											if row.item != nil {
 												linkPath = row.item.LinkPath
 											}
-											ui.Text(c, row.name).Tooltip(linkPath).MinWidth(0)
-											kit.Help(c, "→ "+row.path).Tooltip(row.path)
+											ui.Text(c, row.name).Description(linkPath).MinWidth(0)
+											kit.Help(c, "→ "+row.path).Description(row.path)
 										})
 										if row.item != nil {
 											kindLabel(c, row.item.Kind)
@@ -586,7 +586,7 @@ func (b *linkBatch) heightHandle(c *ui.Context, height float32) {
 	theme, pal := c.Theme(), kit.Colors(c)
 	label := i18n.T("links.resizePaneHeight")
 	handle := ui.Row(c).FillWidth().Height(14).Justify(ui.Center).AlignItems(ui.Center).Cursor(ui.CursorResizeNS).
-		Focusable().Role(ui.RoleSplitter).Label(label).Tooltip(label)
+		Focusable().Role(ui.RoleSplitter).Label(label).Description(label)
 	set := func(value float32) {
 		b.height = max(256, min(4000, value))
 		writePaneHeight(b.env.Directory, b.height)

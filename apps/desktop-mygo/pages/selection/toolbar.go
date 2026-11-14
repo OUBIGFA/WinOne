@@ -219,7 +219,7 @@ func (p *page) actionRow(c *ui.Context, index, count int) {
 		var parts ui.CollapsibleParts
 		header.Children(func() {
 			ui.Icon(c, icons.GripVertical).FontSize(16).TextColor(t.TextMuted).Shrink(0).Cursor(ui.CursorGrab).
-				Tooltip(i18n.T("selection.dragToReorder"))
+				Description(i18n.T("selection.dragToReorder"))
 			parts = ui.CollapsibleBase(c, &open)
 			trigger := parts.Trigger.Grow(1).Shrink(1).MinWidth(0).MinHeight(36).Padding(6, 8).Gap(12).Radius(t.Radius).
 				AlignItems(ui.Center).Label(i18n.T("selection.editAction", "name", shown))
@@ -228,7 +228,7 @@ func (p *page) actionRow(c *ui.Context, index, count int) {
 			}
 			trigger.Children(func() {
 				ui.Icon(c, actionIcon(a.Icon)).FontSize(16).Shrink(0)
-				label := ui.Text(c, shown).SingleLine().Grow(1).Shrink(1).MinWidth(0).Tooltip(shown)
+				label := ui.Text(c, shown).SingleLine().Grow(1).Shrink(1).MinWidth(0).Description(shown)
 				if open {
 					label.FontWeight(600)
 				}

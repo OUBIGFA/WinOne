@@ -226,9 +226,9 @@ func aiPickSelect(c *ui.Context, selected *string, items []aiPickItem, placehold
 		b.Background(t.SurfaceHover)
 	}
 	if current != nil {
-		b.Tooltip(current.label)
+		b.Description(current.label)
 	} else if *selected != "" {
-		b.Tooltip(*selected)
+		b.Description(*selected)
 	}
 	b.Children(func() {
 		ui.Row(c).Gap(6).AlignItems(ui.Center).Grow(1).Shrink(1).MinWidth(0).Children(func() {
@@ -340,13 +340,13 @@ func aiPickBadges(p *AIProvider, id string) func(c *ui.Context) {
 
 var aiPickMillions = regexp.MustCompile(`\b\d+M\b`)
 
-// aiPickBadge is kit.Badge holding several texts, with a tooltip.
+// aiPickBadge is kit.Badge holding several texts and an accessible description.
 func aiPickBadge(c *ui.Context, tip string, fn func()) {
 	t := c.Theme()
 	b := ui.Row(c).Gap(4).Padding(2, 6).Radius(4).Background(t.Surface).TextColor(t.TextMuted).
 		FontSize(kit.CaptionSize(c)).Shrink(0).AlignItems(ui.Center)
 	if tip != "" {
-		b.Tooltip(tip)
+		b.Description(tip)
 	}
 	b.Children(fn)
 }

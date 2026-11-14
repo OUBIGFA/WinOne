@@ -69,7 +69,7 @@ func (p *pathPicker) View(c *ui.Context, disabled bool, pick func(strokeWindow))
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		ui.Row(c).Gap(8).Wrap().Children(func() {
 			drag := kit.Button(c, i18n.T("stroke.addPath"), icons.Crosshair, false).Disabled(disabled || p.busy).
-				Tooltip(i18n.T("stroke.dragPath"))
+				Description(i18n.T("stroke.dragPath"))
 			if p.dragging {
 				drag.Cursor(ui.CursorCrosshair)
 			}

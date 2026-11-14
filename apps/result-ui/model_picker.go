@@ -53,7 +53,7 @@ func (p *Panel) modelBadges(c *ui.Context, t *ui.Theme, provider ai.Provider, id
 				title = fmt.Sprintf(p.T("当前免费，原为 %s", "Free now, previously %s"), times(was))
 			}
 		}
-		ui.Row(c).Label(p.T("额度倍率", "Model rate")).Tooltip(title).Gap(3).Padding(1, 4).Radius(4).Shrink(0).Background(tn.hover).Children(func() {
+		ui.Row(c).Label(p.T("额度倍率", "Model rate")).Description(title).Gap(3).Padding(1, 4).Radius(4).Shrink(0).Background(tn.hover).Children(func() {
 			if was > rate {
 				ui.Text(c, times(was)).FontSize(em(t, sizeBadge)).TextColor(t.TextMuted).Strikethrough().Shrink(0)
 			}
@@ -71,7 +71,7 @@ func (p *Panel) modelBadges(c *ui.Context, t *ui.Theme, provider ai.Provider, id
 		if context%1000000 == 0 {
 			value = strconv.Itoa(context / 1000000)
 		}
-		ui.Box(c).Label(p.T("百万级上下文", "Large context")).Tooltip(fmt.Sprintf(p.T("可容纳 %d Token", "Holds %d tokens"), context)).Padding(1, 4).Radius(4).Shrink(0).Background(tn.hover).Children(func() {
+		ui.Box(c).Label(p.T("百万级上下文", "Large context")).Description(fmt.Sprintf(p.T("可容纳 %d Token", "Holds %d tokens"), context)).Padding(1, 4).Radius(4).Shrink(0).Background(tn.hover).Children(func() {
 			ui.Text(c, value+"M").FontSize(em(t, sizeBadge)).TextColor(t.TextMuted)
 		})
 	}
@@ -134,12 +134,12 @@ func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
 	}
 	// The trigger hugs its label. A separate flex spacer in the composer keeps
 	// send at the right edge without stretching either this button or its popup.
-	button := ui.ButtonBase(c.Key(key)).Label(triggerLabel).Tooltip(provider.Name+" · "+label).
+	button := ui.ButtonBase(c.Key(key)).Label(triggerLabel).Description(provider.Name+" · "+label).
 		MinWidth(0).MaxWidthPercent(78).Padding(3, 6).Gap(5).Radius(6).AlignItems(ui.Center).Cursor(ui.CursorPointer).Disabled(p.Busy).
 		Children(func() {
 			p.providerImage(c, t, provider.DisplayIcon(), 16)
 			// Show the account as well as the model: identical model IDs can be
-			// served by different providers. The full route remains in the tooltip.
+			// served by different providers. The full route remains accessible.
 			if provider.Name != "" {
 				name := p.T("当前供应商：", "Current provider: ") + provider.Name
 				if translation {

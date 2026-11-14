@@ -61,7 +61,7 @@ func ProviderIcon(c *ui.Context, env *core.Env, icon string, size float32) ui.El
 			}
 		})
 		if entry.failed {
-			holder.Tooltip(i18n.T("ai.avatarReadError"))
+			holder.Description(i18n.T("ai.avatarReadError"))
 		}
 		return holder
 	}

@@ -200,7 +200,7 @@ func (s *scenes) View(c *ui.Context, disabled bool) {
 						}
 						row.Children(func() {
 							b := ui.ButtonBase(c).Grow(1).MinWidth(0).MinHeight(44).Padding(10, 8).Gap(8).Justify(ui.Start).AlignItems(ui.Center).
-								Radius(theme.Radius).Label(item.Name).Tooltip(item.Name).Checked(selected).Disabled(disabled)
+								Radius(theme.Radius).Label(item.Name).Description(item.Name).Checked(selected).Disabled(disabled)
 							b.Children(func() {
 								ui.Icon(c, sceneIcon(item)).FontSize(16).Shrink(0).TextColor(theme.TextMuted)
 								ui.Text(c, item.Name).SingleLine().Ellipsis("…").MinWidth(0)
@@ -213,7 +213,7 @@ func (s *scenes) View(c *ui.Context, disabled bool) {
 								state = "stroke.sceneEnabled"
 							}
 							ui.Switch(c, &d.Scopes[index].Enabled).Label(i18n.T("stroke.scopeEnabled", "name", item.Name)).
-								Tooltip(i18n.T(state)).Disabled(disabled)
+								Description(i18n.T(state)).Disabled(disabled)
 						})
 					}
 				})

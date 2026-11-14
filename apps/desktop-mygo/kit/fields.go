@@ -108,7 +108,8 @@ func Segmented(c *ui.Context, selected *string, options []SelectOption, label st
 }
 
 // PathField shows a chosen path, shortened in the middle when it does not
-// fit, with the action that chooses another; the full path is its tooltip.
+// fit, with the action that chooses another; its accessible description
+// retains the full path without a hover tooltip.
 func PathField(c *ui.Context, path, empty, action string, disabled bool) (choose ui.Element) {
 	t := c.Theme()
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Wrap().Children(func() {
@@ -121,7 +122,7 @@ func PathField(c *ui.Context, path, empty, action string, disabled bool) (choose
 		if path == "" {
 			text.TextColor(t.TextMuted)
 		} else {
-			text.Tooltip(path)
+			text.Description(path)
 		}
 		choose = Button(c, action, icons.FolderOpen, false).Disabled(disabled)
 	})

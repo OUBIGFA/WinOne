@@ -14,7 +14,7 @@ type SplitState struct {
 
 // SplitOptions describe a Split.
 type SplitOptions struct {
-	// Label names the divider for assistive technology and its tooltip,
+	// Label names the divider for assistive technology,
 	// as "调整列表与设置宽度".
 	Label string
 	// MinFirst and MinSecond are the least shares, in percent, the
@@ -43,7 +43,7 @@ func Split(c *ui.Context, s *SplitState, o SplitOptions, first, second func()) u
 		// The divider is built last so that it stays above both panes:
 		// a hit area of a few DIPs centered on the panes' common edge.
 		handle := ui.Box(c).Absolute().Top(0).Bottom(0).LeftPercent(s.Percent).Width(9).Margin(0, 0, 0, -4).
-			Cursor(ui.CursorResizeEW).Focusable().Role(ui.RoleSplitter).Label(o.Label).Tooltip(o.Label)
+			Cursor(ui.CursorResizeEW).Focusable().Role(ui.RoleSplitter).Label(o.Label).Description(o.Label)
 		line := p.Hairline
 		if handle.Hovered() || handle.Pressed() {
 			line = t.Border

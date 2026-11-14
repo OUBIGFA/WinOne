@@ -105,7 +105,7 @@ func (p *page) details(c *ui.Context) {
 		ui.Column(c).FillWidth().Gap(16).Children(func() {
 			ui.Column(c).FillWidth().Gap(4).Children(func() {
 				kit.Heading(c, name).Role(ui.RoleHeading).Level(2).Selectable()
-				kit.Mono(c, app.ExePath).TextColor(c.Theme().TextMuted).SingleLine().Ellipsis("…").Tooltip(app.ExePath).Selectable()
+				kit.Mono(c, app.ExePath).TextColor(c.Theme().TextMuted).SingleLine().Ellipsis("…").Description(app.ExePath).Selectable()
 			})
 			p.actions(c, *app, name)
 			kit.SubTabs(c, &p.detailTab, []string{i18n.T("wintray.commonSettings"), i18n.T("wintray.moreSettings")}, p.env.RequestChange)
@@ -143,14 +143,14 @@ func (p *page) actions(c *ui.Context, app program, name string) {
 		}
 		window := kit.Button(c, i18n.T(label), icon, p.job == "program.window").Disabled(blocked || state == nil || !state.HasWindow)
 		if state == nil || !state.HasWindow {
-			window.Tooltip(i18n.T("wintray.noWindow"))
+			window.Description(i18n.T("wintray.noWindow"))
 		}
 		if window.Clicked() {
 			p.runJob("program.window", map[string]any{"id": app.ID, "visible": !visible})
 		}
 		if p.state.err != "" {
 			ui.Row(c).Gap(4).AlignItems(ui.Center).Role(ui.RoleStatus).Children(func() {
-				kit.Help(c, i18n.T("wintray.stateUnavailable")).Tooltip(p.state.err)
+				kit.Help(c, i18n.T("wintray.stateUnavailable")).Description(p.state.err)
 				if kit.IconButton(c, icons.RefreshCw, i18n.T("common.retry")).Disabled(blocked).Clicked() {
 					p.state.refresh()
 				}

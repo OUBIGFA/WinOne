@@ -305,7 +305,7 @@ func (p *page) defaultPage(c *ui.Context, disabled bool) {
 	trigger.Disabled(disabled).Label(i18n.T("settingsDesign.defaultPage")).MaxWidth(320)
 	for _, option := range options {
 		if option.Value == selected {
-			trigger.Tooltip(option.Label)
+			trigger.Description(option.Label)
 		}
 	}
 	if changed {

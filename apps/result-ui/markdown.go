@@ -349,7 +349,7 @@ func (p *Panel) inlines(c *ui.Context, in []parser.Inline, from, to int) {
 				label = p.T("图片", "Image")
 			}
 			if !n.Pending && safeMarkdownLink(n.Dest) {
-				ui.Link(c, label, n.Dest).Tooltip(n.Dest)
+				ui.Link(c, label, n.Dest).Description(n.Dest)
 			} else {
 				ui.Text(c, label)
 			}

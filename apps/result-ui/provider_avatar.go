@@ -133,7 +133,7 @@ func (p *Panel) providerImage(c *ui.Context, t *ui.Theme, name string, size floa
 	}
 	element := providerImage(c, t, "service", size)
 	if entry.error != "" {
-		element.Tooltip(entry.error)
+		element.Description(entry.error)
 	}
 	return element
 }

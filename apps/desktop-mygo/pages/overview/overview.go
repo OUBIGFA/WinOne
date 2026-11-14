@@ -256,7 +256,7 @@ func (p *page) toolExtras(c *ui.Context, entry widgets.ModuleEntry) {
 		ui.Row(c).Margin(2, 0, 0, -10).Children(func() {
 			b := kit.GhostButton(c, i18n.T("module.removePackage"), icons.Trash2, false).Disabled(disabled || p.removal.busy)
 			if disabled {
-				b.Tooltip(i18n.T("module.closeBeforeRemove"))
+				b.Description(i18n.T("module.closeBeforeRemove"))
 			}
 			if b.Clicked() {
 				p.removal.show(id, "", "")
@@ -310,7 +310,7 @@ func (p *page) runtimes(c *ui.Context) {
 					disabled := p.Busy != "" || !runtime.CanRemove || s.ConfigurationError != ""
 					b := kit.GhostButton(c, i18n.T("sharedPackages.remove"), icons.Trash2, false).Disabled(disabled || p.removal.busy)
 					if !runtime.CanRemove {
-						b.Tooltip(i18n.T("sharedPackages.inUse"))
+						b.Description(i18n.T("sharedPackages.inUse"))
 					}
 					if b.Clicked() {
 						p.removal.show(runtime.ID, "runtime", runtime.ManifestSHA256)

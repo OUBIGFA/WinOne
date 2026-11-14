@@ -13,8 +13,10 @@ $GoExe=(Get-Command $GoExe -ErrorAction Stop).Source
 if($LASTEXITCODE -ne 0){throw 'WinTray output must be Git-ignored'}
 New-Item -ItemType Directory -Path $output -Force | Out-Null
 # Reviewed upstream hashes must also match the code actually built by WinOne.
-& node --test (Join-Path $root 'tests/notices/wintray-wechat.test.mjs')
-if($LASTEXITCODE -ne 0){throw 'WinTray WeChat source/license verification failed'}
+if(-not $SkipTests){
+    & node --test (Join-Path $root 'tests/notices/wintray-wechat.test.mjs')
+    if($LASTEXITCODE -ne 0){throw 'WinTray WeChat source/license verification failed'}
+}
 # The new tray collector needs both target-process architectures. ABI probes
 # load only the private test DLL; they do not hook the user's Explorer.
 & (Join-Path $PSScriptRoot 'build-wintray-native.ps1') -OutputDir (Join-Path $output 'native') -Test:(-not $SkipTests)

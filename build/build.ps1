@@ -71,7 +71,7 @@ if(-not $CompileOnly){& dotnet build tests/capture-unit/CaptureTests.csproj -c R
 if ($RunStartupProbes) { & dotnet build tests/capture-scroll/ScrollTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" --nologo; CheckExit }
 if(-not $CompileOnly){Invoke-NativeCommand 'dotnet' @((Join-Path $captureTests 'WinOne.Capture.Tests.dll'),(Join-Path (Split-Path -Parent $output) 'capture-test-data')) 'Capture unit tests failed'}
 & dotnet publish modules/capture/WinOne.Capture.csproj -c Release -r win-x64 --self-contained true "-p:ShareXSourceDirectory=$sharex" -o (Join-Path $output 'capture') --nologo; CheckExit
-& (Join-Path $PSScriptRoot 'build-recording.ps1') -CargoExe $CargoExe -OutputDirectory (Join-Path $output 'capture')
+& (Join-Path $PSScriptRoot 'build-recording.ps1') -CargoExe $CargoExe -OutputDirectory (Join-Path $output 'capture') -SkipTests:$CompileOnly
 & (Join-Path $PSScriptRoot 'copy-ocr.ps1') -RuntimeDirectory $OcrRuntimeDirectory -CaptureDirectory (Join-Path $output 'capture')
 & (Join-Path $OcrRuntimeDirectory 'python/python.exe') (Join-Path $PSScriptRoot 'verify-anki.py') --runtime (Join-Path $root 'dist/resources/runtimes/anki-26.09.4'); CheckExit
 & (Join-Path $PSScriptRoot 'copy-anki.ps1') -BundleDirectory $output

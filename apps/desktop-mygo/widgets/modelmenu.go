@@ -168,7 +168,7 @@ func ModelField(c *ui.Context, o ModelFieldOptions) (string, bool) {
 			shown = o.Selected
 		}
 	}
-	b.Tooltip(shown)
+	b.Description(shown)
 	b.Children(func() {
 		ui.Row(c).Gap(6).AlignItems(ui.Center).Grow(1).Shrink(1).MinWidth(0).Children(func() {
 			switch {

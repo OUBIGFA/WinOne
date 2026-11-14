@@ -266,7 +266,7 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 // permanent filled face competing with vocabulary and definitions.
 func studyTextAction(c *ui.Context, label, hint string, disabled bool) ui.Element {
 	t := c.Theme()
-	b := ui.ButtonBase(c).Label(label).Tooltip(hint).Padding(4, 0).MinHeight(28).TextColor(t.TextMuted).Disabled(disabled).Cursor(ui.CursorPointer).Radius(4)
+	b := ui.ButtonBase(c).Label(label).Description(hint).Padding(4, 0).MinHeight(28).TextColor(t.TextMuted).Disabled(disabled).Cursor(ui.CursorPointer).Radius(4)
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}

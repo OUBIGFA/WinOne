@@ -11,6 +11,7 @@ type Tab struct {
 // Tabs is the first level of a page's tasks: icon and title on one line,
 // the chosen one on a neutral surface above a hairline. Each title keeps
 // one line; the group wraps when the window cannot fit all tasks in one row.
+// Visible titles identify tabs without a redundant hover tooltip.
 //
 // A new choice goes through request, which applies it at once or after
 // the user decides about unsaved changes; request nil applies it directly.
@@ -23,7 +24,7 @@ func Tabs(c *ui.Context, selected *int, tabs []Tab, request func(apply func())) 
 		for i, tab := range tabs {
 			chosen := i == *selected
 			item := parts.Tab(i).Padding(8, 12).Radius(t.Radius).Gap(8).AlignItems(ui.Center).Shrink(0).MinWidth(0).
-				Label(tab.Label).Tooltip(tab.Label)
+				Label(tab.Label).Description(tab.Label)
 			color := t.TextMuted
 			if chosen || item.Hovered() {
 				color = t.Text

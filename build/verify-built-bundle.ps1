@@ -34,7 +34,9 @@ try{
  }
  $currentVersion=(Get-Content -LiteralPath (Join-Path $root 'apps/desktop/frontend/package.json') -Raw -Encoding UTF8|ConvertFrom-Json).version
  if($currentVersion -ne $Version){throw 'Version changed during build; rebuild before packaging'}
- & node (Join-Path $root 'tests/notices/frontend.test.mjs'); CheckExit
+ # Compile-only builds check the real inventory without running its test suite.
+ if($SkipRuntimeChecks){& node (Join-Path $PSScriptRoot 'verify-frontend-notices.mjs'); CheckExit}
+ else {& node (Join-Path $root 'tests/notices/frontend.test.mjs'); CheckExit}
  & (Join-Path $PSScriptRoot 'verify-notices.ps1') -GoExe $GoExe -BundleDirectory $output
  & (Join-Path $PSScriptRoot 'verify-ocr-ai-notices.ps1') -GoExe $GoExe -BundleDirectory $output
  & (Join-Path $PSScriptRoot 'verify-result-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output

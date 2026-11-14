@@ -313,7 +313,7 @@ func (p *Panel) header(c *ui.Context, t *ui.Theme) {
 					p.Actions.Pin(p.Pinned)
 				}
 			}
-			ui.Text(c, title).FontSize(em(t, sizeLabel)).FontWeight(500).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Tooltip(title).MinWidth(0).Shrink(1).DragWindow()
+			ui.Text(c, title).FontSize(em(t, sizeLabel)).FontWeight(500).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Description(title).MinWidth(0).Shrink(1).DragWindow()
 		})
 		// The handle shows where to grab; its 28 DIP box is the cursor's area.
 		ui.Row(c).Size(iconButtonSize, iconButtonSize).Shrink(0).Justify(ui.Center).AlignItems(ui.Center).DragWindow().Cursor(ui.CursorGrab).Label(p.T("拖动结果窗", "Drag result window")).Children(func() {
@@ -321,7 +321,7 @@ func (p *Panel) header(c *ui.Context, t *ui.Theme) {
 		})
 		ui.Row(c).Grow(1).Basis(0).MinWidth(0).AlignItems(ui.Center).Justify(ui.End).Gap(6).DragWindow().Children(func() {
 			if p.Notice != "" && !p.noticeVisibility.dismissed {
-				ui.Text(c, p.Notice).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Tooltip(p.Notice).MinWidth(0).Shrink(1).DragWindow()
+				ui.Text(c, p.Notice).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Description(p.Notice).MinWidth(0).Shrink(1).DragWindow()
 			}
 			if iconButton(c, "close", p.T("关闭", "Close"), false).Clicked() && p.Actions.Close != nil {
 				p.Actions.Close()

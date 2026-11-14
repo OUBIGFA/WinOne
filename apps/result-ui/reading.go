@@ -349,12 +349,12 @@ func (p *Panel) messageIdentity(c *ui.Context, t *ui.Theme, message *Message) ui
 			p.providerImage(c, t, p.messageProviderIcon(message), 16)
 		}
 		if message.ProviderName != "" {
-			ui.Text(c, message.ProviderName).SingleLine().Ellipsis("…").Tooltip(message.ProviderName).MinWidth(0).MaxWidthPercent(40).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted)
+			ui.Text(c, message.ProviderName).SingleLine().Ellipsis("…").Description(message.ProviderName).MinWidth(0).MaxWidthPercent(40).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted)
 			if message.Model != "" {
 				ui.Text(c, "·").FontSize(em(t, sizeMeta)).TextColor(t.TextMuted).Shrink(0)
 			}
 		}
-		ui.Text(c, message.Model).SingleLine().Ellipsis("…").Tooltip(message.Model).MinWidth(0).FontSize(em(t, sizeMeta)).TextColor(t.Text).Grow(1)
+		ui.Text(c, message.Model).SingleLine().Ellipsis("…").Description(message.Model).MinWidth(0).FontSize(em(t, sizeMeta)).TextColor(t.Text).Grow(1)
 	})
 }
 
@@ -371,7 +371,7 @@ func (p *Panel) conversation(c *ui.Context, t *ui.Theme, place func(string, ui.E
 					if !c.Preferences().HighContrast {
 						color = color.Alpha(0.65)
 					}
-					ui.Icon(c, svg(message.ActionIcon)).AlignSelf(ui.Start).Size(14, 14).TextColor(color).Label(p.T("快捷操作：", "Quick action: ") + message.ActionLabel).Tooltip(message.ActionLabel)
+					ui.Icon(c, svg(message.ActionIcon)).AlignSelf(ui.Start).Size(14, 14).TextColor(color).Label(p.T("快捷操作：", "Quick action: ") + message.ActionLabel).Description(message.ActionLabel)
 				}
 				p.selectable(c, ui.Column(c).Label(p.T("用户消息气泡", "User message bubble")).Padding(10, 14).Background(tn.bubble).Radius(12), func() {
 					ui.Text(c, message.Text).FontSize(em(t, sizeBody)).LineHeight(1.5)

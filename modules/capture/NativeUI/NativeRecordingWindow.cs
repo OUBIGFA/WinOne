@@ -86,7 +86,9 @@ internal sealed class NativeRecordingWindow : Form
         // native hover timing and show one protected standard ToolTip.
         foreach (var item in new[] { pin, start, pause, stop, cancel, folder }) {
             item.MouseHover += (_, _) => {
-                if (!busy && item.Available && item.Enabled)
+                // Text commands already name their action; hover labels are
+                // reserved for buttons displaying only an icon.
+                if (!busy && item.Available && item.Enabled && item.DisplayStyle == ToolStripItemDisplayStyle.Image && item.Image is not null)
                     actionHints.Show(item.ToolTipText, actions, item.Bounds.Left, actions.Height + 4, actionHints.AutoPopDelay);
             };
             item.MouseLeave += (_, _) => actionHints.Hide(actions);

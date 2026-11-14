@@ -20,7 +20,6 @@ internal sealed class NativeToolbarControl : UserControl
     private readonly GripToolStrip actions = Row();
     private readonly ToolStrip tools = Row();
     private readonly GripToolStrip grip = Row();
-    private readonly ToolTip gripHint = new();
     private readonly ToolStripLabel gripIcon = new() { DisplayStyle = ToolStripItemDisplayStyle.Image, AutoSize = false, Size = new Size(24, 36), Margin = Padding.Empty, ImageAlign = ContentAlignment.MiddleCenter };
     private bool saveAsAvailable = true;
     private bool pinAvailable = true;
@@ -68,7 +67,7 @@ internal sealed class NativeToolbarControl : UserControl
             row.BackColor = BackColor; row.ForeColor = ForeColor;
             row.Renderer = new NativeRenderer(style, menuTheme.DrawArrow, () => overflowImage);
             var previousMenu = row.OverflowButton.DropDown;
-            var menu = new ToolStripDropDownMenu { BackColor = BackColor, ForeColor = ForeColor, Renderer = row.Renderer,
+            var menu = new ToolStripDropDownMenu { BackColor = BackColor, ForeColor = ForeColor, Renderer = row.Renderer, ShowItemToolTips = false,
                 ImageScalingSize = new Size(18, 18) };
             row.OverflowButton.DropDown = menu; previousMenu.Dispose();
             menuTheme.Apply(menu);
@@ -80,8 +79,10 @@ internal sealed class NativeToolbarControl : UserControl
                 var index = 0;
                 foreach (var original in row.Items.OfType<ToolStripButton>().Where(item => item.Placement == ToolStripItemPlacement.Overflow)) {
                     if (original.Name == "customize") continue;
+                    // Overflow entries show their command text, so only the
+                    // original icon button retains its hover tooltip.
                     var entry = new ToolStripMenuItem(original.Text, original.Image) { Enabled = original.Enabled, Checked = original.Checked,
-                        Padding = new Padding(8, 6, 8, 6), ToolTipText = original.ToolTipText, Name = original.Name, Tag = original };
+                        Padding = new Padding(8, 6, 8, 6), AutoToolTip = false, Name = original.Name, Tag = original };
                     entry.Click += (_, _) => original.PerformClick(); current.Items.Insert(index++, entry);
                 }
                 menuTheme.Apply(current);
@@ -100,7 +101,6 @@ internal sealed class NativeToolbarControl : UserControl
         grip.Renderer = new NativeRenderer(style, menuTheme.DrawArrow);
         grip.CanOverflow = false; grip.DedicatedGrip = true; grip.Cursor = Cursors.SizeAll;
         grip.AccessibleName = T("拖动工具栏", "Drag toolbar");
-        gripHint.SetToolTip(grip, T("按住拖动工具栏", "Hold to drag toolbar"));
         grip.GripMoveRequested += point => MoveRequested?.Invoke(point);
         actions.AccessibleName = T("文件与完成操作", "File and completion actions");
         tools.AccessibleName = T("标注与文字处理", "Annotation and text tools");
@@ -288,7 +288,6 @@ internal sealed class NativeToolbarControl : UserControl
     {
         if (disposing) {
             customization?.Dispose();
-            gripHint.Dispose();
             overflowImage?.Dispose(); overflowImage = null;
             var dragImage = gripIcon.Image; gripIcon.Image = null; dragImage?.Dispose();
             options.ReplaceArrow(null)?.Dispose();

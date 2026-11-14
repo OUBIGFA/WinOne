@@ -505,7 +505,7 @@ func (e *editor) keyRow(c *ui.Context, pr *provider, slot keySlot, index, count 
 				e.toggleKey(id, slotID, row, edited)
 			}
 			enabled := slot.Enabled
-			if ui.Switch(c, &enabled).Label(i18n.T("ai.enableKey", "index", index+1)).Tooltip(i18n.T("ai.enableKey", "index", index+1)).
+			if ui.Switch(c, &enabled).Label(i18n.T("ai.enableKey", "index", index+1)).Description(i18n.T("ai.enableKey", "index", index+1)).
 				Disabled(locked).Changed() {
 				p.change(id, func(t *provider) {
 					next := append([]keySlot{}, t.slots()...)

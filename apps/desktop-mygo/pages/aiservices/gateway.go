@@ -365,12 +365,12 @@ func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider,
 		ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
 			kit.TextInput(c, &g.query).Grow(1).Basis(192).MinWidth(0).Placeholder(i18n.T("gateway.searchModels")).Label(i18n.T("gateway.searchModels"))
 			ui.Row(c).Gap(4).Role(ui.RoleGroup).Label(i18n.T("ai.modelBulkActions")).Children(func() {
-				if kit.GhostButton(c, i18n.T("ai.selectAll"), nil, false).Tooltip(i18n.T("ai.modelBulkScope")).
+				if kit.GhostButton(c, i18n.T("ai.selectAll"), nil, false).Description(i18n.T("ai.modelBulkScope")).
 					Disabled(disabled || count == len(all)).Clicked() {
 					everything := append([]widgets.AISelection{}, all...)
 					g.models = &everything
 				}
-				if kit.GhostButton(c, i18n.T("ai.selectNone"), nil, false).Tooltip(i18n.T("ai.modelBulkScope")).
+				if kit.GhostButton(c, i18n.T("ai.selectNone"), nil, false).Description(i18n.T("ai.modelBulkScope")).
 					Disabled(disabled || count == 0).Clicked() {
 					g.models = &[]widgets.AISelection{}
 				}
@@ -428,7 +428,7 @@ func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider,
 				}
 			})
 		}).FillWidth().Height(g.height).Padding(8).Gap(2).Border(1, palette.Hairline).Radius(kit.PanelRadius).
-			Label(i18n.T("gateway.models")).Tooltip(i18n.T("ai.resizeModelList"))
+			Label(i18n.T("gateway.models")).Description(i18n.T("ai.resizeModelList"))
 		list.Children(func() {
 			if len(entries) == 0 {
 				kit.Help(c, i18n.T("gateway.noMatchingModels")).Padding(12)

@@ -2,7 +2,8 @@ param(
     [Parameter(Mandatory)][string]$OutputDirectory,
     [string]$CargoExe='cargo',
     [string]$TargetDirectory='dist/resources/cache/rust-recording',
-    [switch]$CheckOnly
+    [switch]$CheckOnly,
+    [switch]$SkipTests
 )
 $ErrorActionPreference='Stop'
 # Windows PowerShell treats compiler progress on stderr as NativeCommandError
@@ -43,7 +44,7 @@ try {
         Invoke-RecordingTool $cargo @('check','--locked','--all-targets','--manifest-path',$manifest,'--target-dir',$target) 'Recording compile check failed'
     }else{
         & (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -Runtime recording -CargoExe $cargo
-        Invoke-RecordingTool $cargo @('test','--release','--locked','--manifest-path',$manifest,'--target-dir',$target) 'Recording tests failed'
+        if(-not $SkipTests){Invoke-RecordingTool $cargo @('test','--release','--locked','--manifest-path',$manifest,'--target-dir',$target) 'Recording tests failed'}
         Invoke-RecordingTool $cargo @('build','--release','--locked','--manifest-path',$manifest,'--target-dir',$target,'--examples') 'Recording probe build failed'
         Invoke-RecordingTool $cargo @('build','--release','--locked','--manifest-path',$manifest,'--target-dir',$target) 'Recording library build failed'
         Copy-Item -LiteralPath (Join-Path $target 'release/winone_recording.dll') -Destination (Join-Path $output 'WinOne.Recording.dll') -Force
