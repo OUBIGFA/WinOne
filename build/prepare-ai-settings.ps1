@@ -13,6 +13,10 @@ function Set-Hook([string]$relative,[hashtable]$replacements) {
  }
  [IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$original+"`n",$utf8)
 }
+Set-Hook 'internal/catalog/live.go' @{
+ 'func LivePath(provider string) string {'='func LivePath(provider string) string { if path:=WinOneLivePaths[provider];path!=""{return path};'
+}
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/catalog_embed.go.txt') -Destination (Join-Path $SourceDirectory 'internal/catalog/winone_embed.go')
 Set-Hook 'internal/settings/settings.go' @{
  'b, err := json.MarshalIndent(s, "", "  ")'='if _,ok:=WinOneLoad();ok{s.GitHubToken="";s.OTel.Headers=nil}; b, err := json.MarshalIndent(s, "", "  ")'
  'func SetGatewayConversations(on bool) error {'='func SetGatewayConversations(on bool) error { if _,ok:=WinOneLoad();ok{return winOneSetGatewayConversations(on)};'

@@ -14,6 +14,7 @@ import (
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/shell"
 	"winone/desktopmygo/widgets"
+	"winone/internal/ai"
 )
 
 func init() {
@@ -231,10 +232,43 @@ func (p *page) changeKey(provider, slot string, key *string) {
 // vendor examples are data, never commands. It reports whether the text
 // was one; slot names the key field it was pasted into.
 func (p *page) importCurl(text string, pr *provider, slot string) bool {
-	parsed := curlOf(text)
-	if parsed == nil {
+	// Automatic cURL paste stays convenient. The explicit paste action also
+	// accepts every environment/JSON/plain form the upstream parser supports.
+	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(text)), "curl") {
 		return false
 	}
+	p.importProviderSetup(text, pr, slot)
+	return true
+}
+
+func (p *page) importProviderSetup(text string, pr *provider, slot string) {
+	id := pr.ID
+	p.modelBusy = true
+	type reply struct {
+		Parsed *curlImport `json:"parsed"`
+	}
+	core.Go(p.env, func() (reply, error) {
+		var out reply
+		err := p.env.Host.CallCompletingInto("capture.ai.models.import", map[string]string{"text": text}, &out)
+		return out, err
+	}, func(out reply, err error) {
+		p.modelBusy = false
+		if p.draft == nil || p.draft.Value.find(id) == nil {
+			return
+		}
+		if err != nil {
+			p.curl = &curlNotice{provider: id, messages: []string{err.Error()}}
+			return
+		}
+		if out.Parsed == nil {
+			p.curl = &curlNotice{provider: id, messages: []string{i18n.T("ai.setupNotRecognized")}}
+			return
+		}
+		p.applyProviderSetup(out.Parsed, p.draft.Value.find(id), slot)
+	})
+}
+
+func (p *page) applyProviderSetup(parsed *curlImport, pr *provider, slot string) {
 	var messages []string
 	id := pr.ID
 	savedOne := p.saved != nil && p.saved.Value.find(id) != nil
@@ -248,6 +282,28 @@ func (p *page) importCurl(text string, pr *provider, slot string) bool {
 				target.BaseURL = parsed.Base
 			} else {
 				messages = append(messages, i18n.T("ai.curlUnknownEndpoint"))
+			}
+			if len(parsed.Bases) > 0 {
+				if target.Endpoints == nil {
+					target.Endpoints = &ai.ProviderEndpoints{}
+				}
+				for _, base := range parsed.Bases {
+					switch base[0] {
+					case "openai":
+						target.Endpoints.Chat = base[1]
+					case "responses":
+						target.Endpoints.Responses = base[1]
+					case "anthropic":
+						target.Endpoints.Anthropic = base[1]
+					case "gemini":
+						target.Endpoints.Gemini = base[1]
+					case "decide":
+						target.Endpoints.Decide = base[1]
+					}
+				}
+			}
+			if target.Name == "" && parsed.Name != "" {
+				target.Name = parsed.Name
 			}
 			if parsed.URLHole != "" {
 				messages = append(messages, i18n.T("ai.curlReplaceAddress"))
@@ -285,7 +341,6 @@ func (p *page) importCurl(text string, pr *provider, slot string) bool {
 		p.changeKey(id, slot, &key)
 	}
 	p.curl = &curlNotice{provider: id, messages: append([]string{i18n.T("ai.curlImported")}, messages...)}
-	return true
 }
 
 // uniqueName names a connection after its type, numbering duplicates.

@@ -232,6 +232,7 @@ func awaitStartupFixture(t *testing.T, file string) startupFixture {
 }
 
 func TestStartupVisibilityClosesBehindShieldThenRestoresNativeInteraction(t *testing.T) {
+	requireNativeStartupTest(t)
 	entry, file := startupFixtureEntry(t, "normal")
 	entry.TrayBehavior.CloseDelaySeconds = 3
 	// Keep the native action trace when desktop readiness or a close fails.

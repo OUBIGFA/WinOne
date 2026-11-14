@@ -6,6 +6,8 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	"golang.org/x/sys/windows"
 	"winone/internal/ai"
 	"winone/internal/processidentity"
 )
@@ -18,6 +20,54 @@ type gatewayBackend struct {
 	cancel         context.CancelFunc
 	pendingCatalog map[string]ai.Provider
 	viewers        map[string]*gatewayViewer
+	resultOwners   map[uint32]*gatewayViewer
+}
+
+// Result windows lease the existing AI runtime for their process lifetime.
+// This preserves upstream policy state without a second Host scheduler or an
+// idle background engine after the last result and gateway owner has closed.
+func (s *aiService) resultGatewayBackend(ownerID uint32) (*ai.GatewayProcess, error) {
+	s.backend.mu.Lock()
+	defer s.backend.mu.Unlock()
+	if ownerID == 0 || s.backend.resultOwners[ownerID] != nil {
+		return s.startGatewayBackendLocked()
+	}
+	// Pin the result owner before starting its worker. A window that has
+	// already exited must never create a runtime with no remaining owner.
+	owner, err := windows.OpenProcess(windows.SYNCHRONIZE, false, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	process, err := s.startGatewayBackendLocked()
+	if err != nil {
+		windows.CloseHandle(owner)
+		return nil, err
+	}
+	ctx, cancel := context.WithCancel(s.ctx)
+	lease := &gatewayViewer{cancel: cancel}
+	if s.backend.resultOwners == nil {
+		s.backend.resultOwners = map[uint32]*gatewayViewer{}
+	}
+	s.backend.resultOwners[ownerID] = lease
+	go func() {
+		defer windows.CloseHandle(owner)
+		defer cancel()
+		for ctx.Err() == nil {
+			status, err := windows.WaitForSingleObject(owner, 200)
+			if err != nil || status == windows.WAIT_OBJECT_0 {
+				break
+			}
+		}
+		s.backend.mu.Lock()
+		defer s.backend.mu.Unlock()
+		if s.backend.resultOwners[ownerID] == lease {
+			delete(s.backend.resultOwners, ownerID)
+		}
+		if len(s.backend.resultOwners) == 0 && len(s.backend.viewers) == 0 && (s.gateway == nil || !s.gateway.Status().Running) {
+			s.closeGatewayBackendLocked()
+		}
+	}()
+	return process, nil
 }
 
 type gatewayViewer struct {
@@ -114,6 +164,17 @@ func (s *aiService) closeGatewayBackend() {
 	s.closeGatewayBackendLocked()
 }
 
+// New requests read the newly saved configuration. Existing result and public
+// gateway streams keep their old upstream snapshot until their response closes.
+func (s *aiService) retireGatewayBackend() {
+	s.backend.mu.Lock()
+	defer s.backend.mu.Unlock()
+	if process := s.backend.process; process != nil {
+		process.Retire(s.backend.cancel)
+		s.backend.process, s.backend.cancel = nil, nil
+	}
+}
+
 // Each window owns a unique lease. A late close from an old page must not
 // stop a newly opened page or a saved public gateway.
 func (s *aiService) releaseGatewayBackend(viewer string) {
@@ -127,7 +188,7 @@ func (s *aiService) releaseGatewayBackendLocked(viewer string) {
 		lease.cancel()
 	}
 	delete(s.backend.viewers, viewer)
-	if len(s.backend.viewers) == 0 && !s.gateway.Status().Running {
+	if len(s.backend.viewers) == 0 && len(s.backend.resultOwners) == 0 && (s.gateway == nil || !s.gateway.Status().Running) {
 		s.closeGatewayBackendLocked()
 	}
 }

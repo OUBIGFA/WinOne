@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"winone/desktopmygo/i18n"
 	"winone/internal/ai"
 )
 
@@ -43,6 +44,83 @@ func TestModelRefreshDropsRetiredMetadataAndSaves(t *testing.T) {
 	}
 	if _, ok := p.draft.Value.find("one").ModelMetadata["gpt-b"]; ok {
 		t.Fatal("retired model metadata survived catalog replacement")
+	}
+}
+
+// The native fetch/check/save actions cross the real Host store. Defaults
+// must stay absent after saving and reopening, including an older catalog
+// whose advertised output was larger than its window.
+func TestNativeModelSelectionSavesAndRestoresTheModelDefault(t *testing.T) {
+	f, h, p, tt := setup(t)
+	path := filepath.Join(t.TempDir(), "ai.json")
+	store, err := ai.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configuration := store.Configuration()
+	configuration.Providers = []ai.Provider{{ID: "one", Name: "Relay", AuthMode: "api-key", Protocol: "chat", BaseURL: "https://example.invalid/v1", Models: []string{}}}
+	saved, err := store.SaveConfiguration(configuration, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc document
+	raw, _ := json.Marshal(saved)
+	if err = json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	p.accept(doc)
+	h.SetHandler(func(method string, params json.RawMessage) (any, error) {
+		switch method {
+		case "capture.ai.models.fetch":
+			return map[string]any{"models": []ai.ModelOption{{ID: "vendor-model", Name: "Vendor model", Metadata: ai.ModelMetadata{ContextWindow: 128000, MaxTokens: 384000, Vision: new(true), Levels: []string{"light", "deep"}, Efforts: []string{"light", "deep"}}}}}, nil
+		case "capture.ai.configuration.save":
+			var input struct {
+				Configuration ai.Configuration `json:"configuration"`
+			}
+			if err := json.Unmarshal(params, &input); err != nil {
+				return nil, err
+			}
+			return store.SaveConfiguration(input.Configuration, nil)
+		}
+		return f.handle(method, params)
+	})
+	settle(h, tt)
+	if err = tt.Click(i18n.T("ai.fetchModels")); err != nil {
+		t.Fatal(err)
+	}
+	settle(h, tt)
+	if err = tt.Click("Vendor model"); err != nil {
+		t.Fatal(err)
+	}
+	settle(h, tt)
+	h.Env.Rail.Save.Run()
+	settle(h, tt)
+	if p.err != "" || p.dirty() {
+		t.Fatal("native selection could not save", p.err)
+	}
+	reopened, err := ai.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider, _ := reopened.Configuration().Provider("one")
+	if len(provider.Models) != 1 || provider.Models[0] != "vendor-model" || !reflect.DeepEqual(provider.ModelMetadataFor("vendor-model"), ai.ModelMetadata{}) {
+		t.Fatal("selecting a model installed overrides")
+	}
+	p.editor.models.editing = "vendor-model"
+	settle(h, tt)
+	if err = tt.Click("200K"); err != nil {
+		t.Fatal(err)
+	}
+	settle(h, tt)
+	if err = tt.Click(i18n.T("ai.modelRestoreDefaults")); err != nil {
+		t.Fatal(err)
+	}
+	settle(h, tt)
+	if got := p.draft.Value.find("one").ModelMetadata["vendor-model"].Value; got.ContextWindow != nil || got.MaxTokens != nil || got.Vision != nil {
+		t.Fatal("restore default retained a capability override")
+	}
+	if p.draft.Value.find("one").CatalogMetadata["vendor-model"].ContextWindow != 128000 {
+		t.Fatal("restore default discarded the vendor report")
 	}
 }
 

@@ -29,7 +29,6 @@ func gatewayTestService(t *testing.T) *aiService {
 	dir := t.TempDir()
 	s := newAIService(ctx, dir, filepath.Join(dir, "WinOne.Host.exe"))
 	s.translator.Executable = exe
-	s.gatewaySlots = make(chan struct{}, 4)
 	t.Cleanup(s.closeGatewayBackend)
 	return s
 }
@@ -137,12 +136,17 @@ func TestOllamaDiscoveryMatchesGatewayModelPolicy(t *testing.T) {
 	call("POST", "/api/show", `{"model":"account/gpt-5"}`, key, "", 404)
 	call("POST", "/api/show", `{}`, key, "", 400)
 	call("POST", "/api/show", `{`, key, "", 400)
-	call("POST", "/api/show", strings.Repeat(" ", (1<<20)+1), key, "", 413)
+	// The original handler reports malformed JSON; the Host no longer
+	// replaces its parser with a second one-megabyte body rule.
+	call("POST", "/api/show", strings.Repeat(" ", (1<<20)+1), key, "", 400)
 	call("POST", "/v1/chat/completions", `{"model":"two/private-model","messages":[{"role":"user","content":"hello"}]}`, key, "", 403)
 	call("POST", "/v1/chat/completions", `{"model":"one/gpt-4.1","messages":[{"role":"user","content":"hello"}]}`, key, "", 200)
 	for _, endpoint := range []string{"/api/chat", "/api/generate"} {
 		call("POST", endpoint, `{"model":"one/gpt-4.1","prompt":"hello","messages":[{"role":"user","content":"hello"}],"stream":false}`, "invalid", "", 401)
-		call("POST", endpoint, `{"model":"two/private-model","prompt":"hello","stream":false}`, key, "", 403)
+		// Ollama's empty-input load path hides unavailable models with 404;
+		// a real generation follows the gateway's ordinary 403 model policy.
+		call("POST", endpoint, `{"model":"two/private-model","stream":false}`, key, "", 404)
+		call("POST", endpoint, `{"model":"two/private-model","prompt":"hello","messages":[{"role":"user","content":"hello"}],"stream":false}`, key, "", 403)
 		raw := call("POST", endpoint, `{"model":"one/gpt-4.1","prompt":"hello","messages":[{"role":"user","content":"hello"}],"stream":false}`, key, "", 200)
 		if !strings.Contains(string(raw), "Ollama fixture") || !strings.Contains(string(raw), `"done":true`) {
 			t.Fatalf("Ollama generation lost its response: %s", raw)

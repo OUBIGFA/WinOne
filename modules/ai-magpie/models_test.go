@@ -18,6 +18,59 @@ import (
 	"testing"
 )
 
+// The provider's GUI and gateway use OutputWithin when publishing a model.
+// In particular, models.dev's output can exceed the vendor's own context.
+func TestDiscoveredModelUsesTheUpstreamPublishedOutput(t *testing.T) {
+	p := provider.Provider{ID: "fixture"}
+	m := catalog.Model{ID: "fixture-model", Context: 128000, Output: 384000}
+	got := describeModel(p, m, modelMetadata{})
+	if got.ContextWindow != 128000 || got.MaxTokens != 128000 {
+		t.Fatalf("discovered model differs from the upstream published pair: %+v", got)
+	}
+	if m.Output != 384000 {
+		t.Fatal("publishing a model changed its original request limit")
+	}
+}
+
+func TestModelSystemPromptAndKindUseUpstreamPreferences(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	t.Cleanup(func() { provider.WinOneProviders = nil; settings.WinOneSettings.Store(nil) })
+	seen := false
+	vendor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Error(err)
+		}
+		if !bytes.Contains(body, []byte("caller-instructions")) || !bytes.Contains(body, []byte("model-instructions")) {
+			t.Errorf("system prompt lost: %s", body)
+		}
+		seen = true
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}`)
+	}))
+	defer vendor.Close()
+	in := request{ProviderID: "fixture", Protocol: "chat", BaseURL: vendor.URL + "/v1", Model: "text-model", Text: "hello", System: "caller-instructions", ModelMetadata: modelMetadata{SystemPrompt: "model-instructions"}}
+	raw, _ := json.Marshal(in)
+	if text, err := run(t.Context(), bytes.NewReader(raw)); err != nil || text != "ok" || !seen {
+		t.Fatal(text, err)
+	}
+	provider.WinOneProviders[0].Models = append(provider.WinOneProviders[0].Models, "odd-media-id")
+	provider.Changed()
+	if err := installModelPreferences("fixture", "odd-media-id", modelMetadata{Kind: provider.KindVideo}); err != nil {
+		t.Fatal(err)
+	}
+	if p, err := provider.Find("fixture"); err != nil || p.ModelKind("odd-media-id") != provider.KindVideo {
+		t.Fatal("upstream video-model classification was not installed", err)
+	}
+	if err := installModelPreferences("fixture", "odd-media-id", modelMetadata{}); err != nil {
+		t.Fatal(err)
+	}
+	if settings.Load().ModelKinds["fixture/odd-media-id"] != "" {
+		t.Fatal("restoring defaults kept the media override")
+	}
+}
+
 func TestConfiguredProviderAcceptsHTTPHostsAcrossProtocols(t *testing.T) {
 	for _, endpoint := range []string{"http://relay.example:3000/v1", "http://203.0.113.7:3000/v1", "http://192.168.50.10:3000/v1", "http://[2001:db8::7]:3000/v1", "https://relay.example/v1"} {
 		for _, protocol := range []string{"chat", "responses", "anthropic", "gemini", "decide"} {
@@ -239,7 +292,7 @@ func TestPercentageMetadataIsAcceptedOnRealGenerationWithoutDroppingHistory(t *t
 		_, _ = w.Write([]byte(`{"choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"ok"}}]}`))
 	}))
 	defer server.Close()
-	in := request{Protocol: "chat", BaseURL: server.URL + "/v1", Model: "model-fixture", Messages: []conversationMessage{{Role: "user", Content: "Original history"}, {Role: "assistant", Content: "Earlier response"}, {Role: "user", Content: "Continue"}}, ModelMetadata: modelMetadata{ContextWindow: 256000, MaxTokens: 8000, CompactionPercent: 72.5, ListedContextWindow: 128000, MaxContextWindow: 1000000}}
+	in := request{Protocol: "chat", BaseURL: server.URL + "/v1", Model: "model-fixture", MaxTokens: 16000, Messages: []conversationMessage{{Role: "user", Content: "Original history"}, {Role: "assistant", Content: "Earlier response"}, {Role: "user", Content: "Continue"}}, ModelMetadata: modelMetadata{ContextWindow: 256000, MaxTokens: 8000, CompactionPercent: 72.5, ListedContextWindow: 128000, MaxContextWindow: 1000000}}
 	encoded, _ := json.Marshal(in)
 	if result, err := run(context.Background(), strings.NewReader(string(encoded))); err != nil || result != "ok" {
 		t.Fatal(result, err)
@@ -313,27 +366,6 @@ func TestConfiguredModelDiscoveryUsesMagpieAndPreservesManualFallback(t *testing
 	}
 }
 
-// Regression for Our Free Model's MiMo V2.5 (light/balanced/deep): levels
-// stay the vendor's words and only the offered ones are narrowed, as
-// upstream setModelEfforts/effortsKept keep them.
-func TestKeptReasoningLevelsFollowUpstreamSemantics(t *testing.T) {
-	vendor := []string{"light", "balanced", "deep"}
-	for name, value := range map[string]struct {
-		levels, offered, want []string
-	}{
-		"all offered":      {vendor, []string{"deep", "light", "balanced"}, nil},
-		"narrowed":         {vendor, []string{" Deep", "light", "light"}, []string{"light", "deep"}},
-		"stale only":       {vendor, []string{"high"}, nil},
-		"none offered":     {vendor, nil, nil},
-		"unknown levels":   {nil, []string{"max", "low", "ultra"}, []string{"low", "max"}},
-		"unknown all kept": {nil, []string{"invented"}, nil},
-	} {
-		if got := keptReasoningLevels(value.levels, value.offered); !slices.Equal(got, value.want) {
-			t.Errorf("%s: kept %v, want %v", name, got, value.want)
-		}
-	}
-}
-
 func TestDescribedModelKeepsVendorLevelsAndReasonlessUsesUpstream(t *testing.T) {
 	metadata := describeModel(provider.Provider{ID: "winone"}, catalog.Model{ID: "mimo-v2.5-free", Efforts: []string{"light", "balanced", "deep"}}, modelMetadata{})
 	if !slices.Equal(metadata.Levels, []string{"light", "balanced", "deep"}) || !slices.Equal(metadata.Efforts, metadata.Levels) || metadata.Reasoning == nil || !*metadata.Reasoning {
@@ -346,15 +378,8 @@ func TestDescribedModelKeepsVendorLevelsAndReasonlessUsesUpstream(t *testing.T) 
 		t.Fatal(err)
 	}
 	s := settings.Load()
-	if !s.ModelReasonless["winone/mimo-v2.5-free"] || !slices.Equal(s.ModelEfforts["winone/mimo-v2.5-free"], []string{"deep"}) {
+	if !s.ModelReasonless["winone/mimo-v2.5-free"] || s.ModelEfforts["winone/mimo-v2.5-free"] != nil {
 		t.Fatalf("upstream preferences not installed: reasonless=%v efforts=%v", s.ModelReasonless, s.ModelEfforts)
-	}
-	// No reasoning is the gateway's reasonless model, not an invented "none"
-	// level that a light/balanced/deep vendor would fit to its nearest level.
-	body := map[string]any{"reasoning_effort": "high"}
-	applyModelMetadata(body, "/v1/chat/completions", modelMetadata{ReasoningEffort: "deep", Reasoning: &off})
-	if body["reasoning_effort"] != "high" {
-		t.Fatalf("reasonless model rewrote the effort: %v", body)
 	}
 	if err := installModelPreferences("winone", "mimo-v2.5-free", modelMetadata{Levels: metadata.Levels, Efforts: metadata.Levels}); err != nil {
 		t.Fatal(err)

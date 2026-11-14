@@ -12,7 +12,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"time"
 	"unsafe"
 	"winone/internal/settings"
 )
@@ -26,8 +25,6 @@ type Store struct {
 	keys            map[string]string
 	credentialKeys  map[string]map[string]string
 	providerSecrets map[string]map[string]string
-	keyRounds       map[string]*keyRound
-	now             func() time.Time
 }
 type stored struct {
 	SchemaVersion            int                          `json:"schemaVersion,omitempty"`

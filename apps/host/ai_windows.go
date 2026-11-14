@@ -48,7 +48,6 @@ type aiService struct {
 	avatarUploads     map[string]*avatarUpload
 	gateway           *ai.Gateway
 	gatewayGuard      func() (func(), bool)
-	gatewaySlots      chan struct{}
 	mu                sync.Mutex
 	store             *ai.Store
 	storePath         string
@@ -78,7 +77,6 @@ func newAIService(ctx context.Context, directory, executable string) *aiService 
 	return engine
 }
 func bindAIService(service *host.Service, engine *aiService) {
-	engine.gatewaySlots = make(chan struct{}, 4)
 	engine.initGateway()
 	status := func() host.Module { return host.Module{ID: "ai", State: "ready"} }
 	service.RegisterModule("ai", status, engine.handle)
@@ -87,6 +85,19 @@ func bindAIService(service *host.Service, engine *aiService) {
 	service.RegisterModule("capture.ai", status, engine.handle)
 }
 func (s *aiService) handle(r host.Request) host.Response {
+	if r.Method == "models.import" {
+		var input struct {
+			Text string `json:"text"`
+		}
+		if err := configjson.DecodeObject(r.Params, &input); err != nil {
+			return host.Response{ID: r.ID, Error: &host.RPCError{Code: "ai", Message: err.Error()}}
+		}
+		output, err := s.translator.ImportProviderSetup(s.ctx, input.Text)
+		if err != nil {
+			return host.Response{ID: r.ID, Error: &host.RPCError{Code: "ai", Message: err.Error()}}
+		}
+		return host.Response{ID: r.ID, Result: output}
+	}
 	if r.Method == "models.test" {
 		return s.handleModelTest(r)
 	}
@@ -230,7 +241,7 @@ func (s *aiService) handle(r host.Request) host.Response {
 		}
 		s.updateModelRefresh()
 		s.refreshLocalOCRStandby()
-		s.closeGatewayBackend()
+		s.retireGatewayBackend()
 		return result(saved)
 	case "settings.get":
 		return result(s.store.Snapshot())
@@ -263,9 +274,6 @@ func (s *aiService) handle(r host.Request) host.Response {
 		}
 		if err := configjson.DecodeObject(r.Params, &p); err != nil {
 			return fail(err)
-		}
-		if len(p.Text) > 100000 {
-			return fail(errors.New("翻译文字过长"))
 		}
 		if p.Session != "" {
 			if s.resultSessions == nil {
@@ -344,6 +352,7 @@ func (s *aiService) handle(r host.Request) host.Response {
 		if _, err = rand.Read(bytes[:]); err != nil {
 			return fail(err)
 		}
+		usesModel := r.Method == "generate.start" || r.Method == "recognize.start" && preferences.OCREngine == "ai" || r.Method == "translate.start" && preferences.Engine == "llm"
 		s.mu.Lock()
 		// A window may close while its input is being prepared. Serialize
 		// this final check with job insertion and session cancellation.
@@ -361,7 +370,9 @@ func (s *aiService) handle(r host.Request) host.Response {
 				delete(s.jobs, id)
 			}
 		}
-		if running >= 4 || len(s.jobs) >= 32 {
+		// Magpie owns model admission, including provider concurrency and its
+		// queue. The unrelated local OCR/translation backends keep their guard.
+		if !usesModel && (running >= 4 || len(s.jobs) >= 32) {
 			s.mu.Unlock()
 			return fail(errors.New("翻译任务较多，请等待当前任务完成"))
 		}
@@ -369,7 +380,6 @@ func (s *aiService) handle(r host.Request) host.Response {
 		job := &aiJob{ID: hex.EncodeToString(bytes[:]), State: "running", owner: r.PeerPID, cancel: cancel, session: p.Session, settled: ctx.Done()}
 		// Keep the routing snapshot, including its display name, even if settings
 		// change before the reply arrives or later conversation uses another model.
-		usesModel := r.Method == "generate.start" || r.Method == "recognize.start" && preferences.OCREngine == "ai" || r.Method == "translate.start" && preferences.Engine == "llm"
 		if usesModel {
 			job.Model = preferences.Model
 			job.Provider = preferences.ProviderID
@@ -405,6 +415,13 @@ func (s *aiService) handle(r host.Request) host.Response {
 			run := func(callCtx context.Context, key string) (string, error) {
 				progress := func(delta ai.Delta) error { emitted = true; return s.appendDelta(job, callCtx, delta) }
 				runtime := s.translator
+				if usesModel {
+					upstream, err := s.resultGatewayBackend(r.PeerPID)
+					if err != nil {
+						return "", err
+					}
+					runtime.RuntimeRequest = upstream.Generate
+				}
 				if preferences.AuthMode == "account" {
 					runtime = runtime.ForProvider(preferences.ProviderID)
 				}
@@ -418,22 +435,11 @@ func (s *aiService) handle(r host.Request) host.Response {
 			}
 			var text string
 			var err error
-			if usesModel && preferences.AuthMode == "account" {
-				gate := s.accountGateFor(preferences.ProviderID)
-				select {
-				case gate <- struct{}{}:
-					text, err = run(ctx, "")
-					<-gate
-				default:
-					err = errors.New("账号正在登录或使用，请完成后重试")
-				}
-			} else {
-				err = s.store.WithKeys(ctx, keyPlan, func(callCtx context.Context, key string) (bool, error) {
-					var failure error
-					text, failure = run(callCtx, key)
-					return emitted, failure
-				})
-			}
+			err = s.store.WithKeys(ctx, keyPlan, func(callCtx context.Context, key string) (bool, error) {
+				var failure error
+				text, failure = run(callCtx, key)
+				return emitted, failure
+			})
 			s.mu.Lock()
 			defer s.mu.Unlock()
 			if s.jobs[job.ID] != job {

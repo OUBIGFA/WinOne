@@ -40,7 +40,6 @@ func TestGatewayRoutesFullProtocolThroughMagpie(t *testing.T) {
 	defer cancel()
 	s := newAIService(ctx, t.TempDir(), filepath.Join(t.TempDir(), "WinOne.Host.exe"))
 	s.translator.Executable = executable
-	s.gatewaySlots = make(chan struct{}, 4)
 	s.initGateway()
 	s.store, _ = ai.Open(s.storePath)
 	config := s.store.Configuration()

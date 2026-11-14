@@ -26,13 +26,77 @@ type GatewayProcess struct {
 	process       *aiProcess
 	stopAuxiliary func()
 	once          sync.Once
+	requests      sync.Mutex
+	active        int
+	retiring      bool
+	retireCancel  context.CancelFunc
 }
 
 func (r *GatewayProcess) Close() {
 	if r == nil {
 		return
 	}
-	r.once.Do(func() { r.process.input.Close(); r.process.closeJob(); <-r.process.finished; r.stopAuxiliary() })
+	r.once.Do(func() {
+		r.requests.Lock()
+		r.retiring = true
+		r.requests.Unlock()
+		r.process.input.Close()
+		r.process.closeJob()
+		<-r.process.finished
+		r.stopAuxiliary()
+		r.requests.Lock()
+		cancel := r.retireCancel
+		r.requests.Unlock()
+		if cancel != nil {
+			cancel()
+		}
+	})
+}
+
+// Retire replaces a saved runtime without cutting off its current replies.
+// It admits no new calls, and releases its process and owner context when the
+// last response closes. This tracks transport lifetime, not provider policy.
+func (r *GatewayProcess) Retire(cancel context.CancelFunc) {
+	r.requests.Lock()
+	r.retiring, r.retireCancel = true, cancel
+	idle := r.active == 0
+	r.requests.Unlock()
+	if idle {
+		r.Close()
+	}
+}
+
+func (r *GatewayProcess) beginRequest() (func(), error) {
+	r.requests.Lock()
+	if r.retiring {
+		r.requests.Unlock()
+		return nil, errors.New("AI 服务配置已更新，请重试")
+	}
+	r.active++
+	r.requests.Unlock()
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			r.requests.Lock()
+			r.active--
+			close := r.retiring && r.active == 0
+			r.requests.Unlock()
+			if close {
+				r.Close()
+			}
+		})
+	}, nil
+}
+
+type gatewayResponse struct {
+	io.ReadCloser
+	release func()
+}
+
+func (r *gatewayResponse) Close() error {
+	err := r.ReadCloser.Close()
+	r.release()
+	return err
 }
 
 // A terminated worker is never reused by the Host's cached gateway session.
@@ -52,6 +116,41 @@ func (r *GatewayProcess) Alive() bool {
 // forwards management paths or this capability.
 func (r *GatewayProcess) AdminURL() string {
 	return r.URL + "/session/" + url.PathEscape(r.Key) + "/"
+}
+
+// Generate uses the same authenticated upstream Server as the gateway. The
+// caller owns cancellation and consumes the common NDJSON stream reader.
+func (r *GatewayProcess) Generate(ctx context.Context, input map[string]any) (io.ReadCloser, error) {
+	release, err := r.beginRequest()
+	if err != nil {
+		return nil, err
+	}
+	stream := false
+	defer func() {
+		if !stream {
+			release()
+		}
+	}()
+	body, err := json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.URL+"/api/winone/generate", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+r.Key)
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode != http.StatusOK {
+		response.Body.Close()
+		return nil, errors.New("AI 服务未能接受请求")
+	}
+	stream = true
+	return &gatewayResponse{ReadCloser: response.Body, release: release}, nil
 }
 
 // SyncCatalog preserves in-flight gateway calls and the call history.
@@ -88,6 +187,12 @@ func (r *GatewayProcess) ServeMedia(w http.ResponseWriter, request *http.Request
 }
 
 func (r *GatewayProcess) ServeHTTP(w http.ResponseWriter, request *http.Request) {
+	release, err := r.beginRequest()
+	if err != nil {
+		GatewayError(w, 503, err.Error())
+		return
+	}
+	defer release()
 	target, err := url.Parse(r.URL + request.URL.RequestURI())
 	if err != nil {
 		GatewayError(w, 502, "网关地址无效")

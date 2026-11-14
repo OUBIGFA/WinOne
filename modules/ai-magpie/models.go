@@ -41,6 +41,8 @@ type modelMetadata struct {
 	Same         string            `json:"same,omitempty"`
 	UpstreamName string            `json:"upstreamName,omitempty"`
 	API          string            `json:"api,omitempty"`
+	Kind         string            `json:"kind,omitempty"`
+	SystemPrompt string            `json:"systemPrompt,omitempty"`
 	Headers      map[string]string `json:"headers,omitempty"`
 	// Levels are the vendor's reported reasoning levels; Efforts the offered
 	// (kept) ones. Both are the vendor's own words, never a fixed ladder.
@@ -94,7 +96,7 @@ func describeModel(p provider.Provider, model catalog.Model, override modelMetad
 	if threshold == 0 && override.CompactionPercent <= 0 && override.CompactionThreshold <= 0 {
 		threshold = model.Compact
 	}
-	metadata := modelMetadata{Searches: model.WebSearch == "native", Levels: slices.Clone(model.Efforts), Efforts: slices.Clone(model.Efforts), Tiers: model.Tiers, Price: model.Price, Rate: model.Rate, RateWas: model.RateWas, ContextWindow: window, ListedContextWindow: provider.ListedWindow(model), MaxContextWindow: model.MaxContext, MaxTokens: p.ReplyLimitIn(model, snapshot), CompactionThreshold: threshold, CompactionPercent: override.CompactionPercent, Vision: model.ImageInput}
+	metadata := modelMetadata{Searches: model.WebSearch == "native", Levels: slices.Clone(model.Efforts), Efforts: slices.Clone(model.Efforts), Tiers: model.Tiers, Price: model.Price, Rate: model.Rate, RateWas: model.RateWas, ContextWindow: window, ListedContextWindow: provider.ListedWindow(model), MaxContextWindow: model.MaxContext, MaxTokens: provider.OutputWithin(window, p.ReplyLimitIn(model, snapshot)), CompactionThreshold: threshold, CompactionPercent: override.CompactionPercent, Vision: model.ImageInput}
 	if model.Reasoning || len(model.Efforts) > 0 {
 		yes := true
 		metadata.Reasoning = &yes
@@ -104,93 +106,6 @@ func describeModel(p provider.Provider, model catalog.Model, override modelMetad
 		metadata.Vision = &yes
 	}
 	return metadata
-}
-
-// Apply choices to the incoming protocol, then let Magpie translate them for
-// the configured vendor. Explicit smaller client output limits stay smaller.
-func applyModelMetadata(body map[string]any, path string, m modelMetadata) {
-	output := "max_completion_tokens"
-	if strings.Contains(path, "responses") {
-		output = "max_output_tokens"
-	} else if strings.Contains(path, "messages") {
-		output = "max_tokens"
-	}
-	if m.MaxTokens > 0 {
-		limit := m.MaxTokens
-		for _, key := range []string{output, "max_tokens"} {
-			if value, ok := body[key].(float64); ok && value > 0 && value < float64(limit) {
-				limit = int(value)
-			}
-		}
-		body[output] = limit
-		if output == "max_completion_tokens" {
-			delete(body, "max_tokens")
-		}
-	}
-	// A model the user said takes no reasoning is Magpie's reasonless model
-	// (installModelPreferences): the gateway then sends no reasoning field on
-	// any API. Writing "none" here instead asked vendors whose levels lack it
-	// for their nearest level, so "no reasoning" still reasoned.
-	effort := m.ReasoningEffort
-	if m.Reasoning != nil && !*m.Reasoning {
-		effort = ""
-	}
-	if effort != "" {
-		if strings.Contains(path, "responses") {
-			reasoning, _ := body["reasoning"].(map[string]any)
-			if reasoning == nil {
-				reasoning = map[string]any{}
-			}
-			reasoning["effort"] = effort
-			body["reasoning"] = reasoning
-		} else if strings.Contains(path, "messages") {
-			if effort == "none" {
-				body["thinking"] = map[string]any{"type": "disabled"}
-				delete(body, "output_config")
-			} else {
-				body["thinking"] = map[string]any{"type": "adaptive"}
-				config, _ := body["output_config"].(map[string]any)
-				if config == nil {
-					config = map[string]any{}
-				}
-				config["effort"] = effort
-				body["output_config"] = config
-			}
-		} else {
-			body["reasoning_effort"] = effort
-		}
-	}
-	if m.Tier != "" {
-		body["service_tier"] = m.Tier
-	}
-}
-
-func applyRawModelMetadata(body map[string]json.RawMessage, path string, m modelMetadata) error {
-	encoded, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-	var decoded map[string]any
-	if err = json.Unmarshal(encoded, &decoded); err != nil {
-		return err
-	}
-	if m.Tools != nil && !*m.Tools {
-		if tools, ok := decoded["tools"].([]any); ok && len(tools) > 0 {
-			return errors.New("this model has tool calling disabled")
-		}
-	}
-	applyModelMetadata(decoded, path, m)
-	for _, key := range []string{"max_completion_tokens", "max_output_tokens", "max_tokens", "reasoning_effort", "reasoning", "thinking", "output_config", "service_tier"} {
-		if value, ok := decoded[key]; ok {
-			body[key], err = json.Marshal(value)
-			if err != nil {
-				return err
-			}
-		} else {
-			delete(body, key)
-		}
-	}
-	return nil
 }
 
 // Generation and discovery use the same magpie provider and endpoint checks.
@@ -254,6 +169,16 @@ func configuredProvider(in request) (provider.Provider, error) {
 	if err := applyProviderPreferences(&p, in); err != nil {
 		return p, err
 	}
+	if in.Model != "" && in.ModelMetadata.ContextWindow > 0 {
+		if p.Contexts == nil {
+			p.Contexts = map[string]int{}
+		}
+		p.Contexts[in.Model] = in.ModelMetadata.ContextWindow
+	}
+	p.MaxRPM, p.QueueLimit, p.QueueWait = in.RequestLimits.MaxRPM, in.RequestLimits.QueueLimit, in.RequestLimits.QueueWait
+	if in.RequestLimits.MaxConcurrency != nil {
+		p.MaxConcurrency = in.RequestLimits.MaxConcurrency
+	}
 	if in.ProviderPreferences != nil && in.ProviderPreferences.Endpoints != nil {
 		e := in.ProviderPreferences.Endpoints
 		p.Chat, p.Responses, p.Anthropic, p.Gemini, p.Decide = e.Chat, e.Responses, e.Anthropic, e.Gemini, e.Decide
@@ -278,6 +203,50 @@ func configuredProvider(in request) (provider.Provider, error) {
 		if rate, ok := p.KeyPriceRates[in.KeyID]; ok {
 			p.KeyPriceRates = map[string]float64{fingerprint: rate}
 		}
+	}
+	if len(in.Keys) > 0 {
+		// The upstream provider receives the whole enabled key set. Its own
+		// selection, weights, protocol support, budgets and failover all apply.
+		p.Keys = nil
+		caps, balances, rates := p.KeySpendCaps, p.KeyOwnBalances, p.KeyPriceRates
+		if in.ProviderPreferences != nil {
+			caps, balances, rates = nil, nil, nil
+		}
+		for i, key := range in.Keys {
+			if i == 0 {
+				p.Key, p.KeyName, p.KeyProtocol, p.KeyWeight = key.Key, key.Name, key.Protocol, key.Weight
+				if key.Plan != "" {
+					p.KeyPlan = key.Plan
+				}
+			} else {
+				p.Keys = append(p.Keys, key.KeyAccount)
+			}
+			if options := in.ProviderPreferences; options != nil {
+				fingerprint := provider.KeyID(key.Key)
+				if v, ok := options.KeySpendCaps[key.ID]; ok {
+					if caps == nil {
+						caps = map[string]provider.SpendCap{}
+					}
+					caps[fingerprint] = provider.SpendCap(v)
+				}
+				if v, ok := options.KeyOwnBalances[key.ID]; ok {
+					if balances == nil {
+						balances = map[string]provider.OwnBalance{}
+					}
+					encoded, _ := json.Marshal(v)
+					var balance provider.OwnBalance
+					_ = json.Unmarshal(encoded, &balance)
+					balances[fingerprint] = balance
+				}
+				if v, ok := options.KeyPriceRates[key.ID]; ok {
+					if rates == nil {
+						rates = map[string]float64{}
+					}
+					rates[fingerprint] = v
+				}
+			}
+		}
+		p.KeySpendCaps, p.KeyOwnBalances, p.KeyPriceRates = caps, balances, rates
 	}
 	// Magpie applies these after protocol authentication, preserving names and
 	// merging list-valued headers through the same path as its provider editor.
@@ -369,6 +338,19 @@ func fetchModels(ctx context.Context, in request) ([]modelOption, error) {
 			return nil, failure
 		}
 		return nil, errors.New("model discovery failed; models can be entered manually")
+	}
+	// Fetch returns chat models; its original live catalog also retains image,
+	// video, audio, embedding and rerank models. Keep the entire upstream list
+	// available for the matching gateway APIs instead of losing those entries.
+	if full, ok := catalog.LiveAll(p.ID); ok && p.Account == nil {
+		models = full
+	}
+	if p.Account != nil && in.ProviderID != "" && len(models) > 0 {
+		// Account providers own private profiles. The outer gateway reads this
+		// upstream-format snapshot without opening or copying account secrets.
+		if err := catalog.SaveLive(in.ProviderID, "", models); err != nil {
+			return nil, err
+		}
 	}
 	if len(models) > maximumCatalogModels {
 		return nil, errors.New("model catalog is too large")

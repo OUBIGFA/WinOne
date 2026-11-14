@@ -13,11 +13,12 @@ import (
 func (e *editor) billingPreferences(c *ui.Context, pr *provider, locked bool) {
 	s := &pr.ProviderPreferences
 	kit.Group(c, nil, i18n.T("ai.requestLimits"), i18n.T("ai.requestLimitsHint"), func() {
+		numberRow(c, i18n.T("ai.maxConcurrency"), pr.MaxConcurrency, 0, 1000, true, i18n.T("aiOptions.default"), locked, func(v *float64) { pr.MaxConcurrency = v })
 		for _, field := range []struct {
 			key string
 			v   *float64
 			max float64
-		}{{"maxConcurrency", &pr.MaxConcurrency, 1000}, {"maxRPM", &pr.MaxRPM, 10000}, {"queueLimit", &pr.QueueLimit, 10000}, {"queueWait", &pr.QueueWait, 3600}} {
+		}{{"maxRPM", &pr.MaxRPM, 10000}, {"queueLimit", &pr.QueueLimit, 10000}, {"queueWait", &pr.QueueWait, 3600}} {
 			numberRow(c, i18n.T("ai."+field.key), field.v, 0, field.max, true, i18n.T("ai.noRequestLimit"), locked, func(v *float64) { *field.v = value(v) })
 		}
 		var max *float64
@@ -43,6 +44,7 @@ func (e *editor) billingPreferences(c *ui.Context, pr *provider, locked bool) {
 		kit.Stack(c, "", i18n.T("aiComplete.quotaResetAtHint"), func() { nativeText(c, i18n.T("aiComplete.quotaResetAt"), &s.QuotaResetAt, locked) })
 	})
 	kit.Group(c, nil, i18n.T("aiOptions.price"), "", func() {
+		nativeSelect(c, i18n.T("ai.billingKind"), &s.Billing, options("", i18n.T("ai.automatic"), "plan", i18n.T("ai.billingPlan"), "payg", i18n.T("ai.billingPAYG")), locked)
 		var rate *float64
 		if s.PriceRate != 0 {
 			rate = &s.PriceRate

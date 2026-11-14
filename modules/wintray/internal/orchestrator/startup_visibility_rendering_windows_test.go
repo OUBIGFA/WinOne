@@ -66,6 +66,7 @@ func TestStartupVisibilityPreservesDCBackedRendering(t *testing.T) {
 }
 
 func TestDCBackedLaunchPreservesNativeTrayRestore(t *testing.T) {
+	requireNativeStartupTest(t)
 	for _, mode := range []string{"own-dc", "class-dc"} {
 		for _, manual := range []bool{false, true} {
 			name := mode + "/automatic"
@@ -103,6 +104,15 @@ func TestDCBackedLaunchPreservesNativeTrayRestore(t *testing.T) {
 				assertDCBackedRendering(t, state)
 			})
 		}
+	}
+}
+
+// These complete startup flows activate real native windows. Ordinary source
+// checks run on an inactive private desktop; foreground checks are opt-in.
+func requireNativeStartupTest(t *testing.T) {
+	t.Helper()
+	if os.Getenv("WINTRAY_STARTUP_NATIVE_TEST") != "1" {
+		t.Skip("set WINTRAY_STARTUP_NATIVE_TEST=1 for explicitly authorized foreground startup checks")
 	}
 }
 

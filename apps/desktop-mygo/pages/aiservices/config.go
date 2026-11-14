@@ -34,8 +34,6 @@ type keyPolicy struct {
 	CooldownSeconds float64 `json:"cooldownSeconds"`
 }
 
-var defaultPolicy = keyPolicy{Strategy: "round-robin", Failover: true, MaxAttempts: 3, CooldownSeconds: 60}
-
 // priceParts are a model price's fields in dollars per million tokens, as
 // Magpie's Names & levels keeps them.
 type priceParts struct {
@@ -80,6 +78,8 @@ type modelMetadata struct {
 	Same                *string                     `json:"same,omitempty"`
 	UpstreamName        *string                     `json:"upstreamName,omitempty"`
 	API                 *string                     `json:"api,omitempty"`
+	Kind                *string                     `json:"kind,omitempty"`
+	SystemPrompt        *string                     `json:"systemPrompt,omitempty"`
 	Headers             map[string]string           `json:"headers,omitempty"`
 	Levels              *[]string                   `json:"levels,omitempty"`
 	Efforts             *[]string                   `json:"efforts,omitempty"`
@@ -92,12 +92,13 @@ type metadata = core.Preserved[modelMetadata]
 // provider is one AI service: a custom API connection ("api-key") or an
 // agent account ("account").
 type provider struct {
-	CatalogModels     []string                    `json:"catalogModels"`
-	CatalogNames      map[string]string           `json:"catalogNames,omitempty"`
-	ManualModels      []string                    `json:"manualModels,omitempty"`
-	CatalogMetadata   map[string]ai.ModelMetadata `json:"catalogMetadata,omitempty"`
-	ModelRefreshAt    time.Time                   `json:"modelRefreshAt,omitempty"`
-	ModelRefreshError string                      `json:"modelRefreshError,omitempty"`
+	ModelDefaultsSeparated bool                        `json:"modelDefaultsSeparated,omitempty"`
+	CatalogModels          []string                    `json:"catalogModels"`
+	CatalogNames           map[string]string           `json:"catalogNames,omitempty"`
+	ManualModels           []string                    `json:"manualModels,omitempty"`
+	CatalogMetadata        map[string]ai.ModelMetadata `json:"catalogMetadata,omitempty"`
+	ModelRefreshAt         time.Time                   `json:"modelRefreshAt,omitempty"`
+	ModelRefreshError      string                      `json:"modelRefreshError,omitempty"`
 	ai.ProviderPreferences
 	ID              string              `json:"id"`
 	Name            string              `json:"name"`
@@ -115,7 +116,7 @@ type provider struct {
 	ModelFree       map[string]bool     `json:"modelFree,omitempty"`
 	ModelMetadata   map[string]metadata `json:"modelMetadata,omitempty"`
 	MaxRPM          float64             `json:"maxRPM,omitempty"`
-	MaxConcurrency  float64             `json:"maxConcurrency,omitempty"`
+	MaxConcurrency  *float64            `json:"maxConcurrency,omitempty"`
 	QueueLimit      float64             `json:"queueLimit,omitempty"`
 	QueueWait       float64             `json:"queueWait,omitempty"`
 	HasKey          bool                `json:"hasKey"`
@@ -167,13 +168,6 @@ func (p *provider) slots() []keySlot {
 		return *p.Keys
 	}
 	return []keySlot{{ID: "primary", Enabled: true, HasKey: p.HasKey}}
-}
-
-func (p *provider) policy() keyPolicy {
-	if p.KeyPolicy != nil {
-		return *p.KeyPolicy
-	}
-	return defaultPolicy
 }
 
 // Account execution mode belongs to account-provider setup. Other former
@@ -268,12 +262,24 @@ func (p *provider) picker() widgets.AIProvider {
 	if p.AvailableModels != nil {
 		out.AvailableModels = *p.AvailableModels
 	}
+	out.ModelMetadata = make(map[string]widgets.AIModelMetadata, len(p.CatalogMetadata)+len(p.ModelMetadata))
+	for id, report := range p.CatalogMetadata {
+		out.ModelMetadata[id] = widgets.AIModelMetadata{Rate: report.Rate, RateWas: report.RateWas,
+			ContextWindow: ptr(float64(report.ContextWindow)), ListedContextWindow: ptr(float64(report.ListedContextWindow))}
+	}
 	if len(p.ModelMetadata) > 0 {
-		out.ModelMetadata = make(map[string]widgets.AIModelMetadata, len(p.ModelMetadata))
 		for id, m := range p.ModelMetadata {
 			v := m.Value
-			out.ModelMetadata[id] = widgets.AIModelMetadata{Rate: value(v.Rate), RateWas: value(v.RateWas),
-				ContextWindow: v.ContextWindow, ListedContextWindow: v.ListedContextWindow}
+			shown := out.ModelMetadata[id]
+			if v.ContextWindow != nil && *v.ContextWindow > 0 {
+				shown.ContextWindow = v.ContextWindow
+			}
+			// Report-only fields remain readable in a configuration predating
+			// the separate catalog, without installing a request override.
+			if _, known := p.CatalogMetadata[id]; !known {
+				shown.Rate, shown.RateWas, shown.ListedContextWindow = value(v.Rate), value(v.RateWas), v.ListedContextWindow
+			}
+			out.ModelMetadata[id] = shown
 		}
 	}
 	return out

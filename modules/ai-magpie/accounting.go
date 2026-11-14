@@ -5,6 +5,7 @@ import (
 	"github.com/yetone/magpie/internal/budget"
 	"github.com/yetone/magpie/internal/gateway"
 	"github.com/yetone/magpie/internal/gwbudget"
+	"github.com/yetone/magpie/internal/routes"
 	"github.com/yetone/magpie/internal/usage"
 	"os"
 	"path/filepath"
@@ -12,7 +13,19 @@ import (
 
 // Key limits remain part of the local gateway. Use the upstream core limiter
 // directly, without registering a plugin manager or its background services.
-func serveGatewayLimits() func() { return gwbudget.Limit(budget.Limiter{}) }
+func serveGatewayLimits() func() {
+	stops := []func(){gwbudget.Limit(budget.Limiter{})}
+	// The same registrations as upstream plugins/rotation. Provider strategies
+	// are execution dependencies, independent of the removed plugin manager.
+	for name, strategy := range routes.Builtin {
+		stops = append(stops, routes.Register(name, strategy))
+	}
+	return func() {
+		for i := len(stops) - 1; i >= 0; i-- {
+			stops[i]()
+		}
+	}
+}
 
 // The private ledger is required by named-key budgets and provider spending
 // caps. It exposes no independent usage service, exports or prompt archives.

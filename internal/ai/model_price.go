@@ -54,6 +54,9 @@ func validVendorLevels(values []string) bool {
 }
 
 func (m ModelMetadata) validateExtended() error {
+	if len(strings.TrimSpace(m.SystemPrompt)) > 64<<10 || strings.ContainsRune(m.SystemPrompt, 0) {
+		return errors.New("模型系统提示词最多为 64 KiB，且不能包含空字符")
+	}
 	if len(m.Alias) > 256 || strings.ContainsRune(m.Alias, '*') || strings.IndexFunc(m.Alias, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }) >= 0 || strings.HasPrefix(m.Alias, "-") || strings.HasPrefix(m.Alias, "group/") {
 		return errors.New("模型别名无效")
 	}

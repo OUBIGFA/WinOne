@@ -49,7 +49,10 @@ func (t Translator) TestModels(ctx context.Context, p Provider, key string, mode
 	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
 	input := map[string]any{"operation": "models.test", "protocol": p.Protocol, "baseUrl": p.BaseURL, "key": key, "headers": p.Headers, "preset": p.Preset, "presetRegion": p.PresetRegion, "testModels": models, "testClient": client, "limitRestOff": p.LimitRestOff, "additionalTools": p.AdditionalTools, "providerPreferences": p.ProviderPreferences, "modelPreferences": p.ModelMetadata, "magpieSettings": prefs}
+	input["providerId"] = p.ID
 	input["keyID"], input["keyOptions"] = credentialRequestOptions(ctx)
+	input["keys"] = credentialRequestKeys(ctx)
+	input["requestLimits"] = p.RequestLimits
 	if p.AuthMode == "account" {
 		t.AccountBackend = p.AgentBackend
 		input["agent"] = p.Agent

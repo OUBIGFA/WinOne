@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/yetone/magpie/internal/catalog"
 	"github.com/yetone/magpie/internal/gateway"
 	"github.com/yetone/magpie/internal/pluginrt"
 	"github.com/yetone/magpie/internal/provider"
@@ -21,6 +22,7 @@ import (
 // Accept only the settings that still have an owner in WinOne. Old profile
 // switches cannot revive routes, extensions, collection or model downloads.
 func applyRuntimeSettings(in request) error {
+	catalog.WinOneLivePaths = nil
 	provider.WinOneResetSearchModels()
 	gateway.WinOneTransportOnly = os.Getenv("WINONE_AI_TRANSPORT_ONLY") == "1"
 	var retained struct {
@@ -48,6 +50,11 @@ func applyRuntimeSettings(in request) error {
 // The worker must outlive both the drawing and the optional returned image
 // download. Magpie still bounds each phase by the user's ImageWait setting.
 func workerRequestWait(in request) time.Duration {
+	if in.Operation == "" || in.Operation == "generate" {
+		// Model turns use the gateway's original header and stall guards.
+		// Their Host-owned Job Object handles caller cancellation and exit.
+		return 0
+	}
 	if in.Operation == "gateway" {
 		if in.GatewayPath == "/v1/images/generations" || in.GatewayPath == "/v1/images/edits" {
 			return 2*settings.Load().ImageWait() + time.Minute
@@ -61,6 +68,13 @@ func workerRequestWait(in request) time.Duration {
 		return 3 * time.Minute
 	}
 	return 90 * time.Second
+}
+
+func workerRequestContext(parent context.Context, in request) (context.Context, context.CancelFunc) {
+	if wait := workerRequestWait(in); wait > 0 {
+		return context.WithTimeout(parent, wait)
+	}
+	return context.WithCancel(parent)
 }
 
 // installModelPreferences feeds the exact upstream preference maps before its
@@ -119,8 +133,36 @@ func installModelPreferences(pid, model string, m modelMetadata) error {
 			}
 			s.ModelAPIs[id] = m.API
 		}
+		if prompt := strings.TrimSpace(m.SystemPrompt); prompt != "" {
+			// These are the original modelsystem.go document bounds. Runtime
+			// composition is still provider.ModelSystemPrompt in the gateway.
+			if len(prompt) > 64<<10 || strings.ContainsRune(prompt, 0) {
+				return errors.New("invalid model system prompt")
+			}
+			if s.ModelSystemPrompts == nil {
+				s.ModelSystemPrompts = map[string]string{}
+			}
+			s.ModelSystemPrompts[id] = prompt
+		}
+		if m.Kind != "" {
+			p, err := provider.Find(pid)
+			if err != nil {
+				return err
+			}
+			if !p.MarksKinds() || m.Kind != provider.KindImage && m.Kind != provider.KindVideo {
+				return errors.New("this provider cannot use the selected model kind")
+			}
+			if s.ModelKinds == nil {
+				s.ModelKinds = map[string]string{}
+			}
+			s.ModelKinds[id] = m.Kind
+		}
 		if m.Efforts != nil {
-			if kept := keptReasoningLevels(m.Levels, m.Efforts); kept != nil {
+			all := m.Levels
+			if p, err := provider.Find(pid); err == nil && len(all) == 0 {
+				all = p.Known(model)
+			}
+			if kept := provider.WinOneEffortsKept(all, m.Efforts); len(kept) > 0 && !slices.Equal(kept, all) {
 				if s.ModelEfforts == nil {
 					s.ModelEfforts = map[string][]string{}
 				}
@@ -136,6 +178,7 @@ func installModelPreferences(pid, model string, m modelMetadata) error {
 				s.ModelReasonless = map[string]bool{}
 			}
 			s.ModelReasonless[id] = true
+			delete(s.ModelEfforts, id)
 		} else {
 			delete(s.ModelReasonless, id)
 		}
@@ -151,8 +194,27 @@ func installModelPreferences(pid, model string, m modelMetadata) error {
 			}
 			s.ModelOutputs[id] = m.MaxTokens
 		}
-		// Share the token conversion already used by model discovery and Chat.
-		limits := modelLimitSnapshot(provider.Provider{ID: pid}, strings.TrimPrefix(id, pid+"/"), m, cmp.Or(m.ContextWindow, m.ListedContextWindow))
+		if m.Tier == "priority" || m.Tier == "ultrafast" {
+			if s.ModelTiers == nil {
+				s.ModelTiers = map[string]string{}
+			}
+			s.ModelTiers[id] = m.Tier
+		}
+		// Only legacy percentage settings need a conversion. Read the model's
+		// real upstream window when its discovered default is no longer an
+		// override; new edits store Magpie's token threshold directly.
+		window := cmp.Or(m.ContextWindow, m.ListedContextWindow)
+		if m.CompactionPercent > 0 && window == 0 {
+			if p, err := provider.Find(pid); err == nil {
+				for _, listed := range p.Available() {
+					if listed.ID == model {
+						window = p.WindowOf(listed)
+						break
+					}
+				}
+			}
+		}
+		limits := modelLimitSnapshot(provider.Provider{ID: pid}, strings.TrimPrefix(id, pid+"/"), m, window)
 		if threshold := limits.ModelCompacts[id]; threshold > 0 {
 			if s.ModelCompacts == nil {
 				s.ModelCompacts = map[string]int{}
@@ -181,57 +243,16 @@ func clearModelPreferences(s *settings.Settings, id string) {
 	delete(s.ModelSameAs, id)
 	delete(s.ModelWires, id)
 	delete(s.ModelAPIs, id)
+	delete(s.ModelSystemPrompts, id)
+	delete(s.ModelKinds, id)
 	delete(s.ModelOutputs, id)
+	delete(s.ModelTiers, id)
 	delete(s.ModelCompacts, id)
 	delete(s.ModelPrices, id)
 	delete(s.ModelIDs, id)
 	delete(s.ModelEfforts, id)
 	delete(s.ModelImages, id)
 	delete(s.ModelReasonless, id)
-}
-
-// keptReasoningLevels is upstream's setModelEfforts/effortsKept without its
-// settings write: offered levels, trimmed and lowercased as Magpie reads
-// them, in the vendor's order and spelling. nil means none were narrowed
-// (all offered), which Magpie stores as no entry. A model with no reported
-// levels keeps the declared ones of provider.Levels, in that order, as
-// `magpie model efforts` does. A stale level no longer listed is dropped
-// rather than refused, so a vendor's renamed ladder never blocks saving.
-func keptReasoningLevels(levels, offered []string) []string {
-	var keep []string
-	for _, level := range offered {
-		level = strings.ToLower(strings.TrimSpace(level))
-		if level != "" && !slices.Contains(keep, level) {
-			keep = append(keep, level)
-		}
-	}
-	if len(keep) == 0 {
-		return nil
-	}
-	if len(levels) == 0 {
-		var declared []string
-		for _, level := range provider.Levels {
-			if slices.Contains(keep, level) {
-				declared = append(declared, level)
-			}
-		}
-		return declared
-	}
-	var vendor, ordered []string
-	for _, level := range levels {
-		if !slices.ContainsFunc(vendor, func(seen string) bool { return strings.EqualFold(seen, level) }) {
-			vendor = append(vendor, level)
-		}
-	}
-	for _, level := range vendor {
-		if slices.Contains(keep, strings.ToLower(level)) {
-			ordered = append(ordered, level)
-		}
-	}
-	if len(ordered) == 0 || len(ordered) == len(vendor) {
-		return nil
-	}
-	return ordered
 }
 
 func testModels(ctx context.Context, in request, output io.Writer) error {
@@ -283,6 +304,7 @@ func testModels(ctx context.Context, in request, output io.Writer) error {
 // letting an unknown JSON setting become a provider's endpoint or credential.
 type auxiliaryProvider struct {
 	provider.Provider
+	CatalogPath    string                   `json:"catalogPath,omitempty"`
 	KeyIDs         map[string]string        `json:"keyIDs,omitempty"`
 	AccountKind    string                   `json:"accountKind,omitempty"`
 	Metadata       map[string]modelMetadata `json:"metadata,omitempty"`
@@ -294,6 +316,12 @@ type auxiliaryProvider struct {
 
 func installAuxiliaryProviders(in request) error {
 	for _, p := range in.AuxiliaryProviders {
+		if p.CatalogPath != "" {
+			if catalog.WinOneLivePaths == nil {
+				catalog.WinOneLivePaths = map[string]string{}
+			}
+			catalog.WinOneLivePaths[p.ID] = p.CatalogPath
+		}
 		for key, id := range p.KeyIDs {
 			provider.WinOneKeyIdentity(key, id)
 		}
@@ -317,21 +345,26 @@ func installAuxiliaryProviders(in request) error {
 				p.Contexts[metadata.Alias] = p.Contexts[id]
 			}
 		}
-		provider.WinOneProviders = append(provider.WinOneProviders, p.Provider)
 		if p.NativeSource != nil {
 			actual, err := configuredProvider(*p.NativeSource)
 			if err != nil {
 				return err
 			}
-			actual.Name, actual.Models, actual.Keys = p.Name, p.Models, p.NativeKeys
-			// The bridge already mapped every saved slot to its vendor fingerprint.
-			actual.KeySpendCaps, actual.KeyOwnBalances = p.KeySpendCaps, p.KeyOwnBalances
-			actual.KeyPriceRates = p.KeyPriceRates
+			actual.Name, actual.Icon, actual.Models, actual.Contexts = p.Name, p.Icon, p.Models, p.Contexts
+			if len(p.NativeSource.Keys) == 0 {
+				actual.Keys = p.NativeKeys
+				actual.KeySpendCaps, actual.KeyOwnBalances = p.KeySpendCaps, p.KeyOwnBalances
+				actual.KeyPriceRates = p.KeyPriceRates
+			}
+			// Custom providers are real upstream providers in this process.
+			// Only independently authenticated account profiles need a bridge.
+			p.Provider = actual
 			if gateway.WinOneNativeProviders == nil {
 				gateway.WinOneNativeProviders = map[string]provider.Provider{}
 			}
 			gateway.WinOneNativeProviders[p.ID] = actual
 		}
+		provider.WinOneProviders = append(provider.WinOneProviders, p.Provider)
 		if p.DecisionSource != nil {
 			source := *p.DecisionSource
 			source.Key = "winone-capability-check"

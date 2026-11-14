@@ -16,6 +16,10 @@ import (
 // stay intact rather than introducing a second routing or pricing policy.
 type ProviderPreferences struct {
 	Contexts map[string]int `json:"contexts,omitempty"`
+	Routing  string         `json:"routing,omitempty"`
+	Affinity string         `json:"affinity,omitempty"`
+	Sink     bool           `json:"sink,omitempty"`
+	Billing  string         `json:"billing,omitempty"`
 	Website  string         `json:"website,omitempty"`
 	KeysURL  string         `json:"keysUrl,omitempty"`
 	Off      bool           `json:"off,omitempty"`
@@ -96,6 +100,22 @@ type ProviderPreferences struct {
 	AccountModelsAll map[string]bool     `json:"accountModelsAll,omitempty"`
 }
 
+// These are Magpie's provider fields. A missing concurrency override follows
+// the provider; an explicit zero removes its limit, as in the original editor.
+type RequestLimits struct {
+	MaxRPM         int  `json:"maxRPM,omitempty"`
+	MaxConcurrency *int `json:"maxConcurrency,omitempty"`
+	QueueLimit     int  `json:"queueLimit,omitempty"`
+	QueueWait      int  `json:"queueWait,omitempty"`
+}
+
+func (l RequestLimits) validate() error {
+	if l.MaxRPM < 0 || l.MaxRPM > 10000 || l.MaxConcurrency != nil && (*l.MaxConcurrency < 0 || *l.MaxConcurrency > 1000) || l.QueueLimit < 0 || l.QueueLimit > 10000 || l.QueueWait < 0 || l.QueueWait > 3600 {
+		return errors.New("请求限制无效：RPM 和排队上限为 0–10000，并发上限为 0–1000，等待为 0–3600 秒")
+	}
+	return nil
+}
+
 // Nil keeps the preset's native endpoints. An explicit set replaces them;
 // Protocol/BaseURL still identify and edit the primary endpoint for older clients.
 type ProviderEndpoints struct {
@@ -170,7 +190,7 @@ func (p ProviderPreferences) validate() error {
 		return errors.New("上下文规则过多")
 	}
 	for id, size := range p.Contexts {
-		if id == "" || len(id) > 256 || size < 0 || size > 100000000 {
+		if id == "" || len(id) > 256 || size < 0 {
 			return errors.New("上下文规则无效")
 		}
 	}

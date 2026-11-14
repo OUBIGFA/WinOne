@@ -6,15 +6,22 @@ import (
 	"context"
 	"encoding/json"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 	"winone/internal/ai"
 )
 
 func TestGatewayModelDescriptionPreservesProviderMetadata(t *testing.T) {
+	executable := os.Getenv("WINONE_AI_TEST_EXE")
+	if executable == "" {
+		t.Skip("set WINONE_AI_TEST_EXE to test the actual upstream catalog")
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	s := newAIService(ctx, t.TempDir(), filepath.Join(t.TempDir(), "WinOne.Host.exe"))
+	s.translator.Executable = executable
+	defer s.closeGatewayBackend()
 	s.initGateway()
 	s.store, _ = ai.Open(s.storePath)
 	c := s.store.Configuration()
@@ -34,7 +41,9 @@ func TestGatewayModelDescriptionPreservesProviderMetadata(t *testing.T) {
 		t.Fatalf("model catalog: %s", w.Body.String())
 	}
 	m := result.Data[0]
-	if m["context_window"] != float64(300000) || m["max_context_window"] != float64(1000000) || len(m["supported_reasoning_levels"].([]any)) != 2 {
+	// The ordinary OpenAI list publishes the actual model window. Magpie's
+	// client-specific catalogs own compaction; the Host must not replace it.
+	if m["context_window"] != float64(1000000) || len(m["supported_reasoning_levels"].([]any)) != 2 {
 		t.Fatalf("settings not applied: %s", w.Body.String())
 	}
 }

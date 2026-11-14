@@ -1,12 +1,36 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/yetone/magpie/internal/provider"
 	"github.com/yetone/magpie/internal/settings"
 	"testing"
 	"time"
 )
+
+// Generation uses upstream's header/stall guards and retains the owner's
+// cancellation. Account operations still receive their existing bounded wait.
+func TestWorkerModelContextKeepsCallerDeadlineAndCancellation(t *testing.T) {
+	for _, operation := range []string{"", "generate"} {
+		ctx, cancel := workerRequestContext(context.Background(), request{Operation: operation})
+		if deadline, bounded := ctx.Deadline(); bounded {
+			t.Errorf("model operation %q added an implicit deadline: %v", operation, deadline)
+		}
+		cancel()
+		if ctx.Err() != context.Canceled {
+			t.Fatal("model worker lost its owner cancellation")
+		}
+		deadline := time.Now().Add(time.Hour)
+		parent, stop := context.WithDeadline(context.Background(), deadline)
+		ctx, cancel = workerRequestContext(parent, request{Operation: operation})
+		if actual, bounded := ctx.Deadline(); !bounded || !actual.Equal(deadline) {
+			t.Errorf("model worker changed an explicit caller deadline: %v", actual)
+		}
+		cancel()
+		stop()
+	}
+}
 
 // Old full-version switches are data only and cannot revive removed services.
 func TestRuntimeSettingsIgnoreRemovedServices(t *testing.T) {
@@ -39,8 +63,8 @@ func TestWorkerImageDeadlinePreservesBothUpstreamPhases(t *testing.T) {
 			}
 		}
 	}
-	if workerRequestWait(request{Operation: "generate"}) != 90*time.Second {
-		t.Fatal("image timeout changed the short result task deadline")
+		if workerRequestWait(request{Operation: "generate"}) != 0 {
+			t.Fatal("image timeout added a whole-turn deadline to a model request")
 	}
 }
 

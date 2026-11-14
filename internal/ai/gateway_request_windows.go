@@ -37,11 +37,6 @@ func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, pat
 	if method == http.MethodGet && len(body) == 0 {
 		body = json.RawMessage("null")
 	}
-	release, err := t.acquireRequest(ctx, p, key)
-	if err != nil {
-		return false, err
-	}
-	defer release()
 	t.AccountBackend = p.AgentBackend
 	process, err := t.start(ctx)
 	if err != nil {
@@ -61,6 +56,8 @@ func (t Translator) protocolRequest(ctx context.Context, p Preferences, key, pat
 	}
 	input["providerPreferences"] = p.ProviderPreferences
 	input["keyID"], input["keyOptions"] = credentialRequestOptions(ctx)
+	input["keys"] = credentialRequestKeys(ctx)
+	input["requestLimits"] = p.RequestLimits
 	input["additionalTools"] = p.AdditionalTools
 	input["limitRestOff"] = p.LimitRestOff
 	input["headers"] = p.Headers

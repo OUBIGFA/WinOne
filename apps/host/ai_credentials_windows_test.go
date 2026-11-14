@@ -93,6 +93,10 @@ func TestAIRequestsUseKeyRotationAndRespectStreamFailoverBoundary(t *testing.T) 
 			service.store = store
 			c := store.Configuration()
 			c.Providers = []ai.Provider{{ID: "one", Name: "One", AuthMode: "api-key", Protocol: "chat", BaseURL: vendor.URL + "/v1", Models: []string{"m"}, Keys: []ai.KeySlot{{ID: "a", Enabled: true}, {ID: "b", Enabled: true}}}}
+			if scenario == "rotate" {
+				c.Providers[0].Routing = "rotate"
+				c.Providers[0].Affinity = "off"
+			}
 			c.Tasks["chat"] = ai.Selection{Provider: "one", Model: "m"}
 			first, second := "first", "second"
 			if _, err = store.SaveConfigurationWithKeys(c, nil, ai.CredentialUpdates{"one": {"a": &first, "b": &second}}); err != nil {

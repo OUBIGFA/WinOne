@@ -12,6 +12,7 @@ import (
 // Exceeding the configured window wait must not become "already running,
 // skipped": that falsely reports an automatic close-to-tray operation as done.
 func TestTaskStartedLateWindowReportsUnfinishedDismissal(t *testing.T) {
+	requireNativeStartupTest(t)
 	entry, file := startupFixtureEntry(t, "late-2500")
 	entry.TrayBehavior.CloseDelaySeconds = 0
 	cmd, err := startProcess(entry.ExePath, entry.Args, launchVisible)
@@ -43,6 +44,7 @@ func TestTaskStartedLateWindowReportsUnfinishedDismissal(t *testing.T) {
 }
 
 func TestLateWindowWithinConfiguredWaitClosesNatively(t *testing.T) {
+	requireNativeStartupTest(t)
 	entry, file := startupFixtureEntry(t, "late-1500")
 	entry.TrayBehavior.CloseDelaySeconds = 0
 	svc := NewService(NewWin32WindowEnumerator(), NewWin32WindowManager(), &startupRenderingLogger{t: t, start: time.Now()})

@@ -11,7 +11,7 @@ param(
     # Keep upstream coverage to the provider, account, settings and local
     # gateway packages that remain part of WinOne. Removed service packages
     # must not be selectable through this manual test entry point.
-    [string[]]$Packages=@('provider','gateway','settings','usage','catalog','filememo','netproxy','sessions','ghtoken','proc','access','filelock','oidc','budget','gwbudget')
+    [string[]]$Packages=@('provider','gateway','settings','usage','catalog','filememo','netproxy','sessions','ghtoken','proc','access','filelock','oidc','budget','gwbudget','routes')
 )
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
@@ -19,7 +19,7 @@ $source=(Resolve-Path -LiteralPath $SourceDirectory).Path
 $output=[IO.Path]::GetFullPath((Join-Path $root $OutputDirectory))
 & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $output
 if(Test-Path -LiteralPath $output){throw 'Choose a new upstream-test output directory'}
-foreach($package in $Packages){if($package -notin @('provider','gateway','settings','usage','catalog','filememo','netproxy','sessions','ghtoken','proc','access','filelock','oidc','budget','gwbudget')){throw 'Only retained AI service and shared gateway packages are allowed'}}
+foreach($package in $Packages){if($package -notin @('provider','gateway','settings','usage','catalog','filememo','netproxy','sessions','ghtoken','proc','access','filelock','oidc','budget','gwbudget','routes')){throw 'Only retained AI service and shared gateway packages are allowed'}}
 $files=@(& git -C $source diff --name-only --diff-filter=AMR $BaseRevision HEAD -- 'internal/*/*_test.go')
 if($LASTEXITCODE -ne 0){throw 'Cannot enumerate the selected upstream increment'}
 if($AllTests){$files=@(& git -C $source ls-files -- 'internal/*/*_test.go');if($LASTEXITCODE-ne 0){throw 'Cannot enumerate upstream behavior tests'}}

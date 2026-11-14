@@ -8,7 +8,8 @@ type RuntimeProvider struct {
 	Keys     []RuntimeKey
 }
 type RuntimeKey struct {
-	ID, Key string
+	ID  string `json:"id"`
+	Key string `json:"key"`
 	KeyOptions
 }
 type auxiliaryKey struct {
@@ -19,6 +20,8 @@ type auxiliaryKey struct {
 
 type auxiliaryProvider struct {
 	ProviderPreferences
+	RequestLimits
+	CatalogPath    string                   `json:"catalogPath,omitempty"`
 	LimitRestOff   bool                     `json:"limitRestOff,omitempty"`
 	AccountKind    string                   `json:"accountKind,omitempty"` // Public account type for provider-specific middleware, never auth.
 	ID             string                   `json:"id"`

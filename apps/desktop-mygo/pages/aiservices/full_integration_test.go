@@ -38,6 +38,32 @@ func TestModelSettingsHoverShowsOneSpecificTooltip(t *testing.T) {
 	}
 }
 
+// The request-name and equivalent-model fields must expose real translated
+// labels, rather than leaking a dynamically constructed translation key.
+func TestModelRequestFieldsUseTranslatedLabels(t *testing.T) {
+	for _, tc := range []struct {
+		locale string
+		labels []string
+	}{
+		{i18n.Chinese, []string{"发送给供应商的模型 ID", "同类模型 ID"}},
+		{i18n.English, []string{"Model ID sent to provider", "Equivalent model ID"}},
+	} {
+		t.Run(tc.locale, func(t *testing.T) {
+			_, h, p, tt := setup(t)
+			i18n.SetLocale(tc.locale)
+			defer i18n.SetLocale(i18n.Chinese)
+			p.editor.models.editing = "gpt-a"
+			p.editor.models.settingsTab = 2
+			settle(h, tt)
+			for _, label := range tc.labels {
+				if !tt.HasText(label) {
+					t.Errorf("missing translated model request field %q", label)
+				}
+			}
+		})
+	}
+}
+
 func TestModelPriceEditorAddsAndRemovesEveryTier(t *testing.T) {
 	_, h, p, tt := setup(t)
 	m := p.editor.models

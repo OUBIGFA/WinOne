@@ -1,0 +1,6 @@
+package catalog
+
+// The Host supplies paths inside its own provider profiles. All parsing,
+// capability enrichment, media classification and cache invalidation remain
+// in the upstream catalog. No public request can choose these paths.
+var WinOneLivePaths map[string]string

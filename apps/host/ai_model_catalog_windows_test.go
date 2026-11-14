@@ -6,13 +6,22 @@ import (
 	"context"
 	"encoding/json"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 	"winone/internal/ai"
 )
 
 func TestProtocolModelsExposeConfiguredNamesAndMetadata(t *testing.T) {
-	s := newAIService(context.Background(), t.TempDir(), filepath.Join(t.TempDir(), "WinOne.Host.exe"))
+	executable := os.Getenv("WINONE_AI_TEST_EXE")
+	if executable == "" {
+		t.Skip("set WINONE_AI_TEST_EXE for the upstream model list")
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	s := newAIService(ctx, t.TempDir(), filepath.Join(t.TempDir(), "WinOne.Host.exe"))
+	s.translator.Executable = executable
+	defer s.closeGatewayBackend()
 	s.initGateway()
 	var err error
 	s.store, err = ai.Open(s.storePath)
@@ -22,26 +31,26 @@ func TestProtocolModelsExposeConfiguredNamesAndMetadata(t *testing.T) {
 	config := s.store.Configuration()
 	vision := false
 	config.Providers = []ai.Provider{{ID: "custom", Name: "Example", AuthMode: "api-key", Protocol: "chat", BaseURL: "https://example.invalid/v1", Models: []string{"model"}, ModelNames: map[string]string{"model": "Readable model"}, ModelMetadata: map[string]ai.ModelMetadata{"model": {ContextWindow: 128000, MaxTokens: 4096, CompactionPercent: 75, Vision: &vision, Tier: "priority"}}}}
-	if _, err = s.store.SaveConfiguration(config, nil); err != nil {
+	key := "fixture-key"
+	if _, err = s.store.SaveConfiguration(config, map[string]*string{"custom": &key}); err != nil {
 		t.Fatal(err)
 	}
 	w := httptest.NewRecorder()
 	s.serveGateway(w, httptest.NewRequest("GET", "/v1/models", nil))
 	var body struct {
 		Data []struct {
-			Name      string           `json:"name"`
-			Context   int              `json:"context_window"`
-			MaxTokens int              `json:"max_tokens"`
-			Metadata  ai.ModelMetadata `json:"metadata"`
+			Name      string `json:"display_name"`
+			Context   int    `json:"context_window"`
+			MaxTokens int    `json:"max_output_tokens"`
 		} `json:"data"`
 	}
 	if err = json.Unmarshal(w.Body.Bytes(), &body); err != nil || w.Code != 200 || len(body.Data) != 1 {
 		t.Fatal(w.Code, w.Body.String(), err)
 	}
 	model := body.Data[0]
-	// A 75% compaction setting exposes 96,000 as the active context and keeps
-	// 128,000 as the maximum context in the protocol metadata.
-	if model.Name != "Readable model · Example" || model.Context != 96000 || model.MaxTokens != 4096 || model.Metadata.CompactionPercent != 75 || model.Metadata.Vision == nil || *model.Metadata.Vision || model.Metadata.Tier != "priority" {
+	// Magpie's ordinary model list describes the real model window and uses
+	// its own field names. Client-specific compaction stays with that client.
+	if model.Name != "Readable model" || model.Context != 128000 || model.MaxTokens != 4096 {
 		t.Fatalf("metadata lost: %+v", model)
 	}
 }

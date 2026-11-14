@@ -73,6 +73,65 @@ func TestGatewayViewerExitReleasesPrivateBackend(t *testing.T) {
 	}
 }
 
+// A result window can disappear before its first AI request starts. A failed
+// ownership check must not leave a new worker without a window or gateway.
+func TestResultGatewayMissingOwnerDoesNotStartPrivateBackend(t *testing.T) {
+	service := gatewayTestService(t)
+	if _, err := service.resultGatewayBackend(^uint32(0)); err == nil {
+		t.Fatal("a nonexistent result process obtained an AI runtime")
+	}
+	service.backend.mu.Lock()
+	worker := service.backend.process
+	service.backend.mu.Unlock()
+	if worker != nil && worker.Alive() {
+		t.Fatal("failed result ownership left a private AI worker running")
+	}
+}
+
+// The settings page and result window share one upstream runtime. Closing the
+// settings page keeps it alive; exiting the last result process releases it.
+func TestResultGatewayOwnerExitReleasesSharedBackend(t *testing.T) {
+	service := gatewayTestService(t)
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.desktopExecutable = self
+	viewer := exec.CommandContext(service.ctx, self, "-test.run=^TestGatewayViewerProcessHelper$")
+	viewer.Env = append(os.Environ(), "WINONE_GATEWAY_VIEWER_HELPER=1")
+	input, err := viewer.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = viewer.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { input.Close(); viewer.Wait() }()
+	worker, err := service.resultGatewayBackend(uint32(viewer.Process.Pid))
+	if err != nil {
+		t.Fatal(err)
+	}
+	settings, err := service.openGatewayBackend("settings-viewer-fixture", uint32(os.Getpid()))
+	if err != nil || settings != worker {
+		t.Fatal("settings and result did not share their AI runtime", err)
+	}
+	service.releaseGatewayBackend("settings-viewer-fixture")
+	if !worker.Alive() {
+		t.Fatal("closing settings interrupted its live result owner")
+	}
+	input.Close()
+	if err = viewer.Wait(); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for worker.Alive() && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if worker.Alive() {
+		t.Fatal("the AI runtime survived its last result process")
+	}
+}
+
 func TestGatewayViewerReleaseKeepsOtherViewersAndEnabledGateway(t *testing.T) {
 	executable := os.Getenv("WINONE_AI_TEST_EXE")
 	if executable == "" {

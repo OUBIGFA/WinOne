@@ -45,6 +45,9 @@ try {
  if($LASTEXITCODE -ne 0){throw 'Magpie proxy source verification failed'}
 } finally {$env:WINONE_GOFMT=$previousGofmt}
 New-Item -ItemType Directory -Force -Path $entry,$output | Out-Null
+& node (Join-Path $root 'build/prepare-ai-curl.mjs') $source (Join-Path $entry 'upstream_paste.js')
+if($LASTEXITCODE -ne 0){throw 'Cannot prepare the complete upstream connection paste parser'}
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/paste_windows.go') -Destination $entry
 & node (Join-Path $root 'build/prepare-ai-plugins.mjs') $PluginSourceDirectory $BunExe $output
 if($LASTEXITCODE -ne 0){throw 'Bundled account plugin preparation failed'}
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/main.go'),(Join-Path $root 'modules/ai-magpie/main_test.go'),(Join-Path $root 'modules/ai-magpie/accounts.go'),(Join-Path $root 'modules/ai-magpie/stream_test.go') -Destination $entry

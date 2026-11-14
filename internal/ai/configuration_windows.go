@@ -171,7 +171,6 @@ func (s *Store) SaveConfigurationWithKeys(c Configuration, updates map[string]*s
 	s.keys = keys
 	s.credentialKeys = sets
 	s.providerSecrets = providerSecrets
-	s.pruneKeyRoundsLocked(sets)
 	s.value = projected
 	s.protected = keys[selected.Provider]
 	return cloneConfiguration(c), nil

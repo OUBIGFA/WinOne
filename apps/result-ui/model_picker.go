@@ -37,7 +37,7 @@ var contextInModelName = regexp.MustCompile(`\b\d+M\b`)
 func (p *Panel) modelBadges(c *ui.Context, t *ui.Theme, provider ai.Provider, id string) {
 	p.freeModelBadge(c, t, provider, id)
 	tn := toneFor(t, c.Preferences().HighContrast)
-	metadata := provider.ModelMetadataFor(id)
+	metadata := provider.ModelDescriptionFor(id)
 	rate, was := metadata.Rate, metadata.RateWas
 	times := func(n float64) string {
 		if n < 0.01 {
@@ -156,7 +156,7 @@ func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
 			p.modelBadges(c, t, provider, selected.Model)
 			ui.Icon(c, svg("chevron")).Size(14, 14).Shrink(0).TextColor(t.TextMuted)
 		})
-	metadata := provider.ModelMetadataFor(selected.Model)
+	metadata := provider.ModelDescriptionFor(selected.Model)
 	context := metadata.ListedContextWindow
 	if context == 0 {
 		context = metadata.ContextWindow

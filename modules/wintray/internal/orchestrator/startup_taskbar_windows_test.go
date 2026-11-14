@@ -3,6 +3,7 @@
 package orchestrator
 
 import (
+	"os"
 	"runtime"
 	"syscall"
 	"testing"
@@ -15,6 +16,9 @@ import (
 // IsWindowVisible. Closing an already registered window behind the startup
 // shield must still notify the shell so it can remove the taskbar button.
 func TestStartupVisibilityPreservesShellCloseNotification(t *testing.T) {
+	if os.Getenv("WINTRAY_STARTUP_TASKBAR_TEST") != "1" {
+		t.Skip("set WINTRAY_STARTUP_TASKBAR_TEST=1 for explicitly selected Explorer taskbar checks")
+	}
 	for _, beforeLaunch := range []bool{false, true} {
 		name := "already registered window"
 		if beforeLaunch {

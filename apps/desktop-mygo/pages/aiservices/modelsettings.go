@@ -1,6 +1,7 @@
 package aiservices
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"slices"
@@ -14,12 +15,12 @@ import (
 	"winone/desktopmygo/kit/icons"
 )
 
-// Magpie a8ca790 app.js contextPicks/outputField, in decimal K/M. The
-// percentage shortcuts are WinOne's.
+// Magpie ce2ce86 app.js contextPicks/outputField/compactField, in decimal
+// K/M. These are explicit actions; none is installed as a model default.
 var (
-	contextPresets    = []float64{128000, 200000, 256000, 1000000}
+	contextPresets    = []float64{128000, 200000, 256000, 400000, 512000, 1000000}
 	outputPresets     = []float64{8000, 16000, 32000, 64000, 128000}
-	compactionPresets = []float64{50, 60, 70, 80, 90, 95}
+	compactionPresets = []float64{128000, 200000, 272000, 500000, 1000000}
 	// genericLevels are what a model with no reported levels may be
 	// declared with (Magpie provider/modelprefs.go Levels); effortRank
 	// adds ultra, which Magpie fits to max. A model's own levels are its
@@ -45,6 +46,19 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 	id, model := pr.ID, m.editing
 	open := true
 	meta := pr.ModelMetadata[model].Value
+	report := pr.CatalogMetadata[model]
+	// Only the report supplies choices and default labels. The controls keep
+	// absent overrides absent, including after a model is fetched or selected.
+	if len(report.Levels) > 0 {
+		meta.Levels = &report.Levels
+	}
+	if len(report.Tiers) > 0 {
+		meta.Tiers = &report.Tiers
+	}
+	if report.MaxContextWindow > 0 {
+		meta.MaxContextWindow = ptr(float64(report.MaxContextWindow))
+		meta.ListedContextWindow = ptr(float64(report.ListedContextWindow))
+	}
 	change := func(edit func(*modelMetadata)) {
 		p.change(id, func(t *provider) {
 			if t.ModelMetadata == nil {
@@ -69,11 +83,14 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 		},
 		Actions: func() {
 			if kit.GhostButton(c, i18n.T("ai.modelRestoreDefaults"), icons.RotateCcw, false).Disabled(disabled).Clicked() {
-				change(func(d *modelMetadata) {
-					// Catalog facts remain available when the user's overrides are cleared.
-					*d = modelMetadata{Levels: d.Levels, Tiers: d.Tiers, Rate: d.Rate, RateWas: d.RateWas, ListedContextWindow: d.ListedContextWindow, MaxContextWindow: d.MaxContextWindow}
+				p.change(id, func(t *provider) {
+					delete(t.ModelMetadata, model)
+					if name := t.CatalogNames[model]; name != "" {
+						t.ModelNames[model] = name
+					} else {
+						delete(t.ModelNames, model)
+					}
 				})
-				p.change(id, func(t *provider) { delete(t.ModelNames, model) })
 				m.fields = fields{}
 				m.modelHeaders = nil
 				m.headersFor = ""
@@ -108,10 +125,16 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 						kit.TextInput(c, &field.text).FillWidth().Placeholder(model).Label(i18n.T("ai.modelDisplayName"))
 					})
 
-					m.limitsOf(c, meta, change, defaultLabel)
+					m.limitsOf(c, meta, change, defaultLabel, report.ContextWindow, report.MaxTokens)
 				case 1:
 					m.reasoning(c, meta, change, defaultLabel)
 					m.efforts(c, meta, change)
+					if pr.AuthMode == "api-key" && pr.Preset != "remote-magpie" && (pr.Protocol == "chat" || pr.Protocol == "responses" || pr.Endpoints != nil && (pr.Endpoints.Chat != "" || pr.Endpoints.Responses != "")) {
+						kind := value(meta.Kind)
+						if nativeSelect(c, i18n.T("ai.modelKind"), &kind, options("", defaultLabel, "image", i18n.T("ai.modelKindImage"), "video", i18n.T("ai.modelKindVideo")), disabled) {
+							change(func(d *modelMetadata) { d.Kind = ptr(kind) })
+						}
+					}
 				case 2:
 					alias := m.fields.get("alias")
 					if text, edited := alias.sync(value(meta.Alias)); edited {
@@ -123,8 +146,10 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 						for _, key := range []string{"upstreamName", "same"} {
 							key := key
 							field := &meta.UpstreamName
+							labelKey := "ai.modelUpstreamName"
 							if key == "same" {
 								field = &meta.Same
+								labelKey = "ai.modelSame"
 							}
 							synced := m.fields.get(key)
 							if text, edited := synced.sync(value(*field)); edited {
@@ -137,10 +162,10 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 								})
 							}
 							ui.Column(c.Key(key)).Basis(240).Grow(1).MinWidth(0).Gap(4).Children(func() {
-								ui.Field(c, i18n.T("ai.model"+key), func() {
-									kit.TextInput(c, &synced.text).FillWidth().Placeholder(model).Label(i18n.T("ai.model" + key))
+								ui.Field(c, i18n.T(labelKey), func() {
+									kit.TextInput(c, &synced.text).FillWidth().Placeholder(model).Label(i18n.T(labelKey))
 								})
-								kit.Help(c, i18n.T("ai.model"+key+"Hint"))
+								kit.Help(c, i18n.T(labelKey+"Hint"))
 							})
 						}
 					})
@@ -153,6 +178,13 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 						if changed {
 							change(func(d *modelMetadata) { d.API = ptr(api) })
 						}
+					})
+					system := m.fields.get("systemPrompt")
+					if text, edited := system.sync(value(meta.SystemPrompt)); edited {
+						change(func(d *modelMetadata) { d.SystemPrompt = ptr(text) })
+					}
+					kit.Stack(c, i18n.T("ai.modelSystemPrompt"), i18n.T("ai.modelSystemPromptHint"), func() {
+						ui.TextArea(c, &system.text).FillWidth().Lines(3, 8).Label(i18n.T("ai.modelSystemPrompt"))
 					})
 
 					if pr.AuthMode == "api-key" {
@@ -174,7 +206,12 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 						kit.Help(c, i18n.T("aiComplete.modelHeadersHint"))
 					}
 				case 3:
-					m.pricing(c, meta, change)
+					var listed *core.Preserved[modelPrice]
+					if report.Price != nil {
+						raw, _ := json.Marshal(report.Price)
+						_ = json.Unmarshal(raw, &listed)
+					}
+					m.pricing(c, meta, change, listed)
 				}
 			})
 		}})
@@ -218,6 +255,9 @@ func (m *modelsPanel) efforts(c *ui.Context, meta modelMetadata, change func(fun
 		base = efforts
 	}
 	choices := unique(append(append([]string{}, base...), efforts...))
+	if meta.Efforts == nil {
+		efforts = append([]string{}, base...)
+	}
 	ui.Column(c).FillWidth().Gap(8).Role(ui.RoleGroup).Label(i18n.T("ai.modelOfferedEfforts")).Children(func() {
 		kit.Label(c, i18n.T("ai.modelOfferedEfforts")).FontWeight(600)
 		ui.Row(c).FillWidth().GapX(16).GapY(8).Wrap().Children(func() {
@@ -267,7 +307,7 @@ func (pp *priceParts) field(key string) **float64 {
 // pricing is Magpie's Names & levels prices in dollars per million
 // tokens, with an optional long-context tier; an empty field keeps the
 // list price.
-func (m *modelsPanel) pricing(c *ui.Context, meta modelMetadata, change func(func(*modelMetadata))) {
+func (m *modelsPanel) pricing(c *ui.Context, meta modelMetadata, change func(func(*modelMetadata)), listed *core.Preserved[modelPrice]) {
 	var price modelPrice
 	if meta.Price != nil {
 		price = meta.Price.Value
@@ -277,6 +317,10 @@ func (m *modelsPanel) pricing(c *ui.Context, meta modelMetadata, change func(fun
 			next := core.Preserved[modelPrice]{}
 			if d.Price != nil {
 				next = *d.Price
+			} else if listed != nil {
+				// Upstream edits a complete custom price starting from the
+				// list price; untouched parts must not become zero/free.
+				next = *listed
 			}
 			edit(&next)
 			if equal(next, core.Preserved[modelPrice]{}) {
@@ -313,7 +357,7 @@ func (m *modelsPanel) pricing(c *ui.Context, meta modelMetadata, change func(fun
 					}
 				})
 				ui.Field(c, i18n.T("ai.modelPriceAbove"), func() {
-					if v, changed := numberText(c, ptr(tier.Above), 1, 100000000, true, "", i18n.T("ai.modelPriceAbove")+" "+kit.Itoa(index+1)); changed {
+					if v, changed := numberText(c, ptr(tier.Above), 1, math.MaxInt, true, "", i18n.T("ai.modelPriceAbove")+" "+kit.Itoa(index+1)); changed {
 						setPrice(func(d *core.Preserved[modelPrice]) { d.Value.Tiers[index].Value.Above = value(v) })
 					}
 				})
@@ -358,13 +402,20 @@ func rest[T any](list []T) []T {
 // limitsOf are the model's window, output, compaction, reasoning level,
 // service tier and capabilities. A zero or empty field keeps the model's
 // default.
-func (m *modelsPanel) limitsOf(c *ui.Context, meta modelMetadata, change func(func(*modelMetadata)), defaultLabel string) {
+func (m *modelsPanel) limitsOf(c *ui.Context, meta modelMetadata, change func(func(*modelMetadata)), defaultLabel string, defaultContext, defaultOutput int) {
 	window := value(meta.ContextWindow)
+	contextLabel, outputLabel := defaultLabel, defaultLabel
+	if defaultContext > 0 {
+		contextLabel += " · " + tokenLabel(float64(defaultContext))
+	}
+	if defaultOutput > 0 {
+		outputLabel += " · " + tokenLabel(float64(defaultOutput))
+	}
 	ui.Column(c).FillWidth().Gap(16).Children(func() {
 		ui.Row(c).FillWidth().GapX(16).GapY(16).Wrap().AlignItems(ui.Start).Children(func() {
 			ui.Column(c).Basis(260).Grow(1).MinWidth(0).Gap(6).Children(func() {
 				ui.Field(c, i18n.T("ai.contextWindow"), func() {
-					if v, changed := numberText(c, nonZero(meta.ContextWindow), 0, 100000000, true, defaultLabel, i18n.T("ai.contextWindow")); changed {
+					if v, changed := numberText(c, nonZero(meta.ContextWindow), 0, math.MaxInt, true, contextLabel, i18n.T("ai.contextWindow")); changed {
 						change(func(d *modelMetadata) { d.ContextWindow = ptr(value(v)) })
 					}
 				})
@@ -381,7 +432,7 @@ func (m *modelsPanel) limitsOf(c *ui.Context, meta modelMetadata, change func(fu
 			})
 			ui.Column(c).Basis(260).Grow(1).MinWidth(0).Gap(6).Children(func() {
 				ui.Field(c, i18n.T("ai.maxTokens"), func() {
-					if v, changed := numberText(c, nonZero(meta.MaxTokens), 0, 100000000, true, defaultLabel, i18n.T("ai.maxTokens")); changed {
+					if v, changed := numberText(c, nonZero(meta.MaxTokens), 0, math.MaxInt, true, outputLabel, i18n.T("ai.maxTokens")); changed {
 						change(func(d *modelMetadata) { d.MaxTokens = ptr(value(v)) })
 					}
 				})
@@ -389,7 +440,7 @@ func (m *modelsPanel) limitsOf(c *ui.Context, meta modelMetadata, change func(fu
 					func(v float64) { change(func(d *modelMetadata) { d.MaxTokens = ptr(v) }) })
 			})
 		})
-		m.compaction(c, meta, change, defaultLabel)
+		m.compaction(c, meta, change, defaultLabel, defaultContext)
 	})
 }
 
@@ -400,49 +451,30 @@ func nonZero(v *float64) *float64 {
 	return v
 }
 
-// compaction is the share of the window at which Chat compacts a long
-// conversation. Older metadata gave a token count, which keeps working
-// until this field is edited; reading it migrates nothing.
-func (m *modelsPanel) compaction(c *ui.Context, meta modelMetadata, change func(func(*modelMetadata)), defaultLabel string) {
-	configured := value(meta.CompactionPercent)
-	legacy := 0.0
-	if configured <= 0 {
-		legacy = value(meta.CompactionThreshold)
+// Compaction uses Magpie's token threshold. A former percentage remains
+// readable until edited; the next explicit edit stores the upstream unit.
+func (m *modelsPanel) compaction(c *ui.Context, meta modelMetadata, change func(func(*modelMetadata)), defaultLabel string, defaultContext int) {
+	threshold := nonZero(meta.CompactionThreshold)
+	if percent := value(meta.CompactionPercent); percent > 0 {
+		window := value(meta.ContextWindow)
+		if window == 0 {
+			window = float64(defaultContext)
+		}
+		if window > 0 {
+			threshold = ptr(math.Floor(window * percent / 100))
+		}
 	}
-	window := value(meta.ContextWindow)
-	var percent *float64
-	switch {
-	case configured > 0:
-		percent = &configured
-	case legacy > 0 && window > 0 && legacy/window*100 <= 100:
-		v, _ := strconv.ParseFloat(strconv.FormatFloat(legacy/window*100, 'f', 4, 64), 64)
-		percent = &v
-	}
-	set := func(v float64) {
-		change(func(d *modelMetadata) { d.CompactionPercent, d.CompactionThreshold = ptr(v), ptr(0.0) })
+	set := func(v *float64) {
+		change(func(d *modelMetadata) { d.CompactionThreshold = v; d.CompactionPercent = nil })
 	}
 	ui.Column(c).FillWidth().Gap(6).Children(func() {
-		ui.Field(c, i18n.T("ai.compactionPercent"), func() {
-			if v, changed := numberText(c, percent, 0, 100, false, defaultLabel, i18n.T("ai.compactionPercent")); changed {
-				set(value(v))
+		ui.Field(c, i18n.T("ai.compactionThreshold"), func() {
+			if v, changed := numberText(c, threshold, 0, math.MaxInt, true, defaultLabel, i18n.T("ai.compactionThreshold")); changed {
+				set(v)
 			}
 		})
-		current := -1.0
-		if legacy == 0 && percent != nil {
-			current = *percent
-		}
-		presetButtons(c, i18n.T("ai.compactionPresets"), current, compactionPresets, func(v float64) string {
-			return strconv.FormatFloat(v, 'f', -1, 64) + "%"
-		}, set)
-		hint := i18n.T("ai.compactionPercentHint")
-		switch {
-		case legacy > 0:
-			hint = i18n.T("ai.legacyCompactionHint", "tokens", grouped(legacy))
-		case window > 0 && percent != nil && *percent > 0:
-			hint = i18n.T("ai.compactionTokenPreview", "tokens", grouped(math.Floor(window**percent/100)), "percent",
-				strconv.FormatFloat(*percent, 'f', -1, 64))
-		}
-		kit.Help(c, hint)
+		presetButtons(c, i18n.T("ai.compactionPresets"), value(threshold), compactionPresets, tokenLabel, func(v float64) { set(ptr(v)) })
+		kit.Help(c, i18n.T("ai.compactionDefaultHint"))
 	})
 }
 
@@ -519,7 +551,7 @@ func (m *modelsPanel) reasoning(c *ui.Context, meta modelMetadata, change func(f
 			}
 		}).Basis(210).Grow(1).MinWidth(0)
 	})
-	for _, key := range []string{"reasoning", "vision", "tools"} {
+	for _, key := range []string{"reasoning", "vision"} {
 		key := key
 		field := map[string]*bool{"reasoning": meta.Reasoning, "vision": meta.Vision, "tools": meta.Tools}[key]
 		current := ""

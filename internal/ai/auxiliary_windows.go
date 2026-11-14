@@ -13,6 +13,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -119,6 +121,22 @@ func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []Runt
 		byID[p.Provider.ID] = p
 		url := base + "/" + p.Provider.ID
 		helper := auxiliaryProvider{ProviderPreferences: p.Provider.ProviderPreferences, ID: p.Provider.ID, Name: p.Provider.Name, Icon: p.Provider.DisplayIcon(), Chat: url + "/v1", Responses: url + "/v1", Anthropic: url, Key: token, Models: slices.Clone(p.Provider.Models), Metadata: p.Provider.ModelMetadata, Searches: p.Provider.Searches, LimitRestOff: p.Provider.LimitRestOff}
+		helper.RequestLimits = p.Provider.RequestLimits
+		profile := t
+		if profile.RootDataDirectory != "" {
+			profile.DataDirectory = profile.RootDataDirectory
+		}
+		cache := filepath.Join(profile.ForProvider(p.Provider.ID).DataDirectory, "cache", "magpie", "models")
+		helper.CatalogPath = filepath.Join(cache, p.Provider.ID+".json")
+		if _, err := os.Stat(helper.CatalogPath); errors.Is(err, os.ErrNotExist) {
+			// Before provider IDs reached discovery, each isolated profile used
+			// the worker's legacy ID. Read that same upstream cache until refresh.
+			if legacy := filepath.Join(cache, "winone.json"); p.Provider.AuthMode == "api-key" {
+				if _, err := os.Stat(legacy); err == nil {
+					helper.CatalogPath = legacy
+				}
+			}
+		}
 		helper.ModelNames = p.Provider.ModelNames
 		// The outer router talks only to its authenticated local bridge.
 		// Transport choices apply once, to the vendor, in the inner worker.
@@ -138,7 +156,7 @@ func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []Runt
 			// Native APIs execute inside the same upstream gateway so its unknown-
 			// path, privacy and key-scope guards remain authoritative. This private
 			// process payload never enters settings responses or the model catalog.
-			helper.NativeSource = map[string]any{"providerId": p.Provider.ID, "protocol": p.Provider.Protocol, "baseUrl": p.Provider.BaseURL, "preset": p.Provider.Preset, "presetRegion": p.Provider.PresetRegion, "providerPreferences": p.Provider.ProviderPreferences, "headers": p.Provider.Headers, "key": p.Key}
+			helper.NativeSource = map[string]any{"providerId": p.Provider.ID, "protocol": p.Provider.Protocol, "baseUrl": p.Provider.BaseURL, "preset": p.Provider.Preset, "presetRegion": p.Provider.PresetRegion, "providerPreferences": p.Provider.ProviderPreferences, "requestLimits": p.Provider.RequestLimits, "headers": p.Provider.Headers, "key": p.Key, "keys": p.Keys, "limitRestOff": p.Provider.LimitRestOff, "additionalTools": p.Provider.AdditionalTools}
 			if len(p.Keys) > 0 {
 				helper.NativeSource["key"], helper.NativeSource["keyID"], helper.NativeSource["keyOptions"] = p.Keys[0].Key, p.Keys[0].ID, p.Keys[0].KeyOptions
 				for _, key := range p.Keys[1:] {

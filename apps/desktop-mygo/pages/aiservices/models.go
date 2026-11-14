@@ -75,7 +75,7 @@ type modelsPanel struct {
 
 func newModelsPanel(p *page, pr *provider) *modelsPanel {
 	return &modelsPanel{p: p, id: pr.ID, tested: map[string]modelTest{}, fields: fields{}, height: modelListHeight(p.env.Directory, pr.ID),
-		limitsOpen: pr.MaxConcurrency != 0 || pr.MaxRPM != 0 || pr.QueueLimit != 0 || pr.QueueWait != 0}
+		limitsOpen: pr.MaxConcurrency != nil || pr.MaxRPM != 0 || pr.QueueLimit != 0 || pr.QueueWait != 0}
 }
 
 func (m *modelsPanel) Close() { m.closed = true }
@@ -265,6 +265,7 @@ func (m *modelsPanel) fetch(pr *provider) {
 				models = append(models, ai.ModelOption{ID: model.ID, Name: model.Name, Free: model.Free, Metadata: metadata})
 			}
 			snapshot.RefreshModels(models)
+			t.ModelDefaultsSeparated = snapshot.ModelDefaultsSeparated
 			t.ModelRefreshAt, t.ModelRefreshError = time.Now(), ""
 			t.AvailableModels, t.Models, t.Delisted = &snapshot.AvailableModels, snapshot.Models, &snapshot.Delisted
 			t.ModelNames, t.ModelFree = snapshot.ModelNames, snapshot.ModelFree
@@ -533,12 +534,16 @@ func (m *modelsPanel) limits(c *ui.Context, pr *provider, disabled bool) {
 	ui.Collapsible(c, i18n.T("ai.requestLimits"), &m.limitsOpen, func() {
 		ui.Column(c).FillWidth().Gap(12).Padding(8, 0).Disabled(disabled).Children(func() {
 			ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().Children(func() {
+				ui.Field(c, i18n.T("ai.maxConcurrency"), func() {
+					if v, changed := numberText(c, pr.MaxConcurrency, 0, 1000, true, i18n.T("aiOptions.default"), i18n.T("ai.maxConcurrency")); changed {
+						p.change(id, func(t *provider) { t.MaxConcurrency = v })
+					}
+				}).Basis(180).Grow(1)
 				for _, field := range []struct {
 					key  string
 					max  float64
 					read func(*provider) *float64
 				}{
-					{"maxConcurrency", 1000, func(t *provider) *float64 { return &t.MaxConcurrency }},
 					{"maxRPM", 10000, func(t *provider) *float64 { return &t.MaxRPM }},
 					{"queueLimit", 10000, func(t *provider) *float64 { return &t.QueueLimit }},
 					{"queueWait", 3600, func(t *provider) *float64 { return &t.QueueWait }},

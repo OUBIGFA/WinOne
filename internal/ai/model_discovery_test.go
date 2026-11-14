@@ -42,7 +42,7 @@ func TestCatalogRefreshKeepsManualModelsAndOnlyUserOverrides(t *testing.T) {
 	if !reflect.DeepEqual(p.Models, []string{"a", "manual"}) || !reflect.DeepEqual(p.Delisted, []string{"gone"}) {
 		t.Fatalf("picks=%v delisted=%v", p.Models, p.Delisted)
 	}
-	if p.ModelMetadata["a"].ContextWindow != 200 || p.ModelMetadata["a"].Rate != 2 || p.ModelMetadata["manual"].ContextWindow != 99 {
+	if p.ModelMetadata["a"].ContextWindow != 200 || p.ModelMetadata["a"].Rate != 0 || p.CatalogMetadata["a"].Rate != 2 || p.ModelMetadata["manual"].ContextWindow != 99 {
 		t.Fatal(p.ModelMetadata)
 	}
 	before := cloneConfiguration(Configuration{Providers: []Provider{p}, MagpieSettings: &MagpieSettings{}}).Providers[0]
@@ -69,5 +69,28 @@ func TestCatalogRefreshPreservesRenamedModels(t *testing.T) {
 	p.RefreshModels([]ModelOption{{ID: "a", Name: "New A"}, {ID: "b", Name: "New B"}})
 	if p.ModelNames["a"] != "My model" || p.ModelNames["b"] != "New B" {
 		t.Fatal(p.ModelNames)
+	}
+}
+
+// Discovery reports capabilities; it does not express user choices. Keeping
+// those reports in the override map freezes defaults on subsequent requests.
+func TestModelDiscoveryKeepsAllCapabilitiesAtTheModelDefault(t *testing.T) {
+	p := Provider{Models: []string{"model"}}
+	p.RefreshModels([]ModelOption{{ID: "model", Metadata: ModelMetadata{
+		ContextWindow: 128000, MaxTokens: 32000, CompactionThreshold: 96000,
+		Reasoning: new(true), Vision: new(true), Tools: new(true),
+		Levels: []string{"light", "deep"}, Efforts: []string{"light", "deep"},
+		Tiers: []string{"priority"}, Price: &ModelPrice{}, Rate: .5,
+	}}})
+	if got := p.ModelMetadataFor("model"); !reflect.DeepEqual(got, ModelMetadata{}) {
+		t.Fatalf("fetching a model installed overrides: %+v", got)
+	}
+	p.ModelMetadata["model"] = ModelMetadata{ReasoningEffort: "deep"}
+	p.RefreshModels([]ModelOption{{ID: "model", Metadata: ModelMetadata{ContextWindow: 1000000, MaxTokens: 64000, Vision: new(false)}}})
+	if got := p.ModelMetadataFor("model"); !reflect.DeepEqual(got, ModelMetadata{ReasoningEffort: "deep"}) {
+		t.Fatalf("refresh installed defaults or lost a user choice: %+v", got)
+	}
+	if report := p.CatalogMetadata["model"]; report.ContextWindow != 1000000 || report.Vision == nil || *report.Vision {
+		t.Fatalf("latest vendor capabilities were not retained: %+v", report)
 	}
 }

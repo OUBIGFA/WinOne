@@ -35,7 +35,7 @@ func TestModelSettingsReachRealUpstreamRequest(t *testing.T) {
 		fmt.Fprint(w, `{"choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"ok"}}]}`)
 	}))
 	defer vendor.Close()
-	raw := fmt.Sprintf(`{"protocol":"chat","baseUrl":%q,"model":"gpt-5","text":"hello","modelMetadata":{"contextWindow":128000,"maxTokens":2048,"reasoningEffort":"high","tier":"priority"}}`, vendor.URL+"/v1")
+	raw := fmt.Sprintf(`{"protocol":"chat","baseUrl":%q,"model":"gpt-5","text":"hello","maxTokens":4096,"modelMetadata":{"contextWindow":128000,"maxTokens":2048,"reasoningEffort":"high","tier":"priority"}}`, vendor.URL+"/v1")
 	got, err := run(context.Background(), strings.NewReader(raw))
 	if err != nil || got != "ok" || !called {
 		t.Fatal(got, called, err)

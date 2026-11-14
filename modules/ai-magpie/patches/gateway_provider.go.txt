@@ -2,6 +2,10 @@ package provider
 
 import "sync"
 
+// Expose the original pure selection rule to the embedding adapter. Keep its
+// vendor order, stale-list behavior and unknown-model levels in one place.
+func WinOneEffortsKept(all, kept []string) []string { return effortsKept(all, kept) }
+
 // The Host provides the original public key fingerprint for its ephemeral
 // authenticated bridge credentials. Concurrent requests keep a stable ledger
 // identity without exposing a vendor credential to this routing process.

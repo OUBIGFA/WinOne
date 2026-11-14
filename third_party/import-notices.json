@@ -6,7 +6,7 @@
       "repository": "https://github.com/yetone/magpie",
       "commit": "ce2ce86ab43a185688556b5887efab6f1670c58b",
       "license": "MIT",
-      "scope": "Native MyGo provider connections, account import/export and preferences, model settings and local gateway administration. The four retained AI service pages own their complete drafts and save guards. Reuse the pinned upstream transport, model matching, account parsers, key aliases/service tiers and gateway execution; retired desktop, management and privacy pages remain unavailable.",
+      "scope": "Native MyGo provider connections, account import/export and preferences, complete model settings and local gateway administration. Vendor reports remain separate from user overrides. Use the original model catalog, gateway request handling, provider routing strategies and complete paste parsers; retain Host data, credential and process ownership without the removed management applications.",
       "sourceFiles": [
         "internal/gui/trace.go",
         "internal/gui/providers.go",
@@ -25,7 +25,15 @@
         "internal/provider/insecure_tls.go",
         "internal/provider/opencode_endpoints.go",
         "internal/provider/groupmatch.go",
-        "internal/access/models.go"
+        "internal/access/models.go",
+        "internal/gui/assets/app.js",
+        "internal/gui/assets/pasteread.js",
+        "internal/provider/models.go",
+        "internal/provider/modelprefs.go",
+        "internal/provider/modelsystem.go",
+        "internal/provider/modelkind.go",
+        "internal/routes/strategies.go",
+        "plugins/rotation/rotation.go"
       ],
       "notices": [
         {
@@ -36,11 +44,11 @@
       "files": [
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences_accounts.go",
-          "sha256": "8dce016c605a580936ff8a8040e374a26cbe7020d894c522257bb272d27f2b7c"
+          "sha256": "078552ae214e907d0a150bf0fcdd229a80b33e9f509aa0b8e1e88789c62e99ee"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences_billing.go",
-          "sha256": "493e007b165ab93f009b626eeaa391872c82f2dc968880f8f657cc1945753449"
+          "sha256": "b1e256fadf262f3784999cce8f8d295dffe0ca70cb09c08f3d8a4581b6c24c47"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_access.go",
@@ -104,7 +112,7 @@
         },
         {
           "path": "modules/ai-magpie/models.go",
-          "sha256": "930cec7c7d0545f1920d9131bee1344d58e289e3a0a5b15b34630e974a33e77c"
+          "sha256": "bea040d6210d21ed67dcc355edc2457d8432fca6d134ccf362ceee5014bec566"
         },
         {
           "path": "build/prepare-ai-discovery.mjs",
@@ -305,11 +313,11 @@
       "files": [
         {
           "path": "build/prepare-ai-curl.mjs",
-          "sha256": "6b16e9b4c311e0ebb81ceafe1b5279142ca6cbb92dd69cc2272bd5df6da2106f"
+          "sha256": "555b3289dbdedf9b14b0c9cbae1f67f6c427aa58e681c3deb83310c352ef8f43"
         },
         {
           "path": "apps/desktop/frontend/src/features/magpie-curl.js",
-          "sha256": "98b550aac49a73d74ffea87b4cc001caba98e52988e75b24f4bc7f31fbd86207"
+          "sha256": "39310e5b285ab3e67b957476da6c30caa15500c6f28b170669721c4c27d31948"
         },
         {
           "path": "apps/desktop/frontend/src/features/magpie-curl.d.ts",

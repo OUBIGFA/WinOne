@@ -95,7 +95,7 @@ func TestRealNativeAIWindowsNeedNoWebViewForBuiltInPages(t *testing.T) {
 			for _, width := range []int{1000, 560} {
 				// Use actual Windows rendering for every rebuilt section, not
 				// only each page's default tab. Policy APIs keep the private runtime.
-				for scene := 0; scene < 10; scene++ {
+				for scene := 0; scene < 14; scene++ {
 					before := 0
 					mygo.RunOnMain(func() {
 						i18n.SetLocale(locale)
@@ -105,11 +105,18 @@ func TestRealNativeAIWindowsNeedNoWebViewForBuiltInPages(t *testing.T) {
 						if scene < 4 {
 							p.switchTab([]int{tabHome, tabCustom, tabAccounts, tabGateway}[scene])
 						}
-						if scene >= 4 {
+						if scene >= 4 && scene < 10 {
 							pr := &p.draft.Value.Providers[0].Value
 							ed := newEditor(p, pr, pr.ID)
 							ed.preferenceTab = scene - 4
 							section = func(c *ui.Context) { ed.preferences(c, pr, false) }
+						}
+						if scene >= 10 {
+							pr := &p.draft.Value.Providers[0].Value
+							ed := newEditor(p, pr, pr.ID)
+							ed.models.editing = pr.Models[0]
+							ed.models.settingsTab = scene - 10
+							section = func(c *ui.Context) { ed.models.settings(c, pr, false) }
 						}
 						before = frames
 						window.Invalidate()

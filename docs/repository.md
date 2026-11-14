@@ -33,6 +33,8 @@
 
 单独构建程序管理使用 `build/build-wintray.ps1 -OutputDirectory <候选目录>`；加 `-RunConsoleChecks` 验证真实控制台的输入输出、显示和隐藏。三模块联动使用 `build/test-module-lifecycle.ps1 -BundleDirectory <完整候选目录> -OutputDirectory _temp/<新目录> -RunSystemChecks`，只操作专用测试窗口和生成图片。
 
+程序管理中依赖前台激活的完整原生启动流程仅在显式设置 `WINTRAY_STARTUP_NATIVE_TEST=1` 后运行；依赖 Explorer 的任务栏流程继续使用 `WINTRAY_STARTUP_TASKBAR_TEST=1`。默认源码检查不选择这些系统交互测试。运行时仍须遵守私有桌面与用户前台授权约定；未运行的前台／任务栏流程不能记录为已通过。
+
 依赖使用锁文件；CI 从干净 checkout 构建。每次提交前检查 `git status --short`、`git diff --cached` 和 `git ls-files`。不要使用无差别暂存来掩盖文件分类问题。
 
 开发分支采用 `feat/<主题>`、`fix/<主题>`、`chore/<主题>`。发行版本采用 `v主版本.次版本.补丁`，预发布加 `-alpha.N` 或 `-beta.N`。发布 tag 只能指向验证通过的提交；本地调试不得创建发布 tag。

@@ -311,6 +311,9 @@ func (e *editor) connection(c *ui.Context, pr *provider, locked bool) {
 	// The sub-tab above names the connection, so its rows need no
 	// heading of their own.
 	kit.Panel(c, func() {
+		if kit.GhostButton(c, i18n.T("ai.importSetup"), icons.ClipboardPaste, false).Disabled(locked).Clicked() {
+			p.importProviderSetup(c.Services().ReadClipboard(), pr, "")
+		}
 		kit.Row(c, i18n.T("ai.protocol"), "", func() {
 			protocol := pr.Protocol
 			if protocol == "" {
@@ -430,7 +433,6 @@ func (e *editor) keys(c *ui.Context, pr *provider, locked bool) {
 			e.keyRow(c.Key(slot.ID), pr, slot, i, len(slots), edits, locked)
 		}
 		if len(slots) > 1 {
-			e.policy(c, pr, locked)
 		}
 	})
 }
@@ -572,55 +574,6 @@ func (e *editor) toggleKey(provider, slot string, row *keyRow, edited bool) {
 			return
 		}
 		row.saved, row.visible = key, true
-	})
-}
-
-// policy is how several keys share requests: in turns or in order, and
-// whether a failure moves on to the next key.
-func (e *editor) policy(c *ui.Context, pr *provider, locked bool) {
-	p := e.p
-	id := pr.ID
-	policy := pr.policy()
-	set := func(edit func(*keyPolicy)) {
-		p.change(id, func(t *provider) {
-			next := t.policy()
-			edit(&next)
-			t.KeyPolicy = &next
-		})
-	}
-	ui.Column(c).FillWidth().Gap(12).Padding(8, 0, 0, 0).Children(func() {
-		ui.Field(c, i18n.T("ai.keyStrategy"), func() {
-			strategy := policy.Strategy
-			ui.Column(c).Disabled(locked).Children(func() {
-				if kit.Segmented(c, &strategy, []kit.SelectOption{
-					{Value: "round-robin", Label: i18n.T("ai.roundRobinKeys")},
-					{Value: "ordered", Label: i18n.T("ai.orderedKeys")},
-				}, i18n.T("ai.keyStrategy")) {
-					set(func(k *keyPolicy) { k.Strategy = strategy })
-				}
-			})
-		})
-		failover := policy.Failover
-		if ui.Checkbox(c, &failover, i18n.T("ai.keyFailover")).Disabled(locked).Changed() {
-			set(func(k *keyPolicy) { k.Failover = failover })
-		}
-		ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().Children(func() {
-			ui.Field(c, i18n.T("ai.keyMaxAttempts"), func() {
-				ui.Column(c).Disabled(locked || !policy.Failover).Children(func() {
-					if v, changed := numberText(c, &policy.MaxAttempts, 1, 16, true, "", i18n.T("ai.keyMaxAttempts")); changed && v != nil {
-						set(func(k *keyPolicy) { k.MaxAttempts = *v })
-					}
-				})
-			}).Basis(200).Grow(1)
-			ui.Field(c, i18n.T("ai.keyCooldown"), func() {
-				ui.Column(c).Disabled(locked).Children(func() {
-					if v, changed := numberText(c, &policy.CooldownSeconds, 1, 3600, true, "", i18n.T("ai.keyCooldown")); changed && v != nil {
-						set(func(k *keyPolicy) { k.CooldownSeconds = *v })
-					}
-				})
-			}).Basis(200).Grow(1)
-		})
-		kit.Help(c, i18n.T("ai.keyFailoverHint"))
 	})
 }
 

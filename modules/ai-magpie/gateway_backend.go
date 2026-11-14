@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/subtle"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"time"
 )
@@ -63,6 +65,49 @@ func serveGatewayBackend(ctx context.Context, in request, input io.Reader, outpu
 		}
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Cache-Control", "no-store")
+		if r.URL.Path == "/api/winone/generate" {
+			if r.Method != http.MethodPost || r.Header.Get("Authorization") != "Bearer "+in.Key || r.Header.Get("Origin") != "" {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+			var call request
+			decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maximumRequest))
+			decoder.DisallowUnknownFields()
+			if decoder.Decode(&call) != nil || decoder.Decode(new(any)) != io.EOF || call.ProviderID == "" || call.Model == "" {
+				http.Error(w, "Invalid generation request", http.StatusBadRequest)
+				return
+			}
+			payload, err := generationPayload(call, call.ProviderID+"/"+call.Model, true)
+			if err != nil {
+				http.Error(w, "Invalid generation request", http.StatusBadRequest)
+				return
+			}
+			// One upstream Server owns all first-party and gateway calls. Its
+			// original key selection, concurrency, RPM and cooldown state survive
+			// consecutive requests made by the same live result window.
+			ctx, cancel := context.WithCancel(r.Context())
+			defer cancel()
+			request := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(payload)).WithContext(ctx)
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("Authorization", "Bearer "+gateway.Token)
+			w.Header().Set("Content-Type", "application/x-ndjson")
+			encoder := json.NewEncoder(w)
+			response := newStreamResponse(func(event streamEvent) error {
+				if err := encoder.Encode(event); err != nil {
+					return err
+				}
+				if flush, ok := w.(http.Flusher); ok {
+					flush.Flush()
+				}
+				return nil
+			})
+			response.cancel = cancel
+			protocol.ServeHTTP(response, request)
+			if err := response.complete(); err != nil {
+				_ = encoder.Encode(failureEvent(err))
+			}
+			return
+		}
 		if r.URL.Path == "/api/winone/catalog" {
 			if r.Method != http.MethodPost || r.Header.Get("Authorization") != "Bearer "+in.Key || r.Header.Get("Origin") != "" {
 				http.Error(w, "Unauthorized", 401)

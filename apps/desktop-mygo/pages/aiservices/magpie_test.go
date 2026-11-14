@@ -1,56 +1,9 @@
 package aiservices
 
 import (
-	"os"
-	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 )
-
-// The vendor examples the React window's tests read: the same fixtures
-// give the same imports.
-func TestCurlReadsVendorExamples(t *testing.T) {
-	cases := []struct{ file, api, base, model string }{
-		{"openai-chat.sh", "openai", "https://api.openai.com/v1", ""},
-		{"openai-responses.sh", "responses", "https://api.openai.com/v1", "gpt-6-astra"},
-		{"anthropic.sh", "anthropic", "https://api.anthropic.com", "claude-opus-5-5"},
-		{"deepseek.sh", "openai", "https://api.deepseek.com/v1", "deepseek-flash"},
-		{"zhipu.sh", "openai", "https://open.bigmodel.cn/api/paas/v4", "glm-5.3"},
-		{"moonshot.sh", "openai", "https://api.moonshot.cn/v1", "kimi-k3"},
-		{"openrouter.sh", "openai", "https://openrouter.ai/api/v1", "~openai/gpt-sol-latest"},
-		{"bailian-cmd.bat", "openai", "https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1", "qwen3.8-max"},
-		{"sap-ai-core.ps1", "", "", "meta--llama3.1-70b-instruct"},
-		{"unsloth-studio.ps1", "openai", "http://127.0.0.1:8888/v1", ""},
-	}
-	for _, tc := range cases {
-		data, err := os.ReadFile(filepath.Join("..", "..", "..", "desktop", "frontend", "tests", "fixtures", "curl", tc.file))
-		if err != nil {
-			t.Fatal(err)
-		}
-		lf := strings.ReplaceAll(string(data), "\r\n", "\n")
-		for _, text := range []string{lf, strings.ReplaceAll(lf, "\n", "\r\n")} {
-			got := curlOf(text)
-			if got == nil || got.API != tc.api || got.Base != tc.base || got.Model != tc.model || got.Key != "" {
-				t.Errorf("%s: %+v", tc.file, got)
-			}
-		}
-	}
-}
-
-func TestCurlReadsAKeyAndLeavesOtherPastes(t *testing.T) {
-	if curlOf("https://example.invalid/v1") != nil {
-		t.Fatal("an address is not a cURL command")
-	}
-	got := curlOf("curl https://example.invalid/v1/messages -H 'x-api-key: fixture-token-123'")
-	if got == nil || got.API != "anthropic" || got.Base != "https://example.invalid" || got.Key != "fixture-token-123" {
-		t.Fatalf("%+v", got)
-	}
-	got = curlOf(`curl https://api.example.invalid/v1/chat/completions -H "Authorization: Bearer $OPENAI_API_KEY"`)
-	if got == nil || got.Key != "" || got.Placeholder != "$OPENAI_API_KEY" {
-		t.Fatalf("placeholder %+v", got)
-	}
-}
 
 func TestHeadersFollowMagpie(t *testing.T) {
 	got := headersOf([]headerRow{{"X-Team", "first", false}, {"x-team", " last ", false}, {"Empty", "", false},

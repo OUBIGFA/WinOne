@@ -171,3 +171,77 @@ func TestModelMetadataKeepsVendorReasoningLevels(t *testing.T) {
 		t.Fatalf("vendor reasoning levels lost: %+v", metadata)
 	}
 }
+
+// A catalog may publish a model's output above its context window. Magpie
+// keeps the source values and limits the published pair; saving a selection
+// must not invent a second validation rule that rejects that catalog.
+func TestModelCatalogWithLargerOutputCanBeSelectedAndSaved(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "ai.json")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configuration := store.Configuration()
+	p := Provider{ID: "relay", Name: "Relay", AuthMode: "api-key", Protocol: "chat", BaseURL: "https://example.invalid/v1"}
+	p.RefreshModels([]ModelOption{{ID: "deepseek-chat", Metadata: ModelMetadata{ContextWindow: 128000, MaxTokens: 384000}}})
+	p.Models = []string{"deepseek-chat"}
+	configuration.Providers = []Provider{p}
+	if _, err = store.SaveConfiguration(configuration, nil); err != nil {
+		t.Fatalf("selecting a vendor model must save: %v", err)
+	}
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, _ := reopened.Configuration().Provider("relay")
+	if !slices.Equal(saved.Models, []string{"deepseek-chat"}) || saved.CatalogMetadata["deepseek-chat"].MaxTokens != 384000 {
+		t.Fatal("selection or vendor report changed")
+	}
+}
+
+func TestLegacyCatalogDefaultsAreNotRequestOverrides(t *testing.T) {
+	p := Provider{ID: "relay", ModelMetadata: map[string]ModelMetadata{
+		"model": {ContextWindow: 128000, MaxTokens: 64000, ReasoningEffort: "deep", Vision: new(true)},
+	}, CatalogMetadata: map[string]ModelMetadata{
+		"model": {ContextWindow: 128000, MaxTokens: 32000, Vision: new(true)},
+	}}
+	configuration := cloneConfiguration(Configuration{Providers: []Provider{p}})
+	got := configuration.Providers[0].ModelMetadataFor("model")
+	if got.ContextWindow != 0 || got.Vision != nil || got.MaxTokens != 64000 || got.ReasoningEffort != "deep" {
+		t.Fatalf("legacy defaults must be removed while explicit edits survive: %+v", got)
+	}
+	// Reading again must not erase an explicit value equal to the old report.
+	configuration.Providers[0].ModelMetadata["model"] = ModelMetadata{ContextWindow: 128000}
+	again := cloneConfiguration(configuration)
+	if again.Providers[0].ModelMetadataFor("model").ContextWindow != 128000 {
+		t.Fatal("an explicit override was mistaken for legacy catalog data")
+	}
+}
+
+func TestProviderDefaultConcurrencyIsDifferentFromUnlimited(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "ai.json")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := store.Configuration()
+	c.Providers = []Provider{{ID: "relay", Name: "Relay", AuthMode: "api-key", Protocol: "chat", BaseURL: "https://example.invalid/v1", Models: []string{"model"}}}
+	if _, err = store.SaveConfiguration(c, nil); err != nil {
+		t.Fatal(err)
+	}
+	c = store.Configuration()
+	if c.Providers[0].MaxConcurrency != nil {
+		t.Fatal("the provider default became an explicit limit")
+	}
+	c.Providers[0].MaxConcurrency = new(0)
+	if _, err = store.SaveConfiguration(c, nil); err != nil {
+		t.Fatal(err)
+	}
+	store, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := store.Configuration().Providers[0].MaxConcurrency; got == nil || *got != 0 {
+		t.Fatal("an explicit unlimited setting reverted to the provider default")
+	}
+}

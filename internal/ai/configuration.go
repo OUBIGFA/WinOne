@@ -18,12 +18,13 @@ const MaxProviderModels = 4096
 // API keys are write-only. User-defined request headers remain editable here.
 type Provider struct {
 	// Catalog snapshots distinguish vendor updates from user overrides and manual IDs.
-	CatalogModels     []string                 `json:"catalogModels"`
-	CatalogNames      map[string]string        `json:"catalogNames,omitempty"`
-	ManualModels      []string                 `json:"manualModels,omitempty"`
-	CatalogMetadata   map[string]ModelMetadata `json:"catalogMetadata,omitempty"`
-	ModelRefreshAt    time.Time                `json:"modelRefreshAt,omitempty"`
-	ModelRefreshError string                   `json:"modelRefreshError,omitempty"`
+	ModelDefaultsSeparated bool                     `json:"modelDefaultsSeparated,omitempty"`
+	CatalogModels          []string                 `json:"catalogModels"`
+	CatalogNames           map[string]string        `json:"catalogNames,omitempty"`
+	ManualModels           []string                 `json:"manualModels,omitempty"`
+	CatalogMetadata        map[string]ModelMetadata `json:"catalogMetadata,omitempty"`
+	ModelRefreshAt         time.Time                `json:"modelRefreshAt,omitempty"`
+	ModelRefreshError      string                   `json:"modelRefreshError,omitempty"`
 	ProviderPreferences
 	LimitRestOff bool `json:"limitRestOff,omitempty"`
 	Searches     bool `json:"searches,omitempty"`
@@ -67,13 +68,6 @@ type KeyPolicy struct {
 	CooldownSeconds int    `json:"cooldownSeconds"`
 }
 
-func keyPolicy(provider Provider) KeyPolicy {
-	if provider.KeyPolicy != nil {
-		return *provider.KeyPolicy
-	}
-	return KeyPolicy{Strategy: "round-robin", Failover: true, MaxAttempts: 3, CooldownSeconds: 60}
-}
-
 type Selection struct {
 	Provider string `json:"provider"`
 	Model    string `json:"model"`
@@ -112,12 +106,11 @@ func cloneConfiguration(c Configuration) Configuration {
 		c.Providers = []Provider{}
 	}
 	for i := range c.Providers {
+		if c.Providers[i].MaxConcurrency != nil {
+			c.Providers[i].MaxConcurrency = new(*c.Providers[i].MaxConcurrency)
+		}
 		c.Providers[i].ProviderPreferences = c.Providers[i].ProviderPreferences.clone()
 		c.Providers[i].Keys = slices.Clone(c.Providers[i].Keys)
-		if c.Providers[i].AuthMode == "api-key" {
-			policy := keyPolicy(c.Providers[i])
-			c.Providers[i].KeyPolicy = &policy
-		}
 		c.Providers[i].Icon = providerIcon(c.Providers[i])
 		if c.Providers[i].Avatar != nil {
 			avatar := *c.Providers[i].Avatar
@@ -139,6 +132,7 @@ func cloneConfiguration(c Configuration) Configuration {
 		for id, metadata := range c.Providers[i].ModelMetadata {
 			c.Providers[i].ModelMetadata[id] = metadata.clone()
 		}
+		c.Providers[i].separateModelDefaults()
 		c.Providers[i].AvailableModels = c.Providers[i].AllModels()
 		if c.Providers[i].Models == nil {
 			c.Providers[i].Models = []string{}
@@ -292,10 +286,6 @@ func validateConfiguration(c Configuration) error {
 		}
 		if p.AuthMode == "account" && (len(p.Keys) > 0 || p.KeyPolicy != nil) {
 			return errors.New("账号供应商不使用 API 密钥策略")
-		}
-		policy := keyPolicy(p)
-		if (policy.Strategy != "round-robin" && policy.Strategy != "ordered") || policy.MaxAttempts < 1 || policy.MaxAttempts > 16 || policy.CooldownSeconds < 1 || policy.CooldownSeconds > 3600 {
-			return errors.New("密钥策略、尝试次数或冷却时间无效")
 		}
 		if !providerIDPattern.MatchString(p.ID) || ids[p.ID] {
 			return errors.New("供应商标识无效或重复，请重新添加此服务")

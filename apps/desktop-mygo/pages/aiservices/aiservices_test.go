@@ -106,6 +106,8 @@ func (f *fakeAI) handle(method string, params json.RawMessage) (any, error) {
 		return f.signIn[f.signInIndex], nil
 	case "capture.ai.keys.reveal":
 		return map[string]string{"key": f.keys[p["provider"].(string)+"/"+p["id"].(string)]}, nil
+	case "capture.ai.models.import":
+		return map[string]any{"parsed": map[string]any{"api": "openai", "base": "https://api.deepseek.com/v1", "key": "sk-real-key", "model": "deepseek-chat"}}, nil
 	case "capture.ai.models.fetch":
 		f.fetched = append(f.fetched, p)
 		return map[string]any{"models": []any{map[string]any{"id": "gpt-a", "name": "GPT A"}, map[string]any{"id": "gpt-c", "free": true}}}, nil

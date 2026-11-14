@@ -17,12 +17,12 @@ func ValidateGeneration(input Generation) error {
 		return errors.New("AI 输入过大")
 	}
 	if len(input.Messages) == 0 {
-		if strings.TrimSpace(input.Text) == "" || len(input.Text) > 1<<20 {
+		if strings.TrimSpace(input.Text) == "" || len(input.Text) > 32<<20 {
 			return errors.New("AI 输入为空或过大")
 		}
 		return nil
 	}
-	if input.Text != "" || len(input.ImagePNG) > 0 || len(input.Messages) > 64 {
+	if input.Text != "" || len(input.ImagePNG) > 0 {
 		return errors.New("对话格式无效或过长，请开始新对话")
 	}
 	total := len(input.System)
@@ -32,8 +32,10 @@ func ValidateGeneration(input Generation) error {
 		}
 		total += len(message.Content)
 	}
-	if total > 200000 {
-		return errors.New("对话过长，请开始新对话")
+	// This is the owned IPC payload bound, not a model context policy.
+	// The upstream gateway and vendor decide what the selected model accepts.
+	if total > 32<<20 {
+		return errors.New("对话内容超过单次传输上限")
 	}
 	if input.Messages[len(input.Messages)-1].Role != "user" {
 		return errors.New("请先输入问题")

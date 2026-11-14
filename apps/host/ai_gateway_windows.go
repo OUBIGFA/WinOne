@@ -3,10 +3,8 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -14,9 +12,6 @@ import (
 	"winone/internal/configjson"
 	"winone/internal/host"
 )
-
-// The request limit belongs to the gateway, independently of any product UI.
-const maximumGatewayRequestBytes = 16 << 20
 
 func (s *aiService) initGateway() {
 	s.mu.Lock()
@@ -133,56 +128,6 @@ func (s *aiService) serveConfiguredGateway(w http.ResponseWriter, r *http.Reques
 		ai.GatewayError(w, 403, "请先开启供应商原生 API")
 		return
 	}
-	if !named && r.Method == http.MethodGet && r.URL.Path == "/v1/models" {
-		// Saved discovery requires neither a worker nor live vendor credentials.
-		entries := []map[string]any{}
-		for _, p := range config.Providers {
-			if p.Off {
-				continue
-			}
-			for _, model := range p.Models {
-				if !allow(ai.Selection{Provider: p.ID, Model: model}) {
-					continue
-				}
-				metadata := p.ModelMetadataFor(model)
-				id := p.ID + "/" + model
-				if metadata.Alias != "" {
-					id = p.ID + "/" + metadata.Alias
-				}
-				name := p.ModelName(model)
-				if !strings.Contains(strings.ToLower(name), strings.ToLower(p.Name)) {
-					name += " · " + p.Name
-				}
-				entry := map[string]any{"id": id, "slug": id, "object": "model", "created": 0, "owned_by": p.Name, "name": name, "display_name": name, "metadata": metadata}
-				if metadata.ContextWindow > 0 {
-					window := metadata.ContextWindow
-					threshold := metadata.CompactionThreshold
-					if metadata.CompactionPercent > 0 {
-						threshold = int(float64(window) * metadata.CompactionPercent / 100)
-					}
-					if threshold > 0 && threshold < window {
-						entry["max_context_window"] = window
-						window = threshold
-					}
-					entry["context_window"] = window
-				}
-				if metadata.MaxTokens > 0 {
-					entry["max_tokens"] = metadata.MaxTokens
-				}
-				if len(metadata.Efforts) > 0 {
-					levels := []map[string]string{}
-					for _, effort := range metadata.Efforts {
-						levels = append(levels, map[string]string{"effort": effort})
-					}
-					entry["supported_reasoning_levels"] = levels
-				}
-				entries = append(entries, entry)
-			}
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{"object": "list", "data": entries})
-		return
-	}
 	models := []string{}
 	for _, provider := range config.Providers {
 		if provider.Off {
@@ -202,45 +147,8 @@ func (s *aiService) serveConfiguredGateway(w http.ResponseWriter, r *http.Reques
 	if len(models) == 0 {
 		models = []string{"/"}
 	}
-	limit := int64(maximumGatewayRequestBytes)
-	if r.URL.Path == "/api/show" {
-		limit = 1 << 20
-	}
-	r.Body = http.MaxBytesReader(w, r.Body, limit)
-	// Reject disabled JSON model calls before loading any account runtime. Named
-	// keys still authenticate inside their owner before their policy is applied.
-	if !named && r.Method == http.MethodPost && (strings.Contains(r.Header.Get("Content-Type"), "json") || r.URL.Path == "/v1/chat/completions" || r.URL.Path == "/v1/responses" || r.URL.Path == "/v1/messages") {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			ai.GatewayError(w, 413, "请求内容过大")
-			return
-		}
-		var input struct {
-			Model string `json:"model"`
-		}
-		if json.Unmarshal(body, &input) != nil {
-			ai.GatewayError(w, 400, "请求必须为 JSON")
-			return
-		}
-		if input.Model != "" && r.URL.Path != "/api/show" {
-			permitted := false
-			for _, model := range models {
-				permitted = permitted || model == input.Model
-			}
-			if !permitted {
-				ai.GatewayError(w, 403, "模型未在本地网关中启用")
-				return
-			}
-		}
-		r.Body = io.NopCloser(bytes.NewReader(body))
-	}
-	select {
-	case s.gatewaySlots <- struct{}{}:
-		defer func() { <-s.gatewaySlots }()
-	default:
-		ai.GatewayError(w, 429, "本地网关请求较多，请稍后重试")
-		return
-	}
+	// The upstream handler owns request parsing, size limits and scheduling.
+	// The authenticated model scope below also covers native/media helpers.
 	process, err := s.startGatewayBackend()
 	if err != nil {
 		ai.GatewayError(w, 503, "本地网关服务无法启动")

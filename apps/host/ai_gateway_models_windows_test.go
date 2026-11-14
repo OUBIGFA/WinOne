@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -14,15 +15,22 @@ import (
 )
 
 func TestGatewayModelSelectionControlsDiscoveryAndCalls(t *testing.T) {
+	executable := os.Getenv("WINONE_AI_TEST_EXE")
+	if executable == "" {
+		t.Skip("set WINONE_AI_TEST_EXE for the upstream model list")
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	dir := t.TempDir()
 	s := newAIService(ctx, dir, filepath.Join(dir, "WinOne.Host.exe"))
+	s.translator.Executable = executable
+	defer s.closeGatewayBackend()
 	s.initGateway()
 	s.store, _ = ai.Open(s.storePath)
 	config := s.store.Configuration()
 	config.Providers = []ai.Provider{{ID: "one", Name: "Work", AuthMode: "api-key", Protocol: "chat", BaseURL: "https://example.invalid/v1", Models: []string{"same", "second"}}, {ID: "two", Name: "Private", AuthMode: "account", Agent: "codex", Models: []string{"same"}}}
-	if _, err := s.store.SaveConfiguration(config, nil); err != nil {
+	key := "fixture-key"
+	if _, err := s.store.SaveConfiguration(config, map[string]*string{"one": &key}); err != nil {
 		t.Fatal(err)
 	}
 	save := func(revision int, models any) host.Response {

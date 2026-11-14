@@ -24,6 +24,7 @@ func (p *Provider) RefreshModels(models []ModelOption) {
 	if len(models) == 0 {
 		return
 	}
+	p.separateModelDefaults()
 	old := p.AllModels()
 	listed := make([]string, 0, len(models))
 	for _, m := range models {
@@ -64,13 +65,8 @@ func (p *Provider) RefreshModels(models []ModelOption) {
 			}
 		}
 		free[m.ID], baseline[m.ID] = m.Free, m.Metadata.clone()
-		metadata[m.ID] = m.Metadata.clone()
 		if current, ok := p.ModelMetadata[m.ID]; ok {
-			if previous, known := p.CatalogMetadata[m.ID]; known {
-				metadata[m.ID] = mergeCatalogMetadata(previous, current, m.Metadata)
-			} else {
-				metadata[m.ID] = current.clone()
-			}
+			metadata[m.ID] = current.clone()
 		}
 	}
 	picks, delisted := []string{}, []string{}
@@ -93,24 +89,32 @@ func (p *Provider) RefreshModels(models []ModelOption) {
 	p.CatalogNames = catalogNames
 }
 
-// Compare individual fields with the previous report: only fields the user
-// changed survive the next report, including explicit resets/removals.
-func mergeCatalogMetadata(previous, current, next ModelMetadata) ModelMetadata {
+// Older versions wrote the vendor report and the user's edits into one map.
+// Migrate once, against the report retained alongside it. Unknown legacy
+// values remain explicit: without a report there is no evidence to erase them.
+func (p *Provider) separateModelDefaults() {
+	if p.ModelDefaultsSeparated {
+		return
+	}
+	for id, current := range p.ModelMetadata {
+		if previous, known := p.CatalogMetadata[id]; known {
+			p.ModelMetadata[id] = catalogOverrides(previous, current)
+		}
+	}
+	p.ModelDefaultsSeparated = true
+}
+
+func catalogOverrides(previous, current ModelMetadata) ModelMetadata {
 	decode := func(m ModelMetadata) map[string]json.RawMessage {
 		b, _ := json.Marshal(m)
 		var v map[string]json.RawMessage
 		_ = json.Unmarshal(b, &v)
 		return v
 	}
-	a, b, c := decode(previous), decode(current), decode(next)
+	a, b, c := decode(previous), decode(current), map[string]json.RawMessage{}
 	for key, now := range b {
 		if !reflect.DeepEqual(a[key], now) {
 			c[key] = now
-		}
-	}
-	for key := range a {
-		if _, exists := b[key]; !exists {
-			delete(c, key)
 		}
 	}
 	raw, _ := json.Marshal(c)

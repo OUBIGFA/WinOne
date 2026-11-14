@@ -149,18 +149,3 @@ func (s *Store) updatedCredentialsLocked(c *Configuration, legacy map[string]*st
 	}
 	return sets, projection, nil
 }
-
-func (s *Store) pruneKeyRoundsLocked(sets map[string]map[string]string) {
-	for provider, round := range s.keyRounds {
-		keys, exists := sets[provider]
-		if !exists {
-			delete(s.keyRounds, provider)
-			continue
-		}
-		for id, rest := range round.rest {
-			if keys[id] != rest.sealed {
-				delete(round.rest, id)
-			}
-		}
-	}
-}

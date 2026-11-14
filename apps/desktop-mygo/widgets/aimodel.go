@@ -33,6 +33,7 @@ type AIProvider struct {
 	ModelNames      map[string]string          `json:"modelNames,omitempty"`
 	ModelFree       map[string]bool            `json:"modelFree,omitempty"`
 	ModelMetadata   map[string]AIModelMetadata `json:"modelMetadata,omitempty"`
+	CatalogMetadata map[string]AIModelMetadata `json:"catalogMetadata,omitempty"`
 
 	// aiPickLabels caches the labels of every model, computed once per
 	// decoded provider as React kept them per provider object.
@@ -287,6 +288,13 @@ func aiPickSelect(c *ui.Context, selected *string, items []aiPickItem, placehold
 func aiPickBadges(p *AIProvider, id string) func(c *ui.Context) {
 	free := IsFreeModel(p, id)
 	metadata := p.ModelMetadata[id]
+	if report, exists := p.CatalogMetadata[id]; exists {
+		metadata.Rate, metadata.RateWas = report.Rate, report.RateWas
+		metadata.ListedContextWindow = report.ListedContextWindow
+		if metadata.ContextWindow == nil || *metadata.ContextWindow == 0 {
+			metadata.ContextWindow = report.ContextWindow
+		}
+	}
 	rate, was := metadata.Rate, metadata.RateWas
 	context := 0.0
 	switch {

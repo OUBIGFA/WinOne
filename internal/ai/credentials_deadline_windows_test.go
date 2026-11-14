@@ -9,8 +9,9 @@ import (
 )
 
 // Inspect the callback's real context rather than waiting for a 60-minute
-// drawing. The outer deadline already bounds the entire key failover chain.
-func TestKeyFailoverPreservesExplicitRequestDeadline(t *testing.T) {
+// drawing. Credential transport must preserve the caller's deadline; the
+// upstream gateway owns the default wait and request scheduling.
+func TestKeySnapshotPreservesCallerDeadline(t *testing.T) {
 	store, _ := multiKeyStore(t)
 	_, plan, err := store.ForTaskKeys("chat", nil)
 	if err != nil {
@@ -32,9 +33,8 @@ func TestKeyFailoverPreservesExplicitRequestDeadline(t *testing.T) {
 		}
 	}
 	err = store.WithKeys(context.Background(), plan, func(call context.Context, _ string) (bool, error) {
-		deadline, ok := call.Deadline()
-		if left := time.Until(deadline); !ok || left > 90*time.Second || left < 89*time.Second {
-			t.Errorf("unbounded caller lost the default: %v", left)
+		if deadline, ok := call.Deadline(); ok {
+			t.Errorf("credential transport added its own deadline: %v", deadline)
 		}
 		return false, nil
 	})

@@ -21,6 +21,8 @@ import (
 )
 
 type request struct {
+	RequestLimits       RequestLimits            `json:"requestLimits,omitempty"`
+	Keys                []requestKey             `json:"keys,omitempty"`
 	Models              []string                 `json:"models,omitempty"`
 	KeyID               string                   `json:"keyID,omitempty"`
 	KeyOptions          *KeyOptions              `json:"keyOptions,omitempty"`
@@ -60,10 +62,16 @@ type request struct {
 	BaseURL             string                   `json:"baseUrl"`
 	Key                 string                   `json:"key"`
 	Model               string                   `json:"model"`
+	MaxTokens           int                      `json:"maxTokens,omitempty"`
 	System              string                   `json:"system"`
 	Text                string                   `json:"text"`
 	ImagePNG            []byte                   `json:"imagePng,omitempty"`
 	Messages            []conversationMessage    `json:"messages,omitempty"`
+}
+
+type requestKey struct {
+	provider.KeyAccount
+	ID string `json:"id"`
 }
 
 type conversationMessage struct {
@@ -105,11 +113,11 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 		return "", errors.New("model is required")
 	}
 	if len(in.Messages) == 0 {
-		if strings.TrimSpace(in.Text) == "" || len(in.Text) > 1<<20 {
+		if strings.TrimSpace(in.Text) == "" || len(in.Text) > 32<<20 {
 			return "", errors.New("text is required or too long")
 		}
 	} else {
-		if in.Text != "" || len(in.ImagePNG) > 0 || len(in.Messages) > 64 || in.Messages[len(in.Messages)-1].Role != "user" {
+		if in.Text != "" || len(in.ImagePNG) > 0 || in.Messages[len(in.Messages)-1].Role != "user" {
 			return "", errors.New("invalid conversation")
 		}
 		total := len(in.System)
@@ -119,7 +127,7 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 			}
 			total += len(message.Content)
 		}
-		if total > 200000 {
+		if total > 32<<20 {
 			return "", errors.New("conversation too long")
 		}
 	}
@@ -144,7 +152,6 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 		// configuration. Secrets live only in this one-shot process's memory.
 		provider.WinOneProviders = []provider.Provider{p}
 	}
-	var content any = in.Text
 	if err := installModelPreferences(strings.TrimSuffix(model, "/"+in.Model), in.Model, in.ModelMetadata); err != nil {
 		return "", err
 	}
@@ -154,20 +161,7 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 	if err := configureAccounting(in); err != nil {
 		return "", err
 	}
-	if len(in.ImagePNG) > 0 {
-		content = []any{map[string]any{"type": "text", "text": in.Text}, map[string]any{"type": "image_url", "image_url": map[string]string{"url": "data:image/png;base64," + base64.StdEncoding.EncodeToString(in.ImagePNG)}}}
-	}
-	messages := []map[string]any{{"role": "system", "content": in.System}}
-	if len(in.Messages) == 0 {
-		messages = append(messages, map[string]any{"role": "user", "content": content})
-	} else {
-		for _, message := range in.Messages {
-			messages = append(messages, map[string]any{"role": message.Role, "content": message.Content})
-		}
-	}
-	requestBody := map[string]any{"model": model, "stream": emit != nil, "tools": []any{}, "tool_choice": "none", "messages": messages}
-	applyModelMetadata(requestBody, "/v1/chat/completions", in.ModelMetadata)
-	payload, err := json.Marshal(requestBody)
+	payload, err := generationPayload(in, model, emit != nil)
 	if err != nil {
 		return "", err
 	}
@@ -211,6 +205,37 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 	return out.Choices[0].Message.Content, nil
 }
 
+// generationPayload adapts a WinOne result request to Chat once. The original
+// gateway performs every model/default/protocol decision after this boundary.
+func generationPayload(in request, model string, stream bool) ([]byte, error) {
+	var content any = in.Text
+	if len(in.ImagePNG) > 0 {
+		content = []any{map[string]any{"type": "text", "text": in.Text}, map[string]any{"type": "image_url", "image_url": map[string]string{"url": "data:image/png;base64," + base64.StdEncoding.EncodeToString(in.ImagePNG)}}}
+	}
+	messages := []map[string]any{{"role": "system", "content": in.System}}
+	if len(in.Messages) == 0 {
+		messages = append(messages, map[string]any{"role": "user", "content": content})
+	} else {
+		for _, message := range in.Messages {
+			messages = append(messages, map[string]any{"role": message.Role, "content": message.Content})
+		}
+	}
+	requestBody := map[string]any{"model": model, "stream": stream, "tools": []any{}, "tool_choice": "none", "messages": messages}
+	// These are the first-party caller's explicit choices. An absent value
+	// stays absent; the upstream gateway applies model defaults and converts
+	// the canonical Chat request for the vendor's actual protocol.
+	if in.MaxTokens > 0 {
+		requestBody["max_completion_tokens"] = in.MaxTokens
+	}
+	if in.ModelMetadata.ReasoningEffort != "" {
+		requestBody["reasoning_effort"] = in.ModelMetadata.ReasoningEffort
+	}
+	if in.ModelMetadata.Tier != "" {
+		requestBody["service_tier"] = in.ModelMetadata.Tier
+	}
+	return json.Marshal(requestBody)
+}
+
 func main() {
 	// The embedding host supplies an isolated XDG profile. Magpie's automatic
 	// portable detection must not redirect it into a neighbouring data folder.
@@ -237,8 +262,17 @@ func main() {
 		_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
 		os.Exit(1)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), workerRequestWait(in))
+	ctx, cancel := workerRequestContext(context.Background(), in)
 	defer cancel()
+	if in.Operation == "models.import" {
+		parsed, err := parseProviderPaste(ctx, in.Text)
+		if err != nil {
+			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": "connection setup could not be read"})
+			os.Exit(1)
+		}
+		_, _ = os.Stdout.Write(parsed)
+		return
+	}
 	if in.Operation == "models.certificate" {
 		// An existing pin must not prevent reading the server's current identity.
 		if in.ProviderPreferences != nil {

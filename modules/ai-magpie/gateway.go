@@ -139,15 +139,9 @@ func serveGateway(ctx context.Context, in request, output io.Writer) error {
 	if err := installAuxiliaryProviders(in); err != nil {
 		return err
 	}
-	metadata := in.ModelMetadata
-	if gateway.WinOneTransportOnly {
-		// The outer router already chose the effort/tier. A provider transport
-		// must retain that decision instead of applying its saved defaults again.
-		metadata.ReasoningEffort, metadata.Tier, metadata.Reasoning = "", "", nil
-	}
-	if err := applyRawModelMetadata(payload, in.GatewayPath, metadata); err != nil {
-		return err
-	}
+	// The original gateway reads the installed model preferences and the
+	// caller's protocol fields. Do not insert another default, reasoning
+	// converter or tool policy before that same upstream execution path.
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err

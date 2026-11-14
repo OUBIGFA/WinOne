@@ -118,6 +118,9 @@ type Translator struct {
 	// Plugin-owned windows can outlive a request, but not the owning Host.
 	// Nil preserves the one-shot worker policy for command-line callers/tests.
 	PluginLifetime context.Context
+	// The Host supplies its existing upstream runtime while a result owner is
+	// alive. Standalone callers retain the ordinary owned-worker transport.
+	RuntimeRequest func(context.Context, map[string]any) (io.ReadCloser, error)
 }
 
 func (t Translator) Translate(ctx context.Context, p Preferences, key, text string) (string, error) {
@@ -130,15 +133,18 @@ func (t Translator) TranslateStream(ctx context.Context, p Preferences, key, tex
 	return t.translate(ctx, p, key, text, progress)
 }
 func (t Translator) translate(ctx context.Context, p Preferences, key, text string, progress func(Delta) error) (string, error) {
-	if strings.TrimSpace(text) == "" || len([]rune(text)) > 20000 {
-		return "", errors.New("请选择 1–20000 字的文字")
-	}
-	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
-	defer cancel()
-	target := targetLanguage(p.Target, text)
 	if p.Engine == "google" {
+		if strings.TrimSpace(text) == "" || len([]rune(text)) > 20000 {
+			return "", errors.New("请选择 1–20000 字的文字")
+		}
+		ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+		defer cancel()
+		target := targetLanguage(p.Target, text)
 		return translateGoogle(ctx, &http.Client{Timeout: 45 * time.Second}, googleEndpoint, text, target)
 	}
+	// A model's context is decided by Magpie and the vendor. The shared
+	// generation boundary retains only the owned IPC payload-size check.
+	target := targetLanguage(p.Target, text)
 	prompt := p.Prompt
 	if prompt == "" {
 		prompt = DefaultTranslationPrompt
@@ -179,17 +185,13 @@ func (t Translator) generate(ctx context.Context, p Preferences, key string, inp
 	if len(input.ImagePNG) > 0 && p.ModelMetadata.Vision != nil && !*p.ModelMetadata.Vision {
 		return "", errors.New("此模型已关闭图像输入，请在 AI 服务中启用或选择其他模型")
 	}
-	timeout := input.Timeout
-	if timeout <= 0 {
-		timeout = 90 * time.Second
+	// Explicit auxiliary budgets remain caller choices. Ordinary model turns
+	// use upstream's connection/header/stall limits and their owner's cancel.
+	if input.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, input.Timeout)
+		defer cancel()
 	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	release, err := t.acquireRequest(ctx, p, key)
-	if err != nil {
-		return "", err
-	}
-	defer release()
 	agent := ""
 	if p.AuthMode == "account" {
 		agent = p.Agent
@@ -197,15 +199,19 @@ func (t Translator) generate(ctx context.Context, p Preferences, key string, inp
 	request := map[string]any{"providerId": p.ProviderID, "agent": agent, "protocol": p.Protocol, "baseUrl": p.BaseURL, "model": p.Model, "key": key, "system": input.System, "text": input.Text, "imagePng": input.ImagePNG, "messages": input.Messages}
 	request["providerPreferences"] = p.ProviderPreferences
 	request["keyID"], request["keyOptions"] = credentialRequestOptions(ctx)
+	request["keys"] = credentialRequestKeys(ctx)
+	request["requestLimits"] = p.RequestLimits
 	request["additionalTools"] = p.AdditionalTools
 	request["limitRestOff"] = p.LimitRestOff
 	request["headers"] = p.Headers
-	metadata := p.ModelMetadata
-	if input.MaxTokens > 0 && (metadata.MaxTokens == 0 || input.MaxTokens < metadata.MaxTokens) {
-		metadata.MaxTokens = input.MaxTokens
-	}
-	request["modelMetadata"] = metadata
+	request["modelMetadata"] = p.ModelMetadata
+	request["maxTokens"] = input.MaxTokens
 	request["magpieSettings"] = p.MagpieSettings
+	if t.RuntimeRequest != nil {
+		// The running Magpie instance owns provider/key policy and its state.
+		// Send only the user request here, not a new set of runtime defaults.
+		return t.generateThroughRuntime(ctx, request, progress)
+	}
 	auxiliary, stopAuxiliary, err := t.auxiliaryBridge(ctx, p.Auxiliaries, p.MagpieSettings)
 	if err != nil {
 		return "", err
