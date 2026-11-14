@@ -94,6 +94,9 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 				m.fields = fields{}
 				m.modelHeaders = nil
 				m.headersFor = ""
+				// The dialog captured metadata before its action was handled.
+				// Draw again with the cleared override, including typed numbers.
+				c.Invalidate()
 			}
 		},
 		Body: func() {

@@ -141,3 +141,31 @@ func TestModelListOrderIsStableAcrossCatalogOrderAndSave(t *testing.T) {
 		t.Fatalf("saved list changed order: %v -> %v", before, got)
 	}
 }
+
+// Clearing the override must also clear a value typed into the real input.
+// Otherwise restore shows the old value and can write it back on a later edit.
+func TestNativeModelRestoreClearsTypedContextBeforeDrawing(t *testing.T) {
+	_, h, p, tt := setup(t)
+	p.editor.models.editing = "gpt-a"
+	settle(h, tt)
+	label := i18n.T("ai.contextWindow")
+	field, ok := tt.AccessByRole(ui.RoleTextField, label)
+	if !ok {
+		t.Fatal("missing context input")
+	}
+	tt.ClickAt(field.Bounds.X+field.Bounds.W/2, field.Bounds.Y+field.Bounds.H/2)
+	tt.Type("200000")
+	settle(h, tt)
+	if field, ok := tt.AccessByRole(ui.RoleTextField, label); !ok || field.Value != "200000" {
+		t.Fatalf("typed context was not displayed: %+v", field)
+	}
+	if err := tt.Click(i18n.T("ai.modelRestoreDefaults")); err != nil {
+		t.Fatal(err)
+	}
+	if field, ok := tt.AccessByRole(ui.RoleTextField, label); !ok || field.Value != "" {
+		t.Fatalf("restore left the old context visible: %+v", field)
+	}
+	if got := p.draft.Value.find("one").ModelMetadata["gpt-a"].Value; got.ContextWindow != nil {
+		t.Fatal("restore wrote the old typed value back into model settings")
+	}
+}

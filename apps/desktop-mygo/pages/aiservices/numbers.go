@@ -28,6 +28,12 @@ func numberText(c *ui.Context, value *float64, low, high float64, whole bool, pl
 	box := ui.Row(c).MinHeight(kit.ControlHeight).Padding(0, 10).Radius(t.Radius).Background(t.Surface).
 		Border(1, t.Border).AlignItems(ui.Center).MinWidth(0).Width(160)
 	text := ui.Local(box, "text", func() string { return format(value) })
+	lastValue := ui.Local(box, "value", func() string { return format(value) })
+	// Match the shared number control: a restored setting replaces its text
+	// before TextInputBase builds the visible field, without replacing typing.
+	if current := format(value); current != *lastValue {
+		*text = current
+	}
 	var next *float64
 	changed := false
 	box.Children(func() {
@@ -45,13 +51,17 @@ func numberText(c *ui.Context, value *float64, low, high float64, whole bool, pl
 		case !in.Focused():
 			// Not being edited, the field follows the setting: text left
 			// invalid goes back to the value in force.
-			*text = format(value)
+			if current := format(value); *text != current {
+				*text = current
+				c.Invalidate()
+			}
 		case !valid:
 			box.Border(1, t.Danger)
 		default:
 			box.Border(1, t.Accent)
 		}
 	})
+	*lastValue = format(value)
 	return next, changed
 }
 
