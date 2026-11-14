@@ -1,6 +1,9 @@
 [CmdletBinding()]
 param([Parameter(Mandatory=$true)][string]$Source)
 $ErrorActionPreference='Stop'
+# NSIS starts a fresh PowerShell process; load the matching built-in module
+# explicitly instead of relying on its inherited module discovery state.
+Import-Module ([IO.Path]::Combine($PSHOME,'Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1')) -ErrorAction Stop
 $destination=$env:WINONE_UNINSTALLER_EXPORT
 if(-not [IO.Path]::IsPathRooted($destination)){throw 'Uninstaller export destination must be absolute'}
 $destination=[IO.Path]::GetFullPath($destination)
