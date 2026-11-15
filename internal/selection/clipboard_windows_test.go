@@ -3,9 +3,52 @@
 package selection
 
 import (
+	"context"
+	"errors"
 	"testing"
+	"time"
 	"unsafe"
 )
+
+func TestCompatibilityCopyUsesCopyInsteadOfTerminalInterrupt(t *testing.T) {
+	inputs := compatibilityCopyInputs()
+	wantKeys := []uint16{0x11, 0x2d, 0x2d, 0x11}
+	if len(inputs) != len(wantKeys) {
+		t.Fatalf("incomplete copy chord: %+v", inputs)
+	}
+	for i, input := range inputs {
+		wantFlags := []uint32{0, 1, 3, 2}[i]
+		if input.Type != 1 || input.Key != wantKeys[i] || input.Flags != wantFlags || input.Extra != copyInputMarker {
+			t.Fatalf("copy chord can interrupt or retrigger the watcher at input %d: %+v", i, input)
+		}
+	}
+}
+
+func TestCompatibilityCopyWaitsForSelectionModifiersToBeReleased(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	reads := 0
+	err := waitForCopyReady(ctx, func() (bool, bool) { reads++; return true, reads >= 3 })
+	if err != nil || reads != 3 {
+		t.Fatalf("selection chord was discarded before release: reads=%d error=%v", reads, err)
+	}
+}
+
+func TestCompatibilityCopyWaitStopsWhenSourceChanges(t *testing.T) {
+	reads := 0
+	err := waitForCopyReady(context.Background(), func() (bool, bool) { reads++; return reads < 2, false })
+	if err == nil || reads != 2 {
+		t.Fatalf("source switch was not observed while waiting: reads=%d error=%v", reads, err)
+	}
+}
+
+func TestCompatibilityCopyWaitHonorsCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	err := waitForCopyReady(ctx, func() (bool, bool) { cancel(); return true, false })
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancelled read stayed eligible to copy: %v", err)
+	}
+}
 
 func TestCopyInputMatchesWindowsABI(t *testing.T) {
 	if unsafe.Sizeof(copyKeyInput{}) != 40 || unsafe.Offsetof(copyKeyInput{}.Extra) != 24 {

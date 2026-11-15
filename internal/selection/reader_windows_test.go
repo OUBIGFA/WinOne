@@ -17,6 +17,17 @@ import (
 	"time"
 )
 
+func TestMain(m *testing.M) {
+	// A reader fixture is a protocol peer, not another complete test run.
+	// Dispatch before tests so growing the suite cannot consume its deadline
+	// or mix test-runner output into the private JSON response.
+	if os.Getenv("WINONE_SELECTION_READER_FIXTURE") != "" {
+		TestReaderFixture(nil)
+		os.Exit(4)
+	}
+	os.Exit(m.Run())
+}
+
 func TestReaderFixture(t *testing.T) {
 	mode := os.Getenv("WINONE_SELECTION_READER_FIXTURE")
 	if mode == "" {
@@ -27,7 +38,11 @@ func TestReaderFixture(t *testing.T) {
 			time.Sleep(time.Second)
 		}
 	}
-	_, _ = io.ReadAll(os.Stdin)
+	data, _ := io.ReadAll(os.Stdin)
+	if mode == "request" {
+		_ = json.NewEncoder(os.Stdout).Encode(Selection{Status: "selected", Text: string(data)})
+		os.Exit(0)
+	}
 	if mode == "valid" {
 		_, _ = os.Stdout.WriteString(`{"status":"selected","text":"fixture selection","rectangles":[]}`)
 		os.Exit(0)
@@ -43,12 +58,48 @@ func TestReaderFixture(t *testing.T) {
 	if child.Start() != nil {
 		os.Exit(2)
 	}
-	data, _ := json.Marshal([]int{os.Getpid(), child.Process.Pid})
+	data, _ = json.Marshal([]int{os.Getpid(), child.Process.Pid})
 	if os.WriteFile(os.Getenv("WINONE_SELECTION_PID_FILE"), data, 0600) != nil {
 		os.Exit(3)
 	}
 	for {
 		time.Sleep(time.Second)
+	}
+}
+
+func TestReaderPreservesManualIntentAndPointerOrigin(t *testing.T) {
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("WINONE_SELECTION_READER_FIXTURE", "request")
+	for _, event := range []Event{
+		{Kind: "selection", Window: 123, ProcessID: 456, Point: [2]int32{90, 80}, Origin: [2]int32{10, 20}, OriginValid: true},
+		{Kind: "manual", Window: 123, ProcessID: 456, Keyboard: true},
+	} {
+		got, err := readSelection(context.Background(), self, event, 10*time.Second)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var request struct {
+			Window        uint64
+			PID           uint32
+			Manual        bool
+			Point, Origin []int32
+		}
+		if err := json.Unmarshal([]byte(got.Text), &request); err != nil {
+			t.Fatal(err)
+		}
+		if request.Window != 123 || request.PID != 456 || request.Manual != (event.Kind == "manual") {
+			t.Fatalf("reader lost source or manual intent: %+v", request)
+		}
+		if event.Keyboard {
+			if len(request.Point) != 0 || len(request.Origin) != 0 {
+				t.Fatalf("keyboard request guessed a pointer target: %+v", request)
+			}
+		} else if len(request.Point) != 2 || len(request.Origin) != 2 || request.Point[0] != 90 || request.Origin[0] != 10 {
+			t.Fatalf("pointer request lost actual selection origin: %+v", request)
+		}
 	}
 }
 
@@ -59,12 +110,14 @@ func TestReaderRejectsSensitivePayloadAndTerminatesHungProcessTree(t *testing.T)
 	}
 	event := Event{Keyboard: true, Window: 1, ProcessID: 1}
 	t.Setenv("WINONE_SELECTION_READER_FIXTURE", "valid")
-	got, err := ReadSelection(context.Background(), self, event)
+	// These assertions cover the protocol, not cold launch latency of a Go
+	// test executable. Cancellation/deadline checks below remain independently bounded.
+	got, err := readSelection(context.Background(), self, event, 10*time.Second)
 	if err != nil || got.Text != "fixture selection" {
 		t.Fatal(got, err)
 	}
 	t.Setenv("WINONE_SELECTION_READER_FIXTURE", "invalid")
-	if _, err = ReadSelection(context.Background(), self, event); err == nil {
+	if _, err = readSelection(context.Background(), self, event, 10*time.Second); err == nil {
 		t.Fatal("sensitive payload accepted")
 	}
 	t.Setenv("WINONE_SELECTION_READER_FIXTURE", "hung")

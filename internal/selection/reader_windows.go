@@ -98,6 +98,9 @@ func readSelection(ctx context.Context, executable string, event Event, timeout 
 		return Selection{}, err
 	}
 	request := map[string]any{"window": uint64(event.Window), "pid": event.ProcessID}
+	if event.Kind == "manual" {
+		request["manual"] = true
+	}
 	if !event.Keyboard {
 		request["point"] = event.Point
 		if event.OriginValid {
@@ -147,6 +150,9 @@ func readSelection(ctx context.Context, executable string, event Event, timeout 
 		result, err = copySelection(ctx, event)
 		if os.Getenv("WINONE_SELECTION_DIAGNOSTICS") == "1" {
 			fmt.Fprintf(os.Stderr, "selection compatibility: status=%s cancelled=%v error=%v\n", result.Status, ctx.Err() != nil, err)
+		}
+		if err == nil && ctx.Err() != nil {
+			return Selection{}, ctx.Err()
 		}
 		return result, err
 	}

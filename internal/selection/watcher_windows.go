@@ -141,6 +141,16 @@ func Foreground() (uintptr, uint32) {
 	return window, pid
 }
 
+// CursorPosition supplies a real anchor when a keyboard/manual copy has no
+// selection rectangles. The toolbar must not default to screen coordinate 0,0.
+func CursorPosition() ([2]int32, error) {
+	var point [2]int32
+	if ok, _, err := user32.NewProc("GetCursorPos").Call(uintptr(unsafe.Pointer(&point))); ok == 0 {
+		return point, fmt.Errorf("无法定位划词工具栏：%w", err)
+	}
+	return point, nil
+}
+
 func pointerSource(foreground, hit uintptr, down bool) uintptr {
 	if down && hit != 0 {
 		return hit
@@ -217,7 +227,7 @@ func keyboardHook(code int32, message uintptr, data unsafe.Pointer) uintptr {
 			window, pid := Foreground()
 			event := Event{Kind: "dismiss", Window: window, ProcessID: pid, Keyboard: true}
 			if message == 0x100 || message == 0x104 {
-				if (input.Key == 'C' || input.Key == 'X') && modifier(0x11) {
+				if clipboardShortcut(input.Key, modifier(0x10), modifier(0x11), modifier(0x12)) {
 					physicalCopyRevision.Add(1)
 				}
 				w.keys.Key(true, input.Key, modifier(0x10), modifier(0x11), modifier(0x12))

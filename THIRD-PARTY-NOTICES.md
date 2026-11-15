@@ -12,7 +12,7 @@
 | Go x/sys | Windows 系统调用 | BSD-3-Clause |
 | WinTray | 程序启动、窗口与托盘管理；跟进 0353a53 的自定义工作目录、QQ 登录后收起、微信持续等待登录和目录联接托盘修复；保留 WinOne Host/Worker 协调、统一页面与托盘适配。来源及摘要见 third_party/wintray-source.json，完整能力对照见 docs/wintray-sync-20261110.md | MIT，全文见 modules/wintray/LICENSE |
 | React / React DOM | 设置界面 | MIT |
-| MyGo v0.9.0 | 原生设置窗口与共享结果窗；保留窗口、组件、Markdown、表格换行、Windows 文件拖入和异步 GPU 初始化适配。来源与摘要见 `third_party/mygo-winone/source.json`，不修改用户的 Go 模块缓存 | MIT；依赖许可原文与 SHA-256 见 `third_party/desktop-mygo-notices.json` 和 `third_party/result-ui-notices.json`，构建核对实际链接模块 |
+| MyGo v0.9.0 | 原生设置窗口与共享结果窗；保留窗口、组件、Markdown、表格换行、Windows 文件拖入、异步 GPU 初始化和标准复制键接入。来源与摘要见 `third_party/mygo-winone/source.json`，不修改用户的 Go 模块缓存 | MIT；依赖许可原文与 SHA-256 见 `third_party/desktop-mygo-notices.json` 和 `third_party/result-ui-notices.json`，构建核对实际链接模块 |
 | Lucide React 1.27.0 | 官方 AppWindow / LogOut 托盘菜单图标及既有界面图标；由锁定 npm 包生成透明模板，不自绘替代 | ISC，Feather 派生 LogOut 同时保留 MIT；原文 `internal/branding/menu-icons/LICENSE.txt`，生成器与 SHA-256 见 `third_party/sources.json` |
 | Magpie | 共享 AI 适配器与独立本地网关；锁定 `ce2ce86ab43a185688556b5887efab6f1670c58b`。账号认证适配器锁定 `a410afe0d9a128d368711daf83ecf79a5d43b6c8`，随包保留 44 个固定账号适配器。更新对应连接、账号、模型和网关能力 | MIT；适配归属见 `third_party/import-notices.json`，依赖和账号资源清单见 `third_party/ocr-ai-notices.json`、`third_party/ai-plugins.json` |
 | Magpie 代理字段 | 同一 `ce2ce86a` 的地址校验与纯辅助函数；按原算法拒绝未配置的命名代理，沿用 WinOne 的供应商/账号独立代理 | MIT；原始许可和逐文件 SHA-256 见 `third_party/magpie-proxy-source.json` |

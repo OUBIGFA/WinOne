@@ -209,9 +209,16 @@ func (r *selectionRuntime) read(ctx context.Context, event selection.Event, curr
 		return nil
 	}
 	anchor := event.Point
-	if event.Keyboard && len(value.Rectangles) > 0 {
-		last := value.Rectangles[len(value.Rectangles)-1]
-		anchor = [2]int32{int32(last[0]), int32(last[1] + last[3])}
+	if event.Keyboard {
+		if len(value.Rectangles) > 0 {
+			last := value.Rectangles[len(value.Rectangles)-1]
+			anchor = [2]int32{int32(last[0]), int32(last[1] + last[3])}
+		} else {
+			anchor, err = selection.CursorPosition()
+			if err != nil {
+				return err
+			}
+		}
 	}
 	window, pid := selection.Foreground()
 	if window != event.Window || pid != event.ProcessID {

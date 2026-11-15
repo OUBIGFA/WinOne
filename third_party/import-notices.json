@@ -156,12 +156,13 @@
       "repository": "https://github.com/egoist/mygo",
       "commit": "4811a2869b5a66d2b7e21a9eb5993fcff544460b",
       "license": "MIT",
-      "scope": "Windows Shell cross-integrity file-drop receiver adapted from WinOne's component_file_drop.rs. Native UI, OLE, hit testing and file dispatch stay upstream. Markdown tables wrap within the reading column. Opaque Windows native surfaces paint the complete interactive scene with the existing CPU renderer while D3D11 initializes asynchronously, preserving input and UI state on GPU handoff. Prepared from the verified pinned module into a repository source cache; never modifies the Go module cache.",
+      "scope": "Windows Shell cross-integrity file-drop receiver adapted from WinOne's component_file_drop.rs. Native UI, OLE, hit testing and file dispatch stay upstream. Markdown tables wrap within the reading column. Opaque Windows native surfaces paint the complete interactive scene with the existing CPU renderer while D3D11 initializes asynchronously, preserving input and UI state on GPU handoff. Shared editors accept standard Windows Ctrl+Insert through their existing copy command, preserving selection and password checks. Prepared from the verified pinned module into a repository source cache; never modifies the Go module cache.",
       "sourceFiles": [
         "internal/windows/surface_drop.go",
         "ui/markdown/table.go",
         "internal/gpu/d3d11/d3d11.go",
-        "ui/window.go"
+        "ui/window.go",
+        "ui/input.go"
       ],
       "notices": [
         {
@@ -172,7 +173,15 @@
       "files": [
         {
           "path": "third_party/mygo-winone/source.json",
-          "sha256": "7b807603b7ab3dba5ec3b8cd659d67f5171540faed5b28e7e0e7416f9ae60af1"
+          "sha256": "15a3f1ed7b47e4a3279d4a5cfa425eee6b9743708ffab68c1b470b0f6557aa91"
+        },
+        {
+          "path": "third_party/mygo-winone/copy_shortcut.go",
+          "sha256": "b121fe2399600be2299219cb45094b7577474ef20887233fcb0c1f1581060138"
+        },
+        {
+          "path": "third_party/mygo-winone/copy_shortcut_windows_test.go",
+          "sha256": "bdfb0a44cb70253ec6ae0d0d9253f89c5b223de1caf656e54f2487b9b7dd0fdf"
         },
         {
           "path": "third_party/mygo-winone/surface_file_drop_windows.go",

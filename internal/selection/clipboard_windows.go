@@ -17,7 +17,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// Only the reader's verified text-control outcome admits this path. Keep the
+// Only the reader's verified source outcome admits this path. Keep the
 // transaction in the Host: cancellation can kill the UIA worker, but must not
 // kill the owner responsible for restoring the user's clipboard.
 const copyInputMarker = uintptr(0x574F5345)
@@ -215,6 +215,36 @@ type copyKeyInput struct {
 	Unused      [8]byte
 }
 
+func compatibilityCopyInputs() []copyKeyInput {
+	// Ctrl+Insert is the Windows/Qt copy chord without Ctrl+C's terminal
+	// interrupt meaning. No process or control class needs a special rule.
+	return []copyKeyInput{{Type: 1, Key: 0x11, Extra: copyInputMarker}, {Type: 1, Key: 0x2d, Flags: 1, Extra: copyInputMarker}, {Type: 1, Key: 0x2d, Flags: 3, Extra: copyInputMarker}, {Type: 1, Key: 0x11, Flags: 2, Extra: copyInputMarker}}
+}
+
+// The native state read stays at this boundary; the wait must also observe
+// cancellation and source changes while the selection chord is released.
+func waitForCopyReady(ctx context.Context, check func() (current, released bool)) error {
+	ticker := time.NewTicker(5 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		current, released := check()
+		if !current {
+			return context.Canceled
+		}
+		if released {
+			return ctx.Err()
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
+}
+
 func copySelection(ctx context.Context, event Event) (result Selection, failure error) {
 	stage := "admission"
 	defer func() {
@@ -235,11 +265,25 @@ func copySelection(ctx context.Context, event Event) (result Selection, failure 
 	if !current() || ctx.Err() != nil {
 		return Selection{Status: "stale"}, nil
 	}
-	for _, key := range []uintptr{0x10, 0x11, 0x12, 0x5b, 0x5c, 0x43} {
-		if modifier(key) {
-			return Selection{Status: "unavailable"}, nil
+	ready := func() (bool, bool) {
+		for _, key := range []uintptr{0x10, 0x11, 0x12, 0x5b, 0x5c, 0x2d, 0x43} {
+			if modifier(key) {
+				return current(), false
+			}
 		}
+		return current(), true
 	}
+	if err := waitForCopyReady(ctx, ready); err != nil {
+		return Selection{}, err
+	}
+	// Prepare restoration before sending input; a window creation failure must
+	// not leave the application's copied text in place of the original data.
+	class, _ := windows.UTF16PtrFromString("STATIC")
+	restoreOwner, _, _ := user32.NewProc("CreateWindowExW").Call(0, uintptr(unsafe.Pointer(class)), 0, 0, 0, 0, 0, 0, ^uintptr(2), 0, 0, 0)
+	if restoreOwner == 0 {
+		return Selection{}, errors.New("无法创建剪贴板恢复窗口")
+	}
+	defer user32.NewProc("DestroyWindow").Call(restoreOwner)
 	saved, before, err := snapshotClipboard()
 	defer func() {
 		for _, item := range saved {
@@ -250,16 +294,16 @@ func copySelection(ctx context.Context, event Event) (result Selection, failure 
 	if err != nil {
 		return Selection{}, err
 	}
-	if !current() || ctx.Err() != nil || clipboardSequence() != before {
+	if sameSource, released := ready(); !sameSource || !released || ctx.Err() != nil || clipboardSequence() != before {
 		return Selection{Status: "stale"}, nil
 	}
 	copyRevision := physicalCopyRevision.Load()
-	keys := []copyKeyInput{{Type: 1, Key: 0x11, Extra: copyInputMarker}, {Type: 1, Key: 'C', Extra: copyInputMarker}, {Type: 1, Key: 'C', Flags: 2, Extra: copyInputMarker}, {Type: 1, Key: 0x11, Flags: 2, Extra: copyInputMarker}}
+	keys := compatibilityCopyInputs()
 	count, _, _ := user32.NewProc("SendInput").Call(uintptr(len(keys)), uintptr(unsafe.Pointer(&keys[0])), unsafe.Sizeof(keys[0]))
 	stage = "copy"
 	if count != uintptr(len(keys)) {
 		// Release only keys this transaction actually pressed; a partial
-		// SendInput must not leave Ctrl or C held in the user's application.
+		// SendInput must not leave Ctrl or Insert held in the user's application.
 		if count > 0 {
 			releases := keys[2:]
 			user32.NewProc("SendInput").Call(uintptr(len(releases)), uintptr(unsafe.Pointer(&releases[0])), unsafe.Sizeof(releases[0]))
@@ -268,7 +312,7 @@ func copySelection(ctx context.Context, event Event) (result Selection, failure 
 	}
 	// Poll only this bounded copy transaction, ending as soon as fresh data is
 	// available. No fixed 100/600 ms wait on successful reads.
-	deadline := time.Now().Add(180 * time.Millisecond)
+	deadline := time.Now().Add(500 * time.Millisecond)
 	for clipboardSequence() == before && time.Now().Before(deadline) {
 		time.Sleep(5 * time.Millisecond)
 	}
@@ -276,12 +320,6 @@ func copySelection(ctx context.Context, event Event) (result Selection, failure 
 	if after == before {
 		return Selection{Status: "empty"}, nil
 	}
-	class, _ := windows.UTF16PtrFromString("STATIC")
-	restoreOwner, _, _ := user32.NewProc("CreateWindowExW").Call(0, uintptr(unsafe.Pointer(class)), 0, 0, 0, 0, 0, 0, ^uintptr(2), 0, 0, 0)
-	if restoreOwner == 0 {
-		return Selection{}, errors.New("无法创建剪贴板恢复窗口")
-	}
-	defer user32.NewProc("DestroyWindow").Call(restoreOwner)
 	if err := openClipboardFor(restoreOwner, time.Now().Add(250*time.Millisecond)); err != nil {
 		return Selection{}, err
 	}
@@ -305,6 +343,11 @@ func copySelection(ctx context.Context, event Event) (result Selection, failure 
 	stage = "read"
 	if !current() || ctx.Err() != nil {
 		return Selection{Status: "stale"}, nil
+	}
+	// A file selection may also publish display names as Unicode text. Its
+	// actual payload identifies it as files, without a list of source apps.
+	if files, _, _ := user32.NewProc("IsClipboardFormatAvailable").Call(15); files != 0 {
+		return Selection{Status: "unsupported"}, nil
 	}
 	data, err := clipboardBytes(13, 131074)
 	if err != nil {

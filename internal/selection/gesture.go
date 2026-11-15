@@ -46,6 +46,15 @@ func SelectionKey(key uint32, shift, control, alt bool) bool {
 	return shift && key >= 0x21 && key <= 0x28
 }
 
+// Both Windows copy/cut chords count as a user's clipboard change, so a
+// pending compatibility transaction cannot restore over that newer content.
+func clipboardShortcut(key uint32, shift, control, alt bool) bool {
+	if alt {
+		return false
+	}
+	return control && (key == 'C' || key == 'X' || key == 0x2d) || shift && !control && key == 0x2e
+}
+
 // Remember the chord at key-down. Users can release Shift/Ctrl before the
 // selection key; sampling modifiers only at key-up loses that completed edit.
 type KeyboardGesture struct{ selected [256]bool }

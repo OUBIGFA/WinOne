@@ -2,6 +2,27 @@ package selection
 
 import "testing"
 
+func TestUserClipboardShortcutsProtectConcurrentCopyAndCut(t *testing.T) {
+	for _, chord := range []struct {
+		key                 uint32
+		shift, control, alt bool
+		want                bool
+	}{
+		{'C', false, true, false, true},
+		{'X', false, true, false, true},
+		{0x2d, false, true, false, true},
+		{0x2e, true, false, false, true},
+		{0x2d, true, false, false, false},
+		{'V', false, true, false, false},
+		{'C', false, false, false, false},
+		{'C', false, true, true, false},
+	} {
+		if got := clipboardShortcut(chord.key, chord.shift, chord.control, chord.alt); got != chord.want {
+			t.Fatalf("clipboard chord key=%x shift=%v ctrl=%v alt=%v: got %v want %v", chord.key, chord.shift, chord.control, chord.alt, got, chord.want)
+		}
+	}
+}
+
 func TestGestureRecognizesSelectionButNotClicksOrWindowChanges(t *testing.T) {
 	g := Gesture{DragX: 4, DragY: 4, DoubleClickMilliseconds: 500}
 	g.Pointer(true, 10, 10, 100, 1, false)

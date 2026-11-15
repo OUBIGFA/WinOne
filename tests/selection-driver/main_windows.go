@@ -21,11 +21,15 @@ func main() {
 		Window        uintptr `json:"window"`
 		PID           uint32  `json:"pid"`
 		Point, Origin []int32
+		Manual        bool `json:"manual"`
 	}
 	if json.NewDecoder(os.Stdin).Decode(&input) != nil {
 		os.Exit(2)
 	}
 	event := selection.Event{Window: input.Window, ProcessID: input.PID, Keyboard: len(input.Point) != 2, Kind: "selection"}
+	if input.Manual {
+		event.Kind = "manual"
+	}
 	if len(input.Point) == 2 {
 		copy(event.Point[:], input.Point)
 	}
