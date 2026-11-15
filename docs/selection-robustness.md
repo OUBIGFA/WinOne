@@ -39,6 +39,10 @@ Go 协议测试的独立测试程序在 `TestMain` 先处理读取协议，避�
 
 私有桌面的原生读词夹具无法取得前台，返回 `Owned selection fixture could not become foreground`，输入桌面未切换。本次没有操作用户正在使用的 AyuGram，也没有把源码对照或组件测试记为 AyuGram 聊天窗口的实测通过。完整验证和安装器来源以 `dist/reports/selection-robustness-20261115/` 的交付记录为准。
 
+完整程序包从干净提交 `84d14fa18a52e5e407023f23faa8ac02a1e0b47f` 重建，8 个本项目 Go 程序与 3 个安装辅助程序均核对同一来源。5,883 个包文件、安装器及对应卸载器通过校验。固定安装器已更新为 261,515,465 字节，SHA-256 为 `39e90fd93faa60c2ed080086a78753adf92249e74b36949d70118b3c91db0eef`；配套卸载器 SHA-256 为 `b9d313dc7f4e1f9747aa9172f09d0140da70f0b38b05d85b78104e8801c0e697`。校验文件和 `release-info.json` 同步，旧包保留在 `_temp/selection-robustness-20261115-01a1dda3/prior-release/`。
+
+本次脚本、候选包、构建中间目录和对应的临时源码登记已进入回收站，5 份回收凭据及旧包备份均核对通过。第一次源码目录回收被 Windows 取消；该目录有 10 条超过 260 字符的路径，缩短本次临时目录名后最长路径由 289 降至 249 字符，使用同一回收实现完成清理。原失败、路径变更和最终结果分别保存在交付证据目录的 `cleanup-first-attempt.json`、`cleanup-path-shortening.json` 和 `cleanup-summary.json`，没有永久删除回退。
+
 能力边界：应用既不提供可读取的选区、也不接受标准复制时仍无法取词；密码、禁止复制内容、权限边界及来源已改变的请求不会强行读取。不承诺所有软件或网站可用，不用 OCR 或整篇文档冒充精确选区。
 
 ## 对照来源
