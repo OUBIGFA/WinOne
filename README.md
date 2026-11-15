@@ -24,7 +24,7 @@ Go 未加入 PATH 时使用 `-GoExe <go.exe路径>`。构建还需传入已准�
 
 运行需要 Windows 11 x64 和 WebView2 Runtime。构建、测试和候选包放在 `_temp/<任务>/`，不进入 Git。文档从[按需索引](docs/README.md)选择，不要求每次通读。
 
-只检查源码时运行 `./build/test-source.ps1`（Go 未加入 PATH 时传入 `-GoExe`）。此入口供 Windows CI 和本地使用，验证 Host、根 Go 模块、WinTray、systray 与保留的第三方来源；不需要预装 OCR/Magpie 运行时。原生 UI、AI、截图、整包和安装器仍由完整构建及对应验收入口验证。源码检查通过不代表正式包验收通过。
+只检查源码时运行 `./build/test-source.ps1`（Go 未加入 PATH 时传入 `-GoExe`）。此入口供 Windows CI 和本地使用，验证 Host、根 Go 模块、WinTray、systray 与保留的第三方来源；不需要预装 OCR/Magpie 运行时。源码检查、编译、来源与许可证、包清单和 SHA-256 按改动范围验证。Windows 专项验收已从交付和发布前置条件中移除，范围见[交付检查说明](docs/repository.md#交付检查范围)；原生 UI、安装生命周期和安全扫描等专项工具仅按用户明确要求单独运行，历史未测项不阻断交付。源码检查通过只说明其覆盖范围，不将未执行的项目记为通过。
 
 - [架构与开发计划](docs/WinOne架构与开发计划.md)
 - [调研依据与来源](docs/调研依据.md)

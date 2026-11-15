@@ -41,6 +41,12 @@
 
 远端创建、推送和正式发布按用户授权执行。发布时一起提供压缩包、SHA-256、对应源码与第三方声明；包内不含本地测试资料和开发工具链。
 
+## 交付检查范围
+
+交付前按改动范围核对源码测试、编译与静态检查、来源与许可证、版本、包清单、安装器/卸载器对应关系及 SHA-256，并检查干净提交与实际用户授权。
+
+Windows 专项验收已从项目要求和发布清单移除，具体范围见[架构与性能约定](working-rules/architecture-performance.md#windows-专项验收要求已移除)。不再要求 Windows 版本/硬件/权限矩阵、真实桌面操作、干净机器或 Windows 安装生命周期验证，也不要求 Defender/SmartScreen、Windows 代码签名或微软样本复核。现有专项工具仅按用户明确要求单独使用；缺少这类证据不阻断提交、推送、固定安装器更新或发布。
+
 ## 外部项目引入与即时许可检查
 
 每次引入或更新外部项目都把“能力接入 + 来源锁定 + 直接/传递依赖许可 + 即时验证”当成同一项工作。仅用于调研且未复制的资料也记录准确来源；复制的实现、设计令牌、图标、字体、模型与二进制不能只写一个链接。
@@ -56,7 +62,7 @@
 
 - AI 的临时脚本、构建与候选包、测试输出、日志、截图及一次性下载放根目录 `_temp/<任务>/`。正式测试源码和脱敏夹具仍放源码目录或 `tests/` 并入库。
 - 可复用的工具、依赖、运行时、素材和缓存放在 `dist/` 下用途明确、便于再次调用的固定子目录。优先复用现有位置，新增时记录用途和调用方式，不需要修改允许目录清单。下方资源表记录当前布局，不限制新增目录或用户资料。
-- 正式安装器继续使用 `dist/release/WinOne-setup.exe`，同步校验文件和发布元数据；候选安装器默认输出到 `_temp/installer-build/output/`，完整验证后再更新固定安装器。此约定不限制用户在相同目录保存其他资料。
+- 正式安装器继续使用 `dist/release/WinOne-setup.exe`，同步校验文件和发布元数据；候选安装器默认输出到 `_temp/installer-build/output/`，完成与改动范围相称的检查后再更新固定安装器。此约定不限制用户在相同目录保存其他资料。
 - 当前 `dist/logo/` 保存设计原稿及多尺寸导出；正式构建源图仍为 `internal/branding/logo.png`，不创建第二份构建来源。
 - 构建、测试和准备脚本复用 `build/assert-temporary-path.ps1` 检查其生成目标。普通临时输出使用 `_temp/<任务>/`；显式 `-ReusableCache` 允许可复用缓存使用 `dist/` 下选定的固定子目录。这些检查不扫描或清理用户已有资料。必要的编译器标准目录（如 `bin/`、`obj/`、前端 `dist/`）继续按工具链规则生成并忽略；本条的 `dist/` 指仓库根目录。
 
@@ -70,7 +76,7 @@
 
 统一构建经 `build/copy-anki.ps1` 将这些文件和 WinOne 适配代码放入 `shared/anki/`。Python 解释器复用包内 `capture/Ocr/python/`，不安装系统 Python，不调用外部 Anki。新增运行文件后用 `build/update-anki-inventory.py` 更新完整载荷清单；整个集合服务在首次使用时启动，空闲释放，数据在 WinOne 的学习档案中持久化。
 
-用户要求无人值守且不允许系统/联网测试时，可显式使用统一构建的 `-CompileOnly`。该选项保留编译、静态、来源、许可和包清单检查，关闭自动运行的交互和服务测试；不能把编译通过记为运行测试通过。学习功能另用 `build/test-learning-offline.ps1` 检查隔离真实引擎与原生组件。实际安装、真实账号同步、麦克风/扬声器与外部网络验证按用户授权单独进行。
+用户要求无人值守且不允许系统/联网测试时，可显式使用统一构建的 `-CompileOnly`。该选项保留编译、静态、来源、许可和包清单检查，关闭自动运行的交互和服务测试；不能把编译通过记为运行测试通过。学习功能另用 `build/test-learning-offline.ps1` 检查隔离真实引擎与原生组件。实际安装、真实账号同步、麦克风/扬声器与外部网络验证仅按用户明确要求单独进行；Windows 专项项目不列为交付前置条件。
 
 英语学习词库固定放在 `dist/resources/assets/learning/`，包括 `ecdict.db`、`manifest.json` 和 `ECDICT-LICENSE.txt`。锁定原始 CSV 保存在 `dist/resources/sources/ecdict-39cfb96/`，来源与摘要见 `third_party/learning-data.json`。`build/prepare-learning.ps1 -PythonExe <已有 Python> -Downloader <aria2-next>` 可校验或重建；统一构建自动调用，`build/copy-learning.ps1` 将验证过的三件套放入 `shared/ui/learning/`。数据与工具不入库，生成器、测试、许可和来源记录入库。缓存不一致时脚本报错，先在任务临时目录重建并验证，再更新固定资源。
 
@@ -104,7 +110,7 @@
 
 需要构建时，再执行 `./build/build.ps1 @WinOneBuildParameters -OutputDirectory _temp/<任务>/build`。安装器调用传入 `-NsisExe $WinOneNsisExe`。脚本只设置当前 PowerShell 会话，不修改系统环境变量；核心构建资源缺失时明确报错。Playwright 是可选测试工具，存在时检查固定版本并设置其模块路径。
 
-普通新进程原生设置窗口资源/启动分别使用 `build/benchmark-desktop.ps1 -Frontend MyGo` 和 `build/benchmark-native-startup.ps1`。默认只在仓库私有桌面测量真实生产EXE，不切换前台；完整进程及正常退出被记录。旧WebView测量默认仍要求实际renderer，不把无WebView的MyGo误判缺进程。可选 `WINONE_DESKTOP_STARTUP_TRACE=1` 只产生实际Host/UI回调/绘制后的就绪标记，不预热常驻、不改窗口保护。2026-11-07当前启动300ms目标未达标且获准不阻断本次交付，具体数据见 [本次验收](2026-11-07-native-local-delivery.md)。
+普通新进程原生设置窗口资源/启动的可选诊断入口分别为 `build/benchmark-desktop.ps1 -Frontend MyGo` 和 `build/benchmark-native-startup.ps1`；仅在用户明确要求时运行。默认只在仓库私有桌面测量真实生产EXE，不切换前台；完整进程及正常退出被记录。旧WebView测量默认仍要求实际renderer，不把无WebView的MyGo误判缺进程。可选 `WINONE_DESKTOP_STARTUP_TRACE=1` 只产生实际Host/UI回调/绘制后的就绪标记，不预热常驻、不改窗口保护。2026-11-07当前启动300ms目标未达标且获准不阻断本次交付，具体数据见 [本次验收](2026-11-07-native-local-delivery.md)。
 
 ### 供应商图标
 
