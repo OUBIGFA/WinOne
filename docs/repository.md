@@ -49,7 +49,19 @@
 
 交付前按改动范围核对源码测试、编译与静态检查、来源与许可证、版本、包清单、安装器/卸载器对应关系及 SHA-256，并检查干净提交与实际用户授权。
 
-Windows 专项验收已从项目要求和发布清单移除，具体范围见[架构与性能约定](working-rules/architecture-performance.md#windows-专项验收要求已移除)。不再要求 Windows 版本/硬件/权限矩阵、真实桌面操作、干净机器或 Windows 安装生命周期验证，也不要求 Defender/SmartScreen、Windows 代码签名或微软样本复核。现有专项工具仅按用户明确要求单独使用；缺少这类证据不阻断提交、推送、固定安装器更新或发布。
+Windows 相关验收保留为本地测试能力，可按任务影响范围使用；将其设为发布阻断条件的策略已彻底移除，具体见[Windows 本地验收与发布策略](working-rules/architecture-performance.md#windows-本地验收与发布策略)。提交、推送、固定安装器更新或发布不要求 Windows 版本/硬件/权限矩阵、真实桌面、干净机器、安装生命周期或 Defender 的通过报告，也不要求 SmartScreen 信誉、Windows 代码签名或微软样本复核。未运行、未覆盖、环境不可用和未通过的验收结果如实记录，不自动转为发布阻断或必做补验。
+
+### Windows 本地测试能力
+
+这些入口可用于本地排查与回归，结果保留在各自报告中，不作为发布准入凭据。系统交互和联网测试继续遵守现有显式开关、隔离及授权约定。
+
+| 测试范围 | 现有入口 |
+| --- | --- |
+| 原生窗口关闭与进程回收 | [test-desktop-mygo-close.ps1](../build/test-desktop-mygo-close.ps1) |
+| 模块启停、快捷键与资源恢复 | [test-module-lifecycle.ps1](../build/test-module-lifecycle.ps1) |
+| 安装、覆盖、回退、修复与卸载 | [test-installer.ps1](../build/test-installer.ps1)，用法见[打包与安装](打包与安装.md) |
+| Defender 本地扫描 | [verify-windows-security.ps1](../build/verify-windows-security.ps1)；构建时也可显式使用 `-VerifyWindowsSecurity` |
+| 设置窗口启动与资源测量 | [benchmark-native-startup.ps1](../build/benchmark-native-startup.ps1)、[benchmark-desktop.ps1](../build/benchmark-desktop.ps1) |
 
 ## 外部项目引入与即时许可检查
 
@@ -80,7 +92,7 @@ Windows 专项验收已从项目要求和发布清单移除，具体范围见[�
 
 统一构建经 `build/copy-anki.ps1` 将这些文件和 WinOne 适配代码放入 `shared/anki/`。Python 解释器复用包内 `capture/Ocr/python/`，不安装系统 Python，不调用外部 Anki。新增运行文件后用 `build/update-anki-inventory.py` 更新完整载荷清单；整个集合服务在首次使用时启动，空闲释放，数据在 WinOne 的学习档案中持久化。
 
-用户要求无人值守且不允许系统/联网测试时，可显式使用统一构建的 `-CompileOnly`。该选项保留编译、静态、来源、许可和包清单检查，关闭自动运行的交互和服务测试；不能把编译通过记为运行测试通过。学习功能另用 `build/test-learning-offline.ps1` 检查隔离真实引擎与原生组件。实际安装、真实账号同步、麦克风/扬声器与外部网络验证仅按用户明确要求单独进行；Windows 专项项目不列为交付前置条件。
+用户要求无人值守且不允许系统/联网测试时，可显式使用统一构建的 `-CompileOnly`。该选项保留编译、静态、来源、许可和包清单检查，关闭自动运行的交互和服务测试；不能把编译通过记为运行测试通过。学习功能另用 `build/test-learning-offline.ps1` 检查隔离真实引擎与原生组件。实际安装、真实账号同步、麦克风/扬声器与外部网络验证按各自隔离和授权约定单独进行；Windows 本地验收不列为发布前置条件。
 
 英语学习词库固定放在 `dist/resources/assets/learning/`，包括 `ecdict.db`、`manifest.json` 和 `ECDICT-LICENSE.txt`。锁定原始 CSV 保存在 `dist/resources/sources/ecdict-39cfb96/`，来源与摘要见 `third_party/learning-data.json`。`build/prepare-learning.ps1 -PythonExe <已有 Python> -Downloader <aria2-next>` 可校验或重建；统一构建自动调用，`build/copy-learning.ps1` 将验证过的三件套放入 `shared/ui/learning/`。数据与工具不入库，生成器、测试、许可和来源记录入库。缓存不一致时脚本报错，先在任务临时目录重建并验证，再更新固定资源。
 
@@ -114,7 +126,7 @@ Windows 专项验收已从项目要求和发布清单移除，具体范围见[�
 
 需要构建时，再执行 `./build/build.ps1 @WinOneBuildParameters -OutputDirectory _temp/<任务>/build`。安装器调用传入 `-NsisExe $WinOneNsisExe`。脚本只设置当前 PowerShell 会话，不修改系统环境变量；核心构建资源缺失时明确报错。Playwright 是可选测试工具，存在时检查固定版本并设置其模块路径。
 
-普通新进程原生设置窗口资源/启动的可选诊断入口分别为 `build/benchmark-desktop.ps1 -Frontend MyGo` 和 `build/benchmark-native-startup.ps1`；仅在用户明确要求时运行。默认只在仓库私有桌面测量真实生产EXE，不切换前台；完整进程及正常退出被记录。旧WebView测量默认仍要求实际renderer，不把无WebView的MyGo误判缺进程。可选 `WINONE_DESKTOP_STARTUP_TRACE=1` 只产生实际Host/UI回调/绘制后的就绪标记，不预热常驻、不改窗口保护。2026-11-07当前启动300ms目标未达标且获准不阻断本次交付，具体数据见 [本次验收](2026-11-07-native-local-delivery.md)。
+普通新进程原生设置窗口资源/启动的可选诊断入口分别为 `build/benchmark-desktop.ps1 -Frontend MyGo` 和 `build/benchmark-native-startup.ps1`；可按性能排查和回归需要运行，不作为发布前置条件。默认只在仓库私有桌面测量真实生产EXE，不切换前台；完整进程及正常退出被记录。旧WebView测量默认仍要求实际renderer，不把无WebView的MyGo误判缺进程。可选 `WINONE_DESKTOP_STARTUP_TRACE=1` 只产生实际Host/UI回调/绘制后的就绪标记，不预热常驻、不改窗口保护。2026-11-07当前启动300ms目标未达标且获准不阻断本次交付，具体数据见 [本次验收](2026-11-07-native-local-delivery.md)。
 
 ### 供应商图标
 

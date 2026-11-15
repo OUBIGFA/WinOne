@@ -2,7 +2,7 @@
 
 更新：2026-11-04。本文件记录 WinOne 桌面前端改写为 MyGo 原生界面的决策、方案、分工和验收方法。实施状态同步写入 [开发状态](development.md)。
 
-Windows 专项验收已从交付和发布要求中移除，范围见[当前约定](working-rules/architecture-performance.md#windows-专项验收要求已移除)。下方历史 Windows 实窗、物理输入法、混合 DPI、多屏及安装矩阵只保留验证记录或可选工具说明，不作为待交付必做项。
+Windows 实窗、物理输入法、混合 DPI、多屏和安装矩阵继续作为本地测试能力保留，可用于迁移排查与回归；完成情况和通过报告不作为发布前置条件，范围见[当前策略](working-rules/architecture-performance.md#windows-本地验收与发布策略)。
 
 ## 1. 目标与决策
 

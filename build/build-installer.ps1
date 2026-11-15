@@ -91,5 +91,6 @@ $artifacts=@{
     uninstaller=@{fileName=[IO.Path]::GetFileName($uninstallerTarget);size=(Get-Item -LiteralPath $uninstallerTarget).Length;sha256=$uninstallerDigest}
 }
 [IO.File]::WriteAllText($artifactRecord,($artifacts|ConvertTo-Json -Depth 4),[Text.UTF8Encoding]::new($false))
-Write-Output "Installer compiled (installation lifecycle validation still required): $target"
+# Lifecycle probes remain local test capabilities, not release prerequisites.
+Write-Output "Installer compiled: $target"
 Write-Output "Matching uninstaller exported: $uninstallerTarget"
