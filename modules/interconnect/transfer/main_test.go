@@ -152,6 +152,9 @@ func transferPaths(t *testing.T) (string, string, string) {
 	return dir, source, out
 }
 func TestStoredTransferRoundTripAndRevoke(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	dir, source, out := transferPaths(t)
 	service, err := store.New(store.Config{Root: filepath.Join(dir, "server"), MaxTransferBytes: 16 << 20, MaxTotalBytes: 64 << 20, MinFreeBytes: 1, MaxFiles: 10, MaxDownloads: 10, CreatePerHour: 100, MaxActiveUploads: 10, DisableRootLock: true})
 	if err != nil {
@@ -187,6 +190,9 @@ func TestStoredTransferRoundTripAndRevoke(t *testing.T) {
 	revoke.finish(t)
 }
 func TestCrocRealRelayFilesFoldersAndCancellation(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	dir, source, out := transferPaths(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

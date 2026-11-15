@@ -24,6 +24,9 @@ func TestLANShareSurvivesRelayFailure(t *testing.T) {
 }
 
 func testLANShareRelayFailure(t *testing.T, timeout bool) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	exe, _ := os.Executable()
 	for _, name := range []string{"WinOne.Interconnect.Lan.exe", "WinOne.Interconnect.Transfer.exe"} {
 		if _, err := os.Stat(filepath.Join(filepath.Dir(exe), name)); err != nil {

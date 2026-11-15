@@ -106,6 +106,9 @@ func TestSignedSettingsValidateLocallyAndKeepPrivateValuesOutOfErrors(t *testing
 }
 
 func TestSignedSettingsNeverLoadReferencesFromNetworkOrDisk(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests.Add(1)

@@ -1,5 +1,6 @@
 // Explicit integration with the author's plugin and local test website. Pass
 // a reviewed checkout; the only adapter substitutes its origin, never auth.
+if(process.env.WINONE_NETWORK_TESTS!=='1')throw Error('Network verification is disabled; explicitly enable WINONE_NETWORK_TESTS=1 to run this check.');
 import {mkdir,writeFile,readFile,readdir,cp,access} from 'node:fs/promises';
 import {resolve,join,relative} from 'node:path';
 import {pathToFileURL} from 'node:url';

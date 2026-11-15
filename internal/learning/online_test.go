@@ -4,11 +4,15 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync/atomic"
 	"testing"
 )
 
 func TestPronunciationCachesWithoutAnotherRequest(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	var calls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
@@ -31,6 +35,9 @@ func TestPronunciationCachesWithoutAnotherRequest(t *testing.T) {
 	}
 }
 func TestOnlineDictionaryRejectsHTTPFailure(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Error(w, "not found", 404) }))
 	defer server.Close()
 	if _, err := (Online{DictionaryURL: server.URL}).Lookup(context.Background(), "invented-word"); err == nil {

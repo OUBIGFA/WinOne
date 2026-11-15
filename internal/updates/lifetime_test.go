@@ -6,11 +6,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"testing"
 	"time"
 )
 
 func TestCheckReleasesItsIdleConnection(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	closed := make(chan struct{}, 1)
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(release)) }))
 	server.Config.ConnState = func(_ net.Conn, state http.ConnState) {

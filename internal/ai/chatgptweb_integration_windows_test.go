@@ -21,6 +21,9 @@ import (
 // The test runner substitutes a local website, not the plugin's auth, browser
 // or worker. This crosses WinOne's real short-lived process and profile boundary.
 func TestChatGPTWebPluginSignInAndReply(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	fixture, executable := os.Getenv("WINONE_CHATGPT_WEB_FIXTURE"), os.Getenv("WINONE_AI_PLUGIN_TEST_EXE")
 	if fixture == "" || executable == "" {
 		t.Skip("explicit reviewed ChatGPT Web fixture")

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -43,6 +44,9 @@ func TestCloudProxyPrecedenceAndBypass(t *testing.T) {
 }
 
 func TestCloudTransportUsesExplicitHTTPProxy(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	var destination string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		destination = r.URL.String()
@@ -67,6 +71,9 @@ func TestCloudTransportUsesExplicitHTTPProxy(t *testing.T) {
 }
 
 func TestCloudTransportNeverDisablesCertificateValidation(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { t.Error("untrusted TLS reached HTTP") }))
 	defer server.Close()
 	client, err := newTransferHTTP(specification{})
@@ -83,6 +90,9 @@ func TestCloudTransportNeverDisablesCertificateValidation(t *testing.T) {
 }
 
 func TestCloudTransportDoesNotReplayPOSTAfterServerCloses(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	calls := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++

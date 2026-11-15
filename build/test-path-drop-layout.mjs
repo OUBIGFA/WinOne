@@ -4,6 +4,7 @@ import {createRequire} from 'node:module';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {pathToFileURL} from 'node:url';
+if(process.env.WINONE_NETWORK_TESTS!=='1')throw Error('Network verification is disabled; explicitly enable WINONE_NETWORK_TESTS=1 to run this check.');
 import assert from 'node:assert/strict';
 const frontend=resolve('apps/desktop/frontend'),output=resolve(process.env.WINONE_LAYOUT_OUTPUT||'_temp/path-drop-layout/browser');
 await mkdir(output,{recursive:true});

@@ -20,6 +20,9 @@ import (
 // One send publishes the same selection through HTTP and croc. Completing the
 // one-off code transfer must leave the persistent pool available to phones.
 func TestUnifiedSendLANCodeAndPersistent(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	exe := os.Getenv("WINONE_PEER_EXE")
 	if exe == "" {
 		t.Skip("set WINONE_PEER_EXE to the isolated peer bundle")
@@ -97,7 +100,9 @@ func TestUnifiedSendLANCodeAndPersistent(t *testing.T) {
 	download()
 	receiver := startProbe(t)
 	receiverOptions := map[string]any{}
-	for key,value := range options { receiverOptions[key] = value }
+	for key, value := range options {
+		receiverOptions[key] = value
+	}
 	receiverOptions["transport"] = "auto"
 	receiver.call(t, "start", map[string]any{"mode": "receive", "code": "3456-unified-send-test", "dataDir": filepath.Join(dir, "receive"), "outputDir": out, "options": receiverOptions})
 	receiver.finish(t)

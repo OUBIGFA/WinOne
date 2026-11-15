@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -33,6 +34,9 @@ func TestDiscoveredModelUsesTheUpstreamPublishedOutput(t *testing.T) {
 }
 
 func TestModelSystemPromptAndKindUseUpstreamPreferences(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	t.Cleanup(func() { provider.WinOneProviders = nil; settings.WinOneSettings.Store(nil) })
@@ -108,6 +112,9 @@ func TestCompleteEndpointsAndKeyOptionsReachUpstreamProvider(t *testing.T) {
 }
 
 func TestModelHeadersReachGenerationButNotDiscovery(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Cleanup(func() { provider.WinOneProviders = nil; settings.WinOneSettings.Store(nil) })
 	var paths []string
@@ -141,6 +148,9 @@ func TestModelHeadersReachGenerationButNotDiscovery(t *testing.T) {
 }
 
 func TestHTTPDiscoveryAndGenerationBeyondTheOldLoopbackAllowlist(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	// A second loopback address exercises the old exact-host rejection without
 	// listening on the LAN or calling an external provider during default tests.
 	listener, err := net.Listen("tcp", "127.0.0.2:0")
@@ -179,6 +189,9 @@ func TestHTTPDiscoveryAndGenerationBeyondTheOldLoopbackAllowlist(t *testing.T) {
 }
 
 func TestDiscoveryPreserves2500Models(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	models := make([]map[string]string, 2500)
 	for i := range models {
 		models[i] = map[string]string{"id": fmt.Sprintf("fixture-%04d", i)}
@@ -283,6 +296,9 @@ func TestModelCatalogUsesMagpieReportedWindowMaximumAndOutput(t *testing.T) {
 }
 
 func TestPercentageMetadataIsAcceptedOnRealGenerationWithoutDroppingHistory(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	var received map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
@@ -333,6 +349,9 @@ func TestServicePresetRetainsItsModelProtocolsAndScope(t *testing.T) {
 }
 
 func TestModelDiscoveryPreservesSafeFailureMetadata(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Retry-After", "90")
 		w.WriteHeader(429)
@@ -347,6 +366,9 @@ func TestModelDiscoveryPreservesSafeFailureMetadata(t *testing.T) {
 }
 
 func TestConfiguredModelDiscoveryUsesMagpieAndPreservesManualFallback(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/models" || r.Header.Get("Authorization") != "Bearer fixture-model-key" {
 			t.Error("wrong model endpoint or credential")

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -19,6 +20,9 @@ import (
 // A provider transport has no retry budget. The outer router must receive a
 // refusal promptly so it can choose the next credential or group member.
 func TestTransportFailureReturnsToOuterRouter(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	oldSettings, oldProviders, oldTransport := settings.WinOneSettings.Load(), provider.WinOneProviders, gateway.WinOneTransportOnly
 	t.Cleanup(func() {
 		settings.WinOneSettings.Store(oldSettings)

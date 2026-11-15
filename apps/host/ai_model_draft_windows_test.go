@@ -20,6 +20,9 @@ import (
 )
 
 func TestModelDiscoveryUsesUnsavedConnectionWithoutSaving(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	exe := os.Getenv("WINONE_AI_TEST_EXE")
 	if exe == "" {
 		t.Skip("explicit packaged AI worker required")

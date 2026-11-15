@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net"
 	"os/user"
-	"strings"
 	"sync"
 	"time"
 
@@ -75,7 +74,7 @@ func Serve(ctx context.Context, listener net.Listener, service Handler) error {
 
 func serveOne(conn net.Conn, service Handler) {
 	defer conn.Close()
-	_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 	data, err := protocol.ReadFrame(conn)
 	if err != nil {
 		return
@@ -89,19 +88,15 @@ func serveOne(conn net.Conn, service Handler) {
 			return
 		}
 	}
-	// A deadline covers all future I/O, including the final response write
-	// (net.Conn.SetDeadline). Learning and capture may start a worker before
-	// replying; retain their admitted budgets after the idle-client check.
-	if request.Method == "learning.call" || request.Method == "learning.upload" {
-		_ = conn.SetDeadline(time.Now().Add(150 * time.Second))
-	} else if strings.HasPrefix(request.Method, "capture.") || request.Method == "results.open" {
-		_ = conn.SetDeadline(time.Now().Add(15 * time.Second))
-	}
 	response := service.Handle(request)
 	data, err = json.Marshal(response)
 	if err != nil {
 		return
 	}
+	// Handlers and callers own operation budgets. Start the bounded reply
+	// write only after handling, so slow work cannot consume its I/O budget
+	// and turn a completed result or operation error into an unexplained EOF.
+	_ = conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 	_ = protocol.WriteFrame(conn, data)
 }
 

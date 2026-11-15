@@ -17,6 +17,9 @@ import (
 )
 
 func TestNativeSelectionPipeline(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	probe, bundle, output := os.Getenv("WINONE_SELECTION_PIPELINE_PROBE"), os.Getenv("WINONE_SELECTION_PIPELINE_BUNDLE"), os.Getenv("WINONE_SELECTION_PIPELINE_OUTPUT")
 	if probe == "" || bundle == "" || output == "" {
 		t.Skip("set explicit selection pipeline fixture, bundle and new output directory")

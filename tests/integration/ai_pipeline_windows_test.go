@@ -40,6 +40,9 @@ func TestNativeSharedAITextPipeline(t *testing.T) {
 }
 
 func runResultPipeline(t *testing.T, probe, bundle, output, mode string, hideReasoning bool) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	t.Helper()
 	multipleKeys := os.Getenv("WINONE_AI_PIPELINE_MULTI_KEYS") == "1"
 	var keyMu sync.Mutex

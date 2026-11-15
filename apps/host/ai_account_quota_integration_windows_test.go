@@ -22,6 +22,9 @@ import (
 // source. Only CodexBase changes, to this test's HTTP server. No real account,
 // installed application, credential store or external endpoint is used.
 func TestAccountQuotaWithRealWorkerAndLocalVendor(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	source, compiler := os.Getenv("WINONE_AI_QUOTA_SOURCE"), os.Getenv("WINONE_GO_EXE")
 	if source == "" || compiler == "" {
 		t.Skip("explicit prepared Magpie source and Go compiler required")

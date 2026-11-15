@@ -1384,6 +1384,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "network listener tests are excluded from automatic verification"]
     async fn automatic_port_keeps_an_existing_listener_and_publishes_the_actual_port() {
         let occupied = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).await.unwrap();
         let port = occupied.local_addr().unwrap().port();

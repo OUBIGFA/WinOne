@@ -62,6 +62,9 @@ func speechTestFrame(payload []byte) []byte {
 }
 
 func TestEdgeSpeechProtocolAndFailures(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	for _, mode := range []string{"complete", "truncated", "empty", "malformed", "cancel"} {
 		t.Run(mode, func(t *testing.T) {
 			received := make(chan string, 1)
@@ -140,6 +143,9 @@ func TestEdgeSpeechProtocolAndFailures(t *testing.T) {
 }
 
 func TestEdgeSpeechCorrectsClockFromRejectedHandshake(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	serverTime := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
 	attempts := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

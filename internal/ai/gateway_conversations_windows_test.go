@@ -18,6 +18,9 @@ import (
 )
 
 func TestGatewayRecordingConsentPersistsWithoutExternalHistory(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	exe := os.Getenv("WINONE_GATEWAY_TEST_EXE")
 	if exe == "" {
 		t.Skip("explicit isolated AI bundle")

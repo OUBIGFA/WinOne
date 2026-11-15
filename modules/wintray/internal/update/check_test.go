@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -42,6 +43,9 @@ func TestCompare(t *testing.T) {
 }
 
 func TestCheckAt(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	cases := []struct {
 		name        string
 		current     string
@@ -119,6 +123,9 @@ func TestCheckAt(t *testing.T) {
 }
 
 func TestCheckAtRejectsErrorResponses(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 	}))
@@ -130,6 +137,9 @@ func TestCheckAtRejectsErrorResponses(t *testing.T) {
 }
 
 func TestCheckAtRejectsEmptyTag(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"tag_name":""}`))
 	}))

@@ -7,6 +7,7 @@ import (
 	"github.com/yetone/magpie/internal/oidc/oidctest"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +16,9 @@ import (
 // A workflow's JWT must pass the authenticated private bridge as an identity
 // token, not be checked as an ordinary gateway key or replaced by our token.
 func TestOIDCExchangeThroughWinOneBridge(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	issuer := oidctest.New(t)
 	secret, err := access.Update("add-key", access.Change{Name: "WinOne OIDC fixture"})
 	if err != nil {

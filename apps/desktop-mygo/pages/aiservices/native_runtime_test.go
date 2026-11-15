@@ -17,6 +17,9 @@ import (
 // This test owns the real Magpie process, profile and vendor fixture. Native
 // controls issue production HTTP requests, not a copied routing implementation.
 func nativeAIWithRuntime(t *testing.T) (*page, *testhost.Harness, *ui.Tester, *ai.GatewayProcess) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	t.Helper()
 	exe := os.Getenv("WINONE_GATEWAY_TEST_EXE")
 	if exe == "" {
@@ -69,6 +72,9 @@ func nativeAIWithRuntime(t *testing.T) (*page, *testhost.Harness, *ui.Tester, *a
 func kitID(v int64) string { b, _ := json.Marshal(v); return string(b) }
 
 func TestNativeAPIRefusesRedirectAndRetainsMutationFailure(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	var leaked bool
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { leaked = true; w.Write([]byte(`{}`)) }))
 	defer target.Close()

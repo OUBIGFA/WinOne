@@ -25,6 +25,9 @@ import (
 // The real magpie executable and a loopback vendor prove that unrelated module
 // callers receive the same saved model/key without supplying provider wiring.
 func TestSharedAIModelForTextAndImage(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	exe := os.Getenv("WINONE_AI_TEST_EXE")
 	if exe == "" {
 		t.Skip("set WINONE_AI_TEST_EXE to the built magpie adapter")

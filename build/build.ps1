@@ -1,5 +1,6 @@
 param([string]$GoExe = 'go', [string]$CargoExe = 'cargo', [string]$Downloader, [switch]$SkipInstall, [string]$OutputDirectory = '_temp/build/current', [switch]$RunStartupProbes, [string]$UpdateRepository = '', [string]$ShareXSourceDirectory, [string]$RustTargetDirectory='dist/resources/cache/rust-desktop', [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='MyGo', [string]$OcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY, [string]$MagpieSourceDirectory=$env:WINONE_MAGPIE_SOURCE_DIRECTORY, [string]$PluginSourceDirectory=$env:WINONE_AI_PLUGIN_SOURCE_DIRECTORY, [string]$BunExe=$env:WINONE_AI_BUN_EXE, [string]$ResultGoExe=$env:WINONE_RESULT_GO_EXE, [string]$DiagramTargetDirectory='dist/resources/cache/rust-diagrams', [string]$SelectionTargetDirectory='dist/resources/cache/rust-selection', [string]$ModuleTrustFile='', [switch]$CompileOnly, [string]$NodeExe = 'node')
 $ErrorActionPreference = 'Stop'
+if($env:WINONE_NETWORK_TESTS -ne '1'){Write-Output 'Network tests are excluded from automatic build verification.'}
 # Explicit unattended build mode. Runtime/behavior tests are selected separately;
 # source, license, compiler, static and payload verification still run here.
 if($CompileOnly -and $RunStartupProbes){throw 'CompileOnly cannot run startup probes'}

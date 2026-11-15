@@ -34,6 +34,9 @@ func waitReady(t *testing.T, task *task) snapshot {
 // Run the same local DERP/STUN fixture as upstream Tailcat tests. All bytes go
 // through the real WireGuard stack and both TCP proxies, without public relays.
 func TestTailcatTunnelRoundTripAndRelease(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	dm := integration.RunDERPAndSTUN(t, func(string, ...any) {}, "127.0.0.1")
 	maps := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { json.NewEncoder(w).Encode(dm) }))
 	defer maps.Close()

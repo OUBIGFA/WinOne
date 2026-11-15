@@ -14,6 +14,7 @@ param(
     [string[]]$Packages=@('provider','gateway','settings','usage','catalog','filememo','netproxy','sessions','ghtoken','proc','access','filelock','oidc','budget','gwbudget','routes')
 )
 $ErrorActionPreference='Stop'
+if($env:WINONE_NETWORK_TESTS -ne '1'){throw 'Network verification is disabled; explicitly enable WINONE_NETWORK_TESTS=1 to run upstream service tests.'}
 $root=Split-Path -Parent $PSScriptRoot
 $source=(Resolve-Path -LiteralPath $SourceDirectory).Path
 $output=[IO.Path]::GetFullPath((Join-Path $root $OutputDirectory))

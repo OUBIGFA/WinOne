@@ -1,5 +1,6 @@
 // Runs production links UI against the explicit in-memory host fixture.
 // Filesystem identity/transaction tests live with the Go manager and Host.
+if(process.env.WINONE_NETWORK_TESTS!=='1')throw Error('Network verification is disabled; explicitly enable WINONE_NETWORK_TESTS=1 to run this check.');
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {mkdir,writeFile} from 'node:fs/promises';

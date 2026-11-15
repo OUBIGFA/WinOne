@@ -24,6 +24,9 @@ import (
 // A saved host rule and trusted certificate must reach the real worker's
 // discovery and generation, while the URL keeps its original host name.
 func TestPackagedConnectionRulesAndServerCertificate(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	executable := os.Getenv("WINONE_AI_TEST_EXE")
 	if executable == "" {
 		t.Skip("set WINONE_AI_TEST_EXE")
@@ -91,6 +94,9 @@ func TestPackagedConnectionRulesAndServerCertificate(t *testing.T) {
 // Exercise WinOne's owned worker and Magpie's image guard with real local
 // HTTP requests. Merely accepting the saved setting would miss propagation.
 func TestPackagedLimitFailureMetadataReachesHost(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	executable := os.Getenv("WINONE_AI_TEST_EXE")
 	if executable == "" {
 		t.Skip("set WINONE_AI_TEST_EXE")
@@ -126,6 +132,9 @@ func TestPackagedLimitFailureMetadataReachesHost(t *testing.T) {
 }
 
 func TestPackagedProviderProxyPreservesLoginAndRoutesOnlyThroughSelectedProxy(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	executable := os.Getenv("WINONE_AI_TEST_EXE")
 	if executable == "" {
 		t.Skip("set WINONE_AI_TEST_EXE")
@@ -163,6 +172,9 @@ func TestPackagedProviderProxyPreservesLoginAndRoutesOnlyThroughSelectedProxy(t 
 // This crosses persistence, task selection and the same original Magpie
 // server for both a result request and a public gateway protocol request.
 func TestPackagedModelSettingsAndUpstreamRPMSharedWithGateway(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	executable := os.Getenv("WINONE_AI_TEST_EXE")
 	if executable == "" {
 		t.Skip("set WINONE_AI_TEST_EXE")

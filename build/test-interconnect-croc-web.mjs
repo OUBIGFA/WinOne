@@ -1,5 +1,6 @@
 // Opt-in real public-relay/browser interop. Sends only a generated test file.
 // No user data or desktop profile is read. This is not a two-network/NAT test.
+if(process.env.WINONE_NETWORK_TESTS!=='1')throw Error('Network verification is disabled; explicitly enable WINONE_NETWORK_TESTS=1 to run this check.');
 import {spawn,execFileSync} from 'node:child_process';
 import {createInterface} from 'node:readline';
 import {createRequire} from 'node:module';

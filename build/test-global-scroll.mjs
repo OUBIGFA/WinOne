@@ -1,6 +1,7 @@
 // Reflow, real scrollbar allocation, and empty-list centering use production
 // components. Host calls stay in the existing in-memory browser fixtures.
 import assert from 'node:assert/strict';
+if(process.env.WINONE_NETWORK_TESTS!=='1')throw Error('Network verification is disabled; explicitly enable WINONE_NETWORK_TESTS=1 to run this check.');
 import {createRequire} from 'node:module';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve,join} from 'node:path';

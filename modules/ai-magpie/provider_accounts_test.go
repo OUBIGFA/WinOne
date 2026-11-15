@@ -31,6 +31,9 @@ func TestWinOneOAuthMissingClientNeverRunsAnInstaller(t *testing.T) {
 
 // Reauth must use the selected account's proxy for both backend paths.
 func TestWinOneOAuthReauthenticationUsesAccountProxy(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	claudeHome(t)
 	const user = "selected@example.invalid"
 	setProxies(t, "codex", "http://127.0.0.1:9", map[string]string{user: "direct"})
@@ -57,6 +60,9 @@ func TestWinOneOAuthReauthenticationUsesAccountProxy(t *testing.T) {
 }
 
 func TestWinOneOAuthKeepsAccountInPrivateProfile(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	root := t.TempDir()
 	home := filepath.Join(root, "home")
 	if err := os.MkdirAll(home, 0700); err != nil {

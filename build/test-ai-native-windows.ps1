@@ -6,6 +6,7 @@ param(
 # Real MyGo windows and the real private Magpie worker, on a non-input desktop.
 # No user profile, global hooks, browser registration or foreground interaction.
 $ErrorActionPreference='Stop'
+if($env:WINONE_NETWORK_TESTS -ne '1'){throw 'Network verification is disabled; explicitly enable WINONE_NETWORK_TESTS=1 to run native AI service tests.'}
 $root=Split-Path -Parent $PSScriptRoot
 $output=[IO.Path]::GetFullPath((Join-Path $root $OutputDirectory))
 & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $output

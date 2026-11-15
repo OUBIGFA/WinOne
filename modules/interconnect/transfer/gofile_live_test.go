@@ -12,6 +12,9 @@ import (
 // Explicit opt-in only. It uploads one generated public probe, never user files,
 // reuses a task-local guest account, and revokes the remote folder afterwards.
 func TestGofileLiveUploadAndRevoke(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	if os.Getenv("WINONE_GOFILE_LIVE") != "1" {
 		t.Skip("public GoFile probe requires explicit opt-in")
 	}
@@ -46,6 +49,9 @@ func TestGofileLiveUploadAndRevoke(t *testing.T) {
 
 // Clean a previous interrupted probe without creating or uploading anything.
 func TestGofileLiveRevokePreviousProbe(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	if os.Getenv("WINONE_GOFILE_LIVE") != "1" {
 		t.Skip("explicit opt-in required")
 	}

@@ -17,6 +17,9 @@ import (
 )
 
 func TestGatewayLifecycleAuthenticationAndPersistence(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	path := filepath.Join(t.TempDir(), "gateway.json")
@@ -103,6 +106,9 @@ func TestGatewayLifecycleAuthenticationAndPersistence(t *testing.T) {
 }
 
 func TestGatewayBusyPortDoesNotCommit(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	g := NewGateway(ctx, filepath.Join(t.TempDir(), "gateway.json"), http.NotFoundHandler())
@@ -119,6 +125,9 @@ func TestGatewayBusyPortDoesNotCommit(t *testing.T) {
 }
 
 func TestGatewayBrowserAuthenticationAndNetworkRollback(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var calls int

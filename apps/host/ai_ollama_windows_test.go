@@ -36,6 +36,9 @@ func gatewayTestService(t *testing.T) *aiService {
 // This uses the real authenticated public listener and packaged Magpie, not a
 // replacement discovery handler. No request leaves the local fixture servers.
 func TestOllamaDiscoveryMatchesGatewayModelPolicy(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	s := gatewayTestService(t)
 	var vendorCalls atomic.Int32
 	vendor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

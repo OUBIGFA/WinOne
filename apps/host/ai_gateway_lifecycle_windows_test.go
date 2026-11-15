@@ -25,6 +25,9 @@ func TestGatewayViewerProcessHelper(t *testing.T) {
 // The UI may close its pipe before a final release RPC reaches the Host.
 // Process exit alone must release a temporary gateway viewer.
 func TestGatewayViewerExitReleasesPrivateBackend(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	executable := os.Getenv("WINONE_AI_TEST_EXE")
 	if executable == "" {
 		t.Skip("explicit isolated AI runtime")
@@ -91,6 +94,9 @@ func TestResultGatewayMissingOwnerDoesNotStartPrivateBackend(t *testing.T) {
 // The settings page and result window share one upstream runtime. Closing the
 // settings page keeps it alive; exiting the last result process releases it.
 func TestResultGatewayOwnerExitReleasesSharedBackend(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	service := gatewayTestService(t)
 	self, err := os.Executable()
 	if err != nil {
@@ -133,6 +139,9 @@ func TestResultGatewayOwnerExitReleasesSharedBackend(t *testing.T) {
 }
 
 func TestGatewayViewerReleaseKeepsOtherViewersAndEnabledGateway(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	executable := os.Getenv("WINONE_AI_TEST_EXE")
 	if executable == "" {
 		t.Skip("explicit isolated AI runtime")

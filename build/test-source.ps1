@@ -2,6 +2,7 @@ param([string]$GoExe='go', [string]$OutputDirectory='_temp/source-checks')
 # This gate needs only tracked sources, Go and Node. Full runtime, native UI,
 # OCR and installer acceptance remain in build.ps1 and verify-built-bundle.ps1.
 $ErrorActionPreference='Stop'
+if($env:WINONE_NETWORK_TESTS -ne '1'){Write-Output 'Network tests are excluded from automatic source verification.'}
 $root=Split-Path -Parent $PSScriptRoot
 $output=if([IO.Path]::IsPathRooted($OutputDirectory)){[IO.Path]::GetFullPath($OutputDirectory)}else{[IO.Path]::GetFullPath((Join-Path $root $OutputDirectory))}
 & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $output

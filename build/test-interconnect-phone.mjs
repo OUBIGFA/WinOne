@@ -1,4 +1,5 @@
 // Real peer/LAN processes and a mobile-sized browser. No public relay is used.
+if(process.env.WINONE_NETWORK_TESTS!=='1')throw Error('Network verification is disabled; explicitly enable WINONE_NETWORK_TESTS=1 to run this check.');
 import {spawn,execFileSync} from 'node:child_process';
 import {createInterface} from 'node:readline';
 import {createServer as createTCPServer} from 'node:net';

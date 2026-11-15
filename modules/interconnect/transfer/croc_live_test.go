@@ -12,6 +12,9 @@ import (
 // Public probe is explicit and contains no user data. A durable local receipt
 // allows cleanup after an interrupted run; successful runs revoke the share.
 func TestCrocLiveUploadAndRevoke(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	if os.Getenv("WINONE_CROC_LIVE") != "1" {
 		t.Skip("explicit public croc probe opt-in required")
 	}

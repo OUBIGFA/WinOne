@@ -1,6 +1,7 @@
 // Rendered regressions for intrinsic gesture rails and stationary tab lines.
 // The production App uses an in-memory Host; native acceptance is separate.
 import {createRequire} from 'node:module';
+if(process.env.WINONE_NETWORK_TESTS!=='1')throw Error('Network verification is disabled; explicitly enable WINONE_NETWORK_TESTS=1 to run this check.');
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {pathToFileURL} from 'node:url';

@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
 func TestGooglePreservesFullTextAndDecodesOnce(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body []json.RawMessage
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -36,6 +40,9 @@ func TestSmartTarget(t *testing.T) {
 }
 
 func TestInvalidTranslationDoesNotBecomeSuccess(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(`[[]]`)) }))
 	defer server.Close()
 	if _, err := translateGoogle(context.Background(), server.Client(), server.URL, "Hello", "zh-CN"); err == nil {

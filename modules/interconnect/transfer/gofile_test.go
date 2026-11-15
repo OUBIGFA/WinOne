@@ -22,6 +22,9 @@ const testGofileFolder = "22222222-2222-4222-8222-222222222222"
 const testGofileToken = "isolated-guest-secret"
 
 func TestGofileGuestUploadReuseAndRevoke(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	dir, source, _ := transferPaths(t)
 	content := bytes.Repeat([]byte("云端文件"), 1024)
 	var accounts, uploads, deletions atomic.Int32
@@ -120,6 +123,9 @@ func TestGofileGuestUploadReuseAndRevoke(t *testing.T) {
 }
 
 func TestGofileExpiredGuestIsRenewedOnlyBeforeUpload(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	dir, source, _ := transferPaths(t)
 	var accounts, uploads atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -181,6 +187,9 @@ func TestGofileExpiredGuestIsRenewedOnlyBeforeUpload(t *testing.T) {
 }
 
 func TestGofileConcurrentGuestCreationUsesOneAccount(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	dir, _, _ := transferPaths(t)
 	var count atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -207,6 +216,9 @@ func TestGofileConcurrentGuestCreationUsesOneAccount(t *testing.T) {
 }
 
 func TestGofileFailedUploadPreservesReceiptAndDoesNotPublishLink(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
+	}
 	dir, source, _ := transferPaths(t)
 	path := filepath.Join(source, "file.txt")
 	os.WriteFile(path, []byte("sample"), 0600)
