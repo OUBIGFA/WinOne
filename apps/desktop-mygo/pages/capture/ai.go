@@ -117,9 +117,9 @@ func (a *aiSection) save() {
 		return
 	}
 	a.working, a.err = true, ""
-	draft := *a.draft
+	draft, base := *a.draft, *a.saved
 	core.Go(a.env, func() (aiRead, error) {
-		raw, err := a.env.Host.CallCompleting("capture.ai.configuration.save", map[string]any{"configuration": draft})
+		raw, err := a.env.Host.CallCompleting("capture.ai.configuration.save", map[string]any{"configuration": draft, "base": base})
 		if err != nil {
 			return aiRead{}, err
 		}

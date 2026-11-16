@@ -160,7 +160,9 @@ func (p *page) save() {
 		return
 	}
 	p.saving, p.err = true, ""
-	params := map[string]any{"configuration": clone(*p.draft)}
+	// Send the edit's original snapshot so catalog refreshes can be merged
+	// atomically without discarding the draft or any pending key updates.
+	params := map[string]any{"configuration": clone(*p.draft), "base": clone(*p.saved)}
 	if len(p.keys) > 0 {
 		params["keyUpdates"] = p.keys
 	}

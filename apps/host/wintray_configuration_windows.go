@@ -216,7 +216,7 @@ func wintrayConfigurationHandler(directory string, store *configuration.HostStor
 				return fail(err)
 			}
 			expected, parseErr := strconv.ParseUint(args.Revision, 10, 64)
-			if parseErr != nil || expected != revision {
+			if parseErr != nil || !store.ModuleRevisionMatches("wintray", expected) {
 				return fail(configuration.ErrConflict)
 			}
 			if _, err = preferences.Decode(args.Settings); err != nil {

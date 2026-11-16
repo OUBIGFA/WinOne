@@ -26,6 +26,13 @@ func copyEnabled(source map[string]bool) map[string]bool {
 // revision and validate any source-file digest before entering this transaction.
 func (s *HostStore) CommitDocument(next Document) (Document, error) {
 	defer s.notifySettled()
+	s.store.operation.Lock()
+	defer s.store.operation.Unlock()
+	return s.commitDocument(next)
+}
+
+// commitDocument also serves namespace saves which already own the writer.
+func (s *HostStore) commitDocument(next Document) (Document, error) {
 	previous := s.store.Snapshot()
 	if err := s.RecoveryError(); err != nil {
 		return previous, errors.Join(ErrRecoveryRequired, err)
@@ -38,7 +45,7 @@ func (s *HostStore) CommitDocument(next Document) (Document, error) {
 		return previous, err
 	}
 	forward := true
-	return s.store.Commit(prepared, func(document Document) error {
+	return s.store.commit(prepared, func(document Document) error {
 		if !forward {
 			return s.applyDocument(document)
 		}

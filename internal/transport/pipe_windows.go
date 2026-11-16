@@ -75,7 +75,7 @@ func Serve(ctx context.Context, listener net.Listener, service Handler) error {
 func serveOne(conn net.Conn, service Handler) {
 	defer conn.Close()
 	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-	data, err := protocol.ReadFrame(conn)
+	data, err := protocol.ReadFrameLimit(conn, protocol.MaxHostFrameSize)
 	if err != nil {
 		return
 	}
@@ -97,7 +97,7 @@ func serveOne(conn net.Conn, service Handler) {
 	// write only after handling, so slow work cannot consume its I/O budget
 	// and turn a completed result or operation error into an unexplained EOF.
 	_ = conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
-	_ = protocol.WriteFrame(conn, data)
+	_ = protocol.WriteFrameLimit(conn, data, protocol.MaxHostFrameSize)
 }
 
 // Call uses one bounded request per connection; mutations are never automatically retried.
@@ -142,10 +142,10 @@ func CallWithVerifiedServer(ctx context.Context, name string, request host.Reque
 	if err != nil {
 		return response, err
 	}
-	if err = protocol.WriteFrame(conn, data); err != nil {
+	if err = protocol.WriteFrameLimit(conn, data, protocol.MaxHostFrameSize); err != nil {
 		return response, err
 	}
-	data, err = protocol.ReadFrame(conn)
+	data, err = protocol.ReadFrameLimit(conn, protocol.MaxHostFrameSize)
 	if err != nil {
 		return response, err
 	}

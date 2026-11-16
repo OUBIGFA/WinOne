@@ -3,6 +3,7 @@
 package transport
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,30 @@ import (
 	"winone/internal/host"
 	"winone/internal/settings"
 )
+
+// The edit baseline must fit together with a large draft through the real
+// Host connection; framing unit tests alone cannot cover both pipe endpoints.
+func TestLargeConfigurationEditCrossesHostPipe(t *testing.T) {
+	name := fmt.Sprintf(`\\.\pipe\WinOne-large-edit-%d`, time.Now().UnixNano())
+	listener, err := Listen(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go Serve(ctx, listener, pipeTestHandler(func(request host.Request) host.Response {
+		return host.Response{ID: request.ID, Result: request.Params}
+	}))
+	payload, err := json.Marshal(map[string]string{"base": string(bytes.Repeat([]byte("a"), 700<<10)), "configuration": string(bytes.Repeat([]byte("b"), 700<<10))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := CallWithTimeout(ctx, name, host.Request{Version: 1, ID: "large-save", Method: "capture.ai.configuration.save", Params: payload}, 5*time.Second)
+	if err != nil || response.Error != nil || !bytes.Equal(payload, response.Result) {
+		t.Fatal("large configuration baseline was lost", err, response.Error)
+	}
+}
 
 type pipeTestHandler func(host.Request) host.Response
 

@@ -229,13 +229,14 @@ func (s *aiService) handle(r host.Request) host.Response {
 	case "configuration.save":
 		var input struct {
 			Configuration ai.Configuration     `json:"configuration"`
+			Base          *ai.Configuration    `json:"base,omitempty"`
 			Keys          map[string]*string   `json:"keys,omitempty"`
 			KeyUpdates    ai.CredentialUpdates `json:"keyUpdates,omitempty"`
 		}
 		if err := configjson.DecodeObject(r.Params, &input); err != nil {
 			return fail(err)
 		}
-		saved, err := s.store.SaveConfigurationWithKeys(input.Configuration, input.Keys, input.KeyUpdates)
+		saved, err := s.store.SaveConfigurationEdit(input.Configuration, input.Base, input.Keys, input.KeyUpdates)
 		if err != nil {
 			return fail(err)
 		}

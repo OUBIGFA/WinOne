@@ -43,6 +43,9 @@ type Store struct {
 	path      string
 	validate  func(Document) error
 	state     diskState
+	// Last committed change per namespace, scoped to this Host lifetime. The
+	// document revision still protects imports and whole-profile transactions.
+	changedAt map[string]uint64
 }
 
 // Apply must reconcile the complete target idempotently, including rollback.
@@ -101,7 +104,10 @@ func openStore(path string, defaults Document, validate func(Document) error, up
 			changed = changed || pendingChanged
 		}
 	}
-	store := &Store{path: path, validate: validate, state: state}
+	store := &Store{path: path, validate: validate, state: state, changedAt: map[string]uint64{}}
+	for id := range state.Committed.Values {
+		store.changedAt[id] = state.Committed.Revision
+	}
 	if err = store.check(state.Committed); err != nil {
 		return nil, err
 	}
@@ -202,9 +208,32 @@ func (s *Store) persist(state diskState) error {
 		return err
 	}
 	s.mu.Lock()
+	previous, next := s.state.Committed, state.Committed
+	// Adding/removing a namespace changes the configuration catalog. Retain
+	// the existing stale-write barrier across module install/uninstall.
+	catalogChanged := len(previous.Values) != len(next.Values) || previous.BuiltinVersion != next.BuiltinVersion
+	for id := range next.Values {
+		if _, exists := previous.Values[id]; !exists {
+			catalogChanged = true
+		}
+	}
+	for id, raw := range next.Values {
+		if catalogChanged || !bytes.Equal(previous.Values[id], raw) || previous.ModuleEnabled[id] != next.ModuleEnabled[id] {
+			s.changedAt[id] = next.Revision
+		}
+	}
 	s.state = state
 	s.mu.Unlock()
 	return nil
+}
+
+// namespaceUnchanged is called under operation so checking the edit base and
+// committing it are one writer transaction. Elapsed time is never a conflict.
+func (s *Store) namespaceUnchanged(id string, revision uint64) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	changed, exists := s.changedAt[id]
+	return exists && revision >= changed && revision <= s.state.Committed.Revision
 }
 
 // Commit journals intent before touching runtime state. Even a failed apply may

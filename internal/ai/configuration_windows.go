@@ -9,6 +9,7 @@ import (
 	"maps"
 	"path/filepath"
 	"slices"
+	"winone/internal/configjson"
 	"winone/internal/settings"
 )
 
@@ -81,12 +82,51 @@ func (s *Store) SaveConfiguration(c Configuration, updates map[string]*string) (
 	return s.SaveConfigurationWithKeys(c, updates, nil)
 }
 func (s *Store) SaveConfigurationWithKeys(c Configuration, updates map[string]*string, edits CredentialUpdates) (Configuration, error) {
+	return s.SaveConfigurationEdit(c, nil, updates, edits)
+}
+
+// SaveConfigurationEdit compares the page's original snapshot with its draft
+// while holding the writer lock. Background catalog updates have no expiry and
+// cannot invalidate an otherwise independent edit or be overwritten by it.
+// Callers without a base retain strict revision checks.
+func (s *Store) SaveConfigurationEdit(c Configuration, base *Configuration, updates map[string]*string, edits CredentialUpdates) (Configuration, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	old := s.configurationLocked()
 	fail := func(err error) (Configuration, error) { return old, err }
-	if c.Revision != old.Revision {
+	if base != nil && (base.Revision != c.Revision || base.Revision > old.Revision) {
 		return fail(settings.ErrConflict)
+	}
+	if c.Revision != old.Revision {
+		if base == nil {
+			return fail(settings.ErrConflict)
+		}
+		original := cloneConfiguration(*base)
+		c = cloneConfiguration(c)
+		mergeCatalogSelections(original, &c, old)
+		original.Revision, c.Revision = old.Revision, old.Revision
+		before, err := json.Marshal(original)
+		if err != nil {
+			return fail(err)
+		}
+		draft, err := json.Marshal(c)
+		if err != nil {
+			return fail(err)
+		}
+		current, err := json.Marshal(old)
+		if err != nil {
+			return fail(err)
+		}
+		merged, err := configjson.Merge(before, draft, current)
+		if err != nil {
+			return fail(err)
+		}
+		// Decode into a fresh value: removed maps and optional fields must
+		// not survive by reusing the original draft as the decoder target.
+		c = Configuration{}
+		if err = json.Unmarshal(merged, &c); err != nil {
+			return fail(err)
+		}
 	}
 	// Older callers cannot express this display preference; preserve the saved choice.
 	if c.AutoRetranslate == nil {

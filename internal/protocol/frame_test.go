@@ -23,9 +23,28 @@ func TestFrameRoundTrip(t *testing.T) {
 
 func TestRejectOversizeBeforeReadingPayload(t *testing.T) {
 	var stream bytes.Buffer
-	_ = binary.Write(&stream, binary.LittleEndian, uint32(1024*1024+1))
+	_ = binary.Write(&stream, binary.LittleEndian, uint32(MaxFrameSize+1))
 	if _, err := ReadFrame(&stream); !errors.Is(err, ErrFrameSize) {
 		t.Fatalf("got %v", err)
+	}
+}
+
+func TestConfigurationSnapshotPairFitsFrame(t *testing.T) {
+	// Two near-limit AI documents plus their request wrapper must survive the
+	// actual framing path; the stores still reject oversized configurations.
+	want := bytes.Repeat([]byte("x"), 2*1024*1024+4096)
+	var stream bytes.Buffer
+	if err := WriteFrameLimit(&stream, want, MaxHostFrameSize); err != nil {
+		t.Fatal(err)
+	}
+	got, err := ReadFrameLimit(&stream, MaxHostFrameSize)
+	if err != nil || !bytes.Equal(got, want) {
+		t.Fatal("configuration edit was truncated", err)
+	}
+	stream.Reset()
+	_ = binary.Write(&stream, binary.LittleEndian, uint32(MaxHostFrameSize+1))
+	if _, err = ReadFrameLimit(&stream, MaxHostFrameSize); !errors.Is(err, ErrFrameSize) {
+		t.Fatal("oversized Host frame accepted", err)
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 	"winone/internal/hotkeys"
 )
 
-var ErrConflict = errors.New("settings changed; reload before saving")
+var ErrConflict = errors.New("正在编辑的设置已被其他操作修改，草稿已保留；请重新读取后核对")
 
 // Settings contains only global preferences; feature settings belong to their modules.
 type Settings struct {

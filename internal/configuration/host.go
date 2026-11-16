@@ -198,6 +198,9 @@ func (s *HostStore) notifySettled() {
 }
 
 func (s *HostStore) Save(next settings.Settings) (settings.Settings, error) {
+	defer s.notifySettled()
+	s.store.operation.Lock()
+	defer s.store.operation.Unlock()
 	document := s.store.Snapshot()
 	if next.QuickAssistantShortcut == nil {
 		next.QuickAssistantShortcut = hostValue(document).QuickAssistantShortcut
@@ -211,7 +214,7 @@ func (s *HostStore) Save(next settings.Settings) (settings.Settings, error) {
 	if err := s.RecoveryError(); err != nil {
 		return hostValue(document), errors.Join(ErrRecoveryRequired, err)
 	}
-	if next.Revision != document.Revision {
+	if !s.store.namespaceUnchanged("host", next.Revision) {
 		return hostValue(document), settings.ErrConflict
 	}
 	if err := settings.Validate(next); err != nil {
@@ -223,7 +226,7 @@ func (s *HostStore) Save(next settings.Settings) (settings.Settings, error) {
 		return hostValue(document), err
 	}
 	document.Values["host"] = data
-	saved, err := s.CommitDocument(document)
+	saved, err := s.commitDocument(document)
 	if errors.Is(err, ErrConflict) {
 		err = settings.ErrConflict
 	}

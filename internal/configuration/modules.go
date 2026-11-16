@@ -133,7 +133,16 @@ func (s *HostStore) Module(id string) (json.RawMessage, uint64, error) {
 	return raw, document.Revision, nil
 }
 
+// ModuleRevisionMatches checks whether a page still describes the same module.
+// SaveModule repeats this check while holding the writer lock.
+func (s *HostStore) ModuleRevisionMatches(id string, revision uint64) bool {
+	return s.store.namespaceUnchanged(id, revision)
+}
+
 func (s *HostStore) SaveModule(id string, revision uint64, raw json.RawMessage) (json.RawMessage, uint64, error) {
+	defer s.notifySettled()
+	s.store.operation.Lock()
+	defer s.store.operation.Unlock()
 	document := s.store.Snapshot()
 	if err := s.packageUnavailable(id); err != nil {
 		return nil, document.Revision, err
@@ -144,10 +153,10 @@ func (s *HostStore) SaveModule(id string, revision uint64, raw json.RawMessage) 
 	if _, exists := document.Values[id]; !exists || id == "host" {
 		return nil, document.Revision, errors.New("模块配置未登记")
 	}
-	if revision != document.Revision {
+	if !s.store.namespaceUnchanged(id, revision) {
 		return nil, document.Revision, ErrConflict
 	}
 	document.Values[id] = append(json.RawMessage(nil), raw...)
-	saved, err := s.CommitDocument(document)
+	saved, err := s.commitDocument(document)
 	return saved.Values[id], saved.Revision, err
 }
