@@ -9,7 +9,9 @@
 | `snapshot` | 无 | 设置及模块状态 |
 | `settings.save` | 完整设置，包含 revision | 保存后的设置 |
 
-设置 revision 不匹配返回 `conflict`。未知版本或命令拒绝执行。尚未接入的模块返回 unavailable，界面不得显示为已启用。
+全局与模块设置在目标配置自读取后发生变化时返回冲突；仅有无关模块推进统一文档的 revision 时，仍可保存原草稿。整份配置导入、模块安装/删除继续严格校验文档 revision。未知版本或命令拒绝执行。尚未接入的模块返回 unavailable，界面不得显示为已启用。
+
+`capture.ai.configuration.save` 接受 `configuration`、可选的 `base`（同一编辑开始时的配置快照）及原有密钥更新字段。有 `base` 时，在存储写锁内合并独立修改和后台模型报告；真实重叠修改返回冲突且不写入配置或密钥。没有 `base` 的旧调用仍须匹配当前 AI revision。
 
 诊断命令使用 `module` 选择 `host`、`capture`、`always-on-top` 或 `wintray`，不接受文件路径，也不启动模块：
 

@@ -30,10 +30,8 @@ func mergeCatalogSelections(base Configuration, draft *Configuration, current Co
 				before.RefreshModels(models)
 			}
 			before.ModelRefreshAt, before.ModelRefreshError = now.ModelRefreshAt, now.ModelRefreshError
-			if next != nil {
-				if next.ModelRefreshAt.Equal(previousRefresh) {
-					next.ModelRefreshAt = now.ModelRefreshAt
-				}
+			if next != nil && next.ModelRefreshAt.Equal(previousRefresh) {
+				next.ModelRefreshAt = now.ModelRefreshAt
 				if next.ModelRefreshError == previousError {
 					next.ModelRefreshError = now.ModelRefreshError
 				}

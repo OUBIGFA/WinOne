@@ -46,6 +46,7 @@ func TestIdleConfigurationEditKeepsExplicitModelFetch(t *testing.T) {
 	current := s.Configuration()
 	current.Providers[0].RefreshModels([]ModelOption{{ID: "a", Name: "Background A"}, {ID: "old", Name: "Background model"}})
 	current.Providers[0].ModelRefreshAt = time.Unix(3600, 0).UTC()
+	current.Providers[0].ModelRefreshError = "模型自动刷新失败，请检查连接后重试"
 	if _, err := s.SaveConfiguration(current, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +59,7 @@ func TestIdleConfigurationEditKeepsExplicitModelFetch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p := saved.Providers[0]; !slices.Equal(p.Models, []string{"new"}) || !slices.Equal(p.CatalogModels, []string{"a", "new"}) || p.ModelNames["a"] != "Manual A" {
+	if p := saved.Providers[0]; !slices.Equal(p.Models, []string{"new"}) || !slices.Equal(p.CatalogModels, []string{"a", "new"}) || p.ModelNames["a"] != "Manual A" || p.ModelRefreshError != "" {
 		t.Fatalf("manual discovery was overwritten: %+v", p)
 	}
 }
