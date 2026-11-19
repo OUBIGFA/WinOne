@@ -21,7 +21,9 @@ import (
 var powerActions = []string{"shutdown", "restart", "hibernate", "sleep", "lock", "logoff"}
 
 // closing actions end the session's programs.
-func closing(action string) bool { return action == "shutdown" || action == "restart" || action == "logoff" }
+func closing(action string) bool {
+	return action == "shutdown" || action == "restart" || action == "logoff"
+}
 
 // clock is hours, minutes and seconds, edited apart; they become seconds
 // or a time of day only at the Host boundary, never while a digit is typed.
@@ -62,8 +64,7 @@ func (d powerDraft) toPreferences() timedpower.Preferences {
 
 // remaining formats the time left before deadline as hh:mm:ss.
 func remaining(deadline, now time.Time) string {
-	seconds := int(max(0, deadline.Sub(now).Seconds()+0.999))
-	return fmt.Sprintf("%02d:%02d:%02d", seconds/3600, seconds/60%60, seconds%60)
+	return core.PowerRemaining(deadline, now)
 }
 
 // powerTab is timed power: the running task, from the Host's state, and
@@ -72,27 +73,27 @@ func remaining(deadline, now time.Time) string {
 //
 // React source: features/timed-power.tsx.
 type powerTab struct {
-	env     *core.Env
-	modules *widgets.Modules
-	draft   *powerDraft
-	saved   *powerDraft
-	status  *timedpower.Snapshot
-	now     time.Time
-	busy    bool
-	err     string
-	// generation discards a poll that a newer operation overtook.
-	generation int
-	polling    bool
-	closed     bool
-	confirm    *timedpower.Preferences
-	confirmOn  bool
+	env       *core.Env
+	modules   *widgets.Modules
+	draft     *powerDraft
+	saved     *powerDraft
+	status    *timedpower.Snapshot
+	live      *core.TimedPower
+	busy      bool
+	err       string
+	closed    bool
+	confirm   *timedpower.Preferences
+	confirmOn bool
 }
 
 func newPowerTab(env *core.Env) *powerTab {
-	t := &powerTab{env: env, modules: widgets.NewModules(env), now: time.Now()}
+	if env.Power == nil {
+		env.Power = core.NewTimedPower(env)
+	}
+	t := &powerTab{env: env, modules: widgets.NewModules(env), live: env.Power}
 	t.load()
 	if !moduleDisabled(env, "timed-power") {
-		t.readStatus(false)
+		t.live.Read()
 	}
 	return t
 }
@@ -116,31 +117,6 @@ func (t *powerTab) load() {
 	})
 }
 
-// readStatus reads the running task; poll marks the once-a-second read
-// while a task runs.
-func (t *powerTab) readStatus(poll bool) {
-	version := t.generation
-	core.Go(t.env, func() (timedpower.Snapshot, error) {
-		var s timedpower.Snapshot
-		err := t.env.Host.CallCompletingInto("timed-power.snapshot", map[string]any{}, &s)
-		return s, err
-	}, func(s timedpower.Snapshot, err error) {
-		if poll {
-			t.polling = false
-		}
-		if t.closed {
-			return
-		}
-		if err != nil {
-			t.err = err.Error()
-			return
-		}
-		if version == t.generation {
-			t.status, t.now = &s, time.Now()
-		}
-	})
-}
-
 // run performs one operation at a time, then done applies its result on
 // the UI thread; polls started before it are discarded, as their state is
 // older.
@@ -148,10 +124,10 @@ func (t *powerTab) run(work func() error, done func()) {
 	if t.busy {
 		return
 	}
-	t.generation++
+	t.live.Invalidate()
 	t.busy, t.err = true, ""
 	core.Do(t.env, work, func(err error) {
-		t.generation++
+		t.live.Invalidate()
 		t.busy = false
 		if err != nil {
 			t.err = err.Error()
@@ -162,7 +138,7 @@ func (t *powerTab) run(work func() error, done func()) {
 }
 
 // setStatus shows a state an operation returned.
-func (t *powerTab) setStatus(s timedpower.Snapshot) { t.status, t.now = &s, time.Now() }
+func (t *powerTab) setStatus(s timedpower.Snapshot) { t.live.Update(s); t.status = t.live.Status }
 
 // start runs a schedule: setting one is what turns timed power on. The
 // form is kept as the next template and a turned-off module is turned on
@@ -250,18 +226,17 @@ func (t *powerTab) View(c *ui.Context, locked bool) {
 	disabled := moduleDisabled(t.env, "timed-power")
 	t.env.Activity.Report("timed-power", false, t.busy, nil)
 	t.modules.Notices(c)
-	// The running task follows the Host once a second while it runs.
+	// The sidebar and page share one read, including starts and cancellations.
+	t.live.Frame(c)
+	t.status = t.live.Status
 	if disabled {
 		t.status = nil
-	} else if t.status != nil && t.status.Active {
-		c.After(time.Second)
-		if !t.polling && time.Since(t.now) >= time.Second && !t.busy {
-			t.polling = true
-			t.readStatus(true)
-		}
 	}
 	pageLocked := t.busy || t.confirm != nil
 	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
+		if t.live.Err != "" {
+			kit.InlineError(c, t.live.Err)
+		}
 		if t.err != "" {
 			kit.Notice(c, kit.Failure, "", t.err, func() {
 				if t.draft == nil && kit.Button(c, i18n.T("common.retry"), icons.RefreshCw, false).Clicked() {
@@ -318,7 +293,7 @@ func (t *powerTab) current(c *ui.Context) {
 				// The caption names the number under it; other states say
 				// why the task is past counting.
 				caption := i18n.T("timedPower.remaining")
-				if s.State != "scheduled" {
+				if s.State != "running" {
 					caption = i18n.T("timedPower." + s.State)
 				}
 				ui.Text(c, caption).FontSize(kit.HelpSize(c)).TextColor(theme.TextMuted)

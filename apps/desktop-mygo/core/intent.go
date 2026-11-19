@@ -7,6 +7,8 @@ import "encoding/json"
 // use, and what the command chose. The page shows it; nothing changes on
 // the disk or the network until the user confirms there.
 type Intent struct {
+	// Tab selects an existing local page section without changing settings.
+	Tab       string          `json:"tab,omitempty"`
 	Requested bool            `json:"requested"`
 	Paths     []string        `json:"paths"`
 	Options   json.RawMessage `json:"options,omitempty"`

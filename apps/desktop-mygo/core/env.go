@@ -18,6 +18,8 @@ import (
 type Env struct {
 	// Host reaches the WinOne Host. Its calls block: call them from Go.
 	Host *host.Client
+	// Power is the single task snapshot shared by the shell and its page.
+	Power *TimedPower
 	// Post runs fn on the UI thread and draws a new frame. It is safe from
 	// any goroutine; after the window closes it drops fn.
 	Post func(fn func())

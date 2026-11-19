@@ -1,5 +1,8 @@
 {
  "navigation.leaveNow": "不等待，直接离开",
  "navigation.switchNow": "不等待，直接切换",
- "navigation.closeNow": "不等待，直接关闭"
+ "navigation.closeNow": "不等待，直接关闭",
+ "timedPower.openTask": "查看定时任务",
+ "timedPower.progress": "时间进度",
+ "timedPower.unavailable": "状态暂不可用"
 }

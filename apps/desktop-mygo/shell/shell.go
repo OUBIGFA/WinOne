@@ -99,6 +99,7 @@ type pending struct {
 // New makes the shell; call Start once the window exists.
 func New(env *core.Env, window WindowPort, opts Options) *Shell {
 	s := &Shell{env: env, window: window, opts: opts, page: "overview", ui: loadUIState(opts.Directory)}
+	env.Power = core.NewTimedPower(env)
 	s.sidebarWidth = collapsedWidth
 	if s.ui.SidebarStartup == "expanded" {
 		s.sidebarWidth = s.ui.ExpandedWidth
@@ -162,6 +163,16 @@ func (s *Shell) apply(snapshot internalhost.Snapshot) {
 	settings := snapshot.Settings
 	i18n.SetLocale(i18n.Resolve(settings.Language, snapshot.Locale))
 	s.window.ApplySettings(settings.Theme)
+	for _, module := range snapshot.Modules {
+		if module.ID == "timed-power" {
+			if module.State == "disabled" {
+				s.env.Power.Clear()
+			} else {
+				s.env.Power.Read()
+			}
+			break
+		}
+	}
 	if first && !s.initial {
 		s.initial = true
 		s.requestPage(s.defaultPage(), nil)
@@ -336,6 +347,7 @@ func (s *Shell) Activity() (dirty, busy bool) { return s.env.Activity.State() }
 // Discarded releases the current page and its UI-local drafts, either on
 // final window close or after an approved page transition.
 func (s *Shell) Discarded() {
+	s.env.Power.Close()
 	s.env.Activity.Reset()
 	if closer, ok := s.instance.(core.Closer); ok {
 		closer.Close()

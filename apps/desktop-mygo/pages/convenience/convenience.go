@@ -85,10 +85,16 @@ func (p *page) View(c *ui.Context) {
 	// here would be lost or interrupted.
 	if !locked {
 		if intents := p.env.TakeIntents("convenience"); len(intents) > 0 {
-			if p.tab != tabLinks {
-				p.mount(tabLinks)
-			}
 			for _, intent := range intents {
+				if intent.Tab == "timed-power" {
+					if p.tab != tabPower {
+						p.mount(tabPower)
+					}
+					continue
+				}
+				if p.tab != tabLinks {
+					p.mount(tabLinks)
+				}
 				p.part.(*linksTab).Queue(intent)
 			}
 		}

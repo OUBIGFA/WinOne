@@ -131,6 +131,7 @@ func (s *Shell) sidebar(c *ui.Context) {
 				}
 				s.navItem(c, item, compact)
 			}
+			s.timedPower(c, compact)
 		})
 	})
 }

@@ -1,5 +1,8 @@
 {
  "navigation.leaveNow": "Leave now",
  "navigation.switchNow": "Switch now",
- "navigation.closeNow": "Close now"
+ "navigation.closeNow": "Close now",
+ "timedPower.openTask": "View scheduled task",
+ "timedPower.progress": "Time progress",
+ "timedPower.unavailable": "Status unavailable"
 }
