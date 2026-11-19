@@ -533,7 +533,15 @@ func run() (runErr error) {
 	}
 	service.RegisterModule("modules", func() host.Module { return host.Module{ID: "modules", State: "ready"} }, moduleConfigurationHandler(store, moduleState, control, packages.moduleHandler(service, control, store)))
 	if store.RecoveryError() == nil && gates["wintray"].Enabled() {
-		_ = gates["wintray"].Handle(host.Request{Version: 1, ID: "module-startup", Method: "snapshot"})
+		// Module readiness owns its own status and eight-second startup budget.
+		// Serve the settings window while it starts, as for capture below;
+		// Gate.Handle still serializes disable/shutdown with this launch.
+		go func() {
+			response := gates["wintray"].Handle(host.Request{Version: 1, ID: "module-startup", Method: "snapshot"})
+			if response.Error != nil && ctx.Err() == nil {
+				fmt.Fprintln(os.Stderr, "程序管理启动：", response.Error.Message)
+			}
+		}()
 	} else {
 		wintray.SuppressAutorun()
 	}

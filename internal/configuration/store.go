@@ -193,6 +193,16 @@ func (s *Store) Snapshot() Document {
 	defer s.mu.Unlock()
 	return clone(s.state.Committed)
 }
+
+// Ordinary preference reads need one namespace, not a copy of every module's
+// program list and retained configuration. Capture bytes and revision together.
+func (s *Store) valueSnapshot(id string) (json.RawMessage, uint64, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	raw, exists := s.state.Committed.Values[id]
+	return append(json.RawMessage(nil), raw...), s.state.Committed.Revision, exists
+}
+
 func (s *Store) NeedsRecovery() bool { s.mu.Lock(); defer s.mu.Unlock(); return s.state.Pending != nil }
 
 // persist publishes in-memory state only after its complete disk replacement.

@@ -3,9 +3,11 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -31,7 +33,16 @@ func TestNativeHostStartup(t *testing.T) {
 	if _, err := os.Stat(hostPath); err != nil {
 		t.Fatal(err)
 	}
-	for _, mode := range []string{"missing", "reservation-released"} {
+	// The test executable acts only as a slow, noninteractive module child.
+	// It never starts a real managed application or registers a shortcut.
+	worker, err := os.ReadFile(self)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(filepath.Dir(self), "WinOne.WinTray.exe"), worker, 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, mode := range []string{"missing", "reservation-released", "slow-module"} {
 		t.Run(mode, func(t *testing.T) {
 			directory := filepath.Join(root, mode)
 			if err := os.MkdirAll(directory, 0700); err != nil {
@@ -39,7 +50,20 @@ func TestNativeHostStartup(t *testing.T) {
 			}
 			// Disable system modules before the real Host reads this profile.
 			configuration := `{"committed":{"schemaVersion":1,"revision":0,"builtinVersion":5,"values":{"host":{"schemaVersion":1,"revision":0,"theme":"light","language":"zh-CN","openShortcut":"","startup":{"runAtLogon":false,"startMinimized":true}}},"moduleEnabled":{"always-on-top":false,"capture":false,"quick-assistant":false,"selection":false,"stroke":false,"timed-power":false,"wintray":false}}}`
+			if mode == "slow-module" {
+				configuration = strings.Replace(configuration, `"wintray":false`, `"wintray":true`, 1)
+			}
 			if err := os.WriteFile(filepath.Join(directory, "configuration.json"), []byte(configuration), 0600); err != nil {
+				t.Fatal(err)
+			}
+			// Match saved intent before Host starts: otherwise disabling absent
+			// test components enters recovery and silently bypasses module startup.
+			records := map[string]any{}
+			for _, id := range []string{"always-on-top", "capture", "quick-assistant", "selection", "stroke", "timed-power", "wintray"} {
+				records[id] = map[string]any{"enabled": mode == "slow-module" && id == "wintray", "pendingStop": false}
+			}
+			state, _ := json.Marshal(map[string]any{"schemaVersion": 5, "revision": 0, "modules": records})
+			if err := os.WriteFile(filepath.Join(directory, "module-state.json"), state, 0600); err != nil {
 				t.Fatal(err)
 			}
 			pipe := fmt.Sprintf(`\\.\pipe\WinOne-host-startup-%d-%d`, os.Getpid(), time.Now().UnixNano())
@@ -95,6 +119,9 @@ func TestNativeHostStartup(t *testing.T) {
 					t.Error(err)
 				}
 			})
+			if mode == "slow-module" && time.Since(started) >= 2*time.Second {
+				t.Fatalf("settings waited for the slow module: %s", time.Since(started))
+			}
 			// Reopening a window must connect to the same running Host.
 			reopened, err := host.NewClient(pipe)
 			if err != nil {
@@ -108,6 +135,27 @@ func TestNativeHostStartup(t *testing.T) {
 				t.Fatal("reopening replaced an already running Host")
 			}
 			t.Logf("real Host ready in %s; reopening reused PID %d", time.Since(started), server.PID())
+			if mode == "slow-module" {
+				// The failed worker must remain visible after fast Host readiness;
+				// returning an early snapshot must not fabricate module success.
+				deadline := time.Now().Add(6 * time.Second)
+				for {
+					if err := client.CallInto("snapshot", nil, &snapshot); err != nil {
+						t.Fatal(err)
+					}
+					failed := false
+					for _, module := range snapshot.Modules {
+						failed = failed || module.ID == "wintray" && module.State == "faulted"
+					}
+					if failed {
+						break
+					}
+					if time.Now().After(deadline) {
+						t.Fatal("failed startup was not shown in module health")
+					}
+					time.Sleep(25 * time.Millisecond)
+				}
+			}
 			// A zero exit status represents an intentional Quit. A refresh of
 			// either existing client must fail without creating another Host.
 			if err := windows.TerminateProcess(process, 0); err != nil {

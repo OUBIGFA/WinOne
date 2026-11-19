@@ -1,6 +1,7 @@
 package diagnostics
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -8,6 +9,55 @@ import (
 	"sync"
 	"testing"
 )
+
+// Worker stdout commonly arrives as many complete lines in one pipe read.
+// Keep this real-disk benchmark: one durable append per line stalls startup.
+func BenchmarkModuleLogBurst(b *testing.B) {
+	dir := b.TempDir()
+	writer, err := NewModuleWriter(filepath.Join(dir, "modules", "capture"), "capture")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer writer.Close()
+	data := bytes.Repeat([]byte("worker initialization progress\n"), 1024)
+	b.SetBytes(int64(len(data)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if n, err := writer.Write(data); err != nil || n != len(data) {
+			b.Fatalf("write = %d, %v", n, err)
+		}
+	}
+}
+
+func TestUnifiedLogBurstPreservesEveryLineAndPartialTail(t *testing.T) {
+	dir := t.TempDir()
+	writer, err := NewModuleWriter(filepath.Join(dir, "modules", "capture"), "capture")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := bytes.Repeat([]byte("文字与诊断\r\n"), 1024)
+	data = append(data, []byte("partial")...)
+	if n, err := writer.Write(data); err != nil || n != len(data) {
+		t.Fatalf("write = %d, %v", n, err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(readFile(t, filepath.Join(dir, "logs", "host.log"))), "\n")
+	if len(lines) != 1025 {
+		t.Fatalf("lost burst records: %d", len(lines))
+	}
+	for i, line := range lines {
+		var event Event
+		want := "文字与诊断"
+		if i == 1024 {
+			want = "partial"
+		}
+		if err := json.Unmarshal([]byte(line), &event); err != nil || event.Message != want || event.Source != "capture" {
+			t.Fatalf("record %d = %+v, %v", i, event, err)
+		}
+	}
+}
 
 func TestModuleOutputUsesTheSingleWinOneLog(t *testing.T) {
 	dir := t.TempDir()

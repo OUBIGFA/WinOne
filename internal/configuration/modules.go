@@ -116,21 +116,20 @@ func (s *HostStore) applyProjection(document Document, previous *Document) error
 
 // Module returns committed preferences even if the feature is disabled.
 func (s *HostStore) Module(id string) (json.RawMessage, uint64, error) {
-	document := s.store.Snapshot()
+	raw, revision, exists := s.store.valueSnapshot(id)
 	if err := s.packageUnavailable(id); err != nil {
-		return nil, document.Revision, err
+		return nil, revision, err
 	}
-	raw, exists := document.Values[id]
 	if !exists || id == "host" {
 		s.catalogMu.RLock()
 		err := s.moduleErrors[id]
 		s.catalogMu.RUnlock()
 		if err != nil {
-			return nil, document.Revision, err
+			return nil, revision, err
 		}
-		return nil, document.Revision, errors.New("模块配置未登记")
+		return nil, revision, errors.New("模块配置未登记")
 	}
-	return raw, document.Revision, nil
+	return raw, revision, nil
 }
 
 // ModuleRevisionMatches checks whether a page still describes the same module.

@@ -54,6 +54,11 @@ def main():
             "values": {"host": {"schemaVersion": 1, "revision": 0, "theme": theme,
                 "language": language, "openShortcut": "", "startup": {"runAtLogon": False, "startMinimized": True}}},
             "moduleEnabled": dict.fromkeys(modules, False)}}), encoding="utf-8")
+        # Match the committed profile before startup. Default enabled intent
+        # otherwise starts recovery/teardown of components this test disabled.
+        (profile / "module-state.json").write_text(json.dumps({"schemaVersion": 5,
+            "revision": 0, "modules": {name: {"enabled": False, "pendingStop": False}
+                                      for name in modules}}), encoding="utf-8")
         (profile / "desktop-ui.json").write_text(json.dumps({"version": 1, "expandedWidth": 224,
                                                           "sidebarStartup": "expanded"}), encoding="utf-8")
         pipe = "\\\\.\\pipe\\WinOne-design-" + uuid.uuid4().hex

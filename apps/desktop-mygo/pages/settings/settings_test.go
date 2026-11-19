@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -748,6 +749,47 @@ func TestUpdateErrorsAndCancel(t *testing.T) {
 	f.page.Close()
 	if id := <-cancelled; id != "pending-check" {
 		t.Fatalf("cancelled %q", id)
+	}
+}
+
+func TestCancelledUpdateCannotReplaceANewerResult(t *testing.T) {
+	f := setup(t)
+	u := &f.page.updates
+	u.info = &updateInfo{Version: "1.0.0", Configured: true}
+	posted := make(chan func(), 4)
+	f.h.Env.Post = func(fn func()) { posted <- fn }
+	f.fake.on("updates.check", func(params json.RawMessage) (any, error) {
+		var request struct{ ID string }
+		_ = json.Unmarshal(params, &request)
+		return updateReply{ID: request.ID, State: "available", LatestVersion: "2.0.0"}, nil
+	})
+	f.fake.on("updates.cancel", func(json.RawMessage) (any, error) { return map[string]any{}, nil })
+	next := func() func() {
+		t.Helper()
+		select {
+		case fn := <-posted:
+			return fn
+		case <-time.After(3 * time.Second):
+			t.Fatal("update did not finish")
+			return nil
+		}
+	}
+	u.check()
+	oldResult := next()
+	u.cancel()
+	if u.checking || u.id != "" || u.last != "" {
+		t.Fatal("cancel left the update button waiting for the old response")
+	}
+	f.fake.on("updates.check", func(params json.RawMessage) (any, error) {
+		var request struct{ ID string }
+		_ = json.Unmarshal(params, &request)
+		return updateReply{ID: request.ID, State: "available", LatestVersion: "3.0.0"}, nil
+	})
+	u.check()
+	next()()
+	oldResult()
+	if u.result == nil || u.result.LatestVersion != "3.0.0" || u.checking {
+		t.Fatalf("cancelled result replaced the current result: %+v", u.result)
 	}
 }
 

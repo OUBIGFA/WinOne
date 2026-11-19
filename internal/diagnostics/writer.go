@@ -38,8 +38,16 @@ func logText(value string) string {
 // Record opens the one product log only for the duration of an append. The
 // cross-process lock also protects rotation when an elevated worker writes.
 func Record(directory string, event Event) error {
+	data, err := encodeEvent(directory, event)
+	if err != nil {
+		return err
+	}
+	return appendRecords(directory, data)
+}
+
+func encodeEvent(directory string, event Event) ([]byte, error) {
 	if directory == "" || event.Source == "" || len(event.Source) > 64 || event.Event == "" || len(event.Event) > 128 {
-		return errors.New("invalid diagnostic event")
+		return nil, errors.New("invalid diagnostic event")
 	}
 	if event.Time == "" {
 		event.Time = time.Now().Format(time.RFC3339Nano)
@@ -48,9 +56,14 @@ func Record(directory string, event Event) error {
 	event.Error = logText(event.Error)
 	data, err := json.Marshal(event)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	data = append(data, '\n')
+	return append(data, '\n'), nil
+}
+
+// Each bounded batch is durable before Write returns. Keep the same process
+// lock and rotation boundary without reopening and syncing for every line.
+func appendRecords(directory string, data []byte) error {
 	return withLogLock(directory, func() (failure error) {
 		root, err := os.OpenRoot(directory)
 		if err != nil {
@@ -119,6 +132,7 @@ type Writer struct {
 	mu                sync.Mutex
 	directory, source string
 	pending           []byte
+	batch             []byte
 	closed            bool
 	failure           error
 }
@@ -172,17 +186,34 @@ func (w *Writer) Write(p []byte) (int, error) {
 			}
 		}
 	}
-	return total, nil
+	return total, w.commit()
 }
 func (w *Writer) flush(n int) error {
 	message := strings.TrimSuffix(string(w.pending[:n]), "\r")
 	if message != "" {
-		if err := Record(w.directory, Event{Source: w.source, Event: "output", Message: message}); err != nil {
+		data, err := encodeEvent(w.directory, Event{Source: w.source, Event: "output", Message: message})
+		if err != nil {
 			w.failure = err
 			return err
 		}
+		w.batch = append(w.batch, data...)
 	}
 	w.pending = append(w.pending[:0], w.pending[n:]...)
+	if len(w.batch) >= 64<<10 {
+		return w.commit()
+	}
+	return nil
+}
+
+func (w *Writer) commit() error {
+	if len(w.batch) == 0 {
+		return nil
+	}
+	if err := appendRecords(w.directory, w.batch); err != nil {
+		w.failure = err
+		return err
+	}
+	w.batch = w.batch[:0]
 	return nil
 }
 func (w *Writer) Close() error {
@@ -195,5 +226,8 @@ func (w *Writer) Close() error {
 	if w.failure != nil {
 		return w.failure
 	}
-	return w.flush(len(w.pending))
+	if err := w.flush(len(w.pending)); err != nil {
+		return err
+	}
+	return w.commit()
 }

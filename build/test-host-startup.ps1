@@ -4,7 +4,8 @@ param(
     [string]$HostGoExe='go'
 )
 # Explicit startup regression entry: real Host/pipe, private desktop and
-# disabled modules. Never connect to the installed Host or the live profile.
+# disabled modules plus an owned slow-module fixture. Never connect to the
+# installed Host or the live profile.
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $output=if([IO.Path]::IsPathRooted($OutputDirectory)){[IO.Path]::GetFullPath($OutputDirectory)}else{[IO.Path]::GetFullPath((Join-Path $root $OutputDirectory))}
@@ -47,7 +48,7 @@ try{
     Get-Content -LiteralPath $log -Encoding Unicode
     if([WinOnePrivateTestDesktop]::InputName()-ne $inputBefore){throw 'Input desktop changed during startup regression'}
     if($process.ExitCode-ne 0){throw ('Host startup regression failed: '+$log)}
-    Write-Output 'Real Host cold start, released reservation and reopen verified; input desktop unchanged.'
+    Write-Output 'Real Host startup, released reservation, slow-module isolation and reopen verified; input desktop unchanged.'
 }finally{
     if($desktop){
         # Only this runner's binary may survive an interrupted test. Compare

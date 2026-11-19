@@ -117,9 +117,12 @@ func (u *updater) check() {
 		}
 		return reply, nil
 	}, func(reply updateReply, err error) {
-		if u.id == id {
-			u.checking, u.id = false, ""
+		// Cancelling releases the controls immediately. A queued old reply
+		// must not replace a newer check or reopen a cancelled release action.
+		if u.id != id {
+			return
 		}
+		u.checking, u.id = false, ""
 		switch {
 		case err != nil:
 			// The React page reported every failed request alike.
@@ -147,6 +150,7 @@ func (u *updater) cancel() {
 	if u.last == id {
 		u.last = ""
 	}
+	u.checking, u.id, u.err = false, "", "cancelled"
 	host := u.env.Host
 	go func() { _ = host.CallInto("updates.cancel", map[string]string{"id": id}, nil) }()
 }

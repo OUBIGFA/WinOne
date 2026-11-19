@@ -175,7 +175,10 @@ func hostValue(document Document) settings.Settings {
 	return value
 }
 
-func (s *HostStore) Snapshot() settings.Settings { return hostValue(s.store.Snapshot()) }
+func (s *HostStore) Snapshot() settings.Settings {
+	raw, revision, _ := s.store.valueSnapshot("host")
+	return hostValue(Document{Revision: revision, Values: map[string]json.RawMessage{"host": raw}})
+}
 
 // CommittedDocument is a deep copy across all preference namespaces. Export must
 // use this single snapshot rather than querying workers at different moments.
