@@ -312,6 +312,12 @@ func main() {
 		}
 		return
 	}
+	if strings.HasPrefix(in.Operation, "plans.") {
+		if err := planOperation(ctx, in, io.MultiReader(decoder.Buffered(), reader), os.Stdout); err != nil {
+			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
+		}
+		return
+	}
 	if in.Operation == "models.fetch" {
 		models, err := fetchModels(ctx, in)
 		if err != nil {

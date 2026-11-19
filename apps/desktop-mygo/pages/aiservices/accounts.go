@@ -71,9 +71,11 @@ type checkin struct {
 // the window: leaving the page or the connection cancels it. The vendor's
 // page handles passwords; WinOne asks only for what the sign-in names.
 type accountPanel struct {
-	p   *page
-	id  string
-	req string // the request accounts were read for
+	p         *page
+	plan      bool
+	completed func()
+	id        string
+	req       string // the request accounts were read for
 	// lastRequest is the request a finished sign-in refreshes.
 	lastRequest accountRequest
 
@@ -99,7 +101,10 @@ type accountPanel struct {
 	checkins      []checkin
 	checkedIn     bool
 	checkingIn    bool
+	warmup        warmupPanel
 	importable    bool
+	withdrawn     *accountWithdrawal
+	moveResults   []accountImportResult
 	importHint    string
 	importPaths   []string
 	importBusy    bool
@@ -144,11 +149,13 @@ func (a *accountPanel) reset() {
 	a.read++
 	a.accounts, a.methods, a.method, a.checkinAvailable = nil, nil, "", false
 	a.checkins, a.checkedIn, a.checkingIn = nil, false, false
+	a.warmup = warmupPanel{}
 	a.starting, a.loading, a.action, a.copied, a.err = false, false, "", "", ""
 	a.job = nil
 	a.importPaths, a.importResults = nil, nil
 	a.exportUsers, a.exportFiles, a.exportSkipped = nil, nil, nil
 	a.importBusy, a.importable = false, false
+	a.withdrawn, a.moveResults = nil, nil
 	a.report()
 }
 
@@ -171,7 +178,7 @@ func (a *accountPanel) Close() {
 }
 
 func (a *accountPanel) report() {
-	a.p.accountBusy = a.job.running() || a.starting || a.checkingIn || a.importBusy
+	a.p.accountBusy = a.job.running() || a.starting || a.checkingIn || a.importBusy || a.warmup.busy
 	a.p.accountLoading = a.loading
 	a.p.env.Activity.Report("ai-account-import", len(a.importPaths) > 0, a.importBusy, func() { a.importPaths = nil })
 }
@@ -192,6 +199,7 @@ func (a *accountPanel) load(r accountRequest, refresh bool) {
 		}
 		a.accounts, a.checkinAvailable, a.methods = state.Accounts, state.CheckinAvailable, state.Methods
 		a.importable, a.importHint = state.Importable, state.ImportFrom
+		a.withdrawn = state.Withdrawn
 		lang := "en"
 		if i18n.Locale() == i18n.Chinese {
 			lang = "zh"
@@ -228,6 +236,9 @@ func (a *accountPanel) startFor(r accountRequest, user string) {
 	a.err, a.starting, a.loading, a.callback, a.copied = "", true, true, "", ""
 	owner := a.owner
 	params := map[string]any{"agent": r.Agent, "provider": r.Provider}
+	if a.plan {
+		params["plan"] = true
+	}
 	if user != "" {
 		params["user"] = user
 	}
@@ -319,6 +330,10 @@ func (a *accountPanel) poll(after time.Duration) {
 			}
 		}
 		if next.Status.State == "done" {
+			if a.completed != nil {
+				a.completed()
+				return
+			}
 			a.load(a.lastRequest, true)
 			return
 		}
@@ -441,7 +456,7 @@ func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
 	}
 	a.lastRequest = r
 	a.report()
-	disabled := p.saving || p.loading || p.modelBusy || p.connectionBusy || a.importBusy
+	disabled := p.saving || p.loading || p.modelBusy || p.connectionBusy || a.importBusy || a.warmup.busy
 	active := a.job.running()
 	hidden := false
 	accountType := p.catalog.agent(r.Agent)
@@ -465,6 +480,7 @@ func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
 		if a.err != "" {
 			kit.Notice(c, kit.Failure, "", a.err, nil)
 		}
+		a.migrationView(c, pr, disabled || active || a.loading)
 		kit.Panel(c, func() {
 			if len(a.methods) > 1 {
 				kit.Row(c, i18n.T("ai.signInMethod"), "", func() {
@@ -533,6 +549,7 @@ func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
 		if a.checkedIn {
 			a.checkinView(c, hidden)
 		}
+		a.warmupView(c, r, disabled || active || a.loading || a.checkingIn)
 		if a.importable {
 			a.importView(c, r, disabled || active || a.loading || a.checkingIn)
 		}
@@ -709,6 +726,11 @@ func (a *accountPanel) open(id string, keys bool) {
 
 // promptView answers a plugin's question: a choice, or text.
 func (a *accountPanel) promptView(c *ui.Context, prompt *signInPrompt, busy bool) {
+	if a.plan && prompt.Key == "plan-session" {
+		local := *prompt
+		local.Message = planT("session")
+		prompt = &local
+	}
 	ui.Field(c, prompt.Message, func() {
 		ui.Column(c).FillWidth().Gap(8).Children(func() {
 			if prompt.Type == "select" {

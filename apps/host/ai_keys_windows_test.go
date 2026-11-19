@@ -43,6 +43,13 @@ func TestProviderKeyRevealIsRepeatableReadOnlyAndScoped(t *testing.T) {
 	}
 	for range 3 {
 		for _, prefix := range []string{"ai.", "capture.ai."} {
+			all := service.Handle(host.Request{Version: 1, ID: "copy-all", Method: prefix + "keys.reveal", Params: json.RawMessage(`{"provider":"one","all":true}`)})
+			var copied struct {
+				Keys map[string]string `json:"keys"`
+			}
+			if all.Error != nil || json.Unmarshal(all.Result, &copied) != nil || len(copied.Keys) != 2 || copied.Keys["first"] != first || copied.Keys["second"] != second {
+				t.Fatal("bulk copy did not retain enabled and disabled saved keys", all.Error)
+			}
 			for id, expected := range map[string]string{"first": first, "second": second} {
 				params, _ := json.Marshal(map[string]string{"provider": "one", "id": id})
 				response := service.Handle(host.Request{Version: 1, ID: "reveal", Method: prefix + "keys.reveal", Params: params})

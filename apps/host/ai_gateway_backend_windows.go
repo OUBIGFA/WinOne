@@ -143,6 +143,10 @@ func (s *aiService) startGatewayBackendLocked() (*ai.GatewayProcess, error) {
 	if err != nil {
 		return nil, err
 	}
+	if s.gateway != nil {
+		mode := s.gateway.Status()
+		prefs.BareModelIDs, prefs.BareModelIDsOnly = mode.BareModelIDs, mode.BareModelIDsOnly
+	}
 	providers, err := store.MagpieProviders()
 	if err != nil {
 		return nil, err

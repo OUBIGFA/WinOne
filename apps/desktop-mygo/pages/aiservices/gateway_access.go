@@ -13,13 +13,15 @@ import (
 )
 
 type callerLimit struct {
-	Period     string   `json:"period"`
-	Days       int      `json:"days,omitempty"`
-	Hours      int      `json:"hours,omitempty"`
-	Tokens     int      `json:"tokens,omitempty"`
-	Cost       float64  `json:"cost,omitempty"`
-	CacheReads bool     `json:"cacheReads,omitempty"`
-	Models     []string `json:"models,omitempty"`
+	Period        string   `json:"period"`
+	Days          int      `json:"days,omitempty"`
+	Hours         int      `json:"hours,omitempty"`
+	Tokens        int      `json:"tokens,omitempty"`
+	Cost          float64  `json:"cost,omitempty"`
+	CacheReads    bool     `json:"cacheReads,omitempty"`
+	Models        []string `json:"models,omitempty"`
+	Account       string   `json:"account,omitempty"`
+	AccountWindow string   `json:"accountWindow,omitempty"`
 }
 type callerKey struct {
 	MaxConcurrency int               `json:"maxConcurrency,omitempty"`
@@ -44,10 +46,12 @@ type callerKey struct {
 	Limit    *callerLimit  `json:"limit,omitempty"`
 	More     []callerLimit `json:"moreLimits,omitempty"`
 	UsedAll  []struct {
-		Tokens int64   `json:"tokens"`
-		Cost   float64 `json:"cost"`
-		Reset  string  `json:"reset"`
-		Spent  bool    `json:"spent"`
+		Tokens       int64   `json:"tokens"`
+		Cost         float64 `json:"cost"`
+		Reset        string  `json:"reset"`
+		Spent        bool    `json:"spent"`
+		Period       string  `json:"period"`
+		ResetUnknown bool    `json:"resetUnknown"`
 	} `json:"usedAll"`
 }
 type callerKeys struct {
@@ -62,6 +66,14 @@ type accessChoice struct {
 type accessCatalog struct {
 	Models   []accessChoice `json:"models"`
 	Accounts []accessChoice `json:"accounts"`
+}
+type accountWindow struct {
+	Account  string `json:"account"`
+	Window   string `json:"window"`
+	Provider string `json:"provider"`
+	User     string `json:"user"`
+	Alias    string `json:"alias,omitempty"`
+	Reset    string `json:"reset"`
 }
 type gatewayOIDCRule struct {
 	ID       string            `json:"id"`
@@ -93,6 +105,7 @@ type gatewayAccessPanel struct {
 	claimName                            string
 	aliasName, aliasModel                string
 	catalog                              *accessCatalog
+	accountWindows                       []accountWindow
 }
 
 func accessT(key string) string { return i18n.T("aiAccess." + key) }
@@ -332,7 +345,7 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 		switch a.tab {
 		case 0:
 			nativeText(c, accessT("name"), &k.Name, locked)
-			nativeInt(c, upstreamT("Concurrency"), &k.MaxConcurrency, 0, 1000, locked)
+			nativeInt(c, i18n.T("ai.maxConcurrency"), &k.MaxConcurrency, 0, 1000, locked)
 			nativeSelect(c, nativeT("keyServiceTier"), &k.ServiceTier, options("", nativeT("followRequest"), "default", nativeT("standardTier"), "priority", "priority", "ultrafast", "ultrafast"), locked)
 			kit.Help(c, upstreamT("How many requests this key may have in flight at once. Beyond it they wait in order; 0 for no limit."))
 			kit.Toggle(c, &k.ReadOnly, accessT("readOnly"), accessT("readOnlyHint")).Disabled(locked || k.Browser)
@@ -372,12 +385,41 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 				w := &limits[n]
 				cc := c.Key(n)
 				ui.Column(cc).FillWidth().Padding(12, 0).Gap(12).BorderWidth(1, 0, 0, 0).BorderColor(c.Theme().Border).Children(func() {
-					nativeSelect(cc, accessT("period"), &w.Period, options("day", accessT("day"), "week", accessT("week"), "month", accessT("month"), "days", accessT("days"), "hours", accessT("hours")), locked)
+					nativeSelect(cc, accessT("period"), &w.Period, options("day", accessT("day"), "week", accessT("week"), "month", accessT("month"), "days", accessT("days"), "hours", accessT("hours"), "account", i18n.T("aiSync.accountWindow"), "total", i18n.T("aiSync.totalBudget")), locked)
+					if w.Period == "account" {
+						selected := w.Account + "\n" + w.AccountWindow
+						choices := []kit.SelectOption{{Value: "\n", Label: i18n.T("aiSync.chooseAccountWindow")}}
+						found := w.Account == ""
+						for _, window := range a.accountWindows {
+							id := window.Account + "\n" + window.Window
+							found = found || id == selected
+							choices = append(choices, kit.SelectOption{Value: id, Label: window.Provider + " / " + cmp.Or(window.Alias, window.User) + " · " + window.Window})
+						}
+						if !found {
+							choices = append(choices, kit.SelectOption{Value: selected, Label: w.Account + " · " + w.AccountWindow})
+						}
+						if nativeSelect(cc, i18n.T("aiSync.accountWindow"), &selected, choices, locked) {
+							w.Account, w.AccountWindow, _ = strings.Cut(selected, "\n")
+						}
+						if kit.Button(cc, i18n.T("aiSync.readAccountWindows"), icons.RefreshCw, false).Disabled(locked).Clicked() {
+							a.api.request(p, "GET", "/api/caller-keys/account-windows", nil, func(raw json.RawMessage) {
+								var data struct {
+									Windows []accountWindow `json:"windows"`
+								}
+								if nativeDecode(&a.api, raw, &data) {
+									a.accountWindows = data.Windows
+								}
+							})
+						}
+						if a.accountWindows != nil && len(a.accountWindows) == 0 {
+							kit.Help(cc, i18n.T("aiSync.noAccountWindows"))
+						}
+					}
 					if w.Period == "days" {
-						nativeInt(cc, accessT("days"), &w.Days, 1, 36500, locked)
+						nativeInt(cc, accessT("days"), &w.Days, 1, 3650, locked)
 					}
 					if w.Period == "hours" {
-						nativeInt(cc, accessT("hours"), &w.Hours, 1, 876000, locked)
+						nativeInt(cc, accessT("hours"), &w.Hours, 1, 8760, locked)
 					}
 					nativeInt(cc, accessT("tokens"), &w.Tokens, 0, 1<<53-1, locked)
 					numberRow(cc, accessT("cost"), &w.Cost, 0, 1e15, false, "0", locked, func(v *float64) { w.Cost = value(v) })
@@ -385,10 +427,24 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 					a.scopeList(cc, fmt.Sprintf("limitModels%d", n), accessT("limitModels"), &w.Models, a.modelChoices(false), locked)
 					if n < len(k.UsedAll) {
 						u := k.UsedAll[n]
-						kit.Help(cc, fmt.Sprintf("%s: %d tokens · $%.4f · %s %s", accessT("used"), u.Tokens, u.Cost, accessT("reset"), u.Reset))
+						kit.Help(cc, fmt.Sprintf("%s: %d tokens · $%.4f", accessT("used"), u.Tokens, u.Cost))
+						// An unread account window has no guessed reset date. Its
+						// budget remains binding until the original reader knows it.
+						if u.ResetUnknown {
+							key := "aiSync.accountResetUnknown"
+							if u.Spent {
+								key = "aiSync.accountResetUnknownSpent"
+							}
+							kit.Help(cc, i18n.T(key))
+						} else if u.Period != "total" && w.Period != "total" {
+							kit.Help(cc, accessT("reset")+" "+u.Reset)
+						}
 						if kit.GhostButton(cc, accessT("resetOneLimit"), icons.RotateCcw, false).Disabled(locked || !equal(k, a.saved)).Clicked() {
 							a.action(p, "reset-limit-key", *k, map[string]any{"index": n})
 						}
+					}
+					if w.Period == "total" {
+						kit.Help(cc, i18n.T("aiSync.totalResetManual"))
 					}
 					if kit.GhostButton(cc, i18n.T("common.delete"), icons.Trash2, false).Disabled(locked).Clicked() {
 						remove = n

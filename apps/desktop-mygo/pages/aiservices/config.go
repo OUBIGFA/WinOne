@@ -60,6 +60,9 @@ type modelPrice struct {
 // Pointers keep "absent" apart from zero and empty lists, as the React
 // document kept undefined apart from 0 and [].
 type modelMetadata struct {
+	Draws               *bool                       `json:"draws,omitempty"`
+	Films               *bool                       `json:"films,omitempty"`
+	Serves              *string                     `json:"serves,omitempty"`
 	Alias               *string                     `json:"alias,omitempty"`
 	Searches            *bool                       `json:"searches,omitempty"`
 	ContextWindow       *float64                    `json:"contextWindow,omitempty"`
@@ -81,6 +84,8 @@ type modelMetadata struct {
 	Kind                *string                     `json:"kind,omitempty"`
 	SystemPrompt        *string                     `json:"systemPrompt,omitempty"`
 	Headers             map[string]string           `json:"headers,omitempty"`
+	Keys                []string                    `json:"keys,omitempty"`
+	KeyCount            int                         `json:"keyCount,omitempty"`
 	Levels              *[]string                   `json:"levels,omitempty"`
 	Efforts             *[]string                   `json:"efforts,omitempty"`
 	Tiers               *[]string                   `json:"tiers,omitempty"`
@@ -173,7 +178,9 @@ func (p *provider) slots() []keySlot {
 // Account execution mode belongs to account-provider setup. Other former
 // global advanced options have no editable or executable surface here.
 type magpieSettings struct {
-	ClaudePrintMode bool `json:"claudePrintMode,omitempty"`
+	ClaudePrintMode    bool   `json:"claudePrintMode,omitempty"`
+	ClaudeNoExtraUsage bool   `json:"claudeNoExtraUsage,omitempty"`
+	CodexClient        string `json:"codexClient,omitempty"`
 }
 
 type magpieDoc = core.Preserved[magpieSettings]

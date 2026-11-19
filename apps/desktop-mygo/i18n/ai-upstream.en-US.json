@@ -1,7 +1,6 @@
 {
   "aiUpstream.Base URL": "Base URL",
   "aiUpstream.Chat Completions, the API most tools speak. Anything with an OpenAI base-URL setting works.": "Chat Completions, the API most tools speak. Anything with an OpenAI base-URL setting works.",
-  "aiUpstream.Concurrency": "Concurrency",
   "aiUpstream.Details": "Details",
   "aiUpstream.Example": "Example",
   "aiUpstream.Google's generateContent API, v1beta. Gemini CLI and the google-genai SDKs speak this.": "Google's generateContent API, v1beta. Gemini CLI and the google-genai SDKs speak this.",

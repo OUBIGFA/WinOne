@@ -11,6 +11,7 @@ package wintray
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -81,6 +82,7 @@ type page struct {
 	state       programState
 	stopConfirm bool
 	reset       maintenance
+	installed   *installedAppPicker
 }
 
 func newPage(env *core.Env) *page {
@@ -336,6 +338,11 @@ func (p *page) replace(id, path string) {
 				return chosen{}, err
 			}
 		}
+		// File-dialog and location-icon drops use the same supported targets;
+		// refuse other types before replacing the preserved program draft.
+		if !slices.Contains(programFilter().Extensions, strings.TrimPrefix(strings.ToLower(filepath.Ext(path)), ".")) {
+			return chosen{}, core.Errorf(i18n.T("wintray.notProgramFile"))
+		}
 		info, err := programInfo(env.Directory, path)
 		return chosen{path, info}, err
 	}, func(result chosen, err error) {
@@ -509,6 +516,7 @@ func (p *page) View(c *ui.Context) {
 		})
 	p.stopDialog(c)
 	p.reset.dialog(c, p)
+	p.installedApps(c)
 }
 
 func (p *page) content(c *ui.Context, dirty bool, invalid, unnamed []string) {
@@ -523,6 +531,9 @@ func (p *page) content(c *ui.Context, dirty bool, invalid, unnamed []string) {
 			ui.Row(c).FillWidth().GapX(16).GapY(8).Wrap().AlignItems(ui.Center).Children(func() {
 				if kit.PrimaryButton(c, i18n.T("wintray.add"), icons.Plus, p.adding).Disabled(p.blocked()).Clicked() {
 					p.add(nil)
+				}
+				if kit.Button(c, i18n.T("wintray.addInstalled"), icons.AppWindow, false).Disabled(p.blocked()).Clicked() {
+					p.openInstalledApps()
 				}
 				status := ""
 				switch {

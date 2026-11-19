@@ -21,6 +21,9 @@ func winOneSearchModel(id string) bool { _,ok:=winOneSearchModels.Load(id);retur
 // mutates a provider map/slice retained by an in-flight upstream request.
 var winOneCatalogMu sync.RWMutex
 var winOneCatalogs = map[string]Provider{}
+var winOneAccountKinds sync.Map
+// Only the private runtime snapshot selects this kind; public HTTP cannot.
+func WinOneAccountKind(id, kind string) { winOneAccountKinds.Store(id, kind) }
 func WinOneUpdateCatalog(id string, models []string, contexts map[string]int) {
  winOneCatalogMu.Lock()
  winOneCatalogs[id]=Provider{Models:models,Contexts:contexts}
@@ -37,5 +40,6 @@ func winOneKeyIdentity(key string) (string, bool) { id, ok := winOneKeyIdentitie
 func winOneGatewayProvider(p Provider) Provider {
  winOneCatalogMu.RLock(); catalog,ok:=winOneCatalogs[p.ID];winOneCatalogMu.RUnlock()
  if ok {p.Models=catalog.Models;p.Contexts=catalog.Contexts}
+ if kind,_:=winOneAccountKinds.Load(p.ID);kind=="devin" {p.Models=withoutDevinRouters(p.Models);p.Delisted=withoutDevinRouters(p.Delisted)}
  return p
 }

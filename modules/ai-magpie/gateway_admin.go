@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"context"
 	"encoding/json"
 	"github.com/yetone/magpie/internal/access"
 	"github.com/yetone/magpie/internal/budget"
@@ -161,6 +162,7 @@ func gatewayAdminHandler(gw *gateway.Server) http.Handler {
 	callerKeyRoutes(mux)
 	winOneGatewayAdminRoutes(mux)
 	winOneCallRoutes(mux, gw)
+	winOneKeyRestRoutes(mux, gw)
 	mux.HandleFunc("GET /api/claude/mode", func(w http.ResponseWriter, r *http.Request) {
 		mode, err := gateway.WinOneClaudeMode()
 		if err != nil {
@@ -220,6 +222,18 @@ func withLimits(keys []access.Key) []keyRow {
 }
 
 func callerKeyRoutes(mux *http.ServeMux) {
+	// Reuse the original account-window reader and its bounded refresh. The
+	// UI carries these exact account/window names through access.Configure.
+	mux.HandleFunc("GET /api/caller-keys/account-windows", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+		defer cancel()
+		out := provider.KeyWindows(ctx, time.Now())
+		if out == nil {
+			out = []provider.KeyWindow{}
+		}
+		writeJSON(w, map[string]any{"windows": out})
+	})
 	mux.HandleFunc("GET /api/caller-keys", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		access.MigrateLegacyLANKeyBestEffort()

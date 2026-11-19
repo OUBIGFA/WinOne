@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/yetone/magpie/internal/plugin"
 	"github.com/yetone/magpie/internal/provider"
 	"io"
 	"os"
@@ -46,6 +47,9 @@ func pluginAccount(in request) bool {
 func accountOperation(ctx context.Context, in request, input io.Reader) error {
 	encode := json.NewEncoder(os.Stdout).Encode
 	provider.WinOneProviders = nil
+	if in.Operation == "proxies.test" {
+		return readProxyProbe(ctx, in, os.Stdout)
+	}
 	if in.Operation == "accounts.key-balance" {
 		return readKeyBalances(ctx, in, os.Stdout)
 	}
@@ -63,6 +67,18 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 		}
 		agents := accountCatalog()
 		return encode(map[string]any{"agents": agents, "presets": presets, "partners": partners})
+	}
+	if in.Operation == "accounts.move-agy" {
+		if err := prepareAccountPreferences(ctx, in); err != nil {
+			return err
+		}
+		return moveAntigravityAccounts(ctx, in)
+	}
+	if in.Operation == "accounts.warm-now" || in.Operation == "accounts.warm-all" {
+		if err := prepareAccountPreferences(ctx, in); err != nil {
+			return err
+		}
+		return readAccountWarmups(ctx, in, os.Stdout)
 	}
 	if !pluginAccount(in) && !knownAgent(in.Agent) {
 		return errors.New("unsupported agent account")
@@ -248,7 +264,13 @@ func accountOperation(ctx context.Context, in request, input io.Reader) error {
 					break
 				}
 			}
-			return encode(map[string]any{"accounts": accounts, "methods": connection.Methods, "checkinAvailable": available, "importable": connection.Importable, "importFrom": connection.ImportFrom, "importFroms": connection.ImportFroms})
+			var withdrawn *plugin.Withdrawal
+			if descriptor, ok := pluginForAgent(in.Agent); ok && descriptor.Legacy {
+				if value, ok := plugin.WithdrawnOf(descriptor.Package); ok {
+					withdrawn = &value
+				}
+			}
+			return encode(map[string]any{"accounts": accounts, "methods": connection.Methods, "checkinAvailable": available, "importable": connection.Importable, "importFrom": connection.ImportFrom, "importFroms": connection.ImportFroms, "withdrawn": withdrawn})
 		}
 		importable := in.Agent == "codex" || in.Agent == "claude" || in.Agent == "factory" || in.Agent == "gemini" || in.Agent == "antigravity"
 		return encode(map[string]any{"accounts": provider.Logins(in.Agent), "importable": importable})
@@ -285,7 +307,7 @@ func readKeyBalances(ctx context.Context, in request, out io.Writer) error {
 		return err
 	}
 	p.ID = in.ProviderID
-	if p.ID == "" || len(in.BalanceKeys) > 128 {
+	if p.ID == "" {
 		return errors.New("invalid balance provider")
 	}
 	if len(in.BalanceKeys) == 0 {
@@ -313,6 +335,9 @@ func readKeyBalances(ctx context.Context, in request, out io.Writer) error {
 	}
 	provider.WinOneProviders = []provider.Provider{p}
 	quotas := provider.KeyBalances(provider.Asked(ctx))
+	// API-key plans are a separate upstream reader; calling only KeyBalances
+	// loses Token Plan windows even after a platform sign-in succeeded.
+	quotas = append(quotas, provider.PlanQuotas(provider.Asked(ctx))...)
 	for i := range quotas {
 		q := &quotas[i]
 		if q.Error != "" || q.AsOf != nil {
@@ -344,7 +369,9 @@ func readSignInControls(ctx context.Context, input io.Reader) <-chan signInContr
 	go func() {
 		defer close(commands)
 		scanner := bufio.NewScanner(input)
-		scanner.Buffer(make([]byte, 4096), 64*1024)
+		// A platform session allows 64 KiB before JSON escaping. Host keeps
+		// the ordinary account callback's smaller bound.
+		scanner.Buffer(make([]byte, 4096), 512*1024)
 		for scanner.Scan() {
 			if strings.TrimSpace(scanner.Text()) == "" {
 				continue

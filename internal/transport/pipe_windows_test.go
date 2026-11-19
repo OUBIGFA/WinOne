@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"testing"
@@ -13,6 +14,48 @@ import (
 	"winone/internal/host"
 	"winone/internal/settings"
 )
+
+// Only the explicit lifetime-bound caller omits a total timeout. Its own
+// cancellation still closes the real local pipe while the handler waits.
+func TestZeroTimeoutPipeRetainsCallerCancellation(t *testing.T) {
+	name := fmt.Sprintf(`\\.\pipe\WinOne-lifetime-%d`, time.Now().UnixNano())
+	listener, err := Listen(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	serveCtx, stop := context.WithCancel(t.Context())
+	defer stop()
+	entered := make(chan struct{})
+	go Serve(serveCtx, listener, pipeTestHandler(func(r host.Request) host.Response {
+		close(entered)
+		<-serveCtx.Done()
+		return host.Response{ID: r.ID, Result: json.RawMessage(`{}`)}
+	}))
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	finished := make(chan error, 1)
+	go func() {
+		_, err := CallWithVerifiedServer(ctx, name, host.Request{Version: 1, ID: "lifetime", Method: "capture.ai.accounts.warm-all"}, 0, nil)
+		finished <- err
+	}()
+	select {
+	case <-entered:
+	case err := <-finished:
+		t.Fatal("lifetime request ended before admission", err)
+	case <-time.After(3 * time.Second):
+		t.Fatal("lifetime request was not admitted")
+	}
+	cancel()
+	select {
+	case err := <-finished:
+		if err == nil || !errors.Is(ctx.Err(), context.Canceled) {
+			t.Fatal("caller cancellation was lost", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("cancelled lifetime pipe stayed open")
+	}
+}
 
 // The edit baseline must fit together with a large draft through the real
 // Host connection; framing unit tests alone cannot cover both pipe endpoints.

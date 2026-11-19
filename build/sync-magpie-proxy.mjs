@@ -22,7 +22,7 @@ const goTarget='internal/ai/magpie_proxy.go';
 const proxiesText=proxies.toString('utf8');
 const extract=(text,start)=>{const a=text.indexOf(start),b=text.indexOf('\n}',a);if(a<0||b<a)throw Error('Magpie proxy support boundary changed: '+start);return text.slice(a,b+2);};
 const prefix=proxiesText.match(/^const ProxyRefPrefix = .*$/m)?.[0];if(!prefix)throw Error('Magpie proxy reference prefix changed');
-const support=[extract(proxiesText,'type NamedProxy struct {'),prefix,extract(proxiesText,'func IsProxyRef('),extract(proxiesText,'func ProxyID('),extract(proxiesText,'func CheckProxyIn(')].join('\n\n');
+const support=[extract(proxiesText,'type NamedProxy struct {'),prefix,extract(proxiesText,'func IsProxyRef('),extract(proxiesText,'func ProxyID('),extract(proxiesText,'func IsSSHAddress('),extract(proxiesText,'func CheckProxyIn(')].join('\n\n');
 // WinOne owns inline provider/account proxies; it has no upstream named-proxy
 // store. The original CheckProxyIn with an empty list rejects an unresolved
 // reference instead of accepting it as an address or using another profile.

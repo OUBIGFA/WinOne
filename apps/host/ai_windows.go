@@ -101,6 +101,9 @@ func (s *aiService) handle(r host.Request) host.Response {
 	if r.Method == "models.test" {
 		return s.handleModelTest(r)
 	}
+	if r.Method == "proxies.test" {
+		return s.handleProxyProbe(r)
+	}
 	if strings.HasPrefix(r.Method, "icons.") {
 		return s.handleAvatar(r)
 	}
@@ -109,6 +112,9 @@ func (s *aiService) handle(r host.Request) host.Response {
 	}
 	if strings.HasPrefix(r.Method, "accounts.") {
 		return s.handleAccounts(r)
+	}
+	if strings.HasPrefix(r.Method, "plans.") {
+		return s.handlePlans(r)
 	}
 	response := host.Response{ID: r.ID}
 	fail := func(err error) host.Response {
@@ -215,9 +221,20 @@ func (s *aiService) handle(r host.Request) host.Response {
 		var input struct {
 			Provider string `json:"provider"`
 			ID       string `json:"id"`
+			All      bool   `json:"all,omitempty"`
 		}
 		if err := configjson.DecodeObject(r.Params, &input); err != nil {
 			return fail(err)
+		}
+		if input.All {
+			if input.ID != "" {
+				return fail(errors.New("不能同时选择单个和全部密钥"))
+			}
+			keys, err := s.store.RevealCredentials(input.Provider)
+			if err != nil {
+				return fail(err)
+			}
+			return result(map[string]any{"keys": keys})
 		}
 		key, err := s.store.RevealCredential(input.Provider, input.ID)
 		if err != nil {

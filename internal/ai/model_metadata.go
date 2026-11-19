@@ -12,6 +12,10 @@ import (
 // Token sizes retain their original units. CompactionPercent is a separate
 // user override, so legacy token thresholds cannot be misread as percentages.
 type ModelMetadata struct {
+	// Original catalog classification is discovery-only, never a request override.
+	Draws        bool              `json:"draws,omitempty"`
+	Films        bool              `json:"films,omitempty"`
+	Serves       string            `json:"serves,omitempty"`
 	Alias        string            `json:"alias,omitempty"`
 	Searches     bool              `json:"searches,omitempty"`
 	Same         string            `json:"same,omitempty"`
@@ -20,6 +24,9 @@ type ModelMetadata struct {
 	Kind         string            `json:"kind,omitempty"`
 	SystemPrompt string            `json:"systemPrompt,omitempty"`
 	Headers      map[string]string `json:"headers,omitempty"`
+	// Public key slot IDs reporting this model; discovered metadata only.
+	Keys     []string `json:"keys,omitempty"`
+	KeyCount int      `json:"keyCount,omitempty"`
 	// Levels are the reasoning levels the vendor reports for the model, kept
 	// apart from Efforts (the ones the user offers) so narrowing the offer
 	// never loses a level from the choices. Both use the vendor's own words.
@@ -45,6 +52,7 @@ type ModelMetadata struct {
 
 func (m ModelMetadata) clone() ModelMetadata {
 	m.Headers = maps.Clone(m.Headers)
+	m.Keys = slices.Clone(m.Keys)
 	m.Levels = slices.Clone(m.Levels)
 	m.Efforts = slices.Clone(m.Efforts)
 	m.Tiers = slices.Clone(m.Tiers)

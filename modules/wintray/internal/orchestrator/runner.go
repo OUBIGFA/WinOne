@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 	"winone/modules/wintray/internal/config"
+	"winone/modules/wintray/internal/shellapp"
 )
 
 // launchMode selects how the new process gets (or does not get) a window.
@@ -36,8 +37,32 @@ type startedProcess struct {
 
 func (p *startedProcess) Wait() error { return p.wait() }
 
+var activatePackagedApplication = shellapp.Activate
+
 func startConfiguredProcess(entry config.ManagedAppEntry, mode launchMode) (*startedProcess, error) {
 	exePath, args := entry.ExePath, entry.Args
+	if shellapp.IsPath(exePath) {
+		processID, err := activatePackagedApplication(exePath, args)
+		if err != nil {
+			return nil, err
+		}
+		process, err := os.FindProcess(int(processID))
+		if err != nil {
+			return nil, err
+		}
+		// Windows activation did not start an exec.Cmd. Keep the same wait
+		// and exit-status contract as other native process launch paths.
+		return &startedProcess{Process: process, wait: func() error {
+			state, err := process.Wait()
+			if err != nil {
+				return err
+			}
+			if !state.Success() {
+				return &exec.ExitError{ProcessState: state}
+			}
+			return nil
+		}}, nil
+	}
 	dir := entry.LaunchDirectory()
 	// Every launch route must reject an unavailable working folder instead of
 	// silently reading relative files from a different directory.

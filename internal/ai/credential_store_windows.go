@@ -48,6 +48,30 @@ func (s *Store) RevealCredential(provider, id string) (string, error) {
 	return "", errors.New("密钥输入项不存在或不属于该供应商")
 }
 
+// RevealCredentials takes one read-only snapshot for explicit copy/paste-key
+// actions. Disabled keys remain included; empty slots contain no secret.
+func (s *Store) RevealCredentials(provider string) (map[string]string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p, ok := s.configurationLocked().Provider(provider)
+	if !ok || p.AuthMode != "api-key" {
+		return nil, errors.New("请选择已保存的自定义供应商")
+	}
+	keys := make(map[string]string)
+	for _, slot := range p.Keys {
+		sealed := s.sealedCredentialLocked(provider, slot.ID)
+		if sealed == "" {
+			continue
+		}
+		key, err := unsealKey(sealed)
+		if err != nil {
+			return nil, err
+		}
+		keys[slot.ID] = key
+	}
+	return keys, nil
+}
+
 func sealCredential(value string) (string, error) {
 	if len(value) > 16384 {
 		return "", errors.New("密钥过长")

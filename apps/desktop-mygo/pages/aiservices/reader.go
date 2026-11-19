@@ -45,8 +45,9 @@ func (e endpoints) of(protocol string) string {
 }
 
 type presetRegion struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID                                                                     string `json:"id"`
+	Name                                                                   string `json:"name"`
+	Models, Drawers, Videos, Speakers, Transcribers, Embeddings, Rerankers []string
 	endpoints
 }
 
@@ -54,22 +55,45 @@ type presetRegion struct {
 type servicePreset struct {
 	KeyPlans bool `json:"keyPlans,omitempty"`
 	endpoints
-	ID        string            `json:"id"`
-	Name      string            `json:"name"`
-	Icon      string            `json:"icon,omitempty"`
-	Models    []string          `json:"models,omitempty"`
-	Endpoint  string            `json:"endpoint,omitempty"`
-	Kind      string            `json:"kind,omitempty"`
-	Note      string            `json:"note,omitempty"`
-	Short     string            `json:"short,omitempty"`
-	NoKey     bool              `json:"noKey,omitempty"`
-	Sponsored bool              `json:"sponsored,omitempty"`
-	Website   string            `json:"website,omitempty"`
-	SiteHost  string            `json:"siteHost,omitempty"`
-	KeysURL   string            `json:"keysUrl,omitempty"`
-	Langs     []string          `json:"langs,omitempty"`
-	Notes     map[string]string `json:"notes,omitempty"`
-	Regions   []presetRegion    `json:"regions,omitempty"`
+	ID                                                             string   `json:"id"`
+	Name                                                           string   `json:"name"`
+	Icon                                                           string   `json:"icon,omitempty"`
+	Models                                                         []string `json:"models,omitempty"`
+	Drawers, Videos, Speakers, Transcribers, Embeddings, Rerankers []string
+	Endpoint                                                       string            `json:"endpoint,omitempty"`
+	Kind                                                           string            `json:"kind,omitempty"`
+	Note                                                           string            `json:"note,omitempty"`
+	Short                                                          string            `json:"short,omitempty"`
+	NoKey                                                          bool              `json:"noKey,omitempty"`
+	Sponsored                                                      bool              `json:"sponsored,omitempty"`
+	Website                                                        string            `json:"website,omitempty"`
+	SiteHost                                                       string            `json:"siteHost,omitempty"`
+	KeysURL                                                        string            `json:"keysUrl,omitempty"`
+	Langs                                                          []string          `json:"langs,omitempty"`
+	Notes                                                          map[string]string `json:"notes,omitempty"`
+	Regions                                                        []presetRegion    `json:"regions,omitempty"`
+	HeaderHints                                                    []string          `json:"headerHints,omitempty"`
+}
+
+// A preset's chat and media lists form one selectable catalog. Regions may
+// narrow the plan, so use their lists rather than mixing different plans.
+func (p servicePreset) modelIDs(region string) []string {
+	lists := [][]string{p.Models, p.Drawers, p.Videos, p.Speakers, p.Transcribers, p.Embeddings, p.Rerankers}
+	for _, r := range p.Regions {
+		if r.ID == region {
+			text := p.Models
+			if len(r.Models) > 0 {
+				text = r.Models
+			}
+			lists = [][]string{text, r.Drawers, r.Videos, r.Speakers, r.Transcribers, r.Embeddings, r.Rerankers}
+			break
+		}
+	}
+	var all []string
+	for _, list := range lists {
+		all = append(all, list...)
+	}
+	return unique(all)
 }
 
 // presetConnection is the preset's endpoint for the preferred API, or for
@@ -129,12 +153,13 @@ type signInMethod struct {
 }
 
 type accountState struct {
-	Accounts         []account         `json:"accounts"`
-	Methods          []signInMethod    `json:"methods,omitempty"`
-	CheckinAvailable bool              `json:"checkinAvailable,omitempty"`
-	Importable       bool              `json:"importable,omitempty"`
-	ImportFrom       string            `json:"importFrom,omitempty"`
-	ImportFroms      map[string]string `json:"importFroms,omitempty"`
+	Withdrawn        *accountWithdrawal `json:"withdrawn,omitempty"`
+	Accounts         []account          `json:"accounts"`
+	Methods          []signInMethod     `json:"methods,omitempty"`
+	CheckinAvailable bool               `json:"checkinAvailable,omitempty"`
+	Importable       bool               `json:"importable,omitempty"`
+	ImportFrom       string             `json:"importFrom,omitempty"`
+	ImportFroms      map[string]string  `json:"importFroms,omitempty"`
 }
 
 // accountRequest names the accounts to list: those of a saved provider,

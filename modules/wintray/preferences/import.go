@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"winone/modules/wintray/internal/config"
+	"winone/modules/wintray/internal/shellapp"
 )
 
 type ImportPreview struct {
@@ -53,6 +54,9 @@ func PreviewImport(path string) (ImportPreview, error) {
 		warnings = append(warnings, "已按旧版本兼容规则转换，请核对各项设置。")
 	}
 	for _, app := range decoded.ManagedApps {
+		if shellapp.IsPath(app.ExePath) {
+			continue
+		}
 		if _, err = os.Stat(app.ExePath); errors.Is(err, os.ErrNotExist) {
 			warnings = append(warnings, "找不到程序："+app.Name)
 		} else if err != nil {

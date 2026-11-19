@@ -7,11 +7,21 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"winone/desktopmygo/core"
+	"winone/desktopmygo/desktop"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/widgets"
+	"winone/modules/wintray/applications"
 )
+
+var openProgramLocation = func(path string) error {
+	directory, err := applications.InstallationDirectory(path)
+	if err != nil {
+		return err
+	}
+	return desktop.ShellOpen(directory)
+}
 
 // programState is whether the selected program runs and shows a window,
 // read every 1.5 seconds while its actions can be used. It is separate
@@ -105,7 +115,27 @@ func (p *page) details(c *ui.Context) {
 		ui.Column(c).FillWidth().Gap(16).Children(func() {
 			ui.Column(c).FillWidth().Gap(4).Children(func() {
 				kit.Heading(c, name).Role(ui.RoleHeading).Level(2).Selectable()
-				kit.Mono(c, app.ExePath).TextColor(c.Theme().TextMuted).SingleLine().Ellipsis("…").Description(app.ExePath).Selectable()
+				ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+					button := kit.IconButton(c, icons.FolderOpen, i18n.T("wintray.openLocation")).
+						Tooltip(i18n.T("wintray.locationHint")).Size(24, 24).Shrink(0).Disabled(p.blocked())
+					if button.Clicked() {
+						path := app.ExePath
+						core.Do(p.env, func() error { return openProgramLocation(path) }, func(err error) {
+							if err != nil {
+								p.err = err.Error()
+							}
+						})
+					}
+					id := app.ID
+					widgets.DropArea(c, p.env, button, widgets.DropFiles, false, p.blocked(), func(paths []string, err error) {
+						if err != nil {
+							p.err = err.Error()
+							return
+						}
+						p.replace(id, paths[0])
+					})
+					kit.Mono(c, app.ExePath).Grow(1).Shrink(1).MinWidth(0).TextColor(c.Theme().TextMuted).SingleLine().Ellipsis("…").Description(app.ExePath).Selectable()
+				})
 			})
 			p.actions(c, *app, name)
 			kit.SubTabs(c, &p.detailTab, []string{i18n.T("wintray.commonSettings"), i18n.T("wintray.moreSettings")}, p.env.RequestChange)
@@ -215,14 +245,10 @@ func (p *page) stopDialog(c *ui.Context) {
 func (p *page) timing(c *ui.Context, app *program) {
 	id := app.ID
 	kit.Group(c, icons.Rocket, i18n.T("settingsDesign.launchBehavior"), "", func() {
-		startup := app.RunOnStartup
-		if kit.Toggle(c, &startup, i18n.T("wintray.startup"), "").Changed() {
-			p.update(id, func(a *program) { a.RunOnStartup = startup })
-		}
 		current := mode(*app)
-		values := []string{"tray", "hidden", "task", "normal"}
+		values := []string{"normal", "tray", "hidden", "task"}
 		if !executable(app.ExePath) {
-			values = []string{"hidden"}
+			values = []string{"normal", "hidden"}
 		}
 		options := make([]kit.SelectOption, len(values))
 		for i, value := range values {
@@ -240,6 +266,9 @@ func (p *page) timing(c *ui.Context, app *program) {
 				})
 			})
 		})
+		if current == "normal" {
+			kit.Row(c, i18n.T("wintray.normalHint"), "", nil)
+		}
 		// Login observation replaces the delay without clearing its saved value.
 		loginWait := (weChatProgram(app.ExePath) && app.WeChatAutoLogin) || (strings.EqualFold(baseName(app.ExePath), "QQ.exe") && app.QQWaitForLogin)
 		if current == "tray" && !loginWait {
@@ -297,6 +326,11 @@ func (p *page) timing(c *ui.Context, app *program) {
 func (p *page) information(c *ui.Context, app *program) {
 	id := app.ID
 	kit.Panel(c, func() {
+		kit.Stack(c, "", "", func() {
+			if kit.Button(c, i18n.T("wintray.replaceProgram"), icons.FolderOpen, false).Clicked() {
+				p.replace(id, "")
+			}
+		})
 		nameInput := p.handle(programKey(id, "name"))
 		field(c, "name:"+id, i18n.T("wintray.name"), nameInput, true, func() {
 			name := app.Name
@@ -317,7 +351,14 @@ func (p *page) information(c *ui.Context, app *program) {
 				p.update(id, func(a *program) { a.Args = args })
 			}
 			kit.Help(c, i18n.T("wintray.argsHint"))
+			if applications.IsPath(app.ExePath) {
+				kit.Help(c, i18n.T("wintray.packagedArgs"))
+			}
 		})
+		if applications.IsPath(app.ExePath) {
+			kit.Row(c, i18n.T("wintray.workingDirectory"), i18n.T("wintray.packagedDirectory"), nil)
+			return
+		}
 		directoryInput := p.handle(programKey(id, "workingDirectory"))
 		field(c, "workingDirectory:"+id, i18n.T("wintray.workingDirectory"), directoryInput, true, func() {
 			row := ui.Row(c).FillWidth().Gap(8).Children(func() {

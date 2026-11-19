@@ -1,0 +1,117 @@
+[
+  {
+    "name": "Codex CLI",
+    "headers": [
+      [
+        "originator",
+        "codex_cli_rs"
+      ],
+      [
+        "User-Agent",
+        "codex_cli_rs/0.167.0 (Mac OS 26.6.0; arm64) Apple_Terminal/455"
+      ],
+      [
+        "version",
+        "0.167.0"
+      ]
+    ]
+  },
+  {
+    "name": "Gemini CLI",
+    "headers": [
+      [
+        "User-Agent",
+        "GeminiCLI/0.67.0/gemini-2.5-pro (darwin; arm64; terminal)"
+      ]
+    ]
+  },
+  {
+    "name": "OpenCode",
+    "headers": [
+      [
+        "User-Agent",
+        "opencode/latest/2.2.7/cli"
+      ]
+    ]
+  },
+  {
+    "name": "Kilo Code",
+    "headers": [
+      [
+        "HTTP-Referer",
+        "https://kilocode.ai"
+      ],
+      [
+        "X-Title",
+        "Kilo Code"
+      ],
+      [
+        "User-Agent",
+        "Kilo-Code/7.8.27"
+      ],
+      [
+        "X-KILOCODE-EDITORNAME",
+        "Kilo CLI 7.8.27"
+      ]
+    ]
+  },
+  {
+    "name": "Cline",
+    "headers": [
+      [
+        "HTTP-Referer",
+        "https://cline.bot"
+      ],
+      [
+        "X-Title",
+        "Cline"
+      ],
+      [
+        "X-IS-MULTIROOT",
+        "false"
+      ],
+      [
+        "X-CLIENT-TYPE",
+        "cline-desktop"
+      ],
+      [
+        "X-CLIENT-VERSION",
+        "3.5.54"
+      ],
+      [
+        "User-Agent",
+        "Cline/3.5.54"
+      ]
+    ]
+  },
+  {
+    "name": "Roo Code",
+    "headers": [
+      [
+        "HTTP-Referer",
+        "https://github.com/RooVetGit/Roo-Cline"
+      ],
+      [
+        "X-Title",
+        "Roo Code"
+      ],
+      [
+        "User-Agent",
+        "RooCode/3.53.0"
+      ]
+    ]
+  },
+  {
+    "name": "Cherry Studio",
+    "headers": [
+      [
+        "HTTP-Referer",
+        "https://cherry-ai.com"
+      ],
+      [
+        "X-Title",
+        "Cherry Studio"
+      ]
+    ]
+  }
+]

@@ -100,6 +100,8 @@ Windows 相关验收保留为本地测试能力，可按任务影响范围使用
 
 下载、安装依赖或生成资源前，先查下表、源码中的已有资源和 `build/use-local-resources.ps1`。版本及摘要一致时直接使用；不能因为新建了任务目录就再下载、再安装或再生成一份。只有所需版本缺失、校验失败或明确更新版本时才补齐资源。新增的可复用内容在本次任务内归入固定目录，并同步来源、版本、校验依据和调用方法。
 
+2026-11-19 本次完整同步已按用户要求锁定核查快照：Magpie `289184a409c0e38a3a0a5282dbde93b56da309ca`、账号适配器 `e6c457112ababf96d9415fe0a217ab0b7429ae98`、WinTray `89c246a0b0c2808d7d594ab91758468517d61fdd`、MyGo 正式 `v0.10.0`（`ebde9399baf2734b3361856a53f4036859973d1d`）。本次后续只核对这组源码、许可、编译和产物，不再刷新上游版本；这不是取消后续新任务的更新约定。
+
 | 固定子目录 | 用途与维护方式 |
 | --- | --- |
 | `tools/go-1.26.2`、`tools/go-1.27.3` | 分别用于 Host/模块和 MyGo 设置/结果窗；AI 与 Go 互传复用后者；旧 `go-1.27.1` 保留用于回退 |
@@ -110,8 +112,8 @@ Windows 相关验收保留为本地测试能力，可按任务影响范围使用
 | `sources/PowerToys` | 锁定提交的置顶引擎及其恢复的编译依赖；由准备脚本维护 |
 | `sources/ShareX-21.0.0`、`sources/ShareX-v21.0.0.zip` | ShareX 准备脚本的固定源码和归档 |
 | `sources/ShareX-native` | 现用原生截图引擎的独立源码；需要测试改写时再复制到 `_temp/<任务>/` |
-| `sources/magpie-ce2ce86`、`sources/ai-plugins-a410afe` | 本次核对并冻结的 AI 基座与账号适配器来源；构建核对 HEAD、锁文件及原始许可。旧来源保留用于回退；测试输出回到根 `_temp/`。更新对照见 `docs/ai-base-update-20261113.md` |
-| `sources/mygo-winone-v0.9.2` | MyGo 正式 v0.9.2的仓库管理源码副本，按 `third_party/mygo-winone/source.json` 与 `build/prepare-mygo-filedrop.ps1` 校验原模块和窄适配；设置窗口、结果窗及nativeui使用该副本，不修改用户Go module cache。旧版本留作历史/回退参考 |
+| `sources/magpie-289184a`、`sources/ai-plugins-e6c4571` | 本次核对并冻结的 AI 基座与账号适配器来源；构建核对 HEAD、锁文件及原始许可。旧 `magpie-9fc1114`、`magpie-ce2ce86` 和旧适配器来源保留用于回退；测试输出回到根 `_temp/`。更新对照见 `docs/ai-base-update-20261119.md` |
+| `sources/mygo-winone-v0.10.0` | MyGo 正式 v0.10.0 的仓库管理源码副本，按 `third_party/mygo-winone/source.json` 与 `build/prepare-mygo-filedrop.ps1` 校验原模块和窄适配；设置窗口、结果窗及 nativeui 使用该副本，不修改用户 Go 模块缓存。旧版本留作历史/回退参考 |
 | `runtimes/ocr` | OCR Python、离线依赖与模型，供反复打包；以 OCR 清单校验 |
 | `cache/cargo`、`cache/go`、`cache/npm` | 分别通过 `CARGO_HOME`、`GOCACHE`、`npm_config_cache` 复用 Cargo 依赖、Go 编译和 npm 下载缓存；不放测试报告 |
 | `cache/nuget-notices/microsoft.web.webview2.1.0.3800.47.nupkg` | Microsoft WebView2 SDK 原包，供 `build/verify-rust-notices.ps1 -Update -WebView2Package <路径>` 核对 Loader 与原始许可证；来源为 NuGet 官方包，SHA-256 `56c9f26bdd07916a2d1949fb58a5c7e434dfa1173577dca879206050c4e718db` |

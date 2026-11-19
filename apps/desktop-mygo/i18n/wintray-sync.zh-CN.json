@@ -1,0 +1,19 @@
+{
+  "wintray.addInstalled": "已安装应用",
+  "wintray.installedTitle": "添加已安装应用",
+  "wintray.installedSearch": "搜索名称或路径",
+  "wintray.installedAll": "全部应用",
+  "wintray.installedDesktop": "桌面程序",
+  "wintray.installedStore": "商店应用",
+  "wintray.installedLoading": "正在读取应用列表…",
+  "wintray.installedFailed": "无法读取应用列表，请重新读取",
+  "wintray.installedEmpty": "未找到匹配的应用",
+  "wintray.installedRefresh": "重新读取",
+  "wintray.installedAdd": "添加所选应用",
+  "wintray.installedSelected": "已选 {{count}} 个应用",
+  "wintray.openLocation": "打开文件位置",
+  "wintray.locationHint": "打开文件位置；拖入程序可更换",
+  "wintray.normalHint": "保留程序原有开机启动设置；启用“自定义时间”后，WinOne 按设置启动",
+  "wintray.packagedDirectory": "商店应用的工作目录由 Windows 决定",
+  "wintray.packagedArgs": "参数是否生效取决于应用是否支持"
+}

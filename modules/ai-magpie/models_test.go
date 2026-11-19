@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/yetone/magpie/internal/catalog"
+	"github.com/yetone/magpie/internal/gateway"
 	"github.com/yetone/magpie/internal/provider"
 	"github.com/yetone/magpie/internal/settings"
 	"io"
@@ -18,6 +19,133 @@ import (
 	"strings"
 	"testing"
 )
+
+// This exercises a real gateway refusal. Its private key-state API must
+// identify Host slots and lift the same upstream rest without leaking keys.
+func TestGatewayKeyRestExplainsRefusalAndRetriesItsSlot(t *testing.T) {
+	if os.Getenv("WINONE_NETWORK_TESTS") != "1" {
+		t.Skip("explicit isolated gateway HTTP verification")
+	}
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	t.Cleanup(func() { provider.WinOneProviders = nil; settings.WinOneSettings.Store(nil) })
+	vendor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(400)
+		io.WriteString(w, `{"error":{"message":"credit balance is too low; fixture-secret-first"}}`)
+	}))
+	defer vendor.Close()
+	if err := applyRuntimeSettings(request{}); err != nil {
+		t.Fatal(err)
+	}
+	source := request{ProviderID: "rests-fixture", Protocol: "chat", BaseURL: vendor.URL + "/v1", Keys: []requestKey{{ID: "primary", KeyAccount: provider.KeyAccount{Key: "fixture-secret-first"}}, {ID: "second", KeyAccount: provider.KeyAccount{Key: "fixture-secret-second"}}}}
+	if err := installAuxiliaryProviders(request{AuxiliaryProviders: []auxiliaryProvider{{Provider: provider.Provider{ID: "rests-fixture", Models: []string{"model"}}, NativeSource: &source}}}); err != nil {
+		t.Fatal(err)
+	}
+	gw := gateway.New()
+	p, _ := provider.Find("rests-fixture")
+	for _, k := range p.KeyList() {
+		key := p.RestKey(k)
+		t.Cleanup(func() { gw.UnrestAll(key) })
+	}
+	turn := httptest.NewRequest("POST", "/v1/chat/completions", strings.NewReader(`{"model":"rests-fixture/model","messages":[{"role":"user","content":"test"}]}`))
+	turn.Header.Set("Authorization", "Bearer "+gateway.Token)
+	turn.Header.Set("Content-Type", "application/json")
+	gw.Handler().ServeHTTP(httptest.NewRecorder(), turn)
+	handler := gatewayAdminHandler(gw)
+	read := httptest.NewRecorder()
+	handler.ServeHTTP(read, httptest.NewRequest("GET", "/api/winone/providers/rests-fixture/key-rests", nil))
+	if read.Code != 200 {
+		t.Fatalf("key-state API unavailable: %d %s", read.Code, read.Body.String())
+	}
+	var state struct {
+		Keys []struct {
+			ID   string
+			Rest *provider.KeyRest
+		}
+	}
+	if err := json.Unmarshal(read.Body.Bytes(), &state); err != nil {
+		t.Fatal(err)
+	}
+	if len(state.Keys) != 2 || state.Keys[0].ID != "primary" || state.Keys[0].Rest == nil || !strings.Contains(state.Keys[0].Rest.Error, "credit balance is too low") || strings.Contains(read.Body.String(), "fixture-secret-") {
+		t.Fatalf("rest or protected slot mapping lost: %s", read.Body.String())
+	}
+	retry := httptest.NewRecorder()
+	handler.ServeHTTP(retry, httptest.NewRequest("POST", "/api/winone/providers/rests-fixture/key-rests/retry", strings.NewReader(`{"id":"primary"}`)))
+	if retry.Code != 200 {
+		t.Fatal(retry.Code, retry.Body.String())
+	}
+	if _, resting := gateway.RestOf(p.RestKey(p.KeyList()[0])); resting {
+		t.Fatal("retry did not lift the original gateway rest")
+	}
+}
+
+// Plan media are explicit upstream catalogs, separate from a vendor's chat
+// /models response. They must remain selectable on WinOne's gateway too.
+func TestTokenPlanDiscoveryIncludesSeparateMediaModels(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	t.Cleanup(func() { provider.WinOneProviders = nil; settings.WinOneSettings.Store(nil) })
+	oldClient := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = oldClient })
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"data":[{"id":"qwen4-max"}]}`)
+	})
+	http.DefaultClient = &http.Client{Transport: modelBalanceTransport(func(r *http.Request) (*http.Response, error) {
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		return w.Result(), nil
+	})}
+	for _, preset := range []string{"qwen-token-plan", "bailian-token-plan", "alibaba-token-plan", "qwencloud-token-plan"} {
+		models, err := fetchModels(t.Context(), request{ProviderID: "media-" + preset, Protocol: "chat", BaseURL: "https://plan-fixture.invalid/v1", Preset: preset, Key: "fixture-plan-key"})
+		if err != nil {
+			t.Fatal(preset, err)
+		}
+		for _, id := range []string{"qwen4-max", "qwen-image-3.0-pro", "wan2.7-image", "wan3.0-video", "happyhorse-1.1-t2v", "qwen-audio-3.0-tts-plus", "qwen-audio-3.0-asr-flash"} {
+			if !slices.ContainsFunc(models, func(m modelOption) bool { return m.ID == id }) {
+				t.Errorf("%s omits selectable %s", preset, id)
+			}
+		}
+	}
+}
+
+// Default verification exercises the actual slot mapping and credential
+// protection without listening on a port or contacting any provider.
+func TestGatewayKeyRestMappingAndVendorWordsStayPrivate(t *testing.T) {
+	in := request{Keys: []requestKey{{ID: "primary", KeyAccount: provider.KeyAccount{Key: "first-private-secret"}}, {ID: "second", KeyAccount: provider.KeyAccount{Key: "second-private-secret"}}}}
+	p := provider.Provider{ID: "private-key-state", Key: "first-private-secret", Keys: []provider.KeyAccount{{Key: "second-private-secret"}}}
+	rememberGatewayKeySlots(p.ID, in)
+	t.Cleanup(func() { gatewayKeySlots.Delete(p.ID) })
+	rows := gatewayKeyRestState(p)
+	if len(rows) != 2 || rows[0].ID != "primary" || rows[1].ID != "second" {
+		t.Fatalf("private slot identity lost: %+v", rows)
+	}
+	r := protectedKeyRest(p, gateway.Rest{Why: "credit", By: "credit", Status: 400, Error: "credit balance too low for first-private-secret and second-private-secret"})
+	raw, _ := json.Marshal(r)
+	if !strings.Contains(r.Error, "credit balance too low") || strings.Contains(string(raw), "private-secret") || r.Status != 400 || r.By != "credit" {
+		t.Fatalf("vendor explanation lost or leaked a key: %s", raw)
+	}
+}
+
+// Normalizing private bridge IDs must apply the upstream Devin migration,
+// without widening per-account model restrictions.
+func TestPrivateDevinBridgeDoesNotExposeRetiredRouters(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	t.Cleanup(func() { provider.WinOneProviders = nil; settings.WinOneSettings.Store(nil) })
+	if err := applyRuntimeSettings(request{}); err != nil {
+		t.Fatal(err)
+	}
+	in := request{AuxiliaryProviders: []auxiliaryProvider{{Provider: provider.Provider{ID: "private-devin", Chat: "http://127.0.0.1:9/v1", Models: []string{"Adaptive", "swe-2", "fusion"}}, AccountKind: "devin"}}}
+	if err := installAuxiliaryProviders(in); err != nil {
+		t.Fatal(err)
+	}
+	p, err := provider.Find("private-devin")
+	if err != nil || !slices.Equal(p.Models, []string{"swe-2"}) {
+		t.Fatalf("private bridge retains retired routers: %+v %v", p, err)
+	}
+}
 
 // The provider's GUI and gateway use OutputWithin when publishing a model.
 // In particular, models.dev's output can exceed the vendor's own context.

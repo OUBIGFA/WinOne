@@ -8,7 +8,6 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
-	"winone/desktopmygo/widgets"
 )
 
 // draggedProgram is a list row being dragged to another place.
@@ -21,13 +20,12 @@ type draggedProgram struct{ id string }
 // hid the repeated label.
 const (
 	collectWidth = 36
-	replaceWidth = 56
 	orderWidth   = 80
 	controlGap   = 16
 )
 
 // programList shows the programs in starting order: each with its icon,
-// name, tray collection, replace action and position, chosen by a click,
+// name, tray collection and position, chosen by a click,
 // Enter or Space, and moved by dragging or by choosing its position.
 func (p *page) programList(c *ui.Context) {
 	apps := p.apps()
@@ -41,7 +39,7 @@ func (p *page) programList(c *ui.Context) {
 				for _, column := range []struct {
 					key   string
 					width float32
-				}{{"settingsDesign.trayColumn", collectWidth}, {"settingsDesign.replaceColumn", replaceWidth}, {"settingsDesign.orderColumn", orderWidth}} {
+				}{{"settingsDesign.trayColumn", collectWidth}, {"settingsDesign.orderColumn", orderWidth}} {
 					kit.Caption(c, i18n.T(column.key)).Width(column.width).SingleLine().TextAlign(ui.Center)
 				}
 			})
@@ -95,22 +93,6 @@ func (p *page) programRow(c *ui.Context, index int, app program) {
 				if sw.Changed() {
 					p.update(app.ID, func(a *program) { a.CollectTrayIcon = on })
 				}
-			})
-			ui.Row(c).Width(replaceWidth).Justify(ui.Center).Children(func() {
-				replace := kit.IconButton(c, icons.FolderOpen, i18n.T("wintray.replaceNamed", "name", name)).
-					Tooltip(i18n.T("wintray.replaceProgram")).Disabled(blocked)
-				if replace.Clicked() {
-					p.replace(app.ID, "")
-				}
-				// A program dragged onto the button replaces this one,
-				// rather than joining the list.
-				widgets.DropArea(c, p.env, replace, widgets.DropFiles, false, blocked, func(paths []string, err error) {
-					if err != nil {
-						p.err = err.Error()
-						return
-					}
-					p.replace(app.ID, paths[0])
-				})
 			})
 			p.orderSelect(c, index, app, name, blocked)
 		})

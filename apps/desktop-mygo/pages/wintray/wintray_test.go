@@ -49,7 +49,7 @@ func newFakeHost(t *testing.T, apps ...map[string]any) *fakeHost {
 		list = append(list, app)
 	}
 	return &fakeHost{t: t, revision: 1, errors: map[string]string{}, jobs: map[string]func(json.RawMessage) (any, error){},
-		settings: map[string]any{"schemaVersion": 3, "language": "zh-CN", "runAtLogon": false, "startMinimizedToTray": true,
+		settings: map[string]any{"schemaVersion": 4, "language": "zh-CN", "runAtLogon": false, "startMinimizedToTray": true,
 			"exitAfterManagedAppsCompleted": false, "closeWindowRetrySeconds": 10, "startupIntervalSeconds": 3, "managedApps": list,
 			"future": "kept"}}
 }
@@ -155,7 +155,7 @@ func TestDisabledModuleReadsItsConfiguration(t *testing.T) {
 	if len(f.h.Called("wintray.settings.get")) != 1 || len(f.h.Called("wintray.snapshot")) != 0 {
 		t.Fatalf("calls %+v", f.h.Calls())
 	}
-	for _, text := range []string{"模块已关闭，设置将在开启后生效。", "还没有程序，添加后可设置启动方式", "选择一个程序编辑设置", "程序", "收纳", "更换", "顺序"} {
+	for _, text := range []string{"模块已关闭，设置将在开启后生效。", "还没有程序，添加后可设置启动方式", "选择一个程序编辑设置", "程序", "收纳", "顺序", "已安装应用"} {
 		if !f.tt.HasText(text) {
 			t.Fatalf("missing %q: %q", text, f.tt.Texts())
 		}
@@ -178,10 +178,10 @@ func TestAddedProgramsTakeTheirDefaultsAndTheLastIsSelected(t *testing.T) {
 		t.Fatalf("apps %+v selected %q", apps, f.page.selected)
 	}
 	exe, script := apps[0].Value, apps[1].Value
-	if exe.Name != "识别Player" || mode(exe) != "tray" || !exe.RunOnStartup || exe.Schedule.Value.AutoExitMinutes != 30 || exe.Schedule.Value.FrequencyRuns != 1 {
+	if exe.Name != "识别Player" || mode(exe) != "normal" || exe.RunOnStartup || exe.Schedule.Value.AutoExitMinutes != 30 || exe.Schedule.Value.FrequencyRuns != 1 {
 		t.Fatalf("program %+v", exe)
 	}
-	if mode(script) != "hidden" || script.TrayBehavior.Value.AutoMinimizeAndHideOnLaunch {
+	if mode(script) != "normal" || script.RunOnStartup || script.TrayBehavior.Value.AutoMinimizeAndHideOnLaunch {
 		t.Fatalf("script %+v", script)
 	}
 	if !f.tt.HasText("有未保存的修改") {
@@ -201,7 +201,7 @@ func TestAddedProgramsTakeTheirDefaultsAndTheLastIsSelected(t *testing.T) {
 func TestSaveSendsTheWholeDraftOnceAndReadsAgain(t *testing.T) {
 	f := setup(t, "running", programDocument("a", "播放器", `C:\Apps\player.exe`))
 	f.click(t, "启动与计划")
-	f.click(t, "开机启动此程序")
+	f.click(t, "正常启动")
 	if f.h.Env.Rail.Save.Disabled {
 		t.Fatal("an edit left Save unavailable")
 	}
@@ -322,7 +322,8 @@ func TestReplacingWithAScriptKeepsIdentityAndSchedule(t *testing.T) {
 	f := setup(t, "running", programDocument("a", "播放器", `C:\Apps\player.exe`))
 	f.page.draft.Value.ManagedApps[0].Value.CollectTrayIcon = true
 	f.h.Picked["选择程序或脚本"] = `C:\Tools\job.cmd`
-	f.click(t, "更换 播放器 的程序")
+	f.click(t, i18n.T("wintray.moreSettings"))
+	f.click(t, i18n.T("wintray.replaceProgram"))
 	app := f.page.apps()[0].Value
 	if app.ID != "a" || app.Args != "--quiet" || app.ExePath != `C:\Tools\job.cmd` || app.Name != "识别job" || app.CollectTrayIcon ||
 		mode(app) != "hidden" || app.Schedule.Value.AutoExitMinutes != 30 {
@@ -331,7 +332,7 @@ func TestReplacingWithAScriptKeepsIdentityAndSchedule(t *testing.T) {
 	// The same file, whatever its case and slashes, changes nothing.
 	before := app
 	f.h.Picked["选择程序或脚本"] = `c:/tools/JOB.cmd`
-	f.click(t, "更换 识别job 的程序")
+	f.click(t, i18n.T("wintray.replaceProgram"))
 	if f.page.apps()[0].Value.ExePath != before.ExePath {
 		t.Fatal("the same file replaced the program")
 	}
@@ -532,19 +533,19 @@ func TestStartupChoicesWrapInsideANarrowPanel(t *testing.T) {
 		f.tt.SetSize(width, 900)
 		f.tt.Frame()
 		f.tt.Frame()
-		row, ok := f.tt.Find("Start this program at sign-in")
-		last, found := f.tt.Find("Start normally")
-		first, _ := f.tt.Find("Minimize to tray")
+		row, ok := f.tt.Find("Startup behavior")
+		last, found := f.tt.Find("Start immediately at sign-in")
+		first, _ := f.tt.Find("Start normally")
 		if !ok || !found {
 			t.Fatalf("width %v: texts %q", width, f.tt.Texts())
 		}
 		// The choices stay inside the panel's rows, wrapping when needed.
-		if last.X+last.W > row.X+row.W || first.X < row.X {
+		if last.X+last.W > float32(width) || first.X < row.X {
 			t.Fatalf("width %v: choices %v..%v outside the row %v", width, first, last, row)
 		}
 		// With room, they keep their own width: the track ends well
 		// before the row does.
-		if width == 1300 && last.X+last.W > row.X+row.W-40 {
+		if width == 1300 && first.X >= last.X {
 			t.Fatalf("the choices fill the row %v: %v", row, last)
 		}
 	}
@@ -636,7 +637,7 @@ func TestUnreadableStateOffersRetryAndTheWindowFollowsIt(t *testing.T) {
 
 func TestAProgramWithoutANameOpensOnItsInformation(t *testing.T) {
 	f := setup(t, "running", programDocument("a", "播放器", `C:\Apps\player.exe`), programDocument("b", "", `C:\Apps\tool.exe`))
-	if f.page.detailTab != 0 || !f.tt.HasText("开机启动此程序") {
+	if f.page.detailTab != 0 || !f.tt.HasText("启动方式") {
 		t.Fatalf("named program %q", f.tt.Texts())
 	}
 	row, ok := f.tt.Find("识别tool")

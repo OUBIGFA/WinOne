@@ -14,6 +14,7 @@ import (
 	"golang.org/x/sys/windows"
 	"winone/modules/wintray/internal/branding"
 	"winone/modules/wintray/internal/i18n"
+	"winone/modules/wintray/internal/shellapp"
 	"winone/modules/wintray/internal/traybox"
 )
 
@@ -381,9 +382,7 @@ func hostedWindowMatchesProcess(hwnd uintptr, pid uint32) bool {
 	if hwnd == 0 || pid == 0 {
 		return false
 	}
-	var owner uint32
-	_, err := windows.GetWindowThreadProcessId(windows.HWND(hwnd), &owner)
-	return err == nil && owner == pid
+	return shellapp.WindowProcessID(hwnd) == pid
 }
 
 var procShowHostedWindowAsync = windows.NewLazySystemDLL("user32.dll").NewProc("ShowWindowAsync")

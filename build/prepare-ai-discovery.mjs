@@ -8,12 +8,17 @@ if (!source) throw new Error('Pass the pinned Magpie source directory');
 const revision = JSON.parse(fs.readFileSync(path.join(root, 'third_party/sources.json'), 'utf8')).magpie.commit;
 const read = name => fs.readFileSync(path.join(source, 'internal/provider', name), 'utf8').replaceAll('\r\n', '\n');
 const auto = read('autolist.go'), patterns = read('groupmatch.go'), quota = read('concurrency.go'), disabled = read('disabled.go');
+const keys = read('keys.go');
+const devin = read('devin.go');
 function extract(text, name) {
   const start = text.indexOf(`func ${name}(`);
   const end = text.indexOf('\n}', start);
   if (start < 0 || end < 0) throw new Error(`Upstream parser ${name} changed`);
   return text.slice(start, end + 2);
 }
+const ruleStart = patterns.indexOf('type rule struct {');
+const ruleEnd = patterns.indexOf('\n}', ruleStart);
+if (ruleStart < 0 || ruleEnd < ruleStart) throw new Error('Upstream model rule type changed');
 // The compiled matcher now includes bounded lookahead/backtracking. Copy its
 // entire support block so the Host and upstream agree on accepted model rules.
 const matcherStart = patterns.indexOf('// matcher is a compiled pattern.');
@@ -25,16 +30,23 @@ package ai
 import ("fmt"; "regexp"; "slices"; "strconv"; "strings"; "time"; "github.com/dlclark/regexp2")
 const MinRefreshEvery = 10 * time.Minute
 const RegexpPrefix = "re:"
+const FreePrefix = "free:"
 type ResetAt struct { Hour, Minute int; Loc *time.Location }
 ${extract(quota, 'ParseResetAt')}
 ${extract(auto, 'ParseRefreshEvery')}
 ${extract(auto, 'CleanAutoInclude')}
 ${extract(patterns, 'IsPattern')}
+${extract(patterns, 'isIDPattern')}
 ${patterns.slice(matcherStart, matcherEnd)}
 ${extract(patterns, 'compilePattern')}
+${patterns.slice(ruleStart, ruleEnd + 2)}
+${extract(patterns, 'compileRule')}
 ${extract(patterns, 'PatternMatches')}
 ${extract(disabled, 'matchDisabled')}
 ${extract(disabled, 'globMatch')}
 ${extract(disabled, 'namesOf')}
+${extract(keys, 'SplitKeys')}
+${extract(devin, 'devinRouter').replaceAll('devinRouter', 'DevinRouter')}
+${extract(devin, 'withoutDevinRouters').replaceAll('withoutDevinRouters', 'WithoutDevinRouters').replaceAll('devinRouter', 'DevinRouter')}
 `;
 fs.writeFileSync(path.join(root, 'internal/ai/model_discovery_rules.go'), body, 'utf8');

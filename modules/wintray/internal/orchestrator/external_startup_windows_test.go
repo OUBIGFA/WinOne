@@ -197,7 +197,7 @@ func TestStartupWithoutEnabledRunEntryAndManualStartStillLaunch(t *testing.T) {
 
 type callbackEnumerator func() []ManagedWindowInfo
 
-func TestManualStartWithStartupDisabledHonorsSavedModes(t *testing.T) {
+func TestManualStartUsesModeWithoutLegacyStartupSwitch(t *testing.T) {
 	for _, mode := range []string{"hidden", "tray", "task"} {
 		t.Run(mode, func(t *testing.T) {
 			entry := startupTestEntry(t)
@@ -207,22 +207,22 @@ func TestManualStartWithStartupDisabledHonorsSavedModes(t *testing.T) {
 			entry.LaunchViaLogonTask = mode == "task"
 			manager := &testManager{}
 			svc := NewService(&testEnumerator{}, manager, &testLogger{})
-			svc.logonTaskLaunch = func(e config.ManagedAppEntry) error {
-				cmd, err := startProcess(e.ExePath, e.Args, launchNoWindow)
+			taskLaunches := 0
+			svc.logonTaskLaunch = func(actual config.ManagedAppEntry) error {
+				taskLaunches++
+				command, err := startProcess(actual.ExePath, actual.Args, launchNoWindow)
 				if err == nil {
-					_ = cmd.Process.Release()
+					command.Process.Release()
 				}
 				return err
 			}
 			result := svc.StartNow(context.Background(), entry, 0)
 			want := map[string]ResultCode{"hidden": ResultStartedHidden, "tray": ResultHiddenToTray, "task": ResultStartedOnly}[mode]
-			if result.Code != want || (result.Hidden != nil) != (mode == "tray" || mode == "hidden") || len(startupTestPIDs(entry.ExePath)) != 1 {
-				t.Fatalf("manual mode %s was ignored: result=%+v", mode, result)
+			if result.Code != want || (result.Hidden != nil) != (mode != "task") || len(startupTestPIDs(entry.ExePath)) != 1 || (taskLaunches == 1) != (mode == "task") {
+				t.Fatalf("mode %s was ignored: result=%+v task launches=%d", mode, result, taskLaunches)
 			}
-			if result.Hidden != nil {
-				if result.Hidden.Handle == 0 || isWindowVisible(result.Hidden.Handle) {
-					t.Fatal("console was not hidden in a recoverable tray window")
-				}
+			if result.Hidden != nil && (result.Hidden.Handle == 0 || isWindowVisible(result.Hidden.Handle)) {
+				t.Fatal("console was not hidden in a recoverable tray window")
 			}
 		})
 	}

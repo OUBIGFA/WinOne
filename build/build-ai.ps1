@@ -38,6 +38,8 @@ if($LASTEXITCODE -ne 0){throw 'AI source/license verification failed'}
 if($LASTEXITCODE -ne 0){throw 'Native Magpie labels differ from the selected upstream'}
 & node (Join-Path $root 'build/generate-native-magpie-connect.mjs') $source --check
 if($LASTEXITCODE -ne 0){throw 'Native gateway examples differ from the selected upstream'}
+& node (Join-Path $root 'build/generate-native-magpie-headers.mjs') $source --check
+if($LASTEXITCODE -ne 0){throw 'Native header presets differ from the selected upstream'}
 $previousGofmt=$env:WINONE_GOFMT
 try {
  $env:WINONE_GOFMT=Join-Path (Split-Path -Parent (Get-Command $GoExe -ErrorAction Stop).Source) 'gofmt.exe'
@@ -52,6 +54,11 @@ Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/paste_windows.go') -D
 if($LASTEXITCODE -ne 0){throw 'Bundled account plugin preparation failed'}
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/main.go'),(Join-Path $root 'modules/ai-magpie/main_test.go'),(Join-Path $root 'modules/ai-magpie/accounts.go'),(Join-Path $root 'modules/ai-magpie/stream_test.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/stream.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plan_signin.go'),(Join-Path $root 'modules/ai-magpie/plan_signin_test.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/warmup.go'),(Join-Path $root 'modules/ai-magpie/warmup_test.go') -Destination $entry
+& node (Join-Path $root 'build/prepare-ai-proxy-probe.mjs') $source $entry
+if($LASTEXITCODE -ne 0){throw 'Native proxy probe source verification failed'}
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/proxy_probe.go'),(Join-Path $root 'modules/ai-magpie/proxy_probe_test.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/provider_preferences.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/own_balance_test.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/transport_failure_test.go') -Destination $entry
@@ -75,6 +82,8 @@ Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/account_snapshot.go')
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_signin.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/plugin_desktop_windows.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/models.go'),(Join-Path $root 'modules/ai-magpie/models_test.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/key_rests.go') -Destination $entry
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/account_migration.go') -Destination $entry
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/provider_accounts_test.go') -Destination (Join-Path $source 'internal/provider/winone_accounts_test.go') -Force
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/plugin_profile.go.txt') -Destination (Join-Path $source 'internal/plugin/winone_profile.go') -Force
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/account_snapshot.go.txt') -Destination (Join-Path $source 'internal/provider/winone_account_snapshot.go') -Force

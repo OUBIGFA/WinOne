@@ -31,6 +31,7 @@ type modelTest struct {
 	Protocol string `json:"protocol,omitempty"`
 	Status   int    `json:"status,omitempty"`
 	Error    string `json:"error,omitempty"`
+	Queued   string `json:"queued,omitempty"`
 }
 
 // discovered is a model a catalog lists.
@@ -202,11 +203,14 @@ func (m *modelsPanel) test(pr *provider, models []string, as string) {
 		if m.clients == nil {
 			m.clients = map[string]string{}
 		}
-		failed := 0
+		failed, queued := 0, 0
 		for i, model := range models {
 			m.tested[model] = r.Results[i]
 			if !*r.Results[i].OK {
 				failed++
+			}
+			if r.Results[i].Queued != "" {
+				queued++
 			}
 		}
 		key := "ai.modelTestsPassed"
@@ -214,6 +218,9 @@ func (m *modelsPanel) test(pr *provider, models []string, as string) {
 			key = "ai.modelTestsFailed"
 		}
 		m.notice = i18n.T(key, "count", len(models), "failed", failed)
+		if queued > 0 {
+			m.notice = i18n.T("aiSync.modelTestsQueued", "count", len(models), "queued", queued, "failed", failed)
+		}
 	})
 }
 
@@ -448,6 +455,28 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 						if badges := widgets.ModelBadges(&picker, model); badges != nil {
 							badges(c)
 						}
+						if metadata, ok := pr.CatalogMetadata[model]; ok && len(metadata.Keys) > 0 {
+							var names []string
+							for _, id := range metadata.Keys {
+								for index, key := range pr.slots() {
+									if key.ID == id {
+										label := key.Name
+										if label == "" {
+											label = i18n.T("ai.keyNumber", "index", index+1)
+										}
+										names = append(names, label)
+										break
+									}
+								}
+							}
+							label := strings.Join(names, " · ")
+							if metadata.KeyCount > 2 {
+								label = i18n.T("aiSync.modelKeyCount", "count", metadata.KeyCount)
+							}
+							if label != "" {
+								kit.Caption(c, label).Description(i18n.T("aiSync.listedByKeys", "keys", strings.Join(names, ", ")))
+							}
+						}
 					})
 					if kit.IconButton(c, icons.SlidersHorizontal, i18n.T("ai.editModelSettings", "name", name)).
 						Disabled(disabled || working).Clicked() {
@@ -460,6 +489,9 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 						color, mark := t.TextMuted, icons.Check
 						if !*result.OK {
 							color, mark = t.Danger, icons.X
+						}
+						if result.Queued != "" {
+							color, mark = t.TextMuted, icons.Clock
 						}
 						ui.Icon(c, mark).FontSize(14).TextColor(color).Shrink(0).Margin(2, 0, 0, 0)
 						ui.Text(c, testLine(result, model)).FontSize(kit.HelpSize(c)).TextColor(color).Shrink(1).MinWidth(0)
@@ -498,6 +530,9 @@ func testLine(r modelTest, model string) string {
 	}
 	if r.Protocol != "" {
 		parts = append(parts, r.Protocol)
+	}
+	if r.Queued != "" {
+		return strings.Join(append(parts, i18n.T("aiSync.modelQueued")+": "+r.Queued), " · ")
 	}
 	if *r.OK {
 		parts = append(parts, i18n.T("ai.modelTestTime", "ms", r.MS))

@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/yetone/magpie",
+  "revision": "289184a409c0e38a3a0a5282dbde93b56da309ca",
+  "license": "MIT",
+  "notice": "licenses/upstream-magpie-289184a409c0e38a3a0a5282dbde93b56da309ca-0-LICENSE.txt",
+  "inputs": {
+    "internal/gui/assets/headerpresets.js": "f2fc36cca1bf0611a3641b2afbca348d96113693cbc95c99ac14dcee24830ef1"
+  },
+  "files": {
+    "apps/desktop-mygo/pages/aiservices/header_presets.json": "99b2567167adf6dd7eadcf89e1a6722a5267869102e27ddc789c2eef08ea705e"
+  },
+  "adaptation": "Original preset names and header bytes; original case-insensitive fill-only merge, rendered with existing native controls."
+}

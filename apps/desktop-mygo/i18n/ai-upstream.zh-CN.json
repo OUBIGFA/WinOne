@@ -1,7 +1,6 @@
 {
   "aiUpstream.Base URL": "API 地址",
   "aiUpstream.Chat Completions, the API most tools speak. Anything with an OpenAI base-URL setting works.": "Chat Completions，多数工具使用的 API。任何可设置 OpenAI base URL 的工具都能用。",
-  "aiUpstream.Concurrency": "并发上限",
   "aiUpstream.Details": "详情",
   "aiUpstream.Example": "示例",
   "aiUpstream.Google's generateContent API, v1beta. Gemini CLI and the google-genai SDKs speak this.": "Google 的 generateContent API（v1beta）。Gemini CLI 和 google-genai SDK 使用它。",

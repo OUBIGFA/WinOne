@@ -14,6 +14,13 @@ if(-not $handler.Contains($load)){throw 'Upstream recent-call owner changed'}
 $handler=$handler.Replace($load,'if gw != nil {')
 $generated="// Generated from Magpie's current providers.go; MIT. Do not edit.`npackage main`nimport (`"net/http`"; `"strconv`"; `"github.com/yetone/magpie/internal/gateway`")`nfunc winOneCallRoutes(mux *http.ServeMux, gw *gateway.Server) {`n$handler`n}`n"
 [IO.File]::WriteAllText((Join-Path $SourceDirectory 'cmd/winone-ai/gateway_call.go'),$generated,$encoding)
+# Model/key badges use the same bounded list and ordering as upstream's
+# provider editor; only translate its public key fingerprints to Host slots.
+$apartStart=$providers.IndexOf('func keysApart(')
+$apartEnd=$providers.IndexOf("`n}",$apartStart)
+if($apartStart -lt 0 -or $apartEnd -le $apartStart){throw 'Upstream model-key membership changed'}
+$apart=$providers.Substring($apartStart,$apartEnd-$apartStart+2)
+[IO.File]::WriteAllText((Join-Path $SourceDirectory 'cmd/winone-ai/model_keys.go'),"// Generated from pinned Magpie providers.go; MIT.`npackage main`nimport (`"slices`")`nconst keysShown = 6`n$apart`n",$encoding)
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/gateway_backend.go') -Destination (Join-Path $SourceDirectory 'cmd/winone-ai')
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/gateway_admin.go') -Destination (Join-Path $SourceDirectory 'cmd/winone-ai/gateway_admin.go')
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/gateway_provider.go.txt') -Destination (Join-Path $SourceDirectory 'internal/provider/winone_gateway.go')

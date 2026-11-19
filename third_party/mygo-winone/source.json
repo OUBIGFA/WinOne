@@ -1,17 +1,17 @@
 {
   "module": "github.com/egoist/mygo",
-  "version": "v0.9.2",
+  "version": "v0.10.0",
   "repository": "https://github.com/egoist/mygo",
-  "commit": "25ce62f4d357cd6d29da04300e3fbc352d79daa4",
-  "moduleSum": "h1:4Yscy6Xrr8iusJyC2rYgQWUhuDjyLRSIvgNTOv2Zc0c=",
+  "commit": "ebde9399baf2734b3361856a53f4036859973d1d",
+  "moduleSum": "h1:HpLUrlh6WES+4VYbz5K0TvUSw/v8PSdjT/ttiUYrBFM=",
   "license": "MIT",
-  "notice": "licenses/desktop-go-github.com-egoist-mygo-v0.9.2-LICENSE.txt",
+  "notice": "licenses/desktop-go-github.com-egoist-mygo-v0.10.0-LICENSE.txt",
   "licenseSHA256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
   "scope": "Windows Shell cross-integrity file-drop receiver adapted from WinOne's component_file_drop.rs. Native UI, OLE, hit testing and file dispatch stay upstream. Markdown tables wrap within the reading column. Opaque Windows native surfaces paint the complete interactive scene with the existing CPU renderer while D3D11 initializes asynchronously, preserving input and UI state on GPU handoff. Shared editors accept standard Windows Ctrl+Insert through their existing copy command, preserving selection and password checks. Prepared from the verified pinned module into a repository source cache; never modifies the Go module cache.",
   "patches": [
     {
       "path": "ui/input.go",
-      "sha256": "8f073217dae708492538fec058e6bece8336c9fa7146d4dbbaf017c2a36157c2",
+      "sha256": "9d2bd9fbac0d01ef71c5454229f9d44f5b6f23a6dad8be586525d7c5f8e7ce9f",
       "edits": [
         {
           "oldText": "\tif s := rt.states[rt.focused]; s != nil && s.editor != nil && s.flags&(flagEditable|flagSelectable) != 0 && s.editor.wants(k) {\n\t\tif rt.textSelectionKey(s, k) {",
@@ -71,7 +71,7 @@
     },
     {
       "path": "ui/window.go",
-      "sha256": "c3f617d0d78d3ce2532d33fdfeda44e0a3abee0a92e81a99b711088fdcf40ee4",
+      "sha256": "ab21c3700c7680a84a8893504ce4fe6d6e1f9dafb3585356db034fa5a7bd956f",
       "edits": [
         {
           "oldText": "\th.uiFont()\n\th.textLanguage()",

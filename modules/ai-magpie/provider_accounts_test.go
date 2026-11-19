@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"github.com/yetone/magpie/internal/plugin"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,6 +16,27 @@ import (
 	"testing"
 	"time"
 )
+
+// Use the upstream migration fixture to verify the retained auth/import
+// flow; WinOne's bundle selection must replace every installation attempt.
+func TestWinOneOAuthAgyMoveKeepsOldAccountsWithoutInstalling(t *testing.T) {
+	signIn(t)
+	writePluginAuth(t, map[string]any{"antigravity": map[string]any{"type": "oauth", "refresh": "1//private-fixture|project", "access": "ya29.fixture", "accountId": "a@x.com"}})
+	standInAgy(t, true)
+	installPlugin = func(context.Context, string, string) error {
+		return errors.New("external package installation was attempted")
+	}
+	results, err := WinOneMoveToAgy(t.Context(), "0.1.98")
+	if err != nil || len(results) != 1 || results[0].Status != "added" || plugin.Auths("antigravity")["antigravity"] == nil {
+		t.Fatalf("private upstream migration failed or removed old auth: %+v %v", results, err)
+	}
+	agyCLIMissing = func(string) string { return "Antigravity CLI" }
+	installed := false
+	installAgy = func(context.Context, string) error { installed = true; return nil }
+	if _, err = WinOneMoveToAgy(t.Context(), "0.1.98"); err == nil || !strings.Contains(err.Error(), "install the official client first") || installed {
+		t.Fatalf("missing agy was installed or hidden: installed=%v err=%v", installed, err)
+	}
+}
 
 // Upstream's installer tests intentionally expect automatic CLI installation.
 // WinOne reports the missing dependency instead, for both built-in/plugin flows.

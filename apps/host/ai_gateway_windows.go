@@ -61,11 +61,17 @@ func (s *aiService) handleGateway(r host.Request) host.Response {
 		if err := configjson.DecodeObject(r.Params, &input); err != nil {
 			return fail(err)
 		}
+		before := s.gateway.Status()
 		value, err := s.gateway.Save(input.Settings, input.ResetKey)
 		if err != nil {
 			return fail(err)
 		}
 		result = value
+		if before.BareModelIDs != value.BareModelIDs || before.BareModelIDsOnly != value.BareModelIDsOnly {
+			// New lists use the saved mode. Replies already in flight keep
+			// their original upstream snapshot until they have finished.
+			s.retireGatewayBackend()
+		}
 		if !value.Enabled {
 			s.releaseGatewayBackend("")
 		}

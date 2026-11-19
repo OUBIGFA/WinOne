@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"winone/internal/captureprefs"
+	"winone/modules/wintray/applications"
 )
 
 // ExportOptions requires an explicit choice per application because command-line
@@ -48,7 +49,7 @@ func ExportBuiltinSettings(id string, raw json.RawMessage, options ExportOptions
 		expected = 3
 	}
 	var version int
-	if err := json.Unmarshal(source["schemaVersion"], &version); err != nil || version != expected {
+	if err := json.Unmarshal(source["schemaVersion"], &version); err != nil || (version != expected && !(id == "wintray" && version == 4)) {
 		return result, errors.New("不支持的模块配置版本")
 	}
 	var portable map[string]any
@@ -115,6 +116,9 @@ func ExportBuiltinSettings(id string, raw json.RawMessage, options ExportOptions
 		if err != nil {
 			break
 		}
+		if version >= 4 {
+			portable["startupModeVersion"] = 4
+		}
 		var entries []map[string]json.RawMessage
 		if bytes.Equal(bytes.TrimSpace(source["managedApps"]), []byte("null")) {
 			err = errors.New("程序列表为空")
@@ -165,12 +169,18 @@ func ExportBuiltinSettings(id string, raw json.RawMessage, options ExportOptions
 			} else if args != "" {
 				result.OmittedArguments = append(result.OmittedArguments, appID)
 			}
-			key := fmt.Sprintf("wintray.program.%d", index)
-			app["programRef"] = key
-			result.Paths[key] = PathReference{Kind: "program", Label: app["name"].(string)}
+			if applications.IsPath(path) {
+				// The Windows application ID survives package updates and carries
+				// no machine path. Activation still reports a missing local app.
+				app["applicationID"] = applications.ID(path)
+			} else {
+				key := fmt.Sprintf("wintray.program.%d", index)
+				app["programRef"] = key
+				result.Paths[key] = PathReference{Kind: "program", Label: app["name"].(string)}
+			}
 			// Working folders are device bindings, including relative paths.
 			// Export a mapping slot, never the source machine's directory.
-			if _, exists := entry["workingDirectory"]; exists {
+			if _, exists := entry["workingDirectory"]; exists && !applications.IsPath(path) {
 				var directory string
 				directory, err = sourceString(entry, "workingDirectory")
 				if err != nil {

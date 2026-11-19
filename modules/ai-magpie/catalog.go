@@ -3,6 +3,7 @@ package main
 import (
 	_ "embed"
 	"encoding/json"
+	"slices"
 )
 
 // The build checks this registry and every plugin file against the pinned
@@ -12,6 +13,7 @@ import (
 var pluginCatalogJSON []byte
 
 type accountPlugin struct {
+	Legacy    bool              `json:"legacy,omitempty"`
 	Kind      string            `json:"kind,omitempty"`
 	Icon      string            `json:"icon,omitempty"`
 	Summary   map[string]string `json:"summary,omitempty"`
@@ -52,11 +54,21 @@ func accountPlugins() []accountPlugin {
 
 func accountCatalog() []agentOption {
 	options := append([]agentOption(nil), agentOptions...)
+	// Withdrawn bundles are kept for existing private profiles only. Hiding
+	// their built-in alias too prevents a new account taking the same path.
+	for _, p := range accountPlugins() {
+		if p.Legacy {
+			options = slices.DeleteFunc(options, func(a agentOption) bool { return slices.Contains(p.Providers, a.ID) })
+		}
+	}
 	positions := map[string]int{}
 	for index, option := range options {
 		positions[option.ID] = index
 	}
 	for _, plugin := range accountPlugins() {
+		if plugin.Legacy {
+			continue
+		}
 		for _, id := range plugin.Providers {
 			if index, found := positions[id]; found {
 				// One provider stays one choice even when both implementations

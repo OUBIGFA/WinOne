@@ -36,6 +36,7 @@ if(-not $source.Contains($from)){throw 'Upstream provider middleware context cha
 $source=$source.Replace($from,$from+'; if kind:=WinOneMiddlewareAccounts[p.ID];kind!=""{to.Account=kind}')
 [IO.File]::WriteAllText((Join-Path $SourceDirectory $relative),$source+[Environment]::NewLine,$utf8)
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/account_registry.go.txt') -Destination (Join-Path $SourceDirectory 'internal/plugin/winone_registry.go')
+Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/account_migration.go.txt') -Destination (Join-Path $SourceDirectory 'internal/provider/winone_account_migration.go')
 
 # Only the outer gateway owns retries and group Patience. Retrying inside a
 # transport worker multiplies calls and defeats an inner group's Off choice.

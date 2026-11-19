@@ -15,14 +15,15 @@ import (
 // Zero/absent values keep upstream defaults; original identifiers and units
 // stay intact rather than introducing a second routing or pricing policy.
 type ProviderPreferences struct {
-	Contexts map[string]int `json:"contexts,omitempty"`
-	Routing  string         `json:"routing,omitempty"`
-	Affinity string         `json:"affinity,omitempty"`
-	Sink     bool           `json:"sink,omitempty"`
-	Billing  string         `json:"billing,omitempty"`
-	Website  string         `json:"website,omitempty"`
-	KeysURL  string         `json:"keysUrl,omitempty"`
-	Off      bool           `json:"off,omitempty"`
+	Contexts  map[string]int `json:"contexts,omitempty"`
+	MaxImages map[string]int `json:"maxImages,omitempty"`
+	Routing   string         `json:"routing,omitempty"`
+	Affinity  string         `json:"affinity,omitempty"`
+	Sink      bool           `json:"sink,omitempty"`
+	Billing   string         `json:"billing,omitempty"`
+	Website   string         `json:"website,omitempty"`
+	KeysURL   string         `json:"keysUrl,omitempty"`
+	Off       bool           `json:"off,omitempty"`
 	// Write-only edits on the public configuration. The Store seals them
 	// separately and hydrates only private execution snapshots.
 	AccessKeyID          *string                       `json:"accessKeyID,omitempty"`
@@ -236,7 +237,7 @@ func (p ProviderPreferences) validate() error {
 	if math.IsNaN(p.PriceRate) || math.IsInf(p.PriceRate, 0) || p.PriceRate < 0 || p.PriceRate > 1000 || len(p.RateWindows) > 8 {
 		return errors.New("价格倍率或计费时间段无效")
 	}
-	if p.Socket != "" && p.Socket != "auto" && p.Socket != "on" {
+	if p.Socket != "" && p.Socket != "auto" && p.Socket != "on" && p.Socket != "off" {
 		return errors.New("Responses WebSocket 模式无效")
 	}
 	// Only bound document input here; upstream checks the certificate and

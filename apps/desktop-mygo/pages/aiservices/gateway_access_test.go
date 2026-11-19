@@ -4,11 +4,95 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/egoist/mygo/ui"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 	"winone/desktopmygo/i18n"
 )
+
+type keyStateTransport func(*http.Request) (*http.Response, error)
+
+func (f keyStateTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// The editor reads live state on request and sends only a saved slot ID
+// when retrying, without changing the configuration draft.
+func TestNativeKeyRestReadAndRetryKeepTheProviderDraft(t *testing.T) {
+	_, h, p, tt := setup(t)
+	retried := false
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "POST" {
+			if !strings.HasSuffix(r.URL.Path, "/api/winone/providers/one/key-rests/retry") {
+				t.Error("retry reached another provider")
+			}
+			var in struct {
+				ID string `json:"id"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.ID != "primary" {
+				t.Error("retry did not retain its slot", err)
+			}
+			retried = true
+			fmt.Fprint(w, `{"keys":[]}`)
+			return
+		}
+		fmt.Fprint(w, `{"keys":[{"id":"primary","rest":{"why":"credit","status":400,"until":"2099-01-01T01:00:00Z","error":"Vendor says credit balance is too low","by":"credit"}}]}`)
+	})
+	oldTransport := http.DefaultTransport
+	t.Cleanup(func() { http.DefaultTransport = oldTransport })
+	http.DefaultTransport = keyStateTransport(func(r *http.Request) (*http.Response, error) {
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		return w.Result(), nil
+	})
+	p.gateway.runtimeURL = "http://127.0.0.1:1/session/test/"
+	pr := p.current()
+	e := newEditor(p, pr, "fixture")
+	defer e.Close()
+	before := clone(*p.draft)
+	tt = ui.NewTester(func(c *ui.Context) { e.keys(c, pr, false) }, 1100, 1600)
+	settle(h, tt)
+	if err := tt.Click(i18n.T("aiSync.readKeyState")); err != nil {
+		t.Fatal("key-state read is not available", err)
+	}
+	settle(h, tt)
+	if _, ok := tt.Find("Vendor says credit balance is too low"); !ok {
+		t.Fatal("vendor rest explanation was dropped")
+	}
+	if err := tt.Click(i18n.T("aiSync.retryKeyNow")); err != nil {
+		t.Fatal(err)
+	}
+	settle(h, tt)
+	if !retried || !equal(before, p.draft) {
+		t.Fatal("retry was not sent or changed the provider draft")
+	}
+}
+
+// Unknown account resets and total budgets have no date to print. The
+// actual production policy pane must retain their distinct instructions.
+func TestGatewayBudgetDisplaysUnknownAndManualReset(t *testing.T) {
+	_, h, p, tt := setup(t)
+	a := &p.gateway.access
+	var k callerKey
+	if err := json.Unmarshal([]byte(`{"id":"fixture","name":"Fixture","limit":{"period":"account","account":"codex/user","accountWindow":"5h","tokens":1000},"usedAll":[{"tokens":1000,"cost":0,"period":"account","spent":true,"resetUnknown":true,"reset":"0001-01-01T00:00:00Z"}]}`), &k); err != nil {
+		t.Fatal(err)
+	}
+	a.begin(p, k)
+	a.tab = 2
+	tt = ui.NewTester(func(c *ui.Context) { a.editorView(c, p) }, 1100, 1600)
+	settle(h, tt)
+	if _, ok := tt.Find(i18n.T("aiSync.accountResetUnknownSpent")); !ok {
+		t.Fatal("unknown account reset was not explained in the policy pane")
+	}
+	a.edit.Limit.Period = "total"
+	a.edit.UsedAll = nil
+	settle(h, tt)
+	if _, ok := tt.Find(i18n.T("aiSync.totalResetManual")); !ok {
+		t.Fatal("total budget's manual reset is not explained")
+	}
+}
 
 func TestNativeGatewayConcurrencyPolicyRoundTrip(t *testing.T) {
 	p, h, tt, router := nativeAIWithRuntime(t)

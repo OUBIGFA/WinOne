@@ -7,9 +7,32 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
+
+// Independent WinOne IDs must not hide Devin's upstream retired-model
+// migration. Other providers' models and account allowlists stay intact.
+func TestDevinRetiredRouterPicksAreNotServed(t *testing.T) {
+	c := Configuration{Engine: "llm", OCREngine: "local", Target: "auto", Providers: []Provider{
+		{ID: "private-devin", Name: "Devin", AuthMode: "account", Agent: "devin", Models: []string{"Adaptive", "swe-2", "fusion"}, AvailableModels: []string{"Adaptive", "swe-2", "fusion"}, Delisted: []string{"FUSION"}, ModelMetadata: map[string]ModelMetadata{"Adaptive": {ContextWindow: 128000}}, ModelNames: map[string]string{"Adaptive": "Old router"}, ProviderPreferences: ProviderPreferences{AccountModels: map[string][]string{"user": {"adaptive"}}}},
+		{ID: "relay", Name: "Relay", AuthMode: "api-key", Protocol: "chat", BaseURL: "https://example.invalid/v1", Models: []string{"adaptive"}},
+	}, Tasks: map[string]Selection{"default": {Provider: "private-devin", Model: "Adaptive"}}}
+	got := cloneConfiguration(c)
+	if !slices.Equal(got.Providers[0].Models, []string{"swe-2"}) || !slices.Equal(got.Providers[0].AvailableModels, []string{"swe-2"}) || len(got.Providers[0].Delisted) != 0 {
+		t.Fatalf("retired Devin picks remain selectable: %+v", got.Providers[0])
+	}
+	if got.Tasks["default"] != (Selection{}) {
+		t.Fatal("default task still selects a retired Devin router")
+	}
+	if !slices.Equal(got.Providers[0].AccountModels["user"], []string{"adaptive"}) || !slices.Equal(got.Providers[1].Models, []string{"adaptive"}) || len(c.Providers[0].Models) != 3 {
+		t.Fatal("migration changed another provider, account scope or source snapshot")
+	}
+	if err := validateConfiguration(got); err != nil {
+		t.Fatal("retired model's retained settings block ordinary saves", err)
+	}
+}
 
 // Old provider and service fields must neither block startup nor reach a new
 // worker. The same saved provider must still resolve its original credential.

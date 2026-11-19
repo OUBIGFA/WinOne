@@ -28,13 +28,16 @@ type editor struct {
 	renameOrigin string
 	renameFocus  bool
 
-	gen     int // the page's savedGen the rows were read at
-	fields  fields
-	keyRows map[string]*keyRow
-	headers []*headerRow
-	avatar  avatarState
-	models  *modelsPanel
-	account *accountPanel
+	gen         int // the page's savedGen the rows were read at
+	fields      fields
+	proxyProbes map[string]*proxyProbePanel
+	keyRows     map[string]*keyRow
+	keyRests    keyRestPanel
+	plan        planPanel
+	headers     []*headerRow
+	avatar      avatarState
+	models      *modelsPanel
+	account     *accountPanel
 	// optionsOpen unfolds an account provider's options.
 	optionsOpen          bool
 	preferenceTab        int
@@ -46,6 +49,11 @@ type editor struct {
 	endpointsOpen        bool
 	serverCertificate    *serverCertificate
 	certificateSource    string
+	bulkKeysOpen         bool
+	bulkKeysText         string
+	bulkKeysBusy         bool
+	bulkKeysError        string
+	closed               bool
 }
 
 func newEditor(p *page, pr *provider, key string) *editor {
@@ -67,6 +75,8 @@ func newEditor(p *page, pr *provider, key string) *editor {
 // reset rereads what the saved configuration replaced: typed header rows,
 // revealed keys.
 func (e *editor) reset(pr *provider) {
+	e.keyRests.api.close()
+	e.keyRests = keyRestPanel{}
 	e.gen = e.p.savedGen
 	for _, row := range e.keyRows {
 		row.read++
@@ -80,6 +90,12 @@ func (e *editor) reset(pr *provider) {
 }
 
 func (e *editor) Close() {
+	e.plan.read++
+	if e.plan.auth != nil {
+		e.plan.auth.Close()
+	}
+	e.keyRests.api.close()
+	e.closed = true
 	e.claudeMode.api.close()
 	for _, row := range e.keyRows {
 		row.read++
@@ -176,6 +192,9 @@ func (p *page) providersView(c *ui.Context) {
 				}
 				if !accounts && kit.Button(c, i18n.T("ai.addPreset"), icons.PlugZap, false).Disabled(locked || full).Clicked() {
 					addPreset()
+				}
+				if kit.Button(c, i18n.T("aiBulkProviders.open"), icons.ListChecks, false).Disabled(locked).Clicked() {
+					p.bulkProvidersOpen = true
 				}
 			})
 		})
@@ -276,6 +295,9 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 	if pr.AuthMode == "account" && pr.Agent == "claude" {
 		e.claudeModeView(c, locked)
 	}
+	if pr.AuthMode == "account" && pr.Agent == "codex" {
+		e.codexClientView(c, locked)
+	}
 	if pr.AuthMode == "account" {
 		label := "aiOptions.open"
 		if e.optionsOpen {
@@ -322,6 +344,7 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 		section.Focus()
 	}
 	section.Children(func() { e.models.View(c, pr) })
+	e.planView(c, pr, locked)
 	remove := "ai.removeService"
 	if pr.AuthMode == "account" {
 		remove = "ai.removeAccount"
@@ -381,7 +404,7 @@ func (e *editor) connection(c *ui.Context, pr *provider, locked bool) {
 					chosen := *preset
 					p.change(id, func(t *provider) {
 						protocol, base := presetConnection(chosen, region, t.Protocol)
-						models := append([]string{}, chosen.Models...)
+						models := chosen.modelIDs(region)
 						t.PresetRegion, t.Protocol, t.BaseURL, t.Models, t.AvailableModels = region, protocol, base, []string{}, &models
 					})
 				}
@@ -465,7 +488,7 @@ func (e *editor) keys(c *ui.Context, pr *provider, locked bool) {
 	kit.Stack(c, "", "", func() {
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Justify(ui.SpaceBetween).Children(func() {
 			kit.Label(c, i18n.T("ai.key"))
-			if kit.IconButton(c, icons.Plus, i18n.T("ai.addKey")).Disabled(locked || len(slots) >= 16).Clicked() {
+			if kit.IconButton(c, icons.Plus, i18n.T("ai.addKey")).Disabled(locked).Clicked() {
 				slot := keySlot{ID: newID(), Enabled: true}
 				p.change(id, func(t *provider) {
 					next := append(append([]keySlot{}, t.slots()...), slot)
@@ -476,8 +499,8 @@ func (e *editor) keys(c *ui.Context, pr *provider, locked bool) {
 		for i, slot := range slots {
 			e.keyRow(c.Key(slot.ID), pr, slot, i, len(slots), edits, locked)
 		}
-		if len(slots) > 1 {
-		}
+		e.bulkKeys(c, pr, locked)
+		e.keyRestControls(c, pr, locked)
 	})
 }
 
@@ -582,6 +605,7 @@ func (e *editor) keyRow(c *ui.Context, pr *provider, slot keySlot, index, count 
 			}
 		})
 		kit.InlineError(c, row.err)
+		e.keyRestRow(c, pr, slotID, locked || edited || !slot.Enabled)
 	})
 }
 
@@ -624,7 +648,11 @@ func (e *editor) toggleKey(provider, slot string, row *keyRow, edited bool) {
 // headersView edits the request headers as rows, Magpie's ordered
 // name/value/JSON editor; the draft keeps only their serialization.
 func (e *editor) headersView(c *ui.Context, pr *provider, locked bool) {
-	if requestHeaderRows(c, &e.headers, 64, locked) {
+	var hints []string
+	if preset := e.p.catalog.preset(pr.Preset); preset != nil {
+		hints = preset.HeaderHints
+	}
+	if requestHeaderRows(c, &e.headers, 64, locked, hints) {
 		rows := make([]headerRow, len(e.headers))
 		for i, row := range e.headers {
 			rows[i] = *row
@@ -634,7 +662,7 @@ func (e *editor) headersView(c *ui.Context, pr *provider, locked bool) {
 }
 
 // Provider and model request headers use the same name/value/JSON controls.
-func requestHeaderRows(c *ui.Context, rows *[]*headerRow, limit int, locked bool) bool {
+func requestHeaderRows(c *ui.Context, rows *[]*headerRow, limit int, locked bool, hints ...[]string) bool {
 	changed := false
 	kit.Group(c, icons.Braces, i18n.T("ai.headers"), i18n.T("ai.headersHint"), func() {
 		kit.Stack(c, "", "", func() {
@@ -683,10 +711,41 @@ func requestHeaderRows(c *ui.Context, rows *[]*headerRow, limit int, locked bool
 				(*rows) = append((*rows)[:remove], (*rows)[remove+1:]...)
 				changed = true
 			}
-			ui.Row(c).Children(func() {
+			ui.Row(c).Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
 				if kit.GhostButton(c, i18n.T("ai.addHeader"), icons.Plus, false).Disabled(locked || len((*rows)) >= limit).Clicked() {
 					(*rows) = append((*rows), &headerRow{})
 					changed = true
+				}
+				selected := ""
+				choices := []kit.SelectOption{{Value: "", Label: i18n.T("aiSync.headerPresets")}}
+				for _, preset := range headerPresets {
+					choices = append(choices, kit.SelectOption{Value: preset.Name, Label: preset.Name})
+				}
+				picked, trigger := kit.Select(c, &selected, choices)
+				trigger.Label(i18n.T("aiSync.headerPresets")).Disabled(locked)
+				if picked && selected != "" {
+					for _, preset := range headerPresets {
+						if preset.Name == selected {
+							applyHeaderPreset(rows, preset)
+							changed = true
+							break
+						}
+					}
+				}
+				for _, group := range hints {
+					for _, hint := range group {
+						found := false
+						for _, row := range *rows {
+							if strings.EqualFold(strings.TrimSpace(row.Name), hint) {
+								found = true
+								break
+							}
+						}
+						if !found && kit.GhostButton(c, "+ "+hint, nil, false).Disabled(locked || len(*rows) >= limit).Clicked() {
+							*rows = append(*rows, &headerRow{Name: hint})
+							changed = true
+						}
+					}
 				}
 			})
 		})

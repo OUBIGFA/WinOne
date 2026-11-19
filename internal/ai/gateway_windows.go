@@ -29,6 +29,10 @@ type GatewaySettings struct {
 	Enabled  bool   `json:"enabled"`
 	Port     int    `json:"port"`
 	Native   bool   `json:"native"` // Explicit full provider API access; model filters cannot constrain unknown vendor endpoints.
+	// These are the upstream gateway's three listing modes: scoped IDs,
+	// scoped and bare IDs together, or bare IDs alone where they resolve.
+	BareModelIDs     bool `json:"bareModelIDs"`
+	BareModelIDsOnly bool `json:"bareModelIDsOnly"`
 	// nil preserves the legacy set; an explicit empty slice exposes no models.
 	Models []Selection `json:"models"`
 }
@@ -145,6 +149,7 @@ func (g *Gateway) Save(value GatewaySettings, reset bool) (GatewayStatus, error)
 	if err := value.GatewayNetwork.validate(); err != nil {
 		return fail(err)
 	}
+	value.BareModelIDsOnly = value.BareModelIDs && value.BareModelIDsOnly
 	value.AllowIPs = slices.Clone(value.AllowIPs)
 	value.CORSOrigins = slices.Clone(value.CORSOrigins)
 	// Older forms do not know the model field. They cannot reopen routes that

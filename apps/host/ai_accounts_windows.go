@@ -88,7 +88,11 @@ func (job *aiSignInJob) observe(event aiSignInProgress) {
 }
 
 func validSignInInput(status aiSignInState, value string) bool {
-	if len(value) > 16384 {
+	limit := 16384
+	if status.Prompt != nil && status.Prompt.Key == "plan-session" {
+		limit = 64 << 10
+	}
+	if len(value) > limit {
 		return false
 	}
 	if status.State == "input" && status.Prompt != nil {
@@ -119,6 +123,7 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 	}
 	var params struct {
 		Agent      string           `json:"agent"`
+		Plan       bool             `json:"plan,omitempty"`
 		ID         string           `json:"id"`
 		Callback   string           `json:"callback"`
 		Keys       bool             `json:"keys"`
@@ -146,8 +151,28 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 	var balanceProvider *ai.Provider
 	var accountProviders []ai.Provider
 	var balanceKeys ai.KeyPlan
+	var signInPlan *ai.Provider
+	if params.Plan {
+		if r.Method != "accounts.signin.start" || params.Provider == "" || params.Draft != nil {
+			return fail(errors.New("请先保存套餐供应商"))
+		}
+		p, _, err := s.store.ProviderKeysForModels(params.Provider)
+		if err != nil {
+			return fail(err)
+		}
+		if p.AuthMode != "api-key" {
+			return fail(errors.New("套餐供应商无效"))
+		}
+		signInPlan = &p
+		params.Agent = "platform-plan"
+		gate = s.accountGateFor(p.ID)
+	}
 	if params.Draft != nil && params.Provider == "" {
 		return fail(errors.New("账号连接标识无效"))
+	}
+	warmup := r.Method == "accounts.warm-now" || r.Method == "accounts.warm-all"
+	if warmup && (params.Provider == "" || params.Draft != nil || params.Agent != "codex" && params.Agent != "claude" || r.Method == "accounts.warm-now" && (params.User == "" || len(params.User) > 320)) {
+		return fail(errors.New("请选择支持预热的已保存账号"))
 	}
 	if (r.Method == "accounts.quota" || r.Method == "accounts.checkin") && (params.Provider == "" || params.Draft != nil) {
 		return fail(errors.New("请先保存需要读取额度的账号"))
@@ -158,7 +183,10 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 	if r.Method == "accounts.export" && (params.Provider == "" || params.Agent != "codex" && params.Agent != "claude" || params.Format != "sub2api" && params.Format != "cliproxyapi" || params.Path == "" || len(params.Users) == 0) {
 		return fail(errors.New("账号导出参数无效"))
 	}
-	if params.Provider != "" && (r.Method == "accounts.list" || r.Method == "accounts.models" || r.Method == "accounts.quota" || r.Method == "accounts.checkin" || r.Method == "accounts.signin.start" || r.Method == "accounts.import" || r.Method == "accounts.export") {
+	if r.Method == "accounts.move-agy" && (params.Provider == "" || params.Agent != "antigravity" || params.Draft != nil) {
+		return fail(errors.New("请先保存需要迁移的 Antigravity 账号供应商"))
+	}
+	if params.Provider != "" && (r.Method == "accounts.list" || r.Method == "accounts.models" || r.Method == "accounts.quota" || r.Method == "accounts.checkin" || r.Method == "accounts.signin.start" || r.Method == "accounts.import" || r.Method == "accounts.export" || r.Method == "accounts.move-agy" || warmup) {
 		if r.Method == "accounts.quota" {
 			p, plan, err := s.store.ProviderKeysForModels(params.Provider)
 			if err != nil {
@@ -171,7 +199,7 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 				balanceProvider, balanceKeys = &p, plan
 			}
 		}
-		if balanceProvider == nil {
+		if balanceProvider == nil && signInPlan == nil {
 			p, err := s.accountProvider(params.Provider, params.Agent, params.Draft)
 			if err != nil {
 				return fail(err)
@@ -180,20 +208,45 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 			runtime.AccountBackend = p.AgentBackend
 			accountProviders = []ai.Provider{p}
 			gate = s.accountGateFor(p.ID)
-		} else {
+		} else if balanceProvider != nil {
 			gate = s.accountGateFor(balanceProvider.ID)
 		}
 	}
 	switch r.Method {
-	case "accounts.catalog", "accounts.list", "accounts.models", "accounts.quota", "accounts.checkin", "accounts.import", "accounts.export":
+	case "accounts.catalog", "accounts.list", "accounts.models", "accounts.quota", "accounts.checkin", "accounts.import", "accounts.export", "accounts.move-agy", "accounts.warm-now", "accounts.warm-all":
 		// Even a quota read can refresh credentials or write quota history.
 		// Keep one owner per profile, but let a short read wait for another
 		// operation instead of treating ordinary contention as a broken login.
 		wait := 25 * time.Second
-		if r.Method == "accounts.import" {
+		if r.Method == "accounts.import" || r.Method == "accounts.move-agy" || warmup {
 			wait = 3 * time.Minute
 		}
-		readCtx, cancel := context.WithTimeout(s.ctx, wait)
+		var readCtx context.Context
+		var cancel context.CancelFunc
+		if r.Method == "accounts.warm-all" {
+			readCtx, cancel = context.WithCancel(s.ctx)
+		} else {
+			readCtx, cancel = context.WithTimeout(s.ctx, wait)
+		}
+		if r.Method == "accounts.warm-all" && r.PeerPID != 0 {
+			// The same OS-reported owner used by sign-in owns an unbounded
+			// warm-up batch. Its exit cancels the worker's existing Job Object.
+			owner, err := windows.OpenProcess(windows.SYNCHRONIZE, false, r.PeerPID)
+			if err != nil {
+				cancel()
+				return fail(err)
+			}
+			go func() {
+				defer windows.CloseHandle(owner)
+				for readCtx.Err() == nil {
+					state, err := windows.WaitForSingleObject(owner, 200)
+					if err != nil || state == windows.WAIT_OBJECT_0 {
+						cancel()
+						return
+					}
+				}
+			}()
+		}
 		defer cancel()
 		if readCtx.Err() != nil {
 			return fail(errors.New("账号读取已取消"))
@@ -208,8 +261,12 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 			return fail(errors.New("账号读取已取消"))
 		}
 		var output json.RawMessage
-		if r.Method == "accounts.import" {
+		if warmup {
+			output, err = runtime.WarmAccounts(readCtx, accountProviders[0], params.User, r.Method == "accounts.warm-all")
+		} else if r.Method == "accounts.import" {
 			output, err = runtime.ImportAccounts(readCtx, accountProviders[0], params.Files, params.AccessOnly)
+		} else if r.Method == "accounts.move-agy" {
+			output, err = runtime.MoveAntigravityAccounts(readCtx, accountProviders[0])
 		} else if r.Method == "accounts.export" {
 			output, err = runtime.ExportAccounts(readCtx, accountProviders[0], params.Format, params.Path, params.Users)
 		} else if balanceProvider != nil {
@@ -281,7 +338,7 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 					}()
 				}
 			}
-			err := runtime.SignInAccount(ctx, params.Agent, params.Method, params.User, job.input, func(raw json.RawMessage) {
+			observe := func(raw json.RawMessage) {
 				var event aiSignInProgress
 				if json.Unmarshal(raw, &event) != nil {
 					return
@@ -292,7 +349,13 @@ func (s *aiService) handleAccounts(r host.Request) host.Response {
 					return
 				}
 				job.observe(event)
-			})
+			}
+			var err error
+			if signInPlan != nil {
+				err = runtime.SignInPlan(ctx, *signInPlan, job.input, observe)
+			} else {
+				err = runtime.SignInAccount(ctx, params.Agent, params.Method, params.User, job.input, observe)
+			}
 			release()
 			s.mu.Lock()
 			defer s.mu.Unlock()

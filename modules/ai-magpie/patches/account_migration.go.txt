@@ -1,0 +1,20 @@
+package provider
+
+import (
+ "context"
+ "fmt"
+ "github.com/yetone/magpie/internal/update"
+)
+
+// Keep MoveToAgy's original dedupe, proxy carry and auth.import flow.
+// WinOne supplies verified code and never installs another desktop client.
+func WinOneMoveToAgy(ctx context.Context, bundledVersion string) ([]ImportedAccount,error) {
+ oldPlugin,oldAgy:=installPlugin,installAgy
+ defer func(){installPlugin,installAgy=oldPlugin,oldAgy}()
+ installPlugin=func(_ context.Context,pkg,min string)error{
+  if pkg!=agyCLIPackage||update.Newer(min,bundledVersion){return fmt.Errorf("the bundled Antigravity adapter cannot import these accounts")}
+  return nil
+ }
+ installAgy=func(context.Context,string)error{return fmt.Errorf("Antigravity CLI (agy) is required; install the official client first")}
+ return MoveToAgy(ctx)
+}

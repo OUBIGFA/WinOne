@@ -251,12 +251,18 @@ func (t Translator) SignInMethod(ctx context.Context, agent string, method *int,
 
 // SignInAccount retains Magpie's per-account proxy selection when renewing a login.
 func (t Translator) SignInAccount(ctx context.Context, agent string, method *int, user string, controls <-chan string, progress func(json.RawMessage)) error {
+	return t.signInInput(ctx, map[string]any{"operation": "accounts.signin", "agent": agent, "agentBackend": t.AccountBackend, "method": method, "user": user}, controls, progress)
+}
+
+// Both account and platform authorization use the same owned process and
+// cancellation channel; a platform flow must live until approval completes.
+func (t Translator) signInInput(ctx context.Context, input any, controls <-chan string, progress func(json.RawMessage)) error {
 	process, err := t.startMode(ctx, true)
 	if err != nil {
 		return err
 	}
 	encoder := json.NewEncoder(process.input)
-	if err = encoder.Encode(map[string]any{"operation": "accounts.signin", "agent": agent, "agentBackend": t.AccountBackend, "method": method, "user": user}); err != nil {
+	if err = encoder.Encode(t.withRuntimeSettings(input)); err != nil {
 		process.closeJob()
 		process.finish()
 		return err

@@ -20,16 +20,18 @@ import (
 // offers every enabled model; a list offers those, and none when empty.
 type gatewayStatus struct {
 	ai.GatewayNetwork
-	Revision float64                `json:"revision"`
-	Enabled  bool                   `json:"enabled"`
-	Native   bool                   `json:"native"`
-	Port     float64                `json:"port"`
-	Running  bool                   `json:"running"`
-	HasKey   bool                   `json:"hasKey"`
-	BaseURL  string                 `json:"baseUrl"`
-	LANURLs  []string               `json:"lanUrls,omitempty"`
-	Error    string                 `json:"error,omitempty"`
-	Models   *[]widgets.AISelection `json:"models"`
+	Revision         float64                `json:"revision"`
+	Enabled          bool                   `json:"enabled"`
+	Native           bool                   `json:"native"`
+	BareModelIDs     bool                   `json:"bareModelIDs"`
+	BareModelIDsOnly bool                   `json:"bareModelIDsOnly"`
+	Port             float64                `json:"port"`
+	Running          bool                   `json:"running"`
+	HasKey           bool                   `json:"hasKey"`
+	BaseURL          string                 `json:"baseUrl"`
+	LANURLs          []string               `json:"lanUrls,omitempty"`
+	Error            string                 `json:"error,omitempty"`
+	Models           *[]widgets.AISelection `json:"models"`
 }
 
 // gatewayPanel is the local gateway: its own settings, saved apart from
@@ -49,6 +51,7 @@ type gatewayPanel struct {
 	saved                                            *gatewayStatus
 	enabled                                          bool
 	native                                           bool
+	bareMode                                         string
 	port                                             string
 	models                                           *[]widgets.AISelection
 	working                                          bool
@@ -74,7 +77,9 @@ func newGatewayPanel(env *core.Env) *gatewayPanel {
 }
 
 func (g *gatewayPanel) dirty() bool {
+	on, only := g.bareMode != "off", g.bareMode == "only"
 	return g.saved != nil && (g.saved.Enabled != g.enabled || g.saved.Native != g.native || strconv.FormatFloat(g.saved.Port, 'f', -1, 64) != g.port ||
+		g.saved.BareModelIDs != on || g.saved.BareModelIDsOnly != only ||
 		!equal(g.models, g.saved.Models) || !equal(g.network, g.saved.GatewayNetwork))
 }
 
@@ -97,6 +102,13 @@ func (g *gatewayPanel) accept(status gatewayStatus) {
 	g.saved = &status
 	g.enabled, g.port, g.key = status.Enabled, strconv.FormatFloat(status.Port, 'f', -1, 64), ""
 	g.native = status.Native
+	g.bareMode = "off"
+	if status.BareModelIDs {
+		g.bareMode = "on"
+		if status.BareModelIDsOnly {
+			g.bareMode = "only"
+		}
+	}
 	g.network = status.GatewayNetwork
 	g.network.AllowIPs = append([]string(nil), status.AllowIPs...)
 	g.network.CORSOrigins = append([]string(nil), status.CORSOrigins...)
@@ -142,8 +154,10 @@ func (g *gatewayPanel) save(resetKey bool) {
 		return
 	}
 	g.working, g.err = true, ""
-	params := map[string]any{"settings": map[string]any{"revision": g.saved.Revision, "enabled": g.enabled, "native": g.native, "port": port, "models": g.models, "lan": g.network.LAN, "allowIPs": g.network.AllowIPs, "corsOrigins": g.network.CORSOrigins},
+	params := map[string]any{"settings": map[string]any{"revision": g.saved.Revision, "enabled": g.enabled, "native": g.native, "port": port, "models": g.models, "lan": g.network.LAN, "allowIPs": g.network.AllowIPs, "corsOrigins": g.network.CORSOrigins,
+		"bareModelIDs": g.bareMode != "off", "bareModelIDsOnly": g.bareMode == "only"},
 		"resetKey": resetKey}
+	modeChanged := g.saved.BareModelIDs != (g.bareMode != "off") || g.saved.BareModelIDsOnly != (g.bareMode == "only")
 	core.Go(g.env, func() (gatewayStatus, error) {
 		var status gatewayStatus
 		err := g.env.Host.CallCompletingInto("capture.ai.gateway.save", params, &status)
@@ -157,6 +171,9 @@ func (g *gatewayPanel) save(resetKey bool) {
 			return
 		}
 		g.accept(status)
+		if modeChanged {
+			g.releaseRuntime()
+		}
 		g.env.Toast(i18n.T("common.saved"))
 	})
 }
@@ -250,6 +267,11 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owner
 			})
 		})
 		g.modelsView(c, providers, busy)
+		kit.Group(c, nil, i18n.T("aiSync.bareModelIDs"), i18n.T("aiSync.bareModelIDsHint"), func() {
+			kit.Stack(c, "", "", func() {
+				kit.Segmented(c, &g.bareMode, options("off", i18n.T("aiSync.bareOff"), "on", i18n.T("aiSync.bareAlongside"), "only", i18n.T("aiSync.bareOnly")), i18n.T("aiSync.bareModelIDs"))
+			})
+		})
 		ui.Column(c).FillWidth().Gap(12).Children(func() {
 			g.connectView(c, providers, busy)
 			kit.Disclosure(c, accessT("networkTab"), "", &g.networkOpen, func() {

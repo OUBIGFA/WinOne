@@ -18,7 +18,7 @@ require (
 	golang.org/x/image v0.46.0
 )
 
-require github.com/dlclark/regexp2 v1.11.5 // indirect
+require github.com/dlclark/regexp2 v1.11.5
 
 require (
 	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 // indirect
@@ -34,6 +34,7 @@ require (
 	github.com/leaanthony/gosod v1.0.4 // indirect
 	github.com/leaanthony/slicer v1.6.0 // indirect
 	github.com/leaanthony/u v1.1.1 // indirect
+	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect

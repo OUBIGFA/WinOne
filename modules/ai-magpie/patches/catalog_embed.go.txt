@@ -1,6 +1,16 @@
 package catalog
 
+import ("errors";"os")
+
 // The Host supplies paths inside its own provider profiles. All parsing,
 // capability enrichment, media classification and cache invalidation remain
 // in the upstream catalog. No public request can choose these paths.
 var WinOneLivePaths map[string]string
+
+// Supplement only a plan's explicit media models while retaining the exact
+// fetched endpoint, per-protocol sides and request identity already stored.
+func WinOneSaveMediaList(id string,models []Model)error{
+ prior,err:=readLive(id)
+ if err!=nil&&!errors.Is(err,os.ErrNotExist){return err}
+ return saveLive(id,prior.Base,prior.Asked,models,prior.Sides)
+}

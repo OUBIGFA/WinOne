@@ -132,6 +132,14 @@ func cloneConfiguration(c Configuration) Configuration {
 		for id, metadata := range c.Providers[i].ModelMetadata {
 			c.Providers[i].ModelMetadata[id] = metadata.clone()
 		}
+		// Devin's old built-in router names are not models its API serves.
+		// Apply the original migration even when this provider has a private ID;
+		// account allowlists remain intact because clearing one would widen it.
+		if c.Providers[i].AuthMode == "account" && c.Providers[i].Agent == "devin" {
+			c.Providers[i].Models = WithoutDevinRouters(c.Providers[i].Models)
+			c.Providers[i].Delisted = WithoutDevinRouters(c.Providers[i].Delisted)
+			c.Providers[i].AvailableModels = WithoutDevinRouters(c.Providers[i].AvailableModels)
+		}
 		c.Providers[i].separateModelDefaults()
 		c.Providers[i].AvailableModels = c.Providers[i].AllModels()
 		if c.Providers[i].Models == nil {
@@ -141,6 +149,11 @@ func cloneConfiguration(c Configuration) Configuration {
 	c.Tasks = maps.Clone(c.Tasks)
 	if c.Tasks == nil {
 		c.Tasks = map[string]Selection{}
+	}
+	for task, selection := range c.Tasks {
+		if p, ok := c.Provider(selection.Provider); ok && p.AuthMode == "account" && p.Agent == "devin" && DevinRouter(selection.Model) {
+			c.Tasks[task] = Selection{}
+		}
 	}
 	return c
 }
@@ -266,9 +279,6 @@ func validateConfiguration(c Configuration) error {
 		if p.Preset != "" && (p.AuthMode != "api-key" || !providerIDPattern.MatchString(p.Preset)) || p.PresetRegion != "" && (p.Preset == "" || !providerIDPattern.MatchString(p.PresetRegion)) {
 			return errors.New("服务预设或地区无效")
 		}
-		if len(p.Keys) > 16 {
-			return errors.New("每个供应商最多配置 16 个密钥")
-		}
 		keyIDs := map[string]bool{}
 		for _, slot := range p.Keys {
 			if len(slot.Name) > 256 || slot.Weight < 0 || slot.Weight > 1000 || slot.Plan != "" && !providerIDPattern.MatchString(slot.Plan) {
@@ -325,6 +335,26 @@ func validateConfiguration(c Configuration) error {
 		known := map[string]bool{}
 		for _, model := range p.Delisted {
 			known[model] = true
+		}
+		// Upstream retires Devin's picks but keeps their historical settings.
+		// Allow those inert records on ordinary saves without making a retired
+		// router selectable or dropping the user's former overrides.
+		if p.AuthMode == "account" && p.Agent == "devin" {
+			for id := range p.ModelMetadata {
+				if DevinRouter(id) {
+					known[id] = true
+				}
+			}
+			for id := range p.ModelNames {
+				if DevinRouter(id) {
+					known[id] = true
+				}
+			}
+			for id := range p.ModelFree {
+				if DevinRouter(id) {
+					known[id] = true
+				}
+			}
 		}
 		for _, list := range [][]string{p.CatalogModels, p.ManualModels} {
 			if len(list) > MaxProviderModels {

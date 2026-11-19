@@ -79,10 +79,10 @@ func TestImportLegacyDefaultsAndInvalidFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	app := preview.Settings.ManagedApps[0]
-	if preview.Settings.SchemaVersion != 3 || !app.RunOnStartup || !app.TrayBehavior.AutoMinimizeAndHideOnLaunch || app.Schedule.AutoExitMinutes != 30 {
+	if preview.Settings.SchemaVersion != 4 || !app.RunOnStartup || !app.TrayBehavior.AutoMinimizeAndHideOnLaunch || app.Schedule.AutoExitMinutes != 30 {
 		t.Fatalf("legacy conversion: %+v", preview)
 	}
-	for _, invalid := range []string{`{}`, `null`, `{"schemaVersion":4,"managedApps":[]}`, `{"schemaVersion":3,"managedApps":null}`, `broken`} {
+	for _, invalid := range []string{`{}`, `null`, `{"schemaVersion":5,"managedApps":[]}`, `{"schemaVersion":3,"managedApps":null}`, `broken`} {
 		os.WriteFile(path, []byte(invalid), 0600)
 		if _, err := PreviewImport(path); err == nil {
 			t.Fatalf("accepted %s", invalid)

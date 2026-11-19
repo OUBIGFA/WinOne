@@ -1,4 +1,9 @@
-param([Parameter(Mandatory)][string]$Executable,[string]$GoExe='dist/resources/tools/go-1.27.3/bin/go.exe',[string]$BundleDirectory='')
+param(
+ [Parameter(Mandatory,ParameterSetName='Executable')][string]$Executable,
+ [Parameter(Mandatory,ParameterSetName='Source')][switch]$SourceOnly,
+ [string]$GoExe='dist/resources/tools/go-1.27.3/bin/go.exe',
+ [string]$BundleDirectory=''
+)
 # Checks the MyGo window's notices against what it actually links: every
 # external Go module and the toolchain `go version -m` reports must have a
 # recorded, unchanged license in third_party/desktop-mygo-notices.json. WinOne
@@ -19,13 +24,32 @@ foreach($component in $catalog.components){
     }
 }
 $go=if([IO.Path]::IsPathRooted($GoExe)){$GoExe}else{Join-Path $root $GoExe}
+if($SourceOnly){
+    # The application catalog imports WinOne's own WinTray module. Only its
+    # actual external dependencies need third-party notices, checked before
+    # compiling the desktop rather than waiting for the binary gate.
+    Push-Location (Join-Path $root 'apps/desktop-mygo')
+    try {
+        $modules=@(& $go list -mod=readonly -tags mygo_noinspector -deps -f '{{if .Module}}{{.Module.Path}}|{{.Module.Version}}{{end}}' ./cmd/winone | Sort-Object -Unique)
+        if($LASTEXITCODE -ne 0){throw 'Cannot inspect the MyGo window source dependencies'}
+        foreach($module in $modules){
+            if(-not $module){continue}
+            $parts=$module -split '\|'
+            if($parts[0] -notin @('winone','winone/desktopmygo','winone/resultui','winone/modules/nativeui','winone/modules/wintray') -and -not $records.ContainsKey('go|'+$module)){throw "Missing MyGo window source dependency notice: $module"}
+        }
+        $toolchain=& $go env GOVERSION
+        if($LASTEXITCODE -ne 0 -or -not $records.ContainsKey('toolchain|Go|'+$toolchain)){throw "Missing toolchain notice: $toolchain"}
+    }finally{Pop-Location}
+    Write-Output "MyGo window source dependency notices verified: $($catalog.components.Count) records"
+    return
+}
 $info=@(& $go version -m $Executable)
 if($LASTEXITCODE -ne 0 -or $info.Count -eq 0){throw 'Cannot inspect the MyGo window dependencies'}
 $toolchain=($info[0] -split '\s+')[-1]
 if(-not $records.ContainsKey('toolchain|Go|'+$toolchain)){throw "Missing toolchain notice: $toolchain"}
 foreach($line in $info){
     $parts=$line.Trim() -split '\s+'
-    if($parts[0] -eq 'dep' -and $parts[1] -notin @('winone','winone/resultui','winone/modules/nativeui') -and -not $records.ContainsKey('go|'+$parts[1]+'|'+$parts[2])){throw "Missing MyGo window dependency notice: $line"}
+    if($parts[0] -eq 'dep' -and $parts[1] -notin @('winone','winone/resultui','winone/modules/nativeui','winone/modules/wintray') -and -not $records.ContainsKey('go|'+$parts[1]+'|'+$parts[2])){throw "Missing MyGo window dependency notice: $line"}
 }
 # The icons come from the locked lucide-react package; its license must be
 # the one recorded.

@@ -11,8 +11,28 @@ func clearAccountRegistry(t *testing.T) {
 	t.Helper()
 	winOneAccount.Lock()
 	winOneAccount.entry = nil
+	winOneAccount.migration = nil
 	winOneAccount.Unlock()
-	t.Cleanup(func() { winOneAccount.Lock(); winOneAccount.entry = nil; winOneAccount.Unlock(); UseCached(nil) })
+	t.Cleanup(func() {
+		winOneAccount.Lock()
+		winOneAccount.entry = nil
+		winOneAccount.migration = nil
+		winOneAccount.Unlock()
+		UseCached(nil)
+	})
+}
+
+func TestWinOneAccountRegistryKeepsOnlyTwoVerifiedMigrationBundles(t *testing.T) {
+	clearAccountRegistry(t)
+	WinOneUseMigrationBundles([]Entry{{Spec: "old-verified"}, {Spec: "new-verified"}})
+	entries := Load().Plugins
+	if len(entries) != 2 || entries[0].Spec != "old-verified" || entries[1].Spec != "new-verified" {
+		t.Fatal("migration lost its verified source/target registry")
+	}
+	WinOneUseBundle(Entry{Spec: "new-verified"})
+	if entries = Load().Plugins; len(entries) != 1 || entries[0].Spec != "new-verified" {
+		t.Fatal("ordinary account read retained the migration's extra bundle")
+	}
 }
 
 func TestWinOneAccountRegistryIgnoresDiskExtensionsAndKeepsPrivateAuth(t *testing.T) {

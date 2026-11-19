@@ -9,6 +9,7 @@ import (
 	"golang.org/x/sys/windows"
 	"sync"
 	"unsafe"
+	"winone/modules/wintray/internal/shellapp"
 )
 
 var openSnapshotMu sync.Mutex
@@ -34,8 +35,7 @@ func snapshotOpenWindows(pid uint32) ([]openWindowState, error) {
 	foreground := win.GetForegroundWindow()
 	var states []openWindowState
 	for _, hwnd := range openSnapshotHandles {
-		var owner uint32
-		if win.GetWindowThreadProcessId(hwnd, &owner) == 0 || owner != pid {
+		if shellapp.WindowProcessID(uintptr(hwnd)) != pid {
 			continue
 		}
 		state := openWindowState{handle: uintptr(hwnd), pid: pid, visible: win.IsWindowVisible(hwnd), minimized: win.IsIconic(hwnd), foreground: hwnd == foreground}
@@ -50,8 +50,7 @@ func snapshotOpenWindows(pid uint32) ([]openWindowState, error) {
 			}
 			state.cloaked = cloaked != 0
 		}
-		var current uint32
-		if win.GetWindowThreadProcessId(hwnd, &current) == 0 || current != pid {
+		if shellapp.WindowProcessID(uintptr(hwnd)) != pid {
 			continue
 		}
 		states = append(states, state)

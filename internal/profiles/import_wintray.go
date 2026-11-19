@@ -4,12 +4,25 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"winone/modules/wintray/applications"
 )
 
 func importTray(source map[string]json.RawMessage, resolve pathResolver) (map[string]any, []string, error) {
-	patch, err := exactFields(source, "exitAfterManagedAppsCompleted:b closeWindowRetrySeconds:n startupIntervalSeconds:n", "managedApps")
+	fields := "exitAfterManagedAppsCompleted:b closeWindowRetrySeconds:n startupIntervalSeconds:n"
+	if _, exists := source["startupModeVersion"]; exists {
+		fields += " startupModeVersion:n"
+	}
+	patch, err := exactFields(source, fields, "managedApps")
 	if err != nil {
 		return nil, nil, err
+	}
+	version := 3
+	if value, exists := patch["startupModeVersion"]; exists {
+		if value.(int) != 4 {
+			return nil, nil, errors.New("不支持的程序启动设置版本")
+		}
+		version = 4
+		delete(patch, "startupModeVersion")
 	}
 	for _, key := range []string{"closeWindowRetrySeconds", "startupIntervalSeconds"} {
 		if err = numberRange(patch, key, 0, 120); err != nil {
@@ -28,6 +41,11 @@ func importTray(source map[string]json.RawMessage, resolve pathResolver) (map[st
 		if err != nil {
 			return nil, nil, err
 		}
+		tray, schedule := app["trayBehavior"].(map[string]any), app["schedule"].(map[string]any)
+		if version < 4 && !app["runOnStartup"].(bool) && !schedule["enabled"].(bool) {
+			app["launchViaLogonTask"], app["launchHiddenInBackground"], tray["autoMinimizeAndHideOnLaunch"] = false, false, false
+		}
+		app["runOnStartup"] = app["launchViaLogonTask"].(bool) || app["launchHiddenInBackground"].(bool) || tray["autoMinimizeAndHideOnLaunch"].(bool)
 		appID := app["id"].(string)
 		if strings.TrimSpace(appID) == "" || ids[appID] || strings.TrimSpace(app["name"].(string)) == "" {
 			return nil, nil, errors.New("程序标识或名称为空，或标识重复")
@@ -43,7 +61,12 @@ func importTray(source map[string]json.RawMessage, resolve pathResolver) (map[st
 }
 
 func importTrayApp(entry map[string]json.RawMessage, resolve pathResolver) (map[string]any, error) {
-	fields := "id:s name:s programRef:s args:s runOnStartup:b collectTrayIcon:b launchViaLogonTask:b launchHiddenInBackground:b"
+	fields := "id:s name:s args:s runOnStartup:b collectTrayIcon:b launchViaLogonTask:b launchHiddenInBackground:b"
+	if _, packaged := entry["applicationID"]; packaged {
+		fields += " applicationID:s"
+	} else {
+		fields += " programRef:s"
+	}
 	// Accept the new preference only as a boolean; absent legacy values stay
 	// absent so importing an old profile never enables automatic login.
 	if _, exists := entry["wechatAutoLogin"]; exists {
@@ -92,11 +115,20 @@ func importTrayApp(entry map[string]json.RawMessage, resolve pathResolver) (map[
 	if modes > 1 {
 		return nil, errors.New("启动方式互相冲突")
 	}
-	path, err := resolve(app["programRef"].(string), "program")
-	if err != nil {
-		return nil, err
+	path := ""
+	if identifier, packaged := app["applicationID"]; packaged {
+		path = applications.PathPrefix + identifier.(string)
+		if !applications.IsPath(path) {
+			return nil, errors.New("商店应用标识无效")
+		}
+		delete(app, "applicationID")
+	} else {
+		path, err = resolve(app["programRef"].(string), "program")
+		if err != nil {
+			return nil, err
+		}
 	}
-	if path != "" {
+	if path != "" && !applications.IsPath(path) {
 		extension := ""
 		if index := strings.LastIndex(path, "."); index >= 0 {
 			extension = strings.ToLower(path[index:])

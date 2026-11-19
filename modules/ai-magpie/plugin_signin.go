@@ -30,6 +30,9 @@ func beginPluginSignIn(ctx context.Context, in request, commands <-chan signInCo
 	if err != nil {
 		return fail(err)
 	}
+	if descriptor, ok := pluginForAgent(in.Agent); ok && descriptor.Legacy && len(provider.WinOnePluginLogins(connection)) == 0 {
+		return fail(errors.New("this account adapter is withdrawn; use Antigravity (local agy CLI) for a new account"))
+	}
 	if len(connection.Methods) == 0 {
 		return fail(errors.New("account plugin has no sign-in method"))
 	}

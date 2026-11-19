@@ -132,12 +132,19 @@ func decodeInto(raw json.RawMessage, err error) func(any) error {
 // budgets as the Rust client's call_completing.
 func (c *Client) CallCompleting(method string, params any) (json.RawMessage, error) {
 	id := c.nextID()
+	// The upstream batch owns each account's wait. This one synchronous
+	// request lasts until the window cancels it, without a fabricated total.
+	if method == "capture.ai.accounts.warm-all" {
+		return c.request(id, method, params, time.Time{})
+	}
 	budget, firstWait := 30*time.Second, 15*time.Second
 	switch method {
 	case "learning.call":
 		budget, firstWait = 150*time.Second, 150*time.Second
 	case "capture.ai.models.test":
 		budget, firstWait = 100*time.Second, 100*time.Second
+	case "capture.ai.accounts.move-agy", "capture.ai.accounts.warm-now":
+		budget, firstWait = 3*time.Minute, 3*time.Minute
 	case "capture.ai.magpie.catalog", "capture.ai.accounts.catalog",
 		"capture.ai.accounts.list", "capture.ai.accounts.models", "capture.ai.accounts.quota", "capture.ai.accounts.checkin":
 		firstWait = 30 * time.Second
@@ -314,7 +321,11 @@ func (c *Client) requestDirect(id, method string, params any, deadline time.Time
 		}
 		data = encoded
 	}
-	response, err := transport.CallWithVerifiedServer(c.ctx, c.pipe, internalhost.Request{Version: 1, ID: id, Method: method, Params: data}, time.Until(deadline), c.bind)
+	var timeout time.Duration
+	if !deadline.IsZero() {
+		timeout = time.Until(deadline)
+	}
+	response, err := transport.CallWithVerifiedServer(c.ctx, c.pipe, internalhost.Request{Version: 1, ID: id, Method: method, Params: data}, timeout, c.bind)
 	if err != nil {
 		var rpc *Error
 		if errors.As(err, &rpc) {

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"strings"
+
+	"winone/modules/wintray/internal/shellapp"
 )
 
 // MaxCloseDelaySeconds bounds how long a program may wait between its launch
@@ -46,7 +48,7 @@ func LogonTaskApps(settings Settings) []LogonTaskApp {
 		if !ShouldLaunchViaWinTray(entry) || (!entry.LaunchViaLogonTask && !StartupFrequencyEnabled(entry)) {
 			continue
 		}
-		if !strings.EqualFold(filepath.Ext(entry.ExePath), ".exe") {
+		if !shellapp.IsPath(entry.ExePath) && !strings.EqualFold(filepath.Ext(entry.ExePath), ".exe") {
 			continue
 		}
 		apps = append(apps, LogonTaskApp{Entry: entry, DelaySeconds: LogonTaskDelaySeconds(entry)})
@@ -157,6 +159,9 @@ type ManagedAppEntry struct {
 // LaunchDirectory keeps old entries in the program folder. Relative paths are
 // anchored there too, so manual launches and logon tasks resolve them alike.
 func (e ManagedAppEntry) LaunchDirectory() string {
+	if shellapp.IsPath(e.ExePath) {
+		return ""
+	}
 	directory := strings.Trim(strings.TrimSpace(e.WorkingDirectory), `"`)
 	if directory == "" {
 		return filepath.Dir(e.ExePath)
@@ -217,7 +222,7 @@ type Settings struct {
 func CollectedTrayIconPaths(settings Settings) []string {
 	var paths []string
 	for _, app := range settings.ManagedApps {
-		if app.CollectTrayIcon && strings.EqualFold(filepath.Ext(app.ExePath), ".exe") && !containsPath(paths, app.ExePath) {
+		if app.CollectTrayIcon && (shellapp.IsPath(app.ExePath) || strings.EqualFold(filepath.Ext(app.ExePath), ".exe")) && !containsPath(paths, app.ExePath) {
 			paths = append(paths, app.ExePath)
 		}
 	}
@@ -233,10 +238,10 @@ func containsPath(paths []string, path string) bool {
 	return false
 }
 
+// Normal mode leaves the program's original startup alone. Custom timing is
+// an explicit, independent request to launch, even when normal mode is selected.
 func ShouldLaunchViaWinTray(entry ManagedAppEntry) bool {
-	// Either explicit automatic-start choice enables the entry. Its schedule
-	// supplies the delay and quota without changing the ordinary startup switch.
-	return entry.RunOnStartup || entry.Schedule.Enabled
+	return entry.LaunchViaLogonTask || entry.LaunchHiddenInBackground || entry.TrayBehavior.AutoMinimizeAndHideOnLaunch || entry.Schedule.Enabled
 }
 
 // ClampCloseDelaySeconds keeps a close delay inside the supported range.
@@ -252,7 +257,7 @@ func ClampCloseDelaySeconds(seconds int) int {
 
 func DefaultSettings() Settings {
 	return Settings{
-		SchemaVersion:                 3,
+		SchemaVersion:                 4,
 		Language:                      "zh-CN",
 		RunAtLogon:                    true,
 		StartMinimizedToTray:          true,

@@ -50,3 +50,27 @@ func TestGatewayModelChoicesSurviveRestartAndDoNotAliasCallers(t *testing.T) {
 		t.Fatal("empty selection became the legacy all-model policy")
 	}
 }
+
+func TestGatewayModelIDModesPersistWithoutChangingAccess(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "gateway.json")
+	g := NewGateway(t.Context(), path, nil)
+	defer g.Close()
+	selected := Selection{Provider: "work", Model: "same"}
+	for _, mode := range []struct{ on, only bool }{{true, false}, {true, true}, {false, true}} {
+		value := g.Status().GatewaySettings
+		value.Models = []Selection{selected}
+		value.BareModelIDs, value.BareModelIDsOnly = mode.on, mode.only
+		if _, err := g.Save(value, false); err != nil {
+			t.Fatal(err)
+		}
+		reopened := NewGateway(t.Context(), path, nil)
+		status := reopened.Status()
+		if status.BareModelIDs != mode.on || status.BareModelIDsOnly != (mode.on && mode.only) {
+			t.Fatalf("saved model ID mode was not preserved: %+v", status.GatewaySettings)
+		}
+		if !reopened.ModelFilter()(selected) || reopened.ModelFilter()(Selection{Provider: "other", Model: "same"}) {
+			t.Fatal("model ID display changed which provider can be accessed")
+		}
+		reopened.Close()
+	}
+}

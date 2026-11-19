@@ -3,11 +3,87 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"github.com/yetone/magpie/internal/gateway"
 	"github.com/yetone/magpie/internal/provider"
 	"github.com/yetone/magpie/internal/settings"
+	"net/http"
+	"net/http/httptest"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 )
+
+// Every account in WarmAll gets the original per-account wait. The adapter
+// must not impose a three-minute cap over its queued batches.
+func TestWorkerWarmAllKeepsCallerLifetimeAndMoveKeepsLongWait(t *testing.T) {
+	parent, stop := context.WithTimeout(t.Context(), 4*time.Minute)
+	defer stop()
+	warm, cancel := workerRequestContext(parent, request{Operation: "accounts.warm-all"})
+	defer cancel()
+	want, _ := parent.Deadline()
+	got, _ := warm.Deadline()
+	if !got.Equal(want) {
+		t.Fatalf("warm-all shortened caller lifetime: %s, want %s", got, want)
+	}
+	move, done := workerRequestContext(parent, request{Operation: "accounts.move-agy"})
+	defer done()
+	if end, _ := move.Deadline(); time.Until(end) < 2*time.Minute {
+		t.Fatal("migration still uses the short ordinary worker wait")
+	}
+	stop()
+	if warm.Err() != context.Canceled {
+		t.Fatal("caller cancellation was lost")
+	}
+}
+
+// The settings bridge must feed the upstream signer and model listing, rather
+// than retaining choices only in the native form's private document.
+func TestRuntimeCodexClientAndBareModelListingFollowUpstream(t *testing.T) {
+	old := settings.WinOneSettings.Load()
+	oldProviders := provider.WinOneProviders
+	t.Cleanup(func() {
+		settings.WinOneSettings.Store(old)
+		provider.WinOneProviders = oldProviders
+		provider.Changed()
+	})
+	for _, mode := range []struct {
+		client   string
+		on, only bool
+		ids      []string
+	}{{"desktop", false, false, []string{"fixture/only-model"}}, {"", true, false, []string{"fixture/only-model", "only-model"}}, {"desktop", true, true, []string{"only-model"}}} {
+		raw, _ := json.Marshal(map[string]any{"codexClient": mode.client, "bareModelIDs": mode.on, "bareModelIDsOnly": mode.only})
+		if err := applyRuntimeSettings(request{MagpieSettings: raw}); err != nil {
+			t.Fatal(err)
+		}
+		if provider.CodexClient() != mode.client {
+			t.Fatalf("runtime Codex client is %q, want %q", provider.CodexClient(), mode.client)
+		}
+		provider.WinOneProviders = []provider.Provider{{ID: "fixture", Name: "Fixture", Chat: "https://vendor.invalid/v1", Key: "fixture-key", Models: []string{"only-model"}}}
+		provider.Changed()
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/v1/models", nil)
+		r.Header.Set("Authorization", "Bearer "+gateway.Token)
+		gateway.New().Handler().ServeHTTP(w, r)
+		var reply struct {
+			Data []struct {
+				ID string `json:"id"`
+			} `json:"data"`
+		}
+		if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &reply) != nil {
+			t.Fatalf("offline model listing failed: %d %s", w.Code, w.Body.String())
+		}
+		var ids []string
+		for _, model := range reply.Data {
+			if strings.Contains(model.ID, "only-model") {
+				ids = append(ids, model.ID)
+			}
+		}
+		if !slices.Equal(ids, mode.ids) {
+			t.Fatalf("model ID mode on=%v only=%v listed %v, want %v", mode.on, mode.only, ids, mode.ids)
+		}
+	}
+}
 
 // Generation uses upstream's header/stall guards and retains the owner's
 // cancellation. Account operations still receive their existing bounded wait.
@@ -63,8 +139,8 @@ func TestWorkerImageDeadlinePreservesBothUpstreamPhases(t *testing.T) {
 			}
 		}
 	}
-		if workerRequestWait(request{Operation: "generate"}) != 0 {
-			t.Fatal("image timeout added a whole-turn deadline to a model request")
+	if workerRequestWait(request{Operation: "generate"}) != 0 {
+		t.Fatal("image timeout added a whole-turn deadline to a model request")
 	}
 }
 

@@ -2,11 +2,11 @@
 
 截图 OCR、翻译、划词助手、快捷助手和学习共用 Magpie。供应商、账号登录和模型由 WinOne 的 AI 服务统一管理；各功能只选择已启用的供应商与模型，不另存凭据。
 
-main 的 AI 服务只保留常用、自定义供应商、账号供应商、本地网关，使用偏好已并入常用。完整旧版保存在 `codex/archive-full-20261112`，本次对齐见 [AI 服务与模型默认值](../../docs/ai-services-upstream-20261114.md)。
+main 的 AI 服务只保留常用、自定义供应商、账号供应商、本地网关，使用偏好已并入常用。完整旧版保存在 `codex/archive-full-20261112`，本次对齐见 [AI 服务完整更新](../../docs/ai-base-update-20261119.md)。
 
 ## 来源与构建
 
-Magpie 固定为 `ce2ce86ab43a185688556b5887efab6f1670c58b`，MIT。账号适配器固定为 `a410afe0d9a128d368711daf83ecf79a5d43b6c8`，保留 44 个经过资源清单验证的账号适配器。Bun 固定为 Windows x64 baseline 1.4.2。完整来源、文件摘要及许可证见 `third_party/ocr-ai-notices.json`、`third_party/ai-plugins.json` 和 `third_party/import-notices.json`。
+Magpie 固定为 `289184a409c0e38a3a0a5282dbde93b56da309ca`，MIT。账号适配器固定为 `e6c457112ababf96d9415fe0a217ab0b7429ae98`，保留 45 个经过资源清单验证的账号适配器，旧 Antigravity 资源仅服务已有连接。Bun 固定为 Windows x64 baseline 1.4.2。完整来源、文件摘要及许可证见 `third_party/ocr-ai-notices.json`、`third_party/ai-plugins.json` 和 `third_party/import-notices.json`。
 
 通过 `build/build-ai.ps1` 构建，传入 Magpie 源码、账号适配器源码、Bun 和 Go 路径。脚本从固定提交建立独立源码副本，核对来源和许可，编译 `WinOne.AI.exe`；不链接上游完整桌面界面。最低 Go 版本为 1.26.8，本仓库复用已登记的 Go 1.27.3。`upstream.go.mod` 和 `upstream.go.sum` 保留固定上游的依赖快照。
 

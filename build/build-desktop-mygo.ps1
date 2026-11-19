@@ -9,7 +9,7 @@ param(
 # Builds the MyGo window (apps/desktop-mygo) as WinOne.exe: icon check, tests,
 # vet, Windows resources, then a production binary without MyGo's inspector.
 # Go 1.27.3 is
-# MyGo v0.9.2's minimum; the Host and modules keep their own toolchain.
+# MyGo v0.10.0's minimum; the Host and modules keep their own toolchain.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $output = if ([IO.Path]::IsPathRooted($OutputDirectory)) { [IO.Path]::GetFullPath($OutputDirectory) } else { [IO.Path]::GetFullPath((Join-Path $root $OutputDirectory)) }
@@ -18,7 +18,7 @@ $output = if ([IO.Path]::IsPathRooted($OutputDirectory)) { [IO.Path]::GetFullPat
 if ($LASTEXITCODE -ne 0) { throw 'OutputDirectory must be inside a Git-ignored directory' }
 $go = if ([IO.Path]::IsPathRooted($GoExe)) { $GoExe } else { Join-Path $root $GoExe }
 $go = (Get-Command $go -ErrorAction Stop).Source
-if ((& $go version) -notmatch 'go1\.27\.([3-9]|[1-9][0-9])') { throw 'MyGo v0.9.2 needs Go 1.27.3 or later' }
+if ((& $go version) -notmatch 'go1\.27\.([3-9]|[1-9][0-9])') { throw 'MyGo v0.10.0 needs Go 1.27.3 or later' }
 if (-not $Version) { $Version = (Get-Content -LiteralPath (Join-Path $root 'apps/desktop/frontend/package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version }
 if ($Version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Invalid version' }
 if ($UpdateRepository -and $UpdateRepository -notmatch '^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/[A-Za-z0-9_.-]{1,100}$') { throw 'UpdateRepository must be owner/repository' }
@@ -39,6 +39,7 @@ try {
     try {
         $mygoModule=(& $go list -m -json github.com/egoist/mygo)|ConvertFrom-Json
         if($LASTEXITCODE-ne 0 -or -not $mygoModule.Dir){throw 'Cannot resolve the pinned MyGo module'}
+        & (Join-Path $PSScriptRoot 'verify-desktop-mygo-notices.ps1') -SourceOnly -GoExe $go
         if (-not $SkipTests) {
             & $go test ./... -count=1
             if ($LASTEXITCODE -ne 0) { throw 'MyGo window tests failed' }

@@ -5,9 +5,38 @@ import (
 	"encoding/json"
 	"github.com/yetone/magpie/internal/provider"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 )
+
+// Recognize the retained migration operation, and refuse an empty private
+// profile before it could load or install anything outside that profile.
+func TestAntigravityMigrationRequiresAnExistingPrivateAccount(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	if err := applyRuntimeSettings(request{}); err != nil {
+		t.Fatal(err)
+	}
+	err := accountOperation(t.Context(), request{Operation: "accounts.move-agy", Agent: "antigravity"}, strings.NewReader(""))
+	if err == nil || !strings.Contains(err.Error(), "no Antigravity account is left to move") {
+		t.Fatalf("private migration unavailable: %v", err)
+	}
+}
+
+// A bundled withdrawn adapter remains usable for saved accounts, but must
+// never become an option for a newly configured provider.
+func TestWithdrawnAccountAdapterIsNotOfferedToNewProviders(t *testing.T) {
+	if slices.ContainsFunc(accountCatalog(), func(a agentOption) bool { return a.ID == "antigravity" }) {
+		t.Fatal("withdrawn Antigravity adapter is offered to new providers")
+	}
+	if _, ok := pluginForAgent("antigravity"); !ok {
+		t.Fatal("saved Antigravity providers lost their bundled adapter")
+	}
+	if !slices.ContainsFunc(accountCatalog(), func(a agentOption) bool { return a.ID == "agy-cli" }) {
+		t.Fatal("replacement account adapter is not offered")
+	}
+}
 
 func TestAccountCatalogIncludesCommunityProvidersWithoutDuplicateServices(t *testing.T) {
 	file, err := os.CreateTemp(t.TempDir(), "catalog-*.json")
@@ -46,6 +75,9 @@ func TestAccountCatalogIncludesCommunityProvidersWithoutDuplicateServices(t *tes
 		t.Fatal("middleware was presented as an account")
 	}
 	for _, id := range provider.WinOneAccountIDs() {
+		if p, ok := pluginForAgent(id); ok && p.Legacy {
+			continue
+		}
 		if !seen[id] {
 			t.Errorf("upstream built-in account is missing: %s", id)
 		}

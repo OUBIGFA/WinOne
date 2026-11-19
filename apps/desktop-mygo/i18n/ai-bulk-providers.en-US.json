@@ -1,0 +1,15 @@
+{
+  "aiBulkProviders.open": "Select providers",
+  "aiBulkProviders.titleCustom": "Select custom providers",
+  "aiBulkProviders.titleAccounts": "Select account providers",
+  "aiBulkProviders.search": "Search providers",
+  "aiBulkProviders.all": "Select all",
+  "aiBulkProviders.none": "Select none",
+  "aiBulkProviders.remove": "Remove selected",
+  "aiBulkProviders.pick": "Select provider: {{name}}",
+  "aiBulkProviders.hint": "Select all and Select none affect every provider in this tab. Save to apply removal of the selected providers.",
+  "aiBulkProviders.selected": "Selected {{count}} of {{total}} providers",
+  "aiBulkProviders.unnamed": "Unnamed provider {{number}}",
+  "aiBulkProviders.models": "{{count}} models",
+  "aiBulkProviders.noMatch": "No matching provider"
+}

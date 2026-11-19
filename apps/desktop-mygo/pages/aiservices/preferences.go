@@ -7,6 +7,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
+	"winone/desktopmygo/kit/icons"
 )
 
 // Keep unfinished structured options with the provider's draft, including
@@ -82,10 +83,41 @@ func (e *editor) requestPreferences(c *ui.Context, pr *provider, locked bool) {
 		choiceRow(c, i18n.T("ai.authHeader"), "", &s.AuthHeader, options("", i18n.T("ai.automatic"), "x-api-key", "x-api-key", "bearer", "Authorization: Bearer"), locked)
 		kit.Toggle(c, &s.InsecureTLS, i18n.T("ai.insecureTLS"), i18n.T("ai.insecureTLSHint")).Disabled(locked)
 		if pr.AuthMode == "api-key" && (pr.Protocol == "responses" || s.Endpoints != nil && s.Endpoints.Responses != "") {
-			choiceRow(c, nativeT("socket"), nativeT("socketHint"), &s.Socket, options("", nativeT("socketOff"), "auto", i18n.T("ai.automatic"), "on", nativeT("socketOn")), locked)
+			choiceRow(c, nativeT("socket"), i18n.T("aiSync.socketHint"), &s.Socket, options("", i18n.T("aiOptions.default"), "off", nativeT("socketOff"), "auto", i18n.T("ai.automatic"), "on", nativeT("socketOn")), locked)
 		}
 		wait := float64(s.Patience)
 		numberRow(c, i18n.T("ai.providerPatience"), &wait, -1, 240, true, "", locked, func(v *float64) { s.Patience = int(value(v)) })
+	})
+	kit.Group(c, nil, i18n.T("aiSync.maxImages"), i18n.T("aiSync.maxImagesHint"), func() {
+		for _, id := range sortedKeys(s.MaxImages) {
+			ui.Row(c.Key(id)).FillWidth().Padding(8, 16).Gap(8).AlignItems(ui.Center).Children(func() {
+				n := s.MaxImages[id]
+				ui.Column(c).Grow(1).MinWidth(0).Children(func() {
+					if nativeInt(c, id, &n, 0, 1000, locked) {
+						s.MaxImages[id] = n
+					}
+				})
+				if kit.IconButton(c, icons.Trash2, i18n.T("common.delete")+" "+id).Disabled(locked).Clicked() {
+					delete(s.MaxImages, id)
+				}
+			})
+		}
+		kit.Stack(c, "", "", func() {
+			id := e.fields.get("newImageLimit")
+			ui.Row(c).FillWidth().Gap(8).Children(func() {
+				kit.TextInput(c, &id.text).Grow(1).MinWidth(0).Placeholder("*").Label(i18n.T("aiSync.imageLimitModel")).Disabled(locked)
+				if kit.Button(c, i18n.T("aiSync.addImageLimit"), icons.Plus, false).Disabled(locked || strings.TrimSpace(id.text) == "").Clicked() {
+					if s.MaxImages == nil {
+						s.MaxImages = map[string]int{}
+					}
+					name := strings.TrimSpace(id.text)
+					if _, exists := s.MaxImages[name]; !exists {
+						s.MaxImages[name] = 0
+					}
+					id.text = ""
+				}
+			})
+		})
 	})
 	kit.Group(c, nil, i18n.T("aiOptions.response"), "", func() {
 		kit.Stack(c, i18n.T("ai.passHeaders"), i18n.T("ai.passHeadersHint"), func() { e.preferenceList(c, "passHeaders", i18n.T("ai.passHeaders"), &s.PassHeaders, locked) })
@@ -151,6 +183,7 @@ func (e *editor) proxyPreference(c *ui.Context, key string, value *string, locke
 		kit.TextInput(c, &f.text).FillWidth().Placeholder("http://127.0.0.1:7890").Label(i18n.T("aiOptions.proxyAddress")).Disabled(locked)
 	}
 	state.shown = *value
+	e.proxyProbeView(c, key, *value, locked)
 }
 
 func (e *editor) compatibilityPreferences(c *ui.Context, pr *provider, locked bool) {

@@ -26,7 +26,11 @@ func applyRuntimeSettings(in request) error {
 	provider.WinOneResetSearchModels()
 	gateway.WinOneTransportOnly = os.Getenv("WINONE_AI_TRANSPORT_ONLY") == "1"
 	var retained struct {
-		ClaudePrintMode bool `json:"claudePrintMode"`
+		ClaudePrintMode    bool   `json:"claudePrintMode"`
+		ClaudeNoExtraUsage bool   `json:"claudeNoExtraUsage"`
+		CodexClient        string `json:"codexClient"`
+		BareModelIDs       bool   `json:"bareModelIDs"`
+		BareModelIDsOnly   bool   `json:"bareModelIDsOnly"`
 	}
 	if len(in.MagpieSettings) > 0 && string(in.MagpieSettings) != "null" {
 		if err := json.Unmarshal(in.MagpieSettings, &retained); err != nil {
@@ -34,6 +38,12 @@ func applyRuntimeSettings(in request) error {
 		}
 	}
 	s := settings.Settings{NoStats: true, NoUsageStats: true, NoWSLAgents: true, RedactModelOff: true, ClaudePrintMode: retained.ClaudePrintMode, SessionReads: &settings.SessionReads{Asked: true}}
+	s.ClaudeNoExtraUsage = retained.ClaudeNoExtraUsage
+	if !slices.Contains(settings.CodexClients, retained.CodexClient) {
+		return errors.New("invalid Codex client")
+	}
+	s.CodexClient = retained.CodexClient
+	s.BareModelIDs, s.BareModelIDsOnly = retained.BareModelIDs, retained.BareModelIDs && retained.BareModelIDsOnly
 	if !gateway.WinOneTransportOnly {
 		s.GatewayConversations = settings.WinOneGatewayRecording()
 	}
@@ -61,10 +71,13 @@ func workerRequestWait(in request) time.Duration {
 		}
 		return 10 * time.Minute
 	}
-	if in.Operation == "accounts.signin" {
+	if in.Operation == "accounts.signin" || in.Operation == "plans.signin" {
 		return 10 * time.Minute
 	}
-	if in.Operation == "accounts.import" {
+	if in.Operation == "accounts.warm-all" {
+		return 0
+	}
+	if in.Operation == "accounts.import" || in.Operation == "accounts.warm-now" || in.Operation == "accounts.move-agy" {
 		return 3 * time.Minute
 	}
 	return 90 * time.Second
@@ -346,6 +359,7 @@ func installAuxiliaryProviders(in request) error {
 			}
 		}
 		if p.NativeSource != nil {
+			rememberGatewayKeySlots(p.ID, *p.NativeSource)
 			actual, err := configuredProvider(*p.NativeSource)
 			if err != nil {
 				return err
@@ -380,6 +394,7 @@ func installAuxiliaryProviders(in request) error {
 		// A bridge remains an HTTP provider: attaching an Account would bypass
 		// its private transport. Only the onProvider context needs its kind.
 		if p.AccountKind != "" {
+			provider.WinOneAccountKind(p.ID, p.AccountKind)
 			if gateway.WinOneMiddlewareAccounts == nil {
 				gateway.WinOneMiddlewareAccounts = map[string]string{}
 			}

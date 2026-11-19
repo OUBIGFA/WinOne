@@ -1,4 +1,4 @@
-// Generated from yetone/magpie ce2ce86ab43a185688556b5887efab6f1670c58b; MIT.
+// Generated from yetone/magpie 289184a409c0e38a3a0a5282dbde93b56da309ca; MIT.
 // Host uses inline proxies; named references are checked against an empty upstream list.
 // See third_party/magpie-proxy-source.json.
 package ai
@@ -13,11 +13,13 @@ import (
 type magpieNamedProxy struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
-	// URL is http://, https:// or socks5:// (host:port means http), with
-	// no user and password in it.
-	URL  string `json:"url"`
-	User string `json:"user,omitempty"`
-	Pass string `json:"pass,omitempty"`
+	// URL is http://, https://, socks5:// or ssh:// (host:port means
+	// http), with no user and password in it.
+	URL     string `json:"url"`
+	User    string `json:"user,omitempty"`
+	Pass    string `json:"pass,omitempty"`
+	Key     string `json:"key,omitempty"`
+	HostKey string `json:"hostKey,omitempty"`
 }
 
 const magpieProxyRefPrefix = "@"
@@ -32,6 +34,10 @@ func magpieProxyID(choice string) string {
 		return ""
 	}
 	return strings.TrimPrefix(choice, magpieProxyRefPrefix)
+}
+
+func IsSSHAddress(raw string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(raw)), "ssh://")
 }
 
 func validateMagpieProxyIn(p string, ps []magpieNamedProxy) error {
@@ -58,6 +64,10 @@ func validateMagpieProxy(p string) error {
 	raw := p
 	if !strings.Contains(raw, "://") {
 		raw = "http://" + raw
+	}
+	if IsSSHAddress(raw) {
+		// a login goes with it, which an address alone can't hold
+		return fmt.Errorf("an SSH server is added as a saved proxy: Settings › Network › Add proxy › SSH")
 	}
 	u, err := url.Parse(raw)
 	if err != nil || u.Host == "" || !slices.Contains([]string{"http", "https", "socks5", "socks5h"}, u.Scheme) {

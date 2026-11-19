@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/yetone/magpie",
+  "revision": "289184a409c0e38a3a0a5282dbde93b56da309ca",
+  "license": "MIT",
+  "notice": "licenses/upstream-magpie-289184a409c0e38a3a0a5282dbde93b56da309ca-0-LICENSE.txt",
+  "sourceFiles": {
+    "internal/gui/proxycheck.go": "9464894a27020c6d1f891ca262130e6d22276d97c698c0610304cc56e10859b9",
+    "internal/gui/proxies.go": "b926f83f06c48b30b84d3b945761f28fabd046c713d82f950a6f2fd2c1d3232c"
+  },
+  "files": {
+    "build/prepare-ai-proxy-probe.mjs": "84d872fb18a9c65d2107c9a6c57a5f87de208bdc0ccc6c52b59af7b8948bfa09",
+    "modules/ai-magpie/proxy_probe.go": "0e6f3d679c1f0799e096a7ced1fb1c6bd12acf01f43976ae31ebcbb1dba3c84c"
+  },
+  "generatedFile": "cmd/winone-ai/upstream_proxy_probe.go",
+  "generatedSHA256": "c2151594caf995c4860d06983feaaaa1dbbafef5bc71b1dc2642c18bcc27f702",
+  "adaptations": [
+    "Rename only the package; copy the original pure trace, connection check, latency calculation and error redaction",
+    "Omit the GUI HTTP controller and saved-proxy management; the existing WinOne inline proxy supplies the current choice",
+    "The Host returns only check state, exit IP/region and redacted failure details"
+  ]
+}

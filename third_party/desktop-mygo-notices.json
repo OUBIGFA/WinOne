@@ -16,11 +16,11 @@
     {
       "kind": "go",
       "name": "github.com/egoist/mygo",
-      "version": "v0.9.2",
+      "version": "v0.10.0",
       "notices": [
         {
-          "sha256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
-          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.9.2-LICENSE.txt"
+          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.10.0-LICENSE.txt",
+          "sha256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4"
         }
       ]
     },
@@ -181,6 +181,18 @@
           "sourceFile": "LICENSE",
           "file": "licenses/desktop-mygo-go-github.com-dlclark-regexp2-v1.11.5-LICENSE.txt",
           "sha256": "9be5d04bb4d706914d5bf943710da4afeb42048f7c529902fb57c82762a991a9"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/lxn/win",
+      "version": "v0.0.0-20210218163916-a377121e959e",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/go-github-com-lxn-win-LICENSE.txt",
+          "sha256": "477325a745ae8d13ecc36399645c702a16062e8e05952a2286b46e74ff51d0a8"
         }
       ]
     }

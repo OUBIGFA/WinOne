@@ -17,7 +17,7 @@ func winOnePluginEnvironment(env []string) []string {
  return append(out,"USERPROFILE="+profile)
 }
 
-var winOneAccount struct { sync.RWMutex; entry *Entry }
+var winOneAccount struct { sync.RWMutex; entry *Entry; migration []Entry }
 
 // A provider worker selects one verified adapter in memory. Neither an old
 // plugins.json nor a runtime environment variable can add another package.
@@ -25,9 +25,17 @@ func WinOneUseBundle(entry Entry) {
  winOneAccount.Lock();defer winOneAccount.Unlock()
  copied:=clonePlugins([]Entry{entry})[0]
  winOneAccount.entry=&copied
+ winOneAccount.migration=nil
+}
+// Migration may hold its two verified bundles together in this one private
+// worker. Ordinary reads/sign-in replace them with one bundle again.
+func WinOneUseMigrationBundles(entries []Entry) {
+ winOneAccount.Lock();defer winOneAccount.Unlock()
+ winOneAccount.entry=nil;winOneAccount.migration=clonePlugins(entries)
 }
 func winOneAccountList() List {
  winOneAccount.RLock();defer winOneAccount.RUnlock()
+ if winOneAccount.migration!=nil{return List{Plugins:clonePlugins(winOneAccount.migration)}}
  if winOneAccount.entry==nil{return List{Plugins:[]Entry{}}}
  return List{Plugins:clonePlugins([]Entry{*winOneAccount.entry})}
 }

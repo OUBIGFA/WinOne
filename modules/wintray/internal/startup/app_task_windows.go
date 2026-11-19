@@ -22,6 +22,7 @@ import (
 	"golang.org/x/sys/windows/registry"
 
 	"winone/modules/wintray/internal/config"
+	"winone/modules/wintray/internal/shellapp"
 )
 
 // Helper flags mark the one-shot elevated instance that registers or removes a
@@ -160,7 +161,7 @@ func (t *AppTasks) Sync(settings config.Settings, allowElevated bool) error {
 	var errs []error
 	if settings.RunAtLogon {
 		for _, entry := range settings.ManagedApps {
-			if !config.StartupFrequencyEnabled(entry) || strings.EqualFold(filepath.Ext(entry.ExePath), ".exe") {
+			if !config.StartupFrequencyEnabled(entry) || shellapp.IsPath(entry.ExePath) || strings.EqualFold(filepath.Ext(entry.ExePath), ".exe") {
 				continue
 			}
 			// Scripts launched by WinTray can be counted directly. An external
@@ -209,7 +210,7 @@ func (t *AppTasks) spec(app config.LogonTaskApp) appTaskSpec {
 		args:       app.Entry.Args,
 		workingDir: app.Entry.LaunchDirectory(),
 		delay:      app.DelaySeconds,
-		highest:    requiresElevationForLaunch(app.Entry.ExePath),
+		highest:    !shellapp.IsPath(app.Entry.ExePath) && requiresElevationForLaunch(app.Entry.ExePath),
 		demandOnly: config.StartupFrequencyEnabled(app.Entry),
 	}
 }

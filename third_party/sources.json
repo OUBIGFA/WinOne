@@ -155,8 +155,8 @@
     }
   },
   "wintray": {
-    "latestReviewedCommit": "db9c545b4a7c0326c9f3978991ece72e3c55fe7d",
-    "wechatAutoLoginReviewedCommit": "db9c545b4a7c0326c9f3978991ece72e3c55fe7d",
+    "latestReviewedCommit": "89c246a0b0c2808d7d594ab91758468517d61fdd",
+    "wechatAutoLoginReviewedCommit": "89c246a0b0c2808d7d594ab91758468517d61fdd",
     "latestSourceSnapshot": "third_party/wintray-source.json",
     "baseCommit": "57789d13c9c2b451a71f51adfcf21d7b4e285690",
     "localFix": "2026-09-29 taskbar icon drag",
@@ -185,7 +185,7 @@
   },
   "magpie": {
     "repository": "https://github.com/yetone/magpie",
-    "commit": "ce2ce86ab43a185688556b5887efab6f1670c58b",
+    "commit": "289184a409c0e38a3a0a5282dbde93b56da309ca",
     "license": "MIT",
     "dependencyLocks": [
       "modules/ai-magpie/upstream.go.mod",
@@ -193,8 +193,8 @@
     ],
     "adapter": "modules/ai-magpie",
     "build": "build/build-ai.ps1",
-    "verification": "docs/ai-base-update-20261113.md",
-    "previousCommit": "c9d253e4a2e7add1e31578244eda52bfdce11258"
+    "verification": "docs/ai-base-update-20261119.md",
+    "previousCommit": "ce2ce86ab43a185688556b5887efab6f1670c58b"
   },
   "providerAvatars": {
     "repository": "https://github.com/yetone/magpie",

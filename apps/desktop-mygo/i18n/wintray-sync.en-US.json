@@ -1,0 +1,19 @@
+{
+  "wintray.addInstalled": "Installed apps",
+  "wintray.installedTitle": "Add installed apps",
+  "wintray.installedSearch": "Search by name or path",
+  "wintray.installedAll": "All apps",
+  "wintray.installedDesktop": "Desktop apps",
+  "wintray.installedStore": "Store apps",
+  "wintray.installedLoading": "Reading the app list…",
+  "wintray.installedFailed": "Cannot read the app list; select Reload",
+  "wintray.installedEmpty": "No matching apps",
+  "wintray.installedRefresh": "Reload",
+  "wintray.installedAdd": "Add selected apps",
+  "wintray.installedSelected": "{{count}} apps selected",
+  "wintray.openLocation": "Open file location",
+  "wintray.locationHint": "Open file location; drop a program here to replace it",
+  "wintray.normalHint": "Keeps the program's own startup settings; Custom timing can schedule a separate launch",
+  "wintray.packagedDirectory": "Windows sets the working directory for Store apps",
+  "wintray.packagedArgs": "Arguments take effect only if the app supports them"
+}

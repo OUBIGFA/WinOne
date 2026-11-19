@@ -109,9 +109,11 @@ func (m *Manager) save(expected string, next config.Settings, history json.RawMe
 	if expected != revision(m.current) {
 		return Snapshot{}, ErrConflict
 	}
-	if err := Validate(next); err != nil {
+	prepared, err := config.PreparePreferences(next)
+	if err != nil {
 		return Snapshot{}, err
 	}
+	next = prepared
 	if len(history) > 0 {
 		if err := config.NewStartupHistory(filepath.Join(filepath.Dir(m.store.Path()), "startup-history.json")).MergeImport(history); err != nil {
 			return Snapshot{}, err

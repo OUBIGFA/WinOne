@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"unsafe"
 
 	"golang.org/x/sys/windows"
 	"winone/modules/wintray/internal/config"
+	"winone/modules/wintray/internal/shellapp"
 	"winone/modules/wintray/internal/stringutil"
 )
 
@@ -40,9 +40,7 @@ func (w HiddenWindow) valid() bool {
 	if w.Handle == 0 || w.ProcessID == 0 {
 		return false
 	}
-	var pid uint32
-	_, _, _ = procGetWindowThreadProcess.Call(w.Handle, uintptr(unsafe.Pointer(&pid)))
-	return pid == w.ProcessID
+	return shellapp.WindowProcessID(w.Handle) == w.ProcessID
 }
 
 // ProgramState describes the current native window without changing it.

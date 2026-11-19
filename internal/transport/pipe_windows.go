@@ -113,8 +113,14 @@ func CallWithTimeout(ctx context.Context, name string, request host.Request, tim
 // CallWithVerifiedServer inspects the OS-reported peer before sending a request.
 // The privilege handoff uses this instead of trusting a claimed token level in JSON.
 func CallWithVerifiedServer(ctx context.Context, name string, request host.Request, timeout time.Duration, verify func(uint32) error) (host.Response, error) {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
+	// Zero is an explicitly caller-owned lifetime. Ordinary RPC clients
+	// continue passing their existing positive budget; inherited cancellation
+	// and deadlines still close a connected pipe through AfterFunc below.
+	if timeout != 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
 	var response host.Response
 	conn, err := winio.DialPipeContext(ctx, name)
 	if err != nil {
@@ -136,8 +142,9 @@ func CallWithVerifiedServer(ctx context.Context, name string, request host.Reque
 			return response, err
 		}
 	}
-	deadline, _ := ctx.Deadline()
-	_ = conn.SetDeadline(deadline)
+	if deadline, ok := ctx.Deadline(); ok {
+		_ = conn.SetDeadline(deadline)
+	}
 	data, err := json.Marshal(request)
 	if err != nil {
 		return response, err

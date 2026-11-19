@@ -54,8 +54,11 @@ type page struct {
 	keys         keyEdits
 	// selected is the provider shown on the custom and accounts tabs,
 	// remembered per tab.
-	selected   string
-	selectedBy map[int]string
+	selected              string
+	selectedBy            map[int]string
+	bulkProvidersOpen     bool
+	bulkProviderSearch    map[int]string
+	bulkProviderSelection map[int]map[string]bool
 
 	loading, saving bool
 	accountBusy     bool
@@ -104,7 +107,7 @@ func newPage(env *core.Env) *page {
 // navigationLocked holds the tabs while work runs that leaving would lose
 // or interrupt: a save, a sign-in, a model discovery or a picture upload.
 func (p *page) navigationLocked() bool {
-	return p.saving || p.accountBusy || p.modelBusy || p.avatarBusy || p.connectionBusy
+	return p.saving || p.accountBusy || p.modelBusy || p.avatarBusy || p.connectionBusy || (p.editor != nil && p.editor.bulkKeysBusy)
 }
 
 // locked also holds the forms while the configuration is read.
@@ -404,7 +407,7 @@ func (p *page) addPreset(preset servicePreset) {
 		id = empty.ID
 	}
 	protocol, base := presetConnection(preset, region, "chat")
-	models := append([]string{}, preset.Models...)
+	models := preset.modelIDs(region)
 	pr := provider{ID: id, Name: p.uniqueName(preset.Name, id), AuthMode: "api-key", Preset: preset.ID, PresetRegion: region,
 		Protocol: protocol, BaseURL: base, Models: []string{}, AvailableModels: &models, Icon: preset.Icon}
 	if empty != nil {
@@ -462,6 +465,18 @@ func (p *page) remove(id string) {
 		}
 	}
 	delete(p.keys, id)
+	// Deleted providers no longer own unfinished JSON editors. Keeping one
+	// would make an otherwise valid save fail on an invisible removed field.
+	for key := range p.preferenceFields {
+		if strings.HasPrefix(key, id+":") {
+			delete(p.preferenceFields, key)
+		}
+	}
+	for tab, selected := range p.selectedBy {
+		if selected == id {
+			delete(p.selectedBy, tab)
+		}
+	}
 	p.selected = ""
 }
 
@@ -570,6 +585,7 @@ func (p *page) View(c *ui.Context) {
 	}
 	p.agentPicker(c)
 	p.presetPicker(c)
+	p.providerBulkDialog(c)
 }
 
 // notices are the page's errors above the tab's content.

@@ -40,7 +40,7 @@ func readManagedProjection(path string) (managedProjection, error) {
 		return managedProjection{}, errors.New("配置修订号缺失")
 	}
 	value := managedProjection{Revision: *wire.Revision, Settings: wire.Settings}
-	if err = Validate(value.Settings); err != nil {
+	if value.Settings, err = config.PreparePreferences(value.Settings); err != nil {
 		return value, err
 	}
 	return value, nil

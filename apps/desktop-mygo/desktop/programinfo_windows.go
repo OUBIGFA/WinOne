@@ -28,6 +28,7 @@ import (
 	"winone/desktopmygo/core"
 	"winone/desktopmygo/i18n"
 	"winone/internal/settings"
+	"winone/modules/wintray/applications"
 )
 
 // ProgramMetadata is what File Explorer shows for a program: its
@@ -50,6 +51,17 @@ var programSlots = make(chan struct{}, 4)
 func ProgramInfo(directory, path string) (ProgramMetadata, error) {
 	programSlots <- struct{}{}
 	defer func() { <-programSlots }()
+	if applications.IsPath(path) {
+		result := ProgramMetadata{Name: applications.ID(path)}
+		icon, err := applications.Icon(path, 64)
+		if err != nil {
+			return result, err
+		}
+		var buffer bytes.Buffer
+		err = png.Encode(&buffer, icon)
+		result.Icon = buffer.Bytes()
+		return result, err
+	}
 	if directory == "" {
 		return readProgramInfo(path)
 	}

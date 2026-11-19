@@ -36,6 +36,9 @@ type modelOption struct {
 // The host owns persistence. Worker options mirror Magpie's model window,
 // output and effort semantics without writing agents' configuration files.
 type modelMetadata struct {
+	Draws        bool              `json:"draws,omitempty"`
+	Films        bool              `json:"films,omitempty"`
+	Serves       string            `json:"serves,omitempty"`
 	Alias        string            `json:"alias,omitempty"`
 	Searches     bool              `json:"searches,omitempty"`
 	Same         string            `json:"same,omitempty"`
@@ -44,6 +47,8 @@ type modelMetadata struct {
 	Kind         string            `json:"kind,omitempty"`
 	SystemPrompt string            `json:"systemPrompt,omitempty"`
 	Headers      map[string]string `json:"headers,omitempty"`
+	Keys         []string          `json:"keys,omitempty"`
+	KeyCount     int               `json:"keyCount,omitempty"`
 	// Levels are the vendor's reported reasoning levels; Efforts the offered
 	// (kept) ones. Both are the vendor's own words, never a fixed ladder.
 	Levels  []string       `json:"levels,omitempty"`
@@ -96,7 +101,7 @@ func describeModel(p provider.Provider, model catalog.Model, override modelMetad
 	if threshold == 0 && override.CompactionPercent <= 0 && override.CompactionThreshold <= 0 {
 		threshold = model.Compact
 	}
-	metadata := modelMetadata{Searches: model.WebSearch == "native", Levels: slices.Clone(model.Efforts), Efforts: slices.Clone(model.Efforts), Tiers: model.Tiers, Price: model.Price, Rate: model.Rate, RateWas: model.RateWas, ContextWindow: window, ListedContextWindow: provider.ListedWindow(model), MaxContextWindow: model.MaxContext, MaxTokens: provider.OutputWithin(window, p.ReplyLimitIn(model, snapshot)), CompactionThreshold: threshold, CompactionPercent: override.CompactionPercent, Vision: model.ImageInput}
+	metadata := modelMetadata{Draws: model.Draws, Films: model.Films, Serves: model.Serves, Searches: model.WebSearch == "native", Levels: slices.Clone(model.Efforts), Efforts: slices.Clone(model.Efforts), Tiers: model.Tiers, Price: model.Price, Rate: model.Rate, RateWas: model.RateWas, ContextWindow: window, ListedContextWindow: provider.ListedWindow(model), MaxContextWindow: model.MaxContext, MaxTokens: provider.OutputWithin(window, p.ReplyLimitIn(model, snapshot)), CompactionThreshold: threshold, CompactionPercent: override.CompactionPercent, Vision: model.ImageInput}
 	if model.Reasoning || len(model.Efforts) > 0 {
 		yes := true
 		metadata.Reasoning = &yes
@@ -345,6 +350,29 @@ func fetchModels(ctx context.Context, in request) ([]modelOption, error) {
 	if full, ok := catalog.LiveAll(p.ID); ok && p.Account == nil {
 		models = full
 	}
+	extra := append(p.PlanDrawers(), p.PlanVideos()...)
+	extra = append(extra, p.PlanSpeakers()...)
+	extra = append(extra, p.PlanTranscribers()...)
+	extra = append(extra, p.PlanRetrieval("")...)
+	if p.Account == nil && !p.ListsOff() && len(extra) > 0 {
+		// A plan's media are defined outside its chat /models reply. Use
+		// the same lists as the native gateway, preserving their API kind.
+		models = append(slices.Clone(models), extra...)
+		unique := make([]catalog.Model, 0, len(models))
+		seen := map[string]bool{}
+		for _, model := range models {
+			if !seen[model.ID] {
+				unique = append(unique, model)
+				seen[model.ID] = true
+			}
+		}
+		models = unique
+		// The shared router reads this original catalog rather than trying
+		// to recreate media capabilities from the public display metadata.
+		if err := catalog.WinOneSaveMediaList(p.ID, models); err != nil {
+			return nil, err
+		}
+	}
 	if p.Account != nil && in.ProviderID != "" && len(models) > 0 {
 		// Account providers own private profiles. The outer gateway reads this
 		// upstream-format snapshot without opening or copying account secrets.
@@ -367,6 +395,24 @@ func fetchModels(ctx context.Context, in request) ([]modelOption, error) {
 				override = in.ModelMetadata
 			}
 			metadata := describeModel(p, model, override)
+			var onKeys []string
+			positions := map[string]int{}
+			slots := map[string]string{}
+			for _, key := range p.KeysOn() {
+				fingerprint := provider.KeyID(key.Key)
+				positions[fingerprint] = len(onKeys)
+				onKeys = append(onKeys, fingerprint)
+			}
+			for _, key := range in.Keys {
+				slots[provider.KeyID(key.Key)] = key.ID
+			}
+			ids, count := keysApart(model.Keys, onKeys, positions)
+			for _, id := range ids {
+				if slot := slots[id]; slot != "" {
+					metadata.Keys = append(metadata.Keys, slot)
+				}
+			}
+			metadata.KeyCount = count
 			result = append(result, modelOption{ID: model.ID, Name: model.Name, Free: model.Free, Metadata: metadata})
 			seen[model.ID] = true
 		}

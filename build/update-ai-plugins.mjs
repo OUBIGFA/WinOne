@@ -36,7 +36,21 @@ async function filesIn(directory,relative){
  return [relative.replaceAll('\\','/')];
 }
 const plugins=[];
-for(const listed of registry.plugins){
+// The current registry offers agy-cli to new users, but existing WinOne
+// Antigravity profiles still name the separately maintained original adapter.
+// Keep its current upstream files so updating never strands those accounts.
+const listedPlugins=[...registry.plugins];
+for(const name of ['@magpie-community/opencode-antigravity-auth']){
+ if(!listedPlugins.some(p=>p.package===name)){
+  const previous=old.plugins.find(p=>p.package===name);
+  if(previous){
+   if(!packages.has(name))throw Error('Review the removed account adapter before upgrading: '+name);
+   const {version,directory,entry,files,...listed}=previous;
+   listedPlugins.push({...listed,legacy:true});
+  }
+ }
+}
+for(const listed of listedPlugins){
  if(!listed.providers?.length)continue;
  const found=packages.get(listed.package);
  // Only self-contained, reviewed account adapters are distributed. WinOne

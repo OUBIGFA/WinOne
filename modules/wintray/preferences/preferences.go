@@ -20,7 +20,7 @@ func Decode(raw json.RawMessage) (Settings, error) {
 	if err := configjson.DecodeObject(raw, &value); err != nil {
 		return value, err
 	}
-	return value, config.Validate(value)
+	return config.PreparePreferences(value)
 }
 func DecodeLegacy(raw json.RawMessage) (Settings, error) {
 	value, err := config.DecodeImport(raw)

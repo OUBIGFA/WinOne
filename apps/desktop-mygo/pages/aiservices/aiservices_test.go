@@ -27,11 +27,16 @@ type fakeAI struct {
 	gatewaySaves  []map[string]any
 	fetched       []map[string]any
 	accounts      []map[string]any
+	warmups       []map[string]any
+	proxyChecks   []map[string]any
 	signIn        []map[string]any // states the sign-in goes through
 	signInIndex   int
 	signInParams  map[string]any
 	keys          map[string]string
 	catalog       map[string]any
+	plan          map[string]any
+	planReads     []map[string]any
+	quotas        []map[string]any
 }
 
 func newFakeAI(t *testing.T) *fakeAI {
@@ -86,6 +91,15 @@ func (f *fakeAI) handle(method string, params json.RawMessage) (any, error) {
 			"presets": []any{map[string]any{"id": "deepseek", "name": "DeepSeek", "chat": "https://api.deepseek.com/v1", "models": []any{"deepseek-chat"}}}}, nil
 	case "capture.ai.accounts.list":
 		return map[string]any{"accounts": f.accounts, "methods": []any{map[string]any{"type": "oauth", "label": "Browser"}}}, nil
+	case "capture.ai.plans.get", "capture.ai.plans.signout":
+		f.planReads = append(f.planReads, p)
+		if method == "capture.ai.plans.signout" {
+			f.plan = map[string]any{"kind": "qianwen", "signedIn": false}
+		}
+		if f.plan == nil {
+			return map[string]any{}, nil
+		}
+		return f.plan, nil
 	case "capture.ai.accounts.signin.start":
 		f.signInParams = p
 		f.signInIndex = 0
@@ -117,6 +131,7 @@ func (f *fakeAI) handle(method string, params json.RawMessage) (any, error) {
 		f.gatewaySaves = append(f.gatewaySaves, p)
 		settings := p["settings"].(map[string]any)
 		f.gateway["enabled"], f.gateway["port"], f.gateway["models"] = settings["enabled"], settings["port"], settings["models"]
+		f.gateway["bareModelIDs"], f.gateway["bareModelIDsOnly"] = settings["bareModelIDs"], settings["bareModelIDsOnly"]
 		f.gateway["running"] = settings["enabled"]
 		return f.gateway, nil
 	case "capture.ai.gateway.open":
@@ -124,7 +139,18 @@ func (f *fakeAI) handle(method string, params json.RawMessage) (any, error) {
 	case "capture.ai.gateway.close":
 		return map[string]any{"closed": true}, nil
 	case "capture.ai.accounts.quota":
-		return map[string]any{"quotas": []any{}}, nil
+		return map[string]any{"quotas": f.quotas}, nil
+	case "capture.ai.proxies.test":
+		f.proxyChecks = append(f.proxyChecks, p)
+		return map[string]any{"ok": true, "ip": "203.0.113.9", "loc": "US", "ms": 210}, nil
+	case "capture.ai.accounts.warm-all", "capture.ai.accounts.warm-now":
+		f.warmups = append(f.warmups, p)
+		return map[string]any{"results": []any{
+			map[string]any{"user": "ready@example.invalid"},
+			map[string]any{"user": "running@example.invalid", "skip": "running"},
+			map[string]any{"user": "off@example.invalid", "skip": "off"},
+			map[string]any{"user": "failed@example.invalid", "error": "Warm-up could not be completed"},
+		}}, nil
 
 	}
 	f.t.Errorf("unexpected %s %s", method, params)

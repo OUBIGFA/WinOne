@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"winone/desktopmygo/core"
+	"winone/modules/wintray/applications"
 )
 
 // The documents of the WinTray module, as wintray.snapshot returns them
@@ -93,7 +94,9 @@ func same(a, b core.Preserved[traySettings]) bool {
 // executable reports whether path is a program rather than a script: only
 // programs can be started by the sign-in task, collapse into the tray or
 // have their tray icon collected.
-func executable(path string) bool { return strings.EqualFold(filepath.Ext(path), ".exe") }
+func executable(path string) bool {
+	return applications.IsPath(path) || strings.EqualFold(filepath.Ext(path), ".exe")
+}
 
 // weChatProgram reports whether the path is one of the WeChat desktop clients.
 // Only those clients expose the login window the auto-login option drives.
@@ -125,18 +128,15 @@ func stem(path string) string {
 }
 
 // newProgram is a program added from path with the program manager's
-// defaults: started at sign-in, a program collapsed into the tray, a
-// script started hidden, no schedule yet (30 minutes, once a day when
-// turned on). Adding only edits the draft.
+// defaults: normal startup, with no automatic action until the user chooses
+// a mode or an independent schedule. Adding only edits the draft.
 func newProgram(path, name string) core.Preserved[program] {
-	exe := executable(path)
 	if name == "" {
 		name = stem(path)
 	}
 	value := program{
-		ID: newID(), Name: name, ExePath: path, RunOnStartup: true, LaunchHiddenInBackground: !exe,
+		ID: newID(), Name: name, ExePath: path,
 	}
-	value.TrayBehavior.Value = trayBehavior{AutoMinimizeAndHideOnLaunch: exe}
 	value.Schedule.Value = schedule{AutoExitMinutes: 30, FrequencyDays: 1, FrequencyRuns: 1}
 	return core.Preserved[program]{Value: value}
 }
@@ -152,7 +152,7 @@ func replaced(p program, path, name string) program {
 		name = stem(path)
 	}
 	p.ExePath, p.Name, p.CollectTrayIcon = path, name, false
-	if !executable(path) {
+	if !executable(path) && mode(p) != "normal" {
 		p.LaunchViaLogonTask, p.LaunchHiddenInBackground = false, true
 		p.TrayBehavior.Value.AutoMinimizeAndHideOnLaunch = false
 	}
@@ -173,6 +173,7 @@ func mode(p program) string {
 }
 
 func setMode(p *program, value string) {
+	p.RunOnStartup = value != "normal"
 	p.LaunchViaLogonTask = value == "task"
 	p.LaunchHiddenInBackground = value == "hidden"
 	p.TrayBehavior.Value.AutoMinimizeAndHideOnLaunch = value == "tray"
