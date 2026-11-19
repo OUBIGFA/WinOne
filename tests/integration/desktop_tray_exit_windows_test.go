@@ -121,7 +121,7 @@ func TestTrayExitClosesConnectedDesktop(t *testing.T) {
 				if err := backend.Process.Kill(); err != nil {
 					t.Fatal(err)
 				}
-			} else if ok, _, err := overlapUser32.NewProc("PostMessageW").Call(tray, 0x0111, 3, 0); ok == 0 {
+			} else if ok, _, err := overlapUser32.NewProc("PostMessageW").Call(tray, 0x0111, 4, 0); ok == 0 {
 				t.Fatal(err)
 			}
 			select {
@@ -199,7 +199,7 @@ func closeRecoveredDesktopHost(t *testing.T, pipe, executable string) {
 	defer process.Close()
 	var tray uintptr
 	waitOverlap(t, "recovered fixture tray", func() bool { tray = findOverlapWindow(pid, "SystrayClass", false); return tray != 0 })
-	overlapUser32.NewProc("PostMessageW").Call(tray, 0x111, 3, 0)
+	overlapUser32.NewProc("PostMessageW").Call(tray, 0x111, 4, 0)
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
 	if err := process.Wait(ctx); err != nil {

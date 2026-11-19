@@ -13,8 +13,11 @@ import (
 // LifecycleHooks are implemented by each adapter. Stop must return only after
 // restoring owned resources, not merely after sending a process termination request.
 type LifecycleHooks struct {
-	Start         func() error
-	Stop          func() error
+	Start func() error
+	Stop  func() error
+	// CanStop rejects an active user task before persisting disabled intent.
+	// It runs under the same operation lock as Stop, excluding new commands.
+	CanStop       func() error
 	IntentChanged func() error
 	Status        func() host.Module
 	Handle        func(host.Request) host.Response
@@ -171,6 +174,11 @@ func (g *Gate) SetEnabled(revision uint64, enabled bool) error {
 		// explicit retry must restart it instead of accepting a no-op.
 		if !enabled || g.hooks.Status().State != "faulted" {
 			return nil
+		}
+	}
+	if !enabled && record.Enabled && !record.PendingStop && g.hooks.CanStop != nil {
+		if err := g.hooks.CanStop(); err != nil {
+			return err
 		}
 	}
 	// Restarting an enabled runtime is not a settings edit. Keep revisions

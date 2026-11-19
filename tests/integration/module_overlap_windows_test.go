@@ -100,7 +100,10 @@ func TestHostOverlappingModuleLifetimes(t *testing.T) {
 			<-hostDone
 		}
 	})
-	var inventory modules.ControlSnapshot
+	var inventory struct {
+		modules.ControlSnapshot
+		ConfigurationError string `json:"configurationError"`
+	}
 	waitOverlap(t, "Host readiness", func() bool { return call("modules.snapshot", nil, &inventory) == nil })
 	if len(inventory.Modules) != len(catalog.Builtins()) {
 		t.Fatal("incomplete module inventory", inventory)
@@ -272,16 +275,49 @@ func TestHostOverlappingModuleLifetimes(t *testing.T) {
 	}
 	assertActive()
 
-	// The module stop path owns cancellation of the active native job. Disable
-	// capture through Host so the worker closes its editor, releases the draft
-	// reservation and exits under the same lifecycle gate used in production.
-	// A direct WM_CLOSE can be intercepted by draft persistence and does not
-	// prove worker shutdown.
+	// An open editor refuses disable without poisoning the configuration or
+	// discarding the user's work. Finish it explicitly before disabling.
+	if err = call("modules.snapshot", nil, &inventory); err != nil {
+		t.Fatal(err)
+	}
+	if err = call("modules.setEnabled", map[string]any{"id": "capture", "enabled": false, "revision": inventory.Revision}, nil); err == nil {
+		t.Fatal("active capture was discarded by module disable")
+	}
+	if err = call("modules.snapshot", nil, &inventory); err != nil || inventory.ConfigurationError != "" {
+		t.Fatal("busy refusal left configuration requiring recovery", inventory.ConfigurationError, err)
+	}
+	for _, entry := range inventory.Modules {
+		if entry.Manifest.ID == "capture" && (!entry.Enabled || entry.PendingStop || entry.Runtime.State == "faulted") {
+			t.Fatal("busy refusal changed capture intent", entry)
+		}
+	}
+	assertActive()
+	// A subsequent ordinary settings save must still succeed after refusal.
+	var global host.Snapshot
+	if err = call("snapshot", nil, &global); err != nil {
+		t.Fatal(err)
+	}
+	if err = call("settings.save", global.Settings, nil); err != nil {
+		t.Fatal("busy refusal blocked later settings", err)
+	}
+	if ok, _, err := overlapUser32.NewProc("PostMessageW").Call(captureWindow, 0x0010, 0, 0); ok == 0 {
+		t.Fatal(err)
+	}
+	waitOverlap(t, "explicit capture cancellation", func() bool {
+		if err = call("capture.jobs.get", map[string]string{"id": captureJob}, &job); err != nil {
+			t.Fatal(err)
+		}
+		return job.State != "running"
+	})
+	if job.State != "cancelled" {
+		t.Fatal("capture cancellation did not finish", job)
+	}
+	captureWindow = 0
 	disables := make(map[string]float64)
 	for _, item := range []struct {
 		id      string
 		process windows.Handle
-	}{{"capture", captureProcess}, {"always-on-top", aotProcess}, {"wintray", wintrayProcess}, {"selection", 0}, {"quick-assistant", 0}, {"stroke", strokeProcess}} {
+	}{{"capture", captureProcess}, {"always-on-top", aotProcess}, {"wintray", wintrayProcess}, {"selection", 0}, {"quick-assistant", 0}, {"stroke", strokeProcess}, {"timed-power", 0}} {
 		if err = call("modules.snapshot", nil, &inventory); err != nil {
 			t.Fatal(err)
 		}
@@ -356,7 +392,8 @@ func TestHostOverlappingModuleLifetimes(t *testing.T) {
 	if tray == 0 {
 		t.Fatal("Host has no usable tray window")
 	}
-	if ok, _, err := overlapUser32.NewProc("PostMessageW").Call(tray, 0x0111, 3, 0); ok == 0 {
+	// Fixed commands reserve separator/open/power-cancel/quit before collections.
+	if ok, _, err := overlapUser32.NewProc("PostMessageW").Call(tray, 0x0111, 4, 0); ok == 0 {
 		t.Fatal(err)
 	}
 	select {
@@ -374,7 +411,7 @@ func TestHostOverlappingModuleLifetimes(t *testing.T) {
 	if !overlapVisible(pinned) || overlapTopmost(pinned) {
 		t.Fatal("Host exit changed the restored pin fixture")
 	}
-	writeOverlapJSON(t, filepath.Join(output, "result.json"), map[string]any{"sixModulesEnabled": true, "selectionListenerStopped": true, "nativeCaptureCancelled": true, "pinnedWindowRestored": true, "hostedWindowRestored": true, "managedProgramPreserved": true, "hostExited": true, "nativeBorderVerified": verifyBorder, "disableMilliseconds": disables, "productProcesses": productPIDs, "scope": "Generated capture draft, one real pinned fixture, one real managed fixture, and enabled in-Host selection listener with automatic reading off; DWM border only verified in explicit foreground mode; no settings UI, OCR/AI task, user windows or clipboard input"})
+	writeOverlapJSON(t, filepath.Join(output, "result.json"), map[string]any{"enabledModuleCount": len(catalog.Builtins()), "selectionListenerStopped": true, "nativeCaptureCancelled": true, "busyCaptureProtected": true, "pinnedWindowRestored": true, "hostedWindowRestored": true, "managedProgramPreserved": true, "hostExited": true, "nativeBorderVerified": verifyBorder, "disableMilliseconds": disables, "productProcesses": productPIDs, "scope": "Generated capture draft, one real pinned fixture, one real managed fixture, and enabled in-Host selection listener with automatic reading off; DWM border only verified in explicit foreground mode; no settings UI, OCR/AI task, user windows or clipboard input"})
 }
 
 var overlapUser32 = windows.NewLazySystemDLL("user32.dll")

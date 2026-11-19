@@ -493,7 +493,14 @@ func (t *winTray) initInstance() error {
 	}
 	t.nid.Size = uint32(unsafe.Sizeof(*t.nid))
 
-	return t.nid.add()
+	// Explorer may not exist yet at logon (or on an isolated desktop). The
+	// native window and message loop are already valid: still build menus and
+	// notify the application. TaskbarCreated retries this same icon when Shell
+	// becomes available; returning here used to leave onReady blocked forever.
+	if err := t.nid.add(); err != nil {
+		log.Printf("systray: notification icon unavailable until TaskbarCreated: %s\n", err)
+	}
+	return nil
 }
 
 func (t *winTray) createMenu() error {

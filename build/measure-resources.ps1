@@ -10,6 +10,9 @@ param(
     [int]$WindowProcessId = 0
 )
 $ErrorActionPreference = 'Stop'
+# A Go child can inherit PowerShell 7's module path while launching Windows
+# PowerShell. Load this process's own utility module before hashing artifacts.
+Import-Module (Join-Path $PSHOME 'Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1') -ErrorAction Stop
 Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot 'resource-metrics.psm1') -Force
 $workspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

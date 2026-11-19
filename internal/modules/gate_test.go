@@ -32,6 +32,42 @@ func TestEnabledModuleCanRetryAFaultedRuntime(t *testing.T) {
 	}
 }
 
+func TestBusyStopRefusalPreservesIntentAndAllowsLaterDisable(t *testing.T) {
+	store, err := modulestate.Open(filepath.Join(t.TempDir(), "modules.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	busy := true
+	stops, intents := 0, 0
+	gate, err := NewGate("capture", "Capture", store, LifecycleHooks{
+		Start: func() error { return nil }, Stop: func() error { stops++; return nil },
+		CanStop: func() error {
+			if busy {
+				return errors.New("editor is open")
+			}
+			return nil
+		},
+		IntentChanged: func() error { intents++; return nil },
+		Status:        func() host.Module { return host.Module{State: "ready"} },
+		Handle:        func(r host.Request) host.Response { return host.Response{ID: r.ID} },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	revision := store.Snapshot().Revision
+	if err := gate.SetEnabled(revision, false); err == nil {
+		t.Fatal("active editor was not protected")
+	}
+	record := store.Snapshot().Modules["capture"]
+	if !record.Enabled || record.PendingStop || store.Snapshot().Revision != revision || intents != 0 || stops != 0 || gate.Status().State != "ready" {
+		t.Fatalf("refusal changed lifecycle state: %+v, stops=%d intents=%d", record, stops, intents)
+	}
+	busy = false
+	if err := gate.SetEnabled(revision, false); err != nil || gate.Status().State != "disabled" || stops != 1 {
+		t.Fatal("finished editor could not disable normally", err)
+	}
+}
+
 func TestFailedStopBlocksCommandsAndRequiresRecovery(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "modules.json")
 	store, err := modulestate.Open(path)

@@ -106,7 +106,7 @@ func TestTrayExitRestoresActiveAlwaysOnTop(t *testing.T) {
 	if tray == 0 {
 		t.Fatal("owned tray window missing")
 	}
-	if ok, _, err := overlapUser32.NewProc("PostMessageW").Call(tray, 0x0111, 3, 0); ok == 0 {
+	if ok, _, err := overlapUser32.NewProc("PostMessageW").Call(tray, 0x0111, 4, 0); ok == 0 {
 		t.Fatal(err)
 	}
 	select {

@@ -28,6 +28,28 @@ func prepareCapture(worker *modules.Lazy) error {
 	return nil
 }
 
+// A busy editor has not released its draft. Refuse before changing module
+// intent so an ordinary user cancellation never becomes recovery-required.
+func canStopCapture(worker *modules.Lazy) error {
+	response, called := worker.HandleRunning(host.Request{Version: 1, ID: "capture-stop-check", Method: "snapshot"})
+	if !called {
+		return nil
+	}
+	if response.Error != nil {
+		return errors.New(response.Error.Message)
+	}
+	var snapshot struct {
+		Busy bool `json:"busy"`
+	}
+	if err := json.Unmarshal(response.Result, &snapshot); err != nil {
+		return err
+	}
+	if snapshot.Busy {
+		return errors.New("请先完成或取消当前截图操作")
+	}
+	return nil
+}
+
 func startWinTray(ctx context.Context, worker *modules.Lazy) error {
 	worker.Resume()
 	for {

@@ -307,6 +307,7 @@ func run() (runErr error) {
 		manifest := entry.manifest
 		start := func() error { runtime.Resume(); return nil }
 		stop := runtime.Close
+		var canStop func() error
 		status := runtime.Status
 		if manifest.ID != "wintray" && manifest.ID != "stroke" {
 			stop = func() error {
@@ -328,8 +329,9 @@ func run() (runErr error) {
 		}
 		if manifest.ID == "capture" {
 			start = func() error { return prepareCapture(runtime) }
+			canStop = func() error { return canStopCapture(runtime) }
 		}
-		gate, gateErr := modules.NewGate(manifest.ID, manifest.Name.Chinese, moduleState, modules.LifecycleHooks{Start: start, Stop: stop, Status: status, Handle: runtime.Handle, IntentChanged: func() error {
+		gate, gateErr := modules.NewGate(manifest.ID, manifest.Name.Chinese, moduleState, modules.LifecycleHooks{Start: start, Stop: stop, CanStop: canStop, Status: status, Handle: runtime.Handle, IntentChanged: func() error {
 			if manifest.ID == "stroke" {
 				select {
 				case strokeChanged <- struct{}{}:
@@ -785,14 +787,15 @@ func run() (runErr error) {
 		// collection compact: no leading separator or invisible placeholder.
 		collectedSeparator := systray.NewMenuSeparator()
 		open := systray.AddMenuItem("打开 WinOne", "")
+		powerCancel := systray.AddMenuItem("取消定时关机", "")
+		powerCancel.Hide()
+		quit := systray.AddMenuItem("退出 WinOne", "")
+		// Reserve all fixed commands before the async collection can add rows.
 		go syncCollectedMenu(ctx, observedIcons{Gate: gates["wintray"], worker: wintray}, collectedSeparator, func() string { return applicationLanguage(store.Snapshot().Language) }, func(failure error) {
 			if err := reportTrayFailure(*data, applicationLanguage(store.Snapshot().Language), failure, systray.ShowWarning); err != nil {
 				fmt.Fprintln(os.Stderr, "tray feedback:", err)
 			}
 		})
-		powerCancel := systray.AddMenuItem("取消定时关机", "")
-		powerCancel.Hide()
-		quit := systray.AddMenuItem("退出 WinOne", "")
 		if err := setTrayMenuIcons(open, quit); err != nil {
 			if reportErr := reportTrayFailure(*data, applicationLanguage(store.Snapshot().Language), err, systray.ShowWarning); reportErr != nil {
 				fmt.Fprintln(os.Stderr, "tray menu icons:", reportErr)

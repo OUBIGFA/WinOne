@@ -51,7 +51,7 @@
     "module": "fyne.io/systray",
     "version": "v1.12.2",
     "localSource": "third_party/systray",
-    "adaptation": "Bounded PNG menu icons, native bitmap lifetime management, corrected NOTIFYICONDATAW union layout, one-shot Windows warnings and informational transfer notifications, left-click foreground activation, content-measured popup width and conditional collection separators"
+    "adaptation": "Bounded PNG menu icons, native bitmap lifetime management, corrected NOTIFYICONDATAW union layout, one-shot Windows warnings and informational transfer notifications, left-click foreground activation, content-measured popup width, conditional collection separators, and application readiness before Explorer icon registration with TaskbarCreated retry"
   },
   "ui": {
     "openClaude": {
