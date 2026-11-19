@@ -52,11 +52,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_access.go",
-          "sha256": "9656a7ca4e5efd06ba96d5ac704dfffaa814a78f662b9ef5e80a54a62fc5a536"
+          "sha256": "e633d6c693667db0f5963dd6a8669f959bf01f5d0c5f341ee159f5c789bfc4bd"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_history.go",
-          "sha256": "26ce21934991003eaddef5e6e3a76218da3810f9ab06240b79dfd2737cdd177a"
+          "sha256": "e61ee3c53d88da4ed6ac25f314c7867e278736ed523089601477942aee657c07"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_calls.go",
@@ -64,7 +64,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_connect.go",
-          "sha256": "fcc586085c075e14639dde68f950a953799424a356ab59bad395fdb26d0cb215"
+          "sha256": "01fcf666d40200b925fa7e3210b97e9962087e73dd771c0a00ba096b689f3b3a"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_examples.json",
