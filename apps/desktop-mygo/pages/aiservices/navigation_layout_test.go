@@ -59,3 +59,22 @@ func TestAIPageUsesSharedSettingsWidth(t *testing.T) {
 		}
 	}
 }
+
+func TestProviderActionsFitNarrowContentInBothLanguages(t *testing.T) {
+	defer i18n.SetLocale(i18n.Chinese)
+	_, h, p, _ := setup(t)
+	p.switchTab(tabCustom)
+	for _, locale := range []string{i18n.Chinese, i18n.English} {
+		i18n.SetLocale(locale)
+		for _, width := range []int{420, 560, 880} {
+			tt := ui.NewTester(p.View, width, 1200)
+			settle(h, tt)
+			for _, key := range []string{"ai.addCustomProvider", "ai.addPreset", "aiBulkProviders.open"} {
+				button, ok := tt.Access(i18n.T(key))
+				if !ok || !button.Focusable || button.Bounds.X < 0 || button.Bounds.X+button.Bounds.W > float32(width) {
+					t.Errorf("%s width=%d: %s is clipped: %+v", locale, width, key, button.Bounds)
+				}
+			}
+		}
+	}
+}

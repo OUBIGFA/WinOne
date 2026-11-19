@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -85,6 +86,7 @@ type Modules struct {
 	Busy    string
 	Err     string
 	focuses int
+	updated time.Time
 }
 
 // NewModules reads the catalog.
@@ -118,6 +120,7 @@ func (m *Modules) Reload(done func()) {
 		return snapshot, err
 	}, func(snapshot ModuleSnapshot, err error) {
 		m.Loading = false
+		m.updated = time.Now()
 		if err != nil {
 			m.LoadErr = err.Error()
 		} else {
@@ -258,6 +261,19 @@ func ModuleProblem(entry ModuleEntry) string {
 // its recovery.
 func (m *Modules) Notices(c *ui.Context) {
 	s := m.Snapshot
+	// Startup now continues while Home is visible. Follow only transitional
+	// states; settled or disabled modules must not cause idle polling.
+	if s != nil && m.LoadErr == "" && m.Busy == "" {
+		for _, entry := range s.Modules {
+			if entry.Runtime.State == "starting" || entry.Runtime.State == "stopping" {
+				c.After(time.Second)
+				if !m.Loading && time.Since(m.updated) >= time.Second {
+					m.Reload(nil)
+				}
+				break
+			}
+		}
+	}
 	switch {
 	case s != nil && s.ConfigurationError != "":
 		message := s.ConfigurationError

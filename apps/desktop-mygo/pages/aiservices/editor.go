@@ -172,13 +172,13 @@ func (p *page) providersView(c *ui.Context) {
 		if pr != nil && p.saved != nil {
 			old = p.saved.Value.find(pr.ID)
 		}
-		// The chooser grows; the add actions wrap together as one group, so
-		// a narrow window moves both below it instead of splitting them.
+		// Keep the chooser flexible; translated actions also wrap inside their
+		// group so a narrow content column never clips the last button.
 		ui.Row(c).FillWidth().GapX(8).GapY(8).Wrap().AlignItems(ui.End).Children(func() {
 			if pr != nil {
 				ui.Column(c).Basis(240).Grow(1).MinWidth(0).Children(func() { e.nameField(c, pr, locked) })
 			}
-			ui.Row(c).Shrink(0).Gap(8).Children(func() {
+			ui.Row(c).Shrink(1).MinWidth(0).Gap(8).Wrap().Children(func() {
 				label := "ai.addCustomProvider"
 				if accounts {
 					label = "ai.addAccountProvider"
