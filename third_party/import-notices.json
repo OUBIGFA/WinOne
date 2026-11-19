@@ -1681,7 +1681,7 @@
       "files": [
         {
           "path": "apps/desktop/frontend/src/styles/cindy-fonts.css",
-          "sha256": "9ec60454554626875df8038d380c8a023931ebbf4d6ee98a689326e62c6ed869"
+          "sha256": "1091aab44fa1b61247651dc5e215d0c5a2ff2cfc1267bce0e7e47134fd1e53a6"
         },
         {
           "path": "build/prepare-cindy-fonts.mjs",
