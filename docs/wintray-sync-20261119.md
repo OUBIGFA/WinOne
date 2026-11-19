@@ -16,7 +16,7 @@
 
 离线模块源码检查通过，显式未选择下述两个已有环境用例。最后改动的激活/等待/工作目录包另行定向复验通过；程序管理原生页面全部测试与档案全部测试通过。图标检查核对真实生产组件的像素，并采用 WinOne 共享主题的单行高度，未套用独立 WinTray 在旧 MyGo 上的 48 DIP 外观数值。截图保存了选择框与已添加列表的深浅色、1000/560 DIP 布局。
 
-本次证据在 `_temp/wintray-finish-20261119/`：`module-offline.log`、`activation-wait-red.log`、`activation-wait-green.log`、`location-drop-red.log`、`page-complete.log`、`profiles-offline.log` 及 `shots/`。v4 配置投影的先失败后通过记录为 `_temp/ai-wintray-20261119/wintray-v4-projection-red.log` 与 `wintray-v4-projection-green.log`。最终构建与固定安装器更新由本次总体交付记录说明。
+本次证据已归档到 `dist/reports/ai-wintray-sync-20261119/`：`logs/wintray-finish-20261119/` 保留 `module-offline.log`、`activation-wait-red.log`、`activation-wait-green.log`、`location-drop-red.log`、`page-complete.log`、`profiles-offline.log`，图片位于 `screenshots/`。v4 配置投影的先失败后通过记录位于 `logs/ai-wintray-20261119/`。最终构建已核验 5,910 个包文件并更新固定安装器，来源、哈希及验证范围见归档目录的 `index.md`；下文临时路径为原始执行位置，对应日志已保留在归档目录。
 
 本次不选择联网和真实系统自启测试。所有窗口及自有子进程检查均在私有桌面执行，没有使用真实 WinOne、WinTray 或用户应用实例。已保留下列限制，未将其记录为通过：
 
