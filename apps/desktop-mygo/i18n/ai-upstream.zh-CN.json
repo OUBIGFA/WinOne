@@ -4,7 +4,6 @@
   "aiUpstream.Concurrency": "并发上限",
   "aiUpstream.Details": "详情",
   "aiUpstream.Example": "示例",
-  "aiUpstream.Gateway keys": "网关密钥",
   "aiUpstream.Google's generateContent API, v1beta. Gemini CLI and the google-genai SDKs speak this.": "Google 的 generateContent API（v1beta）。Gemini CLI 和 google-genai SDK 使用它。",
   "aiUpstream.Model": "模型",
   "aiUpstream.OpenAI's newer API: reasoning, built-in tool items, encrypted reasoning. Codex speaks this.": "OpenAI 较新的 API：推理、内置工具项、加密推理。Codex 使用它。",

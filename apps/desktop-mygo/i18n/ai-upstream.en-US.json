@@ -4,7 +4,6 @@
   "aiUpstream.Concurrency": "Concurrency",
   "aiUpstream.Details": "Details",
   "aiUpstream.Example": "Example",
-  "aiUpstream.Gateway keys": "Gateway keys",
   "aiUpstream.Google's generateContent API, v1beta. Gemini CLI and the google-genai SDKs speak this.": "Google's generateContent API, v1beta. Gemini CLI and the google-genai SDKs speak this.",
   "aiUpstream.Model": "Model",
   "aiUpstream.OpenAI's newer API: reasoning, built-in tool items, encrypted reasoning. Codex speaks this.": "OpenAI's newer API: reasoning, built-in tool items, encrypted reasoning. Codex speaks this.",
