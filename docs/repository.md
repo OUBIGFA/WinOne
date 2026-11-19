@@ -111,7 +111,7 @@ Windows 相关验收保留为本地测试能力，可按任务影响范围使用
 | `sources/ShareX-21.0.0`、`sources/ShareX-v21.0.0.zip` | ShareX 准备脚本的固定源码和归档 |
 | `sources/ShareX-native` | 现用原生截图引擎的独立源码；需要测试改写时再复制到 `_temp/<任务>/` |
 | `sources/magpie-ce2ce86`、`sources/ai-plugins-a410afe` | 本次核对并冻结的 AI 基座与账号适配器来源；构建核对 HEAD、锁文件及原始许可。旧来源保留用于回退；测试输出回到根 `_temp/`。更新对照见 `docs/ai-base-update-20261113.md` |
-| `sources/mygo-winone-v0.9.0` | MyGo 正式 v0.9.0的仓库管理源码副本，按 `third_party/mygo-winone/source.json` 与 `build/prepare-mygo-filedrop.ps1` 校验原模块和窄适配；设置窗口、结果窗及nativeui使用该副本，不修改用户Go module cache。旧版本留作历史/回退参考 |
+| `sources/mygo-winone-v0.9.2` | MyGo 正式 v0.9.2的仓库管理源码副本，按 `third_party/mygo-winone/source.json` 与 `build/prepare-mygo-filedrop.ps1` 校验原模块和窄适配；设置窗口、结果窗及nativeui使用该副本，不修改用户Go module cache。旧版本留作历史/回退参考 |
 | `runtimes/ocr` | OCR Python、离线依赖与模型，供反复打包；以 OCR 清单校验 |
 | `cache/cargo`、`cache/go`、`cache/npm` | 分别通过 `CARGO_HOME`、`GOCACHE`、`npm_config_cache` 复用 Cargo 依赖、Go 编译和 npm 下载缓存；不放测试报告 |
 | `cache/nuget-notices/microsoft.web.webview2.1.0.3800.47.nupkg` | Microsoft WebView2 SDK 原包，供 `build/verify-rust-notices.ps1 -Update -WebView2Package <路径>` 核对 Loader 与原始许可证；来源为 NuGet 官方包，SHA-256 `56c9f26bdd07916a2d1949fb58a5c7e434dfa1173577dca879206050c4e718db` |

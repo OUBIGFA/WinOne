@@ -1,11 +1,11 @@
 # WinOne MyGo 窗口开发说明
 
-`apps/desktop-mygo` 使用 [MyGo](https://github.com/egoist/mygo) v0.9.0 呈现 WinOne.exe 原生设置窗口。本文说明怎样在这里写页面；当前功能边界见 [模块精简验收](../../docs/module-removal-20261112.md)。
+`apps/desktop-mygo` 使用 [MyGo](https://github.com/egoist/mygo) v0.9.2 呈现 WinOne.exe 原生设置窗口。本文说明怎样在这里写页面；当前功能边界见 [模块精简验收](../../docs/module-removal-20261112.md)。
 
 ## 工具链
 
 - Go 1.27.3：`dist/resources/tools/go-1.27.3/bin/go.exe`。命令前设置 `GOROOT` 为该目录，`GOTOOLCHAIN=local`，`CGO_ENABLED=0`，`GOCACHE=dist/resources/cache/go`。
-- MyGo 文档与源码：`dist/resources/sources/mygo-winone-v0.9.0/docs/ui/`（组件说明）和 `ui/`（实现）。先查文档，再写代码，不要猜 API。
+- MyGo 文档与源码：`dist/resources/sources/mygo-winone-v0.9.2/docs/ui/`（组件说明）和 `ui/`（实现）。先查文档，再写代码，不要猜 API。
 - 正式构建：`build/build-desktop-mygo.ps1 -OutputDirectory _temp/<任务>/build`（图标检查、测试、vet、生产构建）。
 
 ## 包结构

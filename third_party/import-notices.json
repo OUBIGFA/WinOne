@@ -154,7 +154,7 @@
     {
       "name": "mygo-winone-shell-file-drop",
       "repository": "https://github.com/egoist/mygo",
-      "commit": "4811a2869b5a66d2b7e21a9eb5993fcff544460b",
+      "commit": "25ce62f4d357cd6d29da04300e3fbc352d79daa4",
       "license": "MIT",
       "scope": "Windows Shell cross-integrity file-drop receiver adapted from WinOne's component_file_drop.rs. Native UI, OLE, hit testing and file dispatch stay upstream. Markdown tables wrap within the reading column. Opaque Windows native surfaces paint the complete interactive scene with the existing CPU renderer while D3D11 initializes asynchronously, preserving input and UI state on GPU handoff. Shared editors accept standard Windows Ctrl+Insert through their existing copy command, preserving selection and password checks. Prepared from the verified pinned module into a repository source cache; never modifies the Go module cache.",
       "sourceFiles": [
@@ -166,14 +166,14 @@
       ],
       "notices": [
         {
-          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.9.0-LICENSE.txt",
+          "file": "licenses/desktop-go-github.com-egoist-mygo-v0.9.2-LICENSE.txt",
           "sha256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4"
         }
       ],
       "files": [
         {
           "path": "third_party/mygo-winone/source.json",
-          "sha256": "15a3f1ed7b47e4a3279d4a5cfa425eee6b9743708ffab68c1b470b0f6557aa91"
+          "sha256": "189d0d88d9534d3a56197ab050b97784d36d86a36152ef139118f3824d4791f0"
         },
         {
           "path": "third_party/mygo-winone/copy_shortcut.go",
