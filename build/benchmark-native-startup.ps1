@@ -31,7 +31,9 @@ try{
     $command="& '"+(Join-Path $PSScriptRoot 'benchmark-component-startup.ps1').Replace("'","''")+"' -BundleDirectory '"+$bundle.Replace("'","''")+"' -OutputDirectory '"+$measurements.Replace("'","''")+"' -Runs "+$Runs+" -Frontend MyGo"
     if($EnforceWarmBudget){$command+=' -EnforceWarmBudget'}
     if($ObserveGPUHandoff){$command+=' -ObserveGPUHandoff'}
-    $run="`$ErrorActionPreference='Stop'`ntry { "+$command+" *> '"+$log.Replace("'","''")+"'; exit 0 } catch { `$_ | Out-String | Add-Content -LiteralPath '"+$log.Replace("'","''")+"'; exit 1 }`n"
+    # PowerShell 7 can pass a module path that prevents Windows PowerShell
+    # from discovering its own utility commands on the private desktop.
+    $run="`$ErrorActionPreference='Stop'`nImport-Module (Join-Path `$PSHOME 'Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1')`ntry { "+$command+" *> '"+$log.Replace("'","''")+"'; exit 0 } catch { `$_ | Out-String | Add-Content -LiteralPath '"+$log.Replace("'","''")+"'; exit 1 }`n"
     [IO.File]::WriteAllText($runner,$run,[Text.UTF8Encoding]::new($false))
     $process=$desktop.Start((Get-Command powershell.exe).Source,('-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$runner+'"'),$root)
     $null=$process.Handle
