@@ -76,11 +76,11 @@
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-upstream.en-US.json",
-          "sha256": "02e5aa068bac7ecd56aa5bf3675c8494ebccb8a09e7718942a24f1482a0659b8"
+          "sha256": "cdad58af80548859a9a6b3a5a8d01fc2933041d98e70355d6c012858879061d6"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-upstream.zh-CN.json",
-          "sha256": "f3a135da0585442d36c0f20fa8c0eef5c065b7abeca8572950520e3d050cea01"
+          "sha256": "30c938423ba662491e9bc163950b3dae72fab753f949db2f7b63086febc822e3"
         },
         {
           "path": "build/generate-native-magpie-connect.mjs",
