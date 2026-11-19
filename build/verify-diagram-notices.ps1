@@ -47,10 +47,18 @@ try{
  $catalog=[ordered]@{schemaVersion=1;packages=$packages}
  $path=Join-Path $root ('third_party/'+$Runtime+'-notices.json');$encoded=$catalog|ConvertTo-Json -Depth 8
  if($Update){[IO.File]::WriteAllText($path,$encoded,[Text.UTF8Encoding]::new($false))}
- # Git checks out LF, while Windows PowerShell serializes CRLF. Compare the
- # same catalog text after newline normalization; all recorded values and
- # original license bytes remain checked above.
- if((Get-Content -Raw -Encoding UTF8 $path).Replace("`r`n","`n").Trim() -ne $encoded.Replace("`r`n","`n").Trim()){throw 'Diagram dependency catalog changed'}
+ # PowerShell 5 and 7 differ in JSON formatting and punctuation sort order.
+ # Normalize both inventories in this process; every field, entry and digest
+ # remains checked, while representation alone cannot reject dependencies.
+ $savedCatalog=Get-Content -Raw -Encoding UTF8 $path|ConvertFrom-Json
+ $currentCatalog=$encoded|ConvertFrom-Json
+ foreach($inventory in @($savedCatalog,$currentCatalog)){
+  $inventory.packages=@($inventory.packages|Sort-Object name,version)
+  foreach($package in $inventory.packages){$package.notices=@($package.notices|Sort-Object file)}
+ }
+ $recorded=$savedCatalog|ConvertTo-Json -Depth 8 -Compress
+ $current=$currentCatalog|ConvertTo-Json -Depth 8 -Compress
+ if($recorded -cne $current){throw 'Diagram dependency catalog changed'}
  if($BundleDirectory){
   foreach($package in $packages){foreach($notice in $package.notices){if((Hash (Join-Path $BundleDirectory $notice.file)) -ne $notice.sha256){throw "Packaged dependency license mismatch: $($notice.file)"}}}
   Copy-Item -LiteralPath $path -Destination (Join-Path $BundleDirectory ('licenses/'+$Runtime+'-notices.txt')) -Force
