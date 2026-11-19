@@ -674,9 +674,11 @@ func (p *page) overview(c *ui.Context) {
 	// controls, marks and spacing use WinOne's existing native components.
 	kit.Panel(c, func() {
 		ui.Row(c).FillWidth().Padding(6, 12).GapX(12).GapY(4).Wrap().AlignItems(ui.Center).Children(func() {
-			kit.Caption(c, i18n.T("ai.providerTotal", "count", len(enabled), "models", models)).SingleLine().Margin(4, 0)
+			total := kit.Caption(c, i18n.T("ai.providerTotal", "count", len(enabled), "models", models)).SingleLine().Margin(4, 0)
 			if len(enabled) == 0 {
-				kit.Help(c, i18n.T("ai.providerOverviewEmpty"))
+				// The count alone: the guide or the empty tab below says
+				// what to do, so this strip does not repeat it.
+				total.Description(i18n.T("ai.providerOverviewEmpty"))
 				return
 			}
 			for _, pr := range enabled {
@@ -730,10 +732,9 @@ func (p *page) defaultModelView(c *ui.Context) {
 	}
 	d := &p.draft.Value
 	locked := p.locked()
-	// The tab already names this group; its purpose leads it instead of a
-	// heading that repeats the tab.
-	ui.Column(c).FillWidth().Gap(kit.HeadingGap).Children(func() {
-		kit.Help(c, i18n.T("ai.defaultServiceHint"))
+	// The heading and its purpose use the shared section spacing, as every
+	// other group's do.
+	kit.Section(c, nil, homeT("default"), i18n.T("ai.defaultServiceHint"), func() {
 		current, has := d.Tasks["default"]
 		var offered []widgets.AIProvider
 		for i := range d.Providers {

@@ -205,7 +205,6 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owner
 	if g.saved == nil && !busy && g.err == "" {
 		g.load()
 	}
-	kit.Help(c, i18n.T("gateway.hint"))
 	if g.err != "" {
 		kit.Notice(c, kit.Failure, "", g.err, func() {
 			if g.saved == nil && kit.Button(c, i18n.T("common.retry"), icons.RefreshCw, false).Disabled(busy).Clicked() {
@@ -230,41 +229,50 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owner
 		kit.Notice(c, kit.Failure, "", s.Error, nil)
 	}
 
+	// The order follows a first setup: turn the gateway on, choose what it
+	// offers, then connect a client. Keys, network rules and records are
+	// for later and stay folded or below.
 	ui.Column(c).FillWidth().Gap(kit.GroupGap).Disabled(busy).Children(func() {
-		kit.Group(c, icons.Server, i18n.T("settingsDesign.gatewayRun"), "", func() {
+		kit.Group(c, icons.Server, i18n.T("settingsDesign.gatewayRun"), i18n.T("gateway.hint"), func() {
 			kit.Toggle(c, &g.enabled, i18n.T("gateway.enable"), "")
 			kit.Row(c, i18n.T("gateway.port"), completeT("gatewayListenHint"), func() {
 				kit.TextInput(c, &g.port).Width(160).Label(i18n.T("gateway.port"))
 			})
-			state := "gateway.stopped"
-			if s.Running {
-				state = "gateway.running"
-			}
-			kit.Row(c, i18n.T("gateway.status")+": "+i18n.T(state), "", func() {
+			kit.Row(c, i18n.T("gateway.status"), "", func() {
+				if s.Running {
+					kit.SuccessBadge(c, i18n.T("gateway.running"))
+				} else {
+					kit.Badge(c, i18n.T("gateway.stopped"), kit.Info)
+				}
 				if kit.Button(c, i18n.T("common.refresh"), icons.RefreshCw, g.loading).Disabled(dirty).Clicked() {
 					g.load()
 				}
 			})
 		})
-		if len(owners) > 0 {
-			kit.Heading(c, upstreamT("Gateway keys"))
-			g.access.View(c, owners[0])
-		}
-		g.connectView(c, providers, busy)
-		ui.Collapsible(c, accessT("networkTab"), &g.networkOpen, func() {
-			kit.Toggle(c, &g.network.LAN, completeT("gatewayLAN"), completeT("gatewayLANHint")).Disabled(busy)
-			if g.network.LAN {
-				nativeList(c, g.fields, "gatewayIPs", completeT("gatewayIPs"), &g.network.AllowIPs, busy)
-				kit.Help(c, completeT("gatewayIPsHint"))
-			}
-			nativeList(c, g.fields, "gatewayOrigins", completeT("gatewayOrigins"), &g.network.CORSOrigins, busy)
-			kit.Help(c, completeT("gatewayOriginsHint"))
-			kit.Toggle(c, &g.native, accessT("native"), accessT("nativeHint")).Disabled(busy)
-		})
 		g.modelsView(c, providers, busy)
+		ui.Column(c).FillWidth().Gap(12).Children(func() {
+			g.connectView(c, providers, busy)
+			kit.Disclosure(c, accessT("networkTab"), "", &g.networkOpen, func() {
+				kit.Toggle(c, &g.network.LAN, completeT("gatewayLAN"), completeT("gatewayLANHint")).Disabled(busy)
+				if g.network.LAN {
+					kit.Stack(c, "", "", func() {
+						nativeList(c, g.fields, "gatewayIPs", completeT("gatewayIPs"), &g.network.AllowIPs, busy)
+						kit.Help(c, completeT("gatewayIPsHint"))
+					})
+				}
+				kit.Stack(c, "", "", func() {
+					nativeList(c, g.fields, "gatewayOrigins", completeT("gatewayOrigins"), &g.network.CORSOrigins, busy)
+					kit.Help(c, completeT("gatewayOriginsHint"))
+				})
+				kit.Toggle(c, &g.native, accessT("native"), accessT("nativeHint")).Disabled(busy)
+			})
+		})
 		if len(owners) > 0 {
+			g.access.View(c, owners[0])
 			g.recentCallsView(c, owners[0])
-			ui.Collapsible(c, accessT("historyTab"), &g.historyOpen, func() { g.history.View(c, owners[0]) })
+			kit.Disclosure(c, accessT("historyTab"), "", &g.historyOpen, func() {
+				g.history.View(c, owners[0])
+			})
 		}
 	})
 }
@@ -357,13 +365,15 @@ func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider,
 		}
 	}
 	kit.Section(c, icons.ListChecks, i18n.T("gateway.models"), i18n.T("gateway.modelsHint"), func() {
-		kit.Caption(c, i18n.T("gateway.enabledModels", "count", count, "total", len(all)))
 		if len(all) == 0 {
 			kit.Help(c, i18n.T("gateway.empty"))
 			return
 		}
-		ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
-			kit.TextInput(c, &g.query).Grow(1).Basis(192).MinWidth(0).Placeholder(i18n.T("gateway.searchModels")).Label(i18n.T("gateway.searchModels"))
+		// Search, then the count with the bulk actions, as a provider's
+		// model list lays them out.
+		kit.TextInput(c, &g.query).FillWidth().MinWidth(0).Placeholder(i18n.T("gateway.searchModels")).Label(i18n.T("gateway.searchModels"))
+		ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).Children(func() {
+			kit.Caption(c, i18n.T("gateway.enabledModels", "count", count, "total", len(all)))
 			ui.Row(c).Gap(4).Role(ui.RoleGroup).Label(i18n.T("ai.modelBulkActions")).Children(func() {
 				if kit.GhostButton(c, i18n.T("ai.selectAll"), nil, false).Description(i18n.T("ai.modelBulkScope")).
 					Disabled(disabled || count == len(all)).Clicked() {

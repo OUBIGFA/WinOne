@@ -358,7 +358,8 @@ func (p *page) permissions(c *ui.Context, busy bool) {
 	case p.administrator:
 		status = "permission.administrator"
 	}
-	kit.Group(c, icons.ShieldCheck, i18n.T("permission.title"), "", func() {
+	// The tab is named 运行权限 already; its only group needs no heading.
+	kit.Group(c, icons.ShieldCheck, "", "", func() {
 		kit.Row(c, i18n.T(status), "", func() {
 			label := "permission.restart"
 			if p.restarting {

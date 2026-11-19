@@ -20,7 +20,7 @@
   "aiAccess.native": "供应商原生 API",
   "aiAccess.nativeHint": "允许持有完整权限密钥的客户端调用供应商任意 API，不受上方模型列表限制。仅适用于 API 密钥供应商；受模型、账号或额度限制的访问密钥不能使用。",
   "aiAccess.title": "独立访问密钥",
-  "aiAccess.hint": "给每个客户端单独分配密钥。每把密钥都遵循“连接与模型”中开放的范围，可再限制模型、账号、工具和用量。",
+  "aiAccess.hint": "给每个客户端单独分配密钥。每把密钥只能调用上方“模型列表”中开放的模型，还可再限制模型、账号、工具和用量。",
   "aiAccess.add": "添加访问密钥",
   "aiAccess.issue": "发放临时密钥",
   "aiAccess.disabled": "已停用",

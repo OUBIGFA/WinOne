@@ -193,85 +193,89 @@ func (a *gatewayAccessPanel) View(c *ui.Context, p *page) {
 	}
 
 	a.api.notice(c, func() { a.load(p) })
-	kit.Group(c, icons.ShieldCheck, accessT("title"), accessT("hint"), func() {
-		ui.Row(c).FillWidth().Padding(12, 16).Gap(8).Wrap().Children(func() {
-			if kit.Button(c, accessT("add"), icons.Plus, false).Disabled(a.api.busy || a.dirty()).Clicked() {
-				a.creating = true
-				a.temporary = false
-				a.browser = false
-				a.name, a.secret = "", ""
-				a.edit = nil
+	// Exchanging a workload identity issues the same keys, so its folded
+	// group stays next to them.
+	ui.Column(c).FillWidth().Gap(12).Children(func() {
+		kit.Group(c, icons.ShieldCheck, accessT("title"), accessT("hint"), func() {
+			ui.Row(c).FillWidth().Padding(12, 16).Gap(8).Wrap().Children(func() {
+				if kit.Button(c, accessT("add"), icons.Plus, false).Disabled(a.api.busy || a.dirty()).Clicked() {
+					a.creating = true
+					a.temporary = false
+					a.browser = false
+					a.name, a.secret = "", ""
+					a.edit = nil
+				}
+				if kit.Button(c, accessT("issue"), icons.Clock, false).Disabled(a.api.busy || a.dirty()).Clicked() {
+					a.creating = true
+					a.temporary = true
+					a.ttl = "1h"
+					a.name = ""
+					a.issueModels, a.issueAccounts = nil, nil
+					a.issueTokens, a.issueCost = 0, 0
+					a.issueReadOnly = false
+					a.edit = nil
+				}
+				if kit.IconButton(c, icons.RefreshCw, i18n.T("common.refresh")).Disabled(a.api.busy || a.dirty()).Clicked() {
+					a.load(p)
+				}
+			})
+			if a.state != nil {
+				for index, k := range a.state.Keys {
+					c := c.Key(k.ID)
+					hint := k.Masked
+					if k.Off {
+						hint += " · " + accessT("disabled")
+					}
+					if k.Expires != "" {
+						hint += " · " + accessT("expires") + " " + k.Expires
+					}
+					kit.Row(c, k.Name, hint, func() {
+						if kit.IconButton(c, icons.ArrowUp, accessT("moveUp")).Disabled(a.api.busy || a.dirty() || index == 0).Clicked() {
+							a.action(p, "move-key", k, map[string]any{"index": index - 1})
+						}
+						if kit.IconButton(c, icons.ArrowDown, accessT("moveDown")).Disabled(a.api.busy || a.dirty() || index+1 == len(a.state.Keys)).Clicked() {
+							a.action(p, "move-key", k, map[string]any{"index": index + 1})
+						}
+						if kit.Button(c, i18n.T("common.edit"), icons.Pencil, false).Disabled(a.api.busy).Clicked() {
+							a.begin(p, k)
+						}
+						if kit.IconButton(c, icons.Copy, accessT("copy")).Disabled(a.api.busy).Clicked() {
+							services := c.Services()
+							a.api.request(p, "POST", "/api/winone/gateway/copy", map[string]string{"id": k.ID}, func(raw json.RawMessage) {
+								var out struct {
+									Secret string `json:"secret"`
+								}
+								if nativeDecode(&a.api, raw, &out) {
+									services.WriteClipboard(out.Secret)
+									p.env.Toast(i18n.T("gateway.copied"))
+								}
+							})
+						}
+					})
+				}
 			}
-			if kit.Button(c, accessT("issue"), icons.Clock, false).Disabled(a.api.busy || a.dirty()).Clicked() {
-				a.creating = true
-				a.temporary = true
-				a.ttl = "1h"
-				a.name = ""
-				a.issueModels, a.issueAccounts = nil, nil
-				a.issueTokens, a.issueCost = 0, 0
-				a.issueReadOnly = false
-				a.edit = nil
+			if a.revealed != "" {
+				kit.Stack(c, accessT("newSecret"), accessT("newSecretHint"), func() {
+					kit.TextInput(c, &a.revealed).FillWidth().ReadOnly(true)
+					ui.Row(c).Gap(8).Children(func() {
+						if kit.Button(c, accessT("copy"), icons.Copy, false).Clicked() {
+							c.Services().WriteClipboard(a.revealed)
+						}
+						if kit.Button(c, i18n.T("gateway.hideKey"), icons.EyeOff, false).Clicked() {
+							a.revealed = ""
+						}
+					})
+				})
 			}
-			if kit.IconButton(c, icons.RefreshCw, i18n.T("common.refresh")).Disabled(a.api.busy || a.dirty()).Clicked() {
-				a.load(p)
+			if a.creating {
+				a.createView(c, p)
+			}
+			if a.edit != nil {
+				a.editorView(c, p)
 			}
 		})
-		if a.state != nil {
-			for index, k := range a.state.Keys {
-				c := c.Key(k.ID)
-				hint := k.Masked
-				if k.Off {
-					hint += " · " + accessT("disabled")
-				}
-				if k.Expires != "" {
-					hint += " · " + accessT("expires") + " " + k.Expires
-				}
-				kit.Row(c, k.Name, hint, func() {
-					if kit.IconButton(c, icons.ArrowUp, accessT("moveUp")).Disabled(a.api.busy || a.dirty() || index == 0).Clicked() {
-						a.action(p, "move-key", k, map[string]any{"index": index - 1})
-					}
-					if kit.IconButton(c, icons.ArrowDown, accessT("moveDown")).Disabled(a.api.busy || a.dirty() || index+1 == len(a.state.Keys)).Clicked() {
-						a.action(p, "move-key", k, map[string]any{"index": index + 1})
-					}
-					if kit.Button(c, i18n.T("common.edit"), icons.Pencil, false).Disabled(a.api.busy).Clicked() {
-						a.begin(p, k)
-					}
-					if kit.IconButton(c, icons.Copy, accessT("copy")).Disabled(a.api.busy).Clicked() {
-						services := c.Services()
-						a.api.request(p, "POST", "/api/winone/gateway/copy", map[string]string{"id": k.ID}, func(raw json.RawMessage) {
-							var out struct {
-								Secret string `json:"secret"`
-							}
-							if nativeDecode(&a.api, raw, &out) {
-								services.WriteClipboard(out.Secret)
-								p.env.Toast(i18n.T("gateway.copied"))
-							}
-						})
-					}
-				})
-			}
-		}
-		if a.revealed != "" {
-			kit.Stack(c, accessT("newSecret"), accessT("newSecretHint"), func() {
-				kit.TextInput(c, &a.revealed).FillWidth().ReadOnly(true)
-				ui.Row(c).Gap(8).Children(func() {
-					if kit.Button(c, accessT("copy"), icons.Copy, false).Clicked() {
-						c.Services().WriteClipboard(a.revealed)
-					}
-					if kit.Button(c, i18n.T("gateway.hideKey"), icons.EyeOff, false).Clicked() {
-						a.revealed = ""
-					}
-				})
-			})
-		}
-		if a.creating {
-			a.createView(c, p)
-		}
-		if a.edit != nil {
-			a.editorView(c, p)
-		}
+		a.oidcView(c, p)
 	})
-	a.oidcView(c, p)
 }
 
 func (a *gatewayAccessPanel) createView(c *ui.Context, p *page) {
@@ -489,8 +493,7 @@ func (a *gatewayAccessPanel) scopeList(c *ui.Context, key, label string, values 
 }
 
 func (a *gatewayAccessPanel) oidcView(c *ui.Context, p *page) {
-	ui.Collapsible(c, accessT("oidc"), &a.identityOpen, func() {
-		kit.Help(c, accessT("oidcHint"))
+	kit.Disclosure(c, accessT("oidc"), "", &a.identityOpen, func() {
 		if a.rules == nil && !a.api.busy && a.api.err == "" {
 			a.api.request(p, "GET", "/api/winone/gateway/oidc", nil, func(raw json.RawMessage) {
 				var out struct {
@@ -501,6 +504,7 @@ func (a *gatewayAccessPanel) oidcView(c *ui.Context, p *page) {
 				}
 			})
 		}
+		kit.Stack(c, "", accessT("oidcHint"), func() {})
 		for _, r := range a.rules {
 			kit.Row(c.Key(r.ID), r.Issuer, r.Audience, func() {
 				if kit.IconButton(c, icons.Trash2, i18n.T("common.delete")).Disabled(a.api.busy).Clicked() {
@@ -516,32 +520,38 @@ func (a *gatewayAccessPanel) oidcView(c *ui.Context, p *page) {
 				}
 			}
 		}
-		nativeSelect(c, accessT("issuerKey"), &a.rule.Key, choices, a.api.busy)
-		nativeText(c, accessT("identityURL"), &a.rule.Issuer, a.api.busy)
-		nativeText(c, accessT("audience"), &a.rule.Audience, a.api.busy)
+		kit.Stack(c, "", "", func() {
+			nativeSelect(c, accessT("issuerKey"), &a.rule.Key, choices, a.api.busy)
+			nativeText(c, accessT("identityURL"), &a.rule.Issuer, a.api.busy)
+			nativeText(c, accessT("audience"), &a.rule.Audience, a.api.busy)
+		})
 		nativeInt(c, accessT("ttlSeconds"), &a.rule.TTL, 0, 2592000, a.api.busy)
-		for _, name := range sortedKeys(a.rule.Claims) {
-			ui.Row(c.Key(name)).FillWidth().Gap(8).Children(func() {
-				v := a.rule.Claims[name]
-				ui.Column(c).Grow(1).Children(func() { nativeText(c, name, &v, a.api.busy) })
-				a.rule.Claims[name] = v
-				if kit.IconButton(c, icons.Trash2, i18n.T("common.delete")+" "+name).Disabled(a.api.busy).Clicked() {
-					delete(a.rule.Claims, name)
+		kit.Stack(c, "", "", func() {
+			for _, name := range sortedKeys(a.rule.Claims) {
+				ui.Row(c.Key(name)).FillWidth().Gap(8).AlignItems(ui.End).Children(func() {
+					v := a.rule.Claims[name]
+					ui.Column(c).Grow(1).Children(func() { nativeText(c, name, &v, a.api.busy) })
+					a.rule.Claims[name] = v
+					if kit.IconButton(c, icons.Trash2, i18n.T("common.delete")+" "+name).Disabled(a.api.busy).Clicked() {
+						delete(a.rule.Claims, name)
+					}
+				})
+			}
+			ui.Row(c).FillWidth().Gap(8).Children(func() {
+				kit.TextInput(c, &a.claimName).Grow(1).Label(accessT("claim")).Placeholder(accessT("claim"))
+				if kit.Button(c, accessT("addClaim"), icons.Plus, false).Disabled(a.api.busy || a.claimName == "").Clicked() {
+					if a.rule.Claims == nil {
+						a.rule.Claims = map[string]string{}
+					}
+					a.rule.Claims[a.claimName] = ""
+					a.claimName = ""
 				}
 			})
-		}
-		ui.Row(c).FillWidth().Gap(8).Children(func() {
-			kit.TextInput(c, &a.claimName).Grow(1).Label(accessT("claim"))
-			if kit.Button(c, accessT("addClaim"), icons.Plus, false).Disabled(a.api.busy || a.claimName == "").Clicked() {
-				if a.rule.Claims == nil {
-					a.rule.Claims = map[string]string{}
+			ui.Row(c).Children(func() {
+				if kit.Button(c, accessT("addRule"), icons.Plus, false).Disabled(a.api.busy || a.rule.Key == "" || len(a.rule.Claims) == 0).Clicked() {
+					a.api.request(p, "POST", "/api/winone/gateway/oidc", a.rule, func(json.RawMessage) { a.rule = gatewayOIDCRule{}; a.rules = nil })
 				}
-				a.rule.Claims[a.claimName] = ""
-				a.claimName = ""
-			}
+			})
 		})
-		if kit.Button(c, accessT("addRule"), icons.Plus, false).Disabled(a.api.busy || a.rule.Key == "" || len(a.rule.Claims) == 0).Clicked() {
-			a.api.request(p, "POST", "/api/winone/gateway/oidc", a.rule, func(json.RawMessage) { a.rule = gatewayOIDCRule{}; a.rules = nil })
-		}
 	})
 }

@@ -153,14 +153,17 @@ func (p *page) toolbar(c *ui.Context) {
 	})
 	if p.quick {
 		title := i18n.T("settingsDesign.quickToolbarHelp")
-		ui.Column(c).FillWidth().Gap(6).Role(ui.RoleGroup).Label(title).Children(func() {
-			kit.Strong(c, title)
-			for _, key := range []string{"settingsDesign.quickToolbarUse", "settingsDesign.quickToolbarDetails"} {
-				ui.Row(c).Gap(8).AlignItems(ui.Start).Children(func() {
-					kit.Help(c, "•").Shrink(0)
-					kit.Help(c, i18n.T(key)).Shrink(1).MinWidth(0)
-				})
-			}
+		// A heading of the page's own role, so this group reads as a peer
+		// of the toolbar above rather than as smaller bold text.
+		kit.Section(c, nil, title, "", func() {
+			ui.Column(c).FillWidth().Gap(6).Role(ui.RoleGroup).Label(title).Children(func() {
+				for _, key := range []string{"settingsDesign.quickToolbarUse", "settingsDesign.quickToolbarDetails"} {
+					ui.Row(c).Gap(8).AlignItems(ui.Start).Children(func() {
+						kit.Help(c, "•").Shrink(0)
+						kit.Help(c, i18n.T(key)).Shrink(1).MinWidth(0)
+					})
+				}
+			})
 		})
 	}
 }

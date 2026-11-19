@@ -181,7 +181,7 @@ func shot(t *testing.T, tt *ui.Tester, name string) {
 func TestSavingKeepsFieldsThePageDoesNotEdit(t *testing.T) {
 	f, h, p, tt := setup(t)
 	shot(t, tt, "ai-custom")
-	if !tt.HasText("Relay") || !tt.HasText("1 个供应商 · 1 个模型") {
+	if !tt.HasText("Relay") || !tt.HasText("已启用 1 个供应商、1 个模型") {
 		t.Fatalf("texts %q", tt.Texts())
 	}
 	p.change("one", func(pr *provider) { pr.BaseURL = "https://other.example/v1" })

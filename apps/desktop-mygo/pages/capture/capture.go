@@ -235,6 +235,7 @@ func (p *page) View(c *ui.Context) {
 		case tabShortcuts:
 			if p.shortcuts == nil {
 				p.shortcuts = widgets.NewShortcuts(p.env, "capture")
+				p.shortcuts.OwnTab = true
 			}
 			p.shortcuts.View(c)
 		default:
@@ -348,7 +349,8 @@ func checkRow(c *ui.Context, value *bool, label string) {
 
 func (p *page) scrolling(c *ui.Context) {
 	d := &p.draft.Value
-	kit.Group(c, icons.ScrollText, i18n.T("settingsDesign.captureScrolling"), "", func() {
+	// The tab is named 滚动截图 already; its only group needs no heading.
+	kit.Group(c, icons.ScrollText, "", "", func() {
 		kit.Toggle(c, &d.ScrollFromTop, i18n.T("capture.fromTop"), "")
 		p.scrollDelayRow(c)
 	})

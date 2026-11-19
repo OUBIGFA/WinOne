@@ -140,7 +140,12 @@ func (p *peerPanel) View(c *ui.Context, active bool) {
 			title, hint, icon = "persistent", "persistentHint", icons.FolderOpen
 			server, client = "publishShare", "receiveShare"
 		}
-		kit.Group(c, icon, tr(title), tr(hint), func() {
+		heading := tr(title)
+		if p.kind != "share" {
+			// The port forwarding tab is named for this group already.
+			heading = ""
+		}
+		kit.Group(c, icon, heading, tr(hint), func() {
 			kit.Row(c, tr("direction"), "", func() {
 				kit.Segmented(c, &p.direction, []kit.SelectOption{{Value: "server", Label: tr(server)}, {Value: "client", Label: tr(client)}}, tr("direction"))
 			})
@@ -186,15 +191,19 @@ func (p *peerPanel) View(c *ui.Context, active bool) {
 				})
 			})
 		})
-		kit.Section(c, icons.Network, tr("services"), "", func() {
-			var records []taskRecord
-			for _, r := range p.records {
-				if strings.HasPrefix(r.Spec.Mode, p.kind+"_") {
-					records = append(records, r)
-				}
+		var records []taskRecord
+		for _, r := range p.records {
+			if strings.HasPrefix(r.Spec.Mode, p.kind+"_") {
+				records = append(records, r)
 			}
+		}
+		// With no services, the empty sentence is the section's description.
+		empty := ""
+		if len(records) == 0 {
+			empty = tr("noServices")
+		}
+		kit.Section(c, icons.Network, tr("services"), empty, func() {
 			if len(records) == 0 {
-				kit.Help(c, tr("noServices"))
 				return
 			}
 			kit.Panel(c, func() {

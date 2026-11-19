@@ -296,11 +296,17 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 	id := pr.ID
 	kit.Section(c, icons.ListChecks, i18n.T("ai.models"), i18n.T("ai.modelSelectionHint"), func() {
 		ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
+			// Fetching comes first, as a list is filled before it is tested;
+			// it is the primary action while the list is still empty.
+			fetch := kit.Button
+			if len(all) == 0 && fetchable {
+				fetch = kit.PrimaryButton
+			}
+			if fetch(c, i18n.T("ai.fetchModels"), icons.RefreshCw, m.fetching).Disabled(disabled || working || !fetchable).Clicked() {
+				m.fetch(pr)
+			}
 			if kit.Button(c, i18n.T("ai.testModels"), icons.PlugZap, m.testing).Disabled(disabled || working || !canTest(pr) || len(pr.Models) == 0).Clicked() {
 				m.test(pr, append([]string{}, pr.Models...), "")
-			}
-			if kit.Button(c, i18n.T("ai.fetchModels"), icons.RefreshCw, m.fetching).Disabled(disabled || working || !fetchable).Clicked() {
-				m.fetch(pr)
 			}
 		})
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
@@ -531,8 +537,8 @@ func (m *modelsPanel) menu(menu *ui.Menu, services ui.Services, pr *provider, mo
 func (m *modelsPanel) limits(c *ui.Context, pr *provider, disabled bool) {
 	p := m.p
 	id := pr.ID
-	ui.Collapsible(c, i18n.T("ai.requestLimits"), &m.limitsOpen, func() {
-		ui.Column(c).FillWidth().Gap(12).Padding(8, 0).Disabled(disabled).Children(func() {
+	kit.Disclosure(c, i18n.T("ai.requestLimits"), "", &m.limitsOpen, func() {
+		ui.Column(c).FillWidth().Gap(12).Padding(12, 16).Disabled(disabled).Children(func() {
 			ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().Children(func() {
 				ui.Field(c, i18n.T("ai.maxConcurrency"), func() {
 					if v, changed := numberText(c, pr.MaxConcurrency, 0, 1000, true, i18n.T("aiOptions.default"), i18n.T("ai.maxConcurrency")); changed {

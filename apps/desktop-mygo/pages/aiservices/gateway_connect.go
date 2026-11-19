@@ -32,7 +32,7 @@ var gatewayExamples = func() []gatewayExample {
 // The templates are generated from the selected upstream's actual builders.
 // A copied example carries a key only after the owner explicitly reveals it.
 func (g *gatewayPanel) connectView(c *ui.Context, providers []widgets.AIProvider, busy bool) {
-	ui.Collapsible(c, upstreamT("Connect a client"), &g.connectOpen, func() {
+	kit.Disclosure(c, upstreamT("Connect a client"), "", &g.connectOpen, func() {
 		g.credentialsView(c, busy)
 		if g.flavor == "" {
 			g.flavor = "openai"
@@ -54,7 +54,7 @@ func (g *gatewayPanel) connectView(c *ui.Context, providers []widgets.AIProvider
 				f = entry
 			}
 		}
-		kit.Help(c, upstreamT(f.Note))
+		kit.Stack(c, "", upstreamT(f.Note), func() {})
 		root := strings.TrimSuffix(g.saved.BaseURL, "/v1")
 		address := root + f.BaseSuffix
 		kit.Row(c, upstreamT("Base URL"), address, func() {
@@ -74,7 +74,7 @@ func (g *gatewayPanel) connectView(c *ui.Context, providers []widgets.AIProvider
 		if g.exampleModel == "" && len(models) > 0 {
 			g.exampleModel = models[0].Value
 		}
-		nativeSelect(c, upstreamT("Model"), &g.exampleModel, models, busy)
+		kit.Stack(c, "", "", func() { nativeSelect(c, upstreamT("Model"), &g.exampleModel, models, busy) })
 		languages := options("shell", "PowerShell", "curl", "curl", "python", "Python", "node", "Node")
 		if f.Decide {
 			languages = languages[1:]
@@ -104,12 +104,16 @@ func (g *gatewayPanel) connectView(c *ui.Context, providers []widgets.AIProvider
 		quoted, _ = json.Marshal(key)
 		key = string(quoted[1 : len(quoted)-1])
 		snippet := strings.NewReplacer("WINONE_ROOT", root, "WINONE_MODEL", model, "WINONE_KEY", key).Replace(f.Examples[g.snippetOS][g.snippetLanguage])
-		kit.Mono(c, snippet).FillWidth().MinWidth(0).Selectable()
-		if g.key == "" {
-			kit.Help(c, i18n.T("gateway.keyHint"))
-		}
-		if kit.Button(c, nativeT("copy"), icons.Copy, false).Disabled(busy).Clicked() {
-			c.Services().WriteClipboard(snippet)
-		}
+		kit.Stack(c, "", "", func() {
+			kit.Mono(c, snippet).FillWidth().MinWidth(0).Selectable()
+			if g.key == "" {
+				kit.Help(c, i18n.T("gateway.keyHint"))
+			}
+			ui.Row(c).Children(func() {
+				if kit.Button(c, nativeT("copy"), icons.Copy, false).Disabled(busy).Clicked() {
+					c.Services().WriteClipboard(snippet)
+				}
+			})
+		})
 	})
 }

@@ -20,7 +20,7 @@
   "aiAccess.native": "Provider native APIs",
   "aiAccess.nativeHint": "Let unrestricted keys call any provider API outside the model list above. API-key providers only; keys restricted by models, accounts or budgets cannot use this.",
   "aiAccess.title": "Client access keys",
-  "aiAccess.hint": "Give each client its own key. Every key follows the selection in Connection and models, and can further limit models, accounts, tools and usage.",
+  "aiAccess.hint": "Give each client its own key. Every key can call only the models allowed in the model list above, and can further limit models, accounts, tools and usage.",
   "aiAccess.add": "Add access key",
   "aiAccess.issue": "Issue temporary key",
   "aiAccess.disabled": "Disabled",

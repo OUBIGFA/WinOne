@@ -4,5 +4,18 @@
   "ai.keyPlaceholder": "输入 API 密钥",
   "aiHome.home": "常用",
   "aiHome.default": "日常使用的模型",
-  "aiHome.preferences": "使用偏好"
+  "aiHome.preferences": "使用偏好",
+  "aiHome.startTitle": "开始使用 AI 服务",
+  "aiHome.startHint": "完成以下三步后，划词、截图翻译和快捷助手即可调用 AI。",
+  "aiHome.stepProvider": "连接供应商",
+  "aiHome.stepProviderHint": "用服务预设填写 API 密钥，或登录已有的 AI 账号。",
+  "aiHome.stepModels": "勾选要使用的模型",
+  "aiHome.stepModelsHint": "在供应商的模型列表中获取并勾选模型，然后保存。",
+  "aiHome.stepDefault": "选择日常使用的模型",
+  "aiHome.stepDefaultHint": "在下方的“日常使用的模型”中选择。",
+  "aiHome.openModels": "打开模型列表",
+  "aiHome.signIn": "登录账号",
+  "aiHome.emptyCustom": "还没有自定义供应商",
+  "aiHome.emptyAccounts": "还没有账号供应商",
+  "aiHome.addManually": "手动添加"
 }

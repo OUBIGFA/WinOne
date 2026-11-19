@@ -4,5 +4,18 @@
   "ai.keyPlaceholder": "Enter API key",
   "aiHome.home": "Home",
   "aiHome.default": "Your everyday model",
-  "aiHome.preferences": "Preferences"
+  "aiHome.preferences": "Preferences",
+  "aiHome.startTitle": "Get started with AI services",
+  "aiHome.startHint": "Finish these three steps to use AI in selection, screenshot translation and the quick assistant.",
+  "aiHome.stepProvider": "Connect a provider",
+  "aiHome.stepProviderHint": "Pick a service preset and enter its API key, or sign in with an AI account you already have.",
+  "aiHome.stepModels": "Enable the models you want",
+  "aiHome.stepModelsHint": "Fetch the provider’s model list, enable models, then save.",
+  "aiHome.stepDefault": "Choose your everyday model",
+  "aiHome.stepDefaultHint": "Choose it under Your everyday model below.",
+  "aiHome.openModels": "Open model list",
+  "aiHome.signIn": "Sign in with an account",
+  "aiHome.emptyCustom": "No custom providers yet",
+  "aiHome.emptyAccounts": "No account providers yet",
+  "aiHome.addManually": "Add manually"
 }

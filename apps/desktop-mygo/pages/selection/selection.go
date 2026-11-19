@@ -347,6 +347,7 @@ func (p *page) View(c *ui.Context) {
 		if p.tab == tabShortcuts {
 			if p.shortcuts == nil {
 				p.shortcuts = widgets.NewShortcuts(p.env, p.module)
+				p.shortcuts.OwnTab = true
 			}
 			p.shortcuts.View(c)
 			return

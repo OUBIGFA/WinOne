@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+
+	"winone/desktopmygo/kit/icons"
 )
 
 // Spacing of settings pages, in DIPs. Rows inside a group sit tight; groups
@@ -40,7 +42,9 @@ func WidePage(c *ui.Context, fn func()) ui.Element {
 // sentence of purpose. The icon argument remains compatible with callers.
 func Section(c *ui.Context, icon *ui.SVG, title, description string, fn func()) ui.Element {
 	return ui.Column(c).FillWidth().Gap(HeadingGap).Children(func() {
-		SectionHeading(c, icon, title, description)
+		if title != "" || description != "" {
+			SectionHeading(c, icon, title, description)
+		}
 		fn()
 	})
 }
@@ -48,11 +52,15 @@ func Section(c *ui.Context, icon *ui.SVG, title, description string, fn func()) 
 // SectionHeading is a Section's heading alone, for groups laid out by hand.
 func SectionHeading(c *ui.Context, icon *ui.SVG, title, description string) ui.Element {
 	return ui.Column(c).Gap(2).Children(func() {
-		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-			// Task names carry the hierarchy; repeated heading icons
-			// compete with the actual actions and navigation.
-			Heading(c, title).Role(ui.RoleHeading).Level(2)
-		})
+		// An empty title leaves the sentence of purpose alone, for a group
+		// whose tab already names it.
+		if title != "" {
+			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+				// Task names carry the hierarchy; repeated heading icons
+				// compete with the actual actions and navigation.
+				Heading(c, title).Role(ui.RoleHeading).Level(2)
+			})
+		}
 		if description != "" {
 			Help(c, description)
 		}
@@ -249,5 +257,36 @@ func Facts(c *ui.Context, facts []Fact) ui.Element {
 			ui.Text(c.Key(i), fact.Label).FontSize(HelpSize(c)).TextColor(t.TextMuted).NoWrap()
 			ui.Text(c.Key(-1-i), fact.Value).FontSize(HelpSize(c)).Selectable().MinWidth(0)
 		}
+	})
+}
+
+// Disclosure is a Panel whose rows fold away behind a header row, for an
+// optional group on a page: the header's chevron and title line up with
+// the rows' labels inside panels, so a folded group reads as one more
+// panel instead of a loose arrow beside the page's headings. summary is
+// an optional caption at the header's end, such as a count. Rows follow
+// Panel's rules: build them with Row, Toggle or Stack, never bare text,
+// so every line keeps the same 16 DIP inset. Nested options inside a row
+// keep ui.Collapsible.
+func Disclosure(c *ui.Context, title, summary string, open *bool, rows func()) ui.Element {
+	t, p := c.Theme(), Colors(c)
+	return ui.Column(c).FillWidth().Background(p.Panel).Border(1, p.Hairline).Radius(PanelRadius).Children(func() {
+		parts := ui.CollapsibleBase(c, open)
+		tr := parts.Trigger.FillWidth().MinHeight(RowMinHeight-8).Padding(10, 16).Gap(10).AlignItems(ui.Center).
+			Radius(PanelRadius).Label(title).Cursor(ui.CursorPointer)
+		if tr.Hovered() {
+			tr.Background(t.SurfaceHover.Alpha(0.6))
+		}
+		progress := parts.Progress()
+		tr.Children(func() {
+			ui.Icon(c, icons.ChevronRight).FontSize(16).TextColor(t.TextMuted).Shrink(0).Rotate(90 * progress)
+			Label(c, title).Grow(1).Shrink(1).MinWidth(0)
+			if summary != "" {
+				Caption(c, summary).SingleLine().Shrink(0)
+			}
+		})
+		parts.Panel(func() {
+			ui.Column(c).FillWidth().Gap(1).Dividers(1, p.Hairline).BorderWidth(1, 0, 0, 0).BorderColor(p.Hairline).Children(rows)
+		})
 	})
 }

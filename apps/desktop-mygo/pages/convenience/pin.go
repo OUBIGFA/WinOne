@@ -189,6 +189,7 @@ func (t *pinTab) View(c *ui.Context, locked bool) {
 		if t.tab == pinShortcuts {
 			if t.shortcuts == nil {
 				t.shortcuts = widgets.NewShortcuts(t.env, "always-on-top")
+				t.shortcuts.OwnTab = true
 			}
 			t.shortcuts.View(c)
 			return

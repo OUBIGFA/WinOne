@@ -18,6 +18,11 @@ import (
 //
 // React source: features/shortcuts.tsx.
 type Shortcuts struct {
+	// OwnTab is set when the shortcuts fill a tab named for them: the
+	// group then leads with its sentence of purpose instead of repeating
+	// the tab's name as a heading.
+	OwnTab bool
+
 	env       *core.Env
 	module    string
 	draft     *settings.Settings
@@ -270,7 +275,11 @@ func (s *Shortcuts) View(c *ui.Context) {
 			}
 			return
 		}
-		kit.Group(c, icons.Keyboard, i18n.T("shortcuts.title"), i18n.T("shortcuts.recordHint"), func() {
+		title := i18n.T("shortcuts.title")
+		if s.OwnTab {
+			title = ""
+		}
+		kit.Group(c, icons.Keyboard, title, i18n.T("shortcuts.recordHint"), func() {
 			for _, field := range fields {
 				status := i18n.T("shortcuts.unknown")
 				registered, failure, known := s.binding(field.id)

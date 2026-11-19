@@ -51,42 +51,49 @@ func (g *gatewayHistoryPanel) View(c *ui.Context, p *page) {
 	if g.state == nil && !g.api.busy && g.api.err == "" {
 		g.load(p)
 	}
-	g.api.notice(c, func() { g.load(p) })
-	kit.Help(c, accessT("historyHint"))
-	if g.state == nil {
-		return
-	}
-	ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-		label := accessT("startRecording")
-		if g.state.Recording {
-			label = accessT("stopRecording")
+	// The view is the rows of a Disclosure: controls and notices share one
+	// padded stack, and each session is a row of its own.
+	ready := g.state != nil
+	kit.Stack(c, "", accessT("historyHint"), func() {
+		g.api.notice(c, func() { g.load(p) })
+		if !ready {
+			return
 		}
-		if kit.Button(c, label, icons.Activity, false).Disabled(g.api.busy).Clicked() {
-			g.api.request(p, "POST", "/api/winone/gateway/conversations/recording", map[string]bool{"on": !g.state.Recording}, g.accept)
-		}
-		if kit.IconButton(c, icons.RefreshCw, i18n.T("common.refresh")).Disabled(g.api.busy).Clicked() {
-			g.load(p)
-		}
-		if kit.GhostButton(c, accessT("clearRecording"), icons.Trash2, false).Disabled(g.api.busy || !g.state.Recorded).Clicked() {
-			g.confirm = true
-		}
-	})
-	if g.confirm {
-		kit.Notice(c, kit.Caution, "", accessT("clearRecordingHint"), func() {
-			if kit.Button(c, accessT("confirm"), icons.Check, false).Disabled(g.api.busy).Clicked() {
-				g.api.request(p, "POST", "/api/winone/gateway/conversations/recording", map[string]bool{"clear": true}, func(raw json.RawMessage) {
-					g.accept(raw)
-					if g.api.err == "" {
-						g.text = ""
-					}
-				})
+		ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
+			label := accessT("startRecording")
+			if g.state.Recording {
+				label = accessT("stopRecording")
 			}
-			if kit.GhostButton(c, i18n.T("common.cancel"), nil, false).Clicked() {
-				g.confirm = false
+			if kit.Button(c, label, icons.Activity, false).Disabled(g.api.busy).Clicked() {
+				g.api.request(p, "POST", "/api/winone/gateway/conversations/recording", map[string]bool{"on": !g.state.Recording}, g.accept)
+			}
+			if kit.IconButton(c, icons.RefreshCw, i18n.T("common.refresh")).Disabled(g.api.busy).Clicked() {
+				g.load(p)
+			}
+			if kit.GhostButton(c, accessT("clearRecording"), icons.Trash2, false).Disabled(g.api.busy || !g.state.Recorded).Clicked() {
+				g.confirm = true
 			}
 		})
+		if g.confirm {
+			kit.Notice(c, kit.Caution, "", accessT("clearRecordingHint"), func() {
+				if kit.Button(c, accessT("confirm"), icons.Check, false).Disabled(g.api.busy).Clicked() {
+					g.api.request(p, "POST", "/api/winone/gateway/conversations/recording", map[string]bool{"clear": true}, func(raw json.RawMessage) {
+						g.accept(raw)
+						if g.api.err == "" {
+							g.text = ""
+						}
+					})
+				}
+				if kit.GhostButton(c, i18n.T("common.cancel"), nil, false).Clicked() {
+					g.confirm = false
+				}
+			})
+		}
+		kit.TextInput(c, &g.query).FillWidth().Label(accessT("findSession")).Placeholder(accessT("findSession"))
+	})
+	if !ready {
+		return
 	}
-	kit.TextInput(c, &g.query).FillWidth().Label(accessT("findSession"))
 	count := 0
 	for _, session := range g.state.Sessions {
 		if !strings.Contains(strings.ToLower(session.Agent+" "+session.ID), strings.ToLower(g.query)) {
@@ -114,24 +121,26 @@ func (g *gatewayHistoryPanel) View(c *ui.Context, p *page) {
 	if g.page > 0 && g.page*20 >= count {
 		g.page = 0
 	}
-	ui.Row(c).Gap(8).Children(func() {
-		if kit.IconButton(c, icons.ChevronLeft, accessT("previousSessions")).Disabled(g.page == 0).Clicked() {
-			g.page--
+	kit.Stack(c, "", "", func() {
+		ui.Row(c).Gap(8).Children(func() {
+			if kit.IconButton(c, icons.ChevronLeft, accessT("previousSessions")).Disabled(g.page == 0).Clicked() {
+				g.page--
+			}
+			if kit.IconButton(c, icons.ChevronRight, accessT("nextSessions")).Disabled((g.page+1)*20 >= count).Clicked() {
+				g.page++
+			}
+		})
+		if count == 0 {
+			kit.Help(c, accessT("noSessions"))
 		}
-		if kit.IconButton(c, icons.ChevronRight, accessT("nextSessions")).Disabled((g.page+1)*20 >= count).Clicked() {
-			g.page++
+		if g.text != "" {
+			if g.cut {
+				kit.Help(c, accessT("sessionCut"))
+			}
+			if kit.Button(c, accessT("copySession"), icons.Copy, false).Clicked() {
+				c.Services().WriteClipboard(g.text)
+			}
+			ui.Text(c, g.text).FillWidth().Wrap()
 		}
 	})
-	if count == 0 {
-		kit.Help(c, accessT("noSessions"))
-	}
-	if g.text != "" {
-		if g.cut {
-			kit.Help(c, accessT("sessionCut"))
-		}
-		if kit.Button(c, accessT("copySession"), icons.Copy, false).Clicked() {
-			c.Services().WriteClipboard(g.text)
-		}
-		ui.Text(c, g.text).FillWidth().Wrap()
-	}
 }

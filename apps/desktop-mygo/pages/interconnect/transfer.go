@@ -836,15 +836,19 @@ func (p *transferPanel) tasksView(c *ui.Context) {
 		title = "tasks"
 	}
 	records := p.records()
-	kit.Section(c, icons.RefreshCw, tr(title), "", func() {
+	// With no tasks, the empty sentence is the section's description, at
+	// the same distance from the heading as every other description.
+	empty := ""
+	if len(records) == 0 {
+		empty = tr("noTasks")
+		if p.stored && p.direction == "send" {
+			empty = tr("storeEmpty")
+		} else if p.stored {
+			empty = tr("storeReceiveEmpty")
+		}
+	}
+	kit.Section(c, icons.RefreshCw, tr(title), empty, func() {
 		if len(records) == 0 {
-			empty := "noTasks"
-			if p.stored && p.direction == "send" {
-				empty = "storeEmpty"
-			} else if p.stored {
-				empty = "storeReceiveEmpty"
-			}
-			kit.Help(c, tr(empty))
 			return
 		}
 		kit.Panel(c, func() {

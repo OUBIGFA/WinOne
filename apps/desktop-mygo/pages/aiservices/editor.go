@@ -115,40 +115,70 @@ func (p *page) providersView(c *ui.Context) {
 	}
 	accounts := p.tab == tabAccounts
 	locked := p.locked()
+	full := len(p.draft.Value.Providers) >= maxProviders
+	addAccount := func() { p.agentSearch, p.choosingAgent = "", true }
+	addPreset := func() {
+		p.presetSearch, p.choosingPreset = "", true
+		p.loadCatalog()
+	}
+	if len(p.sectionProviders()) == 0 {
+		// An empty tab teaches its first step instead of a bare toolbar:
+		// the easiest way in is the primary action.
+		if accounts && p.catalog.busy {
+			return
+		}
+		kit.Panel(c, func() {
+			icon, title := icons.LayersPlus, "emptyCustom"
+			hint := "ai.noServices"
+			if accounts {
+				icon, title, hint = icons.UserRound, "emptyAccounts", "ai.noAccounts"
+			}
+			kit.Empty(c, icon, homeT(title), i18n.T(hint), func() {
+				if accounts {
+					if kit.PrimaryButton(c, i18n.T("ai.addAccountProvider"), icons.Plus, false).
+						Disabled(locked || full || len(p.catalog.agents) == 0).Clicked() {
+						addAccount()
+					}
+					return
+				}
+				if kit.PrimaryButton(c, i18n.T("ai.addPreset"), icons.PlugZap, false).Disabled(locked || full).Clicked() {
+					addPreset()
+				}
+				if kit.Button(c, homeT("addManually"), icons.Plus, false).Disabled(locked || full).Clicked() {
+					p.add(nil)
+				}
+			})
+		})
+		return
+	}
 	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
-		toolbar := ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.End)
 		var old *provider
 		if pr != nil && p.saved != nil {
 			old = p.saved.Value.find(pr.ID)
 		}
-		toolbar.Children(func() {
+		// The chooser grows; the add actions wrap together as one group, so
+		// a narrow window moves both below it instead of splitting them.
+		ui.Row(c).FillWidth().GapX(8).GapY(8).Wrap().AlignItems(ui.End).Children(func() {
 			if pr != nil {
 				ui.Column(c).Basis(240).Grow(1).MinWidth(0).Children(func() { e.nameField(c, pr, locked) })
 			}
-			label := "ai.addCustomProvider"
-			if accounts {
-				label = "ai.addAccountProvider"
-			}
-			full := len(p.draft.Value.Providers) >= maxProviders
-			if kit.Button(c, i18n.T(label), icons.Plus, false).Disabled(locked || full || (accounts && len(p.catalog.agents) == 0)).Clicked() {
+			ui.Row(c).Shrink(0).Gap(8).Children(func() {
+				label := "ai.addCustomProvider"
 				if accounts {
-					p.agentSearch, p.choosingAgent = "", true
-				} else {
-					p.add(nil)
+					label = "ai.addAccountProvider"
 				}
-			}
-			if !accounts && kit.Button(c, i18n.T("ai.addPreset"), icons.PlugZap, false).Disabled(locked || full).Clicked() {
-				p.presetSearch, p.choosingPreset = "", true
-				p.loadCatalog()
-			}
+				if kit.Button(c, i18n.T(label), icons.Plus, false).Disabled(locked || full || (accounts && len(p.catalog.agents) == 0)).Clicked() {
+					if accounts {
+						addAccount()
+					} else {
+						p.add(nil)
+					}
+				}
+				if !accounts && kit.Button(c, i18n.T("ai.addPreset"), icons.PlugZap, false).Disabled(locked || full).Clicked() {
+					addPreset()
+				}
+			})
 		})
-		if len(p.sectionProviders()) == 0 && !(accounts && p.catalog.busy) {
-			hint := "ai.noServices"
-			if accounts {
-				hint = "ai.noAccounts"
-			}
-			kit.Help(c, i18n.T(hint))
-		}
 		if pr != nil {
 			e.View(c, pr, old)
 		}
@@ -280,13 +310,11 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 		})
 	}
 	// Resting on limits belongs to the provider's keys, not to its model
-	// list, so it stands apart from the models below.
-	kit.Panel(c, func() {
-		rest := !pr.LimitRestOff
-		if kit.Toggle(c, &rest, i18n.T("ai.limitRest"), i18n.T("ai.limitRestHint")).Disabled(locked).Changed() {
-			p.change(pr.ID, func(t *provider) { t.LimitRestOff = !rest })
-		}
-	})
+	// list: a custom connection shows it below its keys, and an account,
+	// which has no key rows, on its own panel.
+	if pr.AuthMode != "api-key" {
+		kit.Panel(c, func() { e.limitRest(c, pr, locked) })
+	}
 	section := ui.Column(c).FillWidth().Gap(12).Label(i18n.T("ai.modelSettings")).Focusable()
 	if p.focusModels {
 		p.focusModels = false
@@ -294,10 +322,12 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 		section.Focus()
 	}
 	section.Children(func() { e.models.View(c, pr) })
-	if old != nil {
+	remove := "ai.removeService"
+	if pr.AuthMode == "account" {
+		remove = "ai.removeAccount"
 	}
 	ui.Row(c).Children(func() {
-		if kit.GhostButton(c, i18n.T("ai.removeService"), icons.Trash2, false).Disabled(locked).Clicked() {
+		if kit.GhostButton(c, i18n.T(remove), icons.Trash2, false).Disabled(locked).Clicked() {
 			p.remove(pr.ID)
 		}
 	})
@@ -311,9 +341,13 @@ func (e *editor) connection(c *ui.Context, pr *provider, locked bool) {
 	// The sub-tab above names the connection, so its rows need no
 	// heading of their own.
 	kit.Panel(c, func() {
-		if kit.GhostButton(c, i18n.T("ai.importSetup"), icons.ClipboardPaste, false).Disabled(locked).Clicked() {
-			p.importProviderSetup(c.Services().ReadClipboard(), pr, "")
-		}
+		// Filling the form from a vendor's example is the quickest start, so
+		// it leads the panel as a row of its own, with what it reads.
+		kit.Row(c, i18n.T("ai.importSetup"), i18n.T("ai.importSetupHint"), func() {
+			if kit.Button(c, i18n.T("ai.importSetupAction"), icons.ClipboardPaste, false).Disabled(locked).Clicked() {
+				p.importProviderSetup(c.Services().ReadClipboard(), pr, "")
+			}
+		})
 		kit.Row(c, i18n.T("ai.protocol"), "", func() {
 			protocol := pr.Protocol
 			if protocol == "" {
@@ -372,6 +406,7 @@ func (e *editor) connection(c *ui.Context, pr *provider, locked bool) {
 			}
 		})
 		e.keys(c, pr, locked)
+		e.limitRest(c, pr, locked)
 		e.endpointPreferences(c, pr, locked)
 		if p.curl != nil && p.curl.provider == id {
 			kit.Stack(c, "", "", func() {
@@ -384,6 +419,15 @@ func (e *editor) connection(c *ui.Context, pr *provider, locked bool) {
 			kit.Stack(c, "", i18n.T("ai.localServerHint"), func() {})
 		}
 	})
+}
+
+// limitRest is the switch resting a provider's keys on quota and rate
+// limits.
+func (e *editor) limitRest(c *ui.Context, pr *provider, locked bool) {
+	rest := !pr.LimitRestOff
+	if kit.Toggle(c, &rest, i18n.T("ai.limitRest"), i18n.T("ai.limitRestHint")).Disabled(locked).Changed() {
+		e.p.change(pr.ID, func(t *provider) { t.LimitRestOff = !rest })
+	}
 }
 
 // advanced is a custom connection's picture, deferred tools and headers.

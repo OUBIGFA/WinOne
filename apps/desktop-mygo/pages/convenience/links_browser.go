@@ -181,7 +181,7 @@ func linkKindBackground(theme *ui.Theme, kind string) ui.Color {
 // kindLabel is a link type's badge.
 func kindLabel(c *ui.Context, kind string) {
 	theme, pal := c.Theme(), kit.Colors(c)
-	ui.Box(c).Padding(1, 7).Radius(6).Border(1, pal.Hairline).Background(linkKindBackground(theme, kind)).Shrink(0).Children(func() {
+	ui.Box(c).Padding(1, 7).Radius(999).Border(1, pal.Hairline).Background(linkKindBackground(theme, kind)).Shrink(0).Children(func() {
 		ui.Text(c, i18n.T("links."+kind)).FontSize(kit.CaptionSize(c)).FontWeight(500).TextColor(theme.TextMuted).NoWrap()
 	})
 }
