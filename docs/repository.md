@@ -2,28 +2,29 @@
 
 | 路径 | 内容 | Git 跟踪 |
 | --- | --- | --- |
-| `apps/` | Host、现有桌面设置界面及原生操作界面 | 是 |
+| `apps/` | Host、MyGo 设置与结果窗、保留的兼容宿主 | 是 |
 | `internal/` | Go 公共协议与本地服务；测试与实现同目录 | 是 |
-| `modules/` | 各功能模块及其测试，接入时创建 | 是 |
+| `modules/` | 功能模块、共享原生组件及其测试 | 是 |
+| `tests/` | 正式集成测试、探针与脱敏夹具 | 是 |
 | `contracts/` | 跨语言协议说明与样本 | 是 |
 | `build/` | 可复现构建、验证、打包脚本 | 是 |
 | `.github/` | CI、PR 和 Issue 模板 | 是 |
 | `docs/` | 按主题组织的架构、维护及用户文档；由 `docs/README.md` 按需导航 | 是 |
-| `third_party/` | 复用代码版本和许可证，接入时创建 | 是 |
+| `third_party/` | 复用代码、来源锁定与许可证 | 是 |
 | `_temp/<任务>/` | 临时脚本、构建、候选包、测试输出、旧备份、一次性工具与下载、截图和日志 | 否 |
 | `dist/release/` | 唯一正式安装器、SHA-256 与 release-info.json | 否 |
 | `dist/reports/` | 可直接查看的交付报告及筛选后的验收证据；HTML 优先自包含，报告标明对应版本和验证范围 | 否 |
 | `dist/logo/` | 反复使用的 Logo 设计资源与多尺寸导出 | 否 |
 | `dist/resources/` | 当前使用的本地工具链、源码依赖、OCR 运行时、图标及复用缓存入口 | 否 |
-| `node_modules/`、`bin/`、`obj/` | 依赖与编译缓存 | 否 |
+| `node_modules/`、工具链生成的 `bin/`、`obj/`、`target/` | 依赖与编译缓存；Rust 的 `src/bin/` 源码入口仍入库 | 否 |
 
 根目录仅保留项目入口、许可证与工具配置。正式回归测试必须入库；个人运行数据、凭据与真实路径不得成为测试夹具。
 
-前端官方组件统一放在 `apps/desktop/frontend/src/components/ui/`，公共样式放 `src/styles/`，业务页面放 `src/features/`。旧 `src/ui/` 入口迁移期间只保留兼容适配和业务专用组件，不再新增另一套通用控件。
+当前设置页与共享控件位于 `apps/desktop-mygo/pages/`、`kit/` 和 `widgets/`，结果界面位于 `apps/result-ui/`，跨宿主原生组件位于 `modules/nativeui/`。`apps/desktop/frontend` 仅维护保留的兼容网页路径，不作为新设置页的默认入口。
 
-文档先从 `docs/README.md` 按任务选择；根 `AGENTS.md` 只保留常驻边界，功能细则在 `docs/working-rules/`。不要求每次对话加载全部文档、开发状态或历史记录。
+有效约定从 [AGENTS.md](../AGENTS.md) 的主题索引读取；设计、实现和历史资料从 [docs/README.md](README.md) 查找。旧架构计划、迁移步骤和一次性交付决定不作为当前规则。`docs/development.md` 记录状态与验证范围，不重复维护另一套约定。
 
-产品路线集中在 `docs/WinOne架构与开发计划.md`；UI 依据集中在 `docs/统一体验与设计依据.md`；模块、配置与安装边界集中在 `docs/模块与配置契约.md`。`docs/development.md` 只记录当前状态，历史阶段证据放 `docs/archive/`，不再逐轮追加互相过时的结论。
+## 构建与测试入口
 
 项目 Logo 源图统一放在 `internal/branding/logo.png`。更换此文件后运行统一构建，即可更新界面与 Windows 图标。
 
@@ -35,13 +36,13 @@
 
 程序管理中依赖前台激活的完整原生启动流程仅在显式设置 `WINTRAY_STARTUP_NATIVE_TEST=1` 后运行；依赖 Explorer 的任务栏流程继续使用 `WINTRAY_STARTUP_TASKBAR_TEST=1`。默认源码检查不选择这些系统交互测试。运行时仍须遵守私有桌面与用户前台授权约定；未运行的前台／任务栏流程不能记录为已通过。
 
-默认源码检查和完整构建不执行联网测试，包括本地 HTTP/TCP/UDP 服务、网关、登录回调和互传。Go 测试使用 `WINONE_NETWORK_TESTS=1` 作为显式选择条件；只有用户要求联网验证后才设置，其他专用测试开关仍然有效。FileShare 的真实端口测试默认忽略，其余不创建网络连接的路由、文件与协议检查照常运行。离线检查通过不能记录为联网或真实供应商验收通过。
+默认检查不运行联网测试；`WINONE_NETWORK_TESTS=1` 仅在用户要求联网验证后启用，专用开关、隔离和未覆盖范围见 [默认测试范围](working-rules/architecture-performance.md#默认测试范围)。源码检查入口为 `build/test-source.ps1`，离线通过不等于真实供应商验收通过。
 
 本机连接与消息边界可单独运行 `build/test-transport.ps1 -GoExe <go.exe> -OutputDirectory _temp/<任务>/transport`。该入口检查真实命名管道的慢回复、业务错误、取消、空闲连接和帧大小，不创建网络监听或桌面窗口。
 
 依赖使用锁文件；CI 从干净 checkout 构建。每次提交前检查 `git status --short`、`git diff --cached` 和 `git ls-files`。不要使用无差别暂存来掩盖文件分类问题。
 
-开发分支采用 `feat/<主题>`、`fix/<主题>`、`chore/<主题>`。发行版本采用 `v主版本.次版本.补丁`，预发布加 `-alpha.N` 或 `-beta.N`。发布 tag 只能指向验证通过的提交；本地调试不得创建发布 tag。
+沿用当前分支，创建新分支须获用户授权；开发分支命名为 `feat/<主题>`、`fix/<主题>`、`chore/<主题>`。发行版本采用 `v主版本.次版本.补丁`，预发布加 `-alpha.N` 或 `-beta.N`；发布 tag 只指向验证通过的提交，本地调试不创建发布 tag。
 
 远端创建、推送和正式发布按用户授权执行。发布时一起提供压缩包、SHA-256、对应源码与第三方声明；包内不含本地测试资料和开发工具链。
 
@@ -49,11 +50,11 @@
 
 交付前按改动范围核对源码测试、编译与静态检查、来源与许可证、版本、包清单、安装器/卸载器对应关系及 SHA-256，并检查干净提交与实际用户授权。
 
-Windows 相关验收保留为本地测试能力，可按任务影响范围使用；将其设为发布阻断条件的策略已彻底移除，具体见[Windows 本地验收与发布策略](working-rules/architecture-performance.md#windows-本地验收与发布策略)。提交、推送、固定安装器更新或发布不要求 Windows 版本/硬件/权限矩阵、真实桌面、干净机器、安装生命周期或 Defender 的通过报告，也不要求 SmartScreen 信誉、Windows 代码签名或微软样本复核。未运行、未覆盖、环境不可用和未通过的验收结果如实记录，不自动转为发布阻断或必做补验。
+Windows 专项验收与代码签名不作为发布前置条件；本地测试按影响范围选用并如实报告结果，完整边界只在 [Windows 本地验收与发布策略](working-rules/architecture-performance.md#windows-本地验收与发布策略) 维护。仅修改文档或归档资料不重建安装器。
 
 ### Windows 本地测试能力
 
-这些入口可用于本地排查与回归，结果保留在各自报告中，不作为发布准入凭据。系统交互和联网测试继续遵守现有显式开关、隔离及授权约定。
+以下入口用于本地排查与回归，遵守显式开关、隔离及授权约定。
 
 | 测试范围 | 现有入口 |
 | --- | --- |
@@ -74,15 +75,11 @@ Windows 相关验收保留为本地测试能力，可按任务影响范围使用
 
 ## AI 产物的存放与资料保护
 
-以下约定针对 AI 生成和整理文件的操作，不限制用户手动放入 `dist/` 的资料。不得设置 `dist/` 的目录或文件白名单，也不得仅凭位置、名称、类型或是否登记来移动、覆盖或删除资料。来源不明时保留，清理前核对归属及本次授权。
+- 按顶部目录表存放 AI 生成内容；可复用资源优先使用现有位置，新增时记录用途和调用方式。该表不是用户资料白名单：来源不明的文件保留，不因位置、名称、类型或未登记而移动、覆盖、删除。
+- 候选安装器默认放 `_temp/installer-build/output/`，验证后更新固定安装器及校验/发布元数据，旧包保留在任务临时目录。Logo 设计导出放 `dist/logo/`，构建源仍只有 `internal/branding/logo.png`。
+- 脚本用 `build/assert-temporary-path.ps1` 验证生成目标：普通输出为 `_temp/<任务>/`，显式 `-ReusableCache` 允许仓库根 `dist/` 下的固定缓存子目录。只验证生成目标，不扫描或清理用户资料；工具链必需的标准输出目录继续生成并忽略。
 
-- AI 的临时脚本、构建与候选包、测试输出、日志、截图及一次性下载放根目录 `_temp/<任务>/`。正式测试源码和脱敏夹具仍放源码目录或 `tests/` 并入库。
-- 可复用的工具、依赖、运行时、素材和缓存放在 `dist/` 下用途明确、便于再次调用的固定子目录。优先复用现有位置，新增时记录用途和调用方式，不需要修改允许目录清单。下方资源表记录当前布局，不限制新增目录或用户资料。
-- 正式安装器继续使用 `dist/release/WinOne-setup.exe`，同步校验文件和发布元数据；候选安装器默认输出到 `_temp/installer-build/output/`，完成与改动范围相称的检查后再更新固定安装器。此约定不限制用户在相同目录保存其他资料。
-- 当前 `dist/logo/` 保存设计原稿及多尺寸导出；正式构建源图仍为 `internal/branding/logo.png`，不创建第二份构建来源。
-- 构建、测试和准备脚本复用 `build/assert-temporary-path.ps1` 检查其生成目标。普通临时输出使用 `_temp/<任务>/`；显式 `-ReusableCache` 允许可复用缓存使用 `dist/` 下选定的固定子目录。这些检查不扫描或清理用户已有资料。必要的编译器标准目录（如 `bin/`、`obj/`、前端 `dist/`）继续按工具链规则生成并忽略；本条的 `dist/` 指仓库根目录。
-
-仓库检查：`./build/verify-repository.ps1`；临时输出边界回归：`./tests/repository-hygiene.ps1`。两者只检查，不自动删除文件。清理先核对真实路径和来源；旧证据可以迁到 `_temp/<任务>/` 并记录原路径，删除则进入回收站。
+仓库检查运行 `./build/verify-repository.ps1`，其中已包含 `./tests/repository-hygiene.ps1` 的输出边界回归，不必重复执行。两者不自动删除文件；清理先核对真实路径、来源和授权，删除进入回收站。
 
 ## 可重复使用的本地资源
 
@@ -92,13 +89,11 @@ Windows 相关验收保留为本地测试能力，可按任务影响范围使用
 
 统一构建经 `build/copy-anki.ps1` 将这些文件和 WinOne 适配代码放入 `shared/anki/`。Python 解释器复用包内 `capture/Ocr/python/`，不安装系统 Python，不调用外部 Anki。新增运行文件后用 `build/update-anki-inventory.py` 更新完整载荷清单；整个集合服务在首次使用时启动，空闲释放，数据在 WinOne 的学习档案中持久化。
 
-用户要求无人值守且不允许系统/联网测试时，可显式使用统一构建的 `-CompileOnly`。该选项保留编译、静态、来源、许可和包清单检查，关闭自动运行的交互和服务测试；不能把编译通过记为运行测试通过。学习功能另用 `build/test-learning-offline.ps1` 检查隔离真实引擎与原生组件。实际安装、真实账号同步、麦克风/扬声器与外部网络验证按各自隔离和授权约定单独进行；Windows 本地验收不列为发布前置条件。
+需要仅编译时使用统一构建的 `-CompileOnly`，保留静态、来源许可和包清单检查，不能将其记为运行测试通过。学习离线测试用 `build/test-learning-offline.ps1`；真实安装、账号同步、音频设备和外网验证单独选择并隔离。
 
 英语学习词库固定放在 `dist/resources/assets/learning/`，包括 `ecdict.db`、`manifest.json` 和 `ECDICT-LICENSE.txt`。锁定原始 CSV 保存在 `dist/resources/sources/ecdict-39cfb96/`，来源与摘要见 `third_party/learning-data.json`。`build/prepare-learning.ps1 -PythonExe <已有 Python> -Downloader <aria2-next>` 可校验或重建；统一构建自动调用，`build/copy-learning.ps1` 将验证过的三件套放入 `shared/ui/learning/`。数据与工具不入库，生成器、测试、许可和来源记录入库。缓存不一致时脚本报错，先在任务临时目录重建并验证，再更新固定资源。
 
-目前整理的复用资源位于 `dist/resources/`，不入库。这是现有调用位置，不是允许目录白名单。版本以源码锁、运行时清单和工具自报版本核对；更新这些资源时同步这里及 `build/use-local-resources.ps1`。
-
-下载、安装依赖或生成资源前，先查下表、源码中的已有资源和 `build/use-local-resources.ps1`。版本及摘要一致时直接使用；不能因为新建了任务目录就再下载、再安装或再生成一份。只有所需版本缺失、校验失败或明确更新版本时才补齐资源。新增的可复用内容在本次任务内归入固定目录，并同步来源、版本、校验依据和调用方法。
+资源入口为 `build/use-local-resources.ps1`，版本和摘要以源码锁、运行时清单及工具自报版本核对。下载、安装或生成前先查已有资源；只有版本缺失、校验失败或明确升级时才补齐，不因新任务重复准备。新增资源归入固定目录，同步来源、版本、摘要、调用方法及下表。
 
 2026-11-19 本次完整同步已按用户要求锁定核查快照：Magpie `289184a409c0e38a3a0a5282dbde93b56da309ca`、账号适配器 `e6c457112ababf96d9415fe0a217ab0b7429ae98`、WinTray `89c246a0b0c2808d7d594ab91758468517d61fdd`、MyGo 正式 `v0.10.0`（`ebde9399baf2734b3361856a53f4036859973d1d`）。本次后续只核对这组源码、许可、编译和产物，不再刷新上游版本；这不是取消后续新任务的更新约定。
 
@@ -114,7 +109,7 @@ Windows 相关验收保留为本地测试能力，可按任务影响范围使用
 | `sources/ShareX-native` | 现用原生截图引擎的独立源码；需要测试改写时再复制到 `_temp/<任务>/` |
 | `sources/magpie-289184a`、`sources/ai-plugins-e6c4571` | 本次核对并冻结的 AI 基座与账号适配器来源；构建核对 HEAD、锁文件及原始许可。旧 `magpie-9fc1114`、`magpie-ce2ce86` 和旧适配器来源保留用于回退；测试输出回到根 `_temp/`。更新对照见 `docs/ai-base-update-20261119.md` |
 | `sources/mygo-winone-v0.10.0` | MyGo 正式 v0.10.0 的仓库管理源码副本，按 `third_party/mygo-winone/source.json` 与 `build/prepare-mygo-filedrop.ps1` 校验原模块和窄适配；设置窗口、结果窗及 nativeui 使用该副本，不修改用户 Go 模块缓存。旧版本留作历史/回退参考 |
-| `runtimes/ocr` | OCR Python、离线依赖与模型，供反复打包；以 OCR 清单校验 |
+| `runtimes/ocr-3.10.0` | OCR Python、离线依赖与模型，供反复打包；以 OCR 清单校验 |
 | `cache/cargo`、`cache/go`、`cache/npm` | 分别通过 `CARGO_HOME`、`GOCACHE`、`npm_config_cache` 复用 Cargo 依赖、Go 编译和 npm 下载缓存；不放测试报告 |
 | `cache/nuget-notices/microsoft.web.webview2.1.0.3800.47.nupkg` | Microsoft WebView2 SDK 原包，供 `build/verify-rust-notices.ps1 -Update -WebView2Package <路径>` 核对 Loader 与原始许可证；来源为 NuGet 官方包，SHA-256 `56c9f26bdd07916a2d1949fb58a5c7e434dfa1173577dca879206050c4e718db` |
 | `cache/rust-desktop`、`cache/rust-diagrams`、`cache/rust-selection` | 三个现用 Rust 项目的增量编译缓存；不混入其他实验 target |
@@ -128,7 +123,7 @@ Windows 相关验收保留为本地测试能力，可按任务影响范围使用
 
 需要构建时，再执行 `./build/build.ps1 @WinOneBuildParameters -OutputDirectory _temp/<任务>/build`。安装器调用传入 `-NsisExe $WinOneNsisExe`。脚本只设置当前 PowerShell 会话，不修改系统环境变量；核心构建资源缺失时明确报错。Playwright 是可选测试工具，存在时检查固定版本并设置其模块路径。
 
-普通新进程原生设置窗口资源/启动的可选诊断入口分别为 `build/benchmark-desktop.ps1 -Frontend MyGo` 和 `build/benchmark-native-startup.ps1`；可按性能排查和回归需要运行，不作为发布前置条件。默认只在仓库私有桌面测量真实生产EXE，不切换前台；完整进程及正常退出被记录。旧WebView测量默认仍要求实际renderer，不把无WebView的MyGo误判缺进程。可选 `WINONE_DESKTOP_STARTUP_TRACE=1` 只产生实际Host/UI回调/绘制后的就绪标记，不预热常驻、不改窗口保护。2026-11-07当前启动300ms目标未达标且获准不阻断本次交付，具体数据见 [本次验收](2026-11-07-native-local-delivery.md)。
+原生设置窗口的资源/启动诊断分别使用 `build/benchmark-desktop.ps1 -Frontend MyGo` 和 `build/benchmark-native-startup.ps1`，在私有桌面测量真实程序及完整进程组，记录正常退出。`WINONE_DESKTOP_STARTUP_TRACE=1` 只增加实际就绪标记，不预热常驻或改变窗口保护；预算见 [性能约定](working-rules/architecture-performance.md#性能与生命周期)。
 
 ### 供应商图标
 

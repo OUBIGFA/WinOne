@@ -4,7 +4,7 @@ Windows 工具集，提供截图、OCR、翻译、划词助手、快捷助手、
 
 main 的 AI 服务仅保留常用、自定义供应商、账号供应商、本地网关；使用偏好的全部功能已并入常用。Chat、OneBot、闪聊及其他 AI 服务已移除；完整版本保存在 [`codex/archive-full-20261112`](https://github.com/OUBIGFA/WinOne/tree/codex/archive-full-20261112)。实施和审核记录见[模块精简验收](docs/module-removal-20261112.md)和[AI 基座与常用设置更新](docs/ai-base-update-20261113.md)。
 
-只维护一套 WinOne 正式版，当前版本为 **0.0.1，正式发布验收仍在进行**。使用方法见[使用说明](docs/使用说明.md)，已验证范围见[开发状态](docs/development.md)。
+当前版本为 **0.0.1**。使用方法见[使用说明](docs/使用说明.md)，已验证范围见[开发状态](docs/development.md)。
 
 - 仓库内固定安装器：`dist/release/WinOne-setup.exe`。
 - 后续迭代只更新此安装器及 SHA-256，由用户自行安装验证。
@@ -12,7 +12,7 @@ main 的 AI 服务仅保留常用、自定义供应商、账号供应商、本�
 
 ## 本地构建
 
-需要 Windows 11、Go 1.26.2、Node.js 24 和 .NET 10 SDK。运行：
+需要 Windows 11、Go 1.26.2（Host/模块）与 1.27.3（MyGo）、Node.js 24 和 .NET 10 SDK。运行：
 
 ```powershell
 ./build/build.ps1
@@ -24,11 +24,11 @@ Go 未加入 PATH 时使用 `-GoExe <go.exe路径>`。构建还需传入已准�
 
 运行需要 Windows 11 x64 和 WebView2 Runtime。构建、测试和候选包放在 `_temp/<任务>/`，不进入 Git。文档从[按需索引](docs/README.md)选择，不要求每次通读。
 
-只检查源码时运行 `./build/test-source.ps1`（Go 未加入 PATH 时传入 `-GoExe`）。此入口供 Windows CI 和本地使用，验证 Host、根 Go 模块、WinTray、systray 与保留的第三方来源；不需要预装 OCR/Magpie 运行时。源码检查、编译、来源与许可证、包清单和 SHA-256 按改动范围验证。Windows 相关验收继续作为本地测试能力，可按任务范围使用原生 UI、安装生命周期和安全扫描等工具；发布不要求这些验收的通过报告，具体见[交付检查说明](docs/repository.md#交付检查范围)。源码检查通过只说明其覆盖范围，不将未执行的项目记为通过。
+只检查源码时运行 `./build/test-source.ps1`（Go 未加入 PATH 时传入 `-GoExe`）。此入口供 Windows CI 和本地使用，验证 Host、根 Go 模块、WinTray、systray 与保留的第三方来源；不需要预装 OCR/Magpie 运行时。源码、构建、许可及产物按改动范围验证，具体见[交付检查说明](docs/repository.md#交付检查范围)；源码检查通过不代表未执行的运行验收通过。
 
-- [架构与开发计划](docs/WinOne架构与开发计划.md)
+- [当前架构与性能约定](docs/working-rules/architecture-performance.md)
 - [调研依据与来源](docs/调研依据.md)
 - [目录与发布约定](docs/repository.md)
 - [开发状态](docs/development.md)
 
-已确定：Windows 11 优先，截图操作界面及新增模块采用原生控件与 WinOne 统一风格，性能优先；置顶和程序管理保持现状。按适用 GPL 要求开源发布。
+面向 Windows 11 x64，设置与结果窗使用 MyGo 原生 UI，截图继续复用现有原生画布和工具栏。按适用 GPL 要求开源发布。
