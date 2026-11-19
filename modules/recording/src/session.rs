@@ -161,7 +161,9 @@ impl Output {
 mod tests {
     use super::*;
     fn output() -> Output {
-        let root=PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../_temp/claude-recording/rust-tests").join(format!("{}-{}",std::process::id(),SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()));
+        // The build runner supplies its task-owned TEMP directory. Never
+        // scatter later runs into an unrelated historical task folder.
+        let root=std::env::temp_dir().join("winone-recording-tests").join(format!("{}-{}",std::process::id(),SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()));
         fs::create_dir_all(&root).unwrap();
         Output{working:root.join("recording.partial"),final_path:root.join("recording.mp4")}
     }
