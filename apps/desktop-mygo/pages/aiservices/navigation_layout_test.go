@@ -69,7 +69,7 @@ func TestProviderActionsFitNarrowContentInBothLanguages(t *testing.T) {
 		for _, width := range []int{420, 560, 880} {
 			tt := ui.NewTester(p.View, width, 1200)
 			settle(h, tt)
-			for _, key := range []string{"ai.addCustomProvider", "ai.addPreset", "aiBulkProviders.open"} {
+			for _, key := range []string{"aiExperience.add", "aiExperience.presets", "aiBulkProviders.open"} {
 				button, ok := tt.Access(i18n.T(key))
 				if !ok || !button.Focusable || button.Bounds.X < 0 || button.Bounds.X+button.Bounds.W > float32(width) {
 					t.Errorf("%s width=%d: %s is clipped: %+v", locale, width, key, button.Bounds)

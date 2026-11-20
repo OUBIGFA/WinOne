@@ -1,6 +1,9 @@
 {
-  "aiExperience.settings": "供应商设置",
-  "aiExperience.back": "返回模型列表",
+  "aiExperience.enabled": "启用",
+  "aiExperience.add": "添加",
+  "aiExperience.presets": "预设",
+  "aiExperience.settings": "设置",
+  "aiExperience.back": "返回模型",
   "aiExperience.connection": "连接与密钥",
   "aiExperience.ready": "地址已填写",
   "aiExperience.setup": "待填写连接信息",

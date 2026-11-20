@@ -1,5 +1,8 @@
 {
-  "aiExperience.settings": "Provider settings",
+  "aiExperience.enabled": "Enabled",
+  "aiExperience.add": "Add",
+  "aiExperience.presets": "Presets",
+  "aiExperience.settings": "Settings",
   "aiExperience.back": "Back to models",
   "aiExperience.connection": "Connection and keys",
   "aiExperience.ready": "Address entered",

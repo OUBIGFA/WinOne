@@ -178,40 +178,32 @@ func (p *page) providersView(c *ui.Context) {
 		if pr != nil && p.saved != nil {
 			old = p.saved.Value.find(pr.ID)
 		}
-		// Keep the chooser flexible; translated actions also wrap inside their
-		// group so a narrow content column never clips the last button.
-		ui.Row(c).FillWidth().GapX(16).GapY(8).Wrap().AlignItems(ui.End).Children(func() {
+		// Keep provider selection and its actions in one wrapping toolbar.
+		// The chooser grows into spare space without clipping translated actions.
+		ui.Row(c).FillWidth().GapX(8).GapY(8).Wrap().AlignItems(ui.End).Children(func() {
 			if pr != nil {
-				ui.Column(c).Basis(240).Grow(1).MinWidth(0).Children(func() { e.nameField(c, pr, locked) })
+				ui.Column(c).Basis(200).Grow(1).MinWidth(0).Children(func() { e.nameField(c, pr, locked) })
 				enabled := !pr.Off
 				ui.Row(c).MinHeight(kit.ControlHeight).Gap(8).AlignItems(ui.Center).Children(func() {
-					kit.Label(c, completeT("providerEnabled")).SingleLine()
+					kit.Label(c, i18n.T("aiExperience.enabled")).SingleLine()
 					ui.Switch(c, &enabled).Label(completeT("providerEnabled")).Description(completeT("providerEnabledHint")).Disabled(locked)
 				})
 				pr.Off = !enabled
 			}
-		})
-		ui.Row(c).FillWidth().GapX(8).GapY(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).Children(func() {
 			if !e.optionsOpen {
-				ui.Row(c).Shrink(1).MinWidth(0).Gap(8).Wrap().Children(func() {
-					label := "ai.addCustomProvider"
+				if kit.GhostButton(c, i18n.T("aiBulkProviders.open"), icons.ListChecks, false).Disabled(locked).Clicked() {
+					p.bulkProvidersOpen = true
+				}
+				if kit.Button(c, i18n.T("aiExperience.add"), icons.Plus, false).Disabled(locked || full || (accounts && len(p.catalog.agents) == 0)).Clicked() {
 					if accounts {
-						label = "ai.addAccountProvider"
+						addAccount()
+					} else {
+						p.add(nil)
 					}
-					if kit.Button(c, i18n.T(label), icons.Plus, false).Disabled(locked || full || (accounts && len(p.catalog.agents) == 0)).Clicked() {
-						if accounts {
-							addAccount()
-						} else {
-							p.add(nil)
-						}
-					}
-					if !accounts && kit.Button(c, i18n.T("ai.addPreset"), icons.PlugZap, false).Disabled(locked || full).Clicked() {
-						addPreset()
-					}
-					if kit.GhostButton(c, i18n.T("aiBulkProviders.open"), icons.ListChecks, false).Disabled(locked).Clicked() {
-						p.bulkProvidersOpen = true
-					}
-				})
+				}
+				if !accounts && kit.Button(c, i18n.T("aiExperience.presets"), icons.PlugZap, false).Disabled(locked || full).Clicked() {
+					addPreset()
+				}
 			}
 			if pr != nil {
 				label, icon := "aiExperience.settings", icons.Settings2
