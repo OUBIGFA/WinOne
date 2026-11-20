@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -242,6 +243,10 @@ func TestNewKeysTravelApartAndSavedKeysAreRevealedOnRequest(t *testing.T) {
 		t.Fatal("no editor")
 	}
 	// Reveal the saved key: read from the Host, never part of the draft.
+	if err := tt.Click(i18n.T("aiExperience.connection")); err != nil {
+		t.Fatal(err)
+	}
+	tt.Advance(300 * time.Millisecond)
 	if err := tt.Click(i18n.T("ai.showKey", "name", i18n.T("ai.key"))); err != nil {
 		t.Fatal(err)
 	}
@@ -273,6 +278,10 @@ func TestNewKeysTravelApartAndSavedKeysAreRevealedOnRequest(t *testing.T) {
 
 func TestCurlExampleFillsTheDraftWithoutSaving(t *testing.T) {
 	f, h, p, tt := setup(t)
+	if err := tt.Click(i18n.T("aiExperience.connection")); err != nil {
+		t.Fatal(err)
+	}
+	tt.Advance(300 * time.Millisecond)
 	pr := p.draft.Value.find("one")
 	if !p.importCurl("curl https://api.deepseek.com/v1/chat/completions -H \"Authorization: Bearer sk-real-key\" -d '{\"model\":\"deepseek-chat\"}'", pr, "") {
 		t.Fatal("not read as cURL")

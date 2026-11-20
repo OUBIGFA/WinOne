@@ -14,6 +14,7 @@ func TestCodexClientNativeChoiceSavesAndReopens(t *testing.T) {
 	pr := p.current()
 	pr.AuthMode, pr.Agent = "account", "codex"
 	e := p.editor
+	e.optionsOpen, e.preferenceTab = true, 1
 	tester := ui.NewTester(func(c *ui.Context) {
 		ui.Column(c).FillWidth().Children(func() { e.View(c, pr, pr) })
 	}, 900, 1600)
@@ -45,6 +46,7 @@ func TestCodexClientNativeChoiceSavesAndReopens(t *testing.T) {
 func TestGatewayBareModelModesSaveAndReopen(t *testing.T) {
 	f, h, p, _ := setup(t)
 	g := p.gateway
+	g.networkOpen = true
 	tester := ui.NewTester(func(c *ui.Context) { g.View(c, nil, p) }, 900, 2000)
 	settle(h, tester)
 	for _, mode := range []struct {
@@ -83,7 +85,7 @@ func TestAccountWarmupNativeActionKeepsPerAccountResults(t *testing.T) {
 	f.accounts = []map[string]any{{"agent": "codex", "user": "ready@example.invalid"}}
 	a := newAccountPanel(p, pr)
 	tester := ui.NewTester(func(c *ui.Context) {
-		ui.Column(c).FillWidth().Children(func() { a.View(c, pr, old) })
+		ui.Column(c).FillWidth().Children(func() { a.maintenanceView(c, pr, false) })
 	}, 900, 1800)
 	settle(h, tester)
 	if err := tester.Click(i18n.T("aiSync.warmNow")); err != nil {

@@ -292,23 +292,29 @@ func (a *gatewayAccessPanel) View(c *ui.Context, p *page) {
 }
 
 func (a *gatewayAccessPanel) createView(c *ui.Context, p *page) {
-	ui.Column(c).FillWidth().Padding(16).Gap(16).Children(func() {
-		nativeText(c, accessT("name"), &a.name, a.api.busy)
+	// Rows own their 16 DIP inset. Mixing an outer form inset with padded
+	// toggles and numbers used to create a second, visibly shifted column.
+	ui.Column(c).FillWidth().Gap(8).Children(func() {
+		kit.Stack(c, "", "", func() { nativeText(c, accessT("name"), &a.name, a.api.busy) })
 		if a.temporary {
-			nativeText(c, accessT("ttl"), &a.ttl, a.api.busy)
-			kit.Help(c, accessT("ttlHint"))
+			kit.Stack(c, "", "", func() {
+				nativeText(c, accessT("ttl"), &a.ttl, a.api.busy)
+				kit.Help(c, accessT("ttlHint"))
+			})
 			a.scopeList(c, "issueModels", accessT("models"), &a.issueModels, a.modelChoices(false), a.api.busy)
 			a.scopeList(c, "issueAccounts", accessT("accounts"), &a.issueAccounts, a.modelChoices(true), a.api.busy)
 			nativeInt(c, accessT("tokens"), &a.issueTokens, 0, 1<<53-1, a.api.busy)
 			numberRow(c, accessT("cost"), &a.issueCost, 0, 1e15, false, "0", a.api.busy, func(v *float64) { a.issueCost = value(v) })
 			kit.Toggle(c, &a.issueReadOnly, accessT("readOnly"), accessT("readOnlyHint")).Disabled(a.api.busy)
 		} else {
-			ui.Field(c, accessT("ownSecret"), func() { kit.TextInput(c, &a.secret).FillWidth().Password().Disabled(a.api.busy) })
-			kit.Help(c, accessT("ownSecretHint"))
+			kit.Stack(c, "", "", func() {
+				ui.Field(c, accessT("ownSecret"), func() { kit.TextInput(c, &a.secret).FillWidth().Password().Disabled(a.api.busy) })
+				kit.Help(c, accessT("ownSecretHint"))
+			})
 			kit.Toggle(c, &a.browser, accessT("browser"), accessT("browserHint")).Disabled(a.api.busy)
 		}
-		ui.Row(c).Gap(8).Children(func() {
-			if kit.Button(c, i18n.T("common.save"), icons.Check, a.api.busy).Disabled(a.api.busy || a.name == "").Clicked() {
+		ui.Row(c).Padding(12, 16).Gap(8).Children(func() {
+			if kit.PrimaryButton(c, i18n.T("common.save"), icons.Check, a.api.busy).Disabled(a.api.busy || a.name == "").Clicked() {
 				if a.temporary {
 					a.api.request(p, "POST", "/api/winone/gateway/issue", map[string]any{"name": a.name, "ttl": a.ttl, "models": a.issueModels, "accounts": a.issueAccounts, "tokens": a.issueTokens, "cost": a.issueCost, "readOnly": a.issueReadOnly}, func(raw json.RawMessage) {
 						var out struct {
@@ -340,41 +346,48 @@ func (a *gatewayAccessPanel) createView(c *ui.Context, p *page) {
 func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 	k := a.edit
 	locked := a.api.busy
-	ui.Column(c).FillWidth().Padding(16).Gap(16).Children(func() {
-		kit.Tabs(c, &a.tab, []kit.Tab{{Label: accessT("policy")}, {Label: accessT("scope")}, {Label: accessT("limits")}}, nil)
+	ui.Column(c).FillWidth().Gap(8).Children(func() {
+		ui.Column(c).FillWidth().Padding(12, 16).Children(func() {
+			kit.SubTabs(c, &a.tab, []string{accessT("policy"), accessT("scope"), accessT("limits")}, nil)
+		})
 		switch a.tab {
 		case 0:
-			nativeText(c, accessT("name"), &k.Name, locked)
+			kit.Stack(c, "", "", func() { nativeText(c, accessT("name"), &k.Name, locked) })
 			nativeInt(c, i18n.T("ai.maxConcurrency"), &k.MaxConcurrency, 0, 1000, locked)
-			nativeSelect(c, nativeT("keyServiceTier"), &k.ServiceTier, options("", nativeT("followRequest"), "default", nativeT("standardTier"), "priority", "priority", "ultrafast", "ultrafast"), locked)
-			kit.Help(c, upstreamT("How many requests this key may have in flight at once. Beyond it they wait in order; 0 for no limit."))
+			kit.Help(c, upstreamT("How many requests this key may have in flight at once. Beyond it they wait in order; 0 for no limit.")).Padding(0, 16)
+			kit.Stack(c, "", "", func() {
+				nativeSelect(c, nativeT("keyServiceTier"), &k.ServiceTier, options("", nativeT("followRequest"), "default", nativeT("standardTier"), "priority", "priority", "ultrafast", "ultrafast"), locked)
+			})
 			kit.Toggle(c, &k.ReadOnly, accessT("readOnly"), accessT("readOnlyHint")).Disabled(locked || k.Browser)
 			kit.Toggle(c, &k.Quotas, accessT("quotas"), accessT("quotasHint")).Disabled(locked)
 			kit.Toggle(c, &k.Issues, accessT("issuer"), accessT("issuerHint")).Disabled(locked || k.Browser || k.Issuer != "" || k.Expires != "")
 		case 1:
-			kit.Help(c, accessT("scopeHint"))
+			kit.Help(c, accessT("scopeHint")).Padding(0, 16)
 			a.scopeList(c, "models", accessT("models"), &k.Models, a.modelChoices(false), locked)
 			a.scopeList(c, "accounts", accessT("accounts"), &k.Accounts, a.modelChoices(true), locked)
-			kit.Help(c, nativeT("keyAliasesHint"))
-			for _, name := range sortedKeys(k.Aliases) {
-				ui.Row(c.Key(name)).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-					model := k.Aliases[name]
-					ui.Column(c).Grow(1).MinWidth(0).Children(func() { nativeText(c, name, &model, locked) })
-					k.Aliases[name] = model
-					if kit.IconButton(c, icons.Trash2, i18n.T("common.delete")+" "+name).Disabled(locked).Clicked() {
-						delete(k.Aliases, name)
+			kit.Stack(c, "", nativeT("keyAliasesHint"), func() {
+				for _, name := range sortedKeys(k.Aliases) {
+					ui.Row(c.Key(name)).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+						model := k.Aliases[name]
+						ui.Column(c).Grow(1).MinWidth(0).Children(func() { nativeText(c, name, &model, locked) })
+						k.Aliases[name] = model
+						if kit.IconButton(c, icons.Trash2, i18n.T("common.delete")+" "+name).Disabled(locked).Clicked() {
+							delete(k.Aliases, name)
+						}
+					})
+				}
+				nativeText(c, nativeT("aliasName"), &a.aliasName, locked)
+				nativeSelect(c, nativeT("aliasModel"), &a.aliasModel, a.modelChoices(false), locked)
+				ui.Row(c).Children(func() {
+					if kit.Button(c, nativeT("addAlias"), icons.Plus, false).Disabled(locked || strings.TrimSpace(a.aliasName) == "" || a.aliasModel == "").Clicked() {
+						if k.Aliases == nil {
+							k.Aliases = map[string]string{}
+						}
+						k.Aliases[strings.TrimSpace(a.aliasName)] = a.aliasModel
+						a.aliasName, a.aliasModel = "", ""
 					}
 				})
-			}
-			nativeText(c, nativeT("aliasName"), &a.aliasName, locked)
-			nativeSelect(c, nativeT("aliasModel"), &a.aliasModel, a.modelChoices(false), locked)
-			if kit.Button(c, nativeT("addAlias"), icons.Plus, false).Disabled(locked || strings.TrimSpace(a.aliasName) == "" || a.aliasModel == "").Clicked() {
-				if k.Aliases == nil {
-					k.Aliases = map[string]string{}
-				}
-				k.Aliases[strings.TrimSpace(a.aliasName)] = a.aliasModel
-				a.aliasName, a.aliasModel = "", ""
-			}
+			})
 		case 2:
 			limits := append([]callerLimit{}, k.More...)
 			if k.Limit != nil {
@@ -385,36 +398,38 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 				w := &limits[n]
 				cc := c.Key(n)
 				ui.Column(cc).FillWidth().Padding(12, 0).Gap(12).BorderWidth(1, 0, 0, 0).BorderColor(c.Theme().Border).Children(func() {
-					nativeSelect(cc, accessT("period"), &w.Period, options("day", accessT("day"), "week", accessT("week"), "month", accessT("month"), "days", accessT("days"), "hours", accessT("hours"), "account", i18n.T("aiSync.accountWindow"), "total", i18n.T("aiSync.totalBudget")), locked)
-					if w.Period == "account" {
-						selected := w.Account + "\n" + w.AccountWindow
-						choices := []kit.SelectOption{{Value: "\n", Label: i18n.T("aiSync.chooseAccountWindow")}}
-						found := w.Account == ""
-						for _, window := range a.accountWindows {
-							id := window.Account + "\n" + window.Window
-							found = found || id == selected
-							choices = append(choices, kit.SelectOption{Value: id, Label: window.Provider + " / " + cmp.Or(window.Alias, window.User) + " · " + window.Window})
+					kit.Stack(cc, "", "", func() {
+						nativeSelect(cc, accessT("period"), &w.Period, options("day", accessT("day"), "week", accessT("week"), "month", accessT("month"), "days", accessT("days"), "hours", accessT("hours"), "account", i18n.T("aiSync.accountWindow"), "total", i18n.T("aiSync.totalBudget")), locked)
+						if w.Period == "account" {
+							selected := w.Account + "\n" + w.AccountWindow
+							choices := []kit.SelectOption{{Value: "\n", Label: i18n.T("aiSync.chooseAccountWindow")}}
+							found := w.Account == ""
+							for _, window := range a.accountWindows {
+								id := window.Account + "\n" + window.Window
+								found = found || id == selected
+								choices = append(choices, kit.SelectOption{Value: id, Label: window.Provider + " / " + cmp.Or(window.Alias, window.User) + " · " + window.Window})
+							}
+							if !found {
+								choices = append(choices, kit.SelectOption{Value: selected, Label: w.Account + " · " + w.AccountWindow})
+							}
+							if nativeSelect(cc, i18n.T("aiSync.accountWindow"), &selected, choices, locked) {
+								w.Account, w.AccountWindow, _ = strings.Cut(selected, "\n")
+							}
+							if kit.Button(cc, i18n.T("aiSync.readAccountWindows"), icons.RefreshCw, false).Disabled(locked).Clicked() {
+								a.api.request(p, "GET", "/api/caller-keys/account-windows", nil, func(raw json.RawMessage) {
+									var data struct {
+										Windows []accountWindow `json:"windows"`
+									}
+									if nativeDecode(&a.api, raw, &data) {
+										a.accountWindows = data.Windows
+									}
+								})
+							}
+							if a.accountWindows != nil && len(a.accountWindows) == 0 {
+								kit.Help(cc, i18n.T("aiSync.noAccountWindows"))
+							}
 						}
-						if !found {
-							choices = append(choices, kit.SelectOption{Value: selected, Label: w.Account + " · " + w.AccountWindow})
-						}
-						if nativeSelect(cc, i18n.T("aiSync.accountWindow"), &selected, choices, locked) {
-							w.Account, w.AccountWindow, _ = strings.Cut(selected, "\n")
-						}
-						if kit.Button(cc, i18n.T("aiSync.readAccountWindows"), icons.RefreshCw, false).Disabled(locked).Clicked() {
-							a.api.request(p, "GET", "/api/caller-keys/account-windows", nil, func(raw json.RawMessage) {
-								var data struct {
-									Windows []accountWindow `json:"windows"`
-								}
-								if nativeDecode(&a.api, raw, &data) {
-									a.accountWindows = data.Windows
-								}
-							})
-						}
-						if a.accountWindows != nil && len(a.accountWindows) == 0 {
-							kit.Help(cc, i18n.T("aiSync.noAccountWindows"))
-						}
-					}
+					})
 					if w.Period == "days" {
 						nativeInt(cc, accessT("days"), &w.Days, 1, 3650, locked)
 					}
@@ -425,39 +440,45 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 					numberRow(cc, accessT("cost"), &w.Cost, 0, 1e15, false, "0", locked, func(v *float64) { w.Cost = value(v) })
 					kit.Toggle(cc, &w.CacheReads, accessT("cacheReads"), "").Disabled(locked)
 					a.scopeList(cc, fmt.Sprintf("limitModels%d", n), accessT("limitModels"), &w.Models, a.modelChoices(false), locked)
-					if n < len(k.UsedAll) {
-						u := k.UsedAll[n]
-						kit.Help(cc, fmt.Sprintf("%s: %d tokens · $%.4f", accessT("used"), u.Tokens, u.Cost))
-						// An unread account window has no guessed reset date. Its
-						// budget remains binding until the original reader knows it.
-						if u.ResetUnknown {
-							key := "aiSync.accountResetUnknown"
-							if u.Spent {
-								key = "aiSync.accountResetUnknownSpent"
+					kit.Stack(cc, "", "", func() {
+						if n < len(k.UsedAll) {
+							u := k.UsedAll[n]
+							kit.Help(cc, fmt.Sprintf("%s: %d tokens · $%.4f", accessT("used"), u.Tokens, u.Cost))
+							// An unread account window has no guessed reset date. Its
+							// budget remains binding until the original reader knows it.
+							if u.ResetUnknown {
+								key := "aiSync.accountResetUnknown"
+								if u.Spent {
+									key = "aiSync.accountResetUnknownSpent"
+								}
+								kit.Help(cc, i18n.T(key))
+							} else if u.Period != "total" && w.Period != "total" {
+								kit.Help(cc, accessT("reset")+" "+u.Reset)
 							}
-							kit.Help(cc, i18n.T(key))
-						} else if u.Period != "total" && w.Period != "total" {
-							kit.Help(cc, accessT("reset")+" "+u.Reset)
+							if kit.GhostButton(cc, accessT("resetOneLimit"), icons.RotateCcw, false).Disabled(locked || !equal(k, a.saved)).Clicked() {
+								a.action(p, "reset-limit-key", *k, map[string]any{"index": n})
+							}
 						}
-						if kit.GhostButton(cc, accessT("resetOneLimit"), icons.RotateCcw, false).Disabled(locked || !equal(k, a.saved)).Clicked() {
-							a.action(p, "reset-limit-key", *k, map[string]any{"index": n})
+						if w.Period == "total" {
+							kit.Help(cc, i18n.T("aiSync.totalResetManual"))
 						}
-					}
-					if w.Period == "total" {
-						kit.Help(cc, i18n.T("aiSync.totalResetManual"))
-					}
-					if kit.GhostButton(cc, i18n.T("common.delete"), icons.Trash2, false).Disabled(locked).Clicked() {
-						remove = n
-					}
+						ui.Row(cc).Children(func() {
+							if kit.GhostButton(cc, i18n.T("common.delete"), icons.Trash2, false).Disabled(locked).Clicked() {
+								remove = n
+							}
+						})
+					})
 				})
 			}
 			if remove >= 0 {
 				limits = slices.Delete(limits, remove, remove+1)
 				a.fields = fields{}
 			}
-			if kit.Button(c, accessT("addLimit"), icons.Plus, false).Disabled(locked || len(limits) >= 5).Clicked() {
-				limits = append(limits, callerLimit{Period: "day"})
-			}
+			ui.Row(c).Padding(0, 16).Children(func() {
+				if kit.Button(c, accessT("addLimit"), icons.Plus, false).Disabled(locked || len(limits) >= 5).Clicked() {
+					limits = append(limits, callerLimit{Period: "day"})
+				}
+			})
 			k.Limit = nil
 			k.More = nil
 			if len(limits) > 0 {
@@ -465,8 +486,8 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 				k.More = limits[1:]
 			}
 		}
-		ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-			if kit.Button(c, i18n.T("common.save"), icons.Check, locked).Disabled(locked || equal(k, a.saved)).Clicked() {
+		ui.Row(c).FillWidth().Padding(12, 16).Gap(8).Wrap().Children(func() {
+			if kit.PrimaryButton(c, i18n.T("common.save"), icons.Check, locked).Disabled(locked || equal(k, a.saved)).Clicked() {
 				a.api.request(p, "POST", "/api/winone/gateway/configure", k, func(raw json.RawMessage) {
 					if a.accept(raw) {
 						for _, row := range a.state.Keys {
@@ -500,13 +521,15 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 			}
 		})
 		if a.confirm != "" {
-			if a.confirm == "rotate-key" {
-				ui.Field(c, accessT("ownSecret"), func() { kit.TextInput(c, &a.secret).FillWidth().Password().Disabled(locked) })
-			}
-			kit.Notice(c, kit.Caution, "", accessT("revokeHint"), func() {
-				if kit.Button(c, accessT("confirm"), icons.Check, false).Disabled(locked).Clicked() {
-					a.action(p, a.confirm, *k, map[string]any{"secret": a.secret})
+			kit.Stack(c, "", "", func() {
+				if a.confirm == "rotate-key" {
+					ui.Field(c, accessT("ownSecret"), func() { kit.TextInput(c, &a.secret).FillWidth().Password().Disabled(locked) })
 				}
+				kit.Notice(c, kit.Caution, "", accessT("revokeHint"), func() {
+					if kit.Button(c, accessT("confirm"), icons.Check, false).Disabled(locked).Clicked() {
+						a.action(p, a.confirm, *k, map[string]any{"secret": a.secret})
+					}
+				})
 			})
 		}
 	})
@@ -533,19 +556,21 @@ func (a *gatewayAccessPanel) modelChoices(accounts bool) []kit.SelectOption {
 	return out
 }
 func (a *gatewayAccessPanel) scopeList(c *ui.Context, key, label string, values *[]string, choices []kit.SelectOption, locked bool) {
-	nativeList(c, a.fields, key, label, values, locked)
-	if len(choices) == 0 {
-		return
-	}
-	selected := ""
-	if nativeSelect(c.Key(key+"-picker"), accessT("chooseScope"), &selected, append(options("", accessT("chooseScope")), choices...), locked) && selected != "" && !slices.Contains(*values, selected) {
-		if selected == "-" {
-			*values = []string{"-"}
-		} else {
-			*values = append(slices.DeleteFunc(*values, func(v string) bool { return v == "-" }), selected)
+	kit.Stack(c, "", "", func() {
+		nativeList(c, a.fields, key, label, values, locked)
+		if len(choices) == 0 {
+			return
 		}
-		delete(a.fields, key)
-	}
+		selected := ""
+		if nativeSelect(c.Key(key+"-picker"), accessT("chooseScope"), &selected, append(options("", accessT("chooseScope")), choices...), locked) && selected != "" && !slices.Contains(*values, selected) {
+			if selected == "-" {
+				*values = []string{"-"}
+			} else {
+				*values = append(slices.DeleteFunc(*values, func(v string) bool { return v == "-" }), selected)
+			}
+			delete(a.fields, key)
+		}
+	})
 }
 
 func (a *gatewayAccessPanel) oidcView(c *ui.Context, p *page) {

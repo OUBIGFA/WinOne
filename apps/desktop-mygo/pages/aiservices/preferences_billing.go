@@ -44,7 +44,9 @@ func (e *editor) billingPreferences(c *ui.Context, pr *provider, locked bool) {
 		kit.Stack(c, "", i18n.T("aiComplete.quotaResetAtHint"), func() { nativeText(c, i18n.T("aiComplete.quotaResetAt"), &s.QuotaResetAt, locked) })
 	})
 	kit.Group(c, nil, i18n.T("aiOptions.price"), "", func() {
-		nativeSelect(c, i18n.T("ai.billingKind"), &s.Billing, options("", i18n.T("ai.automatic"), "plan", i18n.T("ai.billingPlan"), "payg", i18n.T("ai.billingPAYG")), locked)
+		kit.Stack(c, "", "", func() {
+			nativeSelect(c, i18n.T("ai.billingKind"), &s.Billing, options("", i18n.T("ai.automatic"), "plan", i18n.T("ai.billingPlan"), "payg", i18n.T("ai.billingPAYG")), locked)
+		})
 		var rate *float64
 		if s.PriceRate != 0 {
 			rate = &s.PriceRate

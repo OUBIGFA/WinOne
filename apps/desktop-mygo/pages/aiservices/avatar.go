@@ -116,7 +116,7 @@ func (e *editor) avatarView(c *ui.Context, pr *provider, locked bool) {
 		kit.Panel(c, func() {
 			kit.Stack(c, "", "", func() {
 				ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
-					ui.Row(c).Size(40, 40).Radius(8).Background(t.Surface).Justify(ui.Center).AlignItems(ui.Center).Shrink(0).
+					ui.Row(c).Size(40, 40).Radius(t.Radius).Background(t.Surface).Justify(ui.Center).AlignItems(ui.Center).Shrink(0).
 						Margin(0, 8, 0, 0).Children(func() { widgets.ProviderIcon(c, p.env, pr.mark(), 32) })
 					if kit.GhostButton(c, i18n.T("ai.avatarChoose"), icons.ImagePlus, false).Disabled(disabled).Clicked() {
 						pick(func() (string, error) {

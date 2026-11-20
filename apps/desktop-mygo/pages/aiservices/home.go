@@ -2,6 +2,7 @@ package aiservices
 
 import (
 	"github.com/egoist/mygo/ui"
+	"slices"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
@@ -39,7 +40,11 @@ func (p *page) quickStart(c *ui.Context) {
 			withModels = pr
 		}
 	}
-	chosen := d.Tasks["default"].Provider != ""
+	// A saved identifier is not a usable default when its model was
+	// removed or the provider was disabled. Keep the recovery step visible.
+	selection := d.Tasks["default"]
+	selectedProvider := d.find(selection.Provider)
+	chosen := selectedProvider != nil && !selectedProvider.Off && slices.Contains(selectedProvider.Models, selection.Model)
 	steps := []bool{first != nil, withModels != nil, chosen}
 	current := len(steps)
 	for i, done := range steps {

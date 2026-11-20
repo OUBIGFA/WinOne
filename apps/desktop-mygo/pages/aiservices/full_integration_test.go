@@ -96,6 +96,7 @@ func TestClaudeRunModeIsAvailableInItsProviderAndStaysUnsaved(t *testing.T) {
 	pr.AuthMode = "account"
 	pr.Agent = "claude"
 	e := p.editor
+	e.optionsOpen, e.preferenceTab = true, 1
 	tt := ui.NewTester(func(c *ui.Context) { ui.Column(c).FillWidth().Children(func() { e.View(c, pr, pr) }) }, 900, 1800)
 	settle(h, tt)
 	if err := tt.Click("claude -p"); err != nil {

@@ -1,0 +1,10 @@
+{
+  "aiExperience.settings": "Provider settings",
+  "aiExperience.back": "Back to models",
+  "aiExperience.connection": "Connection and keys",
+  "aiExperience.ready": "Address entered",
+  "aiExperience.setup": "Connection needed",
+  "aiExperience.settingsHint": "Adjust requests, limits and compatibility for this provider as needed. Apply changes with Save AI settings.",
+  "aiExperience.presetsHint": "Choose a service to fill its protocol and address, then enter your own key.",
+  "aiExperience.selectionHint": "Choose providers to remove. Select all includes those hidden by search. Changes apply when you save AI settings."
+}

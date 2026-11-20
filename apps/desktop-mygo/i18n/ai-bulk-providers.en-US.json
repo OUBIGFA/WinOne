@@ -1,7 +1,7 @@
 {
-  "aiBulkProviders.open": "Select providers",
-  "aiBulkProviders.titleCustom": "Select custom providers",
-  "aiBulkProviders.titleAccounts": "Select account providers",
+  "aiBulkProviders.open": "Remove providers",
+  "aiBulkProviders.titleCustom": "Choose providers to remove",
+  "aiBulkProviders.titleAccounts": "Choose account providers to remove",
   "aiBulkProviders.search": "Search providers",
   "aiBulkProviders.all": "Select all",
   "aiBulkProviders.none": "Select none",
@@ -10,6 +10,7 @@
   "aiBulkProviders.hint": "Select all and Select none affect every provider in this tab. Save to apply removal of the selected providers.",
   "aiBulkProviders.selected": "Selected {{count}} of {{total}} providers",
   "aiBulkProviders.unnamed": "Unnamed provider {{number}}",
-  "aiBulkProviders.models": "{{count}} models",
+  "aiBulkProviders.models_one": "{{count}} model",
+  "aiBulkProviders.models_other": "{{count}} models",
   "aiBulkProviders.noMatch": "No matching provider"
 }

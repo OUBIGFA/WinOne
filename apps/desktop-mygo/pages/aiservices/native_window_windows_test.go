@@ -145,3 +145,77 @@ func TestRealNativeAIWindowsNeedNoWebViewForBuiltInPages(t *testing.T) {
 		}
 	})
 }
+
+// Exercise the Windows renderer without a vendor connection or AI worker.
+// The launcher owns a non-input desktop; production controls and fonts are
+// unchanged, while the Host supplies only the existing sanitized fixture.
+func TestRealNativeAIExperienceWindows(t *testing.T) {
+	if os.Getenv("WINONE_AI_NATIVE_WINDOW") != "1" {
+		t.Skip("explicit repository-private desktop")
+	}
+	_, h, p, _ := setup(t)
+	var window *mygo.Window
+	dark, frames := false, 0
+	mygo.RunOnMain(func() {
+		window = mygo.NewWindow(mygo.WindowOptions{Title: "WinOne AI experience checks", Width: 1000, Height: 900, Hidden: true, Content: ui.View(func(c *ui.Context) {
+			c.SetTheme(kit.Theme(c.Preferences(), dark))
+			ui.Scroll(c).Fill().Padding(20).Children(func() { p.View(c) })
+			frames++
+		})})
+		h.Env.Post = func(fn func()) {
+			mygo.RunOnMain(func() {
+				if !window.IsDestroyed() {
+					window.Update(fn)
+				}
+			})
+		}
+		window.Show()
+	})
+	defer mygo.RunOnMain(func() { p.Close(); window.Destroy() })
+	for _, locale := range []string{i18n.Chinese, i18n.English} {
+		for _, night := range []bool{false, true} {
+			for _, width := range []int{1000, 560} {
+				for scene := 0; scene < 6; scene++ {
+					before := 0
+					mygo.RunOnMain(func() {
+						i18n.SetLocale(locale)
+						dark = night
+						window.SetContentSize(width, 900)
+						p.switchTab(tabCustom)
+						p.choosingPreset, p.bulkProvidersOpen = scene == 1, scene == 2
+						p.editor.optionsOpen, p.editor.preferenceTab = scene == 3, 0
+						p.editor.models.editing = ""
+						if scene == 4 {
+							p.editor.models.editing, p.editor.models.settingsTab = "gpt-a", 0
+						}
+						if scene == 5 {
+							p.switchTab(tabHome)
+						}
+						before = frames
+						window.Invalidate()
+					})
+					ready := false
+					until := time.Now().Add(10 * time.Second)
+					for time.Now().Before(until) {
+						mygo.RunOnMain(func() { ready = frames > before })
+						if ready {
+							break
+						}
+						time.Sleep(20 * time.Millisecond)
+					}
+					if !ready {
+						t.Fatal("native experience scene did not render")
+					}
+					frame, err := window.CapturePage()
+					if err != nil || len(frame) < 10000 {
+						t.Fatalf("native experience capture failed: size=%d err=%v", len(frame), err)
+					}
+					path := filepath.Join(os.Getenv("WINONE_AI_NATIVE_PROFILE"), fmt.Sprintf("experience-%d-%s-%t-%d.png", scene, locale, night, width))
+					if err := os.WriteFile(path, frame, 0600); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+		}
+	}
+}

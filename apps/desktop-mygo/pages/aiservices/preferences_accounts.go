@@ -39,17 +39,19 @@ func (e *editor) preferenceAccounts(pr *provider) []string {
 
 func (e *editor) accountPreferences(c *ui.Context, pr *provider, locked bool) {
 	s := &pr.ProviderPreferences
-	kit.Group(c, nil, i18n.T("ai.keyStrategy"), "", func() {
-		nativeSelect(c, i18n.T("ai.keyStrategy"), &s.Routing, options(
-			"", i18n.T("ai.routingSmart"), "order", i18n.T("ai.orderedKeys"),
-			"rotate", i18n.T("ai.roundRobinKeys"), "usage", i18n.T("ai.routingUsage"),
-			"pace", i18n.T("ai.routingPace"), "weight", i18n.T("ai.routingWeight"),
-			"free", i18n.T("ai.routingFree"), "fast", i18n.T("ai.routingFast"),
-			"drain", i18n.T("ai.routingDrain")), locked)
-		nativeSelect(c, i18n.T("ai.affinity"), &s.Affinity, options(
-			"", i18n.T("ai.automatic"), "session", i18n.T("ai.affinitySession"),
-			"turn", i18n.T("ai.affinityTurn"), "off", i18n.T("ai.affinityOff"),
-			"strict", i18n.T("ai.affinityStrict")), locked)
+	kit.Panel(c, func() {
+		kit.Stack(c, "", "", func() {
+			nativeSelect(c, i18n.T("ai.keyStrategy"), &s.Routing, options(
+				"", i18n.T("ai.routingSmart"), "order", i18n.T("ai.orderedKeys"),
+				"rotate", i18n.T("ai.roundRobinKeys"), "usage", i18n.T("ai.routingUsage"),
+				"pace", i18n.T("ai.routingPace"), "weight", i18n.T("ai.routingWeight"),
+				"free", i18n.T("ai.routingFree"), "fast", i18n.T("ai.routingFast"),
+				"drain", i18n.T("ai.routingDrain")), locked)
+			nativeSelect(c, i18n.T("ai.affinity"), &s.Affinity, options(
+				"", i18n.T("ai.automatic"), "session", i18n.T("ai.affinitySession"),
+				"turn", i18n.T("ai.affinityTurn"), "off", i18n.T("ai.affinityOff"),
+				"strict", i18n.T("ai.affinityStrict")), locked)
+		})
 		kit.Toggle(c, &s.Sink, i18n.T("ai.routingSink"), "").Disabled(locked)
 	})
 	ids := e.preferenceAccounts(pr)

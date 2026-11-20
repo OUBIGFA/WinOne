@@ -441,10 +441,9 @@ func (a *accountPanel) checkIn(r accountRequest) {
 	})
 }
 
-// View is the account connection: its type, accounts, sign-in and
-// check-in.
-func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
-	p := a.p
+// prepare is shared by the daily view and policies, so expired or missing
+// sessions can lead the page without deferring their status read to rendering.
+func (a *accountPanel) prepare(pr *provider) accountRequest {
 	r := a.request(pr)
 	if key := requestKey(r); key != a.req {
 		if a.req != "" {
@@ -456,6 +455,13 @@ func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
 	}
 	a.lastRequest = r
 	a.report()
+	return r
+}
+
+// View is the account connection: its type, accounts, sign-in and check-in.
+func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
+	p := a.p
+	r := a.prepare(pr)
 	disabled := p.saving || p.loading || p.modelBusy || p.connectionBusy || a.importBusy || a.warmup.busy
 	active := a.job.running()
 	hidden := false
@@ -549,18 +555,26 @@ func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
 		if a.checkedIn {
 			a.checkinView(c, hidden)
 		}
-		a.warmupView(c, r, disabled || active || a.loading || a.checkingIn)
-		if a.importable {
-			a.importView(c, r, disabled || active || a.loading || a.checkingIn)
-		}
-		if (r.Agent == "codex" || r.Agent == "claude") && len(a.accounts) > 0 {
-			a.exportView(c, r, disabled || active || a.loading || a.checkingIn)
-		}
 		if a.job != nil {
 			a.jobView(c)
 		}
 		kit.Help(c, i18n.T("ai.accountScope"))
 	})
+}
+
+// Account maintenance belongs with provider policies. Keep loading and
+// activity reporting here too so Settings cannot hide pending imports.
+func (a *accountPanel) maintenanceView(c *ui.Context, pr *provider, disabled bool) {
+	r := a.prepare(pr)
+	disabled = disabled || a.job.running() || a.loading || a.checkingIn
+	kit.InlineError(c, a.err)
+	a.warmupView(c, r, disabled)
+	if a.importable {
+		a.importView(c, r, disabled)
+	}
+	if (r.Agent == "codex" || r.Agent == "claude") && len(a.accounts) > 0 {
+		a.exportView(c, r, disabled)
+	}
 }
 
 var checkinOutcomes = map[string]string{"done": "ai.checkinDone", "inactive": "ai.checkinInactive", "ineligible": "ai.checkinIneligible",

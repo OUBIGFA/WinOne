@@ -57,20 +57,42 @@ func preferenceJSON[T any](c *ui.Context, p *page, key, label, hint string, valu
 // These are views of one provider draft. Every option keeps its original
 // Magpie field; ordinary structured values use controls rather than JSON.
 func (e *editor) preferences(c *ui.Context, pr *provider, locked bool) {
-	kit.SubTabs(c, &e.preferenceTab, []string{i18n.T("aiOptions.requests"), i18n.T("aiOptions.accounts"), i18n.T("aiOptions.billing"), i18n.T("aiOptions.compatibility"), i18n.T("aiComplete.discovery"), i18n.T("aiComplete.service")}, e.p.env.RequestChange)
+	// These categories are views of one provider draft, not another
+	// navigation layer. Switching never discards the in-progress form.
+	ui.Column(c).FillWidth().Disabled(e.p.navigationLocked()).Children(func() {
+		kit.SubTabs(c, &e.preferenceTab, []string{i18n.T("aiOptions.requests"), i18n.T("aiOptions.accounts"), i18n.T("aiOptions.billing"), i18n.T("aiOptions.compatibility"), i18n.T("aiComplete.discovery"), i18n.T("aiComplete.service")}, nil)
+	})
 	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
 		switch e.preferenceTab {
 		case 0:
+			if pr.AuthMode == "api-key" {
+				kit.Section(c, nil, i18n.T("aiExperience.connection"), "", func() { e.connection(c, pr, locked) })
+			}
+			e.headersView(c, pr, locked)
 			e.requestPreferences(c, pr, locked)
 		case 1:
+			if pr.AuthMode == "account" {
+				kit.Panel(c, func() { e.limitRest(c, pr, locked) })
+				if pr.Agent == "claude" {
+					e.claudeModeView(c, locked)
+				}
+				if pr.Agent == "codex" {
+					e.codexClientView(c, locked)
+				}
+				if e.account != nil {
+					e.account.maintenanceView(c, pr, locked)
+				}
+			}
 			e.accountPreferences(c, pr, locked)
 		case 2:
+			e.planView(c, pr, locked)
 			e.billingPreferences(c, pr, locked)
 		case 3:
 			e.compatibilityPreferences(c, pr, locked)
 		case 4:
 			e.modelDiscoveryPreferences(c, pr, locked)
 		case 5:
+			e.avatarView(c, pr, locked)
 			e.servicePreferences(c, pr, locked)
 		}
 	})
@@ -189,6 +211,7 @@ func (e *editor) proxyPreference(c *ui.Context, key string, value *string, locke
 func (e *editor) compatibilityPreferences(c *ui.Context, pr *provider, locked bool) {
 	s := &pr.ProviderPreferences
 	kit.Panel(c, func() {
+		kit.Toggle(c, &pr.AdditionalTools, i18n.T("ai.additionalTools"), i18n.T("ai.additionalToolsHint")).Disabled(locked)
 		kit.Toggle(c, &s.AdditionalToolsOff, i18n.T("ai.additionalToolsOff"), "").Disabled(locked)
 		kit.Toggle(c, &s.NativeCompaction, i18n.T("aiComplete.nativeCompaction"), i18n.T("aiComplete.nativeCompactionHint")).Disabled(locked)
 		kit.Toggle(c, &s.PinUpstream, i18n.T("aiComplete.pinUpstream"), i18n.T("aiComplete.pinUpstreamHint")).Disabled(locked)
@@ -209,5 +232,5 @@ func (e *editor) compatibilityPreferences(c *ui.Context, pr *provider, locked bo
 		kit.Toggle(c, &s.UseFirst, nativeT("useFirst"), nativeT("useFirstHint")).Disabled(locked)
 		kit.Toggle(c, &s.NoStandIn, nativeT("noStandIn"), nativeT("noStandInHint")).Disabled(locked)
 	})
-	kit.Section(c, nil, i18n.T("ai.extraBody"), i18n.T("ai.extraBodyHint"), func() { preferenceJSON(c, e.p, pr.ID+":extraBody", "", "", &s.ExtraBody, locked) })
+	kit.Group(c, nil, i18n.T("ai.extraBody"), i18n.T("ai.extraBodyHint"), func() { preferenceJSON(c, e.p, pr.ID+":extraBody", "", "", &s.ExtraBody, locked) })
 }

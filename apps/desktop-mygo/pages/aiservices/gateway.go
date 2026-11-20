@@ -267,14 +267,12 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owner
 			})
 		})
 		g.modelsView(c, providers, busy)
-		kit.Group(c, nil, i18n.T("aiSync.bareModelIDs"), i18n.T("aiSync.bareModelIDsHint"), func() {
-			kit.Stack(c, "", "", func() {
-				kit.Segmented(c, &g.bareMode, options("off", i18n.T("aiSync.bareOff"), "on", i18n.T("aiSync.bareAlongside"), "only", i18n.T("aiSync.bareOnly")), i18n.T("aiSync.bareModelIDs"))
-			})
-		})
 		ui.Column(c).FillWidth().Gap(12).Children(func() {
 			g.connectView(c, providers, busy)
 			kit.Disclosure(c, accessT("networkTab"), "", &g.networkOpen, func() {
+				kit.Stack(c, i18n.T("aiSync.bareModelIDs"), i18n.T("aiSync.bareModelIDsHint"), func() {
+					kit.Segmented(c, &g.bareMode, options("off", i18n.T("aiSync.bareOff"), "on", i18n.T("aiSync.bareAlongside"), "only", i18n.T("aiSync.bareOnly")), i18n.T("aiSync.bareModelIDs"))
+				})
 				kit.Toggle(c, &g.network.LAN, completeT("gatewayLAN"), completeT("gatewayLANHint")).Disabled(busy)
 				if g.network.LAN {
 					kit.Stack(c, "", "", func() {

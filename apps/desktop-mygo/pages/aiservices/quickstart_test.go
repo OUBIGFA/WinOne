@@ -85,3 +85,19 @@ func TestFirstRunShots(t *testing.T) {
 		h.Shots(t, fmt.Sprintf("aiservices-first-%d", i), p.View, 1000, nil)
 	}
 }
+
+func TestQuickStartDoesNotTreatAnUnavailableDefaultAsComplete(t *testing.T) {
+	_, h, p, tt := setup(t)
+	p.switchTab(tabHome)
+	p.draft.Value.Tasks["default"] = widgets.AISelection{Provider: "one", Model: "removed-model"}
+	settle(h, tt)
+	if !tt.HasText(homeT("startTitle")) {
+		t.Fatal("the guide disappeared with a missing default model")
+	}
+	p.draft.Value.Tasks["default"] = widgets.AISelection{Provider: "one", Model: "gpt-a"}
+	p.draft.Value.find("one").Off = true
+	settle(h, tt)
+	if !tt.HasText(homeT("stepDefault")) {
+		t.Fatal("a disabled default provider was treated as ready")
+	}
+}

@@ -64,8 +64,6 @@ type modelsPanel struct {
 	headersFor   string
 	rows         ui.ListState
 	height       float32
-	// limitsOpen shows the request limits, open at first when one is set.
-	limitsOpen bool
 	// fields are the model settings' typed texts; tierOpen shows the
 	// long-context price of the model tierFor.
 	fields   fields
@@ -75,8 +73,7 @@ type modelsPanel struct {
 }
 
 func newModelsPanel(p *page, pr *provider) *modelsPanel {
-	return &modelsPanel{p: p, id: pr.ID, tested: map[string]modelTest{}, fields: fields{}, height: modelListHeight(p.env.Directory, pr.ID),
-		limitsOpen: pr.MaxConcurrency != nil || pr.MaxRPM != 0 || pr.QueueLimit != 0 || pr.QueueWait != 0}
+	return &modelsPanel{p: p, id: pr.ID, tested: map[string]modelTest{}, fields: fields{}, height: modelListHeight(p.env.Directory, pr.ID)}
 }
 
 func (m *modelsPanel) Close() { m.closed = true }
@@ -301,20 +298,25 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 	fetchable := canFetch(pr)
 	all := pr.available()
 	id := pr.ID
-	kit.Section(c, icons.ListChecks, i18n.T("ai.models"), i18n.T("ai.modelSelectionHint"), func() {
-		ui.Row(c).FillWidth().Gap(8).Wrap().Children(func() {
-			// Fetching comes first, as a list is filled before it is tested;
-			// it is the primary action while the list is still empty.
-			fetch := kit.Button
-			if len(all) == 0 && fetchable {
-				fetch = kit.PrimaryButton
-			}
-			if fetch(c, i18n.T("ai.fetchModels"), icons.RefreshCw, m.fetching).Disabled(disabled || working || !fetchable).Clicked() {
-				m.fetch(pr)
-			}
-			if kit.Button(c, i18n.T("ai.testModels"), icons.PlugZap, m.testing).Disabled(disabled || working || !canTest(pr) || len(pr.Models) == 0).Clicked() {
-				m.test(pr, append([]string{}, pr.Models...), "")
-			}
+	ui.Column(c).FillWidth().Gap(12).Children(func() {
+		ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().AlignItems(ui.Center).Children(func() {
+			ui.Column(c).Basis(220).Grow(1).MinWidth(0).Children(func() {
+				kit.SectionHeading(c, nil, i18n.T("ai.models"), i18n.T("ai.modelSelectionHint"))
+			})
+			ui.Row(c).Gap(8).Wrap().Children(func() {
+				// Fetching comes first, as a list is filled before it is tested;
+				// it is the primary action while the list is still empty.
+				fetch := kit.Button
+				if len(all) == 0 && fetchable {
+					fetch = kit.PrimaryButton
+				}
+				if fetch(c, i18n.T("ai.fetchModels"), icons.RefreshCw, m.fetching).Disabled(disabled || working || !fetchable).Clicked() {
+					m.fetch(pr)
+				}
+				if kit.Button(c, i18n.T("ai.testModels"), icons.PlugZap, m.testing).Disabled(disabled || working || !canTest(pr) || len(pr.Models) == 0).Clicked() {
+					m.test(pr, append([]string{}, pr.Models...), "")
+				}
+			})
 		})
 		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 			kit.TextInput(c, &m.query).Grow(1).MinWidth(144).Placeholder(i18n.T("ai.findOrAddModel")).Label(i18n.T("ai.findOrAddModel")).
@@ -367,7 +369,8 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 			kit.Help(c, i18n.T("ai.delistedPicks", "count", n)).Role(ui.RoleStatus)
 		}
 		m.list(c, pr, all, disabled, working, fetchable)
-		m.limits(c, pr, disabled || working)
+		// Provider limits have one owner in Settings / Limits and billing.
+		// The daily model list stays focused on choosing and testing models.
 	})
 	if m.editing != "" {
 		m.settings(c, pr, disabled || working)
@@ -498,7 +501,7 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 					})
 				}
 			})
-		}).FillWidth().Height(m.height).Padding(8).Border(1, palette.Hairline).Radius(kit.PanelRadius).
+		}).FillWidth().Height(m.height).Padding(8).Background(palette.Panel).Border(1, palette.Hairline).Radius(kit.PanelRadius).
 			Label(i18n.T("ai.models"))
 		list.Children(func() {
 			if len(visible) == 0 {
@@ -566,45 +569,6 @@ func (m *modelsPanel) menu(menu *ui.Menu, services ui.Services, pr *provider, mo
 	if menu.Item(i18n.T("ai.modelSettings")).Chosen() {
 		m.editing = model
 	}
-}
-
-// limits are the provider's request limits, open when one is set.
-func (m *modelsPanel) limits(c *ui.Context, pr *provider, disabled bool) {
-	p := m.p
-	id := pr.ID
-	kit.Disclosure(c, i18n.T("ai.requestLimits"), "", &m.limitsOpen, func() {
-		ui.Column(c).FillWidth().Gap(12).Padding(12, 16).Disabled(disabled).Children(func() {
-			ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().Children(func() {
-				ui.Field(c, i18n.T("ai.maxConcurrency"), func() {
-					if v, changed := numberText(c, pr.MaxConcurrency, 0, 1000, true, i18n.T("aiOptions.default"), i18n.T("ai.maxConcurrency")); changed {
-						p.change(id, func(t *provider) { t.MaxConcurrency = v })
-					}
-				}).Basis(180).Grow(1)
-				for _, field := range []struct {
-					key  string
-					max  float64
-					read func(*provider) *float64
-				}{
-					{"maxRPM", 10000, func(t *provider) *float64 { return &t.MaxRPM }},
-					{"queueLimit", 10000, func(t *provider) *float64 { return &t.QueueLimit }},
-					{"queueWait", 3600, func(t *provider) *float64 { return &t.QueueWait }},
-				} {
-					field := field
-					current := field.read(pr)
-					var shown *float64
-					if *current != 0 {
-						shown = current
-					}
-					ui.Field(c.Key(field.key), i18n.T("ai."+field.key), func() {
-						if v, changed := numberText(c, shown, 0, field.max, true, i18n.T("ai.noRequestLimit"), i18n.T("ai."+field.key)); changed {
-							p.change(id, func(t *provider) { *field.read(t) = value(v) })
-						}
-					}).Basis(180).Grow(1)
-				}
-			})
-			kit.Help(c, i18n.T("ai.requestLimitsHint"))
-		})
-	})
 }
 
 func sortedKeys[V any](m map[string]V) []string {

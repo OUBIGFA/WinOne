@@ -89,30 +89,31 @@ func (e *editor) modelDiscoveryPreferences(c *ui.Context, pr *provider, locked b
 			nativeText(c, i18n.T("aiComplete.family"), &s.Family, locked)
 			nativeText(c, i18n.T("aiComplete.catalog"), &s.Catalog, locked)
 		})
-		kit.Help(c, completeT("contextRulesHint"))
-		for _, id := range sortedKeys(s.Contexts) {
-			ui.Row(c.Key(id)).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-				v := s.Contexts[id]
-				ui.Column(c).Grow(1).Children(func() {
-					if nativeInt(c, id, &v, 0, 100000000, locked) {
-						s.Contexts[id] = v
+		kit.Stack(c, "", completeT("contextRulesHint"), func() {
+			for _, id := range sortedKeys(s.Contexts) {
+				ui.Row(c.Key(id)).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+					v := s.Contexts[id]
+					ui.Column(c).Grow(1).Children(func() {
+						if nativeInt(c, id, &v, 0, 100000000, locked) {
+							s.Contexts[id] = v
+						}
+					})
+					if kit.IconButton(c, icons.Trash2, i18n.T("common.delete")+" "+id).Disabled(locked).Clicked() {
+						delete(s.Contexts, id)
 					}
 				})
-				if kit.IconButton(c, icons.Trash2, i18n.T("common.delete")+" "+id).Disabled(locked).Clicked() {
-					delete(s.Contexts, id)
+			}
+			newRule := e.fields.get("newContextRule")
+			ui.Row(c).FillWidth().Gap(8).Children(func() {
+				kit.TextInput(c, &newRule.text).Grow(1).MinWidth(0).Label(completeT("contextRule")).Placeholder("*").Disabled(locked)
+				if kit.Button(c, completeT("addContextRule"), icons.Plus, false).Disabled(locked || newRule.text == "").Clicked() {
+					if s.Contexts == nil {
+						s.Contexts = map[string]int{}
+					}
+					s.Contexts[newRule.text] = 128000
+					newRule.text = ""
 				}
 			})
-		}
-		newRule := e.fields.get("newContextRule")
-		ui.Row(c).FillWidth().Gap(8).Children(func() {
-			kit.TextInput(c, &newRule.text).Grow(1).MinWidth(0).Label(completeT("contextRule")).Placeholder("*").Disabled(locked)
-			if kit.Button(c, completeT("addContextRule"), icons.Plus, false).Disabled(locked || newRule.text == "").Clicked() {
-				if s.Contexts == nil {
-					s.Contexts = map[string]int{}
-				}
-				s.Contexts[newRule.text] = 128000
-				newRule.text = ""
-			}
 		})
 		kit.Stack(c, i18n.T("aiComplete.hiddenDrawers"), "", func() {
 			e.preferenceList(c, "hiddenDrawers", i18n.T("aiComplete.hiddenDrawers"), &s.HiddenDrawers, locked)

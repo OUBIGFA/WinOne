@@ -82,3 +82,21 @@ func TestProviderOverviewKeepsCountsAndQuickNavigation(t *testing.T) {
 	}
 	shot(t, tt, "provider-preview-long-name-scaled")
 }
+
+func TestProviderOverviewStaysInPlaceAcrossAITabs(t *testing.T) {
+	_, h, p, tt := setup(t)
+	var top float32
+	for n, tab := range []int{tabHome, tabCustom, tabAccounts, tabGateway} {
+		p.switchTab(tab)
+		settle(h, tt)
+		bounds, ok := tt.Find(i18n.T("ai.providerOverview"))
+		if !ok {
+			t.Fatalf("tab %d lost the common provider overview", tab)
+		}
+		if n == 0 {
+			top = bounds.Y
+		} else if bounds.Y != top {
+			t.Fatalf("tab %d moved the overview from %v to %v", tab, top, bounds.Y)
+		}
+	}
+}

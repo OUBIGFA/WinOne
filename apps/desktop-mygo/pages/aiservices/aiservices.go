@@ -29,12 +29,6 @@ const (
 	tabHome
 )
 
-// The provider editor's tabs, for connections of the custom kind.
-const (
-	providerConnection = iota
-	providerAdvanced
-)
-
 // maxProviders is the Host's limit of configured services.
 const maxProviders = 32
 
@@ -69,7 +63,6 @@ type page struct {
 	read            int
 	err             string
 
-	providerTab      int
 	preferenceFields map[string]*preferenceField
 	// focusModels moves to the model list after the overview opens a
 	// provider.
@@ -487,14 +480,26 @@ func (p *page) openProvider(id string) {
 	if target == nil || p.locked() {
 		return
 	}
-	p.selectedBy[p.tab] = p.selected
-	next := tabCustom
-	if target.AuthMode == "account" {
-		next = tabAccounts
+	navigate := func() {
+		p.selectedBy[p.tab] = p.selected
+		next := tabCustom
+		if target.AuthMode == "account" {
+			next = tabAccounts
+		}
+		p.selectedBy[next] = id
+		p.tab, p.selected = next, id
+		if p.editor != nil && p.editor.id == id {
+			p.editor.optionsOpen = false
+		}
+		p.focusModels = true
 	}
-	p.selectedBy[next] = id
-	p.tab, p.selected, p.providerTab = next, id, providerConnection
-	p.focusModels = true
+	// The gateway owns a separate transaction. Its overview shortcuts must
+	// use the same unsaved-work protection as its primary navigation.
+	if p.tab == tabGateway && p.env.RequestChange != nil {
+		p.env.RequestChange(navigate)
+	} else {
+		navigate()
+	}
 }
 
 // sectionProviders are the providers of the custom or accounts tab.
@@ -561,9 +566,7 @@ func (p *page) View(c *ui.Context) {
 	kit.Page(c, func() {
 		p.upstreamNavigation(c)
 		ui.Column(c).FillWidth().Gap(18).Disabled(p.saving).Children(func() {
-			if p.tab == tabHome || p.tab == tabCustom || p.tab == tabAccounts {
-				p.overview(c)
-			}
+			p.overview(c)
 			p.notices(c)
 			switch p.tab {
 			case tabHome:

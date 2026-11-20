@@ -43,17 +43,20 @@ func Dialog(c *ui.Context, open *bool, o DialogOptions) bool {
 	if width == 0 {
 		width = 420
 	}
+	// Text scaling needs more reading width as well as taller glyphs. The
+	// viewport cap still leaves a visible backdrop at every window size.
+	width *= max(float32(1), t.FontSize/14)
 	stay := *open
 	ui.DialogBase(c, &stay, func(backdrop, panel ui.Element) {
 		backdrop.Background(ui.RGBA(0, 0, 0, backdropAlpha(t)))
 		// A long form scrolls between the title and the buttons, which
 		// stay in view, as the panel never outgrows the window.
-		panel.Width(width).MaxWidthPercent(92).MaxHeightPercent(88).Padding(24).Gap(12).Radius(12).Background(p.Panel).
+		panel.Width(width).MaxWidthPercent(92).MaxHeightPercent(88).Padding(24).Gap(16).Radius(PanelRadius).Background(p.Panel).
 			Border(1, p.Hairline).Shadow(0, 12, 32, 0, ui.RGBA(0, 0, 0, 2*shadowAlpha(t))).
 			Role(ui.RoleDialog).Label(o.Title).Children(func() {
 			Title(c, o.Title).FontSize(t.Rem(headingSize) + 2).Shrink(0)
 			if o.Header != nil {
-				ui.Column(c).FillWidth().Shrink(0).Children(o.Header)
+				ui.Column(c).FillWidth().Shrink(0).Gap(12).Children(o.Header)
 			}
 			ui.Scroll(c).FillWidth().Shrink(1).MinHeight(0).Gap(12).Children(func() {
 				if o.Message != "" {
@@ -64,10 +67,10 @@ func Dialog(c *ui.Context, open *bool, o DialogOptions) bool {
 				}
 				InlineError(c, o.Error)
 			})
-			ui.Row(c).FillWidth().Shrink(0).Gap(8).Justify(ui.End).AlignItems(ui.Center).Wrap().Margin(8, 0, 0, 0).Children(func() {
-				if o.Note != "" {
-					ui.Text(c, o.Note).FontSize(HelpSize(c)).TextColor(t.TextMuted).Grow(1).MinWidth(0).Role(ui.RoleStatus)
-				}
+			if o.Note != "" {
+				ui.Text(c, o.Note).FillWidth().Shrink(0).FontSize(HelpSize(c)).TextColor(t.TextMuted).Role(ui.RoleStatus)
+			}
+			ui.Row(c).FillWidth().Shrink(0).Gap(8).Justify(ui.End).AlignItems(ui.Center).Wrap().Margin(4, 0, 0, 0).Children(func() {
 				if o.Actions != nil {
 					o.Actions()
 				}

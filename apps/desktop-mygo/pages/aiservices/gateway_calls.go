@@ -86,7 +86,10 @@ func (g *gatewayPanel) recentCallsView(c *ui.Context, p *page) {
 	}
 	for i := len(t.routes) - 1; i >= max(0, len(t.routes)-g.callsShown); i-- {
 		r := t.routes[i]
-		open := ui.Local(ui.Column(c.Key(r.ID)), "gateway-call", func() bool { return false })
+		// The row owns both its state and content. Two sibling elements
+		// previously reused this ID and failed as soon as calls were present.
+		row := ui.Column(c.Key(r.ID)).FillWidth()
+		open := ui.Local(row, "gateway-call", func() bool { return false })
 		status := "running"
 		if r.Canceled {
 			status = "canceled"
@@ -96,24 +99,28 @@ func (g *gatewayPanel) recentCallsView(c *ui.Context, p *page) {
 			status = "succeeded"
 		}
 		label := fmt.Sprintf("%s · %s · %s · %s", r.Time, r.Agent, r.Model, nativeT(status))
-		ui.Collapsible(c.Key(r.ID), label, open, func() {
-			kit.Help(c, fmt.Sprintf("%d ms · %d → %d tokens · $%.6f", r.Millis, r.Tokens, r.Output, r.Cost))
-			if r.Error != "" {
-				kit.InlineError(c, r.Error)
-			}
-			if kit.GhostButton(c, upstreamT("Details"), icons.FileText, false).Clicked() {
-				t.selected = r.ID
-				t.detail = r.raw
-			}
-			if t.selected == r.ID {
-				if kit.Button(c, upstreamT("Request"), icons.FileText, false).Disabled(t.detailAPI.busy).Clicked() {
-					t.detailAPI.request(p, "GET", "/api/gateway/call?route="+strconv.FormatInt(r.ID, 10), nil, func(raw json.RawMessage) { t.detail = raw })
-				}
-				t.detailAPI.notice(c, nil)
-				if t.detail != nil {
-					nativeJSON(c, t.detail)
-				}
-			}
+		row.Children(func() {
+			kit.Disclosure(c, label, "", open, func() {
+				kit.Stack(c, "", "", func() {
+					kit.Help(c, fmt.Sprintf("%d ms · %d → %d tokens · $%.6f", r.Millis, r.Tokens, r.Output, r.Cost))
+					if r.Error != "" {
+						kit.InlineError(c, r.Error)
+					}
+					if kit.GhostButton(c, upstreamT("Details"), icons.FileText, false).Clicked() {
+						t.selected = r.ID
+						t.detail = r.raw
+					}
+					if t.selected == r.ID {
+						if kit.Button(c, upstreamT("Request"), icons.FileText, false).Disabled(t.detailAPI.busy).Clicked() {
+							t.detailAPI.request(p, "GET", "/api/gateway/call?route="+strconv.FormatInt(r.ID, 10), nil, func(raw json.RawMessage) { t.detail = raw })
+						}
+						t.detailAPI.notice(c, nil)
+						if t.detail != nil {
+							nativeJSON(c, t.detail)
+						}
+					}
+				})
+			})
 		})
 	}
 	if t.loaded && len(t.routes) == 0 {

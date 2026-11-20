@@ -76,7 +76,11 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 	}
 	// These tabs are views of the same unsaved model. They never commit or
 	// discard its draft; the page's Save/Undo transaction owns that decision.
-	kit.Dialog(c, &open, kit.DialogOptions{Title: name, Message: pr.Name + " · " + model,
+	identity := pr.Name
+	if name != model {
+		identity += " · " + model
+	}
+	kit.Dialog(c, &open, kit.DialogOptions{Title: name, Message: identity,
 		Cancel: i18n.T("common.close"), Width: 760, Note: i18n.T("aiComplete.modelDraft"),
 		Header: func() {
 			kit.SubTabs(c, &m.settingsTab, []string{i18n.T("aiComplete.modelBasics"), i18n.T("aiComplete.modelCapabilities"), i18n.T("aiComplete.modelRequest"), i18n.T("aiComplete.modelPricing")}, nil)
@@ -186,7 +190,9 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 					if text, edited := system.sync(value(meta.SystemPrompt)); edited {
 						change(func(d *modelMetadata) { d.SystemPrompt = ptr(text) })
 					}
-					kit.Stack(c, i18n.T("ai.modelSystemPrompt"), i18n.T("ai.modelSystemPromptHint"), func() {
+					ui.Column(c).FillWidth().Gap(8).Children(func() {
+						kit.Label(c, i18n.T("ai.modelSystemPrompt"))
+						kit.Help(c, i18n.T("ai.modelSystemPromptHint"))
 						ui.TextArea(c, &system.text).FillWidth().Lines(3, 8).Label(i18n.T("ai.modelSystemPrompt"))
 					})
 
@@ -233,7 +239,7 @@ func presetButtons[T comparable](c *ui.Context, label string, current T, options
 	ui.Row(c).FillWidth().Gap(6).Wrap().Role(ui.RoleGroup).Label(label).Children(func() {
 		for _, option := range options {
 			option := option
-			b := kit.Button(c.Key(text(option)), text(option), nil, false).Checked(current == option)
+			b := kit.GhostButton(c.Key(text(option)), text(option), nil, false).Checked(current == option)
 			if current == option {
 				b.Background(c.Theme().SurfacePressed)
 			}
@@ -335,7 +341,7 @@ func (m *modelsPanel) pricing(c *ui.Context, meta modelMetadata, change func(fun
 	}
 	listPrice := i18n.T("ai.modelListPrice")
 	ui.Column(c).FillWidth().Gap(16).Children(func() {
-		kit.Label(c, i18n.T("ai.modelPrice")).FontWeight(600)
+		kit.Heading(c, i18n.T("ai.modelPrice"))
 		ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().Children(func() {
 			for _, key := range priceParts5 {
 				key := key
@@ -381,15 +387,17 @@ func (m *modelsPanel) pricing(c *ui.Context, meta modelMetadata, change func(fun
 				d.Value.Tiers = slices.Delete(slices.Clone(d.Value.Tiers), remove, remove+1)
 			})
 		}
-		if kit.GhostButton(c, i18n.T("aiComplete.addPriceTier"), icons.Plus, false).Clicked() {
-			above := 200000.0
-			if len(price.Tiers) > 0 {
-				above = price.Tiers[len(price.Tiers)-1].Value.Above + 200000
+		ui.Row(c).Children(func() {
+			if kit.GhostButton(c, i18n.T("aiComplete.addPriceTier"), icons.Plus, false).Clicked() {
+				above := 200000.0
+				if len(price.Tiers) > 0 {
+					above = price.Tiers[len(price.Tiers)-1].Value.Above + 200000
+				}
+				setPrice(func(d *core.Preserved[modelPrice]) {
+					d.Value.Tiers = append(slices.Clone(d.Value.Tiers), core.Preserved[priceTier]{Value: priceTier{Above: above}})
+				})
 			}
-			setPrice(func(d *core.Preserved[modelPrice]) {
-				d.Value.Tiers = append(slices.Clone(d.Value.Tiers), core.Preserved[priceTier]{Value: priceTier{Above: above}})
-			})
-		}
+		})
 
 		kit.Help(c, i18n.T("ai.modelPriceHint"))
 	})

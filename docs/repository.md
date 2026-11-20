@@ -59,6 +59,7 @@ Windows 专项验收与代码签名不作为发布前置条件；本地测试按
 | 测试范围 | 现有入口 |
 | --- | --- |
 | 原生窗口关闭与进程回收 | [test-desktop-mygo-close.ps1](../build/test-desktop-mygo-close.ps1) |
+| AI 服务离线原生窗口、主题与尺寸 | [test-ai-native-windows.ps1](../build/test-ai-native-windows.ps1) `-OfflineUI -OutputDirectory _temp/<任务>/native`；真实渲染使用脱敏 Host 夹具，不启动 AI 网关或访问供应商 |
 | 模块启停、快捷键与资源恢复 | [test-module-lifecycle.ps1](../build/test-module-lifecycle.ps1) |
 | 安装、覆盖、回退、修复与卸载 | [test-installer.ps1](../build/test-installer.ps1)，用法见[打包与安装](打包与安装.md) |
 | Defender 本地扫描 | [verify-windows-security.ps1](../build/verify-windows-security.ps1)；构建时也可显式使用 `-VerifyWindowsSecurity` |

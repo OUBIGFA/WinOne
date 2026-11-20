@@ -39,20 +39,21 @@ func (p *page) providerBulkDialog(c *ui.Context) {
 	}
 	locked := p.locked()
 	confirmed := kit.Dialog(c, &p.bulkProvidersOpen, kit.DialogOptions{
-		Title: i18n.T(title), Message: i18n.T("aiBulkProviders.hint"),
+		Title:   i18n.T(title),
 		Confirm: i18n.T("aiBulkProviders.remove"), Cancel: i18n.T("common.cancel"), Danger: true,
 		ConfirmDisabled: locked || count == 0, Busy: locked, Width: 560,
 		Note: i18n.T("aiBulkProviders.selected", "count", count, "total", len(providers)),
 		Header: func() {
-			kit.TextInput(c, &query).FillWidth().Label(i18n.T("aiBulkProviders.search")).Placeholder(i18n.T("aiBulkProviders.search")).Disabled(locked)
+			kit.Help(c, i18n.T("aiExperience.selectionHint"))
+			kit.TextInput(c, &query).FillWidth().Label(i18n.T("aiBulkProviders.search")).Placeholder(i18n.T("aiBulkProviders.search")).AutoFocus().Disabled(locked)
 			p.bulkProviderSearch[p.tab] = query
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
-				if kit.Button(c, i18n.T("aiBulkProviders.all"), icons.Check, false).Disabled(locked || count == len(providers)).Clicked() {
+				if kit.GhostButton(c, i18n.T("aiBulkProviders.all"), icons.Check, false).Disabled(locked || count == len(providers)).Clicked() {
 					for _, pr := range providers {
 						selected[pr.ID] = true
 					}
 				}
-				if kit.Button(c, i18n.T("aiBulkProviders.none"), icons.X, false).Disabled(locked || count == 0).Clicked() {
+				if kit.GhostButton(c, i18n.T("aiBulkProviders.none"), icons.X, false).Disabled(locked || count == 0).Clicked() {
 					clear(selected)
 				}
 			})
@@ -70,17 +71,24 @@ func (p *page) providerBulkDialog(c *ui.Context) {
 						continue
 					}
 					shown++
-					ui.Row(c.Key(pr.ID)).FillWidth().MinHeight(40).Gap(10).Padding(8, 4).AlignItems(ui.Center).Children(func() {
-						widgets.ProviderIcon(c, p.env, pr.Icon, 20)
-						on := selected[pr.ID]
-						if ui.Checkbox(c, &on, name).Grow(1).MinWidth(0).Label(i18n.T("aiBulkProviders.pick", "name", name)).Disabled(locked).Changed() {
-							if on {
-								selected[pr.ID] = true
-							} else {
-								delete(selected, pr.ID)
-							}
+					on := selected[pr.ID]
+					row := ui.CheckboxBase(c.Key(pr.ID), &on).FillWidth().MinHeight(52).Gap(12).Padding(12).
+						Radius(c.Theme().Radius).AlignItems(ui.Center).Label(i18n.T("aiBulkProviders.pick", "name", name)).Disabled(locked)
+					if row.Changed() {
+						if on {
+							selected[pr.ID] = true
+						} else {
+							delete(selected, pr.ID)
 						}
-						kit.Caption(c, i18n.T("aiBulkProviders.models", "count", len(pr.Models)))
+					}
+					if row.Hovered() {
+						row.Background(c.Theme().SurfaceHover)
+					}
+					row.Children(func() {
+						kit.CheckMark(c, on, row.Hovered())
+						widgets.ProviderIcon(c, p.env, pr.mark(), 20)
+						kit.Label(c, name).Grow(1).Shrink(1).MinWidth(0).SingleLine()
+						kit.Caption(c, i18n.T("aiBulkProviders.models", "count", len(pr.Models))).Shrink(0).SingleLine()
 					})
 				}
 			})

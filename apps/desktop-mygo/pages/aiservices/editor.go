@@ -2,6 +2,7 @@ package aiservices
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -38,7 +39,9 @@ type editor struct {
 	avatar      avatarState
 	models      *modelsPanel
 	account     *accountPanel
-	// optionsOpen unfolds an account provider's options.
+	// Connection setup is secondary after a provider has models. New
+	// providers open it immediately; switching views keeps the same draft.
+	connectionOpen       bool
 	optionsOpen          bool
 	preferenceTab        int
 	preferenceAccount    string
@@ -62,6 +65,7 @@ func newEditor(p *page, pr *provider, key string) *editor {
 		return e
 	}
 	e.id = pr.ID
+	e.connectionOpen = p.saved == nil || p.saved.Value.find(pr.ID) == nil || len(pr.available()) == 0 || (pr.AuthMode == "api-key" && strings.TrimSpace(pr.BaseURL) == "")
 	e.renaming = pr.Name == ""
 	e.renameFocus = e.renaming
 	e.reset(pr)
@@ -167,36 +171,55 @@ func (p *page) providersView(c *ui.Context) {
 		})
 		return
 	}
-	ui.Column(c).FillWidth().Gap(kit.GroupGap).Children(func() {
+	ui.Column(c).FillWidth().Gap(20).Children(func() {
 		var old *provider
 		if pr != nil && p.saved != nil {
 			old = p.saved.Value.find(pr.ID)
 		}
 		// Keep the chooser flexible; translated actions also wrap inside their
 		// group so a narrow content column never clips the last button.
-		ui.Row(c).FillWidth().GapX(8).GapY(8).Wrap().AlignItems(ui.End).Children(func() {
+		ui.Row(c).FillWidth().GapX(16).GapY(8).Wrap().AlignItems(ui.End).Children(func() {
 			if pr != nil {
 				ui.Column(c).Basis(240).Grow(1).MinWidth(0).Children(func() { e.nameField(c, pr, locked) })
+				enabled := !pr.Off
+				ui.Row(c).MinHeight(kit.ControlHeight).Gap(8).AlignItems(ui.Center).Children(func() {
+					kit.Label(c, completeT("providerEnabled")).SingleLine()
+					ui.Switch(c, &enabled).Label(completeT("providerEnabled")).Description(completeT("providerEnabledHint")).Disabled(locked)
+				})
+				pr.Off = !enabled
 			}
-			ui.Row(c).Shrink(1).MinWidth(0).Gap(8).Wrap().Children(func() {
-				label := "ai.addCustomProvider"
-				if accounts {
-					label = "ai.addAccountProvider"
-				}
-				if kit.Button(c, i18n.T(label), icons.Plus, false).Disabled(locked || full || (accounts && len(p.catalog.agents) == 0)).Clicked() {
+		})
+		ui.Row(c).FillWidth().GapX(8).GapY(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).Children(func() {
+			if !e.optionsOpen {
+				ui.Row(c).Shrink(1).MinWidth(0).Gap(8).Wrap().Children(func() {
+					label := "ai.addCustomProvider"
 					if accounts {
-						addAccount()
-					} else {
-						p.add(nil)
+						label = "ai.addAccountProvider"
 					}
+					if kit.Button(c, i18n.T(label), icons.Plus, false).Disabled(locked || full || (accounts && len(p.catalog.agents) == 0)).Clicked() {
+						if accounts {
+							addAccount()
+						} else {
+							p.add(nil)
+						}
+					}
+					if !accounts && kit.Button(c, i18n.T("ai.addPreset"), icons.PlugZap, false).Disabled(locked || full).Clicked() {
+						addPreset()
+					}
+					if kit.GhostButton(c, i18n.T("aiBulkProviders.open"), icons.ListChecks, false).Disabled(locked).Clicked() {
+						p.bulkProvidersOpen = true
+					}
+				})
+			}
+			if pr != nil {
+				label, icon := "aiExperience.settings", icons.Settings2
+				if e.optionsOpen {
+					label, icon = "aiExperience.back", icons.ChevronLeft
 				}
-				if !accounts && kit.Button(c, i18n.T("ai.addPreset"), icons.PlugZap, false).Disabled(locked || full).Clicked() {
-					addPreset()
+				if kit.Button(c, i18n.T(label), icon, false).Disabled(locked).Clicked() {
+					e.optionsOpen = !e.optionsOpen
 				}
-				if kit.Button(c, i18n.T("aiBulkProviders.open"), icons.ListChecks, false).Disabled(locked).Clicked() {
-					p.bulkProvidersOpen = true
-				}
-			})
+			}
 		})
 		if pr != nil {
 			e.View(c, pr, old)
@@ -285,57 +308,26 @@ var httpAddress = regexp.MustCompile(`(?i)^http://`)
 // models and the panel plugins add for it.
 func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 	p := e.p
+	if e.account != nil {
+		e.account.prepare(pr)
+	}
+	if e.plan.auth != nil {
+		e.plan.auth.report()
+	}
 	locked := p.locked()
-	enabled := !pr.Off
-	kit.Panel(c, func() {
-		if kit.Toggle(c, &enabled, completeT("providerEnabled"), completeT("providerEnabledHint")).Disabled(locked).Changed() {
-			pr.Off = !enabled
-		}
-	})
-	if pr.AuthMode == "account" && pr.Agent == "claude" {
-		e.claudeModeView(c, locked)
+	if e.optionsOpen {
+		kit.Help(c, i18n.T("aiExperience.settingsHint"))
+		e.preferences(c, pr, locked)
+		return
 	}
-	if pr.AuthMode == "account" && pr.Agent == "codex" {
-		e.codexClientView(c, locked)
+	// Setup leads only while needed. Configured providers land on their
+	// models; low-frequency connection fields no longer separate the two.
+	needsSetup := old == nil || len(pr.available()) == 0 || (pr.AuthMode == "api-key" && strings.TrimSpace(pr.BaseURL) == "")
+	if a := e.account; a != nil {
+		needsSetup = needsSetup || a.loading || len(a.accounts) == 0 || a.job.running() || a.err != "" || slices.ContainsFunc(a.accounts, func(ac account) bool { return ac.Lapsed != "" })
 	}
-	if pr.AuthMode == "account" {
-		label := "aiOptions.open"
-		if e.optionsOpen {
-			label = "aiOptions.back"
-		}
-		if kit.Button(c, i18n.T(label), icons.Settings2, false).Clicked() {
-			change := func() { e.optionsOpen = !e.optionsOpen }
-			if p.env.RequestChange != nil {
-				p.env.RequestChange(change)
-			} else {
-				change()
-			}
-		}
-		if e.optionsOpen {
-			e.preferences(c, pr, locked)
-			return
-		}
-	}
-	if pr.AuthMode == "account" && e.account != nil {
-		e.account.View(c, pr, old)
-	}
-	if pr.AuthMode == "api-key" {
-		ui.Column(c).FillWidth().Gap(16).Children(func() {
-			ui.Column(c).Disabled(p.navigationLocked()).Children(func() {
-				kit.SubTabs(c, &p.providerTab, []string{i18n.T("ai.connection"), i18n.T("ai.advanced")}, p.env.RequestChange)
-			})
-			if p.providerTab == providerConnection {
-				e.connection(c, pr, locked)
-			} else {
-				e.advanced(c, pr, locked)
-			}
-		})
-	}
-	// Resting on limits belongs to the provider's keys, not to its model
-	// list: a custom connection shows it below its keys, and an account,
-	// which has no key rows, on its own panel.
-	if pr.AuthMode != "api-key" {
-		kit.Panel(c, func() { e.limitRest(c, pr, locked) })
+	if needsSetup {
+		e.connectionSection(c, pr, old, locked)
 	}
 	section := ui.Column(c).FillWidth().Gap(12).Label(i18n.T("ai.modelSettings")).Focusable()
 	if p.focusModels {
@@ -344,7 +336,9 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 		section.Focus()
 	}
 	section.Children(func() { e.models.View(c, pr) })
-	e.planView(c, pr, locked)
+	if !needsSetup {
+		e.connectionSection(c, pr, old, locked)
+	}
 	remove := "ai.removeService"
 	if pr.AuthMode == "account" {
 		remove = "ai.removeAccount"
@@ -356,92 +350,112 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 	})
 }
 
+// connectionSection keeps connection details in the existing provider
+// draft. Sign-in remains available in the daily account view.
+func (e *editor) connectionSection(c *ui.Context, pr *provider, old *provider, locked bool) {
+	if pr.AuthMode == "api-key" {
+		summary := i18n.T("aiExperience.ready")
+		if strings.TrimSpace(pr.BaseURL) == "" {
+			summary = i18n.T("aiExperience.setup")
+		}
+		kit.Disclosure(c, i18n.T("aiExperience.connection"), summary, &e.connectionOpen, func() {
+			e.connectionRows(c, pr, locked)
+		})
+		return
+	}
+	if e.account != nil {
+		e.account.View(c, pr, old)
+	}
+}
+
 // connection is a custom connection's API, address and keys.
 func (e *editor) connection(c *ui.Context, pr *provider, locked bool) {
+	kit.Panel(c, func() { e.connectionRows(c, pr, locked) })
+}
+
+func (e *editor) connectionRows(c *ui.Context, pr *provider, locked bool) {
 	p := e.p
 	preset := p.catalog.preset(pr.Preset)
 	id := pr.ID
 	// The sub-tab above names the connection, so its rows need no
 	// heading of their own.
-	kit.Panel(c, func() {
-		// Filling the form from a vendor's example is the quickest start, so
-		// it leads the panel as a row of its own, with what it reads.
-		kit.Row(c, i18n.T("ai.importSetup"), i18n.T("ai.importSetupHint"), func() {
-			if kit.Button(c, i18n.T("ai.importSetupAction"), icons.ClipboardPaste, false).Disabled(locked).Clicked() {
-				p.importProviderSetup(c.Services().ReadClipboard(), pr, "")
-			}
-		})
-		kit.Row(c, i18n.T("ai.protocol"), "", func() {
-			protocol := pr.Protocol
-			if protocol == "" {
-				protocol = "chat"
-			}
-			changed, trigger := kit.Select(c, &protocol, []kit.SelectOption{
-				{Value: "chat", Label: "OpenAI Chat Completions"},
-				{Value: "responses", Label: "OpenAI Responses"},
-				{Value: "anthropic", Label: "Anthropic Messages"},
-				{Value: "gemini", Label: "Google Gemini"},
-				{Value: "decide", Label: "System One Decide"},
-			})
-			trigger.Label(i18n.T("ai.protocol")).Disabled(locked)
-			if changed {
-				p.changeProtocol(pr, protocol)
-			}
-		})
-		if preset != nil && len(preset.Regions) > 0 {
-			kit.Row(c, i18n.T("ai.presetRegion"), "", func() {
-				region := pr.PresetRegion
-				if region == "" {
-					region = preset.Regions[0].ID
-				}
-				var options []kit.SelectOption
-				for _, r := range preset.Regions {
-					options = append(options, kit.SelectOption{Value: r.ID, Label: r.Name})
-				}
-				changed, trigger := kit.Select(c, &region, options)
-				trigger.Label(i18n.T("ai.presetRegion")).Disabled(locked)
-				if changed {
-					chosen := *preset
-					p.change(id, func(t *provider) {
-						protocol, base := presetConnection(chosen, region, t.Protocol)
-						models := chosen.modelIDs(region)
-						t.PresetRegion, t.Protocol, t.BaseURL, t.Models, t.AvailableModels = region, protocol, base, []string{}, &models
-					})
-				}
-			})
-		}
-		kit.Stack(c, i18n.T("ai.address"), "", func() {
-			placeholder := "https://api.example.com/v1"
-			if preset != nil && preset.Endpoint != "" {
-				placeholder = preset.Endpoint
-			}
-			field := e.fields.get("baseUrl")
-			if address, edited := field.sync(pr.BaseURL); edited {
-				p.change(id, func(t *provider) { t.BaseURL = address })
-			}
-			kit.TextInput(c, &field.text).FillWidth().Placeholder(placeholder).Label(i18n.T("ai.address")).Disabled(locked).
-				OnPaste(func(text string) bool {
-					target := p.draft.Value.find(id)
-					return target != nil && p.importCurl(text, target, "")
-				})
-			if httpAddress.MatchString(strings.TrimSpace(pr.BaseURL)) {
-				kit.Help(c, i18n.T("ai.httpAddressHint"))
-			}
-		})
-		e.keys(c, pr, locked)
-		e.limitRest(c, pr, locked)
-		e.endpointPreferences(c, pr, locked)
-		if p.curl != nil && p.curl.provider == id {
-			kit.Stack(c, "", "", func() {
-				for _, message := range p.curl.messages {
-					kit.Help(c, message).Role(ui.RoleStatus)
-				}
-			})
-		}
-		if preset != nil && preset.Kind == "local" {
-			kit.Stack(c, "", i18n.T("ai.localServerHint"), func() {})
+	// Filling the form from a vendor's example is the quickest start, so
+	// it leads the panel as a row of its own, with what it reads.
+	kit.Row(c, i18n.T("ai.importSetup"), i18n.T("ai.importSetupHint"), func() {
+		if kit.Button(c, i18n.T("ai.importSetupAction"), icons.ClipboardPaste, false).Disabled(locked).Clicked() {
+			p.importProviderSetup(c.Services().ReadClipboard(), pr, "")
 		}
 	})
+	kit.Row(c, i18n.T("ai.protocol"), "", func() {
+		protocol := pr.Protocol
+		if protocol == "" {
+			protocol = "chat"
+		}
+		changed, trigger := kit.Select(c, &protocol, []kit.SelectOption{
+			{Value: "chat", Label: "OpenAI Chat Completions"},
+			{Value: "responses", Label: "OpenAI Responses"},
+			{Value: "anthropic", Label: "Anthropic Messages"},
+			{Value: "gemini", Label: "Google Gemini"},
+			{Value: "decide", Label: "System One Decide"},
+		})
+		trigger.Label(i18n.T("ai.protocol")).Disabled(locked)
+		if changed {
+			p.changeProtocol(pr, protocol)
+		}
+	})
+	if preset != nil && len(preset.Regions) > 0 {
+		kit.Row(c, i18n.T("ai.presetRegion"), "", func() {
+			region := pr.PresetRegion
+			if region == "" {
+				region = preset.Regions[0].ID
+			}
+			var options []kit.SelectOption
+			for _, r := range preset.Regions {
+				options = append(options, kit.SelectOption{Value: r.ID, Label: r.Name})
+			}
+			changed, trigger := kit.Select(c, &region, options)
+			trigger.Label(i18n.T("ai.presetRegion")).Disabled(locked)
+			if changed {
+				chosen := *preset
+				p.change(id, func(t *provider) {
+					protocol, base := presetConnection(chosen, region, t.Protocol)
+					models := chosen.modelIDs(region)
+					t.PresetRegion, t.Protocol, t.BaseURL, t.Models, t.AvailableModels = region, protocol, base, []string{}, &models
+				})
+			}
+		})
+	}
+	kit.Stack(c, i18n.T("ai.address"), "", func() {
+		placeholder := "https://api.example.com/v1"
+		if preset != nil && preset.Endpoint != "" {
+			placeholder = preset.Endpoint
+		}
+		field := e.fields.get("baseUrl")
+		if address, edited := field.sync(pr.BaseURL); edited {
+			p.change(id, func(t *provider) { t.BaseURL = address })
+		}
+		kit.TextInput(c, &field.text).FillWidth().Placeholder(placeholder).Label(i18n.T("ai.address")).Disabled(locked).
+			OnPaste(func(text string) bool {
+				target := p.draft.Value.find(id)
+				return target != nil && p.importCurl(text, target, "")
+			})
+		if httpAddress.MatchString(strings.TrimSpace(pr.BaseURL)) {
+			kit.Help(c, i18n.T("ai.httpAddressHint"))
+		}
+	})
+	e.keys(c, pr, locked)
+	e.limitRest(c, pr, locked)
+	e.endpointPreferences(c, pr, locked)
+	if p.curl != nil && p.curl.provider == id {
+		kit.Stack(c, "", "", func() {
+			for _, message := range p.curl.messages {
+				kit.Help(c, message).Role(ui.RoleStatus)
+			}
+		})
+	}
+	if preset != nil && preset.Kind == "local" {
+		kit.Stack(c, "", i18n.T("ai.localServerHint"), func() {})
+	}
 }
 
 // limitRest is the switch resting a provider's keys on quota and rate
@@ -451,20 +465,6 @@ func (e *editor) limitRest(c *ui.Context, pr *provider, locked bool) {
 	if kit.Toggle(c, &rest, i18n.T("ai.limitRest"), i18n.T("ai.limitRestHint")).Disabled(locked).Changed() {
 		e.p.change(pr.ID, func(t *provider) { t.LimitRestOff = !rest })
 	}
-}
-
-// advanced is a custom connection's picture, deferred tools and headers.
-func (e *editor) advanced(c *ui.Context, pr *provider, locked bool) {
-	p := e.p
-	e.avatarView(c, pr, locked)
-	kit.Panel(c, func() {
-		tools := pr.AdditionalTools
-		if kit.Toggle(c, &tools, i18n.T("ai.additionalTools"), i18n.T("ai.additionalToolsHint")).Disabled(locked).Changed() {
-			p.change(pr.ID, func(t *provider) { t.AdditionalTools = tools })
-		}
-	})
-	e.headersView(c, pr, locked)
-	e.preferences(c, pr, locked)
 }
 
 // keyRow is one key slot's state in the editor: the text the field shows,
@@ -500,7 +500,7 @@ func (e *editor) keys(c *ui.Context, pr *provider, locked bool) {
 			e.keyRow(c.Key(slot.ID), pr, slot, i, len(slots), edits, locked)
 		}
 		e.bulkKeys(c, pr, locked)
-		e.keyRestControls(c, pr, locked)
+		ui.Row(c).FillWidth().Children(func() { e.keyRestControls(c, pr, locked) })
 	})
 }
 

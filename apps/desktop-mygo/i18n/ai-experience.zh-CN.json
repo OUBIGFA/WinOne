@@ -1,0 +1,10 @@
+{
+  "aiExperience.settings": "供应商设置",
+  "aiExperience.back": "返回模型列表",
+  "aiExperience.connection": "连接与密钥",
+  "aiExperience.ready": "地址已填写",
+  "aiExperience.setup": "待填写连接信息",
+  "aiExperience.settingsHint": "按需调整此供应商的请求、额度和兼容选项。更改后统一保存 AI 设置。",
+  "aiExperience.presetsHint": "选择服务后自动填写协议和地址，再填写自己的密钥。",
+  "aiExperience.selectionHint": "选择要移除的供应商。全选包含搜索未显示的项；保存 AI 设置后生效。"
+}
