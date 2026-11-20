@@ -180,7 +180,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/editor.go",
-          "sha256": "6e2a4930566ca1c6cce663d58293c3bf4e8bf81b43bdaa4c587fca388595c6d3"
+          "sha256": "83f9342bbb2c1e67065054d6dde5e921a84a66d943d61ab86b50fe195751200a"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-sync.en-US.json",

@@ -57,6 +57,26 @@ func TestNewPresetShowsConnectionBeforeModels(t *testing.T) {
 	}
 }
 
+func TestClearingConnectionAddressKeepsTypingFocus(t *testing.T) {
+	_, h, p, _ := setup(t)
+	p.editor.connectionOpen = true
+	tt := ui.NewTester(p.View, 1100, 2400)
+	settle(h, tt)
+	field, ok := tt.AccessByRole(ui.RoleTextField, i18n.T("ai.address"))
+	if !ok {
+		t.Fatal("missing address input")
+	}
+	tt.ClickAt(field.Bounds.X+field.Bounds.W/2, field.Bounds.Y+field.Bounds.H/2)
+	tt.Key(ui.Cmd, ui.KeyA)
+	tt.Key(0, ui.KeyBackspace)
+	settle(h, tt)
+	tt.Type("https://replacement.example/v1")
+	settle(h, tt)
+	if p.current().BaseURL != "https://replacement.example/v1" {
+		t.Fatalf("clearing the address interrupted typing: %q", p.current().BaseURL)
+	}
+}
+
 func TestProviderSettingsKeepMaintenanceOutOfDailyModels(t *testing.T) {
 	f, h, p, tt := setup(t)
 	p.current().AuthMode, p.current().Agent = "account", "codex"

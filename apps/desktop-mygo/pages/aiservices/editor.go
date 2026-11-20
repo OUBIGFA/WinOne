@@ -42,6 +42,7 @@ type editor struct {
 	// Connection setup is secondary after a provider has models. New
 	// providers open it immediately; switching views keeps the same draft.
 	connectionOpen       bool
+	setupFirst           bool
 	optionsOpen          bool
 	preferenceTab        int
 	preferenceAccount    string
@@ -66,6 +67,7 @@ func newEditor(p *page, pr *provider, key string) *editor {
 	}
 	e.id = pr.ID
 	e.connectionOpen = p.saved == nil || p.saved.Value.find(pr.ID) == nil || len(pr.available()) == 0 || (pr.AuthMode == "api-key" && strings.TrimSpace(pr.BaseURL) == "")
+	e.setupFirst = e.connectionOpen
 	e.renaming = pr.Name == ""
 	e.renameFocus = e.renaming
 	e.reset(pr)
@@ -322,9 +324,12 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 	}
 	// Setup leads only while needed. Configured providers land on their
 	// models; low-frequency connection fields no longer separate the two.
-	needsSetup := old == nil || len(pr.available()) == 0 || (pr.AuthMode == "api-key" && strings.TrimSpace(pr.BaseURL) == "")
+	// Keep the editor's order stable while typing. Re-evaluating an empty
+	// address every frame moves its input when Select All/Delete is used,
+	// drops focus, and prevents typing the replacement address.
+	needsSetup := e.setupFirst
 	if a := e.account; a != nil {
-		needsSetup = needsSetup || a.loading || len(a.accounts) == 0 || a.job.running() || a.err != "" || slices.ContainsFunc(a.accounts, func(ac account) bool { return ac.Lapsed != "" })
+		needsSetup = needsSetup || old == nil || a.loading || len(a.accounts) == 0 || a.job.running() || a.err != "" || slices.ContainsFunc(a.accounts, func(ac account) bool { return ac.Lapsed != "" })
 	}
 	if needsSetup {
 		e.connectionSection(c, pr, old, locked)
