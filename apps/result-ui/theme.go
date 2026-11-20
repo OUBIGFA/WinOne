@@ -14,6 +14,12 @@ var (
 const (
 	systemFont = design.SystemFont
 	monoFont   = design.MonoFont
+
+	radiusXS   = design.RadiusXS
+	radiusSM   = design.RadiusSM
+	radiusMD   = design.RadiusMD
+	radiusLG   = design.RadiusLG
+	radiusFull = design.RadiusFull
 )
 
 // tones are the colors ui.Theme has no slot for.

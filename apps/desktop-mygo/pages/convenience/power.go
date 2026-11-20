@@ -391,7 +391,7 @@ func (t *powerTab) schedule(c *ui.Context) {
 // presetChip is a light, rounded button that fills a value.
 func presetChip(c *ui.Context, label string) ui.Element {
 	theme, p := c.Theme(), kit.Colors(c)
-	b := ui.ButtonBase(c).Padding(4, 12).Radius(999).Border(1, p.Hairline).Label(label)
+	b := ui.ButtonBase(c).Padding(4, 12).Radius(kit.PillRadius).Border(1, p.Hairline).Label(label)
 	color := theme.TextMuted
 	if b.Hovered() {
 		b.Background(theme.SurfaceHover).Border(1, theme.Border)

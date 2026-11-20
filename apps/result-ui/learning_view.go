@@ -124,7 +124,7 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 								labels = append(labels, fmt.Sprintf(p.T("柯林斯 %d 星", "Collins %d stars"), row.Entry.Collins))
 							}
 							for _, label := range labels {
-								ui.Text(c, label).FontSize(em(t, sizeMeta)).Padding(2, 6).Radius(4).Background(t.SurfaceHover)
+								ui.Text(c, label).FontSize(em(t, sizeMeta)).Padding(2, 6).Radius(radiusXS).Background(t.SurfaceHover)
 							}
 						})
 					}
@@ -266,7 +266,7 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 // permanent filled face competing with vocabulary and definitions.
 func studyTextAction(c *ui.Context, label, hint string, disabled bool) ui.Element {
 	t := c.Theme()
-	b := ui.ButtonBase(c).Label(label).Description(hint).Padding(4, 0).MinHeight(28).TextColor(t.TextMuted).Disabled(disabled).Cursor(ui.CursorPointer).Radius(4)
+	b := ui.ButtonBase(c).Label(label).Description(hint).Padding(4, 0).MinHeight(28).TextColor(t.TextMuted).Disabled(disabled).Cursor(ui.CursorPointer).Radius(radiusXS)
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
 	}

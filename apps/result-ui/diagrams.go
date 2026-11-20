@@ -150,7 +150,7 @@ func (p *Panel) readingWidth(c *ui.Context) float32 {
 // diagramSource shows a diagram's source as code blocks show code: in the
 // code font, wrapped rather than scrolled, selectable.
 func (p *Panel) diagramSource(c *ui.Context, t *ui.Theme, source string) {
-	p.selectable(c, ui.Column(c).FillWidth().Padding(8, 12).Radius(8).Background(t.Text.Alpha(0.035)).Border(1, t.Border), func() {
+	p.selectable(c, ui.Column(c).FillWidth().Padding(8, 12).Radius(radiusMD).Background(t.Text.Alpha(0.035)).Border(1, t.Border), func() {
 		ui.Text(c, strings.TrimSuffix(source, "\n")).FillWidth().Font(monoFont).FontSize(em(t, sizeMeta)).LineHeight(1.5)
 	})
 }

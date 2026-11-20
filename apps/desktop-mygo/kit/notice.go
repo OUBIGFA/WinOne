@@ -37,7 +37,7 @@ func noticeState(c *ui.Context, content noticeContent) *noticeDismissal {
 	return ui.Local(c.Root(), content, func() noticeDismissal { return noticeDismissal{} })
 }
 func closeNotice(c *ui.Context, state *noticeDismissal) {
-	if IconButton(c, icons.X, i18n.T("notices.dismiss")).Size(24, 24).Clicked() {
+	if IconButton(c, icons.X, i18n.T("notices.dismiss")).Size(24, 24).Radius(ItemRadius).Clicked() {
 		state.closed = true
 	}
 }
@@ -56,7 +56,7 @@ func Notice(c *ui.Context, tone Tone, title, message string, actions func()) ui.
 	case Caution:
 		background, border, icon, iconColor = p.WarningSoft, t.Warning.Alpha(0.35), icons.TriangleAlert, t.Warning
 	}
-	n.FillWidth().Padding(12, 14).Gap(10).AlignItems(ui.Start).Background(background).
+	n.FillWidth().Padding(12, 16).Gap(10).AlignItems(ui.Start).Background(background).
 		Border(1, border).Radius(PanelRadius)
 	n.Role(ui.RoleStatus)
 	if tone == Failure {
@@ -138,7 +138,7 @@ func Skeleton(c *ui.Context, rows int) ui.Element {
 	return ui.Column(c).FillWidth().Gap(12).Role(ui.RoleStatus).Label("Loading").Children(func() {
 		for i := range rows {
 			width := []float32{100, 72, 86, 64}[i%4]
-			ui.Box(c.Key(i)).Height(14).WidthPercent(width).Radius(4).Background(p.Skeleton)
+			ui.Box(c.Key(i)).Height(14).WidthPercent(width).Radius(MicroRadius).Background(p.Skeleton)
 		}
 	})
 }
@@ -153,13 +153,13 @@ func Badge(c *ui.Context, text string, tone Tone) ui.Element {
 	case Caution:
 		background, color = p.WarningSoft, t.Warning
 	}
-	return ui.Text(c, text).FontSize(CaptionSize(c)).Padding(2, 8).Radius(999).Background(background).
+	return ui.Text(c, text).FontSize(CaptionSize(c)).Padding(2, 8).Radius(PillRadius).Background(background).
 		TextColor(color).SingleLine()
 }
 
 // SuccessBadge is a Badge for something that is on or went well.
 func SuccessBadge(c *ui.Context, text string) ui.Element {
 	t, p := c.Theme(), Colors(c)
-	return ui.Text(c, text).FontSize(CaptionSize(c)).Padding(2, 8).Radius(999).Background(p.SuccessSoft).
+	return ui.Text(c, text).FontSize(CaptionSize(c)).Padding(2, 8).Radius(PillRadius).Background(p.SuccessSoft).
 		TextColor(t.Success).SingleLine()
 }

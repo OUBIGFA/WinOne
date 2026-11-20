@@ -46,7 +46,7 @@ func (c *Controller) View(context *ui.Context) {
 		// Widen only the logo's horizontal breathing room. The circular
 		// container and the complete original bitmap retain their 22 DIP size.
 		ui.Row(context).Size(34, 30).Shrink(0).Justify(ui.Center).AlignItems(ui.Center).DragWindow().Cursor(ui.CursorGrab).Label(p.T("拖动工具栏", "Drag toolbar")).Children(func() {
-			ui.Box(context).Size(22, 22).Shrink(0).Radius(11).Clip().DragWindow().Cursor(ui.CursorGrab).Children(func() {
+			ui.Box(context).Size(22, 22).Shrink(0).Radius(radiusFull).Clip().DragWindow().Cursor(ui.CursorGrab).Children(func() {
 				ui.Image(context, toolbarLogo()).Size(22, 22).Fit(ui.Contain).DragWindow().Cursor(ui.CursorGrab).Role(ui.RoleNone)
 			})
 		})
@@ -167,7 +167,7 @@ func selectionButton(c *ui.Context, name, label string, disabled bool, iconSize 
 	}
 	t := c.Theme()
 	tn := toneFor(t, c.Preferences().HighContrast)
-	button := ui.ButtonBase(c).Label(label).Size(30, 30).Shrink(0).Radius(6).Justify(ui.Center).AlignItems(ui.Center).TextColor(t.Text).Cursor(ui.CursorPointer).Disabled(disabled).
+	button := ui.ButtonBase(c).Label(label).Size(30, 30).Shrink(0).Radius(radiusSM).Justify(ui.Center).AlignItems(ui.Center).TextColor(t.Text).Cursor(ui.CursorPointer).Disabled(disabled).
 		Children(func() { ui.Icon(c, svg("toolbar-"+name)).Size(size, size) })
 	if !disabled {
 		if button.Pressed() {

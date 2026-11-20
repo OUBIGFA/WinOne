@@ -53,7 +53,7 @@ func (p *Panel) reading(c *ui.Context, t *ui.Theme, height float32) {
 				// The initial result shares one region: it bleeds into the
 				// gutter so its text keeps the reading column's edges.
 				tn := toneFor(t, c.Preferences().HighContrast)
-				region := ui.Column(c).Key("result-surface").Margin(0, -bleed).Padding(12, bleed, 14, bleed).Gap(12).Radius(10).Background(tn.region)
+				region := ui.Column(c).Key("result-surface").Margin(0, -bleed).Padding(12, bleed, 14, bleed).Gap(12).Radius(radiusLG).Background(tn.region)
 				region.Children(func() {
 					if p.Source != "selection" && p.Mode == "translate" && p.Original != "" {
 						p.original(c, t)
@@ -231,7 +231,7 @@ func (p *Panel) reasoning(c *ui.Context, t *ui.Theme, message *Message) {
 		parts := ui.CollapsibleBase(c.Key("reasoning-toggle"), &message.ReasoningOpen)
 		// The trigger's face bleeds into the gutter so its text keeps the
 		// answer's left edge; the column stretches it across both margins.
-		trigger := parts.Trigger.Label(p.T("思考过程", "Reasoning")).MinHeight(26).AlignItems(ui.Center).Gap(6).Padding(2, 8).Margin(0, -8).Radius(6).TextColor(t.TextMuted).Cursor(ui.CursorPointer)
+		trigger := parts.Trigger.Label(p.T("思考过程", "Reasoning")).MinHeight(26).AlignItems(ui.Center).Gap(6).Padding(2, 8).Margin(0, -8).Radius(radiusSM).TextColor(t.TextMuted).Cursor(ui.CursorPointer)
 		if trigger.Hovered() {
 			trigger.Background(tn.hover)
 		}
@@ -373,7 +373,7 @@ func (p *Panel) conversation(c *ui.Context, t *ui.Theme, place func(string, ui.E
 					}
 					ui.Icon(c, svg(message.ActionIcon)).AlignSelf(ui.Start).Size(14, 14).TextColor(color).Label(p.T("快捷操作：", "Quick action: ") + message.ActionLabel).Description(message.ActionLabel)
 				}
-				p.selectable(c, ui.Column(c).Label(p.T("用户消息气泡", "User message bubble")).Padding(10, 14).Background(tn.bubble).Radius(12), func() {
+				p.selectable(c, ui.Column(c).Label(p.T("用户消息气泡", "User message bubble")).Padding(10, 14).Background(tn.bubble).Radius(radiusLG), func() {
 					ui.Text(c, message.Text).FontSize(em(t, sizeBody)).LineHeight(1.5)
 				})
 			}))

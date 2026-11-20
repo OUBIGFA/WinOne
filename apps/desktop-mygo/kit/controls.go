@@ -55,7 +55,7 @@ func GhostButton(c *ui.Context, label string, icon *ui.SVG, busy bool) ui.Elemen
 // assistive technology and shows as its tooltip.
 func IconButton(c *ui.Context, icon *ui.SVG, label string) ui.Element {
 	t := c.Theme()
-	b := ui.ButtonBase(c).Size(ControlHeight, ControlHeight).Radius(t.Radius).Justify(ui.Center).
+	b := ui.ButtonBase(c).Size(ControlHeight, ControlHeight).Radius(ControlRadius).Justify(ui.Center).
 		AlignItems(ui.Center).Label(label).Tooltip(label)
 	if b.Pressed() {
 		b.Background(t.SurfacePressed)
@@ -63,6 +63,20 @@ func IconButton(c *ui.Context, icon *ui.SVG, label string) ui.Element {
 		b.Background(t.SurfaceHover)
 	}
 	b.Children(func() { ui.Icon(c, icon).FontSize(16) })
+	return b
+}
+
+// CompactIconButton is a dense icon-only button for list rows and inline bars.
+func CompactIconButton(c *ui.Context, icon *ui.SVG, label string) ui.Element {
+	t := c.Theme()
+	b := ui.ButtonBase(c).Size(28, 28).Radius(ItemRadius).Justify(ui.Center).
+		AlignItems(ui.Center).Label(label).Tooltip(label)
+	if b.Pressed() {
+		b.Background(t.SurfacePressed)
+	} else if b.Hovered() {
+		b.Background(t.SurfaceHover)
+	}
+	b.Children(func() { ui.Icon(c, icon).FontSize(15) })
 	return b
 }
 

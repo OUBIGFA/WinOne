@@ -6,25 +6,34 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"winone/desktopmygo/kit/icons"
+	"winone/modules/nativeui/design"
 )
 
-// Spacing of settings pages, in DIPs. Rows inside a group sit tight; groups
-// stand apart, so a page reads as a few named tasks.
+// Spacing and corner radii of settings pages, in DIPs. Rows inside a group
+// sit tight; groups stand apart, so a page reads as a few named tasks.
 const (
 	// PageWidth bounds a settings page's column for comfortable scanning.
 	PageWidth = 880
 	// WidePageWidth bounds work areas such as lists beside details.
 	WidePageWidth = 1200
 	// GroupGap separates groups on a page.
-	GroupGap = 36
+	GroupGap = 28
 	// HeadingGap separates a group's heading from its rows.
-	HeadingGap = 12
+	HeadingGap = 10
 	// RowMinHeight is the height of a one-line setting row.
 	RowMinHeight = 56
 	// ControlHeight is the height of buttons, inputs and selects.
 	ControlHeight = 36
-	// PanelRadius rounds groups, popovers and notices.
-	PanelRadius = 10
+	// MicroRadius rounds checkboxes, micro badges and compact tags.
+	MicroRadius = design.RadiusXS
+	// ItemRadius rounds items nested inside panels, popovers and segmented tracks.
+	ItemRadius = design.RadiusSM
+	// ControlRadius rounds standard buttons, inputs, selects and nav rows.
+	ControlRadius = design.RadiusMD
+	// PanelRadius rounds groups, popovers, dialogs and notices.
+	PanelRadius = design.RadiusLG
+	// PillRadius rounds full pills and circular icon buttons.
+	PillRadius = design.RadiusFull
 )
 
 // Page lays out the column of a settings page; the shell supplies the
@@ -88,7 +97,7 @@ func Row(c *ui.Context, label, help string, control func()) ui.Element {
 	// RowMinHeight keeps its label against the top padding.
 	return ui.Row(c).FillWidth().MinHeight(RowMinHeight).Padding(12, 16).GapX(24).GapY(8).
 		AlignItems(ui.Center).AlignContent(ui.Center).Wrap().Children(func() {
-		ui.Column(c).Basis(220).Grow(1).Shrink(1).Gap(2).Children(func() {
+		ui.Column(c).Basis(220).Grow(1).Shrink(1).Gap(4).Children(func() {
 			Label(c, label)
 			if help != "" {
 				Help(c, help)
@@ -105,7 +114,7 @@ func Row(c *ui.Context, label, help string, control func()) ui.Element {
 func Stack(c *ui.Context, label, help string, control func()) ui.Element {
 	return ui.Column(c).FillWidth().Padding(12, 16).Gap(8).Children(func() {
 		if label != "" || help != "" {
-			ui.Column(c).Gap(2).Children(func() {
+			ui.Column(c).Gap(4).Children(func() {
 				if label != "" {
 					Label(c, label)
 				}
@@ -142,7 +151,7 @@ func Toggle(c *ui.Context, value *bool, label, help string) ui.Element {
 	pos := sw.Animate("knob", on, 140*time.Millisecond)
 	hovered := sw.Hovered()
 	sw.Children(func() {
-		ui.Column(c).Basis(220).Grow(1).Shrink(1).Gap(2).Children(func() {
+		ui.Column(c).Basis(220).Grow(1).Shrink(1).Gap(4).Children(func() {
 			Label(c, label)
 			if help != "" {
 				Help(c, help)
@@ -170,7 +179,7 @@ func Toggle(c *ui.Context, value *bool, label, help string) ui.Element {
 // beside the name, all of which toggle it. hovered is the row's.
 func CheckMark(c *ui.Context, on, hovered bool) ui.Element {
 	t := c.Theme()
-	box := ui.Box(c).Size(t.Space(4), t.Space(4)).Radius(t.Space(1)).Shrink(0)
+	box := ui.Box(c).Size(t.Space(4), t.Space(4)).Radius(MicroRadius).Shrink(0)
 	switch {
 	case on:
 		box.Background(t.Accent)
@@ -193,7 +202,7 @@ func CheckMark(c *ui.Context, on, hovered bool) ui.Element {
 // checked: a dash in the accent's box.
 func PartialMark(c *ui.Context) ui.Element {
 	t := c.Theme()
-	return ui.Box(c).Size(t.Space(4), t.Space(4)).Radius(t.Space(1)).Shrink(0).Background(t.Accent).
+	return ui.Box(c).Size(t.Space(4), t.Space(4)).Radius(MicroRadius).Shrink(0).Background(t.Accent).
 		Draw(func(p *ui.Painter, r ui.Rect) {
 			p.Line(r.X+r.W*0.25, r.Y+r.H/2, r.X+r.W*0.75, r.Y+r.H/2, t.Space(0.5), t.AccentText)
 		})
@@ -232,7 +241,7 @@ func Choices(c *ui.Context, selected *int, options []Option) bool {
 							ui.Box(c).Size(6, 6).Radius(3).Background(t.AccentText).Margin(ui.Auto)
 						}
 					})
-					ui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
+					ui.Column(c).Grow(1).Shrink(1).Gap(4).Children(func() {
 						Label(c, option.Label)
 						if option.Help != "" {
 							Help(c, option.Help)

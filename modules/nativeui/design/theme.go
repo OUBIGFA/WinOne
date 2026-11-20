@@ -3,6 +3,16 @@ package design
 
 import "github.com/egoist/mygo/ui"
 
+// Shared corner radius scale in DIPs. Nested surfaces step concentrically
+// (outer radius = inner radius + padding) so corners align cleanly.
+const (
+	RadiusXS   float32 = 4   // checkboxes, micro badges, compact tags
+	RadiusSM   float32 = 6   // items inside panels/popovers, segmented tabs, compact icon buttons
+	RadiusMD   float32 = 8   // standard controls: buttons, inputs, selects, nav items, tabs
+	RadiusLG   float32 = 10  // panels, disclosures, dialogs, popovers, result regions
+	RadiusFull float32 = 999 // pills, circular buttons, switch tracks, radio dots
+)
+
 // Palette holds the colors of the theme that ui.Theme has no slot for.
 type Palette struct {
 	// Panel is the face of grouped settings, one step from the canvas.
@@ -45,7 +55,7 @@ var (
 		Inverse:        ui.Hex("#292928"),
 		InverseText:    ui.Hex("#fafafa"),
 		Scrollbar:      ui.RGBA(0, 0, 0, 0.3),
-		Radius:         8,
+		Radius:         RadiusMD,
 		Spacing:        4,
 		FontSize:       14,
 		Font:           SystemFont,
@@ -83,7 +93,7 @@ var (
 		Inverse:        ui.Hex("#e7e7e2"),
 		InverseText:    ui.Hex("#1c1c1b"),
 		Scrollbar:      ui.RGBA(255, 255, 255, 0.3),
-		Radius:         8,
+		Radius:         RadiusMD,
 		Spacing:        4,
 		FontSize:       14,
 		Font:           SystemFont,

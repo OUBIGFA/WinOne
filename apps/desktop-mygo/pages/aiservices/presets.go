@@ -69,7 +69,7 @@ func (p *page) presetPicker(c *ui.Context) {
 				for _, preset := range entries {
 					preset := preset
 					ui.Column(c.Key(preset.ID)).FillWidth().Gap(4).Children(func() {
-						b := ui.ButtonBase(c).FillWidth().MinHeight(52).Padding(12, 12).Gap(12).Radius(t.Radius).AlignItems(ui.Center).
+						b := ui.ButtonBase(c).FillWidth().MinHeight(52).Padding(12, 12).Gap(12).Radius(kit.ItemRadius).AlignItems(ui.Center).
 							Justify(ui.Start).Label(preset.Name)
 						if b.Pressed() {
 							b.Background(t.SurfacePressed)
@@ -145,7 +145,7 @@ func (p *page) agentPicker(c *ui.Context) {
 					}
 					shown++
 					a := a
-					b := ui.ButtonBase(c.Key(a.ID)).FillWidth().MinHeight(52).Padding(12, 12).Gap(12).Radius(t.Radius).
+					b := ui.ButtonBase(c.Key(a.ID)).FillWidth().MinHeight(52).Padding(12, 12).Gap(12).Radius(kit.ItemRadius).
 						AlignItems(ui.Center).Label(a.Name)
 					if b.Pressed() {
 						b.Background(t.SurfacePressed)

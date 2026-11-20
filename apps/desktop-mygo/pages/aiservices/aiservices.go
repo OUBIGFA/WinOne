@@ -687,26 +687,27 @@ func (p *page) overview(c *ui.Context) {
 			models += len(pr.Models)
 		}
 	}
-	t := c.Theme()
+	t, pal := c.Theme(), kit.Colors(c)
 	// One shared surface and inline items keep this a compact locator. The
 	// layout follows shadcn/ui Item's media/content/action composition; all
 	// controls, marks and spacing use WinOne's existing native components.
 	kit.Panel(c, func() {
-		ui.Row(c).FillWidth().Padding(6, 12).GapX(12).GapY(4).Wrap().AlignItems(ui.Center).Children(func() {
-			total := kit.Caption(c, i18n.T("ai.providerTotal", "count", len(enabled), "models", models)).SingleLine().Margin(4, 0)
+		ui.Row(c).FillWidth().Padding(8, 16).GapX(10).GapY(6).Wrap().AlignItems(ui.Center).Children(func() {
+			total := kit.Caption(c, i18n.T("ai.providerTotal", "count", len(enabled), "models", models)).SingleLine()
 			if len(enabled) == 0 {
 				// The count alone: the guide or the empty tab below says
 				// what to do, so this strip does not repeat it.
 				total.Description(i18n.T("ai.providerOverviewEmpty"))
 				return
 			}
+			ui.Box(c).Width(1).Height(14).Background(pal.Hairline).Shrink(0)
 			for _, pr := range enabled {
 				name := pr.Name
 				if name == "" {
 					name = i18n.T("ai.unnamed")
 				}
 				id := pr.ID
-				b := ui.ButtonBase(c.Key(id)).MinHeight(28).Padding(4, 6).Gap(6).Radius(t.Radius).
+				b := ui.ButtonBase(c.Key(id)).MinHeight(28).Padding(4, 8).Gap(6).Radius(kit.ItemRadius).
 					AlignItems(ui.Center).MaxWidth(280).
 					Label(i18n.T("ai.providerCount", "name", name, "count", len(pr.Models))).Description(name).
 					Disabled(p.locked() || removed[id])
@@ -719,7 +720,7 @@ func (p *page) overview(c *ui.Context) {
 					p.openProvider(id)
 				}
 				b.Children(func() {
-					widgets.ProviderIcon(c, p.env, pr.mark(), 18)
+					widgets.ProviderIcon(c, p.env, pr.mark(), 16)
 					ui.Text(c, name).SingleLine().Shrink(1).MinWidth(0)
 					kit.Caption(c, i18n.T("ai.overviewModelCount", "count", len(pr.Models))).Shrink(0)
 					ui.Icon(c, icons.ChevronRight).FontSize(14).TextColor(t.TextMuted).Shrink(0)

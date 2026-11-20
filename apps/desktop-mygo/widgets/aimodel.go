@@ -258,7 +258,7 @@ func aiPickSelect(c *ui.Context, selected *string, items []aiPickItem, placehold
 		panel.Margin(4, 0, 0, 0).Padding(4).Radius(kit.PanelRadius).Background(p.Panel).Border(1, t.Border).
 			Shadow(0, 8, 24, 0, ui.RGBA(0, 0, 0, alpha)).MinWidth(220).MaxWidth(520)
 		for _, item := range items {
-			row := sel.Item(item.value).Padding(6, 10).Gap(8).Radius(t.Radius).AlignItems(ui.Center)
+			row := sel.Item(item.value).Padding(6, 10).Gap(8).Radius(kit.ItemRadius).AlignItems(ui.Center)
 			if row.Highlighted() {
 				row.Background(t.SurfaceHover)
 			}
@@ -272,7 +272,7 @@ func aiPickSelect(c *ui.Context, selected *string, items []aiPickItem, placehold
 					item.badge(c)
 				}
 				if chosen {
-					label.FontWeight(600)
+					label.FontWeight(500)
 					ui.Icon(c, icons.Check).FontSize(14).Shrink(0)
 				}
 			})
@@ -351,7 +351,7 @@ var aiPickMillions = regexp.MustCompile(`\b\d+M\b`)
 // aiPickBadge is kit.Badge holding several texts and an accessible description.
 func aiPickBadge(c *ui.Context, tip string, fn func()) {
 	t := c.Theme()
-	b := ui.Row(c).Gap(4).Padding(2, 6).Radius(4).Background(t.Surface).TextColor(t.TextMuted).
+	b := ui.Row(c).Gap(4).Padding(2, 6).Radius(kit.MicroRadius).Background(t.Surface).TextColor(t.TextMuted).
 		FontSize(kit.CaptionSize(c)).Shrink(0).AlignItems(ui.Center)
 	if tip != "" {
 		b.Description(tip)

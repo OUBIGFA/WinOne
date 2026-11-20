@@ -97,7 +97,7 @@ func setupStep(c *ui.Context, n int, done bool, title, help string, actions func
 	ui.Row(c.Key(n)).FillWidth().MinHeight(kit.RowMinHeight).Padding(12, 16).GapX(24).GapY(8).
 		AlignItems(ui.Center).AlignContent(ui.Center).Wrap().Children(func() {
 		ui.Row(c).Basis(260).Grow(1).Shrink(1).Gap(12).AlignItems(ui.Start).Children(func() {
-			mark := ui.Row(c).Width(24).Height(24).Radius(12).Shrink(0).Justify(ui.Center).AlignItems(ui.Center)
+			mark := ui.Row(c).Width(24).Height(24).Radius(kit.PillRadius).Shrink(0).Justify(ui.Center).AlignItems(ui.Center)
 			if done {
 				mark.Background(palette.SuccessSoft).Children(func() {
 					ui.Icon(c, icons.Check).FontSize(14).TextColor(t.Success)
@@ -107,7 +107,7 @@ func setupStep(c *ui.Context, n int, done bool, title, help string, actions func
 					ui.Text(c, kit.Itoa(n)).FontSize(kit.CaptionSize(c)).TextColor(t.TextMuted)
 				})
 			}
-			ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(2).Children(func() {
+			ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(4).Children(func() {
 				label := kit.Label(c, title)
 				if done {
 					label.TextColor(t.TextMuted)

@@ -37,7 +37,7 @@ func (p *Panel) composer(c *ui.Context, t *ui.Theme) {
 		if p.Source == "quick-assistant" {
 			top.Height(quickToolbarHeight).Children(func() { p.quickToolbar(c, t) })
 		}
-		box := ui.Column(c).Key("composer").Grow(1).MinHeight(0).Label(p.T("消息输入框", "Message input box")).Padding(10, bleed, 8, bleed).Gap(8).Border(1, t.Border).Radius(12)
+		box := ui.Column(c).Key("composer").Grow(1).MinHeight(0).Label(p.T("消息输入框", "Message input box")).Padding(10, bleed, 8, bleed).Gap(8).Border(1, t.Border).Radius(radiusLG)
 		box.Children(func() {
 			input := ui.TextArea(c.Key("prompt"), &p.Prompt).Placeholder(p.T("围绕结果继续提问…", "Ask about this result…")).Label(p.T("继续提问", "Ask a follow-up")).
 				FontSize(em(t, sizeBody)).LineHeight(1.5).Grow(1).MinHeight(24).Padding(0).Border(0, ui.Transparent).Background(ui.Transparent)
@@ -109,7 +109,7 @@ func (p *Panel) composer(c *ui.Context, t *ui.Theme) {
 				}
 				disabled := strings.TrimSpace(p.Prompt) == "" || composing
 				send := ui.PrimaryButton(c, "").Label(p.T("发送", "Send")).Tooltip(p.T("发送", "Send")).Disabled(disabled).
-					Size(iconButtonSize, iconButtonSize).Shrink(0).Padding(0).Radius(99).Justify(ui.Center).AlignItems(ui.Center).Cursor(ui.CursorPointer).
+					Size(iconButtonSize, iconButtonSize).Shrink(0).Padding(0).Radius(radiusFull).Justify(ui.Center).AlignItems(ui.Center).Cursor(ui.CursorPointer).
 					Children(func() { ui.Icon(c, svg("send")).Size(16, 16) })
 				if send.Clicked() && !disabled && p.Actions.Send != nil {
 					p.Actions.Send(p.Prompt)

@@ -158,7 +158,7 @@ func safeMarkdownLink(value string) bool {
 // which wraps rather than scrolling sideways (Options.WrapCode).
 func (p *Panel) codeBlock(c *ui.Context, b *markdown.CodeBlockView) {
 	t := c.Theme()
-	ui.Column(c).FillWidth().Border(1, t.Border).Radius(8).Background(t.Text.Alpha(0.035)).Clip().Role(ui.RoleGroup).Label(p.T("代码", "Code") + " " + b.Language).Children(func() {
+	ui.Column(c).FillWidth().Border(1, t.Border).Radius(radiusMD).Background(t.Text.Alpha(0.035)).Clip().Role(ui.RoleGroup).Label(p.T("代码", "Code") + " " + b.Language).Children(func() {
 		ui.Row(c).FillWidth().AlignItems(ui.Center).Padding(2, 2, 0, 12).Children(func() {
 			ui.Text(c, b.Language).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted).Grow(1).MinWidth(0).SingleLine().Unselectable()
 			if iconButton(c, "copy", p.T("复制代码", "Copy code"), false).Clicked() && p.Actions.Copy != nil {
@@ -261,7 +261,7 @@ func (p *Panel) markdownTable(c *ui.Context, d *parser.Document, i int) {
 		tracks[k] = ui.Fr(share)
 		natural += share + 2*em(t, 10)
 	}
-	ui.Grid(c).ColumnTracks(tracks...).MaxWidth(natural).Border(1, t.Border).Radius(6).Clip().Role(ui.RoleTable).Children(func() {
+	ui.Grid(c).ColumnTracks(tracks...).MaxWidth(natural).Border(1, t.Border).Radius(radiusSM).Clip().Role(ui.RoleTable).Children(func() {
 		for index, line := range rows {
 			for k := 0; k < columns; k++ {
 				cell := ui.Column(c).MinWidth(0).Padding(6, 10)

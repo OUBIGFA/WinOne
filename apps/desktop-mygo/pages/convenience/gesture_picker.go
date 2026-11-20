@@ -112,7 +112,7 @@ func (p *pathPicker) View(c *ui.Context, disabled bool, pick func(strokeWindow))
 			}
 			ui.Column(c).FillWidth().Gap(2).Role(ui.RoleList).Children(func() {
 				for _, target := range p.windows {
-					b := ui.ButtonBase(c.Key(target.Window)).FillWidth().Padding(8).Justify(ui.Start).Radius(kit.PanelRadius).Label(target.Title)
+					b := ui.ButtonBase(c.Key(target.Window)).FillWidth().Padding(8).Justify(ui.Start).Radius(kit.ItemRadius).Label(target.Title)
 					if b.Hovered() {
 						b.Background(theme.SurfaceHover)
 					}

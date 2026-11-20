@@ -178,42 +178,48 @@ func (p *page) providersView(c *ui.Context) {
 		if pr != nil && p.saved != nil {
 			old = p.saved.Value.find(pr.ID)
 		}
-		// Keep provider selection and its actions in one wrapping toolbar.
-		// The chooser grows into spare space without clipping translated actions.
-		ui.Row(c).FillWidth().GapX(8).GapY(8).Wrap().AlignItems(ui.End).Children(func() {
-			if pr != nil {
-				ui.Column(c).Basis(200).Grow(1).MinWidth(0).Children(func() { e.nameField(c, pr, locked) })
-				enabled := !pr.Off
-				ui.Row(c).MinHeight(kit.ControlHeight).Gap(8).AlignItems(ui.Center).Children(func() {
-					kit.Label(c, i18n.T("aiExperience.enabled")).SingleLine()
-					ui.Switch(c, &enabled).Label(completeT("providerEnabled")).Description(completeT("providerEnabledHint")).Disabled(locked)
-				})
-				pr.Off = !enabled
-			}
-			if !e.optionsOpen {
-				if kit.GhostButton(c, i18n.T("aiBulkProviders.open"), icons.ListChecks, false).Disabled(locked).Clicked() {
-					p.bulkProvidersOpen = true
+		pal := kit.Colors(c)
+		// Keep provider selection and its actions in one wrapping toolbar panel.
+		// Grouping controls inside a shared Panel aligns them to the 16 DIP page
+		// grid and centers every control on a single horizontal baseline.
+		kit.Panel(c, func() {
+			ui.Row(c).FillWidth().Padding(12, 16).GapX(10).GapY(8).Wrap().AlignItems(ui.Center).Children(func() {
+				if pr != nil {
+					ui.Column(c).Basis(220).Grow(1).MinWidth(0).Children(func() { e.nameField(c, pr, locked) })
+					ui.Box(c).Width(1).Height(20).Background(pal.Hairline).Shrink(0)
+					enabled := !pr.Off
+					ui.Row(c).MinHeight(kit.ControlHeight).Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
+						kit.Help(c, i18n.T("aiExperience.enabled")).SingleLine()
+						ui.Switch(c, &enabled).Label(completeT("providerEnabled")).Description(completeT("providerEnabledHint")).Disabled(locked)
+					})
+					pr.Off = !enabled
+					ui.Box(c).Width(1).Height(20).Background(pal.Hairline).Shrink(0)
 				}
-				if kit.Button(c, i18n.T("aiExperience.add"), icons.Plus, false).Disabled(locked || full || (accounts && len(p.catalog.agents) == 0)).Clicked() {
-					if accounts {
-						addAccount()
-					} else {
-						p.add(nil)
+				if !e.optionsOpen {
+					if kit.GhostButton(c, i18n.T("aiBulkProviders.open"), icons.ListChecks, false).Disabled(locked).Clicked() {
+						p.bulkProvidersOpen = true
+					}
+					if kit.Button(c, i18n.T("aiExperience.add"), icons.Plus, false).Disabled(locked || full || (accounts && len(p.catalog.agents) == 0)).Clicked() {
+						if accounts {
+							addAccount()
+						} else {
+							p.add(nil)
+						}
+					}
+					if !accounts && kit.Button(c, i18n.T("aiExperience.presets"), icons.PlugZap, false).Disabled(locked || full).Clicked() {
+						addPreset()
 					}
 				}
-				if !accounts && kit.Button(c, i18n.T("aiExperience.presets"), icons.PlugZap, false).Disabled(locked || full).Clicked() {
-					addPreset()
+				if pr != nil {
+					label, icon := "aiExperience.settings", icons.Settings2
+					if e.optionsOpen {
+						label, icon = "aiExperience.back", icons.ChevronLeft
+					}
+					if kit.Button(c, i18n.T(label), icon, false).Disabled(locked).Clicked() {
+						e.optionsOpen = !e.optionsOpen
+					}
 				}
-			}
-			if pr != nil {
-				label, icon := "aiExperience.settings", icons.Settings2
-				if e.optionsOpen {
-					label, icon = "aiExperience.back", icons.ChevronLeft
-				}
-				if kit.Button(c, i18n.T(label), icon, false).Disabled(locked).Clicked() {
-					e.optionsOpen = !e.optionsOpen
-				}
-			}
+			})
 		})
 		if pr != nil {
 			e.View(c, pr, old)
@@ -236,63 +242,61 @@ func (e *editor) nameField(c *ui.Context, pr *provider, locked bool) {
 		action = "ai.finishRename"
 	}
 	id := pr.ID
-	ui.Field(c, i18n.T(label), func() {
-		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-			if e.renaming {
-				field := e.fields.get("name")
-				if name, edited := field.sync(pr.Name); edited {
-					p.change(id, func(t *provider) { t.Name = name })
-				}
-				input := kit.TextInput(c, &field.text).Grow(1).MinWidth(0).Label(i18n.T(nameLabel)).Disabled(locked).
-					OnTextKey(func(k ui.TextKey) bool {
-						switch k.Key {
-						case ui.KeyEnter:
-							e.renaming = false
-							return true
-						case ui.KeyEscape:
-							if target := p.draft.Value.find(id); target != nil {
-								target.Name = e.renameOrigin
-							}
-							field.text, field.shown = e.renameOrigin, e.renameOrigin
-							e.renaming = false
-							return true
+	ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+		if e.renaming {
+			field := e.fields.get("name")
+			if name, edited := field.sync(pr.Name); edited {
+				p.change(id, func(t *provider) { t.Name = name })
+			}
+			input := kit.TextInput(c, &field.text).Grow(1).MinWidth(0).Label(i18n.T(nameLabel)).Disabled(locked).
+				OnTextKey(func(k ui.TextKey) bool {
+					switch k.Key {
+					case ui.KeyEnter:
+						e.renaming = false
+						return true
+					case ui.KeyEscape:
+						if target := p.draft.Value.find(id); target != nil {
+							target.Name = e.renameOrigin
 						}
-						return false
-					})
-				if e.renameFocus {
-					input.Focus()
-					e.renameFocus = false
-				} else if !input.Focused() {
-					// Leaving the field finishes typing, as its blur did.
-					e.renaming = false
-				}
-			} else {
-				var options []widgets.PictureOption
-				for _, other := range p.sectionProviders() {
-					name := other.Name
-					if name == "" {
-						name = i18n.T("ai.unnamed")
+						field.text, field.shown = e.renameOrigin, e.renameOrigin
+						e.renaming = false
+						return true
 					}
-					mark := other.mark()
-					options = append(options, widgets.PictureOption{Value: other.ID, Label: name,
-						Picture: func(c *ui.Context) { widgets.ProviderIcon(c, p.env, mark, 16) }})
-				}
-				chosen := pr.ID
-				ui.Column(c).Grow(1).MinWidth(0).Children(func() {
-					if widgets.PictureSelect(c, &chosen, options, "", i18n.T(label), locked) {
-						p.selected = chosen
-					}
+					return false
 				})
+			if e.renameFocus {
+				input.Focus()
+				e.renameFocus = false
+			} else if !input.Focused() {
+				// Leaving the field finishes typing, as its blur did.
+				e.renaming = false
 			}
-			b := kit.IconButton(c, map[bool]*ui.SVG{true: icons.Check, false: icons.Pencil}[e.renaming], i18n.T(action)).Disabled(locked)
-			if b.Clicked() {
-				if e.renaming {
-					e.renaming = false
-				} else {
-					e.renameOrigin, e.renaming, e.renameFocus = pr.Name, true, true
+		} else {
+			var options []widgets.PictureOption
+			for _, other := range p.sectionProviders() {
+				name := other.Name
+				if name == "" {
+					name = i18n.T("ai.unnamed")
 				}
+				mark := other.mark()
+				options = append(options, widgets.PictureOption{Value: other.ID, Label: name,
+					Picture: func(c *ui.Context) { widgets.ProviderIcon(c, p.env, mark, 16) }})
 			}
-		})
+			chosen := pr.ID
+			ui.Column(c).Grow(1).MinWidth(0).Children(func() {
+				if widgets.PictureSelect(c, &chosen, options, "", i18n.T(label), locked) {
+					p.selected = chosen
+				}
+			})
+		}
+		b := kit.IconButton(c, map[bool]*ui.SVG{true: icons.Check, false: icons.Pencil}[e.renaming], i18n.T(action)).Disabled(locked)
+		if b.Clicked() {
+			if e.renaming {
+				e.renaming = false
+			} else {
+				e.renameOrigin, e.renaming, e.renameFocus = pr.Name, true, true
+			}
+		}
 	})
 }
 
@@ -340,8 +344,8 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 	if pr.AuthMode == "account" {
 		remove = "ai.removeAccount"
 	}
-	ui.Row(c).Children(func() {
-		if kit.GhostButton(c, i18n.T(remove), icons.Trash2, false).Disabled(locked).Clicked() {
+	ui.Row(c).FillWidth().Justify(ui.End).Children(func() {
+		if kit.GhostButton(c, i18n.T(remove), icons.Trash2, false).TextColor(c.Theme().TextMuted).Disabled(locked).Clicked() {
 			p.remove(pr.ID)
 		}
 	})

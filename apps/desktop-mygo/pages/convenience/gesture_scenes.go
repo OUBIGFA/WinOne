@@ -194,7 +194,7 @@ func (s *scenes) View(c *ui.Context, disabled bool) {
 					for _, item := range ordered {
 						index := slices.IndexFunc(d.Scopes, func(sc stroke.Scope) bool { return sc.ID == item.ID })
 						selected := hasScope && item.ID == scope.ID
-						row := ui.Row(c.Key(item.ID)).FillWidth().Gap(8).AlignItems(ui.Center).Padding(0, 8, 0, 0).Radius(theme.Radius)
+						row := ui.Row(c.Key(item.ID)).FillWidth().Gap(8).AlignItems(ui.Center).Padding(0, 8, 0, 0).Radius(kit.ItemRadius)
 						if selected {
 							row.Background(theme.SurfaceHover)
 						}

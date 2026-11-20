@@ -191,7 +191,7 @@ func rotatedIconButton(c *ui.Context, name, label string, degrees float32) ui.El
 func contentIconButton(c *ui.Context, label string, disabled bool, content func()) ui.Element {
 	t := c.Theme()
 	tn := toneFor(t, c.Preferences().HighContrast)
-	b := ui.ButtonBase(c).Label(label).Tooltip(label).Size(iconButtonSize, iconButtonSize).Shrink(0).Radius(6).
+	b := ui.ButtonBase(c).Label(label).Tooltip(label).Size(iconButtonSize, iconButtonSize).Shrink(0).Radius(radiusSM).
 		Justify(ui.Center).AlignItems(ui.Center).TextColor(t.TextMuted).Cursor(ui.CursorPointer).Disabled(disabled)
 	if !disabled {
 		if b.Pressed() {

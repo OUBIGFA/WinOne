@@ -285,7 +285,7 @@ func (t *gesturesTab) trails(c *ui.Context, busy, disabled bool) {
 				Label(i18n.T("stroke.gestures")).Children(func() {
 				for _, g := range d.Gestures {
 					id := g.ID
-					b := ui.ButtonBase(c.Key(id)).FillWidth().Padding(8, 12).Justify(ui.Start).Radius(theme.Radius).Label(g.Name).Checked(id == t.gestureID)
+					b := ui.ButtonBase(c.Key(id)).FillWidth().Padding(8, 12).Justify(ui.Start).Radius(kit.ItemRadius).Label(g.Name).Checked(id == t.gestureID)
 					if id == t.gestureID || b.Hovered() {
 						b.Background(theme.SurfaceHover)
 					}
@@ -549,7 +549,7 @@ func (t *gesturesTab) packagesView(c *ui.Context, busy bool) {
 								t.closedPacks[packID] = open
 							}
 							chosen := t.pack == packID && t.action == ""
-							b := ui.ButtonBase(c).Grow(1).MinWidth(0).Padding(6, 4).Justify(ui.Start).Radius(c.Theme().Radius).Label(pack.Name).Description(pack.Name).Checked(chosen)
+							b := ui.ButtonBase(c).Grow(1).MinWidth(0).Padding(6, 4).Justify(ui.Start).Radius(kit.ItemRadius).Label(pack.Name).Description(pack.Name).Checked(chosen)
 							if chosen || b.Hovered() {
 								b.Background(theme.SurfaceHover)
 							}
@@ -566,7 +566,7 @@ func (t *gesturesTab) packagesView(c *ui.Context, busy bool) {
 							for _, action := range pack.Actions {
 								actionID := action.ID
 								chosen := t.pack == packID && t.action == actionID
-								b := ui.ButtonBase(c.Key(actionID)).FillWidth().Padding(6, 8).Justify(ui.Start).Radius(c.Theme().Radius).Label(action.Name).Description(action.Name).Checked(chosen)
+								b := ui.ButtonBase(c.Key(actionID)).FillWidth().Padding(6, 8).Justify(ui.Start).Radius(kit.ItemRadius).Label(action.Name).Description(action.Name).Checked(chosen)
 								if chosen || b.Hovered() {
 									b.Background(theme.SurfaceHover)
 								}

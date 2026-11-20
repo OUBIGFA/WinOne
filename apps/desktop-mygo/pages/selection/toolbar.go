@@ -145,7 +145,7 @@ func (p *page) toolbar(c *ui.Context) {
 				change()
 			}
 		}).Role(ui.RoleList)
-		ui.Row(c).Margin(6, 0, 0, 0).Children(func() {
+		ui.Row(c).Children(func() {
 			if kit.Button(c, i18n.T("selection.add"), icons.Plus, false).Disabled(len(p.actions()) >= maxActions).Clicked() {
 				p.add()
 			}
@@ -171,11 +171,12 @@ func (p *page) toolbar(c *ui.Context) {
 // columnHeadings names the columns of the action rows; the controls in
 // each row carry their own names for assistive technology.
 func (p *page) columnHeadings(c *ui.Context) {
-	ui.Row(c).FillWidth().Padding(8, 16, 8, 8).Gap(12).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).FillWidth().Padding(8, 16, 8, 8).Gap(12).AlignItems(ui.Center).
+		Background(c.Theme().Background.Alpha(0.45)).Children(func() {
 		ui.Box(c).Width(16).Shrink(0)
 		kit.Caption(c, i18n.T("settingsDesign.action")).Grow(1).MinWidth(0).SingleLine().Padding(0, 8).Role(ui.RoleNone)
-		kit.Caption(c, i18n.T("selection.position")).Width(positionWidth).Shrink(0).SingleLine().Role(ui.RoleNone)
-		kit.Caption(c, i18n.T("selection.show")).Width(showWidth).Shrink(0).SingleLine().Role(ui.RoleNone)
+		kit.Caption(c, i18n.T("selection.position")).Width(positionWidth).Shrink(0).SingleLine().TextAlign(ui.Center).Role(ui.RoleNone)
+		kit.Caption(c, i18n.T("selection.show")).Width(showWidth).Shrink(0).SingleLine().TextAlign(ui.Center).Role(ui.RoleNone)
 	})
 }
 
@@ -224,7 +225,7 @@ func (p *page) actionRow(c *ui.Context, index, count int) {
 			ui.Icon(c, icons.GripVertical).FontSize(16).TextColor(t.TextMuted).Shrink(0).Cursor(ui.CursorGrab).
 				Description(i18n.T("selection.dragToReorder"))
 			parts = ui.CollapsibleBase(c, &open)
-			trigger := parts.Trigger.Grow(1).Shrink(1).MinWidth(0).MinHeight(36).Padding(6, 8).Gap(12).Radius(t.Radius).
+			trigger := parts.Trigger.Grow(1).Shrink(1).MinWidth(0).MinHeight(36).Padding(6, 8).Gap(12).Radius(kit.ItemRadius).
 				AlignItems(ui.Center).Label(i18n.T("selection.editAction", "name", shown))
 			if trigger.Hovered() {
 				trigger.Background(t.SurfaceHover)
@@ -251,7 +252,7 @@ func (p *page) actionRow(c *ui.Context, index, count int) {
 					}
 				}
 			})
-			ui.Row(c).Width(showWidth).Shrink(0).Children(func() {
+			ui.Row(c).Width(showWidth).Shrink(0).Justify(ui.Center).Children(func() {
 				ui.Switch(c, &a.Enabled).Label(i18n.T("selection.showAction", "name", name))
 			})
 		})

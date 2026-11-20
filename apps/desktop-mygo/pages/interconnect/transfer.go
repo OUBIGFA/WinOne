@@ -469,7 +469,7 @@ func (p *transferPanel) sendInput(c *ui.Context, active bool, target *taskRecord
 	}
 	zone := ui.Column(c).FillWidth().Gap(12)
 	if !hasFiles {
-		zone.Padding(20).AlignItems(ui.Center).Radius(kit.PanelRadius).Border(1, pal.Hairline).Background(theme.Surface)
+		zone.Padding(20).AlignItems(ui.Center).Radius(kit.ControlRadius).Border(1, pal.Hairline).Background(theme.Surface)
 	}
 	zone.Children(func() {
 		if !hasFiles {

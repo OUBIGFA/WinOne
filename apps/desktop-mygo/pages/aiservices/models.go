@@ -298,8 +298,8 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 	fetchable := canFetch(pr)
 	all := pr.available()
 	id := pr.ID
-	ui.Column(c).FillWidth().Gap(12).Children(func() {
-		ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().AlignItems(ui.Center).Children(func() {
+	ui.Column(c).FillWidth().Gap(kit.HeadingGap).Children(func() {
+		ui.Row(c).FillWidth().GapX(16).GapY(10).Wrap().AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Basis(220).Grow(1).MinWidth(0).Children(func() {
 				kit.SectionHeading(c, nil, i18n.T("ai.models"), i18n.T("ai.modelSelectionHint"))
 			})
@@ -317,13 +317,6 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 					m.test(pr, append([]string{}, pr.Models...), "")
 				}
 			})
-		})
-		ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-			kit.TextInput(c, &m.query).Grow(1).MinWidth(144).Placeholder(i18n.T("ai.findOrAddModel")).Label(i18n.T("ai.findOrAddModel")).
-				Disabled(disabled || working)
-			if kit.Button(c, i18n.T("ai.addModel"), icons.Plus, false).Disabled(disabled || working || strings.TrimSpace(m.query) == "").Clicked() {
-				m.add(all)
-			}
 		})
 		if !canTest(pr) && len(all) > 0 {
 			kit.Help(c, i18n.T("ai.connectionForModels"))
@@ -345,30 +338,44 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 			}
 			kit.Help(c, i18n.T(label)+" · "+reason)
 		}
-		ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).Children(func() {
-			kit.Caption(c, i18n.T("ai.enabledModels", "count", len(pr.Models)))
-			ui.Row(c).Gap(4).Role(ui.RoleGroup).Label(i18n.T("ai.modelBulkActions")).Children(func() {
-				if kit.GhostButton(c, i18n.T("ai.selectAll"), nil, false).Description(i18n.T("ai.modelBulkScope")).
-					Disabled(disabled || working || len(all) == 0 || len(pr.Models) == len(all)).Clicked() {
-					p.change(id, func(t *provider) {
-						everything := append([]string{}, all...)
-						t.AvailableModels, t.Models = &everything, append([]string{}, all...)
-					})
-				}
-				paused := len(value(pr.Delisted)) > 0
-				if kit.GhostButton(c, i18n.T("ai.selectNone"), nil, false).Description(i18n.T("ai.modelBulkScope")).
-					Disabled(disabled || working || (len(pr.Models) == 0 && !paused)).Clicked() {
-					p.change(id, func(t *provider) {
-						everything := append([]string{}, all...)
-						t.AvailableModels, t.Models, t.Delisted = &everything, []string{}, &[]string{}
-					})
-				}
-			})
-		})
 		if n := len(value(pr.Delisted)); n > 0 {
 			kit.Help(c, i18n.T("ai.delistedPicks", "count", n)).Role(ui.RoleStatus)
 		}
-		m.list(c, pr, all, disabled, working, fetchable)
+		ui.Column(c).FillWidth().Children(func() {
+			kit.Panel(c, func() {
+				ui.Row(c).FillWidth().Padding(12, 16).Gap(8).AlignItems(ui.Center).Children(func() {
+					kit.TextInput(c, &m.query).Grow(1).MinWidth(144).Placeholder(i18n.T("ai.findOrAddModel")).Label(i18n.T("ai.findOrAddModel")).
+						Disabled(disabled || working)
+					if kit.Button(c, i18n.T("ai.addModel"), icons.Plus, false).Disabled(disabled || working || strings.TrimSpace(m.query) == "").Clicked() {
+						m.add(all)
+					}
+				})
+				ui.Row(c).FillWidth().Padding(6, 16).Gap(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).
+					Background(c.Theme().Background.Alpha(0.45)).Children(func() {
+					kit.Caption(c, i18n.T("ai.enabledModels", "count", len(pr.Models)))
+					ui.Row(c).Gap(4).Role(ui.RoleGroup).Label(i18n.T("ai.modelBulkActions")).Children(func() {
+						if kit.GhostButton(c, i18n.T("ai.selectAll"), nil, false).MinHeight(28).Padding(4, 8).Radius(kit.ItemRadius).
+							Description(i18n.T("ai.modelBulkScope")).
+							Disabled(disabled || working || len(all) == 0 || len(pr.Models) == len(all)).Clicked() {
+							p.change(id, func(t *provider) {
+								everything := append([]string{}, all...)
+								t.AvailableModels, t.Models = &everything, append([]string{}, all...)
+							})
+						}
+						paused := len(value(pr.Delisted)) > 0
+						if kit.GhostButton(c, i18n.T("ai.selectNone"), nil, false).MinHeight(28).Padding(4, 8).Radius(kit.ItemRadius).
+							Description(i18n.T("ai.modelBulkScope")).
+							Disabled(disabled || working || (len(pr.Models) == 0 && !paused)).Clicked() {
+							p.change(id, func(t *provider) {
+								everything := append([]string{}, all...)
+								t.AvailableModels, t.Models, t.Delisted = &everything, []string{}, &[]string{}
+							})
+						}
+					})
+				})
+				m.list(c, pr, all, disabled, working, fetchable)
+			})
+		})
 		// Provider limits have one owner in Settings / Limits and billing.
 		// The daily model list stays focused on choosing and testing models.
 	})
@@ -399,7 +406,7 @@ func (m *modelsPanel) add(all []string) {
 // taller or shorter; its height is kept per provider.
 func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, working, fetchable bool) {
 	p := m.p
-	t, palette := c.Theme(), kit.Colors(c)
+	t := c.Theme()
 	query := strings.ToLower(strings.TrimSpace(m.query))
 	var visible []string
 	for _, model := range all {
@@ -416,93 +423,92 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 	m.rows.Key = func(i int) any { return visible[i] }
 	ui.Column(c).FillWidth().Children(func() {
 		list := ui.List(c, &m.rows, len(visible), func(i int) {
-			model := visible[i]
-			on := enabled[model]
-			name := widgets.ModelLabel(&picker, model)
-			result, tested := m.tested[model]
-			row := ui.Column(c).FillWidth().Padding(4, 8).Radius(t.Radius).Description(model)
-			if row.Hovered() {
-				row.Background(t.SurfaceHover)
-			}
-			services := c.Services()
-			menu := func(menu *ui.Menu) { m.menu(menu, services, pr, model, name, fetchable) }
-			if !disabled && !working {
-				row.ContextMenu(menu)
-			}
-			row.Children(func() {
-				ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-					check := on
-					box := ui.CheckboxBase(c, &check).Grow(1).Shrink(1).MinWidth(0).Gap(6).AlignItems(ui.Center).Padding(4, 0).
-						Label(name).Disabled(disabled || working)
-					if box.Changed() {
-						p.change(id, func(t *provider) {
-							everything := append([]string{}, all...)
-							t.AvailableModels = &everything
-							if check {
-								t.Models = append(append([]string{}, t.Models...), model)
-							} else {
-								t.Models = slices.DeleteFunc(append([]string{}, t.Models...), func(v string) bool { return v == model })
-							}
-						})
-					}
-					box.Children(func() {
-						kit.CheckMark(c, check, box.Hovered())
-						icon := widgets.ModelIcon(c, p.env, model, pr.ModelNames[model], 16)
-						if !on {
-							icon.Opacity(0.55)
+		model := visible[i]
+		on := enabled[model]
+		name := widgets.ModelLabel(&picker, model)
+		result, tested := m.tested[model]
+		row := ui.Column(c).FillWidth().Padding(4, 10).Radius(kit.ItemRadius).Description(model)
+		if row.Hovered() {
+			row.Background(t.SurfaceHover)
+		}
+		services := c.Services()
+		menu := func(menu *ui.Menu) { m.menu(menu, services, pr, model, name, fetchable) }
+		if !disabled && !working {
+			row.ContextMenu(menu)
+		}
+		row.Children(func() {
+			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+				check := on
+				box := ui.CheckboxBase(c, &check).Grow(1).Shrink(1).MinWidth(0).Gap(8).AlignItems(ui.Center).Padding(4, 0).
+					Label(name).Disabled(disabled || working)
+				if box.Changed() {
+					p.change(id, func(t *provider) {
+						everything := append([]string{}, all...)
+						t.AvailableModels = &everything
+						if check {
+							t.Models = append(append([]string{}, t.Models...), model)
+						} else {
+							t.Models = slices.DeleteFunc(append([]string{}, t.Models...), func(v string) bool { return v == model })
 						}
-						label := ui.Text(c, name).Shrink(1).MinWidth(0)
-						if !on {
-							label.TextColor(t.TextMuted)
-						}
-						if badges := widgets.ModelBadges(&picker, model); badges != nil {
-							badges(c)
-						}
-						if metadata, ok := pr.CatalogMetadata[model]; ok && len(metadata.Keys) > 0 {
-							var names []string
-							for _, id := range metadata.Keys {
-								for index, key := range pr.slots() {
-									if key.ID == id {
-										label := key.Name
-										if label == "" {
-											label = i18n.T("ai.keyNumber", "index", index+1)
-										}
-										names = append(names, label)
-										break
-									}
-								}
-							}
-							label := strings.Join(names, " · ")
-							if metadata.KeyCount > 2 {
-								label = i18n.T("aiSync.modelKeyCount", "count", metadata.KeyCount)
-							}
-							if label != "" {
-								kit.Caption(c, label).Description(i18n.T("aiSync.listedByKeys", "keys", strings.Join(names, ", ")))
-							}
-						}
-					})
-					if kit.IconButton(c, icons.SlidersHorizontal, i18n.T("ai.editModelSettings", "name", name)).
-						Disabled(disabled || working).Clicked() {
-						m.editing = model
-					}
-					kit.IconButton(c, icons.Ellipsis, i18n.T("ai.modelActions", "name", name)).Disabled(disabled || working).Menu(menu)
-				})
-				if tested {
-					ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Start).Padding(0, 0, 0, 24).Children(func() {
-						color, mark := t.TextMuted, icons.Check
-						if !*result.OK {
-							color, mark = t.Danger, icons.X
-						}
-						if result.Queued != "" {
-							color, mark = t.TextMuted, icons.Clock
-						}
-						ui.Icon(c, mark).FontSize(14).TextColor(color).Shrink(0).Margin(2, 0, 0, 0)
-						ui.Text(c, testLine(result, model)).FontSize(kit.HelpSize(c)).TextColor(color).Shrink(1).MinWidth(0)
 					})
 				}
+				box.Children(func() {
+					kit.CheckMark(c, check, box.Hovered())
+					icon := widgets.ModelIcon(c, p.env, model, pr.ModelNames[model], 16)
+					if !on {
+						icon.Opacity(0.55)
+					}
+					label := ui.Text(c, name).Shrink(1).MinWidth(0)
+					if !on {
+						label.TextColor(t.TextMuted)
+					}
+					if badges := widgets.ModelBadges(&picker, model); badges != nil {
+						badges(c)
+					}
+					if metadata, ok := pr.CatalogMetadata[model]; ok && len(metadata.Keys) > 0 {
+						var names []string
+						for _, id := range metadata.Keys {
+							for index, key := range pr.slots() {
+								if key.ID == id {
+									label := key.Name
+									if label == "" {
+										label = i18n.T("ai.keyNumber", "index", index+1)
+									}
+									names = append(names, label)
+									break
+								}
+							}
+						}
+						label := strings.Join(names, " · ")
+						if metadata.KeyCount > 2 {
+							label = i18n.T("aiSync.modelKeyCount", "count", metadata.KeyCount)
+						}
+						if label != "" {
+							kit.Caption(c, label).Description(i18n.T("aiSync.listedByKeys", "keys", strings.Join(names, ", ")))
+						}
+					}
+				})
+				if kit.CompactIconButton(c, icons.SlidersHorizontal, i18n.T("ai.editModelSettings", "name", name)).
+					Disabled(disabled || working).Clicked() {
+					m.editing = model
+				}
+				kit.CompactIconButton(c, icons.Ellipsis, i18n.T("ai.modelActions", "name", name)).Disabled(disabled || working).Menu(menu)
 			})
-		}).FillWidth().Height(m.height).Padding(8).Background(palette.Panel).Border(1, palette.Hairline).Radius(kit.PanelRadius).
-			Label(i18n.T("ai.models"))
+			if tested {
+				ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Start).Padding(0, 0, 0, 24).Children(func() {
+					color, mark := t.TextMuted, icons.Check
+					if !*result.OK {
+						color, mark = t.Danger, icons.X
+					}
+					if result.Queued != "" {
+						color, mark = t.TextMuted, icons.Clock
+					}
+					ui.Icon(c, mark).FontSize(14).TextColor(color).Shrink(0).Margin(2, 0, 0, 0)
+					ui.Text(c, testLine(result, model)).FontSize(kit.HelpSize(c)).TextColor(color).Shrink(1).MinWidth(0)
+				})
+			}
+		})
+	}).FillWidth().Height(m.height).Padding(6).Gap(2).Label(i18n.T("ai.models"))
 		list.Children(func() {
 			if len(visible) == 0 {
 				key := "ai.connectionForModels"

@@ -210,7 +210,7 @@ func (a *gatewayAccessPanel) View(c *ui.Context, p *page) {
 	// group stays next to them.
 	ui.Column(c).FillWidth().Gap(12).Children(func() {
 		kit.Group(c, icons.ShieldCheck, accessT("title"), accessT("hint"), func() {
-			ui.Row(c).FillWidth().Padding(12, 16).Gap(8).Wrap().Children(func() {
+			ui.Row(c).FillWidth().Padding(12, 16).Gap(8).AlignItems(ui.Center).Wrap().Children(func() {
 				if kit.Button(c, accessT("add"), icons.Plus, false).Disabled(a.api.busy || a.dirty()).Clicked() {
 					a.creating = true
 					a.temporary = false
@@ -228,6 +228,7 @@ func (a *gatewayAccessPanel) View(c *ui.Context, p *page) {
 					a.issueReadOnly = false
 					a.edit = nil
 				}
+				ui.Spacer(c).Grow(1)
 				if kit.IconButton(c, icons.RefreshCw, i18n.T("common.refresh")).Disabled(a.api.busy || a.dirty()).Clicked() {
 					a.load(p)
 				}

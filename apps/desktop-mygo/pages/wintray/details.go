@@ -97,12 +97,14 @@ func (p *page) poll(c *ui.Context, app program, usable bool) {
 // details shows the selected program: its name and file, the actions on
 // the running program, and its settings.
 func (p *page) details(c *ui.Context) {
+	app := p.active()
+	if app == nil {
+		ui.Column(c).Fill().Center().Padding(24).Children(func() {
+			kit.Help(c, i18n.T("wintray.select")).TextAlign(ui.Center).FillWidth()
+		})
+		return
+	}
 	ui.Scroll(c).Fill().Padding(16, 4, 20, 20).Children(func() {
-		app := p.active()
-		if app == nil {
-			kit.Help(c, i18n.T("wintray.select"))
-			return
-		}
 		if p.detailFor != app.ID {
 			// Each program opens on its common settings, or on its
 			// information when its name is empty.

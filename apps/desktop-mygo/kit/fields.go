@@ -46,7 +46,7 @@ func Select(c *ui.Context, selected *string, options []SelectOption) (changed bo
 		panel.Margin(4, 0, 0, 0).Padding(4).Radius(PanelRadius).Background(p.Panel).Border(1, t.Border).
 			Shadow(0, 8, 24, 0, ui.RGBA(0, 0, 0, 2*shadowAlpha(t))).MinWidth(180)
 		for _, option := range options {
-			item := sel.Item(option.Value).Padding(6, 10).Gap(8).Radius(t.Radius).AlignItems(ui.Center)
+			item := sel.Item(option.Value).Padding(6, 10).Gap(8).Radius(ItemRadius).AlignItems(ui.Center)
 			chosen := option.Value == *selected
 			if item.Highlighted() {
 				item.Background(t.SurfaceHover)
@@ -78,12 +78,12 @@ func Segmented(c *ui.Context, selected *string, options []SelectOption, label st
 	}
 	before := index
 	seg := ui.SegmentedBase(c, &index, len(options))
-	seg.Track.Padding(4).Gap(2).Radius(t.Radius+2).Background(t.Surface).Border(1, p.Hairline).Label(label).Wrap().
+	seg.Track.Padding(3).Gap(2).Radius(PanelRadius).Background(t.Surface).Border(1, p.Hairline).Label(label).Wrap().
 		Children(func() {
 			for i, option := range options {
-				item := seg.Segment(i).Padding(4, 12).MinHeight(28).Gap(6).Radius(t.Radius).AlignItems(ui.Center).Label(option.Label)
+				item := seg.Segment(i).Padding(4, 12).MinHeight(28).Gap(6).Radius(ItemRadius).AlignItems(ui.Center).Label(option.Label)
 				if i == index {
-					item.Background(p.Panel)
+					item.Background(p.Panel).Border(1, p.Hairline)
 				} else if item.Hovered() {
 					item.Background(t.SurfaceHover)
 				}

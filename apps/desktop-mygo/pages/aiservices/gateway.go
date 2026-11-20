@@ -311,7 +311,7 @@ func route(s widgets.AISelection) string { return s.Provider + "/" + s.Model }
 // features use: grouped by provider, with names and marks, never route
 // IDs. Saving none offers none.
 func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider, disabled bool) {
-	t, palette := c.Theme(), kit.Colors(c)
+	t := c.Theme()
 	var all []widgets.AISelection
 	for _, pr := range providers {
 		if pr.Off {
@@ -389,83 +389,92 @@ func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider,
 			kit.Help(c, i18n.T("gateway.empty"))
 			return
 		}
-		// Search, then the count with the bulk actions, as a provider's
-		// model list lays them out.
-		kit.TextInput(c, &g.query).FillWidth().MinWidth(0).Placeholder(i18n.T("gateway.searchModels")).Label(i18n.T("gateway.searchModels"))
-		ui.Row(c).FillWidth().Gap(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).Children(func() {
-			kit.Caption(c, i18n.T("gateway.enabledModels", "count", count, "total", len(all)))
-			ui.Row(c).Gap(4).Role(ui.RoleGroup).Label(i18n.T("ai.modelBulkActions")).Children(func() {
-				if kit.GhostButton(c, i18n.T("ai.selectAll"), nil, false).Description(i18n.T("ai.modelBulkScope")).
-					Disabled(disabled || count == len(all)).Clicked() {
-					everything := append([]widgets.AISelection{}, all...)
-					g.models = &everything
-				}
-				if kit.GhostButton(c, i18n.T("ai.selectNone"), nil, false).Description(i18n.T("ai.modelBulkScope")).
-					Disabled(disabled || count == 0).Clicked() {
-					g.models = &[]widgets.AISelection{}
-				}
-			})
-		})
-		g.list.Key = func(i int) any { return entries[i].provider.ID + "\x00" + entries[i].model }
-		list := ui.List(c, &g.list, len(entries), func(i int) {
-			entry := entries[i]
-			pr := entry.provider
-			if entry.model == "" {
-				chosen := 0
-				var refs []widgets.AISelection
-				for _, model := range pr.Models {
-					ref := widgets.AISelection{Provider: pr.ID, Model: model}
-					refs = append(refs, ref)
-					if enabled[route(ref)] {
-						chosen++
-					}
-				}
-				on := chosen == len(pr.Models)
-				box := ui.CheckboxBase(c, &on).FillWidth().Padding(8, 8).Gap(12).AlignItems(ui.Center).Radius(t.Radius).
-					Background(palette.Hairline).Label(i18n.T("gateway.enableProvider", "provider", pr.Name)).Disabled(disabled)
-				if box.Changed() {
-					toggle(refs, on)
-				}
-				box.Children(func() {
-					if chosen > 0 && chosen < len(pr.Models) {
-						kit.PartialMark(c)
-					} else {
-						kit.CheckMark(c, on, box.Hovered())
-					}
-					widgets.ProviderIcon(c, g.env, providerMark(pr), 18)
-					ui.Text(c, pr.Name).FontWeight(600).Grow(1).Shrink(1).MinWidth(0)
-					kit.Caption(c, kit.Itoa(chosen)+" / "+kit.Itoa(len(pr.Models))).Shrink(0)
+		ui.Column(c).FillWidth().Children(func() {
+			kit.Panel(c, func() {
+				// Search, then the count with the bulk actions, as a provider's
+				// model list lays them out.
+				ui.Row(c).FillWidth().Padding(12, 16).AlignItems(ui.Center).Children(func() {
+					kit.TextInput(c, &g.query).FillWidth().MinWidth(0).Placeholder(i18n.T("gateway.searchModels")).Label(i18n.T("gateway.searchModels"))
 				})
-				return
-			}
-			ref := widgets.AISelection{Provider: pr.ID, Model: entry.model}
-			on := enabled[route(ref)]
-			name := widgets.ModelLabel(pr, entry.model)
-			box := ui.CheckboxBase(c, &on).FillWidth().Padding(8, 8, 8, 32).Gap(6).AlignItems(ui.Center).Radius(t.Radius).
-				Label(pr.Name + " · " + name).Disabled(disabled)
-			if box.Hovered() {
-				box.Background(t.SurfaceHover)
-			}
-			if box.Changed() {
-				toggle([]widgets.AISelection{ref}, on)
-			}
-			box.Children(func() {
-				kit.CheckMark(c, on, box.Hovered())
-				widgets.ModelIcon(c, g.env, entry.model, pr.ModelNames[entry.model], 16)
-				ui.Text(c, name).Shrink(1).MinWidth(0)
-				if badges := widgets.ModelBadges(pr, entry.model); badges != nil {
-					badges(c)
-				}
+				ui.Row(c).FillWidth().Padding(6, 16).Gap(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).
+					Background(t.Background.Alpha(0.45)).Children(func() {
+					kit.Caption(c, i18n.T("gateway.enabledModels", "count", count, "total", len(all)))
+					ui.Row(c).Gap(4).Role(ui.RoleGroup).Label(i18n.T("ai.modelBulkActions")).Children(func() {
+						if kit.GhostButton(c, i18n.T("ai.selectAll"), nil, false).MinHeight(28).Padding(4, 8).Radius(kit.ItemRadius).
+							Description(i18n.T("ai.modelBulkScope")).
+							Disabled(disabled || count == len(all)).Clicked() {
+							everything := append([]widgets.AISelection{}, all...)
+							g.models = &everything
+						}
+						if kit.GhostButton(c, i18n.T("ai.selectNone"), nil, false).MinHeight(28).Padding(4, 8).Radius(kit.ItemRadius).
+							Description(i18n.T("ai.modelBulkScope")).
+							Disabled(disabled || count == 0).Clicked() {
+							g.models = &[]widgets.AISelection{}
+						}
+					})
+				})
+				g.list.Key = func(i int) any { return entries[i].provider.ID + "\x00" + entries[i].model }
+				list := ui.List(c, &g.list, len(entries), func(i int) {
+					entry := entries[i]
+					pr := entry.provider
+					if entry.model == "" {
+						chosen := 0
+						var refs []widgets.AISelection
+						for _, model := range pr.Models {
+							ref := widgets.AISelection{Provider: pr.ID, Model: model}
+							refs = append(refs, ref)
+							if enabled[route(ref)] {
+								chosen++
+							}
+						}
+						on := chosen == len(pr.Models)
+						box := ui.CheckboxBase(c, &on).FillWidth().Padding(6, 10).Gap(10).AlignItems(ui.Center).Radius(kit.ItemRadius).
+							Background(t.Surface).Label(i18n.T("gateway.enableProvider", "provider", pr.Name)).Disabled(disabled)
+						if box.Changed() {
+							toggle(refs, on)
+						}
+						box.Children(func() {
+							if chosen > 0 && chosen < len(pr.Models) {
+								kit.PartialMark(c)
+							} else {
+								kit.CheckMark(c, on, box.Hovered())
+							}
+							widgets.ProviderIcon(c, g.env, providerMark(pr), 16)
+							ui.Text(c, pr.Name).FontWeight(500).Grow(1).Shrink(1).MinWidth(0)
+							kit.Caption(c, kit.Itoa(chosen)+" / "+kit.Itoa(len(pr.Models))).Shrink(0)
+						})
+						return
+					}
+					ref := widgets.AISelection{Provider: pr.ID, Model: entry.model}
+					on := enabled[route(ref)]
+					name := widgets.ModelLabel(pr, entry.model)
+					box := ui.CheckboxBase(c, &on).FillWidth().Padding(6, 10, 6, 36).Gap(8).AlignItems(ui.Center).Radius(kit.ItemRadius).
+						Label(pr.Name + " · " + name).Disabled(disabled)
+					if box.Hovered() {
+						box.Background(t.SurfaceHover)
+					}
+					if box.Changed() {
+						toggle([]widgets.AISelection{ref}, on)
+					}
+					box.Children(func() {
+						kit.CheckMark(c, on, box.Hovered())
+						widgets.ModelIcon(c, g.env, entry.model, pr.ModelNames[entry.model], 16)
+						ui.Text(c, name).Shrink(1).MinWidth(0)
+						if badges := widgets.ModelBadges(pr, entry.model); badges != nil {
+							badges(c)
+						}
+					})
+				}).FillWidth().Height(g.height).Padding(6).Gap(2).
+					Label(i18n.T("gateway.models")).Description(i18n.T("ai.resizeModelList"))
+				list.Children(func() {
+					if len(entries) == 0 {
+						kit.Help(c, i18n.T("gateway.noMatchingModels")).Padding(12)
+					}
+				})
 			})
-		}).FillWidth().Height(g.height).Padding(8).Gap(2).Border(1, palette.Hairline).Radius(kit.PanelRadius).
-			Label(i18n.T("gateway.models")).Description(i18n.T("ai.resizeModelList"))
-		list.Children(func() {
-			if len(entries) == 0 {
-				kit.Help(c, i18n.T("gateway.noMatchingModels")).Padding(12)
-			}
-		})
-		g.height = resizeGrip(c, g.height, 160, 1200, func(height float32) {
-			writeUIState(g.env.Directory, func(s *uiState) { s.GatewayHeight = height })
+			g.height = resizeGrip(c, g.height, 160, 1200, func(height float32) {
+				writeUIState(g.env.Directory, func(s *uiState) { s.GatewayHeight = height })
+			})
 		})
 	})
 }
