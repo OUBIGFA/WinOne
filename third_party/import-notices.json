@@ -6,7 +6,7 @@
       "repository": "https://github.com/yetone/magpie",
       "commit": "289184a409c0e38a3a0a5282dbde93b56da309ca",
       "license": "MIT",
-      "scope": "Native MyGo provider connections, account import/export and preferences, complete model settings and local gateway administration. Vendor reports remain separate from user overrides. Use the original model catalog, gateway request handling, provider routing strategies and complete paste parsers; retain Host data, credential and process ownership without the removed management applications.",
+      "scope": "Native MyGo provider connections, account import/export and preferences, complete model settings and local gateway administration. WinOne groups infrequent policies in provider settings, prioritizes daily model selection and initial connection recovery, and shares dialog and row geometry. Vendor reports remain separate from user overrides. Use the original model catalog, gateway request handling, provider routing strategies and complete paste parsers; retain Host data, credential and process ownership without the removed management applications.",
       "sourceFiles": [
         "internal/gui/trace.go",
         "internal/gui/providers.go",
@@ -60,15 +60,15 @@
       "files": [
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences_accounts.go",
-          "sha256": "078552ae214e907d0a150bf0fcdd229a80b33e9f509aa0b8e1e88789c62e99ee"
+          "sha256": "b62b9f0d96b3742d1f783ea8354e5ce3e3054153238fec9a4c8298dac319c3d4"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences_billing.go",
-          "sha256": "b1e256fadf262f3784999cce8f8d295dffe0ca70cb09c08f3d8a4581b6c24c47"
+          "sha256": "e452629eb4c380b830b494b119d5ab6c947af0a56411768c3f1cb142bb2521c5"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_access.go",
-          "sha256": "83fc5c69133da70a2c6a513714052350697e55bdf2345597024b32adb59f4b9c"
+          "sha256": "7f20ea3c90a56403efe9a848f21162bec7ddfbe8c10103eb0d504c035c71516b"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_history.go",
@@ -76,7 +76,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_calls.go",
-          "sha256": "074dc47e69f0dcfd53b885d306e9018836ef26c28d7b8fc60913dc96c134a016"
+          "sha256": "f29ca8ded339813e5be1c37bae8417581a9733435369edd42512729257c475ea"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_connect.go",
@@ -136,7 +136,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/accounts.go",
-          "sha256": "3cc7256944b06de8e48f8f3fb4a725c5827504741e9da69db8b613f5e32f5615"
+          "sha256": "e49c4197a122ce267bd2f22971a2e53fd5eac8445b4733cb35545f0edb5f9c6c"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/account_migration.go",
@@ -144,7 +144,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/codex_client.go",
-          "sha256": "4a12d3e6ef647b62237d549ea7ef462214a8e8274ffb1254f5a98116abaf1ea1"
+          "sha256": "ef3ccd2483c3af2a4a65d32ccab9b1ede291d84ba463d961efa4bf2bb00dcb95"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/header_presets.go",
@@ -168,7 +168,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/models.go",
-          "sha256": "4bebc798abc60ad64f579f82882a35df6711d8b34ad5a92b55212f7801e4ea9b"
+          "sha256": "7a92cab867b505dab90e6b8eaf5d5d35b517d7eb44335f1cc59a6556772e397c"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/reader.go",
@@ -176,11 +176,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences.go",
-          "sha256": "fef2d13dc54e806a23b23f4fccd809c5f6478a4079215b6e82aef7a97af57072"
+          "sha256": "343a5860a24f7a2b244eafa824fca12e9a28488f01c432a24fb688d2d365b31d"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/editor.go",
-          "sha256": "0e4d550e17ac7c91eafbdce92d785d3bcfe014042139fd2e9527b0a0b861104b"
+          "sha256": "6e2a4930566ca1c6cce663d58293c3bf4e8bf81b43bdaa4c587fca388595c6d3"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-sync.en-US.json",
@@ -260,7 +260,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/aiservices.go",
-          "sha256": "6c1f59338cb6c36421a21ae3c6659fa196d73dd2745f674508ce0f8cc4240847"
+          "sha256": "0db6ba8b4eede6ecc1162d6948144db85da9a1992518dfbeb31a4f59808beab3"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/config.go",
@@ -268,15 +268,15 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/provider_bulk.go",
-          "sha256": "a94ffc71fbd965fd4b7771a15caf4c07ffe7937c44f478c7019835fc127accb3"
+          "sha256": "472b20985dec3fa69562f4df97cfb339d73cb2c83128b5735f168b0a86e319ae"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-bulk-providers.en-US.json",
-          "sha256": "0ef058c53f1a443df6fd05027c7b16de6162d34cf30d89b61cc3bd5c25acab9a"
+          "sha256": "42fb88aafec9e3167e13f20a8f7ffa00cd9696e2ab4d9a733703bb5a504c460a"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-bulk-providers.zh-CN.json",
-          "sha256": "479cfc19aa1ce8e6345cc91d46ef364809d086dc166d267e669eedf3ddd84735"
+          "sha256": "dcbfde9b17b8b5bf098210a84015bb7737bae1f68a847979fdb784080097c171"
         },
         {
           "path": "modules/ai-magpie/warmup.go",
