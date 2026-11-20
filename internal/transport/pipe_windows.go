@@ -6,6 +6,7 @@ package transport
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os/user"
@@ -124,7 +125,7 @@ func CallWithVerifiedServer(ctx context.Context, name string, request host.Reque
 	var response host.Response
 	conn, err := winio.DialPipeContext(ctx, name)
 	if err != nil {
-		return response, err
+		return response, pipeCallError(ctx, err)
 	}
 	defer conn.Close()
 	stopCancellation := context.AfterFunc(ctx, func() { _ = conn.Close() })
@@ -150,11 +151,11 @@ func CallWithVerifiedServer(ctx context.Context, name string, request host.Reque
 		return response, err
 	}
 	if err = protocol.WriteFrameLimit(conn, data, protocol.MaxHostFrameSize); err != nil {
-		return response, err
+		return response, pipeCallError(ctx, err)
 	}
 	data, err = protocol.ReadFrameLimit(conn, protocol.MaxHostFrameSize)
 	if err != nil {
-		return response, err
+		return response, pipeCallError(ctx, err)
 	}
 	if err = json.Unmarshal(data, &response); err != nil {
 		return response, err
@@ -163,4 +164,17 @@ func CallWithVerifiedServer(ctx context.Context, name string, request host.Reque
 		return response, fmt.Errorf("response ID mismatch")
 	}
 	return response, nil
+}
+
+// The context cancellation closes pending I/O while go-winio's deadline timer
+// can win the same race. Preserve one caller-visible cause in either case;
+// go-winio's ErrTimeout does not wrap os.ErrDeadlineExceeded.
+func pipeCallError(ctx context.Context, err error) error {
+	if cause := ctx.Err(); cause != nil {
+		return cause
+	}
+	if errors.Is(err, winio.ErrTimeout) {
+		return context.DeadlineExceeded
+	}
+	return err
 }

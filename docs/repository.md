@@ -38,7 +38,7 @@
 
 默认检查不运行联网测试；`WINONE_NETWORK_TESTS=1` 仅在用户要求联网验证后启用，专用开关、隔离和未覆盖范围见 [默认测试范围](working-rules/architecture-performance.md#默认测试范围)。源码检查入口为 `build/test-source.ps1`，离线通过不等于真实供应商验收通过。
 
-本机连接与消息边界可单独运行 `build/test-transport.ps1 -GoExe <go.exe> -OutputDirectory _temp/<任务>/transport`。该入口检查真实命名管道的慢回复、业务错误、取消、空闲连接和帧大小，不创建网络监听或桌面窗口。
+本机连接与消息边界可单独运行 `build/test-transport.ps1 -GoExe <go.exe> -OutputDirectory _temp/<任务>/transport`；加 `-DesktopGoExe <设置窗口所用 go.exe>` 同时检查设置客户端与后台的等待期限。该入口检查真实命名管道的慢回复、业务错误、超时、取消、空闲连接和帧大小，不创建网络监听或桌面窗口。
 
 依赖使用锁文件；CI 从干净 checkout 构建。每次提交前检查 `git status --short`、`git diff --cached` 和 `git ls-files`。不要使用无差别暂存来掩盖文件分类问题。
 

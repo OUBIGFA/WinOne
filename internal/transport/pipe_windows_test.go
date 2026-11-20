@@ -9,9 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 	"winone/internal/host"
+	"winone/internal/protocol"
 	"winone/internal/settings"
 )
 
@@ -49,11 +51,53 @@ func TestZeroTimeoutPipeRetainsCallerCancellation(t *testing.T) {
 	cancel()
 	select {
 	case err := <-finished:
-		if err == nil || !errors.Is(ctx.Err(), context.Canceled) {
+		if !errors.Is(err, context.Canceled) {
 			t.Fatal("caller cancellation was lost", err)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("cancelled lifetime pipe stayed open")
+	}
+}
+
+// go-winio can finish a deadline through either its I/O timer or the context's
+// pipe close. Both paths must expose the caller's deadline, in read and write.
+func TestPipeCallDeadlinePreservesContextError(t *testing.T) {
+	for _, readRequest := range []bool{false, true} {
+		t.Run(fmt.Sprintf("read-request-%t", readRequest), func(t *testing.T) {
+			t.Parallel()
+			name := fmt.Sprintf(`\\.\pipe\WinOne-deadline-%t-%d`, readRequest, time.Now().UnixNano())
+			listener, err := Listen(name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer listener.Close()
+			release, finished := make(chan struct{}), make(chan error, 1)
+			go func() {
+				conn, err := listener.Accept()
+				if err == nil {
+					defer conn.Close()
+					if readRequest {
+						_, err = protocol.ReadFrameLimit(conn, protocol.MaxHostFrameSize)
+					}
+					<-release
+				}
+				finished <- err
+			}()
+			defer func() {
+				close(release)
+				listener.Close()
+				if err := <-finished; err != nil {
+					t.Error(err)
+				}
+			}()
+			// Exceed the pipe buffer so the unread request also exercises a
+			// pending write, instead of only the subsequent reply read.
+			params, _ := json.Marshal(strings.Repeat("x", 128<<10))
+			_, err = CallWithTimeout(t.Context(), name, host.Request{Version: 1, ID: "deadline", Method: "snapshot", Params: params}, 200*time.Millisecond)
+			if !errors.Is(err, context.DeadlineExceeded) {
+				t.Fatalf("lost caller deadline: %T: %v", err, err)
+			}
+		})
 	}
 }
 
@@ -201,8 +245,8 @@ func TestCallCancellationClosesConnectedPipe(t *testing.T) {
 	cancel()
 	select {
 	case err := <-done:
-		if err == nil {
-			t.Fatal("cancelled call succeeded")
+		if !errors.Is(err, context.Canceled) {
+			t.Fatal("cancelled call lost its context error", err)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("cancelled connection did not close")

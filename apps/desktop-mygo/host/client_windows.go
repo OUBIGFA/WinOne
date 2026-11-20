@@ -1,5 +1,5 @@
 // Package host is the desktop window's client of the WinOne Host: the same
-// named-pipe protocol, method names, time budgets and job semantics the
+// named-pipe protocol, method names and job semantics the
 // previous Rust window (apps/desktop-rust/src/transport.rs) used, so every
 // page sends exactly the requests its React version did.
 package host
@@ -128,8 +128,8 @@ func decodeInto(raw json.RawMessage, err error) func(any) error {
 }
 
 // CallCompleting submits a mutation once, then follows the configuration
-// job the Host may return for it until the job finishes, within the same
-// budgets as the Rust client's call_completing.
+// job the Host may return for it until the job finishes. Synchronous AI work
+// keeps the Host's operation budget plus time to deliver its final response.
 func (c *Client) CallCompleting(method string, params any) (json.RawMessage, error) {
 	id := c.nextID()
 	// The upstream batch owns each account's wait. This one synchronous
@@ -143,10 +143,17 @@ func (c *Client) CallCompleting(method string, params any) (json.RawMessage, err
 		budget, firstWait = 150*time.Second, 150*time.Second
 	case "capture.ai.models.test":
 		budget, firstWait = 100*time.Second, 100*time.Second
-	case "capture.ai.accounts.move-agy", "capture.ai.accounts.warm-now":
-		budget, firstWait = 3*time.Minute, 3*time.Minute
+	case "capture.ai.accounts.import", "capture.ai.accounts.move-agy", "capture.ai.accounts.warm-now":
+		// The Host allows three minutes, including waiting for the account.
+		// Leave the same reply margin as the 95-second model test above.
+		budget, firstWait = 3*time.Minute+5*time.Second, 3*time.Minute+5*time.Second
 	case "capture.ai.magpie.catalog", "capture.ai.accounts.catalog",
-		"capture.ai.accounts.list", "capture.ai.accounts.models", "capture.ai.accounts.quota", "capture.ai.accounts.checkin":
+		"capture.ai.accounts.list", "capture.ai.accounts.models", "capture.ai.accounts.quota", "capture.ai.accounts.checkin", "capture.ai.accounts.export",
+		"capture.ai.models.fetch", "capture.ai.models.certificate", "capture.ai.proxies.test",
+		"capture.ai.icons.store", "capture.ai.icons.fetch", "capture.ai.icons.website",
+		"capture.ai.plans.get", "capture.ai.plans.signout":
+		// These handlers return synchronously within 20–25 seconds. The
+		// default 15-second wait would discard valid results and real errors.
 		firstWait = 30 * time.Second
 	}
 	deadline := time.Now().Add(budget)
