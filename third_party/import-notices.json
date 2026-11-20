@@ -180,7 +180,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/editor.go",
-          "sha256": "83f9342bbb2c1e67065054d6dde5e921a84a66d943d61ab86b50fe195751200a"
+          "sha256": "442a52572f856a871296824f2949c897ba70a3c2a26cf52ff8853ed977d82a03"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-sync.en-US.json",
@@ -272,7 +272,7 @@
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-bulk-providers.en-US.json",
-          "sha256": "42fb88aafec9e3167e13f20a8f7ffa00cd9696e2ab4d9a733703bb5a504c460a"
+          "sha256": "e9e0bc075c431887caba91f5985d78d593918f98e7f531cb72287a18a6010313"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-bulk-providers.zh-CN.json",
