@@ -30,7 +30,7 @@
   "aiComplete.autoInclude": "Automatically include new models",
   "aiComplete.autoIncludeHint": "One model ID pattern per line. Use * or a regular expression prefixed with re:.",
   "aiComplete.unlisted": "Hide provider models from lists",
-  "aiComplete.unlistedHint": "Still available through routing groups or the full provider/model ID.",
+  "aiComplete.unlistedHint": "Hide from the published model list. Authorized clients can still call the full provider/model ID.",
   "aiComplete.modelCatalog": "Model catalog and media",
   "aiComplete.family": "Model family label",
   "aiComplete.catalog": "Model catalog (models.dev ID)",

@@ -30,7 +30,7 @@
   "aiComplete.autoInclude": "自动加入新模型",
   "aiComplete.autoIncludeHint": "每行一个模型名称模式，支持 *；正则表达式使用 re: 前缀。",
   "aiComplete.unlisted": "隐藏供应商模型列表",
-  "aiComplete.unlistedHint": "仍可通过路由组或完整的供应商/模型名称调用。",
+  "aiComplete.unlistedHint": "从对外模型清单中隐藏。已获授权的客户端仍可用完整的供应商/模型名称调用。",
   "aiComplete.modelCatalog": "模型分类与媒体",
   "aiComplete.family": "模型家族标签",
   "aiComplete.catalog": "模型目录来源（models.dev ID）",
