@@ -38,21 +38,30 @@ internal static class NativeCaptureLatencyProbe
         var store = new SettingsStore(output);
         var operations = new CaptureOperations(store, output, _ => throw new InvalidOperationException("No clipboard output in latency probe"));
         var bounds = CaptureHelpers.GetScreenBounds();
+        // Production sessions autosave their original; closing used to wait
+        // for that full-screen PNG encode. Noise is the expensive case (photo,
+        // video, wallpaper); WINONE_CAPTURE_LATENCY_FRAME=white keeps the old frame.
+        var drafts = new NativeCaptureDraftStore(Path.Combine(output, "drafts"));
+        var noise = Environment.GetEnvironmentVariable("WINONE_CAPTURE_LATENCY_FRAME") != "white";
+        var pixels = new byte[bounds.Width * bounds.Height * 4];
+        if (noise) new Random(1).NextBytes(pixels);
+        else Array.Fill(pixels, (byte)255);
         using var process = Process.GetCurrentProcess();
         var samples = new List<object>();
         void Sample(string phase)
         {
             var clock = Stopwatch.StartNew();
             var stages = new Dictionary<string, double>();
-            double firstPaint = 0, input = 0;
+            double firstPaint = 0, input = 0, closeRequested = 0;
             Exception? failure = null;
             try {
                 NativeCaptureWorkflow.Run(store, operations, "region", "zh-CN", CancellationToken.None,
                     acquire: () => {
-                        var bitmap = new Bitmap(bounds.Width, bounds.Height);
-                        using (var graphics = Graphics.FromImage(bitmap)) graphics.Clear(Color.White);
+                        var bitmap = new Bitmap(bounds.Width, bounds.Height, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+                        var data = bitmap.LockBits(new Rectangle(Point.Empty, bounds.Size), System.Drawing.Imaging.ImageLockMode.WriteOnly, bitmap.PixelFormat);
+                        try { Marshal.Copy(pixels, 0, data.Scan0, pixels.Length); } finally { bitmap.UnlockBits(data); }
                         return CapturedFrame.Own(bitmap, bounds);
-                    }, windows: () => [], show: (canvas, session) => {
+                    }, windows: () => [], drafts: drafts, show: (canvas, session) => {
                         var measured = false;
                         // Post after the first real WM_PAINT has returned through
                         // FirstPaintObserver, rather than forcing DrawToBitmap.
@@ -71,7 +80,7 @@ internal static class NativeCaptureLatencyProbe
                                     input = watch.Elapsed.TotalMilliseconds;
                                     if (canvas.Selection != new Rectangle(40, 40, 401, 201)) throw new InvalidOperationException($"First input changed inclusive pixel bounds: {canvas.Selection} ({phase})");
                                 } catch (Exception error) { failure = error; }
-                                finally { canvas.Window.Close(); }
+                                finally { closeRequested = clock.Elapsed.TotalMilliseconds; canvas.Window.Close(); }
                             }));
                         });
                         canvas.Window.Shown += (_, _) => stages["shown"] = clock.Elapsed.TotalMilliseconds;
@@ -80,11 +89,14 @@ internal static class NativeCaptureLatencyProbe
                         timeout.Start();canvas.ShowDialog();timeout.Stop();
                     }, startupStage: stage => stages[stage] = clock.Elapsed.TotalMilliseconds).GetAwaiter().GetResult();
             } catch (OperationCanceledException) when (firstPaint > 0 || failure is not null) { }
+            // Close request to the capture job returning: what decides when the
+            // next shortcut can start a new capture.
+            var closeMs = clock.Elapsed.TotalMilliseconds - closeRequested;
             if (failure is not null) throw failure;
             if (firstPaint <= 0) throw new InvalidOperationException("No real paint was measured");
             if (Application.OpenForms.Count != 0 || operations.ActivateNativeCapture is not null) throw new InvalidOperationException("Completed capture retained a window");
             process.Refresh();
-            samples.Add(new { phase, stages, firstPaintMs = firstPaint, firstInputMs = input, privateBytes = process.PrivateMemorySize64, workingSetBytes = process.WorkingSet64, handles = process.HandleCount });
+            samples.Add(new { phase, stages, firstPaintMs = firstPaint, firstInputMs = input, closeToReturnMs = closeMs, privateBytes = process.PrivateMemorySize64, workingSetBytes = process.WorkingSet64, handles = process.HandleCount });
         }
         var exitCode = 1;
         // Production keeps one Application.Run/dispatcher alive for every
@@ -113,8 +125,15 @@ internal static class NativeCaptureLatencyProbe
             NativeCaptureStandby.Prepare(operations, store.Snapshot(), "zh-CN", refresh: true);
             resume.Stop();
             Sample("after-resume-preparation");
+            var draining = Stopwatch.StartNew();
+            // Reflection keeps this probe runnable on builds before background
+            // draining existed, for before/after comparison.
+            if (typeof(NativeCaptureAutosave).GetMethod("WhenDrained", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)?.Invoke(null, null) is Task drained) await drained;
+            draining.Stop();
+            if (drafts.Read() is not null || drafts.ReadReservation() is not null || drafts.RetryCleanup().Pending) throw new InvalidOperationException("Discarded drafts were not cleaned up");
             File.WriteAllText(Path.Combine(output, "latency.json"), JsonSerializer.Serialize(new {
-                scope = "Generated desktop-sized frame; actual private-desktop HWND/WM_PAINT and first selection input. No system suspend, real clipboard or physical input-to-photon claim.",
+                scope = "Generated desktop-sized frame with production draft autosave; actual private-desktop HWND/WM_PAINT, first selection input and close-to-return. No system suspend, real clipboard or physical input-to-photon claim.",
+                frame = noise ? "noise" : "white", finalDrainMs = draining.Elapsed.TotalMilliseconds,
                 screen = bounds.Size, preparationMs = preparing.Elapsed.TotalMilliseconds, idleSeconds = idle.Elapsed.TotalSeconds, idleCpuSeconds = idleCpu,
                 resumePreparationMs = resume.Elapsed.TotalMilliseconds, samples, retainedWindows = Application.OpenForms.Count
             }, new JsonSerializerOptions { WriteIndented = true }));

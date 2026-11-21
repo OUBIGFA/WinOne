@@ -10,7 +10,8 @@ namespace WinOne.Capture;
 internal record ApiError(string Code, string Message);
 internal record Response(string Id, object? Result = null, ApiError? Error = null);
 internal record Request(int Version, string Id, string Method, [property: JsonPropertyName("params")] JsonElement Parameters);
-internal record Job(string Id, string State, object? Result = null, string? Error = null);
+// Timings are milliseconds since the job started, keyed by workflow stage.
+internal record Job(string Id, string State, object? Result = null, string? Error = null, IReadOnlyDictionary<string, double>? Timings = null);
 
 // One STA owns native capture forms; pipe clients only enqueue bounded commands.
 internal sealed class CaptureApplication : ApplicationContext
@@ -38,6 +39,9 @@ internal sealed class CaptureApplication : ApplicationContext
     private readonly bool stayReady;
     private int wakeQueued;
     private string? activeNativeJob;
+    // Replaced on every job completion; jobs.get waits on it instead of the
+    // Host polling on a fixed interval.
+    private TaskCompletionSource jobChanged = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private (string Draft, long Revision, string Job)? retake;
     public int ExitCode => Volatile.Read(ref exitCode);
     public CaptureApplication(string pipe, string directory, NativeCaptureHandlers? native = null, Action<Bitmap>? copyImage = null, NativeUI.NativeHostConfiguration? nativeConfiguration = null, bool stayReady = false)
@@ -51,7 +55,7 @@ internal sealed class CaptureApplication : ApplicationContext
         {
             lock (lifecycle)
             {
-                if (busy != 0 || closing != 0 || PinToScreenForm.ActiveCount != 0 || Environment.TickCount64 - activity <= 60_000) return;
+                if (busy != 0 || closing != 0 || PinToScreenForm.ActiveCount != 0 || NativeUI.NativeCaptureAutosave.Draining || Environment.TickCount64 - activity <= 60_000) return;
                 if (operations.NativeConfiguration?.TryBeginShutdown() == false) return;
                 closing = 1;
             }
@@ -95,6 +99,7 @@ internal sealed class CaptureApplication : ApplicationContext
             {
                 var bytes = await PipeProtocol.ReadAsync(pipe, timeout.Token).ConfigureAwait(false);
                 var request = JsonSerializer.Deserialize<Request>(bytes, SettingsStore.Json) ?? throw new InvalidDataException("请求为空");
+                if (request.Method == "jobs.get") await WaitForJobAsync(request.Parameters, timeout.Token).ConfigureAwait(false);
                 // Status polling is not user activity and must not keep an idle worker alive.
                 if (request.Method is not ("snapshot" or "jobs.get" or "settings.reload" or "prepare")) Interlocked.Exchange(ref activity, Environment.TickCount64);
                 Response response;
@@ -105,6 +110,22 @@ internal sealed class CaptureApplication : ApplicationContext
             catch (OperationCanceledException) { }
             catch (IOException) { }
             catch (JsonException error) { Console.Error.WriteLine("Invalid capture request: " + error.Message); }
+        }
+    }
+    // Hold a status read until the job leaves "running" or waitMs passes, so a
+    // caller observes completion at once. The cap stays within the 5 s pipe
+    // budget; an absent waitMs keeps the immediate answer.
+    private async Task WaitForJobAsync(JsonElement parameters, CancellationToken cancellation)
+    {
+        if (parameters.ValueKind != JsonValueKind.Object || !parameters.TryGetProperty("waitMs", out var value) || !value.TryGetInt32(out var waitMs) || waitMs <= 0
+            || !parameters.TryGetProperty("id", out var idValue) || idValue.GetString() is not { } id) return;
+        var deadline = Environment.TickCount64 + Math.Min(waitMs, 2000);
+        while (true) {
+            var changed = Volatile.Read(ref jobChanged).Task;
+            var remaining = deadline - Environment.TickCount64;
+            if (remaining <= 0 || !jobs.TryGetValue(id, out var job) || job.State != "running") return;
+            try { await changed.WaitAsync(TimeSpan.FromMilliseconds(remaining), cancellation).ConfigureAwait(false); }
+            catch (TimeoutException) { return; }
         }
     }
     private object Handle(Request request)
@@ -278,6 +299,8 @@ internal sealed class CaptureApplication : ApplicationContext
     private Job StartJobAsync(Func<string, Task<object>> action, bool native = false)
     {
         var job = new Job(Guid.NewGuid().ToString("N"), "running");
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var stages = new ConcurrentDictionary<string, double>();
         lock (lifecycle)
         {
             if (closing != 0) throw new InvalidOperationException("截图模块正在退出");
@@ -295,7 +318,12 @@ internal sealed class CaptureApplication : ApplicationContext
                 {
                     stopping.Token.ThrowIfCancellationRequested();
                     using var interactive = new InteractiveWorkScope();
-                    if (native) operations.NativeJobId = job.Id;
+                    if (native) {
+                        operations.NativeJobId = job.Id;
+                        // The first time a stage occurs is the useful one; a
+                        // retake or restored session does not overwrite it.
+                        operations.RecordStage = stage => stages.TryAdd(stage, clock.Elapsed.TotalMilliseconds);
+                    }
                     finished = job with { State = "completed", Result = await action(job.Id) };
                 }
                 catch (OperationCanceledException) { finished = job with { State = "cancelled" }; }
@@ -305,10 +333,12 @@ internal sealed class CaptureApplication : ApplicationContext
                     // A terminal job and its released busy slot become visible before shutdown can pass.
                     lock (lifecycle)
                     {
+                        if (native) { stages.TryAdd("done", clock.Elapsed.TotalMilliseconds); finished = finished with { Timings = stages }; }
                         activity = Environment.TickCount64; busy = 0; jobs[job.Id] = finished;
-                        if (operations.NativeJobId == job.Id) operations.NativeJobId = null;
+                        if (operations.NativeJobId == job.Id) { operations.NativeJobId = null; operations.RecordStage = null; }
                         if (activeNativeJob == job.Id) activeNativeJob = null;
                     }
+                    Interlocked.Exchange(ref jobChanged, new(TaskCreationOptions.RunContinuationsAsynchronously)).TrySetResult();
                     completed.Enqueue(job.Id);
                     while (jobs.Count > 64 && completed.TryDequeue(out var old)) jobs.TryRemove(old, out _);
                     if (Volatile.Read(ref closing) != 0) RequestStop();
@@ -374,6 +404,10 @@ internal sealed class CaptureApplication : ApplicationContext
                 PinToScreenForm.CloseAll();
                 var deadline = Environment.TickCount64 + 8000;
                 while (Volatile.Read(ref busy) != 0 && Environment.TickCount64 < deadline) await Task.Delay(25);
+                // Discarded draft encodes finish within the same exit budget,
+                // so they do not leave a partial image for startup cleanup.
+                var remaining = deadline - Environment.TickCount64;
+                if (remaining > 0) await Task.WhenAny(NativeUI.NativeCaptureAutosave.WhenDrained(), Task.Delay(TimeSpan.FromMilliseconds(remaining)));
                 ExitThread();
             });
         }

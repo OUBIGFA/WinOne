@@ -3,10 +3,14 @@
 
 Engine choices follow HushSnap ppocr.py at 2d43f0e1f. The parent owns
 cancellation and residency. A zero-length frame prepares both lazy sessions;
-all other frames contain one image. Stdout is one JSON response per frame.
+all other frames contain one image. Stdout is one JSON response per frame,
+naming the inference device: "cpu" for the resident engine, "gpu" when a
+large selection used a one-request DirectML engine.
 """
 import contextlib
+import ctypes
 import functools
+import gc
 import io
 import json
 import os
@@ -20,16 +24,67 @@ os.environ.setdefault('OPENBLAS_NUM_THREADS', '1')
 MAX_IMAGE_BYTES = 32 * 1024 * 1024
 
 
-@functools.lru_cache(maxsize=1)
-def _engine(model_root: pathlib.Path):
-    # A Host-owned worker reuses only model sessions. Captured images and
-    # recognized text are request-local and never cached or written to disk.
-    from rapidocr import RapidOCR, OCRVersion, ModelType
+class _PowerThrottlingState(ctypes.Structure):
+    _fields_ = [('Version', ctypes.c_ulong), ('ControlMask', ctypes.c_ulong), ('StateMask', ctypes.c_ulong)]
+
+
+_PROCESS_POWER_THROTTLING = 4  # ProcessPowerThrottling information class
+_EXECUTION_SPEED = 1           # PROCESS_POWER_THROTTLING_EXECUTION_SPEED
+_kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+_kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+
+
+def _power_throttling() -> tuple[int, int]:
+    state = _PowerThrottlingState(1, 0, 0)
+    if not _kernel32.GetProcessInformation(ctypes.c_void_p(_kernel32.GetCurrentProcess()), _PROCESS_POWER_THROTTLING,
+                                           ctypes.byref(state), ctypes.sizeof(state)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    return state.ControlMask, state.StateMask
+
+
+def _set_power_throttling(control: int, state: int) -> None:
+    value = _PowerThrottlingState(1, control, state)
+    if not _kernel32.SetProcessInformation(ctypes.c_void_p(_kernel32.GetCurrentProcess()), _PROCESS_POWER_THROTTLING,
+                                           ctypes.byref(value), ctypes.sizeof(value)):
+        raise ctypes.WinError(ctypes.get_last_error())
+
+
+@contextlib.contextmanager
+def _interactive():
+    # This worker runs in the background, so Windows may give it EcoQoS
+    # (efficiency cores, low clock). Measured on an i7-12700K, a one-line
+    # selection took about 230 ms throttled and 16 ms at full speed. A user's
+    # recognition opts out, as the capture worker does, and the prior policy
+    # returns afterwards so idle maintenance stays power-efficient.
+    # https://learn.microsoft.com/windows/win32/procthread/quality-of-service
+    try:
+        control, state = _power_throttling()
+        _set_power_throttling(control | _EXECUTION_SPEED, state & ~_EXECUTION_SPEED)
+    except OSError as error:
+        # Speed only; recognition is still correct at the system's policy.
+        print(f'OCR interactive priority unavailable: {error.winerror}', file=sys.stderr, flush=True)
+        yield
+        return
+    try:
+        yield
+    finally:
+        _set_power_throttling(control, state)
+
+
+# Selections at least this large use the GPU. Below it the resident CPU
+# engine wins: creating DirectML sessions takes about 0.4 s. Measured on
+# generated pages (i7-12700K, RTX 3080 Ti): 1600x1000 with 30 lines took
+# 2.0-2.5 s on CPU and about 1.2 s with GPU creation included.
+GPU_MIN_PIXELS = 1_000_000
+
+
+def _params(model_root: pathlib.Path) -> dict:
+    from rapidocr import OCRVersion, ModelType
     det = model_root / 'PP-OCRv6_det_small.onnx'
     rec = model_root / 'PP-OCRv6_rec_small.onnx'
     if not det.is_file() or not rec.is_file():
         raise FileNotFoundError('OCR models are missing')
-    params = {
+    return {
         'Det.ocr_version': OCRVersion.PPOCRV6,
         'Det.model_type': ModelType.SMALL,
         'Det.model_path': str(det),
@@ -49,20 +104,67 @@ def _engine(model_root: pathlib.Path):
         'EngineConfig.onnxruntime.inter_op_num_threads': 1,
         'EngineConfig.onnxruntime.enable_cpu_mem_arena': False,
     }
-    return RapidOCR(params=params)
 
 
-def recognize(data: bytes, model_root: pathlib.Path) -> str:
-    import numpy as np
-    from PIL import Image
+@functools.lru_cache(maxsize=1)
+def _engine(model_root: pathlib.Path):
+    # A Host-owned worker keeps only these CPU model sessions resident.
+    # Captured images and recognized text are request-local and never cached
+    # or written to disk.
+    import onnxruntime
+    # Windows builds of ONNX Runtime can emit ETW telemetry events; OCR is a
+    # local feature and does not need them.
+    onnxruntime.disable_telemetry_events()
+    from rapidocr import RapidOCR
+    return RapidOCR(params=_params(model_root))
+
+
+@functools.lru_cache(maxsize=1)
+def _gpu_shell(model_root: pathlib.Path):
+    # The engine object and its pre/post-processing stay; its model sessions
+    # do not. DirectML sessions cache intermediate buffers sized by the
+    # largest input: about 0.9 GB committed when created and up to 5.5 GB
+    # after one full-screen page, never returned while the session lives.
+    # So they are attached for one request and released afterwards.
+    from rapidocr import RapidOCR
+    params = _params(model_root)
+    # GPU dispatch has a fixed cost per call, so lines are batched. On
+    # generated pages six per batch was 2-3x faster than one, with equal or
+    # lower character error (0.49% vs 0.51%). The CPU engine keeps one.
+    params['Rec.rec_batch_num'] = 6
+    engine = RapidOCR(params=params)
+    # RapidOCR 3.10.0 cannot pass DirectML options through its configuration;
+    # these loaders and session attributes are private to that pinned version.
+    models = (engine._load_det_model(), engine._load_rec_model())
+    for model in models:
+        model.session.session = None  # Free the CPU sessions the loaders built.
+    return engine, models, (params['Det.model_path'], params['Rec.model_path'])
+
+
+def _gpu_sessions(paths):
+    import onnxruntime as ort
+    from concurrent.futures import ThreadPoolExecutor
+    options = ort.SessionOptions()
+    options.log_severity_level = 3
+    options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    # DirectML supports neither memory patterns nor parallel execution.
+    options.enable_mem_pattern = False
+    options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+    # Metacommands made these models about 2x slower on the measured NVIDIA
+    # driver (12 lines: 355 -> 158 ms; full screen: 3.4 -> 1.8 s). No CPU
+    # provider is listed: a missing DirectX 12 device must fail here and use
+    # the resident CPU engine, not run slowly on a second CPU session.
+    providers = [('DmlExecutionProvider', {'device_id': 0, 'disable_metacommands': 'true'})]
+    # Both sessions are built at once; each takes about 0.3 s.
+    with ThreadPoolExecutor(2) as pool:
+        return list(pool.map(lambda path: ort.InferenceSession(path, sess_options=options, providers=providers), paths))
+
+
+_gpu_available = os.environ.get('WINONE_OCR_DEVICE') != 'cpu'  # cpu forces the fallback (tests, diagnosis).
+
+
+def _run(engine, pixels):
     from hushsnap_layout import compose_ppocr_structures, _is_vertical_json
-
-    with Image.open(io.BytesIO(data)) as image:
-        if image.width * image.height > 40_000_000:
-            raise ValueError('OCR image is too large')
-        # PIL is RGB; the HushSnap inference path passes contiguous BGR pixels.
-        pixels = np.asarray(image.convert('RGB'))[:, :, ::-1].copy()
-    engine = _engine(model_root)
     # RapidOCR retains per-call switches. Reset detection after a previous
     # rec-only fallback, otherwise a blank selection breaks the next request.
     result = engine(pixels, use_det=True, use_cls=False, use_rec=True)
@@ -78,7 +180,37 @@ def recognize(data: bytes, model_root: pathlib.Path) -> str:
     return '\n'.join(line.text for line in lines).rstrip()
 
 
-def prepare(model_root: pathlib.Path) -> None:
+def recognize(data: bytes, model_root: pathlib.Path) -> tuple[str, str]:
+    global _gpu_available
+    import numpy as np
+    from PIL import Image
+
+    with Image.open(io.BytesIO(data)) as image:
+        if image.width * image.height > 40_000_000:
+            raise ValueError('OCR image is too large')
+        # PIL is RGB; the HushSnap inference path passes contiguous BGR pixels.
+        pixels = np.asarray(image.convert('RGB'))[:, :, ::-1].copy()
+        large = image.width * image.height >= GPU_MIN_PIXELS
+    if large and _gpu_available:
+        engine, models, paths = _gpu_shell(model_root)
+        try:
+            for model, session in zip(models, _gpu_sessions(paths)):
+                model.session.session = session
+            return _run(engine, pixels), 'gpu'
+        except Exception as error:
+            # No usable device, a driver reset or device removal: this worker
+            # stays on CPU. The Host's next worker tries the GPU again.
+            _gpu_available = False
+            print(f'OCR GPU unavailable, using CPU: {type(error).__name__}', file=sys.stderr, flush=True)
+        finally:
+            # Release the DirectML sessions and their cached buffers now.
+            for model in models:
+                model.session.session = None
+            gc.collect()
+    return _run(_engine(model_root), pixels), 'cpu'
+
+
+def prepare(model_root: pathlib.Path) -> str:
     # RapidOCR 3.10 creates inference sessions on first use, not construction.
     # Exercise the real detection/recognition path with generated text only;
     # a model constructor or an all-white detection pass would leave rec cold.
@@ -87,17 +219,23 @@ def prepare(model_root: pathlib.Path) -> None:
         ImageDraw.Draw(image).text((8, 8), 'WinOne OCR 123', fill='black')
         with io.BytesIO() as png:
             image.save(png, 'PNG')
-            recognize(png.getvalue(), model_root)
+            device = recognize(png.getvalue(), model_root)[1]
+    if _gpu_available:
+        # Build the GPU engine shell now (about 0.4 s of CPU, no GPU memory),
+        # so a large selection pays only for its DirectML sessions.
+        _gpu_shell(model_root)
+    return device
 
 
 def _respond(data: bytes, model_root: pathlib.Path) -> bool:
     try:
         with contextlib.redirect_stdout(sys.stderr):
             if not data:
-                prepare(model_root)
-                result = {'prepared': True}
+                result = {'prepared': True, 'device': prepare(model_root)}
             else:
-                result = {'text': recognize(data, model_root)}
+                with _interactive():
+                    text, device = recognize(data, model_root)
+                result = {'text': text, 'device': device}
         print(json.dumps(result, ensure_ascii=False), flush=True)
         return True
     except Exception as error:

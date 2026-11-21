@@ -30,6 +30,8 @@ internal sealed partial class CaptureOperations
     internal NativeUI.NativeHostConfiguration? NativeConfiguration { get; init; }
     internal Action? ActivateNativeCapture { get; set; }
     internal string? NativeJobId { get; set; }
+    // Records the active native job's workflow stages for its timing log.
+    internal Action<string>? RecordStage { get; set; }
     internal NativeCaptureOutput CreateNativeOutput(CancellationToken cancellation, string? language = null, CaptureSettings? sessionSettings = null)
     {
         // Match draft sessions: later settings changes apply to the next

@@ -50,7 +50,7 @@ while True:
     if not header: break
     length = struct.unpack('<I', header)[0]
     if length == 0:
-        print(json.dumps({'prepared': True}), flush=True)
+        print(json.dumps({'prepared': True, 'device': 'gpu'}), flush=True)
         continue
     payload = sys.stdin.buffer.read(length).decode()
     if payload.startswith('wait:'):
@@ -60,7 +60,7 @@ while True:
     if payload == 'oversized':
         print('x' * (2 * 1024 * 1024), flush=True)
     elif payload == 'blank': print(json.dumps({'text': ''}), flush=True)
-    else: print(json.dumps({'text': str(os.getpid()) + ':' + payload}), flush=True)
+    else: print(json.dumps({'text': str(os.getpid()) + ':' + payload, 'device': 'gpu'}), flush=True)
 `
 	if err := os.WriteFile(filepath.Join(root, "capture", "Ocr", "recognize.py"), []byte(script), 0600); err != nil {
 		t.Fatal(err)
@@ -384,5 +384,38 @@ func TestLocalOCRRejectsInvalidInputsBeforeStarting(t *testing.T) {
 		if _, err := service.Recognize(context.Background(), value); err == nil {
 			t.Fatal(fmt.Sprintf("accepted invalid input with %d bytes", len(value)))
 		}
+	}
+}
+
+// Readiness is logged once per worker (not on every 30 s maintenance), and
+// each recognition logs its device, size and duration, never the text.
+func TestLocalOCRObservesReadinessOnceAndEachRecognition(t *testing.T) {
+	service, _ := ocrWorkerFixture(t, time.Minute)
+	var events []string
+	service.Observe = func(event, message string) { events = append(events, event+" "+message) }
+	if err := <-service.SetStandby(true); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.PrepareIfIdle(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	workerReply(t, service, "secret words")
+	if len(events) != 2 || !strings.HasPrefix(events[0], "ocr.ready device=gpu ms=") || !strings.HasPrefix(events[1], "ocr.timing device=gpu size=unknown bytes=12 ms=") {
+		t.Fatalf("events: %q", events)
+	}
+	for _, event := range events {
+		if strings.Contains(event, "secret") {
+			t.Fatalf("recognized text reached the log: %q", event)
+		}
+	}
+}
+
+func TestPNGSizeReadsHeaderOnly(t *testing.T) {
+	header := []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 0x0d, 0x70, 0, 0, 0x05, 0xa0}
+	if got := pngSize(header); got != "3440x1440" {
+		t.Fatal(got)
+	}
+	if got := pngSize([]byte("not a png at all, really long enough")); got != "unknown" {
+		t.Fatal(got)
 	}
 }

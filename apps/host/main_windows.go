@@ -294,7 +294,7 @@ func run() (runErr error) {
 		return err
 	}, openWindow: func() error {
 		return launchDesktop(filepath.Join(filepath.Dir(executable), "WinOne.exe"), *pipe, *data, "")
-	}, language: func() string { return applicationLanguage(store.Snapshot().Language) }}
+	}, language: func() string { return applicationLanguage(store.Snapshot().Language) }, logDirectory: *data}
 	defer shortcuts.registrar.Close()
 	gates := map[string]*modules.Gate{}
 	strokeChanged := make(chan struct{}, 1)

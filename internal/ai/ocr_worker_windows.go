@@ -40,6 +40,10 @@ type LocalOCR struct {
 	ready        atomic.Bool
 	processID    atomic.Int64
 	lastRecovery time.Time // Protected by gate; bounds repeated crash recovery.
+	// Observe receives bounded timing events: "ocr.ready" once per worker and
+	// "ocr.timing" per recognition. Messages hold sizes, durations and the
+	// device, never image bytes or recognized text. Set before first use.
+	Observe func(event, message string)
 }
 
 func NewLocalOCR(lifetime context.Context, runtime Translator) *LocalOCR {
@@ -195,6 +199,14 @@ func (s *LocalOCR) recoverAfterExit(exited *ocrWorker) {
 	}
 }
 
+// pngSize reads the IHDR dimensions for the timing log without decoding.
+func pngSize(image []byte) string {
+	if len(image) < 24 || string(image[1:4]) != "PNG" || string(image[12:16]) != "IHDR" {
+		return "unknown"
+	}
+	return fmt.Sprintf("%dx%d", binary.BigEndian.Uint32(image[16:20]), binary.BigEndian.Uint32(image[20:24]))
+}
+
 func (s *LocalOCR) Recognize(ctx context.Context, image []byte) (string, error) {
 	return s.exchange(ctx, image, false)
 }
@@ -234,6 +246,7 @@ func (s *LocalOCR) exchangeLocked(ctx context.Context, image []byte, prepare boo
 		s.idle = nil
 	}
 	s.generation++
+	started := time.Now()
 	if err := s.start(); err != nil {
 		return "", err
 	}
@@ -287,6 +300,7 @@ func (s *LocalOCR) exchangeLocked(ctx context.Context, image []byte, prepare boo
 	var result struct {
 		Text     *string `json:"text"`
 		Prepared bool    `json:"prepared"`
+		Device   string  `json:"device"`
 		Error    string  `json:"error"`
 	}
 	if json.Unmarshal(worker.output.Bytes(), &result) != nil || result.Error == "" && (prepare && !result.Prepared || !prepare && result.Text == nil) {
@@ -299,6 +313,16 @@ func (s *LocalOCR) exchangeLocked(ctx context.Context, image []byte, prepare boo
 			return "", errors.New("OCR 预热失败，请修复安装或重试")
 		}
 		return "", errors.New("OCR 识别失败，请重试")
+	}
+	elapsed := float64(time.Since(started).Microseconds()) / 1000
+	if s.Observe != nil {
+		// Idle maintenance prepares every 30 s; only a worker's first
+		// readiness is worth a log line. It includes process and model start.
+		if !prepare {
+			s.Observe("ocr.timing", fmt.Sprintf("device=%s size=%s bytes=%d ms=%.0f", result.Device, pngSize(image), len(image), elapsed))
+		} else if !worker.preparedOnce.Load() {
+			s.Observe("ocr.ready", fmt.Sprintf("device=%s ms=%.0f", result.Device, elapsed))
+		}
 	}
 	worker.preparedOnce.Store(true)
 	s.ready.Store(true)

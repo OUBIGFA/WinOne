@@ -100,9 +100,10 @@ internal sealed class NativeCaptureAutosave
         }
     }
 
-    // Normal completion/cancel retires the draft. Parent shutdown preserves it
-    // by draining the newest edit instead. Callers retain Worker lifetime until
-    // this task ends, but do not wait on it from paint or input handlers.
+    // Normal completion/cancel retires the draft and returns once retirement
+    // is durable; the discarded encode drains in the background (Draining).
+    // Parent shutdown preserves the draft by persisting the newest edit and
+    // returns only after that write. Never wait on it from paint or input.
     public Task<NativeDraftCleanup> FinishAsync(bool retire)
     {
         lock (gate) {
@@ -130,7 +131,7 @@ internal sealed class NativeCaptureAutosave
         }
         // This operation must run independently of the encoder. Cancellation
         // records invalidation first; the generation lease defers only deletion.
-        await Task.Run(() => {
+        var recorded = await Task.Run(() => {
             lock (updateGate) {
                 var cleanup = store.CancelReservation(id);
                 // A failed retirement leaves the writer accepting edits, so the
@@ -139,9 +140,48 @@ internal sealed class NativeCaptureAutosave
                 return cleanup;
             }
         }).ConfigureAwait(false);
+        // The durable retirement record already hides this generation from
+        // recovery and lets the next capture reserve a new one. A full-screen
+        // PNG encode can take most of a second on detailed desktops, so the
+        // window and the capture job no longer wait for it; only process exit
+        // does, through the tracked drain below.
+        Track(DrainAsync());
+        return recorded;
+    }
+
+    private async Task DrainAsync()
+    {
         try { await worker.ConfigureAwait(false); }
         catch (OperationCanceledException) { }
         catch (Exception error) { Console.Error.WriteLine("Native autosave discarded: " + error.Message); }
-        return await Task.Run(store.RetryCleanup).ConfigureAwait(false);
+        var cleanup = await Task.Run(store.RetryCleanup).ConfigureAwait(false);
+        foreach (var error in cleanup.Errors) Console.Error.WriteLine("Native draft cleanup: " + error);
+    }
+
+    private static readonly object drainGate = new();
+    private static readonly HashSet<Task> drains = new();
+
+    // Track the removal continuation, not the drain, so WhenDrained and
+    // Draining agree: once WhenDrained completes, Draining is already false.
+    private static void Track(Task drain)
+    {
+        lock (drainGate) {
+            Task tracked = null!;
+            tracked = drain.ContinueWith(_ => { lock (drainGate) drains.Remove(tracked); }, TaskScheduler.Default);
+            drains.Add(tracked);
+        }
+    }
+
+    // Discarded encodes still running in the background. Shutdown waits for
+    // them so a half-written file is not left for startup cleanup; a new
+    // capture never waits.
+    internal static bool Draining { get { lock (drainGate) return drains.Count != 0; } }
+
+    internal static Task WhenDrained()
+    {
+        Task[] pending;
+        lock (drainGate) pending = drains.ToArray();
+        // DrainAsync logs and swallows its own failures.
+        return Task.WhenAll(pending);
     }
 }

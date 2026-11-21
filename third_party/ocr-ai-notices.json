@@ -207,12 +207,27 @@
     },
     {
       "kind": "python",
-      "name": "onnxruntime",
+      "name": "onnxruntime-directml",
       "version": "1.21.1",
       "notices": [
         {
-          "file": "licenses/python-onnxruntime-1.21.1-0-LICENSE.txt",
+          "file": "licenses/python-onnxruntime-directml-1.21.1-0-LICENSE.txt",
           "sha256": "c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674"
+        }
+      ]
+    },
+    {
+      "kind": "runtime",
+      "name": "DirectML",
+      "version": "1.15.4",
+      "notices": [
+        {
+          "file": "licenses/runtime-DirectML-1.15.4-0-LICENSE.txt.txt",
+          "sha256": "a05138e3a085ff60a44881eedfa58dccb03ecc1d7b1f6ae888418e8c2fec4b8d"
+        },
+        {
+          "file": "licenses/runtime-DirectML-1.15.4-1-ThirdPartyNotices.txt.txt",
+          "sha256": "2c95795c13ff48a58b6ed916f37901c23d964b5d9d601af422f17ad2172e7950"
         }
       ]
     },

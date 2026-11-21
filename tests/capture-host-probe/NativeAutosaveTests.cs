@@ -82,10 +82,17 @@ internal static class NativeAutosaveTests
         if (!entered.Wait(TimeSpan.FromSeconds(10))) throw new TimeoutException("Cancel encoder did not start");
         var finishing = cancelled.FinishAsync(true);
         try {
-            if (!SpinWait.SpinUntil(() => cancelStore.ReadReservation() is null, TimeSpan.FromSeconds(5))) throw new Exception("Cancel waited for PNG encoding");
-            if (finishing.IsCompleted) throw new Exception("Worker released lifetime before encoder finished");
+            // Closing a capture must not wait for the discarded full-screen
+            // encode. Retirement is durable first; the encode drains later.
+            if (!finishing.Wait(TimeSpan.FromSeconds(5))) throw new Exception("Discard waited for PNG encoding");
+            if (cancelStore.ReadReservation() is not null || cancelStore.Read() is not null) throw new Exception("Discarded draft stayed recoverable");
+            if (!NativeCaptureAutosave.Draining) throw new Exception("Discarded encode was not tracked for process exit");
+            // The next capture can reserve while the old encoder still runs.
+            var next = cancelStore.Reserve(image.Size, settings, initial, "region");
+            cancelStore.CancelReservation(next.Id);
         } finally { release.Set(); }
-        if (finishing.GetAwaiter().GetResult().Pending || cancelStore.Read() is not null) throw new Exception("Cancelled autosave returned a recoverable draft");
+        if (!NativeCaptureAutosave.WhenDrained().Wait(TimeSpan.FromSeconds(10)) || NativeCaptureAutosave.Draining) throw new Exception("Discarded encode did not drain");
+        if (cancelStore.RetryCleanup().Pending || cancelStore.Read() is not null) throw new Exception("Cancelled autosave left files or a recoverable draft");
 
         var failureStore = new NativeCaptureDraftStore(Path.Combine(directory, "failed"), (_, _) => throw new IOException("synthetic encoder failure"));
         var failed = new NativeCaptureAutosave(failureStore, new Bitmap(image), settings, initial, "region");
@@ -93,7 +100,7 @@ internal static class NativeAutosaveTests
         catch (IOException error) when (error.Message == "synthetic encoder failure") { }
         if (failed.FinishAsync(true).GetAwaiter().GetResult().Pending || failureStore.ReadReservation() is not null)
             throw new Exception("Failed encoding could not be explicitly discarded");
-        Console.WriteLine("PASS: background autosave coalesces edits, preserves latest state, cancels during encoding and reports failure");
+        Console.WriteLine("PASS: background autosave coalesces edits, preserves latest state, discards without waiting for encoding and reports failure");
         return 0;
     }
 }

@@ -6,7 +6,7 @@ param(
     # The OCR/Host probe never captures the desktop, but its real tray exit
     # needs Explorer. Opt in only for this owned, no-shortcut test instance.
     [switch]$OcrHostCurrentDesktop,
-    [ValidateSet('workflow','scroll-workflow','autosave','toolbar','facade','pointer','text-recognition','latency','ocr-latency')][string[]]$Suites = @('workflow','scroll-workflow')
+    [ValidateSet('workflow','scroll-workflow','autosave','toolbar','facade','pointer','text-recognition','latency','ocr-latency','text-status')][string[]]$Suites = @('workflow','scroll-workflow')
 )
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot

@@ -16,6 +16,7 @@ import (
 	"unicode/utf8"
 	"winone/internal/ai"
 	"winone/internal/configjson"
+	"winone/internal/diagnostics"
 	"winone/internal/host"
 	"winone/internal/protocol"
 )
@@ -74,6 +75,11 @@ func newAIService(ctx context.Context, directory, executable string) *aiService 
 	runtime := ai.Translator{Executable: filepath.Join(filepath.Dir(executable), "shared", "ai", "WinOne.AI.exe"), DataDirectory: filepath.Join(directory, "ai-runtime")}
 	engine := &aiService{storePath: filepath.Join(directory, "ai-settings.json"), desktopExecutable: filepath.Join(filepath.Dir(executable), "WinOne.exe"), translator: runtime, localOCR: ai.NewLocalOCR(ctx, runtime), jobs: map[string]*aiJob{}, ctx: ctx, accountGate: make(chan struct{}, 1)}
 	engine.translator.PluginLifetime = ctx
+	// Timing lines go to the product log off the OCR gate; a log failure
+	// never affects recognition.
+	engine.localOCR.Observe = func(event, message string) {
+		go func() { _ = diagnostics.Record(directory, diagnostics.Event{Source: "host", Event: event, Message: message}) }()
+	}
 	return engine
 }
 func bindAIService(service *host.Service, engine *aiService) {

@@ -12,6 +12,25 @@ import subprocess
 import unittest
 
 
+class InteractiveSpeedTests(unittest.TestCase):
+    # Windows can run a background process with EcoQoS (efficiency cores, low
+    # clock). A user's recognition runs at full speed, then the prior policy
+    # returns so idle maintenance stays power-efficient.
+    def test_recognition_requests_full_speed_and_restores_the_policy(self):
+        import ctypes
+        import importlib.util
+        source = pathlib.Path(__file__).resolve().parents[2] / 'modules/capture/Ocr/recognize.py'
+        spec = importlib.util.spec_from_file_location('winone_recognize', source)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        before = module._power_throttling()
+        with module._interactive():
+            control, state = module._power_throttling()
+            self.assertTrue(control & 1)
+            self.assertFalse(state & 1)
+        self.assertEqual(module._power_throttling(), before)
+
+
 @unittest.skipUnless(os.environ.get('WINONE_OCR_RUNTIME'), 'explicit packaged OCR test')
 class RecognitionProtocolTests(unittest.TestCase):
     @classmethod
@@ -28,13 +47,22 @@ class RecognitionProtocolTests(unittest.TestCase):
         image.save(data, 'PNG')
         return data.getvalue()
 
-    def run_worker(self, data, serve=True):
+    def run_worker(self, data, serve=True, device=None):
         command = [str(self.runtime / 'python/python.exe'), '-B', str(self.source), str(self.runtime / 'models')]
         if serve:
             command.append('--serve')
+        environment = dict(os.environ)
+        environment.pop('WINONE_OCR_DEVICE', None)
+        if device:
+            environment['WINONE_OCR_DEVICE'] = device
         result = subprocess.run(command, input=data, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                timeout=30, creationflags=0x08000000)
-        return result.returncode, [json.loads(line) for line in result.stdout.decode('utf-8').splitlines()]
+                                timeout=60, creationflags=0x08000000, env=environment)
+        replies = [json.loads(line) for line in result.stdout.decode('utf-8').splitlines()]
+        # Every successful reply names the inference device; compare it apart.
+        devices = {reply.pop('device') for reply in replies if 'error' not in reply}
+        self.assertLessEqual(devices, {'gpu', 'cpu'})
+        self.devices = devices
+        return result.returncode, replies
 
     @staticmethod
     def frame(data):
@@ -70,6 +98,43 @@ class RecognitionProtocolTests(unittest.TestCase):
         code, replies = self.run_worker(struct.pack('<I', 20) + b'incomplete')
         self.assertNotEqual(code, 0)
         self.assertEqual(replies, [{'error': 'ValueError'}])
+
+    def page(self, lines):
+        from PIL import Image, ImageDraw, ImageFont
+        image = Image.new('RGB', (1600, 900), 'white')
+        font = ImageFont.truetype(str(pathlib.Path(os.environ['WINDIR']) / 'Fonts/msyh.ttc'), 32)
+        draw = ImageDraw.Draw(image)
+        for index, line in enumerate(lines):
+            draw.text((24, 24 + index * 70), line, font=font, fill='black')
+        data = io.BytesIO()
+        image.save(data, 'PNG')
+        return data.getvalue()
+
+    def test_small_selections_stay_on_the_resident_cpu_engine(self):
+        # Creating GPU sessions costs more than recognizing a few lines.
+        code, replies = self.run_worker(struct.pack('<I', 0) + self.frame(self.image()))
+        self.assertEqual(code, 0)
+        self.assertEqual(replies, [{'prepared': True}, {'text': 'Hello world 123'}])
+        self.assertEqual(self.devices, {'cpu'})
+
+    def test_large_page_uses_a_one_request_gpu_engine_or_cpu(self):
+        lines = ['Screenshot OCR latency check 2026', '截图文字识别 第二行 测试', 'The quick brown fox jumps over the lazy dog']
+        page = self.page(lines)
+        # Two pages in one worker: the GPU engine is created per request, and
+        # the forced CPU path must read the same lines.
+        code, replies = self.run_worker(self.frame(page) + self.frame(page))
+        self.assertEqual(code, 0)
+        devices = self.devices
+        code, forced = self.run_worker(self.frame(page), device='cpu')
+        self.assertEqual(code, 0)
+        self.assertEqual(self.devices, {'cpu'})
+        # The layout joins Chinese words without spaces; compare characters.
+        compact = lambda values: [''.join(value.split()) for value in values]
+        for reply in replies + forced:
+            self.assertEqual(compact(reply['text'].splitlines()), compact(lines))
+        expected = os.environ.get('WINONE_OCR_EXPECT_DEVICE')
+        if expected:
+            self.assertEqual(devices, {expected})
 
     def test_standalone_capture_keeps_the_single_request_protocol(self):
         code, replies = self.run_worker(self.image(), serve=False)

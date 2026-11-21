@@ -16,12 +16,12 @@ internal static class NativeTextRecognitionTests
         var translate=mode.StartsWith("translation",StringComparison.Ordinal);
         using var image=new Bitmap(800,500);using(var graphics=Graphics.FromImage(image))graphics.Clear(Color.White);
         using var canvas=new WinOneCaptureCanvas(image);using var service=new TextService(mode);
-        var copied="";var hidden=false;var toolbarFlashed=false;var closed=false;var started=false;var verified=false;var retry=false;
+        var copied="";var hidden=false;var sawRecognizing=false;var recognizingSince=DateTime.MaxValue;var toolbarFlashed=false;var closed=false;var started=false;var verified=false;var retry=false;
         using var session=new NativeCaptureSession(canvas,_=>throw new Exception("Text path copied an image"),_=>{},textService:service,
             textMode:silent?"ocr":mode=="translation-shortcut"?"translate":null,
             copyText:value=>{if(mode=="clipboard-failure")throw new InvalidOperationException("Clipboard busy");copied=value;});
         canvas.Window.VisibleChanged+=(_,_)=>{if(!canvas.Window.Visible&&session.RecognitionBusy)hidden=true;};
-        canvas.Window.FormClosed+=(_,_)=>closed=true;
+        string? statusAtClose=null;canvas.Window.FormClosed+=(_,_)=>{closed=true;statusAtClose=NativeTextStatus.Text;};
         session.Toolbar.VisibleChanged+=(_,_)=>{if(mode=="silent-ocr"&&session.Toolbar.Visible)toolbarFlashed=true;};
         Exception? failure=null;var deadline=DateTime.UtcNow.AddSeconds(7);
         void Launch()=>session.Toolbar.Controls.OfType<ToolStrip>().SelectMany(row=>row.Items.Cast<ToolStripItem>()).Single(item=>item.Name==(translate?"translate":"ocr")).PerformClick();
@@ -39,11 +39,16 @@ internal static class NativeTextRecognitionTests
                     SendMessageW(canvas.Window.Handle,0x0201,new IntPtr(1),At(50,50));SendMessageW(canvas.Window.Handle,0x0202,IntPtr.Zero,At(50,50));
                     if(session.CloseRequested)throw new Exception("Cancel committed an opening");verified=true;
                 }
-                if(session.RecognitionBusy)return;
+                if(session.RecognitionBusy){
+                    if(recognizingSince==DateTime.MaxValue)recognizingSince=DateTime.UtcNow;
+                    if(mode=="silent-ocr"&&DateTime.UtcNow-recognizingSince>TimeSpan.FromMilliseconds(NativeTextStatus.RecognizingDelayMs+150))sawRecognizing|=NativeTextStatus.Text=="正在识别…";
+                    return;
+                }
                 if(mode=="retry-opening"&&!retry&&session.Error is not null){retry=true;Launch();return;}
                 if(mode is "opening-failure" or "silent-failure" or "clipboard-failure" or "cancel-opening"){
                     if(!canvas.Window.Visible||session.CloseRequested||session.Copied||session.ResultPresented)throw new Exception("Failed action discarded the capture");
                     if(mode!="cancel-opening"&&string.IsNullOrEmpty(session.Error))throw new Exception("Failed action gave no feedback");
+                    if(NativeTextStatus.Text is not null)throw new Exception("A failed action left the OCR status popup open");
                     if(canvas.Selection is not {Width:301,Height:201})throw new Exception("Failed action changed the selection");
                     verified=true;canvas.Window.Close();
                 }
@@ -53,6 +58,11 @@ internal static class NativeTextRecognitionTests
         if(!closed)throw new Exception("Capture remained open");
         if(mode=="silent-ocr"){
             if(copied!="原文\nHello"||!session.Copied||session.ResultPresented||!hidden||toolbarFlashed||service.Opens!=0)throw new Exception("Silent OCR behavior changed");
+            // The hidden canvas reports progress and completion through the popup.
+            // Read at close: this test ends its message loop with the canvas, unlike
+            // the worker, whose loop keeps the popup for its full duration.
+            if(!sawRecognizing||statusAtClose!="已复制识别结果")throw new Exception($"Silent OCR status: recognizing={sawRecognizing}, at close={statusAtClose}");
+            NativeTextStatus.Dismiss();
         }else if(mode is "opening-failure" or "silent-failure" or "clipboard-failure" or "cancel-opening"){
             if(!verified||copied!="")throw new Exception("Failure was not preserved");
         }else{
@@ -67,7 +77,7 @@ internal static class NativeTextRecognitionTests
     private sealed class TextService(string mode):ICaptureTextService,IDisposable
     {
         internal int Calls,Opens;internal bool Translation;internal Bitmap? Transfer;
-        public async Task<string> Recognize(Bitmap image,CancellationToken token){Calls++;await Task.Delay(100,token);if(mode=="silent-failure")throw new InvalidOperationException("ocrEmpty");return "原文\nHello";}
+        public async Task<string> Recognize(Bitmap image,CancellationToken token){Calls++;await Task.Delay(mode=="silent-ocr"?600:100,token);if(mode=="silent-failure")throw new InvalidOperationException("ocrEmpty");return "原文\nHello";}
         public Task<string> Translate(string text,CancellationToken token)=>throw new Exception("Translation must run outside the capture lifetime");
         public async Task<string> OpenResult(Bitmap image,bool translate,CancellationToken token){
             Opens++;Translation=translate;

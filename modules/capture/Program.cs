@@ -48,7 +48,7 @@ internal static class Program
                 using var app = new CaptureApplication(pipe, directory,
                     native: new NativeCaptureHandlers(async (settings, operations, mode, language, cancellation) => {
                         await operations.MigrateLegacyAsync(drafts,cancellation);
-                        return await NativeUI.NativeCaptureWorkflow.Run(settings, operations, mode, language, cancellation, drafts: drafts);
+                        return await NativeUI.NativeCaptureWorkflow.Run(settings, operations, mode, language, cancellation, drafts: drafts, startupStage: stage => operations.RecordStage?.Invoke(stage));
                     }) {
                         Scrolling = async (settings, operations, id, language, cancellation) => {
                             await operations.MigrateLegacyAsync(drafts,cancellation);

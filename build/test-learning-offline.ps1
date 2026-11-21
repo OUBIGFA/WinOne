@@ -1,7 +1,7 @@
 param(
     [string]$GoExe='go',
     [string]$ResultGoExe='dist/resources/tools/go-1.27.3/bin/go.exe',
-    [string]$PythonExe='dist/resources/runtimes/ocr-3.10.0/python/python.exe',
+    [string]$PythonExe='dist/resources/runtimes/ocr-3.10.0-dml/python/python.exe',
     [string]$LibraryDirectory='dist/resources/runtimes/anki-26.09.4/lib',
     [string]$WorkerDirectory='modules/anki',
     [string]$ConnectSource='third_party/anki-connect/plugin',

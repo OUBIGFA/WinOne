@@ -34,6 +34,8 @@
 
 ShareX 的截图库与贴图代码用于独立 Capture Worker，相关许可保留在 `modules/capture/Licenses/`。录像选区线框复用其 `ScrollingCaptureRegionForm`，适配灰阶描边、不抢焦点和捕获排除；滚动截图继续使用其选区验证与拼接引擎。源码版本固定，下载缓存和编译产物不进入 Git；分发时提供对应源码与接入修改。
 
+OCR 显卡推理使用 `onnxruntime-directml` 1.21.1（MIT），其 wheel 内含 Microsoft DirectML 1.15.4 再分发库 `DirectML.dll`（Microsoft 签名）。该库按 Microsoft DirectML 许可条款随应用分发，仅用于 Windows；条款与第三方声明原文见 `third_party/licenses/runtime-DirectML-1.15.4-*`，来源为 NuGet `Microsoft.AI.DirectML` 1.15.4。WinOne 只在本地 OCR 进程内加载它，并关闭 ONNX Runtime 的 ETW 遥测事件。
+
 OCR 生命周期仅调研参考 SnapFind（MIT，提交 `39416254c48aa7633254ecb79f890802fea2b401`），未引入其代码、模型或运行依赖。低内存说明与本机冷/热调用对照见 `docs/capture-experience-repair.md`；未采用会增加首次识别等待的闲置卸载策略。
 # Anki 与 AnkiConnect · 内置英语学习
 

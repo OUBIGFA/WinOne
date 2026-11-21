@@ -81,3 +81,5 @@ SDK 许可：[Microsoft.Web.WebView2 1.0.4258.31](https://www.nuget.org/packages
 完整双击不能用当前消息辅助器验收：上游 `StartRegionSelection` 会刷新 `InputManager`，由 `MouseState.Update` 读取系统鼠标位置及按键。定向消息中的坐标无法替代这份状态。`double-message` 只验证确认入口，禁止将其报告为完整双击流程通过。
 
 键盘入口已移除上游独立文字、剪贴板和历史命令，由统一工具栏处理确认、保存、取消和历史。`native-keyboard-check.mjs` 覆盖页面焦点回落后连续撤销/重做、原生T消息进入原位文字、文字Ctrl+S保存及原生Esc消息退出。文字输入自身的复制、撤销与IME仍交给输入控件。该验证使用CDP及定向消息，硬件组合键和真实输入法仍待验收。
+
+`--native-capture-latency <新目录>` 启用生产草稿自动保存，默认使用噪声画面（`WINONE_CAPTURE_LATENCY_FRAME=white` 改用白屏），额外记录 `closeToReturnMs`（请求关闭到截图任务返回）和最后的后台编码耗时。`--native-text-status-render <新目录>` 渲染静默 OCR 状态提示的中英、深浅色两种状态，并确认“已复制”提示自行关闭。

@@ -98,6 +98,8 @@ internal static class NativeCaptureWorkflow
         Action<string>? startupStage = null)
     {
         startupStage?.Invoke("entered");
+        // A "copied" popup from the previous OCR must not end up in this frame.
+        NativeTextStatus.Dismiss();
         var textMode = mode is "ocr" or "translate" ? mode : null;
         if (textMode is not null) mode = "region";
         if (mode is not ("window" or "region" or "fullscreen")) throw new ArgumentException("不支持的截图方式", nameof(mode));
@@ -244,6 +246,10 @@ internal static class NativeCaptureWorkflow
         try {
             cancellation.ThrowIfCancellationRequested();
             startupStage?.Invoke("readyToShow");
+            if (startupStage is not null) {
+                canvas.Window.Shown += (_, _) => startupStage("shown");
+                canvas.Window.FormClosed += (_, _) => startupStage("closed");
+            }
             if (show is not null) show(canvas, session);
             else {
                 // A modal ShowDialog loop ends when the form is hidden. Retake

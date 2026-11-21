@@ -45,11 +45,15 @@ internal sealed class NativeRecognitionSession : IDisposable
             if(copyAndExit){
                 // Keep the existing silent OCR shortcut. No result window is
                 // opened, and the captured image is owned before hiding.
+                // The hidden canvas gives no feedback; a small status popup
+                // below the selection says recognizing, then copied.
+                NativeTextStatus.ShowRecognizing(canvas.Window.RectangleToScreen(canvas.Selection!.Value),ShareX.HelpersLib.ShareXResources.Theme.IsDarkTheme,english);
                 canvas.Window.Hide();
                 var text=await service.Recognize(image,lifetime.Token);
                 if(string.IsNullOrWhiteSpace(text))throw new InvalidOperationException("ocrEmpty");
                 if(!Current(lifetime))return;
                 try{clipboard(text);}catch(Exception error){throw new InvalidOperationException("clipboardFailed",error);}
+                NativeTextStatus.ShowCopied();
                 completed=true;complete(true);
             } else {
                 // The receiver owns a copy before it acknowledges its window.
@@ -59,8 +63,10 @@ internal sealed class NativeRecognitionSession : IDisposable
                 WindowID=windowId;
                 completed=true;complete(false);
             }
-        } catch(OperationCanceledException)when(lifetime.IsCancellationRequested){}
+        } catch(OperationCanceledException)when(lifetime.IsCancellationRequested){NativeTextStatus.Dismiss();}
         catch(Exception error){
+            // The capture window returns with the error; no status popup.
+            NativeTextStatus.Dismiss();
             if(Current(lifetime)){
                 silent=false;Error=Explain(error.Message);ReturnedToCapture?.Invoke();
                 if(!canvas.Window.Visible)canvas.Window.Show();
