@@ -26,7 +26,7 @@
 
 以上入口已包含在 `_temp/repository-hygiene-20261008-9513b969/archived-dist/selection-ai-20261006/`，并更新至固定试用目录。
 
-OCR 保留 HushSnap 的 PP-OCRv6 small 离线识别选项；AI OCR 将选区发送给已选供应商，不会在失败时静默换回本地引擎。内置 Google 翻译仍可选，沿用 zencrop 的接口和智能中英互译规则。旧配置保持原来的本地 OCR 与翻译选择。
+OCR 保留 HushSnap 的 PP-OCRv6 small 离线识别选项（小选区用常驻 CPU 引擎，不小于 100 万像素的选区临时使用 DirectML 显卡，见 [截图与 OCR 响应](capture-latency-20261121.md)）；AI OCR 将选区发送给已选供应商，不会在失败时静默换回本地引擎。内置 Google 翻译仍可选，沿用 zencrop 的接口和智能中英互译规则。旧配置保持原来的本地 OCR 与翻译选择。
 
 自定义 LLM 可使用 API 密钥或智能体账号。账号登录在浏览器中授权，支持设备码和手动回调；账号与模型可在设置中选择。登录保存到 WinOne 专属配置，不切换其他客户端的账号。Claude Code、Cursor 等部分智能体需要已安装官方客户端。
 
