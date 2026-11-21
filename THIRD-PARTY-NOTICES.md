@@ -14,8 +14,8 @@
 | React / React DOM | 设置界面 | MIT |
 | MyGo v0.10.0 | 原生设置窗口与共享结果窗；保留窗口、组件、Markdown、表格换行、Windows 文件拖入、异步 GPU 初始化和标准复制键接入。来源与摘要见 `third_party/mygo-winone/source.json`，不修改用户的 Go 模块缓存 | MIT；依赖许可原文与 SHA-256 见 `third_party/desktop-mygo-notices.json` 和 `third_party/result-ui-notices.json`，构建核对实际链接模块 |
 | Lucide React 1.27.0 | 官方 AppWindow / LogOut 托盘菜单图标及既有界面图标；由锁定 npm 包生成透明模板，不自绘替代 | ISC，Feather 派生 LogOut 同时保留 MIT；原文 `internal/branding/menu-icons/LICENSE.txt`，生成器与 SHA-256 见 `third_party/sources.json` |
-| Magpie | 共享 AI 适配器与独立本地网关；锁定 `289184a409c0e38a3a0a5282dbde93b56da309ca`。账号认证适配器锁定 `e6c457112ababf96d9415fe0a217ab0b7429ae98`，随包保留 45 个固定账号适配器，包括已有 Antigravity 连接继续使用的旧适配器。对应连接、账号、请求头预设、完整模型与媒体目录、密钥及网关能力见 `docs/ai-base-update-20261119.md` | MIT；适配归属见 `third_party/import-notices.json`，依赖和账号资源清单见 `third_party/ocr-ai-notices.json`、`third_party/ai-plugins.json` |
-| Magpie 代理字段 | 同一 `289184a` 的地址校验与纯辅助函数；按原算法拒绝未配置的命名代理，沿用 WinOne 的供应商/账号独立代理 | MIT；原始许可和逐文件 SHA-256 见 `third_party/magpie-proxy-source.json` |
+| Magpie | 共享 AI 适配器与独立本地网关；锁定 `f65fe92ef93557e9a2098d2606a4d9c0175a4213`。账号认证适配器锁定 `ae9dba9f7ff197c0f3a7526af998d2a2d5d806a3`，随包保留 45 个固定账号适配器，包括已有 Antigravity 连接继续使用的旧适配器。对应连接、账号、请求头预设、完整模型与媒体目录、密钥及网关能力见 `docs/ai-base-update-20261120.md` | MIT；适配归属见 `third_party/import-notices.json`，依赖和账号资源清单见 `third_party/ocr-ai-notices.json`、`third_party/ai-plugins.json` |
+| Magpie 代理字段 | 同一 `f65fe92` 的地址校验与纯辅助函数；按原算法拒绝未配置的命名代理，沿用 WinOne 的供应商/账号独立代理 | MIT；原始许可和逐文件 SHA-256 见 `third_party/magpie-proxy-source.json` |
 | Magpie 模型规则匹配 | 直接抽取同一版本的计划与模型规则解析，复用 regexp2 v1.11.5 的有时限后行/前行断言匹配 | Magpie MIT；regexp2 MIT，原文与 SHA-256 见 `third_party/runtime-notices.json`，两个原生宿主另有对应清单 |
 | Magpie 内置 JSON Schema | 使用该版本 `third_party/jsonschema` 的实际替代源码及原始许可，依赖锁保留其本地替代关系 | Apache-2.0；实际原文及 SHA-256 见 `third_party/ocr-ai-notices.json` 的 `github.com/santhosh-tekuri/jsonschema/v6` v6.0.3 记录 |
 | Cindy 共享字体与折叠动效 | 保留设置界面仍使用的字体准备、减少动效判断和折叠控件；源码已独立，不引用已移除模块 | Apache-2.0；独立保存原始 LICENSE 与 NOTICE，具体来源与文件摘要见 `third_party/import-notices.json` 的 `cindy-shared-fonts`、`cindy-shared-motion` |

@@ -54,6 +54,12 @@ func (e *editor) billingPreferences(c *ui.Context, pr *provider, locked bool) {
 		// Zero means the regular price, not free requests.
 		numberRow(c, i18n.T("ai.priceRate"), rate, 0, 1000, false, "1", locked, func(v *float64) { s.PriceRate = value(v) })
 		if pr.AuthMode == "api-key" {
+			var topUp *float64
+			if s.TopUpRate > 0 {
+				topUp = &s.TopUpRate
+			}
+			numberRow(c, upstreamT("Top-up rate"), topUp, .0001, 1000, false, "0.07", locked, func(v *float64) { s.TopUpRate = value(v) })
+			kit.Help(c, upstreamT("What one dollar of the relay cost you, like 0.07 for ¥7 per $100. Each key's group rate is read from the relay, and its calls cost the two multiplied"))
 			kit.Stack(c, i18n.T("ai.keyPlan"), "", func() { kit.TextInput(c, &s.KeyPlan).FillWidth().Label(i18n.T("ai.keyPlan")).Disabled(locked) })
 		}
 	})

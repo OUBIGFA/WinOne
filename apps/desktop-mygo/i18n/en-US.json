@@ -1781,7 +1781,7 @@
   "ai.routingFree": "Free first",
   "ai.routingPace": "Allowance until reset",
   "ai.routingSink": "Move rate-limited accounts with quota to the back",
-  "ai.routingSmart": "Smart (default)",
+  "ai.routingSmart": "Quota first (default)",
   "ai.routingUsage": "Least used first",
   "ai.routingWeight": "Weighted",
   "ai.importSetup": "Fill in from clipboard",

@@ -75,6 +75,7 @@ func TestProviderSectionsKeepPoliciesOnSaveAndReopen(t *testing.T) {
 	pr.AccountWindowCaps = map[string]map[string]int{"primary": {"5h": 80}}
 	pr.AccountWindowAmounts = map[string]map[string]float64{"offline": {"week": 6.5}}
 	pr.KeyPriceRates = map[string]float64{"primary": 0.8}
+	pr.TopUpRate = 0.0714
 	pr.Resolve = map[string][]string{"api.example.com": {"127.0.0.1"}}
 	pr.ServerPin = "fixture-certificate-pin"
 	pr.NoStandIn, pr.UpstreamProviders, pr.NoBalanceProbe = true, true, true
@@ -95,6 +96,34 @@ func TestProviderSectionsKeepPoliciesOnSaveAndReopen(t *testing.T) {
 	reopened, _ := json.Marshal(p.saved.Value.find(pr.ID).ProviderPreferences)
 	if string(reopened) != string(before) {
 		t.Fatalf("save lost provider policies: %s", reopened)
+	}
+}
+
+// Reading relay billing state never creates an override, and an explicitly
+// free key group remains distinguishable from a rate that has not been read.
+func TestRelayBillingControlsPreserveFreeAndUnknownRates(t *testing.T) {
+	_, h, p, _ := setup(t)
+	pr := p.current()
+	pr.TopUpRate = .0714
+	e := newEditor(p, pr, pr.ID)
+	e.keyRests.accept(json.RawMessage(`{"keys":[{"id":"primary","groupRate":0},{"id":"unknown"}]}`))
+	if e.keyRests.groupRates["primary"] == nil || *e.keyRests.groupRates["primary"] != 0 || e.keyRests.groupRates["unknown"] != nil {
+		t.Fatalf("free and unread rates conflated: %+v", e.keyRests.groupRates)
+	}
+	before, _ := json.Marshal(pr.ProviderPreferences)
+	tt := ui.NewTester(func(c *ui.Context) {
+		e.billingPreferences(c, pr, false)
+		e.keyRestRow(c, pr, "primary", false)
+	}, 800, 1600)
+	settle(h, tt)
+	for _, label := range []string{upstreamT("Top-up rate"), upstreamT("Read from the relay: {rates}", "rates", "×0")} {
+		if _, ok := tt.Find(label); !ok {
+			t.Errorf("missing relay billing control: %s", label)
+		}
+	}
+	after, _ := json.Marshal(pr.ProviderPreferences)
+	if string(before) != string(after) {
+		t.Fatal("viewing relay rates changed saved preferences")
 	}
 }
 

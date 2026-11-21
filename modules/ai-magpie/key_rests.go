@@ -26,8 +26,9 @@ func rememberGatewayKeySlots(id string, in request) {
 }
 
 type keyRestRow struct {
-	ID   string            `json:"id"`
-	Rest *provider.KeyRest `json:"rest,omitempty"`
+	ID        string            `json:"id"`
+	Rest      *provider.KeyRest `json:"rest,omitempty"`
+	GroupRate *float64          `json:"groupRate,omitempty"`
 }
 
 func gatewayKeyRestState(p provider.Provider) []keyRestRow {
@@ -41,6 +42,10 @@ func gatewayKeyRestState(p provider.Provider) []keyRestRow {
 			continue
 		}
 		row := keyRestRow{ID: id}
+		// A known zero is a free group, not an unread rate. Keep its pointer.
+		if rate, ok := p.KeyGroupRate(key.ID); ok {
+			row.GroupRate = &rate
+		}
 		if r, ok := gateway.RestOf(restKey(key)); ok && key.On {
 			row.Rest = protectedKeyRest(p, r)
 		}

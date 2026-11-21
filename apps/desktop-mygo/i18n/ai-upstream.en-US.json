@@ -2,10 +2,15 @@
   "aiUpstream.Base URL": "Base URL",
   "aiUpstream.Chat Completions, the API most tools speak. Anything with an OpenAI base-URL setting works.": "Chat Completions, the API most tools speak. Anything with an OpenAI base-URL setting works.",
   "aiUpstream.Details": "Details",
+  "aiUpstream.Embedding models": "Embedding models",
   "aiUpstream.Example": "Example",
   "aiUpstream.Google's generateContent API, v1beta. Gemini CLI and the google-genai SDKs speak this.": "Google's generateContent API, v1beta. Gemini CLI and the google-genai SDKs speak this.",
   "aiUpstream.Model": "Model",
   "aiUpstream.OpenAI's newer API: reasoning, built-in tool items, encrypted reasoning. Codex speaks this.": "OpenAI's newer API: reasoning, built-in tool items, encrypted reasoning. Codex speaks this.",
+  "aiUpstream.Read from the relay: {rates}": "Read from the relay: {{rates}}",
   "aiUpstream.Recent calls": "Recent calls",
-  "aiUpstream.TypeSafe's decision API: a Jev or Clef model answers typed questions (choice, noul, score) about a state, with how sure it is. Clef also reads images: add \"images\": [\"data:image/png;base64,…\"].": "TypeSafe's decision API: a Jev or Clef model answers typed questions (choice, noul, score) about a state, with how sure it is. Clef also reads images: add \"images\": [\"data:image/png;base64,…\"]."
+  "aiUpstream.Rerank models": "Rerank models",
+  "aiUpstream.Top-up rate": "Top-up rate",
+  "aiUpstream.TypeSafe's decision API: a Jev or Clef model answers typed questions (choice, noul, score) about a state, with how sure it is. Clef also reads images: add \"images\": [\"data:image/png;base64,…\"].": "TypeSafe's decision API: a Jev or Clef model answers typed questions (choice, noul, score) about a state, with how sure it is. Clef also reads images: add \"images\": [\"data:image/png;base64,…\"].",
+  "aiUpstream.What one dollar of the relay cost you, like 0.07 for ¥7 per $100. Each key's group rate is read from the relay, and its calls cost the two multiplied": "What one dollar of the relay cost you, like 0.07 for ¥7 per $100. Each key's group rate is read from the relay, and its calls cost the two multiplied"
 }

@@ -1,6 +1,9 @@
 package aiservices
 
 import (
+	"math"
+	"strconv"
+
 	"github.com/egoist/mygo/ui"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
@@ -27,7 +30,12 @@ func (e *editor) keyOptions(c *ui.Context, pr *provider, id string, locked bool)
 			if current, ok := pr.KeyPriceRates[id]; ok {
 				rate = &current
 			}
-			numberRow(c, nativeT("keyPriceRate"), rate, .001, 1000, false, nativeT("providerPriceRate"), locked, func(v *float64) {
+			placeholder := nativeT("providerPriceRate")
+			if group := e.keyRests.groupRates[id]; group != nil && pr.TopUpRate > 0 {
+				// Match upstream's six-decimal effective-rate hint, including free groups.
+				placeholder = strconv.FormatFloat(math.Round(*group*pr.TopUpRate*1e6)/1e6, 'f', -1, 64)
+			}
+			numberRow(c, nativeT("keyPriceRate"), rate, .001, 1000, false, placeholder, locked, func(v *float64) {
 				if v == nil {
 					delete(pr.KeyPriceRates, id)
 				} else {

@@ -2,6 +2,7 @@ package ai
 
 import (
 	"encoding/json"
+	"math"
 	"reflect"
 	"testing"
 )
@@ -13,7 +14,7 @@ func TestCompleteProviderOptionsSurviveSaveDocument(t *testing.T) {
 	// rather than being accepted and silently dropped as unknown JSON fields.
 	raw = append(raw[:len(raw)-1], []byte(`,"noStandIn":true,"upstreamProviders":true,"socket":"auto","clientCert":"C:/fixture/client.pem","clientKey":"C:/fixture/client-key.pem","serverCA":"C:/fixture/ca.pem","serverPin":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","resolve":{"relay.invalid":["127.0.0.1","dns:gateway.invalid"]},"accountWindowAmounts":{"fixture@example.test":{"5h":800.5}},"keyPriceRates":{"primary":0.5},"noBalanceProbe":true}`)...)
 	var prefs ProviderPreferences
-	raw = append(raw[:len(raw)-1], []byte(`,"maxImages":{"*":8,"model-special":16}}`)...)
+	raw = append(raw[:len(raw)-1], []byte(`,"maxImages":{"*":8,"model-special":16},"topUpRate":0.0714}`)...)
 	if err := json.Unmarshal(raw, &prefs); err != nil {
 		t.Fatal(err)
 	}
@@ -30,6 +31,20 @@ func TestCompleteProviderOptionsSurviveSaveDocument(t *testing.T) {
 	for key, value := range want {
 		if !reflect.DeepEqual(value, got[key]) {
 			t.Errorf("option %s lost or changed: %v", key, got[key])
+		}
+	}
+}
+
+// Saved relay rates use the same limits as Magpie, without rounding user input.
+func TestRelayTopUpRateFollowsUpstreamValidation(t *testing.T) {
+	for _, rate := range []float64{0, 0.0001, 0.0714, 1, 1000} {
+		if err := (ProviderPreferences{TopUpRate: rate}).validate(); err != nil {
+			t.Errorf("valid rate %g: %v", rate, err)
+		}
+	}
+	for _, rate := range []float64{-1, 0.00001, 0.07141, 1000.0001, math.NaN(), math.Inf(1)} {
+		if (ProviderPreferences{TopUpRate: rate}).validate() == nil {
+			t.Errorf("accepted invalid relay rate %g", rate)
 		}
 	}
 }

@@ -4,7 +4,7 @@
     {
       "name": "magpie-native-ai-pages",
       "repository": "https://github.com/yetone/magpie",
-      "commit": "289184a409c0e38a3a0a5282dbde93b56da309ca",
+      "commit": "f65fe92ef93557e9a2098d2606a4d9c0175a4213",
       "license": "MIT",
       "scope": "Native MyGo provider connections, account import/export and preferences, complete model settings and local gateway administration. WinOne groups infrequent policies in provider settings, prioritizes daily model selection and initial connection recovery, and shares dialog and row geometry. Vendor reports remain separate from user overrides. Use the original model catalog, gateway request handling, provider routing strategies and complete paste parsers; retain Host data, credential and process ownership without the removed management applications.",
       "sourceFiles": [
@@ -49,11 +49,15 @@
         "internal/provider/proxy.go",
         "internal/provider/warm_now.go",
         "internal/settings/proxies.go",
-        "internal/gui/assets/pvpick.js"
+        "internal/gui/assets/pvpick.js",
+        "internal/provider/key_rate_read.go",
+        "internal/gui/assets/keyrates.js",
+        "internal/gateway/responses_compact.go",
+        "internal/catalog/live.go"
       ],
       "notices": [
         {
-          "file": "licenses/upstream-magpie-289184a409c0e38a3a0a5282dbde93b56da309ca-0-LICENSE.txt",
+          "file": "licenses/upstream-magpie-f65fe92ef93557e9a2098d2606a4d9c0175a4213-0-LICENSE.txt",
           "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
         }
       ],
@@ -64,11 +68,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences_billing.go",
-          "sha256": "e452629eb4c380b830b494b119d5ab6c947af0a56411768c3f1cb142bb2521c5"
+          "sha256": "776263844b3fdc332f3022fe8c57bf6dc18dbf2aa1b47b7aede7af709f39d24c"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_access.go",
-          "sha256": "7f20ea3c90a56403efe9a848f21162bec7ddfbe8c10103eb0d504c035c71516b"
+          "sha256": "1fa04c5916b5500a76ead2dcf74733b457b01d90720792c237b5858a53b2205c"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_history.go",
@@ -92,11 +96,11 @@
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-upstream.en-US.json",
-          "sha256": "324665946f97aac383e26087f2c63b61c0ab62677d59f44991b6a3c8b751cf02"
+          "sha256": "82a311e31178317b938994a956c0031113739b11a32c5ffc1582bbbe357209aa"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-upstream.zh-CN.json",
-          "sha256": "d464447abd5ca4cdb3d5e90c12bd879ae285d11e730dbdf53e4bda5e94f9cb39"
+          "sha256": "0a15988fc6e3e41fbe763e19a5a25c49a671f1e0e9fad25b924a7dcdfe0b26a2"
         },
         {
           "path": "build/generate-native-magpie-connect.mjs",
@@ -132,7 +136,7 @@
         },
         {
           "path": "build/prepare-ai-discovery.mjs",
-          "sha256": "db88d7c3ababae5c40f0b44a5a0a2747987ccf07b3b44ec0503951b48203b8cd"
+          "sha256": "a18b5ca7431d87e41af8158d524f0559ad4186931f078e747f0f505b335698fc"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/accounts.go",
@@ -156,7 +160,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/key_rests.go",
-          "sha256": "fbe9d4c84338d280fb10220d6ad19434630ca039a3d2aab09be4db3b8e84be33"
+          "sha256": "35c1d9638888065960f900e7be15f7de8b2f891d05c50bfb3a3546348412e2ce"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/keys_bulk.go",
@@ -168,7 +172,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/models.go",
-          "sha256": "7a92cab867b505dab90e6b8eaf5d5d35b517d7eb44335f1cc59a6556772e397c"
+          "sha256": "2a97e38543fabf7a8d53fca1ad6fbb0c6be86ae78c256f9651a85d295a4e2708"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/reader.go",
@@ -180,7 +184,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/editor.go",
-          "sha256": "442a52572f856a871296824f2949c897ba70a3c2a26cf52ff8853ed977d82a03"
+          "sha256": "48f519be940ca505a77e65b98e941e53bbdadc422677f932793bdea4ca035871"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-sync.en-US.json",
@@ -212,7 +216,7 @@
         },
         {
           "path": "modules/ai-magpie/key_rests.go",
-          "sha256": "eb4d3875296de53a1db4e2b57289e964f477252992e8236a001adbad04ab1ab8"
+          "sha256": "0885109f8c334b43b207a3585e19730d721244b1ca31ec386255f9ce9e1321a3"
         },
         {
           "path": "modules/ai-magpie/plan_signin.go",
@@ -232,7 +236,7 @@
         },
         {
           "path": "internal/ai/model_discovery_rules.go",
-          "sha256": "6108a96a35d4ba8efa03353705db1e4c7af76168714accf838a50f5f010fdd61"
+          "sha256": "56068fd6b6c4a1d747ea251b1f067ef34d9fdd7de0b0589f0c5029f27be4122c"
         },
         {
           "path": "internal/ai/account_migration_windows.go",
@@ -260,7 +264,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/aiservices.go",
-          "sha256": "0db6ba8b4eede6ecc1162d6948144db85da9a1992518dfbeb31a4f59808beab3"
+          "sha256": "27c2728ee30d0a308cef1a7fd0b8f881c5cfb4daed95b8adbac20a1314442394"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/config.go",
@@ -281,6 +285,22 @@
         {
           "path": "modules/ai-magpie/warmup.go",
           "sha256": "6b453ab6e0b45290484a321b396a14192fbe6e1f4778f78c83bf44c3ea2de9fe"
+        },
+        {
+          "path": "apps/desktop-mygo/pages/aiservices/key_options.go",
+          "sha256": "d5cc8e2ce7cce789d32e8891c4275d1180fbb209d744597975be2901248d32e0"
+        },
+        {
+          "path": "modules/ai-magpie/gateway_backend.go",
+          "sha256": "986ef990ae9ee57e280883210897c8ac2abe209dcbc63769c8c20e4075fd4acf"
+        },
+        {
+          "path": "internal/ai/gateway_paths.go",
+          "sha256": "f188e62a934f6fcad6560e75f86c2bb92b0e02ce93103e3227a7686564694a6b"
+        },
+        {
+          "path": "internal/ai/provider_preferences.go",
+          "sha256": "b42abe1bbb62c14b1d001f00fac0b6fbeda246dcfe0c74f74e82c656a00ad653"
         }
       ]
     },
@@ -470,7 +490,7 @@
     {
       "name": "magpie-curl-import",
       "repository": "https://github.com/yetone/magpie",
-      "commit": "289184a409c0e38a3a0a5282dbde93b56da309ca",
+      "commit": "f65fe92ef93557e9a2098d2606a4d9c0175a4213",
       "license": "MIT",
       "scope": "Complete upstream cURL/environment/JSON/plain setup parser and base-URL helpers, plus the ten retained provider examples from the historical fixture source. Input is parsed as text, never executed; WinOne owns its form, drafts and credential store.",
       "sourceFiles": [
@@ -479,7 +499,7 @@
       ],
       "notices": [
         {
-          "file": "licenses/upstream-magpie-289184a409c0e38a3a0a5282dbde93b56da309ca-0-LICENSE.txt",
+          "file": "licenses/upstream-magpie-f65fe92ef93557e9a2098d2606a4d9c0175a4213-0-LICENSE.txt",
           "sha256": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
         },
         {
@@ -494,7 +514,7 @@
         },
         {
           "path": "apps/desktop/frontend/src/features/magpie-curl.js",
-          "sha256": "b93e88e7cc4fa4983707dccb6619fd562c5fb2f593fee561bfc08d9ecf6ec9c7"
+          "sha256": "43e54e90c7673d7fe0268a48869e0ef4e27db2ecd46bde27846f37e5aea4124b"
         },
         {
           "path": "apps/desktop/frontend/src/features/magpie-curl.d.ts",

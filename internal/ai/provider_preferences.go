@@ -68,6 +68,7 @@ type ProviderPreferences struct {
 	KeyPriceRates        map[string]float64            `json:"keyPriceRates,omitempty"`
 	MagpieUserAgent      bool                          `json:"magpieUserAgent,omitempty"`
 	PriceRate            float64                       `json:"priceRate,omitempty"`
+	TopUpRate            float64                       `json:"topUpRate,omitempty"`
 	CountFree            bool                          `json:"countFree,omitempty"`
 	RateWindows          []RateWindow                  `json:"rateWindows,omitempty"`
 	ReplyHeaders         []string                      `json:"replyHeaders,omitempty"`
@@ -236,6 +237,9 @@ func (p ProviderPreferences) validate() error {
 	}
 	if math.IsNaN(p.PriceRate) || math.IsInf(p.PriceRate, 0) || p.PriceRate < 0 || p.PriceRate > 1000 || len(p.RateWindows) > 8 {
 		return errors.New("价格倍率或计费时间段无效")
+	}
+	if why := TopUpRateOK(p.TopUpRate); why != "" {
+		return errors.New(why)
 	}
 	if p.Socket != "" && p.Socket != "auto" && p.Socket != "on" && p.Socket != "off" {
 		return errors.New("Responses WebSocket 模式无效")

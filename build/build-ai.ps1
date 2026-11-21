@@ -196,11 +196,12 @@ try {
    } finally { $env:MAGPIE_TEST_SANDBOX=$priorSandbox }
    if($LASTEXITCODE -ne 0){throw 'Magpie adapter tests failed'}
    $ErrorActionPreference='Continue'
-   & $GoExe test ./internal/gateway -run '^TestWinOneClaudeLaunchStatus' -count=1
+   # These upstream cases use the in-memory fake transport, not HTTP listeners.
+   & $GoExe test ./internal/gateway -run '^(TestWinOneClaudeLaunchStatus.*|TestResponsesCompactRelayed|TestResponsesCompactRefusedOffResponses)$' -count=1
    $ErrorActionPreference='Stop'
-   if($LASTEXITCODE -ne 0){throw 'Claude launch status bridge test failed'}
+   if($LASTEXITCODE -ne 0){throw 'Claude launch/Responses compaction bridge tests failed'}
    $ErrorActionPreference='Continue'
-   & $GoExe test ./internal/provider -run '^TestWinOneOAuth' -count=1
+   & $GoExe test ./internal/provider -run '^(TestWinOneOAuth.*|TestParseKeyBilling|TestTopUpRateOK|TestAntigravityCountsCarbonAtOriginalPrice)$' -count=1
    $ErrorActionPreference='Stop'
    if($LASTEXITCODE -ne 0){throw 'Magpie OAuth adapter test failed'}
    $ErrorActionPreference='Continue'

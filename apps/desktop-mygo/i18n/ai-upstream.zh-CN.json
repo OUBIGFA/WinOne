@@ -2,10 +2,15 @@
   "aiUpstream.Base URL": "API 地址",
   "aiUpstream.Chat Completions, the API most tools speak. Anything with an OpenAI base-URL setting works.": "Chat Completions，多数工具使用的 API。任何可设置 OpenAI base URL 的工具都能用。",
   "aiUpstream.Details": "详情",
+  "aiUpstream.Embedding models": "嵌入模型",
   "aiUpstream.Example": "示例",
   "aiUpstream.Google's generateContent API, v1beta. Gemini CLI and the google-genai SDKs speak this.": "Google 的 generateContent API（v1beta）。Gemini CLI 和 google-genai SDK 使用它。",
   "aiUpstream.Model": "模型",
   "aiUpstream.OpenAI's newer API: reasoning, built-in tool items, encrypted reasoning. Codex speaks this.": "OpenAI 较新的 API：推理、内置工具项、加密推理。Codex 使用它。",
+  "aiUpstream.Read from the relay: {rates}": "已从中转站读取：{{rates}}",
   "aiUpstream.Recent calls": "最近调用",
-  "aiUpstream.TypeSafe's decision API: a Jev or Clef model answers typed questions (choice, noul, score) about a state, with how sure it is. Clef also reads images: add \"images\": [\"data:image/png;base64,…\"].": "TypeSafe 的决策 API：Jev 或 Clef 模型按类型（choice、noul、score）回答关于 state 的问题，并给出置信度。Clef 还能读图：加上 \"images\": [\"data:image/png;base64,…\"]。"
+  "aiUpstream.Rerank models": "重排序模型",
+  "aiUpstream.Top-up rate": "充值折扣",
+  "aiUpstream.TypeSafe's decision API: a Jev or Clef model answers typed questions (choice, noul, score) about a state, with how sure it is. Clef also reads images: add \"images\": [\"data:image/png;base64,…\"].": "TypeSafe 的决策 API：Jev 或 Clef 模型按类型（choice、noul、score）回答关于 state 的问题，并给出置信度。Clef 还能读图：加上 \"images\": [\"data:image/png;base64,…\"]。",
+  "aiUpstream.What one dollar of the relay cost you, like 0.07 for ¥7 per $100. Each key's group rate is read from the relay, and its calls cost the two multiplied": "中转站一美元额度你实际花了多少，比如 ¥7 买 $100 就填 0.07。每个 key 的分组倍率从中转站读取，调用按两者相乘计费"
 }

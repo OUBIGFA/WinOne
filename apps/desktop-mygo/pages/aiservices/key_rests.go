@@ -24,19 +24,23 @@ type keyRestPanel struct {
 	api               nativeAPI
 	requested, loaded bool
 	rests             map[string]*keyRest
+	groupRates        map[string]*float64
 }
 
 func (s *keyRestPanel) accept(raw json.RawMessage) {
 	var state struct {
 		Keys []struct {
-			ID   string
-			Rest *keyRest
+			ID        string
+			Rest      *keyRest
+			GroupRate *float64
 		}
 	}
 	if nativeDecode(&s.api, raw, &state) {
 		s.rests = map[string]*keyRest{}
+		s.groupRates = map[string]*float64{}
 		for _, key := range state.Keys {
 			s.rests[key.ID] = key.Rest
+			s.groupRates[key.ID] = key.GroupRate
 		}
 		s.loaded = true
 	}
@@ -64,6 +68,9 @@ func (e *editor) keyRestControls(c *ui.Context, pr *provider, locked bool) {
 
 func (e *editor) keyRestRow(c *ui.Context, pr *provider, slot string, locked bool) {
 	s := &e.keyRests
+	if rate := s.groupRates[slot]; rate != nil {
+		kit.Help(c, upstreamT("Read from the relay: {rates}", "rates", fmt.Sprintf("×%g", *rate)))
+	}
 	r := s.rests[slot]
 	if r == nil {
 		return

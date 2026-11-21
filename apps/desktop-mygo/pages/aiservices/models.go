@@ -465,6 +465,14 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 					if badges := widgets.ModelBadges(&picker, model); badges != nil {
 						badges(c)
 					}
+					// Use the vendor's reported API kind. Keep these models in the
+					// normal selection list so gateway exposure remains explicit.
+					switch pr.CatalogMetadata[model].Serves {
+					case "embedding":
+						kit.Caption(c, upstreamT("Embedding models"))
+					case "rerank":
+						kit.Caption(c, upstreamT("Rerank models"))
+					}
 					if metadata, ok := pr.CatalogMetadata[model]; ok && len(metadata.Keys) > 0 {
 						var names []string
 						for _, id := range metadata.Keys {
@@ -504,7 +512,13 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 						color, mark = t.TextMuted, icons.Clock
 					}
 					ui.Icon(c, mark).FontSize(14).TextColor(color).Shrink(0).Margin(2, 0, 0, 0)
-					ui.Text(c, testLine(result, model)).FontSize(kit.HelpSize(c)).TextColor(color).Shrink(1).MinWidth(0)
+					ui.Text(c, testLine(result, model)).FontSize(kit.HelpSize(c)).TextColor(color).Shrink(1).MinWidth(0).Selectable()
+					// Keep the full vendor failure available even in a narrow list row.
+					if !*result.OK && result.Queued == "" {
+						if kit.CompactIconButton(c, icons.Copy, nativeT("copy")).Clicked() {
+							c.Services().WriteClipboard(testLine(result, model))
+						}
+					}
 				})
 			}
 		})

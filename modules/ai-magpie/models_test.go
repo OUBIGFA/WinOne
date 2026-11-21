@@ -15,10 +15,78 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 )
+
+// Read the upstream billing cache through its public API; a known free group
+// must survive the private slot projection without exposing its fingerprint.
+func TestRelayGroupRatesUseOriginalPricingAndPrivateSlots(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	p := provider.Provider{ID: "relay-rate-fixture", Key: "fixture-rate-primary", Keys: []provider.KeyAccount{{Key: "fixture-rate-free"}}, TopUpRate: .0714, PriceRate: .9}
+	primary, free := provider.KeyID(p.Key), provider.KeyID(p.Keys[0].Key)
+	cache := filepath.Join(filepath.Dir(provider.Path()), "key-rates.json")
+	if err := os.MkdirAll(filepath.Dir(cache), 0700); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := json.Marshal(map[string]any{
+		p.ID + " " + primary: map[string]any{"known": true, "rate": 2.5},
+		p.ID + " " + free:    map[string]any{"known": true, "rate": 0},
+	})
+	if err := os.WriteFile(cache, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	rememberGatewayKeySlots(p.ID, request{Keys: []requestKey{{ID: "primary", KeyAccount: provider.KeyAccount{Key: p.Key}}, {ID: "free-slot", KeyAccount: p.Keys[0]}}})
+	t.Cleanup(func() { gatewayKeySlots.Delete(p.ID) })
+	rows := gatewayKeyRestState(p)
+	if len(rows) != 2 || rows[0].ID != "primary" || rows[0].GroupRate == nil || *rows[0].GroupRate != 2.5 || rows[1].ID != "free-slot" || rows[1].GroupRate == nil || *rows[1].GroupRate != 0 {
+		t.Fatalf("group rates lost: %+v", rows)
+	}
+	for key, want := range map[string]float64{primary: .1785, free: 0, "unknown": .9} {
+		if got, own := p.KeyPriceRate(key); got != want || own {
+			t.Errorf("key %s rate=%g own=%t, want %g", key, got, own, want)
+		}
+	}
+	p.KeyPriceRates = map[string]float64{primary: .3}
+	if got, own := p.KeyPriceRate(primary); got != .3 || !own {
+		t.Fatalf("explicit rate lost: %g %t", got, own)
+	}
+	encoded, _ := json.Marshal(rows)
+	if bytes.Contains(encoded, []byte(primary)) || bytes.Contains(encoded, []byte("fixture-rate-")) {
+		t.Fatalf("private identity leaked: %s", encoded)
+	}
+}
+
+// Together's top-level array and vendor model types reach the same complete
+// catalog used by the native model list; this transport never opens a socket.
+func TestTogetherDiscoveryKeepsEmbeddingAndRerankTypes(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	t.Cleanup(func() { provider.WinOneProviders = nil; settings.WinOneSettings.Store(nil) })
+	old := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = old })
+	http.DefaultClient = &http.Client{Transport: modelBalanceTransport(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Host != "api.together.xyz" {
+			return nil, fmt.Errorf("unexpected external request: %s", r.URL.Host)
+		}
+		return &http.Response{StatusCode: 200, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(`[{"id":"fixture-chat","type":"chat"},{"id":"togethercomputer/m2-bert-80M-32k-retrieval","type":"embedding"},{"id":"Salesforce/Llama-Rank-V1","type":"rerank"},{"id":"fixture-moderation","type":"moderation"}]`))}, nil
+	})}
+	models, err := fetchModels(t.Context(), request{ProviderID: "together-type-fixture", Protocol: "chat", BaseURL: "https://api.together.xyz/v1", Key: "fixture-catalog-key"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for id, kind := range map[string]string{"fixture-chat": "", "togethercomputer/m2-bert-80M-32k-retrieval": catalog.ServesEmbedding, "Salesforce/Llama-Rank-V1": catalog.ServesRerank} {
+		i := slices.IndexFunc(models, func(m modelOption) bool { return m.ID == id })
+		if i < 0 || models[i].Metadata.Serves != kind {
+			t.Errorf("missing or wrongly typed model %s: %+v", id, models)
+		}
+	}
+	if slices.ContainsFunc(models, func(m modelOption) bool { return m.ID == "fixture-moderation" }) {
+		t.Fatal("unsupported moderation model was exposed")
+	}
+}
 
 // This exercises a real gateway refusal. Its private key-state API must
 // identify Host slots and lift the same upstream rest without leaking keys.

@@ -1775,7 +1775,7 @@
   "ai.routingFree": "免费优先",
   "ai.routingPace": "按剩余额度与重置时间",
   "ai.routingSink": "将仍有额度但被限流的账号排到后面",
-  "ai.routingSmart": "智能（默认）",
+  "ai.routingSmart": "额度优先（默认）",
   "ai.routingUsage": "优先使用较少的账号",
   "ai.routingWeight": "按权重分配",
   "ai.importSetup": "从剪贴板填写",

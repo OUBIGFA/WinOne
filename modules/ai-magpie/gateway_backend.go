@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"time"
 )
@@ -36,6 +37,13 @@ func serveGatewayBackend(ctx context.Context, in request, input io.Reader, outpu
 	}
 	stop := serveGatewayLimits()
 	defer stop()
+	// The provider preferences live for this snapshot. Start the upstream
+	// billing reader only when a relay has a top-up rate and stop it on exit.
+	if slices.ContainsFunc(provider.WinOneProviders, func(p provider.Provider) bool { return p.TopUpRate > 0 }) {
+		billing, cancel := context.WithCancel(ctx)
+		defer cancel()
+		go provider.KeepKeyRatesRead(billing)
+	}
 	gw := gateway.New()
 	page, protocol := gatewayAdminHandler(gw), gw.Handler()
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")

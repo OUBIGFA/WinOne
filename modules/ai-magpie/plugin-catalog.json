@@ -833,14 +833,14 @@
         "en": "Factory's Droid subscription: models from Anthropic, OpenAI, xAI and open labs.",
         "zh": "Factory Droid 订阅：Anthropic、OpenAI、xAI 及开源模型。"
       },
-      "version": "0.1.51",
+      "version": "0.1.55",
       "directory": "factory",
       "entry": "opencode.mjs",
       "files": [
         {
           "path": "README.md",
-          "size": 22121,
-          "sha256": "85305f9404f5e964160024b63dcb232dfa442e1e9238e38d01af87dd7856dcc9"
+          "size": 22779,
+          "sha256": "47fd0f1c7668e56041a6c5c232e410068c8faba8cb722977111983e7b8558c4b"
         },
         {
           "path": "anthropic-tools.mjs",
@@ -854,8 +854,8 @@
         },
         {
           "path": "index.mjs",
-          "size": 120367,
-          "sha256": "4afcb62489ba7d69426d2f393965a037e2a8e997a3cfd8c7180691cbb167932a"
+          "size": 132494,
+          "sha256": "76bc84ee50a0157a8523063589bb25b7a702e1b7952d09e50779acf89688f3e1"
         },
         {
           "path": "opencode.mjs",
@@ -870,7 +870,7 @@
         {
           "path": "package.json",
           "size": 629,
-          "sha256": "6005b96e48871d233ab9d5a5d1f051eea2d8af4ebaa010a2942cabb1d915c65a"
+          "sha256": "6e6674d3e6e28043b372c1064dd434d8a72c7a2efb968f2eaf7657a3eee40dc3"
         },
         {
           "path": "tool-names.mjs",
@@ -1322,19 +1322,19 @@
         "en": "Trae CN (trae.cn) and Trae international (trae.ai) models with your own account, free tier included — Trae's own browser sign-in. Experimental.",
         "zh": "用 Trae CN（trae.cn）与 Trae 国际版（trae.ai）账号使用各自的模型，含免费版，使用 Trae 自己的浏览器登录。实验性。"
       },
-      "version": "0.2.45",
+      "version": "0.2.46",
       "directory": "trae",
       "entry": "opencode.mjs",
       "files": [
         {
           "path": "README.md",
-          "size": 39588,
-          "sha256": "ac1791bb4a555049e6014f44932083cd5f85271bde800c2a7ce8624c4307089c"
+          "size": 40620,
+          "sha256": "57f32dfaf1ab39056329bd57045fe26be2d69fd976dee272014d9a50a84dd219"
         },
         {
           "path": "index.mjs",
-          "size": 219531,
-          "sha256": "098c38d0234b810bcd1f75a8f29394084e785c7ca8194978810833c597d77387"
+          "size": 220841,
+          "sha256": "af86ca074a2891d47de65245c514ce2925509388a6502b30bbab673954ae5d8a"
         },
         {
           "path": "opencode.mjs",
@@ -1349,7 +1349,7 @@
         {
           "path": "package.json",
           "size": 744,
-          "sha256": "0acc88e8bc4ef068fe2c726ea06aefbda31e17992195d80d9bd11863b1012759"
+          "sha256": "197d31d30352054c51e0553d2c2e8c1a40b99c2e4fcdc728dc7a11f95c2298db"
         }
       ]
     },
@@ -1554,7 +1554,7 @@
         "en": "SenseTime Raccoon (xiaohuanxiong.com) models, account credits and daily check-in, with browser sign-in or Raccoon desktop's live sign-in.",
         "zh": "商汤小浣熊（xiaohuanxiong.com）模型、积分余额与每日签到，支持浏览器登录或直接复用小浣熊桌面端登录态。"
       },
-      "version": "0.1.13",
+      "version": "0.1.14",
       "directory": "raccoon",
       "entry": "opencode.mjs",
       "files": [
@@ -1565,8 +1565,8 @@
         },
         {
           "path": "index.mjs",
-          "size": 56270,
-          "sha256": "1c03af50d522256a46c48fc0ecc56abea01c8e068f0825008207ad56ae45ce83"
+          "size": 56837,
+          "sha256": "69c9261e9905234ecd0bf82354057079bc0f9eda5e2070dea6f1dfb9262eee8d"
         },
         {
           "path": "opencode.mjs",
@@ -1581,7 +1581,7 @@
         {
           "path": "package.json",
           "size": 7135,
-          "sha256": "482c2fdda7cab92e0cd1e2e552522d111c948eed9638c318fd44f9fce11706f6"
+          "sha256": "4ed8b08ca5fec216fe1924bba26468c228b7019dacd4f26f7453f841491ce4f7"
         }
       ]
     },
@@ -2527,7 +2527,7 @@
         "en": "Unofficial: Antigravity's models (Gemini, and whatever else agy offers) in any agent, on your Google account. Install, then Sign in with Google in magpie; the Antigravity CLI (agy) is installed for you if this computer doesn't have it. Requests are made by agy itself, and each tool call the agent makes waits about 2 seconds for agy's own safety check.",
         "zh": "非官方：用你的 Google 账号，在任意 Agent 里使用 Antigravity 的模型（Gemini，以及 agy 开放的其它模型）。安装后在 magpie 里点「登录」用 Google 登录即可；本机没有 Antigravity CLI（agy）时会自动安装。请求由 agy 本身发出，Agent 每次调用工具要多等约 2 秒，那是 agy 自己的安全检查。"
       },
-      "version": "0.1.98",
+      "version": "0.1.102",
       "directory": "agy-cli",
       "entry": "opencode.mjs",
       "files": [
@@ -2578,8 +2578,8 @@
         },
         {
           "path": "index.mjs",
-          "size": 332532,
-          "sha256": "817699b8148f5ba866753b43866c4ee6a2c40ecb8e2ee4416934fa24a5da99b1"
+          "size": 341320,
+          "sha256": "c29ce6e502f744a026d100727bb28f4384759e0d401fafcd9dd0089ec438087b"
         },
         {
           "path": "install.mjs",
@@ -2613,8 +2613,8 @@
         },
         {
           "path": "package.json",
-          "size": 1334,
-          "sha256": "7a1b979bfb9f25afa899243420e7ae4a16b3dc8ca5b251f75bb5af9816c46dd2"
+          "size": 1335,
+          "sha256": "feccdc248645bf5318ce31003e7ef764a3c1a7d9af3ca23b8a229b8f4bdddf0c"
         },
         {
           "path": "platform.mjs",
