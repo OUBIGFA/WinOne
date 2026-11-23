@@ -139,7 +139,7 @@ internal static class OcrHostLatencyProbe
                     if(!EmptyWorkingSet(process.Handle))throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
                 copySamples.Add(await NativeOcrCopyLatencyProbe.Sample("first-after-owned-working-set-trim",client));
             }
-            // A prepared interpreter must recover from its exit notification,
+            // A prepared OCR worker must recover from its exit notification,
             // before any recognition request restarts it on the user's path.
             var recovery=Stopwatch.StartNew();ocr.Kill();await ocr.WaitForExitAsync(deadline.Token);
             recovered=await WaitOCR(ocr.Id);
@@ -168,7 +168,7 @@ internal static class OcrHostLatencyProbe
             var closing=privateDesktop?TrayExitProbe.RequestPrivateHostClose(host.Id):TrayExitProbe.RequestExit(host.Id);
             if(!closing||!host.WaitForExit(8000)||host.ExitCode!=0)throw new InvalidOperationException("Host did not exit normally");
             if(!reenabledCapture.WaitForExit(5000)||!reenabledOCR.WaitForExit(5000))throw new InvalidOperationException("OCR/capture survived Host exit");
-            File.WriteAllText(Path.Combine(output,"host-latency.json"),JsonSerializer.Serialize(new {scope="Actual Host/capture/Python group; generated text through the production PNG mapping and job bridge. Copy samples run Shift+C's native OCR session with real HWND selection and an in-memory copy receiver on a private desktop. No physical global hotkey, desktop acquisition, system clipboard, external models or real suspend. Private Host closes through WM_CLOSE, not an Explorer tray click.",privateDesktop,ocrReadyMs,allReadyMs,idleSeconds=idle.Elapsed.TotalSeconds,idleCpuSeconds=idleCpu,beforeIdleResources,idleResources,preparationsBefore,preparationsAfter,recoveryMs,samples,copySamples,engineSwitchReleased=true,moduleDisabledReleased=true,normalExitMs=shut.Elapsed.TotalMilliseconds,allChildrenExited=true},new JsonSerializerOptions{WriteIndented=true}));
+            File.WriteAllText(Path.Combine(output,"host-latency.json"),JsonSerializer.Serialize(new {scope="Actual Host/capture/native OCR group; generated text through the production PNG mapping and job bridge. Copy samples run Shift+C's native OCR session with real HWND selection and an in-memory copy receiver on a private desktop. Private Host closes through WM_CLOSE. This probe excludes physical global hotkeys, desktop acquisition, system clipboard, external models and real suspend.",privateDesktop,ocrReadyMs,allReadyMs,idleSeconds=idle.Elapsed.TotalSeconds,idleCpuSeconds=idleCpu,beforeIdleResources,idleResources,preparationsBefore,preparationsAfter,recoveryMs,samples,copySamples,engineSwitchReleased=true,moduleDisabledReleased=true,normalExitMs=shut.Elapsed.TotalMilliseconds,allChildrenExited=true},new JsonSerializerOptions{WriteIndented=true}));
             return 0;
         }catch(Exception error){File.WriteAllText(Path.Combine(output,"failure.txt"),error.ToString());return 1;}
         finally{

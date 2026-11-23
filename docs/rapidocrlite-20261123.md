@@ -32,4 +32,15 @@ GPU 默认的 host-visible 内存分配在本机独立显卡上遇到大图分�
 - 截图去掉未调用的 WPF 缩放重载及 WPF 依赖，发布只保留中英文语言资源。录屏、截图、标注、滚动截图与原位翻译照常接入。
 - 原位翻译需要的 OpenCV 4.12 静态实现仍由 `WinOne.PinTranslation.dll` 提供。两份 PP-OCRv6 模型分别用于检测和识别。
 
-源码与模型许可分别记录在 `third_party/import-notices.json`、`third_party/ocr-runtime.json` 和 `third_party/ocr-ai-notices.json`。本地对照记录和交付证据归档到 `dist/reports/rapidocrlite-20261123/`。最终安装器体积及来源写入 `docs/development.md` 和 `dist/release/release-info.json`。
+源码与模型许可分别记录在 `third_party/import-notices.json`、`third_party/ocr-runtime.json` 和 `third_party/ocr-ai-notices.json`。本地对照记录和交付证据归档到 `dist/reports/rapidocrlite-20261123/`。
+
+## 最终产物
+
+| 对象 | 之前 MiB | 当前 MiB | 减少 MiB |
+| --- | ---: | ---: | ---: |
+| 安装器 | 204.56 | 143.93 | 60.63 |
+| 全部程序文件展开 | 685.24 | 444.91 | 240.32 |
+| OCR 运行目录 | 210.54 | 33.08 | 177.46 |
+| 截图文件，不含 OCR | 184.09 | 122.23 | 61.86 |
+
+安装器减少 29.64%，全部程序文件展开减少 35.07%。净移除 2,592 项载荷文件，当前共 1,870 项。固定位置为 `dist/release/WinOne-setup.exe`，SHA-256 为 `b9b478db617f45d42a2e971c83b22eff4b4746f509c0db8a02c34a955b558cba`。构建来源为干净提交 `4548254`，具体字节数、文件差异和验证范围记录在报告目录与 `dist/release/release-info.json`。
