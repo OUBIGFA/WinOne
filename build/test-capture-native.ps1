@@ -33,7 +33,7 @@ try {
             $pinProbe=Join-Path $output 'pin-probe'
             & $DotnetExe build (Join-Path $root 'tests/capture-host-probe/NativeCaptureProbe.csproj') -c Release "-p:ShareXSourceDirectory=$source" -o $pinProbe --nologo -v:q
             if ($LASTEXITCODE) { throw 'Pin translation probe build failed' }
-            if (-not $PinOcrRuntimeDirectory) { $PinOcrRuntimeDirectory=Join-Path $root 'dist/resources/runtimes/ocr-3.10.0-dml' }
+            if (-not $PinOcrRuntimeDirectory) { $PinOcrRuntimeDirectory=Join-Path $root 'dist/resources/runtimes/rapidocrlite-5.0.0a16' }
             & (Join-Path $root 'build/copy-ocr.ps1') -RuntimeDirectory $PinOcrRuntimeDirectory -CaptureDirectory $pinProbe
             & (Join-Path $root 'build/build-pin-translation.ps1') -OutputDirectory $pinProbe
             & (Join-Path $root 'tests/capture-host-probe/run-private.ps1') -Suite $suite -ProbeExe (Join-Path $pinProbe 'WinOne.NativeCapture.Probe.exe') -OutputDirectory (Join-Path $output $suite)

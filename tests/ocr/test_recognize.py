@@ -12,31 +12,12 @@ import subprocess
 import unittest
 
 
-class InteractiveSpeedTests(unittest.TestCase):
-    # Windows can run a background process with EcoQoS (efficiency cores, low
-    # clock). A user's recognition runs at full speed, then the prior policy
-    # returns so idle maintenance stays power-efficient.
-    def test_recognition_requests_full_speed_and_restores_the_policy(self):
-        import ctypes
-        import importlib.util
-        source = pathlib.Path(__file__).resolve().parents[2] / 'modules/capture/Ocr/recognize.py'
-        spec = importlib.util.spec_from_file_location('winone_recognize', source)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        before = module._power_throttling()
-        with module._interactive():
-            control, state = module._power_throttling()
-            self.assertTrue(control & 1)
-            self.assertFalse(state & 1)
-        self.assertEqual(module._power_throttling(), before)
-
-
 @unittest.skipUnless(os.environ.get('WINONE_OCR_RUNTIME'), 'explicit packaged OCR test')
 class RecognitionProtocolTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.runtime = pathlib.Path(os.environ['WINONE_OCR_RUNTIME']).resolve()
-        cls.source = pathlib.Path(__file__).resolve().parents[2] / 'modules/capture/Ocr/recognize.py'
+        cls.worker = cls.runtime.parent / 'WinOne.Capture.exe'
 
     def image(self, text='Hello world 123'):
         from PIL import Image, ImageDraw, ImageFont
@@ -48,7 +29,7 @@ class RecognitionProtocolTests(unittest.TestCase):
         return data.getvalue()
 
     def run_worker(self, data, serve=True, device=None):
-        command = [str(self.runtime / 'python/python.exe'), '-B', str(self.source), str(self.runtime / 'models')]
+        command = [str(self.worker), '--ocr-worker', str(self.runtime)]
         if serve:
             command.append('--serve')
         environment = dict(os.environ)
@@ -76,8 +57,7 @@ class RecognitionProtocolTests(unittest.TestCase):
                                   {'prepared': True}, {'text': 'Hello world 123'}])
 
     def test_blank_then_text_keeps_detection_enabled(self):
-        # RapidOCR's rec-only fallback mutates its flags. The next screenshot
-        # must reset them when the same model sessions are reused.
+        # A rec-only recovery must not disable detection for the next request.
         code, replies = self.run_worker(self.frame(self.image('')) + self.frame(self.image()))
         self.assertEqual(code, 0)
         self.assertEqual(replies, [{'text': ''}, {'text': 'Hello world 123'}])
@@ -92,12 +72,19 @@ class RecognitionProtocolTests(unittest.TestCase):
     def test_oversized_frame_is_rejected_before_reading_its_payload(self):
         code, replies = self.run_worker(struct.pack('<I', 32 * 1024 * 1024 + 1))
         self.assertNotEqual(code, 0)
-        self.assertEqual(replies, [{'error': 'ValueError'}])
+        self.assertEqual(replies, [{'error': 'InvalidDataException'}])
 
     def test_incomplete_frame_reports_failure(self):
         code, replies = self.run_worker(struct.pack('<I', 20) + b'incomplete')
         self.assertNotEqual(code, 0)
-        self.assertEqual(replies, [{'error': 'ValueError'}])
+        self.assertEqual(replies, [{'error': 'EndOfStreamException'}])
+
+    def test_large_png_header_is_rejected_before_decoding(self):
+        data = bytearray(self.image())
+        data[16:24] = struct.pack('>II', 8000, 8000)
+        code, replies = self.run_worker(self.frame(data) + self.frame(self.image()))
+        self.assertEqual(code, 0)
+        self.assertEqual(replies, [{'error': 'InvalidDataException'}, {'text': 'Hello world 123'}])
 
     def page(self, lines):
         from PIL import Image, ImageDraw, ImageFont

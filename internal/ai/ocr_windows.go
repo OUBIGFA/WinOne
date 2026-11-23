@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-// RecognizeLocal reuses the packaged HushSnap OCR script and model inventory.
-// It consumes the owned PNG in memory and releases Python when the call ends.
+// RecognizeLocal runs the packaged native OCR worker and pinned model inventory.
+// It consumes the owned PNG in memory and releases the worker when the call ends.
 func (t Translator) RecognizeLocal(ctx context.Context, image []byte) (string, error) {
 	if len(image) == 0 || len(image) > 32<<20 {
 		return "", errors.New("OCR 图片为空或过大")
@@ -24,17 +24,17 @@ func (t Translator) RecognizeLocal(ctx context.Context, image []byte) (string, e
 		return "", errors.New("OCR 运行路径无效")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(t.Executable), "..", "..", "capture", "Ocr"))
-	python, script := filepath.Join(root, "python", "python.exe"), filepath.Join(root, "recognize.py")
-	for _, path := range []string{python, script} {
+	executable := filepath.Join(root, "..", "WinOne.Capture.exe")
+	for _, path := range []string{executable, filepath.Join(root, "rapidocrlite.dll")} {
 		if info, err := os.Stat(path); err != nil || info.IsDir() {
 			return "", errors.New("OCR 文件缺失，请修复安装")
 		}
 	}
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, python, "-B", script, filepath.Join(root, "models"))
+	cmd := exec.CommandContext(ctx, executable, "--ocr-worker", root)
 	cmd.Dir = root
-	cmd.Env = append(isolatedEnvironment(t.DataDirectory), "PYTHONUTF8=1")
+	cmd.Env = isolatedEnvironment(t.DataDirectory)
 	process, err := startOwnedProcess(ctx, cmd)
 	if err != nil {
 		return "", errors.New("OCR 无法启动，请修复安装")

@@ -1,7 +1,7 @@
 """Explicit offline integration/resource probe; writes only to the supplied output.
 
-Run with the packaged Python and pass its Ocr directory and an ignored output
-directory. All images and text are generated fixtures, never desktop content.
+Run with a build Python containing Pillow, and pass the packaged Ocr directory
+and an ignored output directory. All images and text are generated fixtures.
 """
 import ctypes
 from ctypes import wintypes
@@ -40,7 +40,7 @@ def main():
         ImageDraw.Draw(image).multiline_text((10,4), text, font=font, fill='black')
         png = io.BytesIO(); image.save(png, 'PNG')
         started = time.perf_counter()
-        child = subprocess.Popen([str(runtime/'python/python.exe'), '-B', str(runtime/'recognize.py')],
+        child = subprocess.Popen([str(runtime.parent/'WinOne.Capture.exe'), '--ocr-worker', str(runtime)],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=0x08000000)
         child.stdin.write(png.getvalue()); child.stdin.close(); child.stdin = None
         peak_ws = peak_private = peak_handles = 0

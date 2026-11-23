@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/RapidAI/RapidOCRLite",
+  "version": "5.0.0a16",
+  "commit": "d26a04c2ea2479509359391c053771b31ba8048e",
+  "sdk": {
+    "file": "RapidOCRLite-SDK-win_amd64-5.0.0a16.zip",
+    "url": "https://github.com/RapidAI/RapidOCRLite/releases/download/v5.0.0a16/RapidOCRLite-SDK-win_amd64-5.0.0a16.zip",
+    "sha256": "4dde8e9e316920a49f0308c4f1c6271309bb1e6fb208ecd0aa48a7b760f2b276",
+    "library": "RapidOCRLite-SDK-win_amd64-5.0.0a16/bin/rapidocrlite.dll"
+  },
+  "files": [
+    {
+      "path": "rapidocrlite.dll",
+      "sha256": "680612675edb4586274a82bc7c17718f7cfb58e3b340f1146e7b897fe3eb3f3c"
+    },
+    {
+      "path": "models/PP-OCRv6_det_small.onnx",
+      "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.9.2/onnx/PP-OCRv6/det/PP-OCRv6_det_small.onnx",
+      "sha256": "090f04abcd9d9a7498bc4ebf677e4cb9bdce1fe4197ddb7e529f1ef44e1ff94f"
+    },
+    {
+      "path": "models/PP-OCRv6_rec_small.onnx",
+      "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.9.2/onnx/PP-OCRv6/rec/PP-OCRv6_rec_small.onnx",
+      "sha256": "6f327246b50388f3c176ae304bd95767ea6dc0c9ae92153ef8cbe210b3c14884"
+    },
+    {
+      "path": "models/dictionary.txt",
+      "sourceFile": "third_party/rapidocr/ppocrv6-dictionary.txt",
+      "source": "Exact UTF-8 character metadata from the pinned PP-OCRv6_rec_small.onnx, with no added trailing newline",
+      "sha256": "b8b5cba807b350e112ac056c44177c87fc8c394d244f69660cda4d8102c85ae3"
+    }
+  ]
+}

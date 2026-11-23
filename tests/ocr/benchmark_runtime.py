@@ -1,68 +1,19 @@
 """Offline comparison of the production adapter using generated screenshots."""
 import argparse
-import importlib.util
 import io
 import json
 import os
 import pathlib
 import statistics
-import sys
+import struct
+import subprocess
 import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--runtime', required=True)
-parser.add_argument('--source', required=True)
-parser.add_argument('--package')
-parser.add_argument('--models')
-parser.add_argument('--tier', default='small')
-parser.add_argument('--threads', type=int, default=8)
-parser.add_argument('--batch', type=int, default=1)
-parser.add_argument('--reuse', action='store_true')
 parser.add_argument('--output', required=True)
 args = parser.parse_args()
-os.environ['OPENBLAS_NUM_THREADS'] = '1'
-if args.package:
-    sys.path.insert(0, str(pathlib.Path(args.package).resolve()))
-sys.path.insert(0, str(pathlib.Path(args.source).resolve()))
-started = time.perf_counter()
-import rapidocr
 from PIL import Image, ImageDraw, ImageFont
-import_ms = (time.perf_counter() - started) * 1000
-import recognize as adapter
-recognize = adapter.recognize
-real_engine = rapidocr.RapidOCR
-engine = None
-build_ms = []
-
-
-class ResetRequestFlags:
-    def __init__(self, value):
-        self.value = value
-
-    def __call__(self, image, **kwargs):
-        # RapidOCR retains call overrides; a blank-image rec-only fallback must
-        # not turn detection off for the next independent screenshot.
-        return self.value(image, **({'use_det': True, 'use_cls': False, 'use_rec': True} | kwargs))
-
-
-def construct(params):
-    global engine
-    if args.reuse and engine is not None:
-        return engine
-    params = dict(params)
-    params['EngineConfig.onnxruntime.intra_op_num_threads'] = args.threads
-    params['Rec.rec_batch_num'] = args.batch
-    if args.tier != 'small':
-        for stage in ['Det', 'Rec']:
-            params[f'{stage}.model_type'] = rapidocr.ModelType(args.tier)
-            params[f'{stage}.model_path'] = str(pathlib.Path(args.models) / f'PP-OCRv6_{stage.lower()}_{args.tier}.onnx')
-    start = time.perf_counter()
-    engine = ResetRequestFlags(real_engine(params=params))
-    build_ms.append((time.perf_counter() - start) * 1000)
-    return engine
-
-
-rapidocr.RapidOCR = construct
 font_root = pathlib.Path(os.environ['WINDIR']) / 'Fonts'
 fixtures = [
     ('blank', '', (400, 120), 24, False),
@@ -88,28 +39,41 @@ def distance(a, b):
 
 
 results = []
-model_root = pathlib.Path(args.runtime).resolve() / 'models'
-for label, expected, size, font_size, dark in fixtures:
-    font = ImageFont.truetype(str(font_root / ('consola.ttf' if label == 'code' else 'msyh.ttc')), font_size)
-    image = Image.new('RGB', size, '#202124' if dark else 'white')
-    ImageDraw.Draw(image).multiline_text((10, 4), expected, font=font, spacing=10, fill='white' if dark else 'black')
-    png = io.BytesIO()
-    image.save(png, 'PNG')
-    elapsed = []
-    for _ in range(4):
-        if not args.reuse and hasattr(adapter, '_engine'):
-            adapter._engine.cache_clear()
-        start = time.perf_counter()
-        actual = recognize(png.getvalue(), model_root)
-        elapsed.append((time.perf_counter() - start) * 1000)
-    clean_expected, clean_actual = ''.join(expected.split()), ''.join(actual.split())
-    results.append({'case': label, 'firstMs': elapsed[0], 'medianMs': statistics.median(elapsed[1:]),
-                    'expected': expected, 'actual': actual, 'characters': len(clean_expected),
-                    'errors': distance(clean_expected, clean_actual)})
-    print(f'{label}: {statistics.median(elapsed[1:]):.1f} ms, {results[-1]["errors"]} character errors', flush=True)
-summary = {'configuration': vars(args), 'importMs': import_ms, 'buildMs': build_ms,
+runtime = pathlib.Path(args.runtime).resolve()
+worker = subprocess.Popen([str(runtime.parent / 'WinOne.Capture.exe'), '--ocr-worker', str(runtime), '--serve'],
+                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, creationflags=0x08000000)
+try:
+    for label, expected, size, font_size, dark in fixtures:
+        font = ImageFont.truetype(str(font_root / ('consola.ttf' if label == 'code' else 'msyh.ttc')), font_size)
+        image = Image.new('RGB', size, '#202124' if dark else 'white')
+        ImageDraw.Draw(image).multiline_text((10, 4), expected, font=font, spacing=10, fill='white' if dark else 'black')
+        png = io.BytesIO()
+        image.save(png, 'PNG')
+        data = png.getvalue()
+        elapsed = []
+        for _ in range(4):
+            start = time.perf_counter()
+            worker.stdin.write(struct.pack('<I', len(data)) + data)
+            worker.stdin.flush()
+            reply = json.loads(worker.stdout.readline().decode('utf-8'))
+            actual = reply['text']
+            elapsed.append((time.perf_counter() - start) * 1000)
+        clean_expected, clean_actual = ''.join(expected.split()), ''.join(actual.split())
+        results.append({'case': label, 'device': reply['device'], 'firstMs': elapsed[0], 'medianMs': statistics.median(elapsed[1:]),
+                        'expected': expected, 'actual': actual, 'characters': len(clean_expected),
+                        'errors': distance(clean_expected, clean_actual)})
+        print(f'{label}: {statistics.median(elapsed[1:]):.1f} ms, {results[-1]["errors"]} character errors', flush=True)
+    worker.stdin.close()
+    worker.wait(timeout=10)
+    if worker.returncode:
+        raise RuntimeError('OCR worker failed to exit')
+finally:
+    if worker.poll() is None:
+        worker.kill()
+        worker.wait()
+summary = {'configuration': vars(args),
            'cases': results, 'totalErrors': sum(case['errors'] for case in results),
            'totalCharacters': sum(case['characters'] for case in results)}
 pathlib.Path(args.output).write_text(json.dumps(summary, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
-print(json.dumps({key: value for key, value in summary.items() if key not in ['cases', 'buildMs']}, ensure_ascii=False))
+print(json.dumps({key: value for key, value in summary.items() if key != 'cases'}, ensure_ascii=False))
 print(json.dumps([{key: value for key, value in case.items() if key not in ['expected', 'actual']} for case in results], ensure_ascii=False))

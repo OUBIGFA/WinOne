@@ -7,6 +7,9 @@
     <Nullable>enable</Nullable>
     <AssemblyName>WinOne.Capture</AssemblyName>
     <RootNamespace>WinOne.Capture</RootNamespace>
+    <!-- WinOne exposes Chinese and English. English neutral resources remain
+         embedded; retain both Chinese tags used by WinOne and the runtime. -->
+    <SatelliteResourceLanguages>zh-CN;zh-Hans;en;en-US</SatelliteResourceLanguages>
     <ApplicationIcon>../../internal/branding/icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>

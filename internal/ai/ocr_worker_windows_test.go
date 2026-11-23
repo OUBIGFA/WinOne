@@ -4,8 +4,11 @@ package ai
 
 import (
 	"context"
+	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -16,53 +19,64 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// Use the bundled interpreter, but a deterministic protocol peer. This tests
-// real pipes, cancellation and process ownership without benchmarking models.
+// The test executable can act as a deterministic peer of the real worker
+// protocol. Pipes, cancellation, crash recovery and Job Objects remain real.
+func TestMain(m *testing.M) {
+	if len(os.Args) > 1 && os.Args[1] == "--ocr-worker" {
+		for {
+			var length uint32
+			if err := binary.Read(os.Stdin, binary.LittleEndian, &length); err != nil {
+				return
+			}
+			if length == 0 {
+				_ = json.NewEncoder(os.Stdout).Encode(map[string]any{"prepared": true, "device": "gpu"})
+				continue
+			}
+			data := make([]byte, length)
+			if _, err := io.ReadFull(os.Stdin, data); err != nil {
+				os.Exit(1)
+			}
+			payload := string(data)
+			if strings.HasPrefix(payload, "wait:") {
+				if err := os.WriteFile(strings.TrimPrefix(payload, "wait:"), []byte(strconv.Itoa(os.Getpid())), 0600); err != nil {
+					os.Exit(1)
+				}
+				time.Sleep(time.Minute)
+			}
+			switch payload {
+			case "crash":
+				os.Exit(17)
+			case "oversized":
+				fmt.Println(strings.Repeat("x", 2*1024*1024))
+			case "blank":
+				_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"text": ""})
+			default:
+				_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"text": strconv.Itoa(os.Getpid()) + ":" + payload, "device": "gpu"})
+			}
+		}
+	}
+	os.Exit(m.Run())
+}
+
 func ocrWorkerFixture(t *testing.T, idle time.Duration) (*LocalOCR, context.CancelFunc) {
 	t.Helper()
-	runtime := os.Getenv("WINONE_OCR_TEST_RUNTIME")
-	if runtime == "" {
-		t.Skip("set WINONE_OCR_TEST_RUNTIME to the prepared OCR runtime")
-	}
 	root := t.TempDir()
-	python := filepath.Join(root, "capture", "Ocr", "python")
-	if err := os.MkdirAll(python, 0700); err != nil {
+	runtime := filepath.Join(root, "capture", "Ocr")
+	if err := os.MkdirAll(runtime, 0700); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"python.exe", "python3.dll", "python313.dll", "python313.zip", "python313._pth", "vcruntime140.dll", "vcruntime140_1.dll"} {
-		source, destination := filepath.Join(runtime, "python", name), filepath.Join(python, name)
-		if _, err := os.Stat(source); os.IsNotExist(err) {
-			continue
-		}
-		// Own the image file as well as the process. Windows cannot unlink a
-		// hardlink while another build is running the source interpreter.
-		data, err := os.ReadFile(source)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(destination, data, 0600); err != nil {
-			t.Fatal(err)
-		}
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
 	}
-	script := `import json, os, pathlib, struct, sys, time
-while True:
-    header = sys.stdin.buffer.read(4)
-    if not header: break
-    length = struct.unpack('<I', header)[0]
-    if length == 0:
-        print(json.dumps({'prepared': True, 'device': 'gpu'}), flush=True)
-        continue
-    payload = sys.stdin.buffer.read(length).decode()
-    if payload.startswith('wait:'):
-        pathlib.Path(payload[5:]).write_text(str(os.getpid()))
-        time.sleep(60)
-    if payload == 'crash': os._exit(17)
-    if payload == 'oversized':
-        print('x' * (2 * 1024 * 1024), flush=True)
-    elif payload == 'blank': print(json.dumps({'text': ''}), flush=True)
-    else: print(json.dumps({'text': str(os.getpid()) + ':' + payload, 'device': 'gpu'}), flush=True)
-`
-	if err := os.WriteFile(filepath.Join(root, "capture", "Ocr", "recognize.py"), []byte(script), 0600); err != nil {
+	data, err := os.ReadFile(self)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "capture", "WinOne.Capture.exe"), data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(runtime, "rapidocrlite.dll"), nil, 0600); err != nil {
 		t.Fatal(err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())

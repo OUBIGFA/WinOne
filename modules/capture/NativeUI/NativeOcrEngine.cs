@@ -13,9 +13,9 @@ internal interface ICaptureTextService
     Task<PinTranslationResult> TranslateImage(Bitmap image, CancellationToken cancellation) => Task.FromException<PinTranslationResult>(new InvalidOperationException("translationUnavailable"));
 }
 
-// Each OCR invocation owns a short-lived offline process. No model or Python
-// runtime remains resident after recognition, and no selected image hits disk.
-internal sealed class NativeOcrEngine(string? root = null, string? python = null)
+// Each invocation owns an offline native worker. Its models are released after
+// recognition, and selected images travel only through the process pipes.
+internal sealed class NativeOcrEngine(string? root = null, string? worker = null)
 {
     internal async Task<string> Recognize(Bitmap image, CancellationToken cancellation)
     {
@@ -35,8 +35,8 @@ internal sealed class NativeOcrEngine(string? root = null, string? python = null
     private async Task<JsonElement> Run(Bitmap image, bool pinLayout, CancellationToken cancellation)
     {
         var directory = root ?? Path.Combine(AppContext.BaseDirectory, "Ocr");
-        var executable = python ?? Path.Combine(directory, "python", "python.exe");
-        if (!File.Exists(executable) || !File.Exists(Path.Combine(directory, "recognize.py")))
+        var executable = worker ?? Path.Combine(AppContext.BaseDirectory, "WinOne.Capture.exe");
+        if (!File.Exists(executable) || !File.Exists(Path.Combine(directory, "rapidocrlite.dll")))
             throw new InvalidOperationException("ocrUnavailable");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         deadline.CancelAfter(TimeSpan.FromSeconds(60));
@@ -45,11 +45,9 @@ internal sealed class NativeOcrEngine(string? root = null, string? python = null
             RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
             StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
             WorkingDirectory = directory };
-        info.ArgumentList.Add("-B");
-        info.ArgumentList.Add(Path.Combine(directory, "recognize.py"));
-        info.ArgumentList.Add(Path.Combine(directory, "models"));
+        info.ArgumentList.Add("--ocr-worker");
+        info.ArgumentList.Add(directory);
         if (pinLayout) info.ArgumentList.Add("--pin-layout");
-        info.Environment["PYTHONUTF8"] = "1";
         using var process = new Process { StartInfo = info };
         cancellation.ThrowIfCancellationRequested();
         if (!process.Start()) throw new InvalidOperationException("ocrUnavailable");

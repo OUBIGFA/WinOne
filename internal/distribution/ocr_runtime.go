@@ -6,7 +6,7 @@ import (
 )
 
 // Pinned runtime inventory prevents loose directory/extension allowances from
-// shipping local scripts, caches or credentials alongside the Python runtime.
+// shipping local scripts, caches or credentials alongside the native runtime.
 // Regenerate deliberately with build/update-ocr-inventory.ps1 after review.
 //
 //go:embed ocr_runtime_paths.txt

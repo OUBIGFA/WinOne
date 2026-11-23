@@ -34,7 +34,9 @@
 
 ShareX 的截图库与贴图代码用于独立 Capture Worker，相关许可保留在 `modules/capture/Licenses/`。录像选区线框复用其 `ScrollingCaptureRegionForm`，适配灰阶描边、不抢焦点和捕获排除；滚动截图继续使用其选区验证与拼接引擎。源码版本固定，下载缓存和编译产物不进入 Git；分发时提供对应源码与接入修改。
 
-OCR 显卡推理使用 `onnxruntime-directml` 1.21.1（MIT），其 wheel 内含 Microsoft DirectML 1.15.4 再分发库 `DirectML.dll`（Microsoft 签名）。该库按 Microsoft DirectML 许可条款随应用分发，仅用于 Windows；条款与第三方声明原文见 `third_party/licenses/runtime-DirectML-1.15.4-*`，来源为 NuGet `Microsoft.AI.DirectML` 1.15.4。WinOne 只在本地 OCR 进程内加载它，并关闭 ONNX Runtime 的 ETW 遥测事件。
+OCR 使用 RapidOCRLite 5.0.0a16 官方 Windows x64 SDK，提交 `d26a04c2ea2479509359391c053771b31ba8048e`。引擎及内含的 Indra 实现采用 Apache-2.0，Clipper 采用 Boost-1.0，x86-simd-sort 采用 BSD-3-Clause。许可全文保存在 `third_party/licenses/rapidocrlite-*.txt`。识别模型为原有 PP-OCRv6 small 检测与识别模型，Apache-2.0，字典按识别模型的 character 元数据原样提取。来源和 SHA-256 见 `third_party/ocr-runtime.json`，本包仅分发这两份 PP-OCR 模型。
+
+文字阅读顺序和中西文间距复用 HushSnap `2d43f0e1fd125484bd132ee6e9cad1db65fb7a8c` 的 GPL-3.0 实现，现已等价移植至 C#，对应源码为 `modules/capture/Ocr/OcrReadingOrder.cs`，改编记录与校验见 `third_party/import-notices.json`。原位翻译所需 OpenCV 由下文的 Tools3000 接入独立提供。
 
 OCR 生命周期仅调研参考 SnapFind（MIT，提交 `39416254c48aa7633254ecb79f890802fea2b401`），未引入其代码、模型或运行依赖。低内存说明与本机冷/热调用对照见 `docs/capture-experience-repair.md`；未采用会增加首次识别等待的闲置卸载策略。
 # FileShare · 互联助手局域网服务

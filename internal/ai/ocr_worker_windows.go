@@ -102,7 +102,7 @@ func (s *LocalOCR) Prepare(ctx context.Context) error {
 
 // Background maintenance must neither wait behind an active recognition nor
 // queue another inference for it to finish. The gate is also the ownership
-// boundary used by disable, cancellation and interpreter replacement.
+// boundary used by disable, cancellation and worker replacement.
 func (s *LocalOCR) PrepareIfIdle(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
@@ -117,7 +117,7 @@ func (s *LocalOCR) PrepareIfIdle(ctx context.Context) error {
 }
 
 // retire is called with gate held. The Job Object also covers abrupt Host exit;
-// waiting here reaps the interpreter before another worker can replace it.
+// waiting here reaps the process before another worker can replace it.
 func (s *LocalOCR) retire() {
 	s.ready.Store(false)
 	s.processID.Store(0)
@@ -146,15 +146,15 @@ func (s *LocalOCR) start() error {
 	}
 	t := s.runtime
 	root := filepath.Clean(filepath.Join(filepath.Dir(t.Executable), "..", "..", "capture", "Ocr"))
-	python, script := filepath.Join(root, "python", "python.exe"), filepath.Join(root, "recognize.py")
-	for _, path := range []string{python, script} {
+	executable := filepath.Join(root, "..", "WinOne.Capture.exe")
+	for _, path := range []string{executable, filepath.Join(root, "rapidocrlite.dll")} {
 		if info, err := os.Stat(path); err != nil || info.IsDir() {
 			return errors.New("OCR 文件缺失，请修复安装")
 		}
 	}
-	cmd := exec.CommandContext(s.lifetime, python, "-B", script, filepath.Join(root, "models"), "--serve")
+	cmd := exec.CommandContext(s.lifetime, executable, "--ocr-worker", root, "--serve")
 	cmd.Dir = root
-	cmd.Env = append(isolatedEnvironment(t.DataDirectory), "PYTHONUTF8=1")
+	cmd.Env = isolatedEnvironment(t.DataDirectory)
 	p, err := startOwnedProcess(s.lifetime, cmd)
 	if err != nil {
 		return errors.New("OCR 无法启动，请修复安装")

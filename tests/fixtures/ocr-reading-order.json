@@ -1,0 +1,3291 @@
+[
+  {
+    "name": "empty",
+    "blocks": [],
+    "text": ""
+  },
+  {
+    "name": "horizontal",
+    "blocks": [
+      {
+        "text": "第二行",
+        "left": 10,
+        "top": 50,
+        "right": 100,
+        "bottom": 70
+      },
+      {
+        "text": "Hello",
+        "left": 10,
+        "top": 10,
+        "right": 60,
+        "bottom": 30
+      },
+      {
+        "text": "World",
+        "left": 70,
+        "top": 10,
+        "right": 130,
+        "bottom": 30
+      }
+    ],
+    "text": "Hello World\n第二行"
+  },
+  {
+    "name": "vertical",
+    "blocks": [
+      {
+        "text": "左列",
+        "left": 10,
+        "top": 10,
+        "right": 30,
+        "bottom": 100
+      },
+      {
+        "text": "右列",
+        "left": 60,
+        "top": 10,
+        "right": 80,
+        "bottom": 100
+      }
+    ],
+    "text": "右列\n左列"
+  },
+  {
+    "name": "mixed-height-paragraph",
+    "blocks": [
+      {
+        "text": "Title",
+        "left": 10,
+        "top": 5,
+        "right": 110,
+        "bottom": 45
+      },
+      {
+        "text": "正文ABC",
+        "left": 10,
+        "top": 85,
+        "right": 110,
+        "bottom": 105
+      },
+      {
+        "text": "第二段",
+        "left": 10,
+        "top": 160,
+        "right": 110,
+        "bottom": 180
+      }
+    ],
+    "text": "Title\n正文 ABC\n\n第二段"
+  },
+  {
+    "name": "indentation",
+    "blocks": [
+      {
+        "text": "function x() {",
+        "left": 5,
+        "top": 10,
+        "right": 135,
+        "bottom": 30
+      },
+      {
+        "text": "return 123;",
+        "left": 35,
+        "top": 40,
+        "right": 135,
+        "bottom": 60
+      },
+      {
+        "text": "nested",
+        "left": 65,
+        "top": 70,
+        "right": 125,
+        "bottom": 90
+      },
+      {
+        "text": "}",
+        "left": 5,
+        "top": 100,
+        "right": 15,
+        "bottom": 120
+      }
+    ],
+    "text": "function x() {\n    return 123;\n        nested\n}"
+  },
+  {
+    "name": "url-spacing",
+    "blocks": [
+      {
+        "text": "打开https://example.com/测试?q=中文ABC 然后ABC结束",
+        "left": 0,
+        "top": 0,
+        "right": 500,
+        "bottom": 20
+      }
+    ],
+    "text": "打开https://example.com/测试?q=中文ABC 然后 ABC 结束"
+  },
+  {
+    "name": "fullwidth-punctuation",
+    "blocks": [
+      {
+        "text": "测试",
+        "left": 0,
+        "top": 0,
+        "right": 40,
+        "bottom": 20
+      },
+      {
+        "text": "，",
+        "left": 41,
+        "top": 0,
+        "right": 61,
+        "bottom": 20
+      },
+      {
+        "text": "中文ABC",
+        "left": 62,
+        "top": 0,
+        "right": 142,
+        "bottom": 20
+      }
+    ],
+    "text": "测试，中文 ABC"
+  },
+  {
+    "name": "large-inline-gap",
+    "blocks": [
+      {
+        "text": "left",
+        "left": 0,
+        "top": 0,
+        "right": 40,
+        "bottom": 20
+      },
+      {
+        "text": "right",
+        "left": 120,
+        "top": 0,
+        "right": 170,
+        "bottom": 20
+      }
+    ],
+    "text": "left      right"
+  },
+  {
+    "name": "mixed-layout-0",
+    "blocks": [
+      {
+        "text": "https://a.test/中文",
+        "left": 15,
+        "top": 117,
+        "right": 83,
+        "bottom": 137
+      },
+      {
+        "text": "中文ABC",
+        "left": 235,
+        "top": 37,
+        "right": 272,
+        "bottom": 57
+      },
+      {
+        "text": "مرحبا",
+        "left": 65,
+        "top": 189,
+        "right": 111,
+        "bottom": 209
+      },
+      {
+        "text": "Hello",
+        "left": 5,
+        "top": 73,
+        "right": 89,
+        "bottom": 89
+      },
+      {
+        "text": "مرحبا",
+        "left": 235,
+        "top": 117,
+        "right": 312,
+        "bottom": 137
+      },
+      {
+        "text": "，",
+        "left": 175,
+        "top": 190,
+        "right": 217,
+        "bottom": 215
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 15,
+        "top": 41,
+        "right": 100,
+        "bottom": 66
+      },
+      {
+        "text": "123.45%",
+        "left": 125,
+        "top": 40,
+        "right": 220,
+        "bottom": 56
+      },
+      {
+        "text": "Hello",
+        "left": 175,
+        "top": -1,
+        "right": 229,
+        "bottom": 19
+      },
+      {
+        "text": "，",
+        "left": 125,
+        "top": 114,
+        "right": 199,
+        "bottom": 130
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 145,
+        "top": 151,
+        "right": 212,
+        "bottom": 176
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 149,
+        "right": 87,
+        "bottom": 169
+      },
+      {
+        "text": "日本語テスト",
+        "left": 65,
+        "top": 230,
+        "right": 127,
+        "bottom": 246
+      },
+      {
+        "text": "，",
+        "left": 115,
+        "top": 74,
+        "right": 192,
+        "bottom": 90
+      },
+      {
+        "text": "Hello",
+        "left": 255,
+        "top": 150,
+        "right": 313,
+        "bottom": 166
+      },
+      {
+        "text": "，",
+        "left": 285,
+        "top": -1,
+        "right": 339,
+        "bottom": 19
+      },
+      {
+        "text": "مرحبا",
+        "left": 65,
+        "top": -2,
+        "right": 115,
+        "bottom": 14
+      },
+      {
+        "text": "日本語テスト",
+        "left": 225,
+        "top": 75,
+        "right": 297,
+        "bottom": 91
+      }
+    ],
+    "text": "        مرحبا     Hello   ，\nhttps://a.test/中文 123.45% 中文 ABC\nHello，  日本語テスト\n\nhttps://a.test/中文   ，    مرحبا\n    繁體中文    https://a.test/中文    Hello\n        مرحبا    ，\n        日本語テスト"
+  },
+  {
+    "name": "mixed-layout-1",
+    "blocks": [
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 41,
+        "right": 71,
+        "bottom": 66
+      },
+      {
+        "text": "Hello",
+        "left": 255,
+        "top": 36,
+        "right": 308,
+        "bottom": 56
+      },
+      {
+        "text": "Hello",
+        "left": 35,
+        "top": 75,
+        "right": 71,
+        "bottom": 91
+      },
+      {
+        "text": "Hello",
+        "left": 145,
+        "top": 75,
+        "right": 232,
+        "bottom": 91
+      },
+      {
+        "text": "繁體中文",
+        "left": 145,
+        "top": 40,
+        "right": 221,
+        "bottom": 65
+      },
+      {
+        "text": "日本語テスト",
+        "left": 5,
+        "top": 2,
+        "right": 83,
+        "bottom": 18
+      }
+    ],
+    "text": "日本語テスト\n    繁體中文    繁體中文   Hello\n    Hello       Hello"
+  },
+  {
+    "name": "mixed-layout-2",
+    "blocks": [
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 76,
+        "right": 95,
+        "bottom": 96
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 35,
+        "top": 36,
+        "right": 128,
+        "bottom": 52
+      },
+      {
+        "text": "日本語テスト",
+        "left": 145,
+        "top": 114,
+        "right": 203,
+        "bottom": 139
+      },
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 191,
+        "right": 123,
+        "bottom": 211
+      },
+      {
+        "text": "Hello",
+        "left": 255,
+        "top": 227,
+        "right": 288,
+        "bottom": 243
+      },
+      {
+        "text": "مرحبا",
+        "left": 15,
+        "top": 3,
+        "right": 101,
+        "bottom": 23
+      },
+      {
+        "text": "，",
+        "left": 15,
+        "top": 149,
+        "right": 65,
+        "bottom": 174
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 35,
+        "top": 227,
+        "right": 106,
+        "bottom": 252
+      },
+      {
+        "text": "مرحبا",
+        "left": 35,
+        "top": 117,
+        "right": 104,
+        "bottom": 137
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 145,
+        "top": 231,
+        "right": 225,
+        "bottom": 256
+      },
+      {
+        "text": "繁體中文",
+        "left": 125,
+        "top": 151,
+        "right": 167,
+        "bottom": 176
+      },
+      {
+        "text": "繁體中文",
+        "left": 145,
+        "top": 38,
+        "right": 221,
+        "bottom": 54
+      },
+      {
+        "text": "日本語テスト",
+        "left": 145,
+        "top": 187,
+        "right": 175,
+        "bottom": 212
+      }
+    ],
+    "text": "مرحبا\n    https://a.test/中文繁體中文\n    中文 ABC\nمرحبا   日本語テスト\n，   繁體中文\n中文 ABC 日本語テスト\nhttps://a.test/中文 https://a.test/中文   Hello"
+  },
+  {
+    "name": "mixed-layout-3",
+    "blocks": [
+      {
+        "text": "繁體中文",
+        "left": 145,
+        "top": 112,
+        "right": 214,
+        "bottom": 137
+      },
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 37,
+        "right": 107,
+        "bottom": 57
+      },
+      {
+        "text": "中文ABC",
+        "left": 175,
+        "top": -2,
+        "right": 263,
+        "bottom": 23
+      },
+      {
+        "text": "日本語テスト",
+        "left": 65,
+        "top": 3,
+        "right": 145,
+        "bottom": 23
+      },
+      {
+        "text": "Hello",
+        "left": 145,
+        "top": 40,
+        "right": 217,
+        "bottom": 56
+      },
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 73,
+        "right": 93,
+        "bottom": 98
+      },
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 113,
+        "right": 73,
+        "bottom": 133
+      }
+    ],
+    "text": "    日本語テスト中文 ABC\n中文 ABC    Hello\n中文 ABC\n中文 ABC     繁體中文"
+  },
+  {
+    "name": "mixed-layout-4",
+    "blocks": [
+      {
+        "text": "https://a.test/中文",
+        "left": 145,
+        "top": 0,
+        "right": 177,
+        "bottom": 25
+      },
+      {
+        "text": "日本語テスト",
+        "left": 15,
+        "top": 76,
+        "right": 70,
+        "bottom": 101
+      },
+      {
+        "text": "日本語テスト",
+        "left": 255,
+        "top": 3,
+        "right": 328,
+        "bottom": 23
+      },
+      {
+        "text": "Hello",
+        "left": 35,
+        "top": 193,
+        "right": 90,
+        "bottom": 218
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": -3,
+        "right": 85,
+        "bottom": 17
+      },
+      {
+        "text": "123.45%",
+        "left": 255,
+        "top": 189,
+        "right": 289,
+        "bottom": 214
+      },
+      {
+        "text": "，",
+        "left": 175,
+        "top": 116,
+        "right": 265,
+        "bottom": 132
+      },
+      {
+        "text": "，",
+        "left": 65,
+        "top": 115,
+        "right": 102,
+        "bottom": 131
+      },
+      {
+        "text": "繁體中文",
+        "left": 125,
+        "top": 73,
+        "right": 192,
+        "bottom": 93
+      },
+      {
+        "text": "مرحبا",
+        "left": 145,
+        "top": 187,
+        "right": 202,
+        "bottom": 207
+      },
+      {
+        "text": "Hello",
+        "left": 65,
+        "top": 153,
+        "right": 123,
+        "bottom": 173
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 145,
+        "top": 41,
+        "right": 216,
+        "bottom": 61
+      },
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 36,
+        "right": 121,
+        "bottom": 52
+      },
+      {
+        "text": "中文ABC",
+        "left": 175,
+        "top": 155,
+        "right": 228,
+        "bottom": 171
+      }
+    ],
+    "text": "    繁體中文     https://a.test/中文     日本語テスト\n    中文 ABC\n                        https://a.test/中文\n日本語テスト   繁體中文\n        ，     ，\n        Hello     中文 ABC\nHello    مرحبا    123.45%"
+  },
+  {
+    "name": "mixed-layout-5",
+    "blocks": [
+      {
+        "text": "مرحبا",
+        "left": 35,
+        "top": -1,
+        "right": 100,
+        "bottom": 24
+      },
+      {
+        "text": "中文ABC",
+        "left": 145,
+        "top": 2,
+        "right": 240,
+        "bottom": 22
+      }
+    ],
+    "text": "مرحبا    中文 ABC"
+  },
+  {
+    "name": "mixed-layout-6",
+    "blocks": [
+      {
+        "text": "مرحبا",
+        "left": 125,
+        "top": 152,
+        "right": 168,
+        "bottom": 172
+      },
+      {
+        "text": "Hello",
+        "left": 125,
+        "top": 38,
+        "right": 210,
+        "bottom": 58
+      },
+      {
+        "text": "日本語テスト",
+        "left": 15,
+        "top": 153,
+        "right": 45,
+        "bottom": 178
+      },
+      {
+        "text": "مرحبا",
+        "left": 65,
+        "top": 117,
+        "right": 150,
+        "bottom": 142
+      },
+      {
+        "text": "Hello",
+        "left": 15,
+        "top": 38,
+        "right": 94,
+        "bottom": 58
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 65,
+        "top": 76,
+        "right": 141,
+        "bottom": 92
+      },
+      {
+        "text": "繁體中文",
+        "left": 65,
+        "top": 3,
+        "right": 116,
+        "bottom": 23
+      },
+      {
+        "text": "繁體中文",
+        "left": 235,
+        "top": 152,
+        "right": 279,
+        "bottom": 168
+      }
+    ],
+    "text": "    繁體中文\nHello Hello\n    https://a.test/中文\n    مرحبا\n日本語テスト      مرحبا      繁體中文"
+  },
+  {
+    "name": "mixed-layout-7",
+    "blocks": [
+      {
+        "text": "日本語テスト",
+        "left": 15,
+        "top": 265,
+        "right": 64,
+        "bottom": 281
+      },
+      {
+        "text": "مرحبا",
+        "left": 145,
+        "top": 191,
+        "right": 233,
+        "bottom": 216
+      },
+      {
+        "text": "繁體中文",
+        "left": 255,
+        "top": 40,
+        "right": 328,
+        "bottom": 60
+      },
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 115,
+        "right": 95,
+        "bottom": 135
+      },
+      {
+        "text": "123.45%",
+        "left": 255,
+        "top": 154,
+        "right": 328,
+        "bottom": 179
+      },
+      {
+        "text": "مرحبا",
+        "left": 35,
+        "top": 154,
+        "right": 92,
+        "bottom": 174
+      },
+      {
+        "text": "中文ABC",
+        "left": 235,
+        "top": 268,
+        "right": 290,
+        "bottom": 288
+      },
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 190,
+        "right": 100,
+        "bottom": 210
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 37,
+        "right": 78,
+        "bottom": 53
+      },
+      {
+        "text": "123.45%",
+        "left": 145,
+        "top": -3,
+        "right": 240,
+        "bottom": 22
+      },
+      {
+        "text": "Hello",
+        "left": 125,
+        "top": 76,
+        "right": 205,
+        "bottom": 92
+      },
+      {
+        "text": "，",
+        "left": 145,
+        "top": 115,
+        "right": 206,
+        "bottom": 140
+      },
+      {
+        "text": "Hello",
+        "left": 125,
+        "top": 267,
+        "right": 176,
+        "bottom": 287
+      },
+      {
+        "text": "123.45%",
+        "left": 35,
+        "top": 2,
+        "right": 129,
+        "bottom": 18
+      },
+      {
+        "text": "日本語テスト",
+        "left": 15,
+        "top": 73,
+        "right": 96,
+        "bottom": 98
+      },
+      {
+        "text": "，",
+        "left": 175,
+        "top": 225,
+        "right": 263,
+        "bottom": 250
+      },
+      {
+        "text": "日本語テスト",
+        "left": 65,
+        "top": 227,
+        "right": 98,
+        "bottom": 247
+      },
+      {
+        "text": "Hello",
+        "left": 145,
+        "top": 149,
+        "right": 183,
+        "bottom": 169
+      },
+      {
+        "text": "日本語テスト",
+        "left": 145,
+        "top": 36,
+        "right": 215,
+        "bottom": 52
+      }
+    ],
+    "text": "123.45% 123.45%\n    繁體中文     日本語テスト   繁體中文\n日本語テスト   Hello\n中文 ABC   ，\n                        Hello\nمرحبا           123.45%\n中文 ABC    مرحبا\n        日本語テスト     ，\n日本語テスト      Hello     中文 ABC"
+  },
+  {
+    "name": "mixed-layout-8",
+    "blocks": [
+      {
+        "text": "Hello",
+        "left": 5,
+        "top": 79,
+        "right": 76,
+        "bottom": 104
+      },
+      {
+        "text": "，",
+        "left": 35,
+        "top": 41,
+        "right": 121,
+        "bottom": 61
+      },
+      {
+        "text": "Hello",
+        "left": 125,
+        "top": 115,
+        "right": 188,
+        "bottom": 140
+      },
+      {
+        "text": "，",
+        "left": 235,
+        "top": 113,
+        "right": 285,
+        "bottom": 133
+      },
+      {
+        "text": "日本語テスト",
+        "left": 225,
+        "top": 74,
+        "right": 295,
+        "bottom": 90
+      },
+      {
+        "text": "مرحبا",
+        "left": 115,
+        "top": 74,
+        "right": 209,
+        "bottom": 90
+      },
+      {
+        "text": "مرحبا",
+        "left": 15,
+        "top": 117,
+        "right": 97,
+        "bottom": 137
+      },
+      {
+        "text": "مرحبا",
+        "left": 115,
+        "top": 2,
+        "right": 184,
+        "bottom": 18
+      },
+      {
+        "text": "中文ABC",
+        "left": 5,
+        "top": 3,
+        "right": 70,
+        "bottom": 28
+      }
+    ],
+    "text": "                مرحبا\n中文 ABC\n    ，\n                مرحبا 日本語テスト\nHello\nمرحبا Hello   ，"
+  },
+  {
+    "name": "mixed-layout-9",
+    "blocks": [
+      {
+        "text": "مرحبا",
+        "left": 65,
+        "top": 37,
+        "right": 137,
+        "bottom": 57
+      },
+      {
+        "text": "日本語テスト",
+        "left": 285,
+        "top": 35,
+        "right": 316,
+        "bottom": 60
+      },
+      {
+        "text": "繁體中文",
+        "left": 5,
+        "top": 79,
+        "right": 58,
+        "bottom": 104
+      },
+      {
+        "text": "Hello",
+        "left": 35,
+        "top": 113,
+        "right": 70,
+        "bottom": 138
+      },
+      {
+        "text": "中文ABC",
+        "left": 225,
+        "top": 79,
+        "right": 302,
+        "bottom": 95
+      },
+      {
+        "text": "مرحبا",
+        "left": 175,
+        "top": 41,
+        "right": 224,
+        "bottom": 66
+      },
+      {
+        "text": "Hello",
+        "left": 5,
+        "top": 3,
+        "right": 70,
+        "bottom": 23
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 115,
+        "top": 78,
+        "right": 169,
+        "bottom": 98
+      }
+    ],
+    "text": "Hello\n        مرحبا   مرحبا    日本語テスト\n繁體中文    https://a.test/中文    中文 ABC\n    Hello"
+  },
+  {
+    "name": "mixed-layout-10",
+    "blocks": [
+      {
+        "text": "中文ABC",
+        "left": 5,
+        "top": 38,
+        "right": 84,
+        "bottom": 58
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 15,
+        "top": 3,
+        "right": 75,
+        "bottom": 23
+      },
+      {
+        "text": "中文ABC",
+        "left": 115,
+        "top": 35,
+        "right": 201,
+        "bottom": 55
+      },
+      {
+        "text": "日本語テスト",
+        "left": 285,
+        "top": 76,
+        "right": 334,
+        "bottom": 92
+      },
+      {
+        "text": "中文ABC",
+        "left": 65,
+        "top": 74,
+        "right": 151,
+        "bottom": 94
+      },
+      {
+        "text": "Hello",
+        "left": 175,
+        "top": 79,
+        "right": 213,
+        "bottom": 95
+      },
+      {
+        "text": "مرحبا",
+        "left": 225,
+        "top": 39,
+        "right": 290,
+        "bottom": 64
+      }
+    ],
+    "text": "https://a.test/中文\n中文 ABC 中文 ABC مرحبا\n    中文 ABC Hello      日本語テスト"
+  },
+  {
+    "name": "mixed-layout-11",
+    "blocks": [
+      {
+        "text": "日本語テスト",
+        "left": 115,
+        "top": 76,
+        "right": 189,
+        "bottom": 92
+      },
+      {
+        "text": "Hello",
+        "left": 115,
+        "top": 117,
+        "right": 151,
+        "bottom": 142
+      },
+      {
+        "text": "，",
+        "left": 15,
+        "top": 41,
+        "right": 78,
+        "bottom": 66
+      },
+      {
+        "text": "日本語テスト",
+        "left": 35,
+        "top": -2,
+        "right": 99,
+        "bottom": 18
+      },
+      {
+        "text": "，",
+        "left": 145,
+        "top": 0,
+        "right": 188,
+        "bottom": 20
+      },
+      {
+        "text": "，",
+        "left": 125,
+        "top": 38,
+        "right": 184,
+        "bottom": 63
+      },
+      {
+        "text": "中文ABC",
+        "left": 5,
+        "top": 112,
+        "right": 38,
+        "bottom": 132
+      },
+      {
+        "text": "مرحبا",
+        "left": 255,
+        "top": -2,
+        "right": 287,
+        "bottom": 18
+      },
+      {
+        "text": "日本語テスト",
+        "left": 5,
+        "top": 77,
+        "right": 84,
+        "bottom": 93
+      }
+    ],
+    "text": "    日本語テスト   ，     مرحبا\n，  ，\n日本語テスト  日本語テスト\n中文 ABC\n                Hello"
+  },
+  {
+    "name": "mixed-layout-12",
+    "blocks": [
+      {
+        "text": "Hello",
+        "left": 5,
+        "top": 41,
+        "right": 71,
+        "bottom": 66
+      },
+      {
+        "text": "123.45%",
+        "left": 35,
+        "top": 1,
+        "right": 75,
+        "bottom": 26
+      }
+    ],
+    "text": "    123.45%\nHello"
+  },
+  {
+    "name": "mixed-layout-13",
+    "blocks": [
+      {
+        "text": "123.45%",
+        "left": 15,
+        "top": 39,
+        "right": 57,
+        "bottom": 64
+      },
+      {
+        "text": "مرحبا",
+        "left": 35,
+        "top": 1,
+        "right": 70,
+        "bottom": 26
+      }
+    ],
+    "text": "مرحبا\n123.45%"
+  },
+  {
+    "name": "mixed-layout-14",
+    "blocks": [
+      {
+        "text": "中文ABC",
+        "left": 5,
+        "top": -1,
+        "right": 58,
+        "bottom": 19
+      }
+    ],
+    "text": "中文 ABC"
+  },
+  {
+    "name": "mixed-layout-15",
+    "blocks": [
+      {
+        "text": "繁體中文",
+        "left": 15,
+        "top": 38,
+        "right": 108,
+        "bottom": 54
+      },
+      {
+        "text": "中文ABC",
+        "left": 65,
+        "top": 3,
+        "right": 120,
+        "bottom": 23
+      },
+      {
+        "text": "123.45%",
+        "left": 175,
+        "top": 1,
+        "right": 268,
+        "bottom": 21
+      },
+      {
+        "text": "日本語テスト",
+        "left": 125,
+        "top": 37,
+        "right": 187,
+        "bottom": 57
+      },
+      {
+        "text": "中文ABC",
+        "left": 65,
+        "top": 114,
+        "right": 151,
+        "bottom": 130
+      },
+      {
+        "text": "中文ABC",
+        "left": 5,
+        "top": 75,
+        "right": 35,
+        "bottom": 91
+      }
+    ],
+    "text": "    中文 ABC    123.45%\n繁體中文日本語テスト\n中文 ABC\n\n    中文 ABC"
+  },
+  {
+    "name": "mixed-layout-16",
+    "blocks": [
+      {
+        "text": "Hello",
+        "left": 255,
+        "top": 35,
+        "right": 310,
+        "bottom": 55
+      },
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 39,
+        "right": 100,
+        "bottom": 55
+      },
+      {
+        "text": "繁體中文",
+        "left": 5,
+        "top": -3,
+        "right": 96,
+        "bottom": 17
+      },
+      {
+        "text": "繁體中文",
+        "left": 115,
+        "top": -2,
+        "right": 207,
+        "bottom": 23
+      },
+      {
+        "text": "مرحبا",
+        "left": 145,
+        "top": 36,
+        "right": 201,
+        "bottom": 52
+      },
+      {
+        "text": "Hello",
+        "left": 15,
+        "top": 117,
+        "right": 60,
+        "bottom": 137
+      },
+      {
+        "text": "繁體中文",
+        "left": 225,
+        "top": -2,
+        "right": 274,
+        "bottom": 14
+      },
+      {
+        "text": "日本語テスト",
+        "left": 65,
+        "top": 79,
+        "right": 143,
+        "bottom": 104
+      }
+    ],
+    "text": "繁體中文繁體中文繁體中文\n    中文 ABC    مرحبا     Hello\n        日本語テスト\nHello"
+  },
+  {
+    "name": "mixed-layout-17",
+    "blocks": [
+      {
+        "text": "Hello",
+        "left": 255,
+        "top": 112,
+        "right": 305,
+        "bottom": 137
+      },
+      {
+        "text": "，",
+        "left": 175,
+        "top": 37,
+        "right": 215,
+        "bottom": 62
+      },
+      {
+        "text": "مرحبا",
+        "left": 285,
+        "top": 36,
+        "right": 320,
+        "bottom": 56
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 15,
+        "top": 74,
+        "right": 108,
+        "bottom": 99
+      },
+      {
+        "text": "Hello",
+        "left": 65,
+        "top": 36,
+        "right": 127,
+        "bottom": 61
+      },
+      {
+        "text": "مرحبا",
+        "left": 15,
+        "top": 190,
+        "right": 97,
+        "bottom": 206
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 150,
+        "right": 96,
+        "bottom": 166
+      },
+      {
+        "text": "123.45%",
+        "left": 125,
+        "top": 79,
+        "right": 217,
+        "bottom": 95
+      },
+      {
+        "text": "Hello",
+        "left": 125,
+        "top": 190,
+        "right": 209,
+        "bottom": 206
+      },
+      {
+        "text": "مرحبا",
+        "left": 145,
+        "top": 114,
+        "right": 178,
+        "bottom": 130
+      },
+      {
+        "text": "繁體中文",
+        "left": 115,
+        "top": 1,
+        "right": 160,
+        "bottom": 17
+      },
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 114,
+        "right": 78,
+        "bottom": 139
+      },
+      {
+        "text": "مرحبا",
+        "left": 5,
+        "top": -2,
+        "right": 46,
+        "bottom": 14
+      },
+      {
+        "text": "Hello",
+        "left": 145,
+        "top": 151,
+        "right": 204,
+        "bottom": 167
+      }
+    ],
+    "text": "مرحبا      繁體中文\n        Hello  ，     مرحبا\nhttps://a.test/中文 123.45%\n    中文 ABC      مرحبا       Hello\n    繁體中文     Hello\n\nمرحبا   Hello"
+  },
+  {
+    "name": "mixed-layout-18",
+    "blocks": [
+      {
+        "text": "中文ABC",
+        "left": 15,
+        "top": 191,
+        "right": 104,
+        "bottom": 207
+      },
+      {
+        "text": "Hello",
+        "left": 35,
+        "top": 230,
+        "right": 104,
+        "bottom": 246
+      },
+      {
+        "text": "，",
+        "left": 65,
+        "top": 35,
+        "right": 129,
+        "bottom": 55
+      },
+      {
+        "text": "日本語テスト",
+        "left": 125,
+        "top": 188,
+        "right": 194,
+        "bottom": 213
+      },
+      {
+        "text": "مرحبا",
+        "left": 15,
+        "top": 111,
+        "right": 90,
+        "bottom": 136
+      },
+      {
+        "text": "，",
+        "left": 145,
+        "top": -2,
+        "right": 219,
+        "bottom": 23
+      },
+      {
+        "text": "Hello",
+        "left": 35,
+        "top": 74,
+        "right": 106,
+        "bottom": 90
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 152,
+        "right": 101,
+        "bottom": 172
+      },
+      {
+        "text": "123.45%",
+        "left": 35,
+        "top": -3,
+        "right": 118,
+        "bottom": 13
+      },
+      {
+        "text": "Hello",
+        "left": 255,
+        "top": 151,
+        "right": 304,
+        "bottom": 167
+      },
+      {
+        "text": "中文ABC",
+        "left": 145,
+        "top": 150,
+        "right": 228,
+        "bottom": 175
+      },
+      {
+        "text": "Hello",
+        "left": 235,
+        "top": 190,
+        "right": 305,
+        "bottom": 210
+      },
+      {
+        "text": "中文ABC",
+        "left": 175,
+        "top": 35,
+        "right": 224,
+        "bottom": 51
+      }
+    ],
+    "text": "    123.45%\n                        ，\n        ，   中文 ABC\n    Hello\nمرحبا\n    繁體中文   中文 ABC   Hello\n中文 ABC 日本語テスト   Hello\n    Hello"
+  },
+  {
+    "name": "mixed-layout-19",
+    "blocks": [
+      {
+        "text": "مرحبا",
+        "left": 175,
+        "top": 73,
+        "right": 212,
+        "bottom": 98
+      },
+      {
+        "text": "中文ABC",
+        "left": 255,
+        "top": 39,
+        "right": 326,
+        "bottom": 55
+      },
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 35,
+        "right": 67,
+        "bottom": 60
+      },
+      {
+        "text": "繁體中文",
+        "left": 65,
+        "top": 73,
+        "right": 155,
+        "bottom": 93
+      },
+      {
+        "text": "123.45%",
+        "left": 35,
+        "top": -3,
+        "right": 83,
+        "bottom": 22
+      },
+      {
+        "text": "，",
+        "left": 285,
+        "top": 73,
+        "right": 337,
+        "bottom": 93
+      },
+      {
+        "text": "中文ABC",
+        "left": 145,
+        "top": 40,
+        "right": 191,
+        "bottom": 60
+      }
+    ],
+    "text": "123.45%\n中文 ABC      中文 ABC      中文 ABC\n    繁體中文 مرحبا    ，"
+  },
+  {
+    "name": "mixed-layout-20",
+    "blocks": [
+      {
+        "text": "繁體中文",
+        "left": 255,
+        "top": -2,
+        "right": 349,
+        "bottom": 14
+      },
+      {
+        "text": "，",
+        "left": 65,
+        "top": 116,
+        "right": 110,
+        "bottom": 136
+      },
+      {
+        "text": "مرحبا",
+        "left": 175,
+        "top": 112,
+        "right": 228,
+        "bottom": 132
+      },
+      {
+        "text": "繁體中文",
+        "left": 115,
+        "top": 187,
+        "right": 192,
+        "bottom": 207
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 40,
+        "right": 120,
+        "bottom": 60
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 5,
+        "top": 154,
+        "right": 80,
+        "bottom": 179
+      },
+      {
+        "text": "Hello",
+        "left": 145,
+        "top": -1,
+        "right": 199,
+        "bottom": 15
+      },
+      {
+        "text": "，",
+        "left": 35,
+        "top": 3,
+        "right": 129,
+        "bottom": 23
+      },
+      {
+        "text": "繁體中文",
+        "left": 5,
+        "top": 187,
+        "right": 73,
+        "bottom": 207
+      },
+      {
+        "text": "مرحبا",
+        "left": 5,
+        "top": 75,
+        "right": 89,
+        "bottom": 95
+      },
+      {
+        "text": "繁體中文",
+        "left": 145,
+        "top": 41,
+        "right": 236,
+        "bottom": 66
+      }
+    ],
+    "text": "                    Hello     繁體中文\n    ，\n    繁體中文繁體中文\nمرحبا\n        ，     مرحبا\nhttps://a.test/中文\n繁體中文   繁體中文"
+  },
+  {
+    "name": "mixed-layout-21",
+    "blocks": [
+      {
+        "text": "https://a.test/中文",
+        "left": 65,
+        "top": 116,
+        "right": 106,
+        "bottom": 136
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 125,
+        "top": -2,
+        "right": 193,
+        "bottom": 18
+      },
+      {
+        "text": "繁體中文",
+        "left": 145,
+        "top": 36,
+        "right": 209,
+        "bottom": 56
+      },
+      {
+        "text": "，",
+        "left": 5,
+        "top": 73,
+        "right": 53,
+        "bottom": 93
+      },
+      {
+        "text": "中文ABC",
+        "left": 225,
+        "top": 76,
+        "right": 267,
+        "bottom": 96
+      },
+      {
+        "text": "中文ABC",
+        "left": 115,
+        "top": 74,
+        "right": 154,
+        "bottom": 99
+      },
+      {
+        "text": "123.45%",
+        "left": 35,
+        "top": 38,
+        "right": 95,
+        "bottom": 58
+      },
+      {
+        "text": "Hello",
+        "left": 15,
+        "top": 1,
+        "right": 82,
+        "bottom": 17
+      },
+      {
+        "text": "中文ABC",
+        "left": 235,
+        "top": 2,
+        "right": 279,
+        "bottom": 18
+      }
+    ],
+    "text": "Hello    https://a.test/中文   中文 ABC\n    123.45%    繁體中文\n，    中文 ABC     中文 ABC\n        https://a.test/中文"
+  },
+  {
+    "name": "mixed-layout-22",
+    "blocks": [
+      {
+        "text": "中文ABC",
+        "left": 145,
+        "top": -3,
+        "right": 190,
+        "bottom": 22
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 1,
+        "right": 130,
+        "bottom": 21
+      },
+      {
+        "text": "，",
+        "left": 255,
+        "top": 1,
+        "right": 323,
+        "bottom": 17
+      }
+    ],
+    "text": "繁體中文中文 ABC     ，"
+  },
+  {
+    "name": "mixed-layout-23",
+    "blocks": [
+      {
+        "text": "繁體中文",
+        "left": 175,
+        "top": 155,
+        "right": 209,
+        "bottom": 171
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 65,
+        "top": 154,
+        "right": 135,
+        "bottom": 179
+      },
+      {
+        "text": "日本語テスト",
+        "left": 65,
+        "top": 76,
+        "right": 128,
+        "bottom": 96
+      },
+      {
+        "text": "，",
+        "left": 35,
+        "top": 39,
+        "right": 116,
+        "bottom": 55
+      },
+      {
+        "text": "繁體中文",
+        "left": 285,
+        "top": 75,
+        "right": 321,
+        "bottom": 91
+      },
+      {
+        "text": "日本語テスト",
+        "left": 175,
+        "top": 74,
+        "right": 237,
+        "bottom": 90
+      },
+      {
+        "text": "123.45%",
+        "left": 35,
+        "top": 113,
+        "right": 127,
+        "bottom": 129
+      },
+      {
+        "text": "日本語テスト",
+        "left": 255,
+        "top": 40,
+        "right": 304,
+        "bottom": 65
+      },
+      {
+        "text": "123.45%",
+        "left": 285,
+        "top": 153,
+        "right": 351,
+        "bottom": 173
+      },
+      {
+        "text": "Hello",
+        "left": 35,
+        "top": -2,
+        "right": 83,
+        "bottom": 23
+      },
+      {
+        "text": "Hello",
+        "left": 145,
+        "top": 41,
+        "right": 209,
+        "bottom": 66
+      }
+    ],
+    "text": "Hello\n，\n                Hello   日本語テスト\n    日本語テスト    日本語テスト    繁體中文\n\n123.45%\n\n    https://a.test/中文   繁體中文       123.45%"
+  },
+  {
+    "name": "mixed-layout-24",
+    "blocks": [
+      {
+        "text": "مرحبا",
+        "left": 15,
+        "top": 228,
+        "right": 57,
+        "bottom": 244
+      },
+      {
+        "text": "，",
+        "left": 5,
+        "top": 188,
+        "right": 67,
+        "bottom": 204
+      },
+      {
+        "text": "مرحبا",
+        "left": 35,
+        "top": 40,
+        "right": 106,
+        "bottom": 60
+      },
+      {
+        "text": "，",
+        "left": 5,
+        "top": 117,
+        "right": 56,
+        "bottom": 133
+      },
+      {
+        "text": "中文ABC",
+        "left": 145,
+        "top": 37,
+        "right": 209,
+        "bottom": 53
+      },
+      {
+        "text": "123.45%",
+        "left": 5,
+        "top": 73,
+        "right": 69,
+        "bottom": 89
+      },
+      {
+        "text": "日本語テスト",
+        "left": 65,
+        "top": 149,
+        "right": 142,
+        "bottom": 174
+      },
+      {
+        "text": "مرحبا",
+        "left": 115,
+        "top": 188,
+        "right": 167,
+        "bottom": 204
+      },
+      {
+        "text": "مرحبا",
+        "left": 65,
+        "top": 1,
+        "right": 149,
+        "bottom": 17
+      },
+      {
+        "text": "，",
+        "left": 255,
+        "top": 35,
+        "right": 330,
+        "bottom": 51
+      }
+    ],
+    "text": "        مرحبا\n\n    مرحبا    中文 ABC   ，\n\n123.45%\n\n，\n        日本語テスト\n，     مرحبا\n\nمرحبا"
+  },
+  {
+    "name": "mixed-layout-25",
+    "blocks": [
+      {
+        "text": "，",
+        "left": 65,
+        "top": 35,
+        "right": 159,
+        "bottom": 55
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 111,
+        "right": 99,
+        "bottom": 131
+      },
+      {
+        "text": "，",
+        "left": 115,
+        "top": 225,
+        "right": 163,
+        "bottom": 245
+      },
+      {
+        "text": "Hello",
+        "left": 35,
+        "top": 153,
+        "right": 83,
+        "bottom": 173
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 15,
+        "top": 0,
+        "right": 48,
+        "bottom": 25
+      },
+      {
+        "text": "，",
+        "left": 65,
+        "top": 191,
+        "right": 156,
+        "bottom": 211
+      },
+      {
+        "text": "中文ABC",
+        "left": 285,
+        "top": 41,
+        "right": 318,
+        "bottom": 61
+      },
+      {
+        "text": "中文ABC",
+        "left": 5,
+        "top": 228,
+        "right": 78,
+        "bottom": 248
+      },
+      {
+        "text": "مرحبا",
+        "left": 145,
+        "top": 73,
+        "right": 186,
+        "bottom": 89
+      },
+      {
+        "text": "繁體中文",
+        "left": 175,
+        "top": 39,
+        "right": 240,
+        "bottom": 55
+      },
+      {
+        "text": "，",
+        "left": 145,
+        "top": 153,
+        "right": 226,
+        "bottom": 173
+      },
+      {
+        "text": "Hello",
+        "left": 145,
+        "top": 112,
+        "right": 175,
+        "bottom": 132
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 255,
+        "top": 117,
+        "right": 286,
+        "bottom": 133
+      },
+      {
+        "text": "日本語テスト",
+        "left": 175,
+        "top": 190,
+        "right": 244,
+        "bottom": 206
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 76,
+        "right": 78,
+        "bottom": 96
+      },
+      {
+        "text": "Hello",
+        "left": 255,
+        "top": 75,
+        "right": 337,
+        "bottom": 91
+      }
+    ],
+    "text": "https://a.test/中文\n        ，繁體中文   中文 ABC\n    繁體中文      مرحبا      Hello\n    繁體中文    Hello       https://a.test/中文\n    Hello    ，\n        ，日本語テスト\n中文 ABC  ，"
+  },
+  {
+    "name": "mixed-layout-26",
+    "blocks": [
+      {
+        "text": "，",
+        "left": 225,
+        "top": 2,
+        "right": 275,
+        "bottom": 22
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 115,
+        "top": -3,
+        "right": 151,
+        "bottom": 22
+      },
+      {
+        "text": "مرحبا",
+        "left": 5,
+        "top": -2,
+        "right": 88,
+        "bottom": 14
+      }
+    ],
+    "text": "مرحبا   https://a.test/中文    ，"
+  },
+  {
+    "name": "mixed-layout-27",
+    "blocks": [
+      {
+        "text": "123.45%",
+        "left": 65,
+        "top": 0,
+        "right": 158,
+        "bottom": 20
+      },
+      {
+        "text": "，",
+        "left": 35,
+        "top": 79,
+        "right": 123,
+        "bottom": 104
+      },
+      {
+        "text": "日本語テスト",
+        "left": 5,
+        "top": 113,
+        "right": 70,
+        "bottom": 129
+      },
+      {
+        "text": "日本語テスト",
+        "left": 65,
+        "top": 38,
+        "right": 96,
+        "bottom": 63
+      },
+      {
+        "text": "，",
+        "left": 285,
+        "top": -3,
+        "right": 357,
+        "bottom": 17
+      },
+      {
+        "text": "Hello",
+        "left": 175,
+        "top": 2,
+        "right": 231,
+        "bottom": 27
+      }
+    ],
+    "text": "        123.45% Hello   ，\n        日本語テスト\n    ，\n日本語テスト"
+  },
+  {
+    "name": "mixed-layout-28",
+    "blocks": [
+      {
+        "text": "Hello",
+        "left": 5,
+        "top": -1,
+        "right": 65,
+        "bottom": 24
+      },
+      {
+        "text": "123.45%",
+        "left": 225,
+        "top": 3,
+        "right": 310,
+        "bottom": 23
+      },
+      {
+        "text": "日本語テスト",
+        "left": 115,
+        "top": 0,
+        "right": 191,
+        "bottom": 20
+      }
+    ],
+    "text": "Hello    日本語テスト   123.45%"
+  },
+  {
+    "name": "mixed-layout-29",
+    "blocks": [
+      {
+        "text": "日本語テスト",
+        "left": 175,
+        "top": 39,
+        "right": 264,
+        "bottom": 55
+      },
+      {
+        "text": "Hello",
+        "left": 5,
+        "top": 75,
+        "right": 93,
+        "bottom": 95
+      },
+      {
+        "text": "Hello",
+        "left": 65,
+        "top": 40,
+        "right": 137,
+        "bottom": 65
+      },
+      {
+        "text": "Hello",
+        "left": 255,
+        "top": 117,
+        "right": 287,
+        "bottom": 142
+      },
+      {
+        "text": "繁體中文",
+        "left": 65,
+        "top": 2,
+        "right": 105,
+        "bottom": 18
+      },
+      {
+        "text": "مرحبا",
+        "left": 115,
+        "top": 73,
+        "right": 174,
+        "bottom": 93
+      },
+      {
+        "text": "مرحبا",
+        "left": 145,
+        "top": 112,
+        "right": 200,
+        "bottom": 128
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 111,
+        "right": 103,
+        "bottom": 131
+      },
+      {
+        "text": "，",
+        "left": 175,
+        "top": -3,
+        "right": 219,
+        "bottom": 17
+      }
+    ],
+    "text": "        繁體中文     ，\n                        日本語テスト\n        Hello\nHello مرحبا\n    繁體中文    مرحبا\n                                Hello"
+  },
+  {
+    "name": "mixed-layout-30",
+    "blocks": [
+      {
+        "text": "日本語テスト",
+        "left": 5,
+        "top": 36,
+        "right": 91,
+        "bottom": 56
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 225,
+        "top": 76,
+        "right": 288,
+        "bottom": 96
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 115,
+        "top": 117,
+        "right": 175,
+        "bottom": 142
+      },
+      {
+        "text": "123.45%",
+        "left": 285,
+        "top": 2,
+        "right": 361,
+        "bottom": 27
+      },
+      {
+        "text": "日本語テスト",
+        "left": 175,
+        "top": 3,
+        "right": 262,
+        "bottom": 19
+      },
+      {
+        "text": "123.45%",
+        "left": 5,
+        "top": 111,
+        "right": 81,
+        "bottom": 136
+      },
+      {
+        "text": "，",
+        "left": 5,
+        "top": 76,
+        "right": 92,
+        "bottom": 92
+      },
+      {
+        "text": "مرحبا",
+        "left": 115,
+        "top": 39,
+        "right": 177,
+        "bottom": 64
+      },
+      {
+        "text": "日本語テスト",
+        "left": 115,
+        "top": 76,
+        "right": 206,
+        "bottom": 101
+      },
+      {
+        "text": "，",
+        "left": 65,
+        "top": -3,
+        "right": 156,
+        "bottom": 17
+      },
+      {
+        "text": "123.45%",
+        "left": 225,
+        "top": 114,
+        "right": 259,
+        "bottom": 139
+      }
+    ],
+    "text": "    ，\n            日本語テスト 123.45%\n日本語テスト مرحبا\n，日本語テスト https://a.test/中文\n123.45% https://a.test/中文   123.45%"
+  },
+  {
+    "name": "mixed-layout-31",
+    "blocks": [
+      {
+        "text": "繁體中文",
+        "left": 5,
+        "top": -2,
+        "right": 63,
+        "bottom": 23
+      },
+      {
+        "text": "，",
+        "left": 5,
+        "top": 76,
+        "right": 40,
+        "bottom": 96
+      },
+      {
+        "text": "繁體中文",
+        "left": 65,
+        "top": 38,
+        "right": 141,
+        "bottom": 63
+      },
+      {
+        "text": "中文ABC",
+        "left": 225,
+        "top": 73,
+        "right": 299,
+        "bottom": 89
+      },
+      {
+        "text": "日本語テスト",
+        "left": 115,
+        "top": 74,
+        "right": 166,
+        "bottom": 90
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 175,
+        "top": 37,
+        "right": 254,
+        "bottom": 62
+      }
+    ],
+    "text": "繁體中文\n    繁體中文 https://a.test/中文\n，      日本語テスト    中文 ABC"
+  },
+  {
+    "name": "mixed-layout-32",
+    "blocks": [
+      {
+        "text": "Hello",
+        "left": 15,
+        "top": 39,
+        "right": 62,
+        "bottom": 64
+      },
+      {
+        "text": "中文ABC",
+        "left": 125,
+        "top": -1,
+        "right": 208,
+        "bottom": 19
+      },
+      {
+        "text": "مرحبا",
+        "left": 15,
+        "top": 0,
+        "right": 105,
+        "bottom": 20
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 5,
+        "top": 116,
+        "right": 37,
+        "bottom": 136
+      },
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 76,
+        "right": 129,
+        "bottom": 92
+      },
+      {
+        "text": "مرحبا",
+        "left": 145,
+        "top": 73,
+        "right": 237,
+        "bottom": 89
+      },
+      {
+        "text": "繁體中文",
+        "left": 235,
+        "top": 1,
+        "right": 268,
+        "bottom": 26
+      }
+    ],
+    "text": "مرحبا 中文 ABC 繁體中文\nHello\n    中文 ABC مرحبا\n\nhttps://a.test/中文"
+  },
+  {
+    "name": "mixed-layout-33",
+    "blocks": [
+      {
+        "text": "مرحبا",
+        "left": 115,
+        "top": 1,
+        "right": 177,
+        "bottom": 21
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 65,
+        "top": 35,
+        "right": 108,
+        "bottom": 60
+      },
+      {
+        "text": "مرحبا",
+        "left": 5,
+        "top": 79,
+        "right": 66,
+        "bottom": 99
+      },
+      {
+        "text": "中文ABC",
+        "left": 225,
+        "top": -1,
+        "right": 304,
+        "bottom": 15
+      },
+      {
+        "text": "123.45%",
+        "left": 5,
+        "top": 2,
+        "right": 43,
+        "bottom": 22
+      },
+      {
+        "text": "مرحبا",
+        "left": 115,
+        "top": 77,
+        "right": 185,
+        "bottom": 93
+      },
+      {
+        "text": "日本語テスト",
+        "left": 225,
+        "top": 75,
+        "right": 259,
+        "bottom": 91
+      }
+    ],
+    "text": "123.45%     مرحبا     中文 ABC\n    https://a.test/中文\nمرحبا     مرحبا    日本語テスト"
+  },
+  {
+    "name": "mixed-layout-34",
+    "blocks": [
+      {
+        "text": "日本語テスト",
+        "left": 35,
+        "top": 36,
+        "right": 113,
+        "bottom": 52
+      },
+      {
+        "text": "日本語テスト",
+        "left": 5,
+        "top": 76,
+        "right": 85,
+        "bottom": 96
+      },
+      {
+        "text": "中文ABC",
+        "left": 225,
+        "top": 114,
+        "right": 299,
+        "bottom": 134
+      },
+      {
+        "text": "中文ABC",
+        "left": 65,
+        "top": -2,
+        "right": 136,
+        "bottom": 18
+      },
+      {
+        "text": "123.45%",
+        "left": 225,
+        "top": 74,
+        "right": 286,
+        "bottom": 90
+      },
+      {
+        "text": "123.45%",
+        "left": 5,
+        "top": 153,
+        "right": 84,
+        "bottom": 178
+      },
+      {
+        "text": "123.45%",
+        "left": 115,
+        "top": 117,
+        "right": 195,
+        "bottom": 133
+      },
+      {
+        "text": "Hello",
+        "left": 125,
+        "top": 192,
+        "right": 178,
+        "bottom": 212
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 115,
+        "top": 76,
+        "right": 148,
+        "bottom": 92
+      },
+      {
+        "text": "مرحبا",
+        "left": 5,
+        "top": 115,
+        "right": 91,
+        "bottom": 140
+      },
+      {
+        "text": "中文ABC",
+        "left": 35,
+        "top": 231,
+        "right": 114,
+        "bottom": 251
+      },
+      {
+        "text": "日本語テスト",
+        "left": 15,
+        "top": 191,
+        "right": 57,
+        "bottom": 216
+      },
+      {
+        "text": "Hello",
+        "left": 225,
+        "top": 151,
+        "right": 283,
+        "bottom": 167
+      },
+      {
+        "text": "مرحبا",
+        "left": 115,
+        "top": 155,
+        "right": 177,
+        "bottom": 171
+      },
+      {
+        "text": "日本語テスト",
+        "left": 145,
+        "top": 231,
+        "right": 212,
+        "bottom": 247
+      }
+    ],
+    "text": "        中文 ABC\n    日本語テスト\n\n日本語テスト   https://a.test/中文       123.45%\n\nمرحبا 123.45%   中文 ABC\n                            Hello\n123.45%   مرحبا\n日本語テスト     Hello\n    中文 ABC   日本語テスト"
+  },
+  {
+    "name": "mixed-layout-35",
+    "blocks": [
+      {
+        "text": "繁體中文",
+        "left": 145,
+        "top": 154,
+        "right": 186,
+        "bottom": 179
+      },
+      {
+        "text": "123.45%",
+        "left": 5,
+        "top": 73,
+        "right": 54,
+        "bottom": 93
+      },
+      {
+        "text": "日本語テスト",
+        "left": 115,
+        "top": 79,
+        "right": 197,
+        "bottom": 95
+      },
+      {
+        "text": "日本語テスト",
+        "left": 125,
+        "top": 37,
+        "right": 200,
+        "bottom": 62
+      },
+      {
+        "text": "日本語テスト",
+        "left": 225,
+        "top": 76,
+        "right": 316,
+        "bottom": 92
+      },
+      {
+        "text": "，",
+        "left": 15,
+        "top": 35,
+        "right": 100,
+        "bottom": 51
+      },
+      {
+        "text": "Hello",
+        "left": 285,
+        "top": 0,
+        "right": 315,
+        "bottom": 20
+      },
+      {
+        "text": "中文ABC",
+        "left": 175,
+        "top": -2,
+        "right": 259,
+        "bottom": 14
+      },
+      {
+        "text": "123.45%",
+        "left": 35,
+        "top": 155,
+        "right": 79,
+        "bottom": 171
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 175,
+        "top": 111,
+        "right": 247,
+        "bottom": 136
+      },
+      {
+        "text": "繁體中文",
+        "left": 235,
+        "top": 39,
+        "right": 271,
+        "bottom": 64
+      },
+      {
+        "text": "繁體中文",
+        "left": 65,
+        "top": 112,
+        "right": 144,
+        "bottom": 128
+      },
+      {
+        "text": "Hello",
+        "left": 65,
+        "top": 2,
+        "right": 113,
+        "bottom": 22
+      }
+    ],
+    "text": "        Hello      中文 ABC Hello\n，\n                日本語テスト繁體中文\n123.45%      日本語テスト  日本語テスト\n        繁體中文   https://a.test/中文\n    123.45%      繁體中文"
+  },
+  {
+    "name": "mixed-layout-36",
+    "blocks": [
+      {
+        "text": "，",
+        "left": 5,
+        "top": 190,
+        "right": 90,
+        "bottom": 206
+      },
+      {
+        "text": "Hello",
+        "left": 5,
+        "top": 37,
+        "right": 74,
+        "bottom": 57
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 15,
+        "top": -3,
+        "right": 50,
+        "bottom": 17
+      },
+      {
+        "text": "مرحبا",
+        "left": 65,
+        "top": 115,
+        "right": 98,
+        "bottom": 140
+      },
+      {
+        "text": "繁體中文",
+        "left": 235,
+        "top": 79,
+        "right": 301,
+        "bottom": 99
+      },
+      {
+        "text": "中文ABC",
+        "left": 125,
+        "top": 77,
+        "right": 200,
+        "bottom": 102
+      },
+      {
+        "text": "繁體中文",
+        "left": 115,
+        "top": 39,
+        "right": 166,
+        "bottom": 55
+      },
+      {
+        "text": "日本語テスト",
+        "left": 15,
+        "top": 149,
+        "right": 88,
+        "bottom": 174
+      },
+      {
+        "text": "مرحبا",
+        "left": 175,
+        "top": 117,
+        "right": 209,
+        "bottom": 142
+      },
+      {
+        "text": "日本語テスト",
+        "left": 15,
+        "top": 75,
+        "right": 82,
+        "bottom": 100
+      }
+    ],
+    "text": "https://a.test/中文\nHello    繁體中文\n日本語テスト  中文 ABC   繁體中文\n    مرحبا     مرحبا\n日本語テスト\n，"
+  },
+  {
+    "name": "mixed-layout-37",
+    "blocks": [
+      {
+        "text": "https://a.test/中文",
+        "left": 35,
+        "top": -3,
+        "right": 107,
+        "bottom": 22
+      },
+      {
+        "text": "مرحبا",
+        "left": 5,
+        "top": 36,
+        "right": 78,
+        "bottom": 61
+      }
+    ],
+    "text": "    https://a.test/中文\nمرحبا"
+  },
+  {
+    "name": "mixed-layout-38",
+    "blocks": [
+      {
+        "text": "مرحبا",
+        "left": 145,
+        "top": 0,
+        "right": 213,
+        "bottom": 20
+      },
+      {
+        "text": "繁體中文",
+        "left": 225,
+        "top": 114,
+        "right": 272,
+        "bottom": 134
+      },
+      {
+        "text": "Hello",
+        "left": 5,
+        "top": 115,
+        "right": 89,
+        "bottom": 131
+      },
+      {
+        "text": "，",
+        "left": 35,
+        "top": 3,
+        "right": 126,
+        "bottom": 19
+      },
+      {
+        "text": "，",
+        "left": 35,
+        "top": 36,
+        "right": 83,
+        "bottom": 56
+      },
+      {
+        "text": "日本語テスト",
+        "left": 145,
+        "top": 40,
+        "right": 215,
+        "bottom": 56
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 115,
+        "top": 114,
+        "right": 166,
+        "bottom": 139
+      },
+      {
+        "text": "Hello",
+        "left": 5,
+        "top": 75,
+        "right": 36,
+        "bottom": 95
+      },
+      {
+        "text": "中文ABC",
+        "left": 115,
+        "top": 77,
+        "right": 160,
+        "bottom": 97
+      }
+    ],
+    "text": "    ， مرحبا\n    ，     日本語テスト\nHello      中文 ABC\nHello https://a.test/中文    繁體中文"
+  },
+  {
+    "name": "mixed-layout-39",
+    "blocks": [
+      {
+        "text": "Hello",
+        "left": 255,
+        "top": 79,
+        "right": 334,
+        "bottom": 95
+      },
+      {
+        "text": "日本語テスト",
+        "left": 15,
+        "top": 41,
+        "right": 62,
+        "bottom": 66
+      },
+      {
+        "text": "中文ABC",
+        "left": 125,
+        "top": 37,
+        "right": 178,
+        "bottom": 53
+      },
+      {
+        "text": "Hello",
+        "left": 145,
+        "top": 74,
+        "right": 212,
+        "bottom": 94
+      },
+      {
+        "text": "Hello",
+        "left": 5,
+        "top": 0,
+        "right": 72,
+        "bottom": 25
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 75,
+        "right": 122,
+        "bottom": 95
+      },
+      {
+        "text": "日本語テスト",
+        "left": 235,
+        "top": 41,
+        "right": 303,
+        "bottom": 66
+      }
+    ],
+    "text": "Hello\n                中文 ABC\n日本語テスト        日本語テスト\n    繁體中文 Hello    Hello"
+  },
+  {
+    "name": "mixed-layout-40",
+    "blocks": [
+      {
+        "text": "https://a.test/中文",
+        "left": 125,
+        "top": 230,
+        "right": 195,
+        "bottom": 246
+      },
+      {
+        "text": "中文ABC",
+        "left": 115,
+        "top": 73,
+        "right": 179,
+        "bottom": 89
+      },
+      {
+        "text": "مرحبا",
+        "left": 65,
+        "top": 2,
+        "right": 138,
+        "bottom": 18
+      },
+      {
+        "text": "繁體中文",
+        "left": 15,
+        "top": 264,
+        "right": 103,
+        "bottom": 284
+      },
+      {
+        "text": "مرحبا",
+        "left": 5,
+        "top": 76,
+        "right": 100,
+        "bottom": 92
+      },
+      {
+        "text": "مرحبا",
+        "left": 175,
+        "top": 116,
+        "right": 249,
+        "bottom": 132
+      },
+      {
+        "text": "日本語テスト",
+        "left": 65,
+        "top": 115,
+        "right": 96,
+        "bottom": 140
+      },
+      {
+        "text": "Hello",
+        "left": 285,
+        "top": 112,
+        "right": 345,
+        "bottom": 132
+      },
+      {
+        "text": "مرحبا",
+        "left": 5,
+        "top": 36,
+        "right": 61,
+        "bottom": 56
+      },
+      {
+        "text": "，",
+        "left": 15,
+        "top": 188,
+        "right": 89,
+        "bottom": 208
+      },
+      {
+        "text": "繁體中文",
+        "left": 125,
+        "top": 268,
+        "right": 187,
+        "bottom": 284
+      },
+      {
+        "text": "中文ABC",
+        "left": 235,
+        "top": 268,
+        "right": 292,
+        "bottom": 288
+      },
+      {
+        "text": "中文ABC",
+        "left": 5,
+        "top": 154,
+        "right": 43,
+        "bottom": 174
+      },
+      {
+        "text": "مرحبا",
+        "left": 125,
+        "top": 189,
+        "right": 216,
+        "bottom": 209
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 15,
+        "top": 227,
+        "right": 56,
+        "bottom": 243
+      }
+    ],
+    "text": "    مرحبا\nمرحبا\nمرحبا 中文 ABC\n    日本語テスト       مرحبا    Hello\n中文 ABC\n，   مرحبا\nhttps://a.test/中文      https://a.test/中文\n繁體中文繁體中文    中文 ABC"
+  },
+  {
+    "name": "mixed-layout-41",
+    "blocks": [
+      {
+        "text": "繁體中文",
+        "left": 125,
+        "top": 78,
+        "right": 200,
+        "bottom": 103
+      },
+      {
+        "text": "مرحبا",
+        "left": 35,
+        "top": 1,
+        "right": 119,
+        "bottom": 26
+      },
+      {
+        "text": "中文ABC",
+        "left": 15,
+        "top": 74,
+        "right": 47,
+        "bottom": 99
+      },
+      {
+        "text": "中文ABC",
+        "left": 65,
+        "top": 38,
+        "right": 130,
+        "bottom": 63
+      }
+    ],
+    "text": "مرحبا\n    中文 ABC\n中文 ABC     繁體中文"
+  },
+  {
+    "name": "mixed-layout-42",
+    "blocks": [
+      {
+        "text": "مرحبا",
+        "left": 145,
+        "top": 2,
+        "right": 197,
+        "bottom": 27
+      },
+      {
+        "text": "日本語テスト",
+        "left": 5,
+        "top": 39,
+        "right": 36,
+        "bottom": 64
+      },
+      {
+        "text": "مرحبا",
+        "left": 35,
+        "top": 3,
+        "right": 117,
+        "bottom": 19
+      },
+      {
+        "text": "Hello",
+        "left": 115,
+        "top": 36,
+        "right": 161,
+        "bottom": 56
+      },
+      {
+        "text": "123.45%",
+        "left": 225,
+        "top": 36,
+        "right": 273,
+        "bottom": 52
+      }
+    ],
+    "text": "    مرحبا   مرحبا\n日本語テスト      Hello      123.45%"
+  },
+  {
+    "name": "mixed-layout-43",
+    "blocks": [
+      {
+        "text": "繁體中文",
+        "left": 5,
+        "top": -3,
+        "right": 97,
+        "bottom": 22
+      }
+    ],
+    "text": "繁體中文"
+  },
+  {
+    "name": "mixed-layout-44",
+    "blocks": [
+      {
+        "text": "日本語テスト",
+        "left": 35,
+        "top": 2,
+        "right": 104,
+        "bottom": 27
+      },
+      {
+        "text": "日本語テスト",
+        "left": 35,
+        "top": 113,
+        "right": 128,
+        "bottom": 129
+      },
+      {
+        "text": "مرحبا",
+        "left": 125,
+        "top": 35,
+        "right": 213,
+        "bottom": 60
+      },
+      {
+        "text": "，",
+        "left": 15,
+        "top": 151,
+        "right": 63,
+        "bottom": 176
+      },
+      {
+        "text": "Hello",
+        "left": 145,
+        "top": 76,
+        "right": 181,
+        "bottom": 92
+      },
+      {
+        "text": "中文ABC",
+        "left": 125,
+        "top": 154,
+        "right": 217,
+        "bottom": 170
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 15,
+        "top": 37,
+        "right": 77,
+        "bottom": 53
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 77,
+        "right": 119,
+        "bottom": 102
+      }
+    ],
+    "text": "日本語テスト\nhttps://a.test/中文     مرحبا\n                        Hello\n繁體中文\n    日本語テスト\n，     中文 ABC"
+  },
+  {
+    "name": "mixed-layout-45",
+    "blocks": [
+      {
+        "text": "123.45%",
+        "left": 125,
+        "top": -2,
+        "right": 179,
+        "bottom": 23
+      },
+      {
+        "text": "中文ABC",
+        "left": 15,
+        "top": 2,
+        "right": 48,
+        "bottom": 22
+      }
+    ],
+    "text": "中文 ABC      123.45%"
+  },
+  {
+    "name": "mixed-layout-46",
+    "blocks": [
+      {
+        "text": "مرحبا",
+        "left": 15,
+        "top": 231,
+        "right": 110,
+        "bottom": 247
+      },
+      {
+        "text": "日本語テスト",
+        "left": 65,
+        "top": 74,
+        "right": 105,
+        "bottom": 90
+      },
+      {
+        "text": "繁體中文",
+        "left": 35,
+        "top": 187,
+        "right": 102,
+        "bottom": 212
+      },
+      {
+        "text": "123.45%",
+        "left": 175,
+        "top": 75,
+        "right": 210,
+        "bottom": 91
+      },
+      {
+        "text": "繁體中文",
+        "left": 175,
+        "top": 0,
+        "right": 253,
+        "bottom": 20
+      },
+      {
+        "text": "123.45%",
+        "left": 65,
+        "top": 112,
+        "right": 146,
+        "bottom": 137
+      },
+      {
+        "text": "繁體中文",
+        "left": 65,
+        "top": -2,
+        "right": 127,
+        "bottom": 23
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 235,
+        "top": 152,
+        "right": 298,
+        "bottom": 172
+      },
+      {
+        "text": "中文ABC",
+        "left": 255,
+        "top": 187,
+        "right": 322,
+        "bottom": 203
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 35,
+        "top": 38,
+        "right": 116,
+        "bottom": 63
+      },
+      {
+        "text": "123.45%",
+        "left": 175,
+        "top": 111,
+        "right": 231,
+        "bottom": 127
+      },
+      {
+        "text": "123.45%",
+        "left": 15,
+        "top": 150,
+        "right": 50,
+        "bottom": 170
+      },
+      {
+        "text": "日本語テスト",
+        "left": 175,
+        "top": 263,
+        "right": 225,
+        "bottom": 279
+      },
+      {
+        "text": "123.45%",
+        "left": 145,
+        "top": 193,
+        "right": 210,
+        "bottom": 213
+      },
+      {
+        "text": "123.45%",
+        "left": 125,
+        "top": 152,
+        "right": 157,
+        "bottom": 177
+      },
+      {
+        "text": "日本語テスト",
+        "left": 65,
+        "top": 264,
+        "right": 140,
+        "bottom": 280
+      }
+    ],
+    "text": "        繁體中文   繁體中文\nhttps://a.test/中文\n        日本語テスト      123.45%\n\n                                123.45%\n        123.45%\n123.45%     123.45%      https://a.test/中文\n    繁體中文    123.45%    中文 ABC\nمرحبا\n        日本語テスト   日本語テスト"
+  },
+  {
+    "name": "mixed-layout-47",
+    "blocks": [
+      {
+        "text": "日本語テスト",
+        "left": 175,
+        "top": 151,
+        "right": 243,
+        "bottom": 171
+      },
+      {
+        "text": "繁體中文",
+        "left": 125,
+        "top": 36,
+        "right": 183,
+        "bottom": 56
+      },
+      {
+        "text": "123.45%",
+        "left": 65,
+        "top": 153,
+        "right": 142,
+        "bottom": 173
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 125,
+        "top": 79,
+        "right": 195,
+        "bottom": 99
+      },
+      {
+        "text": "日本語テスト",
+        "left": 125,
+        "top": 3,
+        "right": 215,
+        "bottom": 28
+      },
+      {
+        "text": "Hello",
+        "left": 65,
+        "top": 117,
+        "right": 128,
+        "bottom": 137
+      },
+      {
+        "text": "https://a.test/中文",
+        "left": 175,
+        "top": 190,
+        "right": 249,
+        "bottom": 210
+      },
+      {
+        "text": "Hello",
+        "left": 15,
+        "top": 41,
+        "right": 90,
+        "bottom": 61
+      },
+      {
+        "text": "مرحبا",
+        "left": 235,
+        "top": 0,
+        "right": 326,
+        "bottom": 16
+      },
+      {
+        "text": "123.45%",
+        "left": 15,
+        "top": 73,
+        "right": 48,
+        "bottom": 89
+      },
+      {
+        "text": "مرحبا",
+        "left": 65,
+        "top": 188,
+        "right": 105,
+        "bottom": 213
+      },
+      {
+        "text": "日本語テスト",
+        "left": 15,
+        "top": -2,
+        "right": 106,
+        "bottom": 18
+      }
+    ],
+    "text": "日本語テスト           مرحبا\n        日本語テスト\nHello   繁體中文\n123.45%\n        https://a.test/中文\n    Hello\n    123.45% 日本語テスト\n    مرحبا     https://a.test/中文"
+  }
+]

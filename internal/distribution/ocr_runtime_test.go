@@ -29,7 +29,7 @@ func TestAccountPluginPayloadIsPinnedAndOptionalForOlderPackages(t *testing.T) {
 }
 
 func TestOCRPayloadUsesPinnedInventory(t *testing.T) {
-	if !allowed("capture/Ocr/recognize.py") || !allowed("shared/ai/WinOne.AI.exe") || !allowed("shared/ui/WinOne.Results.exe") {
+	if !allowed("capture/Ocr/rapidocrlite.dll") || !allowed("capture/Ocr/models/dictionary.txt") || !allowed("shared/ai/WinOne.AI.exe") || !allowed("shared/ui/WinOne.Results.exe") {
 		t.Fatal("text feature runtime is not packaged")
 	}
 	for _, name := range []string{"capture/Ocr/local-debug.py", "capture/Ocr/python/Lib/site-packages/secret.txt", "shared/ai/test-config/settings.json", "shared/ui/config.json", "shared/ui/debug.exe"} {

@@ -12,6 +12,7 @@ internal static class Program
     private static int Main(string[] args)
     {
         Console.OutputEncoding = new UTF8Encoding(false);
+        if (args.Length > 0 && args[0] == "--ocr-worker") return Ocr.OcrWorker.RunWorker(args);
         try
         {
             string? pipe = null, directory = null, hostPipe = null; int parent = 0; bool stayReady = false;

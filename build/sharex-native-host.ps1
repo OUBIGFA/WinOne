@@ -2,6 +2,22 @@ function Initialize-ShareXNativeHost([string]$SourceDirectory) {
     $project = [IO.Path]::GetFullPath((Join-Path $SourceDirectory 'ShareX.ScreenCaptureLib/ShareX.ScreenCaptureLib.csproj'))
     $targets = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../modules/capture/NativeUI/ShareXHost.targets'))
     if (!(Test-Path -LiteralPath $project -PathType Leaf) -or !(Test-Path -LiteralPath $targets -PathType Leaf)) { throw 'Native capture build inputs are missing' }
+    # Only ShareX's separate OCR app calls this WPF scaler. WinOne uses its
+    # own OCR pipeline; dropping the unused helper keeps the capture graph
+    # on the Windows Forms runtime profile without changing rendered pixels.
+    $images=Join-Path $SourceDirectory 'ShareX.HelpersLib/Helpers/ImageHelpers.cs'
+    $imagesText=[IO.File]::ReadAllText($images)
+    if($imagesText.Contains('using System.Windows.Media.Imaging;')) {
+        $begin=$imagesText.IndexOf('        public static Bitmap ScaleImageFast(Bitmap bmp, double scale)')
+        if($begin -lt 0){throw 'ShareX unused WPF scaler entry changed'}
+        $end=$imagesText.IndexOf('        public static Bitmap ResizeImage(Bitmap bmp, Size size, bool allowEnlarge', $begin)
+        if($end -le $begin){throw 'ShareX unused WPF scaler boundary changed'}
+        $imagesText=$imagesText.Remove($begin,$end-$begin).Replace('using System.Windows.Media.Imaging;','')
+        [IO.File]::WriteAllText($images,$imagesText,[Text.UTF8Encoding]::new($false))
+    }
+    $helpersProject=Join-Path $SourceDirectory 'ShareX.HelpersLib/ShareX.HelpersLib.csproj'
+    $helpersText=[IO.File]::ReadAllText($helpersProject)
+    [IO.File]::WriteAllText($helpersProject,$helpersText.Replace('<UseWPF>true</UseWPF>','<UseWPF>false</UseWPF>'),[Text.UTF8Encoding]::new($false))
     $formPath=Join-Path $SourceDirectory 'ShareX.ScreenCaptureLib/Forms/RegionCaptureForm.cs'
     $formText=[IO.File]::ReadAllText($formPath)
     # Older local builds drew the preview after selection handles. Migrate the

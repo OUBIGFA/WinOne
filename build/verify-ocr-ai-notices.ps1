@@ -22,10 +22,12 @@ foreach($line in $info){
   if(-not $records.ContainsKey('magpie-go|'+$parts[1]+'|'+$parts[2])){throw "Missing magpie dependency notice: $line"}
  }
 }
-$python=Join-Path $BundleDirectory 'capture/Ocr/python/python.exe'
-$versions=& $python -B -c "import importlib.metadata as m; print('\n'.join(d.metadata['Name']+'|'+d.version for d in m.distributions()))"
-if($LASTEXITCODE -ne 0){throw 'Cannot inspect bundled Python dependencies'}
-foreach($version in $versions){if(-not $records.ContainsKey('python|'+$version)){throw "Missing Python notice: $version"}}
+$ocr=Get-Content -LiteralPath (Join-Path $root 'third_party/ocr-runtime.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+if(-not $records.ContainsKey('native|RapidOCRLite|'+$ocr.version)){throw 'Missing RapidOCRLite notice'}
+foreach($file in $ocr.files){
+ $path=Join-Path $BundleDirectory ('capture/Ocr/'+$file.path)
+ if((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $file.sha256){throw "Packaged OCR runtime mismatch: $($file.path)"}
+}
 $plugins=Get-Content -LiteralPath (Join-Path $root 'third_party/ai-plugins.json') -Raw -Encoding UTF8|ConvertFrom-Json
 foreach($plugin in $plugins.plugins){
  foreach($file in $plugin.files){

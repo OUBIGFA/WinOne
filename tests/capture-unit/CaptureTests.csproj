@@ -9,4 +9,5 @@
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../../modules/capture/WinOne.Capture.csproj" /></ItemGroup>
   <ItemGroup><None Include="../fixtures/capture-filenames.json" Link="capture-filenames.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../fixtures/ocr-reading-order.json" Link="ocr-reading-order.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

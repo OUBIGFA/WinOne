@@ -92,7 +92,9 @@ $strokeBuild = Join-Path (Split-Path -Parent $output) 'stroke-build'
 New-Item -ItemType Directory -Path (Join-Path $output 'stroke') -Force | Out-Null
 foreach ($file in @('WinOne.Stroke.exe','Stroke.Base.dll','Base.dll','Stroke.dll','Stroke-LICENSE.txt','schema.json','defaults.json','migrations.json')) { Copy-Item -LiteralPath (Join-Path $strokeBuild $file) -Destination (Join-Path $output 'stroke') -Force }
 if(-not $ResultGoExe){$ResultGoExe=$GoExe}
-$learningPrepare=@{PythonExe=(Join-Path $OcrRuntimeDirectory 'python/python.exe')}
+# Python is a build tool only when the dictionary needs regeneration. The
+# verified dictionary cache and the shipped OCR runtime do not depend on it.
+$learningPrepare=@{}
 if($Downloader){$learningPrepare.Downloader=$Downloader}
 & (Join-Path $PSScriptRoot 'prepare-learning.ps1') @learningPrepare
 & (Join-Path $PSScriptRoot 'build-results.ps1') -OutputDirectory (Join-Path $output 'shared/ui') -GoExe $ResultGoExe -SkipTests:$CompileOnly

@@ -1,5 +1,9 @@
 using WinOne.Capture;
 
+if (args.Length == 1 && args[0] == "--ocr-layout") {
+    OcrReadingOrderTests.Run(); return 0;
+}
+
 if (args.Length == 1 && args[0] == "--many-windows") {
     ManyWindowsTests.Run(); return 0;
 }
@@ -110,6 +114,7 @@ var directory = Path.Combine(Path.GetFullPath(args[0]), Guid.NewGuid().ToString(
 Directory.CreateDirectory(directory);
 try
 {
+    OcrReadingOrderTests.Run();
     CapturedFrameTests.Run();
     CaptureConfirmationTests.Run(Path.Combine(directory, "confirmation"));
     CaptureSelectionSessionTests.Run(Path.Combine(directory, "single-session"));

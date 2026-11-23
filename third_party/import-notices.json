@@ -1795,6 +1795,59 @@
           "sha256": "931f043d0533978647501ae9c1949762489ab2849c7c197a7ab0a095e6fabeb4"
         }
       ]
+    },
+    {
+      "name": "rapidocrlite-native-abi",
+      "repository": "https://github.com/RapidAI/RapidOCRLite",
+      "commit": "d26a04c2ea2479509359391c053771b31ba8048e",
+      "license": "Apache-2.0",
+      "scope": "C ABI declarations ported to .NET P/Invoke; options, model handles, RGB images, line and single-character boxes retain the upstream structure layout and ownership. The official SDK binary and model hashes are pinned in third_party/ocr-runtime.json.",
+      "sourceFiles": [
+        "include/rapidocrlite/rapidocrlite.h"
+      ],
+      "notices": [
+        {
+          "file": "licenses/rapidocrlite-5.0.0a16-LICENSE.txt",
+          "sha256": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5"
+        },
+        {
+          "file": "licenses/rapidocrlite-clipper-LICENSE.txt",
+          "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566"
+        },
+        {
+          "file": "licenses/rapidocrlite-x86-simd-sort-LICENSE.txt",
+          "sha256": "211e7d737d6179a08f791ebb0a99897ce7cd2457410c542876d125576edfe910"
+        }
+      ],
+      "files": [
+        {
+          "path": "modules/capture/Ocr/RapidOcrNative.cs",
+          "sha256": "48ffb125ebd80ae2d9405e592a67be0d04c59d414b46a6bbdaeb35ad1768f94a"
+        }
+      ]
+    },
+    {
+      "name": "hushsnap-ocr-reading-order",
+      "repository": "https://github.com/tcita/HushSnap",
+      "commit": "2d43f0e1fd125484bd132ee6e9cad1db65fb7a8c",
+      "license": "GPL-3.0-only",
+      "scope": "C# port of the previously imported reading-order and URL-aware spacing rules. Preserves horizontal/vertical clustering, upper-median thresholds, paragraph breaks, indentation and CJK/Latin spacing. OCR inference uses RapidOCRLite.",
+      "sourceFiles": [
+        "hushsnap/ocr/ppocr.py",
+        "hushsnap/ocr/text.py"
+      ],
+      "notices": [
+        {
+          "file": "licenses/upstream-HushSnap-2d43f0e1fd125484bd132ee6e9cad1db65fb7a8c-0-LICENSE.md.txt",
+          "sha256": "c53a65c2fd561c87eaabf1072ef5dcab8653042bc15308465f52413585eb6271"
+        }
+      ],
+      "files": [
+        {
+          "path": "modules/capture/Ocr/OcrReadingOrder.cs",
+          "sha256": "c8eaf8d4ac4922f62cd5cd1096c64fb607c9d1cd49f2926dd3f8381bb7ce012d"
+        }
+      ]
     }
   ]
 }

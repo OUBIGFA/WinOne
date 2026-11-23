@@ -174,7 +174,7 @@
     "repository": "https://github.com/ShareX/ShareX",
     "tag": "v21.0.0",
     "commit": "d2502561f63fc3ff502cacd91514e3f7f2948c74",
-    "adaptation": "build/prepare-sharex.ps1: local editor callbacks, validated scrolling targets, target movement and global-input focus guards, completed bitmap ownership transfer; NativeUI keeps the selected scroll region and persistent long-image editing; NativeRecordingRegion adapts the existing transparent region form with grayscale strokes, no activation and capture exclusion",
+    "adaptation": "build/prepare-sharex.ps1: local editor callbacks, validated scrolling targets, target movement and global-input focus guards, completed bitmap ownership transfer; NativeUI keeps the selected scroll region and persistent long-image editing; NativeRecordingRegion adapts the existing transparent region form with grayscale strokes, no activation and capture exclusion; sharex-native-host.ps1 removes the unused ScaleImageFast WPF helper for WinOne's Windows Forms capture runtime",
     "archive": "https://codeload.github.com/ShareX/ShareX/zip/refs/tags/v21.0.0",
     "archiveSha256": "e5c4aef36210b20dd189c9f7474a1d6ecaccb2061f8f7ae0d88909bf40197299"
   },

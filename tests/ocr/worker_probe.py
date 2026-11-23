@@ -53,8 +53,8 @@ for name, text, size in [('small', 'Hello 123', (220, 60)),
         fixtures.append((name, text, png.getvalue()))
 
 started = time.perf_counter()
-child = subprocess.Popen([str(runtime / 'python/python.exe'), '-B', str(runtime / 'recognize.py'),
-                          str(runtime / 'models'), '--serve'], stdin=subprocess.PIPE,
+child = subprocess.Popen([str(runtime.parent / 'WinOne.Capture.exe'), '--ocr-worker',
+                          str(runtime), '--serve'], stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=0x08000000)
 replies = queue.Queue()
 diagnostics = []
@@ -97,6 +97,8 @@ def request(data, expected):
     if line is None:
         raise RuntimeError('OCR worker exited before responding')
     result = json.loads(line.decode('utf-8'))
+    if result.pop('device', None) not in ('cpu', 'gpu'):
+        raise RuntimeError('OCR response does not name its inference device')
     if result != expected:
         raise RuntimeError(f'Incorrect OCR protocol result: {result}')
 
@@ -117,8 +119,8 @@ try:
         sample('initial', index)
     ready = snapshot()
     if args.idle_seconds:
-        # Let ONNX's bounded post-inference spinning finish before measuring
-        # true idle CPU; this delay is measurement only, never product behavior.
+        # Let the just-completed request settle before measuring idle CPU.
+        # This delay is measurement only, never product behavior.
         time.sleep(.5)
         before, idle_start = snapshot(), time.perf_counter()
         time.sleep(args.idle_seconds)
@@ -148,7 +150,7 @@ try:
         raise RuntimeError('OCR worker failed to exit')
     read_thread.join(timeout=2)
     error_thread.join(timeout=2)
-    report = {'scope': 'Generated text; real packaged interpreter/models/pipes. No real OS suspend or cold disk-cache claim.',
+    report = {'scope': 'Generated text; real packaged native worker/models/pipes. No real OS suspend or cold disk-cache claim.',
               'pid': child.pid, 'prepare': args.prepare, 'preparationMs': preparation,
               'samples': samples, 'warmMedianMs': statistics.median(item['milliseconds'] for item in samples[2:12]),
               'readyResources': ready, 'idle': idle_report, 'finalResources': final_resources,
