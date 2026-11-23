@@ -18,6 +18,21 @@ internal sealed class NativeOcrEngine(string? root = null, string? python = null
 {
     internal async Task<string> Recognize(Bitmap image, CancellationToken cancellation)
     {
+        var result = await Run(image, false, cancellation).ConfigureAwait(false);
+        var text = result.GetProperty("text").GetString();
+        if (string.IsNullOrWhiteSpace(text)) throw new InvalidOperationException("ocrEmpty");
+        return text;
+    }
+
+    internal async Task<PinOcrLayout> PinLayout(Bitmap image, CancellationToken cancellation)
+    {
+        var result = await Run(image, true, cancellation).ConfigureAwait(false);
+        return result.GetProperty("layout").Deserialize<PinOcrLayout>(SettingsStore.Json)
+            ?? throw new InvalidDataException("ocrFailed");
+    }
+
+    private async Task<JsonElement> Run(Bitmap image, bool pinLayout, CancellationToken cancellation)
+    {
         var directory = root ?? Path.Combine(AppContext.BaseDirectory, "Ocr");
         var executable = python ?? Path.Combine(directory, "python", "python.exe");
         if (!File.Exists(executable) || !File.Exists(Path.Combine(directory, "recognize.py")))
@@ -32,6 +47,7 @@ internal sealed class NativeOcrEngine(string? root = null, string? python = null
         info.ArgumentList.Add("-B");
         info.ArgumentList.Add(Path.Combine(directory, "recognize.py"));
         info.ArgumentList.Add(Path.Combine(directory, "models"));
+        if (pinLayout) info.ArgumentList.Add("--pin-layout");
         info.Environment["PYTHONUTF8"] = "1";
         using var process = new Process { StartInfo = info };
         cancellation.ThrowIfCancellationRequested();
@@ -50,9 +66,7 @@ internal sealed class NativeOcrEngine(string? root = null, string? python = null
             token.ThrowIfCancellationRequested();
             if (process.ExitCode != 0) throw new InvalidOperationException("ocrFailed");
             using var document = JsonDocument.Parse(result);
-            var text = document.RootElement.GetProperty("text").GetString();
-            if (string.IsNullOrWhiteSpace(text)) throw new InvalidOperationException("ocrEmpty");
-            return text;
+            return document.RootElement.Clone();
         } catch (OperationCanceledException) when (!cancellation.IsCancellationRequested) { throw new InvalidOperationException("ocrTimeout"); }
         finally {
             if (!process.HasExited) process.Kill(true);

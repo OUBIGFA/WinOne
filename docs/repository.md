@@ -159,3 +159,7 @@ npm ci --prefix $browserTools --cache dist/resources/cache/npm --prefer-offline 
 ```
 
 该命令先使用已有 npm 缓存，只补充缺少的锁定依赖；不运行依赖安装脚本。前端现有 `node_modules/` 和工具链要求的 `bin/`、`obj/` 等目录继续按各自锁文件和标准位置复用。
+
+## 贴图翻译构建依赖
+
+把 [OpenCV 4.12.0 官方源码归档](https://codeload.github.com/opencv/opencv/tar.gz/refs/tags/4.12.0) 放到 `dist/resources/sources/opencv-4.12.0.tar.gz`，也可通过 `WINONE_PIN_OPENCV_ARCHIVE` 指定。构建脚本先核对 SHA-256，再使用 Visual Studio C++ x64 和 CMake 编译。这个归档只用于构建；用户安装包交付静态链接的 `capture/WinOne.PinTranslation.dll`。独立验证使用 `build/test-capture-native.ps1 -Suites pin-translation`，传入现有的 `-ShareXSourceDirectory` 和新的临时输出目录。该流程用真实本地 OCR、原位引擎和离线翻译应答检查贴图。

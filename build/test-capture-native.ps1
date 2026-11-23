@@ -6,7 +6,8 @@ param(
     # The OCR/Host probe never captures the desktop, but its real tray exit
     # needs Explorer. Opt in only for this owned, no-shortcut test instance.
     [switch]$OcrHostCurrentDesktop,
-    [ValidateSet('workflow','scroll-workflow','autosave','toolbar','facade','pointer','text-recognition','latency','ocr-latency','text-status')][string[]]$Suites = @('workflow','scroll-workflow')
+    [string]$PinOcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY,
+    [ValidateSet('workflow','scroll-workflow','autosave','toolbar','facade','pointer','text-recognition','latency','ocr-latency','text-status','pin-translation')][string[]]$Suites = @('workflow','scroll-workflow')
 )
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
@@ -27,7 +28,16 @@ $savedOcrVisible=$env:WINONE_OCR_HOST_VISIBLE_TEST
 try {
     $env:WINONE_RETAKE_ITERATIONS=[string]$RetakeIterations
     foreach ($suite in $Suites) {
-        if ($suite -eq 'ocr-latency' -and $OcrHostCurrentDesktop) {
+        if ($suite -eq 'pin-translation') {
+            # The production OCR adapter and native renderer live beside this isolated probe.
+            $pinProbe=Join-Path $output 'pin-probe'
+            & $DotnetExe build (Join-Path $root 'tests/capture-host-probe/NativeCaptureProbe.csproj') -c Release "-p:ShareXSourceDirectory=$source" -o $pinProbe --nologo -v:q
+            if ($LASTEXITCODE) { throw 'Pin translation probe build failed' }
+            if (-not $PinOcrRuntimeDirectory) { $PinOcrRuntimeDirectory=Join-Path $root 'dist/resources/runtimes/ocr-3.10.0-dml' }
+            & (Join-Path $root 'build/copy-ocr.ps1') -RuntimeDirectory $PinOcrRuntimeDirectory -CaptureDirectory $pinProbe
+            & (Join-Path $root 'build/build-pin-translation.ps1') -OutputDirectory $pinProbe
+            & (Join-Path $root 'tests/capture-host-probe/run-private.ps1') -Suite $suite -ProbeExe (Join-Path $pinProbe 'WinOne.NativeCapture.Probe.exe') -OutputDirectory (Join-Path $output $suite)
+        } elseif ($suite -eq 'ocr-latency' -and $OcrHostCurrentDesktop) {
             $env:WINONE_OCR_HOST_VISIBLE_TEST='1'
             & (Join-Path $root 'tests/capture-host-probe/bin/Release/net10.0-windows/WinOne.NativeCapture.Probe.exe') --ocr-host-latency (Join-Path $output $suite)
         } else {

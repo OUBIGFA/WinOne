@@ -163,7 +163,40 @@ def _gpu_sessions(paths):
 _gpu_available = os.environ.get('WINONE_OCR_DEVICE') != 'cpu'  # cpu forces the fallback (tests, diagnosis).
 
 
-def _run(engine, pixels):
+def _pin_layout(engine, pixels):
+    """Return geometry in source pixels. Nothing from the image is written to disk."""
+    import math
+
+    height, width = pixels.shape[:2]
+
+    def bounds(quad):
+        xs, ys = zip(*quad)
+        x = max(0, min(width, math.floor(min(xs))))
+        y = max(0, min(height, math.floor(min(ys))))
+        right = max(x, min(width, math.ceil(max(xs))))
+        bottom = max(y, min(height, math.ceil(max(ys))))
+        return [x, y, right - x, bottom - y]
+
+    result = engine(pixels, use_det=True, use_cls=False, use_rec=True,
+                    return_word_box=True, return_single_char_box=True)
+    lines = []
+    for index, block in enumerate(result.to_json() or []):
+        box = bounds(block['box'])
+        if not block['txt'].strip() or not box[2] or not box[3]:
+            continue
+        # Keep genuine character boxes; some OCR backends only return lines.
+        glyphs = []
+        if result.word_results and index < len(result.word_results):
+            for text, _, quad in result.word_results[index]:
+                if text and quad is not None:
+                    glyphs.append({'text': text, 'box': bounds(quad)})
+        lines.append({'text': block['txt'], 'box': box, 'glyphs': glyphs})
+    return {'lines': lines}
+
+
+def _run(engine, pixels, layout=False):
+    if layout:
+        return _pin_layout(engine, pixels)
     from hushsnap_layout import compose_ppocr_structures, _is_vertical_json
     # RapidOCR retains per-call switches. Reset detection after a previous
     # rec-only fallback, otherwise a blank selection breaks the next request.
@@ -180,7 +213,7 @@ def _run(engine, pixels):
     return '\n'.join(line.text for line in lines).rstrip()
 
 
-def recognize(data: bytes, model_root: pathlib.Path) -> tuple[str, str]:
+def recognize(data: bytes, model_root: pathlib.Path, *, layout=False):
     global _gpu_available
     import numpy as np
     from PIL import Image
@@ -196,7 +229,7 @@ def recognize(data: bytes, model_root: pathlib.Path) -> tuple[str, str]:
         try:
             for model, session in zip(models, _gpu_sessions(paths)):
                 model.session.session = session
-            return _run(engine, pixels), 'gpu'
+            return _run(engine, pixels, layout), 'gpu'
         except Exception as error:
             # No usable device, a driver reset or device removal: this worker
             # stays on CPU. The Host's next worker tries the GPU again.
@@ -207,7 +240,7 @@ def recognize(data: bytes, model_root: pathlib.Path) -> tuple[str, str]:
             for model in models:
                 model.session.session = None
             gc.collect()
-    return _run(_engine(model_root), pixels), 'cpu'
+    return _run(_engine(model_root), pixels, layout), 'cpu'
 
 
 def prepare(model_root: pathlib.Path) -> str:
@@ -227,15 +260,15 @@ def prepare(model_root: pathlib.Path) -> str:
     return device
 
 
-def _respond(data: bytes, model_root: pathlib.Path) -> bool:
+def _respond(data: bytes, model_root: pathlib.Path, *, layout=False) -> bool:
     try:
         with contextlib.redirect_stdout(sys.stderr):
             if not data:
                 result = {'prepared': True, 'device': prepare(model_root)}
             else:
                 with _interactive():
-                    text, device = recognize(data, model_root)
-                result = {'text': text, 'device': device}
+                    value, device = recognize(data, model_root, layout=True) if layout else recognize(data, model_root)
+                result = {'layout' if layout else 'text': value, 'device': device}
         print(json.dumps(result, ensure_ascii=False), flush=True)
         return True
     except Exception as error:
@@ -253,7 +286,7 @@ def main() -> int:
             data = sys.stdin.buffer.read(MAX_IMAGE_BYTES + 1)
             if not data or len(data) > MAX_IMAGE_BYTES:
                 raise ValueError('Invalid OCR image size')
-            return 0 if _respond(data, model_root) else 1
+            return 0 if _respond(data, model_root, layout='--pin-layout' in sys.argv[2:]) else 1
         while True:
             header = sys.stdin.buffer.read(4)
             if not header:

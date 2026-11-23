@@ -60,7 +60,11 @@ func ExportBuiltinSettings(id string, raw json.RawMessage, options ExportOptions
 	case "selection":
 		portable, err = selectionFields(source, false)
 	case "capture":
-		portable, err = projectFields(source, "copyToClipboard:b askWhereToSave:b openEditor:b pinAfterCapture:b scrollDelay:n scrollFromTop:b")
+		fields := "copyToClipboard:b askWhereToSave:b openEditor:b pinAfterCapture:b scrollDelay:n scrollFromTop:b"
+		if _, present := source["pinTranslation"]; present {
+			fields += " pinTranslation:b"
+		}
+		portable, err = projectFields(source, fields)
 		if raw, exists := source["toolbarTools"]; err == nil && exists {
 			portable["toolbarTools"], err = captureprefs.DecodeToolbar(raw)
 		}

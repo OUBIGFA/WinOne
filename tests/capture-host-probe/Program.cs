@@ -20,6 +20,7 @@ internal static class Program
         if (args is ["--ocr-host-latency",var ocrLatencyOutput]) return OcrHostLatencyProbe.Run(ocrLatencyOutput);
         if (args is ["--native-capture-latency",var latencyOutput]) return NativeCaptureLatencyProbe.Run(latencyOutput);
         if (args is ["--desktop-activation",var activationOutput]) return DesktopActivationProbe.Run(activationOutput);
+        if (args is ["--pin-translation", var pinOutput]) return PinTranslationProbe.Run(pinOutput);
         if (args is ["--native-text-pipeline",var textOutput]) return NativeTextPipelineProbe.Run(textOutput);
         if (args is ["--native-text-recognition"]) { NativeTextRecognitionTests.Run(); return 0; }
         if (args is ["--native-scrolling-workflow", var scrollOutput]) { NativeScrollingWorkflowTests.Run(scrollOutput); return 0; }

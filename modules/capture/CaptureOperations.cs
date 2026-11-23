@@ -79,7 +79,7 @@ internal sealed partial class CaptureOperations
                             case NativeSelectionAction.SaveAndCopy:
                                 directResult = Export(selected, settings with { AskWhereToSave = false, CopyToClipboard = true, PinAfterCapture = false }, cancellation, language: language); break;
                             case NativeSelectionAction.Pin:
-                                PinToScreenForm.OpenManaged(new Bitmap(selected), PinOptions(), language, settings.FileNameTemplate);
+                                PinToScreenForm.OpenManaged(new Bitmap(selected), PinOptions(), language, settings.FileNameTemplate, () => store.Snapshot().PinTranslation, NativeConfiguration);
                                 directResult = new { pinned = true }; break;
                         }
                         return true;
@@ -232,7 +232,7 @@ internal sealed partial class CaptureOperations
         var draft = RequireDraft(id, revision);
         using var rendered = RenderDraft(draft);
         ApplyTheme(store.Snapshot());
-        PinToScreenForm.OpenManaged(new Bitmap(rendered), PinOptions(), language, draft.Settings.FileNameTemplate);
+        PinToScreenForm.OpenManaged(new Bitmap(rendered), PinOptions(), language, draft.Settings.FileNameTemplate, () => store.Snapshot().PinTranslation, NativeConfiguration);
         return new { draftId = id, revision, pinned = true, pins = PinToScreenForm.ActiveCount };
     }
     // Reuses ShareX's desktop acquisition and bounds calculation. Selection UI
@@ -313,7 +313,7 @@ internal sealed partial class CaptureOperations
             try { Copy(image); output = output with { Copied = true }; last = output; }
             catch (Exception error) { throw new InvalidOperationException($"截图已保存到 {path}，复制失败：{error.Message}", error); }
         }
-        if (settings.PinAfterCapture) { PinToScreenForm.OpenManaged(new Bitmap(image), PinOptions(), language, settings.FileNameTemplate); output = output with { Pinned = true }; last = output; }
+        if (settings.PinAfterCapture) { PinToScreenForm.OpenManaged(new Bitmap(image), PinOptions(), language, settings.FileNameTemplate, () => store.Snapshot().PinTranslation, NativeConfiguration); output = output with { Pinned = true }; last = output; }
         PersistLast(); return output;
     }
     private CaptureOutput SaveLocalImage(Bitmap image, string path, bool automatic = false, string? template = null)
@@ -354,7 +354,7 @@ internal sealed partial class CaptureOperations
         // Preview never changes last-capture metadata, clipboard, or output.
         return previews.WriteEdit(rendered, expectedId);
     }
-    public object PinLast(string? expectedId = null, string? language = null) { var settings = store.Snapshot(); ApplyTheme(settings); using var image = LoadLast(expectedId); PinToScreenForm.OpenManaged(new Bitmap(image), PinOptions(), language, settings.FileNameTemplate); return new { pins = PinToScreenForm.ActiveCount }; }
+    public object PinLast(string? expectedId = null, string? language = null) { var settings = store.Snapshot(); ApplyTheme(settings); using var image = LoadLast(expectedId); PinToScreenForm.OpenManaged(new Bitmap(image), PinOptions(), language, settings.FileNameTemplate, () => store.Snapshot().PinTranslation, NativeConfiguration); return new { pins = PinToScreenForm.ActiveCount }; }
     private Bitmap LoadLast(string? expectedId = null)
     {
         var output = last ?? throw new InvalidOperationException("还没有截图");

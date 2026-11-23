@@ -33,7 +33,7 @@ func TestGooglePreservesFullTextAndDecodesOnce(t *testing.T) {
 
 func TestSmartTarget(t *testing.T) {
 	for _, test := range []struct{ text, want string }{{"你好，WinOne", "en"}, {"Hello world", "zh-CN"}, {"こんにちは世界", "zh-CN"}} {
-		if got := targetLanguage("auto", test.text); got != test.want {
+		if got := TargetLanguage("auto", test.text); got != test.want {
 			t.Fatalf("%s -> %s", test.text, got)
 		}
 	}

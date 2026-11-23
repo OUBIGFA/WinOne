@@ -31,3 +31,19 @@ func TestBrokenAISettingsDoNotStopOtherHostFeatures(t *testing.T) {
 		t.Fatal("invalid AI settings reported success")
 	}
 }
+
+func TestPinTargetCanBeFirstAIRequest(t *testing.T) {
+	dir := t.TempDir()
+	prefs, err := settings.Open(filepath.Join(dir, "host.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := host.New(prefs)
+	if err := registerAI(service, context.Background(), dir, filepath.Join(dir, "WinOne.Host.exe")); err != nil {
+		t.Fatal(err)
+	}
+	reply := service.Handle(host.Request{Version: 1, ID: "pin", Method: "ai.translate.target", Params: []byte(`{"text":"Welcome to the garden."}`)})
+	if reply.Error != nil || string(reply.Result) != `{"target":"zh-CN"}` {
+		t.Fatalf("target reply: %+v", reply)
+	}
+}

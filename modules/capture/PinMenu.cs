@@ -75,15 +75,16 @@ public partial class PinToScreenForm
 
     private void CopyManagedImage()
     {
-        if (!ClipboardHelpers.CopyImage(Image))
+        if (!ClipboardHelpers.CopyImage(DisplayedPin))
             MessageBox.Show(this, PinText("剪贴板暂不可用，请重试。", "Clipboard unavailable. Try again."), "WinOne", MessageBoxButtons.OK, MessageBoxIcon.Warning);
     }
 
-    private void SaveManagedImage()
+    private void SaveManagedImage() => SavePinPicture(Image);
+    private void SavePinPicture(Image picture)
     {
         using var dialog = new SaveFileDialog { Title = PinText("置顶截图另存为", "Save pinned image as"), Filter = "PNG|*.png", DefaultExt = "png", FileName = WinOne.Capture.PngFiles.SuggestedName(DateTime.Now, template: managedFileNameTemplate), OverwritePrompt = true };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
-        try { WinOne.Capture.PngFiles.Write(Image, dialog.FileName); }
+        try { WinOne.Capture.PngFiles.Write(picture, dialog.FileName); }
         catch (Exception error)
         {
             Console.Error.WriteLine(error);

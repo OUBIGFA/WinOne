@@ -45,6 +45,7 @@ type settings struct {
 	AskWhereToSave   bool   `json:"askWhereToSave"`
 	OpenEditor       bool   `json:"openEditor"`
 	PinAfterCapture  bool   `json:"pinAfterCapture"`
+	PinTranslation   bool   `json:"pinTranslation"`
 	ScrollDelay      int    `json:"scrollDelay"`
 	ScrollFromTop    bool   `json:"scrollFromTop"`
 	FileNameTemplate string `json:"fileNameTemplate"`
@@ -316,6 +317,9 @@ func (p *page) general(c *ui.Context) {
 	kit.Group(c, icons.ListChecks, i18n.T("capture.outputOptions"), "", func() {
 		checkRow(c, &d.CopyToClipboard, i18n.T("capture.clipboard"))
 		checkRow(c, &d.PinAfterCapture, i18n.T("capture.pin"))
+	})
+	kit.Group(c, icons.Image, i18n.T("capture.pinnedImages"), "", func() {
+		kit.Toggle(c, &d.PinTranslation, i18n.T("capture.pinTranslation"), i18n.T("capture.pinTranslationHint"))
 	})
 	kit.Group(c, icons.FolderOpen, i18n.T("capture.saveLocation"), "", func() {
 		if d.OpenEditor {

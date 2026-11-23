@@ -16,6 +16,12 @@ internal record Job(string Id, string State, object? Result = null, string? Erro
 // One STA owns native capture forms; pipe clients only enqueue bounded commands.
 internal sealed class CaptureApplication : ApplicationContext
 {
+    private static CaptureSettings ApplyPinSettings(CaptureSettings value)
+    {
+        PinToScreenForm.RefreshManagedTranslations();
+        return value;
+    }
+
     // Reuse immutable serializer metadata on the hot editing path. Copying
     // JsonSerializerOptions per request does not copy its metadata cache.
     private static readonly JsonSerializerOptions AnnotationJson = new(SettingsStore.Json)
@@ -148,10 +154,10 @@ internal sealed class CaptureApplication : ApplicationContext
                 return new {prepared=NativeUI.NativeCaptureStandby.Prepared};
             });
             case "snapshot": return new { processId = Environment.ProcessId, prepared = NativeUI.NativeCaptureStandby.Prepared, preparations = NativeUI.NativeCaptureStandby.Preparations, configurationManaged = store.IsManaged, settings = store.Snapshot(), lastCapture = operations.Last, busy = Volatile.Read(ref busy) != 0 || operations.NativeConfiguration?.IsSaving == true, configurationBusy = operations.NativeConfiguration?.IsSaving == true, pins = PinToScreenForm.ActiveCount };
-            case "settings.reload": return store.ReloadManaged();
+            case "settings.reload": return ApplyPinSettings(store.ReloadManaged());
             case "capture.activate":
                 lock (lifecycle) { return new { active = ActivateCurrentNative() is not null }; }
-            case "settings.save": return store.Save(request.Parameters.Deserialize<CaptureSettings>(SettingsStore.Json) ?? throw new InvalidDataException("设置为空"));
+            case "settings.save": return ApplyPinSettings(store.Save(request.Parameters.Deserialize<CaptureSettings>(SettingsStore.Json) ?? throw new InvalidDataException("设置为空")));
             case "capture.start":
             case "capture.unified":
                 var mode = request.Parameters.GetProperty("mode").GetString() ?? "";

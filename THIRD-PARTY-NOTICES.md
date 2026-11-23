@@ -64,3 +64,7 @@ Interconnect directly reuses [croc v11.5.5](https://github.com/schollz/croc/tree
 # Tailcat · 持续分享与 TCP 通道
 
 直接使用官方 Tailcat v0.7.0，提交 `15ab9e68bfc6534a61797d7af28cedd42b54a3a5`，BSD-3-Clause。TCP 转发生命周期参考其 `cmd/tailcat/forward.go`，WinOne 适配进程监督与 FileShare 的标准 HTTP 网关。原始许可、Go 工具链及传递依赖记录见 `third_party/interconnect-peer-notices.json`，改编文件与摘要见 `third_party/import-notices.json`。Tailcat-Box 仅用于调研，未复制其 PolyForm Noncommercial 实现。
+
+## 贴图原位翻译
+
+贴图复用 [Tools3000 v1.4.1](https://github.com/yuan278501381/Tools3000/tree/481c20f3444cb7cbcf1aa346896044f04602a376) 的段落分组、内容过滤、字形采样、背景修复和 DirectWrite 排版。上游采用 GPL-3.0。WinOne 接管贴图交互、设置、识别与翻译调用。图像算法使用 [OpenCV 4.12.0](https://github.com/opencv/opencv/tree/49486f61fb25722cbcf586b7f4320921d46fb38e)。对应许可及第三方声明随包提供。见 [Tools3000 许可](third_party/licenses/tools3000-GPL-3.0.txt)、[OpenCV 声明](third_party/licenses/pin-opencv-NOTICES.txt)和[来源清单](third_party/import-notices.json)。

@@ -78,7 +78,9 @@ func newAIService(ctx context.Context, directory, executable string) *aiService 
 	// Timing lines go to the product log off the OCR gate; a log failure
 	// never affects recognition.
 	engine.localOCR.Observe = func(event, message string) {
-		go func() { _ = diagnostics.Record(directory, diagnostics.Event{Source: "host", Event: event, Message: message}) }()
+		go func() {
+			_ = diagnostics.Record(directory, diagnostics.Event{Source: "host", Event: event, Message: message})
+		}()
 	}
 	return engine
 }
@@ -128,7 +130,7 @@ func (s *aiService) handle(r host.Request) host.Response {
 		return response
 	}
 	result := func(value any) host.Response { response.Result, _ = json.Marshal(value); return response }
-	if r.Method == "settings.get" || r.Method == "settings.save" || r.Method == "configuration.get" || r.Method == "configuration.save" || r.Method == "keys.reveal" || r.Method == "models.fetch" || r.Method == "translate.start" || r.Method == "generate.start" || r.Method == "recognize.start" {
+	if r.Method == "translate.target" || r.Method == "settings.get" || r.Method == "settings.save" || r.Method == "configuration.get" || r.Method == "configuration.save" || r.Method == "keys.reveal" || r.Method == "models.fetch" || r.Method == "translate.start" || r.Method == "generate.start" || r.Method == "recognize.start" {
 		s.mu.Lock()
 		var err error
 		if s.store == nil {
@@ -267,6 +269,14 @@ func (s *aiService) handle(r host.Request) host.Response {
 		s.refreshLocalOCRStandby()
 		s.retireGatewayBackend()
 		return result(saved)
+	case "translate.target":
+		var input struct {
+			Text string `json:"text"`
+		}
+		if err := configjson.DecodeObject(r.Params, &input); err != nil {
+			return fail(err)
+		}
+		return result(map[string]string{"target": ai.TargetLanguage(s.store.Snapshot().Target, input.Text)})
 	case "settings.get":
 		return result(s.store.Snapshot())
 	case "settings.save":

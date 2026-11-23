@@ -89,7 +89,11 @@ func importCapture(source map[string]json.RawMessage, resolve pathResolver) (map
 	if _, exists := source["fileNameTemplate"]; exists {
 		optional = append(optional, "fileNameTemplate")
 	}
-	patch, err := exactFields(source, "copyToClipboard:b askWhereToSave:b openEditor:b pinAfterCapture:b scrollDelay:n scrollFromTop:b outputDirectoryRef:s", optional...)
+	fields := "copyToClipboard:b askWhereToSave:b openEditor:b pinAfterCapture:b scrollDelay:n scrollFromTop:b outputDirectoryRef:s"
+	if _, present := source["pinTranslation"]; present {
+		fields += " pinTranslation:b"
+	}
+	patch, err := exactFields(source, fields, optional...)
 	if err != nil {
 		return nil, err
 	}

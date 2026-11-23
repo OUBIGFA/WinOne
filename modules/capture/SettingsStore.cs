@@ -11,6 +11,7 @@ internal record CaptureSettings
     public bool AskWhereToSave { get; init; }
     public bool OpenEditor { get; init; } = true;
     public bool PinAfterCapture { get; init; }
+    public bool PinTranslation { get; init; }
     public string Theme { get; init; } = "system";
     public int ScrollDelay { get; init; } = 300;
     public bool ScrollFromTop { get; init; }

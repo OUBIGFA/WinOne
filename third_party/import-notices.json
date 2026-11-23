@@ -1708,6 +1708,93 @@
           "sha256": "1e2356b93662f84401303313416c57a3e59be64e6f4e073c7902a9ac16428d80"
         }
       ]
+    },
+    {
+      "name": "Tools3000 pin translation",
+      "repository": "https://github.com/yuan278501381/Tools3000",
+      "commit": "481c20f3444cb7cbcf1aa346896044f04602a376",
+      "license": "GPL-3.0",
+      "scope": "Tools3000 v1.4.1 in-place paragraph grouping, text protection, original-image style sampling, Telea repair and DirectWrite layout. WinOne provides the pin window, OCR, translation and Windows UI font selection.",
+      "sourceFiles": [
+        "src/capture/InPlaceTranslateEngine.cpp",
+        "src/capture/InPlaceTranslateEngine.h",
+        "src/capture/PinOcrTypes.h",
+        "src/capture/TextReplaceEngine.cpp",
+        "src/capture/TextReplaceEngine.h",
+        "src/core/translate/TranslationTypes.h",
+        "src/core/utils/DWriteFontUtils.h",
+        "src/ocr/OcrEngine.cpp",
+        "src/ocr/OcrEngine.h"
+      ],
+      "notices": [
+        {
+          "file": "licenses/tools3000-GPL-3.0.txt",
+          "sha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809"
+        }
+      ],
+      "files": [
+        {
+          "path": "modules/capture/pin-translation/capture/InPlaceTranslateEngine.cpp",
+          "sha256": "7c6bfb656e15dcddfbcea7683328774593d191501a71b4e8f08e3748e297f3c9"
+        },
+        {
+          "path": "modules/capture/pin-translation/capture/InPlaceTranslateEngine.h",
+          "sha256": "acabecb8107560d15fb3e27385ab6a540391e2b40852d8651ae2ad0068d0ce1a"
+        },
+        {
+          "path": "modules/capture/pin-translation/capture/PinOcrTypes.h",
+          "sha256": "9e4de8d55081f0d7029a40bf81ac586bd26cd5d4b7fe588e18e260861ba1c1df"
+        },
+        {
+          "path": "modules/capture/pin-translation/capture/TextReplaceEngine.cpp",
+          "sha256": "710830b45a0dbc709fce8a754cb81a941645d4504dda70352385b6c059fd3950"
+        },
+        {
+          "path": "modules/capture/pin-translation/capture/TextReplaceEngine.h",
+          "sha256": "c116cc416b8b4ade88390651bb82a11d113154d2a01c9f7fc72b8d855562e8bb"
+        },
+        {
+          "path": "modules/capture/pin-translation/core/translate/TranslationTypes.h",
+          "sha256": "752212cd5007fdf806b64e2c3d9d4657f0f3fd74d3246383612695cc47933420"
+        },
+        {
+          "path": "modules/capture/pin-translation/core/utils/DWriteFontUtils.h",
+          "sha256": "e8c5654c0117d676bdb93c97683912d3e177e680ba9db02d975fea66ecdbfe7c"
+        },
+        {
+          "path": "modules/capture/pin-translation/ocr/OcrEngine.cpp",
+          "sha256": "cced28b0e430fbfee2d00783ed8a2f55ddb2bb388ec85aa3a2604be0e244d856"
+        },
+        {
+          "path": "modules/capture/pin-translation/ocr/OcrEngine.h",
+          "sha256": "99d40c1140c1613863ddb6d518d64988e37d47665c59d719687872c49d3cc7be"
+        }
+      ]
+    },
+    {
+      "name": "OpenCV for Tools3000 pin translation",
+      "repository": "https://github.com/opencv/opencv",
+      "commit": "49486f61fb25722cbcf586b7f4320921d46fb38e",
+      "license": "Apache-2.0 with bundled component notices",
+      "scope": "Pinned 4.12.0 release archive SHA256 44c106d5bb47efec04e531fd93008b3fcd1d27138985c5baf4eafac0e1ec9e9d. Static native image processing, Telea repair and QR/barcode detection. No video, OCR models or OpenCV application.",
+      "sourceFiles": [
+        "modules/photo/src/inpaint.cpp",
+        "modules/objdetect",
+        "modules/imgproc",
+        "modules/core"
+      ],
+      "notices": [
+        {
+          "file": "licenses/pin-opencv-NOTICES.txt",
+          "sha256": "6195bd886570d2802a52e4c1aba1ae4fee9414985a58134004b024854b3b1949"
+        }
+      ],
+      "files": [
+        {
+          "path": "modules/capture/pin-translation/CMakeLists.txt",
+          "sha256": "931f043d0533978647501ae9c1949762489ab2849c7c197a7ab0a095e6fabeb4"
+        }
+      ]
     }
   ]
 }

@@ -411,14 +411,14 @@ namespace ShareX
                 if (Minimized)
                 {
                     g.InterpolationMode = InterpolationMode.NearestNeighbor;
-                    g.DrawImage(Image, new Rectangle(position, Options.MinimizeSize), 0, 0, Options.MinimizeSize.Width, Options.MinimizeSize.Height, GraphicsUnit.Pixel);
+                    g.DrawImage(DisplayedPin, new Rectangle(position, Options.MinimizeSize), 0, 0, Options.MinimizeSize.Width, Options.MinimizeSize.Height, GraphicsUnit.Pixel);
                 }
                 else
                 {
                     if (ImageScale == 100)
                     {
                         g.InterpolationMode = InterpolationMode.NearestNeighbor;
-                        g.DrawImage(Image, new Rectangle(position, Image.Size));
+                        g.DrawImage(DisplayedPin, new Rectangle(position, Image.Size));
                     }
                     else
                     {
@@ -434,15 +434,17 @@ namespace ShareX
                         using (ImageAttributes ia = new ImageAttributes())
                         {
                             ia.SetWrapMode(WrapMode.TileFlipXY);
-                            g.DrawImage(Image, new Rectangle(position, ImageSize), 0, 0, Image.Width, Image.Height, GraphicsUnit.Pixel, ia);
+                            g.DrawImage(DisplayedPin, new Rectangle(position, ImageSize), 0, 0, Image.Width, Image.Height, GraphicsUnit.Pixel, ia);
                         }
                     }
                 }
             }
+            DrawPinSelection(g);
         }
 
         private void PinToScreenForm_MouseDown(object sender, MouseEventArgs e)
         {
+            if (BeginPinSelection(e)) return;
             if (e.Button == MouseButtons.Left)
             {
                 if (e.Clicks > 1)
@@ -460,6 +462,7 @@ namespace ShareX
 
         private void PinToScreenForm_MouseMove(object sender, MouseEventArgs e)
         {
+            if (UpdatePinSelection(e, false)) return;
             if (dragging)
             {
                 Location = new Point(Location.X + e.X - initialLocation.X, Location.Y + e.Y - initialLocation.Y);
@@ -469,6 +472,7 @@ namespace ShareX
 
         private void PinToScreenForm_MouseUp(object sender, MouseEventArgs e)
         {
+            if (UpdatePinSelection(e, true)) return;
             switch (e.Button)
             {
                 case MouseButtons.Left:

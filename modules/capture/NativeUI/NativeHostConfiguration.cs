@@ -112,9 +112,18 @@ internal sealed class NativeHostConfiguration(string pipeName, Process parent)
         return Result(response);
     }
 
-    internal async Task<string> TranslateAsync(string text, CancellationToken cancellation)
+    internal async Task<string> PinTargetAsync(string text, CancellationToken cancellation)
     {
-        var started = await Call("ai.translate.start", new { text }, Guid.NewGuid().ToString("N"), cancellation).ConfigureAwait(false);
+        var settings = await Call("ai.translate.target", new { text }, Guid.NewGuid().ToString("N"), cancellation).ConfigureAwait(false);
+        return settings.GetProperty("target").GetString() ?? "auto";
+    }
+
+    internal Task<string> TranslateAsync(string text, CancellationToken cancellation) =>
+        TranslateAsync(text, "", cancellation);
+
+    internal async Task<string> TranslateAsync(string text, string target, CancellationToken cancellation)
+    {
+        var started = await Call("ai.translate.start", new { text, target }, Guid.NewGuid().ToString("N"), cancellation).ConfigureAwait(false);
         return await CompleteAIJobAsync(started, cancellation).ConfigureAwait(false);
     }
 

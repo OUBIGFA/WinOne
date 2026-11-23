@@ -1,0 +1,1720 @@
+// Tools3000 v1.4.1 reading order, glyph geometry and QR / barcode detection.
+// WinOne supplies its existing PP-OCRv6 results to these upstream layout functions.
+#include "ocr/OcrEngine.h"
+#include "core/utils/WinUtils.h"
+#include <opencv2/imgproc.hpp>
+#include <opencv2/objdetect.hpp>
+#include <opencv2/objdetect/barcode.hpp>
+#include <algorithm>
+#include <cmath>
+#include <numeric>
+#include <map>
+#include <set>
+#include <cwctype>
+#include <sstream>
+#include <stdexcept>
+namespace tools3000::ocr {
+namespace {
+uint32_t decodeSingleUtf8Codepoint(std::string_view sv, size_t& cursor) noexcept {
+    if (cursor >= sv.size()) return 0;
+    const uint8_t b0 = static_cast<uint8_t>(sv[cursor]);
+    if (b0 < 0x80u) {
+        ++cursor;
+        return b0;
+    }
+    if ((b0 & 0xE0u) == 0xC0u && cursor + 1 < sv.size()) {
+        const uint8_t b1 = static_cast<uint8_t>(sv[cursor + 1]);
+        if ((b1 & 0xC0u) == 0x80u) {
+            cursor += 2;
+            return ((static_cast<uint32_t>(b0 & 0x1Fu) << 6) | static_cast<uint32_t>(b1 & 0x3Fu));
+        }
+    } else if ((b0 & 0xF0u) == 0xE0u && cursor + 2 < sv.size()) {
+        const uint8_t b1 = static_cast<uint8_t>(sv[cursor + 1]);
+        const uint8_t b2 = static_cast<uint8_t>(sv[cursor + 2]);
+        if ((b1 & 0xC0u) == 0x80u && (b2 & 0xC0u) == 0x80u) {
+            cursor += 3;
+            return ((static_cast<uint32_t>(b0 & 0x0Fu) << 12) |
+                    (static_cast<uint32_t>(b1 & 0x3Fu) << 6) |
+                    static_cast<uint32_t>(b2 & 0x3Fu));
+        }
+    } else if ((b0 & 0xF8u) == 0xF0u && cursor + 3 < sv.size()) {
+        const uint8_t b1 = static_cast<uint8_t>(sv[cursor + 1]);
+        const uint8_t b2 = static_cast<uint8_t>(sv[cursor + 2]);
+        const uint8_t b3 = static_cast<uint8_t>(sv[cursor + 3]);
+        if ((b1 & 0xC0u) == 0x80u && (b2 & 0xC0u) == 0x80u && (b3 & 0xC0u) == 0x80u) {
+            cursor += 4;
+            return ((static_cast<uint32_t>(b0 & 0x07u) << 18) |
+                    (static_cast<uint32_t>(b1 & 0x3Fu) << 12) |
+                    (static_cast<uint32_t>(b2 & 0x3Fu) << 6) |
+                    static_cast<uint32_t>(b3 & 0x3Fu));
+        }
+    }
+    ++cursor;
+    return b0;
+}
+
+bool isCjkOrFullwidthCodepoint(uint32_t cp) noexcept {
+    return (cp >= 0x2E80u && cp <= 0x9FFFu) ||
+           (cp >= 0xAC00u && cp <= 0xD7AFu) ||
+           (cp >= 0xF900u && cp <= 0xFAFFu) ||
+           (cp >= 0xFE10u && cp <= 0xFE6Fu) ||
+           (cp >= 0xFF01u && cp <= 0xFF60u) ||
+           (cp >= 0xFFE0u && cp <= 0xFFE6u) ||
+           (cp >= 0x20000u && cp <= 0x323AFu);
+}
+
+float estimateGlyphVisualWeight(uint32_t cp) noexcept {
+    if (cp == '\t') return 1.25f;
+    if (cp == ' ') return 0.42f;
+    if (isCjkOrFullwidthCodepoint(cp)) return 1.0f;
+    switch (cp) {
+        case 'i': case 'l': case 'I': case '1': case '!': case '|':
+        case '.': case ',': case ':': case ';': case '\'': case '`':
+        case '(': case ')': case '[': case ']': case '{': case '}':
+            return 0.38f;
+        case 'm': case 'w': case 'M': case 'W': case '@': case '%':
+            return 0.78f;
+        default:
+            return 0.56f;
+    }
+}
+
+bool isCjkOrFullwidth(wchar_t ch) noexcept {
+    return (ch >= 0x3400 && ch <= 0x4DBF) ||
+           (ch >= 0x4E00 && ch <= 0x9FFF) ||
+           (ch >= 0x2E80 && ch <= 0x2FDF) ||
+           (ch >= 0x3000 && ch <= 0x33FF) ||
+           (ch >= 0xAC00 && ch <= 0xD7AF) ||
+           (ch >= 0xF900 && ch <= 0xFAFF) ||
+           (ch >= 0xFE10 && ch <= 0xFE6F) ||
+           (ch >= 0xFF00 && ch <= 0xFFEF) ||
+           (ch >= 0xD840 && ch <= 0xD884) ||
+           (ch >= 0xDC00 && ch <= 0xDFFF);
+}
+
+bool isTightConnectorLeft(wchar_t ch) noexcept {
+    return ch == L'/' || ch == L'\\' || ch == L'.' || ch == L'_' || ch == L'-' ||
+           ch == L'#' || ch == L'(' || ch == L'[' || ch == L'{' || ch == L'@' ||
+           ch == L':' || ch == L'—' || ch == L'–';
+}
+
+bool isTightConnectorRight(wchar_t ch) noexcept {
+    return ch == L'/' || ch == L'\\' || ch == L'.' || ch == L'_' || ch == L'-' ||
+           ch == L'#' || ch == L')' || ch == L']' || ch == L'}' || ch == L':' ||
+           ch == L',' || ch == L';' || ch == L'—' || ch == L'–';
+}
+
+bool isAsciiDigit(wchar_t ch) noexcept {
+    return ch >= L'0' && ch <= L'9';
+}
+
+
+struct AtomicLayoutBlock {
+    std::wstring wtext;
+    std::string utf8;
+    float confidence = 1.0f;
+    cv::Rect box;
+    std::vector<cv::Rect> charBoxes;
+
+    float left() const noexcept { return static_cast<float>(box.x); }
+    float right() const noexcept { return static_cast<float>(box.x + (std::max)(1, box.width)); }
+    float top() const noexcept { return static_cast<float>(box.y); }
+    float bottom() const noexcept { return static_cast<float>(box.y + (std::max)(1, box.height)); }
+    float cx() const noexcept { return static_cast<float>(box.x) + static_cast<float>((std::max)(1, box.width)) * 0.5f; }
+    float cy() const noexcept { return static_cast<float>(box.y) + static_cast<float>((std::max)(1, box.height)) * 0.5f; }
+    float w() const noexcept { return static_cast<float>((std::max)(1, box.width)); }
+    float h() const noexcept { return static_cast<float>((std::max)(1, box.height)); }
+};
+
+float computeMedianBlockHeight(const std::vector<AtomicLayoutBlock>& blocks) {
+    if (blocks.empty()) return 16.0f;
+    std::vector<float> heights;
+    heights.reserve(blocks.size());
+    for (const auto& b : blocks) {
+        if (b.box.height > 1) heights.push_back(static_cast<float>(b.box.height));
+    }
+    if (heights.empty()) return 16.0f;
+    const size_t mid = heights.size() / 2;
+    std::nth_element(heights.begin(), heights.begin() + static_cast<std::ptrdiff_t>(mid), heights.end());
+    return (std::max)(8.0f, heights[mid]);
+}
+
+std::vector<float> clusterRowCentersStrict(const std::vector<AtomicLayoutBlock>& subset, float medH) {
+    if (subset.empty()) return {};
+    std::vector<float> cys;
+    cys.reserve(subset.size());
+    for (const auto& b : subset) cys.push_back(b.cy());
+    std::sort(cys.begin(), cys.end());
+
+    std::vector<float> centers;
+    centers.reserve(cys.size());
+    float groupStart = cys.front();
+    float sum = cys.front();
+    size_t cnt = 1;
+    const float tol = (std::max)(4.0f, medH * 0.34f);
+    for (size_t i = 1; i < cys.size(); ++i) {
+        if (cys[i] - groupStart <= tol) {
+            sum += cys[i];
+            ++cnt;
+        } else {
+            centers.push_back(sum / static_cast<float>(cnt));
+            groupStart = cys[i];
+            sum = cys[i];
+            cnt = 1;
+        }
+    }
+    centers.push_back(sum / static_cast<float>(cnt));
+    return centers;
+}
+
+/// 扫描原图中的长竖向 UI 窗格分割线（如 ERP 侧边栏边框、分栏竖线），仅在未穿过任何文字块内部的空白列触发
+std::vector<float> detectVerticalUiDividers(
+    const cv::Mat& sourceImage,
+    const std::vector<AtomicLayoutBlock>& blocks) {
+    std::vector<float> dividers;
+    if (sourceImage.empty() || sourceImage.cols < 64 || sourceImage.rows < 64 || blocks.size() < 2) {
+        return dividers;
+    }
+
+    cv::Mat gray;
+    if (sourceImage.channels() == 1) {
+        gray = sourceImage;
+    } else if (sourceImage.channels() == 3) {
+        cv::cvtColor(sourceImage, gray, cv::COLOR_BGR2GRAY);
+    } else if (sourceImage.channels() == 4) {
+        cv::cvtColor(sourceImage, gray, cv::COLOR_BGRA2GRAY);
+    } else {
+        return dividers;
+    }
+
+    const int imgW = gray.cols;
+    const int imgH = gray.rows;
+    std::vector<uint8_t> textOccupiedX(static_cast<size_t>(imgW), 0);
+    for (const auto& b : blocks) {
+        const int x0 = std::clamp(b.box.x + 2, 0, imgW - 1);
+        const int x1 = std::clamp(b.box.x + b.box.width - 2, 0, imgW - 1);
+        for (int x = x0; x <= x1; ++x) {
+            textOccupiedX[static_cast<size_t>(x)] = 1;
+        }
+    }
+
+    const int yStep = (imgH > 900) ? 2 : 1;
+    const int minSamplesNeeded = (std::max)(48, (imgH / yStep) * 32 / 100);
+    std::vector<int> rawCandidates;
+
+    for (int x = 8; x + 8 < imgW; ++x) {
+        if (textOccupiedX[static_cast<size_t>(x)] != 0) continue;
+        int edgeHits = 0;
+        int maxRun = 0;
+        int curRun = 0;
+        int missAllowance = 0;
+        for (int y = yStep; y + yStep < imgH; y += yStep) {
+            const uint8_t* row = gray.ptr<uint8_t>(y);
+            const uint8_t* prevRow = gray.ptr<uint8_t>(y - yStep);
+            const int c = row[x];
+            const int horizContrast = (std::max)(std::abs(c - static_cast<int>(row[x - 1])),
+                                                 std::abs(c - static_cast<int>(row[x + 1])));
+            const int vertContinuity = std::abs(c - static_cast<int>(prevRow[x]));
+            if (horizContrast >= 9 && vertContinuity <= 5) {
+                ++edgeHits;
+                ++curRun;
+                missAllowance = 3;
+                if (curRun > maxRun) maxRun = curRun;
+            } else if (missAllowance > 0) {
+                --missAllowance;
+            } else {
+                curRun = 0;
+            }
+        }
+        if (edgeHits >= minSamplesNeeded && maxRun >= minSamplesNeeded / 2) {
+            rawCandidates.push_back(x);
+        }
+    }
+
+    // 合并相邻 6px 内的双边框/滚动条竖线簇
+    for (size_t i = 0; i < rawCandidates.size();) {
+        size_t j = i + 1;
+        int sumX = rawCandidates[i];
+        while (j < rawCandidates.size() && rawCandidates[j] - rawCandidates[j - 1] <= 6) {
+            sumX += rawCandidates[j];
+            ++j;
+        }
+        dividers.push_back(static_cast<float>(sumX) / static_cast<float>(j - i));
+        i = j;
+    }
+    return dividers;
+}
+
+struct LayoutVerticalSplit {
+    bool valid = false;
+    bool hasUiDivider = false;
+    float splitX = 0.0f;
+    float gapWidth = 0.0f;
+    float score = 0.0f;
+};
+
+size_t countMultiColumnRowsInSide(
+    const std::vector<AtomicLayoutBlock>& sideBlocks,
+    float medH,
+    bool mergeWordTokens) {
+    if (sideBlocks.size() < 2) return 0;
+    const float rowTol = (std::max)(3.8f, medH * 0.28f);
+    const float subColGap = mergeWordTokens
+        ? (std::max)(12.0f, medH * 0.85f)
+        : (std::max)(6.0f, medH * 0.38f);
+
+    std::vector<size_t> idx(sideBlocks.size());
+    for (size_t i = 0; i < sideBlocks.size(); ++i) idx[i] = i;
+    std::sort(idx.begin(), idx.end(), [&sideBlocks](size_t a, size_t b) {
+        return sideBlocks[a].cy() < sideBlocks[b].cy();
+    });
+
+    size_t multiColRows = 0;
+    size_t i = 0;
+    while (i < idx.size()) {
+        const float baseCy = sideBlocks[idx[i]].cy();
+        std::vector<size_t> rowGroup = {idx[i]};
+        size_t j = i + 1;
+        while (j < idx.size() && (sideBlocks[idx[j]].cy() - baseCy) <= rowTol) {
+            rowGroup.push_back(idx[j]);
+            ++j;
+        }
+        if (rowGroup.size() >= 2) {
+            std::sort(rowGroup.begin(), rowGroup.end(), [&sideBlocks](size_t a, size_t b) {
+                return sideBlocks[a].left() < sideBlocks[b].left();
+            });
+            for (size_t k = 0; k + 1 < rowGroup.size(); ++k) {
+                if (sideBlocks[rowGroup[k + 1]].left() - sideBlocks[rowGroup[k]].right() >= subColGap) {
+                    ++multiColRows;
+                    break;
+                }
+            }
+        }
+        i = j;
+    }
+    return multiColRows;
+}
+
+LayoutVerticalSplit findBestLayoutVerticalSplit(
+    const std::vector<AtomicLayoutBlock>& blocks,
+    float medH,
+    const std::vector<float>& dividerXs,
+    bool mergeWordTokens) {
+    LayoutVerticalSplit best{};
+    if (blocks.size() < 2) return best;
+
+    std::vector<std::pair<float, float>> intervals;
+    intervals.reserve(blocks.size());
+    float minX = FLT_MAX;
+    float maxX = -FLT_MAX;
+    for (const auto& b : blocks) {
+        const float l = b.left();
+        const float r = (std::max)(l + 1.0f, b.right());
+        intervals.emplace_back(l, r);
+        minX = (std::min)(minX, l);
+        maxX = (std::max)(maxX, r);
+    }
+    if (maxX - minX < medH * 4.0f) {
+        return best;
+    }
+
+    std::sort(intervals.begin(), intervals.end(), [](const auto& a, const auto& b) {
+        return (a.first != b.first) ? (a.first < b.first) : (a.second < b.second);
+    });
+
+    std::vector<std::pair<float, float>> merged;
+    merged.reserve(intervals.size());
+    for (const auto& iv : intervals) {
+        if (merged.empty() || iv.first > merged.back().second) {
+            merged.push_back(iv);
+        } else {
+            merged.back().second = (std::max)(merged.back().second, iv.second);
+        }
+    }
+    if (merged.size() < 2) {
+        return best;
+    }
+
+    const float minCandidateGap = (std::max)(10.0f, medH * 0.70f);
+    const float classicCorridorMinW = (std::max)(14.0f, medH * 1.55f);
+    const float syncTol = (std::max)(3.6f, medH * 0.24f);
+
+    for (size_t i = 0; i + 1 < merged.size(); ++i) {
+        const float gapL = merged[i].second;
+        const float gapR = merged[i + 1].first;
+        const float gapW = gapR - gapL;
+        if (gapW < minCandidateGap) continue;
+
+        const float midX = (gapL + gapR) * 0.5f;
+        bool hasUiDivider = false;
+        for (float dx : dividerXs) {
+            if (dx >= gapL - 3.0f && dx <= gapR + 3.0f) {
+                hasUiDivider = true;
+                break;
+            }
+        }
+
+        std::vector<AtomicLayoutBlock> leftBlocks;
+        std::vector<AtomicLayoutBlock> rightBlocks;
+        leftBlocks.reserve(blocks.size());
+        rightBlocks.reserve(blocks.size());
+        float leftMinX = FLT_MAX, leftMaxX = -FLT_MAX;
+        float rightMinX = FLT_MAX, rightMaxX = -FLT_MAX;
+        float leftMinY = FLT_MAX, leftMaxY = -FLT_MAX;
+        float rightMinY = FLT_MAX, rightMaxY = -FLT_MAX;
+        for (const auto& b : blocks) {
+            if (b.cx() < midX) {
+                leftBlocks.push_back(b);
+                leftMinX = (std::min)(leftMinX, b.left());
+                leftMaxX = (std::max)(leftMaxX, b.right());
+                leftMinY = (std::min)(leftMinY, b.top());
+                leftMaxY = (std::max)(leftMaxY, b.bottom());
+            } else {
+                rightBlocks.push_back(b);
+                rightMinX = (std::min)(rightMinX, b.left());
+                rightMaxX = (std::max)(rightMaxX, b.right());
+                rightMinY = (std::min)(rightMinY, b.top());
+                rightMaxY = (std::max)(rightMaxY, b.bottom());
+            }
+        }
+        if (leftBlocks.empty() || rightBlocks.empty()) continue;
+
+        // 若无物理竖分割线，且左右两侧在 Y 轴上根本处于上下不同楼层（零垂直跨度重叠），应交由水平切分处理而非竖劈
+        const float vertSpanOverlap = (std::min)(leftMaxY, rightMaxY) - (std::max)(leftMinY, rightMinY);
+        if (!hasUiDivider && vertSpanOverlap <= 0.0f) {
+            continue;
+        }
+
+        const auto leftCys = clusterRowCentersStrict(leftBlocks, medH);
+        const auto rightCys = clusterRowCentersStrict(rightBlocks, medH);
+        const size_t leftLines = leftCys.size();
+        const size_t rightLines = rightCys.size();
+
+        // 双指针计算左右两侧视觉行的 1:1 严格水平基线对齐率
+        size_t li = 0, ri = 0, matched = 0;
+        while (li < leftCys.size() && ri < rightCys.size()) {
+            const float diff = leftCys[li] - rightCys[ri];
+            if (std::abs(diff) <= syncTol) {
+                ++matched;
+                ++li;
+                ++ri;
+            } else if (diff < 0.0f) {
+                ++li;
+            } else {
+                ++ri;
+            }
+        }
+        const size_t maxRows = (std::max)(leftLines, rightLines);
+        const size_t minRows = (std::min)(leftLines, rightLines);
+        const float globalSyncRatio = (maxRows > 0) ? (static_cast<float>(matched) / static_cast<float>(maxRows)) : 0.0f;
+        const float minSyncRatio = (minRows > 0) ? (static_cast<float>(matched) / static_cast<float>(minRows)) : 0.0f;
+        const float leftSpanW = (leftMaxX > leftMinX) ? (leftMaxX - leftMinX) : 0.0f;
+        const float rightSpanW = (rightMaxX > rightMinX) ? (rightMaxX - rightMinX) : 0.0f;
+
+        // 区分「左右并排的双宽栏文档/双面板」与「多列同步网格数据表 / 紧凑 Key-Value 表单」
+        const size_t leftMultiColRows = countMultiColumnRowsInSide(leftBlocks, medH, mergeWordTokens);
+        const bool isWideMultiColGridTable =
+            (leftMultiColRows >= 2) &&
+            (leftLines == rightLines) &&
+            (globalSyncRatio >= 0.90f);
+        const bool looksLikeTwoColumnLayout =
+            !isWideMultiColGridTable &&
+            (minRows >= 2) &&
+            (gapW >= medH * 3.2f) &&
+            (leftSpanW >= medH * 8.2f) &&
+            (rightSpanW >= medH * 8.2f);
+
+        const bool isSynchronizedTableOrForm =
+            !hasUiDivider &&
+            !looksLikeTwoColumnLayout &&
+            (minRows >= 2) &&
+            (globalSyncRatio >= 0.65f) &&
+            (minSyncRatio >= 0.85f);
+
+        bool shouldSplit = false;
+        if (gapW >= (std::max)(440.0f, medH * 24.0f)) {
+            // 1. 横跨半屏以上的超巨型水平空白鸿沟（如左上表单 vs 右上表单、左下备注 vs 右下金额区）：无条件隔离为独立分区
+            shouldSplit = true;
+        } else if (hasUiDivider && globalSyncRatio < 0.68f && maxRows >= 2) {
+            // 2. 原图存在贯穿竖向 UI 分割线且两侧行高/行数异步（如主窗口 vs 右侧自定义字段侧边栏）：隔离为独立窗格
+            shouldSplit = true;
+        } else if (minRows >= 2) {
+            // 垂直分栏（非半屏鸿沟、非物理分割线）要求左右两侧均至少具备 2 行，严禁单行伪分栏撕裂表格末行或段落末行
+            if (gapW >= (std::max)(260.0f, medH * 16.0f)) {
+                // 3. 260~440px 宽空白：仅当两侧行数与基线 1:1 严丝合缝对齐（宽表中间空缺列）时保留同表，否则切分
+                if (!isSynchronizedTableOrForm || leftLines != rightLines || globalSyncRatio < 0.90f) {
+                    shouldSplit = true;
+                }
+            } else if (gapW >= (std::max)(165.0f, medH * 10.5f) && !isSynchronizedTableOrForm) {
+                // 4. 中大跨度空白且两侧并非行行严丝合缝对齐的数据表：隔离为独立分区
+                shouldSplit = true;
+            } else if (gapW >= classicCorridorMinW && !isSynchronizedTableOrForm) {
+                // 5. 经典多栏垂直走廊：保护同步对齐的数据表与紧凑键值对表单，果断切分双栏正文与异构侧边栏
+                shouldSplit = true;
+            }
+        }
+
+        if (shouldSplit) {
+            const float candidateScore =
+                gapW +
+                (hasUiDivider ? medH * 8.0f : 0.0f) +
+                (1.0f - globalSyncRatio) * medH * 3.5f;
+            if (candidateScore > best.score) {
+                best.valid = true;
+                best.hasUiDivider = hasUiDivider;
+                best.splitX = midX;
+                best.gapWidth = gapW;
+                best.score = candidateScore;
+            }
+        }
+    }
+    return best;
+}
+
+void clusterAlignedRowsInRegion(
+    std::vector<AtomicLayoutBlock> blocks,
+    int regionId,
+    int& ioNextAlignedRowId,
+    bool mergeWordTokens,
+    std::vector<OcrResult>& outResults) {
+    if (blocks.empty()) return;
+
+    // Step 1: 针对逐词分词引擎 (mergeWordTokens=true) 将同句紧邻单词缝合为单元格短语；
+    //         针对已分块引擎 (PP-OCRv4 DBNet / 预切单元格) 仅缝合紧贴断片，保留相邻表格列独立性
+    std::sort(blocks.begin(), blocks.end(), [](const AtomicLayoutBlock& a, const AtomicLayoutBlock& b) {
+        if (std::abs(a.cy() - b.cy()) > 4.0f) return a.cy() < b.cy();
+        return a.left() < b.left();
+    });
+
+    std::vector<AtomicLayoutBlock> phraseCells;
+    phraseCells.reserve(blocks.size());
+    std::vector<bool> consumed(blocks.size(), false);
+
+    // 按 X 左边界索引以便同行向右贪心缝合紧邻词
+    std::vector<size_t> byX(blocks.size());
+    for (size_t i = 0; i < blocks.size(); ++i) byX[i] = i;
+    std::sort(byX.begin(), byX.end(), [&blocks](size_t a, size_t b) {
+        if (blocks[a].box.x != blocks[b].box.x) return blocks[a].box.x < blocks[b].box.x;
+        return blocks[a].box.y < blocks[b].box.y;
+    });
+
+    auto isSharedColumnCorridor = [&blocks](float gapL, float gapR, float curCy, float localH) -> bool {
+        if (gapR - gapL < (std::max)(6.0f, localH * 0.32f)) return false;
+        bool otherRowHasLeftEdge = false;
+        bool otherRowHasRightCol = false;
+        for (const auto& other : blocks) {
+            if (std::abs(other.cy() - curCy) <= localH * 0.65f) continue;
+            // 若其他行有文字直接横穿该间隙，则不是垂直列走廊
+            if (other.left() < gapR - 1.5f && other.right() > gapL + 1.5f) {
+                return false;
+            }
+            if (std::abs(other.right() - gapL) <= localH * 0.75f) {
+                otherRowHasLeftEdge = true;
+            }
+            if (std::abs(other.left() - gapR) <= localH * 0.75f) {
+                otherRowHasRightCol = true;
+            }
+        }
+        return otherRowHasLeftEdge && otherRowHasRightCol;
+    };
+
+    for (size_t orderIdx = 0; orderIdx < byX.size(); ++orderIdx) {
+        const size_t seedIdx = byX[orderIdx];
+        if (consumed[seedIdx]) continue;
+        consumed[seedIdx] = true;
+
+        AtomicLayoutBlock cur = std::move(blocks[seedIdx]);
+        if (cur.wtext.empty()) continue;
+
+        bool extended = true;
+        while (extended) {
+            extended = false;
+            int bestNextOrder = -1;
+            float bestGap = FLT_MAX;
+            for (size_t probe = orderIdx + 1; probe < byX.size(); ++probe) {
+                const size_t candIdx = byX[probe];
+                if (consumed[candIdx]) continue;
+                const auto& cand = blocks[candIdx];
+                if (cand.wtext.empty()) continue;
+
+                const float localH = (std::max)(10.0f, (cur.h() + cand.h()) * 0.5f);
+                const float minH = (std::max)(8.0f, (std::min)(cur.h(), cand.h()));
+                const float maxMergeGap = mergeWordTokens
+                    ? (std::max)(9.0f, localH * 0.78f)
+                    : (std::max)(3.0f, minH * 0.18f);
+                const float gap = cand.left() - cur.right();
+                if (gap > maxMergeGap) {
+                    break; // 后续 X 更大，无需继续向后扫描
+                }
+                if (gap < -minH * 0.45f) continue;
+
+                const float dy = std::abs(cand.cy() - cur.cy());
+                const float overlapY = (std::min)(cur.bottom(), cand.bottom()) - (std::max)(cur.top(), cand.top());
+                if (dy <= (std::max)(3.6f, minH * 0.28f) && overlapY >= minH * 0.55f) {
+                    if (mergeWordTokens && gap >= 5.5f &&
+                        isSharedColumnCorridor(cur.right(), cand.left(), cur.cy(), localH)) {
+                        continue; // 贯穿多行的表格列走廊留给 Step 2 以 \t 分列
+                    }
+                    if (gap < bestGap) {
+                        bestGap = gap;
+                        bestNextOrder = static_cast<int>(probe);
+                    }
+                }
+            }
+
+            if (bestNextOrder >= 0) {
+                const size_t attachIdx = byX[static_cast<size_t>(bestNextOrder)];
+                consumed[attachIdx] = true;
+                auto& nextBlk = blocks[attachIdx];
+
+                const float localH = (std::max)(10.0f, (cur.h() + nextBlk.h()) * 0.5f);
+                const float gap = nextBlk.left() - cur.right();
+                const wchar_t lastCh = cur.wtext.back();
+                const wchar_t firstCh = nextBlk.wtext.front();
+                bool addSpace = false;
+                if (isCjkOrFullwidth(lastCh) || isCjkOrFullwidth(firstCh)) {
+                    if (gap > localH * 0.65f) addSpace = true;
+                } else if (isTightConnectorLeft(lastCh) || isTightConnectorRight(firstCh)) {
+                    if (gap > localH * 0.55f) addSpace = true;
+                } else if (isAsciiDigit(lastCh) && isAsciiDigit(firstCh) && gap < localH * 0.32f) {
+                    addSpace = false;
+                } else if (gap >= localH * 0.14f) {
+                    addSpace = true;
+                }
+
+                if (addSpace) {
+                    cur.wtext.push_back(L' ');
+                    cur.utf8.push_back(' ');
+                    const int sx1 = (std::min)(cur.box.x + cur.box.width, nextBlk.box.x);
+                    const int sx2 = (std::max)(sx1 + 1, nextBlk.box.x);
+                    const int sy1 = (std::min)(cur.box.y, nextBlk.box.y);
+                    const int sy2 = (std::max)(cur.box.y + cur.box.height, nextBlk.box.y + nextBlk.box.height);
+                    cur.charBoxes.emplace_back(sx1, sy1, sx2 - sx1, (std::max)(1, sy2 - sy1));
+                }
+
+                cur.wtext += nextBlk.wtext;
+                cur.utf8 += nextBlk.utf8;
+                cur.confidence = (cur.confidence + nextBlk.confidence) * 0.5f;
+                cur.charBoxes.insert(cur.charBoxes.end(), nextBlk.charBoxes.begin(), nextBlk.charBoxes.end());
+
+                const int nx1 = (std::min)(cur.box.x, nextBlk.box.x);
+                const int ny1 = (std::min)(cur.box.y, nextBlk.box.y);
+                const int nx2 = (std::max)(cur.box.x + cur.box.width, nextBlk.box.x + nextBlk.box.width);
+                const int ny2 = (std::max)(cur.box.y + cur.box.height, nextBlk.box.y + nextBlk.box.height);
+                cur.box = cv::Rect(nx1, ny1, (std::max)(1, nx2 - nx1), (std::max)(1, ny2 - ny1));
+                extended = true;
+            }
+        }
+
+        phraseCells.push_back(std::move(cur));
+    }
+
+    if (phraseCells.empty()) return;
+
+    // Step 2: 严苛水平基线锁同行分组（拒绝错位滚雪球漂移，仅真正对齐的单元格归为同一逻辑行）
+    std::sort(phraseCells.begin(), phraseCells.end(), [](const AtomicLayoutBlock& a, const AtomicLayoutBlock& b) {
+        return a.cy() < b.cy();
+    });
+
+    struct AlignedRowCandidate {
+        std::vector<AtomicLayoutBlock> cells;
+        float minCy = FLT_MAX;
+        float maxCy = -FLT_MAX;
+        float minBot = FLT_MAX;
+        float maxBot = -FLT_MAX;
+        float minTop = FLT_MAX;
+        float maxBotAll = -FLT_MAX;
+        float sumCy = 0.0f;
+        float sumH = 0.0f;
+
+        float avgCy() const noexcept { return cells.empty() ? 0.0f : sumCy / static_cast<float>(cells.size()); }
+        float avgH() const noexcept { return cells.empty() ? 16.0f : sumH / static_cast<float>(cells.size()); }
+    };
+
+    std::vector<AlignedRowCandidate> candidateRows;
+    for (auto& cell : phraseCells) {
+        int bestRow = -1;
+        float bestDy = FLT_MAX;
+        for (int r = static_cast<int>(candidateRows.size()) - 1; r >= 0; --r) {
+            const auto& row = candidateRows[static_cast<size_t>(r)];
+            const float rowH = row.avgH();
+            const float cellH = cell.h();
+            const float minH = (std::max)(8.0f, (std::min)(rowH, cellH));
+            const float maxH = (std::max)(rowH, cellH);
+            // 字号差异过大（如大标题与旁侧角标）不绑为同一对齐行
+            if (minH < maxH * 0.58f) continue;
+
+            // 同一行内 X 投影不得重叠（重叠说明是上下两行）
+            bool horizClash = false;
+            for (const auto& existing : row.cells) {
+                const float ox = (std::min)(existing.right(), cell.right()) - (std::max)(existing.left(), cell.left());
+                const float minW = (std::min)(existing.w(), cell.w());
+                if (ox > (std::max)(4.0f, minW * 0.22f)) {
+                    horizClash = true;
+                    break;
+                }
+            }
+            if (horizClash) continue;
+
+            // 整行全局水平极差锁：杜绝从左到右逐格倾斜爬坡漂移
+            const float newMinCy = (std::min)(row.minCy, cell.cy());
+            const float newMaxCy = (std::max)(row.maxCy, cell.cy());
+            const float newMinBot = (std::min)(row.minBot, cell.bottom());
+            const float newMaxBot = (std::max)(row.maxBot, cell.bottom());
+            const float cySpan = newMaxCy - newMinCy;
+            const float botSpan = newMaxBot - newMinBot;
+
+            const float strictTol = (std::max)(3.8f, minH * 0.25f);
+            const bool centerAligned = (cySpan <= strictTol);
+            const bool baselineAligned = (botSpan <= strictTol) && (cySpan <= (std::max)(5.0f, minH * 0.32f));
+            if (!centerAligned && !baselineAligned) continue;
+
+            const float overlapY = (std::min)(row.maxBotAll, cell.bottom()) - (std::max)(row.minTop, cell.top());
+            if (overlapY < minH * 0.60f) continue;
+
+            const float dy = std::abs(cell.cy() - row.avgCy());
+            if (dy < bestDy) {
+                bestDy = dy;
+                bestRow = r;
+            }
+        }
+
+        if (bestRow >= 0) {
+            auto& dst = candidateRows[static_cast<size_t>(bestRow)];
+            dst.minCy = (std::min)(dst.minCy, cell.cy());
+            dst.maxCy = (std::max)(dst.maxCy, cell.cy());
+            dst.minBot = (std::min)(dst.minBot, cell.bottom());
+            dst.maxBot = (std::max)(dst.maxBot, cell.bottom());
+            dst.minTop = (std::min)(dst.minTop, cell.top());
+            dst.maxBotAll = (std::max)(dst.maxBotAll, cell.bottom());
+            dst.sumCy += cell.cy();
+            dst.sumH += cell.h();
+            dst.cells.push_back(std::move(cell));
+        } else {
+            AlignedRowCandidate nr;
+            nr.minCy = nr.maxCy = cell.cy();
+            nr.minBot = nr.maxBot = nr.maxBotAll = cell.bottom();
+            nr.minTop = cell.top();
+            nr.sumCy = cell.cy();
+            nr.sumH = cell.h();
+            nr.cells.push_back(std::move(cell));
+            candidateRows.push_back(std::move(nr));
+        }
+    }
+
+    std::sort(candidateRows.begin(), candidateRows.end(), [](const AlignedRowCandidate& a, const AlignedRowCandidate& b) {
+        return a.avgCy() < b.avgCy();
+    });
+
+    // Step 3: 反跨骑冲突校验与超远非表格空隙切分，输出带 layoutRegionId 与 alignedRowId 的结果
+    auto hasBridgeOrMultiRowTableSpan = [&](size_t selfRowIdx, float gapLeft, float gapRight) -> bool {
+        int coSpanningRows = 0;
+        for (size_t r = 0; r < candidateRows.size(); ++r) {
+            if (r == selfRowIdx) continue;
+            bool hasLeftSide = false;
+            bool hasRightSide = false;
+            for (const auto& c : candidateRows[r].cells) {
+                if (c.right() > gapLeft + 4.0f && c.left() < gapRight - 4.0f) {
+                    return true; // 其他行在该空白处有填充单元格（标准空缺格桥接）
+                }
+                if (c.right() <= gapLeft + 36.0f) hasLeftSide = true;
+                if (c.left() >= gapRight - 36.0f) hasRightSide = true;
+            }
+            if (hasLeftSide && hasRightSide) {
+                ++coSpanningRows;
+            }
+        }
+        return coSpanningRows >= 1;
+    };
+
+    auto straddlesAdjacentRow = [&](size_t selfRowIdx, const AtomicLayoutBlock& cell) -> bool {
+        for (size_t r = 0; r < candidateRows.size(); ++r) {
+            if (r == selfRowIdx) continue;
+            const auto& other = candidateRows[r];
+            // 仅检查水平上与 cell 分处不同列的其他行
+            const float minH = (std::max)(8.0f, (std::min)(other.avgH(), cell.h()));
+            const float overlapY = (std::min)(other.maxBotAll, cell.bottom()) - (std::max)(other.minTop, cell.top());
+            if (overlapY >= minH * 0.32f &&
+                std::abs(cell.cy() - other.avgCy()) + 0.8f < std::abs(cell.cy() - candidateRows[selfRowIdx].avgCy())) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto emitSubRow = [&](std::vector<AtomicLayoutBlock>& subCells) {
+        if (subCells.empty()) return;
+        const int curAlignedRowId = ioNextAlignedRowId++;
+        std::string lineUtf8;
+        std::vector<cv::Rect> lineCharBoxes;
+        int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
+        float confSum = 0.0f;
+
+        for (size_t i = 0; i < subCells.size(); ++i) {
+            auto& c = subCells[i];
+            if (c.utf8.empty()) continue;
+            if (!lineUtf8.empty() && i > 0) {
+                const auto& prev = subCells[i - 1];
+                lineUtf8.push_back('\t');
+                const int gx1 = (std::min)(prev.box.x + prev.box.width, c.box.x);
+                const int gx2 = (std::max)(gx1 + 1, c.box.x);
+                const int gy1 = (std::min)(prev.box.y, c.box.y);
+                const int gy2 = (std::max)(prev.box.y + prev.box.height, c.box.y + c.box.height);
+                lineCharBoxes.emplace_back(gx1, gy1, gx2 - gx1, (std::max)(1, gy2 - gy1));
+            }
+
+            minX = (std::min)(minX, c.box.x);
+            minY = (std::min)(minY, c.box.y);
+            maxX = (std::max)(maxX, c.box.x + c.box.width);
+            maxY = (std::max)(maxY, c.box.y + c.box.height);
+            confSum += c.confidence;
+            lineUtf8 += c.utf8;
+
+            const size_t expectedCellCps = OcrEngine::countUtf8Codepoints(c.utf8);
+            if (c.charBoxes.size() == expectedCellCps) {
+                lineCharBoxes.insert(lineCharBoxes.end(), c.charBoxes.begin(), c.charBoxes.end());
+            } else {
+                auto fallbackBoxes = OcrEngine::buildProportionalCharBoxes(c.utf8, c.box);
+                lineCharBoxes.insert(lineCharBoxes.end(), fallbackBoxes.begin(), fallbackBoxes.end());
+            }
+        }
+        if (lineUtf8.empty() || minX > maxX || minY > maxY) return;
+
+        OcrResult r;
+        r.text = std::move(lineUtf8);
+        r.confidence = confSum / static_cast<float>(subCells.size());
+        r.box = cv::Rect(minX, minY, (std::max)(1, maxX - minX), (std::max)(1, maxY - minY));
+        const size_t totalCps = OcrEngine::countUtf8Codepoints(r.text);
+        if (lineCharBoxes.size() == totalCps) {
+            r.charBoxes = std::move(lineCharBoxes);
+        } else {
+            r.charBoxes = OcrEngine::buildProportionalCharBoxes(r.text, r.box);
+        }
+        r.layoutRegionId = regionId;
+        r.alignedRowId = curAlignedRowId;
+        outResults.push_back(std::move(r));
+    };
+
+    for (size_t r = 0; r < candidateRows.size(); ++r) {
+        auto& cells = candidateRows[r].cells;
+        if (cells.empty()) continue;
+        std::sort(cells.begin(), cells.end(), [](const AtomicLayoutBlock& a, const AtomicLayoutBlock& b) {
+            return a.left() < b.left();
+        });
+
+        std::vector<AtomicLayoutBlock> curGroup;
+        curGroup.reserve(cells.size());
+        for (size_t i = 0; i < cells.size(); ++i) {
+            if (!curGroup.empty()) {
+                const auto& prev = curGroup.back();
+                const float refH = (std::max)(10.0f, (prev.h() + cells[i].h()) * 0.5f);
+                const float gap = cells[i].left() - prev.right();
+                const bool unbridgedHugeGap =
+                    (gap > (std::max)(440.0f, refH * 24.0f)) ||
+                    ((gap > (std::max)(195.0f, refH * 12.0f)) &&
+                     !hasBridgeOrMultiRowTableSpan(r, prev.right(), cells[i].left()));
+                if (unbridgedHugeGap || straddlesAdjacentRow(r, cells[i])) {
+                    emitSubRow(curGroup);
+                    curGroup.clear();
+                }
+            }
+            curGroup.push_back(std::move(cells[i]));
+        }
+        emitSubRow(curGroup);
+    }
+}
+
+void recursiveLayoutXYCut(
+    std::vector<AtomicLayoutBlock> blocks,
+    float medH,
+    const std::vector<float>& dividerXs,
+    int depth,
+    bool mergeWordTokens,
+    int& ioNextRegionId,
+    int& ioNextAlignedRowId,
+    std::vector<OcrResult>& outResults) {
+    if (blocks.empty()) return;
+    if (depth >= 10 || blocks.size() < 2) {
+        clusterAlignedRowsInRegion(
+            std::move(blocks), ioNextRegionId++, ioNextAlignedRowId, mergeWordTokens, outResults);
+        return;
+    }
+
+    const LayoutVerticalSplit vSplit = findBestLayoutVerticalSplit(blocks, medH, dividerXs, mergeWordTokens);
+    if (vSplit.valid && vSplit.hasUiDivider) {
+        // 1. 存在物理竖向 UI 窗格分割线（如主窗体 vs 右侧侧边栏）：最高优先级隔离左右窗格
+        std::vector<AtomicLayoutBlock> leftCol;
+        std::vector<AtomicLayoutBlock> rightCol;
+        leftCol.reserve(blocks.size());
+        rightCol.reserve(blocks.size());
+        for (auto& b : blocks) {
+            if (b.cx() < vSplit.splitX) {
+                leftCol.push_back(std::move(b));
+            } else {
+                rightCol.push_back(std::move(b));
+            }
+        }
+        recursiveLayoutXYCut(std::move(leftCol), medH, dividerXs, depth + 1, mergeWordTokens, ioNextRegionId, ioNextAlignedRowId, outResults);
+        recursiveLayoutXYCut(std::move(rightCol), medH, dividerXs, depth + 1, mergeWordTokens, ioNextRegionId, ioNextAlignedRowId, outResults);
+        return;
+    }
+
+    // 2. 扫描全宽水平空白缝：若存在大跨度上下独立面板空白（>= 5.2*H），或切开可解锁局部垂直分栏走廊，优先水平切分面板
+    std::vector<size_t> byY(blocks.size());
+    for (size_t i = 0; i < blocks.size(); ++i) byY[i] = i;
+    std::sort(byY.begin(), byY.end(), [&blocks](size_t a, size_t b) {
+        return blocks[a].top() < blocks[b].top();
+    });
+
+    std::vector<float> prefixMaxBottom(blocks.size(), 0.0f);
+    float runningBottom = -FLT_MAX;
+    for (size_t i = 0; i < byY.size(); ++i) {
+        runningBottom = (std::max)(runningBottom, blocks[byY[i]].bottom());
+        prefixMaxBottom[i] = runningBottom;
+    }
+
+    size_t bestMajorPanelHIdx = 0;
+    float bestMajorPanelHGap = 0.0f;
+    const float hugePanelHGap = (std::max)(90.0f, medH * 5.2f);
+    for (size_t i = 0; i + 1 < byY.size(); ++i) {
+        const float hGap = blocks[byY[i + 1]].top() - prefixMaxBottom[i];
+        if (hGap >= hugePanelHGap && hGap > bestMajorPanelHGap) {
+            bestMajorPanelHGap = hGap;
+            bestMajorPanelHIdx = i + 1;
+        }
+    }
+    if (bestMajorPanelHIdx > 0 && bestMajorPanelHIdx < byY.size()) {
+        std::vector<AtomicLayoutBlock> topBlocks;
+        std::vector<AtomicLayoutBlock> botBlocks;
+        topBlocks.reserve(bestMajorPanelHIdx);
+        botBlocks.reserve(byY.size() - bestMajorPanelHIdx);
+        for (size_t k = 0; k < bestMajorPanelHIdx; ++k) topBlocks.push_back(std::move(blocks[byY[k]]));
+        for (size_t k = bestMajorPanelHIdx; k < byY.size(); ++k) botBlocks.push_back(std::move(blocks[byY[k]]));
+        recursiveLayoutXYCut(std::move(topBlocks), medH, dividerXs, depth + 1, mergeWordTokens, ioNextRegionId, ioNextAlignedRowId, outResults);
+        recursiveLayoutXYCut(std::move(botBlocks), medH, dividerXs, depth + 1, mergeWordTokens, ioNextRegionId, ioNextAlignedRowId, outResults);
+        return;
+    }
+
+    if (vSplit.valid) {
+        // 3. 当前面板内部存在有效垂直分栏走廊：切分左右分栏
+        std::vector<AtomicLayoutBlock> leftCol;
+        std::vector<AtomicLayoutBlock> rightCol;
+        leftCol.reserve(blocks.size());
+        rightCol.reserve(blocks.size());
+        for (auto& b : blocks) {
+            if (b.cx() < vSplit.splitX) {
+                leftCol.push_back(std::move(b));
+            } else {
+                rightCol.push_back(std::move(b));
+            }
+        }
+        recursiveLayoutXYCut(std::move(leftCol), medH, dividerXs, depth + 1, mergeWordTokens, ioNextRegionId, ioNextAlignedRowId, outResults);
+        recursiveLayoutXYCut(std::move(rightCol), medH, dividerXs, depth + 1, mergeWordTokens, ioNextRegionId, ioNextAlignedRowId, outResults);
+        return;
+    }
+
+    size_t bestHIdx = 0;
+    float bestHScore = 0.0f;
+    const float minHGap = (std::max)(4.0f, medH * 0.35f);
+
+    for (size_t i = 0; i + 1 < byY.size(); ++i) {
+        const float hGap = blocks[byY[i + 1]].top() - prefixMaxBottom[i];
+        if (hGap < minHGap) continue;
+
+        std::vector<AtomicLayoutBlock> topPart;
+        std::vector<AtomicLayoutBlock> botPart;
+        topPart.reserve(i + 1);
+        botPart.reserve(byY.size() - (i + 1));
+        for (size_t k = 0; k <= i; ++k) topPart.push_back(blocks[byY[k]]);
+        for (size_t k = i + 1; k < byY.size(); ++k) botPart.push_back(blocks[byY[k]]);
+
+        const auto topV = findBestLayoutVerticalSplit(topPart, medH, dividerXs, mergeWordTokens);
+        const auto botV = findBestLayoutVerticalSplit(botPart, medH, dividerXs, mergeWordTokens);
+        bool effectiveTopSplit = topV.valid;
+        bool effectiveBotSplit = botV.valid;
+
+        if (effectiveBotSplit && !topPart.empty()) {
+            float maxTopCy = -FLT_MAX;
+            for (const auto& b : topPart) maxTopCy = (std::max)(maxTopCy, b.cy());
+            std::vector<AtomicLayoutBlock> botWithBoundary = botPart;
+            for (const auto& b : topPart) {
+                if (maxTopCy - b.cy() <= medH * 0.70f) botWithBoundary.push_back(b);
+            }
+            if (findBestLayoutVerticalSplit(botWithBoundary, medH, dividerXs, mergeWordTokens).valid) {
+                effectiveBotSplit = false;
+            }
+        }
+        if (effectiveTopSplit && !botPart.empty()) {
+            float minBotCy = FLT_MAX;
+            for (const auto& b : botPart) minBotCy = (std::min)(minBotCy, b.cy());
+            std::vector<AtomicLayoutBlock> topWithBoundary = topPart;
+            for (const auto& b : botPart) {
+                if (b.cy() - minBotCy <= medH * 0.70f) topWithBoundary.push_back(b);
+            }
+            if (findBestLayoutVerticalSplit(topWithBoundary, medH, dividerXs, mergeWordTokens).valid) {
+                effectiveTopSplit = false;
+            }
+        }
+
+        if (effectiveTopSplit || effectiveBotSplit) {
+            const float score = hGap * 2.0f +
+                                (effectiveTopSplit ? topV.score : 0.0f) +
+                                (effectiveBotSplit ? botV.score : 0.0f);
+            if (score > bestHScore) {
+                bestHScore = score;
+                bestHIdx = i + 1;
+            }
+        }
+    }
+
+    if (bestHIdx > 0 && bestHIdx < byY.size()) {
+        std::vector<AtomicLayoutBlock> topBlocks;
+        std::vector<AtomicLayoutBlock> botBlocks;
+        topBlocks.reserve(bestHIdx);
+        botBlocks.reserve(byY.size() - bestHIdx);
+        for (size_t k = 0; k < bestHIdx; ++k) topBlocks.push_back(std::move(blocks[byY[k]]));
+        for (size_t k = bestHIdx; k < byY.size(); ++k) botBlocks.push_back(std::move(blocks[byY[k]]));
+        recursiveLayoutXYCut(std::move(topBlocks), medH, dividerXs, depth + 1, mergeWordTokens, ioNextRegionId, ioNextAlignedRowId, outResults);
+        recursiveLayoutXYCut(std::move(botBlocks), medH, dividerXs, depth + 1, mergeWordTokens, ioNextRegionId, ioNextAlignedRowId, outResults);
+        return;
+    }
+
+    clusterAlignedRowsInRegion(
+        std::move(blocks), ioNextRegionId++, ioNextAlignedRowId, mergeWordTokens, outResults);
+}
+
+}
+namespace {
+struct LuminanceStats {
+    int p10 = 0;
+    int p50 = 128;
+    int p90 = 255;
+    int p95 = 255;
+};
+
+LuminanceStats computeLuminancePercentiles(const cv::Mat& image) noexcept {
+    LuminanceStats stats{};
+    if (image.empty()) return stats;
+
+    cv::Mat gray;
+    if (image.channels() == 1) {
+        gray = image;
+    } else if (image.channels() == 3) {
+        cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+    } else if (image.channels() == 4) {
+        cv::cvtColor(image, gray, cv::COLOR_BGRA2GRAY);
+    } else {
+        return stats;
+    }
+
+    cv::Mat sample = gray;
+    if (gray.cols > 320 || gray.rows > 320) {
+        const double sc = 320.0 / static_cast<double>((std::max)(gray.cols, gray.rows));
+        cv::resize(gray, sample, cv::Size(), sc, sc, cv::INTER_AREA);
+    }
+
+    std::array<uint32_t, 256> hist{};
+    uint32_t total = 0;
+    for (int r = 0; r < sample.rows; ++r) {
+        const uint8_t* ptr = sample.ptr<uint8_t>(r);
+        for (int c = 0; c < sample.cols; ++c) {
+            ++hist[ptr[c]];
+            ++total;
+        }
+    }
+    if (total == 0) return stats;
+
+    auto percentileAt = [&](double q) -> int {
+        const uint32_t target = static_cast<uint32_t>(std::round(static_cast<double>(total) * q));
+        uint32_t acc = 0;
+        for (int i = 0; i < 256; ++i) {
+            acc += hist[static_cast<size_t>(i)];
+            if (acc >= target) return i;
+        }
+        return 255;
+    };
+
+    stats.p10 = percentileAt(0.10);
+    stats.p50 = percentileAt(0.50);
+    stats.p90 = percentileAt(0.90);
+    stats.p95 = percentileAt(0.95);
+    return stats;
+}
+
+}
+bool OcrEngine::isDarkBackgroundImage(const cv::Mat& image) noexcept {
+    if (image.empty()) return false;
+    const auto st = computeLuminancePercentiles(image);
+    return (st.p50 < 116) && (st.p95 >= st.p50 + 16);
+}
+
+
+std::vector<std::string> OcrEngine::splitUtf8Codepoints(std::string_view utf8) {
+    std::vector<std::string> out;
+    if (utf8.empty()) return out;
+    out.reserve(utf8.size());
+    size_t cursor = 0;
+    while (cursor < utf8.size()) {
+        const size_t start = cursor;
+        (void)decodeSingleUtf8Codepoint(utf8, cursor);
+        out.emplace_back(utf8.substr(start, cursor - start));
+    }
+    return out;
+}
+
+size_t OcrEngine::countUtf8Codepoints(std::string_view utf8) noexcept {
+    size_t count = 0;
+    size_t cursor = 0;
+    while (cursor < utf8.size()) {
+        (void)decodeSingleUtf8Codepoint(utf8, cursor);
+        ++count;
+    }
+    return count;
+}
+
+std::string OcrEngine::sliceUtf8Codepoints(std::string_view utf8, size_t startIndex, size_t endExclusive) {
+    if (utf8.empty() || startIndex >= endExclusive) return {};
+    size_t idx = 0;
+    size_t cursor = 0;
+    size_t byteStart = utf8.size();
+    size_t byteEnd = utf8.size();
+
+    while (cursor < utf8.size()) {
+        if (idx == startIndex) byteStart = cursor;
+        if (idx == endExclusive) {
+            byteEnd = cursor;
+            break;
+        }
+        (void)decodeSingleUtf8Codepoint(utf8, cursor);
+        ++idx;
+    }
+    if (idx <= startIndex) return {};
+    if (byteEnd <= byteStart) return {};
+    return std::string(utf8.substr(byteStart, byteEnd - byteStart));
+}
+
+std::vector<cv::Rect> OcrEngine::buildProportionalCharBoxes(std::string_view utf8, const cv::Rect& bounds) {
+    std::vector<cv::Rect> boxes;
+    if (utf8.empty()) return boxes;
+
+    std::vector<float> weights;
+    weights.reserve(utf8.size());
+    size_t cursor = 0;
+    float totalWeight = 0.0f;
+    while (cursor < utf8.size()) {
+        const uint32_t cp = decodeSingleUtf8Codepoint(utf8, cursor);
+        const float w = estimateGlyphVisualWeight(cp);
+        weights.push_back(w);
+        totalWeight += w;
+    }
+    if (weights.empty()) return boxes;
+
+    const float safeTotalW = (totalWeight > 1e-4f) ? totalWeight : static_cast<float>(weights.size());
+    const float baseLeft = static_cast<float>(bounds.x);
+    const float totalSpanPx = static_cast<float>((std::max)(1, bounds.width));
+    const int boxY = bounds.y;
+    const int boxH = (std::max)(1, bounds.height);
+
+    boxes.reserve(weights.size());
+    float accWeight = 0.0f;
+    int prevRight = bounds.x;
+    const int maxRight = bounds.x + (std::max)(1, bounds.width);
+
+    for (size_t i = 0; i < weights.size(); ++i) {
+        accWeight += weights[i];
+        const int x0 = (i == 0) ? bounds.x : prevRight;
+        int x1 = (i + 1 == weights.size())
+            ? maxRight
+            : static_cast<int>(std::round(baseLeft + totalSpanPx * (accWeight / safeTotalW)));
+        x1 = std::clamp(x1, x0, maxRight);
+        const int cellW = (std::max)(1, x1 - x0);
+        boxes.emplace_back(x0, boxY, cellW, boxH);
+        prevRight = x1;
+    }
+    return boxes;
+}
+std::vector<OcrQrResult> OcrEngine::detectQrCodes(const cv::Mat& image) {
+    std::vector<OcrQrResult> qrResults;
+    if (image.empty() || image.cols < 16 || image.rows < 16) {
+        return qrResults;
+    }
+
+    try {
+        cv::Mat gray;
+        if (image.channels() == 1) {
+            gray = image;
+        } else if (image.channels() == 3) {
+            cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+        } else if (image.channels() == 4) {
+            cv::cvtColor(image, gray, cv::COLOR_BGRA2GRAY);
+        } else {
+            return qrResults;
+        }
+
+        float invScale = 1.0f;
+        cv::Mat work = gray;
+        const int maxSide = (std::max)(gray.cols, gray.rows);
+        const int minSide = (std::min)(gray.cols, gray.rows);
+        if (maxSide > 1280) {
+            const float sc = 1120.0f / static_cast<float>(maxSide);
+            cv::resize(gray, work, cv::Size(), sc, sc, cv::INTER_AREA);
+            invScale = 1.0f / sc;
+        } else if (minSide < 140) {
+            cv::resize(gray, work, cv::Size(), 2.0, 2.0, cv::INTER_CUBIC);
+            invScale = 0.5f;
+        }
+
+        cv::QRCodeDetector detector;
+        auto appendDecoded = [&](const std::string& text, const cv::Mat& points, int rowIdx, float passInvScale,
+                                 const std::string& format = "QR_CODE",
+                                 cv::Point2f passOffset = {0.0f, 0.0f}) {
+            if (text.empty()) return;
+            for (const auto& existing : qrResults) {
+                if (existing.text == text) return;
+            }
+
+            OcrQrResult item;
+            item.text = text;
+            item.format = format.empty() ? "QR_CODE" : format;
+
+            float minX = FLT_MAX, minY = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX;
+            bool validPts = false;
+            if (rowIdx >= 0 && points.rows > rowIdx && points.cols == 4 && points.type() == CV_32FC2) {
+                const auto* rowPts = points.ptr<cv::Point2f>(rowIdx);
+                for (size_t k = 0; k < 4; ++k) {
+                    const float px = std::clamp(rowPts[k].x * passInvScale + passOffset.x, 0.0f, static_cast<float>(image.cols));
+                    const float py = std::clamp(rowPts[k].y * passInvScale + passOffset.y, 0.0f, static_cast<float>(image.rows));
+                    item.corners[k] = {px, py};
+                    minX = (std::min)(minX, px);
+                    minY = (std::min)(minY, py);
+                    maxX = (std::max)(maxX, px);
+                    maxY = (std::max)(maxY, py);
+                }
+                validPts = (maxX > minX) && (maxY > minY);
+            } else if (points.total() == 4 && points.type() == CV_32FC2) {
+                const auto* rawPts = points.ptr<cv::Point2f>();
+                for (size_t k = 0; k < 4; ++k) {
+                    const float px = std::clamp(rawPts[k].x * passInvScale + passOffset.x, 0.0f, static_cast<float>(image.cols));
+                    const float py = std::clamp(rawPts[k].y * passInvScale + passOffset.y, 0.0f, static_cast<float>(image.rows));
+                    item.corners[k] = {px, py};
+                    minX = (std::min)(minX, px);
+                    minY = (std::min)(minY, py);
+                    maxX = (std::max)(maxX, px);
+                    maxY = (std::max)(maxY, py);
+                }
+                validPts = (maxX > minX) && (maxY > minY);
+            }
+
+            if (validPts) {
+                const int rx = std::clamp(static_cast<int>(std::floor(minX)), 0, image.cols - 1);
+                const int ry = std::clamp(static_cast<int>(std::floor(minY)), 0, image.rows - 1);
+                const int rw = std::clamp(static_cast<int>(std::ceil(maxX)) - rx, 1, image.cols - rx);
+                const int rh = std::clamp(static_cast<int>(std::ceil(maxY)) - ry, 1, image.rows - ry);
+                item.boundingBox = cv::Rect(rx, ry, rw, rh);
+            } else {
+                item.boundingBox = cv::Rect(0, 0, image.cols, image.rows);
+            }
+            qrResults.push_back(std::move(item));
+        };
+
+        auto collectPointBoxes = [](const cv::Mat& pts, int maxW, int maxH, std::vector<cv::Rect>& outBoxes) {
+            if (pts.empty() || pts.type() != CV_32FC2) return;
+            auto addQuad = [&](const cv::Point2f* q) {
+                float minX = FLT_MAX, minY = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX;
+                for (int k = 0; k < 4; ++k) {
+                    minX = (std::min)(minX, q[k].x);
+                    minY = (std::min)(minY, q[k].y);
+                    maxX = (std::max)(maxX, q[k].x);
+                    maxY = (std::max)(maxY, q[k].y);
+                }
+                if (maxX > minX + 4.0f && maxY > minY + 4.0f) {
+                    const int x0 = std::clamp(static_cast<int>(std::floor(minX)), 0, maxW - 1);
+                    const int y0 = std::clamp(static_cast<int>(std::floor(minY)), 0, maxH - 1);
+                    const int x1 = std::clamp(static_cast<int>(std::ceil(maxX)), x0 + 1, maxW);
+                    const int y1 = std::clamp(static_cast<int>(std::ceil(maxY)), y0 + 1, maxH);
+                    outBoxes.emplace_back(x0, y0, x1 - x0, y1 - y0);
+                }
+            };
+            if (pts.cols == 4 && pts.rows >= 1) {
+                for (int r = 0; r < pts.rows; ++r) {
+                    addQuad(pts.ptr<cv::Point2f>(r));
+                }
+            } else if (pts.total() == 4) {
+                addQuad(pts.ptr<cv::Point2f>());
+            }
+        };
+
+        auto runPass = [&](const cv::Mat& passGray,
+                           float passInvScale,
+                           bool tryMulti,
+                           cv::Point2f passOffset = {0.0f, 0.0f},
+                           std::vector<cv::Rect>* outCandidateBoxes = nullptr) {
+            if (tryMulti) {
+                std::vector<std::string> decoded;
+                cv::Mat points;
+                try {
+                    (void)detector.detectAndDecodeMulti(passGray, decoded, points);
+                } catch (...) {
+                }
+                const int numCodes = static_cast<int>(decoded.size());
+                for (int i = 0; i < numCodes; ++i) {
+                    appendDecoded(decoded[static_cast<size_t>(i)], points, i, passInvScale, "QR_CODE", passOffset);
+                }
+                if (qrResults.empty() && outCandidateBoxes && !points.empty()) {
+                    collectPointBoxes(points, passGray.cols, passGray.rows, *outCandidateBoxes);
+                }
+            }
+            if (qrResults.empty()) {
+                cv::Mat singlePoints;
+                std::string singleDecoded;
+                try {
+                    singleDecoded = detector.detectAndDecode(passGray, singlePoints);
+                } catch (...) {
+                }
+                appendDecoded(singleDecoded, singlePoints, 0, passInvScale, "QR_CODE", passOffset);
+                if (qrResults.empty() && outCandidateBoxes && !singlePoints.empty()) {
+                    collectPointBoxes(singlePoints, passGray.cols, passGray.rows, *outCandidateBoxes);
+                }
+            }
+        };
+
+        // 轻量级 QR 回字形 Finder Pattern 嵌套方阵簇预筛器（~1.5ms）：
+        // 仅用于大尺寸图像在 1x 未命中时精准定位极小/倾斜 QR 候选局部 ROI，彻底消除无码纯文字大图 2x 全图放大长尾
+        auto findQrCandidateRois = [](const cv::Mat& grayImg) -> std::vector<cv::Rect> {
+            std::vector<cv::Rect> rois;
+            if (grayImg.empty() || grayImg.cols < 48 || grayImg.rows < 48) return rois;
+
+            cv::Mat bin;
+            cv::adaptiveThreshold(grayImg, bin, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, 15, 7);
+
+            std::vector<std::vector<cv::Point>> contours;
+            std::vector<cv::Vec4i> hierarchy;
+            cv::findContours(bin, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+            if (contours.empty() || hierarchy.size() != contours.size()) return rois;
+
+            struct FinderCand {
+                cv::Rect box;
+                float cx = 0.0f;
+                float cy = 0.0f;
+                float maxSide = 0.0f;
+                int depth = 0; // 2=两层嵌套方框, 3=标准三层黑-白-黑回字形
+            };
+            std::vector<FinderCand> cands;
+            cands.reserve(32);
+
+            for (size_t i = 0; i < contours.size(); ++i) {
+                const int firstChild = hierarchy[i][2];
+                if (firstChild < 0 || contours[i].size() < 4u) continue;
+                const cv::Rect r0 = cv::boundingRect(contours[i]);
+                if (r0.width < 9 || r0.height < 9 || r0.width > 160 || r0.height > 160) continue;
+                const float aspect = static_cast<float>(r0.width) / static_cast<float>(r0.height);
+                if (aspect < 0.42f || aspect > 2.40f) continue;
+
+                const double rectArea0 = static_cast<double>(r0.width) * static_cast<double>(r0.height);
+                const double area0 = std::abs(cv::contourArea(contours[i]));
+                if (area0 < 48.0 || area0 < rectArea0 * 0.35) continue;
+
+                const float cx0 = static_cast<float>(r0.x) + 0.5f * static_cast<float>(r0.width);
+                const float cy0 = static_cast<float>(r0.y) + 0.5f * static_cast<float>(r0.height);
+                const float maxS0 = static_cast<float>((std::max)(r0.width, r0.height));
+
+                int bestDepth = 0;
+                for (int c1 = firstChild; c1 >= 0; c1 = hierarchy[static_cast<size_t>(c1)][0]) {
+                    const cv::Rect r1 = cv::boundingRect(contours[static_cast<size_t>(c1)]);
+                    const double rectArea1 = static_cast<double>(r1.width) * static_cast<double>(r1.height);
+                    const double aRatio1 = rectArea1 / rectArea0;
+                    if (aRatio1 < 0.14 || aRatio1 > 0.82) continue;
+                    const float cx1 = static_cast<float>(r1.x) + 0.5f * static_cast<float>(r1.width);
+                    const float cy1 = static_cast<float>(r1.y) + 0.5f * static_cast<float>(r1.height);
+                    if (std::hypot(cx1 - cx0, cy1 - cy0) > maxS0 * 0.32f) continue;
+
+                    if (bestDepth < 2) bestDepth = 2;
+                    for (int c2 = hierarchy[static_cast<size_t>(c1)][2]; c2 >= 0; c2 = hierarchy[static_cast<size_t>(c2)][0]) {
+                        const cv::Rect r2 = cv::boundingRect(contours[static_cast<size_t>(c2)]);
+                        if (r2.width < 2 || r2.height < 2) continue;
+                        const double rectArea2 = static_cast<double>(r2.width) * static_cast<double>(r2.height);
+                        const double aRatio2 = rectArea2 / (std::max)(1.0, rectArea1);
+                        if (aRatio2 < 0.08 || aRatio2 > 0.80) continue;
+                        const float cx2 = static_cast<float>(r2.x) + 0.5f * static_cast<float>(r2.width);
+                        const float cy2 = static_cast<float>(r2.y) + 0.5f * static_cast<float>(r2.height);
+                        if (std::hypot(cx2 - cx0, cy2 - cy0) <= maxS0 * 0.35f) {
+                            bestDepth = 3;
+                            break;
+                        }
+                    }
+                    if (bestDepth == 3) break;
+                }
+
+                if (bestDepth >= 2) {
+                    cands.push_back({r0, cx0, cy0, maxS0, bestDepth});
+                    if (cands.size() >= 64u) break;
+                }
+            }
+
+            if (cands.size() < 2u) return rois;
+
+            // 将空间邻近且尺度相近的 Finder Pattern 聚类成 QR 码候选簇
+            std::vector<uint8_t> visited(cands.size(), 0);
+            struct ScoredRoi {
+                cv::Rect roi;
+                int score = 0;
+            };
+            std::vector<ScoredRoi> scored;
+            const int64_t imgArea = static_cast<int64_t>(grayImg.cols) * static_cast<int64_t>(grayImg.rows);
+
+            for (size_t i = 0; i < cands.size(); ++i) {
+                if (visited[i]) continue;
+                std::vector<size_t> queue{i};
+                visited[i] = 1;
+                cv::Rect unionBox = cands[i].box;
+                int tripleCount = (cands[i].depth >= 3) ? 1 : 0;
+                float maxFinder = cands[i].maxSide;
+
+                for (size_t qIdx = 0; qIdx < queue.size(); ++qIdx) {
+                    const auto& a = cands[queue[qIdx]];
+                    for (size_t j = 0; j < cands.size(); ++j) {
+                        if (visited[j]) continue;
+                        const auto& b = cands[j];
+                        const float hiS = (std::max)(a.maxSide, b.maxSide);
+                        const float loS = (std::max)(1.0f, (std::min)(a.maxSide, b.maxSide));
+                        if (hiS / loS > 2.4f) continue;
+                        const float dist = std::hypot(a.cx - b.cx, a.cy - b.cy);
+                        if (dist <= hiS * 14.0f) {
+                            visited[j] = 1;
+                            queue.push_back(j);
+                            unionBox |= b.box;
+                            if (b.depth >= 3) ++tripleCount;
+                            maxFinder = (std::max)(maxFinder, b.maxSide);
+                        }
+                    }
+                }
+
+                const int totalCnt = static_cast<int>(queue.size());
+                // 过滤偶发双层文字/UI 图标：需至少包含 2 个三层回字形，或 1 个三层 + 邻近二层，或 >=3 个同尺度嵌套方框
+                if (tripleCount >= 2 || (tripleCount >= 1 && totalCnt >= 2) || totalCnt >= 3) {
+                    const int pad = (std::max)(
+                        static_cast<int>(std::ceil(maxFinder * 2.5f)),
+                        (std::max)(unionBox.width, unionBox.height) / 2) + 20;
+                    const int rx0 = (std::max)(0, unionBox.x - pad);
+                    const int ry0 = (std::max)(0, unionBox.y - pad);
+                    const int rx1 = (std::min)(grayImg.cols, unionBox.x + unionBox.width + pad);
+                    const int ry1 = (std::min)(grayImg.rows, unionBox.y + unionBox.height + pad);
+                    const cv::Rect roi(rx0, ry0, rx1 - rx0, ry1 - ry0);
+                    const int64_t roiArea = static_cast<int64_t>(roi.width) * static_cast<int64_t>(roi.height);
+                    if (roi.width >= 32 && roi.height >= 32 &&
+                        roi.width <= 640 && roi.height <= 640 &&
+                        roiArea * 100LL <= imgArea * 60LL) {
+                        scored.push_back({roi, tripleCount * 4 + totalCnt});
+                    }
+                }
+            }
+
+            std::sort(scored.begin(), scored.end(), [](const ScoredRoi& a, const ScoredRoi& b) {
+                return a.score > b.score;
+            });
+            for (const auto& s : scored) {
+                bool merged = false;
+                for (auto& existing : rois) {
+                    if ((existing & s.roi).area() > 0) {
+                        const cv::Rect u = existing | s.roi;
+                        if (u.width <= 640 && u.height <= 640) {
+                            existing = u;
+                            merged = true;
+                            break;
+                        }
+                    }
+                }
+                if (!merged) {
+                    rois.push_back(s.roi);
+                    if (rois.size() >= 3u) break;
+                }
+            }
+            return rois;
+        };
+
+        auto decodeCandidateRois = [&](const cv::Mat& baseGray,
+                                       const std::vector<cv::Rect>& candidateRois,
+                                       float baseInvScale,
+                                       bool try1xFirst) {
+            for (const auto& rawRoi : candidateRois) {
+                const cv::Rect roi = rawRoi & cv::Rect(0, 0, baseGray.cols, baseGray.rows);
+                if (roi.width < 24 || roi.height < 24) continue;
+                const cv::Mat patch = baseGray(roi);
+                const cv::Point2f offset(
+                    static_cast<float>(roi.x) * baseInvScale,
+                    static_cast<float>(roi.y) * baseInvScale);
+                if (try1xFirst) {
+                    runPass(patch, baseInvScale, /*tryMulti=*/false, offset);
+                    if (!qrResults.empty()) break;
+                }
+                cv::Mat patchUp2;
+                cv::resize(patch, patchUp2, cv::Size(), 2.0, 2.0, cv::INTER_CUBIC);
+                runPass(patchUp2, baseInvScale * 0.5f, /*tryMulti=*/false, offset);
+                if (!qrResults.empty()) break;
+            }
+        };
+
+        std::vector<cv::Rect> pass1DetectedBoxes;
+        runPass(work, invScale, /*tryMulti=*/true, {0.0f, 0.0f}, &pass1DetectedBoxes);
+
+        const bool isCompactSmallImage = (work.cols <= 640 && work.rows <= 640);
+
+        // 若 1x 仅定位出候选方框但未能解码，优先对定位框局部扩边 2x 放大秒解（免整图放大开销）
+        if (qrResults.empty() && !pass1DetectedBoxes.empty()) {
+            std::vector<cv::Rect> expandedBoxes;
+            expandedBoxes.reserve((std::min<size_t>)(pass1DetectedBoxes.size(), 3u));
+            for (size_t bi = 0; bi < pass1DetectedBoxes.size() && expandedBoxes.size() < 3u; ++bi) {
+                const auto& b = pass1DetectedBoxes[bi];
+                const int pad = (std::max)(24, (std::max)(b.width, b.height) / 3);
+                expandedBoxes.emplace_back(b.x - pad, b.y - pad, b.width + pad * 2, b.height + pad * 2);
+            }
+            decodeCandidateRois(work, expandedBoxes, invScale, /*try1xFirst=*/false);
+        }
+
+        // 2x 放大补齐召回门控：
+        // - 先用超轻量回字形预筛器对局部小码 ROI 精准 2x 放大秒解；
+        // - 若工业实拍/倾斜脏污小码仍未检出（例如模块 < 2.5px 且嵌套轮廓粘连），在 <=1600x1600 尺寸上限内执行 2x 单码兜底
+        //   （detectQrCodes 与 GPU OCR 在 extractPage 中完全并行，不影响端到端延迟）。
+        if (qrResults.empty() && invScale >= 0.99f) {
+            if (!isCompactSmallImage) {
+                const auto candidateRois = findQrCandidateRois(work);
+                if (!candidateRois.empty()) {
+                    decodeCandidateRois(work, candidateRois, invScale, /*try1xFirst=*/false);
+                }
+            }
+            if (qrResults.empty() &&
+                static_cast<int64_t>(work.cols) * static_cast<int64_t>(work.rows) <= 1600LL * 1600LL) {
+                cv::Mat up2;
+                cv::resize(work, up2, cv::Size(), 2.0, 2.0, cv::INTER_CUBIC);
+                runPass(up2, invScale * 0.5f, /*tryMulti=*/false);
+            }
+        }
+
+        if (qrResults.empty() && isDarkBackgroundImage(image)) {
+            cv::Mat invWork = 255 - work;
+            if (isCompactSmallImage) {
+                runPass(invWork, invScale, /*tryMulti=*/true);
+            } else {
+                // 大尺寸深色主题纯文字图（如 IDE / 终端）仅在反相预筛命中候选方阵簇时才局部解码，避免整图双遍无谓扫查
+                const auto darkRois = findQrCandidateRois(invWork);
+                if (!darkRois.empty()) {
+                    decodeCandidateRois(invWork, darkRois, invScale, /*try1xFirst=*/true);
+                }
+            }
+        }
+
+        // 并联扫描一维商品/工业条形码 (OpenCV 4.12 原生 BarcodeDetector: EAN-13 / EAN-8 / UPC-A / UPC-E 等)
+        try {
+            cv::barcode::BarcodeDetector barcodeDetector;
+            std::vector<std::string> barInfos;
+            std::vector<std::string> barTypes;
+            cv::Mat barPoints;
+            bool barDecoded = barcodeDetector.detectAndDecodeWithType(work, barInfos, barTypes, barPoints);
+            if (!barDecoded && work.cols >= 80 && work.rows >= 32 &&
+                work.cols <= 960 && work.rows <= 640) {
+                // 紧贴条形码裁剪的小图缺乏周边大面积留白时，结构张量定位器易漏检，补一次 <1ms 整图直解兜底
+                cv::Mat wholePts(1, 4, CV_32FC2);
+                auto* wp = wholePts.ptr<cv::Point2f>(0);
+                wp[0] = cv::Point2f(0.0f, static_cast<float>(work.rows - 1));
+                wp[1] = cv::Point2f(0.0f, 0.0f);
+                wp[2] = cv::Point2f(static_cast<float>(work.cols - 1), 0.0f);
+                wp[3] = cv::Point2f(static_cast<float>(work.cols - 1), static_cast<float>(work.rows - 1));
+                barInfos.clear();
+                barTypes.clear();
+                if (barcodeDetector.decodeWithType(work, wholePts, barInfos, barTypes)) {
+                    barPoints = wholePts;
+                    barDecoded = true;
+                }
+            }
+            if (barDecoded) {
+                const size_t nBars = barInfos.size();
+                for (size_t bi = 0; bi < nBars; ++bi) {
+                    const std::string fmt = (bi < barTypes.size() && !barTypes[bi].empty())
+                        ? barTypes[bi]
+                        : std::string("BARCODE");
+                    appendDecoded(barInfos[bi], barPoints, static_cast<int>(bi), invScale, fmt);
+                }
+            }
+        } catch (...) {
+        }
+    } catch (const std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+    return qrResults;
+}
+std::vector<OcrResult> OcrEngine::assembleRecognizedBlocksWithLayout(
+    std::vector<OcrResult> rawBlocks,
+    const cv::Mat& sourceImage) {
+    if (rawBlocks.empty()) return {};
+
+    std::vector<AtomicLayoutBlock> atomicBlocks;
+    atomicBlocks.reserve(rawBlocks.size() * 2);
+
+    auto pushAtomicSegment = [&](const std::string& segUtf8,
+                                 const std::vector<cv::Rect>& segCharBoxes,
+                                 const cv::Rect& fallbackBox,
+                                 float conf) {
+        if (segUtf8.empty()) return;
+        std::wstring w = tools3000::core::WinUtils::utf8ToWstring(segUtf8);
+        if (w.empty()) return;
+
+        cv::Rect tightBox = fallbackBox;
+        if (!segCharBoxes.empty()) {
+            int x1 = INT_MAX, y1 = INT_MAX, x2 = INT_MIN, y2 = INT_MIN;
+            for (const auto& cb : segCharBoxes) {
+                x1 = (std::min)(x1, cb.x);
+                y1 = (std::min)(y1, cb.y);
+                x2 = (std::max)(x2, cb.x + (std::max)(1, cb.width));
+                y2 = (std::max)(y2, cb.y + (std::max)(1, cb.height));
+            }
+            if (x1 <= x2 && y1 <= y2) {
+                tightBox = cv::Rect(x1, y1, (std::max)(1, x2 - x1), (std::max)(1, y2 - y1));
+            }
+        }
+        if (tightBox.width <= 0) tightBox.width = 1;
+        if (tightBox.height <= 0) tightBox.height = 16;
+
+        AtomicLayoutBlock ab;
+        ab.wtext = std::move(w);
+        ab.utf8 = segUtf8;
+        ab.confidence = conf;
+        ab.box = tightBox;
+        const size_t expectedCps = countUtf8Codepoints(segUtf8);
+        ab.charBoxes = (segCharBoxes.size() == expectedCps)
+            ? segCharBoxes
+            : buildProportionalCharBoxes(segUtf8, tightBox);
+        atomicBlocks.push_back(std::move(ab));
+    };
+
+    for (auto& blk : rawBlocks) {
+        if (blk.text.empty()) continue;
+        const auto cps = splitUtf8Codepoints(blk.text);
+        if (cps.empty()) continue;
+
+        if (blk.charBoxes.size() == cps.size()) {
+            const int blkH = (std::max)(10, blk.box.height);
+            const int splitGapPx = (std::max)(26, static_cast<int>(std::round(blkH * 2.15f)));
+            std::string curText;
+            std::vector<cv::Rect> curBoxes;
+            int lastNonSpaceRight = -1;
+
+            auto flushCur = [&]() {
+                // 去除段首尾纯空格
+                while (!curBoxes.empty() && !curText.empty() && curText.front() == ' ') {
+                    curText.erase(curText.begin());
+                    curBoxes.erase(curBoxes.begin());
+                }
+                while (!curBoxes.empty() && !curText.empty() && curText.back() == ' ') {
+                    curText.pop_back();
+                    curBoxes.pop_back();
+                }
+                if (!curText.empty()) {
+                    pushAtomicSegment(curText, curBoxes, blk.box, blk.confidence);
+                }
+                curText.clear();
+                curBoxes.clear();
+                lastNonSpaceRight = -1;
+            };
+
+            for (size_t i = 0; i < cps.size(); ++i) {
+                if (cps[i] == "\t") {
+                    flushCur();
+                    continue;
+                }
+                const cv::Rect& cb = blk.charBoxes[i];
+                if (cps[i] != " ") {
+                    if (lastNonSpaceRight >= 0 && (cb.x - lastNonSpaceRight) > splitGapPx) {
+                        flushCur();
+                    }
+                    lastNonSpaceRight = cb.x + (std::max)(1, cb.width);
+                }
+                curText += cps[i];
+                curBoxes.push_back(cb);
+            }
+            flushCur();
+        } else {
+            pushAtomicSegment(blk.text, {}, blk.box, blk.confidence);
+        }
+    }
+
+    if (atomicBlocks.empty()) return {};
+
+    const float medH = computeMedianBlockHeight(atomicBlocks);
+    const std::vector<float> dividerXs = detectVerticalUiDividers(sourceImage, atomicBlocks);
+
+    std::vector<OcrResult> results;
+    results.reserve(atomicBlocks.size());
+    int nextRegionId = 0;
+    int nextAlignedRowId = 0;
+    recursiveLayoutXYCut(
+        std::move(atomicBlocks), medH, dividerXs, 0, /*mergeWordTokens=*/false, nextRegionId, nextAlignedRowId, results);
+    return results;
+}
+
+std::vector<OcrResult> OcrEngine::splitIntoAtomicBlocks(const std::vector<OcrResult>& lines) {
+    std::vector<OcrResult> out;
+    out.reserve(lines.size() * 2);
+
+    for (const auto& ln : lines) {
+        if (ln.text.empty()) continue;
+        if (ln.text.find('\t') == std::string::npos) {
+            OcrResult copy = ln;
+            const size_t cpCount = countUtf8Codepoints(copy.text);
+            if (copy.charBoxes.size() != cpCount) {
+                copy.charBoxes = buildProportionalCharBoxes(copy.text, copy.box);
+            }
+            out.push_back(std::move(copy));
+            continue;
+        }
+
+        const auto cps = splitUtf8Codepoints(ln.text);
+        std::vector<cv::Rect> cboxes = (ln.charBoxes.size() == cps.size())
+            ? ln.charBoxes
+            : buildProportionalCharBoxes(ln.text, ln.box);
+
+        std::string segText;
+        std::vector<cv::Rect> segBoxes;
+        auto flushSeg = [&]() {
+            while (!segBoxes.empty() && !segText.empty() && segText.front() == ' ') {
+                segText.erase(segText.begin());
+                segBoxes.erase(segBoxes.begin());
+            }
+            while (!segBoxes.empty() && !segText.empty() && segText.back() == ' ') {
+                segText.pop_back();
+                segBoxes.pop_back();
+            }
+            if (!segText.empty() && !segBoxes.empty()) {
+                int x1 = INT_MAX, y1 = INT_MAX, x2 = INT_MIN, y2 = INT_MIN;
+                for (const auto& b : segBoxes) {
+                    x1 = (std::min)(x1, b.x);
+                    y1 = (std::min)(y1, b.y);
+                    x2 = (std::max)(x2, b.x + (std::max)(1, b.width));
+                    y2 = (std::max)(y2, b.y + (std::max)(1, b.height));
+                }
+                OcrResult item;
+                item.text = std::move(segText);
+                item.confidence = ln.confidence;
+                item.box = cv::Rect(x1, y1, (std::max)(1, x2 - x1), (std::max)(1, y2 - y1));
+                item.charBoxes = std::move(segBoxes);
+                item.layoutRegionId = ln.layoutRegionId;
+                item.alignedRowId = ln.alignedRowId;
+                out.push_back(std::move(item));
+            }
+            segText.clear();
+            segBoxes.clear();
+        };
+
+        for (size_t i = 0; i < cps.size(); ++i) {
+            if (cps[i] == "\t") {
+                flushSeg();
+            } else {
+                segText += cps[i];
+                segBoxes.push_back(cboxes[i]);
+            }
+        }
+        flushSeg();
+    }
+    return out;
+}
+
+}

@@ -53,8 +53,8 @@ func DefaultPreferences() Preferences {
 	return Preferences{Engine: "google", Target: "auto", Protocol: "chat", OCREngine: "local"}
 }
 
-// Smart Chinese/English direction matches zencrop TranslationTypes.h.
-func targetLanguage(target, text string) string {
+// TargetLanguage resolves the shared translation preference once for the supplied source text.
+func TargetLanguage(target, text string) string {
 	if target != "auto" && target != "" {
 		return target
 	}
@@ -139,12 +139,12 @@ func (t Translator) translate(ctx context.Context, p Preferences, key, text stri
 		}
 		ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 		defer cancel()
-		target := targetLanguage(p.Target, text)
+		target := TargetLanguage(p.Target, text)
 		return translateGoogle(ctx, &http.Client{Timeout: 45 * time.Second}, googleEndpoint, text, target)
 	}
 	// A model's context is decided by Magpie and the vendor. The shared
 	// generation boundary retains only the owned IPC payload-size check.
-	target := targetLanguage(p.Target, text)
+	target := TargetLanguage(p.Target, text)
 	prompt := p.Prompt
 	if prompt == "" {
 		prompt = DefaultTranslationPrompt

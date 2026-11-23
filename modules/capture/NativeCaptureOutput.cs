@@ -43,7 +43,7 @@ internal sealed partial class CaptureOperations
             image => { cancellation.ThrowIfCancellationRequested(); Copy(image); },
             image => {
                 cancellation.ThrowIfCancellationRequested(); ApplyTheme(settings);
-                ShareX.PinToScreenForm.OpenManaged(new Bitmap(image), PinOptions(), language, settings.FileNameTemplate);
+                ShareX.PinToScreenForm.OpenManaged(new Bitmap(image), PinOptions(), language, settings.FileNameTemplate, () => store.Snapshot().PinTranslation, NativeConfiguration);
             });
     }
 }
