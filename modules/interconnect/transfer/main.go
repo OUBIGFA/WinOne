@@ -470,8 +470,10 @@ func Run() {
 	}
 	os.Stdout = writer
 	os.Stderr = writer
-	defer writer.Close()
+	// Close the writer first so the diagnostic reader receives EOF before
+	// its handle is closed. This avoids racing a pending Windows pipe read.
 	defer reader.Close()
+	defer writer.Close()
 	go io.Copy(diagnostics, reader)
 	var current *task
 	defer func() {

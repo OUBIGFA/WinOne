@@ -59,19 +59,12 @@ func TestUnifiedPreparationKeepsFiltersAndFolderMode(t *testing.T) {
 }
 
 func TestSharePreparation(t *testing.T) {
-	root, err := filepath.Abs(filepath.Join("..", "..", "..", "_temp", "interconnect-prepare-tests"))
+	// Use the build runner's isolated root even when the executable's working
+	// directory differs from the original standalone module directory.
+	dir, sourceDir, _ := transferPaths(t)
+	source := filepath.Join(sourceDir, "source.txt")
+	err := os.WriteFile(source, []byte("original bytes"), 0600)
 	if err != nil {
-		t.Fatal(err)
-	}
-	if err = os.MkdirAll(root, 0700); err != nil {
-		t.Fatal(err)
-	}
-	dir, err := os.MkdirTemp(root, "prepare-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	source := filepath.Join(dir, "source.txt")
-	if err = os.WriteFile(source, []byte("original bytes"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	prepare := func(paths []string, name string) map[string]any {
