@@ -34,12 +34,12 @@ func TestLearningSettingsPreserveDraftAndIndependentOptions(t *testing.T) {
 		t.Fatal("loading default learning options created unsaved edits")
 	}
 	click(t, tt, i18n.T("learning.title"))
-	if !tt.HasText(i18n.T("learning.level")) || tt.HasText(i18n.T("learning.cardMode")) {
+	if !tt.HasText(i18n.T("learning.level")) || tt.HasText("Anki 生词本") || tt.HasText("Anki vocabulary") {
 		t.Fatalf("missing controls: %v", tt.Texts())
 	}
-	click(t, tt, i18n.T("learning.anki"))
-	if !tt.HasText(i18n.T("learning.cardMode")) {
-		t.Fatal("Anki options not reachable")
+	click(t, tt, i18n.T("learning.templates"))
+	if !tt.HasText(i18n.T("learning.word")) {
+		t.Fatal("learning templates not reachable")
 	}
 	p.learningAction().Learning.Level = "advanced"
 	p.learningAction().Learning.Templates = map[learning.Kind]string{learning.Word: "Custom word lesson"}

@@ -72,10 +72,7 @@ func NewController(client *Client, initial resultwindow.Initial) *Controller {
 	c.Panel.Actions.ClearAll = c.clearAll
 	c.Panel.Actions.Restart = c.restartConversation
 	c.Panel.Actions.OpenQuick = c.openQuickFromSelection
-	c.Panel.Actions.StudyCheck = c.checkStudyAnki
 	c.Panel.Actions.StudySpeak = c.speakStudy
-	c.Panel.Actions.StudyNavigate = c.studyNavigate
-	c.Panel.Actions.StudyAdd = c.addStudyNotes
 	c.Panel.Actions.StudyState = c.setStudyState
 	return c
 }

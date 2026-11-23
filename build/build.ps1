@@ -75,8 +75,6 @@ if(-not $CompileOnly){Invoke-NativeCommand 'dotnet' @((Join-Path $captureTests '
 & (Join-Path $PSScriptRoot 'build-pin-translation.ps1') -OutputDirectory (Join-Path $output 'capture')
 & (Join-Path $PSScriptRoot 'build-recording.ps1') -CargoExe $CargoExe -OutputDirectory (Join-Path $output 'capture') -SkipTests:$CompileOnly
 & (Join-Path $PSScriptRoot 'copy-ocr.ps1') -RuntimeDirectory $OcrRuntimeDirectory -CaptureDirectory (Join-Path $output 'capture')
-& (Join-Path $OcrRuntimeDirectory 'python/python.exe') (Join-Path $PSScriptRoot 'verify-anki.py') --runtime (Join-Path $root 'dist/resources/runtimes/anki-26.09.4'); CheckExit
-& (Join-Path $PSScriptRoot 'copy-anki.ps1') -BundleDirectory $output
 & (Join-Path $PSScriptRoot 'update-ocr-inventory.ps1') -RuntimeDirectory (Join-Path $output 'capture/Ocr') -Check
 # Current Magpie requires Go 1.26.8 or newer. Reuse the already-selected result
 # toolchain and restore the Host compiler's environment after this build.

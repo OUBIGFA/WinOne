@@ -186,7 +186,6 @@ func (s *Shell) apply(snapshot internalhost.Snapshot) {
 var intentPages = []struct{ method, page string }{
 	{"interconnect.pending", "interconnect"},
 	{"directory-links.pending", "convenience"},
-	{"learning.pending", "selection"},
 }
 
 // Focused tells that the window gained the focus: prefills are read again

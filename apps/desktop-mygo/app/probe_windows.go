@@ -90,7 +90,7 @@ func (h *nativeProbeHost) Handle(r internalhost.Request) internalhost.Response {
 	case "modules.snapshot":
 		h.seenModules.Store(true)
 		value = h.modules
-	case "interconnect.pending", "directory-links.pending", "learning.pending":
+	case "interconnect.pending", "directory-links.pending":
 		// The production shell reads all navigation inboxes at startup. Keep
 		// them empty in the isolated installer probe; no learning worker runs.
 		value = core.Intent{}

@@ -18,6 +18,3 @@ third_party/licenses/npm-netmask-2.0.2-README.md.txt conflict-marker-size=32
 # Pinned Cindy imports keep upstream EOF blank lines for source digest checks.
 /apps/desktop/frontend/src/features/cindy/** -whitespace
 /modules/chat-pi/cindy/** -whitespace
-# Anki source and original notices are checked byte for byte.
-/third_party/anki/** -text -whitespace
-/third_party/anki-connect/** -text -whitespace

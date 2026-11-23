@@ -10,7 +10,7 @@ import (
 	"winone/internal/settings"
 )
 
-// TermState affects WinOne's reading list, independently of Anki scheduling.
+// TermState controls which vocabulary is prioritized or hidden during reading.
 type TermState string
 
 const (

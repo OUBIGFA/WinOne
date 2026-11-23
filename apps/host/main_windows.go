@@ -423,8 +423,6 @@ func run() (runErr error) {
 		return value.Theme, applicationLanguage(value.Language)
 	})
 	resultWindows.ai.captureEnabled = func() bool { return store.RecoveryError() == nil && gates["capture"].Enabled() }
-	closeLearning := registerLearning(service, ctx, *data, executable, *pipe, resultWindows)
-	defer func() { runErr = errors.Join(runErr, closeLearning()) }()
 	readiness := newCaptureReadiness(ctx, 30*time.Second, resultWindows.ai.captureEnabled, func(ctx context.Context) {
 		// Prepare reuses a healthy worker and recovers a stopped one through the
 		// same module gate. The capture side skips an active edit automatically.

@@ -1,9 +1,29 @@
 package learning
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
+
+func TestLearningOptionsRetireCardSettings(t *testing.T) {
+	options := Defaults()
+	options.Level, options.Accent, options.OnlineDictionary = "advanced", "uk", true
+	options.Templates = map[Kind]string{Word: "My lesson"}
+	if err := options.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if options.Level != "advanced" || options.Accent != "uk" || !options.OnlineDictionary || options.Templates[Word] != "My lesson" {
+		t.Fatalf("learning preferences changed: %+v", options)
+	}
+	saved, err := json.Marshal(options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(saved), `"deck"`) || strings.Contains(string(saved), `"cardMode"`) {
+		t.Fatalf("retired card settings were saved: %s", saved)
+	}
+}
 
 func TestClassifyLearningContent(t *testing.T) {
 	for _, tt := range []struct {
@@ -22,7 +42,7 @@ func TestClassifyLearningContent(t *testing.T) {
 
 func TestLearningOptionsAndFactGrounding(t *testing.T) {
 	o := Defaults()
-	if o.Level != "intermediate" || o.Accent != "us" || o.OnlineDictionary || !o.HumanVoice || o.Deck != "WinOne 生词本" {
+	if o.Level != "intermediate" || o.Accent != "us" || o.OnlineDictionary || !o.HumanVoice {
 		t.Fatalf("bad defaults: %+v", o)
 	}
 	if err := o.Validate(); err != nil {
@@ -39,20 +59,18 @@ func TestLearningOptionsAndFactGrounding(t *testing.T) {
 		t.Fatal("invalid level accepted")
 	}
 	o = Defaults()
-	o.Deck = " "
+	o.Accent = "unknown"
 	if o.Validate() == nil {
-		t.Fatal("empty deck accepted")
+		t.Fatal("invalid accent accepted")
 	}
 }
 
-func TestExtractLearningFields(t *testing.T) {
-	// Headings emitted by our templates map to distinct editable fields; prose
-	// with no matching heading remains analysis and must not become a fake example.
-	f := ExtractFields("## 核心释义\nv. 走\n## 例句\nI went home. 我回家了。\n## 词源与词根\n不规则过去式\n## 搭配\ngo home")
-	if f.Meaning != "v. 走" || !strings.Contains(f.Example, "I went home") || f.Etymology != "不规则过去式" {
-		t.Fatalf("%+v", f)
+func TestExtractLearningMeaning(t *testing.T) {
+	meaning := ExtractMeaning("## 核心释义\nv. 走\n## 例句\nI went home. 我回家了。\n## 词源与词根\n不规则过去式\n## 搭配\ngo home")
+	if meaning != "v. 走" {
+		t.Fatalf("%q", meaning)
 	}
-	if f := ExtractFields("Unstructured answer"); f.Example != "" || f.Meaning != "" {
-		t.Fatal("guessed structured fields")
+	if ExtractMeaning("Unstructured answer") != "" {
+		t.Fatal("guessed meaning")
 	}
 }

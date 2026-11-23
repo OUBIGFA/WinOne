@@ -3,7 +3,7 @@
 | 组件 | 用途 | 许可证 |
 | --- | --- | --- |
 | Edge TTS GEC v2（leopold7/edge-tts-go ac5ef46） | 修复微软朗读接口 403；只移植公开协议的令牌计算，沿用 WinOne 语音请求、取消与播放。改编源码为 `apps/result-ui/edge_gec.go`，来源和摘要见 `third_party/import-notices.json` | LGPL-3.0-only；保留 Go 移植与 rany2/edge-tts 7.3.1 完整许可。WinOne 继续使用 GPL-3.0，构建入口可重建改编源码，不分发 Python 语音运行时 |
-| ECDICT 39cfb96 | 英语学习离线词典，保留核心词及关联词形；来源、数据摘要和加工说明见 `third_party/learning-data.json` | MIT，Copyright (c) 2025 Linwei；全文 `third_party/licenses/ecdict-39cfb96-LICENSE.txt`。AnkiConnect 与在线词典仅调用 HTTP API，不复制或分发服务端代码；Windows 系统 SQLite 由系统提供 |
+| ECDICT 39cfb96 | 英语学习离线词典，保留核心词及关联词形；来源、数据摘要和加工说明见 `third_party/learning-data.json` | MIT，Copyright (c) 2025 Linwei；全文 `third_party/licenses/ecdict-39cfb96-LICENSE.txt`。在线词典仅调用 HTTP API，不复制或分发服务端代码；Windows 系统 SQLite 由系统提供 |
 | Fluent UI motion（19e2d5c） | WinOne 功能性位移动效标准：`durationNormal=200ms`、`curveDecelerateMin=cubic-bezier(0.33,0,0.1,1)`；MyGo 执行可中断过渡与减少动效，首帧直接就位，不引入弹跳或装饰动画 | MIT，Microsoft Corporation；原始令牌与完整许可见 `third_party/fluent-motion/`、`third_party/licenses/fluent-ui-19e2d5c-LICENSE.txt`，摘要见 `third_party/import-notices.json` |
 | Wails v2 | 保留的旧网页设置宿主与 WebView2 桥接；正式设置窗口使用 MyGo | MIT |
 | go-webview2 | Windows WebView2 绑定 | MIT |
@@ -37,18 +37,6 @@ ShareX 的截图库与贴图代码用于独立 Capture Worker，相关许可保�
 OCR 显卡推理使用 `onnxruntime-directml` 1.21.1（MIT），其 wheel 内含 Microsoft DirectML 1.15.4 再分发库 `DirectML.dll`（Microsoft 签名）。该库按 Microsoft DirectML 许可条款随应用分发，仅用于 Windows；条款与第三方声明原文见 `third_party/licenses/runtime-DirectML-1.15.4-*`，来源为 NuGet `Microsoft.AI.DirectML` 1.15.4。WinOne 只在本地 OCR 进程内加载它，并关闭 ONNX Runtime 的 ETW 遥测事件。
 
 OCR 生命周期仅调研参考 SnapFind（MIT，提交 `39416254c48aa7633254ecb79f890802fea2b401`），未引入其代码、模型或运行依赖。低内存说明与本机冷/热调用对照见 `docs/capture-experience-repair.md`；未采用会增加首次识别等待的闲置卸载策略。
-# Anki 与 AnkiConnect · 内置英语学习
-
-WinOne 使用官方 Anki 26.09.4，提交 `c06370ff4d87cb48d825f90cc83e02b9a4e84ecd`。原版 Python/Rust 引擎提供集合、笔记、卡片、FSRS/SM-2、导入导出、媒体、统计与同步。原版卡片渲染资源仅用于用户卡片的 HTML/CSS、图像遮挡和公式；外围操作界面由 MyGo 呈现。来源、下载摘要和依赖见 `third_party/anki/source.json`，原始许可与作者记录见该目录下 `LICENSE`、`CONTRIBUTORS`、`AGPL-3.0.txt` 及 Python、Rust、渲染资源许可清单。
-
-AnkiConnect 固定为 `c577b44aaadbd72dbc22c823f874a126213fe5c5`，GPL-3.0-or-later，版权 Alex Yatskov。原始插件完整保存在 `third_party/anki-connect/plugin/`，逐文件校验记录见 `source.json`。WinOne 复用数据服务、请求校验、兼容动作和媒体事务，用 `modules/anki/` 适配进程、档案与原生窗口，不自动执行原版 Qt 插件入口。第三方 Anki 插件需要逐项适配，不承诺任意 Qt 插件直接运行。
-
-组合分发继续遵守 WinOne 根 GPLv3，以及 GPLv3/AGPLv3 第 13 条和对应源码提供义务；不修改根许可证。安装包的 `shared/anki/source/` 提供锁定的 Anki 源码及第三方源码，`shared/anki/licenses/` 保留原始声明。WinOne 适配源码与统一构建入口随本仓库提供。部分上游归档漏带独立许可证全文时，保留精确提交的原始声明和标准许可全文，并在补充清单注明来源与选择，不编造版权文本。
-
-第三方源码归档为 `anki-third-party-sources.tar.xz`。它保留全部锁定源码归档的完整 tar 内容，仅统一替换外层压缩；内含 `SOURCES.json`，可核对原始归档 SHA-256 和解压后的 tar SHA-256。生成与校验入口为 `build/prepare-anki-sources.py`、`build/verify-anki.py`。
-
-Anki 复用 WinOne 已分发的 CPython 3.13.12 和已核验 OCR 运行时中的公共 Python 包，其原始许可仍由 `third_party/ocr-ai-notices.json` 管理。Anki 额外依赖独立锁定，不修改系统 Python 或用户的 Anki 安装。
-
 # FileShare · 互联助手局域网服务
 
 FileShare 1.0.13, commit `7228df100f687cd33332331e9c590606623408e4`,

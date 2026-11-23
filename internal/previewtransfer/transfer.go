@@ -25,7 +25,6 @@ type Chunk struct {
 	Data   []byte `json:"data"`
 }
 type Store struct {
-	limit      int
 	mu         sync.Mutex
 	ttl        time.Duration
 	timer      *time.Timer
@@ -34,16 +33,12 @@ type Store struct {
 	expires    time.Time
 }
 
-func NewStore(ttl time.Duration) *Store { return NewStoreLimit(ttl, MaxBytes) }
-
-// NewStoreLimit allows a caller with a larger, explicitly bounded JSON payload
-// (Anki media includes base64 overhead) to reuse the same verified chunk format.
-func NewStoreLimit(ttl time.Duration, limit int) *Store { return &Store{ttl: ttl, limit: limit} }
+func NewStore(ttl time.Duration) *Store { return &Store{ttl: ttl} }
 
 // Own takes ownership of a freshly serialized buffer. Its caller must not
 // mutate it afterward; the store retains at most one preview, without a copy.
 func (s *Store) Own(data []byte) (Descriptor, error) {
-	if len(data) == 0 || len(data) > s.limit {
+	if len(data) == 0 || len(data) > MaxBytes {
 		return Descriptor{}, errors.New("预览内容超过传输上限")
 	}
 	var token [16]byte
@@ -95,11 +90,7 @@ func (s *Store) Release(token string) {
 }
 
 func Receive(ctx context.Context, descriptor Descriptor, read func(int) (Chunk, error)) ([]byte, error) {
-	return ReceiveLimit(ctx, descriptor, MaxBytes, read)
-}
-
-func ReceiveLimit(ctx context.Context, descriptor Descriptor, limit int, read func(int) (Chunk, error)) ([]byte, error) {
-	if len(descriptor.Token) != 32 || descriptor.Size < 1 || descriptor.Size > limit || len(descriptor.SHA256) != 64 {
+	if len(descriptor.Token) != 32 || descriptor.Size < 1 || descriptor.Size > MaxBytes || len(descriptor.SHA256) != 64 {
 		return nil, errors.New("配置预览传输信息无效")
 	}
 	result := make([]byte, 0, descriptor.Size)

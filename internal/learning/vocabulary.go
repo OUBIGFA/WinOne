@@ -2,6 +2,13 @@ package learning
 
 import "strings"
 
+// Note is the displayed vocabulary from a dictionary record or labelled AI table.
+type Note struct {
+	Word     string `json:"word"`
+	Phonetic string `json:"phonetic"`
+	Meaning  string `json:"meaning"`
+}
+
 // Hide only rows of recognized vocabulary tables, leaving source sentences,
 // translations, examples and code intact. The model may ignore prompt guidance.
 func FilterIgnoredVocabulary(markdown string, states TermStates) string {
@@ -86,7 +93,7 @@ func VocabularyNotes(markdown string) []Note {
 			continue
 		}
 		// A labelled line is only a header when the next row is the Markdown
-		// delimiter. Otherwise prose containing pipes must not become cards.
+		// delimiter. Otherwise prose containing pipes must not become vocabulary.
 		if word >= 0 && awaitingDelimiter {
 			awaitingDelimiter = false
 			valid := len(cells) == columns

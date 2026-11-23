@@ -1,5 +1,7 @@
 # 安装启动检查的 learning.pending 修复
 
+本页为历史记录。Anki 生词本已于 2026-11-23 移除，当前功能见[英语学习](english-learning.md)。
+
 ## 原因与范围
 
 用户安装上一版时出现 `--check-ui probe failed: 启动检查不允许调用 learning.pending`。生产设置窗口启动时读取学习页面的待处理队列，而安装器的隔离 Host 没有登记该只读入口，导致安装检查主动失败。

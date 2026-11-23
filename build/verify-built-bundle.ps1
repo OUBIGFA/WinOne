@@ -41,7 +41,6 @@ try{
  & (Join-Path $PSScriptRoot 'verify-ocr-ai-notices.ps1') -GoExe $GoExe -BundleDirectory $output
  & (Join-Path $PSScriptRoot 'verify-result-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output
  & (Join-Path $PSScriptRoot 'copy-learning.ps1') -OutputDirectory (Join-Path $output 'shared/ui/learning') -ResourceDirectory (Join-Path $output 'shared/ui/learning') -VerifyOnly
- & (Join-Path $output 'capture/Ocr/python/python.exe') (Join-Path $PSScriptRoot 'verify-anki.py') --runtime (Join-Path $output 'shared/anki'); CheckExit
  & (Join-Path $PSScriptRoot 'verify-interconnect-transfer-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output
  & (Join-Path $PSScriptRoot 'verify-interconnect-transfer-notices.ps1') -GoExe $ResultGoExe -BundleDirectory $output -Runtime peer
  foreach($runtime in @('diagram','selection','recording')){& (Join-Path $PSScriptRoot 'verify-diagram-notices.ps1') -CargoExe $CargoExe -BundleDirectory $output -Runtime $runtime}

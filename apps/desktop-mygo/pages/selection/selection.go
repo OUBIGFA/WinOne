@@ -26,7 +26,6 @@ import (
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/shell"
-	"winone/desktopmygo/studybook"
 	"winone/desktopmygo/widgets"
 	"winone/internal/learning"
 )
@@ -75,7 +74,6 @@ type preferences struct {
 type document = core.Preserved[preferences]
 
 type page struct {
-	learningBook     *studybook.Book
 	learningSection  int
 	learningTemplate int
 	env              *core.Env
@@ -281,29 +279,7 @@ func (p *page) loadAI() {
 }
 
 func (p *page) View(c *ui.Context) {
-	bookDirty, bookBusy := false, false
-	if p.learningBook != nil {
-		p.learningBook.SetVisible(p.tab == tabLearning && p.learningSection == 1)
-		bookDirty, bookBusy = p.learningBook.Dirty(), p.learningBook.Busy()
-	}
-	p.env.Activity.Report(p.module, p.dirty() || bookDirty, p.working || bookBusy, func() {
-		p.load()
-		if p.learningBook != nil {
-			p.learningBook.Discard()
-		}
-	})
-	if p.env.TakeIntents != nil {
-		for _, intent := range p.env.TakeIntents(p.module) {
-			if !intent.Requested {
-				continue
-			}
-			p.tab, p.learningSection = tabLearning, 1
-			if p.learningBook == nil {
-				p.learningBook = studybook.New(p.env)
-			}
-			p.learningBook.Navigate(intent.Options)
-		}
-	}
+	p.env.Activity.Report(p.module, p.dirty(), p.working, p.load)
 	if p.shortcuts != nil && p.tab != tabShortcuts {
 		// Its draft lives on while another tab shows.
 		p.shortcuts.Report()
@@ -475,9 +451,6 @@ func appendPrograms(text string, paths []string) string {
 // Close implements core.Closer: leaving the page ends a shortcut
 // recording and drops answers still on their way.
 func (p *page) Close() {
-	if p.learningBook != nil {
-		p.learningBook.Close()
-	}
 	p.read++
 	p.aiRead++
 	if p.shortcuts != nil {

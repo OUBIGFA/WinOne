@@ -35,10 +35,7 @@ type Message struct {
 	thinkingMeasuredOpen                                                      bool
 }
 type Actions struct {
-	StudyCheck                        func(*study)
 	StudySpeak                        func(*study, string, string)
-	StudyNavigate                     func(*study, bool, string)
-	StudyAdd                          func(*study, []int)
 	StudyState                        func(*study, string, learning.TermState)
 	loadAvatar                        func(string, func(*providerAvatar, error))
 	OpenQuick                         func(string)

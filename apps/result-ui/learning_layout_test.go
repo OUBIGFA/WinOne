@@ -12,7 +12,7 @@ import (
 	"winone/internal/resultwindow"
 )
 
-func TestLearningLayoutAndNoteEditor(t *testing.T) {
+func TestLearningLayoutWithoutVocabularyBook(t *testing.T) {
 	for _, lang := range []string{"zh-CN", "en-US"} {
 		for _, theme := range []string{"light", "dark"} {
 			p := NewPanel("translate", lang, theme)
@@ -20,14 +20,7 @@ func TestLearningLayoutAndNoteEditor(t *testing.T) {
 			p.Action = "learn"
 			p.Study = newStudy(resultwindow.LearningAction(), "sustainable")
 			p.Study.acceptEntries([]learning.Entry{{Word: "sustainable", Phonetic: "səˈsteɪnəbl", Translation: "a. 可持续的；能维持的", Definition: "able to continue over a period of time", Tags: []string{"六级", "考研", "雅思"}, COCA: 7890, BNC: 9000, Collins: 2}})
-			p.Study.Connected = true
 			p.Result = "## 核心释义\n能够持续维持，不耗尽资源。\n## 例句\nWe need sustainable solutions. 我们需要可持续的解决方案。"
-			p.Actions.StudyAdd = func(s *study, indices []int) {
-				if len(indices) != 1 || s.Rows[indices[0]].Note.Meaning == "" {
-					t.Error("incorrect edited note")
-				}
-				s.Rows[indices[0]].Added = true
-			}
 			if folder := os.Getenv("WINONE_LEARNING_SHOTS"); folder != "" {
 				for _, width := range []int{320, 420, 800} {
 					tt := ui.NewTester(p.View, width, 900)
@@ -46,11 +39,10 @@ func TestLearningLayoutAndNoteEditor(t *testing.T) {
 			}
 			tt := ui.NewTester(p.View, 420, 900)
 			tt.SetPreferences(ui.Preferences{ReduceMotion: true, TextScale: 1})
-			if err := tt.Click(p.T("加入生词本", "Add to vocabulary")); err != nil {
-				t.Fatal(err)
-			}
-			if p.Study.Draft == nil {
-				t.Fatal("note editor did not open")
+			for _, label := range []string{p.T("加入生词本", "Add to vocabulary"), p.T("生词本与学习工具", "Vocabulary and study tools")} {
+				if tt.HasText(label) {
+					t.Fatalf("removed action remains: %s", label)
+				}
 			}
 			for _, width := range []int{320, 420, 800} {
 				tt.SetSize(width, 900)
@@ -76,7 +68,7 @@ func TestLearningLayoutAndNoteEditor(t *testing.T) {
 	}
 }
 
-func TestPassagePagingKeepsAllCardsAvailable(t *testing.T) {
+func TestPassagePagingKeepsAllVocabularyAvailable(t *testing.T) {
 	p := NewPanel("chat", "en-US", "light")
 	s := newStudy(resultwindow.LearningAction(), strings.Repeat("A longer passage. ", 50))
 	var entries []learning.Entry
@@ -84,12 +76,6 @@ func TestPassagePagingKeepsAllCardsAvailable(t *testing.T) {
 		entries = append(entries, learning.Entry{Word: fmt.Sprintf("entry-%d", i), Translation: "A useful meaning", Definition: "The full dictionary definition"})
 	}
 	s.acceptEntries(entries)
-	s.Connected = true
-	p.Actions.StudyAdd = func(_ *study, indices []int) {
-		if len(indices) != 25 {
-			t.Fatalf("Add all omitted another page: %d", len(indices))
-		}
-	}
 	tt := ui.NewTester(func(c *ui.Context) { p.studyView(c, c.Theme(), s) }, 420, 5000)
 	if !tt.HasText("entry-0") || tt.HasText("entry-12") {
 		t.Fatal("first page is incorrect")
@@ -115,13 +101,6 @@ func TestPassagePagingKeepsAllCardsAvailable(t *testing.T) {
 	if !tt.HasText("The full dictionary definition") {
 		t.Fatal("details not expanded")
 	}
-	if err := tt.Click("Vocabulary and study tools"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Advance(300000000)
-	if err := tt.Click("Add all"); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestSentenceLearningScreensAndStateActions(t *testing.T) {
@@ -133,7 +112,6 @@ func TestSentenceLearningScreensAndStateActions(t *testing.T) {
 			s := newStudy(resultwindow.LearningAction(), "We look up sustainable solutions and put them into practice every day.")
 			s.States = learning.TermStates{"look up": learning.Focused, "every day": learning.Ignored}
 			s.acceptEntries([]learning.Entry{{Word: "sustainable", Translation: "a. 可持续的；能维持的", Phonetic: "səˈsteɪnəbl"}, {Word: "look up", Translation: "查阅；查找"}, {Word: "put into practice", Translation: "付诸实践"}})
-			s.Connected = true
 			p.Study = s
 			p.Actions.StudyState = func(s *study, word string, state learning.TermState) {
 				if state == "" {

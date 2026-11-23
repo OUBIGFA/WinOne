@@ -6,7 +6,6 @@ import (
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
-	"winone/desktopmygo/studybook"
 	"winone/internal/learning"
 )
 
@@ -20,15 +19,8 @@ func (p *page) learningAction() *action {
 }
 func (p *page) learningPage(c *ui.Context) {
 	kit.Help(c, i18n.T("learning.intro"))
-	kit.SubTabs(c, &p.learningSection, []string{i18n.T("learning.explanation"), i18n.T("learning.anki"), i18n.T("learning.templates")}, p.env.RequestChange)
+	kit.SubTabs(c, &p.learningSection, []string{i18n.T("learning.explanation"), i18n.T("learning.templates")}, p.env.RequestChange)
 	a := p.learningAction()
-	if a == nil && p.learningSection == 1 {
-		if p.learningBook == nil {
-			p.learningBook = studybook.New(p.env)
-		}
-		p.learningBook.View(c)
-		return
-	}
 	if a == nil {
 		kit.Help(c, i18n.T("learning.missing"))
 		if kit.Button(c, i18n.T("learning.restore"), icons.BookOpen, false).Disabled(len(p.actions()) >= maxActions).Clicked() {
@@ -58,29 +50,6 @@ func (p *page) learningPage(c *ui.Context) {
 		})
 	}
 	if p.learningSection == 1 {
-		kit.Group(c, icons.BookOpen, i18n.T("learning.anki"), "", func() {
-			ui.Column(c).FillWidth().Padding(16).Gap(16).Children(func() {
-				ui.Field(c, i18n.T("learning.deck"), func() { kit.TextInput(c, &o.Deck).FillWidth() }).FillWidth()
-				if p.learningBook != nil {
-					var decks []kit.SelectOption
-					for _, name := range p.learningBook.DeckNames() {
-						decks = append(decks, kit.SelectOption{Value: name, Label: name})
-					}
-					if len(decks) > 0 {
-						ui.Field(c, i18n.T("learning.existingDeck"), func() { kit.Select(c, &o.Deck, decks) }).FillWidth()
-					}
-				}
-				ui.Field(c, i18n.T("learning.cardMode"), func() {
-					kit.Select(c, &o.CardMode, []kit.SelectOption{{Value: "recall", Label: i18n.T("learning.recall")}, {Value: "typing", Label: i18n.T("learning.typing")}})
-				}).FillWidth()
-			})
-		})
-		if p.learningBook == nil {
-			p.learningBook = studybook.New(p.env)
-		}
-		p.learningBook.View(c)
-	}
-	if p.learningSection == 2 {
 		kit.Group(c, icons.FileText, i18n.T("learning.templates"), i18n.T("learning.templatesHint"), func() {
 			ui.Column(c).FillWidth().Padding(16).Gap(16).Children(func() {
 				kit.SubTabs(c, &p.learningTemplate, []string{i18n.T("learning.word"), i18n.T("learning.phrase"), i18n.T("learning.sentence"), i18n.T("learning.passage")}, nil)

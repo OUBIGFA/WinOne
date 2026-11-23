@@ -42,7 +42,7 @@ func TestLearningUpgradePreservesFullToolbarAndCustomID(t *testing.T) {
 
 func TestLearningRequestUsesSharedAI(t *testing.T) {
 	a := LearningAction()
-	a.Learning = &learning.Options{Level: "beginner", Accent: "uk", HumanVoice: true, Deck: "Study", CardMode: "typing"}
+	a.Learning = &learning.Options{Level: "beginner", Accent: "uk", HumanVoice: true}
 	method, params, err := ActionRequest(a, "went", "auto", "zh-CN")
 	if err != nil || method != "ai.generate.start" {
 		t.Fatalf("%s %v", method, err)

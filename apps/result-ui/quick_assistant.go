@@ -67,18 +67,6 @@ func (c *Controller) newChat() {
 func (c *Controller) restartConversation() { c.resetConversation(false) }
 func (c *Controller) clearAll()            { c.resetConversation(true) }
 func (c *Controller) resetConversation(clearVisible bool) {
-	// Card batches belong to the visible learning result. Resetting the
-	// conversation must not leave writes running without their stop button.
-	for _, s := range []*study{c.Panel.Study, c.activeStudy} {
-		if s != nil && s.cancel != nil {
-			s.cancel()
-		}
-	}
-	for _, message := range c.Panel.Messages {
-		if message.Study != nil && message.Study.cancel != nil {
-			message.Study.cancel()
-		}
-	}
 	c.Panel.Study = nil
 	c.activeStudy = nil
 	c.KeepOpen()
