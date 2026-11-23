@@ -37,7 +37,7 @@ const occupied=createTCPServer(socket=>socket.end());
 await new Promise(resolve=>occupied.listen(0,'127.0.0.1',resolve));
 const children=[],errors=[],results=[];
 function worker(){
- const process=spawn(join(bundle,'WinOne.Interconnect.Peer.exe'),[],{windowsHide:true,stdio:['pipe','pipe','pipe']});
+ const process=spawn(join(bundle,'WinOne.Interconnect.Worker.exe'),['peer'],{windowsHide:true,stdio:['pipe','pipe','pipe']});
  children.push(process);let sequence=0;const pending=new Map();
  createInterface({input:process.stdout}).on('line',line=>{const value=JSON.parse(line),item=pending.get(value.id);if(!item)return;pending.delete(value.id);clearTimeout(item.timer);value.error?item.reject(Error(value.error)):item.resolve(value.result);});
  process.on('exit',()=>{for(const item of pending.values()){clearTimeout(item.timer);item.reject(Error('Peer exited'));}pending.clear();});

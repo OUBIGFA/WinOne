@@ -13,7 +13,7 @@ const output=resolve(outputArg);
 execFileSync('git',['check-ignore','--quiet','--no-index',join(output,'probe')]);
 await mkdir(output,{recursive:true});
 const {chromium}=createRequire(import.meta.url)(process.env.WINONE_PLAYWRIGHT_MODULE||resolve('dist/resources/tools/playwright-1.58.2/node_modules/playwright'));
-const worker=spawn(join(resolve(bundleArg),'WinOne.Interconnect.Transfer.exe'),[],{windowsHide:true,stdio:['pipe','pipe','pipe']});
+const worker=spawn(join(resolve(bundleArg),'WinOne.Interconnect.Worker.exe'),['transfer'],{windowsHide:true,stdio:['pipe','pipe','pipe']});
 let sequence=0,browser,page;const pending=new Map();
 createInterface({input:worker.stdout}).on('line',line=>{const value=JSON.parse(line),item=pending.get(value.id);if(!item)return;pending.delete(value.id);clearTimeout(item.timer);value.error?item.reject(Error(value.error)):item.resolve(value.result);});
 worker.on('exit',()=>{for(const item of pending.values()){clearTimeout(item.timer);item.reject(Error('Transfer worker exited'));}pending.clear();});
