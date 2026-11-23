@@ -28,6 +28,7 @@ internal sealed class NativeToolbarControl : UserControl
     private bool scrollEnabled;
     private bool recordingAvailable;
     private readonly bool dark;
+    private readonly bool english;
     private readonly NativeStyle style;
     private Image? overflowImage;
     private readonly Dictionary<string, ToolStripButton> buttons = new();
@@ -58,7 +59,7 @@ internal sealed class NativeToolbarControl : UserControl
             preferredTools = toolbarTools.Select(tool => tool == "crop" ? "region" : tool).ToHashSet(StringComparer.Ordinal);
         }
         menuTheme = new NativeMenuTheme(dark);
-        var english = (language ?? System.Globalization.CultureInfo.CurrentUICulture.Name).StartsWith("en", StringComparison.OrdinalIgnoreCase);
+        english = (language ?? System.Globalization.CultureInfo.CurrentUICulture.Name).StartsWith("en", StringComparison.OrdinalIgnoreCase);
         string T(string chinese, string translated) => english ? translated : chinese;
         AutoScaleMode = AutoScaleMode.Dpi;
         BackColor = style.Panel;
@@ -348,6 +349,19 @@ internal sealed class NativeToolbarControl : UserControl
         buttons["video"].Enabled = buttons["gif"].Enabled = recordingAvailable && !copied && !editing;
     }
     public void SetRecordingAvailable(bool available) { recordingAvailable = available; buttons["video"].Enabled = buttons["gif"].Enabled = available; }
+    internal void SetTranslationState(bool inPlace, bool busy, bool available, bool showing)
+    {
+        if (!inPlace) return;
+        var button = buttons["translate"];
+        button.Text = busy ? (english ? "Translating…" : "翻译中…")
+            : available ? (showing ? (english ? "Show original" : "查看原图") : (english ? "Show translation" : "查看译图"))
+            : (english ? "Translate in place" : "原位翻译");
+        button.AccessibleName = button.Text;
+        button.ToolTipText = available ? (english ? "Switch original / translated image (Tab)" : "切换原图与译图（Tab）")
+            : (english ? "Translate directly in the selected image" : "直接在截图选区内显示译文");
+        button.Checked = showing;
+        if (busy) foreach (var pair in buttons) pair.Value.Enabled = pair.Key == "cancel";
+    }
     public void SetSaveAsAvailable(bool available) { saveAsAvailable = available; buttons["saveAs"].Enabled = available; }
     public void SetPinAvailable(bool available) { pinAvailable = available; buttons["pin"].Enabled = available; }
     public void SetRetakeAvailable(bool available) { retakeAvailable = available; buttons["retake"].Available = available; buttons["retake"].Enabled = available; }

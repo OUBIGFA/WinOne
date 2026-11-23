@@ -58,7 +58,7 @@ internal static class NativeCaptureWorkflow
         var recovered = drafts.Recover();
         if (recovered is null || recovered.Id != expectedId) throw new InvalidOperationException("截图草稿已变化，请重新加载");
         var current = store.Snapshot();
-        var settings = recovered.Settings with { Theme = current.Theme, ToolbarTools = current.ToolbarTools };
+        var settings = recovered.Settings with { Theme = current.Theme, ToolbarTools = current.ToolbarTools, PinTranslation = current.PinTranslation };
         CaptureOperations.ApplyTheme(settings);
         using var frame = RecoverFrame(drafts, recovered);
         return await RunFrame(frame, settings, operations, recovered.Mode, language, cancellation, false,
@@ -76,7 +76,7 @@ internal static class NativeCaptureWorkflow
         var settings = store.Snapshot();
         if (recovered is not null) {
             using var restored = RecoverFrame(drafts, recovered);
-            settings = recovered.Settings with { Theme = settings.Theme, ToolbarTools = settings.ToolbarTools };
+            settings = recovered.Settings with { Theme = settings.Theme, ToolbarTools = settings.ToolbarTools, PinTranslation = settings.PinTranslation };
             CaptureOperations.ApplyTheme(settings);
             return await RunFrame(restored, settings, operations, recovered.Mode, language, cancellation, false,
                 recovered.Mode == "scroll" || recovered.Document.OrderedEffects || restored.Bounds != CaptureHelpers.GetScreenBounds(), recovered, null, show, drafts, recovered.Notice, createSource, showProgress);
@@ -108,7 +108,7 @@ internal static class NativeCaptureWorkflow
         var recovered = drafts is null ? null : NativeCaptureRecovery.Read(drafts, language, cancellation);
         if (recovered is not null) mode = recovered.Mode;
         var currentSettings = store.Snapshot();
-        var settings = recovered is null ? currentSettings : recovered.Settings with { Theme = currentSettings.Theme, ToolbarTools = currentSettings.ToolbarTools };
+        var settings = recovered is null ? currentSettings : recovered.Settings with { Theme = currentSettings.Theme, ToolbarTools = currentSettings.ToolbarTools, PinTranslation = currentSettings.PinTranslation };
         var quickSave = textMode is null && recovered is null && !settings.OpenEditor;
         if (quickSave) settings = settings with { AskWhereToSave = false };
         CaptureOperations.ApplyTheme(settings);
@@ -165,7 +165,7 @@ internal static class NativeCaptureWorkflow
             image => { saved = output.Save(image); }, image => { saved = output.SaveAs(image); },
             output.Pin, ShareXResources.Theme.IsDarkTheme, quickSave, language, settings.ToolbarTools,
             operations.NativeConfiguration is { } configuration ? tools => configuration.SaveToolbarAsync(tools, cancellation) : null,
-            new NativeCaptureTextService(operations.NativeConfiguration), textMode);
+            new NativeCaptureTextService(operations.NativeConfiguration), textMode, translateInPlace: settings.PinTranslation);
         startupStage?.Invoke("sessionCreated");
         session.SetCaptureNotice(notice, language);
         if (!viewport && textMode is null) session.EnableRecording(async format => {

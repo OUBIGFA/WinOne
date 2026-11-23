@@ -17,11 +17,13 @@ internal sealed partial class NativeCaptureSession : IDisposable
     private bool ready, disposed, applying, textTool, stepTool, closing;
     private readonly bool quickSave;
     private readonly NativeRecognitionSession recognition;
+    private readonly NativeInPlaceTranslation inPlaceTranslation;
+    private readonly bool translateInPlace;
     private readonly string? textMode;
     private bool textCompleted, textPresented, textEntryStarted, textEntryReturned;
     internal bool ResultPresented => textPresented;
     internal string? ResultWindowId => recognition.WindowID;
-    internal bool RecognitionBusy => recognition.Busy;
+    internal bool RecognitionBusy => recognition.Busy || inPlaceTranslation.Busy;
     private bool completionQueued;
     private bool snapshotQueued;
     private bool retaking;
@@ -101,12 +103,13 @@ internal sealed partial class NativeCaptureSession : IDisposable
 
     public NativeCaptureSession(WinOneCaptureCanvas capture, Action<Bitmap> copy, Action<Bitmap> save,
         Action<Bitmap>? saveAs = null, Action<Bitmap>? pin = null, bool dark = false, bool quickSave = false, string? language = null, IReadOnlyList<string>? toolbarTools = null, Func<string[]?, Task<string[]?>>? saveToolbar = null,
-        ICaptureTextService? textService = null, string? textMode = null, Action<string>? copyText = null)
+        ICaptureTextService? textService = null, string? textMode = null, Action<string>? copyText = null, bool translateInPlace = false)
     {
         this.capture = capture;
         savingLabel = (language ?? System.Globalization.CultureInfo.CurrentUICulture.Name).StartsWith("en", StringComparison.OrdinalIgnoreCase) ? "Saving toolbar…" : "正在保存工具栏…";
         this.quickSave = quickSave;
         this.textMode = textMode;
+        this.translateInPlace = translateInPlace;
         nativeToolbar = new NativeToolbarControl(dark, language, toolbarTools, saveToolbar);
         nativeToolbar.PreferencesChanged += PreferencesChanged;
         nativeToolbar.PreferencesSaving += PreferencesSaving;
@@ -125,7 +128,11 @@ internal sealed partial class NativeCaptureSession : IDisposable
         saveCompletion = new CaptureCompletion(capture.RenderSelection, save, capture.Window.Close, () => capture.Window.IsDisposed);
         if (saveAs is not null) saveAsCompletion = new CaptureCompletion(capture.RenderSelection, saveAs, capture.Window.Close, () => capture.Window.IsDisposed);
         if (pin is not null) pinCompletion = new CaptureCompletion(capture.RenderSelection, pin, capture.Window.Close, () => capture.Window.IsDisposed);
-        recognition = new NativeRecognitionSession(capture, textService ?? new NativeCaptureTextService(null),
+        var service = textService ?? new NativeCaptureTextService(null);
+        inPlaceTranslation = new NativeInPlaceTranslation(capture, service,
+            (language ?? System.Globalization.CultureInfo.CurrentUICulture.Name).StartsWith("en", StringComparison.OrdinalIgnoreCase));
+        inPlaceTranslation.Changed += RecognitionChanged;
+        recognition = new NativeRecognitionSession(capture, service,
             copyText ?? (value => Clipboard.SetText(value)), copied => { textCompleted = copied; textPresented = !copied; capture.Window.Close(); },
             (language ?? System.Globalization.CultureInfo.CurrentUICulture.Name).StartsWith("en", StringComparison.OrdinalIgnoreCase));
         recognition.Changed += RecognitionChanged;
@@ -145,7 +152,11 @@ internal sealed partial class NativeCaptureSession : IDisposable
     {
         if (textMode is not null && !textEntryStarted && ready && !disposed && !closing && capture.Selection is not null) {
             textEntryStarted = true;
-            capture.Window.BeginInvoke((Action)(() => { if (!disposed && !closing) recognition.Start(textMode == "translate", textMode == "ocr"); }));
+            capture.Window.BeginInvoke((Action)(() => {
+                if (disposed || closing) return;
+                if (textMode == "translate" && translateInPlace) inPlaceTranslation.Start();
+                else recognition.Start(textMode == "translate", textMode == "ocr");
+            }));
             return;
         }
         if (!quickSave || !ready || disposed || completionQueued || Finalized || capture.Selection is null) return;
@@ -354,8 +365,15 @@ internal sealed partial class NativeCaptureSession : IDisposable
     private void NativeCommand(string command)
     {
         if (recordingActive) return;
+        if (inPlaceTranslation.Busy) { if (command == "cancel") capture.Window.Close(); return; }
         if (command is "ocr" or "translate") {
-            if (!closing && !preparingImage && !retaking && !Finalized && textDraft is null) recognition.Start(command == "translate", false);
+            if (!closing && !preparingImage && !retaking && !Finalized && textDraft is null) {
+                if (command == "translate" && translateInPlace) inPlaceTranslation.Start();
+                else {
+                    inPlaceTranslation.Clear();
+                    recognition.Start(command == "translate", false);
+                }
+            }
             return;
         }
         if (recognition.Active) { if (command == "cancel") capture.Window.Close(); return; }
@@ -397,6 +415,8 @@ internal sealed partial class NativeCaptureSession : IDisposable
     private void OnKeyPressed(Keys key)
     {
         if (!ready || disposed || retaking || recordingActive || closing) return;
+        if (inPlaceTranslation.Busy) { if (key == Keys.Escape) capture.Window.Close(); return; }
+        if (key == Keys.Tab && nativeText is null && inPlaceTranslation.Available) { inPlaceTranslation.Toggle(); return; }
         if (recognition.Active) { if (key == Keys.Escape) capture.Window.Close(); return; }
         if (preparingImage) { if (key == Keys.Escape) capture.Window.Close(); return; }
         if (replacementError is not null) { if (key==Keys.Escape) capture.Window.Close();return; }
@@ -415,8 +435,8 @@ internal sealed partial class NativeCaptureSession : IDisposable
                 } else if (textDraft is null) {
                     if (key == (Keys.Control | Keys.Z)) capture.Undo();
                     else if (key is (Keys.Control | Keys.Y) or (Keys.Control | Keys.Shift | Keys.Z)) capture.Redo();
-                    else if (key == Keys.T) { textTool = true; stepTool = false; capture.SelectTool("select"); }
-                    else if (key == Keys.N) { stepTool = true; textTool = false; capture.SelectTool("select"); }
+                    else if (key == Keys.T) { inPlaceTranslation.Clear(); textTool = true; stepTool = false; capture.SelectTool("select"); }
+                    else if (key == Keys.N) { inPlaceTranslation.Clear(); stepTool = true; textTool = false; capture.SelectTool("select"); }
                     else if (key == Keys.Delete) capture.DeleteSelected();
                 }
             }
@@ -430,6 +450,13 @@ internal sealed partial class NativeCaptureSession : IDisposable
         // handoff or a failed replacement. Transient selector shortcuts must
         // not bypass this guard and discard the persistent editor.
         if (capture.HasViewport && message.Msg is 0x0203 or 0x0204 or 0x0205) return true;
+        if (inPlaceTranslation.Busy && message.Msg is >= 0x0100 and <= 0x020e) {
+            if (message.Msg == 0x0100 && message.WParam.ToInt32() == (int)Keys.Escape) capture.Window.Close();
+            return true;
+        }
+        if (nativeText is null && inPlaceTranslation.Available && message.Msg == 0x0100 && message.WParam.ToInt32() == (int)Keys.Tab) {
+            inPlaceTranslation.Toggle(); return true;
+        }
         if (recognition.Active && message.Msg is >= 0x0100 and <= 0x020e) {
             // Consume the dismissing click so it cannot also start a drawing
             // gesture or move the selection behind the result panel.
@@ -483,18 +510,19 @@ internal sealed partial class NativeCaptureSession : IDisposable
         }
         return message.Msg is 0x0202 or 0x0203;
     }
-    private void OnChanged() { if (!applying && !retaking) Refresh(); }
+    private void OnChanged() { inPlaceTranslation.SelectionChanged(); if (!applying && !retaking) Refresh(); }
     private void DocumentChanged()
     {
+        inPlaceTranslation.Clear();
         // A success message describes the saved revision, not later edits.
         if (!applying && !retaking) Refresh();
         QueueSnapshot();
     }
-    private void Closed(object? sender, FormClosedEventArgs args) { imageLifetime.Cancel(); confirmation.NotifyClosed(); pinCompletion?.NotifyClosed(); saveCompletion.NotifyClosed(); saveAsCompletion?.NotifyClosed(); }
+    private void Closed(object? sender, FormClosedEventArgs args) { inPlaceTranslation.Clear(); imageLifetime.Cancel(); confirmation.NotifyClosed(); pinCompletion?.NotifyClosed(); saveCompletion.NotifyClosed(); saveAsCompletion?.NotifyClosed(); }
     internal void SetClosing(bool value)
     {
         closing = value;
-        if (value) recognition.Cancel();
+        if (value) { recognition.Cancel(); inPlaceTranslation.Cancel(); }
         nativeToolbar.Enabled = !value && !preparingImage;
         if (nativeText is not null) nativeText.Enabled = !value;
         capture.SetTextEditing(value || preparingImage || Finalized || nativeText is not null);
@@ -508,6 +536,7 @@ internal sealed partial class NativeCaptureSession : IDisposable
     private void BeginRetake()
     {
         if (retake is null || retaking || closing || preparingImage || Finalized || disposed) return;
+        inPlaceTranslation.Clear();
         // Install the completion task before entering any nested modal picker.
         var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         retakeCompletion = completed.Task; retaking = true;
@@ -574,7 +603,7 @@ internal sealed partial class NativeCaptureSession : IDisposable
     }
     private void Refresh(string? error = null)
     {
-        error ??= recognition.Error ?? replacementError;
+        error ??= recognition.Error ?? inPlaceTranslation.Error ?? replacementError;
         if (disposed) return;
         Error = error;
         try { UpdateInputView(); } catch (Exception failure) { error ??= failure.Message; Error = error; }
@@ -582,7 +611,7 @@ internal sealed partial class NativeCaptureSession : IDisposable
         if (quickSave || selection is null) nativeToolbar.Visible = false;
         // Errors use the bounded native hint, never compete with action buttons
         // for toolbar width. The hint does not intercept selection input.
-        var message = error ?? preferencesStatus ?? captureNotice;
+        var message = error ?? inPlaceTranslation.Status ?? preferencesStatus ?? captureNotice;
         selectionHint.Visible = message is not null;
         if (selectionHint.Visible) {
             var screen = Screen.FromPoint(Cursor.Position).WorkingArea;
@@ -597,6 +626,7 @@ internal sealed partial class NativeCaptureSession : IDisposable
             var style = textTool ? textDraft is { } draft ? new WinOneToolStyle(Color.FromArgb(draft.ColorArgb), (int)Math.Round(draft.FontPixels)){Precision=draft.FontPixels} : textStyle : stepTool ? StepStyle : capture.GetToolStyle();
             nativeToolbar.SetToolStyle(tool, style, Finalized || (!textTool && textDraft is not null));
             nativeToolbar.SetState(capture.CanUndo, capture.CanRedo, tool, Finalized, textDraft is not null);
+            nativeToolbar.SetTranslationState(translateInPlace, inPlaceTranslation.Busy, inPlaceTranslation.Available, inPlaceTranslation.Showing);
             var center = toolbarPosition ?? new Point(selected.Left + selected.Width / 2, selected.Top + selected.Height / 2);
             var screen = Screen.FromPoint(capture.Window.PointToScreen(center)).WorkingArea;
             var viewport = new Rectangle(capture.Window.PointToClient(screen.Location), screen.Size);
@@ -614,7 +644,7 @@ internal sealed partial class NativeCaptureSession : IDisposable
     {
         if (disposed || capture.Window.IsDisposed) return;
         nativeToolbar.Enabled = !recognition.Active && !closing && !retaking && !recordingActive && !preparingImage;
-        capture.SetTextEditing(recognition.Active || closing || Finalized || nativeText is not null);
+        capture.SetTextEditing(recognition.Active || inPlaceTranslation.Busy || closing || Finalized || nativeText is not null);
         Refresh();
     }
 
@@ -663,6 +693,7 @@ internal sealed partial class NativeCaptureSession : IDisposable
         if (disposed) return;
         disposed = true;
         recognition.Dispose();
+        inPlaceTranslation.Dispose();
         imageLifetime.Cancel(); imageLifetime.Dispose();
         capture.Changed -= OnChanged; capture.KeyPressed -= OnKeyPressed;
         capture.Window.FormClosed -= Closed;

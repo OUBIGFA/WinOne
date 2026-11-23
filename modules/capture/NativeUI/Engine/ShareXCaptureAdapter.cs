@@ -136,11 +136,9 @@ namespace ShareX.ScreenCaptureLib
         public Task PrepareRenderAsync(CancellationToken cancellation = default) => form.ShapeManager.PrepareWinOneCompositionAsync(cancellation);
         public Bitmap RenderSelection()
         {
-            var region = Selection ?? throw new InvalidOperationException("请先选择截图区域");
-            using var rendered = Render();
-            region = Rectangle.Intersect(region, new Rectangle(Point.Empty, rendered.Size));
-            if (region.Width < 1 || region.Height < 1) throw new InvalidOperationException("Invalid selection");
-            return rendered.Clone(region, rendered.PixelFormat);
+            if (form.WinOneTranslationPreview != null && Selection == form.WinOneTranslationRegion)
+                return (Bitmap)form.WinOneTranslationPreview.Clone();
+            return RenderOriginalSelection();
         }
         public void SetRegion(Rectangle bounds) => form.ShapeManager.ProbeAddRegion(ToWorld(bounds));
         public void BeginRegion(Rectangle bounds) => form.ShapeManager.ProbeBeginRegion(ToWorld(bounds));

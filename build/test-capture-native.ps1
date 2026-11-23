@@ -7,7 +7,7 @@ param(
     # needs Explorer. Opt in only for this owned, no-shortcut test instance.
     [switch]$OcrHostCurrentDesktop,
     [string]$PinOcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY,
-    [ValidateSet('workflow','scroll-workflow','autosave','toolbar','facade','pointer','text-recognition','latency','ocr-latency','text-status','pin-translation')][string[]]$Suites = @('workflow','scroll-workflow')
+    [ValidateSet('workflow','scroll-workflow','autosave','toolbar','facade','pointer','text-recognition','latency','ocr-latency','text-status','pin-translation','capture-translation')][string[]]$Suites = @('workflow','scroll-workflow')
 )
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
@@ -28,7 +28,7 @@ $savedOcrVisible=$env:WINONE_OCR_HOST_VISIBLE_TEST
 try {
     $env:WINONE_RETAKE_ITERATIONS=[string]$RetakeIterations
     foreach ($suite in $Suites) {
-        if ($suite -eq 'pin-translation') {
+        if ($suite -in @('pin-translation','capture-translation')) {
             # The production OCR adapter and native renderer live beside this isolated probe.
             $pinProbe=Join-Path $output 'pin-probe'
             & $DotnetExe build (Join-Path $root 'tests/capture-host-probe/NativeCaptureProbe.csproj') -c Release "-p:ShareXSourceDirectory=$source" -o $pinProbe --nologo -v:q

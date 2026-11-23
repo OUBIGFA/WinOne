@@ -10,6 +10,7 @@ internal interface ICaptureTextService
     Task<string> Recognize(Bitmap image, CancellationToken cancellation);
     Task<string> Translate(string text, CancellationToken cancellation);
     Task<string> OpenResult(Bitmap image, bool translate, CancellationToken cancellation) => Task.FromException<string>(new InvalidOperationException("resultUnavailable"));
+    Task<PinTranslationResult> TranslateImage(Bitmap image, CancellationToken cancellation) => Task.FromException<PinTranslationResult>(new InvalidOperationException("translationUnavailable"));
 }
 
 // Each OCR invocation owns a short-lived offline process. No model or Python
@@ -88,4 +89,15 @@ internal sealed class NativeCaptureTextService(NativeHostConfiguration? host) : 
         ?? Task.FromException<string>(new InvalidOperationException("translationUnavailable"));
     public Task<string> OpenResult(Bitmap image,bool translate,CancellationToken cancellation) => host?.OpenResultAsync(image,translate,cancellation)
         ?? Task.FromException<string>(new InvalidOperationException("resultUnavailable"));
+
+    public Task<PinTranslationResult> TranslateImage(Bitmap image, CancellationToken cancellation)
+    {
+        if (host is null) return Task.FromException<PinTranslationResult>(new InvalidOperationException("translationUnavailable"));
+        // OCR and image composition run away from the canvas thread. The caller
+        // keeps the selected pixels alive until the request completes.
+        return Task.Run(async () => {
+            var layout = await engine.PinLayout(image, cancellation).ConfigureAwait(false);
+            return await PinTranslationEngine.Translate(image, layout, null, host.PinTargetAsync, host.TranslateAsync, cancellation).ConfigureAwait(false);
+        }, cancellation);
+    }
 }

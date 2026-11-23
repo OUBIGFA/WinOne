@@ -2,6 +2,17 @@ function Initialize-ShareXNativeHost([string]$SourceDirectory) {
     $project = [IO.Path]::GetFullPath((Join-Path $SourceDirectory 'ShareX.ScreenCaptureLib/ShareX.ScreenCaptureLib.csproj'))
     $targets = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../modules/capture/NativeUI/ShareXHost.targets'))
     if (!(Test-Path -LiteralPath $project -PathType Leaf) -or !(Test-Path -LiteralPath $targets -PathType Leaf)) { throw 'Native capture build inputs are missing' }
+    $formPath=Join-Path $SourceDirectory 'ShareX.ScreenCaptureLib/Forms/RegionCaptureForm.cs'
+    $formText=[IO.File]::ReadAllText($formPath)
+    # Older local builds drew the preview after selection handles. Migrate the
+    # cached source to draw pixels before tools, so crop handles stay usable.
+    $formText=$formText.Replace("DrawShapes(g);`n            if (WinOnePresentation) DrawWinOneTranslation(g);",'DrawShapes(g);')
+    if (-not $formText.Contains('DrawWinOneTranslation(g);')) {
+        $anchor='// Draw tools'
+        if (($formText.Split(@($anchor),[StringSplitOptions]::None)).Count -ne 2) { throw 'ShareX canvas paint boundary changed' }
+        $formText=$formText.Replace($anchor,"if (WinOnePresentation) DrawWinOneTranslation(g);`n`n            "+$anchor)
+        [IO.File]::WriteAllText($formPath,$formText,[Text.UTF8Encoding]::new($false))
+    }
     $shapePath=Join-Path $SourceDirectory 'ShareX.ScreenCaptureLib/Shapes/BaseShape.cs'
     # The canvas already shows the pixelation itself; keep its adjustable value
     # in Style and omit the overlaid "Pixelate [15]" label while drawing.

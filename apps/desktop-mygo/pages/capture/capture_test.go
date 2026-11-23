@@ -678,7 +678,7 @@ func TestPinnedTranslationIsOptInAndSavesIndependently(t *testing.T) {
 	if page.draft.Value.PinTranslation {
 		t.Fatal("legacy settings enabled pinned translation")
 	}
-	click(t, screen, "贴图内翻译")
+	click(t, screen, "截图与贴图原位翻译")
 	h.Env.Rail.Save.Run()
 	h.Settle(screen)
 	if len(fake.saved) != 1 || fake.saved[0]["pinTranslation"] != true || fake.saved[0]["pinAfterCapture"] != false {
