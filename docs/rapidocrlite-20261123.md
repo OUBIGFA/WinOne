@@ -27,7 +27,7 @@ GPU 默认的 host-visible 内存分配在本机独立显卡上遇到大图分�
 
 ## 移除范围
 
-- OCR 打包目录移除 Python 解释器、Python 包、ONNX Runtime、DirectML、NumPy/OpenBLAS、Python OpenCV、Pillow、SymPy、Shapely 等全部旧推理链依赖。四项新运行文件合计 34,700,830 字节，约 33.09 MiB。
+- OCR 打包目录移除 Python 解释器、Python 包、ONNX Runtime、DirectML、NumPy/OpenBLAS、Python OpenCV、Pillow、SymPy、Shapely 等全部旧推理链依赖。四项新运行文件合计 34,682,123 字节，约 33.08 MiB。
 - 移除旧 Python 适配、依赖锁及失效的 Python 排版测试。保留可复现的图片生成与进程测试脚本，它们使用构建机 Python 和 Pillow，不进入安装包。
 - 截图去掉未调用的 WPF 缩放重载及 WPF 依赖，发布只保留中英文语言资源。录屏、截图、标注、滚动截图与原位翻译照常接入。
 - 原位翻译需要的 OpenCV 4.12 静态实现仍由 `WinOne.PinTranslation.dll` 提供。两份 PP-OCRv6 模型分别用于检测和识别。

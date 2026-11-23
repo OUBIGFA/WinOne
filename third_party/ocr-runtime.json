@@ -28,7 +28,7 @@
       "path": "models/dictionary.txt",
       "sourceFile": "third_party/rapidocr/ppocrv6-dictionary.txt",
       "source": "Exact UTF-8 character metadata from the pinned PP-OCRv6_rec_small.onnx, with no added trailing newline",
-      "sha256": "b8b5cba807b350e112ac056c44177c87fc8c394d244f69660cda4d8102c85ae3"
+      "sha256": "f7aa897ca828a4c7c9e2739c30f9161a33306d532f020bcdb91dcfb664a5507e"
     }
   ]
 }
