@@ -38,7 +38,7 @@ internal static class NativeOcrCopyLatencyProbe
         public Task<string> Translate(string text, CancellationToken cancellation) => throw new InvalidOperationException("OCR shortcut translated text");
     }
 
-    internal static async Task<object> Sample(string phase, NativeHostConfiguration host)
+    internal static async Task<object> Sample(string phase, NativeHostConfiguration host, bool paragraph = false)
     {
         if (!HostedToolbar.CurrentDesktopName().StartsWith("WinOne-Resource-", StringComparison.Ordinal))
             throw new InvalidOperationException("OCR copy timing requires a private desktop");
@@ -47,10 +47,17 @@ internal static class NativeOcrCopyLatencyProbe
         using (var graphics = Graphics.FromImage(image)) {
             graphics.Clear(Color.White);
             using var font = new Font("Segoe UI", 24, GraphicsUnit.Pixel);
-            graphics.DrawString("Hello 123", font, Brushes.Black, new PointF(50, 48));
+            if (paragraph)
+            {
+                graphics.DrawString("This paragraph wraps at the edge", font, Brushes.Black, new PointF(50, 48));
+                graphics.DrawString("and continues on the second line", font, Brushes.Black, new PointF(50, 84));
+                graphics.DrawString("with a short ending.", font, Brushes.Black, new PointF(50, 120));
+            }
+            else graphics.DrawString("Hello 123", font, Brushes.Black, new PointF(50, 48));
         }
         var clock = Stopwatch.StartNew();
         var service = new TimedService(new NativeCaptureTextService(host), clock);
+        var selection = new Rectangle(40, 40, paragraph ? 640 : 260, paragraph ? 150 : 65);
         using var canvas = new WinOneCaptureCanvas(image);
         double firstPaint = 0, selectionCommitted = 0, copied = 0;
         string? copiedText = null;
@@ -66,10 +73,10 @@ internal static class NativeOcrCopyLatencyProbe
                 firstPaint = clock.Elapsed.TotalMilliseconds;
                 SendMessageW(canvas.Window.Handle, 0x0200, IntPtr.Zero, At(40, 40));
                 SendMessageW(canvas.Window.Handle, 0x0201, new IntPtr(1), At(40, 40));
-                SendMessageW(canvas.Window.Handle, 0x0200, new IntPtr(1), At(299, 104));
-                SendMessageW(canvas.Window.Handle, 0x0202, IntPtr.Zero, At(299, 104));
+                SendMessageW(canvas.Window.Handle, 0x0200, new IntPtr(1), At(selection.Right - 1, selection.Bottom - 1));
+                SendMessageW(canvas.Window.Handle, 0x0202, IntPtr.Zero, At(selection.Right - 1, selection.Bottom - 1));
                 selectionCommitted = clock.Elapsed.TotalMilliseconds;
-                if (canvas.Selection != new Rectangle(40, 40, 260, 65)) throw new InvalidOperationException("OCR selection bounds changed");
+                if (canvas.Selection != selection) throw new InvalidOperationException("OCR selection bounds changed");
             } catch (Exception error) { failure = error; canvas.Window.Close(); }
         })));
         paint.Attach();
@@ -88,7 +95,8 @@ internal static class NativeOcrCopyLatencyProbe
         await ended.Task;
         timeout.Stop();
         if (failure is not null) throw failure;
-        if (!session.Copied || session.ResultPresented || copiedText != "Hello 123" || firstPaint <= 0 || service.Finished <= service.Started)
+        string expected = paragraph ? "This paragraph wraps at the edge and continues on the second line with a short ending." : "Hello 123";
+        if (!session.Copied || session.ResultPresented || copiedText != expected || firstPaint <= 0 || service.Finished <= service.Started)
             throw new InvalidOperationException("OCR shortcut did not complete the expected copy handoff: " + copiedText);
         return new {
             phase, firstPaintMs = firstPaint,

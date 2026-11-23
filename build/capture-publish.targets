@@ -1,0 +1,20 @@
+<Project>
+  <!-- The audited runtime inventory excludes diagnostics and assemblies unused
+       by the capture entry points. Keep the resource loader and type forwarders
+       required by ShareX's embedded images. Filter before files are copied. -->
+  <Target Name="SelectWinOneCapturePayload" AfterTargets="ComputeFilesToPublish" BeforeTargets="CopyFilesToPublishDirectory">
+    <ReadLinesFromFile File="$(MSBuildThisFileDirectory)capture-runtime-exclusions.txt">
+      <Output TaskParameter="Lines" ItemName="WinOneCaptureExclusions" />
+    </ReadLinesFromFile>
+    <ItemGroup>
+      <WinOneCaptureExclusionPaths Include="@(WinOneCaptureExclusions)">
+        <RelativePath>%(Identity)</RelativePath>
+      </WinOneCaptureExclusionPaths>
+      <ResolvedFileToPublish Remove="@(WinOneCaptureExclusionPaths)" MatchOnMetadata="RelativePath" MatchOnMetadataOptions="PathLike" />
+      <!-- Project-reference satellites are not all filtered by the SDK's
+           SatelliteResourceLanguages setting on the outer executable. -->
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+        Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(ResolvedFileToPublish.RelativePath)', '^(?!(?:zh-CN|zh-Hans|en|en-US)[/\\])[a-z]{2}(?:-[A-Za-z0-9]+)?[/\\].*\.resources\.dll$'))" />
+    </ItemGroup>
+  </Target>
+</Project>

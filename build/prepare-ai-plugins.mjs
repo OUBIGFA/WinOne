@@ -40,12 +40,11 @@ if(createHash('sha256').update(bunBytes).digest('hex')!==lock.bun.executableSHA2
 resources.push({relative:'runtime/bun.exe',bytes:bunBytes});
 resources.push({relative:'plugins/LICENSE.txt',bytes:await regularFile(path.join(source,'LICENSE'))});
 const inventory=(await fs.readFile(path.join(root,'internal/distribution/ai_plugin_runtime_paths.txt'),'utf8')).trim().split(/\s+/).sort();
-const expectedPaths=[...resources.map(resource=>'shared/ai/'+resource.relative),'shared/ai/plugins/source-lock.json'].sort();
+const expectedPaths=resources.map(resource=>'shared/ai/'+resource.relative).sort();
 if(!isDeepStrictEqual(inventory,expectedPaths))throw Error('Distribution plugin inventory differs from the reviewed resources');
 for(const resource of resources){
  const destination=descendant(output,resource.relative);
  await fs.mkdir(path.dirname(destination),{recursive:true});
  await fs.writeFile(destination,resource.bytes);
 }
-await fs.writeFile(path.join(output,'plugins/source-lock.json'),JSON.stringify(lock,null,2)+'\n');
 console.log(`Prepared ${lock.plugins.length} account plugins and shared Bun`);

@@ -1,4 +1,4 @@
-package main
+package peer
 
 import (
 	"bytes"
@@ -21,7 +21,7 @@ func TestLiveShareRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"WinOne.Interconnect.Lan.exe", "WinOne.Interconnect.Transfer.exe"} {
+	for _, name := range []string{"WinOne.Interconnect.Lan.exe", "WinOne.Interconnect.Worker.exe"} {
 		if _, err = os.Stat(filepath.Join(filepath.Dir(exe), name)); err != nil {
 			t.Skip("compile this test executable into the interconnect build bundle to exercise child processes")
 		}

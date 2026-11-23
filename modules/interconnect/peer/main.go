@@ -1,6 +1,6 @@
 // WinOne's process/UI adapter. Address encoding, authentication, NAT traversal
 // and encrypted streams are supplied by official Tailcat v0.7.0.
-package main
+package peer
 
 import (
 	"bufio"
@@ -472,7 +472,10 @@ func qr(value string) string {
 	}
 	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(data)
 }
-func main() {
+
+// Run owns one role in a dedicated worker process. The shared executable
+// shares compiled dependencies, while requests and cancellation remain isolated.
+func Run() {
 	var current *task
 	defer func() {
 		if current != nil {

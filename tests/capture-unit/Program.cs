@@ -1,5 +1,9 @@
 using WinOne.Capture;
 
+if (args.Length == 1 && args[0] == "--ocr-paragraphs") {
+    OcrParagraphTests.Run(); return 0;
+}
+
 if (args.Length == 1 && args[0] == "--ocr-layout") {
     OcrReadingOrderTests.Run(); return 0;
 }
@@ -115,6 +119,7 @@ Directory.CreateDirectory(directory);
 try
 {
     OcrReadingOrderTests.Run();
+    OcrParagraphTests.Run();
     CapturedFrameTests.Run();
     CaptureConfirmationTests.Run(Path.Combine(directory, "confirmation"));
     CaptureSelectionSessionTests.Run(Path.Combine(directory, "single-session"));

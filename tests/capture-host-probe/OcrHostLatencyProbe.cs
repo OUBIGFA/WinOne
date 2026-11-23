@@ -113,6 +113,7 @@ internal static class OcrHostLatencyProbe
             for(var i=0;i<4;i++)await Recognize("warm");
             if(privateDesktop) {
                 copySamples.Add(await NativeOcrCopyLatencyProbe.Sample("first-session-in-probe",client));
+                copySamples.Add(await NativeOcrCopyLatencyProbe.Sample("wrapped-paragraph-copy",client,paragraph:true));
                 for(var i=0;i<4;i++)copySamples.Add(await NativeOcrCopyLatencyProbe.Sample("warm",client));
             }
             await Task.Delay(500,deadline.Token);

@@ -71,7 +71,7 @@ if(licenseBytes.toString('utf8').replaceAll('\r\n','\n')!==previousLicense.toStr
 const lock={...old,license:{...old.license,sha256:hash(licenseBytes)},revision,registrySHA256:hash(registryBytes),plugins};
 delete lock.installable;
 const catalog={bun:old.bun,plugins:plugins.map(p=>({...p,directory:p.directory.slice('packages/'.length),files:p.files.map(f=>({...f,path:f.path.slice(p.directory.length+1)}))}))};
-const inventory=[...plugins.flatMap(p=>p.files.map(f=>'shared/ai/plugins/'+f.path.slice('packages/'.length))),'shared/ai/plugins/LICENSE.txt','shared/ai/plugins/source-lock.json','shared/ai/runtime/bun.exe'].sort();
+const inventory=[...plugins.flatMap(p=>p.files.map(f=>'shared/ai/plugins/'+f.path.slice('packages/'.length))),'shared/ai/plugins/LICENSE.txt','shared/ai/runtime/bun.exe'].sort();
 // These three generated projections must change together: the build checks
 // inventory, and the runtime checks the very same bytes before loading code.
 for(const [name,value]of [['third_party/ai-plugins.json',lock],['modules/ai-magpie/plugin-catalog.json',catalog]])await fs.writeFile(path.join(root,name),JSON.stringify(value,null,2)+'\n');

@@ -53,7 +53,7 @@ func New(executable, data string) (*Manager, error) {
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, err
 	}
-	m.transfers, err = NewTransfers(filepath.Join(filepath.Dir(executable), "WinOne.Interconnect.Transfer.exe"), filepath.Join(filepath.Dir(data), "transfer"))
+	m.transfers, err = NewTransfers(filepath.Join(filepath.Dir(executable), "WinOne.Interconnect.Worker.exe"), filepath.Join(filepath.Dir(data), "transfer"))
 	if err != nil {
 		return nil, err
 	}

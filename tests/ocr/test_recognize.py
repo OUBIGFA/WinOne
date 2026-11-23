@@ -116,9 +116,8 @@ class RecognitionProtocolTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(self.devices, {'cpu'})
         # The layout joins Chinese words without spaces; compare characters.
-        compact = lambda values: [''.join(value.split()) for value in values]
         for reply in replies + forced:
-            self.assertEqual(compact(reply['text'].splitlines()), compact(lines))
+            self.assertEqual(''.join(reply['text'].split()), ''.join(''.join(lines).split()))
         expected = os.environ.get('WINONE_OCR_EXPECT_DEVICE')
         if expected:
             self.assertEqual(devices, {expected})
@@ -127,6 +126,29 @@ class RecognitionProtocolTests(unittest.TestCase):
         code, replies = self.run_worker(self.image(), serve=False)
         self.assertEqual(code, 0)
         self.assertEqual(replies, [{'text': 'Hello world 123'}])
+
+    def test_wrapped_copy_text_joins_while_inplace_keeps_line_boxes(self):
+        from PIL import Image, ImageDraw, ImageFont
+        image = Image.new('RGB', (800, 180), 'white')
+        draw = ImageDraw.Draw(image)
+        font = ImageFont.truetype(str(pathlib.Path(os.environ['WINDIR']) / 'Fonts/msyh.ttc'), 28)
+        lines = ['This paragraph wraps at the edge', 'and continues on the second line', 'with a short ending.']
+        for index, line in enumerate(lines):
+            draw.text((12, 8 + index * 40), line, font=font, fill='black')
+        png = io.BytesIO()
+        image.save(png, 'PNG')
+        code, replies = self.run_worker(self.frame(png.getvalue()))
+        self.assertEqual(code, 0)
+        self.assertEqual(replies, [{'text': ' '.join(lines)}])
+        result = subprocess.run([str(self.worker), '--ocr-worker', str(self.runtime), '--pin-layout'],
+                                input=png.getvalue(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                timeout=60, creationflags=0x08000000)
+        self.assertEqual(result.returncode, 0)
+        layout = json.loads(result.stdout.decode('utf-8'))['layout']['lines']
+        self.assertEqual([line['text'] for line in layout], lines)
+        self.assertTrue(all(line['glyphs'] for line in layout))
+        self.assertLess(layout[0]['box'][1], layout[1]['box'][1])
+        self.assertLess(layout[1]['box'][1], layout[2]['box'][1])
 
 
 if __name__ == '__main__':

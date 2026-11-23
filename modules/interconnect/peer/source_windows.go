@@ -1,4 +1,4 @@
-package main
+package peer
 
 import (
 	"bufio"
@@ -33,12 +33,12 @@ type child struct {
 	err   error
 }
 
-func childProcess(name string) (*child, error) {
+func childProcess(name string, arguments ...string) (*child, error) {
 	exe, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
-	cmd := exec.Command(filepath.Join(filepath.Dir(exe), name))
+	cmd := exec.Command(filepath.Join(filepath.Dir(exe), name), arguments...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	cmd.Stderr = io.Discard
 	input, err := cmd.StdinPipe()
@@ -205,7 +205,7 @@ func (t *task) saveAddress(address tailcat.Addr) error {
 	return os.Rename(pending, file)
 }
 func (t *task) prepareFiles(ctx context.Context, paths []string) ([]string, []string, error) {
-	p, err := childProcess("WinOne.Interconnect.Transfer.exe")
+	p, err := childProcess("WinOne.Interconnect.Worker.exe", "transfer")
 	if err != nil {
 		return nil, nil, err
 	}

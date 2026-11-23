@@ -447,12 +447,12 @@ func (m *Transfers) start(ctx context.Context, spec map[string]any) (json.RawMes
 		m.mu.Unlock()
 		return nil, errors.New("互联助手正在退出")
 	}
-	executable := m.executable
+	role := "transfer"
 	mode, _ := spec["mode"].(string)
 	if strings.HasPrefix(mode, "share_") || strings.HasPrefix(mode, "tunnel_") {
-		executable = filepath.Join(filepath.Dir(executable), "WinOne.Interconnect.Peer.exe")
+		role = "peer"
 	}
-	p, err := startWorker(executable)
+	p, err := startWorker(m.executable, role)
 	if err != nil {
 		m.mu.Unlock()
 		return nil, err

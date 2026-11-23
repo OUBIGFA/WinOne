@@ -44,3 +44,36 @@ $hook='claudeLast.run = ClaudeLastRun{TUI: why == "", Why: why, At: time.Now()}'
 if(-not $claudeSource.Contains($hook)){throw 'Upstream Claude run observation boundary changed'}
 $claudeSource=$claudeSource.Replace($hook,$hook+"`n`twinOneRememberClaudeRun(claudeLast.run)")
 [IO.File]::WriteAllText((Join-Path $SourceDirectory 'internal/gateway/claude_subscription.go'),$claudeSource+"`n",$encoding)
+# WinOne's public contract excludes the upstream standalone web-chat app.
+# Remove its route roots and the public-page authentication exception together,
+# allowing Go's linker to discard the embedded chat ZIP and page handlers.
+$gatewayPath=Join-Path $SourceDirectory 'internal/gateway/gateway.go'
+$gateway=[IO.File]::ReadAllText($gatewayPath)
+$chatRoutes=[regex]::Matches($gateway,'(?m)^\s*mux\.HandleFunc\([^\r\n]*ChatPagePath[^\r\n]*\r?\n')
+if($chatRoutes.Count -ne 8){throw 'Upstream standalone chat route boundary changed'}
+$gateway=[regex]::Replace($gateway,'(?m)^\s*mux\.HandleFunc\([^\r\n]*ChatPagePath[^\r\n]*\r?\n','')
+[IO.File]::WriteAllText($gatewayPath,$gateway,$encoding)
+$lanPath=Join-Path $SourceDirectory 'internal/gateway/lan.go'
+$lan=[IO.File]::ReadAllText($lanPath)
+if(-not $lan.Contains(' || chatPageOpen(r)')){throw 'Upstream standalone chat guard boundary changed'}
+[IO.File]::WriteAllText($lanPath,$lan.Replace(' || chatPageOpen(r)',''),$encoding)
+# sync.OnceValues creates a package-initialization root, keeping its embedded
+# archive linked even after the routes are removed. Lazy function initialization
+# preserves upstream direct-call semantics while permitting dead-code removal.
+$pagePath=Join-Path $SourceDirectory 'internal/gateway/chatpage.go'
+$page=[IO.File]::ReadAllText($pagePath).Replace("`r`n","`n")
+$start='var chatPageFiles = sync.OnceValues(func() (map[string][]byte, error) {'
+$end="})`n`n// chatPageFile is"
+if(-not $page.Contains($start) -or -not $page.Contains($end)){throw 'Upstream chat archive initializer changed'}
+$replacement=@'
+var winOneChatOnce sync.Once
+var winOneChatFiles map[string][]byte
+var winOneChatError error
+func chatPageFiles() (map[string][]byte, error) {
+ winOneChatOnce.Do(func() { winOneChatFiles, winOneChatError = winOneLoadChatPageFiles() })
+ return winOneChatFiles, winOneChatError
+}
+func winOneLoadChatPageFiles() (map[string][]byte, error) {
+'@
+$page=$page.Replace($start,$replacement).Replace($end,"}`n`n// chatPageFile is")
+[IO.File]::WriteAllText($pagePath,$page,$encoding)

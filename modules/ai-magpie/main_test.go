@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/klauspost/compress/zstd"
+	"github.com/yetone/magpie/internal/gateway"
 	"github.com/yetone/magpie/internal/provider"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +16,17 @@ import (
 	"testing"
 	"time"
 )
+
+func TestStandaloneChatRoutesAreExcludedFromEmbeddedGateway(t *testing.T) {
+	handler := gateway.New().Handler()
+	for _, path := range []string{"/deepseek-chat", "/deepseek-chat/", "/deepseek-chat/models"} {
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+		if response.Code != http.StatusNotFound {
+			t.Fatalf("retired chat page %s still reachable: %d", path, response.Code)
+		}
+	}
+}
 
 // This fails if the gateway loses the provider/model, prompt, key or response.
 func TestModelSettingsReachRealUpstreamRequest(t *testing.T) {

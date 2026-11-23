@@ -19,7 +19,7 @@ var recordingRuntimeFiles = []string{"capture/WinOne.Recording.dll", "capture/re
 var learningRuntimeFiles = []string{"shared/ui/learning/ecdict.db", "shared/ui/learning/manifest.json", "shared/ui/learning/ECDICT-LICENSE.txt"}
 
 var accountPluginFiles = strings.Fields(accountPluginInventory)
-var interconnectRuntimeFiles = []string{"shared/interconnect/WinOne.Interconnect.Lan.exe", "shared/interconnect/WinOne.Interconnect.Peer.exe", "shared/interconnect/WinOne.Interconnect.Transfer.exe"}
+var interconnectRuntimeFiles = []string{"shared/interconnect/WinOne.Interconnect.Lan.exe", "shared/interconnect/WinOne.Interconnect.Worker.exe"}
 var strokeRuntimeFiles = []string{"stroke/WinOne.Stroke.exe", "stroke/Stroke.Base.dll", "stroke/Base.dll", "stroke/Stroke.dll", "stroke/Stroke-LICENSE.txt", "stroke/schema.json", "stroke/defaults.json", "stroke/migrations.json"}
 
 var textRuntimeFiles = append(strings.Fields(ocrRuntimeInventory), "shared/ai/WinOne.AI.exe", "shared/ai/magpie-LICENSE.txt")

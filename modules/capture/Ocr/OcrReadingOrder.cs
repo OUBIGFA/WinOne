@@ -37,7 +37,7 @@ internal static class OcrReadingOrder
         return sorted[sorted.Length / 2];
     }
 
-    internal static string Compose(IEnumerable<OcrBlock> input)
+    internal static string Compose(IEnumerable<OcrBlock> input, bool mergeParagraphs = true)
     {
         var blocks = input.Where(block => !string.IsNullOrWhiteSpace(block.Text) && block.Width > 0 && block.Height > 0)
             .Select(block => block with { Text = block.Text.Trim() }).ToList();
@@ -45,22 +45,13 @@ internal static class OcrReadingOrder
         var totalArea = blocks.Sum(block => block.Width * block.Height);
         var verticalArea = blocks.Where(block => block.Height > block.Width * 1.5).Sum(block => block.Width * block.Height);
         bool vertical = verticalArea / totalArea >= .5;
-        var ordered = vertical ? blocks.OrderByDescending(block => block.Right) : blocks.OrderBy(block => block.Top);
-        var clusters = new List<List<OcrBlock>>();
-        foreach (var block in ordered)
+        if (mergeParagraphs && !vertical && !OcrParagraphs.ContainsCode(blocks))
         {
-            var current = clusters.LastOrDefault();
-            double center = vertical ? block.CenterX : block.CenterY;
-            if (current is null || Math.Abs(center - Median(current.Select(item => vertical ? item.CenterX : item.CenterY)))
-                >= .4 * Median(current.Select(item => vertical ? item.Width : item.Height)) / BoxToFont)
-            {
-                current = [];
-                clusters.Add(current);
-            }
-            current.Add(block);
+            return string.Join("\n\n", OcrGapTree.Regions(blocks).Select(region =>
+                OcrParagraphs.Compose(ReadLines(region, false).Select(line => new OcrBlock(line.Text,
+                    line.Left, line.Words.Min(word => word.Top), line.Words.Max(word => word.Right), line.Words.Max(word => word.Bottom))).ToArray())));
         }
-        var sortedClusters = clusters.OrderBy(cluster => vertical ? -cluster.Average(block => block.CenterX) : cluster.Average(block => block.CenterY));
-        var lines = sortedClusters.Select(cluster => BuildLine(cluster, vertical)).ToArray();
+        var lines = ReadLines(blocks, vertical);
         if (vertical || lines.Length == 1) return string.Join('\n', lines.Select(line => line.Text)).TrimEnd();
 
         double baseline = lines.Min(line => line.Left);
@@ -79,6 +70,26 @@ internal static class OcrReadingOrder
                 result.Add("");
         }
         return string.Join('\n', result).TrimEnd();
+    }
+
+    private static Line[] ReadLines(List<OcrBlock> blocks, bool vertical)
+    {
+        var ordered = vertical ? blocks.OrderByDescending(block => block.Right) : blocks.OrderBy(block => block.Top);
+        var clusters = new List<List<OcrBlock>>();
+        foreach (var block in ordered)
+        {
+            var current = clusters.LastOrDefault();
+            double center = vertical ? block.CenterX : block.CenterY;
+            if (current is null || Math.Abs(center - Median(current.Select(item => vertical ? item.CenterX : item.CenterY)))
+                >= .4 * Median(current.Select(item => vertical ? item.Width : item.Height)) / BoxToFont)
+            {
+                current = [];
+                clusters.Add(current);
+            }
+            current.Add(block);
+        }
+        var sortedClusters = clusters.OrderBy(cluster => vertical ? -cluster.Average(block => block.CenterX) : cluster.Average(block => block.CenterY));
+        return sortedClusters.Select(cluster => BuildLine(cluster, vertical)).ToArray();
     }
 
     private static Line BuildLine(List<OcrBlock> cluster, bool vertical)

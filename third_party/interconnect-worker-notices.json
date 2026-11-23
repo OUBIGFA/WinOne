@@ -15,18 +15,6 @@
     },
     {
       "kind": "go",
-      "name": "github.com/alexbrainman/sspi",
-      "version": "v0.0.0-20231016080023-1a75b4708caa",
-      "notices": [
-        {
-          "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-alexbrainman-sspi-v0.0.0-20231016080023-1a75b4708caa-LICENSE.txt",
-          "sha256": "dd26a7abddd02e2d0aba97805b31f248ef7835d9e10da289b22e3b8ab78b324d"
-        }
-      ]
-    },
-    {
-      "kind": "go",
       "name": "github.com/anmitsu/go-shlex",
       "version": "v0.0.0-20200514113438-38f4b401e2be",
       "notices": [
@@ -39,24 +27,24 @@
     },
     {
       "kind": "go",
-      "name": "github.com/axiomhq/hyperloglog",
-      "version": "v0.0.0-20240319100328-84253e514e02",
+      "name": "github.com/cespare/xxhash/v2",
+      "version": "v2.3.0",
       "notices": [
         {
-          "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-axiomhq-hyperloglog-v0.0.0-20240319100328-84253e514e02-LICENSE.txt",
-          "sha256": "23c37f1226d190d522b7e802ca94e8fbf1e00a331abee11c636815ac6191d025"
+          "sourceFile": "LICENSE.txt",
+          "file": "licenses/interconnect-github.com-cespare-xxhash-v2-v2.3.0-LICENSE.txt.txt",
+          "sha256": "f566a9f97bacdaf00d9f21dd991e81dc11201c4e016c86b470799429a1c9a79c"
         }
       ]
     },
     {
       "kind": "go",
       "name": "github.com/coder/websocket",
-      "version": "v1.8.14",
+      "version": "v1.8.15",
       "notices": [
         {
           "sourceFile": "LICENSE.txt",
-          "file": "licenses/interconnect-github.com-coder-websocket-v1.8.14-LICENSE.txt.txt",
+          "file": "licenses/interconnect-github.com-coder-websocket-v1.8.15-LICENSE.txt.txt",
           "sha256": "cc0975a5f6305145bdd7b41ce9479632fdac3870e6ac4281f28017f18c767c4e"
         }
       ]
@@ -64,11 +52,11 @@
     {
       "kind": "go",
       "name": "github.com/creachadair/msync",
-      "version": "v0.8.1",
+      "version": "v0.10.1",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-creachadair-msync-v0.8.1-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-creachadair-msync-v0.10.1-LICENSE.txt",
           "sha256": "1d45f7789b678c742a045d7a6923c2762f667dc2523b9b4c01fe240d24c83083"
         }
       ]
@@ -76,64 +64,35 @@
     {
       "kind": "go",
       "name": "github.com/dblohm7/wingoes",
-      "version": "v0.0.0-20240119213807-a09d6be7affa",
+      "version": "v0.0.0-20260526185140-fb298caac7ca",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-dblohm7-wingoes-v0.0.0-20240119213807-a09d6be7affa-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-dblohm7-wingoes-v0.0.0-20260526185140-fb298caac7ca-LICENSE.txt",
           "sha256": "d92e8b4d5e41d2effe12a1df45143765c2256bb915553a4515a16ffd9603c06a"
         }
       ]
     },
     {
       "kind": "go",
-      "name": "github.com/dgryski/go-metro",
-      "version": "v0.0.0-20180109044635-280f6062b5bc",
-      "notices": [
-        {
-          "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-dgryski-go-metro-v0.0.0-20180109044635-280f6062b5bc-LICENSE.txt",
-          "sha256": "4c9aa4187a0088cc5fd5914f89276463d0e1dc1c01d49bdac6fd5bd3d38db476"
-        }
-      ]
-    },
-    {
-      "kind": "go",
-      "name": "github.com/digitalocean/go-smbios",
-      "version": "v0.0.0-20180907143718-390a4f403a8e",
+      "name": "github.com/denisbrodbeck/machineid",
+      "version": "v1.0.1",
       "notices": [
         {
           "sourceFile": "LICENSE.md",
-          "file": "licenses/interconnect-github.com-digitalocean-go-smbios-v0.0.0-20180907143718-390a4f403a8e-LICENSE.md.txt",
-          "sha256": "0a82c12c703435c0b93b4393bc44d3bbcbad190bc0fde0d0e66ed787aa764764"
-        },
-        {
-          "sourceFile": "scripts/license.txt",
-          "file": "licenses/interconnect-github.com-digitalocean-go-smbios-v0.0.0-20180907143718-390a4f403a8e-scripts-license.txt.txt",
-          "sha256": "13983a5f100ddaf04ceb6bdfd6779cc5ba2b95ebd16648279468da5b33bd1f6b"
-        }
-      ]
-    },
-    {
-      "kind": "go",
-      "name": "github.com/djherbis/times",
-      "version": "v1.6.0",
-      "notices": [
-        {
-          "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-djherbis-times-v1.6.0-LICENSE.txt",
-          "sha256": "079087ce194827595700a925b01d911f465565d96c5ed2716bcc50ce76855fd5"
+          "file": "licenses/interconnect-github.com-denisbrodbeck-machineid-v1.0.1-LICENSE.md.txt",
+          "sha256": "1b5036318126618111b864b7707db0bd80cbb6be4fb43b846b4454edf7d0e939"
         }
       ]
     },
     {
       "kind": "go",
       "name": "github.com/fxamacker/cbor/v2",
-      "version": "v2.9.0",
+      "version": "v2.9.6",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-fxamacker-cbor-v2-v2.9.0-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-fxamacker-cbor-v2-v2.9.6-LICENSE.txt",
           "sha256": "78cad457d5ea7318230f3d969d4cdf29cef45524a1fc8ca3a97646da1ad7a841"
         }
       ]
@@ -141,48 +100,24 @@
     {
       "kind": "go",
       "name": "github.com/gaissmai/bart",
-      "version": "v0.26.1",
+      "version": "v0.30.0",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-gaissmai-bart-v0.26.1-LICENSE.txt",
-          "sha256": "12d27746d111da33969df0ecaa9b799e22c42db7d0b6a5164f383ec934233a41"
+          "file": "licenses/interconnect-github.com-gaissmai-bart-v0.30.0-LICENSE.txt",
+          "sha256": "8fc2dc86e3a004c34bf613d4f72365ca4c16a35d26fbc4ce1d8deac83c6eae15"
         }
       ]
     },
     {
       "kind": "go",
       "name": "github.com/go-json-experiment/json",
-      "version": "v0.0.0-20260623181947-01eb4420fa68",
+      "version": "v0.0.0-20260820222146-c27c302e5fc3",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-go-json-experiment-json-v0.0.0-20260623181947-01eb4420fa68-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-go-json-experiment-json-v0.0.0-20260820222146-c27c302e5fc3-LICENSE.txt",
           "sha256": "14a34c4db2d21bf9cf80d028b802cd22fed9bf597a6c2db7ce30ee6ffd04967a"
-        }
-      ]
-    },
-    {
-      "kind": "go",
-      "name": "github.com/go-ole/go-ole",
-      "version": "v1.3.0",
-      "notices": [
-        {
-          "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-go-ole-go-ole-v1.3.0-LICENSE.txt",
-          "sha256": "d883dbca28769ff23dd4368a8edb7ad9f9f23a8f86adde2875c6e41a828aac62"
-        }
-      ]
-    },
-    {
-      "kind": "go",
-      "name": "github.com/go4org/hashtriemap",
-      "version": "v0.0.0-20260824042624-45fcf11fca0e",
-      "notices": [
-        {
-          "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-go4org-hashtriemap-v0.0.0-20260824042624-45fcf11fca0e-LICENSE.txt",
-          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
         }
       ]
     },
@@ -212,30 +147,6 @@
     },
     {
       "kind": "go",
-      "name": "github.com/google/go-tpm",
-      "version": "v0.9.4",
-      "notices": [
-        {
-          "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-google-go-tpm-v0.9.4-LICENSE.txt",
-          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
-        }
-      ]
-    },
-    {
-      "kind": "go",
-      "name": "github.com/google/uuid",
-      "version": "v1.6.0",
-      "notices": [
-        {
-          "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-google-uuid-v1.6.0-LICENSE.txt",
-          "sha256": "0a8d61ed3cbfd5312326e8126c31ce9c627a283adc99131b56896d29ada04b2d"
-        }
-      ]
-    },
-    {
-      "kind": "go",
       "name": "github.com/hdevalence/ed25519consensus",
       "version": "v0.2.0",
       "notices": [
@@ -248,94 +159,70 @@
     },
     {
       "kind": "go",
-      "name": "github.com/huin/goupnp",
-      "version": "v1.3.0",
+      "name": "github.com/kalafut/imohash",
+      "version": "v1.1.1",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-huin-goupnp-v1.3.0-LICENSE.txt",
-          "sha256": "440688406aeb546bad566031c8a01531a01a683166f7010380fcc0f68d830311"
-        }
-      ]
-    },
-    {
-      "kind": "go",
-      "name": "github.com/jellydator/ttlcache/v3",
-      "version": "v3.1.0",
-      "notices": [
-        {
-          "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-jellydator-ttlcache-v3-v3.1.0-LICENSE.txt",
-          "sha256": "dfc038ce593ab8f6e92ebcabd5c2dab9ce935d72797d86c73c51a3a6a91bd012"
+          "file": "licenses/interconnect-github.com-kalafut-imohash-v1.1.1-LICENSE.txt",
+          "sha256": "a2754a08a079c22429351eb34798e4d24859a1d1a21c5a3291b1235dbbbddf18"
         }
       ]
     },
     {
       "kind": "go",
       "name": "github.com/klauspost/compress",
-      "version": "v1.19.1",
+      "version": "v1.20.1",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-klauspost-compress-v1.19.1-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-klauspost-compress-v1.20.1-LICENSE.txt",
           "sha256": "0d9e582ee4bff57bf1189c9e514e6da7ce277f9cd3bc2d488b22fbb39a6d87cf"
         },
         {
           "sourceFile": "gzhttp/LICENSE",
-          "file": "licenses/interconnect-github.com-klauspost-compress-v1.19.1-gzhttp-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-klauspost-compress-v1.20.1-gzhttp-LICENSE.txt",
           "sha256": "2252a5b1e2b1d3663b53ea77051b8ed065cb9270a3d1174d5d6ead8a2de051b6"
         },
         {
           "sourceFile": "internal/lz4ref/LICENSE",
-          "file": "licenses/interconnect-github.com-klauspost-compress-v1.19.1-internal-lz4ref-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-klauspost-compress-v1.20.1-internal-lz4ref-LICENSE.txt",
           "sha256": "6a358d2540ca14048f02d366f23787c0a480157e58f058113f0e27168dd4e447"
         },
         {
           "sourceFile": "internal/snapref/LICENSE",
-          "file": "licenses/interconnect-github.com-klauspost-compress-v1.19.1-internal-snapref-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-klauspost-compress-v1.20.1-internal-snapref-LICENSE.txt",
           "sha256": "f69f157b0be75da373605dbc8bbf142e8924ee82d8f44f11bcaf351335bf98cf"
         },
         {
           "sourceFile": "s2/LICENSE",
-          "file": "licenses/interconnect-github.com-klauspost-compress-v1.19.1-s2-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-klauspost-compress-v1.20.1-s2-LICENSE.txt",
           "sha256": "08683b14bda8ae3538abf19e1879e853a39e3b8276a8d673363b529d15a61c1a"
         },
         {
           "sourceFile": "s2/cmd/internal/filepathx/LICENSE",
-          "file": "licenses/interconnect-github.com-klauspost-compress-v1.19.1-s2-cmd-internal-filepathx-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-klauspost-compress-v1.20.1-s2-cmd-internal-filepathx-LICENSE.txt",
           "sha256": "8582c87d9a6baa28f7827c5205b7d16c3179bc794ebd4c7cc287c49a89b7eaa1"
         },
         {
           "sourceFile": "s2/cmd/internal/readahead/LICENSE",
-          "file": "licenses/interconnect-github.com-klauspost-compress-v1.19.1-s2-cmd-internal-readahead-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-klauspost-compress-v1.20.1-s2-cmd-internal-readahead-LICENSE.txt",
           "sha256": "10fa24a602fde465db603cd5d546e37e33642a73cd24ddf5910be81724fec8b2"
         },
         {
           "sourceFile": "snappy/LICENSE",
-          "file": "licenses/interconnect-github.com-klauspost-compress-v1.19.1-snappy-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-klauspost-compress-v1.20.1-snappy-LICENSE.txt",
           "sha256": "f69f157b0be75da373605dbc8bbf142e8924ee82d8f44f11bcaf351335bf98cf"
         },
         {
           "sourceFile": "snappy/xerial/LICENSE",
-          "file": "licenses/interconnect-github.com-klauspost-compress-v1.19.1-snappy-xerial-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-klauspost-compress-v1.20.1-snappy-xerial-LICENSE.txt",
           "sha256": "d4ff111fa30ac75e28dca3868de957a3b73ff50b76bc4b8fe5c3a1f008d26703"
         },
         {
           "sourceFile": "zstd/internal/xxhash/LICENSE.txt",
-          "file": "licenses/interconnect-github.com-klauspost-compress-v1.19.1-zstd-internal-xxhash-LICENSE.txt.txt",
+          "file": "licenses/interconnect-github.com-klauspost-compress-v1.20.1-zstd-internal-xxhash-LICENSE.txt.txt",
           "sha256": "f566a9f97bacdaf00d9f21dd991e81dc11201c4e016c86b470799429a1c9a79c"
-        }
-      ]
-    },
-    {
-      "kind": "go",
-      "name": "github.com/kortschak/wol",
-      "version": "v0.0.0-20200729010619-da482cc4850a",
-      "notices": [
-        {
-          "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-kortschak-wol-v0.0.0-20200729010619-da482cc4850a-LICENSE.txt",
-          "sha256": "b8a8ea5545450fdd015bd67035d9bbae2e9e2c31b0e0c14dc4ec4a8f205c59aa"
         }
       ]
     },
@@ -348,6 +235,66 @@
           "sourceFile": "LICENSE",
           "file": "licenses/interconnect-github.com-kr-fs-v0.1.0-LICENSE.txt",
           "sha256": "dd26a7abddd02e2d0aba97805b31f248ef7835d9e10da289b22e3b8ab78b324d"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/magisterquis/connectproxy",
+      "version": "v0.0.0-20200725203833-3582e84f0c9b",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-magisterquis-connectproxy-v0.0.0-20200725203833-3582e84f0c9b-LICENSE.txt",
+          "sha256": "6650a5a078489c63fc8d1b35e79a7b1ab78693d53dc540c5497e1aeddc69b3eb"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/mattn/go-colorable",
+      "version": "v0.1.16",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-mattn-go-colorable-v0.1.16-LICENSE.txt",
+          "sha256": "88a2379b3ca34bf5c57127aff9dcb802bbb60ece0805cdbda65b3bd115f971d9"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/mattn/go-isatty",
+      "version": "v0.0.24",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-mattn-go-isatty-v0.0.24-LICENSE.txt",
+          "sha256": "08eab1118c80885fa1fa6a6dd7303f65a379fcb3733e063d20d1bbc2c76e6fa1"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/minio/highwayhash",
+      "version": "v1.0.4",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-minio-highwayhash-v1.0.4-LICENSE.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/mitchellh/colorstring",
+      "version": "v0.0.0-20190213212951-d06e56a500db",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-mitchellh-colorstring-v0.0.0-20190213212951-d06e56a500db-LICENSE.txt",
+          "sha256": "3c377fad2e5ae1d7081c7c2f16da867a87cca1d1f5f1aa7ed0b8a16bb553142a"
         }
       ]
     },
@@ -366,11 +313,11 @@
     {
       "kind": "go",
       "name": "github.com/pires/go-proxyproto",
-      "version": "v0.8.1",
+      "version": "v0.15.0",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-pires-go-proxyproto-v0.8.1-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-pires-go-proxyproto-v0.15.0-LICENSE.txt",
           "sha256": "666f1951be1d543e744818d232bb311a4a310fd1d344288642c796fca39af3c7"
         }
       ]
@@ -378,12 +325,109 @@
     {
       "kind": "go",
       "name": "github.com/pkg/sftp",
-      "version": "v1.13.6",
+      "version": "v1.13.11",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-pkg-sftp-v1.13.6-LICENSE.txt",
+          "file": "licenses/interconnect-worker-github.com-pkg-sftp-v1.13.11-LICENSE.txt",
           "sha256": "f5b5087b8e596d015cfea7db26527fe67a196c18ca37415c288dd2534ff74c37"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/rivo/uniseg",
+      "version": "v0.4.7",
+      "notices": [
+        {
+          "sourceFile": "LICENSE.txt",
+          "file": "licenses/interconnect-github.com-rivo-uniseg-v0.4.7-LICENSE.txt.txt",
+          "sha256": "a59885f5f0f3b3c07cf9444db5fe399b6f0791eac82055f7b85cc65500551039"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/sabhiram/go-gitignore",
+      "version": "v0.0.0-20210923224102-525f6e181f06",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-sabhiram-go-gitignore-v0.0.0-20210923224102-525f6e181f06-LICENSE.txt",
+          "sha256": "55bff76239ca79b99d2e6b986d67c17e125cf7afa2d4d22eda54c02b791460a1"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/schollz/croc/v11",
+      "version": "v11.5.5",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-schollz-croc-v11-v11.5.5-LICENSE.txt",
+          "sha256": "0de8a5845e8f6b92e1d27461d164466f39557ccbc986b07d906571a3c4e851b6"
+        },
+        {
+          "sourceFile": "internal/cli/LICENSE",
+          "file": "licenses/interconnect-github.com-schollz-croc-v11-v11.5.5-internal-cli-LICENSE.txt",
+          "sha256": "66a52994aa33d761e82814ef647fe43f32051f7631e51cf62c0dc34441d84d9d"
+        },
+        {
+          "sourceFile": "internal/tailcat/LICENSE",
+          "file": "licenses/interconnect-github.com-schollz-croc-v11-v11.5.5-internal-tailcat-LICENSE.txt",
+          "sha256": "a7ec3a027e22a28126dc3ad95ffc301dbc46a92cb6d66af2e2635c1abf9bc863"
+        },
+        {
+          "sourceFile": "packaging/distributions/debian/copyright",
+          "file": "licenses/interconnect-github.com-schollz-croc-v11-v11.5.5-packaging-distributions-debian-copyright.txt",
+          "sha256": "9515e7b6e1b75164c697076bb927c6501fe5a1d3baf393f6273ad4f68baa0b10"
+        },
+        {
+          "sourceFile": "packaging/distributions/fedora/license-report.json",
+          "file": "licenses/interconnect-github.com-schollz-croc-v11-v11.5.5-packaging-distributions-fedora-license-report.json.txt",
+          "sha256": "edefdb7a6634f162f6ee31433a0a3ef4f7ceb25acafb4b6154e28aebbf0b99d3"
+        },
+        {
+          "sourceFile": "src/codephrase/wordlists/LICENSE.txt",
+          "file": "licenses/interconnect-github.com-schollz-croc-v11-v11.5.5-src-codephrase-wordlists-LICENSE.txt.txt",
+          "sha256": "cbd5af318286b74656f145dff5091907cc23d6d8c9ad09e0291ec2497792ba41"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/schollz/pake/v3",
+      "version": "v3.2.0",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-schollz-pake-v3-v3.2.0-LICENSE.txt",
+          "sha256": "212186b36a3918811ed69d8df18254c8e468f11dd68c690e231f55ff9bd98dc1"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/schollz/peerdiscovery",
+      "version": "v1.7.6",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-schollz-peerdiscovery-v1.7.6-LICENSE.txt",
+          "sha256": "212186b36a3918811ed69d8df18254c8e468f11dd68c690e231f55ff9bd98dc1"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/schollz/progressbar/v3",
+      "version": "v3.19.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-schollz-progressbar-v3-v3.19.1-LICENSE.txt",
+          "sha256": "0c27314bc4294775c1c7768690fa90b1884a3e27b72b92376ee505963f916e8a"
         }
       ]
     },
@@ -438,11 +482,11 @@
     {
       "kind": "go",
       "name": "github.com/tailscale/hujson",
-      "version": "v0.0.0-20260302212456-ecc657c15afd",
+      "version": "v0.0.0-20260727124030-b80ff77dac4f",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-tailscale-hujson-v0.0.0-20260302212456-ecc657c15afd-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-tailscale-hujson-v0.0.0-20260727124030-b80ff77dac4f-LICENSE.txt",
           "sha256": "a125b6c2721809b6c2a8761771932611833008ed8697d752b3e35d36e4bbd83e"
         }
       ]
@@ -462,48 +506,48 @@
     {
       "kind": "go",
       "name": "github.com/tailscale/web-client-prebuilt",
-      "version": "v0.0.0-20250124233751-d4cd19a26976",
+      "version": "v0.0.0-20260917222731-e0ed2d0d0fea",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-tailscale-web-client-prebuilt-v0.0.0-20250124233751-d4cd19a26976-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-tailscale-web-client-prebuilt-v0.0.0-20260917222731-e0ed2d0d0fea-LICENSE.txt",
           "sha256": "d1ee1c7947d4b2c1963ea214d5324f1d4c89f2f1d0f0224889b4dfb868dad725"
         }
       ]
     },
     {
       "kind": "go",
-      "name": "github.com/tailscale/wf",
-      "version": "v0.0.0-20240214030419-6fbb0a674ee6",
-      "notices": [
-        {
-          "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-tailscale-wf-v0.0.0-20240214030419-6fbb0a674ee6-LICENSE.txt",
-          "sha256": "52f083027e11f45e01e8076568316b80e11672f61295b59fb444b89b17b1b739"
-        }
-      ]
-    },
-    {
-      "kind": "go",
       "name": "github.com/tailscale/wireguard-go",
-      "version": "v0.0.0-20260911194433-e3222a3340cd",
+      "version": "v0.0.0-20260928213032-417aef361226",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-tailscale-wireguard-go-v0.0.0-20260911194433-e3222a3340cd-LICENSE.txt",
+          "file": "licenses/interconnect-github.com-tailscale-wireguard-go-v0.0.0-20260928213032-417aef361226-LICENSE.txt",
           "sha256": "91276db973f25602d1aa43491f59cbc84cb88e6f151e1d0cc82a755563ce0195"
         }
       ]
     },
     {
       "kind": "go",
-      "name": "github.com/tailscale/xnet",
-      "version": "v0.0.0-20240729143630-8497ac4dab2e",
+      "name": "github.com/tscholl2/siec",
+      "version": "v0.0.0-20240310163802-c2c6f6198406",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-github.com-tailscale-xnet-v0.0.0-20240729143630-8497ac4dab2e-LICENSE.txt",
-          "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+          "file": "licenses/interconnect-github.com-tscholl2-siec-v0.0.0-20240310163802-c2c6f6198406-LICENSE.txt",
+          "sha256": "eadbbed003b10d61a34b01f66c8e8563334a069982329ec58c0e71d64105ca1a"
+        }
+      ]
+    },
+    {
+      "kind": "go",
+      "name": "github.com/twmb/murmur3",
+      "version": "v1.2.1",
+      "notices": [
+        {
+          "sourceFile": "LICENSE",
+          "file": "licenses/interconnect-github.com-twmb-murmur3-v1.2.1-LICENSE.txt",
+          "sha256": "4228ef1819124b490d2e6a88e8c5e1348bedf32ff05b8fb5deed49921600e503"
         }
       ]
     },
@@ -546,11 +590,11 @@
     {
       "kind": "go",
       "name": "golang.org/x/crypto",
-      "version": "v0.57.0",
+      "version": "v0.58.0",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-golang.org-x-crypto-v0.57.0-LICENSE.txt",
+          "file": "licenses/interconnect-golang.org-x-crypto-v0.58.0-LICENSE.txt",
           "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
         }
       ]
@@ -558,11 +602,11 @@
     {
       "kind": "go",
       "name": "golang.org/x/exp",
-      "version": "v0.0.0-20260410095643-746e56fc9e2f",
+      "version": "v0.0.0-20260908205506-85c1c2202aba",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-golang.org-x-exp-v0.0.0-20260410095643-746e56fc9e2f-LICENSE.txt",
+          "file": "licenses/interconnect-golang.org-x-exp-v0.0.0-20260908205506-85c1c2202aba-LICENSE.txt",
           "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
         }
       ]
@@ -570,11 +614,11 @@
     {
       "kind": "go",
       "name": "golang.org/x/net",
-      "version": "v0.59.0",
+      "version": "v0.61.0",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-golang.org-x-net-v0.59.0-LICENSE.txt",
+          "file": "licenses/interconnect-golang.org-x-net-v0.61.0-LICENSE.txt",
           "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
         }
       ]
@@ -582,11 +626,11 @@
     {
       "kind": "go",
       "name": "golang.org/x/sync",
-      "version": "v0.23.0",
+      "version": "v0.24.0",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-golang.org-x-sync-v0.23.0-LICENSE.txt",
+          "file": "licenses/interconnect-golang.org-x-sync-v0.24.0-LICENSE.txt",
           "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
         }
       ]
@@ -594,11 +638,11 @@
     {
       "kind": "go",
       "name": "golang.org/x/sys",
-      "version": "v0.48.0",
+      "version": "v0.49.0",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-golang.org-x-sys-v0.48.0-LICENSE.txt",
+          "file": "licenses/interconnect-golang.org-x-sys-v0.49.0-LICENSE.txt",
           "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
         }
       ]
@@ -606,11 +650,11 @@
     {
       "kind": "go",
       "name": "golang.org/x/term",
-      "version": "v0.46.0",
+      "version": "v0.47.0",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-golang.org-x-term-v0.46.0-LICENSE.txt",
+          "file": "licenses/interconnect-golang.org-x-term-v0.47.0-LICENSE.txt",
           "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
         }
       ]
@@ -618,11 +662,11 @@
     {
       "kind": "go",
       "name": "golang.org/x/text",
-      "version": "v0.42.0",
+      "version": "v0.43.0",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-golang.org-x-text-v0.42.0-LICENSE.txt",
+          "file": "licenses/interconnect-golang.org-x-text-v0.43.0-LICENSE.txt",
           "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
         }
       ]
@@ -630,11 +674,11 @@
     {
       "kind": "go",
       "name": "golang.org/x/time",
-      "version": "v0.15.0",
+      "version": "v0.16.0",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-golang.org-x-time-v0.15.0-LICENSE.txt",
+          "file": "licenses/interconnect-golang.org-x-time-v0.16.0-LICENSE.txt",
           "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
         }
       ]
@@ -654,23 +698,23 @@
     {
       "kind": "go",
       "name": "golang.zx2c4.com/wireguard/windows",
-      "version": "v0.5.3",
+      "version": "v1.1.1",
       "notices": [
         {
           "sourceFile": "COPYING",
-          "file": "licenses/interconnect-golang.zx2c4.com-wireguard-windows-v0.5.3-COPYING.txt",
-          "sha256": "76ab82fe34e6ad03d064b0fdf4ba892e28fc20f740aeda49b5ac8d58c727a20f"
+          "file": "licenses/interconnect-golang.zx2c4.com-wireguard-windows-v1.1.1-COPYING.txt",
+          "sha256": "fb2a821211c8d0022e3e630a126783b23b58c6dc21c1855154fc77c9c6452166"
         }
       ]
     },
     {
       "kind": "go",
       "name": "gvisor.dev/gvisor",
-      "version": "v0.0.0-20260915211658-a6f909f08a72",
+      "version": "v0.0.0-20260926034703-66ed76bcb72f",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-gvisor.dev-gvisor-v0.0.0-20260915211658-a6f909f08a72-LICENSE.txt",
+          "file": "licenses/interconnect-gvisor.dev-gvisor-v0.0.0-20260926034703-66ed76bcb72f-LICENSE.txt",
           "sha256": "0fbab5c58efbdf6d31e8085214f2dd821659c03d73cff3ed2b08e98826ea1cd9"
         }
       ]
@@ -678,38 +722,27 @@
     {
       "kind": "go",
       "name": "tailscale.com",
-      "version": "v1.103.0-pre.0.20260916030321-a2263542f260",
+      "version": "v1.104.1",
       "notices": [
         {
           "sourceFile": "LICENSE",
-          "file": "licenses/interconnect-tailscale.com-v1.103.0-pre.0.20260916030321-a2263542f260-LICENSE.txt",
+          "file": "licenses/interconnect-tailscale.com-v1.104.1-LICENSE.txt",
           "sha256": "a7ca6186a7963a0a60740f6047760eecd7a0234e8c38bd7e1e0bbcb324bda45b"
         },
         {
           "sourceFile": "derp/xdp/headers/LICENSE.BSD-2-Clause",
-          "file": "licenses/interconnect-tailscale.com-v1.103.0-pre.0.20260916030321-a2263542f260-derp-xdp-headers-LICENSE.BSD-2-Clause.txt",
+          "file": "licenses/interconnect-tailscale.com-v1.104.1-derp-xdp-headers-LICENSE.BSD-2-Clause.txt",
           "sha256": "e1638b9a0c68ca90fad3df1d6b4e430804d2fbdc15e58d02cffddfae38953bbf"
         },
         {
           "sourceFile": "tempfork/spf13/cobra/LICENSE.txt",
-          "file": "licenses/interconnect-tailscale.com-v1.103.0-pre.0.20260916030321-a2263542f260-tempfork-spf13-cobra-LICENSE.txt.txt",
+          "file": "licenses/interconnect-tailscale.com-v1.104.1-tempfork-spf13-cobra-LICENSE.txt.txt",
           "sha256": "5e3400b93bbb099e83e52bab885e7441750673c21f97988ca3f1240639b63283"
         },
         {
           "sourceFile": "tstest/tailmac/LICENSE/LICENSE.txt",
-          "file": "licenses/interconnect-tailscale.com-v1.103.0-pre.0.20260916030321-a2263542f260-tstest-tailmac-LICENSE-LICENSE.txt.txt",
+          "file": "licenses/interconnect-tailscale.com-v1.104.1-tstest-tailmac-LICENSE-LICENSE.txt.txt",
           "sha256": "39f3ea9e9fc438419ed8c132f2a6a5f45f6f2d6ba47df100513f2b65d751aecd"
-        }
-      ]
-    },
-    {
-      "kind": "toolchain",
-      "name": "Go",
-      "version": "go1.27.1",
-      "notices": [
-        {
-          "file": "licenses/interconnect-go-1.27.1-LICENSE.txt",
-          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
         }
       ]
     },

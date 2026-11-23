@@ -6,7 +6,7 @@
       "repository": "https://github.com/yetone/magpie",
       "commit": "f65fe92ef93557e9a2098d2606a4d9c0175a4213",
       "license": "MIT",
-      "scope": "Native MyGo provider connections, account import/export and preferences, complete model settings and local gateway administration. WinOne groups infrequent policies in provider settings, prioritizes daily model selection and initial connection recovery, and shares dialog and row geometry. Vendor reports remain separate from user overrides. Use the original model catalog, gateway request handling, provider routing strategies and complete paste parsers; retain Host data, credential and process ownership without the removed management applications.",
+      "scope": "Native MyGo provider connections, account import/export and preferences, complete model settings and local gateway administration. WinOne groups infrequent policies in provider settings, prioritizes daily model selection and initial connection recovery, and shares dialog and row geometry. Vendor reports remain separate from user overrides. Use the original model catalog, gateway request handling, provider routing strategies and complete paste parsers; retain Host data, credential and process ownership without the removed management applications. The embedded gateway excludes the standalone DeepSeek chat routes and lazily initializes their archived resources so unused page code is removed by the Go linker.",
       "sourceFiles": [
         "internal/gui/trace.go",
         "internal/gui/providers.go",
@@ -116,7 +116,7 @@
         },
         {
           "path": "build/prepare-ai-gateway.ps1",
-          "sha256": "f2793b203055785f94fa74edf78fc4ad8ff2137bec0a01d8bae28b8d0ee36572"
+          "sha256": "ae58d46c69ab6d6dc7320935583f4ca7e542353b487cfe62d06c7d17f57fa3af"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/connection_options.go",
@@ -1590,7 +1590,7 @@
       "repository": "https://github.com/tailscale/tailcat",
       "commit": "15ab9e68bfc6534a61797d7af28cedd42b54a3a5",
       "license": "BSD-3-Clause",
-      "scope": "Official v0.7.0 library dependency; forward listener lifecycle adapted from cmd/tailcat/forward.go. WinOne adds process control and a standard HTTP gateway to the existing FileShare service.",
+      "scope": "Official v0.7.0 library dependency; forward listener lifecycle adapted from cmd/tailcat/forward.go. WinOne adds process control and a standard HTTP gateway to the existing FileShare service. Transfer and Peer now share one compiled worker with an explicit role argument, keeping one isolated process per task. Tailscale dependencies are unified to 1.104.1.",
       "sourceFiles": [
         "cmd/tailcat/forward.go"
       ],
@@ -1604,23 +1604,23 @@
       "files": [
         {
           "path": "modules/interconnect/peer/main.go",
-          "sha256": "1c7dea87d9fb579644e5aa73581f687156e60ed5742b4e966a97b65fa63f38f7"
+          "sha256": "1357b30fcb72cde375227b2bac6eaa291d2a28eec69d111ce6d3f42940515000"
         },
         {
           "path": "modules/interconnect/peer/main_test.go",
-          "sha256": "f5cead881329874cf5e7bc031dae1a8e6552bf749ab3698d39e94f58bafc5fc9"
+          "sha256": "35023bc01acc0b015db9998c6e349ae51e84b475c236a82297e8bba71a3c95ab"
         },
         {
           "path": "modules/interconnect/peer/network_test.go",
-          "sha256": "02b6d748e0b55b8b612bc252e02c88f1ceb2d48bb53f4ce8855b9d630e47170a"
+          "sha256": "633b69d3b6ff5de63af91e73851c3ccbda4447833a8baf640086c696216c0365"
         },
         {
           "path": "modules/interconnect/peer/share_test.go",
-          "sha256": "9339c783a858746a596bea19e122bd54fa0f09c96501056c6509c35c39b02bd9"
+          "sha256": "4e7923679d020e9694fccf7fab0ba2b35625713d58dbb6a9a02f29763699764d"
         },
         {
           "path": "modules/interconnect/peer/source_windows.go",
-          "sha256": "7394e98f6eb375bff31f407051d2fac7478a7a7491eddb3c14260abe8801b8da"
+          "sha256": "1bf3c94e6466553f154e2ee26f201084cd04d0f1b33e24e99372e3477ce4dab2"
         }
       ]
     },
@@ -1845,7 +1845,34 @@
       "files": [
         {
           "path": "modules/capture/Ocr/OcrReadingOrder.cs",
-          "sha256": "c8eaf8d4ac4922f62cd5cd1096c64fb607c9d1cd49f2926dd3f8381bb7ce012d"
+          "sha256": "49c3e2e42e1c58e15b821574327cc6f1e3f53fec6c93d138dead546189747137"
+        }
+      ]
+    },
+    {
+      "name": "umi-ocr-paragraph-layout",
+      "repository": "https://github.com/hiroi-sora/Umi-OCR",
+      "commit": "83173efc4f4453b41223ea96d63d44534bf0505c",
+      "license": "MIT",
+      "scope": "C# adaptation of GapTree column reading order and two-pass natural-paragraph classification for plain OCR text. WinOne keeps narrow word gaps together and preserves headings, list entries, code and large vertical gaps. Original-image character boxes and in-place translation use the unmerged OCR layout.",
+      "sourceFiles": [
+        "UmiOCR-data/py_src/ocr/tbpu/parser_tools/gap_tree.py",
+        "UmiOCR-data/py_src/ocr/tbpu/parser_tools/paragraph_parse.py"
+      ],
+      "notices": [
+        {
+          "file": "licenses/umi-ocr-83173ef-LICENSE.txt",
+          "sha256": "04033bb31326a4eeb50f06c71c77dfa80ed3ccf48cf15b715b1e275028321eab"
+        }
+      ],
+      "files": [
+        {
+          "path": "modules/capture/Ocr/OcrGapTree.cs",
+          "sha256": "2df41948dda54d74988fa2688cae15aed53806f2aee593d356b88144eec3abb5"
+        },
+        {
+          "path": "modules/capture/Ocr/OcrParagraphs.cs",
+          "sha256": "7a8bb2731ee83b2afb06b56e2c73a9d1f163643b56e82ea52f281a8e84f349fd"
         }
       ]
     }

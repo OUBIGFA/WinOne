@@ -36,7 +36,7 @@ ShareX 的截图库与贴图代码用于独立 Capture Worker，相关许可保�
 
 OCR 使用 RapidOCRLite 5.0.0a16 官方 Windows x64 SDK，提交 `d26a04c2ea2479509359391c053771b31ba8048e`。引擎及内含的 Indra 实现采用 Apache-2.0，Clipper 采用 Boost-1.0，x86-simd-sort 采用 BSD-3-Clause。许可全文保存在 `third_party/licenses/rapidocrlite-*.txt`。识别模型为原有 PP-OCRv6 small 检测与识别模型，Apache-2.0，字典按识别模型的 character 元数据原样提取。来源和 SHA-256 见 `third_party/ocr-runtime.json`，本包仅分发这两份 PP-OCR 模型。
 
-文字阅读顺序和中西文间距复用 HushSnap `2d43f0e1fd125484bd132ee6e9cad1db65fb7a8c` 的 GPL-3.0 实现，现已等价移植至 C#，对应源码为 `modules/capture/Ocr/OcrReadingOrder.cs`，改编记录与校验见 `third_party/import-notices.json`。原位翻译所需 OpenCV 由下文的 Tools3000 接入独立提供。
+文字阅读顺序和中西文间距复用 HushSnap `2d43f0e1fd125484bd132ee6e9cad1db65fb7a8c` 的 GPL-3.0 实现，现已等价移植至 C#，对应源码为 `modules/capture/Ocr/OcrReadingOrder.cs`。自然段衔接复用 Umi-OCR `83173efc4f4453b41223ea96d63d44534bf0505c` 的 GapTree 和两阶段段落分析，MIT，Copyright (c) 2023 hiroi-sora，适配代码为 `OcrGapTree.cs` 和 `OcrParagraphs.cs`。改编记录与校验见 `third_party/import-notices.json`。原位翻译所需 OpenCV 由下文的 Tools3000 接入独立提供。
 
 OCR 生命周期仅调研参考 SnapFind（MIT，提交 `39416254c48aa7633254ecb79f890802fea2b401`），未引入其代码、模型或运行依赖。低内存说明与本机冷/热调用对照见 `docs/capture-experience-repair.md`；未采用会增加首次识别等待的闲置卸载策略。
 # FileShare · 互联助手局域网服务
@@ -49,7 +49,7 @@ Source and changes: `third_party/file-share/WINONE.md`. Transitive dependency
 licenses: `third_party/interconnect-lan-notices.json`.
 # croc file transfer
 
-Interconnect directly reuses [croc v11.5.5](https://github.com/schollz/croc/tree/8a806c36956533f9c003c55f16e31fcf14133f8e) (MIT), including the original transfer and encrypted storage clients. Adaptations are documented in third_party/croc/WINONE.md. Original dependency licenses and their SHA-256 values are listed in third_party/interconnect-transfer-notices.json; upstream notices remain in third_party/croc/THIRD_PARTY_NOTICES.md.
+Interconnect directly reuses [croc v11.5.5](https://github.com/schollz/croc/tree/8a806c36956533f9c003c55f16e31fcf14133f8e) (MIT), including the original transfer and encrypted storage clients. Adaptations are documented in third_party/croc/WINONE.md. Transfer and Tailcat roles share one executable, with a separate process for every task. Original dependency licenses and their SHA-256 values are listed in third_party/interconnect-worker-notices.json; upstream notices remain in third_party/croc/THIRD_PARTY_NOTICES.md.
 
 # Tailcat · 持续分享与 TCP 通道
 

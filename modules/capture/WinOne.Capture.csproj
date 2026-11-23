@@ -38,4 +38,5 @@
   <Target Name="RequireSource" BeforeTargets="PrepareForBuild">
     <Error Condition="'$(ShareXSourceDirectory)' == ''" Text="Run build/prepare-sharex.ps1 and pass ShareXSourceDirectory" />
   </Target>
+  <Import Project="../../build/capture-publish.targets" />
 </Project>

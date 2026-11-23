@@ -1,4 +1,4 @@
-package main
+package peer
 
 import (
 	"context"
@@ -104,7 +104,7 @@ func (t *task) restartCode(ctx context.Context) {
 		paths = append(paths, path)
 		text = ""
 	}
-	p, err := childProcess("WinOne.Interconnect.Transfer.exe")
+	p, err := childProcess("WinOne.Interconnect.Worker.exe", "transfer")
 	if err != nil {
 		t.setCodeFailure(err)
 		return

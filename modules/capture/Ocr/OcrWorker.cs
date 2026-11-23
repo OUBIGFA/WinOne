@@ -162,7 +162,7 @@ internal sealed class OcrWorker : IDisposable
                     // The native GPU graph supports full OCR. A short-line
                     // rec-only recovery uses the resident CPU model below.
                     if (layout || result.Blocks.Length > 0)
-                        return (OcrReadingOrder.Compose(result.Blocks), result.Lines, "gpu");
+                        return (layout ? "" : OcrReadingOrder.Compose(result.Blocks), result.Lines, "gpu");
                 }
                 catch (InvalidOperationException)
                 {
@@ -177,7 +177,7 @@ internal sealed class OcrWorker : IDisposable
                 var fallback = Run(cpu, ref source, false, 2);
                 return (string.Join('\n', fallback.Blocks.Select(block => block.Text)).Trim(), [], "cpu");
             }
-            return (OcrReadingOrder.Compose(recognized.Blocks), recognized.Lines, "cpu");
+            return (layout ? "" : OcrReadingOrder.Compose(recognized.Blocks), recognized.Lines, "cpu");
         }
         finally { pinned.Free(); }
     }

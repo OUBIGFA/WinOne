@@ -1,4 +1,4 @@
-package main
+package transfer
 
 import (
 	"context"
@@ -56,7 +56,7 @@ func TestUnifiedSendLANCodeAndPersistent(t *testing.T) {
 	options := map[string]any{"relayAddress": listeners[0].Addr().String(), "relayPorts": ports, "relayPassword": "unified-test", "transport": "relay", "disableLocal": true, "noPrompt": true}
 	outage := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Error(w, "isolated outage", 503) }))
 	defer outage.Close()
-	sender := startProbeCommand(t, exec.Command(exe))
+	sender := startProbeCommand(t, exec.Command(exe, "peer"))
 	sender.call(t, "start", map[string]any{"mode": "share_server", "paths": []string{file}, "dataDir": filepath.Join(dir, "share"), "derpMapURL": outage.URL, "transfer": map[string]any{"code": "3456-unified-send-test", "options": options}})
 	var state map[string]any
 	deadline := time.Now().Add(15 * time.Second)

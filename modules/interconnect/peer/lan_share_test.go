@@ -1,4 +1,4 @@
-package main
+package peer
 
 import (
 	"encoding/json"
@@ -28,7 +28,7 @@ func testLANShareRelayFailure(t *testing.T, timeout bool) {
 		t.Skip("network tests are excluded from automatic verification; set WINONE_NETWORK_TESTS=1 to run explicitly")
 	}
 	exe, _ := os.Executable()
-	for _, name := range []string{"WinOne.Interconnect.Lan.exe", "WinOne.Interconnect.Transfer.exe"} {
+	for _, name := range []string{"WinOne.Interconnect.Lan.exe", "WinOne.Interconnect.Worker.exe"} {
 		if _, err := os.Stat(filepath.Join(filepath.Dir(exe), name)); err != nil {
 			t.Skip("run in the isolated interconnect test bundle")
 		}

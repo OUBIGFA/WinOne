@@ -49,8 +49,8 @@
 ## OCR 与快捷入口
 
 - 截图识别并复制默认 Shift+C，框选后在后台识别和复制，不显示截图窗口或结果窗；选区下方显示不抢焦点、不拦截鼠标的“正在识别…”（超过 150 ms 才出现）和“已复制识别结果”（约 1.2 秒后消失），失败时恢复截图并显示错误。截图翻译默认 Alt+Shift+A，快捷助手默认 Ctrl+Shift+Q。
-- OCR 复用 HushSnap 本地能力，翻译参考 zencrop，LLM 使用 Magpie，截图/划词共用 AI 服务、引擎配置与凭据，不各建基座。
+- 本地 OCR 使用 RapidOCRLite 与 PP-OCRv6 small，阅读顺序和中西文间距沿用 HushSnap。纯文字识别与复制按 Umi-OCR 的分栏和自然段规则衔接视觉换行，保留段落、标题、列表与代码边界；原位识别及原位翻译继续使用原始行框和单字坐标。翻译参考 zencrop，LLM 使用 Magpie，截图/划词共用 AI 服务、引擎配置与凭据。
 - OCR 常驻优化参考 SnapFind，分别测截图唤起、冷加载、热识别和闲置成本；未经实测不牺牲就绪体验，不把卸载模型或 EmptyWorkingSet 当作零成本瞬时识别。等效方案未证明前保留就绪模型；更换引擎须与当前实现及 PaddleOCR v6 比较质量和性能，不仅按版本名决定。
-- 本地 OCR 常驻 CPU 引擎；选区不小于 100 万像素时临时创建 DirectML 显卡会话，识别后立即释放。DirectML 会话常驻会占用 0.9–5.5 GB 提交内存，不得常驻。显卡不可用或出错时该 OCR 进程改用 CPU，结果不变；`WINONE_OCR_DEVICE=cpu` 强制 CPU。用户识别期间 OCR 进程关闭 Windows 执行速度节流（EcoQoS），结束后恢复原策略。
+- 本地 OCR 常驻 CPU 引擎；选区不小于 100 万像素时临时创建 Vulkan 显卡会话，识别后释放模型及可回收缓冲。采用 RapidOCRLite 的 device-local 分配，避免独立显卡 host-visible 堆不足。显卡不可用或出错时该 OCR 进程改用 CPU；`WINONE_OCR_DEVICE=cpu` 强制 CPU。用户识别期间 OCR 进程关闭 Windows 执行速度节流（EcoQoS），结束后恢复原策略。
 
 实现细节按需查阅 [多供应商与任务分配](../AI服务多供应商与任务分配.md)、[结果界面](../结果与AI对话重构.md)、[本地网关与划词](../本地网关与结果划词.md)。

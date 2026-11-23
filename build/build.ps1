@@ -101,8 +101,7 @@ if($Downloader){$learningPrepare.Downloader=$Downloader}
 & (Join-Path $PSScriptRoot 'build-diagrams.ps1') -OutputDirectory (Join-Path $output 'shared/ui') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $DiagramTargetDirectory -SkipTests:$CompileOnly
 & (Join-Path $PSScriptRoot 'build-selection.ps1') -OutputDirectory (Join-Path $output 'selection') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $SelectionTargetDirectory -SkipTests:$CompileOnly
 & (Join-Path $PSScriptRoot 'build-interconnect-lan.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -CargoExe $CargoExe -Test:(-not $CompileOnly)
-& (Join-Path $PSScriptRoot 'build-interconnect-transfer.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -GoExe $ResultGoExe -Test:(-not $CompileOnly) -TestDirectory (Join-Path (Split-Path -Parent $output) 'interconnect-transfer-tests')
-& (Join-Path $PSScriptRoot 'build-interconnect-peer.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -GoExe $ResultGoExe -Test:(-not $CompileOnly) -TestDirectory (Join-Path (Split-Path -Parent $output) 'interconnect-peer-tests')
+& (Join-Path $PSScriptRoot 'build-interconnect-worker.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -GoExe $ResultGoExe -Test:(-not $CompileOnly) -TestDirectory (Join-Path (Split-Path -Parent $output) 'interconnect-worker-tests')
 & (Join-Path $PSScriptRoot 'build-capture-regions.ps1') -OutputDirectory (Join-Path $output 'capture')
 if(-not $CompileOnly){
 $regionLifetimeProbe = Join-Path (Split-Path -Parent $output) 'capture-regions-lifetime-probe'

@@ -16,6 +16,22 @@ internal static class Program
             GeometryAndToolbar();
             var engine = new NativeRecordingEngine();
             Check(engine.CallAsync("status").GetAwaiter().GetResult().Phase == "idle", "Native ABI did not return idle");
+            if (args.Length == 2 && args[1] == "--ui")
+            {
+                // Owned forms on the caller's private desktop exercise the
+                // production panel without invoking desktop acquisition.
+                using var capture = new Form { ClientSize = new Size(800, 500), ShowInTaskbar = false };
+                Exception? panelFailure = null;
+                capture.Shown += (_, _) => capture.BeginInvoke((Action)(async () => {
+                    try { await RecordingUiTests.Run(capture, output); }
+                    catch (Exception error) { panelFailure = error; }
+                    finally { capture.Close(); }
+                }));
+                Application.Run(capture);
+                if (panelFailure is not null) throw panelFailure;
+                Console.WriteLine("PASS: recording panel controls, themes, languages and output lifecycle");
+                return 0;
+            }
             if (args.Length == 1) { Console.WriteLine("PASS: physical selection, format defaults, fixed toolbar ordering, edit guards and native ABI"); return 0; }
             if (args[1] != "--live") return 2;
             // Explicit system test: record only this opaque, owned fixture. The

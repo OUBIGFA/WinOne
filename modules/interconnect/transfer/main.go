@@ -1,6 +1,6 @@
 // Each process owns exactly one croc operation. WinOne supplies UI and lifetime;
 // all transfer, crypto, reconnect, collision and store protocols remain upstream.
-package main
+package transfer
 
 import (
 	"bufio"
@@ -458,7 +458,9 @@ func qrData(value string) string {
 	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(data)
 }
 
-func main() {
+// Run owns one role in a dedicated worker process. The shared executable
+// shares compiled dependencies, while requests and cancellation remain isolated.
+func Run() {
 	protocolInput, protocolOutput := os.Stdin, os.Stdout
 	log.SetOutput(io.Discard)
 	diagnostics := &diagnostics{}

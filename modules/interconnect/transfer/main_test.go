@@ -1,4 +1,4 @@
-package main
+package transfer
 
 import (
 	"bufio"
@@ -24,7 +24,7 @@ import (
 // stdout, proxy globals and crypto state, exactly as the Windows Host does.
 func TestAdapterProcess(t *testing.T) {
 	if len(os.Args) > 1 && os.Args[len(os.Args)-1] == "winone-transfer-probe" {
-		main()
+		Run()
 		os.Exit(0)
 	}
 }

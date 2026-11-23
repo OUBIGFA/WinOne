@@ -217,13 +217,13 @@
       "version": "v11.5.5",
       "commit": "8a806c36956533f9c003c55f16e31fcf14133f8e",
       "source": "third_party/croc",
-      "notices": "third_party/interconnect-transfer-notices.json"
+      "notices": "third_party/interconnect-worker-notices.json"
     },
     "peer": {
       "repository": "https://github.com/tailscale/tailcat",
       "version": "v0.7.0",
       "commit": "15ab9e68bfc6534a61797d7af28cedd42b54a3a5",
-      "notices": "third_party/interconnect-peer-notices.json"
+      "notices": "third_party/interconnect-worker-notices.json"
     }
   }
 }

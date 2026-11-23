@@ -12,6 +12,7 @@
 | 当前 main 的模块边界与移除记录 | [main 模块精简与验收](module-removal-20261112.md) |
 | 安装包体积、截图与 Shift+C 闲置待命 | [实现与验证记录](capture-readiness-20261113.md) |
 | RapidOCRLite 替换、OCR 与截图减重 | [2026-11-23 接入与对照](rapidocrlite-20261123.md) |
+| OCR 自然段复制及进一步减重 | [2026-11-24 实施与验证](slim-paragraphs-20261124.md) |
 | 发布前全面审核、启动/资源与修复验证 | [2026-11-20 发布前审核](release-audit-20261120.md)；[2026-11-08 历史审核](audit-2026-11-08.md) |
 | 当前技术路线与服务边界 | [架构与性能约定](working-rules/architecture-performance.md)；[早期架构计划](WinOne架构与开发计划.md) 仅供追溯 |
 | 当前布局、导航与交互 | [界面约定](working-rules/ui.md)；设计依据见[早期体验研究](统一体验与设计依据.md)、[重构记录](体验重构计划.md) |

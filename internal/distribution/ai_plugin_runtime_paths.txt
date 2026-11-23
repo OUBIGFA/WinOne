@@ -327,7 +327,6 @@ shared/ai/plugins/sensenova/lib/quota.mjs
 shared/ai/plugins/sensenova/opencode.mjs
 shared/ai/plugins/sensenova/opencode2.mjs
 shared/ai/plugins/sensenova/package.json
-shared/ai/plugins/source-lock.json
 shared/ai/plugins/tabbit/LICENSE
 shared/ai/plugins/tabbit/README.md
 shared/ai/plugins/tabbit/index.mjs

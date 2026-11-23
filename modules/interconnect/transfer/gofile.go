@@ -1,6 +1,6 @@
 // GoFile's documented guest API is separate from croc's encrypted protocol.
 // Only HTTPS transport encryption applies; the UI must not call it E2EE.
-package main
+package transfer
 
 import (
 	"bytes"
