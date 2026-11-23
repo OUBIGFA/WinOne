@@ -14,6 +14,8 @@ foreach($component in $catalog.components){
  }
 }
 $go=(Get-Command $GoExe -ErrorAction Stop).Source
+$priorRoot=$env:GOROOT
+$env:GOROOT=''
 Push-Location (Join-Path $root 'modules/interconnect')
 try {
  $modules=@(& $go list -mod=readonly -deps -f '{{if .Module}}{{.Module.Path}}|{{.Module.Version}}{{end}}' ./cmd/worker)
@@ -24,7 +26,7 @@ try {
  }
  $version=& $go env GOVERSION
  if($LASTEXITCODE -ne 0 -or -not $records.ContainsKey('toolchain|Go|'+$version)){throw 'Transfer Go toolchain notice mismatch'}
-}finally{Pop-Location}
+}finally{Pop-Location;$env:GOROOT=$priorRoot}
 if($BundleDirectory){
  $binary=Join-Path $BundleDirectory 'shared/interconnect/WinOne.Interconnect.Worker.exe'
  $info=@(& $go version -m $binary)
