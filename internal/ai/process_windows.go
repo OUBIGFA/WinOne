@@ -10,7 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
-	"unsafe"
+
+	"winone/internal/desktopparent"
 )
 
 func hideConsole(command *exec.Cmd) {
@@ -34,39 +35,24 @@ func limitWorkerPrivilege(command *exec.Cmd) (func(), error) {
 	// Chromium's documented Windows de-elevation starts under Explorer's
 	// process context. Use the same parent-process contract without an untracked
 	// browser relaunch. Verify the shell token's SID/elevation before adoption.
-	user32 := windows.NewLazySystemDLL("user32.dll")
-	shell, _, _ := user32.NewProc("GetShellWindow").Call()
-	if shell == 0 {
+	parent, err := desktopparent.Open()
+	switch {
+	case errors.Is(err, desktopparent.ErrDesktopUnavailable):
 		return nil, errors.New("Windows 桌面尚未就绪，无法启动普通权限 AI 服务")
-	}
-	var pid uint32
-	user32.NewProc("GetWindowThreadProcessId").Call(shell, uintptr(unsafe.Pointer(&pid)))
-	process, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.PROCESS_CREATE_PROCESS|windows.PROCESS_DUP_HANDLE, false, pid)
-	if err != nil {
+	case errors.Is(err, desktopparent.ErrDifferentAccount):
+		return nil, errors.New("无法确认 AI 浏览器的 Windows 账户")
+	case err != nil:
 		return nil, err
 	}
-	fail := func(err error) (func(), error) { windows.CloseHandle(process); return nil, err }
-	var token windows.Token
-	if err = windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
-		return fail(err)
-	}
-	defer token.Close()
-	if token.IsElevated() {
-		return fail(errors.New("AI 浏览器运行环境仍为管理员权限"))
-	}
-	user, err := token.GetTokenUser()
-	if err != nil {
-		return fail(err)
-	}
-	owner, err := current.GetTokenUser()
-	if err != nil || !user.User.Sid.Equals(owner.User.Sid) {
-		return fail(errors.New("无法确认 AI 浏览器的 Windows 账户"))
+	if parent.Elevated {
+		parent.Close()
+		return nil, errors.New("AI 浏览器运行环境仍为管理员权限")
 	}
 	if command.SysProcAttr == nil {
 		command.SysProcAttr = &syscall.SysProcAttr{}
 	}
-	command.SysProcAttr.ParentProcess = syscall.Handle(process)
-	return func() { windows.CloseHandle(process) }, nil
+	parent.Apply(command.SysProcAttr)
+	return parent.Close, nil
 }
 
 func isolatedEnvironment(directory string) []string {

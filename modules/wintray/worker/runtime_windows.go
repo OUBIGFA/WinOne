@@ -3,13 +3,12 @@
 package worker
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"image/png"
+	"image"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -78,8 +77,10 @@ type Runtime struct {
 	readyRelease              func()
 	autorun                   bool
 	limitsChecked             bool
-	limitsRevision            string
-	runningLimits             int
+	// iconPNG caches encoded collected icons; used only on the UI thread.
+	iconPNG        map[*image.NRGBA][]byte
+	limitsRevision string
+	runningLimits  int
 }
 
 // Run keeps Walk only for its native message loop and per-program tray callbacks.
@@ -629,15 +630,18 @@ func (r *Runtime) Handle(request host.Request) host.Response {
 		}
 		icons := []iconView{}
 		if err := r.onUI(func() error {
+			// The Host polls every second. The box replaces an icon's image only
+			// when the program sets a new one, so encode each image once and keep
+			// only the encodings of images still shown.
+			encoded := make(map[*image.NRGBA][]byte, len(r.iconPNG))
 			for _, icon := range r.box.Icons() {
-				var image bytes.Buffer
-				if icon.Image != nil {
-					if err := png.Encode(&image, icon.Image); err != nil {
-						return err
-					}
+				data, err := cachedPNG(r.iconPNG, encoded, icon.Image)
+				if err != nil {
+					return err
 				}
-				icons = append(icons, iconView{icon.Identity(), icon.DisplayName(), image.Bytes(), icon.ExePath, false})
+				icons = append(icons, iconView{icon.Identity(), icon.DisplayName(), data, icon.ExePath, false})
 			}
+			r.iconPNG = encoded
 			for _, item := range r.hosted.MenuEntries() {
 				icons = append(icons, iconView{item.ID, item.Name, item.Image, item.ExePath, true})
 			}

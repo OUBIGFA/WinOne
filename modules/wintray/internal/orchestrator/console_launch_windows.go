@@ -13,9 +13,12 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+	"winone/internal/desktopparent"
 )
 
-func startConsoleProcess(command *exec.Cmd, hidden bool) (*startedProcess, error) {
+// A non-nil parent starts the console program under the desktop shell, with
+// the shell's token, instead of under WinTray.
+func startConsoleProcess(command *exec.Cmd, hidden bool, parent *desktopparent.Parent) (*startedProcess, error) {
 	application, err := windows.UTF16PtrFromString(command.Path)
 	if err != nil {
 		return nil, err
@@ -47,11 +50,22 @@ func startConsoleProcess(command *exec.Cmd, hidden bool) (*startedProcess, error
 	if hidden {
 		startup.ShowWindow = windows.SW_HIDE
 	}
+	startupInfo := &startup
+	flags := uint32(windows.CREATE_NEW_CONSOLE | windows.CREATE_UNICODE_ENVIRONMENT | windows.CREATE_SUSPENDED)
+	if parent != nil {
+		extended, release, err := parent.StartupInfo(startup)
+		if err != nil {
+			return nil, err
+		}
+		defer release()
+		startupInfo = &extended.StartupInfo
+		flags |= windows.EXTENDED_STARTUPINFO_PRESENT
+	}
 	var info windows.ProcessInformation
 	// Omit STARTF_USESTDHANDLES and handle inheritance: Windows creates stdin,
 	// stdout and stderr for this new console. Suspend only until ownership is
 	// acquired, so an initialization failure cannot orphan a running application.
-	if err = windows.CreateProcess(application, arguments, nil, nil, false, windows.CREATE_NEW_CONSOLE|windows.CREATE_UNICODE_ENVIRONMENT|windows.CREATE_SUSPENDED, &block[0], directory, &startup, &info); err != nil {
+	if err = windows.CreateProcess(application, arguments, nil, nil, false, flags, &block[0], directory, startupInfo, &info); err != nil {
 		return nil, err
 	}
 	defer windows.CloseHandle(info.Thread)

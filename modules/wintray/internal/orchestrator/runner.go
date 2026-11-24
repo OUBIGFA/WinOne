@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+
+	"winone/internal/desktopparent"
 	"winone/modules/wintray/internal/config"
 	"winone/modules/wintray/internal/shellapp"
 )
@@ -77,19 +79,27 @@ func startConfiguredProcess(entry config.ManagedAppEntry, mode launchMode) (*sta
 		return startAssociatedScript(exePath, args, dir, mode != launchVisible)
 	}
 	hidden := mode == launchNoWindow
-	cmd := buildLaunchCommand(exePath, args, hidden)
-	cmd.Dir = dir
-	if cmd.Err != nil {
-		return nil, cmd.Err
-	}
-	if mode == launchHiddenConsole || mode == launchVisible && isConsoleExecutable(cmd.Path) {
-		return startConsoleProcess(cmd, mode == launchHiddenConsole)
-	}
-
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	return &startedProcess{Process: cmd.Process, wait: cmd.Wait}, nil
+	// An exec.Cmd starts only once, so each attempt builds its own command.
+	return launchUnderDesktop(func(parent *desktopparent.Parent) (*startedProcess, error) {
+		cmd := buildLaunchCommand(exePath, args, hidden)
+		cmd.Dir = dir
+		if cmd.Err != nil {
+			return nil, cmd.Err
+		}
+		if mode == launchHiddenConsole || mode == launchVisible && isConsoleExecutable(cmd.Path) {
+			return startConsoleProcess(cmd, mode == launchHiddenConsole, parent)
+		}
+		if parent != nil {
+			if cmd.SysProcAttr == nil {
+				cmd.SysProcAttr = &syscall.SysProcAttr{}
+			}
+			parent.Apply(cmd.SysProcAttr)
+		}
+		if err := cmd.Start(); err != nil {
+			return nil, err
+		}
+		return &startedProcess{Process: cmd.Process, wait: cmd.Wait}, nil
+	})
 }
 
 const (
