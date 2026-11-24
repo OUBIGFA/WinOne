@@ -1,5 +1,11 @@
 # 开发状态
 
+## Solar Linear 图标迁移后的固定安装器（2026-11-24）
+
+- 从干净提交 `a3e30b8`（包含 Solar 图标迁移及来源摘要更新）重新执行完整 `CompileOnly` 构建，MyGo、结果窗、截图工具栏和托盘图标生成检查、来源与许可证清单、573 项载荷清单、静态检查和安装器/卸载器对应校验通过。此前受影响的 `apps/desktop-mygo`、`apps/result-ui`、`modules/nativeui` 测试及 `go vet` 已独立通过。
+- 固定安装器 `dist/release/WinOne-setup.exe` 已更新为 143,111,266 字节，SHA-256 为 `d1b1d075cea0eddbd7b6544e7ef80eb23f2cec7fd576c840266aeac0853775f8`；配套卸载器为 1,301,921 字节，SHA-256 为 `594ff045f6166e28acbd96a73950bb02a26808c14cbad541f11cc36a8c0bc31`。包清单 SHA-256 为 `f5da86b8ad4cb00150405276e5f1f686185d9691a1b88d1924fa80fa371482ee`。
+- 旧固定安装器及摘要备份在 `_temp/solar-installer-f5d9c7b/prior-release/`。本轮未运行真实安装、卸载或桌面生命周期测试，未修改用户真实安装和配置；用户自行运行固定安装器。
+
 ## 程序管理启动的程序不再计入 WinOne（2026-11-24）
 
 - 现象：任务管理器“进程”页 WinOne.Host 一组合计约 1 GB。实测 WinOne 自身全部进程合计约 200 MB 以内，Host 私有内存约 60 MB 且保持稳定；其余来自程序管理直接启动的 QQ、微信等（合计约 1028 MB 工作集）。任务管理器按父进程归组，所以它们被算进 WinOne。WinOne 以管理员身份运行时，这些程序还继承了管理员权限（Argus 即如此），而同一程序经启动任务或 Windows 开机启动时是普通权限。
