@@ -129,12 +129,12 @@
     },
     {
       "kind": "asset",
-      "name": "lucide-react icons",
-      "version": "1.27.0",
+      "name": "Solar Icons (Linear)",
+      "version": "ab241e1bf578dcfe45b0197aee59bd9a08b5fe68",
       "notices": [
         {
-          "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57",
-          "file": "licenses/lucide.txt"
+          "sha256": "15a1e6a916e2fbae056b0d0d27bf8db25499b6753db58f83963ceddd662254d3",
+          "file": "licenses/solar-icons.txt"
         }
       ]
     },

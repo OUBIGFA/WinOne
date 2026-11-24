@@ -64,20 +64,20 @@
     "baseUI": "1.8.0",
     "lucideReact": "1.27.0",
     "trayMenuIcons": {
-      "package": "lucide-react",
-      "version": "1.27.0",
-      "repository": "https://github.com/lucide-icons/lucide",
+      "package": "solar-icons (Linear)",
+      "version": "ab241e1bf578dcfe45b0197aee59bd9a08b5fe68",
+      "repository": "https://github.com/saoudi-h/solar-icons",
       "icons": [
-        "AppWindow",
-        "LogOut"
+        "window-frame",
+        "logout-2"
       ],
       "generator": "build/generate-capture-icons.mjs --tray-only",
-      "license": "ISC AND MIT",
+      "license": "MIT AND CC-BY-4.0",
       "licenseFile": "internal/branding/menu-icons/LICENSE.txt",
-      "licenseSha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57",
+      "licenseSha256": "15a1e6a916e2fbae056b0d0d27bf8db25499b6753db58f83963ceddd662254d3",
       "files": {
-        "internal/branding/menu-icons/open.png": "ef8284b91aabfca2aea73c8abbad99ab3f0394801cd41959f9544e1b6d7b27fd",
-        "internal/branding/menu-icons/exit.png": "71bcb8e08ecc5541552c5f4d639d5b7dfa2d271f74459956558e7b404dd2bf6b"
+        "internal/branding/menu-icons/open.png": "4cb46d8a3178be8d1df9aedcbebd31f05efd2da2dcd70740533306f1fa51c5e3",
+        "internal/branding/menu-icons/exit.png": "30275b9a587adaa1f54e187ad5b7e38407a76a9eb545b04cb794d26109f1a2b8"
       }
     },
     "i18next": "26.4.2",

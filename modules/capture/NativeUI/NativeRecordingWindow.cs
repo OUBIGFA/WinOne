@@ -152,7 +152,7 @@ internal sealed class NativeRecordingWindow : Form
     }
     private void SetPinned(bool pinned)
     {
-        // Same Lucide Pin and 45-degree pinned state as the shared result UI.
+        // Same Solar Pin and 45-degree pinned state as the shared result UI.
         TopMost = pinned; pin.Checked = pinned; pin.Image = pinned ? pinnedImage : pinImage;
         pin.Text = pin.AccessibleName = pin.ToolTipText = pinned ? T("取消固定", "Unpin window") : T("固定窗口", "Pin window");
     }

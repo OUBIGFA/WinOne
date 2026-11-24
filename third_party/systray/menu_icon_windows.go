@@ -38,7 +38,7 @@ func rgbaMenuBitmap(source image.Image) (windows.Handle, error) {
 }
 
 // Tint only the private, already scaled DIB. Premultiplied alpha preserves
-// Lucide's antialiased edges on light/dark surfaces without another resize.
+// the icon's antialiased edges on light/dark surfaces without another resize.
 func tintMenuBitmap(bitmap windows.Handle, foreground uint32) error {
 	var info nativeMenuBitmap
 	if ok, _, _ := menuBitmapInfo.Call(uintptr(bitmap), unsafe.Sizeof(info), uintptr(unsafe.Pointer(&info))); ok == 0 || info.Bits == 0 || info.Width <= 0 || info.Height <= 0 {

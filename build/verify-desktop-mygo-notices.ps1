@@ -51,12 +51,11 @@ foreach($line in $info){
     $parts=$line.Trim() -split '\s+'
     if($parts[0] -eq 'dep' -and $parts[1] -notin @('winone','winone/resultui','winone/modules/nativeui','winone/modules/wintray') -and -not $records.ContainsKey('go|'+$parts[1]+'|'+$parts[2])){throw "Missing MyGo window dependency notice: $line"}
 }
-# The icons come from the locked lucide-react package; its license must be
-# the one recorded.
-$lucide=Join-Path $root 'apps/desktop/frontend/node_modules/lucide-react/LICENSE'
-if(Test-Path -LiteralPath $lucide){
-    $recorded=@($catalog.components | Where-Object {$_.kind -eq 'asset' -and $_.name -eq 'lucide-react icons'})[0].notices[0].sha256
-    if((Get-FileHash -LiteralPath $lucide -Algorithm SHA256).Hash.ToLowerInvariant() -ne $recorded){throw 'Lucide icon license changed'}
+# Every surface's icons come from the locked Solar Linear set; the license
+# shipped beside each generated set must be the one recorded.
+$recorded=@($catalog.components | Where-Object {$_.kind -eq 'asset' -and $_.name -eq 'Solar Icons (Linear)'})[0].notices[0].sha256
+foreach($license in @('apps/desktop-mygo/kit/icons/solar/LICENSE.txt','apps/result-ui/assets/LICENSE.txt','modules/nativeui/modelmenu/icons/LICENSE.txt','modules/capture/NativeUI/Assets/Icons/LICENSE.txt','third_party/systray/assets/Solar-LICENSE.txt','internal/branding/menu-icons/LICENSE.txt')){
+    if((Get-FileHash -LiteralPath (Join-Path $root $license) -Algorithm SHA256).Hash.ToLowerInvariant() -ne $recorded){throw "Solar icon license changed: $license"}
 }
 if($BundleDirectory){
     $licenses=Join-Path $BundleDirectory 'licenses'

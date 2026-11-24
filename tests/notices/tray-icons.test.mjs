@@ -5,15 +5,18 @@ import {createHash} from 'node:crypto';
 const root=new URL('../../',import.meta.url);
 const read=name=>readFileSync(new URL(name,root));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
-test('tray icons retain their locked official package, original licenses and digests',()=>{
+test('tray icons retain their locked Solar source, original licenses and digests',()=>{
  const sources=JSON.parse(read('third_party/sources.json'));
  const icons=sources.ui.trayMenuIcons;
- const pkg=JSON.parse(read('apps/desktop/frontend/package-lock.json')).packages['node_modules/lucide-react'];
- assert.equal(icons.version,pkg.version);
- assert.deepEqual(icons.icons,['AppWindow','LogOut']);
+ const solar=JSON.parse(read('third_party/solar-icons.json'));
+ assert.equal(icons.version,solar.source.commit);
+ assert.equal(icons.repository,solar.source.repository);
+ assert.deepEqual(icons.icons,[solar.surfaces.tray.icons.open,solar.surfaces.tray.icons.exit]);
  const license=read(icons.licenseFile);
  assert.equal(sha(license),icons.licenseSha256);
- assert.match(license.toString(),/Copyright \(c\) 2026 Lucide Icons and Contributors/);
- assert.match(license.toString(),/Copyright \(c\) 2013-present Cole Bemis/);
+ assert.equal(sha(read('third_party/systray/assets/Solar-LICENSE.txt')),icons.licenseSha256);
+ assert.match(license.toString(),/MIT License/);
+ assert.match(license.toString(),/Solar Icons Set/);
+ assert.match(license.toString(),/CC BY 4\.0/);
  for(const [path,digest] of Object.entries(icons.files)) assert.equal(sha(read(path)),digest,path);
 });

@@ -2,7 +2,7 @@
 
 ## 共享组件与视觉
 
-- 设置界面以 `apps/desktop-mygo` 为准，结果窗复用 `apps/result-ui`，共享原生能力放在 `modules/nativeui`。采用现有 MyGo 组件、Lucide 图标、主题与双语资源；不自绘近似控件或另造设计系统，不回退到旧 Rust/React 布局。
+- 设置界面以 `apps/desktop-mygo` 为准，结果窗复用 `apps/result-ui`，共享原生能力放在 `modules/nativeui`。采用现有 MyGo 组件、Solar Linear 图标、主题与双语资源；不自绘近似控件或另造设计系统，不回退到旧 Rust/React 布局。
 - 保留黑白灰方向、底色色块分区、轻边界、圆角和行内留白。设置内容使用 `kit.Panel`，带标题的组之间使用 `kit.GroupGap`；提示靠近所解释的内容。单行输入使用 `kit.TextInput`，控件选中态不加粗。
 - 页面级折叠组使用 `kit.Disclosure`，标题与面板行左右各 16 DIP 对齐；内容用 `kit.Row`、`kit.Toggle`、`kit.Stack` 等行组件，避免裸字段造成第二套缩进。行内次级选项使用 `ui.Collapsible`。
 - 先核对成熟开源实现，优先直接复用，再用现有组件组装或必要微调；记录来源、版本、许可和改编范围。设计参考 `open-claude-ui`、[impeccable](https://github.com/pbakaus/impeccable) 的 polish/distill/clarify/onboard 与 [unslop](https://github.com/heydamir/unslop) 的审查规则，不将参考规则描述为复制了代码或素材。
@@ -41,7 +41,7 @@
 
 ## 图标、窗口与动效
 
-- 模块快捷键分组用 Lucide SendHorizontal，代码动作用 CodeXml，总结用 ListCheck，拖动把手用 GripVertical。供应商默认头像用 Layers，自定义供应商标签用 LayersPlus，添加用 Plus，服务动作/预设用 PlugZap；已识别品牌和模型使用各自图标，用户头像优先原图。预览与实际入口保持一致。
+- 模块快捷键分组用 Solar 的 `SendHorizontal`，代码动作用 `CodeXml`，总结用 `ListCheck`，拖动把手用 `GripVertical`。供应商默认头像用 `Layers`，自定义供应商标签用 `LayersPlus`，添加用 `Plus`，服务动作/预设用 `PlugZap`；已识别品牌和模型使用各自图标，用户头像优先原图。预览与实际入口保持一致。
 - Logo 保留完整原图、留白、比例和形状，圆形只用于外容器；缩小同时调整容器和占位，图片等比适配，不裁切或拉伸。
 - Windows 装饰窗口的外框和圆角由系统负责，客户端只填背景。划词工具栏、OCR/翻译结果复用 `windowSurface` 与 `PrepareWindowFrame`；网页 Popup 只绘一层外边界，保留内部控件边框、分区线与焦点环。
 - 原生菜单及子菜单共用字体、间距、边框、状态与深浅色，保留键盘、焦点、屏幕边界和高对比度支持。托盘菜单随实际内容自适应宽度，无收纳项时不留空位或分隔线；外框采用系统圆角偏好，选中行沿用控件圆角。

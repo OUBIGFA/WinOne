@@ -10,7 +10,7 @@ Windows 实窗、物理输入法、混合 DPI、多屏和安装矩阵继续作�
 
 - **改写对象**：WinOne.exe 的全部前端，即目前由 Rust + WRY/WebView2 承载的 React 页面（`apps/desktop/frontend`）。
 - **还原基准**：仓库最新版 React 界面。页面、布局、分组、入口、选项、状态反馈和未保存保护一比一保留。用户另行允许：迁移时界面、层级和样式都可以重构，前提是确实更好（参考 [impeccable](https://github.com/pbakaus/impeccable)），功能与入口不减。
-- **控件来源**：MyGo `ui` 包的组件及其无外观基础组件（Base）。图标继续使用本地 Lucide SVG，字体继续使用本地 Inter 与系统中文字体。
+- **控件来源**：MyGo `ui` 包的组件及其无外观基础组件（Base）。图标继续使用本地 Solar Linear SVG，字体继续使用本地 Inter 与系统中文字体。
 - **不变部分**：Host、各模块进程、配置格式和 Host RPC 方法名保持不变。
 - **截图与结果窗**（用户 2026-10-31 决定）：截图不迁移到 MyGo，画布、选区与标注保持现状；截图工具栏及其菜单的外观与设置窗口的 `kit` 统一，控件仍是原生 ToolStrip（约定见 [截图与划词](working-rules/capture-selection.md)）。划词助手、快捷助手的结果窗与划词工具栏迁移到 MyGo v0.7.3，并重构界面。
 - **网页内容**（用户 2026-10-31 决定）：Magpie 路由页、第三方插件管理、脱敏记录、插件扩展页，以及 Chat 的内置浏览器标签与 HTML 预览，用 MyGo WebView（`ui.WebView`）嵌入。网页原有的 postMessage 协议不变，由 `apps/desktop-mygo/web` 转给 Go。这里的网页指真正的网页内容，不包括 WinOne 自己的 React 组件。

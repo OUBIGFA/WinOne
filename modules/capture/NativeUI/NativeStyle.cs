@@ -83,7 +83,7 @@ internal sealed class NativeStyle
         } finally { graphics.SmoothingMode = smoothing; graphics.PixelOffsetMode = offset; }
     }
 
-    // Packaged Lucide masks take the theme's text colors, as MyGo colors its
+    // Packaged Solar masks take the theme's text colors, as MyGo colors its
     // icons; only the alpha of the mask is kept.
     public static Bitmap Tint(Image mask, Color color)
     {

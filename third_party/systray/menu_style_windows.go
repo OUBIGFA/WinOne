@@ -328,7 +328,7 @@ func (s *nativeMenuStyle) draw(d *menuDraw) bool {
 		if e.submenu != 0 {
 			// USER32 appends its filled arrow *after* WM_DRAWITEM, even for
 			// MFT_OWNERDRAW. Reserve the otherwise empty trailing gutter from
-			// that follow-up paint; our Lucide chevron ends before this strip.
+			// that follow-up paint; our Solar chevron ends before this strip.
 			// Keep the HMENU/submenu intact for native keyboard/accessibility.
 			g32.NewProc("ExcludeClipRect").Call(d.DC, uintptr(d.Rect.Right-s.px(12)), uintptr(d.Rect.Top), uintptr(d.Rect.Right), uintptr(d.Rect.Bottom))
 		}

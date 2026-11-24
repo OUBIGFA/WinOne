@@ -48,7 +48,7 @@ internal sealed class NativeMenuTheme : IDisposable
         font.Dispose();
     }
 
-    // Use the packaged Lucide outline at every native submenu, including
+    // Use the packaged Solar outline at every native submenu, including
     // overflow arrows. The platform renderer's filled triangle is not reused.
     private static Dictionary<ArrowDirection, Bitmap> LoadArrows()
     {

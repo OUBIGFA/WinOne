@@ -16,7 +16,7 @@
 | `host` | Host RPC 客户端（命名管道），方法名与超时沿用旧窗口 |
 | `core` | 页面环境 `Env`、`Go`/`Do` 异步、`Activity`（未保存保护）、`Rail`（保存按钮组）、`Preserved`（保留未知 JSON 字段）、`FollowJob` |
 | `kit` | 设计系统：主题、字号层级、`Page`/`Group`/`Row`/`Stack`/`Choices`/`Facts`、按钮、`Tabs`/`SubTabs`、`Notice`/`InlineError`/`Empty`/`Skeleton`/`Badge`、`Dialog`、`Select`/`Segmented`/`NumberField`/`PathField` |
-| `kit/icons` | Lucide 图标，按名称引用，如 `icons.Save` |
+| `kit/icons` | Solar Linear 图标，按名称引用，如 `icons.Save` |
 | `widgets` | 需要 Host 的组合控件：`ShortcutRecorder` |
 | `shell` | 标题栏、侧栏、内容框、保存按钮组、未保存确认 |
 | `pages/<页面>` | 每个页面一个包，在 `init` 里 `shell.Register` |
@@ -47,7 +47,7 @@
 - 少量互斥选项用 `kit.Segmented`；需要解释后果的选项用 `kit.Choices`；长列表和带图标的选项用 `kit.Select`。
 - 禁止：卡片套卡片、标题上方的图标砖、眉标（标题上方的小字标签）、渐变文字、彩色左边框、能内联解决却用弹窗、表情符号代替图标。
 - 每个控件都要有悬停、焦点、禁用、加载、错误状态。悬停提示（`Tooltip`）只用于没有可见文案的纯图标按钮；其他控件保留可访问名称与说明（`Description`）。长文字（英文、路径）要能换行或省略，不出现横向滚动。
-- 图标：引用 `icons.<LucideName>` 后运行 `node build/generate-mygo-icons.mjs`。
+- 图标：引用 `icons.<IconName>` 后运行 `node build/generate-mygo-icons.mjs`。图标名称映射和 Solar 源码锁定在 `third_party/solar-icons.json`。
 
 ## 文案
 

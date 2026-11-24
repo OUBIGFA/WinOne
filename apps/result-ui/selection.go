@@ -76,7 +76,7 @@ func (c *Controller) View(context *ui.Context) {
 			}
 		})
 		ui.Box(context).Width(1).Height(16).Shrink(0).Background(t.Border)
-		// Equal side slots mirror the logo; the launch icon (Lucide Astroid,
+		// Equal side slots mirror the logo; the launch icon (Solar Stars,
 		// the Quick assistant's only icon) is independent of the user's
 		// configurable action order and remains at the toolbar's end.
 		ui.Row(context).Size(34, 30).Shrink(0).Justify(ui.Center).AlignItems(ui.Center).Label(p.T("快捷助手入口", "Quick assistant entry")).Children(func() {

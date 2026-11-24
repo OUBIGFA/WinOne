@@ -13,7 +13,8 @@
 | WinTray | 程序启动、窗口与托盘管理；跟进 89c246a 的已安装应用、商店应用启动与窗口/托盘识别、原图标、文件位置和启动方式迁移；保留 WinOne Host/Worker 协调、统一页面与托盘适配。来源及摘要见 third_party/wintray-source.json，完整能力对照见 docs/wintray-sync-20261119.md | MIT，全文见 modules/wintray/LICENSE |
 | React / React DOM | 设置界面 | MIT |
 | MyGo v0.10.0 | 原生设置窗口与共享结果窗；保留窗口、组件、Markdown、表格换行、Windows 文件拖入、异步 GPU 初始化和标准复制键接入。来源与摘要见 `third_party/mygo-winone/source.json`，不修改用户的 Go 模块缓存 | MIT；依赖许可原文与 SHA-256 见 `third_party/desktop-mygo-notices.json` 和 `third_party/result-ui-notices.json`，构建核对实际链接模块 |
-| Lucide React 1.27.0 | 官方 AppWindow / LogOut 托盘菜单图标及既有界面图标；由锁定 npm 包生成透明模板，不自绘替代 | ISC，Feather 派生 LogOut 同时保留 MIT；原文 `internal/branding/menu-icons/LICENSE.txt`，生成器与 SHA-256 见 `third_party/sources.json` |
+| Solar Icons Linear | MyGo 原生设置窗口、共享结果窗、截图工具栏及托盘菜单图标；按 `third_party/solar-icons.json` 的映射从锁定源码生成，不自绘替代 | MIT AND CC-BY-4.0；原文分别随图标资产保留，来源、版本、归属和 SHA-256 见 `third_party/solar-icons.json` 与 `third_party/sources.json` |
+| Lucide React 1.27.0 | 旧 React 前端仍使用的界面图标依赖；不作为 MyGo、结果窗、截图工具栏或托盘菜单的图标来源 | ISC，Feather 派生图标同时保留 MIT；原文 `third_party/licenses/lucide.txt`，依赖和 SHA-256 见 `third_party/runtime-notices.json` |
 | Magpie | 共享 AI 适配器与独立本地网关；锁定 `f65fe92ef93557e9a2098d2606a4d9c0175a4213`。账号认证适配器锁定 `ae9dba9f7ff197c0f3a7526af998d2a2d5d806a3`，随包保留 45 个固定账号适配器，包括已有 Antigravity 连接继续使用的旧适配器。对应连接、账号、请求头预设、完整模型与媒体目录、密钥及网关能力见 `docs/ai-base-update-20261120.md` | MIT；适配归属见 `third_party/import-notices.json`，依赖和账号资源清单见 `third_party/ocr-ai-notices.json`、`third_party/ai-plugins.json` |
 | Magpie 代理字段 | 同一 `f65fe92` 的地址校验与纯辅助函数；按原算法拒绝未配置的命名代理，沿用 WinOne 的供应商/账号独立代理 | MIT；原始许可和逐文件 SHA-256 见 `third_party/magpie-proxy-source.json` |
 | Magpie 模型规则匹配 | 直接抽取同一版本的计划与模型规则解析，复用 regexp2 v1.11.5 的有时限后行/前行断言匹配 | Magpie MIT；regexp2 MIT，原文与 SHA-256 见 `third_party/runtime-notices.json`，两个原生宿主另有对应清单 |
