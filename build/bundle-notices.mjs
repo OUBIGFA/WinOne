@@ -52,18 +52,26 @@ function selectRecords(root, bundle, go, cargo, desktop) {
       add(available.find(record => ['go', 'magpie-go'].includes(record.kind) && record.name === fields[1] && record.version === fields[2]));
     }
   }
-  const runtime = JSON.parse(fs.readFileSync(path.join(bundle, 'capture/WinOne.Capture.runtimeconfig.json'), 'utf8'));
-  for (const framework of runtime.runtimeOptions.includedFrameworks) {
-    add(available.find(record => record.kind === 'runtime' && record.name === framework.name && record.version === framework.version));
-  }
-  const dependencies = JSON.parse(fs.readFileSync(path.join(bundle, 'capture/WinOne.Capture.deps.json'), 'utf8'));
-  for (const [identity, library] of Object.entries(dependencies.libraries)) {
-    if (library.type !== 'package') continue;
-    const slash = identity.lastIndexOf('/');
-    add(available.find(record => record.kind === 'nuget' && record.name === identity.slice(0, slash) && record.version === identity.slice(slash + 1)));
+  if (fs.existsSync(path.join(bundle, 'capture/native-runtime.json'))) {
+    for (const record of read('capture-native-notices.json').components) add(record);
+  } else {
+    const runtime = JSON.parse(fs.readFileSync(path.join(bundle, 'capture/WinOne.Capture.runtimeconfig.json'), 'utf8'));
+    for (const framework of runtime.runtimeOptions.includedFrameworks) {
+      add(available.find(record => record.kind === 'runtime' && record.name === framework.name && record.version === framework.version));
+    }
+    const dependencies = JSON.parse(fs.readFileSync(path.join(bundle, 'capture/WinOne.Capture.deps.json'), 'utf8'));
+    for (const [identity, library] of Object.entries(dependencies.libraries)) {
+      if (library.type !== 'package') continue;
+      const slash = identity.lastIndexOf('/');
+      add(available.find(record => record.kind === 'nuget' && record.name === identity.slice(0, slash) && record.version === identity.slice(slash + 1)));
+    }
   }
   // All adapted source/assets listed here still have active product callers.
-  for (const record of read('import-notices.json').imports) add(record);
+  for (const record of read('import-notices.json').imports) {
+    if (fs.existsSync(path.join(bundle,'capture/native-runtime.json')) &&
+        ['Tools3000 pin translation','OpenCV for Tools3000 pin translation'].includes(record.name)) continue;
+    add(record);
+  }
   for (const record of available) {
     if (['asset', 'native', 'model'].includes(record.kind) && !record.testOnly) add(record);
     if (record.kind === 'upstream' && ['PowerToys', 'Simple Icons (GitHub)', 'HushSnap', 'magpie', 'zencrop'].includes(record.name)) add(record);

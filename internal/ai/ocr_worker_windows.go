@@ -146,7 +146,7 @@ func (s *LocalOCR) start() error {
 	}
 	t := s.runtime
 	root := filepath.Clean(filepath.Join(filepath.Dir(t.Executable), "..", "..", "capture", "Ocr"))
-	executable := filepath.Join(root, "..", "WinOne.Capture.exe")
+	executable := filepath.Join(root, "..", "WinOne.Ocr.exe")
 	for _, path := range []string{executable, filepath.Join(root, "rapidocrlite.dll")} {
 		if info, err := os.Stat(path); err != nil || info.IsDir() {
 			return errors.New("OCR 文件缺失，请修复安装")

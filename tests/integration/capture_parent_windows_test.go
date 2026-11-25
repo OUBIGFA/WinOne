@@ -31,7 +31,7 @@ func TestCaptureParentSentinel(t *testing.T) {
 
 // The editor opens a generated image. No desktop capture, clipboard write, or user window is involved.
 func TestCaptureParentExitPreservesActiveEditor(t *testing.T) {
-	exe := os.Getenv("WINONE_CAPTURE_EXE")
+	exe := os.Getenv("WINONE_LEGACY_CAPTURE_EXE")
 	if exe == "" || os.Getenv("WINONE_CAPTURE_NATIVE_TEST") != "1" {
 		t.Skip("opt-in editor lifecycle test")
 	}

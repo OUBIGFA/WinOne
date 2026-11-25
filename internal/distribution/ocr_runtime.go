@@ -2,6 +2,7 @@ package distribution
 
 import (
 	_ "embed"
+	"fmt"
 	"strings"
 )
 
@@ -14,6 +15,49 @@ var ocrRuntimeInventory string
 
 //go:embed ai_plugin_runtime_paths.txt
 var accountPluginInventory string
+
+//go:embed native_capture_runtime_paths.txt
+var nativeCaptureInventory string
+
+var nativeCaptureFiles = strings.Fields(nativeCaptureInventory)
+
+func hasNativeCapture(seen map[string]bool) bool {
+	return seen["capture/native-runtime.json"] || seen["capture/WinOne.Ocr.exe"] || seen["capture/winone.ocr.exe"]
+}
+
+func validateCaptureRuntime(seen map[string]bool) error {
+	if !hasNativeCapture(seen) {
+		return nil
+	}
+	allowed := map[string]bool{}
+	for _, list := range [][]string{nativeCaptureFiles, strings.Fields(ocrRuntimeInventory), recordingRuntimeFiles} {
+		for _, name := range list {
+			allowed[strings.ToLower(name)] = true
+		}
+	}
+	for name := range seen {
+		lower := strings.ToLower(name)
+		if strings.HasPrefix(lower, "capture/") && !allowed[lower] {
+			return fmt.Errorf("unexpected file in native capture runtime: %s", name)
+		}
+	}
+	return nil
+}
+
+// Existing checked installations retain their original .NET payload for
+// rollback. A new native capture marker selects the complete native inventory.
+func requiredBaseForPayload(seen map[string]bool) []string {
+	if !hasNativeCapture(seen) {
+		return requiredFiles
+	}
+	var result []string
+	for _, name := range requiredFiles {
+		if !strings.HasPrefix(name, "capture/") {
+			result = append(result, name)
+		}
+	}
+	return append(result, nativeCaptureFiles...)
+}
 
 var recordingRuntimeFiles = []string{"capture/WinOne.Recording.dll", "capture/recording-runtime.json"}
 var learningRuntimeFiles = []string{"shared/ui/learning/ecdict.db", "shared/ui/learning/manifest.json", "shared/ui/learning/ECDICT-LICENSE.txt"}
@@ -47,8 +91,11 @@ func requiredForPayload(seen map[string]bool) []string {
 			break
 		}
 	}
-	result := append([]string{}, requiredFiles...)
+	result := append([]string{}, requiredBaseForPayload(seen)...)
 	text, plugins, stroke, recording, interconnect := false, false, false, false, false
+	if hasNativeCapture(seen) {
+		text, recording = true, true
+	}
 	for name := range seen {
 		lower := strings.ToLower(name)
 		if lower == "capture/winone.recording.dll" || lower == "capture/recording-runtime.json" {

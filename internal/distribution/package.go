@@ -77,6 +77,11 @@ func PackageName(version string) (string, error) {
 	return "WinOne-" + version + "-windows-x64.zip", nil
 }
 func allowed(name string) bool {
+	for _, file := range nativeCaptureFiles {
+		if name == file {
+			return true
+		}
+	}
 	for _, file := range learningRuntimeFiles {
 		if name == file {
 			return true
@@ -187,6 +192,9 @@ func inputs(directory, license string) ([]input, error) {
 		return nil
 	})
 	if err != nil {
+		return nil, err
+	}
+	if err := validateCaptureRuntime(seen); err != nil {
 		return nil, err
 	}
 	for _, required := range requiredForPayload(seen) {
@@ -416,7 +424,10 @@ func verifyPackage(filename string, historical bool) (Manifest, error) {
 		}
 		checked[record.Path] = true
 	}
-	required := requiredFiles
+	if err := validateCaptureRuntime(checked); err != nil {
+		return Manifest{}, err
+	}
+	required := requiredBaseForPayload(checked)
 	if !historical {
 		required = requiredForPayload(checked)
 	}

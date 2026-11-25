@@ -27,9 +27,9 @@ type captureDraftJob struct {
 }
 
 func TestCaptureDraftSurvivesRestartAndCompletes(t *testing.T) {
-	exe := os.Getenv("WINONE_CAPTURE_EXE")
+	exe := os.Getenv("WINONE_LEGACY_CAPTURE_EXE")
 	if exe == "" {
-		t.Skip("set WINONE_CAPTURE_EXE")
+		t.Skip("set WINONE_LEGACY_CAPTURE_EXE")
 	}
 	directory := t.TempDir()
 	id := strings.Repeat("1", 32)

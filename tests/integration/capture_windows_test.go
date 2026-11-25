@@ -16,11 +16,15 @@ import (
 	"winone/internal/transport"
 )
 
-// This verifies the published .NET worker without taking a screenshot or changing the clipboard.
+// This verifies the published worker without taking a screenshot or changing the clipboard.
 func TestCaptureWorkerProtocol(t *testing.T) {
 	exe := os.Getenv("WINONE_CAPTURE_EXE")
 	if exe == "" {
 		t.Skip("set WINONE_CAPTURE_EXE")
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(exe), "native-runtime.json")); err == nil {
+		testNativeCaptureProtocol(t, exe)
+		return
 	}
 	dir := t.TempDir()
 	pipe := fmt.Sprintf(`\\.\pipe\WinOne-capture-test-%d`, time.Now().UnixNano())

@@ -126,7 +126,7 @@ func TestCapturePreviewResourceBenchmark(t *testing.T) {
 		}
 		iterations = parsed
 	}
-	exe := os.Getenv("WINONE_CAPTURE_EXE")
+	exe := os.Getenv("WINONE_LEGACY_CAPTURE_EXE")
 	warmup := 0
 	if value := os.Getenv("WINONE_CAPTURE_BENCHMARK_WARMUP"); value != "" {
 		parsed, err := strconv.Atoi(value)
@@ -136,7 +136,7 @@ func TestCapturePreviewResourceBenchmark(t *testing.T) {
 		warmup = parsed
 	}
 	if exe == "" {
-		t.Fatal("set WINONE_CAPTURE_EXE")
+		t.Fatal("set WINONE_LEGACY_CAPTURE_EXE")
 	}
 	if _, err := os.Stat(output); !os.IsNotExist(err) {
 		t.Fatal("benchmark output must be a new file")

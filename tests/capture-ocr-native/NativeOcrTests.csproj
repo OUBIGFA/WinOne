@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <IsAotCompatible>true</IsAotCompatible>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../modules/capture/Ocr/OcrReadingOrder.cs" Link="OcrReadingOrder.cs" />
+    <Compile Include="../../modules/capture/Ocr/OcrGapTree.cs" Link="OcrGapTree.cs" />
+    <Compile Include="../../modules/capture/Ocr/OcrParagraphs.cs" Link="OcrParagraphs.cs" />
+    <Compile Include="../../modules/capture/Ocr/OcrRecognition.cs" Link="OcrRecognition.cs" />
+    <Compile Include="../../modules/capture/Ocr/RapidOcrNative.cs" Link="RapidOcrNative.cs" />
+    <Compile Include="../../modules/capture/Ocr/OcrLayout.cs" Link="OcrLayout.cs" />
+    <Compile Include="../../modules/capture-ocr-native/NativeImage.cs" Link="NativeImage.cs" />
+    <Compile Include="../capture-unit/OcrParagraphTests.cs" Link="OcrParagraphTests.cs" />
+    <None Include="../fixtures/ocr-reading-order.json" Link="ocr-reading-order.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

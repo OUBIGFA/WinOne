@@ -31,6 +31,9 @@ try{
  $env:TEMP=$tests;$env:TMP=$tests
  $env:WINONE_HOST_EXE=Join-Path $output 'WinOne.Host.exe'
  $env:WINONE_CAPTURE_EXE=Join-Path $output 'capture/WinOne.Capture.exe'
+ # Retired browser-document RPCs remain opt-in against their historical
+ # executable. Native capture output/drafts are tested through the real C++ UI
+ # by build-capture-native and test-capture-native-cpp, not legacy wire fixtures.
  if($RunStartupProbes){$env:WINONE_PROBE_BUNDLE=$output;$env:WINONE_DESKTOP_PROBE_EXE=Join-Path $output 'WinOne.exe';$env:WINONE_NATIVE_HOTKEY_TEST='1'}
  if(-not $SkipRuntimeChecks){
  & $GoExe test ./internal/startupprobe -count=1; CheckExit

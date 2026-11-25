@@ -103,10 +103,12 @@ Windows 专项验收与代码签名不作为发布前置条件；本地测试按
 | `assets/provider-icons` | 供应商图标的 128×128 PNG、`manifest.json` 和 `inputs.sha256`；由 `build/build-provider-icons.ps1` 校验并复用，源图或生成器变化后重建 |
 | `sources/PowerToys` | 锁定提交的置顶引擎及其恢复的编译依赖；由准备脚本维护 |
 | `sources/ShareX-21.0.0`、`sources/ShareX-v21.0.0.zip` | ShareX 准备脚本的固定源码和归档 |
-| `sources/ShareX-native` | 现用原生截图引擎的独立源码；需要测试改写时再复制到 `_temp/<任务>/` |
+| `sources/ShareX-native` | 历史截图引擎的独立源码，用于旧格式回归；生产截图不再编译或分发此引擎 |
+| `sources/Tools3000-v1.4.11`、`cache/capture-native` | 现用 C++ 截图固定源码与 vcpkg 依赖；来源由 `third_party/tools3000/source.json` 锁定。`prepare-capture-native-resources.ps1 -BuildDependencies` 准备依赖，适配副本与构建目录置于 `_temp/<任务>/` |
+| `tools/dotnet-10.0.404`、`cache/nuget-native-capture` | 仅供 OCR 的 NativeAOT 编译；用户不需要安装 .NET。OCR 和测试项目各自锁定 SDK，不改变机器或其他项目 SDK |
 | `sources/magpie-e296995`、`sources/ai-plugins-bbd3a2e` | 本轮核对并冻结的 AI 基座与账号适配器来源；构建核对 HEAD、锁文件及原始许可。旧 `magpie-f65fe92`、`ai-plugins-ae9dba9` 及其他历史来源保留用于回退；测试输出回到根 `_temp/`。更新对照见 `docs/ai-base-update-20261125.md` |
 | `sources/mygo-winone-v0.10.0` | MyGo 正式 v0.10.0 的仓库管理源码副本，按 `third_party/mygo-winone/source.json` 与 `build/prepare-mygo-filedrop.ps1` 校验原模块和窄适配；设置窗口、结果窗及 nativeui 使用该副本，不修改用户 Go 模块缓存。旧版本留作历史/回退参考 |
-| `runtimes/rapidocrlite-5.0.0a16` | OCR 官方原生 DLL、PP-OCRv6 small 检测/识别模型和字典，共四个文件。`build/prepare-ocr.ps1 -OutputDirectory _temp/<任务>/ocr -Downloader <aria2-next>` 准备并核对 `third_party/ocr-runtime.json` 的摘要；`copy-ocr.ps1` 只复制清单文件。识别进程复用 Capture 的 .NET 运行库。Python 仅用于词典重建或生成测试图片，由构建者单独提供 |
+| `runtimes/rapidocrlite-5.0.0a16` | OCR 官方原生 DLL、PP-OCRv6 small 检测/识别模型和字典，共四个文件。`build/prepare-ocr.ps1 -OutputDirectory _temp/<任务>/ocr -Downloader <aria2-next>` 准备并核对 `third_party/ocr-runtime.json` 的摘要；`copy-ocr.ps1` 只复制清单文件。识别入口为 `WinOne.Ocr.exe` 原生程序。Python 仅用于构建校验、词典重建或生成测试图片，由构建者单独提供 |
 | `cache/cargo`、`cache/go`、`cache/npm` | 分别通过 `CARGO_HOME`、`GOCACHE`、`npm_config_cache` 复用 Cargo 依赖、Go 编译和 npm 下载缓存；不放测试报告 |
 | `cache/nuget-notices/microsoft.web.webview2.1.0.3800.47.nupkg` | Microsoft WebView2 SDK 原包，供 `build/verify-rust-notices.ps1 -Update -WebView2Package <路径>` 核对 Loader 与原始许可证；来源为 NuGet 官方包，SHA-256 `56c9f26bdd07916a2d1949fb58a5c7e434dfa1173577dca879206050c4e718db` |
 | `cache/rust-desktop`、`cache/rust-diagrams`、`cache/rust-selection` | 三个现用 Rust 项目的增量编译缓存；不混入其他实验 target |
@@ -156,6 +158,6 @@ npm ci --prefix $browserTools --cache dist/resources/cache/npm --prefer-offline 
 
 该命令先使用已有 npm 缓存，只补充缺少的锁定依赖；不运行依赖安装脚本。前端现有 `node_modules/` 和工具链要求的 `bin/`、`obj/` 等目录继续按各自锁文件和标准位置复用。
 
-## 贴图翻译构建依赖
+## 历史贴图翻译构建依赖
 
-把 [OpenCV 4.12.0 官方源码归档](https://codeload.github.com/opencv/opencv/tar.gz/refs/tags/4.12.0) 放到 `dist/resources/sources/opencv-4.12.0.tar.gz`，也可通过 `WINONE_PIN_OPENCV_ARCHIVE` 指定。构建脚本先核对 SHA-256，再使用 Visual Studio C++ x64 和 CMake 编译。这个归档只用于构建；用户安装包交付静态链接的 `capture/WinOne.PinTranslation.dll`。独立验证使用 `build/test-capture-native.ps1 -Suites pin-translation`，传入现有的 `-ShareXSourceDirectory` 和新的临时输出目录。该流程用真实本地 OCR、原位引擎和离线翻译应答检查贴图。
+旧 C# 截图路线使用 [OpenCV 4.12.0 官方源码归档](https://codeload.github.com/opencv/opencv/tar.gz/refs/tags/4.12.0) 和 `WinOne.PinTranslation.dll`。保留的 `build/test-capture-native.ps1 -Suites pin-translation` 仅用于历史回归。现用原生截图直接编译固定 Tools3000 的原位翻译实现，依赖随 C++ 截图统一准备；入口和验收见 [原生截图迁移](native-capture-20261125.md)。

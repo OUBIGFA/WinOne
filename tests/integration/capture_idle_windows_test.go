@@ -4,9 +4,11 @@ package integration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 	"winone/internal/host"
@@ -19,7 +21,12 @@ func TestCaptureIdleExitDespiteStatusPolling(t *testing.T) {
 		t.Skip("opt-in 75-second idle lifecycle check")
 	}
 	pipe := fmt.Sprintf(`\\.\pipe\WinOne-idle-%d`, time.Now().UnixNano())
-	cmd := exec.Command(exe, "--pipe", pipe, "--data-dir", t.TempDir())
+	directory := t.TempDir()
+	projection, _ := json.Marshal(map[string]any{"schemaVersion": 1, "revision": 0, "outputDirectory": filepath.Join(directory, "images")})
+	if err := os.WriteFile(filepath.Join(directory, "managed-settings.json"), projection, 0600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(exe, "--pipe", pipe, "--data-dir", directory)
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}

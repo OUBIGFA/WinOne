@@ -33,9 +33,9 @@ func TestCaptureAnnotationPreviewKeepsSource(t *testing.T) {
 
 func testCaptureAnnotationExport(t *testing.T, crop, preview bool) {
 	t.Helper()
-	exe := os.Getenv("WINONE_CAPTURE_EXE")
+	exe := os.Getenv("WINONE_LEGACY_CAPTURE_EXE")
 	if exe == "" {
-		t.Skip("set WINONE_CAPTURE_EXE")
+		t.Skip("set WINONE_LEGACY_CAPTURE_EXE")
 	}
 	directory := t.TempDir()
 	sourcePath := filepath.Join(directory, "source.png")

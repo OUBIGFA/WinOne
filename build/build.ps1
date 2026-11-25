@@ -57,24 +57,24 @@ try { if(-not $CompileOnly){& $GoExe test ./...; CheckExit} } finally { Pop-Loca
 & (Join-Path $PSScriptRoot 'build-always-on-top.ps1') -OutputDirectory (Join-Path $output 'always-on-top')
 & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o modules/always-on-top/cmd/worker/resource_windows.syso; CheckExit
 & $GoExe build -trimpath -ldflags '-s -w -H windowsgui' -o (Join-Path $output 'always-on-top/WinOne.AlwaysOnTop.exe') ./modules/always-on-top/cmd/worker; CheckExit
-$sharex = if($ShareXSourceDirectory){(Resolve-Path -LiteralPath $ShareXSourceDirectory).Path}else{& (Join-Path $PSScriptRoot 'prepare-sharex.ps1') -Downloader $Downloader}
-if($ShareXSourceDirectory){
-    # Refresh the host import when a prepared source cache has moved directories.
-    . (Join-Path $PSScriptRoot 'sharex-native-host.ps1')
-    Initialize-ShareXNativeHost -SourceDirectory $sharex
+$nativeSource=& (Join-Path $PSScriptRoot 'prepare-capture-native-resources.ps1') -Downloader $Downloader
+$nativeWork=Join-Path (Split-Path -Parent $output) 'capture-native'
+& (Join-Path $PSScriptRoot 'build-capture-native.ps1') -OutputDirectory (Join-Path $output 'capture') -WorkDirectory $nativeWork `
+    -SourceDirectory $nativeSource -NodeExe $NodeExe -CargoExe $CargoExe -OcrRuntimeDirectory $OcrRuntimeDirectory `
+    -RunTests:(-not $CompileOnly) -BuildProbe:$RunStartupProbes
+if($RunStartupProbes){
+    $nativeProbe=Join-Path $nativeWork 'objects/Release/WinOne.NativeCapture.Probe.exe'
+    foreach($suite in @('smoke','annotations','resume','number','settings','toolbar','translation','scroll','save-dialog','save-failure','recording-options','pin','repeat','dialog-owner-exit','parent-exit')){
+        & (Join-Path $PSScriptRoot 'test-capture-native-cpp.ps1') -CaptureExe $nativeProbe -Suite $suite -OutputDirectory (Join-Path $nativeWork ('ui-'+$suite+'-'+[guid]::NewGuid().ToString('N')))
+    }
+    $recordingTest=Join-Path $nativeWork 'recording-source-test'
+    & (Join-Path $PSScriptRoot 'prepare-capture-recording-test.ps1') -OutputDirectory $recordingTest -CargoExe $CargoExe
+    foreach($suite in @('recording','recording-parent')){
+        & (Join-Path $PSScriptRoot 'test-capture-native-cpp.ps1') -CaptureExe $nativeProbe -Suite $suite `
+            -OutputDirectory (Join-Path $nativeWork ('ui-'+$suite+'-'+[guid]::NewGuid().ToString('N'))) `
+            -RecordingRuntime (Join-Path $recordingTest 'WinOne.Recording.SyntheticTest.dll')
+    }
 }
-# Keep each build's test executable separate from other/failed test processes.
-# A lingering fixture can otherwise lock the shared bin output on Windows.
-$captureTests = Join-Path (Split-Path -Parent $output) 'capture-unit-tests'
-if(-not $CompileOnly){& dotnet build tests/capture-unit/CaptureTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" -o $captureTests --nologo; CheckExit}
-# The scrolling checks drive real windows; only build/test-native-context.ps1
-# runs them, so they are compiled with the other system probes.
-if ($RunStartupProbes) { & dotnet build tests/capture-scroll/ScrollTests.csproj -c Release "-p:ShareXSourceDirectory=$sharex" --nologo; CheckExit }
-if(-not $CompileOnly){Invoke-NativeCommand 'dotnet' @((Join-Path $captureTests 'WinOne.Capture.Tests.dll'),(Join-Path (Split-Path -Parent $output) 'capture-test-data')) 'Capture unit tests failed'}
-& dotnet publish modules/capture/WinOne.Capture.csproj -c Release -r win-x64 --self-contained true "-p:ShareXSourceDirectory=$sharex" -o (Join-Path $output 'capture') --nologo; CheckExit
-& (Join-Path $PSScriptRoot 'build-pin-translation.ps1') -OutputDirectory (Join-Path $output 'capture')
-& (Join-Path $PSScriptRoot 'build-recording.ps1') -CargoExe $CargoExe -OutputDirectory (Join-Path $output 'capture') -SkipTests:$CompileOnly
-& (Join-Path $PSScriptRoot 'copy-ocr.ps1') -RuntimeDirectory $OcrRuntimeDirectory -CaptureDirectory (Join-Path $output 'capture')
 & (Join-Path $PSScriptRoot 'update-ocr-inventory.ps1') -RuntimeDirectory (Join-Path $output 'capture/Ocr') -Check
 # Current Magpie requires Go 1.26.8 or newer. Reuse the already-selected result
 # toolchain and restore the Host compiler's environment after this build.
@@ -102,19 +102,6 @@ if($Downloader){$learningPrepare.Downloader=$Downloader}
 & (Join-Path $PSScriptRoot 'build-selection.ps1') -OutputDirectory (Join-Path $output 'selection') -CargoExe $CargoExe -GoExe $GoExe -TargetDirectory $SelectionTargetDirectory -SkipTests:$CompileOnly
 & (Join-Path $PSScriptRoot 'build-interconnect-lan.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -CargoExe $CargoExe -Test:(-not $CompileOnly)
 & (Join-Path $PSScriptRoot 'build-interconnect-worker.ps1') -OutputDirectory (Join-Path $output 'shared/interconnect') -GoExe $ResultGoExe -Test:(-not $CompileOnly) -TestDirectory (Join-Path (Split-Path -Parent $output) 'interconnect-worker-tests')
-& (Join-Path $PSScriptRoot 'build-capture-regions.ps1') -OutputDirectory (Join-Path $output 'capture')
-if(-not $CompileOnly){
-$regionLifetimeProbe = Join-Path (Split-Path -Parent $output) 'capture-regions-lifetime-probe'
-& (Join-Path $PSScriptRoot 'build-capture-regions.ps1') -TestLifetime -OutputDirectory $regionLifetimeProbe
-Invoke-NativeCommand 'dotnet' @((Join-Path $captureTests 'WinOne.Capture.Tests.dll'),'--region-helper-lifetime',(Join-Path $regionLifetimeProbe 'WinOne.Capture.Regions.LifetimeProbe.exe')) 'Capture region lifetime test failed'
-}
-if ($RunStartupProbes) {
-    $previousRegionHelper = $env:WINONE_REGION_HELPER
-    try {
-        $env:WINONE_REGION_HELPER = Join-Path $output 'capture/WinOne.Capture.Regions.exe'
-        & dotnet (Join-Path $captureTests 'WinOne.Capture.Tests.dll') --native-window-regions; CheckExit
-    } finally { $env:WINONE_REGION_HELPER = $previousRegionHelper }
-}
 & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o apps/desktop/resource_windows.syso; CheckExit
 & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o apps/host/resource_windows.syso; CheckExit
 # Enumerate only maintained Go module sources.

@@ -1883,6 +1883,53 @@
           "sha256": "7a8bb2731ee83b2afb06b56e2c73a9d1f163643b56e82ea52f281a8e84f349fd"
         }
       ]
+    },
+    {
+      "name": "Tools3000 complete native capture",
+      "repository": "https://github.com/yuan278501381/Tools3000",
+      "commit": "f0e968ba937e7e3df9f3f5a8d627be8b19e398dd",
+      "license": "GPL-3.0 with upstream Windows and WebView2 linking exception",
+      "scope": "Build the pinned C++ capture, markup, scrolling and pin implementation; adapt Host callbacks, output, preferences, lifecycle, existing RapidOCRLite and Rust recording. See docs/native-capture-20261125.md for verification scope.",
+      "notices": [
+        {
+          "file": "licenses/tools3000-v1.4.11-LICENSE.txt",
+          "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+        },
+        {
+          "file": "licenses/tools3000-v1.4.11-LICENSE-EXCEPTION.txt",
+          "sha256": "1804fc4e16618ad931eb3057b84f1065adde9852b432fb5279882a6b61821ebc"
+        }
+      ],
+      "files": [
+        {
+          "path": "build/prepare-capture-native.mjs",
+          "sha256": "911d21d6c04742e7d617ca086d949df6aad5c772610654ae33279976591be214"
+        },
+        {
+          "path": "build/prepare-capture-native-resources.ps1",
+          "sha256": "37cfb3736bdd47d13ecdec6142218b97325bae0c35731a38da7467c14df5ef41"
+        },
+        {
+          "path": "modules/capture-native/CMakeLists.txt",
+          "sha256": "0b9d4dabb05d691cb017fc6889b8cd9bfe11ae16e320907121369d7dcd9129ef"
+        },
+        {
+          "path": "modules/capture-native/number_label.h",
+          "sha256": "847ec96816a922d0fcc8d4a1d02a342cb584ef5c5f3d7424144c7d89e22f6f98"
+        },
+        {
+          "path": "modules/capture-native/community_hooks.h",
+          "sha256": "848af042d9a6ed01102eb49207b6c08433c2d3a0abf313fb1418f4ed0ca1f51d"
+        },
+        {
+          "path": "modules/capture-native/recording_bridge.h",
+          "sha256": "4090a32d5d312ba6004cf2a9ba4119b0e15d3a2f687d7a748e03608f602553e9"
+        },
+        {
+          "path": "third_party/tools3000/source.json",
+          "sha256": "e1464c52b608fc1b0348e5a9c9a48ef072e29a0251ba20658fdcb9e7c0aba0a3"
+        }
+      ]
     }
   ]
 }

@@ -73,7 +73,7 @@ func ocrWorkerFixture(t *testing.T, idle time.Duration) (*LocalOCR, context.Canc
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "capture", "WinOne.Capture.exe"), data, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "capture", "WinOne.Ocr.exe"), data, 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(runtime, "rapidocrlite.dll"), nil, 0600); err != nil {

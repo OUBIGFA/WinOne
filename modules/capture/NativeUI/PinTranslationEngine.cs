@@ -4,10 +4,6 @@ using Microsoft.Win32.SafeHandles;
 
 namespace WinOne.Capture.NativeUI;
 
-internal sealed record PinGlyph(string Text, int[] Box);
-internal sealed record PinOcrLine(string Text, int[] Box, PinGlyph[] Glyphs);
-internal sealed record PinOcrLayout(PinOcrLine[] Lines);
-
 internal sealed record PinTranslationResult(Bitmap Picture, string Text);
 
 // The ABI owns the original pixels, paragraphs and output text until this request ends.

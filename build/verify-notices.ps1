@@ -53,6 +53,14 @@ try {
     $sources=Get-Content -LiteralPath 'third_party/sources.json' -Raw -Encoding UTF8 | ConvertFrom-Json
     if (-not $records.ContainsKey('upstream|PowerToys|'+$sources.powertoys.commit)) { throw 'PowerToys notice revision mismatch' }
     if ($BundleDirectory) {
+      if(Test-Path -LiteralPath (Join-Path $BundleDirectory 'capture/native-runtime.json')) {
+        & (Join-Path $PSScriptRoot 'verify-capture-native.ps1') -CaptureDirectory (Join-Path $BundleDirectory 'capture')
+        $nativeCatalog=Get-Content -LiteralPath (Join-Path $root 'third_party/capture-native-notices.json') -Raw -Encoding UTF8|ConvertFrom-Json
+        foreach($component in $nativeCatalog.components){foreach($notice in $component.notices){
+            $published=Join-Path $BundleDirectory $notice.file
+            if((Get-FileHash -LiteralPath $published -Algorithm SHA256).Hash.ToLowerInvariant() -ne $notice.sha256){throw "Published native notice differs: $($notice.file)"}
+        }}
+      } else {
         $dependencies=Get-Content -LiteralPath (Join-Path $BundleDirectory 'capture/WinOne.Capture.deps.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         $nuget=@{}
         foreach ($library in $dependencies.libraries.PSObject.Properties | Where-Object {$_.Value.type -eq 'package'}) {
@@ -75,6 +83,7 @@ try {
             $matches=@($runtime.runtimeOptions.includedFrameworks | Where-Object { $_.name -like ($component.name+'*') -and $_.version -eq $component.version })
             if ($matches.Count -eq 0) { throw "Runtime notice version mismatch: $($component.name)" }
         }
+      }
         # The human-readable index travels with the same notices it describes.
         [IO.File]::WriteAllText((Join-Path $BundleDirectory 'licenses/runtime-notices.txt'),$catalogText,[Text.UTF8Encoding]::new($false))
     }
