@@ -1542,7 +1542,7 @@
       "version": "v2.1.3+incompatible",
       "notices": [
         {
-          "file": "licenses/magpie-go-github.com-go-sourcemap-sourcemap-v2.1.3+incompatible-0-LICENSE.txt",
+          "file": "licenses/magpie-go-github.com-go-sourcemap-sourcemap-v2.1.3-incompatible-0-LICENSE.txt",
           "sha256": "92e002c4f78b8f80445cf72c4bd33d78e4998371a5eff80886c5648a7974a19f"
         }
       ],
