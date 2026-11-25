@@ -149,13 +149,13 @@
         "WandSparkles": "magic-wand-3",
         "Workflow": "workflow",
         "X": "close",
-        "Zap": "lightning"
+        "Zap": "bolt"
       }
     },
     "results": {
       "generator": "build/generate-result-icons.mjs",
       "icons": {
-        "quick-assistant": "lightning",
+        "quick-assistant": "bolt",
         "astroid": "stars",
         "book": "notebook-minimalistic",
         "idea": "lightbulb",
