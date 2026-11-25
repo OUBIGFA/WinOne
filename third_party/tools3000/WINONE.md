@@ -6,7 +6,7 @@
 - 原始 GPLv3 和 Windows/WebView2 链接例外保留在本目录。第三方运行库按最终使用的依赖另行列入许可清单。
 - `modules/capture-native/CMakeLists.txt` 直接编译上游真实截图、OCR 与依赖 Core 源码；WinOne 适配只处理宿主协议、配置、执行结果和生命周期。
 
-迁移正在实施。默认构建已接入新原生目标；固定安装器尚未更新。功能映射、真实窗口测试及未覆盖范围见 `docs/native-capture-20261125.md`。
+默认构建与固定安装器已接入新原生目标。功能映射、真实窗口测试及未覆盖范围见 `docs/native-capture-20261125.md`。
 
 通过 `build/prepare-capture-native-resources.ps1` 校验来源；首次缺少依赖时显式传入 `-BuildDependencies`，按上游 vcpkg baseline 编译。`build/build-capture-native.ps1` 在独立工作目录生成适配副本，直接编译社区引擎，再加入既有 OCR 算法的 NativeAOT 程序和原 Rust 录制引擎。编译工具、缓存和源归档不随产品分发。
 
