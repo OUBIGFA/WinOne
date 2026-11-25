@@ -26,7 +26,7 @@ import {ConveniencePage} from "./features/convenience";
 import {SelectionPage} from "./features/selection";
 import {AISettings} from "./features/ai-settings";
 import {createAccountReader} from "./features/ai-account-reader";
-import { Home, ScanLine, Rocket, LaptopMinimal, Settings as SettingsIcon,RefreshCw,Palette,Activity,MousePointer2,Sparkles,SendHorizontal } from "lucide-react";
+import { Home, ScanLine, Rocket, LaptopMinimal, Settings as SettingsIcon,RefreshCw,Palette,Activity,MousePointer2,Astroid,SendHorizontal } from "lucide-react";
 import {QuickAssistantIcon} from "./components/quick-assistant-icon";
 import {moduleRank} from "./module-order";
 import {IconLabel} from "./ui/icon-label";
@@ -58,7 +58,7 @@ const pageDefinitions = [
   { id: "interconnect", title: "interconnect.title", icon: FolderUp },
   { id: "convenience", title: "nav.convenience", icon: Rocket },
   { id: "wintray", title: "nav.wintray", icon: LaptopMinimal },
-  { id: "ai-services", title: "ai.serviceTitle", icon: Sparkles },
+  { id: "ai-services", title: "ai.serviceTitle", icon: Astroid },
   { id: "settings", title: "nav.settings", icon: SettingsIcon },
 ];
 

@@ -371,7 +371,7 @@ func (p *page) tabBar(c *ui.Context) {
 		})
 		ui.Row(c).Shrink(0).PaddingStart(12).AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).BorderColor(kit.Colors(c).Hairline).
 			Children(func() {
-				b := kit.Button(c, i18n.T("quickAssistant.open"), icons.Astroid, p.opening).Disabled(p.moduleDisabled() || p.busy())
+				b := kit.Button(c, i18n.T("quickAssistant.open"), icons.Zap, p.opening).Disabled(p.moduleDisabled() || p.busy())
 				if b.Clicked() {
 					p.open()
 				}

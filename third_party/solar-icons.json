@@ -148,13 +148,14 @@
         "Users": "users-group-rounded",
         "WandSparkles": "magic-wand-3",
         "Workflow": "workflow",
-        "X": "close"
+        "X": "close",
+        "Zap": "lightning"
       }
     },
     "results": {
       "generator": "build/generate-result-icons.mjs",
       "icons": {
-        "quick-assistant": "stars",
+        "quick-assistant": "lightning",
         "astroid": "stars",
         "book": "notebook-minimalistic",
         "idea": "lightbulb",

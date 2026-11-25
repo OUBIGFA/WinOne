@@ -133,4 +133,5 @@ var (
 	WandSparkles          = solar("magic-wand-3")
 	Workflow              = solar("workflow")
 	X                     = solar("close")
+	Zap                   = solar("lightning")
 )
