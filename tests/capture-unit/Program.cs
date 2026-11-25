@@ -121,6 +121,7 @@ try
     OcrReadingOrderTests.Run();
     OcrParagraphTests.Run();
     CapturedFrameTests.Run();
+    CaptureUiStallTests.Run(Path.Combine(directory, "ui-stall"));
     CaptureConfirmationTests.Run(Path.Combine(directory, "confirmation"));
     CaptureSelectionSessionTests.Run(Path.Combine(directory, "single-session"));
     NativeSelectionTests.HandoffMessages();

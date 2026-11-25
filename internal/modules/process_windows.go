@@ -24,6 +24,8 @@ import (
 type Process struct {
 	mu        sync.Mutex
 	state     host.Module
+	id        string
+	dataDir   string
 	pipe      string
 	cmd       *exec.Cmd
 	pid       uint32
@@ -43,7 +45,7 @@ func StartElevated(ctx context.Context, id, name, exe, pipe, dataDir string) *Pr
 }
 
 func start(ctx context.Context, id, name, exe, pipe, dataDir string, autorun, elevated bool, extraArgs ...string) *Process {
-	p := &Process{state: host.Module{ID: id, Name: name, State: "starting", Detail: "正在启动"}, pipe: pipe, exited: make(chan struct{})}
+	p := &Process{state: host.Module{ID: id, Name: name, State: "starting", Detail: "正在启动"}, id: id, dataDir: dataDir, pipe: pipe, exited: make(chan struct{})}
 	fail := func(err error) *Process {
 		p.state.State = "faulted"
 		p.state.Detail = err.Error()
@@ -201,6 +203,13 @@ func (p *Process) Handle(request host.Request) host.Response {
 	if err != nil {
 		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "module_unavailable", Message: err.Error()}}
 	}
+	// The worker reports its own UI thread as hung. Waiting cannot recover it
+	// and every later command would fail the same way, so end this verified
+	// process; the lazy owner starts a fresh one for the next command.
+	if response.Error != nil && response.Error.Code == "unresponsive" {
+		p.terminateUnresponsive(response.Error.Message)
+		return host.Response{ID: request.ID, Error: &host.RPCError{Code: "module_unavailable", Message: response.Error.Message}}
+	}
 	p.mu.Lock()
 	if p.state.State == "faulted" {
 		select {
@@ -212,6 +221,38 @@ func (p *Process) Handle(request host.Request) host.Response {
 	}
 	p.mu.Unlock()
 	return response
+}
+
+// terminateUnresponsive ends only the identity-verified child. Native state
+// it held (windows, hooks) is released by Windows with the process.
+func (p *Process) terminateUnresponsive(detail string) {
+	p.mu.Lock()
+	pid, verified := p.pid, p.verified
+	p.mu.Unlock()
+	if pid == 0 || !verified {
+		return
+	}
+	select {
+	case <-p.exited:
+		return
+	default:
+	}
+	handle, err := windows.OpenProcess(windows.PROCESS_TERMINATE|windows.SYNCHRONIZE, false, pid)
+	if err == nil {
+		err = windows.TerminateProcess(handle, 1)
+		_ = windows.CloseHandle(handle)
+	}
+	event := diagnostics.Event{Source: p.id, Event: "unresponsive-restarted", Message: detail}
+	if err != nil {
+		event.Event, event.Error = "unresponsive-terminate-failed", err.Error()
+	}
+	_ = diagnostics.Record(diagnostics.ModuleDataRoot(p.dataDir, p.id), event)
+	if err == nil {
+		select {
+		case <-p.exited:
+		case <-time.After(5 * time.Second):
+		}
+	}
 }
 
 func (p *Process) acceptIdentity(response host.Response) error {

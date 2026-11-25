@@ -8,6 +8,7 @@ using Microsoft.Win32;
 namespace WinOne.Capture;
 
 internal record ApiError(string Code, string Message);
+internal sealed class UiThreadUnresponsiveException() : Exception("截图界面线程无响应，正在重新启动截图组件");
 internal record Response(string Id, object? Result = null, ApiError? Error = null);
 internal record Request(int Version, string Id, string Method, [property: JsonPropertyName("params")] JsonElement Parameters);
 // Timings are milliseconds since the job started, keyed by workflow stage.
@@ -44,16 +45,24 @@ internal sealed class CaptureApplication : ApplicationContext
     private int exitCode;
     private readonly bool stayReady;
     private int wakeQueued;
+    // A UI-thread wait must never hold one of the 16 pipe instances. The
+    // dispatcher answers a posted no-op; one left pending beyond this limit
+    // means the thread is hung, so requests report it and the Host replaces
+    // the worker instead of queueing behind it.
+    private readonly long uiStallLimit;
+    private long uiPingPostedAt;
+    private int prepareQueued;
     private string? activeNativeJob;
     // Replaced on every job completion; jobs.get waits on it instead of the
     // Host polling on a fixed interval.
     private TaskCompletionSource jobChanged = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private (string Draft, long Revision, string Job)? retake;
     public int ExitCode => Volatile.Read(ref exitCode);
-    public CaptureApplication(string pipe, string directory, NativeCaptureHandlers? native = null, Action<Bitmap>? copyImage = null, NativeUI.NativeHostConfiguration? nativeConfiguration = null, bool stayReady = false)
+    public CaptureApplication(string pipe, string directory, NativeCaptureHandlers? native = null, Action<Bitmap>? copyImage = null, NativeUI.NativeHostConfiguration? nativeConfiguration = null, bool stayReady = false, TimeSpan? uiStallLimit = null)
     {
         Directory.CreateDirectory(directory);
         this.stayReady = stayReady;
+        this.uiStallLimit = (long)(uiStallLimit ?? TimeSpan.FromSeconds(20)).TotalMilliseconds;
         store = new(directory); operations = new(store, directory, copyImage) { NativeConfiguration = nativeConfiguration }; this.native = native;
         if (nativeConfiguration is not null) nativeConfiguration.BecameIdle += ConfigurationBecameIdle;
         _ = dispatcher.Handle;
@@ -110,6 +119,7 @@ internal sealed class CaptureApplication : ApplicationContext
                 if (request.Method is not ("snapshot" or "jobs.get" or "settings.reload" or "prepare")) Interlocked.Exchange(ref activity, Environment.TickCount64);
                 Response response;
                 try { response = new(request.Id, Handle(request)); }
+                catch (UiThreadUnresponsiveException error) { response = new(request.Id, Error: new("unresponsive", error.Message)); }
                 catch (Exception error) { response = new(request.Id, Error: new("capture", error.Message)); }
                 await PipeProtocol.WriteAsync(pipe, JsonSerializer.SerializeToUtf8Bytes(response, WireJson), timeout.Token).ConfigureAwait(false);
             }
@@ -140,19 +150,12 @@ internal sealed class CaptureApplication : ApplicationContext
         string? expectedId = request.Parameters.ValueKind == JsonValueKind.Object && request.Parameters.TryGetProperty("expectedId", out var identity) ? identity.GetString() : null;
         var language = request.Parameters.ValueKind == JsonValueKind.Object && request.Parameters.TryGetProperty("language", out var requestedLanguage) ? requestedLanguage.GetString() : null;
         if (language is not (null or "zh-CN" or "en-US")) throw new InvalidDataException("不支持的界面语言");
+        // Every command, shutdown included, needs the UI thread. Report a hung
+        // thread so the Host can replace this process; waiting cannot help.
+        if (UiThreadStalled()) throw new UiThreadUnresponsiveException();
         switch (request.Method)
         {
-            case "prepare": return dispatcher.Invoke(() => {
-                stopping.Token.ThrowIfCancellationRequested();
-                var refresh = request.Parameters.ValueKind == JsonValueKind.Object
-                    && request.Parameters.TryGetProperty("refresh", out var value) && value.GetBoolean();
-                // The Host sends one low-frequency maintenance request. Recent
-                // user work already touched these pages; never warm over an edit.
-                if (Volatile.Read(ref busy) == 0 && (!refresh || !NativeUI.NativeCaptureStandby.Prepared || Environment.TickCount64 - activity >= 30_000))
-                    NativeUI.NativeCaptureStandby.Prepare(operations,store.Snapshot(),language,refresh);
-                stopping.Token.ThrowIfCancellationRequested();
-                return new {prepared=NativeUI.NativeCaptureStandby.Prepared};
-            });
+            case "prepare": return PrepareStandby(request.Parameters, language);
             case "snapshot": return new { processId = Environment.ProcessId, prepared = NativeUI.NativeCaptureStandby.Prepared, preparations = NativeUI.NativeCaptureStandby.Preparations, configurationManaged = store.IsManaged, settings = store.Snapshot(), lastCapture = operations.Last, busy = Volatile.Read(ref busy) != 0 || operations.NativeConfiguration?.IsSaving == true, configurationBusy = operations.NativeConfiguration?.IsSaving == true, pins = PinToScreenForm.ActiveCount };
             case "settings.reload": return ApplyPinSettings(store.ReloadManaged());
             case "capture.activate":
@@ -266,6 +269,48 @@ internal sealed class CaptureApplication : ApplicationContext
                 return new { stopping = true };
             default: throw new InvalidDataException("不支持的截图操作");
         }
+    }
+    // Standby warming runs on the UI thread. The pipe handler waits a bounded
+    // time and only one request is ever queued, so a slow or hung thread can
+    // no longer accumulate maintenance requests that each hold a pipe instance.
+    private object PrepareStandby(JsonElement parameters, string? language)
+    {
+        var refresh = parameters.ValueKind == JsonValueKind.Object
+            && parameters.TryGetProperty("refresh", out var value) && value.GetBoolean();
+        if (Interlocked.Exchange(ref prepareQueued, 1) != 0) return new { prepared = NativeUI.NativeCaptureStandby.Prepared, deferred = true };
+        var done = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+        try {
+            dispatcher.BeginInvoke((Action)(() => {
+                try {
+                    stopping.Token.ThrowIfCancellationRequested();
+                    // The Host sends one low-frequency maintenance request. Recent
+                    // user work already touched these pages; never warm over an edit.
+                    if (Volatile.Read(ref busy) == 0 && (!refresh || !NativeUI.NativeCaptureStandby.Prepared || Environment.TickCount64 - activity >= 30_000))
+                        NativeUI.NativeCaptureStandby.Prepare(operations, store.Snapshot(), language, refresh);
+                    stopping.Token.ThrowIfCancellationRequested();
+                    done.TrySetResult(new { prepared = NativeUI.NativeCaptureStandby.Prepared });
+                }
+                catch (Exception error) { done.TrySetException(error); }
+                finally { Interlocked.Exchange(ref prepareQueued, 0); }
+            }));
+        }
+        catch { Interlocked.Exchange(ref prepareQueued, 0); throw; }
+        if (!((IAsyncResult)done.Task).AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(3)))
+            return new { prepared = NativeUI.NativeCaptureStandby.Prepared, deferred = true };
+        return done.Task.GetAwaiter().GetResult();
+    }
+    // Non-blocking liveness check: at most one no-op is posted to the UI
+    // thread at a time, and only its age is inspected here.
+    private bool UiThreadStalled()
+    {
+        var now = Environment.TickCount64;
+        var posted = Interlocked.Read(ref uiPingPostedAt);
+        if (posted != 0) return now - posted > uiStallLimit;
+        if (Interlocked.CompareExchange(ref uiPingPostedAt, now, 0) == 0) {
+            try { dispatcher.BeginInvoke((Action)(() => Interlocked.Exchange(ref uiPingPostedAt, 0))); }
+            catch (Exception error) when (error is InvalidOperationException or ObjectDisposedException) { Interlocked.Exchange(ref uiPingPostedAt, 0); }
+        }
+        return false;
     }
     private Job StartScrollRetake(string id, long revision, string? language)
     {

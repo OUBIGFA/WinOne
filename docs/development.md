@@ -1,5 +1,12 @@
 # 开发状态
 
+## 截图界面线程卡死后自动恢复（2026-11-25）
+
+- 现象：截图、OCR 快捷键全部报 `context deadline exceeded (module_unavailable)`，重启前一直不恢复。
+- 根因：截图进程的界面线程卡住。卡住的线程持有第三方输入法 FreeType 的候选窗口；FreeType 09:55 重装，10:03 服务进程重启，10:08 起截图失败。进程已被结束且没有转储，界面线程具体卡在哪个调用无法再确认。WinOne 自身有两个缺陷，把一次卡顿放大成截图模块永久失效：一是 Host 每 30 秒发送的 `prepare` 用 `dispatcher.Invoke` 同步等待界面线程且没有超时，卡住的请求越积越多，占满截图管道的 16 个连接名额；二是 Host 没有任何手段发现并替换卡死的截图进程。
+- 处理：`prepare` 改为投递到界面线程后最多等 3 秒，同一时间只排队一次，超时返回 `deferred`，不再占住连接名额。截图进程向界面线程投递空操作检测存活，超过 20 秒没有执行，后续请求一律返回 `unresponsive`。Host 收到 `unresponsive` 后只结束已核验身份的这个截图进程，写入 `unresponsive-restarted` 诊断事件，下一次请求自动启动新进程。
+- 验证：新增截图单元回归（界面线程被阻塞时，24 个并发 `prepare` 在时限内全部返回，随后的请求报 `unresponsive`）和 Go 回归（工作进程报 `unresponsive` 后被结束，下一次命令启动新进程），均通过。截图单元测试全部、`internal/modules`、`internal/transport` 测试、Host 编译和 `go vet` 通过。FreeType 实际卡死的场景无法复现，未实测；本轮未重建安装器，真实安装中的程序仍是旧版本。
+
 ## Solar Linear 图标迁移后的固定安装器（2026-11-24）
 
 - 从干净提交 `a3e30b8`（包含 Solar 图标迁移及来源摘要更新）重新执行完整 `CompileOnly` 构建，MyGo、结果窗、截图工具栏和托盘图标生成检查、来源与许可证清单、573 项载荷清单、静态检查和安装器/卸载器对应校验通过。此前受影响的 `apps/desktop-mygo`、`apps/result-ui`、`modules/nativeui` 测试及 `go vet` 已独立通过。
