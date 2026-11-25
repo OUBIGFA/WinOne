@@ -11,7 +11,14 @@ internal interface ICaptureTextService
     Task<string> Translate(string text, CancellationToken cancellation);
     Task<string> OpenResult(Bitmap image, bool translate, CancellationToken cancellation) => Task.FromException<string>(new InvalidOperationException("resultUnavailable"));
     Task<PinTranslationResult> TranslateImage(Bitmap image, CancellationToken cancellation) => Task.FromException<PinTranslationResult>(new InvalidOperationException("translationUnavailable"));
+    // Services without stage reporting still work; the caller then shows only
+    // its own starting stage.
+    Task<PinTranslationResult> TranslateImage(Bitmap image, IProgress<TranslationProgress>? progress, CancellationToken cancellation) => TranslateImage(image, cancellation);
 }
+
+// Fraction is 0..1 across the whole in-place translation. Stage is "ocr",
+// "translate" (Done of Total paragraphs) or "render". No text is carried.
+internal readonly record struct TranslationProgress(double Fraction, string Stage, int Done = 0, int Total = 0);
 
 // Each invocation owns an offline native worker. Its models are released after
 // recognition, and selected images travel only through the process pipes.
@@ -88,14 +95,17 @@ internal sealed class NativeCaptureTextService(NativeHostConfiguration? host) : 
     public Task<string> OpenResult(Bitmap image,bool translate,CancellationToken cancellation) => host?.OpenResultAsync(image,translate,cancellation)
         ?? Task.FromException<string>(new InvalidOperationException("resultUnavailable"));
 
-    public Task<PinTranslationResult> TranslateImage(Bitmap image, CancellationToken cancellation)
+    public Task<PinTranslationResult> TranslateImage(Bitmap image, CancellationToken cancellation) => TranslateImage(image, null, cancellation);
+
+    public Task<PinTranslationResult> TranslateImage(Bitmap image, IProgress<TranslationProgress>? progress, CancellationToken cancellation)
     {
         if (host is null) return Task.FromException<PinTranslationResult>(new InvalidOperationException("translationUnavailable"));
         // OCR and image composition run away from the canvas thread. The caller
         // keeps the selected pixels alive until the request completes.
         return Task.Run(async () => {
+            progress?.Report(new(0.05, "ocr"));
             var layout = await engine.PinLayout(image, cancellation).ConfigureAwait(false);
-            return await PinTranslationEngine.Translate(image, layout, null, host.PinTargetAsync, host.TranslateAsync, cancellation).ConfigureAwait(false);
+            return await PinTranslationEngine.Translate(image, layout, null, host.PinTargetAsync, host.TranslateAsync, cancellation, progress).ConfigureAwait(false);
         }, cancellation);
     }
 }

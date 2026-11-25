@@ -39,7 +39,8 @@ internal static class PinTranslationEngine
 
     internal static async Task<PinTranslationResult> Translate(Bitmap original, PinOcrLayout layout, Rectangle? selection,
         Func<string, CancellationToken, Task<string>> resolveTarget,
-        Func<string, string, CancellationToken, Task<string>> translate, CancellationToken cancel)
+        Func<string, string, CancellationToken, Task<string>> translate, CancellationToken cancel,
+        IProgress<TranslationProgress>? progress = null)
     {
         var bounds = new Rectangle(Point.Empty, original.Size);
         var input = original.LockBits(bounds, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
@@ -78,14 +79,18 @@ internal static class PinTranslationEngine
         if (count < 1) throw new InvalidOperationException(count == 0 ? "ocrEmpty" : "pinRenderFailed");
         var paragraphs = Enumerable.Range(0, count).Select(i => Marshal.PtrToStringUTF8(pin_text(page, i))
             ?? throw new InvalidDataException("pinRenderFailed")).ToArray();
+        // OCR is done; paragraph translation spans 20%..90%, rendering the rest.
+        progress?.Report(new(0.2, "translate", 0, count));
         var target = await resolveTarget(string.Join("\n", paragraphs), cancel).ConfigureAwait(false);
         for (int i = 0; i < count; i++)
         {
             cancel.ThrowIfCancellationRequested();
             var result = await translate(paragraphs[i], target, cancel).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(result) || pin_translated(page, i, result) != 1) throw new InvalidDataException("translationFailed");
+            progress?.Report(new(0.2 + 0.7 * (i + 1) / count, "translate", i + 1, count));
         }
         cancel.ThrowIfCancellationRequested();
+        progress?.Report(new(0.92, "render", count, count));
         var output = new Bitmap(original.Width, original.Height, PixelFormat.Format32bppArgb);
         try
         {

@@ -293,18 +293,18 @@ func (p *Panel) header(c *ui.Context, t *ui.Theme) {
 	}
 	ui.Row(c).Key("title").Height(resultHeaderHeight).AlignItems(ui.Center).Padding(0, 6).Gap(8).DragWindow().Children(func() {
 		ui.Row(c).Grow(1).Basis(0).MinWidth(0).AlignItems(ui.Center).Gap(6).DragWindow().Children(func() {
+			// The pin glyph stays upright in both states; only its color shows
+			// whether the window is pinned (muted when off, full text color when on).
 			pinName := p.T("固定结果窗", "Pin result window")
-			pinRotation := float32(0)
 			pinColor := t.TextMuted
 			if !c.Preferences().HighContrast {
 				pinColor = pinColor.Alpha(0.7)
 			}
 			if p.Pinned {
 				pinName = p.T("取消固定", "Unpin result window")
-				pinRotation = 45
 				pinColor = t.Text
 			}
-			if rotatedIconButton(c, "pin", pinName, pinRotation).TextColor(pinColor).Clicked() {
+			if iconButton(c, "pin", pinName, false).TextColor(pinColor).Clicked() {
 				p.Pinned = !p.Pinned
 				if p.Actions.Pin != nil {
 					p.Actions.Pin(p.Pinned)

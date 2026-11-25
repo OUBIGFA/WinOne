@@ -14,7 +14,15 @@ internal sealed class NativeInPlaceTranslation(WinOneCaptureCanvas canvas, ICapt
     internal bool Available => translated is not null;
     internal bool Showing { get; private set; }
     internal string? Error { get; private set; }
-    internal string? Status => Busy ? T("正在翻译…", "Translating…") : null;
+    private TranslationProgress progress;
+    // Fraction of the current request, 0..1, for the hint's progress bar.
+    internal double? Fraction => Busy ? progress.Fraction : null;
+    internal string? Status => !Busy ? null : progress.Stage switch {
+        "translate" when progress.Total > 0 => T($"正在翻译 {progress.Done}/{progress.Total} 段…", $"Translating {progress.Done}/{progress.Total} paragraphs…"),
+        "translate" => T("正在翻译…", "Translating…"),
+        "render" => T("正在生成译文图像…", "Rendering translation…"),
+        _ => T("正在识别文字…", "Recognizing text…")
+    };
     internal event Action? Changed;
 
     internal void Start()
@@ -25,6 +33,7 @@ internal sealed class NativeInPlaceTranslation(WinOneCaptureCanvas canvas, ICapt
         region = canvas.Selection!.Value;
         Error = null;
         request = new CancellationTokenSource();
+        progress = new(0.02, "ocr");
         Changed?.Invoke();
         _ = Run(request);
     }
@@ -34,7 +43,14 @@ internal sealed class NativeInPlaceTranslation(WinOneCaptureCanvas canvas, ICapt
         try {
             await canvas.PrepareRenderAsync(lifetime.Token);
             using var source = canvas.RenderOriginalSelection();
-            var result = await service.TranslateImage(source, lifetime.Token);
+            // Created on the canvas thread, so reports arrive there. Stale or
+            // backward reports never move the bar of the current request.
+            var reporter = new Progress<TranslationProgress>(value => {
+                if (disposed || canvas.Window.IsDisposed || request != lifetime || value.Fraction <= progress.Fraction) return;
+                progress = value;
+                Changed?.Invoke();
+            });
+            var result = await service.TranslateImage(source, reporter, lifetime.Token);
             if (disposed || canvas.Window.IsDisposed || lifetime.IsCancellationRequested || request != lifetime || canvas.Selection != region) {
                 result.Picture.Dispose();
                 return;

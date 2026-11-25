@@ -612,6 +612,7 @@ internal sealed partial class NativeCaptureSession : IDisposable
         // Errors use the bounded native hint, never compete with action buttons
         // for toolbar width. The hint does not intercept selection input.
         var message = error ?? inPlaceTranslation.Status ?? preferencesStatus ?? captureNotice;
+        selectionHint.SetProgress(error is null && inPlaceTranslation.Status is not null ? inPlaceTranslation.Fraction : null);
         selectionHint.Visible = message is not null;
         if (selectionHint.Visible) {
             var screen = Screen.FromPoint(Cursor.Position).WorkingArea;
@@ -710,6 +711,34 @@ internal sealed partial class NativeCaptureSession : IDisposable
     }
     private sealed class HintLabel : Label
     {
+        private double? progress;
+        // A determinate bar under the text while in-place translation runs.
+        // Null hides it and restores the plain hint layout.
+        internal void SetProgress(double? value)
+        {
+            var next = value is { } fraction ? Math.Clamp(fraction, 0, 1) : (double?)null;
+            if (next == progress) return;
+            var layout = next.HasValue != progress.HasValue;
+            progress = next;
+            if (layout) {
+                Padding = new Padding(8, 4, 8, progress.HasValue ? 12 : 4);
+                MinimumSize = progress.HasValue ? new Size(LogicalToDeviceUnits(240), 0) : Size.Empty;
+            }
+            Invalidate();
+        }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            if (progress is not { } fraction) return;
+            var inset = LogicalToDeviceUnits(8);
+            var height = Math.Max(2, LogicalToDeviceUnits(3));
+            var track = new Rectangle(inset, Height - LogicalToDeviceUnits(6) - height / 2, Math.Max(1, Width - inset * 2), height);
+            using var back = new SolidBrush(Color.FromArgb(48, ForeColor));
+            using var fill = new SolidBrush(ForeColor);
+            e.Graphics.FillRectangle(back, track);
+            var filled = (int)Math.Round(track.Width * fraction);
+            if (filled > 0) e.Graphics.FillRectangle(fill, new Rectangle(track.X, track.Y, filled, track.Height));
+        }
         // The hint is informative; pointer input must still reach the canvas.
         protected override void WndProc(ref Message message)
         {
