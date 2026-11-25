@@ -74,6 +74,7 @@
   "aiComplete.balanceToken": "余额访问令牌",
   "aiComplete.accessKeyID": "云服务 Access Key ID",
   "aiComplete.secretAccessKey": "云服务 Secret Access Key",
+  "aiComplete.sessionToken": "云服务会话令牌（临时密钥）",
   "aiComplete.clearCredential": "清除 {{name}}",
   "aiComplete.keyOptions": "密钥选项",
   "aiComplete.keyName": "密钥名称",

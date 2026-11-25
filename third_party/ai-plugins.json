@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/magpie-community/plugins",
-  "revision": "ae9dba9f7ff197c0f3a7526af998d2a2d5d806a3",
-  "registrySHA256": "deec9bdaa08d39dacd63baf21fcdc0312e50f64d918e3d1f97f004515f362e17",
+  "revision": "bbd3a2e76d7f2e765f0181786a60169b7acf860a",
+  "registrySHA256": "87cf80a3a29d8353ca13bf8379b40d33f1ff3319589c7f15e8aee3a9ca233a0c",
   "license": {
     "file": "licenses/magpie-community-plugins-LICENSE.txt",
     "sha256": "bebc3d1ec74f197b010ed6f6b6743dbae73fe4865d71bd0670b0a4e203056679"
@@ -662,19 +662,19 @@
         "en": "Z.ai and BigModel GLM Coding Plan, team seats and ZCode's free Start Plan, with a daily claim of its gift plans.",
         "zh": "Z.ai 与智谱 GLM Coding Plan，支持团队席位和 ZCode 免费 Start Plan，可每日领取 ZCode 活动包。"
       },
-      "version": "0.1.68",
+      "version": "0.1.69",
       "directory": "packages/zcode",
       "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/zcode/README.md",
-          "size": 29694,
-          "sha256": "8903dcf779e2d518281f3b66db1d3c26fa2d4c6ff7179d0f4240e8e5dc909136"
+          "size": 29917,
+          "sha256": "a50b77e35cb8afc380491164fcc4a63bfc2e8fc0091956cdce03fe3af76ee10f"
         },
         {
           "path": "packages/zcode/index.mjs",
-          "size": 181637,
-          "sha256": "06ff56c944f1bfb061e469c64219bf198c896fd5aa1654d1ec7a1726b1d29c08"
+          "size": 184142,
+          "sha256": "2e2a4ac4ad90748ae85a1e8094c252b2bc9ea68e6c3b7e9da69d5a8d4725be9d"
         },
         {
           "path": "packages/zcode/opencode.mjs",
@@ -689,7 +689,7 @@
         {
           "path": "packages/zcode/package.json",
           "size": 780,
-          "sha256": "43fa0523672af7a0fcdf13b09cba700c2a8aa0ee8313fb20832915ae4f946f9e"
+          "sha256": "8a8ea35ce466c56a3e2bddbb178f5b5f7d4b2682b2503e52ed5b7525a5ef5bc0"
         },
         {
           "path": "packages/zcode/prompt.mjs",
@@ -714,7 +714,7 @@
         "en": "Your Qoder subscription: international (qoder.com) or Qoder CN, the China site (qoder.cn, Alibaba Cloud or phone sign-in), each its own provider. Also QwenWork (千问办公): the public cloud or the enterprise flagship with its own domain. Unofficial for QwenWork.",
         "zh": "用 Qoder 自己的设备登录使用 Qoder 订阅：国际版（qoder.com）与 Qoder 中国版（Qoder CN，qoder.cn，阿里云账号 / 手机号登录）各是一个订阅；也接入千问办公：公有云与企业旗舰版（输入企业自己的域名）。千问办公部分非官方。"
       },
-      "version": "0.2.71",
+      "version": "0.2.73",
       "directory": "packages/qoder",
       "entry": "opencode.mjs",
       "files": [
@@ -725,13 +725,13 @@
         },
         {
           "path": "packages/qoder/README.md",
-          "size": 38342,
-          "sha256": "a55f693571eead569c11aeaf6a44cecc000f318da4f3b41d5a3637000be53951"
+          "size": 38996,
+          "sha256": "ccefe6d4a87d1ebb285efb2703ff4228211b21ab92102632ba32e50bfb9924e2"
         },
         {
           "path": "packages/qoder/index.mjs",
-          "size": 208046,
-          "sha256": "0f05f646d23371c0c1c3188e3ccdb1f7bcc55cafe9dd045f77faf0900ac9d37e"
+          "size": 209932,
+          "sha256": "08f70dc7fcb05170507144118f0b36bc69cb2fec4832639def9a8b913cb5486a"
         },
         {
           "path": "packages/qoder/opencode.mjs",
@@ -746,7 +746,7 @@
         {
           "path": "packages/qoder/package.json",
           "size": 803,
-          "sha256": "c8d15e521f6aca77a293db447406764a33456780230421a6a83f6e3832e06e7b"
+          "sha256": "a6b289e8bfa8a8d08b6b3863b20bb134a7a8d1c21d9da4ff3c5cad82bd9d2460"
         }
       ]
     },
@@ -841,14 +841,14 @@
         "en": "Factory's Droid subscription: models from Anthropic, OpenAI, xAI and open labs.",
         "zh": "Factory Droid 订阅：Anthropic、OpenAI、xAI 及开源模型。"
       },
-      "version": "0.1.55",
+      "version": "0.1.57",
       "directory": "packages/factory",
       "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/factory/README.md",
-          "size": 22779,
-          "sha256": "47fd0f1c7668e56041a6c5c232e410068c8faba8cb722977111983e7b8558c4b"
+          "size": 22963,
+          "sha256": "558003f311f2953574d79a80388d0be96c6be94c8eb2334d9f16bdaa2a29d247"
         },
         {
           "path": "packages/factory/anthropic-tools.mjs",
@@ -862,8 +862,8 @@
         },
         {
           "path": "packages/factory/index.mjs",
-          "size": 132494,
-          "sha256": "76bc84ee50a0157a8523063589bb25b7a702e1b7952d09e50779acf89688f3e1"
+          "size": 138176,
+          "sha256": "dd9f9428a48f17057f1dcfe7a095223094a43405c179bfc20fd92330317365cc"
         },
         {
           "path": "packages/factory/opencode.mjs",
@@ -878,7 +878,7 @@
         {
           "path": "packages/factory/package.json",
           "size": 629,
-          "sha256": "6e6674d3e6e28043b372c1064dd434d8a72c7a2efb968f2eaf7657a3eee40dc3"
+          "sha256": "ce17277fe18d3dba7469dbe3f691141bcf591f35037806d35a86db14c1a9e7ad"
         },
         {
           "path": "packages/factory/tool-names.mjs",
@@ -1037,19 +1037,19 @@
         "en": "Cursor Pro, Pro+, Ultra and Teams — every model your plan has, with tool calls.",
         "zh": "Cursor Pro、Pro+、Ultra 与 Teams：套餐里的所有模型，支持工具调用。"
       },
-      "version": "0.2.48",
+      "version": "0.2.49",
       "directory": "packages/cursor",
       "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/cursor/README.md",
-          "size": 26680,
-          "sha256": "c829c5b763d15058bf97756c34e3d5fd5f63c00afec2ed2154c585e50eaafb56"
+          "size": 26969,
+          "sha256": "985fc1541412e78901d77760772dc50967790ae2dfabfb73b9f06f150694a59f"
         },
         {
           "path": "packages/cursor/index.mjs",
-          "size": 178644,
-          "sha256": "422d71714c2fd6484d2d73e07e45bd7625d53d7c21de92d509e15b2fcc883232"
+          "size": 179394,
+          "sha256": "c8aaa28839acdc92fe7b79e2fb6746ff3c9a5ad4d6e294221b0be19c97f4d9bd"
         },
         {
           "path": "packages/cursor/native-session.mjs",
@@ -1069,7 +1069,7 @@
         {
           "path": "packages/cursor/package.json",
           "size": 618,
-          "sha256": "2048177e30c8dba2f58499c92d7bf9ad3cdef505b7d41d355c413590e8938871"
+          "sha256": "52be927e1312220f60312bdd7708d19f42d6f522f1ba54a89ca7ce98e56c709d"
         }
       ]
     },
@@ -1330,19 +1330,19 @@
         "en": "Trae CN (trae.cn) and Trae international (trae.ai) models with your own account, free tier included — Trae's own browser sign-in. Experimental.",
         "zh": "用 Trae CN（trae.cn）与 Trae 国际版（trae.ai）账号使用各自的模型，含免费版，使用 Trae 自己的浏览器登录。实验性。"
       },
-      "version": "0.2.46",
+      "version": "0.2.54",
       "directory": "packages/trae",
       "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/trae/README.md",
-          "size": 40620,
-          "sha256": "57f32dfaf1ab39056329bd57045fe26be2d69fd976dee272014d9a50a84dd219"
+          "size": 45658,
+          "sha256": "cdf400779121654b06dacc2658f4279b254800752dbc1855840d694e352bee4c"
         },
         {
           "path": "packages/trae/index.mjs",
-          "size": 220841,
-          "sha256": "af86ca074a2891d47de65245c514ce2925509388a6502b30bbab673954ae5d8a"
+          "size": 251268,
+          "sha256": "b78b03268d71a5de202646f106d59c03968e77aeeed8ce04188d609581c4c019"
         },
         {
           "path": "packages/trae/opencode.mjs",
@@ -1357,7 +1357,7 @@
         {
           "path": "packages/trae/package.json",
           "size": 744,
-          "sha256": "197d31d30352054c51e0553d2c2e8c1a40b99c2e4fcdc728dc7a11f95c2298db"
+          "sha256": "b85dc1949f37fef00e1803119d75304e0db8100640abf2687ec04acc2b078f36"
         }
       ]
     },
@@ -1429,7 +1429,7 @@
         "en": "Meituan's 妙手 CatPaw (ai.catpaw.meituan.com): a browser web sign-in or the desktop client's saved credentials, chat through its round/event/turn conversation protocol, models and credit balance.",
         "zh": "美团妙手 CatPaw（ai.catpaw.meituan.com）：浏览器网页登录或妙手桌面端已保存的登录态，经其 round/event/turn 会话协议对话，含模型与积分余额。"
       },
-      "version": "0.2.2",
+      "version": "0.2.3",
       "directory": "packages/catpaw",
       "entry": "opencode.mjs",
       "files": [
@@ -1440,8 +1440,8 @@
         },
         {
           "path": "packages/catpaw/index.mjs",
-          "size": 62601,
-          "sha256": "2b455286d3153b09b1e469d1c64252b25eb1fc49c3924a0cbcd2fbc54a3a1edd"
+          "size": 63665,
+          "sha256": "68673b7660a6999791861b49098b920f3bcdd76f32261476d474d752885eaa7f"
         },
         {
           "path": "packages/catpaw/opencode.mjs",
@@ -1456,7 +1456,7 @@
         {
           "path": "packages/catpaw/package.json",
           "size": 797,
-          "sha256": "3ca94b69b3a19abf5f8b793c9e3e8ace8c35faa85cb28c2ca8914982bb04602a"
+          "sha256": "7b76c2a2da77d4efc1e7849d50ac97dc85d53e6304770d33c48559121e929e03"
         }
       ]
     },
@@ -1776,24 +1776,24 @@
         "en": "AutoClaw (Zhipu OpenClaw) cloud accounts: oversea web sign-in (Google/z.ai) or CN phone SMS, credit balance and daily check-in.",
         "zh": "AutoClaw（智谱澳龙/OpenClaw）云端账号：国际版网页登录（Google/z.ai）或国内手机验证码，积分余额与每日签到。"
       },
-      "version": "0.2.24",
+      "version": "0.2.25",
       "directory": "packages/autoclaw",
       "entry": "opencode.mjs",
       "files": [
         {
           "path": "packages/autoclaw/README.en.md",
-          "size": 17371,
-          "sha256": "858aa0fe01877b474d184be6ff3f43bb705c78b70f1b8956d8531cb4b07364e9"
+          "size": 17925,
+          "sha256": "a18688eeccfac9ee239955ea64b41d78bf42cab7250ad673d811a85320c8b851"
         },
         {
           "path": "packages/autoclaw/README.md",
-          "size": 16562,
-          "sha256": "026f61c9dc9e7b2996c5ffb2bcd18d5c95a00a5553674aecdaac0a6091700553"
+          "size": 17081,
+          "sha256": "92c11e6dd588aa295d637aeeaa5b4ede3bce5ee8272258c07b1d740b72f657db"
         },
         {
           "path": "packages/autoclaw/index.mjs",
-          "size": 115863,
-          "sha256": "2b19239659a2e21579556e0c3bfc0068730a286e8ab85d69cc16451189106048"
+          "size": 125355,
+          "sha256": "5db5ca53cc58917d41e92edcd202594e5b9e847ba12438435046301a15fbffab"
         },
         {
           "path": "packages/autoclaw/opencode.mjs",
@@ -1808,7 +1808,7 @@
         {
           "path": "packages/autoclaw/package.json",
           "size": 1177,
-          "sha256": "b712c058f911acab767b195cd5ff170396f4d19e4882dbc70c86a6401c95c30d"
+          "sha256": "a8a5983ab82a9dd21d0342e0919a698bf1d0ef7af3fba8d793d4f2b67eb38203"
         }
       ]
     },
@@ -2089,6 +2089,68 @@
           "path": "packages/openai-decisions/package.json",
           "size": 1485,
           "sha256": "f5b8d1cd8b4601543d5381148d28d41be23ebeb8b42fb3f6c448086e0001f16d"
+        }
+      ]
+    },
+    {
+      "package": "@magpie-community/magpie-magnific-api",
+      "name": "Magnific",
+      "providers": [
+        "magnific"
+      ],
+      "community": true,
+      "summary": {
+        "en": "Magnific image and video generation with a Magnific API key: 20 native image and video models (Mystic, Nano Banana, Flux, Veo, Kling, Seedance, WAN, …) and tools that reach all 140 endpoints from every agent.",
+        "zh": "用 Magnific API key 接入生图、生视频：20 个原生生图/视频模型（Mystic、Nano Banana、Flux、Veo、Kling、Seedance、WAN 等），外加每个 agent 都能调用、覆盖全部 140 个端点的工具。"
+      },
+      "version": "0.1.1",
+      "directory": "packages/magnific-api",
+      "entry": "index.mjs",
+      "files": [
+        {
+          "path": "packages/magnific-api/LICENSE",
+          "size": 1082,
+          "sha256": "88d9f4813d7d51c1f6008afcbcebcc8f2bf0b651017a469105a00d0e3da5d055"
+        },
+        {
+          "path": "packages/magnific-api/README.md",
+          "size": 5165,
+          "sha256": "1ee5f0bda893530ea23c9499dc5541a3d2643d2a8fcd5cf385e55a77babb083f"
+        },
+        {
+          "path": "packages/magnific-api/args.mjs",
+          "size": 1202,
+          "sha256": "81496bfcbb29fce76d0737d8cc32d71e7c50ed3b7d25630e5007864bf355f17b"
+        },
+        {
+          "path": "packages/magnific-api/catalog.json",
+          "size": 328732,
+          "sha256": "62bad30e675e930b773a8bfe61936b07799638b2717ad72f665ac4fb0884f117"
+        },
+        {
+          "path": "packages/magnific-api/catalog.mjs",
+          "size": 3724,
+          "sha256": "dad7b640976af4efd0467a690bfbbade0f0486c18856aa0bd156634c0f00c716"
+        },
+        {
+          "path": "packages/magnific-api/index.mjs",
+          "size": 8487,
+          "sha256": "dc252b8f81d2fd285bf5db10f78e0a2fc835ab89413a4da0a9570ba5a6f16b14"
+        },
+        {
+          "path": "packages/magnific-api/magnific.mjs",
+          "size": 6085,
+          "sha256": "1c19196f699df027a2174cfcc68be24d7159bd965b60e6a0953d1f4953d7b862"
+        },
+        {
+          "path": "packages/magnific-api/native.mjs",
+          "size": 11586,
+          "sha256": "b459b3f0053f6d696c5cf44f2d11278689cf6c5313f5a0999534d1a7e22326a6"
+        },
+        {
+          "path": "packages/magnific-api/package.json",
+          "size": 1341,
+          "sha256": "0dee2ff7b881449597a842b7660f55d851ae01f3c5902d88b334dbf3a011ec0c"
         }
       ]
     },
@@ -2535,7 +2597,7 @@
         "en": "Unofficial: Antigravity's models (Gemini, and whatever else agy offers) in any agent, on your Google account. Install, then Sign in with Google in magpie; the Antigravity CLI (agy) is installed for you if this computer doesn't have it. Requests are made by agy itself, and each tool call the agent makes waits about 2 seconds for agy's own safety check.",
         "zh": "非官方：用你的 Google 账号，在任意 Agent 里使用 Antigravity 的模型（Gemini，以及 agy 开放的其它模型）。安装后在 magpie 里点「登录」用 Google 登录即可；本机没有 Antigravity CLI（agy）时会自动安装。请求由 agy 本身发出，Agent 每次调用工具要多等约 2 秒，那是 agy 自己的安全检查。"
       },
-      "version": "0.1.102",
+      "version": "0.1.121",
       "directory": "packages/agy-cli",
       "entry": "opencode.mjs",
       "files": [
@@ -2551,13 +2613,13 @@
         },
         {
           "path": "packages/agy-cli/README.en.md",
-          "size": 25695,
-          "sha256": "ac30164d6862a85e80c48d3d0bb186e5941cff196ef73481c69d5315307c9ded"
+          "size": 28532,
+          "sha256": "109493a875c343217581e95dafaa6108b0254509ae71e69e0dd5708263aaddaf"
         },
         {
           "path": "packages/agy-cli/README.md",
-          "size": 25048,
-          "sha256": "34e35a096670bea0285f037ab0eaeb83f90e22698a33137fc803ca422f2564fe"
+          "size": 27764,
+          "sha256": "bca373b80cf3ac9f90ca6a403e7c802fdd0ca2117e22300221a9d463358d992f"
         },
         {
           "path": "packages/agy-cli/account.mjs",
@@ -2586,8 +2648,8 @@
         },
         {
           "path": "packages/agy-cli/index.mjs",
-          "size": 341320,
-          "sha256": "c29ce6e502f744a026d100727bb28f4384759e0d401fafcd9dd0089ec438087b"
+          "size": 382639,
+          "sha256": "f5536853f870952fd8f91e45b32814cd0e1e6cd84e190c92ba67843d9ee958f8"
         },
         {
           "path": "packages/agy-cli/install.mjs",
@@ -2622,12 +2684,12 @@
         {
           "path": "packages/agy-cli/package.json",
           "size": 1335,
-          "sha256": "feccdc248645bf5318ce31003e7ef764a3c1a7d9af3ca23b8a229b8f4bdddf0c"
+          "sha256": "271d560026045b5c61a46f5adb748e6c5965d5545be861af50b5404eea40b1b2"
         },
         {
           "path": "packages/agy-cli/platform.mjs",
-          "size": 7935,
-          "sha256": "45bace416703d02208f0e0380b2f5efffc25b47ccfc3ea5cb99f4b7bd06499d6"
+          "size": 8444,
+          "sha256": "193c2cd3466ef7d72846f0a3921910b9e3469e50b77da9f6d3d4671b4358f11f"
         },
         {
           "path": "packages/agy-cli/proc.mjs",
@@ -2641,8 +2703,8 @@
         },
         {
           "path": "packages/agy-cli/signin.mjs",
-          "size": 12756,
-          "sha256": "f2c41b73e24cfe7d3b84c8edb1d63642f388516f2c7bed710163727f010adbe8"
+          "size": 19745,
+          "sha256": "5edd6113b028595d8e9ef12a8272cc66320b2d87700fb3e4818b62973ff414f9"
         },
         {
           "path": "packages/agy-cli/step-usage.mjs",
@@ -2661,8 +2723,8 @@
         },
         {
           "path": "packages/agy-cli/usage.mjs",
-          "size": 35309,
-          "sha256": "4035aa279c25aea7deca10eb83aa51addf6bbfae7e5b62bed3dfb7b88611e83d"
+          "size": 38045,
+          "sha256": "c7024bcd9b2a52da1d9587291593467a5c889bd26f2e968c4606ec6bd522509b"
         }
       ]
     },

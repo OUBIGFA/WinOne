@@ -28,9 +28,11 @@ type ProviderPreferences struct {
 	// separately and hydrates only private execution snapshots.
 	AccessKeyID          *string                       `json:"accessKeyID,omitempty"`
 	SecretAccessKey      *string                       `json:"secretAccessKey,omitempty"`
+	SessionToken         *string                       `json:"sessionToken,omitempty"`
 	BalanceToken         *string                       `json:"balanceToken,omitempty"`
 	HasAccessKeyID       bool                          `json:"hasAccessKeyID,omitempty"`
 	HasSecretAccessKey   bool                          `json:"hasSecretAccessKey,omitempty"`
+	HasSessionToken      bool                          `json:"hasSessionToken,omitempty"`
 	HasBalanceToken      bool                          `json:"hasBalanceToken,omitempty"`
 	Endpoints            *ProviderEndpoints            `json:"endpoints,omitempty"`
 	Fallback             []string                      `json:"fallback,omitempty"`
@@ -69,6 +71,8 @@ type ProviderPreferences struct {
 	MagpieUserAgent      bool                          `json:"magpieUserAgent,omitempty"`
 	PriceRate            float64                       `json:"priceRate,omitempty"`
 	TopUpRate            float64                       `json:"topUpRate,omitempty"`
+	RateReadHours        int                           `json:"rateReadHours,omitempty"`
+	KeyRateFactors       map[string]float64            `json:"keyRateFactors,omitempty"`
 	CountFree            bool                          `json:"countFree,omitempty"`
 	RateWindows          []RateWindow                  `json:"rateWindows,omitempty"`
 	ReplyHeaders         []string                      `json:"replyHeaders,omitempty"`
@@ -240,6 +244,14 @@ func (p ProviderPreferences) validate() error {
 	}
 	if why := TopUpRateOK(p.TopUpRate); why != "" {
 		return errors.New(why)
+	}
+	if why := RateReadHoursOK(p.RateReadHours); why != "" {
+		return errors.New(why)
+	}
+	for _, factor := range p.KeyRateFactors {
+		if why := KeyRateFactorOK(factor); why != "" {
+			return errors.New(why)
+		}
 	}
 	if p.Socket != "" && p.Socket != "auto" && p.Socket != "on" && p.Socket != "off" {
 		return errors.New("Responses WebSocket 模式无效")

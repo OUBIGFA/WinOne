@@ -8,7 +8,7 @@ if (!source) throw new Error('Pass the pinned Magpie source directory');
 const revision = JSON.parse(fs.readFileSync(path.join(root, 'third_party/sources.json'), 'utf8')).magpie.commit;
 const read = name => fs.readFileSync(path.join(source, 'internal/provider', name), 'utf8').replaceAll('\r\n', '\n');
 const auto = read('autolist.go'), patterns = read('groupmatch.go'), quota = read('concurrency.go'), disabled = read('disabled.go');
-const keys = read('keys.go'), rates = read('key_rate_read.go');
+const keys = read('keys.go'), rates = read('key_rate_read.go'), keyRate = read('key_rate.go');
 const devin = read('devin.go');
 function extract(text, name) {
   const start = text.indexOf(`func ${name}(`);
@@ -48,6 +48,8 @@ ${extract(disabled, 'namesOf')}
 ${extract(keys, 'SplitKeys')}
 // Top-up validation is identical at the Host document and upstream request boundaries.
 ${extract(rates, 'TopUpRateOK')}
+${extract(rates, 'RateReadHoursOK')}
+${extract(keyRate, 'KeyRateFactorOK')}
 ${extract(devin, 'devinRouter').replaceAll('devinRouter', 'DevinRouter')}
 ${extract(devin, 'withoutDevinRouters').replaceAll('withoutDevinRouters', 'WithoutDevinRouters').replaceAll('devinRouter', 'DevinRouter')}
 `;

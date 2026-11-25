@@ -139,7 +139,7 @@ func (e *editor) servicePreferences(c *ui.Context, pr *provider, locked bool) {
 				value **string
 				has   bool
 			}{
-				{"balanceToken", &s.BalanceToken, s.HasBalanceToken}, {"accessKeyID", &s.AccessKeyID, s.HasAccessKeyID}, {"secretAccessKey", &s.SecretAccessKey, s.HasSecretAccessKey},
+				{"balanceToken", &s.BalanceToken, s.HasBalanceToken}, {"accessKeyID", &s.AccessKeyID, s.HasAccessKeyID}, {"secretAccessKey", &s.SecretAccessKey, s.HasSecretAccessKey}, {"sessionToken", &s.SessionToken, s.HasSessionToken},
 			} {
 				label := i18n.T("aiComplete." + field.key)
 				kit.Stack(c.Key(field.key), label, "", func() {

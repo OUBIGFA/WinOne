@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/yetone/magpie",
-  "revision": "f65fe92ef93557e9a2098d2606a4d9c0175a4213",
+  "revision": "e29699527866704ae0a9c6fbee4e2a3acf00b733",
   "license": "MIT",
-  "notice": "licenses/upstream-magpie-f65fe92ef93557e9a2098d2606a4d9c0175a4213-0-LICENSE.txt",
+  "notice": "licenses/upstream-magpie-e29699527866704ae0a9c6fbee4e2a3acf00b733-0-LICENSE.txt",
   "sourceFiles": {
-    "internal/gui/proxycheck.go": "9464894a27020c6d1f891ca262130e6d22276d97c698c0610304cc56e10859b9",
+    "internal/gui/proxycheck.go": "a3d5a1144224095ae1b7838017327de663a03fd52858a84e30ba5c1163e3b59e",
     "internal/gui/proxies.go": "b926f83f06c48b30b84d3b945761f28fabd046c713d82f950a6f2fd2c1d3232c"
   },
   "files": {
-    "build/prepare-ai-proxy-probe.mjs": "84d872fb18a9c65d2107c9a6c57a5f87de208bdc0ccc6c52b59af7b8948bfa09",
+    "build/prepare-ai-proxy-probe.mjs": "7f415a3b6a5b0c2c0ffa2f950ef1ad396f644f2b111d1fb0c77ab930e9a4f37d",
     "modules/ai-magpie/proxy_probe.go": "0e6f3d679c1f0799e096a7ced1fb1c6bd12acf01f43976ae31ebcbb1dba3c84c"
   },
   "generatedFile": "cmd/winone-ai/upstream_proxy_probe.go",
-  "generatedSHA256": "886af5da72655f26f99bde929bc797f20cbdb0d911bb148a9619057d0e25463f",
+  "generatedSHA256": "81cf6ca1b8c55bbb32b824990a0f802ab771c98761e9eadd875e96badc6e483a",
   "adaptations": [
     "Rename only the package; copy the original pure trace, connection check, latency calculation and error redaction",
-    "Omit the GUI HTTP controller and saved-proxy management; the existing WinOne inline proxy supplies the current choice",
+    "Omit the GUI HTTP controllers (proxy check and Claude egress recheck) and their imports, and saved-proxy management; the existing WinOne inline proxy supplies the current choice",
     "The Host returns only check state, exit IP/region and redacted failure details"
   ]
 }

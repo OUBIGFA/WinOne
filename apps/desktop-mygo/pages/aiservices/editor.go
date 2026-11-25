@@ -29,16 +29,17 @@ type editor struct {
 	renameOrigin string
 	renameFocus  bool
 
-	gen         int // the page's savedGen the rows were read at
-	fields      fields
-	proxyProbes map[string]*proxyProbePanel
-	keyRows     map[string]*keyRow
-	keyRests    keyRestPanel
-	plan        planPanel
-	headers     []*headerRow
-	avatar      avatarState
-	models      *modelsPanel
-	account     *accountPanel
+	gen          int // the page's savedGen the rows were read at
+	fields       fields
+	proxyProbes  map[string]*proxyProbePanel
+	keyRows      map[string]*keyRow
+	keyRests     keyRestPanel
+	providerKeys providerKeysPanel
+	plan         planPanel
+	headers      []*headerRow
+	avatar       avatarState
+	models       *modelsPanel
+	account      *accountPanel
 	// Connection setup is secondary after a provider has models. New
 	// providers open it immediately; switching views keeps the same draft.
 	connectionOpen       bool
@@ -83,6 +84,8 @@ func newEditor(p *page, pr *provider, key string) *editor {
 func (e *editor) reset(pr *provider) {
 	e.keyRests.api.close()
 	e.keyRests = keyRestPanel{}
+	e.providerKeys.api.close()
+	e.providerKeys = providerKeysPanel{}
 	e.gen = e.p.savedGen
 	for _, row := range e.keyRows {
 		row.read++
@@ -101,6 +104,7 @@ func (e *editor) Close() {
 		e.plan.auth.Close()
 	}
 	e.keyRests.api.close()
+	e.providerKeys.api.close()
 	e.closed = true
 	e.claudeMode.api.close()
 	for _, row := range e.keyRows {

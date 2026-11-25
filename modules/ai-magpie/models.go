@@ -208,14 +208,17 @@ func configuredProvider(in request) (provider.Provider, error) {
 		if rate, ok := p.KeyPriceRates[in.KeyID]; ok {
 			p.KeyPriceRates = map[string]float64{fingerprint: rate}
 		}
+		if factor, ok := p.KeyRateFactors[in.KeyID]; ok {
+			p.KeyRateFactors = map[string]float64{fingerprint: factor}
+		}
 	}
 	if len(in.Keys) > 0 {
 		// The upstream provider receives the whole enabled key set. Its own
 		// selection, weights, protocol support, budgets and failover all apply.
 		p.Keys = nil
-		caps, balances, rates := p.KeySpendCaps, p.KeyOwnBalances, p.KeyPriceRates
+		caps, balances, rates, factors := p.KeySpendCaps, p.KeyOwnBalances, p.KeyPriceRates, p.KeyRateFactors
 		if in.ProviderPreferences != nil {
-			caps, balances, rates = nil, nil, nil
+			caps, balances, rates, factors = nil, nil, nil, nil
 		}
 		for i, key := range in.Keys {
 			if i == 0 {
@@ -249,9 +252,15 @@ func configuredProvider(in request) (provider.Provider, error) {
 					}
 					rates[fingerprint] = v
 				}
+				if v, ok := options.KeyRateFactors[key.ID]; ok {
+					if factors == nil {
+						factors = map[string]float64{}
+					}
+					factors[fingerprint] = v
+				}
 			}
 		}
-		p.KeySpendCaps, p.KeyOwnBalances, p.KeyPriceRates = caps, balances, rates
+		p.KeySpendCaps, p.KeyOwnBalances, p.KeyPriceRates, p.KeyRateFactors = caps, balances, rates, factors
 	}
 	// Magpie applies these after protocol authentication, preserving names and
 	// merging list-valued headers through the same path as its provider editor.

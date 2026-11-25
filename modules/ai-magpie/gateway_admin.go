@@ -305,6 +305,46 @@ func callerKeyRoutes(mux *http.ServeMux) {
 		w.Header().Set("Cache-Control", "no-store")
 		writeJSON(w, map[string]any{"keys": withLimits(keys), "accountNames": provider.AccountNames(), "secret": secret})
 	})
+	// Upstream's provider side of the keys' models: the gateway keys that may
+	// use a model and how far each reaches the provider; ticks are written to
+	// each key's own Models, the list the gateway key editor writes too.
+	mux.HandleFunc("GET /api/provider-keys", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		keys, err := access.ProviderKeys(r.URL.Query().Get("provider"))
+		if err != nil {
+			fail(w, err)
+			return
+		}
+		writeJSON(w, map[string]any{"keys": keys})
+	})
+	mux.HandleFunc("POST /api/provider-keys", func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			Provider string   `json:"provider"`
+			Add      []string `json:"add"`
+			Remove   []string `json:"remove"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+			fail(w, err)
+			return
+		}
+		access.MigrateLegacyLANKeyBestEffort()
+		// A key on every model, unticked, keeps every other provider.
+		var ids []string
+		for _, p := range provider.All() {
+			ids = append(ids, p.ID)
+		}
+		if err := access.SetProviderKeys(in.Provider, in.Add, in.Remove, ids); err != nil {
+			fail(w, err)
+			return
+		}
+		keys, err := access.ProviderKeys(in.Provider)
+		if err != nil {
+			fail(w, err)
+			return
+		}
+		w.Header().Set("Cache-Control", "no-store")
+		writeJSON(w, map[string]any{"keys": keys})
+	})
 }
 
 func listedGateway(gs []usage.GatewaySession) []usage.GatewaySession {

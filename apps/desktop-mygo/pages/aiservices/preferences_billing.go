@@ -60,6 +60,15 @@ func (e *editor) billingPreferences(c *ui.Context, pr *provider, locked bool) {
 			}
 			numberRow(c, upstreamT("Top-up rate"), topUp, .0001, 1000, false, "0.07", locked, func(v *float64) { s.TopUpRate = value(v) })
 			kit.Help(c, upstreamT("What one dollar of the relay cost you, like 0.07 for ¥7 per $100. Each key's group rate is read from the relay, and its calls cost the two multiplied"))
+			if s.TopUpRate > 0 {
+				// Upstream shows the read interval only while a top-up rate is set.
+				var hours *float64
+				if s.RateReadHours > 0 {
+					h := float64(s.RateReadHours)
+					hours = &h
+				}
+				numberRow(c, upstreamT("Read rates every (hours)"), hours, 1, 168, true, "6", locked, func(v *float64) { s.RateReadHours = int(value(v)) })
+			}
 			kit.Stack(c, i18n.T("ai.keyPlan"), "", func() { kit.TextInput(c, &s.KeyPlan).FillWidth().Label(i18n.T("ai.keyPlan")).Disabled(locked) })
 		}
 	})

@@ -74,6 +74,7 @@
   "aiComplete.balanceToken": "Balance access token",
   "aiComplete.accessKeyID": "Cloud Access Key ID",
   "aiComplete.secretAccessKey": "Cloud Secret Access Key",
+  "aiComplete.sessionToken": "Cloud session token (temporary keys)",
   "aiComplete.clearCredential": "Clear {{name}}",
   "aiComplete.keyOptions": "Key options",
   "aiComplete.keyName": "Key name",

@@ -323,14 +323,17 @@ func readKeyBalances(ctx context.Context, in request, out io.Writer) error {
 	// actual credential fingerprint, shared with the request ledger.
 	balances := p.KeyOwnBalances
 	p.KeyOwnBalances = map[string]provider.OwnBalance{}
-	rates := p.KeyPriceRates
-	p.KeyPriceRates = map[string]float64{}
+	rates, factors := p.KeyPriceRates, p.KeyRateFactors
+	p.KeyPriceRates, p.KeyRateFactors = map[string]float64{}, map[string]float64{}
 	for _, key := range in.BalanceKeys {
 		if balance, ok := balances[key.Name]; ok {
 			p.KeyOwnBalances[provider.KeyID(key.Key)] = balance
 		}
 		if rate, ok := rates[key.Name]; ok {
 			p.KeyPriceRates[provider.KeyID(key.Key)] = rate
+		}
+		if factor, ok := factors[key.Name]; ok {
+			p.KeyRateFactors[provider.KeyID(key.Key)] = factor
 		}
 	}
 	provider.WinOneProviders = []provider.Provider{p}

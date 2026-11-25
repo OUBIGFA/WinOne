@@ -28,7 +28,7 @@ func (e *editor) preferenceAccounts(pr *provider) []string {
 		}
 	}
 	s := &pr.ProviderPreferences
-	for _, keys := range [][]string{sortedKeys(s.AccountNames), sortedKeys(s.AccountWeights), sortedKeys(s.AccountConcurrency), sortedKeys(s.AccountModels), sortedKeys(s.AccountModelsAll), sortedKeys(s.AccountProxies), sortedKeys(s.AccountCaps), sortedKeys(s.AccountWindowCaps), sortedKeys(s.AccountWindowAmounts), sortedKeys(s.KeySpendCaps), sortedKeys(s.KeyOwnBalances), sortedKeys(s.KeyPriceRates)} {
+	for _, keys := range [][]string{sortedKeys(s.AccountNames), sortedKeys(s.AccountWeights), sortedKeys(s.AccountConcurrency), sortedKeys(s.AccountModels), sortedKeys(s.AccountModelsAll), sortedKeys(s.AccountProxies), sortedKeys(s.AccountCaps), sortedKeys(s.AccountWindowCaps), sortedKeys(s.AccountWindowAmounts), sortedKeys(s.KeySpendCaps), sortedKeys(s.KeyOwnBalances), sortedKeys(s.KeyPriceRates), sortedKeys(s.KeyRateFactors)} {
 		ids = append(ids, keys...)
 	}
 	if e.preferenceAccount != "" {
@@ -163,6 +163,7 @@ func (e *editor) accountPreferences(c *ui.Context, pr *provider, locked bool) {
 			delete(s.KeySpendCaps, id)
 			delete(s.KeyOwnBalances, id)
 			delete(s.KeyPriceRates, id)
+			delete(s.KeyRateFactors, id)
 			for key := range e.fields {
 				if strings.Contains(key, id) {
 					delete(e.fields, key)

@@ -94,6 +94,7 @@ func (e *editor) preferences(c *ui.Context, pr *provider, locked bool) {
 		case 5:
 			e.avatarView(c, pr, locked)
 			e.servicePreferences(c, pr, locked)
+			e.providerKeysView(c, pr, locked)
 		}
 	})
 }

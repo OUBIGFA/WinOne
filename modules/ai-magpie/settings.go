@@ -368,7 +368,7 @@ func installAuxiliaryProviders(in request) error {
 			if len(p.NativeSource.Keys) == 0 {
 				actual.Keys = p.NativeKeys
 				actual.KeySpendCaps, actual.KeyOwnBalances = p.KeySpendCaps, p.KeyOwnBalances
-				actual.KeyPriceRates = p.KeyPriceRates
+				actual.KeyPriceRates, actual.KeyRateFactors = p.KeyPriceRates, p.KeyRateFactors
 			}
 			// Custom providers are real upstream providers in this process.
 			// Only independently authenticated account profiles need a bridge.

@@ -45,6 +45,23 @@ func (e *editor) keyOptions(c *ui.Context, pr *provider, id string, locked bool)
 					pr.KeyPriceRates[id] = *v
 				}
 			})
+			if pr.TopUpRate > 0 {
+				// Upstream multiplies the read group rate by this factor; none is 1.
+				var factor *float64
+				if current, ok := pr.KeyRateFactors[id]; ok {
+					factor = &current
+				}
+				numberRow(c, upstreamT("Cost factor"), factor, .0001, 1000, false, "1", locked, func(v *float64) {
+					if v == nil {
+						delete(pr.KeyRateFactors, id)
+					} else {
+						if pr.KeyRateFactors == nil {
+							pr.KeyRateFactors = map[string]float64{}
+						}
+						pr.KeyRateFactors[id] = *v
+					}
+				})
+			}
 			plans := options("", i18n.T("aiComplete.providerPlan"))
 			if preset := e.p.catalog.preset(pr.Preset); preset != nil && preset.KeyPlans {
 				for _, region := range preset.Regions {

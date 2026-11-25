@@ -58,7 +58,7 @@ func gatewayKeyRestState(p provider.Provider) []keyRestRow {
 // before this live state crosses the private Host boundary.
 func protectedKeyRest(p provider.Provider, r gateway.Rest) *provider.KeyRest {
 	said := r.Error
-	secrets := []string{p.Key, p.AccessKeyID, p.SecretAccessKey, p.BalanceToken}
+	secrets := []string{p.Key, p.AccessKeyID, p.SecretAccessKey, p.SessionToken, p.BalanceToken}
 	for _, key := range p.Keys {
 		secrets = append(secrets, key.Key)
 	}

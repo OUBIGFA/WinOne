@@ -1,8 +1,8 @@
 {
   "repository": "https://github.com/yetone/magpie",
-  "revision": "f65fe92ef93557e9a2098d2606a4d9c0175a4213",
+  "revision": "e29699527866704ae0a9c6fbee4e2a3acf00b733",
   "license": "MIT",
-  "notice": "licenses/upstream-magpie-f65fe92ef93557e9a2098d2606a4d9c0175a4213-0-LICENSE.txt",
+  "notice": "licenses/upstream-magpie-e29699527866704ae0a9c6fbee4e2a3acf00b733-0-LICENSE.txt",
   "source": "internal/gui/assets/plugins/gateway/client.js",
   "sourceSHA256": "189c91e234f6e6b03ef860ee2f2824d2bf7b1d02c64608b182c1aae4102654c7",
   "output": "apps/desktop-mygo/pages/aiservices/gateway_examples.json",

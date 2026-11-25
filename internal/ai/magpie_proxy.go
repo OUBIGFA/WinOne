@@ -1,4 +1,4 @@
-// Generated from yetone/magpie f65fe92ef93557e9a2098d2606a4d9c0175a4213; MIT.
+// Generated from yetone/magpie e29699527866704ae0a9c6fbee4e2a3acf00b733; MIT.
 // Host uses inline proxies; named references are checked against an empty upstream list.
 // See third_party/magpie-proxy-source.json.
 package ai

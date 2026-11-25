@@ -145,11 +145,11 @@ func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []Runt
 		helper.Resolve = nil
 		// Supplemental credentials and vendor discovery URLs belong solely to
 		// the inner worker, never the outer router's loopback provider.
-		helper.AccessKeyID, helper.SecretAccessKey, helper.BalanceToken = nil, nil, nil
+		helper.AccessKeyID, helper.SecretAccessKey, helper.SessionToken, helper.BalanceToken = nil, nil, nil, nil
 		helper.ModelsURL, helper.BalanceURL = "", ""
 		helper.Vertex, helper.ZhipuTeam, helper.Endpoints = nil, nil, nil
 		helper.KeySpendCaps, helper.KeyOwnBalances = nil, nil
-		helper.KeyPriceRates = nil
+		helper.KeyPriceRates, helper.KeyRateFactors = nil, nil
 		helper.InsecureTLS = false
 		if p.Provider.AuthMode == "api-key" {
 			helper.DecisionSource = &decisionSource{Protocol: p.Provider.Protocol, BaseURL: p.Provider.BaseURL, Preset: p.Provider.Preset, PresetRegion: p.Provider.PresetRegion, ProviderPreferences: &ProviderPreferences{Endpoints: p.Provider.Endpoints}}
@@ -196,6 +196,12 @@ func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []Runt
 					helper.KeyPriceRates = map[string]float64{}
 				}
 				helper.KeyPriceRates[fingerprint] = rate
+			}
+			if factor, ok := p.Provider.KeyRateFactors[key.ID]; ok {
+				if helper.KeyRateFactors == nil {
+					helper.KeyRateFactors = map[string]float64{}
+				}
+				helper.KeyRateFactors[fingerprint] = factor
 			}
 			name := key.Name
 			if name == "" {

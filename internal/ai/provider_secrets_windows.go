@@ -15,7 +15,7 @@ func (s *Store) prepareProviderSecrets(c *Configuration) (map[string]map[string]
 			edit **string
 			has  *bool
 		}{
-			{"accessKeyID", &p.AccessKeyID, &p.HasAccessKeyID}, {"secretAccessKey", &p.SecretAccessKey, &p.HasSecretAccessKey}, {"balanceToken", &p.BalanceToken, &p.HasBalanceToken},
+			{"accessKeyID", &p.AccessKeyID, &p.HasAccessKeyID}, {"secretAccessKey", &p.SecretAccessKey, &p.HasSecretAccessKey}, {"sessionToken", &p.SessionToken, &p.HasSessionToken}, {"balanceToken", &p.BalanceToken, &p.HasBalanceToken},
 		}
 		values := map[string]string{}
 		for _, f := range fields {
@@ -53,7 +53,7 @@ func (s *Store) hydrateProviderSecrets(p *Provider) error {
 		name  string
 		value **string
 	}{
-		{"accessKeyID", &p.AccessKeyID}, {"secretAccessKey", &p.SecretAccessKey}, {"balanceToken", &p.BalanceToken},
+		{"accessKeyID", &p.AccessKeyID}, {"secretAccessKey", &p.SecretAccessKey}, {"sessionToken", &p.SessionToken}, {"balanceToken", &p.BalanceToken},
 	} {
 		if *f.value != nil {
 			continue

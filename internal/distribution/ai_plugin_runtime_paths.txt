@@ -227,6 +227,15 @@ shared/ai/plugins/loomy/index.mjs
 shared/ai/plugins/loomy/opencode.mjs
 shared/ai/plugins/loomy/opencode2.mjs
 shared/ai/plugins/loomy/package.json
+shared/ai/plugins/magnific-api/LICENSE
+shared/ai/plugins/magnific-api/README.md
+shared/ai/plugins/magnific-api/args.mjs
+shared/ai/plugins/magnific-api/catalog.json
+shared/ai/plugins/magnific-api/catalog.mjs
+shared/ai/plugins/magnific-api/index.mjs
+shared/ai/plugins/magnific-api/magnific.mjs
+shared/ai/plugins/magnific-api/native.mjs
+shared/ai/plugins/magnific-api/package.json
 shared/ai/plugins/mclaw/CHANGELOG.md
 shared/ai/plugins/mclaw/README.md
 shared/ai/plugins/mclaw/browser.mjs

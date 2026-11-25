@@ -1,10 +1,10 @@
 {
   "repository": "https://github.com/yetone/magpie",
-  "revision": "f65fe92ef93557e9a2098d2606a4d9c0175a4213",
+  "revision": "e29699527866704ae0a9c6fbee4e2a3acf00b733",
   "license": "MIT",
-  "notice": "licenses/upstream-magpie-f65fe92ef93557e9a2098d2606a4d9c0175a4213-0-LICENSE.txt",
+  "notice": "licenses/upstream-magpie-e29699527866704ae0a9c6fbee4e2a3acf00b733-0-LICENSE.txt",
   "inputs": {
-    "internal/gui/assets/i18n.js": "0e887ec8e613275a036122ff2937b526c9f7236f8e58709aeca871f3ac264b87"
+    "internal/gui/assets/i18n.js": "8b778bc61a97cdae52adf6ebfdaa84d532360d41514c781c5ef95d521b56ae31"
   },
   "adaptations": [
     "Retain only native gateway labels and connection notes; use WinOne product name and named interpolation; remove the unavailable Agents-page direction"
