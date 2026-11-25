@@ -27,6 +27,15 @@ while ($true) {
         Start-Sleep -Milliseconds 250
     }
 }
+function Invoke-CMake([string[]]$Arguments,[string]$Failure) {
+    $previous=$ErrorActionPreference
+    try {
+        $ErrorActionPreference='Continue'
+        & $cmake @Arguments 2>&1 | ForEach-Object { $_.ToString() }
+        $code=$LASTEXITCODE
+    } finally { $ErrorActionPreference=$previous }
+    if($code){throw $Failure}
+}
 try {
     $source=Join-Path $cache 'opencv-4.12.0'
     $ready=Join-Path $cache 'source.ready'
@@ -36,10 +45,8 @@ try {
         [IO.File]::WriteAllText($ready,$sha)
     }
     $objects=Join-Path $cache 'build'
-    & $cmake -S (Join-Path $root 'modules/capture/pin-translation') -B $objects -G $generator -A x64 "-DCMAKE_GENERATOR_INSTANCE=$vs" "-DOPENCV_SOURCE=$source" '-DCMAKE_CONFIGURATION_TYPES=Release'
-    if ($LASTEXITCODE) { throw 'Pin translation configuration failed' }
-    & $cmake --build $objects --config Release --target WinOne.PinTranslation --parallel 4
-    if ($LASTEXITCODE) { throw 'Pin translation native build failed' }
+    Invoke-CMake @('-S',(Join-Path $root 'modules/capture/pin-translation'),'-B',$objects,'-G',$generator,'-A','x64',"-DCMAKE_GENERATOR_INSTANCE=$vs","-DOPENCV_SOURCE=$source",'-DCMAKE_CONFIGURATION_TYPES=Release') 'Pin translation configuration failed'
+    Invoke-CMake @('--build',$objects,'--config','Release','--target','WinOne.PinTranslation','--parallel','4') 'Pin translation native build failed'
     [void][IO.Directory]::CreateDirectory($target)
     Copy-Item -LiteralPath (Join-Path $objects 'Release/WinOne.PinTranslation.dll') -Destination (Join-Path $target 'WinOne.PinTranslation.dll') -Force
 } finally { $guard.Dispose() }
