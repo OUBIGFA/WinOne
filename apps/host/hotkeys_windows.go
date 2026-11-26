@@ -151,6 +151,7 @@ func foregroundIdentity() (json.RawMessage, error) {
 	}
 	return json.Marshal(map[string]any{"handle": strconv.FormatUint(uint64(h), 10), "pid": pid, "created": strconv.FormatUint(uint64(created.HighDateTime)<<32|uint64(created.LowDateTime), 10)})
 }
+
 // capturing reports whether an action uses the capture worker's single job.
 func capturing(id string) bool { return id != "pin" && id != "selection" && id != "quick-assistant" }
 
@@ -192,13 +193,8 @@ func (r *shortcutRuntime) run(ctx context.Context, service *host.Service) {
 		}
 		busy, activeAction, activePressed, activeStarted = true, id, pressed, time.Now()
 		go func() {
-			if capturing(id) {
-				resumed, err := resumeCaptureDraft(ctx, service, r.openDraft)
-				if resumed || err != nil {
-					finished <- outcome{err: err}
-					return
-				}
-			}
+			// A new shortcut captures the current screen. Recovery is an explicit
+			// draft.resume action; restoring old pixels here hides the current app.
 			response := service.Handle(req)
 			if response.Error != nil {
 				finished <- outcome{err: fmt.Errorf("%s", response.Error.Message)}
@@ -354,37 +350,6 @@ func (r *shortcutRuntime) logAction(action string, failure error, timings ...map
 	go func() {
 		_ = diagnostics.Record(r.logDirectory, diagnostics.Event{Source: "host", Event: "shortcut.timing", Message: message})
 	}()
-}
-
-func resumeCaptureDraft(ctx context.Context, service *host.Service, openDraft func(string) error) (bool, error) {
-	if err := ctx.Err(); err != nil {
-		return false, err
-	}
-	response := service.Handle(host.Request{Version: 1, ID: "shortcut-resume-draft", Method: "capture.draft.get", Params: json.RawMessage(`{}`)})
-	if response.Error != nil {
-		return false, fmt.Errorf("%s", response.Error.Message)
-	}
-	var result struct {
-		Draft *struct {
-			ID string `json:"id"`
-		} `json:"draft"`
-	}
-	if err := json.Unmarshal(response.Result, &result); err != nil {
-		return false, err
-	}
-	if result.Draft == nil {
-		return false, nil
-	}
-	if err := ctx.Err(); err != nil {
-		return false, err
-	}
-	if err := capturehandoff.ValidateDraftID(result.Draft.ID); err != nil {
-		return false, err
-	}
-	if openDraft == nil {
-		return false, fmt.Errorf("截图编辑窗口未配置")
-	}
-	return true, openDraft(result.Draft.ID)
 }
 
 // Capture creation returns a job; output/clipboard failures may arrive only at

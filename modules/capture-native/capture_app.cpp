@@ -517,9 +517,8 @@ json CaptureApp::command(std::string method, json parameters) {
 }
 
 void CaptureApp::beginCapture(const std::string& id, const std::string& mode) {
-    // Discarded generations may still be finishing their first PNG encoding.
-    // They no longer own the UI and must not be offered again while retiring.
-    if (!retirement_.valid()) if (const auto saved = drafts_->read()) { resumeDraft(id, saved->id); return; }
+    // Starting a capture means current pixels; only draft.resume restores a
+    // previous screen. Keep any recovered draft intact until acquisition works.
     active_ = id; sessionSettings_ = settings_; mode_ = mode;
     draft_.reset(); draftFingerprint_.clear(); preserving_ = false;
     textBusy_ = false;
@@ -537,6 +536,12 @@ void CaptureApp::beginCapture(const std::string& id, const std::string& mode) {
     }
     upstream::CaptureOverlay::instance().startSelection(options);
     if (!upstream::CaptureOverlay::instance().isOverlayVisible()) throw std::runtime_error("无法取得屏幕图像");
+    if (!retirement_.valid()) if (auto saved = drafts_->read()) {
+        // Supersede the old generation through the existing retirement path,
+        // so its asynchronous writer cannot overwrite the new screen's draft.
+        draft_ = std::move(saved);
+        retireDraft(true);
+    }
     auto& state = upstream::CaptureOverlay::instance().winoneState();
     state.winoneLiveCapture = true;
     state.currentArrowStyle = upstream::ArrowStyle::Standard;

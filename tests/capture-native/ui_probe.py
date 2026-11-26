@@ -22,7 +22,7 @@ parser.add_argument('--scale',type=float,default=1)
 parser.add_argument('--recording-runtime')
 parser.add_argument('--physical-input',action='store_true')
 parser.add_argument('--agent-desktop')
-parser.add_argument('--suite', choices=['snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
+parser.add_argument('--suite', choices=['fresh','double-copy','snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
 args = parser.parse_args()
 output = Path(args.output).resolve()
 root = Path(__file__).resolve().parents[2]
@@ -30,6 +30,11 @@ if not output.is_relative_to(root / '_temp'):
     raise ValueError('Private capture test data must be inside repository _temp')
 output.mkdir(parents=True, exist_ok=False)
 (output/'temp').mkdir();os.environ['TEMP']=os.environ['TMP']=str(output/'temp')
+if args.suite=='fresh':
+    from PIL import Image
+    fixture_path=output/'current-screen.png'
+    Image.new('RGB',(1280,900),(180,40,60)).save(fixture_path)
+    os.environ['WINONE_CAPTURE_FIXTURE']=str(fixture_path)
 if args.suite in ('recording','recording-parent'):
     if not args.recording_runtime:raise ValueError('Recording control tests require the generated-frame runtime')
     generated=Path(args.recording_runtime).resolve()
@@ -103,6 +108,11 @@ user.SetKeyboardState.argtypes = [ctypes.POINTER(ctypes.c_ubyte)]
 user.SetForegroundWindow.argtypes = [w.HWND]
 user.GetWindowTextW.argtypes=[w.HWND,w.LPWSTR,ctypes.c_int]
 user.GetDlgItem.argtypes=[w.HWND,ctypes.c_int];user.GetDlgItem.restype=w.HWND
+user.OpenClipboard.argtypes=[w.HWND]
+user.GetClipboardData.argtypes=[w.UINT];user.GetClipboardData.restype=w.HANDLE
+user.GetClipboardSequenceNumber.restype=w.DWORD
+kernel.GlobalLock.argtypes=[w.HANDLE];kernel.GlobalLock.restype=ctypes.c_void_p
+kernel.GlobalUnlock.argtypes=[w.HANDLE]
 kernel.CreateFileW.argtypes = [w.LPCWSTR,w.DWORD,w.DWORD,ctypes.c_void_p,w.DWORD,w.DWORD,w.HANDLE]
 kernel.CreateFileW.restype = w.HANDLE
 kernel.WaitNamedPipeW.argtypes = [w.LPCWSTR,w.DWORD]
@@ -349,6 +359,36 @@ try:
         send(canvas,0x200,1,(460<<16)|selection_right)
         send(canvas,0x202,0,(460<<16)|selection_right)
         events.append({'selected':True})
+        if args.suite=='double-copy':
+            for annotation in (False,True):
+                if annotation:
+                    key(canvas,ord('R'))
+                    send(canvas,0x201,1,(220<<16)|200);send(canvas,0x200,1,(270<<16)|250);send(canvas,0x202,0,(270<<16)|250)
+                    if not rpc('probe.state')['elements']:raise AssertionError('Rectangle was not drawn before double-click')
+                # Deliver the complete native click sequence. The first click
+                # can start a mark, which must not swallow the second click.
+                clipboard_before=user.GetClipboardSequenceNumber()
+                click_point(canvas,400,350)
+                send(canvas,0x203,1,(350<<16)|400)
+                finished=rpc('jobs.get',{'id':job['id'],'waitMs':100})
+                if finished['state']!='completed' or not finished.get('result',{}).get('copied'):
+                    raise AssertionError(f'Double-click did not confirm and copy (annotation={annotation}): {finished}')
+                if overlay() or finished['result'].get('path') or finished['result'].get('pinned'):
+                    raise AssertionError('Double-click left the canvas open or performed another output action')
+                if user.GetClipboardSequenceNumber()==clipboard_before:raise AssertionError('Double-click did not update the clipboard')
+                if not user.OpenClipboard(fixture):raise ctypes.WinError(ctypes.get_last_error())
+                try:
+                    bitmap=user.GetClipboardData(8) # CF_DIB: actual image dimensions, not just the RPC success flag.
+                    pixels=kernel.GlobalLock(bitmap) if bitmap else None
+                    if not pixels:raise AssertionError('Clipboard contains no image after double-click')
+                    try:
+                        _,width,height=struct.unpack('<Iii',ctypes.string_at(pixels,12))
+                        if (width,abs(height))!=(460,280):raise AssertionError('Clipboard dimensions differ from the selection')
+                    finally:kernel.GlobalUnlock(bitmap)
+                finally:user.CloseClipboard()
+                events.append({'doubleClickCopied':True,'annotation':annotation})
+                job=rpc('capture.unified',{'mode':'region','language':'zh-CN'});canvas=wait_until(overlay)
+                send(canvas,0x201,1,(180<<16)|160);send(canvas,0x200,1,(460<<16)|620);send(canvas,0x202,0,(460<<16)|620)
         if args.suite=='parent-exit':
             key(canvas,ord('N'));click_point(canvas,260,260)
             edit=wait_until(lambda:number_editor(canvas))
@@ -776,7 +816,7 @@ try:
                 wait_until(lambda:rpc('jobs.get',{'id':job['id']})['state']=='completed')
                 job=rpc('capture.unified',{'mode':'region','language':'zh-CN'});canvas=wait_until(overlay)
                 send(canvas,0x201,1,(180<<16)|160);send(canvas,0x200,1,(460<<16)|620);send(canvas,0x202,0,(460<<16)|620)
-        if args.suite in ('annotations','resume'):
+        if args.suite in ('annotations','resume','fresh'):
             key(canvas,ord('N'))
             send(canvas,0x201,1,(260<<16)|260)
             send(canvas,0x202,0,(260<<16)|260)
@@ -794,6 +834,11 @@ try:
                 except (OSError,json.JSONDecodeError):return None
             saved=wait_until(saved_caption)
             events.append({'numberCaptionSaved':True,'draftId':saved['id']})
+            if args.suite=='fresh':
+                repeated=rpc('capture.unified',{'mode':'region','language':'zh-CN'})
+                if repeated['id']!=job['id'] or rpc('draft.get')['draft']['id']!=saved['id']:
+                    raise AssertionError('Repeated screenshot request replaced the active canvas')
+                events.append({'activeCaptureReactivated':True})
             if args.suite=='annotations':
                 key(canvas,ord('S'),control=True)
                 finished=wait_until(lambda:(x if (x:=rpc('jobs.get',{'id':job['id'],'waitMs':100}))['state']!='running' else None))
@@ -809,14 +854,36 @@ try:
             else:
                 # Crash only this owned candidate after its metadata is committed.
                 child.kill();child.wait(timeout=5)
+                if args.suite=='fresh':
+                    Image.new('RGB',(1280,900),(40,180,60)).save(fixture_path)
                 child=subprocess.Popen([args.executable,'--pipe',pipe,'--data-dir',str(output),'--parent',str(os.getpid())],
                     stdout=stdout,stderr=stderr,creationflags=0x08000000)
                 wait_until(ready)
                 recovered=rpc('draft.get')['draft']
                 if recovered['id']!=saved['id']:raise AssertionError('Saved draft was not offered after restart')
-                job=rpc('draft.resume',{'expectedId':saved['id'],'language':'zh-CN'})
+                if args.suite=='fresh':
+                    fixture_path.write_bytes(b'capture acquisition failure')
+                    failed=rpc('capture.unified',{'mode':'region','language':'zh-CN'})
+                    wait_until(lambda:rpc('jobs.get',{'id':failed['id']})['state']!='running')
+                    if overlay() or rpc('draft.get')['draft']['id']!=saved['id']:
+                        raise AssertionError('Failed screen acquisition discarded the recoverable draft')
+                    Image.new('RGB',(1280,900),(40,180,60)).save(fixture_path)
+                    events.append({'acquisitionFailureRetainedDraft':True})
+                job=rpc('capture.unified',{'mode':'region','language':'zh-CN'}) if args.suite=='fresh' else rpc('draft.resume',{'expectedId':saved['id'],'language':'zh-CN'})
                 canvas=wait_until(overlay)
-                events.append({'draftResumed':True})
+                if args.suite=='fresh':
+                    state=rpc('probe.state')
+                    if state['elements'] or state['selection']!=[0,0,0,0]:
+                        raise AssertionError('New capture restored the old screen, selection and annotations')
+                    send(canvas,0x201,1,(180<<16)|160);send(canvas,0x200,1,(460<<16)|620);send(canvas,0x202,0,(460<<16)|620)
+                    click_button(canvas,'保存')
+                    finished=wait_until(lambda:(x if (x:=rpc('jobs.get',{'id':job['id'],'waitMs':100}))['state']!='running' else None))
+                    if finished['state']!='completed':raise AssertionError(f'Fresh screen save failed: {finished}')
+                    with Image.open(finished['result']['path']) as image:
+                        if image.convert('RGB').getpixel((100,100))!=(40,180,60):raise AssertionError('Saved image contains the old screen pixels')
+                    events.append({'freshScreenReplacesRecoveredDraft':True,'currentPixelsVerified':True})
+                    job=rpc('capture.unified',{'mode':'region','language':'zh-CN'});canvas=wait_until(overlay)
+                else:events.append({'draftResumed':True})
         send(canvas,0x100,0x1B,0)
         result=wait_until(lambda: (x if (x:=rpc('jobs.get',{'id':job['id'],'waitMs':100}))['state']!='running' else None))
         if result['state']!='completed' or not result['result'].get('cancelled'):

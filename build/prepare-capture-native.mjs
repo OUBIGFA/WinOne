@@ -413,8 +413,24 @@ await adapt('src/capture/CaptureInputKeyboard.cpp', [
                         return 0;
                     }`],
 ]);
+await adapt('src/capture/CaptureInteractionPolicy.h', [
+    ['    // 4. 命中当前激活图元手柄或画布已有图元：进入编辑/选中', `    // Ordinary screenshot double-clicks confirm even with an annotation tool
+    // selected. Text editing, controls, long images and recording keep their
+    // own input behavior; the UI and selection-handle guards above still apply.
+    if (state.mode == OverlayMode::Screenshot && !state.isLongImageMode() &&
+        !(state.activeElement && state.activeElement->isEditing)) {
+        return DoubleClickIntent::ConfirmSelectionAndCopy;
+    }
+
+    // 4. 命中当前激活图元手柄或画布已有图元：进入编辑/选中`],
+]);
 await adapt('src/capture/CaptureInputMouse.cpp', [
-    ['                    case DoubleClickIntent::ConfirmSelectionAndCopy:', '                    case DoubleClickIntent::ConfirmSelectionAndCopy:\n                        if (m_state->isLongImageMode()) return 0;'],
+    [`                    case DoubleClickIntent::ConfirmSelectionAndCopy:
+                        if (m_confirmCb) m_confirmCb({CaptureCompletionAction::Default});`,
+     `                    case DoubleClickIntent::ConfirmSelectionAndCopy:
+                        if (m_state->isLongImageMode()) return 0;
+                        if (m_confirmCb) m_confirmCb({m_state->mode == OverlayMode::Screenshot
+                            ? CaptureCompletionAction::Copy : CaptureCompletionAction::Default});`],
     ['                cv::Point local = inSelection ? toMarkupPoint(point) : cv::Point{0, 0};', `                cv::Point local = inSelection ? toMarkupPoint(point) : cv::Point{0, 0};
                 // WinOne exposes distinct selection and annotation-move tools.
                 // Delegate the actual movement to the community input engine.

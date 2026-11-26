@@ -62,23 +62,41 @@ func TestShortcutHandsOffOnlyAValidCompletedDraft(t *testing.T) {
 	}
 }
 
-func TestShortcutResumesAnExistingDraftWithoutStartingCapture(t *testing.T) {
-	store, err := settings.Open(filepath.Join(t.TempDir(), "settings.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	service := host.New(store)
-	id := strings.Repeat("b", 32)
-	service.RegisterModule("capture", func() host.Module { return host.Module{} }, func(request host.Request) host.Response {
-		if request.Method != "draft.get" {
-			t.Fatalf("unexpected capture command: %s", request.Method)
-		}
-		return host.Response{ID: request.ID, Result: json.RawMessage(`{"draft":{"id":"` + id + `"}}`)}
-	})
-	opened := ""
-	resumed, err := resumeCaptureDraft(context.Background(), service, func(value string) error { opened = value; return nil })
-	if err != nil || !resumed || opened != id {
-		t.Fatal(resumed, opened, err)
+func TestShortcutStartsCurrentScreenDespiteRecoveredDraft(t *testing.T) {
+	for _, action := range []string{"capture", "ocr", "translate"} {
+		t.Run(action, func(t *testing.T) {
+			store, err := settings.Open(filepath.Join(t.TempDir(), "settings.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			service := host.New(store)
+			commands := make(chan string, 4)
+			service.RegisterModule("capture", func() host.Module { return host.Module{} }, func(request host.Request) host.Response {
+				commands <- request.Method
+				switch request.Method {
+				case "draft.get":
+					return host.Response{ID: request.ID, Result: json.RawMessage(`{"draft":{"id":"` + strings.Repeat("b", 32) + `"}}`)}
+				case "capture.unified":
+					return host.Response{ID: request.ID, Result: json.RawMessage(`{"id":"current-screen","state":"completed","result":{}}`)}
+				}
+				return host.Response{ID: request.ID, Error: &host.RPCError{Code: "unexpected", Message: request.Method}}
+			})
+			registrar := &fakeShortcutRegistrar{events: make(chan string, 1)}
+			runtime := &shortcutRuntime{registrar: registrar, openDraft: func(string) error { commands <- "draft.resume"; return nil }}
+			ctx, cancel := context.WithCancel(context.Background())
+			finished := make(chan struct{})
+			go func() { defer close(finished); runtime.run(ctx, service) }()
+			defer func() { cancel(); <-finished }()
+			registrar.events <- action
+			select {
+			case command := <-commands:
+				if command != "capture.unified" {
+					t.Fatalf("shortcut requested %s instead of the current screen", command)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("shortcut did not request a current screenshot")
+			}
+		})
 	}
 }
 
@@ -119,7 +137,7 @@ type fakeShortcutRegistrar struct{ events chan string }
 
 func (f *fakeShortcutRegistrar) Update([]hotkeys.Binding) ([]hotkeys.Status, error) { return nil, nil }
 func (f *fakeShortcutRegistrar) Events() <-chan string                              { return f.events }
-func (f *fakeShortcutRegistrar) Close() error                                      { return nil }
+func (f *fakeShortcutRegistrar) Close() error                                       { return nil }
 
 // Presses during a capture that has no visible session to focus (silent OCR,
 // closing) used to be dropped. The latest one now runs as soon as it ends.
