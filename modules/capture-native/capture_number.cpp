@@ -22,19 +22,23 @@ void CaptureApp::editNumber(uint32_t id) {
     element->isEditing = true;
     if (element->text.empty()) {
         const int width=std::abs(state.dragEnd.x-state.dragStart.x),height=std::abs(state.dragEnd.y-state.dragStart.y);
-        const int badge=static_cast<int>(std::ceil(element->fontSize*.625f));
-        const int minLabel=static_cast<int>(std::ceil(element->fontSize*2.5f));
-        const int right=width-badge-12-minLabel-8, top=static_cast<int>(std::ceil(element->fontSize*.7f))+5;
-        const int bottom=height-static_cast<int>(std::ceil(element->fontSize*.8f))-10;
+        const auto metrics = number_label::layout(*element);
+        const int badge = metrics.badgeR;
+        const int bubbleReserve = metrics.gap + metrics.tailW + metrics.padX * 2;
+        const int minLabel = std::max(72, static_cast<int>(std::ceil(element->fontSize * 4.5f)));
+        const int right = width - badge - bubbleReserve - minLabel - 8;
+        const int top = std::max(badge + 4, static_cast<int>(std::ceil(element->fontSize * .95f)) + 6);
+        const int bottom = height - std::max(badge + 4, static_cast<int>(std::ceil(element->fontSize * .95f))) - 8;
         if(right<badge+2 || bottom<top){notice("选区无法容纳此字号的序号说明，请调小字号或扩大选区");return;}
         const cv::Point fitted{std::clamp(element->startPt.x,badge+2,right),std::clamp(element->startPt.y,top,bottom)};
         element->moveBy(fitted.x-element->startPt.x,fitted.y-element->startPt.y);
     }
-    const auto label = number_label::textElement(*element);
-    const float remaining = static_cast<float>(std::abs(state.dragEnd.x - state.dragStart.x) - label.startPt.x - 8);
+    const auto boxLayout = number_label::layout(*element);
+    const float remaining = static_cast<float>(std::abs(state.dragEnd.x - state.dragStart.x) - boxLayout.textRect.x - boxLayout.padX - 8);
     element->textMaxWidth = std::max(32.f, remaining);
+    const auto bg = number_label::calloutColor();
     if (numberBackground_) DeleteObject(numberBackground_);
-    numberBackground_ = CreateSolidBrush(RGB(element->color.r,element->color.g,element->color.b));
+    numberBackground_ = CreateSolidBrush(RGB(bg.r, bg.g, bg.b));
     const auto parent = overlay.winoneWindow();
     numberEdit_ = CreateWindowExW(0, L"EDIT", wide(element->text).c_str(), WS_CHILD | WS_VISIBLE | WS_TABSTOP |
         ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN, 0, 0, 120, 30, parent, reinterpret_cast<HMENU>(3101), GetModuleHandleW(nullptr), nullptr);
@@ -96,10 +100,10 @@ LRESULT CALLBACK CaptureApp::numberProcedure(HWND window, UINT message, WPARAM w
     auto* app = reinterpret_cast<CaptureApp*>(data);
     if (id == 3100) {
         if (message == WM_CTLCOLOREDIT && reinterpret_cast<HWND>(l) == app->numberEdit_) {
-            const auto* element=up::CaptureOverlay::instance().winoneState().markup.getElementById(app->editingNumber_);
-            const auto color=element?element->color:up::MarkupColor{47,47,47,255};
-            const bool pale=(color.r*299+color.g*587+color.b*114)>170000;
-            SetTextColor(reinterpret_cast<HDC>(w), pale?RGB(32,32,32):RGB(255,255,255)); SetBkColor(reinterpret_cast<HDC>(w), RGB(color.r,color.g,color.b));
+            const auto bg = number_label::calloutColor();
+            const auto fg = number_label::textForegroundColor();
+            SetTextColor(reinterpret_cast<HDC>(w), RGB(fg.r, fg.g, fg.b));
+            SetBkColor(reinterpret_cast<HDC>(w), RGB(bg.r, bg.g, bg.b));
             return reinterpret_cast<LRESULT>(app->numberBackground_);
         }
         if (message == WM_COMMAND && reinterpret_cast<HWND>(l) == app->numberEdit_ && HIWORD(w) == EN_CHANGE) app->updateNumberEditor();
@@ -112,7 +116,8 @@ LRESULT CALLBACK CaptureApp::numberProcedure(HWND window, UINT message, WPARAM w
         const auto result=DefSubclassProc(window,message,w,l);
         const auto dc=GetDC(window);const auto old=SelectObject(dc,app->numberFont_);
         RECT bounds{};GetClientRect(window,&bounds);
-        SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(190,190,190));
+        const auto ph = number_label::placeholderColor();
+        SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(ph.r,ph.g,ph.b));
         DrawTextW(dc,app->language_=="en-US"?L"Add a note":L"输入说明",-1,&bounds,DT_LEFT|DT_TOP|DT_NOPREFIX);
         SelectObject(dc,old);ReleaseDC(window,dc);return result;
     }

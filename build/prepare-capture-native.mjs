@@ -198,7 +198,7 @@ await adapt('src/capture/WindowElementDetector.cpp', [
 await adapt('src/capture/CaptureInput.cpp', [
     ['void CaptureInput::setCurrentTool(MarkupTool tool) {', `void CaptureInput::setCurrentTool(MarkupTool tool) {
     if(tool==MarkupTool::Number && !m_state->winoneNumberStyleInitialized) {
-        m_state->currentColor={47,47,47,255};m_state->winoneNumberStyleInitialized=true;
+        m_state->currentColor=MarkupColor::Red();m_state->winoneNumberStyleInitialized=true;
     }`],
 ]);
 await adapt('src/capture/CaptureInput.h', [
@@ -414,7 +414,7 @@ await adapt('src/capture/CaptureInput.cpp', [
     ['void CaptureInput::setCurrentTool(MarkupTool tool) {', `void CaptureInput::setCurrentTool(MarkupTool tool) {
     m_state->winoneMoveTool = false; m_state->winoneRegionTool = false;
     if (tool == MarkupTool::Number && m_state->currentTool != MarkupTool::Number) {
-        m_state->currentStrokeWidth = 16; m_state->currentColor = {226,59,48,255};
+        m_state->currentStrokeWidth = 16; m_state->currentColor = MarkupColor::Red();
     }`],
 ]);
 {
@@ -550,11 +550,15 @@ await adapt('src/capture/CaptureInput.cpp', [
     const relative = 'src/capture/MarkupEngineEffects.cpp';
     let text = prepared.get(relative).toString('utf8').replace(/\r\n/g, '\n');
     text = '#include "number_label.h"\n' + text;
+    // Keep circular badge flat to match WinOne's flat annotation style.
+    text = text.replace(
+        '                    Gdiplus::SolidBrush shadowBrush(Gdiplus::Color(95, 0, 0, 0));\n                    g.FillEllipse(&shadowBrush, cx - radius + 1.5f * scale, cy - radius + 2.5f * scale, radius * 2.0f, radius * 2.0f);\n',
+        '');
     const begin = text.indexOf('class NumberHandler : public DefaultBoxHandler {');
     const end = text.indexOf('class MagnifierHandler : public DefaultBoxHandler {', begin);
     if (begin < 0 || end < 0) throw Error('Community number handler changed');
     let handler = text.slice(begin, end);
-    handler = handler.replace('        return baseDpi * sizeFactor;', '        (void)baseDpi; (void)sizeFactor;\n        return std::max(6.f, element.fontSize) / 25.6f;');
+    handler = handler.replace('        return baseDpi * sizeFactor;', '        (void)baseDpi; (void)sizeFactor;\n        return std::max(10.f, element.fontSize) / 22.0f;');
     const bounds = '        return badgeBox;';
     if (handler.split(bounds).length !== 2) throw Error('Community number bounds changed');
     handler = handler.replace(bounds, '        const auto label = winone::number_label::bubbleBounds(element);\n        return label.empty() ? badgeBox : (badgeBox | label);');
@@ -563,9 +567,9 @@ await adapt('src/capture/CaptureInput.cpp', [
     handler = handler.replace('        renderSnipasteStyleNumberBadge(canvas, element.numberValue, element.startPt, color,',
         '        winone::number_label::renderBackground(canvas, element);\n        renderSnipasteStyleNumberBadge(canvas, element.numberValue, element.startPt, color,');
     handler = handler.replace('                                       element.fill, effScale, element.numberShape, element.numberFormat);',
-        '                                       element.fill, effScale, element.numberShape, element.numberFormat);\n        winone::number_label::render(canvas, element);');
-    handler = handler.replace('        renderSnipasteStyleNumberBadge(canvas, element.numberValue, element.startPt, color,\n                                       element.fill, effScale, element.numberShape, element.numberFormat);',
-        '        winone::number_label::renderBadge(canvas, element);');
+        '                                       true, effScale, tools3000::capture::NumberBadgeShape::Circle, element.numberFormat);');
+    handler = handler.replace('                                       true, effScale, tools3000::capture::NumberBadgeShape::Circle, element.numberFormat);',
+        '                                       true, effScale, tools3000::capture::NumberBadgeShape::Circle, element.numberFormat);\n        winone::number_label::render(canvas, element);');
     text = text.slice(0, begin) + handler + text.slice(end);
     prepared.set(relative, Buffer.from(text));
 }
@@ -577,7 +581,7 @@ await adapt('src/capture/CaptureInput.cpp', [
     if (begin < 0 || end < 0) throw Error('Community number creation changed');
     let block = text.slice(begin, end);
     block = block.replace('                elem->isActive = true;',
-        '                elem->isActive = true;\n                elem->fill = true;\n                if(!m_state->winoneNumberCreated){m_state->currentColor={47,47,47,255};m_state->winoneNumberCreated=true;}\n                elem->color=m_state->currentColor;\n                elem->isEditing = true;\n                elem->fontSize = std::clamp(static_cast<float>(m_state->currentStrokeWidth), 6.f, 256.f) * currentDpiScale;\n                elem->hasLeaderArrow = false;\n                if (m_state->winoneEditNumber) m_state->winoneEditNumber(elem->id);');
+        '                elem->isActive = true;\n                elem->fill = true;\n                if(!m_state->winoneNumberCreated){m_state->currentColor=MarkupColor::Red();m_state->winoneNumberCreated=true;}\n                elem->color=m_state->currentColor;\n                elem->numberShape = NumberBadgeShape::Circle;\n                elem->isEditing = true;\n                elem->fontSize = std::clamp(static_cast<float>(m_state->currentStrokeWidth), 6.f, 256.f) * currentDpiScale;\n                elem->hasLeaderArrow = false;\n                if (m_state->winoneEditNumber) m_state->winoneEditNumber(elem->id);');
     text = text.slice(0, begin) + block + text.slice(end);
     prepared.set(relative, Buffer.from(text));
 }
@@ -946,7 +950,7 @@ await adapt('src/capture/CaptureInputKeyboard.cpp', [
 await adapt('src/capture/CaptureInput.cpp', [
     ['void CaptureInput::setCurrentTool(MarkupTool tool) {', `void CaptureInput::setCurrentTool(MarkupTool tool) {
     if(tool==MarkupTool::Number && !m_state->winoneNumberStyleInitialized) {
-        m_state->currentColor={47,47,47,255};m_state->winoneNumberStyleInitialized=true;
+        m_state->currentColor=MarkupColor::Red();m_state->winoneNumberStyleInitialized=true;
     }`],
 ]);
 await adapt('src/capture/CaptureInput.h', [

@@ -42,17 +42,26 @@ int wmain(int argc, wchar_t** argv) {
             if (restored.size() != 3 || restored[2].numberValue != 3 || engine.getElementById(firstId)->text != "中文说明 Native caption")
                 throw std::runtime_error("Undo changed numbering or explanation text");
             const auto rendered = engine.getCompositeImage();
-            size_t gray = 0, white = 0;
-            for (int y = 35; y < 100; ++y) for (int x = 80; x < 410; ++x) {
-                const auto pixel = rendered.at<cv::Vec4b>(y, x);
-                if (pixel[0] == first->color.b && pixel[1] == first->color.g && pixel[2] == first->color.r) ++gray;
-                if (pixel[0] > 250 && pixel[1] > 250 && pixel[2] > 250) ++white;
-            }
-            if (gray < 300 || white < 10) throw std::runtime_error("Number explanation did not render its bubble and text");
             std::vector<uchar> png;
             if (!cv::imencode(".png", rendered, png)) throw std::runtime_error("Community image encoding failed");
             std::ofstream image(destination, std::ios::binary); image.write(reinterpret_cast<const char*>(png.data()), png.size());
             if (!image) throw std::runtime_error("Could not save native number rendering evidence");
+            size_t badgeRed = 0, badgeWhite = 0, calloutGray = 0, calloutWhite = 0;
+            for (int y = 40; y < 80; ++y) for (int x = 30; x < 70; ++x) {
+                const auto pixel = rendered.at<cv::Vec4b>(y, x);
+                if (pixel[2] > 220 && pixel[1] < 90 && pixel[0] < 120) ++badgeRed;
+                if (pixel[0] > 240 && pixel[1] > 240 && pixel[2] > 240) ++badgeWhite;
+            }
+            for (int y = 35; y < 100; ++y) for (int x = 80; x < 410; ++x) {
+                const auto pixel = rendered.at<cv::Vec4b>(y, x);
+                if (std::abs(int(pixel[0]) - 47) <= 3 && std::abs(int(pixel[1]) - 47) <= 3 && std::abs(int(pixel[2]) - 47) <= 3) ++calloutGray;
+                if (pixel[0] > 250 && pixel[1] > 250 && pixel[2] > 250) ++calloutWhite;
+            }
+            if (badgeRed < 200 || badgeWhite < 10 || calloutGray < 300 || calloutWhite < 10)
+                throw std::runtime_error("Number explanation mismatch: badgeRed=" + std::to_string(badgeRed) +
+                    " badgeWhite=" + std::to_string(badgeWhite) +
+                    " calloutGray=" + std::to_string(calloutGray) +
+                    " calloutWhite=" + std::to_string(calloutWhite));
         }
         shutdownMarkupTextRenderer();
         std::cout << "PASS: native number explanation rendering, middle deletion renumbering, undo and text retention\n";
