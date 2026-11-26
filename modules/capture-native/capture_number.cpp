@@ -6,6 +6,7 @@
 
 namespace winone::capture {
 namespace up = tools3000::capture;
+namespace { constexpr UINT updateNumberLayout = WM_APP + 3101; }
 
 void CaptureApp::editNumber(uint32_t id) {
     closeNumberEditor(false);
@@ -37,7 +38,7 @@ void CaptureApp::editNumber(uint32_t id) {
         numberEditor_.reset(); element->isEditing = false; notice(error.what()); return;
     }
     editingNumber_ = id; previousNumberText_ = element->text;
-    numberComposing_ = false; numberOverflow_ = false; numberRequestedHeight_ = 0;
+    numberComposing_ = false; numberOverflow_ = false; numberRequestedHeight_ = 0; numberLayoutQueued_ = false;
     state.currentTool = up::MarkupTool::Number; state.isMarkupToolActive = true;
     numberBefore_ = state.markup.captureSnapshot();
     element->textOutline = false; element->isEditing = true;
@@ -153,11 +154,25 @@ LRESULT CALLBACK CaptureApp::numberProcedure(HWND window, UINT message, WPARAM w
             reinterpret_cast<NMHDR*>(l)->code == EN_REQUESTRESIZE) {
             const auto* resize = reinterpret_cast<REQRESIZE*>(l);
             app->numberRequestedHeight_ = resize->rc.bottom - resize->rc.top;
+            // Inline composition changes RichEdit's layout before EN_CHANGE.
+            // Consume those native requests too, after its current edit ends;
+            // otherwise the old one-line viewport scrolls preceding text away.
+            // Requests raised by our own sizing pass are already handled there.
+            if (!app->sizingNumber_ && !app->closingNumber_ && !app->numberLayoutQueued_) {
+                if (!PostMessageW(app->numberEdit_, updateNumberLayout, 0, 0))
+                    throw std::runtime_error("Cannot queue number note layout");
+                app->numberLayoutQueued_ = true;
+            }
             return 0;
         }
         if (message == WM_COMMAND && reinterpret_cast<HWND>(l) == app->numberEdit_ && HIWORD(w) == EN_CHANGE) app->updateNumberEditor();
         if (message == WM_NCDESTROY) RemoveWindowSubclass(window, numberProcedure, id);
         return DefSubclassProc(window, message, w, l);
+    }
+    if (message == updateNumberLayout) {
+        app->numberLayoutQueued_ = false;
+        app->updateNumberEditor();
+        return 0;
     }
     if (message == WM_IME_STARTCOMPOSITION) app->numberComposing_ = true;
     if (message == WM_IME_ENDCOMPOSITION) app->numberComposing_ = false;

@@ -202,6 +202,7 @@ def send(window, message, wp=0, lp=0):
     result=ctypes.c_size_t()
     if not user.SendMessageTimeoutW(window,message,wp,lp,2,3000,ctypes.byref(result)):
         raise ctypes.WinError(ctypes.get_last_error())
+    return result.value
 
 def key(window, value, control=False, shift=False, modal=False):
     target=user.GetWindowThreadProcessId(window,None)
@@ -696,10 +697,44 @@ try:
             if multiline['firstLine']!=0:raise AssertionError('Growing number input scrolled the first line out of view')
             rpc('probe.render',{'name':'number-multiline.png'});wait_until(lambda:(output/'number-multiline.png').is_file())
             key(edit,ord('A'),control=True)
-            for character in '自动换行中文 mixed words '*8:send(edit,0x102,ord(character),0)
+            for index,character in enumerate('自动换行中文 mixed words '*8):
+                send(edit,0x102,ord(character),0)
+                visible=rpc('probe.state')['editor']
+                if visible['firstLine']!=0:
+                    raise AssertionError(f'Number input hid preceding text at character {index}: {visible}')
             wrapped=rpc('probe.state')
             if wrapped['editor']['rect'][2]>max(wrapped['selection'][0],wrapped['selection'][2]):raise AssertionError('Number editor crossed the selected picture edge')
             rpc('probe.render',{'name':'number-wrapped.png'});wait_until(lambda:(output/'number-wrapped.png').is_file())
+            key(edit,ord('A'),control=True)
+            for character in '已有文字':send(edit,0x102,ord(character),0)
+            # Reproduce display-layout changes before committed-text changes,
+            # as in inline composition. RichEdit still sends real size requests.
+            mask=send(edit,0x43B) # EM_GETEVENTMASK
+            send(edit,0x445,0,mask & ~1) # EM_SETEVENTMASK: suppress only EN_CHANGE.
+            try:
+                for character in 'pinyinpinyinpinyinpinyin':send(edit,0x102,ord(character),0)
+            finally:send(edit,0x445,0,mask)
+            pending=rpc('probe.state')['editor']
+            rpc('probe.render',{'name':'number-pending-layout.png'});wait_until(lambda:(output/'number-pending-layout.png').is_file())
+            send(edit,0x0D,len(buffer),ctypes.addressof(buffer))
+            if buffer.value!='已有文字pinyinpinyinpinyinpinyin':raise AssertionError('Native input lost preceding text')
+            send(edit,0x102,ord('中'),0)
+            committed=rpc('probe.state')['editor']
+            events.append({'resizeBeforeChange':pending,'resizeAfterChange':committed})
+            if pending['firstLine']!=0 or pending['firstCharacter'][1]<0:
+                raise AssertionError('Native resize hid preceding text until the next committed change: '+str(pending))
+            if committed['firstLine']!=0:raise AssertionError('Committed input hid preceding text')
+            # Repeated growth/wrapping and replacement must work without a
+            # committed-text notification, including shorter composition text.
+            send(edit,0x445,0,mask & ~1)
+            try:
+                for value in ('已有文字 '+'pinyin '*12,'短说明','中文换行 '*14):
+                    key(edit,ord('A'),control=True)
+                    for character in value:send(edit,0x102,ord(character),0)
+                    sized=rpc('probe.state')['editor']
+                    if sized['firstLine']!=0 or sized['firstCharacter'][1]<0:
+                        raise AssertionError('Native resize hid text while growing or shrinking: '+str(sized))
+            finally:send(edit,0x445,0,mask)
             key(edit,ord('A'),control=True)
             for character in '第一条':send(edit,0x102,ord(character),0)
             click_point(canvas,400,360)

@@ -97,6 +97,7 @@ private:
     bool numberComposing_ = false;
     bool numberOverflow_ = false;
     bool sizingNumber_ = false;
+    bool numberLayoutQueued_ = false;
     int numberRequestedHeight_ = 0;
     json settings_, sessionSettings_, last_ = nullptr;
     bool configurationBusy_ = false;
