@@ -13,7 +13,7 @@ var source []byte
 
 type palette struct{ Background, Foreground, Border string }
 type style struct {
-	Light, Dark                                    palette
+	Colors                                         palette
 	FontSize, Radius, PaddingX, PaddingY, MaxWidth float32
 }
 
@@ -27,11 +27,8 @@ var shared = func() style {
 
 // Colors returns a complete pair: no caller mixes a dark surface with the
 // current window's ordinary foreground.
-func Colors(dark bool) (background, foreground, border ui.Color) {
-	colors := shared.Light
-	if dark {
-		colors = shared.Dark
-	}
+func Colors(_ bool) (background, foreground, border ui.Color) {
+	colors := shared.Colors
 	return ui.Hex(colors.Background), ui.Hex(colors.Foreground), ui.Hex(colors.Border)
 }
 

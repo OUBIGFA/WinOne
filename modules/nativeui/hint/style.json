@@ -1,6 +1,5 @@
 {
-  "light": {"background": "#292928", "foreground": "#fafafa", "border": "#454541"},
-  "dark": {"background": "#292928", "foreground": "#fafafa", "border": "#60605c"},
+  "colors": {"background": "#292928", "foreground": "#fafafa", "border": "#454541"},
   "fontSize": 13,
   "radius": 6,
   "paddingX": 10,

@@ -1055,9 +1055,9 @@ await adapt('src/capture/CaptureRendererToolbar.cpp', [
 #include <d2d1.h>
 #include <wrl/client.h>
 namespace winone::hint {
-inline D2D1_COLOR_F background(){return D2D1::ColorF(${hex(style.light.background)},1);}
-inline D2D1_COLOR_F foreground(){return D2D1::ColorF(${hex(style.light.foreground)},1);}
-inline D2D1_COLOR_F border(){return D2D1::ColorF(${hex(style.light.border)},1);}
+inline D2D1_COLOR_F background(){return D2D1::ColorF(${hex(style.colors.background)},1);}
+inline D2D1_COLOR_F foreground(){return D2D1::ColorF(${hex(style.colors.foreground)},1);}
+inline D2D1_COLOR_F border(){return D2D1::ColorF(${hex(style.colors.border)},1);}
 inline void draw(ID2D1RenderTarget* target,const D2D1_RECT_F& rect,float scale) {
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> fill,line;
     if(FAILED(target->CreateSolidColorBrush(background(),fill.GetAddressOf())) ||
