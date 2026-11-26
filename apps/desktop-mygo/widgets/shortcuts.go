@@ -22,6 +22,9 @@ type Shortcuts struct {
 	// group then leads with its sentence of purpose instead of repeating
 	// the tab's name as a heading.
 	OwnTab bool
+	// Title overrides the group heading when set (for example when global
+	// shortcuts share a tab with canvas shortcuts).
+	Title string
 
 	env       *core.Env
 	module    string
@@ -141,6 +144,15 @@ func (s *Shortcuts) recording() bool {
 	}
 	return false
 }
+
+// Recording reports whether any shortcut recorder is active.
+func (s *Shortcuts) Recording() bool { return s.recording() }
+
+// Busy reports whether the editor is loading or saving.
+func (s *Shortcuts) Busy() bool { return s.working || s.loading }
+
+// Saving reports whether a save is in progress.
+func (s *Shortcuts) Saving() bool { return s.working }
 
 // Report records the editor's activity; call it every frame, whether or
 // not the editor shows, as its draft lives on.
@@ -276,7 +288,10 @@ func (s *Shortcuts) View(c *ui.Context) {
 			return
 		}
 		title := i18n.T("shortcuts.title")
-		if s.OwnTab {
+		switch {
+		case s.Title != "":
+			title = s.Title
+		case s.OwnTab:
 			title = ""
 		}
 		kit.Group(c, icons.Keyboard, title, i18n.T("shortcuts.recordHint"), func() {

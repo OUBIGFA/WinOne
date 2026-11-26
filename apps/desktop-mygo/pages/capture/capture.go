@@ -12,6 +12,7 @@ package capture
 
 import (
 	"encoding/json"
+	"maps"
 	"reflect"
 	"strconv"
 
@@ -87,18 +88,20 @@ type page struct {
 	loading  bool
 	read     int // discards a read that a newer one replaced
 	saving   bool
-	choosing bool
-	err      string
+	choosing        bool
+	err             string
+	canvasErr       string
 
 	scrollField     ui.Handle
 	name            fileName
 	ai              *aiSection
 	shortcuts       *widgets.Shortcuts
 	canvasRecorders map[string]*widgets.ShortcutRecorder
+	canvasOpen      []bool
 }
 
 func newPage(env *core.Env) *page {
-	p := &page{env: env}
+	p := &page{env: env, canvasOpen: []bool{true, false, false, false}}
 	p.name.page = p
 	p.disabled = p.moduleDisabled()
 	p.reload()
@@ -149,8 +152,17 @@ func (p *page) reload() {
 
 // accept makes value the saved baseline and the draft.
 func (p *page) accept(value document) {
+	if len(value.Value.CanvasShortcuts) > 0 {
+		value.Value.CanvasShortcuts = maps.Clone(value.Value.CanvasShortcuts)
+	} else {
+		value.Value.CanvasShortcuts = nil
+	}
 	saved, draft := value, value
+	if value.Value.CanvasShortcuts != nil {
+		draft.Value.CanvasShortcuts = maps.Clone(value.Value.CanvasShortcuts)
+	}
 	p.saved, p.draft = &saved, &draft
+	p.canvasErr = ""
 	p.scrollText = strconv.Itoa(value.Value.ScrollDelay)
 }
 
@@ -161,7 +173,12 @@ func (p *page) discard() {
 		return
 	}
 	draft := *p.saved
-	p.draft, p.err = &draft, ""
+	if len(p.saved.Value.CanvasShortcuts) > 0 {
+		draft.Value.CanvasShortcuts = maps.Clone(p.saved.Value.CanvasShortcuts)
+	} else {
+		draft.Value.CanvasShortcuts = nil
+	}
+	p.draft, p.err, p.canvasErr = &draft, "", ""
 	p.scrollText = strconv.Itoa(draft.Value.ScrollDelay)
 }
 
@@ -231,7 +248,7 @@ func (p *page) View(c *ui.Context) {
 		p.disabled = disabled
 		p.reload()
 	}
-	p.env.Activity.Report("capture", p.dirty(), p.busy(), p.discard)
+	p.env.Activity.Report("capture", p.dirty(), p.busy() || p.canvasRecording(), p.discard)
 	if p.ai != nil {
 		p.ai.report()
 	}
@@ -267,8 +284,10 @@ func (p *page) View(c *ui.Context) {
 				p.shortcuts = widgets.NewShortcuts(p.env, "capture")
 				p.shortcuts.OwnTab = true
 			}
+			p.shortcuts.Title = captureText("全局快捷键", "Global shortcuts")
 			p.shortcuts.View(c)
 			p.canvasShortcuts(c)
+			p.shortcutsRail(c)
 		default:
 			p.settingsTab(c)
 		}
