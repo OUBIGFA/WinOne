@@ -17,8 +17,11 @@ func TestShots(t *testing.T) {
 		t.Skip("WINONE_SHOTS is not set")
 	}
 	_, h, p, _ := setup(t, false)
-	for i, key := range []string{"capture.after", "settingsDesign.captureNaming", "settingsDesign.captureScrolling", "settingsDesign.captureAI", "shortcuts.title"} {
+	for i, key := range []string{"capture.after", "settingsDesign.captureNaming", "settingsDesign.captureScrolling", "recording", "settingsDesign.captureAI", "shortcuts.title"} {
 		label := i18n.T(key)
+		if key == "recording" {
+			label = captureText("录制", "Recording")
+		}
 		h.Shots(t, fmt.Sprintf("capture-%d", i), p.View, 1600, func(tt *ui.Tester) {
 			if err := tt.Click(label); err != nil {
 				t.Logf("tab %q: %v", label, err)

@@ -29,3 +29,28 @@ func TestCaptureToolbarRoundTrip(t *testing.T) {
 		t.Fatal("filename template lost")
 	}
 }
+
+func TestCaptureRecordingAndLocalKeysRemainPortable(t *testing.T) {
+	raw := json.RawMessage(`{"schemaVersion":1,"revision":0,"outputDirectory":"C:\\Pictures","copyToClipboard":true,"askWhereToSave":false,"openEditor":true,"pinAfterCapture":false,"scrollDelay":300,"scrollFromTop":false,"videoAskWhereToSave":false,"gifAskWhereToSave":true,"videoOutputDirectory":"C:\\PrivateVideos","gifOutputDirectory":"","canvasShortcuts":{"number":"F8"}}`)
+	exported, err := ExportBuiltinSettings("capture", raw, ExportOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	imported, err := PrepareBuiltinImport("capture", exported.Module, exported.Paths, map[string]string{"capture.output": `D:\Pictures`, "capture.video": `D:\Videos`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result struct {
+		VideoAskWhereToSave  bool
+		GifAskWhereToSave    bool
+		VideoOutputDirectory string
+		GifOutputDirectory   string
+		CanvasShortcuts      map[string]string
+	}
+	if err = json.Unmarshal(imported.Patch, &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.VideoAskWhereToSave || !result.GifAskWhereToSave || result.VideoOutputDirectory != `D:\Videos` || result.GifOutputDirectory != "" || result.CanvasShortcuts["number"] != "F8" {
+		t.Fatalf("recording preferences lost: %+v", result)
+	}
+}

@@ -12,6 +12,7 @@ import (
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/widgets"
+	"winone/modules/nativeui/hint"
 	"winone/modules/wintray/applications"
 )
 
@@ -118,8 +119,8 @@ func (p *page) details(c *ui.Context) {
 			ui.Column(c).FillWidth().Gap(4).Children(func() {
 				kit.Heading(c, name).Role(ui.RoleHeading).Level(2).Selectable()
 				ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
-					button := kit.IconButton(c, icons.FolderOpen, i18n.T("wintray.openLocation")).
-						Tooltip(i18n.T("wintray.locationHint")).Size(24, 24).Shrink(0).Disabled(p.blocked())
+					button := hint.Attach(c, kit.IconButton(c, icons.FolderOpen, i18n.T("wintray.openLocation")),
+						i18n.T("wintray.locationHint")).Size(24, 24).Shrink(0).Disabled(p.blocked())
 					if button.Clicked() {
 						path := app.ExePath
 						core.Do(p.env, func() error { return openProgramLocation(path) }, func(err error) {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown/parser"
+	"winone/modules/nativeui/hint"
 )
 
 // All result windows share one main thread and one cancellable playback lane.
@@ -37,13 +38,13 @@ func (p *Panel) speechButton(c *ui.Context, key, text, label string, markdown, w
 		}
 	}
 	disabled := !active && (working || strings.TrimSpace(text) == "")
-	button := contentIconButton(c.Key("speech-"+key), label, disabled, func() {
+	button := hint.Attach(c, contentIconButton(c.Key("speech-"+key), label, disabled, func() {
 		if active && p.SpeechLoading {
 			ui.Spinner(c).Size(16, 16).Label(p.T("正在准备语音", "Preparing speech"))
 		} else {
 			ui.Icon(c, svg(icon)).Size(18, 18)
 		}
-	}).Tooltip(tip)
+	}), tip)
 	if button.Clicked() && p.Actions.Speak != nil {
 		p.Actions.Speak(key, text, markdown)
 	}

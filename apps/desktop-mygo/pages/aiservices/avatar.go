@@ -15,6 +15,7 @@ import (
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/widgets"
 	"winone/internal/ai"
+	hoverhint "winone/modules/nativeui/hint"
 )
 
 // avatarState is the picture editor's: which way of choosing is open,
@@ -187,8 +188,8 @@ func (e *editor) avatarView(c *ui.Context, pr *provider, locked bool) {
 								icon := icon
 								title := strings.TrimSuffix(icon, "-color")
 								chosen := value(pr.Avatar) == icon
-								b := ui.ButtonBase(c.Key(icon)).Size(kit.ControlHeight, kit.ControlHeight).Radius(t.Radius).
-									Justify(ui.Center).AlignItems(ui.Center).Label(title).Tooltip(title).Checked(chosen).Disabled(disabled)
+								b := hoverhint.Attach(c, ui.ButtonBase(c.Key(icon)).Size(kit.ControlHeight, kit.ControlHeight).Radius(t.Radius).
+									Justify(ui.Center).AlignItems(ui.Center).Label(title), title).Checked(chosen).Disabled(disabled)
 								switch {
 								case chosen:
 									b.Background(t.SurfacePressed)

@@ -1889,7 +1889,7 @@
       "repository": "https://github.com/yuan278501381/Tools3000",
       "commit": "f0e968ba937e7e3df9f3f5a8d627be8b19e398dd",
       "license": "GPL-3.0 with upstream Windows and WebView2 linking exception",
-      "scope": "Build the pinned C++ capture, markup, scrolling and pin implementation; adapt Host callbacks, output, preferences, lifecycle, existing RapidOCRLite and Rust recording. See docs/native-capture-20261125.md for verification scope.",
+      "scope": "Build the pinned C++ capture, markup, scrolling and pin implementation; adapt Host callbacks, output, preferences, lifecycle, existing RapidOCRLite and Rust recording. See docs/native-capture-20261125.md for verification scope. The 2026-11-26 adaptation reuses the mature v1.4.11 window/UIA detector and dropdowns, adds edge snapping, local shortcut routing and explicit recording/scroll start; pin OCR metadata no longer constructs the retired DNN engine.",
       "notices": [
         {
           "file": "licenses/tools3000-v1.4.11-LICENSE.txt",
@@ -1903,7 +1903,7 @@
       "files": [
         {
           "path": "build/prepare-capture-native.mjs",
-          "sha256": "911d21d6c04742e7d617ca086d949df6aad5c772610654ae33279976591be214"
+          "sha256": "a3aa1d020c81a183a13ccf215eea3e47c4a67960697698ab30af0270df44a188"
         },
         {
           "path": "build/prepare-capture-native-resources.ps1",
@@ -1911,11 +1911,11 @@
         },
         {
           "path": "modules/capture-native/CMakeLists.txt",
-          "sha256": "0b9d4dabb05d691cb017fc6889b8cd9bfe11ae16e320907121369d7dcd9129ef"
+          "sha256": "edd431c098f1e84585136b3ecec7bba8958ebc36cf0248f3bea55f1ed7962eee"
         },
         {
           "path": "modules/capture-native/number_label.h",
-          "sha256": "847ec96816a922d0fcc8d4a1d02a342cb584ef5c5f3d7424144c7d89e22f6f98"
+          "sha256": "9e9e643885a72c8b44fb5ca25f47e8908eb389becdc8f4fffcbbaaddcc45d3ce"
         },
         {
           "path": "modules/capture-native/community_hooks.h",
@@ -1928,6 +1928,14 @@
         {
           "path": "third_party/tools3000/source.json",
           "sha256": "e1464c52b608fc1b0348e5a9c9a48ef072e29a0251ba20658fdcb9e7c0aba0a3"
+        },
+        {
+          "path": "modules/capture-native/ocr_model_state.h",
+          "sha256": "2fb2746f51cabd580b3ecb2312c4ee2b013f09e9b8fdf22bbce4c4623365c285"
+        },
+        {
+          "path": "modules/capture-native/selection_snap.h",
+          "sha256": "d6bf9e6e652a36d4467f68bbd75ece6aabf827de5a13ad155ec6a66d12cfac2c"
         }
       ]
     }

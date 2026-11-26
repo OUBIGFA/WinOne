@@ -18,25 +18,38 @@ import (
 	"winone/internal/settings"
 )
 
-// Mirrors the C# worker's versioned preferences, without image/history metadata.
+// Shared versioned preferences; the native capture worker validates the same fields.
 type capturePreferences struct {
-	SchemaVersion    int      `json:"schemaVersion"`
-	Revision         uint64   `json:"revision"`
-	OutputDirectory  string   `json:"outputDirectory"`
-	CopyToClipboard  bool     `json:"copyToClipboard"`
-	AskWhereToSave   bool     `json:"askWhereToSave"`
-	OpenEditor       bool     `json:"openEditor"`
-	PinAfterCapture  bool     `json:"pinAfterCapture"`
-	PinTranslation   bool     `json:"pinTranslation"`
-	Theme            string   `json:"theme"`
-	ScrollDelay      int      `json:"scrollDelay"`
-	ScrollFromTop    bool     `json:"scrollFromTop"`
-	ToolbarTools     []string `json:"toolbarTools"`
-	ToolbarVersion   int      `json:"toolbarVersion"`
-	FileNameTemplate string   `json:"fileNameTemplate"`
+	SchemaVersion        int               `json:"schemaVersion"`
+	Revision             uint64            `json:"revision"`
+	OutputDirectory      string            `json:"outputDirectory"`
+	CopyToClipboard      bool              `json:"copyToClipboard"`
+	AskWhereToSave       bool              `json:"askWhereToSave"`
+	OpenEditor           bool              `json:"openEditor"`
+	PinAfterCapture      bool              `json:"pinAfterCapture"`
+	PinTranslation       bool              `json:"pinTranslation"`
+	Theme                string            `json:"theme"`
+	ScrollDelay          int               `json:"scrollDelay"`
+	ScrollFromTop        bool              `json:"scrollFromTop"`
+	ToolbarTools         []string          `json:"toolbarTools"`
+	ToolbarVersion       int               `json:"toolbarVersion"`
+	FileNameTemplate     string            `json:"fileNameTemplate"`
+	VideoAskWhereToSave  *bool             `json:"videoAskWhereToSave,omitempty"`
+	GifAskWhereToSave    *bool             `json:"gifAskWhereToSave,omitempty"`
+	VideoOutputDirectory string            `json:"videoOutputDirectory"`
+	GifOutputDirectory   string            `json:"gifOutputDirectory"`
+	CanvasShortcuts      map[string]string `json:"canvasShortcuts,omitempty"`
 }
 
 func (value capturePreferences) validate() error {
+	if err := captureprefs.ValidateCanvasShortcuts(value.CanvasShortcuts); err != nil {
+		return err
+	}
+	for _, path := range []string{value.VideoOutputDirectory, value.GifOutputDirectory} {
+		if path != "" && !filepath.IsAbs(path) {
+			return errors.New("录制保存目录必须为绝对路径")
+		}
+	}
 	if value.ToolbarVersion != 0 && value.ToolbarVersion != 2 && value.ToolbarVersion != 3 {
 		return errors.New("不支持的截图工具栏版本")
 	}
@@ -62,6 +75,15 @@ func (value capturePreferences) validate() error {
 // in version 2, numbered steps in version 3. The stored version then preserves
 // any explicit choice to move them into the overflow menu.
 func (value capturePreferences) upgradeToolbar() capturePreferences {
+	// Missing fields from existing profiles keep the explicit save dialog on.
+	if value.VideoAskWhereToSave == nil {
+		enabled := true
+		value.VideoAskWhereToSave = &enabled
+	}
+	if value.GifAskWhereToSave == nil {
+		enabled := true
+		value.GifAskWhereToSave = &enabled
+	}
 	adopt := func(actions ...string) {
 		if value.ToolbarTools == nil {
 			return

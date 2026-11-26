@@ -21,6 +21,8 @@ import (
 //
 // React source: ui/shortcut-recorder.tsx and ui/shortcut-keys.ts.
 type ShortcutRecorder struct {
+	// Local permits unmodified keys for actions confined to the active canvas.
+	Local     bool
 	env       *core.Env
 	phase     string // "", "preparing", "recording", "finishing"
 	token     string
@@ -153,6 +155,12 @@ func (r *ShortcutRecorder) key(ev ui.InputEvent, value *string) bool {
 		return true
 	}
 	kind, text := RecordedShortcut(ev.Key, ev.PhysicalKey, ev.Mods, ev.Repeat)
+	if r.Local && ev.Mods == 0 {
+		kind, text = RecordedShortcut(ev.Key, ev.PhysicalKey, ui.Ctrl, ev.Repeat)
+		if kind == "shortcut" {
+			text = text[len("Ctrl+"):]
+		}
+	}
 	switch kind {
 	case "shortcut":
 		r.candidate, r.preview, r.err = text, text, ""

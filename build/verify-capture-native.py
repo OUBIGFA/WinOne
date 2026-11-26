@@ -17,8 +17,8 @@ ocr=json.loads((root/'third_party/ocr-runtime.json').read_text('utf-8'))
 for item in ocr['files']:
     file=capture/'Ocr'/item['path']
     if hashlib.sha256(file.read_bytes()).hexdigest()!=item['sha256']:raise ValueError('OCR model/runtime changed: '+item['path'])
-for prohibited in ['coreclr.dll','clrjit.dll','hostfxr.dll','hostpolicy.dll','System.Private.CoreLib.dll','System.Windows.Forms.dll','WinOne.Capture.dll','WinOne.Capture.runtimeconfig.json']:
-    if (capture/prohibited).exists():raise ValueError('Managed screenshot dependency is still bundled: '+prohibited)
+for prohibited in ['opencv_dnn4.dll','libprotobuf.dll','abseil_dll.dll','coreclr.dll','clrjit.dll','hostfxr.dll','hostpolicy.dll','System.Private.CoreLib.dll','System.Windows.Forms.dll','WinOne.Capture.dll','WinOne.Capture.runtimeconfig.json']:
+    if (capture/prohibited).exists():raise ValueError('Retired screenshot dependency is still bundled: '+prohibited)
 def inspect(path):
     data=path.read_bytes();offset=struct.unpack_from('<I',data,0x3c)[0]
     if b'winone_recording_synthetic_test\0' in data:raise ValueError('Generated recording source in product payload: '+path.name)

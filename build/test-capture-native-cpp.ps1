@@ -5,7 +5,7 @@ param([Parameter(Mandatory)][string]$CaptureExe,
       [ValidateSet('zh-CN','en-US')][string]$Language='zh-CN',
       [int]$Width=0,[double]$Scale=1,
       [string]$RecordingRuntime,
-      [ValidateSet('smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent')][string]$Suite='smoke')
+      [ValidateSet('snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent')][string]$Suite='smoke')
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $output=if([IO.Path]::IsPathRooted($OutputDirectory)){[IO.Path]::GetFullPath($OutputDirectory)}else{[IO.Path]::GetFullPath((Join-Path $root $OutputDirectory))}

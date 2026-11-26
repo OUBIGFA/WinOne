@@ -14,6 +14,7 @@ import (
 	"winone/internal/ai"
 	"winone/internal/learning"
 	"winone/internal/resultwindow"
+	"winone/modules/nativeui/hint"
 	"winone/modules/nativeui/modelmenu"
 )
 
@@ -188,7 +189,7 @@ func rotatedIconButton(c *ui.Context, name, label string, degrees float32) ui.El
 func contentIconButton(c *ui.Context, label string, disabled bool, content func()) ui.Element {
 	t := c.Theme()
 	tn := toneFor(t, c.Preferences().HighContrast)
-	b := ui.ButtonBase(c).Label(label).Tooltip(label).Size(iconButtonSize, iconButtonSize).Shrink(0).Radius(radiusSM).
+	b := hint.Attach(c, ui.ButtonBase(c).Label(label), label).Size(iconButtonSize, iconButtonSize).Shrink(0).Radius(radiusSM).
 		Justify(ui.Center).AlignItems(ui.Center).TextColor(t.TextMuted).Cursor(ui.CursorPointer).Disabled(disabled)
 	if !disabled {
 		if b.Pressed() {

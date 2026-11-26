@@ -27,7 +27,11 @@ std::string timePart(const SYSTEMTIME& at, bool date, bool time) {
 }
 
 std::filesystem::path CaptureApp::suggestedPath(std::string_view format) const {
-    const auto directory = std::filesystem::path(wide(captureSettings().at("outputDirectory").get<std::string>()));
+    auto directory = std::filesystem::path(wide(captureSettings().at("outputDirectory").get<std::string>()));
+    if (format == "mp4" || format == "gif") {
+        const auto custom = captureSettings().value(format == "gif" ? "gifOutputDirectory" : "videoOutputDirectory", std::string{});
+        if (!custom.empty()) directory = std::filesystem::path(wide(custom));
+    }
     const std::string configured = captureSettings().contains("fileNameTemplate") && captureSettings()["fileNameTemplate"].is_string()
         ? captureSettings()["fileNameTemplate"].get<std::string>() : "";
     const bool useDefault = configured.empty();
@@ -240,6 +244,20 @@ void CaptureApp::textAction(const cv::Mat& source, bool translate) {
             MainThreadDispatcher::instance().post([this, cancelled, id, message] { if (!cancelled->load() && id == active_) { textBusy_ = false; upstream::CaptureOverlay::instance().winoneState().winoneProgress = -1; notice(message); } });
         }
     });
+}
+
+void CaptureApp::prepareScrolling(const upstream::CaptureRegion& region) {
+    auto& view = upstream::CaptureOverlay::instance();
+    auto& state = view.winoneState();
+    if (!state.winoneScrollReady) {
+        pendingScrollRegion_ = region;
+        state.winoneScrollReady = true;
+        state.toolbarLayoutValid = false;
+        view.winoneInvalidate();
+        return;
+    }
+    state.winoneScrollReady = false;
+    startScrolling(pendingScrollRegion_);
 }
 
 void CaptureApp::startScrolling(const upstream::CaptureRegion& region) {

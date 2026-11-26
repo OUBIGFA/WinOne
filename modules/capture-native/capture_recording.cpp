@@ -18,6 +18,32 @@ void CaptureApp::recordingAction(int action) {
     else if (action == 2) finishRecording(false);
 }
 
+bool CaptureApp::prepareRecording(bool gif, bool forceDialog) {
+    const auto suggested = suggestedPath(gif ? "gif" : "mp4");
+    if (!forceDialog && !captureSettings().value(gif ? "gifAskWhereToSave" : "videoAskWhereToSave", true)) {
+        recordingDestination_ = suggested; recordingDestinationGif_ = gif; return true;
+    }
+    tools3000::core::FileDialogRequest dialog;
+    dialog.mode = tools3000::core::FileDialogMode::SaveFile;
+    dialog.ownerHwnd = up::CaptureOverlay::instance().winoneWindow();
+    dialog.title = language_ == "en-US" ? L"Save recording" : L"保存录制";
+    dialog.initialDirectory = suggested.parent_path(); dialog.defaultFileName = suggested.filename().wstring();
+    dialog.defaultExtension = gif ? L"gif" : L"mp4";
+    dialog.filters = {{gif ? L"GIF" : L"MP4", gif ? L"*.gif" : L"*.mp4"}};
+#ifdef WINONE_CAPTURE_PRIVATE_PROBE
+    wchar_t generated[32768]{};
+    if (GetEnvironmentVariableW(L"WINONE_CAPTURE_RECORDING_TEST",generated,32768)) {
+        std::filesystem::create_directories(suggested.parent_path()); dialog.autoSelectPathForTest = suggested;
+    }
+#endif
+    const auto chosen = tools3000::core::OutOfProcessFileDialog::show(dialog);
+    if (chosen.cancelled) return false;
+    if (!chosen.accepted || chosen.selectedPath.empty()) throw std::runtime_error("无法选择录制保存位置");
+    if (std::filesystem::exists(chosen.selectedPath)) throw std::runtime_error("文件已存在，请选择新的录制文件名");
+    recordingDestination_ = chosen.selectedPath; recordingDestinationGif_ = gif;
+    return true;
+}
+
 bool CaptureApp::beginRecording(const up::CaptureRegion& region, const up::RecordSetupOptions& options) {
     try {
         if (!up::CaptureOverlay::instance().winoneState().winoneLiveCapture)
@@ -25,11 +51,15 @@ bool CaptureApp::beginRecording(const up::CaptureRegion& region, const up::Recor
         const bool gif = options.format == up::RecordFormat::GIF;
         if (!gif && options.format != up::RecordFormat::MP4_H264 && options.format != up::RecordFormat::MP4_H265)
             throw std::runtime_error("请选择 MP4 或 GIF 录制格式");
-        RecordingOptions defaults;
-        defaults.gif = gif; defaults.fps = gif ? std::min(30, options.fps) : options.fps;
-        defaults.hevc = options.format == up::RecordFormat::MP4_H265;
-        const auto selected = chooseRecordingOptions(up::CaptureOverlay::instance().winoneWindow(), defaults, language_ == "en-US");
-        if (!selected) return false;
+        // Choosing the destination never starts recording. The toolbar's Start
+        // action reaches this method only after its inline settings are ready.
+        if (recordingDestination_.empty() || recordingDestinationGif_ != gif) {
+            prepareRecording(gif); return false;
+        }
+        if (std::filesystem::exists(recordingDestination_)) throw std::runtime_error("保存位置已有同名文件，请重新选择保存地址");
+        const auto& state = up::CaptureOverlay::instance().winoneState();
+        const RecordingOptions selected{gif, state.winoneRecordCursor, options.format == up::RecordFormat::MP4_H265,
+            std::clamp(options.fps,1,gif?30:60),state.winoneGifQuality,state.winoneGifSeconds};
         const int width = region.width & ~1, height = region.height & ~1;
         if (width < 16 || height < 16) throw std::runtime_error("录制选区不能小于 16×16 像素");
         RECT bounds{region.x, region.y, region.x + width, region.y + height};
@@ -38,25 +68,7 @@ bool CaptureApp::beginRecording(const up::CaptureRegion& region, const up::Recor
         if (!GetMonitorInfoW(monitor, &info) || bounds.left < info.rcMonitor.left || bounds.top < info.rcMonitor.top ||
             bounds.right > info.rcMonitor.right || bounds.bottom > info.rcMonitor.bottom)
             throw std::runtime_error("请选择同一显示器内的录制区域");
-        const auto suggested = suggestedPath(gif ? "gif" : "mp4");
-        tools3000::core::FileDialogRequest dialog;
-        dialog.mode = tools3000::core::FileDialogMode::SaveFile;
-        dialog.ownerHwnd = up::CaptureOverlay::instance().winoneWindow();
-        dialog.title = language_ == "en-US" ? L"Save recording" : L"保存录制";
-        dialog.initialDirectory = suggested.parent_path(); dialog.defaultFileName = suggested.filename().wstring();
-        dialog.defaultExtension = gif ? L"gif" : L"mp4";
-        dialog.filters = {{gif ? L"GIF" : L"MP4", gif ? L"*.gif" : L"*.mp4"}};
-#ifdef WINONE_CAPTURE_PRIVATE_PROBE
-        wchar_t generated[32768]{};
-        if (GetEnvironmentVariableW(L"WINONE_CAPTURE_RECORDING_TEST",generated,32768)) {
-            std::filesystem::create_directories(suggested.parent_path());
-            dialog.autoSelectPathForTest = suggested;
-        }
-#endif
-        const auto chosen = tools3000::core::OutOfProcessFileDialog::show(dialog);
-        if (chosen.cancelled) return false;
-        if (!chosen.accepted || chosen.selectedPath.empty()) throw std::runtime_error("无法选择录制保存位置");
-        if (std::filesystem::exists(chosen.selectedPath)) throw std::runtime_error("文件已存在，请选择新的录制文件名");
+        std::filesystem::create_directories(recordingDestination_.parent_path());
         snapshotDraft(true);
         if (!recording_) recording_ = std::make_unique<RecordingController>(executableDirectory_);
         auto& indicator = up::RecordingIndicator::instance();
@@ -78,10 +90,10 @@ bool CaptureApp::beginRecording(const up::CaptureRegion& region, const up::Recor
             return TRUE;
         }, reinterpret_cast<LPARAM>(&windows));
         json configuration{{"x", region.x}, {"y", region.y}, {"width", width}, {"height", height},
-            {"monitor", utf8(info.szDevice)}, {"output", utf8(chosen.selectedPath.wstring())},
-            {"format", gif ? "gif" : "mp4"}, {"codec", selected->hevc ? "hevc" : "h264"},
-            {"coordinates", "physicalDesktop"}, {"scaleFactor", 1}, {"fps", selected->fps}, {"quality", selected->quality},
-            {"gifMaxSeconds", selected->seconds}, {"gifMaxFrames", 1800}, {"cursor", selected->cursor}, {"excludeWindows", windows}};
+            {"monitor", utf8(info.szDevice)}, {"output", utf8(recordingDestination_.wstring())},
+            {"format", gif ? "gif" : "mp4"}, {"codec", selected.hevc ? "hevc" : "h264"},
+            {"coordinates", "physicalDesktop"}, {"scaleFactor", 1}, {"fps", selected.fps}, {"quality", selected.quality},
+            {"gifMaxSeconds", selected.seconds}, {"gifMaxFrames", 1800}, {"cursor", selected.cursor}, {"excludeWindows", windows}};
         try { recording_->command("start_recording", configuration); }
         catch (...) { indicator.hide(); indicator.clearRecordingRegion(); throw; }
         preserving_ = draft_ && !draft_->elements.empty();

@@ -62,7 +62,7 @@ func (c *Controller) View(context *ui.Context) {
 					continue
 				}
 				button := selectionButton(context, action.Icon, c.actionLabel(action), p.Busy)
-				c.toolbarHint(button, c.actionLabel(action), t)
+				c.toolbarHint(context, button, c.actionLabel(action), t)
 				if button.Clicked() {
 					if action.Kind == "copy" {
 						c.copy(p.Original)
@@ -87,7 +87,7 @@ func (c *Controller) View(context *ui.Context) {
 			if p.Error != "" {
 				hint = p.Error
 			}
-			c.toolbarHint(button, hint, t)
+			c.toolbarHint(context, button, hint, t)
 			if button.Clicked() && p.Actions.OpenQuick != nil {
 				p.Actions.OpenQuick(p.Original)
 			}

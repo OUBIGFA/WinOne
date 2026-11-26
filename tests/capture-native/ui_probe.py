@@ -20,7 +20,7 @@ parser.add_argument('--language', choices=['zh-CN','en-US'], default='zh-CN')
 parser.add_argument('--width',type=int,default=0)
 parser.add_argument('--scale',type=float,default=1)
 parser.add_argument('--recording-runtime')
-parser.add_argument('--suite', choices=['smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
+parser.add_argument('--suite', choices=['snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
 args = parser.parse_args()
 output = Path(args.output).resolve()
 root = Path(__file__).resolve().parents[2]
@@ -57,6 +57,7 @@ user.PostMessageW.argtypes = [w.HWND,w.UINT,w.WPARAM,w.LPARAM]
 user.GetWindowThreadProcessId.argtypes = [w.HWND,ctypes.POINTER(w.DWORD)]
 user.GetClassNameW.argtypes = [w.HWND,w.LPWSTR,ctypes.c_int]
 user.IsWindowVisible.argtypes = [w.HWND]
+user.IsWindowEnabled.argtypes = [w.HWND]
 enum_callback = ctypes.WINFUNCTYPE(w.BOOL,w.HWND,w.LPARAM)
 user.EnumWindows.argtypes = [enum_callback,w.LPARAM]
 user.EnumChildWindows.argtypes = [w.HWND,enum_callback,w.LPARAM]
@@ -79,10 +80,14 @@ fixture = user.CreateWindowExW(0, 'STATIC', 'WinOne private capture fixture — 
 if not fixture:
     raise ctypes.WinError(ctypes.get_last_error())
 user.ShowWindow(fixture, 5); user.UpdateWindow(fixture)
+fixture_child=user.CreateWindowExW(0,'BUTTON','Snap child',0x50010000,120,90,240,100,fixture,None,None,None)
+user.UpdateWindow(fixture_child)
 settings = {'schemaVersion':1, 'revision':0, 'outputDirectory':str(output/'saved'),
             'copyToClipboard':False,'askWhereToSave':False,'openEditor':True,
             'pinAfterCapture':False,'pinTranslation':False,'theme':args.theme,
             'scrollDelay':300,'scrollFromTop':False,'toolbarTools':None,'toolbarVersion':3,'fileNameTemplate':'native-test-{sequence}'}
+if args.suite in ('recording','recording-parent'):
+    settings.update(gifAskWhereToSave=False,gifOutputDirectory=str(output/'gifs'))
 if args.suite=='save-failure':
     (output/'saved').write_text('Owned path conflict fixture','utf-8')
 (output/'managed-settings.json').write_text(json.dumps(settings, ensure_ascii=False),'utf-8')
@@ -210,6 +215,10 @@ def click_point(canvas,x,y):
     point=(y<<16)|x
     send(canvas,0x201,1,point);send(canvas,0x202,0,point)
 
+def menu_item(canvas,label):
+    item=wait_until(lambda:next((item for item in rpc('probe.state')['menu'] if item['label']==label and item['y']>0),None))
+    click_point(canvas,round(item['x']),round(item['y']))
+
 def wait_until(predicate, timeout=10):
     limit=time.monotonic()+timeout
     while time.monotonic()<limit:
@@ -243,6 +252,22 @@ try:
         job=rpc('capture.unified',{'mode':'region','language':args.language})
         canvas=wait_until(overlay)
         user.SetForegroundWindow(canvas)
+        if args.suite=='snap':
+            # Real window/control detector; no synthesized candidate rectangle.
+            send(canvas,0x200,0,(230<<16)|350)
+            detected=wait_until(lambda:(s if (s:=rpc('probe.state'))['detectionCandidates'] else None))
+            if detected['shortcutHints']:raise AssertionError('Shortcut overlay remained enabled')
+            events.append({'windowAndControlDetection':detected['detected'],'candidates':detected['detectionCandidates']})
+            target=detected['detected']
+            send(canvas,0x201,1,((target[1]+20)<<16)|(target[0]+20))
+            send(canvas,0x200,1,((target[3]-3)<<16)|(target[2]-3))
+            send(canvas,0x202,0,((target[3]-3)<<16)|(target[2]-3))
+            selected=rpc('probe.state')['selection']
+            if selected[2]!=target[2] or selected[3]!=target[3]:raise AssertionError(f'Edges did not snap: {selected} to {target}')
+            events.append({'draggedEdgesSnapped':selected})
+            key(canvas,0x1B)
+            wait_until(lambda:rpc('jobs.get',{'id':job['id']})['state']=='completed')
+            job=rpc('capture.unified',{'mode':'region','language':args.language});canvas=wait_until(overlay)
         # Input goes to the owned HWND on this private desktop only.
         send(canvas,0x201,1,(180<<16)|160)
         send(canvas,0x200,1,(460<<16)|620)
@@ -266,14 +291,14 @@ try:
             from PIL import Image
             def begin_recording(format,auto=False):
                 click_button(canvas,'GIF' if format=='gif' else '录制视频')
-                click_button(canvas,'录制设置')
-                dialog=wait_until(lambda:titled_window('录制设置'))
-                wait_until(lambda:user.GetDlgItem(dialog,1))
+                ready=wait_until(lambda:(s if (s:=rpc('probe.state'))['recordingMode'] else None))
+                if not ready['recordingDestination']:raise AssertionError('Ready toolbar has no confirmed save destination')
+                if ready['recording'] and ready['recording']['phase']=='recording':raise AssertionError('Recording started before Start')
+                shot='recording-ready-'+format+('-auto' if auto else '')+'.png'
+                rpc('probe.render',{'name':shot});wait_until(lambda:(output/shot).is_file())
                 if auto:
-                    seconds=user.GetDlgItem(dialog,103)
-                    send(user.GetDlgItem(dialog,203),0x471,0,1)
-                    user.SetWindowTextW(seconds,'1')
-                user.PostMessageW(dialog,0x111,1,0)
+                    click_button(canvas,'120 秒');menu_item(canvas,'3 秒')
+                click_button(canvas,'开始录制')
                 wait_until(lambda:(s if (s:=rpc('probe.state'))['recording'] and s['recording']['phase']=='recording' else None))
                 return wait_until(lambda:(u if (u:=rpc('probe.state')['recordingUI'])['hwnd'] and u['buttons'][2][0]>0 else None))
             def recording_button(index):
@@ -282,6 +307,8 @@ try:
             for format,action in scenarios:
                 ui=begin_recording(format,action=='auto')
                 wait_until(lambda:rpc('probe.state')['recording']['encodedFrames']>=3)
+                shot='recording-active-'+format+'-'+action+'.png'
+                rpc('probe.render',{'name':shot});wait_until(lambda:(output/shot).is_file())
                 recording_button(1)
                 paused=wait_until(lambda:(s if (s:=rpc('probe.state')['recording'])['phase']=='paused' else None))
                 time.sleep(.25)
@@ -302,7 +329,7 @@ try:
                     owner_process.terminate();owner_process.wait(timeout=5)
                     child.wait(timeout=20)
                     if child.returncode:raise AssertionError('Host exit did not gracefully save recording')
-                    files=list((output/'saved').glob('*.gif'))
+                    files=list((output/'gifs').glob('*.gif'))
                     if len(files)!=1:raise AssertionError('Host exit lost the recording output')
                     with Image.open(files[0]) as image:
                         if image.size!=(460,280) or image.n_frames<2:raise AssertionError('Host-exit recording was not finalized')
@@ -410,6 +437,10 @@ try:
             wait_until(lambda:len(rpc('probe.state')['buttons'])>0)
             rpc('probe.render')
             wait_until(lambda:(output/'rendered.png').is_file())
+            if rpc('probe.state')['shortcutHints']:raise AssertionError('Canvas shortcut hints are still enabled')
+            tip=next(b for b in rpc('probe.state')['buttons'] if b['label']==('保存' if args.language=='zh-CN' else 'Save'))
+            send(canvas,0x200,0,(round(tip['y'])<<16)|round(tip['x']))
+            rpc('probe.render',{'name':'tooltip.png'});wait_until(lambda:(output/'tooltip.png').is_file())
             from PIL import Image
             with Image.open(output/'rendered.png') as image:
                 if max(hi-lo for lo,hi in image.convert('RGB').getextrema())<20:raise AssertionError('Native render evidence has no visible content')
@@ -425,6 +456,9 @@ try:
         if args.suite=='scroll':
             original=rpc('probe.state')['selection']
             click_button(canvas,'滚动截图')
+            ready=wait_until(lambda:rpc('probe.state')['scrollReady'])
+            if rpc('probe.state')['scrolling']:raise AssertionError('Scroll acquisition began before Start')
+            click_button(canvas,'开始滚动截图')
             wait_until(lambda:(s:=rpc('probe.state'))['scrolling'] and s['scrollFrames']>=3)
             controls=rpc('probe.state')['scrollUI'];x,y=controls['buttons'][3]
             click_point(controls['hwnd'],round(x),round(y))
@@ -433,10 +467,13 @@ try:
             # Recovered screenshots normally do not expose live screen actions;
             # this is a cancelled live acquisition and must still allow retry.
             click_button(canvas,'滚动截图')
+            wait_until(lambda:rpc('probe.state')['scrollReady'])
+            click_button(canvas,'开始滚动截图')
             wait_until(lambda:(s:=rpc('probe.state'))['scrolling'] and s['scrollFrames']>=3)
             rpc('scroll.stop')
             canvas=wait_until(overlay)
             state=wait_until(lambda:(s if (s:=rpc('probe.state'))['longImage'] else None))
+            rpc('probe.render',{'name':'scroll-minimap.png'});wait_until(lambda:(output/'scroll-minimap.png').is_file())
             if state['imageSize'][0]!=460 or state['imageSize'][1]<=280:raise AssertionError('Community scroll stitching did not retain the selected width and extend the page')
             send(canvas,0x205,0,(300<<16)|350)
             send(canvas,0x203,1,(300<<16)|350)
@@ -456,20 +493,17 @@ try:
         if args.suite=='toolbar':
             original=[b['label'] for b in rpc('probe.state')['buttons'] if not b['secondary']]
             click_button(canvas,'自定义工具栏')
-            dialog=wait_until(lambda:titled_window('自定义截图工具栏'))
-            send(user.GetDlgItem(dialog,102),0xF5)
-            send(user.GetDlgItem(dialog,2),0xF5)
+            wait_until(lambda:rpc('probe.state')['menu'])
+            rpc('probe.render',{'name':'toolbar-menu.png'});wait_until(lambda:(output/'toolbar-menu.png').is_file())
+            click_point(canvas,80,80)
             if host_fixture.requests.count('capture.settings.save'):raise AssertionError('Cancelling toolbar saved preferences')
             if original!=[b['label'] for b in rpc('probe.state')['buttons'] if not b['secondary']]:raise AssertionError('Cancelling toolbar changed tools')
             click_button(canvas,'自定义工具栏')
-            dialog=wait_until(lambda:titled_window('自定义截图工具栏'))
-            send(user.GetDlgItem(dialog,102),0xF5)
-            send(user.GetDlgItem(dialog,1),0xF5)
+            menu_item(canvas,'矩形')
             wait_until(lambda:host_fixture.settings['toolbarTools'] is not None and 'rectangle' not in host_fixture.settings['toolbarTools'])
             wait_until(lambda:'矩形' not in [b['label'] for b in rpc('probe.state')['buttons']])
             click_button(canvas,'自定义工具栏')
-            dialog=wait_until(lambda:titled_window('自定义截图工具栏'))
-            send(user.GetDlgItem(dialog,3),0xF5);send(user.GetDlgItem(dialog,1),0xF5)
+            menu_item(canvas,'恢复默认')
             wait_until(lambda:'矩形' in [b['label'] for b in rpc('probe.state')['buttons']])
             if host_fixture.requests.count('capture.settings.save')!=2:raise AssertionError('Toolbar save did not use Host twice')
             events.append({'toolbarCancelSaveReset':True})
@@ -499,6 +533,7 @@ try:
         if args.suite=='number':
             key(canvas,ord('N'));click_point(canvas,260,260)
             edit=wait_until(lambda:number_editor(canvas))
+            rpc('probe.render',{'name':'number-empty.png'});wait_until(lambda:(output/'number-empty.png').is_file())
             for character in '第一条':send(edit,0x102,ord(character),0)
             click_point(canvas,400,360)
             edit2=wait_until(lambda:number_editor(canvas))
@@ -512,6 +547,7 @@ try:
             edit=wait_until(lambda:number_editor(canvas))
             for character in '修订说明':send(edit,0x102,ord(character),0)
             key(edit,0x0D,control=True)
+            rpc('probe.render',{'name':'number-caption.png'});wait_until(lambda:(output/'number-caption.png').is_file())
             if number_editor(canvas):raise AssertionError('Control Enter did not commit number text')
             click_button(canvas,'移动标注')
             wait_until(lambda:rpc('probe.state')['moveTool'])
@@ -555,38 +591,15 @@ try:
             if rpc('probe.state')['translated']:raise AssertionError('Turning translation off did not restore original image')
             events.append({'realOcrAndTranslationRender':True,'hostRequests':host_fixture.requests})
         if args.suite=='recording-options':
-            click_button(canvas,'GIF')
-            click_button(canvas,'录制设置')
-            # The real modal option window must expose the existing five values.
-            user.GetWindowTextW.argtypes=[w.HWND,w.LPWSTR,ctypes.c_int]
-            user.GetDlgItem.argtypes=[w.HWND,ctypes.c_int];user.GetDlgItem.restype=w.HWND
-            def options_dialog():
-                found=[]
-                @enum_callback
-                def check(window,_):
-                    pid=w.DWORD();user.GetWindowThreadProcessId(window,ctypes.byref(pid))
-                    title=ctypes.create_unicode_buffer(128);user.GetWindowTextW(window,title,len(title))
-                    if pid.value==child.pid and title.value=='录制设置':found.append(window)
-                    return True
-                user.EnumWindows(check,0)
-                return found[0] if len(found)==1 else None
-            dialog=wait_until(options_dialog)
-            wait_until(lambda:all(user.GetDlgItem(dialog,identifier) for identifier in (101,102,103,104)))
-            send(user.GetDlgItem(dialog,2),0xF5,0,0)
-            if not overlay():raise AssertionError('Cancelling recording options discarded the screenshot')
-            events.append({'recordingOptionsAndCancel':True})
-            click_button(canvas,'录制设置')
-            dialog=wait_until(options_dialog)
-            events.append({'secondRecordingOptions':True})
-            user.PostMessageW(dialog,0x111,1,0)
-            wait_until(lambda:not options_dialog())
-            dialog=wait_until(lambda:file_dialog('保存录制'))
-            events.append({'recordingDestinationVisible':True})
-            user.PostMessageW(dialog,0x111,2,0)
-            wait_until(lambda:not file_dialog())
-            events.append({'recordingDestinationDismissed':True})
-            if not overlay() or rpc('probe.state')['recording'] is not None:raise AssertionError('Cancelling recording destination started or discarded capture')
-            events.append({'recordingDestinationCancelRetainedScreenshot':True})
+            for label in ('GIF','录制视频'):
+                click_button(canvas,label)
+                dialog=wait_until(lambda:file_dialog('保存录制'))
+                user.PostMessageW(dialog,0x111,2,0)
+                wait_until(lambda:not file_dialog())
+                wait_until(lambda:user.IsWindowEnabled(canvas))
+                state=rpc('probe.state')
+                if not overlay() or state['recordingMode'] or state['recording'] is not None:raise AssertionError('Cancelling recording destination started or discarded capture')
+                events.append({'recordingDestinationCancelRetainedScreenshot':label})
         if args.suite in ('annotations','resume'):
             key(canvas,ord('N'))
             send(canvas,0x201,1,(260<<16)|260)

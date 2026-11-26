@@ -9,6 +9,7 @@ param([Parameter(Mandatory)][string]$OutputDirectory,
       [string]$VcpkgToolchain,
       [string]$NativeBuildDirectory,
       [string]$RecordingRuntimeDirectory,
+      [string]$NativeOcrRuntimeDirectory,
       [switch]$RunTests,
       [switch]$BuildProbe)
 $ErrorActionPreference='Stop'
@@ -48,11 +49,18 @@ $compiled=Join-Path $objects 'Release'
 # The app-local dependency copier follows the executable import closure.
 # Development libraries, test binaries and symbols are never product payload.
 Copy-Item -LiteralPath (Join-Path $compiled 'WinOne.Capture.exe') -Destination (Join-Path $output 'WinOne.Capture.exe') -Force
-Get-ChildItem -LiteralPath $compiled -Filter '*.dll' -File | ForEach-Object {Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $output $_.Name) -Force}
+# Incremental build folders can retain retired dependency DLLs. Distribute only
+# the reviewed runtime list; the final import scan still rejects missing DLLs.
+$nativeNames=Get-Content -LiteralPath (Join-Path $root 'internal/distribution/native_capture_runtime_paths.txt') | ForEach-Object {Split-Path $_ -Leaf}
+Get-ChildItem -LiteralPath $compiled -Filter '*.dll' -File | Where-Object {$_.Name -in $nativeNames} | ForEach-Object {Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $output $_.Name) -Force}
 $ocrOutput=Join-Path $work 'ocr'
 $ocrParameters=@{OutputDirectory=$ocrOutput;RunTests=$RunTests}
 if($NativeOcrDotnetExe){$ocrParameters.DotnetExe=$NativeOcrDotnetExe}
-& (Join-Path $PSScriptRoot 'build-capture-ocr-native.ps1') @ocrParameters
+if($NativeOcrRuntimeDirectory){
+    # A verified baseline can be reused when OCR algorithms are unchanged. The
+    # caller records that mixed provenance; package verification hashes it again.
+    $ocrOutput=Absolute $NativeOcrRuntimeDirectory
+}else{& (Join-Path $PSScriptRoot 'build-capture-ocr-native.ps1') @ocrParameters}
 foreach($name in @('WinOne.Ocr.exe','WinOne.NativeImage.dll')){Copy-Item -LiteralPath (Join-Path $ocrOutput $name) -Destination (Join-Path $output $name) -Force}
 if($RecordingRuntimeDirectory){
     $recording=Absolute $RecordingRuntimeDirectory

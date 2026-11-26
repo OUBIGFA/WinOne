@@ -8,6 +8,7 @@ import (
 
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit/icons"
+	"winone/modules/nativeui/hint"
 )
 
 // Reading sizes of long text: AI output and Markdown documents.
@@ -85,7 +86,7 @@ func CodeBlock(c *ui.Context, b *markdown.CodeBlockView) {
 			}
 			label := i18n.T("aiShared.copy")
 			// A block still being written is copied once it closes.
-			button := ui.ButtonBase(c).Size(24, 24).Radius(t.Radius).Justify(ui.Center).AlignItems(ui.Center).Label(label).Tooltip(label).Disabled(b.Open)
+			button := hint.Attach(c, ui.ButtonBase(c).Size(24, 24).Radius(t.Radius).Justify(ui.Center).AlignItems(ui.Center).Label(label), label).Disabled(b.Open)
 			color := t.TextMuted
 			if button.Hovered() || button.FocusVisible() {
 				button.Background(t.SurfaceHover)

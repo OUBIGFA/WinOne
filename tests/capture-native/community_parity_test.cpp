@@ -45,7 +45,7 @@ int wmain(int argc, wchar_t** argv) {
             size_t gray = 0, white = 0;
             for (int y = 35; y < 100; ++y) for (int x = 80; x < 410; ++x) {
                 const auto pixel = rendered.at<cv::Vec4b>(y, x);
-                if (pixel[0] == 92 && pixel[1] == 92 && pixel[2] == 92) ++gray;
+                if (pixel[0] == first->color.b && pixel[1] == first->color.g && pixel[2] == first->color.r) ++gray;
                 if (pixel[0] > 250 && pixel[1] > 250 && pixel[2] > 250) ++white;
             }
             if (gray < 300 || white < 10) throw std::runtime_error("Number explanation did not render its bubble and text");

@@ -12,6 +12,7 @@ import (
 	"winone/desktopmygo/kit/icons"
 	"winone/desktopmygo/widgets"
 	"winone/internal/directorylinks"
+	"winone/modules/nativeui/hint"
 )
 
 // React source: features/directory-links-browser.tsx.
@@ -245,11 +246,11 @@ func (p *folderPane) View(c *ui.Context, env *core.Env, height float32) ui.Eleme
 				if source {
 					parent, refresh = "links.sourceParent", "links.refreshSource"
 				}
-				if kit.OutlineIconButton(c, icons.ArrowUp, i18n.T(parent), false).Tooltip(i18n.T("links.parentFolder")).
+				if hint.Attach(c, kit.OutlineIconButton(c, icons.ArrowUp, i18n.T(parent), false), i18n.T("links.parentFolder")).
 					Disabled(p.disabled || b.listing == nil || b.listing.Parent == "").Clicked() {
 					p.navigate(b.listing.Parent)
 				}
-				if kit.OutlineIconButton(c, icons.RefreshCw, i18n.T(refresh), false).Tooltip(i18n.T("links.refreshFolder")).
+				if hint.Attach(c, kit.OutlineIconButton(c, icons.RefreshCw, i18n.T(refresh), false), i18n.T("links.refreshFolder")).
 					Disabled(p.disabled || b.address == "" || b.loading).Clicked() {
 					p.navigate(b.address)
 				}

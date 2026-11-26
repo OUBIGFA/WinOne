@@ -15,7 +15,6 @@
 #include <iomanip>
 #include <sstream>
 #include <iostream>
-#include "toolbar_options.h"
 #include "toolbar_icons.h"
 #include "capture_settings.h"
 #ifdef WINONE_CAPTURE_PRIVATE_PROBE
@@ -131,20 +130,36 @@ int CaptureApp::run(HINSTANCE instance) {
     overlay.setOcrCallback([this](const auto&, const cv::Mat& image) { textAction(image, false); });
     overlay.setTranslateCallback([this](const auto&, const cv::Mat& image) { textAction(image, true); });
     overlay.setWinOneRecording([this](const auto& region, const auto& options) { return beginRecording(region, options); });
+    overlay.winoneState().winonePrepareRecording = [this](bool gif) {
+        recordingDestination_.clear();
+        try { return prepareRecording(gif); }
+        catch (const std::exception& error) { notice(error.what()); return false; }
+    };
+    overlay.winoneState().winoneChooseDestination = [this] {
+        try { prepareRecording(upstream::CaptureOverlay::instance().winoneState().recordSetup.format==upstream::RecordFormat::GIF,true); }
+        catch(const std::exception& error){notice(error.what());}
+    };
     overlay.winoneState().winoneEditNumber = [this](uint32_t id) {
         MainThreadDispatcher::instance().postDeferred([this, id] { editNumber(id); });
     };
-    overlay.winoneState().winoneCustomize = [this] {
-        MainThreadDispatcher::instance().postDeferred([this] {
+    overlay.winoneState().winoneCustomize = [this](int item) {
+        MainThreadDispatcher::instance().postDeferred([this,item] {
             try {
                 if (!host_) throw std::runtime_error("请通过 WinOne 保存工具栏设置");
-                const auto selected = chooseToolbarOptions(upstream::CaptureOverlay::instance().winoneWindow(), settings_.value("toolbarTools", json(nullptr)), language_ == "en-US");
-                if (!selected) return;
+                const std::array<const char*,13> tools{"crop","select","rectangle","ellipse","arrow","pen","cover","text","step","mosaic","blur","ocr","translate"};
+                auto selected = settings_.value("toolbarTools", json(nullptr));
+                if (item == 99) selected = nullptr;
+                else {
+                    if (item < 0 || item >= static_cast<int>(tools.size())) return;
+                    if (selected.is_null()) selected = tools;
+                    const auto found=std::find(selected.begin(),selected.end(),tools[item]);
+                    if(found==selected.end()) selected.push_back(tools[item]); else selected.erase(found);
+                }
                 if (configurationBusy_) return;
                 configurationBusy_ = true;
                 // Host persists settings through this worker's reload endpoint.
                 // Keep the UI dispatcher free while that transaction completes.
-                background([this, selected = *selected] {
+                background([this, selected] {
                     try {
                         auto saved = host_->saveToolbar(selected);
                         MainThreadDispatcher::instance().post([this, saved = std::move(saved)] {
@@ -167,7 +182,7 @@ int CaptureApp::run(HINSTANCE instance) {
     };
     overlay.winoneState().winoneScroll = [this](const auto& region) {
         MainThreadDispatcher::instance().postDeferred([this, region] {
-            try { startScrolling(region); } catch (const std::exception& error) { notice(error.what()); }
+            try { prepareScrolling(region); } catch (const std::exception& error) { notice(error.what()); }
         });
     };
     overlay.winoneState().winoneRetake = [this] {
@@ -313,8 +328,9 @@ void CaptureApp::applySettings(const std::string& language) {
     auto& config = tools3000::core::ConfigManager::instance();
     const json capture{{"copyToClipboard", settings_.value("copyToClipboard", true)}, {"saveToFile", false},
         {"pinOnCapture", settings_.value("pinAfterCapture", false)}, {"pinTranslation", settings_.value("pinTranslation", false)}, {"format", "png"},
-        {"saveDirectory", settings_.at("outputDirectory")}, {"autoBypassFullscreen", false},
-        {"winoneToolbar", settings_.value("toolbarTools", json(nullptr))}};
+        {"saveDirectory", settings_.at("outputDirectory")}, {"autoBypassFullscreen", false}, {"showShortcutHints", false},
+        {"winoneToolbar", settings_.value("toolbarTools", json(nullptr))},
+        {"winoneShortcuts", settings_.value("canvasShortcuts", json::object())}};
     config.mergePatch({{"general", {{"language", language}, {"theme", settings_.value("theme", "system")}}}, {"capture", capture}});
 }
 
@@ -336,14 +352,20 @@ json CaptureApp::command(std::string method, json parameters) {
         return {{"queued",true}};
     }
     if (method == "probe.render") {
-        winone::probe::renderDestination = directory_ / L"rendered.png";
-        upstream::CaptureOverlay::instance().winoneInvalidate();
+        const auto name=parameters.value("name",std::string("rendered.png"));
+        if(name.find_first_of("/\\:")!=std::string::npos || !name.ends_with(".png"))throw std::runtime_error("Invalid private render name");
+        winone::probe::renderDestination = directory_ / wide(name);
+        if(recording_ && recording_->active()) InvalidateRect(upstream::RecordingIndicator::instance().winoneWindow(),nullptr,FALSE);
+        else upstream::CaptureOverlay::instance().winoneInvalidate();
         return {{"queued", true}};
     }
     if (method == "probe.state") {
         auto& overlay = upstream::CaptureOverlay::instance();
         auto& state = overlay.winoneState();
         json buttons = json::array();
+        json menu = json::array();
+        for(const auto& item:state.dropdownMenu.items) menu.push_back({{"id",item.id},{"label",utf8(item.label)},
+            {"checked",item.isSelected},{"x",(item.rect.left+item.rect.right)/2},{"y",(item.rect.top+item.rect.bottom)/2}});
         for (const auto& button : state.toolbarButtons)
             buttons.push_back({{"label", utf8(button.tooltipHint.empty() ? button.label : button.tooltipHint)},
                 {"command", static_cast<int>(button.command)}, {"x", (button.rect.left + button.rect.right) / 2},
@@ -358,7 +380,11 @@ json CaptureApp::command(std::string method, json parameters) {
         auto& scroll = upstream::ScrollCaptureOverlay::instance();
         json scrollButtons=json::array();for(int i=0;i<5;++i){const auto r=scroll.buttonRectForTest(i);scrollButtons.push_back({(r.left+r.right)/2,(r.top+r.bottom)/2});}
         const json scrollUI{{"hwnd",reinterpret_cast<uintptr_t>(scroll.controlWindowHandleForTest())},{"buttons",scrollButtons}};
-        return {{"scrollUI",scrollUI},{"recordingUI",recordingUI},{"pin",pinState},{"buttons", buttons}, {"selection", {state.dragStart.x, state.dragStart.y, state.dragEnd.x, state.dragEnd.y}},
+        return {{"detected",{state.detectedWindow.left,state.detectedWindow.top,state.detectedWindow.right,state.detectedWindow.bottom}},
+                {"detectionCandidates",state.detectedWindowHierarchy.size()},{"shortcutHints",state.options.showShortcutHints},{"scrollReady",state.winoneScrollReady},
+                {"dropdown",static_cast<int>(state.dropdownMenu.type)},{"menu",menu},
+                {"recordingDestination",utf8(recordingDestination_.wstring())},{"recordingMode",state.mode==upstream::OverlayMode::RecordRegion},
+                {"scrollUI",scrollUI},{"recordingUI",recordingUI},{"pin",pinState},{"buttons", buttons}, {"selection", {state.dragStart.x, state.dragStart.y, state.dragEnd.x, state.dragEnd.y}},
                 {"moveTool", state.winoneMoveTool}, {"regionTool", state.winoneRegionTool},
                 {"longImage", state.isLongImageMode()}, {"zoom", state.longCanvas.zoom},
                 {"imageSize", {state.frozenScreen.cols, state.frozenScreen.rows}},
@@ -476,6 +502,8 @@ void CaptureApp::beginCapture(const std::string& id, const std::string& mode) {
     upstream::CaptureOptions options;
     options.copyToClipboard = false; options.saveToFile = false; options.recordHistory = false;
     options.autoBypassFullscreen = false;
+    options.showShortcutHints = false;
+    options.autoDetectWindow = true;
     if (mode == "fullscreen") {
         options.hasInitialRegion = true;
         options.initialRegion = {GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN),
@@ -494,7 +522,7 @@ void CaptureApp::beginCapture(const std::string& id, const std::string& mode) {
 
 bool CaptureApp::deliver(const upstream::CaptureRegion& region, const cv::Mat& image, const upstream::CaptureCompletion& completion) {
     try {
-        if (mode_ == "scroll") { startScrolling(region); return false; }
+        if (mode_ == "scroll") { prepareScrolling(region); return false; }
         if (mode_ == "ocr" || mode_ == "translate") { textAction(image, mode_ == "translate"); return false; }
         const auto result = publish(image, region, completion);
         if (result.is_null()) return false;

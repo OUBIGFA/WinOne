@@ -45,6 +45,19 @@ await adapt('src/ocr/OcrEngine.cpp', [
     ['std::string OcrEngine::recognizeToText(', '#endif\n}\n\nstd::string OcrEngine::recognizeToText('],
 ]);
 
+// Pin language menus read the active shared OCR's state, without constructing
+// four unused OpenCV networks merely to ask which model generation is present.
+for (const relative of ['src/capture/PinWindowInput.cpp', 'src/capture/PinWindowOcr.cpp']) {
+    let text = prepared.get(relative).toString('utf8');
+    text = text.replace('#include "ocr/DeepOcrEngine.h"', '#include "ocr_model_state.h"');
+    text = text.replaceAll('tools3000::ocr::DeepOcrEngine::instance()', 'winone::community::ocrModelState()');
+    prepared.set(relative, Buffer.from(text));
+}
+await adapt('src/ocr/OcrEngine.cpp', [
+    ['#include "ocr/DeepOcrEngine.h"', '// Recognition and lifetime are owned by WinOne.'],
+    ['    DeepOcrEngine::instance().shutdown();', '    // Shared OCR is shut down by the Host, not by a pin window.'],
+]);
+
 await adapt('src/core/translate/TranslationService.cpp', [
     ['#include "core/translate/TranslationService.h"', '#include "core/translate/TranslationService.h"\n#include "community_hooks.h"'],
     ['    return translateBatchWithSettings(request, loadSettings(), cancelFlag);', '    return winone::community::translate(request, cancelFlag);'],
@@ -85,7 +98,8 @@ await adapt('src/capture/CaptureOverlay.h', [
 ]);
 
 await adapt('src/capture/CaptureState.h', [
-    ['enum class ToolbarCommand {', 'enum class ToolbarCommand {\n    WinOneMove, WinOneRegion, WinOneCover, WinOneCustomize, WinOneRecordGif, WinOneSaveAs, WinOneRetake,'],
+    ['enum class ToolbarCommand {', 'enum class ToolbarCommand {\n    WinOneRecordCodec, WinOneGifQuality, WinOneGifSeconds, WinOneRecordCursor, WinOneRecordDestination, WinOneMove, WinOneRegion, WinOneCover, WinOneCustomize, WinOneRecordGif, WinOneSaveAs, WinOneRetake,'],
+    ['    None = 0,\n    RecordFormat,', '    None = 0,\n    WinOneToolbar, WinOneCodec, WinOneQuality, WinOneSeconds,\n    RecordFormat,'],
     ['    cv::Mat frozenScreen;', `    // A translated view is separate from original pixels and editable marks.
     cv::Mat winoneTranslated;
     bool winoneShowTranslated = false;
@@ -95,7 +109,14 @@ await adapt('src/capture/CaptureState.h', [
     float winoneProgress = -1.f;
     std::wstring winoneProgressText;
     std::function<void(uint32_t)> winoneEditNumber;
-    std::function<void()> winoneCustomize;
+    std::function<void(int)> winoneCustomize;
+    std::function<bool(bool)> winonePrepareRecording;
+    std::function<void()> winoneChooseDestination;
+    bool winoneNumberStyleInitialized = false;
+    bool winoneNumberCreated = false;
+    bool winoneRecordCursor = true;
+    bool winoneScrollReady = false;
+    int winoneGifQuality = 85, winoneGifSeconds = 120;
     std::function<void()> winoneRetake;
     std::function<void(const CaptureRegion&)> winoneScroll;
     std::function<void()> winoneSelected;
@@ -131,7 +152,7 @@ await adapt('src/capture/CaptureOverlay.cpp', [
         ShortcutHintOverlay::instance().hide();
         return;
     }`],
-    ['void CaptureOverlay::resetTransientOverlayState() {', 'void CaptureOverlay::resetTransientOverlayState() {\n    m_state.winoneLiveCapture = false;\n    m_state.winoneMoveTool = false;\n    m_state.winoneRegionTool = false;\n    m_state.winoneProgress = -1;\n    m_state.winoneProgressText.clear();\n    m_state.winoneTranslated.release();\n    m_state.winoneShowTranslated = false;'],
+    ['void CaptureOverlay::resetTransientOverlayState() {', 'void CaptureOverlay::resetTransientOverlayState() {\n    m_state.winoneScrollReady = false;\n    m_state.winoneLiveCapture = false;\n    m_state.winoneMoveTool = false;\n    m_state.winoneRegionTool = false;\n    m_state.winoneProgress = -1;\n    m_state.winoneProgressText.clear();\n    m_state.winoneTranslated.release();\n    m_state.winoneShowTranslated = false;'],
     ['            return self->m_input.handleMessage(hwnd, msg, wParam, lParam);', `            const bool wasSelecting = self->m_state.state.load() == OverlayState::Selecting;
             const auto result = self->m_input.handleMessage(hwnd, msg, wParam, lParam);
             if (msg == WM_LBUTTONUP && wasSelecting && self->m_state.state.load() == OverlayState::Selected && self->m_state.winoneSelected)
@@ -173,6 +194,12 @@ await adapt('src/core/utils/OutOfProcessFileDialog.cpp', [
 ]);
 await adapt('src/capture/WindowElementDetector.cpp', [
     ['WindowElementDetector::~WindowElementDetector() {', 'WindowElementDetector::~WindowElementDetector() { shutdown(); }\n\nvoid WindowElementDetector::shutdown() {'],
+]);
+await adapt('src/capture/CaptureInput.cpp', [
+    ['void CaptureInput::setCurrentTool(MarkupTool tool) {', `void CaptureInput::setCurrentTool(MarkupTool tool) {
+    if(tool==MarkupTool::Number && !m_state->winoneNumberStyleInitialized) {
+        m_state->currentColor={47,47,47,255};m_state->winoneNumberStyleInitialized=true;
+    }`],
 ]);
 await adapt('src/capture/CaptureInput.h', [
     ['    void endDetectionSession();', '    void endDetectionSession();\n    void shutdownDetection() { m_elementDetector.shutdown(); }'],
@@ -267,12 +294,24 @@ await adapt('src/capture/CaptureInputCommands.cpp', [
             m_state->currentColor = MarkupColor::Black();
             m_renderer->invalidate(); return;
         case ToolbarCommand::WinOneCustomize:
-            if (m_state->winoneCustomize) m_state->winoneCustomize(); return;
+            openDropdownMenu(DropdownType::WinOneToolbar, button.rect); return;
+        case ToolbarCommand::WinOneRecordCodec:
+            if (m_state->recordSetup.format != RecordFormat::GIF) openDropdownMenu(DropdownType::WinOneCodec, button.rect); return;
+        case ToolbarCommand::WinOneGifQuality:
+            openDropdownMenu(DropdownType::WinOneQuality, button.rect); return;
+        case ToolbarCommand::WinOneGifSeconds:
+            openDropdownMenu(DropdownType::WinOneSeconds, button.rect); return;
+        case ToolbarCommand::WinOneRecordCursor:
+            m_state->winoneRecordCursor = !m_state->winoneRecordCursor;
+            m_state->toolbarLayoutValid = false; m_renderer->invalidate(); return;
+        case ToolbarCommand::WinOneRecordDestination:
+            if (m_state->winoneChooseDestination) m_state->winoneChooseDestination(); return;
         case ToolbarCommand::WinOneRetake:
             if (m_state->winoneRetake) m_state->winoneRetake(); return;
         case ToolbarCommand::WinOneSaveAs:
             triggerSaveSelectionAs(m_hwnd); return;
         case ToolbarCommand::WinOneRecordGif:
+            if (m_state->winonePrepareRecording && !m_state->winonePrepareRecording(true)) return;
             transitionToRecordMode(*m_state);
             m_state->recordSetup.format = RecordFormat::GIF;
             m_state->recordSetup.fps = 15;
@@ -449,6 +488,11 @@ await adapt('src/capture/CaptureInput.cpp', [
     if (text.split(anchor).length !== 2) throw Error('Community toolbar icon renderer changed');
     text = '#include "toolbar_icons.h"\n' + text;
     text = text.replace(anchor, anchor + `
+    if (!button.label.empty()) {
+        TextFormatScope format(m_infoTextFormat.Get(), DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_WORD_WRAPPING_NO_WRAP);
+        m_renderTarget->DrawTextW(button.label.c_str(),static_cast<UINT32>(button.label.size()),m_infoTextFormat.Get(),rect,brush);
+        return;
+    }
     const char* winoneIcon = nullptr;
     switch (button.command) {
         case ToolbarCommand::WinOneMove: winoneIcon = "select"; break;
@@ -516,8 +560,12 @@ await adapt('src/capture/CaptureInput.cpp', [
     handler = handler.replace(bounds, '        const auto label = winone::number_label::bubbleBounds(element);\n        return label.empty() ? badgeBox : (badgeBox | label);');
     handler = handler.replace('    HitArea hitTest(const MarkupElement& element, cv::Point pt, int padding) const override {',
         '    HitArea hitTest(const MarkupElement& element, cv::Point pt, int padding) const override {\n        if (winone::number_label::bubbleBounds(element).contains(pt)) return HitArea::Body;');
+    handler = handler.replace('        renderSnipasteStyleNumberBadge(canvas, element.numberValue, element.startPt, color,',
+        '        winone::number_label::renderBackground(canvas, element);\n        renderSnipasteStyleNumberBadge(canvas, element.numberValue, element.startPt, color,');
     handler = handler.replace('                                       element.fill, effScale, element.numberShape, element.numberFormat);',
         '                                       element.fill, effScale, element.numberShape, element.numberFormat);\n        winone::number_label::render(canvas, element);');
+    handler = handler.replace('        renderSnipasteStyleNumberBadge(canvas, element.numberValue, element.startPt, color,\n                                       element.fill, effScale, element.numberShape, element.numberFormat);',
+        '        winone::number_label::renderBadge(canvas, element);');
     text = text.slice(0, begin) + handler + text.slice(end);
     prepared.set(relative, Buffer.from(text));
 }
@@ -529,7 +577,7 @@ await adapt('src/capture/CaptureInput.cpp', [
     if (begin < 0 || end < 0) throw Error('Community number creation changed');
     let block = text.slice(begin, end);
     block = block.replace('                elem->isActive = true;',
-        '                elem->isActive = true;\n                elem->fill = true;\n                elem->fontSize = std::clamp(static_cast<float>(m_state->currentStrokeWidth), 6.f, 256.f) * currentDpiScale;\n                elem->hasLeaderArrow = false;\n                if (m_state->winoneEditNumber) m_state->winoneEditNumber(elem->id);');
+        '                elem->isActive = true;\n                elem->fill = true;\n                if(!m_state->winoneNumberCreated){m_state->currentColor={47,47,47,255};m_state->winoneNumberCreated=true;}\n                elem->color=m_state->currentColor;\n                elem->isEditing = true;\n                elem->fontSize = std::clamp(static_cast<float>(m_state->currentStrokeWidth), 6.f, 256.f) * currentDpiScale;\n                elem->hasLeaderArrow = false;\n                if (m_state->winoneEditNumber) m_state->winoneEditNumber(elem->id);');
     text = text.slice(0, begin) + block + text.slice(end);
     prepared.set(relative, Buffer.from(text));
 }
@@ -622,14 +670,35 @@ await adapt('src/capture/MarkupEngineShapes.cpp', [
     if (begin < 0 || end < 0) throw Error('Upstream recording preparation toolbar changed');
     text = text.slice(0, begin) + `    if (state.mode == OverlayMode::RecordRegion) {
         std::vector<ButtonSpec> specs;
-        specs.push_back({ToolbarCommand::RecordToggleFormat, MarkupTool::Rectangle, {},
-            state.recordSetup.format == RecordFormat::GIF ? L"GIF" : L"MP4", 64.0f});
+        const bool gif = state.recordSetup.format == RecordFormat::GIF;
+        auto option = [&](ToolbarCommand command, std::wstring label, float width) {
+            specs.push_back({command, MarkupTool::Rectangle, {}, label, width});
+        };
+        option(ToolbarCommand::WinOneRecordCodec, gif ? L"GIF" : (state.recordSetup.format == RecordFormat::MP4_H265 ? L"H.265" : L"H.264"), 68);
+        option(ToolbarCommand::RecordCycleFps, std::to_wstring(state.recordSetup.fps)+L" fps", 78);
+        if (gif) {
+            option(ToolbarCommand::WinOneGifQuality, (zh?L"质量 ":L"Quality ")+std::to_wstring(state.winoneGifQuality), zh?85:110);
+            option(ToolbarCommand::WinOneGifSeconds, std::to_wstring(state.winoneGifSeconds)+(zh?L" 秒":L" sec"), 78);
+        }
+        option(ToolbarCommand::WinOneRecordCursor, state.winoneRecordCursor ? (zh?L"鼠标 开":L"Cursor on") : (zh?L"鼠标 关":L"Cursor off"), zh?85:108);
+        option(ToolbarCommand::WinOneRecordDestination, zh?L"保存地址":L"Save to…", zh?90:100);
         specs.push_back({ToolbarCommand::Cancel, MarkupTool::Rectangle, {}, L"", 32.0f});
         specs.push_back({ToolbarCommand::RecordStartConfirm, MarkupTool::Rectangle, {},
-            zh ? L"录制设置" : L"Recording options", zh ? 100.0f : 155.0f});
+            zh ? L"开始录制" : L"Start", zh ? 100.0f : 86.0f});
         return specs;
     }` + text.slice(end + '        return specs;\n    }'.length);
     prepared.set(relative, Buffer.from(text));
+}
+{
+    const relative='src/capture/CaptureToolbarLayout.cpp';
+    let text=prepared.get(relative).toString('utf8');
+    const anchor='    if (state.mode == OverlayMode::RecordRegion) {';
+    text=text.replace(anchor,`    if (state.winoneScrollReady) {
+        return {{ToolbarCommand::ScrollCapture, MarkupTool::Rectangle, {}, zh?L"开始滚动截图":L"Start scrolling capture", zh?152.f:214.f},
+                {ToolbarCommand::Cancel, MarkupTool::Rectangle, {}, zh?L"取消":L"Cancel", 72.f}};
+    }
+${anchor}`);
+    prepared.set(relative,Buffer.from(text));
 }
 await adapt('src/capture/CaptureToolbarLayout.cpp', [
     ['    const CaptureOptions* options) {', '    const CaptureOptions* options) {\n    if (!button.tooltipHint.empty() && !button.isSecondary) return button.tooltipHint;'],
@@ -744,6 +813,20 @@ await adapt('src/capture/RecordingIndicator.cpp', [
             winone::icons::render(m_renderTarget.Get(), "pin", isDark, snapIconRc);
             m_renderTarget->SetTransform(transform);`],
 ]);
+await adapt('src/capture/RecordingIndicator.cpp', [
+    ['    auto hwndProps = D2D1::HwndRenderTargetProperties(', `    if(GetProcAddress(GetModuleHandleW(nullptr),"WinOneNativeRenderedFrame"))rtProps.usage=D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE;
+    auto hwndProps = D2D1::HwndRenderTargetProperties(`],
+    ['    const HRESULT hrEnd = m_renderTarget->EndDraw();', `    if(auto readback=reinterpret_cast<void(*)(void*)>(GetProcAddress(GetModuleHandleW(nullptr),"WinOneNativeRenderedFrame")))readback(m_renderTarget.Get());
+    const HRESULT hrEnd = m_renderTarget->EndDraw();`],
+    ['out.pauseBtn = {out.snapshotBtn.right + 5, btnY, out.snapshotBtn.right + 5 + BTN_SIZE, btnY + BTN_SIZE};',
+     'out.pauseBtn = {out.snapshotBtn.right + 5, btnY, out.snapshotBtn.right + 5 + 76, btnY + BTN_SIZE};'],
+    ['out.stopBtn = {out.pauseBtn.right + 5, btnY, out.pauseBtn.right + 5 + BTN_SIZE, btnY + BTN_SIZE};',
+     'out.stopBtn = {out.pauseBtn.right + 5, btnY, out.pauseBtn.right + 5 + 76, btnY + BTN_SIZE};'],
+    ['            CaptureVectorIcons::renderIcon(m_renderTarget.Get(), m_d2dFactory.Get(),\n                m_paused ? CaptureIconId::ActionRecordStart : CaptureIconId::ActionRecordPause,\n                pIconRc, m_textBrush.Get(), 1.0f);',
+     '            const auto label=m_paused?(isZh?L"继续":L"Resume"):(isZh?L"暂停":L"Pause");\n            m_renderTarget->DrawTextW(label,static_cast<UINT32>(wcslen(label)),m_textFormat.Get(),pIconRc,m_textBrush.Get());'],
+    ['        CaptureVectorIcons::renderIcon(m_renderTarget.Get(), m_d2dFactory.Get(),\n            CaptureIconId::ActionRecordStop, sIconRc,\n            stopIconBrush ? stopIconBrush.Get() : m_textBrush.Get(), 1.0f);',
+     '        const auto stopLabel=isZh?L"结束":L"Finish";\n        m_renderTarget->DrawTextW(stopLabel,static_cast<UINT32>(wcslen(stopLabel)),m_textFormat.Get(),sIconRc,stopIconBrush ? stopIconBrush.Get() : m_textBrush.Get());'],
+]);
 {
     const relative = 'src/capture/RecordingIndicator.cpp';
     let text = prepared.get(relative).toString('utf8');
@@ -778,7 +861,14 @@ await adapt('src/capture/RecordingIndicator.cpp', [
     prepared.set(relative, Buffer.from(text));
 }
 await adapt('src/capture/FloatingGlassBar.cpp', [
-    ['    return resolveThemePalette(true);', '    return resolveThemePalette(isEffectiveDarkMode());'],
+    // HUD foreground and background must stay one pair. The shared palette is
+    // also used by MyGo and the native common-control tooltip.
+    ['    return resolveThemePalette(true);', `    auto palette = resolveThemePalette(true);
+    palette.panelBg = winone::hint::background();
+    palette.primaryText = palette.textPrimary = winone::hint::foreground();
+    palette.panelBorder = winone::hint::border();
+    return palette;`],
+    ['#include "capture/FloatingGlassBar.h"', '#include "capture/FloatingGlassBar.h"\n#include "hint_style.h"'],
     ['    p.accentSubtle = p.accentSoftBg;', `    // Use the existing WinOne neutral palette; the community layout and
     // rendering primitives stay intact.
     p.panelBg = D2D1::ColorF(isDark ? 0x242423 : 0xffffff, 1);
@@ -798,6 +888,186 @@ await adapt('src/capture/FloatingGlassBar.cpp', [
     ['        renderShadow(ambientSteps, sizeof(ambientSteps) / sizeof(ambientSteps[0]));\n        renderShadow(keySteps, sizeof(keySteps) / sizeof(keySteps[0]));',
      '        renderShadow(keySteps, 1);'],
 ]);
+// A minimap viewport is an overlay on the image, not a selected button face.
+await adapt('src/capture/ScrollCaptureOverlay.h', [
+    ['        int compactLevel = 0;', '        for(auto& spec:specs)spec.keycap.clear(); // Local shortcuts are listed in Settings.\n        int compactLevel = 0;'],
+]);
+await adapt('src/capture/ScrollCaptureOverlay.cpp', [
+    ['L"已停滚 · 回车裁切/完成" : L"Stopped · Enter to trim"', 'L"已停滚" : L"Stopped"'],
+    ['L"已暂停 · 回车裁切/完成" : L"Paused · Enter to trim"', 'L"已暂停" : L"Paused"'],
+]);
+{
+    const actions=JSON.parse(await fs.readFile(path.join(root,'internal/captureprefs/shortcuts.json'),'utf8'));
+    const rows=actions.map(a=>`{"${a.id}","${a.key}",ToolbarCommand::${a.command},MarkupTool::${a.tool||'Rectangle'}}`).join(',\n');
+    prepared.set('winone/canvas_shortcuts.h',Buffer.from(`#pragma once
+#include "capture/CaptureState.h"
+#include "core/config/ConfigManager.h"
+#include <array>
+namespace winone::capture {
+using namespace tools3000::capture;
+struct CanvasBinding {const char* id;const char* key;ToolbarCommand command;MarkupTool tool;};
+inline constexpr std::array<CanvasBinding,${actions.length}> bindings{{${rows}}};
+inline std::string chord(WPARAM key,bool ctrl,bool shift,bool alt) {
+    std::string name;
+    if((key>='A'&&key<='Z')||(key>='0'&&key<='9'))name=static_cast<char>(key);
+    else if(key>=VK_F1&&key<=VK_F24)name="F"+std::to_string(key-VK_F1+1);
+    else if(key>=VK_NUMPAD0&&key<=VK_NUMPAD9)name="Num"+std::to_string(key-VK_NUMPAD0);
+    else return {};
+    return std::string(ctrl?"Ctrl+":"")+(alt?"Alt+":"")+(shift?"Shift+":"")+name;
+}
+inline std::pair<bool,ToolbarButton> canvasKey(const CaptureState& state,WPARAM key,bool ctrl,bool shift,bool alt) {
+    ToolbarButton result;
+    result.command=ToolbarCommand::WinOneNoop;
+    if(state.mode!=OverlayMode::Screenshot || (state.state.load()!=OverlayState::Selected && state.state.load()!=OverlayState::Marking) ||
+       (state.activeElement&&state.activeElement->isEditing) || state.dropdownMenu.type!=DropdownType::None) return {false,result};
+    const auto pressed=chord(key,ctrl,shift,alt);
+    const auto values=tools3000::core::ConfigManager::instance().get<nlohmann::json>("/capture/winoneShortcuts",nlohmann::json::object());
+    bool managed=false;
+    for(const auto& binding:bindings) {
+        if(pressed==binding.key)managed=true;
+        const std::string configured=values.is_object()?values.value(binding.id,std::string(binding.key)):binding.key;
+        if(!configured.empty() && pressed==configured){result.command=binding.command;result.tool=binding.tool;return {true,result};}
+    }
+    return {managed,result};
+}
+}
+`));
+}
+await adapt('src/capture/CaptureState.h', [['    WinOneRecordCodec,','    WinOneNoop, WinOneRecordCodec,']]);
+await adapt('src/capture/CaptureInputKeyboard.cpp', [
+    ['#include "capture/CaptureInputInternal.h"', '#include "capture/CaptureInputInternal.h"\n#include "canvas_shortcuts.h"'],
+    ['            const auto decision = CaptureShortcutPolicy::resolveKeyDown(keyCtx, wParam, ctrl, shift, alt);', `            const auto custom = winone::capture::canvasKey(*m_state,wParam,ctrl,shift,alt);
+            if (!keyCtx.editingText && custom.first) {
+                if(!isAutoRepeat && custom.second.command!=ToolbarCommand::WinOneNoop)executeToolbarCommand(custom.second);
+                return 0;
+            }
+            const auto decision = CaptureShortcutPolicy::resolveKeyDown(keyCtx, wParam, ctrl, shift, alt);`],
+]);
+await adapt('src/capture/CaptureInput.cpp', [
+    ['void CaptureInput::setCurrentTool(MarkupTool tool) {', `void CaptureInput::setCurrentTool(MarkupTool tool) {
+    if(tool==MarkupTool::Number && !m_state->winoneNumberStyleInitialized) {
+        m_state->currentColor={47,47,47,255};m_state->winoneNumberStyleInitialized=true;
+    }`],
+]);
+await adapt('src/capture/CaptureInput.h', [
+    ['    void endDetectionSession();', `    void endDetectionSession();
+    POINT winoneSnapPoint(POINT point) {
+        if(!m_state || m_state->isLongImageMode() || (GetKeyState(VK_MENU)&0x8000) ||
+            m_state->aspectRatio != AspectRatioPreset::Free) return point;
+        const POINT screen{point.x+GetSystemMetrics(SM_XVIRTUALSCREEN),point.y+GetSystemMetrics(SM_YVIRTUALSCREEN)};
+        auto candidates=m_elementDetector.querySync(screen);
+        std::vector<RECT> edges; for(const auto& candidate:candidates)edges.push_back(candidate.rect);
+        for(const auto& rect:m_state->detectedWindowHierarchy)edges.push_back(rect);
+        return winone::capture::snapPoint(point,edges,static_cast<int>(8*std::max(1.f,m_state->dpiScale)));
+    }`],
+    ['#include "capture/CaptureState.h"', '#include "capture/CaptureState.h"\n#include "selection_snap.h"'],
+]);
+await adapt('src/capture/CaptureInputMouse.cpp', [
+    ['                    m_state->dragEnd = m_state->currentCursor;', '                    m_state->dragEnd = winoneSnapPoint(m_state->currentCursor);'],
+    ['            m_state->dragEnd = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};', '            m_state->dragEnd = winoneSnapPoint({GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});'],
+    ['                    int dx = m_state->currentCursor.x - m_state->selAdjustLast.x;\n                    int dy = m_state->currentCursor.y - m_state->selAdjustLast.y;\n                    adjustSelection(m_state->selAdjustHandle, dx, dy);', `                    const auto snapped = winoneSnapPoint(m_state->currentCursor);
+                    int dx = snapped.x - m_state->selAdjustLast.x;
+                    int dy = snapped.y - m_state->selAdjustLast.y;
+                    adjustSelection(m_state->selAdjustHandle, dx, dy);
+                    m_state->selAdjustLast = snapped;
+                    m_renderer->invalidate(); return 0;`],
+]);
+await adapt('src/capture/CaptureRendererHud.cpp', [
+    ['    m_renderTarget->CreateSolidColorBrush(pal.accentSoftBg, viewFillBr.GetAddressOf());',
+     '    auto viewportTint = pal.accent; viewportTint.a = 0.18f;\n    m_renderTarget->CreateSolidColorBrush(viewportTint, viewFillBr.GetAddressOf());'],
+    ['L"头部 Home"', 'L"头部"'],
+    ['L"尾部 End"', 'L"尾部"'],
+]);
+{
+    const relative='src/capture/CaptureRendererHud.cpp';
+    let text=prepared.get(relative).toString('utf8');
+    const begin=text.indexOf('void CaptureRenderer::drawLongCanvasMinimap(');
+    const end=text.indexOf('void CaptureRenderer::renderLongImageStudio(',begin);
+    let body=text.slice(begin,end);
+    body=body.replace('m_renderTarget->CreateSolidColorBrush(pal.panelBg, panelBg.GetAddressOf());',
+        'auto translucentPanel=pal.panelBg;translucentPanel.a=0.16f;\n    m_renderTarget->CreateSolidColorBrush(translucentPanel, panelBg.GetAddressOf());');
+    text=text.slice(0,begin)+body+text.slice(end);prepared.set(relative,Buffer.from(text));
+}
+await adapt('src/capture/CaptureInputCommands.cpp', [
+    ['                transitionToRecordMode(*m_state);', '                if (m_state->winonePrepareRecording && !m_state->winonePrepareRecording(false)) return;\n                transitionToRecordMode(*m_state);'],
+]);
+{
+    const relative='src/capture/CaptureDropdownMenu.cpp';
+    let text=prepared.get(relative).toString('utf8');
+    const begin=text.indexOf('void openDropdownMenu(CaptureState& state,');
+    const commit=text.indexOf('void commitDropdownSelection(CaptureState& state,');
+    const anchor='        case DropdownType::BeautyShellBg: {';
+    let open=text.slice(begin,commit);
+    open=open.replace(anchor,`        case DropdownType::WinOneToolbar: {
+            const std::array<const char*,13> ids{"crop","select","rectangle","ellipse","arrow","pen","cover","text","step","mosaic","blur","ocr","translate"};
+            const std::array<const wchar_t*,13> zh{L"调整选区",L"移动标注",L"矩形",L"椭圆",L"箭头",L"画笔",L"遮盖",L"文字",L"序号说明",L"马赛克",L"模糊",L"识别文字",L"翻译"};
+            const std::array<const wchar_t*,13> en{L"Adjust selection",L"Move annotation",L"Rectangle",L"Ellipse",L"Arrow",L"Pen",L"Cover",L"Text",L"Numbered step",L"Mosaic",L"Blur",L"Recognize text",L"Translate"};
+            const auto selected=tools3000::core::ConfigManager::instance().get<nlohmann::json>("/capture/winoneToolbar",nullptr);
+            for(size_t i=0;i<ids.size();++i) state.dropdownMenu.items.push_back({static_cast<int>(i),isZh?zh[i]:en[i],L"",
+                selected.is_null() || std::find(selected.begin(),selected.end(),ids[i])!=selected.end()});
+            state.dropdownMenu.items.push_back({99,isZh?L"恢复默认":L"Reset to defaults"});
+            break;
+        }
+        case DropdownType::WinOneCodec:
+            state.dropdownMenu.items={{0,L"H.264",L"",state.recordSetup.format==RecordFormat::MP4_H264},{1,L"H.265",L"",state.recordSetup.format==RecordFormat::MP4_H265}};break;
+        case DropdownType::WinOneQuality:
+            for(int quality:{50,65,75,85,95,100})state.dropdownMenu.items.push_back({quality,std::to_wstring(quality),L"",state.winoneGifQuality==quality});break;
+        case DropdownType::WinOneSeconds:
+            for(int seconds:{1,3,15,30,60,120,300,600})state.dropdownMenu.items.push_back({seconds,std::to_wstring(seconds)+(isZh?L" 秒":L" sec"),L"",state.winoneGifSeconds==seconds});break;
+${anchor}`);
+    let rest=text.slice(commit);
+    rest=rest.replace(anchor,`        case DropdownType::WinOneToolbar:
+            if(state.winoneCustomize)state.winoneCustomize(id);break;
+        case DropdownType::WinOneCodec:
+            state.recordSetup.format=id==1?RecordFormat::MP4_H265:RecordFormat::MP4_H264;break;
+        case DropdownType::WinOneQuality: state.winoneGifQuality=id;break;
+        case DropdownType::WinOneSeconds: state.winoneGifSeconds=id;break;
+${anchor}`);
+    text=text.slice(0,begin)+open+rest;
+    // GIF's frame-rate ceiling is visible in the options, never silently clamped.
+    text=text.replace('        case DropdownType::RecordQuality: {',`        case DropdownType::RecordQuality: {`);
+    const fpsBegin=text.indexOf('        case DropdownType::RecordFps: {');
+    const fpsEnd=text.indexOf('        case DropdownType::RecordQuality: {',fpsBegin);
+    let fps=text.slice(fpsBegin,fpsEnd);
+    fps=fps.replace('            break;', '            if(state.recordSetup.format==RecordFormat::GIF)state.dropdownMenu.items.pop_back();\n            break;');
+    text=text.slice(0,fpsBegin)+fps+text.slice(fpsEnd);
+    prepared.set(relative,Buffer.from(text));
+}
+await adapt('src/capture/CaptureRendererToolbar.cpp', [
+    ['            float labelW = 0.0f;', '            kbdPart.clear(); // Canvas shortcuts live in WinOne settings, not hover hints.\n            float labelW = 0.0f;'],
+    ['            FloatingGlassBar::drawGlassPanel(m_renderTarget.Get(), tipRect, 7.5f * scale, true);',
+     '            winone::hint::draw(m_renderTarget.Get(), tipRect, scale);'],
+    ['#include "capture/CaptureRendererInternal.h"', '#include "capture/CaptureRendererInternal.h"\n#include "hint_style.h"'],
+]);
+{
+    const relative='src/capture/PinWindowRender.cpp';
+    let text=prepared.get(relative).toString('utf8');
+    text='#include "hint_style.h"\n'+text;
+    // Keep the community placement/animation; use the same popup surface.
+    text=text.replace(/FloatingGlassBar::drawGlassPanel\(m_renderTarget.Get\(\), tipRect, ([^;]+?), true\);/g,
+        'winone::hint::draw(m_renderTarget.Get(), tipRect, dpiScale);');
+    prepared.set(relative,Buffer.from(text));
+}
+{
+    const style=JSON.parse(await fs.readFile(path.join(root,'modules/nativeui/hint/style.json'),'utf8'));
+    const hex=value=>'0x'+value.slice(1);
+    prepared.set('winone/hint_style.h',Buffer.from(`#pragma once
+#include <d2d1.h>
+#include <wrl/client.h>
+namespace winone::hint {
+inline D2D1_COLOR_F background(){return D2D1::ColorF(${hex(style.light.background)},1);}
+inline D2D1_COLOR_F foreground(){return D2D1::ColorF(${hex(style.light.foreground)},1);}
+inline D2D1_COLOR_F border(){return D2D1::ColorF(${hex(style.light.border)},1);}
+inline void draw(ID2D1RenderTarget* target,const D2D1_RECT_F& rect,float scale) {
+    Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> fill,line;
+    if(FAILED(target->CreateSolidColorBrush(background(),fill.GetAddressOf())) ||
+       FAILED(target->CreateSolidColorBrush(border(),line.GetAddressOf()))) return;
+    const auto shape=D2D1::RoundedRect(rect,${style.radius}.f*scale,${style.radius}.f*scale);
+    target->FillRoundedRectangle(shape,fill.Get());target->DrawRoundedRectangle(shape,line.Get(),scale);
+}
+}
+`));
+}
 for (const [relative, data] of prepared) {
     const target = path.join(output, relative);
     let previous;

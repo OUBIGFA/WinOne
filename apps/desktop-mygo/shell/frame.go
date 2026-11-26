@@ -10,6 +10,7 @@ import (
 	"winone/desktopmygo/kit"
 	"winone/desktopmygo/kit/icons"
 	"winone/internal/branding"
+	"winone/modules/nativeui/hint"
 )
 
 var logo, _ = ui.DecodeBitmap(branding.Logo)
@@ -69,7 +70,7 @@ func (s *Shell) titleBar(c *ui.Context) {
 
 func (s *Shell) windowButton(c *ui.Context, icon *ui.SVG, label string, closing bool, run func()) ui.Element {
 	t := c.Theme()
-	b := ui.ButtonBase(c).Width(46).Justify(ui.Center).AlignItems(ui.Center).Label(label).Tooltip(label).FocusRing(false)
+	b := hint.Attach(c, ui.ButtonBase(c).Width(46).Justify(ui.Center).AlignItems(ui.Center).Label(label), label).FocusRing(false)
 	switch {
 	case closing && b.Pressed():
 		b.Background(t.Danger.Mix(t.Text, 0.15)).TextColor(ui.Hex("#ffffff"))
@@ -100,8 +101,8 @@ func (s *Shell) sidebar(c *ui.Context) {
 			if compact {
 				label = i18n.T("navigation.expandSidebar")
 			}
-			b := ui.ButtonBase(c).Size(48, 36).Justify(ui.Center).AlignItems(ui.Center).Radius(t.Radius).
-				Label(label).Tooltip(label)
+			b := hint.Attach(c, ui.ButtonBase(c).Size(48, 36).Justify(ui.Center).AlignItems(ui.Center).Radius(t.Radius).
+				Label(label), label)
 			if b.Hovered() {
 				b.Background(t.SurfaceHover)
 			}
@@ -143,8 +144,9 @@ func (s *Shell) navItem(c *ui.Context, item pageSpec, compact bool) {
 	row := ui.ButtonBase(c.Key(item.id)).FillWidth().Height(36).Gap(8).AlignItems(ui.Center).
 		Radius(t.Radius).Label(title).Selected(selected)
 	if compact {
-		// The icon alone, in the middle of the narrow sidebar.
-		row.Justify(ui.Center).Tooltip(title)
+		hint.
+			// The icon alone, in the middle of the narrow sidebar.
+			Attach(c, row.Justify(ui.Center), title)
 	} else {
 		// Icons line up in one column and names start at one edge.
 		row.Justify(ui.Start).Padding(0, 12)

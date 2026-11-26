@@ -4,6 +4,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"winone/desktopmygo/i18n"
 	"winone/desktopmygo/kit/icons"
+	"winone/modules/nativeui/hint"
 )
 
 // Toasts keeps MyGo's existing timing, hover/focus pause, action and Escape
@@ -26,7 +27,7 @@ func Toasts(c *ui.Context) {
 				if toast.Action != "" {
 					parts.ActionButton().Padding(4, 8).Label(toast.Action).Children(func() { ui.Text(c, toast.Action) })
 				}
-				parts.CloseButton().Size(24, 24).Label(i18n.T("notices.closeToast")).Tooltip(i18n.T("notices.closeToast")).Children(func() { ui.Icon(c, icons.X).FontSize(14) })
+				hint.Attach(c, parts.CloseButton().Size(24, 24).Label(i18n.T("notices.closeToast")), i18n.T("notices.closeToast")).Children(func() { ui.Icon(c, icons.X).FontSize(14) })
 			})
 		}
 	})

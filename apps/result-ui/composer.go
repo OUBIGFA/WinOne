@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"winone/modules/nativeui/hint"
 )
 
 // promptHeight measures wrapped text with the same native font as the editor,
@@ -108,7 +109,7 @@ func (p *Panel) composer(c *ui.Context, t *ui.Theme) {
 					return
 				}
 				disabled := strings.TrimSpace(p.Prompt) == "" || composing
-				send := ui.PrimaryButton(c, "").Label(p.T("发送", "Send")).Tooltip(p.T("发送", "Send")).Disabled(disabled).
+				send := hint.Attach(c, ui.PrimaryButton(c, "").Label(p.T("发送", "Send")), p.T("发送", "Send")).Disabled(disabled).
 					Size(iconButtonSize, iconButtonSize).Shrink(0).Padding(0).Radius(radiusFull).Justify(ui.Center).AlignItems(ui.Center).Cursor(ui.CursorPointer).
 					Children(func() { ui.Icon(c, svg("send")).Size(16, 16) })
 				if send.Clicked() && !disabled && p.Actions.Send != nil {
@@ -125,11 +126,11 @@ func (p *Panel) composer(c *ui.Context, t *ui.Theme) {
 // conversationControls are the two ways to start over. Both stay usable
 // while a reply is being written: each cancels it.
 func (p *Panel) conversationControls(c *ui.Context, t *ui.Theme) {
-	restart := iconButton(c, "restart", p.T("重新开始", "Restart"), false).Tooltip(p.T("重新开始：清理上下文，保留旧结果供参考", "Restart with a fresh context; keep earlier results for reference"))
+	restart := hint.Attach(c, iconButton(c, "restart", p.T("重新开始", "Restart"), false), p.T("重新开始：清理上下文，保留旧结果供参考", "Restart with a fresh context; keep earlier results for reference"))
 	if restart.Clicked() && p.Actions.Restart != nil {
 		p.Actions.Restart()
 	}
-	clear := iconButton(c, "clear", p.T("清空全部", "Clear all"), false).Tooltip(p.T("清空全部：结果、输入及对话上下文", "Clear all results, input and conversation context"))
+	clear := hint.Attach(c, iconButton(c, "clear", p.T("清空全部", "Clear all"), false), p.T("清空全部：结果、输入及对话上下文", "Clear all results, input and conversation context"))
 	if clear.Clicked() && p.Actions.ClearAll != nil {
 		p.Actions.ClearAll()
 	}

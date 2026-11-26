@@ -83,6 +83,11 @@ func ordinaryWindowsPath(value string) bool {
 
 func importCapture(source map[string]json.RawMessage, resolve pathResolver) (map[string]any, error) {
 	optional := []string{}
+	for _, name := range []string{"videoOutputDirectoryRef", "gifOutputDirectoryRef", "canvasShortcuts"} {
+		if _, ok := source[name]; ok {
+			optional = append(optional, name)
+		}
+	}
 	if _, exists := source["toolbarTools"]; exists {
 		optional = append(optional, "toolbarTools")
 	}
@@ -90,6 +95,11 @@ func importCapture(source map[string]json.RawMessage, resolve pathResolver) (map
 		optional = append(optional, "fileNameTemplate")
 	}
 	fields := "copyToClipboard:b askWhereToSave:b openEditor:b pinAfterCapture:b scrollDelay:n scrollFromTop:b outputDirectoryRef:s"
+	for _, name := range []string{"videoAskWhereToSave", "gifAskWhereToSave"} {
+		if _, ok := source[name]; ok {
+			fields += " " + name + ":b"
+		}
+	}
 	if _, present := source["pinTranslation"]; present {
 		fields += " pinTranslation:b"
 	}
@@ -114,6 +124,28 @@ func importCapture(source map[string]json.RawMessage, resolve pathResolver) (map
 	}
 	patch["outputDirectory"], err = resolve(patch["outputDirectoryRef"].(string), "directory")
 	delete(patch, "outputDirectoryRef")
+	for _, field := range []string{"videoOutputDirectory", "gifOutputDirectory"} {
+		if raw, ok := source[field+"Ref"]; ok && err == nil {
+			var ref string
+			err = json.Unmarshal(raw, &ref)
+			if err != nil {
+				return nil, err
+			}
+			if ref == "" {
+				patch[field] = ""
+			} else {
+				patch[field], err = resolve(ref, "directory")
+			}
+		}
+	}
+	if raw, ok := source["canvasShortcuts"]; ok && err == nil {
+		var keys map[string]string
+		err = json.Unmarshal(raw, &keys)
+		if err == nil {
+			err = captureprefs.ValidateCanvasShortcuts(keys)
+			patch["canvasShortcuts"] = keys
+		}
+	}
 	return patch, err
 }
 

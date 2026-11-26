@@ -6,6 +6,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"winone/desktopmygo/kit/icons"
+	"winone/modules/nativeui/hint"
 )
 
 // Button is the ordinary action: MyGo's button with an optional icon
@@ -55,8 +56,8 @@ func GhostButton(c *ui.Context, label string, icon *ui.SVG, busy bool) ui.Elemen
 // assistive technology and shows as its tooltip.
 func IconButton(c *ui.Context, icon *ui.SVG, label string) ui.Element {
 	t := c.Theme()
-	b := ui.ButtonBase(c).Size(ControlHeight, ControlHeight).Radius(ControlRadius).Justify(ui.Center).
-		AlignItems(ui.Center).Label(label).Tooltip(label)
+	b := hint.Attach(c, ui.ButtonBase(c).Size(ControlHeight, ControlHeight).Radius(ControlRadius).Justify(ui.Center).
+		AlignItems(ui.Center).Label(label), label)
 	if b.Pressed() {
 		b.Background(t.SurfacePressed)
 	} else if b.Hovered() {
@@ -69,8 +70,8 @@ func IconButton(c *ui.Context, icon *ui.SVG, label string) ui.Element {
 // CompactIconButton is a dense icon-only button for list rows and inline bars.
 func CompactIconButton(c *ui.Context, icon *ui.SVG, label string) ui.Element {
 	t := c.Theme()
-	b := ui.ButtonBase(c).Size(28, 28).Radius(ItemRadius).Justify(ui.Center).
-		AlignItems(ui.Center).Label(label).Tooltip(label)
+	b := hint.Attach(c, ui.ButtonBase(c).Size(28, 28).Radius(ItemRadius).Justify(ui.Center).
+		AlignItems(ui.Center).Label(label), label)
 	if b.Pressed() {
 		b.Background(t.SurfacePressed)
 	} else if b.Hovered() {
@@ -90,8 +91,8 @@ func OutlineIconButton(c *ui.Context, icon *ui.SVG, label string, primary bool) 
 	} else {
 		b = ui.Button(c, "")
 	}
-	return b.Size(ControlHeight+4, ControlHeight+4).Padding(0).Justify(ui.Center).AlignItems(ui.Center).
-		Label(label).Tooltip(label).Shadow(0, 1, 3, 0, ui.RGBA(0, 0, 0, shadowAlpha(t))).
+	return hint.Attach(c, b.Size(ControlHeight+4, ControlHeight+4).Padding(0).Justify(ui.Center).AlignItems(ui.Center).
+		Label(label), label).Shadow(0, 1, 3, 0, ui.RGBA(0, 0, 0, shadowAlpha(t))).
 		Children(func() { ui.Icon(c, icon).FontSize(16) })
 }
 

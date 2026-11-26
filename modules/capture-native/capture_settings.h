@@ -8,19 +8,26 @@ namespace winone::capture {
 inline json normalizeCaptureSettings(json value) {
     if (!value.is_object()) throw std::runtime_error("截图配置必须为对象");
     const std::set<std::string> fields{"schemaVersion","revision","outputDirectory","copyToClipboard","askWhereToSave","openEditor",
-        "pinAfterCapture","pinTranslation","theme","scrollDelay","scrollFromTop","toolbarTools","toolbarVersion","fileNameTemplate"};
+        "pinAfterCapture","pinTranslation","theme","scrollDelay","scrollFromTop","toolbarTools","toolbarVersion","fileNameTemplate",
+        "videoAskWhereToSave","gifAskWhereToSave","videoOutputDirectory","gifOutputDirectory","canvasShortcuts"};
     for (const auto& [key, unused] : value.items()) if (!fields.contains(key)) throw std::runtime_error("截图配置包含未知字段：" + key);
     json defaults{{"schemaVersion",1},{"revision",0},{"copyToClipboard",true},{"askWhereToSave",false},{"openEditor",true},
         {"pinAfterCapture",false},{"pinTranslation",false},{"theme","system"},{"scrollDelay",300},{"scrollFromTop",false},
-        {"toolbarTools",nullptr},{"toolbarVersion",0},{"fileNameTemplate",nullptr}};
+        {"toolbarTools",nullptr},{"toolbarVersion",0},{"fileNameTemplate",nullptr},
+        {"videoAskWhereToSave",true},{"gifAskWhereToSave",true},{"videoOutputDirectory",""},{"gifOutputDirectory",""}};
     for (const auto& [key, fallback] : defaults.items()) if (!value.contains(key)) value[key] = fallback;
     if (!value["schemaVersion"].is_number_integer() || value["schemaVersion"] != 1 ||
         !value["revision"].is_number_integer() || value["revision"].get<int64_t>() < 0 ||
         !value.contains("outputDirectory") || !value["outputDirectory"].is_string() ||
         !std::filesystem::path(wide(value["outputDirectory"].get<std::string>())).is_absolute())
         throw std::runtime_error("截图配置版本或保存目录无效");
-    for (const auto* key : {"copyToClipboard","askWhereToSave","openEditor","pinAfterCapture","pinTranslation","scrollFromTop"})
+    for (const auto* key : {"copyToClipboard","askWhereToSave","openEditor","pinAfterCapture","pinTranslation","scrollFromTop","videoAskWhereToSave","gifAskWhereToSave"})
         if (!value[key].is_boolean()) throw std::runtime_error("截图开关配置无效");
+    for (const auto* key : {"videoOutputDirectory","gifOutputDirectory"}) {
+        if (!value[key].is_string()) throw std::runtime_error("录制保存目录无效");
+        const auto path=value[key].get<std::string>();
+        if (!path.empty() && !std::filesystem::path(wide(path)).is_absolute()) throw std::runtime_error("录制保存目录必须为绝对路径");
+    }
     if (value["theme"] != "system" && value["theme"] != "dark" && value["theme"] != "light") throw std::runtime_error("截图主题无效");
     if (!value["scrollDelay"].is_number_integer() || value["scrollDelay"].get<int>() < 100 || value["scrollDelay"].get<int>() > 2000)
         throw std::runtime_error("滚动间隔须为 100–2000 毫秒");
@@ -35,6 +42,11 @@ inline json normalizeCaptureSettings(json value) {
         if (version != 3 && allowed.erase("step")) tools.push_back("step");
     }
     value["toolbarVersion"] = 3;
+    if (value.contains("canvasShortcuts") && !value["canvasShortcuts"].is_null()) {
+        if (!value["canvasShortcuts"].is_object()) throw std::runtime_error("截图快捷键配置无效");
+        for (const auto& [key, binding] : value["canvasShortcuts"].items())
+            if (!binding.is_string()) throw std::runtime_error("截图快捷键须为按键组合");
+    }
     if (!value["fileNameTemplate"].is_null() && !value["fileNameTemplate"].is_string()) throw std::runtime_error("文件名模板无效");
     return value;
 }

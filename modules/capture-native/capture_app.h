@@ -50,11 +50,16 @@ private:
     std::filesystem::path chooseSavePath(const std::filesystem::path& suggested, HWND owner = nullptr);
     std::filesystem::path suggestedPath(std::string_view format = "png") const;
     void startScrolling(const tools3000::capture::CaptureRegion& region);
+    void prepareScrolling(const tools3000::capture::CaptureRegion& region);
+    tools3000::capture::CaptureRegion pendingScrollRegion_{};
     void retakeScrolling();
     void snapshotDraft(bool flush = false);
     void resumeDraft(const std::string& jobId, const std::string& expectedId);
     void retireDraft(bool deferred = false);
     bool beginRecording(const tools3000::capture::CaptureRegion&, const tools3000::capture::RecordSetupOptions&);
+    bool prepareRecording(bool gif, bool forceDialog = false);
+    std::filesystem::path recordingDestination_;
+    bool recordingDestinationGif_ = false;
     void finishRecording(bool cancel);
     void updateRecording();
     void editNumber(uint32_t id);

@@ -6,6 +6,7 @@ import (
 	"golang.org/x/sys/windows"
 	"runtime"
 	"unsafe"
+	"winone/modules/nativeui/hint"
 )
 
 type tooltipTool struct {
@@ -61,7 +62,8 @@ func (t *toolbarTooltip) configure(owner uintptr, theme *ui.Theme) {
 		dpi = 96
 	}
 	color := func(c ui.Color) uintptr { return uintptr(c.R) | uintptr(c.G)<<8 | uintptr(c.B)<<16 }
-	background, foreground := color(theme.Surface), color(theme.Text)
+	fill, text, _ := hint.Colors(theme.Dark)
+	background, foreground := color(fill), color(text)
 	height := -int32(theme.FontSize * float32(dpi) / 96)
 	if t.dpi == dpi && t.dark == theme.Dark && t.font != 0 && t.background == background && t.foreground == foreground && t.fontHeight == height {
 		return
@@ -146,12 +148,12 @@ func (t *toolbarTooltip) close() {
 	}
 }
 
-func (c *Controller) toolbarHint(button ui.Element, label string, theme *ui.Theme) {
+func (c *Controller) toolbarHint(context *ui.Context, button ui.Element, label string, theme *ui.Theme) {
 	if !c.Toolbar {
 		return
 	}
 	if c.Window == nil {
-		button.Tooltip(label)
+		hint.Attach(context, button, label)
 		return
 	}
 	if c.tooltip == nil {

@@ -19,6 +19,7 @@ void CaptureApp::editNumber(uint32_t id) {
     state.currentTool = up::MarkupTool::Number; state.isMarkupToolActive = true;
     numberBefore_ = state.markup.captureSnapshot();
     element->textOutline = false;
+    element->isEditing = true;
     if (element->text.empty()) {
         const int width=std::abs(state.dragEnd.x-state.dragStart.x),height=std::abs(state.dragEnd.y-state.dragStart.y);
         const int badge=static_cast<int>(std::ceil(element->fontSize*.625f));
@@ -32,7 +33,8 @@ void CaptureApp::editNumber(uint32_t id) {
     const auto label = number_label::textElement(*element);
     const float remaining = static_cast<float>(std::abs(state.dragEnd.x - state.dragStart.x) - label.startPt.x - 8);
     element->textMaxWidth = std::max(32.f, remaining);
-    if (!numberBackground_) numberBackground_ = CreateSolidBrush(RGB(92, 92, 92));
+    if (numberBackground_) DeleteObject(numberBackground_);
+    numberBackground_ = CreateSolidBrush(RGB(element->color.r,element->color.g,element->color.b));
     const auto parent = overlay.winoneWindow();
     numberEdit_ = CreateWindowExW(0, L"EDIT", wide(element->text).c_str(), WS_CHILD | WS_VISIBLE | WS_TABSTOP |
         ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN, 0, 0, 120, 30, parent, reinterpret_cast<HMENU>(3101), GetModuleHandleW(nullptr), nullptr);
@@ -61,8 +63,7 @@ void CaptureApp::updateNumberEditor() {
     text.resize(copied);
     element->text = utf8(text); element->textRenderSize = {};
     auto label = number_label::textElement(*element);
-    const auto* renderer = up::MarkupToolRegistry::instance().getHandler(up::MarkupTool::Text);
-    const auto bounds = renderer->getBoundingBox(label);
+    const auto bounds = number_label::textBounds(*element);
     const int remainingHeight=std::max(1,static_cast<int>(std::abs(state.dragEnd.y-state.dragStart.y))-bounds.y-5);
     numberOverflow_=!text.empty() && bounds.height>remainingHeight;
     const int originX = std::min(state.dragStart.x, state.dragEnd.x), originY = std::min(state.dragStart.y, state.dragEnd.y);
@@ -79,6 +80,7 @@ void CaptureApp::closeNumberEditor(bool cancel) {
     closingNumber_ = true;
     auto& overlay = up::CaptureOverlay::instance();
     auto* element = overlay.winoneState().markup.getElementById(editingNumber_);
+    if (element) element->isEditing = false;
     if (element && cancel) { element->text = previousNumberText_; element->textRenderSize = {}; }
     if (element && !cancel && element->text != previousNumberText_ && numberBefore_)
         overlay.winoneState().markup.commitUndoSnapshot(std::move(*numberBefore_));
@@ -94,7 +96,10 @@ LRESULT CALLBACK CaptureApp::numberProcedure(HWND window, UINT message, WPARAM w
     auto* app = reinterpret_cast<CaptureApp*>(data);
     if (id == 3100) {
         if (message == WM_CTLCOLOREDIT && reinterpret_cast<HWND>(l) == app->numberEdit_) {
-            SetTextColor(reinterpret_cast<HDC>(w), RGB(255, 255, 255)); SetBkColor(reinterpret_cast<HDC>(w), RGB(92, 92, 92));
+            const auto* element=up::CaptureOverlay::instance().winoneState().markup.getElementById(app->editingNumber_);
+            const auto color=element?element->color:up::MarkupColor{47,47,47,255};
+            const bool pale=(color.r*299+color.g*587+color.b*114)>170000;
+            SetTextColor(reinterpret_cast<HDC>(w), pale?RGB(32,32,32):RGB(255,255,255)); SetBkColor(reinterpret_cast<HDC>(w), RGB(color.r,color.g,color.b));
             return reinterpret_cast<LRESULT>(app->numberBackground_);
         }
         if (message == WM_COMMAND && reinterpret_cast<HWND>(l) == app->numberEdit_ && HIWORD(w) == EN_CHANGE) app->updateNumberEditor();
@@ -103,6 +108,14 @@ LRESULT CALLBACK CaptureApp::numberProcedure(HWND window, UINT message, WPARAM w
     }
     if (message == WM_IME_STARTCOMPOSITION) app->numberComposing_ = true;
     if (message == WM_IME_ENDCOMPOSITION) app->numberComposing_ = false;
+    if (message == WM_PAINT && GetWindowTextLengthW(window)==0) {
+        const auto result=DefSubclassProc(window,message,w,l);
+        const auto dc=GetDC(window);const auto old=SelectObject(dc,app->numberFont_);
+        RECT bounds{};GetClientRect(window,&bounds);
+        SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(190,190,190));
+        DrawTextW(dc,app->language_=="en-US"?L"Add a note":L"输入说明",-1,&bounds,DT_LEFT|DT_TOP|DT_NOPREFIX);
+        SelectObject(dc,old);ReleaseDC(window,dc);return result;
+    }
     if (message == WM_KEYDOWN && !app->numberComposing_ && w == 'S' && (GetKeyState(VK_CONTROL) & 0x8000)) {
         const bool saveAs = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
         app->closeNumberEditor(false);

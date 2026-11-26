@@ -11,6 +11,8 @@
 package capture
 
 import (
+	"encoding/json"
+	"reflect"
 	"strconv"
 
 	"github.com/egoist/mygo/ui"
@@ -32,6 +34,7 @@ const (
 	tabGeneral = iota
 	tabFileName
 	tabScroll
+	tabRecording
 	tabAI
 	tabShortcuts
 )
@@ -40,18 +43,35 @@ const (
 // document has more (schema, revision, theme, toolbar), kept as they were
 // by core.Preserved.
 type settings struct {
-	OutputDirectory  string `json:"outputDirectory"`
-	CopyToClipboard  bool   `json:"copyToClipboard"`
-	AskWhereToSave   bool   `json:"askWhereToSave"`
-	OpenEditor       bool   `json:"openEditor"`
-	PinAfterCapture  bool   `json:"pinAfterCapture"`
-	PinTranslation   bool   `json:"pinTranslation"`
-	ScrollDelay      int    `json:"scrollDelay"`
-	ScrollFromTop    bool   `json:"scrollFromTop"`
-	FileNameTemplate string `json:"fileNameTemplate"`
+	OutputDirectory      string            `json:"outputDirectory"`
+	CopyToClipboard      bool              `json:"copyToClipboard"`
+	AskWhereToSave       bool              `json:"askWhereToSave"`
+	OpenEditor           bool              `json:"openEditor"`
+	PinAfterCapture      bool              `json:"pinAfterCapture"`
+	PinTranslation       bool              `json:"pinTranslation"`
+	ScrollDelay          int               `json:"scrollDelay"`
+	ScrollFromTop        bool              `json:"scrollFromTop"`
+	FileNameTemplate     string            `json:"fileNameTemplate"`
+	VideoAskWhereToSave  bool              `json:"videoAskWhereToSave"`
+	GifAskWhereToSave    bool              `json:"gifAskWhereToSave"`
+	VideoOutputDirectory string            `json:"videoOutputDirectory"`
+	GifOutputDirectory   string            `json:"gifOutputDirectory"`
+	CanvasShortcuts      map[string]string `json:"canvasShortcuts,omitempty"`
 }
 
 type document = core.Preserved[settings]
+
+// Missing recording preferences must not silently opt an existing profile out
+// of confirming the destination.
+func (s *settings) UnmarshalJSON(data []byte) error {
+	type plain settings
+	value := plain{VideoAskWhereToSave: true, GifAskWhereToSave: true}
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*s = settings(value)
+	return nil
+}
 
 type page struct {
 	env *core.Env
@@ -70,10 +90,11 @@ type page struct {
 	choosing bool
 	err      string
 
-	scrollField ui.Handle
-	name        fileName
-	ai          *aiSection
-	shortcuts   *widgets.Shortcuts
+	scrollField     ui.Handle
+	name            fileName
+	ai              *aiSection
+	shortcuts       *widgets.Shortcuts
+	canvasRecorders map[string]*widgets.ShortcutRecorder
 }
 
 func newPage(env *core.Env) *page {
@@ -152,7 +173,7 @@ func (p *page) validScroll() bool {
 }
 
 func (p *page) dirty() bool {
-	return p.draft != nil && p.saved != nil && (p.draft.Value != p.saved.Value || !p.validScroll())
+	return p.draft != nil && p.saved != nil && (!reflect.DeepEqual(p.draft.Value, p.saved.Value) || !p.validScroll())
 }
 
 func (p *page) save() {
@@ -197,6 +218,13 @@ func (p *page) browse() {
 }
 
 func (p *page) View(c *ui.Context) {
+	if p.tab != tabShortcuts {
+		for _, recorder := range p.canvasRecorders {
+			if recorder.Recording() {
+				recorder.Stop()
+			}
+		}
+	}
 	if disabled := p.moduleDisabled(); disabled != p.disabled {
 		// The module was turned on or off: its settings come from
 		// another source now, as React reloaded on the disabled prop.
@@ -216,6 +244,7 @@ func (p *page) View(c *ui.Context) {
 			{Label: i18n.T("capture.after"), Icon: icons.ScanLine},
 			{Label: i18n.T("settingsDesign.captureNaming"), Icon: icons.FileType},
 			{Label: i18n.T("settingsDesign.captureScrolling"), Icon: icons.ScrollText},
+			{Label: captureText("录制", "Recording"), Icon: icons.Monitor},
 			{Label: i18n.T("settingsDesign.captureAI"), Icon: icons.Languages},
 			{Label: i18n.T("shortcuts.title"), Icon: icons.SendHorizontal},
 		}, p.env.RequestChange)
@@ -239,6 +268,7 @@ func (p *page) View(c *ui.Context) {
 				p.shortcuts.OwnTab = true
 			}
 			p.shortcuts.View(c)
+			p.canvasShortcuts(c)
 		default:
 			p.settingsTab(c)
 		}
@@ -267,6 +297,8 @@ func (p *page) settingsTab(c *ui.Context) {
 			p.name.view(c)
 		case tabScroll:
 			p.scrolling(c)
+		case tabRecording:
+			p.recordingSettings(c)
 		}
 	})
 	if !p.validScroll() && p.tab != tabScroll {
@@ -363,6 +395,9 @@ func (p *page) scrolling(c *ui.Context) {
 // Close implements core.Closer: leaving the page ends a shortcut
 // recording and drops answers still on their way.
 func (p *page) Close() {
+	for _, recorder := range p.canvasRecorders {
+		recorder.Stop()
+	}
 	p.read++
 	p.name.leave()
 	if p.shortcuts != nil {

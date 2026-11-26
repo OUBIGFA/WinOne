@@ -64,6 +64,11 @@ func ExportBuiltinSettings(id string, raw json.RawMessage, options ExportOptions
 		if _, present := source["pinTranslation"]; present {
 			fields += " pinTranslation:b"
 		}
+		for _, name := range []string{"videoAskWhereToSave", "gifAskWhereToSave"} {
+			if _, ok := source[name]; ok {
+				fields += " " + name + ":b"
+			}
+		}
 		portable, err = projectFields(source, fields)
 		if raw, exists := source["toolbarTools"]; err == nil && exists {
 			portable["toolbarTools"], err = captureprefs.DecodeToolbar(raw)
@@ -85,6 +90,28 @@ func ExportBuiltinSettings(id string, raw json.RawMessage, options ExportOptions
 		}
 		portable["outputDirectoryRef"] = "capture.output"
 		result.Paths["capture.output"] = PathReference{Kind: "directory", Label: "截图保存目录"}
+		for _, item := range []struct{ field, ref, label string }{{"videoOutputDirectory", "capture.video", "视频保存目录"}, {"gifOutputDirectory", "capture.gif", "GIF 保存目录"}} {
+			if raw, ok := source[item.field]; ok {
+				var path string
+				if err = json.Unmarshal(raw, &path); err != nil {
+					break
+				}
+				if path != "" {
+					portable[item.field+"Ref"] = item.ref
+					result.Paths[item.ref] = PathReference{Kind: "directory", Label: item.label}
+				} else {
+					portable[item.field+"Ref"] = ""
+				}
+			}
+		}
+		if raw, ok := source["canvasShortcuts"]; ok && err == nil {
+			var keys map[string]string
+			err = json.Unmarshal(raw, &keys)
+			if err == nil {
+				err = captureprefs.ValidateCanvasShortcuts(keys)
+				portable["canvasShortcuts"] = keys
+			}
+		}
 	case "always-on-top":
 		portable, err = projectFields(source, "frame:b frameThickness:n frameColor:s frameOpacity:n useAccent:b roundCorners:b blockInGameMode:b sound:b")
 		if err != nil {

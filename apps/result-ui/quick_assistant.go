@@ -7,6 +7,7 @@ import (
 
 	"winone/internal/ai"
 	"winone/internal/resultwindow"
+	"winone/modules/nativeui/hint"
 )
 
 type quickActionRequest struct {
@@ -125,7 +126,7 @@ func (p *Panel) quickToolbar(c *ui.Context, t *ui.Theme) {
 	ui.Toolbar(c.Key("quick-actions"), func() {
 		for _, action := range actions {
 			label := p.quickActionLabel(action)
-			if selectionButton(c, action.Icon, label, p.Busy).Tooltip(label).Clicked() && p.Actions.Quick != nil {
+			if hint.Attach(c, selectionButton(c, action.Icon, label, p.Busy), label).Clicked() && p.Actions.Quick != nil {
 				p.Actions.Quick(action)
 			}
 		}

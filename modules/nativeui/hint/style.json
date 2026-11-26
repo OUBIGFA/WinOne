@@ -1,0 +1,9 @@
+{
+  "light": {"background": "#292928", "foreground": "#fafafa", "border": "#454541"},
+  "dark": {"background": "#292928", "foreground": "#fafafa", "border": "#60605c"},
+  "fontSize": 13,
+  "radius": 6,
+  "paddingX": 10,
+  "paddingY": 6,
+  "maxWidth": 360
+}
