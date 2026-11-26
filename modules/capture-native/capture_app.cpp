@@ -347,7 +347,7 @@ json CaptureApp::command(std::string method, json parameters) {
         const float scale = parameters.at("scale");
         if (scale < 1 || scale > 3) throw std::runtime_error("Invalid private layout scale");
         SetWindowPos(view.winoneWindow(), nullptr, 0, 0, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
-        if (!view.winoneResizeRenderSurface(width, height)) throw std::runtime_error("Cannot resize private renderer surface");
+        if (!view.winoneResizeRenderSurface(width, height, scale)) throw std::runtime_error("Cannot resize private renderer surface");
         view.winoneState().dpiScale = scale; view.winoneState().toolbarLayoutValid = false; view.winoneInvalidate();
         return {{"resized", true}};
     }
@@ -370,7 +370,8 @@ json CaptureApp::command(std::string method, json parameters) {
         json buttons = json::array();
         json menu = json::array();
         for(const auto& item:state.dropdownMenu.items) menu.push_back({{"id",item.id},{"label",utf8(item.label)},
-            {"checked",item.isSelected},{"x",(item.rect.left+item.rect.right)/2},{"y",(item.rect.top+item.rect.bottom)/2}});
+            {"checked",item.isSelected},{"rect",{item.rect.left,item.rect.top,item.rect.right,item.rect.bottom}},
+            {"x",(item.rect.left+item.rect.right)/2},{"y",(item.rect.top+item.rect.bottom)/2}});
         for (const auto& button : state.toolbarButtons)
             buttons.push_back({{"label", utf8(button.tooltipHint.empty() ? button.label : button.tooltipHint)},
                 {"command", static_cast<int>(button.command)}, {"x", (button.rect.left + button.rect.right) / 2},
@@ -404,6 +405,7 @@ json CaptureApp::command(std::string method, json parameters) {
         }
         const auto barRect = [](D2D1_RECT_F r) { return json::array({r.left,r.top,r.right,r.bottom}); };
         return {{"editor",editor},{"primaryToolbar",barRect(state.primaryToolbarRect)},
+                {"menuRect",barRect(state.dropdownMenu.menuRect)},
                 {"secondaryToolbar",barRect(state.secondaryToolbarRect)},
                 {"detected",{state.detectedWindow.left,state.detectedWindow.top,state.detectedWindow.right,state.detectedWindow.bottom}},
                 {"detectionCandidates",state.detectedWindowHierarchy.size()},{"shortcutHints",state.options.showShortcutHints},{"scrollReady",state.winoneScrollReady},

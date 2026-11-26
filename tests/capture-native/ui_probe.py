@@ -617,20 +617,50 @@ try:
             if rpc('probe.state')['imageSize']!=state['imageSize']:raise AssertionError('Cancelled retake lost original long image')
             events.append({'retakeCancelRestoredLongImage':True})
         if args.suite=='toolbar':
+            customize='Customize toolbar' if args.language=='en-US' else '自定义工具栏'
+            rectangle='Rectangle' if args.language=='en-US' else '矩形'
+            reset='Reset to defaults' if args.language=='en-US' else '恢复默认'
             original=[b['label'] for b in rpc('probe.state')['buttons'] if not b['secondary']]
-            click_button(canvas,'自定义工具栏')
+            click_button(canvas,customize)
             wait_until(lambda:rpc('probe.state')['menu'])
             rpc('probe.render',{'name':'toolbar-menu.png'});wait_until(lambda:(output/'toolbar-menu.png').is_file())
-            click_point(canvas,80,80)
+            menu_state=rpc('probe.state');menu_bounds=menu_state['menuRect']
+            if args.width and (menu_bounds[2]>args.width or menu_bounds[3]>900):raise AssertionError('Customize panel is outside the screen')
+            if menu_bounds[2]-menu_bounds[0]<250:raise AssertionError('Customize panel still squeezes labels against the checks')
+            visible=[i for i in menu_state['menu'] if i['y']>0]
+            if len({round(i['x']) for i in visible})!=1:raise AssertionError('Customize panel did not preserve one column')
+            if any(i['rect'][3]-i['rect'][1]<37 for i in visible):raise AssertionError('Customize rows are too tight')
+            # The fixed footer and last tool remain reachable on short screens.
+            footer=next(i for i in menu_state['menu'] if i['id']==99)['rect']
+            x=round((menu_bounds[0]+menu_bounds[2])/2);y=round((menu_bounds[1]+menu_bounds[3])/2)
+            point=w.POINT(x,y);user.ClientToScreen(canvas,ctypes.byref(point))
+            for _ in range(8):send(canvas,0x20A,((-120 & 0xffff)<<16),(point.y<<16)|(point.x&0xffff))
+            scrolled=rpc('probe.state')['menu']
+            if next(i for i in scrolled if i['id']==12)['y']<0:raise AssertionError('Last tool is unreachable by scrolling')
+            if next(i for i in scrolled if i['id']==99)['rect']!=footer:raise AssertionError('Reset footer moved while scrolling')
+            rpc('probe.render',{'name':'toolbar-menu-scrolled.png'});wait_until(lambda:(output/'toolbar-menu-scrolled.png').is_file())
+            key(canvas,0x23) # End selects the footer without confirming capture.
+            key(canvas,0x0D)
+            wait_until(lambda:host_fixture.requests.count('capture.settings.save')==1)
+            wait_until(lambda:not rpc('probe.state')['menu'])
+            wait_until(lambda:not rpc('snapshot')['configurationBusy'])
+            host_fixture.requests.clear()
+            click_button(canvas,customize)
+            wait_until(lambda:rpc('probe.state')['menu'])
+            click_point(canvas,2,2) # Outside the panel even when a narrow layout clamps it left.
+            wait_until(lambda:not rpc('probe.state')['menu'])
             if host_fixture.requests.count('capture.settings.save'):raise AssertionError('Cancelling toolbar saved preferences')
             if original!=[b['label'] for b in rpc('probe.state')['buttons'] if not b['secondary']]:raise AssertionError('Cancelling toolbar changed tools')
-            click_button(canvas,'自定义工具栏')
-            menu_item(canvas,'矩形')
+            click_button(canvas,customize)
+            wait_until(lambda:rpc('probe.state')['menu'])
+            menu_item(canvas,rectangle)
             wait_until(lambda:host_fixture.settings['toolbarTools'] is not None and 'rectangle' not in host_fixture.settings['toolbarTools'])
-            wait_until(lambda:'矩形' not in [b['label'] for b in rpc('probe.state')['buttons']])
-            click_button(canvas,'自定义工具栏')
-            menu_item(canvas,'恢复默认')
-            wait_until(lambda:'矩形' in [b['label'] for b in rpc('probe.state')['buttons']])
+            wait_until(lambda:rectangle not in [b['label'] for b in rpc('probe.state')['buttons']])
+            wait_until(lambda:not rpc('snapshot')['configurationBusy'])
+            click_button(canvas,customize)
+            wait_until(lambda:rpc('probe.state')['menu'])
+            menu_item(canvas,reset)
+            wait_until(lambda:rectangle in [b['label'] for b in rpc('probe.state')['buttons']])
             if host_fixture.requests.count('capture.settings.save')!=2:raise AssertionError('Toolbar save did not use Host twice')
             events.append({'toolbarCancelSaveReset':True})
         if args.suite=='settings':

@@ -86,9 +86,9 @@ await adapt('src/capture/CaptureOverlay.h', [
     HWND winoneWindow() const { return m_hwnd; }
     CaptureState& winoneState() { return m_state; }
     void winoneInvalidate() { m_renderer.markMarkupDirty(); m_renderer.invalidate(); }
-    bool winoneResizeRenderSurface(UINT width, UINT height) {
+    bool winoneResizeRenderSurface(UINT width, UINT height, float scale) {
         const auto target = m_renderer.getRenderTarget();
-        return target && SUCCEEDED(target->Resize(D2D1::SizeU(width, height)));
+        return target && SUCCEEDED(target->Resize(D2D1::SizeU(width, height))) && m_renderer.updateDpiScale(scale);
     }
     bool isOverlayVisible() const {`],
     ['    CaptureState m_state;', '    WinOneDelivery m_winoneDelivery;\n    std::function<bool()> m_winoneCanvasOwner;\n    CaptureState m_state;'],
@@ -116,6 +116,7 @@ await adapt('src/capture/CaptureState.h', [
     bool winoneNumberCreated = false;
     bool winoneRecordCursor = true;
     bool winoneScrollReady = false;
+    int winoneToolbarFirstRow = 0, winoneToolbarVisibleRows = 13;
     int winoneGifQuality = 85, winoneGifSeconds = 120;
     std::function<void()> winoneRetake;
     std::function<void(const CaptureRegion&)> winoneScroll;
@@ -294,6 +295,22 @@ await adapt('src/capture/CaptureRenderer.cpp', [
     ['    auto hwndProps = D2D1::HwndRenderTargetProperties(', `    if (GetProcAddress(GetModuleHandleW(nullptr), "WinOneNativeRenderedFrame"))
         rtProps.usage = D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE;
     auto hwndProps = D2D1::HwndRenderTargetProperties(`],
+]);
+await adapt('src/capture/CaptureRenderer.h', [
+    ['    Microsoft::WRL::ComPtr<IDWriteTextFormat> m_infoTextFormat;',
+     '    Microsoft::WRL::ComPtr<IDWriteTextFormat> m_infoTextFormat;\n    Microsoft::WRL::ComPtr<IDWriteTextFormat> m_winoneToolbarTextFormat;'],
+]);
+await adapt('src/capture/CaptureRenderer.cpp', [
+    ['    m_infoTextFormat.Reset();', '    m_infoTextFormat.Reset();\n    m_winoneToolbarTextFormat.Reset();'],
+    ['    m_infoTextFormat = std::move(infoFormat);', `    ComPtr<IDWriteTextFormat> toolbarFormat;
+    hr = m_dwriteFactory->CreateTextFormat(uiFontFamily, nullptr, DWRITE_FONT_WEIGHT_NORMAL,
+        DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 14.f * scale, L"zh-CN", toolbarFormat.GetAddressOf());
+    if (FAILED(hr) || !toolbarFormat) return false;
+    toolbarFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+    toolbarFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    toolbarFormat->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+    m_winoneToolbarTextFormat = std::move(toolbarFormat);
+    m_infoTextFormat = std::move(infoFormat);`],
 ]);
 {
     const relative = 'src/capture/CaptureRendererHud.cpp';
@@ -815,10 +832,39 @@ await adapt('src/capture/CaptureOverlay.cpp', [
 ]);
 await adapt('src/capture/CaptureInputKeyboard.cpp', [
     ['        case WM_KEYDOWN: {', `        case WM_KEYDOWN: {
+            if (m_state->dropdownMenu.type == DropdownType::WinOneToolbar &&
+                (wParam == VK_UP || wParam == VK_DOWN || wParam == VK_HOME || wParam == VK_END)) {
+                auto& menu = m_state->dropdownMenu;
+                const int last = static_cast<int>(menu.items.size()) - 1;
+                int index = menu.hoveredIndex;
+                if (wParam == VK_HOME) index = 0;
+                else if (wParam == VK_END) index = last;
+                else index = index < 0 ? (wParam == VK_UP ? last : 0) : std::clamp(index + (wParam == VK_UP ? -1 : 1), 0, last);
+                menu.hoveredIndex = index;
+                if (index < last) {
+                    if (index < m_state->winoneToolbarFirstRow) m_state->winoneToolbarFirstRow = index;
+                    if (index >= m_state->winoneToolbarFirstRow + m_state->winoneToolbarVisibleRows)
+                        m_state->winoneToolbarFirstRow = index - m_state->winoneToolbarVisibleRows + 1;
+                }
+                m_renderer->invalidate(); return 0;
+            }
             if (wParam == VK_TAB && !m_state->winoneTranslated.empty()) {
                 m_state->winoneShowTranslated = !m_state->winoneShowTranslated;
                 m_renderer->markMarkupDirty(); m_renderer->invalidate(); return 0;
             }`],
+]);
+await adapt('src/capture/CaptureInputKeyboard.cpp', [
+    ['            const ToolbarButton* hoveredColorBtn = hitTestToolbar(wheelPt);', `            if (m_state->dropdownMenu.type == DropdownType::WinOneToolbar) {
+                const auto box = m_state->dropdownMenu.menuRect;
+                if (wheelPt.x >= box.left && wheelPt.x <= box.right && wheelPt.y >= box.top && wheelPt.y <= box.bottom) {
+                    const int maximum = std::max(0, static_cast<int>(m_state->dropdownMenu.items.size()) - 1 - m_state->winoneToolbarVisibleRows);
+                    if (zDelta != 0) m_state->winoneToolbarFirstRow = std::clamp(m_state->winoneToolbarFirstRow + (zDelta > 0 ? -2 : 2), 0, maximum);
+                    m_state->dropdownMenu.hoveredIndex = -1;
+                    m_renderer->invalidate();
+                }
+                return 0;
+            }
+            const ToolbarButton* hoveredColorBtn = hitTestToolbar(wheelPt);`],
 ]);
 await adapt('src/capture/PinWindowTranslate.cpp', [
     ['#include "capture/PinWindowInternal.h"', '#include "capture/PinWindowInternal.h"\n#include "core/config/ConfigManager.h"'],
@@ -1089,6 +1135,7 @@ await adapt('src/capture/CaptureInputCommands.cpp', [
     const anchor='        case DropdownType::BeautyShellBg: {';
     let open=text.slice(begin,commit);
     open=open.replace(anchor,`        case DropdownType::WinOneToolbar: {
+            state.winoneToolbarFirstRow = 0;
             const std::array<const char*,13> ids{"crop","select","rectangle","ellipse","arrow","pen","cover","text","step","mosaic","blur","ocr","translate"};
             const std::array<const wchar_t*,13> zh{L"调整选区",L"移动标注",L"矩形",L"椭圆",L"箭头",L"画笔",L"遮盖",L"文字",L"序号说明",L"马赛克",L"模糊",L"识别文字",L"翻译"};
             const std::array<const wchar_t*,13> en{L"Adjust selection",L"Move annotation",L"Rectangle",L"Ellipse",L"Arrow",L"Pen",L"Cover",L"Text",L"Numbered step",L"Mosaic",L"Blur",L"Recognize text",L"Translate"};
@@ -1123,6 +1170,17 @@ ${anchor}`);
     text=text.slice(0,fpsBegin)+fps+text.slice(fpsEnd);
     prepared.set(relative,Buffer.from(text));
 }
+await adapt('src/capture/CaptureRendererToolbar.cpp', [
+    ['#include "capture/CaptureRendererInternal.h"', '#include "capture/CaptureRendererInternal.h"\n#include "toolbar_customize.h"'],
+    ['    // 几何规格与自适应留白 (MECE 双列对齐，杜绝重叠与横向跑动)', `    if (state.dropdownMenu.type == DropdownType::WinOneToolbar) {
+        float toolbarLabelWidth = 0;
+        for (const auto& item : state.dropdownMenu.items)
+            toolbarLabelWidth = std::max(toolbarLabelWidth, measureText(item.label, m_winoneToolbarTextFormat.Get()).width);
+        winone::capture::drawToolbarCustomization(state, m_renderTarget.Get(), m_winoneToolbarTextFormat.Get(), toolbarLabelWidth);
+        return;
+    }
+    // 几何规格与自适应留白 (MECE 双列对齐，杜绝重叠与横向跑动)`],
+]);
 await adapt('src/capture/CaptureRendererToolbar.cpp', [
     ['            float labelW = 0.0f;', '            kbdPart.clear(); // Canvas shortcuts live in WinOne settings, not hover hints.\n            float labelW = 0.0f;'],
     ['            FloatingGlassBar::drawGlassPanel(m_renderTarget.Get(), tipRect, 7.5f * scale, true);',

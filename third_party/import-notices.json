@@ -1903,7 +1903,7 @@
       "files": [
         {
           "path": "build/prepare-capture-native.mjs",
-          "sha256": "f30dbdc90f7c476c871fc3e868465b2633aa1a6003e790623395c0bc7c39c14a"
+          "sha256": "7a76fc2f1589714f275eb360273767d241650de5db11236a5e316c368d03f038"
         },
         {
           "path": "build/prepare-capture-native-resources.ps1",
