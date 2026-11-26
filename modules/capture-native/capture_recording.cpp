@@ -121,12 +121,15 @@ void CaptureApp::finishRecording(bool cancel) {
             MainThreadDispatcher::instance().post([this, result] {
                 recordingFinishing_ = false;
                 auto& indicator = up::RecordingIndicator::instance();
-                indicator.hide(); indicator.clearRecordingRegion();
                 const auto id = active_; active_.clear();
-                if (result.contains("error") && result["error"].is_string()) { fail(id, result["error"].get<std::string>()); if (exitAfterRecording_) stop(true); return; }
+                if (result.contains("error") && result["error"].is_string()) { indicator.hide(); indicator.clearRecordingRegion(); fail(id, result["error"].get<std::string>()); if (exitAfterRecording_) stop(true); return; }
                 complete(id, {{"mode", "recording"}, {"recording", result}});
+                // Reuse the current centered control window for completion;
+                // destroying it first loses the picture's monitor and anchor.
                 if (result.contains("path") && result["path"].is_string())
                     indicator.showCompleted(result["path"].get<std::string>(), result.value("durationMs", 0.0) / 1000);
+                else indicator.hide();
+                indicator.clearRecordingRegion();
                 if (exitAfterRecording_) stop(true);
             });
         } catch (const std::exception& error) {
@@ -141,14 +144,16 @@ void CaptureApp::updateRecording() {
     try {
         const auto result = recording_->command("status");
         if (!recording_->active()) {
-            up::RecordingIndicator::instance().hide(); up::RecordingIndicator::instance().clearRecordingRegion();
+            auto& indicator = up::RecordingIndicator::instance();
             const auto id = active_; active_.clear();
-            if (result.contains("error") && result["error"].is_string()) fail(id, result["error"].get<std::string>());
+            if (result.contains("error") && result["error"].is_string()) { indicator.hide(); fail(id, result["error"].get<std::string>()); }
             else {
                 complete(id, {{"mode", "recording"}, {"recording", result}});
                 if (result.contains("path") && result["path"].is_string())
-                    up::RecordingIndicator::instance().showCompleted(result["path"].get<std::string>(), result.value("durationMs", 0.0) / 1000);
+                    indicator.showCompleted(result["path"].get<std::string>(), result.value("durationMs", 0.0) / 1000);
+                else indicator.hide();
             }
+            indicator.clearRecordingRegion();
             if (exitAfterRecording_) stop(true);
         }
     } catch (const std::exception& error) { notice(error.what()); }

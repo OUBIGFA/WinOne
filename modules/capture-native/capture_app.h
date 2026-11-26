@@ -11,6 +11,7 @@
 #include <mutex>
 #include <future>
 #include <commctrl.h>
+#include "../../third_party/win32xx/richedit.h"
 
 namespace winone::capture {
 class CaptureApp {
@@ -87,14 +88,16 @@ private:
     bool retaking_ = false;
     bool textBusy_ = false;
     HWND numberEdit_ = nullptr;
+    std::unique_ptr<winone::community::RichEdit> numberEditor_;
     HFONT numberFont_ = nullptr;
-    HBRUSH numberBackground_ = nullptr;
     uint32_t editingNumber_ = 0;
     std::string previousNumberText_;
     std::optional<tools3000::capture::MarkupEngine::MarkupSnapshot> numberBefore_;
     bool closingNumber_ = false;
     bool numberComposing_ = false;
     bool numberOverflow_ = false;
+    bool sizingNumber_ = false;
+    int numberRequestedHeight_ = 0;
     json settings_, sessionSettings_, last_ = nullptr;
     bool configurationBusy_ = false;
     mutable std::mutex jobsMutex_;

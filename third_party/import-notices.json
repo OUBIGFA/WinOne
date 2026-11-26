@@ -1903,7 +1903,7 @@
       "files": [
         {
           "path": "build/prepare-capture-native.mjs",
-          "sha256": "2e757b949690448ab1a9f72731dddd07d60222b9a6ef7d3b6aefd031be1a5819"
+          "sha256": "e5e71ce2a2eba91e25659222939525842b2e15c08c9d97cb12e20038d5ece3ee"
         },
         {
           "path": "build/prepare-capture-native-resources.ps1",
@@ -1915,7 +1915,7 @@
         },
         {
           "path": "modules/capture-native/number_label.h",
-          "sha256": "c221a285852689d6cf83d4977a53547333b45c503a3296c31290493b86b38f18"
+          "sha256": "cd8c84105eec910215332b7f794115d4b7f9a99fa5f841b34c0c17f8551953f0"
         },
         {
           "path": "modules/capture-native/community_hooks.h",
@@ -1938,6 +1938,31 @@
           "sha256": "d6bf9e6e652a36d4467f68bbd75ece6aabf827de5a13ad155ec6a66d12cfac2c"
         }
       ]
+    },
+    {
+      "name": "Win32++ RichEdit",
+      "repository": "https://github.com/DavidNash2024/Win32xx",
+      "commit": "395bc45bc691d1706c640b7cbac39dadcabcbdcc",
+      "license": "MIT",
+      "scope": "CRichEdit native control lifecycle, text range, formatting, selection and resize wrappers adapted to HWND/std::wstring for numbered screenshot notes. Windows provides RichEdit itself; no separate DLL is distributed.",
+      "sourceFiles": [
+        "include/wxx_richedit.h"
+      ],
+      "notices": [
+        {
+          "sha256": "0904bf26b9f7bcea9eba96f08bc1f9020302c4818ed6386e16f126bb5f42bab9",
+          "file": "licenses/win32xx-MIT.txt"
+        }
+      ],
+      "files": [
+        {
+          "sha256": "8651e297623911ded3b91fd3f22a7c6aa67e575cf1fc6338ae9a43c4c49663e6",
+          "path": "third_party/win32xx/richedit.h"
+        }
+      ],
+      "sourceSHA256": {
+        "include/wxx_richedit.h": "76797d084c9a4c0915d44dc9e1f531ab2ab36300ba8f7e481a893a67606f557e"
+      }
     }
   ]
 }

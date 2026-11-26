@@ -159,6 +159,38 @@ await adapt('src/capture/CaptureOverlay.cpp', [
                 self->m_state.winoneSelected();
             return result;`],
 ]);
+{
+    const relative = 'src/capture/RecordingIndicator.cpp';
+    let text = prepared.get(relative).toString('utf8');
+    const begin = text.indexOf('void RecordingIndicator::showCompleted(');
+    const end = text.indexOf('\nvoid RecordingIndicator::', begin + 1);
+    if (begin < 0 || end < 0) throw Error('Community completion toolbar changed');
+    let body = text.slice(begin, end);
+    body = body.replace('const HMONITOR monitor = MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST);',
+        'const HMONITOR monitor = m_hwnd ? MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST) : MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST);');
+    body = body.replace('        x = curRect.left;', `        x = std::clamp(static_cast<int>((curRect.left + curRect.right - width) / 2),
+            static_cast<int>(monitorInfo.rcWork.left), static_cast<int>(std::max<LONG>(monitorInfo.rcWork.left, monitorInfo.rcWork.right - width)));`);
+    prepared.set(relative, Buffer.from(text.slice(0, begin) + body + text.slice(end)));
+}
+{
+    const relative = 'src/capture/ScrollCaptureOverlay.cpp';
+    let text = prepared.get(relative).toString('utf8');
+    const begin = text.indexOf('    const std::array<RECT, 10> candidates = {');
+    const end = text.indexOf('\n    RECT chosen = candidates.back();', begin);
+    if (begin < 0 || end < 0) throw Error('Community scrolling toolbar placement changed');
+    text = text.slice(0, begin) + `    // Keep every candidate centered on the captured picture. Only screen
+    // clamping may move it horizontally; avoid covering the capture if possible.
+    const int centerX = (m_captureRect.left + m_captureRect.right - barW) / 2;
+    const std::array<RECT, 5> candidates = {
+        clampToBounds(work, edge, centerX, m_captureRect.bottom + gap),
+        clampToBounds(work, edge, centerX, m_captureRect.top - barH - gap),
+        clampToBounds(monRect, tightEdge, centerX, m_captureRect.bottom + tightEdge),
+        clampToBounds(monRect, tightEdge, centerX, m_captureRect.top - barH - tightEdge),
+        clampToBounds(work, edge, centerX, work.bottom - barH - edge)
+    };
+` + text.slice(end);
+    prepared.set(relative, Buffer.from(text));
+}
 await adapt('src/capture/WindowElementDetector.h', [
     ['    ~WindowElementDetector();', '    ~WindowElementDetector();\n    void shutdown();'],
 ]);
@@ -598,6 +630,8 @@ await adapt('src/capture/MarkupEngine.cpp', [
 await adapt('src/capture/MarkupEngine.h', [
     ['    Wavy = 4,', '    DashDotDot = 5,\n    Wavy = 4,'],
     ['struct MarkupElement {', `struct MarkupElement {
+    cv::Size winoneNumberEditorSize; // transient native editor geometry, never serialized
+    int winoneNumberEditorLineHeight = 0;
     bool winoneShadow = false;
     std::string winoneLegacyText;
     std::vector<std::pair<std::string, cv::Point>> winoneLegacyLines;
@@ -606,6 +640,15 @@ await adapt('src/capture/MarkupEngine.h', [
 ]);
 await adapt('src/capture/MarkupEngine.cpp', [
     ['        a.tool != b.tool ||', '        a.winoneLegacyText != b.winoneLegacyText || a.winoneLegacyLines != b.winoneLegacyLines ||\n        a.winoneShadow != b.winoneShadow || a.winoneShadowColor != b.winoneShadowColor || a.winoneShadowOffset != b.winoneShadowOffset ||\n        a.tool != b.tool ||'],
+    ['                if (!m_elements[i] || !elementEquivalent(*m_elements[i], m_underlayElements[i])) {', `                // Native note controls temporarily own text drawing. That
+                // transition and its measured geometry are part of the frame.
+                const auto* live = m_elements[i].get();
+                const auto& cached = m_underlayElements[i];
+                const bool noteChanged = live && live->tool == MarkupTool::Number &&
+                    (live->isEditing != cached.isEditing || live->winoneNumberEditorSize != cached.winoneNumberEditorSize ||
+                     live->winoneNumberEditorLineHeight != cached.winoneNumberEditorLineHeight);
+                if (!live || noteChanged || !elementEquivalent(*live, cached)) {`],
+    ['                    spec.isEditing = false;', '                    if (spec.tool != MarkupTool::Number) spec.isEditing = false;'],
     ['        if (!handler || targetCanvas.empty()) return;', `        if (!handler || targetCanvas.empty()) return;
         if (element.winoneShadow) {
             auto shadow = element; shadow.winoneShadow = false;
@@ -708,6 +751,21 @@ ${anchor}`);
     prepared.set(relative,Buffer.from(text));
 }
 await adapt('src/capture/CaptureToolbarLayout.cpp', [
+    ['    float priPanelX = std::clamp(selectionRect.left, screenMargin, maxPriX);', `    // All capture/recording preparation bars share the selected picture's center.
+    float priPanelX = std::clamp((selectionRect.left + selectionRect.right - priPanelW) * .5f, screenMargin, maxPriX);`],
+    ['        float secPanelX = std::clamp(priPanelX, screenMargin, maxSecX);', `        // Anchor tool properties to the actual triggering button, including
+        // after wrapping or dragging the main toolbar.
+        float anchorCenter = (state.primaryToolbarRect.left + state.primaryToolbarRect.right) * .5f;
+        for (const auto& button : state.toolbarButtons) {
+            if ((button.command == ToolbarCommand::SelectTool && button.tool == state.currentTool) ||
+                (button.command == ToolbarCommand::WinOneCover && state.currentTool == MarkupTool::Rectangle && state.currentFillMode)) {
+                anchorCenter = (button.rect.left + button.rect.right) * .5f;
+                break;
+            }
+        }
+        float secPanelX = std::clamp(anchorCenter - secPanelW * .5f, screenMargin, maxSecX);`],
+    ['        const float rawX = foundAnchor ? anchorRect.left : (baseBarRect.left + margin);',
+     '        const float rawX = ((foundAnchor ? anchorRect.left + anchorRect.right : baseBarRect.left + baseBarRect.right) - popupW) * .5f;'],
     ['    const CaptureOptions* options) {', '    const CaptureOptions* options) {\n    if (!button.tooltipHint.empty() && !button.isSecondary) return button.tooltipHint;'],
     ['    float priShrink = (priContentW > maxAvailPriW && priContentW > 0.0f) ? (maxAvailPriW / priContentW) : 1.0f;\n    if (priShrink < 1.0f) {\n        priContentW *= priShrink;\n        priPanelW = priContentW + 2.0f * paddingX;\n    }', `    // Keep native hit targets and glyphs legible at high DPI. Wrap the
     // existing community button specifications instead of squeezing a row.
@@ -729,6 +787,15 @@ await adapt('src/capture/CaptureToolbarLayout.cpp', [
             curX = priPanelX + paddingX;
             curY += buttonHeight + gapX;
         }`],
+]);
+await adapt('src/capture/CaptureRendererToolbar.cpp', [
+    ['    const float rawX = foundAnchor ? anchorRect.left : (baseBarRect.left + margin);',
+     '    const float rawX = ((foundAnchor ? anchorRect.left + anchorRect.right : baseBarRect.left + baseBarRect.right) - popupW) * .5f;'],
+    ['    float menuX = anchor.left;', '    float menuX = (anchor.left + anchor.right - menuW) * .5f;'],
+]);
+await adapt('src/capture/CaptureOverlay.cpp', [
+    ['        WS_POPUP,\n        initX, initY, initW, initH,',
+     '        WS_POPUP | WS_CLIPCHILDREN,\n        initX, initY, initW, initH,'],
 ]);
 await adapt('src/capture/CaptureInputKeyboard.cpp', [
     ['        case WM_KEYDOWN: {', `        case WM_KEYDOWN: {

@@ -9,6 +9,7 @@
 // desktop. PrintWindow cannot read an inactive Direct2D HWND surface.
 namespace winone::probe {
 inline std::filesystem::path renderDestination;
+inline HWND renderWindow = nullptr;
 inline void readFrame(ID2D1RenderTarget* target) {
     if (renderDestination.empty()) return;
     Microsoft::WRL::ComPtr<ID2D1GdiInteropRenderTarget> interop;
@@ -24,6 +25,21 @@ inline void readFrame(ID2D1RenderTarget* target) {
     HBITMAP bitmap = CreateDIBSection(memory, &info, DIB_RGB_COLORS, &pixels, nullptr, 0);
     auto previous = SelectObject(memory, bitmap);
     const bool copied = BitBlt(memory, 0, 0, size.width, size.height, source, 0, 0, SRCCOPY) != FALSE;
+    // Direct2D readback omits native child controls. Ask those same controls to
+    // paint into the evidence frame so a broken input cannot pass invisibly.
+    struct Children { HWND parent; HDC dc; } children{renderWindow, memory};
+    if (renderWindow) EnumChildWindows(renderWindow, [](HWND child, LPARAM data) -> BOOL {
+        const auto& context = *reinterpret_cast<Children*>(data);
+        if (!IsWindowVisible(child)) return TRUE;
+        RECT bounds{}; GetWindowRect(child, &bounds);
+        MapWindowPoints(nullptr, context.parent, reinterpret_cast<POINT*>(&bounds), 2);
+        const auto saved = SaveDC(context.dc);
+        SetViewportOrgEx(context.dc, bounds.left, bounds.top, nullptr);
+        IntersectClipRect(context.dc, 0, 0, bounds.right - bounds.left, bounds.bottom - bounds.top);
+        SendMessageW(child, WM_PRINTCLIENT, reinterpret_cast<WPARAM>(context.dc), PRF_CLIENT | PRF_ERASEBKGND);
+        RestoreDC(context.dc, saved);
+        return TRUE;
+    }, reinterpret_cast<LPARAM>(&children));
     GdiFlush();
     cv::Mat image;
     if (copied) image = cv::Mat(size.height, size.width, CV_8UC4, pixels).clone();
@@ -37,5 +53,6 @@ inline void readFrame(ID2D1RenderTarget* target) {
     file.write(reinterpret_cast<const char*>(encoded.data()), encoded.size());
     if (!file) throw std::runtime_error("Cannot save renderer evidence");
     renderDestination.clear();
+    renderWindow = nullptr;
 }
 }

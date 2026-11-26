@@ -59,3 +59,5 @@ Interconnect directly reuses [croc v11.5.5](https://github.com/schollz/croc/tree
 ## 贴图原位翻译
 
 贴图复用 [Tools3000 v1.4.1](https://github.com/yuan278501381/Tools3000/tree/481c20f3444cb7cbcf1aa346896044f04602a376) 的段落分组、内容过滤、字形采样、背景修复和 DirectWrite 排版。上游采用 GPL-3.0。WinOne 接管贴图交互、设置、识别与翻译调用。图像算法使用 [OpenCV 4.12.0](https://github.com/opencv/opencv/tree/49486f61fb25722cbcf586b7f4320921d46fb38e)。对应许可及第三方声明随包提供。见 [Tools3000 许可](third_party/licenses/tools3000-GPL-3.0.txt)、[OpenCV 声明](third_party/licenses/pin-opencv-NOTICES.txt)和[来源清单](third_party/import-notices.json)。
+
+截图序号说明输入适配 [Win32++ 10.2 CRichEdit](https://github.com/DavidNash2024/Win32xx/blob/395bc45bc691d1706c640b7cbac39dadcabcbdcc/include/wxx_richedit.h) 的生命周期、取文、选择、格式与尺寸消息封装（Copyright (c) 2005-2025 David Nash，MIT）。适配源码见 third_party/win32xx/richedit.h，许可全文见 third_party/licenses/win32xx-MIT.txt，来源和摘要见 third_party/import-notices.json。RichEdit 控件由 Windows 提供。

@@ -49,7 +49,6 @@ CaptureApp::CaptureApp(std::wstring pipe, std::filesystem::path directory, DWORD
 CaptureApp::~CaptureApp() {
     stoppingServices_.store(true);
     closeNumberEditor(false);
-    if (numberBackground_) DeleteObject(numberBackground_);
     operationCancelled_->store(true);
     server_.reset();
     tasks_.clear();
@@ -360,6 +359,7 @@ json CaptureApp::command(std::string method, json parameters) {
         const auto name=parameters.value("name",std::string("rendered.png"));
         if(name.find_first_of("/\\:")!=std::string::npos || !name.ends_with(".png"))throw std::runtime_error("Invalid private render name");
         winone::probe::renderDestination = directory_ / wide(name);
+        winone::probe::renderWindow = upstream::CaptureOverlay::instance().winoneWindow();
         if(recording_ && recording_->active()) InvalidateRect(upstream::RecordingIndicator::instance().winoneWindow(),nullptr,FALSE);
         else upstream::CaptureOverlay::instance().winoneInvalidate();
         return {{"queued", true}};
@@ -385,7 +385,27 @@ json CaptureApp::command(std::string method, json parameters) {
         auto& scroll = upstream::ScrollCaptureOverlay::instance();
         json scrollButtons=json::array();for(int i=0;i<5;++i){const auto r=scroll.buttonRectForTest(i);scrollButtons.push_back({(r.left+r.right)/2,(r.top+r.bottom)/2});}
         const json scrollUI{{"hwnd",reinterpret_cast<uintptr_t>(scroll.controlWindowHandleForTest())},{"buttons",scrollButtons}};
-        return {{"detected",{state.detectedWindow.left,state.detectedWindow.top,state.detectedWindow.right,state.detectedWindow.bottom}},
+        json editor = nullptr;
+        if (numberEdit_) {
+            SendMessageW(numberEdit_, WM_SETCURSOR, reinterpret_cast<WPARAM>(numberEdit_), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
+            GUITHREADINFO input{sizeof(input)}; GetGUIThreadInfo(GetCurrentThreadId(), &input);
+            RECT box{}; GetWindowRect(numberEdit_, &box);
+            MapWindowPoints(nullptr, overlay.winoneWindow(), reinterpret_cast<POINT*>(&box), 2);
+            POINT scroll{},firstCharacter{}; RECT format{};
+            SendMessageW(numberEdit_,EM_GETSCROLLPOS,0,reinterpret_cast<LPARAM>(&scroll));
+            SendMessageW(numberEdit_,EM_POSFROMCHAR,reinterpret_cast<WPARAM>(&firstCharacter),0);
+            SendMessageW(numberEdit_,EM_GETRECT,0,reinterpret_cast<LPARAM>(&format));
+            editor = {{"rect",{box.left,box.top,box.right,box.bottom}},
+                {"scroll",{scroll.x,scroll.y}},{"firstCharacter",{firstCharacter.x,firstCharacter.y}},
+                {"format",{format.left,format.top,format.right,format.bottom}},{"requestedHeight",numberRequestedHeight_},
+                {"firstLine",SendMessageW(numberEdit_,EM_GETFIRSTVISIBLELINE,0,0)},
+                {"ibeam",GetCursor()==LoadCursorW(nullptr,IDC_IBEAM)},
+                {"focus",input.hwndFocus==numberEdit_},{"caret",input.hwndCaret==numberEdit_}};
+        }
+        const auto barRect = [](D2D1_RECT_F r) { return json::array({r.left,r.top,r.right,r.bottom}); };
+        return {{"editor",editor},{"primaryToolbar",barRect(state.primaryToolbarRect)},
+                {"secondaryToolbar",barRect(state.secondaryToolbarRect)},
+                {"detected",{state.detectedWindow.left,state.detectedWindow.top,state.detectedWindow.right,state.detectedWindow.bottom}},
                 {"detectionCandidates",state.detectedWindowHierarchy.size()},{"shortcutHints",state.options.showShortcutHints},{"scrollReady",state.winoneScrollReady},
                 {"dropdown",static_cast<int>(state.dropdownMenu.type)},{"menu",menu},
                 {"recordingDestination",utf8(recordingDestination_.wstring())},{"recordingMode",state.mode==upstream::OverlayMode::RecordRegion},

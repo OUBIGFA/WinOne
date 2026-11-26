@@ -1,6 +1,8 @@
 #include "draft_store.h"
 #include "capture_settings.h"
 #include "capture/MarkupEngine.h"
+#include "capture/CaptureToolbarLayout.h"
+#include "number_label.h"
 #include <opencv2/imgcodecs.hpp>
 #include <iostream>
 #include <fstream>
@@ -13,6 +15,29 @@ int wmain(int argc, wchar_t** argv) {
         if (!destination.is_absolute() || destination.wstring().find(L"_temp") == std::wstring::npos || std::filesystem::exists(destination))
             throw std::invalid_argument("Choose a new task-owned image path");
         if (!initializeMarkupTextRenderer()) throw std::runtime_error("Community text renderer did not initialize");
+        // Exercise the production layout for capture, recording setup, and the
+        // number tool. Edges may clamp, but an unconstrained bar must center.
+        for (const auto mode : {OverlayMode::Screenshot, OverlayMode::RecordRegion}) {
+            CaptureState state;
+            state.mode = mode;
+            state.options.showShortcutHints = false;
+            state.currentTool = MarkupTool::Number;
+            state.isMarkupToolActive = mode != OverlayMode::RecordRegion;
+            const auto selection = D2D1::RectF(600, 120, 1800, 650);
+            rebuildCaptureToolbar(state, selection, D2D1::SizeF(2400, 1200));
+            const auto primary = state.primaryToolbarRect;
+            if (std::abs((primary.left + primary.right) / 2 - 1200) > 1)
+                throw std::runtime_error("Capture/recording toolbar is not centered on the picture");
+            if (mode != OverlayMode::RecordRegion) {
+                const auto trigger = std::find_if(state.toolbarButtons.begin(), state.toolbarButtons.end(), [](const auto& b) {
+                    return !b.isSecondary && b.command == ToolbarCommand::SelectTool && b.tool == MarkupTool::Number;
+                });
+                if (trigger == state.toolbarButtons.end()) throw std::runtime_error("Number tool missing");
+                const auto secondary = state.secondaryToolbarRect;
+                if (std::abs(secondary.left + secondary.right - trigger->rect.left - trigger->rect.right) > 2)
+                    throw std::runtime_error("Number options are not centered on their trigger");
+            }
+        }
         const auto valid=winone::capture::normalizeCaptureSettings({{"outputDirectory","C:/captures"},{"toolbarTools",{"crop"}}});
         if(valid.at("toolbarTools")!=winone::capture::json::array({"crop","ocr","translate","step"})) throw std::runtime_error("Legacy toolbar did not adopt new tools exactly once");
         for(const auto& invalid:std::vector<winone::capture::json>{
@@ -31,6 +56,19 @@ int wmain(int argc, wchar_t** argv) {
             auto* middle = engine.drawNumberMark({50, 160}, MarkupColor::Red(), 1, NumberBadgeShape::Circle, NumberFormat::Arabic);
             const auto middleId = middle->id;
             engine.drawNumberMark({50, 260}, MarkupColor::Red(), 1, NumberBadgeShape::Circle, NumberFormat::Arabic);
+            auto* edited = engine.getElementById(firstId);
+            edited->isEditing = true;
+            edited->winoneNumberEditorSize = {160, 26};
+            edited->winoneNumberEditorLineHeight = 26;
+            const auto bubble = winone::number_label::layout(*edited);
+            if (bubble.textRect.x - bubble.boxRect.x < 8 || bubble.textRect.y - bubble.boxRect.y < 5 ||
+                bubble.boxRect.br().x - bubble.textRect.br().x < 8 || bubble.boxRect.br().y - bubble.textRect.br().y < 5)
+                throw std::runtime_error("Number input does not have safe inner spacing");
+            const auto editingFrame = engine.getCompositeImage();
+            edited->isEditing = false; edited->winoneNumberEditorSize = {}; edited->winoneNumberEditorLineHeight = 0;
+            const auto committedFrame = engine.getCompositeImage();
+            if (cv::norm(editingFrame, committedFrame, cv::NORM_L1) < 100)
+                throw std::runtime_error("Confirming a number note left the cached empty editing bubble");
             const auto initial = engine.exportElements();
             if (initial[0].numberValue != 1 || initial[1].numberValue != 2 || initial[2].numberValue != 3)
                 throw std::runtime_error("Native number sequence did not start at one");

@@ -89,8 +89,10 @@ inline CalloutLayout layout(const tools3000::capture::MarkupElement& number) {
     out.gap = std::max(3, static_cast<int>(std::lround(4.0f * scale)));
     out.tailW = std::max(6, static_cast<int>(std::lround(7.0f * scale)));
     out.tailHalfH = std::max(5, static_cast<int>(std::lround(6.0f * scale)));
-    out.padX = std::max(2, static_cast<int>(std::lround(3.0f * scale)));
-    out.padY = std::max(1, static_cast<int>(std::lround(2.0f * scale)));
+    // Keep text, selection and caret inside the rounded corners at every size.
+    // At the default font this leaves 8 px horizontally and 6 px vertically.
+    out.padX = std::max(8, static_cast<int>(std::lround(11.0f * scale)));
+    out.padY = std::max(6, static_cast<int>(std::lround(8.0f * scale)));
     out.cornerR = std::max(6, static_cast<int>(std::lround(8.0f * scale)));
     out.tipX = number.startPt.x + out.badgeR + out.gap;
 
@@ -101,11 +103,18 @@ inline CalloutLayout layout(const tools3000::capture::MarkupElement& number) {
 
     const auto lineSample = makeTextSample(number, "国Ag", true);
     const cv::Rect lineBox = textHandler->getBoundingBox(lineSample);
-    const int lineH = std::max(1, lineBox.height);
+    const int lineH = number.isEditing && number.winoneNumberEditorLineHeight > 0
+        ? number.winoneNumberEditorLineHeight : std::max(1, lineBox.height);
 
     const std::string shownText = number.text.empty() ? "输入说明" : number.text;
     const auto textSample = makeTextSample(number, shownText, false);
-    const cv::Rect measured = textHandler->getBoundingBox(textSample);
+    auto measured = textHandler->getBoundingBox(textSample);
+    // During editing RichEdit owns its line metrics and caret space. Keeping
+    // the bubble around that real window avoids clipped rows and extra blocks.
+    if (number.isEditing && number.winoneNumberEditorSize.width > 0) {
+        measured.width = number.winoneNumberEditorSize.width;
+        measured.height = number.winoneNumberEditorSize.height;
+    }
 
     const int textW = std::max(measured.width, number.text.empty() ? std::max(72, static_cast<int>(std::ceil(number.fontSize * 4.5f))) : 1);
     const int textH = std::max(lineH, measured.height);
@@ -265,6 +274,8 @@ inline void renderBackground(cv::Mat& canvas, const tools3000::capture::MarkupEl
 
 inline void render(cv::Mat& canvas, const tools3000::capture::MarkupElement& number) {
     using namespace tools3000::capture;
+    // The native control owns all text/selection/caret drawing while editing.
+    if (number.isEditing) return;
     if (number.text.empty() && !number.isEditing) return;
     const auto* text = MarkupToolRegistry::instance().getHandler(MarkupTool::Text);
     if (!text) throw std::runtime_error("Community text renderer is unavailable");

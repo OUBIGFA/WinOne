@@ -92,6 +92,7 @@ user.GetWindowThreadProcessId.argtypes = [w.HWND,ctypes.POINTER(w.DWORD)]
 user.GetClassNameW.argtypes = [w.HWND,w.LPWSTR,ctypes.c_int]
 user.IsWindowVisible.argtypes = [w.HWND]
 user.IsWindowEnabled.argtypes = [w.HWND]
+user.GetWindowRect.argtypes = [w.HWND,ctypes.POINTER(w.RECT)]
 enum_callback = ctypes.WINFUNCTYPE(w.BOOL,w.HWND,w.LPARAM)
 user.EnumWindows.argtypes = [enum_callback,w.LPARAM]
 user.EnumChildWindows.argtypes = [w.HWND,enum_callback,w.LPARAM]
@@ -216,7 +217,7 @@ def number_editor(canvas):
     @enum_callback
     def check(window,_):
         name=ctypes.create_unicode_buffer(256);user.GetClassNameW(window,name,len(name))
-        if name.value.lower()=='edit' and user.IsWindowVisible(window):found.append(window)
+        if name.value.lower() in ('edit','richedit50w') and user.IsWindowVisible(window):found.append(window)
         return True
     user.EnumChildWindows(canvas,check,0)
     return found[0] if len(found)==1 else None
@@ -342,9 +343,11 @@ try:
             wait_until(lambda:rpc('jobs.get',{'id':job['id']})['state']=='completed')
             job=rpc('capture.unified',{'mode':'region','language':args.language});canvas=wait_until(overlay)
         # Input goes to the owned HWND on this private desktop only.
-        send(canvas,0x201,1,(180<<16)|160)
-        send(canvas,0x200,1,(460<<16)|620)
-        send(canvas,0x202,0,(460<<16)|620)
+        selection_left=max(40,args.width//2-400) if args.width and args.suite in ('smoke','toolbar') else 160
+        selection_right=min(args.width-40,args.width//2+400) if args.width and args.suite in ('smoke','toolbar') else 620
+        send(canvas,0x201,1,(180<<16)|selection_left)
+        send(canvas,0x200,1,(460<<16)|selection_right)
+        send(canvas,0x202,0,(460<<16)|selection_right)
         events.append({'selected':True})
         if args.suite=='parent-exit':
             key(canvas,ord('N'));click_point(canvas,260,260)
@@ -416,6 +419,9 @@ try:
                 if action=='cancel':
                     if recording['phase']!='cancelled' or recording.get('path'):raise AssertionError('Cancelled recording was published')
                 else:
+                    controls=wait_until(lambda:(u if (u:=rpc('probe.state')['recordingUI'])['hwnd'] and user.IsWindowVisible(u['hwnd']) else None))
+                    box=w.RECT();user.GetWindowRect(controls['hwnd'],ctypes.byref(box))
+                    if abs((box.left+box.right)/2-390)>1:raise AssertionError('Completed recording toolbar lost the picture center')
                     if action=='auto' and recording['reason']!='gifLimit':raise AssertionError('GIF limit did not finish through engine auto-stop')
                     path=Path(recording['path'])
                     if recording['phase']!='completed' or not path.is_file() or path.stat().st_size<100:raise AssertionError('Recording output was not finalized')
@@ -511,6 +517,12 @@ try:
             rpc('probe.render')
             wait_until(lambda:(output/'rendered.png').is_file())
             if rpc('probe.state')['shortcutHints']:raise AssertionError('Canvas shortcut hints are still enabled')
+            layout=rpc('probe.state')
+            left,top,right,bottom=layout['primaryToolbar']
+            margin=8*args.scale
+            surface=args.width or layout['imageSize'][0]
+            expected=min(max(margin,(layout['selection'][0]+layout['selection'][2]-(right-left))/2),max(margin,surface-margin-(right-left)))
+            if abs(left-expected)>1:raise AssertionError('Screenshot toolbar is not centered on its picture')
             tip=next(b for b in rpc('probe.state')['buttons'] if b['label']==('保存' if args.language=='zh-CN' else 'Save'))
             send(canvas,0x200,0,(round(tip['y'])<<16)|round(tip['x']))
             rpc('probe.render',{'name':'tooltip.png'});wait_until(lambda:(output/'tooltip.png').is_file())
@@ -606,7 +618,49 @@ try:
         if args.suite=='number':
             key(canvas,ord('N'));click_point(canvas,260,260)
             edit=wait_until(lambda:number_editor(canvas))
+            # Exercise native selection/editing, not just append WM_CHAR. The
+            # former child EDIT did not implement Ctrl+A and leaked canvas cursors.
+            for character in 'replace me':send(edit,0x102,ord(character),0)
+            key(edit,ord('A'),control=True)
+            send(edit,0x102,ord('新'),0)
+            buffer=ctypes.create_unicode_buffer(128)
+            send(edit,0x0D,len(buffer),ctypes.addressof(buffer))
+            if buffer.value!='新':raise AssertionError('Number editor Ctrl+A did not replace the complete selection: '+buffer.value)
+            key(edit,ord('Z'),control=True)
+            send(edit,0x0D,len(buffer),ctypes.addressof(buffer))
+            if buffer.value!='replace me':raise AssertionError('Number editor native undo lost the previous text')
+            key(edit,ord('Y'),control=True)
+            send(edit,0x0D,len(buffer),ctypes.addressof(buffer))
+            if buffer.value!='新':raise AssertionError('Number editor native redo did not restore text')
+            key(edit,ord('A'),control=True)
+            key(edit,8)
+            send(edit,0x0D,len(buffer),ctypes.addressof(buffer))
+            if buffer.value:raise AssertionError('Backspace did not delete the selected text')
             rpc('probe.render',{'name':'number-empty.png'});wait_until(lambda:(output/'number-empty.png').is_file())
+            editor=rpc('probe.state')['editor']
+            if not all(editor[key] for key in ('ibeam','focus','caret')):raise AssertionError('Number editor lacks its native text cursor, focus or caret: '+str(editor))
+            from PIL import Image
+            with Image.open(output/'number-empty.png') as frame:
+                inside=frame.convert('RGB').crop(tuple(editor['rect']))
+                gray=sum(1 for pixel in inside.getdata() if max(abs(c-47) for c in pixel)<4)
+                if gray<inside.width*inside.height*.95:raise AssertionError('Empty native note contains a white block or duplicate canvas text')
+                left,top,right,bottom=editor['rect']
+                for point in ((left-4,(top+bottom)//2),(right+4,(top+bottom)//2),((left+right)//2,top-4),((left+right)//2,bottom+4)):
+                    if max(abs(c-47) for c in frame.convert('RGB').getpixel(point))>4:raise AssertionError('Native input touches the callout edge: '+str(point))
+            single_height=editor['rect'][3]-editor['rect'][1]
+            for character in '第一行':send(edit,0x102,ord(character),0)
+            key(edit,0x0D)
+            for character in '第二行中文换行':send(edit,0x102,ord(character),0)
+            multiline=rpc('probe.state')['editor']
+            if multiline['rect'][3]-multiline['rect'][1]<=single_height:raise AssertionError('Number editor did not grow for a new line')
+            if multiline['firstLine']!=0:raise AssertionError('Growing number input scrolled the first line out of view')
+            rpc('probe.render',{'name':'number-multiline.png'});wait_until(lambda:(output/'number-multiline.png').is_file())
+            key(edit,ord('A'),control=True)
+            for character in '自动换行中文 mixed words '*8:send(edit,0x102,ord(character),0)
+            wrapped=rpc('probe.state')
+            if wrapped['editor']['rect'][2]>max(wrapped['selection'][0],wrapped['selection'][2]):raise AssertionError('Number editor crossed the selected picture edge')
+            rpc('probe.render',{'name':'number-wrapped.png'});wait_until(lambda:(output/'number-wrapped.png').is_file())
+            key(edit,ord('A'),control=True)
             for character in '第一条':send(edit,0x102,ord(character),0)
             click_point(canvas,400,360)
             edit2=wait_until(lambda:number_editor(canvas))
@@ -622,6 +676,9 @@ try:
             key(edit,0x0D,control=True)
             rpc('probe.render',{'name':'number-caption.png'});wait_until(lambda:(output/'number-caption.png').is_file())
             if number_editor(canvas):raise AssertionError('Control Enter did not commit number text')
+            with Image.open(output/'number-caption.png') as frame:
+                text_area=frame.convert('RGB').crop((280,235,390,285))
+                if sum(1 for pixel in text_area.getdata() if min(pixel)>235)<20:raise AssertionError('Committed note text disappeared from the canvas')
             click_button(canvas,'移动标注')
             wait_until(lambda:rpc('probe.state')['moveTool'])
             events.append({'numberMoveToolSelected':True})
@@ -700,6 +757,11 @@ try:
                 choose_recording_file(dialog,destination)
                 state=wait_until(lambda:(s if (s:=rpc('probe.state'))['recordingMode'] else None))
                 if Path(state['recordingDestination'])!=destination or destination.exists():raise AssertionError('Choosing a destination failed or started recording')
+                left,top,right,bottom=state['primaryToolbar']
+                expected=max(8,(state['selection'][0]+state['selection'][2]-(right-left))/2)
+                if abs(left-expected)>1:raise AssertionError('Recording preparation toolbar is not centered on its picture')
+                shot='recording-options-'+('gif' if label=='GIF' else 'video')+'.png'
+                rpc('probe.render',{'name':shot});wait_until(lambda:(output/shot).is_file())
                 events.append({'recordingDestinationAccepted':label})
                 if not args.physical_input:
                     click_button(canvas,'保存地址')
