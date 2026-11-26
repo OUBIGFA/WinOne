@@ -19,6 +19,7 @@
 #include "capture_settings.h"
 #ifdef WINONE_CAPTURE_PRIVATE_PROBE
 #include "../../tests/capture-native/render_readback.h"
+#include "../../tests/capture-native/modal_input_probe.h"
 #endif
 
 namespace winone::capture {
@@ -336,6 +337,10 @@ void CaptureApp::applySettings(const std::string& language) {
 
 json CaptureApp::command(std::string method, json parameters) {
 #ifdef WINONE_CAPTURE_PRIVATE_PROBE
+    if (method == "probe.modalInput") {
+        if (parameters.value("create", false)) return {{"hwnd", reinterpret_cast<uintptr_t>(winone::probe::openModalInput())}};
+        return {{"text", utf8(winone::probe::closeModalInput())}};
+    }
     if (method == "probe.layout") {
         auto& view = upstream::CaptureOverlay::instance();
         const int width = parameters.at("width"), height = parameters.at("height");

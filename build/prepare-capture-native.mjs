@@ -163,16 +163,19 @@ await adapt('src/capture/WindowElementDetector.h', [
     ['    ~WindowElementDetector();', '    ~WindowElementDetector();\n    void shutdown();'],
 ]);
 await adapt('src/core/utils/OutOfProcessFileDialog.cpp', [
-    ['            1, &hProcess, FALSE, 250, QS_SENDMESSAGE | QS_PAINT);', '            1, &hProcess, FALSE, 250, QS_SENDMESSAGE | QS_PAINT | QS_POSTMESSAGE | QS_TIMER);'],
-    ['        while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE | PM_QS_SENDMESSAGE | PM_QS_PAINT)) {', `        while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE | PM_QS_SENDMESSAGE | PM_QS_PAINT | PM_QS_POSTMESSAGE)) {
+    ['            1, &hProcess, FALSE, 250, QS_SENDMESSAGE | QS_PAINT);', '            1, &hProcess, FALSE, 250, QS_ALLINPUT);'],
+    ['        while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE | PM_QS_SENDMESSAGE | PM_QS_PAINT)) {', `        // Cross-process ownership attaches the dialog and capture input queues.
+        // Drain every message category, including hardware input and internal
+        // activation events; posted-message-only tests cannot detect starvation.
+        while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_QUIT) {
                 TerminateProcess(hProcess, ERROR_CANCELLED);
                 WaitForSingleObject(hProcess, 5000);
                 PostQuitMessage(static_cast<int>(msg.wParam));
                 return;
             }
-            // Host dispatch and lifecycle timers must stay responsive while
-            // a file dialog is open. Disabled-owner input remains blocked.
+            // Keep modal-owner actions blocked without leaving their input in
+            // the shared queue. Other windows and Host timers remain responsive.
             if (msg.hwnd == modalOwner && ((msg.message >= WM_KEYFIRST && msg.message <= WM_KEYLAST) ||
                 (msg.message >= WM_MOUSEFIRST && msg.message <= WM_MOUSELAST))) continue;`],
     ['    STARTUPINFOW si{};', `    struct OwnedDialogJob { HANDLE handle = CreateJobObjectW(nullptr, nullptr); ~OwnedDialogJob() { if (handle) CloseHandle(handle); } } childJob;

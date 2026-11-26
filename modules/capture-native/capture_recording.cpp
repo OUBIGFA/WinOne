@@ -2,6 +2,7 @@
 #include "capture/RecordingIndicator.h"
 #include "core/events/MainThreadDispatcher.h"
 #include "core/utils/OutOfProcessFileDialog.h"
+#include "core/logger/Logger.h"
 #include "recording_options.h"
 
 namespace winone::capture {
@@ -36,7 +37,12 @@ bool CaptureApp::prepareRecording(bool gif, bool forceDialog) {
         std::filesystem::create_directories(suggested.parent_path()); dialog.autoSelectPathForTest = suggested;
     }
 #endif
+    const auto started = GetTickCount64();
+    LOG_INFO("WinOne recording destination: opening format={}", gif ? "gif" : "mp4");
     const auto chosen = tools3000::core::OutOfProcessFileDialog::show(dialog);
+    // Record lifecycle and timing without logging a user's selected filename.
+    LOG_INFO("WinOne recording destination: accepted={} cancelled={} worker={} elapsedMs={}",
+        chosen.accepted, chosen.cancelled, chosen.ranOutOfProcess, GetTickCount64() - started);
     if (chosen.cancelled) return false;
     if (!chosen.accepted || chosen.selectedPath.empty()) throw std::runtime_error("无法选择录制保存位置");
     if (std::filesystem::exists(chosen.selectedPath)) throw std::runtime_error("文件已存在，请选择新的录制文件名");

@@ -20,6 +20,8 @@ parser.add_argument('--language', choices=['zh-CN','en-US'], default='zh-CN')
 parser.add_argument('--width',type=int,default=0)
 parser.add_argument('--scale',type=float,default=1)
 parser.add_argument('--recording-runtime')
+parser.add_argument('--physical-input',action='store_true')
+parser.add_argument('--agent-desktop')
 parser.add_argument('--suite', choices=['snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
 args = parser.parse_args()
 output = Path(args.output).resolve()
@@ -45,6 +47,38 @@ if not user.GetUserObjectInformationW(desktop, 2, desktop_name, ctypes.sizeof(de
     raise ctypes.WinError(ctypes.get_last_error())
 if not desktop_name.value.startswith('WinOne-Test-'):
     raise RuntimeError('Capture probe refuses the user desktop')
+physical_deadline=time.monotonic()+20
+user.OpenInputDesktop.argtypes=[w.DWORD,w.BOOL,w.DWORD];user.OpenInputDesktop.restype=w.HANDLE
+user.CloseDesktop.argtypes=[w.HANDLE]
+user.ClientToScreen.argtypes=[w.HWND,ctypes.POINTER(w.POINT)]
+
+def physical_click(window,x,y,hold=False):
+    if not args.agent_desktop or time.monotonic()>=physical_deadline:raise RuntimeError('Physical input lease expired')
+    current=user.OpenInputDesktop(0,False,1)
+    if not current:raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        name=ctypes.create_unicode_buffer(256);size=w.DWORD()
+        if not user.GetUserObjectInformationW(current,2,name,ctypes.sizeof(name),ctypes.byref(size)) or name.value!=desktop_name.value:
+            raise RuntimeError('Physical input refuses a different input desktop')
+    finally:user.CloseDesktop(current)
+    point=w.POINT(x,y)
+    if not user.ClientToScreen(window,ctypes.byref(point)):raise ctypes.WinError(ctypes.get_last_error())
+    result=subprocess.run([args.agent_desktop,'--headed','mouse-move' if hold else 'mouse-click','--xy',f'{point.x},{point.y}'],capture_output=True,timeout=3)
+    response=json.loads(result.stdout)
+    if result.returncode or not response.get('ok'):raise RuntimeError(f'Physical click failed: {response}')
+    if hold:
+        # agent-desktop does not implement held mouse input. The test needs
+        # button-up to arrive after the modal dialog has attached its queue.
+        class Mouse(ctypes.Structure):
+            _fields_=[('dx',w.LONG),('dy',w.LONG),('data',w.DWORD),('flags',w.DWORD),('time',w.DWORD),('extra',ctypes.c_size_t)]
+        class Input(ctypes.Structure):
+            _fields_=[('kind',w.DWORD),('mouse',Mouse)]
+        user.SendInput.argtypes=[w.UINT,ctypes.POINTER(Input),ctypes.c_int]
+        down=Input(0,Mouse(0,0,0,2,0,0));up=Input(0,Mouse(0,0,0,4,0,0))
+        if user.SendInput(1,ctypes.byref(down),ctypes.sizeof(Input))!=1:raise ctypes.WinError(ctypes.get_last_error())
+        try:wait_until(file_dialog,timeout=3)
+        finally:
+            if user.SendInput(1,ctypes.byref(up),ctypes.sizeof(Input))!=1:raise ctypes.WinError(ctypes.get_last_error())
 
 user.CreateWindowExW.argtypes = [w.DWORD,w.LPCWSTR,w.LPCWSTR,w.DWORD,ctypes.c_int,ctypes.c_int,ctypes.c_int,ctypes.c_int,w.HWND,w.HMENU,w.HINSTANCE,ctypes.c_void_p]
 user.CreateWindowExW.restype = w.HWND
@@ -211,6 +245,42 @@ def file_dialog(title=None):
     user.EnumWindows(check,0)
     return found[0] if len(found)==1 else None
 
+def choose_recording_file(dialog, destination):
+    # Target the filename field by its suggested extension, avoiding the
+    # unrelated search box and keeping every accepted path in this fixture.
+    fields=[]
+    @enum_callback
+    def find(window,_):
+        name=ctypes.create_unicode_buffer(128);user.GetClassNameW(window,name,len(name))
+        text=ctypes.create_unicode_buffer(32768)
+        if name.value=='Edit':send(window,0x0D,len(text),ctypes.addressof(text))
+        if name.value=='Edit' and text.value.lower().endswith(('.gif','.mp4')):fields.append(window)
+        return True
+    user.EnumChildWindows(dialog,find,0)
+    if len(fields)!=1:raise AssertionError(f'Recording filename field is ambiguous: {len(fields)}')
+    destination.parent.mkdir(parents=True,exist_ok=True)
+    if args.physical_input:physical_click(fields[0],10,10)
+    else:send(dialog,0x28,fields[0],1)
+    def accept():
+        if args.physical_input:
+            button=user.GetDlgItem(dialog,1)
+            if not button:raise AssertionError('Save button was not found')
+            physical_click(button,15,10)
+        else:user.PostMessageW(dialog,0x111,1,0)
+    def type_path(path):
+        send(fields[0],0xB1,0,-1)
+        for character in str(path):send(fields[0],0x102,ord(character),0)
+    # Navigate through a real local folder before accepting the filename; the
+    # former cancel-only probe never exercised the Shell's browsing path.
+    type_path(str(destination.parent)+'\\')
+    accept()
+    time.sleep(.5)
+    if not file_dialog():raise AssertionError('Folder navigation unexpectedly closed save dialog')
+    rpc('snapshot')
+    type_path(destination)
+    accept()
+    wait_until(lambda:not file_dialog())
+
 def click_point(canvas,x,y):
     point=(y<<16)|x
     send(canvas,0x201,1,point);send(canvas,0x202,0,point)
@@ -233,6 +303,9 @@ def click_button(canvas,label):
         choices=[b for b in rpc('probe.state')['buttons'] if b['label']==label and not b['secondary']]
         return choices[0] if len(choices)==1 else None
     button=wait_until(find)
+    if args.physical_input:
+        physical_click(canvas,round(button['x']),round(button['y']),hold=label in ('GIF','录制视频'))
+        return
     point=(round(button['y'])<<16)|round(button['x'])
     send(canvas,0x200,0,point)
     if not user.PostMessageW(canvas,0x201,1,point) or not user.PostMessageW(canvas,0x202,0,point):
@@ -594,12 +667,53 @@ try:
             for label in ('GIF','录制视频'):
                 click_button(canvas,label)
                 dialog=wait_until(lambda:file_dialog('保存录制'))
+                if args.physical_input and label=='GIF':
+                    auxiliary=rpc('probe.modalInput',{'create':True})['hwnd']
+                    physical_click(auxiliary,30,15)
+                    typed=subprocess.run([args.agent_desktop,'--headed','press','1'],capture_output=True,timeout=3)
+                    if typed.returncode:raise RuntimeError('Physical keyboard input failed')
+                    time.sleep(.2)
+                    actual=rpc('probe.modalInput')['text']
+                    if actual!='1':raise AssertionError(f'Modal dialog starved real input on capture UI thread: {actual!r}')
+                    events.append({'modalDialogDispatchesPhysicalInput':True})
+                # A user can spend longer than the Host's 20-second watchdog
+                # threshold choosing a folder. The real dialog must keep both
+                # UI commands and lifecycle timers responsive throughout.
+                # Leave it idle first: polling UI commands must not mask an
+                # otherwise stalled lifecycle timer in the modal message loop.
+                time.sleep(0 if args.physical_input else (21 if label=='GIF' else 1))
+                deadline=time.monotonic()+(0.5 if args.physical_input else 2)
+                while time.monotonic()<deadline:
+                    if rpc('snapshot')['processId']!=child.pid:raise AssertionError('Destination dialog replaced capture worker')
+                    if rpc('jobs.get',{'id':job['id']})['state']!='running':raise AssertionError('Destination dialog ended capture')
+                    time.sleep(.25)
+                events.append({'recordingDestinationRemainedResponsive':label})
                 user.PostMessageW(dialog,0x111,2,0)
                 wait_until(lambda:not file_dialog())
                 wait_until(lambda:user.IsWindowEnabled(canvas))
                 state=rpc('probe.state')
                 if not overlay() or state['recordingMode'] or state['recording'] is not None:raise AssertionError('Cancelling recording destination started or discarded capture')
                 events.append({'recordingDestinationCancelRetainedScreenshot':label})
+                click_button(canvas,label)
+                dialog=wait_until(lambda:file_dialog('保存录制'))
+                destination=output/'saved'/('chosen.gif' if label=='GIF' else 'chosen.mp4')
+                choose_recording_file(dialog,destination)
+                state=wait_until(lambda:(s if (s:=rpc('probe.state'))['recordingMode'] else None))
+                if Path(state['recordingDestination'])!=destination or destination.exists():raise AssertionError('Choosing a destination failed or started recording')
+                events.append({'recordingDestinationAccepted':label})
+                if not args.physical_input:
+                    click_button(canvas,'保存地址')
+                    dialog=wait_until(lambda:file_dialog('保存录制'))
+                    user.PostMessageW(dialog,0x111,2,0)
+                    wait_until(lambda:not file_dialog())
+                    state=rpc('probe.state')
+                    if Path(state['recordingDestination'])!=destination or not state['recordingMode']:
+                        raise AssertionError('Cancelling destination change lost the confirmed recording path')
+                    events.append({'cancelledDestinationChangeRetainedPath':label})
+                key(canvas,0x1B)
+                wait_until(lambda:rpc('jobs.get',{'id':job['id']})['state']=='completed')
+                job=rpc('capture.unified',{'mode':'region','language':'zh-CN'});canvas=wait_until(overlay)
+                send(canvas,0x201,1,(180<<16)|160);send(canvas,0x200,1,(460<<16)|620);send(canvas,0x202,0,(460<<16)|620)
         if args.suite in ('annotations','resume'):
             key(canvas,ord('N'))
             send(canvas,0x201,1,(260<<16)|260)

@@ -1903,7 +1903,7 @@
       "files": [
         {
           "path": "build/prepare-capture-native.mjs",
-          "sha256": "31e681d6af359397b167b1e01e303bc6e08489f2e048e9f8937bfeac2bbb4afa"
+          "sha256": "2e757b949690448ab1a9f72731dddd07d60222b9a6ef7d3b6aefd031be1a5819"
         },
         {
           "path": "build/prepare-capture-native-resources.ps1",
@@ -1915,7 +1915,7 @@
         },
         {
           "path": "modules/capture-native/number_label.h",
-          "sha256": "9e9e643885a72c8b44fb5ca25f47e8908eb389becdc8f4fffcbbaaddcc45d3ce"
+          "sha256": "c221a285852689d6cf83d4977a53547333b45c503a3296c31290493b86b38f18"
         },
         {
           "path": "modules/capture-native/community_hooks.h",
