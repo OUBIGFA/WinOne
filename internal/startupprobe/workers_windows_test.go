@@ -5,8 +5,10 @@ package startupprobe
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 	"winone/internal/host"
@@ -57,6 +59,13 @@ func runWorkerProbeFixture(pipe string) int {
 	if mode == "exit" {
 		return 7
 	}
+	if mode == "exit-diagnostic" || mode == "exit-large-diagnostic" {
+		fmt.Fprintln(os.Stderr, "Capture settings were not supplied by WinOne")
+		if mode == "exit-large-diagnostic" {
+			fmt.Fprintln(os.Stderr, strings.Repeat("x", 64<<10))
+		}
+		return 1
+	}
 	listener, err := transport.Listen(pipe)
 	if err != nil {
 		return 2
@@ -68,6 +77,56 @@ func runWorkerProbeFixture(pipe string) int {
 		return 3
 	}
 	return 0
+}
+
+func TestCaptureWorkerProbeUsesIsolatedSettings(t *testing.T) {
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("WINONE_WORKER_PROBE_TEST", "ok")
+	directory := t.TempDir()
+	if err := checkWorker(context.Background(), "capture", executable, directory); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(directory, "managed-settings.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var settings struct {
+		OutputDirectory string `json:"outputDirectory"`
+		CopyToClipboard bool   `json:"copyToClipboard"`
+		PinAfterCapture bool   `json:"pinAfterCapture"`
+		PinTranslation  bool   `json:"pinTranslation"`
+	}
+	if err := json.Unmarshal(data, &settings); err != nil {
+		t.Fatal(err)
+	}
+	if settings.OutputDirectory != filepath.Join(directory, "output") || settings.CopyToClipboard || settings.PinAfterCapture || settings.PinTranslation {
+		t.Fatalf("probe settings escape isolation or enable user actions: %+v", settings)
+	}
+}
+
+func TestWorkerProbeReportsBoundedStartupDiagnostic(t *testing.T) {
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, mode := range []string{"exit-diagnostic", "exit-large-diagnostic"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Setenv("WINONE_WORKER_PROBE_TEST", mode)
+			err := checkWorker(context.Background(), "capture", executable, t.TempDir())
+			if err == nil || !strings.Contains(err.Error(), "exit status 1") {
+				t.Fatalf("missing failure status: %v", err)
+			}
+			if mode == "exit-diagnostic" && !strings.Contains(err.Error(), "Capture settings were not supplied by WinOne") {
+				t.Fatalf("lost worker diagnostic: %v", err)
+			}
+			if len(err.Error()) > 17<<10 {
+				t.Fatal("unbounded worker diagnostic")
+			}
+		})
+	}
 }
 
 func TestWorkerProbeFailsOnBadIdentityAndUnfinishedLifecycle(t *testing.T) {

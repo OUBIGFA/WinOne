@@ -85,6 +85,23 @@ func CheckWorkers(ctx context.Context, installation, scratch string) error {
 func checkWorker(parent context.Context, id, executable, directory string) error {
 	ctx, cancel := context.WithTimeout(parent, 20*time.Second)
 	defer cancel()
+	if id == "capture" {
+		// Native capture requires the Host's settings projection before startup.
+		// Supply only probe-owned paths; never load or migrate the user's profile.
+		data, err := json.Marshal(map[string]any{
+			"schemaVersion": 1, "revision": 0,
+			"outputDirectory": filepath.Join(directory, "output"),
+			"copyToClipboard": false, "askWhereToSave": false, "openEditor": false,
+			"pinAfterCapture": false, "pinTranslation": false,
+			"theme": "system", "scrollDelay": 300, "scrollFromTop": false,
+		})
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(directory, "managed-settings.json"), data, 0600); err != nil {
+			return err
+		}
+	}
 	pipe, err := transport.PipeName()
 	if err != nil {
 		return err
@@ -92,8 +109,13 @@ func checkWorker(parent context.Context, id, executable, directory string) error
 	pipe += "-worker-probe-" + rand.Text()
 	cmd := exec.CommandContext(ctx, executable, "--pipe", pipe, "--data-dir", directory, "--parent", strconv.Itoa(os.Getpid()))
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
+	// Preserve the actual startup failure without unbounded output or waiting
+	// indefinitely for a descendant that inherited the diagnostic stream.
+	diagnostic := &limitedOutput{limit: 16 << 10}
+	cmd.Stderr = diagnostic
+	cmd.WaitDelay = time.Second
 	// Workers are owned by this probe, never attached to existing user sessions.
-	// Cancellation reaps only this child; empty settings make forced recovery safe.
+	// Cancellation reaps only this child; isolated settings make recovery safe.
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -126,6 +148,9 @@ func checkWorker(parent context.Context, id, executable, directory string) error
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-done:
+			if detail := strings.TrimSpace(diagnostic.buffer.String()); detail != "" {
+				return fmt.Errorf("worker exited before readiness: %v; %s", waitErr, detail)
+			}
 			return fmt.Errorf("worker exited before readiness: %v", waitErr)
 		case <-time.After(100 * time.Millisecond):
 		}
