@@ -41,7 +41,7 @@
 
 ## 图标、窗口与动效
 
-- 快捷助手入口用 `Zap`（Solar `bolt` 闪电）。模块快捷键分组用 Solar 的 `SendHorizontal`，代码动作用 `CodeXml`，总结用 `ListCheck`，拖动把手用 `GripVertical`。供应商默认头像用 `Layers`，自定义供应商标签用 `LayersPlus`，添加用 `Plus`，服务动作/预设用 `PlugZap`；已识别品牌和模型使用各自图标，用户头像优先原图。预览与实际入口保持一致。
+- 快捷助手入口用 `Zap`（Solar `bolt` 闪电），便捷功能入口用 Solar `widget-2`。截图工具栏的模糊用 `paint-roller`，马赛克用 `checkerboard`。模块快捷键分组用 Solar 的 `SendHorizontal`，代码动作用 `CodeXml`，总结用 `ListCheck`，拖动把手用 `GripVertical`。供应商默认头像用 `Layers`，自定义供应商标签用 `LayersPlus`，添加用 `Plus`，服务动作/预设用 `PlugZap`；已识别品牌和模型使用各自图标，用户头像优先原图。预览与实际入口保持一致。
 - Logo 保留完整原图、留白、比例和形状，圆形只用于外容器；缩小同时调整容器和占位，图片等比适配，不裁切或拉伸。
 - Windows 装饰窗口的外框和圆角由系统负责，客户端只填背景。划词工具栏、OCR/翻译结果复用 `windowSurface` 与 `PrepareWindowFrame`；网页 Popup 只绘一层外边界，保留内部控件边框、分区线与焦点环。
 - 原生菜单及子菜单共用字体、间距、边框、状态与深浅色，保留键盘、焦点、屏幕边界和高对比度支持。托盘菜单随实际内容自适应宽度，无收纳项时不留空位或分隔线；外框采用系统圆角偏好，选中行沿用控件圆角。

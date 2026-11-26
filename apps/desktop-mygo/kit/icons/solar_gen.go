@@ -131,6 +131,7 @@ var (
 	UserRound             = solar("user-rounded")
 	Users                 = solar("users-group-rounded")
 	WandSparkles          = solar("magic-wand-3")
+	Widget2               = solar("widget-2")
 	Workflow              = solar("workflow")
 	X                     = solar("close")
 	Zap                   = solar("bolt")

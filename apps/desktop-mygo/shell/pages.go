@@ -45,7 +45,7 @@ func init() {
 		{id: "selection", title: "nav.selection", icon: icons.MousePointer2},
 		{id: "quick-assistant", title: "nav.quick-assistant", icon: icons.Zap},
 		{id: "wintray", title: "nav.wintray", icon: icons.LaptopMinimal},
-		{id: "convenience", title: "nav.convenience", icon: icons.Rocket},
+		{id: "convenience", title: "nav.convenience", icon: icons.Widget2},
 		{id: "interconnect", title: "interconnect.title", icon: icons.FolderUp, footer: true},
 		{id: "ai-services", title: "ai.serviceTitle", icon: icons.Astroid, footer: true, separated: true},
 		{id: "settings", title: "nav.settings", icon: icons.Settings, footer: true},
