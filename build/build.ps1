@@ -64,7 +64,7 @@ $nativeWork=Join-Path (Split-Path -Parent $output) 'capture-native'
     -RunTests:(-not $CompileOnly) -BuildProbe:$RunStartupProbes
 if($RunStartupProbes){
     $nativeProbe=Join-Path $nativeWork 'objects/Release/WinOne.NativeCapture.Probe.exe'
-    foreach($suite in @('smoke','annotations','resume','number','settings','toolbar','translation','scroll','save-dialog','save-failure','recording-options','pin','repeat','dialog-owner-exit','parent-exit')){
+    foreach($suite in @('smoke','annotations','resume','number','preferences','settings','toolbar','translation','scroll','save-dialog','save-failure','recording-options','pin','repeat','dialog-owner-exit','parent-exit')){
         & (Join-Path $PSScriptRoot 'test-capture-native-cpp.ps1') -CaptureExe $nativeProbe -Suite $suite -OutputDirectory (Join-Path $nativeWork ('ui-'+$suite+'-'+[guid]::NewGuid().ToString('N')))
     }
     $recordingTest=Join-Path $nativeWork 'recording-source-test'

@@ -3,6 +3,7 @@
 #include "capture/MarkupEngine.h"
 #include "capture/CaptureToolbarLayout.h"
 #include "number_label.h"
+#include "markup_preferences.h"
 #include <opencv2/imgcodecs.hpp>
 #include <iostream>
 #include <fstream>
@@ -100,6 +101,43 @@ int wmain(int argc, wchar_t** argv) {
                     " badgeWhite=" + std::to_string(badgeWhite) +
                     " calloutGray=" + std::to_string(calloutGray) +
                     " calloutWhite=" + std::to_string(calloutWhite));
+        }
+        {
+            auto& config = tools3000::core::ConfigManager::instance();
+            auto preferences = destination; preferences += L".preferences";
+            if (!config.initialize(preferences)) throw std::runtime_error("Cannot initialize isolated preferences");
+            // Existing text preferences must survive adopting per-tool styles.
+            config.set("/capture/markup/text/outline", false);
+            CaptureState state;
+            winone::capture::markup_preferences::load(state, MarkupTool::Text);
+            if (state.currentTextOutline) throw std::runtime_error("Legacy text outline preference was reset");
+            state.currentTool = MarkupTool::Arrow; state.isMarkupToolActive = true;
+            state.currentColor = {12, 34, 56, 200}; state.currentStrokeWidth = 11;
+            state.currentLineStyle = LineStyle::Dashed; state.currentFillMode = true;
+            state.currentElementCornerRadius = 9; state.currentArrowStyle = ArrowStyle::DoubleEnded;
+            state.currentTextOutlineColor = MarkupColor::White(); state.currentOutlineWidth = 7;
+            state.currentSmoothCurve = true; state.currentLineArrowEnabled = true;
+            state.currentStartCap = LineCapStyle::SolidCircle; state.currentEndCap = LineCapStyle::BarStop;
+            winone::capture::markup_preferences::save(state);
+            if (!config.flush()) throw std::runtime_error("Annotation preferences did not reach disk");
+            config.shutdown();
+            if (!config.initialize(preferences)) throw std::runtime_error("Cannot reopen isolated preferences");
+            CaptureState restored;
+            winone::capture::markup_preferences::load(restored, MarkupTool::Arrow);
+            if (restored.currentColor != MarkupColor{12,34,56,200} || restored.currentStrokeWidth != 11 ||
+                restored.currentLineStyle != LineStyle::Dashed || !restored.currentFillMode ||
+                restored.currentElementCornerRadius != 9 || restored.currentArrowStyle != ArrowStyle::DoubleEnded ||
+                restored.currentTextOutline || restored.currentTextOutlineColor != MarkupColor::White() ||
+                restored.currentOutlineWidth != 7 || !restored.currentSmoothCurve || !restored.currentLineArrowEnabled ||
+                restored.currentStartCap != LineCapStyle::SolidCircle || restored.currentEndCap != LineCapStyle::BarStop)
+                throw std::runtime_error("Saved annotation styles did not survive configuration restart");
+            winone::capture::markup_preferences::load(restored, MarkupTool::Rectangle, true);
+            if (restored.currentColor != MarkupColor::Black() || !restored.currentFillMode || restored.currentStrokeWidth != 4)
+                throw std::runtime_error("Arrow preferences leaked into cover defaults");
+            winone::capture::markup_preferences::load(restored, MarkupTool::Rectangle);
+            if (restored.currentColor != MarkupColor::Red() || restored.currentFillMode)
+                throw std::runtime_error("Cover preferences leaked into rectangle defaults");
+            config.shutdown();
         }
         shutdownMarkupTextRenderer();
         std::cout << "PASS: native number explanation rendering, middle deletion renumbering, undo and text retention\n";

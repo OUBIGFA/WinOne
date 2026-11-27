@@ -18,6 +18,7 @@
 #include <iostream>
 #include "toolbar_icons.h"
 #include "capture_settings.h"
+#include "markup_preferences.h"
 #include "hint_style.h"
 #ifdef WINONE_CAPTURE_PRIVATE_PROBE
 #include "../../tests/capture-native/render_readback.h"
@@ -774,6 +775,9 @@ void CaptureApp::resumeDraft(const std::string& jobId, const std::string& expect
             if (!editing) continue;
             state.activeElement = editing; editing->isActive = true;
             state.currentTool = editing->tool; state.isMarkupToolActive = true;
+            // A restored in-progress mark selects its tool without going
+            // through the toolbar. Restore the next mark's preference too.
+            markup_preferences::load(state, editing->tool);
             if (editing->tool == upstream::MarkupTool::Text) editing->isEditing = true;
             else if (editing->tool == upstream::MarkupTool::Number)
                 MainThreadDispatcher::instance().postDeferred([this, id = editing->id] { editNumber(id); });

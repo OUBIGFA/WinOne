@@ -112,8 +112,7 @@ await adapt('src/capture/CaptureState.h', [
     std::function<void(int)> winoneCustomize;
     std::function<bool(bool)> winonePrepareRecording;
     std::function<void()> winoneChooseDestination;
-    bool winoneNumberStyleInitialized = false;
-    bool winoneNumberCreated = false;
+    bool winoneCoverTool = false;
     bool winoneRecordCursor = true;
     bool winoneScrollReady = false;
     int winoneToolbarFirstRow = 0, winoneToolbarVisibleRows = 13;
@@ -231,12 +230,6 @@ await adapt('src/core/utils/OutOfProcessFileDialog.cpp', [
 await adapt('src/capture/WindowElementDetector.cpp', [
     ['WindowElementDetector::~WindowElementDetector() {', 'WindowElementDetector::~WindowElementDetector() { shutdown(); }\n\nvoid WindowElementDetector::shutdown() {'],
 ]);
-await adapt('src/capture/CaptureInput.cpp', [
-    ['void CaptureInput::setCurrentTool(MarkupTool tool) {', `void CaptureInput::setCurrentTool(MarkupTool tool) {
-    if(tool==MarkupTool::Number && !m_state->winoneNumberStyleInitialized) {
-        m_state->currentColor=MarkupColor::Red();m_state->winoneNumberStyleInitialized=true;
-    }`],
-]);
 await adapt('src/capture/CaptureInput.h', [
     ['    void endDetectionSession();', '    void endDetectionSession();\n    void shutdownDetection() { m_elementDetector.shutdown(); }'],
 ]);
@@ -352,8 +345,8 @@ await adapt('src/capture/CaptureInputCommands.cpp', [
             m_renderer->invalidate(); return;
         case ToolbarCommand::WinOneCover:
             setCurrentTool(MarkupTool::Rectangle);
-            m_state->currentFillMode = true;
-            m_state->currentColor = MarkupColor::Black();
+            m_state->winoneCoverTool = true;
+            winone::capture::markup_preferences::load(*m_state, MarkupTool::Rectangle, true);
             m_renderer->invalidate(); return;
         case ToolbarCommand::WinOneCustomize:
             openDropdownMenu(DropdownType::WinOneToolbar, button.rect); return;
@@ -404,8 +397,8 @@ await adapt('src/capture/CaptureRendererToolbar.cpp', [
     ['            bool isDisabled = false;', `            if (!button.isSecondary) {
                 if (button.command == ToolbarCommand::SelectTool)
                     isActiveTool = state.isMarkupToolActive && button.tool == state.currentTool &&
-                        !(button.tool == MarkupTool::Rectangle && state.currentFillMode);
-                if (button.command == ToolbarCommand::WinOneCover) isActiveTool = state.isMarkupToolActive && state.currentTool == MarkupTool::Rectangle && state.currentFillMode;
+                        !(button.tool == MarkupTool::Rectangle && state.winoneCoverTool);
+                if (button.command == ToolbarCommand::WinOneCover) isActiveTool = state.isMarkupToolActive && state.currentTool == MarkupTool::Rectangle && state.winoneCoverTool;
                 if (button.command == ToolbarCommand::WinOneMove) isActiveTool = state.winoneMoveTool;
                 if (button.command == ToolbarCommand::WinOneRegion) isActiveTool = state.winoneRegionTool;
             }
@@ -489,11 +482,33 @@ await adapt('src/capture/CaptureInputMouse.cpp', [
             }`],
 ]);
 await adapt('src/capture/CaptureInput.cpp', [
+    ['#include "capture/CaptureInputInternal.h"', '#include "capture/CaptureInputInternal.h"\n#include "markup_preferences.h"'],
     ['void CaptureInput::setCurrentTool(MarkupTool tool) {', `void CaptureInput::setCurrentTool(MarkupTool tool) {
+    winone::capture::markup_preferences::load(*m_state, tool);
+    m_state->winoneCoverTool = false;
     m_state->winoneMoveTool = false; m_state->winoneRegionTool = false;
-    if (tool == MarkupTool::Number && m_state->currentTool != MarkupTool::Number) {
-        m_state->currentStrokeWidth = 16; m_state->currentColor = MarkupColor::Red();
+    `],
+    ['void CaptureInput::toggleOrSetTool(MarkupTool tool) {', `void CaptureInput::toggleOrSetTool(MarkupTool tool) {
+    // Cover shares the rectangle renderer, but is a separate toolbar tool.
+    if (tool == MarkupTool::Rectangle && m_state->winoneCoverTool) {
+        setCurrentTool(tool); return;
     }`],
+    ['    executeToolbarCommand(button);\n    if (m_renderer)', '    executeToolbarCommand(button);\n    winone::capture::markup_preferences::save(*m_state);\n    if (m_renderer)'],
+    ['            return handleMouseMessage(hwnd, msg, wParam, lParam);', `        {
+            const auto result = handleMouseMessage(hwnd, msg, wParam, lParam);
+            if (msg == WM_LBUTTONUP || msg == WM_LBUTTONDBLCLK)
+                winone::capture::markup_preferences::save(*m_state);
+            return result;
+        }`],
+    ['            return handleKeyAndWheelMessage(hwnd, msg, wParam, lParam);', `        {
+            const auto result = handleKeyAndWheelMessage(hwnd, msg, wParam, lParam);
+            if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN || msg == WM_MOUSEWHEEL)
+                winone::capture::markup_preferences::save(*m_state);
+            return result;
+        }`],
+]);
+await adapt('src/capture/CaptureInputCommands.cpp', [
+    ['#include "capture/CaptureInputInternal.h"', '#include "capture/CaptureInputInternal.h"\n#include "markup_preferences.h"'],
 ]);
 {
     const relative = 'src/capture/CaptureInputMouse.cpp';
@@ -659,7 +674,7 @@ await adapt('src/capture/CaptureInput.cpp', [
     if (begin < 0 || end < 0) throw Error('Community number creation changed');
     let block = text.slice(begin, end);
     block = block.replace('                elem->isActive = true;',
-        '                elem->isActive = true;\n                elem->fill = true;\n                if(!m_state->winoneNumberCreated){m_state->currentColor=MarkupColor::Red();m_state->winoneNumberCreated=true;}\n                elem->color=m_state->currentColor;\n                elem->numberShape = NumberBadgeShape::Circle;\n                elem->isEditing = true;\n                elem->fontSize = std::clamp(static_cast<float>(m_state->currentStrokeWidth), 6.f, 256.f) * currentDpiScale;\n                elem->hasLeaderArrow = false;\n                if (m_state->winoneEditNumber) m_state->winoneEditNumber(elem->id);');
+        '                elem->isActive = true;\n                elem->fill = true;\n                elem->color=m_state->currentColor;\n                elem->numberShape = NumberBadgeShape::Circle;\n                elem->isEditing = true;\n                elem->fontSize = std::clamp(static_cast<float>(m_state->currentStrokeWidth), 6.f, 256.f) * currentDpiScale;\n                elem->hasLeaderArrow = false;\n                if (m_state->winoneEditNumber) m_state->winoneEditNumber(elem->id);');
     text = text.slice(0, begin) + block + text.slice(end);
     prepared.set(relative, Buffer.from(text));
 }
@@ -1088,12 +1103,6 @@ await adapt('src/capture/CaptureInputKeyboard.cpp', [
                 return 0;
             }
             const auto decision = CaptureShortcutPolicy::resolveKeyDown(keyCtx, wParam, ctrl, shift, alt);`],
-]);
-await adapt('src/capture/CaptureInput.cpp', [
-    ['void CaptureInput::setCurrentTool(MarkupTool tool) {', `void CaptureInput::setCurrentTool(MarkupTool tool) {
-    if(tool==MarkupTool::Number && !m_state->winoneNumberStyleInitialized) {
-        m_state->currentColor=MarkupColor::Red();m_state->winoneNumberStyleInitialized=true;
-    }`],
 ]);
 await adapt('src/capture/CaptureInput.h', [
     ['    void endDetectionSession();', `    void endDetectionSession();

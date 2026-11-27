@@ -22,7 +22,7 @@ parser.add_argument('--scale',type=float,default=1)
 parser.add_argument('--recording-runtime')
 parser.add_argument('--physical-input',action='store_true')
 parser.add_argument('--agent-desktop')
-parser.add_argument('--suite', choices=['motion','ocr-copy','fresh','double-copy','snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
+parser.add_argument('--suite', choices=['preferences','motion','ocr-copy','fresh','double-copy','snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
 args = parser.parse_args()
 output = Path(args.output).resolve()
 root = Path(__file__).resolve().parents[2]
@@ -436,6 +436,63 @@ try:
         send(canvas,0x200,1,(460<<16)|selection_right)
         send(canvas,0x202,0,(460<<16)|selection_right)
         events.append({'selected':True})
+        if args.suite=='preferences':
+            # Check emitted marks, not a copy of the preference serializer.
+            def rectangle():
+                count=len(rpc('probe.state')['elements'])
+                x,y=200+90*(count%3),220+80*((count//3)%2)
+                send(canvas,0x201,1,(y<<16)|x)
+                send(canvas,0x200,1,((y+40)<<16)|(x+60))
+                send(canvas,0x202,0,((y+40)<<16)|(x+60))
+                return wait_until(lambda:(items[-1] if len(items:=rpc('probe.state')['elements'])>count else None))
+            def number():
+                count=len(rpc('probe.state')['elements'])
+                click_point(canvas,400,300)
+                edit=wait_until(lambda:number_editor(canvas))
+                key(edit,0x1B)
+                return wait_until(lambda:(items[-1] if len(items:=rpc('probe.state')['elements'])>count else None))
+            def check(mark,color,width,field='thickness'):
+                if mark['color']!=color or abs(mark[field]-width)>0.01:
+                    raise AssertionError(f'Annotation preference was reset: {mark["color"]}, {field}={mark[field]}')
+            key(canvas,ord('R'));key(canvas,ord('5'))
+            key(canvas,0xBB);key(canvas,0xBB)
+            check(rectangle(),[59,130,246,255],6)
+            key(canvas,ord('N'));key(canvas,ord('4'))
+            for _ in range(3):key(canvas,0xBB)
+            check(number(),[16,185,129,255],19*args.scale,'fontSize')
+            key(canvas,ord('R'))
+            check(rectangle(),[59,130,246,255],6)
+            events.append({'independentRectangleAndNumberStyles':True})
+            cover='Cover' if args.language=='en-US' else '遮盖'
+            def select_cover():
+                button=next(b for b in rpc('probe.state')['buttons'] if b['label']==cover and not b['secondary'])
+                click_point(canvas,round(button['x']),round(button['y']))
+            select_cover();key(canvas,ord('7'));key(canvas,0xBB)
+            covered=rectangle();check(covered,[255,255,255,255],5)
+            if not covered['fill']:raise AssertionError('Cover lost its fill preference')
+            key(canvas,ord('R'));check(rectangle(),[59,130,246,255],6)
+            events.append({'coverAndRectangleSwitchIndependently':True})
+            # Cancelled captures still keep preferences. Reopening a session,
+            # then restarting the actual worker, must produce the same marks.
+            for restart,without_drawing in ((False,False),(True,False),(True,True)):
+                if without_drawing:key(canvas,ord('2'))
+                key(canvas,0x1B)
+                wait_until(lambda:rpc('jobs.get',{'id':job['id']})['state']=='completed')
+                if restart:
+                    rpc('shutdown');child.wait(timeout=15)
+                    if child.returncode:raise AssertionError('Preference worker shutdown failed')
+                    child=subprocess.Popen([args.executable,'--pipe',pipe,'--data-dir',str(output),'--parent',str(os.getpid())],
+                        stdout=stdout,stderr=stderr,creationflags=0x08000000)
+                    wait_until(ready)
+                job=rpc('capture.unified',{'mode':'region','language':args.language});canvas=wait_until(overlay)
+                send(canvas,0x201,1,(180<<16)|160);send(canvas,0x200,1,(460<<16)|620);send(canvas,0x202,0,(460<<16)|620)
+                key(canvas,ord('N'));check(number(),[16,185,129,255],19*args.scale,'fontSize')
+                key(canvas,ord('R'));check(rectangle(),[245,158,11,255] if without_drawing else [59,130,246,255],6)
+                select_cover()
+                covered=rectangle();check(covered,[255,255,255,255],5)
+                if not covered['fill']:raise AssertionError('Saved cover fill was reset')
+                key(canvas,ord('R'));check(rectangle(),[245,158,11,255] if without_drawing else [59,130,246,255],6)
+                events.append({'preferencesWithoutDrawing' if without_drawing else 'preferencesAfterRestart' if restart else 'preferencesAfterCancel':True})
         if args.suite=='double-copy':
             for annotation in (False,True):
                 if annotation:
