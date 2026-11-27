@@ -47,6 +47,9 @@ private:
     void textAction(const cv::Mat& image, bool translate);
     void stop(bool preserve);
     void notice(std::string text);
+    void setOcrBackground(bool background);
+    void showOcrFeedback(const std::wstring& text);
+    void hideOcrFeedback();
     std::filesystem::path saveImage(const cv::Mat&, std::filesystem::path destination, bool replace);
     std::filesystem::path chooseSavePath(const std::filesystem::path& suggested, HWND owner = nullptr);
     std::filesystem::path suggestedPath(std::string_view format = "png") const;
@@ -74,6 +77,10 @@ private:
     Handle owner_;
     Handle instanceMutex_;
     HWND window_ = nullptr;
+    HWND ocrFeedback_ = nullptr;
+    HFONT ocrFeedbackFont_ = nullptr;
+    POINT ocrFeedbackPosition_{};
+    std::wstring ocrFeedbackText_;
     std::unique_ptr<PipeServer> server_;
     std::unique_ptr<HostBridge> host_;
     std::unique_ptr<OcrClient> ocr_;

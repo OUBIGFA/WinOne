@@ -240,6 +240,16 @@ await adapt('src/capture/CaptureInput.cpp', [
 await adapt('src/capture/CaptureInput.h', [
     ['    void endDetectionSession();', '    void endDetectionSession();\n    void shutdownDetection() { m_elementDetector.shutdown(); }'],
 ]);
+// Advance the existing damped spring three stable steps per frame. Increasing
+// dt instead would destabilize its Euler integration during rapid retargets.
+await adapt('src/capture/CaptureInputKeyboard.cpp', [
+    ['                        float force = -k * (pos - target) - d * vel;\n                        vel += force * dt;\n                        pos += vel * dt;',
+     `                        for (int step = 0; step < 3; ++step) {
+                            const float force = -k * (pos - target) - d * vel;
+                            vel += force * dt;
+                            pos += vel * dt;
+                        }`],
+]);
 await adapt('src/core/utils/WinUtils.h', [
     ['    static bool isWindowVisibleOnCurrentDesktop(HWND hwnd);',
      '    static bool isWindowVisibleOnCurrentDesktop(HWND hwnd);\n    static void releaseThreadDesktopManager();'],
@@ -1203,6 +1213,7 @@ await adapt('src/capture/CaptureRendererToolbar.cpp', [
 #include <d2d1.h>
 #include <wrl/client.h>
 namespace winone::hint {
+inline constexpr float fontSize = ${style.fontSize}.f, paddingX = ${style.paddingX}.f, paddingY = ${style.paddingY}.f;
 inline D2D1_COLOR_F background(){return D2D1::ColorF(${hex(style.colors.background)},1);}
 inline D2D1_COLOR_F foreground(){return D2D1::ColorF(${hex(style.colors.foreground)},1);}
 inline D2D1_COLOR_F border(){return D2D1::ColorF(${hex(style.colors.border)},1);}

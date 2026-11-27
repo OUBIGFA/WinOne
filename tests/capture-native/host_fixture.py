@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import struct
 import threading
+import time
 import uuid
 
 class HostFixture:
@@ -12,6 +13,8 @@ class HostFixture:
         self.directory=Path(directory);self.settings=dict(settings);self.jobs={};self.requests=[];self.error=None
         self.settings_saved=None
         self.translation_polls=0
+        self.ocr_ready=False
+        self.ocr_failure=False
         self.name='\\\\.\\pipe\\WinOne-NativeHost-Test-'+uuid.uuid4().hex
         self.k=ctypes.WinDLL('kernel32',use_last_error=True)
         self.k.CreateNamedPipeW.argtypes=[w.LPCWSTR,w.DWORD,w.DWORD,w.DWORD,w.DWORD,w.DWORD,w.DWORD,ctypes.c_void_p];self.k.CreateNamedPipeW.restype=w.HANDLE
@@ -45,12 +48,34 @@ class HostFixture:
             return self.settings
         if method=='ai.settings.get':return {'ocrEngine':'local'}
         if method=='ai.ocr.prepare':return {'queued':True}
+        if method=='ai.recognize.start':
+            # Read the real shared image before acknowledging its lifetime.
+            image=params['image'];mapping=self.k.OpenFileMappingW(4,False,image['mapping'])
+            if not mapping:raise ctypes.WinError(ctypes.get_last_error())
+            view=self.k.MapViewOfFile(mapping,4,0,0,image['bytes'])
+            try:
+                if not view:raise ctypes.WinError(ctypes.get_last_error())
+                import io
+                from PIL import Image
+                with Image.open(io.BytesIO(ctypes.string_at(view,image['bytes']))) as frame:
+                    if frame.size!=(460,280):raise AssertionError(f'OCR crop differs: {frame.size}')
+            finally:
+                if view:self.k.UnmapViewOfFile(view)
+                self.k.CloseHandle(mapping)
+            identifier=uuid.uuid4().hex;self.jobs[identifier]={'id':identifier,'ocr':True}
+            return {'id':identifier,'state':'running'}
         if method=='ai.translate.target':return {'target':'zh-CN'}
         if method=='ai.translate.start':
             identifier=uuid.uuid4().hex;self.jobs[identifier]={'id':identifier,'state':'completed','text':'测试译文','remaining':self.translation_polls}
             return {'id':identifier,'state':'running'}
         if method=='ai.jobs.get':
             job=self.jobs[params['id']]
+            if job.get('ocr'):
+                if not self.ocr_ready:
+                    time.sleep(.01)
+                    return {'id':job['id'],'state':'running'}
+                if self.ocr_failure:return {'id':job['id'],'state':'failed','error':'OCR fixture failure'}
+                return {'id':job['id'],'state':'completed','text':'识别并复制 Test 123'}
             if job['remaining']:
                 job['remaining']-=1
                 return {'id':job['id'],'state':'running'}

@@ -22,7 +22,7 @@ parser.add_argument('--scale',type=float,default=1)
 parser.add_argument('--recording-runtime')
 parser.add_argument('--physical-input',action='store_true')
 parser.add_argument('--agent-desktop')
-parser.add_argument('--suite', choices=['fresh','double-copy','snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
+parser.add_argument('--suite', choices=['motion','ocr-copy','fresh','double-copy','snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
 args = parser.parse_args()
 output = Path(args.output).resolve()
 root = Path(__file__).resolve().parents[2]
@@ -97,6 +97,7 @@ user.GetWindowThreadProcessId.argtypes = [w.HWND,ctypes.POINTER(w.DWORD)]
 user.GetClassNameW.argtypes = [w.HWND,w.LPWSTR,ctypes.c_int]
 user.IsWindowVisible.argtypes = [w.HWND]
 user.IsWindowEnabled.argtypes = [w.HWND]
+user.GetWindowLongW.argtypes = [w.HWND,ctypes.c_int]
 user.GetWindowRect.argtypes = [w.HWND,ctypes.POINTER(w.RECT)]
 enum_callback = ctypes.WINFUNCTYPE(w.BOOL,w.HWND,w.LPARAM)
 user.EnumWindows.argtypes = [enum_callback,w.LPARAM]
@@ -144,7 +145,7 @@ if args.suite in ('parent-exit','recording-parent'):
 events = []
 host_fixture=None
 extra_arguments=[]
-if args.suite in ('toolbar','translation','pin'):
+if args.suite in ('toolbar','translation','pin','ocr-copy'):
     from host_fixture import HostFixture
     if args.suite in ('translation','pin'):
         from PIL import Image,ImageDraw,ImageFont
@@ -244,6 +245,17 @@ def titled_window(title):
     user.EnumWindows(check,0)
     return found[0] if len(found)==1 else None
 
+def ocr_feedback():
+    found=[]
+    @enum_callback
+    def check(window,_):
+        pid=w.DWORD();user.GetWindowThreadProcessId(window,ctypes.byref(pid))
+        name=ctypes.create_unicode_buffer(128);user.GetClassNameW(window,name,len(name))
+        if pid.value==child.pid and name.value=='tooltips_class32' and user.IsWindowVisible(window):found.append(window)
+        return True
+    user.EnumWindows(check,0)
+    return found[0] if len(found)==1 else None
+
 def file_dialog(title=None):
     # The test desktop contains only our fixture, capture worker and its modal
     # file-dialog child. Never enumerate the interactive user desktop.
@@ -337,6 +349,70 @@ try:
         job=rpc('capture.unified',{'mode':'region','language':args.language})
         canvas=wait_until(overlay)
         user.SetForegroundWindow(canvas)
+        if args.suite=='motion':
+            # Drive the real input timer, with no sleep-based timing assertion.
+            send(canvas,0x200,0,(230<<16)|350)
+            wait_until(lambda:rpc('probe.state')['detectionCandidates']>=2)
+            key(canvas,0x09)
+            before=rpc('probe.state')
+            if not before['hierarchyAnimating']:raise AssertionError('Selection spring was removed')
+            frames=0
+            while frames<16:
+                send(canvas,0x113,1,0);frames+=1
+                after=rpc('probe.state')
+                if not after['hierarchyAnimating']:break
+            if after['hierarchyAnimating'] or after['displayedDetection']!=after['detected']:
+                raise AssertionError('Selection spring did not settle within 16 frames')
+            events.append({'springFrames':frames,'before':before['displayedDetection'],'target':after['detected']})
+            # Reverse before settling; no old transition may finish afterward.
+            for shift in (False,True,False,True):
+                key(canvas,0x09,shift=shift)
+                for _ in range(2):send(canvas,0x113,1,0)
+            for _ in range(16):send(canvas,0x113,1,0)
+            final=rpc('probe.state')
+            if final['hierarchyAnimating'] or final['displayedDetection']!=final['detected']:
+                raise AssertionError('Rapidly retargeted spring did not reach its latest selection')
+        if args.suite=='ocr-copy':
+            key(canvas,0x1B)
+            wait_until(lambda:rpc('jobs.get',{'id':job['id']})['state']=='completed')
+            timings=[]
+            for fail in (True,False):
+                host_fixture.ocr_ready=False;host_fixture.ocr_failure=fail
+                job=rpc('capture.unified',{'mode':'ocr','language':args.language});canvas=wait_until(overlay)
+                send(canvas,0x201,1,(180<<16)|160);send(canvas,0x200,1,(460<<16)|620)
+                started=time.perf_counter();send(canvas,0x202,0,(460<<16)|620)
+                state=wait_until(lambda:(s if (s:=rpc('probe.state'))['textBusy'] else None))
+                timings.append(round((time.perf_counter()-started)*1000,2))
+                events.append({'ocrBackgroundMs':timings[-1],'overlayVisible':state['overlayVisible']})
+                if overlay() or state['overlayVisible']:raise AssertionError('OCR-copy left the capture toolbar visible')
+                wait_until(lambda:'ai.recognize.start' in host_fixture.requests)
+                tip=wait_until(ocr_feedback)
+                if (user.GetWindowLongW(tip,-20)&0x08000020)!=0x08000020:raise AssertionError('OCR feedback can activate or intercept input')
+                # Repeated shortcuts must reuse the job without revealing it.
+                again=rpc('capture.unified',{'mode':'ocr','language':args.language})
+                if again['id']!=job['id'] or overlay():raise AssertionError('Repeated OCR shortcut exposed an editor')
+                host_fixture.ocr_ready=True
+                if fail:
+                    canvas=wait_until(lambda:overlay() if not rpc('probe.state')['textBusy'] else None)
+                    if rpc('probe.state')['selection']!=[160,180,620,460]:raise AssertionError('OCR failure lost the selection')
+                    if ocr_feedback():raise AssertionError('OCR error left progress feedback visible')
+                    key(canvas,0x1B)
+                finished=wait_until(lambda:(j if (j:=rpc('jobs.get',{'id':job['id']}))['state']!='running' else None))
+                if not fail:
+                    if not finished.get('result',{}).get('copied'):raise AssertionError(f'OCR copy failed: {finished}')
+                    if not user.OpenClipboard(None):raise ctypes.WinError(ctypes.get_last_error())
+                    try:
+                        memory=user.GetClipboardData(13);ptr=kernel.GlobalLock(memory)
+                        try:text=ctypes.wstring_at(ptr)
+                        finally:kernel.GlobalUnlock(memory)
+                    finally:user.CloseClipboard()
+                    if text!='识别并复制 Test 123':raise AssertionError(f'Clipboard text differs: {text!r}')
+                    if 'results.open' in host_fixture.requests:raise AssertionError('OCR-copy opened a result window')
+                    wait_until(ocr_feedback)
+                    wait_until(lambda:not ocr_feedback(),timeout=3)
+                    wait_until(lambda:rpc('draft.get')['draft'] is None)
+            events.append({'ocrHiddenAndCopied':True,'failureRestoredSelection':True,'selectionToBackgroundMs':timings})
+            job=rpc('capture.unified',{'mode':'region','language':args.language});canvas=wait_until(overlay)
         if args.suite=='snap':
             # Real window/control detector; no synthesized candidate rectangle.
             send(canvas,0x200,0,(230<<16)|350)

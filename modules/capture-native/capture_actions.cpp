@@ -176,12 +176,13 @@ void CaptureApp::textAction(const cv::Mat& source, bool translate) {
         upstream::CaptureOverlay::instance().winoneState().winoneProgress = -1;
         notice(language_ == "en-US" ? "Cancelled" : "已取消"); return;
     }
-    snapshotDraft(true);
+    const bool copyText = !translate && mode_ == "ocr";
+    if (copyText) setOcrBackground(true);
+    snapshotDraft(!copyText);
     auto image = source.clone();
     auto cancelled = operationCancelled_;
     const auto id = active_;
     const bool inplace = translate && captureSettings().value("pinTranslation", false);
-    const bool copyText = !translate && mode_ == "ocr";
     auto& overlay = upstream::CaptureOverlay::instance();
     if (inplace && !overlay.winoneState().winoneTranslated.empty()) {
         overlay.winoneState().winoneShowTranslated = !overlay.winoneState().winoneShowTranslated;
@@ -189,7 +190,9 @@ void CaptureApp::textAction(const cv::Mat& source, bool translate) {
     }
     textBusy_ = true;
     if (inplace) { overlay.winoneState().winoneProgress = .05f; overlay.winoneState().winoneProgressText = language_ == "en-US" ? L"Recognizing text" : L"识别文字"; }
-    notice(language_ == "en-US" ? "Recognizing text…" : "正在识别文字…");
+    if (copyText) {
+        if (!SetTimer(window_, 2, 150, nullptr)) throw systemError("Cannot schedule OCR feedback");
+    } else notice(language_ == "en-US" ? "Recognizing text…" : "正在识别文字…");
     background([this, image = std::move(image), cancelled, id, inplace, translate, copyText] {
         try {
             if (inplace) {
@@ -233,11 +236,20 @@ void CaptureApp::textAction(const cv::Mat& source, bool translate) {
             else host_->openResult(image, translate, cancelled.get());
             MainThreadDispatcher::instance().post([this, cancelled, id, text = std::move(text), copyText] {
                 if (cancelled->load() || id != active_) return;
-                textBusy_ = false;
-                if (copyText && !tools3000::core::WinUtils::copyToClipboard(wide(text))) { notice("无法复制识别文字"); return; }
-                active_.clear();
-                complete(id, {{"completed", true}, {"copied", copyText}});
-                upstream::CaptureOverlay::instance().cancel();
+                try {
+                    textBusy_ = false;
+                    if (copyText && !tools3000::core::WinUtils::copyToClipboard(wide(text))) { notice("无法复制识别文字"); return; }
+                    // Retire through the existing background path, including any
+                    // pending full-screen encoder, before releasing this job.
+                    retireDraft(true);
+                    if (copyText) {
+                        showOcrFeedback(language_ == "en-US" ? L"Recognized text copied" : L"已复制识别结果");
+                        if (!SetTimer(window_, 2, 1200, nullptr)) throw systemError("Cannot schedule OCR feedback dismissal");
+                    }
+                    active_.clear();
+                    complete(id, {{"completed", true}, {"copied", copyText}});
+                    upstream::CaptureOverlay::instance().cancel();
+                } catch (const std::exception& error) { notice(error.what()); }
             });
         } catch (const std::exception& error) {
             const std::string message = error.what();

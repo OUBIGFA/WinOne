@@ -6,6 +6,7 @@
 #include "capture/RecordingIndicator.h"
 #include "core/config/ConfigManager.h"
 #include "core/events/MainThreadDispatcher.h"
+#include "core/hotkey/KeyboardHook.h"
 #include "core/logger/Logger.h"
 #include "core/utils/OutOfProcessFileDialog.h"
 #include "core/utils/WinUtils.h"
@@ -17,6 +18,7 @@
 #include <iostream>
 #include "toolbar_icons.h"
 #include "capture_settings.h"
+#include "hint_style.h"
 #ifdef WINONE_CAPTURE_PRIVATE_PROBE
 #include "../../tests/capture-native/render_readback.h"
 #include "../../tests/capture-native/modal_input_probe.h"
@@ -48,6 +50,7 @@ CaptureApp::CaptureApp(std::wstring pipe, std::filesystem::path directory, DWORD
 
 CaptureApp::~CaptureApp() {
     stoppingServices_.store(true);
+    hideOcrFeedback();
     closeNumberEditor(false);
     operationCancelled_->store(true);
     server_.reset();
@@ -99,7 +102,9 @@ int CaptureApp::run(HINSTANCE instance) {
     auto& overlay = upstream::CaptureOverlay::instance();
     overlay.setWinOneCanvasOwner([this] { return !active_.empty(); });
     overlay.winoneState().winoneBeforeOutput = [this] {
-        try { closeNumberEditor(false); if(numberEdit_) return false; snapshotDraft(true); return true; }
+        // OCR retains the canvas in memory for recovery; disk encoding must
+        // not delay hiding it or starting recognition.
+        try { closeNumberEditor(false); if(numberEdit_) return false; snapshotDraft(mode_ != "ocr"); return true; }
         catch (const std::exception& error) { notice(error.what()); return false; }
     };
     overlay.winoneState().winoneSaveAs = [this] {
@@ -111,6 +116,7 @@ int CaptureApp::run(HINSTANCE instance) {
     });
     overlay.setClosedCallback([this] {
         if (recording_ && recording_->active()) return;
+        if (!active_.empty()) hideOcrFeedback();
         textBusy_ = false;
         upstream::CaptureOverlay::instance().winoneState().winoneProgress = -1;
         if (retaking_ && !preserving_ && draft_) {
@@ -191,6 +197,9 @@ int CaptureApp::run(HINSTANCE instance) {
         });
     };
     overlay.winoneState().winoneSelected = [this] {
+        // Hide in the mouse-up dispatch, before a queued paint can expose the
+        // editing toolbar. Keep this same canvas for an OCR failure/retry.
+        if (mode_ == "ocr") setOcrBackground(true);
         if (mode_ == "ocr" || mode_ == "translate" || mode_ == "scroll" || !captureSettings().value("openEditor", true))
             MainThreadDispatcher::instance().postDeferred([this] {
                 if (!active_.empty()) upstream::CaptureOverlay::instance().confirmCurrentSelection(
@@ -224,6 +233,14 @@ LRESULT CALLBACK CaptureApp::windowProcedure(HWND window, UINT message, WPARAM w
 
 LRESULT CaptureApp::message(UINT message, WPARAM w, LPARAM l) {
     if (message == MainThreadDispatcher::MessageId) { MainThreadDispatcher::instance().drain(); return 0; }
+    if (message == WM_TIMER && w == 2) {
+        KillTimer(window_, 2);
+        try {
+            if (textBusy_ && mode_ == "ocr") showOcrFeedback(language_ == "en-US" ? L"Recognizing text…" : L"正在识别…");
+            else hideOcrFeedback();
+        } catch (const std::exception& error) { notice(error.what()); }
+        return 0;
+    }
     if (message == WM_TIMER) {
         std::erase_if(tasks_, [](const auto& task) { return task.finished->load(); });
         uiAlive_.store(GetTickCount64());
@@ -405,6 +422,8 @@ json CaptureApp::command(std::string method, json parameters) {
         }
         const auto barRect = [](D2D1_RECT_F r) { return json::array({r.left,r.top,r.right,r.bottom}); };
         return {{"editor",editor},{"primaryToolbar",barRect(state.primaryToolbarRect)},
+                {"hierarchyAnimating",state.isHierarchyAnimating},{"displayedDetection",barRect(state.animDetectedWindowRect)},
+                {"overlayVisible",overlay.isOverlayVisible()},
                 {"menuRect",barRect(state.dropdownMenu.menuRect)},
                 {"secondaryToolbar",barRect(state.secondaryToolbarRect)},
                 {"detected",{state.detectedWindow.left,state.detectedWindow.top,state.detectedWindow.right,state.detectedWindow.bottom}},
@@ -465,11 +484,11 @@ json CaptureApp::command(std::string method, json parameters) {
     }
     if (method == "capture.activate") {
         const auto window = upstream::CaptureOverlay::instance().winoneWindow();
-        if (window) SetForegroundWindow(window);
+        if (window && IsWindowVisible(window)) SetForegroundWindow(window);
         return {{"active", window != nullptr}};
     }
     if (method == "capture.start" || method == "capture.unified") {
-        if (!active_.empty()) { const auto window = upstream::CaptureOverlay::instance().winoneWindow(); if (window) SetForegroundWindow(window); return job(active_); }
+        if (!active_.empty()) { const auto window = upstream::CaptureOverlay::instance().winoneWindow(); if (window && IsWindowVisible(window)) SetForegroundWindow(window); return job(active_); }
         const auto mode = parameters.at("mode").get<std::string>();
         if (mode != "region" && mode != "region-native" && mode != "window" && mode != "fullscreen" && mode != "scroll" && mode != "ocr" && mode != "translate")
             throw std::invalid_argument("Unsupported capture mode");
@@ -519,6 +538,7 @@ json CaptureApp::command(std::string method, json parameters) {
 }
 
 void CaptureApp::beginCapture(const std::string& id, const std::string& mode) {
+    hideOcrFeedback();
     // Starting a capture means current pixels; only draft.resume restores a
     // previous screen. Keep any recovered draft intact until acquisition works.
     active_ = id; sessionSettings_ = settings_; mode_ = mode;
@@ -567,6 +587,10 @@ bool CaptureApp::deliver(const upstream::CaptureRegion& region, const cv::Mat& i
 
 void CaptureApp::notice(std::string text) {
     auto& overlay = upstream::CaptureOverlay::instance();
+    if (mode_ == "ocr" && !active_.empty() && overlay.winoneWindow() && !overlay.isOverlayVisible()) {
+        hideOcrFeedback();
+        setOcrBackground(false);
+    }
     if (overlay.isOverlayVisible()) {
         overlay.winoneState().loupeToastMessage = wide(text);
         overlay.winoneState().loupeToastUntil = GetTickCount() + 5000;
@@ -574,6 +598,70 @@ void CaptureApp::notice(std::string text) {
     } else {
         MessageBoxW(nullptr, wide(text).c_str(), L"WinOne", MB_OK | MB_ICONWARNING);
     }
+}
+
+void CaptureApp::setOcrBackground(bool background) {
+    auto& overlay = upstream::CaptureOverlay::instance();
+    const auto canvas = overlay.winoneWindow();
+    if (!canvas) return;
+    tools3000::core::KeyboardHook::instance().setCaptureOverlayVisible(!background);
+    if (background) {
+        const auto& state = overlay.winoneState();
+        ocrFeedbackPosition_ = {(state.dragStart.x + state.dragEnd.x) / 2,
+                               std::max(state.dragStart.y, state.dragEnd.y) + 10};
+        ClientToScreen(canvas, &ocrFeedbackPosition_);
+        if (GetCapture() == canvas) ReleaseCapture();
+        ShowWindow(canvas, SW_HIDE);
+    } else {
+        ShowWindow(canvas, SW_SHOW);
+        SetForegroundWindow(canvas);
+        overlay.winoneInvalidate();
+    }
+}
+
+void CaptureApp::hideOcrFeedback() {
+    if (window_) KillTimer(window_, 2);
+    if (ocrFeedback_) { DestroyWindow(ocrFeedback_); ocrFeedback_ = nullptr; }
+    if (ocrFeedbackFont_) { DeleteObject(ocrFeedbackFont_); ocrFeedbackFont_ = nullptr; }
+}
+
+void CaptureApp::showOcrFeedback(const std::wstring& text) {
+    // A native tracking tooltip gives feedback without an editor, activation
+    // or mouse interception. It uses the shared hint palette.
+    if (!ocrFeedback_) {
+        INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_WIN95_CLASSES};
+        if (!InitCommonControlsEx(&controls)) throw systemError("Cannot initialize OCR feedback");
+        ocrFeedback_ = CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT,
+            TOOLTIPS_CLASSW, nullptr, WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX | TTS_NOANIMATE | TTS_NOFADE,
+            0, 0, 0, 0, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+        if (!ocrFeedback_) throw systemError("Cannot create OCR feedback");
+        SendMessageW(ocrFeedback_, TTM_SETWINDOWTHEME, 0, reinterpret_cast<LPARAM>(L""));
+        const auto color = [](D2D1_COLOR_F c) { return RGB(static_cast<int>(c.r * 255 + .5f), static_cast<int>(c.g * 255 + .5f), static_cast<int>(c.b * 255 + .5f)); };
+        SendMessageW(ocrFeedback_, TTM_SETTIPBKCOLOR, color(winone::hint::background()), 0);
+        SendMessageW(ocrFeedback_, TTM_SETTIPTEXTCOLOR, color(winone::hint::foreground()), 0);
+        const float scale = std::max(1.f, upstream::CaptureOverlay::instance().winoneState().dpiScale);
+        ocrFeedbackFont_ = CreateFontW(-static_cast<int>(winone::hint::fontSize * scale), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+            DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
+        if (!ocrFeedbackFont_) throw systemError("Cannot create OCR feedback font");
+        SendMessageW(ocrFeedback_, WM_SETFONT, reinterpret_cast<WPARAM>(ocrFeedbackFont_), FALSE);
+        RECT margin{static_cast<LONG>(winone::hint::paddingX * scale), static_cast<LONG>(winone::hint::paddingY * scale),
+                    static_cast<LONG>(winone::hint::paddingX * scale), static_cast<LONG>(winone::hint::paddingY * scale)};
+        SendMessageW(ocrFeedback_, TTM_SETMARGIN, 0, reinterpret_cast<LPARAM>(&margin));
+        // The worker also runs without a v6 common-controls manifest. The v2
+        // layout is supported by both Windows tooltip implementations.
+        TOOLINFOW tool{TTTOOLINFOW_V2_SIZE};
+        tool.hwnd = window_; tool.uId = 1; tool.uFlags = TTF_TRACK | TTF_CENTERTIP;
+        tool.lpszText = const_cast<wchar_t*>(L"");
+        if (!SendMessageW(ocrFeedback_, TTM_ADDTOOLW, 0, reinterpret_cast<LPARAM>(&tool))) throw std::runtime_error("Cannot attach OCR feedback");
+    }
+    ocrFeedbackText_ = text;
+    TOOLINFOW tool{TTTOOLINFOW_V2_SIZE};
+    tool.hwnd = window_; tool.uId = 1; tool.lpszText = ocrFeedbackText_.data();
+    SendMessageW(ocrFeedback_, TTM_UPDATETIPTEXTW, 0, reinterpret_cast<LPARAM>(&tool));
+    // Let the native control measure and keep itself inside the monitor.
+    // Its pre-activation size query is unsafe in the v5 control implementation.
+    SendMessageW(ocrFeedback_, TTM_TRACKPOSITION, 0, MAKELPARAM(ocrFeedbackPosition_.x, ocrFeedbackPosition_.y));
+    SendMessageW(ocrFeedback_, TTM_TRACKACTIVATE, TRUE, reinterpret_cast<LPARAM>(&tool));
 }
 
 void CaptureApp::stop(bool preserve) {
