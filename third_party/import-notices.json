@@ -311,7 +311,7 @@
         },
         {
           "path": "internal/ai/provider_preferences.go",
-          "sha256": "6b849bfa84bfcbf2857c5cbe38543c982c7091b7da4ec6455537fe68331b77fd"
+          "sha256": "dd8a142d4fbdac4b3c136b64ee936bb7f6cdffac1c85f84d221b9ace41c8b288"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/provider_keys.go",

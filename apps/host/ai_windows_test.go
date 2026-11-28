@@ -47,3 +47,14 @@ func TestPinTargetCanBeFirstAIRequest(t *testing.T) {
 		t.Fatalf("target reply: %+v", reply)
 	}
 }
+
+func TestModelCertificateCanBeFirstAIRequest(t *testing.T) {
+	dir := t.TempDir()
+	engine := newAIService(t.Context(), dir, filepath.Join(dir, "WinOne.Host.exe"))
+	// A saved-provider request must load settings before looking up its ID.
+	// Missing providers fail locally, without probing a real server.
+	reply := engine.handle(host.Request{ID: "certificate", Method: "models.certificate", Params: []byte(`{"provider":"missing"}`)})
+	if reply.Error == nil || engine.store == nil {
+		t.Fatalf("first certificate request did not initialize settings and reject the missing provider: %+v", reply)
+	}
+}

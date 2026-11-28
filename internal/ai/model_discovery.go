@@ -27,22 +27,30 @@ func (p *Provider) RefreshModels(models []ModelOption) {
 	p.separateModelDefaults()
 	old := p.AllModels()
 	listed := make([]string, 0, len(models))
+	availableIDs := make(map[string]bool, len(models)+len(p.ManualModels))
 	for _, m := range models {
-		if !slices.Contains(listed, m.ID) {
+		if !availableIDs[m.ID] {
 			listed = append(listed, m.ID)
+			availableIDs[m.ID] = true
 		}
+	}
+	manualIDs := make(map[string]bool, len(p.ManualModels))
+	for _, id := range p.ManualModels {
+		manualIDs[id] = true
 	}
 	if p.CatalogModels == nil {
 		for _, id := range old {
-			if !slices.Contains(listed, id) && !slices.Contains(p.ManualModels, id) {
+			if !availableIDs[id] && !manualIDs[id] {
 				p.ManualModels = append(p.ManualModels, id)
+				manualIDs[id] = true
 			}
 		}
 	}
 	available := slices.Clone(listed)
 	for _, id := range p.ManualModels {
-		if !slices.Contains(available, id) {
+		if !availableIDs[id] {
 			available = append(available, id)
+			availableIDs[id] = true
 		}
 	}
 	names, free, metadata, baseline := map[string]string{}, map[string]bool{}, map[string]ModelMetadata{}, map[string]ModelMetadata{}
@@ -51,7 +59,7 @@ func (p *Provider) RefreshModels(models []ModelOption) {
 		if name := p.ModelNames[id]; name != "" {
 			names[id] = name
 		}
-		free[id], metadata[id] = p.ModelFree[id], p.ModelMetadata[id]
+		free[id], metadata[id] = p.ModelFree[id], p.ModelMetadata[id].clone()
 	}
 	for _, m := range models {
 		catalogNames[m.ID] = m.Name
@@ -70,14 +78,17 @@ func (p *Provider) RefreshModels(models []ModelOption) {
 		}
 	}
 	picks, delisted := []string{}, []string{}
+	seenPicks := make(map[string]bool, len(p.Models)+len(p.Delisted))
 	for _, id := range append(slices.Clone(p.Models), p.Delisted...) {
-		if slices.Contains(available, id) {
-			if !slices.Contains(picks, id) {
-				picks = append(picks, id)
-			}
-		} else if !slices.Contains(delisted, id) {
+		if seenPicks[id] {
+			continue
+		}
+		seenPicks[id] = true
+		if availableIDs[id] {
+			picks = append(picks, id)
+		} else {
 			delisted = append(delisted, id)
-			metadata[id] = p.ModelMetadata[id]
+			metadata[id] = p.ModelMetadata[id].clone()
 			if name := p.ModelNames[id]; name != "" {
 				names[id] = name
 			}
@@ -168,11 +179,22 @@ func IncludeDiscovered(selected, old, listed, rules []string) []string {
 	for _, id := range selected {
 		seen[id] = struct{}{}
 	}
+	// Compile each upstream rule once for this catalog, rather than once per
+	// candidate. Invalid rules keep the existing non-matching behavior.
+	var compiled []matcher
 	for _, id := range listed {
 		if _, exists := seen[id]; exists {
 			continue
 		}
-		if slices.ContainsFunc(rules, func(rule string) bool { return PatternMatches(rule, id) }) {
+		if compiled == nil {
+			compiled = make([]matcher, 0, len(rules))
+			for _, pattern := range rules {
+				if rule, err := compileRule(pattern); err == nil {
+					compiled = append(compiled, rule.ids)
+				}
+			}
+		}
+		if slices.ContainsFunc(compiled, func(rule matcher) bool { return rule.MatchString(id) }) {
 			out = append(out, id)
 			seen[id] = struct{}{}
 		}

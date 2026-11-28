@@ -111,6 +111,9 @@ func cloneConfiguration(c Configuration) Configuration {
 		}
 		c.Providers[i].ProviderPreferences = c.Providers[i].ProviderPreferences.clone()
 		c.Providers[i].Keys = slices.Clone(c.Providers[i].Keys)
+		if c.Providers[i].KeyPolicy != nil {
+			c.Providers[i].KeyPolicy = new(*c.Providers[i].KeyPolicy)
+		}
 		c.Providers[i].Icon = providerIcon(c.Providers[i])
 		if c.Providers[i].Avatar != nil {
 			avatar := *c.Providers[i].Avatar
@@ -320,7 +323,7 @@ func validateConfiguration(c Configuration) error {
 		}
 		names[name] = true
 		if len(p.Models) > MaxProviderModels {
-			return errors.New("每个服务最多配置 2048 个模型")
+			return fmt.Errorf("每个服务最多配置 %d 个模型", MaxProviderModels)
 		}
 		seen := map[string]bool{}
 		for _, model := range p.Models {

@@ -67,7 +67,7 @@ Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/oidc_bridge_test.go')
 # package name changes; the proxy validator is already a reviewed extract.
 & node (Join-Path $root 'build/prepare-ai-discovery.mjs') $source
 if($LASTEXITCODE -ne 0){throw 'Cannot extract the pinned model discovery rules'}
-foreach($relative in @('provider_preferences.go','magpie_proxy.go','model_discovery_rules.go')) {
+foreach($relative in @('provider_preferences.go','provider_preferences_clone.go','magpie_proxy.go','model_discovery_rules.go')) {
  $dto=[IO.File]::ReadAllText((Join-Path $root ('internal/ai/'+$relative))).Replace('package ai','package main')
  [IO.File]::WriteAllText((Join-Path $entry ('host_'+$relative)),$dto,$encoding)
 }

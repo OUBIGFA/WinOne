@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('desktop-mygo','result-ui')][string[]]$Modules=@('desktop-mygo','result-ui'),
+    [ValidateSet('desktop-mygo','result-ui','nativeui')][string[]]$Modules=@('desktop-mygo','result-ui','nativeui'),
     [string[]]$Packages=@('./...'),
     [string]$Run='.',
     [string]$GoExe='dist/resources/tools/go-1.27.3/bin/go.exe'
@@ -15,7 +15,9 @@ try {
     $env:GOCACHE=Join-Path $root 'dist/resources/cache/go'
     & (Join-Path $PSScriptRoot 'prepare-mygo-filedrop.ps1') -GoExe $go
     foreach($module in $Modules) {
-        Push-Location (Join-Path $root ('apps/'+$module))
+        # Nested Go modules are not included by their consumers' ./... tests.
+        $relative=if($module -eq 'nativeui'){'modules/nativeui'}else{'apps/'+$module}
+        Push-Location (Join-Path $root $relative)
         try {
             # PowerShell 5 turns redirected compiler stderr into errors. Keep
             # the real diagnostics, then fail on Go's exit code as other gates do.

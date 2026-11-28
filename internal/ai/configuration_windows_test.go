@@ -5,12 +5,39 @@ package ai
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 )
+
+func TestSaveRejectsInvalidProviderOptionsWithoutChangingSettings(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "ai.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := s.Configuration()
+	c.Providers = []Provider{{ID: "one", Name: "One", AuthMode: "api-key", Protocol: "chat", BaseURL: "https://one.invalid/v1", Models: []string{"model"}, KeyPolicy: &KeyPolicy{MaxAttempts: 2}}}
+	saved, err := s.SaveConfiguration(c, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Returned data is owned by its reader, including compatibility records.
+	saved.Providers[0].KeyPolicy.MaxAttempts = 99
+	if s.Configuration().Providers[0].KeyPolicy.MaxAttempts != 2 {
+		t.Fatal("save result changed stored key policy")
+	}
+	draft := s.Configuration()
+	draft.Providers[0].PriceRate = math.NaN()
+	if _, err = s.SaveConfiguration(draft, nil); err == nil {
+		t.Fatal("invalid provider settings were silently accepted")
+	}
+	if current := s.Configuration(); current.Revision != saved.Revision || current.Providers[0].PriceRate != 0 {
+		t.Fatal("failed save changed configuration")
+	}
+}
 
 // Independent WinOne IDs must not hide Devin's upstream retired-model
 // migration. Other providers' models and account allowlists stay intact.

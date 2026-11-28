@@ -28,6 +28,7 @@
 | 截图选区、标注、工具栏、保存、划词工具栏 | `docs/working-rules/capture-selection.md` |
 | 安装、更新、卸载、进程退出 | `docs/working-rules/installation-processes.md` |
 | 服务边界、技术路线、性能、完整流程验收 | `docs/working-rules/architecture-performance.md` |
+| 功能归属、模块依赖、协作分工与定向验证 | `docs/engineering-map.md` |
 | 模块、程序管理、配置迁移、共享依赖 | `docs/working-rules/modules-configuration.md` |
 | 寻找某项实施说明或历史资料 | `docs/README.md`，只继续读取命中主题 |
 

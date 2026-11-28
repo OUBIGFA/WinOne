@@ -44,5 +44,34 @@ func BenchmarkCatalogReads(b *testing.B) {
 				_ = IncludeDiscovered(nil, ids, ids, []string{"*"})
 			}
 		})
+		b.Run(fmt.Sprint(n)+"/new-model-rules", func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				_ = IncludeDiscovered(nil, nil, ids, []string{"re:model-[0-9]+", "other-*"})
+			}
+		})
+		b.Run(fmt.Sprint(n)+"/refresh", func(b *testing.B) {
+			models := make([]ModelOption, len(ids))
+			for i, id := range ids {
+				models[i] = ModelOption{ID: id, Name: id}
+			}
+			b.ReportAllocs()
+			for b.Loop() {
+				current := p
+				current.RefreshModels(models)
+			}
+		})
+	}
+}
+
+func BenchmarkProviderSnapshot(b *testing.B) {
+	p := ProviderPreferences{Contexts: map[string]int{"*": 128000}, MaxImages: map[string]int{"*": 8},
+		Addresses: []string{"https://relay.invalid/v1"}, AgentAccounts: map[string]string{"magpie": "primary"},
+		AccountModels:  map[string][]string{"fixture": {"model-a", "model-b"}},
+		KeyBalanceAuth: map[string]KeyBalanceAuth{"primary": {User: "42", HasToken: true}},
+		RateWindows:    []RateWindow{{Days: []int{1, 2, 3, 4, 5}, Start: "08:00", End: "18:00", Rate: 0.5}}}
+	b.ReportAllocs()
+	for b.Loop() {
+		_ = p.clone()
 	}
 }

@@ -440,6 +440,7 @@ try:
         send(canvas,0x202,0,(460<<16)|selection_right)
         events.append({'selected':True})
         if args.suite=='collection':
+            rpc('probe.snapshot',{'flush':True})
             click_button(canvas,'连续采集文字' if args.language=='zh-CN' else 'Collect text fragments')
             def collection():return rpc('probe.state')['collection']
             wait_until(lambda:len(collection()['fragments'])==1)
@@ -447,6 +448,17 @@ try:
             def action(command):
                 if not user.PostMessageW(bar,0x111,command,0):raise ctypes.WinError(ctypes.get_last_error())
                 time.sleep(.08)
+            # Collection staging resets the selection rectangle. Saving that
+            # bookkeeping must not be mistaken for editing an OCR input.
+            host_fixture.ocr_ready=False
+            action(6)
+            wait_until(lambda:'ai.recognize.start' in host_fixture.requests)
+            rpc('probe.snapshot',{'flush':True})
+            if not rpc('probe.state')['textBusy']:raise AssertionError('Draft save cancelled collection recognition')
+            host_fixture.ocr_failure=True;host_fixture.ocr_ready=True
+            wait_until(lambda:not rpc('probe.state')['textBusy'])
+            host_fixture.ocr_failure=False;host_fixture.ocr_sizes.clear()
+            events.append({'collectionRecognitionSurvivesDraftSave':True})
             send(canvas,0x201,1,(500<<16)|100);send(canvas,0x200,1,(620<<16)|340);send(canvas,0x202,0,(620<<16)|340)
             wait_until(lambda:len(collection()['fragments'])==2)
             # Existing rectangles move against this screen, with retained undo.

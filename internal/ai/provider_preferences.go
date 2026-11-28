@@ -193,13 +193,6 @@ type BalanceRefill struct {
 	Day   int    `json:"day"`
 }
 
-func (p ProviderPreferences) clone() ProviderPreferences {
-	data, _ := json.Marshal(p)
-	var result ProviderPreferences
-	_ = json.Unmarshal(data, &result)
-	return result
-}
-
 // Host validation bounds the saved document. Provider-specific normalization
 // and execution remain Magpie's; model reasoning words are never checked here.
 func (p ProviderPreferences) validate() error {

@@ -8,6 +8,8 @@
 | 目录、临时产物、Git 跟踪与交付检查 | [仓库目录与发布约定](repository.md) |
 | Windows 本地验收、测试入口与发布策略 | [本地测试能力与发布检查](repository.md#交付检查范围) |
 | 当前进度、已验证范围 | [开发状态](development.md)，按主题搜索章节 |
+| 功能归属、依赖方向与并行修改边界 | [工程导航与协作边界](engineering-map.md) |
+| 最近的全库结构审核、缺陷修复与性能对照 | [2026-11-28 审核与治理](architecture-audit-20261128.md) |
 | 最新固定 AI 基座、截图与录制响应（2026-11-28） | [功能对照与性能验证](performance-ai-20261128.md) |
 | 本次固定 AI 基座及程序管理完整同步（2026-11-19） | [AI 功能对照](ai-base-update-20261119.md)、[WinTray 功能对照](wintray-sync-20261119.md) |
 | 当前 main 的模块边界与移除记录 | [main 模块精简与验收](module-removal-20261112.md) |

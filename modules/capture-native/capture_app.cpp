@@ -398,6 +398,12 @@ json CaptureApp::command(std::string method, json parameters) {
         else upstream::CaptureOverlay::instance().winoneInvalidate();
         return {{"queued", true}};
     }
+    if (method == "probe.snapshot") {
+        // Exercise the production timer's draft path deterministically while
+        // a private OCR fixture holds the recognition request open.
+        snapshotDraft(parameters.value("flush", false));
+        return {{"saved", true}};
+    }
     if (method == "probe.state") {
         auto& overlay = upstream::CaptureOverlay::instance();
         auto& state = overlay.winoneState();
@@ -719,7 +725,9 @@ void CaptureApp::snapshotDraft(bool flush) {
     const auto fingerprint = json{{"elements", DraftStore::encodeElements(elements)},
         {"selection", {selection.x, selection.y, selection.width, selection.height}}}.dump();
     if (fingerprint == draftFingerprint_) return;
-    if (!draftFingerprint_.empty()) {
+    // Collection recognition consumes owned fragment pixels, not the mutable
+    // canvas selection. Staging resets that selection and must not cancel OCR.
+    if (!draftFingerprint_.empty() && !collecting_) {
         operationCancelled_->store(true); operationCancelled_ = std::make_shared<std::atomic<bool>>(false);
         textBusy_ = false;
         state.winoneProgress = -1;

@@ -17,6 +17,41 @@ func TestAutoIncludeDoesNotReenableUncheckedModels(t *testing.T) {
 	}
 }
 
+func TestAutoIncludeRetainsUpstreamPatternSemantics(t *testing.T) {
+	listed := []string{"GPT-5", "glm-5", "glm-flash", "other", "GPT-5"}
+	got := IncludeDiscovered(nil, nil, listed, []string{"re:[", "re:(?!.*flash).*glm.*", "gpt-*"})
+	if !reflect.DeepEqual(got, []string{"GPT-5", "glm-5"}) {
+		t.Fatalf("regex fallback, case matching or order changed: %v", got)
+	}
+}
+
+func TestRefreshOwnsManualAndDelistedMetadata(t *testing.T) {
+	manual := ModelMetadata{Headers: map[string]string{"x-label": "manual"}}
+	paused := ModelMetadata{Efforts: []string{"deep"}}
+	p := Provider{ModelDefaultsSeparated: true, CatalogModels: []string{"gone"},
+		ManualModels: []string{"custom"}, Models: []string{"custom", "gone"},
+		ModelMetadata: map[string]ModelMetadata{"custom": manual, "gone": paused}}
+	p.RefreshModels([]ModelOption{{ID: "new"}})
+	p.ModelMetadata["custom"].Headers["x-label"] = "changed"
+	p.ModelMetadata["gone"].Efforts[0] = "changed"
+	if manual.Headers["x-label"] != "manual" || paused.Efforts[0] != "deep" {
+		t.Fatal("refresh retained caller-owned manual or delisted metadata")
+	}
+}
+
+func TestCatalogRefreshKeepsFirstIDOrderAndLastMetadata(t *testing.T) {
+	p := Provider{ModelDefaultsSeparated: true, Models: []string{"a", "custom", "gone"},
+		AvailableModels: []string{"a", "custom", "gone"}, CatalogModels: []string{"a", "gone"},
+		ManualModels: []string{"custom"}, ProviderPreferences: ProviderPreferences{AutoInclude: []string{"*"}}}
+	p.RefreshModels([]ModelOption{{ID: "b", Name: "first"}, {ID: "a"}, {ID: "b", Name: "last"}})
+	if !reflect.DeepEqual(p.CatalogModels, []string{"b", "a"}) ||
+		!reflect.DeepEqual(p.AvailableModels, []string{"b", "a", "custom"}) ||
+		!reflect.DeepEqual(p.Models, []string{"a", "custom", "b"}) ||
+		!reflect.DeepEqual(p.Delisted, []string{"gone"}) || p.CatalogNames["b"] != "last" {
+		t.Fatalf("refresh order or duplicate metadata changed: %+v", p)
+	}
+}
+
 func TestModelDiscoveryScheduleAndValidation(t *testing.T) {
 	p := Provider{AuthMode: "api-key", Preset: "remote-magpie"}
 	if p.ModelRefreshInterval() != 10*time.Minute {
