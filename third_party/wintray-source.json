@@ -214,7 +214,7 @@
       "path": "internal/orchestrator/runner.go",
       "sourceSHA256": "955ec9aac2491e90d6b93b757ad0adbc5fcad46d6efc8f34c63ea414806a15af",
       "targetPath": "modules/wintray/internal/orchestrator/runner.go",
-      "targetSHA256": "6e4fb411de0c99a0d16698e11e0b18e26c1fa090fe302c293b5ba14334eefb5b",
+      "targetSHA256": "b29854bbad47d012989e1c6ecca0d0d93bae595437cbd306a5100faec84e09a8",
       "revision": "89c246a0b0c2808d7d594ab91758468517d61fdd",
       "adaptation": "Upstream increment with WinOne module namespace; preserve hosted configuration, native lifetime, task serialization and explicit system-test isolation."
     },
@@ -334,7 +334,7 @@
       "path": "internal/orchestrator/runner_windows_test.go",
       "sourceSHA256": "aedcc719a910ea0990edfb54e25761c8378905f8020edd7879e45da282b45e34",
       "targetPath": "modules/wintray/internal/orchestrator/runner_windows_test.go",
-      "targetSHA256": "c06ad4abe0c9d26d627d1e78c8c04a79ca5141014ed7b61c476f1d977b35059b",
+      "targetSHA256": "978e0b4dc49f133d511ebb48f0780816c8c9d5046af59fe480e8e58477f7eade",
       "revision": "89c246a0b0c2808d7d594ab91758468517d61fdd",
       "adaptation": "Upstream increment with WinOne module imports; preserve existing hosted launch, console, test isolation and task coordination."
     },

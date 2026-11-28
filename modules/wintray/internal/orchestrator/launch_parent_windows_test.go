@@ -105,6 +105,31 @@ func TestManagedProgramsStartUnderDesktopShell(t *testing.T) {
 	}
 }
 
+// The GUI-style route has no window. Console behavior is exercised by the
+// explicitly isolated console suite; this probe also runs from an elevated owner.
+func TestManagedProgramsKeepOwnProcessAccess(t *testing.T) {
+	parent, err := desktopparent.Open()
+	if errors.Is(err, desktopparent.ErrDesktopUnavailable) {
+		t.Skip("no desktop shell in this session")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	elevated := parent.Elevated
+	parent.Close()
+	if elevated {
+		t.Skip("requires a normal desktop shell")
+	}
+	output := filepath.Join(t.TempDir(), "self-access.txt")
+	process, err := startConfiguredProcess(config.ManagedAppEntry{ExePath: os.Args[0], Args: runnerHelperArgs("self-access", output)}, launchNoWindow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitRunnerCommand(t, process)
+	if value, err := os.ReadFile(output); err != nil || string(value) != "normal token and self access" {
+		t.Fatalf("self access result %q, error %v", value, err)
+	}
+}
 func desktopTestParentPID(t *testing.T, pid uint32) uint32 {
 	t.Helper()
 	snapshot, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)

@@ -125,6 +125,23 @@ func TestRunnerHelperProcess(t *testing.T) {
 		return
 	}
 	switch os.Args[4] {
+	case "self-access":
+		process, err := windows.OpenProcess(windows.PROCESS_QUERY_INFORMATION|windows.PROCESS_VM_READ|windows.PROCESS_DUP_HANDLE, false, windows.GetCurrentProcessId())
+		if err != nil {
+			t.Fatalf("open own process: %v", err)
+		}
+		defer windows.CloseHandle(process)
+		var token windows.Token
+		if err = windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
+			t.Fatalf("query own token: %v", err)
+		}
+		defer token.Close()
+		if token.IsElevated() {
+			t.Fatal("managed child unexpectedly elevated")
+		}
+		if err = os.WriteFile(os.Args[5], []byte("normal token and self access"), 0600); err != nil {
+			t.Fatal(err)
+		}
 	case "directory":
 		directory, err := os.Getwd()
 		if err != nil {

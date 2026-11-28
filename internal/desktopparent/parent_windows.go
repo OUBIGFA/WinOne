@@ -8,6 +8,7 @@ package desktopparent
 
 import (
 	"errors"
+	"runtime"
 	"syscall"
 	"unsafe"
 
@@ -31,7 +32,8 @@ var (
 
 // Parent is an open desktop shell process usable as an explicit parent.
 type Parent struct {
-	handle windows.Handle
+	handle   windows.Handle
+	security *windows.SECURITY_DESCRIPTOR
 	// Elevated reports whether the desktop shell itself runs elevated, which
 	// happens only when Windows runs Explorer with administrator rights.
 	Elevated bool
@@ -45,6 +47,11 @@ func (p *Parent) Close() {
 	if p != nil && p.handle != 0 {
 		windows.CloseHandle(p.handle)
 		p.handle = 0
+	}
+	if p != nil {
+		// syscall.SecurityAttributes stores an address, so explicitly retain
+		// its descriptor through the caller's process creation and cleanup.
+		runtime.KeepAlive(p.security)
 	}
 }
 
@@ -60,7 +67,7 @@ func Open() (*Parent, error) {
 	if pid == 0 {
 		return nil, ErrDesktopUnavailable
 	}
-	process, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.PROCESS_CREATE_PROCESS|windows.PROCESS_DUP_HANDLE, false, pid)
+	process, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.PROCESS_CREATE_PROCESS|windows.PROCESS_DUP_HANDLE|windows.READ_CONTROL, false, pid)
 	if err != nil {
 		return nil, err
 	}
@@ -81,23 +88,45 @@ func Open() (*Parent, error) {
 	if !user.User.Sid.Equals(owner.User.Sid) {
 		return fail(ErrDifferentAccount)
 	}
+	// ParentProcess supplies the execution token, but default process/thread
+	// security still comes from the creator. Copy only the verified shell's
+	// access and integrity rules so an elevated creator cannot leave a normal
+	// child unable to open itself for Chromium/Crashpad IPC. Explorer is read-only.
+	security, err := windows.GetSecurityInfo(process, windows.SE_KERNEL_OBJECT,
+		windows.OWNER_SECURITY_INFORMATION|windows.GROUP_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION|windows.LABEL_SECURITY_INFORMATION)
+	if err != nil {
+		return fail(err)
+	}
 	// The desktop may have been recreated while it was being opened; a stale
 	// process must not become the parent of a newly started program.
 	if current, _, _ := procGetShellWindow.Call(); current != shell {
 		return fail(ErrDesktopUnavailable)
 	}
-	return &Parent{handle: process, Elevated: token.IsElevated()}, nil
+	return &Parent{handle: process, security: security, Elevated: token.IsElevated()}, nil
 }
 
-// Apply makes an exec.Cmd start under this parent. Go duplicates the standard
-// handles into the parent for the child, using PROCESS_DUP_HANDLE.
+// Apply sets the desktop parent and matching object permissions. Go duplicates
+// standard handles into the parent; keep Parent open until Start returns.
 func (p *Parent) Apply(attr *syscall.SysProcAttr) {
 	attr.ParentProcess = syscall.Handle(p.handle)
+	security := p.SecurityAttributes()
+	if attr.ProcessAttributes == nil {
+		attr.ProcessAttributes = &syscall.SecurityAttributes{Length: security.Length, SecurityDescriptor: uintptr(unsafe.Pointer(security.SecurityDescriptor))}
+	}
+	if attr.ThreadAttributes == nil {
+		attr.ThreadAttributes = &syscall.SecurityAttributes{Length: security.Length, SecurityDescriptor: uintptr(unsafe.Pointer(security.SecurityDescriptor))}
+	}
+}
+
+// SecurityAttributes is for the native console CreateProcess path. Keep Parent
+// open until creation completes. This does not make process handles inheritable.
+func (p *Parent) SecurityAttributes() *windows.SecurityAttributes {
+	return &windows.SecurityAttributes{Length: uint32(unsafe.Sizeof(windows.SecurityAttributes{})), SecurityDescriptor: p.security}
 }
 
 // StartupInfo returns an extended startup block naming this parent for a
-// direct CreateProcess call. The caller adds EXTENDED_STARTUPINFO_PRESENT and
-// calls release after CreateProcess has returned.
+// direct CreateProcess call with SecurityAttributes(). The caller adds
+// EXTENDED_STARTUPINFO_PRESENT and calls release after creation returns.
 func (p *Parent) StartupInfo(base windows.StartupInfo) (info *windows.StartupInfoEx, release func(), err error) {
 	list, err := windows.NewProcThreadAttributeList(1)
 	if err != nil {

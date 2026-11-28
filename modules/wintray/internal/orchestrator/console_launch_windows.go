@@ -51,6 +51,7 @@ func startConsoleProcess(command *exec.Cmd, hidden bool, parent *desktopparent.P
 		startup.ShowWindow = windows.SW_HIDE
 	}
 	startupInfo := &startup
+	var security *windows.SecurityAttributes
 	flags := uint32(windows.CREATE_NEW_CONSOLE | windows.CREATE_UNICODE_ENVIRONMENT | windows.CREATE_SUSPENDED)
 	if parent != nil {
 		extended, release, err := parent.StartupInfo(startup)
@@ -59,13 +60,14 @@ func startConsoleProcess(command *exec.Cmd, hidden bool, parent *desktopparent.P
 		}
 		defer release()
 		startupInfo = &extended.StartupInfo
+		security = parent.SecurityAttributes()
 		flags |= windows.EXTENDED_STARTUPINFO_PRESENT
 	}
 	var info windows.ProcessInformation
 	// Omit STARTF_USESTDHANDLES and handle inheritance: Windows creates stdin,
 	// stdout and stderr for this new console. Suspend only until ownership is
 	// acquired, so an initialization failure cannot orphan a running application.
-	if err = windows.CreateProcess(application, arguments, nil, nil, false, flags, &block[0], directory, startupInfo, &info); err != nil {
+	if err = windows.CreateProcess(application, arguments, security, security, false, flags, &block[0], directory, startupInfo, &info); err != nil {
 		return nil, err
 	}
 	defer windows.CloseHandle(info.Thread)
