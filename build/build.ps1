@@ -1,4 +1,4 @@
-param([string]$GoExe = 'go', [string]$CargoExe = 'cargo', [string]$Downloader, [switch]$SkipInstall, [string]$OutputDirectory = '_temp/build/current', [switch]$RunStartupProbes, [string]$UpdateRepository = '', [string]$ShareXSourceDirectory, [string]$RustTargetDirectory='dist/resources/cache/rust-desktop', [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='MyGo', [string]$OcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY, [string]$MagpieSourceDirectory=$env:WINONE_MAGPIE_SOURCE_DIRECTORY, [string]$PluginSourceDirectory=$env:WINONE_AI_PLUGIN_SOURCE_DIRECTORY, [string]$BunExe=$env:WINONE_AI_BUN_EXE, [string]$ResultGoExe=$env:WINONE_RESULT_GO_EXE, [string]$DiagramTargetDirectory='dist/resources/cache/rust-diagrams', [string]$SelectionTargetDirectory='dist/resources/cache/rust-selection', [string]$ModuleTrustFile='', [switch]$CompileOnly, [string]$NodeExe = 'node')
+param([string]$GoExe = 'go', [string]$CargoExe = 'cargo', [string]$Downloader, [switch]$SkipInstall, [string]$OutputDirectory = '_temp/build/current', [switch]$RunStartupProbes, [string]$UpdateRepository = '', [string]$ShareXSourceDirectory, [string]$RustTargetDirectory='dist/resources/cache/rust-desktop', [ValidateSet('Rust','Legacy','MyGo')][string]$DesktopImplementation='MyGo', [string]$OcrRuntimeDirectory=$env:WINONE_OCR_RUNTIME_DIRECTORY, [string]$MagpieSourceDirectory=$env:WINONE_MAGPIE_SOURCE_DIRECTORY, [string]$PluginSourceDirectory=$env:WINONE_AI_PLUGIN_SOURCE_DIRECTORY, [string]$BunExe=$env:WINONE_AI_BUN_EXE, [string]$ResultGoExe=$env:WINONE_RESULT_GO_EXE, [string]$DiagramTargetDirectory='dist/resources/cache/rust-diagrams', [string]$SelectionTargetDirectory='dist/resources/cache/rust-selection', [string]$ModuleTrustFile='', [switch]$CompileOnly, [string]$NodeExe = 'node', [string]$NativeCaptureWorkDirectory)
 $ErrorActionPreference = 'Stop'
 if($env:WINONE_NETWORK_TESTS -ne '1'){Write-Output 'Network tests are excluded from automatic build verification.'}
 # Explicit unattended build mode. Runtime/behavior tests are selected separately;
@@ -58,13 +58,13 @@ try { if(-not $CompileOnly){& $GoExe test ./...; CheckExit} } finally { Pop-Loca
 & $GoExe run github.com/akavel/rsrc@v0.10.2 -manifest build/windows/app.manifest -ico internal/branding/icon.ico -o modules/always-on-top/cmd/worker/resource_windows.syso; CheckExit
 & $GoExe build -trimpath -ldflags '-s -w -H windowsgui' -o (Join-Path $output 'always-on-top/WinOne.AlwaysOnTop.exe') ./modules/always-on-top/cmd/worker; CheckExit
 $nativeSource=& (Join-Path $PSScriptRoot 'prepare-capture-native-resources.ps1') -Downloader $Downloader
-$nativeWork=Join-Path (Split-Path -Parent $output) 'capture-native'
+$nativeWork=if($NativeCaptureWorkDirectory){[IO.Path]::GetFullPath((Join-Path $root $NativeCaptureWorkDirectory))}else{Join-Path (Split-Path -Parent $output) 'capture-native'}
 & (Join-Path $PSScriptRoot 'build-capture-native.ps1') -OutputDirectory (Join-Path $output 'capture') -WorkDirectory $nativeWork `
     -SourceDirectory $nativeSource -NodeExe $NodeExe -CargoExe $CargoExe -OcrRuntimeDirectory $OcrRuntimeDirectory `
     -RunTests:(-not $CompileOnly) -BuildProbe:$RunStartupProbes
 if($RunStartupProbes){
     $nativeProbe=Join-Path $nativeWork 'objects/Release/WinOne.NativeCapture.Probe.exe'
-    foreach($suite in @('smoke','annotations','resume','number','preferences','settings','toolbar','translation','scroll','save-dialog','save-failure','recording-options','pin','repeat','dialog-owner-exit','parent-exit')){
+    foreach($suite in @('collection','smoke','annotations','resume','number','preferences','settings','toolbar','translation','scroll','save-dialog','save-failure','recording-options','pin','repeat','dialog-owner-exit','parent-exit')){
         & (Join-Path $PSScriptRoot 'test-capture-native-cpp.ps1') -CaptureExe $nativeProbe -Suite $suite -OutputDirectory (Join-Path $nativeWork ('ui-'+$suite+'-'+[guid]::NewGuid().ToString('N')))
     }
     $recordingTest=Join-Path $nativeWork 'recording-source-test'

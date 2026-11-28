@@ -11,6 +11,7 @@
   {"id":"move","zh":"移动标注","en":"Move annotation","key":"V","command":"WinOneMove"},
   {"id":"region","zh":"调整选区","en":"Adjust selection","key":"E","command":"WinOneRegion"},
   {"id":"ocr","zh":"识别文字","en":"Recognize text","key":"I","command":"ExtractText"},
+  {"id":"collect","zh":"连续采集文字","en":"Collect text fragments","key":"Ctrl+Shift+C","command":"WinOneCollect"},
   {"id":"translate","zh":"翻译","en":"Translate","key":"Ctrl+Shift+T","command":"Translate"},
   {"id":"undo","zh":"撤销","en":"Undo","key":"Ctrl+Z","command":"Undo"},
   {"id":"redo","zh":"重做","en":"Redo","key":"Ctrl+Y","command":"Redo"},

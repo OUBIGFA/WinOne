@@ -51,10 +51,12 @@ internal sealed class OcrWorker : IDisposable
                 if (input.Read(header, 0, 1) == 0) return 0;
                 input.ReadExactly(header.AsSpan(1));
                 uint length = BinaryPrimitives.ReadUInt32LittleEndian(header);
+                bool frameLayout = layout || (length & 0x80000000u) != 0;
+                length &= 0x7fffffffu;
                 if (length > MaximumBytes) throw new InvalidDataException("Invalid frame size");
                 var data = new byte[length];
                 input.ReadExactly(data);
-                worker.Respond(data, layout);
+                worker.Respond(data, frameLayout);
             }
         }
         catch (Exception error)

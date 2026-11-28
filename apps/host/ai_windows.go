@@ -296,15 +296,17 @@ func (s *aiService) handle(r host.Request) host.Response {
 		return result(saved)
 	case "translate.start", "generate.start", "recognize.start":
 		var p struct {
-			Text      string             `json:"text"`
-			Prompt    string             `json:"prompt,omitempty"`
-			System    string             `json:"system,omitempty"`
-			Purpose   string             `json:"purpose,omitempty"`
-			Image     *ai.ImageReference `json:"image,omitempty"`
-			Messages  []ai.Message       `json:"messages,omitempty"`
-			Target    string             `json:"target,omitempty"`
-			Session   string             `json:"session,omitempty"`
-			Selection *ai.Selection      `json:"selection,omitempty"`
+			Text       string             `json:"text"`
+			Layout     bool               `json:"layout,omitempty"`
+			AllowEmpty bool               `json:"allowEmpty,omitempty"`
+			Prompt     string             `json:"prompt,omitempty"`
+			System     string             `json:"system,omitempty"`
+			Purpose    string             `json:"purpose,omitempty"`
+			Image      *ai.ImageReference `json:"image,omitempty"`
+			Messages   []ai.Message       `json:"messages,omitempty"`
+			Target     string             `json:"target,omitempty"`
+			Session    string             `json:"session,omitempty"`
+			Selection  *ai.Selection      `json:"selection,omitempty"`
 		}
 		if err := configjson.DecodeObject(r.Params, &p); err != nil {
 			return fail(err)
@@ -326,7 +328,22 @@ func (s *aiService) handle(r host.Request) host.Response {
 		} else if r.Method == "recognize.start" {
 			task = "ocr"
 		}
-		preferences, keyPlan, err := s.store.ForTaskKeys(task, p.Selection)
+		if p.Layout && (r.Method != "recognize.start" || p.Selection != nil) {
+			return fail(errors.New("版面识别只接受本地图片"))
+		}
+		if p.AllowEmpty && (r.Method != "recognize.start" || p.Layout) {
+			return fail(errors.New("片段识别参数无效"))
+		}
+		var preferences ai.Preferences
+		var keyPlan ai.KeyPlan
+		var err error
+		if p.Layout {
+			// Geometry is a local capture service, independent of cloud OCR
+			// preferences and credentials; it shares the already prepared worker.
+			preferences.OCREngine = "local"
+		} else {
+			preferences, keyPlan, err = s.store.ForTaskKeys(task, p.Selection)
+		}
 		if err != nil {
 			return fail(err)
 		}
@@ -460,6 +477,12 @@ func (s *aiService) handle(r host.Request) host.Response {
 					runtime = runtime.ForProvider(preferences.ProviderID)
 				}
 				if r.Method == "recognize.start" && preferences.OCREngine != "ai" {
+					if p.Layout {
+						return s.localOCR.RecognizeLayout(callCtx, input.ImagePNG)
+					}
+					if p.AllowEmpty {
+						return s.localOCR.RecognizeFragment(callCtx, input.ImagePNG)
+					}
 					return s.localOCR.Recognize(callCtx, input.ImagePNG)
 				}
 				if r.Method == "generate.start" || r.Method == "recognize.start" {

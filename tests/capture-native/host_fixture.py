@@ -7,6 +7,7 @@ import struct
 import threading
 import time
 import uuid
+import subprocess
 
 class HostFixture:
     def __init__(self, directory, settings):
@@ -15,6 +16,9 @@ class HostFixture:
         self.translation_polls=0
         self.ocr_ready=False
         self.ocr_failure=False
+        self.collection=False
+        self.ocr_sizes=[]
+        self.ocr_executable=None
         self.name='\\\\.\\pipe\\WinOne-NativeHost-Test-'+uuid.uuid4().hex
         self.k=ctypes.WinDLL('kernel32',use_last_error=True)
         self.k.CreateNamedPipeW.argtypes=[w.LPCWSTR,w.DWORD,w.DWORD,w.DWORD,w.DWORD,w.DWORD,w.DWORD,ctypes.c_void_p];self.k.CreateNamedPipeW.restype=w.HANDLE
@@ -57,12 +61,21 @@ class HostFixture:
                 if not view:raise ctypes.WinError(ctypes.get_last_error())
                 import io
                 from PIL import Image
-                with Image.open(io.BytesIO(ctypes.string_at(view,image['bytes']))) as frame:
-                    if frame.size!=(460,280):raise AssertionError(f'OCR crop differs: {frame.size}')
+                png=ctypes.string_at(view,image['bytes'])
+                with Image.open(io.BytesIO(png)) as frame:
+                    if not self.collection and not params.get('layout') and frame.size!=(460,280):raise AssertionError(f'OCR crop differs: {frame.size}')
+                    size=frame.size
+                    self.ocr_sizes.append(list(size))
             finally:
                 if view:self.k.UnmapViewOfFile(view)
                 self.k.CloseHandle(mapping)
-            identifier=uuid.uuid4().hex;self.jobs[identifier]={'id':identifier,'ocr':True}
+            identifier=uuid.uuid4().hex;self.jobs[identifier]={'id':identifier,'ocr':True,'layout':params.get('layout',False),'size':size}
+            if params.get('layout'):
+                if not self.ocr_executable:raise ValueError('Geometry tests require the actual native OCR executable')
+                executable=Path(self.ocr_executable)
+                result=subprocess.run([str(executable),'--ocr-worker',str(executable.parent/'Ocr'),'--pin-layout'],input=png,capture_output=True,timeout=30,creationflags=0x08000000,check=True)
+                layout=json.loads(result.stdout)['layout']
+                self.jobs[identifier]['layoutResult']=json.dumps(layout)
             return {'id':identifier,'state':'running'}
         if method=='ai.translate.target':return {'target':'zh-CN'}
         if method=='ai.translate.start':
@@ -71,6 +84,8 @@ class HostFixture:
         if method=='ai.jobs.get':
             job=self.jobs[params['id']]
             if job.get('ocr'):
+                if job.get('layout'):
+                    return {'id':job['id'],'state':'completed','text':job['layoutResult'][params.get('textOffset',0):]}
                 if not self.ocr_ready:
                     time.sleep(.01)
                     return {'id':job['id'],'state':'running'}
@@ -79,7 +94,9 @@ class HostFixture:
             if job['remaining']:
                 job['remaining']-=1
                 return {'id':job['id'],'state':'running'}
-            return job
+            result=dict(job)
+            result['text']=job.get('text','')[params.get('textOffset',0):]
+            return result
         if method=='ai.jobs.cancel':self.jobs.pop(params['id'],None);return {'cancelled':True}
         raise ValueError('Unexpected local fixture method '+method)
     def serve(self):

@@ -1794,5 +1794,8 @@
   "ai.billingPAYG": "按量计费",
   "ai.removeAccount": "移除此账号",
   "ai.importSetupHint": "先复制服务商文档里的 cURL 示例或连接说明，再点击导入，自动填写协议、地址和密钥。",
-  "ai.importSetupAction": "导入"
+  "ai.importSetupAction": "导入",
+  "capture.collection": "连续采集",
+  "capture.multiRegionSelection": "截图时默认连续采集文字",
+  "capture.multiRegionSelectionHint": "连续框选多个片段，可切换界面后继续。完成后统一识别并编辑或复制。"
 }

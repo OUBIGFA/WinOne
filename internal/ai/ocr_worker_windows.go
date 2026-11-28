@@ -160,7 +160,7 @@ func (s *LocalOCR) start() error {
 		return errors.New("OCR 无法启动，请修复安装")
 	}
 	output := bufio.NewScanner(p.output)
-	output.Buffer(make([]byte, 4096), 1024*1024)
+	output.Buffer(make([]byte, 4096), 64*1024*1024)
 	worker := &ocrWorker{process: p, output: output}
 	s.worker = worker
 	s.processID.Store(int64(p.cmd.Process.Pid))
@@ -211,7 +211,27 @@ func (s *LocalOCR) Recognize(ctx context.Context, image []byte) (string, error) 
 	return s.exchange(ctx, image, false)
 }
 
-func (s *LocalOCR) exchange(ctx context.Context, image []byte, prepare bool) (string, error) {
+// Layout and plain text share the same prepared model and cancellation gate.
+// The high frame bit selects geometry; the remaining bits keep the PNG length.
+func (s *LocalOCR) RecognizeLayout(ctx context.Context, image []byte) (string, error) {
+	return s.exchange(ctx, image, false, ocrLayout)
+}
+
+type ocrOutput uint8
+
+const (
+	ocrText ocrOutput = iota
+	ocrLayout
+	ocrFragment
+)
+
+// A blank fragment is valid inside an ordered collection. Real worker errors
+// still fail the batch and leave its images available for correction/retry.
+func (s *LocalOCR) RecognizeFragment(ctx context.Context, image []byte) (string, error) {
+	return s.exchange(ctx, image, false, ocrFragment)
+}
+
+func (s *LocalOCR) exchange(ctx context.Context, image []byte, prepare bool, output ...ocrOutput) (string, error) {
 	if !prepare && (len(image) == 0 || len(image) > 32<<20) {
 		return "", errors.New("OCR 图片为空或过大")
 	}
@@ -225,10 +245,15 @@ func (s *LocalOCR) exchange(ctx context.Context, image []byte, prepare bool) (st
 		return "", s.lifetime.Err()
 	}
 	defer func() { <-s.gate }()
-	return s.exchangeLocked(ctx, image, prepare)
+	return s.exchangeLocked(ctx, image, prepare, output...)
 }
 
-func (s *LocalOCR) exchangeLocked(ctx context.Context, image []byte, prepare bool) (string, error) {
+func (s *LocalOCR) exchangeLocked(ctx context.Context, image []byte, prepare bool, output ...ocrOutput) (string, error) {
+	mode := ocrText
+	if len(output) > 0 {
+		mode = output[0]
+	}
+	wantLayout := mode == ocrLayout
 	if !filepath.IsAbs(s.runtime.Executable) || !filepath.IsAbs(s.runtime.DataDirectory) {
 		return "", errors.New("OCR 运行路径无效")
 	}
@@ -274,7 +299,11 @@ func (s *LocalOCR) exchangeLocked(ctx context.Context, image []byte, prepare boo
 	cancelled := make(chan struct{})
 	stopCancellation := context.AfterFunc(ctx, func() { worker.process.closeJob(); close(cancelled) })
 	var header [4]byte
-	binary.LittleEndian.PutUint32(header[:], uint32(len(image)))
+	length := uint32(len(image))
+	if wantLayout {
+		length |= 1 << 31
+	}
+	binary.LittleEndian.PutUint32(header[:], length)
 	_, err := worker.process.input.Write(header[:])
 	if err == nil {
 		_, err = worker.process.input.Write(image)
@@ -298,12 +327,13 @@ func (s *LocalOCR) exchangeLocked(ctx context.Context, image []byte, prepare boo
 		return "", errors.New("OCR 响应无法读取或过大，请重试")
 	}
 	var result struct {
-		Text     *string `json:"text"`
-		Prepared bool    `json:"prepared"`
-		Device   string  `json:"device"`
-		Error    string  `json:"error"`
+		Text     *string         `json:"text"`
+		Layout   json.RawMessage `json:"layout"`
+		Prepared bool            `json:"prepared"`
+		Device   string          `json:"device"`
+		Error    string          `json:"error"`
 	}
-	if json.Unmarshal(worker.output.Bytes(), &result) != nil || result.Error == "" && (prepare && !result.Prepared || !prepare && result.Text == nil) {
+	if json.Unmarshal(worker.output.Bytes(), &result) != nil || result.Error == "" && (prepare && !result.Prepared || !prepare && !wantLayout && result.Text == nil || wantLayout && len(result.Layout) == 0) {
 		s.retire()
 		return "", errors.New("OCR 响应无效，请重试")
 	}
@@ -329,7 +359,10 @@ func (s *LocalOCR) exchangeLocked(ctx context.Context, image []byte, prepare boo
 	if prepare {
 		return "", nil
 	}
-	if strings.TrimSpace(*result.Text) == "" {
+	if wantLayout {
+		return string(result.Layout), nil
+	}
+	if strings.TrimSpace(*result.Text) == "" && mode != ocrFragment {
 		return "", errors.New("未识别到文字，请重新选择区域")
 	}
 	return *result.Text, nil

@@ -1903,7 +1903,7 @@
       "files": [
         {
           "path": "build/prepare-capture-native.mjs",
-          "sha256": "3570d4ab1ba86f545165576063a19f61a794f51c569d1e027d96692241165ec2"
+          "sha256": "593c4f912302cf0593b299030e2e2e4895feba1e5e8ca153dba35bf573f87645"
         },
         {
           "path": "build/prepare-capture-native-resources.ps1",
@@ -1911,7 +1911,7 @@
         },
         {
           "path": "modules/capture-native/CMakeLists.txt",
-          "sha256": "edd431c098f1e84585136b3ecec7bba8958ebc36cf0248f3bea55f1ed7962eee"
+          "sha256": "6c83978ab8bc4c21eebb5caeb77bd7f33aa4407260e305d6af7bc42261992f4d"
         },
         {
           "path": "modules/capture-native/number_label.h",
@@ -1927,7 +1927,7 @@
         },
         {
           "path": "third_party/tools3000/source.json",
-          "sha256": "e1464c52b608fc1b0348e5a9c9a48ef072e29a0251ba20658fdcb9e7c0aba0a3"
+          "sha256": "6ac504048f5ccfb3ebdaa50608c1ec2ffcf1526898029ecd210e6aa3ec2cfa42"
         },
         {
           "path": "modules/capture-native/ocr_model_state.h",
@@ -1963,6 +1963,72 @@
       "sourceSHA256": {
         "include/wxx_richedit.h": "76797d084c9a4c0915d44dc9e1f531ab2ab36300ba8f7e481a893a67606f557e"
       }
+    },
+    {
+      "commit": "39416254c48aa7633254ecb79f890802fea2b401",
+      "repository": "https://github.com/Loecedas/SnapFind",
+      "notices": [
+        {
+          "sha256": "53f2a24a0e755df60ac11315aa2dec934e9a02f38c60baf1e499662dc588f49b",
+          "file": "licenses/snapfind-MIT.txt"
+        }
+      ],
+      "scope": "SelectedRegionItem, ordered collection, cross-window staging, thumbnail drawer, move/delete/undo and editable OCR interaction ported from C#/WPF to existing WinOne C++ capture and MyGo result UI. Search, plugin runtime, OCR engine/model switching and idle unloading excluded by user request. Original sources retained for review; not compiled or bundled.",
+      "files": [
+        {
+          "sha256": "53f2a24a0e755df60ac11315aa2dec934e9a02f38c60baf1e499662dc588f49b",
+          "path": "third_party/snapfind/LICENSE.md"
+        },
+        {
+          "sha256": "d955c6f2b4d3058eaee8ceec37a182b17ed71abe29275ebe3088a964aad0e2e0",
+          "path": "third_party/snapfind/src__App.xaml.cs"
+        },
+        {
+          "sha256": "786c747898b773d38f945432848a497ba63934be086d176f788ad7dbcd234d21",
+          "path": "third_party/snapfind/src__EditWindow.xaml"
+        },
+        {
+          "sha256": "1809a4e9120c564620469dfc69d17b525ff6cfeba1d189b9217ea14781e97a78",
+          "path": "third_party/snapfind/src__EditWindow.xaml.cs"
+        },
+        {
+          "sha256": "50876540ae965a84abdcd490954b1a521853f9bfcea7c9c0a859259f2a871d45",
+          "path": "third_party/snapfind/src__MultiSessionBarWindow.xaml.cs"
+        },
+        {
+          "sha256": "249c06c7e98ab96ca8a5c9733bac1e966ac8efcc31b279d4b50b236553539a6f",
+          "path": "third_party/snapfind/src__ScreenshotWindow.xaml.cs"
+        },
+        {
+          "sha256": "1dc50691e7ea6c8a5fb9b06696fe1c81604348c57817849ce711f61ea68afb48",
+          "path": "modules/capture-native/capture_collection.h"
+        },
+        {
+          "sha256": "33f57bc5cadea457d1b285cf133161aa9e24b4813476d9add1d0e7c7d748cfe7",
+          "path": "modules/capture-native/capture_collection.cpp"
+        },
+        {
+          "sha256": "783a7db06a3e68e761052a87186b9c8df4bb182c6d7d300d7cd0a6d24b95f035",
+          "path": "modules/capture-native/collection_window.h"
+        },
+        {
+          "sha256": "358303bc06516839b1e38e713e04d306dd8e6d31df528410b821fa10325dd5aa",
+          "path": "modules/capture-native/collection_window.cpp"
+        },
+        {
+          "sha256": "77767dc1d9c89c4249c47f49649aaf4cb493c70e16da94ea340be8c2449ccb70",
+          "path": "apps/result-ui/ocr_edit.go"
+        }
+      ],
+      "license": "MIT",
+      "name": "SnapFind capture collection and OCR editing",
+      "sourceFiles": [
+        "src/ScreenshotWindow.xaml.cs",
+        "src/MultiSessionBarWindow.xaml.cs",
+        "src/App.xaml.cs",
+        "src/EditWindow.xaml.cs",
+        "src/EditWindow.xaml"
+      ]
     }
   ]
 }

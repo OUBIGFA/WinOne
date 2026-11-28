@@ -132,6 +132,7 @@ func (s *resultWindows) handle(request host.Request) host.Response {
 		ID            string             `json:"id"`
 		Token         string             `json:"token,omitempty"`
 		Mode          string             `json:"mode,omitempty"`
+		Text          string             `json:"text,omitempty"`
 		Image         *ai.ImageReference `json:"image,omitempty"`
 		Window        string             `json:"window,omitempty"`
 		Term          string             `json:"term,omitempty"`
@@ -175,11 +176,16 @@ func (s *resultWindows) handle(request host.Request) host.Response {
 			pid = entry.process.cmd.Process.Pid
 		}
 		return respond(map[string]any{"id": input.ID, "processId": pid, "ready": entry.attached, "window": entry.window}, nil)
-	case "open":
-		if input.Image == nil || (input.Mode != "ocr" && input.Mode != "translate") {
+	case "open", "openText":
+		if request.Method == "open" && (input.Image == nil || (input.Mode != "ocr" && input.Mode != "translate")) || request.Method == "openText" && (input.Image != nil || strings.TrimSpace(input.Text) == "" || len(input.Text) > 512*1024 || !utf8.ValidString(input.Text)) {
 			return respond(nil, errors.New("结果窗口请求无效"))
 		}
-		err := s.open(input.ID, input.Mode, *input.Image, request.PeerPID)
+		var err error
+		if request.Method == "openText" {
+			err = s.openSource(input.ID, "ocr-text", nil, input.Text, [2]int32{}, request.PeerPID, nil)
+		} else {
+			err = s.open(input.ID, input.Mode, *input.Image, request.PeerPID)
+		}
 		if err != nil {
 			return respond(nil, err)
 		}
@@ -337,7 +343,7 @@ func (s *resultWindows) openSource(id, mode string, image *ai.ImageReference, te
 		return errors.New("结果窗口标识无效")
 	}
 	s.mu.Lock()
-	if image == nil && mode != "chat" && !s.selectionAllowed {
+	if image == nil && mode != "chat" && mode != "ocr-text" && !s.selectionAllowed {
 		s.mu.Unlock()
 		return errors.New("划词助手已关闭")
 	}
@@ -359,6 +365,9 @@ func (s *resultWindows) openSource(id, mode string, image *ai.ImageReference, te
 		entry.source = "selection"
 		if mode == "chat" {
 			entry.source = "quick-assistant"
+		}
+		if mode == "ocr-text" {
+			entry.source = "capture-collection"
 		}
 	}
 	s.sessions[id] = entry
@@ -388,7 +397,10 @@ func (s *resultWindows) openSource(id, mode string, image *ai.ImageReference, te
 	if image == nil {
 		command.Initial.Source = entry.source
 		command.Initial.Text = text
-		command.Initial.Toolbar = mode != "chat"
+		command.Initial.Toolbar = mode != "chat" && mode != "ocr-text"
+		if mode == "ocr-text" {
+			command.Initial.Mode = "ocr"
+		}
 		command.Initial.Anchor = anchor
 		command.Initial.Actions = actions
 	}

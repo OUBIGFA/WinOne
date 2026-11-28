@@ -32,11 +32,17 @@ func TestMain(m *testing.M) {
 				_ = json.NewEncoder(os.Stdout).Encode(map[string]any{"prepared": true, "device": "gpu"})
 				continue
 			}
+			layout := length&(1<<31) != 0
+			length &= ^uint32(1 << 31)
 			data := make([]byte, length)
 			if _, err := io.ReadFull(os.Stdin, data); err != nil {
 				os.Exit(1)
 			}
 			payload := string(data)
+			if layout {
+				_ = json.NewEncoder(os.Stdout).Encode(map[string]any{"layout": map[string]any{"lines": []any{map[string]any{"text": strconv.Itoa(os.Getpid()) + ":" + payload, "box": []int{3, 4, 90, 20}, "glyphs": []any{map[string]any{"text": "G", "box": []int{3, 4, 9, 20}}}}}}, "device": "cpu"})
+				continue
+			}
 			if strings.HasPrefix(payload, "wait:") {
 				if err := os.WriteFile(strings.TrimPrefix(payload, "wait:"), []byte(strconv.Itoa(os.Getpid())), 0600); err != nil {
 					os.Exit(1)

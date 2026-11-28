@@ -61,7 +61,7 @@ func TestCanvasShortcutsDisclosureCustomStatusConflictAndReset(t *testing.T) {
 	if !tt.HasText("矩形") || tt.HasText("复制并结束") || tt.HasText("识别文字") {
 		t.Fatalf("unexpected initial disclosure state, texts: %q", tt.Texts())
 	}
-	if !tt.HasText("11 项") || !tt.HasText("6 项") || !tt.HasText("5 项") {
+	if !tt.HasText("11 项") || !tt.HasText("6 项") {
 		t.Fatalf("expected group summaries, texts: %q", tt.Texts())
 	}
 

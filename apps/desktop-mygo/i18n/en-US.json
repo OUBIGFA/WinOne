@@ -1800,5 +1800,8 @@
   "ai.billingPAYG": "Pay as you go",
   "ai.removeAccount": "Remove account",
   "ai.importSetupHint": "Copy a cURL example or the connection details from the provider’s docs, then import to fill in the API, address and key.",
-  "ai.importSetupAction": "Import"
+  "ai.importSetupAction": "Import",
+  "capture.collection": "Text collection",
+  "capture.multiRegionSelection": "Collect text fragments by default",
+  "capture.multiRegionSelectionHint": "Select several fragments and continue across windows. Finish to edit or copy the combined text."
 }

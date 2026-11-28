@@ -14,10 +14,12 @@ public:
     HostBridge(std::wstring pipe, DWORD parent) : pipe_(std::move(pipe)), parent_(parent) {}
     json call(std::string_view method, const json& parameters = json::object(), HANDLE stop = nullptr,
               DWORD timeout = 5000, std::string requestId = {}) const;
-    std::string recognize(const cv::Mat& image, const std::atomic<bool>* cancelled = nullptr) const;
+    std::string recognize(const cv::Mat& image, const std::atomic<bool>* cancelled = nullptr, bool allowEmpty = false) const;
+    json recognizeLayout(const cv::Mat& image, const std::atomic<bool>* cancelled = nullptr) const;
     std::string translate(std::string_view text, std::string_view target, const std::atomic<bool>* cancelled = nullptr) const;
     std::string target(std::string_view text) const;
     std::string openResult(const cv::Mat& image, bool translate, const std::atomic<bool>* cancelled = nullptr) const;
+    std::string openTextResult(std::string_view text, const std::atomic<bool>* cancelled = nullptr) const;
     json saveToolbar(const json& tools) const;
     void prepareOCR() const;
 private:

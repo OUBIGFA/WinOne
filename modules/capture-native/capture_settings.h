@@ -9,10 +9,10 @@ inline json normalizeCaptureSettings(json value) {
     if (!value.is_object()) throw std::runtime_error("截图配置必须为对象");
     const std::set<std::string> fields{"schemaVersion","revision","outputDirectory","copyToClipboard","askWhereToSave","openEditor",
         "pinAfterCapture","pinTranslation","theme","scrollDelay","scrollFromTop","toolbarTools","toolbarVersion","fileNameTemplate",
-        "videoAskWhereToSave","gifAskWhereToSave","videoOutputDirectory","gifOutputDirectory","canvasShortcuts"};
+        "videoAskWhereToSave","gifAskWhereToSave","videoOutputDirectory","gifOutputDirectory","canvasShortcuts","multiRegionSelection"};
     for (const auto& [key, unused] : value.items()) if (!fields.contains(key)) throw std::runtime_error("截图配置包含未知字段：" + key);
     json defaults{{"schemaVersion",1},{"revision",0},{"copyToClipboard",true},{"askWhereToSave",false},{"openEditor",true},
-        {"pinAfterCapture",false},{"pinTranslation",false},{"theme","system"},{"scrollDelay",300},{"scrollFromTop",false},
+        {"pinAfterCapture",false},{"pinTranslation",false},{"multiRegionSelection",false},{"theme","system"},{"scrollDelay",300},{"scrollFromTop",false},
         {"toolbarTools",nullptr},{"toolbarVersion",0},{"fileNameTemplate",nullptr},
         {"videoAskWhereToSave",true},{"gifAskWhereToSave",true},{"videoOutputDirectory",""},{"gifOutputDirectory",""}};
     for (const auto& [key, fallback] : defaults.items()) if (!value.contains(key)) value[key] = fallback;
@@ -21,7 +21,7 @@ inline json normalizeCaptureSettings(json value) {
         !value.contains("outputDirectory") || !value["outputDirectory"].is_string() ||
         !std::filesystem::path(wide(value["outputDirectory"].get<std::string>())).is_absolute())
         throw std::runtime_error("截图配置版本或保存目录无效");
-    for (const auto* key : {"copyToClipboard","askWhereToSave","openEditor","pinAfterCapture","pinTranslation","scrollFromTop","videoAskWhereToSave","gifAskWhereToSave"})
+    for (const auto* key : {"copyToClipboard","askWhereToSave","openEditor","pinAfterCapture","pinTranslation","multiRegionSelection","scrollFromTop","videoAskWhereToSave","gifAskWhereToSave"})
         if (!value[key].is_boolean()) throw std::runtime_error("截图开关配置无效");
     for (const auto* key : {"videoOutputDirectory","gifOutputDirectory"}) {
         if (!value[key].is_string()) throw std::runtime_error("录制保存目录无效");

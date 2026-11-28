@@ -41,7 +41,7 @@ var canvasShortcutGroups = []canvasShortcutGroup{
 		id:        "capture",
 		zh:        "识别与录制",
 		en:        "Recognition & recording",
-		actionIDs: []string{"ocr", "translate", "scroll", "video", "gif"},
+		actionIDs: []string{"ocr", "collect", "translate", "scroll", "video", "gif"},
 	},
 }
 

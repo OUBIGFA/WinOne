@@ -44,6 +44,7 @@ type Actions struct {
 	NewChat                           func()
 	ClearAll, Restart                 func()
 	Copy                              func(string)
+	EditOriginal                      func(string)
 	Speak                             func(key, text string, markdown bool)
 	Retry, RetryResult, Cancel, Close func()
 	Send                              func(string)
@@ -68,6 +69,8 @@ type Panel struct {
 	Source, Action                                      string
 	ActionLabel                                         string
 	Original, Result, Prompt, Error, Notice             string
+	editingOriginal, focusOriginal                      bool
+	originalDraft                                       string
 	errorVisibility, noticeVisibility, speechVisibility feedbackVisibility
 	composerHintVisibility                              feedbackVisibility
 	Target                                              string

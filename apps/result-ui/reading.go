@@ -87,6 +87,7 @@ func (p *Panel) original(c *ui.Context, t *ui.Theme) {
 	ui.Column(c).Key("original-preview").FillWidth().Gap(4).Children(func() {
 		ui.Row(c).FillWidth().MinHeight(iconButtonSize).AlignItems(ui.Center).Gap(4).Children(func() {
 			ui.Text(c, p.T("原文", "Original")).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted).Grow(1).MinWidth(0)
+			p.editOriginalButton(c)
 			p.speechButton(c, "original", p.Original, p.T("朗读原文", "Read original aloud"), false, false)
 			if iconButton(c, "copy", p.T("复制原文", "Copy original"), false).Clicked() && p.Actions.Copy != nil {
 				p.Actions.Copy(p.Original)
@@ -94,6 +95,9 @@ func (p *Panel) original(c *ui.Context, t *ui.Theme) {
 		})
 		// OCR hard wraps belong to the copied source, not to this two-line
 		// preview. The source stays muted: the translation is the task.
+		if p.originalEditor(c, t) {
+			return
+		}
 		preview := strings.Join(strings.Fields(p.Original), " ")
 		p.selectable(c, ui.Column(c).Key("original-body").FillWidth(), func() {
 			ui.Text(c, preview).FillWidth().FontSize(em(t, sizeLabel)).TextColor(t.TextMuted).LineHeight(1.5).MaxLines(2).Ellipsis("…")
@@ -139,7 +143,10 @@ func (p *Panel) result(c *ui.Context, t *ui.Theme) {
 			default:
 				ui.Text(c, label).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted).Grow(1).MinWidth(0)
 			}
-			if iconButton(c, "retry", p.T("重试", "Retry"), p.Busy).Clicked() && p.Actions.RetryResult != nil {
+			if p.Mode == "ocr" {
+				p.editOriginalButton(c)
+			}
+			if p.Source != "capture-collection" && iconButton(c, "retry", p.T("重试", "Retry"), p.Busy).Clicked() && p.Actions.RetryResult != nil {
 				p.Actions.RetryResult()
 			}
 			speechLabel := p.T("朗读原文", "Read original aloud")
@@ -161,6 +168,9 @@ func (p *Panel) result(c *ui.Context, t *ui.Theme) {
 				p.targetLanguage(c)
 				p.translationModelPicker(c, t)
 			})
+		}
+		if p.Mode == "ocr" && p.originalEditor(c, t) {
+			return
 		}
 		if p.Result != "" {
 			p.markdownView(c, "result-body", p.Study.displayAnalysis(p.Result), markdownResult, false)

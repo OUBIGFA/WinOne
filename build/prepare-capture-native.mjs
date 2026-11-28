@@ -98,7 +98,8 @@ await adapt('src/capture/CaptureOverlay.h', [
 ]);
 
 await adapt('src/capture/CaptureState.h', [
-    ['enum class ToolbarCommand {', 'enum class ToolbarCommand {\n    WinOneRecordCodec, WinOneGifQuality, WinOneGifSeconds, WinOneRecordCursor, WinOneRecordDestination, WinOneMove, WinOneRegion, WinOneCover, WinOneCustomize, WinOneRecordGif, WinOneSaveAs, WinOneRetake,'],
+    ['#include <d2d1.h>', '#include <d2d1.h>\n#include <dwrite.h>'],
+    ['enum class ToolbarCommand {', 'enum class ToolbarCommand {\n    WinOneRecordCodec, WinOneCollect, WinOneGifQuality, WinOneGifSeconds, WinOneRecordCursor, WinOneRecordDestination, WinOneMove, WinOneRegion, WinOneCover, WinOneCustomize, WinOneRecordGif, WinOneSaveAs, WinOneRetake,'],
     ['    None = 0,\n    RecordFormat,', '    None = 0,\n    WinOneToolbar, WinOneCodec, WinOneQuality, WinOneSeconds,\n    RecordFormat,'],
     ['    cv::Mat frozenScreen;', `    // A translated view is separate from original pixels and editable marks.
     cv::Mat winoneTranslated;
@@ -106,6 +107,10 @@ await adapt('src/capture/CaptureState.h', [
     bool winoneRegionTool = false;
     bool winoneMoveTool = false;
     bool winoneLiveCapture = false;
+    bool winoneCollecting = false;
+    std::function<void()> winoneCollect;
+    std::function<bool(HWND,UINT,WPARAM,LPARAM)> winoneCollectionInput;
+    std::function<void(ID2D1RenderTarget*,IDWriteTextFormat*,ID2D1Brush*,ID2D1Brush*)> winoneCollectionDraw;
     float winoneProgress = -1.f;
     std::wstring winoneProgressText;
     std::function<void(uint32_t)> winoneEditNumber;
@@ -153,7 +158,8 @@ await adapt('src/capture/CaptureOverlay.cpp', [
         return;
     }`],
     ['void CaptureOverlay::resetTransientOverlayState() {', 'void CaptureOverlay::resetTransientOverlayState() {\n    m_state.winoneScrollReady = false;\n    m_state.winoneLiveCapture = false;\n    m_state.winoneMoveTool = false;\n    m_state.winoneRegionTool = false;\n    m_state.winoneProgress = -1;\n    m_state.winoneProgressText.clear();\n    m_state.winoneTranslated.release();\n    m_state.winoneShowTranslated = false;'],
-    ['            return self->m_input.handleMessage(hwnd, msg, wParam, lParam);', `            const bool wasSelecting = self->m_state.state.load() == OverlayState::Selecting;
+    ['            return self->m_input.handleMessage(hwnd, msg, wParam, lParam);', `            if (self->m_state.winoneCollectionInput && self->m_state.winoneCollectionInput(hwnd,msg,wParam,lParam)) return 0;
+            const bool wasSelecting = self->m_state.state.load() == OverlayState::Selecting;
             const auto result = self->m_input.handleMessage(hwnd, msg, wParam, lParam);
             if (msg == WM_LBUTTONUP && wasSelecting && self->m_state.state.load() == OverlayState::Selected && self->m_state.winoneSelected)
                 self->m_state.winoneSelected();
@@ -320,7 +326,8 @@ await adapt('src/capture/CaptureRenderer.cpp', [
     let text = prepared.get(relative).toString('utf8');
     const anchor = 'recoverFromDeviceLoss(m_renderTarget->EndDraw());';
     if (text.split(anchor).length !== 4) throw Error('Community frame presentation changed');
-    text = text.replaceAll(anchor, `if (auto readback = reinterpret_cast<void(*)(void*)>(GetProcAddress(GetModuleHandleW(nullptr), "WinOneNativeRenderedFrame")))
+    text = text.replaceAll(anchor, `if (state.winoneCollectionDraw) state.winoneCollectionDraw(m_renderTarget.Get(),m_infoTextFormat.Get(),m_infoTextBrush.Get(),m_infoBgBrush.Get());
+        if (auto readback = reinterpret_cast<void(*)(void*)>(GetProcAddress(GetModuleHandleW(nullptr), "WinOneNativeRenderedFrame")))
             readback(m_renderTarget.Get());
         recoverFromDeviceLoss(m_renderTarget->EndDraw());`);
     prepared.set(relative, Buffer.from(text));
@@ -334,6 +341,8 @@ await adapt('src/capture/CaptureInputCommands.cpp', [
         m_state->activeElement->isActive = false; m_state->activeElement = nullptr;
     }`],
     ['    switch (button.command) {', `    switch (button.command) {
+        case ToolbarCommand::WinOneCollect:
+            if (m_state->winoneCollect) m_state->winoneCollect(); return;
         case ToolbarCommand::WinOneMove:
         case ToolbarCommand::WinOneRegion:
             m_state->winoneMoveTool = button.command == ToolbarCommand::WinOneMove;
@@ -540,6 +549,7 @@ await adapt('src/capture/CaptureInputCommands.cpp', [
         if (state.isLongImageMode()) {
             add(ToolbarCommand::WinOneRetake, MarkupTool::Rectangle, zh ? L"重新滚动截图" : L"Retake scrolling capture");
         } else if (state.winoneLiveCapture) {
+            add(ToolbarCommand::WinOneCollect, MarkupTool::Rectangle, zh ? L"连续采集文字" : L"Collect text fragments");
             add(ToolbarCommand::ScrollCapture, MarkupTool::Rectangle, zh ? L"滚动截图" : L"Scrolling capture");
             add(ToolbarCommand::StartRecord, MarkupTool::Rectangle, zh ? L"录制视频" : L"Record video");
             add(ToolbarCommand::WinOneRecordGif, MarkupTool::Rectangle, L"GIF");
@@ -588,6 +598,7 @@ await adapt('src/capture/CaptureInputCommands.cpp', [
     }
     const char* winoneIcon = nullptr;
     switch (button.command) {
+        case ToolbarCommand::WinOneCollect: winoneIcon = "ocr"; break;
         case ToolbarCommand::WinOneMove: winoneIcon = "select"; break;
         case ToolbarCommand::WinOneRegion: winoneIcon = "region"; break;
         case ToolbarCommand::WinOneCover: winoneIcon = "cover"; break;

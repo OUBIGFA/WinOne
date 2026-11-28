@@ -50,6 +50,7 @@ type settings struct {
 	OpenEditor           bool              `json:"openEditor"`
 	PinAfterCapture      bool              `json:"pinAfterCapture"`
 	PinTranslation       bool              `json:"pinTranslation"`
+	MultiRegionSelection bool              `json:"multiRegionSelection"`
 	ScrollDelay          int               `json:"scrollDelay"`
 	ScrollFromTop        bool              `json:"scrollFromTop"`
 	FileNameTemplate     string            `json:"fileNameTemplate"`
@@ -84,13 +85,13 @@ type page struct {
 	saved, draft *document
 	scrollText   string
 	// disabled is the module's state the settings were read for.
-	disabled bool
-	loading  bool
-	read     int // discards a read that a newer one replaced
-	saving   bool
-	choosing        bool
-	err             string
-	canvasErr       string
+	disabled  bool
+	loading   bool
+	read      int // discards a read that a newer one replaced
+	saving    bool
+	choosing  bool
+	err       string
+	canvasErr string
 
 	scrollField     ui.Handle
 	name            fileName
@@ -371,6 +372,9 @@ func (p *page) general(c *ui.Context) {
 	})
 	kit.Group(c, icons.Image, i18n.T("capture.pinnedImages"), "", func() {
 		kit.Toggle(c, &d.PinTranslation, i18n.T("capture.pinTranslation"), i18n.T("capture.pinTranslationHint"))
+	})
+	kit.Group(c, icons.Image, i18n.T("capture.collection"), "", func() {
+		kit.Toggle(c, &d.MultiRegionSelection, i18n.T("capture.multiRegionSelection"), i18n.T("capture.multiRegionSelectionHint"))
 	})
 	kit.Group(c, icons.FolderOpen, i18n.T("capture.saveLocation"), "", func() {
 		if d.OpenEditor {

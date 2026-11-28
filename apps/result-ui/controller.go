@@ -53,7 +53,7 @@ func NewController(client *Client, initial resultwindow.Initial) *Controller {
 		c.Initial.State = nil
 	}
 	c.Panel.Source, c.Panel.Action = initial.Source, initial.Action
-	if initial.Source == "selection" {
+	if initial.Source == "selection" || initial.Source == "capture-collection" {
 		c.Panel.Original = initial.Text
 	}
 	c.Panel.ActionSelection = c.actionSelection()
@@ -65,6 +65,16 @@ func NewController(client *Client, initial resultwindow.Initial) *Controller {
 		}
 	}}
 	c.Panel.Actions.RenderDiagram = c.renderDiagram
+	c.Panel.Actions.EditOriginal = func(text string) {
+		c.stopSpeech()
+		// Old replies stay visible, but a new turn must use the corrected source
+		// rather than replaying a conversation based on the incorrect OCR.
+		c.history = nil
+		c.Panel.ContextReset = false
+		if c.Panel.Mode == "translate" {
+			c.translate()
+		}
+	}
 	c.Panel.Actions.loadAvatar = c.loadProviderAvatar
 	c.Panel.Actions.Speak = c.toggleSpeech
 	c.Panel.Actions.Quick = c.quickAction
@@ -98,6 +108,9 @@ func (c *Controller) Ready() {
 				c.Panel.Target = preferences.Target
 			}
 			if c.Initial.Source == "quick-assistant" {
+				c.Panel.Busy = false
+			} else if c.Initial.Source == "capture-collection" {
+				c.Panel.Result = c.Initial.Text
 				c.Panel.Busy = false
 			} else if c.Initial.Source == "selection" {
 				c.Panel.Busy = false
@@ -317,6 +330,9 @@ func (c *Controller) acceptResult(value Outcome) {
 	c.Panel.ResultPending = nil
 }
 func (c *Controller) recognize() {
+	if c.Initial.Source == "capture-collection" {
+		return
+	}
 	ctx, epoch := c.begin("recognize")
 	target := c.Panel.Target
 	params := c.parameters(map[string]any{})

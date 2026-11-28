@@ -96,7 +96,7 @@ Windows 专项验收与代码签名不作为发布前置条件；本地测试按
 
 | 固定子目录 | 用途与维护方式 |
 | --- | --- |
-| `tools/go-1.26.2`、`tools/go-1.27.3` | 分别用于 Host/模块和 MyGo 设置/结果窗；AI 与 Go 互传复用后者；旧 `go-1.27.1` 保留用于回退 |
+| `tools/go-1.27.3` | 本机统一构建 Host、模块、MyGo 设置/结果窗、AI 与 Go 互传；旧 `go-1.27.1` 保留用于回退。运行声明保留 Go 1.26.2 的兼容记录 |
 | `tools/rust-1.99.0`、`tools/nsis-3.13`、`tools/bun-1.4.2` | Rust 编译、安装器编译、AI 账号适配器运行时；Bun SHA-256 按 `third_party/ai-plugins.json` 校验 |
 | `tools/playwright-1.58.2` | 可复用的浏览器测试依赖；版本及完整性由 `build/browser-tools/package.json`、`package-lock.json` 锁定。入口设置 `WINONE_PLAYWRIGHT_MODULE`，现有布局检查直接使用；不包含浏览器安装包 |
 | `tools/node-24.16.0` | 构建脚本与保留网页前端使用 Node 24.16.0 / npm 11.13.0；`build/use-local-resources.ps1` 经 `NodeExe` 传入统一构建。官方 win-x64 ZIP SHA-256：`edaca9bd58ec8e92037dac4e877d52f6b8f430b81c18b57e264b4e2fb111cd56`；不修改系统 Node |

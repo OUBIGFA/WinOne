@@ -3,7 +3,7 @@
 $resourceRepository = Split-Path -Parent $PSScriptRoot
 $resourcePaths = @{
     NodeExe = 'dist/resources/tools/node-24.16.0/node.exe'
-    GoExe = 'dist/resources/tools/go-1.26.2/bin/go.exe'
+    GoExe = 'dist/resources/tools/go-1.27.3/bin/go.exe'
     ResultGoExe = 'dist/resources/tools/go-1.27.3/bin/go.exe'
     CargoExe = 'dist/resources/tools/rust-1.99.0/bin/cargo.exe'
     ShareXSourceDirectory = 'dist/resources/sources/ShareX-native'
@@ -20,7 +20,7 @@ $WinOneBuildParameters = @{}
 # Never install a toolchain or save the machine's path in repository config.
 if (-not (Test-Path -LiteralPath (Join-Path $resourceRepository $resourcePaths.GoExe))) {
     $availableGo = Get-Command go -ErrorAction Stop
-    if ((& $availableGo.Source version) -notmatch '^go version go1\.26\.2 windows/amd64$') { throw 'Pass or register Go 1.26.2 for this repository' }
+    if ((& $availableGo.Source version) -notmatch '^go version go1\.27\.3 windows/amd64$') { throw 'Pass or register Go 1.27.3 for this repository' }
     $resourcePaths.GoExe = $availableGo.Source
 }
 foreach ($resourceKey in $resourcePaths.Keys) {

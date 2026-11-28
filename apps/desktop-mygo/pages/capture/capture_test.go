@@ -347,6 +347,9 @@ func TestChooseDirectoryKeepsPageBusyUntilAnswered(t *testing.T) {
 
 func TestDropFolderOnSaveLocation(t *testing.T) {
 	_, h, p, tt := setup(t, true)
+	// Production places settings inside the shell's scroll surface. Exercise
+	// the same boundary now that collection preferences extend the page.
+	tt = ui.NewTester(func(c *ui.Context) { ui.Scroll(c).Fill().Children(func() { p.View(c) }) }, 1000, 900)
 	folder := t.TempDir()
 	file := filepath.Join(folder, "a.txt")
 	if err := os.WriteFile(file, []byte("x"), 0o600); err != nil {
@@ -358,6 +361,10 @@ func TestDropFolderOnSaveLocation(t *testing.T) {
 		at, ok := tt.Find("保存目录")
 		if !ok {
 			t.Fatal("no save location")
+		}
+		if at.Y+at.H > 850 {
+			tt.Scroll(980, 700, 0, at.Y-650)
+			at, _ = tt.Find("保存目录")
 		}
 		if !tt.DropFiles(at.X+at.W/2, at.Y+at.H/2, paths...) {
 			t.Fatal("the save location takes dropped files")
@@ -420,6 +427,7 @@ func TestFileNamePreviewFollowsTheTemplate(t *testing.T) {
 func TestInvalidScrollDelayBlocksSaveAndLeadsToField(t *testing.T) {
 	for _, typed := range []string{"", "99", "2001", "300.5"} {
 		fake, h, p, tt := setup(t, true)
+		tt = ui.NewTester(func(c *ui.Context) { ui.Scroll(c).Fill().Children(func() { p.View(c) }) }, 1000, 900)
 		click(t, tt, "滚动截图")
 		p.scrollField.Focus()
 		tt.Frame()
@@ -436,6 +444,9 @@ func TestInvalidScrollDelayBlocksSaveAndLeadsToField(t *testing.T) {
 			t.Fatalf("%q: notice %q", typed, tt.Texts())
 		}
 		p.save()
+		if at, ok := tt.Find("检查滚动间隔"); ok && at.Y+at.H > 850 {
+			tt.Scroll(980, 700, 0, at.Y-650)
+		}
 		click(t, tt, "检查滚动间隔")
 		if p.tab != tabScroll || p.scrollText != typed || !tt.Focused("滚动间隔（毫秒）") {
 			t.Fatalf("%q: tab %d text %q", typed, p.tab, p.scrollText)

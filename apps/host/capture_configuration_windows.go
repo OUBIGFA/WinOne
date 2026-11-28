@@ -28,6 +28,7 @@ type capturePreferences struct {
 	OpenEditor           bool              `json:"openEditor"`
 	PinAfterCapture      bool              `json:"pinAfterCapture"`
 	PinTranslation       bool              `json:"pinTranslation"`
+	MultiRegionSelection bool              `json:"multiRegionSelection"`
 	Theme                string            `json:"theme"`
 	ScrollDelay          int               `json:"scrollDelay"`
 	ScrollFromTop        bool              `json:"scrollFromTop"`

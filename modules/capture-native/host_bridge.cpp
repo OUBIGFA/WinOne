@@ -49,12 +49,15 @@ std::string HostBridge::finishAI(const json& started, const std::atomic<bool>* c
     };
     try {
         const auto deadline = GetTickCount64() + 60000;
+        std::string output;
         for (;;) {
             checkCancelled(cancelled);
             if (GetTickCount64() >= deadline) throw std::runtime_error("Capture AI request timed out");
-            const auto job = call("ai.jobs.get", {{"id", id}, {"waitMs", 500}});
+            const auto job = call("ai.jobs.get", {{"id", id}, {"waitMs", 500}, {"textOffset",output.size()}});
             const auto state = job.at("state").get<std::string>();
-            if (state == "completed") { auto text = job.at("text").get<std::string>(); release(); return text; }
+            output += job.value("text",std::string{});
+            if(output.size()>64*1024*1024)throw std::runtime_error("OCR result is too large");
+            if (state == "completed") { release(); return output; }
             if (state == "failed") throw std::runtime_error(job.value("error", "Capture AI request failed"));
             if (state == "cancelled") throw std::runtime_error("Capture AI request cancelled");
             if (state != "running") throw std::runtime_error("Invalid capture AI job state");
@@ -62,9 +65,14 @@ std::string HostBridge::finishAI(const json& started, const std::atomic<bool>* c
     } catch (...) { release(); throw; }
 }
 
-std::string HostBridge::recognize(const cv::Mat& image, const std::atomic<bool>* cancelled) const {
+std::string HostBridge::recognize(const cv::Mat& image, const std::atomic<bool>* cancelled, bool allowEmpty) const {
     checkCancelled(cancelled);
-    return finishAI(startImage(image, "ai.recognize.start", json::object()), cancelled);
+    return finishAI(startImage(image, "ai.recognize.start", {{"allowEmpty",allowEmpty}}), cancelled);
+}
+
+json HostBridge::recognizeLayout(const cv::Mat& image, const std::atomic<bool>* cancelled) const {
+    checkCancelled(cancelled);
+    return {{"layout", json::parse(finishAI(startImage(image, "ai.recognize.start", {{"layout", true}}), cancelled))}};
 }
 
 std::string HostBridge::translate(std::string_view text, std::string_view targetLanguage, const std::atomic<bool>* cancelled) const {
@@ -123,6 +131,20 @@ json HostBridge::saveToolbar(const json& tools) const {
         }
     }
     return result;
+}
+
+std::string HostBridge::openTextResult(std::string_view text, const std::atomic<bool>* cancelled) const {
+    checkCancelled(cancelled);
+    const auto id = identity();
+    try {
+        const auto result = call("results.openText", {{"id",id},{"text",text}}, nullptr, 12000, id);
+        checkCancelled(cancelled);
+        if(!result.at("opened").get<bool>()) throw std::runtime_error("Result window did not open");
+        const auto window=reinterpret_cast<HWND>(std::stoull(result.at("window").get<std::string>()));
+        DWORD process=0; GetWindowThreadProcessId(window,&process);
+        if(process!=result.at("processId").get<DWORD>() || !SetForegroundWindow(window)) throw std::runtime_error("Result window activation failed");
+    } catch(...) { try { call("results.cancel",{{"id",id}}); } catch(...) {} throw; }
+    return id;
 }
 
 void HostBridge::prepareOCR() const { call("ai.ocr.prepare"); }

@@ -3,6 +3,8 @@
 #include "ocr_client.h"
 #include "draft_store.h"
 #include "recording_controller.h"
+#include "capture_collection.h"
+#include "collection_window.h"
 #include "capture/CaptureOverlay.h"
 #include "core/translate/TranslationTypes.h"
 #include <condition_variable>
@@ -69,6 +71,21 @@ private:
     void editNumber(uint32_t id);
     void updateNumberEditor();
     void closeNumberEditor(bool cancel);
+    void beginCollection();
+    void collectSelection();
+    void collectionAction(CollectionWindow::Action,int);
+    void refreshCollection(const std::wstring& status=L"");
+    void finishCollection(bool copy);
+    void clearCollection();
+    bool collectionInput(HWND,UINT,WPARAM,LPARAM);
+    void drawCollection(ID2D1RenderTarget*,IDWriteTextFormat*,ID2D1Brush*,ID2D1Brush*);
+    CaptureCollection collection_;
+    std::unique_ptr<CollectionWindow> collectionWindow_;
+    bool collecting_=false,collectionSuspended_=false;
+    unsigned collectionScreen_=1;
+    int collectionDragging_=-1;
+    POINT collectionDragStart_{};
+    cv::Rect collectionDragRect_,collectionOriginalRect_;
     static LRESULT CALLBACK numberProcedure(HWND, UINT, WPARAM, LPARAM, UINT_PTR, DWORD_PTR);
     std::wstring pipe_;
     std::filesystem::path directory_, executableDirectory_;

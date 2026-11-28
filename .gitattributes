@@ -18,3 +18,5 @@ third_party/licenses/npm-netmask-2.0.2-README.md.txt conflict-marker-size=32
 # Pinned Cindy imports keep upstream EOF blank lines for source digest checks.
 /apps/desktop/frontend/src/features/cindy/** -whitespace
 /modules/chat-pi/cindy/** -whitespace
+# Unmodified SnapFind snapshots retain the upstream bytes and whitespace.
+/third_party/snapfind/** -text -whitespace

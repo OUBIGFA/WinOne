@@ -12,6 +12,7 @@
     <DebugType>embedded</DebugType>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../capture/InteractiveWorkScope.cs" Link="InteractiveWorkScope.cs" />
     <Compile Include="../capture/Ocr/OcrReadingOrder.cs" Link="OcrReadingOrder.cs" />
     <Compile Include="../capture/Ocr/OcrGapTree.cs" Link="OcrGapTree.cs" />
     <Compile Include="../capture/Ocr/OcrParagraphs.cs" Link="OcrParagraphs.cs" />

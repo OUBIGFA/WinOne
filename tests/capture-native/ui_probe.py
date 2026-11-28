@@ -22,7 +22,7 @@ parser.add_argument('--scale',type=float,default=1)
 parser.add_argument('--recording-runtime')
 parser.add_argument('--physical-input',action='store_true')
 parser.add_argument('--agent-desktop')
-parser.add_argument('--suite', choices=['preferences','motion','ocr-copy','fresh','double-copy','snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
+parser.add_argument('--suite', choices=['collection','preferences','motion','ocr-copy','fresh','double-copy','snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
 args = parser.parse_args()
 output = Path(args.output).resolve()
 root = Path(__file__).resolve().parents[2]
@@ -145,7 +145,7 @@ if args.suite in ('parent-exit','recording-parent'):
 events = []
 host_fixture=None
 extra_arguments=[]
-if args.suite in ('toolbar','translation','pin','ocr-copy'):
+if args.suite in ('collection','toolbar','translation','pin','ocr-copy'):
     from host_fixture import HostFixture
     if args.suite in ('translation','pin'):
         from PIL import Image,ImageDraw,ImageFont
@@ -156,6 +156,8 @@ if args.suite in ('toolbar','translation','pin','ocr-copy'):
         ImageDraw.Draw(frame).text((190,220),'Hello native capture',font=font,fill='black')
         frame.save(output/'fixture.png');os.environ['WINONE_CAPTURE_FIXTURE']=str(output/'fixture.png')
     host_fixture=HostFixture(output,settings)
+    host_fixture.ocr_executable=str(Path(args.executable).parent/'WinOne.Ocr.exe')
+    if args.suite=='collection':host_fixture.collection=True
     extra_arguments=['--host-pipe',host_fixture.name]
 
 def rpc(method, params=None):
@@ -436,6 +438,60 @@ try:
         send(canvas,0x200,1,(460<<16)|selection_right)
         send(canvas,0x202,0,(460<<16)|selection_right)
         events.append({'selected':True})
+        if args.suite=='collection':
+            click_button(canvas,'连续采集文字' if args.language=='zh-CN' else 'Collect text fragments')
+            def collection():return rpc('probe.state')['collection']
+            wait_until(lambda:len(collection()['fragments'])==1)
+            bar=collection()['hwnd']
+            def action(command):
+                if not user.PostMessageW(bar,0x111,command,0):raise ctypes.WinError(ctypes.get_last_error())
+                time.sleep(.08)
+            send(canvas,0x201,1,(500<<16)|100);send(canvas,0x200,1,(620<<16)|340);send(canvas,0x202,0,(620<<16)|340)
+            wait_until(lambda:len(collection()['fragments'])==2)
+            # Existing rectangles move against this screen, with retained undo.
+            send(canvas,0x201,1,(220<<16)|200);events.append({'collectionDragDown':collection()})
+            send(canvas,0x200,1,(240<<16)|225);events.append({'collectionDragMove':collection()})
+            send(canvas,0x202,0,(240<<16)|225)
+            wait_until(lambda:collection()['fragments'][0]['rect'][0]==185)
+            action(4);wait_until(lambda:collection()['fragments'][0]['rect'][0]==160)
+            action(3)
+            rpc('probe.render',{'name':'collection-drawer.png','collection':True})
+            action(9);wait_until(lambda:collection()['fragments'][0]['rect'][2]==240)
+            action(4);wait_until(lambda:collection()['fragments'][0]['rect'][2]==460)
+            action(10);wait_until(lambda:len(collection()['fragments'])==1)
+            action(10);wait_until(lambda:len(collection()['fragments'])==0)
+            action(4);action(4);wait_until(lambda:len(collection()['fragments'])==2)
+            rpc('probe.render',{'name':'collection.png'});wait_until(lambda:(output/'collection.png').is_file())
+            action(2);wait_until(lambda:collection()['suspended'] and not user.IsWindowVisible(canvas))
+            rpc('capture.activate');canvas=wait_until(overlay);wait_until(lambda:not collection()['suspended'])
+            send(canvas,0x201,1,(480<<16)|500);send(canvas,0x200,1,(600<<16)|740);send(canvas,0x202,0,(600<<16)|740)
+            wait_until(lambda:len(collection()['fragments'])==3)
+            if collection()['fragments'][0]['screen']==collection()['fragments'][-1]['screen']:raise AssertionError('Cross-screen identity not retained')
+            host_fixture.ocr_ready=True;host_fixture.ocr_failure=True
+            action(6);wait_until(lambda:host_fixture.ocr_sizes and not rpc('probe.state')['textBusy'])
+            if len(collection()['fragments'])!=3:raise AssertionError('OCR failure discarded fragments')
+            host_fixture.ocr_failure=False;host_fixture.ocr_sizes.clear()
+            action(6);wait_until(lambda:rpc('jobs.get',{'id':job['id']})['state']=='completed')
+            if host_fixture.ocr_sizes!=[[460,280],[240,120],[240,120]]:raise AssertionError(f'Fragment order or crop changed: {host_fixture.ocr_sizes}')
+            if collection()['active'] or collection()['fragments']:raise AssertionError('Completion retained collection')
+            events.append({'collectionOrderUndoCrossScreenFailureRetryCopy':True})
+            host_fixture.settings['multiRegionSelection']=True
+            (output/'managed-settings.json').write_text(json.dumps(host_fixture.settings),'utf-8');rpc('settings.reload')
+            job=rpc('capture.unified',{'mode':'region','language':args.language});canvas=wait_until(overlay)
+            wait_until(lambda:collection()['active'])
+            if collection()['fragments']:raise AssertionError('New default collection restored old fragments')
+            bar=collection()['hwnd']
+            send(canvas,0x201,1,(180<<16)|160);send(canvas,0x200,1,(460<<16)|620);send(canvas,0x202,0,(460<<16)|620)
+            wait_until(lambda:len(collection()['fragments'])==1)
+            host_fixture.ocr_ready=False;action(6)
+            wait_until(lambda:rpc('probe.state')['textBusy'])
+            key(canvas,0x1b)
+            wait_until(lambda:rpc('jobs.get',{'id':job['id']})['state']=='completed')
+            if collection()['active'] or collection()['fragments']:raise AssertionError('Cancelled recognition retained collection')
+            host_fixture.settings['multiRegionSelection']=False
+            (output/'managed-settings.json').write_text(json.dumps(host_fixture.settings),'utf-8');rpc('settings.reload')
+            events.append({'defaultCollectionAndCancelDuringRecognition':True})
+            job=rpc('capture.unified',{'mode':'region','language':args.language});canvas=wait_until(overlay)
         if args.suite=='preferences':
             # Check emitted marks, not a copy of the preference serializer.
             def rectangle():

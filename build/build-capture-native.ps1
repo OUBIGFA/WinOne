@@ -42,7 +42,7 @@ $probeOption=if($BuildProbe -or $RunTests){'ON'}else{'OFF'}
 if($LASTEXITCODE){throw 'Native capture configuration failed'}
 $targets=@('WinOne.Capture')
 if($BuildProbe){$targets+='WinOne.NativeCapture.Probe'}
-if($RunTests){$targets+=@('WinOne.Capture.DraftTests','WinOne.Capture.CommunityTests','WinOne.Capture.RecordingTests')}
+if($RunTests){$targets+=@('WinOne.Capture.DraftTests','WinOne.Capture.CommunityTests','WinOne.Capture.RecordingTests','WinOne.Capture.CollectionTests')}
 & $cmake --build $objects --config Release --target @targets --parallel 4
 if($LASTEXITCODE){throw 'Native capture compilation failed'}
 $compiled=Join-Path $objects 'Release'
@@ -89,6 +89,8 @@ if($BuildProbe){
     & (Join-Path $PSScriptRoot 'copy-ocr.ps1') -RuntimeDirectory $OcrRuntimeDirectory -CaptureDirectory $compiled
 }
 if($RunTests){
+    & (Join-Path $compiled 'WinOne.Capture.CollectionTests.exe')
+    if($LASTEXITCODE){throw 'Capture collection tests failed'}
     & (Join-Path $compiled 'WinOne.Capture.DraftTests.exe') (Join-Path $work ('draft-tests-'+[guid]::NewGuid().ToString('N')))
     if($LASTEXITCODE){throw 'Native draft tests failed'}
     & (Join-Path $compiled 'WinOne.Capture.CommunityTests.exe') (Join-Path $work ('number-'+[guid]::NewGuid().ToString('N')+'.png'))

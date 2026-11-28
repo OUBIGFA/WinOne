@@ -12,6 +12,7 @@
 | 本次固定 AI 基座及程序管理完整同步（2026-11-19） | [AI 功能对照](ai-base-update-20261119.md)、[WinTray 功能对照](wintray-sync-20261119.md) |
 | 当前 main 的模块边界与移除记录 | [main 模块精简与验收](module-removal-20261112.md) |
 | 安装包体积、截图与 Shift+C 闲置待命 | [实现与验证记录](capture-readiness-20261113.md) |
+| 多选区、跨界面采集、OCR 改字与预热复用 | [SnapFind 功能接入](snapfind-capture-integration.md) |
 | RapidOCRLite 替换、OCR 与截图减重 | [2026-11-23 接入与对照](rapidocrlite-20261123.md) |
 | OCR 自然段复制及进一步减重 | [2026-11-24 实施与验证](slim-paragraphs-20261124.md) |
 | 发布前全面审核、启动/资源与修复验证 | [2026-11-20 发布前审核](release-audit-20261120.md)；[2026-11-08 历史审核](audit-2026-11-08.md) |

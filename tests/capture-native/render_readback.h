@@ -10,6 +10,24 @@
 namespace winone::probe {
 inline std::filesystem::path renderDestination;
 inline HWND renderWindow = nullptr;
+// Common controls paint through WM_PRINT on the same private desktop.
+inline void readNativeWindow(HWND window,const std::filesystem::path& destination) {
+    RECT rect{};GetWindowRect(window,&rect);const int width=rect.right-rect.left,height=rect.bottom-rect.top;
+    HDC dc=CreateCompatibleDC(nullptr);BITMAPINFO info{};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
+    info.bmiHeader.biWidth=width;info.bmiHeader.biHeight=-height;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;
+    void* pixels=nullptr;auto bitmap=CreateDIBSection(dc,&info,DIB_RGB_COLORS,&pixels,nullptr,0);
+    auto previous=SelectObject(dc,bitmap);
+    // Capture exclusion also blacks out PrintWindow. Temporarily lift it only
+    // for this test-owned HWND on the private desktop, then restore it.
+    DWORD affinity=0;GetWindowDisplayAffinity(window,&affinity);SetWindowDisplayAffinity(window,WDA_NONE);
+    bool ok=PrintWindow(window,dc,2)!=FALSE;SetWindowDisplayAffinity(window,affinity);
+    cv::Mat image(height,width,CV_8UC4,pixels);std::vector<uchar> bytes;
+    if(ok)ok=cv::imencode(".png",image,bytes);
+    SelectObject(dc,previous);DeleteObject(bitmap);DeleteDC(dc);
+    if(!ok)throw std::runtime_error("Cannot read collection window");
+    std::ofstream file(destination,std::ios::binary);file.write(reinterpret_cast<const char*>(bytes.data()),bytes.size());
+    if(!file)throw std::runtime_error("Cannot save collection window evidence");
+}
 inline void readFrame(ID2D1RenderTarget* target) {
     if (renderDestination.empty()) return;
     Microsoft::WRL::ComPtr<ID2D1GdiInteropRenderTarget> interop;

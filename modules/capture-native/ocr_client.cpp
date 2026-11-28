@@ -32,6 +32,9 @@ struct RedirectedPipe {
 }
 
 json OcrClient::recognize(const cv::Mat& image, bool pinLayout, const std::atomic<bool>* cancelled) const {
+    // Production shares Host's warm engine. Standalone private probes retain
+    // their explicit isolated worker; a Host error is never silently retried cold.
+    if (host_ && pinLayout) return host_->recognizeLayout(image, cancelled);
     std::vector<uchar> png;
     if (image.empty() || static_cast<uint64_t>(image.cols) * image.rows > 40'000'000 ||
         !cv::imencode(".png", image, png) || png.size() > 32 * 1024 * 1024)

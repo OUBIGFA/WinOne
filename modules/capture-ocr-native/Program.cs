@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
 using WinOne.Capture.Ocr;
+using WinOne.Capture;
 
 internal static class Program
 {
@@ -38,10 +39,14 @@ internal static class Program
                 if (input.Read(header, 0, 1) == 0) return 0;
                 input.ReadExactly(header.AsSpan(1));
                 uint length = BinaryPrimitives.ReadUInt32LittleEndian(header);
+                // Per-frame geometry requests reuse the warmed CPU model; old
+                // clients keep their plain PNG framing and startup layout flag.
+                bool frameLayout = layout || (length & 0x80000000u) != 0;
+                length &= 0x7fffffffu;
                 if (length > MaximumBytes) throw new InvalidDataException("Invalid frame size");
                 var data = new byte[length];
                 input.ReadExactly(data);
-                Respond(recognition, data, layout);
+                Respond(recognition, data, frameLayout);
             }
         } catch (Exception error) { Error(error); return 1; }
     }
@@ -50,6 +55,9 @@ internal static class Program
     {
         try {
             bool prepare = data.Length == 0;
+            // Reuse the existing scoped Windows policy: foreground requests
+            // must not inherit idle execution throttling; restore it afterwards.
+            using var interactive = new InteractiveWorkScope();
             var image = prepare ? NativeImage.Prepare() : NativeImage.Decode(data);
             var result = recognition.Recognize(image.Pixels, image.Width, image.Height, prepare ? false : layout);
             Reply(writer => {

@@ -45,6 +45,7 @@ CaptureApp::CaptureApp(std::wstring pipe, std::filesystem::path directory, DWORD
     if (!hostPipe.empty()) {
         if (!parent_) throw std::invalid_argument("Host pipe requires an owning process");
         host_ = std::make_unique<HostBridge>(std::move(hostPipe), parent_);
+        ocr_->setHost(host_.get());
     }
     if (standby_ && !host_) throw std::invalid_argument("Capture standby requires WinOne Host");
 }
@@ -117,6 +118,8 @@ int CaptureApp::run(HINSTANCE instance) {
     });
     overlay.setClosedCallback([this] {
         if (recording_ && recording_->active()) return;
+        if(collecting_&&preserving_)return;
+        if(collecting_)clearCollection();
         if (!active_.empty()) hideOcrFeedback();
         textBusy_ = false;
         upstream::CaptureOverlay::instance().winoneState().winoneProgress = -1;
@@ -135,6 +138,9 @@ int CaptureApp::run(HINSTANCE instance) {
         if (!active_.empty()) { auto id = active_; active_.clear(); complete(id, {{"cancelled", true}}); }
     });
     overlay.setOcrCallback([this](const auto&, const cv::Mat& image) { textAction(image, false); });
+    overlay.winoneState().winoneCollect=[this]{MainThreadDispatcher::instance().postDeferred([this]{try{beginCollection();}catch(const std::exception& e){notice(e.what());}});};
+    overlay.winoneState().winoneCollectionInput=[this](HWND hwnd,UINT message,WPARAM wp,LPARAM lp){return collectionInput(hwnd,message,wp,lp);};
+    overlay.winoneState().winoneCollectionDraw=[this](auto* target,auto* format,auto* text,auto* background){drawCollection(target,format,text,background);};
     overlay.setTranslateCallback([this](const auto&, const cv::Mat& image) { textAction(image, true); });
     overlay.setWinOneRecording([this](const auto& region, const auto& options) { return beginRecording(region, options); });
     overlay.winoneState().winonePrepareRecording = [this](bool gif) {
@@ -198,6 +204,7 @@ int CaptureApp::run(HINSTANCE instance) {
         });
     };
     overlay.winoneState().winoneSelected = [this] {
+        if(collecting_){collectSelection();return;}
         // Hide in the mouse-up dispatch, before a queued paint can expose the
         // editing toolbar. Keep this same canvas for an OCR failure/retry.
         if (mode_ == "ocr") setOcrBackground(true);
@@ -218,7 +225,12 @@ int CaptureApp::run(HINSTANCE instance) {
         });
     MSG message{};
     int status;
-    while ((status = GetMessageW(&message, nullptr, 0, 0)) > 0) { TranslateMessage(&message); DispatchMessageW(&message); }
+    while ((status = GetMessageW(&message, nullptr, 0, 0)) > 0) {
+        // Tab traversal only: IsDialogMessage maps Enter/Escape to IDs 1/2,
+        // which are real collection actions rather than dialog OK/Cancel.
+        if(collectionWindow_&&message.message==WM_KEYDOWN&&message.wParam==VK_TAB&&IsDialogMessageW(collectionWindow_->window(),&message))continue;
+        TranslateMessage(&message); DispatchMessageW(&message);
+    }
     if (status < 0) throw systemError("Capture message loop failed");
     return static_cast<int>(message.wParam);
 }
@@ -376,6 +388,10 @@ json CaptureApp::command(std::string method, json parameters) {
     if (method == "probe.render") {
         const auto name=parameters.value("name",std::string("rendered.png"));
         if(name.find_first_of("/\\:")!=std::string::npos || !name.ends_with(".png"))throw std::runtime_error("Invalid private render name");
+        if(parameters.value("collection",false)) {
+            if(!collectionWindow_)throw std::runtime_error("Collection window is closed");
+            winone::probe::readNativeWindow(collectionWindow_->window(),directory_/wide(name));return {{"saved",true}};
+        }
         winone::probe::renderDestination = directory_ / wide(name);
         winone::probe::renderWindow = upstream::CaptureOverlay::instance().winoneWindow();
         if(recording_ && recording_->active()) InvalidateRect(upstream::RecordingIndicator::instance().winoneWindow(),nullptr,FALSE);
@@ -401,6 +417,7 @@ json CaptureApp::command(std::string method, json parameters) {
         auto& indicator = upstream::RecordingIndicator::instance();
         json controls=json::array();for(int i=0;i<3;++i){const auto point=indicator.winoneControlCenter(i);controls.push_back({point.x,point.y});}
         const json recordingUI{{"hwnd",reinterpret_cast<uintptr_t>(indicator.winoneWindow())},{"pinned",indicator.winonePinned()},{"buttons",controls}};
+        json fragments=json::array();for(const auto& item:collection_.items())fragments.push_back({{"screen",item.screen},{"rect",{item.rect.x,item.rect.y,item.rect.width,item.rect.height}}});
         auto& scroll = upstream::ScrollCaptureOverlay::instance();
         json scrollButtons=json::array();for(int i=0;i<5;++i){const auto r=scroll.buttonRectForTest(i);scrollButtons.push_back({(r.left+r.right)/2,(r.top+r.bottom)/2});}
         const json scrollUI{{"hwnd",reinterpret_cast<uintptr_t>(scroll.controlWindowHandleForTest())},{"buttons",scrollButtons}};
@@ -425,6 +442,7 @@ json CaptureApp::command(std::string method, json parameters) {
         return {{"editor",editor},{"primaryToolbar",barRect(state.primaryToolbarRect)},
                 {"hierarchyAnimating",state.isHierarchyAnimating},{"displayedDetection",barRect(state.animDetectedWindowRect)},
                 {"overlayVisible",overlay.isOverlayVisible()},
+                {"collection",{{"active",collecting_},{"dragging",collectionDragging_},{"capture",reinterpret_cast<uintptr_t>(GetCapture())},{"suspended",collectionSuspended_},{"hwnd",collectionWindow_?reinterpret_cast<uintptr_t>(collectionWindow_->window()):0},{"fragments",fragments},{"undo",collection_.canUndo()}}},
                 {"menuRect",barRect(state.dropdownMenu.menuRect)},
                 {"secondaryToolbar",barRect(state.secondaryToolbarRect)},
                 {"detected",{state.detectedWindow.left,state.detectedWindow.top,state.detectedWindow.right,state.detectedWindow.bottom}},
@@ -484,11 +502,13 @@ json CaptureApp::command(std::string method, json parameters) {
         active_ = created.at("id"); return created;
     }
     if (method == "capture.activate") {
+        if(collecting_&&collectionSuspended_){collectionAction(CollectionWindow::Continue,-1);return {{"active",true}};}
         const auto window = upstream::CaptureOverlay::instance().winoneWindow();
         if (window && IsWindowVisible(window)) SetForegroundWindow(window);
         return {{"active", window != nullptr}};
     }
     if (method == "capture.start" || method == "capture.unified") {
+        if(collecting_&&collectionSuspended_){collectionAction(CollectionWindow::Continue,-1);return job(active_);}
         if (!active_.empty()) { const auto window = upstream::CaptureOverlay::instance().winoneWindow(); if (window && IsWindowVisible(window)) SetForegroundWindow(window); return job(active_); }
         const auto mode = parameters.at("mode").get<std::string>();
         if (mode != "region" && mode != "region-native" && mode != "window" && mode != "fullscreen" && mode != "scroll" && mode != "ocr" && mode != "translate")
@@ -567,6 +587,7 @@ void CaptureApp::beginCapture(const std::string& id, const std::string& mode) {
     }
     auto& state = upstream::CaptureOverlay::instance().winoneState();
     state.winoneLiveCapture = true;
+    if(settings_.value("multiRegionSelection",false)&&(mode=="region"||mode=="region-native"||mode=="ocr")) beginCollection();
     state.currentArrowStyle = upstream::ArrowStyle::Standard;
     state.currentTextOutline = false; state.currentTextOutlineColor = {0, 0, 0, 0};
     if (!settings_.value("openEditor", true) && mode == "fullscreen")
@@ -575,6 +596,7 @@ void CaptureApp::beginCapture(const std::string& id, const std::string& mode) {
 
 bool CaptureApp::deliver(const upstream::CaptureRegion& region, const cv::Mat& image, const upstream::CaptureCompletion& completion) {
     try {
+        if(collecting_){collectSelection();finishCollection(completion.action==upstream::CaptureCompletionAction::Copy);return false;}
         if (mode_ == "scroll") { prepareScrolling(region); return false; }
         if (mode_ == "ocr" || mode_ == "translate") { textAction(image, mode_ == "translate"); return false; }
         const auto result = publish(image, region, completion);

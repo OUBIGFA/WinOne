@@ -1,0 +1,399 @@
+using System;
+using System.Diagnostics;
+using System.Windows;
+using System.Windows.Input;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using MessageBox = System.Windows.MessageBox;
+using Clipboard = System.Windows.Clipboard;
+
+using System.Runtime.InteropServices;
+
+namespace PixOcrSearch
+{
+    public partial class EditWindow : Window
+    {
+        private readonly string _initialText;
+        private readonly Rect _selectionRect;
+
+        public EditWindow(string text, Rect selectionRect)
+        {
+            InitializeComponent();
+            _initialText = text;
+            _selectionRect = selectionRect;
+
+            OcrTextBox.Text = _initialText;
+        }
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        private const int GWL_STYLE = -16;
+        private const int WS_SYSMENU = 0x00080000;
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                if (Environment.OSVersion.Version.Major >= 10 && Environment.OSVersion.Version.Build >= 22000)
+                {
+                    int preference = 2; // DWMWCP_ROUND
+                    DwmSetWindowAttribute(hwnd, 33, ref preference, sizeof(int));
+                }
+
+                // Remove system menu and buttons to prevent default OS caption buttons from showing up on click/drag
+                int value = GetWindowLong(hwnd, GWL_STYLE);
+                SetWindowLong(hwnd, GWL_STYLE, value & ~WS_SYSMENU);
+            }
+            catch { }
+
+            // Dynamically refresh system theme resources before rendering
+            App.ApplyTheme();
+
+            // Apply localized text
+            ApplyLocalization();
+
+            // Position the window near the selection
+            PositionWindow();
+
+            // Focus text box and select all/place caret at the end
+            int fontSize = ConfigManager.Current.ResultFontSize;
+            if (fontSize > 0)
+            {
+                OcrTextBox.FontSize = fontSize;
+            }
+
+            OcrTextBox.Focus();
+            OcrTextBox.SelectAll();
+
+            if (ConfigManager.Current.AutoCopyToClipboard)
+            {
+                if (!string.IsNullOrEmpty(_initialText))
+                {
+                    ClipboardHelper.SetText(_initialText);
+                }
+            }
+            ApplyLocalization();
+            SetupTextBoxContextMenu();
+
+            if (PluginManager.IsTranslationPluginAvailable && ConfigManager.Current.AutoTranslateOcrResult)
+            {
+                if (OcrTransPanel.Content == null)
+                {
+                    var customPanel = PluginManager.CreateOcrPanel("SnapFind.Plugin.Translation", OcrTextBox);
+                    if (customPanel != null)
+                    {
+                        OcrTransPanel.Content = customPanel;
+                    }
+                }
+
+                OcrTransPanel.Visibility = Visibility.Visible;
+                TranslateBtn.Visibility = Visibility.Visible;
+                MinHeight = 280;
+                if (Height < 320)
+                {
+                    Height = 320;
+                }
+            }
+            else
+            {
+                OcrTransPanel.Visibility = Visibility.Collapsed;
+                TranslateBtn.Visibility = PluginManager.IsTranslationPluginAvailable ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        private void ApplyLocalization()
+        {
+            TitleTextBlock.Text = Localization.EditResultTitle;
+            SettingsBtn.Content = Localization.BtnSettings;
+            TranslateBtn.Content = Localization.BtnTranslate;
+            CopyBtn.Content = Localization.BtnCopy;
+            SearchBtn.Content = Localization.BtnSearch;
+        }
+
+        private void PositionWindow()
+        {
+            double w = Width;
+            double h = ActualHeight > 0 ? ActualHeight : 220;
+
+            // Find the screen containing the center of the selection
+            double centerX = _selectionRect.Left + _selectionRect.Width / 2;
+            double centerY = _selectionRect.Top + _selectionRect.Height / 2;
+
+            // Retrieve screen metrics for the current monitor using Windows Forms Screen class
+            var screen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point((int)centerX, (int)centerY));
+
+            // Get DPI of the monitor containing the selection
+            double scaleX = 1.0;
+            double scaleY = 1.0;
+            try
+            {
+                POINT pt = new POINT((int)centerX, (int)centerY);
+                IntPtr hMonitor = MonitorFromPoint(pt, 2); // MONITOR_DEFAULTTONEAREST
+                if (hMonitor != IntPtr.Zero)
+                {
+                    uint dpiX, dpiY;
+                    if (GetDpiForMonitor(hMonitor, 0, out dpiX, out dpiY) == 0) // MDT_EFFECTIVE_DPI = 0
+                    {
+                        scaleX = dpiX / 96.0;
+                        scaleY = dpiY / 96.0;
+                    }
+                }
+            }
+            catch { }
+
+            // Screen bounds in WPF pixels
+            double screenLeft = screen.Bounds.X / scaleX;
+            double screenTop = screen.Bounds.Y / scaleY;
+            double screenWidth = screen.Bounds.Width / scaleX;
+            double screenHeight = screen.Bounds.Height / scaleY;
+
+            // Position at the exact center of this monitor
+            Left = screenLeft + (screenWidth - w) / 2;
+            Top = screenTop + (screenHeight - h) / 2;
+        }
+
+        private void OcrTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // Enter key searches; Shift+Enter inserts newline
+            if (e.Key == Key.Enter)
+            {
+                if (Keyboard.Modifiers == ModifierKeys.None)
+                {
+                    e.Handled = true;
+                    PerformSearch();
+                }
+            }
+            else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                e.Handled = true;
+                HandleCopyAndClose();
+            }
+        }
+
+        private void HandleCopyAndClose()
+        {
+            string textToCopy = OcrTextBox.SelectionLength > 0 ? OcrTextBox.SelectedText : OcrTextBox.Text;
+            if (!string.IsNullOrEmpty(textToCopy))
+            {
+                ClipboardHelper.SetText(textToCopy);
+            }
+            else
+            {
+                ClipboardHelper.Clear();
+            }
+            Close();
+        }
+
+        private void SearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            PerformSearch();
+        }
+
+        private void PerformSearch()
+        {
+            string query = OcrTextBox.Text.Trim();
+            if (!string.IsNullOrEmpty(query))
+            {
+                try
+                {
+                    // Replace newlines with spaces for a clean single-line search query
+                    string cleanQuery = query.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ");
+                    string escapedQuery = Uri.EscapeDataString(cleanQuery);
+                    string url = ConfigManager.Current.SearchEngineUrl + escapedQuery;
+
+                    // Open in default browser
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = url,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    ModernDialog.Show(Localization.MsgSearchFailed + ex.Message, Localization.TitleSearchFailed, MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            Close();
+        }
+
+        private void CopyButton_Click(object sender, RoutedEventArgs e)
+        {
+            string text = OcrTextBox.Text;
+            if (!string.IsNullOrEmpty(text))
+            {
+                ClipboardHelper.SetText(text);
+            }
+            else
+            {
+                ClipboardHelper.Clear();
+            }
+            Close();
+        }
+
+        private void TranslateButton_Click(object sender, RoutedEventArgs e)
+        {
+            string text = !string.IsNullOrEmpty(OcrTextBox.SelectedText) ? OcrTextBox.SelectedText : OcrTextBox.Text;
+            PluginManager.ShowTranslationWindow(text);
+        }
+
+        private void SetupTextBoxContextMenu()
+        {
+            var menu = new System.Windows.Controls.ContextMenu();
+
+            var miCut = new System.Windows.Controls.MenuItem { Header = Localization.IsEnglish ? "Cut (Ctrl+X)" : "剪切 (Ctrl+X)" };
+            miCut.Click += (s, e) => OcrTextBox.Cut();
+
+            var miCopy = new System.Windows.Controls.MenuItem { Header = Localization.IsEnglish ? "Copy (Ctrl+C)" : "复制 (Ctrl+C)" };
+            miCopy.Click += (s, e) =>
+            {
+                string textToCopy = OcrTextBox.SelectedText.Length > 0 ? OcrTextBox.SelectedText : OcrTextBox.Text;
+                if (!string.IsNullOrEmpty(textToCopy))
+                {
+                    ClipboardHelper.SetText(textToCopy);
+                }
+            };
+
+            var miPaste = new System.Windows.Controls.MenuItem { Header = Localization.IsEnglish ? "Paste (Ctrl+V)" : "粘贴 (Ctrl+V)" };
+            miPaste.Click += (s, e) => OcrTextBox.Paste();
+
+            menu.Items.Add(miCut);
+            menu.Items.Add(miCopy);
+            menu.Items.Add(miPaste);
+            menu.Items.Add(new System.Windows.Controls.Separator());
+
+            if (PluginManager.IsTranslationPluginAvailable)
+            {
+                var miTranslate = new System.Windows.Controls.MenuItem { Header = $"{Localization.BtnTranslate} (Ctrl+T)" };
+                miTranslate.Click += (s, e) =>
+                {
+                    string textToTranslate = !string.IsNullOrEmpty(OcrTextBox.SelectedText) ? OcrTextBox.SelectedText : OcrTextBox.Text;
+                    PluginManager.ShowTranslationWindow(textToTranslate, this);
+                };
+
+                var miToTrad = new System.Windows.Controls.MenuItem { Header = Localization.BtnToTraditional };
+                miToTrad.Click += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(OcrTextBox.SelectedText))
+                    {
+                        OcrTextBox.SelectedText = PluginManager.ConvertToTraditional(OcrTextBox.SelectedText);
+                    }
+                    else
+                    {
+                        OcrTextBox.Text = PluginManager.ConvertToTraditional(OcrTextBox.Text);
+                    }
+                };
+
+                var miToSimp = new System.Windows.Controls.MenuItem { Header = Localization.BtnToSimplified };
+                miToSimp.Click += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(OcrTextBox.SelectedText))
+                    {
+                        OcrTextBox.SelectedText = PluginManager.ConvertToSimplified(OcrTextBox.SelectedText);
+                    }
+                    else
+                    {
+                        OcrTextBox.Text = PluginManager.ConvertToSimplified(OcrTextBox.Text);
+                    }
+                };
+
+                menu.Items.Add(miTranslate);
+                menu.Items.Add(miToTrad);
+                menu.Items.Add(miToSimp);
+                menu.Items.Add(new System.Windows.Controls.Separator());
+            }
+
+            var miSelectAll = new System.Windows.Controls.MenuItem { Header = Localization.IsEnglish ? "Select All (Ctrl+A)" : "全选 (Ctrl+A)" };
+            miSelectAll.Click += (s, e) => OcrTextBox.SelectAll();
+            menu.Items.Add(miSelectAll);
+
+            OcrTextBox.ContextMenu = menu;
+        }
+
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // Allow dragging the window from anywhere outside the input area
+            if (e.OriginalSource != OcrTextBox)
+            {
+                DragMove();
+            }
+        }
+
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                Close();
+            }
+            else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                e.Handled = true;
+                HandleCopyAndClose();
+            }
+            else if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                e.Handled = true;
+                TranslateButton_Click(sender, e);
+            }
+        }
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Close the current EditWindow (Figure 2) first
+            Close();
+
+            foreach (Window win in System.Windows.Application.Current.Windows)
+            {
+                if (win is SettingsWindow)
+                {
+                    win.Activate();
+                    return;
+                }
+            }
+
+            var settingsWin = new SettingsWindow();
+            settingsWin.Show();
+        }
+
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            SystemCommands.MinimizeWindow(this);
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+            OcrHelper.OptimizeMemory();
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+        [DllImport("shcore.dll")]
+        private static extern int GetDpiForMonitor(IntPtr hmonitor, uint dpiType, out uint dpiX, out uint dpiY);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int X;
+            public int Y;
+            public POINT(int x, int y)
+            {
+                X = x;
+                Y = y;
+            }
+        }
+    }
+}
+
