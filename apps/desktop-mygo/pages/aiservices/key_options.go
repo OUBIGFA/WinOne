@@ -72,6 +72,7 @@ func (e *editor) keyOptions(c *ui.Context, pr *provider, id string, locked bool)
 				kit.Stack(c, "", "", func() { nativeSelect(c, i18n.T("ai.keyPlan"), &slot.Plan, plans, locked) })
 			}
 		})
+		e.keyBalancePreferences(c, pr, id, locked)
 		if *slot != before {
 			pr.Keys = &slots
 		}

@@ -14,6 +14,25 @@ import (
 	"time"
 )
 
+func TestNewRuntimeSettingsReachOriginalBudgetAndPrivacyPolicy(t *testing.T) {
+	old := settings.WinOneSettings.Load()
+	t.Cleanup(func() { settings.WinOneSettings.Store(old) })
+	if err := applyRuntimeSettings(request{MagpieSettings: json.RawMessage(`{"timeZone":"Asia/Shanghai","hideRequestText":true,"claudeWaysOut":["US"],"claudeRegionHold":true,"codexAutoReset":["fixture@example.invalid"],"codexResetDaysLeast":1,"codexResetDaysMost":7}`)}); err != nil {
+		t.Fatal(err)
+	}
+	s := settings.Load()
+	if s.Location().String() != "Asia/Shanghai" || !s.HideRequestText || !slices.Equal(s.ClaudeWaysOut, []string{"US"}) {
+		t.Fatal("runtime policy lost")
+	}
+	lo, hi := s.ResetDays()
+	if lo != 24*time.Hour || hi != 7*24*time.Hour {
+		t.Fatal("reset lifetime changed")
+	}
+	if !s.ClaudeRegionHold || !provider.CodexAutoReset("fixture@example.invalid") {
+		t.Fatal("account policy did not reach execution")
+	}
+}
+
 // Every account in WarmAll gets the original per-account wait. The adapter
 // must not impose a three-minute cap over its queued batches.
 func TestWorkerWarmAllKeepsCallerLifetimeAndMoveKeepsLongWait(t *testing.T) {

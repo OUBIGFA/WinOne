@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/yetone/magpie",
-  "revision": "e29699527866704ae0a9c6fbee4e2a3acf00b733",
+  "revision": "0d310af00f2934b4331609251340e7336a1f9d0c",
   "license": "MIT",
-  "notice": "licenses/upstream-magpie-e29699527866704ae0a9c6fbee4e2a3acf00b733-0-LICENSE.txt",
+  "notice": "licenses/upstream-magpie-0d310af00f2934b4331609251340e7336a1f9d0c-0-LICENSE.txt",
   "sourceFiles": {
-    "internal/settings/settings.go": "9afc943b1509d5a87635aa54b3f12f96cc8b88500b9c48481f90e1419e17add5",
+    "internal/settings/settings.go": "89fac39154b62c4540efe303dadd394718d25d7005444451c2cca482b04bff99",
     "internal/settings/proxies.go": "17407c860f306b5ce6e2ac9454be68f6e7e4512685754b9e31d12eb19882c40d",
     "LICENSE": "79d2c8444715d4bc453ec4f8a0aaf2051a4c1ee5ac08f5bd2e5848aef87c7572"
   },
   "files": {
-    "internal/ai/magpie_proxy.go": "e5ac2f6d7b59a9d509c05d5fdde053b67b6b9a7b73ff603cfe736382ac952677"
+    "internal/ai/magpie_proxy.go": "222ccda493c199cbf24645af369f2528cf98b0988c588a31406377a4eadb7993"
   },
   "adaptations": [
     "Rename the upstream proxy validator and its pure support for the Host, preserving validation and gofmt formatting",

@@ -15,5 +15,10 @@ func (e *editor) codexClientView(c *ui.Context, locked bool) {
 				options("", "Codex CLI", "desktop", i18n.T("aiSync.codexDesktop")))
 			trigger.FillWidth().Label(i18n.T("aiSync.codexClient")).Disabled(locked)
 		})
+		s := e.p.draft.Value.settings()
+		kit.Stack(c, "", i18n.T("aiUpdate.resetDaysHint"), func() {
+			nativeInt(c, i18n.T("aiUpdate.resetLeast"), &s.CodexResetDaysLeast, 0, 365, locked)
+			nativeInt(c, i18n.T("aiUpdate.resetMost"), &s.CodexResetDaysMost, 0, 365, locked)
+		})
 	})
 }

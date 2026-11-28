@@ -55,6 +55,10 @@ func (e *editor) claudeModeView(c *ui.Context, locked bool) {
 	}
 	kit.Group(c, icons.Terminal, i18n.T("aiComplete.claudeMode"), "", func() {
 		kit.Toggle(c, &p.draft.Value.settings().ClaudeNoExtraUsage, i18n.T("aiSync.claudeNoExtraUsage"), i18n.T("aiSync.claudeNoExtraUsageHint")).Disabled(locked)
+		kit.Toggle(c, &p.draft.Value.settings().ClaudeRegionHold, i18n.T("aiUpdate.holdEgress"), "").Disabled(locked)
+		kit.Stack(c, "", i18n.T("aiUpdate.waysOutHint"), func() {
+			e.preferenceList(c, "claudeWaysOut", i18n.T("aiUpdate.waysOut"), &p.draft.Value.settings().ClaudeWaysOut, locked)
+		})
 		kit.Stack(c, "", "", func() {
 			s := p.draft.Value.settings()
 			mode := "tui"

@@ -1,10 +1,11 @@
-// Generated from yetone/magpie e29699527866704ae0a9c6fbee4e2a3acf00b733; MIT.
+// Generated from yetone/magpie 0d310af00f2934b4331609251340e7336a1f9d0c; MIT.
 // Host uses inline proxies; named references are checked against an empty upstream list.
 // See third_party/magpie-proxy-source.json.
 package ai
 
 import (
 	"fmt"
+	"net/netip"
 	"net/url"
 	"slices"
 	"strings"
@@ -74,4 +75,15 @@ func validateMagpieProxy(p string) error {
 		return fmt.Errorf("proxy must look like http://127.0.0.1:7890 or socks5://127.0.0.1:1080")
 	}
 	return nil
+}
+
+func MagpieWayOut(w string) bool {
+	if len(w) == 2 && w[0] >= 'A' && w[0] <= 'Z' && w[1] >= 'A' && w[1] <= 'Z' {
+		return true
+	}
+	if _, err := netip.ParseAddr(w); err == nil {
+		return true
+	}
+	_, err := netip.ParsePrefix(w)
+	return err == nil
 }

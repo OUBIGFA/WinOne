@@ -20,6 +20,11 @@ func (p *page) homeView(c *ui.Context) {
 		p.quickStart(c)
 		p.defaultModelView(c)
 		p.responseBehaviorView(c)
+		kit.Group(c, nil, i18n.T("aiUpdate.runtime"), "", func() {
+			s := p.draft.Value.settings()
+			kit.Toggle(c, &s.HideRequestText, i18n.T("aiUpdate.hideText"), i18n.T("aiUpdate.hideTextHint")).Disabled(p.locked())
+			kit.Stack(c, "", i18n.T("aiUpdate.timeZoneHint"), func() { nativeText(c, i18n.T("aiUpdate.timeZone"), &s.TimeZone, p.locked()) })
+		})
 	})
 }
 

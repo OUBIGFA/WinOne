@@ -15,15 +15,18 @@ import (
 // Zero/absent values keep upstream defaults; original identifiers and units
 // stay intact rather than introducing a second routing or pricing policy.
 type ProviderPreferences struct {
-	Contexts  map[string]int `json:"contexts,omitempty"`
-	MaxImages map[string]int `json:"maxImages,omitempty"`
-	Routing   string         `json:"routing,omitempty"`
-	Affinity  string         `json:"affinity,omitempty"`
-	Sink      bool           `json:"sink,omitempty"`
-	Billing   string         `json:"billing,omitempty"`
-	Website   string         `json:"website,omitempty"`
-	KeysURL   string         `json:"keysUrl,omitempty"`
-	Off       bool           `json:"off,omitempty"`
+	Contexts       map[string]int            `json:"contexts,omitempty"`
+	MaxImages      map[string]int            `json:"maxImages,omitempty"`
+	Routing        string                    `json:"routing,omitempty"`
+	Affinity       string                    `json:"affinity,omitempty"`
+	Sink           bool                      `json:"sink,omitempty"`
+	Billing        string                    `json:"billing,omitempty"`
+	Website        string                    `json:"website,omitempty"`
+	KeysURL        string                    `json:"keysUrl,omitempty"`
+	Off            bool                      `json:"off,omitempty"`
+	Addresses      []string                  `json:"addresses,omitempty"`
+	AgentAccounts  map[string]string         `json:"agentAccounts,omitempty"`
+	KeyBalanceAuth map[string]KeyBalanceAuth `json:"keyBalanceAuth,omitempty"`
 	// Write-only edits on the public configuration. The Store seals them
 	// separately and hydrates only private execution snapshots.
 	AccessKeyID          *string                       `json:"accessKeyID,omitempty"`
@@ -141,6 +144,14 @@ type KeyOptions struct {
 	Plan     string `json:"plan,omitempty"`
 }
 
+// Tokens are write-only in public configuration and sealed beside the other
+// provider credentials. Nil retains a token; an explicit empty edit clears it.
+type KeyBalanceAuth struct {
+	Token    *string `json:"token,omitempty"`
+	User     string  `json:"user,omitempty"`
+	HasToken bool    `json:"hasToken,omitempty"`
+}
+
 type ZhipuTeam struct {
 	Org     string `json:"org,omitempty"`
 	Project string `json:"project,omitempty"`
@@ -217,7 +228,10 @@ func (p ProviderPreferences) validate() error {
 	if _, err := CleanAutoInclude(p.AutoInclude); err != nil {
 		return err
 	}
-	addresses := []string{p.ModelsURL, p.BalanceURL}
+	if len(p.Addresses) > 8 {
+		return errors.New("备用服务地址最多 8 个")
+	}
+	addresses := append([]string{p.ModelsURL, p.BalanceURL}, p.Addresses...)
 	if e := p.Endpoints; e != nil {
 		addresses = append(addresses, e.Chat, e.Responses, e.Anthropic, e.Gemini, e.Decide)
 	}
@@ -228,6 +242,16 @@ func (p ProviderPreferences) validate() error {
 		u, err := url.Parse(address)
 		if err != nil || len(address) > 2048 || u.Hostname() == "" || u.User != nil || u.Fragment != "" || u.Scheme != "https" && u.Scheme != "http" {
 			return errors.New("供应商地址需要有效的 HTTP 或 HTTPS URL")
+		}
+	}
+	for _, auth := range p.KeyBalanceAuth {
+		if len(auth.User) > 128 || auth.Token != nil && len(*auth.Token) > 16384 {
+			return errors.New("余额查询凭据过长")
+		}
+		for _, ch := range auth.User {
+			if ch < '0' || ch > '9' {
+				return errors.New("余额查询用户 ID 必须是数字")
+			}
 		}
 	}
 	if p.QuotaRest < 0 || p.RestCap < -1 {

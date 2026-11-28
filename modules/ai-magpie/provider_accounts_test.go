@@ -26,14 +26,14 @@ func TestWinOneOAuthAgyMoveKeepsOldAccountsWithoutInstalling(t *testing.T) {
 	installPlugin = func(context.Context, string, string) error {
 		return errors.New("external package installation was attempted")
 	}
-	results, err := WinOneMoveToAgy(t.Context(), "0.1.98")
+	results, err := WinOneMoveToAgy(t.Context(), agyCLIMin)
 	if err != nil || len(results) != 1 || results[0].Status != "added" || plugin.Auths("antigravity")["antigravity"] == nil {
 		t.Fatalf("private upstream migration failed or removed old auth: %+v %v", results, err)
 	}
 	agyCLIMissing = func(string) string { return "Antigravity CLI" }
 	installed := false
 	installAgy = func(context.Context, string) error { installed = true; return nil }
-	if _, err = WinOneMoveToAgy(t.Context(), "0.1.98"); err == nil || !strings.Contains(err.Error(), "install the official client first") || installed {
+	if _, err = WinOneMoveToAgy(t.Context(), agyCLIMin); err == nil || !strings.Contains(err.Error(), "install the official client first") || installed {
 		t.Fatalf("missing agy was installed or hidden: installed=%v err=%v", installed, err)
 	}
 }

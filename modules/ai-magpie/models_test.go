@@ -21,6 +21,50 @@ import (
 	"testing"
 )
 
+func TestUpdatedProviderKeyPoliciesUseCredentialIdentities(t *testing.T) {
+	p, err := configuredProvider(request{Protocol: "chat", BaseURL: "https://relay.invalid/v1", Keys: []requestKey{{ID: "primary", KeyAccount: provider.KeyAccount{Key: "test-key"}}}, ProviderPreferences: &ProviderPreferences{AgentAccounts: map[string]string{"codex": "primary"}, KeyBalanceAuth: map[string]KeyBalanceAuth{"primary": {Token: new("test-balance"), User: "42"}}, Routing: "pace-drain"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := provider.KeyID("test-key")
+	if p.AgentAccounts["codex"] != id || p.KeyBalanceAuth[id].Token != "test-balance" || p.KeyBalanceAuth[id].User != "42" || p.Routing != "pace-drain" {
+		t.Fatal("upstream key identity or policy was lost")
+	}
+	before := provider.WinOneProviders
+	defer func() { provider.WinOneProviders = before }()
+	p.ID = "relay"
+	provider.WinOneProviders = []provider.Provider{p}
+	if got := provider.AgentAccounts("codex"); len(got) != 1 || got[0] != "relay/"+id {
+		t.Fatal("embedded caller restriction was bypassed", got)
+	}
+	state := protectedKeyRest(p, gateway.Rest{Error: "test-balance"})
+	if strings.Contains(state.Error, "test-balance") {
+		t.Fatal("balance token leaked in key status")
+	}
+}
+
+func TestPinnedDisabledKeyRemainsHeldByUpstream(t *testing.T) {
+	p, err := configuredProvider(request{Protocol: "chat", BaseURL: "https://relay.invalid/v1", Keys: []requestKey{
+		{ID: "enabled", KeyAccount: provider.KeyAccount{Key: "fixture-enabled"}},
+		{ID: "disabled", KeyAccount: provider.KeyAccount{Key: "fixture-disabled", Off: true}},
+	}, ProviderPreferences: &ProviderPreferences{AgentAccounts: map[string]string{"codex": "disabled"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := provider.WinOneProviders
+	t.Cleanup(func() { provider.WinOneProviders = old })
+	p.ID = "disabled-pin"
+	provider.WinOneProviders = []provider.Provider{p}
+	if got := provider.AgentAccounts("codex"); len(got) != 1 || got[0] != "disabled-pin/"+provider.KeyID("fixture-disabled") {
+		t.Fatal("disabled pin widened to other keys", got)
+	}
+	for _, key := range p.KeyList() {
+		if key.ID == provider.KeyID("fixture-disabled") && key.On {
+			t.Fatal("disabled pin enabled a credential")
+		}
+	}
+}
+
 // Read the upstream billing cache through its public API; a known free group
 // must survive the private slot projection without exposing its fingerprint.
 func TestRelayGroupRatesUseOriginalPricingAndPrivateSlots(t *testing.T) {

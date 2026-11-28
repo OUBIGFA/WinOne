@@ -26,11 +26,18 @@ func applyRuntimeSettings(in request) error {
 	provider.WinOneResetSearchModels()
 	gateway.WinOneTransportOnly = os.Getenv("WINONE_AI_TRANSPORT_ONLY") == "1"
 	var retained struct {
-		ClaudePrintMode    bool   `json:"claudePrintMode"`
-		ClaudeNoExtraUsage bool   `json:"claudeNoExtraUsage"`
-		CodexClient        string `json:"codexClient"`
-		BareModelIDs       bool   `json:"bareModelIDs"`
-		BareModelIDsOnly   bool   `json:"bareModelIDsOnly"`
+		ClaudePrintMode     bool     `json:"claudePrintMode"`
+		ClaudeNoExtraUsage  bool     `json:"claudeNoExtraUsage"`
+		CodexClient         string   `json:"codexClient"`
+		CodexResetDaysLeast int      `json:"codexResetDaysLeast"`
+		CodexResetDaysMost  int      `json:"codexResetDaysMost"`
+		ClaudeWaysOut       []string `json:"claudeWaysOut"`
+		ClaudeRegionHold    bool     `json:"claudeRegionHold"`
+		CodexAutoReset      []string `json:"codexAutoReset"`
+		TimeZone            string   `json:"timeZone"`
+		HideRequestText     bool     `json:"hideRequestText"`
+		BareModelIDs        bool     `json:"bareModelIDs"`
+		BareModelIDsOnly    bool     `json:"bareModelIDsOnly"`
 	}
 	if len(in.MagpieSettings) > 0 && string(in.MagpieSettings) != "null" {
 		if err := json.Unmarshal(in.MagpieSettings, &retained); err != nil {
@@ -43,6 +50,27 @@ func applyRuntimeSettings(in request) error {
 		return errors.New("invalid Codex client")
 	}
 	s.CodexClient = retained.CodexClient
+	s.CodexResetDaysLeast, s.CodexResetDaysMost = retained.CodexResetDaysLeast, retained.CodexResetDaysMost
+	s.ClaudeWaysOut = slices.Clone(retained.ClaudeWaysOut)
+	s.ClaudeRegionHold = retained.ClaudeRegionHold
+	s.CodexAutoReset = slices.Clone(retained.CodexAutoReset)
+	// WinOne's account workers are request-owned. Only the gateway's exhausted
+	// week path runs here; no autonomous expiry poller or external Codex client.
+	if len(s.CodexAutoReset) > 0 {
+		s.CodexAutoResetOnly = map[string]string{}
+		for _, user := range s.CodexAutoReset {
+			s.CodexAutoResetOnly[strings.ToLower(user)] = provider.ResetCaseWeek
+		}
+	}
+	for _, w := range s.ClaudeWaysOut {
+		if !settings.WayOut(w) {
+			return errors.New("invalid Claude egress")
+		}
+	}
+	if retained.TimeZone != "" && !settings.ValidTimeZone(retained.TimeZone) {
+		return errors.New("invalid AI time zone")
+	}
+	s.TimeZone, s.HideRequestText = retained.TimeZone, retained.HideRequestText
 	s.BareModelIDs, s.BareModelIDsOnly = retained.BareModelIDs, retained.BareModelIDs && retained.BareModelIDsOnly
 	if !gateway.WinOneTransportOnly {
 		s.GatewayConversations = settings.WinOneGatewayRecording()

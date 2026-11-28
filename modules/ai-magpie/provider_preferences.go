@@ -71,3 +71,25 @@ func toRateWindows(in []RateWindow) []provider.RateWindow {
 	}
 	return out
 }
+
+// Saved preferences name stable Host slots; upstream names the credential's
+// fingerprint. Resolve both new policies at the same boundary as key budgets.
+func applyKeyIdentityPreferences(p *provider.Provider, options *ProviderPreferences, slots map[string]string) {
+	if options == nil {
+		return
+	}
+	p.KeyBalanceAuth = nil
+	for id, auth := range options.KeyBalanceAuth {
+		if key := slots[id]; key != "" && auth.Token != nil && *auth.Token != "" {
+			if p.KeyBalanceAuth == nil {
+				p.KeyBalanceAuth = map[string]provider.KeyBalanceAuth{}
+			}
+			p.KeyBalanceAuth[key] = provider.KeyBalanceAuth{Token: *auth.Token, User: auth.User}
+		}
+	}
+	for agent, id := range p.AgentAccounts {
+		if key := slots[id]; key != "" {
+			p.AgentAccounts[agent] = key
+		}
+	}
+}

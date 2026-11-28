@@ -39,6 +39,30 @@ func (s *Store) prepareProviderSecrets(c *Configuration) (map[string]map[string]
 				values[f.name] = value
 			}
 		}
+		for id, auth := range p.KeyBalanceAuth {
+			name := "keyBalance:" + id
+			value := s.providerSecrets[p.ID][name]
+			if auth.Token != nil {
+				if p.AuthMode != "api-key" {
+					return nil, errors.New("余额查询凭据仅用于自定义供应商")
+				}
+				var err error
+				value, err = sealCredential(*auth.Token)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if p.AuthMode != "api-key" {
+				value = ""
+			}
+			auth.Token, auth.HasToken = nil, value != ""
+			if value != "" {
+				values[name] = value
+				p.KeyBalanceAuth[id] = auth
+			} else {
+				delete(p.KeyBalanceAuth, id)
+			}
+		}
 		if len(values) > 0 {
 			sealed[p.ID] = values
 		}
@@ -67,6 +91,21 @@ func (s *Store) hydrateProviderSecrets(p *Provider) error {
 			return err
 		}
 		*f.value = &value
+	}
+	for id, auth := range p.KeyBalanceAuth {
+		if auth.Token != nil {
+			continue
+		}
+		sealed := s.providerSecrets[p.ID]["keyBalance:"+id]
+		if sealed == "" {
+			continue
+		}
+		value, err := unsealKey(sealed)
+		if err != nil {
+			return err
+		}
+		auth.Token = &value
+		p.KeyBalanceAuth[id] = auth
 	}
 	return nil
 }

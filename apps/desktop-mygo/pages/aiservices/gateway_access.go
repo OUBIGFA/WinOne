@@ -364,7 +364,16 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 			kit.Toggle(c, &k.Issues, accessT("issuer"), accessT("issuerHint")).Disabled(locked || k.Browser || k.Issuer != "" || k.Expires != "")
 		case 1:
 			kit.Help(c, accessT("scopeHint")).Padding(0, 16)
-			a.scopeList(c, "models", accessT("models"), &k.Models, a.modelChoices(false), locked)
+			noModels := slices.Equal(k.Models, []string{"-"})
+			kit.Toggle(c, &noModels, i18n.T("aiUpdate.noModels"), "").Disabled(locked)
+			if noModels {
+				k.Models = []string{"-"}
+			} else {
+				if slices.Equal(k.Models, []string{"-"}) {
+					k.Models = nil
+				}
+				a.scopeList(c, "models", accessT("models"), &k.Models, a.modelChoices(false), locked)
+			}
 			a.scopeList(c, "accounts", accessT("accounts"), &k.Accounts, a.modelChoices(true), locked)
 			kit.Stack(c, "", nativeT("keyAliasesHint"), func() {
 				for _, name := range sortedKeys(k.Aliases) {

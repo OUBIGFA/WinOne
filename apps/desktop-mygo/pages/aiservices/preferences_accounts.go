@@ -28,6 +28,12 @@ func (e *editor) preferenceAccounts(pr *provider) []string {
 		}
 	}
 	s := &pr.ProviderPreferences
+	for _, id := range s.AgentAccounts {
+		if id != "" {
+			ids = append(ids, id)
+		}
+	}
+	ids = append(ids, sortedKeys(s.KeyBalanceAuth)...)
 	for _, keys := range [][]string{sortedKeys(s.AccountNames), sortedKeys(s.AccountWeights), sortedKeys(s.AccountConcurrency), sortedKeys(s.AccountModels), sortedKeys(s.AccountModelsAll), sortedKeys(s.AccountProxies), sortedKeys(s.AccountCaps), sortedKeys(s.AccountWindowCaps), sortedKeys(s.AccountWindowAmounts), sortedKeys(s.KeySpendCaps), sortedKeys(s.KeyOwnBalances), sortedKeys(s.KeyPriceRates), sortedKeys(s.KeyRateFactors)} {
 		ids = append(ids, keys...)
 	}
@@ -46,7 +52,7 @@ func (e *editor) accountPreferences(c *ui.Context, pr *provider, locked bool) {
 				"rotate", i18n.T("ai.roundRobinKeys"), "usage", i18n.T("ai.routingUsage"),
 				"pace", i18n.T("ai.routingPace"), "weight", i18n.T("ai.routingWeight"),
 				"free", i18n.T("ai.routingFree"), "fast", i18n.T("ai.routingFast"),
-				"drain", i18n.T("ai.routingDrain")), locked)
+				"drain", i18n.T("ai.routingDrain"), "pace-drain", upstreamT("Before expiry, one by one")), locked)
 			nativeSelect(c, i18n.T("ai.affinity"), &s.Affinity, options(
 				"", i18n.T("ai.automatic"), "session", i18n.T("ai.affinitySession"),
 				"turn", i18n.T("ai.affinityTurn"), "off", i18n.T("ai.affinityOff"),
@@ -74,6 +80,7 @@ func (e *editor) accountPreferences(c *ui.Context, pr *provider, locked bool) {
 			}
 		})
 	})
+	e.callerAccountPreferences(c, pr, locked)
 	id := e.preferenceAccount
 	if id == "" {
 		kit.Empty(c, icons.Users, i18n.T("aiOptions.noAccounts"), i18n.T("aiOptions.noAccountsHint"), nil)
@@ -87,6 +94,17 @@ func (e *editor) accountPreferences(c *ui.Context, pr *provider, locked bool) {
 			return
 		}
 		kit.Group(c, nil, id, "", func() {
+			if pr.Agent == "codex" {
+				global := e.p.draft.Value.settings()
+				enabled := slices.Contains(global.CodexAutoReset, id)
+				kit.Toggle(c, &enabled, i18n.T("aiUpdate.autoReset"), i18n.T("aiUpdate.autoResetHint")).Disabled(locked)
+				if enabled && !slices.Contains(global.CodexAutoReset, id) {
+					global.CodexAutoReset = append(global.CodexAutoReset, id)
+				}
+				if !enabled {
+					global.CodexAutoReset = slices.DeleteFunc(global.CodexAutoReset, func(v string) bool { return v == id })
+				}
+			}
 			kit.Stack(c, i18n.T("ai.accountNames"), "", func() {
 				f := e.fields.get(id + ":name")
 				if text, changed := f.sync(s.AccountNames[id]); changed {
@@ -164,6 +182,7 @@ func (e *editor) accountPreferences(c *ui.Context, pr *provider, locked bool) {
 			delete(s.KeyOwnBalances, id)
 			delete(s.KeyPriceRates, id)
 			delete(s.KeyRateFactors, id)
+			delete(s.KeyBalanceAuth, id)
 			for key := range e.fields {
 				if strings.Contains(key, id) {
 					delete(e.fields, key)

@@ -1,5 +1,6 @@
 {
   "aiUpstream.Base URL": "API 地址",
+  "aiUpstream.Before expiry, one by one": "到期前逐个用完",
   "aiUpstream.Chat Completions, the API most tools speak. Anything with an OpenAI base-URL setting works.": "Chat Completions，多数工具使用的 API。任何可设置 OpenAI base URL 的工具都能用。",
   "aiUpstream.Cost factor": "结算系数",
   "aiUpstream.Details": "详情",

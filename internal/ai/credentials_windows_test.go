@@ -109,6 +109,36 @@ func TestDisabledDeletedAndForeignKeysCannotBeUsed(t *testing.T) {
 	}
 }
 
+func TestPinnedDisabledKeyIsPassedAsDisabledWithoutBecomingPrimary(t *testing.T) {
+	s, _ := multiKeyStore(t)
+	c := s.Configuration()
+	c.Providers[0].Keys[0].Enabled = false
+	c.Providers[0].AgentAccounts = map[string]string{"codex": "first"}
+	if _, err := s.SaveConfiguration(c, nil); err != nil {
+		t.Fatal(err)
+	}
+	_, plan, err := s.ForTaskKeys("chat", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = s.WithKeys(t.Context(), plan, func(ctx context.Context, key string) (bool, error) {
+		keys := credentialRequestKeys(ctx)
+		if key != "fixture-second-secret" || len(keys) != 2 || keys[0].Off || !keys[1].Off || keys[1].ID != "first" {
+			t.Fatal("disabled pin lost its upstream identity", keys)
+		}
+		return false, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	providers, err := s.MagpieProviders()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(providers) != 1 || len(providers[0].Keys) != 2 || !providers[0].Keys[1].Off {
+		t.Fatal("gateway lost disabled pin", providers)
+	}
+}
+
 // Host storage owns encryption and enabled slots. A complete snapshot, not a
 // selected/retried credential, reaches the upstream provider.
 func TestEnabledKeySnapshotPreservesOptionsAndDoesNotRetry(t *testing.T) {

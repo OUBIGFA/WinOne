@@ -336,6 +336,11 @@ func readKeyBalances(ctx context.Context, in request, out io.Writer) error {
 			p.KeyRateFactors[provider.KeyID(key.Key)] = factor
 		}
 	}
+	slots := map[string]string{}
+	for _, key := range in.BalanceKeys {
+		slots[key.Name] = provider.KeyID(key.Key)
+	}
+	applyKeyIdentityPreferences(&p, in.ProviderPreferences, slots)
 	provider.WinOneProviders = []provider.Provider{p}
 	quotas := provider.KeyBalances(provider.Asked(ctx))
 	// API-key plans are a separate upstream reader; calling only KeyBalances

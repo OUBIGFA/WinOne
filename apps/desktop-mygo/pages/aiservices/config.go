@@ -175,12 +175,19 @@ func (p *provider) slots() []keySlot {
 	return []keySlot{{ID: "primary", Enabled: true, HasKey: p.HasKey}}
 }
 
-// Account execution mode belongs to account-provider setup. Other former
-// global advanced options have no editable or executable surface here.
+// Account execution belongs to account-provider setup. Privacy and billing
+// time are edited from the common AI preferences.
 type magpieSettings struct {
-	ClaudePrintMode    bool   `json:"claudePrintMode,omitempty"`
-	ClaudeNoExtraUsage bool   `json:"claudeNoExtraUsage,omitempty"`
-	CodexClient        string `json:"codexClient,omitempty"`
+	ClaudePrintMode     bool     `json:"claudePrintMode,omitempty"`
+	ClaudeNoExtraUsage  bool     `json:"claudeNoExtraUsage,omitempty"`
+	CodexClient         string   `json:"codexClient,omitempty"`
+	CodexResetDaysLeast int      `json:"codexResetDaysLeast,omitempty"`
+	CodexResetDaysMost  int      `json:"codexResetDaysMost,omitempty"`
+	ClaudeWaysOut       []string `json:"claudeWaysOut,omitempty"`
+	ClaudeRegionHold    bool     `json:"claudeRegionHold,omitempty"`
+	CodexAutoReset      []string `json:"codexAutoReset,omitempty"`
+	TimeZone            string   `json:"timeZone,omitempty"`
+	HideRequestText     bool     `json:"hideRequestText,omitempty"`
 }
 
 type magpieDoc = core.Preserved[magpieSettings]

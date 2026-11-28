@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/yetone/magpie",
-  "revision": "e29699527866704ae0a9c6fbee4e2a3acf00b733",
+  "revision": "0d310af00f2934b4331609251340e7336a1f9d0c",
   "license": "MIT",
-  "notice": "licenses/upstream-magpie-e29699527866704ae0a9c6fbee4e2a3acf00b733-0-LICENSE.txt",
+  "notice": "licenses/upstream-magpie-0d310af00f2934b4331609251340e7336a1f9d0c-0-LICENSE.txt",
   "sourceFiles": {
     "internal/gui/proxycheck.go": "a3d5a1144224095ae1b7838017327de663a03fd52858a84e30ba5c1163e3b59e",
     "internal/gui/proxies.go": "b926f83f06c48b30b84d3b945761f28fabd046c713d82f950a6f2fd2c1d3232c"
@@ -13,7 +13,7 @@
     "modules/ai-magpie/proxy_probe.go": "0e6f3d679c1f0799e096a7ced1fb1c6bd12acf01f43976ae31ebcbb1dba3c84c"
   },
   "generatedFile": "cmd/winone-ai/upstream_proxy_probe.go",
-  "generatedSHA256": "81cf6ca1b8c55bbb32b824990a0f802ab771c98761e9eadd875e96badc6e483a",
+  "generatedSHA256": "5c01b0eedb8a2e5dc88b7848381ffcc3f13a35bb74fa26e3f34866cb5595afc2",
   "adaptations": [
     "Rename only the package; copy the original pure trace, connection check, latency calculation and error redaction",
     "Omit the GUI HTTP controllers (proxy check and Claude egress recheck) and their imports, and saved-proxy management; the existing WinOne inline proxy supplies the current choice",

@@ -310,6 +310,17 @@ std::optional<Draft> DraftStore::read() const {
 }
 
 void DraftStore::save(const Draft& draft) {
+#ifdef WINONE_CAPTURE_PRIVATE_PROBE
+    // A slow disk must not stall a successful clipboard delivery. This hook is
+    // compiled only into the private-desktop probe; production has no delay.
+    static bool delayed = false;
+    wchar_t enabled[2]{};
+    if (!delayed && GetEnvironmentVariableW(L"WINONE_CAPTURE_SLOW_DRAFT_TEST", enabled, 2)) {
+        delayed = true;
+        std::ofstream(directory_ / L"draft-save-entered.test") << "entered";
+        Sleep(2000);
+    }
+#endif
     if (!validId(draft.id) || draft.original.empty()) throw std::runtime_error("Invalid native capture draft");
     const auto folder = directory_ / L"native-capture-cpp";
     const auto retirement = folder / L"retired" / (wide(draft.id) + L".json");

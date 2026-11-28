@@ -5,6 +5,26 @@ import (
 	"testing"
 )
 
+func TestUpdatedRuntimeOptionsAreValidatedAndCopied(t *testing.T) {
+	s := &MagpieSettings{TimeZone: "Asia/Shanghai", HideRequestText: true, ClaudeWaysOut: []string{"US", "192.0.2.0/24"}, CodexResetDaysLeast: 1, CodexResetDaysMost: 7}
+	if err := s.validate(); err != nil {
+		t.Fatal(err)
+	}
+	c := s.clone()
+	if c.TimeZone != s.TimeZone || !c.HideRequestText || c.CodexResetDaysMost != 7 {
+		t.Fatal("runtime choice lost")
+	}
+	c.ClaudeWaysOut[0] = "changed"
+	if s.ClaudeWaysOut[0] != "US" {
+		t.Fatal("shared mutable egress list")
+	}
+	for _, bad := range []*MagpieSettings{{TimeZone: "invalid"}, {ClaudeWaysOut: []string{"not-a-region"}}, {CodexResetDaysMost: 366}} {
+		if bad.validate() == nil {
+			t.Fatal("invalid runtime choice accepted")
+		}
+	}
+}
+
 func TestCodexClientSurvivesRuntimeSnapshot(t *testing.T) {
 	var input MagpieSettings
 	if err := json.Unmarshal([]byte(`{"codexClient":"desktop"}`), &input); err != nil {

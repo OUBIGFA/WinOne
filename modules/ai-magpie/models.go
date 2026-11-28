@@ -262,6 +262,14 @@ func configuredProvider(in request) (provider.Provider, error) {
 		}
 		p.KeySpendCaps, p.KeyOwnBalances, p.KeyPriceRates, p.KeyRateFactors = caps, balances, rates, factors
 	}
+	slots := map[string]string{}
+	if in.KeyID != "" && in.Key != "" {
+		slots[in.KeyID] = provider.KeyID(in.Key)
+	}
+	for _, key := range in.Keys {
+		slots[key.ID] = provider.KeyID(key.Key)
+	}
+	applyKeyIdentityPreferences(&p, in.ProviderPreferences, slots)
 	// Magpie applies these after protocol authentication, preserving names and
 	// merging list-valued headers through the same path as its provider editor.
 	for name, value := range in.Headers {

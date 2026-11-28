@@ -97,6 +97,7 @@ func serveGatewayBackend(ctx context.Context, in request, input io.Reader, outpu
 			defer cancel()
 			request := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(payload)).WithContext(ctx)
 			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("User-Agent", "magpie/WinOne")
 			request.Header.Set("Authorization", "Bearer "+gateway.Token)
 			w.Header().Set("Content-Type", "application/x-ndjson")
 			encoder := json.NewEncoder(w)

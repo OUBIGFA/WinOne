@@ -156,12 +156,25 @@ func (p Provider) ModelRefreshInterval() time.Duration {
 // On a rule edit the caller passes no old list, as upstream SetAutoInclude does.
 func IncludeDiscovered(selected, old, listed, rules []string) []string {
 	out := slices.Clone(selected)
+	if len(listed) == 0 || len(rules) == 0 {
+		return out
+	}
+	// Old and already selected IDs are membership checks, not ordered searches.
+	// Keep the output order and never re-enable a deliberately unchecked model.
+	seen := make(map[string]struct{}, len(old)+len(selected))
+	for _, id := range old {
+		seen[id] = struct{}{}
+	}
+	for _, id := range selected {
+		seen[id] = struct{}{}
+	}
 	for _, id := range listed {
-		if slices.Contains(old, id) || slices.Contains(out, id) {
+		if _, exists := seen[id]; exists {
 			continue
 		}
 		if slices.ContainsFunc(rules, func(rule string) bool { return PatternMatches(rule, id) }) {
 			out = append(out, id)
+			seen[id] = struct{}{}
 		}
 	}
 	return out

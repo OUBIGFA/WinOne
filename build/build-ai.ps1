@@ -96,6 +96,14 @@ $text=(& git -C $source show "${revision}:internal/provider/provider.go") -join 
 if(-not $text.Contains('func sharedAll() []Provider {')){throw 'Upstream shared provider boundary changed'}
 $text=$text.Replace('func sharedAll() []Provider {',"func sharedAll() []Provider {`n if WinOneProviders != nil { return winOneConfiguredProviders() }")
 [IO.File]::WriteAllText($provider,$text+"`n",$encoding)
+# Upstream checks persisted providers before resolving per-agent accounts.
+# Embedded providers live in memory, so include that same snapshot in its gate.
+$agentAccounts=Join-Path $source 'internal/provider/agent_accounts.go'
+$text=[IO.File]::ReadAllText($agentAccounts)
+$hook='for _, p := range storedFile().Providers {'
+if(-not $text.Contains($hook)){throw 'Upstream agent account lookup changed'}
+$text=$text.Replace($hook,'providers := WinOneProviders; if providers == nil { providers = storedFile().Providers }; for _, p := range providers {')
+[IO.File]::WriteAllText($agentAccounts,$text,$encoding)
 [IO.File]::WriteAllText((Join-Path $source 'internal/provider/winone_embedded.go'),"package provider`n// Set once before serving a WinOne request; never persisted.`nvar WinOneProviders []Provider`nfunc WinOneAccountIDs() []string { return append([]string(nil), accountIDs...) }`n// Use the original endpoint fill/migration for a private unsaved connection.`nfunc WinOneOpenCodeEndpoints(p Provider) Provider { p.openCodeEndpoints(); return p }`nfunc winOneConfiguredProviders() []Provider { result := make([]Provider, len(WinOneProviders)); for i, p := range WinOneProviders { result[i] = normalize(p) }; return result }`n",$encoding)
 $models=Join-Path $source 'internal/provider/models.go'
 $text=(& git -C $source show "${revision}:internal/provider/models.go") -join "`n"

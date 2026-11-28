@@ -46,7 +46,9 @@ Set-Hook 'internal/access/access.go' @{
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/access_store_windows.go.txt') -Destination (Join-Path $SourceDirectory 'internal/access/winone_store_windows.go')
 Copy-Item -LiteralPath (Join-Path $root 'modules/ai-magpie/patches/settings_gateway.go.txt') -Destination (Join-Path $SourceDirectory 'internal/gateway/winone_settings.go')
 Set-Hook 'internal/gateway/native.go' @{
- 'p := *found'='p, nativeOK := winOneNativeProvider(*found); if !nativeOK {fail(http.StatusForbidden,"Native APIs require an API-key provider");return}'
+ # Resolve the private API provider before applying upstream's new per-agent
+ # account choice, so the bridge cannot discard that restriction afterwards.
+ 'p := nativeAgentAccount(r, *found)'='p, nativeOK := winOneNativeProvider(*found); if !nativeOK {fail(http.StatusForbidden,"Native APIs require an API-key provider");return}; p = nativeAgentAccount(r, p)'
 }
 # WinOne's enabled gateway models apply to helper calls too. Keep upstream
 # resolution, group checks and errors; only mark the Host-authenticated path.

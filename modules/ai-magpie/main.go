@@ -167,6 +167,9 @@ func runOutput(ctx context.Context, input io.Reader, emit func(streamEvent) erro
 	}
 	req := httptest.NewRequest(http.MethodPost, "http://127.0.0.1/v1/chat/completions", bytes.NewReader(payload)).WithContext(ctx)
 	req.Header.Set("Content-Type", "application/json")
+	// Identify product-owned calls using upstream's own-request identity, so
+	// the selected WinOne account applies to OCR, translation and follow-ups.
+	req.Header.Set("User-Agent", "magpie/WinOne")
 	req.Header.Set("Authorization", "Bearer "+gateway.Token)
 	if emit != nil {
 		streamContext, cancel := context.WithCancel(ctx)

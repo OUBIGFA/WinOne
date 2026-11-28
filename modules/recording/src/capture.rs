@@ -1,9 +1,9 @@
 //! WGC is reused from windows-capture; only the crop-to-pool adapter is ours.
 //! Its stock buffer_crop and VideoEncoder allocate per frame / queue without a
 //! bound, so this path reuses one staging texture and the fixed ownership pool.
-use crate::{core::{BufferPool, Config, Frame as OwnedFrame, Packet, Region, VfrFilter, fingerprint}, session::Shared};
+use crate::{core::{BufferPool, Config, Frame as OwnedFrame, FramePacer, Packet, Region, VfrFilter, fingerprint}, session::Shared};
 use crossbeam_channel::Sender;
-use std::{sync::{Arc, atomic::Ordering}, time::{Duration, Instant}};
+use std::{sync::{Arc, atomic::Ordering}, time::Instant};
 use windows::Win32::{Foundation::HWND, Graphics::{Gdi::{GetMonitorInfoW, HMONITOR, MONITORINFO}, Direct3D11::{D3D11_BOX, D3D11_MAP_READ, D3D11_MAPPED_SUBRESOURCE, ID3D11DeviceContext, ID3D11Texture2D}}, UI::WindowsAndMessaging::{GetWindowDisplayAffinity, GetWindowThreadProcessId, SetWindowDisplayAffinity, WDA_EXCLUDEFROMCAPTURE, WINDOW_DISPLAY_AFFINITY}};
 use windows_capture::{capture::{CaptureControl, Context, GraphicsCaptureApiHandler}, d3d11::{SendDirectX, StagingTexture}, frame::Frame, graphics_capture_api::InternalCaptureControl, monitor::Monitor, settings::{ColorFormat, CursorCaptureSettings, DirtyRegionSettings, DrawBorderSettings, MinimumUpdateIntervalSettings, SecondaryWindowSettings, Settings}};
 
@@ -21,7 +21,7 @@ pub fn resolve_monitor(config:&Config)->Result<(Monitor,Region),String>{
     Err("选区所属显示器已断开，请重新框选".into())
 }
 pub struct Flags {region:Region,frames:Sender<Packet>,pool:BufferPool,shared:Arc<Shared>,config:Config}
-pub struct Capture {flags:Flags, staging:SendDirectX<StagingTexture>,filter:VfrFilter,last_arrival:Option<Duration>,_excluded:ExcludedWindows}
+pub struct Capture {flags:Flags, staging:SendDirectX<StagingTexture>,filter:VfrFilter,pacer:FramePacer,_excluded:ExcludedWindows}
 pub fn start(monitor:Monitor,region:Region,config:&Config,frames:Sender<Packet>,pool:BufferPool,shared:Arc<Shared>)->Result<CaptureControl<Capture,String>,String>{
     // Frame-rate throttling also lives in the callback so Windows versions
     // without the newer MinimumUpdateInterval API retain identical semantics.
@@ -36,7 +36,8 @@ impl GraphicsCaptureApiHandler for Capture {
         let region=ctx.flags.region;
         let excluded=ExcludedWindows::new(&ctx.flags.config.exclude_windows)?;
         let staging=StagingTexture::new(&ctx.device,region.width,region.height,windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_B8G8R8A8_UNORM).map_err(|e|e.to_string())?;
-        Ok(Self{flags:ctx.flags,staging:SendDirectX::new(staging),filter:VfrFilter::default(),last_arrival:None,_excluded:excluded})
+        let pacer=FramePacer::new(ctx.flags.config.frame_rate());
+        Ok(Self{flags:ctx.flags,staging:SendDirectX::new(staging),filter:VfrFilter::default(),pacer,_excluded:excluded})
     }
     fn on_frame_arrived(&mut self,frame:&mut Frame,control:InternalCaptureControl)->Result<(),String>{
         let state=&self.flags.shared;
@@ -45,11 +46,12 @@ impl GraphicsCaptureApiHandler for Capture {
         if clock.stopped(){control.stop();return Ok(());}
         if clock.paused(){return Ok(());}
         let pts=clock.pts(state.start.elapsed());drop(clock);
-        let interval=Duration::from_secs_f64(1./self.flags.config.frame_rate() as f64);
-        if self.last_arrival.is_some_and(|last|pts.saturating_sub(last)<interval){return Ok(());}
-        self.last_arrival=Some(pts);
+        if !self.pacer.accepts(pts){return Ok(());}
         let r=self.flags.region;
         if r.x+r.width>frame.width() || r.y+r.height>frame.height(){return Err("显示分辨率已改变，已停止录制以免选区错位".into());}
+        // A full ownership pool means this frame cannot be encoded. Reserve
+        // before GPU copy/map so backpressure does not pay a discarded readback.
+        let Some(mut buffer)=self.flags.pool.take() else{state.dropped.fetch_add(1,Ordering::Relaxed);return Ok(());};
         let source=D3D11_BOX{left:r.x,top:r.y,front:0,right:r.x+r.width,bottom:r.y+r.height,back:1};
         unsafe{frame.device_context().CopySubresourceRegion(self.staging.0.texture(),0,0,0,0,frame.as_raw_texture(),0,Some(&source));}
         let mapped=Mapped::new(frame.device_context(),self.staging.0.texture(),r.height)?;
@@ -57,9 +59,9 @@ impl GraphicsCaptureApiHandler for Capture {
         let hash=fingerprint(mapped.bytes(),r.width as usize,r.height as usize,mapped.info.RowPitch as usize);
         state.filter_max_ns.fetch_max(before.elapsed().as_nanos().min(u64::MAX as u128) as u64,Ordering::Relaxed);
         if self.filter.is_static(hash,pts){state.skipped.fetch_add(1,Ordering::Relaxed);return Ok(());}
-        let Some(mut buffer)=self.flags.pool.take() else{state.dropped.fetch_add(1,Ordering::Relaxed);return Ok(());};
         let row_bytes=r.width as usize*4;
-        for (row,destination) in buffer.bytes.chunks_exact_mut(row_bytes).enumerate(){let offset=row*mapped.info.RowPitch as usize;destination.copy_from_slice(&mapped.bytes()[offset..offset+row_bytes]);}
+        if mapped.info.RowPitch as usize==row_bytes {buffer.bytes.copy_from_slice(mapped.bytes());}
+        else {for (row,destination) in buffer.bytes.chunks_exact_mut(row_bytes).enumerate(){let offset=row*mapped.info.RowPitch as usize;destination.copy_from_slice(&mapped.bytes()[offset..offset+row_bytes]);}}
         match self.flags.frames.try_send(Packet::Frame(OwnedFrame{buffer,pts})) {
             Ok(())=>{self.filter.accepted(hash,pts);state.submitted.fetch_add(1,Ordering::Relaxed);state.max_queue.fetch_max(self.flags.frames.len() as u64,Ordering::Relaxed);},
             Err(crossbeam_channel::TrySendError::Full(_))=>{state.dropped.fetch_add(1,Ordering::Relaxed);},

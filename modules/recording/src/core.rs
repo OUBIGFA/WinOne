@@ -9,6 +9,21 @@ pub const POOL_CAPACITY: usize = QUEUE_CAPACITY + 2; // producer + pending durat
 pub const DISK_RESERVE: u64 = 200 * 1024 * 1024;
 pub const KEEPALIVE: Duration = Duration::from_secs(1);
 
+/// Callback pacing is separate from the capture clock so refresh jitter and
+/// long pauses can be exercised without reading a desktop.
+pub struct FramePacer { interval: Duration, next: Option<Duration> }
+impl FramePacer {
+    pub fn new(fps:u32)->Self { Self{interval:Duration::from_secs_f64(1./fps as f64),next:None} }
+    pub fn accepts(&mut self, pts:Duration)->bool {
+        let next=self.next.unwrap_or(pts);
+        if pts<next {return false;}
+        // Keep the requested cadence instead of restarting it at a jittered
+        // arrival. Skip missed slots in O(1), never burst to catch up.
+        let remainder=(pts-next).as_nanos()%self.interval.as_nanos();
+        self.next=Some(pts+self.interval-Duration::from_nanos(remainder as u64));true
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Format { Mp4, Gif }
@@ -143,6 +158,26 @@ pub enum Packet { Frame(Frame), End(Duration) }
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test] fn frame_pacing_keeps_requested_rate_under_refresh_jitter() {
+        for fps in [15,30,60] {
+            let mut p=FramePacer::new(fps);
+            let count=(0..1200).filter(|i|{
+                let nominal=*i as u64*1_000_000_000/120;
+                let jitter=if i%2==0 {200_000}else{0};
+                p.accepts(Duration::from_nanos(nominal+jitter))
+            }).count();
+            assert!((fps as usize*10-1..=fps as usize*10+1).contains(&count),"{fps} fps became {count} frames over ten seconds");
+        }
+    }
+    #[test] fn frame_pacing_skips_missed_slots_without_bursting() {
+        let mut p=FramePacer::new(30);
+        assert!(p.accepts(Duration::ZERO));
+        assert!(!p.accepts(Duration::ZERO));
+        let late=Duration::from_secs(7200);
+        assert!(p.accepts(late));
+        assert!(!p.accepts(late));
+        assert!(p.accepts(late+Duration::from_millis(34)));
+    }
     fn config() -> Config { serde_json::from_str(r#"{"x":-1900,"y":10,"width":101,"height":99,"monitor":"display","output":"capture.mp4","format":"mp4","scaleFactor":1.5}"#).unwrap() }
     #[test] fn physical_pixels_are_not_scaled_twice() { assert_eq!(Region::resolve(&config(), (-1920, 0), (1920, 1080)).unwrap(), Region{x:20,y:10,width:100,height:98}); }
     #[test] fn monitor_relative_logical_coordinates_scale_once() { let mut c=config();c.coordinates=Coordinates::LogicalMonitor;c.x=10.;assert_eq!(Region::resolve(&c,(-1920,0),(1920,1080)).unwrap(),Region{x:15,y:15,width:150,height:148}); }

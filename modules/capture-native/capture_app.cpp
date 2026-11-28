@@ -104,9 +104,9 @@ int CaptureApp::run(HINSTANCE instance) {
     auto& overlay = upstream::CaptureOverlay::instance();
     overlay.setWinOneCanvasOwner([this] { return !active_.empty(); });
     overlay.winoneState().winoneBeforeOutput = [this] {
-        // OCR retains the canvas in memory for recovery; disk encoding must
-        // not delay hiding it or starting recognition.
-        try { closeNumberEditor(false); if(numberEdit_) return false; snapshotDraft(mode_ != "ocr"); return true; }
+        // The canvas remains available until output succeeds. Draft encoding
+        // must not hold clipboard delivery, pinning or recognition on the UI.
+        try { closeNumberEditor(false); if(numberEdit_) return false; snapshotDraft(false); return true; }
         catch (const std::exception& error) { notice(error.what()); return false; }
     };
     overlay.winoneState().winoneSaveAs = [this] {
@@ -601,7 +601,9 @@ bool CaptureApp::deliver(const upstream::CaptureRegion& region, const cv::Mat& i
         if (mode_ == "ocr" || mode_ == "translate") { textAction(image, mode_ == "translate"); return false; }
         const auto result = publish(image, region, completion);
         if (result.is_null()) return false;
-        snapshotDraft(true); retireDraft();
+        // Output is already committed; retire behind any existing draft writer
+        // instead of encoding a full-screen recovery image only to discard it.
+        retireDraft(true);
         const auto id = active_; active_.clear();
         if (!id.empty()) complete(id, result);
         return true;

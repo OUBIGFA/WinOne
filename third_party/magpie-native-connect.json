@@ -1,10 +1,10 @@
 {
   "repository": "https://github.com/yetone/magpie",
-  "revision": "e29699527866704ae0a9c6fbee4e2a3acf00b733",
+  "revision": "0d310af00f2934b4331609251340e7336a1f9d0c",
   "license": "MIT",
-  "notice": "licenses/upstream-magpie-e29699527866704ae0a9c6fbee4e2a3acf00b733-0-LICENSE.txt",
+  "notice": "licenses/upstream-magpie-0d310af00f2934b4331609251340e7336a1f9d0c-0-LICENSE.txt",
   "source": "internal/gui/assets/plugins/gateway/client.js",
-  "sourceSHA256": "189c91e234f6e6b03ef860ee2f2824d2bf7b1d02c64608b182c1aae4102654c7",
+  "sourceSHA256": "4594a0905d5e83fb986440a8767a8b3bbc4ed3fe85882074e2297c82d316598c",
   "output": "apps/desktop-mygo/pages/aiservices/gateway_examples.json",
   "adaptations": [
     "Replace root/model/key placeholders at render time; WinOne requires its own gateway key; remove the unavailable Agents-page direction"

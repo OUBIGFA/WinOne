@@ -165,9 +165,19 @@ func (p Provider) AllModels() []string {
 	if all == nil {
 		all = []string{}
 	}
+	// Model lists can contain thousands of relay entries. Build membership once
+	// per snapshot while preserving catalog order and the caller-owned slice.
+	if len(p.Models) == 0 {
+		return all
+	}
+	seen := make(map[string]struct{}, len(all))
+	for _, model := range all {
+		seen[model] = struct{}{}
+	}
 	for _, model := range p.Models {
-		if !slices.Contains(all, model) {
+		if _, exists := seen[model]; !exists {
 			all = append(all, model)
+			seen[model] = struct{}{}
 		}
 	}
 	return all

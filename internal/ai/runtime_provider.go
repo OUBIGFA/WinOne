@@ -10,12 +10,14 @@ type RuntimeProvider struct {
 type RuntimeKey struct {
 	ID  string `json:"id"`
 	Key string `json:"key"`
+	Off bool   `json:"off,omitempty"`
 	KeyOptions
 }
 type auxiliaryKey struct {
 	KeyOptions
 	Name string `json:"name"`
 	Key  string `json:"key"`
+	Off  bool   `json:"off,omitempty"`
 }
 
 type auxiliaryProvider struct {

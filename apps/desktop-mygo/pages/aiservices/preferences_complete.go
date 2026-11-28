@@ -126,6 +126,11 @@ func (e *editor) modelDiscoveryPreferences(c *ui.Context, pr *provider, locked b
 
 func (e *editor) servicePreferences(c *ui.Context, pr *provider, locked bool) {
 	s := &pr.ProviderPreferences
+	if pr.Preset == "remote-magpie" {
+		kit.Group(c, nil, i18n.T("aiUpdate.addresses"), i18n.T("aiUpdate.addressesHint"), func() {
+			kit.Stack(c, "", "", func() { e.preferenceList(c, "addresses", i18n.T("aiUpdate.addresses"), &s.Addresses, locked) })
+		})
+	}
 	kit.Group(c, nil, completeT("serviceLinks"), "", func() {
 		kit.Stack(c, "", "", func() {
 			nativeText(c, completeT("website"), &s.Website, locked)

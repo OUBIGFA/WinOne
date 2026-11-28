@@ -67,3 +67,61 @@ func TestSupplementalProviderSecretsAreWriteOnlyAndReachExecution(t *testing.T) 
 		t.Fatal("clearing one secret changed another")
 	}
 }
+
+func TestKeyBalanceCredentialsAreWriteOnlyAndFollowTheirSlot(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "ai.json")
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := s.Configuration()
+	p := Provider{ID: "relay", Name: "Relay", AuthMode: "api-key", Protocol: "chat", BaseURL: "https://relay.invalid/v1", Models: []string{"model"}}
+	if err = json.Unmarshal([]byte(`{"keyBalanceAuth":{"primary":{"token":"fixture-private-balance","user":"42"}}}`), &p.ProviderPreferences); err != nil {
+		t.Fatal(err)
+	}
+	c.Providers = []Provider{p}
+	if _, err = s.SaveConfiguration(c, nil); err != nil {
+		t.Fatal(err)
+	}
+	for attempt := 0; attempt < 2; attempt++ {
+		c = s.Configuration()
+		raw, _ := json.Marshal(c)
+		if strings.Contains(string(raw), "fixture-private-balance") {
+			t.Fatal("balance credential leaked in public configuration")
+		}
+		data, _ := os.ReadFile(path)
+		if strings.Contains(string(data), "fixture-private-balance") {
+			t.Fatal("balance credential persisted in plain text")
+		}
+		pr, _, err := s.ProviderKeysForModels("relay")
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime, _ := json.Marshal(pr.ProviderPreferences)
+		if !strings.Contains(string(runtime), "fixture-private-balance") {
+			t.Fatal("balance credential lost before execution", string(runtime))
+		}
+		if _, err = s.SaveConfiguration(c, nil); err != nil {
+			t.Fatal(err)
+		}
+		s, err = Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	c = s.Configuration()
+	if err = json.Unmarshal([]byte(`{"keyBalanceAuth":{"primary":{"token":"","user":""}}}`), &c.Providers[0].ProviderPreferences); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.SaveConfiguration(c, nil); err != nil {
+		t.Fatal(err)
+	}
+	pr, _, err := s.ProviderKeysForModels("relay")
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := json.Marshal(pr)
+	if strings.Contains(string(raw), "fixture-private-balance") {
+		t.Fatal("cleared balance credential remained")
+	}
+}

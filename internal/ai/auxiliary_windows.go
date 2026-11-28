@@ -47,6 +47,13 @@ func (s *Store) runtimeProvidersLocked(c Configuration) ([]RuntimeProvider, erro
 				}
 				keys = append(keys, RuntimeKey{ID: credential.id, Key: secret, KeyOptions: credential.options})
 			}
+			for _, credential := range plan.pinnedDisabled {
+				secret, err := unsealKey(credential.sealed)
+				if err != nil {
+					return nil, err
+				}
+				keys = append(keys, RuntimeKey{ID: credential.id, Key: secret, Off: true, KeyOptions: credential.options})
+			}
 		}
 		result = append(result, RuntimeProvider{Provider: p, Key: key, Keys: keys})
 	}
@@ -141,11 +148,15 @@ func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []Runt
 		// The outer router talks only to its authenticated local bridge.
 		// Transport choices apply once, to the vendor, in the inner worker.
 		helper.Proxy, helper.AuthHeader, helper.ExtraBody = "direct", "", nil
+		// The private hop must retain the caller for upstream's account policy.
+		// The vendor-facing worker still applies the saved User-Agent choice.
+		helper.MagpieUserAgent = false
 		helper.Socket, helper.ClientCert, helper.ClientKey, helper.ServerCA, helper.ServerPin = "", "", "", "", ""
 		helper.Resolve = nil
 		// Supplemental credentials and vendor discovery URLs belong solely to
 		// the inner worker, never the outer router's loopback provider.
 		helper.AccessKeyID, helper.SecretAccessKey, helper.SessionToken, helper.BalanceToken = nil, nil, nil, nil
+		helper.KeyBalanceAuth = nil
 		helper.ModelsURL, helper.BalanceURL = "", ""
 		helper.Vertex, helper.ZhipuTeam, helper.Endpoints = nil, nil, nil
 		helper.KeySpendCaps, helper.KeyOwnBalances = nil, nil
@@ -160,7 +171,7 @@ func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []Runt
 			if len(p.Keys) > 0 {
 				helper.NativeSource["key"], helper.NativeSource["keyID"], helper.NativeSource["keyOptions"] = p.Keys[0].Key, p.Keys[0].ID, p.Keys[0].KeyOptions
 				for _, key := range p.Keys[1:] {
-					helper.NativeKeys = append(helper.NativeKeys, auxiliaryKey{Name: key.Name, Key: key.Key, KeyOptions: key.KeyOptions})
+					helper.NativeKeys = append(helper.NativeKeys, auxiliaryKey{Name: key.Name, Key: key.Key, Off: key.Off, KeyOptions: key.KeyOptions})
 				}
 			}
 		}
@@ -216,7 +227,7 @@ func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []Runt
 					helper.KeyPlan = key.Plan
 				}
 			} else {
-				helper.Keys = append(helper.Keys, auxiliaryKey{Name: name, Key: bridgeKey, KeyOptions: key.KeyOptions})
+				helper.Keys = append(helper.Keys, auxiliaryKey{Name: name, Key: bridgeKey, Off: key.Off, KeyOptions: key.KeyOptions})
 			}
 		}
 		out = append(out, helper)
@@ -282,7 +293,7 @@ func (t Translator) auxiliaryBridgeCatalog(ctx context.Context, providers []Runt
 		if slot != "" {
 			found := false
 			for _, credential := range target.Keys {
-				if credential.ID == slot {
+				if credential.ID == slot && !credential.Off {
 					key = credential.Key
 					requestContext = contextWithRuntimeKey(requestContext, credential)
 					found = true

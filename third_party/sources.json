@@ -185,7 +185,7 @@
   },
   "magpie": {
     "repository": "https://github.com/yetone/magpie",
-    "commit": "e29699527866704ae0a9c6fbee4e2a3acf00b733",
+    "commit": "0d310af00f2934b4331609251340e7336a1f9d0c",
     "license": "MIT",
     "dependencyLocks": [
       "modules/ai-magpie/upstream.go.mod",

@@ -92,7 +92,7 @@ Windows 专项验收与代码签名不作为发布前置条件；本地测试按
 
 资源入口为 `build/use-local-resources.ps1`，版本和摘要以源码锁、运行时清单及工具自报版本核对。下载、安装或生成前先查已有资源；只有版本缺失、校验失败或明确升级时才补齐，不因新任务重复准备。新增资源归入固定目录，同步来源、版本、摘要、调用方法及下表。
 
-2026-11-25 新一轮 AI 基座更新锁定 Magpie `e29699527866704ae0a9c6fbee4e2a3acf00b733`、账号适配器 `bbd3a2e76d7f2e765f0181786a60169b7acf860a`，见 `docs/ai-base-update-20261125.md`。2026-11-20 的固定来源 `f65fe92`、`ae9dba9` 留作回退；WinTray `89c246a0b0c2808d7d594ab91758468517d61fdd`、MyGo 正式 `v0.10.0`（`ebde9399baf2734b3361856a53f4036859973d1d`）本轮不变。后续构建只核对本轮锁定源码、许可、编译和产物，不在构建时自动刷新上游。
+2026-11-28 新一轮 AI 基座更新锁定 Magpie `0d310af00f2934b4331609251340e7336a1f9d0c`、账号适配器 `46ba1e4eb4b26c4b4993709e78e7841562fa5c41`，见 `docs/performance-ai-20261128.md`。2026-11-20 的固定来源 `f65fe92`、`ae9dba9` 留作回退；WinTray `89c246a0b0c2808d7d594ab91758468517d61fdd`、MyGo 正式 `v0.10.0`（`ebde9399baf2734b3361856a53f4036859973d1d`）本轮不变。后续构建只核对本轮锁定源码、许可、编译和产物，不在构建时自动刷新上游。
 
 | 固定子目录 | 用途与维护方式 |
 | --- | --- |
@@ -106,7 +106,7 @@ Windows 专项验收与代码签名不作为发布前置条件；本地测试按
 | `sources/ShareX-native` | 历史截图引擎的独立源码，用于旧格式回归；生产截图不再编译或分发此引擎 |
 | `sources/Tools3000-v1.4.11`、`cache/capture-native` | 现用 C++ 截图固定源码与 vcpkg 依赖；来源由 `third_party/tools3000/source.json` 锁定。`prepare-capture-native-resources.ps1 -BuildDependencies` 准备依赖，适配副本与构建目录置于 `_temp/<任务>/` |
 | `tools/dotnet-10.0.404`、`cache/nuget-native-capture` | 仅供 OCR 的 NativeAOT 编译；用户不需要安装 .NET。OCR 和测试项目各自锁定 SDK，不改变机器或其他项目 SDK |
-| `sources/magpie-e296995`、`sources/ai-plugins-bbd3a2e` | 本轮核对并冻结的 AI 基座与账号适配器来源；构建核对 HEAD、锁文件及原始许可。旧 `magpie-f65fe92`、`ai-plugins-ae9dba9` 及其他历史来源保留用于回退；测试输出回到根 `_temp/`。更新对照见 `docs/ai-base-update-20261125.md` |
+| `sources/magpie-e296995`、`sources/ai-plugins-bbd3a2e` | 本轮核对并冻结的 AI 基座与账号适配器来源；构建核对 HEAD、锁文件及原始许可。旧 `magpie-f65fe92`、`ai-plugins-ae9dba9` 及其他历史来源保留用于回退；测试输出回到根 `_temp/`。更新对照见 `docs/performance-ai-20261128.md` |
 | `sources/mygo-winone-v0.10.0` | MyGo 正式 v0.10.0 的仓库管理源码副本，按 `third_party/mygo-winone/source.json` 与 `build/prepare-mygo-filedrop.ps1` 校验原模块和窄适配；设置窗口、结果窗及 nativeui 使用该副本，不修改用户 Go 模块缓存。旧版本留作历史/回退参考 |
 | `runtimes/rapidocrlite-5.0.0a16` | OCR 官方原生 DLL、PP-OCRv6 small 检测/识别模型和字典，共四个文件。`build/prepare-ocr.ps1 -OutputDirectory _temp/<任务>/ocr -Downloader <aria2-next>` 准备并核对 `third_party/ocr-runtime.json` 的摘要；`copy-ocr.ps1` 只复制清单文件。识别入口为 `WinOne.Ocr.exe` 原生程序。Python 仅用于构建校验、词典重建或生成测试图片，由构建者单独提供 |
 | `cache/cargo`、`cache/go`、`cache/npm` | 分别通过 `CARGO_HOME`、`GOCACHE`、`npm_config_cache` 复用 Cargo 依赖、Go 编译和 npm 下载缓存；不放测试报告 |

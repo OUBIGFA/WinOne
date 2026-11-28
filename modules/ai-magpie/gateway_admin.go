@@ -310,7 +310,9 @@ func callerKeyRoutes(mux *http.ServeMux) {
 	// each key's own Models, the list the gateway key editor writes too.
 	mux.HandleFunc("GET /api/provider-keys", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		keys, err := access.ProviderKeys(r.URL.Query().Get("provider"))
+		// WinOne has no route-group editor; only direct provider models are
+		// offered, so upstream receives no group references for this page.
+		keys, err := access.ProviderKeys(r.URL.Query().Get("provider"), nil)
 		if err != nil {
 			fail(w, err)
 			return
@@ -333,11 +335,11 @@ func callerKeyRoutes(mux *http.ServeMux) {
 		for _, p := range provider.All() {
 			ids = append(ids, p.ID)
 		}
-		if err := access.SetProviderKeys(in.Provider, in.Add, in.Remove, ids); err != nil {
+		if err := access.SetProviderKeys(in.Provider, in.Add, in.Remove, ids, nil); err != nil {
 			fail(w, err)
 			return
 		}
-		keys, err := access.ProviderKeys(in.Provider)
+		keys, err := access.ProviderKeys(in.Provider, nil)
 		if err != nil {
 			fail(w, err)
 			return

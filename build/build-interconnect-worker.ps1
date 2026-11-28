@@ -18,7 +18,9 @@ try {
   & $go build -mod=readonly -trimpath -ldflags '-s -w' -o (Join-Path $output 'WinOne.Interconnect.Worker.exe') ./cmd/worker
   if($LASTEXITCODE -ne 0){throw 'Interconnect worker build failed'}
   if($Test){
-   $testBundle=[IO.Path]::GetFullPath((Join-Path $root $TestDirectory))
+   # The unified build passes an absolute task directory. Join only relative
+   # inputs; PowerShell otherwise prefixes the repository a second time.
+   $testBundle=if([IO.Path]::IsPathRooted($TestDirectory)){[IO.Path]::GetFullPath($TestDirectory)}else{[IO.Path]::GetFullPath((Join-Path $root $TestDirectory))}
    & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $testBundle
    New-Item -ItemType Directory -Path $testBundle -Force | Out-Null
    foreach($name in @('WinOne.Interconnect.Lan.exe','WinOne.Interconnect.Worker.exe')){Copy-Item -LiteralPath (Join-Path $output $name) -Destination $testBundle -Force}

@@ -22,7 +22,7 @@ parser.add_argument('--scale',type=float,default=1)
 parser.add_argument('--recording-runtime')
 parser.add_argument('--physical-input',action='store_true')
 parser.add_argument('--agent-desktop')
-parser.add_argument('--suite', choices=['collection','preferences','motion','ocr-copy','fresh','double-copy','snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
+parser.add_argument('--suite', choices=['copy-latency','collection','preferences','motion','ocr-copy','fresh','double-copy','snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent'], default='smoke')
 args = parser.parse_args()
 output = Path(args.output).resolve()
 root = Path(__file__).resolve().parents[2]
@@ -30,6 +30,7 @@ if not output.is_relative_to(root / '_temp'):
     raise ValueError('Private capture test data must be inside repository _temp')
 output.mkdir(parents=True, exist_ok=False)
 (output/'temp').mkdir();os.environ['TEMP']=os.environ['TMP']=str(output/'temp')
+if args.suite=='copy-latency':os.environ['WINONE_CAPTURE_SLOW_DRAFT_TEST']='1'
 if args.suite=='fresh':
     from PIL import Image
     fixture_path=output/'current-screen.png'
@@ -552,8 +553,8 @@ try:
                 if not covered['fill']:raise AssertionError('Saved cover fill was reset')
                 key(canvas,ord('R'));check(rectangle(),[245,158,11,255] if without_drawing else [59,130,246,255],6)
                 events.append({'preferencesWithoutDrawing' if without_drawing else 'preferencesAfterRestart' if restart else 'preferencesAfterCancel':True})
-        if args.suite=='double-copy':
-            for annotation in (False,True):
+        if args.suite in ('double-copy','copy-latency'):
+            for annotation in ((False,) if args.suite=='copy-latency' else (False,True)):
                 if annotation:
                     key(canvas,ord('R'))
                     send(canvas,0x201,1,(220<<16)|200);send(canvas,0x200,1,(270<<16)|250);send(canvas,0x202,0,(270<<16)|250)
@@ -561,15 +562,23 @@ try:
                 # Deliver the complete native click sequence. The first click
                 # can start a mark, which must not swallow the second click.
                 clipboard_before=user.GetClipboardSequenceNumber()
+                if args.suite=='copy-latency':wait_until(lambda:(output/'draft-save-entered.test').exists())
+                started=time.perf_counter()
                 click_point(canvas,400,350)
                 send(canvas,0x203,1,(350<<16)|400)
                 finished=rpc('jobs.get',{'id':job['id'],'waitMs':100})
+                delivered_ms=(time.perf_counter()-started)*1000
+                if args.suite=='copy-latency':
+                    events.append({'copyWithSlowDraftMs':round(delivered_ms,2),'injectedDraftDelayMs':2000})
+                    if delivered_ms>=500:raise AssertionError(f'Clipboard delivery waited for background draft: {delivered_ms:.2f} ms')
                 if finished['state']!='completed' or not finished.get('result',{}).get('copied'):
                     raise AssertionError(f'Double-click did not confirm and copy (annotation={annotation}): {finished}')
                 if overlay() or finished['result'].get('path') or finished['result'].get('pinned'):
                     raise AssertionError('Double-click left the canvas open or performed another output action')
                 if user.GetClipboardSequenceNumber()==clipboard_before:raise AssertionError('Double-click did not update the clipboard')
-                if not user.OpenClipboard(fixture):raise ctypes.WinError(ctypes.get_last_error())
+                # The app has committed the clipboard, but a Windows clipboard
+                # listener can briefly open it before this verifier reads back.
+                wait_until(lambda:user.OpenClipboard(fixture),timeout=2)
                 try:
                     bitmap=user.GetClipboardData(8) # CF_DIB: actual image dimensions, not just the RPC success flag.
                     pixels=kernel.GlobalLock(bitmap) if bitmap else None

@@ -59,6 +59,9 @@ func gatewayKeyRestState(p provider.Provider) []keyRestRow {
 func protectedKeyRest(p provider.Provider, r gateway.Rest) *provider.KeyRest {
 	said := r.Error
 	secrets := []string{p.Key, p.AccessKeyID, p.SecretAccessKey, p.SessionToken, p.BalanceToken}
+	for _, auth := range p.KeyBalanceAuth {
+		secrets = append(secrets, auth.Token)
+	}
 	for _, key := range p.Keys {
 		secrets = append(secrets, key.Key)
 	}

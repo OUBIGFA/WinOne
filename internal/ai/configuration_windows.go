@@ -29,6 +29,11 @@ func (s *Store) configurationLocked() Configuration {
 		p.HasSecretAccessKey = s.providerSecrets[p.ID]["secretAccessKey"] != ""
 		p.HasSessionToken = s.providerSecrets[p.ID]["sessionToken"] != ""
 		p.HasBalanceToken = s.providerSecrets[p.ID]["balanceToken"] != ""
+		for id, auth := range p.KeyBalanceAuth {
+			auth.Token = nil
+			auth.HasToken = s.providerSecrets[p.ID]["keyBalance:"+id] != ""
+			p.KeyBalanceAuth[id] = auth
+		}
 		if p.AuthMode != "api-key" {
 			p.Keys = nil
 			p.KeyPolicy = nil

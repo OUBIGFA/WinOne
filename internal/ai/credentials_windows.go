@@ -27,9 +27,12 @@ type credential struct {
 
 // KeyPlan is an immutable request snapshot. It cannot be serialized as secrets.
 type KeyPlan struct {
-	provider   string
-	keys       []credential
-	configured bool
+	provider string
+	keys     []credential
+	// A pinned disabled slot must remain visible to upstream's identity rules,
+	// so it blocks that caller instead of silently selecting another key.
+	pinnedDisabled []credential
+	configured     bool
 }
 
 func (s *Store) keyPlanLocked(p Provider) KeyPlan {
@@ -42,6 +45,13 @@ func (s *Store) keyPlanLocked(p Provider) KeyPlan {
 		plan.configured = true
 		if slot.Enabled {
 			plan.keys = append(plan.keys, credential{id: slot.ID, sealed: sealed, options: slot.KeyOptions})
+		} else {
+			for _, pinned := range p.AgentAccounts {
+				if pinned == slot.ID {
+					plan.pinnedDisabled = append(plan.pinnedDisabled, credential{id: slot.ID, sealed: sealed, options: slot.KeyOptions})
+					break
+				}
+			}
 		}
 	}
 	return plan
@@ -73,6 +83,13 @@ func (s *Store) WithKeys(ctx context.Context, plan KeyPlan, run func(context.Con
 			return err
 		}
 		keys = append(keys, RuntimeKey{ID: credential.id, Key: secret, KeyOptions: credential.options})
+	}
+	for _, credential := range plan.pinnedDisabled {
+		secret, err := unsealKey(credential.sealed)
+		if err != nil {
+			return err
+		}
+		keys = append(keys, RuntimeKey{ID: credential.id, Key: secret, Off: true, KeyOptions: credential.options})
 	}
 	key := ""
 	if len(keys) > 0 {

@@ -1,5 +1,6 @@
 {
   "aiUpstream.Base URL": "Base URL",
+  "aiUpstream.Before expiry, one by one": "Before expiry, one by one",
   "aiUpstream.Chat Completions, the API most tools speak. Anything with an OpenAI base-URL setting works.": "Chat Completions, the API most tools speak. Anything with an OpenAI base-URL setting works.",
   "aiUpstream.Cost factor": "Cost factor",
   "aiUpstream.Details": "Details",

@@ -7,7 +7,7 @@ param([Parameter(Mandatory)][string]$CaptureExe,
       [string]$RecordingRuntime,
       [switch]$PhysicalInput,
       [string]$AgentDesktopExe,
-      [ValidateSet('collection','preferences','motion','ocr-copy','fresh','double-copy','snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent')][string]$Suite='smoke')
+      [ValidateSet('copy-latency','collection','preferences','motion','ocr-copy','fresh','double-copy','snap','smoke','annotations','resume','recording-options','toolbar','translation','number','settings','scroll','save-dialog','save-failure','pin','repeat','dialog-owner-exit','recording','parent-exit','recording-parent')][string]$Suite='smoke')
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $output=if([IO.Path]::IsPathRooted($OutputDirectory)){[IO.Path]::GetFullPath($OutputDirectory)}else{[IO.Path]::GetFullPath((Join-Path $root $OutputDirectory))}

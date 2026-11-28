@@ -7,8 +7,11 @@ $output=Absolute $OutputDirectory;$target=Absolute $TargetDirectory
 & (Join-Path $PSScriptRoot 'assert-temporary-path.ps1') -Path $target -ReusableCache
 foreach($path in @($output,$target)){& git -C $root check-ignore -q --no-index -- (Join-Path $path 'build-output.probe');if($LASTEXITCODE -ne 0){throw 'Diagram outputs must be ignored'}}
 $cargo=(Get-Command $CargoExe -ErrorAction Stop).Source;$go=(Get-Command $GoExe -ErrorAction Stop).Source
-$savedPath=$env:PATH;$savedLib=$env:LIB;$savedRustc=$env:RUSTC;$savedResource=$env:WINONE_DIAGRAM_RESOURCE
+$savedPath=$env:PATH;$savedLib=$env:LIB;$savedRustc=$env:RUSTC;$savedResource=$env:WINONE_DIAGRAM_RESOURCE;$savedXdgCache=$env:XDG_CACHE_HOME
 try{
+ # The renderer treats an empty cache environment value as the current folder.
+ # Keep its generated font cache with this repository's reusable build cache.
+ $env:XDG_CACHE_HOME=Join-Path $target 'render-cache'
  $env:RUSTC=Join-Path (Split-Path $cargo -Parent) 'rustc.exe'
  $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
  if(Test-Path -LiteralPath $vswhere){
@@ -40,4 +43,4 @@ try{
  if($LASTEXITCODE -ne 0){throw 'Diagram renderer build failed'}
  $ErrorActionPreference='Stop'
  Copy-Item -LiteralPath (Join-Path $target 'release/winone-diagrams.exe') -Destination (Join-Path $output 'WinOne.Diagrams.exe') -Force
-}finally{$env:PATH=$savedPath;$env:LIB=$savedLib;$env:RUSTC=$savedRustc;$env:WINONE_DIAGRAM_RESOURCE=$savedResource}
+}finally{$env:PATH=$savedPath;$env:LIB=$savedLib;$env:RUSTC=$savedRustc;$env:WINONE_DIAGRAM_RESOURCE=$savedResource;$env:XDG_CACHE_HOME=$savedXdgCache}
