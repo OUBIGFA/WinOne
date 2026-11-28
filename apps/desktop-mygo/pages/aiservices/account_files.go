@@ -143,7 +143,7 @@ func (a *accountPanel) importAccounts(request accountRequest) {
 }
 
 func (a *accountPanel) exportView(c *ui.Context, request accountRequest, disabled bool) {
-	kit.Group(c, icons.Save, nativeT("exportAccounts"), nativeT("exportHint"), func() {
+	kit.Group(c, icons.Save, nativeT("exportAccounts"), kit.Visible(nativeT("exportHint")), func() {
 		kit.Stack(c, "", "", func() {
 			if a.exportFormat == "" {
 				a.exportFormat = "sub2api"

@@ -266,7 +266,7 @@ func (a *linkArchive) View(c *ui.Context, ids []string, disabled bool, changed f
 		Body: func() {
 			kit.Label(c, i18n.T("links.archiveCounts", "count", len(p.Records), "issues", len(p.Issues)))
 			for _, row := range p.Records {
-				ui.Column(c.Key(row.ID)).FillWidth().Gap(2).Children(func() {
+				ui.Column(c.Key(row.ID)).FillWidth().Gap(4).Children(func() {
 					ui.Text(c, row.Name+" · "+i18n.T("links.status."+row.Status)).MinWidth(0)
 					kit.Help(c, row.LinkPath+" → "+row.TargetPath).Selectable()
 				})

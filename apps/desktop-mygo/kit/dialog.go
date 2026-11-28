@@ -51,7 +51,7 @@ func Dialog(c *ui.Context, open *bool, o DialogOptions) bool {
 		backdrop.Background(ui.RGBA(0, 0, 0, backdropAlpha(t)))
 		// A long form scrolls between the title and the buttons, which
 		// stay in view, as the panel never outgrows the window.
-		panel.Width(width).MaxWidthPercent(92).MaxHeightPercent(88).Padding(24).Gap(16).Radius(PanelRadius).Background(p.Panel).
+		panel.Width(width).MaxWidthPercent(92).MaxHeightPercent(88).Padding(32).Gap(20).Radius(DialogRadius).Background(p.Panel).
 			Border(1, p.Hairline).Shadow(0, 12, 32, 0, ui.RGBA(0, 0, 0, 2*shadowAlpha(t))).
 			Role(ui.RoleDialog).Label(o.Title).Children(func() {
 			Title(c, o.Title).FontSize(t.Rem(headingSize) + 2).Shrink(0)

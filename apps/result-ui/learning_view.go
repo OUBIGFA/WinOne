@@ -52,7 +52,7 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 			if s.Page >= pages {
 				s.Page = pages - 1
 			}
-			ui.Row(c).FillWidth().Wrap().Gap(6).Children(func() {
+			ui.Row(c).FillWidth().Wrap().Gap(8).Children(func() {
 				if ui.Button(c, p.T("上一页", "Previous")).Disabled(s.Page == 0).Clicked() {
 					s.Page--
 				}
@@ -67,7 +67,7 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 		for index := start; index < end; index++ {
 			row := &s.Rows[index]
 			detail := s.Expanded == index
-			ui.Column(c.Key(fmt.Sprintf("word-%d", index))).FillWidth().Gap(6).Children(func() {
+			ui.Column(c.Key(fmt.Sprintf("word-%d", index))).FillWidth().Gap(8).Children(func() {
 				ui.Row(c).FillWidth().Wrap().AlignItems(ui.Center).Gap(8).Children(func() {
 					ui.Text(c, row.Note.Word).FontSize(em(t, 22)).FontWeight(600).Grow(1).MinWidth(0)
 					if s.States.State(row.Note.Word) == learning.Focused {
@@ -108,7 +108,7 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 						ui.Text(c, row.Entry.Definition).FillWidth().TextColor(t.TextMuted).LineHeight(1.5)
 					}
 					if len(row.Entry.Tags) > 0 || row.Entry.Oxford || row.Entry.Collins > 0 {
-						ui.Row(c).FillWidth().Wrap().Gap(6).Children(func() {
+						ui.Row(c).FillWidth().Wrap().Gap(8).Children(func() {
 							labels := append([]string(nil), row.Entry.Tags...)
 							if p.Language == "en-US" {
 								for i, label := range labels {
@@ -124,7 +124,7 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 								labels = append(labels, fmt.Sprintf(p.T("柯林斯 %d 星", "Collins %d stars"), row.Entry.Collins))
 							}
 							for _, label := range labels {
-								ui.Text(c, label).FontSize(em(t, sizeMeta)).Padding(2, 6).Radius(radiusXS).Background(t.SurfaceHover)
+								ui.Text(c, label).FontSize(em(t, sizeMeta)).Padding(4, 8).Radius(radiusXS).Background(t.SurfaceHover)
 							}
 						})
 					}
@@ -181,7 +181,7 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 				p.speechFeedback(c, t, "learning-"+row.Note.Word+"-uk")
 				p.speechFeedback(c, t, "learning-"+row.Note.Word+"-us")
 				if index < len(s.Rows)-1 {
-					ui.Divider(c).Margin(6, 0)
+					ui.Divider(c).Margin(8, 0)
 				}
 			})
 		}
@@ -205,7 +205,7 @@ func (p *Panel) studyView(c *ui.Context, t *ui.Theme, s *study) {
 		s.visibility.observe(feedback)
 		s.visibility.update(c)
 		if feedback != "" && !s.visibility.dismissed {
-			ui.Row(c).FillWidth().Gap(6).Children(func() {
+			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Text(c, feedback).Grow(1).MinWidth(0).LineHeight(1.5).TextColor(t.TextMuted)
 			})
 		}

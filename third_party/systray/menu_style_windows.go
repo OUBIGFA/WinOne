@@ -82,14 +82,14 @@ func newNativeMenuStyle(source windows.Handle, dark bool, dpi uint32) (*nativeMe
 	}
 	// Match the shared settings surface, hover and readable text tiers. Win32
 	// still owns the popup frame, placement, keyboard input and system motion.
-	s := &nativeMenuStyle{dpi: dpi, foreground: 0x262626, background: 0xffffff, selected: 0xe7e7e7, disabled: 0x636363, menus: make(map[windows.Handle][]int)}
-	separator := uint32(0xe1e1e1)
+	s := &nativeMenuStyle{dpi: dpi, foreground: 0x181818, background: 0xffffff, selected: 0xe8e8e8, disabled: 0x666666, menus: make(map[windows.Handle][]int)}
+	separator := uint32(0xdedede)
 	if dark {
-		s.foreground = 0xe9e9e9
-		s.background = 0x232323
-		s.selected = 0x333333
-		s.disabled = 0xaeaeae
-		separator = 0x3f3f3f
+		s.foreground = 0xececec
+		s.background = 0x1f1f1f
+		s.selected = 0x2e2e2e
+		s.disabled = 0xa0a0a0
+		separator = 0x3a3a3a
 	}
 	s.accessible = make(map[uintptr]int)
 	s.frames = make(map[uintptr]bool)
@@ -290,7 +290,7 @@ func (s *nativeMenuStyle) measure(m *menuMeasure) bool {
 	if e.kind&0x800 != 0 {
 		// A separator follows its siblings' width; it never sizes the popup.
 		m.Width = 0
-		m.Height = uint32(s.px(13))
+		m.Height = uint32(s.px(12))
 		return true
 	}
 	dc, _, _ := pGetDC.Call(0)
@@ -305,7 +305,7 @@ func (s *nativeMenuStyle) measure(m *menuMeasure) bool {
 	menuDrawText.Call(dc, uintptr(unsafe.Pointer(text)), ^uintptr(0), uintptr(unsafe.Pointer(&r)), 0x420)
 	// Measure the actual label plus the same gutters used by draw. Submenu
 	// arrows reserve space only on rows that have one; no global minimum width.
-	width := r.Right + s.px(42+12)
+	width := r.Right + s.px(44+12)
 	if e.submenu != 0 {
 		width += s.px(20)
 	}
@@ -363,7 +363,7 @@ func (s *nativeMenuStyle) draw(d *menuDraw) bool {
 	}
 	menuSetTextColor.Call(d.DC, uintptr(color))
 	r := d.Rect
-	r.Left += s.px(42)
+	r.Left += s.px(44)
 	r.Right -= s.px(12)
 	if e.submenu != 0 {
 		r.Right -= s.px(20)

@@ -178,7 +178,7 @@ func (a *aiSection) view(c *ui.Context) {
 		kit.Group(c, icons.Languages, i18n.T("ai.translationGroup"), "", func() {
 			help := ""
 			if d.Engine != "llm" {
-				help = i18n.T("ai.online")
+				help = kit.Visible(i18n.T("ai.online"))
 			}
 			kit.Row(c, i18n.T("ai.engine"), help, func() {
 				kit.Segmented(c, &d.Engine, []kit.SelectOption{

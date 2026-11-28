@@ -50,7 +50,7 @@ func TestShortHeaderNoticesHaveTheirMeasuredWidth(t *testing.T) {
 								}
 							}
 							// Only the window close control shares the notice's half.
-							available := close.X - (grip.X + grip.W + 8) - 6
+							available := close.X - (grip.X + grip.W + 8) - 8
 							hasRoom := naturalWidth <= available
 							if !ok || dismissFound || (hasRoom && status.W+0.5 < naturalWidth) || status.X < pin.X+pin.W || status.X+status.W > close.X || close.X+close.W > float32(width) {
 								t.Fatalf("%s %s %s width=%d scale=%g: short notice %q clipped: natural=%g status=%+v pin=%+v close=%+v", source, language, theme, width, scale, notice, naturalWidth, status, pin, close)

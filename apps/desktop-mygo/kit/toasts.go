@@ -14,9 +14,9 @@ func Toasts(c *ui.Context) {
 		viewport.Padding(16).AlignItems(ui.End).Gap(8)
 		for _, toast := range toasts {
 			parts := ui.ToastBase(c, toast)
-			parts.Root.Row().AlignItems(ui.Center).Gap(10).Padding(10, 14).MaxWidth(440).MaxWidthPercent(92).Radius(PanelRadius).Border(1, Colors(c).Hairline).Background(Colors(c).Panel)
+			parts.Root.Row().AlignItems(ui.Center).Gap(12).Padding(12, 16).MaxWidth(440).MaxWidthPercent(92).Radius(PanelRadius).Border(1, Colors(c).Hairline).Background(Colors(c).Panel)
 			parts.Root.Children(func() {
-				ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
+				ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
 					if toast.Title != "" {
 						ui.Text(c, toast.Title).MinWidth(0)
 					}

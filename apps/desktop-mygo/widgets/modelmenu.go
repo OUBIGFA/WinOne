@@ -141,7 +141,7 @@ func ModelField(c *ui.Context, o ModelFieldOptions) (string, bool) {
 			}
 		}
 	}
-	b := ui.ButtonBase(c).FillWidth().MinHeight(kit.ControlHeight).Padding(5, 10).Gap(8).Radius(t.Radius).Background(t.Surface).
+	b := ui.ButtonBase(c).FillWidth().MinHeight(kit.ControlHeight).Padding(4, 12).Gap(8).Radius(t.Radius).Background(t.Surface).
 		Border(1, t.Border).Justify(ui.SpaceBetween).AlignItems(ui.Center).MinWidth(0).Label(o.Label).Disabled(o.Disabled)
 	state := ui.Local(b, "model-menu", func() ModelMenuState { return ModelMenuState{} })
 	if b.Hovered() || state.Open {
@@ -170,7 +170,7 @@ func ModelField(c *ui.Context, o ModelFieldOptions) (string, bool) {
 	}
 	b.Description(shown)
 	b.Children(func() {
-		ui.Row(c).Gap(6).AlignItems(ui.Center).Grow(1).Shrink(1).MinWidth(0).Children(func() {
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Grow(1).Shrink(1).MinWidth(0).Children(func() {
 			switch {
 			case entry != nil:
 				ProviderIcon(c, o.Env, group.Mark, aiPickIconSize).Shrink(0)

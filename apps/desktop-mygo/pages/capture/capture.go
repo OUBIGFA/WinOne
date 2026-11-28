@@ -401,7 +401,7 @@ func (p *page) general(c *ui.Context) {
 
 // checkRow is a setting row holding a check box with its label.
 func checkRow(c *ui.Context, value *bool, label string) {
-	ui.Row(c).FillWidth().MinHeight(kit.RowMinHeight).Padding(10, 16).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).FillWidth().MinHeight(kit.RowMinHeight).Padding(kit.RowPadY, kit.RowPadX).AlignItems(ui.Center).Children(func() {
 		ui.Checkbox(c, value, label)
 	})
 }

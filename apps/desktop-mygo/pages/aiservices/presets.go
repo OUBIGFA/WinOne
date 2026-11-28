@@ -65,7 +65,7 @@ func (p *page) presetPicker(c *ui.Context) {
 			}
 			entries := offeredPresets(p.catalog.presets, p.presetSearch)
 			lang := language()
-			ui.Column(c).FillWidth().Gap(2).Children(func() {
+			ui.Column(c).FillWidth().Gap(4).Children(func() {
 				for _, preset := range entries {
 					preset := preset
 					ui.Column(c.Key(preset.ID)).FillWidth().Gap(4).Children(func() {
@@ -138,7 +138,7 @@ func (p *page) agentPicker(c *ui.Context) {
 		}, Body: func() {
 			query := strings.ToLower(strings.TrimSpace(p.agentSearch))
 			shown := 0
-			ui.Column(c).FillWidth().Gap(2).Children(func() {
+			ui.Column(c).FillWidth().Gap(4).Children(func() {
 				for _, a := range p.catalog.agents {
 					if !strings.Contains(strings.ToLower(a.Name+" "+a.ID), query) {
 						continue

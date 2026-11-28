@@ -1,8 +1,8 @@
 {
-  "colors": {"background": "#292928", "foreground": "#fafafa", "border": "#454541"},
+  "colors": {"background": "#181818", "foreground": "#fafafa", "border": "#3a3a3a"},
   "fontSize": 13,
-  "radius": 6,
-  "paddingX": 10,
-  "paddingY": 6,
+  "radius": 8,
+  "paddingX": 12,
+  "paddingY": 8,
   "maxWidth": 360
 }

@@ -83,11 +83,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_access.go",
-          "sha256": "4e5035a8abed5b3aff5ef285438c7eeecfcaba394690e583181f5a990c3d6dc9"
+          "sha256": "e289bc8329318e65e47431336465f999ce18398ce15199f5bf579b834a4c99ec"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_history.go",
-          "sha256": "e61ee3c53d88da4ed6ac25f314c7867e278736ed523089601477942aee657c07"
+          "sha256": "73d6dc8b182e1d719cd64698c17b2df7feda7bd9ed6b23264552545b3d51649c"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_calls.go",
@@ -95,7 +95,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_connect.go",
-          "sha256": "01fcf666d40200b925fa7e3210b97e9962087e73dd771c0a00ba096b689f3b3a"
+          "sha256": "0ded5a55c26044ea19d391a94511a0573c6b33e86c021cf2e3ca2c953b61c9ff"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/gateway_examples.json",
@@ -131,11 +131,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/connection_options.go",
-          "sha256": "9c6f00da91f6f697a37fc61ae618afa9db4aa512a2e198d884aa5bda5e94d8ed"
+          "sha256": "ed012c79e9dedc6dbb45cf650617f7c4e235a4ff1caf4d4faeb4961570bb94f1"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/account_files.go",
-          "sha256": "7648ddb98c73e48724099b83d396a340cd0c0d3ada2bba1a21b9cd72e236b082"
+          "sha256": "3de2791dedbe6c21e975e25802e439507c52df839e16dad8ee06a5fe224e3900"
         },
         {
           "path": "modules/ai-magpie/patches/access_store_windows.go.txt",
@@ -151,7 +151,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/accounts.go",
-          "sha256": "e49c4197a122ce267bd2f22971a2e53fd5eac8445b4733cb35545f0edb5f9c6c"
+          "sha256": "ebb5843755da64456669ac599ace228dc2c5f7bcc90a1506a2a9e2aacd810475"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/account_migration.go",
@@ -183,7 +183,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/models.go",
-          "sha256": "2a97e38543fabf7a8d53fca1ad6fbb0c6be86ae78c256f9651a85d295a4e2708"
+          "sha256": "e7e8e948269e6080a2815fa5a2958a46f3d46addfd71edf62d7ea201206c4d03"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/reader.go",
@@ -191,11 +191,11 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/preferences.go",
-          "sha256": "e9751f4886cbd7c502e8756fc6eda0c76bd9903470cfdc2ffbc3b2fd7a2ecf4e"
+          "sha256": "ef6b79bc36f8db33faf81f757760625adc251bf05d913a9cbe4a1256a25e2878"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/editor.go",
-          "sha256": "472e04ae9a98670b2fa22815a212f9c8842773e3f7e2a3e6cacde9ad622183d3"
+          "sha256": "b4c28dca8cb341362cff59a2a05becb3a85536c4dcede62bff0e3465955ef19d"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-sync.en-US.json",
@@ -267,7 +267,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/proxy_probe.go",
-          "sha256": "68326787eb572e999b461d700496edbb38de0ac6d71f9a6ce4d1e002e503f9cf"
+          "sha256": "084c69207b307f9254081d851d34c5c385576388027a4fb4ecea1640df4df08d"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/warmup.go",
@@ -275,7 +275,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/aiservices.go",
-          "sha256": "27c2728ee30d0a308cef1a7fd0b8f881c5cfb4daed95b8adbac20a1314442394"
+          "sha256": "076ff53684b836129a63a22d5515108de304893b92deb042ba457613e6edafbb"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/config.go",
@@ -283,7 +283,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/provider_bulk.go",
-          "sha256": "472b20985dec3fa69562f4df97cfb339d73cb2c83128b5735f168b0a86e319ae"
+          "sha256": "8ba9709956ea837c81ed93e6f796700fdc6832110b5334a86de0c3e2340d6278"
         },
         {
           "path": "apps/desktop-mygo/i18n/ai-bulk-providers.en-US.json",
@@ -315,7 +315,7 @@
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/provider_keys.go",
-          "sha256": "07bc51779e43925790eb95c764384d3271a860504dad06f16c62ea8ae2c90202"
+          "sha256": "e8560f28750ff7e3115096492cddd0c055250ec1a2536a523398f96f00f3a31f"
         },
         {
           "path": "apps/desktop-mygo/pages/aiservices/provider_update.go",
@@ -456,7 +456,7 @@
         },
         {
           "path": "third_party/systray/menu_style_windows.go",
-          "sha256": "d2d44f67b18a5bff26456b730761475b396f9f91c78426d1d8c608bad13f4c64"
+          "sha256": "06fa12a9fa006485d37e1ae6ef3d32005d713394cbd83d8a84124ca164bd2f56"
         }
       ]
     },
@@ -1926,7 +1926,7 @@
       "files": [
         {
           "path": "build/prepare-capture-native.mjs",
-          "sha256": "593c4f912302cf0593b299030e2e2e4895feba1e5e8ca153dba35bf573f87645"
+          "sha256": "9c6b3fdeb6fe6a77e43dfaac83083572288c5cc75a7629bc74d3107ea58eb27f"
         },
         {
           "path": "build/prepare-capture-native-resources.ps1",
@@ -2039,7 +2039,7 @@
           "path": "modules/capture-native/collection_window.cpp"
         },
         {
-          "sha256": "77767dc1d9c89c4249c47f49649aaf4cb493c70e16da94ea340be8c2449ccb70",
+          "sha256": "c97442417fa144dd1a1a3c90bdb4b382c6f49318bfdfac8f718e0d486110e24e",
           "path": "apps/result-ui/ocr_edit.go"
         }
       ],

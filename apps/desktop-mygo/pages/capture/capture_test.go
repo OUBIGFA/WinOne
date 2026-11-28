@@ -131,7 +131,7 @@ func setup(t *testing.T, disabled bool) (*fakeHost, *testhost.Harness, *page, *u
 		return internalhost.Snapshot{Modules: []internalhost.Module{{ID: "capture", State: state}}}
 	}
 	p := newPage(h.Env)
-	tt := ui.NewTester(p.View, 1000, 900)
+	tt := ui.NewTester(p.View, 1000, 1200)
 	h.Settle(tt)
 	return fake, h, p, tt
 }

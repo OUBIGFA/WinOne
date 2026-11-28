@@ -63,7 +63,7 @@ func (p *page) scrollDelayRow(c *ui.Context) {
 	if !valid {
 		message = i18n.T("common.numberRange", "min", minScrollDelay, "max", maxScrollDelay)
 	}
-	ui.Row(c).FillWidth().MinHeight(kit.RowMinHeight).Padding(10, 16).GapX(16).GapY(8).AlignItems(ui.Center).Wrap().Children(func() {
+	ui.Row(c).FillWidth().MinHeight(kit.RowMinHeight).Padding(12, kit.RowPadX).GapX(16).GapY(8).AlignItems(ui.Center).Wrap().Children(func() {
 		ui.Column(c).Basis(220).Grow(1).Shrink(1).MinWidth(0).Gap(4).Children(func() {
 			kit.Label(c, label)
 			kit.InlineError(c, message)

@@ -28,7 +28,7 @@ func Select(c *ui.Context, selected *string, options []SelectOption) (changed bo
 			current = option
 		}
 	}
-	b := sel.Trigger.MinHeight(ControlHeight).Padding(6, 12).Gap(8).Radius(t.Radius).Background(t.Surface).
+	b := sel.Trigger.MinHeight(ControlHeight).Padding(8, 12).Gap(8).Radius(t.Radius).Background(t.Surface).
 		Border(1, t.Border).Justify(ui.SpaceBetween).AlignItems(ui.Center).MinWidth(160)
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
@@ -43,10 +43,10 @@ func Select(c *ui.Context, selected *string, options []SelectOption) (changed bo
 		ui.Icon(c, icons.ChevronDown).FontSize(14).TextColor(t.TextMuted).Shrink(0)
 	})
 	sel.Popup(func(panel ui.Element) {
-		panel.Margin(4, 0, 0, 0).Padding(4).Radius(PanelRadius).Background(p.Panel).Border(1, t.Border).
+		panel.Margin(4, 0, 0, 0).Padding(4).Radius(ControlRadius).Background(p.Panel).Border(1, t.Border).
 			Shadow(0, 8, 24, 0, ui.RGBA(0, 0, 0, 2*shadowAlpha(t))).MinWidth(180)
 		for _, option := range options {
-			item := sel.Item(option.Value).Padding(6, 10).Gap(8).Radius(ItemRadius).AlignItems(ui.Center)
+			item := sel.Item(option.Value).Padding(8, 12).Gap(8).Radius(ItemRadius).AlignItems(ui.Center)
 			chosen := option.Value == *selected
 			if item.Highlighted() {
 				item.Background(t.SurfaceHover)
@@ -78,12 +78,15 @@ func Segmented(c *ui.Context, selected *string, options []SelectOption, label st
 	}
 	before := index
 	seg := ui.SegmentedBase(c, &index, len(options))
-	seg.Track.Padding(3).Gap(2).Radius(PanelRadius).Background(t.Surface).Border(1, p.Hairline).Label(label).Wrap().
+	seg.Track.Padding(4).Gap(4).Radius(ControlRadius).Background(t.Surface).Border(1, p.Hairline).Label(label).Wrap().
 		Children(func() {
 			for i, option := range options {
-				item := seg.Segment(i).Padding(4, 12).MinHeight(28).Gap(6).Radius(ItemRadius).AlignItems(ui.Center).Label(option.Label)
+				item := seg.Segment(i).Padding(4, 12).MinHeight(28).Gap(8).Radius(ItemRadius).AlignItems(ui.Center).Label(option.Label)
 				if i == index {
-					item.Background(p.Panel).Border(1, p.Hairline)
+					item.Background(p.Panel)
+					if t.Dark {
+						item.Background(t.SurfacePressed)
+					}
 				} else if item.Hovered() {
 					item.Background(t.SurfaceHover)
 				}
@@ -134,7 +137,7 @@ func PathField(c *ui.Context, path, empty, action string, disabled bool) (choose
 // still applies after it.
 func TextInput(c *ui.Context, value *string) ui.Element {
 	t := c.Theme()
-	return ui.TextInput(c, value).Padding(t.Space(2.25), t.Space(2.5))
+	return ui.TextInput(c, value).MinHeight(ControlHeight).Padding(t.Space(2), t.Space(3))
 }
 
 // Itoa formats a count for text.

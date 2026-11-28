@@ -488,6 +488,6 @@ func (g *generalPanel) View(c *ui.Context, draft *general, disabled bool, pick f
 				kit.Stack(c, "", "", func() { kit.InlineError(c, tr("menuPartial")) })
 			}
 		}
-		kit.Stack(c, "", tr("backgroundHint"), func() {})
+		kit.Stack(c, "", kit.Visible(tr("backgroundHint")), func() {})
 	})
 }

@@ -61,7 +61,7 @@ func (p *page) providerBulkDialog(c *ui.Context) {
 		Body: func() {
 			query := strings.ToLower(strings.TrimSpace(query))
 			shown := 0
-			ui.Column(c).FillWidth().Gap(2).Children(func() {
+			ui.Column(c).FillWidth().Gap(4).Children(func() {
 				for index, pr := range providers {
 					name := pr.Name
 					if strings.TrimSpace(name) == "" {

@@ -136,8 +136,7 @@ func (p *page) tools(c *ui.Context) {
 		}
 	}
 	ui.Column(c).FillWidth().Gap(16).Children(func() {
-		ui.Row(c).FillWidth().GapX(24).GapY(12).Wrap().AlignItems(ui.Center).Children(func() {
-			kit.Help(c, i18n.T("module.intro")).Basis(240).Grow(1)
+		ui.Row(c).FillWidth().GapX(24).GapY(12).Wrap().AlignItems(ui.Center).Justify(ui.End).Children(func() {
 			ui.Row(c).Gap(12).AlignItems(ui.Center).Children(func() {
 				kit.Caption(c, i18n.T("dashboard.enabledCount", "count", active, "total", len(rows))).SingleLine()
 				p.install.button(c, p.Busy != "" || s.ConfigurationError != "")
@@ -182,9 +181,9 @@ func (p *page) toolRow(c *ui.Context, entry widgets.ModuleEntry, icon *ui.SVG, t
 	id := entry.Manifest.ID
 	// Pinning is listed as Convenience, the page that holds it.
 	grouped := id == "always-on-top"
-	ui.Row(c.Key(id)).FillWidth().Padding(14, 16).GapX(14).GapY(10).AlignItems(ui.Start).Wrap().Role(ui.RoleListItem).Children(func() {
+	ui.Row(c.Key(id)).FillWidth().Padding(kit.RowPadY, kit.RowPadX).GapX(16).GapY(12).AlignItems(ui.Start).Wrap().Role(ui.RoleListItem).Children(func() {
 		ui.Icon(c, icon).FontSize(20).TextColor(t.TextMuted).Shrink(0).Margin(1, 0, 0, 0)
-		ui.Column(c).Basis(260).Grow(1).Shrink(1).MinWidth(0).Gap(3).Children(func() {
+		ui.Column(c).Basis(260).Grow(1).Shrink(1).MinWidth(0).Gap(4).Children(func() {
 			kit.Strong(c, title).Role(ui.RoleHeading).Level(3)
 			// A grouped feature names what its switch turns on in the same
 			// muted line as its purpose, so the row keeps one title.
@@ -253,7 +252,7 @@ func (p *page) toolExtras(c *ui.Context, entry widgets.ModuleEntry) {
 	}
 	if entry.Manifest.Distribution == "optional" && !entry.Blocked {
 		disabled := p.Busy != "" || entry.Enabled || entry.PendingStop || s.ConfigurationError != ""
-		ui.Row(c).Margin(2, 0, 0, -10).Children(func() {
+		ui.Row(c).Margin(4, 0, 0, -12).Children(func() {
 			b := kit.GhostButton(c, i18n.T("module.removePackage"), icons.Trash2, false).Disabled(disabled || p.removal.busy)
 			if disabled {
 				b.Description(i18n.T("module.closeBeforeRemove"))
@@ -280,7 +279,7 @@ func (p *page) runtimes(c *ui.Context) {
 	if s.Packages == nil || len(s.Packages.Runtimes) == 0 && s.Packages.Error == "" {
 		return
 	}
-	kit.Section(c, icons.Package, i18n.T("sharedPackages.title"), i18n.T("sharedPackages.description"), func() {
+	kit.Section(c, icons.Package, i18n.T("sharedPackages.title"), kit.Visible(i18n.T("sharedPackages.description")), func() {
 		if s.Packages.Error != "" {
 			kit.Notice(c, kit.Failure, "", s.Packages.Error, nil)
 		}
@@ -289,9 +288,9 @@ func (p *page) runtimes(c *ui.Context) {
 		}
 		kit.Panel(c, func() {
 			for _, runtime := range s.Packages.Runtimes {
-				ui.Row(c.Key(runtime.ManifestSHA256)).FillWidth().Padding(12, 16).GapX(24).GapY(8).Wrap().AlignItems(ui.Center).Children(func() {
-					ui.Column(c).Basis(256).Grow(1).Shrink(1).MinWidth(0).Gap(3).Children(func() {
-						ui.Row(c).Gap(10).Wrap().AlignItems(ui.Baseline).Children(func() {
+				ui.Row(c.Key(runtime.ManifestSHA256)).FillWidth().Padding(12, kit.RowPadX).GapX(24).GapY(8).Wrap().AlignItems(ui.Center).Children(func() {
+					ui.Column(c).Basis(256).Grow(1).Shrink(1).MinWidth(0).Gap(4).Children(func() {
+						ui.Row(c).Gap(12).Wrap().AlignItems(ui.Baseline).Children(func() {
 							kit.Strong(c, runtime.Name.String())
 							kit.Caption(c, runtime.Version)
 						})

@@ -158,7 +158,7 @@ func (p *peerPanel) View(c *ui.Context, active bool) {
 					kit.TextInput(c, &f.Code).FillWidth().Label(tr("tailcatCode")).Disabled(p.busy)
 				}
 				ui.Collapsible(c, tr("networkOptions"), &p.networkOn, func() {
-					ui.Column(c).FillWidth().Gap(10).Padding(8, 0).Children(func() {
+					ui.Column(c).FillWidth().Gap(12).Padding(8, 0).Children(func() {
 						kit.Label(c, tr("derpMap"))
 						kit.TextInput(c, &f.DerpMapURL).FillWidth().Label(tr("derpMap")).Disabled(p.busy)
 						if p.direction == "client" {
@@ -202,7 +202,7 @@ func (p *peerPanel) View(c *ui.Context, active bool) {
 		if len(records) == 0 {
 			empty = tr("noServices")
 		}
-		kit.Section(c, icons.Network, tr("services"), empty, func() {
+		kit.Section(c, icons.Network, tr("services"), kit.Visible(empty), func() {
 			if len(records) == 0 {
 				return
 			}
@@ -288,7 +288,7 @@ func (t *peerTask) View(c *ui.Context, item taskRecord, kind string, busy bool, 
 		action(func() error { return t.env.Host.CallCompletingInto("interconnect."+method, params, nil) }, nil)
 	}
 	id := item.ID
-	article := ui.Column(c.Key(item.ID)).FillWidth().Padding(14, 16).Gap(10)
+	article := ui.Column(c.Key(item.ID)).FillWidth().Padding(kit.RowPadY, kit.RowPadX).Gap(12)
 	if reveal && (s.Ready || s.Status != "running") {
 		article.ScrollIntoView()
 		revealed()
@@ -580,7 +580,7 @@ func (t *peerTask) codeTransfer(c *ui.Context, id string, state codeTransfer, bu
 func (t *peerTask) manage(c *ui.Context, id string, s taskState, published bool, phoneURL string, busy bool, action func(func() error, func()), copy func(string)) {
 	share := s.Share
 	ui.Collapsible(c, tr("manageShare")+" · "+kit.Itoa(len(share.Items)), &t.manageOn, func() {
-		ui.Column(c).FillWidth().Gap(10).Padding(8, 0).Children(func() {
+		ui.Column(c).FillWidth().Gap(12).Padding(8, 0).Children(func() {
 			if published && s.Ready {
 				ui.TextArea(c, &t.text).FillWidth().MinHeight(72).Placeholder(tr("textPlaceholder")).Label(tr("text")).Disabled(busy || s.Updating)
 				ui.Row(c).Children(func() {

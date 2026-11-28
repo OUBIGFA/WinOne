@@ -487,7 +487,6 @@ func (b *linkBatch) View(c *ui.Context, disabled bool, changed func([]directoryl
 		if b.notice != "" {
 			kit.Notice(c, kit.Info, "", b.notice, nil)
 		}
-		kit.Help(c, i18n.T("links.browserHint"))
 		panes := ui.Column(c).FillWidth().Radius(kit.PanelRadius).Border(1, pal.Hairline).ClipX().ClipY()
 		panes.Children(func() {
 			kit.Split(c, &b.split, kit.SplitOptions{Label: i18n.T("links.resizePanes"), MinFirst: 30, MinSecond: 30}, func() {
@@ -506,16 +505,16 @@ func (b *linkBatch) View(c *ui.Context, disabled bool, changed func([]directoryl
 							return false
 						}
 						ui.Column(c).FillWidth().Children(func() {
-							ui.Row(c).Padding(10, 12, 4).Children(func() { kit.Caption(c, i18n.T("links.selectedOutside")) })
+							ui.Row(c).Padding(12, 12, 4).Children(func() { kit.Caption(c, i18n.T("links.selectedOutside")) })
 							for _, path := range outside {
-								ui.Row(c.Key(pathKey(path))).FillWidth().Padding(10, 12).Gap(8).AlignItems(ui.Center).
+								ui.Row(c.Key(pathKey(path))).FillWidth().Padding(12, 12).Gap(8).AlignItems(ui.Center).
 									Background(linkKindBackground(theme, kinds[pathKey(path)])).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Children(func() {
 									on := true
 									if ui.Checkbox(c, &on, "").Label(i18n.T("links.selectSource", "name", pathName(path))).Disabled(locked).Changed() {
 										b.selectPaths([]string{path}, on)
 									}
 									ui.Icon(c, icons.Link).FontSize(16).TextColor(theme.TextMuted).Shrink(0)
-									ui.Column(c).Grow(1).MinWidth(0).Gap(2).TextAlign(ui.Start).Children(func() {
+									ui.Column(c).Grow(1).MinWidth(0).Gap(4).TextAlign(ui.Start).Children(func() {
 										ui.Text(c, pathName(path)).MinWidth(0)
 										kit.Help(c, path)
 									})
@@ -535,7 +534,7 @@ func (b *linkBatch) View(c *ui.Context, disabled bool, changed func([]directoryl
 						}
 						ui.Column(c).FillWidth().Role(ui.RoleList).Label(i18n.T("links.plannedContents")).Children(func() {
 							for _, row := range rows {
-								ui.Row(c.Key(pathKey(row.path))).FillWidth().Padding(10, 12).Gap(8).Wrap().AlignItems(ui.Start).
+								ui.Row(c.Key(pathKey(row.path))).FillWidth().Padding(12, 12).Gap(8).Wrap().AlignItems(ui.Start).
 									Background(linkKindBackground(theme, kinds[pathKey(row.path)])).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Role(ui.RoleListItem).
 									Children(func() {
 										if row.collision {
@@ -543,7 +542,7 @@ func (b *linkBatch) View(c *ui.Context, disabled bool, changed func([]directoryl
 											ui.Box(c).Width(3).FillHeight().Background(theme.Danger).Shrink(0)
 										}
 										ui.Icon(c, icons.Link).FontSize(16).TextColor(theme.TextMuted).Shrink(0)
-										ui.Column(c).Basis(160).Grow(1).Shrink(1).MinWidth(0).Gap(2).TextAlign(ui.Start).Children(func() {
+										ui.Column(c).Basis(160).Grow(1).Shrink(1).MinWidth(0).Gap(4).TextAlign(ui.Start).Children(func() {
 											linkPath := destinationPath(b.target.address, row.name)
 											if row.item != nil {
 												linkPath = row.item.LinkPath
@@ -640,7 +639,7 @@ func (b *linkBatch) addMenu(c *ui.Context, locked bool) {
 
 func (b *linkBatch) createBar(c *ui.Context, locked bool, single string, sources []string, changed func([]directorylinks.Record)) {
 	theme, pal := c.Theme(), kit.Colors(c)
-	ui.Row(c).FillWidth().Padding(16).GapX(20).GapY(14).Wrap().AlignItems(ui.End).Radius(kit.PanelRadius).
+	ui.Row(c).FillWidth().Padding(16).GapX(20).GapY(16).Wrap().AlignItems(ui.End).Radius(kit.PanelRadius).
 		Border(1, pal.Hairline).Background(theme.Surface).Children(func() {
 		ui.Row(c).Gap(12).AlignItems(ui.Center).Children(func() {
 			kit.Status(c, i18n.T("links.selectedCount", "count", len(sources)))
@@ -650,7 +649,7 @@ func (b *linkBatch) createBar(c *ui.Context, locked bool, single string, sources
 			}
 		})
 		if single != "" {
-			ui.Column(c).Gap(6).Basis(180).Grow(1).Children(func() {
+			ui.Column(c).Gap(8).Basis(180).Grow(1).Children(func() {
 				kit.Label(c, i18n.T("links.linkName"))
 				if b.custom == nil {
 					name := pathName(single)
@@ -661,7 +660,7 @@ func (b *linkBatch) createBar(c *ui.Context, locked bool, single string, sources
 				}
 			})
 		}
-		ui.Column(c).Gap(6).Basis(144).Grow(1).Children(func() {
+		ui.Column(c).Gap(8).Basis(144).Grow(1).Children(func() {
 			kit.Label(c, i18n.T("links.kind"))
 			options := []kit.SelectOption{}
 			for _, value := range []string{"auto", "hardlink", "junction", "symlink"} {
@@ -689,7 +688,7 @@ func (b *linkBatch) createBar(c *ui.Context, locked bool, single string, sources
 				b.moreOpen = !b.moreOpen
 			}
 			ui.Popover(c, more, &b.moreOpen, func() {
-				ui.Column(c).Width(352).MaxWidthPercent(90).Padding(12).Gap(10).Children(func() {
+				ui.Column(c).Width(352).MaxWidthPercent(90).Padding(12).Gap(12).Children(func() {
 					if kit.Button(c, i18n.T("links.elevate"), icons.ShieldCheck, false).Disabled(unavailable).Clicked() {
 						b.moreOpen = false
 						b.create(true, changed)
@@ -712,7 +711,7 @@ func (b *linkBatch) planView(c *ui.Context, locked bool) {
 	kit.Section(c, nil, i18n.T("links.batchPlan", "count", len(plan.Items)), "", func() {
 		kit.Panel(c, func() {
 			for _, item := range plan.Items {
-				ui.Row(c.Key(item.ID)).FillWidth().Padding(10, 16).Gap(12).AlignItems(ui.Start).Children(func() {
+				ui.Row(c.Key(item.ID)).FillWidth().Padding(12, kit.RowPadX).Gap(12).AlignItems(ui.Start).Children(func() {
 					kindLabel(c, item.Kind)
 					kit.Facts(c, []kit.Fact{{Label: i18n.T("links.newEntry"), Value: item.LinkPath}, {Label: i18n.T("links.target"), Value: item.Source}})
 				})

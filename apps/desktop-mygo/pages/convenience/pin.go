@@ -240,7 +240,7 @@ func (t *pinTab) general(c *ui.Context, busy, valid bool) {
 		}
 		// The hint sits on the choice it explains, above the options it
 		// unlocks.
-		kit.Row(c, i18n.T("settingsDesign.accentSource"), i18n.T("settingsDesign.customBorderHint"), func() {
+		kit.Row(c, i18n.T("settingsDesign.accentSource"), "", func() {
 			if kit.Segmented(c, &source, []kit.SelectOption{
 				{Value: "system", Label: i18n.T("settingsDesign.accentSystem")},
 				{Value: "custom", Label: i18n.T("settingsDesign.accentCustom")},

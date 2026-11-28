@@ -320,7 +320,7 @@ func (m *Modules) Switch(c *ui.Context, id string, controlsDisabled bool) {
 			}
 			label := i18n.T("module.enableTool", "name", name)
 			kit.Panel(c, func() {
-				kit.Row(c, label, status, func() {
+				kit.Row(c, label, kit.Visible(status), func() {
 					on := entry.Enabled && !entry.PendingStop
 					if ui.Switch(c, &on).Label(label).
 						Disabled(controlsDisabled || m.Busy != "" || entry.PendingStop || entry.Blocked || s.ConfigurationError != "").Changed() {

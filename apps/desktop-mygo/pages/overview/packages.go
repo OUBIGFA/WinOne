@@ -297,7 +297,7 @@ func (in *installer) body(c *ui.Context, checking bool) {
 		{Label: i18n.T("module.packagePublisher"), Value: p.Publisher},
 		{Label: i18n.T("module.packageFile"), Value: p.FileName},
 	})
-	ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Icon(c, icons.Check).FontSize(kit.HelpSize(c)).TextColor(t.Success)
 		kit.Help(c, i18n.T("module.signatureVerified"))
 	})

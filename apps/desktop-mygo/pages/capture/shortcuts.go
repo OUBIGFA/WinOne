@@ -189,7 +189,7 @@ func (p *page) canvasShortcutRow(c *ui.Context, action captureprefs.CanvasAction
 		recorder.Local = true
 		p.canvasRecorders[action.ID] = recorder
 	}
-	kit.Row(c.Key(action.ID), label, help, func() {
+	kit.Row(c.Key(action.ID), label, kit.Visible(help), func() {
 		if recorder.View(c, label, &value, p.busy(), false) {
 			next := maps.Clone(p.draft.Value.CanvasShortcuts)
 			if next == nil {

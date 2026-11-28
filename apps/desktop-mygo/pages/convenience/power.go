@@ -417,7 +417,11 @@ func (t *powerTab) power(c *ui.Context) {
 			if p.Force {
 				hint = "timedPower.forceHint"
 			}
-			kit.Toggle(c, &p.Force, i18n.T("timedPower.force"), i18n.T(hint))
+			help := i18n.T(hint)
+			if p.Force {
+				help = kit.Visible(help)
+			}
+			kit.Toggle(c, &p.Force, i18n.T("timedPower.force"), help)
 		}
 	})
 }

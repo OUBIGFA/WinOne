@@ -38,7 +38,7 @@ func (p *Panel) composer(c *ui.Context, t *ui.Theme) {
 		if p.Source == "quick-assistant" {
 			top.Height(quickToolbarHeight).Children(func() { p.quickToolbar(c, t) })
 		}
-		box := ui.Column(c).Key("composer").Grow(1).MinHeight(0).Label(p.T("消息输入框", "Message input box")).Padding(10, bleed, 8, bleed).Gap(8).Border(1, t.Border).Radius(radiusLG)
+		box := ui.Column(c).Key("composer").Grow(1).MinHeight(0).Label(p.T("消息输入框", "Message input box")).Padding(12, bleed, 8, bleed).Gap(8).Border(1, t.Border).Radius(radiusLG)
 		box.Children(func() {
 			input := ui.TextArea(c.Key("prompt"), &p.Prompt).Placeholder(p.T("围绕结果继续提问…", "Ask about this result…")).Label(p.T("继续提问", "Ask a follow-up")).
 				FontSize(em(t, sizeBody)).LineHeight(1.5).Grow(1).MinHeight(24).Padding(0).Border(0, ui.Transparent).Background(ui.Transparent)
@@ -89,7 +89,7 @@ func (p *Panel) composer(c *ui.Context, t *ui.Theme) {
 				p.composerHintVisibility.observe("")
 			}
 			if p.ShowComposerHint {
-				ui.Row(c.Key("composer-hint")).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+				ui.Row(c.Key("composer-hint")).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, p.T("Enter 发送，Shift+Enter 换行", "Enter to send, Shift+Enter for a new line")).Grow(1).MinWidth(0).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted)
 				})
 			}

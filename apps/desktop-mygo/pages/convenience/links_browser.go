@@ -182,7 +182,7 @@ func linkKindBackground(theme *ui.Theme, kind string) ui.Color {
 // kindLabel is a link type's badge.
 func kindLabel(c *ui.Context, kind string) {
 	theme, pal := c.Theme(), kit.Colors(c)
-	ui.Box(c).Padding(1, 7).Radius(kit.PillRadius).Border(1, pal.Hairline).Background(linkKindBackground(theme, kind)).Shrink(0).Children(func() {
+	ui.Box(c).Padding(0, 8).Radius(kit.PillRadius).Border(1, pal.Hairline).Background(linkKindBackground(theme, kind)).Shrink(0).Children(func() {
 		ui.Text(c, i18n.T("links."+kind)).FontSize(kit.CaptionSize(c)).FontWeight(500).TextColor(theme.TextMuted).NoWrap()
 	})
 }
@@ -197,9 +197,9 @@ func (p *folderPane) View(c *ui.Context, env *core.Env, height float32) ui.Eleme
 	b := p.browser
 	pane := ui.Column(c).FillWidth().Height(height).MinHeight(0).Role(ui.RoleGroup).Label(i18n.T(title))
 	pane.Children(func() {
-		ui.Column(c).FillWidth().Padding(12).Gap(10).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Children(func() {
+		ui.Column(c).FillWidth().Padding(12).Gap(12).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Children(func() {
 			kit.Strong(c, i18n.T(title))
-			address := ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center)
+			address := ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center)
 			address.Children(func() {
 				in := kit.TextInput(c, &b.address).Grow(1).MinWidth(0).Placeholder(i18n.T("links.enterFolder")).
 					Label(i18n.T(addressLabel)).Disabled(p.disabled)
@@ -228,7 +228,7 @@ func (p *folderPane) View(c *ui.Context, env *core.Env, height float32) ui.Eleme
 				}
 				p.navigate(paths[0])
 			})
-			ui.Row(c).Gap(6).Wrap().AlignItems(ui.Center).Children(func() {
+			ui.Row(c).Gap(8).Wrap().AlignItems(ui.Center).Children(func() {
 				browse := "links.pickLocation"
 				if source {
 					browse = "links.browseSource"
@@ -280,7 +280,7 @@ func (p *folderPane) View(c *ui.Context, env *core.Env, height float32) ui.Eleme
 				}
 			}
 			all := chosen == len(selectable)
-			ui.Row(c).FillWidth().Padding(10, 12).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Children(func() {
+			ui.Row(c).FillWidth().Padding(12, 12).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).Children(func() {
 				box := ui.Checkbox(c, &all, i18n.T("links.selectCurrentFolder")).Disabled(p.disabled || b.loading)
 				if chosen > 0 && chosen < len(selectable) {
 					box.Mixed()
@@ -301,15 +301,15 @@ func (p *folderPane) View(c *ui.Context, env *core.Env, height float32) ui.Eleme
 			}
 			switch {
 			case b.loading && b.listing == nil:
-				ui.Column(c).Padding(20, 16).Children(func() { kit.Status(c, i18n.T("links.loadingFolder")) })
+				ui.Column(c).Padding(20, kit.RowPadX).Children(func() { kit.Status(c, i18n.T("links.loadingFolder")) })
 			case !b.loading && b.listing == nil && b.err == "" && !shown:
 				empty := "links.targetEmpty"
 				if source {
 					empty = "links.sourceEmpty"
 				}
-				ui.Column(c).Padding(20, 16).Children(func() { kit.Help(c, i18n.T(empty)) })
+				ui.Column(c).Padding(20, kit.RowPadX).Children(func() { kit.Help(c, i18n.T(empty)) })
 			case b.listing != nil && len(entries) == 0:
-				ui.Column(c).Padding(20, 16).Children(func() { kit.Help(c, i18n.T("links.folderEmpty")) })
+				ui.Column(c).Padding(20, kit.RowPadX).Children(func() { kit.Help(c, i18n.T("links.folderEmpty")) })
 			}
 			for _, entry := range entries {
 				p.entryRow(c, entry, theme, pal)
@@ -352,7 +352,7 @@ func (p *folderPane) entryRow(c *ui.Context, entry directorylinks.BrowseEntry, t
 	if tint := p.kinds[key]; tint != "" {
 		kind = tint
 	}
-	row := ui.Row(c.Key(entry.Path)).FillWidth().Padding(10, 12).Gap(8).Wrap().AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).
+	row := ui.Row(c.Key(entry.Path)).FillWidth().Padding(12, 12).Gap(8).Wrap().AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).
 		BorderColor(pal.Hairline).Role(ui.RoleListItem)
 	if selected || kind != "" {
 		row.Background(linkKindBackground(theme, kind))
@@ -377,7 +377,7 @@ func (p *folderPane) entryRow(c *ui.Context, entry directorylinks.BrowseEntry, t
 		}
 		ui.Icon(c, icon).FontSize(16).TextColor(theme.TextMuted).Shrink(0)
 		// Reserve readable name width; metadata wraps below in a narrow pane.
-		ui.Column(c).Basis(160).Grow(1).Shrink(1).MinWidth(0).Gap(2).TextAlign(ui.Start).Children(func() {
+		ui.Column(c).Basis(160).Grow(1).Shrink(1).MinWidth(0).Gap(4).TextAlign(ui.Start).Children(func() {
 			if folder {
 				open := kit.GhostButton(c, entry.Name, nil, false).Label(i18n.T("links.openFolder", "name", entry.Name)).
 					Description(entry.Path).Disabled(p.disabled).Justify(ui.Start).TextAlign(ui.Start).Padding(0)
@@ -394,7 +394,7 @@ func (p *folderPane) entryRow(c *ui.Context, entry directorylinks.BrowseEntry, t
 				kit.InlineError(c, entry.Error)
 			}
 		})
-		ui.Row(c).Gap(6).AlignItems(ui.Center).Shrink(0).Children(func() {
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Shrink(0).Children(func() {
 			switch {
 			case entry.Kind != "":
 				kindLabel(c, entry.Kind)

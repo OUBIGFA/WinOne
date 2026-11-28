@@ -29,10 +29,10 @@ const (
 // Enter or Space, and moved by dragging or by choosing its position.
 func (p *page) programList(c *ui.Context) {
 	apps := p.apps()
-	ui.Column(c).Fill().Padding(12, 12, 12, 0).Gap(2).Children(func() {
+	ui.Column(c).Fill().Padding(12, 12, 12, 0).Gap(4).Children(func() {
 		// Column headings, which assistive technology skips: each row
 		// names its own controls.
-		ui.Row(c).FillWidth().Shrink(0).Padding(0, 8, 6, 8).Gap(8).Role(ui.RoleNone).Children(func() {
+		ui.Row(c).FillWidth().Shrink(0).Padding(0, 8, 8, 8).Gap(8).Role(ui.RoleNone).Children(func() {
 			ui.Box(c).Width(32).Shrink(0)
 			kit.Caption(c, i18n.T("settingsDesign.programColumn")).Grow(1).MinWidth(0).SingleLine()
 			ui.Row(c).Gap(controlGap).Shrink(0).Children(func() {
@@ -50,7 +50,7 @@ func (p *page) programList(c *ui.Context) {
 			})
 			return
 		}
-		ui.Scroll(c).FillWidth().Grow(1).MinHeight(0).Gap(2).Role(ui.RoleList).Label(i18n.T("wintray.list")).FocusGroup(ui.Vertical).Children(func() {
+		ui.Scroll(c).FillWidth().Grow(1).MinHeight(0).Gap(4).Role(ui.RoleList).Label(i18n.T("wintray.list")).FocusGroup(ui.Vertical).Children(func() {
 			for i, app := range apps {
 				p.programRow(c, i, app.Value)
 			}

@@ -1043,18 +1043,18 @@ await adapt('src/capture/FloatingGlassBar.cpp', [
     ['#include "capture/FloatingGlassBar.h"', '#include "capture/FloatingGlassBar.h"\n#include "hint_style.h"'],
     ['    p.accentSubtle = p.accentSoftBg;', `    // Use the existing WinOne neutral palette; the community layout and
     // rendering primitives stay intact.
-    p.panelBg = D2D1::ColorF(isDark ? 0x242423 : 0xffffff, 1);
-    p.panelHoverBg = D2D1::ColorF(isDark ? 0x333331 : 0xe8e8e5, 1);
-    p.panelBorder = D2D1::ColorF(isDark ? 0x454541 : 0xcececa, 1);
+    p.panelBg = D2D1::ColorF(isDark ? 0x1f1f1f : 0xffffff, 1);
+    p.panelHoverBg = D2D1::ColorF(isDark ? 0x2e2e2e : 0xe8e8eb, 1);
+    p.panelBorder = D2D1::ColorF(isDark ? 0x4a4a4a : 0xc6c6cb, 1);
     p.panelHoverBorder = p.panelBorder;
-    p.primaryText = D2D1::ColorF(isDark ? 0xe7e7e2 : 0x292927, 1);
-    p.secondaryText = p.mutedText = D2D1::ColorF(isDark ? 0xaaa9a3 : 0x60605c, 1);
+    p.primaryText = D2D1::ColorF(isDark ? 0xececec : 0x181818, 1);
+    p.secondaryText = p.mutedText = D2D1::ColorF(isDark ? 0xa0a0a0 : 0x666666, 1);
     p.hoverBg = p.panelHoverBg;
-    p.pressBg = D2D1::ColorF(isDark ? 0x3b3b38 : 0xdededa, 1);
-    p.accent = p.accentText = D2D1::ColorF(isDark ? 0xe4e4e0 : 0x30302e, 1);
-    p.accentSoftBg = p.accentHoverBg = D2D1::ColorF(isDark ? 0x343432 : 0xe4e4e0, 1);
+    p.pressBg = D2D1::ColorF(isDark ? 0x383838 : 0xdcdce0, 1);
+    p.accent = p.accentText = D2D1::ColorF(isDark ? 0xececec : 0x181818, 1);
+    p.accentSoftBg = p.accentHoverBg = D2D1::ColorF(isDark ? 0x303030 : 0xe4e4e7, 1);
     p.accentBorder = p.panelBorder;
-    p.chipBg = D2D1::ColorF(isDark ? 0x292928 : 0xf0f0ee, 1);
+    p.chipBg = D2D1::ColorF(isDark ? 0x242424 : 0xececee, 1);
     p.chipHoverBg = p.hoverBg; p.chipText = p.primaryText; p.chipBorder = p.panelBorder;
     p.accentSubtle = p.accentSoftBg;`],
     ['        renderShadow(ambientSteps, sizeof(ambientSteps) / sizeof(ambientSteps[0]));\n        renderShadow(keySteps, sizeof(keySteps) / sizeof(keySteps[0]));',

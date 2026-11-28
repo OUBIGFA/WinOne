@@ -502,7 +502,7 @@ func (a *accountPanel) View(c *ui.Context, pr *provider, old *provider) {
 				if len(a.accounts) > 0 {
 					ui.Column(c).FillWidth().Gap(8).Children(func() {
 						for i, acct := range a.accounts {
-							ui.Column(c.Key(acct.Agent + acct.User)).Gap(2).MinWidth(0).Children(func() {
+							ui.Column(c.Key(acct.Agent + acct.User)).Gap(4).MinWidth(0).Children(func() {
 								user := acct.User
 								if hidden {
 									user = i18n.T("aiShared.maskedAccount", "number", i+1)

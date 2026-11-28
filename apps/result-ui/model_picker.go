@@ -27,7 +27,7 @@ func (p *Panel) freeModelBadge(c *ui.Context, t *ui.Theme, provider ai.Provider,
 		return
 	}
 	tn := toneFor(t, c.Preferences().HighContrast)
-	ui.Text(c, p.T("免费", "Free")).Label(p.T("免费模型", "Free model")).FontSize(em(t, sizeBadge)).Padding(1, 4).Radius(radiusXS).Shrink(0).TextColor(tn.free).Background(tn.freeBackground)
+	ui.Text(c, p.T("免费", "Free")).Label(p.T("免费模型", "Free model")).FontSize(em(t, sizeBadge)).Padding(0, 4).Radius(radiusXS).Shrink(0).TextColor(tn.free).Background(tn.freeBackground)
 }
 
 var contextInModelName = regexp.MustCompile(`\b\d+M\b`)
@@ -53,7 +53,7 @@ func (p *Panel) modelBadges(c *ui.Context, t *ui.Theme, provider ai.Provider, id
 				title = fmt.Sprintf(p.T("当前免费，原为 %s", "Free now, previously %s"), times(was))
 			}
 		}
-		ui.Row(c).Label(p.T("额度倍率", "Model rate")).Description(title).Gap(3).Padding(1, 4).Radius(radiusXS).Shrink(0).Background(tn.hover).Children(func() {
+		ui.Row(c).Label(p.T("额度倍率", "Model rate")).Description(title).Gap(4).Padding(0, 4).Radius(radiusXS).Shrink(0).Background(tn.hover).Children(func() {
 			if was > rate {
 				ui.Text(c, times(was)).FontSize(em(t, sizeBadge)).TextColor(t.TextMuted).Strikethrough().Shrink(0)
 			}
@@ -71,7 +71,7 @@ func (p *Panel) modelBadges(c *ui.Context, t *ui.Theme, provider ai.Provider, id
 		if context%1000000 == 0 {
 			value = strconv.Itoa(context / 1000000)
 		}
-		ui.Box(c).Label(p.T("百万级上下文", "Large context")).Description(fmt.Sprintf(p.T("可容纳 %d Token", "Holds %d tokens"), context)).Padding(1, 4).Radius(radiusXS).Shrink(0).Background(tn.hover).Children(func() {
+		ui.Box(c).Label(p.T("百万级上下文", "Large context")).Description(fmt.Sprintf(p.T("可容纳 %d Token", "Holds %d tokens"), context)).Padding(0, 4).Radius(radiusXS).Shrink(0).Background(tn.hover).Children(func() {
 			ui.Text(c, value+"M").FontSize(em(t, sizeBadge)).TextColor(t.TextMuted)
 		})
 	}
@@ -135,7 +135,7 @@ func (p *Panel) modelPickerFor(c *ui.Context, t *ui.Theme, translation bool) {
 	// The trigger hugs its label. A separate flex spacer in the composer keeps
 	// send at the right edge without stretching either this button or its popup.
 	button := ui.ButtonBase(c.Key(key)).Label(triggerLabel).Description(provider.Name+" · "+label).
-		MinWidth(0).MaxWidthPercent(78).Padding(3, 6).Gap(5).Radius(radiusSM).AlignItems(ui.Center).Cursor(ui.CursorPointer).Disabled(p.Busy).
+		MinWidth(0).MaxWidthPercent(78).Padding(4, 8).Gap(4).Radius(radiusSM).AlignItems(ui.Center).Cursor(ui.CursorPointer).Disabled(p.Busy).
 		Children(func() {
 			p.providerImage(c, t, provider.DisplayIcon(), 16)
 			// Show the account as well as the model: identical model IDs can be

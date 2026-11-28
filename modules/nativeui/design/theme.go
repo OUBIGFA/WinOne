@@ -3,13 +3,18 @@ package design
 
 import "github.com/egoist/mygo/ui"
 
-// Shared corner radius scale in DIPs. Nested surfaces step concentrically
-// (outer radius = inner radius + padding) so corners align cleanly.
+// Shared corner radius scale in DIPs, 8 to 40 by size and layer. Nested
+// surfaces step concentrically (outer radius = inner radius + padding) so
+// corners align cleanly.
 const (
-	RadiusXS   float32 = 4   // checkboxes, micro badges, compact tags
-	RadiusSM   float32 = 6   // items inside panels/popovers, segmented tabs, compact icon buttons
-	RadiusMD   float32 = 8   // standard controls: buttons, inputs, selects, nav items, tabs
-	RadiusLG   float32 = 10  // panels, disclosures, dialogs, popovers, result regions
+	// RadiusMark rounds only a check box glyph: at 16 DIPs a larger radius
+	// would turn it into a radio dot.
+	RadiusMark float32 = 4
+	RadiusXS   float32 = 8   // micro badges, compact tags, placeholders
+	RadiusSM   float32 = 8   // items inside panels/popovers, segmented tabs, compact icon buttons
+	RadiusMD   float32 = 12  // standard controls: buttons, inputs, selects, nav items, tabs
+	RadiusLG   float32 = 16  // panels, disclosures, popovers, notices, result regions
+	RadiusXL   float32 = 24  // dialogs and other large modal panels
 	RadiusFull float32 = 999 // pills, circular buttons, switch tracks, radio dots
 )
 
@@ -36,23 +41,23 @@ var (
 	lightTheme = ui.Theme{
 		// One step below the white Panel, so grouped settings read as
 		// blocks on the canvas without a heavier border.
-		Background:     ui.Hex("#f6f6f4"),
-		Surface:        ui.Hex("#f0f0ee"),
-		SurfaceHover:   ui.Hex("#e8e8e5"),
-		SurfacePressed: ui.Hex("#dededa"),
-		Border:         ui.Hex("#cececa"),
-		Text:           ui.Hex("#292927"),
-		TextMuted:      ui.Hex("#60605c"),
-		Accent:         ui.Hex("#30302e"),
-		AccentHover:    ui.Hex("#454542"),
-		AccentPressed:  ui.Hex("#20201e"),
+		Background:     ui.Hex("#f5f5f7"),
+		Surface:        ui.Hex("#ececee"),
+		SurfaceHover:   ui.Hex("#e8e8eb"),
+		SurfacePressed: ui.Hex("#dcdce0"),
+		Border:         ui.Hex("#c6c6cb"),
+		Text:           ui.Hex("#181818"),
+		TextMuted:      ui.Hex("#666666"),
+		Accent:         ui.Hex("#181818"),
+		AccentHover:    ui.Hex("#333333"),
+		AccentPressed:  ui.Hex("#000000"),
 		AccentText:     ui.Hex("#ffffff"),
 		Danger:         ui.Hex("#c42b1c"),
 		Warning:        ui.Hex("#9d5d00"),
 		Success:        ui.Hex("#0f7b0f"),
-		Selection:      ui.RGBA(46, 46, 46, 0.18),
-		Focus:          ui.RGBA(46, 46, 46, 0.6),
-		Inverse:        ui.Hex("#292928"),
+		Selection:      ui.RGBA(24, 24, 24, 0.16),
+		Focus:          ui.RGBA(24, 24, 24, 0.6),
+		Inverse:        ui.Hex("#181818"),
 		InverseText:    ui.Hex("#fafafa"),
 		Scrollbar:      ui.RGBA(0, 0, 0, 0.3),
 		Radius:         RadiusMD,
@@ -62,36 +67,36 @@ var (
 	}
 	lightPalette = Palette{
 		Panel:       ui.Hex("#ffffff"),
-		Sidebar:     ui.Hex("#f0f0ee"),
-		Selected:    ui.Hex("#e4e4e0"),
-		Hairline:    ui.RGBA(0, 0, 0, 0.08),
+		Sidebar:     ui.Hex("#ececee"),
+		Selected:    ui.Hex("#e4e4e7"),
+		Hairline:    ui.RGBA(0, 0, 0, 0.13),
 		DangerSoft:  ui.RGBA(196, 43, 28, 0.07),
 		DangerLine:  ui.RGBA(196, 43, 28, 0.32),
-		InfoSoft:    ui.Hex("#f0f0ee"),
+		InfoSoft:    ui.Hex("#ececee"),
 		SuccessSoft: ui.RGBA(15, 123, 15, 0.1),
 		WarningSoft: ui.RGBA(157, 93, 0, 0.1),
-		Skeleton:    ui.Hex("#e8e8e5"),
+		Skeleton:    ui.Hex("#e8e8eb"),
 	}
 	darkTheme = ui.Theme{
 		Dark:           true,
-		Background:     ui.Hex("#1c1c1b"),
-		Surface:        ui.Hex("#292928"),
-		SurfaceHover:   ui.Hex("#333331"),
-		SurfacePressed: ui.Hex("#3b3b38"),
-		Border:         ui.Hex("#454541"),
-		Text:           ui.Hex("#e7e7e2"),
-		TextMuted:      ui.Hex("#aaa9a3"),
-		Accent:         ui.Hex("#e4e4e0"),
+		Background:     ui.Hex("#161616"),
+		Surface:        ui.Hex("#242424"),
+		SurfaceHover:   ui.Hex("#2e2e2e"),
+		SurfacePressed: ui.Hex("#383838"),
+		Border:         ui.Hex("#4a4a4a"),
+		Text:           ui.Hex("#ececec"),
+		TextMuted:      ui.Hex("#a0a0a0"),
+		Accent:         ui.Hex("#ececec"),
 		AccentHover:    ui.Hex("#ffffff"),
 		AccentPressed:  ui.Hex("#cccccc"),
-		AccentText:     ui.Hex("#1c1c1b"),
+		AccentText:     ui.Hex("#161616"),
 		Danger:         ui.Hex("#ff99a4"),
 		Warning:        ui.Hex("#fce100"),
 		Success:        ui.Hex("#6ccb5f"),
 		Selection:      ui.RGBA(233, 233, 233, 0.22),
 		Focus:          ui.RGBA(233, 233, 233, 0.65),
-		Inverse:        ui.Hex("#e7e7e2"),
-		InverseText:    ui.Hex("#1c1c1b"),
+		Inverse:        ui.Hex("#ececec"),
+		InverseText:    ui.Hex("#161616"),
 		Scrollbar:      ui.RGBA(255, 255, 255, 0.3),
 		Radius:         RadiusMD,
 		Spacing:        4,
@@ -99,16 +104,16 @@ var (
 		Font:           SystemFont,
 	}
 	darkPalette = Palette{
-		Panel:       ui.Hex("#242423"),
-		Sidebar:     ui.Hex("#171716"),
-		Selected:    ui.Hex("#343432"),
-		Hairline:    ui.RGBA(255, 255, 255, 0.08),
+		Panel:       ui.Hex("#1f1f1f"),
+		Sidebar:     ui.Hex("#121212"),
+		Selected:    ui.Hex("#303030"),
+		Hairline:    ui.RGBA(255, 255, 255, 0.12),
 		DangerSoft:  ui.RGBA(255, 153, 164, 0.08),
 		DangerLine:  ui.RGBA(255, 153, 164, 0.35),
-		InfoSoft:    ui.Hex("#292927"),
+		InfoSoft:    ui.Hex("#262626"),
 		SuccessSoft: ui.RGBA(108, 203, 95, 0.12),
 		WarningSoft: ui.RGBA(252, 225, 0, 0.1),
-		Skeleton:    ui.Hex("#2d2d2b"),
+		Skeleton:    ui.Hex("#2b2b2b"),
 	}
 )
 

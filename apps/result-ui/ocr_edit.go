@@ -21,7 +21,7 @@ func (p *Panel) originalEditor(c *ui.Context, t *ui.Theme) bool {
 	}
 	ui.Column(c).Key("ocr-editor").FillWidth().Gap(8).Children(func() {
 		input := ui.TextArea(c.Key("ocr-source"), &p.originalDraft).Label(p.T("识别文字编辑框", "Recognized text editor")).FillWidth().Height(180).
-			FontSize(em(t, sizeBody)).LineHeight(1.5).Padding(10).Border(1, t.Border).Radius(radiusSM)
+			FontSize(em(t, sizeBody)).LineHeight(1.5).Padding(12).Border(1, t.Border).Radius(radiusSM)
 		if p.focusOriginal {
 			input.Focus()
 			p.focusOriginal = false

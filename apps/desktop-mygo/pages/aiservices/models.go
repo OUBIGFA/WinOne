@@ -299,9 +299,9 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 	all := pr.available()
 	id := pr.ID
 	ui.Column(c).FillWidth().Gap(kit.HeadingGap).Children(func() {
-		ui.Row(c).FillWidth().GapX(16).GapY(10).Wrap().AlignItems(ui.Center).Children(func() {
+		ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Basis(220).Grow(1).MinWidth(0).Children(func() {
-				kit.SectionHeading(c, nil, i18n.T("ai.models"), i18n.T("ai.modelSelectionHint"))
+				kit.SectionHeading(c, nil, i18n.T("ai.models"), "")
 			})
 			ui.Row(c).Gap(8).Wrap().Children(func() {
 				// Fetching comes first, as a list is filled before it is tested;
@@ -343,14 +343,14 @@ func (m *modelsPanel) View(c *ui.Context, pr *provider) {
 		}
 		ui.Column(c).FillWidth().Children(func() {
 			kit.Panel(c, func() {
-				ui.Row(c).FillWidth().Padding(12, 16).Gap(8).AlignItems(ui.Center).Children(func() {
+				ui.Row(c).FillWidth().Padding(12, kit.RowPadX).Gap(8).AlignItems(ui.Center).Children(func() {
 					kit.TextInput(c, &m.query).Grow(1).MinWidth(144).Placeholder(i18n.T("ai.findOrAddModel")).Label(i18n.T("ai.findOrAddModel")).
 						Disabled(disabled || working)
 					if kit.Button(c, i18n.T("ai.addModel"), icons.Plus, false).Disabled(disabled || working || strings.TrimSpace(m.query) == "").Clicked() {
 						m.add(all)
 					}
 				})
-				ui.Row(c).FillWidth().Padding(6, 16).Gap(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).
+				ui.Row(c).FillWidth().Padding(8, kit.RowPadX).Gap(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).
 					Background(c.Theme().Background.Alpha(0.45)).Children(func() {
 					kit.Caption(c, i18n.T("ai.enabledModels", "count", len(pr.Models)))
 					ui.Row(c).Gap(4).Role(ui.RoleGroup).Label(i18n.T("ai.modelBulkActions")).Children(func() {
@@ -427,7 +427,7 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 		on := enabled[model]
 		name := widgets.ModelLabel(&picker, model)
 		result, tested := m.tested[model]
-		row := ui.Column(c).FillWidth().Padding(4, 10).Radius(kit.ItemRadius).Description(model)
+		row := ui.Column(c).FillWidth().Padding(4, 12).Radius(kit.ItemRadius).Description(model)
 		if row.Hovered() {
 			row.Background(t.SurfaceHover)
 		}
@@ -503,7 +503,7 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 				kit.CompactIconButton(c, icons.Ellipsis, i18n.T("ai.modelActions", "name", name)).Disabled(disabled || working).Menu(menu)
 			})
 			if tested {
-				ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Start).Padding(0, 0, 0, 24).Children(func() {
+				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Start).Padding(0, 0, 0, 24).Children(func() {
 					color, mark := t.TextMuted, icons.Check
 					if !*result.OK {
 						color, mark = t.Danger, icons.X
@@ -511,7 +511,7 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 					if result.Queued != "" {
 						color, mark = t.TextMuted, icons.Clock
 					}
-					ui.Icon(c, mark).FontSize(14).TextColor(color).Shrink(0).Margin(2, 0, 0, 0)
+					ui.Icon(c, mark).FontSize(14).TextColor(color).Shrink(0).Margin(4, 0, 0, 0)
 					ui.Text(c, testLine(result, model)).FontSize(kit.HelpSize(c)).TextColor(color).Shrink(1).MinWidth(0).Selectable()
 					// Keep the full vendor failure available even in a narrow list row.
 					if !*result.OK && result.Queued == "" {
@@ -522,7 +522,7 @@ func (m *modelsPanel) list(c *ui.Context, pr *provider, all []string, disabled, 
 				})
 			}
 		})
-	}).FillWidth().Height(m.height).Padding(6).Gap(2).Label(i18n.T("ai.models"))
+	}).FillWidth().Height(m.height).Padding(8).Gap(4).Label(i18n.T("ai.models"))
 		list.Children(func() {
 			if len(visible) == 0 {
 				key := "ai.connectionForModels"

@@ -295,8 +295,8 @@ func (p *Panel) header(c *ui.Context, t *ui.Theme) {
 	if p.Source == "quick-assistant" {
 		title = p.T("快捷助手", "Quick assistant")
 	}
-	ui.Row(c).Key("title").Height(resultHeaderHeight).AlignItems(ui.Center).Padding(0, 6).Gap(8).DragWindow().Children(func() {
-		ui.Row(c).Grow(1).Basis(0).MinWidth(0).AlignItems(ui.Center).Gap(6).DragWindow().Children(func() {
+	ui.Row(c).Key("title").Height(resultHeaderHeight).AlignItems(ui.Center).Padding(0, 8).Gap(8).DragWindow().Children(func() {
+		ui.Row(c).Grow(1).Basis(0).MinWidth(0).AlignItems(ui.Center).Gap(8).DragWindow().Children(func() {
 			// The pin glyph stays upright in both states; only its color shows
 			// whether the window is pinned (muted when off, full text color when on).
 			pinName := p.T("固定结果窗", "Pin result window")
@@ -320,7 +320,7 @@ func (p *Panel) header(c *ui.Context, t *ui.Theme) {
 		ui.Row(c).Size(iconButtonSize, iconButtonSize).Shrink(0).Justify(ui.Center).AlignItems(ui.Center).DragWindow().Cursor(ui.CursorGrab).Label(p.T("拖动结果窗", "Drag result window")).Children(func() {
 			ui.Icon(c, svg("grip")).Size(16, 16).TextColor(t.TextMuted).DragWindow().Cursor(ui.CursorGrab).Role(ui.RoleNone)
 		})
-		ui.Row(c).Grow(1).Basis(0).MinWidth(0).AlignItems(ui.Center).Justify(ui.End).Gap(6).DragWindow().Children(func() {
+		ui.Row(c).Grow(1).Basis(0).MinWidth(0).AlignItems(ui.Center).Justify(ui.End).Gap(8).DragWindow().Children(func() {
 			if p.Notice != "" && !p.noticeVisibility.dismissed {
 				ui.Text(c, p.Notice).FontSize(em(t, sizeMeta)).TextColor(t.TextMuted).SingleLine().Ellipsis("…").Description(p.Notice).MinWidth(0).Shrink(1).DragWindow()
 			}

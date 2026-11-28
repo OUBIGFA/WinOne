@@ -70,7 +70,7 @@ func (p *page) quickStart(c *ui.Context) {
 		}
 		return kit.Button(c, label, icon, false).Disabled(locked || disabled).Clicked()
 	}
-	kit.Group(c, nil, homeT("startTitle"), homeT("startHint"), func() {
+	kit.Group(c, nil, homeT("startTitle"), "", func() {
 		setupStep(c, 1, steps[0], homeT("stepProvider"), homeT("stepProviderHint"), func() {
 			if action(0, i18n.T("ai.addPreset"), icons.PlugZap, full) {
 				p.switchTab(tabCustom)
@@ -99,7 +99,7 @@ func (p *page) quickStart(c *ui.Context) {
 // done, its task and the action that does it.
 func setupStep(c *ui.Context, n int, done bool, title, help string, actions func()) {
 	t, palette := c.Theme(), kit.Colors(c)
-	ui.Row(c.Key(n)).FillWidth().MinHeight(kit.RowMinHeight).Padding(12, 16).GapX(24).GapY(8).
+	ui.Row(c.Key(n)).FillWidth().MinHeight(kit.RowMinHeight).Padding(12, kit.RowPadX).GapX(24).GapY(8).
 		AlignItems(ui.Center).AlignContent(ui.Center).Wrap().Children(func() {
 		ui.Row(c).Basis(260).Grow(1).Shrink(1).Gap(12).AlignItems(ui.Start).Children(func() {
 			mark := ui.Row(c).Width(24).Height(24).Radius(kit.PillRadius).Shrink(0).Justify(ui.Center).AlignItems(ui.Center)

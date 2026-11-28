@@ -38,12 +38,12 @@ func Label(c *ui.Context, s string) ui.Element {
 
 // Heading titles a group of settings.
 func Heading(c *ui.Context, s string) ui.Element {
-	return ui.Text(c, s).FontSize(c.Theme().Rem(headingSize)).FontWeight(500).LineHeight(1.35)
+	return ui.Text(c, s).FontSize(c.Theme().Rem(headingSize)).FontWeight(600).LineHeight(1.35)
 }
 
 // Title is the largest role: a dialog's or an empty state's title.
 func Title(c *ui.Context, s string) ui.Element {
-	return ui.Text(c, s).FontSize(c.Theme().Rem(titleSize)).FontWeight(500).LineHeight(1.3)
+	return ui.Text(c, s).FontSize(c.Theme().Rem(titleSize)).FontWeight(600).LineHeight(1.3)
 }
 
 // Mono shows code, a path or an identifier.

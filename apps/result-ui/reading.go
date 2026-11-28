@@ -53,7 +53,7 @@ func (p *Panel) reading(c *ui.Context, t *ui.Theme, height float32) {
 				// The initial result shares one region: it bleeds into the
 				// gutter so its text keeps the reading column's edges.
 				tn := toneFor(t, c.Preferences().HighContrast)
-				region := ui.Column(c).Key("result-surface").Margin(0, -bleed).Padding(12, bleed, 14, bleed).Gap(12).Radius(radiusLG).Background(tn.region)
+				region := ui.Column(c).Key("result-surface").Margin(0, -bleed).Padding(12, bleed, 16, bleed).Gap(12).Radius(radiusLG).Background(tn.region)
 				region.Children(func() {
 					if p.Source != "selection" && p.Mode == "translate" && p.Original != "" {
 						p.original(c, t)
@@ -164,7 +164,7 @@ func (p *Panel) result(c *ui.Context, t *ui.Theme) {
 		// How a capture is translated, its language and its model, sits
 		// together below the label, quieter than the translation itself.
 		if p.Source != "selection" && p.Mode == "translate" {
-			ui.Row(c).Key("translation-options").FillWidth().Wrap().AlignItems(ui.Center).Gap(4).Margin(-4, 0, 0, -6).Children(func() {
+			ui.Row(c).Key("translation-options").FillWidth().Wrap().AlignItems(ui.Center).Gap(4).Margin(-4, 0, 0, -8).Children(func() {
 				p.targetLanguage(c)
 				p.translationModelPicker(c, t)
 			})
@@ -212,7 +212,7 @@ func (p *Panel) errorFeedback(c *ui.Context, t *ui.Theme, area string) ui.Elemen
 	if location != area || p.errorVisibility.dismissed {
 		return ui.Element{}
 	}
-	return ui.Row(c.Key("error-" + area)).FillWidth().Gap(6).AlignItems(ui.Start).Role(ui.RoleStatus).Children(func() {
+	return ui.Row(c.Key("error-" + area)).FillWidth().Gap(8).AlignItems(ui.Start).Role(ui.RoleStatus).Children(func() {
 		p.selectable(c, ui.Column(c).Grow(1).MinWidth(0), func() {
 			ui.Text(c, p.Error).FillWidth().FontSize(em(t, sizeLabel)).LineHeight(1.5).TextColor(t.Danger)
 		})
@@ -241,7 +241,7 @@ func (p *Panel) reasoning(c *ui.Context, t *ui.Theme, message *Message) {
 		parts := ui.CollapsibleBase(c.Key("reasoning-toggle"), &message.ReasoningOpen)
 		// The trigger's face bleeds into the gutter so its text keeps the
 		// answer's left edge; the column stretches it across both margins.
-		trigger := parts.Trigger.Label(p.T("思考过程", "Reasoning")).MinHeight(26).AlignItems(ui.Center).Gap(6).Padding(2, 8).Margin(0, -8).Radius(radiusSM).TextColor(t.TextMuted).Cursor(ui.CursorPointer)
+		trigger := parts.Trigger.Label(p.T("思考过程", "Reasoning")).MinHeight(28).AlignItems(ui.Center).Gap(8).Padding(4, 8).Margin(0, -8).Radius(radiusSM).TextColor(t.TextMuted).Cursor(ui.CursorPointer)
 		if trigger.Hovered() {
 			trigger.Background(tn.hover)
 		}
@@ -263,7 +263,7 @@ func (p *Panel) reasoning(c *ui.Context, t *ui.Theme, message *Message) {
 				message.thinkingScroll.Y = math.MaxFloat32
 			}
 			ui.Scroll(c.Key("thinking")).Label(p.T("思考内容", "Thinking content")).FillWidth().MaxHeight(min(float32(320), height*0.4)).TrackScroll(&message.thinkingScroll).Children(func() {
-				ui.Row(c).FillWidth().Gap(12).Margin(4, 0, 0, 0).Padding(6, 0, 0, 0).Children(func() {
+				ui.Row(c).FillWidth().Gap(12).Margin(4, 0, 0, 0).Padding(8, 0, 0, 0).Children(func() {
 					ui.Box(c).Width(2).AlignSelf(ui.Stretch).Background(t.Border)
 					p.selectable(c, ui.Column(c).Grow(1).MinWidth(0), func() {
 						// Cindy's narrow presentation: only strong text and
@@ -354,7 +354,7 @@ func (p *Panel) replyActions(c *ui.Context, t *ui.Theme, message *Message, key s
 func (p *Panel) messageIdentity(c *ui.Context, t *ui.Theme, message *Message) ui.Element {
 	// Callers choose horizontal growth. Grow on a direct Column child would
 	// consume vertical space and could overlap the following answer.
-	return ui.Row(c).Key("identity").MinWidth(0).MinHeight(24).AlignItems(ui.Center).Gap(6).Children(func() {
+	return ui.Row(c).Key("identity").MinWidth(0).MinHeight(24).AlignItems(ui.Center).Gap(8).Children(func() {
 		if message.Model != "" || message.ProviderName != "" {
 			p.providerImage(c, t, p.messageProviderIcon(message), 16)
 		}
@@ -383,7 +383,7 @@ func (p *Panel) conversation(c *ui.Context, t *ui.Theme, place func(string, ui.E
 					}
 					ui.Icon(c, svg(message.ActionIcon)).AlignSelf(ui.Start).Size(14, 14).TextColor(color).Label(p.T("快捷操作：", "Quick action: ") + message.ActionLabel).Description(message.ActionLabel)
 				}
-				p.selectable(c, ui.Column(c).Label(p.T("用户消息气泡", "User message bubble")).Padding(10, 14).Background(tn.bubble).Radius(radiusLG), func() {
+				p.selectable(c, ui.Column(c).Label(p.T("用户消息气泡", "User message bubble")).Padding(12, 16).Background(tn.bubble).Radius(radiusLG), func() {
 					ui.Text(c, message.Text).FontSize(em(t, sizeBody)).LineHeight(1.5)
 				})
 			}))

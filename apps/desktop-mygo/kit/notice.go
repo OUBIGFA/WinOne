@@ -56,14 +56,15 @@ func Notice(c *ui.Context, tone Tone, title, message string, actions func()) ui.
 	case Caution:
 		background, border, icon, iconColor = p.WarningSoft, t.Warning.Alpha(0.35), icons.TriangleAlert, t.Warning
 	}
-	n.FillWidth().Padding(12, 16).Gap(10).AlignItems(ui.Start).Background(background).
+	n.FillWidth().Padding(16, 20).Gap(12).AlignItems(ui.Start).Background(background).
 		Border(1, border).Radius(PanelRadius)
 	n.Role(ui.RoleStatus)
 	if tone == Failure {
 		n.Role(ui.RoleAlert)
 	}
 	return n.Children(func() {
-		ui.Icon(c, icon).FontSize(16).TextColor(iconColor).Shrink(0).Margin(2, 0, 0, 0)
+		// The box is one line of the message tall, so the icon centers on it.
+		ui.Row(c).Height(20).Shrink(0).AlignItems(ui.Center).Children(func() { ui.Icon(c, icon).FontSize(16).TextColor(iconColor) })
 		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(4).Selectable().Children(func() {
 			if title != "" {
 				Strong(c, title)
@@ -72,7 +73,7 @@ func Notice(c *ui.Context, tone Tone, title, message string, actions func()) ui.
 				ui.Text(c, message).FontSize(HelpSize(c)).LineHeight(1.5)
 			}
 			if actions != nil {
-				ui.Row(c).Gap(8).Wrap().Margin(6, 0, 0, 0).Unselectable().Children(actions)
+				ui.Row(c).Gap(8).Wrap().Margin(8, 0, 0, 0).Unselectable().Children(actions)
 			}
 		})
 		closeNotice(c, state)
@@ -91,8 +92,10 @@ func InlineError(c *ui.Context, message string) ui.Element {
 		return n.Hidden(true)
 	}
 	t := c.Theme()
-	return n.Gap(6).AlignItems(ui.Start).Role(ui.RoleAlert).Children(func() {
-		ui.Icon(c, icons.CircleAlert).FontSize(HelpSize(c)).TextColor(t.Danger).Shrink(0).Margin(2, 0, 0, 0)
+	return n.Gap(8).AlignItems(ui.Start).Role(ui.RoleAlert).Children(func() {
+		ui.Row(c).Height(20).Shrink(0).AlignItems(ui.Center).Children(func() {
+			ui.Icon(c, icons.CircleAlert).FontSize(HelpSize(c)).TextColor(t.Danger)
+		})
 		ui.Text(c, message).FontSize(HelpSize(c)).LineHeight(1.45).TextColor(t.Danger).Selectable().Shrink(1).MinWidth(0)
 		closeNotice(c, state)
 	})
@@ -108,7 +111,7 @@ func Status(c *ui.Context, message string) ui.Element {
 	if state.closed {
 		return n.Hidden(true)
 	}
-	return n.Gap(6).MinWidth(0).AlignItems(ui.Center).Role(ui.RoleStatus).Children(func() {
+	return n.Gap(8).MinWidth(0).AlignItems(ui.Center).Role(ui.RoleStatus).Children(func() {
 		Help(c, message).Shrink(1).MinWidth(0)
 		closeNotice(c, state)
 	})
@@ -118,7 +121,7 @@ func Status(c *ui.Context, message string) ui.Element {
 // is missing, how to add it, and the action that does.
 func Empty(c *ui.Context, icon *ui.SVG, title, hint string, action func()) ui.Element {
 	t := c.Theme()
-	return ui.Column(c).FillWidth().Padding(40, 24).Gap(8).AlignItems(ui.Center).Children(func() {
+	return ui.Column(c).FillWidth().Padding(48, 32).Gap(8).AlignItems(ui.Center).Children(func() {
 		if icon != nil {
 			ui.Icon(c, icon).FontSize(28).TextColor(t.TextMuted).Margin(0, 0, 4, 0)
 		}
@@ -153,13 +156,13 @@ func Badge(c *ui.Context, text string, tone Tone) ui.Element {
 	case Caution:
 		background, color = p.WarningSoft, t.Warning
 	}
-	return ui.Text(c, text).FontSize(CaptionSize(c)).Padding(2, 8).Radius(PillRadius).Background(background).
+	return ui.Text(c, text).FontSize(CaptionSize(c)).Padding(4, 12).Radius(PillRadius).Background(background).
 		TextColor(color).SingleLine()
 }
 
 // SuccessBadge is a Badge for something that is on or went well.
 func SuccessBadge(c *ui.Context, text string) ui.Element {
 	t, p := c.Theme(), Colors(c)
-	return ui.Text(c, text).FontSize(CaptionSize(c)).Padding(2, 8).Radius(PillRadius).Background(p.SuccessSoft).
+	return ui.Text(c, text).FontSize(CaptionSize(c)).Padding(4, 12).Radius(PillRadius).Background(p.SuccessSoft).
 		TextColor(t.Success).SingleLine()
 }

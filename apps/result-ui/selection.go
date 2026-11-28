@@ -56,7 +56,7 @@ func (c *Controller) View(context *ui.Context) {
 			ui.Icon(context, svg("grip")).Size(12, 16).Shrink(0).TextColor(t.TextMuted).DragWindow().Cursor(ui.CursorGrab).Role(ui.RoleNone)
 		})
 		ui.Box(context).Width(1).Height(16).Shrink(0).Background(t.Border)
-		ui.Row(context).Height(34).AlignItems(ui.Center).Gap(4).Padding(2, 3).Children(func() {
+		ui.Row(context).Height(34).AlignItems(ui.Center).Gap(4).Padding(4, 4).Children(func() {
 			for _, action := range c.selectionActions() {
 				if !action.Enabled {
 					continue

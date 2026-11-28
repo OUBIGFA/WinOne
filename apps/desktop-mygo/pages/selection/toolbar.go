@@ -156,7 +156,7 @@ func (p *page) toolbar(c *ui.Context) {
 		// A heading of the page's own role, so this group reads as a peer
 		// of the toolbar above rather than as smaller bold text.
 		kit.Section(c, nil, title, "", func() {
-			ui.Column(c).FillWidth().Gap(6).Role(ui.RoleGroup).Label(title).Children(func() {
+			ui.Column(c).FillWidth().Gap(8).Role(ui.RoleGroup).Label(title).Children(func() {
 				for _, key := range []string{"settingsDesign.quickToolbarUse", "settingsDesign.quickToolbarDetails"} {
 					ui.Row(c).Gap(8).AlignItems(ui.Start).Children(func() {
 						kit.Help(c, "•").Shrink(0)
@@ -171,7 +171,7 @@ func (p *page) toolbar(c *ui.Context) {
 // columnHeadings names the columns of the action rows; the controls in
 // each row carry their own names for assistive technology.
 func (p *page) columnHeadings(c *ui.Context) {
-	ui.Row(c).FillWidth().Padding(8, 16, 8, 8).Gap(12).AlignItems(ui.Center).
+	ui.Row(c).FillWidth().Padding(8, kit.RowPadX, 8, 8).Gap(12).AlignItems(ui.Center).
 		Background(c.Theme().Background.Alpha(0.45)).Children(func() {
 		ui.Box(c).Width(16).Shrink(0)
 		kit.Caption(c, i18n.T("settingsDesign.action")).Grow(1).MinWidth(0).SingleLine().Padding(0, 8).Role(ui.RoleNone)
@@ -216,7 +216,7 @@ func (p *page) actionRow(c *ui.Context, index, count int) {
 			}
 		}
 		open := p.expanded == id
-		header := ui.Row(c).FillWidth().Padding(6, 16, 6, 8).Gap(12).AlignItems(ui.Center).Drag(draggedAction{id})
+		header := ui.Row(c).FillWidth().Padding(8, kit.RowPadX, 8, 8).Gap(12).AlignItems(ui.Center).Drag(draggedAction{id})
 		if header.Dragging() {
 			header.Opacity(0.4)
 		}
@@ -225,7 +225,7 @@ func (p *page) actionRow(c *ui.Context, index, count int) {
 			ui.Icon(c, icons.GripVertical).FontSize(16).TextColor(t.TextMuted).Shrink(0).Cursor(ui.CursorGrab).
 				Description(i18n.T("selection.dragToReorder"))
 			parts = ui.CollapsibleBase(c, &open)
-			trigger := parts.Trigger.Grow(1).Shrink(1).MinWidth(0).MinHeight(36).Padding(6, 8).Gap(12).Radius(kit.ItemRadius).
+			trigger := parts.Trigger.Grow(1).Shrink(1).MinWidth(0).MinHeight(36).Padding(8, 8).Gap(12).Radius(kit.ItemRadius).
 				AlignItems(ui.Center).Label(i18n.T("selection.editAction", "name", shown))
 			if trigger.Hovered() {
 				trigger.Background(t.SurfaceHover)
@@ -264,7 +264,7 @@ func (p *page) actionRow(c *ui.Context, index, count int) {
 			}
 		}
 		if panel := parts.Panel(func() { p.editor(c, a, name) }); panel.Valid() {
-			panel.Padding(4, 16, 20, 44).Gap(16)
+			panel.Padding(4, kit.RowPadX, 20, 44).Gap(16)
 		}
 	})
 	if p.focus == id {

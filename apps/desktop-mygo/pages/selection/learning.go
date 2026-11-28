@@ -18,7 +18,6 @@ func (p *page) learningAction() *action {
 	return nil
 }
 func (p *page) learningPage(c *ui.Context) {
-	kit.Help(c, i18n.T("learning.intro"))
 	kit.SubTabs(c, &p.learningSection, []string{i18n.T("learning.explanation"), i18n.T("learning.templates")}, p.env.RequestChange)
 	a := p.learningAction()
 	if a == nil {
@@ -36,7 +35,7 @@ func (p *page) learningPage(c *ui.Context) {
 	o := a.Learning
 	if p.learningSection == 0 {
 		kit.Group(c, icons.BookOpen, i18n.T("learning.explanation"), "", func() {
-			ui.Column(c).FillWidth().Padding(16).Gap(16).Children(func() {
+			ui.Column(c).FillWidth().Padding(kit.RowPadY, kit.RowPadX).Gap(16).Children(func() {
 				ui.Field(c, i18n.T("learning.level"), func() {
 					kit.Select(c, &o.Level, []kit.SelectOption{{Value: "beginner", Label: i18n.T("learning.beginner")}, {Value: "intermediate", Label: i18n.T("learning.intermediate")}, {Value: "advanced", Label: i18n.T("learning.advanced")}})
 				}).FillWidth()
@@ -51,7 +50,7 @@ func (p *page) learningPage(c *ui.Context) {
 	}
 	if p.learningSection == 1 {
 		kit.Group(c, icons.FileText, i18n.T("learning.templates"), i18n.T("learning.templatesHint"), func() {
-			ui.Column(c).FillWidth().Padding(16).Gap(16).Children(func() {
+			ui.Column(c).FillWidth().Padding(kit.RowPadY, kit.RowPadX).Gap(16).Children(func() {
 				kit.SubTabs(c, &p.learningTemplate, []string{i18n.T("learning.word"), i18n.T("learning.phrase"), i18n.T("learning.sentence"), i18n.T("learning.passage")}, nil)
 				for _, kind := range []learning.Kind{[]learning.Kind{learning.Word, learning.Phrase, learning.Sentence, learning.Passage}[p.learningTemplate]} {
 					ui.Field(c.Key(string(kind)), i18n.T("learning."+string(kind)), func() {

@@ -57,7 +57,7 @@ func (g *gatewayPanel) connectView(c *ui.Context, providers []widgets.AIProvider
 		kit.Stack(c, "", upstreamT(f.Note), func() {})
 		root := strings.TrimSuffix(g.saved.BaseURL, "/v1")
 		address := root + f.BaseSuffix
-		kit.Row(c, upstreamT("Base URL"), address, func() {
+		kit.Row(c, upstreamT("Base URL"), kit.Visible(address), func() {
 			if kit.IconButton(c, icons.Copy, nativeT("copy")).Clicked() {
 				c.Services().WriteClipboard(address)
 			}

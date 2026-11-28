@@ -357,13 +357,13 @@ func (t *linksTab) menuView(c *ui.Context, disabled bool) {
 			t.setMenu(on)
 		}
 		if t.menu != nil && t.menu.Partial {
-			ui.Column(c).Padding(0, 16, 12).Children(func() { kit.InlineError(c, i18n.T("links.explorerMenuPartial")) })
+			ui.Column(c).Padding(0, kit.RowPadX, 12).Children(func() { kit.InlineError(c, i18n.T("links.explorerMenuPartial")) })
 		}
 		if t.menu != nil && t.menu.Conflict != "" {
-			ui.Column(c).Padding(0, 16, 12).Children(func() { kit.InlineError(c, t.menu.Conflict) })
+			ui.Column(c).Padding(0, kit.RowPadX, 12).Children(func() { kit.InlineError(c, t.menu.Conflict) })
 		}
 		if t.menuErr != "" {
-			ui.Column(c).Padding(0, 16, 12).Children(func() { kit.InlineError(c, t.menuErr) })
+			ui.Column(c).Padding(0, kit.RowPadX, 12).Children(func() { kit.InlineError(c, t.menuErr) })
 		}
 	}).Label(i18n.T("links.explorerIntegration"))
 }
@@ -469,7 +469,7 @@ func formatLinkTime(value string) string {
 func (t *linksTab) history(c *ui.Context, disabled, locked bool) {
 	theme, pal := c.Theme(), kit.Colors(c)
 	ui.Column(c).FillWidth().Gap(12).Role(ui.RoleGroup).Label(i18n.T("links.history")).Children(func() {
-		ui.Row(c).FillWidth().GapX(16).GapY(10).Wrap().AlignItems(ui.Center).Children(func() {
+		ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().AlignItems(ui.Center).Children(func() {
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Grow(1).Children(func() {
 				ui.Icon(c, icons.History).FontSize(18).TextColor(theme.TextMuted)
 				kit.Heading(c, i18n.T("links.history")).Role(ui.RoleHeading).Level(3)
@@ -531,7 +531,7 @@ func (t *linksTab) history(c *ui.Context, disabled, locked bool) {
 		for _, group := range groupLinks(t.records) {
 			open := t.open[group.key]
 			ui.Column(c.Key(group.key)).FillWidth().Radius(kit.PanelRadius).Border(1, pal.Hairline).Children(func() {
-				header := ui.ButtonBase(c).FillWidth().Padding(10, 12).Gap(8).Justify(ui.Start).AlignItems(ui.Center).Label(group.target).
+				header := ui.ButtonBase(c).FillWidth().Padding(12, 12).Gap(8).Justify(ui.Start).AlignItems(ui.Center).Label(group.target).
 					Description(group.target).Expanded(open)
 				if header.Hovered() {
 					header.Background(theme.SurfaceHover)
@@ -547,7 +547,7 @@ func (t *linksTab) history(c *ui.Context, disabled, locked bool) {
 						icon = icons.Folder
 					}
 					ui.Icon(c, icon).FontSize(18).TextColor(theme.TextMuted).Shrink(0)
-					ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
+					ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
 						ui.Text(c, pathName(group.target)).SingleLine().Ellipsis("…").MinWidth(0)
 						kit.Help(c, group.target).SingleLine().Ellipsis("…").MinWidth(0)
 					})
@@ -572,7 +572,7 @@ func (t *linksTab) history(c *ui.Context, disabled, locked bool) {
 func (t *linksTab) recordView(c *ui.Context, record directorylinks.Record, locked bool) {
 	theme := c.Theme()
 	invalid := invalidLink(record)
-	row := ui.Column(c.Key(record.ID)).FillWidth().Padding(12, 14).Gap(8)
+	row := ui.Column(c.Key(record.ID)).FillWidth().Padding(12, kit.RowPadX).Gap(8)
 	if invalid {
 		row.TextColor(theme.TextMuted)
 	}
@@ -589,7 +589,7 @@ func (t *linksTab) recordView(c *ui.Context, record directorylinks.Record, locke
 			kit.Strong(c, record.Name).Grow(1).MinWidth(0)
 			kindLabel(c, record.Kind)
 		})
-		ui.Row(c).Gap(10).Wrap().AlignItems(ui.Center).Children(func() {
+		ui.Row(c).Gap(12).Wrap().AlignItems(ui.Center).Children(func() {
 			status := kit.Strong(c, i18n.T("links.status."+record.Status)).FontSize(kit.HelpSize(c))
 			if record.Status != "active" {
 				status.TextColor(theme.TextMuted)
@@ -602,24 +602,24 @@ func (t *linksTab) recordView(c *ui.Context, record directorylinks.Record, locke
 			kit.Help(c, text)
 		})
 		kit.Caption(c, i18n.T("links.checked")+"："+formatLinkTime(record.CheckedAt))
-		ui.Row(c).FillWidth().GapX(12).GapY(6).Wrap().AlignItems(ui.Center).Children(func() {
+		ui.Row(c).FillWidth().GapX(12).GapY(8).Wrap().AlignItems(ui.Center).Children(func() {
 			expected := "links.expectedTarget"
 			if record.Kind == "hardlink" {
 				expected = "links.recordedSource"
 			}
-			ui.Column(c).Basis(200).Grow(1).MinWidth(0).Gap(2).Children(func() {
+			ui.Column(c).Basis(200).Grow(1).MinWidth(0).Gap(4).Children(func() {
 				kit.Caption(c, i18n.T(expected))
 				ui.Text(c, record.TargetPath).FontSize(kit.HelpSize(c)).Selectable().MinWidth(0)
 			})
 			ui.Icon(c, icons.ArrowRight).FontSize(18).TextColor(theme.TextMuted)
-			ui.Column(c).Basis(200).Grow(1).MinWidth(0).Gap(2).Children(func() {
+			ui.Column(c).Basis(200).Grow(1).MinWidth(0).Gap(4).Children(func() {
 				kit.Caption(c, i18n.T("links.newEntry"))
 				ui.Text(c, record.LinkPath).FontSize(kit.HelpSize(c)).Selectable().MinWidth(0)
 			})
 		})
 		open := t.details[record.ID]
 		ui.Collapsible(c, i18n.T("links.details"), &open, func() {
-			ui.Column(c).FillWidth().Gap(6).Padding(6, 0).Children(func() {
+			ui.Column(c).FillWidth().Gap(8).Padding(8, 0).Children(func() {
 				created, label := record.CreatedAt, "links.createdAt"
 				if created == "" {
 					created, label = record.RegisteredAt, "links.registeredAt"
@@ -648,7 +648,7 @@ func (t *linksTab) recordView(c *ui.Context, record directorylinks.Record, locke
 		}).FontSize(kit.HelpSize(c))
 		t.details[record.ID] = open
 		if j := record.Migration; j != nil {
-			ui.Column(c).FillWidth().Gap(6).Children(func() {
+			ui.Column(c).FillWidth().Gap(8).Children(func() {
 				phase := "links.migrationPhase." + j.Phase
 				phaseText := j.Phase
 				if i18n.Has(phase) {

@@ -85,7 +85,7 @@ func (e *editor) connectionOptions(c *ui.Context, pr *provider, locked bool) {
 				})
 			})
 		}
-		kit.Stack(c, nativeT("serverPin"), nativeT("serverPinHint"), func() { kit.TextInput(c, &s.ServerPin).FillWidth().Label(nativeT("serverPin")).Disabled(locked) })
+		kit.Stack(c, nativeT("serverPin"), kit.Visible(nativeT("serverPinHint")), func() { kit.TextInput(c, &s.ServerPin).FillWidth().Label(nativeT("serverPin")).Disabled(locked) })
 		// A certificate read belongs to these endpoints and transport options.
 		// Editing the draft hides the previous read before it can be trusted.
 		source, _ := json.Marshal(map[string]any{"base": pr.BaseURL, "protocol": pr.Protocol, "endpoints": s.Endpoints, "proxy": s.Proxy, "resolve": s.Resolve, "cert": s.ClientCert, "key": s.ClientKey, "ca": s.ServerCA})

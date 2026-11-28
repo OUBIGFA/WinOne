@@ -51,9 +51,9 @@ func (r *ShortcutRecorder) Recording() bool { return r.phase != "" }
 func (r *ShortcutRecorder) View(c *ui.Context, label string, value *string, disabled, hint bool) bool {
 	t := c.Theme()
 	before := *value
-	ui.Column(c).Gap(6).Children(func() {
+	ui.Column(c).Gap(8).Children(func() {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-			field := ui.Box(c).Width(220).MinHeight(kit.ControlHeight).Padding(8, 10).Radius(t.Radius).Background(t.Surface).
+			field := ui.Box(c).Width(220).MinHeight(kit.ControlHeight).Padding(8, 12).Radius(t.Radius).Background(t.Surface).
 				Border(1, t.Border).Focusable().Label(label).Role(ui.RoleTextField).Cursor(ui.CursorText).Disabled(disabled)
 			focused := field.Focused()
 			switch {

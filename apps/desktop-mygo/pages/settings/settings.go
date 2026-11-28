@@ -333,7 +333,7 @@ func (p *page) startup(c *ui.Context, disabled bool) {
 		if kit.Toggle(c, &logon, i18n.T("startup.logon"), i18n.T("startup.logonHint")).Disabled(disabled).Changed() {
 			save(func(s *internalsettings.StartupPreferences) { s.RunAtLogon = logon })
 		}
-		if kit.Toggle(c, &silent, i18n.T("startup.silent"), i18n.T("startup.silentHint")).Disabled(disabled).Changed() {
+		if kit.Toggle(c, &silent, i18n.T("startup.silent"), "").Disabled(disabled).Changed() {
 			save(func(s *internalsettings.StartupPreferences) { s.StartMinimized = silent })
 		}
 	})
@@ -378,7 +378,7 @@ func (p *page) permissions(c *ui.Context, busy bool) {
 			helps = append(helps, i18n.T("permission.untilExit"))
 		}
 		on := remembered
-		if kit.Toggle(c, &on, i18n.T("permission.remember"), strings.Join(helps, "\n")).Disabled(disabled).Changed() {
+		if kit.Toggle(c, &on, i18n.T("permission.remember"), kit.Visible(strings.Join(helps, "\n"))).Disabled(disabled).Changed() {
 			p.setAdministrator(on)
 		}
 	})

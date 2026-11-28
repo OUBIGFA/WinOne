@@ -565,7 +565,7 @@ func (p *page) View(c *ui.Context) {
 	// independent workspace scroller would bypass their shared width and title.
 	kit.Page(c, func() {
 		p.upstreamNavigation(c)
-		ui.Column(c).FillWidth().Gap(18).Disabled(p.saving).Children(func() {
+		ui.Column(c).FillWidth().Gap(20).Disabled(p.saving).Children(func() {
 			p.overview(c)
 			p.notices(c)
 			switch p.tab {
@@ -692,7 +692,7 @@ func (p *page) overview(c *ui.Context) {
 	// layout follows shadcn/ui Item's media/content/action composition; all
 	// controls, marks and spacing use WinOne's existing native components.
 	kit.Panel(c, func() {
-		ui.Row(c).FillWidth().Padding(8, 16).GapX(10).GapY(6).Wrap().AlignItems(ui.Center).Children(func() {
+		ui.Row(c).FillWidth().Padding(8, kit.RowPadX).GapX(12).GapY(8).Wrap().AlignItems(ui.Center).Children(func() {
 			total := kit.Caption(c, i18n.T("ai.providerTotal", "count", len(enabled), "models", models)).SingleLine()
 			if len(enabled) == 0 {
 				// The count alone: the guide or the empty tab below says
@@ -707,7 +707,7 @@ func (p *page) overview(c *ui.Context) {
 					name = i18n.T("ai.unnamed")
 				}
 				id := pr.ID
-				b := ui.ButtonBase(c.Key(id)).MinHeight(28).Padding(4, 8).Gap(6).Radius(kit.ItemRadius).
+				b := ui.ButtonBase(c.Key(id)).MinHeight(28).Padding(4, 8).Gap(8).Radius(kit.ItemRadius).
 					AlignItems(ui.Center).MaxWidth(280).
 					Label(i18n.T("ai.providerCount", "name", name, "count", len(pr.Models))).Description(name).
 					Disabled(p.locked() || removed[id])

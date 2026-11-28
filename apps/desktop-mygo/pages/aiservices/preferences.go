@@ -104,7 +104,7 @@ func (e *editor) requestPreferences(c *ui.Context, pr *provider, locked bool) {
 	kit.Group(c, nil, i18n.T("aiOptions.transport"), "", func() {
 		kit.Stack(c, "", "", func() { e.proxyPreference(c, "provider", &s.Proxy, locked) })
 		choiceRow(c, i18n.T("ai.authHeader"), "", &s.AuthHeader, options("", i18n.T("ai.automatic"), "x-api-key", "x-api-key", "bearer", "Authorization: Bearer"), locked)
-		kit.Toggle(c, &s.InsecureTLS, i18n.T("ai.insecureTLS"), i18n.T("ai.insecureTLSHint")).Disabled(locked)
+		kit.Toggle(c, &s.InsecureTLS, i18n.T("ai.insecureTLS"), kit.Visible(i18n.T("ai.insecureTLSHint"))).Disabled(locked)
 		if pr.AuthMode == "api-key" && (pr.Protocol == "responses" || s.Endpoints != nil && s.Endpoints.Responses != "") {
 			choiceRow(c, nativeT("socket"), i18n.T("aiSync.socketHint"), &s.Socket, options("", i18n.T("aiOptions.default"), "off", nativeT("socketOff"), "auto", i18n.T("ai.automatic"), "on", nativeT("socketOn")), locked)
 		}
@@ -113,7 +113,7 @@ func (e *editor) requestPreferences(c *ui.Context, pr *provider, locked bool) {
 	})
 	kit.Group(c, nil, i18n.T("aiSync.maxImages"), i18n.T("aiSync.maxImagesHint"), func() {
 		for _, id := range sortedKeys(s.MaxImages) {
-			ui.Row(c.Key(id)).FillWidth().Padding(8, 16).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Row(c.Key(id)).FillWidth().Padding(8, kit.RowPadX).Gap(8).AlignItems(ui.Center).Children(func() {
 				n := s.MaxImages[id]
 				ui.Column(c).Grow(1).MinWidth(0).Children(func() {
 					if nativeInt(c, id, &n, 0, 1000, locked) {

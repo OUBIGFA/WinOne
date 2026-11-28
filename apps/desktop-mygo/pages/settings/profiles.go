@@ -41,7 +41,7 @@ type exporter struct {
 func (e *exporter) report() { e.page.env.Activity.Report("profile-export", false, e.busy, nil) }
 
 func (e *exporter) view(c *ui.Context) {
-	kit.Section(c, icons.Download, i18n.T("profiles.export"), i18n.T("profiles.exportHint"), func() {
+	kit.Section(c, icons.Download, i18n.T("profiles.export"), kit.Visible(i18n.T("profiles.exportHint")), func() {
 		// On a panel, as the groups of the other tabs are.
 		kit.Panel(c, func() {
 			kit.Stack(c, "", "", func() {
@@ -563,7 +563,7 @@ func (im *importer) blocked(issues []string) bool {
 
 func (im *importer) view(c *ui.Context) {
 	section := ui.Column(c).FillWidth().Gap(kit.HeadingGap).Children(func() {
-		kit.SectionHeading(c, icons.Upload, i18n.T("profiles.import"), i18n.T("profiles.importHint"))
+		kit.SectionHeading(c, icons.Upload, i18n.T("profiles.import"), "")
 		// The review below has panels of its own, so only the action sits here.
 		kit.Panel(c, func() {
 			kit.Stack(c, "", "", func() {
@@ -659,13 +659,13 @@ func onOff(on bool) string {
 func (im *importer) contents(c *ui.Context) {
 	preview := im.preview
 	kit.Panel(c, func() {
-		ui.Column(c).FillWidth().Padding(12, 16).Gap(6).Children(func() {
+		ui.Column(c).FillWidth().Padding(12, kit.RowPadX).Gap(8).Children(func() {
 			ui.Checkbox(c, &im.global, i18n.T("profiles.global"))
 			if !im.global {
 				return
 			}
 			prefs := preview.Preferences
-			ui.Column(c).PaddingStart(28).Gap(2).Children(func() {
+			ui.Column(c).PaddingStart(28).Gap(4).Children(func() {
 				language := languages[prefs.Language]
 				if language == "" {
 					language = prefs.Language
@@ -693,7 +693,7 @@ func (im *importer) contents(c *ui.Context) {
 			})
 		})
 		for _, module := range preview.Plan.Modules {
-			ui.Column(c.Key(module.ID)).FillWidth().Padding(12, 16).Gap(6).Children(func() {
+			ui.Column(c.Key(module.ID)).FillWidth().Padding(12, kit.RowPadX).Gap(8).Children(func() {
 				selected := slices.Contains(im.selected, module.ID)
 				on := selected
 				if ui.Checkbox(c, &on, moduleName(module.ID)).Changed() {
@@ -714,7 +714,7 @@ func (im *importer) contents(c *ui.Context) {
 					}
 					status += " · " + i18n.T(after)
 				}
-				ui.Column(c).PaddingStart(28).Gap(2).Children(func() {
+				ui.Column(c).PaddingStart(28).Gap(4).Children(func() {
 					kit.Help(c, status)
 					if selected && module.ID == "wintray" {
 						if apps, ok := preview.settings[module.ID].field("managedApps"); ok && apps.kind == arrayValue {
@@ -785,7 +785,7 @@ func (im *importer) pathRow(c *ui.Context, path profilePath) {
 	env := im.page.env
 	name := pathName(path)
 	row := kit.Stack(c.Key(path.ID), name, "", func() {
-		ui.Column(c).FillWidth().Gap(6).Children(func() {
+		ui.Column(c).FillWidth().Gap(8).Children(func() {
 			// The whole path wraps, as React's did: its end, the file
 			// name, is what tells the locations apart.
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {

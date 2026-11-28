@@ -221,7 +221,7 @@ func aiPickSelect(c *ui.Context, selected *string, items []aiPickItem, placehold
 			current = &items[i]
 		}
 	}
-	b := sel.Trigger.FillWidth().MinHeight(kit.ControlHeight).Padding(5, 10).Gap(8).Radius(t.Radius).Background(t.Surface).
+	b := sel.Trigger.FillWidth().MinHeight(kit.ControlHeight).Padding(4, 12).Gap(8).Radius(t.Radius).Background(t.Surface).
 		Border(1, t.Border).Justify(ui.SpaceBetween).AlignItems(ui.Center).MinWidth(0).Label(name).Disabled(disabled)
 	if b.Hovered() {
 		b.Background(t.SurfaceHover)
@@ -232,7 +232,7 @@ func aiPickSelect(c *ui.Context, selected *string, items []aiPickItem, placehold
 		b.Description(*selected)
 	}
 	b.Children(func() {
-		ui.Row(c).Gap(6).AlignItems(ui.Center).Grow(1).Shrink(1).MinWidth(0).Children(func() {
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Grow(1).Shrink(1).MinWidth(0).Children(func() {
 			switch {
 			case current != nil:
 				if current.icon != nil {
@@ -258,7 +258,7 @@ func aiPickSelect(c *ui.Context, selected *string, items []aiPickItem, placehold
 		panel.Margin(4, 0, 0, 0).Padding(4).Radius(kit.PanelRadius).Background(p.Panel).Border(1, t.Border).
 			Shadow(0, 8, 24, 0, ui.RGBA(0, 0, 0, alpha)).MinWidth(220).MaxWidth(520)
 		for _, item := range items {
-			row := sel.Item(item.value).Padding(6, 10).Gap(8).Radius(kit.ItemRadius).AlignItems(ui.Center)
+			row := sel.Item(item.value).Padding(8, 12).Gap(8).Radius(kit.ItemRadius).AlignItems(ui.Center)
 			if row.Highlighted() {
 				row.Background(t.SurfaceHover)
 			}
@@ -351,7 +351,7 @@ var aiPickMillions = regexp.MustCompile(`\b\d+M\b`)
 // aiPickBadge is kit.Badge holding several texts and an accessible description.
 func aiPickBadge(c *ui.Context, tip string, fn func()) {
 	t := c.Theme()
-	b := ui.Row(c).Gap(4).Padding(2, 6).Radius(kit.MicroRadius).Background(t.Surface).TextColor(t.TextMuted).
+	b := ui.Row(c).Gap(4).Padding(4, 8).Radius(kit.MicroRadius).Background(t.Surface).TextColor(t.TextMuted).
 		FontSize(kit.CaptionSize(c)).Shrink(0).AlignItems(ui.Center)
 	if tip != "" {
 		b.Description(tip)

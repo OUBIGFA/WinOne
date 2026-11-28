@@ -187,7 +187,7 @@ func (p *page) providersView(c *ui.Context) {
 		// Grouping controls inside a shared Panel aligns them to the 16 DIP page
 		// grid and centers every control on a single horizontal baseline.
 		kit.Panel(c, func() {
-			ui.Row(c).FillWidth().Padding(12, 16).GapX(10).GapY(8).Wrap().AlignItems(ui.Center).Children(func() {
+			ui.Row(c).FillWidth().Padding(12, kit.RowPadX).GapX(12).GapY(8).Wrap().AlignItems(ui.Center).Children(func() {
 				if pr != nil {
 					ui.Column(c).Basis(220).Grow(1).MinWidth(0).Children(func() { e.nameField(c, pr, locked) })
 					ui.Box(c).Width(1).Height(20).Background(pal.Hairline).Shrink(0)
@@ -246,7 +246,7 @@ func (e *editor) nameField(c *ui.Context, pr *provider, locked bool) {
 		action = "ai.finishRename"
 	}
 	id := pr.ID
-	ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 		if e.renaming {
 			field := e.fields.get("name")
 			if name, edited := field.sync(pr.Name); edited {
@@ -318,7 +318,6 @@ func (e *editor) View(c *ui.Context, pr *provider, old *provider) {
 	}
 	locked := p.locked()
 	if e.optionsOpen {
-		kit.Help(c, i18n.T("aiExperience.settingsHint"))
 		e.preferences(c, pr, locked)
 		return
 	}

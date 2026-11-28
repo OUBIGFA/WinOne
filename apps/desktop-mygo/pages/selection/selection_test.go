@@ -99,7 +99,7 @@ func setup(t *testing.T, module, state string, settings map[string]any) (*fakeHo
 		return internalhost.Snapshot{Modules: []internalhost.Module{{ID: module, State: state}}}
 	}
 	p := newPage(h.Env, module)
-	tt := ui.NewTester(p.View, 1000, 1400)
+	tt := ui.NewTester(p.View, 1000, 1800)
 	h.Settle(tt)
 	return fake, h, p, tt
 }
@@ -494,7 +494,7 @@ func TestShortcutsTabUsesSharedEditor(t *testing.T) {
 
 func TestHeadingsAndBusyDisabling(t *testing.T) {
 	_, h, p, tt := setup(t, "selection", "running", selectionDocument())
-	for _, text := range []string{"功能与顺序", "点击功能名称编辑详情，调整位置改变顺序。", "功能", "位置", "显示"} {
+	for _, text := range []string{"功能与顺序", i18n.T("notices.details"), "功能", "位置", "显示"} {
 		if !shows(tt, text) {
 			t.Fatalf("%q missing: %q", text, tt.Texts())
 		}

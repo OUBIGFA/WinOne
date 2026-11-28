@@ -310,7 +310,7 @@ func (s *Shortcuts) View(c *ui.Context) {
 					status = i18n.T("shortcuts.disabled")
 				}
 				value := shortcut(s.draft, field.key)
-				kit.Row(c.Key(field.key), i18n.T(field.label), status, func() {
+				kit.Row(c.Key(field.key), i18n.T(field.label), kit.Visible(status), func() {
 					if s.recorders[field.key].View(c, i18n.T(field.label), &value, busy, false) {
 						setShortcut(s.draft, field.key, value)
 					}

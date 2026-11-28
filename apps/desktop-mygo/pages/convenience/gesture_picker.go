@@ -110,14 +110,14 @@ func (p *pathPicker) View(c *ui.Context, disabled bool, pick func(strokeWindow))
 			if len(p.windows) == 0 {
 				kit.Help(c, i18n.T("stroke.noWindows"))
 			}
-			ui.Column(c).FillWidth().Gap(2).Role(ui.RoleList).Children(func() {
+			ui.Column(c).FillWidth().Gap(4).Role(ui.RoleList).Children(func() {
 				for _, target := range p.windows {
 					b := ui.ButtonBase(c.Key(target.Window)).FillWidth().Padding(8).Justify(ui.Start).Radius(kit.ItemRadius).Label(target.Title)
 					if b.Hovered() {
 						b.Background(theme.SurfaceHover)
 					}
 					b.Children(func() {
-						ui.Column(c).FillWidth().MinWidth(0).Gap(2).Children(func() {
+						ui.Column(c).FillWidth().MinWidth(0).Gap(4).Children(func() {
 							ui.Text(c, target.Title).SingleLine().Ellipsis("…").MinWidth(0)
 							kit.Help(c, target.ProcessPath)
 						})

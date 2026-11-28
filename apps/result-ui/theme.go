@@ -70,12 +70,12 @@ const (
 	// how far the initial result's region and the input box extend into
 	// it (and their inner padding), so every text starts on one line and
 	// every face on another.
-	gutter float32 = 28
+	gutter float32 = 32
 	bleed  float32 = 16
 	// composerInset is the composer's room at its sides and bottom, and
 	// the least room above the input box: the input box's face lines up
 	// with the result region's.
 	composerInset      float32 = gutter - bleed
-	quickToolbarHeight float32 = 42
+	quickToolbarHeight float32 = 44
 	iconButtonSize     float32 = 28
 )

@@ -129,7 +129,7 @@ func setup(t *testing.T, state string, apps ...map[string]any) *fixture {
 	}
 	f.h.Env.Refresh = func() { f.refreshed++ }
 	f.page = newPage(f.h.Env)
-	f.tt = ui.NewTester(f.page.View, 1300, 900)
+	f.tt = ui.NewTester(f.page.View, 1300, 1200)
 	f.h.Settle(f.tt)
 	return f
 }
@@ -568,7 +568,7 @@ func TestReadFailureOffersRetry(t *testing.T) {
 		return nil, testhost.Error{Code: "unavailable", Message: "模块未响应"}
 	})
 	f.page = newPage(f.h.Env)
-	f.tt = ui.NewTester(f.page.View, 1300, 900)
+	f.tt = ui.NewTester(f.page.View, 1300, 1200)
 	f.h.Settle(f.tt)
 	if !f.tt.HasText("模块未响应 (unavailable)") || f.tt.HasText("播放器") {
 		t.Fatalf("failure %q", f.tt.Texts())
@@ -693,7 +693,7 @@ func TestLoadingSaysTheModuleIsBeingReached(t *testing.T) {
 		return f.fake.snapshot(), nil
 	})
 	f.page = newPage(f.h.Env)
-	f.tt = ui.NewTester(f.page.View, 1300, 900)
+	f.tt = ui.NewTester(f.page.View, 1300, 1200)
 	f.tt.Frame()
 	if !f.tt.HasText("正在连接程序管理模块") || f.tt.HasText("播放器") {
 		t.Fatalf("loading %q", f.tt.Texts())

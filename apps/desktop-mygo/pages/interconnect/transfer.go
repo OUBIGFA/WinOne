@@ -356,7 +356,7 @@ func (p *transferPanel) composer(c *ui.Context, active, settingsPending bool) {
 		label = "store"
 	}
 	kit.Panel(c, func() {
-		ui.Column(c).FillWidth().Padding(16).Gap(14).Role(ui.RoleGroup).Label(tr(label)).Disabled(p.busy).Children(func() {
+		ui.Column(c).FillWidth().Padding(kit.RowPadY, kit.RowPadX).Gap(16).Role(ui.RoleGroup).Label(tr(label)).Disabled(p.busy).Children(func() {
 			if p.stored {
 				service := "croc"
 				if gofile {
@@ -381,7 +381,7 @@ func (p *transferPanel) composer(c *ui.Context, active, settingsPending bool) {
 					ui.Text(c, tr("transferServiceValue")).TextColor(c.Theme().TextMuted).SingleLine()
 				})
 			}
-			ui.Row(c).FillWidth().GapX(16).GapY(10).Wrap().Justify(ui.Center).Children(func() {
+			ui.Row(c).FillWidth().GapX(16).GapY(12).Wrap().Justify(ui.Center).Children(func() {
 				kit.Segmented(c, &p.direction, []kit.SelectOption{{Value: "send", Label: tr("send")}, {Value: "receive", Label: tr("receive")}}, tr("direction"))
 				if p.direction == "send" {
 					kit.Segmented(c, &p.payload, []kit.SelectOption{{Value: "files", Label: tr("sendFiles")}, {Value: "text", Label: tr("sendText")}}, tr("sendContent"))
@@ -539,7 +539,7 @@ func (p *transferPanel) sendInput(c *ui.Context, active bool, target *taskRecord
 func (p *transferPanel) receiveInput(c *ui.Context, gofile bool) {
 	f := &p.form
 	theme := c.Theme()
-	ui.Column(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(12, 0).Children(func() {
+	ui.Column(c).FillWidth().Gap(12).AlignItems(ui.Center).Padding(12, 0).Children(func() {
 		ui.Icon(c, icons.Download).FontSize(24).TextColor(theme.TextMuted)
 		heading, placeholder := "enterReceiveCode", "receivePlaceholder"
 		if gofile {
@@ -847,7 +847,7 @@ func (p *transferPanel) tasksView(c *ui.Context) {
 			empty = tr("storeReceiveEmpty")
 		}
 	}
-	kit.Section(c, icons.RefreshCw, tr(title), empty, func() {
+	kit.Section(c, icons.RefreshCw, tr(title), kit.Visible(empty), func() {
 		if len(records) == 0 {
 			return
 		}
@@ -912,7 +912,7 @@ func (p *transferPanel) taskView(c *ui.Context, item taskRecord) {
 	case "send":
 		fallback = "sendText"
 	}
-	article := ui.Column(c.Key(item.ID)).FillWidth().Padding(14, 16).Gap(10)
+	article := ui.Column(c.Key(item.ID)).FillWidth().Padding(kit.RowPadY, kit.RowPadX).Gap(12)
 	if p.reveal == item.ID && (s.Ready || s.Status != "running") {
 		// The result shows once per send, not on every progress read.
 		article.ScrollIntoView()
@@ -1017,7 +1017,7 @@ func (p *transferPanel) taskView(c *ui.Context, item taskRecord) {
 			})
 		}
 		if r.TextPath != "" {
-			ui.Column(c).FillWidth().Gap(6).Children(func() {
+			ui.Column(c).FillWidth().Gap(8).Children(func() {
 				ui.Text(c, tr("textReceived")+" "+r.TextPath).Selectable().MinWidth(0)
 				ui.Row(c).Gap(8).Wrap().Children(func() {
 					id := item.ID

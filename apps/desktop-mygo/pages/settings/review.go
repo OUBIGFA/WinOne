@@ -114,7 +114,7 @@ func (v value) text() string {
 // and action scripts as written, never interpreted. Identifiers and
 // revisions are left out. nested lays the fields out one under another.
 func reviewSettings(c *ui.Context, values value, paths []profilePath, nested bool) {
-	ui.Column(c).FillWidth().Gap(6).Children(func() {
+	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		for i, m := range values.members {
 			if slices.Contains([]string{"id", "version", "revision", "schemaVersion"}, m.key) {
 				continue
@@ -182,7 +182,7 @@ func showField(c *ui.Context, key string, v value, paths []profilePath) {
 		kit.Mono(c, location).Selectable()
 	case key == "code":
 		// An action script is shown as text, never run or rendered.
-		ui.Scroll(c).FillWidth().MaxHeight(240).Padding(8, 10).Radius(t.Radius).Background(t.Surface).Children(func() {
+		ui.Scroll(c).FillWidth().MaxHeight(240).Padding(8, 12).Radius(t.Radius).Background(t.Surface).Children(func() {
 			kit.Mono(c, v.text()).Selectable()
 		})
 	case v.kind == scalarValue && isBool(v):

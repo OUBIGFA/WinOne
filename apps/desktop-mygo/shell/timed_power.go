@@ -28,7 +28,7 @@ func (s *Shell) timedPower(c *ui.Context, compact bool) {
 		label = i18n.T("timedPower.dryRunTag")
 	}
 	ui.Box(c).FillWidth().Height(1).Margin(8, 0).Background(kit.Colors(c).Hairline)
-	panel := ui.Column(c).FillWidth().Padding(8, 4).Radius(theme.Radius).Gap(6).AlignItems(ui.Center)
+	panel := ui.Column(c).FillWidth().Padding(8, 4).Radius(theme.Radius).Gap(8).AlignItems(ui.Center)
 	if panel.Hovered() {
 		panel.Background(theme.SurfaceHover)
 	}

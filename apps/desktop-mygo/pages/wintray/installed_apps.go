@@ -146,7 +146,7 @@ func (p *page) installedApps(c *ui.Context) {
 					ui.List(c, &picker.list, len(filtered), func(index int) {
 						app := filtered[index]
 						key := app.Key()
-						ui.Row(c).Key(key).FillWidth().Padding(6, 8).Gap(12).AlignItems(ui.Center).Children(func() {
+						ui.Row(c).Key(key).FillWidth().Padding(8, 8).Gap(12).AlignItems(ui.Center).Children(func() {
 							selected := picker.selected[key]
 							choice := ui.Checkbox(c, &selected, "").Label(app.Name).Grow(1).Shrink(1).MinWidth(0).Description(strings.TrimSpace(app.Path + " " + app.Args))
 							choice.Children(func() {

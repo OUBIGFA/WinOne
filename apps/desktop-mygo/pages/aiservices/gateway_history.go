@@ -104,7 +104,7 @@ func (g *gatewayHistoryPanel) View(c *ui.Context, p *page) {
 		if index < g.page*20 || index >= (g.page+1)*20 {
 			continue
 		}
-		kit.Row(c.Key(session.Agent+session.ID), session.Agent+" / "+session.ID, session.Last, func() {
+		kit.Row(c.Key(session.Agent+session.ID), session.Agent+" / "+session.ID, kit.Visible(session.Last), func() {
 			if kit.Button(c, accessT("readSession"), icons.BookOpen, false).Disabled(g.api.busy).Clicked() {
 				g.api.request(p, "POST", "/api/winone/gateway/conversations/read", map[string]string{"agent": session.Agent, "id": session.ID}, func(raw json.RawMessage) {
 					var out struct {

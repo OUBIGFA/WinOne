@@ -184,7 +184,7 @@ func Menu(c *ui.Context, trigger ui.Element, state *State, o Options) (string, b
 			state.highlight, state.lit = "", false
 		}
 		width, height := c.Size()
-		ui.Column(c).FillWidth().MinWidth(min(340, max(200, width-24))).Gap(6).Children(func() {
+		ui.Column(c).FillWidth().MinWidth(min(340, max(200, width-24))).Gap(8).Children(func() {
 			search := ui.TextInput(c, &state.Search).FillWidth().Placeholder(o.Strings.Search).Label(o.Strings.Search).AutoFocus()
 			moved := false
 			move := func(step int) {
@@ -219,11 +219,11 @@ func Menu(c *ui.Context, trigger ui.Element, state *State, o Options) (string, b
 				}
 			}
 			ui.Scroll(c).FillWidth().MaxHeight(min(360, max(120, height-180))).Children(func() {
-				ui.Column(c).FillWidth().Gap(2).Role(ui.RoleList).Label(o.Strings.List).Children(func() {
+				ui.Column(c).FillWidth().Gap(4).Role(ui.RoleList).Label(o.Strings.List).Children(func() {
 					row := func(key, value, label string, mark func(), badge func(c *ui.Context), indent float32) {
 						chosen := value == o.Selected
 						lit := state.lit && value == state.highlight
-						r := ui.ButtonBase(c.Key(key)).FillWidth().Padding(6, 8, 6, indent).Gap(8).Radius(design.RadiusSM).
+						r := ui.ButtonBase(c.Key(key)).FillWidth().Padding(8, 8, 8, indent).Gap(8).Radius(design.RadiusSM).
 							Justify(ui.Start).AlignItems(ui.Center).Role(ui.RoleListItem).Selected(chosen).Label(label).Description(label)
 						switch {
 						case chosen:
@@ -265,7 +265,7 @@ func Menu(c *ui.Context, trigger ui.Element, state *State, o Options) (string, b
 							space = 16
 						}
 						ui.Column(c.Key("models-"+group.ID)).FillWidth().Gap(4).Margin(space, 0, 0, 0).Children(func() {
-							head := ui.ButtonBase(c).FillWidth().Padding(6, 8).Gap(8).Radius(design.RadiusSM).Justify(ui.Start).AlignItems(ui.Center).
+							head := ui.ButtonBase(c).FillWidth().Padding(8, 8).Gap(8).Radius(design.RadiusSM).Justify(ui.Start).AlignItems(ui.Center).
 								Label(o.Strings.Group + group.Name).Description(group.Name).Expanded(group.expanded)
 							head.BorderWidth(0, 0, 1, 0).BorderColor(t.Border.Mix(t.Background, 0.4))
 							if head.Hovered() {

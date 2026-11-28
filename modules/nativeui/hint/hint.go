@@ -46,7 +46,7 @@ func Attach(c *ui.Context, anchor ui.Element, text string) ui.Element {
 		tip.MaxWidth(shared.MaxWidth).Padding(shared.PaddingY, shared.PaddingX).
 			Radius(shared.Radius).Background(background).Border(1, border).
 			TextColor(foreground).FontSize(fontSize).
-			AttachTo(anchor, ui.AnchorTop, ui.AnchorBottom).Margin(0, 0, 6, 0).
+			AttachTo(anchor, ui.AnchorTop, ui.AnchorBottom).Margin(0, 0, 8, 0).
 			Children(func() { ui.Text(c, text).TextColor(foreground).FontSize(fontSize) })
 	})
 	return anchor

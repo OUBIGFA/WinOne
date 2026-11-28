@@ -91,7 +91,7 @@ func (p *Panel) renderDiagram(c *ui.Context, t *ui.Theme, source string, ready b
 	// The diagram never scrolls sideways (WinOne forbids horizontal
 	// scrolling): it shows at its own size or the reading column's width,
 	// whichever is smaller, and zooms within that room.
-	ui.Column(c).FillWidth().Gap(6).Children(func() {
+	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		var base, limit float32
 		if entry.bitmap != nil {
 			w, _ := entry.bitmap.Size()

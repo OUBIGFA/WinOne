@@ -20,7 +20,7 @@ func Tabs(c *ui.Context, selected *int, tabs []Tab, request func(apply func())) 
 	t, p := c.Theme(), Colors(c)
 	next := *selected
 	parts := ui.TabsBase(c, &next, len(tabs))
-	parts.List.FillWidth().Wrap().Gap(4).Padding(0, 0, 12, 0).BorderWidth(0, 0, 1, 0).BorderColor(p.Hairline).Children(func() {
+	parts.List.FillWidth().Wrap().Gap(4).Padding(0, 0, 16, 0).BorderWidth(0, 0, 1, 0).BorderColor(p.Hairline).Children(func() {
 		for i, tab := range tabs {
 			chosen := i == *selected
 			item := parts.Tab(i).Padding(8, 12).Radius(t.Radius).Gap(8).AlignItems(ui.Center).Shrink(0).MinWidth(0).
@@ -64,10 +64,10 @@ func SubTabs(c *ui.Context, selected *int, labels []string, request func(apply f
 	t := c.Theme()
 	next := *selected
 	parts := ui.TabsBase(c, &next, len(labels))
-	parts.List.Gap(2).Wrap().Children(func() {
+	parts.List.Gap(4).Wrap().Children(func() {
 		for i, label := range labels {
 			chosen := i == *selected
-			item := parts.Tab(i).Padding(6, 10).Shrink(1).MinWidth(0).Label(label)
+			item := parts.Tab(i).Padding(8, 12).Shrink(1).MinWidth(0).Label(label)
 			color := t.TextMuted
 			if chosen || item.Hovered() {
 				color = t.Text
@@ -78,7 +78,7 @@ func SubTabs(c *ui.Context, selected *int, labels []string, request func(apply f
 			}
 			item.TextColor(color).Children(func() {
 				ui.Text(c, label).SingleLine().MinWidth(0).FontSize(HelpSize(c))
-				ui.Box(c).Absolute().Left(10).Right(10).Bottom(0).Height(2).Radius(1).Background(indicator)
+				ui.Box(c).Absolute().Left(12).Right(12).Bottom(0).Height(2).Radius(1).Background(indicator)
 			})
 		}
 	})

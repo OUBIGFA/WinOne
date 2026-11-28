@@ -118,7 +118,7 @@ func (p *page) details(c *ui.Context) {
 		ui.Column(c).FillWidth().Gap(16).Children(func() {
 			ui.Column(c).FillWidth().Gap(4).Children(func() {
 				kit.Heading(c, name).Role(ui.RoleHeading).Level(2).Selectable()
-				ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
+				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 					button := hint.Attach(c, kit.IconButton(c, icons.FolderOpen, i18n.T("wintray.openLocation")),
 						i18n.T("wintray.locationHint")).Size(24, 24).Shrink(0).Disabled(p.blocked())
 					if button.Clicked() {
@@ -311,7 +311,7 @@ func (p *page) timing(c *ui.Context, app *program) {
 		limit := plan.FrequencyEnabled
 		help := ""
 		if !plan.Enabled {
-			help = i18n.T("settingsDesign.scheduleRequired")
+			help = kit.Visible(i18n.T("settingsDesign.scheduleRequired"))
 		}
 		if kit.Toggle(c, &limit, i18n.T("wintray.limitRuns"), help).Disabled(!plan.Enabled).Changed() {
 			p.update(id, func(a *program) { a.Schedule.Value.FrequencyEnabled = limit })
@@ -359,7 +359,7 @@ func (p *page) information(c *ui.Context, app *program) {
 			}
 		})
 		if applications.IsPath(app.ExePath) {
-			kit.Row(c, i18n.T("wintray.workingDirectory"), i18n.T("wintray.packagedDirectory"), nil)
+			kit.Row(c, i18n.T("wintray.workingDirectory"), kit.Visible(i18n.T("wintray.packagedDirectory")), nil)
 			return
 		}
 		directoryInput := p.handle(programKey(id, "workingDirectory"))

@@ -218,7 +218,7 @@ func (u *updater) view(c *ui.Context) {
 			}
 			help := ""
 			if u.info != nil && !u.info.Configured || u.result != nil && u.result.State == "not_configured" {
-				help = i18n.T("updates.notConfigured")
+				help = kit.Visible(i18n.T("updates.notConfigured"))
 			}
 			kit.Row(c, label, help, func() {
 				if kit.Button(c, i18n.T("updates.check"), icons.RefreshCw, u.checking).Disabled(u.info == nil || !u.info.Configured).Clicked() {
@@ -349,18 +349,18 @@ func (l *logs) view(c *ui.Context) {
 				return
 			}
 			if len(l.data.Entries) == 0 {
-				kit.Stack(c, "", i18n.T("diagnostics.empty"), func() {})
+				kit.Stack(c, "", kit.Visible(i18n.T("diagnostics.empty")), func() {})
 			}
 			t := c.Theme()
 			for _, entry := range l.data.Entries {
 				title := i18n.T("diagnostics." + entry.Name)
-				ui.Column(c.Key(entry.Name)).FillWidth().Padding(12, 16).Gap(6).Children(func() {
+				ui.Column(c.Key(entry.Name)).FillWidth().Padding(12, kit.RowPadX).Gap(8).Children(func() {
 					kit.Label(c, title).Role(ui.RoleHeading).Level(3)
 					if entry.Truncated {
 						kit.Help(c, i18n.T("diagnostics.truncated"))
 					}
 					if !entry.Available || entry.Text == "" {
-						kit.Help(c, i18n.T("diagnostics.empty"))
+						kit.Help(c, kit.Visible(i18n.T("diagnostics.empty")))
 						return
 					}
 					// A read-only text area lays out only the lines in view and

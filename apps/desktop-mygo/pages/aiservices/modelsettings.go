@@ -236,7 +236,7 @@ func (m *modelsPanel) settings(c *ui.Context, pr *provider, disabled bool) {
 // presetButtons are one-click values beside a field; the matching one
 // shows pressed.
 func presetButtons[T comparable](c *ui.Context, label string, current T, options []T, text func(T) string, choose func(T)) {
-	ui.Row(c).FillWidth().Gap(6).Wrap().Role(ui.RoleGroup).Label(label).Children(func() {
+	ui.Row(c).FillWidth().Gap(8).Wrap().Role(ui.RoleGroup).Label(label).Children(func() {
 		for _, option := range options {
 			option := option
 			b := kit.GhostButton(c.Key(text(option)), text(option), nil, false).Checked(current == option)
@@ -358,7 +358,7 @@ func (m *modelsPanel) pricing(c *ui.Context, meta modelMetadata, change func(fun
 		remove := -1
 		for index, doc := range price.Tiers {
 			tier := doc.Value
-			ui.Column(c.Key(index)).FillWidth().Gap(10).Padding(16, 0, 0, 0).BorderWidth(1, 0, 0, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
+			ui.Column(c.Key(index)).FillWidth().Gap(12).Padding(16, 0, 0, 0).BorderWidth(1, 0, 0, 0).BorderColor(kit.Colors(c).Hairline).Children(func() {
 				ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
 					kit.Label(c, i18n.T("aiComplete.priceTier", "number", index+1)).FontWeight(500).Grow(1)
 					if kit.IconButton(c, icons.X, i18n.T("aiComplete.removePriceTier", "number", index+1)).Clicked() {
@@ -424,7 +424,7 @@ func (m *modelsPanel) limitsOf(c *ui.Context, meta modelMetadata, change func(fu
 	}
 	ui.Column(c).FillWidth().Gap(16).Children(func() {
 		ui.Row(c).FillWidth().GapX(16).GapY(16).Wrap().AlignItems(ui.Start).Children(func() {
-			ui.Column(c).Basis(260).Grow(1).MinWidth(0).Gap(6).Children(func() {
+			ui.Column(c).Basis(260).Grow(1).MinWidth(0).Gap(8).Children(func() {
 				ui.Field(c, i18n.T("ai.contextWindow"), func() {
 					if v, changed := numberText(c, nonZero(meta.ContextWindow), 0, math.MaxInt, true, contextLabel, i18n.T("ai.contextWindow")); changed {
 						change(func(d *modelMetadata) { d.ContextWindow = ptr(value(v)) })
@@ -441,7 +441,7 @@ func (m *modelsPanel) limitsOf(c *ui.Context, meta modelMetadata, change func(fu
 					return tokenLabel(v)
 				}, func(v float64) { change(func(d *modelMetadata) { d.ContextWindow = ptr(v) }) })
 			})
-			ui.Column(c).Basis(260).Grow(1).MinWidth(0).Gap(6).Children(func() {
+			ui.Column(c).Basis(260).Grow(1).MinWidth(0).Gap(8).Children(func() {
 				ui.Field(c, i18n.T("ai.maxTokens"), func() {
 					if v, changed := numberText(c, nonZero(meta.MaxTokens), 0, math.MaxInt, true, outputLabel, i18n.T("ai.maxTokens")); changed {
 						change(func(d *modelMetadata) { d.MaxTokens = ptr(value(v)) })
@@ -478,7 +478,7 @@ func (m *modelsPanel) compaction(c *ui.Context, meta modelMetadata, change func(
 	set := func(v *float64) {
 		change(func(d *modelMetadata) { d.CompactionThreshold = v; d.CompactionPercent = nil })
 	}
-	ui.Column(c).FillWidth().Gap(6).Children(func() {
+	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		ui.Field(c, i18n.T("ai.compactionThreshold"), func() {
 			if v, changed := numberText(c, threshold, 0, math.MaxInt, true, defaultLabel, i18n.T("ai.compactionThreshold")); changed {
 				set(v)
@@ -536,7 +536,7 @@ func (m *modelsPanel) reasoning(c *ui.Context, meta modelMetadata, change func(f
 		}
 		return out
 	}
-	ui.Column(c).FillWidth().Gap(6).Children(func() {
+	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		effort := value(meta.ReasoningEffort)
 		ui.Field(c, i18n.T("ai.reasoningEffort"), func() {
 			changed, trigger := kit.Select(c, &effort, options(offered))

@@ -355,7 +355,7 @@ func (m *linkMigration) View(c *ui.Context, disabled bool, changed func([]direct
 				m.plan = nil
 			}
 		} else {
-			ui.Column(c).FillWidth().Gap(6).Children(func() {
+			ui.Column(c).FillWidth().Gap(8).Children(func() {
 				kit.Strong(c, i18n.T("links.migrationAction."+mode))
 				ui.Text(c, m.detailPath()).Selectable().MinWidth(0)
 				ui.Row(c).Children(func() {
@@ -387,7 +387,7 @@ func (m *linkMigration) View(c *ui.Context, disabled bool, changed func([]direct
 		})
 		if p := m.plan; p != nil {
 			kit.Section(c, nil, i18n.T("links.migrationPlan"), "", func() {
-				ui.Row(c).FillWidth().Gap(10).Wrap().AlignItems(ui.Center).Children(func() {
+				ui.Row(c).FillWidth().Gap(12).Wrap().AlignItems(ui.Center).Children(func() {
 					ui.Text(c, p.Source).Selectable().MinWidth(0)
 					ui.Icon(c, icons.ArrowRight).FontSize(18).TextColor(c.Theme().TextMuted)
 					ui.Text(c, p.Destination).Selectable().MinWidth(0)

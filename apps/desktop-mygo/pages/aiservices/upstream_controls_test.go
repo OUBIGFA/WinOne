@@ -173,7 +173,7 @@ func TestServerCertificateReadNeedsExplicitTrustAndFollowsTheDraft(t *testing.T)
 		}
 		return f.handle(method, params)
 	})
-	tt := ui.NewTester(func(c *ui.Context) { e.connectionOptions(c, pr, p.connectionBusy) }, 800, 1200)
+	tt := ui.NewTester(func(c *ui.Context) { e.connectionOptions(c, pr, p.connectionBusy) }, 800, 1600)
 	if err := tt.Click(nativeT("readCertificate")); err != nil {
 		t.Fatal(err)
 	}

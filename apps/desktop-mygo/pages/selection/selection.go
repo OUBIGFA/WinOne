@@ -407,7 +407,7 @@ func (p *page) general(c *ui.Context) {
 			keyboard := d.Keyboard != nil && *d.Keyboard
 			help := ""
 			if !automatic {
-				help = i18n.T("settingsDesign.selectionKeyboardRequires")
+				help = kit.Visible(i18n.T("settingsDesign.selectionKeyboardRequires"))
 			}
 			if kit.Toggle(c, &keyboard, i18n.T("selection.keyboard"), help).Disabled(!automatic).Changed() {
 				d.Keyboard = &keyboard

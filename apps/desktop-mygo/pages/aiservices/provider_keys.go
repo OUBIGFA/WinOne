@@ -104,7 +104,7 @@ func (e *editor) providerKeysView(c *ui.Context, pr *provider, locked bool) {
 				next := ticked
 				// A key held to this provider alone would be left no model,
 				// which reads as every model: upstream changes it on the key.
-				if kit.Toggle(c, &next, name, providerKeyNote(k)).Disabled(locked || s.api.busy || k.Only && ticked).Changed() && next != ticked {
+				if kit.Toggle(c, &next, name, kit.Visible(providerKeyNote(k))).Disabled(locked || s.api.busy || k.Only && ticked).Changed() && next != ticked {
 					body := map[string]any{"provider": pr.ID, "add": []string{}, "remove": []string{}}
 					if next {
 						body["add"] = []string{k.ID}

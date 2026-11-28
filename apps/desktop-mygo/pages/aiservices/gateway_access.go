@@ -210,7 +210,7 @@ func (a *gatewayAccessPanel) View(c *ui.Context, p *page) {
 	// group stays next to them.
 	ui.Column(c).FillWidth().Gap(12).Children(func() {
 		kit.Group(c, icons.ShieldCheck, accessT("title"), accessT("hint"), func() {
-			ui.Row(c).FillWidth().Padding(12, 16).Gap(8).AlignItems(ui.Center).Wrap().Children(func() {
+			ui.Row(c).FillWidth().Padding(12, kit.RowPadX).Gap(8).AlignItems(ui.Center).Wrap().Children(func() {
 				if kit.Button(c, accessT("add"), icons.Plus, false).Disabled(a.api.busy || a.dirty()).Clicked() {
 					a.creating = true
 					a.temporary = false
@@ -243,7 +243,7 @@ func (a *gatewayAccessPanel) View(c *ui.Context, p *page) {
 					if k.Expires != "" {
 						hint += " · " + accessT("expires") + " " + k.Expires
 					}
-					kit.Row(c, k.Name, hint, func() {
+					kit.Row(c, k.Name, kit.Visible(hint), func() {
 						if kit.IconButton(c, icons.ArrowUp, accessT("moveUp")).Disabled(a.api.busy || a.dirty() || index == 0).Clicked() {
 							a.action(p, "move-key", k, map[string]any{"index": index - 1})
 						}
@@ -314,7 +314,7 @@ func (a *gatewayAccessPanel) createView(c *ui.Context, p *page) {
 			})
 			kit.Toggle(c, &a.browser, accessT("browser"), accessT("browserHint")).Disabled(a.api.busy)
 		}
-		ui.Row(c).Padding(12, 16).Gap(8).Children(func() {
+		ui.Row(c).Padding(12, kit.RowPadX).Gap(8).Children(func() {
 			if kit.PrimaryButton(c, i18n.T("common.save"), icons.Check, a.api.busy).Disabled(a.api.busy || a.name == "").Clicked() {
 				if a.temporary {
 					a.api.request(p, "POST", "/api/winone/gateway/issue", map[string]any{"name": a.name, "ttl": a.ttl, "models": a.issueModels, "accounts": a.issueAccounts, "tokens": a.issueTokens, "cost": a.issueCost, "readOnly": a.issueReadOnly}, func(raw json.RawMessage) {
@@ -348,14 +348,14 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 	k := a.edit
 	locked := a.api.busy
 	ui.Column(c).FillWidth().Gap(8).Children(func() {
-		ui.Column(c).FillWidth().Padding(12, 16).Children(func() {
+		ui.Column(c).FillWidth().Padding(12, kit.RowPadX).Children(func() {
 			kit.SubTabs(c, &a.tab, []string{accessT("policy"), accessT("scope"), accessT("limits")}, nil)
 		})
 		switch a.tab {
 		case 0:
 			kit.Stack(c, "", "", func() { nativeText(c, accessT("name"), &k.Name, locked) })
 			nativeInt(c, i18n.T("ai.maxConcurrency"), &k.MaxConcurrency, 0, 1000, locked)
-			kit.Help(c, upstreamT("How many requests this key may have in flight at once. Beyond it they wait in order; 0 for no limit.")).Padding(0, 16)
+			kit.Help(c, upstreamT("How many requests this key may have in flight at once. Beyond it they wait in order; 0 for no limit.")).Padding(0, kit.RowPadX)
 			kit.Stack(c, "", "", func() {
 				nativeSelect(c, nativeT("keyServiceTier"), &k.ServiceTier, options("", nativeT("followRequest"), "default", nativeT("standardTier"), "priority", "priority", "ultrafast", "ultrafast"), locked)
 			})
@@ -363,7 +363,7 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 			kit.Toggle(c, &k.Quotas, accessT("quotas"), accessT("quotasHint")).Disabled(locked)
 			kit.Toggle(c, &k.Issues, accessT("issuer"), accessT("issuerHint")).Disabled(locked || k.Browser || k.Issuer != "" || k.Expires != "")
 		case 1:
-			kit.Help(c, accessT("scopeHint")).Padding(0, 16)
+			kit.Help(c, accessT("scopeHint")).Padding(0, kit.RowPadX)
 			noModels := slices.Equal(k.Models, []string{"-"})
 			kit.Toggle(c, &noModels, i18n.T("aiUpdate.noModels"), "").Disabled(locked)
 			if noModels {
@@ -484,7 +484,7 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 				limits = slices.Delete(limits, remove, remove+1)
 				a.fields = fields{}
 			}
-			ui.Row(c).Padding(0, 16).Children(func() {
+			ui.Row(c).Padding(0, kit.RowPadX).Children(func() {
 				if kit.Button(c, accessT("addLimit"), icons.Plus, false).Disabled(locked || len(limits) >= 5).Clicked() {
 					limits = append(limits, callerLimit{Period: "day"})
 				}
@@ -496,7 +496,7 @@ func (a *gatewayAccessPanel) editorView(c *ui.Context, p *page) {
 				k.More = limits[1:]
 			}
 		}
-		ui.Row(c).FillWidth().Padding(12, 16).Gap(8).Wrap().Children(func() {
+		ui.Row(c).FillWidth().Padding(12, kit.RowPadX).Gap(8).Wrap().Children(func() {
 			if kit.PrimaryButton(c, i18n.T("common.save"), icons.Check, locked).Disabled(locked || equal(k, a.saved)).Clicked() {
 				a.api.request(p, "POST", "/api/winone/gateway/configure", k, func(raw json.RawMessage) {
 					if a.accept(raw) {
@@ -597,7 +597,7 @@ func (a *gatewayAccessPanel) oidcView(c *ui.Context, p *page) {
 		}
 		kit.Stack(c, "", accessT("oidcHint"), func() {})
 		for _, r := range a.rules {
-			kit.Row(c.Key(r.ID), r.Issuer, r.Audience, func() {
+			kit.Row(c.Key(r.ID), r.Issuer, kit.Visible(r.Audience), func() {
 				if kit.IconButton(c, icons.Trash2, i18n.T("common.delete")).Disabled(a.api.busy).Clicked() {
 					a.api.request(p, "POST", "/api/winone/gateway/oidc/remove", map[string]string{"id": r.ID}, func(json.RawMessage) { a.rules = nil })
 				}

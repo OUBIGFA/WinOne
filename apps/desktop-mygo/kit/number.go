@@ -22,7 +22,7 @@ func numberBox(c *ui.Context, value *float64, low, high, step float64, unit, lab
 	scale := math.Pow(10, float64(decimals))
 	round := func(v float64) float64 { return math.Round(v*scale) / scale }
 	format := func(v float64) string { return strconv.FormatFloat(v, 'f', decimals, 64) }
-	box := ui.Row(c).MinHeight(ControlHeight).Padding(0, 10).Gap(6).AlignItems(ui.Center).
+	box := ui.Row(c).MinHeight(ControlHeight).Padding(0, 12).Gap(8).AlignItems(ui.Center).
 		Radius(t.Radius).Background(t.Surface).Border(1, t.Border).MinWidth(0)
 	text := ui.Local(box, "text", func() string { return format(*value) })
 	lastValue := ui.Local(box, "value", func() float64 { return *value })

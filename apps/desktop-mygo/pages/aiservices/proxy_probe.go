@@ -40,7 +40,7 @@ func (e *editor) proxyProbeView(c *ui.Context, key, choice string, locked bool) 
 	if w.value != choice {
 		w.value, w.err, w.result = choice, "", nil
 	}
-	ui.Column(c).FillWidth().Gap(6).Children(func() {
+	ui.Column(c).FillWidth().Gap(8).Children(func() {
 		if kit.Button(c, i18n.T("aiSync.proxyTest"), icons.Activity, w.busy).Disabled(locked || w.busy).Clicked() {
 			w.busy, w.err, w.result = true, "", nil
 			core.Go(e.p.env, func() (proxyProbeResult, error) {

@@ -252,7 +252,7 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owner
 	ui.Column(c).FillWidth().Gap(kit.GroupGap).Disabled(busy).Children(func() {
 		kit.Group(c, icons.Server, i18n.T("settingsDesign.gatewayRun"), i18n.T("gateway.hint"), func() {
 			kit.Toggle(c, &g.enabled, i18n.T("gateway.enable"), "")
-			kit.Row(c, i18n.T("gateway.port"), completeT("gatewayListenHint"), func() {
+			kit.Row(c, i18n.T("gateway.port"), kit.Visible(completeT("gatewayListenHint")), func() {
 				kit.TextInput(c, &g.port).Width(160).Label(i18n.T("gateway.port"))
 			})
 			kit.Row(c, i18n.T("gateway.status"), "", func() {
@@ -273,7 +273,7 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owner
 				kit.Stack(c, i18n.T("aiSync.bareModelIDs"), i18n.T("aiSync.bareModelIDsHint"), func() {
 					kit.Segmented(c, &g.bareMode, options("off", i18n.T("aiSync.bareOff"), "on", i18n.T("aiSync.bareAlongside"), "only", i18n.T("aiSync.bareOnly")), i18n.T("aiSync.bareModelIDs"))
 				})
-				kit.Toggle(c, &g.network.LAN, completeT("gatewayLAN"), completeT("gatewayLANHint")).Disabled(busy)
+				kit.Toggle(c, &g.network.LAN, completeT("gatewayLAN"), kit.Visible(completeT("gatewayLANHint"))).Disabled(busy)
 				if g.network.LAN {
 					kit.Stack(c, "", "", func() {
 						nativeList(c, g.fields, "gatewayIPs", completeT("gatewayIPs"), &g.network.AllowIPs, busy)
@@ -284,7 +284,7 @@ func (g *gatewayPanel) View(c *ui.Context, providers []widgets.AIProvider, owner
 					nativeList(c, g.fields, "gatewayOrigins", completeT("gatewayOrigins"), &g.network.CORSOrigins, busy)
 					kit.Help(c, completeT("gatewayOriginsHint"))
 				})
-				kit.Toggle(c, &g.native, accessT("native"), accessT("nativeHint")).Disabled(busy)
+				kit.Toggle(c, &g.native, accessT("native"), kit.Visible(accessT("nativeHint"))).Disabled(busy)
 			})
 		})
 		if len(owners) > 0 {
@@ -384,7 +384,7 @@ func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider,
 			entries = append(entries, gatewayEntry{provider: pr, model: model})
 		}
 	}
-	kit.Section(c, icons.ListChecks, i18n.T("gateway.models"), i18n.T("gateway.modelsHint"), func() {
+	kit.Section(c, icons.ListChecks, i18n.T("gateway.models"), "", func() {
 		if len(all) == 0 {
 			kit.Help(c, i18n.T("gateway.empty"))
 			return
@@ -393,10 +393,10 @@ func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider,
 			kit.Panel(c, func() {
 				// Search, then the count with the bulk actions, as a provider's
 				// model list lays them out.
-				ui.Row(c).FillWidth().Padding(12, 16).AlignItems(ui.Center).Children(func() {
+				ui.Row(c).FillWidth().Padding(12, kit.RowPadX).AlignItems(ui.Center).Children(func() {
 					kit.TextInput(c, &g.query).FillWidth().MinWidth(0).Placeholder(i18n.T("gateway.searchModels")).Label(i18n.T("gateway.searchModels"))
 				})
-				ui.Row(c).FillWidth().Padding(6, 16).Gap(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).
+				ui.Row(c).FillWidth().Padding(8, kit.RowPadX).Gap(8).Wrap().AlignItems(ui.Center).Justify(ui.SpaceBetween).
 					Background(t.Background.Alpha(0.45)).Children(func() {
 					kit.Caption(c, i18n.T("gateway.enabledModels", "count", count, "total", len(all)))
 					ui.Row(c).Gap(4).Role(ui.RoleGroup).Label(i18n.T("ai.modelBulkActions")).Children(func() {
@@ -428,7 +428,7 @@ func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider,
 							}
 						}
 						on := chosen == len(pr.Models)
-						box := ui.CheckboxBase(c, &on).FillWidth().Padding(6, 10).Gap(10).AlignItems(ui.Center).Radius(kit.ItemRadius).
+						box := ui.CheckboxBase(c, &on).FillWidth().Padding(8, 12).Gap(12).AlignItems(ui.Center).Radius(kit.ItemRadius).
 							Background(t.Surface).Label(i18n.T("gateway.enableProvider", "provider", pr.Name)).Disabled(disabled)
 						if box.Changed() {
 							toggle(refs, on)
@@ -448,7 +448,7 @@ func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider,
 					ref := widgets.AISelection{Provider: pr.ID, Model: entry.model}
 					on := enabled[route(ref)]
 					name := widgets.ModelLabel(pr, entry.model)
-					box := ui.CheckboxBase(c, &on).FillWidth().Padding(6, 10, 6, 36).Gap(8).AlignItems(ui.Center).Radius(kit.ItemRadius).
+					box := ui.CheckboxBase(c, &on).FillWidth().Padding(8, 12, 8, 36).Gap(8).AlignItems(ui.Center).Radius(kit.ItemRadius).
 						Label(pr.Name + " · " + name).Disabled(disabled)
 					if box.Hovered() {
 						box.Background(t.SurfaceHover)
@@ -464,7 +464,7 @@ func (g *gatewayPanel) modelsView(c *ui.Context, providers []widgets.AIProvider,
 							badges(c)
 						}
 					})
-				}).FillWidth().Height(g.height).Padding(6).Gap(2).
+				}).FillWidth().Height(g.height).Padding(8).Gap(4).
 					Label(i18n.T("gateway.models")).Description(i18n.T("ai.resizeModelList"))
 				list.Children(func() {
 					if len(entries) == 0 {
@@ -498,7 +498,7 @@ func (g *gatewayPanel) credentialsView(c *ui.Context, busy bool) {
 	for _, address := range s.LANURLs {
 		kit.Stack(c, completeT("gatewayLANAddress"), "", func() { kit.TextInput(c, &address).FillWidth().ReadOnly(true).Label(completeT("gatewayLANAddress")) })
 	}
-	kit.Stack(c, i18n.T("gateway.key"), i18n.T("gateway.keyHint"), func() {
+	kit.Stack(c, i18n.T("gateway.key"), kit.Visible(i18n.T("gateway.keyHint")), func() {
 		placeholder := ""
 		if s.HasKey {
 			placeholder = "••••••••"

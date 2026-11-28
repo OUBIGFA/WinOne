@@ -30,7 +30,7 @@ func (s *Shell) titleBar(c *ui.Context) {
 	t, p := c.Theme(), kit.Colors(c)
 	ui.Row(c).FillWidth().Height(titleBarHeight).AlignItems(ui.Stretch).Background(t.Background).
 		BorderWidth(0, 0, 1, 0).BorderColor(p.Hairline).Children(func() {
-		ui.Row(c).Grow(1).MinWidth(0).Padding(0, 12, 0, 16).Gap(10).AlignItems(ui.Center).DragWindow().Children(func() {
+		ui.Row(c).Grow(1).MinWidth(0).Padding(0, 12, 0, 16).Gap(12).AlignItems(ui.Center).DragWindow().Children(func() {
 			if logo != nil {
 				ui.Image(c, logo).Size(22, 22).Fit(ui.Contain).Shrink(0)
 			}
@@ -115,20 +115,20 @@ func (s *Shell) sidebar(c *ui.Context) {
 				}
 			}
 		})
-		ui.Scroll(c).Grow(1).MinHeight(0).Padding(4, 8).Gap(2).FocusGroup(ui.Vertical).Children(func() {
+		ui.Scroll(c).Grow(1).MinHeight(0).Padding(4, 8).Gap(4).FocusGroup(ui.Vertical).Children(func() {
 			for _, item := range pages() {
 				if !item.footer {
 					s.navItem(c, item, compact)
 				}
 			}
 		})
-		ui.Column(c).Padding(4, 8, 12).Gap(2).FocusGroup(ui.Vertical).Children(func() {
+		ui.Column(c).Padding(4, 8, 12).Gap(4).FocusGroup(ui.Vertical).Children(func() {
 			for _, item := range pages() {
 				if !item.footer {
 					continue
 				}
 				if item.separated {
-					ui.Box(c).Height(1).Margin(6, 8).Background(p.Hairline)
+					ui.Box(c).Height(1).Margin(8, 8).Background(p.Hairline)
 				}
 				s.navItem(c, item, compact)
 			}

@@ -25,7 +25,7 @@ func numberText(c *ui.Context, value *float64, low, high float64, whole bool, pl
 		}
 		return strconv.FormatFloat(*v, 'f', -1, 64)
 	}
-	box := ui.Row(c).MinHeight(kit.ControlHeight).Padding(0, 10).Radius(t.Radius).Background(t.Surface).
+	box := ui.Row(c).MinHeight(kit.ControlHeight).Padding(0, 12).Radius(t.Radius).Background(t.Surface).
 		Border(1, t.Border).AlignItems(ui.Center).MinWidth(0).Width(160)
 	text := ui.Local(box, "text", func() string { return format(value) })
 	lastValue := ui.Local(box, "value", func() string { return format(value) })

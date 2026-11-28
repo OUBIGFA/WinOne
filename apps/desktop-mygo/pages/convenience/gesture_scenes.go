@@ -189,7 +189,7 @@ func (s *scenes) View(c *ui.Context, disabled bool) {
 		}
 		// The scenes beside their content; one column in a narrow window.
 		ui.Row(c).FillWidth().GapX(20).GapY(16).Wrap().AlignItems(ui.Start).Children(func() {
-			ui.Column(c).Basis(220).Grow(0).Shrink(1).MinWidth(180).Gap(2).Role(ui.RoleGroup).Label(i18n.T("stroke.scopes")).
+			ui.Column(c).Basis(220).Grow(0).Shrink(1).MinWidth(180).Gap(4).Role(ui.RoleGroup).Label(i18n.T("stroke.scopes")).
 				Children(func() {
 					for _, item := range ordered {
 						index := slices.IndexFunc(d.Scopes, func(sc stroke.Scope) bool { return sc.ID == item.ID })
@@ -199,7 +199,7 @@ func (s *scenes) View(c *ui.Context, disabled bool) {
 							row.Background(theme.SurfaceHover)
 						}
 						row.Children(func() {
-							b := ui.ButtonBase(c).Grow(1).MinWidth(0).MinHeight(44).Padding(10, 8).Gap(8).Justify(ui.Start).AlignItems(ui.Center).
+							b := ui.ButtonBase(c).Grow(1).MinWidth(0).MinHeight(44).Padding(12, 8).Gap(8).Justify(ui.Start).AlignItems(ui.Center).
 								Radius(theme.Radius).Label(item.Name).Description(item.Name).Checked(selected).Disabled(disabled)
 							b.Children(func() {
 								ui.Icon(c, sceneIcon(item)).FontSize(16).Shrink(0).TextColor(theme.TextMuted)
@@ -261,7 +261,7 @@ func (s *scenes) content(c *ui.Context, scope stroke.Scope, disabled bool, hairl
 		Children(func() {
 			for _, entry := range entries {
 				pack, action := entry.pack, entry.action
-				ui.Row(c.Key(pack.ID+"/"+action.ID)).FillWidth().Padding(14, 0).GapX(14).GapY(10).Wrap().AlignItems(ui.Center).
+				ui.Row(c.Key(pack.ID+"/"+action.ID)).FillWidth().Padding(16, 0).GapX(16).GapY(12).Wrap().AlignItems(ui.Center).
 					BorderWidth(0, 0, 1, 0).BorderColor(hairline).Role(ui.RoleListItem).Label(i18n.T("stroke.sceneAction", "name", action.Name)).
 					Children(func() {
 						ui.Row(c).Size(64, 48).Shrink(0).Justify(ui.Center).AlignItems(ui.Center).Children(func() {
@@ -271,7 +271,7 @@ func (s *scenes) content(c *ui.Context, scope stroke.Scope, disabled bool, hairl
 								ui.Icon(c, icons.Mouse).FontSize(24).TextColor(c.Theme().TextMuted)
 							}
 						})
-						ui.Column(c).Basis(160).Grow(1).Shrink(1).MinWidth(0).Gap(2).Children(func() {
+						ui.Column(c).Basis(160).Grow(1).Shrink(1).MinWidth(0).Gap(4).Children(func() {
 							kit.Strong(c, action.Name)
 							kit.Help(c, pack.Name)
 							if entry.overriddenBy != "" {

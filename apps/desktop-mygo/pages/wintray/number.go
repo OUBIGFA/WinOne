@@ -27,9 +27,9 @@ func (p *page) handle(key string) *ui.Handle {
 func field(c *ui.Context, key, label string, input *ui.Handle, stacked bool, control func()) {
 	var container ui.Element
 	if stacked {
-		container = ui.Column(c.Key(key)).FillWidth().Padding(12, 16).Gap(8)
+		container = ui.Column(c.Key(key)).FillWidth().Padding(12, kit.RowPadX).Gap(8)
 	} else {
-		container = ui.Row(c.Key(key)).FillWidth().MinHeight(kit.RowMinHeight).Padding(12, 16).GapX(24).GapY(8).AlignItems(ui.Center).Wrap()
+		container = ui.Row(c.Key(key)).FillWidth().MinHeight(kit.RowMinHeight).Padding(12, kit.RowPadX).GapX(24).GapY(8).AlignItems(ui.Center).Wrap()
 	}
 	container.Children(func() {
 		text := kit.Label(c, label)

@@ -35,15 +35,15 @@ func DangerButton(c *ui.Context, label string, icon *ui.SVG, busy bool) ui.Eleme
 	if t.Dark {
 		text = ui.Hex("#1a1a1a")
 	}
-	return b.Padding(t.Space(1.5), t.Space(3.5)).Gap(t.Space(1.5)).Radius(t.Radius).Background(fill).TextColor(text)
+	return b.Padding(t.Space(2), t.Space(4)).Gap(t.Space(2)).Radius(t.Radius).Background(fill).TextColor(text)
 }
 
 // GhostButton has no face until hovered, for secondary actions inside
 // rows and toolbars.
 func GhostButton(c *ui.Context, label string, icon *ui.SVG, busy bool) ui.Element {
 	t := c.Theme()
-	b := decorate(c, ui.ButtonBase(c), label, icon, busy).Padding(t.Space(1.5), t.Space(2.5)).
-		Gap(t.Space(1.5)).Radius(t.Radius)
+	b := decorate(c, ui.ButtonBase(c), label, icon, busy).Padding(t.Space(2), t.Space(3)).
+		Gap(t.Space(2)).Radius(t.Radius)
 	if b.Pressed() {
 		b.Background(t.SurfacePressed)
 	} else if b.Hovered() {
@@ -92,7 +92,7 @@ func OutlineIconButton(c *ui.Context, icon *ui.SVG, label string, primary bool) 
 		b = ui.Button(c, "")
 	}
 	return hint.Attach(c, b.Size(ControlHeight+4, ControlHeight+4).Padding(0).Justify(ui.Center).AlignItems(ui.Center).
-		Label(label), label).Shadow(0, 1, 3, 0, ui.RGBA(0, 0, 0, shadowAlpha(t))).
+		Label(label), label).Shadow(0, 4, 12, 0, ui.RGBA(0, 0, 0, shadowAlpha(t))).
 		Children(func() { ui.Icon(c, icon).FontSize(16) })
 }
 
