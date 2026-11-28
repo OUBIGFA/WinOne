@@ -462,7 +462,10 @@ try:
             action(10);wait_until(lambda:len(collection()['fragments'])==0)
             action(4);action(4);wait_until(lambda:len(collection()['fragments'])==2)
             rpc('probe.render',{'name':'collection.png'});wait_until(lambda:(output/'collection.png').is_file())
-            action(2);wait_until(lambda:collection()['suspended'] and not user.IsWindowVisible(canvas))
+            # Post through the production message loop: dialog traversal must
+            # not steal the canvas's Tab action before its handler sees it.
+            user.PostMessageW(canvas,0x100,0x09,0)
+            wait_until(lambda:collection()['suspended'] and not user.IsWindowVisible(canvas))
             rpc('capture.activate');canvas=wait_until(overlay);wait_until(lambda:not collection()['suspended'])
             send(canvas,0x201,1,(480<<16)|500);send(canvas,0x200,1,(600<<16)|740);send(canvas,0x202,0,(600<<16)|740)
             wait_until(lambda:len(collection()['fragments'])==3)
